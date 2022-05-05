@@ -1,0 +1,278 @@
+service: llama-apy
+
+package:
+  individually: true
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  stage: dev
+  region: eu-central-1
+  tracing:
+    apiGateway: true
+    lambda: true
+  memorySize: 256
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - xray:PutTraceSegments
+            - xray:PutTelemetryRecords
+          Resource: '*'
+        - Effect: Allow
+          Action:
+            - s3:ListBucket
+            - s3:*Object*
+            - sqs:SendMessage
+          Resource: '*'
+        - Effect: Allow
+          Action:
+            - ssm:PutParameter
+            - ssm:GetParameter
+            - ssm:DescribeParameters
+            - kms:Decrypt
+          Resource: '*'
+
+  environment:
+    # for entrypoint and enrichment
+    ADAPTORS: ${file(./env.js):ADAPTORS}
+    # for api handlers
+    APIG_URL:
+      {
+        'Fn::Join':
+          [
+            '',
+            [
+              'https://',
+              { Ref: 'HttpApi' },
+              '.execute-api.',
+              { Ref: 'AWS::Region' },
+              '.',
+              { Ref: 'AWS::URLSuffix' },
+            ],
+          ],
+      }
+    SSM_PATH: ${self:custom.ssmPath}
+    BUCKET_DATA: { Ref: BucketData }
+
+  httpApi:
+    metrics: true
+    cors:
+      allowedMethods:
+        - GET
+    authorizers:
+      JwtAuthorizer:
+        type: jwt
+        identitySource: $request.header.Authorization
+        issuerUrl: ${ssm:${self:custom.ssmPath}/issuer}
+        audience: ${ssm:${self:custom.ssmPath}/audience}
+
+functions:
+  triggerAuthenticate:
+    handler: src/handlers/triggerAuthenticate.handler
+    description: Lambda to create bearer token which stores to ssm
+    timeout: 30
+    events:
+      # every 12hours
+      - schedule: rate(12 hours)
+
+  # --- top-lvl-entrypoint
+  triggerEntrypoint:
+    handler: src/handlers/triggerEntrypoint.handler
+    description: Lambda to launch the adaptor pipeline
+    timeout: 30
+    events:
+      # every new hour
+      - schedule: cron(0 * * * ? *)
+    environment:
+      ADAPTER_QUEUE_URL: { Ref: AdapterQueue }
+
+  # --- adaptors
+  triggerAdaptor:
+    handler: src/handlers/triggerAdaptor.handler
+    description: Lambda which runs adaptors
+    timeout: 600
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - AdapterQueue
+              - Arn
+          batchSize: 2
+          functionResponseType: ReportBatchItemFailures
+    environment:
+      ETHERSCAN: ${file(./env.js):ETHERSCAN}
+      FANTOMSCAN: ${file(./env.js):FANTOMSCAN}
+      POLYGONSCAN: ${file(./env.js):POLYGONSCAN}
+      SNOWTRACE: ${file(./env.js):SNOWTRACE}
+      ARBISCAN: ${file(./env.js):ARBISCAN}
+      OPTIMISM: ${file(./env.js):OPTIMISM}
+      INFURA_CONNECTION: ${file(./env.js):INFURA_CONNECTION}
+
+  # --- data enrichment (pct-changes)
+  triggerEnrichment:
+    handler: src/handlers/triggerEnrichment.handler
+    description: Lambda which runs enrichment process
+    timeout: 300
+    events:
+      # every hour at 20 past
+      - schedule: cron(20 * * * ? *)
+
+  # --- DB Crud operations
+  getPools:
+    handler: src/handlers/getPools.handler
+    description: Lambda for retrieving the latest data for each unique pool
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /pools
+
+  storePools:
+    handler: src/handlers/storePools.handler
+    description: Lambda for db bulkwrite
+    timeout: 20
+    events:
+      - httpApi:
+          method: post
+          path: /pools
+          authorizer:
+            name: JwtAuthorizer
+
+  deletePools:
+    handler: src/handlers/deletePools.handler
+    description: Lambda for deleteMany operation of pool data
+    timeout: 20
+    events:
+      - httpApi:
+          method: delete
+          path: /pools/{project}/{timestamp}
+          authorizer:
+            name: JwtAuthorizer
+
+  getPoolsEnriched:
+    handler: src/handlers/getPoolsEnriched.handler
+    description: Lambda for retrieving the latest enriched data for each unique pool
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /poolsEnriched
+
+  getChart:
+    handler: src/handlers/getChart.handler
+    description: Lambda for retrieving chart data for a particular pool
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /chart/{pool}
+
+  getOffsets:
+    handler: src/handlers/getOffsets.handler
+    description: Lambda for getting 1/7/30 day offset data of apy values
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /offsets/{project}/{days}
+
+  getStds:
+    handler: src/handlers/getStds.handler
+    description: Lambda for retrieving std data
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /stds
+
+  storeStds:
+    handler: src/handlers/storeStds.handler
+    description: Lambda for db bulkupdate of std data
+    timeout: 20
+    events:
+      - httpApi:
+          method: post
+          path: /stds
+          authorizer:
+            name: JwtAuthorizer
+
+resources:
+  Resources:
+    # QUEUES
+    # --- queue for adaptor handler
+    AdapterQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:custom.stage}-AdapterQueue
+        VisibilityTimeout: 660
+        # setting this to 9hours
+        MessageRetentionPeriod: 32400
+        RedrivePolicy:
+          deadLetterTargetArn:
+            Fn::GetAtt:
+              - DeadLetterQueue
+              - Arn
+          # this params is requried, otherwise cloudformation error
+          # means that after 3 failed runs, the message will be moved from the adaptor queue
+          # to the DLQ
+          maxReceiveCount: 3
+
+    # --- DLQ
+    DeadLetterQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:custom.stage}-DeadLetterQueue
+        # leaving this at max, 14days, after that msg in there will be deleted
+        MessageRetentionPeriod: 1209600
+
+    # --- create bucket
+    BucketData:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:service}-${self:custom.stage}-data
+
+    # --- alarm stuff for DLQ
+    DlqAlarm:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: ${self:service}-${self:custom.stage}-AdapterDLQ
+        AlarmDescription: There are failed messages in the dead letter queue.
+        Namespace: AWS/SQS
+        MetricName: ApproximateNumberOfMessagesVisible
+        Dimensions:
+          - Name: QueueName
+            Value: !GetAtt DeadLetterQueue.QueueName
+        Statistic: Sum
+        Period: 60
+        EvaluationPeriods: 1
+        Threshold: 0
+        ComparisonOperator: GreaterThanThreshold
+        AlarmActions:
+          - !Ref DlqAlarmEmail
+
+    DlqAlarmEmail:
+      Type: AWS::SNS::Topic
+      Properties:
+        Subscription:
+          - Endpoint: slasher125@protonmail.com
+            Protocol: email
+
+custom:
+  stage: ${opt:stage, self:provider.stage}
+  ssmPath: /${self:service}/serverless/sls-authenticate
+  webpack:
+    webpackConfig: 'webpack.config.js'
+    includeModules: true
+    packager: 'npm'
+    excludeFiles: src/**/*.test.js
+  prune:
+    automatic: true
+    number: 5
+
+plugins:
+  - serverless-webpack
+  - serverless-prune-plugin
