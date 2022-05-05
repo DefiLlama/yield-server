@@ -1,0 +1,68 @@
+const utils = require('../utils');
+
+const url = 'https://api.compound.finance/api/v2/ctoken';
+
+const apy = (entry, ethPriceUSD) => {
+  entry = { ...entry };
+
+  const totalSupply =
+    Number(entry.cash.value) +
+    Number(entry.reserves.value) +
+    Number(entry.total_borrows.value);
+
+  entry.totalSupplyUSD =
+    totalSupply * Number(entry.underlying_price.value) * ethPriceUSD;
+
+  entry.apy =
+    entry.supply_rate.value * 100 + Number(entry.comp_supply_apy.value);
+
+  return entry;
+};
+
+const buildPool = (entry, chainString) => {
+  // these are deprecated, dont want to include those
+  // re WBTC: compound has a second WBTC token called WBTC2, which is active
+  // and which we also include
+  const exclude = ['cWBTC', 'cSAI', 'cREP'];
+  if (!exclude.includes(entry.symbol)) {
+    const newObj = {
+      pool: entry.token_address,
+      chain: utils.formatChain(chainString),
+      project: 'compound',
+      symbol: utils.formatSymbol(
+        entry.symbol === 'cWBTC2' ? 'cWBTC' : entry.symbol
+      ),
+      tvlUsd: entry.totalSupplyUSD,
+      apy: entry.apy,
+    };
+    return newObj;
+  }
+};
+
+const topLvl = async (chainString, url) => {
+  // get eth price
+  const ethPriceUSD = await utils.getCGpriceData(chainString, true);
+
+  // pull data
+  let data = await utils.getData(url);
+
+  // calculate apy
+  data = data.cToken.map((el) => apy(el, ethPriceUSD.ethereum.usd));
+
+  // build pool objects
+  data = data
+    .map((el) => buildPool(el, chainString))
+    .filter((el) => el !== undefined);
+
+  return data;
+};
+
+const main = async () => {
+  const data = await Promise.all([topLvl('ethereum', url)]);
+  return data.flat();
+};
+
+module.exports = {
+  timetravel: false,
+  apy: main,
+};

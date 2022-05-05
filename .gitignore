@@ -1,0 +1,7 @@
+.DS_Store
+node_modules
+ccImages
+*.env
+.vscode/
+.serverless
+.webpack

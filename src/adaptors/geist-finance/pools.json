@@ -1,0 +1,38 @@
+[
+  {
+    "address": "0x07E6332dD090D287d3489245038daF987955DCFB",
+    "symbol": "gDAI"
+  },
+  {
+    "address": "0x25c130B2624CF12A4Ea30143eF50c5D68cEFA22f",
+    "symbol": "gETH"
+  },
+  {
+    "address": "0x39B3bd37208CBaDE74D0fcBDBb12D606295b430a",
+    "symbol": "gFTM"
+  },
+  {
+    "address": "0x38aCa5484B8603373Acc6961Ecd57a6a594510A3",
+    "symbol": "gWBTC"
+  },
+  {
+    "address": "0x940F41F0ec9ba1A34CF001cc03347ac092F5F6B5",
+    "symbol": "gfUSDT"
+  },
+  {
+    "address": "0xe578C856933D8e1082740bf7661e379Aa2A30b26",
+    "symbol": "gUSDC"
+  },
+  {
+    "address": "0x690754A168B022331cAA2467207c61919b3F8A98",
+    "symbol": "gCRV"
+  },
+  {
+    "address": "0xc664Fc7b8487a3E10824Cda768c1d239F2403bBe",
+    "symbol": "gMIM"
+  },
+  {
+    "address": "0xBeCF29265B0cc8D33fA24446599955C7bcF7F73B",
+    "symbol": "gLINK"
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "ethereum",
+    "idFrontEnd": "ETH",
+    "address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "decimals": 18
+  },
+  {
+    "id": "weth",
+    "idFrontEnd": "WETH",
+    "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+    "decimals": 18
+  },
+  {
+    "id": "dai",
+    "idFrontEnd": "DAI",
+    "address": "0x6b175474e89094c44da98b954eedeac495271d0f",
+    "decimals": 18
+  },
+  {
+    "id": "usd-coin",
+    "idFrontEnd": "USDC",
+    "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+    "decimals": 6
+  },
+  {
+    "id": "renbtc",
+    "idFrontEnd": "renBTC",
+    "address": "0xeb4c2781e4eba804ce9a9803c67d0893436bb27d",
+    "decimals": 8
+  }
+]
