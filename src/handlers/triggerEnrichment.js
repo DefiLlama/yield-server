@@ -314,9 +314,14 @@ const checkStablecoin = (el) => {
     'dusd',
   ];
 
-  const tokens = el.symbol.split('-').map((el) => el.toLowerCase());
+  let tokens = el.symbol.split('-').map((el) => el.toLowerCase());
 
-  if (tokens.length === 1) {
+  let stable;
+  // specific case for aave amm positions
+  if (el.project === 'aave' && el.symbol.toLowerCase().includes('amm')) {
+    tok = tokens[0].split('weth');
+    stable = tok[0].includes('wbtc') ? false : tok.length > 1 ? false : true;
+  } else if (tokens.length === 1) {
     stable = stablecoins.some((x) => tokens[0].includes(x));
   } else if (tokens.length > 1) {
     let x = 0;
@@ -347,6 +352,7 @@ const checkIlRisk = (el) => {
   if (
     symbol.includes('cvxcrv') ||
     symbol.includes('ammuni') ||
+    symbol.includes('ammbpt') ||
     symbol.includes('tricrypto') ||
     symbol.includes('3crypto')
   ) {
@@ -386,7 +392,11 @@ const checkExposure = (el) => {
 
   // project specific
   if (el.project === 'aave') {
-    exposure = el.symbol.toLowerCase().includes('ammuni') ? 'multi' : exposure;
+    exposure =
+      el.symbol.toLowerCase().includes('ammuni') ||
+      el.symbol.toLowerCase().includes('ammbpt')
+        ? 'multi'
+        : exposure;
   } else if (el.project === 'bancor') {
     exposure = 'single';
   } else if (el.project === 'badger-dao') {
@@ -398,7 +408,7 @@ const checkExposure = (el) => {
 
 const addPoolInfo = (el) => {
   el['stablecoin'] = checkStablecoin(el);
-  el['ilRisk'] = stable ? 'no' : checkIlRisk(el);
+  el['ilRisk'] = el.stablecoin ? 'no' : checkIlRisk(el);
   el['exposure'] = checkExposure(el);
 
   return el;
