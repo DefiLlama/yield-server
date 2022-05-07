@@ -9,11 +9,11 @@ const poolsFunction = async () => {
     if(parseInt(obj.tvl) > 0)
     pools.push({
       pool: obj.address,
-      chain: 'binance',
-      project: 'Ellipsis Finance',
+      chain: utils.formatChain('binance'),
+      project: 'ellipsis-finance',
       symbol: obj.assets,
-      tvlUsd: parseInt(obj.tvl),
-      apy: parseFloat(parseFloat(obj.totalApr).toFixed(2)),      
+      tvlUsd: parseFloat(obj.tvl),
+      apy: parseFloat(obj.totalApr),      
     })
 
   }
