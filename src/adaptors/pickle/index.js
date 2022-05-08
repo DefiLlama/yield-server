@@ -1,4 +1,5 @@
 const axios = require("axios");
+const utils = require('../utils');
 const pfcore = "https://api.pickle.finance/prod/protocol/pfcore/";
 
 async function apy() {
@@ -11,9 +12,9 @@ async function apy() {
 
     return current.map(s => ({
         pool: s.contract,
-        chain: s.chain == 'eth' ? 'ethereum' : s.chain,
+        chain: utils.formatChain(s.chain == 'eth' ? 'ethereum' : s.chain),
         project: 'pickle',
-        symbol: s.depositToken.name,
+        symbol: utils.formatSymbol(s.depositToken.name),
         tvlUsd: s.details.harvestStats.balanceUSD,
         apy: aggregateApys(s)
     }));
