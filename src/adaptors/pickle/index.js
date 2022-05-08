@@ -21,7 +21,7 @@ async function apy() {
 function aggregateApys(strategy) {
     let apy = 0;
     if (strategy.hasOwnProperty('aprStats')) {
-        apy += strategy.aprStats.apr;
+        apy += strategy.aprStats.apy;
     };
     if (strategy.hasOwnProperty('farm') 
         && strategy.farm.details.farmApyComponents != undefined) {
