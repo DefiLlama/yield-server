@@ -11,7 +11,7 @@ async function apy() {
         );
 
     return current.map(s => ({
-        pool: s.contract,
+        pool: `${s.contract}-${s.id.toLowerCase().replace(/ /g,'')}`,
         chain: utils.formatChain(s.chain == 'eth' ? 'ethereum' : s.chain),
         project: 'pickle',
         symbol: utils.formatSymbol(s.depositToken.name),
@@ -39,3 +39,4 @@ module.exports = {
     timetravel: false,
     apy: main,
 };
+// node src/adaptors/test.js src/adaptors/pickle/index.js
