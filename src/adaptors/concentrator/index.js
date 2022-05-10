@@ -1,8 +1,9 @@
 const superagent = require('superagent');
 const Web3 = require('web3');
-
+const sdk = require("@defillama/sdk");
 const utils = require('../utils');
 const curve = require('../curve/index');
+const abi = require('./abis/abi1.json');
 const BoosterABI = require('./abis/abi.json');
 const AladdinConvexVaultABI = require('./abis/AladdinConvexVault.json')
 const AladdinCRVABI = require('./abis/AladdinCRV.json')
@@ -71,10 +72,32 @@ const getAllPools = async () => {
     console.log("poolData---2", poolData);
     const swapAddress = poolData.addresses.swap
 
+    const coinCalls = [...Array(Number(poolData.coins.length)).keys()].map(num => {
+      return {
+        target: swapAddress,
+        params: [num]
+      }
+    });
 
+    const coinsUint = sdk.api.abi.multiCall({
+      abi: abi.coinsUint,
+      calls: coinCalls,
+      block
+    })
 
+    const coinsInt = sdk.api.abi.multiCall({
+      abi: abi.coinsInt,
+      calls: coinCalls,
+      block
+    })
 
-    
+    let coins = await coinsUint
+    if (!coins.output[0].success) {
+      coins = await coinsInt
+    }
+
+    console.log('coins--', coins)
+
   }))
 }
 
