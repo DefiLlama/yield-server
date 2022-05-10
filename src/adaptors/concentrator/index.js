@@ -3,7 +3,7 @@ const Web3 = require('web3');
 
 const utils = require('../utils');
 const curve = require('../curve/index');
-const abi = require('./abi.json');
+const abi = require('./abis/abi.json');
 const AladdinConvexVaultABI = require('./abis/AladdinConvexVault.json')
 const AladdinCRVABI = require('./abis/AladdinCRV.json')
 
@@ -34,18 +34,23 @@ const getKeyByValue = (object, value) => {
 const web3 = new Web3("https://eth-mainnet.alchemyapi.io/v2/NYoZTYs7oGkwlUItqoSHJeqpjqtlRT6m");
 // price data
 
+const boosterContract = new web3.eth.Contract(
+  abi,
+  convexVault
+);
 
 const convexVaultContract = new web3.eth.Contract(
   AladdinConvexVaultABI,
   convexVault
 );
+
 const convexVaultAcrvContract = new web3.eth.Contract(
   AladdinCRVABI,
   convexVaultAcrv
 );
 
 const getAllPools = async () => {
-  const poolLength = await convexVaultContract.methods.poolLength().call();
+  const poolLength = await boosterContract.methods.poolLength().call();
   console.log("poolLength---", poolLength)
 
   const pricesUSD = await utils.getCGpriceData(
