@@ -3,9 +3,10 @@ const Web3 = require('web3');
 
 const utils = require('../utils');
 const curve = require('../curve/index');
-const abi = require('./abis/abi.json');
+const BoosterABI = require('./abis/abi.json');
 const AladdinConvexVaultABI = require('./abis/AladdinConvexVault.json')
 const AladdinCRVABI = require('./abis/AladdinCRV.json')
+const curvePools = require('./pools-crv.js');
 
 // https://etherscan.io/address/0xF403C135812408BFbE8713b5A23a04b3D48AAE31#readContract
 // check poolInfo method (input are the below id's)
@@ -34,10 +35,12 @@ const getKeyByValue = (object, value) => {
 const web3 = new Web3("https://eth-mainnet.alchemyapi.io/v2/NYoZTYs7oGkwlUItqoSHJeqpjqtlRT6m");
 // price data
 
-const boosterContract = new web3.eth.Contract(
-  abi,
+const boosterBoosterContract = new web3.eth.Contract(
+  BoosterABI,
   convexVault
 );
+
+
 
 const convexVaultContract = new web3.eth.Contract(
   AladdinConvexVaultABI,
@@ -50,14 +53,29 @@ const convexVaultAcrvContract = new web3.eth.Contract(
 );
 
 const getAllPools = async () => {
-  const poolLength = await boosterContract.methods.poolLength().call();
+  // const poolStatsCrv = await curve.curvePoolStats();
+  // console.log('poolStatsCrv---', poolStatsCrv)
+  const poolLength = await boosterBoosterContract.methods.poolLength().call();
   console.log("poolLength---", poolLength)
 
   const pricesUSD = await utils.getCGpriceData(
-    'ethereum,tether-eurt',
+    'curve-dao-token,convex-crv,frax-share,ethereum,staked-ether,frax,lp-3pool-curve,usd-coin,bitcoin,convex-finance,wrapped-steth,rocket-pool-eth,terrausd-wormhole,convex-crv,renbtc,wrapped-bitcoin',
     true
   );
   console.log("pricesUSD---", pricesUSD);
+
+  await Promise.all([...Array(Number(poolLength)).keys()].map(async i => {
+    const poolInfo = await boosterBoosterContract.methods.poolInfo(i).call();
+    console.log("poolInfo---1", poolInfo, poolInfo["stash"]);
+    const poolData = curvePools.find(crvPool => crvPool.addresses.lpToken.toLowerCase() === poolInfo["stash"].toLowerCase())
+    console.log("poolData---2", poolData);
+    const swapAddress = poolData.addresses.swap
+
+
+
+
+    
+  }))
 }
 
 
@@ -118,66 +136,66 @@ module.exports = {
 //     true
 //   );
 
-//   for (const i of tokenIds) {
-//     const result = await convexBoosterContract.methods.poolInfo(i).call();
-//     // this is the lp token we receive by depositing the curve lp token into convex
-//     const tokenAddress = result.token;
+  // for (const i of tokenIds) {
+  //   const result = await convexBoosterContract.methods.poolInfo(i).call();
+  //   // this is the lp token we receive by depositing the curve lp token into convex
+  //   const tokenAddress = result.token;
 
-//     // now we take that info, and go to that token contract,
-//     // from which we call the totalSupply method
-//     const tokenContract = new web3.eth.Contract(abi.Pool, tokenAddress);
-//     const decimals = await tokenContract.methods.decimals().call();
-//     let name = await tokenContract.methods.name().call();
+  //   // now we take that info, and go to that token contract,
+  //   // from which we call the totalSupply method
+  //   const tokenContract = new web3.eth.Contract(abi.Pool, tokenAddress);
+  //   const decimals = await tokenContract.methods.decimals().call();
+  //   let name = await tokenContract.methods.name().call();
 
-//     // I change the names so they match what I have in the mapping
-//     const crv3 = 'DAI-USDC-USDT';
-//     // first case is tricrypto
-//     if (name.includes('USD-BTC-ETH')) {
-//       name = 'USDT-wBTC-WETH';
-//     } else if (name.includes('TrueUSD')) {
-//       name = curve.tokenMapping['tusd'];
-//     } else if (name.includes('Frax')) {
-//       name = curve.tokenMapping['frax'];
-//     } else if (name.includes('Liquity')) {
-//       name = curve.tokenMapping['lusd'];
-//     } else if (name.includes('Alchemix')) {
-//       name = curve.tokenMapping['alusd'];
-//     } else if (name.includes('PAX')) {
-//       name = curve.tokenMapping['pax'];
-//     } else if (name.includes('renBTC-wBTC-sBTC')) {
-//       name = curve.tokenMapping['rens'];
-//     } else if (name.includes('hBTC')) {
-//       name = curve.tokenMapping['hbtc'];
-//     } else if (name.includes('bBTC')) {
-//       name = curve.tokenMapping['bbtc'];
-//     } else if (name.includes('aETH')) {
-//       name = curve.tokenMapping['ankreth'];
-//     } else if (name.includes('Binance')) {
-//       name = curve.tokenMapping['busdv2'];
-//     } else if (name.includes('MUSD')) {
-//       name = curve.tokenMapping['musd'];
-//     } else if (name.includes('pBTC')) {
-//       name = curve.tokenMapping['pbtc'];
-//     } else if (name.includes('oBTC')) {
-//       name = curve.tokenMapping['obtc'];
-//     } else if (name.includes('EURS/sEUR')) {
-//       name = curve.tokenMapping['eurs'];
-//     } else if (name.includes('Magic Internet Money')) {
-//       name = curve.tokenMapping['mim'];
-//     } else if (name.includes('RAI3CRV')) {
-//       name = curve.tokenMapping['rai'];
-//     } else if (name.includes('XAUT-3Crv')) {
-//       name = curve.tokenMapping['xautusd'];
-//     } else if (name.includes('Euro Tether')) {
-//       name = curve.tokenMapping['eurt'];
-//     } else if (name.includes('EURS-USDC')) {
-//       name = curve.tokenMapping['eursusd'];
-//     } else if (name.includes('EURT-3Crv')) {
-//       name = curve.tokenMapping['eurtusd'];
-//     } else {
-//       name = name.split(' ')[1].split('/').join('-');
-//     }
-//     name = name.replace('3Crv', crv3);
+  //   // I change the names so they match what I have in the mapping
+  //   const crv3 = 'DAI-USDC-USDT';
+  //   // first case is tricrypto
+  //   if (name.includes('USD-BTC-ETH')) {
+  //     name = 'USDT-wBTC-WETH';
+  //   } else if (name.includes('TrueUSD')) {
+  //     name = curve.tokenMapping['tusd'];
+  //   } else if (name.includes('Frax')) {
+  //     name = curve.tokenMapping['frax'];
+  //   } else if (name.includes('Liquity')) {
+  //     name = curve.tokenMapping['lusd'];
+  //   } else if (name.includes('Alchemix')) {
+  //     name = curve.tokenMapping['alusd'];
+  //   } else if (name.includes('PAX')) {
+  //     name = curve.tokenMapping['pax'];
+  //   } else if (name.includes('renBTC-wBTC-sBTC')) {
+  //     name = curve.tokenMapping['rens'];
+  //   } else if (name.includes('hBTC')) {
+  //     name = curve.tokenMapping['hbtc'];
+  //   } else if (name.includes('bBTC')) {
+  //     name = curve.tokenMapping['bbtc'];
+  //   } else if (name.includes('aETH')) {
+  //     name = curve.tokenMapping['ankreth'];
+  //   } else if (name.includes('Binance')) {
+  //     name = curve.tokenMapping['busdv2'];
+  //   } else if (name.includes('MUSD')) {
+  //     name = curve.tokenMapping['musd'];
+  //   } else if (name.includes('pBTC')) {
+  //     name = curve.tokenMapping['pbtc'];
+  //   } else if (name.includes('oBTC')) {
+  //     name = curve.tokenMapping['obtc'];
+  //   } else if (name.includes('EURS/sEUR')) {
+  //     name = curve.tokenMapping['eurs'];
+  //   } else if (name.includes('Magic Internet Money')) {
+  //     name = curve.tokenMapping['mim'];
+  //   } else if (name.includes('RAI3CRV')) {
+  //     name = curve.tokenMapping['rai'];
+  //   } else if (name.includes('XAUT-3Crv')) {
+  //     name = curve.tokenMapping['xautusd'];
+  //   } else if (name.includes('Euro Tether')) {
+  //     name = curve.tokenMapping['eurt'];
+  //   } else if (name.includes('EURS-USDC')) {
+  //     name = curve.tokenMapping['eursusd'];
+  //   } else if (name.includes('EURT-3Crv')) {
+  //     name = curve.tokenMapping['eurtusd'];
+  //   } else {
+  //     name = name.split(' ')[1].split('/').join('-');
+  //   }
+  //   name = name.replace('3Crv', crv3);
 
 //     // for tricrypto we check the full symbol
 //     // and set the price to 1, which wont modify the total supply
