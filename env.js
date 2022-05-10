@@ -5,7 +5,7 @@ try {
 const fs = require('fs');
 module.exports = {
   // API keys
-  ETHERSCAN: process.env.ETHERSCAN,
+  ETHERSCAN: 'QE4QWTBNZE5S5JR8XRYQD9E88JP8JH7VV1',
   FANTOMSCAN: process.env.FANTOMSCAN,
   POLYGONSCAN: process.env.POLYGONSCAN,
   SNOWTRACE: process.env.SNOWTRACE,

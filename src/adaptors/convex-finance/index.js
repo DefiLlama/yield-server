@@ -7,7 +7,7 @@ const abi = require('./abi.json');
 
 // https://etherscan.io/address/0xF403C135812408BFbE8713b5A23a04b3D48AAE31#readContract
 // check poolInfo method (input are the below id's)
-// the swap contract address can be found here: https://curve.fi/contracts
+// the swap contract address can be found here: https://curve.fi/contracts 
 const pools = require('./pools.json');
 
 const ETHERSCAN_KEY = process.env.ETHERSCAN;
