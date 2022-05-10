@@ -35,6 +35,7 @@ const assetToCoinGeckoIdMap = {
   "UXD": "usd-coin",
   "USDH": "usd-coin",
   "GMT": "stepn",
+  "GST": "green-satoshi-token",
 }
 
 const buildPool = async (reserveConfig, reserveData) => {
