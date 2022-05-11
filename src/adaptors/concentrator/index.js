@@ -1,29 +1,11 @@
-const superagent = require('superagent');
 const Web3 = require('web3');
 const sdk = require("@defillama/sdk");
 const { default: BigNumber } = require("bignumber.js");
 const utils = require('../utils');
-const curve = require('../curve/index');
-const abi = require('./abis/abi1.json');
-const BoosterABI = require('./abis/abi.json');
+const abi = require('./abis/abi.json');
 const AladdinConvexVaultABI = require('./abis/AladdinConvexVault.json')
 const AladdinCRVABI = require('./abis/AladdinCRV.json')
-const curvePools = require('./pools-crv.js');
-
-
-const path = require('path');
-const https = require('https');
-const rootCas = require('ssl-root-cas').create();
-
-rootCas.addFile(path.resolve(__dirname, 'intermediate.pem'));
-const httpsAgent = new https.Agent({ ca: rootCas });
-
-
-
-// https://etherscan.io/address/0xF403C135812408BFbE8713b5A23a04b3D48AAE31#readContract
-// check poolInfo method (input are the below id's)
-// the swap contract address can be found here: https://curve.fi/contracts
-const pools = require('./pools.json');
+const curvePools = require('./pools.js');
 
 
 const convexVault = '0xc8fF37F7d057dF1BB9Ad681b53Fa4726f268E0e8';
@@ -31,19 +13,9 @@ const convexVaultAcrv = '0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884';
 const cvxcrvAddress = '0x62b9c7356a2dc64a1969e19c23e4f579f9810aa7';
 
 
-
-const ETHERSCAN_KEY = process.env.ETHERSCAN;
-
 const crvAddress = '0xD533a949740bb3306d119CC777fa900bA034cd52';
 const cvxAddress = '0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B';
 
-const cliffSize = 100000; // * 1e18; //new cliff every 100,000 tokens
-const cliffCount = 1000; // 1,000 cliffs
-const maxSupply = 100000000; // * 1e18; //100 mil max supply
-
-const getKeyByValue = (object, value) => {
-  return Object.keys(object).find((key) => object[key] === value);
-};
 const replacements = [
   "0x99d1Fa417f94dcD62BfE781a1213c092a47041Bc",
   "0x9777d7E2b60bB01759D0E2f8be2095df444cb07E",
@@ -57,15 +29,12 @@ const replacePrice = [
   { address: '0x0000000000000000000000000000000000000000', token: 'ethereum' },
   { address: '0xFEEf77d3f69374f66429C91d732A244f074bdf74', token: 'frax-share' }
 ]
-const web3 = new Web3("https://eth-mainnet.alchemyapi.io/v2/NYoZTYs7oGkwlUItqoSHJeqpjqtlRT6m");
-// price data
+// const web3 = new Web3("https://eth-mainnet.alchemyapi.io/v2/NYoZTYs7oGkwlUItqoSHJeqpjqtlRT6m");
 
-const boosterBoosterContract = new web3.eth.Contract(
-  BoosterABI,
-  convexVault
-);
-
-
+// const boosterBoosterContract = new web3.eth.Contract(
+//   BoosterABI,
+//   convexVault
+// );
 
 // const convexVaultContract = new web3.eth.Contract(
 //   AladdinConvexVaultABI,
@@ -81,23 +50,19 @@ const getAllPools = async () => {
   // const poolStatsCrv = await curve.curvePoolStats();
   // console.log('poolStatsCrv---', poolStatsCrv)
   let dataApy = await utils.getData(
-    'https://concentrator-api.aladdin.club/apy',
-    { httpsAgent }
+    'http://concentrator-api.aladdin.club/apy/'
   );
 
 
-  console.log('dataApy---', dataApy)
-  const poolLength = await boosterBoosterContract.methods.poolLength().call();
+  // console.log('dataApy---', dataApy)
+  const poolLength = (await sdk.api.abi.call({
+    target: convexVault,
+    abi: abi.poolLength,
+    block
+  })).output;
   // console.log("poolLength---", poolLength)
 
-  // const pricesUSD = await utils.getCGpriceData(
-  //   'curve-dao-token,convex-crv,frax-share,ethereum,staked-ether,frax,lp-3pool-curve,usd-coin,bitcoin,convex-finance,wrapped-steth,rocket-pool-eth,terrausd-wormhole,convex-crv,renbtc,wrapped-bitcoin',
-  //   true
-  // );
-  // console.log("pricesUSD---", pricesUSD);
-
-  await Promise.all([...Array(Number(poolLength)).keys()].map(async i => {
-    // const poolInfo = await boosterBoosterContract.methods.poolInfo(i).call();
+  return await Promise.all([...Array(Number(poolLength)).keys()].map(async i => {
     // console.log("poolInfo---1", poolInfo, poolInfo["stash"]);
 
     const poolInfo = await sdk.api.abi.call({
@@ -106,7 +71,7 @@ const getAllPools = async () => {
       params: [i]
     });
 
-    console.log("poolInfo.output.lpToken----", poolInfo.output.lpToken)
+    // console.log("poolInfo.output.lpToken----", poolInfo.output.lpToken)
 
     // console.log("pricesUSD1---1", pricesUSD1);
 
@@ -156,6 +121,13 @@ const getAllPools = async () => {
     // console.log("coinBalances---", coinBalances)
     // let lpTvl = BigNumber(0);
     const lpTvl = await getLpTvl(poolInfo, resolvedLPSupply, coinBalances, poolData, coins)
+
+    const lpApy = await getLpApy(poolData, dataApy)
+    return {
+      lpTvl,
+      lpApy,
+      poolData
+    }
   }))
 }
 
@@ -200,10 +172,10 @@ const getLpTvl = async (poolInfo, resolvedLPSupply, coinBalances, poolData, coin
     const balance = BigNumber(poolInfo.output.totalUnderlying).times(coinBalance.output).div(resolvedLPSupply);
     let balancePrice = BigNumber(0)
     if (!balance.isZero()) {
-      console.log("pricesUSD1,balance,coinAddress,coinDecimals---", pricesUSD1, balance.toString(10), coinAddress, coinDecimals)
+      // console.log("pricesUSD1,balance,coinAddress,coinDecimals---", pricesUSD1, balance.toString(10), coinAddress, coinDecimals)
       balancePrice = balance.times(pricesUSD1).div(10 ** coinDecimals)
       lpTvl = lpTvl.plus(balancePrice)
-      console.log("balancePrice----", balancePrice.toString(10))
+      // console.log("balancePrice----", balancePrice.toString(10))
       // sdk.util.sumSingleBalance(balances, coinAddress, balance.toFixed(0))      
     }
     return balancePrice;
@@ -212,8 +184,50 @@ const getLpTvl = async (poolInfo, resolvedLPSupply, coinBalances, poolData, coin
   return lpTvl
 }
 
-const getLpApy = async () => {
+const getLpApy = async (poolData, dataApy) => {
+  console.log('poolData.name--', poolData.name)
+  const convexApy = getConvexInfo('CRV', dataApy) ? getConvexInfo('CRV', dataApy).apy.project : 0
+  const convexInfo = getConvexInfo(poolData.name, dataApy)
+  const baseApy = convexInfo ? convexInfo.apy.current : 0
 
+  const acrvApy = BigNumber(parseFloat(convexApy))
+    .dividedBy(100)
+    .dividedBy(52)
+    .plus(1)
+    .pow(52)
+    .minus(1)
+    .shiftedBy(2)
+
+  const compoundApy = acrvApy.multipliedBy(parseFloat(baseApy)).dividedBy(100)
+  // console.log(item.name, baseApy, parseInt(baseApy), convexApy, acrvApy.toFixed(2), compoundApy.toFixed(2))
+  let apy = compoundApy.plus(BigNumber(parseFloat(baseApy)))
+  let ethApy = BigNumber(1)
+    .plus(BigNumber(parseFloat(baseApy)).div(100))
+    .plus(BigNumber(compoundApy).div(100))
+    .times(BigNumber(0.045 * 0.85))
+    .times(100)
+  if (poolData.isShowEthApy) {
+    // console.log("ethApy---", compoundApy.toString(10), parseFloat(baseApy).toString(10), ethApy.toString(10))
+    apy = apy.plus(BigNumber(ethApy))
+  }
+  console.log("poolData.name---", poolData.name, apy.toString(10))
+  return apy
+}
+
+const getConvexInfo = (tokenName, dataApy) => {
+  let data = dataApy
+  try {
+    const info =
+      data.find(item => item.name === tokenName.toLocaleLowerCase() || item.name === tokenName) ||
+      converWebsiteInfo.find(item => item.name === tokenName)
+
+    if (BigNumber(parseFloat(info.apy.current)).isNaN()) {
+      return converWebsiteInfo.find(item => item.name === tokenName.toLocaleLowerCase())
+    }
+    return info
+  } catch (error) {
+    return null
+  }
 }
 
 const buildPool = (entry, chainString) => {
@@ -239,7 +253,8 @@ const topLvl = async (chainString) => {
 };
 
 const main = async () => {
-  await getAllPools()
+  const dataInfo = await getAllPools()
+  console.log("dataInfo---", dataInfo);
   // const data = await Promise.all([topLvl('ethereum')]);
   // return data.flat();
 };

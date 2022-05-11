@@ -25,33 +25,6 @@ const coins = {
 
 module.exports = [
     {
-        id: 'cvxcrv',
-        name: 'cvxcrv',
-        coins: [
-            coins.crv,
-            coins.cvxcrv,
-        ],
-        coinDecimals: [18, 18],
-        addresses: {
-            swap: '0x9D0464996170c6B9e75eED71c68B99dDEDf279e8',
-            lpToken: '0x9D0464996170c6B9e75eED71c68B99dDEDf279e8'
-        }
-    },
-    {
-        id: 'cvxfxs',
-        name: 'cvxfxs',
-        coins: [
-            coins.fxs,
-            coins.fxs,
-        ],
-        coinDecimals: [18, 18],
-        addresses: {
-            swap: '0xd658A338613198204DCa1143Ac3F01A722b5d94A',
-            lpToken: '0xF3A43307DcAFa93275993862Aae628fCB50dC768'
-        }
-    },
-
-    {
         id: 'steth',
         name: 'steth',
         coins: [
@@ -64,7 +37,6 @@ module.exports = [
             lpToken: '0x06325440D014e39736583c165C2963BA99fAf14E',
         },
     },
-
     {
         id: 'frax',
         name: 'frax',
@@ -78,7 +50,6 @@ module.exports = [
             lpToken: '0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B',
         },
     },
-
     {
         id: 'tricrypto2',
         name: 'tricrypto2',
@@ -94,6 +65,19 @@ module.exports = [
         },
     },
 
+    {
+        id: 'cvxcrv',
+        name: 'cvxcrv',
+        coins: [
+            coins.crv,
+            coins.cvxcrv,
+        ],
+        coinDecimals: [18, 18],
+        addresses: {
+            swap: '0x9D0464996170c6B9e75eED71c68B99dDEDf279e8',
+            lpToken: '0x9D0464996170c6B9e75eED71c68B99dDEDf279e8'
+        }
+    },
     {
         id: 'crveth',
         name: 'crveth',
@@ -123,8 +107,22 @@ module.exports = [
     },
 
     {
+        id: 'cvxfxs',
+        name: 'cvxfxs',
+        coins: [
+            coins.fxs,
+            coins.fxs,
+        ],
+        coinDecimals: [18, 18],
+        addresses: {
+            swap: '0xd658A338613198204DCa1143Ac3F01A722b5d94A',
+            lpToken: '0xF3A43307DcAFa93275993862Aae628fCB50dC768'
+        }
+    },
+
+    {
         id: 'crv3pool',
-        name: 'crv3pool',
+        name: '3pool',
         coins: [
             coins.dai,
             coins.usdc,
@@ -153,7 +151,8 @@ module.exports = [
 
     {
         id: 'rocketpooleth',
-        name: 'rocketpooleth',
+        name: 'RocketPoolETH',
+        isShowEthApy: true,
         coins: [
             coins.rETH,
             coins.wstETH,

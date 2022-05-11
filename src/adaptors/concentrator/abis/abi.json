@@ -1,5 +1,5 @@
-[
-  {
+{
+  "poolInfo": {
     "inputs": [
       {
         "internalType": "uint256",
@@ -43,7 +43,7 @@
     "stateMutability": "view",
     "type": "function"
   },
-  {
+  "poolLength": {
     "inputs": [],
     "name": "poolLength",
     "outputs": [
@@ -56,7 +56,7 @@
     "stateMutability": "view",
     "type": "function"
   },
-  {
+  "coinsUint": {
     "name": "coins",
     "outputs": [
       {
@@ -74,7 +74,7 @@
     "type": "function",
     "gas": 2280
   },
-  {
+  "coinsInt": {
     "name": "coins",
     "outputs": [
       {
@@ -93,7 +93,7 @@
     "type": "function",
     "gas": 2190
   },
-  {
+  "underlying": {
     "constant": true,
     "inputs": [],
     "name": "underlying",
@@ -108,7 +108,7 @@
     "stateMutability": "view",
     "type": "function"
   },
-  {
+  "exchangeRateStored": {
     "constant": true,
     "inputs": [],
     "name": "exchangeRateStored",
@@ -123,4 +123,4 @@
     "stateMutability": "view",
     "type": "function"
   }
-]
+}
