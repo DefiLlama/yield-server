@@ -166,7 +166,9 @@ const getDataEth = async () => {
       apy: apySum,
     });
   }
-  return poolStats;
+
+  // note(temporary only, investiage 4pool and 2pool apy)
+  return poolStats.filter((el) => el.pool !== '4pool' && el.pool !== '2pool');
 };
 
 const getDataEVM = async (chainString) => {
@@ -234,7 +236,15 @@ const topLvl = async (chainString) => {
     poolStats = await getDataEVM(chainString);
   }
   // build pool objects
-  return poolStats.map((el) => buildPool(el, chainString));
+  let data = poolStats.map((el) => {
+    if (pools.tokenMapping[chainString][el.pool] === undefined) {
+      return null;
+    }
+    return buildPool(el, chainString);
+  });
+
+  data = data.filter((el) => el !== null);
+  return data;
 };
 
 const main = async () => {

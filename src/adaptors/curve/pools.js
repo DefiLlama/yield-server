@@ -81,6 +81,8 @@ exports.tokenMapping = {
     xautusd: 'XAUt-DAI-USDC-USDT',
     spelleth: 'SPELL-ETH',
     teth: 'T-ETH',
+    // '2pool': 'USDC-USDT',
+    // '4pool': 'USDC-USDT-UST-FRAX',
   },
 };
 
@@ -201,5 +203,8 @@ exports.pools = {
       name: 'spelleth',
     },
     { swap: '0x752eBeb79963cf0732E9c0fec72a49FD1DEfAEAC', name: 'teth' },
+    // excluding them cause null apy, need to check why
+    // { swap: '0x1005F7406f32a61BD760CfA14aCCd2737913d546', name: '2pool' },
+    // { swap: '0x4e0915C88bC70750D68C481540F081fEFaF22273', name: '4pool' },
   ],
 };
