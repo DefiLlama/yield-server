@@ -29,41 +29,18 @@ const replacePrice = [
   { address: '0x0000000000000000000000000000000000000000', token: 'ethereum' },
   { address: '0xFEEf77d3f69374f66429C91d732A244f074bdf74', token: 'frax-share' }
 ]
-// const web3 = new Web3("https://eth-mainnet.alchemyapi.io/v2/NYoZTYs7oGkwlUItqoSHJeqpjqtlRT6m");
-
-// const boosterBoosterContract = new web3.eth.Contract(
-//   BoosterABI,
-//   convexVault
-// );
-
-// const convexVaultContract = new web3.eth.Contract(
-//   AladdinConvexVaultABI,
-//   convexVault
-// );
-
-// const convexVaultAcrvContract = new web3.eth.Contract(
-//   AladdinCRVABI,
-//   convexVaultAcrv
-// );
-
 const getAllPools = async () => {
-  // const poolStatsCrv = await curve.curvePoolStats();
-  // console.log('poolStatsCrv---', poolStatsCrv)
   let dataApy = await utils.getData(
     'http://concentrator-api.aladdin.club/apy/'
   );
 
-
-  // console.log('dataApy---', dataApy)
   const poolLength = (await sdk.api.abi.call({
     target: convexVault,
     abi: abi.poolLength
   })).output;
-  // console.log("poolLength---", poolLength)
 
 
   return await Promise.all([...Array(Number(poolLength)).keys()].map(async i => {
-    // console.log("poolInfo---1", poolInfo, poolInfo["stash"]);
 
     const poolInfo = await sdk.api.abi.call({
       target: convexVault,
@@ -71,19 +48,11 @@ const getAllPools = async () => {
       params: [i]
     });
 
-    // console.log("poolInfo.output.lpToken----", poolInfo.output.lpToken)
-
-    // console.log("pricesUSD1---1", pricesUSD1);
-
-    // console.log("poolInfo---1", poolInfo, poolInfo["stash"]);
     const lpTokenSupply = await sdk.api.erc20.totalSupply({
       target: poolInfo.output.lpToken
     })
 
-    // console.log("poolData---2", lpTokenSupply);
-
     const poolData = curvePools.find(crvPool => crvPool.addresses.lpToken.toLowerCase() === poolInfo.output.lpToken.toLowerCase())
-    // console.log("poolData---2", poolData);
     const swapAddress = poolData.addresses.swap
 
     const coinCalls = [...Array(Number(poolData.coins.length)).keys()].map(num => {
@@ -107,7 +76,6 @@ const getAllPools = async () => {
     if (!coins.output[0].success) {
       coins = await coinsInt
     }
-    // console.log('coins--', coins)
 
     const coinBalances = await sdk.api.abi.multiCall({
       abi: 'erc20:balanceOf',
@@ -118,8 +86,6 @@ const getAllPools = async () => {
     })
 
     const resolvedLPSupply = lpTokenSupply.output;
-    // console.log("coinBalances---", coinBalances)
-    // let lpTvl = BigNumber(0);
     const lpTvl = await getLpTvl(poolInfo, resolvedLPSupply, coinBalances, poolData, coins)
 
     const lpApy = await getLpApy(poolData, dataApy)
@@ -144,15 +110,10 @@ const getLpTvl = async (poolInfo, resolvedLPSupply, coinBalances, poolData, coin
       })
       coinAddress = '0x0000000000000000000000000000000000000000'
     }
-    // console.log("poolInfo.totalUnderlying--", poolInfo.output.totalUnderlying)
-    // console.log("coinBalance.output--", coinBalance.output)
-    // console.log("lpTokenSupply.output--", lpTokenSupply.output)
     const coinDecimals = poolData.coinDecimals[index]
-    // console.log('coinDecimals---', coinDecimals)
 
     const isReplace = replacePrice.find(item => item.address.toLocaleLowerCase() == coinAddress.toLocaleLowerCase())
     let pricesUSD1 = 0;
-    // console.log('isReplace--', isReplace)
     if (isReplace && isReplace.token) {
       pricesUSD1 = await utils.getCGpriceData(
         isReplace.token,
@@ -165,27 +126,20 @@ const getLpTvl = async (poolInfo, resolvedLPSupply, coinBalances, poolData, coin
         false,
         'ethereum'
       );
-      // console.log('pricesUSD1--', pricesUSD1, coinAddress)
       pricesUSD1 = pricesUSD1[coinAddress.toLocaleLowerCase()].usd
     }
-    // console.log("price----", coinAddress, pricesUSD1)
     const balance = BigNumber(poolInfo.output.totalUnderlying).times(coinBalance.output).div(resolvedLPSupply);
     let balancePrice = BigNumber(0)
     if (!balance.isZero()) {
-      // console.log("pricesUSD1,balance,coinAddress,coinDecimals---", pricesUSD1, balance.toString(10), coinAddress, coinDecimals)
       balancePrice = balance.times(pricesUSD1).div(10 ** coinDecimals)
       lpTvl = lpTvl.plus(balancePrice)
-      // console.log("balancePrice----", balancePrice.toString(10))
-      // sdk.util.sumSingleBalance(balances, coinAddress, balance.toFixed(0))      
     }
     return balancePrice;
   }))
-  // console.log("lpToken,tvl---", poolInfo.output.lpToken, lpTvl.toString(10))
   return lpTvl
 }
 
 const getLpApy = async (poolData, dataApy) => {
-  // console.log('poolData.name--', poolData.name)
   const convexApy = getConvexInfo('CRV', dataApy) ? getConvexInfo('CRV', dataApy).apy.project : 0
   const convexInfo = getConvexInfo(poolData.name, dataApy)
   const baseApy = convexInfo ? convexInfo.apy.current : 0
@@ -199,7 +153,6 @@ const getLpApy = async (poolData, dataApy) => {
     .shiftedBy(2)
 
   const compoundApy = acrvApy.multipliedBy(parseFloat(baseApy)).dividedBy(100)
-  // console.log(item.name, baseApy, parseInt(baseApy), convexApy, acrvApy.toFixed(2), compoundApy.toFixed(2))
   let apy = compoundApy.plus(BigNumber(parseFloat(baseApy)))
   let ethApy = BigNumber(1)
     .plus(BigNumber(parseFloat(baseApy)).div(100))
@@ -207,10 +160,8 @@ const getLpApy = async (poolData, dataApy) => {
     .times(BigNumber(0.045 * 0.85))
     .times(100)
   if (poolData.isShowEthApy) {
-    // console.log("ethApy---", compoundApy.toString(10), parseFloat(baseApy).toString(10), ethApy.toString(10))
     apy = apy.plus(BigNumber(ethApy))
   }
-  // console.log("poolData.name---", poolData.name, apy.toString(10))
   return apy
 }
 
@@ -257,8 +208,6 @@ const getAcrvPoolData = async () => {
 
   const convexApy = getConvexInfo('CRV', dataApy)?.apy?.project || 0
 
-  console.log('cvxcrvBalance,convexApy', cvxcrvBalance.toString(10), convexApy.toString(10))
-
   const apy = BigNumber(parseFloat(convexApy))
     .dividedBy(100)
     .dividedBy(365)
@@ -294,6 +243,7 @@ const main = async () => {
   const dataInfo = await getAllPools()
   const acrvData = await getAcrvPoolData()
   const data = dataInfo.map((el) => buildPool(el, 'ethereum'));
+  data.push(acrvData)
   return data;
 };
 
