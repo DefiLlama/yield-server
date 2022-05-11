@@ -219,7 +219,7 @@ const getAcrvPoolData = async () => {
   const newObj = {
     pool: '0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884',
     chain: utils.formatChain('ethereum'),
-    project: 'convex-finance',
+    project: 'Concentrator',
     symbol: 'aCRV',
     tvlUsd: cvxcrvBalance,
     apy: apy.toString(10),
@@ -231,7 +231,7 @@ const buildPool = (entry, chainString) => {
   const newObj = {
     pool: entry.poolData.addresses.lpToken,
     chain: utils.formatChain(chainString),
-    project: 'convex-finance',
+    project: 'Concentrator',
     symbol: utils.formatSymbol(entry.poolData.symbol),
     tvlUsd: entry.lpTvl,
     apy: entry.lpApy,
