@@ -1,11 +1,11 @@
 try {
   require('dotenv').config({ path: './config.env' });
-} catch (e) {}
+} catch (e) { }
 
 const fs = require('fs');
 module.exports = {
   // API keys
-  ETHERSCAN: 'QE4QWTBNZE5S5JR8XRYQD9E88JP8JH7VV1',
+  ETHERSCAN: process.env.ETHERSCAN,
   FANTOMSCAN: process.env.FANTOMSCAN,
   POLYGONSCAN: process.env.POLYGONSCAN,
   SNOWTRACE: process.env.SNOWTRACE,
