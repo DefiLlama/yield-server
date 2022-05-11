@@ -25,7 +25,7 @@ const coins = {
 
 module.exports = [
     {
-        id: 'steth',
+        symbol: 'steth',
         name: 'steth',
         coins: [
             coins.eth,
@@ -38,7 +38,7 @@ module.exports = [
         },
     },
     {
-        id: 'frax',
+        symbol: 'frax',
         name: 'frax',
         coins: [
             coins.frax,
@@ -51,7 +51,7 @@ module.exports = [
         },
     },
     {
-        id: 'tricrypto2',
+        symbol: 'tricrypto2',
         name: 'tricrypto2',
         coins: [
             coins.usdt,
@@ -66,7 +66,7 @@ module.exports = [
     },
 
     {
-        id: 'cvxcrv',
+        symbol: 'cvxcrv',
         name: 'cvxcrv',
         coins: [
             coins.crv,
@@ -79,7 +79,7 @@ module.exports = [
         }
     },
     {
-        id: 'crveth',
+        symbol: 'crveth',
         name: 'crveth',
         coins: [
             coins.eth,
@@ -93,7 +93,7 @@ module.exports = [
     },
 
     {
-        id: 'cvxeth',
+        symbol: 'cvxeth',
         name: 'cvxeth',
         coins: [
             coins.eth,
@@ -107,7 +107,7 @@ module.exports = [
     },
 
     {
-        id: 'cvxfxs',
+        symbol: 'cvxfxs',
         name: 'cvxfxs',
         coins: [
             coins.fxs,
@@ -121,7 +121,7 @@ module.exports = [
     },
 
     {
-        id: 'crv3pool',
+        symbol: 'crv3pool',
         name: '3pool',
         coins: [
             coins.dai,
@@ -136,7 +136,7 @@ module.exports = [
     },
 
     {
-        id: 'ust-wormhole',
+        symbol: 'ustWormhole',
         name: 'ust-wormhole',
         coins: [
             coins.ust,
@@ -150,7 +150,7 @@ module.exports = [
     },
 
     {
-        id: 'rocketpooleth',
+        symbol: 'rocketpooleth',
         name: 'RocketPoolETH',
         isShowEthApy: true,
         coins: [
@@ -165,7 +165,7 @@ module.exports = [
     },
 
     {
-        id: 'ren',
+        symbol: 'ren',
         name: 'ren',
         coins: [
             coins.renbtc,
