@@ -1,6 +1,6 @@
 try {
   require('dotenv').config({ path: './config.env' });
-} catch (e) { }
+} catch (e) {}
 
 const fs = require('fs');
 module.exports = {
