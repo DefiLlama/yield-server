@@ -30,7 +30,7 @@ async function apy() {
         const pools = poolsResponse[chain].map(p => ({
             pool: `${p.contractAddress}-${p.id}`,
             chain: utils.formatChain(chains[chain]),
-            project: 'harvest',
+            project: 'harvest-finance',
             symbol: utils.formatSymbol(p.lpTokenData.symbol),
             tvlUsd: Number(p.totalValueLocked),
             apy: Number(p.tradingApy) + p.rewardAPY
