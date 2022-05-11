@@ -8,6 +8,16 @@ const chains = {
     "matic": "polygon"
 };
 
+function aggregateApys(farm, poolsResponse) {
+    const farmApy = farm.estimatedApy;
+    const selectedPools = poolsResponse.filter(p => p.contractAddress == farm.rewardPool);
+    if (selectedPools.length == 0) return farmApy;
+    const pool = selectedPools[0];
+    const poolApy = Number(pool.tradingApy) + pool.rewardAPY
+        .reduce((a,b) => Number(a) + Number(b), 0);
+    return Number(farmApy) + Number(poolApy);
+};
+
 async function apy() {
     const farmsResponse = (await axios.get(farmsUrl)).data;
     const poolsResponse = (await axios.get(poolsUrl)).data;
@@ -16,28 +26,18 @@ async function apy() {
 
     for (let chain of Object.keys(chains)) {
         const activeFarms = Object.values(farmsResponse[chain])
-            .filter(v => v.inactive != true);
+            .filter(v => !v.hasOwnProperty('inactive') || v.inactive != true);
 
         const farms = activeFarms.map(v => ({
-            pool: `${v.vaultAddress}-${v.id}`,
+            pool: v.vaultAddress,
             chain: utils.formatChain(chains[chain]),
             project: 'harvest-finance',
             symbol: utils.formatSymbol(v.displayName),
             tvlUsd: Number(v.totalValueLocked),
-            apy: Number(v.estimatedApy)
+            apy: aggregateApys(v, poolsResponse[chain])
         }));
 
-        const pools = poolsResponse[chain].map(p => ({
-            pool: `${p.contractAddress}-${p.id}`,
-            chain: utils.formatChain(chains[chain]),
-            project: 'harvest-finance',
-            symbol: utils.formatSymbol(p.lpTokenData.symbol),
-            tvlUsd: Number(p.totalValueLocked),
-            apy: Number(p.tradingApy) + p.rewardAPY
-                .reduce((a,b) => Number(a) + Number(b), 0)
-        }));
-
-        allVaults = [...allVaults, ...farms, ...pools];
+        allVaults = [...allVaults, ...farms];
     };
 
     return allVaults;
@@ -46,6 +46,7 @@ async function apy() {
 const main = async () => {
     return await apy();
 };
+
 module.exports = {
     timetravel: false,
     apy: main,
