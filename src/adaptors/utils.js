@@ -5,7 +5,7 @@ exports.formatChain = (chain) => chain.charAt(0).toUpperCase() + chain.slice(1);
 
 // replace / with - and trim potential whitespace
 exports.formatSymbol = (symbol) =>
-  symbol.replace(/\//g, '-').replace(/\s/g, '').trim();
+  symbol.replace(/[_\/]/g, '-').replace(/\s/g, '').trim();
 
 exports.getData = async (url, query = null) => {
   if (query !== null) {
