@@ -1,5 +1,5 @@
-{
-    "totalUnderlying": {
+[
+    {
         "inputs": [],
         "name": "totalUnderlying",
         "outputs": [
@@ -12,7 +12,7 @@
         "stateMutability": "view",
         "type": "function"
     },
-    "totalSupply": {
+    {
         "inputs": [],
         "name": "totalSupply",
         "outputs": [
@@ -25,4 +25,4 @@
         "stateMutability": "view",
         "type": "function"
     }
-}
+]

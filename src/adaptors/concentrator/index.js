@@ -1,6 +1,7 @@
 const superagent = require('superagent');
 const Web3 = require('web3');
 const sdk = require("@defillama/sdk");
+const { default: BigNumber } = require("bignumber.js");
 const utils = require('../utils');
 const curve = require('../curve/index');
 const abi = require('./abis/abi1.json');
@@ -8,6 +9,16 @@ const BoosterABI = require('./abis/abi.json');
 const AladdinConvexVaultABI = require('./abis/AladdinConvexVault.json')
 const AladdinCRVABI = require('./abis/AladdinCRV.json')
 const curvePools = require('./pools-crv.js');
+
+
+const path = require('path');
+const https = require('https');
+const rootCas = require('ssl-root-cas').create();
+
+rootCas.addFile(path.resolve(__dirname, 'intermediate.pem'));
+const httpsAgent = new https.Agent({ ca: rootCas });
+
+
 
 // https://etherscan.io/address/0xF403C135812408BFbE8713b5A23a04b3D48AAE31#readContract
 // check poolInfo method (input are the below id's)
@@ -33,6 +44,19 @@ const maxSupply = 100000000; // * 1e18; //100 mil max supply
 const getKeyByValue = (object, value) => {
   return Object.keys(object).find((key) => object[key] === value);
 };
+const replacements = [
+  "0x99d1Fa417f94dcD62BfE781a1213c092a47041Bc",
+  "0x9777d7E2b60bB01759D0E2f8be2095df444cb07E",
+  "0x1bE5d71F2dA660BFdee8012dDc58D024448A0A59",
+  "0x16de59092dAE5CcF4A1E6439D611fd0653f0Bd01",
+  "0xd6aD7a6750A7593E092a9B218d66C0A814a3436e",
+  "0x83f798e925BcD4017Eb265844FDDAbb448f1707D",
+  "0x73a052500105205d34Daf004eAb301916DA8190f"
+]
+const replacePrice = [
+  { address: '0x0000000000000000000000000000000000000000', token: 'ethereum' },
+  { address: '0xFEEf77d3f69374f66429C91d732A244f074bdf74', token: 'frax-share' }
+]
 const web3 = new Web3("https://eth-mainnet.alchemyapi.io/v2/NYoZTYs7oGkwlUItqoSHJeqpjqtlRT6m");
 // price data
 
@@ -43,33 +67,58 @@ const boosterBoosterContract = new web3.eth.Contract(
 
 
 
-const convexVaultContract = new web3.eth.Contract(
-  AladdinConvexVaultABI,
-  convexVault
-);
+// const convexVaultContract = new web3.eth.Contract(
+//   AladdinConvexVaultABI,
+//   convexVault
+// );
 
-const convexVaultAcrvContract = new web3.eth.Contract(
-  AladdinCRVABI,
-  convexVaultAcrv
-);
+// const convexVaultAcrvContract = new web3.eth.Contract(
+//   AladdinCRVABI,
+//   convexVaultAcrv
+// );
 
 const getAllPools = async () => {
   // const poolStatsCrv = await curve.curvePoolStats();
   // console.log('poolStatsCrv---', poolStatsCrv)
-  const poolLength = await boosterBoosterContract.methods.poolLength().call();
-  console.log("poolLength---", poolLength)
-
-  const pricesUSD = await utils.getCGpriceData(
-    'curve-dao-token,convex-crv,frax-share,ethereum,staked-ether,frax,lp-3pool-curve,usd-coin,bitcoin,convex-finance,wrapped-steth,rocket-pool-eth,terrausd-wormhole,convex-crv,renbtc,wrapped-bitcoin',
-    true
+  let dataApy = await utils.getData(
+    'https://concentrator-api.aladdin.club/apy',
+    { httpsAgent }
   );
-  console.log("pricesUSD---", pricesUSD);
+
+
+  console.log('dataApy---', dataApy)
+  const poolLength = await boosterBoosterContract.methods.poolLength().call();
+  // console.log("poolLength---", poolLength)
+
+  // const pricesUSD = await utils.getCGpriceData(
+  //   'curve-dao-token,convex-crv,frax-share,ethereum,staked-ether,frax,lp-3pool-curve,usd-coin,bitcoin,convex-finance,wrapped-steth,rocket-pool-eth,terrausd-wormhole,convex-crv,renbtc,wrapped-bitcoin',
+  //   true
+  // );
+  // console.log("pricesUSD---", pricesUSD);
 
   await Promise.all([...Array(Number(poolLength)).keys()].map(async i => {
-    const poolInfo = await boosterBoosterContract.methods.poolInfo(i).call();
-    console.log("poolInfo---1", poolInfo, poolInfo["stash"]);
-    const poolData = curvePools.find(crvPool => crvPool.addresses.lpToken.toLowerCase() === poolInfo["stash"].toLowerCase())
-    console.log("poolData---2", poolData);
+    // const poolInfo = await boosterBoosterContract.methods.poolInfo(i).call();
+    // console.log("poolInfo---1", poolInfo, poolInfo["stash"]);
+
+    const poolInfo = await sdk.api.abi.call({
+      target: convexVault,
+      abi: AladdinConvexVaultABI.poolInfo,
+      params: [i]
+    });
+
+    console.log("poolInfo.output.lpToken----", poolInfo.output.lpToken)
+
+    // console.log("pricesUSD1---1", pricesUSD1);
+
+    // console.log("poolInfo---1", poolInfo, poolInfo["stash"]);
+    const lpTokenSupply = await sdk.api.erc20.totalSupply({
+      target: poolInfo.output.lpToken
+    })
+
+    // console.log("poolData---2", lpTokenSupply);
+
+    const poolData = curvePools.find(crvPool => crvPool.addresses.lpToken.toLowerCase() === poolInfo.output.lpToken.toLowerCase())
+    // console.log("poolData---2", poolData);
     const swapAddress = poolData.addresses.swap
 
     const coinCalls = [...Array(Number(poolData.coins.length)).keys()].map(num => {
@@ -82,25 +131,90 @@ const getAllPools = async () => {
     const coinsUint = sdk.api.abi.multiCall({
       abi: abi.coinsUint,
       calls: coinCalls,
-      block
     })
 
     const coinsInt = sdk.api.abi.multiCall({
       abi: abi.coinsInt,
       calls: coinCalls,
-      block
     })
 
     let coins = await coinsUint
     if (!coins.output[0].success) {
       coins = await coinsInt
     }
+    // console.log('coins--', coins)
 
-    console.log('coins--', coins)
+    const coinBalances = await sdk.api.abi.multiCall({
+      abi: 'erc20:balanceOf',
+      calls: coins.output.map(coin => ({
+        target: coin.output,
+        params: [swapAddress]
+      }))
+    })
 
+    const resolvedLPSupply = lpTokenSupply.output;
+    // console.log("coinBalances---", coinBalances)
+    // let lpTvl = BigNumber(0);
+    const lpTvl = await getLpTvl(poolInfo, resolvedLPSupply, coinBalances, poolData, coins)
   }))
 }
 
+const getLpTvl = async (poolInfo, resolvedLPSupply, coinBalances, poolData, coins) => {
+  let lpTvl = BigNumber(0);
+  await Promise.all(coinBalances.output.map(async (coinBalance, index) => {
+    let coinAddress = coins.output[index].output
+    if (replacements.includes(coinAddress)) {
+      coinAddress = "0x6b175474e89094c44da98b954eedeac495271d0f" // dai
+    }
+    if (coinBalance.input.target === "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE") {
+      coinBalance = await sdk.api.eth.getBalance({
+        target: coinBalance.input.params[0]
+      })
+      coinAddress = '0x0000000000000000000000000000000000000000'
+    }
+    // console.log("poolInfo.totalUnderlying--", poolInfo.output.totalUnderlying)
+    // console.log("coinBalance.output--", coinBalance.output)
+    // console.log("lpTokenSupply.output--", lpTokenSupply.output)
+    const coinDecimals = poolData.coinDecimals[index]
+    // console.log('coinDecimals---', coinDecimals)
+
+    const isReplace = replacePrice.find(item => item.address.toLocaleLowerCase() == coinAddress.toLocaleLowerCase())
+    let pricesUSD1 = 0;
+    // console.log('isReplace--', isReplace)
+    if (isReplace && isReplace.token) {
+      pricesUSD1 = await utils.getCGpriceData(
+        isReplace.token,
+        true
+      );
+      pricesUSD1 = pricesUSD1[isReplace.token].usd
+    } else {
+      pricesUSD1 = await utils.getCGpriceData(
+        coinAddress,
+        false,
+        'ethereum'
+      );
+      // console.log('pricesUSD1--', pricesUSD1, coinAddress)
+      pricesUSD1 = pricesUSD1[coinAddress.toLocaleLowerCase()].usd
+    }
+    // console.log("price----", coinAddress, pricesUSD1)
+    const balance = BigNumber(poolInfo.output.totalUnderlying).times(coinBalance.output).div(resolvedLPSupply);
+    let balancePrice = BigNumber(0)
+    if (!balance.isZero()) {
+      console.log("pricesUSD1,balance,coinAddress,coinDecimals---", pricesUSD1, balance.toString(10), coinAddress, coinDecimals)
+      balancePrice = balance.times(pricesUSD1).div(10 ** coinDecimals)
+      lpTvl = lpTvl.plus(balancePrice)
+      console.log("balancePrice----", balancePrice.toString(10))
+      // sdk.util.sumSingleBalance(balances, coinAddress, balance.toFixed(0))      
+    }
+    return balancePrice;
+  }))
+  console.log("lpToken,tvl---", poolInfo.output.lpToken, lpTvl.toString(10))
+  return lpTvl
+}
+
+const getLpApy = async () => {
+
+}
 
 const buildPool = (entry, chainString) => {
   const newObj = {
