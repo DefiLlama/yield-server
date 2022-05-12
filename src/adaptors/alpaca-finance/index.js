@@ -37,7 +37,7 @@ async function apy(chain) {
         project: 'alpaca-finance',
         symbol: formatSymbol(p.sourceName),
         tvlUsd: Number(p.tvl),
-        apy: Number(p.totalApy / p.leverage)
+        apy: (Number(p.farmRewardApr) + Number(p.tradingFeeApr)) / p.leverage
     }));
 
     const ausdPools = response.ausdPools.map(p => ({
