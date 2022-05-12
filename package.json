@@ -10,6 +10,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@defillama/sdk": "^2.3.61",
+    "bignumber.js": "^9.0.2",
     "date-fns": "^2.23.0",
     "dotenv": "^10.0.0",
     "graphql": "^15.5.1",
