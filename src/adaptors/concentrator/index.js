@@ -113,25 +113,25 @@ const getLpTvl = async (poolInfo, resolvedLPSupply, coinBalances, poolData, coin
     const coinDecimals = poolData.coinDecimals[index]
 
     const isReplace = replacePrice.find(item => item.address.toLocaleLowerCase() == coinAddress.toLocaleLowerCase())
-    let pricesUSD1 = 0;
+    let pricesUSD = 0;
     if (isReplace && isReplace.token) {
-      pricesUSD1 = await utils.getCGpriceData(
+      pricesUSD = await utils.getCGpriceData(
         isReplace.token,
         true
       );
-      pricesUSD1 = pricesUSD1[isReplace.token].usd
+      pricesUSD = pricesUSD[isReplace.token].usd
     } else {
-      pricesUSD1 = await utils.getCGpriceData(
+      pricesUSD = await utils.getCGpriceData(
         coinAddress,
         false,
         'ethereum'
       );
-      pricesUSD1 = pricesUSD1[coinAddress.toLocaleLowerCase()].usd
+      pricesUSD = pricesUSD[coinAddress.toLocaleLowerCase()].usd
     }
     const balance = BigNumber(poolInfo.output.totalUnderlying).times(coinBalance.output).div(resolvedLPSupply);
     let balancePrice = BigNumber(0)
     if (!balance.isZero()) {
-      balancePrice = balance.times(pricesUSD1).div(10 ** coinDecimals)
+      balancePrice = balance.times(pricesUSD).div(10 ** coinDecimals)
       lpTvl = lpTvl.plus(balancePrice)
     }
     return balancePrice;
@@ -219,7 +219,7 @@ const getAcrvPoolData = async () => {
   const newObj = {
     pool: '0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884',
     chain: utils.formatChain('ethereum'),
-    project: 'Concentrator',
+    project: 'concentrator',
     symbol: 'aCRV',
     tvlUsd: parseInt(cvxcrvBalance, 10),
     apy: parseFloat(apy.toString(10)),
@@ -229,9 +229,9 @@ const getAcrvPoolData = async () => {
 
 const buildPool = (entry, chainString) => {
   const newObj = {
-    pool: entry.poolData.addresses.lpToken,
+    pool: `${entry.poolData.addresses.lpToken}-conentrator`,
     chain: utils.formatChain(chainString),
-    project: 'Concentrator',
+    project: 'concentrator',
     symbol: utils.formatSymbol(entry.poolData.symbol),
     tvlUsd: parseInt(entry.lpTvl, 10),
     apy: parseFloat(entry.lpApy),
