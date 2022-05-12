@@ -13,8 +13,10 @@ async function apy(chain) {
         pool: `${v.address}`,
         chain: utils.formatChain(chain),
         project: 'vesper',
-        symbol: utils.formatSymbol(v.asset.symbol),
-        tvlUsd: v.totalValue / 1e18 ,
+        symbol: v.name.startsWith('ve')
+            ? `${v.name.split('-')[0]} (earn ${v.name.split('-')[1]})`
+            : utils.formatSymbol(v.name),
+        tvlUsd: (Number(v.totalValue) / 10 ** Number(v.asset.decimals)) * v.asset.price,
         apy: aggregateApys(v)
     }));
 
@@ -22,9 +24,9 @@ async function apy(chain) {
 };
 
 function aggregateApys(pool) {
-    const earningRate = pool.earningRates[3];
+    const earningRate = pool.earningRates[30];
     const rewardRate = pool.poolTokenRewardRates.reduce(
-        (a, r) => Number(r.tokenDeltaRates[3]) + Number(a), 0);
+        (a, r) => Number(r.tokenDeltaRates[30]) + Number(a), 0);
     return earningRate + rewardRate;
 };
 
@@ -41,4 +43,4 @@ const main = async () => {
 module.exports = {
     timetravel: false,
     apy: main,
-};
+}; // node src/adaptors/test.js src/adaptors/vesper/index.js
