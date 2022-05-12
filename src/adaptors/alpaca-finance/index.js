@@ -40,7 +40,7 @@ async function apy(chain) {
         apy: utils.aprToApy((Number(p.farmRewardApr) + Number(p.tradingFeeApr)) / p.leverage)
     }));
 
-    const ausdPools = response.alpaausdPools.map(p => ({
+    const ausdPools = response.ausdPools.map(p => ({
         pool: `${p.key}-aUSD-pool`,
         chain: chain == 'bsc' ? 'Binance' : utils.formatChain(chain),
         project: 'alpaca-finance',
