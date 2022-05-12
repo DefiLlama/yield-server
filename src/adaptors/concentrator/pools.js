@@ -25,7 +25,7 @@ const coins = {
 
 module.exports = [
     {
-        symbol: 'steth',
+        symbol: 'ETH-stETH',
         name: 'steth',
         coins: [
             coins.eth,
@@ -38,7 +38,7 @@ module.exports = [
         },
     },
     {
-        symbol: 'frax',
+        symbol: 'FRAX-3Crv',
         name: 'frax',
         coins: [
             coins.frax,
@@ -51,7 +51,7 @@ module.exports = [
         },
     },
     {
-        symbol: 'tricrypto2',
+        symbol: 'USDT-wBTC-WETH',
         name: 'tricrypto2',
         coins: [
             coins.usdt,
@@ -66,7 +66,7 @@ module.exports = [
     },
 
     {
-        symbol: 'cvxcrv',
+        symbol: 'cvxCRV-CRV',
         name: 'cvxcrv',
         coins: [
             coins.crv,
@@ -79,7 +79,7 @@ module.exports = [
         }
     },
     {
-        symbol: 'crveth',
+        symbol: 'ETH-CRV',
         name: 'crveth',
         coins: [
             coins.eth,
@@ -93,7 +93,7 @@ module.exports = [
     },
 
     {
-        symbol: 'cvxeth',
+        symbol: 'ETH-CVX',
         name: 'cvxeth',
         coins: [
             coins.eth,
@@ -107,7 +107,7 @@ module.exports = [
     },
 
     {
-        symbol: 'cvxfxs',
+        symbol: 'FXS-cvxFXS',
         name: 'cvxfxs',
         coins: [
             coins.fxs,
@@ -121,7 +121,7 @@ module.exports = [
     },
 
     {
-        symbol: 'crv3pool',
+        symbol: 'DAI-USDC-USDT',
         name: '3pool',
         coins: [
             coins.dai,
@@ -136,7 +136,7 @@ module.exports = [
     },
 
     {
-        symbol: 'ust-wormhole',
+        symbol: 'UST-3Crv',
         name: 'ust-wormhole',
         coins: [
             coins.ust,
@@ -150,7 +150,7 @@ module.exports = [
     },
 
     {
-        symbol: 'rocketpooleth',
+        symbol: 'rETH-wstETH',
         name: 'RocketPoolETH',
         isShowEthApy: true,
         coins: [
@@ -165,7 +165,7 @@ module.exports = [
     },
 
     {
-        symbol: 'ren',
+        symbol: 'renBTC-wBTC',
         name: 'ren',
         coins: [
             coins.renbtc,
