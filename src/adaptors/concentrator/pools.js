@@ -136,7 +136,7 @@ module.exports = [
     },
 
     {
-        symbol: 'ustWormhole',
+        symbol: 'ust-wormhole',
         name: 'ust-wormhole',
         coins: [
             coins.ust,
