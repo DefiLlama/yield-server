@@ -3,13 +3,13 @@ const utils = require('../utils');
 
 function formatSymbol(sourceName) {
     const space = sourceName.indexOf(' ');
-    return`${sourceName.substring(space + 1)} (${sourceName.substring(0, space)})`;
+    return `${sourceName.substring(space + 1)} (${sourceName.substring(0, space)})`;
 };
 
 async function apy(chain) {
     const response = (await axios.get(
         `https://alpaca-static-api.alpacafinance.org/${chain}/v1/landing/summary.json`
-        )).data.data;
+    )).data.data;
 
     const filteredStakingPools = response.fairLaunchStakingPools
         .filter(p => !p.key.includes('debt'))
@@ -18,6 +18,15 @@ async function apy(chain) {
         chain: chain == 'bsc' ? 'Binance' : utils.formatChain(chain),
         project: 'alpaca-finance',
         symbol: utils.formatSymbol(p.symbol),
+        tvlUsd: Number(p.tvl),
+        apy: Number(p.apy)
+    }));
+
+    const strategyPools = response.strategyPools.map(p => ({
+        pool: `${p.key}-strategy-pool`,
+        chain: chain == 'bsc' ? 'Binance' : utils.formatChain(chain),
+        project: 'alpaca-finance',
+        symbol: utils.formatSymbol(p.iuToken.symbol),
         tvlUsd: Number(p.tvl),
         apy: Number(p.apy)
     }));
@@ -51,6 +60,7 @@ async function apy(chain) {
 
     return [
         ...fairLaunchStakingPools,
+        ...strategyPools,
         ...farmingPools,
         ...ausdPools,
         ...lendingPools
