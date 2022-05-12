@@ -181,6 +181,9 @@ exports.tvl = async (dataNow, networkString) => {
   return dataNowCopy;
 };
 
+exports.aprToApy = (apr, compoundFrequency = 365) => {
+  return ((1 + (apr * 0.01 /compoundFrequency)) ** compoundFrequency - 1) * 100
+}
 // calculating apy based on subgraph data
 exports.apy = (entry, dataPrior, version) => {
   entry = { ...entry };
