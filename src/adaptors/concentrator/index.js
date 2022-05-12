@@ -221,8 +221,8 @@ const getAcrvPoolData = async () => {
     chain: utils.formatChain('ethereum'),
     project: 'Concentrator',
     symbol: 'aCRV',
-    tvlUsd: cvxcrvBalance,
-    apy: apy.toString(10),
+    tvlUsd: parseInt(cvxcrvBalance, 10),
+    apy: parseFloat(apy.toString(10)),
   };
   return newObj
 }
@@ -233,8 +233,8 @@ const buildPool = (entry, chainString) => {
     chain: utils.formatChain(chainString),
     project: 'Concentrator',
     symbol: utils.formatSymbol(entry.poolData.symbol),
-    tvlUsd: entry.lpTvl,
-    apy: entry.lpApy,
+    tvlUsd: parseInt(entry.lpTvl, 10),
+    apy: parseFloat(entry.lpApy),
   };
   return newObj;
 };
