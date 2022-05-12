@@ -67,7 +67,10 @@ const main = async (queryString) => {
     },
   };
 
-  const data = await getDataUsingS3Select(params);
+  let data = await getDataUsingS3Select(params);
+  // rook requires an adaptor change, we going to remove it from the enriched
+  // dataset for now
+  data = data.filter((el) => el.project !== 'rook');
 
   return data;
 };
