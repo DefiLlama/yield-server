@@ -39,4 +39,3 @@ module.exports = {
     timetravel: false,
     apy: main,
 };
-// node src/adaptors/test.js src/adaptors/pickle/index.js
