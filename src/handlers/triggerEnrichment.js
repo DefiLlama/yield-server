@@ -276,6 +276,14 @@ const main = async () => {
   const key = 'enriched/dataEnriched.json';
   dataEnriched = dataEnriched.sort((a, b) => b.tvlUsd - a.tvlUsd);
   await writeToS3(bucket, key, dataEnriched);
+
+  // also save to other "folder" where we keep track of hourly predictions (this will be used
+  // for ML dashboard performance monitoring)
+  const timestamp = new Date(
+    Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
+  ).toISOString();
+  const keyPredictions = `predictions-hourly/dataEnriched_${timestamp}.json`;
+  await writeToS3(bucket, keyPredictions, dataEnriched);
 };
 
 ////// helper functions
