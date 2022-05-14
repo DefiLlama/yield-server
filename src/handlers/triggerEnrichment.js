@@ -283,7 +283,11 @@ const main = async () => {
   const [q33, q66, q1] = ss.quantile(predScores, quantilesScores);
   for (const p of dataEnriched) {
     p.predictions.binnedConfidence =
-      p.predictions.predictedProbability <= q33
+      // we nullify binnedConfidence in case one of the above probability conditions in nullifyPredictionsCond
+      // were true
+      p.predictions.predictedProbability === null
+        ? null
+        : p.predictions.predictedProbability <= q33
         ? 'Low'
         : p.predictions.predictedProbability <= q66
         ? 'Medium'
