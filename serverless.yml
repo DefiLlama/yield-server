@@ -111,6 +111,8 @@ functions:
       ARBISCAN: ${file(./env.js):ARBISCAN}
       OPTIMISM: ${file(./env.js):OPTIMISM}
       INFURA_CONNECTION: ${file(./env.js):INFURA_CONNECTION}
+      ALCHEMY_CONNECTION_POLYGON: ${file(./env.js):ALCHEMY_CONNECTION_POLYGON}
+      ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
 
   # --- data enrichment (pct-changes)
   triggerEnrichment:
