@@ -16,6 +16,8 @@ module.exports = {
   ALCHEMY_CONNECTION_ARBITRUM: process.env.ALCHEMY_CONNECTION_ARBITRUM,
   // ADAPTOR LIST
   ADAPTORS: JSON.stringify(
-    fs.readdirSync('./src/adaptors').filter((el) => !el.includes('js'))
+    fs
+      .readdirSync('./src/adaptors')
+      .filter((el) => !el.includes('js') && el !== '.DS_Store')
   ),
 };
