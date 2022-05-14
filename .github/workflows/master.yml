@@ -29,3 +29,5 @@ jobs:
           ARBISCAN: ${{ secrets.ARBISCAN }}
           OPTIMISM: ${{ secrets.OPTIMISM }}
           INFURA_CONNECTION: ${{ secrets.INFURA_CONNECTION }}
+          ALCHEMY_CONNECTION_POLYGON: ${{ secrets.ALCHEMY_CONNECTION_POLYGON }}
+          ALCHEMY_CONNECTION_ARBITRUM: ${{ secrets.ALCHEMY_CONNECTION_ARBITRUM }}
