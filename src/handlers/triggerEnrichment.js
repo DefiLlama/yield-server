@@ -270,6 +270,26 @@ const main = async () => {
     };
   }
 
+  // the output of a random forest predict_proba are smoothed relative frequencies of
+  // of class distributions and do not represent calibrated probabilities
+  // instead of showing this as is on the frontend, it makes sense to a) either calibrate (which will take a bit more time and effort)
+  // or to bin the scores into confidence values which i'm using here by assigning labels to the bins instead (low, medium, high)
+  const predScores = dataEnriched
+    .map((el) => el.predictions.predictedProbability)
+    .filter((el) => el !== null);
+  // bin into 3 equal groups using 33.3%, 66.6% and 100% quantile;
+  // currently gives ~ [ 69, 84, 100 ] as cutoff values
+  const quantilesScores = [0.333, 0.666, 1];
+  const [q33, q66, q1] = ss.quantile(predScores, quantilesScores);
+  for (const p of dataEnriched) {
+    p.predictions.binnedConfidence =
+      p.predictions.predictedProbability <= q33
+        ? 'Low'
+        : p.predictions.predictedProbability <= q66
+        ? 'Medium'
+        : 'High';
+  }
+
   ////// 8) save enriched data to s3
   console.log('\nsaving data to S3');
   const bucket = process.env.BUCKET_DATA;
