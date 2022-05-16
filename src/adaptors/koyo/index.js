@@ -39,7 +39,7 @@ const buildPool = (entry, chainString) => {
   };
 };
 
-const topLvl = async (chainString, url) => {
+const topLvl = async (chainString) => {
   const poolStats = await getData(chainString);
 
   const data = poolStats.map((el) => buildPool(el, chainString));
