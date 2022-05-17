@@ -32,7 +32,7 @@ const buildPool = (entry, chainString) => {
   return {
     pool: entry.address,
     chain: utils.formatChain(chainString),
-    project: 'koyo',
+    project: 'koyo-finance',
     symbol: utils.formatSymbol(entry.assets.replaceAll('+', '-')),
     tvlUsd: entry.tvl,
     apy,
