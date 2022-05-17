@@ -5,7 +5,10 @@ exports.formatChain = (chain) => chain.charAt(0).toUpperCase() + chain.slice(1);
 
 // replace / with - and trim potential whitespace
 exports.formatSymbol = (symbol) =>
-  symbol.replace(/[_\/]/g, '-').replace(/\s/g, '').trim();
+  symbol
+    .replace(/[_+\/]/g, '-')
+    .replace(/\s/g, '')
+    .trim();
 
 exports.getData = async (url, query = null) => {
   if (query !== null) {
@@ -182,8 +185,10 @@ exports.tvl = async (dataNow, networkString) => {
 };
 
 exports.aprToApy = (apr, compoundFrequency = 365) => {
-  return ((1 + (apr * 0.01 /compoundFrequency)) ** compoundFrequency - 1) * 100
-}
+  return (
+    ((1 + (apr * 0.01) / compoundFrequency) ** compoundFrequency - 1) * 100
+  );
+};
 // calculating apy based on subgraph data
 exports.apy = (entry, dataPrior, version) => {
   entry = { ...entry };
