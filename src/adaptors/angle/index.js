@@ -18,7 +18,7 @@ const getPoolsData = async () => {
       project: 'angle',
       symbol: gauge,
       tvlUSD: tvlData.filter((gauge) => gauge.address === address)[0]?.tvl,
-      apy: apyData['gauges'][gauge]?.value,
+      apy: apyData['gauges'][gauge]?.details.max,
     };
     result.push(pool);
   }
@@ -30,3 +30,7 @@ module.exports = {
   timetravel: false,
   apy: getPoolsData,
 };
+
+getPoolsData().then((result) => {
+  console.log(result);
+});
