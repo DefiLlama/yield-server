@@ -33,7 +33,7 @@ const buildPool = (entry, chainString) => {
     pool: entry.address,
     chain: utils.formatChain(chainString),
     project: 'koyo-finance',
-    symbol: utils.formatSymbol(entry.assets.replaceAll('+', '-')),
+    symbol: utils.formatSymbol(entry.assets),
     tvlUsd: entry.tvl,
     apy,
   };
