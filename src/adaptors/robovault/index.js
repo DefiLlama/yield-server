@@ -1,8 +1,8 @@
 const utils = require('../utils');
 
 const poolsFunction = async () => {
-  const vaultDataFantom = await utils.getData('http://api.robo-vault.com/vaults/fantom');
-  const vaultDataPolygon = await utils.getData('api.robo-vault.com/vaults/polygonm');
+  const vaultDataFantom = await utils.getData('https://api.robo-vault.com/vaults/fantom');
+  const vaultDataPolygon = await utils.getData('https://api.robo-vault.com/vaults/polygonm');
   const poolData = vaultDataFantom.concat(vaultDataPolygon);
 
   return poolData.map(item => ({
