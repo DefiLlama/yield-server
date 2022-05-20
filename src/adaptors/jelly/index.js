@@ -72,7 +72,7 @@ const calcApr = async (rewardTokenPrices, tokensPerBlock, tvl) => {
   }
 
   const apr = totalRewardsPerYear.div(tvl).times(100);
-  return apr.isNaN() || !apr.isFinite() ? null : apr.toNumber();
+  return apr.isNaN() || !apr.isFinite() ? 0 : apr.toNumber();
 };
 
 const buildPool = (entry) => {
