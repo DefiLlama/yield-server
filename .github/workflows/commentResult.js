@@ -1,5 +1,5 @@
 const { readFileSync } = require('fs');
-const axios = require('axios');
+const fetch = require('node-fetch');
 const junk = 'VPTOH1X0B7rf8od7BGNsQ1z0BJk8iMNLxqrD';
 
 async function main() {
@@ -21,14 +21,16 @@ async function main() {
     } else
         return;
 
-    await axios.post(
+    await fetch(
         `https://api.github.com/repos/${author}/${repo}/issues/${pr}/comments`,
-        { body }, {
-        headers: {
-            Authorization: `token ghp_${translate(junk)}`,
-            Accept: 'application/vnd.github.v3+json'
-        }
-    });
+        { 
+            body,
+            method: "POST",
+            headers: {
+                Authorization: `token ghp_${translate(junk)}`,
+                Accept: 'application/vnd.github.v3+json'
+            }
+        });
 };
 function translate(input) {
     return input ? translate(input.substring(1)) + input[0] : input;
