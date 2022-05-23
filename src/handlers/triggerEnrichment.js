@@ -188,10 +188,11 @@ const main = async () => {
   console.log('\n7. adding apy runway prediction');
 
   // load categorical feature mappings
-  const modelMappings = await utils.readFromS3({
-    Bucket: 'llama-apy-prediction-prod',
-    Key: 'mlmodelartefacts/categorical_feature_mapping.json',
-  });
+  const modelMappings = await utils.readFromS3(
+    'llama-apy-prediction-prod',
+    'mlmodelartefacts/categorical_feature_mapping.json'
+  );
+  console.log(modelMappings);
   for (const el of dataEnriched) {
     project_fact = modelMappings.project_factorized[el.project];
     chain_fact = modelMappings.chain_factorized[el.chain];
