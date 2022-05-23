@@ -2,7 +2,7 @@ const superagent = require('superagent');
 const SSM = require('aws-sdk/clients/ssm');
 const ss = require('simple-statistics');
 
-const writeToS3 = require('../utils/writeToS3');
+const utils = require('../utils/IOs3');
 
 module.exports.handler = async (event) => {
   await main();
@@ -187,7 +187,11 @@ const main = async () => {
   ////// 7) add the algorithms predictions
   console.log('\n7. adding apy runway prediction');
 
-  // we need to factorize the categorical features
+  // load categorical feature mappings
+  const modelMappings = await utils.readFromS3({
+    Bucket: 'llama-apy-prediction-prod',
+    Key: 'mlmodelartefacts/categorical_feature_mapping.json',
+  });
   for (const el of dataEnriched) {
     project_fact = modelMappings.project_factorized[el.project];
     chain_fact = modelMappings.chain_factorized[el.chain];
@@ -299,7 +303,7 @@ const main = async () => {
   const bucket = process.env.BUCKET_DATA;
   const key = 'enriched/dataEnriched.json';
   dataEnriched = dataEnriched.sort((a, b) => b.tvlUsd - a.tvlUsd);
-  await writeToS3(bucket, key, dataEnriched);
+  await utils.writeToS3(bucket, key, dataEnriched);
 
   // also save to other "folder" where we keep track of hourly predictions (this will be used
   // for ML dashboard performance monitoring)
@@ -307,7 +311,7 @@ const main = async () => {
     Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
   ).toISOString();
   const keyPredictions = `predictions-hourly/dataEnriched_${timestamp}.json`;
-  await writeToS3(bucket, keyPredictions, dataEnriched);
+  await utils.writeToS3(bucket, keyPredictions, dataEnriched);
 };
 
 ////// helper functions
@@ -444,34 +448,4 @@ const addPoolInfo = (el) => {
   el['exposure'] = checkExposure(el);
 
   return el;
-};
-
-// this will need to be maintained
-const modelMappings = {
-  project_factorized: {
-    aave: 0,
-    sushiswap: 1,
-    'trader-joe': 2,
-    uniswap: 3,
-    quickswap: 4,
-    balancer: 5,
-    'convex-finance': 6,
-    'yearn-finance': 7,
-    pangolin: 8,
-    bancor: 9,
-    curve: 10,
-    'geist-finance': 11,
-    compound: 12,
-    rook: 13,
-    'badger-dao': 14,
-    'beefy-finance': 15,
-  },
-  chain_factorized: {
-    Ethereum: 0,
-    Avalanche: 1,
-    Polygon: 2,
-    Arbitrum: 3,
-    Optimism: 4,
-    Fantom: 5,
-  },
 };
