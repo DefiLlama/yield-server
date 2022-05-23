@@ -1,7 +1,7 @@
 const superagent = require('superagent');
 const SSM = require('aws-sdk/clients/ssm');
 
-const utils = require('../utils/writeToS3');
+const utils = require('../utils/s3');
 
 module.exports.handler = async (event) => {
   console.log(event);
