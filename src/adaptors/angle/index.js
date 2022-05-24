@@ -1,24 +1,26 @@
+const { AppStream } = require('aws-sdk');
 const utils = require('../utils');
+
+const networks = {
+  1: 'Ethereum',
+  137: 'Polygon',
+};
 
 let apyData;
 const getPoolsData = async () => {
-  const apyData = await utils.getData(
-    'https://new-app-api-dot-angle-1.ew.r.appspot.com//v1/apr'
-  );
-  const tvlData = await utils.getData(
-    'https://new-app-api-dot-angle-1.ew.r.appspot.com//v1/incentives'
-  );
+  const apyData = await utils.getData('https://api.angle.money//v1/incentives');
 
   const result = [];
-  for (const gauge of Object.keys(apyData['gauges'])) {
-    const address = apyData['gauges'][gauge]?.address;
+  for (const staking of Object.keys(apyData)) {
+    if (apyData[staking].deprecated) continue;
+    // the identifier is the voting gauge address and not the address of the staking pool
     const pool = {
-      pool: address,
-      chain: 'Ethereum',
+      pool: apyData[staking]?.address, // address of the staking pool
+      chain: networks[apyData[staking]?.network] || 'Other',
       project: 'angle',
-      symbol: gauge,
-      tvlUSD: tvlData.filter((gauge) => gauge.address === address)[0]?.tvl,
-      apy: apyData['gauges'][gauge]?.details.max,
+      symbol: apyData[staking]?.name,
+      tvlUSD: apyData[staking]?.tvl,
+      apy: apyData[staking]['apr']?.value,
     };
     result.push(pool);
   }
@@ -30,7 +32,3 @@ module.exports = {
   timetravel: false,
   apy: getPoolsData,
 };
-
-getPoolsData().then((result) => {
-  console.log(result);
-});
