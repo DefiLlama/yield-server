@@ -1,4 +1,3 @@
-const { AppStream } = require('aws-sdk');
 const utils = require('../utils');
 
 const networks = {
@@ -19,7 +18,7 @@ const getPoolsData = async () => {
       chain: networks[apyData[staking]?.network] || 'Other',
       project: 'angle',
       symbol: apyData[staking]?.name,
-      tvlUSD: apyData[staking]?.tvl,
+      tvlUsd: apyData[staking]?.tvl,
       apy: apyData[staking]['apr']?.value,
     };
     result.push(pool);
