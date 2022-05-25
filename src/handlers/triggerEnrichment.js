@@ -275,10 +275,12 @@ const main = async () => {
     };
   }
 
+  // based on discussion here: https://github.com/DefiLlama/yield-ml/issues/2
   // the output of a random forest predict_proba are smoothed relative frequencies of
   // of class distributions and do not represent calibrated probabilities
-  // instead of showing this as is on the frontend, it makes sense to a) either calibrate (which will take a bit more time and effort)
-  // or to bin the scores into confidence values which i'm using here by assigning labels to the bins instead (low, medium, high)
+  // instead of showing this as is on the frontend,
+  // it makes sense to a) either calibrate (which will take a bit more time and effort)
+  // or to bin the scores into confidence values which i'm using here
   const predScores = dataEnriched
     .map((el) => el.predictions.predictedProbability)
     .filter((el) => el !== null);
@@ -293,10 +295,10 @@ const main = async () => {
       p.predictions.predictedProbability === null
         ? null
         : p.predictions.predictedProbability <= q33
-        ? 'Low'
+        ? 1
         : p.predictions.predictedProbability <= q66
-        ? 'Medium'
-        : 'High';
+        ? 2
+        : 3;
   }
 
   ////// 8) save enriched data to s3
