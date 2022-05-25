@@ -1,0 +1,225 @@
+{
+  "getPoolInfos": {
+    "inputs": [
+      {
+        "internalType": "address[]",
+        "name": "_pools",
+        "type": "address[]"
+      }
+    ],
+    "name": "getPoolInfos",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "poolId",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "stakedTokenTotal",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tvl",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "stakingTokenPrice",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "tokenId",
+                "type": "address"
+              },
+              {
+                "internalType": "string",
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "symbol",
+                "type": "string"
+              },
+              {
+                "internalType": "uint256",
+                "name": "decimals",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct TokenHelper.TokenInfo",
+            "name": "stakingToken",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "tokenId",
+                "type": "address"
+              },
+              {
+                "internalType": "string",
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "symbol",
+                "type": "string"
+              },
+              {
+                "internalType": "uint256",
+                "name": "decimals",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct TokenHelper.TokenInfo",
+            "name": "token0",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "tokenId",
+                "type": "address"
+              },
+              {
+                "internalType": "string",
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "symbol",
+                "type": "string"
+              },
+              {
+                "internalType": "uint256",
+                "name": "decimals",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct TokenHelper.TokenInfo",
+            "name": "token1",
+            "type": "tuple"
+          },
+          {
+            "internalType": "bool",
+            "name": "isLpToken",
+            "type": "bool"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint48",
+                "name": "startTime",
+                "type": "uint48"
+              },
+              {
+                "internalType": "uint48",
+                "name": "endTime",
+                "type": "uint48"
+              },
+              {
+                "internalType": "uint32",
+                "name": "rewardPoints",
+                "type": "uint32"
+              },
+              {
+                "internalType": "uint128",
+                "name": "rewardsPerBlock",
+                "type": "uint128"
+              },
+              {
+                "internalType": "uint256",
+                "name": "rewardTokenPrice",
+                "type": "uint256"
+              },
+              {
+                "components": [
+                  {
+                    "internalType": "address",
+                    "name": "tokenId",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "string",
+                    "name": "name",
+                    "type": "string"
+                  },
+                  {
+                    "internalType": "string",
+                    "name": "symbol",
+                    "type": "string"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "decimals",
+                    "type": "uint256"
+                  }
+                ],
+                "internalType": "struct TokenHelper.TokenInfo",
+                "name": "rewardToken",
+                "type": "tuple"
+              }
+            ],
+            "internalType": "struct JellyPoolHelper.Reward[]",
+            "name": "rewards",
+            "type": "tuple[]"
+          },
+          {
+            "components": [
+              {
+                "internalType": "string",
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "data",
+                "type": "string"
+              }
+            ],
+            "internalType": "struct DocumentHelper.Document[]",
+            "name": "documents",
+            "type": "tuple[]"
+          },
+          {
+            "internalType": "string",
+            "name": "",
+            "type": "string"
+          },
+          {
+            "internalType": "bool",
+            "name": "",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct JellyPoolHelper.Pool[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+}
