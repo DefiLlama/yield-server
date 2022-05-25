@@ -44,6 +44,7 @@ const getPools = async () => {
         const tvl = lpStaked * lpTokenPrice;
         const token0 = poolInfo.token0;
         const token1 = poolInfo.token1;
+        const poolId = poolInfo.poolId;
 
         const documents = Object.values(poolInfo.documents)
         const poolName = documents.find(doc => doc.name === 'poolName')?.data
@@ -52,8 +53,9 @@ const getPools = async () => {
         return {
             tvl,
             apy,
-            symbol: `${token0.symbol}-${token1.symbol}(${poolName})`
-        }
+            symbol: `${token0.symbol}-${token1.symbol}(${poolName})`,
+            poolId
+          }
       })
     );
 } 
@@ -77,7 +79,7 @@ const calcApr = async (rewardTokenPrices, tokensPerBlock, tvl) => {
 
 const buildPool = (entry) => {
   const newObj = {
-    pool: jellyUsdcLP,
+    pool: entry.poolId,
     chain: 'ethereum',
     project: 'jelly',
     symbol: utils.formatSymbol(entry.symbol),
