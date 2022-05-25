@@ -190,7 +190,7 @@ const main = async () => {
   // load categorical feature mappings
   const modelMappings = await utils.readFromS3(
     'llama-apy-prediction-prod',
-    'mlmodelartefacts/categorical_feature_mapping.json'
+    'mlmodelartefacts/categorical_feature_mapping_2022_05_20.json'
   );
   console.log(modelMappings);
   for (const el of dataEnriched) {
