@@ -118,7 +118,7 @@ async function getPoolGlp(
   return {
     pool: pInflationTrackerAddress,
     chain: utils.formatChain(chainString),
-    project: 'glp',
+    project: 'gmx',
     symbol: utils.formatSymbol('GLP'),
     tvlUsd: parseFloat(pTvl),
     apy: apyFee + apyInflation,
