@@ -448,7 +448,7 @@ const checkExposure = (el) => {
 const addPoolInfo = (el) => {
   el['stablecoin'] = checkStablecoin(el);
   el['ilRisk'] =
-    el.stablecoin && el.symbol.includes('eur')
+    el.stablecoin && el.symbol.toLowerCase().includes('eur')
       ? checkIlRisk(el)
       : el.stablecoin
       ? 'no'
