@@ -383,7 +383,7 @@ const checkStablecoin = (el) => {
 // 2: - 1 asset
 // 3: - more than 1 asset but same underlying assets
 const checkIlRisk = (el) => {
-  const l1Token = ['btc', 'eth', 'avax', 'matic'];
+  const l1Token = ['btc', 'eth', 'avax', 'matic', 'eur'];
   const symbol = el.symbol.toLowerCase();
   const tokens = symbol.split('-');
 
@@ -447,7 +447,12 @@ const checkExposure = (el) => {
 
 const addPoolInfo = (el) => {
   el['stablecoin'] = checkStablecoin(el);
-  el['ilRisk'] = el.stablecoin ? 'no' : checkIlRisk(el);
+  el['ilRisk'] =
+    el.stablecoin && el.symbol.includes('eur')
+      ? checkIlRisk(el)
+      : el.stablecoin
+      ? 'no'
+      : checkIlRisk(el);
   el['exposure'] = checkExposure(el);
 
   return el;
