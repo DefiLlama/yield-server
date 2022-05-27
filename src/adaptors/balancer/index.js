@@ -5,6 +5,7 @@ const gaugeABIEthereum = require('./abis/gauge_ethereum.json');
 const gaugeABIArbitrum = require('./abis/gauge_arbitrum.json');
 const gaugeABIPolygon = require('./abis/gauge_polygon.json');
 const gaugeControllerEthereum = require('./abis/gauge_controller_ethereum.json');
+const protocolFeesCollectorABI = require('./abis/protocol_fees_collector.json');
 
 // Subgraph URLs
 const urlBase = 'https://api.thegraph.com/subgraphs/name/balancer-labs';
@@ -15,6 +16,8 @@ const urlArbitrum = `${urlBase}/balancer-arbitrum-v2`;
 const urlGaugesEthereum = `${urlBase}/balancer-gauges`;
 const urlGaugesPolygon = `${urlBase}/balancer-gauges-polygon`;
 const urlGaugesArbitrum = `${urlBase}/balancer-gauges-arbitrum`;
+
+const protocolFeesCollector = '0xce88686553686DA562CE7Cea497CE749DA109f9F';
 
 const queryGauge = gql`
   {
@@ -232,12 +235,12 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
   return data;
 };
 
-const aprFee = (el, dataNow, dataPrior) => {
+const aprFee = (el, dataNow, dataPrior, swapFeePercentage) => {
   const swapFeeNow = dataNow.find((x) => x.id === el.id)?.totalSwapFee;
   const swapFeePrior = dataPrior.find((x) => x.id === el.id)?.totalSwapFee;
   const swapFee24h = Number(swapFeeNow) - Number(swapFeePrior);
 
-  el.aprFee = ((swapFee24h * 365) / el.tvl) * 100;
+  el.aprFee = ((swapFee24h * 365) / el.tvl) * 100 * swapFeePercentage;
   return el;
 };
 
@@ -261,7 +264,8 @@ const topLvl = async (
   queryPrior,
   urlGauge,
   queryGauge,
-  gaugeABI
+  gaugeABI,
+  swapFeePercentage
 ) => {
   const [_, blockPrior] = await utils.getBlocks(chainString, null, [url]);
   // pull data
@@ -309,7 +313,9 @@ const topLvl = async (
   let tvlInfo = dataNow.map((el) => tvl(el, tokenPriceList));
 
   // calculate fee apy
-  tvlInfo = tvlInfo.map((el) => aprFee(el, dataNow, dataPrior));
+  tvlInfo = tvlInfo.map((el) =>
+    aprFee(el, dataNow, dataPrior, swapFeePercentage)
+  );
 
   // calculate reward apr
   tvlInfo = await aprLM(tvlInfo, urlGauge, queryGauge, chainString, gaugeABI);
@@ -324,6 +330,17 @@ const topLvl = async (
 };
 
 const main = async () => {
+  // balancer splits off a pct cut of swap fees to the protocol, get pct value:
+  conn = process.env.INFURA_CONNECTION;
+  const web3 = new Web3(conn);
+
+  const feeCollectorContract = new web3.eth.Contract(
+    protocolFeesCollectorABI,
+    protocolFeesCollector
+  );
+  const swapFeePercentage =
+    (await feeCollectorContract.methods.getSwapFeePercentage().call()) / 1e18;
+
   const data = await Promise.all([
     topLvl(
       'ethereum',
@@ -332,7 +349,8 @@ const main = async () => {
       queryPrior,
       urlGaugesEthereum,
       queryGauge,
-      gaugeABIEthereum
+      gaugeABIEthereum,
+      swapFeePercentage
     ),
     topLvl(
       'polygon',
@@ -341,7 +359,8 @@ const main = async () => {
       queryPrior,
       urlGaugesPolygon,
       queryGauge,
-      gaugeABIPolygon
+      gaugeABIPolygon,
+      swapFeePercentage
     ),
     topLvl(
       'arbitrum',
@@ -350,7 +369,8 @@ const main = async () => {
       queryPrior,
       urlGaugesArbitrum,
       queryGauge,
-      gaugeABIArbitrum
+      gaugeABIArbitrum,
+      swapFeePercentage
     ),
   ]);
 
