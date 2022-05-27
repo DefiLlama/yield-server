@@ -6,18 +6,29 @@ const networks = {
 };
 
 let apyData;
+let symbol;
 const getPoolsData = async () => {
   const apyData = await utils.getData('https://api.angle.money//v1/incentives');
 
   const result = [];
   for (const staking of Object.keys(apyData)) {
-    if (apyData[staking].deprecated) continue;
     // the identifier is the voting gauge address and not the address of the staking pool
+    if (apyData[staking].deprecated) continue;
+    // changing the symbols so they fit the Defillama framework
+    symbol = apyData[staking]?.name.replace('/', '-').split(' ');
+    if (symbol.length == 1) {
+      symbol = symbol[0];
+    } else if (symbol.length == 2) {
+      symbol = symbol[0] + ' ' + symbol[1];
+    } else {
+      symbol = symbol[1];
+    }
+
     const pool = {
       pool: apyData[staking]?.address, // address of the staking pool
       chain: networks[apyData[staking]?.network] || 'Other',
       project: 'angle',
-      symbol: apyData[staking]?.name,
+      symbol: symbol,
       tvlUsd: apyData[staking]?.tvl,
       apy: apyData[staking]['apr']?.value,
     };
