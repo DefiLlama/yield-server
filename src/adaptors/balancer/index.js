@@ -50,6 +50,8 @@ const query = gql`
       id
       tokensList
       totalSwapFee
+      totalShares
+      totalLiquidity
       tokens {
         address
         balance
@@ -100,21 +102,16 @@ const correctMaker = (entry) => {
   return entry;
 };
 
-const tvl = (entry, tokenPriceList) => {
+const tvl = (entry) => {
   entry = { ...entry };
 
   const balanceDetails = entry.tokens;
   const d = {
     id: entry.id,
     symbol: balanceDetails.map((tok) => tok.symbol).join('-'),
-    tvl: 0,
+    tvl: entry.totalLiquidity,
+    totalShares: entry.totalShares
   };
-  for (const el of balanceDetails) {
-    // some addresses are from tokens which are not listed on coingecko so these will result in undefined
-    const price = tokenPriceList[el.address]?.usd;
-    // if price is undefined of one token in pool, the total tvl will be NaN
-    d.tvl += Number(el.balance) * price;
-  }
 
   return d;
 };
@@ -221,7 +218,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
 
       const weeklyRewards = (1 / (totalSupply + 1)) * tokenPayable;
       const yearlyRewards = weeklyRewards * 52 * prices[add].usd;
-      const bptPrice = x.tvl / totalSupply;
+      const bptPrice = x.tvl / x.totalShares;
       const aprLM = (yearlyRewards / bptPrice) * 100;
 
       aprLMRewards.push(aprLM === Infinity ? null : aprLM);
@@ -279,38 +276,8 @@ const topLvl = async (
   dataNow = dataNow.pools.map((el) => correctMaker(el));
   dataPrior = dataPrior.pools.map((el) => correctMaker(el));
 
-  // get unique tokenList (addresses)(for which we pull prices from cg)
-  const tokenList = [
-    ...new Set(
-      dataNow
-        .map((el) => el.tokens)
-        .flat()
-        .map((el) => el.address)
-    ),
-  ];
-
-  // NOTE(!) had to split the list cause i was getting errors on full list
-  // guess because of too many token
-  const idxSplitter = Math.floor(tokenList.length / 2);
-  const tokenListP1 = tokenList.splice(0, idxSplitter);
-  const tokenListP2 = tokenList.splice(idxSplitter);
-
-  // pull prices from coingecko
-  const tokenPriceList1 = await utils.getCGpriceData(
-    tokenListP1.join(),
-    false,
-    networkMappingCG[chainString]
-  );
-  const tokenPriceList2 = await utils.getCGpriceData(
-    tokenListP2.join(),
-    false,
-    networkMappingCG[chainString]
-  );
-
-  const tokenPriceList = { ...tokenPriceList1, ...tokenPriceList2 };
-
-  // calculate tvl
-  let tvlInfo = dataNow.map((el) => tvl(el, tokenPriceList));
+  // calculate tvl and totalShares
+  let tvlInfo = dataNow.map((el) => tvl(el));
 
   // calculate fee apy
   tvlInfo = tvlInfo.map((el) =>
