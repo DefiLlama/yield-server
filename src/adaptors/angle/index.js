@@ -5,7 +5,6 @@ const networks = {
   137: 'Polygon',
 };
 
-let apyData;
 let symbol;
 const getPoolsData = async () => {
   const apyData = await utils.getData('https://api.angle.money//v1/incentives');
@@ -16,12 +15,15 @@ const getPoolsData = async () => {
     if (apyData[staking].deprecated) continue;
     // changing the symbols so they fit the Defillama framework
     symbol = apyData[staking]?.name.replace('/', '-').split(' ');
+    // san token symbols
     if (symbol.length == 1) {
-      symbol = symbol[0];
+      symbol = symbol[0].replace('san', '').split('-')[0];
+      // perp token symbols (keep as is)
     } else if (symbol.length == 2) {
       symbol = symbol[0] + ' ' + symbol[1];
+      // LP token symbols
     } else {
-      symbol = symbol[1];
+      symbol = symbol[1] + ' ' + symbol[2];
     }
 
     const pool = {
