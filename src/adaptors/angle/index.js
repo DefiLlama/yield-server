@@ -27,7 +27,7 @@ const getPoolsData = async () => {
     }
 
     const pool = {
-      pool: apyData[staking]?.address, // address of the staking pool
+      pool: `${apyData[staking]?.address}-angle`, // address of the staking pool
       chain: networks[apyData[staking]?.network] || 'Other',
       project: 'angle',
       symbol: symbol,
