@@ -334,7 +334,7 @@ const checkStablecoin = (el) => {
     'usdt',
     'usdc',
     'busd',
-    'ust',
+    // 'ust', // excluding cause of depeg
     'dai',
     'mim',
     'frax',
