@@ -295,10 +295,10 @@ const main = async () => {
       p.predictions.predictedProbability === null
         ? null
         : p.predictions.predictedProbability <= q33
-        ? 'Low'
+        ? 1
         : p.predictions.predictedProbability <= q66
-        ? 'Medium'
-        : 'High';
+        ? 2
+        : 3;
   }
 
   ////// 8) save enriched data to s3
