@@ -50,6 +50,7 @@ const query = gql`
       id
       tokensList
       totalSwapFee
+      totalShares
       tokens {
         address
         balance
@@ -108,6 +109,7 @@ const tvl = (entry, tokenPriceList) => {
     id: entry.id,
     symbol: balanceDetails.map((tok) => tok.symbol).join('-'),
     tvl: 0,
+    totalShares: entry.totalShares
   };
   for (const el of balanceDetails) {
     // some addresses are from tokens which are not listed on coingecko so these will result in undefined
@@ -183,11 +185,10 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
 
       // for base BAL rewards
       if (relativeWeight !== 0) {
-        const totalSupply = (await gauge.methods.totalSupply().call()) / 1e18;
         const workingSupply =
           (await gauge.methods.working_supply().call()) / 1e18;
         // bpt == balancer pool token
-        const bptPrice = x.tvl / totalSupply;
+        const bptPrice = x.tvl / x.totalShares;
         const balPayable = inflationRate * 7 * 86400 * relativeWeight;
         const weeklyReward = (0.4 / (workingSupply + 0.4)) * balPayable;
         const yearlyReward = weeklyReward * 52 * prices[balToken].usd;
@@ -221,7 +222,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
 
       const weeklyRewards = (1 / (totalSupply + 1)) * tokenPayable;
       const yearlyRewards = weeklyRewards * 52 * prices[add].usd;
-      const bptPrice = x.tvl / totalSupply;
+      const bptPrice = x.tvl / x.totalShares;
       const aprLM = (yearlyRewards / bptPrice) * 100;
 
       aprLMRewards.push(aprLM === Infinity ? null : aprLM);
