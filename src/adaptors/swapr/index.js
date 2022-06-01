@@ -15,7 +15,9 @@ const createPool = (pair, chainString) => {
     
   const apy = rewardsAPR[id.toLowerCase()]
   
-  const chain = utils.formatChain(chainString)
+  let chain = utils.formatChain(chainString)
+
+  if(chain === "Xdai") chain = "xDai"
 
   return {
     pool: id,
