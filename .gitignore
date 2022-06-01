@@ -6,3 +6,4 @@ ccImages
 .serverless
 .webpack
 .idea/
+*output.json
