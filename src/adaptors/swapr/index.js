@@ -1,48 +1,20 @@
 const utils = require('../utils')
-const { request, gql } = require('graphql-request')
+const { request } = require('graphql-request')
 
-//CONSTANTS
-const PROJECT_NAME = "swapr"
+const {queries: { QUERY_PAIRS, QUERY_LIQUIDITY_MINING_CAMPAIGNS, QUERY_KPI_TOKENS, QUERY_TOKEN, QUERY_NATIVE_CURRENCY_USD }} = require("./api")
+const {constants: { PROJECT_NAME, XDAI_CHAIN, ARBITRUM_CHAIN, XDAI_ENDPOINT, ARBITRUM_ENDPOINT, KPI_ENDPOINT }} = require("./constants")
 
-const ARBITRUM_ENDPOINT = "https://api.thegraph.com/subgraphs/name/dxgraphs/swapr-arbitrum-one-v3"
+const rewardsAPR = {}
 
-const XDAI_ENDPOINT = "https://api.thegraph.com/subgraphs/name/dxgraphs/swapr-xdai-v2"
-
-const QUERY_PAIRS = gql`
-  {
-    pairs(first: 1000 orderDirection: desc block: {number: <PLACEHOLDER>}) {
-      id
-      volumeUSD
-      reserve0
-      reserve1
-      token0 {
-        id
-        symbol
-      }
-      token1 {
-        id
-        symbol
-      }
-    }
-  }
-`
-
-const QUERY_PRIOR = gql`
-  {
-    pairs(first: 1000 orderDirection: desc block: {number: <PLACEHOLDER>}) {
-      id 
-      volumeUSD 
-    }
-  }
-`
-
-const createPool = (entry, chainString) => {
-  const { id, token0, token1, totalValueLockedUSD: tvlUsd, apy } = entry
-
-  let symbol = utils.formatSymbol(
+const createPool = (pair, chainString) => {
+  const { id, token0, token1, totalValueLockedUSD: tvlUsd } = pair
+  
+  const symbol = utils.formatSymbol(
     `${token0.symbol}-${token1.symbol}`
   );
-
+    
+  const apy = rewardsAPR[id.toLowerCase()]
+  
   const chain = utils.formatChain(chainString)
 
   return {
@@ -55,35 +27,101 @@ const createPool = (entry, chainString) => {
   }
 }
 
-const topLvl = async (chainString, url, query, queryPrior, timestamp) => {
-  const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
-    url,
+const calculateRewardsApy = async (endpoint, pair, liquidityMiningCampaigns, kpiTokens, nativeCurrencyPrice) => {
+  const normalizedPairId = pair.id.toLowerCase()
+
+  // filter by id and active
+  const activeCampaigns = liquidityMiningCampaigns.filter(campaign => campaign.stakablePair.id.toLowerCase() === normalizedPairId && campaign.endsAt * 1000 >= Date.now())
+
+  if(!activeCampaigns.length){
+    rewardsAPR[normalizedPairId] = 0
+    return
+  }
+
+  for(const campaign of activeCampaigns){
+    // duration in days
+    const duration = campaign.duration / 24 / 3600
+
+    let totalValueUSD = 0
+
+    for(const reward of campaign.rewards) {
+      const { token, amount } = reward
+
+      const kpiToken = kpiTokens?.find(({ id }) => id.toLowerCase() === token.id.toLowerCase())
+
+      let tokenAddress;
+
+      if (kpiToken) {
+        tokenAddress = kpiToken.collateral.token.id
+      } else {
+        tokenAddress = token.id
+      }
+
+      const {token: { derivedNativeCurrency }} = await request(endpoint, QUERY_TOKEN.replace('<PLACEHOLDER>',`"${tokenAddress.toLowerCase()}"`))
+    
+      const tokenPrice = derivedNativeCurrency * nativeCurrencyPrice
+
+      totalValueUSD += tokenPrice * amount
+    }
+
+    const [token0, token1] = await Promise.all([
+      request(endpoint, QUERY_TOKEN.replace('<PLACEHOLDER>',`"${pair.token0.id.toLowerCase()}"`)),
+      request(endpoint, QUERY_TOKEN.replace('<PLACEHOLDER>',`"${pair.token1.id.toLowerCase()}"`))
+    ])
+
+    const token0Price = token0.token.derivedNativeCurrency * nativeCurrencyPrice
+    const token1Price = token1.token.derivedNativeCurrency * nativeCurrencyPrice
+    
+    const lpTokenPrice = (2 * (Math.sqrt(pair.reserve0 * pair.reserve1) * Math.sqrt(token0Price * token1Price))) / pair.totalSupply
+
+    const tvlCampaign = campaign.stakedAmount * lpTokenPrice
+
+    const apr = (totalValueUSD / duration) * 365 * 100 / tvlCampaign
+
+    if (rewardsAPR[normalizedPairId]){
+      rewardsAPR[normalizedPairId] += apr
+    } else {
+      rewardsAPR[normalizedPairId] = apr
+    } 
+  }
+
+}
+
+const topLvl = async (chainString, endpoint, timestamp) => {
+  const [block] = await utils.getBlocks(chainString, timestamp, [
+    endpoint,
   ])
 
-  let dataNow = await request(url, query.replace('<PLACEHOLDER>', block))
+  const { liquidityMiningCampaigns } = await request(endpoint, QUERY_LIQUIDITY_MINING_CAMPAIGNS)
+ 
+  let pairs = await request(endpoint, QUERY_PAIRS.replace('<PLACEHOLDER>', block))
+  
+  const {bundle: { nativeCurrencyPrice }} = await request(endpoint, QUERY_NATIVE_CURRENCY_USD)
 
-  // pull 24h offset data to calculate fees from swap volume
-  const dataPrior = await request(
-    url,
-    queryPrior.replace('<PLACEHOLDER>', blockPrior)
-  )
+  //currently carrot is only on xdai chain
+  let kpiTokens;
 
-  // calculate tvl
-  dataNow = await utils.tvl(dataNow.pairs, chainString)
+  if(chainString === XDAI_CHAIN) {
+    const response = await request(KPI_ENDPOINT, QUERY_KPI_TOKENS) 
+    kpiTokens = response.kpiTokens
+  }
 
-  // calculate apy
-  const data = dataNow.map(pair => utils.apy(pair, dataPrior.pairs, 'v2'))
+  pairs = await utils.tvl(pairs.pairs, chainString)
 
-  return data.map(pair => createPool(pair, chainString))
+  for (const pair of pairs){
+    await calculateRewardsApy(endpoint, pair, liquidityMiningCampaigns, kpiTokens, nativeCurrencyPrice)
+  }
+
+  return pairs.map(pair => createPool(pair, chainString))
 }
 
 const main = async (timestamp = null) => {
   const data = await Promise.all([
-    topLvl('arbitrum', ARBITRUM_ENDPOINT, QUERY_PAIRS, QUERY_PRIOR, timestamp),
-    topLvl('xdai', XDAI_ENDPOINT, QUERY_PAIRS, QUERY_PRIOR, timestamp)
+    topLvl(XDAI_CHAIN, XDAI_ENDPOINT, timestamp),
+    topLvl(ARBITRUM_CHAIN, ARBITRUM_ENDPOINT, timestamp)
   ]);
-
-  return data.flat().filter(pool => !isNaN(pool.apy))
+  
+  return data.flat().filter(pool => isFinite(pool.apy) && !isNaN(pool.apy))
 }
 
 module.exports = {
