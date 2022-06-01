@@ -56,6 +56,10 @@ exports.getBlocksByTime = async (timestamps, chainString) => {
       url: 'https://api-optimistic.etherscan.io',
       key: process.env.OPTIMISM,
     },
+    xdai: {
+      url: 'https://blockscout.com/xdai/mainnet',
+      key: process.env.XDAI,
+    }
   };
 
   const blocks = [];
@@ -68,7 +72,15 @@ exports.getBlocksByTime = async (timestamps, chainString) => {
 
     const response = await superagent.get(url);
 
-    blocks.push(parseInt(response.body.result));
+    let blockNumber;
+
+    if (url.includes("blockscout")) {
+      blockNumber = response.body.result.blockNumber
+    } else {
+      blockNumber = response.body.result
+    }
+
+    blocks.push(parseInt(blockNumber));
   }
   return blocks;
 };
