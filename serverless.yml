@@ -113,6 +113,7 @@ functions:
       INFURA_CONNECTION: ${file(./env.js):INFURA_CONNECTION}
       ALCHEMY_CONNECTION_POLYGON: ${file(./env.js):ALCHEMY_CONNECTION_POLYGON}
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
+      XDAI: ${file(./env.js):XDAI}
 
   # --- data enrichment (pct-changes)
   triggerEnrichment:
