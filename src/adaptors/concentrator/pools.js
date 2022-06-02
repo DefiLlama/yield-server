@@ -178,4 +178,18 @@ module.exports = [
         },
     },
 
+    {
+        symbol: 'PUSD-3Crv',
+        name: 'pusd',
+        coins: [
+            coins.PUSD,
+            coins.crv3pool
+        ],
+        coinDecimals: [18, 18],
+        addresses: {
+            swap: '0x8EE017541375F6Bcd802ba119bdDC94dad6911A1',
+            lpToken: '0x8EE017541375F6Bcd802ba119bdDC94dad6911A1',
+        },
+    },
+
 ];
