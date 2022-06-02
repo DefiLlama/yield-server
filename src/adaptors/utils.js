@@ -5,7 +5,10 @@ exports.formatChain = (chain) => chain.charAt(0).toUpperCase() + chain.slice(1);
 
 // replace / with - and trim potential whitespace
 exports.formatSymbol = (symbol) =>
-  symbol.replace(/\//g, '-').replace(/\s/g, '').trim();
+  symbol
+    .replace(/[_+\/]/g, '-')
+    .replace(/\s/g, '')
+    .trim();
 
 exports.getData = async (url, query = null) => {
   if (query !== null) {
@@ -53,6 +56,10 @@ exports.getBlocksByTime = async (timestamps, chainString) => {
       url: 'https://api-optimistic.etherscan.io',
       key: process.env.OPTIMISM,
     },
+    xdai: {
+      url: 'https://blockscout.com/xdai/mainnet',
+      key: process.env.XDAI,
+    }
   };
 
   const blocks = [];
@@ -65,7 +72,15 @@ exports.getBlocksByTime = async (timestamps, chainString) => {
 
     const response = await superagent.get(url);
 
-    blocks.push(parseInt(response.body.result));
+    let blockNumber;
+
+    if (url.includes("blockscout")) {
+      blockNumber = response.body.result.blockNumber
+    } else {
+      blockNumber = response.body.result
+    }
+
+    blocks.push(parseInt(blockNumber));
   }
   return blocks;
 };
@@ -181,6 +196,11 @@ exports.tvl = async (dataNow, networkString) => {
   return dataNowCopy;
 };
 
+exports.aprToApy = (apr, compoundFrequency = 365) => {
+  return (
+    ((1 + (apr * 0.01) / compoundFrequency) ** compoundFrequency - 1) * 100
+  );
+};
 // calculating apy based on subgraph data
 exports.apy = (entry, dataPrior, version) => {
   entry = { ...entry };

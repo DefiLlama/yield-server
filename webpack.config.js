@@ -16,6 +16,7 @@ module.exports = {
     ],
   },
   resolve: {
+    mainFields: ['main'],
     extensions: ['.js', '.json'],
     alias: {
       'bignumber.js$': 'bignumber.js/bignumber.js',
