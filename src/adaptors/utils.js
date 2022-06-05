@@ -59,7 +59,7 @@ exports.getBlocksByTime = async (timestamps, chainString) => {
     xdai: {
       url: 'https://blockscout.com/xdai/mainnet',
       key: process.env.XDAI,
-    }
+    },
   };
 
   const blocks = [];
@@ -74,10 +74,10 @@ exports.getBlocksByTime = async (timestamps, chainString) => {
 
     let blockNumber;
 
-    if (url.includes("blockscout")) {
-      blockNumber = response.body.result.blockNumber
+    if (url.includes('blockscout')) {
+      blockNumber = response.body.result.blockNumber;
     } else {
-      blockNumber = response.body.result
+      blockNumber = response.body.result;
     }
 
     blocks.push(parseInt(blockNumber));
@@ -132,9 +132,17 @@ exports.getBlocks = async (chainString, tsTimeTravel, urlArray) => {
     for (const url of urlArray.filter((el) => el !== null)) {
       blocksPromises.push(getLatestBlockSubgraph(url));
     }
-    const blocks = await Promise.all(blocksPromises);
-    // we use oldest block
-    blockGraph = Math.min(...blocks);
+    try {
+      // NOTE(!) 'https://api.thegraph.com/index-node/graphql' stopped working 4 days ago
+      // see https://github.com/graphprotocol/graph-node/issues/3607
+      blocks = await Promise.all(blocksPromises);
+      // we use oldest block
+      blockGraph = Math.min(...blocks);
+    } catch (err) {
+      // until the above is fixed, i will apply a hack in the meantime
+      // assuming the subgraph is synced up to 30blocks prior
+      blockGraph = block - 30;
+    }
 
     // calc delta
     blockDelta = Math.abs(block - blockGraph);
