@@ -3,11 +3,13 @@ const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const abi = require('./abi.json');
 const { unwrapUniswapLPs, genericUnwrapCrv } = require("../helper/unwrapLPs");
+const { getChainTransform } = require("../helper/transform")
 const { default: computeTVL } = require("@defillama/sdk/build/computeTVL");
+const { requery } = require("../helper/requery");
 const chains = {
     1: "Ethereum",
     250: "Fantom",
-    43114: "Avalanche"
+    43114: "Avax"
 };
 const crv3 = '0x6c3f90f043a72fa612cbac8115ee7e52bde6e490';
 const LP_SYMBOLS = ['SLP', 'spLP', 'JLP', 'OLP', 'SCLP', 'DLP', 'MLP', 'MSLP', 'ULP', 'TLP', 'HMDX', 'YLP', 'SCNRLP', 'PGL', 'GREEN-V2', 'PNDA-V2'];
@@ -130,18 +132,20 @@ async function chefs(apys, chainId) {
         chain: chains[chainId].toLowerCase()
     })).output;
 
-    const poolInfos = (await sdk.api.abi.multiCall({
+    const poolInfos = await sdk.api.abi.multiCall({
         abi: abi.poolInfo,
         calls: Object.keys(apys).map((p, i) => ({
             target: chefs[i].output,
             params: [p.substring(p.lastIndexOf('-') + 1)]
         })),
         chain: chains[chainId].toLowerCase()
-    })).output;
+    });
+
+    await requery(poolInfos, chains[chainId].toLowerCase(), undefined, abi.poolInfo);
 
     const [symbols, tvls] = await Promise.all([
-        chefSymbols(poolInfos, chainId),
-        chefTvls(poolInfos, apys, chefs, chainId)
+        chefSymbols(poolInfos.output, chainId),
+        chefTvls(poolInfos.output, apys, chefs, chainId)
     ]);
 
     return Object.entries(apys).map(([k, v], i) => ({
@@ -335,36 +339,66 @@ async function staking(apys, chainId) {
         chain: chains[chainId].toLowerCase()
     })).output
 
-    const balance = (await sdk.api.abi.multiCall({
-        abi: 'erc20:balanceOf',
-        calls: Object.keys(apys).map((p, i) => ({
-            target: stakingTokens[i].output,
-            params: [ p.substring(p.indexOf('-') + 1) ]
+    const stakingContracts = (await sdk.api.abi.multiCall({
+        calls: Object.keys(apys).map(p => ({
+            target: p.substring(p.indexOf('-') + 1),
         })),
-        chain: chains[chainId].toLowerCase()
-    })).output;
+        chain: chains[chainId].toLowerCase(),
+        abi: abi.staking
+    })).output
 
-    let a = [];
+    const balance = (await sdk.api.abi.multiCall({
+        calls: stakingContracts.map(c => ({
+            target: c.output,
+            params: [ c.input.target ]
+        })),
+        chain: chains[chainId].toLowerCase(),
+        abi: abi.balanceOfRewards
+    })).output
+
+    const transform = await getChainTransform(chains[chainId].toLowerCase())
+    let pools = [];
     for (let i = 0; i < Object.keys(apys).length; i++) {
         let symbol;
         const balances = {};
-        if (LP_SYMBOLS.includes(symbols[i].output) || /(UNI-V2)/.test(symbols[i].output) || symbols[i].output.split(/\W+/).includes('LP')) {
-            symbol = await lpSymbols(stakingTokens[i].output, chainId)
-            await unwrapUniswapLPs(balances, [{ token: stakingTokens[i].output, balance: balance[i].output }])
+
+        if (
+            LP_SYMBOLS.includes(symbols[i].output) || 
+            /(UNI-V2)/.test(symbols[i].output) || 
+            symbols[i].output.split(/\W+/).includes('LP')
+            ) {
+            symbol = await lpSymbols(stakingTokens[i].output, chainId);
+            await unwrapUniswapLPs(
+                balances, 
+                [{ 
+                    token: stakingTokens[i].output, 
+                    balance: balance[i].output 
+                }],
+                undefined,
+                chains[chainId].toLowerCase(),
+                transform
+                );
+
         } else {
             symbol = symbols[i]
-            sdk.util.sumSingleBalance(balances, stakingTokens[i].output, balance[i].output)
-        }
-        a.push({
+            sdk.util.sumSingleBalance(
+                balances, 
+                transform, 
+                balance[i].output
+                );
+        };
+
+        let b = await computeTVL(balances, "now", false, [], getCoingeckoLock, 5)
+        pools.push({
             pool: Object.keys(apys)[i],
-            chain: chains[chainId],
+            chain: chainId == 43114 ? "Avalanche" : chains[chainId],
             project: 'homora',
             symbol,
-            tvlUsd: (await computeTVL(balances, "now", false, [], getCoingeckoLock, 5)).usdTvl, ///
+            tvlUsd: (await computeTVL(balances, "now", false, [], getCoingeckoLock, 5)).usdTvl,
             apy: Number(Object.values(apys)[i].totalAPY)
         })
     }
-    return a;
+    return pools;
 };
 function sortByKey(apys, key) {
     return Object.fromEntries(Object.entries(apys).filter(([k]) => k.includes(key)));
@@ -373,14 +407,19 @@ async function apy(chainId) {
     const apys = (await axios.get(`https://api.homora.alphaventuredao.io/v2/${chainId}/apys`)).data;
 
     return [
-        // ...(await chefs(sortByKey(apys, 'wchef'), chainId)),
+        ...(await chefs(sortByKey(apys, 'wchef'), chainId)),
         // ...(await erc20s(sortByKey(apys, 'werc20'), chainId)),
         // ...(await gauge(sortByKey(apys, 'wgauge'), chainId)),
-        ...(await staking(sortByKey(apys, 'wstaking'), chainId))
+        // ...(await staking(sortByKey(apys, 'wstaking'), chainId))
     ];
 }; // node src/adaptors/test.js src/adaptors/homora/index.js
 const main = async () => {
-    return await apy(1);
+    let a = [
+        // ...(await apy(1)),
+        // ...(await apy(250)),
+        ...(await apy(43114))
+    ];
+    return a;
 };
 function getCoingeckoLock() {
     return new Promise((resolve) => {
