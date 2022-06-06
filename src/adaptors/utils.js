@@ -86,26 +86,40 @@ exports.getBlocksByTime = async (timestamps, chainString) => {
 };
 
 const getLatestBlockSubgraph = async (url) => {
+  // const queryGraph = gql`
+  //   {
+  //     indexingStatusForCurrentVersion(subgraphName: "<PLACEHOLDER>") {
+  //       chains {
+  //         latestBlock {
+  //           number
+  //         }
+  //       }
+  //     }
+  //   }
+  // `;
   const queryGraph = gql`
     {
-      indexingStatusForCurrentVersion(subgraphName: "<PLACEHOLDER>") {
-        chains {
-          latestBlock {
-            number
-          }
+      _meta {
+        block {
+          number
         }
       }
     }
   `;
 
+  // const blockGraph = await request(
+  //   'https://api.thegraph.com/index-node/graphql',
+  //   queryGraph.replace('<PLACEHOLDER>', url.split('name/')[1])
+  // );
   const blockGraph = await request(
-    'https://api.thegraph.com/index-node/graphql',
-    queryGraph.replace('<PLACEHOLDER>', url.split('name/')[1])
+    `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
+    queryGraph
   );
 
-  return Number(
-    blockGraph.indexingStatusForCurrentVersion.chains[0].latestBlock.number
-  );
+  // return Number(
+  //   blockGraph.indexingStatusForCurrentVersion.chains[0].latestBlock.number
+  // );
+  return Number(blockGraph._meta.block.number);
 };
 
 // func which queries subgraphs for their latest block nb and compares it against
@@ -132,18 +146,9 @@ exports.getBlocks = async (chainString, tsTimeTravel, urlArray) => {
     for (const url of urlArray.filter((el) => el !== null)) {
       blocksPromises.push(getLatestBlockSubgraph(url));
     }
-    try {
-      // NOTE(!) 'https://api.thegraph.com/index-node/graphql' stopped working 4 days ago
-      // see https://github.com/graphprotocol/graph-node/issues/3607
-      blocks = await Promise.all(blocksPromises);
-      // we use oldest block
-      blockGraph = Math.min(...blocks);
-    } catch (err) {
-      // until the above is fixed, i will apply a hack in the meantime
-      // assuming the subgraph is synced up to 30blocks prior
-      blockGraph = block - 30;
-    }
-
+    blocks = await Promise.all(blocksPromises);
+    // we use oldest block
+    blockGraph = Math.min(...blocks);
     // calc delta
     blockDelta = Math.abs(block - blockGraph);
 
