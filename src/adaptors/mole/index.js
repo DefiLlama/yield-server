@@ -1,3 +1,10 @@
+/*
+ * @Description: 
+ * @Autor: Econiche
+ * @Date: 2022-06-06 09:36:02
+ * @LastEditors: Econiche
+ * @LastEditTime: 2022-06-06 22:13:36
+ */
 const axios = require('axios');
 const utils = require('../utils');
 
@@ -29,7 +36,7 @@ async function apy(chain) {
     project: 'mole',
     symbol: utils.formatSymbol(p.symbol),
     tvlUsd: Number(p.tvl),
-    apy: Number(p.apy),
+    apy: Number(p.apy) * 100,
   }));
 
   const hedgePools = response.hedges.map((p) => ({
@@ -38,7 +45,7 @@ async function apy(chain) {
     project: 'mole',
     symbol: utils.formatSymbol(p.iuToken.symbol),
     tvlUsd: Number(p.tvl),
-    apy: Number(p.apy),
+    apy: Number(p.apy) * 100,
   }));
 
   const farmingPools = response.farms.map((p) => ({
@@ -48,7 +55,7 @@ async function apy(chain) {
     symbol: formatSymbol(p.sourceName),
     tvlUsd: Number(p.tvl),
     apy: utils.aprToApy(
-      (Number(p.farmRewardApr) + Number(p.tradingFeeApr)) / p.leverage
+      (Number(p.farmRewardApr) + Number(p.tradingFeeApr)) / p.leverage * 100
     ),
   }));
 
@@ -58,7 +65,7 @@ async function apy(chain) {
     project: 'mole',
     symbol: utils.formatSymbol(p.symbol),
     tvlUsd: Number(p.tvl),
-    apy: Number(p.totalApy),
+    apy: Number(p.totalApy) * 100,
   }));
 
   return [
