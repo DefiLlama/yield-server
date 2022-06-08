@@ -18,7 +18,7 @@ const query = gql`
 
 const buildPool = (pool, chainString) => {
   return {
-    pool: pool.id,
+    pool: `${pool.id}-euler`,
     chain: utils.formatChain(chainString),
     project: 'euler',
     symbol: utils.formatSymbol(pool.symbol),
