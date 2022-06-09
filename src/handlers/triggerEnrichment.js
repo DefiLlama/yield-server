@@ -361,6 +361,7 @@ const checkStablecoin = (el) => {
     'eur',
     'usdn',
     'dusd',
+    'usd+',
   ];
 
   let tokens = el.symbol.split('-').map((el) => el.toLowerCase());
