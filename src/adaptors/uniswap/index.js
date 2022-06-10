@@ -75,7 +75,7 @@ const buildPool = (entry, version, chainString) => {
     chain: utils.formatChain(chainString),
     project: 'uniswap',
     market: version,
-    symbol,
+    symbol: version === 'v3' ? `${symbol} (${entry.feeTier / 1e4}%)` : symbol,
     tvlUsd: entry.totalValueLockedUSD,
     apy: entry.apy,
   };
