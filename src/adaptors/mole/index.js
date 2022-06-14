@@ -39,8 +39,8 @@ async function apy(chain) {
     apy: Number(p.apy) * 100,
   }));
 
-  const hedgePools = response.hedges.map((p) => ({
-    pool: `${p.key}-hedge-pool`,
+  const fundPools = response.funds.map((p) => ({
+    pool: `${p.key}-fund-pool`,
     chain: utils.formatChain(chainMapping[chain]),
     project: 'mole',
     symbol: utils.formatSymbol(p.iuToken.symbol),
@@ -70,7 +70,7 @@ async function apy(chain) {
 
   return [
     ...fairLaunchStakingPools,
-    ...hedgePools,
+    ...fundPools,
     ...farmingPools,
     ...lendingPools,
   ];
