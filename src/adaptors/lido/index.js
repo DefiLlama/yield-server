@@ -38,12 +38,29 @@ const topLvl = async (chainString, url, token) => {
 };
 
 const main = async () => {
-  const data = await Promise.all([
-    topLvl('ethereum', 'https://stake.lido.fi/api', 'stETH'),
-    topLvl('polygon', 'https://polygon.lido.fi/api/stats', 'stMATIC'),
-    topLvl('solana', 'https://solana.lido.fi/api/stats', 'stSOL'),
-    topLvl('kusama', 'https://kusama.lido.fi/api/stats', 'stKSM'),
-  ]);
+  const data = [];
+  // for some reason Promise.all often crashes here, so awaiting each individually
+  const ethereum = await topLvl(
+    'ethereum',
+    'https://stake.lido.fi/api',
+    'stETH'
+  );
+  const polygon = await topLvl(
+    'polygon',
+    'https://polygon.lido.fi/api/stats',
+    'stMATIC'
+  );
+  const solana = await topLvl(
+    'solana',
+    'https://solana.lido.fi/api/stats',
+    'stSOL'
+  );
+  const kusama = await topLvl(
+    'kusama',
+    'https://kusama.lido.fi/api/stats',
+    'stKSM'
+  );
+  data.push(ethereum, polygon, solana, kusama);
   return data.flat();
 };
 
