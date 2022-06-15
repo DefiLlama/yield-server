@@ -311,6 +311,12 @@ const main = async () => {
         : 3;
   }
 
+  // removing 0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d (saitama-weth sushiswap on ethereum)
+  // had insane pump in price from coingecko, likely wrong
+  dataEnriched = dataEnriched.filter(
+    (p) => p.pool !== '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d'
+  );
+
   ////// 8) save enriched data to s3
   console.log('\nsaving data to S3');
   const bucket = process.env.BUCKET_DATA;
