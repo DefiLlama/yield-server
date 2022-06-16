@@ -56,6 +56,8 @@ const topLvl = async () => {
 
     const reservesResponse = await fetch(`${reservesEndpoint}?ids=${tokens}`);
     const res = (await reservesResponse.json()).results;
+
+    if (res === undefined) continue;
     reserves.push(res);
   }
 
