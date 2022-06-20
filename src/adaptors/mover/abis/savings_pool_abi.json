@@ -1,0 +1,30 @@
+{
+  "getDailyAPY": {
+    "inputs": [],
+    "name": "getDailyAPY",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
+  },
+  "totalAssetAmount": {
+    "inputs": [],
+    "name": "totalAssetAmount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
+  }
+}
