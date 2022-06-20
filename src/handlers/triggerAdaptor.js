@@ -1,7 +1,7 @@
 const superagent = require('superagent');
 const SSM = require('aws-sdk/clients/ssm');
 
-const writeToS3 = require('../utils/writeToS3');
+const utils = require('../utils/s3');
 
 module.exports.handler = async (event) => {
   console.log(event);
@@ -72,5 +72,5 @@ const main = async (body) => {
   const bucket = process.env.BUCKET_DATA;
   const key = `base/${dd[0]}/${d.getHours()}/${dd[1]}_${body.adaptor}.json`;
 
-  await writeToS3(bucket, key, data);
+  await utils.writeToS3(bucket, key, data);
 };
