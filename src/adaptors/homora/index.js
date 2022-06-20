@@ -1,5 +1,4 @@
 const axios = require("axios");
-const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const abi = require('./abi.json');
 const { unwrapUniswapLPs, genericUnwrapCrv } = require("../helper/unwrapLPs");
@@ -94,11 +93,13 @@ async function lpSymbols(address, chainId) {
 
     return `${token0Symbol}-${token1Symbol}`;
 };
-async function chefTvls(poolInfos, apys, chefs, chainId) {
+async function chefTvls(poolInfos, apys, chainId) {
+    const transform = await getChainTransform(chains[chainId].toLowerCase());
+
     const balance = (await sdk.api.abi.multiCall({
         abi: abi.userInfo,
         calls: Object.keys(apys).map((p, i) => ({
-            target: chefs[i].output,
+            target: poolInfos[i].input.target,
             params: [
                 p.substring(p.lastIndexOf('-') + 1),
                 p.substring(p.indexOf('-') + 1, p.lastIndexOf('-'))
@@ -116,7 +117,10 @@ async function chefTvls(poolInfos, apys, chefs, chainId) {
             [{
                 balance: balance[i].output.amount,
                 token: poolInfos[i].output.lpToken
-            }]
+            }],
+            undefined, 
+            chains[chainId].toLowerCase(),
+            transform
         );
         tvls.push((await computeTVL(balances, "now", false, [], getCoingeckoLock, 5)).usdTvl);
     };
@@ -142,10 +146,11 @@ async function chefs(apys, chainId) {
     });
 
     await requery(poolInfos, chains[chainId].toLowerCase(), undefined, abi.poolInfo);
+    // poolInfos.output = poolInfos.output.filter(p => p.success == true)
 
     const [symbols, tvls] = await Promise.all([
         chefSymbols(poolInfos.output, chainId),
-        chefTvls(poolInfos.output, apys, chefs, chainId)
+        chefTvls(poolInfos.output, apys, chainId)
     ]);
 
     return Object.entries(apys).map(([k, v], i) => ({
@@ -203,6 +208,8 @@ async function erc20Symbols(tokens, chainId) {
     );
 };
 async function erc20Tvls(apys, tokens, chainId) {
+    const transform = await getChainTransform(chains[chainId].toLowerCase());
+
     const balance = (await sdk.api.abi.multiCall({
         abi: 'erc20:balanceOf',
         calls: Object.keys(apys).map((p, i) => ({
@@ -223,7 +230,10 @@ async function erc20Tvls(apys, tokens, chainId) {
             [{
                 balance: balance[i].output,
                 token: tokens[i].output
-            }]
+            }],
+            undefined, 
+            chains[chainId].toLowerCase(),
+            transform
         );
         tvls.push((await computeTVL(balances, "now", false, [], getCoingeckoLock, 5)).usdTvl);
     };
