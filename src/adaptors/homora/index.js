@@ -132,7 +132,7 @@ async function chefs(apys, chainId) {
         chain: chains[chainId].toLowerCase()
     })).output;
 
-    const poolInfos = await sdk.api.abi.multiCall({
+    let poolInfos = await sdk.api.abi.multiCall({
         abi: abi.poolInfo,
         calls: Object.keys(apys).map((p, i) => ({
             target: chefs[i].output,
@@ -408,18 +408,17 @@ async function apy(chainId) {
 
     return [
         ...(await chefs(sortByKey(apys, 'wchef'), chainId)),
-        // ...(await erc20s(sortByKey(apys, 'werc20'), chainId)),
-        // ...(await gauge(sortByKey(apys, 'wgauge'), chainId)),
-        // ...(await staking(sortByKey(apys, 'wstaking'), chainId))
+        ...(await erc20s(sortByKey(apys, 'werc20'), chainId)),
+        ...(await gauge(sortByKey(apys, 'wgauge'), chainId)),
+        ...(await staking(sortByKey(apys, 'wstaking'), chainId))
     ];
-}; // node src/adaptors/test.js src/adaptors/homora/index.js
+};
 const main = async () => {
-    let a = [
-        // ...(await apy(1)),
-        // ...(await apy(250)),
+    return [
+        ...(await apy(1)),
+        ...(await apy(250)),
         ...(await apy(43114))
     ];
-    return a;
 };
 function getCoingeckoLock() {
     return new Promise((resolve) => {
