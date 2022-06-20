@@ -17,7 +17,7 @@ async function chefSymbols(poolInfos, chainId) {
     const [
         { output: token0s },
         { output: token1s }
-    ] = await Promise.all([
+    ] =  await Promise.all([
         sdk.api.abi.multiCall({
             abi: abi.token0,
             calls: poolInfos.map(p => ({
@@ -146,7 +146,16 @@ async function chefs(apys, chainId) {
     });
 
     await requery(poolInfos, chains[chainId].toLowerCase(), undefined, abi.poolInfo);
-    // poolInfos.output = poolInfos.output.filter(p => p.success == true)
+
+    for (let i = 0; i < poolInfos.output.length; i++) {
+        if (poolInfos.output[i].success == true) {
+            continue;
+        } else {
+            delete apys[Object.keys(apys)[i]];
+            poolInfos.output.splice(i, 1);
+            i -= 1;
+        };
+    };
 
     const [symbols, tvls] = await Promise.all([
         chefSymbols(poolInfos.output, chainId),
