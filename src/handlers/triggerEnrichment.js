@@ -2,7 +2,8 @@ const superagent = require('superagent');
 const SSM = require('aws-sdk/clients/ssm');
 const ss = require('simple-statistics');
 
-const writeToS3 = require('../utils/writeToS3');
+const utils = require('../utils/s3');
+const { el } = require('date-fns/locale');
 
 module.exports.handler = async (event) => {
   await main();
@@ -94,6 +95,15 @@ const main = async () => {
   ////// 5) add exposure, ilRisk and stablecoin fields
   console.log('\n5. adding additional pool info fields');
   dataEnriched = dataEnriched.map((el) => addPoolInfo(el));
+
+  // complifi has single token exposure only, but IL can still occur if a trader makes a big one, in which
+  // case the protocol will pay traders via deposited amounts...
+  // so hardcoding this here as IL
+  for (const p of dataEnriched) {
+    if (p.project === 'complifi') {
+      p.ilRisk = 'yes';
+    }
+  }
 
   ////// 6) add ml features
   console.log('\n6. adding ml features');
@@ -187,7 +197,12 @@ const main = async () => {
   ////// 7) add the algorithms predictions
   console.log('\n7. adding apy runway prediction');
 
-  // we need to factorize the categorical features
+  // load categorical feature mappings
+  const modelMappings = await utils.readFromS3(
+    'llama-apy-prediction-prod',
+    'mlmodelartefacts/categorical_feature_mapping_2022_05_20.json'
+  );
+  console.log(modelMappings);
   for (const el of dataEnriched) {
     project_fact = modelMappings.project_factorized[el.project];
     chain_fact = modelMappings.chain_factorized[el.chain];
@@ -270,10 +285,12 @@ const main = async () => {
     };
   }
 
+  // based on discussion here: https://github.com/DefiLlama/yield-ml/issues/2
   // the output of a random forest predict_proba are smoothed relative frequencies of
   // of class distributions and do not represent calibrated probabilities
-  // instead of showing this as is on the frontend, it makes sense to a) either calibrate (which will take a bit more time and effort)
-  // or to bin the scores into confidence values which i'm using here by assigning labels to the bins instead (low, medium, high)
+  // instead of showing this as is on the frontend,
+  // it makes sense to a) either calibrate (which will take a bit more time and effort)
+  // or to bin the scores into confidence values which i'm using here
   const predScores = dataEnriched
     .map((el) => el.predictions.predictedProbability)
     .filter((el) => el !== null);
@@ -288,18 +305,24 @@ const main = async () => {
       p.predictions.predictedProbability === null
         ? null
         : p.predictions.predictedProbability <= q33
-        ? 'Low'
+        ? 1
         : p.predictions.predictedProbability <= q66
-        ? 'Medium'
-        : 'High';
+        ? 2
+        : 3;
   }
+
+  // removing 0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d (saitama-weth sushiswap on ethereum)
+  // had insane pump in price from coingecko, likely wrong
+  dataEnriched = dataEnriched.filter(
+    (p) => p.pool !== '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d'
+  );
 
   ////// 8) save enriched data to s3
   console.log('\nsaving data to S3');
   const bucket = process.env.BUCKET_DATA;
   const key = 'enriched/dataEnriched.json';
   dataEnriched = dataEnriched.sort((a, b) => b.tvlUsd - a.tvlUsd);
-  await writeToS3(bucket, key, dataEnriched);
+  await utils.writeToS3(bucket, key, dataEnriched);
 
   // also save to other "folder" where we keep track of hourly predictions (this will be used
   // for ML dashboard performance monitoring)
@@ -307,7 +330,7 @@ const main = async () => {
     Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
   ).toISOString();
   const keyPredictions = `predictions-hourly/dataEnriched_${timestamp}.json`;
-  await writeToS3(bucket, keyPredictions, dataEnriched);
+  await utils.writeToS3(bucket, keyPredictions, dataEnriched);
 };
 
 ////// helper functions
@@ -327,7 +350,7 @@ const checkStablecoin = (el) => {
     'usdt',
     'usdc',
     'busd',
-    'ust',
+    // 'ust', // excluding cause of depeg
     'dai',
     'mim',
     'frax',
@@ -344,6 +367,7 @@ const checkStablecoin = (el) => {
     'eur',
     'usdn',
     'dusd',
+    'usd+',
   ];
 
   let tokens = el.symbol.split('-').map((el) => el.toLowerCase());
@@ -376,7 +400,7 @@ const checkStablecoin = (el) => {
 // 2: - 1 asset
 // 3: - more than 1 asset but same underlying assets
 const checkIlRisk = (el) => {
-  const l1Token = ['btc', 'eth', 'avax', 'matic'];
+  const l1Token = ['btc', 'eth', 'avax', 'matic', 'eur'];
   const symbol = el.symbol.toLowerCase();
   const tokens = symbol.split('-');
 
@@ -440,38 +464,13 @@ const checkExposure = (el) => {
 
 const addPoolInfo = (el) => {
   el['stablecoin'] = checkStablecoin(el);
-  el['ilRisk'] = el.stablecoin ? 'no' : checkIlRisk(el);
+  el['ilRisk'] =
+    el.stablecoin && el.symbol.toLowerCase().includes('eur')
+      ? checkIlRisk(el)
+      : el.stablecoin
+      ? 'no'
+      : checkIlRisk(el);
   el['exposure'] = checkExposure(el);
 
   return el;
-};
-
-// this will need to be maintained
-const modelMappings = {
-  project_factorized: {
-    aave: 0,
-    sushiswap: 1,
-    'trader-joe': 2,
-    uniswap: 3,
-    quickswap: 4,
-    balancer: 5,
-    'convex-finance': 6,
-    'yearn-finance': 7,
-    pangolin: 8,
-    bancor: 9,
-    curve: 10,
-    'geist-finance': 11,
-    compound: 12,
-    rook: 13,
-    'badger-dao': 14,
-    'beefy-finance': 15,
-  },
-  chain_factorized: {
-    Ethereum: 0,
-    Avalanche: 1,
-    Polygon: 2,
-    Arbitrum: 3,
-    Optimism: 4,
-    Fantom: 5,
-  },
 };
