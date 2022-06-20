@@ -46,8 +46,8 @@ const savings = async () => {
         chain: utils.formatChain(chain),
         project: projectName,
         symbol: utils.formatSymbol('USDC'),
-        tvlUsd: tvl.toFixed(0),
-        apy: apy.toFixed(2)
+        tvlUsd: parseInt(tvl.toFixed(0)),
+        apy: parseFloat(apy.toFixed(2))
     };
 };
 
@@ -89,8 +89,8 @@ const savingsPlus = async () => {
         chain: utils.formatChain(chain),
         project: projectName,
         symbol: utils.formatSymbol('USDC'),
-        tvlUsd: tvl.toFixed(0),
-        apy: apy.toFixed(2)
+        tvlUsd: parseInt(tvl.toFixed(0)),
+        apy: parseFloat(apy.toFixed(2))
     };
 };
 
