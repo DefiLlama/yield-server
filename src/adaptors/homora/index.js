@@ -1,10 +1,9 @@
 const axios = require("axios");
 const sdk = require('@defillama/sdk');
 const abi = require('./abi.json');
-const { unwrapUniswapLPs, genericUnwrapCrv } = require("../helper/unwrapLPs");
-const { getChainTransform } = require("../helper/transform")
+const { unwrapUniswapLPs, genericUnwrapCrv } = require("./../../helper/unwrapLPs");
+const { getChainTransform } = require("./../../helper/transform")
 const { default: computeTVL } = require("@defillama/sdk/build/computeTVL");
-const { requery } = require("../helper/requery");
 const chains = {
     1: "Ethereum",
     250: "Fantom",
@@ -13,26 +12,45 @@ const chains = {
 const crv3 = '0x6c3f90f043a72fa612cbac8115ee7e52bde6e490';
 const LP_SYMBOLS = ['SLP', 'spLP', 'JLP', 'OLP', 'SCLP', 'DLP', 'MLP', 'MSLP', 'ULP', 'TLP', 'HMDX', 'YLP', 'SCNRLP', 'PGL', 'GREEN-V2', 'PNDA-V2'];
 
-async function chefSymbols(poolInfos, chainId) {
+async function chefSymbols(poolInfos, lpTokens, chainId) {
     const [
-        { output: token0s },
-        { output: token1s }
+        { output: token0sa },
+        { output: token1sa },
+        { output: token0sb },
+        { output: token1sb }
     ] =  await Promise.all([
         sdk.api.abi.multiCall({
             abi: abi.token0,
             calls: poolInfos.map(p => ({
-                target: p.output.lpToken,
+                target: p.success ? p.output.lpToken : undefined,
             })),
             chain: chains[chainId].toLowerCase()
         }),
         sdk.api.abi.multiCall({
             abi: abi.token1,
             calls: poolInfos.map(p => ({
-                target: p.output.lpToken,
+                target: p.success ? p.output.lpToken : undefined,
             })),
             chain: chains[chainId].toLowerCase()
-        })
+        }),
+        sdk.api.abi.multiCall({
+            abi: abi.token0,
+            calls: lpTokens.map(p => ({
+                target: p.success ? p.output : undefined,
+            })),
+            chain: chains[chainId].toLowerCase()
+        }),
+        sdk.api.abi.multiCall({
+            abi: abi.token1,
+            calls: lpTokens.map(p => ({
+                target: p.success ? p.output : undefined,
+            })),
+            chain: chains[chainId].toLowerCase()
+        }),
     ]);
+
+    const token0s = token0sa.map((t, i) => t.success ? t.output : token0sb[i].output)
+    const token1s = token1sa.map((t, i) => t.success ? t.output : token1sb[i].output)
 
     const [
         { output: token0Symbols },
@@ -41,14 +59,14 @@ async function chefSymbols(poolInfos, chainId) {
         sdk.api.abi.multiCall({
             abi: 'erc20:symbol',
             calls: token0s.map(t => ({
-                target: t.output,
+                target: t,
             })),
             chain: chains[chainId].toLowerCase()
         }),
         sdk.api.abi.multiCall({
             abi: 'erc20:symbol',
             calls: token1s.map(t => ({
-                target: t.output,
+                target: t,
             })),
             chain: chains[chainId].toLowerCase()
         }),
@@ -93,7 +111,7 @@ async function lpSymbols(address, chainId) {
 
     return `${token0Symbol}-${token1Symbol}`;
 };
-async function chefTvls(poolInfos, apys, chainId) {
+async function chefTvls(poolInfos, poolInfos2, lpTokens, apys, chainId) {
     const transform = await getChainTransform(chains[chainId].toLowerCase());
 
     const balance = (await sdk.api.abi.multiCall({
@@ -116,7 +134,7 @@ async function chefTvls(poolInfos, apys, chainId) {
             balances,
             [{
                 balance: balance[i].output.amount,
-                token: poolInfos[i].output.lpToken
+                token: poolInfos2[i].success ? poolInfos2[i].output.lpToken : lpTokens[i].output
             }],
             undefined, 
             chains[chainId].toLowerCase(),
@@ -145,21 +163,27 @@ async function chefs(apys, chainId) {
         chain: chains[chainId].toLowerCase()
     });
 
-    await requery(poolInfos, chains[chainId].toLowerCase(), undefined, abi.poolInfo);
+    let poolInfos2 = await sdk.api.abi.multiCall({
+        abi: abi.poolInfo2,
+        calls: Object.keys(apys).map((p, i) => ({
+            target: chefs[i].output,
+            params: [p.substring(p.lastIndexOf('-') + 1)]
+        })),
+        chain: chains[chainId].toLowerCase()
+    });
 
-    for (let i = 0; i < poolInfos.output.length; i++) {
-        if (poolInfos.output[i].success == true) {
-            continue;
-        } else {
-            delete apys[Object.keys(apys)[i]];
-            poolInfos.output.splice(i, 1);
-            i -= 1;
-        };
-    };
+    let lpTokens = (await sdk.api.abi.multiCall({
+        abi: abi.lpToken,
+        calls: Object.keys(apys).map((p, i) => ({
+            target: poolInfos.output[i].input.target,
+            params: [ p.substring(p.lastIndexOf('-') + 1) ]
+        })),
+        chain: chains[chainId].toLowerCase()
+    })).output;
 
     const [symbols, tvls] = await Promise.all([
-        chefSymbols(poolInfos.output, chainId),
-        chefTvls(poolInfos.output, apys, chainId)
+        chefSymbols(poolInfos2.output, lpTokens, chainId),
+        chefTvls(poolInfos.output, poolInfos2.output, lpTokens, apys, chainId)
     ]);
 
     return Object.entries(apys).map(([k, v], i) => ({
@@ -407,7 +431,6 @@ async function staking(apys, chainId) {
                 );
         };
 
-        let b = await computeTVL(balances, "now", false, [], getCoingeckoLock, 5)
         pools.push({
             pool: Object.keys(apys)[i],
             chain: chainId == 43114 ? "Avalanche" : chains[chainId],
@@ -444,7 +467,6 @@ function getCoingeckoLock() {
         locks.push(resolve);
     });
 };
-
 module.exports = {
     timetravel: false,
     apy: main,
