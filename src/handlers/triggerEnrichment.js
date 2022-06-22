@@ -3,6 +3,7 @@ const SSM = require('aws-sdk/clients/ssm');
 const ss = require('simple-statistics');
 
 const utils = require('../utils/s3');
+const { el } = require('date-fns/locale');
 
 module.exports.handler = async (event) => {
   await main();
@@ -94,6 +95,15 @@ const main = async () => {
   ////// 5) add exposure, ilRisk and stablecoin fields
   console.log('\n5. adding additional pool info fields');
   dataEnriched = dataEnriched.map((el) => addPoolInfo(el));
+
+  // complifi has single token exposure only, but IL can still occur if a trader makes a big one, in which
+  // case the protocol will pay traders via deposited amounts...
+  // so hardcoding this here as IL
+  for (const p of dataEnriched) {
+    if (p.project === 'complifi') {
+      p.ilRisk = 'yes';
+    }
+  }
 
   ////// 6) add ml features
   console.log('\n6. adding ml features');
@@ -301,6 +311,12 @@ const main = async () => {
         : 3;
   }
 
+  // removing 0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d (saitama-weth sushiswap on ethereum)
+  // had insane pump in price from coingecko, likely wrong
+  dataEnriched = dataEnriched.filter(
+    (p) => p.pool !== '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d'
+  );
+
   ////// 8) save enriched data to s3
   console.log('\nsaving data to S3');
   const bucket = process.env.BUCKET_DATA;
@@ -351,6 +367,7 @@ const checkStablecoin = (el) => {
     'eur',
     'usdn',
     'dusd',
+    'usd+',
   ];
 
   let tokens = el.symbol.split('-').map((el) => el.toLowerCase());

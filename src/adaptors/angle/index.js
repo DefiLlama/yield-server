@@ -17,7 +17,7 @@ const getPoolsData = async () => {
     symbol = apyData[staking]?.name.replace('/', '-').split(' ');
     // san token symbols
     if (symbol.length == 1) {
-      symbol = symbol[0].replace('san', '').split('-')[0];
+      symbol = symbol[0].replace('san', '').split('_')[0];
       // perp token symbols (keep as is)
     } else if (symbol.length == 2) {
       symbol = symbol[0] + ' ' + symbol[1];

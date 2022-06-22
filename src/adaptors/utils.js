@@ -59,7 +59,7 @@ exports.getBlocksByTime = async (timestamps, chainString) => {
     xdai: {
       url: 'https://blockscout.com/xdai/mainnet',
       key: process.env.XDAI,
-    }
+    },
   };
 
   const blocks = [];
@@ -74,10 +74,10 @@ exports.getBlocksByTime = async (timestamps, chainString) => {
 
     let blockNumber;
 
-    if (url.includes("blockscout")) {
-      blockNumber = response.body.result.blockNumber
+    if (url.includes('blockscout')) {
+      blockNumber = response.body.result.blockNumber;
     } else {
-      blockNumber = response.body.result
+      blockNumber = response.body.result;
     }
 
     blocks.push(parseInt(blockNumber));
@@ -86,26 +86,40 @@ exports.getBlocksByTime = async (timestamps, chainString) => {
 };
 
 const getLatestBlockSubgraph = async (url) => {
+  // const queryGraph = gql`
+  //   {
+  //     indexingStatusForCurrentVersion(subgraphName: "<PLACEHOLDER>") {
+  //       chains {
+  //         latestBlock {
+  //           number
+  //         }
+  //       }
+  //     }
+  //   }
+  // `;
   const queryGraph = gql`
     {
-      indexingStatusForCurrentVersion(subgraphName: "<PLACEHOLDER>") {
-        chains {
-          latestBlock {
-            number
-          }
+      _meta {
+        block {
+          number
         }
       }
     }
   `;
 
+  // const blockGraph = await request(
+  //   'https://api.thegraph.com/index-node/graphql',
+  //   queryGraph.replace('<PLACEHOLDER>', url.split('name/')[1])
+  // );
   const blockGraph = await request(
-    'https://api.thegraph.com/index-node/graphql',
-    queryGraph.replace('<PLACEHOLDER>', url.split('name/')[1])
+    `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
+    queryGraph
   );
 
-  return Number(
-    blockGraph.indexingStatusForCurrentVersion.chains[0].latestBlock.number
-  );
+  // return Number(
+  //   blockGraph.indexingStatusForCurrentVersion.chains[0].latestBlock.number
+  // );
+  return Number(blockGraph._meta.block.number);
 };
 
 // func which queries subgraphs for their latest block nb and compares it against
@@ -132,10 +146,9 @@ exports.getBlocks = async (chainString, tsTimeTravel, urlArray) => {
     for (const url of urlArray.filter((el) => el !== null)) {
       blocksPromises.push(getLatestBlockSubgraph(url));
     }
-    const blocks = await Promise.all(blocksPromises);
+    blocks = await Promise.all(blocksPromises);
     // we use oldest block
     blockGraph = Math.min(...blocks);
-
     // calc delta
     blockDelta = Math.abs(block - blockGraph);
 
