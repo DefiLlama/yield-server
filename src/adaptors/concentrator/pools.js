@@ -178,7 +178,7 @@ module.exports = [
   },
 
   {
-    id: 'ETH-sETH',
+    symbol: 'ETH-sETH',
     name: 'seth',
     coins: [
       coins.eth,
@@ -192,7 +192,7 @@ module.exports = [
   },
 
   {
-    id: 'renBTC-wBTC-sBTC',
+    symbol: 'renBTC-wBTC-sBTC',
     name: 'sbtc',
     coins: [
       coins.renBTC,
