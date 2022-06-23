@@ -146,14 +146,63 @@ module.exports = [
       lpToken: '0x49849C98ae39Fff122806C06791Fa73784FB3675',
     },
   },
+
   {
     symbol: 'PUSD-3Crv',
     name: 'pusd',
-    coins: [coins.PUSD, coins.crv3pool],
+    coins: [
+      coins.PUSD,
+      coins.crv3pool
+    ],
     coinDecimals: [18, 18],
     addresses: {
       swap: '0x8EE017541375F6Bcd802ba119bdDC94dad6911A1',
       lpToken: '0x8EE017541375F6Bcd802ba119bdDC94dad6911A1',
+    },
+  },
+
+  {
+    symbol: 'DAI-USDC-USDT-sUSD',
+    name: 'susd',
+    coins: [
+      coins.dai,
+      coins.usdc,
+      coins.usdt,
+      coins.SUSD
+    ],
+    coinDecimals: [18, 6, 6, 18],
+    addresses: {
+      swap: '0xA5407eAE9Ba41422680e2e00537571bcC53efBfD',
+      lpToken: '0xC25a3A3b969415c80451098fa907EC722572917F',
+    },
+  },
+
+  {
+    symbol: 'ETH-sETH',
+    name: 'seth',
+    coins: [
+      coins.eth,
+      coins.seth
+    ],
+    coinDecimals: [18, 18],
+    addresses: {
+      swap: '0xc5424b857f758e906013f3555dad202e4bdb4567',
+      lpToken: '0xA3D87FffcE63B53E0d54fAa1cc983B7eB0b74A9c',
+    },
+  },
+
+  {
+    symbol: 'renBTC-wBTC-sBTC',
+    name: 'sbtc',
+    coins: [
+      coins.renBTC,
+      coins.wbtc,
+      coins.sBTC
+    ],
+    coinDecimals: [8, 8, 18],
+    addresses: {
+      swap: '0x7fC77b5c7614E1533320Ea6DDc2Eb61fa00A9714',
+      lpToken: '0x075b1bb99792c9E1041bA13afEf80C91a1e70fB3',
     },
   },
 ];

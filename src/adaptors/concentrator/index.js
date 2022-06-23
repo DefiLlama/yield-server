@@ -54,6 +54,9 @@ const getAllPools = async () => {
           crvPool.addresses.lpToken.toLowerCase() ===
           poolInfo.output.lpToken.toLowerCase()
       );
+      if (!poolData) {
+        return;
+      }
       const swapAddress = poolData.addresses.swap;
 
       const coinCalls = [...Array(Number(poolData.coins.length)).keys()].map(
@@ -192,7 +195,7 @@ const getConvexInfo = (tokenName, dataApy) => {
     const info =
       data.find(
         (item) =>
-          item.name === tokenName.toLocaleLowerCase() || item.name === tokenName
+          item.name.toLocaleLowerCase() === tokenName.toLocaleLowerCase() || item.name === tokenName
       ) || converWebsiteInfo.find((item) => item.name === tokenName);
 
     if (BigNumber(parseFloat(info.apy.current)).isNaN()) {
