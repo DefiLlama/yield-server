@@ -22,8 +22,7 @@ const main = async () => {
   data = data.body.data;
 
   ////// 2 add pct-change columns
-  // for each project we get 3 offsets (1D, 7D, 30D) and calculate the apy pct-change
-  // which we append to data
+  // for each project we get 3 offsets (1D, 7D, 30D) and calculate absolute apy pct-change
   console.log('\n2. adding pct-change fields...');
   const days = ['1', '7', '30'];
   let dataEnriched = [];
@@ -334,13 +333,13 @@ const main = async () => {
 };
 
 ////// helper functions
-// calculate pct change
+// calculate absolute change btw current apy and offset value
 const enrich = (pool, days, offsets) => {
   const poolC = { ...pool };
   for (let d = 0; d < days.length; d++) {
     let X = offsets[d].body.data.offsets;
     const apyOffset = X.find((x) => x.pool === poolC.pool)?.apy;
-    poolC[`apyPct${days[d]}D`] = ((poolC['apy'] - apyOffset) / apyOffset) * 100;
+    poolC[`apyPct${days[d]}D`] = poolC['apy'] - apyOffset;
   }
   return poolC;
 };
