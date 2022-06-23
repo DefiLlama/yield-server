@@ -7,3 +7,4 @@ ccImages
 .webpack
 .idea/
 *output.json
+*.csv
