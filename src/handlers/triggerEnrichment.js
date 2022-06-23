@@ -3,7 +3,6 @@ const SSM = require('aws-sdk/clients/ssm');
 const ss = require('simple-statistics');
 
 const utils = require('../utils/s3');
-const { el } = require('date-fns/locale');
 
 module.exports.handler = async (event) => {
   await main();
