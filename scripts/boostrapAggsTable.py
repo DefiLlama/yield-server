@@ -11,7 +11,7 @@ def aggregate() -> pd.DataFrame:
     # reduce to daily values (keeping latest row on a given day)
     df["timestamp"] = pd.to_datetime(df["timestamp"])
     df = df.sort_values(["timestamp", "pool"])
-    df = (
+    df = (  
         df.groupby(["pool", pd.Grouper(key="timestamp", freq="D")]).last().reset_index()
     )
     df = df.dropna()
@@ -31,7 +31,9 @@ def aggregate() -> pd.DataFrame:
             {
                 "count": group["return"].count(),
                 "mean": group["return"].mean(),
-                "mean2": group["return"].var() * (len(group) - 1),
+                "mean2": group["return"].var() * (len(group) - 1)
+                if len(group) > 1
+                else 0,
                 "returnProduct": (1 + group["return"]).prod(),
             }
         )
@@ -56,10 +58,19 @@ def save_to_table(agg: pd.DataFrame):
     # make post request
     h = {"Authorization": f"Bearer {bearer_token}"}
     urlBase = "https://1rwmj4tky9.execute-api.eu-central-1.amazonaws.com"
-    data = agg.to_json(orient="records")
+    data = agg.to_dict(orient="records")
 
-    response = requests.post(f"{urlBase}/aggregations", json=data, headers=h)
-    print(response)
+    r = requests.post(f"{urlBase}/aggregations", json=data, headers=h)
+    r = r.json()
+
+    print(
+        f"""
+        status: {r['status']}
+        nUpserted: {r['response']['nUpserted']}
+        nMatched: {r['response']['nMatched']}
+        nModified: { r['response']['nModified']}
+        """
+    )
 
 
 if __name__ == "__main__":
