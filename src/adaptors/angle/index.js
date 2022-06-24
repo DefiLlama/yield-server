@@ -3,6 +3,9 @@ const utils = require('../utils');
 const networks = {
   1: 'Ethereum',
   137: 'Polygon',
+  501404: 'Solana',
+  122: 'Fuse',
+  250: 'Fantom',
 };
 
 let symbol;
@@ -37,7 +40,7 @@ const getPoolsData = async () => {
     result.push(pool);
   }
 
-  return result;
+  return result.filter((p) => p.chain !== 'Other');
 };
 
 module.exports = {
