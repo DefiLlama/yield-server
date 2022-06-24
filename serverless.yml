@@ -133,6 +133,15 @@ functions:
       # at midnight
       - schedule: cron(0 0 * * ? *)
 
+  # --- save poolsEnriched as CSV
+  triggerCsv:
+    handler: src/handlers/triggerCsv.handler
+    description: Lambda which dumps poolsEnriched as csv to s3 bucket
+    timeout: 300
+    events:
+      # every hour at 25 past
+      - schedule: cron(25 0 * * ? *)
+
   # --- DB Crud operations
   getPools:
     handler: src/handlers/getPools.handler
