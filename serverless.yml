@@ -140,7 +140,7 @@ functions:
     timeout: 300
     events:
       # every hour at 25 past
-      - schedule: cron(25 0 * * ? *)
+      - schedule: cron(25 * * * ? *)
 
   # --- DB Crud operations
   getPools:
