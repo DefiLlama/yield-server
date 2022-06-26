@@ -4,6 +4,8 @@ const Web3 = require('web3');
 const utils = require('../utils');
 const curve = require('../curve/index');
 const abi = require('./abi.json');
+const baseRewardPoolAbi = require('./baseRewardPoolAbi.json');
+const virtualBalanceRewardPoolAbi = require('./virtualBalanceRewardPoolAbi.json');
 
 // https://etherscan.io/address/0xF403C135812408BFbE8713b5A23a04b3D48AAE31#readContract
 // check poolInfo method (input are the below id's)
@@ -11,6 +13,8 @@ const abi = require('./abi.json');
 const pools = require('./pools.json');
 
 const ETHERSCAN_KEY = process.env.ETHERSCAN;
+
+const web3 = new Web3(process.env.INFURA_CONNECTION);
 
 const crvAddress = '0xD533a949740bb3306d119CC777fa900bA034cd52';
 const cvxAddress = '0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B';
@@ -26,8 +30,6 @@ const getKeyByValue = (object, value) => {
 const getCvxTvl = async (poolStatsCrv) => {
   // main deposit contract
   const convexBoosterAddress = '0xF403C135812408BFbE8713b5A23a04b3D48AAE31';
-
-  const web3 = new Web3(process.env.INFURA_CONNECTION);
   const convexBoosterContract = new web3.eth.Contract(
     abi.Booster,
     convexBoosterAddress
@@ -203,9 +205,18 @@ const getPoolStatsCvx = async () => {
 
     // fee is already deducted
     const apyBase = Number(dataApy.apys[searchKey].baseApy);
+    const apyReward = currentApys.find(
+      (el) => el.pool === pool
+    )?.aprCurrentExBase;
 
-    const apySum =
-      apyBase + currentApys.find((el) => el.pool === pool)?.aprCurrentExBase;
+    const apySum = apyBase + apyReward;
+
+    console.log(
+      pool,
+      curve.tokenMapping[pool],
+      apyBase,
+      currentApys.find((el) => el.pool === pool)?.aprCurrentExBase
+    );
 
     poolStats.push({
       lptoken: currentApys.find((el) => el.pool === pool).lptoken,
@@ -291,11 +302,41 @@ const getCurrentApy = async (poolName, cvxPrices, crvPrices) => {
   const cvxPrice = cvxPrices[pool.currency];
   const crvPrice = crvPrices[pool.currency];
 
-  let apr = crvPerYear * crvPrice;
-  apr += cvxPerYear * cvxPrice;
+  // convex apr
+  let apr = cvxPerYear * cvxPrice;
+
+  // for curve and potential extra token reward aprs we need to check if the reward
+  // period is finished (periodFinish < now). if that's the case we do not add
+  // up the additional rewards
+  const timestampNow = Math.floor(new Date().getTime() / 1000);
+
+  // check for crv
+  const baseRewardPoolContract = new web3.eth.Contract(
+    baseRewardPoolAbi,
+    pool.crvRewards
+  );
+  const periodFinishBaseReward = await baseRewardPoolContract.methods
+    .periodFinish()
+    .call();
+  if (periodFinishBaseReward > timestampNow) {
+    apr += crvPerYear * crvPrice;
+  }
+
   if (pool.extras != undefined && pool.extras.length > 0) {
     for (const i in pool.extras) {
       const ex = pool.extras[i];
+
+      // check for extra token reward periodFinish
+      const virtualBalanceRewardPoolContract = new web3.eth.Contract(
+        virtualBalanceRewardPoolAbi,
+        ex.contract
+      );
+      periodFinishExtraReward = await virtualBalanceRewardPoolContract.methods
+        .periodFinish()
+        .call();
+
+      if (periodFinishExtraReward < timestampNow) continue;
+
       const exrate = await rewardRate(ex.contract);
       const perUnderlying = exrate / supply;
       const perYear = perUnderlying * 86400 * 365;
