@@ -211,12 +211,12 @@ const getPoolStatsCvx = async () => {
 
     const apySum = apyBase + apyReward;
 
-    console.log(
-      pool,
-      curve.tokenMapping[pool],
-      apyBase,
-      currentApys.find((el) => el.pool === pool)?.aprCurrentExBase
-    );
+    // console.log(
+    //   pool,
+    //   curve.tokenMapping[pool],
+    //   apyBase,
+    //   currentApys.find((el) => el.pool === pool)?.aprCurrentExBase
+    // );
 
     poolStats.push({
       lptoken: currentApys.find((el) => el.pool === pool).lptoken,
