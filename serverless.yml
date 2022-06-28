@@ -124,6 +124,24 @@ functions:
       # every hour at 20 past
       - schedule: cron(20 * * * ? *)
 
+  # --- aggregation update
+  triggerAggregation:
+    handler: src/handlers/triggerAggs.handler
+    description: Lambda which updates the aggregation table
+    timeout: 300
+    events:
+      # at midnight
+      - schedule: cron(0 0 * * ? *)
+
+  # --- save poolsEnriched as CSV
+  triggerCsv:
+    handler: src/handlers/triggerCsv.handler
+    description: Lambda which dumps poolsEnriched as csv to s3 bucket
+    timeout: 300
+    events:
+      # every hour at 25 past
+      - schedule: cron(25 * * * ? *)
+
   # --- DB Crud operations
   getPools:
     handler: src/handlers/getPools.handler
@@ -200,6 +218,26 @@ functions:
       - httpApi:
           method: post
           path: /stds
+          authorizer:
+            name: JwtAuthorizer
+
+  getAggs:
+    handler: src/handlers/getAggs.handler
+    description: Lambda for retrieving aggregation data
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /aggregations
+
+  storeAggs:
+    handler: src/handlers/storeAggs.handler
+    description: Lambda for db bulkupdate of aggregation data
+    timeout: 20
+    events:
+      - httpApi:
+          method: post
+          path: /aggregations
           authorizer:
             name: JwtAuthorizer
 
