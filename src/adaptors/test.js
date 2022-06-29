@@ -24,21 +24,21 @@ const passedFile = path.resolve(process.cwd(), f);
   let apy = await module.apy(process.argv[3]);
   apy = apy.sort((a, b) => b.tvlUsd - a.tvlUsd);
 
-  const uniquePoolIdentifiers = new Set();
-  apy.map((pool) => {
-    if (uniquePoolIdentifiers.has(pool.pool)) {
-      throw new Error(`Pool identifier ${pool.pool} is repeated`);
-    }
-    uniquePoolIdentifiers.add(pool.pool);
-    for (const key of ['pool', 'chain', 'project', 'symbol', 'tvlUsd', 'apy']) {
-      const intendedType = keyType[key] ?? 'string';
-      if (typeof pool[key] !== intendedType) {
-        throw new Error(
-          `Key ${key} of pool ${pool.pool} should be "${intendedType}" but is ${pool[key]}`
-        );
-      }
-    }
-  });
+  // const uniquePoolIdentifiers = new Set();
+  // apy.map((pool) => {
+  //   if (uniquePoolIdentifiers.has(pool.pool)) {
+  //     throw new Error(`Pool identifier ${pool.pool} is repeated`);
+  //   }
+  //   uniquePoolIdentifiers.add(pool.pool);
+  //   for (const key of ['pool', 'chain', 'project', 'symbol', 'tvlUsd', 'apy']) {
+  //     const intendedType = keyType[key] ?? 'string';
+  //     if (typeof pool[key] !== intendedType) {
+  //       throw new Error(
+  //         `Key ${key} of pool ${pool.pool} should be "${intendedType}" but is ${pool[key]}`
+  //       );
+  //     }
+  //   }
+  // });
 
   console.log(`\nNb of pools: ${apy.length}\n `);
   console.log('\nSample pools:', apy.slice(0, 10));
