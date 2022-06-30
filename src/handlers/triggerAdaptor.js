@@ -60,7 +60,7 @@ const main = async (body) => {
   const token = await ssm.getParameter(options).promise();
   // save to db
   const response = await superagent
-    .post(`${process.env.APIG_URL}/pools`)
+    .post(`${process.env.APIG_URL}/simplePools`)
     .send(dataDB)
     .set({ Authorization: `Bearer ${token.Parameter.Value}` });
   console.log(response.body);
