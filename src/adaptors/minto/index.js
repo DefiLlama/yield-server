@@ -8,7 +8,6 @@ const poolsFunction = async () => {
         'https://stats-dev.minto.org/v1/llama/bsc-auto-tvl'
     );
 
-
     const pool = {
         pool: '0xe742FCE58484FF7be7835D95E350c23CE55A7E12',
         chain: utils.formatChain('bsc'),
@@ -18,7 +17,7 @@ const poolsFunction = async () => {
         apy: apyData.value
     };
 
-    return [pool]; // Anchor only has a single pool with APY
+    return [pool];
 };
 
 module.exports = {
