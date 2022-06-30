@@ -17,7 +17,7 @@ const main = async () => {
   ////// 1) load latest data
   const urlBase = process.env.APIG_URL;
   console.log('\n1. pulling base data...');
-  let data = await superagent.get(`${urlBase}/pools`);
+  let data = await superagent.get(`${urlBase}/simplePools`);
   data = data.body.data;
 
   ////// 2 add pct-change columns
