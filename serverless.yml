@@ -159,7 +159,7 @@ functions:
     events:
       - httpApi:
           method: post
-          path: /pools
+          path: /simplePools
           authorizer:
             name: JwtAuthorizer
 
@@ -170,7 +170,7 @@ functions:
     events:
       - httpApi:
           method: delete
-          path: /pools/{project}/{timestamp}
+          path: /simplePools/{project}/{timestamp}
           authorizer:
             name: JwtAuthorizer
 
