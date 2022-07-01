@@ -2,10 +2,10 @@ const utils = require('../utils');
 
 const poolsFunction = async () => {
     const apyData = await utils.getData(
-        'https://stats-dev.minto.org/v1/llama/bsc-auto-apy'
+        'https://stats-prod.minto.org/v1/llama/bsc-auto-apy'
     );
     const tvlData = await utils.getData(
-        'https://stats-dev.minto.org/v1/llama/bsc-auto-tvl'
+        'https://stats-prod.minto.org/v1/llama/bsc-auto-tvl'
     );
 
     const pool = {
