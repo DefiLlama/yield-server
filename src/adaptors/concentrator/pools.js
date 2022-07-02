@@ -205,4 +205,18 @@ module.exports = [
       lpToken: '0x075b1bb99792c9E1041bA13afEf80C91a1e70fB3',
     },
   },
+
+  {
+    symbol: 'FRAX-USDC',
+    name: 'fraxusdc',
+    coins: [
+      coins.frax,
+      coins.usdc
+    ],
+    coinDecimals: [18, 6],
+    addresses: {
+      swap: '0xDcEF968d416a41Cdac0ED8702fAC8128A64241A2',
+      lpToken: '0x3175Df0976dFA876431C2E9eE6Bc45b65d3473CC',
+    },
+  },
 ];
