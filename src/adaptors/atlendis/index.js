@@ -25,8 +25,8 @@ const query = gql`
 `;
 
 const buildPool = (entry) => {
-  APY_TOKEN_DECIMALS = 18;
-  TVL_TOKEN_DECIMALS = 18;
+  const APY_TOKEN_DECIMALS = 18;
+  const TVL_TOKEN_DECIMALS = 18;
 
   entry = { ...entry };
 
