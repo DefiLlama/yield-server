@@ -3,17 +3,6 @@ const utils = require('../utils');
 
 const subgraphURL = "https://api.thegraph.com/subgraphs/name/nonamefits/zipswap";
 
-const zipPrice = utils.getCGpriceData('zipswap', true);
-
-const poolReturn = {
-    pool: "",
-    chain: utils.formatChain("optimism"),
-    project: "zipswap",
-    symbol: "",
-    tvlUsd: Number,
-    apy: Number
-}
-
 const getCurrentDate= gql`
 {
 uniswapDayDatas(orderBy:date
