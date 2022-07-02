@@ -205,6 +205,7 @@ module.exports = [
       lpToken: '0x075b1bb99792c9E1041bA13afEf80C91a1e70fB3',
     },
   },
+<<<<<<< HEAD
 
   {
     symbol: 'FRAX-USDC',
@@ -219,4 +220,6 @@ module.exports = [
       lpToken: '0x3175Df0976dFA876431C2E9eE6Bc45b65d3473CC',
     },
   },
+=======
+>>>>>>> a239e0cf63e667d90b313b0b0524f27e29540740
 ];
