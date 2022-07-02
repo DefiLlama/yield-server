@@ -211,12 +211,12 @@ module.exports = [
     name: 'fraxusdc',
     coins: [
       coins.frax,
-      coins.usdc
+      coins.usdc,
     ],
     coinDecimals: [18, 6],
     addresses: {
       swap: '0xDcEF968d416a41Cdac0ED8702fAC8128A64241A2',
       lpToken: '0x3175Df0976dFA876431C2E9eE6Bc45b65d3473CC',
     },
-  },
+  }
 ];
