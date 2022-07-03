@@ -32,7 +32,6 @@ const buildPool = (entry) => {
 
   // calculate TVL
   entry.tvl = Number(entry.normalizedAvailableAmount) + 
-              Number(entry.normalizedBorrowedAmount) + 
               Number(entry.adjustedPendingAmount);
 
   entry.tvl = entry.tvl / 10 ** TVL_TOKEN_DECIMALS;
