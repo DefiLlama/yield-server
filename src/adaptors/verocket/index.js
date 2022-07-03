@@ -1,4 +1,3 @@
-const { DataPipeline } = require("aws-sdk");
 const axios = require("axios");
 const utils = require('../utils');
 
