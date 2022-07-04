@@ -17,8 +17,8 @@ const BLOCKS_PER_YEAR = (60 / BSC_BLOCK_TIME) * 60 * 24 * 365;
 const web3 = new Web3(RPC_URL);
 
 const pairQuery = gql`
-  {
-    pair(id: "<PLACEHOLDER>") {
+  query pairQuery($id: ID!) {
+    pair(id: $id) {
       name
       id
       token0 {
@@ -32,10 +32,7 @@ const pairQuery = gql`
 `;
 
 const getPairInfo = (pair) => {
-  const pairInfo = request(
-    API_URL,
-    pairQuery.replace('<PLACEHOLDER>', pair.toLowerCase())
-  );
+  const pairInfo = request(API_URL, pairQuery, { id: pair.toLowerCase() });
 
   return pairInfo;
 };
