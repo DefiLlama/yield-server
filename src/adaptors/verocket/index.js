@@ -30,7 +30,7 @@ const tvl = async (data) => {
   const vetPrice = await getVetPrice();
 
   // fetch latest TVL from the list of 30 days TVL
-  tvlObjects = response[29].items;
+  tvlObjects = response[response.length - 1].items;
 
   // append TVL data to APY object by identifying using pool key
   tvlObjects.forEach(el => {
