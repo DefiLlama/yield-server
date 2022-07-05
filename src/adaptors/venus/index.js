@@ -11,7 +11,7 @@ const getApy = async () => {
     chain: utils.formatChain('binance'),
     project: 'venus',
     symbol: market.underlyingSymbol,
-    tvlUsd: market.totalSupplyUsd,
+    tvlUsd: Number(market.totalSupplyUsd) - Number(market.totalBorrowsUsd),
     apy: Number(market.supplyApy) + Number(market.supplyVenusApy),
   }));
 
