@@ -6,22 +6,22 @@ const baseUrl = 'https://api.thegraph.com/subgraphs/name/atlendis';
 const urlPolygon = `${baseUrl}/atlendis-hosted-service-polygon`;
 
 const query = gql`
-{
-  poolStatuses {
-    state
-    pool {
-      id
-      identifier
-      parameters {
-      	underlyingToken
-    	}
+  {
+    poolStatuses {
+      state
+      pool {
+        id
+        identifier
+        parameters {
+          underlyingToken
+        }
+      }
+      normalizedAvailableAmount
+      normalizedBorrowedAmount
+      adjustedPendingAmount
+      weightedAverageLendingRate
     }
-    normalizedAvailableAmount
-    normalizedBorrowedAmount
-    adjustedPendingAmount
-  	weightedAverageLendingRate
   }
-}
 `;
 
 const buildPool = (entry) => {
@@ -31,26 +31,29 @@ const buildPool = (entry) => {
   entry = { ...entry };
 
   // calculate TVL
-  entry.tvl = Number(entry.normalizedAvailableAmount) + 
-              Number(entry.adjustedPendingAmount);
+  entry.tvl =
+    Number(entry.normalizedAvailableAmount) +
+    Number(entry.adjustedPendingAmount);
 
   entry.tvl = entry.tvl / 10 ** TVL_TOKEN_DECIMALS;
 
   // calculate APY
-  entry.apy = 100 * Number(entry.weightedAverageLendingRate) / 10 ** APY_TOKEN_DECIMALS;
+  entry.apy =
+    (100 * Number(entry.weightedAverageLendingRate)) / 10 ** APY_TOKEN_DECIMALS;
 
+  const symbolSplit = entry.pool.identifier.split('-');
   // construct return Object
   const newObj = {
     pool: entry.pool.id,
     chain: utils.formatChain('polygon'),
     project: 'atlendis',
-    symbol: utils.formatSymbol(entry.pool.identifier),
+    symbol: `${symbolSplit[1]} (${symbolSplit[0]} ${symbolSplit[2]})`,
     tvlUsd: entry.tvl,
-    apy: entry.apy
-  }
+    apy: entry.apy,
+  };
 
-  return newObj
-}
+  return newObj;
+};
 
 const main = async () => {
   // pull data
@@ -59,10 +62,10 @@ const main = async () => {
   // build pool objects
   data = data.poolStatuses.map((el) => buildPool(el));
 
-  return data
-}
+  return data;
+};
 
 module.exports = {
   timetravel: false,
-  apy: main
-}
+  apy: main,
+};
