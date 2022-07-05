@@ -32,3 +32,4 @@ jobs:
           ALCHEMY_CONNECTION_POLYGON: ${{ secrets.ALCHEMY_CONNECTION_POLYGON }}
           ALCHEMY_CONNECTION_ARBITRUM: ${{ secrets.ALCHEMY_CONNECTION_ARBITRUM }}
           XDAI: ${{ secrets.XDAI }}
+          XDAI_RPC: ${{ secrets.XDAI_RPC }}

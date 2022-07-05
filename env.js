@@ -15,6 +15,7 @@ module.exports = {
   ALCHEMY_CONNECTION_POLYGON: process.env.ALCHEMY_CONNECTION_POLYGON,
   ALCHEMY_CONNECTION_ARBITRUM: process.env.ALCHEMY_CONNECTION_ARBITRUM,
   XDAI: process.env.XDAI,
+  XDAI_RPC: process.env.XDAI_RPC,
   // ADAPTOR LIST
   ADAPTORS: JSON.stringify(
     fs
