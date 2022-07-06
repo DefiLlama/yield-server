@@ -20,6 +20,9 @@ module.exports = {
   ADAPTORS: JSON.stringify(
     fs
       .readdirSync('./src/adaptors')
-      .filter((el) => !el.includes('js') && el !== '.DS_Store')
+      .filter(
+        (el) =>
+          !el.includes('js') && el !== '.DS_Store' && el !== 'koyo-finance'
+      )
   ),
 };
