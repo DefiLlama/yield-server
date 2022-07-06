@@ -89,6 +89,7 @@ const main = async () => {
     pool['twitter'] = x?.twitter;
     pool['category'] = x?.category;
   }
+  console.log(dataEnriched.filter((p) => p.project === 'verocket'));
 
   ////// 5) add exposure, ilRisk and stablecoin fields
   console.log('\n5. adding additional pool info fields');
@@ -314,6 +315,8 @@ const main = async () => {
   dataEnriched = dataEnriched.filter(
     (p) => p.pool !== '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d'
   );
+
+  console.log(dataEnriched.filter((p) => p.project === 'verocket'));
 
   ////// 8) save enriched data to s3
   console.log('\nsaving data to S3');
