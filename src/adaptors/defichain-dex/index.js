@@ -6,11 +6,11 @@ const getApy = async () => {
   const poolsData = await utils.getData(API_URL);
 
   const pools = poolsData.data.map((pool) => ({
-    pool: `${pool.symbol}-pool`,
+    pool: `${pool.symbol}-defichain`,
     chain: utils.formatChain('defichain'),
     project: 'defichain-dex',
     symbol: pool.symbol,
-    tvlUsd: pool.totalLiquidity.usd || 0,
+    tvlUsd: Number(pool.totalLiquidity.usd) || 0,
     apy: Number((pool.apr && pool.apr.total) || 0) * 100,
   }));
 

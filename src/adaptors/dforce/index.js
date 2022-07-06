@@ -24,11 +24,12 @@ const getApy = async () => {
   const pools = markets
     .map(({ network, data: { supplyMarkets } }) => {
       return supplyMarkets.map((market) => ({
-        pool: market.address,
+        pool: `${market.address}-${network}`,
         chain: utils.formatChain(network),
         project: 'dforce',
         symbol: market.underlying_symbol,
-        tvlUsd: Number(market.supplyValue) / 1e18,
+        tvlUsd:
+          (Number(market.supplyValue) - Number(market.borrowValue)) / 1e18,
         // 1e16 = apy / 1e18 * 100%
         apy: (Number(market.rewardSupplyApy) + Number(market.supplyAPY)) / 1e16,
       }));

@@ -6,10 +6,10 @@ const getApy = async () => {
   const poolsData = await utils.getData(API_URL);
 
   const pools = poolsData.data.map((pool) => ({
-    pool: `${pool.market}-pool`,
+    pool: `${pool.market}-loopring`,
     chain: utils.formatChain('ethereum'),
     project: 'loopring',
-    symbol: pool.market,
+    symbol: pool.market.replace('AMM-', ''),
     tvlUsd: Number(pool.liquidityUSD),
     apy: Number(pool.apyBips) / 100,
   }));

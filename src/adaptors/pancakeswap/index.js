@@ -1,14 +1,17 @@
 const Web3 = require('web3');
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
+const { request, gql } = require('graphql-request');
 
 const { masterChefABI, lpTokenABI } = require('./abis');
-const { request, gql } = require('graphql-request');
 const utils = require('../utils');
+const { fetchURL } = require('../../helper/utils');
 
 const RPC_URL = 'https://bsc-dataseed1.binance.org/';
 const API_URL =
   'https://bsc.streamingfast.io/subgraphs/name/pancakeswap/exchange-v2';
+const LP_APRS =
+  'https://raw.githubusercontent.com/pancakeswap/pancake-frontend/develop/src/config/constants/lpAprs.json';
 const MASTERCHEF_ADDRESS = '0xa5f8C5Dbd5F286960b9d90548680aE5ebFf07652';
 
 const BSC_BLOCK_TIME = 3;
@@ -42,12 +45,13 @@ const calculateApy = (
   totalAllocPoint,
   cakePerBlock,
   cakePrice,
-  reserveUSD
+  reserveUSD,
+  lpApr
 ) => {
   const poolWeight = poolInfo.allocPoint / totalAllocPoint;
   const cakePerYear = BLOCKS_PER_YEAR * cakePerBlock;
 
-  return ((poolWeight * cakePerYear * cakePrice) / reserveUSD) * 100;
+  return ((poolWeight * cakePerYear * cakePrice) / reserveUSD) * 100 + lpApr;
 };
 
 const calculateReservesUSD = (
@@ -93,6 +97,8 @@ const getBaseTokensPrice = async () => {
 const main = async () => {
   const { cakePrice, ethPrice, bnbPrice } = await getBaseTokensPrice();
   const masterChef = new web3.eth.Contract(masterChefABI, MASTERCHEF_ADDRESS);
+  const { data: lpAprs } = await fetchURL(LP_APRS);
+
   const poolsCount = await masterChef.methods.poolLength().call();
   const totalAllocPoint = await masterChef.methods
     .totalRegularAllocPoint()
@@ -160,24 +166,27 @@ const main = async () => {
           .div(1e18)
           .toString();
         const pool = {
-          pool: pairInfo.name,
+          pool: pairInfo.id,
           chain: utils.formatChain('binance'),
           project: 'pancakeswap',
           symbol: pairInfo.name,
-          tvlUsd: reserveUSD,
+          tvlUsd: Number(reserveUSD),
           apy: calculateApy(
             poolInfo,
             totalAllocPoint,
             normalizedCakePerBlock,
             cakePrice,
-            reserveUSD
+            reserveUSD,
+            lpAprs[pairInfo.id.toLowerCase()]
           ),
         };
         return pool;
       })
     )
   );
-  return pools;
+
+  // rmv null elements
+  return pools.filter(Boolean);
 };
 
 module.exports = {
