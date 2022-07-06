@@ -1,8 +1,6 @@
 const utils = require('../utils');
-const Web3 = require('web3');
 
 const apy = async () => {
-  // Fetch APY
   const apyData = await utils.getData(
     'https://api.capsa.finance/stats/projected-apy'
   );
@@ -10,13 +8,15 @@ const apy = async () => {
     'https://api.capsa.finance/stats/allocation'
   );
 
+  const scaledApy = apyData["last_week_performance"] * 52;
+
   const capsa = {
     pool: 'CAPSA',
     chain: utils.formatChain('polygon'),
     project: 'capsa',
     symbol: utils.formatSymbol('CAPSA'),
     tvlUsd: tvlData.allocation.total,
-    apy: apyData["projected_apy"],
+    apy: scaledApy,
   };
 
   return [capsa];
