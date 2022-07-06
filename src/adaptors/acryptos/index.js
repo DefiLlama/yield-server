@@ -19,12 +19,15 @@ const fetch = (dataTvl, chainMapping) => {
     poolData = dataTvl[chain];
 
     for (const [addr, details] of Object.entries(poolData)) {
+
+      if(details.status === 'deprecated') { continue; }
       data.push({
         id: `acryptos-${chain}${addr}`,
         network: chain,
         symbol: details.tokensymbol,
         tvl: details.tvl_usd,
         apy: details.apytotal,
+        platform: details.platform,
       });
     }
   }
@@ -37,7 +40,7 @@ const buildObject = (entry) => {
     pool: entry.id,
     chain: utils.formatChain(chainMapping[entry.network]),
     project: 'acryptos',
-    symbol: utils.formatSymbol(entry.symbol),
+    symbol: utils.formatSymbol(entry.symbol) + ` (${entry.platform})`,
     tvlUsd: Number(entry.tvl),
     apy: Number(entry.apy),
   };
