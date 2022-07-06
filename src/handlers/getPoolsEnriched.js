@@ -1,6 +1,7 @@
 const S3 = require('aws-sdk/clients/s3');
 
 const AppError = require('../utils/appError');
+const {lambdaResponse} = require('../utils/lambda');
 
 // returns enriched pool data
 module.exports.handler = async (event, context, callback) => {
@@ -10,10 +11,10 @@ module.exports.handler = async (event, context, callback) => {
     return new AppError("Couldn't retrieve data", 404);
   }
 
-  return {
+  return lambdaResponse({
     status: 'success',
     data: response,
-  };
+  });
 };
 
 const main = async (queryString) => {

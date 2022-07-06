@@ -81,10 +81,7 @@ module.exports.handler = async (event, context, callback) => {
   }
 
   return {
-    status: 'sucess',
+    status: 'success',
     data: response,
-    headers:{
-      "Cache-Control": `max-age=${10*60}` // 10 minutes
-    }
   };
 };

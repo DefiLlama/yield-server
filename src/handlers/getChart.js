@@ -1,6 +1,7 @@
 const dbConnection = require('../api/dbConnection.js');
 const poolModel = require('../models/pool');
 const AppError = require('../utils/appError');
+const {lambdaResponse} = require('../utils/lambda');
 
 // retrieve chart data of latest daily tvl and apy values of requested pool
 module.exports.handler = async (event, context, callback) => {
@@ -63,8 +64,8 @@ module.exports.handler = async (event, context, callback) => {
     return new AppError("Couldn't retrieve data", 404);
   }
 
-  return {
-    status: 'sucess',
+  return lambdaResponse({
+    status: 'success',
     data: response,
-  };
+  });
 };
