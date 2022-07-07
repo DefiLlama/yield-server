@@ -3,6 +3,7 @@ const SSM = require('aws-sdk/clients/ssm');
 const ss = require('simple-statistics');
 
 const utils = require('../utils/s3');
+const { buildPoolsEnriched } = require('./getPoolsEnriched');
 
 module.exports.handler = async (event) => {
   await main();
@@ -332,6 +333,7 @@ const main = async () => {
   ).toISOString();
   const keyPredictions = `predictions-hourly/dataEnriched_${timestamp}.json`;
   await utils.writeToS3(bucket, keyPredictions, dataEnriched);
+  await utils.storeCompressed('defillama-datasets', "yield-api/pools2", await buildPoolsEnriched(undefined))
 };
 
 ////// helper functions
