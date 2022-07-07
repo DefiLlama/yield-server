@@ -4,7 +4,9 @@ const abi = require('./abis/abi.json');
 const { sumTokens, sumTokensAndLPs, unwrapCrv, unwrapUniswapLPs, genericUnwrapCvx, } = require('../../helper/unwrapLPs');
 
 
-const InsuretokenContract = '0xd83AE04c9eD29d6D3E6Bf720C71bc7BeB424393E';
+const insureTokenContract = '0xd83AE04c9eD29d6D3E6Bf720C71bc7BeB424393E';
+const gageAddress = '0xf57882cf186db61691873d33e3511a40c3c7e4da';
+
 
 const arbitrumGmxAddress = '0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a';
 const arbitrumGlpManagerAddress = '0x321F653eED006AD1C29D174e17d96351BDe22649';
@@ -38,27 +40,6 @@ const uniStaking = "0xf57882cf186db61691873d33e3511a40c3c7e4da";
 //   , block)
 //   return balances
 // }
-
-async function getRate(timestamp, block) {
-  let balances = {};
-
-  const vusdcBalances = (
-    await sdk.api.abi.call({
-      target: InsuretokenContract,
-      abi: abi["rate"],
-      chain: chain,
-      block: block,
-    })
-  ).output;
-  sdk.util.sumSingleBalance(balances, usdc, vusdcBalances);
-  
-  return vusdcBalance.output;
-}
-
-// console.log(getRate);
-
-
-
 
 const secondsPerYear = 31536000;
 
@@ -95,72 +76,38 @@ async function getGlpTvl(pChain) {
   return tvl.output * 10 ** -18;
 }
 
+async function getRate(Chain) {
+  let tvltemp = await sdk.api.abi.call({
+    target: insureTokenContract,
+    abi: abi['rate'],
+    chain: Chain,
+    params: [],
+  });
+  
+  return tvltemp.output * 10 ** -18;
+}
 
 
-
-// async function getPoolGmx(
-//   pChain,
-//   pInflationTrackerAddress,
-//   pStakedGmx,
-//   pStakedEsGmx,
-//   pFeeGmx,
-//   pInflationGmx,
-//   pPriceData
-// ) {
-//   const tvlGmx =
-//     pPriceData.gmx.usd *
-//     (await getAdjustedAmount(
-//       pChain == 'arbitrum' ? arbitrumGmxAddress : avalacheGmxAddress,
-//       pChain,
-//       'erc20:balanceOf',
-//       pChain == 'arbitrum'
-//         ? [arbitrumInflationGmxTrackerAddress]
-//         : [avalancheInflationGmxTrackerAddress]
-//     ));
-//   const tvsGmx = pStakedGmx * pPriceData.gmx.usd;
-//   const tvsEsGmx = pStakedEsGmx * pPriceData.gmx.usd;
-//   const yearlyFeeGmx =
-//     pChain == 'arbitrum'
-//       ? pFeeGmx * pPriceData.ethereum.usd
-//       : pFeeGmx * pPriceData['avalanche-2'].usd;
-//   const yearlyInflationGmx = pInflationGmx * pPriceData.gmx.usd;
-//   const apyFee = (yearlyFeeGmx / tvsGmx) * 100;
-//   const apyInflation = (yearlyInflationGmx / tvsEsGmx) * 100;
-//   const chainString = pChain === 'avax' ? 'avalanche' : pChain;
-
-//   return {
-//     pool: pInflationTrackerAddress,
-//     chain: utils.formatChain(chainString),
-//     project: 'gmx',
-//     symbol: utils.formatSymbol('GMX'),
-//     tvlUsd: tvlGmx,
-//     apy: apyFee + apyInflation,
-//   };
-// }
+// console.log(test);
 
 async function getPoolGlp(
   pChain,
   pTvl,
   pInflationTrackerAddress,
   pFeeGlp,
-  pInflationGlp,
+  pInflationRate,
   pPriceData
 ) {
-  const yearlyFeeGlp =
-    pChain == 'arbitrum'
-      ? pFeeGlp * pPriceData.ethereum.usd
-      : pFeeGlp * pPriceData['avalanche-2'].usd;
+  console.log(pInflationRate);
   let gauge_relative_rate = 398309914581291888 / 1e18
-  pInflationGlp = 0.88787417554 * secondsPerYear * gauge_relative_rate
-                  //0.88787417554*31536000*(398309914581291888 / 1e18)*0.04112945
-  pTvl = 126040
-  const yearlyInflationGlp = pInflationGlp  * 0.04172626;
+  const yearlyInflationRate = pInflationRate * secondsPerYear * gauge_relative_rate
+  pTvl = 124870
+  const yearlyInflationInsure = yearlyInflationRate  * pPriceData.insuredao.usd;
+  console.log(yearlyInflationInsure); //465359.52557910985
   // const yearlyInflationGlp = pInflationGlp  * pPriceData.gmx.usd;
-  // const apyFee = (yearlyFeeGlp / pTvl) * 100;
-  const apyInflation = (yearlyInflationGlp / pTvl) * 100;
+  const apyInflation = (yearlyInflationInsure / pTvl) * 100;
 
   const chainString = 'Ethereum';
-  // const chainString = pChain === 'avax' ? 'avalanche' : pChain;
 
   pInflationTrackerAddress = '0xf57882cf186db61691873d33e3511a40c3c7e4da';
 
@@ -174,12 +121,27 @@ async function getPoolGlp(
   };
 }
 
+async function getGaugeRelativeRate(Chain) {
+  let gauge_relative_rate_value = await sdk.api.abi.call({
+    target: '0x297ea2afcE594149Cd31a9b11AdBAe82fa1Ddd04',
+    abi: abi['gauge_relative_rate'],
+    chain: Chain,
+    params: [gageAddress,'0'],
+  });
+  
+  return gauge_relative_rate_value.output;
+}
+
+
+
 const getPools = async () => {
   let pools = [];
 
+  const testtest = await getGaugeRelativeRate('ethereum');
+  // console.log( testtest);
+
   const priceData = await utils.getData(
-    'https://api.coingecko.com/api/v3/simple/price?ids=gmx%2Cethereum%2Cavalanche-2&vs_currencies=usd'
-    // 'https://api.coingecko.com/api/v3/simple/price?ids=insuredao%2Cethereum%2Cavalanche-2&vs_currencies=usd'
+    'https://api.coingecko.com/api/v3/simple/price?ids=insuredao%2Cethereum%2Cavalanche-2&vs_currencies=usd'
   );
 
   const arbitrumStakedGmx = await getAdjustedAmount(
@@ -219,25 +181,34 @@ const getPools = async () => {
     'arbitrum',
     abi['tokensPerInterval']
   );
+
   const arbitrumInflationGlp = await getAdjustedAmount(
     arbitrumInflationGlpTrackerAddress,
     'arbitrum',
     abi['tokensPerInterval']
   );
 
-
-
+  const inflationRate = await getRate('ethereum');
+  console.log(inflationRate);
 
   pools.push(
     await getPoolGlp(
-      'arbitrum',
-      await getGlpTvl('arbitrum'),
+      'ethereum',
+      '126040',      // await getGlpTvl('arbitrum') get Univ2 TVL
       arbitrumInflationGlpTrackerAddress,
       arbitrumFeeGlp,
-      arbitrumInflationGlp,  // 0.88
-      priceData  //0.04172626
+      inflationRate,  // 0.88  ok
+      priceData  //0.04172626  ok
     )
   );
+
+
+  // pChain,
+  // pTvl,
+  // pInflationTrackerAddress,
+  // pFeeGlp,
+  // pInflationGlp,
+  // pPriceData
 
   // const avalancheStakedGmx = await getAdjustedAmount(
   //   avalancheFeeGmxTrackerAddress,
