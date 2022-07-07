@@ -5,7 +5,7 @@ const {lambdaResponse} = require('../utils/lambda');
 
 // returns enriched pool data
 module.exports.handler = async (event, context, callback) => {
-  const response = await main(event.queryStringParameters);
+  const response = await buildPoolsEnriched(event.queryStringParameters);
 
   if (!response) {
     return new AppError("Couldn't retrieve data", 404);
@@ -17,7 +17,7 @@ module.exports.handler = async (event, context, callback) => {
   });
 };
 
-const main = async (queryString) => {
+const buildPoolsEnriched = async (queryString) => {
   const columns = [
     'chain',
     'project',
@@ -75,6 +75,7 @@ const main = async (queryString) => {
 
   return data;
 };
+module.exports.buildPoolsEnriched = buildPoolsEnriched;
 
 const getDataUsingS3Select = async (params) => {
   const s3 = new S3();
