@@ -41,24 +41,26 @@ const apy = (entry, rewardTokenPriceInEth) => {
   entry = { ...entry };
 
   entry.incentive_apy = 0;
-  if (entry.aEmissionPerSecond !== '0') {
-    const SECONDS_PER_YEAR = 3.154e7;
-    const REWARD_TOKEN_DECIMALS = 18;
+  // NOTE(these rewards are no longer active. i assumed the aEmmisionPerSecond would be updated
+  // accordingly...need to switch to their latest contracts which for which we can call `emissionEndTimestamp`)
+  // if (entry.aEmissionPerSecond !== '0') {
+  //   const SECONDS_PER_YEAR = 3.154e7;
+  //   const REWARD_TOKEN_DECIMALS = 18;
 
-    const tokenDecimals = entry.decimals;
-    const aEmissionPerSecond = Number(entry.aEmissionPerSecond);
-    const tokenPriceInEth = Number(entry.price.priceInEth);
+  //   const tokenDecimals = entry.decimals;
+  //   const aEmissionPerSecond = Number(entry.aEmissionPerSecond);
+  //   const tokenPriceInEth = Number(entry.price.priceInEth);
 
-    const num =
-      aEmissionPerSecond *
-      SECONDS_PER_YEAR *
-      rewardTokenPriceInEth *
-      10 ** tokenDecimals;
-    const denom =
-      entry.totalATokenSupply * tokenPriceInEth * 10 ** REWARD_TOKEN_DECIMALS;
+  //   const num =
+  //     aEmissionPerSecond *
+  //     SECONDS_PER_YEAR *
+  //     rewardTokenPriceInEth *
+  //     10 ** tokenDecimals;
+  //   const denom =
+  //     entry.totalATokenSupply * tokenPriceInEth * 10 ** REWARD_TOKEN_DECIMALS;
 
-    entry.incentive_apy = 100 * (num / denom);
-  }
+  //   entry.incentive_apy = 100 * (num / denom);
+  // }
   return entry;
 };
 
@@ -75,7 +77,7 @@ const buildPool = (entry, chainString) => {
     chain: utils.formatChain(chainString),
     project: 'aave',
     symbol: utils.formatSymbol(entry.symbol),
-    tvlUsd: entry.totalLiquidityUSD,
+    tvlUsd: Number(entry.totalLiquidityUSD),
     apy,
   };
 
