@@ -194,7 +194,7 @@ functions:
     events:
       - httpApi:
           method: get
-          path: /pool/{pool}
+          path: /pools/{pool}
 
   getChart:
     handler: src/handlers/getChart.handler
