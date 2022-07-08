@@ -5,7 +5,6 @@ const { lambdaResponse } = require('../utils/lambda');
 
 // returns enriched pool data
 module.exports.handler = async (event, context, callback) => {
-  console.log(event.pathParameters);
   const response = await buildPoolsEnriched(event.pathParameters.pool);
 
   if (!response) {
@@ -45,7 +44,6 @@ const buildPoolsEnriched = async (pool) => {
     .join(', ');
 
   let query = `SELECT ${columns} FROM s3object[*][*] t where t.pool='${pool}'`;
-  console.log(query);
 
   const params = {
     Bucket: 'llama-apy-prod-data',

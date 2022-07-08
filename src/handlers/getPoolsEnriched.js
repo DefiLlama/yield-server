@@ -1,7 +1,7 @@
 const S3 = require('aws-sdk/clients/s3');
 
 const AppError = require('../utils/appError');
-const {lambdaResponse} = require('../utils/lambda');
+const { lambdaResponse } = require('../utils/lambda');
 
 // returns enriched pool data
 module.exports.handler = async (event, context, callback) => {
