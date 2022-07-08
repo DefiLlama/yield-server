@@ -187,6 +187,15 @@ functions:
           method: get
           path: /pools
 
+  getPoolEnriched:
+    handler: src/handlers/getPoolEnriched.handler
+    description: Lambda for retrieving the latest enriched data for a particular pool
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /pool/{pool}
+
   getChart:
     handler: src/handlers/getChart.handler
     description: Lambda for retrieving chart data for a particular pool
