@@ -333,7 +333,10 @@ const main = async () => {
   ).toISOString();
   const keyPredictions = `predictions-hourly/dataEnriched_${timestamp}.json`;
   await utils.writeToS3(bucket, keyPredictions, dataEnriched);
-  await utils.storeCompressed('defillama-datasets', "yield-api/pools", await buildPoolsEnriched(undefined))
+  await utils.storeCompressed('defillama-datasets', "yield-api/pools", {
+    status: 'success',
+    data: await buildPoolsEnriched(undefined),
+  })
 };
 
 ////// helper functions
