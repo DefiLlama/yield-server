@@ -124,6 +124,7 @@ const getDataEth = async () => {
     let dataCrvApy = await utils.getData(
       'https://www.convexfinance.com/api/curve-apys'
     );
+    // TODO: this endpoint is deprecated / stale -> refactor convex adaptor
     let dataRewardApy = await utils.getData('https://api.curve.fi/api/getApys');
     dataCrvApy = dataCrvApy.apys;
     dataRewardApy = dataRewardApy.data;
@@ -172,7 +173,7 @@ const getDataEth = async () => {
 };
 
 
-module.exports = {
+exports = Object.assign(exports, {
   curvePoolStats: getDataEth,
   tokenMapping: pools.tokenMapping['ethereum'],
-};
+});
