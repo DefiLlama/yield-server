@@ -20,14 +20,6 @@ const CHAINS_CG = {
 const getUrl = (chain) =>
   `https://api.thegraph.com/subgraphs/name/arrakisfinance/vault-v1-${chain}`;
 
-const UNI_SUBGRAPH = {
-  mainnet: 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3',
-  polygon:
-    'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-polygon',
-  optimism:
-    'https://api.thegraph.com/subgraphs/name/ianlapham/optimism-post-regenesis',
-};
-
 const vaultsQuery = gql`
   {
     vaults {
