@@ -31,13 +31,13 @@ function next21Minutedate() {
   return dt
 }
 
-module.exports.storeCompressed = (bucket, filename, body) => {
+module.exports.storeCompressed = (bucket, filename, body, expires = next21Minutedate()) => {
   return new S3().upload({
     Bucket: bucket,
     Key: filename,
     Body: JSON.stringify(body),
     ACL: "public-read",
-    Expires: next21Minutedate(),
+    Expires: expires,
     ContentType: "application/json"
   }).promise()
 }
