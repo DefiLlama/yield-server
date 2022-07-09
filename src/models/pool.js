@@ -31,12 +31,23 @@ const poolSchema = new mongoose.Schema(
       type: Number,
       required: [true, 'A pool must have a tvlUsd field'],
     },
+    apyFee: {
+      type: Number,
+      default: null,
+    },
+    apyReward: {
+      type: Number,
+      default: null,
+    },
     apy: {
       type: Number,
       // either i set it to default null here or I'll need to replace
       // NaN and null values from the adaptors with 0? but that would imply a zero apy, which is just
       // misleading, so I rather remove the required in here
       default: null,
+    },
+    rewardTokens: {
+      type: [String],
     },
     // for historical stuff in db, inserted that field via:
     // db.pools.updateMany({}, [{$set: {"timestamp": {$dateTrunc: {date: "$createdAt", unit: "hour"}}}}])
