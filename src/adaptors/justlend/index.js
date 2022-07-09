@@ -43,10 +43,7 @@ const getApy = async () => {
       apy:
         ((Number(market.earnUSDPerDay) * 365) / Number(market.depositedUSD)) *
           100 +
-        rewards[market.jtokenAddress][
-          market.collateralSymbol === 'USDD' ? 'USDDNEW' : 'JSTNEW'
-        ] *
-          100,
+        rewards[market.jtokenAddress]['USDDNEW'] * 100,
     };
   });
 
