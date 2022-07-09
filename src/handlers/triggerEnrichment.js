@@ -354,30 +354,13 @@ const enrich = (pool, days, offsets) => {
   return poolC;
 };
 
-const checkStablecoin = (el) => {
-  stablecoins = [
-    'usdt',
-    'usdc',
-    'busd',
-    // 'ust', // excluding cause of depeg
-    'dai',
-    'mim',
-    'frax',
-    'tusd',
-    'usdp',
-    'fei',
-    'lusd',
-    'alusd',
-    'husd',
-    'gusd',
-    'susd',
-    'musd',
-    'cusd',
-    'eur',
-    'usdn',
-    'dusd',
-    'usd+',
-  ];
+const checkStablecoin = async (el) => {
+  let stablecoins = (
+    await superagent.get(
+      'https://stablecoins.llama.fi/stablecoins?includePrices=true'
+    )
+  ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
+  if (!stablecoins.includes('eur')) stablecoins.push('eur');
 
   let tokens = el.symbol.split('-').map((el) => el.toLowerCase());
 
