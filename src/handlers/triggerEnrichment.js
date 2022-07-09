@@ -3,6 +3,7 @@ const SSM = require('aws-sdk/clients/ssm');
 const ss = require('simple-statistics');
 
 const utils = require('../utils/s3');
+const adaptorsToExclude = require('../utils/exclude');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
 
 module.exports.handler = async (event) => {
@@ -20,6 +21,8 @@ const main = async () => {
   console.log('\n1. pulling base data...');
   let data = await superagent.get(`${urlBase}/simplePools`);
   data = data.body.data;
+  // remove everything in adaptorsToExclude
+  data = data.filter((p) => !adaptorsToExclude.includes(p.project));
 
   ////// 2 add pct-change columns
   // for each project we get 3 offsets (1D, 7D, 30D) and calculate absolute apy pct-change
@@ -28,7 +31,7 @@ const main = async () => {
   let dataEnriched = [];
   const failed = [];
 
-  for (const adaptor of JSON.parse(process.env.ADAPTORS)) {
+  for (const adaptor of [...new Set(data.map((p) => p.project))]) {
     console.log(adaptor);
 
     // filter data to project
@@ -333,10 +336,10 @@ const main = async () => {
   ).toISOString();
   const keyPredictions = `predictions-hourly/dataEnriched_${timestamp}.json`;
   await utils.writeToS3(bucket, keyPredictions, dataEnriched);
-  await utils.storeCompressed('defillama-datasets', "yield-api/pools", {
+  await utils.storeCompressed('defillama-datasets', 'yield-api/pools', {
     status: 'success',
     data: await buildPoolsEnriched(undefined),
-  })
+  });
 };
 
 ////// helper functions
