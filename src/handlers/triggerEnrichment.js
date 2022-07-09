@@ -79,24 +79,8 @@ const main = async () => {
     (el) => el.apy !== null && el.apy <= UBApy && el.tvlUsd <= UBTvl
   );
 
-  ////// 4) add defillama fields for frontend referencing
-  console.log('\n4. adding defillama protocol fields');
-  let protocols = await superagent.get('https://api.llama.fi/protocols');
-  protocols = protocols.body;
-  for (const pool of dataEnriched) {
-    const x = protocols.find((el) => el.slug === pool.project);
-    pool['projectName'] = x?.name;
-    pool['projectId'] = x?.id;
-    pool['audits'] = x?.audits;
-    pool['audit_links'] = x?.audit_links;
-    pool['url'] = x?.url;
-    pool['twitter'] = x?.twitter;
-    pool['category'] = x?.category;
-  }
-  console.log(dataEnriched.filter((p) => p.project === 'verocket'));
-
-  ////// 5) add exposure, ilRisk and stablecoin fields
-  console.log('\n5. adding additional pool info fields');
+  ////// 4) add exposure, ilRisk and stablecoin fields
+  console.log('\n4. adding additional pool info fields');
   dataEnriched = dataEnriched.map((el) => addPoolInfo(el));
 
   // complifi has single token exposure only, but IL can still occur if a trader makes a big one, in which
@@ -108,8 +92,8 @@ const main = async () => {
     }
   }
 
-  ////// 6) add ml features
-  console.log('\n6. adding ml features');
+  ////// 5) add ml features
+  console.log('\n5. adding ml features');
   let dataStd = await superagent.get(`${urlBase}/stds`);
 
   // calculating both backward looking std and mean aking into account the current apy value
@@ -197,8 +181,8 @@ const main = async () => {
         : 'D',
   }));
 
-  ////// 7) add the algorithms predictions
-  console.log('\n7. adding apy runway prediction');
+  ////// 6) add the algorithms predictions
+  console.log('\n6. adding apy runway prediction');
 
   // load categorical feature mappings
   const modelMappings = await utils.readFromS3(
@@ -320,10 +304,8 @@ const main = async () => {
     (p) => p.pool !== '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d'
   );
 
-  console.log(dataEnriched.filter((p) => p.project === 'verocket'));
-
-  ////// 8) save enriched data to s3
-  console.log('\nsaving data to S3');
+  ////// 7) save enriched data to s3
+  console.log('\n7. saving data to S3');
   const bucket = process.env.BUCKET_DATA;
   const key = 'enriched/dataEnriched.json';
   dataEnriched = dataEnriched.sort((a, b) => b.tvlUsd - a.tvlUsd);

@@ -28,16 +28,10 @@ const buildPoolsEnriched = async (queryString) => {
     'apyPct1D',
     'apyPct7D',
     'apyPct30D',
-    'projectName',
     'stablecoin',
     'ilRisk',
     'exposure',
     'predictions',
-    'audits',
-    'audit_links',
-    'url',
-    'twitter',
-    'category',
     'market',
   ]
     .map((el) => `t."${el}"`)
