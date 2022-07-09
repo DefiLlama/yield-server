@@ -1,6 +1,8 @@
 const dbConnection = require('../api/dbConnection.js');
 const aggModel = require('../models/agg');
 const AppError = require('../utils/appError');
+const { storeCompressed } = require('../utils/s3.js');
+const {handler: getAggs} = require("./getAggs");
 
 // get standard deviation
 module.exports.handler = async (event, context, callback) => {
@@ -33,6 +35,14 @@ module.exports.handler = async (event, context, callback) => {
   if (!response) {
     return new AppError("Couldn't update data", 404);
   }
+
+  const aggsData = await getAggs({}, {})
+  const next24h = new Date()
+  next24h.setHours(next24.getHours() + 24)
+  next24h.setMinutes(0)
+  next24h.setSeconds(0)
+  next24h.setMilliseconds(0)
+  await storeCompressed('defillama-datasets', "yield-api/aggregations", aggsData, next24h)
 
   return {
     status: 'success',
