@@ -97,7 +97,13 @@ const main = async () => {
 
   ////// 5) add exposure, ilRisk and stablecoin fields
   console.log('\n5. adding additional pool info fields');
-  dataEnriched = dataEnriched.map((el) => addPoolInfo(el));
+  const stablecoins = (
+    await superagent.get(
+      'https://stablecoins.llama.fi/stablecoins?includePrices=true'
+    )
+  ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
+  if (!stablecoins.includes('eur')) stablecoins.push('eur');
+  dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins));
 
   // complifi has single token exposure only, but IL can still occur if a trader makes a big one, in which
   // case the protocol will pay traders via deposited amounts...
@@ -354,31 +360,7 @@ const enrich = (pool, days, offsets) => {
   return poolC;
 };
 
-const checkStablecoin = (el) => {
-  stablecoins = [
-    'usdt',
-    'usdc',
-    'busd',
-    // 'ust', // excluding cause of depeg
-    'dai',
-    'mim',
-    'frax',
-    'tusd',
-    'usdp',
-    'fei',
-    'lusd',
-    'alusd',
-    'husd',
-    'gusd',
-    'susd',
-    'musd',
-    'cusd',
-    'eur',
-    'usdn',
-    'dusd',
-    'usd+',
-  ];
-
+const checkStablecoin = (el, stablecoins) => {
   let tokens = el.symbol.split('-').map((el) => el.toLowerCase());
 
   let stable;
@@ -471,8 +453,8 @@ const checkExposure = (el) => {
   return exposure;
 };
 
-const addPoolInfo = (el) => {
-  el['stablecoin'] = checkStablecoin(el);
+const addPoolInfo = (el, stablecoins) => {
+  el['stablecoin'] = checkStablecoin(el, stablecoins);
   el['ilRisk'] =
     el.stablecoin && el.symbol.toLowerCase().includes('eur')
       ? checkIlRisk(el)
