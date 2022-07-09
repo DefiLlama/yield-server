@@ -1,7 +1,6 @@
 const utils = require('../utils');
 
-const { getDataEth } = require('./legacy-adaptor');
-const pools = require('./pools');
+const legacy = require('./legacy-adaptor');
 
 const {CRV_API_BASE_URL, BLOCKCHAINIDS, BLOCKCHAINID_TO_REGISTRIES} = require('./config')
 
@@ -62,8 +61,8 @@ const main = async () => {
             chain: blockchainId[0].toUpperCase() + blockchainId.slice(1),
             project: 'curve',
             symbol: pool.symbol,
-            tvlUsd: pool.tvlUsd,
-            apy: pool.apy,
+            tvlUsd: pool.tvlUsd ? pool.tvlUsd : 0,
+            apy: pool.apy ? pool.apy : 0,
           });
         }
       }
@@ -83,6 +82,6 @@ module.exports = {
   timetravel: false,
   apy: main,
   // legacy needed by convex-finance adaptor
-  curvePoolStats: getDataEth,
-  tokenMapping: pools.tokenMapping['ethereum'],
+  curvePoolStats: legacy.curvePoolStats,
+  tokenMapping: legacy.tokenMapping['ethereum'],
 };
