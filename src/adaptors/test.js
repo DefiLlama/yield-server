@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 require('dotenv').config({ path: './config.env' });
 
 const keyType = {
@@ -39,6 +40,30 @@ const passedFile = path.resolve(process.cwd(), f);
       }
     }
   });
+
+  // test for existing pool id's in database of other projects
+  const uniquePoolIdentifiersDB = new Set(
+    (
+      await axios.get(
+        'https://1rwmj4tky9.execute-api.eu-central-1.amazonaws.com/simplePools'
+      )
+    ).data.data
+      .filter((p) => p.project !== apy[0].project)
+      .map((p) => p.pool)
+  );
+
+  const duplicatedPoolIds = new Set(
+    [...uniquePoolIdentifiers].filter((p) => uniquePoolIdentifiersDB.has(p))
+  );
+  if (duplicatedPoolIds.size !== 0) {
+    throw new Error(
+      `The following ${
+        duplicatedPoolIds.size
+      } pool identifier(s) already exist in the DB used by other projects: \n${[
+        ...duplicatedPoolIds,
+      ]}`
+    );
+  }
 
   console.log(`\nNb of pools: ${apy.length}\n `);
   console.log('\nSample pools:', apy.slice(0, 10));
