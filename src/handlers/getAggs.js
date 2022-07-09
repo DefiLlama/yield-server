@@ -1,6 +1,7 @@
 const dbConnection = require('../api/dbConnection.js');
 const aggModel = require('../models/agg');
 const AppError = require('../utils/appError');
+const { lambdaResponse } = require('../utils/lambda');
 
 // get expanding standard deviation data
 module.exports.handler = async (event, context, callback) => {
@@ -15,8 +16,8 @@ module.exports.handler = async (event, context, callback) => {
     return new AppError("Couldn't get agg data", 404);
   }
 
-  return {
+  return lambdaResponse({
     status: 'success',
     data: response,
-  };
+  });
 };
