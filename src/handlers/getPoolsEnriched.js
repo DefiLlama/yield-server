@@ -21,6 +21,7 @@ const buildPoolsEnriched = async (queryString) => {
   const columns = [
     'chain',
     'project',
+    'projectName',
     'symbol',
     'tvlUsd',
     'apy',

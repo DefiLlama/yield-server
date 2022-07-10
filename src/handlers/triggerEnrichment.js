@@ -79,9 +79,31 @@ const main = async () => {
     (el) => el.apy !== null && el.apy <= UBApy && el.tvlUsd <= UBTvl
   );
 
-  ////// 4) add exposure, ilRisk and stablecoin fields
-  console.log('\n4. adding additional pool info fields');
-  dataEnriched = dataEnriched.map((el) => addPoolInfo(el));
+  ////// 4) add defillama projectName for frontend
+  console.log('\n4. adding defillama protocol name field');
+  const config = (
+    await superagent.get('https://api.llama.fi/protocols')
+  ).body.reduce(
+    (all, c) => ({
+      ...all,
+      [c.slug]: c.name,
+    }),
+    {}
+  );
+  dataEnriched = dataEnriched.map((p) => ({
+    ...p,
+    projectName: config[p.project],
+  }));
+
+  ////// 5) add exposure, ilRisk and stablecoin fields
+  console.log('\n5. adding additional pool info fields');
+  const stablecoins = (
+    await superagent.get(
+      'https://stablecoins.llama.fi/stablecoins?includePrices=true'
+    )
+  ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
+  if (!stablecoins.includes('eur')) stablecoins.push('eur');
+  dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins));
 
   // complifi has single token exposure only, but IL can still occur if a trader makes a big one, in which
   // case the protocol will pay traders via deposited amounts...
@@ -92,8 +114,8 @@ const main = async () => {
     }
   }
 
-  ////// 5) add ml features
-  console.log('\n5. adding ml features');
+  ////// 6) add ml features
+  console.log('\n6. adding ml features');
   let dataStd = await superagent.get(`${urlBase}/stds`);
 
   // calculating both backward looking std and mean aking into account the current apy value
@@ -181,8 +203,8 @@ const main = async () => {
         : 'D',
   }));
 
-  ////// 6) add the algorithms predictions
-  console.log('\n6. adding apy runway prediction');
+  ////// 7) add the algorithms predictions
+  console.log('\n7. adding apy runway prediction');
 
   // load categorical feature mappings
   const modelMappings = await utils.readFromS3(
@@ -336,31 +358,7 @@ const enrich = (pool, days, offsets) => {
   return poolC;
 };
 
-const checkStablecoin = (el) => {
-  stablecoins = [
-    'usdt',
-    'usdc',
-    'busd',
-    // 'ust', // excluding cause of depeg
-    'dai',
-    'mim',
-    'frax',
-    'tusd',
-    'usdp',
-    'fei',
-    'lusd',
-    'alusd',
-    'husd',
-    'gusd',
-    'susd',
-    'musd',
-    'cusd',
-    'eur',
-    'usdn',
-    'dusd',
-    'usd+',
-  ];
-
+const checkStablecoin = (el, stablecoins) => {
   let tokens = el.symbol.split('-').map((el) => el.toLowerCase());
 
   let stable;
@@ -453,8 +451,8 @@ const checkExposure = (el) => {
   return exposure;
 };
 
-const addPoolInfo = (el) => {
-  el['stablecoin'] = checkStablecoin(el);
+const addPoolInfo = (el, stablecoins) => {
+  el['stablecoin'] = checkStablecoin(el, stablecoins);
   el['ilRisk'] =
     el.stablecoin && el.symbol.toLowerCase().includes('eur')
       ? checkIlRisk(el)
