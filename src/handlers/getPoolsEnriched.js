@@ -39,6 +39,10 @@ const buildPoolsEnriched = async (queryString) => {
     'twitter',
     'category',
     'market',
+    'mu',
+    'sigma',
+    'count',
+    'outlier',
   ]
     .map((el) => `t."${el}"`)
     .join(', ');
