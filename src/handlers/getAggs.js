@@ -16,8 +16,8 @@ module.exports.handler = async (event, context, callback) => {
     return new AppError("Couldn't get agg data", 404);
   }
 
-  return lambdaResponse({
+  return {
     status: 'success',
     data: response,
-  });
+  };
 };
