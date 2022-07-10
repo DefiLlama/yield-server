@@ -21,7 +21,6 @@ const buildPoolsEnriched = async (queryString) => {
   const columns = [
     'chain',
     'project',
-    'projectName',
     'symbol',
     'tvlUsd',
     'apy',
@@ -34,6 +33,10 @@ const buildPoolsEnriched = async (queryString) => {
     'exposure',
     'predictions',
     'market',
+    'mu',
+    'sigma',
+    'count',
+    'outlier',
   ]
     .map((el) => `t."${el}"`)
     .join(', ');

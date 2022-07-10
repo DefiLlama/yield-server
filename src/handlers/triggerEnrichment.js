@@ -79,24 +79,8 @@ const main = async () => {
     (el) => el.apy !== null && el.apy <= UBApy && el.tvlUsd <= UBTvl
   );
 
-  ////// 4) add defillama projectName for frontend
-  console.log('\n4. adding defillama protocol name field');
-  const config = (
-    await superagent.get('https://api.llama.fi/protocols')
-  ).body.reduce(
-    (all, c) => ({
-      ...all,
-      [c.slug]: c.name,
-    }),
-    {}
-  );
-  dataEnriched = dataEnriched.map((p) => ({
-    ...p,
-    projectName: config[p.project],
-  }));
-
-  ////// 5) add exposure, ilRisk and stablecoin fields
-  console.log('\n5. adding additional pool info fields');
+  ////// 4) add exposure, ilRisk and stablecoin fields
+  console.log('\n4. adding additional pool info fields');
   const stablecoins = (
     await superagent.get(
       'https://stablecoins.llama.fi/stablecoins?includePrices=true'
@@ -114,8 +98,8 @@ const main = async () => {
     }
   }
 
-  ////// 6) add ml features
-  console.log('\n6. adding ml features');
+  ////// 5) add ml features
+  console.log('\n5. adding ml features');
   let dataStd = await superagent.get(`${urlBase}/stds`);
 
   // calculating both backward looking std and mean aking into account the current apy value
@@ -203,8 +187,8 @@ const main = async () => {
         : 'D',
   }));
 
-  ////// 7) add the algorithms predictions
-  console.log('\n7. adding apy runway prediction');
+  ////// 6) add the algorithms predictions
+  console.log('\n6. adding apy runway prediction');
 
   // load categorical feature mappings
   const modelMappings = await utils.readFromS3(
@@ -326,8 +310,73 @@ const main = async () => {
     (p) => p.pool !== '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d'
   );
 
-  ////// 7) save enriched data to s3
-  console.log('\n7. saving data to S3');
+  ////// 7) add mu,sigma,count and outlier fields
+  console.log('\n7. adding mu,sigma,count,outlier fields');
+  let aggregations = (await superagent.get(`${urlBase}/aggregations`)).body
+    .data;
+
+  // need to take the latest info, scale apy accordingly
+  const T = 365;
+  dataEnriched = dataEnriched.map((p) => ({
+    ...p,
+    return: (1 + p.apy / 100) ** (1 / T) - 1,
+  }));
+
+  for (const el of dataEnriched) {
+    const d = aggregations.find((i) => i.pool === el.pool);
+
+    if (d === undefined) {
+      el['sigma'] = 0;
+      el['mu'] = el.apy;
+      el['count'] = 1;
+      continue;
+    }
+
+    // calc std using welford's algorithm
+    // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+    // For a new value newValue, compute the new count, new mean, the new M2.
+    // mean accumulates the mean of the entire dataset
+    // M2 aggregates the squared distance from the mean
+    // count aggregates the number of samples seen so far
+    let count = d.count;
+    let mean = d.mean;
+    let mean2 = d.mean2;
+
+    count += 1;
+    let delta = el.return - mean;
+    mean += delta / count;
+    let delta2 = el.return - mean;
+    mean2 += delta * delta2;
+
+    el['sigma'] = Math.sqrt((mean2 / (count - 1)) * T) * 100;
+    el['mu'] = (((1 + el.return) * d.returnProduct) ** (T / count) - 1) * 100;
+    el['count'] = count;
+  }
+  // mark pools as outliers if outside boundary (let user filter via toggle on frontend)
+  const columns = ['mu', 'sigma'];
+  const outlierBoundaries = {};
+  for (const col of columns) {
+    let x = dataEnriched
+      .map((p) => p[col])
+      .filter((p) => p !== undefined && p !== null);
+    const x_iqr = ss.quantile(x, 0.75) - ss.quantile(x, 0.25);
+    const x_median = ss.median(x);
+    const x_lb = x_median - 1.5 * x_iqr;
+    const x_ub = x_median + 1.5 * x_iqr;
+    outlierBoundaries[col] = { lb: x_lb, ub: x_ub };
+  }
+
+  dataEnriched = dataEnriched.map((p) => ({
+    ...p,
+    outlier:
+      p['mu'] < outlierBoundaries['mu']['lb'] ||
+      p['mu'] > outlierBoundaries['mu']['ub'] ||
+      p['sigma'] < outlierBoundaries['sigma']['lb'] ||
+      p['sigma'] > outlierBoundaries['sigma']['ub'],
+  }));
+
+  ////// save enriched data to s3
+  console.log('\nsaving data to S3');
   const bucket = process.env.BUCKET_DATA;
   const key = 'enriched/dataEnriched.json';
   dataEnriched = dataEnriched.sort((a, b) => b.tvlUsd - a.tvlUsd);
@@ -367,7 +416,9 @@ const checkStablecoin = (el, stablecoins) => {
     tok = tokens[0].split('weth');
     stable = tok[0].includes('wbtc') ? false : tok.length > 1 ? false : true;
   } else if (tokens.length === 1) {
-    stable = stablecoins.some((x) => tokens[0].includes(x));
+    stable = stablecoins.some((x) =>
+      tokens[0].replace(/\s*\(.*?\)\s*/g, '').includes(x)
+    );
   } else if (tokens.length > 1) {
     let x = 0;
     for (const t of tokens) {
