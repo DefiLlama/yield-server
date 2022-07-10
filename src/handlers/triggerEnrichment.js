@@ -93,7 +93,6 @@ const main = async () => {
     pool['twitter'] = x?.twitter;
     pool['category'] = x?.category;
   }
-  console.log(dataEnriched.filter((p) => p.project === 'verocket'));
 
   ////// 5) add exposure, ilRisk and stablecoin fields
   console.log('\n5. adding additional pool info fields');
@@ -326,9 +325,72 @@ const main = async () => {
     (p) => p.pool !== '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d'
   );
 
-  console.log(dataEnriched.filter((p) => p.project === 'verocket'));
+  ////// 8) add mu,sigma,count and outlier fields
+  console.log('\n8. adding mu,sigma,count,outlier fields');
+  let aggregations = (await superagent.get(`${urlBase}/aggregations`)).body
+    .data;
 
-  ////// 8) save enriched data to s3
+  // need to take the latest info, scale apy accordingly
+  const T = 365;
+  dataEnriched = dataEnriched.map((p) => ({
+    ...p,
+    return: (1 + p.apy / 100) ** (1 / T) - 1,
+  }));
+
+  for (const el of dataEnriched) {
+    const d = aggregations.find((i) => i.pool === el.pool);
+
+    if (d === undefined) {
+      el['sigma'] = 0;
+      el['mu'] = el.apy;
+      el['count'] = 1;
+      continue;
+    }
+
+    // calc std using welford's algorithm
+    // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+    // For a new value newValue, compute the new count, new mean, the new M2.
+    // mean accumulates the mean of the entire dataset
+    // M2 aggregates the squared distance from the mean
+    // count aggregates the number of samples seen so far
+    let count = d.count;
+    let mean = d.mean;
+    let mean2 = d.mean2;
+
+    count += 1;
+    let delta = el.return - mean;
+    mean += delta / count;
+    let delta2 = el.return - mean;
+    mean2 += delta * delta2;
+
+    el['sigma'] = Math.sqrt((mean2 / (count - 1)) * T) * 100;
+    el['mu'] = (((1 + el.return) * d.returnProduct) ** (T / count) - 1) * 100;
+    el['count'] = count;
+  }
+  // mark pools as outliers if outside boundary (let user filter via toggle on frontend)
+  const columns = ['mu', 'sigma'];
+  const outlierBoundaries = {};
+  for (const col of columns) {
+    let x = dataEnriched
+      .map((p) => p[col])
+      .filter((p) => p !== undefined && p !== null);
+    const x_iqr = quantile(x, 0.75) - quantile(x, 0.25);
+    const x_median = median(x);
+    const x_lb = x_median - 1.5 * x_iqr;
+    const x_ub = x_median + 1.5 * x_iqr;
+    outlierBoundaries[col] = { lb: x_lb, ub: x_ub };
+  }
+
+  dataEnriched = dataEnriched.map((p) => ({
+    ...p,
+    outlier:
+      p['mu'] < outlierBoundaries['mu']['lb'] ||
+      p['mu'] > outlierBoundaries['mu']['ub'] ||
+      p['sigma'] < outlierBoundaries['sigma']['lb'] ||
+      p['sigma'] > outlierBoundaries['sigma']['ub'],
+  }));
+
+  ////// save enriched data to s3
   console.log('\nsaving data to S3');
   const bucket = process.env.BUCKET_DATA;
   const key = 'enriched/dataEnriched.json';
