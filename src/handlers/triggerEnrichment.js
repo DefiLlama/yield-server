@@ -374,8 +374,8 @@ const main = async () => {
     let x = dataEnriched
       .map((p) => p[col])
       .filter((p) => p !== undefined && p !== null);
-    const x_iqr = quantile(x, 0.75) - quantile(x, 0.25);
-    const x_median = median(x);
+    const x_iqr = ss.quantile(x, 0.75) - ss.quantile(x, 0.25);
+    const x_median = ss.median(x);
     const x_lb = x_median - 1.5 * x_iqr;
     const x_ub = x_median + 1.5 * x_iqr;
     outlierBoundaries[col] = { lb: x_lb, ub: x_ub };
