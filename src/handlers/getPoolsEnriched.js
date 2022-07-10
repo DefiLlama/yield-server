@@ -42,6 +42,7 @@ const buildPoolsEnriched = async (queryString) => {
     'mu',
     'sigma',
     'count',
+    'outlier',
   ]
     .map((el) => `t."${el}"`)
     .join(', ');
