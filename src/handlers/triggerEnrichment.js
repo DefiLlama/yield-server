@@ -369,7 +369,9 @@ const checkStablecoin = (el, stablecoins) => {
     tok = tokens[0].split('weth');
     stable = tok[0].includes('wbtc') ? false : tok.length > 1 ? false : true;
   } else if (tokens.length === 1) {
-    stable = stablecoins.some((x) => tokens[0].includes(x));
+    stable = stablecoins.some((x) =>
+      tokens[0].replace(/\s*\(.*?\)\s*/g, '').includes(x)
+    );
   } else if (tokens.length > 1) {
     let x = 0;
     for (const t of tokens) {
