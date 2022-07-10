@@ -7,6 +7,7 @@ const poolSchema = new mongoose.Schema(
       required: [true, 'A pool must have an pool field'],
       trim: true,
     },
+    underlyingTokens: [String],
     chain: {
       type: String,
       required: [true, 'A pool must have a chain field'],
