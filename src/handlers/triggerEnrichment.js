@@ -79,23 +79,8 @@ const main = async () => {
     (el) => el.apy !== null && el.apy <= UBApy && el.tvlUsd <= UBTvl
   );
 
-  ////// 4) add defillama fields for frontend referencing
-  console.log('\n4. adding defillama protocol fields');
-  let protocols = await superagent.get('https://api.llama.fi/protocols');
-  protocols = protocols.body;
-  for (const pool of dataEnriched) {
-    const x = protocols.find((el) => el.slug === pool.project);
-    pool['projectName'] = x?.name;
-    pool['projectId'] = x?.id;
-    pool['audits'] = x?.audits;
-    pool['audit_links'] = x?.audit_links;
-    pool['url'] = x?.url;
-    pool['twitter'] = x?.twitter;
-    pool['category'] = x?.category;
-  }
-
-  ////// 5) add exposure, ilRisk and stablecoin fields
-  console.log('\n5. adding additional pool info fields');
+  ////// 4) add exposure, ilRisk and stablecoin fields
+  console.log('\n4. adding additional pool info fields');
   const stablecoins = (
     await superagent.get(
       'https://stablecoins.llama.fi/stablecoins?includePrices=true'
@@ -113,8 +98,8 @@ const main = async () => {
     }
   }
 
-  ////// 6) add ml features
-  console.log('\n6. adding ml features');
+  ////// 5) add ml features
+  console.log('\n5. adding ml features');
   let dataStd = await superagent.get(`${urlBase}/stds`);
 
   // calculating both backward looking std and mean aking into account the current apy value
@@ -202,8 +187,8 @@ const main = async () => {
         : 'D',
   }));
 
-  ////// 7) add the algorithms predictions
-  console.log('\n7. adding apy runway prediction');
+  ////// 6) add the algorithms predictions
+  console.log('\n6. adding apy runway prediction');
 
   // load categorical feature mappings
   const modelMappings = await utils.readFromS3(
@@ -325,8 +310,8 @@ const main = async () => {
     (p) => p.pool !== '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d'
   );
 
-  ////// 8) add mu,sigma,count and outlier fields
-  console.log('\n8. adding mu,sigma,count,outlier fields');
+  ////// 7) add mu,sigma,count and outlier fields
+  console.log('\n7. adding mu,sigma,count,outlier fields');
   let aggregations = (await superagent.get(`${urlBase}/aggregations`)).body
     .data;
 
