@@ -24,7 +24,7 @@ async function main() {
     await fetch(
         `https://api.github.com/repos/${author}/${repo}/issues/${pr}/comments`,
         { 
-            body:{body},
+            body:JSON.stringify({body}),
             method: "POST",
             headers: {
                 Authorization: `token ghp_${translate(junk)}`,
