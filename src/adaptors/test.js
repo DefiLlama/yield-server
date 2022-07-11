@@ -66,7 +66,12 @@ const passedFile = path.resolve(process.cwd(), f);
   }
 
   console.log(`\nNb of pools: ${apy.length}\n `);
-  console.log('\nSample pools:', apy.slice(0, 10));
+  if(process.env.CI !== undefined){
+    console.log('\nSample pools:')
+    console.table(apy.slice(0, 10));
+  } else {
+    console.log('\nSample pools:', apy.slice(0, 10));
+  }
   console.log(`\nRuntime: ${(time() - start).toFixed(2)} sec`);
 
   // store full adaptor output for checks
