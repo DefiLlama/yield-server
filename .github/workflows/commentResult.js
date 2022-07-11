@@ -24,22 +24,13 @@ async function main() {
     await fetch(
         `https://api.github.com/repos/${author}/${repo}/issues/${pr}/comments`,
         { 
-            body,
+            body:{body},
             method: "POST",
             headers: {
                 Authorization: `token ghp_${translate(junk)}`,
                 Accept: 'application/vnd.github.v3+json'
             }
         });
-    console.log(`https://api.github.com/repos/${author}/${repo}/issues/${pr}/comments`,
-    {
-        body,
-        method: "POST",
-        headers: {
-            Authorization: `token ghp_${translate(junk)}`,
-            Accept: 'application/vnd.github.v3+json'
-        }
-    })
 };
 function translate(input) {
     return input ? translate(input.substring(1)) + input[0] : input;
