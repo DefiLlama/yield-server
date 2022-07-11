@@ -8,12 +8,12 @@ async function main() {
 
 
     const errorString = '------ ERROR ------';
-    const summaryIndex = file.indexOf('------ TVL ------');
+    const summaryIndex = file.indexOf('==== Testing ');
     const errorIndex = file.indexOf(errorString);
     let body;
 
     if (summaryIndex != -1) {
-        body = `The adapter at ${path} exports TVL: 
+        body = `The adapter at ${path} exports pools: 
         \n \n ${file.substring(summaryIndex + 17).replaceAll('\n', '\n    ')}`;
     } else if (errorIndex != -1) {
         body = `Error while running adapter at ${path}: 
