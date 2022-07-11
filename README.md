@@ -21,9 +21,9 @@ An adaptor is just a javascript file that exports an async function that returns
     symbol: "USDT", // symbol of the tokens in pool, can be a single symbol if pool is single-sided or multiple symbols (eg: USDT-ETH) if it's an LP
     tvlUsd: 1000.1, // number representing current USD TVL in pool
     apyFee: 0.5, // APY from pool fees/supplying in %
-    apyReward: 0.7 // APY from pool LM rewards in % (you can omit this field if a pool doesn't have rewards)
+    apyReward: 0.7, // APY from pool LM rewards in % (you can omit this field if a pool doesn't have rewards)
     apy: 1.2, // current APY of the pool in % (sum of apyFee and apyReward)
-    rewardTokens: ['0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'] // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
+    rewardTokens: ['0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
     underlyingTokens: ['0xdAC17F958D2ee523a2206206994597C13D831ec7'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
   };
 ```
