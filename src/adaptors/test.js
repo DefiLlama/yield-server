@@ -65,9 +65,17 @@ const passedFile = path.resolve(process.cwd(), f);
     );
   }
 
+  // test for correct project name (should match tvl dashboard slug)
+  const protocols = (await axios.get('https://api.llama.fi/protocols')).data;
+  if (!new Set(protocols.map((project) => project.slug)).has(apy[0].project)) {
+    throw new Error(
+      `project field "${apy[0].project}" does not match the slug in /protocols endpoint`
+    );
+  }
+
   console.log(`\nNb of pools: ${apy.length}\n `);
-  if(process.env.CI !== undefined){
-    console.log('\nSample pools:')
+  if (process.env.CI !== undefined) {
+    console.log('\nSample pools:');
     console.table(apy.slice(0, 10));
   } else {
     console.log('\nSample pools:', apy.slice(0, 10));
