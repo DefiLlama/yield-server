@@ -4,7 +4,6 @@ const ss = require('simple-statistics');
 const utils = require('../utils/s3');
 const adaptorsToExclude = require('../utils/exclude');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
-const storeStds = require('../api/storeStds');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -103,8 +102,7 @@ const main = async () => {
   console.log('\n5. adding ml features');
   let dataStd = await superagent.get(`${urlBase}/stds`);
 
-  // calculating both backward looking std and mean aking into account the current apy value
-  const dataStdUpdated = [];
+  // calculating both backward looking std and mean taking into account the current apy value
   for (const el of dataEnriched) {
     d = dataStd.body.data.find((i) => i.pool === el.pool);
 
@@ -138,46 +136,7 @@ const main = async () => {
       d === undefined || count < 2 ? null : Math.sqrt(mean2 / (count - 1));
     // for both undefined or not, the apy will be the (if undefined, mean === the current apy)
     el['apyMeanExpanding'] = mean;
-
-    // update std table only for pools which match the last hour of current day
-    const currentDay = new Date().toISOString().split('T')[0];
-    if (el.timestamp === [currentDay, '23:00:00.000Z'].join('T')) {
-      console.log('updating std table');
-      dataStdUpdated.push({
-        pool: el.pool,
-        count,
-        mean,
-        mean2,
-      });
-    }
   }
-
-  if (dataStdUpdated.length > 0) {
-    const response = storeStds(dataStdUpdated);
-    console.log('/stds response: \n', response.body);
-  }
-
-  // bin std into stability metric
-  const stds = dataEnriched
-    .map((el) => el.apyStdExpanding)
-    .filter((el) => el !== null);
-  const quantiles = {
-    q25: ss.quantile(stds, 0.25),
-    q50: ss.quantile(stds, 0.5),
-    q75: ss.quantile(stds, 0.75),
-  };
-
-  dataEnriched = dataEnriched.map((el) => ({
-    ...el,
-    Stability:
-      el.apyStdExpanding <= quantiles.q25
-        ? 'A'
-        : el.apyStdExpanding <= quantiles.q50
-        ? 'B'
-        : el.apyStdExpanding <= quantiles.q75
-        ? 'C'
-        : 'D',
-  }));
 
   ////// 6) add the algorithms predictions
   console.log('\n6. adding apy runway prediction');

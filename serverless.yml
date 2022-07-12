@@ -120,6 +120,15 @@ functions:
       # at midnight
       - schedule: cron(0 0 * * ? *)
 
+  # --- stds update
+  triggerStds:
+    handler: src/handlers/triggerStds.handler
+    description: Lambda which updates the stds table
+    timeout: 300
+    events:
+      # at midnight
+      - schedule: cron(0 0 * * ? *)
+
   # --- save poolsEnriched as CSV
   triggerCsv:
     handler: src/handlers/triggerCsv.handler
