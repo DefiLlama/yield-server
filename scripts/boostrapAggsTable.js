@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-const storeStds = require('../src/api/storeStds');
+const storeAggs = require('../src/api/storeAggs');
 const AWS = require('aws-sdk');
 const { boostrapDB } = require('./bootstrapTable');
 const credentials = new AWS.SharedIniFileCredentials({ profile: 'defillama' });
@@ -11,7 +11,13 @@ AWS.config.credentials = credentials;
   // containing timestamp, apy, pool fields
   const p = './pools.json';
   let data = JSON.parse(fs.readFileSync(p));
-  const dataDB = boostrapDB(data, 'stds');
-  const response = await storeStds(dataDB);
+  // scale apy to daily return value (for mu/sigma calc)
+  T = 365;
+  data = data.map((p) => ({
+    ...p,
+    return: (1 + p['apy'] / 100) ** (1 / T) - 1,
+  }));
+  const dataDB = boostrapDB(data, 'aggs');
+  const response = await storeAggs(dataDB);
   console.log(response.body);
 })();

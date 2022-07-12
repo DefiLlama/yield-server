@@ -63,12 +63,6 @@ provider:
     cors:
       allowedMethods:
         - GET
-    authorizers:
-      JwtAuthorizer:
-        type: jwt
-        identitySource: $request.header.Authorization
-        issuerUrl: ${ssm:${self:custom.ssmPath}/issuer}
-        audience: ${ssm:${self:custom.ssmPath}/audience}
 
 functions:
   # --- top-lvl-entrypoint
