@@ -1,5 +1,5 @@
 const superagent = require('superagent');
-const storeAggs = require('../api/storeAggs');
+const { insertAggs } = require('../api/controllers');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -71,6 +71,6 @@ const main = async () => {
     });
   }
 
-  const response = await storeAggs(dataUpdated);
+  const response = await insertAggs(dataUpdated);
   console.log(response.body);
 };

@@ -1,5 +1,4 @@
-const utils = require('../utils/s3');
-const storePools = require('../api/storePools');
+const { insertPools } = require('../api/controllers');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -44,9 +43,7 @@ const main = async (body) => {
   const timestamp = new Date(
     Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
   );
-  for (const d of data) {
-    d['timestamp'] = timestamp;
-  }
+  data = data.map((p) => ({ ...p, timestamp: timestamp }));
 
   // filter to $1k usd tvl
   const tvlMinThr = 1e3;
@@ -54,15 +51,6 @@ const main = async (body) => {
   console.log('saving data to DB');
 
   // save to db
-  const response = await storePools(dataDB);
+  const response = await insertPools(dataDB);
   console.log(response.body);
-
-  // save unfiltered backup to s3
-  console.log('saving data to S3');
-  const d = new Date();
-  const dd = d.toISOString().split('T');
-  const bucket = process.env.BUCKET_DATA;
-  const key = `base/${dd[0]}/${d.getHours()}/${dd[1]}_${body.adaptor}.json`;
-
-  await utils.writeToS3(bucket, key, data);
 };

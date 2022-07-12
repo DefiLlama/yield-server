@@ -1,5 +1,5 @@
 const superagent = require('superagent');
-const storeStds = require('../api/storeStds');
+const { insertStds } = require('../api/controllers');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -55,6 +55,6 @@ const main = async () => {
     });
   }
 
-  const response = await storeStds(dataUpdated);
+  const response = await insertStds(dataUpdated);
   console.log(response.body);
 };
