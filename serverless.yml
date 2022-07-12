@@ -71,14 +71,6 @@ provider:
         audience: ${ssm:${self:custom.ssmPath}/audience}
 
 functions:
-  triggerAuthenticate:
-    handler: src/handlers/triggerAuthenticate.handler
-    description: Lambda to create bearer token which stores to ssm
-    timeout: 30
-    events:
-      # every 12hours
-      - schedule: rate(12 hours)
-
   # --- top-lvl-entrypoint
   triggerEntrypoint:
     handler: src/handlers/triggerEntrypoint.handler
@@ -153,28 +145,6 @@ functions:
           method: get
           path: /simplePools
 
-  storePools:
-    handler: src/handlers/storePools.handler
-    description: Lambda for db bulkwrite
-    timeout: 20
-    events:
-      - httpApi:
-          method: post
-          path: /simplePools
-          authorizer:
-            name: JwtAuthorizer
-
-  deletePools:
-    handler: src/handlers/deletePools.handler
-    description: Lambda for deleteMany operation of pool data
-    timeout: 20
-    events:
-      - httpApi:
-          method: delete
-          path: /simplePools/{project}/{timestamp}
-          authorizer:
-            name: JwtAuthorizer
-
   getPoolsEnriched:
     handler: src/handlers/getPoolsEnriched.handler
     description: Lambda for retrieving the latest enriched data for each unique pool
@@ -214,17 +184,6 @@ functions:
           method: get
           path: /stds
 
-  storeStds:
-    handler: src/handlers/storeStds.handler
-    description: Lambda for db bulkupdate of std data
-    timeout: 20
-    events:
-      - httpApi:
-          method: post
-          path: /stds
-          authorizer:
-            name: JwtAuthorizer
-
   getAggs:
     handler: src/handlers/getAggs.handler
     description: Lambda for retrieving aggregation data
@@ -233,17 +192,6 @@ functions:
       - httpApi:
           method: get
           path: /aggregations
-
-  storeAggs:
-    handler: src/handlers/storeAggs.handler
-    description: Lambda for db bulkupdate of aggregation data
-    timeout: 20
-    events:
-      - httpApi:
-          method: post
-          path: /aggregations
-          authorizer:
-            name: JwtAuthorizer
 
 resources:
   Resources:

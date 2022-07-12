@@ -1,8 +1,9 @@
 const path = require('path');
 const dotenv = require('dotenv');
 
-const superagent = require('superagent');
 const AWS = require('aws-sdk');
+const deletePools = require('../src/api/deletePools');
+const storePools = require('../src/api/storePools');
 const credentials = new AWS.SharedIniFileCredentials({ profile: 'defillama' });
 AWS.config.credentials = credentials;
 
@@ -33,14 +34,6 @@ const passedFile = path.resolve(
   if (!module.timetravel)
     return console.log(`${project} can't timetravel, exiting!`);
 
-  // get bearer token for post request to db
-  const ssm = new AWS.SSM({ region: 'eu-central-1' });
-  const options = {
-    Name: '/llama-apy/serverless/sls-authenticate/bearertoken',
-    WithDecryption: true,
-  };
-  const token = await ssm.getParameter(options).promise();
-
   // 2. run adaptor
   console.log(`Starting timetravel for ${project}...\n`);
   for (let i = 0; i < maxDays; i++) {
@@ -69,21 +62,13 @@ const passedFile = path.resolve(
     // we'd have only outdated objects for that day with the exception of the updated one.
     // -> confusing when looking at the historcal data and especially bad when we want to use the old data
     // for some analysis work as nothing would make sense
-    const urlBase =
-      'https://1rwmj4tky9.execute-api.eu-central-1.amazonaws.com/simplePools';
-
     try {
       // delete
-      const responseDelete = await superagent
-        .delete(`${urlBase}/${project}/${timestamp}`)
-        .set({ Authorization: `Bearer ${token.Parameter.Value}` });
+      const responseDelete = await deletePools(timestamp, project);
       console.log(`\tDeleted ${responseDelete.body.response.n} samples`);
 
       // insert
-      const responseInsert = await superagent
-        .post(urlBase)
-        .send(dataDB)
-        .set({ Authorization: `Bearer ${token.Parameter.Value}` });
+      const responseInsert = await storePools(dataDB);
       console.log(`\t${responseInsert.body.response} samples\n`);
     } catch (err) {
       throw new Error(err);

@@ -1,7 +1,8 @@
 const superagent = require('superagent');
-const SSM = require('aws-sdk/clients/ssm');
+const storeAggs = require('../api/storeAggs');
 
-module.exports.handler = async (event) => {
+module.exports.handler = async (event, context) => {
+  context.callbackWaitsForEmptyEventLoop = false;
   await main();
 };
 
@@ -71,15 +72,6 @@ const main = async () => {
     });
   }
 
-  const ssm = new SSM();
-  const options = {
-    Name: `${process.env.SSM_PATH}/bearertoken`,
-    WithDecryption: true,
-  };
-  const token = await ssm.getParameter(options).promise();
-  const response = await superagent
-    .post(`${urlBase}/aggregations`)
-    .send(dataAggUpdated)
-    .set({ Authorization: `Bearer ${token.Parameter.Value}` });
+  const response = await storeAggs(dataAggUpdated);
   console.log('/aggregations response: \n', response.body);
 };

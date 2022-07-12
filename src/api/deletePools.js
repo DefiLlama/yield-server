@@ -1,13 +1,11 @@
-const dbConnection = require('../api/dbConnection.js');
+const dbConnection = require('./dbConnection.js');
 const poolModel = require('../models/pool');
 const AppError = require('../utils/appError');
 
-module.exports.handler = async (event, context, callback) => {
-  context.callbackWaitsForEmptyEventLoop = false;
+module.exports.deletePools = async (timestamp, project) => {
   const conn = await dbConnection.connect();
   const M = conn.model(poolModel.modelName);
 
-  const timestamp = Number(event.pathParameters.timestamp);
   const lb = new Date(timestamp * 1000);
   const ub = new Date((timestamp + 86400) * 1000);
 
@@ -16,7 +14,7 @@ module.exports.handler = async (event, context, callback) => {
   // lb == 2022-04-05T00:00:00.000Z; ub == 2022-04-06T00:00:00.000Z
   // we remove everything >= lb up to < ub
   const filter = {
-    project: event.pathParameters.project,
+    project,
     timestamp: { $gte: lb, $lt: ub },
   };
 

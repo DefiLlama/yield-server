@@ -1,14 +1,11 @@
-const dbConnection = require('../api/dbConnection.js');
+const dbConnection = require('./dbConnection.js');
 const aggModel = require('../models/agg');
 const AppError = require('../utils/appError');
 
 // get standard deviation
-module.exports.handler = async (event, context, callback) => {
-  context.callbackWaitsForEmptyEventLoop = false;
+module.exports.storeAggs = async (payload) => {
   const conn = await dbConnection.connect();
   const M = conn.model(aggModel.modelName);
-
-  const payload = JSON.parse(event.body);
 
   // updating via bulkwrite with array of updateOne operations
   const bulkOperations = [];

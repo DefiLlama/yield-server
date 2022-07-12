@@ -1,9 +1,8 @@
-const superagent = require('superagent');
-const SSM = require('aws-sdk/clients/ssm');
-
 const utils = require('../utils/s3');
+const storePools = require('../api/storePools');
 
-module.exports.handler = async (event) => {
+module.exports.handler = async (event, context) => {
+  context.callbackWaitsForEmptyEventLoop = false;
   console.log(event);
 
   // We return failed msg ids,
@@ -54,18 +53,8 @@ const main = async (body) => {
   dataDB = data.filter((el) => el.tvlUsd >= tvlMinThr);
   console.log('saving data to DB');
 
-  // get cached access token
-  const ssm = new SSM();
-  const options = {
-    Name: `${process.env.SSM_PATH}/bearertoken`,
-    WithDecryption: true,
-  };
-  const token = await ssm.getParameter(options).promise();
   // save to db
-  const response = await superagent
-    .post(`${process.env.APIG_URL}/simplePools`)
-    .send(dataDB)
-    .set({ Authorization: `Bearer ${token.Parameter.Value}` });
+  const response = await storePools(dataDB);
   console.log(response.body);
 
   // save unfiltered backup to s3

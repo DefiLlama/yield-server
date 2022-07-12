@@ -1,14 +1,10 @@
-const dbConnection = require('../api/dbConnection.js');
+const dbConnection = require('./dbConnection.js');
 const stdModel = require('../models/std');
 const AppError = require('../utils/appError');
 
-// get standard deviation
-module.exports.handler = async (event, context, callback) => {
-  context.callbackWaitsForEmptyEventLoop = false;
+module.exports.storeStds = async (payload) => {
   const conn = await dbConnection.connect();
   const M = conn.model(stdModel.modelName);
-
-  const payload = JSON.parse(event.body);
 
   // updating via bulkwrite with array of updateOne operations
   const bulkOperations = [];

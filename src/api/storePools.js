@@ -3,12 +3,9 @@ const poolModel = require('../models/pool');
 const AppError = require('../utils/appError');
 
 // insert pools
-module.exports.handler = async (event, context, callback) => {
-  context.callbackWaitsForEmptyEventLoop = false;
+module.exports.storePools = async (payload) => {
   const conn = await dbConnection.connect();
   const M = conn.model(poolModel.modelName);
-
-  const payload = JSON.parse(event.body);
 
   const response = await M.insertMany(payload);
 

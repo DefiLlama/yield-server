@@ -1,12 +1,13 @@
 const superagent = require('superagent');
-const SSM = require('aws-sdk/clients/ssm');
 const ss = require('simple-statistics');
 
 const utils = require('../utils/s3');
 const adaptorsToExclude = require('../utils/exclude');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
+const storeStds = require('../api/storeStds');
 
-module.exports.handler = async (event) => {
+module.exports.handler = async (event, context) => {
+  context.callbackWaitsForEmptyEventLoop = false;
   await main();
 };
 
@@ -152,16 +153,7 @@ const main = async () => {
   }
 
   if (dataStdUpdated.length > 0) {
-    const ssm = new SSM();
-    const options = {
-      Name: `${process.env.SSM_PATH}/bearertoken`,
-      WithDecryption: true,
-    };
-    const token = await ssm.getParameter(options).promise();
-    const response = await superagent
-      .post(`${urlBase}/stds`)
-      .send(dataStdUpdated)
-      .set({ Authorization: `Bearer ${token.Parameter.Value}` });
+    const response = storeStds(dataStdUpdated);
     console.log('/stds response: \n', response.body);
   }
 
