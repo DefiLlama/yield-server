@@ -75,7 +75,7 @@ const buildPool = (entry, chainString) => {
   const newObj = {
     pool: entry.id,
     chain: utils.formatChain(chainString),
-    project: 'aave',
+    project: 'aave-v2',
     symbol: utils.formatSymbol(entry.symbol),
     tvlUsd: Number(entry.totalLiquidityUSD),
     apy,
