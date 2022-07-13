@@ -44,7 +44,7 @@
         "stateMutability": "view",
         "type": "function"
     },
-    "gauge_relative_rate": {
+    "gauge_relative_weight": {
         "inputs": [
             {
                 "internalType": "address",
@@ -57,7 +57,7 @@
                 "type": "uint256"
             }
         ],
-        "name": "gauge_relative_rate",
+        "name": "gauge_relative_weight",
         "outputs": [
           {
             "internalType": "uint256",
