@@ -2,7 +2,6 @@ const superagent = require('superagent');
 const ss = require('simple-statistics');
 
 const utils = require('../utils/s3');
-const adaptorsToExclude = require('../utils/exclude');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
 const { welfordUpdate } = require('../utils/welford');
 
@@ -17,8 +16,6 @@ const main = async () => {
   const urlBase = process.env.APIG_URL;
   console.log('\n1. pulling base data...');
   let data = (await superagent.get(`${urlBase}/simplePools`)).body.data;
-  // remove everything in adaptorsToExclude
-  data = data.filter((p) => !adaptorsToExclude.includes(p.project));
 
   console.log('\n2. adding pct-change fields...');
   const days = ['1', '7', '30'];
@@ -59,20 +56,7 @@ const main = async () => {
     `Nb of failed adaptor offset calculations: ${failed.length}, List of failed adaptors: ${failed}`
   );
 
-  console.log('\n3. checking for apy null values and outliers');
-  const UBApy = 1e6;
-  const UBTvl = 2e10;
-  outliers = dataEnriched.filter((el) => el.apy > UBApy && el.tvlUsd > UBTvl);
-  console.log(`Found and removing ${outliers.length} pools from dataEnriched`);
-  dataEnriched = dataEnriched.filter(
-    (el) =>
-      el.apy !== null &&
-      el.apy <= UBApy &&
-      el.tvlUsd <= UBTvl &&
-      el.pool !== '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d'
-  );
-
-  console.log('\n4. adding additional pool info fields');
+  console.log('\n3. adding additional pool info fields');
   const stablecoins = (
     await superagent.get(
       'https://stablecoins.llama.fi/stablecoins?includePrices=true'
@@ -83,7 +67,7 @@ const main = async () => {
 
   // expanding mean, expanding standard deviation,
   // geometric mean and standard deviation (of daily returns)
-  console.log('\n5. adding stats columns');
+  console.log('\n4. adding stats columns');
   const T = 365;
   dataEnriched = dataEnriched.map((p) => ({
     ...p,
@@ -126,7 +110,7 @@ const main = async () => {
       p['sigma'] > outlierBoundaries['sigma']['ub'],
   }));
 
-  console.log('\n6. adding apy runway prediction');
+  console.log('\n5. adding apy runway prediction');
   // load categorical feature mappings
   const modelMappings = await utils.readFromS3(
     'llama-apy-prediction-prod',

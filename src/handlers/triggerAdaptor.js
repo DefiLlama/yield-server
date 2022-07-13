@@ -1,4 +1,5 @@
 const { insertPools } = require('../api/controllers');
+const { boundaries } = require('../utils/exclude');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -43,11 +44,10 @@ const main = async (body) => {
   const timestamp = new Date(
     Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
   );
-  data = data.map((p) => ({ ...p, timestamp: timestamp }));
-
-  // filter to $1k usd tvl
-  const tvlMinThr = 1e3;
-  data = data.filter((el) => el.tvlUsd >= tvlMinThr);
+  data = data
+    .map((p) => ({ ...p, timestamp: timestamp }))
+    // remove everything below LB ($1k)
+    .filter((el) => el.tvlUsd >= boundaries.tvlUsdDB.lb);
 
   console.log('saving data to DB');
   const response = await insertPools(data);

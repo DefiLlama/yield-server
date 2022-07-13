@@ -1,5 +1,5 @@
 const SQS = require('aws-sdk/clients/sqs');
-const adaptorsToExclude = require('../utils/exclude');
+const { excludeAdaptors } = require('../utils/exclude');
 
 module.exports.handler = async (event) => {
   await main();
@@ -9,12 +9,12 @@ module.exports.handler = async (event) => {
 // sends 1 msg for each adaptor to adaptorqueue
 // from which the adaptor lambda polls of messages
 const main = async () => {
-  console.log(`START ADAPTER-PIPELINE at ${new Date()}`);
+  console.log(`START ADAPTER-PIPELINE`);
 
   try {
     const sqs = new SQS();
     const adaptors = JSON.parse(process.env.ADAPTORS).filter(
-      (a) => !adaptorsToExclude.includes(a)
+      (a) => !excludeAdaptors.includes(a)
     );
 
     for (const adaptor of adaptors) {

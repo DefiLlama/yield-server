@@ -1,6 +1,7 @@
 const dbConnection = require('../api/dbConnection.js');
 const poolModel = require('../models/pool');
 const AppError = require('../utils/appError');
+const exclude = require('../utils/exclude');
 
 // get latest object of each unique pool
 module.exports.handler = async (event, context, callback) => {
@@ -12,9 +13,6 @@ module.exports.handler = async (event, context, callback) => {
   const conn = await dbConnection.connect();
 
   const M = conn.model(poolModel.modelName);
-
-  // pull only data >= 10k usd in tvl (we won't show smaller pools on the frontend)
-  const tvlUsdLB = 1e4;
 
   // query consists of stages:
   // 1. match tvlUSd >= $10k
@@ -69,12 +67,28 @@ module.exports.handler = async (event, context, callback) => {
         _id: 0,
       },
     },
-    // finally, remove pools below the tvl threshold
-    { $match: { tvlUsd: { $gte: tvlUsdLB } } },
+    // finally, remove pools based on exclusion values
+    {
+      $match: {
+        tvlUsd: {
+          $gte: exclude.boundaries.tvlUsdUI.lb,
+          $lte: exclude.boundaries.tvlUsdUI.ub,
+        },
+        apy: { $ne: null, $lte: exclude.boundaries.apy.ub },
+      },
+    },
   ];
 
   const query = M.aggregate(aggQuery);
-  const response = await query;
+  let response = await query;
+
+  // also removing projects and pools in the exclusion arrays (doing this here
+  // because mongodb queries are just a pain in the ass)
+  response = response.filter(
+    (p) =>
+      !exclude.excludeAdaptors.includes(p.project) &&
+      !exclude.excludePools.includes(p.pool)
+  );
 
   if (!response) {
     return new AppError("Couldn't retrieve data", 404);
