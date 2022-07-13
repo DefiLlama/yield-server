@@ -31,7 +31,7 @@ function next21Minutedate() {
   return dt;
 }
 
-module.exports.storeCompressed = (
+module.exports.storeAPIResponse = (
   bucket,
   filename,
   body,
