@@ -81,7 +81,7 @@ module.exports.handler = async (event, context, callback) => {
   }
 
   return {
-    status: 'sucess',
+    status: 'success',
     data: response,
   };
 };

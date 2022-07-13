@@ -70,7 +70,7 @@ const passedFile = path.resolve(
     // -> confusing when looking at the historcal data and especially bad when we want to use the old data
     // for some analysis work as nothing would make sense
     const urlBase =
-      'https://1rwmj4tky9.execute-api.eu-central-1.amazonaws.com/pools';
+      'https://1rwmj4tky9.execute-api.eu-central-1.amazonaws.com/simplePools';
 
     try {
       // delete

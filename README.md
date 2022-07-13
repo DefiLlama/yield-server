@@ -2,11 +2,12 @@
 
 ## How to list a new protocol
 
-1. Fork this repository
-2. Create a new folder within [src/adaptors/](src/adaptors/) with your protocol name (use your project `slug` from `https://api.llama.fi/protocols`)
-3. Write an adaptor for your protocol (tutorial below)
-4. Test your adaptor by running `node src/adaptors/test.js src/adaptors/YOUR_ADAPTOR/index.js` (remember to install dependencies with `npm i` first!)
-5. Submit a PR
+1. Make sure you are listed on defillama's TVL page (see https://github.com/DefiLlama/DefiLlama-Adapters)
+2. Fork this repository
+3. Create a new folder within [src/adaptors/](src/adaptors/) with your protocol name (use your project `slug` from `https://api.llama.fi/protocols`)
+4. Write an adaptor for your protocol (tutorial below)
+5. Test your adaptor by running `node src/adaptors/test.js src/adaptors/YOUR_ADAPTOR/index.js` (remember to install dependencies with `npm i` first!)
+6. Submit a PR
 
 ### Adaptors
 
@@ -19,8 +20,19 @@ An adaptor is just a javascript file that exports an async function that returns
     project: 'aave', // protocol (using the slug again)
     symbol: "USDT", // symbol of the tokens in pool, can be a single symbol if pool is single-sided or multiple symbols (eg: USDT-ETH) if it's an LP
     tvlUsd: 1000.1, // number representing current USD TVL in pool
-    apy: 1.2, // current APY of the pool in %
+    apyBase: 0.5, // APY from pool fees/supplying in %
+    apyReward: 0.7, // APY from pool LM rewards in %
+    rewardTokens: ['0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
+    underlyingTokens: ['0xdAC17F958D2ee523a2206206994597C13D831ec7'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
   };
+```
+
+```
+A note on how to set apy related fields:
+
+- if a pool's apy only consists of a base component, provide `apyBase` and omit `apyReward` (or set to null) [and vice versa]
+- if a pool's apy consists of both, provide both fields
+- if you are unsure/your data source doesn't contain a detailed breakdown, then provide an `apy` field indicating the total apy
 ```
 
 An example of the most basic adaptor is the following for Anchor on terra:

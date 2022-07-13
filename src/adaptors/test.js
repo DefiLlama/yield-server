@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 require('dotenv').config({ path: './config.env' });
 
 const keyType = {
@@ -40,8 +41,45 @@ const passedFile = path.resolve(process.cwd(), f);
     }
   });
 
+  // test for existing pool id's in database of other projects
+  const uniquePoolIdentifiersDB = new Set(
+    (
+      await axios.get(
+        'https://1rwmj4tky9.execute-api.eu-central-1.amazonaws.com/simplePools'
+      )
+    ).data.data
+      .filter((p) => p.project !== apy[0].project)
+      .map((p) => p.pool)
+  );
+
+  const duplicatedPoolIds = new Set(
+    [...uniquePoolIdentifiers].filter((p) => uniquePoolIdentifiersDB.has(p))
+  );
+  if (duplicatedPoolIds.size !== 0) {
+    throw new Error(
+      `The following ${
+        duplicatedPoolIds.size
+      } pool identifier(s) already exist in the DB used by other projects: \n${[
+        ...duplicatedPoolIds,
+      ]}`
+    );
+  }
+
+  // test for correct project name (should match tvl dashboard slug)
+  const protocols = (await axios.get('https://api.llama.fi/protocols')).data;
+  if (!new Set(protocols.map((project) => project.slug)).has(apy[0].project)) {
+    throw new Error(
+      `project field "${apy[0].project}" does not match the slug in /protocols endpoint`
+    );
+  }
+
   console.log(`\nNb of pools: ${apy.length}\n `);
-  console.log('\nSample pools:', apy.slice(0, 10));
+  if (process.env.CI !== undefined) {
+    console.log('\nSample pools:');
+    console.table(apy.slice(0, 10));
+  } else {
+    console.log('\nSample pools:', apy.slice(0, 10));
+  }
   console.log(`\nRuntime: ${(time() - start).toFixed(2)} sec`);
 
   // store full adaptor output for checks
