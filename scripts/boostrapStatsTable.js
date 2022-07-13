@@ -43,7 +43,7 @@ AWS.config.credentials = credentials;
       mean2APY: count < 2 ? null : ss.variance(seriesAPY) * (count - 1),
       meanDR: seriesReturn.reduce((a, b) => a + b, 0) / count,
       mean2DR: count < 2 ? null : ss.variance(seriesReturn) * (count - 1),
-      returnProduct: seriesReturn.map((a) => 1 + a).reduce((a, b) => a * b),
+      productDR: seriesReturn.map((a) => 1 + a).reduce((a, b) => a * b),
     });
   }
 

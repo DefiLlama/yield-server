@@ -20,7 +20,7 @@ const statsSchema = new mongoose.Schema(
       type: Number,
       default: null,
     },
-    // meanDR, mean2DR and meanProductDR are used for calculating mu and sigma of daily return (DR) series for the scatterchart
+    // meanDR, mean2DR and productDR are used for calculating mu and sigma of daily return (DR) series for the scatterchart
     meanDR: {
       type: Number,
       default: null,
