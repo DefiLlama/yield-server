@@ -10,21 +10,15 @@ module.exports.handler = async (event, context) => {
   await main();
 };
 
-// loading latest "base" data from db for each pool
-// enriching the data with 1/7/30 day pct-changes of apy
-// store single enriched data file as json to s3
 const main = async () => {
   console.log(`START DATA ENRICHMENT at ${new Date()}`);
 
-  ////// 1) load latest data
   const urlBase = process.env.APIG_URL;
   console.log('\n1. pulling base data...');
-  let data = await superagent.get(`${urlBase}/simplePools`);
-  data = data.body.data;
+  let data = (await superagent.get(`${urlBase}/simplePools`)).body.data;
   // remove everything in adaptorsToExclude
   data = data.filter((p) => !adaptorsToExclude.includes(p.project));
 
-  ////// 2 add pct-change columns
   // for each project we get 3 offsets (1D, 7D, 30D) and calculate absolute apy pct-change
   console.log('\n2. adding pct-change fields...');
   const days = ['1', '7', '30'];
@@ -66,7 +60,6 @@ const main = async () => {
     `Nb of failed adaptor offset calculations: ${failed.length}, List of failed adaptors: ${failed}`
   );
 
-  ////// 3) remove outliers
   // remove pools which have extreme values of TVL and/or APY
   // note(!) this could be more sophisticated via learned quantiles
   // but keeping it simple here and applying some basic thrs
@@ -76,10 +69,13 @@ const main = async () => {
   outliers = dataEnriched.filter((el) => el.apy > UBApy && el.tvlUsd > UBTvl);
   console.log(`Found and removing ${outliers.length} pools from dataEnriched`);
   dataEnriched = dataEnriched.filter(
-    (el) => el.apy !== null && el.apy <= UBApy && el.tvlUsd <= UBTvl
+    (el) =>
+      el.apy !== null &&
+      el.apy <= UBApy &&
+      el.tvlUsd <= UBTvl &&
+      el.pool !== '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d'
   );
 
-  ////// 4) add exposure, ilRisk and stablecoin fields
   console.log('\n4. adding additional pool info fields');
   const stablecoins = (
     await superagent.get(
@@ -88,7 +84,6 @@ const main = async () => {
   ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins));
-
   // complifi has single token exposure only, but IL can still occur if a trader makes a big one, in which
   // case the protocol will pay traders via deposited amounts...
   // so hardcoding this here as IL
@@ -98,20 +93,19 @@ const main = async () => {
     }
   }
 
-  ////// 5) calc expanding mean, expanding standard deviation, geometric mean and standard deviation (of daily returns)
+  // expanding mean, expanding standard deviation,
+  // geometric mean and standard deviation (of daily returns)
   console.log('\n5. adding stats columns');
-
-  // need to take the latest info, scale apy accordingly
   const T = 365;
   dataEnriched = dataEnriched.map((p) => ({
     ...p,
     return: (1 + p.apy / 100) ** (1 / T) - 1,
   }));
 
-  let dataStats = await superagent.get(`${urlBase}/stats`);
+  const dataStats = (await superagent.get(`${urlBase}/stats`)).body.data;
 
   for (const p of dataEnriched) {
-    d = dataStats.body.data.find((i) => i.pool === p.pool);
+    d = dataStats.find((i) => i.pool === p.pool);
 
     if (d !== undefined) {
       // extract
@@ -136,7 +130,7 @@ const main = async () => {
       mean2DR += deltaDR * delta2DR;
       productDR = (1 + p.return) * productDR;
     } else {
-      // in case of a new pool -> boostrap db values
+      // in case of a new pool -> use default values
       count = 1;
       // a) ML section
       meanAPY = p.apy;
@@ -146,7 +140,7 @@ const main = async () => {
       productDR = 1 + p.return;
     }
 
-    // derive column values
+    // create columns
     // a) ML section
     el['count'] = count;
     el['apyMeanExpanding'] = meanAPY;
@@ -179,7 +173,6 @@ const main = async () => {
       p['sigma'] > outlierBoundaries['sigma']['ub'],
   }));
 
-  ////// 6) add the algorithms predictions
   console.log('\n6. adding apy runway prediction');
   // load categorical feature mappings
   const modelMappings = await utils.readFromS3(
@@ -210,23 +203,23 @@ const main = async () => {
     el.apyStdExpanding = el.apyStdExpanding === null ? 0 : el.apyStdExpanding;
   }
 
-  let y_pred = await superagent
-    .post(
-      'https://yet9i1xlhf.execute-api.eu-central-1.amazonaws.com/predictions'
-    )
-    // filter to required features only
-    .send(
-      dataEnriched.map((el) => ({
-        apy: el.apy,
-        tvlUsd: el.tvlUsd,
-        apyMeanExpanding: el.apyMeanExpanding,
-        apyStdExpanding: el.apyStdExpanding,
-        chain_factorized: el.chain_factorized,
-        project_factorized: el.project_factorized,
-      }))
-    );
-
-  y_pred = y_pred.body.predictions;
+  const y_pred = (
+    await superagent
+      .post(
+        'https://yet9i1xlhf.execute-api.eu-central-1.amazonaws.com/predictions'
+      )
+      // filter to required features only
+      .send(
+        dataEnriched.map((el) => ({
+          apy: el.apy,
+          tvlUsd: el.tvlUsd,
+          apyMeanExpanding: el.apyMeanExpanding,
+          apyStdExpanding: el.apyStdExpanding,
+          chain_factorized: el.chain_factorized,
+          project_factorized: el.project_factorized,
+        }))
+      )
+  ).body.predictions;
   // add predictions to dataEnriched
   if (dataEnriched.length !== y_pred.length) {
     throw new Error(
@@ -295,13 +288,6 @@ const main = async () => {
         : 3;
   }
 
-  // removing 0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d (saitama-weth sushiswap on ethereum)
-  // had insane pump in price from coingecko, likely wrong
-  dataEnriched = dataEnriched.filter(
-    (p) => p.pool !== '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d'
-  );
-
-  ////// save enriched data to s3
   console.log('\nsaving data to S3');
   const bucket = process.env.BUCKET_DATA;
   const key = 'enriched/dataEnriched.json';
