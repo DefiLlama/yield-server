@@ -3,7 +3,7 @@ const fs = require('fs');
 const AWS = require('aws-sdk');
 const ss = require('simple-statistics');
 
-const storeStats = require('../src/api/storeStats');
+const { insertStats } = require('../src/api/controllers');
 
 // set config (we run this script locally)
 const credentials = new AWS.SharedIniFileCredentials({ profile: 'defillama' });
@@ -47,6 +47,6 @@ AWS.config.credentials = credentials;
     });
   }
 
-  const response = await storeStats(payload);
+  const response = await insertStats(payload);
   console.log(response.body);
 })();

@@ -2,8 +2,8 @@ const path = require('path');
 const dotenv = require('dotenv');
 
 const AWS = require('aws-sdk');
-const deletePools = require('../src/api/deletePools');
-const storePools = require('../src/api/insertPools');
+const { deletePools, insertPools } = require('../src/api/controllers');
+
 const credentials = new AWS.SharedIniFileCredentials({ profile: 'defillama' });
 AWS.config.credentials = credentials;
 
@@ -68,7 +68,7 @@ const passedFile = path.resolve(
       console.log(`\tDeleted ${responseDelete.body.response.n} samples`);
 
       // insert
-      const responseInsert = await storePools(dataDB);
+      const responseInsert = await insertPools(dataDB);
       console.log(`\t${responseInsert.body.response} samples\n`);
     } catch (err) {
       throw new Error(err);
