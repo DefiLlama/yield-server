@@ -1,4 +1,5 @@
 const SQS = require('aws-sdk/clients/sqs');
+const adaptorsToExclude = require('../utils/exclude');
 
 module.exports.handler = async (event) => {
   await main();
@@ -12,7 +13,11 @@ const main = async () => {
 
   try {
     const sqs = new SQS();
-    for (const adaptor of JSON.parse(process.env.ADAPTORS)) {
+    const adaptors = JSON.parse(process.env.ADAPTORS).filter(
+      (a) => !adaptorsToExclude.includes(a)
+    );
+
+    for (const adaptor of adaptors) {
       await sqs
         .sendMessage({
           QueueUrl: process.env.ADAPTER_QUEUE_URL,

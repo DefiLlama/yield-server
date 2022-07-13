@@ -36,6 +36,9 @@ const main = async (body) => {
   const project = require(`../adaptors/${body.adaptor}/index.js`);
   let data = await project.apy();
 
+  // remove potential null/undefined in array
+  data = data.filter((p) => p);
+
   // add the timestamp field
   // will be rounded to the nearest hour
   // eg 2022-04-06T10:00:00.000Z
@@ -60,7 +63,7 @@ const main = async (body) => {
   const token = await ssm.getParameter(options).promise();
   // save to db
   const response = await superagent
-    .post(`${process.env.APIG_URL}/pools`)
+    .post(`${process.env.APIG_URL}/simplePools`)
     .send(dataDB)
     .set({ Authorization: `Bearer ${token.Parameter.Value}` });
   console.log(response.body);

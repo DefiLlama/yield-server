@@ -1,22 +1,23 @@
 const S3 = require('aws-sdk/clients/s3');
 
 const AppError = require('../utils/appError');
+const { lambdaResponse } = require('../utils/lambda');
 
 // returns enriched pool data
 module.exports.handler = async (event, context, callback) => {
-  const response = await main(event.queryStringParameters);
+  const response = await buildPoolsEnriched(event.queryStringParameters);
 
   if (!response) {
     return new AppError("Couldn't retrieve data", 404);
   }
 
-  return {
+  return lambdaResponse({
     status: 'success',
     data: response,
-  };
+  });
 };
 
-const main = async (queryString) => {
+const buildPoolsEnriched = async (queryString) => {
   const columns = [
     'chain',
     'project',
@@ -27,17 +28,15 @@ const main = async (queryString) => {
     'apyPct1D',
     'apyPct7D',
     'apyPct30D',
-    'projectName',
     'stablecoin',
     'ilRisk',
     'exposure',
     'predictions',
-    'audits',
-    'audit_links',
-    'url',
-    'twitter',
-    'category',
     'market',
+    'mu',
+    'sigma',
+    'count',
+    'outlier',
   ]
     .map((el) => `t."${el}"`)
     .join(', ');
@@ -74,6 +73,7 @@ const main = async (queryString) => {
 
   return data;
 };
+module.exports.buildPoolsEnriched = buildPoolsEnriched;
 
 const getDataUsingS3Select = async (params) => {
   const s3 = new S3();

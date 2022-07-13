@@ -114,6 +114,7 @@ functions:
       ALCHEMY_CONNECTION_POLYGON: ${file(./env.js):ALCHEMY_CONNECTION_POLYGON}
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
       XDAI: ${file(./env.js):XDAI}
+      XDAI_RPC: ${file(./env.js):XDAI_RPC}
 
   # --- data enrichment (pct-changes)
   triggerEnrichment:
@@ -150,7 +151,7 @@ functions:
     events:
       - httpApi:
           method: get
-          path: /pools
+          path: /simplePools
 
   storePools:
     handler: src/handlers/storePools.handler
@@ -159,7 +160,7 @@ functions:
     events:
       - httpApi:
           method: post
-          path: /pools
+          path: /simplePools
           authorizer:
             name: JwtAuthorizer
 
@@ -170,7 +171,7 @@ functions:
     events:
       - httpApi:
           method: delete
-          path: /pools/{project}/{timestamp}
+          path: /simplePools/{project}/{timestamp}
           authorizer:
             name: JwtAuthorizer
 
@@ -182,6 +183,9 @@ functions:
       - httpApi:
           method: get
           path: /poolsEnriched
+      - httpApi:
+          method: get
+          path: /pools
 
   getChart:
     handler: src/handlers/getChart.handler
