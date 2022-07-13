@@ -4,6 +4,7 @@ const ss = require('simple-statistics');
 const utils = require('../utils/s3');
 const adaptorsToExclude = require('../utils/exclude');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
+const { welfordUpdate } = require('../utils/welford');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -103,54 +104,21 @@ const main = async () => {
   }));
 
   const dataStats = (await superagent.get(`${urlBase}/stats`)).body.data;
-
+  const statsColumns = welfordUpdate(dataEnriched, dataStats);
+  // add columns to dataEnriched
   for (const p of dataEnriched) {
-    d = dataStats.find((i) => i.pool === p.pool);
-
-    if (d !== undefined) {
-      // extract
-      count = d.count;
-      meanAPY = d.meanAPY;
-      mean2APY = d.mean2APY;
-      meanDR = d.meanDR;
-      mean2DR = d.mean2DR;
-      productDR = d.productDR;
-
-      // update using welford algo
-      count += 1;
-      // a) ML section
-      deltaAPY = p.apy - meanAPY;
-      meanAPY += deltaAPY / count;
-      delta2APY = p.apy - meanAPY;
-      mean2APY += deltaAPY * delta2AY;
-      // b) scatterchart section
-      deltaDR = p.return - meanDR;
-      meanDR += deltaDR / count;
-      delta2 = p.return - meanDR;
-      mean2DR += deltaDR * delta2DR;
-      productDR = (1 + p.return) * productDR;
-    } else {
-      // in case of a new pool -> use default values
-      count = 1;
-      // a) ML section
-      meanAPY = p.apy;
-      mean2APY = 0;
-      // b) scatterchart section
-      mean2DR = 0;
-      productDR = 1 + p.return;
-    }
-
+    const x = statsColumns.find((i) => i.pool === p.pool);
     // create columns
     // a) ML section
-    el['count'] = count;
-    el['apyMeanExpanding'] = meanAPY;
-    el['apyStdExpanding'] =
-      d === undefined || count < 2 ? null : Math.sqrt(mean2APY / (count - 1));
-
+    p['count'] = x.count;
+    p['apyMeanExpanding'] = x.meanAPY;
+    p['apyStdExpanding'] =
+      x.count < 2 ? null : Math.sqrt(x.mean2APY / (x.count - 1));
     // b) scatterchart section
-    el['mu'] = (productDR ** (T / count) - 1) * 100;
-    el['sigma'] = Math.sqrt((mean2DR / (count - 1)) * T) * 100;
+    p['mu'] = (x.productDR ** (T / x.count) - 1) * 100;
+    p['sigma'] = Math.sqrt((x.mean2DR / (x.count - 1)) * T) * 100;
   }
+
   // mark pools as outliers if outside boundary (let user filter via toggle on frontend)
   const columns = ['mu', 'sigma'];
   const outlierBoundaries = {};
