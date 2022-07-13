@@ -1,6 +1,6 @@
 const dbConnection = require('./dbConnection.js');
 const poolModel = require('../models/pool');
-const statsModel = require('../models/stats');
+const statModel = require('../models/stat');
 const AppError = require('../utils/appError');
 
 const insertPools = async (payload) => {
@@ -21,7 +21,7 @@ const insertPools = async (payload) => {
 
 const insertStats = async (payload) => {
   const conn = await dbConnection.connect();
-  const M = conn.model(statsModel.modelName);
+  const M = conn.model(statModel.modelName);
 
   const bulkOperations = [];
   for (const el of payload) {

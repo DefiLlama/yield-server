@@ -2,7 +2,7 @@ const path = require('path');
 const dotenv = require('dotenv');
 
 const AWS = require('aws-sdk');
-const { deletePools, insertPools } = require('../src/api/controllers');
+const { insertPools, deletePools } = require('../src/api/controllers');
 
 const credentials = new AWS.SharedIniFileCredentials({ profile: 'defillama' });
 AWS.config.credentials = credentials;
@@ -48,12 +48,13 @@ const passedFile = path.resolve(
 
     // filter to $1k usd tvl
     const tvlMinThr = 1e3;
-    const dataDB = data.filter((el) => el.tvlUsd >= tvlMinThr);
+    let dataDB = data.filter((el) => el.tvlUsd >= tvlMinThr);
 
     // add timestamp
-    for (const d of dataDB) {
-      d['timestamp'] = new Date(timestamp * 1000);
-    }
+    dataDB = dataDB.map((p) => ({
+      ...p,
+      timestamp: new Date(timestamp * 1000),
+    }));
 
     // DB update
     // step1: we delete all hourly samples on that particular day for that project
@@ -64,12 +65,13 @@ const passedFile = path.resolve(
     // for some analysis work as nothing would make sense
     try {
       // delete
-      const responseDelete = await deletePools(timestamp, project);
-      console.log(`\tDeleted ${responseDelete.body.response.n} samples`);
+      const responseDelete = (await deletePools(timestamp, project)).body
+        .response;
+      console.log(`\tDeleted ${responseDelete.n} samples`);
 
       // insert
-      const responseInsert = await insertPools(dataDB);
-      console.log(`\t${responseInsert.body.response} samples\n`);
+      const responseInsert = (await insertPools(dataDB)).body.response;
+      console.log(`\t${responseInsert} samples\n`);
     } catch (err) {
       throw new Error(err);
     }

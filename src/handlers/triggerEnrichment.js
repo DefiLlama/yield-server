@@ -12,7 +12,7 @@ module.exports.handler = async (event, context) => {
 };
 
 const main = async () => {
-  console.log(`START DATA ENRICHMENT at ${new Date()}`);
+  console.log('START DATA ENRICHMENT');
 
   const urlBase = process.env.APIG_URL;
   console.log('\n1. pulling base data...');
@@ -20,7 +20,6 @@ const main = async () => {
   // remove everything in adaptorsToExclude
   data = data.filter((p) => !adaptorsToExclude.includes(p.project));
 
-  // for each project we get 3 offsets (1D, 7D, 30D) and calculate absolute apy pct-change
   console.log('\n2. adding pct-change fields...');
   const days = ['1', '7', '30'];
   let dataEnriched = [];
@@ -55,15 +54,11 @@ const main = async () => {
       continue;
     }
   }
-
   console.log('Nb of pools: ', dataEnriched.length);
   console.log(
     `Nb of failed adaptor offset calculations: ${failed.length}, List of failed adaptors: ${failed}`
   );
 
-  // remove pools which have extreme values of TVL and/or APY
-  // note(!) this could be more sophisticated via learned quantiles
-  // but keeping it simple here and applying some basic thrs
   console.log('\n3. checking for apy null values and outliers');
   const UBApy = 1e6;
   const UBTvl = 2e10;
@@ -85,14 +80,6 @@ const main = async () => {
   ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins));
-  // complifi has single token exposure only, but IL can still occur if a trader makes a big one, in which
-  // case the protocol will pay traders via deposited amounts...
-  // so hardcoding this here as IL
-  for (const p of dataEnriched) {
-    if (p.project === 'complifi') {
-      p.ilRisk = 'yes';
-    }
-  }
 
   // expanding mean, expanding standard deviation,
   // geometric mean and standard deviation (of daily returns)
@@ -123,9 +110,7 @@ const main = async () => {
   const columns = ['mu', 'sigma'];
   const outlierBoundaries = {};
   for (const col of columns) {
-    let x = dataEnriched
-      .map((p) => p[col])
-      .filter((p) => p !== undefined && p !== null);
+    let x = dataEnriched.map((p) => p[col]).filter((p) => p);
     const x_iqr = ss.quantile(x, 0.75) - ss.quantile(x, 0.25);
     const x_median = ss.median(x);
     const x_lb = x_median - 1.5 * x_iqr;
@@ -269,7 +254,9 @@ const main = async () => {
   ).toISOString();
   const keyPredictions = `predictions-hourly/dataEnriched_${timestamp}.json`;
   await utils.writeToS3(bucket, keyPredictions, dataEnriched);
-  await utils.storeCompressed('defillama-datasets', 'yield-api/pools', {
+
+  // store /poolsEnriched (/pools) api response to s3 where we cache it
+  await utils.storeAPIResponse('defillama-datasets', 'yield-api/pools', {
     status: 'success',
     data: await buildPoolsEnriched(undefined),
   });
@@ -384,8 +371,13 @@ const checkExposure = (el) => {
 
 const addPoolInfo = (el, stablecoins) => {
   el['stablecoin'] = checkStablecoin(el, stablecoins);
+
+  // complifi has single token exposure only cause the protocol
+  // will pay traders via deposited amounts
   el['ilRisk'] =
-    el.stablecoin && el.symbol.toLowerCase().includes('eur')
+    el.project === 'complifi'
+      ? 'yes'
+      : el.stablecoin && el.symbol.toLowerCase().includes('eur')
       ? checkIlRisk(el)
       : el.stablecoin
       ? 'no'

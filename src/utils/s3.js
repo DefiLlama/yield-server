@@ -25,19 +25,26 @@ module.exports.readFromS3 = async (bucket, key) => {
 };
 
 function next21Minutedate() {
-  const dt = new Date()
+  const dt = new Date();
   dt.setHours(dt.getHours() + 1);
-  dt.setMinutes(22)
-  return dt
+  dt.setMinutes(22);
+  return dt;
 }
 
-module.exports.storeCompressed = (bucket, filename, body, expires = next21Minutedate()) => {
-  return new S3().upload({
-    Bucket: bucket,
-    Key: filename,
-    Body: JSON.stringify(body),
-    ACL: "public-read",
-    Expires: expires,
-    ContentType: "application/json"
-  }).promise()
-}
+module.exports.storeCompressed = (
+  bucket,
+  filename,
+  body,
+  expires = next21Minutedate()
+) => {
+  return new S3()
+    .upload({
+      Bucket: bucket,
+      Key: filename,
+      Body: JSON.stringify(body),
+      ACL: 'public-read',
+      Expires: expires,
+      ContentType: 'application/json',
+    })
+    .promise();
+};

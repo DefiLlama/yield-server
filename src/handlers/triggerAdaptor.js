@@ -47,10 +47,9 @@ const main = async (body) => {
 
   // filter to $1k usd tvl
   const tvlMinThr = 1e3;
-  dataDB = data.filter((el) => el.tvlUsd >= tvlMinThr);
-  console.log('saving data to DB');
+  data = data.filter((el) => el.tvlUsd >= tvlMinThr);
 
-  // save to db
-  const response = await insertPools(dataDB);
+  console.log('saving data to DB');
+  const response = await insertPools(data);
   console.log(response.body);
 };

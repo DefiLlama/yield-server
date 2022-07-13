@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const statsSchema = new mongoose.Schema(
+const statSchema = new mongoose.Schema(
   {
     pool: {
       type: String,
@@ -37,10 +37,10 @@ const statsSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-statsSchema.index({ pool: 1 });
+statSchema.index({ pool: 1 });
 
 const nameModel = 'Stats';
 const nameCollection = nameModel.toLowerCase();
-const statsModel = mongoose.model(nameModel, statsSchema, nameCollection);
+const statModel = mongoose.model(nameModel, statSchema, nameCollection);
 
-module.exports = statsModel;
+module.exports = statModel;

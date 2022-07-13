@@ -7,10 +7,11 @@ module.exports.handler = async (event) => {
 };
 
 const main = async () => {
-  let poolsEnriched = await superagent.get(
-    'https://1rwmj4tky9.execute-api.eu-central-1.amazonaws.com/poolsEnriched'
-  );
-  poolsEnriched = poolsEnriched.body.data;
+  let poolsEnriched = (
+    await superagent.get(
+      'https://1rwmj4tky9.execute-api.eu-central-1.amazonaws.com/poolsEnriched'
+    )
+  ).body.data;
 
   // parse nested prediction field into separate fields
   poolsEnriched = poolsEnriched.map((p) => ({

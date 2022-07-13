@@ -66,10 +66,7 @@ const buildPoolsEnriched = async (queryString) => {
     },
   };
 
-  let data = await getDataUsingS3Select(params);
-  // rook requires an adaptor change, we going to remove it from the enriched
-  // dataset for now
-  data = data.filter((el) => el.project !== 'rook');
+  const data = await getDataUsingS3Select(params);
 
   return data;
 };
