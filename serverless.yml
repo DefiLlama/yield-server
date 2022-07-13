@@ -111,19 +111,10 @@ functions:
       # every hour at 20 past
       - schedule: cron(20 * * * ? *)
 
-  # --- aggregation update
-  triggerAggregation:
-    handler: src/handlers/triggerAggs.handler
-    description: Lambda which updates the aggregation table
-    timeout: 300
-    events:
-      # at midnight
-      - schedule: cron(0 0 * * ? *)
-
-  # --- stds update
-  triggerStds:
-    handler: src/handlers/triggerStds.handler
-    description: Lambda which updates the stds table
+  # --- stats update
+  triggerStats:
+    handler: src/handlers/triggerStats.handler
+    description: Lambda which updates the stats table
     timeout: 300
     events:
       # at midnight
@@ -178,23 +169,14 @@ functions:
           method: get
           path: /offsets/{project}/{days}
 
-  getStds:
-    handler: src/handlers/getStds.handler
-    description: Lambda for retrieving std data
+  getStats:
+    handler: src/handlers/getStats.handler
+    description: Lambda for retrieving stats data
     timeout: 20
     events:
       - httpApi:
           method: get
-          path: /stds
-
-  getAggs:
-    handler: src/handlers/getAggs.handler
-    description: Lambda for retrieving aggregation data
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /aggregations
+          path: /stats
 
 resources:
   Resources:

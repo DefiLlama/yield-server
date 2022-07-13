@@ -98,49 +98,89 @@ const main = async () => {
     }
   }
 
-  ////// 5) add ml features
-  console.log('\n5. adding ml features');
-  let dataStd = await superagent.get(`${urlBase}/stds`);
+  ////// 5) calc expanding mean, expanding standard deviation, geometric mean and standard deviation (of daily returns)
+  console.log('\n5. adding stats columns');
 
-  // calculating both backward looking std and mean taking into account the current apy value
-  for (const el of dataEnriched) {
-    d = dataStd.body.data.find((i) => i.pool === el.pool);
+  // need to take the latest info, scale apy accordingly
+  const T = 365;
+  dataEnriched = dataEnriched.map((p) => ({
+    ...p,
+    return: (1 + p.apy / 100) ** (1 / T) - 1,
+  }));
+
+  let dataStats = await superagent.get(`${urlBase}/stats`);
+
+  for (const p of dataEnriched) {
+    d = dataStats.body.data.find((i) => i.pool === p.pool);
 
     if (d !== undefined) {
-      // calc std using welford's algorithm
-      // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-      // For a new value newValue, compute the new count, new mean, the new M2.
-      // mean accumulates the mean of the entire dataset
-      // M2 aggregates the squared distance from the mean
-      // count aggregates the number of samples seen so far
+      // extract
       count = d.count;
-      mean = d.mean;
-      mean2 = d.mean2;
+      meanAPY = d.meanAPY;
+      mean2APY = d.mean2APY;
+      meanDR = d.meanDR;
+      mean2DR = d.mean2DR;
+      productDR = d.productDR;
 
+      // update using welford algo
       count += 1;
-      delta = el.apy - mean;
-      mean += delta / count;
-      delta2 = el.apy - mean;
-      mean2 += delta * delta2;
+      // a) ML section
+      deltaAPY = p.apy - meanAPY;
+      meanAPY += deltaAPY / count;
+      delta2APY = p.apy - meanAPY;
+      mean2APY += deltaAPY * delta2AY;
+      // b) scatterchart section
+      deltaDR = p.return - meanDR;
+      meanDR += deltaDR / count;
+      delta2 = p.return - meanDR;
+      mean2DR += deltaDR * delta2DR;
+      productDR = (1 + p.return) * productDR;
     } else {
-      // in case of a new pool, we won't have an entry yet in db and d will be undefined
-      // need to store count, mean and mean2 into table
+      // in case of a new pool -> boostrap db values
       count = 1;
-      mean = el.apy;
-      mean2 = 0;
+      // a) ML section
+      meanAPY = p.apy;
+      mean2APY = 0;
+      // b) scatterchart section
+      mean2DR = 0;
+      productDR = 1 + p.return;
     }
-    // add the backward looking stats
-    // adding count as well, will use this to nullify predictions for objects which have less than 7 samples
+
+    // derive column values
+    // a) ML section
     el['count'] = count;
+    el['apyMeanExpanding'] = meanAPY;
     el['apyStdExpanding'] =
-      d === undefined || count < 2 ? null : Math.sqrt(mean2 / (count - 1));
-    // for both undefined or not, the apy will be the (if undefined, mean === the current apy)
-    el['apyMeanExpanding'] = mean;
+      d === undefined || count < 2 ? null : Math.sqrt(mean2APY / (count - 1));
+
+    // b) scatterchart section
+    el['mu'] = (productDR ** (T / count) - 1) * 100;
+    el['sigma'] = Math.sqrt((mean2DR / (count - 1)) * T) * 100;
   }
+  // mark pools as outliers if outside boundary (let user filter via toggle on frontend)
+  const columns = ['mu', 'sigma'];
+  const outlierBoundaries = {};
+  for (const col of columns) {
+    let x = dataEnriched
+      .map((p) => p[col])
+      .filter((p) => p !== undefined && p !== null);
+    const x_iqr = ss.quantile(x, 0.75) - ss.quantile(x, 0.25);
+    const x_median = ss.median(x);
+    const x_lb = x_median - 1.5 * x_iqr;
+    const x_ub = x_median + 1.5 * x_iqr;
+    outlierBoundaries[col] = { lb: x_lb, ub: x_ub };
+  }
+  dataEnriched = dataEnriched.map((p) => ({
+    ...p,
+    outlier:
+      p['mu'] < outlierBoundaries['mu']['lb'] ||
+      p['mu'] > outlierBoundaries['mu']['ub'] ||
+      p['sigma'] < outlierBoundaries['sigma']['lb'] ||
+      p['sigma'] > outlierBoundaries['sigma']['ub'],
+  }));
 
   ////// 6) add the algorithms predictions
   console.log('\n6. adding apy runway prediction');
-
   // load categorical feature mappings
   const modelMappings = await utils.readFromS3(
     'llama-apy-prediction-prod',
@@ -260,71 +300,6 @@ const main = async () => {
   dataEnriched = dataEnriched.filter(
     (p) => p.pool !== '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d'
   );
-
-  ////// 7) add mu,sigma,count and outlier fields
-  console.log('\n7. adding mu,sigma,count,outlier fields');
-  let aggregations = (await superagent.get(`${urlBase}/aggregations`)).body
-    .data;
-
-  // need to take the latest info, scale apy accordingly
-  const T = 365;
-  dataEnriched = dataEnriched.map((p) => ({
-    ...p,
-    return: (1 + p.apy / 100) ** (1 / T) - 1,
-  }));
-
-  for (const el of dataEnriched) {
-    const d = aggregations.find((i) => i.pool === el.pool);
-
-    if (d === undefined) {
-      el['sigma'] = 0;
-      el['mu'] = el.apy;
-      el['count'] = 1;
-      continue;
-    }
-
-    // calc std using welford's algorithm
-    // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-    // For a new value newValue, compute the new count, new mean, the new M2.
-    // mean accumulates the mean of the entire dataset
-    // M2 aggregates the squared distance from the mean
-    // count aggregates the number of samples seen so far
-    let count = d.count;
-    let mean = d.mean;
-    let mean2 = d.mean2;
-
-    count += 1;
-    let delta = el.return - mean;
-    mean += delta / count;
-    let delta2 = el.return - mean;
-    mean2 += delta * delta2;
-
-    el['sigma'] = Math.sqrt((mean2 / (count - 1)) * T) * 100;
-    el['mu'] = (((1 + el.return) * d.returnProduct) ** (T / count) - 1) * 100;
-    el['count'] = count;
-  }
-  // mark pools as outliers if outside boundary (let user filter via toggle on frontend)
-  const columns = ['mu', 'sigma'];
-  const outlierBoundaries = {};
-  for (const col of columns) {
-    let x = dataEnriched
-      .map((p) => p[col])
-      .filter((p) => p !== undefined && p !== null);
-    const x_iqr = ss.quantile(x, 0.75) - ss.quantile(x, 0.25);
-    const x_median = ss.median(x);
-    const x_lb = x_median - 1.5 * x_iqr;
-    const x_ub = x_median + 1.5 * x_iqr;
-    outlierBoundaries[col] = { lb: x_lb, ub: x_ub };
-  }
-
-  dataEnriched = dataEnriched.map((p) => ({
-    ...p,
-    outlier:
-      p['mu'] < outlierBoundaries['mu']['lb'] ||
-      p['mu'] > outlierBoundaries['mu']['ub'] ||
-      p['sigma'] < outlierBoundaries['sigma']['lb'] ||
-      p['sigma'] > outlierBoundaries['sigma']['ub'],
-  }));
 
   ////// save enriched data to s3
   console.log('\nsaving data to S3');

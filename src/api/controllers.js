@@ -1,7 +1,6 @@
 const dbConnection = require('./dbConnection.js');
 const poolModel = require('../models/pool');
-const stdModel = require('../models/std');
-const aggModel = require('../models/agg');
+const statsModel = require('../models/stats');
 const AppError = require('../utils/appError');
 
 const insertPools = async (payload) => {
@@ -20,38 +19,10 @@ const insertPools = async (payload) => {
   };
 };
 
-const insertStds = async (payload) => {
+const insertStats = async (payload) => {
   const conn = await dbConnection.connect();
-  const M = conn.model(stdModel.modelName);
+  const M = conn.model(statsModel.modelName);
 
-  // updating via bulkwrite with array of updateOne operations
-  const bulkOperations = [];
-  for (const el of payload) {
-    bulkOperations.push({
-      updateOne: {
-        filter: { pool: el.pool },
-        update: { $set: { count: el.count, mean: el.mean, mean2: el.mean2 } },
-        upsert: true,
-      },
-    });
-  }
-  const response = await M.bulkWrite(bulkOperations);
-
-  if (!response) {
-    return new AppError("Couldn't update data", 404);
-  }
-
-  return {
-    status: 'success',
-    response,
-  };
-};
-
-const insertAggs = async (payload) => {
-  const conn = await dbConnection.connect();
-  const M = conn.model(aggModel.modelName);
-
-  // updating via bulkwrite with array of updateOne operations
   const bulkOperations = [];
   for (const el of payload) {
     bulkOperations.push({
@@ -60,9 +31,11 @@ const insertAggs = async (payload) => {
         update: {
           $set: {
             count: el.count,
-            mean: el.mean,
-            mean2: el.mean2,
-            returnProduct: el.returnProduct,
+            meanAPY: el.meanAPY,
+            mean2APY: el.mean2APY,
+            meanDR: el.meanDR,
+            mean2DR: el.meanDR,
+            meanProductDR: el.meanProductDR,
           },
         },
         upsert: true,
@@ -111,7 +84,6 @@ const deletePools = async (timestamp, project) => {
 
 module.exports = {
   insertPools,
-  insertStds,
-  insertAggs,
+  insertStats,
   deletePools,
 };
