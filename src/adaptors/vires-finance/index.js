@@ -12,9 +12,8 @@ const getApy = async () => {
       project: 'vires-finance',
       symbol: item.name,
       tvlUsd: Number(item.supplyUsd) - Number(item.totalDebtUsd),
-      apy: (Number(item.supplyApy) + Number(item.supplyViresApr)) * 100,
+      apyBase: Number(item.supplyApy) * 100,
       apyReward: Number(item.supplyViresApr) * 100,
-      apyFee: Number(item.supplyApy) * 100,
       rewardTokens: ['DSbbhLsSTeDg5Lsiufk2Aneh3DjVqJuPr2M9uU1gwy5p'],
     };
   });
