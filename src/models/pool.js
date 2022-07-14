@@ -34,7 +34,7 @@ const poolSchema = new mongoose.Schema(
       type: Number,
       required: [true, 'A pool must have a tvlUsd field'],
     },
-    apyFee: {
+    apyBase: {
       type: Number,
       default: null,
     },
