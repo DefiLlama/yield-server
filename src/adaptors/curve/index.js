@@ -192,20 +192,30 @@ const main = async () => {
       // one gauge can have multiple (different) extra rewards
       const extraRewards = gaugeAddressToExtraRewards[pool.gaugeAddress];
 
+      const baseAPY = subgraph ? parseFloat(subgraph.latestDailyApy) : 0
       const crvAPR =
         gauge && subgraph ? getPoolAPR(pool, subgraph, gauge, crvPrice) : 0;
       const extraAPR = extraRewards
         ? extraRewards.map((reward) => reward.apy).reduce((a, b) => a + b)
         : 0;
 
+      const underlyingTokens = pool.coins.map((coin) => coin.symbol);
+      const rewardTokens = extraRewards ? extraRewards.map(reward => reward.symbol) : []
+      if (crvAPR) {
+        rewardTokens.push("CRV")
+      }
+
       defillamaPooldata.push({
         pool: address + '-' + blockchainId,
         chain: utils.formatChain(blockchainId),
         project: 'curve',
-        symbol: pool.coins.map((coin) => coin.symbol).join('-'),
+        underlyingTokens,
+        symbol: underlyingTokens.join('-'),
         tvlUsd: pool.usdTotal,
-        apy: subgraph ? parseFloat(subgraph.latestDailyApy) : 0,
-        apr: crvAPR + extraAPR,
+        apy: baseAPY + crvAPR + extraAPR,
+        apyFee: baseAPY,
+        apyReward: crvAPR + extraAPR,
+        rewardTokens
       });
     }
   };
