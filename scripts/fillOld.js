@@ -3,7 +3,7 @@ const dotenv = require('dotenv');
 
 const AWS = require('aws-sdk');
 const { insertPools, deletePools } = require('../src/api/controllers');
-const { confirm } = require('./confirm');
+const { confirm } = require('../src/utils/confirm');
 
 const credentials = new AWS.SharedIniFileCredentials({ profile: 'defillama' });
 AWS.config.credentials = credentials;
