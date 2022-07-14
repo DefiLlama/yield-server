@@ -17,6 +17,21 @@ const main = async () => {
   console.log('\n1. pulling base data...');
   let data = (await superagent.get(`${urlBase}/simplePools`)).body.data;
 
+  // derive final apy field via:
+  // - if apy field is null we derive it from the sum of apyBase and apyReward
+  // NOTE: simplePools always returns all three fields: apy, apyBase and apyReward, with defaults of null
+  // remove pools where all 3 fields are null
+  data = data.filter(
+    (p) => !(p.apy === null && p.apyBase === null && p.apyReward === null)
+  );
+
+  data = data.map((p) => ({
+    ...p,
+    apy: p.apy ?? p.apyBase + p.apyReward,
+  }));
+
+  ////// 2 add pct-change columns
+  // for each project we get 3 offsets (1D, 7D, 30D) and calculate absolute apy pct-change
   console.log('\n2. adding pct-change fields...');
   const days = ['1', '7', '30'];
   let dataEnriched = [];
