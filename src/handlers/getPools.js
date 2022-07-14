@@ -80,7 +80,7 @@ module.exports.handler = async (event, context, callback) => {
           $gte: exclude.boundaries.tvlUsdUI.lb,
           $lte: exclude.boundaries.tvlUsdUI.ub,
         },
-        apy: { $ne: null, $lte: exclude.boundaries.apy.ub },
+        apy: { $lte: exclude.boundaries.apy.ub },
       },
     },
   ];
@@ -88,11 +88,16 @@ module.exports.handler = async (event, context, callback) => {
   const query = M.aggregate(aggQuery);
   let response = await query;
 
+  // remove pools where all 3 fields are null
+  response = response.filter(
+    (p) => !(p.apy === null && p.apyBase === null && p.apyReward === null)
+  );
+
   // also removing projects and pools in the exclusion arrays (doing this here
   // because mongodb queries are just a pain in the ass)
   response = response.filter(
     (p) =>
-      !exclude.excludeAdaptors.includes(p.project) &&
+      !exclude.excludeAdaptors.includes(p.project) ||
       !exclude.excludePools.includes(p.pool)
   );
 
