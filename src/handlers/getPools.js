@@ -43,6 +43,12 @@ module.exports.handler = async (event, context, callback) => {
         tvlUsd: {
           $first: '$tvlUsd',
         },
+        apyBase: {
+          $first: '$apyBase',
+        },
+        apyReward: {
+          $first: '$apyReward',
+        },
         apy: {
           $first: '$apy',
         },

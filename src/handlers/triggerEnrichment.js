@@ -24,6 +24,14 @@ const main = async () => {
   // remove everything in adaptorsToExclude
   data = data.filter((p) => !adaptorsToExclude.includes(p.project));
 
+  // derive final apy field via:
+  // - if apy field is null we derive it from the sum of apyBase and apyReward
+  // NOTE: simplePools always returns all three fields: apy, apyBase and apyReward, with defaults of null
+  data = data.map((p) => ({
+    ...p,
+    apy: p.apy ?? p.apyBase + p.apyReward,
+  }));
+
   ////// 2 add pct-change columns
   // for each project we get 3 offsets (1D, 7D, 30D) and calculate absolute apy pct-change
   console.log('\n2. adding pct-change fields...');
