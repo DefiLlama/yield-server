@@ -3,10 +3,15 @@ const path = require('path');
 const axios = require('axios');
 require('dotenv').config({ path: './config.env' });
 
-const keyType = {
+const baseFields = {
+  pool: 'string',
+  chain: 'string',
+  project: 'string',
+  symbol: 'string',
   tvlUsd: 'number',
-  apy: 'number',
 };
+
+const apyTypes = ['number', 'object'];
 
 if (process.argv.length < 3) {
   console.error(`Missing argument, you need to provide the filename of the adapter to test.
@@ -22,18 +27,47 @@ const passedFile = path.resolve(process.cwd(), f);
 
   const module = require(passedFile);
   const start = time();
+  // run adaptor
   let apy = await module.apy(process.argv[3]);
   apy = apy.sort((a, b) => b.tvlUsd - a.tvlUsd);
+  console.log(`\nAdaptor Runtime: ${(time() - start).toFixed(2)} sec`);
 
+  // check
+  console.log(`\nRunning tests...`);
   const uniquePoolIdentifiers = new Set();
   apy.map((pool) => {
+    // a) pool string is unique
     if (uniquePoolIdentifiers.has(pool.pool)) {
       throw new Error(`Pool identifier ${pool.pool} is repeated`);
     }
     uniquePoolIdentifiers.add(pool.pool);
-    for (const key of ['pool', 'chain', 'project', 'symbol', 'tvlUsd', 'apy']) {
-      const intendedType = keyType[key] ?? 'string';
-      if (typeof pool[key] !== intendedType) {
+
+    // b) required fields and dataypes
+
+    // apy fields
+    let n = 0;
+    for (const a of ['apy', 'apyBase', 'apyReward']) {
+      if (Object.keys(pool).includes(a)) {
+        if (apyTypes.includes(typeof pool[a])) {
+          n += 1;
+        } else {
+          throw new Error(
+            `Key ${a} of pool ${
+              pool.pool
+            } should be one of "${apyTypes}" but is ${typeof pool[a]}`
+          );
+        }
+      }
+    }
+    if (n === 0) {
+      throw new Error(
+        `Pool ${pool.pool} requires at least one apy related field (apy, apyBase or apyReward) but only has ${pool}`
+      );
+    }
+
+    // base fields
+    for (const [key, intendedType] of Object.entries(baseFields)) {
+      if (!intendedType.includes(typeof pool[key])) {
         throw new Error(
           `Key ${key} of pool ${pool.pool} should be "${intendedType}" but is ${pool[key]}`
         );
@@ -41,7 +75,7 @@ const passedFile = path.resolve(process.cwd(), f);
     }
   });
 
-  // test for existing pool id's in database of other projects
+  // c) is pool id already used by other project
   const uniquePoolIdentifiersDB = new Set(
     (
       await axios.get(
@@ -51,7 +85,6 @@ const passedFile = path.resolve(process.cwd(), f);
       .filter((p) => p.project !== apy[0].project)
       .map((p) => p.pool)
   );
-
   const duplicatedPoolIds = new Set(
     [...uniquePoolIdentifiers].filter((p) => uniquePoolIdentifiersDB.has(p))
   );
@@ -65,7 +98,7 @@ const passedFile = path.resolve(process.cwd(), f);
     );
   }
 
-  // test for correct project name (should match tvl dashboard slug)
+  // d) test for correct project name (should match tvl dashboard slug)
   const protocols = (await axios.get('https://api.llama.fi/protocols')).data;
   if (!new Set(protocols.map((project) => project.slug)).has(apy[0].project)) {
     throw new Error(
@@ -80,7 +113,6 @@ const passedFile = path.resolve(process.cwd(), f);
   } else {
     console.log('\nSample pools:', apy.slice(0, 10));
   }
-  console.log(`\nRuntime: ${(time() - start).toFixed(2)} sec`);
 
   // store full adaptor output for checks
   fs.writeFileSync(
