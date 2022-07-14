@@ -9,10 +9,10 @@ const {
   BLOCKCHAINID_TO_REGISTRIES,
 } = require('./config');
 
-const getCurvePoolsInfo = async (blockchainId) => {
-  poolInfo = {};
-  for (const poolType of BLOCKCHAINID_TO_REGISTRIES[blockchainId]) {
-    const uri = `/getPools/${blockchainId}/${poolType}`;
+const getPools = async (blockchainId) => {
+  const poolsByAddress = {};
+  for (const registry of BLOCKCHAINID_TO_REGISTRIES[blockchainId]) {
+    const uri = `/getPools/${blockchainId}/${registry}`;
     let response;
     try {
       response = await utils.getData(CRV_API_BASE_URL + uri);
@@ -20,19 +20,16 @@ const getCurvePoolsInfo = async (blockchainId) => {
       continue;
     }
     if (response?.success) {
-      for (const pool of response.data.poolData) {
-        poolInfo[pool.address] = {
-          symbol: pool.coins.map((coin) => coin.symbol).join('-'),
-          tvlUsd: pool.usdTotal,
-          coins: pool.coins
-        };
-      }
+      const poolsByAddressForRegistry = Object.fromEntries(
+        response.data.poolData.map((pool) => [pool.address, pool])
+      );
+      Object.assign(poolsByAddress, poolsByAddressForRegistry);
     }
   }
-  return poolInfo;
+  return poolsByAddress;
 };
 
-const getCurvePoolsAPY = async (blockchainId) => {
+const getSubGraphData = async (blockchainId) => {
   const uri = `/getSubgraphData/${blockchainId}`;
   let response;
   try {
@@ -40,13 +37,14 @@ const getCurvePoolsAPY = async (blockchainId) => {
   } catch (error) {
     return {};
   }
-  const poolAPY = {};
   if (response?.success) {
-    for (const pool of response.data.poolList) {
-      poolAPY[pool.address] = { apy: pool.latestDailyApy };
-    }
+    const poolSubgraphsByAddress = Object.fromEntries(
+      response.data.poolList.map((pool) => [pool.address, pool])
+    );
+    return poolSubgraphsByAddress;
+  } else {
+    return {};
   }
-  return poolAPY;
 };
 
 const getGaugesByChain = async () => {
@@ -91,13 +89,30 @@ const getGaugesByChain = async () => {
       },
       gaugeDatum
     );
-    gaugesDataByChain[blockchainId][_gaugeDatum.gauge] = _gaugeDatum;
+    // gauge address on pools crv API is lowercase
+    gaugesDataByChain[blockchainId][
+      _gaugeDatum.gauge.toLowerCase()
+    ] = _gaugeDatum;
   }
 
   return gaugesDataByChain;
 };
 
-const getPoolAPR = (pool, gauge, crvPrice) => {
+const getMainPoolGaugeRewards = async () => {
+  const uri = '/getMainPoolsGaugeRewards';
+  let response;
+  try {
+    response = await utils.getData(CRV_API_BASE_URL + uri);
+    if (!response.success) {
+      throw "call to '/getMainPoolsGaugeRewards' didn't succeed";
+    }
+    return response.data.mainPoolsGaugeRewards;
+  } catch (error) {
+    return {};
+  }
+};
+
+const getPoolAPR = (pool, subgraph, gauge, crvPrice) => {
   const crvPriceBN = BigNumber(crvPrice);
   const decimals = BigNumber(1e18);
   const workingSupply = BigNumber(gauge.gauge_data.working_supply).div(
@@ -110,22 +125,23 @@ const getPoolAPR = (pool, gauge, crvPrice) => {
     gauge.gauge_controller.gauge_relative_weight
   ).div(decimals);
 
-  const virtualPrice = BigNumber(pool.virtual_price).div(decimals);
+  const virtualPrice = BigNumber(subgraph.virtualPrice).div(decimals);
   const nominator = pool.coins
-    .mapped((coin) => BigNumber(coin.poolBalance).mul(coin.usdPrice))
+    .map((coin) => BigNumber(coin.poolBalance).times(coin.usdPrice))
     .reduce((a, b) => a.plus(b));
   const denominator = pool.coins
-    .mapped((coin) => BigNumber(coin.poolBalance))
+    .map((coin) => BigNumber(coin.poolBalance))
     .reduce((a, b) => a.plus(b));
   const assetPrice = nominator.div(denominator);
   try {
     const poolAPR = crvPriceBN
-      .mul(inflationRate)
-      .mul(relativeWeight)
-      .mul(12614400)
+      .times(inflationRate)
+      .times(relativeWeight)
+      .times(12614400)
       .div(workingSupply)
       .div(assetPrice)
-      .div(virtualPrice);
+      .div(virtualPrice)
+      .times(100);
     return poolAPR.toNumber();
   } catch (error) {
     return 0;
@@ -142,71 +158,89 @@ const getCrvPrice = (pools) => {
 };
 
 const main = async () => {
-  const defillamaPooldata = [];
-
-  // gaugeData is prerequisite for all chain data
-  const gaugeDataPromise = getGaugesByChain();
-  const blockchainToPoolAPYPromise = Object.fromEntries(
+  // request promises
+  const gaugePromise = getGaugesByChain();
+  const extraRewardPromise = getMainPoolGaugeRewards();
+  const blockchainToPoolSubgraphPromise = Object.fromEntries(
     BLOCKCHAINIDS.map((blockchainId) => [
       blockchainId,
-      getCurvePoolsAPY(blockchainId),
+      getSubGraphData(blockchainId),
     ])
   );
-  const blockchainToPoolinfoPromise = Object.fromEntries(
-    BLOCKCHAINIDS.filter(blockchainId => blockchainId !== 'ethereum').map((blockchainId) => [
-      blockchainId,
-      getCurvePoolsInfo(blockchainId),
-    ])
+  const blockchainToPoolPromise = Object.fromEntries(
+    BLOCKCHAINIDS.filter(
+      (blockchainId) => blockchainId !== 'ethereum'
+    ).map((blockchainId) => [blockchainId, getPools(blockchainId)])
   );
 
-  const ethereumPoolinfos = await getCurvePoolsInfo('ethereum');
-  const crvPrice = getCrvPrice(Object.values(ethereumPoolinfos));
-  // block until all poolInfos are received
+  // we need the ethereum data first for the crv prive and await extra query to CG
+  const ethereumPools = await getPools('ethereum');
+  const crvPrice = getCrvPrice(Object.values(ethereumPools));
 
+  // create feeder closure to fill defillamaPooldata asynchroniously
+  const defillamaPooldata = [];
   const feedLlama = (poolData, blockchainId) => {
-    const [addressToPoolInfo, addressToPoolAPY, addressToGauge] = poolData;
-    for (const [address, poolInfo] of Object.entries(addressToPoolInfo)) {
-      const pool = Object.assign(poolInfo, addressToPoolAPY[address]);
-      // TODO: gauge lookup not working correctly -> debug
+    const [
+      addressToPool,
+      addressToPoolSubgraph,
+      addressToGauge,
+      gaugeAddressToExtraRewards,
+    ] = poolData;
+    for (const [address, pool] of Object.entries(addressToPool)) {
+      const subgraph = addressToPoolSubgraph[address];
       const gauge = addressToGauge[blockchainId][pool.gaugeAddress];
+      // one gauge can have multiple (different) extra rewards
+      const extraRewards = gaugeAddressToExtraRewards[pool.gaugeAddress];
+
+      const crvAPR =
+        gauge && subgraph ? getPoolAPR(pool, subgraph, gauge, crvPrice) : 0;
+      const extraAPR = extraRewards
+        ? extraRewards.map((reward) => reward.apy).reduce((a, b) => a + b)
+        : 0;
 
       defillamaPooldata.push({
         pool: address + '-' + blockchainId,
         chain: utils.formatChain(blockchainId),
         project: 'curve',
-        symbol: pool.symbol,
-        tvlUsd: pool.tvlUsd ? pool.tvlUsd : 0,
-        apy: pool.apy ? pool.apy : 0,
-        apr: gauge ? getPoolAPR(pool, gauge, crvPrice) : 0,
+        symbol: pool.coins.map((coin) => coin.symbol).join('-'),
+        tvlUsd: pool.usdTotal,
+        apy: subgraph ? parseFloat(subgraph.latestDailyApy) : 0,
+        apr: crvAPR + extraAPR,
       });
     }
   };
 
-  results = [];
-  for (const [blockchainId, poolAPYPromise] of Object.entries(blockchainToPoolAPYPromise)) {
+  // group Promises by blockchain and feed the llama array
+  const responses = [];
+  for (const [blockchainId, poolSubgraphPromise] of Object.entries(
+    blockchainToPoolSubgraphPromise
+  )) {
+    // we already have ethererum for the crv price
     if (blockchainId !== 'ethereum') {
-      results.push(
+      responses.push(
         Promise.all([
-          blockchainToPoolinfoPromise[blockchainId],
-          poolAPYPromise,
-          gaugeDataPromise,
-        ]).then(poolData => feedLlama(poolData, blockchainId))
+          blockchainToPoolPromise[blockchainId],
+          poolSubgraphPromise,
+          gaugePromise,
+          extraRewardPromise,
+        ]).then((poolData) => feedLlama(poolData, blockchainId))
       );
     } else {
-      results.push(
+      responses.push(
         Promise.all([
-          poolAPYPromise,
-          gaugeDataPromise,
+          poolSubgraphPromise,
+          gaugePromise,
+          extraRewardPromise,
         ]).then((APYandGaugeData) =>
-          feedLlama([ethereumPoolinfos, ...APYandGaugeData], blockchainId)
+          feedLlama([ethereumPools, ...APYandGaugeData], blockchainId)
         )
       );
     }
   }
- 
 
+  // wait for all Group promises to resolve
   try {
-    await Promise.all(results);
+    await Promise.all(responses);
   } catch (error) {
     console.error(error);
   }
