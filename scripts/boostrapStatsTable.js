@@ -3,6 +3,7 @@ const fs = require('fs');
 const AWS = require('aws-sdk');
 const ss = require('simple-statistics');
 
+const { confirm } = require('../src/utils/confirm');
 const { insertStats } = require('../src/api/controllers');
 
 // set config (we run this script locally)
@@ -10,6 +11,9 @@ const credentials = new AWS.SharedIniFileCredentials({ profile: 'defillama' });
 AWS.config.credentials = credentials;
 
 (async () => {
+  await confirm(
+    'Confirm with `yes` if you want to start the bootstrapStatsTable script: '
+  );
   // pools.json is a full database snapshot of daily values only (the last value per pool per day)
   // containing timestamp, apy, pool fields
   const p = './pools.json';

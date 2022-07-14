@@ -3,32 +3,35 @@ const dotenv = require('dotenv');
 
 const AWS = require('aws-sdk');
 const { insertPools, deletePools } = require('../src/api/controllers');
+const { confirm } = require('./confirm');
 
 const credentials = new AWS.SharedIniFileCredentials({ profile: 'defillama' });
 AWS.config.credentials = credentials;
 
 dotenv.config({ path: './config.env' });
 
-if (process.argv.length < 3) {
-  console.error(`Missing argument, you need to provide the adaptor name a, 
-    unix timestamp in seconds and optionally the number of days you want to backfill the data
-    Eg: node scripts/fillOld.js pangolin 1648098107 10`);
-  process.exit(1);
-}
-
-const project = process.argv[2];
-let timestamp = process.argv[3];
-const maxDays = process.argv[4] === undefined ? 1 : process.argv[4];
-// round timestamp to midnight
-// eg 2022-04-06T00:00:00.000Z
-timestamp = Math.floor(timestamp / 60 / 60 / 24) * 24 * 60 * 60;
-const offset = 86400;
-const passedFile = path.resolve(
-  process.cwd(),
-  `src/adaptors/${project}/index.js`
-);
-
 (async () => {
+  if (process.argv.length < 4) {
+    console.error(`Missing argument, you need to provide the adaptor name, a
+      unix timestamp in seconds and optionally the number of days you want to backfill the data
+      Eg: node scripts/fillOld.js pangolin 1648098107 10`);
+    process.exit(1);
+  }
+
+  await confirm('Confirm with `yes` if you want to start the fillOld script: ');
+
+  const project = process.argv[2];
+  let timestamp = process.argv[3];
+  const maxDays = process.argv[4] === undefined ? 1 : process.argv[4];
+  // round timestamp to midnight
+  // eg 2022-04-06T00:00:00.000Z
+  timestamp = Math.floor(timestamp / 60 / 60 / 24) * 24 * 60 * 60;
+  const offset = 86400;
+  const passedFile = path.resolve(
+    process.cwd(),
+    `src/adaptors/${project}/index.js`
+  );
+
   // 1. load module
   const module = require(passedFile);
   if (!module.timetravel)
