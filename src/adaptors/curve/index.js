@@ -204,7 +204,12 @@ const main = async () => {
       const underlyingTokens = pool.coins.map((coin) => coin.address);
       const rewardTokens = extraRewards ? extraRewards.map(reward => reward.tokenAddress) : []
       if (aprCrv) {
-        rewardTokenAddresses.push('0xD533a949740bb3306d119CC777fa900bA034cd52') // CRV
+        rewardTokens.push('0xD533a949740bb3306d119CC777fa900bA034cd52') // CRV
+      }
+
+      const tvlUsd = pool.usdTotal
+      if (!tvlUsd) {
+        continue
       }
 
       defillamaPooldata.push({
@@ -212,9 +217,10 @@ const main = async () => {
         chain: utils.formatChain(blockchainId),
         project: 'curve',
         symbol: pool.coins.map((coin) => coin.symbol).join('-'),
-        tvlUsd: pool.usdTotal,
+        tvlUsd,
         apyBase,
         apyReward: aprCrv + aprExtra,
+        apy: apyBase + aprCrv + aprExtra,
         rewardTokens,
         underlyingTokens,
       });
