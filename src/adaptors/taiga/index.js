@@ -18,7 +18,7 @@ const getPools = async () => {
     );
 
     const taiKsm = {
-        pool: 'sa://0',
+        pool: 'karura-sa://0',
         chain: 'karura',
         project: 'taiga-protocol',
         symbol: 'taiKSM',
@@ -28,7 +28,7 @@ const getPools = async () => {
     };
 
     const threeUsd = {
-        pool: 'sa://1',
+        pool: 'karura-sa://1',
         chain: 'karura',
         project: 'taiga-protocol',
         symbol: '3USD',
