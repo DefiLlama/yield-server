@@ -33,6 +33,12 @@ module.exports.handler = async (event, context, callback) => {
             ],
           },
         },
+        apyBase: {
+          $first: '$apyBase',
+        },
+        apyReward: {
+          $first: '$apyReward',
+        },
         apy: {
           $first: '$apy',
         },
@@ -58,7 +64,16 @@ module.exports.handler = async (event, context, callback) => {
   ];
 
   const query = M.aggregate(aggQuery);
-  const response = await query;
+  let response = await query;
+
+  response = response.filter(
+    (p) => !(p.apy === null && p.apyBase === null && p.apyReward === null)
+  );
+  response = response.map((p) => ({
+    apy: p.apy ?? p.apyBase + p.apyReward,
+    tvlUsd: p.tvlUsd,
+    timestamp: p.timestamp,
+  }));
 
   if (!response) {
     return new AppError("Couldn't retrieve data", 404);
