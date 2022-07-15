@@ -21,5 +21,5 @@ const main = async () => {
   const dataStats = (await superagent.get(`${urlBase}/stats`)).body.data;
   const payload = welfordUpdate(dataEnriched, dataStats);
   const response = await insertStats(payload);
-  console.log(response.body);
+  console.log(response);
 };

@@ -68,12 +68,11 @@ dotenv.config({ path: './config.env' });
     // for some analysis work as nothing would make sense
     try {
       // delete
-      const responseDelete = (await deletePools(timestamp, project)).body
-        .response;
+      const responseDelete = (await deletePools(timestamp, project)).response;
       console.log(`\tDeleted ${responseDelete.n} samples`);
 
       // insert
-      const responseInsert = (await insertPools(dataDB)).body.response;
+      const responseInsert = (await insertPools(dataDB)).response;
       console.log(`\t${responseInsert} samples\n`);
     } catch (err) {
       throw new Error(err);

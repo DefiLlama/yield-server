@@ -51,5 +51,5 @@ const main = async (body) => {
 
   console.log('saving data to DB');
   const response = await insertPools(data);
-  console.log(response.body);
+  console.log(response);
 };

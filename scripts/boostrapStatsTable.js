@@ -56,5 +56,6 @@ process.env['SSM_PATH'] = '/llama-apy/serverless/sls-authenticate';
   }
 
   const response = await insertStats(payload);
-  console.log(response.body);
+  console.log(response);
+  process.exit(0);
 })();
