@@ -1,7 +1,7 @@
 const SQS = require('aws-sdk/clients/sqs');
 const { excludeAdaptors } = require('../utils/exclude');
 
-module.exports.handler = async (event) => {
+module.exports.handler = async () => {
   await main();
 };
 

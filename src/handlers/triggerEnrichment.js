@@ -5,8 +5,7 @@ const utils = require('../utils/s3');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
 const { welfordUpdate } = require('../utils/welford');
 
-module.exports.handler = async (event, context) => {
-  context.callbackWaitsForEmptyEventLoop = false;
+module.exports.handler = async () => {
   await main();
 };
 

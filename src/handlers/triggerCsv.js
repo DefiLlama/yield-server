@@ -2,7 +2,7 @@ const AWS = require('aws-sdk');
 const superagent = require('superagent');
 const createCsvStringifier = require('csv-writer').createObjectCsvStringifier;
 
-module.exports.handler = async (event) => {
+module.exports.handler = async () => {
   await main();
 };
 

@@ -4,7 +4,7 @@ const AppError = require('../utils/appError');
 const { lambdaResponse } = require('../utils/lambda');
 
 // returns enriched pool data
-module.exports.handler = async (event, context, callback) => {
+module.exports.handler = async (event) => {
   const response = await buildPoolsEnriched(event.queryStringParameters);
 
   if (!response) {

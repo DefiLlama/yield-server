@@ -4,21 +4,11 @@ const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
 
 // get latest object of each unique pool
-module.exports.handler = async (event, context, callback) => {
-  // Make sure to add this so you can re-use `conn` between function calls.
-  // See https://www.mongodb.com/blog/post/serverless-development-with-nodejs-aws-lambda-mongodb-atlas
+module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
-
-  // create/use existing connection
   const conn = await dbConnection.connect();
-
   const M = conn.model(poolModel.modelName);
 
-  // query consists of stages:
-  // 1. match tvlUSd >= $10k
-  // 2. sort entries by timestamp in descending order
-  // 3. group by the pool returned the first objects fields
-  // 4. sort again on tvl desc
   const aggQuery = [
     {
       $sort: {
