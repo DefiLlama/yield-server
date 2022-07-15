@@ -148,7 +148,7 @@ const getPoolAPR = (pool, subgraph, gauge, crvPrice) => {
   }
 };
 
-const getCrvPrice = (pools) => {
+const getPriceCrv = (pools) => {
   //parse through pool coins and return price of crv dao token
   for (const coin of pools.map((pool) => pool.coins).flat()) {
     if (coin.address === '0xD533a949740bb3306d119CC777fa900bA034cd52') {
@@ -175,7 +175,7 @@ const main = async () => {
 
   // we need the ethereum data first for the crv prive and await extra query to CG
   const ethereumPools = await getPools('ethereum');
-  const crvPrice = getCrvPrice(Object.values(ethereumPools));
+  const priceCrv = getPriceCrv(Object.values(ethereumPools));
 
   // create feeder closure to fill defillamaPooldata asynchroniously
   const defillamaPooldata = [];
@@ -192,30 +192,31 @@ const main = async () => {
       // one gauge can have multiple (different) extra rewards
       const extraRewards = gaugeAddressToExtraRewards[pool.gaugeAddress];
 
-      const baseAPY = subgraph ? parseFloat(subgraph.latestDailyApy) : 0
-      const crvAPR =
-        gauge && subgraph ? getPoolAPR(pool, subgraph, gauge, crvPrice) : 0;
-      const extraAPR = extraRewards
+      const apyBase = subgraph ? parseFloat(subgraph.latestDailyApy) : 0
+      const aprCrv =
+        gauge && subgraph ? getPoolAPR(pool, subgraph, gauge, priceCrv) : 0;
+      const aprExtra = extraRewards
         ? extraRewards.map((reward) => reward.apy).reduce((a, b) => a + b)
         : 0;
 
-      const underlyingTokens = pool.coins.map((coin) => coin.symbol);
-      const rewardTokens = extraRewards ? extraRewards.map(reward => reward.symbol) : []
-      if (crvAPR) {
-        rewardTokens.push("CRV")
+      // tokens are listed using their contract addresses
+      // https://github.com/DefiLlama/yield-server#adaptors
+      const underlyingTokens = pool.coins.map((coin) => coin.address);
+      const rewardTokens = extraRewards ? extraRewards.map(reward => reward.tokenAddress) : []
+      if (aprCrv) {
+        rewardTokenAddresses.push('0xD533a949740bb3306d119CC777fa900bA034cd52') // CRV
       }
 
       defillamaPooldata.push({
         pool: address + '-' + blockchainId,
         chain: utils.formatChain(blockchainId),
         project: 'curve',
-        underlyingTokens,
-        symbol: underlyingTokens.join('-'),
+        symbol: pool.coins.map((coin) => coin.symbol).join('-'),
         tvlUsd: pool.usdTotal,
-        apy: baseAPY + crvAPR + extraAPR,
-        apyFee: baseAPY,
-        apyReward: crvAPR + extraAPR,
-        rewardTokens
+        apyBase,
+        apyReward: aprCrv + aprExtra,
+        rewardTokens,
+        underlyingTokens,
       });
     }
   };
