@@ -10,6 +10,8 @@ const { insertStats } = require('../src/api/controllers');
 // set config (we run this script locally)
 const credentials = new AWS.SharedIniFileCredentials({ profile: 'defillama' });
 AWS.config.credentials = credentials;
+AWS.config.update({ region: 'eu-central-1' });
+process.env['SSM_PATH'] = '/llama-apy/serverless/sls-authenticate';
 
 (async () => {
   await confirm(
@@ -17,7 +19,7 @@ AWS.config.credentials = credentials;
   );
   // pools.json is a full database snapshot of daily values only (the last value per pool per day)
   // containing pool and the total apy fields
-  const p = './pools.json';
+  const p = './pools_2022_07_15_daily.json';
   let data = JSON.parse(fs.readFileSync(p));
   // keeping positive values only
   data = data.filter((p) => p.apy > 0 && boundaries.apy.ub);
