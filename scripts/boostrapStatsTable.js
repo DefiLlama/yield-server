@@ -4,6 +4,7 @@ const AWS = require('aws-sdk');
 const ss = require('simple-statistics');
 
 const { confirm } = require('../src/utils/confirm');
+const { boundaries } = require('../src/utils/exclude');
 const { insertStats } = require('../src/api/controllers');
 
 // set config (we run this script locally)
@@ -15,9 +16,12 @@ AWS.config.credentials = credentials;
     'Confirm with `yes` if you want to start the bootstrapStatsTable script: '
   );
   // pools.json is a full database snapshot of daily values only (the last value per pool per day)
-  // containing timestamp, apy, pool fields
+  // containing pool and the total apy fields
   const p = './pools.json';
   let data = JSON.parse(fs.readFileSync(p));
+  // keeping positive values only
+  data = data.filter((p) => p.apy > 0 && boundaries.apy.ub);
+
   // create return field
   const T = 365;
   // transform raw apy to return field (required for geometric mean below)
@@ -30,10 +34,8 @@ AWS.config.credentials = credentials;
   for (const [i, pool] of [...new Set(data.map((el) => el.pool))].entries()) {
     console.log(i);
 
-    // filter to pool, keep only values greater 0 and below extreme value
-    let X = data.filter(
-      (el) => el.pool === pool && el.apy > 0 && el.apy <= 1e6
-    );
+    // filter to pool
+    let X = data.filter((el) => el.pool === pool);
     if (X.length === 0) continue;
 
     const count = X.length;
