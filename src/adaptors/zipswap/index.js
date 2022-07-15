@@ -19,7 +19,7 @@ const getDate = async () => {
 
 var query = gql`
 {
-  pairDayDatas(first: 5,
+  pairDayDatas(first: 10,
     orderDirection: desc,
     orderBy: dailyVolumeUSD,where:{
     date: <placeholder>,
