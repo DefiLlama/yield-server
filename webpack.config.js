@@ -12,19 +12,6 @@ module.exports = {
         use: { loader: 'babel-loader' },
         include: path.resolve(__dirname, 'src'),
         exclude: /node_modules/,
-        options: {
-          presets: [
-            [
-              '@babel/preset-env',
-              {
-                targets: {
-                  node: true,
-                },
-              },
-            ],
-            '@babel/typescript',
-          ],
-        },
       },
     ],
   },
