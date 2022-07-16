@@ -102,7 +102,7 @@ functions:
       XDAI: ${file(./env.js):XDAI}
       XDAI_RPC: ${file(./env.js):XDAI_RPC}
 
-  # --- data enrichment (pct-changes)
+  # --- data enrichment
   triggerEnrichment:
     handler: src/handlers/triggerEnrichment.handler
     description: Lambda which runs enrichment process

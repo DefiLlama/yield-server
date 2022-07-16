@@ -2,8 +2,7 @@ const superagent = require('superagent');
 const { insertStats } = require('../api/controllers');
 const { welfordUpdate } = require('../utils/welford');
 
-module.exports.handler = async (event, context) => {
-  context.callbackWaitsForEmptyEventLoop = false;
+module.exports.handler = async () => {
   await main();
 };
 

@@ -25,11 +25,11 @@ module.exports.welfordUpdate = (pools, stats) => {
       deltaAPY = p.apy - meanAPY;
       meanAPY += deltaAPY / count;
       delta2APY = p.apy - meanAPY;
-      mean2APY += deltaAPY * delta2AY;
+      mean2APY += deltaAPY * delta2APY;
       // b) scatterchart section
       deltaDR = p.return - meanDR;
       meanDR += deltaDR / count;
-      delta2 = p.return - meanDR;
+      delta2DR = p.return - meanDR;
       mean2DR += deltaDR * delta2DR;
       productDR = (1 + p.return) * productDR;
     } else {

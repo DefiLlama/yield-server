@@ -38,6 +38,9 @@ const main = async (body) => {
   // remove potential null/undefined in array
   data = data.filter((p) => p);
 
+  // nullify potential NaN/undefined apy values
+  data = data.map((p) => ({ ...p, apy: isNaN(p.apy) ? null : p.apy }));
+
   // add the timestamp field
   // will be rounded to the nearest hour
   // eg 2022-04-06T10:00:00.000Z
