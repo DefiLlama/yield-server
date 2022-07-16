@@ -22,7 +22,7 @@ process.env['SSM_PATH'] = '/llama-apy/serverless/sls-authenticate';
   const p = './pools_2022_07_15_daily.json';
   let data = JSON.parse(fs.readFileSync(p));
   // keeping positive values only
-  data = data.filter((p) => p.apy > 0 && boundaries.apy.ub);
+  data = data.filter((p) => p.apy > 0 && p.apy <= boundaries.apy.ub);
 
   // create return field
   const T = 365;
