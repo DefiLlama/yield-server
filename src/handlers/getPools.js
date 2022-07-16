@@ -85,8 +85,8 @@ module.exports.handler = async (event, context) => {
   response = response.filter(
     (p) =>
       !(p.apy === null && p.apyBase === null && p.apyReward === null) &&
-      (!exclude.excludeAdaptors.includes(p.project) ||
-        !exclude.excludePools.includes(p.pool))
+      !exclude.excludeAdaptors.includes(p.project) &&
+      !exclude.excludePools.includes(p.pool)
   );
 
   if (!response) {
