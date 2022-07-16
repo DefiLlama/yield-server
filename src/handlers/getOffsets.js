@@ -4,7 +4,7 @@ const AppError = require('../utils/appError');
 
 // retrieve the historical offset data for a project and a given offset day (1d/7d/30d)
 // to calculate pct changes. allow some buffer (+/- 3hs) in case of missing data
-module.exports.handler = async (event, context, callback) => {
+module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
   const conn = await dbConnection.connect();
   const M = conn.model(poolModel.modelName);

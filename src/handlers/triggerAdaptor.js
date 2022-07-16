@@ -1,9 +1,8 @@
-const superagent = require('superagent');
-const SSM = require('aws-sdk/clients/ssm');
+const { insertPools } = require('../api/controllers');
+const { boundaries } = require('../utils/exclude');
 
-const utils = require('../utils/s3');
-
-module.exports.handler = async (event) => {
+module.exports.handler = async (event, context) => {
+  context.callbackWaitsForEmptyEventLoop = false;
   console.log(event);
 
   // We return failed msg ids,
@@ -36,8 +35,27 @@ const main = async (body) => {
   const project = require(`../adaptors/${body.adaptor}/index.js`);
   let data = await project.apy();
 
-  // remove potential null/undefined in array
+  // remove potential null/undefined objects in array
   data = data.filter((p) => p);
+
+  // nullify potential NaN/undefined apy values
+  data = data.map((p) => ({
+    ...p,
+    apy: isNaN(p.apy) ? null : p.apy,
+    apyBase: isNaN(p.apyBase) ? null : p.apyBase,
+    apyReward: isNaN(p.apyReward) ? null : p.apyReward,
+  }));
+
+  // remove pools where all 3 apy related fields are null
+  data = data.filter(
+    (p) => !(p.apy === null && p.apyBase === null && p.apyReward === null)
+  );
+
+  // derive final apy field via:
+  data = data.map((p) => ({
+    ...p,
+    apy: p.apy ?? p.apyBase + p.apyReward,
+  }));
 
   // add the timestamp field
   // will be rounded to the nearest hour
@@ -45,35 +63,12 @@ const main = async (body) => {
   const timestamp = new Date(
     Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
   );
-  for (const d of data) {
-    d['timestamp'] = timestamp;
-  }
+  data = data
+    .map((p) => ({ ...p, timestamp: timestamp }))
+    // remove everything below LB ($1k)
+    .filter((el) => el.tvlUsd >= boundaries.tvlUsdDB.lb);
 
-  // filter to $1k usd tvl
-  const tvlMinThr = 1e3;
-  dataDB = data.filter((el) => el.tvlUsd >= tvlMinThr);
   console.log('saving data to DB');
-
-  // get cached access token
-  const ssm = new SSM();
-  const options = {
-    Name: `${process.env.SSM_PATH}/bearertoken`,
-    WithDecryption: true,
-  };
-  const token = await ssm.getParameter(options).promise();
-  // save to db
-  const response = await superagent
-    .post(`${process.env.APIG_URL}/simplePools`)
-    .send(dataDB)
-    .set({ Authorization: `Bearer ${token.Parameter.Value}` });
-  console.log(response.body);
-
-  // save unfiltered backup to s3
-  console.log('saving data to S3');
-  const d = new Date();
-  const dd = d.toISOString().split('T');
-  const bucket = process.env.BUCKET_DATA;
-  const key = `base/${dd[0]}/${d.getHours()}/${dd[1]}_${body.adaptor}.json`;
-
-  await utils.writeToS3(bucket, key, data);
+  const response = await insertPools(data);
+  console.log(response);
 };
