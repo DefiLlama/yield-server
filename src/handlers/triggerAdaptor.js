@@ -35,11 +35,27 @@ const main = async (body) => {
   const project = require(`../adaptors/${body.adaptor}/index.js`);
   let data = await project.apy();
 
-  // remove potential null/undefined in array
+  // remove potential null/undefined objects in array
   data = data.filter((p) => p);
 
   // nullify potential NaN/undefined apy values
-  data = data.map((p) => ({ ...p, apy: isNaN(p.apy) ? null : p.apy }));
+  data = data.map((p) => ({
+    ...p,
+    apy: isNaN(p.apy) ? null : p.apy,
+    apyBase: isNaN(p.apyBase) ? null : p.apyBase,
+    apyReward: isNaN(p.apyReward) ? null : p.apyReward,
+  }));
+
+  // remove pools where all 3 apy related fields are null
+  data = data.filter(
+    (p) => !(p.apy === null && p.apyBase === null && p.apyReward === null)
+  );
+
+  // derive final apy field via:
+  data = data.map((p) => ({
+    ...p,
+    apy: p.apy ?? p.apyBase + p.apyReward,
+  }));
 
   // add the timestamp field
   // will be rounded to the nearest hour
