@@ -1,15 +1,20 @@
 const mongoose = require('mongoose');
 const SSM = require('aws-sdk/clients/ssm');
 
-// on first connect, cache db connection for reuse so we don't
-// need to connect on new requests
-let conn = null;
-
 // https://mongoosejs.com/docs/lambda.html
 // Because conn is in the global scope, Lambda may retain it between
 // function calls thanks to `callbackWaitsForEmptyEventLoop`.
 // This means your Lambda function doesn't have to go through the
 // potentially expensive process of connecting to MongoDB every time.
+
+// more about callbackWaitsForEmptyEventLoop (which we add to every lambda which makes
+// a connection to the db)
+// See https://www.mongodb.com/blog/post/serverless-development-with-nodejs-aws-lambda-mongodb-atlas
+
+// on first connect, cache db connection for reuse so we don't
+// need to connect on new requests
+let conn = null;
+
 exports.connect = async () => {
   if (conn === null) {
     console.log('using new db connection');

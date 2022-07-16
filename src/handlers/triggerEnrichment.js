@@ -1,37 +1,21 @@
 const superagent = require('superagent');
-const SSM = require('aws-sdk/clients/ssm');
 const ss = require('simple-statistics');
 
 const utils = require('../utils/s3');
-const adaptorsToExclude = require('../utils/exclude');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
+const { welfordUpdate } = require('../utils/welford');
 
-module.exports.handler = async (event) => {
+module.exports.handler = async () => {
   await main();
 };
 
-// loading latest "base" data from db for each pool
-// enriching the data with 1/7/30 day pct-changes of apy
-// store single enriched data file as json to s3
 const main = async () => {
-  console.log(`START DATA ENRICHMENT at ${new Date()}`);
+  console.log('START DATA ENRICHMENT');
 
-  ////// 1) load latest data
   const urlBase = process.env.APIG_URL;
   console.log('\n1. pulling base data...');
-  let data = await superagent.get(`${urlBase}/simplePools`);
-  data = data.body.data;
-  // remove everything in adaptorsToExclude
-  data = data.filter((p) => !adaptorsToExclude.includes(p.project));
-
+  let data = (await superagent.get(`${urlBase}/simplePools`)).body.data;
   // derive final apy field via:
-  // - if apy field is null we derive it from the sum of apyBase and apyReward
-  // NOTE: simplePools always returns all three fields: apy, apyBase and apyReward, with defaults of null
-  // remove pools where all 3 fields are null
-  data = data.filter(
-    (p) => !(p.apy === null && p.apyBase === null && p.apyReward === null)
-  );
-
   data = data.map((p) => ({
     ...p,
     apy: p.apy ?? p.apyBase + p.apyReward,
@@ -73,27 +57,12 @@ const main = async () => {
       continue;
     }
   }
-
   console.log('Nb of pools: ', dataEnriched.length);
   console.log(
     `Nb of failed adaptor offset calculations: ${failed.length}, List of failed adaptors: ${failed}`
   );
 
-  ////// 3) remove outliers
-  // remove pools which have extreme values of TVL and/or APY
-  // note(!) this could be more sophisticated via learned quantiles
-  // but keeping it simple here and applying some basic thrs
-  console.log('\n3. checking for apy null values and outliers');
-  const UBApy = 1e6;
-  const UBTvl = 2e10;
-  outliers = dataEnriched.filter((el) => el.apy > UBApy && el.tvlUsd > UBTvl);
-  console.log(`Found and removing ${outliers.length} pools from dataEnriched`);
-  dataEnriched = dataEnriched.filter(
-    (el) => el.apy !== null && el.apy <= UBApy && el.tvlUsd <= UBTvl
-  );
-
-  ////// 4) add exposure, ilRisk and stablecoin fields
-  console.log('\n4. adding additional pool info fields');
+  console.log('\n3. adding additional pool info fields');
   const stablecoins = (
     await superagent.get(
       'https://stablecoins.llama.fi/stablecoins?includePrices=true'
@@ -102,107 +71,52 @@ const main = async () => {
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins));
 
-  // complifi has single token exposure only, but IL can still occur if a trader makes a big one, in which
-  // case the protocol will pay traders via deposited amounts...
-  // so hardcoding this here as IL
-  for (const p of dataEnriched) {
-    if (p.project === 'complifi') {
-      p.ilRisk = 'yes';
-    }
-  }
-
-  ////// 5) add ml features
-  console.log('\n5. adding ml features');
-  let dataStd = await superagent.get(`${urlBase}/stds`);
-
-  // calculating both backward looking std and mean aking into account the current apy value
-  const dataStdUpdated = [];
-  for (const el of dataEnriched) {
-    d = dataStd.body.data.find((i) => i.pool === el.pool);
-
-    if (d !== undefined) {
-      // calc std using welford's algorithm
-      // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-      // For a new value newValue, compute the new count, new mean, the new M2.
-      // mean accumulates the mean of the entire dataset
-      // M2 aggregates the squared distance from the mean
-      // count aggregates the number of samples seen so far
-      count = d.count;
-      mean = d.mean;
-      mean2 = d.mean2;
-
-      count += 1;
-      delta = el.apy - mean;
-      mean += delta / count;
-      delta2 = el.apy - mean;
-      mean2 += delta * delta2;
-    } else {
-      // in case of a new pool, we won't have an entry yet in db and d will be undefined
-      // need to store count, mean and mean2 into table
-      count = 1;
-      mean = el.apy;
-      mean2 = 0;
-    }
-    // add the backward looking stats
-    // adding count as well, will use this to nullify predictions for objects which have less than 7 samples
-    el['count'] = count;
-    el['apyStdExpanding'] =
-      d === undefined || count < 2 ? null : Math.sqrt(mean2 / (count - 1));
-    // for both undefined or not, the apy will be the (if undefined, mean === the current apy)
-    el['apyMeanExpanding'] = mean;
-
-    // update std table only for pools which match the last hour of current day
-    const currentDay = new Date().toISOString().split('T')[0];
-    if (el.timestamp === [currentDay, '23:00:00.000Z'].join('T')) {
-      console.log('updating std table');
-      dataStdUpdated.push({
-        pool: el.pool,
-        count,
-        mean,
-        mean2,
-      });
-    }
-  }
-
-  if (dataStdUpdated.length > 0) {
-    const ssm = new SSM();
-    const options = {
-      Name: `${process.env.SSM_PATH}/bearertoken`,
-      WithDecryption: true,
-    };
-    const token = await ssm.getParameter(options).promise();
-    const response = await superagent
-      .post(`${urlBase}/stds`)
-      .send(dataStdUpdated)
-      .set({ Authorization: `Bearer ${token.Parameter.Value}` });
-    console.log('/stds response: \n', response.body);
-  }
-
-  // bin std into stability metric
-  const stds = dataEnriched
-    .map((el) => el.apyStdExpanding)
-    .filter((el) => el !== null);
-  const quantiles = {
-    q25: ss.quantile(stds, 0.25),
-    q50: ss.quantile(stds, 0.5),
-    q75: ss.quantile(stds, 0.75),
-  };
-
-  dataEnriched = dataEnriched.map((el) => ({
-    ...el,
-    Stability:
-      el.apyStdExpanding <= quantiles.q25
-        ? 'A'
-        : el.apyStdExpanding <= quantiles.q50
-        ? 'B'
-        : el.apyStdExpanding <= quantiles.q75
-        ? 'C'
-        : 'D',
+  // expanding mean, expanding standard deviation,
+  // geometric mean and standard deviation (of daily returns)
+  console.log('\n4. adding stats columns');
+  const T = 365;
+  dataEnriched = dataEnriched.map((p) => ({
+    ...p,
+    return: (1 + p.apy / 100) ** (1 / T) - 1,
   }));
 
-  ////// 6) add the algorithms predictions
-  console.log('\n6. adding apy runway prediction');
+  const dataStats = (await superagent.get(`${urlBase}/stats`)).body.data;
+  const statsColumns = welfordUpdate(dataEnriched, dataStats);
+  // add columns to dataEnriched
+  for (const p of dataEnriched) {
+    const x = statsColumns.find((i) => i.pool === p.pool);
+    // create columns
+    // a) ML section
+    p['count'] = x.count;
+    p['apyMeanExpanding'] = x.meanAPY;
+    p['apyStdExpanding'] =
+      x.count < 2 ? null : Math.sqrt(x.mean2APY / (x.count - 1));
+    // b) scatterchart section
+    p['mu'] = (x.productDR ** (T / x.count) - 1) * 100;
+    p['sigma'] = Math.sqrt((x.mean2DR / (x.count - 1)) * T) * 100;
+  }
 
+  // mark pools as outliers if outside boundary (let user filter via toggle on frontend)
+  const columns = ['mu', 'sigma'];
+  const outlierBoundaries = {};
+  for (const col of columns) {
+    let x = dataEnriched.map((p) => p[col]).filter((p) => p);
+    const x_iqr = ss.quantile(x, 0.75) - ss.quantile(x, 0.25);
+    const x_median = ss.median(x);
+    const x_lb = x_median - 1.5 * x_iqr;
+    const x_ub = x_median + 1.5 * x_iqr;
+    outlierBoundaries[col] = { lb: x_lb, ub: x_ub };
+  }
+  dataEnriched = dataEnriched.map((p) => ({
+    ...p,
+    outlier:
+      p['mu'] < outlierBoundaries['mu']['lb'] ||
+      p['mu'] > outlierBoundaries['mu']['ub'] ||
+      p['sigma'] < outlierBoundaries['sigma']['lb'] ||
+      p['sigma'] > outlierBoundaries['sigma']['ub'],
+  }));
+
+  console.log('\n5. adding apy runway prediction');
   // load categorical feature mappings
   const modelMappings = await utils.readFromS3(
     'llama-apy-prediction-prod',
@@ -232,23 +146,23 @@ const main = async () => {
     el.apyStdExpanding = el.apyStdExpanding === null ? 0 : el.apyStdExpanding;
   }
 
-  let y_pred = await superagent
-    .post(
-      'https://yet9i1xlhf.execute-api.eu-central-1.amazonaws.com/predictions'
-    )
-    // filter to required features only
-    .send(
-      dataEnriched.map((el) => ({
-        apy: el.apy,
-        tvlUsd: el.tvlUsd,
-        apyMeanExpanding: el.apyMeanExpanding,
-        apyStdExpanding: el.apyStdExpanding,
-        chain_factorized: el.chain_factorized,
-        project_factorized: el.project_factorized,
-      }))
-    );
-
-  y_pred = y_pred.body.predictions;
+  const y_pred = (
+    await superagent
+      .post(
+        'https://yet9i1xlhf.execute-api.eu-central-1.amazonaws.com/predictions'
+      )
+      // filter to required features only
+      .send(
+        dataEnriched.map((el) => ({
+          apy: el.apy,
+          tvlUsd: el.tvlUsd,
+          apyMeanExpanding: el.apyMeanExpanding,
+          apyStdExpanding: el.apyStdExpanding,
+          chain_factorized: el.chain_factorized,
+          project_factorized: el.project_factorized,
+        }))
+      )
+  ).body.predictions;
   // add predictions to dataEnriched
   if (dataEnriched.length !== y_pred.length) {
     throw new Error(
@@ -317,78 +231,6 @@ const main = async () => {
         : 3;
   }
 
-  // removing 0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d (saitama-weth sushiswap on ethereum)
-  // had insane pump in price from coingecko, likely wrong
-  dataEnriched = dataEnriched.filter(
-    (p) => p.pool !== '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d'
-  );
-
-  ////// 7) add mu,sigma,count and outlier fields
-  console.log('\n7. adding mu,sigma,count,outlier fields');
-  let aggregations = (await superagent.get(`${urlBase}/aggregations`)).body
-    .data;
-
-  // need to take the latest info, scale apy accordingly
-  const T = 365;
-  dataEnriched = dataEnriched.map((p) => ({
-    ...p,
-    return: (1 + p.apy / 100) ** (1 / T) - 1,
-  }));
-
-  for (const el of dataEnriched) {
-    const d = aggregations.find((i) => i.pool === el.pool);
-
-    if (d === undefined) {
-      el['sigma'] = 0;
-      el['mu'] = el.apy;
-      el['count'] = 1;
-      continue;
-    }
-
-    // calc std using welford's algorithm
-    // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-    // For a new value newValue, compute the new count, new mean, the new M2.
-    // mean accumulates the mean of the entire dataset
-    // M2 aggregates the squared distance from the mean
-    // count aggregates the number of samples seen so far
-    let count = d.count;
-    let mean = d.mean;
-    let mean2 = d.mean2;
-
-    count += 1;
-    let delta = el.return - mean;
-    mean += delta / count;
-    let delta2 = el.return - mean;
-    mean2 += delta * delta2;
-
-    el['sigma'] = Math.sqrt((mean2 / (count - 1)) * T) * 100;
-    el['mu'] = (((1 + el.return) * d.returnProduct) ** (T / count) - 1) * 100;
-    el['count'] = count;
-  }
-  // mark pools as outliers if outside boundary (let user filter via toggle on frontend)
-  const columns = ['mu', 'sigma'];
-  const outlierBoundaries = {};
-  for (const col of columns) {
-    let x = dataEnriched
-      .map((p) => p[col])
-      .filter((p) => p !== undefined && p !== null);
-    const x_iqr = ss.quantile(x, 0.75) - ss.quantile(x, 0.25);
-    const x_median = ss.median(x);
-    const x_lb = x_median - 1.5 * x_iqr;
-    const x_ub = x_median + 1.5 * x_iqr;
-    outlierBoundaries[col] = { lb: x_lb, ub: x_ub };
-  }
-
-  dataEnriched = dataEnriched.map((p) => ({
-    ...p,
-    outlier:
-      p['mu'] < outlierBoundaries['mu']['lb'] ||
-      p['mu'] > outlierBoundaries['mu']['ub'] ||
-      p['sigma'] < outlierBoundaries['sigma']['lb'] ||
-      p['sigma'] > outlierBoundaries['sigma']['ub'],
-  }));
-
-  ////// save enriched data to s3
   console.log('\nsaving data to S3');
   const bucket = process.env.BUCKET_DATA;
   const key = 'enriched/dataEnriched.json';
@@ -402,7 +244,9 @@ const main = async () => {
   ).toISOString();
   const keyPredictions = `predictions-hourly/dataEnriched_${timestamp}.json`;
   await utils.writeToS3(bucket, keyPredictions, dataEnriched);
-  await utils.storeCompressed('defillama-datasets', 'yield-api/pools', {
+
+  // store /poolsEnriched (/pools) api response to s3 where we cache it
+  await utils.storeAPIResponse('defillama-datasets', 'yield-api/pools', {
     status: 'success',
     data: await buildPoolsEnriched(undefined),
   });
@@ -517,8 +361,13 @@ const checkExposure = (el) => {
 
 const addPoolInfo = (el, stablecoins) => {
   el['stablecoin'] = checkStablecoin(el, stablecoins);
+
+  // complifi has single token exposure only cause the protocol
+  // will pay traders via deposited amounts
   el['ilRisk'] =
-    el.stablecoin && el.symbol.toLowerCase().includes('eur')
+    el.project === 'complifi'
+      ? 'yes'
+      : el.stablecoin && el.symbol.toLowerCase().includes('eur')
       ? checkIlRisk(el)
       : el.stablecoin
       ? 'no'

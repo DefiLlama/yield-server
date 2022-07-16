@@ -4,9 +4,8 @@ const AppError = require('../utils/appError');
 const { lambdaResponse } = require('../utils/lambda');
 
 // retrieve chart data of latest daily tvl and apy values of requested pool
-module.exports.handler = async (event, context, callback) => {
+module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
-
   const conn = await dbConnection.connect();
   const M = conn.model(poolModel.modelName);
 
