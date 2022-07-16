@@ -32,7 +32,7 @@ module.exports.handler = async (event, context) => {
 const main = async (body) => {
   // run adaptor
   console.log(body.adaptor);
-  const project = require(`../adaptors/${body.adaptor}/index.js`);
+  const project = require(`../adaptors/${body.adaptor}`);
   let data = await project.apy();
 
   // remove potential null/undefined objects in array
