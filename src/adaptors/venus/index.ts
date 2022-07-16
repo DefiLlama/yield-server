@@ -1,8 +1,8 @@
 const utils = require('../utils');
 
-const API_URL = 'https://api.venus.io/api/governance/venus';
+const API_URL: string = 'https://api.venus.io/api/governance/venus';
 
-const getApy = async () => {
+const getApy = async (): Promise<Array<any>> => {
   const markets = await utils.getData(API_URL);
   const marketsData = markets.data.markets;
 
