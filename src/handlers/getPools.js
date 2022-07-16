@@ -72,7 +72,15 @@ module.exports.handler = async (event, context) => {
         },
         // lte not enough, would remove null values,
         // hence why the or statement to keep pools with apy === null
-        $or: [{ apy: { $lte: exclude.boundaries.apy.ub } }, { apy: null }],
+        $or: [
+          {
+            apy: {
+              $gte: exclude.boundaries.apy.lb,
+              $lte: exclude.boundaries.apy.ub,
+            },
+          },
+          { apy: null },
+        ],
       },
     },
   ];
