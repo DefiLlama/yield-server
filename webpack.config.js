@@ -8,29 +8,16 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.(ts|js)$/,
+        test: /\.js$/,
         use: { loader: 'babel-loader' },
         include: path.resolve(__dirname, 'src'),
         exclude: /node_modules/,
-        options: {
-          presets: [
-            [
-              '@babel/preset-env',
-              {
-                targets: {
-                  node: true,
-                },
-              },
-            ],
-            '@babel/typescript',
-          ],
-        },
       },
     ],
   },
   resolve: {
     mainFields: ['main'],
-    extensions: ['.js', '.ts', '.json'],
+    extensions: ['.js', '.json'],
     alias: {
       'bignumber.js$': 'bignumber.js/bignumber.js',
       'node-fetch$': 'node-fetch/lib/index.js',
