@@ -146,6 +146,13 @@ const main = async () => {
     el.apyStdExpanding = el.apyStdExpanding === null ? 0 : el.apyStdExpanding;
   }
 
+  console.log('\nsaving prior to ML');
+  await utils.writeToS3(
+    process.env.BUCKET_DATA,
+    'testing/dataEnrichedPriorML.json',
+    dataEnriched
+  );
+
   const y_pred = (
     await superagent
       .post(
