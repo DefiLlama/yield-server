@@ -1,6 +1,14 @@
 const axios = require('axios');
-const { startCase } = require('lodash');
 const utils = require('../utils');
+
+// matches the mapping on the frontend and
+// imo is much easier to understand than poolId
+const voltTypeMapping = {
+  1: 'Covered Call',
+  2: 'Cash Secured Put',
+  3: 'Crab Strategy',
+  4: 'Basis Yield',
+};
 
 async function tvl() {
   const friktionSnapshotResponse = await axios.get(
@@ -30,11 +38,12 @@ async function tvl() {
   for (let i = 0; i < volts.length; i += 1) {
     const currentVolt = volts[i];
     const poolId = currentVolt.globalId;
+    const voltType = currentVolt.voltType;
     const poolObj = {
       pool: currentVolt.voltVaultId,
       chain: utils.formatChain('solana'),
       project: 'friktion',
-      symbol: `${currentVolt.depositTokenSymbol} (${startCase(poolId)})`,
+      symbol: `${currentVolt.depositTokenSymbol} (${voltTypeMapping[voltType]})`,
       tvlUsd: Number(poolsTvl[poolId]),
       apyBase: currentVolt.apy,
     };
