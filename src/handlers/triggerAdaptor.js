@@ -45,8 +45,8 @@ const main = async (body) => {
 
   // 2. filter tvl to be btw lb-ub
   data = data.filter(
-    (el) =>
-      el.tvlUsd >= boundaries.tvlUsdDB.lb && el.tvlUsd <= boundaries.tvlUsdDB.ub
+    (p) =>
+      p.tvlUsd >= boundaries.tvlUsdDB.lb && p.tvlUsd <= boundaries.tvlUsdDB.ub
   );
 
   // 3. nullify NaN, undefined or Infinity apy values
