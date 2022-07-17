@@ -1,6 +1,6 @@
 const poolModel = require('../models/pool');
 const AppError = require('../utils/appError');
-const { boundaries } = require('../utils/exclude');
+const exclude = require('../utils/exclude');
 const dbConnection = require('../utils/dbConnection.js');
 
 module.exports.handler = async (event, context) => {
@@ -46,7 +46,8 @@ const main = async (body) => {
   // 2. filter tvl to be btw lb-ub
   data = data.filter(
     (p) =>
-      p.tvlUsd >= boundaries.tvlUsdDB.lb && p.tvlUsd <= boundaries.tvlUsdDB.ub
+      p.tvlUsd >= exclude.boundaries.tvlUsdDB.lb &&
+      p.tvlUsd <= exclude.boundaries.tvlUsdDB.ub
   );
 
   // 3. nullify NaN, undefined or Infinity apy values
@@ -62,17 +63,22 @@ const main = async (body) => {
     (p) => !(p.apy === null && p.apyBase === null && p.apyReward === null)
   );
 
-  // derive final total apy in case only apyBase and/or apyReward are given
+  // 5. derive final total apy in case only apyBase and/or apyReward are given
   data = data.map((p) => ({
     ...p,
     apy: p.apy ?? p.apyBase + p.apyReward,
   }));
 
-  // remove pools pools based on apy boundaries
+  // 6. remove pools pools based on apy boundaries
   data = data.filter(
     (p) =>
-      p.apy !== null && p.apy >= boundaries.apy.lb && p.apy <= boundaries.apy.ub
+      p.apy !== null &&
+      p.apy >= exclude.boundaries.apy.lb &&
+      p.apy <= exclude.boundaries.apy.ub
   );
+
+  // 7. remove exclusion pools
+  data = data.filter((p) => !exclude.excludePools.includes(p.pool));
 
   // add the timestamp field
   // will be rounded to the nearest hour
