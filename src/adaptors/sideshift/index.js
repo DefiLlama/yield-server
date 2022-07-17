@@ -10,7 +10,7 @@ const main = async () => {
       project: 'sideshift',
       symbol: utils.formatSymbol('svXAI'),
       tvlUsd: Number(stats.totalValueLocked),
-      apy: Number(stats.averageAnnualPercentageYield),
+      apy: Number(stats.latestAnnualPercentageYield),
     },
   ];
 };
