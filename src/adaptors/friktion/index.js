@@ -36,7 +36,7 @@ async function tvl() {
       project: 'friktion',
       symbol: `${currentVolt.depositTokenSymbol} (${startCase(poolId)})`,
       tvlUsd: Number(poolsTvl[poolId]),
-      apy: currentVolt.apy,
+      apyBase: currentVolt.apy,
     };
     pools.push(poolObj);
   }
