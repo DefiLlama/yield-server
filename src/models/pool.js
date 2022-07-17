@@ -44,10 +44,7 @@ const poolSchema = new mongoose.Schema(
     },
     apy: {
       type: Number,
-      // either i set it to default null here or I'll need to replace
-      // NaN and null values from the adaptors with 0? but that would imply a zero apy, which is just
-      // misleading, so I rather remove the required in here
-      default: null,
+      required: [true, 'A pool must have an apy field'],
     },
     rewardTokens: {
       type: [String],
