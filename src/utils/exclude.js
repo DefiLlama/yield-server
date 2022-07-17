@@ -7,7 +7,7 @@ const excludePools = ['0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d'];
 
 const boundaries = {
   // we only insert pools into the db with a tvlUsd of minimum $1k
-  tvlUsdDB: { lb: 1e3 },
+  tvlUsdDB: { lb: 1e3, ub: 2e10 },
   // we only get pools for the UI with a tvlUsd of minimum $10k and max ($20 billion)
   tvlUsdUI: { lb: 1e4, ub: 2e10 },
   // we only get pools for the UI with a maximum apy of 1million %
