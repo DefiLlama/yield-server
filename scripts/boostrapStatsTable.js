@@ -5,7 +5,7 @@ const ss = require('simple-statistics');
 
 const { confirm } = require('../src/utils/confirm');
 const { boundaries } = require('../src/utils/exclude');
-const { insertStats } = require('../src/api/controllers');
+const { insertStats } = require('../src/handlers/triggerStats');
 
 // set config (we run this script locally)
 const credentials = new AWS.SharedIniFileCredentials({ profile: 'defillama' });

@@ -1,6 +1,9 @@
 const superagent = require('superagent');
-const { insertStats } = require('../api/controllers');
+
+const statModel = require('../models/stat');
+const AppError = require('../utils/appError');
 const { welfordUpdate } = require('../utils/welford');
+const dbConnection = require('../utils/dbConnection.js');
 
 module.exports.handler = async () => {
   await main();
@@ -22,3 +25,41 @@ const main = async () => {
   const response = await insertStats(payload);
   console.log(response);
 };
+
+const insertStats = async (payload) => {
+  const conn = await dbConnection.connect();
+  const M = conn.model(statModel.modelName);
+
+  const bulkOperations = [];
+  for (const el of payload) {
+    bulkOperations.push({
+      updateOne: {
+        filter: { pool: el.pool },
+        update: {
+          $set: {
+            count: el.count,
+            meanAPY: el.meanAPY,
+            mean2APY: el.mean2APY,
+            meanDR: el.meanDR,
+            mean2DR: el.mean2DR,
+            productDR: el.productDR,
+          },
+        },
+        upsert: true,
+      },
+    });
+  }
+  const response = await M.bulkWrite(bulkOperations);
+
+  if (!response) {
+    return new AppError("Couldn't update data", 404);
+  }
+
+  return {
+    status: 'success',
+    response,
+  };
+};
+
+// for boostrapStatsTable.js
+module.exports.insertStats = insertStats;

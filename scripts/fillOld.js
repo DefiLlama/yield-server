@@ -2,8 +2,12 @@ const path = require('path');
 const dotenv = require('dotenv');
 
 const AWS = require('aws-sdk');
-const { insertPools, deletePools } = require('../src/api/controllers');
+
+const poolModel = require('../models/pool');
+const AppError = require('../utils/appError');
 const { confirm } = require('../src/utils/confirm');
+const dbConnection = require('../api/dbConnection.js');
+const { insertPools } = require('../src/handlers/triggerAdaptor');
 
 const credentials = new AWS.SharedIniFileCredentials({ profile: 'defillama' });
 AWS.config.credentials = credentials;
@@ -84,3 +88,31 @@ dotenv.config({ path: './config.env' });
 
   process.exit(0);
 })();
+
+const deletePools = async (timestamp, project) => {
+  const conn = await dbConnection.connect();
+  const M = conn.model(poolModel.modelName);
+
+  const lb = new Date(timestamp * 1000);
+  const ub = new Date((timestamp + 86400) * 1000);
+
+  // we filter to a project and the current timestamp from midnight up to the next day midnight
+  // eg timestamp 1649116800 == 2022-04-05T00:00:00.000Z
+  // lb == 2022-04-05T00:00:00.000Z; ub == 2022-04-06T00:00:00.000Z
+  // we remove everything >= lb up to < ub
+  const filter = {
+    project,
+    timestamp: { $gte: lb, $lt: ub },
+  };
+
+  const response = await M.deleteMany(filter);
+
+  if (!response) {
+    return new AppError("Couldn't delete data", 404);
+  }
+
+  return {
+    status: 'success',
+    response,
+  };
+};

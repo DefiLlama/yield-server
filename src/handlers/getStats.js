@@ -1,4 +1,4 @@
-const dbConnection = require('../api/dbConnection.js');
+const dbConnection = require('../utils/dbConnection.js');
 const statModel = require('../models/stat');
 const AppError = require('../utils/appError');
 

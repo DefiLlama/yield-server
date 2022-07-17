@@ -1,5 +1,7 @@
-const { insertPools } = require('../api/controllers');
+const poolModel = require('../models/pool');
+const AppError = require('../utils/appError');
 const { boundaries } = require('../utils/exclude');
+const dbConnection = require('../utils/dbConnection.js');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -72,3 +74,21 @@ const main = async (body) => {
   const response = await insertPools(data);
   console.log(response);
 };
+
+const insertPools = async (payload) => {
+  const conn = await dbConnection.connect();
+  const M = conn.model(poolModel.modelName);
+
+  const response = await M.insertMany(payload);
+
+  if (!response) {
+    return new AppError("Couldn't insert data", 404);
+  }
+
+  return {
+    status: 'success',
+    response: `Inserted ${payload.length} samples`,
+  };
+};
+
+module.exports.insertPools = insertPools;
