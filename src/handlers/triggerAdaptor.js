@@ -30,34 +30,49 @@ module.exports.handler = async (event, context) => {
   };
 };
 
-// func for running adaptor, storing result to db (filtered) and s3 (unfiltered)
+// func for running adaptor, storing result to db
 const main = async (body) => {
   // run adaptor
   console.log(body.adaptor);
   const project = require(`../adaptors/${body.adaptor}/index.js`);
   let data = await project.apy();
 
-  // remove potential null/undefined objects in array
+  // before storing the data into the db, we check for finite number values
+  // and remove everything not defined within the allowed apy and tvl boundaries
+
+  // 1. remove potential null/undefined objects in array
   data = data.filter((p) => p);
 
-  // nullify potential NaN/undefined apy values
+  // 2. filter tvl to be btw lb-ub
+  data = data.filter(
+    (el) =>
+      el.tvlUsd >= boundaries.tvlUsdDB.lb && el.tvlUsd <= boundaries.tvlUsdDB.ub
+  );
+
+  // 3. nullify NaN, undefined or Infinity apy values
   data = data.map((p) => ({
     ...p,
-    apy: isNaN(p.apy) ? null : p.apy,
-    apyBase: isNaN(p.apyBase) ? null : p.apyBase,
-    apyReward: isNaN(p.apyReward) ? null : p.apyReward,
+    apy: Number.isFinite(p.apy) ? p.apy : null,
+    apyBase: Number.isFinite(p.apyBase) ? p.apyBase : null,
+    apyReward: Number.isFinite(p.apyReward) ? p.apyReward : null,
   }));
 
-  // remove pools where all 3 apy related fields are null
+  // 4. remove pools where all 3 apy related fields are null
   data = data.filter(
     (p) => !(p.apy === null && p.apyBase === null && p.apyReward === null)
   );
 
-  // derive final apy field via:
+  // derive final total apy in case only apyBase and/or apyReward are given
   data = data.map((p) => ({
     ...p,
     apy: p.apy ?? p.apyBase + p.apyReward,
   }));
+
+  // remove pools pools based on apy boundaries
+  data = data.filter(
+    (p) =>
+      p.apy !== null && p.apy >= boundaries.apy.lb && p.apy <= boundaries.apy.ub
+  );
 
   // add the timestamp field
   // will be rounded to the nearest hour
@@ -65,10 +80,7 @@ const main = async (body) => {
   const timestamp = new Date(
     Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
   );
-  data = data
-    .map((p) => ({ ...p, timestamp: timestamp }))
-    // remove everything below LB ($1k)
-    .filter((el) => el.tvlUsd >= boundaries.tvlUsdDB.lb);
+  data = data.map((p) => ({ ...p, timestamp: timestamp }));
 
   console.log('saving data to DB');
   const response = await insertPools(data);
