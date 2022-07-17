@@ -6,7 +6,7 @@ const cmUMAMI_ADDRESS = '0x1922c36f3bc762ca300b4a46bb2102f84b1684ab';
 const main = async () => {
   const {
     data: { marinate, mUmamiCompounder },
-  } = await axios.get('https://horseysauce.xyz/');
+  } = await axios.get('https://api.umami.finance/api/v1/marinate');
 
   const mUMAMI = {
     pool: mUMAMI_ADDRESS,
