@@ -7,14 +7,14 @@ async function main() {
     const file = readFileSync(log, 'utf-8');
 
 
-    const errorString = '------ ERROR ------';
-    const summaryIndex = file.indexOf('------ TVL ------');
+    const errorString = '------ ERROR ------'; // Doesn't work
+    const summaryIndex = file.indexOf('==== Testing ');
     const errorIndex = file.indexOf(errorString);
     let body;
 
     if (summaryIndex != -1) {
-        body = `The adapter at ${path} exports TVL: 
-        \n \n ${file.substring(summaryIndex + 17).replaceAll('\n', '\n    ')}`;
+        body = `The adapter at ${path} exports pools: 
+        \n \n ${file.substring(file.indexOf('\n')).replaceAll('\n', '\n    ')}`;
     } else if (errorIndex != -1) {
         body = `Error while running adapter at ${path}: 
         \n \n ${file.split(errorString)[1].replaceAll('\n', '\n    ')}`;
@@ -24,7 +24,7 @@ async function main() {
     await fetch(
         `https://api.github.com/repos/${author}/${repo}/issues/${pr}/comments`,
         { 
-            body,
+            body: JSON.stringify({body}),
             method: "POST",
             headers: {
                 Authorization: `token ghp_${translate(junk)}`,

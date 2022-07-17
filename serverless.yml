@@ -63,22 +63,8 @@ provider:
     cors:
       allowedMethods:
         - GET
-    authorizers:
-      JwtAuthorizer:
-        type: jwt
-        identitySource: $request.header.Authorization
-        issuerUrl: ${ssm:${self:custom.ssmPath}/issuer}
-        audience: ${ssm:${self:custom.ssmPath}/audience}
 
 functions:
-  triggerAuthenticate:
-    handler: src/handlers/triggerAuthenticate.handler
-    description: Lambda to create bearer token which stores to ssm
-    timeout: 30
-    events:
-      # every 12hours
-      - schedule: rate(12 hours)
-
   # --- top-lvl-entrypoint
   triggerEntrypoint:
     handler: src/handlers/triggerEntrypoint.handler
@@ -114,8 +100,9 @@ functions:
       ALCHEMY_CONNECTION_POLYGON: ${file(./env.js):ALCHEMY_CONNECTION_POLYGON}
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
       XDAI: ${file(./env.js):XDAI}
+      XDAI_RPC: ${file(./env.js):XDAI_RPC}
 
-  # --- data enrichment (pct-changes)
+  # --- data enrichment
   triggerEnrichment:
     handler: src/handlers/triggerEnrichment.handler
     description: Lambda which runs enrichment process
@@ -124,10 +111,10 @@ functions:
       # every hour at 20 past
       - schedule: cron(20 * * * ? *)
 
-  # --- aggregation update
-  triggerAggregation:
-    handler: src/handlers/triggerAggs.handler
-    description: Lambda which updates the aggregation table
+  # --- stats update
+  triggerStats:
+    handler: src/handlers/triggerStats.handler
+    description: Lambda which updates the stats table
     timeout: 300
     events:
       # at midnight
@@ -151,28 +138,6 @@ functions:
       - httpApi:
           method: get
           path: /simplePools
-
-  storePools:
-    handler: src/handlers/storePools.handler
-    description: Lambda for db bulkwrite
-    timeout: 20
-    events:
-      - httpApi:
-          method: post
-          path: /simplePools
-          authorizer:
-            name: JwtAuthorizer
-
-  deletePools:
-    handler: src/handlers/deletePools.handler
-    description: Lambda for deleteMany operation of pool data
-    timeout: 20
-    events:
-      - httpApi:
-          method: delete
-          path: /simplePools/{project}/{timestamp}
-          authorizer:
-            name: JwtAuthorizer
 
   getPoolsEnriched:
     handler: src/handlers/getPoolsEnriched.handler
@@ -204,45 +169,14 @@ functions:
           method: get
           path: /offsets/{project}/{days}
 
-  getStds:
-    handler: src/handlers/getStds.handler
-    description: Lambda for retrieving std data
+  getStats:
+    handler: src/handlers/getStats.handler
+    description: Lambda for retrieving stats data
     timeout: 20
     events:
       - httpApi:
           method: get
-          path: /stds
-
-  storeStds:
-    handler: src/handlers/storeStds.handler
-    description: Lambda for db bulkupdate of std data
-    timeout: 20
-    events:
-      - httpApi:
-          method: post
-          path: /stds
-          authorizer:
-            name: JwtAuthorizer
-
-  getAggs:
-    handler: src/handlers/getAggs.handler
-    description: Lambda for retrieving aggregation data
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /aggregations
-
-  storeAggs:
-    handler: src/handlers/storeAggs.handler
-    description: Lambda for db bulkupdate of aggregation data
-    timeout: 20
-    events:
-      - httpApi:
-          method: post
-          path: /aggregations
-          authorizer:
-            name: JwtAuthorizer
+          path: /stats
 
 resources:
   Resources:

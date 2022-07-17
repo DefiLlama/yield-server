@@ -493,9 +493,20 @@ function sortByKey(apys, key) {
   );
 }
 async function apy(chainId) {
-  const apys = (
+  let apys = (
     await axios.get(`https://api.homora.alphaventuredao.io/v2/${chainId}/apys`)
   ).data;
+
+  // NOTE(slasher): new pool on fantom (beethoven pool) was added which requires different abi,
+  // for now just excluding this so that the adaptor doesn't break for the pools we are already tracking
+  // until fix is deployed for new pool
+  if (chainId === 250) {
+    apys = Object.fromEntries(
+      Object.entries(apys).filter(
+        (p) => p[0] !== 'wchef-0xed0dcec4d50b6374971ad7c7180f80775eaff1ef-17'
+      )
+    );
+  }
 
   return [
     ...(await chefs(sortByKey(apys, 'wchef'), chainId)),

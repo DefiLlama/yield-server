@@ -8,18 +8,19 @@ const urlTvl = 'https://api.beefy.finance/tvl';
 // NOTE(!) some of those sometimes are in the api response, sometimes they aren't...
 // need to check with team
 const networkMapping = {
+  10: 'optimism',
   43114: 'avalanche',
-  // 1666600000: 'harmony',
+  1666600000: 'harmony',
   42220: 'celo',
   42161: 'arbitrum',
-  // 1285: 'moonriver',
-  // 1088: 'metis',
+  1285: 'moonriver',
+  1088: 'metis',
   250: 'fantom',
   137: 'polygon',
-  // 128: 'heco',
-  // 122: 'fuse',
+  128: 'heco',
+  122: 'fuse',
   56: 'binance',
-  // 25: 'cronos',
+  25: 'cronos',
 };
 
 const apy = (dataTvl, dataApy, networkMapping) => {
