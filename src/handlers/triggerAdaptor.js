@@ -1,9 +1,10 @@
-const superagent = require('superagent');
-const SSM = require('aws-sdk/clients/ssm');
+const poolModel = require('../models/pool');
+const AppError = require('../utils/appError');
+const exclude = require('../utils/exclude');
+const dbConnection = require('../utils/dbConnection.js');
 
-const utils = require('../utils/s3');
-
-module.exports.handler = async (event) => {
+module.exports.handler = async (event, context) => {
+  context.callbackWaitsForEmptyEventLoop = false;
   console.log(event);
 
   // We return failed msg ids,
@@ -29,12 +30,55 @@ module.exports.handler = async (event) => {
   };
 };
 
-// func for running adaptor, storing result to db (filtered) and s3 (unfiltered)
+// func for running adaptor, storing result to db
 const main = async (body) => {
   // run adaptor
   console.log(body.adaptor);
   const project = require(`../adaptors/${body.adaptor}/index.js`);
   let data = await project.apy();
+
+  // before storing the data into the db, we check for finite number values
+  // and remove everything not defined within the allowed apy and tvl boundaries
+
+  // 1. remove potential null/undefined objects in array
+  data = data.filter((p) => p);
+
+  // 2. filter tvl to be btw lb-ub
+  data = data.filter(
+    (p) =>
+      p.tvlUsd >= exclude.boundaries.tvlUsdDB.lb &&
+      p.tvlUsd <= exclude.boundaries.tvlUsdDB.ub
+  );
+
+  // 3. nullify NaN, undefined or Infinity apy values
+  data = data.map((p) => ({
+    ...p,
+    apy: Number.isFinite(p.apy) ? p.apy : null,
+    apyBase: Number.isFinite(p.apyBase) ? p.apyBase : null,
+    apyReward: Number.isFinite(p.apyReward) ? p.apyReward : null,
+  }));
+
+  // 4. remove pools where all 3 apy related fields are null
+  data = data.filter(
+    (p) => !(p.apy === null && p.apyBase === null && p.apyReward === null)
+  );
+
+  // 5. derive final total apy in case only apyBase and/or apyReward are given
+  data = data.map((p) => ({
+    ...p,
+    apy: p.apy ?? p.apyBase + p.apyReward,
+  }));
+
+  // 6. remove pools pools based on apy boundaries
+  data = data.filter(
+    (p) =>
+      p.apy !== null &&
+      p.apy >= exclude.boundaries.apy.lb &&
+      p.apy <= exclude.boundaries.apy.ub
+  );
+
+  // 7. remove exclusion pools
+  data = data.filter((p) => !exclude.excludePools.includes(p.pool));
 
   // add the timestamp field
   // will be rounded to the nearest hour
@@ -42,35 +86,27 @@ const main = async (body) => {
   const timestamp = new Date(
     Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
   );
-  for (const d of data) {
-    d['timestamp'] = timestamp;
+  data = data.map((p) => ({ ...p, timestamp: timestamp }));
+
+  console.log('saving data to DB');
+  const response = await insertPools(data);
+  console.log(response);
+};
+
+const insertPools = async (payload) => {
+  const conn = await dbConnection.connect();
+  const M = conn.model(poolModel.modelName);
+
+  const response = await M.insertMany(payload);
+
+  if (!response) {
+    return new AppError("Couldn't insert data", 404);
   }
 
-  // filter to $1k usd tvl
-  const tvlMinThr = 1e3;
-  dataDB = data.filter((el) => el.tvlUsd >= tvlMinThr);
-  console.log('saving data to DB');
-
-  // get cached access token
-  const ssm = new SSM();
-  const options = {
-    Name: `${process.env.SSM_PATH}/bearertoken`,
-    WithDecryption: true,
+  return {
+    status: 'success',
+    response: `Inserted ${payload.length} samples`,
   };
-  const token = await ssm.getParameter(options).promise();
-  // save to db
-  const response = await superagent
-    .post(`${process.env.APIG_URL}/simplePools`)
-    .send(dataDB)
-    .set({ Authorization: `Bearer ${token.Parameter.Value}` });
-  console.log(response.body);
-
-  // save unfiltered backup to s3
-  console.log('saving data to S3');
-  const d = new Date();
-  const dd = d.toISOString().split('T');
-  const bucket = process.env.BUCKET_DATA;
-  const key = `base/${dd[0]}/${d.getHours()}/${dd[1]}_${body.adaptor}.json`;
-
-  await utils.writeToS3(bucket, key, data);
 };
+
+module.exports.insertPools = insertPools;
