@@ -12,12 +12,12 @@ const getPools = async () => {
     );
 
     const tdot = {
-        pool: 'acala-sa://0',
+        pool: 'acala-sa://0-tapio',
         chain: 'acala',
         project: 'tapio-protocol',
         symbol: 'tDOT',
         tvlUsd: Number(tdotData.tvl) * Number(dotPrice.polkadot.usd),
-        apyBase: tdotApr["sa://0"],
+        apyBase: Number(tdotApr["sa://0"]) * 100,
     };
 
     return [tdot];
