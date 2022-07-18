@@ -1,10 +1,19 @@
 const utils = require('../utils');
 
-const API_URL = 'https://api.venus.io/api/governance/venus';
+const API_URL: string = 'https://api.venus.io/api/governance/venus';
+
+interface Market {
+  address: string;
+  underlyingSymbol: string;
+  totalSupplyUsd: string;
+  totalBorrowsUsd: string;
+  supplyApy: string;
+  supplyVenusApy: string;
+}
 
 const getApy = async () => {
   const markets = await utils.getData(API_URL);
-  const marketsData = markets.data.markets;
+  const marketsData: Array<Market> = markets.data.markets;
 
   const pools = marketsData.map((market) => ({
     pool: market.address,
