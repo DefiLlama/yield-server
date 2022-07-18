@@ -90,9 +90,8 @@ const getGaugesByChain = async () => {
       gaugeDatum
     );
     // gauge address on pools crv API is lowercase
-    gaugesDataByChain[blockchainId][
-      _gaugeDatum.gauge.toLowerCase()
-    ] = _gaugeDatum;
+    gaugesDataByChain[blockchainId][_gaugeDatum.gauge.toLowerCase()] =
+      _gaugeDatum;
   }
 
   return gaugesDataByChain;
@@ -124,6 +123,7 @@ const getPoolAPR = (pool, subgraph, gauge, crvPrice) => {
   const relativeWeight = BigNumber(
     gauge.gauge_controller.gauge_relative_weight
   ).div(decimals);
+  const totalSupply = BigNumber(pool.totalSupply).div(decimals);
 
   const virtualPrice = BigNumber(subgraph.virtualPrice).div(decimals);
   const nominator = pool.coins
@@ -134,13 +134,14 @@ const getPoolAPR = (pool, subgraph, gauge, crvPrice) => {
     .reduce((a, b) => a.plus(b));
   const assetPrice = nominator.div(denominator);
   try {
-    const poolAPR = crvPriceBN
-      .times(inflationRate)
+    const poolAPR = inflationRate
       .times(relativeWeight)
-      .times(12614400)
+      .times(31536000)
+      .times(0.4)
       .div(workingSupply)
-      .div(assetPrice)
-      .div(virtualPrice)
+      .times(totalSupply)
+      .div(pool.usdTotalExcludingBasePool)
+      .times(crvPrice)
       .times(100);
     return poolAPR.toNumber();
   } catch (error) {
@@ -168,9 +169,9 @@ const main = async () => {
     ])
   );
   const blockchainToPoolPromise = Object.fromEntries(
-    BLOCKCHAINIDS.filter(
-      (blockchainId) => blockchainId !== 'ethereum'
-    ).map((blockchainId) => [blockchainId, getPools(blockchainId)])
+    BLOCKCHAINIDS.filter((blockchainId) => blockchainId !== 'ethereum').map(
+      (blockchainId) => [blockchainId, getPools(blockchainId)]
+    )
   );
 
   // we need the ethereum data first for the crv prive and await extra query to CG
@@ -192,7 +193,7 @@ const main = async () => {
       // one gauge can have multiple (different) extra rewards
       const extraRewards = gaugeAddressToExtraRewards[pool.gaugeAddress];
 
-      const apyBase = subgraph ? parseFloat(subgraph.latestDailyApy) : 0
+      const apyBase = subgraph ? parseFloat(subgraph.latestDailyApy) : 0;
       const aprCrv =
         gauge && subgraph ? getPoolAPR(pool, subgraph, gauge, priceCrv) : 0;
       const aprExtra = extraRewards
@@ -202,14 +203,16 @@ const main = async () => {
       // tokens are listed using their contract addresses
       // https://github.com/DefiLlama/yield-server#adaptors
       const underlyingTokens = pool.coins.map((coin) => coin.address);
-      const rewardTokens = extraRewards ? extraRewards.map(reward => reward.tokenAddress) : []
+      const rewardTokens = extraRewards
+        ? extraRewards.map((reward) => reward.tokenAddress)
+        : [];
       if (aprCrv) {
-        rewardTokens.push('0xD533a949740bb3306d119CC777fa900bA034cd52') // CRV
+        rewardTokens.push('0xD533a949740bb3306d119CC777fa900bA034cd52'); // CRV
       }
 
-      const tvlUsd = pool.usdTotal
+      const tvlUsd = pool.usdTotal;
       if (!tvlUsd) {
-        continue
+        continue;
       }
 
       defillamaPooldata.push({
