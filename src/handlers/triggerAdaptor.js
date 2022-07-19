@@ -80,13 +80,25 @@ const main = async (body) => {
   // 7. remove exclusion pools
   data = data.filter((p) => !exclude.excludePools.includes(p.pool));
 
-  // add the timestamp field
+  // 8. add the timestamp field
   // will be rounded to the nearest hour
   // eg 2022-04-06T10:00:00.000Z
   const timestamp = new Date(
     Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
   );
   data = data.map((p) => ({ ...p, timestamp: timestamp }));
+
+  // 9. add project name prefix to pool field if not present already from adaptor itself
+  // reason: while we test for duplicated pools within a project and against all other projects
+  // when an adaptor is being added, we want to make sure that newly listed pools form a project eg uniswap
+  // do not clash against same ids from other projects. hence why we add the project name as a prefix to the
+  // pool string
+  data = data.map((p) => ({
+    ...p,
+    pool: p.pool.toLowerCase().includes(p.project.toLowerCase())
+      ? p.pool
+      : `${p.project}-${p.pool}`,
+  }));
 
   console.log('saving data to DB');
   const response = await insertPools(data);

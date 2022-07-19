@@ -32,6 +32,18 @@ const passedFile = path.resolve(process.cwd(), f);
   apy = apy.sort((a, b) => b.tvlUsd - a.tvlUsd);
   console.log(`\nAdaptor Runtime: ${(time() - start).toFixed(2)} sec`);
 
+  // add project name prefix to pool field if not present already from adaptor itself
+  // reason: while we test for duplicated pools within a project and against all other projects
+  // when an adaptor is being added, we want to make sure that newly listed pools form a project eg uniswap
+  // do not clash against same ids from other projects. hence why we add the project name as a prefix to the
+  // pool string
+  apy = apy.map((p) => ({
+    ...p,
+    pool: p.pool.toLowerCase().includes(p.project.toLowerCase())
+      ? p.pool
+      : `${p.project}-${p.pool}`,
+  }));
+
   // check
   console.log(`\nRunning tests...`);
   const uniquePoolIdentifiers = new Set();
