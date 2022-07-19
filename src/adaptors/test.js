@@ -8,10 +8,10 @@ const baseFields = {
   chain: 'string',
   project: 'string',
   symbol: 'string',
-  tvlUsd: 'number',
 };
 
-const apyTypes = ['number', 'object'];
+// tvlUsd: finite Number
+// apy, apyBase, apyReward (min 1 field): finite Number
 
 if (process.argv.length < 3) {
   console.error(`Missing argument, you need to provide the filename of the adapter to test.
@@ -32,6 +32,12 @@ const passedFile = path.resolve(process.cwd(), f);
   apy = apy.sort((a, b) => b.tvlUsd - a.tvlUsd);
   console.log(`\nAdaptor Runtime: ${(time() - start).toFixed(2)} sec`);
 
+  // store full adaptor output for checks
+  fs.writeFileSync(
+    `./${f.split('/').slice(-2, -1)[0] + '_output'}.json`,
+    JSON.stringify(apy)
+  );
+
   // check
   console.log(`\nRunning tests...`);
   const uniquePoolIdentifiers = new Set();
@@ -48,29 +54,48 @@ const passedFile = path.resolve(process.cwd(), f);
     let n = 0;
     for (const a of ['apy', 'apyBase', 'apyReward']) {
       if (Object.keys(pool).includes(a)) {
-        if (apyTypes.includes(typeof pool[a])) {
+        if (Number.isFinite(pool[a])) {
           n += 1;
-        } else {
-          throw new Error(
-            `Key ${a} of pool ${
-              pool.pool
-            } should be one of "${apyTypes}" but is ${typeof pool[a]}`
-          );
         }
       }
     }
     if (n === 0) {
+      console.log(pool);
       throw new Error(
-        `Pool ${pool.pool} requires at least one apy related field (apy, apyBase or apyReward) but only has ${pool}`
+        `Pool ${pool.pool} requires at least one apy related field (apy, apyBase or apyReward) which is a finite Number`
+      );
+    }
+
+    // tvl field
+    if (!Number.isFinite(pool['tvlUsd'])) {
+      throw new Error(
+        `tvlUsd of pool ${pool.pool} should be a finite Number but is ${pool['tvlUsd']}`
       );
     }
 
     // base fields
     for (const [key, intendedType] of Object.entries(baseFields)) {
-      if (!intendedType.includes(typeof pool[key])) {
+      if (typeof pool[key] !== intendedType) {
         throw new Error(
           `Key ${key} of pool ${pool.pool} should be "${intendedType}" but is ${pool[key]}`
         );
+      }
+    }
+
+    // rewardTokens
+    for (const f of ['rewardTokens', 'underlyingTokens']) {
+      if (pool[f]) {
+        if (pool[f].length === 0) continue;
+        if (
+          !pool[f] instanceof Array ||
+          new Set(pool[f].map((s) => typeof s)).size > 1 ||
+          !new Set(pool[f].map((s) => typeof s)).has('string')
+        ) {
+          console.log(pool);
+          throw new Error(
+            `Key ${f} of pool ${pool.pool} should be an Array of string values`
+          );
+        }
       }
     }
   });
@@ -113,12 +138,6 @@ const passedFile = path.resolve(process.cwd(), f);
   } else {
     console.log('\nSample pools:', apy.slice(0, 10));
   }
-
-  // store full adaptor output for checks
-  fs.writeFileSync(
-    `./${f.split('/').slice(-2, -1)[0] + '_output'}.json`,
-    JSON.stringify(apy)
-  );
 
   process.exit(0);
 })();

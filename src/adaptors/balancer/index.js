@@ -109,7 +109,8 @@ const tvl = (entry, tokenPriceList) => {
     id: entry.id,
     symbol: balanceDetails.map((tok) => tok.symbol).join('-'),
     tvl: 0,
-    totalShares: entry.totalShares
+    totalShares: entry.totalShares,
+    tokensList: entry.tokensList,
   };
   for (const el of balanceDetails) {
     // some addresses are from tokens which are not listed on coingecko so these will result in undefined
@@ -175,6 +176,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
     const gauge = new web3.eth.Contract(gaugeABI, pool.id);
 
     const aprLMRewards = [];
+    const rewardTokens = [];
 
     if (chainString === 'ethereum') {
       // get relative weight (of base BAL token rewards for a pool)
@@ -194,6 +196,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
         const yearlyReward = weeklyReward * 52 * prices[balToken].usd;
         const aprLM = (yearlyReward / bptPrice) * 100;
         aprLMRewards.push(aprLM === Infinity ? 0 : aprLM);
+        rewardTokens.push(balToken);
       }
     }
 
@@ -226,12 +229,15 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
       const aprLM = (yearlyRewards / bptPrice) * 100;
 
       aprLMRewards.push(aprLM === Infinity ? null : aprLM);
+      rewardTokens.push(add);
     }
 
     // add up individual LM rewards
     x.aprLM = aprLMRewards
       .filter((i) => isFinite(i))
       .reduce((a, b) => a + b, 0);
+
+    x.rewardTokens = rewardTokens;
   }
   return data;
 };
@@ -252,7 +258,10 @@ const buildPool = (el, chainString) => {
     project: 'balancer',
     symbol: utils.formatSymbol(el.symbol),
     tvlUsd: el.tvl,
-    apy: el.aprFee + (el?.aprLM ?? 0),
+    apyBase: el.aprFee,
+    apyReward: el.aprLM,
+    rewardTokens: el.rewardTokens,
+    underlyingTokens: el.tokensList,
   };
 
   return newObj;
@@ -375,7 +384,7 @@ const main = async () => {
     ),
   ]);
 
-  return data.flat();
+  return data.flat().filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
