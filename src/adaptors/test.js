@@ -34,9 +34,9 @@ const passedFile = path.resolve(process.cwd(), f);
 
   // add project name prefix to pool field if not present already from adaptor itself
   // reason: while we test for duplicated pools within a project and against all other projects
-  // when an adaptor is being added, we want to make sure that newly listed pools form a project eg uniswap
-  // do not clash against same ids from other projects. hence why we add the project name as a prefix to the
-  // pool string
+  // during the PR phase, we also want to make sure once an adaptor is live, newly listed pool ids which weren't present
+  // during development don't clash with existing ones. hence why we add the project name as a prefix to the
+  // pool string.
   apy = apy.map((p) => ({
     ...p,
     pool: p.pool.toLowerCase().includes(p.project.toLowerCase())
