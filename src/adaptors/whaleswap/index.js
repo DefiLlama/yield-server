@@ -169,7 +169,6 @@ const main = async () => {
           tvlUsd: Number(reserveUSD),
           apyBase: apy.swapFeeApr,
           apyReward: apy.stakingApr,
-          apy: apy.combinedApr,
           rewardTokens: ['0xDDed222297B3d08DAFDAc8f65eeB799B2674C78F'],
           underlyingTokens: [pairInfo.token0.id, pairInfo.token1.id],
         };
