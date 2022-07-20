@@ -1,3 +1,5 @@
+const superagent = require('superagent');
+
 const utils = require('../utils');
 const pools = require('./pools');
 
@@ -27,10 +29,17 @@ const getDataEth = async () => {
   const poolStats = [];
 
   // 1) get price data
-  const pricesUSD = await utils.getCGpriceData(
-    'ethereum,bitcoin,chainlink,stasis-eurs',
-    true
-  );
+  const addresses = {
+    ethereum: 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    bitcoin: 'ethereum:0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
+    chainlink: 'ethereum:0x514910771af9ca656af840dff83e8264ecf986ca',
+    'stasis-eurs': 'ethereum:0x514910771af9ca656af840dff83e8264ecf986ca',
+  };
+  const pricesUSD = (
+    await superagent.post('https://coins.llama.fi/prices').send({
+      coins: Object.values(addresses),
+    })
+  ).body.coins;
 
   // 2) get complete base apy data (this does not include any of the factory pool data...)
   const [dataBaseApy, keysExtra] = await mergeBaseApy();
@@ -57,13 +66,13 @@ const getDataEth = async () => {
     // usd pools are 1, btc pools need to be multiplied by the btc price etc
     // cause total supply is in the native unit, like balance
     if (pool.includes('eth')) {
-      price = pricesUSD.ethereum.usd;
+      price = pricesUSD[addresses.ethereum].price;
     } else if (pool.includes('btc')) {
-      price = pricesUSD.bitcoin.usd;
+      price = pricesUSD[addresses.bitcoin].price;
     } else if (pool.includes('link')) {
-      price = pricesUSD.chainlink.usd;
+      price = pricesUSD[addresses.chainlink].price;
     } else if (pool.includes('eur')) {
-      price = pricesUSD['stasis-eurs'].usd;
+      price = pricesUSD[addresses['stasis-eurs']].price;
     } else {
       price = 1;
     }
