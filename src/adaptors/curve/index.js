@@ -273,5 +273,5 @@ module.exports = {
   apy: main,
   // legacy needed by convex-finance adaptor
   curvePoolStats: legacy.curvePoolStats,
-  tokenMapping: legacy.tokenMapping['ethereum'],
+  tokenMapping: legacy.tokenMapping,
 };
