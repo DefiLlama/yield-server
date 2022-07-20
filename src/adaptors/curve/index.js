@@ -223,7 +223,7 @@ const main = async () => {
       }
 
       const tvlUsd = pool.usdTotal;
-      if (tvlUsd < 10) {
+      if (tvlUsd < 1) {
         continue;
       }
 
@@ -243,17 +243,16 @@ const main = async () => {
 
   // group Promises by blockchain and feed the llama array
   const responses = [];
-  for (const [blockchainId, poolSubgraphPromise] of Object.entries(
-    blockchainToPoolSubgraphPromise
+  for (const [blockchainId, poolPromise] of Object.entries(
+    blockchainToPoolPromise
   )) {
     responses.push(
       Promise.all([
-        poolSubgraphPromise,
+        poolPromise,  
+        blockchainToPoolSubgraphPromise[blockchainId],
         gaugePromise,
         extraRewardPromise,
-      ]).then((APYandGaugeData) =>
-        feedLlama([ethereumPools, ...APYandGaugeData], blockchainId)
-      )
+      ]).then((poolData) => feedLlama(poolData, blockchainId))
     );
   }
 
