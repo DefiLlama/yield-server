@@ -90,8 +90,9 @@ const getGaugesByChain = async () => {
       gaugeDatum
     );
     // gauge address on pools crv API is lowercase
-    gaugesDataByChain[blockchainId][_gaugeDatum.gauge.toLowerCase()] =
-      _gaugeDatum;
+    gaugesDataByChain[blockchainId][
+      _gaugeDatum.gauge.toLowerCase()
+    ] = _gaugeDatum;
   }
 
   return gaugesDataByChain;
@@ -124,7 +125,6 @@ const getPoolAPR = (pool, subgraph, gauge, crvPrice) => {
     gauge.gauge_controller.gauge_relative_weight
   ).div(decimals);
   const totalSupply = BigNumber(pool.totalSupply).div(decimals);
-
   const virtualPrice = BigNumber(subgraph.virtualPrice).div(decimals);
   const nominator = pool.coins
     .map((coin) => BigNumber(coin.poolBalance).times(coin.usdPrice))
@@ -133,20 +133,34 @@ const getPoolAPR = (pool, subgraph, gauge, crvPrice) => {
     .map((coin) => BigNumber(coin.poolBalance))
     .reduce((a, b) => a.plus(b));
   const assetPrice = nominator.div(denominator);
+
+  let poolAPR;
   try {
-    const poolAPR = inflationRate
-      .times(relativeWeight)
-      .times(31536000)
-      .times(0.4)
-      .div(workingSupply)
-      .times(totalSupply)
-      .div(pool.usdTotalExcludingBasePool)
-      .times(crvPrice)
-      .times(100);
-    return poolAPR.toNumber();
+    if (pool.totalSupply) {
+      poolAPR = inflationRate
+        .times(relativeWeight)
+        .times(31536000)
+        .times(0.4)
+        .div(workingSupply)
+        .times(totalSupply)
+        .div(pool.usdTotalExcludingBasePool)
+        .times(crvPrice)
+        .times(100);
+    } else {
+      poolAPR = crvPriceBN
+        .times(inflationRate)
+        .times(relativeWeight)
+        .times(12614400)
+        .div(workingSupply)
+        .div(assetPrice)
+        .div(virtualPrice)
+        .times(100);
+    }
   } catch (error) {
     return 0;
   }
+
+  return poolAPR.toNumber();
 };
 
 const getPriceCrv = (pools) => {
@@ -169,9 +183,7 @@ const main = async () => {
     ])
   );
   const blockchainToPoolPromise = Object.fromEntries(
-    BLOCKCHAINIDS.map(
-      (blockchainId) => [blockchainId, getPools(blockchainId)]
-    )
+    BLOCKCHAINIDS.map((blockchainId) => [blockchainId, getPools(blockchainId)])
   );
 
   // we need the ethereum data first for the crv prive and await extra query to CG
@@ -211,7 +223,7 @@ const main = async () => {
       }
 
       const tvlUsd = pool.usdTotal;
-      if (!tvlUsd) {
+      if (tvlUsd < 10) {
         continue;
       }
 
