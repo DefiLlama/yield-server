@@ -16,8 +16,8 @@ async function apy(chain) {
     symbol: v.name.startsWith('ve')
       ? `${v.name.split('-')[0]} (earn ${v.name.split('-')[1]})`
       : utils.formatSymbol(v.name),
-    tvlUsd: null,
-    //   (Number(v.totalValue) / 10 ** Number(v.asset.decimals)) * v.asset.price,
+    tvlUsd:
+      (Number(v.totalValue) / 10 ** Number(v.asset.decimals)) * v.asset.price,
     apy: aggregateApys(v),
   }));
 
