@@ -1,3 +1,4 @@
+const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 const dateFunc = require('date-fns');
 
@@ -203,12 +204,13 @@ const buildRewardFields = (
 
   el['sushiPerDay'] = rewardPerDay;
   el['sushiPerYear'] = rewardPerDay * 365;
-  el['sushiPerYearUsd'] = rewardPerDay * 365 * sushiUsd.sushi.usd;
+  el['sushiPerYearUsd'] = rewardPerDay * 365 * sushiUsd;
 
   return el;
 };
 
 const prepareLMData = async (
+  chainString,
   urlMc1,
   urlMc2,
   querySushiAllocation,
@@ -219,7 +221,13 @@ const prepareLMData = async (
   const secondsPerDay = 60 * 60 * 24;
   const secondsPerBlock = await getAverageBlockTime();
   const blocksPerDay = secondsPerDay / secondsPerBlock;
-  const sushiUsd = await utils.getCGpriceData('sushi', true);
+
+  const key = 'ethereum:0x6b3595068778dd592e39a122f4f5a5cf09c90fe2';
+  const sushiUsd = (
+    await superagent.post('https://coins.llama.fi/prices').send({
+      coins: [key],
+    })
+  ).body.coins[key].price;
 
   // pull sushi allocation data (sushi rewards)
   let sushiAllocation = await request(
@@ -293,13 +301,23 @@ const prepareLMData = async (
   // and calculate the rewardPerYearUsd
   let tokenList = extraAllocation.map((el) => el.rewarder.rewardToken);
   tokenList = [...new Set(tokenList)];
-  let prices = await utils.getCGpriceData(tokenList.join(), false);
-  const maticPrice = await utils.getCGpriceData(
-    '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
-    false,
-    'polygon-pos'
-  );
-  prices = { ...prices, ...maticPrice };
+  const coins = tokenList.map((t) => `${chainString}:${t}`);
+
+  let prices = (
+    await superagent.post('https://coins.llama.fi/prices').send({
+      coins,
+    })
+  ).body;
+
+  const matic = '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270';
+  const keyMatic = `polygon:${matic}`;
+  const maticPrice = (
+    await superagent.post('https://coins.llama.fi/prices').send({
+      coins: [keyMatic],
+    })
+  ).body.coins[keyMatic].price;
+
+  prices = { ...prices.coins, ...maticPrice.coins };
 
   extraAllocation = extraAllocation.map((el) => {
     let decimals = 18;
@@ -309,14 +327,13 @@ const prepareLMData = async (
       decimals = 8;
     }
     let timeUnit = secondsPerDay;
-    if (
-      el.rewarder.rewardToken !== '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270'
-    ) {
+    if (el.rewarder.rewardToken !== matic) {
       timeUnit = blocksPerDay;
     }
     el['rewardPerYear'] =
       (Number(el.rewarder.rewardPerSecond) / 10 ** decimals) * timeUnit * 365;
-    el['rewardPerYearUsd'] = el.rewardPerYear * prices[el.rewardToken]?.usd;
+    el['rewardPerYearUsd'] =
+      el.rewardPerYear * prices[`${chainString}:${el.rewardToken}`]?.price;
 
     return el;
   });
@@ -396,6 +413,7 @@ const topLvl = async (
   // get LM reward (no avalanche minichef, exlcuding from lm rewards)
   if (chainString !== 'avalanche') {
     dataLm = await prepareLMData(
+      chainString,
       urlMc1,
       urlMc2,
       querySushiAllocation,
@@ -457,7 +475,7 @@ const main = async (timestamp = null) => {
     topLvl('avalanche', urlAvalanche, null, null, null, null, null, timestamp),
   ]);
 
-  return data.flat();
+  return data.flat().filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

@@ -1,3 +1,4 @@
+const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
@@ -25,6 +26,7 @@ const replacePrice = [
     token: 'frax-share',
   },
 ];
+
 const getAllPools = async () => {
   let dataApy = await utils.getData(
     'http://concentrator-api.aladdin.club/apy/'
@@ -92,6 +94,7 @@ const getAllPools = async () => {
       });
 
       const resolvedLPSupply = lpTokenSupply.output;
+
       const lpTvl = await getLpTvl(
         poolInfo,
         resolvedLPSupply,
@@ -139,14 +142,19 @@ const getLpTvl = async (
         (item) =>
           item.address.toLocaleLowerCase() == coinAddress.toLocaleLowerCase()
       );
+
       let pricesUSD = 0;
-      if (isReplace && isReplace.token) {
-        pricesUSD = await utils.getCGpriceData(isReplace.token, true);
-        pricesUSD = pricesUSD[isReplace.token].usd;
-      } else {
-        pricesUSD = await utils.getCGpriceData(coinAddress, false, 'ethereum');
-        pricesUSD = pricesUSD[coinAddress.toLocaleLowerCase()].usd;
-      }
+      const key =
+        isReplace && isReplace.token
+          ? `ethereum:${isReplace.address.toLowerCase()}`
+          : `ethereum:${coinAddress.toLowerCase()}`;
+
+      pricesUSD = (
+        await superagent.post('https://coins.llama.fi/prices').send({
+          coins: [key],
+        })
+      ).body.coins[key]?.price;
+
       const balance = BigNumber(poolInfo.output.totalUnderlying)
         .times(coinBalance.output)
         .div(resolvedLPSupply);
@@ -195,7 +203,8 @@ const getConvexInfo = (tokenName, dataApy) => {
     const info =
       data.find(
         (item) =>
-          item.name.toLocaleLowerCase() === tokenName.toLocaleLowerCase() || item.name === tokenName
+          item.name.toLocaleLowerCase() === tokenName.toLocaleLowerCase() ||
+          item.name === tokenName
       ) || converWebsiteInfo.find((item) => item.name === tokenName);
 
     if (BigNumber(parseFloat(info.apy.current)).isNaN()) {
@@ -213,8 +222,14 @@ const getAcrvPoolData = async () => {
   let dataApy = await utils.getData(
     'http://concentrator-api.aladdin.club/apy/'
   );
-  let crvPrice = await utils.getCGpriceData('convex-crv', true);
-  crvPrice = crvPrice['convex-crv'].usd;
+  // get crv price
+  const key = 'ethereum:0xd533a949740bb3306d119cc777fa900ba034cd52';
+  const crvPrice = (
+    await superagent.post('https://coins.llama.fi/prices').send({
+      coins: [key],
+    })
+  ).body.coins[key].price;
+
   const acrvTotalUnderlying = (
     await sdk.api.abi.call({
       target: convexVaultAcrv,
@@ -280,7 +295,7 @@ const main = async () => {
   const acrvData = await getAcrvPoolData();
   const data = dataInfo.map((el) => buildPool(el, 'ethereum'));
   data.push(acrvData);
-  return data;
+  return data.filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

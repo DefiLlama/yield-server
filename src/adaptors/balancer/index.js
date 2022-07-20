@@ -1,5 +1,7 @@
+const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 const Web3 = require('web3');
+
 const utils = require('../utils');
 const gaugeABIEthereum = require('./abis/gauge_ethereum.json');
 const gaugeABIArbitrum = require('./abis/gauge_arbitrum.json');
@@ -81,13 +83,6 @@ const queryPrior = gql`
 }
 `;
 
-// coingecko chain mapping
-const networkMappingCG = {
-  ethereum: 'ethereum',
-  polygon: 'polygon-pos',
-  arbitrum: 'arbitrum-one',
-};
-
 const correctMaker = (entry) => {
   entry = { ...entry };
   // for some reason the MKR symbol is not there, add this manually for
@@ -101,7 +96,7 @@ const correctMaker = (entry) => {
   return entry;
 };
 
-const tvl = (entry, tokenPriceList) => {
+const tvl = (entry, tokenPriceList, chainString) => {
   entry = { ...entry };
 
   const balanceDetails = entry.tokens;
@@ -114,7 +109,8 @@ const tvl = (entry, tokenPriceList) => {
   };
   for (const el of balanceDetails) {
     // some addresses are from tokens which are not listed on coingecko so these will result in undefined
-    const price = tokenPriceList[el.address]?.usd;
+    const price =
+      tokenPriceList[`${chainString}:${el.address.toLowerCase()}`]?.price;
     // if price is undefined of one token in pool, the total tvl will be NaN
     d.tvl += Number(el.balance) * price;
   }
@@ -156,13 +152,12 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
 
     // get BAL price
     balToken = '0xba100000625a3754423978a60c9317c58a424e3d';
-
-    // get cg price of reward token
-    prices = await utils.getCGpriceData(
-      balToken,
-      false,
-      networkMappingCG[chainString]
-    );
+    const key = `${chainString}:${balToken}`;
+    price = (
+      await superagent.post('https://coins.llama.fi/prices').send({
+        coins: [key],
+      })
+    ).body.coins[key].price;
   }
 
   // add LM rewards if available to each pool in data
@@ -193,7 +188,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
         const bptPrice = x.tvl / x.totalShares;
         const balPayable = inflationRate * 7 * 86400 * relativeWeight;
         const weeklyReward = (0.4 / (workingSupply + 0.4)) * balPayable;
-        const yearlyReward = weeklyReward * 52 * prices[balToken].usd;
+        const yearlyReward = weeklyReward * 52 * price;
         const aprLM = (yearlyReward / bptPrice) * 100;
         aprLMRewards.push(aprLM === Infinity ? 0 : aprLM);
         rewardTokens.push(balToken);
@@ -211,11 +206,12 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
       }
 
       // get cg price of reward token
-      const prices = await utils.getCGpriceData(
-        add,
-        false,
-        networkMappingCG[chainString]
-      );
+      const key = `${chainString}:${add}`;
+      const price = (
+        await superagent.post('https://coins.llama.fi/prices').send({
+          coins: [key],
+        })
+      ).body.coins[key].price;
 
       // call reward data
       const { rate } = await gauge.methods.reward_data(add).call();
@@ -224,7 +220,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
       const totalSupply = (await gauge.methods.totalSupply().call()) / 1e18;
 
       const weeklyRewards = (1 / (totalSupply + 1)) * tokenPayable;
-      const yearlyRewards = weeklyRewards * 52 * prices[add].usd;
+      const yearlyRewards = weeklyRewards * 52 * price;
       const bptPrice = x.tvl / x.totalShares;
       const aprLM = (yearlyRewards / bptPrice) * 100;
 
@@ -289,7 +285,8 @@ const topLvl = async (
   dataNow = dataNow.pools.map((el) => correctMaker(el));
   dataPrior = dataPrior.pools.map((el) => correctMaker(el));
 
-  // get unique tokenList (addresses)(for which we pull prices from cg)
+  // for tvl, we gonna pull token prices from our price api, which we use to calculate tvl
+  // note: the subgraph already comes with usd tvl values, but sometimes they are inflated
   const tokenList = [
     ...new Set(
       dataNow
@@ -299,28 +296,14 @@ const topLvl = async (
     ),
   ];
 
-  // NOTE(!) had to split the list cause i was getting errors on full list
-  // guess because of too many token
-  const idxSplitter = Math.floor(tokenList.length / 2);
-  const tokenListP1 = tokenList.splice(0, idxSplitter);
-  const tokenListP2 = tokenList.splice(idxSplitter);
-
-  // pull prices from coingecko
-  const tokenPriceList1 = await utils.getCGpriceData(
-    tokenListP1.join(),
-    false,
-    networkMappingCG[chainString]
-  );
-  const tokenPriceList2 = await utils.getCGpriceData(
-    tokenListP2.join(),
-    false,
-    networkMappingCG[chainString]
-  );
-
-  const tokenPriceList = { ...tokenPriceList1, ...tokenPriceList2 };
+  const tokenPriceList = (
+    await superagent.post('https://coins.llama.fi/prices').send({
+      coins: tokenList.map((t) => `${chainString}:${t}`),
+    })
+  ).body.coins;
 
   // calculate tvl
-  let tvlInfo = dataNow.map((el) => tvl(el, tokenPriceList));
+  let tvlInfo = dataNow.map((el) => tvl(el, tokenPriceList, chainString));
 
   // calculate fee apy
   tvlInfo = tvlInfo.map((el) =>
@@ -331,12 +314,7 @@ const topLvl = async (
   tvlInfo = await aprLM(tvlInfo, urlGauge, queryGauge, chainString, gaugeABI);
 
   // build pool objects
-  let data = tvlInfo.map((el) => buildPool(el, chainString));
-
-  // remove samples for which apy is NaN (usually the case if tvl is Nan, because of no price from CG)
-  data = data.filter((el) => Number.isNaN(el.apy) !== true);
-
-  return data;
+  return tvlInfo.map((el) => buildPool(el, chainString));
 };
 
 const main = async () => {

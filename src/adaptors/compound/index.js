@@ -1,3 +1,5 @@
+const superagent = require('superagent');
+
 const utils = require('../utils');
 
 const url = 'https://api.compound.finance/api/v2/ctoken';
@@ -41,13 +43,18 @@ const buildPool = (entry, chainString) => {
 
 const topLvl = async (chainString, url) => {
   // get eth price
-  const ethPriceUSD = await utils.getCGpriceData(chainString, true);
+  const key = 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+  const ethPriceUSD = (
+    await superagent.post('https://coins.llama.fi/prices').send({
+      coins: [key],
+    })
+  ).body.coins[key].price;
 
   // pull data
   let data = await utils.getData(url);
 
   // calculate apy
-  data = data.cToken.map((el) => apy(el, ethPriceUSD.ethereum.usd));
+  data = data.cToken.map((el) => apy(el, ethPriceUSD));
 
   // build pool objects
   data = data

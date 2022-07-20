@@ -1,3 +1,5 @@
+const superagent = require('superagent');
+
 const { gql, request } = require('graphql-request');
 const { get } = require('lodash');
 const sdk = require('@defillama/sdk');
@@ -45,19 +47,6 @@ const vaultsQuery = gql`
 const pairsToObj = (pairs) =>
   pairs.reduce((acc, [el1, el2]) => ({ ...acc, [el1]: el2 }), {});
 
-const getCGPrices = async (tokens) => {
-  const prices = pairsToObj(
-    await Promise.all(
-      Object.entries(tokens).map(async ([chain, tokens]) => [
-        chain,
-        await utils.getCGpriceData(tokens.join(','), false, CHAINS_CG[chain]),
-      ])
-    )
-  );
-
-  return prices;
-};
-
 const getApy = async () => {
   const vaultData = pairsToObj(
     await Promise.all(
@@ -97,7 +86,15 @@ const getApy = async () => {
     {}
   );
 
-  const prices = await getCGPrices(tokens);
+  const keys = [];
+  for (const key of Object.keys(tokens)) {
+    keys.push(tokens[key].map((t) => `${key}:${t}`));
+  }
+  const prices = (
+    await superagent.post('https://coins.llama.fi/prices').send({
+      coins: keys.flat(),
+    })
+  ).body.coins;
 
   const pools = Object.keys(CHAINS).map((chain) => {
     const { vaults: chainVaults } = vaultData[chain];
@@ -106,8 +103,8 @@ const getApy = async () => {
       const token0Supply = Number(amount0Current) / 10 ** vault.token0.decimals;
       const token1Supply = Number(amount1Current) / 10 ** vault.token1.decimals;
       const tvl =
-        token0Supply * get(prices[chain][vault.token0.address], 'usd', 0) +
-        token1Supply * get(prices[chain][vault.token1.address], 'usd', 0);
+        token0Supply * prices[`${chain}:${vault.token0.address}`]?.price +
+        token1Supply * prices[`${chain}:${vault.token1.address}`]?.price;
 
       return {
         pool: vault.id,

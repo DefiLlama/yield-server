@@ -1,3 +1,4 @@
+const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
@@ -92,14 +93,19 @@ const topLvl = async (chainString, url, rewardTokenString = null) => {
     // filter to specific id only
     data = data.reserves.filter((el) => el.id.endsWith('ce3ede02a318f'));
   } else {
-    // get asset price in usd
-    let price = await utils.getCGpriceData('ethereum', true);
+    // get eth usd price
+    const key = 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+    const ethPriceUSD = (
+      await superagent.post('https://coins.llama.fi/prices').send({
+        coins: [key],
+      })
+    ).body.coins[key].price;
 
     // pull data
     data = await request(url, query);
 
     // calculate tvl in usd
-    data = data.reserves.map((el) => tvl(el, price['ethereum'].usd));
+    data = data.reserves.map((el) => tvl(el, ethPriceUSD));
 
     // calculate apy
     // get rewardToken price in eth (for incentivsed rewards)
