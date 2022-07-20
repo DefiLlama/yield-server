@@ -6,15 +6,17 @@ async function main() {
   const [, , log, author, repo, pr, adapter] = process.argv;
   const file = readFileSync(log, 'utf-8');
 
-  const errorString = 'FAIL src/adaptors/test.js'; // Doesn't work
+  const jestError = 'FAIL src/adaptors/test.js';
+  const jestSuccess = 'PASS src/adaptors/test.js';
   const summaryIndex = file.indexOf('Test Suites:');
-  const errorIndex = file.indexOf(errorString);
+  const jestSuccessIndex = file.indexOf(jestSuccess);
+  const jestErrorIndex = file.indexOf(jestError);
   let body;
 
-  if (!errorIndex) {
+  if (jestErrorIndex === -1 && jestSuccessIndex !== -1) {
     body = `The ${adapter} adapter exports pools: 
         \n \n ${file.substring(summaryIndex).replaceAll('\n', '\n    ')}`;
-  } else if (errorIndex != -1) {
+  } else if (jestErrorIndex !== -1) {
     body = `Error while running ${adapter} adapter: 
         \n \n ${file.substring(summaryIndex).replaceAll('\n', '\n    ')}}`;
   } else return;
