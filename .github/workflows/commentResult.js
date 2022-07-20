@@ -13,12 +13,10 @@ async function main() {
 
   if (!errorIndex) {
     body = `The ${adapter} adapter exports pools: 
-        \n \n ${file
-          .substring(file.indexOf('Test Suites:'))
-          .replaceAll('\n', '\n    ')}`;
+        \n \n ${file.substring(summaryIndex).replaceAll('\n', '\n    ')}`;
   } else if (errorIndex != -1) {
     body = `Error while running ${adapter} adapter: 
-        \n \n ${file.split(summaryIndex)[1].replaceAll('\n', '\n    ')}`;
+        \n \n ${file.substring(summaryIndex).replaceAll('\n', '\n    ')}}`;
   } else return;
 
   await fetch(
