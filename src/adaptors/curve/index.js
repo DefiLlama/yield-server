@@ -169,13 +169,13 @@ const main = async () => {
     ])
   );
   const blockchainToPoolPromise = Object.fromEntries(
-    BLOCKCHAINIDS.filter((blockchainId) => blockchainId !== 'ethereum').map(
+    BLOCKCHAINIDS.map(
       (blockchainId) => [blockchainId, getPools(blockchainId)]
     )
   );
 
   // we need the ethereum data first for the crv prive and await extra query to CG
-  const ethereumPools = await getPools('ethereum');
+  const ethereumPools = await blockchainToPoolPromise.ethereum;
   const priceCrv = getPriceCrv(Object.values(ethereumPools));
 
   // create feeder closure to fill defillamaPooldata asynchroniously
@@ -234,27 +234,15 @@ const main = async () => {
   for (const [blockchainId, poolSubgraphPromise] of Object.entries(
     blockchainToPoolSubgraphPromise
   )) {
-    // we already have ethererum for the crv price
-    if (blockchainId !== 'ethereum') {
-      responses.push(
-        Promise.all([
-          blockchainToPoolPromise[blockchainId],
-          poolSubgraphPromise,
-          gaugePromise,
-          extraRewardPromise,
-        ]).then((poolData) => feedLlama(poolData, blockchainId))
-      );
-    } else {
-      responses.push(
-        Promise.all([
-          poolSubgraphPromise,
-          gaugePromise,
-          extraRewardPromise,
-        ]).then((APYandGaugeData) =>
-          feedLlama([ethereumPools, ...APYandGaugeData], blockchainId)
-        )
-      );
-    }
+    responses.push(
+      Promise.all([
+        poolSubgraphPromise,
+        gaugePromise,
+        extraRewardPromise,
+      ]).then((APYandGaugeData) =>
+        feedLlama([ethereumPools, ...APYandGaugeData], blockchainId)
+      )
+    );
   }
 
   // wait for all Group promises to resolve
