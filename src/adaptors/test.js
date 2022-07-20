@@ -15,7 +15,6 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
     const poolIds = apy.map((pool) => pool.pool);
     const uniquePoolIds = [...new Set(poolIds)];
     expect(poolIds).toEqual(uniquePoolIds);
-    console.log('AAAAAAA');
   });
 
   describe('Check apy data types', () => {
@@ -28,7 +27,6 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
         );
       });
     });
-    console.log('BBBBBB');
   });
 
   describe('Check tvl data type', () => {
@@ -37,8 +35,6 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
         expect(typeof pool.tvlUsd).toBe('number');
       });
     });
-
-    console.log('CCCCCC');
   });
 
   describe('Check tokens data types', () => {
@@ -57,7 +53,6 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
         }
       });
     });
-    console.log('TTTTT');
   });
 
   describe('Check other fields data types', () => {
