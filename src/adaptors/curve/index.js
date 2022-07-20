@@ -223,7 +223,6 @@ const main = async () => {
         tvlUsd,
         apyBase,
         apyReward: aprCrv + aprExtra,
-        apy: apyBase + aprCrv + aprExtra,
         rewardTokens,
         underlyingTokens,
       });
