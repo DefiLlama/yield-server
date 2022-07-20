@@ -5,7 +5,9 @@ const urlApi = 'https://api.unrekt.net/api/v2/acryptos-asset.json';
 const chainMapping = {
   56: 'binance',
   25: 'cronos',
+  100: 'xdai',
   250: 'fantom',
+  592: 'astar',
   1284: 'moonbeam',
   1285: 'moonriver',
   43114: 'avalanche',
