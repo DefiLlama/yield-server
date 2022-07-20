@@ -20,19 +20,6 @@ exports.getData = async (url, query = null) => {
   return res;
 };
 
-exports.getCGpriceData = async (tokenString, symbols, chainId = 'ethereum') => {
-  let url = 'https://api.coingecko.com/api/v3/simple/';
-  if (symbols === true) {
-    url = `${url}price?ids=${tokenString}&vs_currencies=usd`;
-  } else {
-    url = `${url}token_price/${chainId}?contract_addresses=${tokenString}&vs_currencies=usd`;
-  }
-
-  let res = await superagent.get(url);
-  res = res.body;
-  return res;
-};
-
 // retrive block based on unixTimestamp array
 exports.getBlocksByTime = async (timestamps, chainString) => {
   const urlsKeys = {
