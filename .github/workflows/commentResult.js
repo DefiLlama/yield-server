@@ -8,7 +8,7 @@ async function main() {
 
 
     const errorString = '------ ERROR ------'; // Doesn't work
-    const summaryIndex = file.indexOf('==== Testing ');
+    const summaryIndex = file.indexOf('Test Suites:');
     const errorIndex = file.indexOf(errorString);
     let body;
 
