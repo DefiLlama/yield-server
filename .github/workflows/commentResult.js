@@ -7,7 +7,7 @@ async function main() {
     const file = readFileSync(log, 'utf-8');
 
 
-    const errorString = '------ ERROR ------'; // Doesn't work
+    const errorString = 'FAIL src/adaptors/test.js'; // Doesn't work
     const summaryIndex = file.indexOf('Test Suites:');
     const errorIndex = file.indexOf(errorString);
     let body;
@@ -17,7 +17,7 @@ async function main() {
         \n \n ${file.substring(file.indexOf('Test Suites:')).replaceAll('\n', '\n    ')}`;
     } else if (errorIndex != -1) {
         body = `Error while running ${adapter} adapter: 
-        \n \n ${file.split(errorString)[1].replaceAll('\n', '\n    ')}`;
+        \n \n ${file.split(summaryIndex)[1].replaceAll('\n', '\n    ')}`;
     } else
         return;
 
