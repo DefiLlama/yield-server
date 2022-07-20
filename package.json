@@ -55,7 +55,7 @@
     "webpack": "^5.70.0"
   },
   "jest": {
-    "globalSetup": "./setup.js",
+    "globalSetup": "./beforeTests.js",
     "globalTeardown": "./afterTests.js"
   }
 }

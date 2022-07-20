@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 const junk = 'VPTOH1X0B7rf8od7BGNsQ1z0BJk8iMNLxqrD';
 
 async function main() {
-    const [, , log, author, repo, pr, path ] = process.argv;
+    const [, , log, author, repo, pr, adapter ] = process.argv;
     const file = readFileSync(log, 'utf-8');
 
 
@@ -13,10 +13,10 @@ async function main() {
     let body;
 
     if (summaryIndex != -1) {
-        body = `The adapter at ${path} exports pools: 
+        body = `The ${adapter} adapter exports pools: 
         \n \n ${file.substring(file.indexOf('\n')).replaceAll('\n', '\n    ')}`;
     } else if (errorIndex != -1) {
-        body = `Error while running adapter at ${path}: 
+        body = `Error while running ${adapter} adapter: 
         \n \n ${file.split(errorString)[1].replaceAll('\n', '\n    ')}`;
     } else
         return;
