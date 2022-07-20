@@ -31,7 +31,7 @@ jobs:
             {
               npm run test --adapter=${i} 2>&1 | tee output.txt
               node ${{ github.workspace }}/.github/workflows/commentResult.js /home/runner/work/yield-server/yield-server/output.txt "${{ github.repository_owner }}" "${{ github.event.repository.name }}" "${{ github.event.number }}" ${i}
-              if grep -q "\-\-\-\- ERROR \-\-\-\-" output.txt; then
+              if grep -q "FAIL src/adaptors/test.js" output.txt; then
                 exit 1;
               fi
             } || {
