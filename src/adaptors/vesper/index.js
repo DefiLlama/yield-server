@@ -8,6 +8,7 @@ const urls = {
 
 async function apy(chain) {
   const response = (await axios.get(urls[chain])).data;
+  null();
 
   const farms = response.map((v) => ({
     pool: `${v.address}`,
