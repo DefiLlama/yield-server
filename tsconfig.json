@@ -3,7 +3,7 @@
       "module": "es2015",
       "target": "esnext",
       "strict": false,
-      "types": ["node"],
+      "types": ["node", "jest"],
       "resolveJsonModule": true,
       "moduleResolution": "node",
       "noUnusedLocals": true,
@@ -11,7 +11,6 @@
       "noImplicitReturns": true,
       "noFallthroughCasesInSwitch": true,
       "esModuleInterop": true,
-      "allowJs": true,
       "lib": ["ES2020.Promise"]
     },
     "include": ["./src/**/*"],

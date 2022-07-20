@@ -29,7 +29,7 @@ jobs:
           for i in $(echo $RUN_FILES | tr  -d '"[]' | tr "," "\n")
           do
             {
-              ts-node ${{ github.workspace }}/src/adaptors/test.js ${{ github.workspace }}/${i} 2>&1 | tee output.txt
+              npm run test --adapter=${i} 2>&1 | tee output.txt
               ts-node ${{ github.workspace }}/.github/workflows/commentResult.js /home/runner/work/yield-server/yield-server/output.txt "${{ github.repository_owner }}" "${{ github.event.repository.name }}" "${{ github.event.number }}" ${i}
               if grep -q "\-\-\-\- ERROR \-\-\-\-" output.txt; then
                 exit 1;
