@@ -6,7 +6,7 @@
 2. Fork this repository
 3. Create a new folder within [src/adaptors/](src/adaptors/) with your protocol name (use your project `slug` from `https://api.llama.fi/protocols`)
 4. Write an adaptor for your protocol (tutorial below)
-5. Test your adaptor by running `node src/adaptors/test.js src/adaptors/YOUR_ADAPTOR/index.js` (remember to install dependencies with `npm i` first!)
+5. Test your adaptor by running `npm run test --adapter=YOUR_ADAPTER` (remember to install dependencies with `npm i` first!)
 6. Submit a PR
 
 ### Adaptors
