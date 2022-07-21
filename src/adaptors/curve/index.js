@@ -1,3 +1,4 @@
+const superagent = require('superagent');
 const { default: BigNumber } = require('bignumber.js');
 
 const utils = require('../utils');
@@ -8,6 +9,11 @@ const {
   BLOCKCHAINIDS,
   BLOCKCHAINID_TO_REGISTRIES,
 } = require('./config');
+
+const assetTypeMapping = {
+  btc: 'ethereum:0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
+  eth: 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+};
 
 const getPools = async (blockchainId) => {
   const poolsByAddress = {};
@@ -111,7 +117,7 @@ const getMainPoolGaugeRewards = async () => {
   }
 };
 
-const getPoolAPR = (pool, subgraph, gauge, crvPrice) => {
+const getPoolAPR = (pool, subgraph, gauge, crvPrice, underlyingPrices) => {
   const crvPriceBN = BigNumber(crvPrice);
   const decimals = BigNumber(1e18);
   const workingSupply = BigNumber(gauge.gauge_data.working_supply).div(
@@ -125,18 +131,6 @@ const getPoolAPR = (pool, subgraph, gauge, crvPrice) => {
   ).div(decimals);
   const totalSupply = BigNumber(pool.totalSupply).div(decimals);
   const virtualPrice = BigNumber(subgraph.virtualPrice).div(decimals);
-  const nominator = pool.coins
-    .map((coin) => BigNumber(coin.poolBalance).times(coin.usdPrice))
-    .reduce((a, b) => a.plus(b));
-  const denominator = pool.coins
-    .map((coin) => BigNumber(coin.poolBalance))
-    .reduce((a, b) => a.plus(b));
-  const assetPrice = [
-    '0xA2B47E3D5c44877cca798226B7B8118F9BFb7A56',
-    '0x52EA46506B9CC5Ef470C5bf89f17Dc28bB35D85C',
-  ].includes(pool.address)
-    ? BigNumber(1)
-    : nominator.div(denominator);
   let poolAPR;
   try {
     if (pool.totalSupply) {
@@ -150,6 +144,10 @@ const getPoolAPR = (pool, subgraph, gauge, crvPrice) => {
         .times(crvPrice)
         .times(100);
     } else {
+      assetPrice =
+        pool.assetTypeName === 'usd'
+          ? 1
+          : underlyingPrices[assetTypeMapping[pool.assetTypeName]].price;
       poolAPR = crvPriceBN
         .times(inflationRate)
         .times(relativeWeight)
@@ -163,7 +161,9 @@ const getPoolAPR = (pool, subgraph, gauge, crvPrice) => {
     return 0;
   }
 
-  return poolAPR.toNumber();
+  poolAPR = poolAPR.toNumber();
+
+  return Number.isFinite(poolAPR) ? poolAPR : 0;
 };
 
 const getPriceCrv = (pools) => {
@@ -193,6 +193,13 @@ const main = async () => {
   const ethereumPools = await blockchainToPoolPromise.ethereum;
   const priceCrv = getPriceCrv(Object.values(ethereumPools));
 
+  // get wbtc and weth price which we use for reward APR in case totalSupply field = 0
+  const underlyingPrices = (
+    await superagent.post('https://coins.llama.fi/prices').send({
+      coins: Object.values(assetTypeMapping),
+    })
+  ).body.coins;
+
   // create feeder closure to fill defillamaPooldata asynchroniously
   const defillamaPooldata = [];
   const feedLlama = (poolData, blockchainId) => {
@@ -210,7 +217,9 @@ const main = async () => {
 
       const apyBase = subgraph ? parseFloat(subgraph.latestDailyApy) : 0;
       const aprCrv =
-        gauge && subgraph ? getPoolAPR(pool, subgraph, gauge, priceCrv) : 0;
+        gauge && subgraph
+          ? getPoolAPR(pool, subgraph, gauge, priceCrv, underlyingPrices)
+          : 0;
       const aprExtra = extraRewards
         ? extraRewards.map((reward) => reward.apy).reduce((a, b) => a + b)
         : 0;
