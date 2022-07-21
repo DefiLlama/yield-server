@@ -90,9 +90,8 @@ const getGaugesByChain = async () => {
       gaugeDatum
     );
     // gauge address on pools crv API is lowercase
-    gaugesDataByChain[blockchainId][
-      _gaugeDatum.gauge.toLowerCase()
-    ] = _gaugeDatum;
+    gaugesDataByChain[blockchainId][_gaugeDatum.gauge.toLowerCase()] =
+      _gaugeDatum;
   }
 
   return gaugesDataByChain;
@@ -132,8 +131,12 @@ const getPoolAPR = (pool, subgraph, gauge, crvPrice) => {
   const denominator = pool.coins
     .map((coin) => BigNumber(coin.poolBalance))
     .reduce((a, b) => a.plus(b));
-  const assetPrice = nominator.div(denominator);
-
+  const assetPrice = [
+    '0xA2B47E3D5c44877cca798226B7B8118F9BFb7A56',
+    '0x52EA46506B9CC5Ef470C5bf89f17Dc28bB35D85C',
+  ].includes(pool.address)
+    ? BigNumber(1)
+    : nominator.div(denominator);
   let poolAPR;
   try {
     if (pool.totalSupply) {
@@ -248,7 +251,7 @@ const main = async () => {
   )) {
     responses.push(
       Promise.all([
-        poolPromise,  
+        poolPromise,
         blockchainToPoolSubgraphPromise[blockchainId],
         gaugePromise,
         extraRewardPromise,
