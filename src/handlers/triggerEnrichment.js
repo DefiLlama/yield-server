@@ -255,7 +255,7 @@ const main = async () => {
     Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
   ).toISOString();
 
-  if (timestamp.split('T') === '23:00:00.000Z') {
+  if (timestamp.split('T')[1] === '23:00:00.000Z') {
     const keyPredictions = `predictions-hourly/dataEnriched_${timestamp}.json`;
     await utils.writeToS3(bucket, keyPredictions, dataEnriched);
   }
