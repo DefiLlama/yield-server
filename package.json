@@ -13,6 +13,8 @@
   "dependencies": {
     "@defillama/sdk": "^2.3.62",
     "@types/jest": "^28.1.6",
+    "@uniswap/sdk-core": "^3.0.1",
+    "@uniswap/smart-order-router": "^2.8.0",
     "async-retry": "^1.3.3",
     "axios": "^0.27.2",
     "bignumber.js": "^9.0.2",
