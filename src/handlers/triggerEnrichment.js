@@ -255,7 +255,7 @@ const main = async () => {
     Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
   ).toISOString();
 
-  if (timestamp.split('T') === '23:00:00.000Z') {
+  if (timestamp.split('T')[1] === '23:00:00.000Z') {
     const keyPredictions = `predictions-hourly/dataEnriched_${timestamp}.json`;
     await utils.writeToS3(bucket, keyPredictions, dataEnriched);
   }
@@ -284,7 +284,9 @@ const checkStablecoin = (el, stablecoins) => {
 
   let stable;
   // specific case for aave amm positions
-  if (el.project === 'aave' && el.symbol.toLowerCase().includes('amm')) {
+  if (el.project === 'curve' && el.symbol.toLowerCase().includes('3crv')) {
+    stable = true;
+  } else if (el.project === 'aave' && el.symbol.toLowerCase().includes('amm')) {
     tok = tokens[0].split('weth');
     stable = tok[0].includes('wbtc') ? false : tok.length > 1 ? false : true;
   } else if (tokens.length === 1) {
