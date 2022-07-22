@@ -46,7 +46,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
           test(`${field} field of pool with id ${pool.pool} should be an Array of strings`, () => {
             expect(Array.isArray(pool[field])).toBe(true);
             const isStringArray =
-              pool.field.map((v) => typeof v).filter((v) => v === string)
+              pool[field].map((v) => typeof v).filter((v) => v === 'string')
                 .length === pool[field].length;
             expect(isStringArray).toBe(true);
           });
