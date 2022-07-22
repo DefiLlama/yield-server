@@ -18,7 +18,7 @@ const ChainId = 42161;
 const stakingContract = new web3.eth.Contract(StakingABI, STAKING_CONTRACT);
 const brcContract = new web3.eth.Contract(BrcABI, BRC);
 const BLOCKS_PER_MONTH = 199384;
-const PoolNames = ['BRC_30Days', 'BRC_90Days', 'BRC_180Days', 'BRC_gBRC_30Days', 'BRC_gBRC_90Days', 'BRC_gBRC_180Days'];
+const PoolNames = ['BRC (30Days)', 'BRC (90Days)', 'BRC (180Days)', 'BRC-gBRC (30Days)', 'BRC-gBRC (90Days)', 'BRC-gBRC (180Days)'];
 
 let gBRCCost = 0;
 let daiCost = 0;
@@ -173,7 +173,7 @@ const getPools = async () => {
       tvl: await getPoolTVL(stakePool, brcStaked, gbrcStaked),
       apy: apy.toString(),
       symbol: PoolNames[stakePool],
-      poolId: 'Pool'+stakePool
+      poolId: 'pool'+stakePool
     })
   }
   return apys;
@@ -181,13 +181,14 @@ const getPools = async () => {
 
 const buildPool = (entry) => {
   const newObj = {
-    pool: entry.poolId,
+    pool: entry.poolId + "-brinc-finance-staking",
     chain: 'Arbitrum', // chain where the pool is
     project: 'brinc-finance', // protocol (using the slug again)
     symbol: utils.formatSymbol(entry.symbol),
     tvlUsd: parseInt(entry.tvl, 10), // number representing current USD TVL in pool
     apy: parseFloat(entry.apy),
     rewardTokens: [GBRC], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
+    underlyingTokens: [BRC, GBRC], // Array of underlying token addresses from a pool,
   };
   return newObj;
 };
