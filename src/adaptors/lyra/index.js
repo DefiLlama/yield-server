@@ -4,17 +4,21 @@ const utils = require('../utils');
 
 const url = 'https://api.thegraph.com/subgraphs/name/lyra-finance/mainnet';
 
-const SECONDS_IN_WEEK = 604800
-const WEEKS_IN_YEAR = 52
+const SECONDS_IN_WEEK = 604800;
+const WEEKS_IN_YEAR = 52;
 
 const query = gql`
   {
     markets{
-          id
+        id
+            liquidityPool{
+                id
+            }
           name
             marketTotalValueHistory(first: 1 where:{timestamp_lte: <PLACEHOLDER>} orderBy:timestamp orderDirection: desc){
                 timestamp
                 tokenPrice
+                NAV
             }
         }
   }
@@ -24,6 +28,9 @@ const queryNow = gql`
   {
     markets {
       id
+      liquidityPool {
+        id
+      }
       name
       marketTotalValueHistory(
         first: 1
@@ -39,30 +46,33 @@ const queryNow = gql`
 `;
 
 const buildPool = (entry, chainString) => {
-  const symbol = utils.formatSymbol(
-    `sUSD(${entry.name}-Vault)`
-  );
+  const symbol = utils.formatSymbol(`sUSD(${entry.name}-Vault)`);
   const newObj = {
-    pool: entry.id,
+    pool: entry.liquidityPool.id,
     chain: chainString,
     project: 'Lyra',
     symbol,
     apy: entry.apy,
-    tvlUsd: entry.NAV
+    tvlUsd: entry.NAV,
   };
 
   return newObj;
 };
 
 const getAPY = (dataNow, dataPrior) => {
-    dataNow['NAV'] = dataNow.marketTotalValueHistory[0].NAV /1e18
-dataNow['tokenPriceNow'] = dataNow.marketTotalValueHistory[0].tokenPrice /1e18
+  dataNow['NAV'] = dataNow.marketTotalValueHistory[0].NAV / 1e18;
+  dataNow['tokenPriceNow'] =
+    dataNow.marketTotalValueHistory[0].tokenPrice / 1e18;
   dataNow['tokenPricePrior'] = 1;
-  dataNow['tokenPricePrior'] = dataPrior.find(
-    (el) => el.id === dataNow.id
-  )?.marketTotalValueHistory[0].tokenPrice /1e18;
-  dataNow['apy'] = ((dataNow['tokenPriceNow'] - dataNow['tokenPricePrior'])/dataNow['tokenPricePrior'])*WEEKS_IN_YEAR*100
-  return dataNow
+  dataNow['tokenPricePrior'] =
+    dataPrior.find((el) => el.id === dataNow.id)?.marketTotalValueHistory[0]
+      .tokenPrice / 1e18;
+  dataNow['apy'] =
+    ((dataNow['tokenPriceNow'] - dataNow['tokenPricePrior']) /
+      dataNow['tokenPricePrior']) *
+    WEEKS_IN_YEAR *
+    100;
+  return dataNow;
 };
 
 const topLvl = async (chainString, timestamp, url) => {
@@ -84,7 +94,7 @@ const topLvl = async (chainString, timestamp, url) => {
   // calculate apy
   let data = dataNow.markets.map((el) => getAPY(el, dataPrior.markets, 'v2'));
 
-console.log(data)
+  console.log(data);
 
   // build pool objects
   data = data.map((el) => buildPool(el, chainString));
