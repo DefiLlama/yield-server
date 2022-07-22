@@ -10,12 +10,8 @@ module.exports.handler = async (event, context) => {
   const conn = await dbConnection.connect();
   const M = conn.model(poolModel.modelName);
 
-  // add project filter as first part in aggregation pipeline
-  aggQuery.unshift({
-    $match: {
-      project: event.pathParameters.project,
-    },
-  });
+  // add project field to match obj
+  aggQuery.slice(-1)[0]['$match']['project'] = event.pathParameters.project;
 
   const query = M.aggregate(aggQuery);
   let response = await query;
