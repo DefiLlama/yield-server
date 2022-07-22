@@ -1,5 +1,3 @@
-require('dotenv').config({ path: './config.env' });
-
 const baseFields = {
   pool: 'string',
   chain: 'string',
