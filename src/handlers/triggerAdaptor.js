@@ -80,7 +80,7 @@ const main = async (body) => {
   // 7. remove exclusion pools
   data = data.filter((p) => !exclude.excludePools.includes(p.pool));
 
-  // add the timestamp field
+  // 8. add the timestamp field
   // will be rounded to the nearest hour
   // eg 2022-04-06T10:00:00.000Z
   const timestamp = new Date(
@@ -88,8 +88,37 @@ const main = async (body) => {
   );
   data = data.map((p) => ({ ...p, timestamp: timestamp }));
 
+  // 9. insert only if tvl conditions are ok:
+  // if tvl
+  // - has increased >5x since the last hourly update
+  // - and has been updated in the last 5 hours
+  // -> block update
+
+  // load current project array
+  // need a new endpoint for that
+  const dataInitial = (await superagent.get(`${urlBase}/pools/${body.adaptor}`))
+    .body.data;
+
+  const dataDB = [];
+  for (const p of data) {
+    const x = dataInitial.find((e) => e.pool === p.pool);
+    if (x === undefined) {
+      dataDB.push(p);
+      continue;
+    }
+    // if existing pool, check conditions
+    pctChange = (p.tvlUsd - x.tvlUsd) / x.tvlUsd;
+    lastInsert = new Date(x.timestamp);
+    timedelta = timestamp - lastInsert;
+    const nHours = 5;
+    timedeltaLimit = 60 * 60 * nHours * 1000;
+    // skip the update if both pctChange and timedelta conditions are met
+    if (pctChange > 5 && timedelta < timedeltaLimit) continue;
+    dataDB.push(p);
+  }
+
   console.log('saving data to DB');
-  const response = await insertPools(data);
+  const response = await insertPools(dataDB);
   console.log(response);
 };
 
