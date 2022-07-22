@@ -1,11 +1,11 @@
-const dbConnection = require('../api/dbConnection.js');
+const dbConnection = require('../utils/dbConnection.js');
 const poolModel = require('../models/pool');
 const AppError = require('../utils/appError');
+const { lambdaResponse } = require('../utils/lambda');
 
 // retrieve chart data of latest daily tvl and apy values of requested pool
-module.exports.handler = async (event, context, callback) => {
+module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
-
   const conn = await dbConnection.connect();
   const M = conn.model(poolModel.modelName);
 
@@ -32,6 +32,12 @@ module.exports.handler = async (event, context, callback) => {
             ],
           },
         },
+        apyBase: {
+          $first: '$apyBase',
+        },
+        apyReward: {
+          $first: '$apyReward',
+        },
         apy: {
           $first: '$apy',
         },
@@ -57,14 +63,23 @@ module.exports.handler = async (event, context, callback) => {
   ];
 
   const query = M.aggregate(aggQuery);
-  const response = await query;
+  let response = await query;
+
+  response = response.filter(
+    (p) => !(p.apy === null && p.apyBase === null && p.apyReward === null)
+  );
+  response = response.map((p) => ({
+    apy: p.apy ?? p.apyBase + p.apyReward,
+    tvlUsd: p.tvlUsd,
+    timestamp: p.timestamp,
+  }));
 
   if (!response) {
     return new AppError("Couldn't retrieve data", 404);
   }
 
-  return {
-    status: 'sucess',
+  return lambdaResponse({
+    status: 'success',
     data: response,
-  };
+  });
 };

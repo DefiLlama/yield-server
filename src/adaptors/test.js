@@ -1,54 +1,78 @@
-const fs = require('fs');
-const path = require('path');
 require('dotenv').config({ path: './config.env' });
 
-const keyType = {
-  tvlUsd: 'number',
-  apy: 'number',
+const baseFields = {
+  pool: 'string',
+  chain: 'string',
+  project: 'string',
+  symbol: 'string',
 };
 
-if (process.argv.length < 3) {
-  console.error(`Missing argument, you need to provide the filename of the adapter to test.
-    Eg: node src/adaptors/test.js src/adaptors/aave/index.js`);
-  process.exit(1);
-}
-const f = process.argv[2];
-const passedFile = path.resolve(process.cwd(), f);
-(async () => {
-  console.log(`==== Testing ${f} ====`);
+const apy = global.apy;
+const uniquePoolIdentifiersDB = global.uniquePoolIdentifiersDB;
 
-  const time = () => Date.now() / 1000;
-
-  const module = require(passedFile);
-  const start = time();
-  let apy = await module.apy(process.argv[3]);
-  apy = apy.sort((a, b) => b.tvlUsd - a.tvlUsd);
-
-  const uniquePoolIdentifiers = new Set();
-  apy.map((pool) => {
-    if (uniquePoolIdentifiers.has(pool.pool)) {
-      throw new Error(`Pool identifier ${pool.pool} is repeated`);
-    }
-    uniquePoolIdentifiers.add(pool.pool);
-    for (const key of ['pool', 'chain', 'project', 'symbol', 'tvlUsd', 'apy']) {
-      const intendedType = keyType[key] ?? 'string';
-      if (typeof pool[key] !== intendedType) {
-        throw new Error(
-          `Key ${key} of pool ${pool.pool} should be "${intendedType}" but is ${pool[key]}`
-        );
-      }
-    }
+describe(`Running ${process.env.npm_config_adapter} Test`, () => {
+  test('Check for unique pool ids', () => {
+    const poolIds = apy.map((pool) => pool.pool);
+    const uniquePoolIds = [...new Set(poolIds)];
+    expect(poolIds).toEqual(uniquePoolIds);
   });
 
-  console.log(`\nNb of pools: ${apy.length}\n `);
-  console.log('\nSample pools:', apy.slice(0, 10));
-  console.log(`\nRuntime: ${(time() - start).toFixed(2)} sec`);
+  describe('Check apy data types', () => {
+    const apyFields = ['apy', 'apyBase', 'apyReward'];
 
-  // store full adaptor output for checks
-  fs.writeFileSync(
-    `./${f.split('/').slice(-2, -1)[0] + '_output'}.json`,
-    JSON.stringify(apy)
-  );
+    apy.forEach((pool) => {
+      test(`Expects pool with id ${pool.pool} to have at least one number apy field`, () => {
+        expect(apyFields.map((field) => typeof pool[field])).toContain(
+          'number'
+        );
+      });
+    });
+  });
 
-  process.exit(0);
-})();
+  describe('Check tvl data type', () => {
+    apy.forEach((pool) => {
+      test(`tvlUsd field of pool with id ${pool.pool} should be number `, () => {
+        expect(typeof pool.tvlUsd).toBe('number');
+      });
+    });
+  });
+
+  describe('Check tokens data types', () => {
+    const tokenFields = ['rewardTokens', 'underlyingTokens'];
+
+    apy.forEach((pool) => {
+      tokenFields.forEach((field) => {
+        if (pool[field]) {
+          test(`${field} field of pool with id ${pool.pool} should be an Array of strings`, () => {
+            expect(Array.isArray(pool[field])).toBe(true);
+            const isStringArray =
+              pool[field].map((v) => typeof v).filter((v) => v === 'string')
+                .length === pool[field].length;
+            expect(isStringArray).toBe(true);
+          });
+        }
+      });
+    });
+  });
+
+  describe('Check other fields data types', () => {
+    apy.forEach((pool) => {
+      test(`Expect other fields of pool with id ${pool.pool} to match thier data types`, () => {
+        Object.entries(baseFields).map(([field, type]) => {
+          expect(typeof pool[field]).toBe(type);
+        });
+      });
+    });
+  });
+
+  describe('Check if pool id already used by other project', () => {
+    const uniqueIds = new Set(apy.map(({ pool }) => pool));
+    const duplicatedPoolIds = new Set(
+      [...uniqueIds].filter((p) => uniquePoolIdentifiersDB.has(p))
+    );
+
+    test('Expect duplicate ids array to be empty', () => {
+      expect(duplicatedPoolIds.size).toBe(0);
+    });
+  });
+});

@@ -2,8 +2,8 @@ const utils = require('../utils');
 
 const collectPools = async () => {
   const [apyData, tvlData] = await Promise.all([
-    utils.getData('https://eth.complifi.me/api/v2/statistics/apy?network=137'),
-    utils.getData('https://eth.complifi.me/api/protocol/tvl')
+    utils.getData('https://back.compli.fi/api/v2/statistics/apy?network=137'),
+    utils.getData('https://back.compli.fi/api/protocol/tvl')
   ]);
 
   return Object.entries(apyData).map(([poolAddress, apy], i) => ({
