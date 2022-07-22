@@ -3,6 +3,8 @@ const axios = require('axios');
 const fs = require('fs');
 
 module.exports = async function () {
+  require('dotenv').config({ path: './config.env' });
+
   const adapter = process.env.npm_config_adapter;
   const timestamp = process.env.npm_config_timestamp;
   if (!adapter) {
