@@ -9,6 +9,8 @@ module.exports.handler = async (event, context) => {
   const conn = await dbConnection.connect();
   const M = conn.model(poolModel.modelName);
 
+  const nDays = 5;
+
   const aggQuery = [
     {
       $sort: {
@@ -81,6 +83,12 @@ module.exports.handler = async (event, context) => {
           },
           { apy: null },
         ],
+        // remove pools which haven't been updated for >5days;
+        // some pools might just not be included anymore in the adaptor output,
+        // so instead of showing the latest object of that pool on the frontend
+        timestamp: {
+          $gte: new Date(new Date() - 60 * 60 * 24 * nDays * 1000),
+        },
       },
     },
   ];
