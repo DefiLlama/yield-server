@@ -11,6 +11,7 @@ const query = gql`
   {
     markets{
         id
+        quoteAddress
             liquidityPool{
                 id
             }
@@ -28,6 +29,7 @@ const queryNow = gql`
   {
     markets {
       id
+      quoteAddress
       liquidityPool {
         id
       }
@@ -52,8 +54,9 @@ const buildPool = (entry, chainString) => {
     chain: chainString,
     project: 'Lyra',
     symbol,
-    apy: entry.apy,
+    apyBase: entry.apy,
     tvlUsd: entry.NAV,
+    underlyingToken: entry.quoteAddress
   };
 
   return newObj;
@@ -93,8 +96,6 @@ const topLvl = async (chainString, timestamp, url) => {
 
   // calculate apy
   let data = dataNow.markets.map((el) => getAPY(el, dataPrior.markets, 'v2'));
-
-  console.log(data);
 
   // build pool objects
   data = data.map((el) => buildPool(el, chainString));
