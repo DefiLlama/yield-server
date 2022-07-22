@@ -73,5 +73,3 @@ module.exports = {
   timetravel: false,
   apy: getApy,
 };
-
-export {};
