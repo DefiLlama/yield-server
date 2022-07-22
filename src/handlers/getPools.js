@@ -9,90 +9,6 @@ module.exports.handler = async (event, context) => {
   const conn = await dbConnection.connect();
   const M = conn.model(poolModel.modelName);
 
-  const nDays = 5;
-
-  const aggQuery = [
-    {
-      $sort: {
-        pool: 1,
-        timestamp: -1,
-      },
-    },
-    {
-      $group: {
-        _id: '$pool',
-        chain: {
-          $first: '$chain',
-        },
-        project: {
-          $first: '$project',
-        },
-        symbol: {
-          $first: '$symbol',
-        },
-        tvlUsd: {
-          $first: '$tvlUsd',
-        },
-        apyBase: {
-          $first: '$apyBase',
-        },
-        apyReward: {
-          $first: '$apyReward',
-        },
-        apy: {
-          $first: '$apy',
-        },
-        timestamp: {
-          $first: '$timestamp',
-        },
-      },
-    },
-    // sort on tvl desc
-    {
-      $sort: {
-        tvlUsd: -1,
-      },
-    },
-    // adding "back" the pool field, the grouping key is only available as _id
-    {
-      $addFields: {
-        pool: '$_id',
-      },
-    },
-    // remove the _id field
-    {
-      $project: {
-        _id: 0,
-      },
-    },
-    // finally, remove pools based on exclusion values
-    {
-      $match: {
-        tvlUsd: {
-          $gte: exclude.boundaries.tvlUsdUI.lb,
-          $lte: exclude.boundaries.tvlUsdUI.ub,
-        },
-        // lte not enough, would remove null values,
-        // hence why the or statement to keep pools with apy === null
-        $or: [
-          {
-            apy: {
-              $gte: exclude.boundaries.apy.lb,
-              $lte: exclude.boundaries.apy.ub,
-            },
-          },
-          { apy: null },
-        ],
-        // remove pools which haven't been updated for >5days;
-        // some pools might just not be included anymore in the adaptor output,
-        // so instead of showing the latest object of that pool on the frontend
-        timestamp: {
-          $gte: new Date(new Date() - 60 * 60 * 24 * nDays * 1000),
-        },
-      },
-    },
-  ];
-
   const query = M.aggregate(aggQuery);
   let response = await query;
 
@@ -114,3 +30,87 @@ module.exports.handler = async (event, context) => {
     data: response,
   };
 };
+
+const aggQuery = [
+  {
+    $sort: {
+      pool: 1,
+      timestamp: -1,
+    },
+  },
+  {
+    $group: {
+      _id: '$pool',
+      chain: {
+        $first: '$chain',
+      },
+      project: {
+        $first: '$project',
+      },
+      symbol: {
+        $first: '$symbol',
+      },
+      tvlUsd: {
+        $first: '$tvlUsd',
+      },
+      apyBase: {
+        $first: '$apyBase',
+      },
+      apyReward: {
+        $first: '$apyReward',
+      },
+      apy: {
+        $first: '$apy',
+      },
+      timestamp: {
+        $first: '$timestamp',
+      },
+    },
+  },
+  // sort on tvl desc
+  {
+    $sort: {
+      tvlUsd: -1,
+    },
+  },
+  // adding "back" the pool field, the grouping key is only available as _id
+  {
+    $addFields: {
+      pool: '$_id',
+    },
+  },
+  // remove the _id field
+  {
+    $project: {
+      _id: 0,
+    },
+  },
+  // finally, remove pools based on exclusion values
+  {
+    $match: {
+      tvlUsd: {
+        $gte: exclude.boundaries.tvlUsdUI.lb,
+        $lte: exclude.boundaries.tvlUsdUI.ub,
+      },
+      // lte not enough, would remove null values,
+      // hence why the or statement to keep pools with apy === null
+      $or: [
+        {
+          apy: {
+            $gte: exclude.boundaries.apy.lb,
+            $lte: exclude.boundaries.apy.ub,
+          },
+        },
+        { apy: null },
+      ],
+      // remove pools which haven't been updated for >5days;
+      // some pools might just not be included anymore in the adaptor output,
+      // so instead of showing the latest object of that pool on the frontend
+      timestamp: {
+        $gte: new Date(new Date() - 60 * 60 * 24 * 5 * 1000),
+      },
+    },
+  },
+];
+
+module.exports.aggQuery = aggQuery;

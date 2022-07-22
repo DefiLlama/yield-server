@@ -2,6 +2,7 @@ const dbConnection = require('../utils/dbConnection.js');
 const poolModel = require('../models/pool');
 const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
+const { aggQuery } = require('./getPools');
 
 // get latest object of each unique pool
 module.exports.handler = async (event, context) => {
@@ -9,88 +10,12 @@ module.exports.handler = async (event, context) => {
   const conn = await dbConnection.connect();
   const M = conn.model(poolModel.modelName);
 
-  const project = event.pathParameters.project;
-
-  const aggQuery = [
-    {
-      $match: {
-        project: project,
-      },
+  // add project filter as first part in aggregation pipeline
+  aggQuery.unshift({
+    $match: {
+      project: event.pathParameters.project,
     },
-    {
-      $sort: {
-        pool: 1,
-        timestamp: -1,
-      },
-    },
-    {
-      $group: {
-        _id: '$pool',
-        chain: {
-          $first: '$chain',
-        },
-        project: {
-          $first: '$project',
-        },
-        symbol: {
-          $first: '$symbol',
-        },
-        tvlUsd: {
-          $first: '$tvlUsd',
-        },
-        apyBase: {
-          $first: '$apyBase',
-        },
-        apyReward: {
-          $first: '$apyReward',
-        },
-        apy: {
-          $first: '$apy',
-        },
-        timestamp: {
-          $first: '$timestamp',
-        },
-      },
-    },
-    // sort on tvl desc
-    {
-      $sort: {
-        tvlUsd: -1,
-      },
-    },
-    // adding "back" the pool field, the grouping key is only available as _id
-    {
-      $addFields: {
-        pool: '$_id',
-      },
-    },
-    // remove the _id field
-    {
-      $project: {
-        _id: 0,
-      },
-    },
-    // finally, remove pools based on exclusion values
-    {
-      $match: {
-        tvlUsd: {
-          $gte: exclude.boundaries.tvlUsdUI.lb,
-          $lte: exclude.boundaries.tvlUsdUI.ub,
-        },
-        // lte not enough, would remove null values,
-        // hence why the or statement to keep pools with apy === null
-        $or: [
-          {
-            apy: {
-              $gte: exclude.boundaries.apy.lb,
-              $lte: exclude.boundaries.apy.ub,
-            },
-          },
-          { apy: null },
-        ],
-      },
-    },
-  ];
+  });
 
   const query = M.aggregate(aggQuery);
   let response = await query;
