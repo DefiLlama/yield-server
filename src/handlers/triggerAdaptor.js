@@ -10,7 +10,7 @@ module.exports.handler = async (event, context) => {
   console.log(event);
 
   // We return failed msg ids,
-  // so that only failed messages will be retried by SQS in case of min of 1 error in batch
+  // so that only failed messages will be retried by SQS in case of min of 1 error init batch
   // https://www.serverless.com/blog/improved-sqs-batch-error-handling-with-aws-lambda
   const failedMessageIds = [];
 
@@ -98,6 +98,7 @@ const main = async (body) => {
 
   // load current project array
   // need a new endpoint for that
+  const urlBase = process.env.APIG_URL;
   const dataInitial = (await superagent.get(`${urlBase}/pools/${body.adaptor}`))
     .body.data;
 
