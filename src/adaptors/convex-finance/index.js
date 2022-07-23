@@ -53,8 +53,6 @@ const getCvxTvl = async (poolStatsCrv) => {
     })
   ).body.coins;
 
-  console.log(pricesUSD);
-
   for (const i of tokenIds) {
     const result = await convexBoosterContract.methods.poolInfo(i).call();
     // this is the lp token we receive by depositing the curve lp token into convex
