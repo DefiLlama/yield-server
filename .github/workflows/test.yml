@@ -24,14 +24,16 @@ jobs:
             exit 0
           fi
 
-          npm ci --production --only=prod
+          npm ci
 
           for i in $(echo $RUN_FILES | tr  -d '"[]' | tr "," "\n")
           do
             {
-              node ${{ github.workspace }}/src/adaptors/test.js ${{ github.workspace }}/${i} 2>&1 | tee output.txt
+              npm run test --adapter=${i} 2>&1 | tee output.txt
               node ${{ github.workspace }}/.github/workflows/commentResult.js /home/runner/work/yield-server/yield-server/output.txt "${{ github.repository_owner }}" "${{ github.event.repository.name }}" "${{ github.event.number }}" ${i}
-              if grep -q "\-\-\-\- ERROR \-\-\-\-" output.txt; then
+              if grep -q "PASS src/adaptors/test.js" output.txt; then
+                exit 0;
+              else
                 exit 1;
               fi
             } || {

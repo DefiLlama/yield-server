@@ -20,6 +20,8 @@ const main = async () => {
     ...p,
     apy: p.apy ?? p.apyBase + p.apyReward,
   }));
+  // remove any potential null values
+  data = data.filter((p) => p.apy !== null);
 
   ////// 2 add pct-change columns
   // for each project we get 3 offsets (1D, 7D, 30D) and calculate absolute apy pct-change
@@ -93,20 +95,33 @@ const main = async () => {
       x.count < 2 ? null : Math.sqrt(x.mean2APY / (x.count - 1));
     // b) scatterchart section
     p['mu'] = (x.productDR ** (T / x.count) - 1) * 100;
-    p['sigma'] = Math.sqrt((x.mean2DR / (x.count - 1)) * T) * 100;
+    p['sigma'] =
+      x.count < 2 ? null : Math.sqrt((x.mean2DR / (x.count - 1)) * T) * 100;
   }
 
   // mark pools as outliers if outside boundary (let user filter via toggle on frontend)
   const columns = ['mu', 'sigma'];
   const outlierBoundaries = {};
   for (const col of columns) {
-    let x = dataEnriched.map((p) => p[col]).filter((p) => p);
+    // for quantile thr calculation we keep only finite values (discarding null, undefined, NaN, Infinity)
+    const x = dataEnriched.map((p) => p[col]).filter((p) => Number.isFinite(p));
     const x_iqr = ss.quantile(x, 0.75) - ss.quantile(x, 0.25);
     const x_median = ss.median(x);
-    const x_lb = x_median - 1.5 * x_iqr;
-    const x_ub = x_median + 1.5 * x_iqr;
+    const distance = 1.5;
+    const x_lb = x_median - distance * x_iqr;
+    const x_ub = x_median + distance * x_iqr;
     outlierBoundaries[col] = { lb: x_lb, ub: x_ub };
   }
+
+  // before adding the new outlier field,
+  // i'm setting sigma to 0 instead of keeping it to null
+  // so the label on the scatterchart makes more sense
+  dataEnriched = dataEnriched.map((p) => ({
+    ...p,
+    mu: Number.isFinite(p.mu) ? p.mu : 0,
+    sigma: Number.isFinite(p.sigma) ? p.sigma : 0,
+  }));
+
   dataEnriched = dataEnriched.map((p) => ({
     ...p,
     outlier:
@@ -133,18 +148,15 @@ const main = async () => {
     el.chain_factorized = chain_fact === undefined ? -1 : chain_fact;
   }
 
-  // just for sanity, remove any potential objects with which have null value
-  // for apy and mean (there shouldn't be any, as we filter above)
-  // (should only be on apyStdExpanding because if d was undefined or count < 2)
-  dataEnriched = dataEnriched.filter(
-    (el) => el.apy !== null && el.apyMeanExpanding !== null
-  );
+  // remove any potential objects which have null value on mean
+  dataEnriched = dataEnriched.filter((el) => el.apyMeanExpanding !== null);
 
   // impute null values on apyStdExpanding (this will be null whenever we have pools with less than 2
   // samples, eg. whenever a new pool project is listed or an existing project adds new pools
-  for (const el of dataEnriched) {
-    el.apyStdExpanding = el.apyStdExpanding === null ? 0 : el.apyStdExpanding;
-  }
+  dataEnriched = dataEnriched.map((p) => ({
+    ...p,
+    apyStdExpanding: p.apyStdExpanding ?? 0,
+  }));
 
   const y_pred = (
     await superagent
@@ -237,13 +249,16 @@ const main = async () => {
   dataEnriched = dataEnriched.sort((a, b) => b.tvlUsd - a.tvlUsd);
   await utils.writeToS3(bucket, key, dataEnriched);
 
-  // also save to other "folder" where we keep track of hourly predictions (this will be used
+  // also save to other "folder" where we keep track of daily predictions (this will be used
   // for ML dashboard performance monitoring)
   const timestamp = new Date(
     Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
   ).toISOString();
-  const keyPredictions = `predictions-hourly/dataEnriched_${timestamp}.json`;
-  await utils.writeToS3(bucket, keyPredictions, dataEnriched);
+
+  if (timestamp.split('T')[1] === '23:00:00.000Z') {
+    const keyPredictions = `predictions-hourly/dataEnriched_${timestamp}.json`;
+    await utils.writeToS3(bucket, keyPredictions, dataEnriched);
+  }
 
   // store /poolsEnriched (/pools) api response to s3 where we cache it
   await utils.storeAPIResponse('defillama-datasets', 'yield-api/pools', {
@@ -269,7 +284,9 @@ const checkStablecoin = (el, stablecoins) => {
 
   let stable;
   // specific case for aave amm positions
-  if (el.project === 'aave' && el.symbol.toLowerCase().includes('amm')) {
+  if (el.project === 'curve' && el.symbol.toLowerCase().includes('3crv')) {
+    stable = true;
+  } else if (el.project === 'aave' && el.symbol.toLowerCase().includes('amm')) {
     tok = tokens[0].split('weth');
     stable = tok[0].includes('wbtc') ? false : tok.length > 1 ? false : true;
   } else if (tokens.length === 1) {

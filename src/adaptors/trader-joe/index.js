@@ -1,3 +1,4 @@
+const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
@@ -53,7 +54,12 @@ const queryJoeAllocation = gql`
 `;
 
 const prepareLMData = async (urlLM, block) => {
-  const joeUsd = await utils.getCGpriceData('joe', true);
+  const key = 'avax:0x6e84a6216ea6dacc71ee8e6b0a5b7322eebc0fdd';
+  const joeUsd = (
+    await superagent.post('https://coins.llama.fi/prices').send({
+      coins: [key],
+    })
+  ).body.coins[key].price;
 
   // get pair allocation points
   let joeAllocation = await request(
@@ -79,7 +85,7 @@ const prepareLMData = async (urlLM, block) => {
 
     el['joePerDay'] = rewardPerDay;
     el['joePerYear'] = rewardPerDay * 365;
-    el['joePerYearUsd'] = rewardPerDay * 365 * joeUsd.joe.usd;
+    el['joePerYearUsd'] = rewardPerDay * 365 * joeUsd;
   }
 
   return joeAllocation;
@@ -141,7 +147,7 @@ const topLvl = async (chainString, timestamp, url, urlLM) => {
 
 const main = async (timestamp = null) => {
   const data = await Promise.all([topLvl('avalanche', timestamp, url, urlLM)]);
-  return data.flat();
+  return data.flat().filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

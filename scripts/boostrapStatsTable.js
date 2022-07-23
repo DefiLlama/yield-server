@@ -5,7 +5,7 @@ const ss = require('simple-statistics');
 
 const { confirm } = require('../src/utils/confirm');
 const { boundaries } = require('../src/utils/exclude');
-const { insertStats } = require('../src/api/controllers');
+const { insertStats } = require('../src/handlers/triggerStats');
 
 // set config (we run this script locally)
 const credentials = new AWS.SharedIniFileCredentials({ profile: 'defillama' });
@@ -19,10 +19,12 @@ process.env['SSM_PATH'] = '/llama-apy/serverless/sls-authenticate';
   );
   // pools.json is a full database snapshot of daily values only (the last value per pool per day)
   // containing pool and the total apy fields
-  const p = './pools_2022_07_15_daily.json';
-  let data = JSON.parse(fs.readFileSync(p));
+  let data = JSON.parse(fs.readFileSync(process.argv[2]));
   // keeping positive values only
-  data = data.filter((p) => p.apy > 0 && p.apy <= boundaries.apy.ub);
+  data = data.filter(
+    (p) =>
+      p.apy !== null && p.apy >= boundaries.apy.lb && p.apy <= boundaries.apy.ub
+  );
 
   // create return field
   const T = 365;
