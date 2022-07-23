@@ -5,8 +5,10 @@ const baseFields = {
   symbol: 'string',
 };
 
+const adapter = global.adapter;
 const apy = global.apy;
 const uniquePoolIdentifiersDB = global.uniquePoolIdentifiersDB;
+const protocols = global.protocolsSlug;
 
 describe(`Running ${process.env.npm_config_adapter} Test`, () => {
   describe('Check for allowed field names', () => {
@@ -92,5 +94,12 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
     test('Expect duplicate ids array to be empty', () => {
       expect(duplicatedPoolIds.size).toBe(0);
     });
+  });
+
+  test('Check project field is constant in all pools and if folder name and project field in pool objects matches the information in /protocols slug', () => {
+    expect(new Set(apy.map((p) => p.project)).size).toBe(1);
+    expect(
+      protocolsSlug.includes(apy[0].project) && apy[0].project === adapter
+    ).toBe(true);
   });
 });
