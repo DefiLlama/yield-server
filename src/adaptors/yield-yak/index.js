@@ -17,6 +17,10 @@ const main = async () => {
         apy: apys[farm.address].apy,
         rewardTokens: [farm.rewardToken.address],
         underlyingTokens: farm.depositToken.underlying,
+        // this is in terms of deposit tokens, but there is no simple way to convert this
+        // to USD, so for now just adding this. if ever this gets fixed, the graph should still
+        // look some kind of proportionally scaled version of the original?
+        tvlUsd: +farm.totalDeposits,
       };
     });
 };
