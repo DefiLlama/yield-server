@@ -1,3 +1,5 @@
+const superagent = require('superagent');
+
 const poolModel = require('../models/pool');
 const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
