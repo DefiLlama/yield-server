@@ -1,13 +1,20 @@
 const JSBI = require('jsbi');
-const { CurrencyAmount, Percent, Token, TradeType } = require("@uniswap/sdk-core");
-const { AlphaRouter }  = require('@uniswap/smart-order-router');
+const {
+  CurrencyAmount,
+  Percent,
+  Token,
+  TradeType,
+} = require('@uniswap/sdk-core');
+const { AlphaRouter } = require('@uniswap/smart-order-router');
 const { default: BigNumber } = require('bignumber.js');
 const { JsonRpcProvider } = require('@ethersproject/providers');
 const StakingABI = require('./staking_abi.json');
 const BrcABI = require('./brc_abi.json');
 const utils = require('../utils');
 const Web3 = require('web3');
-const jsonRpcProvider = new JsonRpcProvider(process.env.ALCHEMY_CONNECTION_ARBITRUM);
+const jsonRpcProvider = new JsonRpcProvider(
+  process.env.ALCHEMY_CONNECTION_ARBITRUM
+);
 const web3 = new Web3(process.env.ALCHEMY_CONNECTION_ARBITRUM);
 
 const STAKING_CONTRACT = '0x9A28f7Ab9aEb4f14Fc4c580938F8F5E89ce98084';
@@ -18,12 +25,19 @@ const ChainId = 42161;
 const stakingContract = new web3.eth.Contract(StakingABI, STAKING_CONTRACT);
 const brcContract = new web3.eth.Contract(BrcABI, BRC);
 const BLOCKS_PER_MONTH = 199384;
-const PoolNames = ['BRC (30Days)', 'BRC (90Days)', 'BRC (180Days)', 'BRC-gBRC (30Days)', 'BRC-gBRC (90Days)', 'BRC-gBRC (180Days)'];
+const PoolNames = [
+  'BRC (30Days)',
+  'BRC (90Days)',
+  'BRC (180Days)',
+  'BRC-gBRC (30Days)',
+  'BRC-gBRC (90Days)',
+  'BRC-gBRC (180Days)',
+];
 
 let gBRCCost = 0;
 let daiCost = 0;
 
-const getPoolWeight = (stakePool) => { 
+const getPoolWeight = (stakePool) => {
   switch (stakePool) {
     case 0:
       return 3;
@@ -42,14 +56,14 @@ const getPoolWeight = (stakePool) => {
   }
 };
 
-const getPoolTVL = async (stakePool, brcSupply, gbrcSupply) => { 
+const getPoolTVL = async (stakePool, brcSupply, gbrcSupply) => {
   let totalPrice = await getBRCPrice(brcSupply);
-  if(stakePool >= 3){
+  if (stakePool >= 3) {
     // brcSupply is used here because current version of staking contract
     // has had its ratio increased from 1BRC:1gBRC(old) to 1BRC:100gBRC(current)
     // TVL of dual staking pools is thus apparently higher than set here
     // but this is set as a lower boundary
-    totalPrice = Number(totalPrice) + await getGBRCPrice(brcSupply);
+    totalPrice = Number(totalPrice) + (await getGBRCPrice(brcSupply));
   }
   return totalPrice;
 };
@@ -57,131 +71,177 @@ const getPoolTVL = async (stakePool, brcSupply, gbrcSupply) => {
 const getBRCPrice = async (amount) => {
   const brcPrice = await brcContract.methods.mintCost(amount).call();
   return brcPrice / 1e18;
-}
+};
 
 const getGBRCPriceFromBRC = async (amount) => {
-  try{
+  try {
     const token = new Token(ChainId, BRC, 18, 'BRC', 'Brinc Token');
     const toToken = new Token(ChainId, GBRC, 18, 'gBRC', 'Governance Token');
-   
+
     const swapOptions = {
       recipient: '0xa1B94ef0f24d7F4fd02285EFcb9202E6C6EC655B',
       slippageTolerance: new Percent(5, 100),
       deadline: Math.floor(Date.now() / 1000 + 1800),
     };
-    
-    const currencyAmount = CurrencyAmount.fromRawAmount(token, JSBI.BigInt(amount));    
-    const router = new AlphaRouter({ chainId: ChainId, provider: jsonRpcProvider });
-    
-    return router.route(currencyAmount, toToken, TradeType.EXACT_INPUT, swapOptions)
-    .then(res => {
-      if(res){
-        return res.quote.toFixed(toToken.decimals);
-      }else{
-        return 0;
-      }
-    })
-    .catch(err => {
-      console.log('cost quote brc->gbrc error', err);
-      return '0';
+
+    const currencyAmount = CurrencyAmount.fromRawAmount(
+      token,
+      JSBI.BigInt(amount)
+    );
+    const router = new AlphaRouter({
+      chainId: ChainId,
+      provider: jsonRpcProvider,
     });
-  }catch(error){
+
+    return router
+      .route(currencyAmount, toToken, TradeType.EXACT_INPUT, swapOptions)
+      .then((res) => {
+        if (res) {
+          return res.quote.toFixed(toToken.decimals);
+        } else {
+          return 0;
+        }
+      })
+      .catch((err) => {
+        console.log('cost quote brc->gbrc error', err);
+        return '0';
+      });
+  } catch (error) {
     console.log('getGBRCPriceFromBRC', error);
   }
-}
+};
 
 const getGBRCPrice = async (amount) => {
   try {
     return (Number(daiCost) / Number(gBRCCost)) * (amount / 1e18);
   } catch (error) {
-    console.log("Failed to getGBRCPrice \n Error => ", error);
+    console.log('Failed to getGBRCPrice \n Error => ', error);
     return new BigNumber(0);
   }
-}
+};
 
 const getPoolData = async (pool) => {
-  const stakingBRCSupply = await brcContract.methods.balanceOf(STAKING_CONTRACT).call();
-  const govBrincPerBlock = await stakingContract.methods.getGovBrincPerBlock().call();
+  const stakingBRCSupply = await brcContract.methods
+    .balanceOf(STAKING_CONTRACT)
+    .call();
+  const govBrincPerBlock = await stakingContract.methods
+    .getGovBrincPerBlock()
+    .call();
   const _brcStake = await stakingContract.methods.getPoolSupply(pool).call();
-  const brcStake = new BigNumber(_brcStake)
-  
-  const govBrincPerMonth = new BigNumber(govBrincPerBlock).times(BLOCKS_PER_MONTH);
-  const totalRewards = new BigNumber(govBrincPerMonth).times(getPoolWeight(pool)).div(getPoolWeight(100));
+  const brcStake = new BigNumber(_brcStake);
+
+  const govBrincPerMonth = new BigNumber(govBrincPerBlock).times(
+    BLOCKS_PER_MONTH
+  );
+  const totalRewards = new BigNumber(govBrincPerMonth)
+    .times(getPoolWeight(pool))
+    .div(getPoolWeight(100));
   const stakingRatio = await stakingContract.methods.getRatioBtoG().call();
   const gbrcStaked = new BigNumber(stakingRatio).div(1e10).times(brcStake);
   return {
-    apr: ((((totalRewards.div(brcStake).times(brcStake.div(stakingBRCSupply))).div(30)).times(365)).times(100)).times(1),
+    apr: totalRewards
+      .div(brcStake)
+      .times(brcStake.div(stakingBRCSupply))
+      .div(30)
+      .times(365)
+      .times(100)
+      .times(1),
     brcStaked: brcStake,
-    gbrcStaked: pool < 3 ? 0 : gbrcStaked
-  }
-}
+    gbrcStaked: pool < 3 ? 0 : gbrcStaked,
+  };
+};
 
 const getAPYAndSupply = async (pool) => {
-  const {apr, brcStaked, gbrcStaked} = await getPoolData(pool);
+  const { apr, brcStaked, gbrcStaked } = await getPoolData(pool);
   switch (pool) {
     case 0:
       return {
-        apy: (((new BigNumber(1).plus(new BigNumber(apr).div(100)).pow(12)).minus(1)).times(100)),
+        apy: new BigNumber(1)
+          .plus(new BigNumber(apr).div(100))
+          .pow(12)
+          .minus(1)
+          .times(100),
         brcStaked,
-        gbrcStaked
-      }
+        gbrcStaked,
+      };
     case 1:
       return {
-        apy: (((new BigNumber(1).plus(new BigNumber(apr).div(100).times(3)).pow(4)).minus(1)).times(100)),
+        apy: new BigNumber(1)
+          .plus(new BigNumber(apr).div(100).times(3))
+          .pow(4)
+          .minus(1)
+          .times(100),
         brcStaked,
-        gbrcStaked
-      }
+        gbrcStaked,
+      };
     case 2:
       return {
-        apy: (((new BigNumber(1).plus(new BigNumber(apr).div(100).times(6)).pow(2)).minus(1)).times(100)),
+        apy: new BigNumber(1)
+          .plus(new BigNumber(apr).div(100).times(6))
+          .pow(2)
+          .minus(1)
+          .times(100),
         brcStaked,
-        gbrcStaked
-      }
+        gbrcStaked,
+      };
     case 3:
       return {
-        apy: (((new BigNumber(1).plus(new BigNumber(apr).div(100)).pow(12)).minus(1)).times(100)),
+        apy: new BigNumber(1)
+          .plus(new BigNumber(apr).div(100))
+          .pow(12)
+          .minus(1)
+          .times(100),
         brcStaked,
-        gbrcStaked
-      }
+        gbrcStaked,
+      };
     case 4:
       return {
-        apy: (((new BigNumber(1).plus(new BigNumber(apr).div(100).times(3)).pow(4)).minus(1)).times(100)),
+        apy: new BigNumber(1)
+          .plus(new BigNumber(apr).div(100).times(3))
+          .pow(4)
+          .minus(1)
+          .times(100),
         brcStaked,
-        gbrcStaked
-      }
+        gbrcStaked,
+      };
     case 5:
       return {
-        apy: (((new BigNumber(1).plus(new BigNumber(apr).div(100).times(6)).pow(2)).minus(1)).times(100)),
+        apy: new BigNumber(1)
+          .plus(new BigNumber(apr).div(100).times(6))
+          .pow(2)
+          .minus(1)
+          .times(100),
         brcStaked,
-        gbrcStaked
-      }
+        gbrcStaked,
+      };
     default:
       return {
         apy: 0,
         brcStaked: 0,
-        gbrcStaked: 0
+        gbrcStaked: 0,
       };
   }
-}
+};
 
 const getPools = async () => {
   let apys = [];
 
   for (let stakePool = 0; stakePool < 6; stakePool++) {
     const { apy, brcStaked, gbrcStaked } = await getAPYAndSupply(stakePool);
+    console.log('brcStaked', brcStaked);
     apys.push({
       tvl: await getPoolTVL(stakePool, brcStaked, gbrcStaked),
       apy: apy.toString(),
       symbol: PoolNames[stakePool],
-      poolId: 'pool'+stakePool
-    })
+      poolId: 'pool' + stakePool,
+    });
   }
   return apys;
-} 
+};
 
 const buildPool = (entry) => {
   const newObj = {
-    pool: entry.poolId + "-brinc-finance-staking",
+    pool: entry.poolId + '-brinc-finance-staking',
     chain: 'Arbitrum', // chain where the pool is
     project: 'brinc-finance', // protocol (using the slug again)
     symbol: utils.formatSymbol(entry.symbol),
@@ -194,16 +254,14 @@ const buildPool = (entry) => {
 };
 
 async function main() {
-    daiCost = await getBRCPrice(1e18.toString());
-    gBRCCost = await getGBRCPriceFromBRC(1e18.toString());
-    const pools = await getPools();
-    console.log('pools', pools);
-    const data = pools.map((pool) => buildPool(pool));
-    return data;
+  daiCost = await getBRCPrice((1e18).toString());
+  gBRCCost = await getGBRCPriceFromBRC((1e18).toString());
+  const pools = await getPools();
+  const data = pools.map((pool) => buildPool(pool));
+  return data;
 }
 
 module.exports = {
-    timetravel: false,
-    apy: main,
+  timetravel: false,
+  apy: main,
 };
-  
