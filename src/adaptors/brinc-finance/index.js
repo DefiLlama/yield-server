@@ -137,7 +137,7 @@ const getPoolData = async (pool) => {
     .times(getPoolWeight(pool))
     .div(getPoolWeight(100));
   const stakingRatio = await stakingContract.methods.getRatioBtoG().call();
-  const gbrcStaked = new BigNumber(stakingRatio).div(1e10).times(brcStake);
+  const gbrcStaked = new BigNumber(+stakingRatio).div(1e10).times(+brcStake);
   return {
     apr: totalRewards
       .div(brcStake)
@@ -229,6 +229,8 @@ const getPools = async () => {
   for (let stakePool = 0; stakePool < 6; stakePool++) {
     const { apy, brcStaked, gbrcStaked } = await getAPYAndSupply(stakePool);
     console.log('brcStaked', brcStaked);
+    x = await getPoolTVL(stakePool, brcStaked, gbrcStaked);
+    console.log('poolTvl', x);
     apys.push({
       tvl: await getPoolTVL(stakePool, brcStaked, gbrcStaked),
       apy: apy.toString(),
@@ -257,6 +259,7 @@ async function main() {
   daiCost = await getBRCPrice((1e18).toString());
   gBRCCost = await getGBRCPriceFromBRC((1e18).toString());
   const pools = await getPools();
+  console.log(pools);
   const data = pools.map((pool) => buildPool(pool));
   return data;
 }
