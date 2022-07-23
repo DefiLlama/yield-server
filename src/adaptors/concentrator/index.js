@@ -25,6 +25,13 @@ const getAllPools = async () => {
   let vaultsTvls = await utils.getData(`${ALADDIN_API_BASE_URL}data/vaults/tvl`);
   let vaultsApys = await utils.getData(`${ALADDIN_API_BASE_URL}data/vaults/apy`);
 
+  // const oldPoolLength = (
+  //   await sdk.api.abi.call({
+  //     target: concentratorVault,
+  //     abi: abi.poolLength,
+  //   })
+  // ).output;
+
   const poolLength = (
     await sdk.api.abi.call({
       target: concentratorNewVault,
@@ -54,7 +61,10 @@ const getAllPools = async () => {
       };
     }
     try {
-      const lpTvl = vaultsTvls.data['newVault'][poolInfo.output.lpToken.toLowerCase()].tvl
+      let lpTvl = vaultsTvls.data['newVault'][poolInfo.output.lpToken.toLowerCase()].tvl
+      if (vaultsTvls.data['oldVault'][poolInfo.output.lpToken.toLowerCase()]) {
+        lpTvl = BigNumber(lpTvl).plus(vaultsTvls.data['oldVault'][poolInfo.output.lpToken.toLowerCase()].tvl).toString(10)
+      }
       const { apy: lpApy } = vaultsApys.data['newVault'].find(item => item.lpToken.toLowerCase() == poolData.addresses.lpToken.toLowerCase())
       return {
         lpTvl: lpTvl,
