@@ -16,11 +16,20 @@ module.exports = async function () {
   const passedFile = path.resolve(process.cwd(), `./src/adaptors/${adapter}`);
   const module = require(passedFile);
 
+  global.adapter = adapter;
   global.apy = (await module.apy(timestamp)).sort(
     (a, b) => b.tvlUsd - a.tvlUsd
   );
 
   fs.writeFileSync(`./${adapter}_test_output.json`, JSON.stringify(global.apy));
+
+  global.protocolsSlug = [
+    ...new Set(
+      (await axios.get('https://api.llama.fi/protocols')).data.map(
+        (protocol) => protocol.slug
+      )
+    ),
+  ];
 
   global.uniquePoolIdentifiersDB = new Set(
     (
