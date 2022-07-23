@@ -124,7 +124,7 @@ const main = async (body) => {
       `removed ${data.length - dataDB.length} samples prior to insert`
     );
 
-  const response = await insertPools(data);
+  const response = await insertPools(dataDB);
   console.log(response);
 };
 
