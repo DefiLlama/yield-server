@@ -56,7 +56,7 @@ const buildPool = (entry, chainString) => {
     symbol,
     apyBase: entry.apy,
     tvlUsd: entry.NAV,
-    underlyingToken: entry.quoteAddress
+    underlyingTokens: [entry.quoteAddress],
   };
 
   return newObj;
