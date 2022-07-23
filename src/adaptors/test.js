@@ -9,6 +9,26 @@ const apy = global.apy;
 const uniquePoolIdentifiersDB = global.uniquePoolIdentifiersDB;
 
 describe(`Running ${process.env.npm_config_adapter} Test`, () => {
+  describe('Check for allowed field names', () => {
+    const optionalFields = [
+      'apy',
+      'apyBase',
+      'apyReward',
+      'underlyingTokens',
+      'rewardTokens',
+    ];
+    const fields = [...Object.keys(baseFields), ...optionalFields, 'tvlUsd'];
+    apy.forEach((pool) => {
+      test(`Expects pool id ${
+        pool.pool
+      } to contain only allowed keys: ${fields} and has: ${Object.keys(
+        pool
+      )}`, () => {
+        expect(Object.keys(pool).every((f) => fields.includes(f))).toBe(true);
+      });
+    });
+  });
+
   test('Check for unique pool ids', () => {
     const poolIds = apy.map((pool) => pool.pool);
     const uniquePoolIds = [...new Set(poolIds)];
