@@ -103,11 +103,11 @@ const aggQuery = [
         },
         { apy: null },
       ],
-      // remove pools which haven't been updated for >5days;
+      // remove pools which haven't been updated for >7days;
       // some pools might just not be included anymore in the adaptor output,
       // so instead of showing the latest object of that pool on the frontend
       timestamp: {
-        $gte: new Date(new Date() - 60 * 60 * 24 * 5 * 1000),
+        $gte: new Date(new Date() - 60 * 60 * 24 * 7 * 1000),
       },
     },
   },

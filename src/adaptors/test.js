@@ -5,10 +5,32 @@ const baseFields = {
   symbol: 'string',
 };
 
+const adapter = global.adapter;
 const apy = global.apy;
 const uniquePoolIdentifiersDB = global.uniquePoolIdentifiersDB;
+const protocols = global.protocolsSlug;
 
 describe(`Running ${process.env.npm_config_adapter} Test`, () => {
+  describe('Check for allowed field names', () => {
+    const optionalFields = [
+      'apy',
+      'apyBase',
+      'apyReward',
+      'underlyingTokens',
+      'rewardTokens',
+    ];
+    const fields = [...Object.keys(baseFields), ...optionalFields, 'tvlUsd'];
+    apy.forEach((pool) => {
+      test(`Expects pool id ${
+        pool.pool
+      } to contain only allowed keys: ${fields} and has: ${Object.keys(
+        pool
+      )}`, () => {
+        expect(Object.keys(pool).every((f) => fields.includes(f))).toBe(true);
+      });
+    });
+  });
+
   test('Check for unique pool ids', () => {
     const poolIds = apy.map((pool) => pool.pool);
     const uniquePoolIds = [...new Set(poolIds)];
@@ -72,5 +94,12 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
     test('Expect duplicate ids array to be empty', () => {
       expect(duplicatedPoolIds.size).toBe(0);
     });
+  });
+
+  test('Check project field is constant in all pools and if folder name and project field in pool objects matches the information in /protocols slug', () => {
+    expect(new Set(apy.map((p) => p.project)).size).toBe(1);
+    expect(
+      protocolsSlug.includes(apy[0].project) && apy[0].project === adapter
+    ).toBe(true);
   });
 });
