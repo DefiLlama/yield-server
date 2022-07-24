@@ -1,9 +1,9 @@
 {
     "compilerOptions": {
-      "module": "es2015",
-      "target": "esnext",
+      "module": "commonjs",
+      "target": "ES5",
       "strict": false,
-      "types": ["node"],
+      "types": ["node", "jest"],
       "resolveJsonModule": true,
       "moduleResolution": "node",
       "noUnusedLocals": true,
@@ -12,7 +12,7 @@
       "noFallthroughCasesInSwitch": true,
       "esModuleInterop": true,
       "allowJs": true,
-      "lib": ["ES2020.Promise"]
+      "lib": ["ES2020.Promise", "ES6"]
     },
     "include": ["./src/**/*"],
   }  

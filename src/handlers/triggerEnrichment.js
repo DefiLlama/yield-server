@@ -249,13 +249,16 @@ const main = async () => {
   dataEnriched = dataEnriched.sort((a, b) => b.tvlUsd - a.tvlUsd);
   await utils.writeToS3(bucket, key, dataEnriched);
 
-  // also save to other "folder" where we keep track of hourly predictions (this will be used
+  // also save to other "folder" where we keep track of daily predictions (this will be used
   // for ML dashboard performance monitoring)
   const timestamp = new Date(
     Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
   ).toISOString();
-  const keyPredictions = `predictions-hourly/dataEnriched_${timestamp}.json`;
-  await utils.writeToS3(bucket, keyPredictions, dataEnriched);
+
+  if (timestamp.split('T')[1] === '23:00:00.000Z') {
+    const keyPredictions = `predictions-hourly/dataEnriched_${timestamp}.json`;
+    await utils.writeToS3(bucket, keyPredictions, dataEnriched);
+  }
 
   // store /poolsEnriched (/pools) api response to s3 where we cache it
   await utils.storeAPIResponse('defillama-datasets', 'yield-api/pools', {
@@ -281,7 +284,9 @@ const checkStablecoin = (el, stablecoins) => {
 
   let stable;
   // specific case for aave amm positions
-  if (el.project === 'aave' && el.symbol.toLowerCase().includes('amm')) {
+  if (el.project === 'curve' && el.symbol.toLowerCase().includes('3crv')) {
+    stable = true;
+  } else if (el.project === 'aave' && el.symbol.toLowerCase().includes('amm')) {
     tok = tokens[0].split('weth');
     stable = tok[0].includes('wbtc') ? false : tok.length > 1 ? false : true;
   } else if (tokens.length === 1) {

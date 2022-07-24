@@ -40,10 +40,18 @@ const getCvxTvl = async (poolStatsCrv) => {
   const tokenIds = pools.map((el) => el.id);
 
   // price data
-  const pricesUSD = await utils.getCGpriceData(
-    'ethereum,bitcoin,chainlink,stasis-eurs,tether-eurt',
-    true
-  );
+  const addresses = {
+    ethereum: 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    bitcoin: 'ethereum:0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
+    chainlink: 'ethereum:0x514910771af9ca656af840dff83e8264ecf986ca',
+    'stasis-eurs': 'ethereum:0x514910771af9ca656af840dff83e8264ecf986ca',
+    'tether-eurt': 'ethereum:0xdac17f958d2ee523a2206206994597c13d831ec7',
+  };
+  const pricesUSD = (
+    await superagent.post('https://coins.llama.fi/prices').send({
+      coins: Object.values(addresses),
+    })
+  ).body.coins;
 
   for (const i of tokenIds) {
     const result = await convexBoosterContract.methods.poolInfo(i).call();
@@ -142,13 +150,13 @@ const getCvxTvl = async (poolStatsCrv) => {
       pos = poolStatsCrv.find((el) => el.pool === 'eurt');
       price = pos.tvl / pos.totalSupply;
     } else if (name.includes('ETH')) {
-      price = pricesUSD.ethereum.usd;
+      price = pricesUSD[addresses.ethereum].price;
     } else if (name.includes('BTC')) {
-      price = pricesUSD.bitcoin.usd;
+      price = pricesUSD[addresses.bitcoin].price;
     } else if (name.includes('LINK')) {
-      price = pricesUSD.chainlink.usd;
+      price = pricesUSD[addresses.chainlink].price;
     } else if (name.includes('EUR')) {
-      price = pricesUSD['stasis-eurs'].usd;
+      price = pricesUSD[addresses['stasis-eurs']].price;
     }
 
     let totalSupply = await tokenContract.methods.totalSupply().call();
