@@ -129,7 +129,7 @@ const getPoolData = async (pool) => {
     .getGovBrincPerBlock()
     .call();
   const _brcStake = await stakingContract.methods.getPoolSupply(pool).call();
-  const brcStake = new BigNumber(+_brcStake);
+  const brcStake = new BigNumber(_brcStake.toString());
   console.log('brcStake', brcStake);
 
   const govBrincPerMonth = new BigNumber(+govBrincPerBlock).times(
