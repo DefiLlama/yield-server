@@ -57,7 +57,7 @@ async function getPoolMvx(pChain, pInflationTrackerAddress, pStakedMvx, pStakedE
   return {
     pool: pInflationTrackerAddress,
     chain: utils.formatChain(pChain),
-    project: 'metavault-trade',
+    project: 'metavault.trade',
     symbol: utils.formatSymbol('MVX'),
     tvlUsd: tvlMvx,
     apy: apyFee + apyInflation,
@@ -73,7 +73,7 @@ async function getPoolMvlp(pChain, pTvl, pInflationTrackerAddress, pFeeMvlp, pIn
   return {
     pool: pInflationTrackerAddress,
     chain: utils.formatChain(pChain),
-    project: 'metavault-trade',
+    project: 'metavault.trade',
     symbol: utils.formatSymbol('MVLP'),
     tvlUsd: parseFloat(pTvl),
     apy: apyFee + apyInflation,
