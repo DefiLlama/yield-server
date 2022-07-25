@@ -9,7 +9,7 @@ module.exports.handler = async (event, context) => {
   const M = conn.model(medianModel.modelName);
 
   // return all documents
-  const response = await M.find({}, { _id: 0, __v: 0 });
+  const response = await M.find({}, { _id: 0 });
 
   if (!response) {
     return new AppError("Couldn't get median data", 404);
