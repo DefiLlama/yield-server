@@ -16,8 +16,7 @@ const ZSP_ADDRESS = '0x2C26617034C840C9412CD67aE0Fc68A6755D00BF';
 const WFTM_ADDRESS = '0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83';
 const ORACLE_ADDRESS = '0xb9Eebcd999130Ec2037DcAC98bd36185bB22D797';
 
-// const BSC_BLOCK_TIME = 3;
-// const BLOCKS_PER_YEAR = (60 / BSC_BLOCK_TIME) * 60 * 24 * 365;
+const BLOCKS_PER_DAY = 86400;
 
 const web3 = new Web3(RPC_URL);
 
@@ -50,7 +49,6 @@ const calculateApy = (
   reserveUSD
 ) => {
   const poolWeight = poolInfo.allocPoint / totalAllocPoint;
-  const BLOCKS_PER_DAY = 86400;
 
   return (
     ((poolWeight * BLOCKS_PER_DAY * zspPerBlock * zspPrice) / reserveUSD) *
@@ -124,12 +122,12 @@ const main = async () => {
   const normalisedTotalSupply = totalSupply / 1e18;
   const stakedSupply = normalisedTotalSupply - normalisedTotalLocked;
 
-  const stakeRewardPerYear = normalisedRewardRateFtm * 86400 * 365;
+  const stakeRewardPerYear = normalisedRewardRateFtm * BLOCKS_PER_DAY * 365;
   const stakeRewards = stakeRewardPerYear / normalisedTotalSupply;
   const stakeAPR = (stakeRewards / zspPriceFtm) * 100;
   const stakeTVL = stakedSupply * zspPrice;
 
-  const lockRewardsPerYear = normalisedRewardRateZsp * 86400 * 365;
+  const lockRewardsPerYear = normalisedRewardRateZsp * BLOCKS_PER_DAY * 365;
   const lockRewards = lockRewardsPerYear / normalisedTotalLocked;
   const lockAPR = lockRewards * 100 + stakeAPR;
   const lockTVL = normalisedTotalLocked * zspPrice;
@@ -149,18 +147,27 @@ const main = async () => {
   const poolsInfo = poolsRes.output.map((res) => res.output);
   const lpTokens = lpTokensRes.output.map((res) => res.output);
 
-  const [reservesRes, supplyRes, masterChefBalancesRes] = await Promise.all(
-    ['getReserves', 'totalSupply', 'balanceOf'].map((method) =>
-      sdk.api.abi.multiCall({
-        abi: lpTokenABI.filter(({ name }) => name === method)[0],
-        calls: lpTokens.map((address) => ({
-          target: address,
-          params: method === 'balanceOf' ? [MASTERCHEF_ADDRESS] : null,
-        })),
-        chain: 'fantom',
-      })
+  const [
+    reservesRes,
+    supplyRes,
+    masterChefBalancesRes,
+    underlyingToken0,
+    underlyingToken1,
+  ] = await Promise.all(
+    ['getReserves', 'totalSupply', 'balanceOf', 'token0', 'token1'].map(
+      (method) =>
+        sdk.api.abi.multiCall({
+          abi: lpTokenABI.filter(({ name }) => name === method)[0],
+          calls: lpTokens.map((address) => ({
+            target: address,
+            params: method === 'balanceOf' ? [MASTERCHEF_ADDRESS] : null,
+          })),
+          chain: 'fantom',
+        })
     )
   );
+  const underlyingToken0Data = underlyingToken0.output.map((res) => res.output);
+  const underlyingToken1Data = underlyingToken1.output.map((res) => res.output);
   const reservesData = reservesRes.output.map((res) => res.output);
   const supplyData = supplyRes.output.map((res) => res.output);
   const masterChefBalData = masterChefBalancesRes.output.map(
@@ -172,6 +179,8 @@ const main = async () => {
       getPairInfo(lpTokens[i]).then(({ pair: pairInfo }) => {
         const poolInfo = poolsInfo[i];
         const reserves = reservesData[i];
+        const underlying0 = underlyingToken0Data[i];
+        const underlying1 = underlyingToken1Data[i];
 
         const supply = supplyData[i];
         const masterChefBalance = masterChefBalData[i];
@@ -201,6 +210,7 @@ const main = async () => {
             zspPrice,
             reserveUSD
           ),
+          underlyingTokens: [underlying0, underlying1],
         };
         return pool;
       })
