@@ -13,7 +13,6 @@ def trim(filename: str) -> None:
         df.groupby(["pool", pd.Grouper(key="timestamp", freq="1D")])
         .last()
         .reset_index()
-        .drop(columns=["timestamp"])
         .to_json(f"{filename.split('.')[0]}_daily.json", orient="records")
     )
 
