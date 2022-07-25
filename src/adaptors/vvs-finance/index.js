@@ -48,15 +48,6 @@ const pairQuery = gql`
   }
 `;
 
-const volumeQuery = gql`
-  query volumeQuery {
-    pairs(orderBy: volumeUSD, orderDirection: desc) {
-      volumeUSD
-      id
-    }
-  }
-`;
-
 const getPairInfo = (pair) => {
   const pairInfo = request(API_URL, pairQuery, { id: pair.toLowerCase() });
 
@@ -161,16 +152,6 @@ const main = async () => {
   const extraRewardUsd = await getExtraRewardPoolsPerYear();
   const masterChef = new web3.eth.Contract(masterChefABI, MASTERCHEF_ADDRESS);
 
-  const { pairs: volumeRes } = await request(API_URL, volumeQuery);
-  const volumeApy = volumeRes.reduce(
-    (acc, vol) => (
-      {
-        ...acc,
-        [vol.id]: Number(vol.volumeUSD) * 365 * 0.03,
-      },
-      {}
-    )
-  );
   const poolsCount = await masterChef.methods.poolLength().call();
 
   const totalAllocPoint = await masterChef.methods.totalAllocPoint().call();
