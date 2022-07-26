@@ -8,7 +8,7 @@ const buildPool = (tokenAddress, tokenSymbol, acrossApiPoolDataForToken, wethPri
     project: "across",
     symbol: utils.formatSymbol(tokenSymbol),
     tvlUsd: wethPriceData.body.coins[`ethereum:${tokenAddress}`].price * Number(acrossApiPoolDataForToken.liquidReserves) / (10 ** decimals),
-    apyBase: Number(acrossApiPoolDataForToken.estimatedApy),
+    apyBase: Number(acrossApiPoolDataForToken.estimatedApy) * 100,
     underlyingTokens: [tokenAddress]
 };
 };
