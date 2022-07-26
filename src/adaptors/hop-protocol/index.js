@@ -18,24 +18,25 @@ const getPoolTokenBalances = async (coreConfig, chain, token) => {
   const poolAddress = config.l2SaddleSwap;
   const tokenAddress = config.l2CanonicalToken;
   const hopTokenAddress = config.l2HopBridgeToken;
+  const adaptedChain = getAdaptedChain(chain);
 
   const [tokenBalance, hopTokenBalance, decimals] = await Promise.all(
     [
       sdk.api.abi.call({
         abi: 'erc20:balanceOf',
-        chain,
+        chain: adaptedChain,
         target: tokenAddress,
         params: [poolAddress],
       }),
       sdk.api.abi.call({
         abi: 'erc20:balanceOf',
-        chain,
+        chain: adaptedChain,
         target: hopTokenAddress,
         params: [poolAddress],
       }),
       sdk.api.abi.call({
         abi: 'erc20:decimals',
-        chain,
+        chain: adaptedChain,
         target: tokenAddress,
         params: [],
       }),
@@ -86,7 +87,6 @@ const main = async () => {
       const tokenPools = data[token];
       const chains = Object.keys(data[token]);
       return chains.map(async (chain) => {
-        chain = getAdaptedChain(chain);
         const tvlUsd = await getPoolTvl(coreConfig, chain, token);
         const tokenAddress = coreConfig[token][chain].l2CanonicalToken;
         const hopTokenAddress = coreConfig[token][chain].l2HopBridgeToken;
