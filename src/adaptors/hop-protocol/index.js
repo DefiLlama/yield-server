@@ -1,6 +1,7 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
+const { default: BigNumber } = require('bignumber.js');
 
 const getCoreConfig = async () => {
   const {
@@ -56,9 +57,11 @@ const getPoolTvl = async (coreConfig, chain, token) => {
   });
   const price = coins[key.toLowerCase()].price;
 
-  const totalBalance = (tokenBalance + hopTokenBalance) / 10 ** decimals;
-  const totalValue = totalBalance * price;
-  return totalValue;
+  const totalBalance = new BigNumber(tokenBalance)
+    .plus(new BigNumber(hopTokenBalance))
+    .div(new BigNumber(10 ** decimals));
+  const totalValue = totalBalance.multipliedBy(price);
+  return totalValue.toNumber();
 };
 
 const main = async () => {
@@ -92,7 +95,8 @@ const main = async () => {
     })
     .flat();
 
-  return Promise.all(promises);
+  const pools = await Promise.all(promises);
+  return pools.filter((pool) => !!pool.apy);
 };
 
 module.exports = {
