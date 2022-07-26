@@ -64,6 +64,15 @@ const getPoolTvl = async (coreConfig, chain, token) => {
   return totalValue.toNumber();
 };
 
+const getAdaptedChain = (chain) => {
+  switch (chain) {
+    case 'gnosis':
+      return 'xdai';
+    default:
+      return chain;
+  }
+};
+
 const main = async () => {
   const {
     data: { data },
@@ -77,6 +86,7 @@ const main = async () => {
       const tokenPools = data[token];
       const chains = Object.keys(data[token]);
       return chains.map(async (chain) => {
+        chain = getAdaptedChain(chain);
         const tvlUsd = await getPoolTvl(coreConfig, chain, token);
         const tokenAddress = coreConfig[token][chain].l2CanonicalToken;
         const hopTokenAddress = coreConfig[token][chain].l2HopBridgeToken;
