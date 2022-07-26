@@ -329,9 +329,6 @@ const checkIlRisk = (el) => {
     ilRisk = 'yes';
   } else if (tokens.length === 1) {
     ilRisk = 'no';
-    // for bancor
-  } else if (tokens.length === 2 && tokens.includes('bnt')) {
-    ilRisk = 'no';
   } else {
     const elements = [];
     for (const t of tokens) {
