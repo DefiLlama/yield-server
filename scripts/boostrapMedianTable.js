@@ -6,7 +6,6 @@ const ss = require('simple-statistics');
 const { confirm } = require('../src/utils/confirm');
 const { boundaries } = require('../src/utils/exclude');
 const { insertMedian } = require('../src/handlers/triggerMedian');
-const { type } = require('os');
 
 // set config (we run this script locally)
 const credentials = new AWS.SharedIniFileCredentials({ profile: 'defillama' });
@@ -38,7 +37,7 @@ process.env['SSM_PATH'] = '/llama-apy/serverless/sls-authenticate';
     let X = data.filter((el) => el.timestamp === timestamp);
 
     payload.push({
-      timestamp: new Date(timestamp),
+      timestamp,
       medianAPY: ss.median(X.map((p) => p.apy)),
       uniquePools: new Set(X.map((p) => p.pool)).size,
     });
