@@ -24,8 +24,6 @@ const main = async () => {
     },
   ];
   console.log(payload);
-  console.log(payload[0].timestamp, typeof payload[0].timestamp);
-
   const response = await insertMedian(payload);
   console.log(response);
 };
@@ -33,8 +31,8 @@ const main = async () => {
 const insertMedian = async (payload) => {
   const conn = await dbConnection.connect();
   const M = conn.model(medianModel.modelName);
-  console.log(M);
 
+  console.log(payload, M.insertMany);
   const response = await M.insertMany(payload);
 
   if (!response) {
