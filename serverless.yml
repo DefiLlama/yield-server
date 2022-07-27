@@ -124,7 +124,7 @@ functions:
   triggerMedian:
     handler: src/handlers/triggerMedian.handler
     description: Lambda which inserts latest value into the median table
-    timeout: 300
+    timeout: 30
     events:
       # at midnight
       - schedule: cron(0 0 * * ? *)
