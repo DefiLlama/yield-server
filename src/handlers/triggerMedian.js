@@ -22,8 +22,14 @@ const main = async () => {
       medianAPY: ss.median(dataEnriched.map((p) => p.apy)),
       uniquePools: new Set(dataEnriched.map((p) => p.pool)).size,
     },
+    {
+      timestamp: new Date(
+        Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
+      ),
+      medianAPY: ss.median(dataEnriched.map((p) => p.apy)),
+      uniquePools: new Set(dataEnriched.map((p) => p.pool)).size,
+    },
   ];
-  console.log(payload);
   const response = await insertMedian(payload);
   console.log(response);
 };
@@ -32,7 +38,7 @@ const insertMedian = async (payload) => {
   const conn = await dbConnection.connect();
   const M = conn.model(medianModel.modelName);
 
-  console.log(payload, M.insertMany);
+  console.log(payload);
   const response = await M.insertMany(payload);
 
   if (!response) {

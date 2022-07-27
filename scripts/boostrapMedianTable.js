@@ -6,6 +6,7 @@ const ss = require('simple-statistics');
 const { confirm } = require('../src/utils/confirm');
 const { boundaries } = require('../src/utils/exclude');
 const { insertMedian } = require('../src/handlers/triggerMedian');
+const { type } = require('os');
 
 // set config (we run this script locally)
 const credentials = new AWS.SharedIniFileCredentials({ profile: 'defillama' });
