@@ -15,6 +15,7 @@ const main = async () => {
     .data;
   // filter to apy > 0 only
   dataEnriched = dataEnriched.filter((p) => p.apy > 0);
+  console.log(dataEnriched.length);
 
   const payload = [
     {
@@ -25,6 +26,7 @@ const main = async () => {
       uniquePools: new Set(dataEnriched.map((p) => p.pool)).size,
     },
   ];
+  console.log(payload);
 
   const response = await insertMedian(payload);
   console.log(response);
