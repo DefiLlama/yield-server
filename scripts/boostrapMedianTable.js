@@ -5,7 +5,7 @@ const ss = require('simple-statistics');
 
 const { confirm } = require('../src/utils/confirm');
 const { boundaries } = require('../src/utils/exclude');
-const { insertStats } = require('../src/handlers/triggerStats');
+const { insertMedian } = require('../src/handlers/triggerMedian');
 
 // set config (we run this script locally)
 const credentials = new AWS.SharedIniFileCredentials({ profile: 'defillama' });
@@ -27,39 +27,23 @@ process.env['SSM_PATH'] = '/llama-apy/serverless/sls-authenticate';
     (p) =>
       p.apy !== null && p.apy >= boundaries.apy.lb && p.apy <= boundaries.apy.ub
   );
-
-  // create return field
-  const T = 365;
-  // transform raw apy to return field (required for geometric mean below)
-  data = data.map((p) => ({
-    ...p,
-    return: (1 + p.apy / 100) ** (1 / T) - 1,
-  }));
-
   const payload = [];
-  for (const [i, pool] of [...new Set(data.map((el) => el.pool))].entries()) {
-    console.log(i);
+  for (const [i, timestamp] of [
+    ...new Set(data.map((el) => el.timestamp)),
+  ].entries()) {
+    console.log(i, timestamp);
 
-    // filter to pool
-    let X = data.filter((el) => el.pool === pool);
-    if (X.length === 0) continue;
-
-    const count = X.length;
-    const seriesAPY = X.map((p) => p.apy);
-    const seriesReturn = X.map((p) => p.return);
+    // filter to day
+    let X = data.filter((el) => el.timestamp === timestamp);
 
     payload.push({
-      pool,
-      count,
-      meanAPY: seriesAPY.reduce((a, b) => a + b, 0) / count,
-      mean2APY: count < 2 ? null : ss.variance(seriesAPY) * (count - 1),
-      meanDR: seriesReturn.reduce((a, b) => a + b, 0) / count,
-      mean2DR: count < 2 ? null : ss.variance(seriesReturn) * (count - 1),
-      productDR: seriesReturn.map((a) => 1 + a).reduce((a, b) => a * b),
+      timestamp: new Date(timestamp),
+      medianAPY: ss.median(X.map((p) => p.apy)),
+      uniquePools: new Set(X.map((p) => p.pool)).size,
     });
   }
 
-  const response = await insertStats(payload);
+  const response = await insertMedian(payload);
   console.log(response);
   process.exit(0);
 })();
