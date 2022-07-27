@@ -15,6 +15,8 @@ const assetTypeMapping = {
   eth: 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
 };
 
+const THREE_CRV_ADDRESS = '0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490';
+
 const getPools = async (blockchainId) => {
   const poolsByAddress = {};
   for (const registry of BLOCKCHAINID_TO_REGISTRIES[blockchainId]) {
@@ -133,7 +135,7 @@ const getPoolAPR = (pool, subgraph, gauge, crvPrice, underlyingPrices) => {
   const virtualPrice = BigNumber(subgraph.virtualPrice).div(decimals);
   let poolAPR;
   try {
-    if (pool.totalSupply) {
+    if (pool.totalSupply && !pool.coinsAddresses.includes(THREE_CRV_ADDRESS)) {
       poolAPR = inflationRate
         .times(relativeWeight)
         .times(31536000)

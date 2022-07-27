@@ -120,6 +120,15 @@ functions:
       # at midnight
       - schedule: cron(0 0 * * ? *)
 
+  # --- median insert
+  triggerMedian:
+    handler: src/handlers/triggerMedian.handler
+    description: Lambda which inserts latest value into the median table
+    timeout: 300
+    events:
+      # at midnight
+      - schedule: cron(0 0 * * ? *)
+
   # --- save poolsEnriched as CSV
   triggerCsv:
     handler: src/handlers/triggerCsv.handler
@@ -139,14 +148,14 @@ functions:
           method: get
           path: /simplePools
 
-  getPoolsFiltered:
-    handler: src/handlers/getPoolsFiltered.handler
-    description: Lambda for retrieving the latest data for each unique pool
+  getProject:
+    handler: src/handlers/getProject.handler
+    description: Lambda for retrieving the latest pools for a project
     timeout: 20
     events:
       - httpApi:
           method: get
-          path: /simplePoolsFiltered
+          path: /pools/{project}
 
   getPoolsEnriched:
     handler: src/handlers/getPoolsEnriched.handler
@@ -186,6 +195,15 @@ functions:
       - httpApi:
           method: get
           path: /stats
+
+  getMedian:
+    handler: src/handlers/getMedian.handler
+    description: Lambda for retrieving median data
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /median
 
 resources:
   Resources:

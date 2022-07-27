@@ -52,11 +52,11 @@ const buildPool = (entry, chainString) => {
   const newObj = {
     pool: entry.liquidityPool.id,
     chain: chainString,
-    project: 'Lyra',
+    project: 'lyra',
     symbol,
     apyBase: entry.apy,
     tvlUsd: entry.NAV,
-    underlyingToken: entry.quoteAddress
+    underlyingTokens: [entry.quoteAddress],
   };
 
   return newObj;
