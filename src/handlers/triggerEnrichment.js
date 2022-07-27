@@ -299,11 +299,6 @@ const checkStablecoin = (el, stablecoins) => {
       x += stablecoins.some((x) => t.includes(x));
     }
     stable = x === tokens.length ? true : false;
-
-    // this case is for Bancor only
-    if (tokens.includes('bnt') && x > 0) {
-      stable = true;
-    }
   }
 
   return stable;
@@ -364,8 +359,6 @@ const checkExposure = (el) => {
       el.symbol.toLowerCase().includes('ammbpt')
         ? 'multi'
         : exposure;
-  } else if (el.project === 'bancor') {
-    exposure = 'single';
   } else if (el.project === 'badger-dao') {
     exposure = el.symbol.toLowerCase().includes('crv') ? 'multi' : exposure;
   }
