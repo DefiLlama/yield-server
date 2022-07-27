@@ -13,9 +13,6 @@ const main = async () => {
   const urlBase = process.env.APIG_URL;
   let dataEnriched = (await superagent.get(`${urlBase}/poolsEnriched`)).body
     .data;
-  // filter to apy > 0 only
-  dataEnriched = dataEnriched.filter((p) => p.apy > 0);
-  console.log(dataEnriched.length);
 
   const payload = [
     {
@@ -27,6 +24,7 @@ const main = async () => {
     },
   ];
   console.log(payload);
+  console.log(payload[0].timestamp, typeof payload[0].timestamp);
 
   const response = await insertMedian(payload);
   console.log(response);
@@ -35,6 +33,7 @@ const main = async () => {
 const insertMedian = async (payload) => {
   const conn = await dbConnection.connect();
   const M = conn.model(medianModel.modelName);
+  console.log(M);
 
   const response = await M.insertMany(payload);
 
