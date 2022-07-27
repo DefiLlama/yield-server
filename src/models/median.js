@@ -4,7 +4,7 @@ const medianSchema = new mongoose.Schema(
   {
     timestamp: {
       type: Date,
-      required: [true, 'A new entry requires a timestamp field'],
+      // required: [true, 'A new entry requires a timestamp field'],
     },
     medianAPY: {
       type: Number,
