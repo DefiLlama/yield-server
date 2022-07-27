@@ -21,11 +21,6 @@ const main = async () => {
       uniquePools: new Set(dataEnriched.map((p) => p.pool)).size,
     },
   ];
-  console.log(
-    typeof payload[0].timestamp,
-    typeof payload[0].medianAPY,
-    typeof payload[0].uniquePools
-  );
   const response = await insertMedian(payload);
   console.log(response);
 };

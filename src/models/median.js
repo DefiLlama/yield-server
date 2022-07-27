@@ -19,6 +19,8 @@ const medianSchema = new mongoose.Schema(
   { versionKey: false }
 );
 
+medianSchema.index({ timestamp: 1 });
+
 const nameModel = 'Median';
 const nameCollection = nameModel.toLowerCase();
 const medianModel = mongoose.model(nameModel, medianSchema, nameCollection);
