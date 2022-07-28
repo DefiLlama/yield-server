@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const medianSchema = new mongoose.Schema(
   {
     timestamp: {
-      type: Number,
+      type: Date,
       required: [true, 'A pool must have a timestamp field'],
     },
     medianAPY: {
