@@ -33,3 +33,4 @@ jobs:
           ALCHEMY_CONNECTION_ARBITRUM: ${{ secrets.ALCHEMY_CONNECTION_ARBITRUM }}
           XDAI: ${{ secrets.XDAI }}
           XDAI_RPC: ${{ secrets.XDAI_RPC }}
+          CRONOS_RPC: ${{ secrets.CRONOS_RPC }}
