@@ -33,8 +33,8 @@ const insertMedian = async (payload) => {
   console.log(payload);
   console.log(typeof payload);
 
-  console.log('insertOne');
-  const responseOne = await M.insertOne(payload[0]);
+  console.log('create');
+  const responseOne = await M.create(payload[0]);
   console.log(responseOne);
 
   console.log('insertMany');
