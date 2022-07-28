@@ -28,7 +28,8 @@ const main = async () => {
 const insertMedian = async (payload) => {
   const conn = await dbConnection.connect();
   const M = conn.model(medianModel.modelName);
-  console.log(M, typeof M);
+  const x = await M.find({}, { _id: 0 }).sort({ timestamp: 1 });
+  console.log(x);
 
   const response = await M.insertMany(payload);
 
