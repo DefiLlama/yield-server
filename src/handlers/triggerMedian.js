@@ -31,13 +31,16 @@ const insertMedian = async (payload) => {
 
   console.log('payload', payload);
 
+  const dbContent = await M.find({});
+  console.log(dbContent);
+
+  console.log('calling create');
+  const response2 = await M.create(payload);
+  console.log('create response', response2);
+
   console.log('calling insertMany');
   const response = await M.insertMany(payload);
   console.log('insertMany response', response);
-
-  console.log('calling create');
-  const response2 = await M.create(payload[0]);
-  console.log('create response', response2);
 
   // if (!response) {
   //   return new AppError("Couldn't insert data", 404);
@@ -49,4 +52,4 @@ const insertMedian = async (payload) => {
   // };
 };
 
-module.exports.insertMedian = insertMedian;
+// module.exports.insertMedian = insertMedian;
