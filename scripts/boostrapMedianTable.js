@@ -37,7 +37,7 @@ process.env['SSM_PATH'] = '/llama-apy/serverless/sls-authenticate';
     let X = data.filter((el) => el.timestamp === timestamp);
 
     payload.push({
-      timestamp,
+      timestamp: new Date(timestamp),
       medianAPY: ss.median(X.map((p) => p.apy)),
       uniquePools: new Set(X.map((p) => p.pool)).size,
     });

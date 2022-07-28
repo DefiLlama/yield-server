@@ -1,22 +1,22 @@
-const superagent = require('superagent');
 const ss = require('simple-statistics');
 
 const medianModel = require('../models/median');
 const AppError = require('../utils/appError');
 const dbConnection = require('../utils/dbConnection.js');
+const { buildPoolsEnriched } = require('../handlers/getPoolsEnriched');
 
 module.exports.handler = async () => {
   await main();
 };
 
 const main = async () => {
-  const urlBase = process.env.APIG_URL;
-  let dataEnriched = (await superagent.get(`${urlBase}/poolsEnriched`)).body
-    .data;
+  const dataEnriched = await buildPoolsEnriched(undefined);
 
   const payload = [
     {
-      timestamp: Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000,
+      timestamp: new Date(
+        Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
+      ),
       medianAPY: ss.median(dataEnriched.map((p) => p.apy)),
       uniquePools: new Set(dataEnriched.map((p) => p.pool)).size,
     },
@@ -29,27 +29,30 @@ const insertMedian = async (payload) => {
   const conn = await dbConnection.connect();
   const M = conn.model(medianModel.modelName);
 
-  console.log('payload', payload);
+  const bulkOperations = [];
+  for (const el of payload) {
+    bulkOperations.push({
+      updateOne: {
+        // need to provide a filter value, otherwise this won't work
+        filter: { timestamp: 0 },
+        update: {
+          $set: el,
+        },
+        upsert: true,
+      },
+    });
+  }
 
-  const dbContent = await M.find({});
-  console.log(dbContent);
+  const response = await M.bulkWrite(bulkOperations);
 
-  console.log('calling create');
-  const response2 = await M.create(payload);
-  console.log('create response', response2);
+  if (!response) {
+    return new AppError("Couldn't update data", 404);
+  }
 
-  console.log('calling insertMany');
-  const response = await M.insertMany(payload);
-  console.log('insertMany response', response);
-
-  // if (!response) {
-  //   return new AppError("Couldn't insert data", 404);
-  // }
-
-  // return {
-  //   status: 'success',
-  //   response: `Inserted ${payload.length} samples`,
-  // };
+  return {
+    status: 'success',
+    response,
+  };
 };
 
-// module.exports.insertMedian = insertMedian;
+module.exports.insertMedian = insertMedian;
