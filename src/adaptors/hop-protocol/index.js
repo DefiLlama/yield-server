@@ -47,9 +47,11 @@ const getPoolTokenBalances = async (coreConfig, chain, token) => {
 };
 
 const getPoolTvl = async (coreConfig, chain, token) => {
+  const adaptedChain = getAdaptedChain(chain);
+
   const { tokenBalance, hopTokenBalance, decimals, tokenAddress } =
     await getPoolTokenBalances(coreConfig, chain, token);
-  const key = `${chain}:${tokenAddress}`;
+  const key = `${adaptedChain}:${tokenAddress}`;
   const {
     data: { coins },
   } = await axios.post('https://coins.llama.fi/prices', {
@@ -90,13 +92,14 @@ const main = async () => {
         const tvlUsd = await getPoolTvl(coreConfig, chain, token);
         const tokenAddress = coreConfig[token][chain].l2CanonicalToken;
         const hopTokenAddress = coreConfig[token][chain].l2HopBridgeToken;
+        const adaptedChain = getAdaptedChain(chain);
 
         return {
           pool: `${chain}-${token}`,
-          chain,
+          chain: adaptedChain,
           project: 'hop-protocol',
           symbol: token,
-          apy: tokenPools[chain].apr * 100,
+          apyBase: tokenPools[chain].apr * 100,
           rewardTokens: [],
           underlyingTokens: [tokenAddress, hopTokenAddress],
           tvlUsd,
