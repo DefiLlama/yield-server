@@ -101,6 +101,7 @@ functions:
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
       XDAI: ${file(./env.js):XDAI}
       XDAI_RPC: ${file(./env.js):XDAI_RPC}
+      CRONOS_RPC: ${file(./env.js):CRONOS_RPC}
 
   # --- data enrichment
   triggerEnrichment:
