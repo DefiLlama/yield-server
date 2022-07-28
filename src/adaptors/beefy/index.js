@@ -47,7 +47,7 @@ const buildPool = (entry) => {
   const newObj = {
     pool: entry.id,
     chain: utils.formatChain(networkMapping[entry.network]),
-    project: 'beefy-finance',
+    project: 'beefy',
     symbol: utils.formatSymbol(entry.symbol),
     tvlUsd: entry.tvl,
     apy: entry.apy * 100,
