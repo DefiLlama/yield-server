@@ -4,18 +4,17 @@ const medianSchema = new mongoose.Schema(
   {
     timestamp: {
       type: Number,
-      required: [true, 'A new entry requires a timestamp field'],
+      required: [true, 'A pool must have a timestamp field'],
     },
     medianAPY: {
       type: Number,
-      default: [true, 'A new entry requires a medianAPY field'],
+      required: [true, 'A pool must have a medianAPY field'],
     },
     uniquePools: {
       type: Number,
-      default: [true, 'A new entry requires a uniquePools field'],
+      default: [true, 'A pool must have a uniquePools field'],
     },
   },
-  // i remove __v versionkey created by mongoose
   { versionKey: false }
 );
 
