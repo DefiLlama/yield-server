@@ -81,5 +81,9 @@ module.exports.handler = async (event, context) => {
   return lambdaResponse({
     status: 'success',
     data: response,
+  }, {
+    headers:{
+      "Access-Control-Allow-Origin": "*",
+    }
   });
 };
