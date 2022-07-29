@@ -8,6 +8,7 @@ interface Pool {
   contract_address: string;
   asset_symbol: string;
   quote_symbol: string;
+  protocol: string;
   liquidity_usd: string;
   apy: { yearly: string };
 }
@@ -24,7 +25,7 @@ const getApy = async () => {
       pool: pool.contract_address,
       chain: utils.formatChain('ethereum'),
       project: 'armor',
-      symbol: `${pool.asset_symbol}-${pool.quote_symbol}`,
+      symbol: `${pool.asset_symbol}-${pool.quote_symbol} (${pool.protocol})`,
       tvlUsd: Number(pool.liquidity_usd),
       apyReward: Number(pool.apy.yearly),
       rewardTokens: [ARMOR_TOKEN],
