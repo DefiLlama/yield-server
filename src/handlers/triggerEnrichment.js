@@ -2,6 +2,7 @@ const superagent = require('superagent');
 const ss = require('simple-statistics');
 
 const utils = require('../utils/s3');
+const { getLatestPools } = require('./getPools');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
 const { welfordUpdate } = require('../utils/welford');
 
@@ -14,7 +15,8 @@ const main = async () => {
 
   const urlBase = process.env.APIG_URL;
   console.log('\n1. pulling base data...');
-  let data = (await superagent.get(`${urlBase}/simplePools`)).body.data;
+  let data = await getLatestPools();
+
   // derive final apy field via:
   data = data.map((p) => ({
     ...p,
