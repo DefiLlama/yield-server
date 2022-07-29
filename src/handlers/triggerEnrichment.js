@@ -281,7 +281,6 @@ const enrich = (pool, days, offsets) => {
 
 const checkStablecoin = (el, stablecoins) => {
   let tokens = el.symbol.split('-').map((el) => el.toLowerCase());
-
   let stable;
   // specific case for aave amm positions
   if (el.project === 'curve' && el.symbol.toLowerCase().includes('3crv')) {
@@ -289,6 +288,8 @@ const checkStablecoin = (el, stablecoins) => {
   } else if (el.project === 'aave' && el.symbol.toLowerCase().includes('amm')) {
     tok = tokens[0].split('weth');
     stable = tok[0].includes('wbtc') ? false : tok.length > 1 ? false : true;
+  } else if (tokens[0].includes('torn')) {
+    stable = false;
   } else if (tokens.length === 1) {
     stable = stablecoins.some((x) =>
       tokens[0].replace(/\s*\(.*?\)\s*/g, '').includes(x)
