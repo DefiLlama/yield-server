@@ -135,7 +135,11 @@ const getPoolAPR = (pool, subgraph, gauge, crvPrice, underlyingPrices) => {
   const virtualPrice = BigNumber(subgraph.virtualPrice).div(decimals);
   let poolAPR;
   try {
-    if (pool.totalSupply && !pool.coinsAddresses.includes(THREE_CRV_ADDRESS)) {
+    if (
+      pool.totalSupply &&
+      !pool.coinsAddresses.includes(THREE_CRV_ADDRESS) &&
+      pool.implementation !== 'metausd-fraxusdc'
+    ) {
       poolAPR = inflationRate
         .times(relativeWeight)
         .times(31536000)
