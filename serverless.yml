@@ -143,7 +143,7 @@ functions:
   getPools:
     handler: src/handlers/getPools.handler
     description: Lambda for retrieving the latest data for each unique pool
-    timeout: 20
+    timeout: 30
     events:
       - httpApi:
           method: get
