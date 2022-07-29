@@ -208,10 +208,12 @@ const main = async () => {
               (Number(coin.poolBalance) / 10 ** coin.decimals) * coin.usdPrice,
             0
           );
-          const supply = pool.coins.reduce(
+          let supply = pool.coins.reduce(
             (acc, coin) => acc + Number(coin.poolBalance) / 10 ** coin.decimals,
             0
           );
+
+          if (pool.assetTypeName === 'usd') supply = usdValue / virtualPrice;
 
           v2PoolUsd = (totalSupply / 10 ** decimals / supply) * usdValue;
         }
@@ -304,26 +306,28 @@ const main = async () => {
     return { apy, baseApy };
   };
 
-  const res = poolsWithApr.map((pool) => {
-    const { apy, baseApy } = getPoolApy(pool);
+  const res = poolsWithApr
+    .map((pool) => {
+      const { apy, baseApy } = getPoolApy(pool);
 
-    return {
-      pool: pool.lptoken,
-      chain: utils.formatChain('ethereum'),
-      project: 'convex-finance',
-      symbol: pool.coins.map((coin) => coin.symbol).join('-'),
-      tvlUsd: pool.cvxTvl,
-      apyBase: baseApy,
-      apy: pool.apr + baseApy + pool.crvApr + pool.extrApr,
-      apyReward: pool.crvApr + pool.apr + pool.extrApr,
-      underlyingTokens: pool.coins.map(({ address }) => address),
-      rewardTokens: [
-        '0xd533a949740bb3306d119cc777fa900ba034cd52', //crv
-        '0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b', // cvx
-        ...pool.extraTokens,
-      ],
-    };
-  });
+      return {
+        pool: pool.lptoken,
+        chain: utils.formatChain('ethereum'),
+        project: 'convex-finance',
+        symbol: pool.coins.map((coin) => coin.symbol).join('-'),
+        tvlUsd: pool.cvxTvl,
+        apyBase: baseApy,
+        apy: pool.apr + baseApy + pool.crvApr + pool.extrApr,
+        apyReward: pool.crvApr + pool.apr + pool.extrApr,
+        underlyingTokens: pool.coins.map(({ address }) => address),
+        rewardTokens: [
+          '0xd533a949740bb3306d119cc777fa900ba034cd52', //crv
+          '0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b', // cvx
+          ...pool.extraTokens,
+        ],
+      };
+    })
+    .filter((pool) => !pool.symbol.toLowerCase().includes('ust'));
 
   return res;
 };
