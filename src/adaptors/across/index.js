@@ -7,7 +7,7 @@ const buildPool = (tokenAddress, tokenSymbol, acrossApiPoolDataForToken, wethPri
     chain: utils.formatChain("ethereum"), // All yield on Mainnet
     project: "across",
     symbol: utils.formatSymbol(tokenSymbol),
-    tvlUsd: wethPriceData.body.coins[`ethereum:${tokenAddress}`].price * Number(acrossApiPoolDataForToken.liquidReserves) / (10 ** decimals),
+    tvlUsd: wethPriceData.body.coins[`ethereum:${tokenAddress}`].price * Number(acrossApiPoolDataForToken.totalPoolSize) / (10 ** decimals),
     apyBase: Number(acrossApiPoolDataForToken.estimatedApy) * 100,
     underlyingTokens: [tokenAddress]
 };
