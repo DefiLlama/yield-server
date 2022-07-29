@@ -6,6 +6,19 @@ const exclude = require('../utils/exclude');
 // get latest object of each unique pool
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
+  const response = await getLatestPools();
+
+  if (!response) {
+    return new AppError("Couldn't retrieve data", 404);
+  }
+
+  return {
+    status: 'success',
+    data: response,
+  };
+};
+
+const getLatestPools = async () => {
   const conn = await dbConnection.connect();
   const M = conn.model(poolModel.modelName);
 
@@ -21,14 +34,7 @@ module.exports.handler = async (event, context) => {
       !exclude.excludePools.includes(p.pool)
   );
 
-  if (!response) {
-    return new AppError("Couldn't retrieve data", 404);
-  }
-
-  return {
-    status: 'success',
-    data: response,
-  };
+  return response;
 };
 
 const aggQuery = [
@@ -114,3 +120,4 @@ const aggQuery = [
 ];
 
 module.exports.aggQuery = aggQuery;
+module.exports.getLatestPools = getLatestPools;
