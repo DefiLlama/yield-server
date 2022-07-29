@@ -120,6 +120,7 @@ const getMainPoolGaugeRewards = async () => {
 };
 
 const getPoolAPR = (pool, subgraph, gauge, crvPrice, underlyingPrices) => {
+  if (gauge.is_killed) return 0;
   const crvPriceBN = BigNumber(crvPrice);
   const decimals = BigNumber(1e18);
   const workingSupply = BigNumber(gauge.gauge_data.working_supply).div(
