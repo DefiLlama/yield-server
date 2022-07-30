@@ -7,7 +7,8 @@ const { getStats } = require('./triggerStats');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
 const { welfordUpdate } = require('../utils/welford');
 
-module.exports.handler = async () => {
+module.exports.handler = async (event, context) => {
+  context.callbackWaitsForEmptyEventLoop = false;
   await main();
 };
 
@@ -85,9 +86,13 @@ const main = async () => {
     return: (1 + p.apy / 100) ** (1 / T) - 1,
   }));
 
+  console.log('loading stats');
   const dataStats = await getStats();
+  console.log('running welford');
   const statsColumns = welfordUpdate(dataEnriched, dataStats);
+  console.log(statsColumns);
   // add columns to dataEnriched
+  console.log('add columns');
   for (const p of dataEnriched) {
     const x = statsColumns.find((i) => i.pool === p.pool);
     // create columns
@@ -101,7 +106,7 @@ const main = async () => {
     p['sigma'] =
       x.count < 2 ? null : Math.sqrt((x.mean2DR / (x.count - 1)) * T) * 100;
   }
-
+  console.log('calc outlier boundaries');
   // mark pools as outliers if outside boundary (let user filter via toggle on frontend)
   const columns = ['mu', 'sigma'];
   const outlierBoundaries = {};
@@ -115,7 +120,7 @@ const main = async () => {
     const x_ub = x_median + distance * x_iqr;
     outlierBoundaries[col] = { lb: x_lb, ub: x_ub };
   }
-
+  console.log('add mu sigma');
   // before adding the new outlier field,
   // i'm setting sigma to 0 instead of keeping it to null
   // so the label on the scatterchart makes more sense
@@ -125,6 +130,7 @@ const main = async () => {
     sigma: Number.isFinite(p.sigma) ? p.sigma : 0,
   }));
 
+  console.log('mark as outlier');
   dataEnriched = dataEnriched.map((p) => ({
     ...p,
     outlier:
