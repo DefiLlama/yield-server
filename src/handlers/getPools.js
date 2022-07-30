@@ -19,11 +19,11 @@ module.exports.handler = async (event, context) => {
   });
 };
 
-const getLatestPools = async () => {
+const getLatestPools = async (aggregationQuery = aggQuery) => {
   const conn = await dbConnection.connect();
   const M = conn.model(poolModel.modelName);
 
-  const query = M.aggregate(aggQuery);
+  const query = M.aggregate(aggregationQuery);
   let response = await query;
 
   // remove pools where all 3 fields are null (this and the below project/pool exclusion
@@ -38,7 +38,7 @@ const getLatestPools = async () => {
   return response;
 };
 
-const aggQuery = [
+const baseQuery = [
   {
     $sort: {
       pool: 1,
@@ -92,7 +92,11 @@ const aggQuery = [
       _id: 0,
     },
   },
-  // finally, remove pools based on exclusion values
+];
+
+// remove pools based on exclusion values
+const aggQuery = [
+  ...baseQuery,
   {
     $match: {
       tvlUsd: {
@@ -120,5 +124,32 @@ const aggQuery = [
   },
 ];
 
+// remove pools based on exclusion values
+const aggQueryMedian = [
+  ...baseQuery,
+  {
+    $match: {
+      // lte not enough, would remove null values,
+      // hence why the or statement to keep pools with apy === null
+      $or: [
+        {
+          apy: {
+            $gte: 0,
+            $lte: 1e6,
+          },
+        },
+        { apy: null },
+      ],
+      // remove pools which haven't been updated for >7days;
+      // some pools might just not be included anymore in the adaptor output,
+      // so instead of showing the latest object of that pool on the frontend
+      timestamp: {
+        $gte: new Date(new Date() - 60 * 60 * 24 * 7 * 1000),
+      },
+    },
+  },
+];
+
 module.exports.aggQuery = aggQuery;
+module.exports.aggQueryMedian = aggQueryMedian;
 module.exports.getLatestPools = getLatestPools;
