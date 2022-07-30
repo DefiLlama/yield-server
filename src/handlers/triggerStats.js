@@ -5,7 +5,8 @@ const AppError = require('../utils/appError');
 const { welfordUpdate } = require('../utils/welford');
 const dbConnection = require('../utils/dbConnection.js');
 
-module.exports.handler = async () => {
+module.exports.handler = async (event, context) => {
+  context.callbackWaitsForEmptyEventLoop = false;
   await main();
 };
 
@@ -20,7 +21,7 @@ const main = async () => {
     return: (1 + p.apy / 100) ** (1 / T) - 1,
   }));
 
-  const dataStats = (await superagent.get(`${urlBase}/stats`)).body.data;
+  const dataStats = await getStats();
   const payload = welfordUpdate(dataEnriched, dataStats);
   const response = await insertStats(payload);
   console.log(response);
@@ -61,5 +62,17 @@ const insertStats = async (payload) => {
   };
 };
 
+// get expanding standard deviation data
+const getStats = async () => {
+  const conn = await dbConnection.connect();
+  const M = conn.model(statModel.modelName);
+
+  // return all documents
+  const response = await M.find({}, { _id: 0, createdAt: 0, updatedAt: 0 });
+
+  return response;
+};
+
 // for boostrapStatsTable.js
 module.exports.insertStats = insertStats;
+module.exports.getStats = getStats;
