@@ -18,7 +18,7 @@ module.exports.handler = async (event, context) => {
   for (const record of event.Records) {
     try {
       const body = JSON.parse(record.body);
-      await main(body);
+      await main(body, event);
     } catch (err) {
       console.log(err);
       failedMessageIds.push(record.messageId);
@@ -34,7 +34,7 @@ module.exports.handler = async (event, context) => {
 };
 
 // func for running adaptor, storing result to db
-const main = async (body) => {
+const main = async (body, event) => {
   // run adaptor
   console.log(body.adaptor);
   const project = require(`../adaptors/${body.adaptor}`);
