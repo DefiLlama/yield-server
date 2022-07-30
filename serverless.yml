@@ -149,15 +149,6 @@ functions:
           method: get
           path: /simplePools
 
-  getProject:
-    handler: src/handlers/getProject.handler
-    description: Lambda for retrieving the latest pools for a project
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /pools/{project}
-
   getPoolsEnriched:
     handler: src/handlers/getPoolsEnriched.handler
     description: Lambda for retrieving the latest enriched data for each unique pool
