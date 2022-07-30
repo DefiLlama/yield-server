@@ -3,6 +3,7 @@ const ss = require('simple-statistics');
 
 const utils = require('../utils/s3');
 const { getLatestPools } = require('./getPools');
+const { getStats } = require('./triggerStats');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
 const { welfordUpdate } = require('../utils/welford');
 
@@ -84,7 +85,7 @@ const main = async () => {
     return: (1 + p.apy / 100) ** (1 / T) - 1,
   }));
 
-  const dataStats = (await superagent.get(`${urlBase}/stats`)).body.data;
+  const dataStats = await getStats();
   const statsColumns = welfordUpdate(dataEnriched, dataStats);
   // add columns to dataEnriched
   for (const p of dataEnriched) {

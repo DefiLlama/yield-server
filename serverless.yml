@@ -179,15 +179,6 @@ functions:
           method: get
           path: /offsets/{project}/{days}
 
-  getStats:
-    handler: src/handlers/getStats.handler
-    description: Lambda for retrieving stats data
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /stats
-
   getMedian:
     handler: src/handlers/getMedian.handler
     description: Lambda for retrieving median data
