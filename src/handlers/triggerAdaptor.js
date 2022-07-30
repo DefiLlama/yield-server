@@ -18,7 +18,7 @@ module.exports.handler = async (event, context) => {
   for (const record of event.Records) {
     try {
       const body = JSON.parse(record.body);
-      await main(body, event);
+      await main(body);
     } catch (err) {
       console.log(err);
       failedMessageIds.push(record.messageId);
@@ -34,7 +34,7 @@ module.exports.handler = async (event, context) => {
 };
 
 // func for running adaptor, storing result to db
-const main = async (body, event) => {
+const main = async (body) => {
   // run adaptor
   console.log(body.adaptor);
   const project = require(`../adaptors/${body.adaptor}`);
@@ -100,7 +100,7 @@ const main = async (body, event) => {
   // load current project array
   // need a new endpoint for that
   const urlBase = process.env.APIG_URL;
-  const dataInitial = await getProject(event.pathParameters.project);
+  const dataInitial = await getProject(body.adaptor);
 
   const dataDB = [];
   for (const p of data) {
