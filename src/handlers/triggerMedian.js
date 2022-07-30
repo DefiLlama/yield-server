@@ -1,16 +1,31 @@
 const ss = require('simple-statistics');
 
+const { readFromS3 } = require('../utils/s3');
 const medianModel = require('../models/median');
 const AppError = require('../utils/appError');
 const dbConnection = require('../utils/dbConnection.js');
-const { buildPoolsEnriched } = require('../handlers/getPoolsEnriched');
 
 module.exports.handler = async () => {
   await main();
 };
 
 const main = async () => {
-  const dataEnriched = await buildPoolsEnriched(undefined);
+  // read from internal s3 bucket which also includes the pools timestamp which we use to exclude
+  // any pool which has not been updated on that particular day (eg adapter failed during the whole day, or pool might be stale etc.)
+  // [checked, and only affect a small nb of pools (< 3%)]
+  // removing these pools gives an unbiased median calculatiion for that particular day, otherwise
+  let dataEnriched = await readFromS3(
+    process.env.BUCKET_DATA,
+    'enriched/dataEnriched.json'
+  );
+  console.log('prior filter', dataEnriched.length);
+  const latestDay = Math.max(
+    ...[...new Set(dataEnriched.map((p) => p.timestamp.split('T')[0]))].map(
+      (d) => new Date(d)
+    )
+  );
+  dataEnriched = dataEnriched.filter((p) => new Date(p.timestamp) >= latestDay);
+  console.log('after filter', dataEnriched.length);
 
   const payload = [
     {
