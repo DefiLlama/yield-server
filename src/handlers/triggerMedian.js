@@ -1,6 +1,7 @@
 const ss = require('simple-statistics');
 
 const { readFromS3 } = require('../utils/s3');
+const { getLatestPools, aggQueryMedian } = require('./getPools');
 const medianModel = require('../models/median');
 const AppError = require('../utils/appError');
 const dbConnection = require('../utils/dbConnection.js');
@@ -14,26 +15,31 @@ const main = async () => {
   // any pool which has not been updated on that particular day (eg adapter failed during the whole day, or pool might be stale etc.)
   // [checked, and only affect a small nb of pools (< 3%)]
   // removing these pools gives an unbiased median calculatiion for that particular day, otherwise
-  let dataEnriched = await readFromS3(
-    process.env.BUCKET_DATA,
-    'enriched/dataEnriched.json'
-  );
-  console.log('prior filter', dataEnriched.length);
-  const latestDay = Math.max(
-    ...[...new Set(dataEnriched.map((p) => p.timestamp.split('T')[0]))].map(
-      (d) => new Date(d)
-    )
-  );
-  dataEnriched = dataEnriched.filter((p) => new Date(p.timestamp) >= latestDay);
-  console.log('after filter', dataEnriched.length);
+  let pools = await getLatestPools(aggQueryMedian);
+
+  // derive final apy field via:
+  pools = pools.map((p) => ({
+    ...p,
+    apy: p.apy ?? p.apyBase + p.apyReward,
+  }));
+  // remove any potential null values
+  pools = pools.filter((p) => p.apy !== null);
+
+  console.log('removing stale pools...');
+  console.log('prior filter', pools.length);
+  const maxTimestamp = Math.max(...pools.map((p) => p.timestamp));
+  const n = 1000 * 60 * 60 * 24;
+  const latestDay = new Date(Math.floor(maxTimestamp / n) * n);
+  pools = pools.filter((p) => p.timestamp >= latestDay);
+  console.log('after filter', pools.length);
 
   const payload = [
     {
       timestamp: new Date(
         Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
       ),
-      medianAPY: ss.median(dataEnriched.map((p) => p.apy)),
-      uniquePools: new Set(dataEnriched.map((p) => p.pool)).size,
+      medianAPY: ss.median(pools.map((p) => p.apy)),
+      uniquePools: new Set(pools.map((p) => p.pool)).size,
     },
   ];
   const response = await insertMedian(payload);
