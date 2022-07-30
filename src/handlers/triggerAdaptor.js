@@ -100,7 +100,7 @@ const main = async (body) => {
   // load current project array
   // need a new endpoint for that
   const urlBase = process.env.APIG_URL;
-  const dataInitial = await getProject(event.pathParameters.project);
+  const dataInitial = await getProject(body.adaptor);
 
   const dataDB = [];
   for (const p of data) {
