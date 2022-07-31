@@ -3,7 +3,10 @@
 // in case we have old values in db
 const excludeAdaptors = ['anchor', 'capsa', 'koyo-finance', 'rook'];
 
-const excludePools = ['0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d'];
+const excludePools = [
+  '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d',
+  'DWmAv5wMun4AHxigbwuJygfmXBBe9WofXAtrMCRJExfb', // Solend COOL coin pool
+];
 
 const boundaries = {
   // we only insert pools into the db with a tvlUsd of minimum $1k
