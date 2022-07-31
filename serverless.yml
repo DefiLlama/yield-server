@@ -60,9 +60,6 @@ provider:
 
   httpApi:
     metrics: true
-    cors:
-      allowedMethods:
-        - GET
 
 functions:
   # --- top-lvl-entrypoint
