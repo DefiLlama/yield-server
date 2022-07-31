@@ -71,7 +71,7 @@ const topLvl = async () => {
 const main = async () => {
   const data = await topLvl();
 
-  return data;
+  return data.filter((pool) => !pool.symbol.includes('COOL'));
 };
 
 module.exports = {
