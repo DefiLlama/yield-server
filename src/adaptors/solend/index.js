@@ -12,7 +12,7 @@ const buildPool = async (reserveConfig, reserveData) => {
     Number(reserveData.rates.supplyInterest) +
     reserveData.rewards.reduce(
       (acc, reward) =>
-        reward.side === 'supply' ? Number(reward.apy) + acc : acc,
+        reward.side === 'supply' ? (Number(reward.apy) || 0) + acc : acc,
       0
     );
   const secondaryString =
@@ -70,7 +70,6 @@ const topLvl = async () => {
 
 const main = async () => {
   const data = await topLvl();
-
   return data.filter((pool) => !pool.symbol.includes('COOL'));
 };
 
