@@ -109,7 +109,7 @@ const main = async () => {
     .flat();
 
   const pools = await Promise.all(promises);
-  return pools.filter((pool) => !!pool.apy);
+  return pools.filter((pool) => !!pool.apyBase);
 };
 
 module.exports = {
