@@ -18,13 +18,28 @@ async function tvl(timestamp) {
         }
     }
   `;
-  const results = await retry(
-    async (bail) =>
-      await graphQLClient.request(query, {
-        start: timestamp - 2 * 60 * 60 * 1000,
-        end: timestamp,
-      })
-  );
+  let latestMetricsQuery = gql`
+    query apy {
+      pearlBankMetrics(
+        orderBy: timestamp
+        orderDirection: desc
+        first: 1) 
+        {
+            apy
+            pearlBankDepositedUsdValue
+            clamPondDepositedUsdValue
+        }
+    }
+  `;
+
+  //if invalid timestamp is passed,
+  //return the most recent available values
+  const results = timestamp == null ? await graphQLClient.request(latestMetricsQuery) :
+   await graphQLClient.request(query, {
+    start: timestamp - 2 * 60 * 60 * 1000,
+    end: timestamp,
+  });
+
   return [
   //CLAM+ / Clam Pond
   {
