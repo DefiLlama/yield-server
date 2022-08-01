@@ -14,8 +14,8 @@ const poolsFunction = async () => {
   data.map((pool) => {
     const { poolId, tvl: tvlUsd, tradingApr, poolApr } = pool;
 
-    const apyBase = utils.aprToApy(tradingApr);
-    const apyReward = utils.aprToApy(poolApr);
+    const apyBase = utils.aprToApy(tradingApr)*100;
+    const apyReward = utils.aprToApy(poolApr)*100;
 
     finalData.push({ pool: poolId, chain: 'Fantom', project: 'comb-financial', symbol: getSymbol(poolId), tvlUsd, apyBase, apyReward, rewardTokens: [rewardToken], underlyingTokens: getTokens(poolId)  });
   });
