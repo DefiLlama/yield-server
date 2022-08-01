@@ -1,4 +1,5 @@
 const retry = require("async-retry");
+const utils = require('../utils');
 const { GraphQLClient, gql } = require("graphql-request");
 
 async function tvl(timestamp) {
@@ -39,12 +40,12 @@ async function tvl(timestamp) {
     start: timestamp - 2 * 60 * 60 * 1000,
     end: timestamp,
   });
-
   return [
   //CLAM+ / Clam Pond
   {
-    tvlUsd: results.clamPondDepositedUsdValue,
-    apy: results.apy,
+    pool: '0xF2A8705D327534E334d09BC28e5C97b5c356Aa01',
+    tvlUsd: parseFloat(results?.pearlBankMetrics?.[0].clamPondDepositedUsdValue),
+    apy: parseFloat(results?.pearlBankMetrics?.[0].apy),
     project: 'ottopia',
     symbol: 'CLAM+',
     chain: utils.formatChain('polygon'),
@@ -54,8 +55,9 @@ async function tvl(timestamp) {
   },
   //PEARL / Pearl Bank
   {
-    tvlUsd: results.pearlBankDepositedUsdValue,
-    apy: results.apy,
+    pool: '0x845EB7730a8D37e8D190Fb8bb9c582038331B48a',
+    tvlUsd: parseFloat(results?.pearlBankMetrics?.[0].pearlBankDepositedUsdValue),
+    apy: parseFloat(results?.pearlBankMetrics?.[0].apy),
     project: 'ottopia',
     symbol: 'PEARL',
     chain: utils.formatChain('polygon'),
