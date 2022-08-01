@@ -11,6 +11,7 @@ function lambdaResponse(body, { statusCode = 200, headers } = {}) {
     headers: {
       'Content-Type': 'application/json',
       Expires: date.toUTCString(),
+      "Access-Control-Allow-Origin": "*",
       ...headers,
     },
   };
