@@ -294,6 +294,11 @@ const checkStablecoin = (el, stablecoins) => {
   // specific case for aave amm positions
   if (el.project === 'curve' && el.symbol.toLowerCase().includes('3crv')) {
     stable = true;
+  } else if (
+    el.project === 'convex-finance' &&
+    el.symbol.toLowerCase().includes('3crv')
+  ) {
+    stable = true;
   } else if (el.project === 'aave' && el.symbol.toLowerCase().includes('amm')) {
     tok = tokens[0].split('weth');
     stable = tok[0].includes('wbtc') ? false : tok.length > 1 ? false : true;
