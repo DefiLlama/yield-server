@@ -1,0 +1,63 @@
+{
+    "name": "defillama-apy-server",
+    "version": "1.0.0",
+    "scripts": {
+        "deploy:env": "sls deploy --stage $NODE_ENV",
+        "deploy:prod": "export AWS_PROFILE='defillama' && export NODE_ENV=prod && npm run deploy:env",
+        "deploy:dev": "export AWS_PROFILE='default' && export NODE_ENV=dev && npm run deploy:env",
+        "deploy": "export NODE_ENV=prod && npm run deploy:env",
+        "test": "jest"
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@defillama/sdk": "^2.3.62",
+        "@types/jest": "^28.1.6",
+        "@uniswap/sdk-core": "^3.0.1",
+        "@uniswap/smart-order-router": "^2.8.0",
+        "async-retry": "^1.3.3",
+        "axios": "^0.27.2",
+        "bignumber.js": "^9.0.2",
+        "csv-writer": "^1.6.0",
+        "date-fns": "^2.23.0",
+        "dotenv": "^10.0.0",
+        "graphql": "^15.5.1",
+        "graphql-request": "^3.5.0",
+        "lodash": "^4.17.21",
+        "mongoose": "^5.11.13",
+        "node-fetch": "^2.6.1",
+        "saslprep": "^1.0.3",
+        "simple-statistics": "^7.7.5",
+        "superagent": "^6.1.0",
+        "web3": "^1.4.0"
+    },
+    "devDependencies": {
+        "@babel/core": "^7.17.8",
+        "@babel/plugin-transform-runtime": "^7.18.6",
+        "@babel/preset-typescript": "^7.18.6",
+        "@babel/runtime": "^7.18.6",
+        "aws-sdk": "^2.987.0",
+        "babel-loader": "^8.2.3",
+        "electron": "^17.1.2",
+        "encoding": "^0.1.13",
+        "eslint": "^7.18.0",
+        "eslint-config-airbnb": "^18.2.1",
+        "eslint-config-prettier": "^7.2.0",
+        "eslint-plugin-import": "^2.22.1",
+        "eslint-plugin-jsx-a11y": "^6.4.1",
+        "eslint-plugin-node": "^11.1.0",
+        "eslint-plugin-prettier": "^3.3.1",
+        "eslint-plugin-react": "^7.22.0",
+        "jest": "^28.1.3",
+        "prettier": "^2.2.1",
+        "serverless": "^3.8.0",
+        "serverless-prune-plugin": "^2.0.1",
+        "serverless-webpack": "^5.6.1",
+        "ts-node": "^10.9.1",
+        "webpack": "^5.70.0"
+    },
+    "jest": {
+        "globalSetup": "./beforeTests.js",
+        "globalTeardown": "./afterTests.js"
+    }
+}
