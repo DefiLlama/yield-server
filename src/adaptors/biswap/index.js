@@ -261,7 +261,6 @@ const apy = async () => {
       tvlUsd: Number(masterChefReservesUsd),
       apyBase,
       apyReward,
-      apy: apyBase + apyReward,
       underlyingTokens: [tokens0[i], tokens1[i]],
       rewardTokens: [BSW_TOKEN],
     };
