@@ -26,34 +26,33 @@ const config = {
 };
 
 const getApy = async () => {
-  const apys = [];
-  Object.keys(config).forEach((chain) => {
-    async (_, _b, { [chain]: block }) => {
+  const apys = await Promise.all(
+    Object.keys(config).map(async (chain) => {
       const vaults = Object.values(config[chain].vaults);
-      const { output: aprs } = await sdk.api.abi.multiCall({
-        abi: abiLci.getAPR,
-        calls: vaults.map((i) => ({ target: i })),
-        chain,
-        block,
-      });
-      apys.push(aprs / 1e18);
-    };
-  });
+      const balances = (
+        await sdk.api.abi.multiCall({
+          abi: abiLci.getAPR,
+          calls: vaults.map((i) => ({ target: i })),
+          chain,
+        })
+      ).output.map(({ output }) => output / 1e18);
+      return balances;
+    })
+  );
 
-  const tvls = [];
-  Object.keys(config).forEach((chain) => {
-    async (_, _b, { [chain]: block }) => {
+  const tvls = await Promise.all(
+    Object.keys(config).map(async (chain) => {
       const vaults = Object.values(config[chain].vaults);
-      const balance = await sdk.api.abi.multiCall({
-        abi: abiLci.getAllPoolInUSD,
-        calls: vaults.map((i) => ({ target: i })),
-        chain,
-        block,
-      });
-
-      tvls.push(balances / 1e18);
-    };
-  });
+      const balances = (
+        await sdk.api.abi.multiCall({
+          abi: abiLci.getAllPoolInUSD,
+          calls: vaults.map((i) => ({ target: i })),
+          chain,
+        })
+      ).output.map(({ output }) => output / 1e18);
+      return balances;
+    })
+  );
 
   return [
     {
