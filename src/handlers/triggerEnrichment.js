@@ -8,7 +8,6 @@ const { buildPoolsEnriched } = require('./getPoolsEnriched');
 const { welfordUpdate } = require('../utils/welford');
 
 module.exports.handler = async (event, context) => {
-  context.callbackWaitsForEmptyEventLoop = false;
   await main();
 };
 
@@ -16,7 +15,7 @@ const main = async () => {
   console.log('START DATA ENRICHMENT');
 
   const urlBase = process.env.APIG_URL;
-  console.log('\n1. pulling base data...');
+  console.log('\n1. getting pools...');
   let data = await getLatestPools();
 
   // derive final apy field via:
@@ -35,8 +34,6 @@ const main = async () => {
   const failed = [];
 
   for (const adaptor of [...new Set(data.map((p) => p.project))]) {
-    console.log(adaptor);
-
     // filter data to project
     const dataProject = data.filter((el) => el.project === adaptor);
 
@@ -63,10 +60,6 @@ const main = async () => {
       continue;
     }
   }
-  console.log('Nb of pools: ', dataEnriched.length);
-  console.log(
-    `Nb of failed adaptor offset calculations: ${failed.length}, List of failed adaptors: ${failed}`
-  );
 
   console.log('\n3. adding additional pool info fields');
   const stablecoins = (
@@ -86,13 +79,9 @@ const main = async () => {
     return: (1 + p.apy / 100) ** (1 / T) - 1,
   }));
 
-  console.log('loading stats');
   const dataStats = await getStats();
-  console.log('running welford');
   const statsColumns = welfordUpdate(dataEnriched, dataStats);
-  console.log(statsColumns);
   // add columns to dataEnriched
-  console.log('add columns');
   for (const p of dataEnriched) {
     const x = statsColumns.find((i) => i.pool === p.pool);
     // create columns
@@ -106,7 +95,6 @@ const main = async () => {
     p['sigma'] =
       x.count < 2 ? null : Math.sqrt((x.mean2DR / (x.count - 1)) * T) * 100;
   }
-  console.log('calc outlier boundaries');
   // mark pools as outliers if outside boundary (let user filter via toggle on frontend)
   const columns = ['mu', 'sigma'];
   const outlierBoundaries = {};
@@ -120,7 +108,6 @@ const main = async () => {
     const x_ub = x_median + distance * x_iqr;
     outlierBoundaries[col] = { lb: x_lb, ub: x_ub };
   }
-  console.log('add mu sigma');
   // before adding the new outlier field,
   // i'm setting sigma to 0 instead of keeping it to null
   // so the label on the scatterchart makes more sense
@@ -130,7 +117,6 @@ const main = async () => {
     sigma: Number.isFinite(p.sigma) ? p.sigma : 0,
   }));
 
-  console.log('mark as outlier');
   dataEnriched = dataEnriched.map((p) => ({
     ...p,
     outlier:
@@ -252,7 +238,8 @@ const main = async () => {
         : 3;
   }
 
-  console.log('\nsaving data to S3');
+  console.log('\n6. saving data to S3');
+  console.log('nb of pools', dataEnriched.length);
   const bucket = process.env.BUCKET_DATA;
   const key = 'enriched/dataEnriched.json';
   dataEnriched = dataEnriched.sort((a, b) => b.tvlUsd - a.tvlUsd);

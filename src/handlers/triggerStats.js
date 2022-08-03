@@ -1,19 +1,16 @@
-const superagent = require('superagent');
-
 const statModel = require('../models/stat');
 const AppError = require('../utils/appError');
 const { welfordUpdate } = require('../utils/welford');
 const dbConnection = require('../utils/dbConnection.js');
+const { buildPoolsEnriched } = require('./getPoolsEnriched');
 
 module.exports.handler = async (event, context) => {
-  context.callbackWaitsForEmptyEventLoop = false;
   await main();
 };
 
 const main = async () => {
   const urlBase = process.env.APIG_URL;
-  let dataEnriched = (await superagent.get(`${urlBase}/poolsEnriched`)).body
-    .data;
+  let dataEnriched = await buildPoolsEnriched(undefined);
   const T = 365;
   // transform raw apy to return field (required for geometric mean)
   dataEnriched = dataEnriched.map((p) => ({
@@ -68,7 +65,11 @@ const getStats = async () => {
   const M = conn.model(statModel.modelName);
 
   // return all documents
-  const response = await M.find({}, { _id: 0, createdAt: 0, updatedAt: 0 });
+  const x = await M.find({}, { _id: 0, createdAt: 0, updatedAt: 0 });
+  const response = {};
+  for (let d of x) {
+    response[d.pool] = d;
+  }
 
   return response;
 };

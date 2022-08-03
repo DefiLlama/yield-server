@@ -8,7 +8,7 @@ module.exports.welfordUpdate = (pools, stats) => {
 
   const payload = [];
   for (const p of pools) {
-    d = stats.find((i) => i.pool === p.pool);
+    d = stats[p.pool];
 
     if (d !== undefined) {
       // extract
