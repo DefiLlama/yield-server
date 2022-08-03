@@ -42,9 +42,9 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
 
     apy.forEach((pool) => {
       test(`Expects pool with id ${pool.pool} to have at least one number apy field`, () => {
-        expect(apyFields.map((field) => typeof pool[field])).toContain(
-          'number'
-        );
+        expect(
+          apyFields.map((field) => Number.isFinite(pool[field]))
+        ).toContain(true);
       });
     });
   });
@@ -52,7 +52,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
   describe('Check tvl data type', () => {
     apy.forEach((pool) => {
       test(`tvlUsd field of pool with id ${pool.pool} should be number `, () => {
-        expect(typeof pool.tvlUsd).toBe('number');
+        expect(Number.isFinite(pool.tvlUsd)).toBe(true);
       });
     });
   });
