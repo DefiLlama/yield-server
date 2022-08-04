@@ -100,6 +100,7 @@ const main = async () => {
           project: 'hop-protocol',
           symbol: token,
           apyBase: tokenPools[chain].apr * 100,
+          apyReward: tokenPools[chain].stakingApr * 100,
           rewardTokens: [],
           underlyingTokens: [tokenAddress, hopTokenAddress],
           tvlUsd,
