@@ -13,7 +13,21 @@
 
 An adaptor is just a javascript (or typescript) file that exports an async function that returns an array of objects that represent pools of a protocol. The pools follow the following schema (all values are just examples):
 
-```js
+```typescript
+interface Fields { 
+    pool: string
+    chain: string
+    project: string
+    symbol: string
+    tvlUsd: number
+    apyBase?: number 
+    apyReward?: number
+    rewardTokens?: Array<string> 
+    underlyingTokens?: Array<string>,
+}
+
+```
+```typescript   
 {
     pool: "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae90xb53c1a33016b2dc2ff3653530bff1848a515c8c5", // unique identifier for the pool
     chain: "Ethereum", // chain where the pool is
