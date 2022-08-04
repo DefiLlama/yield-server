@@ -19,12 +19,10 @@ jobs:
           SNOWTRACE: ${{ secrets.SNOWTRACE }}
           ARBISCAN: ${{ secrets.ARBISCAN }}
           OPTIMISM: ${{ secrets.OPTIMISM }}
+          XDAI: ${{ secrets.XDAI }}
           INFURA_CONNECTION: ${{ secrets.INFURA_CONNECTION }}
           ALCHEMY_CONNECTION_POLYGON: ${{ secrets.ALCHEMY_CONNECTION_POLYGON }}
           ALCHEMY_CONNECTION_ARBITRUM: ${{ secrets.ALCHEMY_CONNECTION_ARBITRUM }}
-          XDAI: ${{ secrets.XDAI }}
-          XDAI_RPC: ${{ secrets.XDAI_RPC }}
-          CRONOS_RPC: ${{ secrets.CRONOS_RPC }}
         run: |
           RUN_FILES=$(
             MODIFIED=${{ steps.file_changes.outputs.files_modified}} \
