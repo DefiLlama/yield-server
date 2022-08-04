@@ -14,7 +14,7 @@
 An adaptor is just a javascript (or typescript) file that exports an async function that returns an array of objects that represent pools of a protocol. The pools follow the following schema (all values are just examples):
 
 ```typescript
-interface Fields { 
+interface Pool { 
     pool: string
     chain: string
     project: string
