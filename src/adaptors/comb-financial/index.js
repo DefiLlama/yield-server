@@ -13,7 +13,7 @@ const getTokens = (poolId) =>
 const addVault = (id) => {
   filteredVault = vaultData.find((vault) => vault.vaultId === id);
   const { vaultId, tvl: tvlUsd, farmApr, apy } = filteredVault;
-  
+
   const apyReward = utils.aprToApy(farmApr) * 100;
   const apyBase = apy * 100; // convert endpoint APY value to %
   
@@ -54,19 +54,6 @@ const poolsFunction = async () => {
       underlyingTokens: getTokens(poolId),
     });
   });
-
-  //  {
-  // "_id": "62e50431770a5133dbb5d195",
-  // "vaultId": "gemFtmUsdc",
-  // "apy": 1.294624338699352,
-  // "daily": 0.0023062714014054435,
-  // "farmApr": 0.8226352701459785,
-  // "lpPrice": 21.82383344813886,
-  // "tvl": 33750.42784660873,
-  // "updatedAt": "2022-08-04T09:18:04.158Z"
-  // }
-
-  //const apyBase = utils.aprToApy(tradingApr)*100;
 
   // Add filtered vault
   addVault('gemFtmUsdc');
