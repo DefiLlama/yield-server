@@ -167,15 +167,6 @@ functions:
           method: get
           path: /chart/{pool}
 
-  getOffsets:
-    handler: src/handlers/getOffsets.handler
-    description: Lambda for getting 1/7/30 day offset data of apy values
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /offsets/{project}/{days}
-
   getMedian:
     handler: src/handlers/getMedian.handler
     description: Lambda for retrieving median data
