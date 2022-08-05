@@ -10,7 +10,7 @@ const getPools = async () => {
 
   const tdot = {
     pool: 'acala-sa0-tapio',
-    chain: 'acala',
+    chain: 'Acala',
     project: 'tapio-protocol',
     symbol: 'tDOT',
     tvlUsd: tdotStats.data.tvl,
