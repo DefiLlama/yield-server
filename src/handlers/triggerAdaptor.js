@@ -1,6 +1,7 @@
 const superagent = require('superagent');
 
 const poolModel = require('../models/pool');
+const { aggQuery } = require('./getPools');
 const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
 const dbConnection = require('../utils/dbConnection.js');
@@ -99,8 +100,7 @@ const main = async (body) => {
   // load current project array
   // need a new endpoint for that
   const urlBase = process.env.APIG_URL;
-  const dataInitial = (await superagent.get(`${urlBase}/pools/${body.adaptor}`))
-    .body.data;
+  const dataInitial = await getProject(body.adaptor);
 
   const dataDB = [];
   for (const p of data) {
@@ -111,8 +111,7 @@ const main = async (body) => {
     }
     // if existing pool, check conditions
     pctChange = (p.tvlUsd - x.tvlUsd) / x.tvlUsd;
-    lastInsert = new Date(x.timestamp);
-    timedelta = timestamp - lastInsert;
+    timedelta = timestamp - x.timestamp;
     const nHours = 5;
     timedeltaLimit = 60 * 60 * nHours * 1000;
     // skip the update if both pctChange and timedelta conditions are met
@@ -145,3 +144,25 @@ const insertPools = async (payload) => {
 };
 
 module.exports.insertPools = insertPools;
+
+// get latest object of each unique pool
+const getProject = async (project) => {
+  const conn = await dbConnection.connect();
+  const M = conn.model(poolModel.modelName);
+
+  // add project field to match obj
+  aggQuery.slice(-1)[0]['$match']['project'] = project;
+
+  const query = M.aggregate(aggQuery);
+  let response = await query;
+
+  // remove pools where all 3 fields are null (this and the below project/pool exclusion
+  // could certainly be implemented in the aggregation pipeline but i'm to stupid for mongodb pipelines)
+  response = response.filter(
+    (p) =>
+      !(p.apy === null && p.apyBase === null && p.apyReward === null) &&
+      !exclude.excludePools.includes(p.pool)
+  );
+
+  return response;
+};

@@ -73,7 +73,9 @@ const getPoolTVL = async (stakePool, brcSupply, gbrcSupply) => {
 };
 
 const getBRCPrice = async (amount) => {
-  const brcPrice = await brcContract.methods.mintCost(amount).call();
+  const brcPrice = await brcContract.methods
+    .mintCost(new BigNumber(amount).toFixed())
+    .call();
   return brcPrice / 1e18;
 };
 

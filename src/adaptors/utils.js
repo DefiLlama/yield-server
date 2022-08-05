@@ -1,7 +1,10 @@
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 
-exports.formatChain = (chain) => chain.charAt(0).toUpperCase() + chain.slice(1);
+exports.formatChain = (chain) => {
+  if (chain && chain.toLowerCase() === 'xdai') return 'xDai';
+  return chain.charAt(0).toUpperCase() + chain.slice(1);
+};
 
 // replace / with - and trim potential whitespace
 exports.formatSymbol = (symbol) =>

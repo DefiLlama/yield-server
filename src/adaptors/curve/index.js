@@ -3,7 +3,6 @@ const { default: BigNumber } = require('bignumber.js');
 
 const utils = require('../utils');
 
-const legacy = require('./legacy-adaptor');
 const {
   CRV_API_BASE_URL,
   BLOCKCHAINIDS,
@@ -14,6 +13,8 @@ const assetTypeMapping = {
   btc: 'ethereum:0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
   eth: 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
 };
+
+const THREE_CRV_ADDRESS = '0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490';
 
 const getPools = async (blockchainId) => {
   const poolsByAddress = {};
@@ -118,6 +119,7 @@ const getMainPoolGaugeRewards = async () => {
 };
 
 const getPoolAPR = (pool, subgraph, gauge, crvPrice, underlyingPrices) => {
+  if (gauge.is_killed) return 0;
   const crvPriceBN = BigNumber(crvPrice);
   const decimals = BigNumber(1e18);
   const workingSupply = BigNumber(gauge.gauge_data.working_supply).div(
@@ -133,7 +135,11 @@ const getPoolAPR = (pool, subgraph, gauge, crvPrice, underlyingPrices) => {
   const virtualPrice = BigNumber(subgraph.virtualPrice).div(decimals);
   let poolAPR;
   try {
-    if (pool.totalSupply) {
+    if (
+      pool.totalSupply &&
+      !pool.coinsAddresses.includes(THREE_CRV_ADDRESS) &&
+      pool.implementation !== 'metausd-fraxusdc'
+    ) {
       poolAPR = inflationRate
         .times(relativeWeight)
         .times(31536000)
@@ -281,7 +287,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  // legacy needed by convex-finance adaptor
-  curvePoolStats: legacy.curvePoolStats,
-  tokenMapping: legacy.tokenMapping,
 };

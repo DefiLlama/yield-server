@@ -60,9 +60,6 @@ provider:
 
   httpApi:
     metrics: true
-    cors:
-      allowedMethods:
-        - GET
 
 functions:
   # --- top-lvl-entrypoint
@@ -101,6 +98,7 @@ functions:
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
       XDAI: ${file(./env.js):XDAI}
       XDAI_RPC: ${file(./env.js):XDAI_RPC}
+      CRONOS_RPC: ${file(./env.js):CRONOS_RPC}
 
   # --- data enrichment
   triggerEnrichment:
@@ -120,6 +118,15 @@ functions:
       # at midnight
       - schedule: cron(0 0 * * ? *)
 
+  # --- median insert
+  triggerMedian:
+    handler: src/handlers/triggerMedian.handler
+    description: Lambda which inserts latest value into the median table
+    timeout: 300
+    events:
+      # at midnight
+      - schedule: cron(0 0 * * ? *)
+
   # --- save poolsEnriched as CSV
   triggerCsv:
     handler: src/handlers/triggerCsv.handler
@@ -133,20 +140,11 @@ functions:
   getPools:
     handler: src/handlers/getPools.handler
     description: Lambda for retrieving the latest data for each unique pool
-    timeout: 20
+    timeout: 30
     events:
       - httpApi:
           method: get
           path: /simplePools
-
-  getProject:
-    handler: src/handlers/getProject.handler
-    description: Lambda for retrieving the latest pools for a project
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /pools/{project}
 
   getPoolsEnriched:
     handler: src/handlers/getPoolsEnriched.handler
@@ -178,14 +176,14 @@ functions:
           method: get
           path: /offsets/{project}/{days}
 
-  getStats:
-    handler: src/handlers/getStats.handler
-    description: Lambda for retrieving stats data
+  getMedian:
+    handler: src/handlers/getMedian.handler
+    description: Lambda for retrieving median data
     timeout: 20
     events:
       - httpApi:
           method: get
-          path: /stats
+          path: /median
 
 resources:
   Resources:
