@@ -1,5 +1,6 @@
 const superagent = require('superagent');
 
+const utils = require('../adaptors/utils');
 const poolModel = require('../models/pool');
 const { aggQuery } = require('./getPools');
 const AppError = require('../utils/appError');
@@ -91,7 +92,10 @@ const main = async (body) => {
   );
   data = data.map((p) => ({ ...p, timestamp: timestamp }));
 
-  // 9. insert only if tvl conditions are ok:
+  // 9. format chain in case it was skipped in adapter
+  data = data.map((p) => ({ ...p, chain: utils.formatChain(p.chain) }));
+
+  // 10. insert only if tvl conditions are ok:
   // if tvl
   // - has increased >5x since the last hourly update
   // - and has been updated in the last 5 hours
