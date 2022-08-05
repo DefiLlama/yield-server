@@ -27,10 +27,10 @@ async function apy() {
         pool: SENIOR_POOL_ADDRESS,
         chain: utils.formatChain('ethereum'),
         project: 'goldfinch',
-        symbol: 'FIDU',
+        symbol: 'USDC',
         tvlUsd,
-        apyBase: parseFloat(estimatedApy),
-        apyReward: parseFloat(estimatedApyFromGfiRaw),
+        apyBase: parseFloat(estimatedApy) * 100,
+        apyReward: parseFloat(estimatedApyFromGfiRaw) * 100,
         underlyingTokens: [USDC_ADDRESS],
         rewardTokens: [GFI_ADDRESS]
     }]
