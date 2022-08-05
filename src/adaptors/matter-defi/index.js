@@ -66,7 +66,7 @@ const fetchMatterFarms = async(pools, tokens) => {
         decimals: findToken ? findToken.decimals : 18, 
         symbol: findToken ? findToken.symbol : '',
         token0: findPool ? findPool.token0 : uF.key.fa2_address,
-        token1: findPool ? findPool.token1 : uF.key.fa2_address,
+        token1: findPool ? findPool.token1 : '',
         derivedXtz: findToken ? findToken.derivedxtz : 0
       });
     }
@@ -185,11 +185,13 @@ const apy = async () => {
 
   const corePools = matchedPools.map((p) => ({
     pool: `${p.key.fa2_address}`,
-    chain: 'tezos',
+    chain: 'Tezos',
     project: 'matter-defi',
     symbol: p.symbol,
     tvlUsd: Number((p.tvl * xtzPrice).toFixed(2)),
-    apy: Number(p.apy),
+    apyReward: Number(p.apy),
+    rewardTokens: [MATTER_CORE],
+    underlyingTokens: p.token1 ? [p.token0, p.token1] : [p.token0]
   }));
 
   return [
