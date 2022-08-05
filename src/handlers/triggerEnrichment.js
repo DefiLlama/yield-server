@@ -68,7 +68,12 @@ const main = async () => {
     )
   ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
-  dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins));
+
+  // get catgory data (we hardcode IL to true for options protocols)
+  const config = (
+    await superagent.get('https://api.llama.fi/config/yields?a=1')
+  ).body.protocols;
+  dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins, config));
 
   // expanding mean, expanding standard deviation,
   // geometric mean and standard deviation (of daily returns)
@@ -368,13 +373,15 @@ const checkExposure = (el) => {
   return exposure;
 };
 
-const addPoolInfo = (el, stablecoins) => {
+const addPoolInfo = (el, stablecoins, config) => {
   el['stablecoin'] = checkStablecoin(el, stablecoins);
 
   // complifi has single token exposure only cause the protocol
   // will pay traders via deposited amounts
   el['ilRisk'] =
-    el.project === 'complifi'
+    config[el.project].category === 'Options'
+      ? 'yes'
+      : el.project === 'complifi'
       ? 'yes'
       : el.stablecoin && el.symbol.toLowerCase().includes('eur')
       ? checkIlRisk(el)
