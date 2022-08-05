@@ -6,9 +6,10 @@ const { getLatestPools } = require('./getPools');
 const { getStats } = require('./triggerStats');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
 const { welfordUpdate } = require('../utils/welford');
+const dbConnection = require('../utils/dbConnection.js');
+const poolModel = require('../models/pool');
 
 module.exports.handler = async (event, context) => {
-  context.callbackWaitsForEmptyEventLoop = false;
   await main();
 };
 
@@ -16,7 +17,7 @@ const main = async () => {
   console.log('START DATA ENRICHMENT');
 
   const urlBase = process.env.APIG_URL;
-  console.log('\n1. pulling base data...');
+  console.log('\n1. getting pools...');
   let data = await getLatestPools();
 
   // derive final apy field via:
@@ -35,15 +36,13 @@ const main = async () => {
   const failed = [];
 
   for (const adaptor of [...new Set(data.map((p) => p.project))]) {
-    console.log(adaptor);
-
     // filter data to project
     const dataProject = data.filter((el) => el.project === adaptor);
 
     // api calls
     const promises = [];
     for (let i = 0; i < days.length; i++) {
-      promises.push(superagent.get(`${urlBase}/offsets/${adaptor}/${days[i]}`));
+      promises.push(getOffsets(adaptor, days[i]));
     }
     try {
       const offsets = await Promise.all(promises);
@@ -63,10 +62,6 @@ const main = async () => {
       continue;
     }
   }
-  console.log('Nb of pools: ', dataEnriched.length);
-  console.log(
-    `Nb of failed adaptor offset calculations: ${failed.length}, List of failed adaptors: ${failed}`
-  );
 
   console.log('\n3. adding additional pool info fields');
   const stablecoins = (
@@ -75,7 +70,12 @@ const main = async () => {
     )
   ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
-  dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins));
+
+  // get catgory data (we hardcode IL to true for options protocols)
+  const config = (
+    await superagent.get('https://api.llama.fi/config/yields?a=1')
+  ).body.protocols;
+  dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins, config));
 
   // expanding mean, expanding standard deviation,
   // geometric mean and standard deviation (of daily returns)
@@ -86,13 +86,9 @@ const main = async () => {
     return: (1 + p.apy / 100) ** (1 / T) - 1,
   }));
 
-  console.log('loading stats');
   const dataStats = await getStats();
-  console.log('running welford');
   const statsColumns = welfordUpdate(dataEnriched, dataStats);
-  console.log(statsColumns);
   // add columns to dataEnriched
-  console.log('add columns');
   for (const p of dataEnriched) {
     const x = statsColumns.find((i) => i.pool === p.pool);
     // create columns
@@ -106,7 +102,6 @@ const main = async () => {
     p['sigma'] =
       x.count < 2 ? null : Math.sqrt((x.mean2DR / (x.count - 1)) * T) * 100;
   }
-  console.log('calc outlier boundaries');
   // mark pools as outliers if outside boundary (let user filter via toggle on frontend)
   const columns = ['mu', 'sigma'];
   const outlierBoundaries = {};
@@ -120,7 +115,6 @@ const main = async () => {
     const x_ub = x_median + distance * x_iqr;
     outlierBoundaries[col] = { lb: x_lb, ub: x_ub };
   }
-  console.log('add mu sigma');
   // before adding the new outlier field,
   // i'm setting sigma to 0 instead of keeping it to null
   // so the label on the scatterchart makes more sense
@@ -130,7 +124,6 @@ const main = async () => {
     sigma: Number.isFinite(p.sigma) ? p.sigma : 0,
   }));
 
-  console.log('mark as outlier');
   dataEnriched = dataEnriched.map((p) => ({
     ...p,
     outlier:
@@ -252,7 +245,8 @@ const main = async () => {
         : 3;
   }
 
-  console.log('\nsaving data to S3');
+  console.log('\n6. saving data to S3');
+  console.log('nb of pools', dataEnriched.length);
   const bucket = process.env.BUCKET_DATA;
   const key = 'enriched/dataEnriched.json';
   dataEnriched = dataEnriched.sort((a, b) => b.tvlUsd - a.tvlUsd);
@@ -281,7 +275,7 @@ const main = async () => {
 const enrich = (pool, days, offsets) => {
   const poolC = { ...pool };
   for (let d = 0; d < days.length; d++) {
-    let X = offsets[d].body.data.offsets;
+    let X = offsets[d];
     const apyOffset = X.find((x) => x.pool === poolC.pool)?.apy;
     poolC[`apyPct${days[d]}D`] = poolC['apy'] - apyOffset;
   }
@@ -293,6 +287,11 @@ const checkStablecoin = (el, stablecoins) => {
   let stable;
   // specific case for aave amm positions
   if (el.project === 'curve' && el.symbol.toLowerCase().includes('3crv')) {
+    stable = true;
+  } else if (
+    el.project === 'convex-finance' &&
+    el.symbol.toLowerCase().includes('3crv')
+  ) {
     stable = true;
   } else if (el.project === 'aave' && el.symbol.toLowerCase().includes('amm')) {
     tok = tokens[0].split('weth');
@@ -376,13 +375,15 @@ const checkExposure = (el) => {
   return exposure;
 };
 
-const addPoolInfo = (el, stablecoins) => {
+const addPoolInfo = (el, stablecoins, config) => {
   el['stablecoin'] = checkStablecoin(el, stablecoins);
 
   // complifi has single token exposure only cause the protocol
   // will pay traders via deposited amounts
   el['ilRisk'] =
-    el.project === 'complifi'
+    config[el.project].category === 'Options'
+      ? 'yes'
+      : el.project === 'complifi'
       ? 'yes'
       : el.stablecoin && el.symbol.toLowerCase().includes('eur')
       ? checkIlRisk(el)
@@ -392,4 +393,77 @@ const addPoolInfo = (el, stablecoins) => {
   el['exposure'] = checkExposure(el);
 
   return el;
+};
+
+// retrieve the historical offset data for a project and a given offset day (1d/7d/30d)
+// to calculate pct changes. allow some buffer (+/- 3hs) in case of missing data
+const getOffsets = async (project, days) => {
+  const conn = await dbConnection.connect();
+  const M = conn.model(poolModel.modelName);
+
+  const daysMilliSeconds = Number(days) * 60 * 60 * 24 * 1000;
+  const tOffset = Date.now() - daysMilliSeconds;
+
+  // 3 hour window
+  const h = 3;
+  const tWindow = 60 * 60 * h * 1000;
+  // mongoose query requires Date
+  const recent = new Date(tOffset + tWindow);
+  const oldest = new Date(tOffset - tWindow);
+
+  // pull only data >= 10k usd in tvl (we won't show smaller pools on the frontend)
+  const tvlUsdLB = 1e4;
+
+  const aggQuery = [
+    // filter
+    {
+      $match: {
+        project: project,
+        timestamp: {
+          $gte: oldest,
+          $lte: recent,
+        },
+        tvlUsd: { $gte: tvlUsdLB },
+      },
+    },
+    // calc time distances from exact offset
+    {
+      $addFields: {
+        time_dist: {
+          $abs: [{ $subtract: ['$timestamp', new Date(tOffset)] }],
+        },
+      },
+    },
+    // sort ascending (the smallest distance are the closest data points to the exact offset)
+    {
+      $sort: { time_dist: 1 },
+    },
+    // group by id, and return the first sample of apy
+    {
+      $group: {
+        _id: '$pool',
+        apy: {
+          $first: '$apy',
+        },
+      },
+    },
+    // adding "back" the pool field, the grouping key is only available as _id
+    {
+      $addFields: {
+        pool: '$_id',
+      },
+    },
+    // remove the grouping key
+    {
+      $project: {
+        _id: 0,
+      },
+    },
+  ];
+  const query = M.aggregate(aggQuery);
+
+  // run query on db server
+  const response = await query;
+
+  return response;
 };

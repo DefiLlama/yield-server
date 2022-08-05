@@ -8,14 +8,8 @@ const abi = require('./abi.json');
 const baseRewardPoolAbi = require('./baseRewardPoolAbi.json');
 const virtualBalanceRewardPoolAbi = require('./virtualBalanceRewardPoolAbi.json');
 
-// https://etherscan.io/address/0xF403C135812408BFbE8713b5A23a04b3D48AAE31#readContract
-// check poolInfo method (input are the below id's)
-// the swap contract address can be found here: https://curve.fi/contracts
 const poolsDefault = require('./pools.json');
-const { pick } = require('lodash');
 const { symbol } = require('@defillama/sdk/build/erc20');
-
-const ETHERSCAN_KEY = process.env.ETHERSCAN;
 
 const web3 = new Web3(process.env.INFURA_CONNECTION);
 

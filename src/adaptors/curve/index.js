@@ -3,7 +3,6 @@ const { default: BigNumber } = require('bignumber.js');
 
 const utils = require('../utils');
 
-const legacy = require('./legacy-adaptor');
 const {
   CRV_API_BASE_URL,
   BLOCKCHAINIDS,
@@ -288,7 +287,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  // legacy needed by convex-finance adaptor
-  curvePoolStats: legacy.curvePoolStats,
-  tokenMapping: legacy.tokenMapping,
 };
