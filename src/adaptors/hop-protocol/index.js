@@ -3,6 +3,8 @@ const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const { default: BigNumber } = require('bignumber.js');
 
+const utils = require('../utils');
+
 const getCoreConfig = async () => {
   const {
     data: { bridges },
@@ -96,7 +98,7 @@ const main = async () => {
 
         return {
           pool: `${chain}-${token}`,
-          chain: adaptedChain,
+          chain: utils.formatChain(adaptedChain),
           project: 'hop-protocol',
           symbol: token,
           apyBase: tokenPools[chain].apr * 100,
