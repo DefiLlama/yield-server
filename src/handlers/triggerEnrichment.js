@@ -2,10 +2,12 @@ const superagent = require('superagent');
 const ss = require('simple-statistics');
 
 const utils = require('../utils/s3');
+const { getLatestPools } = require('./getPools');
+const { getStats } = require('./triggerStats');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
 const { welfordUpdate } = require('../utils/welford');
 
-module.exports.handler = async () => {
+module.exports.handler = async (event, context) => {
   await main();
 };
 
@@ -13,8 +15,9 @@ const main = async () => {
   console.log('START DATA ENRICHMENT');
 
   const urlBase = process.env.APIG_URL;
-  console.log('\n1. pulling base data...');
-  let data = (await superagent.get(`${urlBase}/simplePools`)).body.data;
+  console.log('\n1. getting pools...');
+  let data = await getLatestPools();
+
   // derive final apy field via:
   data = data.map((p) => ({
     ...p,
@@ -31,8 +34,6 @@ const main = async () => {
   const failed = [];
 
   for (const adaptor of [...new Set(data.map((p) => p.project))]) {
-    console.log(adaptor);
-
     // filter data to project
     const dataProject = data.filter((el) => el.project === adaptor);
 
@@ -59,10 +60,6 @@ const main = async () => {
       continue;
     }
   }
-  console.log('Nb of pools: ', dataEnriched.length);
-  console.log(
-    `Nb of failed adaptor offset calculations: ${failed.length}, List of failed adaptors: ${failed}`
-  );
 
   console.log('\n3. adding additional pool info fields');
   const stablecoins = (
@@ -71,7 +68,12 @@ const main = async () => {
     )
   ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
-  dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins));
+
+  // get catgory data (we hardcode IL to true for options protocols)
+  const config = (
+    await superagent.get('https://api.llama.fi/config/yields?a=1')
+  ).body.protocols;
+  dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins, config));
 
   // expanding mean, expanding standard deviation,
   // geometric mean and standard deviation (of daily returns)
@@ -82,7 +84,7 @@ const main = async () => {
     return: (1 + p.apy / 100) ** (1 / T) - 1,
   }));
 
-  const dataStats = (await superagent.get(`${urlBase}/stats`)).body.data;
+  const dataStats = await getStats();
   const statsColumns = welfordUpdate(dataEnriched, dataStats);
   // add columns to dataEnriched
   for (const p of dataEnriched) {
@@ -98,7 +100,6 @@ const main = async () => {
     p['sigma'] =
       x.count < 2 ? null : Math.sqrt((x.mean2DR / (x.count - 1)) * T) * 100;
   }
-
   // mark pools as outliers if outside boundary (let user filter via toggle on frontend)
   const columns = ['mu', 'sigma'];
   const outlierBoundaries = {};
@@ -112,7 +113,6 @@ const main = async () => {
     const x_ub = x_median + distance * x_iqr;
     outlierBoundaries[col] = { lb: x_lb, ub: x_ub };
   }
-
   // before adding the new outlier field,
   // i'm setting sigma to 0 instead of keeping it to null
   // so the label on the scatterchart makes more sense
@@ -243,7 +243,8 @@ const main = async () => {
         : 3;
   }
 
-  console.log('\nsaving data to S3');
+  console.log('\n6. saving data to S3');
+  console.log('nb of pools', dataEnriched.length);
   const bucket = process.env.BUCKET_DATA;
   const key = 'enriched/dataEnriched.json';
   dataEnriched = dataEnriched.sort((a, b) => b.tvlUsd - a.tvlUsd);
@@ -281,14 +282,20 @@ const enrich = (pool, days, offsets) => {
 
 const checkStablecoin = (el, stablecoins) => {
   let tokens = el.symbol.split('-').map((el) => el.toLowerCase());
-
   let stable;
   // specific case for aave amm positions
   if (el.project === 'curve' && el.symbol.toLowerCase().includes('3crv')) {
     stable = true;
+  } else if (
+    el.project === 'convex-finance' &&
+    el.symbol.toLowerCase().includes('3crv')
+  ) {
+    stable = true;
   } else if (el.project === 'aave' && el.symbol.toLowerCase().includes('amm')) {
     tok = tokens[0].split('weth');
     stable = tok[0].includes('wbtc') ? false : tok.length > 1 ? false : true;
+  } else if (tokens[0].includes('torn')) {
+    stable = false;
   } else if (tokens.length === 1) {
     stable = stablecoins.some((x) =>
       tokens[0].replace(/\s*\(.*?\)\s*/g, '').includes(x)
@@ -299,11 +306,6 @@ const checkStablecoin = (el, stablecoins) => {
       x += stablecoins.some((x) => t.includes(x));
     }
     stable = x === tokens.length ? true : false;
-
-    // this case is for Bancor only
-    if (tokens.includes('bnt') && x > 0) {
-      stable = true;
-    }
   }
 
   return stable;
@@ -328,9 +330,6 @@ const checkIlRisk = (el) => {
   ) {
     ilRisk = 'yes';
   } else if (tokens.length === 1) {
-    ilRisk = 'no';
-    // for bancor
-  } else if (tokens.length === 2 && tokens.includes('bnt')) {
     ilRisk = 'no';
   } else {
     const elements = [];
@@ -367,8 +366,6 @@ const checkExposure = (el) => {
       el.symbol.toLowerCase().includes('ammbpt')
         ? 'multi'
         : exposure;
-  } else if (el.project === 'bancor') {
-    exposure = 'single';
   } else if (el.project === 'badger-dao') {
     exposure = el.symbol.toLowerCase().includes('crv') ? 'multi' : exposure;
   }
@@ -376,13 +373,15 @@ const checkExposure = (el) => {
   return exposure;
 };
 
-const addPoolInfo = (el, stablecoins) => {
+const addPoolInfo = (el, stablecoins, config) => {
   el['stablecoin'] = checkStablecoin(el, stablecoins);
 
   // complifi has single token exposure only cause the protocol
   // will pay traders via deposited amounts
   el['ilRisk'] =
-    el.project === 'complifi'
+    config[el.project].category === 'Options'
+      ? 'yes'
+      : el.project === 'complifi'
       ? 'yes'
       : el.stablecoin && el.symbol.toLowerCase().includes('eur')
       ? checkIlRisk(el)

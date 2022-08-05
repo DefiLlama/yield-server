@@ -15,7 +15,9 @@ process.env['SSM_PATH'] = '/llama-apy/serverless/sls-authenticate';
 
 (async () => {
   await confirm(
-    'Confirm with `yes` if you want to start the bootstrapStatsTable script: '
+    `Confirm with 'yes' if you want to start the ${process.argv[1]
+      .split('/')
+      .slice(-1)} script: `
   );
   // pools.json is a full database snapshot of daily values only (the last value per pool per day)
   // containing pool and the total apy fields

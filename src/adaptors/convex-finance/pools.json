@@ -20,7 +20,7 @@
     "crvRewards": "0xd802a8351A76ED5eCd89A7502Ca615F2225A585d",
     "swap": "0x45F783CCE6B7FF23B2ab2D70e416cdb7D6055f51",
     "currency": "USD",
-    "name": "y",
+    "name": "iearn",
     "id": 2
   },
   {
@@ -36,7 +36,7 @@
     "crvRewards": "0x22eE18aca7F3Ee920D01F25dA85840D12d98E8Ca",
     "swap": "0xA5407eAE9Ba41422680e2e00537571bcC53efBfD",
     "currency": "USD",
-    "name": "susd",
+    "name": "susdv2",
     "extras": [
       {
         "contract": "0x81fCe3E10D12Da6c7266a1A169c4C96813435263",
@@ -59,7 +59,7 @@
     "crvRewards": "0x8E299C62EeD737a5d5a53539dF37b5356a27b07D",
     "swap": "0x93054188d876f558f4a66B2EF1d97d16eDf0895B",
     "currency": "BTC",
-    "name": "ren2",
+    "name": "ren",
     "id": 6
   },
   {
@@ -390,21 +390,6 @@
     ],
     "name": "alusd",
     "id": 36
-  },
-  {
-    "lptoken": "0xcA3d75aC011BF5aD07a98d02f18225F9bD9A6BDF",
-    "crvRewards": "0x5Edced358e6C0B435D53CC30fbE6f5f0833F404F",
-    "swap": "0x80466c64868E1ab14a1Ddf27A676C3fcBE638Fe5",
-    "currency": "USD",
-    "name": "tricrypto",
-    "isV2": true,
-    "coins": [
-      "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-      "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
-      "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
-    ],
-    "coinDecimals": [6, 8, 18],
-    "id": 37
   },
   {
     "lptoken": "0xc4AD29ba4B3c580e6D59105FFf484999997675Ff",

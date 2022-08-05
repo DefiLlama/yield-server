@@ -16,6 +16,7 @@ module.exports = {
   ALCHEMY_CONNECTION_ARBITRUM: process.env.ALCHEMY_CONNECTION_ARBITRUM,
   XDAI: process.env.XDAI,
   XDAI_RPC: process.env.XDAI_RPC,
+  CRONOS_RPC: process.env.CRONOS_RPC,
   // ADAPTOR LIST
   ADAPTORS: JSON.stringify(
     fs

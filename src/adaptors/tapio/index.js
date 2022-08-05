@@ -4,11 +4,8 @@ const getPools = async () => {
   const tdotApr = await utils.getData(
     'https://api.taigaprotocol.io/rewards/apr?network=acala&pool=0'
   );
-  const tdotData = await utils.getData(
-    'https://api.taigaprotocol.io/tokens/tdot'
-  );
-  const dotPrice = await utils.getData(
-    'https://api.coingecko.com/api/v3/simple/price?ids=polkadot&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true'
+  const tdotStats = await utils.getData(
+    'https://api.taigaprotocol.io/tokens/tdot/stats'
   );
 
   const tdot = {
@@ -16,7 +13,7 @@ const getPools = async () => {
     chain: 'acala',
     project: 'tapio-protocol',
     symbol: 'tDOT',
-    tvlUsd: Number(tdotData.tvl) * Number(dotPrice.polkadot.usd),
+    tvlUsd: tdotStats.data.tvl,
     apyBase: Number(tdotApr['sa://0']) * 100,
   };
 
