@@ -15,8 +15,8 @@ const apy = (entry, ethPriceUSD) => {
   entry.totalSupplyUSD =
     totalSupply * Number(entry.underlying_price.value) * ethPriceUSD;
 
-  entry.apy =
-    entry.supply_rate.value * 100 + Number(entry.comp_supply_apy.value);
+  entry.apyBase = entry.supply_rate.value * 100;
+  entry.apyReward = Number(entry.comp_supply_apy.value);
 
   return entry;
 };
@@ -35,7 +35,13 @@ const buildPool = (entry, chainString) => {
         entry.symbol === 'cWBTC2' ? 'cWBTC' : entry.symbol
       ),
       tvlUsd: entry.totalSupplyUSD,
-      apy: entry.apy,
+      apyBase: entry.apyBase,
+      apyReward: entry.apyReward,
+      rewardTokens: ['0xc00e94cb662c3520282e6f5717214004a7f26888'],
+      underlyingTokens:
+        entry.underlying_address === null && entry.underlying_name === 'Ether'
+          ? ['0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2']
+          : [entry.underlying_address],
     };
     return newObj;
   }
