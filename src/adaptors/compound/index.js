@@ -37,7 +37,10 @@ const buildPool = (entry, chainString) => {
       tvlUsd: entry.totalSupplyUSD,
       apyBase: entry.apyBase,
       apyReward: entry.apyReward,
-      rewardTokens: ['0xc00e94cb662c3520282e6f5717214004a7f26888'],
+      rewardTokens:
+        entry.apyReward > 0
+          ? ['0xc00e94cb662c3520282e6f5717214004a7f26888']
+          : [],
       underlyingTokens:
         entry.underlying_address === null && entry.underlying_name === 'Ether'
           ? ['0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2']
