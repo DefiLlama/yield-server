@@ -90,7 +90,7 @@ const getApy = async (block) => {
           Number(exchangeRate.output[0].output)) /
           10 ** 18) *
         ETHPrice,
-      apy: (Number(APY.output[0].output) * 2102400) / 10 ** 18,
+      apy: ((Number(APY.output[0].output) * 2102400) / 10 ** 18) * 100,
       underlyingTokens: [mEtherAddresses.Glasses],
     },
     {
@@ -103,7 +103,7 @@ const getApy = async (block) => {
           Number(exchangeRate.output[1].output)) /
           10 ** 18) *
         ETHPrice,
-      apy: (Number(APY.output[1].output) * 2102400) / 10 ** 18,
+      apy: ((Number(APY.output[1].output) * 2102400) / 10 ** 18) * 100,
       underlyingTokens: [mEtherAddresses.Milady],
     },
     {
@@ -116,7 +116,7 @@ const getApy = async (block) => {
           Number(exchangeRate.output[2].output)) /
           10 ** 18) *
         ETHPrice,
-      apy: (Number(APY.output[2].output) * 2102400) / 10 ** 18,
+      apy: ((Number(APY.output[2].output) * 2102400) / 10 ** 18) * 100,
       underlyingTokens: [mEtherAddresses.Pudgy],
     },
   ];
