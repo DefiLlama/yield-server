@@ -72,6 +72,9 @@ const baseQuery = [
       timestamp: {
         $first: '$timestamp',
       },
+      rewardTokens: {
+        $first: '$rewardTokens',
+      },
     },
   },
   // sort on tvl desc
