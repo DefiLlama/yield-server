@@ -73,7 +73,6 @@ const buildPoolsEnriched = async (queryString) => {
 
   return data;
 };
-module.exports.buildPoolsEnriched = buildPoolsEnriched;
 
 const getDataUsingS3Select = async (params) => {
   const s3 = new S3();

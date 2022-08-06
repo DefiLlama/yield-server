@@ -158,7 +158,7 @@ functions:
     events:
       - httpApi:
           method: get
-          path: /pools
+          path: /poolsEnrichedTesting
 
   getChart:
     handler: src/handlers/getChart.handler
