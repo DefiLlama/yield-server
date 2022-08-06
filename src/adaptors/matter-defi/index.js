@@ -12,7 +12,8 @@ let _spicePools, _spiceTokens;
 
 const fetchXtzPrice = async () => { return new BigNumber((await axios(`${RPC_ENDPOINT}/v1/quotes/last`)).data.usd).toFixed(2); }
 const fetchMatterPrice = async (agg) => { return (await axios(`${SPICY_URL}/TokenList?_ilike=${MATTER_CORE}:0&day_agg_start=${agg}`)).data.tokens[0].derivedxtz; }
-const fetchTokenName = async (contract) => { return (await axios(`${RPC_ENDPOINT}/v1/contracts/${contract}`)).data.alias; }
+const fetchTokenNameTzkt = async (contract) => { return (await axios(`${RPC_ENDPOINT}/v1/contracts/${contract}`)).data.alias; }
+const fetchTokenNameSpicy = async (token) => {  return (await axios(`${SPICY_URL}/TokenList?_ilike=${token}`)).data.tokens[0].symbol; }
 const fetchTokenBalances = async (account) => { return (await axios(`${RPC_ENDPOINT}/v1/tokens/balances?account=${account}&limit=100&select=balance,token.id%20as%20id,token.contract%20as%20contract,token.standard%20as%20standard,token.tokenId%20as%20token_id`)).data; }
 
 const fetchSupply = async (contract, id) => {
@@ -89,8 +90,16 @@ const matchToMatter = async (farm, spicyPools) => {
   const match = spicyPools.find(pool => pool.contract == farm.key.fa2_address)
 
   if(match) {
-    const symbol = await fetchTokenName(farm.key.fa2_address);
-    farm.symbol = symbol.split(' ').slice(1).join(' ');
+    const symbol = await fetchTokenNameTzkt(farm.key.fa2_address);
+
+    if(symbol) {
+      farm.symbol = symbol.split(' ').slice(1).join(' ');
+    } else {
+      const token0Name = await fetchTokenNameSpicy(farm.token0);
+      const token1Name = await fetchTokenNameSpicy(farm.token1);
+
+      farm.symbol = `${token0Name}/${token1Name}`;
+    }
 
     farm.supply = new BigNumber((await fetchSupply(farm.key.fa2_address))).shiftedBy(-farm.decimals);
     farm.reserveXtz =  new BigNumber(match.reserve);
