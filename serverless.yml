@@ -87,16 +87,9 @@ functions:
           batchSize: 2
           functionResponseType: ReportBatchItemFailures
     environment:
-      ETHERSCAN: ${file(./env.js):ETHERSCAN}
-      FANTOMSCAN: ${file(./env.js):FANTOMSCAN}
-      POLYGONSCAN: ${file(./env.js):POLYGONSCAN}
-      SNOWTRACE: ${file(./env.js):SNOWTRACE}
-      ARBISCAN: ${file(./env.js):ARBISCAN}
-      OPTIMISM: ${file(./env.js):OPTIMISM}
       INFURA_CONNECTION: ${file(./env.js):INFURA_CONNECTION}
       ALCHEMY_CONNECTION_POLYGON: ${file(./env.js):ALCHEMY_CONNECTION_POLYGON}
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
-      XDAI: ${file(./env.js):XDAI}
       XDAI_RPC: ${file(./env.js):XDAI_RPC}
       CRONOS_RPC: ${file(./env.js):CRONOS_RPC}
 
