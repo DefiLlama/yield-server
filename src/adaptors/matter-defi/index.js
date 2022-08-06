@@ -92,18 +92,18 @@ const matchToMatter = async (farm, spicyPools) => {
   if(match) {
     const symbol = await fetchTokenNameTzkt(farm.key.fa2_address);
 
+    farm.supply = new BigNumber((await fetchSupply(farm.key.fa2_address))).shiftedBy(-farm.decimals);
+    farm.reserveXtz =  new BigNumber(match.reserve);
+    farm.staked = new BigNumber(farm.staked).shiftedBy(-farm.decimals);
+
     if(symbol) {
       farm.symbol = symbol.split(' ').slice(1).join(' ');
     } else {
       const token0Name = await fetchTokenNameSpicy(farm.token0);
       const token1Name = await fetchTokenNameSpicy(farm.token1);
 
-      farm.symbol = `${token0Name}/${token1Name}`;
+      farm.symbol = (token0Name && token1Name) ? `${token0Name}/${token1Name}` : 'Unknown';
     }
-
-    farm.supply = new BigNumber((await fetchSupply(farm.key.fa2_address))).shiftedBy(-farm.decimals);
-    farm.reserveXtz =  new BigNumber(match.reserve);
-    farm.staked = new BigNumber(farm.staked).shiftedBy(-farm.decimals);
 
     farm.apr = poolToApr(farm);
     farm.apy = aprToApy(farm.apr);
