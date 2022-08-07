@@ -1,9 +1,11 @@
 const sdk = require('@defillama/sdk');
-const masterChefABI = require('./abi-master-chef.json');
-const lpTokenABI = require('./abi-lp-token.json');
-const utils = require('../utils');
 const superagent = require('superagent');
 const { default: BigNumber } = require('bignumber.js');
+
+const masterChefABI = require('./abis/abi-master-chef.json');
+const lpTokenABI = require('./abis/abi-lp-token.json');
+const utils = require('../utils');
+
 const MASTERCHEF_ADDRESS = '0x5c8D727b265DBAfaba67E050f2f739cAeEB4A6F9';
 const BANANA = '0x603c7f932ED1fc6575303D8Fb018fDCBb0f39a95';
 const EXCLUDE = [
@@ -14,12 +16,9 @@ const EXCLUDE = [
   '0x8A49764C91718eF2b6264E54e1b6497CcC945D49',
   '0x703b40842eF1A81777e7696e37c335d32D094a80',
 ];
-
 const BSC_BLOCK_TIME = 3;
 const BLOCKS_PER_YEAR = Math.floor((60 / BSC_BLOCK_TIME) * 60 * 24 * 365);
-const BLOCKS_PER_DAY = Math.floor((60 / BSC_BLOCK_TIME) * 60 * 24);
-const WEEKS_PER_YEAR = 52;
-const FEE_RATE = 0.0005;
+
 
 const getPairInfo = async (pair, tokenAddress) => {
   const [tokenSymbol, tokenDecimals] = await Promise.all(
