@@ -7,7 +7,7 @@ const { masterChefABI, lpTokenABI } = require('./abis');
 const utils = require('../utils');
 const { fetchURL } = require('../../helper/utils');
 
-const RPC_URL = 'https://bsc-dataseed1.binance.org/';
+const RPC_URL = 'https://bsc-dataseed1.binance.org/';z
 const API_URL =
   'https://bsc.streamingfast.io/subgraphs/name/pancakeswap/exchange-v2';
 const LP_APRS =
