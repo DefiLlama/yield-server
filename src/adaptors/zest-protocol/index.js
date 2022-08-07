@@ -209,13 +209,14 @@ const main = async () => {
           project: 'zest-protocol',
           symbol: pairInfo.name.replace(/(WFTM)+/g, 'FTM'),
           tvlUsd: Number(reserveUSD),
-          apy: calculateApy(
+          apyReward: calculateApy(
             poolInfo,
             totalAllocPoint,
             normalizedRewardPerBlock,
             zspPrice,
             reserveUSD
           ),
+          rewardTokens: ['0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83'],
           underlyingTokens: [underlying0, underlying1],
         };
         return pool;
@@ -229,7 +230,7 @@ const main = async () => {
     project: 'zest-protocol',
     symbol: 'ZSP Staked',
     tvlUsd: Number(stakeTVL),
-    apy: Number(stakeAPR),
+    apyReward: Number(stakeAPR),
     rewardTokens: [WFTM_ADDRESS],
   };
 
@@ -239,7 +240,7 @@ const main = async () => {
     project: 'zest-protocol',
     symbol: 'ZSP Locked',
     tvlUsd: Number(lockTVL),
-    apy: Number(lockAPR),
+    apyReward: Number(lockAPR),
     rewardTokens: [WFTM_ADDRESS, ZSP_ADDRESS],
   };
 
