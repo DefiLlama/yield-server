@@ -85,6 +85,15 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
     });
   });
 
+  describe('Check if pool has a rewardApy then rewardTokens must also exist', () => {
+    apy.forEach((pool) => {
+      test(`The pool ${pool.pool} is expected to have a rewardTokens field`, () => {
+        if (pool.apyReward)
+          expect((pool.rewardTokens || []).length).toBeGreaterThan(0);
+      });
+    });
+  });
+
   describe('Check if pool id already used by other project', () => {
     const uniqueIds = new Set(apy.map(({ pool }) => pool));
     const duplicatedPoolIds = new Set(
