@@ -34,7 +34,7 @@ const CG_NAMES = {
 };
 
 interface FerPool {
-  data: { '3FER': { ferroApr: number } };
+  data: { '3FER': { baseApr: number; ferroApr: number } };
 }
 
 interface StakingRatio {
@@ -96,7 +96,8 @@ const getApy = async () => {
     chain: utils.formatChain('cronos'),
     project: 'ferro',
     tvlUsd,
-    apy: data['3FER'].ferroApr,
+    apyBase: data['3FER'].baseApr,
+    apyReward: data['3FER'].ferroApr,
     underlyingTokens: Object.values(TOKEN_ADDRESSES).map(
       ({ address }) => address
     ),
@@ -109,7 +110,7 @@ const getApy = async () => {
     chain: utils.formatChain('cronos'),
     project: 'ferro',
     tvlUsd: ferroStakeBalance * mappedPrices.FERRO,
-    apy: stakingApy * 100,
+    apyReward: stakingApy * 100,
     underlyingTokens: [FERRO_TOKEN],
     rewardTokens: [FERRO_TOKEN],
   };
