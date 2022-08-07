@@ -83,9 +83,8 @@ const main = async () => {
         pool: farm.address,
         chain: 'Avalanche',
         project: 'yield-yak',
-        symbol: farm.name,
-        apy: apys[farm.address].apy,
-        rewardTokens: [farm.rewardToken.address],
+        symbol: `${farm.name} (${farm.platform})`,
+        apyBase: apys[farm.address].apy,
         underlyingTokens: farm.depositToken.underlying,
         tvlUsd: tvlUsd,
       };
