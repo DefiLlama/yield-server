@@ -172,7 +172,7 @@ const apy = async () => {
   const tokens0 = underlyingToken0.output.map((res) => res.output);
   const tokens1 = underlyingToken1.output.map((res) => res.output);
   const tokensPrices = await getPrices([...tokens0, ...tokens1]);
-  const po = await Promise.all(
+  const result = await Promise.all(
     pools.map((pool, i) =>
       getPairInfo(lpTokens[i], [tokens0[i], tokens1[i]]).then((pairInfo) => {
 
@@ -210,7 +210,7 @@ const apy = async () => {
       })
     )
   );
-  return po;
+  return result;
 }
 module.exports = {
   timetravel: false,
