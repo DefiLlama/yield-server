@@ -96,14 +96,19 @@ const main = async () => {
         const hopTokenAddress = coreConfig[token][chain].l2HopBridgeToken;
         const adaptedChain = getAdaptedChain(chain);
 
+        const apyReward = tokenPools[chain].stakingApr * 100;
+
         return {
           pool: `${chain}-${token}`,
           chain: utils.formatChain(adaptedChain),
           project: 'hop-protocol',
           symbol: token,
           apyBase: tokenPools[chain].apr * 100,
-          apyReward: tokenPools[chain].stakingApr * 100,
-          rewardTokens: [],
+          apyReward,
+          rewardTokens:
+            adaptedChain === 'polygon' && apyReward > 0
+              ? ['0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270'] // wmatic
+              : [],
           underlyingTokens: [tokenAddress, hopTokenAddress],
           tvlUsd,
         };
