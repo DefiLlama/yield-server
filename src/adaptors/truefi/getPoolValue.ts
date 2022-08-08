@@ -11,13 +11,13 @@ const unitsMap = {
   18: 'ether'
 }
 
-async function getPoolValueInUsd(poolAddress: string, tokenPrice: number, tokenDecimals: number) {
+async function getPoolValue(poolAddress: string, tokenDecimals: number) {
   const pool = new web3.eth.Contract(poolAbi, poolAddress)
   const poolValueRaw: string = await pool.methods.poolValue().call()
   const poolValue = web3.utils.fromWei(poolValueRaw, unitsMap[tokenDecimals])
-  return tokenPrice * poolValue
+  return poolValue
 }
 
 module.exports = {
-  getPoolValueInUsd
+  getPoolValue
 }

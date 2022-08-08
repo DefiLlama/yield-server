@@ -35,12 +35,14 @@ const apy = async () => {
   const usdcPrice = prices[usdcKey].price
 
   const activeLoans = await getActiveLoans()
+  const usdcPoolValue = await getPoolValue(USDC_POOL_ADDRESS, USDC_DECIMALS)
+
   const usdcPoolAdapter: PoolAdapter = {
     pool: USDC_POOL_ADDRESS,
     chain: utils.formatChain('ethereum'),
     project: 'truefi',
     symbol: 'tfUSDC',
-    tvlUsd: await getPoolValueInUsd(USDC_POOL_ADDRESS, usdcPrice, USDC_DECIMALS),
+    tvlUsd: usdcPoolValue * usdcPrice,
     apyBase: 0, // TODO: implement
     apyReward: 0, // TODO: implement
     rewardTokens: [TRU_ADDRESS],
