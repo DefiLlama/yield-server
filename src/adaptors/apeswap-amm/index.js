@@ -5,6 +5,8 @@ const { default: BigNumber } = require('bignumber.js');
 const masterChefABI = require('./abis/abi-master-chef.json');
 const lpTokenABI = require('./abis/abi-lp-token.json');
 const utils = require('../utils');
+const { chunk } = require('lodash');
+const { request, gql, batchRequests } = require('graphql-request');
 
 const MASTERCHEF_ADDRESS = '0x5c8D727b265DBAfaba67E050f2f739cAeEB4A6F9';
 const BANANA = '0x603c7f932ED1fc6575303D8Fb018fDCBb0f39a95';
@@ -18,35 +20,42 @@ const EXCLUDE = [
 ];
 const BSC_BLOCK_TIME = 3;
 const BLOCKS_PER_YEAR = Math.floor((60 / BSC_BLOCK_TIME) * 60 * 24 * 365);
+const BLOCKS_PER_DAY = Math.floor((60 / BSC_BLOCK_TIME) * 60 * 24);
+const WEEKS_PER_YEAR = 52;
+const FEE_RATE = 0.0005;
 
+const API_URL = "https://bnb.apeswapgraphs.com/subgraphs/name/ape-swap/apeswap-subgraph";
+const pairQuery = gql`
+query pairQuery($id_in: [ID!]) {
+  pairs(where: {id_in: $id_in}) {
+    id
+    token0 {
+      symbol
+      decimals
+      id
+    }
+    token1 {
+      symbol
+      decimals
+      id
+    }
+  }
+}
+`;
 
-const getPairInfo = async (pair, tokenAddress) => {
-  const [tokenSymbol, tokenDecimals] = await Promise.all(
-    ['erc20:symbol', 'erc20:decimals'].map((method) =>
-      sdk.api.abi.multiCall({
-        abi: method,
-        calls: tokenAddress.map((address) => ({
-          target: address,
-        })),
-        chain: 'bsc',
-        requery: true,
+const getPairInfo = async (pairs) => {
+  const pairInfo = await Promise.all(
+    chunk(pairs, 7).map((tokens) =>
+      request(API_URL, pairQuery, {
+        id_in: tokens.map((pair) => pair.toLowerCase()),
       })
     )
   );
-  return {
-    lpToken: pair.toLowerCase(),
-    pairName: tokenSymbol.output.map(e => e.output).join('-'),
-    token0: {
-      address: tokenAddress[0],
-      symbol: tokenSymbol.output[0].output,
-      decimals: tokenDecimals.output[0].output
-    },
-    token1: {
-      address: tokenAddress[1],
-      symbol: tokenSymbol.output[1].output,
-      decimals: tokenDecimals.output[1].output
-    }
-  };
+
+  return pairInfo
+    .map(({ pairs }) => pairs)
+    .flat()
+    .reduce((acc, pair) => ({ ...acc, [pair.id.toLowerCase()]: pair }), {});
 };
 
 const getPrices = async (addresses) => {
@@ -87,8 +96,8 @@ const calculateReservesUSD = (
   tokenPrices
 ) => {
 
-  const { decimals: token0Decimals, address: token0Address } = token0;
-  const { decimals: token1Decimals, address: token1Address } = token1;
+  const { decimals: token0Decimals, id: token0Address } = token0;
+  const { decimals: token1Decimals, id: token1Address } = token1;
   const token0Price = tokenPrices[token0Address.toLowerCase()];
   const token1Price = tokenPrices[token1Address.toLowerCase()];
 
@@ -172,45 +181,104 @@ const apy = async () => {
   const tokens0 = underlyingToken0.output.map((res) => res.output);
   const tokens1 = underlyingToken1.output.map((res) => res.output);
   const tokensPrices = await getPrices([...tokens0, ...tokens1]);
-  const result = await Promise.all(
-    pools.map((pool, i) =>
-      getPairInfo(lpTokens[i], [tokens0[i], tokens1[i]]).then((pairInfo) => {
+  const pairsInfo = await getPairInfo(lpTokens);
 
-        const poolInfo = pools[i];
-        const reserves = reservesData[i];
+  const lpChunks = chunk(lpTokens, 10);
 
-        const supply = supplyData[i];
-        const masterChefBalance = masterChefBalData[i];
-
-        const masterChefReservesUsd = calculateReservesUSD(
-          reserves,
-          masterChefBalance / supply,
-          pairInfo.token0,
-          pairInfo.token1,
-          tokensPrices
+  const pairVolumes = await Promise.all(
+    lpChunks.map((lpsChunk) =>
+      request(
+        API_URL,
+        gql`
+    query volumesQuery {
+      ${lpsChunk
+        .slice(0, 10)
+        .map(
+          (token, i) => `token_${token.toLowerCase()}:pairDayDatas(
+        orderBy: date
+        orderDirection: desc
+        first: 7
+        where: { pairAddress: "${token.toLowerCase()}" }
+      ) {
+        dailyVolumeUSD
+      }`
         )
-          .div(1e18)
-          .toString();
+        .join('\n')}
 
-        const _pool = {
-          pool: pairInfo.lpToken,
-          chain: utils.formatChain('binance'),
-          project: 'apeswap-amm',
-          symbol: pairInfo.pairName,
-          tvlUsd: Number(masterChefReservesUsd),
-          apy: calculateApy(
-            poolInfo,
-            totalAllocPoint,
-            normalizedbananaPerBlock,
-            tokensPrices[BANANA.toLowerCase()],
-            masterChefReservesUsd
-          ),
-        };
-        return _pool;
-      })
+    }
+  `
+      )
     )
   );
-  return result;
+
+  const volumesMap = pairVolumes.flat().reduce(
+    (acc, curChunk) => ({
+      ...acc,
+      ...Object.entries(curChunk).reduce((innerAcc, [key, val]) => ({
+        ...innerAcc,
+        [key.split('_')[1]]: val,
+      })),
+    }),
+    {}
+  );
+
+  const res = pools.map((pool, i) => {
+    const poolInfo = pool;
+    const reserves = reservesData[i];
+    const pairInfo = pairsInfo[pool.lpToken.toLowerCase()];
+
+    const supply = supplyData[i];
+    const masterChefBalance = masterChefBalData[i];
+
+    const masterChefReservesUsd = calculateReservesUSD(
+      reserves,
+      masterChefBalance / supply,
+      pairInfo.token0,
+      pairInfo.token1,
+      tokensPrices
+    )
+      .div(1e18)
+      .toString();
+
+    const lpReservesUsd = calculateReservesUSD(
+      reserves,
+      1,
+      pairInfo.token0,
+      pairInfo.token1,
+      tokensPrices
+    )
+      .div(1e18)
+      .toString();
+
+    const lpFees7D =
+      (volumesMap[pool.lpToken.toLowerCase()] || []).reduce(
+        (acc, { dailyVolumeUSD }) => acc + Number(dailyVolumeUSD),
+        0
+      ) * FEE_RATE;
+    const apyBase = ((lpFees7D * WEEKS_PER_YEAR) / lpReservesUsd) * 100;
+
+    const apyReward = calculateApy(
+      poolInfo,
+      totalAllocPoint,
+      normalizedbananaPerBlock,
+      tokensPrices[BANANA.toLowerCase()],
+      masterChefReservesUsd
+    );
+
+    return {
+      pool: pool.lpToken,
+      chain: utils.formatChain('binance'),
+      project: 'apeswap-amm',
+      symbol: `${pairInfo.token0.symbol}-${pairInfo.token1.symbol}`,
+      tvlUsd: Number(masterChefReservesUsd),
+      apyBase,
+      apyReward,
+      underlyingTokens: [tokens0[i], tokens1[i]],
+      rewardTokens: [BANANA],
+    };
+  });
+
+  return res;
 }
 module.exports = {
   timetravel: false,
