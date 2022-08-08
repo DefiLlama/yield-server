@@ -250,7 +250,7 @@ const getPools = async () => {
       tvl: await getPoolTVL(stakePool, brcStaked, gbrcStaked),
       apy: apy.toString(),
       symbol: PoolNames[stakePool],
-      poolId: 'pool' + (stakePool + 1),
+      poolId: 'pool' + stakePool,
     });
   }
   return apys;
