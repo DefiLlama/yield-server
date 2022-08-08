@@ -6,12 +6,12 @@ const utils = require('../utils')
 const superagent = require('superagent')
 
 const USDC_DECIMALS = 6
-const USDC_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
-const USDC_POOL_ADDRESS = '0xA991356d261fbaF194463aF6DF8f0464F8f1c742'
+const USDC_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'.toLowerCase()
+const USDC_POOL_ADDRESS = '0xA991356d261fbaF194463aF6DF8f0464F8f1c742'.toLowerCase()
 
 const TRU_ADDRESS = '0x4c19596f5aaff459fa38b0f7ed92f11ae6543784'
 
-const getAddressKey = (address: string) => `ethereum:${address.toLowerCase()}`
+const getAddressKey = (address: string) => `ethereum:${address}`
 
 interface PoolAdapter { 
   pool: string
