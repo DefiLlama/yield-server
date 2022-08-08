@@ -34,6 +34,7 @@ const apy = async () => {
   ).body.coins
   const usdcPrice = prices[usdcKey].price
 
+  const activeLoans = await getActiveLoans()
   const usdcPoolAdapter: PoolAdapter = {
     pool: USDC_POOL_ADDRESS,
     chain: utils.formatChain('ethereum'),
