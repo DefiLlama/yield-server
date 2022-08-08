@@ -1,17 +1,9 @@
-const Web3 = require('web3')
+
+const { getPoolValueInUsd } = require('./getPoolValueInUsd');
+const { getActiveLoans } = require('./getActiveLoans')
+const BigNumber = require('bignumber.js')
 const utils = require('../utils')
-const poolAbi = require('./abis/poolAbi.json')
-const dotenv = require('dotenv')
 const superagent = require('superagent')
-dotenv.config()
-
-const connection = process.env.INFURA_CONNECTION
-const web3 = new Web3(connection)
-
-const unitsMap = {
-  6: 'mwei',
-  18: 'ether'
-}
 
 const USDC_DECIMALS = 6
 const USDC_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
@@ -33,13 +25,6 @@ interface PoolAdapter {
   underlyingTokens?: Array<string>,
 }
 
-async function getPoolValueInUsd(poolAddress: string, tokenPrice: number, tokenDecimals: number) {
-  const pool = new web3.eth.Contract(poolAbi, poolAddress)
-  const poolValueRaw: string = await pool.methods.poolValue().call()
-  const poolValue = web3.utils.fromWei(poolValueRaw, unitsMap[tokenDecimals])
-  return tokenPrice * poolValue
-}
-
 const apy = async () => {
   const usdcKey = getAddressKey(USDC_ADDRESS)
   const prices = (
@@ -54,7 +39,7 @@ const apy = async () => {
     chain: utils.formatChain('ethereum'),
     project: 'truefi',
     symbol: 'tfUSDC',
-    tvlUsd: await getPoolValueInUsd(USDC_POOL_ADDRESS, usdcPrice, 6),
+    tvlUsd: await getPoolValueInUsd(USDC_POOL_ADDRESS, usdcPrice, USDC_DECIMALS),
     apyBase: 0, // TODO: implement
     apyReward: 0, // TODO: implement
     rewardTokens: [TRU_ADDRESS],
