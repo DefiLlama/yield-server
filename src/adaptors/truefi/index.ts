@@ -40,6 +40,7 @@ interface PoolAdapter {
 const buildPoolAdapter = async ({ address, decimals, symbol, tokenAddress }: PoolInfo, tokenPrice: number, allActiveLoans: Loan[]): Promise<PoolAdapter> => {
   const poolActiveLoans = allActiveLoans.filter(({ poolAddress }) => poolAddress === address)
   const poolValue = await getPoolValue(address, decimals)
+  const poolApyBase = await getPoolApyBase(poolActiveLoans, poolValue, decimals)
 
   return {
     pool: address,
@@ -47,7 +48,7 @@ const buildPoolAdapter = async ({ address, decimals, symbol, tokenAddress }: Poo
     project: 'truefi',
     symbol,
     tvlUsd: poolValue * tokenPrice,
-    apyBase: 0, // TODO: implement
+    apyBase: poolApyBase,
     apyReward: 0, // TODO: implement
     rewardTokens: [TRU_ADDRESS],
     underlyingTokens: [tokenAddress],
