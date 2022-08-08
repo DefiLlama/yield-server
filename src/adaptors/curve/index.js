@@ -240,7 +240,25 @@ const main = async () => {
         rewardTokens.push('0xD533a949740bb3306d119CC777fa900bA034cd52'); // CRV
       }
 
-      const tvlUsd = pool.usdTotal;
+      // note(!) curve api uses coingecko prices and am3CRV is wrongly priced
+      // this leads to pool.usdTotal to be inflated, going to hardcode temporarly hardcode this
+      // to 1usd
+      // am3CRV
+      const am3CRV = '0xE7a24EF0C5e95Ffb0f6684b813A78F2a3AD7D171';
+      const x = pool.coins.find((c) => c.address === am3CRV && c.usdPrice > 2);
+      let tvlUsd;
+      if (x) {
+        tvlUsd = pool.coins
+          .map((c) =>
+            c.address === am3CRV
+              ? (c.poolBalance / `1e${c.decimals}`) * 1
+              : (c.poolBalance / `1e${c.decimals}`) * c.usdPrice
+          )
+          .reduce((a, b) => a + b, 0);
+      } else {
+        tvlUsd = pool.usdTotal;
+      }
+
       if (tvlUsd < 1) {
         continue;
       }
