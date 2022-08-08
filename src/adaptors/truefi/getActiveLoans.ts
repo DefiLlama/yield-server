@@ -9,6 +9,8 @@ interface Loan {
   apy: number
   poolAddress: string
   status: string
+  startDate: number
+  endDate: number
 }
 
 const getLoans = gql`
@@ -18,6 +20,8 @@ const getLoans = gql`
       APY
       poolAddress
       status
+      startDate
+      endDate
     }
   }
 `
@@ -29,8 +33,11 @@ function isLoanActive (status: string) {
 async function getActiveLoans() {
   const { loans } = await request(SUBGRAPH_URL, getLoans.replace('<PLACEHOLDER>', LOAN_FACTORY_2_START_BLOCK))
   const activeLoansRaw = loans.filter(({ status }) => isLoanActive(status))
-  const activeLoans: Loan[] = activeLoansRaw.map(({ amount, ...rest }) => ({
+  const activeLoans: Loan[] = activeLoansRaw.map(({ amount, startDate, endDate, APY, ...rest }) => ({
     ...rest,
+    apy: Number(APY),
+    startDate: Number(startDate),
+    endDate: Number(endDate), 
     amount: new BigNumber(Number(amount))
   }))
   return activeLoans
