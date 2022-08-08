@@ -1,5 +1,5 @@
 const Web3 = require('web3')
-const poolAbi = require('./abis/poolAbi.json')
+const poolAbi = require('./abis/pool.json')
 const dotenv = require('dotenv')
 dotenv.config()
 

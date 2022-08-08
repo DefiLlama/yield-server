@@ -5,6 +5,7 @@ const SUBGRAPH_URL = 'https://api.thegraph.com/subgraphs/name/mikemccready/truef
 const LOAN_FACTORY_2_START_BLOCK = 12467595
 
 interface Loan {
+  id: string
   amount: typeof BigNumber
   apy: number
   poolAddress: string
@@ -16,6 +17,7 @@ interface Loan {
 const getLoans = gql`
   {
     loans(first: 1000) {
+      id
       amount
       APY
       poolAddress
