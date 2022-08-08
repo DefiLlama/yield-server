@@ -47,6 +47,19 @@ const main = async (body) => {
   // 1. remove potential null/undefined objects in array
   data = data.filter((p) => p);
 
+  // even though we have tests for datatypes, will need to guard against sudden changes
+  // from api responses in terms of data types (eg have seen this on lido stETH) which went from
+  // number to string. so in order for the below filters to work proplerly we need to guarantee that the
+  // datatypes are correct (on db insert, mongoose checks field types against the schema and the bulk insert
+  // will fail if a pools field types doesnt match)
+  data = data.map((p) => ({
+    ...p,
+    apy: typeof p.apy === 'string' ? Number(p.apy) : p.apy,
+    apyBase: typeof p.apyBase === 'string' ? Number(p.apyBase) : p.apyBase,
+    apyReward:
+      typeof p.apyReward === 'string' ? Number(p.apyReward) : p.apyReward,
+  }));
+
   // 2. filter tvl to be btw lb-ub
   data = data.filter(
     (p) =>
