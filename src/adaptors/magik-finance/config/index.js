@@ -1,4 +1,3 @@
-const vaultABI = require('./vaultAbi');
 const bscPools = require('./vault/bsc_pools');
 const hecoPools = require('./vault/heco_pools');
 const avalanchePools = require('./vault/avalanche_pools');
@@ -11,7 +10,6 @@ const harmonyPools = require('./vault/harmony_pools');
 const arbitrumPools = require('./vault/arbitrum_pools');
 const cronosPools = require('./vault/cronos_pools');
 module.exports = {
-  vaultABI,
   bscPools,
   hecoPools,
   avalanchePools,
