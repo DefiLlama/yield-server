@@ -21,6 +21,7 @@
     "csv-writer": "^1.6.0",
     "date-fns": "^2.23.0",
     "dotenv": "^10.0.0",
+    "eth-multicall": "^1.4.0",
     "graphql": "^15.5.1",
     "graphql-request": "^3.5.0",
     "lodash": "^4.17.21",
