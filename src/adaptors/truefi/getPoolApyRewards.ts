@@ -1,9 +1,10 @@
 const BigNumber = require('bignumber.js')
 
+const TRU_DECIMALS = 8
 const YEAR_IN_DAYS = 365
 const DAY_IN_SECONDS = 24 * 60 * 60
 
-async function getPoolApyRewards(poolAddress: string, truPrice: number, multifarm: any, distributor: any) {
+async function getPoolApyRewards(poolAddress: string, poolDecimals: number, truPrice: number, multifarm: any, distributor: any) {
   const poolStakes = new BigNumber(await multifarm.methods.stakes(poolAddress).call())
   const poolShare = new BigNumber(await multifarm.methods.getShare(poolAddress).call())
   const totalShares = new BigNumber(await multifarm.methods.shares().call())
@@ -16,7 +17,8 @@ async function getPoolApyRewards(poolAddress: string, truPrice: number, multifar
   const yearlyRewards = dailyRewards.multipliedBy(YEAR_IN_DAYS)
   const yearlyRewardsInUsd = yearlyRewards.multipliedBy(truPrice)
 
-  return yearlyRewardsInUsd.div(poolStakes).toNumber()
+  // rewards / poolStakes * 100%
+  return yearlyRewardsInUsd.multipliedBy(10 ** (2 + poolDecimals - TRU_DECIMALS)).div(poolStakes).toNumber()
 }
 
 module.exports = {

@@ -60,7 +60,7 @@ const buildPoolAdapter = async (
   const poolActiveLoans = allActiveLoans.filter(({ poolAddress }) => poolAddress === address)
   const poolValue = await getPoolValue(address, decimals)
   const poolApyBase = await getPoolApyBase(poolActiveLoans, poolValue, decimals)
-  const poolApyRewards = await getPoolApyRewards(address, truPrice, multifarm, distributor)
+  const poolApyRewards = await getPoolApyRewards(address, decimals, truPrice, multifarm, distributor)
 
   return {
     pool: address,
