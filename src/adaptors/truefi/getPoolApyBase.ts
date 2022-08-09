@@ -30,6 +30,10 @@ function getInterestForPeriod(periodInDays: number, apyInBps: number) {
 }
 
 async function getLoanWeightedApyValue({ apy, startDate, endDate, id }: Loan, nowInDays: number) {
+  if(nowInDays > endDate) {
+    return new BigNumber(0)
+  }
+
   const loanDuration = (endDate - startDate) / DAY_IN_SECONDS
   const daysPassed = (nowInDays - startDate) / DAY_IN_SECONDS
 
