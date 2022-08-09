@@ -8,7 +8,7 @@ const getApy = async () => {
   const pools = res.map((pool) => {
     return {
       pool: pool.poolAddress,
-      chain: utils.formatChain('andromeda'),
+      chain: utils.formatChain('metis'),
       project: 'hermes-protocol',
       symbol: `${pool.token0.symbol}-${pool.token1.symbol}`,
       tvlUsd: pool.tvlUsd,
