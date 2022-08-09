@@ -44,10 +44,11 @@ const poolsFunction = async () => {
       const tvlUsd =
         Number(vault.totalHoldings) * item.spotPriceEth * item.ethPriceUsd;
 
-      const apy = utils.aprToApy((item.inventoryApr + item.liquidityApr) * 100);
+      const apr = (item.inventoryApr + item.liquidityApr) * 100;
+      const apy = utils.aprToApy(apr);
 
       // filter out fluff
-      if (tvlUsd < 1000 || apy === 0) {
+      if (tvlUsd < 1000 || !apy || apy === Infinity) {
         return null;
       }
 
@@ -69,7 +70,7 @@ const poolsFunction = async () => {
   return data.filter(Boolean);
 };
 
-export default {
+module.exports = {
   timetravel: false,
   apy: poolsFunction,
 };
