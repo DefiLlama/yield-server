@@ -1,6 +1,7 @@
 const { getPoolValue } = require('./getPoolValue');
 const { getActiveLoans } = require('./getActiveLoans')
 const { getPoolApyBase } = require('./getPoolApyBase')
+const { getPoolApyRewards } = require('./getPoolApyRewards')
 const BigNumber = require('bignumber.js')
 const utils = require('../utils')
 const superagent = require('superagent')
@@ -37,10 +38,11 @@ interface PoolAdapter {
   underlyingTokens?: Array<string>,
 }
 
-const buildPoolAdapter = async ({ address, decimals, symbol, tokenAddress }: PoolInfo, tokenPrice: number, allActiveLoans: Loan[]): Promise<PoolAdapter> => {
+const buildPoolAdapter = async ({ address, decimals, symbol, tokenAddress }: PoolInfo, tokenPrice: number, allActiveLoans: Loan[], truPrice: number): Promise<PoolAdapter> => {
   const poolActiveLoans = allActiveLoans.filter(({ poolAddress }) => poolAddress === address)
   const poolValue = await getPoolValue(address, decimals)
   const poolApyBase = await getPoolApyBase(poolActiveLoans, poolValue, decimals)
+  const poolApyRewards = await getPoolApyRewards(address, truPrice)
 
   return {
     pool: address,
@@ -49,7 +51,7 @@ const buildPoolAdapter = async ({ address, decimals, symbol, tokenAddress }: Poo
     symbol,
     tvlUsd: poolValue * tokenPrice,
     apyBase: poolApyBase,
-    apyReward: 0, // TODO: implement
+    apyReward: poolApyRewards,
     rewardTokens: [TRU_ADDRESS],
     underlyingTokens: [tokenAddress],
   }
@@ -58,17 +60,21 @@ const buildPoolAdapter = async ({ address, decimals, symbol, tokenAddress }: Poo
 const apy = async () => {
   const prices = (
     await superagent.post('https://coins.llama.fi/prices').send({
-      coins: POOL_INFOS.map(({ tokenAddress }) => tokenAddress).map(getAddressKey),
+      coins: [
+        ...POOL_INFOS.map(({ tokenAddress }) => tokenAddress).map(getAddressKey),
+        getAddressKey(TRU_ADDRESS)
+      ],
     })
   ).body.coins
 
+  const truPrice = prices[getAddressKey(TRU_ADDRESS)].price
   const activeLoans = await getActiveLoans()
 
   const adapters: PoolAdapter[] = []
   for(const poolInfo of POOL_INFOS) {
     const tokenPriceKey = getAddressKey(poolInfo.tokenAddress)
     const tokenPrice = prices[tokenPriceKey].price
-    const adapter = await buildPoolAdapter(poolInfo, tokenPrice, activeLoans)
+    const adapter = await buildPoolAdapter(poolInfo, tokenPrice, activeLoans, truPrice)
     adapters.push(adapter)
   }
 
