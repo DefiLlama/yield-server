@@ -298,6 +298,11 @@ const checkStablecoin = (el, stablecoins) => {
     stable = tok[0].includes('wbtc') ? false : tok.length > 1 ? false : true;
   } else if (tokens[0].includes('torn')) {
     stable = false;
+  } else if (
+    el.project === 'hermes-protocol' &&
+    el.symbol.toLowerCase().includes('maia')
+  ) {
+    stable = false;
   } else if (tokens.length === 1) {
     stable = stablecoins.some((x) =>
       tokens[0].replace(/\s*\(.*?\)\s*/g, '').includes(x)
