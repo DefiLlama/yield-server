@@ -1,17 +1,17 @@
+const Web3 = require('web3')
+const BigNumber = require('bignumber.js')
+const superagent = require('superagent')
+const dotenv = require('dotenv')
+dotenv.config()
+
 const { getPoolValue } = require('./getPoolValue');
 const { getActiveLoans } = require('./getActiveLoans')
 const { getPoolApyBase } = require('./getPoolApyBase')
 const { getPoolApyRewards } = require('./getPoolApyRewards')
-const Web3 = require('web3')
-const BigNumber = require('bignumber.js')
-const utils = require('../utils')
-const superagent = require('superagent')
 const multifarmAbi = require('./abis/multifarm.json')
 const distributorAbi = require('./abis/distributor.json')
-const dotenv = require('dotenv')
-dotenv.config()
+const utils = require('../utils')
 
-// TODO: extract to index
 const connection = process.env.INFURA_CONNECTION
 const web3 = new Web3(connection)
 
@@ -47,7 +47,6 @@ const POOL_INFOS: PoolInfo[] = [
     decimals: 18,
     tokenAddress: '0x0000000000085d4780b73119b644ae5ecd22b376'.toLowerCase()
   },
-  // TODO: verify apyBase for tfBUSD
   {
     symbol: 'tfBUSD',
     address: '0x1Ed460D149D48FA7d91703bf4890F97220C09437'.toLowerCase(),
@@ -121,6 +120,6 @@ const apy = async () => {
 }
 
 module.exports = {
-  timetravel: false, // TODO: verify
-  apy // TODO: implement
+  timetravel: false,
+  apy
 }
