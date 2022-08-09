@@ -6,6 +6,9 @@ const excludeAdaptors = ['anchor', 'capsa', 'koyo-finance', 'rook'];
 const excludePools = [
   '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d',
   'DWmAv5wMun4AHxigbwuJygfmXBBe9WofXAtrMCRJExfb', // Solend COOL coin pool
+  // ripae pools (reported by MathieuB as scam project, and definitely not noIL!)
+  'ripae-seth-weth-42161',
+  'ripae-peth-weth-42161',
 ];
 
 const boundaries = {
