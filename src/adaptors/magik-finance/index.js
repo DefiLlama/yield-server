@@ -24,98 +24,84 @@ const networkMapping = {
     multiCallChainName: 'optimism',
     rpcUrls: ['https://mainnet.optimism.io'],
     pools: magikConfig.arbitrumPools,
-    multiCallContractAddress: '',
   },
   43114: {
     name: 'avalanche',
     multiCallChainName: 'avax',
     rpcUrls: ['https://api.avax.network/ext/bc/C/rpc'],
     pools: magikConfig.avalanchePools,
-    multiCallContractAddress: '0x6FfF95AC47b586bDDEea244b3c2fe9c4B07b9F76',
   },
   1666600000: {
     name: 'harmony',
     multiCallChainName: 'harmony',
     rpcUrls: ['https://api.s0.t.hmny.io/'],
     pools: magikConfig.harmonyPools,
-    multiCallContractAddress: '0xBa5041B1c06e8c9cFb5dDB4b82BdC52E41EA5FC5',
   },
   42220: {
     name: 'celo',
     multiCallChainName: 'celo',
     rpcUrls: ['https://forno.celo.org'],
     pools: magikConfig.celoPools,
-    multiCallContractAddress: '0xa9E6E271b27b20F65394914f8784B3B860dBd259',
   },
   42161: {
     name: 'arbitrum',
     multiCallChainName: 'arbitrum',
     rpcUrls: ['https://arb1.arbitrum.io/rpc'],
     pools: magikConfig.arbitrumPools,
-    multiCallContractAddress: '0x13aD51a6664973EbD0749a7c84939d973F247921',
   },
   1285: {
     name: 'moonriver',
     multiCallChainName: 'moonriver',
     rpcUrls: ['https://rpc.moonriver.moonbeam.network'],
     pools: magikConfig.moonriverPools,
-    multiCallContractAddress: '0x7f6fE34C51d5352A0CF375C0Fbe03bD19eCD8460',
   },
   1088: {
     name: 'metis',
     multiCallChainName: 'metis',
     rpcUrls: [],
     pools: [],
-    multiCallContractAddress: '',
   },
   250: {
     name: 'fantom',
     multiCallChainName: 'fantom',
     rpcUrls: ['https://rpc.ftm.tools'],
     pools: magikConfig.fantomPools,
-    multiCallContractAddress: '0xC9F6b1B53E056fd04bE5a197ce4B2423d456B982',
   },
   137: {
     name: 'polygon',
     multiCallChainName: 'polygon',
     rpcUrls: ['https://polygon-rpc.com'],
     pools: magikConfig.polygonPools,
-    multiCallContractAddress: '0xC3821F0b56FA4F4794d5d760f94B812DE261361B',
   },
   128: {
     name: 'heco',
     multiCallChainName: 'heco',
     rpcUrls: ['https://http-mainnet.hecochain.com'],
     pools: magikConfig.hecoPools,
-    multiCallContractAddress: '0x2776CF9B6E2Fa7B33A37139C3CB1ee362Ff0356e',
   },
   122: {
     name: 'fuse',
     multiCallChainName: 'fuse',
     rpcUrls: [],
     pools: [],
-    multiCallContractAddress: '',
   },
   56: {
     name: 'binance',
     multiCallChainName: 'bsc',
     rpcUrls: ['https://bsc-dataseed.binance.org'],
     pools: magikConfig.bscPools,
-    multiCallContractAddress: '0xB94858b0bB5437498F5453A16039337e5Fdc269C',
   },
   25: {
     name: 'cronos',
     multiCallChainName: 'cronos',
     rpcUrls: ['https://evm-cronos.crypto.org'],
     pools: magikConfig.cronosPools,
-    multiCallContractAddress: '0x13aD51a6664973EbD0749a7c84939d973F247921',
   },
   1313161554: {
     name: 'aurora',
     multiCallChainName: 'aurora',
     rpcUrls: ['https://mainnet.aurora.dev/'],
     pools: magikConfig.auroraPools,
-    multiCallContractAddress: '0x55f46144bC62e9Af4bAdB71842B62162e2194E90',
   },
 };
 
@@ -142,8 +128,7 @@ const apy = async (dataLpPrices, dataApy, networkMapping) => {
     const rpcUrl =
       chain.rpcUrls && chain.rpcUrls.length > 0 ? chain.rpcUrls[0] : null;
     const pools = chain.pools && chain.pools.length > 0 ? chain.pools : 0;
-    const multiCallAddress = chain.multiCallContractAddress;
-    if (rpcUrl != '' && pools.length > 0 && multiCallAddress != '') {
+    if (rpcUrl != '' && pools.length > 0) {
       const web3 = new Web3(rpcUrl);
       const vaultCalls = pools.map((pool) => {
         return {
