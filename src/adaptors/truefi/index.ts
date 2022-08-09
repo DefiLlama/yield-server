@@ -34,6 +34,25 @@ const POOL_INFOS: PoolInfo[] = [
     address: '0xA991356d261fbaF194463aF6DF8f0464F8f1c742'.toLowerCase(),
     decimals: 6,
     tokenAddress: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'.toLowerCase()
+  },
+  {
+    symbol: 'tfUSDT',
+    address: '0x6002b1dcB26E7B1AA797A17551C6F487923299d7'.toLowerCase(),
+    decimals: 6,
+    tokenAddress: '0xdAC17F958D2ee523a2206206994597C13D831ec7'.toLowerCase()
+  },
+  {
+    symbol: 'tfTUSD',
+    address: '0x97cE06c3e3D027715b2d6C22e67D5096000072E5'.toLowerCase(),
+    decimals: 18,
+    tokenAddress: '0x0000000000085d4780b73119b644ae5ecd22b376'.toLowerCase()
+  },
+  // TODO: verify apyBase for tfBUSD
+  {
+    symbol: 'tfBUSD',
+    address: '0x1Ed460D149D48FA7d91703bf4890F97220C09437'.toLowerCase(),
+    decimals: 18,
+    tokenAddress: '0x4fabb145d64652a948d72533023f6e7a623c7c53'.toLowerCase()
   }
 ]
 
