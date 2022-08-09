@@ -9,7 +9,7 @@ const query = gql`
   {
     vaults(
       first: 1000
-      where: { isFinalized: true, totalHoldings_gt: 0, shutdownDate: 0 }
+      where: { isFinalized: true, totalHoldings_gt: 2, shutdownDate: 0 }
     ) {
       id
       vaultId
