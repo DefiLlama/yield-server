@@ -36,6 +36,11 @@ const poolsFunction = async () => {
   const aprAndPriceData = await utils.getData(NFTX_VAULT_APR_API);
 
   const data = aprAndPriceData.map((item) => {
+    // filter out illiquid vault
+    if (item.estimatedPriceImpact > 20) {
+      return null;
+    }
+
     const vault = vaultsData.vaults.find(
       (v) => Number(v.vaultId) === item.vaultId
     );
@@ -45,10 +50,11 @@ const poolsFunction = async () => {
         Number(vault.totalHoldings) * item.spotPriceEth * item.ethPriceUsd;
 
       const apr = (item.inventoryApr + item.liquidityApr) * 100;
-      const apy = utils.aprToApy(apr);
+      // we calculate monthly
+      const apy = utils.aprToApy(apr, 12);
 
-      // filter out fluff
-      if (tvlUsd < 1000 || !apy || apy === Infinity) {
+      // filter out remaining fluff
+      if (!apy || apy === Infinity) {
         return null;
       }
 
