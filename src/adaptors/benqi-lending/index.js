@@ -151,7 +151,7 @@ const getApy = async () => {
     return {
       pool: market,
       chain: utils.formatChain('avalanche'),
-      project: 'qidao',
+      project: 'benqi-lending',
       symbol: underlyingSymbols[i] || AVAX.symbol,
       tvlUsd,
       apyBase,
