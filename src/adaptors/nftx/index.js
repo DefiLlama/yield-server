@@ -60,7 +60,7 @@ const poolsFunction = async () => {
 
       return {
         pool: vault.id,
-        chain: 'ethereum',
+        chain: utils.formatChain('ethereum'),
         project: 'nftx',
         symbol: vault.token.symbol,
         apy,
