@@ -1,6 +1,8 @@
-const {master0vixContact, oMATICContract, WBTCStrategy, DAIStrategy, WETHStrategy, USDTStrategy, MATICStrategy} = require("./Addresses");
-const {ethers} = require("ethers");
-const {OvixABI, erc20ABI} = require("./Abis");
+const {master0vixContact, oMATICContract, WBTCStrategy, DAIStrategy, WETHStrategy, USDTStrategy, MATICStrategy,
+    USDCStrategy, oracleContract
+} = require("./Addresses");
+const {ethers, BigNumber} = require("ethers");
+const {OvixABI, erc20ABI, oracleABI} = require("./Abis");
 const {PROVIDER} = require("./Provider");
 const sdk = require("@defillama/sdk");
 
@@ -14,6 +16,7 @@ const strategiesList = [
     DAIStrategy,
     WETHStrategy,
     USDTStrategy,
+    USDCStrategy,
     MATICStrategy
 ]
 
@@ -32,8 +35,7 @@ async function main() {
             project: strategy.project,
             symbol: strategy.name,
             chain: strategy.chain,
-            apy: OvixAPYs.supplyAPY,
-            apyBase: OvixAPYs.borrowAPY,
+            apy: { supplyApy: OvixAPYs.supplyAPY, borrowApy: OvixAPYs.borrowAPY },
             tvlUsd: tvl
         };
 
@@ -74,9 +76,13 @@ function calculateAPY(rate) {
 
 
 async function getErc20Balances(strategy) {
-    // retrieve balance
-    const erc20Balance = await PROVIDER.getBalance(
-        strategy.address
+
+    console.log(`Retrieving decimals for ${strategy.name}...`)
+    // retrieve the oracle contract
+    const oracle = new ethers.Contract(
+        oracleContract,
+        oracleABI,
+        PROVIDER
     );
 
     // retrieve the asset contract
@@ -86,27 +92,53 @@ async function getErc20Balances(strategy) {
         PROVIDER
     );
 
-    // get the current exchange rate
-    const exchangeRate = await erc20Contract.exchangeRateStored();
+    // get decimals for the oToken
+    const oDecimals = parseInt(await erc20Contract.decimals());
+    console.log(`oDecimals for ${strategy.name} are ${oDecimals}`);
 
-    // get decimals
-    const decimals = await erc20Contract.decimals();
+    // get the total supply
+    const oTokenTotalSupply = await erc20Contract.totalSupply();
+    console.log(oTokenTotalSupply);
 
-    // convert tvl to USD
-    const convertedErc20Balance = ethers.utils.formatUnits(erc20Balance, decimals);
+    // get the exchange rate stored
+    const oExchangeRateStored = await erc20Contract.exchangeRateStored();
+    console.log(oExchangeRateStored);
 
-    return Number(convertedErc20Balance);
+
+    // get underlying token address
+    const underlyingToken = await erc20Contract.underlying();
+
+    // get the contract for the underlying token
+    const underlyingTokenAddress = new ethers.Contract(
+        underlyingToken,
+        erc20ABI,
+        PROVIDER
+    );
+
+    // get the decimals for the underlying token
+    const underlyingDecimals = parseInt(await underlyingTokenAddress.decimals());
+    console.log(`Underlying decimals for ${strategy.name} are ${underlyingDecimals}`);
+
+    // get the underlying price of the asset from the oracle
+    const oracleUnderlyingPrice = Number(
+        await oracle.getUnderlyingPrice(strategy.address)
+    );
+
+    // do the conversions
+    const tvlUSD = convertTvlUSD(oTokenTotalSupply, oExchangeRateStored, oDecimals, underlyingDecimals, oracleUnderlyingPrice);
+
+    return tvlUSD;
 }
 
-function convertUSDC(
-    balance,
+function convertTvlUSD(
+    totalSupply,
     exchangeRateStored,
-    decimals
+    oDecimals,
+    underlyingDecimals,
+    oracleUnderlyingPrice
 ) {
     return (
-        ((parseFloat(balance) * parseFloat(exchangeRateStored)) /
-                        Math.pow(1, Math.pow(10, decimals))) /
-        Math.pow(1, Math.pow(10, 18))
+        totalSupply * exchangeRateStored / (10**(18 + underlyingDecimals)) * oracleUnderlyingPrice / (10**(36 - underlyingDecimals))
     );
 }
 
