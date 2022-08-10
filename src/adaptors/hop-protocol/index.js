@@ -58,7 +58,6 @@ const getPoolTvl = async (coreConfig, chain, token) => {
     data: { coins },
   } = await axios.post('https://coins.llama.fi/prices', {
     coins: [key],
-    timestamp: new Date().getTime() / 1000,
   });
   const price = coins[key.toLowerCase()].price;
 
