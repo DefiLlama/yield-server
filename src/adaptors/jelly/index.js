@@ -98,4 +98,5 @@ async function main() {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://app.jelly.io/farms/0xcC43331067234a0014d298b5226A1c22cb0ac66a',
 };

@@ -55,4 +55,5 @@ async function tvl() {
 module.exports = {
   timetravel: false,
   apy: tvl,
+  url: 'https://app.friktion.fi/',
 };
