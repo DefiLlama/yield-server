@@ -150,6 +150,8 @@ function convertTvlUSD(
 
 
 module.exports = {
-    apy: main
+    timetravel: false,
+    apy: main,
+    url: "https://app.0vix.com/"
 }
 
