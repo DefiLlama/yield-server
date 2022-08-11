@@ -13,6 +13,7 @@
 
 An adaptor is just a javascript (or typescript) file that exports an async function that returns an array of objects that represent pools of a protocol. The pools follow the following schema (all values are just examples):
 
+
 ```typescript
 interface Pool {
   pool: string;
@@ -47,6 +48,18 @@ A note on how to set apy related fields:
 - if a pool's apy only consists of a base component, provide `apyBase` and omit `apyReward` (or set to null) [and vice versa]
 - if a pool's apy consists of both, provide both fields
 - if you are unsure/your data source doesn't contain a detailed breakdown, then provide an `apy` field indicating the total apy and omit the `apyBase` and `apyReward` fields (or set to null)
+```
+
+#### Adapter module structure
+
+```js
+module.exports = {
+  timetravel: false,
+  apy: apy,  // Main function, returns pools
+  url: 'https://example.com/pools', // Link to page with pools
+};
+
+
 ```
 
 An example of the most basic adaptor is the following for Anchor on terra:
