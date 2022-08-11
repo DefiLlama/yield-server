@@ -5,10 +5,13 @@ const urlSchema = new mongoose.Schema(
     project: {
       type: String,
       required: [true, 'A url must have a project field'],
+      unique: true,
+      trim: true,
     },
     url: {
       type: String,
       default: [true, 'A url must have a url field'],
+      trim: true,
     },
   },
   { versionKey: false }
