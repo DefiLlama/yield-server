@@ -2,6 +2,7 @@ const superagent = require('superagent');
 
 const utils = require('../adaptors/utils');
 const poolModel = require('../models/pool');
+const urlModel = require('../models/pool');
 const { aggQuery } = require('./getPools');
 const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
@@ -142,6 +143,9 @@ const main = async (body) => {
 
   const response = await insertPools(dataDB);
   console.log(response);
+
+  // update url
+  await updateUrl(body.adaptor, project.url);
 };
 
 const insertPools = async (payload) => {
@@ -182,4 +186,16 @@ const getProject = async (project) => {
   );
 
   return response;
+};
+
+const updateUrl = async (adapter, url) => {
+  const conn = await dbConnection.connect();
+  const M = conn.model(urlModel.modelName);
+
+  const response = await M.updateOne({ project: adapter }, { $set: { url } });
+
+  if (!response) {
+    return new AppError("Couldn't update data", 404);
+  }
+  console.log(response);
 };
