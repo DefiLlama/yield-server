@@ -2,7 +2,7 @@ const utils = require('../utils');
 
 const poolsFunction = async () => {
   const poolData = await utils.getData(
-    'https://app.earnmos.fi/em-api/tvl/getTvlAndApy'
+    'https://app.earnmos.fi/defi-llama/yields'
   );
 
   return poolData?.data?.map((poolInfo) => ({
