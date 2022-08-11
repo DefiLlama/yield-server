@@ -36,7 +36,8 @@ async function main() {
             symbol: strategy.name,
             chain: strategy.chain,
             underlyingTokens: tvlAndUnderlyingTokens.underlyingTokens,
-            apyBase: { supplyAPY: OvixAPYs.supplyAPY, borrowAPY: OvixAPYs.borrowAPY},
+            apy: OvixAPYs.borrowAPY,
+            apyBase: OvixAPYs.supplyAPY,
             tvlUsd: tvlAndUnderlyingTokens.tvlUSD
         };
 
