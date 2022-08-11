@@ -146,6 +146,7 @@ const main = async (body) => {
 
   // update url
   if (project.url) {
+    console.log('insert/update url');
     await updateUrl(body.adaptor, project.url);
   }
 };
