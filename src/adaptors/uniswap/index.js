@@ -142,4 +142,5 @@ const main = async (timestamp = null) => {
 module.exports = {
   timetravel: true,
   apy: main,
+  url: 'https://app.uniswap.org/#/pool?chain=mainnet',
 };

@@ -57,4 +57,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy: apy,
+  url: 'https://www.trisolaris.io/#/farm',
 };

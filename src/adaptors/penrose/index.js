@@ -16,4 +16,5 @@ const collectPools = async () => {
 module.exports = {
   timetravel: false,
   apy: collectPools,
+  url: 'https://app.penrose.money/dashboard/earn/stake',
 };
