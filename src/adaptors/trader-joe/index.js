@@ -2,10 +2,13 @@ const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
+const lending = require('./lending');
 
 const url = 'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/exchange';
 const urlLM =
   'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/masterchefv2';
+
+const JOE_TOKEN = '0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd';
 
 const query = gql`
   {
@@ -103,7 +106,10 @@ const buildPool = (entry, chainString) => {
     project: 'trader-joe',
     symbol,
     tvlUsd: entry.totalValueLockedUSD,
-    apy: apyFee + apyJoe,
+    apyBase: apyFee,
+    apyReward: apyJoe,
+    rewardTokens: [JOE_TOKEN],
+    underlyingTokens: [entry.token0.id, entry.token1.id],
   };
 
   return newObj;
@@ -147,7 +153,9 @@ const topLvl = async (chainString, timestamp, url, urlLM) => {
 
 const main = async (timestamp = null) => {
   const data = await Promise.all([topLvl('avalanche', timestamp, url, urlLM)]);
-  return data.flat().filter((p) => utils.keepFinite(p));
+  const lendingData = await lending.apy();
+  const res = data.concat(lendingData);
+  return res.flat().filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
