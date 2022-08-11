@@ -169,6 +169,15 @@ functions:
           method: get
           path: /median
 
+  getUrls:
+    handler: src/handlers/getUrls.handler
+    description: Lambda for retrieving url data
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /urls
+
 resources:
   Resources:
     # QUEUES
