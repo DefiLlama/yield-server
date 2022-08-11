@@ -15,5 +15,9 @@ module.exports.handler = async (event, context) => {
     return new AppError("Couldn't get url data", 404);
   }
 
-  return response;
+  const out = {};
+  for (const e of response) {
+    out[e.project] = e.url;
+  }
+  return out;
 };
