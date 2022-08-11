@@ -22,11 +22,11 @@ const strategiesList = [
 
 async function main() {
     let data = [];
-    let tvl;
+    let tvlAndUnderlyingTokens;
     for (let strategy of strategiesList) {
         const OvixAPYs = await getAPY(strategy);
         if (strategy.name !== "MATIC") {
-            tvl = await getErc20Balances(strategy);
+            tvlAndUnderlyingTokens = await getErc20Balances(strategy);
         } else {
             // tvl = await getMaticBalance(strategy);
         }
@@ -35,8 +35,9 @@ async function main() {
             project: strategy.project,
             symbol: strategy.name,
             chain: strategy.chain,
-            apy: { supplyApy: OvixAPYs.supplyAPY, borrowApy: OvixAPYs.borrowAPY },
-            tvlUsd: tvl
+            underlyingTokens: tvlAndUnderlyingTokens.underlyingTokens,
+            apyBase: { supplyAPY: OvixAPYs.supplyAPY, borrowAPY: OvixAPYs.borrowAPY},
+            tvlUsd: tvlAndUnderlyingTokens.tvlUSD
         };
 
         data.push(newObj);
@@ -92,6 +93,9 @@ async function getErc20Balances(strategy) {
         PROVIDER
     );
 
+    // create underlying tokens array
+    let underlyingTokens = [];
+
     // get decimals for the oToken
     const oDecimals = parseInt(await erc20Contract.decimals());
     console.log(`oDecimals for ${strategy.name} are ${oDecimals}`);
@@ -107,6 +111,8 @@ async function getErc20Balances(strategy) {
 
     // get underlying token address
     const underlyingToken = await erc20Contract.underlying();
+    // push the underlying token into the array
+    underlyingTokens.push(underlyingToken);
 
     // get the contract for the underlying token
     const underlyingTokenAddress = new ethers.Contract(
@@ -127,7 +133,7 @@ async function getErc20Balances(strategy) {
     // do the conversions
     const tvlUSD = convertTvlUSD(oTokenTotalSupply, oExchangeRateStored, oDecimals, underlyingDecimals, oracleUnderlyingPrice);
 
-    return tvlUSD;
+    return {tvlUSD, underlyingTokens};
 }
 
 function convertTvlUSD(
