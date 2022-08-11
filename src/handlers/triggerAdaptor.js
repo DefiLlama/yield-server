@@ -192,7 +192,19 @@ const updateUrl = async (adapter, url) => {
   const conn = await dbConnection.connect();
   const M = conn.model(urlModel.modelName);
 
-  const response = await M.updateOne({ project: adapter }, { $set: { url } });
+  const response = await M.bulkWrite([
+    {
+      updateOne: {
+        filter: { project: adapter },
+        update: {
+          $set: {
+            url: url,
+          },
+        },
+        upsert: true,
+      },
+    },
+  ]);
 
   if (!response) {
     return new AppError("Couldn't update data", 404);
