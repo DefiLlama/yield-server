@@ -7,6 +7,8 @@ const baseFields = {
 
 const adapter = global.adapter;
 const apy = global.apy;
+const poolsUrl = global.poolsUrl;
+
 const uniquePoolIdentifiersDB = global.uniquePoolIdentifiersDB;
 const protocols = global.protocolsSlug;
 
@@ -29,6 +31,10 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
         expect(Object.keys(pool).every((f) => fields.includes(f))).toBe(true);
       });
     });
+  });
+
+  test("Check if link to the pool's page exist", () => {
+    expect(typeof poolsUrl).toBe('string');
   });
 
   test('Check for unique pool ids', () => {
