@@ -2,7 +2,7 @@ const superagent = require('superagent');
 
 const utils = require('../adaptors/utils');
 const poolModel = require('../models/pool');
-const urlModel = require('../models/pool');
+const urlModel = require('../models/url');
 const { aggQuery } = require('./getPools');
 const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
@@ -145,7 +145,9 @@ const main = async (body) => {
   console.log(response);
 
   // update url
-  await updateUrl(body.adaptor, project.url);
+  if (project.url) {
+    await updateUrl(body.adaptor, project.url);
+  }
 };
 
 const insertPools = async (payload) => {
