@@ -272,4 +272,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy: apy,
+  url: 'https://biswap.org/farms',
 };
