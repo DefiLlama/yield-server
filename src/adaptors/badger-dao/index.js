@@ -31,7 +31,7 @@ const main = async () => {
     topLvl('polygon'),
     topLvl('arbitrum'),
     topLvl('fantom'),
-    topLvl('binance'),
+    // topLvl('binance'),
   ]);
   return data.flat();
 };
