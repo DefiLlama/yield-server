@@ -131,7 +131,7 @@ const lendingApy = async () => {
 
     return {
       pool: market,
-      chain: utils.formatChain(CHAIN),
+      chain: utils.formatChain('avalanche'),
       project: PROJECT_NAME,
       symbol,
       tvlUsd,
