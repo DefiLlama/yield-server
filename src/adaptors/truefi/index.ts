@@ -2,7 +2,7 @@ const Web3 = require('web3')
 const BigNumber = require('bignumber.js')
 const superagent = require('superagent')
 const dotenv = require('dotenv')
-dotenv.config()
+dotenv.config({ path: './config.env' })
 
 const { getPoolValue } = require('./getPoolValue');
 const { getActiveLoans } = require('./getActiveLoans')
