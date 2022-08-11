@@ -16,13 +16,14 @@ const chainMapping = {
 
 const fetch = (dataTvl, chainMapping) => {
   const data = [];
-  
+
   for (const chain of Object.keys(chainMapping)) {
     poolData = dataTvl[chain];
 
     for (const [addr, details] of Object.entries(poolData)) {
-
-      if(details.status === 'deprecated') { continue; }
+      if (details.status === 'deprecated') {
+        continue;
+      }
       data.push({
         id: `acryptos-${chain}${addr}`,
         network: chain,
@@ -35,7 +36,6 @@ const fetch = (dataTvl, chainMapping) => {
   }
   return data;
 };
-
 
 const buildObject = (entry) => {
   const payload = {
@@ -53,7 +53,7 @@ const buildObject = (entry) => {
 const main = async () => {
   // pull data
   const dataApi = await utils.getData(urlApi);
-  
+
   let data = fetch(dataApi.assets, chainMapping);
 
   // build pool objects
@@ -65,5 +65,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://app-v2.acryptos.com/#/BSC/vaults/all',
 };
-

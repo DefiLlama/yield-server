@@ -140,4 +140,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy: apy,
+  url: 'https://app.aave.com/markets/',
 };
