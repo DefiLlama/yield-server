@@ -2,7 +2,8 @@ const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
-const url = 'https://api.thegraph.com/subgraphs/name/dystopia-exchange/dystopia-v2';
+const url =
+  'https://api.thegraph.com/subgraphs/name/dystopia-exchange/dystopia-v2';
 
 const query = gql`
   {
@@ -34,7 +35,7 @@ const queryPrior = gql`
 
 const buildPool = (entry, chainString) => {
   const symbol = utils.formatSymbol(
-      `${entry.token0.symbol}-${entry.token1.symbol}`
+    `${entry.token0.symbol}-${entry.token1.symbol}`
   );
   const newObj = {
     pool: entry.id,
@@ -49,16 +50,16 @@ const buildPool = (entry, chainString) => {
 };
 
 const topLvl = async (chainString, timestamp, url) => {
-   const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
-     url,
-   ]);
+  const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
+    url,
+  ]);
 
   dataNow = await request(url, query.replace('<PLACEHOLDER>', block));
 
   // pull 24h offset data to calculate fees from swap volume
   let dataPrior = await request(
-      url,
-      queryPrior.replace('<PLACEHOLDER>', blockPrior)
+    url,
+    queryPrior.replace('<PLACEHOLDER>', blockPrior)
   );
 
   // calculate tvl
@@ -81,4 +82,5 @@ const main = async (timestamp = null) => {
 module.exports = {
   timetravel: true,
   apy: main,
+  url: 'https://www.dystopia.exchange/liquidity',
 };

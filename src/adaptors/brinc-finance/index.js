@@ -282,4 +282,5 @@ async function main() {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://app.brinc.fi/stake',
 };
