@@ -72,4 +72,5 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
+  url: 'https://defillama.com/yields?project=unicrypt',
 };
