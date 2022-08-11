@@ -52,4 +52,5 @@ const main = async () => {
 module.exports = {
   apy: main,
   timetravel: false,
+  url: 'https://app.idle.finance/#/best',
 };

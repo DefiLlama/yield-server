@@ -5,17 +5,18 @@ const poolsFunction = async () => {
     'https://app.earnmos.fi/em-api/tvl/getTvlAndApy'
   );
 
-  return poolData?.data?.map(poolInfo => ({
+  return poolData?.data?.map((poolInfo) => ({
     pool: poolInfo.pool,
     chain: utils.formatChain(poolInfo.chain),
     project: 'earnmos',
     symbol: utils.formatSymbol(poolInfo.symbol),
     tvlUsd: Number(poolInfo.totalValueLock),
-    apy: poolInfo.apy * 100
+    apy: poolInfo.apy * 100,
   }));
 };
 
 module.exports = {
   timetravel: false,
-  apy: poolsFunction
+  apy: poolsFunction,
+  url: 'https://app.earnmos.fi/deposit',
 };

@@ -79,4 +79,5 @@ const poolsFunction = async () => {
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
+  url: 'https://yield.nftx.io/',
 };

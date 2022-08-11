@@ -46,4 +46,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy: apy,
+  url: 'https://app.liqee.io/#/lending?AssetsType=Lend&currentPool=pos',
 };
