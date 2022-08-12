@@ -1,11 +1,6 @@
 const BigNumber = require('bignumber.js')
 const erc20Abi = require('./abis/erc20.json')
-const Web3 = require('web3')
-const dotenv = require('dotenv')
-dotenv.config({ path: './config.env' })
-
-const connection = process.env.INFURA_CONNECTION
-const web3 = new Web3(connection)
+const { web3 } = require('./connection')
 
 const YEAR_IN_DAYS = 365
 const SECOND_IN_MS = 1000
