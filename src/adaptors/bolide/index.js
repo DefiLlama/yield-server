@@ -1,55 +1,39 @@
 const utils = require('../utils');
 
 const poolsFunction = async () => {
-  const dataTvl = await utils.getData(
-    'https://bolide.fi/api/tvl'
-  );
-  const apyData = await utils.getData(
-    'https://bolide.fi/api/apy'
-  );
+  const dataTvl = await utils.getData('https://bolide.fi/api/tvl');
+  const apyData = await utils.getData('https://bolide.fi/api/apy');
 
-  const lrsTvl = dataTvl.strategiesTvl.find(({name}) => name === 'LOW_RISK_STRATEGY').tvl;
-  const lrsApy = apyData.strategiesApy.find(({name}) => name === 'LOW_RISK_STRATEGY').apy;
+  const lrsTvl = dataTvl.strategiesTvl.find(
+    ({ name }) => name === 'LOW_RISK_STRATEGY'
+  ).tvl;
+  const lrsApy = apyData.strategiesApy.find(
+    ({ name }) => name === 'LOW_RISK_STRATEGY'
+  ).apy;
 
-  const btcTvl = dataTvl.strategiesTvl.find(({name}) => name === 'BTC Strategy').tvl;
-  const btcApy = apyData.strategiesApy.find(({name}) => name === 'BTC Strategy').apy;
+  const btcTvl = dataTvl.strategiesTvl.find(
+    ({ name }) => name === 'BTC Strategy'
+  ).tvl;
+  const btcApy = apyData.strategiesApy.find(
+    ({ name }) => name === 'BTC Strategy'
+  ).apy;
 
-  const ethTvl = dataTvl.strategiesTvl.find(({name}) => name === 'ETH Strategy').tvl;
-  const ethApy = apyData.strategiesApy.find(({name}) => name === 'ETH Strategy').apy;
+  const ethTvl = dataTvl.strategiesTvl.find(
+    ({ name }) => name === 'ETH Strategy'
+  ).tvl;
+  const ethApy = apyData.strategiesApy.find(
+    ({ name }) => name === 'ETH Strategy'
+  ).apy;
 
   const lowRiskPools = [
     {
       pool: '0xf1f25A26499B023200B3f9A30a8eCEE87b031Ee1' + 'USDT',
       chain: 'binance',
       project: 'bolide',
-      symbol: 'USDT',
+      symbol: 'USDT-USDC-BUSD-DAI',
       tvlUsd: lrsTvl,
-      apy: lrsApy
+      apy: lrsApy,
     },
-    {
-      pool: '0xf1f25A26499B023200B3f9A30a8eCEE87b031Ee1' + 'USDC',
-      chain: 'binance',
-      project: 'bolide',
-      symbol: 'USDC',
-      tvlUsd: lrsTvl,
-      apy: lrsApy
-    },
-    {
-      pool: '0xf1f25A26499B023200B3f9A30a8eCEE87b031Ee1' + 'BUSD',
-      chain: 'binance',
-      project: 'bolide',
-      symbol: 'BUSD',
-      tvlUsd: lrsTvl,
-      apy: lrsApy
-    },
-    {
-      pool: '0xf1f25A26499B023200B3f9A30a8eCEE87b031Ee1' + 'DAI',
-      chain: 'binance',
-      project: 'bolide',
-      symbol: 'DAI',
-      tvlUsd: lrsTvl,
-      apy: lrsApy
-    }
   ];
 
   const btcPools = [
@@ -59,7 +43,7 @@ const poolsFunction = async () => {
       project: 'bolide',
       symbol: 'BTC',
       tvlUsd: btcTvl,
-      apy: btcApy
+      apy: btcApy,
     },
   ];
 
@@ -70,7 +54,7 @@ const poolsFunction = async () => {
       project: 'bolide',
       symbol: 'ETH',
       tvlUsd: ethTvl,
-      apy: ethApy
+      apy: ethApy,
     },
   ];
 
@@ -81,8 +65,8 @@ const poolsFunction = async () => {
       project: 'bolide',
       symbol: 'BLID',
       tvlUsd: dataTvl.stakingTvl,
-      apy: apyData.stakingApy
-    }
+      apy: apyData.stakingApy,
+    },
   ];
 
   const farmingBlidUsdt = [
@@ -92,8 +76,8 @@ const poolsFunction = async () => {
       project: 'bolide',
       symbol: 'BLID-USDT',
       tvlUsd: dataTvl.farmingTvl,
-      apy: apyData.farmingApy
-    }
+      apy: apyData.farmingApy,
+    },
   ];
 
   return [
@@ -101,12 +85,12 @@ const poolsFunction = async () => {
     ...btcPools,
     ...ethPools,
     ...stakingBlid,
-    ...farmingBlidUsdt
-
+    ...farmingBlidUsdt,
   ];
 };
 
 module.exports = {
   timetravel: false,
-  apy: poolsFunction
+  apy: poolsFunction,
+  url: 'https://app.bolide.fi/#/',
 };
