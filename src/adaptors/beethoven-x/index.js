@@ -5,7 +5,7 @@ const utils = require('../utils');
 // Subgraph URLs
 const urlFantom = 'https://backend.beets-ftm-node.com/graphql';
 const urlOp = 'https://backend-optimism.beets-ftm-node.com/';
-const rewardToken = "fantom:0xf24bcf4d1e507740041c9cfd2dddb29585adce1e";
+const rewardToken = "0xf24bcf4d1e507740041c9cfd2dddb29585adce1e";
 // aprToApy
 const buildPool = (el, chainString) => {
   const symbol = el.linearPools
