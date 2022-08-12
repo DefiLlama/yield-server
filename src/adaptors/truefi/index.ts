@@ -116,5 +116,6 @@ const apy = async () => {
 
 module.exports = {
   timetravel: false,
-  apy
+  apy,
+  url: 'https://app.truefi.io/lend'
 }
