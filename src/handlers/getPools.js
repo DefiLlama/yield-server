@@ -57,6 +57,9 @@ const baseQuery = [
       symbol: {
         $first: '$symbol',
       },
+      poolMeta: {
+        $first: '$poolMeta',
+      },
       tvlUsd: {
         $first: '$tvlUsd',
       },
