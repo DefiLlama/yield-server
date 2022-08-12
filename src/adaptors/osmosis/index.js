@@ -11,7 +11,7 @@ const buildPool = (entry, chainString) => {
     symbol: utils.formatSymbol(entry.symbol),
     tvlUsd: entry.liquidity,
     apy: entry.apr,
-    market: entry.duration,
+    poolMeta: entry.duration,
   };
 
   return newObj;
