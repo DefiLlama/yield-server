@@ -1,19 +1,14 @@
-const Web3 = require('web3')
 const BigNumber = require('bignumber.js')
 const superagent = require('superagent')
-const dotenv = require('dotenv')
-dotenv.config({ path: './config.env' })
 
-const { getPoolValue } = require('./getPoolValue');
+const { web3 } = require('./connection')
+const { getPoolValue } = require('./getPoolValue')
 const { getActiveLoans } = require('./getActiveLoans')
 const { getPoolApyBase } = require('./getPoolApyBase')
 const { getPoolApyRewards } = require('./getPoolApyRewards')
 const multifarmAbi = require('./abis/multifarm.json')
 const distributorAbi = require('./abis/distributor.json')
 const utils = require('../utils')
-
-const connection = process.env.INFURA_CONNECTION
-const web3 = new Web3(connection)
 
 const MULTIFARM_ADDRESS = '0xec6c3FD795D6e6f202825Ddb56E01b3c128b0b10'.toLowerCase()
 const DISTRIBUTOR_ADDRESS = '0xc7AB606e551bebD69f7611CdA1Fc473f8E5b8f70'.toLowerCase()
