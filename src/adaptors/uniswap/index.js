@@ -77,7 +77,8 @@ const buildPool = (entry, version, chainString) => {
     market: version,
     symbol: version === 'v3' ? `${symbol} (${entry.feeTier / 1e4}%)` : symbol,
     tvlUsd: entry.totalValueLockedUSD,
-    apy: entry.apy,
+    apyBase: entry.apy,
+    underlyingTokens: [entry.token0.id, entry.token1.id],
   };
 
   return newObj;
@@ -136,7 +137,7 @@ const main = async (timestamp = null) => {
     topLvl('optimism', urlOptimism, queryV3, queryPriorV3, 'v3', timestamp),
   ]);
 
-  return data.flat();
+  return data.flat().filter((p) => Number.isFinite(p.apyBase));
 };
 
 module.exports = {
