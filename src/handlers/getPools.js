@@ -75,6 +75,9 @@ const baseQuery = [
       rewardTokens: {
         $first: '$rewardTokens',
       },
+      underlyingTokens: {
+        $first: '$underlyingTokens',
+      },
     },
   },
   // sort on tvl desc
