@@ -3,11 +3,14 @@ const main = async () => {
   let data = await utils.getData(
     'https://notional.finance/.netlify/functions/yields'
   );
-  data = data.map((p) => ({
-    ...p,
-    symbol: p.symbol.split(' ')[0],
-    poolMeta: p.symbol.split(' ').slice(1).join(' '),
-  }));
+  data = data.map((p) => {
+    const name = p.symbol.split(' ');
+    return {
+      ...p,
+      symbol: name[0],
+      poolMeta: name.length > 1 ? p.symbol.split(' ').slice(1).join(' ') : null,
+    };
+  });
 
   return data;
 };
