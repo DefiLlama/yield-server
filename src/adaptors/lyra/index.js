@@ -48,12 +48,12 @@ const queryNow = gql`
 `;
 
 const buildPool = (entry, chainString) => {
-  const symbol = utils.formatSymbol(`sUSD(${entry.name}-Vault)`);
   const newObj = {
     pool: entry.liquidityPool.id,
     chain: utils.formatChain(chainString),
     project: 'lyra',
-    symbol,
+    symbol: 'sUSD',
+    poolMeta: `${entry.name}-Vault`,
     apyBase: entry.apy,
     tvlUsd: entry.NAV,
     underlyingTokens: [entry.quoteAddress],

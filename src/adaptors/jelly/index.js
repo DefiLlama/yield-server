@@ -53,7 +53,8 @@ const getPools = async () => {
       return {
         tvl,
         apy,
-        symbol: `${token0.symbol}-${token1.symbol}(${poolName})`,
+        symbol: `${token0.symbol}-${token1.symbol}`,
+        poolName,
         poolId,
       };
     })
@@ -83,6 +84,7 @@ const buildPool = (entry) => {
     chain: 'Ethereum',
     project: 'jelly',
     symbol: utils.formatSymbol(entry.symbol),
+    poolMeta: entry.poolName,
     tvlUsd: parseInt(entry.tvl, 10),
     apy: parseFloat(entry.apy),
   };

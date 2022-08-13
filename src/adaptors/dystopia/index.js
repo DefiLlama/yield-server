@@ -76,7 +76,7 @@ const topLvl = async (chainString, timestamp, url) => {
 
 const main = async (timestamp = null) => {
   const data = await Promise.all([topLvl('polygon', timestamp, url)]);
-  return data.flat();
+  return data.flat().filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

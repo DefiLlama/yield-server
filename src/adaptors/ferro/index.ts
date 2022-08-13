@@ -92,7 +92,8 @@ const getApy = async () => {
 
   const stablePool = {
     pool: SWAP_ADDRESS,
-    symbol: '3FER (DAI, USDC, USDT)',
+    symbol: 'DAI, USDC, USDT',
+    poolMeta: '3FER',
     chain: utils.formatChain('cronos'),
     project: 'ferro',
     tvlUsd,
