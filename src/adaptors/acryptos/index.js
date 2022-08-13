@@ -38,11 +38,13 @@ const fetch = (dataTvl, chainMapping) => {
 };
 
 const buildObject = (entry) => {
+  const platform = entry.platform;
   const payload = {
     pool: entry.id,
     chain: utils.formatChain(chainMapping[entry.network]),
     project: 'acryptos',
-    symbol: utils.formatSymbol(entry.symbol) + ` (${entry.platform})`,
+    symbol: utils.formatSymbol(entry.symbol),
+    poolMeta: platform.charAt(0).toUpperCase() + platform.slice(1),
     tvlUsd: Number(entry.tvl),
     apy: Number(entry.apy),
   };
@@ -59,7 +61,7 @@ const main = async () => {
   // build pool objects
   data = data.map((el) => buildObject(el));
 
-  return data;
+  return data.filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

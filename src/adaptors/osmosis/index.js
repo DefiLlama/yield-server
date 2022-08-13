@@ -9,9 +9,10 @@ const buildPool = (entry, chainString) => {
     chain: utils.formatChain(chainString),
     project: 'osmosis',
     symbol: utils.formatSymbol(entry.symbol),
+    poolMeta: entry.duration,
     tvlUsd: entry.liquidity,
     apy: entry.apr,
-    market: entry.duration,
+    poolMeta: entry.duration,
   };
 
   return newObj;
@@ -48,7 +49,7 @@ const topLvl = async (chainString) => {
 
   data = data.map((el) => buildPool(el, chainString));
 
-  return data;
+  return data.filter((p) => utils.keepFinite(p));
 };
 
 const main = async () => {
