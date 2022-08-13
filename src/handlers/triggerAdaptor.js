@@ -107,7 +107,11 @@ const main = async (body) => {
   data = data.map((p) => ({ ...p, timestamp: timestamp }));
 
   // 9. format chain in case it was skipped in adapter
-  data = data.map((p) => ({ ...p, chain: utils.formatChain(p.chain) }));
+  data = data.map((p) => ({
+    ...p,
+    chain: utils.formatChain(p.chain),
+    symbol: utils.formatSymbol(p.symbol),
+  }));
 
   // 10. insert only if tvl conditions are ok:
   // if tvl
