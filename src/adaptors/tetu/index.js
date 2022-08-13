@@ -1,5 +1,5 @@
 const utils = require('../utils');
-const sdk = require("@defillama/sdk");
+const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 const TETU_Reward_Token_FTM = '0x65c9d9d080714cDa7b5d58989Dc27f897F165179';
 const TETU_Reward_Token_MATIC = '0x255707B70BF90aa112006E1b07B9AeA6De021424';
