@@ -245,6 +245,17 @@ const main = async () => {
         : 3;
   }
 
+  // round numbers
+  const precision = 3;
+  dataEnriched = dataEnriched.map((p) =>
+    Object.fromEntries(
+      Object.entries(p).map(([k, v]) => [
+        k,
+        typeof v === 'number' ? parseFloat(v.toFixed(precision)) : v,
+      ])
+    )
+  );
+
   console.log('\n6. saving data to S3');
   console.log('nb of pools', dataEnriched.length);
   const bucket = process.env.BUCKET_DATA;
