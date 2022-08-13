@@ -14,7 +14,7 @@ const utils = require('../utils');
 // make sure that the pool files under ./config/vault are up to date
 const magikConfig = require('./config');
 
-const protocolSlug = 'magik-finance';
+const protocolSlug = 'magik-farm';
 const urlApy = 'https://magikfarm.herokuapp.com/apy/breakdown';
 const urlLpPrices = 'https://magikfarm.herokuapp.com/lps';
 const urlTokenPrices = 'https://magikfarm.herokuapp.com/prices';
