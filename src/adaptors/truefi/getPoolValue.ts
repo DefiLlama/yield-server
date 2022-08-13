@@ -8,7 +8,7 @@ const unitsMap = {
 
 async function getPoolValue(poolAddress: string, tokenDecimals: number) {
   const pool = new web3.eth.Contract(poolAbi, poolAddress)
-  const poolValueRaw: string = await pool.methods.poolValue().call()
+  const poolValueRaw: string = await pool.methods.liquidValue().call()
   const poolValue = web3.utils.fromWei(poolValueRaw, unitsMap[tokenDecimals])
   return poolValue
 }
