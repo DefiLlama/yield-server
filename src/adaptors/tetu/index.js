@@ -44,7 +44,7 @@ const apyChain = async (chain) => {
   });
 
   const vaultInfo = vaultInfoCall.output.map(e => e.output)
-    .filter(e => e.active === true)
+    .filter(e => e?.active)
     .filter(e => e.ppfsApr !== 0);
 
   const lpSymbol = await Promise.all(
