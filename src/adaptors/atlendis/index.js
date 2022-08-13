@@ -47,7 +47,8 @@ const buildPool = (entry) => {
     pool: entry.pool.id,
     chain: utils.formatChain('polygon'),
     project: 'atlendis',
-    symbol: `${symbolSplit[1]} (${symbolSplit[0]} ${symbolSplit[2]})`,
+    symbol: symbolSplit[1],
+    poolMeta: `${symbolSplit[0]} ${symbolSplit[2]}`,
     tvlUsd: entry.tvl,
     apy: entry.apy,
   };

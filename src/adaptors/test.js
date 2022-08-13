@@ -20,7 +20,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'apyReward',
       'underlyingTokens',
       'rewardTokens',
-      'market',
+      'poolMeta',
     ];
     const fields = [...Object.keys(baseFields), ...optionalFields, 'tvlUsd'];
     apy.forEach((pool) => {

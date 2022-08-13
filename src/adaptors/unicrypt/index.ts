@@ -56,9 +56,8 @@ const getApy = async () => {
       pool: farm.spool_address,
       chain: utils.formatChain('ethereum'),
       project: 'unicrypt',
-      symbol:
-        symbol.replace('LP', '').trim() +
-        (lockDuration > 2 ? ` (${lockDuration} days lock)` : ''),
+      symbol: symbol.replace('LP', '').trim(),
+      poolMeta: lockDuration > 2 ? `${lockDuration} days lock` : '',
       apy: farm.apy,
       tvlUsd: farm.tvl,
       underlyingTokens: isLp
