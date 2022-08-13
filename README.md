@@ -13,7 +13,6 @@
 
 An adaptor is just a javascript (or typescript) file that exports an async function that returns an array of objects that represent pools of a protocol. The pools follow the following schema (all values are just examples):
 
-
 ```typescript
 interface Pool {
   pool: string;
@@ -25,6 +24,7 @@ interface Pool {
   apyReward?: number;
   rewardTokens?: Array<string>;
   underlyingTokens?: Array<string>;
+  poolMeta?: string;
 }
 ```
 
@@ -39,6 +39,7 @@ interface Pool {
     apyReward: 0.7, // APY from pool LM rewards in %
     rewardTokens: ['0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
     underlyingTokens: ['0xdAC17F958D2ee523a2206206994597C13D831ec7'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
+    poolMeta: "V3 market", // A string value which can stand for any specific details of a pool position, market, fee tier, lock duration, specific strategy etc
   };
 ```
 
@@ -55,11 +56,9 @@ A note on how to set apy related fields:
 ```js
 module.exports = {
   timetravel: false,
-  apy: apy,  // Main function, returns pools
+  apy: apy, // Main function, returns pools
   url: 'https://example.com/pools', // Link to page with pools
 };
-
-
 ```
 
 An example of the most basic adaptor is the following for Anchor on terra:
