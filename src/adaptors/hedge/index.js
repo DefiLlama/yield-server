@@ -7,11 +7,16 @@ const apr = async () => {
 
   const pools = [];
   for (const pool of apyData) {
+    const name = pool.symbol.split(' ');
     pools.push({
       pool: pool.pool,
       chain: utils.formatChain('solana'),
       project: 'hedge',
-      symbol: pool.symbol,
+      symbol: name[0],
+      poolMeta: name
+        .slice(1)
+        .join(' ')
+        .replace(/[\])}[{(]/g, ''),
       tvlUsd: Number(pool.tvl),
       apyBase: Number(pool.apyBase),
       apyReward: Number(pool.apyReward),

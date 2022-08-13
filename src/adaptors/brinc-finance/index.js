@@ -261,7 +261,8 @@ const buildPool = (entry) => {
     pool: entry.poolId + '-brinc-finance-staking',
     chain: 'Arbitrum', // chain where the pool is
     project: 'brinc-finance', // protocol (using the slug again)
-    symbol: utils.formatSymbol(entry.symbol),
+    symbol: entry.symbol.split(' ')[0],
+    poolMeta: entry.symbol.split(' ')[1],
     tvlUsd: parseInt(entry.tvl, 10), // number representing current USD TVL in pool
     apy: parseFloat(entry.apy),
     rewardTokens: [GBRC], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
