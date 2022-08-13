@@ -68,8 +68,6 @@ const apyChain = async (chain) => {
     const rewardApr = pool.rewardsApr
       .reduce((acc, pev) =>  acc.plus(BigNumber(pev)) , BigNumber('0'))
       .div(BigNumber('10').pow(18));
-    const apr = ppfsApr.plus(rewardApr).toNumber();
-    const apyReward = utils.aprToApy(apr)
 
     return {
       pool: `${pool.addr}-${chain}`,
@@ -77,7 +75,8 @@ const apyChain = async (chain) => {
       project: 'tetu',
       symbol: lpSymbol[index].join('-'),
       tvlUsd: tvlUsd.toNumber(),
-      apyReward: apyReward,
+      apyReward: rewardApr.toNumber(),
+      apyBase: ppfsApr.toNumber(),
       rewardTokens: pool.rewardTokens.length ? pool.rewardTokens : [chainDataMap[chain]['BASE_REWARD_TOKEN']]
     }
   });
