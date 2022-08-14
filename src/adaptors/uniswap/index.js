@@ -74,7 +74,7 @@ const buildPool = (entry, version, chainString) => {
     pool: entry.id,
     chain: utils.formatChain(chainString),
     project: 'uniswap',
-    poolMeta: `${entry.feeTier / 1e4}%`,
+    poolMeta: version === 'v3' ? `${entry.feeTier / 1e4}%` : null,
     symbol,
     tvlUsd: entry.totalValueLockedUSD,
     apyBase: entry.apy,
