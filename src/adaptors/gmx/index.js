@@ -26,8 +26,7 @@ const avalancheInflationGlpTrackerAddress =
 
 const secondsPerYear = 31536000;
 
-const wethArbitrum = '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1';
-const wavax = '0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7';
+const ETH_AVAX = '0x0000000000000000000000000000000000000000';
 
 async function getAdjustedAmount(pTarget, pChain, pAbi, pParams = []) {
   let decimals = await sdk.api.abi.call({
@@ -101,8 +100,8 @@ async function getPoolGmx(
     apyReward: apyInflation,
     rewardTokens:
       chainString === 'arbitrum'
-        ? [arbitrumGmxAddress, wethArbitrum]
-        : [avalacheGmxAddress, wavax],
+        ? [arbitrumGmxAddress, ETH_AVAX]
+        : [avalacheGmxAddress, ETH_AVAX],
     underlyingTokens: [
       chainString === 'arbitrum' ? arbitrumGmxAddress : avalacheGmxAddress,
     ],
@@ -136,8 +135,8 @@ async function getPoolGlp(
     apyReward: apyInflation,
     rewardTokens:
       chainString === 'arbitrum'
-        ? [arbitrumGmxAddress, wethArbitrum]
-        : [avalacheGmxAddress, wavax],
+        ? [arbitrumGmxAddress, ETH_AVAX]
+        : [avalacheGmxAddress, ETH_AVAX],
 
     underlyingTokens: [
       chainString === 'arbitrum' ? arbitrumGmxAddress : avalacheGmxAddress,
