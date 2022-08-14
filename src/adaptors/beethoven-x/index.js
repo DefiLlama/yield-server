@@ -5,12 +5,22 @@ const utils = require('../utils');
 // Subgraph URLs
 const urlFantom = 'https://backend.beets-ftm-node.com/graphql';
 const urlOp = 'https://backend-optimism.beets-ftm-node.com/';
-const rewardToken = "0xf24bcf4d1e507740041c9cfd2dddb29585adce1e";
+const rewardToken = '0xf24bcf4d1e507740041c9cfd2dddb29585adce1e';
 // aprToApy
 const buildPool = (el, chainString) => {
   const symbol = el.linearPools
     ? utils.formatSymbol(
-        el.linearPools.map((item) => item.mainToken.symbol).join('-')
+        el.linearPools
+          .map((item) => item.mainToken.symbol)
+          .concat(
+            (
+              el.tokens.find(
+                ({ isBpt, isPhantomBpt }) =>
+                  isBpt === false && isPhantomBpt === false
+              ) || {}
+            ).symbol
+          )
+          .join('-')
       )
     : utils.formatSymbol(el.tokens.map((item) => item.symbol).join('-'));
   const aprFee = el.apr.items.find((e) => e.title === 'Swap fees APR');
@@ -23,7 +33,7 @@ const buildPool = (el, chainString) => {
     tvlUsd: parseFloat(el.totalLiquidity),
     apyBase: utils.aprToApy(Number(aprFee?.apr || 0)) * 100,
     apyReward: utils.aprToApy(Number(aprReward?.apr || 0)) * 100,
-    rewardTokens: [rewardToken]
+    rewardTokens: [rewardToken],
   };
 
   return newObj;
@@ -49,10 +59,8 @@ const main = async () => {
         .map((el) => buildPool(el, 'optimism'))
         .flat()
     );
-
   return data;
 };
-
 module.exports = {
   timetravel: false,
   apy: main,
