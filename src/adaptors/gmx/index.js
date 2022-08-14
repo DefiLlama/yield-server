@@ -26,6 +26,9 @@ const avalancheInflationGlpTrackerAddress =
 
 const secondsPerYear = 31536000;
 
+const wethArbitrum = '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1';
+const wavax = '0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7';
+
 async function getAdjustedAmount(pTarget, pChain, pAbi, pParams = []) {
   let decimals = await sdk.api.abi.call({
     target: pTarget,
@@ -94,7 +97,15 @@ async function getPoolGmx(
     project: 'gmx',
     symbol: utils.formatSymbol('GMX'),
     tvlUsd: tvlGmx,
-    apy: apyFee + apyInflation,
+    apyBase: apyFee,
+    apyReward: apyInflation,
+    rewardTokens:
+      chainString === 'arbitrum'
+        ? [arbitrumGmxAddress, wethArbitrum]
+        : [avalacheGmxAddress, wavax],
+    underlyingTokens: [
+      chainString === 'arbitrum' ? arbitrumGmxAddress : avalacheGmxAddress,
+    ],
   };
 }
 
@@ -121,7 +132,21 @@ async function getPoolGlp(
     project: 'gmx',
     symbol: utils.formatSymbol('GLP'),
     tvlUsd: parseFloat(pTvl),
-    apy: apyFee + apyInflation,
+    apyBase: apyFee,
+    apyReward: apyInflation,
+    rewardTokens:
+      chainString === 'arbitrum'
+        ? [arbitrumGmxAddress, wethArbitrum]
+        : [avalacheGmxAddress, wavax],
+
+    underlyingTokens: [
+      chainString === 'arbitrum' ? arbitrumGmxAddress : avalacheGmxAddress,
+    ],
+    underlyingTokens: [
+      chainString === 'arbitrum'
+        ? '0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258'
+        : '0x01234181085565ed162a948b6a5e88758CD7c7b8',
+    ],
   };
 }
 
