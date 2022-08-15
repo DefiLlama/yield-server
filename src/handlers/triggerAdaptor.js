@@ -132,12 +132,13 @@ const main = async (body) => {
       continue;
     }
     // if existing pool, check conditions
-    pctChange = (p.tvlUsd - x.tvlUsd) / x.tvlUsd;
     timedelta = timestamp - x.timestamp;
     const nHours = 5;
+    const tvlDeltaMultiplier = 5;
     timedeltaLimit = 60 * 60 * nHours * 1000;
-    // skip the update if both pctChange and timedelta conditions are met
-    if (pctChange > 5 && timedelta < timedeltaLimit) continue;
+    // skip the update if tvl at t is ntimes larger than tvl at t-1 && timedelta conditions are met
+    if (p.tvlUsd > x.tvlUsd * tvlDeltaMultiplier && timedelta < timedeltaLimit)
+      continue;
     dataDB.push(p);
   }
   if (dataDB.length < data.length)
