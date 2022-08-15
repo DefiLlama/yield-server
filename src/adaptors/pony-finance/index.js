@@ -13,6 +13,8 @@ const poolsFunction = async () => {
     tvlUsd: Number(tvl),
     apyBase: Number(apy),
   };
+
+  return [ponyPool]
 };
 
 module.exports = {
