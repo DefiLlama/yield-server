@@ -64,7 +64,7 @@ async function main() {
     tvlUsd: calculateTvl(balances[i], reactor.decimals, prices[reactor.symbol.toLowerCase()].toString()),
     rewardTokens: ['0x2e9d63788249371f1DFC918a52f8d799F4a38C94'], // TOKEMAK reward
     underlyingTokens: [reactor.tokenAddress],
-    apy: poolApr(aprData, reactor),
+    apyReward: poolApr(aprData, reactor),
   }));
 
   return pools;
