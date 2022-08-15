@@ -1,3 +1,5 @@
+const axios = require('axios');
+
 const utils = require('../utils');
 
 const getPools = async () => {
@@ -8,12 +10,18 @@ const getPools = async () => {
     'https://api.taigaprotocol.io/tokens/tdot/stats'
   );
 
+  const dotUsd = (
+    await axios.get(
+      'https://api.coingecko.com/api/v3/simple/price?ids=polkadot&vs_currencies=usd'
+    )
+  ).data.polkadot.usd;
+
   const tdot = {
     pool: 'acala-sa0-tapio',
     chain: 'Acala',
     project: 'tapio-protocol',
     symbol: 'tDOT',
-    tvlUsd: tdotStats.data.tvl,
+    tvlUsd: tdotStats.total * dotUsd,
     apyBase: Number(tdotApr['sa://0']) * 100,
   };
 
