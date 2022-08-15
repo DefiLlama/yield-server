@@ -42,7 +42,7 @@ async function apr() {
         ...vaults.filter(v => v !== "0x0000000000000000000000000000000000000000" && !vaultsToExclude.includes(vaultToName[v]))
     ].map( v => (
         {
-        pool: `Yeti ${vaultToName[v]} Vault`,
+        pool: `Yeti-${vaultToName[v]}-Vault`,
         chain: 'Avalanche',
         project: 'yeti-finance',
         symbol: getSymbol(vaultToName[v]),
