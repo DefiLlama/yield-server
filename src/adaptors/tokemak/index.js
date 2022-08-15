@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk');
-const ethers = require('ethers');
+const { default: BigNumber } = require('bignumber.js');
 const poolAbi = require('./poolAbi.json');
 const reactors = require('./reactors.json');
 const { fetchURL } = require('../../helper/utils');
@@ -12,16 +12,16 @@ async function lpBalances() {
     calls: reactors.map((reactor) => ({
       target: reactor.poolAddress
     }))
-  })).output.map(({ output }) => ethers.BigNumber.from(output));
+  })).output.map(({ output }) => new BigNumber(output));
 
   const withdrawals = (await sdk.api.abi.multiCall({
     abi: poolAbi.find(({ name }) => name === 'withheldLiquidity'),
     calls: reactors.map((reactor) => ({
       target: reactor.poolAddress
     }))
-  })).output.map(({ output }) => ethers.BigNumber.from(output));
+  })).output.map(({ output }) => new BigNumber(output));
 
-  const balances = totalSupplies.map((totalSupply, i) => totalSupply.sub(withdrawals[i]));
+  const balances = totalSupplies.map((totalSupply, i) => totalSupply.minus(withdrawals[i]));
 
   return balances;
 }
@@ -35,15 +35,12 @@ async function getAprData() {
 }
 
 function calculateTvl(totalSupply, decimals, price) {
-  const priceInUSD = ethers.utils.parseUnits(
-    price,
-    PRICE_DECIMALS
-  );
+  const priceInUSD = new BigNumber(price * (10 ** PRICE_DECIMALS));
 
-  const divisor = ethers.BigNumber.from(10).pow(decimals);
+  const divisor = new BigNumber(10 ** decimals);
 
-  const tvl = totalSupply.mul(priceInUSD).div(divisor);
-  return parseInt(ethers.utils.formatUnits(tvl, PRICE_DECIMALS));
+  const tvl = totalSupply.multipliedBy(priceInUSD).dividedBy(divisor);
+  return tvl.dividedBy(10 ** PRICE_DECIMALS).toNumber();
 }
 
 function poolApr(aprData, reactor) {
@@ -61,7 +58,7 @@ async function main() {
     chain: 'Ethereum',
     project: 'tokemak',
     symbol: reactor.symbol,
-    tvlUsd: calculateTvl(balances[i], reactor.decimals, prices[reactor.symbol.toLowerCase()].toString()),
+    tvlUsd: calculateTvl(balances[i], reactor.decimals, prices[reactor.symbol.toLowerCase()]),
     rewardTokens: ['0x2e9d63788249371f1DFC918a52f8d799F4a38C94'], // TOKEMAK reward
     underlyingTokens: [reactor.tokenAddress],
     apyReward: poolApr(aprData, reactor),
