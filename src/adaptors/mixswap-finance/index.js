@@ -6,7 +6,6 @@ const masterChefABI = require('./abis/masterchef.json');
 const lpABI = require('./abis/lp.json');
 
 const MXS_TOKEN = '0xb8b9e96e9576af04480ff26ee77d964b1996216e';
-const POOL_MXS_BUSD = '0x75892880ABE8D8D7675A2297f808569B4E4dC324';
 const MASTERCHEF_ADDRESS = '0x775eead1076b149d5eb81065fcd18a3a5717085a';
 const BSC_BLOCK_TIME = 3;
 const BLOCKS_PER_YEAR = Math.floor((60 / BSC_BLOCK_TIME) * 60 * 24 * 365);
