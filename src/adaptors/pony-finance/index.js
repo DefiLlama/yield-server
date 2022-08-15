@@ -17,5 +17,5 @@ const poolsFunction = async () => {
 
 module.exports = {
   timetravel: false,
-  apy: main,
+  apy: poolsFunction,
 };
