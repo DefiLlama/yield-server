@@ -397,7 +397,7 @@ const addPoolInfo = (el, stablecoins, config) => {
   // complifi has single token exposure only cause the protocol
   // will pay traders via deposited amounts
   el['ilRisk'] =
-    config[el.project].category === 'Options'
+    config[el.project]?.category === 'Options'
       ? 'yes'
       : el.project === 'complifi'
       ? 'yes'
