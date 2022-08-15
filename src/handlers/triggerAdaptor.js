@@ -42,10 +42,7 @@ const main = async (body) => {
   const project = require(`../adaptors/${body.adaptor}`);
   let data = await project.apy();
 
-  // before storing the data into the db, we check for finite number values
-  // and remove everything not defined within the allowed apy and tvl boundaries
-
-  // 1. remove potential null/undefined objects in array
+  // remove potential null/undefined objects in array
   data = data.filter((p) => p);
 
   // even though we have tests for datatypes, will need to guard against sudden changes
@@ -61,14 +58,14 @@ const main = async (body) => {
       typeof p.apyReward === 'string' ? Number(p.apyReward) : p.apyReward,
   }));
 
-  // 2. filter tvl to be btw lb-ub
+  // filter tvl to be btw lb-ub
   data = data.filter(
     (p) =>
       p.tvlUsd >= exclude.boundaries.tvlUsdDB.lb &&
       p.tvlUsd <= exclude.boundaries.tvlUsdDB.ub
   );
 
-  // 3. nullify NaN, undefined or Infinity apy values
+  // nullify NaN, undefined or Infinity apy values
   data = data.map((p) => ({
     ...p,
     apy: Number.isFinite(p.apy) ? p.apy : null,
@@ -76,18 +73,18 @@ const main = async (body) => {
     apyReward: Number.isFinite(p.apyReward) ? p.apyReward : null,
   }));
 
-  // 4. remove pools where all 3 apy related fields are null
+  // remove pools where all 3 apy related fields are null
   data = data.filter(
     (p) => !(p.apy === null && p.apyBase === null && p.apyReward === null)
   );
 
-  // 5. derive final total apy in case only apyBase and/or apyReward are given
+  // derive final total apy in case only apyBase and/or apyReward are given
   data = data.map((p) => ({
     ...p,
     apy: p.apy ?? p.apyBase + p.apyReward,
   }));
 
-  // 6. remove pools pools based on apy boundaries
+  // remove pools pools based on apy boundaries
   data = data.filter(
     (p) =>
       p.apy !== null &&
@@ -95,10 +92,10 @@ const main = async (body) => {
       p.apy <= exclude.boundaries.apy.ub
   );
 
-  // 7. remove exclusion pools
+  // remove exclusion pools
   data = data.filter((p) => !exclude.excludePools.includes(p.pool));
 
-  // 8. add the timestamp field
+  // add the timestamp field
   // will be rounded to the nearest hour
   // eg 2022-04-06T10:00:00.000Z
   const timestamp = new Date(
@@ -106,22 +103,20 @@ const main = async (body) => {
   );
   data = data.map((p) => ({ ...p, timestamp: timestamp }));
 
-  // 9. format chain in case it was skipped in adapter
+  // format chain in case it was skipped in adapter
   data = data.map((p) => ({
     ...p,
     chain: utils.formatChain(p.chain),
     symbol: utils.formatSymbol(p.symbol),
   }));
 
-  // 10. insert only if tvl conditions are ok:
+  // insert only if tvl conditions are ok:
   // if tvl
   // - has increased >5x since the last hourly update
   // - and has been updated in the last 5 hours
   // -> block update
 
   // load current project array
-  // need a new endpoint for that
-  const urlBase = process.env.APIG_URL;
   const dataInitial = await getProject(body.adaptor);
 
   const dataDB = [];
@@ -136,14 +131,19 @@ const main = async (body) => {
     const nHours = 5;
     const tvlDeltaMultiplier = 5;
     timedeltaLimit = 60 * 60 * nHours * 1000;
-    // skip the update if tvl at t is ntimes larger than tvl at t-1 && timedelta conditions are met
-    if (p.tvlUsd > x.tvlUsd * tvlDeltaMultiplier && timedelta < timedeltaLimit)
+    // skip the update if tvl at t is ntimes larger than tvl at t-1 && timedelta conditions is met
+    if (
+      p.tvlUsd > x.tvlUsd * tvlDeltaMultiplier &&
+      timedelta < timedeltaLimit
+    ) {
+      console.log(`removing pool ${p.pool}`);
       continue;
+    }
     dataDB.push(p);
   }
   if (dataDB.length < data.length)
     console.log(
-      `removed ${data.length - dataDB.length} samples prior to insert`
+      `removed ${data.length - dataDB.length} sample(s) prior to insert`
     );
 
   const response = await insertPools(dataDB);
