@@ -7,6 +7,7 @@ const API_URL = 'https://staging.api.maple.finance/v1/graphql';
 
 interface Pool {
   contractAddress: string;
+  poolName: string;
   liquidityAsset: {
     price: number;
     symbol: string;
@@ -35,7 +36,7 @@ const apy = async () => {
       pool: pool.contractAddress,
       chain: utils.formatChain('ethereum'),
       project: 'maple',
-      symbol: pool.liquidityAsset.symbol,
+      symbol: pool.poolName,
       tvlUsd:
         (Number(pool.liquidity) * tokenPrice) /
         10 ** pool.liquidityAsset.decimals,
