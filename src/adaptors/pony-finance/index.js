@@ -12,7 +12,7 @@ const poolsFunction = async () => {
     project: 'pony-finance',
     symbol: 'PONY',
     tvlUsd: Number(tvl),
-    apyBase: Number(apy),
+    apyBase: Number(apy) * 100,
   };
 
   return [ponyPool];
@@ -21,4 +21,5 @@ const poolsFunction = async () => {
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
+  url: 'https://www.scalara.xyz/indices/pony',
 };
