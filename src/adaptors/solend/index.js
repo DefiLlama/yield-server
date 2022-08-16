@@ -24,7 +24,8 @@ const buildPool = async (reserveConfig, reserveData) => {
     pool: reserveConfig.address,
     chain: utils.formatChain('solana'),
     project: 'solend',
-    symbol: `${reserveConfig.asset} (${secondaryString})`,
+    symbol: `${reserveConfig.asset}`,
+    poolMeta: secondaryString,
     tvlUsd:
       (Number(liquidity.availableAmount) / 10 ** liquidity.mintDecimals) *
       (liquidity.marketPrice / 10 ** 18),
@@ -77,4 +78,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://solend.fi/pools',
 };
