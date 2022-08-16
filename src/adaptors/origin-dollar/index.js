@@ -15,6 +15,7 @@ const poolsFunction = async () => {
     symbol: 'OUSD',
     tvlUsd: dataTvl,
     apy: Number(apyData.apy),
+    underlyingTokens: ['0xdac17f958d2ee523a2206206994597c13d831ec7', '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', '0x6b175474e89094c44da98b954eedeac495271d0f']
   };
 
   return [ousd];
