@@ -29,31 +29,24 @@ async function apy() {
 
   let allVaults = [];
 
-  // for binance inactive !== true
   for (let chain of Object.keys(chains)) {
     const activeFarms = Object.values(farmsResponse[chain]).filter(
-      (v) => !v.inactive && v.category !== 'INACTIVE'
+      (v) => !v.hasOwnProperty('inactive') || v.inactive != true
     );
-    const farms = activeFarms.map((v) => {
-      const s = v.displayName.split(' ');
-      const symbol = s.length > 2 ? s[2] : s.length > 1 ? s[1] : s[0];
-      s[0];
 
-      return {
-        pool: v.vaultAddress,
-        chain: utils.formatChain(chains[chain]),
-        project: 'harvest-finance',
-        symbol: utils.formatSymbol(symbol),
-        poolMeta: s.length > 1 ? s[0].replace(':', '') : null,
-        tvlUsd: Number(v.totalValueLocked),
-        apy: aggregateApys(v, poolsResponse[chain]),
-      };
-    });
+    const farms = activeFarms.map((v) => ({
+      pool: v.vaultAddress,
+      chain: utils.formatChain(chains[chain]),
+      project: 'harvest-finance',
+      symbol: utils.formatSymbol(v.displayName),
+      tvlUsd: Number(v.totalValueLocked),
+      apy: aggregateApys(v, poolsResponse[chain]),
+    }));
 
     allVaults = [...allVaults, ...farms];
   }
 
-  return allVaults.filter((p) => utils.keepFinite(p));
+  return allVaults;
 }
 
 const main = async () => {
@@ -63,5 +56,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.harvest.finance/',
 };

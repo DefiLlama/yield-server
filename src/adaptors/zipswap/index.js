@@ -62,5 +62,4 @@ const acquireData = async () => {
 module.exports = {
   timetravel: false,
   apy: acquireData,
-  url: 'https://zipswap.fi/#/farm',
 };

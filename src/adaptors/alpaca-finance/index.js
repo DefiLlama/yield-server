@@ -1,6 +1,14 @@
 const axios = require('axios');
 const utils = require('../utils');
 
+function formatSymbol(sourceName) {
+  const space = sourceName.indexOf(' ');
+  return `${sourceName.substring(space + 1)} (${sourceName.substring(
+    0,
+    space
+  )})`;
+}
+
 async function apy(chain) {
   const response = (
     await axios.get(
@@ -15,7 +23,7 @@ async function apy(chain) {
     pool: `${p.stakingToken.address}-staking`,
     chain: utils.formatChain(chainMapping[chain]),
     project: 'alpaca-finance',
-    symbol: utils.formatSymbol(p.symbol.split(' ')[0]),
+    symbol: utils.formatSymbol(p.symbol),
     tvlUsd: Number(p.tvl),
     apy: Number(p.apy),
   }));
@@ -24,8 +32,7 @@ async function apy(chain) {
     pool: `${p.key}-strategy-pool`,
     chain: utils.formatChain(chainMapping[chain]),
     project: 'alpaca-finance',
-    symbol: p.workingToken.symbol.split(' ')[0],
-    poolMeta: p.name,
+    symbol: utils.formatSymbol(p.iuToken.symbol),
     tvlUsd: Number(p.tvl),
     apy: Number(p.apy),
   }));
@@ -34,8 +41,7 @@ async function apy(chain) {
     pool: `${p.key}-farming-pool`,
     chain: utils.formatChain(chainMapping[chain]),
     project: 'alpaca-finance',
-    symbol: p.sourceName.split(' ')[1],
-    poolMeta: p.sourceName.split(' ')[0],
+    symbol: formatSymbol(p.sourceName),
     tvlUsd: Number(p.tvl),
     apy: utils.aprToApy(
       (Number(p.farmRewardApr) + Number(p.tradingFeeApr)) / p.leverage
@@ -82,5 +88,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.alpacafinance.org/farm',
 };

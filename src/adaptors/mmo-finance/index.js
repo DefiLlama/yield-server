@@ -125,5 +125,4 @@ const getApy = async (block) => {
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://mmo.finance/supply',
 };

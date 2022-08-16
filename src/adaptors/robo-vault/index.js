@@ -18,5 +18,4 @@ const poolsFunction = async () => {
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
-  url: 'https://www.robo-vault.com/',
 };

@@ -9,7 +9,7 @@ exports.formatChain = (chain) => {
 // replace / with - and trim potential whitespace
 exports.formatSymbol = (symbol) =>
   symbol
-    .replace(/[_+:\/]/g, '-')
+    .replace(/[_+\/]/g, '-')
     .replace(/\s/g, '')
     .trim();
 

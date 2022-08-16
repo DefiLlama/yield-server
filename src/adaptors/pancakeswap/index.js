@@ -13,7 +13,6 @@ const API_URL =
 const LP_APRS =
   'https://raw.githubusercontent.com/pancakeswap/pancake-frontend/develop/src/config/constants/lpAprs.json';
 const MASTERCHEF_ADDRESS = '0xa5f8C5Dbd5F286960b9d90548680aE5ebFf07652';
-const CAKE = '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82';
 
 const BSC_BLOCK_TIME = 3;
 const BLOCKS_PER_YEAR = (60 / BSC_BLOCK_TIME) * 60 * 24 * 365;
@@ -26,11 +25,9 @@ const pairQuery = gql`
       name
       id
       token0 {
-        id
         decimals
       }
       token1 {
-        id
         decimals
       }
     }
@@ -48,12 +45,13 @@ const calculateApy = (
   totalAllocPoint,
   cakePerBlock,
   cakePrice,
-  reserveUSD
+  reserveUSD,
+  lpApr
 ) => {
   const poolWeight = poolInfo.allocPoint / totalAllocPoint;
   const cakePerYear = BLOCKS_PER_YEAR * cakePerBlock;
 
-  return ((poolWeight * cakePerYear * cakePrice) / reserveUSD) * 100;
+  return ((poolWeight * cakePerYear * cakePrice) / reserveUSD) * 100 + lpApr;
 };
 
 const calculateReservesUSD = (
@@ -167,23 +165,20 @@ const main = async () => {
         )
           .div(1e18)
           .toString();
-        const apyReward = calculateApy(
-          poolInfo,
-          totalAllocPoint,
-          normalizedCakePerBlock,
-          cakePrice,
-          reserveUSD
-        );
         const pool = {
           pool: pairInfo.id,
           chain: utils.formatChain('binance'),
           project: 'pancakeswap',
           symbol: pairInfo.name,
           tvlUsd: Number(reserveUSD),
-          apyBase: lpAprs[pairInfo.id.toLowerCase()],
-          apyReward,
-          rewardTokens: apyReward > 0 ? [CAKE] : [],
-          underlyingTokens: [pairInfo.token0.id, pairInfo.token1.id],
+          apy: calculateApy(
+            poolInfo,
+            totalAllocPoint,
+            normalizedCakePerBlock,
+            cakePrice,
+            reserveUSD,
+            lpAprs[pairInfo.id.toLowerCase()]
+          ),
         };
         return pool;
       })
@@ -197,5 +192,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://pancakeswap.finance/farms',
 };

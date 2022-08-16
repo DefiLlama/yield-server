@@ -56,8 +56,7 @@ const getApy = async () => {
       pool: farm.spool_address,
       chain: utils.formatChain('ethereum'),
       project: 'unicrypt',
-      symbol: symbol.replace('LP', '').trim(),
-      poolMeta: lockDuration > 2 ? `${lockDuration} days lock` : null,
+      symbol: symbol + (lockDuration > 2 ? ` ${lockDuration} days lock` : ''),
       apy: farm.apy,
       tvlUsd: farm.tvl,
       underlyingTokens: isLp
@@ -73,5 +72,4 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://app.unicrypt.network/chain/mainnet/farms',
 };

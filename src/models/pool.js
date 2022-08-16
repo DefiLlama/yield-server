@@ -20,7 +20,8 @@ const poolSchema = new mongoose.Schema(
       required: [true, 'A pool must have a project field'],
       trim: true,
     },
-    poolMeta: {
+    // for uniswap (v2 vs v3)
+    market: {
       type: String,
       trim: true,
     },

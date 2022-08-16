@@ -54,5 +54,4 @@ const fractalMetrics = async () => {
 module.exports = {
   timetravel: false,
   apy: fractalMetrics,
-  url: 'https://app.fractalprotocol.org/',
 };

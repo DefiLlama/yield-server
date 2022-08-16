@@ -1,5 +1,5 @@
 /*
- * @Description:
+ * @Description: 
  * @Autor: Econiche
  * @Date: 2022-06-06 09:36:02
  * @LastEditors: Econiche
@@ -8,11 +8,10 @@
 const axios = require('axios');
 const utils = require('../utils');
 
-axios.interceptors.request.use((config) => {
-  config.headers['key'] =
-    'PgYaEZwSmjCQB74KIFN3f58LcuOoUhdv2t1XipJzWVnkrMGRT9H6exl0bqyDAs';
+axios.interceptors.request.use(config => {
+  config.headers["key"] = 'PgYaEZwSmjCQB74KIFN3f58LcuOoUhdv2t1XipJzWVnkrMGRT9H6exl0bqyDAs';
   return config;
-});
+})
 
 function formatSymbol(sourceName) {
   const space = sourceName.indexOf(' ');
@@ -24,19 +23,21 @@ function formatSymbol(sourceName) {
 
 async function apy(chain) {
   const response = (
-    await axios.get(`https://app.mole.fi/api/${chain}/data.json`)
+    await axios.get(
+      `https://app.mole.fi/api/${chain}/data.json`
+    )
   ).data;
 
-  const fairLaunchStakingPools = response.pools
-    .filter((p) => !p.key.includes('debt'))
-    .map((p) => ({
-      pool: `${p.address}-staking`,
-      chain: utils.formatChain(chainMapping[chain]),
-      project: 'mole',
-      symbol: utils.formatSymbol(p.symbol),
-      tvlUsd: Number(p.tvl),
-      apy: Number(p.apy) * 100,
-    }));
+  const fairLaunchStakingPools = response.pools.filter(
+    (p) => !p.key.includes('debt')
+  ).map((p) => ({
+    pool: `${p.address}-staking`,
+    chain: utils.formatChain(chainMapping[chain]),
+    project: 'mole',
+    symbol: utils.formatSymbol(p.symbol),
+    tvlUsd: Number(p.tvl),
+    apy: Number(p.apy) * 100,
+  }));
 
   const fundPools = response.funds.map((p) => ({
     pool: `${p.key}-fund-pool`,
@@ -54,7 +55,7 @@ async function apy(chain) {
     symbol: formatSymbol(p.sourceName),
     tvlUsd: Number(p.tvl),
     apy: utils.aprToApy(
-      ((Number(p.farmRewardApr) + Number(p.tradingFeeApr)) / p.leverage) * 100
+      (Number(p.farmRewardApr) + Number(p.tradingFeeApr)) / p.leverage * 100
     ),
   }));
 
@@ -76,7 +77,7 @@ async function apy(chain) {
 }
 
 const chainMapping = {
-  43114: 'avalanche',
+  '43114': 'avalanche',
 };
 
 const main = async () => {
@@ -87,5 +88,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.mole.fi/',
 };

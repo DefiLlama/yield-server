@@ -37,5 +37,4 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy,
-  url: 'https://app.sherlock.xyz/stake',
 };

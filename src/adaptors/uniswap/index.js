@@ -74,11 +74,10 @@ const buildPool = (entry, version, chainString) => {
     pool: entry.id,
     chain: utils.formatChain(chainString),
     project: 'uniswap',
-    poolMeta: version === 'v3' ? `${entry.feeTier / 1e4}%` : null,
-    symbol,
+    market: version,
+    symbol: version === 'v3' ? `${symbol} (${entry.feeTier / 1e4}%)` : symbol,
     tvlUsd: entry.totalValueLockedUSD,
-    apyBase: entry.apy,
-    underlyingTokens: [entry.token0.id, entry.token1.id],
+    apy: entry.apy,
   };
 
   return newObj;
@@ -137,11 +136,10 @@ const main = async (timestamp = null) => {
     topLvl('optimism', urlOptimism, queryV3, queryPriorV3, 'v3', timestamp),
   ]);
 
-  return data.flat().filter((p) => Number.isFinite(p.apyBase));
+  return data.flat();
 };
 
 module.exports = {
   timetravel: true,
   apy: main,
-  url: 'https://app.uniswap.org/#/pool?chain=mainnet',
 };

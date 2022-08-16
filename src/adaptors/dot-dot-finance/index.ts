@@ -54,7 +54,7 @@ const getApy = async () => {
       pool: `${pool.pool}-dot-dot-finance`,
       chain: utils.formatChain('binance'),
       project: 'dot-dot-finance',
-      symbol: utils.formatSymbol(pool.symbol),
+      symbol: pool.symbol,
       tvlUsd: pool.dddTvlUSD,
       apyReward,
       apyBase: pool.baseApr || 0,
@@ -74,5 +74,4 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://dotdot.finance/#/stake',
 };

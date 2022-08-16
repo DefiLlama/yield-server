@@ -54,5 +54,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.thorswap.finance/liquidity',
 };

@@ -20,7 +20,6 @@ module.exports = async function () {
   global.apy = (await module.apy(timestamp)).sort(
     (a, b) => b.tvlUsd - a.tvlUsd
   );
-  global.poolsUrl = module.url;
 
   fs.writeFileSync(`./${adapter}_test_output.json`, JSON.stringify(global.apy));
 

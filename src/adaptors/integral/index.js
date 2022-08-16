@@ -17,8 +17,8 @@ const buildPool = (entry, chainString, version) => {
     pool: entry.address,
     chain: utils.formatChain(chainString),
     project: 'integral',
-    poolMeta: version,
-    symbol: entry.name.toUpperCase(),
+    market: version,
+    symbol: `${entry.name.toUpperCase()} (${version})`,
     tvlUsd: parseFloat(BigNumber(entry.totalTokenValue).div(10 ** 18)),
     apy: entry.apy
       ? parseFloat(
@@ -57,5 +57,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://size.integral.link/pools',
 };

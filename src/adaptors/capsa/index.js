@@ -8,7 +8,7 @@ const apy = async () => {
     'https://api.capsa.finance/stats/allocation'
   );
 
-  const scaledApy = apyData['last_week_performance'] * 52;
+  const scaledApy = apyData["last_week_performance"] * 52;
 
   const capsa = {
     pool: 'CAPSA',

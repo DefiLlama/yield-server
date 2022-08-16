@@ -92,8 +92,7 @@ const getApy = async () => {
 
   const stablePool = {
     pool: SWAP_ADDRESS,
-    symbol: 'DAI, USDC, USDT',
-    poolMeta: '3FER',
+    symbol: '3FER (DAI, USDC, USDT)',
     chain: utils.formatChain('cronos'),
     project: 'ferro',
     tvlUsd,
@@ -122,5 +121,4 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://ferroprotocol.com/#/pools',
 };

@@ -481,5 +481,4 @@ const main = async (timestamp = null) => {
 module.exports = {
   timetravel: true,
   apy: main,
-  url: 'https://app.sushi.com/trident/pools?chainId=1',
 };

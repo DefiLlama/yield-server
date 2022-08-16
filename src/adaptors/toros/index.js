@@ -102,5 +102,4 @@ const listTorosYieldProducts = async () => {
 module.exports = {
   timetravel: false,
   apy: listTorosYieldProducts,
-  url: 'https://toros.finance/',
 };

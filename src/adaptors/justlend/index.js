@@ -34,19 +34,16 @@ const getApy = async () => {
   const { data: rewards } = await getRewardApy(marketsData);
 
   const pools = marketsData.map(({ data: market }) => {
-    console.log(market);
     return {
       pool: market.jtokenAddress,
       chain: utils.formatChain('tron'),
       project: 'justlend',
       symbol: market.collateralSymbol,
       tvlUsd: Number(market.depositedUSD) - Number(market.borrowedUSD),
-      apyBase:
+      apy:
         ((Number(market.earnUSDPerDay) * 365) / Number(market.depositedUSD)) *
-        100,
-      apyReward: rewards[market.jtokenAddress]['USDDNEW'] * 100,
-      rewardTokens: ['TPYmHEhy5n8TCEfYGqW2rPxsghSfzghPDn'],
-      underlyingTokens: [market.collateralAddress],
+          100 +
+        rewards[market.jtokenAddress]['USDDNEW'] * 100,
     };
   });
 
@@ -56,5 +53,4 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://justlend.just.network/#/market',
 };

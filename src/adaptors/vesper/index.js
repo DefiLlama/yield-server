@@ -26,9 +26,8 @@ async function apy(chain) {
       chain: utils.formatChain(chain),
       project: 'vesper',
       symbol: v.name.startsWith('ve')
-        ? v.name.split('-')[0]
+        ? `${v.name.split('-')[0]} (earn ${v.name.split('-')[1]})`
         : utils.formatSymbol(v.name),
-      poolMeta: v.name.startsWith('ve') ? `earn ${v.name.split('-')[1]}` : null,
       tvlUsd:
         (Number(v.totalValue) / 10 ** Number(v.asset.decimals)) * v.asset.price,
       apyBase: v.earningRates[30],
@@ -57,5 +56,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.vesper.finance/',
 };

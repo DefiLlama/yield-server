@@ -9,10 +9,9 @@ const buildPool = (entry, chainString) => {
     chain: utils.formatChain(chainString),
     project: 'osmosis',
     symbol: utils.formatSymbol(entry.symbol),
-    poolMeta: entry.duration,
     tvlUsd: entry.liquidity,
     apy: entry.apr,
-    poolMeta: entry.duration,
+    market: entry.duration,
   };
 
   return newObj;
@@ -49,7 +48,7 @@ const topLvl = async (chainString) => {
 
   data = data.map((el) => buildPool(el, chainString));
 
-  return data.filter((p) => utils.keepFinite(p));
+  return data;
 };
 
 const main = async () => {
@@ -60,5 +59,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.osmosis.zone/pools',
 };

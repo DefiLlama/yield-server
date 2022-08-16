@@ -526,5 +526,4 @@ function getCoingeckoLock() {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://homora-v2.alphaventuredao.io/farm-pools',
 };

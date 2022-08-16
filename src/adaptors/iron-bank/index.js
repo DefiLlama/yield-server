@@ -37,5 +37,4 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://app.ib.xyz/',
 };

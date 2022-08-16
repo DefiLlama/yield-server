@@ -12,6 +12,7 @@ const API_URL = 'https://api.thegraph.com/subgraphs/name/whale-swap/exchange';
 const BACKEND_URL = 'https://api.whaleswap.finance';
 const PODMASTER_ADDRESS = '0xdEe627eaaB378ec57ECfB94b389B718ef3687c0D';
 
+
 const web3 = new Web3(RPC_URL);
 
 const pairQuery = gql`
@@ -45,10 +46,11 @@ const getPairInfo = (pair) => {
   return pairInfo;
 };
 
-const getApy = async (chainId, pid) => {
-  const apyResult = await fetchURL(
-    `${BACKEND_URL}/${chainId}/whaleswap/apr/${pid}`
-  );
+const getApy = async (
+  chainId,
+  pid
+) => {
+  const apyResult = await fetchURL(`${BACKEND_URL}/${chainId}/whaleswap/apr/${pid}`);
   return apyResult.data;
 };
 
@@ -84,9 +86,7 @@ const getBaseTokensPrice = async () => {
   const prices = await utils.getData(
     'https://api.coingecko.com/api/v3/simple/price?ids=binancecoin%2Cethereum&vs_currencies=usd'
   );
-  const podPriceResult = await request(API_URL, priceQuery, {
-    id: '0xdded222297b3d08dafdac8f65eeb799b2674c78f',
-  });
+  const podPriceResult = await request(API_URL, priceQuery, { id: '0xdded222297b3d08dafdac8f65eeb799b2674c78f' });
 
   const podPrice = podPriceResult.token.derivedUSD;
   const ethPrice = prices.ethereum.usd;
@@ -115,7 +115,7 @@ const main = async () => {
   );
   const poolsInfo = poolsRes.output.map((res) => res.output);
   const lpTokens = lpTokensRes.output.map((res) => res.output);
-
+  
   const [reservesRes, supplyRes, podMasterBalancesRes] = await Promise.all(
     ['getReserves', 'totalSupply', 'balanceOf'].map((method) =>
       sdk.api.abi.multiCall({
@@ -130,13 +130,18 @@ const main = async () => {
   );
   const reservesData = reservesRes.output.map((res) => res.output);
   const supplyData = supplyRes.output.map((res) => res.output);
-  const podMasterBalData = podMasterBalancesRes.output.map((res) => res.output);
+  const podMasterBalData = podMasterBalancesRes.output.map(
+    (res) => res.output
+  );
 
   const pools = await Promise.all(
     poolsInfo.map(async (_, i) => {
       // the early pools are deprecated or the staking pool (pid 0)
       if (i < 45) return;
-      const apy = await getApy(56, i);
+      const apy = await getApy(
+        56,
+        i
+      );
       return getPairInfo(lpTokens[i]).then(({ pair: pairInfo }) => {
         const reserves = reservesData[i];
 
@@ -168,7 +173,7 @@ const main = async () => {
           underlyingTokens: [pairInfo.token0.id, pairInfo.token1.id],
         };
         return pool;
-      });
+      })
     })
   );
 
@@ -179,5 +184,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://whaleswap.finance/farm?chain=bsc_mainnet',
 };

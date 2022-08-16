@@ -25,8 +25,7 @@ const getApy = async () => {
       pool: pool.contract_address,
       chain: utils.formatChain('ethereum'),
       project: 'armor',
-      symbol: `${pool.asset_symbol}-${pool.quote_symbol}`,
-      poolMeta: pool.protocol,
+      symbol: `${pool.asset_symbol}-${pool.quote_symbol} (${pool.protocol})`,
       tvlUsd: Number(pool.liquidity_usd),
       apyReward: Number(pool.apy.yearly),
       rewardTokens: [ARMOR_TOKEN],
@@ -39,5 +38,4 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://armor.ease.org/rewards',
 };
