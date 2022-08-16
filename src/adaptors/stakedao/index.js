@@ -16,10 +16,10 @@ const poolsFunction = async () => {
 
   const strats = allStrats.reduce((acc, strat) => {
     return acc.concat([{
-      pool: utils.formatChain(strat.protocol) + " " + strat.name,
+      pool: strat.key,
       chain: utils.formatChain('ethereum'),
       project: 'stakedao',
-      symbol: utils.formatSymbol(strat.token.symbol),
+      symbol: utils.formatChain(strat.protocol) + " " + strat.name,
       tvlUsd: strat.tvlUSD,
       apy: strat.maxApr * 100,
     }]);
