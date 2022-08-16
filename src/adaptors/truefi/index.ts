@@ -2,7 +2,7 @@ const BigNumber = require('bignumber.js')
 const superagent = require('superagent')
 
 const { web3 } = require('./connection')
-const { getPoolValue } = require('./getPoolValue')
+const { getPoolValues } = require('./getPoolValues')
 const { getActiveLoans } = require('./getActiveLoans')
 const { getPoolApyBase } = require('./getPoolApyBase')
 const { getPoolApyRewards } = require('./getPoolApyRewards')
@@ -71,7 +71,7 @@ const buildPoolAdapter = async (
   distributor: any
 ): Promise<PoolAdapter> => {
   const poolActiveLoans = allActiveLoans.filter(({ poolAddress }) => poolAddress === address)
-  const poolValue = await getPoolValue(address, decimals)
+  const { poolValue, liquidValue } = await getPoolValues(address, decimals)
   const poolApyBase = await getPoolApyBase(poolActiveLoans, poolValue, decimals)
   const poolApyRewards = await getPoolApyRewards(address, decimals, truPrice, multifarm, distributor)
 
@@ -80,7 +80,7 @@ const buildPoolAdapter = async (
     chain: utils.formatChain('ethereum'),
     project: 'truefi',
     symbol,
-    tvlUsd: poolValue * tokenPrice,
+    tvlUsd: liquidValue * tokenPrice,
     apyBase: poolApyBase,
     apyReward: poolApyRewards,
     rewardTokens: [TRU_ADDRESS],
