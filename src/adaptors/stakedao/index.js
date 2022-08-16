@@ -33,7 +33,7 @@ const poolsFunction = async () => {
       return acc + t.apr;
     }, 0.0) * 100;
 
-    const apy = strat.maxApr * 100;
+    const apy = strat.maxAprFuture * 100;
     const apyBase = apy - apyReward;
 
     return acc.concat([{
