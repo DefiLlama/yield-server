@@ -8,12 +8,11 @@ const lpABI = require('./abis/lp.json');
 const COUPON_TOKEN = '0xbC09220a8e461880DBE5517ecF53bC1b12cAa05D';
 const REI_TOKEN = '0x7539595ebdA66096e8913a24Cc3C8c0ba1Ec79a0';
 const MASTERCHEF_ADDRESS = '0x7aaA2A556578541067BFE93EE05B962Ee57E21CB';
-const BNB_REI = '0xf8aB4aaf70cef3F3659d3F466E35Dc7ea10d4A5d';
+const BNB_REI_ADDRESS = '0xf8aB4aaf70cef3F3659d3F466E35Dc7ea10d4A5d';
 const BLOCK_TIME = 3;
 const BLOCKS_PER_YEAR = Math.floor((60 / BLOCK_TIME) * 60 * 24 * 365);
-// BNB
-// REI, COUPON, KBUSD (0xDD2bb4e845Bd97580020d8F9F58Ec95Bf549c3D9)
-// 0xbC09220a8e461880DBE5517ecF53bC1b12cAa05D // COUPON/REI
+const SECOND_IN_YEAR = 86400 * 365;
+
 const mapTokenREItoBSC = {
   '0xf8aB4aaf70cef3F3659d3F466E35Dc7ea10d4A5d': '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c', // BNB
   '0xDD2bb4e845Bd97580020d8F9F58Ec95Bf549c3D9': '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56', // BUSD
@@ -24,12 +23,8 @@ const mapTokenBSCtoREI = {
   '0xe9e7cea3dedca5984780bafc599bd69add087d56': '0xDD2bb4e845Bd97580020d8F9F58Ec95Bf549c3D9',
 };
 
-const getReiPrice = (reserves, bnbPrice) => {
+const getPriceFromReservesRateBNBBsc = (reserves, bnbPrice) => {
   return ((reserves[1] / reserves[0])) * bnbPrice;
-};
-
-const getcouponPriceBUSD = (reserves) => {
-  return ((reserves[1] / reserves[0]));
 };
 
 const getPairInfo = async (pair, tokenAddress) => {
@@ -81,13 +76,19 @@ const getPrices = async (addresses) => {
 const calculateApy = (
   poolInfo,
   totalAllocPoint,
-  couponPerBlock,
+  couponPerSecond,
   couponPrice,
   reserveUSD
 ) => {
   const poolWeight = poolInfo.allocPoint / totalAllocPoint.output;
-  const couponPerYear = BLOCKS_PER_YEAR * couponPerBlock/3;
-  return ((poolWeight * couponPerYear * couponPrice) / reserveUSD) * 100;
+  const couponPerYear = BigNumber(couponPerSecond)
+    .times(SECOND_IN_YEAR)
+    .times(poolWeight);
+  const apy = couponPerYear
+    .times(couponPrice)
+    .div(reserveUSD)
+    .times(100);
+  return apy.toNumber();
 };
 
 const calculateReservesUSD = (
@@ -182,10 +183,10 @@ const getApy = async () => {
   const tokens0 = underlyingToken0.output.map((res) => res.output);
   const tokens1 = underlyingToken1.output.map((res) => res.output);
   const tokensPrices = await getPrices([...tokens0, ...tokens1]);
-  const reiPrice = await getReiPrice(reservesData[2], tokensPrices[BNB_REI.toLowerCase()]);
-  const couponPrice = await getReiPrice(reservesData[2], reiPrice);
+  const reiPrice = await getPriceFromReservesRateBNBBsc(reservesData[2], tokensPrices[BNB_REI_ADDRESS.toLowerCase()]);
+  const couponPrice = await getPriceFromReservesRateBNBBsc(reservesData[2], reiPrice);
   tokensPrices[REI_TOKEN.toLowerCase()] = reiPrice;
-  tokensPrices[COUPON_TOKEN.toLowerCase()] = couponPrice;
+  tokensPrices[COUPON_TOKEN.toLowerCase()] = couponPrice / 10;
   const poolsApy = [];
   for(const [i, pool] of pools.entries()) {
     const pairInfo = await getPairInfo(lpTokens[i], [tokens0[i], tokens1[i]]);
@@ -209,7 +210,7 @@ const getApy = async () => {
       poolInfo,
       totalAllocPoint,
       normalizedcouponPerBlock,
-      couponPrice,
+      tokensPrices[COUPON_TOKEN.toLowerCase()],
       masterChefReservesUsd
     );
 
