@@ -36,12 +36,6 @@
     "decimals": 18
   },
   {
-    "symbol": "MIM",
-    "tokenAddress": "0x99D8a9C45b2ecA8864373A26D1459e3Dff1e17F3",
-    "poolAddress": "0x2e9F9bECF5229379825D0D3C1299759943BD4fED",
-    "decimals": 18
-  },
-  {
     "symbol": "ALUSD",
     "tokenAddress": "0xBC6DA0FE9aD5f3b0d58160288917AA56653660E9",
     "poolAddress": "0x7211508D283353e77b9A7ed2f22334C219AD4b4C",
