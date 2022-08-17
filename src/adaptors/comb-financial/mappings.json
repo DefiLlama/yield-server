@@ -1,0 +1,80 @@
+[
+    {
+        "pool": "spiritCombFtm",
+        "symbol": "COMB-FTM",
+        "tokens": [
+            "0xaE45a827625116d6C0C40B5D7359EcF68F8e9AFD",
+            "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"
+        ]
+    },
+    {
+        "pool": "spookyBooFtm",
+        "symbol": "BOO-FTM",
+        "tokens": [
+            "0x841FAD6EAe12c286d1Fd18d1d525DFfA75C7EFFE",
+            "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"
+        ]
+    },
+    {
+        "pool": "spookyFtmUsdc",
+        "symbol": "FTM-USDC",
+        "tokens": [
+            "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83",
+            "0x04068DA6C83AFCFA0e13ba15A6696662335D5B75"
+        ]
+    },
+    {
+        "pool": "beetsDuetto",
+        "symbol": "BEETS-FTM",
+        "tokens": [
+            "0xF24Bcf4d1e507740041C9cFd2DddB29585aDCe1e",
+            "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"
+        ]
+    },
+    {
+        "pool": "spiritLqdrFtm",
+        "symbol": "LQDR-FTM",
+        "tokens": [
+            "0x10b620b2dbAC4Faa7D7FFD71Da486f5D44cd86f9",
+            "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"
+        ]
+    },
+    {
+        "pool": "spiritMaiFtm",
+        "symbol": "MAI-FTM",
+        "tokens": ["0xfB98B335551a418cD0737375a2ea0ded62Ea213b","0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"]
+    },
+    {
+        "pool": "beetsQuartet",
+        "symbol": "USDC-FTM-BTC-ETH",
+        "tokens": ["0x04068DA6C83AFCFA0e13ba15A6696662335D5B75","0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83","0x321162Cd933E2Be498Cd2267a90534A804051b11","0x74b23882a30290451A17c44f4F05243b6b58C76d"]
+    },
+    {
+        "pool": "beetsStardust",
+        "symbol": "USDT-USDC-MIM",
+        "tokens": ["0x049d68029688eAbF473097a2fC38ef61633A3C7A","0x04068DA6C83AFCFA0e13ba15A6696662335D5B75","0x82f0B8B456c1A451378467398982d4834b6829c1"]
+    },
+    {
+        "pool": "beetsFbeets",
+        "symbol": "FBEETS",
+        "tokens": [
+            "0xfcef8a994209d6916eb2c86cdd2afd60aa6f54b1"
+        ]
+    },
+    {
+        "pool": "beetsDaiOpera",
+        "symbol": "FTM-DAI",
+        "tokens": ["0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83", "0x8D11eC38a3EB5E956B052f67Da8Bdc9bef8Abf3E"]
+    },
+    {
+        "pool": "screamScreamFtm",
+        "symbol": "SCREAM-FTM",
+        "tokens": ["0xe0654C8e6fd4D733349ac7E09f6f23DA256bF475","0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"]
+    },
+    {
+        "pool": "gemFtmUsdc",
+        "symbol": "GEM-FTM-USDC",
+        "tokens": ["0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83","0x04068DA6C83AFCFA0e13ba15A6696662335D5B75"]
+    }
+    
+]

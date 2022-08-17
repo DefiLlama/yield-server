@@ -23,16 +23,11 @@ async function apy() {
     const chainPools = Object.values(poolsResponse[chain]);
 
     const pools = chainPools.map((v) => {
-      var poolNameParts = v.poolName.split(' ');
-      let poolName = (
-        utils.formatSymbol(poolNameParts[0].toUpperCase()) +
-        ' ' +
-        poolNameParts.slice(1, poolNameParts.length).join(' ')
-      ).trim();
       return {
         pool: v.address,
         apy: Number(v.apr),
-        symbol: poolName.replace('-LP', ' LP'),
+        symbol: v.tokenName,
+        poolMeta: v.strategy,
         tvlUsd: Number(v.tvl),
         project: 'idle-finance',
         chain: utils.formatChain(chains[chain]),
@@ -52,4 +47,5 @@ const main = async () => {
 module.exports = {
   apy: main,
   timetravel: false,
+  url: 'https://app.idle.finance/#/best',
 };

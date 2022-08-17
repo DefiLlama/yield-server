@@ -4,17 +4,14 @@ const getPools = async () => {
   const taiKsmApr = await utils.getData(
     'https://api.taigaprotocol.io/rewards/apr?network=karura&pool=0'
   );
-  const taiKsmData = await utils.getData(
-    'https://api.taigaprotocol.io/tokens/taiksm'
-  );
-  const ksmPrice = await utils.getData(
-    'https://api.coingecko.com/api/v3/simple/price?ids=kusama&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true'
+  const taiKsmStats = await utils.getData(
+    'https://api.taigaprotocol.io/tokens/taiksm/stats'
   );
   const threeUsdApr = await utils.getData(
     'https://api.taigaprotocol.io/rewards/apr?network=karura&pool=1'
   );
-  const threeUsdData = await utils.getData(
-    'https://api.taigaprotocol.io/tokens/3usd'
+  const threeUsdStats = await utils.getData(
+    'https://api.taigaprotocol.io/tokens/3usd/stats'
   );
 
   const taiKsm = {
@@ -22,7 +19,7 @@ const getPools = async () => {
     chain: utils.formatChain('karura'),
     project: 'taiga-protocol',
     symbol: 'taiKSM',
-    tvlUsd: Number(taiKsmData.tvl) * Number(ksmPrice.kusama.usd),
+    tvlUsd: taiKsmStats.data.tvl,
     apyBase: taiKsmApr['sa://0'] * 100,
     apyReward: taiKsmApr['TAI'] * 100,
   };
@@ -32,7 +29,7 @@ const getPools = async () => {
     chain: utils.formatChain('karura'),
     project: 'taiga-protocol',
     symbol: '3USD',
-    tvlUsd: Number(threeUsdData.tvl),
+    tvlUsd: threeUsdStats.data.tvl,
     apyBase: threeUsdApr['sa://1'] * 100,
     apyReward:
       (threeUsdApr['TAI'] +
@@ -48,4 +45,5 @@ const getPools = async () => {
 module.exports = {
   timetravel: false,
   apy: getPools,
+  url: 'https://app.taigaprotocol.io/',
 };

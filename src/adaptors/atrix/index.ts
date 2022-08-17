@@ -31,7 +31,7 @@ const getApy = async () => {
       pool: pool.key,
       chain: utils.formatChain('solana'),
       project: 'atrix',
-      symbol: pool.marketData.stats.marketName,
+      symbol: utils.formatSymbol(pool.marketData.stats.marketName),
       tvlUsd: pool.farms[0].tvlUsd,
       apy: pool.farms[0].apr || 0,
       apyReward: pool.farms[0].apr || 0,
@@ -46,4 +46,5 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
+  url: 'https://app.atrix.finance/liquidity',
 };

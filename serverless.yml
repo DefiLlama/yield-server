@@ -60,9 +60,6 @@ provider:
 
   httpApi:
     metrics: true
-    cors:
-      allowedMethods:
-        - GET
 
 functions:
   # --- top-lvl-entrypoint
@@ -90,17 +87,11 @@ functions:
           batchSize: 2
           functionResponseType: ReportBatchItemFailures
     environment:
-      ETHERSCAN: ${file(./env.js):ETHERSCAN}
-      FANTOMSCAN: ${file(./env.js):FANTOMSCAN}
-      POLYGONSCAN: ${file(./env.js):POLYGONSCAN}
-      SNOWTRACE: ${file(./env.js):SNOWTRACE}
-      ARBISCAN: ${file(./env.js):ARBISCAN}
-      OPTIMISM: ${file(./env.js):OPTIMISM}
       INFURA_CONNECTION: ${file(./env.js):INFURA_CONNECTION}
       ALCHEMY_CONNECTION_POLYGON: ${file(./env.js):ALCHEMY_CONNECTION_POLYGON}
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
-      XDAI: ${file(./env.js):XDAI}
       XDAI_RPC: ${file(./env.js):XDAI_RPC}
+      CRONOS_RPC: ${file(./env.js):CRONOS_RPC}
 
   # --- data enrichment
   triggerEnrichment:
@@ -142,20 +133,11 @@ functions:
   getPools:
     handler: src/handlers/getPools.handler
     description: Lambda for retrieving the latest data for each unique pool
-    timeout: 20
+    timeout: 30
     events:
       - httpApi:
           method: get
           path: /simplePools
-
-  getProject:
-    handler: src/handlers/getProject.handler
-    description: Lambda for retrieving the latest pools for a project
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /pools/{project}
 
   getPoolsEnriched:
     handler: src/handlers/getPoolsEnriched.handler
@@ -178,24 +160,6 @@ functions:
           method: get
           path: /chart/{pool}
 
-  getOffsets:
-    handler: src/handlers/getOffsets.handler
-    description: Lambda for getting 1/7/30 day offset data of apy values
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /offsets/{project}/{days}
-
-  getStats:
-    handler: src/handlers/getStats.handler
-    description: Lambda for retrieving stats data
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /stats
-
   getMedian:
     handler: src/handlers/getMedian.handler
     description: Lambda for retrieving median data
@@ -204,6 +168,15 @@ functions:
       - httpApi:
           method: get
           path: /median
+
+  getUrls:
+    handler: src/handlers/getUrls.handler
+    description: Lambda for retrieving url data
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /urls
 
 resources:
   Resources:

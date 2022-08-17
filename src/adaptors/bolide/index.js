@@ -24,7 +24,7 @@ const poolsFunction = async () => {
       project: 'bolide',
       symbol: 'USDT',
       tvlUsd: lrsTvlData.tokensTvl['USDT'].tvl,
-      apy: lrsApyData.apy
+      apy: lrsApyData.apy,
     },
     {
       pool: '0xf1f25A26499B023200B3f9A30a8eCEE87b031Ee1' + 'USDC',
@@ -32,7 +32,7 @@ const poolsFunction = async () => {
       project: 'bolide',
       symbol: 'USDC',
       tvlUsd: lrsTvlData.tokensTvl['USDC'].tvl,
-      apy: lrsApyData.apy
+      apy: lrsApyData.apy,
     },
     {
       pool: '0xf1f25A26499B023200B3f9A30a8eCEE87b031Ee1' + 'BUSD',
@@ -40,8 +40,8 @@ const poolsFunction = async () => {
       project: 'bolide',
       symbol: 'BUSD',
       tvlUsd: lrsTvlData.tokensTvl['BUSD'].tvl,
-      apy: lrsApyData.apy
-    }
+      apy: lrsApyData.apy,
+    },
   ];
 
   const btcPools = [
@@ -51,8 +51,8 @@ const poolsFunction = async () => {
       project: 'bolide',
       symbol: 'BTC',
       tvlUsd: btcTvlData.tokensTvl['BTC'].tvl,
-      apy: btcApyData.apy
-    }
+      apy: btcApyData.apy,
+    },
   ];
 
   const ethPools = [
@@ -62,8 +62,8 @@ const poolsFunction = async () => {
       project: 'bolide',
       symbol: 'ETH',
       tvlUsd: ethTvlData.tokensTvl['ETH'].tvl,
-      apy: ethApyData.apy
-    }
+      apy: ethApyData.apy,
+    },
   ];
 
   const stakingBlid = [
@@ -73,8 +73,8 @@ const poolsFunction = async () => {
       project: 'bolide',
       symbol: 'BLID',
       tvlUsd: dataTvl.stakingTvl,
-      apy: apyData.stakingApy
-    }
+      apy: apyData.stakingApy,
+    },
   ];
 
   const farmingBlidUsdt = [
@@ -84,8 +84,8 @@ const poolsFunction = async () => {
       project: 'bolide',
       symbol: 'BLID-USDT',
       tvlUsd: dataTvl.farmingTvl,
-      apy: apyData.farmingApy
-    }
+      apy: apyData.farmingApy,
+    },
   ];
 
   return [
@@ -93,12 +93,13 @@ const poolsFunction = async () => {
     ...btcPools,
     ...ethPools,
     ...stakingBlid,
-    ...farmingBlidUsdt
+    ...farmingBlidUsdt,
 
   ];
 };
 
 module.exports = {
   timetravel: false,
-  apy: poolsFunction
+  apy: poolsFunction,
+  url: 'https://app.bolide.fi/#/',
 };

@@ -23,7 +23,10 @@ const buildPoolsEnriched = async (queryString) => {
     'project',
     'symbol',
     'tvlUsd',
+    'apyBase',
+    'apyReward',
     'apy',
+    'rewardTokens',
     'pool',
     'apyPct1D',
     'apyPct7D',
@@ -32,11 +35,12 @@ const buildPoolsEnriched = async (queryString) => {
     'ilRisk',
     'exposure',
     'predictions',
-    'market',
+    'poolMeta',
     'mu',
     'sigma',
     'count',
     'outlier',
+    'underlyingTokens',
   ]
     .map((el) => `t."${el}"`)
     .join(', ');
