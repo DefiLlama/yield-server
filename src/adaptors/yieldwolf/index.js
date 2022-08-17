@@ -43,22 +43,24 @@ const apy = async () => {
   }));
   const res = Object.keys(networkMapping).map((chainId, index) => {
     const { pools } = poolsResult[index];
-    return pools.nodes.filter(e => e.tvl !== 0).map(pool => {
-      const {token0, token1, tvl, apy, address, poolApr, stakeToken, earnToken} = pool;
-      const { lpApy } = stakeToken;
-      const apyBase = lpApy;
-      const apyReward = poolApr;
-      return {
-        pool: address + '-' + networkMapping[chainId].name,
-        chain: utils.formatChain(networkMapping[chainId].name),
-        project: 'yieldwolf',
-        symbol: `${token0?.symbol}${token1?.symbol ? '-' + token1?.symbol : ''}`,
-        tvlUsd: tvl,
-        apyBase,
-        apyReward,
-        rewardTokens: [earnToken?.address],
-        underlyingTokens: [token0?.address, token1?.address].filter(e => e)
-      }
+    return pools.nodes
+      .filter(e => e.token0 !== null)
+      .filter(e => e.tvl !== 0).map(pool => {
+        const {token0, token1, tvl, apy, address, poolApr, stakeToken, earnToken} = pool;
+        const { lpApy } = stakeToken;
+        const apyBase = lpApy;
+        const apyReward = poolApr;
+        return {
+          pool: address + '-' + networkMapping[chainId].name,
+          chain: utils.formatChain(networkMapping[chainId].name),
+          project: 'yieldwolf',
+          symbol: `${token0?.symbol}${token1?.symbol ? '-' + token1?.symbol : ''}`,
+          tvlUsd: tvl,
+          apyBase,
+          apyReward,
+          rewardTokens: [earnToken?.address],
+          underlyingTokens: [token0?.address, token1?.address].filter(e => e)
+        }
     });
   });
   return res.flat();
