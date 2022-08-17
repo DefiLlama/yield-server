@@ -4,8 +4,8 @@ const utils = require('../utils');
 
 const url = 'https://api.thegraph.com/subgraphs/name/lyra-finance/mainnet';
 
-const SECONDS_IN_WEEK = 604800;
-const WEEKS_IN_YEAR = 52;
+const SECONDS_IN_MONTH = 2592000;
+const MONTHS_IN_YEAR = 12;
 
 const query = gql`
   {
@@ -16,7 +16,7 @@ const query = gql`
                 id
             }
           name
-            marketTotalValueHistory(first: 1 where:{timestamp_lte: <PLACEHOLDER>} orderBy:timestamp orderDirection: desc){
+            marketTotalValueHistory(first: 1 where:{timestamp_gte: <PLACEHOLDER>} orderBy:timestamp orderDirection: asc){
                 timestamp
                 tokenPrice
                 NAV
@@ -48,12 +48,12 @@ const queryNow = gql`
 `;
 
 const buildPool = (entry, chainString) => {
-  const symbol = utils.formatSymbol(`sUSD(${entry.name}-Vault)`);
   const newObj = {
     pool: entry.liquidityPool.id,
-    chain: chainString,
+    chain: utils.formatChain(chainString),
     project: 'lyra',
-    symbol,
+    symbol: 'sUSD',
+    poolMeta: `${entry.name}-Vault`,
     apyBase: entry.apy,
     tvlUsd: entry.NAV,
     underlyingTokens: [entry.quoteAddress],
@@ -73,7 +73,7 @@ const getAPY = (dataNow, dataPrior) => {
   dataNow['apy'] =
     ((dataNow['tokenPriceNow'] - dataNow['tokenPricePrior']) /
       dataNow['tokenPricePrior']) *
-    WEEKS_IN_YEAR *
+    MONTHS_IN_YEAR *
     100;
   return dataNow;
 };
@@ -85,8 +85,8 @@ const topLvl = async (chainString, timestamp, url) => {
   );
   let priorTimestamp =
     timestamp == null
-      ? Math.floor(Date.now() / 1000) - SECONDS_IN_WEEK
-      : timestamp - SECONDS_IN_WEEK;
+      ? Math.floor(Date.now() / 1000) - SECONDS_IN_MONTH
+      : timestamp - SECONDS_IN_MONTH;
 
   // pull 24h offset data to calculate fees from swap volume
   let dataPrior = await request(
@@ -111,4 +111,5 @@ const main = async (timestamp = null) => {
 module.exports = {
   timetravel: true,
   apy: main,
+  url: 'https://app.lyra.finance/vaults',
 };

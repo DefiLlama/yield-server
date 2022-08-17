@@ -8,7 +8,7 @@ const buildPool = (entry, chainString) => {
     symbol: utils.formatSymbol(entry.token),
     tvlUsd:
       chainString === 'ethereum' ? entry.marketCap : entry.totalStaked.usd,
-    apy: entry.apr,
+    apy: Number(entry.apr),
   };
 
   return newObj;
@@ -67,4 +67,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://lido.fi/#networks',
 };

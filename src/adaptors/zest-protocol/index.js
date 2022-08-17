@@ -15,6 +15,7 @@ const STAKING_ADDRESS = '0x1b6deD5c603d66800B0DDf566Ec316a344C7BcaD';
 const ZSP_ADDRESS = '0x2C26617034C840C9412CD67aE0Fc68A6755D00BF';
 const WFTM_ADDRESS = '0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83';
 const ORACLE_ADDRESS = '0xb9Eebcd999130Ec2037DcAC98bd36185bB22D797';
+const WETH_ADDRESS = '0x74b23882a30290451A17c44f4F05243b6b58C76d';
 
 const BLOCKS_PER_DAY = 86400;
 
@@ -116,6 +117,8 @@ const main = async () => {
   const normalisedRewardRateFtm = rewardRateFtm.rewardRate / 1e18;
   const rewardRateZsp = await staking.methods.rewardData(ZSP_ADDRESS).call();
   const normalisedRewardRateZsp = rewardRateZsp.rewardRate / 1e18;
+  const rewardRateEth = await staking.methods.rewardData(WETH_ADDRESS).call();
+  const normalisedRewardRateEth = rewardRateEth.rewardRate / 1e18;
   const totalLocked = await staking.methods.lockedSupply().call();
   const normalisedTotalLocked = totalLocked / 1e18;
   const totalSupply = await staking.methods.totalSupply().call();
@@ -123,8 +126,11 @@ const main = async () => {
   const stakedSupply = normalisedTotalSupply - normalisedTotalLocked;
 
   const stakeRewardPerYear = normalisedRewardRateFtm * BLOCKS_PER_DAY * 365;
-  const stakeRewards = stakeRewardPerYear / normalisedTotalSupply;
-  const stakeAPR = (stakeRewards / zspPriceFtm) * 100;
+  const stakeRewardsEthPerYear = normalisedRewardRateEth * BLOCKS_PER_DAY * 365;
+  const stakeRewardsFtm = stakeRewardPerYear / normalisedTotalSupply;
+  const stakeRewardsEth = stakeRewardsEthPerYear / normalisedTotalSupply;
+
+  const stakeAPR = ((stakeRewardsFtm + stakeRewardsEth) / zspPriceFtm) * 100;
   const stakeTVL = stakedSupply * zspPrice;
 
   const lockRewardsPerYear = normalisedRewardRateZsp * BLOCKS_PER_DAY * 365;
@@ -201,15 +207,16 @@ const main = async () => {
           pool: pairInfo.id,
           chain: utils.formatChain('fantom'),
           project: 'zest-protocol',
-          symbol: pairInfo.name,
+          symbol: pairInfo.name.replace(/(WFTM)+/g, 'FTM'),
           tvlUsd: Number(reserveUSD),
-          apy: calculateApy(
+          apyReward: calculateApy(
             poolInfo,
             totalAllocPoint,
             normalizedRewardPerBlock,
             zspPrice,
             reserveUSD
           ),
+          rewardTokens: ['0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83'],
           underlyingTokens: [underlying0, underlying1],
         };
         return pool;
@@ -223,7 +230,7 @@ const main = async () => {
     project: 'zest-protocol',
     symbol: 'ZSP Staked',
     tvlUsd: Number(stakeTVL),
-    apy: Number(stakeAPR),
+    apyReward: Number(stakeAPR),
     rewardTokens: [WFTM_ADDRESS],
   };
 
@@ -233,7 +240,7 @@ const main = async () => {
     project: 'zest-protocol',
     symbol: 'ZSP Locked',
     tvlUsd: Number(lockTVL),
-    apy: Number(lockAPR),
+    apyReward: Number(lockAPR),
     rewardTokens: [WFTM_ADDRESS, ZSP_ADDRESS],
   };
 
@@ -245,4 +252,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://zestprotocol.fi/dashboard',
 };

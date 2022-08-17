@@ -1,12 +1,15 @@
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 
-exports.formatChain = (chain) => chain.charAt(0).toUpperCase() + chain.slice(1);
+exports.formatChain = (chain) => {
+  if (chain && chain.toLowerCase() === 'xdai') return 'xDai';
+  return chain.charAt(0).toUpperCase() + chain.slice(1);
+};
 
 // replace / with - and trim potential whitespace
 exports.formatSymbol = (symbol) =>
   symbol
-    .replace(/[_+\/]/g, '-')
+    .replace(/[_+:\/]/g, '-')
     .replace(/\s/g, '')
     .trim();
 
@@ -22,52 +25,13 @@ exports.getData = async (url, query = null) => {
 
 // retrive block based on unixTimestamp array
 exports.getBlocksByTime = async (timestamps, chainString) => {
-  const urlsKeys = {
-    ethereum: {
-      url: 'https://api.etherscan.io',
-      key: process.env.ETHERSCAN,
-    },
-    polygon: {
-      url: 'https://api.polygonscan.com',
-      key: process.env.POLYGONSCAN,
-    },
-    avalanche: {
-      url: 'https://api.snowtrace.io',
-      key: process.env.SNOWTRACE,
-    },
-    arbitrum: {
-      url: 'https://api.arbiscan.io',
-      key: process.env.ARBISCAN,
-    },
-    optimism: {
-      url: 'https://api-optimistic.etherscan.io',
-      key: process.env.OPTIMISM,
-    },
-    xdai: {
-      url: 'https://blockscout.com/xdai/mainnet',
-      key: process.env.XDAI,
-    },
-  };
-
+  const chain = chainString === 'avalanche' ? 'avax' : chainString;
   const blocks = [];
   for (const timestamp of timestamps) {
-    const url =
-      `${urlsKeys[chainString].url}/api?module=block&action=getblocknobytime&timestamp=` +
-      timestamp +
-      '&closest=before&apikey=' +
-      urlsKeys[chainString].key;
-
-    const response = await superagent.get(url);
-
-    let blockNumber;
-
-    if (url.includes('blockscout')) {
-      blockNumber = response.body.result.blockNumber;
-    } else {
-      blockNumber = response.body.result;
-    }
-
-    blocks.push(parseInt(blockNumber));
+    const response = await superagent.get(
+      `https://coins.llama.fi/block/${chain}/${timestamp}`
+    );
+    blocks.push(response.body.height);
   }
   return blocks;
 };
@@ -110,7 +74,7 @@ const getLatestBlockSubgraph = async (url) => {
 };
 
 // func which queries subgraphs for their latest block nb and compares it against
-// the latest block from etherscan api, if within a certain bound -> ok, otherwise
+// the latest block from https://coins.llama.fi/block/, if within a certain bound -> ok, otherwise
 // will break as data is stale
 exports.getBlocks = async (chainString, tsTimeTravel, urlArray) => {
   const timestamp =

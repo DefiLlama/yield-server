@@ -3,7 +3,6 @@ const { default: BigNumber } = require('bignumber.js');
 
 const utils = require('../utils');
 
-const legacy = require('./legacy-adaptor');
 const {
   CRV_API_BASE_URL,
   BLOCKCHAINIDS,
@@ -120,6 +119,7 @@ const getMainPoolGaugeRewards = async () => {
 };
 
 const getPoolAPR = (pool, subgraph, gauge, crvPrice, underlyingPrices) => {
+  if (gauge.is_killed) return 0;
   const crvPriceBN = BigNumber(crvPrice);
   const decimals = BigNumber(1e18);
   const workingSupply = BigNumber(gauge.gauge_data.working_supply).div(
@@ -135,7 +135,11 @@ const getPoolAPR = (pool, subgraph, gauge, crvPrice, underlyingPrices) => {
   const virtualPrice = BigNumber(subgraph.virtualPrice).div(decimals);
   let poolAPR;
   try {
-    if (pool.totalSupply && !pool.coinsAddresses.includes(THREE_CRV_ADDRESS)) {
+    if (
+      pool.totalSupply &&
+      !pool.coinsAddresses.includes(THREE_CRV_ADDRESS) &&
+      pool.implementation !== 'metausd-fraxusdc'
+    ) {
       poolAPR = inflationRate
         .times(relativeWeight)
         .times(31536000)
@@ -236,7 +240,25 @@ const main = async () => {
         rewardTokens.push('0xD533a949740bb3306d119CC777fa900bA034cd52'); // CRV
       }
 
-      const tvlUsd = pool.usdTotal;
+      // note(!) curve api uses coingecko prices and am3CRV is wrongly priced
+      // this leads to pool.usdTotal to be inflated, going to hardcode temporarly hardcode this
+      // to 1usd
+      // am3CRV
+      const am3CRV = '0xE7a24EF0C5e95Ffb0f6684b813A78F2a3AD7D171';
+      const x = pool.coins.find((c) => c.address === am3CRV && c.usdPrice > 2);
+      let tvlUsd;
+      if (x) {
+        tvlUsd = pool.coins
+          .map((c) =>
+            c.address === am3CRV
+              ? (c.poolBalance / `1e${c.decimals}`) * 1
+              : (c.poolBalance / `1e${c.decimals}`) * c.usdPrice
+          )
+          .reduce((a, b) => a + b, 0);
+      } else {
+        tvlUsd = pool.usdTotal;
+      }
+
       if (tvlUsd < 1) {
         continue;
       }
@@ -283,7 +305,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  // legacy needed by convex-finance adaptor
-  curvePoolStats: legacy.curvePoolStats,
-  tokenMapping: legacy.tokenMapping,
+  url: 'https://curve.fi/pools',
 };

@@ -3,7 +3,15 @@
 // in case we have old values in db
 const excludeAdaptors = ['anchor', 'capsa', 'koyo-finance', 'rook'];
 
-const excludePools = ['0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d'];
+const excludePools = [
+  '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d',
+  'DWmAv5wMun4AHxigbwuJygfmXBBe9WofXAtrMCRJExfb', // Solend COOL coin pool
+  // ripae pools (reported by MathieuB as scam project, and definitely not noIL!)
+  'ripae-seth-weth-42161',
+  'ripae-peth-weth-42161',
+  '0x3eed430cd45c5e2b45aa1adc609cc77c6728d45b', // mind-wavax on traderjoe, snowtrace shows tiny lp value, but tvl is huge
+  '0x3c42B0f384D2912661C940d46cfFE1CD10F1c66F-ethereum', // test pool on curve? (CTDL-WBTC)
+];
 
 const boundaries = {
   // we only insert pools into the db with a tvlUsd of minimum $1k

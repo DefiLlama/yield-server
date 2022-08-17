@@ -6,7 +6,6 @@ const sherlockV2ABI = require('./sherlockV2abi.json');
 const SherlockV2Contract = '0x0865a889183039689034dA55c1Fd12aF5083eabF';
 
 const apy = async () => {
-  
   // Fetch APY
   const apyData = await utils.getData(
     'https://mainnet.indexer.sherlock.xyz/staking'
@@ -38,4 +37,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy,
+  url: 'https://app.sherlock.xyz/stake',
 };
