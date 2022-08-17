@@ -2,8 +2,7 @@ const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 const superagent = require('superagent');
 const utils = require('../utils');
-const masterChefABI = require('./abis/masterchef.json');
-const lpABI = require('./abis/lp.json');
+const ABI = require('./abi.json');
 
 const CIV_TOKEN = '0x37fE0f067FA808fFBDd12891C0858532CFE7361d';
 const MASTERCHEF_ADDRESS = '0x8a774F790aBEAEF97b118112c790D0dcccA61099';
@@ -17,14 +16,14 @@ const getApy = async () => {
   const poolLength = await sdk.api.abi.call({
     target: MASTERCHEF_ADDRESS,
     chain: 'ethereum',
-    abi: masterChefABI.find((e) => e.name === 'poolLength'),
+    abi: ABI.poolLength,
   });
 
   const poolRes = await Promise.all([...Array(Number(poolLength.output)).keys()].map((i) => utils.getData(API_POOL_DATA(i))));
   const [underlyingToken0, underlyingToken1] = await Promise.all(
     ['token0', 'token1'].map((method) =>
       sdk.api.abi.multiCall({
-        abi: lpABI.filter(({ name }) => name === method)[0],
+        abi: ABI[method],
         calls: poolRes.filter(e => !POOLS_ONE_TOKEN.includes(e.lpToken)).map(({lpToken}) => ({
           target: lpToken,
         })),
