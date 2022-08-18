@@ -27,12 +27,12 @@ const brcContract = new web3.eth.Contract(BrcABI, BRC);
 const BLOCKS_PER_MONTH = 199384;
 const TOTAL_POOLS_WEIGHT = 568;
 const PoolNames = [
-  'BRC (7Days)',
-  'BRC (30Days)',
-  'BRC (90Days)',
-  'BRC-gBRC (7Days)',
-  'BRC-gBRC (30Days)',
-  'BRC-gBRC (90Days)',
+  'BRC 7Days',
+  'BRC 30Days',
+  'BRC 90Days',
+  'BRC-gBRC 7Days',
+  'BRC-gBRC 30Days',
+  'BRC-gBRC 90Days',
 ];
 
 let gBRCCost = 0;
