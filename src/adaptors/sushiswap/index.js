@@ -21,7 +21,7 @@ const urlAvalanche = `${baseUrl}/avalanche-exchange`;
 const baseUrlLm = 'https://api.thegraph.com/subgraphs/name';
 const urlMc1 = `${baseUrlLm}/sushiswap/master-chef`;
 const urlMc2 = `${baseUrlLm}/sushiswap/master-chefv2`;
-const urlMcArbitrum = `${baseUrlLm}/matthewlilley/arbitrum-minichef`;
+const urlMcArbitrum = `${baseUrlLm}/sushiswap/arbitrum-minichef`;
 const urlMcPolygon = `${baseUrlLm}/sushiswap/matic-minichef`;
 
 // sushi token
@@ -105,6 +105,7 @@ const queryMc = gql`
 const topLvl = async (chainString, urlExchange, urlRewards) => {
   const [block, blockPrior] = await utils.getBlocks(chainString, null, [
     urlExchange,
+    urlRewards,
   ]);
 
   // calc base apy
