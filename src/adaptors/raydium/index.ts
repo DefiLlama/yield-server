@@ -7,7 +7,7 @@ interface Pool {
   lpMint: string;
   name: string;
   liquidity: string;
-  apr7d: number;
+  apr24h: number;
 }
 
 type Pools = Array<Pool>;
@@ -22,7 +22,7 @@ const apy = async () => {
       project: 'raydium',
       symbol: pool.name,
       tvlUsd: pool.liquidity,
-      apy: pool.apr7d,
+      apyBase: pool.apr24h,
     };
   });
 
