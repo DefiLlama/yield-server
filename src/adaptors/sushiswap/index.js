@@ -9,6 +9,7 @@ const {
   masterchefV2ABI,
 } = require('./abisEthereum');
 const { minichefV2 } = require('./abiMinichefV2');
+const { rewarderABI } = require('./abiRewarder');
 
 // exchange urls
 const baseUrl = 'https://api.thegraph.com/subgraphs/name/sushiswap';
@@ -145,6 +146,10 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
   let poolsInfoMC2;
   let lpTokensMC2;
 
+  let rewarderMC2;
+  let rewardTokenMC2;
+  let rewardPerSecondMC2;
+
   if (chainString === 'arbitrum' || chainString === 'polygon') {
     [poolsLengthMC2, totalAllocPointMC2, sushiPerSecond] = (
       await Promise.all(
@@ -159,8 +164,8 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
     ).map((res) => res.output);
     sushiPerSecond /= 1e18;
 
-    [poolsInfoMC2, lpTokensMC2] = await Promise.all(
-      ['poolInfo', 'lpToken'].map((method) =>
+    [poolsInfoMC2, lpTokensMC2, rewarderMC2] = await Promise.all(
+      ['poolInfo', 'lpToken', 'rewarder'].map((method) =>
         sdk.api.abi.multiCall({
           calls: [...Array(Number(poolsLengthMC2 - 1)).keys()].map((i) => ({
             target: CHEF[chainString].mc2,
@@ -173,8 +178,26 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
     );
     poolsInfoMC2 = poolsInfoMC2.output.map((res) => res.output);
     lpTokensMC2 = lpTokensMC2.output.map((res) => res.output);
+    rewarderMC2 = rewarderMC2.output.map((res) => res.output);
+
+    [rewardPerSecondMC2, rewardTokenMC2] = await Promise.all(
+      ['rewardPerSecond', 'rewardToken'].map((method) =>
+        sdk.api.abi.multiCall({
+          abi: rewarderABI.find(({ name }) => name === method),
+          calls: [...Array(Number(poolsLengthMC2 - 1)).keys()].map((i) => ({
+            target: rewarderMC2[i],
+          })),
+          chain: chainString,
+        })
+      )
+    );
+    rewardPerSecondMC2 = rewardPerSecondMC2.output.map((res) => res.output);
+    rewardTokenMC2 = rewardTokenMC2.output.map((res) => res.output);
+
     poolsInfoMC2.forEach((p, i) => {
       p['lpToken'] = lpTokensMC2[i];
+      p['rewardToken'] = rewardTokenMC2[i]?.toLowerCase();
+      p['rewardPerSecond'] = rewardPerSecondMC2[i];
     });
   } else if (chainString === 'ethereum') {
     //////////////////// MC1 (pools with sushi rewards)
@@ -269,29 +292,32 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
     }
   }
 
-  // calculate sushi and extra token reward apy
+  // calculate sushi and extra token reward apy for ethereum
   // note: wanted to pull via contracts, but a large variety of different reward token related abis
   // and function names (eg `rewardPerSecond`, `tokenPerBlock`, `rewardPerToken`)
   // using the subgraph to pull rewards instead
-  let poolsRewardMC2 = (
-    await request(urlRewards, queryMc.replace('<PLACEHOLDER>', block))
-  ).pools;
-  for (const p of poolsInfoMC2) {
-    x = poolsRewardMC2.find(
-      (x) => x.pair.toLowerCase() === p.lpToken.toLowerCase()
-    );
-    const rewarder = x?.rewarder;
-    p['rewardPerSecond'] =
-      // ALCX reward token returns tokenPerBlock but subgraph doesn't distinguish
-      // see: (https://etherscan.io/address/0x7519C93fC5073E15d89131fD38118D73A72370F8#readContract)
-      p.lpToken.toLowerCase() === '0xc3f279090a47e80990fe3a9c30d24cb117ef91a8'
-        ? Number(rewarder?.rewardPerSecond / secondsPerBlock)
-        : // CVX rewards are 0
-        p.lpToken.toLowerCase() === '0x05767d9ef41dc40689678ffca0608878fb3de906'
-        ? 0
-        : Number(rewarder?.rewardPerSecond);
-    p['rewardToken'] =
-      rewarder !== undefined ? rewarder.rewardToken.toLowerCase() : rewarder;
+  if (chainString === 'ethereum') {
+    const poolsRewardMC2 = (
+      await request(urlRewards, queryMc.replace('<PLACEHOLDER>', block))
+    ).pools;
+    for (const p of poolsInfoMC2) {
+      const x = poolsRewardMC2.find(
+        (x) => x.pair.toLowerCase() === p.lpToken.toLowerCase()
+      );
+      const rewarder = x?.rewarder;
+      p['rewardPerSecond'] =
+        // ALCX reward token returns tokenPerBlock but subgraph doesn't distinguish
+        // see: (https://etherscan.io/address/0x7519C93fC5073E15d89131fD38118D73A72370F8#readContract)
+        p.lpToken.toLowerCase() === '0xc3f279090a47e80990fe3a9c30d24cb117ef91a8'
+          ? Number(rewarder?.rewardPerSecond / secondsPerBlock)
+          : // CVX rewards are 0
+          p.lpToken.toLowerCase() ===
+            '0x05767d9ef41dc40689678ffca0608878fb3de906'
+          ? 0
+          : Number(rewarder?.rewardPerSecond);
+      p['rewardToken'] =
+        rewarder !== undefined ? rewarder.rewardToken.toLowerCase() : rewarder;
+    }
   }
 
   // get reward token prices
