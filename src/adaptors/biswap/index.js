@@ -20,94 +20,9 @@ const BLOCKS_PER_YEAR = Math.floor((60 / BSC_BLOCK_TIME) * 60 * 24 * 365);
 const BLOCKS_PER_DAY = Math.floor((60 / BSC_BLOCK_TIME) * 60 * 24);
 const WEEKS_PER_YEAR = 52;
 const FEE_RATE = 0.0005;
+const CHAIN = 'bsc';
 
 const web3 = new Web3(RPC_URL);
-
-const pairQuery = gql`
-  query pairQuery($id_in: [ID!]) {
-    pairs(where: { id_in: $id_in }) {
-      name
-      id
-      token0 {
-        decimals
-        id
-      }
-      token1 {
-        decimals
-        id
-      }
-    }
-  }
-`;
-
-const getPairInfo = async (pairs) => {
-  const pairInfo = await Promise.all(
-    chunk(pairs, 7).map((tokens) =>
-      request(API_URL, pairQuery, {
-        id_in: tokens.map((pair) => pair.toLowerCase()),
-      })
-    )
-  );
-
-  return pairInfo
-    .map(({ pairs }) => pairs)
-    .flat()
-    .reduce((acc, pair) => ({ ...acc, [pair.id.toLowerCase()]: pair }), {});
-};
-
-const calculateApy = (
-  poolInfo,
-  totalAllocPoint,
-  bswPerBlock,
-  bswPrice,
-  reserveUSD
-) => {
-  const poolWeight = poolInfo.allocPoint / totalAllocPoint;
-  const vvsPerYear = BLOCKS_PER_YEAR * bswPerBlock;
-
-  return ((poolWeight * vvsPerYear * bswPrice) / reserveUSD) * 100;
-};
-
-const calculateReservesUSD = (
-  reserves,
-  reservesRatio,
-  token0,
-  token1,
-  tokenPrices
-) => {
-  const { decimals: token0Decimals, id: token0Address } = token0;
-  const { decimals: token1Decimals, id: token1Address } = token1;
-  const token0Price = tokenPrices[token0Address.toLowerCase()];
-  const token1Price = tokenPrices[token1Address.toLowerCase()];
-
-  const reserve0 = new BigNumber(reserves._reserve0)
-    .times(reservesRatio)
-    .times(10 ** (18 - token0Decimals));
-  const reserve1 = new BigNumber(reserves._reserve1)
-    .times(reservesRatio)
-    .times(10 ** (18 - token1Decimals));
-
-  if (token0Price) return reserve0.times(token0Price).times(2);
-  if (token1Price) return reserve1.times(token1Price).times(2);
-};
-
-const getPrices = async (addresses) => {
-  const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses.map((address) => `bsc:${address}`),
-    })
-  ).body.coins;
-
-  const pricesObj = Object.entries(prices).reduce(
-    (acc, [address, price]) => ({
-      ...acc,
-      [address.split(':')[1].toLowerCase()]: price.price,
-    }),
-    {}
-  );
-
-  return pricesObj;
-};
 
 const apy = async () => {
   const nonLpPools = [0];
@@ -132,44 +47,33 @@ const apy = async () => {
     .filter(({ i }) => !nonLpPools.includes(i));
   const lpTokens = pools.map(({ lpToken }) => lpToken);
 
-  const [reservesRes, supplyRes, masterChefBalancesRes] = await Promise.all(
+  const [reservesData, supplyData, masterChefBalData] = await Promise.all(
     ['getReserves', 'totalSupply', 'balanceOf'].map((method) =>
-      sdk.api.abi.multiCall({
-        abi: lpTokenABI.filter(({ name }) => name === method)[0],
-        calls: lpTokens.map((address) => ({
-          target: address,
-          params: method === 'balanceOf' ? [MASTERCHEF_ADDRESS] : null,
-        })),
-        chain: 'bsc',
-        requery: true,
-      })
+      utils.makeMulticall(
+        lpTokenABI.filter(({ name }) => name === method)[0],
+        lpTokens,
+        'bsc',
+        method === 'balanceOf' ? [MASTERCHEF_ADDRESS] : null
+      )
     )
   );
 
-  const [underlyingToken0, underlyingToken1] = await Promise.all(
+  const [tokens0, tokens1] = await Promise.all(
     ['token0', 'token1'].map((method) =>
-      sdk.api.abi.multiCall({
-        abi: lpTokenABI.filter(({ name }) => name === method)[0],
-        calls: lpTokens.map((address) => ({
-          target: address,
-        })),
-        chain: 'bsc',
-        requery: true,
-      })
+      utils.makeMulticall(
+        lpTokenABI.filter(({ name }) => name === method)[0],
+        lpTokens,
+        'bsc'
+      )
     )
   );
 
-  const reservesData = reservesRes.output.map((res) => res.output);
-  const supplyData = supplyRes.output.map((res) => res.output);
-  const masterChefBalData = masterChefBalancesRes.output.map(
-    (res, i) => res.output
+  const { pricesByAddress: tokensPrices } = await utils.getPrices(
+    [...tokens0, ...tokens1],
+    CHAIN
   );
-  const tokens0 = underlyingToken0.output.map((res) => res.output);
-  const tokens1 = underlyingToken1.output.map((res) => res.output);
 
-  const tokensPrices = await getPrices([...tokens0, ...tokens1]);
-
-  const pairsInfo = await getPairInfo(lpTokens);
+  const pairsInfo = await utils.uniswap.getPairsInfo(lpTokens, API_URL);
 
   const lpChunks = chunk(lpTokens, 10);
 
@@ -218,24 +122,24 @@ const apy = async () => {
     const supply = supplyData[i];
     const masterChefBalance = masterChefBalData[i];
 
-    const masterChefReservesUsd = calculateReservesUSD(
-      reserves,
-      masterChefBalance / supply,
-      pairInfo.token0,
-      pairInfo.token1,
-      tokensPrices
-    )
-      .div(1e18)
+    const masterChefReservesUsd = utils.uniswap
+      .calculateReservesUSD(
+        reserves,
+        masterChefBalance / supply,
+        pairInfo.token0,
+        pairInfo.token1,
+        tokensPrices
+      )
       .toString();
 
-    const lpReservesUsd = calculateReservesUSD(
-      reserves,
-      1,
-      pairInfo.token0,
-      pairInfo.token1,
-      tokensPrices
-    )
-      .div(1e18)
+    const lpReservesUsd = utils.uniswap
+      .calculateReservesUSD(
+        reserves,
+        1,
+        pairInfo.token0,
+        pairInfo.token1,
+        tokensPrices
+      )
       .toString();
 
     const lpFees7D =
@@ -245,12 +149,13 @@ const apy = async () => {
       ) * FEE_RATE;
     const apyBase = ((lpFees7D * WEEKS_PER_YEAR) / lpReservesUsd) * 100;
 
-    const apyReward = calculateApy(
+    const apyReward = utils.uniswap.calculateApy(
       poolInfo,
       totalAllocPoint,
       bswPerBlock,
       tokensPrices[BSW_TOKEN],
-      masterChefReservesUsd
+      masterChefReservesUsd,
+      BLOCKS_PER_YEAR
     );
 
     return {
