@@ -160,7 +160,9 @@ const main = async (body) => {
     const message = droppedPools
       .map(
         (p) =>
-          `Project: ${p.project} Pool: ${p.pool} Symbol: ${p.symbol} TVL ${p.tvlMultiplier}x -> disabling it`
+          `Project: ${p.project} Pool: ${p.pool} Symbol: ${
+            p.symbol
+          } TVL: from ${p.tvlUsdDB.toFixed()} to ${p.tvlUsd.toFixed()} (${p.tvlMultiplier.toFixed()} increase)`
       )
       .join('\n');
     await sendMessage(message, process.env.TVL_SPIKE_WEBHOOK);
