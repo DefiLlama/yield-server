@@ -162,7 +162,9 @@ const main = async (body) => {
         (p) =>
           `Project: ${p.project} Pool: ${p.pool} Symbol: ${
             p.symbol
-          } TVL: from ${p.tvlUsdDB.toFixed()} to ${p.tvlUsd.toFixed()} (${p.tvlMultiplier.toFixed()} increase)`
+          } TVL: from ${p.tvlUsdDB.toFixed()} to ${p.tvlUsd.toFixed()} (${p.tvlMultiplier.toFixed(
+            2
+          )}x increase)`
       )
       .join('\n');
     await sendMessage(message, process.env.TVL_SPIKE_WEBHOOK);
