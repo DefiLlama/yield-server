@@ -27,3 +27,4 @@ jobs:
           ALCHEMY_CONNECTION_ARBITRUM: ${{ secrets.ALCHEMY_CONNECTION_ARBITRUM }}
           XDAI_RPC: ${{ secrets.XDAI_RPC }}
           CRONOS_RPC: ${{ secrets.CRONOS_RPC }}
+          TVL_SPIKE_WEBHOOK: ${{ secrets.TVL_SPIKE_WEBHOOK }}

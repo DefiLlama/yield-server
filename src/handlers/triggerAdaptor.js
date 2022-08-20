@@ -7,6 +7,7 @@ const { aggQuery } = require('./getPools');
 const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
 const dbConnection = require('../utils/dbConnection.js');
+const { sendMessage } = require('../utils/discordWebhook');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -120,6 +121,10 @@ const main = async (body) => {
   const dataInitial = await getProject(body.adaptor);
 
   const dataDB = [];
+  const nHours = 5;
+  const tvlDeltaMultiplier = 5;
+  const timedeltaLimit = 60 * 60 * nHours * 1000;
+  const droppedPools = [];
   for (const p of data) {
     const x = dataInitial.find((e) => e.pool === p.pool);
     if (x === undefined) {
@@ -127,24 +132,38 @@ const main = async (body) => {
       continue;
     }
     // if existing pool, check conditions
-    timedelta = timestamp - x.timestamp;
-    const nHours = 5;
-    const tvlDeltaMultiplier = 5;
-    timedeltaLimit = 60 * 60 * nHours * 1000;
-    // skip the update if tvl at t is ntimes larger than tvl at t-1 && timedelta conditions is met
+    const timedelta = timestamp - x.timestamp;
+    // skip the update if tvl at t is ntimes larger than tvl at t-1 && timedelta condition is met
     if (
       p.tvlUsd > x.tvlUsd * tvlDeltaMultiplier &&
       timedelta < timedeltaLimit
     ) {
       console.log(`removing pool ${p.pool}`);
+      droppedPools.push({
+        pool: p.pool,
+        symbol: p.symbol,
+        tvlUsd: p.tvlUsd,
+        tvlUsdDB: x.tvlUsd,
+        tvlMultiplier: p.tvlUsd / x.tvlUsd,
+        lastUpdate: x.timestamp,
+        hoursUntilNextUpdate: 6 - timedelta / 1000 / 60 / 60,
+      });
       continue;
     }
     dataDB.push(p);
   }
-  if (dataDB.length < data.length)
-    console.log(
-      `removed ${data.length - dataDB.length} sample(s) prior to insert`
-    );
+  const delta = data.length - dataDB.length;
+  if (delta > 0) {
+    console.log(`removed ${delta} sample(s) prior to insert`);
+    // send discord message
+    const message = droppedPools
+      .map(
+        (p) =>
+          `${p.pool} (${p.symbol}): TVL ${p.tvlMultiplier}x -> disabling it`
+      )
+      .join('\n');
+    await sendMessage(message, process.env.TVL_SPIKE_WEBHOOK);
+  }
 
   const response = await insertPools(dataDB);
   console.log(response);
