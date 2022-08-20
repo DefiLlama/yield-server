@@ -158,6 +158,7 @@ const main = async (body) => {
     console.log(`removed ${delta} sample(s) prior to insert`);
     // send discord message
     const message = droppedPools
+      .filter((p) => p.tvlUsdDB >= 5e5)
       .map(
         (p) =>
           `Project: ${p.project} Pool: ${p.pool} Symbol: ${
