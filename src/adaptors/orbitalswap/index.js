@@ -190,9 +190,12 @@ const getApy = async () => {
   const tokensPrices = await getPrices([...tokens0, ...tokens1]);
   const ORBPrice = await getORBPriceBUSD();
   tokensPrices[ORB_TOKEN.toLowerCase()] = ORBPrice;
+  const pairInfos = await Promise
+    .all(pools.map((pool, index) => getPairInfo(lpTokens[index], [tokens0[index], tokens1[index]])));
+
   const poolsApy = [];
   for(const [i, pool] of pools.entries()) {
-    const pairInfo = await getPairInfo(lpTokens[i], [tokens0[i], tokens1[i]]);
+    const pairInfo = pairInfos[i];
     const poolInfo = pool;
     const reserves = reservesData[i];
 
@@ -228,7 +231,6 @@ const getApy = async () => {
       rewardTokens: [ORB_TOKEN],
     });
   }
-
 
   return poolsApy;
 };
