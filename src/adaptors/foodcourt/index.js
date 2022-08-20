@@ -4,6 +4,7 @@ const { default: BigNumber } = require('bignumber.js');
 const superagent = require('superagent');
 const masterChefABI = require('./abis/masterchef.json');
 const lpABI = require('./abis/lp.json');
+const { Percent } = require('@uniswap/sdk-core');
 
 const COUPON_TOKEN = '0xbC09220a8e461880DBE5517ecF53bC1b12cAa05D';
 const REI_TOKEN = '0x7539595ebdA66096e8913a24Cc3C8c0ba1Ec79a0';
@@ -187,9 +188,10 @@ const getApy = async () => {
   const couponPrice = await getPriceFromReservesRateBNBBsc(reservesData[2], reiPrice);
   tokensPrices[REI_TOKEN.toLowerCase()] = reiPrice;
   tokensPrices[COUPON_TOKEN.toLowerCase()] = couponPrice / 10;
+  const pairInfos = await Promise.all(pools.map((_, index) => getPairInfo(lpTokens[index], [tokens0[index], tokens1[index]])));
   const poolsApy = [];
   for(const [i, pool] of pools.entries()) {
-    const pairInfo = await getPairInfo(lpTokens[i], [tokens0[i], tokens1[i]]);
+    const pairInfo = pairInfos[i];
     const poolInfo = pool;
     const reserves = reservesData[i];
 
