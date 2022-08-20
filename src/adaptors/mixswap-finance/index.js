@@ -166,9 +166,10 @@ const getApy = async () => {
   const tokens1 = underlyingToken1.output.map((res) => res.output);
   const tokensPrices = await getPrices([...tokens0, ...tokens1]);
   const mxsPrice = getMxsPriceBUSD(reservesData[0]);
+  const pairInfos = await Promise.all(pools.map((_, index) => getPairInfo(lpTokens[index], [tokens0[index], tokens1[index]])));
   const poolsApy = [];
   for(const [i, pool] of pools.entries()) {
-    const pairInfo = await getPairInfo(lpTokens[i], [tokens0[i], tokens1[i]]);
+    const pairInfo = pairInfos[i];
     const poolInfo = pool;
     const reserves = reservesData[i];
 
