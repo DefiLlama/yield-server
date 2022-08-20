@@ -142,6 +142,7 @@ const main = async (body) => {
       droppedPools.push({
         pool: p.pool,
         symbol: p.symbol,
+        project: p.project,
         tvlUsd: p.tvlUsd,
         tvlUsdDB: x.tvlUsd,
         tvlMultiplier: p.tvlUsd / x.tvlUsd,
