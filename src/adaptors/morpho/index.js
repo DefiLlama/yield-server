@@ -49,24 +49,10 @@ const main = async () => {
         +marketFromGraph.p2pData.p2pSupplyIndex) /
       `1e${18 + marketFromGraph.token.decimals}`;
     const totalSupply = totalSupplyOnPool + totalSupplyP2P;
-    const totalSupplyUSD =
+    const tvlUsd =
       totalSupply *
       (marketFromGraph.reserveData.usd /
         `1e${18 * 2 - marketFromGraph.token.decimals}`);
-    const totalBorrowOnPool =
-      (+marketFromGraph.metrics.borrowBalanceOnPool *
-        +marketFromGraph.reserveData.borrowPoolIndex) /
-      `1e${18 + marketFromGraph.token.decimals}`;
-    const totalBorrowP2P =
-      (+marketFromGraph.metrics.borrowBalanceInP2P *
-        +marketFromGraph.p2pData.p2pBorrowIndex) /
-      `1e${18 + marketFromGraph.token.decimals}`;
-    const totalBorrow = totalBorrowOnPool + totalBorrowP2P;
-    const totalBorrowUSD =
-      totalBorrow *
-      (marketFromGraph.reserveData.usd /
-        `1e${18 * 2 - marketFromGraph.token.decimals}`);
-    const tvlUsd = totalSupplyUSD - totalBorrowUSD;
 
     const poolSupplyRate = +marketFromGraph.reserveData.supplyPoolRate;
     const poolBorrowRate = +marketFromGraph.reserveData.borrowPoolRate;
