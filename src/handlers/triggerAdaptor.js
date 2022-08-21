@@ -157,18 +157,20 @@ const main = async (body) => {
   if (delta > 0) {
     console.log(`removed ${delta} sample(s) prior to insert`);
     // send discord message
-    const message = droppedPools
-      .filter((p) => p.tvlUsdDB >= 5e5)
-      .map(
-        (p) =>
-          `Project: ${p.project} Pool: ${p.pool} Symbol: ${
-            p.symbol
-          } TVL: from ${p.tvlUsdDB.toFixed()} to ${p.tvlUsd.toFixed()} (${p.tvlMultiplier.toFixed(
-            2
-          )}x increase)`
-      )
-      .join('\n');
-    await sendMessage(message, process.env.TVL_SPIKE_WEBHOOK);
+    const filteredPools = droppedPools.filter((p) => p.tvlUsdDB >= 5e5);
+    if (filteredPools.length) {
+      const message = filteredPools
+        .map(
+          (p) =>
+            `Project: ${p.project} Pool: ${p.pool} Symbol: ${
+              p.symbol
+            } TVL: from ${p.tvlUsdDB.toFixed()} to ${p.tvlUsd.toFixed()} (${p.tvlMultiplier.toFixed(
+              2
+            )}x increase)`
+        )
+        .join('\n');
+      await sendMessage(message, process.env.TVL_SPIKE_WEBHOOK);
+    }
   }
 
   const response = await insertPools(dataDB);
