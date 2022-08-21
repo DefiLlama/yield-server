@@ -44,26 +44,17 @@ const poolsFunction = async () => {
     const vault = vaultsData.vaults.find(
       (v) => Number(v.vaultId) === item.vaultId
     );
-
     if (vault) {
       const tvlUsd =
         Number(vault.totalHoldings) * item.spotPriceEth * item.ethPriceUsd;
-
-      const apr = (item.inventoryApr + item.liquidityApr) * 100;
-      // we calculate monthly
-      const apy = utils.aprToApy(apr, 12);
-
-      // filter out remaining fluff
-      if (!apy || apy === Infinity) {
-        return null;
-      }
 
       return {
         pool: vault.id,
         chain: utils.formatChain('ethereum'),
         project: 'nftx',
         symbol: vault.token.symbol,
-        apy,
+        apyBase: item.inventoryApr * 100,
+        apyReward: item.liquidityApr * 100,
         tvlUsd,
         rewardTokens: [vault.id],
         underlyingTokens: [vault.id],
