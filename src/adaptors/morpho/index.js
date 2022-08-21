@@ -58,10 +58,10 @@ const main = async () => {
     const poolBorrowRate = +marketFromGraph.reserveData.borrowPoolRate;
 
     const p2pIndexCursor = +marketFromGraph.p2pIndexCursor / 1e4;
-    const spread = poolBorrowRate - poolSupplyRate;
-    const p2pSupplyRate = poolSupplyRate + (spread * p2pIndexCursor) / 1e18;
     const poolSupplyAPY = rateToAPY(poolSupplyRate / 1e18);
-    const p2pSupplyAPY = rateToAPY(p2pSupplyRate / 1e18);
+    const poolBorrowAPY = rateToAPY(poolBorrowRate / 1e18);
+    const spread = poolBorrowAPY - poolSupplyAPY;
+    const p2pSupplyAPY = poolSupplyAPY + spread * p2pIndexCursor;
     const avgSupplyAPY =
       (totalSupplyOnPool * poolSupplyAPY + totalSupplyP2P * p2pSupplyAPY) /
       totalSupply;
