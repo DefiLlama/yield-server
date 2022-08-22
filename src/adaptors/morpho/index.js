@@ -5,7 +5,7 @@ const utils = require('../utils');
 const subgraphMorphoCompound =
   'https://api.thegraph.com/subgraphs/name/morpho-labs/morphocompoundmainnet';
 
-const BLOCKS_PER_DAY = 5_760;
+const BLOCKS_PER_DAY = 6_570;
 const query = gql`
   query GetYieldsData {
     markets(first: 128) {
@@ -49,10 +49,6 @@ const main = async () => {
         +marketFromGraph.p2pData.p2pSupplyIndex) /
       `1e${18 + marketFromGraph.token.decimals}`;
     const totalSupply = totalSupplyOnPool + totalSupplyP2P;
-    const totalSupplyUSD =
-      totalSupply *
-      (marketFromGraph.reserveData.usd /
-        `1e${18 * 2 - marketFromGraph.token.decimals}`);
     const totalBorrowOnPool =
       (+marketFromGraph.metrics.borrowBalanceOnPool *
         +marketFromGraph.reserveData.borrowPoolIndex) /
@@ -62,21 +58,19 @@ const main = async () => {
         +marketFromGraph.p2pData.p2pBorrowIndex) /
       `1e${18 + marketFromGraph.token.decimals}`;
     const totalBorrow = totalBorrowOnPool + totalBorrowP2P;
-    const totalBorrowUSD =
-      totalBorrow *
+    const tvlUsd =
+      (totalSupply - totalBorrow) *
       (marketFromGraph.reserveData.usd /
         `1e${18 * 2 - marketFromGraph.token.decimals}`);
-    const tvlUsd = totalSupplyUSD - totalBorrowUSD;
 
-    const poolSupplyRate = +marketFromGraph.reserveData.supplyPoolRate / 1e18;
-    const poolBorrowRate = +marketFromGraph.reserveData.borrowPoolRate / 1e18;
+    const poolSupplyRate = +marketFromGraph.reserveData.supplyPoolRate;
+    const poolBorrowRate = +marketFromGraph.reserveData.borrowPoolRate;
 
     const p2pIndexCursor = +marketFromGraph.p2pIndexCursor / 1e4;
-    const spread = poolBorrowRate - poolSupplyRate;
-    const p2pSupplyRate = poolSupplyRate + spread * p2pIndexCursor;
-
-    const poolSupplyAPY = rateToAPY(poolSupplyRate);
-    const p2pSupplyAPY = rateToAPY(p2pSupplyRate);
+    const poolSupplyAPY = rateToAPY(poolSupplyRate / 1e18);
+    const poolBorrowAPY = rateToAPY(poolBorrowRate / 1e18);
+    const spread = poolBorrowAPY - poolSupplyAPY;
+    const p2pSupplyAPY = poolSupplyAPY + spread * p2pIndexCursor;
     const avgSupplyAPY =
       (totalSupplyOnPool * poolSupplyAPY + totalSupplyP2P * p2pSupplyAPY) /
       totalSupply;
