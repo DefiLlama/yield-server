@@ -1,37 +1,29 @@
-const {master0vixContact, oMATICContract, WBTCStrategy, DAIStrategy, WETHStrategy, USDTStrategy, MATICStrategy} = require("./Addresses");
 const {ethers} = require("ethers");
-const {OvixABI, erc20ABI} = require("./Abis");
+const {OvixABI, unitrollerABI} = require("./Abis");
 const {PROVIDER} = require("./Provider");
 const sdk = require("@defillama/sdk");
 
-const master0vix = "0x8849f1a0cB6b5D6076aB150546EddEe193754F1C";
-const oMATIC = "0xE554E874c9c60E45F1Debd479389C76230ae25A8";
-const matic = "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270";
+const unitroller = "0x8849f1a0cB6b5D6076aB150546EddEe193754F1C";
 
-
-const strategiesList = [
-    WBTCStrategy,
-    DAIStrategy,
-    WETHStrategy,
-    USDTStrategy,
-    MATICStrategy
-]
 
 async function main() {
     let data = [];
     let tvl;
+
+    // retrieve up-to-date tokens list
+    const strategiesList = await getAllMarkets();
+
     for (let strategy of strategiesList) {
         const OvixAPYs = await getAPY(strategy);
-        if (strategy.name !== "MATIC") {
-            tvl = await getErc20Balances(strategy);
-        } else {
-            // tvl = await getMaticBalance(strategy);
-        }
+
+        tvl = await getErc20Balances(strategy);
+
+
         const newObj = {
-            pool: strategy.address,
-            project: strategy.project,
-            symbol: strategy.name,
-            chain: strategy.chain,
+            pool: strategy,
+            project: "0vix",
+            symbol: OvixAPYs.tokenName,
+            chain: "polygon",
             apy: OvixAPYs.supplyAPY,
             apyBase: OvixAPYs.borrowAPY,
             tvlUsd: tvl
@@ -46,10 +38,13 @@ async function main() {
 
 async function getAPY(strategy) {
     const contract = new ethers.Contract(
-        strategy.address,
+        strategy,
         OvixABI,
         PROVIDER
     );
+
+    // get the token name
+    const tokenName = await contract.name();
 
     // retrieve the supply rate per timestamp for the main0vixContract
     const supplyRatePerTimestamp =
@@ -61,7 +56,7 @@ async function getAPY(strategy) {
         await contract.borrowRatePerTimestamp();
     const borrowAPY = calculateAPY(borrowRatePerTimestamp);
 
-    return { supplyAPY, borrowAPY };
+    return { tokenName, supplyAPY, borrowAPY };
 }
 
 function calculateAPY(rate) {
@@ -72,16 +67,30 @@ function calculateAPY(rate) {
     return (b - 1) * 100;
 }
 
+// retrieve all token markets
+async function getAllMarkets() {
+    const unitrollerContract = new ethers.Contract(
+        unitroller,
+        unitrollerABI,
+        PROVIDER,
+    );
+
+    // get all the oToken addresses from the unitroller contract
+    const allMarkets = await unitrollerContract.getAllMarkets();
+
+    return allMarkets;
+}
+
 
 async function getErc20Balances(strategy) {
     // retrieve balance
     const erc20Balance = await PROVIDER.getBalance(
-        strategy.address
+        strategy
     );
 
     // retrieve the asset contract
     const erc20Contract = new ethers.Contract(
-        strategy.address,
+        strategy,
         OvixABI,
         PROVIDER
     );
