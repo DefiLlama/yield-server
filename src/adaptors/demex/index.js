@@ -12,7 +12,7 @@ const apr = async () => {
   const poolsRaw = await utils.getData(
     'https://api-insights.carbon.network/pool/apy'
   );
-
+  const tokens = await(await utils.getData('https://api.carbon.network/carbon/coin/v1/tokens?pagination.limit=10000')).tokens
   const pools = poolsRaw?.result?.entries;
   const result = [];
 
@@ -20,17 +20,15 @@ const apr = async () => {
   const poolsTVL = await getPoolsTvl(balances);
 
   for (const pool of pools) {
-    const name = pool.name.replace(/[0-9]/g, '').replace("_", "-");
-    const denomARaw = pool.denomA.split(".")[0];
-    const denomBRBw = pool.denomB.split(".")[0];
-    const symbol = `${denomARaw.toUpperCase()}-${denomBRBw.toUpperCase()}`;
+    const tokenAInfo = tokens.find((o) => o.denom === pool.denomA)
+    const tokenBInfo = tokens.find((o) => o.denom === pool.denomB)
+    const symbol = `${tokenAInfo.symbol.toUpperCase()}-${tokenBInfo.symbol.toUpperCase()}`;
     const poolTVL = poolsTVL.find((o) => o.poolId === pool.id)?.amountValue;
     result.push({
       pool: pool.denom.toString(),
       chain: utils.formatChain('Carbon'),
       project: 'demex',
-      poolMeta: pool.name,
-      symbol: pool.name.replace(/[0-9]/g, '').replace("_","-"),
+      symbol: symbol,
       tvlUsd: poolTVL ?? 0,
       apy: Number(pool.apy),
       rewardTokens: ["swth"],
