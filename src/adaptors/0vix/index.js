@@ -1,9 +1,11 @@
 const {ethers} = require("ethers");
-const {OvixABI, unitrollerABI} = require("./Abis");
+const {OvixABI, unitrollerABI, erc20ABI, oracleABI} = require("./Abis");
 const {PROVIDER} = require("./Provider");
 const sdk = require("@defillama/sdk");
 
 const unitroller = "0x8849f1a0cB6b5D6076aB150546EddEe193754F1C";
+const oracleContract = '0x1c312b14c129EabC4796b0165A2c470b659E5f01';
+
 
 
 async function main() {
@@ -83,28 +85,56 @@ async function getAllMarkets() {
 
 
 async function getErc20Balances(strategy) {
-    // retrieve balance
-    const erc20Balance = await PROVIDER.getBalance(
-        strategy
-    );
 
     // retrieve the asset contract
-    const erc20Contract = new ethers.Contract(
+    const oTokenContract = new ethers.Contract(
         strategy,
         OvixABI,
         PROVIDER
     );
 
-    // get the current exchange rate
-    const exchangeRate = await erc20Contract.exchangeRateStored();
+    // get decimals for the oToken
+    const oDecimals = parseInt(await oTokenContract.decimals());
 
-    // get decimals
-    const decimals = await erc20Contract.decimals();
+    // get the total supply
+    const oTokenTotalSupply = await oTokenContract.totalSupply();
 
-    // convert tvl to USD
-    const convertedErc20Balance = ethers.utils.formatUnits(erc20Balance, decimals);
+    // get the exchange rate stored
+    const oExchangeRateStored = await oTokenContract.exchangeRateStored();
 
-    return Number(convertedErc20Balance);
+    // // get the contract for the underlying token
+    const underlyingTokenAddress = new ethers.Contract(
+        strategy,
+        erc20ABI,
+        PROVIDER,
+    );
+
+    // retrieve the oracle contract
+    const oracle = new ethers.Contract(
+        oracleContract,
+        oracleABI,
+        PROVIDER,
+    );
+
+    // get the decimals for the underlying token
+    const underlyingDecimals = parseInt(
+        await underlyingTokenAddress.decimals(),
+    );
+
+    // get the underlying price of the asset from the oracle
+    const oracleUnderlyingPrice = Number(
+        await oracle.getUnderlyingPrice(strategy),
+    );
+
+
+    // do the conversions
+    return convertTvlUSD(
+        oTokenTotalSupply,
+        oExchangeRateStored,
+        oDecimals,
+        underlyingDecimals,
+        oracleUnderlyingPrice,
+    );
 }
 
 function convertUSDC(
@@ -116,6 +146,20 @@ function convertUSDC(
         ((parseFloat(balance) * parseFloat(exchangeRateStored)) /
                         Math.pow(1, Math.pow(10, decimals))) /
         Math.pow(1, Math.pow(10, 18))
+    );
+}
+
+function convertTvlUSD(
+    totalSupply,
+    exchangeRateStored,
+    oDecimals,
+    underlyingDecimals,
+    oracleUnderlyingPrice,
+) {
+    return (
+        (((totalSupply * exchangeRateStored) / 10 ** (18 + underlyingDecimals)) *
+            oracleUnderlyingPrice) /
+        10 ** (36 - underlyingDecimals)
     );
 }
 
