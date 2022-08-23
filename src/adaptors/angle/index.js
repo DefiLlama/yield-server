@@ -46,4 +46,5 @@ const getPoolsData = async () => {
 module.exports = {
   timetravel: false,
   apy: getPoolsData,
+  url: 'https://app.angle.money/#/earn',
 };

@@ -2,6 +2,7 @@
 
 const master0vixContract = "0x8849f1a0cB6b5D6076aB150546EddEe193754F1C";
 const oMATICContract = "0xE554E874c9c60E45F1Debd479389C76230ae25A8";
+const oracleContract = "0x1c312b14c129EabC4796b0165A2c470b659E5f01";
 
 const WBTCStrategy = {
   name: 'WBTC',
@@ -55,5 +56,6 @@ module.exports = {
   USDTStrategy,
   MATICStrategy,
   master0vixContract,
-  oMATICContract
+  oMATICContract,
+  oracleContract
 };

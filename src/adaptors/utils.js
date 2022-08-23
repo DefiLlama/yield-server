@@ -1,5 +1,8 @@
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
+const { chunk } = require('lodash');
+const sdk = require('@defillama/sdk');
+const { default: BigNumber } = require('bignumber.js');
 
 exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'xdai') return 'xDai';
@@ -9,7 +12,7 @@ exports.formatChain = (chain) => {
 // replace / with - and trim potential whitespace
 exports.formatSymbol = (symbol) =>
   symbol
-    .replace(/[_+\/]/g, '-')
+    .replace(/[_+:\/]/g, '-')
     .replace(/\s/g, '')
     .trim();
 
@@ -205,3 +208,122 @@ exports.keepFinite = (p) => {
 
   return Number.isFinite(p['tvlUsd']);
 };
+
+exports.getPrices = async (addresses, chain) => {
+  const prices = (
+    await superagent.post('https://coins.llama.fi/prices').send({
+      coins: chain
+        ? addresses.map((address) => `${chain}:${address}`)
+        : addresses,
+    })
+  ).body.coins;
+
+  const pricesByAddress = Object.entries(prices).reduce(
+    (acc, [address, price]) => ({
+      ...acc,
+      [address.split(':')[1].toLowerCase()]: price.price,
+    }),
+    {}
+  );
+
+  const pricesBySymbol = Object.entries(prices).reduce(
+    (acc, [name, price]) => ({
+      ...acc,
+      [price.symbol.toLowerCase()]: price.price,
+    }),
+    {}
+  );
+
+  return { pricesBySymbol, pricesByAddress };
+};
+
+///////// UNISWAP V2
+
+const calculateApy = (
+  poolInfo,
+  totalAllocPoint,
+  rewardPerBlock,
+  rewardPrice,
+  reserveUSD,
+  blocksPerYear
+) => {
+  const poolWeight = poolInfo.allocPoint / totalAllocPoint;
+  const tokensPerYear = blocksPerYear * rewardPerBlock;
+
+  return ((poolWeight * tokensPerYear * rewardPrice) / reserveUSD) * 100;
+};
+
+const calculateReservesUSD = (
+  reserves,
+  reservesRatio,
+  token0,
+  token1,
+  tokenPrices
+) => {
+  const { decimals: token0Decimals, id: token0Address } = token0;
+  const { decimals: token1Decimals, id: token1Address } = token1;
+  const token0Price = tokenPrices[token0Address.toLowerCase()];
+  const token1Price = tokenPrices[token1Address.toLowerCase()];
+
+  const reserve0 = new BigNumber(reserves._reserve0)
+    .times(reservesRatio)
+    .times(10 ** (18 - token0Decimals));
+  const reserve1 = new BigNumber(reserves._reserve1)
+    .times(reservesRatio)
+    .times(10 ** (18 - token1Decimals));
+
+  if (token0Price) return reserve0.times(token0Price).times(2).div(1e18);
+  if (token1Price) return reserve1.times(token1Price).times(2).div(1e18);
+};
+
+const getPairsInfo = async (pairs, url) => {
+  const pairQuery = gql`
+    query pairQuery($id_in: [ID!]) {
+      pairs(where: { id_in: $id_in }) {
+        name
+        id
+        token0 {
+          decimals
+          id
+        }
+        token1 {
+          decimals
+          id
+        }
+      }
+    }
+  `;
+  const pairInfo = await Promise.all(
+    chunk(pairs, 7).map((tokens) =>
+      request(url, pairQuery, {
+        id_in: tokens.map((pair) => pair.toLowerCase()),
+      })
+    )
+  );
+
+  return pairInfo
+    .map(({ pairs }) => pairs)
+    .flat()
+    .reduce((acc, pair) => ({ ...acc, [pair.id.toLowerCase()]: pair }), {});
+};
+
+exports.uniswap = { calculateApy, calculateReservesUSD, getPairsInfo };
+
+/// MULTICALL
+
+const makeMulticall = async (abi, addresses, chain, params = null) => {
+  const data = await sdk.api.abi.multiCall({
+    abi,
+    calls: addresses.map((address) => ({
+      target: address,
+      params,
+    })),
+    chain,
+  });
+
+  const res = data.output.map(({ output }) => output);
+
+  return res;
+};
+
+exports.makeMulticall = makeMulticall;
