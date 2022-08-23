@@ -9,39 +9,44 @@ const MMF_TOKEN = '0x22a31bD4cB694433B6de19e0aCC2899E553e9481';
 const MASTERCHEF_ADDRESS = '0xa2B417088D63400d211A4D5EB3C4C5363f834764';
 const BLOCK_TIME = 2.3;
 const BLOCKS_PER_YEAR = Math.floor((60 / BLOCK_TIME) * 60 * 24 * 365);
+const WEEKS_PER_YEAR = 52;
+const FEE_RATE = 0.0017;
 
-const getMMoPrice = (reserves) => {
-  return ((reserves[1] / reserves[0]));
-};
-
-const getPairInfo = async (pair, tokenAddress) => {
-  const [tokenSymbol, tokenDecimals] = await Promise.all(
-    ['erc20:symbol', 'erc20:decimals'].map((method) =>
-      sdk.api.abi.multiCall({
-        abi: method,
-        calls: tokenAddress.map((address) => ({
-          target: address,
-        })),
-        chain: 'polygon',
-        requery: true,
+const SUBGRAPH_URL = 'https://api.thegraph.com/subgraphs/name/polymmfinance/exchang';
+const { request, gql, batchRequests } = require('graphql-request');
+const { chunk } = require('lodash');
+const pairQuery = gql`
+  query pairQuery($id_in: [ID!]) {
+    pairs(where: { id_in: $id_in }) {
+      id
+      token0 {
+        symbol
+        decimals
+        id
       }
-    )
-  ));
-  return {
-    lpToken: pair.toLowerCase(),
-    pairName: tokenSymbol.output.map(e => e.output).join('-'),
-    token0: {
-      address: tokenAddress[0],
-      symbol: tokenSymbol.output[0].output,
-      decimals: tokenDecimals.output[0].output
-    },
-    token1: {
-      address: tokenAddress[1],
-      symbol: tokenSymbol.output[1].output,
-      decimals: tokenDecimals.output[1].output
+      token1 {
+        symbol
+        decimals
+        id
+      }
     }
-  };
-}
+  }
+`;
+
+const getPairInfo = async (pairs) => {
+  const pairInfo = await Promise.all(
+    chunk(pairs, 7).map((tokens) =>
+      request(SUBGRAPH_URL, pairQuery, {
+        id_in: tokens.map((pair) => pair.toLowerCase()),
+      })
+    )
+  );
+
+  return pairInfo
+    .map(({ pairs }) => pairs)
+    .flat()
+    .reduce((acc, pair) => ({ ...acc, [pair.id.toLowerCase()]: pair }), {});
+};
 
 const getPrices = async (addresses) => {
   const prices = (
@@ -93,8 +98,8 @@ const calculateReservesUSD = (
   token1,
   tokenPrices
 ) => {
-  const { decimals: token0Decimals, address: token0Address } = token0;
-  const { decimals: token1Decimals, address: token1Address } = token1;
+  const { decimals: token0Decimals, id: token0Address } = token0;
+  const { decimals: token1Decimals, id: token1Address } = token1;
   const token0Price = tokenPrices[token0Address.toLowerCase()];
   const token1Price = tokenPrices[token1Address.toLowerCase()];
 
@@ -180,12 +185,51 @@ const getApy = async () => {
   const tokens1 = underlyingToken1.output.map((res) => res.output);
   const tokensPrices = await getPrices([...tokens0, ...tokens1, MMF_TOKEN]);
 
-  const pairInfos = await Promise.all(pools.map((_, index) => getPairInfo(lpTokens[index], [tokens0[index], tokens1[index]])));
-  const poolsApy = [];
-  for(const [i, pool] of pools.entries()) {
-    const pairInfo = pairInfos[i];
+  const pairsInfo = await getPairInfo(lpTokens);
+
+  const lpChunks = chunk(lpTokens, 10);
+
+  const pairVolumes = await Promise.all(
+    lpChunks.map((lpsChunk) =>
+      request(
+        SUBGRAPH_URL,
+        gql`
+    query volumesQuery {
+      ${lpsChunk
+        .slice(0, 10)
+        .map(
+          (token, i) => `token_${token.toLowerCase()}:pairDayDatas(
+        orderBy: date
+        orderDirection: desc
+        first: 7
+        where: { pairAddress: "${token.toLowerCase()}" }
+      ) {
+        dailyVolumeUSD
+      }`
+        )
+        .join('\n')}
+
+    }
+  `
+      )
+    )
+  );
+
+  const volumesMap = pairVolumes.flat().reduce(
+    (acc, curChunk) => ({
+      ...acc,
+      ...Object.entries(curChunk).reduce((innerAcc, [key, val]) => ({
+        ...innerAcc,
+        [key.split('_')[1]]: val,
+      })),
+    }),
+    {}
+  );
+
+  const res = pools.map((pool, i) => {
     const poolInfo = pool;
     const reserves = reservesData[i];
+    const pairInfo = pairsInfo[pool.lpToken.toLowerCase()];
 
     const supply = supplyData[i];
     const masterChefBalance = masterChefBalData[i];
@@ -200,7 +244,24 @@ const getApy = async () => {
       .div(1e18)
       .toString();
 
-    const apy = calculateApy(
+    const lpReservesUsd = calculateReservesUSD(
+      reserves,
+      1,
+      pairInfo.token0,
+      pairInfo.token1,
+      tokensPrices
+    )
+      .div(1e18)
+      .toString();
+
+    const lpFees7D =
+      (volumesMap[pool.lpToken.toLowerCase()] || []).reduce(
+        (acc, { dailyVolumeUSD }) => acc + Number(dailyVolumeUSD),
+        0
+      ) * FEE_RATE;
+    const apyBase = ((lpFees7D * WEEKS_PER_YEAR) / lpReservesUsd) * 100;
+
+    const apyReward = calculateApy(
       poolInfo,
       totalAllocPoint,
       normalizedmmoPerBlock,
@@ -208,20 +269,20 @@ const getApy = async () => {
       masterChefReservesUsd
     );
 
-    poolsApy.push({
+    return {
       pool: pool.lpToken,
       chain: utils.formatChain('polygon'),
       project: 'mm-finance-polygon',
       symbol: `${pairInfo.token0.symbol}-${pairInfo.token1.symbol}`,
       tvlUsd: Number(masterChefReservesUsd),
-      apyReward: apy,
+      apyBase,
+      apyReward,
       underlyingTokens: [tokens0[i], tokens1[i]],
       rewardTokens: [MMF_TOKEN],
-    });
-  }
+    };
+  });
 
-
-  return poolsApy;
+  return res;
 };
 
 module.exports = {
