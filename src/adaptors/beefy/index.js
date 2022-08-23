@@ -1,12 +1,10 @@
 const utils = require('../utils');
 
-const urlApy = 'https://api.beefy.finance/apy';
-const urlTvl = 'https://api.beefy.finance/tvl';
-// they also have this endpoint with vault id info, ids are not addresses though
-// 'https://api.beefy.finance/vaults'
+const url = 'https://api.beefy.finance';
+const urlApy = `${url}/apy`;
+const urlTvl = `${url}/tvl`;
+const urlMeta = `${url}/vaults`;
 
-// NOTE(!) some of those sometimes are in the api response, sometimes they aren't...
-// need to check with team
 const networkMapping = {
   10: 'optimism',
   43114: 'avalanche',
@@ -23,49 +21,30 @@ const networkMapping = {
   25: 'cronos',
 };
 
-const apy = (dataTvl, dataApy, networkMapping) => {
-  const data = [];
+const main = async () => {
+  const [apy, tvl, meta] = await Promise.all(
+    [urlApy, urlTvl, urlMeta].map((u) => utils.getData(u))
+  );
+
+  let data = [];
   for (const chain of Object.keys(networkMapping)) {
-    poolData = dataTvl[chain];
+    poolData = tvl[chain];
     for (const pool of Object.keys(poolData)) {
-      if (dataApy[pool] === undefined) {
+      if (apy[pool] === undefined) {
         continue;
       }
+      let poolMeta = meta.find((m) => m?.id === pool)?.platformId;
       data.push({
-        id: `${pool}-${chain}`,
-        symbol: pool.split('-').slice(1).join('-'),
-        network: chain,
-        tvl: poolData[pool],
-        apy: dataApy[pool],
+        pool: `${pool}-${chain}`,
+        chain: utils.formatChain(networkMapping[chain]),
+        project: 'beefy',
+        symbol: utils.formatSymbol(pool.split('-').slice(1).join('-')),
+        tvlUsd: poolData[pool],
+        apy: apy[pool] * 100,
+        poolMeta: poolMeta === undefined ? null : utils.formatChain(poolMeta),
       });
     }
   }
-  return data;
-};
-
-const buildPool = (entry) => {
-  const newObj = {
-    pool: entry.id,
-    chain: utils.formatChain(networkMapping[entry.network]),
-    project: 'beefy',
-    symbol: utils.formatSymbol(entry.symbol),
-    tvlUsd: entry.tvl,
-    apy: entry.apy * 100,
-  };
-
-  return newObj;
-};
-
-const main = async () => {
-  // pull data
-  const dataApy = await utils.getData(urlApy);
-  const dataTvl = await utils.getData(urlTvl);
-
-  // calculate apy
-  let data = apy(dataTvl, dataApy, networkMapping);
-
-  // build pool objects
-  data = data.map((el) => buildPool(el));
 
   return data;
 };
