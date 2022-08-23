@@ -9,6 +9,8 @@ const excludePools = [
   // ripae pools (reported by MathieuB as scam project, and definitely not noIL!)
   'ripae-seth-weth-42161',
   'ripae-peth-weth-42161',
+  '0x3eed430cd45c5e2b45aa1adc609cc77c6728d45b', // mind-wavax on traderjoe, snowtrace shows tiny lp value, but tvl is huge
+  '0x3c42B0f384D2912661C940d46cfFE1CD10F1c66F-ethereum', // test pool on curve? (CTDL-WBTC)
 ];
 
 const boundaries = {
