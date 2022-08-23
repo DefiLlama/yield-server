@@ -30,12 +30,6 @@
     "decimals": 18
   },
   {
-    "symbol": "FEI",
-    "tokenAddress": "0x956F47F50A910163D8BF957Cf5846D573E7f87CA",
-    "poolAddress": "0x03DccCd17CC36eE61f9004BCfD7a85F58B2D360D",
-    "decimals": 18
-  },
-  {
     "symbol": "ALUSD",
     "tokenAddress": "0xBC6DA0FE9aD5f3b0d58160288917AA56653660E9",
     "poolAddress": "0x7211508D283353e77b9A7ed2f22334C219AD4b4C",
@@ -60,9 +54,9 @@
     "decimals": 18
   },
   {
-    "symbol": "TCR",
-    "tokenAddress": "0x9C4A4204B79dd291D6b6571C5BE8BbcD0622F050",
-    "poolAddress": "0x15A629f0665A3Eb97D7aE9A7ce7ABF73AeB79415",
+    "symbol": "MYC",
+    "tokenAddress": "0x4b13006980aCB09645131b91D259eaA111eaF5Ba",
+    "poolAddress": "0x061aee9ab655e73719577EA1df116D7139b2A7E7",
     "decimals": 18
   },
   {
@@ -78,7 +72,7 @@
     "decimals": 18
   },
   {
-    "symbol": "FOX",
+    "symbol": "APW",
     "tokenAddress": "0x4104b135DBC9609Fc1A9490E61369036497660c8",
     "poolAddress": "0xDc0b02849Bb8E0F126a216A2840275Da829709B0",
     "decimals": 18
