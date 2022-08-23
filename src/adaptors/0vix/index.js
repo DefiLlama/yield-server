@@ -27,7 +27,6 @@ async function main() {
             symbol: OvixAPYs.tokenName,
             chain: "polygon",
             apy: OvixAPYs.supplyAPY,
-            apyBase: OvixAPYs.borrowAPY,
             tvlUsd: tvl
         };
 
