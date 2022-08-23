@@ -178,4 +178,5 @@ const getPools = async () => {
 module.exports = {
   timetravel: false,
   apy: getPools,
+  url: 'https://metavault.trade/earn',
 };

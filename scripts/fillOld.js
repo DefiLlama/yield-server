@@ -6,7 +6,7 @@ const AWS = require('aws-sdk');
 const poolModel = require('../models/pool');
 const AppError = require('../utils/appError');
 const { confirm } = require('../src/utils/confirm');
-const dbConnection = require('../api/dbConnection.js');
+const dbConnection = require('../src/utils/dbConnection.js');
 const { insertPools } = require('../src/handlers/triggerAdaptor');
 
 const credentials = new AWS.SharedIniFileCredentials({ profile: 'defillama' });

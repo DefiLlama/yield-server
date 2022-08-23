@@ -92,6 +92,7 @@ functions:
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
       XDAI_RPC: ${file(./env.js):XDAI_RPC}
       CRONOS_RPC: ${file(./env.js):CRONOS_RPC}
+      TVL_SPIKE_WEBHOOK: ${file(./env.js):TVL_SPIKE_WEBHOOK}
 
   # --- data enrichment
   triggerEnrichment:
@@ -168,6 +169,15 @@ functions:
       - httpApi:
           method: get
           path: /median
+
+  getUrls:
+    handler: src/handlers/getUrls.handler
+    description: Lambda for retrieving url data
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /urls
 
 resources:
   Resources:

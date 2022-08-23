@@ -214,7 +214,10 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
       ).body.coins[key].price;
 
       // call reward data
-      const { rate } = await gauge.methods.reward_data(add).call();
+      const { rate, period_finish } = await gauge.methods
+        .reward_data(add)
+        .call();
+      if (period_finish * 1000 < new Date().getTime()) continue;
       const inflationRate = rate / 1e18;
       const tokenPayable = inflationRate * 7 * 86400;
       const totalSupply = (await gauge.methods.totalSupply().call()) / 1e18;
@@ -227,7 +230,6 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
       aprLMRewards.push(aprLM === Infinity ? null : aprLM);
       rewardTokens.push(add);
     }
-
     // add up individual LM rewards
     x.aprLM = aprLMRewards
       .filter((i) => isFinite(i))
@@ -245,22 +247,6 @@ const aprFee = (el, dataNow, dataPrior, swapFeePercentage) => {
 
   el.aprFee = ((swapFee24h * 365) / el.tvl) * 100 * swapFeePercentage;
   return el;
-};
-
-const buildPool = (el, chainString) => {
-  const newObj = {
-    pool: el.id,
-    chain: utils.formatChain(chainString),
-    project: 'balancer',
-    symbol: utils.formatSymbol(el.symbol),
-    tvlUsd: el.tvl,
-    apyBase: el.aprFee,
-    apyReward: el.aprLM,
-    rewardTokens: el.rewardTokens,
-    underlyingTokens: el.tokensList,
-  };
-
-  return newObj;
 };
 
 const topLvl = async (
@@ -314,7 +300,17 @@ const topLvl = async (
   tvlInfo = await aprLM(tvlInfo, urlGauge, queryGauge, chainString, gaugeABI);
 
   // build pool objects
-  return tvlInfo.map((el) => buildPool(el, chainString));
+  return tvlInfo.map((p) => ({
+    pool: p.id,
+    chain: utils.formatChain(chainString),
+    project: 'balancer',
+    symbol: utils.formatSymbol(p.symbol),
+    tvlUsd: p.tvl,
+    apyBase: p.aprFee,
+    apyReward: p.aprLM,
+    rewardTokens: p.rewardTokens,
+    underlyingTokens: p.tokensList,
+  }));
 };
 
 const main = async () => {
@@ -368,4 +364,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://app.balancer.fi/#/',
 };
