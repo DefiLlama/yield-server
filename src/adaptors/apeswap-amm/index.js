@@ -24,23 +24,24 @@ const BLOCKS_PER_DAY = Math.floor((60 / BSC_BLOCK_TIME) * 60 * 24);
 const WEEKS_PER_YEAR = 52;
 const FEE_RATE = 0.0005;
 
-const API_URL = "https://bnb.apeswapgraphs.com/subgraphs/name/ape-swap/apeswap-subgraph";
+const API_URL =
+  'https://bnb.apeswapgraphs.com/subgraphs/name/ape-swap/apeswap-subgraph';
 const pairQuery = gql`
-query pairQuery($id_in: [ID!]) {
-  pairs(where: {id_in: $id_in}) {
-    id
-    token0 {
-      symbol
-      decimals
+  query pairQuery($id_in: [ID!]) {
+    pairs(where: { id_in: $id_in }) {
       id
-    }
-    token1 {
-      symbol
-      decimals
-      id
+      token0 {
+        symbol
+        decimals
+        id
+      }
+      token1 {
+        symbol
+        decimals
+        id
+      }
     }
   }
-}
 `;
 
 const getPairInfo = async (pairs) => {
@@ -95,7 +96,6 @@ const calculateReservesUSD = (
   token1,
   tokenPrices
 ) => {
-
   const { decimals: token0Decimals, id: token0Address } = token0;
   const { decimals: token1Decimals, id: token1Address } = token1;
   const token0Price = tokenPrices[token0Address.toLowerCase()];
@@ -116,19 +116,19 @@ const apy = async () => {
   const poolLength = await sdk.api.abi.call({
     target: MASTERCHEF_ADDRESS,
     chain: 'bsc',
-    abi: masterChefABI.find(e => e.name === 'poolLength')
+    abi: masterChefABI.find((e) => e.name === 'poolLength'),
   });
   const totalAllocPoint = await sdk.api.abi.call({
     target: MASTERCHEF_ADDRESS,
     chain: 'bsc',
-    abi: masterChefABI.find(e => e.name === 'totalAllocPoint')
+    abi: masterChefABI.find((e) => e.name === 'totalAllocPoint'),
   });
   const bananaPerBlock = await sdk.api.abi.call({
     target: MASTERCHEF_ADDRESS,
     chain: 'bsc',
-    abi: masterChefABI.find(e => e.name === 'cakePerBlock')
+    abi: masterChefABI.find((e) => e.name === 'cakePerBlock'),
   });
-  const normalizedbananaPerBlock = bananaPerBlock.output/1e18;
+  const normalizedbananaPerBlock = bananaPerBlock.output / 1e18;
 
   const poolsRes = await sdk.api.abi.multiCall({
     abi: masterChefABI.filter(({ name }) => name === 'poolInfo')[0],
@@ -142,8 +142,8 @@ const apy = async () => {
 
   const pools = poolsRes.output
     .map(({ output }, i) => ({ ...output, i }))
-    .filter(e => e.allocPoint !== '0')
-    .filter(e => !EXCLUDE.includes(e.lpToken))
+    .filter((e) => e.allocPoint !== '0')
+    .filter((e) => !EXCLUDE.includes(e.lpToken));
   const lpTokens = pools.map(({ lpToken }) => lpToken);
 
   const [reservesRes, supplyRes, masterChefBalancesRes] = await Promise.all(
@@ -279,8 +279,9 @@ const apy = async () => {
   });
 
   return res;
-}
+};
 module.exports = {
   timetravel: false,
   apy,
+  url: 'https://apeswap.finance/pools',
 };

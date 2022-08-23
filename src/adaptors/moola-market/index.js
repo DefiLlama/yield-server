@@ -72,4 +72,5 @@ const poolsFunction = async () => {
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
+  url: 'https://app.moola.market/',
 };
