@@ -154,7 +154,10 @@ const main = async (body) => {
     dataDB.push(p);
   }
 
-  if (!dataInitial.length && dataDB.length) {
+  if (
+    !dataInitial.length &&
+    dataDB.filter(({ tvlUsd }) => tvlUsd > 10000).length
+  ) {
     const message = `Project ${body.adaptor} yields have been added`;
     await sendMessage(message, process.env.NEW_YIELDS_WEBHOOK);
   }
