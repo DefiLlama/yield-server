@@ -11,6 +11,7 @@ module.exports = {
   XDAI_RPC: process.env.XDAI_RPC,
   CRONOS_RPC: process.env.CRONOS_RPC,
   TVL_SPIKE_WEBHOOK: process.env.TVL_SPIKE_WEBHOOK,
+  NEW_YIELDS_WEBHOOK: process.env.NEW_YIELDS_WEBHOOK,
   // ADAPTOR LIST
   ADAPTORS: JSON.stringify(
     fs
