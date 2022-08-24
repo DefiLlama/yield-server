@@ -155,7 +155,7 @@ const main = async (body) => {
   }
 
   if (!dataInitial.length) {
-    const message = `Project ${body.adaptor} yelds have been added`;
+    const message = `Project ${body.adaptor} yields have been added`;
     await sendMessage(message, process.env.NEW_YIELDS_WEBHOOK);
   }
 
