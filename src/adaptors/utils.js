@@ -9,12 +9,14 @@ exports.formatChain = (chain) => {
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
+const getFormatter = (symbol) => {
+  if (symbol.includes('USD+')) return /[_:\/]/g;
+  return /[_+:\/]/g;
+};
+
 // replace / with - and trim potential whitespace
 exports.formatSymbol = (symbol) =>
-  symbol
-    .replace(/[_+:\/]/g, '-')
-    .replace(/\s/g, '')
-    .trim();
+  symbol.replace(getFormatter(symbol), '-').replace(/\s/g, '').trim();
 
 exports.getData = async (url, query = null) => {
   if (query !== null) {
