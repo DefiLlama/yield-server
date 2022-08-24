@@ -153,6 +153,12 @@ const main = async (body) => {
     }
     dataDB.push(p);
   }
+
+  if (!dataInitial.length) {
+    const message = `Project ${body.adaptor} yelds have been added`;
+    await sendMessage(message, process.env.NEW_YIELDS_WEBHOOK);
+  }
+
   const delta = data.length - dataDB.length;
   if (delta > 0) {
     console.log(`removed ${delta} sample(s) prior to insert`);
