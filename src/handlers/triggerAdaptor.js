@@ -154,7 +154,7 @@ const main = async (body) => {
     dataDB.push(p);
   }
 
-  if (!dataInitial.length) {
+  if (!dataInitial.length && dataDB.length) {
     const message = `Project ${body.adaptor} yields have been added`;
     await sendMessage(message, process.env.NEW_YIELDS_WEBHOOK);
   }
