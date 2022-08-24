@@ -17,6 +17,7 @@ interface Pool {
   liquidity: string;
   lendingApy: string;
   farmingApy: string;
+  poolDelegate: { companyName: string };
 }
 
 interface Pools {
@@ -36,7 +37,8 @@ const apy = async () => {
       pool: pool.contractAddress,
       chain: utils.formatChain('ethereum'),
       project: 'maple',
-      symbol: pool.poolName,
+      symbol: pool.liquidityAsset.symbol,
+      poolMeta: pool.poolDelegate.companyName,
       tvlUsd:
         (Number(pool.liquidity) * tokenPrice) /
         10 ** pool.liquidityAsset.decimals,
