@@ -28,6 +28,7 @@
     "mongoose": "^5.11.13",
     "node-fetch": "^2.6.1",
     "node-pg-migrate": "^6.2.2",
+    "pg-promise": "^10.11.1",
     "saslprep": "^1.0.3",
     "simple-statistics": "^7.7.5",
     "superagent": "^6.1.0",

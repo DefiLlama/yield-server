@@ -1,11 +1,11 @@
 const { PgLiteral } = require('node-pg-migrate');
 
 exports.up = (pgm) => {
-  // add uuid extension
+  // EXTENSION
   pgm.createExtension('uuid-ossp', {
     ifNotExists: true,
   });
-  // tables
+  // TABLES
   pgm.createTable('yield', {
     pool_id: {
       type: 'uuid',
@@ -32,7 +32,7 @@ exports.up = (pgm) => {
     poolMeta: 'text',
     underlyingTokens: { type: 'text[]' },
     rewardTokens: { type: 'text[]' },
-    updatedAt: {
+    updated_at: {
       type: 'timestamptz',
       notNull: true,
       default: pgm.func('current_timestamp'),
@@ -51,7 +51,7 @@ exports.up = (pgm) => {
     meanDR: { type: 'numeric', notNull: true },
     mean2DR: 'numeric',
     productDR: { type: 'numeric', notNull: true },
-    updatedAt: {
+    updated_at: {
       type: 'timestamptz',
       notNull: true,
       default: pgm.func('current_timestamp'),
@@ -65,7 +65,7 @@ exports.up = (pgm) => {
     },
     uniquePools: { type: 'integer', notNull: true },
     medianAPY: { type: 'numeric', notNull: true },
-    timestamp: { type: 'timestamptz', notNull: true },
+    timestamp: { type: 'timestamptz', notNull: true, unique: true },
   });
   pgm.createTable('url', {
     url_id: {
@@ -74,16 +74,50 @@ exports.up = (pgm) => {
       primaryKey: true,
     },
     project: { type: 'text', notNull: true, unique: true },
-    url: { type: 'text', notNull: true },
-    updatedAt: {
+    link: { type: 'text', notNull: true },
+    updated_at: {
       type: 'timestamptz',
       notNull: true,
       default: pgm.func('current_timestamp'),
     },
   });
+  // INDICES
   pgm.createIndex('yield', 'pool ASC,timestamp DESC');
-  pgm.createIndex('meta', 'pool');
-  pgm.createIndex('stat', 'pool');
-  pgm.createIndex('median', 'timestamp');
-  pgm.createIndex('url', 'project');
+  // FUNCTIONS
+  pgm.createFunction(
+    'update_updated_at',
+    [], // no params
+    // options
+    {
+      language: 'plpgsql',
+      returns: 'TRIGGER',
+      replace: true,
+    },
+    // function body
+    `
+    BEGIN
+        NEW.updated_at = now();
+        RETURN NEW;
+    END
+    `
+  );
+  // TRIGGERS;
+  pgm.createTrigger('meta', 'update_updated_at', {
+    when: 'BEFORE',
+    operation: 'UPDATE',
+    function: 'update_updated_at',
+    level: 'ROW',
+  });
+  pgm.createTrigger('stat', 'update_updated_at', {
+    when: 'BEFORE',
+    operation: 'UPDATE',
+    function: 'update_updated_at',
+    level: 'ROW',
+  });
+  pgm.createTrigger('url', 'update_updated_at', {
+    when: 'BEFORE',
+    operation: 'UPDATE',
+    function: 'update_updated_at',
+    level: 'ROW',
+  });
 };
