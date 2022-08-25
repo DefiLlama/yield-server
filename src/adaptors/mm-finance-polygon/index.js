@@ -143,9 +143,13 @@ const getApy = async () => {
   });
 
   const pools = poolsRes.output
-  .map(({ output }, i) => ({ ...output, i }))
-  .filter((e) => e.allocPoint !== '0')
-  .filter(e => e.lpToken !== '0x22a31bD4cB694433B6de19e0aCC2899E553e9481');
+    .map(({ output }, i) => ({ ...output, i }))
+    .filter((e) => e.allocPoint !== '0')
+    .filter(
+      (e) =>
+        e.lpToken !== '0x22a31bD4cB694433B6de19e0aCC2899E553e9481' &&
+        e.lpToken !== '0x8b6828c1Bc28Ad187A4aB05f41F2AAC547d85132'
+    );
   const lpTokens = pools.map(({ lpToken }) => lpToken)
 
 
@@ -288,5 +292,5 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://polymm.finance/',
+  url: 'https://polymm.finance/farms',
 };
