@@ -82,8 +82,6 @@ const apy = async () => {
         ({ poolAddress, underlyingToken }) =>
           poolAddress === pool.id && underlyingToken.id === id
       );
-      const extraApy = get(apy);
-
       const price = symbol.toLowerCase().includes('usd')
         ? 1
         : prices[get(apyVal, 'underlyingToken.id', '').toLowerCase()] || 0;
@@ -99,7 +97,7 @@ const apy = async () => {
         apyReward: Number((apyVal && apyVal.totalBaseAPR) || 0),
         rewardTokens: [
           '0x22d4002028f537599be9f666d1c4fa138522f9c8', // PTP
-          get(apy, 'bonusToken.id', null),
+          get(apyVal, 'bonusToken.id', null),
         ].filter(Boolean),
         underlyingTokens: [id],
       };
