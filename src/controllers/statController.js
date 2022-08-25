@@ -1,5 +1,5 @@
 const { stat: sql } = require('../sql');
-const { connect } = require('../utils/dbConnectionPostgres');
+const { pgp, connect } = require('../utils/dbConnectionPostgres');
 
 const tableName = 'stat';
 
@@ -44,7 +44,7 @@ const insertStat = async (payload) => {
   return response;
 };
 
-modulex.exports = {
+module.exports = {
   getStat,
   insertStat,
 };

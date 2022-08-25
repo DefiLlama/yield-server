@@ -17,10 +17,10 @@ module.exports = {
     getUrl: sql('url/getUrl.sql'),
   },
   meta: {
-    getMeta: sql('url/getMeta.sql'),
+    getMeta: sql('meta/getMeta.sql'),
   },
   median: {
-    getMedian: sql('url/getMedian.sql'),
+    getMedian: sql('median/getMedian.sql'),
   },
 };
 
