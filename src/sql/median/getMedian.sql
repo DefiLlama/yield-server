@@ -3,4 +3,4 @@ SELECT
     "medianAPY",
     timestamp
 FROM
-    meta
+    median
