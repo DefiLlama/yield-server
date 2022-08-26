@@ -10,8 +10,7 @@ const getYieldPostgres = async () => {
 
   const response = await conn.query(sql.getYield, {
     tvlLB: boundaries.tvlUsdUI.lb,
-    // age: boundaries.age,
-    age: 30, // hardcoding for testing cause test data is older
+    age: boundaries.age,
   });
 
   if (!response) {
@@ -41,8 +40,7 @@ const getYieldProjectPostgres = async (project) => {
 
   const response = await conn.query(sql.getYieldProject, {
     tvlLB: boundaries.tvlUsdUI.lb,
-    // age: boundaries.age,
-    age: 30, // hardcoding for testing cause test data is older
+    age: boundaries.age,
     project,
   });
 
