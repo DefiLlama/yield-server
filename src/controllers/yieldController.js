@@ -1,6 +1,7 @@
+const minify = require('pg-minify');
+
 const AppError = require('../utils/appError');
 const { boundaries } = require('../utils/exclude');
-const { yield: sql } = require('../sql');
 const { pgp, connect } = require('../utils/dbConnectionPostgres');
 
 const tableName = 'yield';
@@ -8,7 +9,46 @@ const tableName = 'yield';
 const getYield = async () => {
   const conn = await connect();
 
-  const response = await conn.query(sql.getYield, {
+  // -- get latest yield row per unique pool id
+  // -- exclude if tvlUsd is < LB
+  // -- exclude if pool age > 7days
+  // -- join meta data
+  // -- NOTE: i use sqlformatter vscode extension. one issue i found is that it formats
+  // -- named parameter placeholders such as $<tvlLB> to $ < tvlLB > which is invalid and
+  // -- which pg-promise's internal formatter can't correct (at least i didn't find a way how to)
+  // -- in order to get around this i'm using the formatter to generally format the query
+  // -- but make sure to use cmd shift p -> save without formatting before pushing any changes to the repo
+  const query = minify(
+    `
+    SELECT
+        y.pool,
+        symbol,
+        chain,
+        project,
+        apy,
+        "tvlUsd",
+        "rewardTokens",
+        "underlyingTokens",
+        "poolMeta"
+    FROM
+        (
+            SELECT
+                DISTINCT ON (pool) *
+            FROM
+                yield
+            WHERE
+                "tvlUsd" >= $<tvlLB>
+                AND timestamp >= NOW() - INTERVAL '$<age> DAY'
+            ORDER BY
+                pool,
+                timestamp DESC
+        ) AS y
+        LEFT JOIN meta AS m ON y.pool = m.pool
+  `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query, {
     tvlLB: boundaries.tvlUsdUI.lb,
     age: boundaries.age,
   });
@@ -23,7 +63,33 @@ const getYield = async () => {
 const getYieldHistory = async (pool) => {
   const conn = await connect();
 
-  const response = await conn.query(sql.getYieldHistory, { poolValue: pool });
+  const query = minify(
+    `
+    SELECT
+        timestamp,
+        "tvlUsd",
+        "apy"
+    FROM
+        yield
+    WHERE
+        timestamp IN (
+            SELECT
+                max(timestamp)
+            FROM
+                yield
+            WHERE
+                pool = $<poolValue>
+            GROUP BY
+                (timestamp :: date)
+        )
+        AND pool = $<poolValue>
+    ORDER BY
+        timestamp ASC
+  `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query, { poolValue: pool });
 
   if (!response) {
     return new AppError(`Couldn't get ${tableName} history data`, 404);
@@ -38,7 +104,54 @@ const getYieldHistory = async (pool) => {
 const getYieldProject = async (project) => {
   const conn = await connect();
 
-  const response = await conn.query(sql.getYieldProject, {
+  // -- get latest yield row per unique pool id for a specific project
+  // -- exclude if tvlUsd is < LB
+  // -- exclude if pool age > 7days
+  // -- join meta data
+  const query = minify(
+    `
+    SELECT
+        y.pool,
+        symbol,
+        chain,
+        project,
+        apy,
+        "tvlUsd",
+        "rewardTokens",
+        "underlyingTokens",
+        "poolMeta"
+    FROM
+        (
+            SELECT
+                DISTINCT ON (pool) *
+            FROM
+                yield
+            WHERE
+                pool IN (
+                    SELECT
+                        *
+                    FROM
+                        (
+                            SELECT
+                                DISTINCT (pool)
+                            FROM
+                                meta
+                            WHERE
+                                "project" = $<project>
+                        ) AS m
+                )
+                AND "tvlUsd" >= $<tvlLB>
+                AND timestamp >= NOW() - INTERVAL '$<age> DAY'
+            ORDER BY
+                pool,
+                timestamp DESC
+        ) AS y
+        LEFT JOIN meta AS m ON y.pool = m.pool
+    `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query, {
     tvlLB: boundaries.tvlUsdUI.lb,
     age: boundaries.age,
     project,
@@ -65,7 +178,42 @@ const getYieldOffset = async (project, days) => {
 
   const tvlLB = boundaries.tvlUsdUI.lb;
 
-  const response = await conn.query(sql.getYieldOffset, {
+  // -- retrieve the historical offset data for a every unique pool given an offset day (1d/7d/30d)
+  // -- to calculate pct changes. allow some buffer (+/- 3hs) in case of missing data (via tsLB and tsUB)
+  const query = minify(
+    `
+    SELECT
+        DISTINCT ON (pool) pool,
+        apy
+    FROM
+        (
+            SELECT
+                y.pool,
+                apy,
+                abs(
+                    extract (
+                        epoch
+                        FROM
+                            timestamp - (NOW() - INTERVAL '$<age> DAY')
+                    )
+                ) AS abs_delta
+            FROM
+                yield AS y
+                LEFT JOIN meta AS m ON m.pool = y.pool
+            WHERE
+                "tvlUsd" >= $<tvlLB>
+                AND project = $<project>
+                AND timestamp >= $<tsLB>
+                AND timestamp <= $<tsUB>
+        ) y
+    ORDER BY
+        pool,
+        abs_delta ASC
+    `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query, {
     project,
     age: days,
     tsLB,
