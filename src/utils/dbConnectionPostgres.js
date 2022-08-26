@@ -1,4 +1,4 @@
-require('dotenv').config({ path: '../../config.env' });
+require('dotenv').config({ path: './config.env' });
 const pgp = require('pg-promise')({
   /* initialization options */
   capSQL: true, // capitalize all generated SQL
