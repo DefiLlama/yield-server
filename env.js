@@ -18,4 +18,10 @@ module.exports = {
       .readdirSync('./src/adaptors')
       .filter((el) => !el.includes('js') && el !== '.DS_Store')
   ),
+  // DB
+  DB_USER: process.env.DB_USER,
+  DB_NAME: process.env.DB_NAME,
+  DB_PW: process.env.DB_PW,
+  DB_PORT: process.env.DB_PORT,
+  DB_HOST: process.env.DB_HOST,
 };

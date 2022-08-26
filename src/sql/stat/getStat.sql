@@ -1,0 +1,10 @@
+SELECT
+    pool,
+    count,
+    "meanAPY",
+    "mean2APY",
+    "meanDR",
+    "mean2DR",
+    "productDR"
+FROM
+    stat

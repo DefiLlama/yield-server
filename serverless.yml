@@ -57,6 +57,11 @@ provider:
       }
     SSM_PATH: ${self:custom.ssmPath}
     BUCKET_DATA: { Ref: BucketData }
+    DB_USER: ${file(./env.js):DB_USER}
+    DB_NAME: ${file(./env.js):DB_NAME}
+    DB_PW: ${file(./env.js):DB_PW}
+    DB_PORT: ${file(./env.js):DB_PORT}
+    DB_HOST: ${file(./env.js):DB_HOST}
 
   httpApi:
     metrics: true
