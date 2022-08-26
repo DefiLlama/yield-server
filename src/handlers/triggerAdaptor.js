@@ -104,11 +104,17 @@ const main = async (body) => {
   );
   data = data.map((p) => ({ ...p, timestamp: timestamp }));
 
-  // format chain in case it was skipped in adapter
+  // format chain in case it was skipped in adapter.
+  // round tvlUsd to integer and apy fields to n-dec
+  const dec = 5;
   data = data.map((p) => ({
     ...p,
     chain: utils.formatChain(p.chain),
     symbol: utils.formatSymbol(p.symbol),
+    tvlUsd: Math.round(p.tvlUsd),
+    apy: p.apy !== null ? +p.apy.toFixed(dec) : p.apy,
+    apyBase: p.apyBase !== null ? +p.apyBase.toFixed(dec) : p.apyBase,
+    apyReward: p.apyReward !== null ? +p.apyReward.toFixed(dec) : p.apyReward,
   }));
 
   // insert only if tvl conditions are ok:
