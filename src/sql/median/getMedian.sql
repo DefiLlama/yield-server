@@ -1,6 +1,6 @@
 SELECT
+    timestamp,
     "uniquePools",
-    "medianAPY",
-    timestamp
+    "medianAPY"
 FROM
     median
