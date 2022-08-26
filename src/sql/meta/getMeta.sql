@@ -1,0 +1,10 @@
+SELECT
+    pool,
+    symbol,
+    project,
+    chain,
+    "poolMeta",
+    "underlyingTokens",
+    "rewardTokens"
+FROM
+    meta
