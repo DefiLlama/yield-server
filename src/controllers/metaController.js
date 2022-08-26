@@ -1,4 +1,4 @@
-const { meta: sql } = require('../sql');
+const minify = require('pg-minify');
 const { pgp, connect } = require('../utils/dbConnectionPostgres');
 
 const tableName = 'meta';
@@ -6,7 +6,23 @@ const tableName = 'meta';
 const getMeta = async () => {
   const conn = await connect();
 
-  const response = await conn.query(sql.getMeta);
+  const query = minify(
+    `
+    SELECT
+        pool,
+        symbol,
+        project,
+        chain,
+        "poolMeta",
+        "underlyingTokens",
+        "rewardTokens"
+    FROM
+        meta
+    `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query);
 
   if (!response) {
     return new AppError(`Couldn't get ${tableName} data`, 404);

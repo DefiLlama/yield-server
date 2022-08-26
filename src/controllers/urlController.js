@@ -1,4 +1,4 @@
-const { url: sql } = require('../sql');
+const minify = require('pg-minify');
 const { pgp, connect } = require('../utils/dbConnectionPostgres');
 
 const tableName = 'url';
@@ -6,7 +6,18 @@ const tableName = 'url';
 const getUrl = async () => {
   const conn = await connect();
 
-  const response = await conn.query(sql.getUrl);
+  const query = minify(
+    `
+    SELECT
+        project,
+        link
+    FROM
+        url
+    `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query);
 
   if (!response) {
     return new AppError(`Couldn't get ${tableName} data`, 404);
