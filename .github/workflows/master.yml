@@ -33,3 +33,4 @@ jobs:
           XDAI_RPC: ${{ secrets.XDAI_RPC }}
           CRONOS_RPC: ${{ secrets.CRONOS_RPC }}
           TVL_SPIKE_WEBHOOK: ${{ secrets.TVL_SPIKE_WEBHOOK }}
+          NEW_YIELDS_WEBHOOK: ${{ secrets.NEW_YIELDS_WEBHOOK }}

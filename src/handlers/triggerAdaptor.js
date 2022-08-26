@@ -159,6 +159,15 @@ const main = async (body) => {
     }
     dataDB.push(p);
   }
+
+  if (
+    !dataInitial.length &&
+    dataDB.filter(({ tvlUsd }) => tvlUsd > 10000).length
+  ) {
+    const message = `Project ${body.adaptor} yields have been added`;
+    await sendMessage(message, process.env.NEW_YIELDS_WEBHOOK);
+  }
+
   const delta = data.length - dataDB.length;
   if (delta > 0) {
     console.log(`removed ${delta} sample(s) prior to insert`);

@@ -58,7 +58,7 @@ const poolsFunction = async () => {
   // Add filtered vault
   addVault('gemFtmUsdc');
 
-  return finalData;
+  return finalData.filter((p) => p.symbol);
 };
 
 module.exports = {
