@@ -1,4 +1,4 @@
-const { stat: sql } = require('../sql');
+const minify = require('pg-minify');
 const { pgp, connect } = require('../utils/dbConnectionPostgres');
 
 const tableName = 'stat';
@@ -6,7 +6,23 @@ const tableName = 'stat';
 const getStat = async () => {
   const conn = await connect();
 
-  const response = await conn.query(sql.getStat);
+  const query = minify(
+    `
+    SELECT
+        pool,
+        count,
+        "meanAPY",
+        "mean2APY",
+        "meanDR",
+        "mean2DR",
+        "productDR"
+    FROM
+        stat
+    `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query);
 
   if (!response) {
     return new AppError(`Couldn't get ${tableName} data`, 404);
