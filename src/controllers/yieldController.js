@@ -5,7 +5,7 @@ const { pgp, connect } = require('../utils/dbConnectionPostgres');
 
 const tableName = 'yield';
 
-const getYieldPostgres = async () => {
+const getYield = async () => {
   const conn = await connect();
 
   const response = await conn.query(sql.getYield, {
@@ -20,7 +20,7 @@ const getYieldPostgres = async () => {
   return response;
 };
 
-const getYieldHistoryPostgres = async (pool) => {
+const getYieldHistory = async (pool) => {
   const conn = await connect();
 
   const response = await conn.query(sql.getYieldHistory, { poolValue: pool });
@@ -35,7 +35,7 @@ const getYieldHistoryPostgres = async (pool) => {
   };
 };
 
-const getYieldProjectPostgres = async (project) => {
+const getYieldProject = async (project) => {
   const conn = await connect();
 
   const response = await conn.query(sql.getYieldProject, {
@@ -51,7 +51,7 @@ const getYieldProjectPostgres = async (project) => {
   return response;
 };
 
-const getYieldOffsetPostgres = async (project, days) => {
+const getYieldOffset = async (project, days) => {
   const conn = await connect();
 
   const daysMilliSeconds = Number(days) * 60 * 60 * 24 * 1000;
@@ -80,7 +80,7 @@ const getYieldOffsetPostgres = async (project, days) => {
   return response;
 };
 
-const insertYieldPostgres = async (payload) => {
+const insertYield = async (payload) => {
   const conn = await connect();
 
   const columns = [
@@ -107,9 +107,9 @@ const insertYieldPostgres = async (payload) => {
 };
 
 module.exports = {
-  getYieldPostgres,
-  getYieldHistoryPostgres,
-  getYieldOffsetPostgres,
-  getYieldProjectPostgres,
-  insertYieldPostgres,
+  getYield,
+  getYieldHistory,
+  getYieldOffset,
+  getYieldProject,
+  insertYield,
 };
