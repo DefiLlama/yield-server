@@ -8,6 +8,9 @@ const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
 const dbConnection = require('../utils/dbConnection.js');
 const { sendMessage } = require('../utils/discordWebhook');
+const { insertUrl } = require('../controllers/urlController');
+const { insertMeta } = require('../controllers/metaController');
+const { insertYield } = require('../controllers/yieldController');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -112,7 +115,7 @@ const main = async (body) => {
     chain: utils.formatChain(p.chain),
     symbol: utils.formatSymbol(p.symbol),
     tvlUsd: Math.round(p.tvlUsd),
-    apy: p.apy !== null ? +p.apy.toFixed(dec) : p.apy,
+    apy: +p.apy.toFixed(dec),
     apyBase: p.apyBase !== null ? +p.apyBase.toFixed(dec) : p.apyBase,
     apyReward: p.apyReward !== null ? +p.apyReward.toFixed(dec) : p.apyReward,
   }));
@@ -191,10 +194,18 @@ const main = async (body) => {
   const response = await insertPools(dataDB);
   console.log(response);
 
+  // postgres
+  const responseYield = await insertYield(dataDB);
+  console.log(responseYield);
+  const responseMeta = await insertMeta(dataDB);
+  console.log(responseMeta);
+
   // update url
   if (project.url) {
     console.log('insert/update url');
     await updateUrl(body.adaptor, project.url);
+    // postgres
+    await insertUrl({ project: body.adaptor, link: project.url });
   }
 };
 
