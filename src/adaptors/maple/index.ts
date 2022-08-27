@@ -7,6 +7,7 @@ const API_URL = 'https://staging.api.maple.finance/v1/graphql';
 
 interface Pool {
   contractAddress: string;
+  poolName: string;
   liquidityAsset: {
     price: number;
     symbol: string;
@@ -16,6 +17,7 @@ interface Pool {
   liquidity: string;
   lendingApy: string;
   farmingApy: string;
+  poolDelegate: { companyName: string };
 }
 
 interface Pools {
@@ -36,6 +38,7 @@ const apy = async () => {
       chain: utils.formatChain('ethereum'),
       project: 'maple',
       symbol: pool.liquidityAsset.symbol,
+      poolMeta: pool.poolDelegate.companyName,
       tvlUsd:
         (Number(pool.liquidity) * tokenPrice) /
         10 ** pool.liquidityAsset.decimals,
@@ -53,4 +56,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy: apy,
+  url: 'https://app.maple.finance/#/earn',
 };

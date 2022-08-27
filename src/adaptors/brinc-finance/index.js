@@ -27,12 +27,12 @@ const brcContract = new web3.eth.Contract(BrcABI, BRC);
 const BLOCKS_PER_MONTH = 199384;
 const TOTAL_POOLS_WEIGHT = 568;
 const PoolNames = [
-  'BRC (7Days)',
-  'BRC (30Days)',
-  'BRC (90Days)',
-  'BRC-gBRC (7Days)',
-  'BRC-gBRC (30Days)',
-  'BRC-gBRC (90Days)',
+  'BRC 7Days',
+  'BRC 30Days',
+  'BRC 90Days',
+  'BRC-gBRC 7Days',
+  'BRC-gBRC 30Days',
+  'BRC-gBRC 90Days',
 ];
 
 let gBRCCost = 0;
@@ -261,7 +261,8 @@ const buildPool = (entry) => {
     pool: entry.poolId + '-brinc-finance-staking',
     chain: 'Arbitrum', // chain where the pool is
     project: 'brinc-finance', // protocol (using the slug again)
-    symbol: utils.formatSymbol(entry.symbol),
+    symbol: entry.symbol.split(' ')[0],
+    poolMeta: entry.symbol.split(' ')[1],
     tvlUsd: parseInt(entry.tvl, 10), // number representing current USD TVL in pool
     apy: parseFloat(entry.apy),
     rewardTokens: [GBRC], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
@@ -282,4 +283,5 @@ async function main() {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://app.brinc.fi/stake',
 };

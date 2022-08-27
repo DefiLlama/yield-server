@@ -9,6 +9,8 @@ const excludePools = [
   // ripae pools (reported by MathieuB as scam project, and definitely not noIL!)
   'ripae-seth-weth-42161',
   'ripae-peth-weth-42161',
+  '0x3eed430cd45c5e2b45aa1adc609cc77c6728d45b', // mind-wavax on traderjoe, snowtrace shows tiny lp value, but tvl is huge
+  '0x3c42B0f384D2912661C940d46cfFE1CD10F1c66F-ethereum', // test pool on curve? (CTDL-WBTC)
 ];
 
 const boundaries = {
@@ -18,6 +20,8 @@ const boundaries = {
   tvlUsdUI: { lb: 1e4, ub: 2e10 },
   // we only get pools for the UI with a maximum apy of 1million %
   apy: { lb: 0, ub: 1e6 },
+  // reading from database returns only pools which is max 7 days old
+  age: 7,
 };
 
 module.exports = {
