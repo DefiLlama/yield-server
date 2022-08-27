@@ -43,7 +43,7 @@ const getYield = async () => {
                 pool,
                 timestamp DESC
         ) AS y
-        LEFT JOIN meta AS m ON y.pool = m.pool
+        INNER JOIN meta AS m ON y.pool = m.pool
   `,
     { compress: true }
   );
@@ -146,7 +146,7 @@ const getYieldProject = async (project) => {
                 pool,
                 timestamp DESC
         ) AS y
-        LEFT JOIN meta AS m ON y.pool = m.pool
+        INNER JOIN meta AS m ON y.pool = m.pool
     `,
     { compress: true }
   );
@@ -199,7 +199,7 @@ const getYieldOffset = async (project, days) => {
                 ) AS abs_delta
             FROM
                 yield AS y
-                LEFT JOIN meta AS m ON m.pool = y.pool
+                INNER JOIN meta AS m ON m.pool = y.pool
             WHERE
                 "tvlUsd" >= $<tvlLB>
                 AND project = $<project>
