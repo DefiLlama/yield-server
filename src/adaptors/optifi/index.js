@@ -8,6 +8,7 @@ const collectPools = async () => {
 
     let apy = [(Object.entries(data1))[0][1]["apy_pct"], (Object.entries(data2))[0][1]["apy_pct"]];
     let tvl = [(Object.entries(data1))[0][1]["now"]["tvl"], (Object.entries(data2))[0][1]["now"]["tvl"]];
+    let poolMeta = ["BTC Option", "ETH Option"]
 
     let poolAddress = ["4UoELNjSk36m3aqTS6PnxNoUSZYXKWa7hEn7i6BRHrUu", "8J7AfECijPQDUfj7k6pQk6YNTEqjSAjiZnsGNgRZmowz"]
     return Object.entries(apy).map(([i, apy]) => ({
@@ -17,6 +18,7 @@ const collectPools = async () => {
         symbol: utils.formatSymbol('USDC'),
         tvlUsd: tvl[i],
         apy: apy,
+        poolMeta: poolMeta[i]
     })
 
     );
@@ -25,4 +27,5 @@ const collectPools = async () => {
 module.exports = {
     timetravel: false,
     apy: collectPools,
+    url: 'https://www.optifi.app/amm',
 };
