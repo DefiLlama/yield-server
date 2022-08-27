@@ -35,11 +35,12 @@ const buildPoolsEnriched = async (queryString) => {
     'ilRisk',
     'exposure',
     'predictions',
-    'market',
+    'poolMeta',
     'mu',
     'sigma',
     'count',
     'outlier',
+    'underlyingTokens',
   ]
     .map((el) => `t."${el}"`)
     .join(', ');
