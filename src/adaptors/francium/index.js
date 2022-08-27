@@ -23,16 +23,17 @@ async function getPoolsData() {
   if ( !farmPoolData.data || !lendPoolData.data ) {
     console.log({farmPoolData, lendPoolData});
     throw new Error('Unexpected response from frcPoolsData');
+    return
   }
 
   const pools = [];
 
-  const latestFarmPools = farmPoolData.data
-  const latestLendPools = lendPoolData.data
+  const latestFarmPools = farmPoolData.data.filter(item => item.poolId)
+  const latestLendPools = lendPoolData.data.filter(item => item.poolId)
 
   latestFarmPools.forEach(item => {
     pools.push({
-      pool: item.poolId || `Francium-${item.id}-LYF-${item.type}`,
+      pool: item.poolId,
       chain: utils.formatChain('solana'),
       project: 'francium',
       symbol: utils.formatSymbol(item.pool),
@@ -44,7 +45,7 @@ async function getPoolsData() {
 
   latestLendPools.forEach(item => {
     pools.push({
-      pool: item.poolId || `Francium-${item.id}-Lending`,
+      pool: item.poolId,
       chain: utils.formatChain('solana'),
       project: 'francium',
       symbol: utils.formatSymbol(item.id),
