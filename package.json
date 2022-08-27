@@ -27,6 +27,7 @@
     "lodash": "^4.17.21",
     "mongoose": "^5.11.13",
     "node-fetch": "^2.6.1",
+    "pg": "^8.8.0",
     "pg-pool": "^3.5.2",
     "pg-promise": "^10.11.1",
     "saslprep": "^1.0.3",
