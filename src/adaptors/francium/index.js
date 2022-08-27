@@ -50,7 +50,7 @@ async function getPoolsData() {
       project: 'francium',
       symbol: utils.formatSymbol(item.id),
       poolMeta: 'Lending Pool',
-      tvlUsd: Number(item.liquidityLocked),
+      tvlUsd: Number(item.available),
       apyBase: item.apy,
     })
   })
