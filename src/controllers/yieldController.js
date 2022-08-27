@@ -231,6 +231,10 @@ const getYieldOffset = async (project, days) => {
 const insertYield = async (payload) => {
   const conn = await connect();
 
+  // note: even though apyBase and apyReward are optional fields
+  // they are both added in the adapter handler to derive final apy.
+  // hence, there is no need to specify optional fields defaults for pg-promise
+  // (in contrast to `insertMeta`)
   const columns = [
     'pool',
     'tvlUsd',
