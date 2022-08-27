@@ -194,17 +194,21 @@ const main = async (body) => {
   const response = await insertPools(dataDB);
   console.log(response);
 
+  // update url
+  if (project.url) {
+    console.log('insert/update url');
+    await updateUrl(body.adaptor, project.url);
+  }
+
+  // run new postgres db inserts separately
   // postgres
   const responseYield = await insertYield(dataDB);
   console.log(responseYield);
   const responseMeta = await insertMeta(dataDB);
   console.log(responseMeta);
 
-  // update url
   if (project.url) {
     console.log('insert/update url');
-    await updateUrl(body.adaptor, project.url);
-    // postgres
     await insertUrl({ project: body.adaptor, link: project.url });
   }
 };
