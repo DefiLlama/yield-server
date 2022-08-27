@@ -35,13 +35,17 @@ const insertMeta = async (payload) => {
   const conn = await connect();
 
   const columns = [
-    'pool',
-    'symbol',
-    'project',
-    'chain',
-    'poolMeta',
-    'underlyingTokens',
-    'rewardTokens',
+    { name: 'pool' },
+    { name: 'symbol' },
+    { name: 'project' },
+    { name: 'chain' },
+    // pg-promise is not aware of the db-schema -> we need to make sure that
+    // optional fields are marked and provided with a default value
+    // otherwise the .result method will complain about missing fields
+    //
+    { name: 'poolMeta', def: null },
+    { name: 'underlyingTokens', def: [] },
+    { name: 'rewardTokens', def: [] },
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
 

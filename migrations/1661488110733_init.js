@@ -15,7 +15,7 @@ exports.up = (pgm) => {
     pool: { type: 'text', notNull: true },
     timestamp: { type: 'timestamptz', notNull: true },
     tvlUsd: { type: 'bigint', notNull: true },
-    apy: 'numeric',
+    apy: { type: 'numeric', notNull: true },
     apyBase: 'numeric',
     apyReward: 'numeric',
   });
