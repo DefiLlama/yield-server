@@ -202,14 +202,16 @@ const main = async (body) => {
 
   // run new postgres db inserts separately
   // postgres
-  const responseYield = await insertYield(dataDB);
-  console.log(responseYield);
-  const responseMeta = await insertMeta(dataDB);
-  console.log(responseMeta);
 
-  if (project.url) {
-    console.log('insert/update url');
-    await insertUrl({ project: body.adaptor, link: project.url });
+  // pg-promise can't run insert on empty array
+  if (dataDB.length > 0) {
+    const responseYield = await insertYield(dataDB);
+    const responseMeta = await insertMeta(dataDB);
+
+    if (project.url) {
+      console.log('insert/update url');
+      await insertUrl({ project: body.adaptor, link: project.url });
+    }
   }
 };
 
