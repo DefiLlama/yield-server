@@ -8,6 +8,7 @@ const { buildPoolsEnriched } = require('./getPoolsEnriched');
 const { welfordUpdate } = require('../utils/welford');
 const dbConnection = require('../utils/dbConnection.js');
 const poolModel = require('../models/pool');
+const { insertEnriched } = require('../controllers/enrichedController');
 
 module.exports.handler = async (event, context) => {
   await main();
@@ -279,6 +280,17 @@ const main = async () => {
     status: 'success',
     data: await buildPoolsEnriched(undefined),
   });
+
+  // postgres insert
+  console.log('postgres insert');
+  // this filter is temporary only and can be removed once we start pulling from the postgres yield table
+  dataEnriched = dataEnriched.map((p) => ({
+    ...p,
+    rewardTokens: p.rewardTokens ?? [],
+    underlyingTokens: p.underlyingTokens ?? [],
+  }));
+  const response = await insertEnriched(dataEnriched);
+  console.log(response);
 };
 
 ////// helper functions

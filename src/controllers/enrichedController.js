@@ -5,10 +5,10 @@ const { pgp, connect } = require('../utils/dbConnectionPostgres');
 
 const tableName = 'enriched';
 
-const getEnriched = async () => {
+const getEnriched = async (queryString) => {
   const conn = await connect();
 
-  const query = minify(
+  let query = minify(
     `
     SELECT
         pool,
@@ -38,6 +38,13 @@ const getEnriched = async () => {
     `,
     { compress: true }
   );
+
+  // modify query in case pool field is given (which is what we need for /pool/[pool])
+  if (queryString !== undefined) {
+    query = `${query} WHERE ${Object.keys(queryString)[0]} = '${
+      Object.values(queryString)[0]
+    }'`;
+  }
 
   const response = await conn.query(query);
 
