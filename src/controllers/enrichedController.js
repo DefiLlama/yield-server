@@ -94,12 +94,16 @@ const insertEnriched = async (payload) => {
   // multi row insert
   const query = pgp.helpers.insert(payload, cs);
 
-  conn
-    .tx(async (t) => {
-      // first truncate the table
-      await t.none('TRUNCATE $1:name', tableName);
-      // then insert the new sample
-      await t.result(query);
+  return conn
+    .tx((t) => {
+      // sequence of queries:
+      // 1. truncate enriched
+      const q1 = t.none('TRUNCATE $1:name', tableName);
+      // 2. insert the updated yield rows
+      const q2 = t.result(query);
+
+      // returning a promise that determines a successful transaction:
+      return t.batch([q1, q2]); // all of the queries are to be resolved;
     })
     .then((response) => {
       // success, COMMIT was executed
