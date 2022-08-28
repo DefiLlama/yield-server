@@ -185,6 +185,16 @@ functions:
           method: get
           path: /urls
 
+  # //////////////////// postgres testing
+  getChartPostgres:
+    handler: src/handlers/getChartPostgres.handler
+    description: Lambda for retrieving chart data for a particular pool
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /chartPostgres/{pool}
+
 resources:
   Resources:
     # QUEUES

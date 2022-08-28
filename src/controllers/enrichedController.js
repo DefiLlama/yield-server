@@ -22,7 +22,6 @@ const getEnriched = async () => {
         "poolMeta",
         "underlyingTokens",
         "rewardTokens",
-        timestamp,
         "apyPct1D",
         "apyPct7D",
         "apyPct30D",
@@ -91,7 +90,7 @@ const insertEnriched = async (payload) => {
   conn
     .tx(async (t) => {
       // first truncate the table
-      await t.none('TRUNCATE $1', tableName);
+      await t.none('TRUNCATE $1:name', tableName);
       // then insert the new sample
       await t.result(query);
     })
