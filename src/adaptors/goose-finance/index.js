@@ -195,7 +195,7 @@ const getApy = async () => {
       project: 'goose-finance',
       symbol: `${pairInfo.token0.symbol}-${pairInfo.token1.symbol}`,
       tvlUsd: Number(masterChefReservesUsd),
-      apy,
+      apyReward: apy,
       underlyingTokens: [tokens0[i], tokens1[i]],
       rewardTokens: [EGG_TOKEN],
     });
