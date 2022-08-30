@@ -182,7 +182,7 @@ const getApy = async (chain, lpStaking) => {
         poolsApy.push({
             pool: pool.lpToken,
             chain: chain,
-            project: 'stargate',
+            project: 'stargate-finance',
             symbol: `${pool.lpTokenSymbol}`,
             tvlUsd: reserveUSD,
             apyReward: apy,
