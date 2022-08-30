@@ -11,7 +11,6 @@ const YODE_TOKEN = '0x6FC4563460d5f45932C473334d5c1C5B4aEA0E01';
 const MASTERCHEF_ADDRESS = '0xf7b1150cb31488bde3eB3201e0FDF1Bd54799712';
 const BLOCK_TIME = 2;
 const BLOCKS_PER_YEAR = Math.floor((60 / BLOCK_TIME) * 60 * 24 * 365);
-const SECOND_IN_YEAR = 86400 * 365;
 const FEE_RATE = 0.0010;
 const WEEKS_PER_YEAR = 52;
 
@@ -96,7 +95,7 @@ const calculateApy = (
 ) => {
   const poolWeight = poolInfo.allocPoint / totalAllocPoint.output;
   const couponPerYear = BigNumber(couponPerSecond)
-    .times(SECOND_IN_YEAR)
+    .times(BLOCKS_PER_YEAR)
     .times(poolWeight);
   const apy = couponPerYear
     .times(couponPrice)
