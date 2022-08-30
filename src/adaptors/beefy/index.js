@@ -62,7 +62,6 @@ const main = async () => {
 
       data.push({
         pool: `${poolId}-${networkMapping[chain]}`.toLowerCase(),
-        // poolMeta: `${pool}-${chain}`,
         chain: utils.formatChain(networkMapping[chain]),
         project: 'beefy',
         symbol: utils.formatSymbol(pool.split('-').slice(1).join('-')),
