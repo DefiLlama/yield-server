@@ -45,7 +45,6 @@ const API_URLS = {
 const query = gql`
   query ReservesQuery {
     reserves {
-      id
       name
       aToken {
         id
@@ -151,7 +150,7 @@ const apy = async () => {
       );
 
       return {
-        pool: `${pool.id}-${chain}`,
+        pool: `${pool.aToken.id}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
         project: 'aave-v3',
         symbol: pool.symbol,
