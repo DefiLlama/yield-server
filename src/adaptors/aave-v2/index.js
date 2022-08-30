@@ -13,7 +13,6 @@ const subgraphs = {
 const query = gql`
   {
     reserves {
-      id
       symbol
       decimals
       liquidityRate
@@ -23,6 +22,9 @@ const query = gql`
       }
       isActive
       underlyingAsset
+      aToken {
+        id
+      }
     }
   }
 `;
@@ -55,7 +57,7 @@ const main = async () => {
               1e8;
 
         return {
-          pool: p.id,
+          pool: `${p.aToken.id}-${chainString}`.toLowerCase(),
           chain: utils.formatChain(chainString),
           project: 'aave-v2',
           symbol: utils.formatSymbol(p.symbol),
