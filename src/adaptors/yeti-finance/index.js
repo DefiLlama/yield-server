@@ -61,8 +61,8 @@ async function apr() {
         project: 'yeti-finance',
         symbol: 'YUSD',
         tvlUsd: Number(
-            yusdData.avax.stabilityPoolDeposits.value) * Number(yusdData.avax.YUSDPrice.value),
-        apy: Number(yusdDat.avax.stabilityPoolAPR.value) * 100,
+            yusdData.stabilityPoolDeposits.value) * Number(yusdData.YUSDPrice.value),
+        apy: Number(yusdDat.stabilityPoolAPR.value) * 100,
     }]
 
     vaultAPRs.push(stabilityPool)
