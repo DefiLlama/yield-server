@@ -62,7 +62,7 @@ async function apr() {
         symbol: 'YUSD',
         tvlUsd: Number(
             yusdData.stabilityPoolDeposits.value) * Number(yusdData.YUSDPrice.value),
-        apy: Number(yusdDat.stabilityPoolAPR.value) * 100,
+        apy: Number(yusdData.stabilityPoolAPR.value) * 100,
     }]
 
     vaultAPRs.push(stabilityPool)
