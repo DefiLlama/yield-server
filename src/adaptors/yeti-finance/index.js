@@ -40,11 +40,11 @@ async function apr() {
 
     const vaultsToExclude = ["WAVAX", "USDC", "WETH", "WBTC", "av3CRV"]
 
-    const vaultAPRs = [
+    let vaultAPRs = [
         ...vaults.filter(v => v !== "0x0000000000000000000000000000000000000000" && !vaultsToExclude.includes(vaultToName[v]))
     ].map( v => (
         {
-        pool: `Yeti ${vaultToName[v]} Vault`,
+        pool: `Yeti-${vaultToName[v]}-Vault`,
         chain: 'Avalanche',
         project: 'yeti-finance',
         symbol: getSymbol(vaultToName[v]),
@@ -56,16 +56,17 @@ async function apr() {
     }));
 
     const stabilityPool = [{
-        pool: `Yeti YUSD StabilityPool`,
+        pool: `Yeti-YUSD-StabilityPool`,
         chain: 'Avalanche',
         project: 'yeti-finance',
         symbol: 'YUSD',
         tvlUsd: Number(
             yusdData.stabilityPoolDeposits.value) * Number(yusdData.YUSDPrice.value),
         apy: Number(yusdData.stabilityPoolAPR.value) * 100,
+        underlyingTokens: ["0x111111111111ed1D73f860F57b2798b683f2d325"]
     }]
 
-    vaultAPRs.push(stabilityPool)
+    vaultAPRs = vaultAPRs.concat(stabilityPool)
 
     return vaultAPRs
 };
