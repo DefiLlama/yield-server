@@ -1,4 +1,3 @@
-const minify = require('pg-minify');
 const { pgp, connect } = require('../utils/dbConnectionPostgres');
 
 const tableName = 'stat';
@@ -6,23 +5,7 @@ const tableName = 'stat';
 const getStat = async () => {
   const conn = await connect();
 
-  const query = minify(
-    `
-    SELECT
-        pool,
-        count,
-        "meanAPY",
-        "mean2APY",
-        "meanDR",
-        "mean2DR",
-        "productDR"
-    FROM
-        stat
-    `,
-    { compress: true }
-  );
-
-  const response = await conn.query(query);
+  const response = await conn.query('SELECT * FROM stat');
 
   if (!response) {
     return new AppError(`Couldn't get ${tableName} data`, 404);
@@ -35,7 +18,7 @@ const insertStat = async (payload) => {
   const conn = await connect();
 
   const columns = [
-    'pool',
+    'stat_id',
     'count',
     'meanAPY',
     'mean2APY',
@@ -48,8 +31,8 @@ const insertStat = async (payload) => {
   // multi-row insert/update
   const query =
     pgp.helpers.insert(payload, cs) +
-    ' ON CONFLICT(pool) DO UPDATE SET ' +
-    cs.assignColumns({ from: 'EXCLUDED', skip: 'pool' });
+    ' ON CONFLICT(stat_id) DO UPDATE SET ' +
+    cs.assignColumns({ from: 'EXCLUDED', skip: 'stat_id' });
 
   const response = await conn.result(query);
 

@@ -195,15 +195,6 @@ functions:
           method: get
           path: /chartPostgres/{pool}
 
-  getPoolsEnrichedPostgres:
-    handler: src/handlers/getPoolsEnrichedPostgres.handler
-    description: Lambda for retrieving enriched data
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /poolsEnrichedPostgres
-
 resources:
   Resources:
     # QUEUES

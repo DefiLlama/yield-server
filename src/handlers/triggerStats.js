@@ -8,6 +8,10 @@ module.exports.handler = async (event, context) => {
   await main();
 };
 
+// we trigger this once per day at midnight, reason: the stat table was boostrapped on
+// daily values, and the ML relying on those features was trained on daily values too.
+// so i want to keep things consistent (even though it shouldnt be a big difference, at least
+// for the majority of pools)
 const main = async () => {
   const urlBase = process.env.APIG_URL;
   let dataEnriched = await buildPoolsEnriched(undefined);

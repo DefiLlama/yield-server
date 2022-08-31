@@ -9,10 +9,10 @@ const tableName = 'yield';
 const getYield = async () => {
   const conn = await connect();
 
-  // -- get latest yield row per unique pool id
+  // -- get latest yield row per unique configID (a pool)
   // -- exclude if tvlUsd is < LB
   // -- exclude if pool age > 7days
-  // -- join meta data
+  // -- join config data
   // -- NOTE: i use sqlformatter vscode extension. one issue i found is that it formats
   // -- named parameter placeholders such as $<tvlLB> to $ < tvlLB > which is invalid and
   // -- which pg-promise's internal formatter can't correct (at least i didn't find a way how to)
@@ -21,7 +21,7 @@ const getYield = async () => {
   const query = minify(
     `
     SELECT
-        y.pool,
+        pool,
         symbol,
         chain,
         project,
@@ -33,7 +33,7 @@ const getYield = async () => {
     FROM
         (
             SELECT
-                DISTINCT ON (pool) *
+                DISTINCT ON (configID) *
             FROM
                 yield
             WHERE
@@ -43,7 +43,7 @@ const getYield = async () => {
                 pool,
                 timestamp DESC
         ) AS y
-        INNER JOIN meta AS m ON y.pool = m.pool
+        INNER JOIN config AS c ON c.config_id = y.configID
   `,
     { compress: true }
   );
@@ -60,7 +60,7 @@ const getYield = async () => {
   return response;
 };
 
-const getYieldHistory = async (pool) => {
+const getYieldHistory = async (configID) => {
   const conn = await connect();
 
   const query = minify(
@@ -78,18 +78,18 @@ const getYieldHistory = async (pool) => {
             FROM
                 yield
             WHERE
-                pool = $<poolValue>
+                configID = $<configIDValue>
             GROUP BY
                 (timestamp :: date)
         )
-        AND pool = $<poolValue>
+        AND configID = $<configIDValue>
     ORDER BY
         timestamp ASC
   `,
     { compress: true }
   );
 
-  const response = await conn.query(query, { poolValue: pool });
+  const response = await conn.query(query, { configIDValue: configID });
 
   if (!response) {
     return new AppError(`Couldn't get ${tableName} history data`, 404);
@@ -104,14 +104,15 @@ const getYieldHistory = async (pool) => {
 const getYieldProject = async (project) => {
   const conn = await connect();
 
-  // -- get latest yield row per unique pool id for a specific project
+  // -- get latest yield row per unique configID (a pool) for a specific project
   // -- exclude if tvlUsd is < LB
   // -- exclude if pool age > 7days
-  // -- join meta data
+  // -- join config data
   const query = minify(
     `
     SELECT
-        y.pool,
+        "configID",
+        pool,
         symbol,
         chain,
         project,
@@ -123,22 +124,22 @@ const getYieldProject = async (project) => {
     FROM
         (
             SELECT
-                DISTINCT ON (pool) *
+                DISTINCT ON (configID) *
             FROM
                 yield
             WHERE
-                pool IN (
+            configID IN (
                     SELECT
                         *
                     FROM
                         (
                             SELECT
-                                DISTINCT (pool)
+                                DISTINCT (config_id)
                             FROM
-                                meta
+                                config
                             WHERE
                                 "project" = $<project>
-                        ) AS m
+                        ) AS c
                 )
                 AND "tvlUsd" >= $<tvlLB>
                 AND timestamp >= NOW() - INTERVAL '$<age> DAY'
@@ -146,7 +147,7 @@ const getYieldProject = async (project) => {
                 pool,
                 timestamp DESC
         ) AS y
-        INNER JOIN meta AS m ON y.pool = m.pool
+        INNER JOIN config AS c ON c.config_id = y.configID
     `,
     { compress: true }
   );
@@ -188,7 +189,7 @@ const getYieldOffset = async (project, days) => {
     FROM
         (
             SELECT
-                y.pool,
+                configID,
                 apy,
                 abs(
                     extract (
@@ -199,7 +200,7 @@ const getYieldOffset = async (project, days) => {
                 ) AS abs_delta
             FROM
                 yield AS y
-                INNER JOIN meta AS m ON m.pool = y.pool
+                INNER JOIN config AS c ON c.config_id = y.configID
             WHERE
                 "tvlUsd" >= $<tvlLB>
                 AND project = $<project>
@@ -228,34 +229,24 @@ const getYieldOffset = async (project, days) => {
   return response;
 };
 
-const insertYield = async (payload) => {
+const buildInsertYieldQuery = async (payload) => {
   const conn = await connect();
 
   // note: even though apyBase and apyReward are optional fields
   // they are both added in the adapter handler to derive final apy.
   // hence, there is no need to specify optional fields defaults for pg-promise
-  // (in contrast to `insertMeta`)
+  // (in contrast to some fields in `insertConfig`)
   const columns = [
-    'pool',
+    'configID',
+    'timestamp',
     'tvlUsd',
     'apy',
     'apyBase',
     'apyReward',
-    'timestamp',
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
   // multi row insert
-  const query = pgp.helpers.insert(payload, cs);
-  const response = await conn.result(query);
-
-  if (!response) {
-    return new AppError(`Couldn't insert ${tableName} data`, 404);
-  }
-
-  return {
-    status: 'success',
-    response: `Inserted ${payload.length} samples`,
-  };
+  return pgp.helpers.insert(payload, cs);
 };
 
 module.exports = {
@@ -263,5 +254,5 @@ module.exports = {
   getYieldHistory,
   getYieldOffset,
   getYieldProject,
-  insertYield,
+  buildInsertYieldQuery,
 };

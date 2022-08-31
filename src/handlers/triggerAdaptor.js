@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+
 const superagent = require('superagent');
 
 const utils = require('../adaptors/utils');
@@ -8,9 +10,8 @@ const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
 const dbConnection = require('../utils/dbConnection.js');
 const { sendMessage } = require('../utils/discordWebhook');
-const { insertUrl } = require('../controllers/urlController');
-const { insertMeta } = require('../controllers/metaController');
-const { insertYield } = require('../controllers/yieldController');
+const { buildInsertConfigQuery } = require('../controllers/configController');
+const { buildInsertYieldQuery } = require('../controllers/yieldController');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -200,18 +201,16 @@ const main = async (body) => {
     await updateUrl(body.adaptor, project.url);
   }
 
-  // run new postgres db inserts separately
-  // postgres
-
+  // ----------------------- run new postgres db inserts separately
   // pg-promise can't run insert on empty array
   if (dataDB.length > 0) {
-    const responseYield = await insertYield(dataDB);
-    const responseMeta = await insertMeta(dataDB);
-
-    if (project.url) {
-      console.log('insert/update url');
-      await insertUrl({ project: body.adaptor, link: project.url });
-    }
+    // step 1
+    // this is the part where i need to check if a given pool already has a
+    // uuid, if not create a new one (this info we already called via the `getProject`)
+    // which we used to calc tvl offsets and remove those with big spikes, so we already
+    // got that info
+    // step 2
+    // this needs to call a controller which runs the transaction
   }
 };
 
@@ -277,4 +276,39 @@ const updateUrl = async (adapter, url) => {
     return new AppError("Couldn't update data", 404);
   }
   console.log(response);
+};
+
+// --------- transaction query
+const { connect } = require('../utils/dbConnectionPostgres');
+
+const insertConfigYieldTransaction = async (payload) => {
+  const conn = await connect();
+
+  // build queries
+  const configQ = buildInsertConfigQuery(payload);
+  const yieldQ = buildInsertYieldQuery(payload);
+
+  return conn
+    .tx((t) => {
+      // sequence of queries:
+      // 1. config: insert/update
+      const q1 = t.result(configQ);
+      // 2. yield: insert
+      const q2 = t.result(yieldQ);
+
+      // returning a promise that determines a successful transaction:
+      return t.batch([q1, q2]); // all of the queries are to be resolved;
+    })
+    .then((response) => {
+      // success, COMMIT was executed
+      return {
+        status: 'success',
+        data: response,
+      };
+    })
+    .catch((err) => {
+      // failure, ROLLBACK was executed
+      console.log(err);
+      return new AppError('ConfigYield Transaction failed, rolling back', 404);
+    });
 };
