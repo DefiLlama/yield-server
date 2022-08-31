@@ -21,29 +21,34 @@ const getYield = async () => {
   const query = minify(
     `
     SELECT
-        pool,
-        symbol,
-        chain,
-        project,
-        apy,
+        "configID",
+        timestamp,
         "tvlUsd",
-        "rewardTokens",
+        apy,
+        "apyBase",
+        "apyReward",
+        pool,
+        project,
+        chain,
+        symbol,
+        "poolMeta",
         "underlyingTokens",
-        "poolMeta"
+        "rewardTokens"
+        "url"
     FROM
         (
             SELECT
-                DISTINCT ON (configID) *
+                DISTINCT ON ("configID") *
             FROM
                 yield
             WHERE
                 "tvlUsd" >= $<tvlLB>
                 AND timestamp >= NOW() - INTERVAL '$<age> DAY'
             ORDER BY
-                pool,
+                "configID",
                 timestamp DESC
         ) AS y
-        INNER JOIN config AS c ON c.config_id = y.configID
+        INNER JOIN config AS c ON c.config_id = y."configID"
   `,
     { compress: true }
   );
@@ -66,7 +71,7 @@ const getYieldHistory = async (configID) => {
   const query = minify(
     `
     SELECT
-        timestamp,
+        distinct(timestamp),
         "tvlUsd",
         "apy"
     FROM
@@ -113,41 +118,29 @@ const getYieldProject = async (project) => {
     SELECT
         "configID",
         pool,
-        symbol,
-        chain,
-        project,
-        apy,
-        "tvlUsd",
-        "rewardTokens",
-        "underlyingTokens",
-        "poolMeta"
+        "tvlUsd"
     FROM
         (
             SELECT
-                DISTINCT ON (configID) *
+                DISTINCT ON ("configID") *
             FROM
                 yield
             WHERE
-                configID IN (
+                "configID" IN (
                     SELECT
-                        *
+                        DISTINCT (config_id)
                     FROM
-                        (
-                            SELECT
-                                DISTINCT (config_id)
-                            FROM
-                                config
-                            WHERE
-                                "project" = $<project>
-                        ) AS c
+                        config
+                    WHERE
+                        "project" = $<project>
                 )
                 AND "tvlUsd" >= $<tvlLB>
                 AND timestamp >= NOW() - INTERVAL '$<age> DAY'
             ORDER BY
-                pool,
+                "configID",
                 timestamp DESC
         ) AS y
-        INNER JOIN config AS c ON c.config_id = y.configID
+        INNER JOIN config AS c ON c.config_id = y."configID"
     `,
     { compress: true }
   );
@@ -189,7 +182,8 @@ const getYieldOffset = async (project, days) => {
     FROM
         (
             SELECT
-                configID,
+                "configID",
+                pool,
                 apy,
                 abs(
                     extract (
@@ -200,16 +194,16 @@ const getYieldOffset = async (project, days) => {
                 ) AS abs_delta
             FROM
                 yield AS y
-                INNER JOIN config AS c ON c.config_id = y.configID
+                INNER JOIN config AS c ON c.config_id = y."configID"
             WHERE
                 "tvlUsd" >= $<tvlLB>
                 AND project = $<project>
                 AND timestamp >= $<tsLB>
                 AND timestamp <= $<tsUB>
-        ) y
+        ) AS y
     ORDER BY
         pool,
-        abs_delta ASC
+        abs_delta DESC
     `,
     { compress: true }
   );
