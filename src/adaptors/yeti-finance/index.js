@@ -18,14 +18,16 @@ async function apr() {
         { data: prices },
         { data: aprs },
         { data: vaultToName },
-        { data: underlyingTokens}
+        { data: underlyingTokens},
+        { data: yusdData }
     ] = await Promise.all([
         axios.get(`https://api.yeti.finance/v1/yeticontroller/vaults`),
         axios.get(`https://api.yeti.finance/v1/yeticontroller/tvls`),
         axios.get(`https://api.yeti.finance/v1/yeticontroller/prices`),
         axios.get(`https://api.yeti.finance/v1/collaterals`),
         axios.get(`https://api.yeti.finance/v1/yeticontroller/vaultToName`),
-        axios.get(`https://api.yeti.finance/v1/yeticontroller/underlyingTokens`)
+        axios.get(`https://api.yeti.finance/v1/yeticontroller/underlyingTokens`),
+        axios.get(`https://api.yeti.finance/v1/yusd/avax`)
     ]);
 
     const vaultsLength = vaults.length;
@@ -38,7 +40,7 @@ async function apr() {
 
     const vaultsToExclude = ["WAVAX", "USDC", "WETH", "WBTC", "av3CRV"]
 
-    return [
+    let vaultAPRs = [
         ...vaults.filter(v => v !== "0x0000000000000000000000000000000000000000" && !vaultsToExclude.includes(vaultToName[v]))
     ].map( v => (
         {
@@ -52,6 +54,21 @@ async function apr() {
         apy: Number(aprs[vaultToName[v]].APY.value) * 100,
         underlyingTokens: [underlying[v]]
     }));
+
+    const stabilityPool = [{
+        pool: `Yeti-YUSD-StabilityPool`,
+        chain: 'Avalanche',
+        project: 'yeti-finance',
+        symbol: 'YUSD',
+        tvlUsd: Number(
+            yusdData.stabilityPoolDeposits.value) * Number(yusdData.YUSDPrice.value),
+        apy: Number(yusdData.stabilityPoolAPR.value) * 100,
+        underlyingTokens: ["0x111111111111ed1D73f860F57b2798b683f2d325"]
+    }]
+
+    vaultAPRs = vaultAPRs.concat(stabilityPool)
+
+    return vaultAPRs
 };
 
 const main = async () => {
