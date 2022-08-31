@@ -6,7 +6,6 @@ exports.up = (pgm) => {
     ifNotExists: true,
   });
   // ----- CREATE TABLES
-
   // --- config
   // table with static/semi-static information and consists of 1 row per unique pool.
   // operations on this table: insert for new pools, update for existing pools
@@ -85,36 +84,6 @@ exports.up = (pgm) => {
     timestamp: { type: 'timestamptz', notNull: true, unique: true },
   });
 
-  // --- enriched
-  // contains extra columns calculated during enrichment process
-  // (such as ML predictions, if a pool is a stablecoin position etc.)
-  pgm.createTable('enriched', {
-    enriched_id: {
-      type: 'uuid', // uuid is created in application and identical to config_id
-      primaryKey: true,
-    },
-    apyPct1D: 'numeric',
-    apyPct7D: 'numeric',
-    apyPct30D: 'numeric',
-    stablecoin: { type: 'boolean', notNull: true },
-    ilRisk: { type: 'text', notNull: true },
-    exposure: { type: 'text', notNull: true },
-    predictions: { type: 'jsonb', notNull: true },
-    mu: { type: 'numeric', notNull: true },
-    sigma: { type: 'numeric', notNull: true },
-    count: { type: 'smallint', notNull: true },
-    outlier: { type: 'boolean', notNull: true },
-    return: { type: 'numeric', notNull: true },
-    apyMeanExpanding: { type: 'numeric', notNull: true },
-    apyStdExpanding: { type: 'numeric', notNull: true },
-    chain_factorized: { type: 'smallint', notNull: true },
-    project_factorized: { type: 'smallint', notNull: true },
-    updated_at: {
-      type: 'timestamptz',
-      notNull: true,
-      default: pgm.func('current_timestamp'),
-    },
-  });
   // FUNCTIONS
   pgm.createFunction(
     'update_updated_at',
