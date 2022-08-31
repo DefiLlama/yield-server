@@ -10,8 +10,13 @@ const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
 const dbConnection = require('../utils/dbConnection.js');
 const { sendMessage } = require('../utils/discordWebhook');
-const { buildInsertConfigQuery } = require('../controllers/configController');
+// postgres related
+const {
+  getConfig,
+  buildInsertConfigQuery,
+} = require('../controllers/configController');
 const { buildInsertYieldQuery } = require('../controllers/yieldController');
+const { connect } = require('../utils/dbConnectionPostgres');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -203,15 +208,27 @@ const main = async (body) => {
 
   // ----------------------- run new postgres db inserts separately
   // pg-promise can't run insert on empty array
-  if (dataDB.length > 0) {
-    // step 1
-    // this is the part where i need to check if a given pool already has a
-    // uuid, if not create a new one (this info we already called via the `getProject`)
-    // which we used to calc tvl offsets and remove those with big spikes, so we already
-    // got that info
-    // step 2
-    // this needs to call a controller which runs the transaction
+  if (!dataDB.length) return;
+
+  // read data from config table
+  const config = await getConfig();
+  const mapping = {};
+  for (const c of config) {
+    mapping[c.pool] = c.config_id;
   }
+
+  const dataDBPostgres = dataDB.map((p) => {
+    // if pool not in mapping -> its a new pool -> create a new uuid, else keep existing one
+    const id = mapping[p.pool] ?? crypto.randomUUID();
+    return {
+      ...p,
+      config_id: id, // config PK field
+      configID: id, // yield FK field referencing config_id in config
+      url: project.url,
+    };
+  });
+  const responsePostgres = await insertConfigYieldTransaction(dataDBPostgres);
+  console.log(responsePostgres);
 };
 
 const insertPools = async (payload) => {
@@ -279,8 +296,6 @@ const updateUrl = async (adapter, url) => {
 };
 
 // --------- transaction query
-const { connect } = require('../utils/dbConnectionPostgres');
-
 const insertConfigYieldTransaction = async (payload) => {
   const conn = await connect();
 
@@ -289,15 +304,14 @@ const insertConfigYieldTransaction = async (payload) => {
   const yieldQ = buildInsertYieldQuery(payload);
 
   return conn
-    .tx((t) => {
+    .tx(async (t) => {
       // sequence of queries:
       // 1. config: insert/update
-      const q1 = t.result(configQ);
+      const q1 = await t.result(configQ);
       // 2. yield: insert
-      const q2 = t.result(yieldQ);
+      const q2 = await t.result(yieldQ);
 
-      // returning a promise that determines a successful transaction:
-      return t.batch([q1, q2]); // all of the queries are to be resolved;
+      return [q1, q2];
     })
     .then((response) => {
       // success, COMMIT was executed

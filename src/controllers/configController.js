@@ -16,30 +16,30 @@ const getConfig = async () => {
 };
 
 // return the insertConfig query which we use inside a transaction in adapter handler
-const buildInsertConfigQuery = async (payload) => {
-  const conn = await connect();
-
+const buildInsertConfigQuery = (payload) => {
   const columns = [
-    { name: 'config_id' },
-    { name: 'pool' },
-    { name: 'project' },
-    { name: 'chain' },
-    { name: 'symbol' },
+    'config_id',
+    'pool',
+    'project',
+    'chain',
+    'symbol',
     // pg-promise is not aware of the db-schema -> we need to make sure that
     // optional fields are marked and provided with a default value
     // otherwise the `result` method will fail
     { name: 'poolMeta', def: null },
     { name: 'underlyingTokens', def: [] },
     { name: 'rewardTokens', def: [] },
-    { name: 'url' },
+    'url',
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
 
   // multi row insert/update
-  return (query =
+  const query =
     pgp.helpers.insert(payload, cs) +
     ' ON CONFLICT(config_id) DO UPDATE SET ' +
-    cs.assignColumns({ from: 'EXCLUDED', skip: 'config_id' }));
+    cs.assignColumns({ from: 'EXCLUDED', skip: 'config_id' });
+
+  return query;
 };
 
 module.exports = {

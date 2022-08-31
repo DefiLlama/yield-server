@@ -21,11 +21,12 @@ const connect = async () => {
     console.log('using new db connection');
     // set connection
     conn = pgp({
-      user: process.env.DB_USER,
-      database: process.env.DB_NAME,
-      password: process.env.DB_PW,
-      port: process.env.DB_PORT,
-      host: process.env.DB_HOST,
+      connectionString: process.env.DATABASE_URL,
+      // max milliseconds a client can go unused before it is removed
+      // from the connection pool and destroyed.
+      // overriding default of 30sec to 60sec to decrease nb of potential reconnects of 1 lambda
+      // running multiple adapters
+      idleTimeoutMillis: 60000,
     });
   } else {
     console.log('using existing db connection');

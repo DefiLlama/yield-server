@@ -128,7 +128,7 @@ const getYieldProject = async (project) => {
             FROM
                 yield
             WHERE
-            configID IN (
+                configID IN (
                     SELECT
                         *
                     FROM
@@ -229,9 +229,7 @@ const getYieldOffset = async (project, days) => {
   return response;
 };
 
-const buildInsertYieldQuery = async (payload) => {
-  const conn = await connect();
-
+const buildInsertYieldQuery = (payload) => {
   // note: even though apyBase and apyReward are optional fields
   // they are both added in the adapter handler to derive final apy.
   // hence, there is no need to specify optional fields defaults for pg-promise
