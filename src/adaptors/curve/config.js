@@ -5,6 +5,7 @@ exports.BLOCKCHAINIDS = [
   'fantom',
   'arbitrum',
   'avalanche',
+  'optimism',
   'xdai',
 ];
 // https://github.com/curvefi/curve-api/blob/main/endpoints.md#getpools

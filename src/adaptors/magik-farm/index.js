@@ -1,6 +1,7 @@
 // to calculate chain TVL
 // 1. Loop through each pool in each chain under ./config/vault
-// 2. get LP prices from e.g. https://magikfarm.herokuapp.com/lps?_=27662323
+// 2a. get LP prices from e.g. https://magikfarm.herokuapp.com/lps?_=27662323
+// 2b. get token price from e.g. https://magikfarm.herokuapp.com/prices?_=27662323
 // where _= is getApiCacheBuster()
 // 3. Get earned Token address and bind the vaultabi. Use balance() function
 // 4. Multiply the balance with the price from the LP Price to get the TVL
@@ -13,9 +14,10 @@ const utils = require('../utils');
 // make sure that the pool files under ./config/vault are up to date
 const magikConfig = require('./config');
 
-const protocolSlug = 'magik-finance';
+const protocolSlug = 'magik-farm';
 const urlApy = 'https://magikfarm.herokuapp.com/apy/breakdown';
 const urlLpPrices = 'https://magikfarm.herokuapp.com/lps';
+const urlTokenPrices = 'https://magikfarm.herokuapp.com/prices';
 const sdk = require('@defillama/sdk');
 const Web3 = require('web3');
 const networkMapping = {
@@ -120,7 +122,7 @@ const getApiCacheBuster = () => {
   return Math.trunc(Date.now() / (1000 * 60));
 };
 
-const apy = async (dataLpPrices, dataApy, networkMapping) => {
+const apy = async (dataLpPrices, dataTokenPrices, dataApy, networkMapping) => {
   let data = [];
   for (const chainId of Object.keys(networkMapping)) {
     chain = networkMapping[chainId];
@@ -142,7 +144,14 @@ const apy = async (dataLpPrices, dataApy, networkMapping) => {
       });
       for (let i = 0; i < pools.length; i++) {
         const pool = pools[i];
-        const poolPrice = dataLpPrices[pool.id];
+        let price = null;
+        switch (pool.stratType) {
+          case 'StratLP':
+            price = dataLpPrices[pool.oracleId];
+            break;
+          case 'SingleStake':
+            price = dataTokenPrices[pool.oracleId];
+        }
         const poolApy = dataApy[pool.id];
         const poolToken =
           pool.assets.length > 1
@@ -150,13 +159,13 @@ const apy = async (dataLpPrices, dataApy, networkMapping) => {
             : `${pool.assets[0]}`;
         const tokenDecimals = pool.tokenDecimals;
         const balance = Number(vaultResult.output[i].output);
-        if (!isNaN(poolPrice) && !isNaN(tokenDecimals) && !isNaN(balance)) {
+        if (!isNaN(price) && !isNaN(tokenDecimals) && !isNaN(balance)) {
           let poolData = {
             pool: `${pool.id}`,
             chain: utils.formatChain(chain.name),
             project: protocolSlug,
             symbol: utils.formatSymbol(poolToken),
-            tvlUsd: (balance / Math.pow(10, tokenDecimals)) * poolPrice,
+            tvlUsd: (balance / Math.pow(10, tokenDecimals)) * price,
             apy: !isNaN(poolApy.totalApy) ? poolApy.totalApy * 100 : null,
           };
           data.push(poolData);
@@ -172,12 +181,16 @@ const main = async () => {
   const queryParams = `_=${getApiCacheBuster()}`;
   const dataApy = await utils.getData(`${urlApy}?${queryParams}`);
   const dataLpPrices = await utils.getData(`${urlLpPrices}?${queryParams}`);
+  const dataTokenPrices = await utils.getData(
+    `${urlTokenPrices}?${queryParams}`
+  );
   // calculate apy and tvl
-  let data = await apy(dataLpPrices, dataApy, networkMapping);
+  let data = await apy(dataLpPrices, dataTokenPrices, dataApy, networkMapping);
   return data;
 };
 
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://magik.farm/#/fantom',
 };

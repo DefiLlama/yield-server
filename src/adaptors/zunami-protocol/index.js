@@ -28,4 +28,5 @@ const collectPools = async () => {
 module.exports = {
   timetravel: false,
   apy: collectPools,
+  url: 'https://app.zunami.io/',
 };

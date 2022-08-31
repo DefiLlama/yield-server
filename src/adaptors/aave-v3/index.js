@@ -1,7 +1,9 @@
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
+const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const { aTokenAbi } = require('./abi');
 
 const SECONDS_PER_YEAR = 31536000;
 
@@ -43,9 +45,9 @@ const API_URLS = {
 const query = gql`
   query ReservesQuery {
     reserves {
-      id
       name
       aToken {
+        id
         rewards {
           id
           emissionsPerSecond
@@ -73,6 +75,34 @@ const apy = async () => {
       (await request(url, query)).reserves,
     ])
   );
+  const totalSupply = await Promise.all(
+    data.map(async ([chain, reserves]) =>
+      (
+        await sdk.api.abi.multiCall({
+          chain: chain === 'avalanche' ? 'avax' : chain,
+          abi: aTokenAbi.find(({ name }) => name === 'totalSupply'),
+          calls: reserves.map((reserve) => ({
+            target: reserve.aToken.id,
+          })),
+        })
+      ).output.map(({ output }) => output)
+    )
+  );
+
+  const underlyingBalances = await Promise.all(
+    data.map(async ([chain, reserves]) =>
+      (
+        await sdk.api.abi.multiCall({
+          chain: chain === 'avalanche' ? 'avax' : chain,
+          abi: aTokenAbi.find(({ name }) => name === 'balanceOf'),
+          calls: reserves.map((reserve, i) => ({
+            target: reserve.aToken.underlyingAssetAddress,
+            params: [reserve.aToken.id],
+          })),
+        })
+      ).output.map(({ output }) => output)
+    )
+  );
 
   const underlyingTokens = data.map(([chain, reserves]) =>
     reserves.map(
@@ -95,15 +125,16 @@ const apy = async () => {
     underlyingTokens.flat().concat(rewardTokens.flat(Infinity))
   );
 
-  const pools = data.map(([chain, markets]) => {
-    const chainPools = markets.map((pool) => {
+  const pools = data.map(([chain, markets], i) => {
+    const chainPools = markets.map((pool, idx) => {
+      const supply = totalSupply[i][idx];
+      const currentSupply = underlyingBalances[i][idx];
       const totalSupplyUsd =
-        (pool.totalLiquidity / 10 ** pool.aToken.underlyingAssetDecimals) *
+        (supply / 10 ** pool.aToken.underlyingAssetDecimals) *
         (pricesByAddress[pool.aToken.underlyingAssetAddress] ||
           pricesBySymbol[pool.symbol]);
       const tvlUsd =
-        ((pool.totalLiquidity - pool.totalCurrentVariableDebt) /
-          10 ** pool.aToken.underlyingAssetDecimals) *
+        (currentSupply / 10 ** pool.aToken.underlyingAssetDecimals) *
         (pricesByAddress[pool.aToken.underlyingAssetAddress] ||
           pricesBySymbol[pool.symbol]);
       const { rewards } = pool.aToken;
@@ -119,7 +150,7 @@ const apy = async () => {
       );
 
       return {
-        pool: `${pool.id}-${chain}`,
+        pool: `${pool.aToken.id}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
         project: 'aave-v3',
         symbol: pool.symbol,
@@ -140,4 +171,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy: apy,
+  url: 'https://app.aave.com/markets/',
 };

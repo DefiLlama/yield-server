@@ -16,7 +16,7 @@ const addVault = (id) => {
 
   const apyReward = utils.aprToApy(farmApr) * 100;
   const apyBase = apy * 100; // convert endpoint APY value to %
-  
+
   finalData.push({
     pool: vaultId,
     chain: 'Fantom',
@@ -58,10 +58,11 @@ const poolsFunction = async () => {
   // Add filtered vault
   addVault('gemFtmUsdc');
 
-  return finalData;
+  return finalData.filter((p) => p.symbol);
 };
 
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
+  url: 'https://app.comb.financial/pools',
 };

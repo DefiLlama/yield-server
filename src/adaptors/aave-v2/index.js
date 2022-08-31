@@ -3,135 +3,77 @@ const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
-const baseUrl = 'https://api.thegraph.com/subgraphs/name/aave';
-const urlV2 = `${baseUrl}/protocol-v2`;
-const urlPolygon = `${baseUrl}/aave-v2-matic`;
-const urlAvalanche = 'https://aave-api-v2.aave.com/data/markets-data';
+const url = 'https://api.thegraph.com/subgraphs/name/aave';
+const subgraphs = {
+  ethereum: `${url}/protocol-v2`,
+  polygon: `${url}/aave-v2-matic`,
+  avalanche: `${url}/protocol-v2-avalanche`,
+};
 
 const query = gql`
   {
     reserves {
-      id
-      name
       symbol
       decimals
       liquidityRate
-      aEmissionPerSecond
-      totalATokenSupply
+      availableLiquidity
       price {
         priceInEth
+      }
+      isActive
+      underlyingAsset
+      aToken {
+        id
       }
     }
   }
 `;
 
-const tvl = (entry, ethPriceUSD) => {
-  entry = { ...entry };
-  const totalATokenSupply = Number(entry.totalATokenSupply);
-  const totalATokenSupplyNormalised = totalATokenSupply / 10 ** entry.decimals;
-
-  entry.totalLiquidityUSD =
-    totalATokenSupplyNormalised *
-    (Number(entry.price.priceInEth) / 1e18) *
-    ethPriceUSD;
-
-  return entry;
-};
-
-const apy = (entry, rewardTokenPriceInEth) => {
-  entry = { ...entry };
-
-  entry.incentive_apy = 0;
-  // NOTE(these rewards are no longer active. i assumed the aEmmisionPerSecond would be updated
-  // accordingly...need to switch to their latest contracts which for which we can call `emissionEndTimestamp`)
-  // if (entry.aEmissionPerSecond !== '0') {
-  //   const SECONDS_PER_YEAR = 3.154e7;
-  //   const REWARD_TOKEN_DECIMALS = 18;
-
-  //   const tokenDecimals = entry.decimals;
-  //   const aEmissionPerSecond = Number(entry.aEmissionPerSecond);
-  //   const tokenPriceInEth = Number(entry.price.priceInEth);
-
-  //   const num =
-  //     aEmissionPerSecond *
-  //     SECONDS_PER_YEAR *
-  //     rewardTokenPriceInEth *
-  //     10 ** tokenDecimals;
-  //   const denom =
-  //     entry.totalATokenSupply * tokenPriceInEth * 10 ** REWARD_TOKEN_DECIMALS;
-
-  //   entry.incentive_apy = 100 * (num / denom);
-  // }
-  return entry;
-};
-
-const buildPool = (entry, chainString) => {
-  let apy;
-  if (chainString === 'avalanche') {
-    apy = (Number(entry.liquidityRate) + Number(entry.aIncentivesAPY)) * 100;
-  } else {
-    apy = Number(entry.liquidityRate) / 1e25 + entry.incentive_apy;
-  }
-
-  const newObj = {
-    pool: entry.id,
-    chain: utils.formatChain(chainString),
-    project: 'aave-v2',
-    symbol: utils.formatSymbol(entry.symbol),
-    tvlUsd: Number(entry.totalLiquidityUSD),
-    apy,
-  };
-
-  return newObj;
-};
-
-const topLvl = async (chainString, url, rewardTokenString = null) => {
-  let data = [];
-  if (chainString === 'avalanche') {
-    data = await utils.getData(url);
-
-    // filter to specific id only
-    data = data.reserves.filter((el) => el.id.endsWith('ce3ede02a318f'));
-  } else {
-    // get eth usd price
-    const key = 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
-    const ethPriceUSD = (
-      await superagent.post('https://coins.llama.fi/prices').send({
-        coins: [key],
-      })
-    ).body.coins[key].price;
-
-    // pull data
-    data = await request(url, query);
-
-    // calculate tvl in usd
-    data = data.reserves.map((el) => tvl(el, ethPriceUSD));
-
-    // calculate apy
-    // get rewardToken price in eth (for incentivsed rewards)
-    const priceInEthRewardToken = Number(
-      data.find((el) => el.symbol === rewardTokenString.toUpperCase()).price
-        .priceInEth
-    );
-    data = data.map((el) => apy(el, priceInEthRewardToken));
-  }
-  // build pool objects
-  data = data.map((el) => buildPool(el, chainString));
-
-  return data;
-};
-
 const main = async () => {
-  const data = await Promise.all([
-    topLvl('ethereum', urlV2, 'aave'),
-    topLvl('polygon', urlPolygon, 'wmatic'),
-    topLvl('avalanche', urlAvalanche),
-  ]);
+  // get eth usd price
+  const key = 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+  const ethPriceUSD = (
+    await superagent.post('https://coins.llama.fi/prices').send({
+      coins: [key],
+    })
+  ).body.coins[key].price;
 
-  return data.flat();
+  const pools = await Promise.all(
+    Object.keys(subgraphs).map(async (chainString) => {
+      const data = (
+        await request(subgraphs[chainString], query)
+      ).reserves.filter((p) => p.isActive);
+
+      return data.map((p) => {
+        tvlUsd =
+          chainString !== 'avalanche'
+            ? (((Number(p.availableLiquidity) / `1e${p.decimals}`) *
+                Number(p.price.priceInEth)) /
+                1e18) *
+              ethPriceUSD
+            : // priceInEth is the chainlink usd price for avalanche subgraph with different decimals
+              ((Number(p.availableLiquidity) / `1e${p.decimals}`) *
+                Number(p.price.priceInEth)) /
+              1e8;
+
+        return {
+          pool: `${p.aToken.id}-${chainString}`.toLowerCase(),
+          chain: utils.formatChain(chainString),
+          project: 'aave-v2',
+          symbol: utils.formatSymbol(p.symbol),
+          tvlUsd,
+          apyBase: Number(p.liquidityRate) / 1e25,
+          underlyingTokens: [p.underlyingAsset],
+        };
+      });
+    })
+  );
+
+  return pools.flat();
 };
 
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://app.aave.com/markets/',
 };
