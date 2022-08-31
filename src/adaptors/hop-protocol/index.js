@@ -3,6 +3,8 @@ const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const { default: BigNumber } = require('bignumber.js');
 
+const utils = require('../utils');
+
 const getCoreConfig = async () => {
   const {
     data: { bridges },
@@ -56,7 +58,6 @@ const getPoolTvl = async (coreConfig, chain, token) => {
     data: { coins },
   } = await axios.post('https://coins.llama.fi/prices', {
     coins: [key],
-    timestamp: new Date().getTime() / 1000,
   });
   const price = coins[key.toLowerCase()].price;
 
@@ -94,14 +95,19 @@ const main = async () => {
         const hopTokenAddress = coreConfig[token][chain].l2HopBridgeToken;
         const adaptedChain = getAdaptedChain(chain);
 
+        const apyReward = tokenPools[chain].stakingApr * 100;
+
         return {
           pool: `${chain}-${token}`,
-          chain: adaptedChain,
+          chain: utils.formatChain(adaptedChain),
           project: 'hop-protocol',
           symbol: token,
           apyBase: tokenPools[chain].apr * 100,
-          apyReward: tokenPools[chain].stakingApr * 100,
-          rewardTokens: [],
+          apyReward,
+          rewardTokens:
+            adaptedChain === 'polygon' && apyReward > 0
+              ? ['0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270'] // wmatic
+              : [],
           underlyingTokens: [tokenAddress, hopTokenAddress],
           tvlUsd,
         };
@@ -116,4 +122,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://app.hop.exchange/#/pool?token=ETH',
 };
