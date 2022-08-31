@@ -1,12 +1,27 @@
+const minify = require('pg-minify');
+
 const { pgp, connect } = require('../utils/dbConnectionPostgres');
 
 const tableName = 'config';
 
-// get full content from config table
-const getConfig = async () => {
+// get config data per project
+const getConfigProject = async (project) => {
   const conn = await connect();
 
-  const response = await conn.query('SELECT * FROM config');
+  const query = minify(
+    `
+    SELECT
+        config_id,
+        pool
+    FROM
+        $<table:name>
+    WHERE
+        project = $<project>
+    `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query, { table: tableName, project });
 
   if (!response) {
     return new AppError(`Couldn't get ${tableName} data`, 404);

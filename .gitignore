@@ -8,3 +8,4 @@ ccImages
 .idea/
 *output.json
 *.csv
+*.sql
