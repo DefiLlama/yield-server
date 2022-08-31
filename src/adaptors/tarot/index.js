@@ -73,7 +73,6 @@ const transformTokenForApi = (chain, token, transform) => {
 };
 
 const getAllLendingPools = async (factory, chain, block) => {
-  console.log(`in getAllLendingPools`);
   const { output: allLendingPoolsLength } = await sdk.api.abi.call({
     target: factory,
     abi: abi.allLendingPoolsLength,
@@ -167,7 +166,6 @@ const getUnderlyingLiquidityPoolAddresses = async (
   chain,
   block
 ) => {
-  console.log(`in getUnderlyingLiquidityPoolAddresses`);
   const { output: lendingPoolSymbolsResults } = await sdk.api.abi.multiCall({
     calls: lendingPoolAddressesTargetCalls,
     abi: abi.symbol,
@@ -235,7 +233,6 @@ const transformTarotLPName = async (
   chain,
   block
 ) => {
-  console.log(`in transformTarotLPName`);
   let poolName;
   let poolId;
   // if symbols are matched below, use the factory to determine the pool name
@@ -358,7 +355,6 @@ const getPrices = async (coinKeys) => {
 };
 
 const getTokenDetails = async (allUniqueTokens, chain, block) => {
-  console.log(`in getTokenDetails`);
   let results = {};
   const tokensCalls = allUniqueTokens.map((i) => ({ target: i }));
   const { output: getTokenDecimals } = await sdk.api.abi.multiCall({
@@ -397,26 +393,18 @@ const getUnderlyingTokenAndBorrowableDetails = async (
   block,
   lendingPoolAddress
 ) => {
-  console.log(`in getUnderlyingTokenAndBorrowableDetails`);
-  console.log(
-    `in excessSupply borrowable address : ${borrowableTokenAddress} lendingPoolAddress : ${lendingPoolAddress}`
-  );
   const { output: excessSupply } = await sdk.api.erc20.balanceOf({
     target: underlyingTokenAddress,
     owner: borrowableTokenAddress,
     chain,
     block,
   });
-  console.log(
-    `in reserveFactor got excess supply ${BigNumber(excessSupply).toNumber()}`
-  );
   const { output: reserveFactor } = await sdk.api.abi.call({
     target: borrowableTokenAddress,
     abi: abi.reserveFactor,
     chain,
     block,
   });
-  console.log(`in totalBorrows`);
   const { output: totalBorrows } = await sdk.api.abi.call({
     target: borrowableTokenAddress,
     abi: abi.totalBorrows,
@@ -424,7 +412,6 @@ const getUnderlyingTokenAndBorrowableDetails = async (
     block,
     requery: true,
   });
-  console.log(`in borrowRate`);
   const { output: borrowRate } = await sdk.api.abi.call({
     target: borrowableTokenAddress,
     abi: abi.borrowRate,
@@ -432,7 +419,6 @@ const getUnderlyingTokenAndBorrowableDetails = async (
     block,
     requery: true,
   });
-  console.log(`in borrowableDecimal`);
   const { output: borrowableDecimal } = await sdk.api.abi.call({
     target: borrowableTokenAddress,
     abi: abi.decimals,
@@ -648,19 +634,6 @@ const main = async () => {
           if (!supplyRateAPY.isNaN()) {
             if (!supplyRateAPY.isNaN()) {
               ctr++;
-              console.log(
-                `LendingPool : ${lendingPoolAddress} Pool : ${poolId} \n Symbol : ${tokenSymbol} \n Total Supply :${totalSupply
-                  .times(BigNumber(underlyingTokenPriceUsd))
-                  .div(
-                    BigNumber(10).pow(BigNumber(tokenDecimals))
-                  )} \n Total Borrowed : ${BigNumber(totalBorrows)
-                  .times(BigNumber(underlyingTokenPriceUsd))
-                  .div(
-                    BigNumber(10).pow(BigNumber(tokenDecimals))
-                  )} \n utilization : ${utilization} \n supply APR : ${supplyRateAPY.times(
-                  100
-                )} \n Borrow APR : ${borrowRateAPY.times(100)}`
-              );
               if (ctr > 1) {
                 ctr = 0;
               }
