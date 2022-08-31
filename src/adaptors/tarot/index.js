@@ -1,36 +1,36 @@
-// used g1nt0ki's code as a base from DefiLlama-Adapters ./projects/tarot/index.js
+/* 
+  used g1nt0ki's code as a base from DefiLlama-Adapters ./projects/tarot/index.js
+  General setup
+  1. Loop through each factory in each chain under const config
+  2. Get the lending pools which are the vaults that tarot lets you borrow/lend tokens with the liquidity pool of the tokens as collateral.
+  2a. If only lending, you don't need to supply collateral (which gets counted as excess supply)
+  3. Prefetch the prices of the tokens (looking at the token0 and token1 fields in the lendingPools) from https://coins.llama.fi/prices
 
-// General setup
-// 1. Loop through each factory in each chain under const config
-// 2. Get the lending pools which are the vaults that tarot lets you borrow/lend tokens with the liquidity pool of the tokens as collateral.
-// 2a. If only lending, you don't need to supply collateral (which gets counted as excess supply)
-// 3. Prefetch the prices of the tokens (looking at the token0 and token1 fields in the lendingPools) from https://coins.llama.fi/prices
+  To calculate TVL
+  1. For each lending pool follow the below for each borrowable tokens (underlying are token0 and token1)
+  2. Get the reserves of the tokens from the lending pool contract. Use the respective token's reserve and get the USD amount.
+    In USD term both tokens should be equal (or close) since they are a 50/50 weighted LP. (const lpTvlUsd)
+  3. Get the excess supply of the borrowable token by getting the balanceOf the underlying token and get the USD amount (const excessSupplyUsd)
+  4. Add the reserve in USD from step 2 and excess supply in USD in step 3 above to get the totalTvl for that token (const totalTvl)
 
-// To calculate TVL
-// 1. For each lending pool follow the below for each borrowable tokens (underlying are token0 and token1)
-// 2. Get the reserves of the tokens from the lending pool contract. Use the respective token's reserve and get the USD amount.
-//    In USD term both tokens should be equal (or close) since they are a 50/50 weighted LP. (const lpTvlUsd)
-// 3. Get the excess supply of the borrowable token by getting the balanceOf the underlying token and get the USD amount (const excessSupplyUsd)
-// 4. Add the reserve in USD from step 2 and excess supply in USD in step 3 above to get the totalTvl for that token (const totalTvl)
+  To calculate APY (for the supplied token)
+  1. For each lending pool follow the below for each borrowable token (underlying are token0 and token1)
+  2. Get the following values from the borrowable contract
+  2a. reserveFactor
+  2b. totalBorrows
+  2c. borrowRate
+  2d. decimals
+  3. Calculate the total supply of the borrowable contract: totalBorrows + excessSupply. (const totalSupply)
+  4. Calculate the utilization rate: totalBorrows/totalSupply. (const utilization)
+  5. Calculate the supply rate with the formula below:
+  (borrowRate *utilization*(10 ** borrowableDecimal - reserveFactor) * SECONDS_IN_YEAR) / (10 **borrowableDecimal * 10 ** borrowableDecimal);
+  (const supplyRateAPY)
 
-// To calculate APY (for the supplied token)
-// 1. For each lending pool follow the below for each borrowable token (underlying are token0 and token1)
-// 2. Get the following values from the borrowable contract
-// 2a. reserveFactor
-// 2b. totalBorrows
-// 2c. borrowRate
-// 2d. decimals
-// 3. Calculate the total supply of the borrowable contract: totalBorrows + excessSupply. (const totalSupply)
-// 4. Calculate the utilization rate: totalBorrows/totalSupply. (const utilization)
-// 5. Calculate the supply rate with the formula below:
-// (borrowRate *utilization*(10 ** borrowableDecimal - reserveFactor) * SECONDS_IN_YEAR) / (10 **borrowableDecimal * 10 ** borrowableDecimal);
-// (const supplyRateAPY)
-
-// Notes:
-// 1. There are some disabled tarot lending pools which are ignored (defined in const DISABLED_LENDING_POOLS. copy of the lending pool lists is in ./config/lending-pools.js)
-// 2. There are few tokens where prices were not available so they are skipped.
-// 3. There are some lending pools where the abis were not published yet so they are skipped.
-
+  Notes:
+  1. There are some disabled tarot lending pools which are ignored (defined in const DISABLED_LENDING_POOLS. copy of the lending pool lists is in ./config/lending-pools.js)
+  2. There are few tokens where prices were not available so they are skipped.
+  3. There are some lending pools where the abis were not published yet so they are skipped.
+*/
 const axios = require('axios');
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
@@ -328,10 +328,6 @@ const transformTarotLPName = async (
   if (poolName !== undefined) {
     poolId = `${poolName} ${token0Symbol}/${token1Symbol}-${supplyTokenSymbol}`;
   }
-  //  else {
-  //   poolId = `${underlyingLiquidityPoolSymbol}-${supplyTokenSymbol}`;
-  // }
-
   return poolId;
 };
 
