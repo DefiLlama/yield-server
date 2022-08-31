@@ -8,6 +8,7 @@ const { buildPoolsEnriched } = require('./getPoolsEnriched');
 const { welfordUpdate } = require('../utils/welford');
 const dbConnection = require('../utils/dbConnection.js');
 const poolModel = require('../models/pool');
+const { insertEnriched } = require('../controllers/enrichedController');
 
 module.exports.handler = async (event, context) => {
   await main();
@@ -245,6 +246,17 @@ const main = async () => {
         : 3;
   }
 
+  // round numbers
+  const precision = 3;
+  dataEnriched = dataEnriched.map((p) =>
+    Object.fromEntries(
+      Object.entries(p).map(([k, v]) => [
+        k,
+        typeof v === 'number' ? parseFloat(v.toFixed(precision)) : v,
+      ])
+    )
+  );
+
   console.log('\n6. saving data to S3');
   console.log('nb of pools', dataEnriched.length);
   const bucket = process.env.BUCKET_DATA;
@@ -268,6 +280,17 @@ const main = async () => {
     status: 'success',
     data: await buildPoolsEnriched(undefined),
   });
+
+  // postgres insert
+  console.log('postgres insert');
+  // this filter is temporary only and can be removed once we start pulling from the postgres yield table
+  dataEnriched = dataEnriched.map((p) => ({
+    ...p,
+    rewardTokens: p.rewardTokens ?? [],
+    underlyingTokens: p.underlyingTokens ?? [],
+  }));
+  const response = await insertEnriched(dataEnriched);
+  console.log(response);
 };
 
 ////// helper functions
@@ -386,7 +409,7 @@ const addPoolInfo = (el, stablecoins, config) => {
   // complifi has single token exposure only cause the protocol
   // will pay traders via deposited amounts
   el['ilRisk'] =
-    config[el.project].category === 'Options'
+    config[el.project]?.category === 'Options'
       ? 'yes'
       : el.project === 'complifi'
       ? 'yes'

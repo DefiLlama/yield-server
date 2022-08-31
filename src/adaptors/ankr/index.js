@@ -43,4 +43,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://www.ankr.com/staking/stake/',
 };

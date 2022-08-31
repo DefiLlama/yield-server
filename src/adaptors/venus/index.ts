@@ -2,6 +2,8 @@ const utils = require('../utils');
 
 const API_URL: string = 'https://api.venus.io/api/governance/venus';
 
+const XVS = '0xcf6bb5389c92bdda8a3747ddb454cb7a64626c63';
+
 interface Market {
   address: string;
   underlyingSymbol: string;
@@ -9,6 +11,7 @@ interface Market {
   totalBorrowsUsd: string;
   supplyApy: string;
   supplyVenusApy: string;
+  underlyingAddress: string;
 }
 
 const getApy = async () => {
@@ -21,7 +24,13 @@ const getApy = async () => {
     project: 'venus',
     symbol: market.underlyingSymbol,
     tvlUsd: Number(market.totalSupplyUsd) - Number(market.totalBorrowsUsd),
-    apy: Number(market.supplyApy) + Number(market.supplyVenusApy),
+    apyBase: Number(market.supplyApy),
+    apyReward: Number(market.supplyVenusApy),
+    rewardTokens: [XVS],
+    underlyingTokens:
+      market.underlyingSymbol === 'BNB'
+        ? ['0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c']
+        : [],
   }));
 
   return pools;
@@ -30,4 +39,5 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
+  url: 'https://app.venus.io/#/',
 };

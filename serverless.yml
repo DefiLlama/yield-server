@@ -57,6 +57,11 @@ provider:
       }
     SSM_PATH: ${self:custom.ssmPath}
     BUCKET_DATA: { Ref: BucketData }
+    DB_USER: ${file(./env.js):DB_USER}
+    DB_NAME: ${file(./env.js):DB_NAME}
+    DB_PW: ${file(./env.js):DB_PW}
+    DB_PORT: ${file(./env.js):DB_PORT}
+    DB_HOST: ${file(./env.js):DB_HOST}
 
   httpApi:
     metrics: true
@@ -92,6 +97,8 @@ functions:
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
       XDAI_RPC: ${file(./env.js):XDAI_RPC}
       CRONOS_RPC: ${file(./env.js):CRONOS_RPC}
+      TVL_SPIKE_WEBHOOK: ${file(./env.js):TVL_SPIKE_WEBHOOK}
+      NEW_YIELDS_WEBHOOK: ${file(./env.js):NEW_YIELDS_WEBHOOK}
 
   # --- data enrichment
   triggerEnrichment:
@@ -168,6 +175,34 @@ functions:
       - httpApi:
           method: get
           path: /median
+
+  getUrls:
+    handler: src/handlers/getUrls.handler
+    description: Lambda for retrieving url data
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /urls
+
+  # //////////////////// postgres testing
+  getChartPostgres:
+    handler: src/handlers/getChartPostgres.handler
+    description: Lambda for retrieving chart data for a particular pool
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /chartPostgres/{pool}
+
+  getPoolsEnrichedPostgres:
+    handler: src/handlers/getPoolsEnrichedPostgres.handler
+    description: Lambda for retrieving enriched data
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /poolsEnrichedPostgres
 
 resources:
   Resources:
