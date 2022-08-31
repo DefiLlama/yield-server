@@ -22,15 +22,15 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          ETHERSCAN: ${{ secrets.ETHERSCAN}}
-          FANTOMSCAN: ${{ secrets.FANTOMSCAN }}
-          POLYGONSCAN: ${{ secrets.POLYGONSCAN }}
-          SNOWTRACE: ${{ secrets.SNOWTRACE }}
-          ARBISCAN: ${{ secrets.ARBISCAN }}
-          OPTIMISM: ${{ secrets.OPTIMISM }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_PW: ${{ secrets.DB_PW }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_HOST: ${{ secrets.DB_HOST }}
           INFURA_CONNECTION: ${{ secrets.INFURA_CONNECTION }}
           ALCHEMY_CONNECTION_POLYGON: ${{ secrets.ALCHEMY_CONNECTION_POLYGON }}
           ALCHEMY_CONNECTION_ARBITRUM: ${{ secrets.ALCHEMY_CONNECTION_ARBITRUM }}
-          XDAI: ${{ secrets.XDAI }}
           XDAI_RPC: ${{ secrets.XDAI_RPC }}
           CRONOS_RPC: ${{ secrets.CRONOS_RPC }}
+          TVL_SPIKE_WEBHOOK: ${{ secrets.TVL_SPIKE_WEBHOOK }}
+          NEW_YIELDS_WEBHOOK: ${{ secrets.NEW_YIELDS_WEBHOOK }}

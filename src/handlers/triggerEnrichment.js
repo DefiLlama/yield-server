@@ -6,6 +6,9 @@ const { getLatestPools } = require('./getPools');
 const { getStats } = require('./triggerStats');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
 const { welfordUpdate } = require('../utils/welford');
+const dbConnection = require('../utils/dbConnection.js');
+const poolModel = require('../models/pool');
+const { insertEnriched } = require('../controllers/enrichedController');
 
 module.exports.handler = async (event, context) => {
   await main();
@@ -40,7 +43,7 @@ const main = async () => {
     // api calls
     const promises = [];
     for (let i = 0; i < days.length; i++) {
-      promises.push(superagent.get(`${urlBase}/offsets/${adaptor}/${days[i]}`));
+      promises.push(getOffsets(adaptor, days[i]));
     }
     try {
       const offsets = await Promise.all(promises);
@@ -243,6 +246,17 @@ const main = async () => {
         : 3;
   }
 
+  // round numbers
+  const precision = 3;
+  dataEnriched = dataEnriched.map((p) =>
+    Object.fromEntries(
+      Object.entries(p).map(([k, v]) => [
+        k,
+        typeof v === 'number' ? parseFloat(v.toFixed(precision)) : v,
+      ])
+    )
+  );
+
   console.log('\n6. saving data to S3');
   console.log('nb of pools', dataEnriched.length);
   const bucket = process.env.BUCKET_DATA;
@@ -266,6 +280,17 @@ const main = async () => {
     status: 'success',
     data: await buildPoolsEnriched(undefined),
   });
+
+  // postgres insert
+  console.log('postgres insert');
+  // this filter is temporary only and can be removed once we start pulling from the postgres yield table
+  dataEnriched = dataEnriched.map((p) => ({
+    ...p,
+    rewardTokens: p.rewardTokens ?? [],
+    underlyingTokens: p.underlyingTokens ?? [],
+  }));
+  const response = await insertEnriched(dataEnriched);
+  console.log(response);
 };
 
 ////// helper functions
@@ -273,7 +298,7 @@ const main = async () => {
 const enrich = (pool, days, offsets) => {
   const poolC = { ...pool };
   for (let d = 0; d < days.length; d++) {
-    let X = offsets[d].body.data.offsets;
+    let X = offsets[d];
     const apyOffset = X.find((x) => x.pool === poolC.pool)?.apy;
     poolC[`apyPct${days[d]}D`] = poolC['apy'] - apyOffset;
   }
@@ -295,6 +320,11 @@ const checkStablecoin = (el, stablecoins) => {
     tok = tokens[0].split('weth');
     stable = tok[0].includes('wbtc') ? false : tok.length > 1 ? false : true;
   } else if (tokens[0].includes('torn')) {
+    stable = false;
+  } else if (
+    el.project === 'hermes-protocol' &&
+    el.symbol.toLowerCase().includes('maia')
+  ) {
     stable = false;
   } else if (tokens.length === 1) {
     stable = stablecoins.some((x) =>
@@ -379,7 +409,7 @@ const addPoolInfo = (el, stablecoins, config) => {
   // complifi has single token exposure only cause the protocol
   // will pay traders via deposited amounts
   el['ilRisk'] =
-    config[el.project].category === 'Options'
+    config[el.project]?.category === 'Options'
       ? 'yes'
       : el.project === 'complifi'
       ? 'yes'
@@ -391,4 +421,77 @@ const addPoolInfo = (el, stablecoins, config) => {
   el['exposure'] = checkExposure(el);
 
   return el;
+};
+
+// retrieve the historical offset data for a project and a given offset day (1d/7d/30d)
+// to calculate pct changes. allow some buffer (+/- 3hs) in case of missing data
+const getOffsets = async (project, days) => {
+  const conn = await dbConnection.connect();
+  const M = conn.model(poolModel.modelName);
+
+  const daysMilliSeconds = Number(days) * 60 * 60 * 24 * 1000;
+  const tOffset = Date.now() - daysMilliSeconds;
+
+  // 3 hour window
+  const h = 3;
+  const tWindow = 60 * 60 * h * 1000;
+  // mongoose query requires Date
+  const recent = new Date(tOffset + tWindow);
+  const oldest = new Date(tOffset - tWindow);
+
+  // pull only data >= 10k usd in tvl (we won't show smaller pools on the frontend)
+  const tvlUsdLB = 1e4;
+
+  const aggQuery = [
+    // filter
+    {
+      $match: {
+        project: project,
+        timestamp: {
+          $gte: oldest,
+          $lte: recent,
+        },
+        tvlUsd: { $gte: tvlUsdLB },
+      },
+    },
+    // calc time distances from exact offset
+    {
+      $addFields: {
+        time_dist: {
+          $abs: [{ $subtract: ['$timestamp', new Date(tOffset)] }],
+        },
+      },
+    },
+    // sort ascending (the smallest distance are the closest data points to the exact offset)
+    {
+      $sort: { time_dist: 1 },
+    },
+    // group by id, and return the first sample of apy
+    {
+      $group: {
+        _id: '$pool',
+        apy: {
+          $first: '$apy',
+        },
+      },
+    },
+    // adding "back" the pool field, the grouping key is only available as _id
+    {
+      $addFields: {
+        pool: '$_id',
+      },
+    },
+    // remove the grouping key
+    {
+      $project: {
+        _id: 0,
+      },
+    },
+  ];
+  const query = M.aggregate(aggQuery);
+
+  // run query on db server
+  const response = await query;
+
+  return response;
 };

@@ -38,4 +38,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://cbridge.celer.network/liquidity',
 };

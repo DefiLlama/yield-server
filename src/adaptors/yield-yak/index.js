@@ -84,8 +84,8 @@ const main = async () => {
         chain: 'Avalanche',
         project: 'yield-yak',
         symbol: farm.name,
-        apy: apys[farm.address].apy,
-        rewardTokens: [farm.rewardToken.address],
+        poolMeta: farm.platform,
+        apyBase: apys[farm.address].apy,
         underlyingTokens: farm.depositToken.underlying,
         tvlUsd: tvlUsd,
       };
@@ -97,4 +97,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://yieldyak.com/farms',
 };

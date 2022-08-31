@@ -24,7 +24,7 @@ const getApy = async () => {
       project: 'velodrome',
       symbol: `${pool.token0.symbol}-${pool.token1.symbol}`,
       tvlUsd: pool.tvl,
-      apy: pool.apr,
+      apyReward: pool.apr,
       underlyingTokens: [pool.token0.address, pool.token1.address],
       rewardTokens: [
         '0x3c8B650257cFb5f272f799F5e2b4e65093a11a05', // velo
@@ -38,4 +38,5 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
+  url: 'https://app.velodrome.finance/liquidity',
 };

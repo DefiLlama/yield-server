@@ -13,13 +13,6 @@ jobs:
         uses: actions/checkout@v2
       - name: Run changes files through test script
         env:
-          ETHERSCAN: ${{ secrets.ETHERSCAN}}
-          FANTOMSCAN: ${{ secrets.FANTOMSCAN }}
-          POLYGONSCAN: ${{ secrets.POLYGONSCAN }}
-          SNOWTRACE: ${{ secrets.SNOWTRACE }}
-          ARBISCAN: ${{ secrets.ARBISCAN }}
-          OPTIMISM: ${{ secrets.OPTIMISM }}
-          XDAI: ${{ secrets.XDAI }}
           INFURA_CONNECTION: ${{ secrets.INFURA_CONNECTION }}
           ALCHEMY_CONNECTION_POLYGON: ${{ secrets.ALCHEMY_CONNECTION_POLYGON }}
           ALCHEMY_CONNECTION_ARBITRUM: ${{ secrets.ALCHEMY_CONNECTION_ARBITRUM }}

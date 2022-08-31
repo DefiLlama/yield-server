@@ -70,5 +70,25 @@
         "pool": "screamScreamFtm",
         "symbol": "SCREAM-FTM",
         "tokens": ["0xe0654C8e6fd4D733349ac7E09f6f23DA256bF475","0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"]
+    },
+    {
+        "pool": "gemFtmUsdc",
+        "symbol": "GEM-FTM-USDC",
+        "tokens": ["0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83","0x04068DA6C83AFCFA0e13ba15A6696662335D5B75"]
+    },
+    {
+        "pool": "spiritV2LqdrFtm",
+        "symbol": "LQDR-FTM",
+        "tokens": ["0x10b620b2dbAC4Faa7D7FFD71Da486f5D44cd86f9","0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"]
+    },
+    {
+        "pool": "spiritV2FusdtFtm",
+        "symbol": "FUSDT-FTM",
+        "tokens": ["0x049d68029688eAbF473097a2fC38ef61633A3C7A","0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"]
+    },
+    {
+        "pool": "spiritV2CombFtm",
+        "symbol": "COMB-FTM",
+        "tokens": ["0xaE45a827625116d6C0C40B5D7359EcF68F8e9AFD","0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"]
     }
 ]

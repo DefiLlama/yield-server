@@ -138,6 +138,8 @@ const main = async () => {
   const lockAPR = lockRewards * 100 + stakeAPR;
   const lockTVL = normalisedTotalLocked * zspPrice;
 
+  const chain = 'fantom';
+
   const [poolsRes, lpTokensRes] = await Promise.all(
     ['poolInfo', 'lpToken'].map((method) =>
       sdk.api.abi.multiCall({
@@ -146,7 +148,7 @@ const main = async () => {
           target: MASTERCHEF_ADDRESS,
           params: i,
         })),
-        chain: 'fantom',
+        chain,
       })
     )
   );
@@ -168,7 +170,7 @@ const main = async () => {
             target: address,
             params: method === 'balanceOf' ? [MASTERCHEF_ADDRESS] : null,
           })),
-          chain: 'fantom',
+          chain,
         })
     )
   );
@@ -204,18 +206,19 @@ const main = async () => {
           .div(1e18)
           .toString();
         const pool = {
-          pool: pairInfo.id,
-          chain: utils.formatChain('fantom'),
+          pool: `${pairInfo.id}-${chain}`.toLowerCase(),
+          chain: utils.formatChain(chain),
           project: 'zest-protocol',
           symbol: pairInfo.name.replace(/(WFTM)+/g, 'FTM'),
           tvlUsd: Number(reserveUSD),
-          apy: calculateApy(
+          apyReward: calculateApy(
             poolInfo,
             totalAllocPoint,
             normalizedRewardPerBlock,
             zspPrice,
             reserveUSD
           ),
+          rewardTokens: ['0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83'],
           underlyingTokens: [underlying0, underlying1],
         };
         return pool;
@@ -224,22 +227,22 @@ const main = async () => {
   );
 
   const stakeZsp = {
-    pool: 'ZSP-Staking',
-    chain: utils.formatChain('fantom'),
+    pool: `${ZSP_ADDRESS}-staking-${chain}`.toLowerCase(),
+    chain: utils.formatChain(chain),
     project: 'zest-protocol',
     symbol: 'ZSP Staked',
     tvlUsd: Number(stakeTVL),
-    apy: Number(stakeAPR),
+    apyReward: Number(stakeAPR),
     rewardTokens: [WFTM_ADDRESS],
   };
 
   const lockZsp = {
-    pool: 'ZSP-Locking',
-    chain: utils.formatChain('fantom'),
+    pool: `${ZSP_ADDRESS}-locking-${chain}`.toLowerCase(),
+    chain: utils.formatChain(chain),
     project: 'zest-protocol',
     symbol: 'ZSP Locked',
     tvlUsd: Number(lockTVL),
-    apy: Number(lockAPR),
+    apyReward: Number(lockAPR),
     rewardTokens: [WFTM_ADDRESS, ZSP_ADDRESS],
   };
 
@@ -251,4 +254,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://zestprotocol.fi/dashboard',
 };
