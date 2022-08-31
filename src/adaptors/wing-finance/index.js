@@ -30,7 +30,7 @@ const apy = async () => {
       .map((pool) => mapKeys(pool, (v, k) => camelCase(k)))
       .map((pool) => {
         return {
-          pool: `${pool.name}-${chain}`,
+          pool: `${pool.name}-wing-finance-${chain}`,
           chain: chain === 'ontologyEvm' ? 'ontology' : chain,
           project: 'wing-finance',
           symbol: pool.name,
