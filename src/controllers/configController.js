@@ -59,7 +59,8 @@ const getUrl = async () => {
   return out;
 };
 
-// get unique pools
+// get unique pool values
+// (used during adapter testing to check if a pool field is already in the DB)
 const getUniquePool = async () => {
   const conn = await connect();
 

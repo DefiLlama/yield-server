@@ -1,6 +1,6 @@
 const ss = require('simple-statistics');
 
-const { getYield } = require('../controllers/yieldController');
+const { getYieldFiltered } = require('../controllers/yieldController');
 const { insertMedian } = require('../controllers/medianController');
 
 module.exports.handler = async () => {
@@ -8,10 +8,10 @@ module.exports.handler = async () => {
 };
 
 const main = async () => {
-  // get latest pools. we filter those to the subset which we have updated on that day
-  // otherwise median calc for that day would include values from yst up to 7days ago
-  let pools = await getYield();
+  let pools = await getYieldFiltered();
 
+  // filter to include only pools which we have updated on that day.
+  // otherwise median calc for that day would include values from yst up to 7days ago
   console.log('removing stale pools...');
   console.log('prior filter', pools.length);
   const maxTimestamp = Math.max(...pools.map((p) => p.timestamp));
