@@ -2,6 +2,7 @@ const { pgp, connect } = require('../utils/dbConnection');
 
 const tableName = 'stat';
 
+// get full content from stat table
 const getStat = async () => {
   const conn = await connect();
 
@@ -14,6 +15,7 @@ const getStat = async () => {
   return response;
 };
 
+// multi row insert (update on conflict)
 const insertStat = async (payload) => {
   const conn = await connect();
 
@@ -28,7 +30,6 @@ const insertStat = async (payload) => {
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
 
-  // multi-row insert/update
   const query =
     pgp.helpers.insert(payload, cs) +
     ' ON CONFLICT(stat_id) DO UPDATE SET ' +

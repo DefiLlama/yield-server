@@ -3,6 +3,7 @@ const { pgp, connect } = require('../utils/dbConnection');
 
 const tableName = 'median';
 
+// get full content from median table
 const getMedian = async () => {
   const conn = await connect();
 
@@ -27,12 +28,12 @@ const getMedian = async () => {
   return response;
 };
 
+// insert
 const insertMedian = async (payload) => {
   const conn = await connect();
 
   const columns = ['uniquePools', 'medianAPY', 'timestamp'];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
-  // multi row insert
   const query = pgp.helpers.insert(payload, cs);
   const response = await conn.result(query);
 

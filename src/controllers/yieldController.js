@@ -6,6 +6,7 @@ const { pgp, connect } = require('../utils/dbConnection');
 
 const tableName = 'yield';
 
+// get last DB entry per unique pool
 const getYield = async () => {
   const conn = await connect();
 
@@ -65,6 +66,7 @@ const getYield = async () => {
   return response;
 };
 
+// get full history of given configID
 const getYieldHistory = async (configID) => {
   const conn = await connect();
 
@@ -106,6 +108,7 @@ const getYieldHistory = async (configID) => {
   };
 };
 
+// get last DB entry per unique pool for a given project
 const getYieldProject = async (project) => {
   const conn = await connect();
 
@@ -158,6 +161,7 @@ const getYieldProject = async (project) => {
   return response;
 };
 
+// get apy offset value for project/day combo
 const getYieldOffset = async (project, days) => {
   const conn = await connect();
 
@@ -224,6 +228,7 @@ const getYieldOffset = async (project, days) => {
   return response;
 };
 
+// multi row insert query generator
 const buildInsertYieldQuery = (payload) => {
   // note: even though apyBase and apyReward are optional fields
   // they are both added in the adapter handler to derive final apy.
@@ -238,7 +243,6 @@ const buildInsertYieldQuery = (payload) => {
     'apyReward',
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
-  // multi row insert
   return pgp.helpers.insert(payload, cs);
 };
 

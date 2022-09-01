@@ -59,6 +59,7 @@ const getUrl = async () => {
   return out;
 };
 
+// get unique pools
 const getUniquePool = async () => {
   const conn = await connect();
 
@@ -74,7 +75,7 @@ const getUniquePool = async () => {
   return response;
 };
 
-// return the insertConfig query which we use inside a transaction in adapter handler
+// multi row insert (update on conflict) query generator
 const buildInsertConfigQuery = (payload) => {
   const columns = [
     'config_id',
@@ -91,8 +92,6 @@ const buildInsertConfigQuery = (payload) => {
     'url',
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
-
-  // multi row insert/update
   const query =
     pgp.helpers.insert(payload, cs) +
     ' ON CONFLICT(config_id) DO UPDATE SET ' +
