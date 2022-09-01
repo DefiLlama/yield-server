@@ -235,6 +235,7 @@ const transformTarotLPName = async (
 ) => {
   let poolName;
   let poolId;
+  let poolMeta;
   // if symbols are matched below, use the factory to determine the pool name
   if (
     underlyingLiquidityPoolSymbol === 'spLP' ||
@@ -326,9 +327,10 @@ const transformTarotLPName = async (
   }
   // if pool name chnaged from conditions above
   if (poolName !== undefined) {
-    poolId = `${poolName} ${token0Symbol}/${token1Symbol}-${supplyTokenSymbol}`;
+    poolId = `${lendingPoolAddress}-${supplyTokenSymbol}-${chain}`;
+    poolMeta = `${poolName} ${token0Symbol}/${token1Symbol}-${supplyTokenSymbol}`;
   }
-  return poolId;
+  return { poolId, poolMeta };
 };
 
 // get prices function
@@ -478,7 +480,6 @@ const calculateApy = (
 };
 const main = async () => {
   let data = [];
-  let ctr = 0;
   for (const chain of Object.keys(config)) {
     const { factories } = config[chain];
     const transform = await getChainTransform(chain);
@@ -524,120 +525,164 @@ const main = async () => {
         chain,
         block
       );
-      // loop through lending pool
-      for (let i = 0; i < lendingPoolsDetails.length; i++) {
-        let lendingPoolAddress = lendingPoolAddresses[i];
-        // check if pool is disabled
-        if (
-          DISABLED_LENDING_POOLS.indexOf(lendingPoolAddress.toLowerCase()) !==
-          -1
-        ) {
-          continue;
-        }
-        let lendingPool = lendingPoolsDetails[i];
-        const underlyingLpAddress = underlyingLpAddresses[i];
-        // get underlying (LP) of lending pool symbol
-        const underlyingLiquidityPoolSymbol = underlyingLiquidityPoolSymbols[i];
-        // check if the lending pool has a name
-        if (underlyingLiquidityPoolSymbol === null) {
-          continue;
-        }
-        let borrowables = [];
-        borrowables.push(lendingPool.borrowable0);
-        borrowables.push(lendingPool.borrowable1);
-        let collateral = lendingPool.collateral;
-        let tokens = [];
-        tokens = [token0s[i], token1s[i]];
-        const lendingPoolDecimal = lendingPoolDecimals[i];
-        const reserves = lendingPoolReserves[i];
-        // ignore lending pools with no reserves because you can not calculate the APY and TVL.
-        if (reserves == null) {
-          continue;
-        }
-        // loop through each borrowable tokens and push apy/tvl data
-        for (let j = 0; j < borrowables.length; j++) {
-          borrowableTokenAddress = borrowables[j];
-          underlyingTokenAddress = tokens[j];
-          tokenSymbol = tokenDetailsDict[underlyingTokenAddress].symbol;
-          tokenDecimals = tokenDetailsDict[underlyingTokenAddress].decimals;
-          lpReserve = reserves[j];
-          const {
-            excessSupply,
-            reserveFactor,
-            totalBorrows,
-            borrowRate,
-            borrowableDecimal,
-            totalSupply,
-          } = await getUnderlyingTokenAndBorrowableDetails(
-            underlyingTokenAddress,
-            borrowableTokenAddress,
-            chain,
-            block,
-            lendingPoolAddress
-          );
-          //apy calculations
-          const { borrowRateAPY, utilization, supplyRateAPY } = calculateApy(
-            borrowRate,
-            borrowableDecimal,
-            totalBorrows,
-            totalSupply,
-            reserveFactor
-          );
-          let poolId = await transformTarotLPName(
-            underlyingLiquidityPoolSymbol,
-            lendingPoolAddress,
-            tokenDetailsDict[tokens[0]].symbol,
-            tokenDetailsDict[tokens[1]].symbol,
-            tokenSymbol,
-            chain,
-            block
-          );
-          // if poolId is undefined, probably abi is not published so skip
-          if (poolId === undefined) {
-            continue;
+      // fetch the data in batches for the underlying assets of the lending pool first.
+      // flatmap borrowables
+      const allBorrowables = lendingPoolsDetails.flatMap(
+        (lendingPoolDetails, i) => {
+          const reserves = lendingPoolReserves[i];
+          const lendingPoolAddress = lendingPoolAddresses[i];
+          if (reserves === null) {
+            return null;
           }
-          const key = `${transformTokenForApi(
-            chain,
-            underlyingTokenAddress,
-            transform
-          )}`;
-          // ignore pools where we can not find the price
-          if (
-            !fetchedPrices[key.toLowerCase()] ||
-            !fetchedPrices[key.toLowerCase()].price
-          ) {
-            continue;
+          const underlyingLiquidityPoolSymbol =
+            underlyingLiquidityPoolSymbols[i];
+          // check if the lending pool has a name
+          if (underlyingLiquidityPoolSymbol === null) {
+            return null;
           }
-          // tvl calculations
-          const underlyingTokenPriceUsd =
-            fetchedPrices[key.toLowerCase()].price;
-          const totalTvl = caculateTvl(
-            excessSupply,
-            tokenDecimals,
-            underlyingTokenPriceUsd,
-            lpReserve
-          );
-          let poolData = {
-            pool: `${poolId}`,
-            chain: chain,
-            project: protocolSlug,
-            symbol: utils.formatSymbol(tokenSymbol),
-            tvlUsd: totalTvl.toNumber(),
-            apy: supplyRateAPY.times(BigNumber(100)).toNumber(),
-          };
-          // add the data if the supply apy exists and the total tvl is under the threshold
+          const borrowable0 = lendingPoolDetails.borrowable0;
+          const borrowable1 = lendingPoolDetails.borrowable1;
+          const collateral = lendingPoolDetails.collateral;
 
-          if (!supplyRateAPY.isNaN()) {
-            if (!supplyRateAPY.isNaN()) {
-              ctr++;
-              if (ctr > 1) {
-                ctr = 0;
-              }
-              data.push(poolData);
-            }
-          }
+          const token0 = token0s[i];
+          const token1 = token1s[i];
+          const lendingPoolDecimal = lendingPoolDecimals[i];
+
+          token0Symbol = tokenDetailsDict[token0].symbol;
+          token0Decimals = tokenDetailsDict[token0].decimals;
+          token1Symbol = tokenDetailsDict[token1].symbol;
+          token1Decimals = tokenDetailsDict[token1].decimals;
+
+          return [
+            {
+              lpReserve: reserves[0],
+              lendingPoolAddress,
+              underlyingLiquidityPoolSymbol,
+              underlyingTokenAddress: token0,
+              borrowableTokenAddress: borrowable0,
+              collateral,
+              token0,
+              token1,
+              lendingPoolDecimal,
+              tokenSymbol: tokenDetailsDict[token0].symbol,
+              tokenDecimals: tokenDetailsDict[token0].decimals,
+            },
+            {
+              lpReserve: reserves[1],
+              lendingPoolAddress,
+              underlyingLiquidityPoolSymbol,
+              underlyingTokenAddress: token1,
+              borrowableTokenAddress: borrowable1,
+              collateral,
+              token0,
+              token1,
+              lendingPoolDecimal,
+              tokenSymbol: tokenDetailsDict[token1].symbol,
+              tokenDecimals: tokenDetailsDict[token1].decimals,
+            },
+          ];
         }
-      }
+      );
+      const detailsData = await Promise.all(
+        allBorrowables.map((borrowable) => {
+          return borrowable !== null
+            ? getUnderlyingTokenAndBorrowableDetails(
+                borrowable.underlyingTokenAddress,
+                borrowable.borrowableTokenAddress,
+                chain,
+                block,
+                borrowable.lendingPoolAddress
+              )
+            : null;
+        })
+      );
+      const poolMetaData = await Promise.all(
+        allBorrowables.map((borrowable) => {
+          return borrowable !== null
+            ? transformTarotLPName(
+                borrowable.underlyingLiquidityPoolSymbol,
+                borrowable.lendingPoolAddress,
+                tokenDetailsDict[borrowable.token0].symbol,
+                tokenDetailsDict[borrowable.token1].symbol,
+                borrowable.tokenSymbol,
+                chain,
+                block
+              )
+            : null;
+        })
+      );
+      // calculate the tvl and yields for each borrowables
+      data = [
+        ...data,
+        ...allBorrowables
+          .map((borrowable, i) => {
+            // skip if no data
+            if (borrowable === null) {
+              return null;
+            }
+            const {
+              excessSupply,
+              reserveFactor,
+              totalBorrows,
+              borrowRate,
+              borrowableDecimal,
+              totalSupply,
+            } = detailsData[i];
+            //apy calculations
+            const { borrowRateAPY, utilization, supplyRateAPY } = calculateApy(
+              borrowRate,
+              borrowableDecimal,
+              totalBorrows,
+              totalSupply,
+              reserveFactor
+            );
+            const { poolId, poolMeta } = poolMetaData[i];
+            // if poolId is undefined, probably abi is not published so skip
+            if (poolId === undefined) {
+              return null;
+            }
+            const key = `${transformTokenForApi(
+              chain,
+              borrowable.underlyingTokenAddress,
+              transform
+            )}`;
+            // ignore pools where we can not find the price
+            if (
+              !fetchedPrices[key.toLowerCase()] ||
+              !fetchedPrices[key.toLowerCase()].price
+            ) {
+              return null;
+            }
+            // tvl calculations
+            const underlyingTokenPriceUsd =
+              fetchedPrices[key.toLowerCase()].price;
+            const totalTvl = caculateTvl(
+              excessSupply,
+              borrowable.tokenDecimals,
+              underlyingTokenPriceUsd,
+              borrowable.lpReserve
+            );
+            let poolData = {
+              pool: `${poolId}`,
+              poolMeta: `${poolMeta}`,
+              chain: chain,
+              project: protocolSlug,
+              symbol: utils.formatSymbol(borrowable.tokenSymbol),
+              tvlUsd: totalTvl.toNumber(),
+              apyBase: supplyRateAPY.times(BigNumber(100)).toNumber(),
+              underlyingTokens: [borrowable.token0, borrowable.token1],
+            };
+            // add the data if the supply apy exists and the total tvl is under the threshold
+            if (!supplyRateAPY.isNaN()) {
+              return poolData;
+            } else {
+              return null;
+            }
+          })
+          .filter((data) => {
+            return data !== null;
+          }),
+      ];
     }
   }
   return data;
