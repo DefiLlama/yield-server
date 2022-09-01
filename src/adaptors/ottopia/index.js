@@ -76,4 +76,5 @@ const main = async (timestamp = null) => {
 module.exports = {
   timetravel: true,
   apy: main,
+  url: 'https://ottopia.app/',
 };
