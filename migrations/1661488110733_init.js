@@ -84,7 +84,8 @@ exports.up = (pgm) => {
     timestamp: { type: 'timestamptz', notNull: true, unique: true },
   });
 
-  // FUNCTIONS
+  // ----- FUNCTION
+  // for creating the updated_at timestamp field
   pgm.createFunction(
     'update_updated_at',
     [], // no params
@@ -102,7 +103,9 @@ exports.up = (pgm) => {
     END
     `
   );
-  // TRIGGERS;
+
+  // ----- TRIGGERS;
+  // to trigger the defined function
   pgm.createTrigger('config', 'update_updated_at', {
     when: 'BEFORE',
     operation: 'UPDATE',
