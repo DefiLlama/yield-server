@@ -128,4 +128,5 @@ async function callGetReservesData() {
 module.exports = {
   timetravel: false,
   apy: callGetReservesData,
+  url: 'https://realt.co/',
 };
