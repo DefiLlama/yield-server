@@ -107,7 +107,7 @@ const main = async () => {
       project: 'morpho',
       symbol: utils.formatSymbol(marketFromGraph.token.symbol),
       apyBase: avgSupplyAPY * 100,
-      apyReward: [avgCompSupplyAPY * 100, morphoRewards],
+      apyReward: avgCompSupplyAPY * 100,
       rewardTokens: [compToken, '0x9994e35db50125e0df82e4c2dde62496ce330999'],
       tvlUsd,
       underlyingTokens: [marketFromGraph.token.address],
