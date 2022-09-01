@@ -6,7 +6,7 @@ const { getLatestPools } = require('./getPools');
 const { getStats } = require('./triggerStats');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
 const { welfordUpdate } = require('../utils/welford');
-const dbConnection = require('../utils/dbConnection.js');
+const dbConnection = require('../utils/dbConnectionPostgres.js');
 const poolModel = require('../models/pool');
 const { insertEnriched } = require('../controllers/enrichedController');
 

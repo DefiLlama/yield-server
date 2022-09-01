@@ -1,4 +1,4 @@
-const dbConnection = require('../utils/dbConnection.js');
+const dbConnection = require('../utils/dbConnectionPostgres.js');
 const urlModel = require('../models/url');
 const AppError = require('../utils/appError');
 

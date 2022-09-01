@@ -1,4 +1,4 @@
-const dbConnection = require('../utils/dbConnection.js');
+const dbConnection = require('../utils/dbConnectionPostgres.js');
 const poolModel = require('../models/pool');
 const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');

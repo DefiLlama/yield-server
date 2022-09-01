@@ -1,4 +1,4 @@
-const { pgp, connect } = require('../utils/dbConnectionPostgres');
+const { pgp, connect } = require('../utils/dbConnection');
 
 const tableName = 'stat';
 

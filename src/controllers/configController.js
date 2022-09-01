@@ -1,6 +1,6 @@
 const minify = require('pg-minify');
 
-const { pgp, connect } = require('../utils/dbConnectionPostgres');
+const { pgp, connect } = require('../utils/dbConnection');
 
 const tableName = 'config';
 
@@ -42,8 +42,8 @@ const buildInsertConfigQuery = (payload) => {
     // optional fields are marked and provided with a default value
     // otherwise the `result` method will fail
     { name: 'poolMeta', def: null },
-    { name: 'underlyingTokens', def: [] },
-    { name: 'rewardTokens', def: [] },
+    { name: 'underlyingTokens', def: null },
+    { name: 'rewardTokens', def: null },
     'url',
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
@@ -58,6 +58,6 @@ const buildInsertConfigQuery = (payload) => {
 };
 
 module.exports = {
-  getConfig,
+  getConfigProject,
   buildInsertConfigQuery,
 };

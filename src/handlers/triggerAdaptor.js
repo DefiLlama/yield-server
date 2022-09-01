@@ -8,11 +8,11 @@ const urlModel = require('../models/url');
 const { aggQuery } = require('./getPools');
 const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
-const dbConnection = require('../utils/dbConnection.js');
+const { connect } = require('../utils/dbConnectionPostgres');
 const { sendMessage } = require('../utils/discordWebhook');
 // postgres related
 const {
-  getConfig,
+  getConfigProject,
   buildInsertConfigQuery,
 } = require('../controllers/configController');
 const { buildInsertYieldQuery } = require('../controllers/yieldController');
@@ -211,7 +211,7 @@ const main = async (body) => {
   if (!dataDB.length) return;
 
   // read data from config table
-  const config = await getConfig();
+  const config = await getConfigProject(body.adaptor);
   const mapping = {};
   for (const c of config) {
     mapping[c.pool] = c.config_id;

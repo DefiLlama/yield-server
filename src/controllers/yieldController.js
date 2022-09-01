@@ -2,7 +2,7 @@ const minify = require('pg-minify');
 
 const AppError = require('../utils/appError');
 const { boundaries } = require('../utils/exclude');
-const { pgp, connect } = require('../utils/dbConnectionPostgres');
+const { pgp, connect } = require('../utils/dbConnection');
 
 const tableName = 'yield';
 

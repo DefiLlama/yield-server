@@ -1,4 +1,4 @@
-service: llama-apy
+service: llama-apy-pg
 
 package:
   individually: true
@@ -7,7 +7,7 @@ frameworkVersion: '3'
 
 provider:
   name: aws
-  runtime: nodejs14.x
+  runtime: nodejs16.x
   stage: dev
   region: eu-central-1
   tracing:
@@ -64,8 +64,8 @@ provider:
 
 functions:
   # --- top-lvl-entrypoint
-  triggerEntrypoint:
-    handler: src/handlers/triggerEntrypoint.handler
+  triggerEntrypointPg:
+    handler: src/handlers/triggerEntrypointPg.handler
     description: Lambda to launch the adaptor pipeline
     timeout: 30
     events:
@@ -75,8 +75,8 @@ functions:
       ADAPTER_QUEUE_URL: { Ref: AdapterQueue }
 
   # --- adaptors
-  triggerAdaptor:
-    handler: src/handlers/triggerAdaptor.handler
+  triggerAdaptorPg:
+    handler: src/handlers/triggerAdaptorPg.handler
     description: Lambda which runs adaptors
     timeout: 600
     events:
@@ -97,8 +97,8 @@ functions:
       NEW_YIELDS_WEBHOOK: ${file(./env.js):NEW_YIELDS_WEBHOOK}
 
   # --- data enrichment
-  triggerEnrichment:
-    handler: src/handlers/triggerEnrichment.handler
+  triggerEnrichmentPg:
+    handler: src/handlers/triggerEnrichmentPg.handler
     description: Lambda which runs enrichment process
     timeout: 300
     events:
@@ -106,8 +106,8 @@ functions:
       - schedule: cron(20 * * * ? *)
 
   # --- stats update
-  triggerStats:
-    handler: src/handlers/triggerStats.handler
+  triggerStatsPg:
+    handler: src/handlers/triggerStatsPg.handler
     description: Lambda which updates the stats table
     timeout: 300
     events:
@@ -115,8 +115,8 @@ functions:
       - schedule: cron(0 0 * * ? *)
 
   # --- median insert
-  triggerMedian:
-    handler: src/handlers/triggerMedian.handler
+  triggerMedianPg:
+    handler: src/handlers/triggerMedianPg.handler
     description: Lambda which inserts latest value into the median table
     timeout: 300
     events:
@@ -124,8 +124,8 @@ functions:
       - schedule: cron(0 0 * * ? *)
 
   # --- save poolsEnriched as CSV
-  triggerCsv:
-    handler: src/handlers/triggerCsv.handler
+  triggerCsvPg:
+    handler: src/handlers/triggerCsvPg.handler
     description: Lambda which dumps poolsEnriched as csv to s3 bucket
     timeout: 300
     events:
@@ -133,8 +133,8 @@ functions:
       - schedule: cron(25 * * * ? *)
 
   # --- DB Crud operations
-  getPools:
-    handler: src/handlers/getPools.handler
+  getPoolsPg:
+    handler: src/handlers/getPoolsPg.handler
     description: Lambda for retrieving the latest data for each unique pool
     timeout: 30
     events:
@@ -142,8 +142,8 @@ functions:
           method: get
           path: /simplePools
 
-  getPoolsEnriched:
-    handler: src/handlers/getPoolsEnriched.handler
+  getPoolsEnrichedPg:
+    handler: src/handlers/getPoolsEnrichedPg.handler
     description: Lambda for retrieving the latest enriched data for each unique pool
     timeout: 20
     events:
@@ -154,8 +154,8 @@ functions:
           method: get
           path: /pools
 
-  getChart:
-    handler: src/handlers/getChart.handler
+  getChartPg:
+    handler: src/handlers/getChartPg.handler
     description: Lambda for retrieving chart data for a particular pool
     timeout: 20
     events:
@@ -163,8 +163,8 @@ functions:
           method: get
           path: /chart/{pool}
 
-  getMedian:
-    handler: src/handlers/getMedian.handler
+  getMedianPg:
+    handler: src/handlers/getMedianPg.handler
     description: Lambda for retrieving median data
     timeout: 20
     events:
@@ -172,8 +172,8 @@ functions:
           method: get
           path: /median
 
-  getUrls:
-    handler: src/handlers/getUrls.handler
+  getUrlsPg:
+    handler: src/handlers/getUrlsPg.handler
     description: Lambda for retrieving url data
     timeout: 20
     events:

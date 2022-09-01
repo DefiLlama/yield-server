@@ -1,5 +1,5 @@
 const minify = require('pg-minify');
-const { pgp, connect } = require('../utils/dbConnectionPostgres');
+const { pgp, connect } = require('../utils/dbConnection');
 
 const tableName = 'median';
 

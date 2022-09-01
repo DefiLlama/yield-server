@@ -1,7 +1,7 @@
 const statModel = require('../models/stat');
 const AppError = require('../utils/appError');
 const { welfordUpdate } = require('../utils/welford');
-const dbConnection = require('../utils/dbConnection.js');
+const dbConnection = require('../utils/dbConnectionPostgres.js');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
 
 module.exports.handler = async (event, context) => {
