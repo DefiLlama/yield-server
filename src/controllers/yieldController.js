@@ -177,7 +177,8 @@ const getYieldOffset = async (project, days) => {
   const query = minify(
     `
     SELECT
-        DISTINCT ON (pool) pool,
+        DISTINCT ON ("configID") "configID",
+        pool,
         apy
     FROM
         (
@@ -202,7 +203,7 @@ const getYieldOffset = async (project, days) => {
                 AND timestamp <= $<tsUB>
         ) AS y
     ORDER BY
-        pool,
+        "configID",
         abs_delta DESC
     `,
     { compress: true }

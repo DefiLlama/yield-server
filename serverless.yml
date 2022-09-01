@@ -152,7 +152,7 @@ functions:
     events:
       - httpApi:
           method: get
-          path: /chart/{pool}
+          path: /chart/{configID}
 
   getMedianPg:
     handler: src/handlers/getMedian.handler
@@ -171,6 +171,15 @@ functions:
       - httpApi:
           method: get
           path: /urls
+
+  getUniquePoolPg:
+    handler: src/handlers/getUniquePool.handler
+    description: Lambda for retrieving unique pool id's
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /poolUnique
 
 resources:
   Resources:

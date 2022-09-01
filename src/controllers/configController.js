@@ -40,7 +40,7 @@ const getUrl = async () => {
         DISTINCT(project),
         url
     FROM
-        $<TABLE:name>
+        $<table:name>
     `,
     { compress: true }
   );
@@ -57,6 +57,21 @@ const getUrl = async () => {
   }
 
   return out;
+};
+
+const getUniquePool = async () => {
+  const conn = await connect();
+
+  const response = await conn.query(
+    'SELECT DISTINCT(pool) from $<table:name>',
+    { table: tableName }
+  );
+
+  if (!response) {
+    return new AppError(`Couldn't get ${tableName} data`, 404);
+  }
+
+  return response;
 };
 
 // return the insertConfig query which we use inside a transaction in adapter handler
@@ -90,4 +105,5 @@ module.exports = {
   getConfigProject,
   buildInsertConfigQuery,
   getUrl,
+  getUniquePool,
 };
