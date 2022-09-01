@@ -1,17 +1,9 @@
 const fs = require('fs');
 
-const AWS = require('aws-sdk');
 const ss = require('simple-statistics');
 
 const { confirm } = require('../src/utils/confirm');
-const { boundaries } = require('../src/utils/exclude');
-const { insertStats } = require('../src/handlers/triggerStats');
-
-// set config (we run this script locally)
-const credentials = new AWS.SharedIniFileCredentials({ profile: 'defillama' });
-AWS.config.credentials = credentials;
-AWS.config.update({ region: 'eu-central-1' });
-process.env['SSM_PATH'] = '/llama-apy/serverless/sls-authenticate';
+const { insertStat } = require('../src/controllers/statController');
 
 (async () => {
   await confirm(
@@ -19,14 +11,9 @@ process.env['SSM_PATH'] = '/llama-apy/serverless/sls-authenticate';
       .split('/')
       .slice(-1)} script: `
   );
-  // pools.json is a full database snapshot of daily values only (the last value per pool per day)
-  // containing pool and the total apy fields
+  // yield.json is a yield table snapshot of daily values only
+  // (the last value per configID (== pool) per day)
   let data = JSON.parse(fs.readFileSync(process.argv[2]));
-  // keeping positive values only
-  data = data.filter(
-    (p) =>
-      p.apy !== null && p.apy >= boundaries.apy.lb && p.apy <= boundaries.apy.ub
-  );
 
   // create return field
   const T = 365;
@@ -37,11 +24,13 @@ process.env['SSM_PATH'] = '/llama-apy/serverless/sls-authenticate';
   }));
 
   const payload = [];
-  for (const [i, pool] of [...new Set(data.map((el) => el.pool))].entries()) {
+  for (const [i, cID] of [
+    ...new Set(data.map((el) => el.configID)),
+  ].entries()) {
     console.log(i);
 
-    // filter to pool
-    let X = data.filter((el) => el.pool === pool);
+    // filter to config id
+    let X = data.filter((el) => el.configID === cID);
     if (X.length === 0) continue;
 
     const count = X.length;
@@ -49,7 +38,7 @@ process.env['SSM_PATH'] = '/llama-apy/serverless/sls-authenticate';
     const seriesReturn = X.map((p) => p.return);
 
     payload.push({
-      pool,
+      stat_id: cID,
       count,
       meanAPY: seriesAPY.reduce((a, b) => a + b, 0) / count,
       mean2APY: count < 2 ? null : ss.variance(seriesAPY) * (count - 1),
@@ -59,7 +48,7 @@ process.env['SSM_PATH'] = '/llama-apy/serverless/sls-authenticate';
     });
   }
 
-  const response = await insertStats(payload);
+  const response = await insertStat(payload);
   console.log(response);
   process.exit(0);
 })();

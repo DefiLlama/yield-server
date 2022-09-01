@@ -1,4 +1,4 @@
-service: llama-apy-pg
+service: llama-apy-pg-testing
 
 package:
   individually: true
@@ -28,13 +28,6 @@ provider:
             - s3:*Object*
             - sqs:SendMessage
           Resource: '*'
-        - Effect: Allow
-          Action:
-            - ssm:PutParameter
-            - ssm:GetParameter
-            - ssm:DescribeParameters
-            - kms:Decrypt
-          Resource: '*'
 
   environment:
     # for entrypoint and enrichment
@@ -55,7 +48,6 @@ provider:
             ],
           ],
       }
-    SSM_PATH: ${self:custom.ssmPath}
     BUCKET_DATA: { Ref: BucketData }
     DATABASE_URL: ${file(./env.js):DATABASE_URL}
 
@@ -244,7 +236,6 @@ resources:
 
 custom:
   stage: ${opt:stage, self:provider.stage}
-  ssmPath: /${self:service}/serverless/sls-authenticate
   webpack:
     webpackConfig: 'webpack.config.js'
     includeModules: true
