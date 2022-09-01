@@ -118,10 +118,4 @@ exports.up = (pgm) => {
     function: 'update_updated_at',
     level: 'ROW',
   });
-  pgm.createTrigger('enriched', 'update_updated_at', {
-    when: 'BEFORE',
-    operation: 'UPDATE',
-    function: 'update_updated_at',
-    level: 'ROW',
-  });
 };

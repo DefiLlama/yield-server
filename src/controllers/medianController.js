@@ -41,10 +41,7 @@ const insertMedian = async (payload) => {
     return new AppError(`Couldn't insert ${tableName} data`, 404);
   }
 
-  return {
-    status: 'success',
-    response: `Inserted ${payload.length} samples`,
-  };
+  return response;
 };
 
 module.exports = {
