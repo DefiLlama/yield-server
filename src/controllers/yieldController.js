@@ -83,11 +83,11 @@ const getYieldHistory = async (configID) => {
             FROM
                 yield
             WHERE
-                configID = $<configIDValue>
+                "configID" = $<configIDValue>
             GROUP BY
                 (timestamp :: date)
         )
-        AND configID = $<configIDValue>
+        AND "configID" = $<configIDValue>
     ORDER BY
         timestamp ASC
   `,

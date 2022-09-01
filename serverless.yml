@@ -65,7 +65,7 @@ provider:
 functions:
   # --- top-lvl-entrypoint
   triggerEntrypointPg:
-    handler: src/handlers/triggerEntrypointPg.handler
+    handler: src/handlers/triggerEntrypoint.handler
     description: Lambda to launch the adaptor pipeline
     timeout: 30
     events:
@@ -76,7 +76,7 @@ functions:
 
   # --- adaptors
   triggerAdaptorPg:
-    handler: src/handlers/triggerAdaptorPg.handler
+    handler: src/handlers/triggerAdaptor.handler
     description: Lambda which runs adaptors
     timeout: 600
     events:
@@ -98,7 +98,7 @@ functions:
 
   # --- data enrichment
   triggerEnrichmentPg:
-    handler: src/handlers/triggerEnrichmentPg.handler
+    handler: src/handlers/triggerEnrichment.handler
     description: Lambda which runs enrichment process
     timeout: 300
     events:
@@ -106,9 +106,9 @@ functions:
       - schedule: cron(20 * * * ? *)
 
   # --- stats update
-  triggerStatsPg:
-    handler: src/handlers/triggerStatsPg.handler
-    description: Lambda which updates the stats table
+  triggerStatPg:
+    handler: src/handlers/triggerStat.handler
+    description: Lambda which updates the stat table
     timeout: 300
     events:
       # at midnight
@@ -116,7 +116,7 @@ functions:
 
   # --- median insert
   triggerMedianPg:
-    handler: src/handlers/triggerMedianPg.handler
+    handler: src/handlers/triggerMedian.handler
     description: Lambda which inserts latest value into the median table
     timeout: 300
     events:
@@ -125,7 +125,7 @@ functions:
 
   # --- save poolsEnriched as CSV
   triggerCsvPg:
-    handler: src/handlers/triggerCsvPg.handler
+    handler: src/handlers/triggerCsv.handler
     description: Lambda which dumps poolsEnriched as csv to s3 bucket
     timeout: 300
     events:
@@ -133,17 +133,8 @@ functions:
       - schedule: cron(25 * * * ? *)
 
   # --- DB Crud operations
-  getPoolsPg:
-    handler: src/handlers/getPoolsPg.handler
-    description: Lambda for retrieving the latest data for each unique pool
-    timeout: 30
-    events:
-      - httpApi:
-          method: get
-          path: /simplePools
-
   getPoolsEnrichedPg:
-    handler: src/handlers/getPoolsEnrichedPg.handler
+    handler: src/handlers/getPoolsEnriched.handler
     description: Lambda for retrieving the latest enriched data for each unique pool
     timeout: 20
     events:
@@ -155,7 +146,7 @@ functions:
           path: /pools
 
   getChartPg:
-    handler: src/handlers/getChartPg.handler
+    handler: src/handlers/getChart.handler
     description: Lambda for retrieving chart data for a particular pool
     timeout: 20
     events:
@@ -164,7 +155,7 @@ functions:
           path: /chart/{pool}
 
   getMedianPg:
-    handler: src/handlers/getMedianPg.handler
+    handler: src/handlers/getMedian.handler
     description: Lambda for retrieving median data
     timeout: 20
     events:
@@ -172,8 +163,8 @@ functions:
           method: get
           path: /median
 
-  getUrlsPg:
-    handler: src/handlers/getUrlsPg.handler
+  getUrlPg:
+    handler: src/handlers/getUrl.handler
     description: Lambda for retrieving url data
     timeout: 20
     events:

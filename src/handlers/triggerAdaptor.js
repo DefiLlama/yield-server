@@ -3,20 +3,18 @@ const crypto = require('crypto');
 const superagent = require('superagent');
 
 const utils = require('../adaptors/utils');
-const poolModel = require('../models/pool');
-const urlModel = require('../models/url');
-const { aggQuery } = require('./getPools');
 const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
-const { connect } = require('../utils/dbConnectionPostgres');
 const { sendMessage } = require('../utils/discordWebhook');
-// postgres related
+const { connect } = require('../utils/dbConnectionPostgres');
+const {
+  getYieldProject,
+  buildInsertYieldQuery,
+} = require('../controllers/yieldController');
 const {
   getConfigProject,
   buildInsertConfigQuery,
 } = require('../controllers/configController');
-const { buildInsertYieldQuery } = require('../controllers/yieldController');
-const { connect } = require('../utils/dbConnectionPostgres');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -133,7 +131,7 @@ const main = async (body) => {
   // -> block update
 
   // load current project array
-  const dataInitial = await getProject(body.adaptor);
+  const dataInitial = await getYieldProject(body.adaptor);
 
   const dataDB = [];
   const nHours = 5;
@@ -197,16 +195,7 @@ const main = async (body) => {
     }
   }
 
-  const response = await insertPools(dataDB);
-  console.log(response);
-
-  // update url
-  if (project.url) {
-    console.log('insert/update url');
-    await updateUrl(body.adaptor, project.url);
-  }
-
-  // ----------------------- run new postgres db inserts separately
+  // DB INSERT
   // pg-promise can't run insert on empty array
   if (!dataDB.length) return;
 
@@ -217,7 +206,7 @@ const main = async (body) => {
     mapping[c.pool] = c.config_id;
   }
 
-  const dataDBPostgres = dataDB.map((p) => {
+  const payload = dataDB.map((p) => {
     // if pool not in mapping -> its a new pool -> create a new uuid, else keep existing one
     const id = mapping[p.pool] ?? crypto.randomUUID();
     return {
@@ -227,71 +216,7 @@ const main = async (body) => {
       url: project.url,
     };
   });
-  const responsePostgres = await insertConfigYieldTransaction(dataDBPostgres);
-  console.log(responsePostgres);
-};
-
-const insertPools = async (payload) => {
-  const conn = await dbConnection.connect();
-  const M = conn.model(poolModel.modelName);
-
-  const response = await M.insertMany(payload);
-
-  if (!response) {
-    return new AppError("Couldn't insert data", 404);
-  }
-
-  return {
-    status: 'success',
-    response: `Inserted ${payload.length} samples`,
-  };
-};
-
-module.exports.insertPools = insertPools;
-
-// get latest object of each unique pool
-const getProject = async (project) => {
-  const conn = await dbConnection.connect();
-  const M = conn.model(poolModel.modelName);
-
-  // add project field to match obj
-  aggQuery.slice(-1)[0]['$match']['project'] = project;
-
-  const query = M.aggregate(aggQuery);
-  let response = await query;
-
-  // remove pools where all 3 fields are null (this and the below project/pool exclusion
-  // could certainly be implemented in the aggregation pipeline but i'm to stupid for mongodb pipelines)
-  response = response.filter(
-    (p) =>
-      !(p.apy === null && p.apyBase === null && p.apyReward === null) &&
-      !exclude.excludePools.includes(p.pool)
-  );
-
-  return response;
-};
-
-const updateUrl = async (adapter, url) => {
-  const conn = await dbConnection.connect();
-  const M = conn.model(urlModel.modelName);
-
-  const response = await M.bulkWrite([
-    {
-      updateOne: {
-        filter: { project: adapter },
-        update: {
-          $set: {
-            url: url,
-          },
-        },
-        upsert: true,
-      },
-    },
-  ]);
-
-  if (!response) {
-    return new AppError("Couldn't update data", 404);
-  }
+  const response = await insertConfigYieldTransaction(payload);
   console.log(response);
 };
 

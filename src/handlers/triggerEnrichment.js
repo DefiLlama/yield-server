@@ -2,13 +2,10 @@ const superagent = require('superagent');
 const ss = require('simple-statistics');
 
 const utils = require('../utils/s3');
-const { getLatestPools } = require('./getPools');
-const { getStats } = require('./triggerStats');
+const { getYield, getYieldOffset } = require('../controllers/yieldController');
+const { getStat } = require('../controllers/statController');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
 const { welfordUpdate } = require('../utils/welford');
-const dbConnection = require('../utils/dbConnectionPostgres.js');
-const poolModel = require('../models/pool');
-const { insertEnriched } = require('../controllers/enrichedController');
 
 module.exports.handler = async (event, context) => {
   await main();
@@ -19,7 +16,7 @@ const main = async () => {
 
   const urlBase = process.env.APIG_URL;
   console.log('\n1. getting pools...');
-  let data = await getLatestPools();
+  let data = await getYield();
 
   // derive final apy field via:
   data = data.map((p) => ({
@@ -43,7 +40,7 @@ const main = async () => {
     // api calls
     const promises = [];
     for (let i = 0; i < days.length; i++) {
-      promises.push(getOffsets(adaptor, days[i]));
+      promises.push(getYieldOffset(adaptor, days[i]));
     }
     try {
       const offsets = await Promise.all(promises);
@@ -87,7 +84,7 @@ const main = async () => {
     return: (1 + p.apy / 100) ** (1 / T) - 1,
   }));
 
-  const dataStats = await getStats();
+  const dataStats = await getStat();
   const statsColumns = welfordUpdate(dataEnriched, dataStats);
   // add columns to dataEnriched
   for (const p of dataEnriched) {
@@ -280,17 +277,6 @@ const main = async () => {
     status: 'success',
     data: await buildPoolsEnriched(undefined),
   });
-
-  // postgres insert
-  console.log('postgres insert');
-  // this filter is temporary only and can be removed once we start pulling from the postgres yield table
-  dataEnriched = dataEnriched.map((p) => ({
-    ...p,
-    rewardTokens: p.rewardTokens ?? [],
-    underlyingTokens: p.underlyingTokens ?? [],
-  }));
-  const response = await insertEnriched(dataEnriched);
-  console.log(response);
 };
 
 ////// helper functions
@@ -421,77 +407,4 @@ const addPoolInfo = (el, stablecoins, config) => {
   el['exposure'] = checkExposure(el);
 
   return el;
-};
-
-// retrieve the historical offset data for a project and a given offset day (1d/7d/30d)
-// to calculate pct changes. allow some buffer (+/- 3hs) in case of missing data
-const getOffsets = async (project, days) => {
-  const conn = await dbConnection.connect();
-  const M = conn.model(poolModel.modelName);
-
-  const daysMilliSeconds = Number(days) * 60 * 60 * 24 * 1000;
-  const tOffset = Date.now() - daysMilliSeconds;
-
-  // 3 hour window
-  const h = 3;
-  const tWindow = 60 * 60 * h * 1000;
-  // mongoose query requires Date
-  const recent = new Date(tOffset + tWindow);
-  const oldest = new Date(tOffset - tWindow);
-
-  // pull only data >= 10k usd in tvl (we won't show smaller pools on the frontend)
-  const tvlUsdLB = 1e4;
-
-  const aggQuery = [
-    // filter
-    {
-      $match: {
-        project: project,
-        timestamp: {
-          $gte: oldest,
-          $lte: recent,
-        },
-        tvlUsd: { $gte: tvlUsdLB },
-      },
-    },
-    // calc time distances from exact offset
-    {
-      $addFields: {
-        time_dist: {
-          $abs: [{ $subtract: ['$timestamp', new Date(tOffset)] }],
-        },
-      },
-    },
-    // sort ascending (the smallest distance are the closest data points to the exact offset)
-    {
-      $sort: { time_dist: 1 },
-    },
-    // group by id, and return the first sample of apy
-    {
-      $group: {
-        _id: '$pool',
-        apy: {
-          $first: '$apy',
-        },
-      },
-    },
-    // adding "back" the pool field, the grouping key is only available as _id
-    {
-      $addFields: {
-        pool: '$_id',
-      },
-    },
-    // remove the grouping key
-    {
-      $project: {
-        _id: 0,
-      },
-    },
-  ];
-  const query = M.aggregate(aggQuery);
-
-  // run query on db server
-  const response = await query;
-
-  return response;
 };

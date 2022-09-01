@@ -30,6 +30,35 @@ const getConfigProject = async (project) => {
   return response;
 };
 
+// get distinct urls per project
+const getUrl = async () => {
+  const conn = await connect();
+
+  const query = minify(
+    `
+    SELECT
+        DISTINCT(project),
+        url
+    FROM
+        $<TABLE:name>
+    `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query, { table: tableName });
+
+  if (!response) {
+    return new AppError(`Couldn't get ${tableName} data`, 404);
+  }
+
+  const out = {};
+  for (const e of response) {
+    out[e.project] = e.url;
+  }
+
+  return out;
+};
+
 // return the insertConfig query which we use inside a transaction in adapter handler
 const buildInsertConfigQuery = (payload) => {
   const columns = [
@@ -60,4 +89,5 @@ const buildInsertConfigQuery = (payload) => {
 module.exports = {
   getConfigProject,
   buildInsertConfigQuery,
+  getUrl,
 };
