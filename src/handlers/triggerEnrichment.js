@@ -2,7 +2,10 @@ const superagent = require('superagent');
 const ss = require('simple-statistics');
 
 const utils = require('../utils/s3');
-const { getYield, getYieldOffset } = require('../controllers/yieldController');
+const {
+  getYieldFiltered,
+  getYieldOffset,
+} = require('../controllers/yieldController');
 const { getStat } = require('../controllers/statController');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
 const { welfordUpdate } = require('../utils/welford');
@@ -15,20 +18,12 @@ const main = async () => {
   console.log('START DATA ENRICHMENT');
 
   const urlBase = process.env.APIG_URL;
-  console.log('\n1. getting pools...');
-  let data = await getYield();
+  console.log('\ngetting pools...');
+  let data = await getYieldFiltered();
 
-  // derive final apy field via:
-  data = data.map((p) => ({
-    ...p,
-    apy: p.apy ?? p.apyBase + p.apyReward,
-  }));
-  // remove any potential null values
-  data = data.filter((p) => p.apy !== null);
-
-  ////// 2 add pct-change columns
+  // add pct-change columns
   // for each project we get 3 offsets (1D, 7D, 30D) and calculate absolute apy pct-change
-  console.log('\n2. adding pct-change fields...');
+  console.log('\nadding pct-change fields...');
   const days = ['1', '7', '30'];
   let dataEnriched = [];
   const failed = [];
@@ -61,7 +56,7 @@ const main = async () => {
     }
   }
 
-  console.log('\n3. adding additional pool info fields');
+  console.log('\nadding additional pool info fields');
   const stablecoins = (
     await superagent.get(
       'https://stablecoins.llama.fi/stablecoins?includePrices=true'
@@ -84,11 +79,11 @@ const main = async () => {
     return: (1 + p.apy / 100) ** (1 / T) - 1,
   }));
 
-  const dataStats = await getStat();
-  const statsColumns = welfordUpdate(dataEnriched, dataStats);
+  const dataStat = await getStat();
+  const statColumns = welfordUpdate(dataEnriched, dataStat);
   // add columns to dataEnriched
   for (const p of dataEnriched) {
-    const x = statsColumns.find((i) => i.pool === p.pool);
+    const x = statColumns.find((i) => i.configID === p.configID);
     // create columns
     // a) ML section
     p['count'] = x.count;
@@ -131,13 +126,12 @@ const main = async () => {
       p['sigma'] > outlierBoundaries['sigma']['ub'],
   }));
 
-  console.log('\n5. adding apy runway prediction');
+  console.log('\nadding apy runway prediction');
   // load categorical feature mappings
   const modelMappings = await utils.readFromS3(
     'llama-apy-prediction-prod',
     'mlmodelartefacts/categorical_feature_mapping_2022_05_20.json'
   );
-  console.log(modelMappings);
   for (const el of dataEnriched) {
     project_fact = modelMappings.project_factorized[el.project];
     chain_fact = modelMappings.chain_factorized[el.chain];
@@ -254,7 +248,7 @@ const main = async () => {
     )
   );
 
-  console.log('\n6. saving data to S3');
+  console.log('\nsaving data to S3');
   console.log('nb of pools', dataEnriched.length);
   const bucket = process.env.BUCKET_DATA;
   const key = 'enriched/dataEnriched.json';

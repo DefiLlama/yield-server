@@ -1,5 +1,5 @@
 const { welfordUpdate } = require('../utils/welford');
-const { buildPoolsEnriched } = require('./getPoolsEnriched');
+const { getYield } = require('../controllers/yieldController');
 const { getStat, insertStat } = require('../controllers/statController');
 
 module.exports.handler = async (event, context) => {
@@ -11,17 +11,16 @@ module.exports.handler = async (event, context) => {
 // so i want to keep things consistent (even though it shouldnt be a big difference, at least
 // for the majority of pools)
 const main = async () => {
-  const urlBase = process.env.APIG_URL;
-  let dataEnriched = await buildPoolsEnriched(undefined);
+  let data = await getYield();
   const T = 365;
   // transform raw apy to return field (required for geometric mean)
-  dataEnriched = dataEnriched.map((p) => ({
+  data = data.map((p) => ({
     ...p,
     return: (1 + p.apy / 100) ** (1 / T) - 1,
   }));
 
   const dataStat = await getStat();
-  const payload = welfordUpdate(dataEnriched, dataStat);
+  const payload = welfordUpdate(data, dataStat);
   const response = await insertStat(payload);
   console.log(response);
 };

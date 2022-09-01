@@ -6,19 +6,42 @@ const { pgp, connect } = require('../utils/dbConnection');
 
 const tableName = 'yield';
 
-// get last DB entry per unique pool
+// get last DB entry per unique pool (no exclusion; required by triggerStat handler)
 const getYield = async () => {
+  const conn = await connect();
+
+  // -- get latest yield row per unique configID (a pool)
+  const query = minify(
+    `
+    SELECT
+        DISTINCT ON ("configID") "configID",
+        apy
+    FROM
+        yield
+    ORDER BY
+        "configID",
+        timestamp DESC
+  `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query);
+
+  if (!response) {
+    return new AppError(`Couldn't get ${tableName} data`, 404);
+  }
+
+  return response;
+};
+
+// get last DB entry per unique pool (with exlcusion; this is what we use in enrichment handler)
+const getYieldFiltered = async () => {
   const conn = await connect();
 
   // -- get latest yield row per unique configID (a pool)
   // -- exclude if tvlUsd is < LB
   // -- exclude if pool age > 7days
   // -- join config data
-  // -- NOTE: i use sqlformatter vscode extension. one issue i found is that it formats
-  // -- named parameter placeholders such as $<tvlLB> to $ < tvlLB > which is invalid and
-  // -- which pg-promise's internal formatter can't correct (at least i didn't find a way how to)
-  // -- in order to get around this i'm using the formatter to generally format the query
-  // -- but make sure to use cmd shift p -> save without formatting before pushing any changes to the repo
   const query = minify(
     `
     SELECT
@@ -248,6 +271,7 @@ const buildInsertYieldQuery = (payload) => {
 
 module.exports = {
   getYield,
+  getYieldFiltered,
   getYieldHistory,
   getYieldOffset,
   getYieldProject,

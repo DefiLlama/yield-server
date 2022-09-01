@@ -8,7 +8,7 @@ module.exports.welfordUpdate = (pools, stats) => {
 
   const payload = [];
   for (const p of pools) {
-    d = stats[p.pool];
+    d = stats[p.configID];
 
     if (d !== undefined) {
       // extract
@@ -45,7 +45,7 @@ module.exports.welfordUpdate = (pools, stats) => {
     }
 
     payload.push({
-      pool: p.pool,
+      stat_id: p.configID,
       count,
       meanAPY,
       mean2APY,
