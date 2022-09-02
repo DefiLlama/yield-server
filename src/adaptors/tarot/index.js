@@ -405,28 +405,24 @@ const getUnderlyingTokenAndBorrowableDetails = async (
     target: underlyingTokenAddress,
     owner: borrowableTokenAddress,
     chain,
-    block,
     requery: true,
   });
   const { output: reserveFactor } = await sdk.api.abi.call({
     target: borrowableTokenAddress,
     abi: abi.reserveFactor,
     chain,
-    block,
     requery: true,
   });
   const { output: totalBorrows } = await sdk.api.abi.call({
     target: borrowableTokenAddress,
     abi: abi.totalBorrows,
     chain,
-    block,
     requery: true,
   });
   const { output: borrowRate } = await sdk.api.abi.call({
     target: borrowableTokenAddress,
     abi: abi.borrowRate,
     chain,
-    block,
     requery: true,
   });
   // use constant instead of calling the contract
