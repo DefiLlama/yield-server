@@ -42,7 +42,6 @@ exports.up = (pgm) => {
       type: 'uuid',
       notNull: true,
       references: '"config"',
-      unique: true,
       onDelete: 'cascade',
     },
     timestamp: { type: 'timestamptz', notNull: true },
