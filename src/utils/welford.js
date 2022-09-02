@@ -45,7 +45,7 @@ module.exports.welfordUpdate = (pools, stats) => {
     }
 
     payload.push({
-      stat_id: p.configID,
+      configID: p.configID,
       count,
       meanAPY,
       mean2APY,

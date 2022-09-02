@@ -38,7 +38,7 @@ const { insertStat } = require('../src/controllers/statController');
     const seriesReturn = X.map((p) => p.return);
 
     payload.push({
-      stat_id: cID,
+      configID: cID,
       count,
       meanAPY: seriesAPY.reduce((a, b) => a + b, 0) / count,
       mean2APY: count < 2 ? null : ss.variance(seriesAPY) * (count - 1),

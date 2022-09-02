@@ -20,7 +20,7 @@ const insertStat = async (payload) => {
   const conn = await connect();
 
   const columns = [
-    'stat_id',
+    'configID',
     'count',
     'meanAPY',
     'mean2APY',
@@ -32,8 +32,8 @@ const insertStat = async (payload) => {
 
   const query =
     pgp.helpers.insert(payload, cs) +
-    ' ON CONFLICT(stat_id) DO UPDATE SET ' +
-    cs.assignColumns({ from: 'EXCLUDED', skip: 'stat_id' });
+    ' ON CONFLICT("configID") DO UPDATE SET ' +
+    cs.assignColumns({ from: 'EXCLUDED', skip: 'configID' });
 
   const response = await conn.result(query);
 

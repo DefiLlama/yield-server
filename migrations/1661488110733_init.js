@@ -55,8 +55,16 @@ exports.up = (pgm) => {
   // and other things we use for plotting on the /overview page
   pgm.createTable('stat', {
     stat_id: {
-      type: 'uuid', // uuid is created in application and identical to config_id
+      type: 'uuid',
+      default: new PgLiteral('uuid_generate_v4()'),
       primaryKey: true,
+    },
+    // configID is a FK in this table and references the PK (config_id) in config
+    configID: {
+      type: 'uuid',
+      notNull: true,
+      references: '"config"',
+      unique: true,
     },
     count: { type: 'smallint', notNull: true },
     meanAPY: { type: 'numeric', notNull: true },
