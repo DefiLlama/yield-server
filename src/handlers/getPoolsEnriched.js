@@ -55,7 +55,7 @@ const buildPoolsEnriched = async (queryString) => {
   }
 
   const params = {
-    Bucket: 'llama-apy-prod-data',
+    Bucket: 'llama-apy-pg-testing-prod-data',
     Key: 'enriched/dataEnriched.json',
     ExpressionType: 'SQL',
     Expression: query,
