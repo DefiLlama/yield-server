@@ -401,12 +401,7 @@ const getUnderlyingTokenAndBorrowableDetails = async (
     chain,
     requery: true,
   });
-  const { output: reserveFactor } = await sdk.api.abi.call({
-    target: borrowableTokenAddress,
-    abi: abi.reserveFactor,
-    chain,
-    requery: true,
-  });
+  const { output: reserveFactor } = { output: 1 };
   const { output: totalBorrows } = await sdk.api.abi.call({
     target: borrowableTokenAddress,
     abi: abi.totalBorrows,
