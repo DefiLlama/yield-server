@@ -1,100 +1,103 @@
-const superagent = require('superagent');
-const utils = require('../utils');
+const superagent = require("superagent");
+const utils = require("../utils");
 
 const chainsMapping = {
-'aurora': 'aurora',
-'avax': 'avalanche', 
-'boba': 'boba', 
-'bsc': 'binance',
-'celo': 'celo', 
-'cronos': 'cronos', 
-'evmos': 'evmos', 
-'fantom': 'fantom', 
-'gnosis': 'xdai', 
-'harmony': 'harmony', 
-'heco': 'heco', 
-'kcc': 'kcc', // TODO KCC
-'moonbeam': 'moonbeam', 
-'moonriver': 'moonriver', 
-'oasis': 'oasis', 
-'okc': 'okexchain', // todo need to fix naming :x - OKExChain
-'polygon': 'polygon', 
-'velas': 'velas', 
-'wanchain': 'wanchain',
+  aurora: "aurora",
+  avax: "avalanche",
+  boba: "boba",
+  bsc: "binance",
+  celo: "celo",
+  cronos: "cronos",
+  evmos: "evmos",
+  fantom: "fantom",
+  gnosis: "xdai",
+  harmony: "harmony",
+  heco: "heco",
+  kcc: "kcc",
+  moonbeam: "moonbeam",
+  moonriver: "moonriver",
+  oasis: "oasis",
+  okc: "okexchain",
+  polygon: "polygon",
+  velas: "velas",
+  wanchain: "wanchain",
 };
 
-async function getAutofarmBuildId(){
-  const homeUrl = 'https://autofarm.network/'
+async function getAutofarmBuildId() {
+  const homeUrl = "https://autofarm.network/";
   const home = (await superagent.get(homeUrl)).text;
   const start = home.indexOf('"buildId":');
   return home.slice(start + 11, start + 32);
 }
 
-async function getPoolsMeta(){
+async function getMetadataRoot() {
   const buildId = await getAutofarmBuildId();
-  const url = `https://autofarm.network/_next/data/${buildId}/index.json`
+  const url = `https://autofarm.network/_next/data/${buildId}/index.json`;
   return (await superagent.get(url)).body.pageProps.initialFarmDataByChain;
 }
 
-async function getPoolsApy(chain){
-  chain = chain == "okc" ? "okex" : chain;
-  chain = chain == "gnosis" ? "xdai" : chain;
-
-  const poolsUrl = `https://static.autofarm.network/${chain}/farm_data_live.json`
-  return (await superagent.get(poolsUrl)).body
+function formatPoolsApyChain(chain) {
+  // Lack of standardization inside autofarm data structures
+  if (chain === "gnosis") return "xdai";
+  if (chain === "okc") return "okex";
+  return chain;
 }
 
-function cleanLP(text){  
+async function getPoolsApy(chain) {
+  const poolsUrl = `https://static.autofarm.network/${formatPoolsApyChain(
+    chain
+  )}/farm_data_live.json`;
+  return (await superagent.get(poolsUrl)).body;
+}
+
+function cleanLP(text) {
   return text.replace(" BLP", "").replace(" LP", "");
 }
 
-function autofarmApyItem(chain, item) {  
-  console.log(item)
+function autofarmApyItem(chain, item) {
   return {
-    pool: `autofarm-${item.pid}-${chain}`,
-    chain: utils.formatChain(chain),
-    project: 'autofarm',
+    pool: `autofarm-${item.pid}-${chainsMapping[chain]}`,
+    chain: utils.formatChain(chainsMapping[chain]),
+    project: "autofarm",
     symbol: utils.formatSymbol(cleanLP(item.wantName)),
-    poolMeta: item.farm, // TODO What should go here?
+    poolMeta: item.farm,
     tvlUsd: Number(item.poolWantTVL),
     apy: item.APY_total * 100,
   };
 }
 
-async function apy() {  
-  const poolsMetaMeta = await getPoolsMeta();  
-  
-  // Iterate through chains
-  const farmOfFarms = await Promise.all(Object.keys(chainsMapping).map(async (chain) => {
-    const poolsApy = await getPoolsApy(chain);
-    const poolsMeta = poolsMetaMeta[chain].pools   
+async function autofarmApyAllItems() {
+  const metadataRoot = await getMetadataRoot();
 
-    const pools = Object.keys(poolsMeta).filter((key)=> key!='tokens').map((key) => {
-      return Object.assign({}, poolsMeta[key], poolsApy[key])      
-      }
-    )
+  // Iterate through hardcoded chains
+  const farmsByChain = await Promise.all(
+    Object.keys(chainsMapping).map(async (chain) => {
+      const poolsApy = await getPoolsApy(chain);
+      const poolsMetadata = metadataRoot[chain].pools;
 
-    const activePools = pools.filter(
-      (v) => v.allowDeposits
-    );
+      // Combine pool APY and Metadata in a single object
+      const pools = Object.keys(poolsMetadata)
+        .filter((key) => key != "tokens") // Removing extra info on json
+        .map((key) => {
+          return Object.assign({}, poolsMetadata[key], poolsApy[key]);
+        });
 
-    const farms = activePools.map((item) => {    
-      return autofarmApyItem(chain, item);
-    });
-    return farms;
-  }))  
+      // Generate Llama's APY object for individual and depositable items
+      const activePools = pools.filter((v) => v.allowDeposits);
+      return activePools.map((item) => {
+        return autofarmApyItem(chain, item);
+      });      
+    })
+  );
 
-  let output = [];
-  farmOfFarms.map(farmList => {
-    output = output.concat(farmList)
-  })
+  // Flatten list of lists
+  let farms = [].concat.apply([], farmsByChain); 
 
-  return output.filter((p) => utils.keepFinite(p));
+  return farms.filter((p) => utils.keepFinite(p));
 }
-
 
 module.exports = {
   timetravel: false,
-  apy,
-  url: 'https://autofarm.network/',
+  apy: autofarmApyAllItems,
+  url: "https://autofarm.network/",
 };
