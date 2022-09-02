@@ -56,13 +56,14 @@ function cleanLP(text) {
 
 function autofarmApyItem(chain, item) {
   return {
-    pool: `autofarm-${item.pid}-${chainsMapping[chain]}`,
+    pool: `${item.wantAddress.toLowerCase()}-${item.pid}-${chainsMapping[chain]}-autofarm`,
     chain: utils.formatChain(chainsMapping[chain]),
     project: "autofarm",
     symbol: utils.formatSymbol(cleanLP(item.wantName)),
-    poolMeta: item.farm,
+    poolMeta: item.farmName,
     tvlUsd: Number(item.poolWantTVL),
     apy: item.APY_total * 100,
+    underlyingTokens: [item.wantAddress],
   };
 }
 
