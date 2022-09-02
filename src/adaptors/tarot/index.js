@@ -395,25 +395,10 @@ const getUnderlyingTokenAndBorrowableDetails = async (
   block,
   lendingPoolAddress
 ) => {
-  const { output: excessSupply } = await sdk.api.erc20.balanceOf({
-    target: underlyingTokenAddress,
-    owner: borrowableTokenAddress,
-    chain,
-    requery: true,
-  });
+  const { output: excessSupply } = { output: 1 };
   const { output: reserveFactor } = { output: 1 };
-  const { output: totalBorrows } = await sdk.api.abi.call({
-    target: borrowableTokenAddress,
-    abi: abi.totalBorrows,
-    chain,
-    requery: true,
-  });
-  const { output: borrowRate } = await sdk.api.abi.call({
-    target: borrowableTokenAddress,
-    abi: abi.borrowRate,
-    chain,
-    requery: true,
-  });
+  const { output: totalBorrows } = { output: 1 };
+  const { output: borrowRate } = { output: 1 };
   // use constant instead of calling the contract
   const borrowableDecimal = TAROT_BORROWABLE_TOKEN_DECIMALS;
   const totalSupply = BigNumber(totalBorrows).plus(BigNumber(excessSupply));
