@@ -493,7 +493,7 @@ const main = async () => {
     let collaterals = [];
     let borrowables = [];
     const provider = getProvider(chain);
-    const block = await provider.getBlockNumber();
+    const block = null;
     for (const factory of factories) {
       const {
         lendingPoolAddresses,
