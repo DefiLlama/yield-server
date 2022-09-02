@@ -6,6 +6,8 @@ const { default: BigNumber } = require('bignumber.js');
 
 exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'xdai') return 'xDai';
+  if (chain && chain.toLowerCase() === 'kcc') return 'KCC';
+  if (chain && chain.toLowerCase() === 'okexchain') return 'OKExChain';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
