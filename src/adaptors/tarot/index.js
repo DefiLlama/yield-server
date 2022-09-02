@@ -249,7 +249,6 @@ const transformTarotLPName = async (
       target: lendingPoolAddress,
       abi: abi.factory,
       chain,
-      block,
       requery: true,
     });
     // if symbol is from solidex/0xDAO/Velodrome
@@ -369,7 +368,6 @@ const getTokenDetails = async (allUniqueTokens, chain, block) => {
     abi: `erc20:decimals`,
     calls: tokensCalls,
     chain,
-    block,
     requery: true,
   });
   // underlying tokens symbol just reference from bulk
@@ -377,7 +375,6 @@ const getTokenDetails = async (allUniqueTokens, chain, block) => {
     abi: `erc20:symbol`,
     calls: tokensCalls,
     chain,
-    block,
     requery: true,
   });
   const tokensSymbols = getTokenSymbols.map((i) => i.output);
