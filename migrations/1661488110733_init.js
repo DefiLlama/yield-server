@@ -70,9 +70,9 @@ exports.up = (pgm) => {
     },
     count: { type: 'smallint', notNull: true },
     meanAPY: { type: 'numeric', notNull: true },
-    mean2APY: 'numeric',
+    mean2APY: { type: 'numeric', notNull: true },
     meanDR: { type: 'numeric', notNull: true },
-    mean2DR: 'numeric',
+    mean2DR: { type: 'numeric', notNull: true },
     productDR: { type: 'numeric', notNull: true },
     updated_at: {
       type: 'timestamptz',
