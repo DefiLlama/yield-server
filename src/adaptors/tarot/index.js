@@ -172,7 +172,6 @@ const getUnderlyingLiquidityPoolAddresses = async (
     calls: lendingPoolAddressesTargetCalls,
     abi: abi.symbol,
     chain,
-    block,
   });
   const lendingPoolSymbols = lendingPoolSymbolsResults.map((i) => i.output);
   // get underlying LP related info
@@ -192,7 +191,6 @@ const getUnderlyingLiquidityPoolAddresses = async (
     abi: abi.underlying,
     calls: lendingPoolAddressesTargetCalls,
     chain,
-    block,
   });
   let underlyingLpAddresses = underlyingLpAddressesResults.map((i) => i.output);
   // for slp and spLP use same lendingpool as underlying
@@ -210,7 +208,6 @@ const getUnderlyingLiquidityPoolAddresses = async (
       calls: underlyingLpAddressesTargetCalls,
       abi: abi.symbol,
       chain,
-      block,
     });
   const underlyingLiquidityPoolSymbols =
     underlyingLiquidityPoolSymbolsResults.map((i) => i.output);
