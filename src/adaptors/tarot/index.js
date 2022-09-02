@@ -60,6 +60,8 @@ const DISABLED_LENDING_POOLS = [
   '0x4601ad6ffd55f15dadc639b8704b19dc4b7dfc91',
   '0x6d368f3f94601cce3f9806381a6132feb0dd6272',
 ];
+// using constant to reduce view calls.
+const TAROT_BORROWABLE_TOKEN_DECIMALS = 18;
 
 const transformTokenForApi = (chain, token, transform) => {
   const transformedToken = transform(token);
@@ -294,6 +296,8 @@ const transformTarotLPName = async (
             case '0x9f28680ebaca6ef09c1db327f8d0f9b6fc498127':
               poolName = 'Spirit Boosted';
               break;
+            case '0x51d49f3731a9591d6eb4fe79523f20ae5e560ba7':
+              poolName = 'Spirit v2';
             default:
               poolName = 'Spirit';
               break;
@@ -352,11 +356,17 @@ const getPrices = async (coinKeys) => {
   return results;
 };
 
+const checkIfTokenKeyExists = (fetchedData, key) => {
+  return (
+    fetchedData[key] && fetchedData[key].symbol && fetchedData[key].decimals
+  );
+};
+
 const getTokenDetails = async (allUniqueTokens, chain, block) => {
   let results = {};
   const tokensCalls = allUniqueTokens.map((i) => ({ target: i }));
   const { output: getTokenDecimals } = await sdk.api.abi.multiCall({
-    abi: abi.decimals,
+    abi: `erc20:decimals`,
     calls: tokensCalls,
     chain,
     block,
@@ -364,7 +374,7 @@ const getTokenDetails = async (allUniqueTokens, chain, block) => {
   });
   // underlying tokens symbol just reference from bulk
   const { output: getTokenSymbols } = await sdk.api.abi.multiCall({
-    abi: abi.symbol,
+    abi: `erc20:symbol`,
     calls: tokensCalls,
     chain,
     block,
@@ -419,13 +429,8 @@ const getUnderlyingTokenAndBorrowableDetails = async (
     block,
     requery: true,
   });
-  const { output: borrowableDecimal } = await sdk.api.abi.call({
-    target: borrowableTokenAddress,
-    abi: abi.decimals,
-    chain,
-    block,
-    requery: true,
-  });
+  // use constant instead of calling the contract
+  const borrowableDecimal = TAROT_BORROWABLE_TOKEN_DECIMALS;
   const totalSupply = BigNumber(totalBorrows).plus(BigNumber(excessSupply));
   return {
     excessSupply,
@@ -545,15 +550,9 @@ const main = async () => {
           const borrowable0 = lendingPoolDetails.borrowable0;
           const borrowable1 = lendingPoolDetails.borrowable1;
           const collateral = lendingPoolDetails.collateral;
-
           const token0 = token0s[i];
           const token1 = token1s[i];
           const lendingPoolDecimal = lendingPoolDecimals[i];
-
-          token0Symbol = tokenDetailsDict[token0].symbol;
-          token0Decimals = tokenDetailsDict[token0].decimals;
-          token1Symbol = tokenDetailsDict[token1].symbol;
-          token1Decimals = tokenDetailsDict[token1].decimals;
 
           return [
             {
@@ -619,7 +618,7 @@ const main = async () => {
         ...allBorrowables
           .map((borrowable, i) => {
             // skip if no data
-            if (borrowable === null) {
+            if (!borrowable) {
               return null;
             }
             const {
@@ -649,10 +648,7 @@ const main = async () => {
               transform
             )}`;
             // ignore pools where we can not find the price
-            if (
-              !fetchedPrices[key.toLowerCase()] ||
-              !fetchedPrices[key.toLowerCase()].price
-            ) {
+            if (!checkIfTokenKeyExists(fetchedPrices, key.toLowerCase())) {
               return null;
             }
             // tvl calculations
