@@ -106,4 +106,5 @@ module.exports = {
   buildInsertConfigQuery,
   getUrl,
   getUniquePool,
+  tableName,
 };

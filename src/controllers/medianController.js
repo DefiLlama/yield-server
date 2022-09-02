@@ -1,4 +1,5 @@
 const minify = require('pg-minify');
+
 const { pgp, connect } = require('../utils/dbConnection');
 
 const tableName = 'median';
@@ -14,12 +15,12 @@ const getMedian = async () => {
         "uniquePools",
         "medianAPY"
     FROM
-        median
+        $<table:name>
     `,
     { compress: true }
   );
 
-  const response = await conn.query(query);
+  const response = await conn.query(query, { table: tableName });
 
   if (!response) {
     return new AppError(`Couldn't get ${tableName} data`, 404);

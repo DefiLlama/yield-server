@@ -3,10 +3,13 @@ const minify = require('pg-minify');
 const AppError = require('../utils/appError');
 const { boundaries } = require('../utils/exclude');
 const { pgp, connect } = require('../utils/dbConnection');
+const {
+  tableName: configTableName,
+} = require('../controllers/configController');
 
 const tableName = 'yield';
 
-// get last DB entry per unique pool (no exclusion; required by triggerStat handler)
+// get last DB entry per unique pool (with no exclusion; required by triggerStat handler)
 const getYield = async () => {
   const conn = await connect();
 
@@ -17,7 +20,7 @@ const getYield = async () => {
         DISTINCT ON ("configID") "configID",
         apy
     FROM
-        yield
+        $<table:name>
     ORDER BY
         "configID",
         timestamp DESC
@@ -25,7 +28,7 @@ const getYield = async () => {
     { compress: true }
   );
 
-  const response = await conn.query(query);
+  const response = await conn.query(query, { table: tableName });
 
   if (!response) {
     return new AppError(`Couldn't get ${tableName} data`, 404);
@@ -34,7 +37,7 @@ const getYield = async () => {
   return response;
 };
 
-// get last DB entry per unique pool (with exlcusion; this is what we use in enrichment handler)
+// get last DB entry per unique pool (with exclusion; this is what we use in enrichment handler)
 const getYieldFiltered = async () => {
   const conn = await connect();
 
@@ -64,7 +67,7 @@ const getYieldFiltered = async () => {
             SELECT
                 DISTINCT ON ("configID") *
             FROM
-                yield
+                $<yieldTable:name>
             WHERE
                 "tvlUsd" >= $<tvlLB>
                 AND timestamp >= NOW() - INTERVAL '$<age> DAY'
@@ -72,7 +75,7 @@ const getYieldFiltered = async () => {
                 "configID",
                 timestamp DESC
         ) AS y
-        INNER JOIN config AS c ON c.config_id = y."configID"
+        INNER JOIN $<configTable:name> AS c ON c.config_id = y."configID"
   `,
     { compress: true }
   );
@@ -80,6 +83,8 @@ const getYieldFiltered = async () => {
   const response = await conn.query(query, {
     tvlLB: boundaries.tvlUsdUI.lb,
     age: boundaries.age,
+    yieldTable: tableName,
+    configTable: configTableName,
   });
 
   if (!response) {
@@ -100,13 +105,13 @@ const getYieldHistory = async (configID) => {
         "tvlUsd",
         "apy"
     FROM
-        yield
+        $<table:name>
     WHERE
         timestamp IN (
             SELECT
                 max(timestamp)
             FROM
-                yield
+                $<table:name>
             WHERE
                 "configID" = $<configIDValue>
             GROUP BY
@@ -119,7 +124,10 @@ const getYieldHistory = async (configID) => {
     { compress: true }
   );
 
-  const response = await conn.query(query, { configIDValue: configID });
+  const response = await conn.query(query, {
+    configIDValue: configID,
+    table: tableName,
+  });
 
   if (!response) {
     return new AppError(`Couldn't get ${tableName} history data`, 404);
@@ -131,7 +139,7 @@ const getYieldHistory = async (configID) => {
   };
 };
 
-// get last DB entry per unique pool for a given project
+// get last DB entry per unique pool for a given project (used by adapter handler to check for TVL spikes)
 const getYieldProject = async (project) => {
   const conn = await connect();
 
@@ -142,7 +150,6 @@ const getYieldProject = async (project) => {
   const query = minify(
     `
     SELECT
-        "configID",
         pool,
         "tvlUsd"
     FROM
@@ -150,13 +157,13 @@ const getYieldProject = async (project) => {
             SELECT
                 DISTINCT ON ("configID") *
             FROM
-                yield
+                $<yieldTable:name>
             WHERE
                 "configID" IN (
                     SELECT
                         DISTINCT (config_id)
                     FROM
-                        config
+                        $<configTable:name>
                     WHERE
                         "project" = $<project>
                 )
@@ -166,7 +173,7 @@ const getYieldProject = async (project) => {
                 "configID",
                 timestamp DESC
         ) AS y
-        INNER JOIN config AS c ON c.config_id = y."configID"
+        INNER JOIN $<configTable:name> AS c ON c.config_id = y."configID"
     `,
     { compress: true }
   );
@@ -175,6 +182,8 @@ const getYieldProject = async (project) => {
     tvlLB: boundaries.tvlUsdUI.lb,
     age: boundaries.age,
     project,
+    yieldTable: tableName,
+    configTable: configTableName,
   });
 
   if (!response) {
@@ -221,7 +230,7 @@ const getYieldOffset = async (project, days) => {
                     )
                 ) AS abs_delta
             FROM
-                yield AS y
+                $<table:name> AS y
                 INNER JOIN config AS c ON c.config_id = y."configID"
             WHERE
                 "tvlUsd" >= $<tvlLB>
@@ -242,6 +251,7 @@ const getYieldOffset = async (project, days) => {
     tsLB,
     tsUB,
     tvlLB,
+    table: tableName,
   });
 
   if (!response) {
