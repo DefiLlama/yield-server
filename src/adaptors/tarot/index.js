@@ -34,6 +34,7 @@
 const axios = require('axios');
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
+const { tryUntilSucceed } = require('../../helper/utils');
 const abi = require('./abi');
 const SECONDS_IN_YEAR = BigNumber(365).times(24).times(3600);
 const protocolSlug = 'tarot';
@@ -60,8 +61,6 @@ const DISABLED_LENDING_POOLS = [
   '0x4601ad6ffd55f15dadc639b8704b19dc4b7dfc91',
   '0x6d368f3f94601cce3f9806381a6132feb0dd6272',
 ];
-// using constant to reduce view calls.
-const TAROT_BORROWABLE_TOKEN_DECIMALS = 18;
 
 const transformTokenForApi = (chain, token, transform) => {
   const transformedToken = transform(token);
@@ -75,25 +74,29 @@ const transformTokenForApi = (chain, token, transform) => {
 };
 
 const getAllLendingPools = async (factory, chain, block) => {
-  const { output: allLendingPoolsLength } = await sdk.api.abi.call({
-    target: factory,
-    abi: abi.allLendingPoolsLength,
-    chain,
-    block,
-    requery: true,
-  });
+  const { output: allLendingPoolsLength } = await tryUntilSucceed(() =>
+    sdk.api.abi.call({
+      target: factory,
+      abi: abi.allLendingPoolsLength,
+      chain,
+      block,
+      requery: true,
+    })
+  );
   // get all of the lending pools from the factory contract
   const poolCalls = [];
   for (let i = 0; i < +allLendingPoolsLength; i++)
     poolCalls.push({ params: i });
-  const { output: lendingPoolsResults } = await sdk.api.abi.multiCall({
-    target: factory,
-    abi: abi.allLendingPools,
-    calls: poolCalls,
-    chain,
-    block,
-    requery: true,
-  });
+  const { output: lendingPoolsResults } = await tryUntilSucceed(() =>
+    sdk.api.abi.multiCall({
+      target: factory,
+      abi: abi.allLendingPools,
+      calls: poolCalls,
+      chain,
+      block,
+      requery: true,
+    })
+  );
   const lendingPoolAddresses = lendingPoolsResults.map((i) => i.output);
   const lendingPoolAddressesParamsCalls = lendingPoolAddresses.map((i) => ({
     params: i,
@@ -101,48 +104,58 @@ const getAllLendingPools = async (factory, chain, block) => {
   const lendingPoolAddressesTargetCalls = lendingPoolAddresses.map((i) => ({
     target: i,
   }));
-  const { output: getLendingPools } = await sdk.api.abi.multiCall({
-    target: factory,
-    abi: abi.getLendingPool,
-    calls: lendingPoolAddressesParamsCalls,
-    chain,
-    block,
-    requery: true,
-  });
+  const { output: getLendingPools } = await tryUntilSucceed(() =>
+    sdk.api.abi.multiCall({
+      target: factory,
+      abi: abi.getLendingPool,
+      calls: lendingPoolAddressesParamsCalls,
+      chain,
+      block,
+      requery: true,
+    })
+  );
   const lendingPoolsDetails = getLendingPools.map((i) => i.output);
   // get tokens 0 and 1 of all lending pools
-  const { output: token0sResults } = await sdk.api.abi.multiCall({
-    calls: lendingPoolAddressesTargetCalls,
-    abi: abi.token0,
-    chain,
-    block,
-    requery: true,
-  });
+  const { output: token0sResults } = await tryUntilSucceed(() =>
+    sdk.api.abi.multiCall({
+      calls: lendingPoolAddressesTargetCalls,
+      abi: abi.token0,
+      chain,
+      block,
+      requery: true,
+    })
+  );
   const token0s = token0sResults.map((i) => i.output);
-  const { output: token1sResults } = await sdk.api.abi.multiCall({
-    calls: lendingPoolAddressesTargetCalls,
-    abi: abi.token1,
-    chain,
-    block,
-    requery: true,
-  });
+  const { output: token1sResults } = await tryUntilSucceed(() =>
+    sdk.api.abi.multiCall({
+      calls: lendingPoolAddressesTargetCalls,
+      abi: abi.token1,
+      chain,
+      block,
+      requery: true,
+    })
+  );
   const token1s = token1sResults.map((i) => i.output);
   // get lending pool address decimals
-  const { output: lendingPoolDecimalsResults } = await sdk.api.abi.multiCall({
-    calls: lendingPoolAddressesTargetCalls,
-    abi: abi.decimals,
-    chain,
-    block,
-    requery: true,
-  });
+  const { output: lendingPoolDecimalsResults } = await tryUntilSucceed(() =>
+    sdk.api.abi.multiCall({
+      calls: lendingPoolAddressesTargetCalls,
+      abi: abi.decimals,
+      chain,
+      block,
+      requery: true,
+    })
+  );
   const lendingPoolDecimals = lendingPoolDecimalsResults.map((i) => i.output);
   // get reserves
-  const { output: getReservesResults } = await sdk.api.abi.multiCall({
-    calls: lendingPoolAddressesTargetCalls,
-    abi: abi.getReserves,
-    chain,
-    block,
-  });
+  const { output: getReservesResults } = await tryUntilSucceed(() =>
+    sdk.api.abi.multiCall({
+      calls: lendingPoolAddressesTargetCalls,
+      abi: abi.getReserves,
+      chain,
+      block,
+    })
+  );
   const lendingPoolReserves = getReservesResults.map((i) => {
     if (!i.output || !i.output.reserve0 || !i.output.reserve1) {
       return null;
@@ -168,12 +181,14 @@ const getUnderlyingLiquidityPoolAddresses = async (
   chain,
   block
 ) => {
-  const { output: lendingPoolSymbolsResults } = await sdk.api.abi.multiCall({
-    calls: lendingPoolAddressesTargetCalls,
-    abi: abi.symbol,
-    chain,
-    block,
-  });
+  const { output: lendingPoolSymbolsResults } = await tryUntilSucceed(() =>
+    sdk.api.abi.multiCall({
+      calls: lendingPoolAddressesTargetCalls,
+      abi: abi.symbol,
+      chain,
+      block,
+    })
+  );
   const lendingPoolSymbols = lendingPoolSymbolsResults.map((i) => i.output);
   // get underlying LP related info
   let slpLpAddressesCalls = [];
@@ -188,12 +203,14 @@ const getUnderlyingLiquidityPoolAddresses = async (
       slpLpAddressesCallsIndex.push(index);
     }
   }
-  const { output: underlyingLpAddressesResults } = await sdk.api.abi.multiCall({
-    abi: abi.underlying,
-    calls: lendingPoolAddressesTargetCalls,
-    chain,
-    block,
-  });
+  const { output: underlyingLpAddressesResults } = await tryUntilSucceed(() =>
+    sdk.api.abi.multiCall({
+      abi: abi.underlying,
+      calls: lendingPoolAddressesTargetCalls,
+      chain,
+      block,
+    })
+  );
   let underlyingLpAddresses = underlyingLpAddressesResults.map((i) => i.output);
   // for slp and spLP use same lendingpool as underlying
   if (slpLpAddressesCalls.length > 0) {
@@ -206,12 +223,14 @@ const getUnderlyingLiquidityPoolAddresses = async (
     target: i,
   }));
   const { output: underlyingLiquidityPoolSymbolsResults } =
-    await sdk.api.abi.multiCall({
-      calls: underlyingLpAddressesTargetCalls,
-      abi: abi.symbol,
-      chain,
-      block,
-    });
+    await tryUntilSucceed(() =>
+      sdk.api.abi.multiCall({
+        calls: underlyingLpAddressesTargetCalls,
+        abi: abi.symbol,
+        chain,
+        block,
+      })
+    );
   const underlyingLiquidityPoolSymbols =
     underlyingLiquidityPoolSymbolsResults.map((i) => i.output);
   return {
@@ -245,13 +264,15 @@ const transformTarotLPName = async (
     underlyingLiquidityPoolSymbol === 'TOMB-V2-LP' ||
     underlyingLiquidityPoolSymbol.indexOf('vAMM') > -1
   ) {
-    const { output: lendingPoolFactory } = await sdk.api.abi.call({
-      target: lendingPoolAddress,
-      abi: abi.factory,
-      chain,
-      block,
-      requery: true,
-    });
+    const { output: lendingPoolFactory } = await tryUntilSucceed(() =>
+      sdk.api.abi.call({
+        target: lendingPoolAddress,
+        abi: abi.factory,
+        chain,
+        block,
+        requery: true,
+      })
+    );
     // if symbol is from solidex/0xDAO/Velodrome
     if (underlyingLiquidityPoolSymbol.indexOf('vAMM') !== -1) {
       switch (lendingPoolFactory.toLowerCase()) {
@@ -365,21 +386,25 @@ const checkIfTokenKeyExists = (fetchedData, key) => {
 const getTokenDetails = async (allUniqueTokens, chain, block) => {
   let results = {};
   const tokensCalls = allUniqueTokens.map((i) => ({ target: i }));
-  const { output: getTokenDecimals } = await sdk.api.abi.multiCall({
-    abi: `erc20:decimals`,
-    calls: tokensCalls,
-    chain,
-    block,
-    requery: true,
-  });
+  const { output: getTokenDecimals } = await tryUntilSucceed(() =>
+    sdk.api.abi.multiCall({
+      abi: `erc20:decimals`,
+      calls: tokensCalls,
+      chain,
+      block,
+      requery: true,
+    })
+  );
   // underlying tokens symbol just reference from bulk
-  const { output: getTokenSymbols } = await sdk.api.abi.multiCall({
-    abi: `erc20:symbol`,
-    calls: tokensCalls,
-    chain,
-    block,
-    requery: true,
-  });
+  const { output: getTokenSymbols } = await tryUntilSucceed(() =>
+    sdk.api.abi.multiCall({
+      abi: `erc20:symbol`,
+      calls: tokensCalls,
+      chain,
+      block,
+      requery: true,
+    })
+  );
   const tokensSymbols = getTokenSymbols.map((i) => i.output);
 
   for (let i = 0; i < getTokenDecimals.length; i++) {
@@ -393,17 +418,6 @@ const getTokenDetails = async (allUniqueTokens, chain, block) => {
   }
   return results;
 };
-
-async function tryUntilSucceed(promiseFn, maxTries = 3) {
-  try {
-    return await promiseFn();
-  } catch (e) {
-    if (maxTries > 0) {
-      return tryUntilSucceed(promiseFn, maxTries - 1);
-    }
-    throw e;
-  }
-}
 
 const getUnderlyingTokenAndBorrowableDetails = async (
   underlyingTokenAddress,
@@ -446,7 +460,15 @@ const getUnderlyingTokenAndBorrowableDetails = async (
   );
 
   // use constant instead of calling the contract
-  const borrowableDecimal = TAROT_BORROWABLE_TOKEN_DECIMALS;
+  const { output: borrowableDecimal } = await tryUntilSucceed(() =>
+    sdk.api.abi.call({
+      target: borrowableTokenAddress,
+      abi: abi.decimals,
+      chain,
+      block,
+      requery: true,
+    })
+  );
   const totalSupply = BigNumber(totalBorrows).plus(BigNumber(excessSupply));
   return {
     excessSupply,
