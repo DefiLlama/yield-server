@@ -394,6 +394,17 @@ const getTokenDetails = async (allUniqueTokens, chain, block) => {
   return results;
 };
 
+async function tryUntilSucceed(promiseFn, maxTries = 3) {
+  try {
+    return await promiseFn();
+  } catch (e) {
+    if (maxTries > 0) {
+      return tryUntilSucceed(promiseFn, maxTries - 1);
+    }
+    throw e;
+  }
+}
+
 const getUnderlyingTokenAndBorrowableDetails = async (
   underlyingTokenAddress,
   borrowableTokenAddress,
@@ -401,34 +412,39 @@ const getUnderlyingTokenAndBorrowableDetails = async (
   block,
   lendingPoolAddress
 ) => {
-  const { output: excessSupply } = await sdk.api.erc20.balanceOf({
-    target: underlyingTokenAddress,
-    owner: borrowableTokenAddress,
-    chain,
-    block,
-    requery: true,
-  });
-  const { output: reserveFactor } = await sdk.api.abi.call({
-    target: borrowableTokenAddress,
-    abi: abi.reserveFactor,
-    chain,
-    block,
-    requery: true,
-  });
-  const { output: totalBorrows } = await sdk.api.abi.call({
-    target: borrowableTokenAddress,
-    abi: abi.totalBorrows,
-    chain,
-    block,
-    requery: true,
-  });
-  const { output: borrowRate } = await sdk.api.abi.call({
-    target: borrowableTokenAddress,
-    abi: abi.borrowRate,
-    chain,
-    block,
-    requery: true,
-  });
+  const { output: excessSupply } = await tryUntilSucceed(() =>
+    sdk.api.erc20.balanceOf({
+      target: underlyingTokenAddress,
+      owner: borrowableTokenAddress,
+      chain,
+      block,
+    })
+  );
+  const { output: reserveFactor } = await tryUntilSucceed(() =>
+    sdk.api.abi.call({
+      target: borrowableTokenAddress,
+      abi: abi.reserveFactor,
+      chain,
+      block,
+    })
+  );
+  const { output: totalBorrows } = await tryUntilSucceed(() =>
+    sdk.api.abi.call({
+      target: borrowableTokenAddress,
+      abi: abi.totalBorrows,
+      chain,
+      block,
+    })
+  );
+  const { output: borrowRate } = await tryUntilSucceed(() =>
+    sdk.api.abi.call({
+      target: borrowableTokenAddress,
+      abi: abi.borrowRate,
+      chain,
+      block,
+    })
+  );
+
   // use constant instead of calling the contract
   const borrowableDecimal = TAROT_BORROWABLE_TOKEN_DECIMALS;
   const totalSupply = BigNumber(totalBorrows).plus(BigNumber(excessSupply));
