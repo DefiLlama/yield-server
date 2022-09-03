@@ -49,6 +49,7 @@ const getYieldFiltered = async () => {
     `
     SELECT
         "configID",
+        timestamp,
         pool,
         project,
         chain,
