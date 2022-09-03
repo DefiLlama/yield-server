@@ -44,7 +44,11 @@ exports.up = (pgm) => {
       references: '"config"',
       onDelete: 'cascade',
     },
-    timestamp: { type: 'timestamptz', notNull: true },
+    timestamp: {
+      type: 'timestamptz',
+      notNull: true,
+      default: pgm.func('current_timestamp'),
+    },
     tvlUsd: { type: 'bigint', notNull: true },
     apy: { type: 'numeric', notNull: true },
     apyBase: 'numeric',
@@ -68,17 +72,17 @@ exports.up = (pgm) => {
       unique: true,
       onDelete: 'cascade',
     },
+    updated_at: {
+      type: 'timestamptz',
+      notNull: true,
+      default: pgm.func('current_timestamp'),
+    },
     count: { type: 'smallint', notNull: true },
     meanAPY: { type: 'numeric', notNull: true },
     mean2APY: { type: 'numeric', notNull: true },
     meanDR: { type: 'numeric', notNull: true },
     mean2DR: { type: 'numeric', notNull: true },
     productDR: { type: 'numeric', notNull: true },
-    updated_at: {
-      type: 'timestamptz',
-      notNull: true,
-      default: pgm.func('current_timestamp'),
-    },
   });
 
   // --- median
@@ -89,9 +93,14 @@ exports.up = (pgm) => {
       default: new PgLiteral('uuid_generate_v4()'),
       primaryKey: true,
     },
+    timestamp: {
+      type: 'timestamptz',
+      notNull: true,
+      default: pgm.func('current_timestamp'),
+      unique: true,
+    },
     uniquePools: { type: 'integer', notNull: true },
     medianAPY: { type: 'numeric', notNull: true },
-    timestamp: { type: 'timestamptz', notNull: true, unique: true },
   });
 
   // ----- FUNCTION

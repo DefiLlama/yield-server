@@ -10,7 +10,7 @@ module.exports.handler = async () => {
 const main = async () => {
   let pools = await getYieldFiltered();
 
-  // filter to include only pools which we have updated on that day.
+  // include only pools which we have updated on that day,
   // otherwise median calc for that day would include values from yst up to 7days ago
   console.log('removing stale pools...');
   console.log('prior filter', pools.length);
@@ -22,9 +22,6 @@ const main = async () => {
 
   const payload = [
     {
-      timestamp: new Date(
-        Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
-      ),
       medianAPY: +ss.median(pools.map((p) => p.apy)).toFixed(5),
       uniquePools: new Set(pools.map((p) => p.pool)).size,
     },

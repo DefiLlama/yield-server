@@ -49,18 +49,17 @@ const getYieldFiltered = async () => {
     `
     SELECT
         "configID",
-        timestamp,
-        "tvlUsd",
-        apy,
-        "apyBase",
-        "apyReward",
         pool,
         project,
         chain,
         symbol,
         "poolMeta",
         "underlyingTokens",
-        "rewardTokens"
+        "rewardTokens",
+        "tvlUsd",
+        apy,
+        "apyBase",
+        "apyReward"
     FROM
         (
             SELECT
@@ -154,7 +153,9 @@ const getYieldProject = async (project) => {
   const query = minify(
     `
     SELECT
-        DISTINCT ON ("configID") "configID", "tvlUsd"
+        DISTINCT ON ("configID") "configID",
+        "tvlUsd",
+        timestamp
     FROM
         $<yieldTable:name>
     WHERE
@@ -262,14 +263,7 @@ const buildInsertYieldQuery = (payload) => {
   // they are both added in the adapter handler to derive final apy.
   // hence, there is no need to specify optional fields defaults for pg-promise
   // (in contrast to some fields in `insertConfig`)
-  const columns = [
-    'configID',
-    'timestamp',
-    'tvlUsd',
-    'apy',
-    'apyBase',
-    'apyReward',
-  ];
+  const columns = ['configID', 'tvlUsd', 'apy', 'apyBase', 'apyReward'];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
   return pgp.helpers.insert(payload, cs);
 };

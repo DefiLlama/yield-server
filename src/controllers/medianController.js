@@ -33,7 +33,7 @@ const getMedian = async () => {
 const insertMedian = async (payload) => {
   const conn = await connect();
 
-  const columns = ['uniquePools', 'medianAPY', 'timestamp'];
+  const columns = ['uniquePools', 'medianAPY'];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
   const query = pgp.helpers.insert(payload, cs);
   const response = await conn.result(query);

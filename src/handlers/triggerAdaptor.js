@@ -105,9 +105,6 @@ const main = async (body) => {
   // remove exclusion pools
   data = data.filter((p) => !exclude.excludePools.includes(p.pool));
 
-  // add utc timestamp field
-  const timestamp = new Date(Date.now());
-
   // for PK, FK, read data from config table
   const config = await getConfigProject(body.adaptor);
   const mapping = {};
@@ -132,7 +129,6 @@ const main = async (body) => {
       apyBase: p.apyBase !== null ? +p.apyBase.toFixed(precision) : p.apyBase,
       apyReward:
         p.apyReward !== null ? +p.apyReward.toFixed(precision) : p.apyReward,
-      timestamp,
       url: project.url,
     };
   });
@@ -161,7 +157,7 @@ const main = async (body) => {
       continue;
     }
     // if existing pool, check conditions
-    const timedelta = timestamp - x.timestamp;
+    const timedelta = new Date(Date.now()) - x.timestamp;
     // skip the update if tvl at t is ntimes larger than tvl at t-1 && timedelta condition is met
     if (
       p.tvlUsd > x.tvlUsd * tvlDeltaMultiplier &&
@@ -188,6 +184,7 @@ const main = async (body) => {
   if (delta > 0) {
     console.log(`removed ${delta} sample(s) prior to insert`);
     // send discord message
+    // we limit sending msg only if the pool's last tvlUsd value is >= $500k
     const filteredPools = droppedPools.filter((p) => p.tvlUsdDB >= 5e5);
     if (filteredPools.length) {
       const message = filteredPools
