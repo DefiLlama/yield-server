@@ -6,7 +6,7 @@ const utils = require('../adaptors/utils');
 const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
 const { sendMessage } = require('../utils/discordWebhook');
-const { connect } = require('../utils/dbConnectionPostgres');
+const { connect } = require('../utils/dbConnection');
 const {
   getYieldProject,
   buildInsertYieldQuery,
