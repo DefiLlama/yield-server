@@ -105,7 +105,7 @@ const getYieldHistory = async (configID) => {
   const query = minify(
     `
     SELECT
-        distinct(timestamp),
+        timestamp,
         "tvlUsd",
         "apy"
     FROM

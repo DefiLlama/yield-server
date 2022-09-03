@@ -105,12 +105,8 @@ const main = async (body) => {
   // remove exclusion pools
   data = data.filter((p) => !exclude.excludePools.includes(p.pool));
 
-  // add the timestamp field
-  // will be rounded to the nearest hour
-  // eg 2022-04-06T10:00:00.000Z
-  const timestamp = new Date(
-    Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
-  );
+  // add utc timestamp field
+  const timestamp = new Date(Date.now());
 
   // for PK, FK, read data from config table
   const config = await getConfigProject(body.adaptor);
