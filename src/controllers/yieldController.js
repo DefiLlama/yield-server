@@ -1,7 +1,7 @@
 const minify = require('pg-minify');
 
 const AppError = require('../utils/appError');
-const { boundaries } = require('../utils/exclude');
+const exclude = require('../utils/exclude');
 const { pgp, connect } = require('../utils/dbConnection');
 const {
   tableName: configTableName,
@@ -74,16 +74,21 @@ const getYieldFiltered = async () => {
                 "configID",
                 timestamp DESC
         ) AS y
-        INNER JOIN $<configTable:name> AS c ON c.config_id = y."configID"
+        INNER JOIN $ <configTable:name> AS c ON c.config_id = y."configID"
+    WHERE
+        pool NOT IN ($<excludePools:csv>)
+        AND project NOT IN ($<excludeProjects:csv>)
   `,
     { compress: true }
   );
 
   const response = await conn.query(query, {
-    tvlLB: boundaries.tvlUsdUI.lb,
-    age: boundaries.age,
+    tvlLB: exclude.boundaries.tvlUsdUI.lb,
+    age: exclude.boundaries.age,
     yieldTable: tableName,
     configTable: configTableName,
+    excludePools: exclude.excludePools,
+    excludeProjects: exclude.excludeAdaptors,
   });
 
   if (!response) {
