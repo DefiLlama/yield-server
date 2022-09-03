@@ -95,7 +95,7 @@ const main = async () => {
     // b) scatterchart section
     p['mu'] = (x.productDR ** (T / x.count) - 1) * 100;
     p['sigma'] =
-      x.count < 2 ? null : Math.sqrt((x.mean2DR / (x.count - 1)) * T) * 100;
+      x.count < 2 ? 0 : Math.sqrt((x.mean2DR / (x.count - 1)) * T) * 100;
   }
   // mark pools as outliers if outside boundary (let user filter via toggle on frontend)
   const columns = ['mu', 'sigma'];
@@ -108,7 +108,7 @@ const main = async () => {
     const distance = 1.5;
     const x_lb = x_median - distance * x_iqr;
     const x_ub = x_median + distance * x_iqr;
-    outlierBoundaries[col] = { lb: x_lb, ub: x_ub };
+    outlierBoundaries[col] = { lb: Math.max(0, x_lb), ub: x_ub };
   }
   // before adding the new outlier field,
   // i'm setting sigma to 0 instead of keeping it to null
@@ -267,10 +267,14 @@ const main = async () => {
   }
 
   // store /poolsEnriched (/pools) api response to s3 where we cache it
-  await utils.storeAPIResponse('defillama-datasets', 'yield-api/pools', {
-    status: 'success',
-    data: await buildPoolsEnriched(undefined),
-  });
+  await utils.storeAPIResponse(
+    'defillama-datasets',
+    'yield-api-pg-testing/pools',
+    {
+      status: 'success',
+      data: await buildPoolsEnriched(undefined),
+    }
+  );
 };
 
 ////// helper functions

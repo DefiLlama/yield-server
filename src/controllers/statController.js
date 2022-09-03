@@ -30,7 +30,14 @@ const getStat = async () => {
     return new AppError(`Couldn't get ${tableName} data`, 404);
   }
 
-  return response;
+  // reformat
+  const responseObject = {};
+  for (const p of response) {
+    const configID = p.configID;
+    responseObject[configID] = { configID, ...p };
+  }
+
+  return responseObject;
 };
 
 // multi row insert (update on conflict)

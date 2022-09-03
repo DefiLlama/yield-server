@@ -14,6 +14,11 @@ exports.up = (pgm) => {
       type: 'uuid', // uuid is created in the application
       primaryKey: true,
     },
+    updated_at: {
+      type: 'timestamptz',
+      notNull: true,
+      default: pgm.func('current_timestamp'),
+    },
     pool: { type: 'text', notNull: true, unique: true },
     project: { type: 'text', notNull: true },
     chain: { type: 'text', notNull: true },
@@ -22,11 +27,6 @@ exports.up = (pgm) => {
     underlyingTokens: { type: 'text[]' },
     rewardTokens: { type: 'text[]' },
     url: { type: 'text', notNull: true },
-    updated_at: {
-      type: 'timestamptz',
-      notNull: true,
-      default: pgm.func('current_timestamp'),
-    },
   });
 
   // --- yield

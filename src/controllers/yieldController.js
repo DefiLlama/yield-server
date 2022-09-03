@@ -177,8 +177,8 @@ const getYieldProject = async (project) => {
   );
 
   const response = await conn.query(query, {
-    tvlLB: boundaries.tvlUsdUI.lb,
-    age: boundaries.age,
+    tvlLB: exclude.boundaries.tvlUsdUI.lb,
+    age: exclude.boundaries.age,
     project,
     yieldTable: tableName,
     configTable: configTableName,
@@ -204,7 +204,7 @@ const getYieldOffset = async (project, days) => {
   const tsLB = new Date(tOffset - tWindow);
   const tsUB = new Date(tOffset + tWindow);
 
-  const tvlLB = boundaries.tvlUsdUI.lb;
+  const tvlLB = exclude.boundaries.tvlUsdUI.lb;
 
   // -- retrieve the historical offset data for a every unique pool given an offset day (1d/7d/30d)
   // -- to calculate pct changes. allow some buffer (+/- 3hs) in case of missing data (via tsLB and tsUB)
