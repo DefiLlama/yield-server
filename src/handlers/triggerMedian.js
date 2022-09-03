@@ -25,7 +25,7 @@ const main = async () => {
       timestamp: new Date(
         Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
       ),
-      medianAPY: parseFloat(ss.median(pools.map((p) => p.apy)).toFixed(5)),
+      medianAPY: +ss.median(pools.map((p) => p.apy)).toFixed(5),
       uniquePools: new Set(pools.map((p) => p.pool)).size,
     },
   ];

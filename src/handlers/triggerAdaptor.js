@@ -45,14 +45,16 @@ module.exports.handler = async (event, context) => {
 
 // func for running adaptor, storing result to db
 const main = async (body) => {
-  // run adaptor
+  // ---------- run adaptor
   console.log(body.adaptor);
   const project = require(`../adaptors/${body.adaptor}`);
   let data = await project.apy();
 
+  // ---------- prepare prior insert
   // remove potential null/undefined objects in array
   data = data.filter((p) => p);
 
+  // cast dtypes
   // even though we have tests for datatypes, will need to guard against sudden changes
   // from api responses in terms of data types (eg have seen this on lido stETH) which went from
   // number to string. so in order for the below filters to work proplerly we need to guarantee that the
@@ -92,7 +94,7 @@ const main = async (body) => {
     apy: p.apy ?? p.apyBase + p.apyReward,
   }));
 
-  // remove pools pools based on apy boundaries
+  // remove pools based on apy boundaries
   data = data.filter(
     (p) =>
       p.apy !== null &&
@@ -109,28 +111,46 @@ const main = async (body) => {
   const timestamp = new Date(
     Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
   );
-  data = data.map((p) => ({ ...p, timestamp: timestamp }));
 
-  // format chain in case it was skipped in adapter.
-  // round tvlUsd to integer and apy fields to n-dec
-  const dec = 5;
-  data = data.map((p) => ({
-    ...p,
-    chain: utils.formatChain(p.chain),
-    symbol: utils.formatSymbol(p.symbol),
-    tvlUsd: Math.round(p.tvlUsd),
-    apy: +p.apy.toFixed(dec),
-    apyBase: p.apyBase !== null ? +p.apyBase.toFixed(dec) : p.apyBase,
-    apyReward: p.apyReward !== null ? +p.apyReward.toFixed(dec) : p.apyReward,
-  }));
+  // for PK, FK, read data from config table
+  const config = await getConfigProject(body.adaptor);
+  const mapping = {};
+  for (const c of config) {
+    // the pool fields are used to map to the config_id values from the config table
+    mapping[c.pool] = c.config_id;
+  }
 
+  // we round numerical fields to 5 decimals after the comma
+  const precision = 5;
+  data = data.map((p) => {
+    // if pool not in mapping -> its a new pool -> create a new uuid, else keep existing one
+    const id = mapping[p.pool] ?? crypto.randomUUID();
+    return {
+      ...p,
+      config_id: id, // config PK field
+      configID: id, // yield FK field referencing config_id in config
+      chain: utils.formatChain(p.chain), // format chain and symbol in case it was skipped in adapter
+      symbol: utils.formatSymbol(p.symbol),
+      tvlUsd: Math.round(p.tvlUsd), // round tvlUsd to integer and apy fields to n-dec
+      apy: +p.apy.toFixed(precision), // round apy fields
+      apyBase: p.apyBase !== null ? +p.apyBase.toFixed(precision) : p.apyBase,
+      apyReward:
+        p.apyReward !== null ? +p.apyReward.toFixed(precision) : p.apyReward,
+      timestamp,
+      url: project.url,
+    };
+  });
+
+  // ---------- tvl spike check
+  // prior insert, we run a tvl check to make sure
+  // that there haven't been any sudden spikes in tvl compared to the previous insert;
   // insert only if tvl conditions are ok:
   // if tvl
   // - has increased >5x since the last hourly update
   // - and has been updated in the last 5 hours
   // -> block update
 
-  // load current project array
+  // load last entries for each pool for this sepcific adapter
   const dataInitial = await getYieldProject(body.adaptor);
 
   const dataDB = [];
@@ -139,7 +159,7 @@ const main = async (body) => {
   const timedeltaLimit = 60 * 60 * nHours * 1000;
   const droppedPools = [];
   for (const p of data) {
-    const x = dataInitial.find((e) => e.pool === p.pool);
+    const x = dataInitial.find((e) => e.configID === p.configID);
     if (x === undefined) {
       dataDB.push(p);
       continue;
@@ -153,28 +173,21 @@ const main = async (body) => {
     ) {
       console.log(`removing pool ${p.pool}`);
       droppedPools.push({
-        pool: p.pool,
+        configID: p.configID,
         symbol: p.symbol,
         project: p.project,
         tvlUsd: p.tvlUsd,
         tvlUsdDB: x.tvlUsd,
         tvlMultiplier: p.tvlUsd / x.tvlUsd,
-        lastUpdate: x.timestamp,
-        hoursUntilNextUpdate: 6 - timedelta / 1000 / 60 / 60,
       });
       continue;
     }
     dataDB.push(p);
   }
+  // return if dataDB is empty;
+  if (!dataDB.length) return;
 
-  if (
-    !dataInitial.length &&
-    dataDB.filter(({ tvlUsd }) => tvlUsd > 10000).length
-  ) {
-    const message = `Project ${body.adaptor} yields have been added`;
-    await sendMessage(message, process.env.NEW_YIELDS_WEBHOOK);
-  }
-
+  // send msg to discord if tvl spikes
   const delta = data.length - dataDB.length;
   if (delta > 0) {
     console.log(`removed ${delta} sample(s) prior to insert`);
@@ -184,7 +197,7 @@ const main = async (body) => {
       const message = filteredPools
         .map(
           (p) =>
-            `Project: ${p.project} Pool: ${p.pool} Symbol: ${
+            `configID: ${p.configID} Project: ${p.project} Symbol: ${
               p.symbol
             } TVL: from ${p.tvlUsdDB.toFixed()} to ${p.tvlUsd.toFixed()} (${p.tvlMultiplier.toFixed(
               2
@@ -195,28 +208,18 @@ const main = async (body) => {
     }
   }
 
-  // DB INSERT
-  // pg-promise can't run insert on empty array
-  if (!dataDB.length) return;
-
-  // read data from config table
-  const config = await getConfigProject(body.adaptor);
-  const mapping = {};
-  for (const c of config) {
-    mapping[c.pool] = c.config_id;
+  // ---------- discord bot for newly added projects
+  if (
+    !dataInitial.length &&
+    dataDB.filter(({ tvlUsd }) => tvlUsd > exclude.boundaries.tvlUsdUI.lb)
+      .length
+  ) {
+    const message = `Project ${body.adaptor} yields have been added`;
+    await sendMessage(message, process.env.NEW_YIELDS_WEBHOOK);
   }
 
-  const payload = dataDB.map((p) => {
-    // if pool not in mapping -> its a new pool -> create a new uuid, else keep existing one
-    const id = mapping[p.pool] ?? crypto.randomUUID();
-    return {
-      ...p,
-      config_id: id, // config PK field
-      configID: id, // yield FK field referencing config_id in config
-      url: project.url,
-    };
-  });
-  const response = await insertConfigYieldTransaction(payload);
+  // ---------- DB INSERT
+  const response = await insertConfigYieldTransaction(dataDB);
   console.log(response);
 };
 

@@ -17,11 +17,11 @@ module.exports.handler = async (event, context) => {
 const main = async () => {
   console.log('START DATA ENRICHMENT');
 
-  const urlBase = process.env.APIG_URL;
+  // ---------- get lastet unique pool
   console.log('\ngetting pools...');
-  let data = await getYieldFiltered();
+  const data = await getYieldFiltered();
 
-  // add pct-change columns
+  // ---------- add additional fields
   // for each project we get 3 offsets (1D, 7D, 30D) and calculate absolute apy pct-change
   console.log('\nadding pct-change fields...');
   const days = ['1', '7', '30'];
@@ -42,7 +42,7 @@ const main = async () => {
       // calculate pct change for each pool
       dataEnriched = [
         ...dataEnriched,
-        ...dataProject.map((pool) => enrich(pool, days, offsets)),
+        ...dataProject.map((p) => enrich(p, days, offsets)),
       ];
     } catch (err) {
       console.log(err);
@@ -56,6 +56,7 @@ const main = async () => {
     }
   }
 
+  // add info about stablecoin, exposure etc.
   console.log('\nadding additional pool info fields');
   const stablecoins = (
     await superagent.get(
@@ -70,6 +71,7 @@ const main = async () => {
   ).body.protocols;
   dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins, config));
 
+  // add ML and overview plot fields
   // expanding mean, expanding standard deviation,
   // geometric mean and standard deviation (of daily returns)
   console.log('\n4. adding stats columns');
@@ -126,6 +128,7 @@ const main = async () => {
       p['sigma'] > outlierBoundaries['sigma']['ub'],
   }));
 
+  // add ML predictions
   console.log('\nadding apy runway prediction');
   // load categorical feature mappings
   const modelMappings = await utils.readFromS3(
@@ -179,8 +182,7 @@ const main = async () => {
   for (const [i, el] of dataEnriched.entries()) {
     // for certain conditions we don't want to show predictions on the frontend
     // 1. apy === 0
-    // 2. project === 'anchor' ("stable" apy, prediction would be confusing)
-    // 3. less than 7 datapoints per pool
+    // 2. less than 7 datapoints per pool
     // (low confidence in the model predictions backward looking features (mean and std)
     // are undeveloped and might skew prediction results)
 
@@ -190,8 +192,7 @@ const main = async () => {
       1: 'Stable/Up',
     };
 
-    const nullifyPredictionsCond =
-      el.apy <= 0 || el.count < 7 || el.project === 'anchor';
+    const nullifyPredictionsCond = el.apy <= 0 || el.count < 7;
     const cond = y_pred[i][0] >= y_pred[i][1];
     // (we add label + probabalilty of the class with the larger probability)
     const predictedClass = nullifyPredictionsCond
@@ -238,16 +239,17 @@ const main = async () => {
   }
 
   // round numbers
-  const precision = 3;
+  const precision = 5;
   dataEnriched = dataEnriched.map((p) =>
     Object.fromEntries(
       Object.entries(p).map(([k, v]) => [
         k,
-        typeof v === 'number' ? parseFloat(v.toFixed(precision)) : v,
+        typeof v === 'number' ? +v.toFixed(precision) : v,
       ])
     )
   );
 
+  // ---------- save output to S3
   console.log('\nsaving data to S3');
   console.log('nb of pools', dataEnriched.length);
   const bucket = process.env.BUCKET_DATA;
@@ -279,7 +281,7 @@ const enrich = (pool, days, offsets) => {
   const poolC = { ...pool };
   for (let d = 0; d < days.length; d++) {
     let X = offsets[d];
-    const apyOffset = X.find((x) => x.pool === poolC.pool)?.apy;
+    const apyOffset = X.find((x) => x.configID === poolC.configID)?.apy;
     poolC[`apyPct${days[d]}D`] = poolC['apy'] - apyOffset;
   }
   return poolC;

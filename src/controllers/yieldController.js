@@ -61,7 +61,6 @@ const getYieldFiltered = async () => {
         "poolMeta",
         "underlyingTokens",
         "rewardTokens"
-        "url"
     FROM
         (
             SELECT
@@ -150,30 +149,23 @@ const getYieldProject = async (project) => {
   const query = minify(
     `
     SELECT
-        pool,
-        "tvlUsd"
+        DISTINCT ON ("configID") "configID", "tvlUsd"
     FROM
-        (
+        $<yieldTable:name>
+    WHERE
+        "configID" IN (
             SELECT
-                DISTINCT ON ("configID") *
+                DISTINCT (config_id)
             FROM
-                $<yieldTable:name>
+                $<configTable:name>
             WHERE
-                "configID" IN (
-                    SELECT
-                        DISTINCT (config_id)
-                    FROM
-                        $<configTable:name>
-                    WHERE
-                        "project" = $<project>
-                )
-                AND "tvlUsd" >= $<tvlLB>
-                AND timestamp >= NOW() - INTERVAL '$<age> DAY'
-            ORDER BY
-                "configID",
-                timestamp DESC
-        ) AS y
-        INNER JOIN $<configTable:name> AS c ON c.config_id = y."configID"
+                "project" = $<project>
+        )
+        AND "tvlUsd" >= $<tvlLB>
+        AND timestamp >= NOW() - INTERVAL '$<age> DAY'
+    ORDER BY
+        "configID",
+        timestamp DESC
     `,
     { compress: true }
   );
@@ -214,13 +206,11 @@ const getYieldOffset = async (project, days) => {
     `
     SELECT
         DISTINCT ON ("configID") "configID",
-        pool,
         apy
     FROM
         (
             SELECT
                 "configID",
-                pool,
                 apy,
                 abs(
                     extract (
