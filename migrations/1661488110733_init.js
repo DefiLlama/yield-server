@@ -47,7 +47,6 @@ exports.up = (pgm) => {
     timestamp: {
       type: 'timestamptz',
       notNull: true,
-      default: pgm.func('current_timestamp'),
     },
     tvlUsd: { type: 'bigint', notNull: true },
     apy: { type: 'numeric', notNull: true },
@@ -96,7 +95,6 @@ exports.up = (pgm) => {
     timestamp: {
       type: 'timestamptz',
       notNull: true,
-      default: pgm.func('current_timestamp'),
       unique: true,
     },
     uniquePools: { type: 'integer', notNull: true },

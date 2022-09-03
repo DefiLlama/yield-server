@@ -115,6 +115,7 @@ const main = async (body) => {
 
   // we round numerical fields to 5 decimals after the comma
   const precision = 5;
+  const timestamp = new Date(Date.now());
   data = data.map((p) => {
     // if pool not in mapping -> its a new pool -> create a new uuid, else keep existing one
     const id = mapping[p.pool] ?? crypto.randomUUID();
@@ -130,6 +131,7 @@ const main = async (body) => {
       apyReward:
         p.apyReward !== null ? +p.apyReward.toFixed(precision) : p.apyReward,
       url: project.url,
+      timestamp,
     };
   });
 
@@ -157,7 +159,7 @@ const main = async (body) => {
       continue;
     }
     // if existing pool, check conditions
-    const timedelta = new Date(Date.now()) - x.timestamp;
+    const timedelta = timestamp - x.timestamp;
     // skip the update if tvl at t is ntimes larger than tvl at t-1 && timedelta condition is met
     if (
       p.tvlUsd > x.tvlUsd * tvlDeltaMultiplier &&
