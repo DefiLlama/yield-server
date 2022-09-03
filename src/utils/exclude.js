@@ -12,6 +12,8 @@ const excludePools = [
   '0x3eed430cd45c5e2b45aa1adc609cc77c6728d45b', // mind-wavax on traderjoe, snowtrace shows tiny lp value, but tvl is huge
   '0x3c42B0f384D2912661C940d46cfFE1CD10F1c66F-ethereum', // test pool on curve? (CTDL-WBTC)
   '0x165ab553871b1a6b3c706e15b6a7bb29a244b2f3', // XSTUSD-WETH on uniswap
+  '0x7c9cf12d783821d5c63d8e9427af5c44bad92445000100000000000000000051', // avax-weth-sol (balancer-polygon)
+  '0xffbb77fb2725b5c227dd2879d813587a30c5359c000200000000000000000659', // sol-tel (balancer-polygon)
 ];
 
 const boundaries = {
