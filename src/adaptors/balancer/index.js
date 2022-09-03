@@ -42,12 +42,17 @@ const queryGauge = gql`
 
 const query = gql`
   {
-    pools(first: 200, orderBy: "totalLiquidity", orderDirection: "desc") {
+    pools(
+      first: 1000
+      orderBy: "totalLiquidity"
+      orderDirection: "desc"
+      where: { totalShares_gt: 0.01 }
+      skip: 0
+    ) {
       id
       tokensList
       totalSwapFee
       totalShares
-      totalLiquidity
       tokens {
         address
         balance
@@ -60,9 +65,10 @@ const query = gql`
 const queryPrior = gql`
 {
   pools(
-    first: 200
+    first: 1000
     orderBy: "totalLiquidity"
     orderDirection: "desc"
+    where: { totalShares_gt: 0.01 }
     block: {number: <PLACEHOLDER>}
   ) { 
     id 
@@ -97,10 +103,17 @@ const tvl = (entry, tokenPriceList, chainString) => {
   const d = {
     id: entry.id,
     symbol: balanceDetails.map((tok) => tok.symbol).join('-'),
-    tvl: Number(entry.totalLiquidity),
+    tvl: 0,
     totalShares: entry.totalShares,
     tokensList: entry.tokensList,
   };
+  for (const el of balanceDetails) {
+    // some addresses are from tokens which are not listed on coingecko so these will result in undefined
+    const price =
+      tokenPriceList[`${chainString}:${el.address.toLowerCase()}`]?.price;
+    // if price is undefined of one token in pool, the total tvl will be NaN
+    d.tvl += Number(el.balance) * price;
+  }
 
   return d;
 };
