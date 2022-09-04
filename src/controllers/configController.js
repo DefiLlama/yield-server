@@ -64,10 +64,17 @@ const getUrl = async () => {
 const getUniquePool = async () => {
   const conn = await connect();
 
-  const response = await conn.query(
-    'SELECT DISTINCT(pool) from $<table:name>',
-    { table: tableName }
+  const query = minify(
+    `
+    SELECT
+        DISTINCT(pool)
+    FROM
+        $<table:name>
+    `,
+    { compress: true }
   );
+
+  const response = await conn.query(query, { table: tableName });
 
   if (!response) {
     return new AppError(`Couldn't get ${tableName} data`, 404);

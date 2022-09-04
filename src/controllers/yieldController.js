@@ -74,7 +74,7 @@ const getYieldFiltered = async () => {
                 "configID",
                 timestamp DESC
         ) AS y
-        INNER JOIN $ <configTable:name> AS c ON c.config_id = y."configID"
+        INNER JOIN $<configTable:name> AS c ON c.config_id = y."configID"
     WHERE
         pool NOT IN ($<excludePools:csv>)
         AND project NOT IN ($<excludeProjects:csv>)
