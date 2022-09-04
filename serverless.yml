@@ -103,8 +103,8 @@ functions:
     description: Lambda which updates the stat table
     timeout: 300
     events:
-      # at midnight
-      - schedule: cron(0 0 * * ? *)
+      # 10min prior midnight
+      - schedule: cron(50 23 * * ? *)
 
   # --- median insert
   triggerMedianPg:
@@ -112,8 +112,8 @@ functions:
     description: Lambda which inserts latest value into the median table
     timeout: 300
     events:
-      # at midnight
-      - schedule: cron(0 0 * * ? *)
+      # 10min prior midnight
+      - schedule: cron(50 23 * * ? *)
 
   # --- save poolsEnriched as CSV
   triggerCsvPg:
