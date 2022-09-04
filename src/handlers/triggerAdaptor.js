@@ -8,9 +8,6 @@ const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
 const dbConnection = require('../utils/dbConnection.js');
 const { sendMessage } = require('../utils/discordWebhook');
-const { insertUrl } = require('../controllers/urlController');
-const { insertMeta } = require('../controllers/metaController');
-const { insertYield } = require('../controllers/yieldController');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -198,20 +195,6 @@ const main = async (body) => {
   if (project.url) {
     console.log('insert/update url');
     await updateUrl(body.adaptor, project.url);
-  }
-
-  // run new postgres db inserts separately
-  // postgres
-
-  // pg-promise can't run insert on empty array
-  if (dataDB.length > 0) {
-    const responseYield = await insertYield(dataDB);
-    const responseMeta = await insertMeta(dataDB);
-
-    if (project.url) {
-      console.log('insert/update url');
-      await insertUrl({ project: body.adaptor, link: project.url });
-    }
   }
 };
 
