@@ -60,25 +60,8 @@ provider:
 
   httpApi:
     metrics: true
-    cors:
-      allowedMethods:
-        - GET
-    authorizers:
-      JwtAuthorizer:
-        type: jwt
-        identitySource: $request.header.Authorization
-        issuerUrl: ${ssm:${self:custom.ssmPath}/issuer}
-        audience: ${ssm:${self:custom.ssmPath}/audience}
 
 functions:
-  triggerAuthenticate:
-    handler: src/handlers/triggerAuthenticate.handler
-    description: Lambda to create bearer token which stores to ssm
-    timeout: 30
-    events:
-      # every 12hours
-      - schedule: rate(12 hours)
-
   # --- top-lvl-entrypoint
   triggerEntrypoint:
     handler: src/handlers/triggerEntrypoint.handler
@@ -104,18 +87,16 @@ functions:
           batchSize: 2
           functionResponseType: ReportBatchItemFailures
     environment:
-      ETHERSCAN: ${file(./env.js):ETHERSCAN}
-      FANTOMSCAN: ${file(./env.js):FANTOMSCAN}
-      POLYGONSCAN: ${file(./env.js):POLYGONSCAN}
-      SNOWTRACE: ${file(./env.js):SNOWTRACE}
-      ARBISCAN: ${file(./env.js):ARBISCAN}
-      OPTIMISM: ${file(./env.js):OPTIMISM}
       INFURA_CONNECTION: ${file(./env.js):INFURA_CONNECTION}
       ALCHEMY_CONNECTION_POLYGON: ${file(./env.js):ALCHEMY_CONNECTION_POLYGON}
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
-      XDAI: ${file(./env.js):XDAI}
+      XDAI_RPC: ${file(./env.js):XDAI_RPC}
+      CRONOS_RPC: ${file(./env.js):CRONOS_RPC}
+      FANTOM_RPC: ${file(./env.js):FANTOM_RPC}
+      TVL_SPIKE_WEBHOOK: ${file(./env.js):TVL_SPIKE_WEBHOOK}
+      NEW_YIELDS_WEBHOOK: ${file(./env.js):NEW_YIELDS_WEBHOOK}
 
-  # --- data enrichment (pct-changes)
+  # --- data enrichment
   triggerEnrichment:
     handler: src/handlers/triggerEnrichment.handler
     description: Lambda which runs enrichment process
@@ -124,10 +105,19 @@ functions:
       # every hour at 20 past
       - schedule: cron(20 * * * ? *)
 
-  # --- aggregation update
-  triggerAggregation:
-    handler: src/handlers/triggerAggs.handler
-    description: Lambda which updates the aggregation table
+  # --- stats update
+  triggerStats:
+    handler: src/handlers/triggerStats.handler
+    description: Lambda which updates the stats table
+    timeout: 300
+    events:
+      # at midnight
+      - schedule: cron(0 0 * * ? *)
+
+  # --- median insert
+  triggerMedian:
+    handler: src/handlers/triggerMedian.handler
+    description: Lambda which inserts latest value into the median table
     timeout: 300
     events:
       # at midnight
@@ -146,33 +136,11 @@ functions:
   getPools:
     handler: src/handlers/getPools.handler
     description: Lambda for retrieving the latest data for each unique pool
-    timeout: 20
+    timeout: 30
     events:
       - httpApi:
           method: get
-          path: /pools
-
-  storePools:
-    handler: src/handlers/storePools.handler
-    description: Lambda for db bulkwrite
-    timeout: 20
-    events:
-      - httpApi:
-          method: post
-          path: /pools
-          authorizer:
-            name: JwtAuthorizer
-
-  deletePools:
-    handler: src/handlers/deletePools.handler
-    description: Lambda for deleteMany operation of pool data
-    timeout: 20
-    events:
-      - httpApi:
-          method: delete
-          path: /pools/{project}/{timestamp}
-          authorizer:
-            name: JwtAuthorizer
+          path: /simplePools
 
   getPoolsEnriched:
     handler: src/handlers/getPoolsEnriched.handler
@@ -182,6 +150,9 @@ functions:
       - httpApi:
           method: get
           path: /poolsEnriched
+      - httpApi:
+          method: get
+          path: /pools
 
   getChart:
     handler: src/handlers/getChart.handler
@@ -192,54 +163,23 @@ functions:
           method: get
           path: /chart/{pool}
 
-  getOffsets:
-    handler: src/handlers/getOffsets.handler
-    description: Lambda for getting 1/7/30 day offset data of apy values
+  getMedian:
+    handler: src/handlers/getMedian.handler
+    description: Lambda for retrieving median data
     timeout: 20
     events:
       - httpApi:
           method: get
-          path: /offsets/{project}/{days}
+          path: /median
 
-  getStds:
-    handler: src/handlers/getStds.handler
-    description: Lambda for retrieving std data
+  getUrls:
+    handler: src/handlers/getUrls.handler
+    description: Lambda for retrieving url data
     timeout: 20
     events:
       - httpApi:
           method: get
-          path: /stds
-
-  storeStds:
-    handler: src/handlers/storeStds.handler
-    description: Lambda for db bulkupdate of std data
-    timeout: 20
-    events:
-      - httpApi:
-          method: post
-          path: /stds
-          authorizer:
-            name: JwtAuthorizer
-
-  getAggs:
-    handler: src/handlers/getAggs.handler
-    description: Lambda for retrieving aggregation data
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /aggregations
-
-  storeAggs:
-    handler: src/handlers/storeAggs.handler
-    description: Lambda for db bulkupdate of aggregation data
-    timeout: 20
-    events:
-      - httpApi:
-          method: post
-          path: /aggregations
-          authorizer:
-            name: JwtAuthorizer
+          path: /urls
 
 resources:
   Resources:
