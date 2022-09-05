@@ -54,7 +54,7 @@ const main = async () => {
   const resp = await fetch('https://www.tenderize.me/api/apy', {
     headers: {
       accept: '*/*',
-        'cache-control': 'no-cache',
+      'cache-control': 'no-cache',
       pragma: 'no-cache',
     },
     method: 'GET',
@@ -72,4 +72,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://app.tenderize.me/stakers/livepeer',
 };
