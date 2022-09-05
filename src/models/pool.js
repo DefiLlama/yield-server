@@ -7,6 +7,9 @@ const poolSchema = new mongoose.Schema(
       required: [true, 'A pool must have an pool field'],
       trim: true,
     },
+    underlyingTokens: {
+      type: [String],
+    },
     chain: {
       type: String,
       required: [true, 'A pool must have a chain field'],
@@ -17,8 +20,7 @@ const poolSchema = new mongoose.Schema(
       required: [true, 'A pool must have a project field'],
       trim: true,
     },
-    // for uniswap (v2 vs v3)
-    market: {
+    poolMeta: {
       type: String,
       trim: true,
     },
@@ -31,12 +33,20 @@ const poolSchema = new mongoose.Schema(
       type: Number,
       required: [true, 'A pool must have a tvlUsd field'],
     },
+    apyBase: {
+      type: Number,
+      default: null,
+    },
+    apyReward: {
+      type: Number,
+      default: null,
+    },
     apy: {
       type: Number,
-      // either i set it to default null here or I'll need to replace
-      // NaN and null values from the adaptors with 0? but that would imply a zero apy, which is just
-      // misleading, so I rather remove the required in here
-      default: null,
+      required: [true, 'A pool must have an apy field'],
+    },
+    rewardTokens: {
+      type: [String],
     },
     // for historical stuff in db, inserted that field via:
     // db.pools.updateMany({}, [{$set: {"timestamp": {$dateTrunc: {date: "$createdAt", unit: "hour"}}}}])

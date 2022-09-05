@@ -1,16 +1,14 @@
 const AWS = require('aws-sdk');
-const superagent = require('superagent');
 const createCsvStringifier = require('csv-writer').createObjectCsvStringifier;
 
-module.exports.handler = async (event) => {
+const { buildPoolsEnriched } = require('./getPoolsEnriched');
+
+module.exports.handler = async () => {
   await main();
 };
 
 const main = async () => {
-  let poolsEnriched = await superagent.get(
-    'https://1rwmj4tky9.execute-api.eu-central-1.amazonaws.com/poolsEnriched'
-  );
-  poolsEnriched = poolsEnriched.body.data;
+  let poolsEnriched = await buildPoolsEnriched(undefined);
 
   // parse nested prediction field into separate fields
   poolsEnriched = poolsEnriched.map((p) => ({

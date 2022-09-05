@@ -8,11 +8,12 @@ const chainMapping = {
   DOGE: 'doge',
   LTC: 'litecoin',
   TERRA: 'terra',
+  GAIA: 'cosmos',
 };
 
 const buildPool = (entry, runePrice) => {
   const asset = entry.asset.split('.');
-  const chain = asset[0];
+  const chain = chainMapping[asset[0]];
   const symbol = `${asset[1].split('-')[0]}-RUNE`;
 
   const balanceAsset =
@@ -21,7 +22,7 @@ const buildPool = (entry, runePrice) => {
 
   const newObj = {
     pool: entry.asset,
-    chain: utils.formatChain(chainMapping[chain]),
+    chain: chain !== undefined ? utils.formatChain(chain) : null,
     project: 'thorchain',
     symbol: utils.formatSymbol(symbol),
     tvlUsd: balanceAsset + balanceRune,
@@ -42,7 +43,7 @@ const topLvl = async () => {
   // build pool objects
   data = data.map((el) => buildPool(el, Number(runePrice.runePriceUSD)));
 
-  return data;
+  return data.filter((p) => p.chain);
 };
 
 const main = async () => {
@@ -53,4 +54,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://app.thorswap.finance/liquidity',
 };
