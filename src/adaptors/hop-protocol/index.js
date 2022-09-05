@@ -85,6 +85,11 @@ const main = async () => {
   const tokens = Object.keys(data);
   const coreConfig = await getCoreConfig();
 
+  const rewards = {
+    xdai: '0x9c58bacc331c9aa871afd802db6379a98e80cedb', // GNO
+    polygon: '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270', // wmatic
+  };
+
   const promises = tokens
     .map((token) => {
       const tokenPools = data[token];
@@ -104,10 +109,7 @@ const main = async () => {
           symbol: token,
           apyBase: tokenPools[chain].apr * 100,
           apyReward,
-          rewardTokens:
-            adaptedChain === 'polygon' && apyReward > 0
-              ? ['0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270'] // wmatic
-              : [],
+          rewardTokens: apyReward > 0 ? [rewards[adaptedChain]] : [],
           underlyingTokens: [tokenAddress, hopTokenAddress],
           tvlUsd,
         };
