@@ -4,7 +4,7 @@
   "scripts": {
     "deploy:env": "sls deploy --stage $NODE_ENV",
     "deploy:prod": "export AWS_PROFILE='defillama' && export NODE_ENV=prod && npm run deploy:env",
-    "deploy:dev": "export AWS_PROFILE='default' && export NODE_ENV=dev && npm run deploy:env",
+    "deploy:dev": "export AWS_PROFILE='defillama' && export NODE_ENV=dev && npm run deploy:env",
     "deploy": "export NODE_ENV=prod && npm run deploy:env",
     "test": "jest",
     "migrate": "node-pg-migrate"
