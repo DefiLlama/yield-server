@@ -9,34 +9,6 @@ const {
 
 const tableName = 'yield';
 
-// get last DB entry per unique pool (with no exclusion; required by triggerStat handler)
-const getYield = async () => {
-  const conn = await connect();
-
-  // -- get latest yield row per unique configID (a pool)
-  const query = minify(
-    `
-    SELECT
-        DISTINCT ON ("configID") "configID",
-        apy
-    FROM
-        $<table:name>
-    ORDER BY
-        "configID",
-        timestamp DESC
-  `,
-    { compress: true }
-  );
-
-  const response = await conn.query(query, { table: tableName });
-
-  if (!response) {
-    return new AppError(`Couldn't get ${tableName} data`, 404);
-  }
-
-  return response;
-};
-
 // get last DB entry per unique pool (with exclusion; this is what we use in enrichment handler)
 const getYieldFiltered = async () => {
   const conn = await connect();
@@ -193,10 +165,11 @@ const getYieldProject = async (project) => {
 };
 
 // get apy offset value for project/day combo
-const getYieldOffset = async (project, days) => {
+const getYieldOffset = async (project, offset) => {
   const conn = await connect();
 
-  const daysMilliSeconds = Number(days) * 60 * 60 * 24 * 1000;
+  const age = Number(offset);
+  const daysMilliSeconds = age * 60 * 60 * 24 * 1000;
   const tOffset = Date.now() - daysMilliSeconds;
 
   // 3 hour window
@@ -244,7 +217,7 @@ const getYieldOffset = async (project, days) => {
 
   const response = await conn.query(query, {
     project,
-    age: days,
+    age,
     tsLB,
     tsUB,
     tvlLB,
@@ -277,7 +250,6 @@ const buildInsertYieldQuery = (payload) => {
 };
 
 module.exports = {
-  getYield,
   getYieldFiltered,
   getYieldHistory,
   getYieldOffset,

@@ -1,5 +1,5 @@
 const { welfordUpdate } = require('../utils/welford');
-const { getYield } = require('../controllers/yieldController');
+const { getYieldFiltered } = require('../controllers/yieldController');
 const { getStat, insertStat } = require('../controllers/statController');
 
 module.exports.handler = async (event, context) => {
@@ -11,7 +11,7 @@ module.exports.handler = async (event, context) => {
 // so i want to keep things consistent (even though it shouldnt be a big difference, at least
 // for the majority of pools)
 const main = async () => {
-  let data = await getYield();
+  let data = await getYieldFiltered();
   const T = 365;
   // transform raw apy to return field (required for geometric mean)
   data = data.map((p) => ({

@@ -60,9 +60,9 @@ functions:
     handler: src/handlers/triggerEntrypoint.handler
     description: Lambda to launch the adaptor pipeline
     timeout: 30
-    events:
-      # every new hour
-      - schedule: cron(0 * * * ? *)
+    # events:
+    #   # every new hour
+    #   - schedule: cron(0 * * * ? *)
     environment:
       ADAPTER_QUEUE_URL: { Ref: AdapterQueue }
 
@@ -93,36 +93,36 @@ functions:
     handler: src/handlers/triggerEnrichment.handler
     description: Lambda which runs enrichment process
     timeout: 300
-    events:
-      # every hour at 20 past
-      - schedule: cron(20 * * * ? *)
+    # events:
+    #   # every hour at 20 past
+    #   - schedule: cron(20 * * * ? *)
 
   # --- stats update
   triggerStatPg:
     handler: src/handlers/triggerStat.handler
     description: Lambda which updates the stat table
     timeout: 300
-    events:
-      # 10min prior midnight
-      - schedule: cron(50 23 * * ? *)
+    # events:
+    #   # 30min prior midnight
+    #   - schedule: cron(30 23 * * ? *)
 
   # --- median insert
   triggerMedianPg:
     handler: src/handlers/triggerMedian.handler
     description: Lambda which inserts latest value into the median table
     timeout: 300
-    events:
-      # 10min prior midnight
-      - schedule: cron(50 23 * * ? *)
+    # events:
+    #   # 30min prior midnight
+    #   - schedule: cron(30 23 * * ? *)
 
   # --- save poolsEnriched as CSV
   triggerCsvPg:
     handler: src/handlers/triggerCsv.handler
     description: Lambda which dumps poolsEnriched as csv to s3 bucket
     timeout: 300
-    events:
-      # every hour at 25 past
-      - schedule: cron(25 * * * ? *)
+    # events:
+    #   # every hour at 25 past
+    #   - schedule: cron(25 * * * ? *)
 
   # --- DB Crud operations
   getPoolsEnrichedPg:
@@ -164,8 +164,8 @@ functions:
           method: get
           path: /urls
 
-  getUniquePoolPg:
-    handler: src/handlers/getUniquePool.handler
+  getDistinctIDsPg:
+    handler: src/handlers/getDistinctIDs.handler
     description: Lambda for retrieving unique pool id's
     timeout: 20
     events:

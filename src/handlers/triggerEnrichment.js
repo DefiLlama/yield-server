@@ -18,12 +18,12 @@ const main = async () => {
   console.log('START DATA ENRICHMENT');
 
   // ---------- get lastet unique pool
-  console.log('\ngetting pools...');
+  console.log('\ngetting pools');
   const data = await getYieldFiltered();
 
   // ---------- add additional fields
   // for each project we get 3 offsets (1D, 7D, 30D) and calculate absolute apy pct-change
-  console.log('\nadding pct-change fields...');
+  console.log('\nadding pct-change fields');
   const days = ['1', '7', '30'];
   let dataEnriched = [];
   const failed = [];
@@ -74,7 +74,7 @@ const main = async () => {
   // add ML and overview plot fields
   // expanding mean, expanding standard deviation,
   // geometric mean and standard deviation (of daily returns)
-  console.log('\n4. adding stats columns');
+  console.log('\nadding stats columns');
   const T = 365;
   dataEnriched = dataEnriched.map((p) => ({
     ...p,
@@ -132,7 +132,8 @@ const main = async () => {
   console.log('\nadding apy runway prediction');
   // load categorical feature mappings
   const modelMappings = await utils.readFromS3(
-    'llama-apy-prediction-prod',
+    // NOTE(!) need to switch back
+    'llama-apy-prediction-prod-pg-testing',
     'mlmodelartefacts/categorical_feature_mapping_2022_05_20.json'
   );
   for (const el of dataEnriched) {
@@ -144,9 +145,6 @@ const main = async () => {
     el.project_factorized = project_fact === undefined ? -1 : project_fact;
     el.chain_factorized = chain_fact === undefined ? -1 : chain_fact;
   }
-
-  // remove any potential objects which have null value on mean
-  dataEnriched = dataEnriched.filter((el) => el.apyMeanExpanding !== null);
 
   // impute null values on apyStdExpanding (this will be null whenever we have pools with less than 2
   // samples, eg. whenever a new pool project is listed or an existing project adds new pools
@@ -268,7 +266,8 @@ const main = async () => {
 
   // store /poolsEnriched (/pools) api response to s3 where we cache it
   await utils.storeAPIResponse(
-    'defillama-datasets',
+    // NOTE(!) switch back to 'defillama-datasets'
+    'defillama-datasets-pg-testing-dev-data',
     'yield-api-pg-testing/pools',
     {
       status: 'success',

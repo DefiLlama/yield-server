@@ -28,8 +28,6 @@ const connect = async () => {
       // running multiple adapters
       idleTimeoutMillis: 60000,
     });
-  } else {
-    console.log('using existing db connection');
   }
   return conn;
 };

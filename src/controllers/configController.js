@@ -61,7 +61,7 @@ const getUrl = async () => {
 
 // get unique pool values
 // (used during adapter testing to check if a pool field is already in the DB)
-const getUniquePool = async () => {
+const getDistinctIDs = async () => {
   const conn = await connect();
 
   const query = minify(
@@ -80,7 +80,7 @@ const getUniquePool = async () => {
     return new AppError(`Couldn't get ${tableName} data`, 404);
   }
 
-  return response;
+  return response.map((p) => p.pool);
 };
 
 // multi row insert (update on conflict) query generator
@@ -112,6 +112,6 @@ module.exports = {
   getConfigProject,
   buildInsertConfigQuery,
   getUrl,
-  getUniquePool,
+  getDistinctIDs,
   tableName,
 };
