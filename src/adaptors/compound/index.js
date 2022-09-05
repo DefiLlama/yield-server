@@ -1,3 +1,5 @@
+const superagent = require('superagent');
+
 const utils = require('../utils');
 
 const url = 'https://api.compound.finance/api/v2/ctoken';
@@ -13,8 +15,8 @@ const apy = (entry, ethPriceUSD) => {
   entry.totalSupplyUSD =
     totalSupply * Number(entry.underlying_price.value) * ethPriceUSD;
 
-  entry.apy =
-    entry.supply_rate.value * 100 + Number(entry.comp_supply_apy.value);
+  entry.apyBase = entry.supply_rate.value * 100;
+  entry.apyReward = Number(entry.comp_supply_apy.value);
 
   return entry;
 };
@@ -33,7 +35,16 @@ const buildPool = (entry, chainString) => {
         entry.symbol === 'cWBTC2' ? 'cWBTC' : entry.symbol
       ),
       tvlUsd: entry.totalSupplyUSD,
-      apy: entry.apy,
+      apyBase: entry.apyBase,
+      apyReward: entry.apyReward,
+      rewardTokens:
+        entry.apyReward > 0
+          ? ['0xc00e94cb662c3520282e6f5717214004a7f26888']
+          : [],
+      underlyingTokens:
+        entry.underlying_address === null && entry.underlying_name === 'Ether'
+          ? ['0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2']
+          : [entry.underlying_address],
     };
     return newObj;
   }
@@ -41,13 +52,18 @@ const buildPool = (entry, chainString) => {
 
 const topLvl = async (chainString, url) => {
   // get eth price
-  const ethPriceUSD = await utils.getCGpriceData(chainString, true);
+  const key = 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+  const ethPriceUSD = (
+    await superagent.post('https://coins.llama.fi/prices').send({
+      coins: [key],
+    })
+  ).body.coins[key].price;
 
   // pull data
   let data = await utils.getData(url);
 
   // calculate apy
-  data = data.cToken.map((el) => apy(el, ethPriceUSD.ethereum.usd));
+  data = data.cToken.map((el) => apy(el, ethPriceUSD));
 
   // build pool objects
   data = data
@@ -65,4 +81,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://app.compound.finance/',
 };

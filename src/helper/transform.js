@@ -52,6 +52,18 @@ async function transformFantomAddress() {
     if (compareAddresses(addr, "0x260b3e40c714ce8196465ec824cd8bb915081812")) {
       return "polygon:0x4a81f8796e0c6ad4877a51c86693b0de8093f2ef"; // IRON ICE
     }
+    if (compareAddresses(addr, "0xd67de0e0a0fd7b15dc8348bb9be742f3c5850454")) {
+      return "bsc:0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"; // bnb somehow converts to bsc:BNB so change to bsc:wbnb address 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c
+    }
+    if (compareAddresses(addr, "0x9f47f313acfd4bdc52f4373b493eae7d5ac5b765")) {
+      return "avax:0x6e84a6216ea6dacc71ee8e6b0a5b7322eebc0fdd"; // joe token to joe token in avax
+    }
+    if (compareAddresses(addr, "0x2d72A97a31Dc920dB03330780d30074626e39C8A")) {
+      return "ethereum:0x4d224452801aced8b2f0aebe155379bb5d594381"; // ape coin to ape coin in ethereum
+    }
+    if (compareAddresses(addr, "0x593AE1d34c8BD7587C11D539E4F42BFf242c82Af")) {
+      return "ethereum:0xbd31EA8212119f94A611FA969881CBa3EA06Fa3d"; // LUNA (Wormhole) to LUNA(wormhole) in ethereum
+    }
     const srcToken = multichainTokens.find(
       (token) => token.chainId === "250" && token.token === addr.toLowerCase()
     );
@@ -373,6 +385,26 @@ async function transformOptimismAddress() {
     // FEI
     if (compareAddresses(addr, "0x35D48A789904E9b15705977192e5d95e2aF7f1D3")) {
       return "0x956f47f50a910163d8bf957cf5846d573e7f87ca";
+    }
+    // alUSD
+    if (compareAddresses(addr, "0xcb8fa9a76b8e203d8c3797bf438d8fb81ea3326a")) {
+      return "0xbc6da0fe9ad5f3b0d58160288917aa56653660e9";
+    }
+    // FRAX Share
+    if (compareAddresses(addr, "0x67CCEA5bb16181E7b4109c9c2143c24a1c2205Be")) {
+      return "0x3432b6a60d23ca0dfca7761b7ab56459d9c964d0";
+    }
+    // FRAX
+    if (compareAddresses(addr, "0x2E3D870790dC77A83DD1d18184Acc7439A53f475")) {
+      return "0x853d955acef822db058eb8505911ed77f175b99e";
+    }
+    // gOHM
+    if (compareAddresses(addr, "0x0b5740c6b4a97f90eF2F0220651Cca420B868FfB")) {
+      return "0x0ab87046fbb341d058f17cbc4c1133f25a20a52f";
+    }
+    // agEUR
+    if (compareAddresses(addr, "0x9485aca5bbBE1667AD97c7fE7C4531a624C8b1ED")) {
+      return "0x1a7e4e63778b4f12a199c062f3efdd288afcbce8";
     }
     const possibleSynth = optimismSynths[addr.toLowerCase()];
     if (possibleSynth !== undefined) {
