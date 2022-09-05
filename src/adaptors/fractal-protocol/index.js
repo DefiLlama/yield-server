@@ -40,7 +40,7 @@ const fractalMetrics = async () => {
   const tvl = (usdfTotalSupply * usdfPrice) / 1e12;
 
   const fractalVault = {
-    pool: '0x3EAa4b3e8967c02cE1304C1EB35e8C5409838DFC',
+    pool: '0x3eB82f2eD4d992dc0Bed328214A0907250f4Ec82',
     chain: utils.formatChain('ethereum'),
     project: 'fractal-protocol',
     symbol: utils.formatSymbol('USDC'),
