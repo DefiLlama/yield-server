@@ -1,6 +1,6 @@
-const { getMedian } = require('../controllers/medianController');
+const { getUrl } = require('../controllers/configController');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
-  return await getMedian();
+  return await getUrl();
 };

@@ -1,4 +1,4 @@
-service: llama-apy
+service: llama-apy-pg-testing
 
 package:
   individually: true
@@ -7,7 +7,7 @@ frameworkVersion: '3'
 
 provider:
   name: aws
-  runtime: nodejs14.x
+  runtime: nodejs16.x
   stage: dev
   region: eu-central-1
   tracing:
@@ -27,13 +27,6 @@ provider:
             - s3:ListBucket
             - s3:*Object*
             - sqs:SendMessage
-          Resource: '*'
-        - Effect: Allow
-          Action:
-            - ssm:PutParameter
-            - ssm:GetParameter
-            - ssm:DescribeParameters
-            - kms:Decrypt
           Resource: '*'
 
   environment:
@@ -55,26 +48,26 @@ provider:
             ],
           ],
       }
-    SSM_PATH: ${self:custom.ssmPath}
     BUCKET_DATA: { Ref: BucketData }
+    DATABASE_URL: ${file(./env.js):DATABASE_URL}
 
   httpApi:
     metrics: true
 
 functions:
   # --- top-lvl-entrypoint
-  triggerEntrypoint:
+  triggerEntrypointPg:
     handler: src/handlers/triggerEntrypoint.handler
     description: Lambda to launch the adaptor pipeline
     timeout: 30
-    events:
+    # events:
       # every new hour
       - schedule: cron(0 * * * ? *)
     environment:
       ADAPTER_QUEUE_URL: { Ref: AdapterQueue }
 
   # --- adaptors
-  triggerAdaptor:
+  triggerAdaptorPg:
     handler: src/handlers/triggerAdaptor.handler
     description: Lambda which runs adaptors
     timeout: 600
@@ -92,57 +85,47 @@ functions:
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
       XDAI_RPC: ${file(./env.js):XDAI_RPC}
       CRONOS_RPC: ${file(./env.js):CRONOS_RPC}
-      FANTOM_RPC: ${file(./env.js):FANTOM_RPC}
       TVL_SPIKE_WEBHOOK: ${file(./env.js):TVL_SPIKE_WEBHOOK}
       NEW_YIELDS_WEBHOOK: ${file(./env.js):NEW_YIELDS_WEBHOOK}
 
   # --- data enrichment
-  triggerEnrichment:
+  triggerEnrichmentPg:
     handler: src/handlers/triggerEnrichment.handler
     description: Lambda which runs enrichment process
     timeout: 300
-    events:
+    # events:
       # every hour at 20 past
       - schedule: cron(20 * * * ? *)
 
   # --- stats update
-  triggerStats:
-    handler: src/handlers/triggerStats.handler
-    description: Lambda which updates the stats table
+  triggerStatPg:
+    handler: src/handlers/triggerStat.handler
+    description: Lambda which updates the stat table
     timeout: 300
-    events:
-      # at midnight
-      - schedule: cron(0 0 * * ? *)
+    # events:
+      # 30min prior midnight
+      - schedule: cron(30 23 * * ? *)
 
   # --- median insert
-  triggerMedian:
+  triggerMedianPg:
     handler: src/handlers/triggerMedian.handler
     description: Lambda which inserts latest value into the median table
     timeout: 300
-    events:
-      # at midnight
-      - schedule: cron(0 0 * * ? *)
+    # events:
+      # 30min prior midnight
+      - schedule: cron(30 23 * * ? *)
 
   # --- save poolsEnriched as CSV
-  triggerCsv:
+  triggerCsvPg:
     handler: src/handlers/triggerCsv.handler
     description: Lambda which dumps poolsEnriched as csv to s3 bucket
     timeout: 300
-    events:
+    # events:
       # every hour at 25 past
       - schedule: cron(25 * * * ? *)
 
   # --- DB Crud operations
-  getPools:
-    handler: src/handlers/getPools.handler
-    description: Lambda for retrieving the latest data for each unique pool
-    timeout: 30
-    events:
-      - httpApi:
-          method: get
-          path: /simplePools
-
-  getPoolsEnriched:
+  getPoolsEnrichedPg:
     handler: src/handlers/getPoolsEnriched.handler
     description: Lambda for retrieving the latest enriched data for each unique pool
     timeout: 20
@@ -154,16 +137,16 @@ functions:
           method: get
           path: /pools
 
-  getChart:
+  getChartPg:
     handler: src/handlers/getChart.handler
     description: Lambda for retrieving chart data for a particular pool
     timeout: 20
     events:
       - httpApi:
           method: get
-          path: /chart/{pool}
+          path: /chart/{configID}
 
-  getMedian:
+  getMedianPg:
     handler: src/handlers/getMedian.handler
     description: Lambda for retrieving median data
     timeout: 20
@@ -172,14 +155,23 @@ functions:
           method: get
           path: /median
 
-  getUrls:
-    handler: src/handlers/getUrls.handler
+  getUrlPg:
+    handler: src/handlers/getUrl.handler
     description: Lambda for retrieving url data
     timeout: 20
     events:
       - httpApi:
           method: get
-          path: /urls
+          path: /url
+
+  getDistinctIDsPg:
+    handler: src/handlers/getDistinctIDs.handler
+    description: Lambda for retrieving unique pool id's
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /distinctID
 
 resources:
   Resources:
@@ -244,7 +236,6 @@ resources:
 
 custom:
   stage: ${opt:stage, self:provider.stage}
-  ssmPath: /${self:service}/serverless/sls-authenticate
   webpack:
     webpackConfig: 'webpack.config.js'
     includeModules: true

@@ -28,6 +28,7 @@ const buildPoolsEnriched = async (queryString) => {
     'apy',
     'rewardTokens',
     'pool',
+    'configID',
     'apyPct1D',
     'apyPct7D',
     'apyPct30D',
@@ -54,7 +55,8 @@ const buildPoolsEnriched = async (queryString) => {
   }
 
   const params = {
-    Bucket: 'llama-apy-prod-data',
+    // NOTE(!) change this back
+    Bucket: 'llama-apy-pg-testing-dev-data',
     Key: 'enriched/dataEnriched.json',
     ExpressionType: 'SQL',
     Expression: query,
