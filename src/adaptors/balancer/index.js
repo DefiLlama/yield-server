@@ -8,6 +8,7 @@ const gaugeABIArbitrum = require('./abis/gauge_arbitrum.json');
 const gaugeABIPolygon = require('./abis/gauge_polygon.json');
 const gaugeControllerEthereum = require('./abis/gauge_controller_ethereum.json');
 const protocolFeesCollectorABI = require('./abis/protocol_fees_collector.json');
+const { lte } = require('lodash');
 
 // Subgraph URLs
 const urlBase = 'https://api.thegraph.com/subgraphs/name/balancer-labs';
@@ -109,8 +110,16 @@ const tvl = (entry, tokenPriceList, chainString) => {
   };
   for (const el of balanceDetails) {
     // some addresses are from tokens which are not listed on coingecko so these will result in undefined
-    const price =
+
+    let price =
       tokenPriceList[`${chainString}:${el.address.toLowerCase()}`]?.price;
+    if (
+      el.address.toLowerCase() ===
+      '0x7dff46370e9ea5f0bad3c4e29711ad50062ea7a4'.toLowerCase()
+    )
+      price =
+        tokenPriceList['solana:So11111111111111111111111111111111111111112']
+          ?.price;
     // if price is undefined of one token in pool, the total tvl will be NaN
     d.tvl += Number(el.balance) * price;
   }
@@ -284,7 +293,9 @@ const topLvl = async (
 
   const tokenPriceList = (
     await superagent.post('https://coins.llama.fi/prices').send({
-      coins: tokenList.map((t) => `${chainString}:${t}`),
+      coins: tokenList
+        .map((t) => `${chainString}:${t}`)
+        .concat(['solana:So11111111111111111111111111111111111111112']),
     })
   ).body.coins;
 
