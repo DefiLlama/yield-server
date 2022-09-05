@@ -132,8 +132,7 @@ const main = async () => {
   console.log('\nadding apy runway prediction');
   // load categorical feature mappings
   const modelMappings = await utils.readFromS3(
-    // NOTE(!) need to switch back
-    'llama-apy-prediction-prod-pg-testing',
+    'llama-apy-prediction-prod',
     'mlmodelartefacts/categorical_feature_mapping_2022_05_20.json'
   );
   for (const el of dataEnriched) {
@@ -266,8 +265,7 @@ const main = async () => {
 
   // store /poolsEnriched (/pools) api response to s3 where we cache it
   await utils.storeAPIResponse(
-    // NOTE(!) switch back to 'defillama-datasets'
-    'defillama-datasets-pg-testing-dev-data',
+    'defillama-datasets',
     'yield-api-pg-testing/pools',
     {
       status: 'success',
