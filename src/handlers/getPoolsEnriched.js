@@ -13,7 +13,8 @@ module.exports.handler = async (event) => {
 
   return lambdaResponse({
     status: 'success',
-    data: response,
+    // NOTE(!) remove this again
+    data: response.slice(0, 8000),
   });
 };
 

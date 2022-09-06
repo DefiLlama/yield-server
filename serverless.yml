@@ -52,7 +52,10 @@ provider:
     DATABASE_URL: ${file(./env.js):DATABASE_URL}
 
   httpApi:
-    metrics: true
+    metrics:
+      true
+      # NOTE(!) remove this again
+    cors: true
 
 functions:
   # --- top-lvl-entrypoint

@@ -20,10 +20,9 @@ const main = async () => {
   pools = pools.filter((p) => p.timestamp >= latestDay);
   console.log('after filter', pools.length);
 
-  const f = 1000 * 60 * 60;
   const payload = [
     {
-      timestamp: new Date(Math.floor(Date.now() / f) * f),
+      timestamp: new Date(),
       medianAPY: +ss.median(pools.map((p) => p.apy)).toFixed(5),
       uniquePools: new Set(pools.map((p) => p.pool)).size,
     },
