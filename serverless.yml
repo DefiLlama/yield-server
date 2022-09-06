@@ -1,5 +1,4 @@
-# NOTE(!) change back to llama-apy
-service: llama-apy-pg-testing
+service: llama-apy
 
 package:
   individually: true
@@ -53,10 +52,7 @@ provider:
     DATABASE_URL: ${file(./env.js):DATABASE_URL}
 
   httpApi:
-    metrics:
-      true
-      # NOTE(!) remove this again
-    cors: true
+    metrics: true
 
 functions:
   # ---------- TRIGGER HANDLERS

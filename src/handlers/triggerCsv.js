@@ -31,9 +31,7 @@ const main = async () => {
 
   const params = {
     Bucket: 'defillama-datasets',
-    // NOTE(!) revert back to existing bucket
-    // Key: 'yields/yield_rankings.csv',
-    Key: 'yields-pg-testing/yield_rankings.csv',
+    Key: 'yields/yield_rankings.csv',
     ACL: 'public-read',
     Body: csv,
     ContentType: 'text/csv',

@@ -13,8 +13,7 @@ module.exports.handler = async (event) => {
 
   return lambdaResponse({
     status: 'success',
-    // NOTE(!) remove this again
-    data: response.slice(0, 8000),
+    data: response,
   });
 };
 
@@ -56,9 +55,7 @@ const buildPoolsEnriched = async (queryString) => {
   }
 
   const params = {
-    // NOTE(!) change this back
-    Bucket: 'llama-apy-pg-testing-dev-data',
-    // Bucket: 'llama-apy-prod-data',
+    Bucket: 'llama-apy-prod-data',
     Key: 'enriched/dataEnriched.json',
     ExpressionType: 'SQL',
     Expression: query,

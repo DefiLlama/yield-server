@@ -264,14 +264,10 @@ const main = async () => {
   }
 
   // store /poolsEnriched (/pools) api response to s3 where we cache it
-  await utils.storeAPIResponse(
-    'defillama-datasets',
-    'yield-api-pg-testing/pools',
-    {
-      status: 'success',
-      data: await buildPoolsEnriched(undefined),
-    }
-  );
+  await utils.storeAPIResponse('defillama-datasets', 'yield-api/pools', {
+    status: 'success',
+    data: await buildPoolsEnriched(undefined),
+  });
 };
 
 ////// helper functions
