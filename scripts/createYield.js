@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-const { confirm } = require('../src/utils/confirm');
+const { confirm } = require('./confirm');
 const { connect } = require('../src/utils/dbConnection');
 const { buildInsertYieldQuery } = require('../src/controllers/yieldController');
 

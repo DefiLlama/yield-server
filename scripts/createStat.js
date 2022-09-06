@@ -2,7 +2,7 @@ const fs = require('fs');
 
 const ss = require('simple-statistics');
 
-const { confirm } = require('../src/utils/confirm');
+const { confirm } = require('./confirm');
 const { insertStat } = require('../src/controllers/statController');
 
 (async () => {

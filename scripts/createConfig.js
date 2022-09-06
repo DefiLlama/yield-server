@@ -2,7 +2,7 @@ const fs = require('fs');
 
 const superagent = require('superagent');
 
-const { confirm } = require('../src/utils/confirm');
+const { confirm } = require('./confirm');
 const { connect } = require('../src/utils/dbConnection');
 const {
   buildInsertConfigQuery,

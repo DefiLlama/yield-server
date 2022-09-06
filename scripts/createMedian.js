@@ -2,7 +2,7 @@ const fs = require('fs');
 
 const ss = require('simple-statistics');
 
-const { confirm } = require('../src/utils/confirm');
+const { confirm } = require('./confirm');
 const exclude = require('../src/utils/exclude');
 const { insertMedian } = require('../src/controllers/medianController');
 
