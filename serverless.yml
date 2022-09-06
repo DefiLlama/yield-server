@@ -7,7 +7,7 @@ frameworkVersion: '3'
 
 provider:
   name: aws
-  runtime: nodejs16.x
+  runtime: nodejs14.x
   stage: dev
   region: eu-central-1
   tracing:
@@ -27,6 +27,13 @@ provider:
             - s3:ListBucket
             - s3:*Object*
             - sqs:SendMessage
+          Resource: '*'
+        - Effect: Allow
+          Action:
+            - ssm:PutParameter
+            - ssm:GetParameter
+            - ssm:DescribeParameters
+            - kms:Decrypt
           Resource: '*'
 
   environment:
@@ -48,14 +55,13 @@ provider:
             ],
           ],
       }
+    SSM_PATH: ${self:custom.ssmPath}
     BUCKET_DATA: { Ref: BucketData }
-    DATABASE_URL: ${file(./env.js):DATABASE_URL}
 
   httpApi:
     metrics: true
 
 functions:
-  # ---------- TRIGGER HANDLERS
   # --- top-lvl-entrypoint
   triggerEntrypoint:
     handler: src/handlers/triggerEntrypoint.handler
@@ -100,13 +106,13 @@ functions:
       - schedule: cron(20 * * * ? *)
 
   # --- stats update
-  triggerStat:
-    handler: src/handlers/triggerStat.handler
-    description: Lambda which updates the stat table
+  triggerStats:
+    handler: src/handlers/triggerStats.handler
+    description: Lambda which updates the stats table
     timeout: 300
     events:
-      # 30min prior midnight
-      - schedule: cron(30 23 * * ? *)
+      # at midnight
+      - schedule: cron(0 0 * * ? *)
 
   # --- median insert
   triggerMedian:
@@ -114,19 +120,28 @@ functions:
     description: Lambda which inserts latest value into the median table
     timeout: 300
     events:
-      # 30min prior midnight
-      - schedule: cron(30 23 * * ? *)
+      # at midnight
+      - schedule: cron(0 0 * * ? *)
 
   # --- save poolsEnriched as CSV
   triggerCsv:
     handler: src/handlers/triggerCsv.handler
-    description: Lambda which saves poolsEnriched as csv to s3 bucket
+    description: Lambda which dumps poolsEnriched as csv to s3 bucket
     timeout: 300
     events:
       # every hour at 25 past
       - schedule: cron(25 * * * ? *)
 
-  # ---------- GET HANDLERS
+  # --- DB Crud operations
+  getPools:
+    handler: src/handlers/getPools.handler
+    description: Lambda for retrieving the latest data for each unique pool
+    timeout: 30
+    events:
+      - httpApi:
+          method: get
+          path: /simplePools
+
   getPoolsEnriched:
     handler: src/handlers/getPoolsEnriched.handler
     description: Lambda for retrieving the latest enriched data for each unique pool
@@ -146,34 +161,25 @@ functions:
     events:
       - httpApi:
           method: get
-          path: /chart/{configID}
+          path: /chart/{pool}
 
   getMedian:
     handler: src/handlers/getMedian.handler
-    description: Lambda for retrieving daily median apy's
+    description: Lambda for retrieving median data
     timeout: 20
     events:
       - httpApi:
           method: get
           path: /median
 
-  getUrl:
-    handler: src/handlers/getUrl.handler
-    description: Lambda for retrieving project url's
+  getUrls:
+    handler: src/handlers/getUrls.handler
+    description: Lambda for retrieving url data
     timeout: 20
     events:
       - httpApi:
           method: get
-          path: /url
-
-  getDistinctID:
-    handler: src/handlers/getDistinctID.handler
-    description: Lambda for retrieving unique pool id's
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /distinctID
+          path: /urls
 
 resources:
   Resources:
@@ -238,6 +244,7 @@ resources:
 
 custom:
   stage: ${opt:stage, self:provider.stage}
+  ssmPath: /${self:service}/serverless/sls-authenticate
   webpack:
     webpackConfig: 'webpack.config.js'
     includeModules: true
