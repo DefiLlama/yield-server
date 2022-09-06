@@ -139,23 +139,14 @@ functions:
           method: get
           path: /pools
 
-  # getChart:
-  #   handler: src/handlers/getChart.handler
-  #   description: Lambda for retrieving chart data for a particular pool
-  #   timeout: 20
-  #   events:
-  #     - httpApi:
-  #         method: get
-  #         path: /chart/{configID}
-
   getChart:
-  handler: src/handlers/getChart.handler
-  description: Lambda for retrieving chart data for a particular pool
-  timeout: 20
-  events:
-    - httpApi:
-        method: get
-        path: /chart/{pool}
+    handler: src/handlers/getChart.handler
+    description: Lambda for retrieving chart data for a particular pool
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /chart/{configID}
 
   getMedian:
     handler: src/handlers/getMedian.handler
