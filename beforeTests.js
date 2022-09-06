@@ -35,8 +35,7 @@ module.exports = async function () {
   global.uniquePoolIdentifiersDB = new Set(
     (
       await axios.get(
-        // NOTE(!) change domain
-        'https://f8vsr18767.execute-api.eu-central-1.amazonaws.com/distinctID'
+        'https://1rwmj4tky9.execute-api.eu-central-1.amazonaws.com/distinctID'
       )
     ).data
       .filter((p) => p.project !== global.apy[0].project)
