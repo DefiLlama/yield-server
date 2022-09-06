@@ -1,13 +1,20 @@
+const crypto = require('crypto');
+
 const superagent = require('superagent');
 
 const utils = require('../adaptors/utils');
-const poolModel = require('../models/pool');
-const urlModel = require('../models/url');
-const { aggQuery } = require('./getPools');
 const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
-const dbConnection = require('../utils/dbConnection.js');
 const { sendMessage } = require('../utils/discordWebhook');
+const { connect } = require('../utils/dbConnection');
+const {
+  getYieldProject,
+  buildInsertYieldQuery,
+} = require('../controllers/yieldController');
+const {
+  getConfigProject,
+  buildInsertConfigQuery,
+} = require('../controllers/configController');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -38,14 +45,16 @@ module.exports.handler = async (event, context) => {
 
 // func for running adaptor, storing result to db
 const main = async (body) => {
-  // run adaptor
+  // ---------- run adaptor
   console.log(body.adaptor);
   const project = require(`../adaptors/${body.adaptor}`);
   let data = await project.apy();
 
+  // ---------- prepare prior insert
   // remove potential null/undefined objects in array
   data = data.filter((p) => p);
 
+  // cast dtypes
   // even though we have tests for datatypes, will need to guard against sudden changes
   // from api responses in terms of data types (eg have seen this on lido stETH) which went from
   // number to string. so in order for the below filters to work proplerly we need to guarantee that the
@@ -85,7 +94,7 @@ const main = async (body) => {
     apy: p.apy ?? p.apyBase + p.apyReward,
   }));
 
-  // remove pools pools based on apy boundaries
+  // remove pools based on apy boundaries
   data = data.filter(
     (p) =>
       p.apy !== null &&
@@ -96,35 +105,47 @@ const main = async (body) => {
   // remove exclusion pools
   data = data.filter((p) => !exclude.excludePools.includes(p.pool));
 
-  // add the timestamp field
-  // will be rounded to the nearest hour
-  // eg 2022-04-06T10:00:00.000Z
-  const timestamp = new Date(
-    Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
-  );
-  data = data.map((p) => ({ ...p, timestamp: timestamp }));
+  // for PK, FK, read data from config table
+  const config = await getConfigProject(body.adaptor);
+  const mapping = {};
+  for (const c of config) {
+    // the pool fields are used to map to the config_id values from the config table
+    mapping[c.pool] = c.config_id;
+  }
 
-  // format chain in case it was skipped in adapter.
-  // round tvlUsd to integer and apy fields to n-dec
-  const dec = 5;
-  data = data.map((p) => ({
-    ...p,
-    chain: utils.formatChain(p.chain),
-    symbol: utils.formatSymbol(p.symbol),
-    tvlUsd: Math.round(p.tvlUsd),
-    apy: +p.apy.toFixed(dec),
-    apyBase: p.apyBase !== null ? +p.apyBase.toFixed(dec) : p.apyBase,
-    apyReward: p.apyReward !== null ? +p.apyReward.toFixed(dec) : p.apyReward,
-  }));
+  // we round numerical fields to 5 decimals after the comma
+  const precision = 5;
+  const timestamp = new Date(Date.now());
+  data = data.map((p) => {
+    // if pool not in mapping -> its a new pool -> create a new uuid, else keep existing one
+    const id = mapping[p.pool] ?? crypto.randomUUID();
+    return {
+      ...p,
+      config_id: id, // config PK field
+      configID: id, // yield FK field referencing config_id in config
+      chain: utils.formatChain(p.chain), // format chain and symbol in case it was skipped in adapter
+      symbol: utils.formatSymbol(p.symbol),
+      tvlUsd: Math.round(p.tvlUsd), // round tvlUsd to integer and apy fields to n-dec
+      apy: +p.apy.toFixed(precision), // round apy fields
+      apyBase: p.apyBase !== null ? +p.apyBase.toFixed(precision) : p.apyBase,
+      apyReward:
+        p.apyReward !== null ? +p.apyReward.toFixed(precision) : p.apyReward,
+      url: project.url,
+      timestamp,
+    };
+  });
 
+  // ---------- tvl spike check
+  // prior insert, we run a tvl check to make sure
+  // that there haven't been any sudden spikes in tvl compared to the previous insert;
   // insert only if tvl conditions are ok:
   // if tvl
   // - has increased >5x since the last hourly update
   // - and has been updated in the last 5 hours
   // -> block update
 
-  // load current project array
-  const dataInitial = await getProject(body.adaptor);
+  // load last entries for each pool for this sepcific adapter
+  const dataInitial = await getYieldProject(body.adaptor);
 
   const dataDB = [];
   const nHours = 5;
@@ -132,7 +153,7 @@ const main = async (body) => {
   const timedeltaLimit = 60 * 60 * nHours * 1000;
   const droppedPools = [];
   for (const p of data) {
-    const x = dataInitial.find((e) => e.pool === p.pool);
+    const x = dataInitial.find((e) => e.configID === p.configID);
     if (x === undefined) {
       dataDB.push(p);
       continue;
@@ -146,38 +167,32 @@ const main = async (body) => {
     ) {
       console.log(`removing pool ${p.pool}`);
       droppedPools.push({
-        pool: p.pool,
+        configID: p.configID,
         symbol: p.symbol,
         project: p.project,
         tvlUsd: p.tvlUsd,
         tvlUsdDB: x.tvlUsd,
         tvlMultiplier: p.tvlUsd / x.tvlUsd,
-        lastUpdate: x.timestamp,
-        hoursUntilNextUpdate: 6 - timedelta / 1000 / 60 / 60,
       });
       continue;
     }
     dataDB.push(p);
   }
+  // return if dataDB is empty;
+  if (!dataDB.length) return;
 
-  if (
-    !dataInitial.length &&
-    dataDB.filter(({ tvlUsd }) => tvlUsd > 10000).length
-  ) {
-    const message = `Project ${body.adaptor} yields have been added`;
-    await sendMessage(message, process.env.NEW_YIELDS_WEBHOOK);
-  }
-
+  // send msg to discord if tvl spikes
   const delta = data.length - dataDB.length;
   if (delta > 0) {
     console.log(`removed ${delta} sample(s) prior to insert`);
     // send discord message
+    // we limit sending msg only if the pool's last tvlUsd value is >= $500k
     const filteredPools = droppedPools.filter((p) => p.tvlUsdDB >= 5e5);
     if (filteredPools.length) {
       const message = filteredPools
         .map(
           (p) =>
-            `Project: ${p.project} Pool: ${p.pool} Symbol: ${
+            `configID: ${p.configID} Project: ${p.project} Symbol: ${
               p.symbol
             } TVL: from ${p.tvlUsdDB.toFixed()} to ${p.tvlUsd.toFixed()} (${p.tvlMultiplier.toFixed(
               2
@@ -188,76 +203,49 @@ const main = async (body) => {
     }
   }
 
-  const response = await insertPools(dataDB);
+  // ---------- discord bot for newly added projects
+  if (
+    !dataInitial.length &&
+    dataDB.filter(({ tvlUsd }) => tvlUsd > exclude.boundaries.tvlUsdUI.lb)
+      .length
+  ) {
+    const message = `Project ${body.adaptor} yields have been added`;
+    await sendMessage(message, process.env.NEW_YIELDS_WEBHOOK);
+  }
+
+  // ---------- DB INSERT
+  const response = await insertConfigYieldTransaction(dataDB);
   console.log(response);
-
-  // update url
-  if (project.url) {
-    console.log('insert/update url');
-    await updateUrl(body.adaptor, project.url);
-  }
 };
 
-const insertPools = async (payload) => {
-  const conn = await dbConnection.connect();
-  const M = conn.model(poolModel.modelName);
+// --------- transaction query
+const insertConfigYieldTransaction = async (payload) => {
+  const conn = await connect();
 
-  const response = await M.insertMany(payload);
+  // build queries
+  const configQ = buildInsertConfigQuery(payload);
+  const yieldQ = buildInsertYieldQuery(payload);
 
-  if (!response) {
-    return new AppError("Couldn't insert data", 404);
-  }
+  return conn
+    .tx(async (t) => {
+      // sequence of queries:
+      // 1. config: insert/update
+      const q1 = await t.result(configQ);
+      // 2. yield: insert
+      const q2 = await t.result(yieldQ);
 
-  return {
-    status: 'success',
-    response: `Inserted ${payload.length} samples`,
-  };
-};
-
-module.exports.insertPools = insertPools;
-
-// get latest object of each unique pool
-const getProject = async (project) => {
-  const conn = await dbConnection.connect();
-  const M = conn.model(poolModel.modelName);
-
-  // add project field to match obj
-  aggQuery.slice(-1)[0]['$match']['project'] = project;
-
-  const query = M.aggregate(aggQuery);
-  let response = await query;
-
-  // remove pools where all 3 fields are null (this and the below project/pool exclusion
-  // could certainly be implemented in the aggregation pipeline but i'm to stupid for mongodb pipelines)
-  response = response.filter(
-    (p) =>
-      !(p.apy === null && p.apyBase === null && p.apyReward === null) &&
-      !exclude.excludePools.includes(p.pool)
-  );
-
-  return response;
-};
-
-const updateUrl = async (adapter, url) => {
-  const conn = await dbConnection.connect();
-  const M = conn.model(urlModel.modelName);
-
-  const response = await M.bulkWrite([
-    {
-      updateOne: {
-        filter: { project: adapter },
-        update: {
-          $set: {
-            url: url,
-          },
-        },
-        upsert: true,
-      },
-    },
-  ]);
-
-  if (!response) {
-    return new AppError("Couldn't update data", 404);
-  }
-  console.log(response);
+      return [q1, q2];
+    })
+    .then((response) => {
+      // success, COMMIT was executed
+      return {
+        status: 'success',
+        data: response,
+      };
+    })
+    .catch((err) => {
+      // failure, ROLLBACK was executed
+      console.log(err);
+      return new AppError('ConfigYield Transaction failed, rolling back', 404);
+    });
 };

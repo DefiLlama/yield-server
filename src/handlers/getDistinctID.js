@@ -1,6 +1,6 @@
-const { getMedian } = require('../controllers/medianController');
+const { getDistinctID } = require('../controllers/configController');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
-  return await getMedian();
+  return await getDistinctID();
 };
