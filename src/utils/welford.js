@@ -7,10 +7,8 @@ module.exports.welfordUpdate = (pools, stats) => {
   // count aggregates the number of samples seen so far
 
   const payload = [];
-  const n = 1000 * 60 * 60 * 24;
-  const currentDay = new Date(Math.floor(new Date() / n) * n);
   for (const p of pools) {
-    d = stats[p.configID];
+    d = stats[p.pool];
 
     if (d !== undefined) {
       // extract
@@ -21,23 +19,19 @@ module.exports.welfordUpdate = (pools, stats) => {
       mean2DR = d.mean2DR;
       productDR = d.productDR;
 
-      // we only update if the last pool value is from that day (otherwise its stale and we don't
-      // want to increment/update but instead are just going to keep the existing values)
-      if (p.timestamp >= currentDay) {
-        // update using welford algo
-        count += 1;
-        // a) ML section
-        deltaAPY = p.apy - meanAPY;
-        meanAPY += deltaAPY / count;
-        delta2APY = p.apy - meanAPY;
-        mean2APY += deltaAPY * delta2APY;
-        // b) scatterchart section
-        deltaDR = p.return - meanDR;
-        meanDR += deltaDR / count;
-        delta2DR = p.return - meanDR;
-        mean2DR += deltaDR * delta2DR;
-        productDR = (1 + p.return) * productDR;
-      }
+      // update using welford algo
+      count += 1;
+      // a) ML section
+      deltaAPY = p.apy - meanAPY;
+      meanAPY += deltaAPY / count;
+      delta2APY = p.apy - meanAPY;
+      mean2APY += deltaAPY * delta2APY;
+      // b) scatterchart section
+      deltaDR = p.return - meanDR;
+      meanDR += deltaDR / count;
+      delta2DR = p.return - meanDR;
+      mean2DR += deltaDR * delta2DR;
+      productDR = (1 + p.return) * productDR;
     } else {
       // in case of a new pool -> boostrap db values
       count = 1;
@@ -51,7 +45,7 @@ module.exports.welfordUpdate = (pools, stats) => {
     }
 
     payload.push({
-      configID: p.configID,
+      pool: p.pool,
       count,
       meanAPY,
       mean2APY,
