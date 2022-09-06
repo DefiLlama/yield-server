@@ -61,13 +61,14 @@ const getUrl = async () => {
 
 // get unique pool values
 // (used during adapter testing to check if a pool field is already in the DB)
-const getDistinctIDs = async () => {
+const getDistinctID = async () => {
   const conn = await connect();
 
   const query = minify(
     `
     SELECT
-        DISTINCT(pool)
+        DISTINCT(pool),
+        project
     FROM
         $<table:name>
     `,
@@ -112,6 +113,6 @@ module.exports = {
   getConfigProject,
   buildInsertConfigQuery,
   getUrl,
-  getDistinctIDs,
+  getDistinctID,
   tableName,
 };

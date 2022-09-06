@@ -58,6 +58,7 @@ provider:
     cors: true
 
 functions:
+  # ---------- TRIGGER HANDLERS
   # --- top-lvl-entrypoint
   triggerEntrypointPg:
     handler: src/handlers/triggerEntrypoint.handler
@@ -121,13 +122,13 @@ functions:
   # --- save poolsEnriched as CSV
   triggerCsvPg:
     handler: src/handlers/triggerCsv.handler
-    description: Lambda which dumps poolsEnriched as csv to s3 bucket
+    description: Lambda which saves poolsEnriched as csv to s3 bucket
     timeout: 300
     events:
       # every hour at 25 past
       - schedule: cron(25 * * * ? *)
 
-  # --- DB Crud operations
+  # ---------- GET HANDLERS
   getPoolsEnrichedPg:
     handler: src/handlers/getPoolsEnriched.handler
     description: Lambda for retrieving the latest enriched data for each unique pool
@@ -151,7 +152,7 @@ functions:
 
   getMedianPg:
     handler: src/handlers/getMedian.handler
-    description: Lambda for retrieving median data
+    description: Lambda for retrieving daily median apy's
     timeout: 20
     events:
       - httpApi:
@@ -160,15 +161,15 @@ functions:
 
   getUrlPg:
     handler: src/handlers/getUrl.handler
-    description: Lambda for retrieving url data
+    description: Lambda for retrieving project url's
     timeout: 20
     events:
       - httpApi:
           method: get
           path: /url
 
-  getDistinctIDsPg:
-    handler: src/handlers/getDistinctIDs.handler
+  getDistinctIDPg:
+    handler: src/handlers/getDistinctID.handler
     description: Lambda for retrieving unique pool id's
     timeout: 20
     events:
