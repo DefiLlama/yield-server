@@ -3,6 +3,22 @@ import ast
 
 import pandas as pd
 
+# the way i ran this:
+# Step 1) DOWNLOAD FULL HISTORY from mongodb
+
+# Step 2) PREPARE DATA
+# run this python script, which does:
+    # filter apy >= 0, tvlUsd >= 1000
+    # cast dtype: tvlUsd to integer
+    # round apy columns to 5 decimals
+    # ...
+    # stores 3 outputs: the full hourly history (for yield), last value for each day (for stat), last value (for config)
+
+# Step 3) CREATE UUIDS
+# based on output from Step 2) run the bootstrapUUID.js file which creates a unique uuid for each unique pool and stores that locally
+
+# Step 4) CREATE THE POSTGRES TABLES
+# run the create scripts starting with config, then the others (order doesn't matter for the rest)
 
 def replaceFunc(x: str) -> str:
     if x == "[null]":
