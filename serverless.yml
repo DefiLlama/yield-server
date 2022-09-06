@@ -1,3 +1,4 @@
+# NOTE(!) change back to llama-apy
 service: llama-apy-pg-testing
 
 package:
@@ -60,7 +61,7 @@ provider:
 functions:
   # ---------- TRIGGER HANDLERS
   # --- top-lvl-entrypoint
-  triggerEntrypointPg:
+  triggerEntrypoint:
     handler: src/handlers/triggerEntrypoint.handler
     description: Lambda to launch the adaptor pipeline
     timeout: 30
@@ -71,7 +72,7 @@ functions:
       ADAPTER_QUEUE_URL: { Ref: AdapterQueue }
 
   # --- adaptors
-  triggerAdaptorPg:
+  triggerAdaptor:
     handler: src/handlers/triggerAdaptor.handler
     description: Lambda which runs adaptors
     timeout: 600
@@ -93,7 +94,7 @@ functions:
       NEW_YIELDS_WEBHOOK: ${file(./env.js):NEW_YIELDS_WEBHOOK}
 
   # --- data enrichment
-  triggerEnrichmentPg:
+  triggerEnrichment:
     handler: src/handlers/triggerEnrichment.handler
     description: Lambda which runs enrichment process
     timeout: 300
@@ -102,7 +103,7 @@ functions:
       - schedule: cron(20 * * * ? *)
 
   # --- stats update
-  triggerStatPg:
+  triggerStat:
     handler: src/handlers/triggerStat.handler
     description: Lambda which updates the stat table
     timeout: 300
@@ -111,7 +112,7 @@ functions:
       - schedule: cron(30 23 * * ? *)
 
   # --- median insert
-  triggerMedianPg:
+  triggerMedian:
     handler: src/handlers/triggerMedian.handler
     description: Lambda which inserts latest value into the median table
     timeout: 300
@@ -120,7 +121,7 @@ functions:
       - schedule: cron(30 23 * * ? *)
 
   # --- save poolsEnriched as CSV
-  triggerCsvPg:
+  triggerCsv:
     handler: src/handlers/triggerCsv.handler
     description: Lambda which saves poolsEnriched as csv to s3 bucket
     timeout: 300
@@ -129,7 +130,7 @@ functions:
       - schedule: cron(25 * * * ? *)
 
   # ---------- GET HANDLERS
-  getPoolsEnrichedPg:
+  getPoolsEnriched:
     handler: src/handlers/getPoolsEnriched.handler
     description: Lambda for retrieving the latest enriched data for each unique pool
     timeout: 20
@@ -141,7 +142,7 @@ functions:
           method: get
           path: /pools
 
-  getChartPg:
+  getChart:
     handler: src/handlers/getChart.handler
     description: Lambda for retrieving chart data for a particular pool
     timeout: 20
@@ -150,7 +151,7 @@ functions:
           method: get
           path: /chart/{configID}
 
-  getMedianPg:
+  getMedian:
     handler: src/handlers/getMedian.handler
     description: Lambda for retrieving daily median apy's
     timeout: 20
@@ -159,7 +160,7 @@ functions:
           method: get
           path: /median
 
-  getUrlPg:
+  getUrl:
     handler: src/handlers/getUrl.handler
     description: Lambda for retrieving project url's
     timeout: 20
@@ -168,7 +169,7 @@ functions:
           method: get
           path: /url
 
-  getDistinctIDPg:
+  getDistinctID:
     handler: src/handlers/getDistinctID.handler
     description: Lambda for retrieving unique pool id's
     timeout: 20
