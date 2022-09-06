@@ -81,7 +81,7 @@ const getDistinctID = async () => {
     return new AppError(`Couldn't get ${tableName} data`, 404);
   }
 
-  return response.map((p) => p.pool);
+  return response;
 };
 
 // multi row insert (update on conflict) query generator

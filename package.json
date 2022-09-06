@@ -27,7 +27,6 @@
     "lodash": "^4.17.21",
     "node-fetch": "^2.6.1",
     "pg-promise": "^10.11.1",
-    "saslprep": "^1.0.3",
     "simple-statistics": "^7.7.5",
     "superagent": "^6.1.0",
     "web3": "^1.4.0"
