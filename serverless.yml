@@ -7,7 +7,7 @@ frameworkVersion: '3'
 
 provider:
   name: aws
-  runtime: nodejs14.x
+  runtime: nodejs16.x
   stage: dev
   region: eu-central-1
   tracing:
@@ -27,13 +27,6 @@ provider:
             - s3:ListBucket
             - s3:*Object*
             - sqs:SendMessage
-          Resource: '*'
-        - Effect: Allow
-          Action:
-            - ssm:PutParameter
-            - ssm:GetParameter
-            - ssm:DescribeParameters
-            - kms:Decrypt
           Resource: '*'
 
   environment:
@@ -55,13 +48,14 @@ provider:
             ],
           ],
       }
-    SSM_PATH: ${self:custom.ssmPath}
     BUCKET_DATA: { Ref: BucketData }
+    DATABASE_URL: ${file(./env.js):DATABASE_URL}
 
   httpApi:
     metrics: true
 
 functions:
+  # ---------- TRIGGER HANDLERS
   # --- top-lvl-entrypoint
   triggerEntrypoint:
     handler: src/handlers/triggerEntrypoint.handler
@@ -106,13 +100,13 @@ functions:
       - schedule: cron(20 * * * ? *)
 
   # --- stats update
-  triggerStats:
-    handler: src/handlers/triggerStats.handler
-    description: Lambda which updates the stats table
+  triggerStat:
+    handler: src/handlers/triggerStat.handler
+    description: Lambda which updates the stat table
     timeout: 300
     events:
-      # at midnight
-      - schedule: cron(0 0 * * ? *)
+      # 30min prior midnight
+      - schedule: cron(30 23 * * ? *)
 
   # --- median insert
   triggerMedian:
@@ -120,28 +114,19 @@ functions:
     description: Lambda which inserts latest value into the median table
     timeout: 300
     events:
-      # at midnight
-      - schedule: cron(0 0 * * ? *)
+      # 30min prior midnight
+      - schedule: cron(30 23 * * ? *)
 
   # --- save poolsEnriched as CSV
   triggerCsv:
     handler: src/handlers/triggerCsv.handler
-    description: Lambda which dumps poolsEnriched as csv to s3 bucket
+    description: Lambda which saves poolsEnriched as csv to s3 bucket
     timeout: 300
     events:
       # every hour at 25 past
       - schedule: cron(25 * * * ? *)
 
-  # --- DB Crud operations
-  getPools:
-    handler: src/handlers/getPools.handler
-    description: Lambda for retrieving the latest data for each unique pool
-    timeout: 30
-    events:
-      - httpApi:
-          method: get
-          path: /simplePools
-
+  # ---------- GET HANDLERS
   getPoolsEnriched:
     handler: src/handlers/getPoolsEnriched.handler
     description: Lambda for retrieving the latest enriched data for each unique pool
@@ -154,32 +139,41 @@ functions:
           method: get
           path: /pools
 
-  # getChart:
-  #   handler: src/handlers/getChart.handler
-  #   description: Lambda for retrieving chart data for a particular pool
-  #   timeout: 20
-  #   events:
-  #     - httpApi:
-  #         method: get
-  #         path: /chart/{pool}
+  getChart:
+    handler: src/handlers/getChart.handler
+    description: Lambda for retrieving chart data for a particular pool
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /chart/{configID}
 
   getMedian:
     handler: src/handlers/getMedian.handler
-    description: Lambda for retrieving median data
+    description: Lambda for retrieving daily median apy's
     timeout: 20
     events:
       - httpApi:
           method: get
           path: /median
 
-  getUrls:
-    handler: src/handlers/getUrls.handler
-    description: Lambda for retrieving url data
+  getUrl:
+    handler: src/handlers/getUrl.handler
+    description: Lambda for retrieving project url's
     timeout: 20
     events:
       - httpApi:
           method: get
-          path: /urls
+          path: /url
+
+  getDistinctID:
+    handler: src/handlers/getDistinctID.handler
+    description: Lambda for retrieving unique pool id's
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /distinctID
 
 resources:
   Resources:
@@ -244,7 +238,6 @@ resources:
 
 custom:
   stage: ${opt:stage, self:provider.stage}
-  ssmPath: /${self:service}/serverless/sls-authenticate
   webpack:
     webpackConfig: 'webpack.config.js'
     includeModules: true
