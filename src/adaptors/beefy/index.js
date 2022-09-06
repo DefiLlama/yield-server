@@ -66,7 +66,7 @@ const main = async () => {
         project: 'beefy',
         symbol: utils.formatSymbol(pool.split('-').slice(1).join('-')),
         tvlUsd: poolData[pool],
-        apy: apy[pool] * 100,
+        apy: poolMeta?.status == 'active' ? apy[pool] * 100: 0,
         poolMeta:
           platformId === undefined ? null : utils.formatChain(platformId),
       });
