@@ -6,6 +6,7 @@ const { pgp, connect } = require('../utils/dbConnection');
 const {
   tableName: configTableName,
 } = require('../controllers/configController');
+const { lambdaResponse } = require('../utils/lambda');
 
 const tableName = 'yield';
 
@@ -109,10 +110,10 @@ const getYieldHistory = async (configID) => {
     return new AppError(`Couldn't get ${tableName} history data`, 404);
   }
 
-  return {
+  return lambdaResponse({
     status: 'success',
     data: response,
-  };
+  });
 };
 
 // get last DB entry per unique pool for a given project (used by adapter handler to check for TVL spikes)
