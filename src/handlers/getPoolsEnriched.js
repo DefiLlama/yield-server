@@ -71,7 +71,11 @@ const buildPoolsEnriched = async (queryString) => {
     },
   };
 
-  const data = await getDataUsingS3Select(params);
+  let data = await getDataUsingS3Select(params);
+
+  data = data
+    .map((p) => ({ ...p, pool: p.configID, poolOld: p.pool }))
+    .map(({ configID, ...p }) => p);
 
   return data;
 };
