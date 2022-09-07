@@ -11,7 +11,7 @@ const poolsFunction = async () => {
       project: 'robo-vault',
       symbol: utils.formatSymbol(item.symbol).replace('sAMM-', ''),
       tvlUsd: item.tvlUsd,
-      apy: item.apy3d * 100,
+      apy: item.apy7d * 100,
     }));
 };
 
