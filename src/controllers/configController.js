@@ -117,7 +117,3 @@ module.exports = {
   getDistinctID,
   tableName,
 };
-
-(async () => {
-  console.log(await getDistinctID());
-})();
