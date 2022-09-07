@@ -246,6 +246,10 @@ const main = async () => {
     )
   );
 
+  dataEnriched = dataEnriched
+    .map((p) => ({ ...p, pool_: p.pool, pool: p.configID }))
+    .map(({ configID, ...p }) => p);
+
   // ---------- save output to S3
   console.log('\nsaving data to S3');
   console.log('nb of pools', dataEnriched.length);

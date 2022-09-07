@@ -27,8 +27,8 @@ const buildPoolsEnriched = async (queryString) => {
     'apyReward',
     'apy',
     'rewardTokens',
-    'pool',
-    'configID',
+    'pool', // the configID
+    'pool_', // our adapter pool id's
     'apyPct1D',
     'apyPct7D',
     'apyPct30D',
@@ -72,10 +72,6 @@ const buildPoolsEnriched = async (queryString) => {
   };
 
   let data = await getDataUsingS3Select(params);
-
-  data = data
-    .map((p) => ({ ...p, pool: p.configID, poolOld: p.pool }))
-    .map(({ configID, ...p }) => p);
 
   return data;
 };
