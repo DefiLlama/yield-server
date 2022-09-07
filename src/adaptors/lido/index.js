@@ -1,20 +1,11 @@
 const utils = require('../utils');
 
-const buildPool = (entry, chainString) => {
-  const newObj = {
-    pool: `lido-${entry.token}`,
-    chain: utils.formatChain(chainString),
-    project: 'lido',
-    symbol: utils.formatSymbol(entry.token),
-    tvlUsd:
-      chainString === 'ethereum' ? entry.marketCap : entry.totalStaked.usd,
-    apy: entry.apr,
-  };
+const topLvl = async (chainString, url, token, address) => {
+  let dataTvl;
+  let dataApy;
+  let data;
+  let apy;
 
-  return newObj;
-};
-
-const topLvl = async (chainString, url, token) => {
   if (chainString === 'ethereum') {
     dataTvl = await utils.getData(`${url}/short-lido-stats`);
     dataApy = await utils.getData(`${url}/steth-apr`);
@@ -24,6 +15,7 @@ const topLvl = async (chainString, url, token) => {
     data = await utils.getData(url);
   }
   data.token = token;
+  data.address = address;
 
   // apy values from https://solana.lido.fi/api/stats for solana are incorrect
   // using other endpoint instead. for more details see https://github.com/DefiLlama/yield-server/issues/6
@@ -32,39 +24,49 @@ const topLvl = async (chainString, url, token) => {
     data.apr = apy.annual_percentage_yield;
   }
 
-  data = buildPool(data, chainString);
-
-  return data;
+  return {
+    pool: `${data.address}-${chainString}`.toLowerCase(),
+    chain: utils.formatChain(chainString),
+    project: 'lido',
+    symbol: utils.formatSymbol(data.token),
+    tvlUsd: chainString === 'ethereum' ? data.marketCap : data.totalStaked.usd,
+    apyBase: Number(data.apr),
+  };
 };
 
 const main = async () => {
-  const data = [];
-  // for some reason Promise.all often crashes here, so awaiting each individually
-  const ethereum = await topLvl(
-    'ethereum',
-    'https://stake.lido.fi/api',
-    'stETH'
-  );
-  const polygon = await topLvl(
-    'polygon',
-    'https://polygon.lido.fi/api/stats',
-    'stMATIC'
-  );
-  const solana = await topLvl(
-    'solana',
-    'https://solana.lido.fi/api/stats',
-    'stSOL'
-  );
-  const kusama = await topLvl(
-    'kusama',
-    'https://kusama.lido.fi/api/stats',
-    'stKSM'
-  );
-  data.push(ethereum, polygon, solana, kusama);
+  const data = await Promise.all([
+    topLvl(
+      'ethereum',
+      'https://stake.lido.fi/api',
+      'stETH',
+      '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84'
+    ),
+    topLvl(
+      'polygon',
+      'https://polygon.lido.fi/api/stats',
+      'stMATIC',
+      '0x9ee91F9f426fA633d227f7a9b000E28b9dfd8599'
+    ),
+    topLvl(
+      'solana',
+      'https://solana.lido.fi/api/stats',
+      'stSOL',
+      '7dHbWXmci3dT8UFYWYZweBLXgycu7Y3iL6trKn1Y7ARj'
+    ),
+    topLvl(
+      'kusama',
+      'https://kusama.lido.fi/api/stats',
+      'stKSM',
+      '0xFfc7780C34B450d917d557E728f033033CB4fA8C'
+    ),
+  ]);
+
   return data.flat();
 };
 
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://lido.fi/#networks',
 };

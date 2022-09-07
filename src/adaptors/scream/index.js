@@ -1,3 +1,4 @@
+const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 const Web3 = require('web3');
 
@@ -27,9 +28,13 @@ const query = gql`
 const web3 = new Web3(FTM_RPC);
 
 const getRewardTokenApr = async (marketsData) => {
-  const {
-    scream: { usd: rewardTokenPrice },
-  } = await utils.getCGpriceData('scream', true);
+  const key = 'fantom:0xe0654c8e6fd4d733349ac7e09f6f23da256bf475';
+  const rewardTokenPrice = (
+    await superagent.post('https://coins.llama.fi/prices').send({
+      coins: [key],
+    })
+  ).body.coins[key].price;
+
   const comptroller = new web3.eth.Contract(
     comptrollerABI,
     COMPTROLLER_ADDRESS
@@ -85,4 +90,5 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
+  url: 'https://scream.sh/lend',
 };

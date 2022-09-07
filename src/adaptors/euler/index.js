@@ -42,4 +42,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://app.euler.finance/',
 };

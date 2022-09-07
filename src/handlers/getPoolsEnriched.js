@@ -4,7 +4,7 @@ const AppError = require('../utils/appError');
 const { lambdaResponse } = require('../utils/lambda');
 
 // returns enriched pool data
-module.exports.handler = async (event, context, callback) => {
+module.exports.handler = async (event) => {
   const response = await buildPoolsEnriched(event.queryStringParameters);
 
   if (!response) {
@@ -23,7 +23,10 @@ const buildPoolsEnriched = async (queryString) => {
     'project',
     'symbol',
     'tvlUsd',
+    'apyBase',
+    'apyReward',
     'apy',
+    'rewardTokens',
     'pool',
     'apyPct1D',
     'apyPct7D',
@@ -32,11 +35,12 @@ const buildPoolsEnriched = async (queryString) => {
     'ilRisk',
     'exposure',
     'predictions',
-    'market',
+    'poolMeta',
     'mu',
     'sigma',
     'count',
     'outlier',
+    'underlyingTokens',
   ]
     .map((el) => `t."${el}"`)
     .join(', ');
@@ -66,10 +70,7 @@ const buildPoolsEnriched = async (queryString) => {
     },
   };
 
-  let data = await getDataUsingS3Select(params);
-  // rook requires an adaptor change, we going to remove it from the enriched
-  // dataset for now
-  data = data.filter((el) => el.project !== 'rook');
+  const data = await getDataUsingS3Select(params);
 
   return data;
 };

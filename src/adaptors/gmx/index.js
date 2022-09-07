@@ -26,6 +26,8 @@ const avalancheInflationGlpTrackerAddress =
 
 const secondsPerYear = 31536000;
 
+const ETH_AVAX = '0x0000000000000000000000000000000000000000';
+
 async function getAdjustedAmount(pTarget, pChain, pAbi, pParams = []) {
   let decimals = await sdk.api.abi.call({
     target: pTarget,
@@ -94,7 +96,15 @@ async function getPoolGmx(
     project: 'gmx',
     symbol: utils.formatSymbol('GMX'),
     tvlUsd: tvlGmx,
-    apy: apyFee + apyInflation,
+    apyBase: apyFee,
+    apyReward: apyInflation,
+    rewardTokens:
+      chainString === 'arbitrum'
+        ? [arbitrumGmxAddress, ETH_AVAX]
+        : [avalacheGmxAddress, ETH_AVAX],
+    underlyingTokens: [
+      chainString === 'arbitrum' ? arbitrumGmxAddress : avalacheGmxAddress,
+    ],
   };
 }
 
@@ -121,7 +131,21 @@ async function getPoolGlp(
     project: 'gmx',
     symbol: utils.formatSymbol('GLP'),
     tvlUsd: parseFloat(pTvl),
-    apy: apyFee + apyInflation,
+    apyBase: apyFee,
+    apyReward: apyInflation,
+    rewardTokens:
+      chainString === 'arbitrum'
+        ? [arbitrumGmxAddress, ETH_AVAX]
+        : [avalacheGmxAddress, ETH_AVAX],
+
+    underlyingTokens: [
+      chainString === 'arbitrum' ? arbitrumGmxAddress : avalacheGmxAddress,
+    ],
+    underlyingTokens: [
+      chainString === 'arbitrum'
+        ? '0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258'
+        : '0x01234181085565ed162a948b6a5e88758CD7c7b8',
+    ],
   };
 }
 
@@ -244,4 +268,5 @@ const getPools = async () => {
 module.exports = {
   timetravel: false,
   apy: getPools,
+  url: 'https://app.gmx.io/#/earn',
 };
