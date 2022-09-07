@@ -24,7 +24,7 @@ const main = async () => {
     {
       timestamp: new Date(),
       medianAPY: +ss.median(pools.map((p) => p.apy)).toFixed(5),
-      uniquePools: new Set(pools.map((p) => p.pool)).size,
+      uniquePools: new Set(pools.map((p) => p.configID)).size,
     },
   ];
   const response = await insertMedian(payload);
