@@ -11,6 +11,7 @@ const networkMapping = {
   1666600000: 'harmony',
   42220: 'celo',
   42161: 'arbitrum',
+  1284: 'moonbeam',
   1285: 'moonriver',
   1088: 'metis',
   250: 'fantom',
@@ -66,7 +67,7 @@ const main = async () => {
         project: 'beefy',
         symbol: utils.formatSymbol(pool.split('-').slice(1).join('-')),
         tvlUsd: poolData[pool],
-        apy: poolMeta?.status == 'active' ? apy[pool] * 100: 0,
+        apy: poolMeta?.status == 'active' ? apy[pool] * 100 : 0,
         poolMeta:
           platformId === undefined ? null : utils.formatChain(platformId),
       });
