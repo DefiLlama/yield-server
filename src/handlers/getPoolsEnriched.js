@@ -71,7 +71,7 @@ const buildPoolsEnriched = async (queryString) => {
     },
   };
 
-  let data = await getDataUsingS3Select(params);
+  const data = await getDataUsingS3Select(params);
 
   return data;
 };
