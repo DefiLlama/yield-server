@@ -68,6 +68,7 @@ const getDistinctID = async () => {
     `
     SELECT
         DISTINCT(pool),
+        config_id,
         project
     FROM
         $<table:name>
@@ -116,3 +117,7 @@ module.exports = {
   getDistinctID,
   tableName,
 };
+
+(async () => {
+  console.log(await getDistinctID());
+})();
