@@ -11,7 +11,6 @@ const networkMapping = {
   1666600000: 'harmony',
   42220: 'celo',
   42161: 'arbitrum',
-  1284: 'moonbeam',
   1285: 'moonriver',
   1088: 'metis',
   250: 'fantom',
@@ -20,6 +19,9 @@ const networkMapping = {
   122: 'fuse',
   56: 'binance',
   25: 'cronos',
+  1284: 'moonbeam',
+  42262: 'oasis',
+  1313161554: 'aurora',
 };
 
 // hardcode bifi token addresses per chain
@@ -37,6 +39,9 @@ const bifiMapping = {
   122: '0x2bF9b864cdc97b08B6D79ad4663e71B8aB65c45c',
   56: '0xCa3F508B8e4Dd382eE878A314789373D80A5190A',
   25: '0xe6801928061CDbE32AC5AD0634427E140EFd05F9',
+  1284: '0x595c8481c48894771CE8FaDE54ac6Bf59093F9E8',
+  42262: '0x65e66a61D0a8F1e686C2D6083ad611a10D84D97A',
+  1313161554: '0x218c3c3D49d0E7B37aff0D8bB079de36Ae61A4c0',
 };
 
 const main = async () => {
