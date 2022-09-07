@@ -27,8 +27,7 @@ const buildPoolsEnriched = async (queryString) => {
     'apyReward',
     'apy',
     'rewardTokens',
-    'pool', // the configID
-    'pool_', // our adapter pool id's
+    'pool',
     'apyPct1D',
     'apyPct7D',
     'apyPct30D',
