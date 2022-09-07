@@ -1,6 +1,6 @@
 const utils = require('../utils');
 
-const API_URL = 'https://prod.i4i-api.com/pools';
+const API_URL = 'https://prod.kokonut-api.com/pools';
 
 interface Pool {
   address: string;
