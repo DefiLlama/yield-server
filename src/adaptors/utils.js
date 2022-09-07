@@ -1,14 +1,24 @@
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
+const { chunk } = require('lodash');
+const sdk = require('@defillama/sdk');
+const { default: BigNumber } = require('bignumber.js');
 
-exports.formatChain = (chain) => chain.charAt(0).toUpperCase() + chain.slice(1);
+exports.formatChain = (chain) => {
+  if (chain && chain.toLowerCase() === 'xdai') return 'Gnosis';
+  if (chain && chain.toLowerCase() === 'kcc') return 'KCC';
+  if (chain && chain.toLowerCase() === 'okexchain') return 'OKExChain';
+  return chain.charAt(0).toUpperCase() + chain.slice(1);
+};
+
+const getFormatter = (symbol) => {
+  if (symbol.includes('USD+')) return /[_:\/]/g;
+  return /[_+:\/]/g;
+};
 
 // replace / with - and trim potential whitespace
 exports.formatSymbol = (symbol) =>
-  symbol
-    .replace(/[_+\/]/g, '-')
-    .replace(/\s/g, '')
-    .trim();
+  symbol.replace(getFormatter(symbol), '-').replace(/\s/g, '').trim();
 
 exports.getData = async (url, query = null) => {
   if (query !== null) {
@@ -20,67 +30,15 @@ exports.getData = async (url, query = null) => {
   return res;
 };
 
-exports.getCGpriceData = async (tokenString, symbols, chainId = 'ethereum') => {
-  let url = 'https://api.coingecko.com/api/v3/simple/';
-  if (symbols === true) {
-    url = `${url}price?ids=${tokenString}&vs_currencies=usd`;
-  } else {
-    url = `${url}token_price/${chainId}?contract_addresses=${tokenString}&vs_currencies=usd`;
-  }
-
-  let res = await superagent.get(url);
-  res = res.body;
-  return res;
-};
-
 // retrive block based on unixTimestamp array
 exports.getBlocksByTime = async (timestamps, chainString) => {
-  const urlsKeys = {
-    ethereum: {
-      url: 'https://api.etherscan.io',
-      key: process.env.ETHERSCAN,
-    },
-    polygon: {
-      url: 'https://api.polygonscan.com',
-      key: process.env.POLYGONSCAN,
-    },
-    avalanche: {
-      url: 'https://api.snowtrace.io',
-      key: process.env.SNOWTRACE,
-    },
-    arbitrum: {
-      url: 'https://api.arbiscan.io',
-      key: process.env.ARBISCAN,
-    },
-    optimism: {
-      url: 'https://api-optimistic.etherscan.io',
-      key: process.env.OPTIMISM,
-    },
-    xdai: {
-      url: 'https://blockscout.com/xdai/mainnet',
-      key: process.env.XDAI,
-    },
-  };
-
+  const chain = chainString === 'avalanche' ? 'avax' : chainString;
   const blocks = [];
   for (const timestamp of timestamps) {
-    const url =
-      `${urlsKeys[chainString].url}/api?module=block&action=getblocknobytime&timestamp=` +
-      timestamp +
-      '&closest=before&apikey=' +
-      urlsKeys[chainString].key;
-
-    const response = await superagent.get(url);
-
-    let blockNumber;
-
-    if (url.includes('blockscout')) {
-      blockNumber = response.body.result.blockNumber;
-    } else {
-      blockNumber = response.body.result;
-    }
-
-    blocks.push(parseInt(blockNumber));
+    const response = await superagent.get(
+      `https://coins.llama.fi/block/${chain}/${timestamp}`
+    );
+    blocks.push(response.body.height);
   }
   return blocks;
 };
@@ -123,7 +81,7 @@ const getLatestBlockSubgraph = async (url) => {
 };
 
 // func which queries subgraphs for their latest block nb and compares it against
-// the latest block from etherscan api, if within a certain bound -> ok, otherwise
+// the latest block from https://coins.llama.fi/block/, if within a certain bound -> ok, otherwise
 // will break as data is stale
 exports.getBlocks = async (chainString, tsTimeTravel, urlArray) => {
   const timestamp =
@@ -243,3 +201,133 @@ exports.apy = (entry, dataPrior, version) => {
 
   return entry;
 };
+
+exports.keepFinite = (p) => {
+  if (
+    !['apyBase', 'apyReward', 'apy']
+      .map((f) => Number.isFinite(p[f]))
+      .includes(true)
+  )
+    return false;
+
+  return Number.isFinite(p['tvlUsd']);
+};
+
+exports.getPrices = async (addresses, chain) => {
+  const prices = (
+    await superagent.post('https://coins.llama.fi/prices').send({
+      coins: chain
+        ? addresses.map((address) => `${chain}:${address}`)
+        : addresses,
+    })
+  ).body.coins;
+
+  const pricesByAddress = Object.entries(prices).reduce(
+    (acc, [address, price]) => ({
+      ...acc,
+      [address.split(':')[1].toLowerCase()]: price.price,
+    }),
+    {}
+  );
+
+  const pricesBySymbol = Object.entries(prices).reduce(
+    (acc, [name, price]) => ({
+      ...acc,
+      [price.symbol.toLowerCase()]: price.price,
+    }),
+    {}
+  );
+
+  return { pricesBySymbol, pricesByAddress };
+};
+
+///////// UNISWAP V2
+
+const calculateApy = (
+  poolInfo,
+  totalAllocPoint,
+  rewardPerBlock,
+  rewardPrice,
+  reserveUSD,
+  blocksPerYear
+) => {
+  const poolWeight = poolInfo.allocPoint / totalAllocPoint;
+  const tokensPerYear = blocksPerYear * rewardPerBlock;
+
+  return ((poolWeight * tokensPerYear * rewardPrice) / reserveUSD) * 100;
+};
+
+const calculateReservesUSD = (
+  reserves,
+  reservesRatio,
+  token0,
+  token1,
+  tokenPrices
+) => {
+  const { decimals: token0Decimals, id: token0Address } = token0;
+  const { decimals: token1Decimals, id: token1Address } = token1;
+  const token0Price = tokenPrices[token0Address.toLowerCase()];
+  const token1Price = tokenPrices[token1Address.toLowerCase()];
+
+  const reserve0 = new BigNumber(reserves._reserve0)
+    .times(reservesRatio)
+    .times(10 ** (18 - token0Decimals));
+  const reserve1 = new BigNumber(reserves._reserve1)
+    .times(reservesRatio)
+    .times(10 ** (18 - token1Decimals));
+
+  if (token0Price) return reserve0.times(token0Price).times(2).div(1e18);
+  if (token1Price) return reserve1.times(token1Price).times(2).div(1e18);
+};
+
+const getPairsInfo = async (pairs, url) => {
+  const pairQuery = gql`
+    query pairQuery($id_in: [ID!]) {
+      pairs(where: { id_in: $id_in }) {
+        name
+        id
+        token0 {
+          decimals
+          id
+        }
+        token1 {
+          decimals
+          id
+        }
+      }
+    }
+  `;
+  const pairInfo = await Promise.all(
+    chunk(pairs, 7).map((tokens) =>
+      request(url, pairQuery, {
+        id_in: tokens.map((pair) => pair.toLowerCase()),
+      })
+    )
+  );
+
+  return pairInfo
+    .map(({ pairs }) => pairs)
+    .flat()
+    .reduce((acc, pair) => ({ ...acc, [pair.id.toLowerCase()]: pair }), {});
+};
+
+exports.uniswap = { calculateApy, calculateReservesUSD, getPairsInfo };
+
+/// MULTICALL
+
+const makeMulticall = async (abi, addresses, chain, params = null) => {
+  const data = await sdk.api.abi.multiCall({
+    abi,
+    calls: addresses.map((address) => ({
+      target: address,
+      params,
+    })),
+    chain,
+  });
+
+  const res = data.output.map(({ output }) => output);
+
+  return res;
+};
+
+exports.makeMulticall = makeMulticall;

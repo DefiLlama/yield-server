@@ -2,6 +2,8 @@ const superagent = require('superagent');
 
 const utils = require('../utils');
 const pools = require('./pools.json');
+const sdk = require('@defillama/sdk');
+const abi = require('./abi.json');
 
 const url = 'https://api.geist.finance/api/lendingPoolRewards';
 
@@ -16,7 +18,15 @@ const apy = async (pools, dataTvl) => {
   let data = [];
   for (const [i, pool] of pools.entries()) {
     let x = dataTvl.find((el) => el.tokenAddress === pool.address);
-    let depositApy = await getDepositApy(x.underlyingAsset);
+    const output = (
+      await sdk.api.abi.call({
+        target: '0x9FAD24f572045c7869117160A571B2e50b10d068',
+        abi: abi.find((a) => a.name === 'getReserveData'),
+        chain: 'fantom',
+        params: [x.underlyingAsset],
+      })
+    ).output;
+    let depositApy = output.currentLiquidityRate / 1e25;
     if ((i + 1) % maxCallsPerSec === 0) {
       await sleep(1000);
     }
@@ -39,31 +49,6 @@ const padHex = (hexstring, intSize = 256) => {
     hexstring = '0' + hexstring;
   }
   return hexstring;
-};
-
-const getDepositApy = async (address) => {
-  const lendingPoolContract = '0x9FAD24f572045c7869117160A571B2e50b10d068';
-  const getReserveDataHash = '35ea6a75';
-  address = padHex(address);
-
-  const url =
-    'https://api.ftmscan.com/api?module=proxy&action=eth_call&to=' +
-    lendingPoolContract +
-    '&data=0x' +
-    getReserveDataHash +
-    address +
-    '&tag=latest&apikey=' +
-    process.env.FANTOMSCAN;
-  const response = await superagent(url);
-  const data = response.body;
-  const hexValue = data.result;
-
-  // extract relevant deposit apy value only
-  let x = hexValue.replace('0x', '');
-  const bytes = 64;
-  x = parseInt(x.slice(bytes * 3, bytes * 4), 16) / 1e25;
-
-  return x;
 };
 
 const buildPool = (entry, chainString) => {
@@ -100,4 +85,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://geist.finance/markets',
 };

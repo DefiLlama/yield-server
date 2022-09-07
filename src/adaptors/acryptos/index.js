@@ -5,7 +5,9 @@ const urlApi = 'https://api.unrekt.net/api/v2/acryptos-asset.json';
 const chainMapping = {
   56: 'binance',
   25: 'cronos',
+  100: 'xdai',
   250: 'fantom',
+  592: 'astar',
   1284: 'moonbeam',
   1285: 'moonriver',
   43114: 'avalanche',
@@ -14,13 +16,14 @@ const chainMapping = {
 
 const fetch = (dataTvl, chainMapping) => {
   const data = [];
-  
+
   for (const chain of Object.keys(chainMapping)) {
     poolData = dataTvl[chain];
 
     for (const [addr, details] of Object.entries(poolData)) {
-
-      if(details.status === 'deprecated') { continue; }
+      if (details.status === 'deprecated') {
+        continue;
+      }
       data.push({
         id: `acryptos-${chain}${addr}`,
         network: chain,
@@ -34,13 +37,14 @@ const fetch = (dataTvl, chainMapping) => {
   return data;
 };
 
-
 const buildObject = (entry) => {
+  const platform = entry.platform;
   const payload = {
     pool: entry.id,
     chain: utils.formatChain(chainMapping[entry.network]),
     project: 'acryptos',
-    symbol: utils.formatSymbol(entry.symbol) + ` (${entry.platform})`,
+    symbol: utils.formatSymbol(entry.symbol),
+    poolMeta: platform.charAt(0).toUpperCase() + platform.slice(1),
     tvlUsd: Number(entry.tvl),
     apy: Number(entry.apy),
   };
@@ -51,17 +55,17 @@ const buildObject = (entry) => {
 const main = async () => {
   // pull data
   const dataApi = await utils.getData(urlApi);
-  
+
   let data = fetch(dataApi.assets, chainMapping);
 
   // build pool objects
   data = data.map((el) => buildObject(el));
 
-  return data;
+  return data.filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://app-v2.acryptos.com/#/BSC/vaults/all',
 };
-
