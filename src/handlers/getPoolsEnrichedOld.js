@@ -74,16 +74,16 @@ const buildPoolsEnrichedOld = async (queryString) => {
   return data;
 };
 
-// the above is not cached like we do for /pools. api response is >6mb so we won't be able to
-// return the data from the lambda directly. applying redirect as in defillama-server
+// /poolsOld runs lambda -> stores data to s3 (temp folder) and redirects so it reads from there
+// instead of returning from lambda (which breaks the 6mb limit as we are already above that)
+// applying redirect as in defillama-server
 // (see: https://github.com/DefiLlama/defillama-server/blob/master/defi/src/getProtocol.ts#L50)
-const datasetBucket = 'defillama-datasets';
-export async function redirectResponse(response) {
+const redirectResponse = async (response) => {
   const jsonData = JSON.stringify(response);
   const filename = 'yields-poolsOld.json';
   await storeDataset(filename, jsonData, 'application/json');
   return buildRedirect(filename);
-}
+};
 
 function next21Minutedate() {
   const dt = new Date();
@@ -92,19 +92,19 @@ function next21Minutedate() {
   return dt;
 }
 
-export async function storeDataset(filename, body, contentType = 'text/csv') {
+const storeDataset = async (filename, body, contentType = 'text/csv') => {
   await new S3()
     .upload({
-      Bucket: datasetBucket,
+      Bucket: 'defillama-datasets',
       Key: `temp/${filename}`,
       Body: body,
       ACL: 'public-read',
       ContentType: contentType,
     })
     .promise();
-}
+};
 
-export function buildRedirect(filename, cache) {
+const buildRedirect = (filename, cache) => {
   return {
     statusCode: 307,
     body: '',
@@ -118,4 +118,4 @@ export function buildRedirect(filename, cache) {
       Expires: next21Minutedate(),
     },
   };
-}
+};
