@@ -16,6 +16,8 @@ const getMedian = async () => {
         "medianAPY"
     FROM
         $<table:name>
+    ORDER BY
+        timestamp ASC
     `,
     { compress: true }
   );
