@@ -64,6 +64,8 @@ const main = async () => {
           ? bifiMapping[chain]
           : poolMeta.earnedTokenAddress;
 
+      const isActive = poolMeta === undefined || poolMeta.status == 'active';
+
       if (!poolId) continue;
 
       data.push({
@@ -72,7 +74,7 @@ const main = async () => {
         project: 'beefy',
         symbol: utils.formatSymbol(pool.split('-').slice(1).join('-')),
         tvlUsd: poolData[pool],
-        apy: poolMeta?.status == 'active' ? apy[pool] * 100 : 0,
+        apy: isActive ? apy[pool] * 100 : 0,
         poolMeta:
           platformId === undefined ? null : utils.formatChain(platformId),
       });
