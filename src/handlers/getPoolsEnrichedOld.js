@@ -80,7 +80,7 @@ const buildPoolsEnrichedOld = async (queryString) => {
 const datasetBucket = 'defillama-datasets';
 export async function redirectResponse(response) {
   const jsonData = JSON.stringify(response);
-  const filename = 'poolsOld.json';
+  const filename = 'yields-poolsOld.json';
   await storeDataset(filename, jsonData, 'application/json');
   return buildRedirect(filename);
 }
