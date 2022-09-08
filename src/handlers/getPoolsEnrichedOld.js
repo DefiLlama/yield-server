@@ -12,7 +12,7 @@ module.exports.handler = async (event) => {
     return new AppError("Couldn't retrieve data", 404);
   }
 
-  return wrapResponseOrRedirect(response);
+  return redirectResponse(response);
 };
 
 const buildPoolsEnrichedOld = async (queryString) => {
@@ -78,11 +78,18 @@ const buildPoolsEnrichedOld = async (queryString) => {
 // return the data from the lambda directly. applying redirect as in defillama-server
 // (see: https://github.com/DefiLlama/defillama-server/blob/master/defi/src/getProtocol.ts#L50)
 const datasetBucket = 'defillama-datasets';
-export async function wrapResponseOrRedirect(response) {
+export async function redirectResponse(response) {
   const jsonData = JSON.stringify(response);
   const filename = 'poolsOld.json';
   await storeDataset(filename, jsonData, 'application/json');
   return buildRedirect(filename);
+}
+
+function next21Minutedate() {
+  const dt = new Date();
+  dt.setHours(dt.getHours() + 1);
+  dt.setMinutes(21);
+  return dt;
 }
 
 export async function storeDataset(filename, body, contentType = 'text/csv') {
@@ -108,6 +115,7 @@ export function buildRedirect(filename, cache) {
             'Cache-Control': `max-age=${cache}`,
           }
         : {}),
+      Expires: next21Minutedate(),
     },
   };
 }
