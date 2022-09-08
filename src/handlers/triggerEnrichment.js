@@ -249,7 +249,7 @@ const main = async () => {
   // before saving, we set pool = configID for the api response of /pools & /poolsEnriched
   // so we can have the same usage pattern on /chart without breaking changes
   dataEnriched = dataEnriched
-    .map((p) => ({ pool: p.configID, ...p }))
+    .map((p) => ({ ...p, pool_old: p.pool, pool: p.configID }))
     .map(({ configID, ...p }) => p);
 
   // ---------- save output to S3
