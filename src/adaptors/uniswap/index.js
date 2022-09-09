@@ -6,7 +6,7 @@ const baseUrl = 'https://api.thegraph.com/subgraphs/name';
 const urlV2 = `${baseUrl}/ianlapham/uniswapv2`;
 const urlV3 = `${baseUrl}/uniswap/uniswap-v3`;
 const urlPolygon = `${baseUrl}/ianlapham/uniswap-v3-polygon`;
-const urlArbitrum = `${baseUrl}/ianlapham/arbitrum-minimal`;
+const urlArbitrum = `${baseUrl}/ianlapham/arbitrum-dev`;
 const urlOptimism = `${baseUrl}/ianlapham/optimism-post-regenesis`;
 
 const queryV2 = gql`
