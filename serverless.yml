@@ -89,6 +89,7 @@ functions:
       FANTOM_RPC: ${file(./env.js):FANTOM_RPC}
       TVL_SPIKE_WEBHOOK: ${file(./env.js):TVL_SPIKE_WEBHOOK}
       NEW_YIELDS_WEBHOOK: ${file(./env.js):NEW_YIELDS_WEBHOOK}
+      STALE_PROJECTS_WEBHOOK: ${file(./env.js):STALE_PROJECTS_WEBHOOK}
 
   # --- data enrichment
   triggerEnrichment:
@@ -125,6 +126,15 @@ functions:
     events:
       # every hour at 25 past
       - schedule: cron(25 * * * ? *)
+
+  # --- trigger monitor
+  triggerMonitor:
+    handler: src/handlers/triggerMonitor.handler
+    description: Lambda which triggers the monitor query for logging stale adapters
+    timeout: 300
+    events:
+      # every hour at 30 past
+      - schedule: cron(30 * * * ? *)
 
   # ---------- GET HANDLERS
   getPoolsEnriched:
