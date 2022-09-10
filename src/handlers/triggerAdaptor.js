@@ -94,6 +94,12 @@ const main = async (body) => {
     apy: p.apy ?? p.apyBase + p.apyReward,
   }));
 
+  // in case of negative total apy value -> set to 0;
+  data = data.map((p) => ({
+    ...p,
+    apy: p.apy < 0 ? 0 : p.apy,
+  }));
+
   // remove pools based on apy boundaries
   data = data.filter(
     (p) =>
