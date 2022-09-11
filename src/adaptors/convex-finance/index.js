@@ -311,7 +311,6 @@ const main = async () => {
         symbol: pool.coins.map((coin) => coin.symbol).join('-'),
         tvlUsd: pool.cvxTvl,
         apyBase: baseApy,
-        apy: pool.apr + baseApy + pool.crvApr + pool.extrApr,
         apyReward: pool.crvApr + pool.apr + pool.extrApr,
         underlyingTokens: pool.coins.map(({ address }) => address),
         rewardTokens: [
