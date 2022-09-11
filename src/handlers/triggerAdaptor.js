@@ -97,10 +97,19 @@ const main = async (body) => {
     apyReward: p.apyReward < 0 ? 0 : p.apyReward,
   }));
 
-  // derive final total apy in case only apyBase and/or apyReward are given
+  // derive final total apy field
   data = data.map((p) => ({
     ...p,
-    apy: p.apy ?? p.apyBase + p.apyReward,
+    apy:
+      // in case all three fields are given (which is redundant cause we calc the sum here),
+      // we recalculate the total apy. reason: this takes into account any of the above 0 clips
+      // which will result in a different sum than the adaptors output
+      // (only applicable if all 3 fields are provided in the adapter
+      // and if apBase and or apyReward < 0)
+      p.apy !== null && p.apyBase !== null && p.apyReward !== null
+        ? p.apyBase + p.apyReward
+        : // all other cases for which we compute the sum only if apy is null/undefined
+          p.apy ?? p.apyBase + p.apyReward,
   }));
 
   // remove pools based on apy boundaries
