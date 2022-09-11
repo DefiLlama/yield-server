@@ -88,16 +88,19 @@ const main = async (body) => {
     (p) => !(p.apy === null && p.apyBase === null && p.apyReward === null)
   );
 
+  // in case of negative apy values (cause of bug, or else we set those to 0)
+  data = data.map((p) => ({
+    ...p,
+    apy: p.apy < 0 ? 0 : p.apy,
+    apyBase: p.apyBase < 0 ? 0 : p.apyBase,
+    // this shouldn't be lower than 0 lol, but leaving it here anyways in case of bug in adapter
+    apyReward: p.apyReward < 0 ? 0 : p.apyReward,
+  }));
+
   // derive final total apy in case only apyBase and/or apyReward are given
   data = data.map((p) => ({
     ...p,
     apy: p.apy ?? p.apyBase + p.apyReward,
-  }));
-
-  // in case of negative total apy value -> set to 0;
-  data = data.map((p) => ({
-    ...p,
-    apy: p.apy < 0 ? 0 : p.apy,
   }));
 
   // remove pools based on apy boundaries
