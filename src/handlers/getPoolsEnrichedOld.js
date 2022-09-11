@@ -95,7 +95,8 @@ const buildRedirect = (filename) => {
     body: '',
     headers: {
       Location: `https://defillama-datasets.s3.eu-central-1.amazonaws.com/temp/${filename}`,
-      Expires: next21Minutedate()
+      Expires: next21Minutedate(),
+      "Access-Control-Allow-Origin": "*",
     },
   };
 };
