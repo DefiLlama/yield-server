@@ -81,7 +81,7 @@ const apy = async () => {
     return {
       pool: aprData.id,
       project: 'wombat-exchange',
-      chains: 'Binance',
+      chain: 'Binance',
       tvlUsd: Number(pool.liabilityUSD) || 0,
       symbol: pool.symbol,
       apyReward: Number(aprData.medianBoostedAPR) * 100,
