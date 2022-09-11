@@ -3,7 +3,7 @@ const S3 = require('aws-sdk/clients/s3');
 const AppError = require('../utils/appError');
 const { lambdaResponse } = require('../utils/lambda');
 const { getDataUsingS3Select } = require('./getPoolsEnriched');
-const { storeAPIResponse } = require('../utils/s3');
+const { storeAPIResponse, next21Minutedate } = require('../utils/s3');
 
 // returns enriched pool data
 module.exports.handler = async (event) => {
@@ -89,17 +89,13 @@ const redirectResponse = async (response) => {
   return buildRedirect(filename);
 };
 
-const buildRedirect = (filename, cache) => {
+const buildRedirect = (filename) => {
   return {
     statusCode: 307,
     body: '',
     headers: {
       Location: `https://defillama-datasets.s3.eu-central-1.amazonaws.com/temp/${filename}`,
-      ...(cache !== undefined
-        ? {
-            'Cache-Control': `max-age=${cache}`,
-          }
-        : {}),
+      Expires: next21Minutedate()
     },
   };
 };
