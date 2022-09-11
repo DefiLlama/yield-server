@@ -30,6 +30,7 @@ function next21Minutedate() {
   dt.setMinutes(22);
   return dt;
 }
+module.exports.next21Minutedate = next21Minutedate;
 
 module.exports.storeAPIResponse = (
   bucket,
