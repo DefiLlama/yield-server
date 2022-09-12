@@ -158,7 +158,7 @@ const main = async (body) => {
   // that there haven't been any sudden spikes in tvl compared to the previous insert;
   // insert only if tvl conditions are ok:
   // if tvl
-  // - has increased >5x since the last hourly update
+  // - has increased >10x since the last hourly update
   // - and has been updated in the last 5 hours
   // -> block update
 
@@ -167,7 +167,7 @@ const main = async (body) => {
 
   const dataDB = [];
   const nHours = 5;
-  const tvlDeltaMultiplier = 5;
+  const tvlDeltaMultiplier = 10;
   const timedeltaLimit = 60 * 60 * nHours * 1000;
   const droppedPools = [];
   for (const p of data) {
@@ -204,8 +204,8 @@ const main = async (body) => {
   if (delta > 0) {
     console.log(`removed ${delta} sample(s) prior to insert`);
     // send discord message
-    // we limit sending msg only if the pool's last tvlUsd value is >= $500k
-    const filteredPools = droppedPools.filter((p) => p.tvlUsdDB >= 5e5);
+    // we limit sending msg only if the pool's last tvlUsd value is >= $50k
+    const filteredPools = droppedPools.filter((p) => p.tvlUsdDB >= 5e4);
     if (filteredPools.length) {
       const message = filteredPools
         .map(
