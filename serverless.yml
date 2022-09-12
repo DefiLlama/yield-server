@@ -138,27 +138,14 @@ functions:
       STALE_PROJECTS_WEBHOOK: ${file(./env.js):STALE_PROJECTS_WEBHOOK}
 
   # ---------- GET HANDLERS
-  getPoolsEnriched:
-    handler: src/handlers/getPoolsEnriched.handler
-    description: Lambda for retrieving the latest enriched data for each unique pool
+  getPool:
+    handler: src/handlers/getPool.handler
+    description: Lambda for retrieving content from enriched + config table for a particular pool
     timeout: 20
     events:
       - httpApi:
           method: get
-          path: /poolsEnriched
-      - httpApi:
-          method: get
-          path: /pools
-
-  # includes old pool values
-  getPoolsEnrichedOld:
-    handler: src/handlers/getPoolsEnrichedOld.handler
-    description: Lambda for retrieving the latest enriched data for each unique pool (includes old pool values)
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /poolsOld
+          path: /pool/{configID}
 
   getChart:
     handler: src/handlers/getChart.handler
@@ -195,6 +182,16 @@ functions:
       - httpApi:
           method: get
           path: /distinctID
+
+  # includes old pool values
+  getPoolsOld:
+    handler: src/handlers/getPoolsOld.handler
+    description: Lambda for retrieving the latest enriched data for each unique pool (includes old pool values)
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /poolsOld
 
 resources:
   Resources:

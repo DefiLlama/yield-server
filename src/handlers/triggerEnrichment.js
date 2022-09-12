@@ -7,7 +7,7 @@ const {
   getYieldOffset,
 } = require('../controllers/yieldController');
 const { getStat } = require('../controllers/statController');
-const { buildPoolsEnriched } = require('./getPoolsEnriched');
+const { insertEnriched } = require('../controllers/enrichedController');
 const { welfordUpdate } = require('../utils/welford');
 
 module.exports.handler = async (event, context) => {
@@ -248,17 +248,58 @@ const main = async () => {
 
   // before saving, we set pool = configID for the api response of /pools & /poolsEnriched
   // so we can have the same usage pattern on /chart without breaking changes
-  dataEnriched = dataEnriched
-    .map((p) => ({ ...p, pool_old: p.pool, pool: p.configID }))
-    .map(({ configID, ...p }) => p);
-
-  // ---------- save output to S3
-  console.log('\nsaving data to S3');
-  console.log('nb of pools', dataEnriched.length);
-  const bucket = process.env.BUCKET_DATA;
-  const key = 'enriched/dataEnriched.json';
+  dataEnriched = dataEnriched.map((p) => ({
+    ...p,
+    pool_old: p.pool,
+    pool: p.configID,
+  }));
+  // remove fields we don't need in table/s3
+  dataEnriched = dataEnriched.map(
+    ({
+      configID,
+      apyMeanExpanding,
+      apyStdExpanding,
+      chain_factorized,
+      project_factorized,
+      ...p
+    }) => p
+  );
   dataEnriched = dataEnriched.sort((a, b) => b.tvlUsd - a.tvlUsd);
-  await utils.writeToS3(bucket, key, dataEnriched);
+
+  // --- SAVE DATA
+  // ---------- DB INSERT
+  // (will only insert fields defined in the controller)
+  const responseEnriched = await insertEnriched(dataEnriched);
+  console.log(responseEnriched);
+
+  // ---------- S3
+  // this is the origin location for cloudfront CDN;
+  // this method adds an expire header;
+  // on visit of https://yields.llama.fi/pools -> CF will check if the file is
+  // cached and if not expired, if yes, it will serve the cached file. if not
+  // it will fetch the content from the origin (this s3 bucket/filename);
+  // reason we use s3 as our origin instead of api gateway:
+  // - lambda response size must be <= 6mb and we have reached that limit;
+  // - with s3 we can bypass that limit altogether
+  await utils.storeAPIResponse('defillama-datasets', 'yield-api/pools', {
+    status: 'success',
+    // remove pool_old (we don't use this on /pools)
+    data: dataEnriched.map(
+      (p) =>
+        ({ pool_old, ...p }) =>
+          p
+    ),
+  });
+
+  // store full response for getPoolsOld (used only for that alternative api endpoint)
+  // NOTE(!) ideally i could just store to temp (cause if i already store hourly anyways
+  // then i don't see why i cant just store straight to temp)
+  const bucket = process.env.BUCKET_DATA;
+  await utils.storeAPIResponse(bucket, 'enriched/dataEnriched.json', {
+    status: 'success',
+    // remove pool_old (we don't use this on /pools)
+    data: dataEnriched,
+  });
 
   // store ML predictions so we can keep track of model performance
   const f = 1000 * 60 * 60;
@@ -268,12 +309,6 @@ const main = async () => {
     const keyPredictions = `predictions-hourly/dataEnriched_${timestamp}.json`;
     await utils.writeToS3(bucket, keyPredictions, dataEnriched);
   }
-
-  // store /poolsEnriched (/pools) api response to s3 where we cache it
-  await utils.storeAPIResponse('defillama-datasets', 'yield-api/pools', {
-    status: 'success',
-    data: await buildPoolsEnriched(undefined),
-  });
 };
 
 ////// helper functions

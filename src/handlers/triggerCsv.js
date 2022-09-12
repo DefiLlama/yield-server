@@ -1,14 +1,17 @@
 const AWS = require('aws-sdk');
 const createCsvStringifier = require('csv-writer').createObjectCsvStringifier;
 
-const { buildPoolsEnriched } = require('./getPoolsEnriched');
+const { readFromS3 } = require('../utils/s3');
 
 module.exports.handler = async () => {
   await main();
 };
 
 const main = async () => {
-  let poolsEnriched = await buildPoolsEnriched(undefined);
+  let poolsEnriched = await readFromS3(
+    process.env.BUCKET_DATA,
+    'enriched/dataEnriched.json'
+  );
 
   // parse nested prediction field into separate fields
   poolsEnriched = poolsEnriched.map((p) => ({
@@ -18,8 +21,10 @@ const main = async () => {
     binnedConfidence: p['predictions']['binnedConfidence'],
   }));
 
-  // remove predictions field
-  poolsEnriched = poolsEnriched.map(({ predictions, ...item }) => item);
+  // remove fields
+  poolsEnriched = poolsEnriched.map(
+    ({ predictions, pool_old, ...item }) => item
+  );
 
   const csvStringifier = createCsvStringifier({
     header: Object.keys(poolsEnriched[0]).map((c) => ({ id: c, title: c })),
