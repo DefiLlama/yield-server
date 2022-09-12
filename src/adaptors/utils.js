@@ -8,6 +8,7 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'xdai') return 'Gnosis';
   if (chain && chain.toLowerCase() === 'kcc') return 'KCC';
   if (chain && chain.toLowerCase() === 'okexchain') return 'OKExChain';
+  if (chain && chain.toLowerCase() === 'bsc') return 'Binance';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
