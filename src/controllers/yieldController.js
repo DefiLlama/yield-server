@@ -118,53 +118,6 @@ const getYieldHistory = async (configID) => {
   });
 };
 
-// get full history of given configID
-const getYieldHistoryExt = async (configID) => {
-  const conn = await connect();
-
-  const query = minify(
-    `
-    SELECT
-        timestamp,
-        "tvlUsd",
-        apy,
-        "apyBase",
-        "apyReward"
-    FROM
-        $<table:name>
-    WHERE
-        timestamp IN (
-            SELECT
-                max(timestamp)
-            FROM
-                $<table:name>
-            WHERE
-                "configID" = $<configIDValue>
-            GROUP BY
-                (timestamp :: date)
-        )
-        AND "configID" = $<configIDValue>
-    ORDER BY
-        timestamp ASC
-  `,
-    { compress: true }
-  );
-
-  const response = await conn.query(query, {
-    configIDValue: configID,
-    table: tableName,
-  });
-
-  if (!response) {
-    return new AppError(`Couldn't get ${tableName} history data`, 404);
-  }
-
-  return lambdaResponse({
-    status: 'success',
-    data: response,
-  });
-};
-
 // get last DB entry per unique pool for a given project (used by adapter handler to check for TVL spikes)
 const getYieldProject = async (project) => {
   const conn = await connect();
@@ -302,7 +255,6 @@ const buildInsertYieldQuery = (payload) => {
 module.exports = {
   getYieldFiltered,
   getYieldHistory,
-  getYieldHistoryExt,
   getYieldOffset,
   getYieldProject,
   buildInsertYieldQuery,
