@@ -80,7 +80,9 @@ const getYieldHistory = async (configID) => {
     SELECT
         timestamp,
         "tvlUsd",
-        "apy"
+        apy,
+        "apyBase",
+        "apyReward"
     FROM
         $<table:name>
     WHERE
