@@ -153,6 +153,12 @@ const main = async (body) => {
     };
   });
 
+  // change chain `Binance` -> `BSC`
+  data = data.map((p) => ({
+    ...p,
+    chain: p.chain === 'Binance' ? 'BSC' : p.chain,
+  }));
+
   // ---------- tvl spike check
   // prior insert, we run a tvl check to make sure
   // that there haven't been any sudden spikes in tvl compared to the previous insert;
