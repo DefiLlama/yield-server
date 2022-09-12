@@ -167,7 +167,7 @@ const main = async (body) => {
 
   const dataDB = [];
   const nHours = 5;
-  const tvlDeltaMultiplier = 10;
+  const tvlDeltaMultiplier = 5;
   const timedeltaLimit = 60 * 60 * nHours * 1000;
   const droppedPools = [];
   for (const p of data) {
