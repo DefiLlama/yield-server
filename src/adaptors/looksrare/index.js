@@ -79,7 +79,7 @@ const getPrices = async (chain, addresses) => {
     return pricesObj;
 };
 
-function exportFormatter(poolId, chain, tvlUsd, apy, rewardTokens) {
+function exportFormatter(poolId, chain, tvlUsd, apy, rewardTokens, poolMeta) {
     return {
         pool: `${poolId}-${chain}`.toLowerCase(),
         chain,
@@ -87,7 +87,9 @@ function exportFormatter(poolId, chain, tvlUsd, apy, rewardTokens) {
         symbol: `LOOKS`,
         tvlUsd,
         apy,
+        underlyingTokens: [looksrare],
         rewardTokens,
+        poolMeta,
     };
 }
 
@@ -102,8 +104,8 @@ const getApy = async () => {
     const wethApy = calculateApy(pool.rewardPerBlock, prices[weth.toLowerCase()], standardTvl + compounderTvl);
     const looksApy = calculateApy(pool.rewardPerBlockForStaking, prices[looksrare.toLowerCase()], standardTvl + compounderTvl);
 
-    poolsApy.push(exportFormatter(distributor, chain, standardTvl, wethApy + looksApy, pool.rewardTokens));
-    poolsApy.push(exportFormatter(aggregator, chain, compounderTvl, compounderApy(wethApy, looksApy), [pool.rewardTokens[1]]));
+    poolsApy.push(exportFormatter(distributor, chain, standardTvl, wethApy + looksApy, pool.rewardTokens, 'Standard Staking'));
+    poolsApy.push(exportFormatter(aggregator, chain, compounderTvl, compounderApy(wethApy, looksApy), [pool.rewardTokens[1]], 'LOOKS Compounder'));
 
     return poolsApy;
 }
