@@ -185,7 +185,7 @@ const main = async () => {
           params: method === 'balanceOf' ? [MASTERCHEF_ADDRESS] : null,
         })),
         chain: 'cronos',
-        requery: true,
+        ...(method !== 'getReserves' ? { requery: true } : {}),
       })
     )
   );
@@ -202,6 +202,7 @@ const main = async () => {
         ({ pair: pairInfo, pairDayDatas: volumeInfo }) => {
           const poolInfo = poolsInfo[i];
           const reserves = reservesData[i];
+          if (!reserves) return null;
 
           const supply = supplyData[i];
           const masterChefBalance = masterChefBalData[i];
