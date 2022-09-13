@@ -15,9 +15,15 @@ const buildPool = (entry, chainString) => {
 
 const topLvl = async (chainString) => {
   // pull data
-  const s = chainString === 'binance' ? 'bsc' : chainString;
-  const url = `https://api.badger.com/v2/vaults?chain=${s}&currency=usd`;
-  let data = await utils.getData(url);
+  let data = [];
+  try {
+    const s = chainString === 'binance' ? 'bsc' : chainString;
+    const url = `https://api.badger.com/v2/vaults?chain=${s}&currency=usd`;
+    data = await utils.getData(url);
+  } catch (e) {
+    if (e.message.includes('Internal Server Error')) return [];
+    else throw e;
+  }
 
   // build pool objects
   data = data.map((el) => buildPool(el, chainString));
