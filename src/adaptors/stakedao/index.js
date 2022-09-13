@@ -28,14 +28,17 @@ const poolsFunction = async () => {
     utils.getData(`${STRATEGIES_ENDPOINT}`),
     utils.getData(`${STRATEGIES_ENDPOINT}/curve`),
     utils.getData(`${STRATEGIES_ENDPOINT}/balancer`),
+    utils.getData(`${STRATEGIES_ENDPOINT}/fraxv2`),
   ]);
   const angleStrategies = resp[0];
   const curveStrategies = resp[1];
   const balancerStrategies = resp[2];
+  const fraxv2Strategies = resp[3];
 
   const allStrats = angleStrategies
     .concat(curveStrategies)
-    .concat(balancerStrategies);
+    .concat(balancerStrategies)
+    .concat(fraxv2Strategies);
 
   const strats = allStrats.reduce((acc, strat) => {
     const rewardTokens = strat?.aprBreakdown
