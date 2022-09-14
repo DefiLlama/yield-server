@@ -2,7 +2,7 @@ const axios = require('axios');
 const utils = require('../utils');
 
 function aggregateApys(aprs, key, locking) {
-  const stakingApys = aprs.Staking[key].total;
+  const stakingApys = aprs.Staking[key]?.total;
   if (locking) {
     const lockingApys = aprs.Locking[key].total;
     return stakingApys + lockingApys;
@@ -34,7 +34,7 @@ async function apy() {
 }
 
 const main = async () => {
-  return await apy();
+  return (await apy()).filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
