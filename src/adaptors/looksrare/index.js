@@ -105,7 +105,7 @@ const getApy = async () => {
     const wethApy = calculateApy(pool.rewardPerBlock, prices[weth.toLowerCase()], standardTvl + compounderTvl);
     const looksApy = calculateApy(pool.rewardPerBlockForStaking, prices[looksrare.toLowerCase()], standardTvl + compounderTvl);
 
-    poolsApy.push(exportFormatter(distributor, chain, standardTvl, wethApy, looksApy, pool.rewardTokens, 'Standard Staking'));
+    poolsApy.push(exportFormatter(distributor, chain, standardTvl, wethApy, looksApy, [pool.rewardTokens[1]], 'Standard Staking'));
     poolsApy.push(exportFormatter(aggregator, chain, compounderTvl, compounderApy(wethApy, looksApy), null, [pool.rewardTokens[1]], 'LOOKS Compounder'));
 
     return poolsApy;
