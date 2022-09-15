@@ -10,11 +10,11 @@ const apy = async () => {
     .map(pool => utils.getData(FARM_CONFIG_URL(pool.symbol, pool.type, pool.nonce)));
   const poolDetail = await Promise.all(poolDetailCall);
   return poolDetail.map(pool => {
-    const { StakingToken, RewardToken }  = pool.contracts;
+    const { TokensFarm, RewardToken }  = pool.contracts;
     const { chainName } = pool.network;
     const [farmAssets] = pool.farmAssets;
     return {
-      pool: `${StakingToken}-${pool.type}-${chainName}`,
+      pool: `${TokensFarm}-${pool.type}-${chainName}`,
       chain: utils.formatChain(chainName),
       project: 'tokensfarm',
       symbol: farmAssets.assets.map(e => e.symbol).join('-'),
