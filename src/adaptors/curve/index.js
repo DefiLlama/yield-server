@@ -299,7 +299,18 @@ const main = async () => {
     console.error(error);
   }
 
-  return defillamaPooldata;
+  // note(!) LDO apr way to high (10k%) likely cause of mispricing bug.
+  // going to ffill the last correct value until this has been resolved by
+  // curve
+  return defillamaPooldata.map((p) => ({
+    ...p,
+    apyReward:
+      p.pool === '0xDC24316b9AE028F1497c275EB9192a3Ea0f67022-ethereum'
+        ? 6.59491
+        : p.pool === '0xd81dA8D904b52208541Bade1bD6595D8a251F8dd-ethereum'
+        ? 1.44415
+        : p.apyReward,
+  }));
 };
 
 module.exports = {
