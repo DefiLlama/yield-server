@@ -50,7 +50,7 @@ const CHEF = {
 };
 
 const secondsPerDay = 60 * 60 * 24;
-const secondsPerBlock = 13;
+const secondsPerBlock = 12;
 const blocksPerDay = secondsPerDay / secondsPerBlock;
 
 const query = gql`

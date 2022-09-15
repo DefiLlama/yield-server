@@ -119,7 +119,7 @@ function calcApy(chain, allocPoint, totalAllocPoint, reward, rewardPrice, reserv
     // blocks per year * reward * wieght * price
 
     // BLOCK_TIME is number of seconds for 1 block to settle
-    let BLOCK_TIME = 13.5;
+    let BLOCK_TIME = 12;
     if (chain == 'fantom') {
         BLOCK_TIME = 1;
     }
