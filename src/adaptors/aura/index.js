@@ -128,7 +128,9 @@ const main = async () => {
     };
   });
 
-  return res.filter(Boolean);
+  return res
+    .filter(Boolean)
+    .filter((p) => p.pool !== '0xe8cc7e765647625b95f59c15848379d10b9ab4af');
 };
 
 module.exports = {
