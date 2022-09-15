@@ -82,7 +82,9 @@ const rewardRate = async (contract) => {
     );
     const periodFinish = await extraReward.methods.periodFinish().call();
     const isFinished = new Date() > periodFinish * 1000;
-    if (isFinished) continue;
+    // stETH rewards contract address
+    if (isFinished && contract !== '0x0A760466E1B4621579a82a39CB56Dda2F4E70f03')
+      continue;
 
     const extraRewardRate =
       (await extraReward.methods.rewardRate().call()) / 1e18;
