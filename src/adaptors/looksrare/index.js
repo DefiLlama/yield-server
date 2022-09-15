@@ -48,7 +48,7 @@ function calculateApy(reward, price, tvl) {
     // yearlyReward = reward X price X blocks
     // tvl = poolBalance X price
     // apy = yearlyReward / tvl
-    const BLOCK_TIME = 13.5;
+    const BLOCK_TIME = 12;
     const BLOCKS = 365 * 24 * 60 * 60 / BLOCK_TIME;
     const yearlyReward = (reward / 1e18) * price * BLOCKS;
     const apy = (yearlyReward / tvl) * 100;
