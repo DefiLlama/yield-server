@@ -19,6 +19,7 @@ const cvxAddress = '0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B';
 const cliffSize = 100000; // * 1e18; //new cliff every 100,000 tokens
 const cliffCount = 1000; // 1,000 cliffs
 const maxSupply = 100000000; // * 1e18; //100 mil max supply
+const projectedAprTvlThr = 1e6;
 
 const getCVXMintAmount = async (crvEarned) => {
   // first get total supply
@@ -261,10 +262,16 @@ const main = async () => {
       const crvApr = (crvPerYear * crvPrice * 100) / pool.cvxTvl;
 
       const extrApr = extraRewardsApr.reduce((acc, val) => acc + val, 0) || 0;
+
+      // we set 'CVX vAPR' and 'CRV vAPR' to 0 if both isFinished and tvl < THR;
+      // reason: sometimes even for very large pools rewards aren't streaming and require
+      // a harvest call. most often, for large pools the current apr (for CVX vAPR and CRV vAPR)
+      // thus drops to 0 because isFinished is true. for cvxTvl >= THR we use projected apr instead
+      // so we avoid cases where eg LDO rewards are 0 just because rewards haven't been harvested yet
       return {
         ...pool,
-        apr: isFinished ? 0 : apr,
-        crvApr: isFinished ? 0 : crvApr,
+        apr: isFinished && pool.cvxTvl < projectedAprTvlThr ? 0 : apr,
+        crvApr: isFinished && pool.cvxTvl < projectedAprTvlThr ? 0 : crvApr,
         extrApr,
         extraTokens: extraRewards.map(({ token }) => token),
       };
