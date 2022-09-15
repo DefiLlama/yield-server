@@ -52,7 +52,7 @@ const main = async () => {
           p.underlying_address === null && p.underlying_name === 'Ether'
             ? ['0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2']
             : [p.underlying_address],
-        poolMeta: cat,
+        poolMeta: cat === 'lend' ? null : cat,
       });
     }
   }

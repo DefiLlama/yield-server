@@ -68,7 +68,10 @@ const getYieldFiltered = async () => {
     return new AppError(`Couldn't get ${tableName} data`, 404);
   }
 
-  return response;
+  // remove compound borrow pools for now
+  return response.filter(
+    (p) => !(p.project === 'compound' && p.poolMeta === 'borrow')
+  );
 };
 
 // get full history of given configID
