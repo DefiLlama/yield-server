@@ -13,6 +13,7 @@ const excludePools = [
   '0x3c42B0f384D2912661C940d46cfFE1CD10F1c66F-ethereum', // test pool on curve? (CTDL-WBTC)
   '0x165ab553871b1a6b3c706e15b6a7bb29a244b2f3', // XSTUSD-WETH on uniswap
   '0xf81ebbc00b9bbc3a0b0cb1bc4e87ac157028698f', // nitrodoge on sushiswap, tvl on our side is way to large
+  '0xEc54859519293B8784bc5Bf28144166f313618aF', // dai-o uniswap
 ];
 
 const boundaries = {
