@@ -20,7 +20,8 @@ const poolsFunction = async () => {
         'https://clearpool.finance/api/kpi'
     );
     const dataPools = await utils.getData(
-        'https://clearpool.finance/api/top-pools'
+        // 'https://clearpool.finance/api/top-pools'
+        'https://clearpoolfinance-milbi2rkk-clearpool.vercel.app/api/top-pools'
     );
 
     let pools = [];
