@@ -33,9 +33,9 @@ const poolsFunction = async () => {
                 chain: chainName,
                 project: 'clearpool',
                 symbol: pool.symbol,
-                tvlUsd: dataTvl.tvl, // number representing current USD TVL in pool
-                apyBase: pool.supplyAPR, // APY from pool fees,supplying in % // Supply APR
-                apyReward: pool.apr, // APY from pool LM rewards in % // CPOOL APR
+                tvlUsd: dataTvl.tvl,
+                apyBase: pool.supplyAPR, 
+                apyReward: pool.cpoolAPR, // APY from pool LM rewards in % // CPOOL APR
                 rewardTokens: [rewardTokens[chainId]], // !!! // CPOOL token address // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
                 underlyingTokens: [underlyingTokens[chainId]], // Array of underlying token addresses from a pool, eg here USDC address on ethereum
                 poolMeta: "V2 market", // A string value which can stand for any specific details of a pool position, market, fee tier, lock duration, specific strategy etc
