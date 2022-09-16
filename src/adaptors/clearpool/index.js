@@ -16,9 +16,6 @@ const poolsFunction = async () => {
         137: '0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0',
     };
 
-    const dataTvl = await utils.getData(
-        'https://clearpool.finance/api/kpi'
-    );
     const dataPools = await utils.getData(
         'https://clearpool.finance/api/top-pools'
     );
