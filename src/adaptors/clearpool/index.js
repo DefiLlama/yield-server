@@ -29,12 +29,12 @@ const poolsFunction = async () => {
             const chainName = utils.formatChain(networks[chainId]);
             pools.push({
                 pool: `${pool.address}-${chainName}`.toLowerCase(),
-                chain: chainName, // chain where the pool is (needs to match the `name` field in here https://api.llama.fi/chains)
+                chain: chainName,
                 project: 'clearpool',
                 symbol: pool.symbol,
                 tvlUsd: dataTvl.tvl, // number representing current USD TVL in pool
-                apyBase: 0, // APY from pool fees/supplying in %
-                apyReward: pool.apr, // APY from pool LM rewards in %
+                apyBase: pool.supplyAPR, // APY from pool fees,supplying in % // Supply APR
+                apyReward: pool.apr, // APY from pool LM rewards in % // CPOOL APR
                 rewardTokens: [rewardTokens[chainId]], // !!! // CPOOL token address // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
                 underlyingTokens: [underlyingTokens[chainId]], // Array of underlying token addresses from a pool, eg here USDC address on ethereum
                 poolMeta: "V2 market", // A string value which can stand for any specific details of a pool position, market, fee tier, lock duration, specific strategy etc
@@ -42,8 +42,7 @@ const poolsFunction = async () => {
         });
     });
 
-    return [pools[0]]; // single pool
-    // return pools; //for all ethereum pools
+    return pools;
 };
 module.exports = {
     timetravel: false,
