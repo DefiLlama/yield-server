@@ -216,7 +216,7 @@ const getYieldOffset = async (project, offset) => {
         ) AS y
     ORDER BY
         "configID",
-        abs_delta DESC
+        abs_delta ASC
     `,
     { compress: true }
   );
