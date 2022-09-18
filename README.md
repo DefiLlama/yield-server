@@ -26,6 +26,12 @@ interface Pool {
   underlyingTokens?: Array<string>;
   poolMeta?: string;
   url?: string;
+  // optional lending protocol specific fields:
+  apyBaseBorrow?: number;
+  apyRewardBorrow?: number;
+  totalSupplyTvl?: number;
+  totalBorrowTvl?: number;
+  ltv?: number;
 }
 ```
 

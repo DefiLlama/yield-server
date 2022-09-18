@@ -22,6 +22,11 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'rewardTokens',
       'poolMeta',
       'url',
+      'apyBaseBorrow',
+      'apyRewardBorrow',
+      'totalSupplyUsd',
+      'totalBorrowUsd',
+      'ltv',
     ];
     const fields = [...Object.keys(baseFields), ...optionalFields, 'tvlUsd'];
     apy.forEach((pool) => {
