@@ -196,8 +196,11 @@ const getApy = async () => {
   const tokens0 = underlyingToken0.output.map((res) => res.output);
   const tokens1 = underlyingToken1.output.map((res) => res.output);
   const tokensPrices = await getPrices([...tokens0, ...tokens1]);
-  const yodePrice = await getPriceByReserves(reservesData[1]);
-  tokensPrices[YODE_TOKEN.toLowerCase()] = yodePrice * 10**12;
+  const yodeId = 'coingecko:yodeswap';
+  const yodePrice = (
+    await superagent.get(`https://coins.llama.fi/prices/current/${yodeId}`)
+  ).body.coins[yodeId].price;
+  tokensPrices[YODE_TOKEN.toLowerCase()] = yodePrice
   const pairsInfo = await getPairInfo(lpTokens);
   const lpChunks = chunk(lpTokens, 10);
 
