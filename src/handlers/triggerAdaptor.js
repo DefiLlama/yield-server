@@ -148,7 +148,7 @@ const main = async (body) => {
       apyBase: p.apyBase !== null ? +p.apyBase.toFixed(precision) : p.apyBase,
       apyReward:
         p.apyReward !== null ? +p.apyReward.toFixed(precision) : p.apyReward,
-      url: project.url,
+      url: p.url ?? project.url,
       timestamp,
     };
   });

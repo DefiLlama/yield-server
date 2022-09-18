@@ -25,6 +25,7 @@ interface Pool {
   rewardTokens?: Array<string>;
   underlyingTokens?: Array<string>;
   poolMeta?: string;
+  url?: string;
 }
 ```
 
