@@ -4,7 +4,7 @@ const { confirm } = require('./confirm');
 const { pgp, connect } = require('../src/utils/dbConnection');
 const {
   tableName: configTableName,
-} = require('../controllers/configController');
+} = require('../src/controllers/configController');
 
 (async () => {
   await confirm(
@@ -13,7 +13,7 @@ const {
       .slice(-1)} script: `
   );
 
-  const payload = JSON.parse(fs.readFileSync('../old_new_mapping.json'));
+  const payload = JSON.parse(fs.readFileSync('./old_new_mapping.json'));
   const X = payload.map((p) => ({ poolOld: p.pool, pool: p.poolNew }));
 
   // ? -> only used in where clause
