@@ -29,8 +29,8 @@ interface Pool {
   // optional lending protocol specific fields:
   apyBaseBorrow?: number;
   apyRewardBorrow?: number;
-  totalSupplyTvl?: number;
-  totalBorrowTvl?: number;
+  totalSupplyUsd?: number;
+  totalBorrowUsd?: number;
   ltv?: number;
 }
 ```
