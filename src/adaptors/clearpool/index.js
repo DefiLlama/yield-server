@@ -28,7 +28,7 @@ const poolsFunction = async () => {
                 pool: `${pool.address}-${chainName}`.toLowerCase(),
                 chain: chainName,
                 project: 'clearpool',
-                symbol: pool.symbol,
+                symbol: pool.asset,
                 tvlUsd: pool.poolSize - pool.utilization,
                 apyBase: pool.supplyAPR,
                 apyReward: pool.cpoolAPR, // APY from pool LM rewards in % // CPOOL APR
