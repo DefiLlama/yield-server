@@ -1,3 +1,4 @@
+const { util } = require('@defillama/sdk');
 const { gql, request } = require('graphql-request');
 
 const BLOCK_API =
@@ -74,9 +75,6 @@ const apy = async () => {
   const pools = tokensNow.map((pool) => {
     const aprData =
       aprs.find((apr) => apr.underlyingToken.id === pool.id) || {};
-    const volumePrev = tokens24hAgo.find(
-      (token) => token.id === pool.id
-    ).totalTradeVolume;
 
     return {
       pool: aprData.id,
