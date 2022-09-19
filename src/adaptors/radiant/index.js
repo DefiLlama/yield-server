@@ -26,15 +26,34 @@ const apy = async (pools, dataTvl) => {
         params: [pool.underlyingAsset],
       })
     ).output;
+
+    const liquidity = (
+      await sdk.api.abi.call({
+        target: pool.underlyingAsset,
+        abi: 'erc20:balanceOf',
+        chain: 'arbitrum',
+        params: [pool.address],
+      })
+    ).output;
+
+    const decimals = +(
+      await sdk.api.abi.call({
+        target: pool.underlyingAsset,
+        abi: 'erc20:decimals',
+        chain: 'arbitrum',
+      })
+    ).output;
+
     let depositApy = output.currentLiquidityRate / 1e25;
     if ((i + 1) % maxCallsPerSec === 0) {
       await sleep(1000);
     }
 
     data.push({
+      ...pool,
       id: x.tokenAddress,
       symbol: pool.symbol,
-      tvl: x.poolValue,
+      tvl: (liquidity / 10 ** decimals) * x.assetPrice,
       depositApy,
       rewardApy: x.apy * 100,
     });
@@ -55,10 +74,15 @@ const buildPool = (entry, chainString) => {
   const newObj = {
     pool: entry.id,
     chain: utils.formatChain(chainString),
-    project: 'radiant-capital',
+    project: 'radiant',
     symbol: utils.formatSymbol(entry.symbol),
     tvlUsd: entry.tvl,
-    apy: entry.depositApy + entry.rewardApy,
+    apyBase: entry.depositApy,
+    apyReward: entry.rewardApy,
+    underlyingTokens: [entry.underlyingAsset],
+    rewardTokens: [
+      '0x0c4681e6c0235179ec3d4f4fc4df3d14fdd96017', //RNDT
+    ],
   };
 
   return newObj;

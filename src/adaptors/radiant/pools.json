@@ -2,27 +2,27 @@
     {
       "address": "0x4cD44E6fCfA68bf797c65889c74B26b8C2e5d4d3",
       "underlyingAsset": "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f",
-      "symbol": "rWBTC"
+      "symbol": "WBTC"
     },
     {
       "address": "0xEf47CCC71EC8941B67DC679D1a5f78fACfD0ec3C",
       "underlyingAsset": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
-      "symbol": "rUSDT"
+      "symbol": "USDT"
     },
     {
       "address": "0x805ba50001779CeD4f59CfF63aea527D12B94829",
       "underlyingAsset": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
-      "symbol": "rUSDC"
+      "symbol": "USDC"
     },
     {
       "address": "0x5293c6CA56b8941040b8D18f557dFA82cF520216",
       "underlyingAsset": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
-      "symbol": "rDAI"
+      "symbol": "DAI"
     },
     {
       "address": "0x15b53d277Af860f51c3E6843F8075007026BBb3a",
       "underlyingAsset": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-      "symbol": "rWETH"
+      "symbol": "WETH"
     }
   ]
   
