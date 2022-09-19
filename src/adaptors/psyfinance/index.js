@@ -3,7 +3,7 @@ const utils = require('../utils');
 
 const BASE_URL = 'https://us-central1-psyfi-api.cloudfunctions.net/';
 
-export const getCombinedApy = (vault, lockupPeriod = 0) => {
+const getCombinedApy = (vault, lockupPeriod = 0) => {
   const stakingApr = vault.staking?.stakingApr;
   if (stakingApr?.[lockupPeriod]) {
     return vault.apy.standardApy.apyBeforeFees + stakingApr[lockupPeriod];
