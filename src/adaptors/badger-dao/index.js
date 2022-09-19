@@ -103,7 +103,7 @@ async function queryVaults(chain) {
 
     return data.map((e) => {
       const { apr: { sources }, yieldProjection: {
-        harvestPeriodApr, harvestTokens, nonHarvestApr,
+        harvestApr, harvestTokens, nonHarvestApr,
       }, tokens, protocol, value: tvlUsd, vaultToken: pool } = e;
 
       let apyBase = e.apy.baseYield;
@@ -111,7 +111,7 @@ async function queryVaults(chain) {
                         .reduce((total, s) => (total += s.performance.baseYield), 0);
 
       if (e.version === 'v1.5') {
-        apyBase = harvestPeriodApr;
+        apyBase = harvestApr;
         apyReward = nonHarvestApr;
       }
 
