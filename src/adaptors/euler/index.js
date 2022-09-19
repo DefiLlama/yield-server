@@ -23,7 +23,7 @@ const buildPool = (pool, chainString) => {
     project: 'euler',
     symbol: utils.formatSymbol(pool.symbol),
     tvlUsd: (pool.totalBalancesUsd - pool.totalBorrowsUsd) / 1e18,
-    apy: pool.supplyAPY / 1e25,
+    apyBase: pool.supplyAPY / 1e25,
   };
 };
 
