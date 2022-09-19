@@ -29,7 +29,7 @@ const poolsFunction = async () => {
                 chain: chainName,
                 project: 'clearpool',
                 symbol: pool.symbol,
-                tvlUsd: pool.poolSize,
+                tvlUsd: pool.poolSize - pool.utilization,
                 apyBase: pool.supplyAPR,
                 apyReward: pool.cpoolAPR, // APY from pool LM rewards in % // CPOOL APR
                 rewardTokens: [rewardTokens[chainId]], // !!! // CPOOL token address // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
