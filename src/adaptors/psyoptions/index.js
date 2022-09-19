@@ -23,7 +23,7 @@ async function getVaultsData() {
     vaults.push({
       pool: vaultInfo.id,
       chain: utils.formatChain('solana'),
-      project: 'psyfinance',
+      project: 'psyoptions',
       symbol: vaultInfo.id,
       poolMeta: 'vault-v2',
       tvlUsd: Number(vaultInfo.deposits.current) * vaultInfo.valuePerVaultToken,
@@ -36,5 +36,5 @@ async function getVaultsData() {
 module.exports = {
   timetravel: false,
   apy: getVaultsData,
-  url: 'https://psyfi.io/',
+  url: 'https://psyfi.io/vaults',
 };
