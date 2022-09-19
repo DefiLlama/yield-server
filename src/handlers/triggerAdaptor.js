@@ -99,7 +99,6 @@ const main = async (body) => {
     ...p,
     apy: p.apy < 0 ? 0 : p.apy,
     apyBase: p.apyBase < 0 ? 0 : p.apyBase,
-    // this shouldn't be lower than 0 lol, but leaving it here anyways in case of bug in adapter
     apyReward: p.apyReward < 0 ? 0 : p.apyReward,
     apyBaseBorrow: p.apyBaseBorrow < 0 ? 0 : p.apyBaseBorrow,
     apyRewardBorrow: p.apyRewardBorrow < 0 ? 0 : p.apyRewardBorrow,
@@ -166,6 +165,14 @@ const main = async (body) => {
         p.apyRewardBorrow !== null
           ? +p.apyRewardBorrow.toFixed(precision)
           : p.apyRewardBorrow,
+      totalSupplyUsd:
+        p.totalSupplyUsd === undefined || p.totalSupplyUsd === null
+          ? null
+          : Math.round(p.totalSupplyUsd),
+      totalBorrowUsd:
+        p.totalBorrowUsd === undefined || p.totalBorrowUsd === null
+          ? null
+          : Math.round(p.totalBorrowUsd),
     };
   });
 
