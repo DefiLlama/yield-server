@@ -117,7 +117,6 @@ async function queryVaults(chain) {
 
       const rewardTokens = harvestTokens.map((h) => h.address);
       const underlyingTokens = tokens.map((t) => t.address);      
-      const poolMeta = `Badger DAO managed strategy built on top of ${protocol}. Optimizes yield for ${e.name} deposits.`;
 
       return {
         pool,
@@ -129,7 +128,6 @@ async function queryVaults(chain) {
         apyReward,
         rewardTokens,
         underlyingTokens,
-        poolMeta,
       }
     });
   } catch (e) {
