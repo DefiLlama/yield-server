@@ -250,6 +250,10 @@ const buildInsertYieldQuery = (payload) => {
     'apy',
     'apyBase',
     'apyReward',
+    { name: 'apyBaseBorrow', def: null },
+    { name: 'apyRewardBorrow', def: null },
+    { name: 'totalSupplyUsd', def: null },
+    { name: 'totalBorrowUsd', def: null },
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
   return pgp.helpers.insert(payload, cs);

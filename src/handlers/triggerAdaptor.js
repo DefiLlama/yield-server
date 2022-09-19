@@ -60,12 +60,14 @@ const main = async (body) => {
   // number to string. so in order for the below filters to work proplerly we need to guarantee that the
   // datatypes are correct (on db insert, mongoose checks field types against the schema and the bulk insert
   // will fail if a pools field types doesnt match)
+  const strToNum = (val) => (typeof val === 'string' ? Number(val) : val);
   data = data.map((p) => ({
     ...p,
-    apy: typeof p.apy === 'string' ? Number(p.apy) : p.apy,
-    apyBase: typeof p.apyBase === 'string' ? Number(p.apyBase) : p.apyBase,
-    apyReward:
-      typeof p.apyReward === 'string' ? Number(p.apyReward) : p.apyReward,
+    apy: strToNum(p.apy),
+    apyBase: strToNum(p.apyBase),
+    apyReward: strToNum(p.apyReward),
+    apyBaseBorrow: strToNum(p.apyBaseBorrow),
+    apyRewardBorrow: strToNum(p.apyRewardBorrow),
   }));
 
   // filter tvl to be btw lb-ub
@@ -81,6 +83,10 @@ const main = async (body) => {
     apy: Number.isFinite(p.apy) ? p.apy : null,
     apyBase: Number.isFinite(p.apyBase) ? p.apyBase : null,
     apyReward: Number.isFinite(p.apyReward) ? p.apyReward : null,
+    apyBaseBorrow: Number.isFinite(p.apyBaseBorrow) ? p.apyBaseBorrow : null,
+    apyRewardBorrow: Number.isFinite(p.apyRewardBorrow)
+      ? p.apyRewardBorrow
+      : null,
   }));
 
   // remove pools where all 3 apy related fields are null
@@ -93,8 +99,9 @@ const main = async (body) => {
     ...p,
     apy: p.apy < 0 ? 0 : p.apy,
     apyBase: p.apyBase < 0 ? 0 : p.apyBase,
-    // this shouldn't be lower than 0 lol, but leaving it here anyways in case of bug in adapter
     apyReward: p.apyReward < 0 ? 0 : p.apyReward,
+    apyBaseBorrow: p.apyBaseBorrow < 0 ? 0 : p.apyBaseBorrow,
+    apyRewardBorrow: p.apyRewardBorrow < 0 ? 0 : p.apyRewardBorrow,
   }));
 
   // derive final total apy field
@@ -150,6 +157,22 @@ const main = async (body) => {
         p.apyReward !== null ? +p.apyReward.toFixed(precision) : p.apyReward,
       url: p.url ?? project.url,
       timestamp,
+      apyBaseBorrow:
+        p.apyBaseBorrow !== null
+          ? +p.apyBaseBorrow.toFixed(precision)
+          : p.apyBaseBorrow,
+      apyRewardBorrow:
+        p.apyRewardBorrow !== null
+          ? +p.apyRewardBorrow.toFixed(precision)
+          : p.apyRewardBorrow,
+      totalSupplyUsd:
+        p.totalSupplyUsd === undefined || p.totalSupplyUsd === null
+          ? null
+          : Math.round(p.totalSupplyUsd),
+      totalBorrowUsd:
+        p.totalBorrowUsd === undefined || p.totalBorrowUsd === null
+          ? null
+          : Math.round(p.totalBorrowUsd),
     };
   });
 
