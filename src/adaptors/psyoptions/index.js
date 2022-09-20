@@ -15,7 +15,9 @@ async function getVaultsData() {
       pool: vaultInfo.id,
       chain: utils.formatChain('solana'),
       project: 'psyoptions',
-      symbol: vaultInfo.id.split('-')[0],
+      symbol: vaultInfo.id.includes('put')
+        ? 'USDC'
+        : vaultInfo.id.split('-')[0].toUpperCase(),
       poolMeta: vaultInfo.id.includes('call') ? 'call' : 'put',
       tvlUsd:
         Number(vaultInfo.deposits.current) *
