@@ -7,7 +7,7 @@ const poolsFunction = async () => {
   };
   const rewardTokens = {
     1: '0x66761fa41377003622aee3c7675fc7b5c1c2fac5',
-    137: '0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0',
+    137: '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
   };
   const underlyingTokens = {
     1: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
