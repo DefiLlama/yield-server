@@ -1,12 +1,12 @@
 /**
  * Badger DAO supports a comprehensive API to understand protocol offerings and yields.
- * 
+ *
  * Badger SDK is available should this project ever convert to proper typescript.
  * https://github.com/Badger-Finance/badger-sdk
- * 
+ *
  * Badger API documentation is available via Swagger.
  * https://api.badger.com/docs
- * 
+ *
  * Any issues or upgrades to yield server offerings please contact @hellojintao (twitter) or jintao#0713 (discord).
  */
 const utils = require('../utils');
@@ -19,8 +19,8 @@ const SUPPORTED_NETWORKS = [
   'arbitrum',
   'binance-smart-chain',
   'fantom',
-  'optimism'
-]
+  'optimism',
+];
 
 // Vault Objects Definitions
 
@@ -91,6 +91,8 @@ const SUPPORTED_NETWORKS = [
 
 const project = 'badger-dao';
 
+const influenceVaults = ['0xba485b556399123261a5f9c95d413b4f93107407'];
+
 async function queryVaults(chain) {
   try {
     const url = `https://api.badger.com/v3/vaults/list?chain=${chain}`;
@@ -102,21 +104,27 @@ async function queryVaults(chain) {
     }
 
     return data.map((e) => {
-      const { apr: { sources }, yieldProjection: {
-        harvestApr, harvestTokens, nonHarvestApr,
-      }, tokens, protocol, value: tvlUsd, vaultToken: pool } = e;
+      const {
+        apr: { sources },
+        yieldProjection: { harvestApr, harvestTokens, nonHarvestApr },
+        tokens,
+        protocol,
+        value: tvlUsd,
+        vaultToken: pool,
+      } = e;
 
       let apyBase = e.apy.baseYield;
-      let apyReward = sources.filter((s) => s.name.includes('Badger Rewards'))
-                        .reduce((total, s) => (total += s.performance.baseYield), 0);
+      let apyReward = sources
+        .filter((s) => s.name.includes('Badger Rewards'))
+        .reduce((total, s) => (total += s.performance.baseYield), 0);
 
-      if (e.version === 'v1.5') {
+      if (e.version === 'v1.5' && !influenceVaults.includes(pool)) {
         apyBase = harvestApr;
         apyReward = nonHarvestApr;
       }
 
       const rewardTokens = harvestTokens.map((h) => h.address);
-      const underlyingTokens = tokens.map((t) => t.address);      
+      const underlyingTokens = tokens.map((t) => t.address);
 
       return {
         pool,
@@ -128,7 +136,7 @@ async function queryVaults(chain) {
         apyReward,
         rewardTokens,
         underlyingTokens,
-      }
+      };
     });
   } catch (e) {
     if (e.message.includes('Internal Server Error')) {
