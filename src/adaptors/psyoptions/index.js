@@ -26,7 +26,7 @@ async function getVaultsData() {
     };
     if (vaultInfo?.staking?.stakingApr[0]) {
       vault.apyReward = vaultInfo.staking?.stakingApr[0];
-      vault.rewardTokens = ['SRM'];
+      vault.rewardTokens = ['SRMuApVNdxXokk5GT7XD5cUUgXMBCoAz2LHeuAoKWRt'];
     }
     vaults.push(vault);
   });
