@@ -18,7 +18,9 @@ async function getVaultsData() {
       symbol: vaultInfo.id.includes('put')
         ? 'USDC'
         : vaultInfo.id.split('-')[0].toUpperCase(),
-      poolMeta: vaultInfo.id.includes('call') ? 'call' : 'put',
+      poolMeta: vaultInfo.id.includes('call')
+        ? 'Covered Call'
+        : 'Cash Secured Put',
       tvlUsd:
         Number(vaultInfo.deposits.current) *
         (vaultInfo.collateralTokenPrice?.value || 0),
