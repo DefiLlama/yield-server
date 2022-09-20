@@ -9,7 +9,7 @@ module.exports = async function () {
   const timestamp = process.env.npm_config_timestamp;
   if (!adapter) {
     console.error(
-      `Missing argument, you need to provide the adapter name. Eg: npm run test --adapter=aave-v2`
+        `Missing argument, you need to provide the adapter name. Eg: npm run test --adapter=aave-v2`
     );
     process.exit(1);
   }
@@ -18,7 +18,7 @@ module.exports = async function () {
 
   global.adapter = adapter;
   global.apy = (await module.apy(timestamp)).sort(
-    (a, b) => b.tvlUsd - a.tvlUsd
+      (a, b) => b.tvlUsd - a.tvlUsd
   );
   global.poolsUrl = module.url;
 
@@ -26,19 +26,19 @@ module.exports = async function () {
 
   global.protocolsSlug = [
     ...new Set(
-      (await axios.get('https://api.llama.fi/protocols')).data.map(
-        (protocol) => protocol.slug
-      )
+        (await axios.get('https://api.llama.fi/protocols')).data.map(
+            (protocol) => protocol.slug
+        )
     ),
   ];
 
   global.uniquePoolIdentifiersDB = new Set(
-    (
-      await axios.get(
-        'https://1rwmj4tky9.execute-api.eu-central-1.amazonaws.com/simplePools'
-      )
-    ).data.data
-      .filter((p) => p.project !== global.apy[0].project)
-      .map((p) => p.pool)
+      (
+          await axios.get(
+              'https://1rwmj4tky9.execute-api.eu-central-1.amazonaws.com/distinctID'
+          )
+      ).data
+          .filter((p) => p.project !== global.apy[0].project)
+          .map((p) => p.pool)
   );
 };

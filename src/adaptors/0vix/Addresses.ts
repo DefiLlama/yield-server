@@ -47,6 +47,8 @@ const MATICStrategy = {
   project: '0vix'
 }
 
+const preminingContract = '0x108ADA79428ea427E6A2175D3AB678abA2947a4a';
+
 
 module.exports = {
   WBTCStrategy,
@@ -57,5 +59,6 @@ module.exports = {
   MATICStrategy,
   master0vixContract,
   oMATICContract,
-  oracleContract
+  oracleContract,
+  preminingContract,
 };
