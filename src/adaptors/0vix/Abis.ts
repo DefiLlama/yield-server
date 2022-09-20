@@ -6,6 +6,7 @@ const OvixABI = [
   "function decimals() view returns (uint8)",
   'function name() external view returns (string memory)',
   'function totalSupply() view returns (uint256)',
+    'function totalBorrows() external view returns(uint)'
 ];
 
 const erc20ABI = [

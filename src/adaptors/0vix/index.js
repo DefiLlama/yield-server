@@ -159,7 +159,7 @@ function convertUSDC(
 ) {
     return (
         ((parseFloat(balance) * parseFloat(exchangeRateStored)) /
-                        Math.pow(1, Math.pow(10, decimals))) /
+            Math.pow(1, Math.pow(10, decimals))) /
         Math.pow(1, Math.pow(10, 18))
     );
 }
