@@ -1,3 +1,4 @@
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
@@ -48,10 +49,12 @@ const queryV3 = gql`
       token0 {
         symbol
         id
+        decimals
       }
       token1 {
         symbol
         id
+        decimals
       }
     }
   }
@@ -97,20 +100,48 @@ const topLvl = async (
   ]);
 
   // pull data
-  queryC = query;
+  let queryC = query;
   let dataNow = await request(url, queryC.replace('<PLACEHOLDER>', block));
   dataNow = version === 'v2' ? dataNow.pairs : dataNow.pools;
 
-  // v3 subgraph has different fields, will copy and keep the v2 name
+  // uni v3 subgraph reserves values are wrong!
+  // instead of relying on subgraph values, gonna pull reserve data from contracts
   if (version === 'v3') {
-    for (const e of dataNow) {
-      e['reserve0'] = e.totalValueLockedToken0;
-      e['reserve1'] = e.totalValueLockedToken1;
+    // new tvl calc
+    const balanceCalls = [];
+    for (const pool of dataNow) {
+      balanceCalls.push({
+        target: pool.token0.id,
+        params: pool.id,
+      });
+      balanceCalls.push({
+        target: pool.token1.id,
+        params: pool.id,
+      });
     }
+
+    const tokenBalances = await sdk.api.abi.multiCall({
+      abi: 'erc20:balanceOf',
+      calls: balanceCalls,
+      chain: chainString,
+    });
+
+    dataNow = dataNow.map((p) => {
+      const x = tokenBalances.output.filter((i) => i.input.params[0] === p.id);
+      return {
+        ...p,
+        reserve0:
+          x.find((i) => i.input.target === p.token0.id).output /
+          `1e${p.token0.decimals}`,
+        reserve1:
+          x.find((i) => i.input.target === p.token1.id).output /
+          `1e${p.token1.decimals}`,
+      };
+    });
   }
 
   // pull 24h offset data to calculate fees from swap volume
-  queryPriorC = queryPrior;
+  let queryPriorC = queryPrior;
   let dataPrior = await request(
     url,
     queryPriorC.replace('<PLACEHOLDER>', blockPrior)
@@ -137,7 +168,7 @@ const main = async (timestamp = null) => {
     topLvl('optimism', urlOptimism, queryV3, queryPriorV3, 'v3', timestamp),
   ]);
 
-  return data.flat().filter((p) => Number.isFinite(p.apyBase));
+  return data.flat().filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
