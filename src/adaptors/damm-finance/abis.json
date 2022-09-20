@@ -1,17 +1,4 @@
 {
-    "comptrollerImplementation": {
-        "inputs": [],
-        "name": "comptrollerImplementation",
-        "outputs": [
-            {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
     "getAllMarkets": {
         "inputs": [],
         "name": "getAllMarkets",

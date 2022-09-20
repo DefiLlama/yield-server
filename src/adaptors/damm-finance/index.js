@@ -26,7 +26,7 @@ const poolInfo = async (chain) => {
         ['getCash', 'totalBorrows', 'totalReserves', 'underlying', 'symbol'].map((method) => sdk.api.abi.multiCall({
             abi: abi[method],
             calls: yieldMarkets.map((address) => ({
-                target: address.pool
+                target: address.poolId
             })),
             chain
         }))
@@ -94,7 +94,7 @@ const getApy = async () => {
     const yieldPools = (await poolInfo('ethereum')).yieldMarkets.map((pool, i) => {
         const tvl = calculateTvl(pool.getCash, pool.totalBorrows, pool.price, pool.underlyingTokenDecimals);
         const apyBase = calculateApy(pool.supplyRate);
-        const readyToExport = exportFormatter(pool.pool, 'Ethereum', pool.tokenSymbol, tvl, apyBase, null, pool.underlyingToken);
+        const readyToExport = exportFormatter(pool.poolId, 'Ethereum', pool.tokenSymbol, tvl, apyBase, null, pool.underlyingToken);
         return readyToExport;
     });
 
