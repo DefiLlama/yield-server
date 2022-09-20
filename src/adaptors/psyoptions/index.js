@@ -3,14 +3,6 @@ const utils = require('../utils');
 
 const BASE_URL = 'https://us-central1-psyfi-api.cloudfunctions.net/';
 
-const getCombinedApy = (vault, lockupPeriod = 0) => {
-  const stakingApr = vault.staking?.stakingApr;
-  if (stakingApr?.[lockupPeriod]) {
-    return vault.apy.standardApy.apyBeforeFees + stakingApr[lockupPeriod];
-  }
-  return vault.apy.standardApy.apyBeforeFees;
-};
-
 async function getVaultsData() {
   const vaultResponse = await axios.get(BASE_URL + 'vaults');
   if (!vaultResponse) {
@@ -18,17 +10,23 @@ async function getVaultsData() {
   }
 
   const vaults = [];
-
   Object.values(vaultResponse.data.vaults).map(async (vaultInfo) => {
-    vaults.push({
+    const vault = {
       pool: vaultInfo.id,
       chain: utils.formatChain('solana'),
       project: 'psyoptions',
-      symbol: vaultInfo.id,
-      poolMeta: 'vault-v2',
-      tvlUsd: Number(vaultInfo.deposits.current) * vaultInfo.valuePerVaultToken,
-      apyBase: getCombinedApy(vaultInfo, 4),
-    });
+      symbol: vaultInfo.id.split('-')[0],
+      poolMeta: vaultInfo.id.includes('call') ? 'call' : 'put',
+      tvlUsd:
+        Number(vaultInfo.deposits.current) *
+        (vaultInfo.collateralTokenPrice?.value || 0),
+      apyBase: vaultInfo.apy.standardApy.apyBeforeFees || 0,
+    };
+    if (vaultInfo?.staking?.stakingApr[4]) {
+      vault.apyReward = vaultInfo.staking?.stakingApr[4];
+      vault.rewardTokens = ['SRM'];
+    }
+    vaults.push(vault);
   });
   return vaults;
 }
