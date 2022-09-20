@@ -7,11 +7,11 @@ const poolsFunction = async () => {
   };
   const rewardTokens = {
     1: '0x66761fa41377003622aee3c7675fc7b5c1c2fac5',
-    137: '0xb08b3603C5F2629eF83510E6049eDEeFdc3A2D91',
+    137: '0x0000000000000000000000000000000000001010',
   };
   const underlyingTokens = {
     1: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-    137: '0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0',
+    137: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
   };
 
   const dataPools = await utils.getData(
