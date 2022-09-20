@@ -114,6 +114,9 @@ async function getErc20Balances(strategy) {
     // get the total supply
     const oTokenTotalSupply = await oTokenContract.totalSupply();
 
+    // get total borrows
+    const oTokenTotalBorrows = await oTokenContract.totalBorrows();
+
     // get the exchange rate stored
     const oExchangeRateStored = await oTokenContract.exchangeRateStored();
 
@@ -141,10 +144,13 @@ async function getErc20Balances(strategy) {
         await oracle.getUnderlyingPrice(strategy),
     );
 
+    console.log(        (((oTokenTotalBorrows ) * oracleUnderlyingPrice) / 10 ** (28 + underlyingDecimals)   ));
+
 
     // do the conversions
     return convertTvlUSD(
         oTokenTotalSupply,
+        oTokenTotalBorrows,
         oExchangeRateStored,
         oDecimals,
         underlyingDecimals,
@@ -166,16 +172,18 @@ function convertUSDC(
 
 function convertTvlUSD(
     totalSupply,
+    totalBorrows,
     exchangeRateStored,
     oDecimals,
     underlyingDecimals,
     oracleUnderlyingPrice,
 ) {
     return (
-        (((totalSupply * exchangeRateStored) / 10 ** (18 + underlyingDecimals)) *
+        ((((totalSupply * exchangeRateStored) / 10 ** (18 + underlyingDecimals)) *
             oracleUnderlyingPrice) /
-        10 ** (36 - underlyingDecimals)
-    );
+        10 ** (36 - underlyingDecimals)) +
+
+        (((totalBorrows ) * oracleUnderlyingPrice) / 10 ** (28 + underlyingDecimals)   ))
 }
 
 
