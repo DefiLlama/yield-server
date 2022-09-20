@@ -11,7 +11,7 @@ const RPC_URL = 'https://bsc-dataseed1.binance.org/';
 const API_URL =
   'https://bsc.streamingfast.io/subgraphs/name/pancakeswap/exchange-v2';
 const LP_APRS =
-  'https://raw.githubusercontent.com/pancakeswap/pancake-frontend/develop/src/config/constants/lpAprs.json';
+  'https://raw.githubusercontent.com/pancakeswap/pancake-frontend/develop/src/config/constants/lpAprs/56.json';
 const MASTERCHEF_ADDRESS = '0xa5f8C5Dbd5F286960b9d90548680aE5ebFf07652';
 const CAKE = '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82';
 

@@ -19,6 +19,7 @@ const cvxAddress = '0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B';
 const cliffSize = 100000; // * 1e18; //new cliff every 100,000 tokens
 const cliffCount = 1000; // 1,000 cliffs
 const maxSupply = 100000000; // * 1e18; //100 mil max supply
+const projectedAprTvlThr = 1e6;
 
 const getCVXMintAmount = async (crvEarned) => {
   // first get total supply
@@ -81,7 +82,9 @@ const rewardRate = async (contract) => {
     );
     const periodFinish = await extraReward.methods.periodFinish().call();
     const isFinished = new Date() > periodFinish * 1000;
-    if (isFinished) continue;
+    // stETH rewards contract address
+    if (isFinished && contract !== '0x0A760466E1B4621579a82a39CB56Dda2F4E70f03')
+      continue;
 
     const extraRewardRate =
       (await extraReward.methods.rewardRate().call()) / 1e18;
@@ -184,7 +187,7 @@ const main = async () => {
     ),
   }));
 
-  const withCvxTvl = (
+  let withCvxTvl = (
     await Promise.all(
       enrichedPools.map(async (pool) => {
         const tokenContract = new web3.eth.Contract(abi.Pool, pool.token);
@@ -230,12 +233,46 @@ const main = async () => {
     )
   ).filter(Boolean);
 
-  const extraPrices = {};
+  // --- add cvxCRV & CVX staking pools
+  const cvxCRVRewards = '0x3Fe65692bfCD0e6CF84cB1E7d24108E434A7587e';
+  const cvxCRV = '0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7';
+  const cvxRewards = '0xCF50b810E57Ac33B91dCF525C6ddd9881B139332';
+  const stakingTvl = await Promise.all(
+    [cvxCRVRewards, cvxRewards].map((a) => supplyOf(a))
+  );
+  const prices = (await utils.getPrices([cvxCRV, cvxAddress], 'ethereum'))
+    .pricesByAddress;
+
+  const stakingPools = [
+    {
+      // cvxCRV pool
+      crvRewards: cvxCRVRewards,
+      cvxTvl: stakingTvl[0] * prices[cvxCRV.toLowerCase()],
+      lptoken: cvxCRV,
+      coins: [
+        {
+          address: crvAddress,
+          symbol: 'cvxCRV',
+        },
+      ],
+    },
+    {
+      // CVX pool
+      crvRewards: cvxRewards,
+      cvxTvl: stakingTvl[1] * prices[cvxAddress.toLowerCase()],
+      lptoken: cvxAddress,
+      coins: [
+        {
+          address: cvxAddress,
+          symbol: 'CVX',
+        },
+      ],
+    },
+  ];
+  withCvxTvl = [...withCvxTvl, ...stakingPools];
 
   const poolsWithApr = await Promise.all(
     withCvxTvl.map(async (pool) => {
-      const curveSwap = pool.address;
-
       const { rate, isFinished, extraRewards } = await rewardRate(
         pool.crvRewards
       );
@@ -250,21 +287,31 @@ const main = async () => {
         const apy = usdPerYear / pool.cvxTvl;
         return apy;
       });
-      const gauge = mappedGauges[pool.lptoken.toLowerCase()];
-
+      // note(!) for CVX staking pool, the rate will be for cvxCRV not for curve
+      // hence why we use a different price below for `crvApr` which in that
+      // case is actually the cvxCRV apr for the CVX staking pool
       const crvPerUnderlying = rate;
 
       const crvPerYear = crvPerUnderlying * 86400 * 365;
       const cvxPerYear = await getCVXMintAmount(crvPerYear);
 
       const apr = (cvxPerYear * cvxPrice * 100) / pool.cvxTvl;
-      const crvApr = (crvPerYear * crvPrice * 100) / pool.cvxTvl;
+      const crvApr =
+        pool.lptoken === cvxAddress
+          ? (crvPerYear * prices[cvxCRV.toLowerCase()] * 100) / pool.cvxTvl
+          : (crvPerYear * crvPrice * 100) / pool.cvxTvl;
 
       const extrApr = extraRewardsApr.reduce((acc, val) => acc + val, 0) || 0;
+
+      // we set 'CVX vAPR' and 'CRV vAPR' to 0 if both isFinished and tvl < THR;
+      // reason: sometimes even for very large pools rewards aren't streaming and require
+      // a harvest call. most often, for large pools the current apr (for CVX vAPR and CRV vAPR)
+      // thus drops to 0 because isFinished is true. for cvxTvl >= THR we use projected apr instead
+      // so we avoid cases where eg LDO rewards are 0 just because rewards haven't been harvested yet
       return {
         ...pool,
-        apr: isFinished ? 0 : apr,
-        crvApr: isFinished ? 0 : crvApr,
+        apr: isFinished && pool.cvxTvl < projectedAprTvlThr ? 0 : apr,
+        crvApr: isFinished && pool.cvxTvl < projectedAprTvlThr ? 0 : crvApr,
         extrApr,
         extraTokens: extraRewards.map(({ token }) => token),
       };
@@ -294,15 +341,14 @@ const main = async () => {
       apyObj = curveApys[defaultPool.name];
     }
 
-    const apy = (apyObj && apyObj.crvApy) || 0;
     const baseApy = (apyObj && apyObj.baseApy) || 0;
 
-    return { apy, baseApy };
+    return { baseApy };
   };
 
   const res = poolsWithApr
     .map((pool) => {
-      const { apy, baseApy } = getPoolApy(pool);
+      const { baseApy } = getPoolApy(pool);
 
       return {
         pool: pool.lptoken,
@@ -310,15 +356,21 @@ const main = async () => {
         project: 'convex-finance',
         symbol: pool.coins.map((coin) => coin.symbol).join('-'),
         tvlUsd: pool.cvxTvl,
-        apyBase: baseApy,
-        apy: pool.apr + baseApy + pool.crvApr + pool.extrApr,
-        apyReward: pool.crvApr + pool.apr + pool.extrApr,
+        apyBase: [cvxAddress, cvxCRV].includes(pool.lptoken) ? null : baseApy,
+        apyReward:
+          // for CVX staking only need crvApr (which is actually cvxCRV reward)
+          pool.lptoken === cvxAddress
+            ? pool.crvApr
+            : pool.crvApr + pool.apr + pool.extrApr,
         underlyingTokens: pool.coins.map(({ address }) => address),
-        rewardTokens: [
-          '0xd533a949740bb3306d119cc777fa900ba034cd52', //crv
-          '0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b', // cvx
-          ...pool.extraTokens,
-        ],
+        rewardTokens:
+          pool.lptoken === cvxAddress
+            ? [cvxCRV]
+            : [
+                '0xd533a949740bb3306d119cc777fa900ba034cd52', // crv
+                '0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b', // cvx
+                ...pool.extraTokens,
+              ],
       };
     })
     .filter((pool) => !pool.symbol.toLowerCase().includes('ust'));

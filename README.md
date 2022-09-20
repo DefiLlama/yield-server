@@ -25,13 +25,20 @@ interface Pool {
   rewardTokens?: Array<string>;
   underlyingTokens?: Array<string>;
   poolMeta?: string;
+  url?: string;
+  // optional lending protocol specific fields:
+  apyBaseBorrow?: number;
+  apyRewardBorrow?: number;
+  totalSupplyUsd?: number;
+  totalBorrowUsd?: number;
+  ltv?: number;
 }
 ```
 
 ```typescript
 {
-    pool: "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae90xb53c1a33016b2dc2ff3653530bff1848a515c8c5", // unique identifier for the pool
-    chain: "Ethereum", // chain where the pool is
+    pool: "0x3ed3b47dd13ec9a98b44e6204a523e766b225811-ethereum", // unique identifier for the pool in the form of: `${ReceivedTokenAddress}-${chain}`.toLowerCase()
+    chain: "Ethereum", // chain where the pool is (needs to match the `name` field in here https://api.llama.fi/chains)
     project: 'aave', // protocol (using the slug again)
     symbol: "USDT", // symbol of the tokens in pool, can be a single symbol if pool is single-sided or multiple symbols (eg: USDT-ETH) if it's an LP
     tvlUsd: 1000.1, // number representing current USD TVL in pool

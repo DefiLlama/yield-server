@@ -12,7 +12,8 @@ const BLOCKS_PER_YEAR = Math.floor((60 / BLOCK_TIME) * 60 * 24 * 365);
 const WEEKS_PER_YEAR = 52;
 const FEE_RATE = 0.0017;
 
-const SUBGRAPH_URL = 'https://api.thegraph.com/subgraphs/name/polymmfinance/exchang';
+const SUBGRAPH_URL =
+  'https://api.thegraph.com/subgraphs/name/polymmfinance/exchang';
 const { request, gql, batchRequests } = require('graphql-request');
 const { chunk } = require('lodash');
 const pairQuery = gql`
@@ -86,10 +87,9 @@ const calculateApy2 = (
   reserveUSD
 ) => {
   const poolWeight = poolInfo.allocPoint / totalAllocPoint.output;
-  const rewardPerYear = BLOCKS_PER_YEAR * ( rewardPerBlock / 0.115);
+  const rewardPerYear = BLOCKS_PER_YEAR * (rewardPerBlock / 0.115);
   return ((poolWeight * rewardPerYear * rewardPrice) / reserveUSD) * 100;
 };
-
 
 const calculateReservesUSD = (
   reserves,
@@ -143,11 +143,16 @@ const getApy = async () => {
   });
 
   const pools = poolsRes.output
-  .map(({ output }, i) => ({ ...output, i }))
-  .filter((e) => e.allocPoint !== '0')
-  .filter(e => e.lpToken !== '0x22a31bD4cB694433B6de19e0aCC2899E553e9481');
-  const lpTokens = pools.map(({ lpToken }) => lpToken)
-
+    .map(({ output }, i) => ({ ...output, i }))
+    .filter((e) => e.allocPoint !== '0')
+    .filter(
+      (e) =>
+        e.lpToken !== '0x22a31bD4cB694433B6de19e0aCC2899E553e9481' &&
+        e.lpToken !== '0x8b6828c1Bc28Ad187A4aB05f41F2AAC547d85132' &&
+        e.lpToken !== '0x0d5665A2319526A117E68E38EBEA4610aA8298F8' &&
+        e.lpToken !== '0x8C9a93e198BC02ef48E8d7AEC3c042c5b00a4Ad3'
+    );
+  const lpTokens = pools.map(({ lpToken }) => lpToken);
 
   const [reservesRes, supplyRes, masterChefBalancesRes] = await Promise.all(
     ['getReserves', 'totalSupply', 'balanceOf'].map((method) =>
@@ -241,7 +246,7 @@ const getApy = async () => {
       pairInfo.token1,
       tokensPrices
     )
-      .div(1e18)
+      ?.div(1e18)
       .toString();
 
     const lpReservesUsd = calculateReservesUSD(
@@ -251,7 +256,7 @@ const getApy = async () => {
       pairInfo.token1,
       tokensPrices
     )
-      .div(1e18)
+      ?.div(1e18)
       .toString();
 
     const lpFees7D =
@@ -282,11 +287,11 @@ const getApy = async () => {
     };
   });
 
-  return res;
+  return res.filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://polymm.finance/',
+  url: 'https://polymm.finance/farms',
 };

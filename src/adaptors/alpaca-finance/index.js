@@ -11,9 +11,12 @@ async function apy(chain) {
   const filteredStakingPools = response.fairLaunchStakingPools.filter(
     (p) => !p.key.includes('debt')
   );
+
+  const chainString = utils.formatChain(chainMapping[chain]);
+
   const fairLaunchStakingPools = filteredStakingPools.map((p) => ({
-    pool: `${p.stakingToken.address}-staking`,
-    chain: utils.formatChain(chainMapping[chain]),
+    pool: `${p.stakingToken.address}-staking-${chainString}`.toLowerCase(),
+    chain: chainString,
     project: 'alpaca-finance',
     symbol: utils.formatSymbol(p.symbol.split(' ')[0]),
     tvlUsd: Number(p.tvl),
@@ -21,8 +24,8 @@ async function apy(chain) {
   }));
 
   const strategyPools = response.strategyPools.map((p) => ({
-    pool: `${p.key}-strategy-pool`,
-    chain: utils.formatChain(chainMapping[chain]),
+    pool: `${p.address}-${chainString}`.toLowerCase(),
+    chain: chainString,
     project: 'alpaca-finance',
     symbol: p.workingToken.symbol.split(' ')[0],
     poolMeta: p.name,
@@ -31,8 +34,8 @@ async function apy(chain) {
   }));
 
   const farmingPools = response.farmingPools.map((p) => ({
-    pool: `${p.key}-farming-pool`,
-    chain: utils.formatChain(chainMapping[chain]),
+    pool: `${p.workingToken.address}-farming-${chainString}`.toLowerCase(),
+    chain: chainString,
     project: 'alpaca-finance',
     symbol: p.sourceName.split(' ')[1],
     poolMeta: p.sourceName.split(' ')[0],
@@ -44,7 +47,7 @@ async function apy(chain) {
 
   const ausdPools = response.ausdPools.map((p) => ({
     pool: `${p.key}-aUSD-pool`,
-    chain: utils.formatChain(chainMapping[chain]),
+    chain: chainString,
     project: 'alpaca-finance',
     symbol: utils.formatSymbol(p.sourceName),
     tvlUsd: Number(p.tvl),
@@ -52,8 +55,8 @@ async function apy(chain) {
   }));
 
   const lendingPools = response.lendingPools.map((p) => ({
-    pool: `${p.ibToken.address}-lending`,
-    chain: utils.formatChain(chainMapping[chain]),
+    pool: `${p.ibToken.address}-${chainString}`.toLowerCase(),
+    chain: chainString,
     project: 'alpaca-finance',
     symbol: utils.formatSymbol(p.symbol),
     tvlUsd: Number(p.tvl),

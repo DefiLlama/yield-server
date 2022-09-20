@@ -155,7 +155,35 @@ async function genericUnwrapCrv(balances, crvToken, lpBalance, block, chain) {
 	)
 	sdk.util.sumMultiBalanceOf(balances, crvLP_token_balances);
 }
+
+async function sumTokensAndLPs(balances, tokens, block, chain = "ethereum", transformAddress = id => id) {
+  const balanceOfTokens = await sdk.api.abi.multiCall({
+    calls: tokens.map(t => ({
+      target: t[0],
+      params: t[1]
+    })),
+    abi: 'erc20:balanceOf',
+    block,
+    chain
+  })
+  const lpBalances = []
+  balanceOfTokens.output.forEach((result, idx) => {
+    const token = result.input.target
+    const balance = result.output
+    if (tokens[idx][2]) {
+      lpBalances.push({
+        token,
+        balance
+      })
+    } else {
+      sdk.util.sumSingleBalance(balances, transformAddress(token), balance);
+    }
+  })
+  await unwrapUniswapLPs(balances, lpBalances, block, chain, transformAddress)
+}
+
 module.exports = {
   unwrapUniswapLPs,
-  genericUnwrapCrv
+  genericUnwrapCrv,
+  sumTokensAndLPs
 }
