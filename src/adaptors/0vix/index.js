@@ -2,6 +2,7 @@ const {ethers} = require("ethers");
 const {OvixABI, unitrollerABI, erc20ABI, oracleABI, preminingABI} = require("./Abis");
 const {PROVIDER} = require("./Provider");
 const sdk = require("@defillama/sdk");
+const BigNumber = require("bignumber.js");
 
 const unitroller = "0x8849f1a0cB6b5D6076aB150546EddEe193754F1C";
 const oracleContract = '0x1c312b14c129EabC4796b0165A2c470b659E5f01';
@@ -28,7 +29,7 @@ async function main() {
             PROVIDER
         );
 
-        const preminingRewards = await preminingContract.marketRewards(strategy);
+        const preminingRewards = ethers.utils.formatEther(await preminingContract.marketRewards(strategy));
 
         // calculate premined rewards APY for this market
         const preminedVixApr = tvl === 0 ? 0 : preminingRewards * (52 / tvl) * 0.3 * 100;
