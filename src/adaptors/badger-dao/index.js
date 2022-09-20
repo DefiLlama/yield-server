@@ -90,6 +90,9 @@ const SUPPORTED_NETWORKS = [
 // }
 
 const project = 'badger-dao';
+const influenceVaults = new Set([
+  0xBA485b556399123261a5F9c95d413B4f93107407
+]);
 
 async function queryVaults(chain) {
   try {
@@ -110,7 +113,9 @@ async function queryVaults(chain) {
       let apyReward = sources.filter((s) => s.name.includes('Badger Rewards'))
                         .reduce((total, s) => (total += s.performance.baseYield), 0);
 
-      if (e.version === 'v1.5') {
+      // influence vaults include non harvested incentives, projection harvest APR are not
+      // valid for these specific class of vaults - historic performance if preferred
+      if (e.version === 'v1.5' && !influenceVaults.includes(pool)) {
         apyBase = harvestApr;
         apyReward = nonHarvestApr;
       }
