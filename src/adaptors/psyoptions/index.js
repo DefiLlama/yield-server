@@ -22,8 +22,8 @@ async function getVaultsData() {
         (vaultInfo.collateralTokenPrice?.value || 0),
       apyBase: vaultInfo.apy.standardApy.apyBeforeFees || 0,
     };
-    if (vaultInfo?.staking?.stakingApr[4]) {
-      vault.apyReward = vaultInfo.staking?.stakingApr[4];
+    if (vaultInfo?.staking?.stakingApr[0]) {
+      vault.apyReward = vaultInfo.staking?.stakingApr[0];
       vault.rewardTokens = ['SRM'];
     }
     vaults.push(vault);
