@@ -10,13 +10,18 @@ const query = gql`
       id
       symbol
       supplyAPY
+      borrowAPY
       totalBalancesUsd
       totalBorrowsUsd
+      config {
+        collateralFactor
+      }
     }
   }
 `;
 
 const buildPool = (pool, chainString) => {
+  const ltv = pool.config?.collateralFactor / 4e9;
   return {
     pool: `${pool.id}-euler`,
     chain: utils.formatChain(chainString),
@@ -24,6 +29,11 @@ const buildPool = (pool, chainString) => {
     symbol: utils.formatSymbol(pool.symbol),
     tvlUsd: (pool.totalBalancesUsd - pool.totalBorrowsUsd) / 1e18,
     apyBase: pool.supplyAPY / 1e25,
+    apyBaseBorrow: pool.borrowAPY / 1e25,
+    totalSupplyUsd: pool.totalBalancesUsd / 1e18,
+    totalBorrowUsd: pool.totalBorrowsUsd / 1e18,
+    underlyingTokens: [pool.id],
+    ltv: Number.isFinite(ltv) ? ltv : null,
   };
 };
 
