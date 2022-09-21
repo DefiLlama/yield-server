@@ -30,6 +30,7 @@ const apy = async () => {
   }: Pools = await request(API_URL, query, {
     filter: { skip: 0, limit: 100 },
   });
+
   const pools = data.map((pool) => {
     const tokenPrice = pool.liquidityAsset.price / 1e8;
 

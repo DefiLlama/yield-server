@@ -26,9 +26,6 @@ const main = async () => {
   for (let i = 0; i <= tokenIds.length; i += maxIds) {
     const tokens = tokenIds.slice(i, i + 5).join(',');
 
-    console.log(tokens);
-    process.exit(0);
-
     const reservesResponse = await fetch(`${reservesEndpoint}?ids=${tokens}`);
     const res = (await reservesResponse.json()).results;
 
