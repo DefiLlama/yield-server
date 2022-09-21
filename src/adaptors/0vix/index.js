@@ -32,7 +32,7 @@ async function main() {
         const preminingRewards = ethers.utils.formatEther(await preminingContract.marketRewards(strategy));
 
         // calculate premined rewards APY for this market
-        const preminedVixApr = tvl === 0 ? 0 : preminingRewards * (52 / tvl) * 0.3 * 100;
+        const preminedVixApr = tvl.tvlUsd === 0 ? 0 : preminingRewards * (52 / tvl.tvlUsd) * 0.3 * 100;
 
 
         const newObj = {
@@ -41,9 +41,12 @@ async function main() {
             symbol: OvixAPYs.tokenName,
             chain: "polygon",
             apy: OvixAPYs.supplyAPY,
+            apyBaseBorrow: OvixAPYs.borrowAPY,
             apyReward: preminedVixApr,
             rewardTokens: ['0x108ADA79428ea427E6A2175D3AB678abA2947a4a'],
-            tvlUsd: tvl
+            totalSupplyUsd: tvl.totalSupplyUsd,
+            totalBorrowUsd: tvl.totalBorrowsUsd,
+            tvlUsd: tvl.tvlUsd
         };
 
         data.push(newObj);
@@ -144,8 +147,6 @@ async function getErc20Balances(strategy) {
         await oracle.getUnderlyingPrice(strategy),
     );
 
-    console.log(        (((oTokenTotalBorrows ) * oracleUnderlyingPrice) / 10 ** (28 + underlyingDecimals)   ));
-
 
     // do the conversions
     return convertTvlUSD(
@@ -178,12 +179,22 @@ function convertTvlUSD(
     underlyingDecimals,
     oracleUnderlyingPrice,
 ) {
-    return (
-        ((((totalSupply * exchangeRateStored) / 10 ** (18 + underlyingDecimals)) *
-            oracleUnderlyingPrice) /
-        10 ** (36 - underlyingDecimals)) +
+        const totalSupplyUsd = ((((totalSupply * exchangeRateStored) / 10 ** (18 + underlyingDecimals)) *
+                oracleUnderlyingPrice) /
+            10 ** (36 - underlyingDecimals));
 
-        (((totalBorrows ) * oracleUnderlyingPrice) / 10 ** (28 + underlyingDecimals)   ))
+        const totalBorrowsUsd = (((totalBorrows ) * oracleUnderlyingPrice) / 10 ** (28 + underlyingDecimals)   );
+
+        const tvlUsd = totalSupplyUsd + totalBorrowsUsd;
+
+        return {totalSupplyUsd, totalBorrowsUsd, tvlUsd};
+
+        // const tvlUsd = ((((totalSupply * exchangeRateStored) / 10 ** (18 + underlyingDecimals)) *
+        //     oracleUnderlyingPrice) /
+        // 10 ** (36 - underlyingDecimals)) +
+        //
+        // (((totalBorrows ) * oracleUnderlyingPrice) / 10 ** (28 + underlyingDecimals)   );
+
 }
 
 

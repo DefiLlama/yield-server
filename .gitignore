@@ -8,3 +8,5 @@ ccImages
 .idea/
 *output.json
 *.csv
+beforeTests.js
+afterTests.js
