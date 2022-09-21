@@ -41,7 +41,6 @@ const main = async () => {
       totalBorrowUsd,
       underlyingTokens: [pool.id],
       ltv: Number.isFinite(ltv) ? ltv : null,
-      url: `https://app.euler.finance/market/${pool.id}`,
     };
   });
 
