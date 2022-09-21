@@ -45,7 +45,6 @@ const API_URLS = {
 const query = gql`
   query ReservesQuery {
     reserves {
-      id
       name
       aToken {
         id
@@ -59,12 +58,18 @@ const query = gql`
         underlyingAssetAddress
         underlyingAssetDecimals
       }
-      totalLiquidity
+      vToken {
+        rewards {
+          emissionsPerSecond
+          rewardToken
+          rewardTokenDecimals
+          rewardTokenSymbol
+        }
+      }
       symbol
-      totalSupplies
       liquidityRate
-      supplyCap
-      totalCurrentVariableDebt
+      variableBorrowRate
+      baseLTVasCollateral
     }
   }
 `;
@@ -150,8 +155,20 @@ const apy = async () => {
         0
       );
 
+      const { rewards: rewardsBorrow } = pool.vToken;
+      const rewardPerYearBorrow = rewardsBorrow.reduce(
+        (acc, rew) =>
+          acc +
+          (rew.emissionsPerSecond / 10 ** rew.rewardTokenDecimals) *
+            SECONDS_PER_YEAR *
+            (pricesByAddress[rew.rewardToken] ||
+              pricesBySymbol[rew.rewardTokenSymbol]),
+        0
+      );
+      let totalBorrowUsd = totalSupplyUsd - tvlUsd;
+      totalBorrowUsd = totalBorrowUsd < 0 ? 0 : totalBorrowUsd;
       return {
-        pool: `${pool.id}-${chain}`,
+        pool: `${pool.aToken.id}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
         project: 'aave-v3',
         symbol: pool.symbol,
@@ -160,6 +177,11 @@ const apy = async () => {
         apyReward: (rewardPerYear / totalSupplyUsd) * 100,
         rewardTokens: rewards.map((rew) => rew.rewardToken),
         underlyingTokens: [pool.aToken.underlyingAssetAddress],
+        totalSupplyUsd,
+        totalBorrowUsd,
+        apyBaseBorrow: Number(pool.variableBorrowRate) / 1e25,
+        apyRewardBorrow: (rewardPerYearBorrow / totalBorrowUsd) * 100,
+        ltv: Number(pool.baseLTVasCollateral) / 10000,
       };
     });
 

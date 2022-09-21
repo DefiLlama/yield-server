@@ -7,7 +7,10 @@ const buildPool = (entry) => {
     project: 'cbridge',
     symbol: utils.formatSymbol(entry.token.token.symbol),
     tvlUsd: entry.total_liquidity,
-    apy: (entry.farming_apy + entry.lp_fee_earning_apy) * 100,
+    apyBase: entry.lp_fee_earning_apy * 100,
+    apyReward: entry.farming_apy * 100,
+    rewardTokens: entry.farming_session_tokens.map((t) => t.token.address),
+    underlyingTokens: [entry.token.token.address],
   };
 
   return newObj;

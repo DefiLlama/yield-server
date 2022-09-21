@@ -32,7 +32,7 @@ async function apy() {
   // for binance inactive !== true
   for (let chain of Object.keys(chains)) {
     const activeFarms = Object.values(farmsResponse[chain]).filter(
-      (v) => !v.inactive && v.category !== 'INACTIVE'
+      (v) => !v.category?.includes("INACTIVE")
     );
     const farms = activeFarms.map((v) => {
       const s = v.displayName.split(' ');

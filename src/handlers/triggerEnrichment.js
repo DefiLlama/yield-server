@@ -2,12 +2,13 @@ const superagent = require('superagent');
 const ss = require('simple-statistics');
 
 const utils = require('../utils/s3');
-const { getLatestPools } = require('./getPools');
-const { getStats } = require('./triggerStats');
+const {
+  getYieldFiltered,
+  getYieldOffset,
+} = require('../controllers/yieldController');
+const { getStat } = require('../controllers/statController');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
 const { welfordUpdate } = require('../utils/welford');
-const dbConnection = require('../utils/dbConnection.js');
-const poolModel = require('../models/pool');
 
 module.exports.handler = async (event, context) => {
   await main();
@@ -16,21 +17,13 @@ module.exports.handler = async (event, context) => {
 const main = async () => {
   console.log('START DATA ENRICHMENT');
 
-  const urlBase = process.env.APIG_URL;
-  console.log('\n1. getting pools...');
-  let data = await getLatestPools();
+  // ---------- get lastet unique pool
+  console.log('\ngetting pools');
+  const data = await getYieldFiltered();
 
-  // derive final apy field via:
-  data = data.map((p) => ({
-    ...p,
-    apy: p.apy ?? p.apyBase + p.apyReward,
-  }));
-  // remove any potential null values
-  data = data.filter((p) => p.apy !== null);
-
-  ////// 2 add pct-change columns
+  // ---------- add additional fields
   // for each project we get 3 offsets (1D, 7D, 30D) and calculate absolute apy pct-change
-  console.log('\n2. adding pct-change fields...');
+  console.log('\nadding pct-change fields');
   const days = ['1', '7', '30'];
   let dataEnriched = [];
   const failed = [];
@@ -42,14 +35,14 @@ const main = async () => {
     // api calls
     const promises = [];
     for (let i = 0; i < days.length; i++) {
-      promises.push(getOffsets(adaptor, days[i]));
+      promises.push(getYieldOffset(adaptor, days[i]));
     }
     try {
       const offsets = await Promise.all(promises);
       // calculate pct change for each pool
       dataEnriched = [
         ...dataEnriched,
-        ...dataProject.map((pool) => enrich(pool, days, offsets)),
+        ...dataProject.map((p) => enrich(p, days, offsets)),
       ];
     } catch (err) {
       console.log(err);
@@ -63,7 +56,8 @@ const main = async () => {
     }
   }
 
-  console.log('\n3. adding additional pool info fields');
+  // add info about stablecoin, exposure etc.
+  console.log('\nadding additional pool info fields');
   const stablecoins = (
     await superagent.get(
       'https://stablecoins.llama.fi/stablecoins?includePrices=true'
@@ -77,20 +71,21 @@ const main = async () => {
   ).body.protocols;
   dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins, config));
 
+  // add ML and overview plot fields
   // expanding mean, expanding standard deviation,
   // geometric mean and standard deviation (of daily returns)
-  console.log('\n4. adding stats columns');
+  console.log('\nadding stats columns');
   const T = 365;
   dataEnriched = dataEnriched.map((p) => ({
     ...p,
     return: (1 + p.apy / 100) ** (1 / T) - 1,
   }));
 
-  const dataStats = await getStats();
-  const statsColumns = welfordUpdate(dataEnriched, dataStats);
+  const dataStat = await getStat();
+  const statColumns = welfordUpdate(dataEnriched, dataStat);
   // add columns to dataEnriched
   for (const p of dataEnriched) {
-    const x = statsColumns.find((i) => i.pool === p.pool);
+    const x = statColumns.find((i) => i.configID === p.configID);
     // create columns
     // a) ML section
     p['count'] = x.count;
@@ -100,7 +95,7 @@ const main = async () => {
     // b) scatterchart section
     p['mu'] = (x.productDR ** (T / x.count) - 1) * 100;
     p['sigma'] =
-      x.count < 2 ? null : Math.sqrt((x.mean2DR / (x.count - 1)) * T) * 100;
+      x.count < 2 ? 0 : Math.sqrt((x.mean2DR / (x.count - 1)) * T) * 100;
   }
   // mark pools as outliers if outside boundary (let user filter via toggle on frontend)
   const columns = ['mu', 'sigma'];
@@ -113,7 +108,7 @@ const main = async () => {
     const distance = 1.5;
     const x_lb = x_median - distance * x_iqr;
     const x_ub = x_median + distance * x_iqr;
-    outlierBoundaries[col] = { lb: x_lb, ub: x_ub };
+    outlierBoundaries[col] = { lb: Math.max(0, x_lb), ub: x_ub };
   }
   // before adding the new outlier field,
   // i'm setting sigma to 0 instead of keeping it to null
@@ -133,13 +128,13 @@ const main = async () => {
       p['sigma'] > outlierBoundaries['sigma']['ub'],
   }));
 
-  console.log('\n5. adding apy runway prediction');
+  // add ML predictions
+  console.log('\nadding apy runway prediction');
   // load categorical feature mappings
   const modelMappings = await utils.readFromS3(
     'llama-apy-prediction-prod',
     'mlmodelartefacts/categorical_feature_mapping_2022_05_20.json'
   );
-  console.log(modelMappings);
   for (const el of dataEnriched) {
     project_fact = modelMappings.project_factorized[el.project];
     chain_fact = modelMappings.chain_factorized[el.chain];
@@ -149,9 +144,6 @@ const main = async () => {
     el.project_factorized = project_fact === undefined ? -1 : project_fact;
     el.chain_factorized = chain_fact === undefined ? -1 : chain_fact;
   }
-
-  // remove any potential objects which have null value on mean
-  dataEnriched = dataEnriched.filter((el) => el.apyMeanExpanding !== null);
 
   // impute null values on apyStdExpanding (this will be null whenever we have pools with less than 2
   // samples, eg. whenever a new pool project is listed or an existing project adds new pools
@@ -187,8 +179,7 @@ const main = async () => {
   for (const [i, el] of dataEnriched.entries()) {
     // for certain conditions we don't want to show predictions on the frontend
     // 1. apy === 0
-    // 2. project === 'anchor' ("stable" apy, prediction would be confusing)
-    // 3. less than 7 datapoints per pool
+    // 2. less than 7 datapoints per pool
     // (low confidence in the model predictions backward looking features (mean and std)
     // are undeveloped and might skew prediction results)
 
@@ -198,8 +189,7 @@ const main = async () => {
       1: 'Stable/Up',
     };
 
-    const nullifyPredictionsCond =
-      el.apy <= 0 || el.count < 7 || el.project === 'anchor';
+    const nullifyPredictionsCond = el.apy <= 0 || el.count < 7;
     const cond = y_pred[i][0] >= y_pred[i][1];
     // (we add label + probabalilty of the class with the larger probability)
     const predictedClass = nullifyPredictionsCond
@@ -246,28 +236,33 @@ const main = async () => {
   }
 
   // round numbers
-  const precision = 3;
+  const precision = 5;
   dataEnriched = dataEnriched.map((p) =>
     Object.fromEntries(
       Object.entries(p).map(([k, v]) => [
         k,
-        typeof v === 'number' ? parseFloat(v.toFixed(precision)) : v,
+        typeof v === 'number' ? +v.toFixed(precision) : v,
       ])
     )
   );
 
-  console.log('\n6. saving data to S3');
+  // before saving, we set pool = configID for the api response of /pools & /poolsEnriched
+  // so we can have the same usage pattern on /chart without breaking changes
+  dataEnriched = dataEnriched
+    .map((p) => ({ ...p, pool_old: p.pool, pool: p.configID }))
+    .map(({ configID, ...p }) => p);
+
+  // ---------- save output to S3
+  console.log('\nsaving data to S3');
   console.log('nb of pools', dataEnriched.length);
   const bucket = process.env.BUCKET_DATA;
   const key = 'enriched/dataEnriched.json';
   dataEnriched = dataEnriched.sort((a, b) => b.tvlUsd - a.tvlUsd);
   await utils.writeToS3(bucket, key, dataEnriched);
 
-  // also save to other "folder" where we keep track of daily predictions (this will be used
-  // for ML dashboard performance monitoring)
-  const timestamp = new Date(
-    Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
-  ).toISOString();
+  // store ML predictions so we can keep track of model performance
+  const f = 1000 * 60 * 60;
+  const timestamp = new Date(Math.floor(Date.now() / f) * f).toISOString();
 
   if (timestamp.split('T')[1] === '23:00:00.000Z') {
     const keyPredictions = `predictions-hourly/dataEnriched_${timestamp}.json`;
@@ -287,7 +282,7 @@ const enrich = (pool, days, offsets) => {
   const poolC = { ...pool };
   for (let d = 0; d < days.length; d++) {
     let X = offsets[d];
-    const apyOffset = X.find((x) => x.pool === poolC.pool)?.apy;
+    const apyOffset = X.find((x) => x.configID === poolC.configID)?.apy;
     poolC[`apyPct${days[d]}D`] = poolC['apy'] - apyOffset;
   }
   return poolC;
@@ -409,77 +404,4 @@ const addPoolInfo = (el, stablecoins, config) => {
   el['exposure'] = checkExposure(el);
 
   return el;
-};
-
-// retrieve the historical offset data for a project and a given offset day (1d/7d/30d)
-// to calculate pct changes. allow some buffer (+/- 3hs) in case of missing data
-const getOffsets = async (project, days) => {
-  const conn = await dbConnection.connect();
-  const M = conn.model(poolModel.modelName);
-
-  const daysMilliSeconds = Number(days) * 60 * 60 * 24 * 1000;
-  const tOffset = Date.now() - daysMilliSeconds;
-
-  // 3 hour window
-  const h = 3;
-  const tWindow = 60 * 60 * h * 1000;
-  // mongoose query requires Date
-  const recent = new Date(tOffset + tWindow);
-  const oldest = new Date(tOffset - tWindow);
-
-  // pull only data >= 10k usd in tvl (we won't show smaller pools on the frontend)
-  const tvlUsdLB = 1e4;
-
-  const aggQuery = [
-    // filter
-    {
-      $match: {
-        project: project,
-        timestamp: {
-          $gte: oldest,
-          $lte: recent,
-        },
-        tvlUsd: { $gte: tvlUsdLB },
-      },
-    },
-    // calc time distances from exact offset
-    {
-      $addFields: {
-        time_dist: {
-          $abs: [{ $subtract: ['$timestamp', new Date(tOffset)] }],
-        },
-      },
-    },
-    // sort ascending (the smallest distance are the closest data points to the exact offset)
-    {
-      $sort: { time_dist: 1 },
-    },
-    // group by id, and return the first sample of apy
-    {
-      $group: {
-        _id: '$pool',
-        apy: {
-          $first: '$apy',
-        },
-      },
-    },
-    // adding "back" the pool field, the grouping key is only available as _id
-    {
-      $addFields: {
-        pool: '$_id',
-      },
-    },
-    // remove the grouping key
-    {
-      $project: {
-        _id: 0,
-      },
-    },
-  ];
-  const query = M.aggregate(aggQuery);
-
-  // run query on db server
-  const response = await query;
-
-  return response;
 };
