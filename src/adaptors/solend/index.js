@@ -36,10 +36,17 @@ const main = async () => {
   return reserves.flat().map((reserveData, index) => {
     const reserveConfig = reservesConfigs[index];
     const liquidity = reserveData.reserve.liquidity;
+    const collateral = reserveData.reserve.collateral;
     const apyBase = Number(reserveData.rates.supplyInterest);
+    const apyBaseBorrow = Number(reserveData.rates.borrowInterest);
     const apyReward = reserveData.rewards.reduce(
       (acc, reward) =>
         reward.side === 'supply' ? (Number(reward.apy) || 0) + acc : acc,
+      0
+    );
+    const apyRewardBorrow = reserveData.rewards.reduce(
+      (acc, reward) =>
+        reward.side === 'borrow' ? (Number(reward.apy) || 0) + acc : acc,
       0
     );
 
@@ -55,19 +62,35 @@ const main = async () => {
       reserveConfig.marketName.slice(1) +
       ' Pool';
 
+    // total supply
+    const totalSupplyUsd =
+      (Number(collateral.mintTotalSupply) / 10 ** liquidity.mintDecimals) *
+      (liquidity.marketPrice / 10 ** 18);
+
+    // available liquidity
+    const tvlUsd =
+      (Number(liquidity.availableAmount) / 10 ** liquidity.mintDecimals) *
+      (liquidity.marketPrice / 10 ** 18);
+
+    // total borrow
+    const totalBorrowUsd = totalSupplyUsd - tvlUsd;
+
     return {
       pool: reserveConfig.address,
       chain: utils.formatChain('solana'),
       project: 'solend',
       symbol: `${reserveConfig.asset}`,
       poolMeta: secondaryString,
-      tvlUsd:
-        (Number(liquidity.availableAmount) / 10 ** liquidity.mintDecimals) *
-        (liquidity.marketPrice / 10 ** 18),
+      tvlUsd,
       apyBase,
       apyReward,
       rewardTokens: apyReward > 0 ? rewardTokens : [],
       underlyingTokens: [reserveData.reserve.liquidity.mintPubkey],
+      totalSupplyUsd,
+      totalBorrowUsd,
+      apyBaseBorrow,
+      apyRewardBorrow: apyRewardBorrow > 0 ? apyRewardBorrow : null,
+      ltv: reserveData.reserve.config.loanToValueRatio / 100,
     };
   });
 };
