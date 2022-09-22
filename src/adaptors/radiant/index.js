@@ -61,6 +61,19 @@ const apy = async (pools, dataTvl) => {
   return data;
 };
 
+const apyPool2 = async (pool2Info) => {
+  const pool2 = "0xc963ef7d977ECb0Ab71d835C4cb1Bf737f28d010";
+
+  return {
+    address: pool2,
+    id: pool2,
+    symbol: "Pool2",
+    underlyingTokens: ["0x0c4681e6c0235179ec3d4f4fc4df3d14fdd96017"],
+    tvl: pool2Info.data.totalLpStakedUSD,
+    rewardApy: pool2Info.data.apr * 100,
+  };
+};
+
 const padHex = (hexstring, intSize = 256) => {
   hexstring = hexstring.replace('0x', '');
   const length = intSize / 4 - hexstring.length;
@@ -94,6 +107,8 @@ const topLvl = async (chainString, url) => {
 
   // calculate apy
   let data = await apy(pools, dataTvl.lendingPoolRewards.data.poolAPRs);
+  let pool2Data = await apyPool2(dataTvl.pool2Info);
+  data.push(pool2Data);
 
   // build pool objects
   data = data.map((el) => buildPool(el, chainString));
