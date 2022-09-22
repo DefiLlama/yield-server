@@ -1,10 +1,12 @@
 const {ethers} = require("ethers");
-const {OvixABI, unitrollerABI, erc20ABI, oracleABI} = require("./Abis");
+const {OvixABI, unitrollerABI, erc20ABI, oracleABI, preminingABI} = require("./Abis");
 const {PROVIDER} = require("./Provider");
 const sdk = require("@defillama/sdk");
+const BigNumber = require("bignumber.js");
 
 const unitroller = "0x8849f1a0cB6b5D6076aB150546EddEe193754F1C";
 const oracleContract = '0x1c312b14c129EabC4796b0165A2c470b659E5f01';
+const preminingAddress = '0x108ADA79428ea427E6A2175D3AB678abA2947a4a';
 
 
 
@@ -20,6 +22,18 @@ async function main() {
 
         tvl = await getErc20Balances(strategy);
 
+        // retrieve the premining rewards contract
+        const preminingContract = new ethers.Contract(
+            preminingAddress,
+            preminingABI,
+            PROVIDER
+        );
+
+        const preminingRewards = ethers.utils.formatEther(await preminingContract.marketRewards(strategy));
+
+        // calculate premined rewards APY for this market
+        const preminedVixApr = tvl.tvlUsd === 0 ? 0 : preminingRewards * (52 / tvl.tvlUsd) * 0.3 * 100;
+
 
         const newObj = {
             pool: strategy,
@@ -27,7 +41,12 @@ async function main() {
             symbol: OvixAPYs.tokenName,
             chain: "polygon",
             apy: OvixAPYs.supplyAPY,
-            tvlUsd: tvl
+            apyBaseBorrow: OvixAPYs.borrowAPY,
+            apyReward: preminedVixApr,
+            rewardTokens: ['0x108ADA79428ea427E6A2175D3AB678abA2947a4a'],
+            totalSupplyUsd: tvl.totalSupplyUsd,
+            totalBorrowUsd: tvl.totalBorrowsUsd,
+            tvlUsd: tvl.tvlUsd
         };
 
         data.push(newObj);
@@ -98,6 +117,9 @@ async function getErc20Balances(strategy) {
     // get the total supply
     const oTokenTotalSupply = await oTokenContract.totalSupply();
 
+    // get total borrows
+    const oTokenTotalBorrows = await oTokenContract.totalBorrows();
+
     // get the exchange rate stored
     const oExchangeRateStored = await oTokenContract.exchangeRateStored();
 
@@ -129,6 +151,7 @@ async function getErc20Balances(strategy) {
     // do the conversions
     return convertTvlUSD(
         oTokenTotalSupply,
+        oTokenTotalBorrows,
         oExchangeRateStored,
         oDecimals,
         underlyingDecimals,
@@ -143,23 +166,35 @@ function convertUSDC(
 ) {
     return (
         ((parseFloat(balance) * parseFloat(exchangeRateStored)) /
-                        Math.pow(1, Math.pow(10, decimals))) /
+            Math.pow(1, Math.pow(10, decimals))) /
         Math.pow(1, Math.pow(10, 18))
     );
 }
 
 function convertTvlUSD(
     totalSupply,
+    totalBorrows,
     exchangeRateStored,
     oDecimals,
     underlyingDecimals,
     oracleUnderlyingPrice,
 ) {
-    return (
-        (((totalSupply * exchangeRateStored) / 10 ** (18 + underlyingDecimals)) *
-            oracleUnderlyingPrice) /
-        10 ** (36 - underlyingDecimals)
-    );
+        const totalSupplyUsd = ((((totalSupply * exchangeRateStored) / 10 ** (18 + underlyingDecimals)) *
+                oracleUnderlyingPrice) /
+            10 ** (36 - underlyingDecimals));
+
+        const totalBorrowsUsd = (((totalBorrows ) * oracleUnderlyingPrice) / 10 ** (28 + underlyingDecimals)   );
+
+        const tvlUsd = totalSupplyUsd + totalBorrowsUsd;
+
+        return {totalSupplyUsd, totalBorrowsUsd, tvlUsd};
+
+        // const tvlUsd = ((((totalSupply * exchangeRateStored) / 10 ** (18 + underlyingDecimals)) *
+        //     oracleUnderlyingPrice) /
+        // 10 ** (36 - underlyingDecimals)) +
+        //
+        // (((totalBorrows ) * oracleUnderlyingPrice) / 10 ** (28 + underlyingDecimals)   );
+
 }
 
 
