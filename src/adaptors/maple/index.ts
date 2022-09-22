@@ -3,10 +3,9 @@ const { request } = require('graphql-request');
 const utils = require('../utils');
 const { query } = require('./query');
 
-const API_URL = 'https://staging.api.maple.finance/v1/graphql';
+const API_URL = 'https://api.maple.finance/v1/graphql';
 
 interface Pool {
-  contractAddress: string;
   poolName: string;
   liquidityAsset: {
     price: number;
@@ -18,10 +17,15 @@ interface Pool {
   lendingApy: string;
   farmingApy: string;
   poolDelegate: { companyName: string };
+  poolPositions: Array<PoolPositions>;
 }
 
 interface Pools {
   results: { list: Array<Pool> };
+}
+
+interface PoolPositions {
+  id: string;
 }
 
 const apy = async () => {
@@ -35,7 +39,7 @@ const apy = async () => {
     const tokenPrice = pool.liquidityAsset.price / 1e8;
 
     return {
-      pool: pool.contractAddress,
+      pool: pool.poolPositions[0]?.id.split('-')[1],
       chain: utils.formatChain('ethereum'),
       project: 'maple',
       symbol: pool.liquidityAsset.symbol,
@@ -51,7 +55,7 @@ const apy = async () => {
       ],
     };
   });
-  return pools;
+  return pools.filter((p) => p.pool);
 };
 
 module.exports = {
