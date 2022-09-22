@@ -93,7 +93,7 @@ const main = async () => {
     address_in: pools.map(({ lpToken }) => lpToken.id),
   });
 
-  const res = pools.map((pool) => {
+  let res = pools.map((pool) => {
     const balData = balPools.find(({ address }) => address === pool.lpToken.id);
     if (!balData) return;
     const swapApr = swapAprs.find(({ id }) => id === balData.id);
@@ -128,9 +128,17 @@ const main = async () => {
     };
   });
 
-  return res
+  res = res
     .filter(Boolean)
     .filter((p) => p.pool !== '0xe8cc7e765647625b95f59c15848379d10b9ab4af');
+
+  // subgraph returns some pools more than once, removing those dupes here
+  const uniquePools = new Set();
+  return res.filter((p) => {
+    const x = uniquePools.has(p.pool);
+    uniquePools.add(p.pool);
+    return !x;
+  });
 };
 
 module.exports = {
