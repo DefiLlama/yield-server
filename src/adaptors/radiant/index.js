@@ -68,7 +68,7 @@ const apyPool2 = async (pool2Info) => {
     address: pool2,
     id: pool2,
     symbol: "Pool2",
-    underlyingTokens: ["0x0c4681e6c0235179ec3d4f4fc4df3d14fdd96017"],
+    underlyingAsset: "0x0c4681e6c0235179ec3d4f4fc4df3d14fdd96017",
     tvl: pool2Info.data.totalLpStakedUSD,
     rewardApy: pool2Info.data.apr * 100,
   };
