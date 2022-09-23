@@ -348,12 +348,16 @@ const transformTarotLPName = async (
       case 'SLP':
         poolName = 'Sushi';
         break;
+      default:
+        poolName = underlyingLiquidityPoolSymbol;
     }
   }
+
   // if pool name chnaged from conditions above
   if (poolName !== undefined) {
+    poolName = poolName.includes('-ZS') ? 'ZipSwap' : poolName;
     poolId = `${lendingPoolAddress}-${supplyTokenSymbol}-${chain}`;
-    poolMeta = `${poolName} ${token0Symbol}/${token1Symbol}-${supplyTokenSymbol}`;
+    poolMeta = `${poolName} ${token0Symbol}/${token1Symbol}`;
   }
   return { poolId, poolMeta };
 };
