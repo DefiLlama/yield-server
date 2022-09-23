@@ -67,7 +67,7 @@ const apyPool2 = async (pool2Info) => {
   return {
     address: pool2,
     id: pool2,
-    symbol: "Pool2",
+    symbol: "RDNT-ETH",
     underlyingAsset: "0x0c4681e6c0235179ec3d4f4fc4df3d14fdd96017",
     tvl: pool2Info.data.totalLpStakedUSD,
     rewardApy: pool2Info.data.apr * 100,
@@ -124,5 +124,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://radiant.capital/markets',
+  url: 'https://app.radiant.capital/#/markets',
 };
