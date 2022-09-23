@@ -71,7 +71,7 @@ functions:
   triggerAdaptor:
     handler: src/handlers/triggerAdaptor.handler
     description: Lambda which runs adaptors
-    timeout: 600
+    timeout: 900
     events:
       - sqs:
           arn:
@@ -204,7 +204,7 @@ resources:
       Type: AWS::SQS::Queue
       Properties:
         QueueName: ${self:service}-${self:custom.stage}-AdapterQueue
-        VisibilityTimeout: 660
+        VisibilityTimeout: 930
         # setting this to 9hours
         MessageRetentionPeriod: 32400
         RedrivePolicy:
