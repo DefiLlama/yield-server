@@ -66,6 +66,14 @@ const targetToTicker = (target) => {
   }
 };
 
+const underlyingToTicker = (underlying) => {
+  if (underlying === 'WETH') {
+    return 'ETH';
+  } else {
+    return underlying;
+  }
+};
+
 const toISODate = (timestamp) =>
   new Date(timestamp * 1000).toISOString().substr(0, 10);
 
@@ -223,9 +231,11 @@ const main = async () => {
     pool: pool.series.pt,
     chain: 'Ethereum',
     project: 'sense',
-    symbol: `PT-${pool.series.underlyingName} ${pool.series.targetName}-${
-      pool.series.adapterMeta.number
-    } (Maturing ${toISODate(pool.series.maturity)})`,
+    symbol: `PT-${underlyingToTicker(pool.series.underlyingName)} ${
+      pool.series.targetName
+    }-${pool.series.adapterMeta.number} (Maturing ${toISODate(
+      pool.series.maturity
+    )})`,
     tvlUsed: new BigNumber(ptTotalSupplys.get(pool.series.pt))
       .times(targetPrices[pool.series.target])
       .toString(),
@@ -256,20 +266,18 @@ const main = async () => {
     pool: pool.address,
     chain: 'Ethereum',
     project: 'sense',
-    symbol: `SPACE-${pool.series.underlyingName} ${pool.series.targetName}-${
-      pool.series.adapterMeta.number
-    } (Maturing ${toISODate(pool.series.maturity)})`,
+    symbol: `SPACE-${pool.series.targetName} (Maturing ${toISODate(
+      pool.series.maturity
+    )})`,
     tvlUsed: pool.tvlUsed,
     apyBase: pool.apyBase,
     apyReward: 0,
     rewardTokens: [],
-    underlyingTokens: [pool.series.underlying],
+    underlyingTokens: [pool.series.pt, pool.series.target],
     poolMeta: `Sense ${pool.series.underlying} Space pool using ${
       pool.series.targetName
     } yield and Maturing ${toISODate(pool.series.maturity)}`,
   }));
-
-  console.log([...pts, ...spacePools], 'spacePools');
 
   return [...pts, ...spacePools];
 };
