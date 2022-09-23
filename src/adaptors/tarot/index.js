@@ -270,7 +270,7 @@ const transformTarotLPName = async (
         abi: abi.factory,
         chain,
         block,
-        requery: true,
+        requery: false,
       })
     );
     // if symbol is from solidex/0xDAO/Velodrome
