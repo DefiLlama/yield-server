@@ -106,7 +106,7 @@ const calculateSpaceData = async (pool, targetPrices) => {
       new BigNumber(pool.targetBalance)
         .plus(pool.pTBalance)
         .times(targetPrices[pool.series.target])
-        .toString(),
+        .toNumber(),
     ];
   }
 
@@ -169,7 +169,7 @@ const calculateSpaceData = async (pool, targetPrices) => {
   return [
     // Take the apy as the weighted sum of the Target and PT APYs, plus the estimated yield from fees.
     weightedPTApy.plus(weightedTargetApy).plus(estYieldFromFees).toString(),
-    targetTvl.plus(ptTvl).toString(),
+    targetTvl.plus(ptTvl).toNumber(),
   ];
 };
 
@@ -238,11 +238,11 @@ const main = async () => {
     )})`,
     tvlUsd: new BigNumber(ptTotalSupplys.get(pool.series.pt))
       .times(targetPrices[pool.series.target])
-      .toString(),
-    apyBase: pool.impliedRate,
+      .toNumber(),
+    apyBase: parseFloat(pool.impliedRate),
     apyReward: 0,
     rewardTokens: [],
-    underlyingTokens: [pool.series.pt, pool.series.target],
+    underlyingTokens: [pool.series.underlying],
     poolMeta: `Sense ${pool.series.underlying} PT using ${
       pool.series.targetName
     } yield and Maturing ${toISODate(pool.series.maturity)}`,
@@ -270,7 +270,7 @@ const main = async () => {
       pool.series.maturity
     )})`,
     tvlUsd: pool.tvlUsd,
-    apyBase: pool.apyBase,
+    apyBase: parseFloat(pool.apyBase),
     apyReward: 0,
     rewardTokens: [],
     underlyingTokens: [pool.series.pt, pool.series.target],
