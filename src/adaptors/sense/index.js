@@ -184,7 +184,7 @@ const main = async () => {
       .filter((y) => y.symbol === targetToTicker(pool.series.targetName))
       .reduce(
         (acc, cur) =>
-          acc === null ? cur : cur.tvlUsed > acc.tvlUsed ? cur : acc,
+          acc === null ? cur : cur.tvlUsd > acc.tvlUsd ? cur : acc,
         null
       );
 
@@ -236,7 +236,7 @@ const main = async () => {
     }-${pool.series.adapterMeta.number} (Maturing ${toISODate(
       pool.series.maturity
     )})`,
-    tvlUsed: new BigNumber(ptTotalSupplys.get(pool.series.pt))
+    tvlUsd: new BigNumber(ptTotalSupplys.get(pool.series.pt))
       .times(targetPrices[pool.series.target])
       .toString(),
     apyBase: pool.impliedRate,
@@ -252,10 +252,10 @@ const main = async () => {
     pools
       .filter((pool) => !!pool.targetAPYBase)
       .map(async (pool) => {
-        const [apyBase, tvlUsed] = await calculateSpaceData(pool, targetPrices);
+        const [apyBase, tvlUsd] = await calculateSpaceData(pool, targetPrices);
         return {
           apyBase,
-          tvlUsed,
+          tvlUsd,
           ...pool,
         };
       })
@@ -269,7 +269,7 @@ const main = async () => {
     symbol: `SPACE-${pool.series.targetName} (Maturing ${toISODate(
       pool.series.maturity
     )})`,
-    tvlUsed: pool.tvlUsed,
+    tvlUsd: pool.tvlUsd,
     apyBase: pool.apyBase,
     apyReward: 0,
     rewardTokens: [],
