@@ -233,9 +233,7 @@ const main = async () => {
     project: 'sense',
     symbol: `PT-${underlyingToTicker(pool.series.underlyingName)} ${
       pool.series.targetName
-    }-${pool.series.adapterMeta.number} (Maturing ${toISODate(
-      pool.series.maturity
-    )})`,
+    }-${pool.series.adapterMeta.number}`,
     tvlUsd: new BigNumber(ptTotalSupplys.get(pool.series.pt))
       .times(targetPrices[pool.series.target])
       .toNumber(),
@@ -243,9 +241,7 @@ const main = async () => {
     apyReward: 0,
     rewardTokens: [],
     underlyingTokens: [pool.series.underlying],
-    poolMeta: `Sense ${pool.series.underlying} PT using ${
-      pool.series.targetName
-    } yield and Maturing ${toISODate(pool.series.maturity)}`,
+    poolMeta: `Maturing ${toISODate(pool.series.maturity)}`,
   }));
 
   pools = await Promise.all(
@@ -266,17 +262,13 @@ const main = async () => {
     pool: pool.address,
     chain: 'Ethereum',
     project: 'sense',
-    symbol: `SPACE-${pool.series.targetName} (Maturing ${toISODate(
-      pool.series.maturity
-    )})`,
+    symbol: `SPACE-${pool.series.targetName}`,
     tvlUsd: pool.tvlUsd,
     apyBase: parseFloat(pool.apyBase),
     apyReward: 0,
     rewardTokens: [],
     underlyingTokens: [pool.series.pt, pool.series.target],
-    poolMeta: `Sense ${pool.series.underlying} Space pool using ${
-      pool.series.targetName
-    } yield and Maturing ${toISODate(pool.series.maturity)}`,
+    poolMeta: `Maturing ${toISODate(pool.series.maturity)}`,
   }));
 
   return [...pts, ...spacePools];
