@@ -34,9 +34,10 @@ const getApy = async () => {
         apyBase: Number(market.supplyAPY) / 1e16,
         apyReward: Number(market.rewardSupplyApy) / 1e16,
         rewardTokens: ['0x431ad2ff6a9c365805ebad47ee021148d6f7dbe0'],
-        underlyingTokens: underlyingToken.find(
-          (x) => x.symbol === market.underlying_symbol
-        ).underlying,
+        underlyingTokens: [
+          underlyingToken.find((x) => x.symbol === market.underlying_symbol)
+            .underlying,
+        ],
         // borrow fields
         apyBaseBorrow: Number(market.borrowAPY) / 1e16,
         apyRewardBorrow: Number(market.rewardBorrowApy) / 1e16,
