@@ -12,6 +12,9 @@ interface Market {
   supplyApy: string;
   supplyVenusApy: string;
   underlyingAddress: string;
+  borrowApy: number;
+  borrowVenusApy: string;
+  collateralFactor: string;
 }
 
 const getApy = async () => {
@@ -31,6 +34,12 @@ const getApy = async () => {
       market.underlyingSymbol === 'BNB'
         ? ['0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c']
         : [],
+    // borrow fields
+    apyBaseBorrow: Number(market.borrowApy) * -1,
+    apyRewardBorrow: Number(market.borrowVenusApy),
+    totalSupplyUsd: Number(market.totalSupplyUsd),
+    totalBorrowUsd: Number(market.totalBorrowsUsd),
+    ltv: Number(market.collateralFactor) / 1e18,
   }));
 
   return pools;
