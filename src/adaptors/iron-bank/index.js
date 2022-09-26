@@ -27,6 +27,11 @@ const getApy = async () => {
       tvlUsd: Number(pool.cash.value) * Number(pool.underlying_price.value),
       apyBase: Number(pool.supply_apy.value) * 100,
       underlyingTokens: [pool.underlying_address],
+      // borrow fields
+      totalSupplyUsd: Number(pool.total_supply.value),
+      totalBorrowUsd: Number(pool.total_borrows.value),
+      apyBaseBorrow: Number(pool.borrow_apy.value) * 100,
+      ltv: Number(pool.collateral_factor.value),
     }));
     return chainPools;
   });
