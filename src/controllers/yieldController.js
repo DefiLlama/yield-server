@@ -22,6 +22,7 @@ const getYieldFiltered = async () => {
     `
     SELECT
         "configID",
+        pool,
         timestamp,
         project,
         chain,
@@ -67,7 +68,10 @@ const getYieldFiltered = async () => {
     return new AppError(`Couldn't get ${tableName} data`, 404);
   }
 
-  return response;
+  // remove compound borrow pools for now
+  return response.filter(
+    (p) => !(p.project === 'compound' && p.poolMeta === 'borrow')
+  );
 };
 
 // get full history of given configID
@@ -79,7 +83,9 @@ const getYieldHistory = async (configID) => {
     SELECT
         timestamp,
         "tvlUsd",
-        "apy"
+        apy,
+        "apyBase",
+        "apyReward"
     FROM
         $<table:name>
     WHERE
@@ -210,7 +216,7 @@ const getYieldOffset = async (project, offset) => {
         ) AS y
     ORDER BY
         "configID",
-        abs_delta DESC
+        abs_delta ASC
     `,
     { compress: true }
   );
@@ -244,6 +250,10 @@ const buildInsertYieldQuery = (payload) => {
     'apy',
     'apyBase',
     'apyReward',
+    { name: 'apyBaseBorrow', def: null },
+    { name: 'apyRewardBorrow', def: null },
+    { name: 'totalSupplyUsd', def: null },
+    { name: 'totalBorrowUsd', def: null },
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
   return pgp.helpers.insert(payload, cs);

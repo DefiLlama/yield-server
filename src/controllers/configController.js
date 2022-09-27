@@ -100,6 +100,7 @@ const buildInsertConfigQuery = (payload) => {
     { name: 'underlyingTokens', def: null },
     { name: 'rewardTokens', def: null },
     'url',
+    { name: 'ltv', def: null },
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
   const query =
@@ -117,7 +118,3 @@ module.exports = {
   getDistinctID,
   tableName,
 };
-
-(async () => {
-  console.log(await getDistinctID());
-})();

@@ -22,7 +22,7 @@ const getApy = async () => {
   );
 
   const pools = markets
-    .map(({ network, data: { supplyMarkets } }) => {
+    .map(({ network, data: { supplyMarkets, underlyingToken } }) => {
       return supplyMarkets.map((market) => ({
         pool: `${market.address}-${network}`,
         chain: utils.formatChain(network),
@@ -31,7 +31,18 @@ const getApy = async () => {
         tvlUsd:
           (Number(market.supplyValue) - Number(market.borrowValue)) / 1e18,
         // 1e16 = apy / 1e18 * 100%
-        apy: (Number(market.rewardSupplyApy) + Number(market.supplyAPY)) / 1e16,
+        apyBase: Number(market.supplyAPY) / 1e16,
+        apyReward: Number(market.rewardSupplyApy) / 1e16,
+        rewardTokens: ['0x431ad2ff6a9c365805ebad47ee021148d6f7dbe0'],
+        underlyingTokens: [
+          underlyingToken.find((x) => x.symbol === market.underlying_symbol)
+            .underlying,
+        ],
+        // borrow fields
+        apyBaseBorrow: Number(market.borrowAPY) / 1e16,
+        apyRewardBorrow: Number(market.rewardBorrowApy) / 1e16,
+        totalSupplyUsd: Number(market.supplyValue) / 1e18,
+        totalBorrowUsd: Number(market.borrowValue) / 1e18,
       }));
     })
     .flat();

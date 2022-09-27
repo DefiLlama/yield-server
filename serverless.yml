@@ -126,6 +126,17 @@ functions:
       # every hour at 25 past
       - schedule: cron(25 * * * ? *)
 
+  # --- trigger monitor
+  triggerMonitor:
+    handler: src/handlers/triggerMonitor.handler
+    description: Lambda which triggers the monitor query for logging stale adapters
+    timeout: 300
+    events:
+      # every hour at 30 past
+      - schedule: cron(30 * * * ? *)
+    environment:
+      STALE_PROJECTS_WEBHOOK: ${file(./env.js):STALE_PROJECTS_WEBHOOK}
+
   # ---------- GET HANDLERS
   getPoolsEnriched:
     handler: src/handlers/getPoolsEnriched.handler
@@ -138,6 +149,16 @@ functions:
       - httpApi:
           method: get
           path: /pools
+
+  # includes old pool values
+  getPoolsEnrichedOld:
+    handler: src/handlers/getPoolsEnrichedOld.handler
+    description: Lambda for retrieving the latest enriched data for each unique pool (includes old pool values)
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /poolsOld
 
   getChart:
     handler: src/handlers/getChart.handler

@@ -5,9 +5,9 @@ const utils = require('../utils');
 const subgraphMorphoCompound =
   'https://api.thegraph.com/subgraphs/name/morpho-labs/morphocompoundmainnet';
 
-const BLOCKS_PER_DAY = 6_570;
+const BLOCKS_PER_DAY = 7200;
 const SECONDS_PER_DAY = 3600 * 24;
-const apxBlockSpeedInSeconds = 13.15; // in 1e4 units
+const apxBlockSpeedInSeconds = 12; // in 1e4 units
 const compToken = '0xc00e94cb662c3520282e6f5717214004a7f26888'.toLowerCase();
 const query = gql`
   query GetYieldsData {

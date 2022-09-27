@@ -149,7 +149,8 @@ const getApy = async () => {
       (e) =>
         e.lpToken !== '0x22a31bD4cB694433B6de19e0aCC2899E553e9481' &&
         e.lpToken !== '0x8b6828c1Bc28Ad187A4aB05f41F2AAC547d85132' &&
-        e.lpToken !== '0x0d5665A2319526A117E68E38EBEA4610aA8298F8'
+        e.lpToken !== '0x0d5665A2319526A117E68E38EBEA4610aA8298F8' &&
+        e.lpToken !== '0x8C9a93e198BC02ef48E8d7AEC3c042c5b00a4Ad3'
     );
   const lpTokens = pools.map(({ lpToken }) => lpToken);
 

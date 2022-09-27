@@ -60,12 +60,14 @@ const main = async (body) => {
   // number to string. so in order for the below filters to work proplerly we need to guarantee that the
   // datatypes are correct (on db insert, mongoose checks field types against the schema and the bulk insert
   // will fail if a pools field types doesnt match)
+  const strToNum = (val) => (typeof val === 'string' ? Number(val) : val);
   data = data.map((p) => ({
     ...p,
-    apy: typeof p.apy === 'string' ? Number(p.apy) : p.apy,
-    apyBase: typeof p.apyBase === 'string' ? Number(p.apyBase) : p.apyBase,
-    apyReward:
-      typeof p.apyReward === 'string' ? Number(p.apyReward) : p.apyReward,
+    apy: strToNum(p.apy),
+    apyBase: strToNum(p.apyBase),
+    apyReward: strToNum(p.apyReward),
+    apyBaseBorrow: strToNum(p.apyBaseBorrow),
+    apyRewardBorrow: strToNum(p.apyRewardBorrow),
   }));
 
   // filter tvl to be btw lb-ub
@@ -81,6 +83,10 @@ const main = async (body) => {
     apy: Number.isFinite(p.apy) ? p.apy : null,
     apyBase: Number.isFinite(p.apyBase) ? p.apyBase : null,
     apyReward: Number.isFinite(p.apyReward) ? p.apyReward : null,
+    apyBaseBorrow: Number.isFinite(p.apyBaseBorrow) ? p.apyBaseBorrow : null,
+    apyRewardBorrow: Number.isFinite(p.apyRewardBorrow)
+      ? p.apyRewardBorrow
+      : null,
   }));
 
   // remove pools where all 3 apy related fields are null
@@ -88,10 +94,29 @@ const main = async (body) => {
     (p) => !(p.apy === null && p.apyBase === null && p.apyReward === null)
   );
 
-  // derive final total apy in case only apyBase and/or apyReward are given
+  // in case of negative apy values (cause of bug, or else we set those to 0)
   data = data.map((p) => ({
     ...p,
-    apy: p.apy ?? p.apyBase + p.apyReward,
+    apy: p.apy < 0 ? 0 : p.apy,
+    apyBase: p.apyBase < 0 ? 0 : p.apyBase,
+    apyReward: p.apyReward < 0 ? 0 : p.apyReward,
+    apyBaseBorrow: p.apyBaseBorrow < 0 ? 0 : p.apyBaseBorrow,
+    apyRewardBorrow: p.apyRewardBorrow < 0 ? 0 : p.apyRewardBorrow,
+  }));
+
+  // derive final total apy field
+  data = data.map((p) => ({
+    ...p,
+    apy:
+      // in case all three fields are given (which is redundant cause we calc the sum here),
+      // we recalculate the total apy. reason: this takes into account any of the above 0 clips
+      // which will result in a different sum than the adaptors output
+      // (only applicable if all 3 fields are provided in the adapter
+      // and if apBase and or apyReward < 0)
+      p.apy !== null && p.apyBase !== null && p.apyReward !== null
+        ? p.apyBase + p.apyReward
+        : // all other cases for which we compute the sum only if apy is null/undefined
+          p.apy ?? p.apyBase + p.apyReward,
   }));
 
   // remove pools based on apy boundaries
@@ -130,17 +155,39 @@ const main = async (body) => {
       apyBase: p.apyBase !== null ? +p.apyBase.toFixed(precision) : p.apyBase,
       apyReward:
         p.apyReward !== null ? +p.apyReward.toFixed(precision) : p.apyReward,
-      url: project.url,
+      url: p.url ?? project.url,
       timestamp,
+      apyBaseBorrow:
+        p.apyBaseBorrow !== null
+          ? +p.apyBaseBorrow.toFixed(precision)
+          : p.apyBaseBorrow,
+      apyRewardBorrow:
+        p.apyRewardBorrow !== null
+          ? +p.apyRewardBorrow.toFixed(precision)
+          : p.apyRewardBorrow,
+      totalSupplyUsd:
+        p.totalSupplyUsd === undefined || p.totalSupplyUsd === null
+          ? null
+          : Math.round(p.totalSupplyUsd),
+      totalBorrowUsd:
+        p.totalBorrowUsd === undefined || p.totalBorrowUsd === null
+          ? null
+          : Math.round(p.totalBorrowUsd),
     };
   });
+
+  // change chain `Binance` -> `BSC`
+  data = data.map((p) => ({
+    ...p,
+    chain: p.chain === 'Binance' ? 'BSC' : p.chain,
+  }));
 
   // ---------- tvl spike check
   // prior insert, we run a tvl check to make sure
   // that there haven't been any sudden spikes in tvl compared to the previous insert;
   // insert only if tvl conditions are ok:
   // if tvl
-  // - has increased >5x since the last hourly update
+  // - has increased >10x since the last hourly update
   // - and has been updated in the last 5 hours
   // -> block update
 
@@ -186,8 +233,8 @@ const main = async (body) => {
   if (delta > 0) {
     console.log(`removed ${delta} sample(s) prior to insert`);
     // send discord message
-    // we limit sending msg only if the pool's last tvlUsd value is >= $500k
-    const filteredPools = droppedPools.filter((p) => p.tvlUsdDB >= 5e5);
+    // we limit sending msg only if the pool's last tvlUsd value is >= $50k
+    const filteredPools = droppedPools.filter((p) => p.tvlUsdDB >= 5e4);
     if (filteredPools.length) {
       const message = filteredPools
         .map(

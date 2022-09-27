@@ -270,7 +270,7 @@ const transformTarotLPName = async (
         abi: abi.factory,
         chain,
         block,
-        requery: true,
+        requery: false,
       })
     );
     // if symbol is from solidex/0xDAO/Velodrome
@@ -348,12 +348,16 @@ const transformTarotLPName = async (
       case 'SLP':
         poolName = 'Sushi';
         break;
+      default:
+        poolName = underlyingLiquidityPoolSymbol;
     }
   }
+
   // if pool name chnaged from conditions above
   if (poolName !== undefined) {
+    poolName = poolName.includes('-ZS') ? 'ZipSwap' : poolName;
     poolId = `${lendingPoolAddress}-${supplyTokenSymbol}-${chain}`;
-    poolMeta = `${poolName} ${token0Symbol}/${token1Symbol}-${supplyTokenSymbol}`;
+    poolMeta = `${poolName} ${token0Symbol}/${token1Symbol}`;
   }
   return { poolId, poolMeta };
 };
@@ -419,66 +423,6 @@ const getTokenDetails = async (allUniqueTokens, chain, block) => {
   return results;
 };
 
-const getUnderlyingTokenAndBorrowableDetails = async (
-  underlyingTokenAddress,
-  borrowableTokenAddress,
-  chain,
-  block,
-  lendingPoolAddress
-) => {
-  const { output: excessSupply } = await tryUntilSucceed(() =>
-    sdk.api.erc20.balanceOf({
-      target: underlyingTokenAddress,
-      owner: borrowableTokenAddress,
-      chain,
-      block,
-    })
-  );
-  const { output: reserveFactor } = await tryUntilSucceed(() =>
-    sdk.api.abi.call({
-      target: borrowableTokenAddress,
-      abi: abi.reserveFactor,
-      chain,
-      block,
-    })
-  );
-  const { output: totalBorrows } = await tryUntilSucceed(() =>
-    sdk.api.abi.call({
-      target: borrowableTokenAddress,
-      abi: abi.totalBorrows,
-      chain,
-      block,
-    })
-  );
-  const { output: borrowRate } = await tryUntilSucceed(() =>
-    sdk.api.abi.call({
-      target: borrowableTokenAddress,
-      abi: abi.borrowRate,
-      chain,
-      block,
-    })
-  );
-
-  // use constant instead of calling the contract
-  const { output: borrowableDecimal } = await tryUntilSucceed(() =>
-    sdk.api.abi.call({
-      target: borrowableTokenAddress,
-      abi: abi.decimals,
-      chain,
-      block,
-      requery: true,
-    })
-  );
-  const totalSupply = BigNumber(totalBorrows).plus(BigNumber(excessSupply));
-  return {
-    excessSupply,
-    reserveFactor,
-    totalBorrows,
-    borrowRate,
-    borrowableDecimal,
-    totalSupply,
-  };
-};
 // calculate tvl function
 const caculateTvl = (
   excessSupply,
@@ -572,7 +516,7 @@ const main = async () => {
       );
       // fetch the data in batches for the underlying assets of the lending pool first.
       // flatmap borrowables
-      const allBorrowables = lendingPoolsDetails.flatMap(
+      let allBorrowables = lendingPoolsDetails.flatMap(
         (lendingPoolDetails, i) => {
           const reserves = lendingPoolReserves[i];
           const lendingPoolAddress = lendingPoolAddresses[i];
@@ -622,19 +566,44 @@ const main = async () => {
           ];
         }
       );
-      const detailsData = await Promise.all(
-        allBorrowables.map((borrowable) => {
-          return borrowable !== null
-            ? getUnderlyingTokenAndBorrowableDetails(
-                borrowable.underlyingTokenAddress,
-                borrowable.borrowableTokenAddress,
-                chain,
-                block,
-                borrowable.lendingPoolAddress
-              )
-            : null;
-        })
+      // remove null
+      allBorrowables = allBorrowables.filter((p) => p);
+
+      const excessSupplyRes = await sdk.api.abi.multiCall({
+        abi: 'erc20:balanceOf',
+        calls: allBorrowables.map((b) => ({
+          target: b.underlyingTokenAddress,
+          params: b.borrowableTokenAddress,
+        })),
+        chain,
+      });
+      const excessSupply = excessSupplyRes.output.map((res) => res.output);
+
+      const [
+        reserveFactorRes,
+        totalBorrowsRes,
+        borrowRateRes,
+        borrowableDecimalRes,
+      ] = await Promise.all(
+        ['reserveFactor', 'totalBorrows', 'borrowRate', 'decimals'].map(
+          (method) =>
+            sdk.api.abi.multiCall({
+              abi: abi[method],
+              calls: allBorrowables.map((b) => ({
+                target: b.borrowableTokenAddress,
+                params: null,
+              })),
+              chain: chain,
+            })
+        )
       );
+      const reserveFactor = reserveFactorRes.output.map((res) => res.output);
+      const totalBorrows = totalBorrowsRes.output.map((res) => res.output);
+      const borrowRate = borrowRateRes.output.map((res) => res.output);
+      const borrowableDecimal = borrowableDecimalRes.output.map(
+        (res) => res.output
+      );
+
       const poolMetaData = await Promise.all(
         allBorrowables.map((borrowable) => {
           return borrowable !== null
@@ -659,21 +628,16 @@ const main = async () => {
             if (!borrowable) {
               return null;
             }
-            const {
-              excessSupply,
-              reserveFactor,
-              totalBorrows,
-              borrowRate,
-              borrowableDecimal,
-              totalSupply,
-            } = detailsData[i];
+            const totalSupply = BigNumber(totalBorrows[i]).plus(
+              BigNumber(excessSupply[i])
+            );
             //apy calculations
             const { borrowRateAPY, utilization, supplyRateAPY } = calculateApy(
-              borrowRate,
-              borrowableDecimal,
-              totalBorrows,
+              borrowRate[i],
+              borrowableDecimal[i],
+              totalBorrows[i],
               totalSupply,
-              reserveFactor
+              reserveFactor[i]
             );
             const { poolId, poolMeta } = poolMetaData[i];
             // if poolId is undefined, probably abi is not published so skip
@@ -693,7 +657,7 @@ const main = async () => {
             const underlyingTokenPriceUsd =
               fetchedPrices[key.toLowerCase()].price;
             const totalTvl = caculateTvl(
-              excessSupply,
+              excessSupply[i],
               borrowable.tokenDecimals,
               underlyingTokenPriceUsd,
               borrowable.lpReserve
