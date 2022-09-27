@@ -9,6 +9,10 @@
 5. Test your adaptor by running `npm run test --adapter=YOUR_ADAPTER` (remember to install dependencies with `npm i` first!)
 6. Submit a PR
 
+### Data sources
+
+The data must be fetched from on-chain calls or from subgraphs. Centralised api calls are only accepted if there is no other way of obtaining that data (eg off-chain gauge weights).
+
 ### Adaptors
 
 An adaptor is just a javascript (or typescript) file that exports an async function that returns an array of objects that represent pools of a protocol. The pools follow the following schema (all values are just examples):
@@ -96,7 +100,7 @@ const poolsFunction = async () => {
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
-  url: 'https://app.anchorprotocol.com/#/earn'
+  url: 'https://app.anchorprotocol.com/#/earn',
 };
 ```
 
