@@ -10,7 +10,7 @@ const poolsFunction = async () => {
     project: 'sturdy',
     symbol: utils.formatSymbol(item.tokens),
     tvlUsd: item.tvl,
-    apy: item.base * 100,
+    apyBase: item.base * 100,
   }));
 
   const ethVaultData = await utils.getData(
@@ -22,7 +22,7 @@ const poolsFunction = async () => {
     project: 'sturdy',
     symbol: utils.formatSymbol(item.tokens),
     tvlUsd: item.tvl,
-    apy: item.base * 100,
+    apyBase: item.base * 100,
   }));
   return [...ftmData, ...ethData];
 };
