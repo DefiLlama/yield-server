@@ -1,91 +1,78 @@
 {
-  "tokensPerInterval": {
-    "inputs": [],
-    "name": "tokensPerInterval",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  "getAumInUsdg": {
-    "inputs": [
-      {
-        "internalType": "bool",
-        "name": "maximise",
-        "type": "bool"
-      }
-    ],
-    "name": "getAumInUsdg",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  "rate": {
-    "inputs": [],
-    "name": "rate",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  "gauge_relative_weight": {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_addr",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_time",
-        "type": "uint256"
-      }
-    ],
-    "name": "gauge_relative_weight",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  "working_supply": {
-    "inputs": [],
-    "name": "working_supply",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  "balanceOf": {
-    "constant": true,
-    "inputs": [{ "name": "_owner", "type": "address" }],
-    "name": "balanceOf",
-    "outputs": [{ "name": "balance", "type": "uint256" }],
-    "type": "function"
-  }
+    "tokensPerInterval": {
+        "inputs": [],
+        "name": "tokensPerInterval",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    "getAumInUsdg": {
+        "inputs": [
+            {
+                "internalType": "bool",
+                "name": "maximise",
+                "type": "bool"
+            }
+        ],
+        "name": "getAumInUsdg",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    "rate": {
+        "inputs": [],
+        "name": "rate",
+        "outputs": [
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    "gauge_relative_weight": {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "_addr",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "_time",
+                "type": "uint256"
+            }
+        ],
+        "name": "gauge_relative_weight",
+        "outputs": [
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    "balanceOf": {
+        "constant": true,
+        "inputs": [{ "name": "_owner", "type": "address" }],
+        "name": "balanceOf",
+        "outputs": [{ "name": "balance", "type": "uint256" }],
+        "type": "function"
+    }
 }
