@@ -21,6 +21,7 @@ const query = gql`
       cash
       underlyingPriceUSD
       totalBorrows
+      underlyingAddress
     }
   }
 `;
@@ -78,9 +79,10 @@ const getApy = async () => {
       project: 'scream',
       symbol: market.underlyingSymbol,
       tvlUsd: market.underlyingPriceUSD * market.cash,
-      apy:
-        Number(market.supplyRate) * 100 +
-        rewardTokenApr[market.id.toLowerCase()],
+      apyBase: Number(market.supplyRate) * 100,
+      apyReward: rewardTokenApr[market.id.toLowerCase()],
+      rewardTokens: ['0xe0654c8e6fd4d733349ac7e09f6f23da256bf475'],
+      underlyingTokens: [market.underlyingAddress],
     };
   });
 
