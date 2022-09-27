@@ -9,6 +9,7 @@ const CHAIN = 'cronos';
 const GET_ALL_MARKETS = 'getAllMarkets';
 const REWARD_SPEED = 'tonicSpeeds';
 const SUPPLY_RATE = 'supplyRatePerBlock';
+const BORROW_RATE = 'borrowRatePerBlock';
 const TOTAL_BORROWS = 'totalBorrows';
 const GET_CHASH = 'getCash';
 const UNDERLYING = 'underlying';
@@ -96,6 +97,12 @@ const getApy = async () => {
     ercDelegator
   );
 
+  const borrowRewards = await multiCallMarkets(
+    allMarkets,
+    BORROW_RATE,
+    ercDelegator
+  );
+
   const marketsCash = await multiCallMarkets(
     allMarkets,
     GET_CHASH,
@@ -143,15 +150,23 @@ const getApy = async () => {
       price;
     const tvlUsd = (marketsCash[i] / 10 ** decimals) * price;
 
-    const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
+    const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
 
-    const apyReward =
-      (((extraRewards[i] / 10 ** PROTOCOL_TOKEN.decimals) *
-        BLOCKS_PER_DAY *
-        365 *
-        prices[PROTOCOL_TOKEN.address]) /
-        totalSupplyUsd) *
-      100;
+    const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
+    const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
+
+    const calcRewardApy = (denom) => {
+      return (
+        (((extraRewards[i] / 10 ** PROTOCOL_TOKEN.decimals) *
+          BLOCKS_PER_DAY *
+          365 *
+          prices[PROTOCOL_TOKEN.address]) /
+          denom) *
+        100
+      );
+    };
+    const apyReward = calcRewardApy(totalSupplyUsd);
+    const apyRewardBorrow = calcRewardApy(totalBorrowUsd);
 
     return {
       pool: market,
@@ -160,9 +175,14 @@ const getApy = async () => {
       symbol,
       tvlUsd,
       apyBase,
-      apyReward: apyReward,
+      apyReward,
       underlyingTokens: [token],
       rewardTokens: [apyReward ? PROTOCOL_TOKEN.address : null].filter(Boolean),
+      // borrow fields
+      totalSupplyUsd,
+      totalBorrowUsd,
+      apyBaseBorrow,
+      apyRewardBorrow,
     };
   });
 
