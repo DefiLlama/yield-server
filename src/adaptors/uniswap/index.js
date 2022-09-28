@@ -69,24 +69,6 @@ const queryPriorV3 = gql`
   }
 `;
 
-const buildPool = (entry, version, chainString) => {
-  const symbol = utils.formatSymbol(
-    `${entry.token0.symbol}-${entry.token1.symbol}`
-  );
-  const newObj = {
-    pool: entry.id,
-    chain: utils.formatChain(chainString),
-    project: 'uniswap',
-    poolMeta: version === 'v3' ? `${entry.feeTier / 1e4}%` : null,
-    symbol,
-    tvlUsd: entry.totalValueLockedUSD,
-    apyBase: entry.apy,
-    underlyingTokens: [entry.token0.id, entry.token1.id],
-  };
-
-  return newObj;
-};
-
 const topLvl = async (
   chainString,
   url,
@@ -153,10 +135,33 @@ const topLvl = async (
   // calculate apy
   let data = dataNow.map((el) => utils.apy(el, dataPrior, version));
 
-  // build pool objects
-  data = data.map((el) => buildPool(el, version, chainString));
+  return data.map((p) => {
+    const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
+    const poolMeta = version === 'v3' ? `${p.feeTier / 1e4}%` : null;
+    const underlyingTokens = [p.token0.id, p.token1.id];
+    const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
+    const token1 = underlyingTokens === undefined ? '' : underlyingTokens[1];
+    const chain = chainString === 'ethereum' ? 'mainnet' : chainString;
+    let url;
+    if (poolMeta) {
+      const feeTier = Number(poolMeta.replace('%', '')) * 10000;
+      url = `https://app.uniswap.org/#/add/${token0}/${token1}/${feeTier}?chain=${chain}`;
+    } else {
+      url = `https://app.uniswap.org/#/add/v2/${token0}/${token1}?chain=${chain}`;
+    }
 
-  return data;
+    return {
+      pool: p.id,
+      chain: utils.formatChain(chainString),
+      project: 'uniswap',
+      poolMeta,
+      symbol,
+      tvlUsd: p.totalValueLockedUSD,
+      apyBase: p.apy,
+      underlyingTokens,
+      url,
+    };
+  });
 };
 
 const main = async (timestamp = null) => {
@@ -174,5 +179,4 @@ const main = async (timestamp = null) => {
 module.exports = {
   timetravel: true,
   apy: main,
-  url: 'https://app.uniswap.org/#/pool?chain=mainnet',
 };
