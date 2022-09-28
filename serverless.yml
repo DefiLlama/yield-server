@@ -187,6 +187,15 @@ functions:
           method: get
           path: /url
 
+  getUrlNew:
+    handler: src/handlers/getUrlNew.handler
+    description: Lambda for retrieving project url's
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /urlNew
+
   getDistinctID:
     handler: src/handlers/getDistinctID.handler
     description: Lambda for retrieving unique pool id's
