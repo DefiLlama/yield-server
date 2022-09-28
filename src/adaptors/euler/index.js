@@ -49,24 +49,6 @@ const query = gql`
   }
 `;
 
-const buildPool = (pool, chainString) => {
-  return {
-    pool: `${pool.id}-euler`,
-    chain: utils.formatChain(chainString),
-    project: 'euler',
-    symbol: utils.formatSymbol(pool.symbol),
-    tvlUsd: (pool.totalBalancesUsd - pool.totalBorrowsUsd) / 1e18,
-    apyBase: pool.supplyAPY / 1e25,
-    url: `https://app.euler.finance/market/${pool.id}`,
-  };
-};
-
-const topLvl = async (chainString) => {
-  const data = await request(url, query);
-  // build pool objects
-  return data.assets.map((pool) => buildPool(pool, chainString));
-};
-
 const main = async () => {
   // pool data
   const data = await request(url, query);
@@ -107,6 +89,7 @@ const main = async () => {
       totalBorrowUsd,
       underlyingTokens: [pool.id],
       ltv: Number.isFinite(ltv) ? ltv : null,
+      url: `https://app.euler.finance/market/${pool.id}`,
     };
   });
 
