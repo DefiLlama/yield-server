@@ -7,7 +7,9 @@ const { comptrollerAbi, ercDelegator } = require('./abi');
 const COMPTROLLER_ADDRESS = '0xb3831584acb95ED9cCb0C11f677B5AD01DeaeEc0';
 const CHAIN = 'cronos';
 const GET_ALL_MARKETS = 'getAllMarkets';
-const REWARD_SPEED = 'tonicSpeeds';
+// const REWARD_SPEED = 'tonicSpeeds';
+const REWARD_SPEED = 'tonicSupplySpeeds';
+const REWARD_SPEED_BORROW = 'tonicBorrowSpeeds';
 const SUPPLY_RATE = 'supplyRatePerBlock';
 const BORROW_RATE = 'borrowRatePerBlock';
 const TOTAL_BORROWS = 'totalBorrows';
@@ -55,7 +57,7 @@ const calculateApy = (ratePerTimestamps) => {
   );
 };
 
-const getRewards = async (markets) => {
+const getRewards = async (markets, rewardMethod) => {
   return (
     await sdk.api.abi.multiCall({
       chain: CHAIN,
@@ -63,7 +65,7 @@ const getRewards = async (markets) => {
         target: COMPTROLLER_ADDRESS,
         params: [market],
       })),
-      abi: comptrollerAbi.find(({ name }) => name === REWARD_SPEED),
+      abi: comptrollerAbi.find(({ name }) => name === rewardMethod),
     })
   ).output.map(({ output }) => output);
 };
@@ -89,7 +91,8 @@ const getApy = async () => {
 
   const allMarkets = Object.values(allMarketsRes);
 
-  const extraRewards = await getRewards(allMarkets);
+  const extraRewards = await getRewards(allMarkets, REWARD_SPEED);
+  const extraRewardsBorrow = await getRewards(allMarkets, REWARD_SPEED_BORROW);
 
   const supplyRewards = await multiCallMarkets(
     allMarkets,
@@ -155,9 +158,9 @@ const getApy = async () => {
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
     const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
 
-    const calcRewardApy = (denom) => {
+    const calcRewardApy = (rewards, denom) => {
       return (
-        (((extraRewards[i] / 10 ** PROTOCOL_TOKEN.decimals) *
+        (((rewards[i] / 10 ** PROTOCOL_TOKEN.decimals) *
           BLOCKS_PER_DAY *
           365 *
           prices[PROTOCOL_TOKEN.address]) /
@@ -165,8 +168,8 @@ const getApy = async () => {
         100
       );
     };
-    const apyReward = calcRewardApy(totalSupplyUsd);
-    const apyRewardBorrow = calcRewardApy(totalBorrowUsd);
+    const apyReward = calcRewardApy(extraRewards, totalSupplyUsd);
+    const apyRewardBorrow = calcRewardApy(extraRewardsBorrow, totalBorrowUsd);
 
     return {
       pool: market,
