@@ -30,37 +30,8 @@ const getConfigProject = async (project) => {
   return response;
 };
 
-// get distinct urls per project
+// get pool urls
 const getUrl = async () => {
-  const conn = await connect();
-
-  const query = minify(
-    `
-    SELECT
-        DISTINCT(project),
-        url
-    FROM
-        $<table:name>
-    `,
-    { compress: true }
-  );
-
-  const response = await conn.query(query, { table: tableName });
-
-  if (!response) {
-    return new AppError(`Couldn't get ${tableName} data`, 404);
-  }
-
-  const out = {};
-  for (const e of response) {
-    out[e.project] = e.url;
-  }
-
-  return out;
-};
-
-// get distinct urls per project
-const getUrlNew = async () => {
   const conn = await connect();
 
   const query = minify(
@@ -144,7 +115,6 @@ module.exports = {
   getConfigProject,
   buildInsertConfigQuery,
   getUrl,
-  getUrlNew,
   getDistinctID,
   tableName,
 };
