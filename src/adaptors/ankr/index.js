@@ -1,6 +1,14 @@
 const utils = require('../utils');
 
-const buildObject = (entry, tokenString, chainString) => {
+const serviceToUrl = {
+  eth: 'ethereum',
+  ftm: 'fantom',
+  avax: 'avax',
+  polygon: 'matic',
+  bnb: 'bnb'
+}
+
+const buildObject = (entry, tokenString, chainString, serviceName) => {
   const payload = {
     pool: `ankr-${tokenString}`,
     chain: utils.formatChain(chainString),
@@ -8,6 +16,7 @@ const buildObject = (entry, tokenString, chainString) => {
     symbol: utils.formatSymbol(tokenString),
     tvlUsd: Number(entry.totalStakedUsd),
     apy: Number(entry.apy),
+    url: `https://www.ankr.com/staking/stake/${serviceToUrl[serviceName]}`,
   };
 
   return payload;
@@ -21,7 +30,7 @@ const fetch = async (serviceName, tokenString, chainString) => {
   );
 
   if (idx > -1) {
-    data = buildObject(data.services[idx], tokenString, chainString);
+    data = buildObject(data.services[idx], tokenString, chainString, serviceName);
   } else {
     data = {};
   }
@@ -43,5 +52,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://www.ankr.com/staking/stake/',
 };

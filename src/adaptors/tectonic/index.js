@@ -183,6 +183,7 @@ const getApy = async () => {
       totalBorrowUsd,
       apyBaseBorrow,
       apyRewardBorrow,
+      url: `https://app.tectonic.finance/markets/${symbol.toLowerCase()}`,
     };
   });
 
@@ -192,5 +193,4 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://app.tectonic.finance/markets/',
 };

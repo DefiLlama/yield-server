@@ -45,6 +45,16 @@ const CONFIG = {
     },
 };
 
+const CHAIN_MAP = {
+    fantom: 'ftm',
+    polygon: 'matic',
+    arbitrum: 'arbitrum',
+    optimism: 'optimism',
+    ethereum: 'eth',
+    bsc: 'bnb',
+    avax: 'avax'
+}
+
 
 const pools = async (poolIndex, chain) => {
     // info for tvl / apy calculations
@@ -172,6 +182,7 @@ const getApy = async (chain) => {
             apyReward: apy,
             underlyingTokens: [`${pool.underlyingLpToken}`],
             rewardTokens: [`${CONFIG[chain].REWARD_TOKEN}`],
+            url: `https://stargate.finance/pool/${pool.lpTokenSymbol.replace('S*', '')}-${CHAIN_MAP[chain]}/add`,
         });
     }
 
@@ -200,5 +211,4 @@ const main = async () => {
 module.exports = {
     timetravel: false,
     apy: main,
-    url: 'https://stargate.finance/farm',
 };
