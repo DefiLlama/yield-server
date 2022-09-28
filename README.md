@@ -68,7 +68,7 @@ A note on how to set apy related fields:
 module.exports = {
   timetravel: false,
   apy: apy, // Main function, returns pools
-  url: 'https://example.com/pools', // Link to page with pools
+  url: 'https://example.com/pools', // Link to page with pools (Only required if you do not provide url's for each pool)
 };
 ```
 
