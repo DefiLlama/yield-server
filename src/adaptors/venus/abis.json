@@ -12,6 +12,37 @@
         "stateMutability": "view",
         "type": "function"
     },
+    "markets": {
+        "constant": true,
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "name": "markets",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "isListed",
+                "type": "bool"
+            },
+            {
+                "internalType": "uint256",
+                "name": "collateralFactorMantissa",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bool",
+                "name": "isVenus",
+                "type": "bool"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+    },
     "venusSpeeds": {
         "constant": true,
         "inputs": [
@@ -22,6 +53,21 @@
             }
         ],
         "name": "venusSpeeds",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+    },
+    "borrowRatePerBlock": {
+        "constant": true,
+        "inputs": [],
+        "name": "borrowRatePerBlock",
         "outputs": [
             {
                 "internalType": "uint256",

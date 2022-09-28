@@ -25,26 +25,27 @@ const poolInfo = async (chain) => {
         return { poolId, supplyRate };
     }).filter((pool) => pool.supplyRate > 100000000);
 
-    const speeds = (await sdk.api.abi.multiCall({
-        abi: abi.venusSpeeds,
-        target: unitroller,
-        calls: yieldMarkets.map((token) => ({
-            params: token.poolId
-        })),
-        chain
-    })).output.map((markets) => markets.output);
+    const [collateral, venusSpeeds] = await Promise.all(
+        ['markets', 'venusSpeeds'].map((method) => sdk.api.abi.multiCall({
+            abi: abi[method],
+            target: unitroller,
+            calls: yieldMarkets.map((token) => ({
+                params: token.poolId
+            })),
+            chain
+        }))
+    ).then((data) => data.map((da) => da.output.map((da) => da.output)));
+    const collateralFactor = collateral.map((data) => data.collateralFactorMantissa);
 
-    const [cash, borrows, reserves, underlying, symbol] = await Promise.all(
-        ['getCash', 'totalBorrows', 'totalReserves', 'underlying', 'symbol'].map((method) => sdk.api.abi.multiCall({
+    const [borrowRatePerBlock, getCash, totalBorrows, totalReserves, underlyingToken, tokenSymbol] = await Promise.all(
+        ['borrowRatePerBlock', 'getCash', 'totalBorrows', 'totalReserves', 'underlying', 'symbol'].map((method) => sdk.api.abi.multiCall({
             abi: abi[method],
             calls: yieldMarkets.map((address) => ({
                 target: address.poolId
             })),
             chain
         }))
-    );
-    const [getCash, totalBorrows, totalReserves, underlyingToken, tokenSymbol] =
-        [cash.output, borrows.output, reserves.output, underlying.output, symbol.output].map((data) => data.map((d) => d.output));
+    ).then((data) => data.map((da) => da.output.map((da) => da.output)));
 
     // no underlying token in vbnb swap null -> wbnb
     underlyingToken.find((token, index, arr) => { if (token === null) arr[index] = WBNB });
@@ -61,7 +62,9 @@ const poolInfo = async (chain) => {
     const price = await getPricesConditionalId(chain, underlyingToken, BETH, 'binance-eth');
 
     yieldMarkets.map((data, index) => {
-        data.venusSpeeds = speeds[index];
+        data.collateralFactor = collateralFactor[index];
+        data.venusSpeeds = venusSpeeds[index];
+        data.borrowRatePerBlock = borrowRatePerBlock[index];
         data.getCash = getCash[index];
         data.totalBorrows = totalBorrows[index];
         data.totalReserves = totalReserves[index];
@@ -90,7 +93,7 @@ const getPricesConditionalId = async (chain, addresses, condition, id) => {
 
     const priceList = await getPrices(chainList, addressList);
 
-    return { priceList, addressList }
+    return { priceList, addressList };
 }
 
 const getPrices = async (chain, addresses) => {
@@ -128,17 +131,25 @@ function calculateTvl(cash, borrows, reserves, price, decimals) {
 const getApy = async () => {
     const priceOf = await getPrices(['bsc'], [XVS]);
     const yieldPools = (await poolInfo('bsc')).yieldMarkets.map((pool, i) => {
-        const tvl = calculateTvl(pool.getCash, pool.totalBorrows, pool.totalReserves, pool.price, pool.underlyingTokenDecimals);
+        const totalSupplyUsd = calculateTvl(pool.getCash, pool.totalBorrows, pool.totalReserves, pool.price, pool.underlyingTokenDecimals);
+        const totalBorrowUsd = calculateTvl(0, pool.totalBorrows, 0, pool.price, pool.underlyingTokenDecimals);
+        const tvl = totalSupplyUsd - totalBorrowUsd;
         const apyBase = calculateApy(pool.supplyRate);
-        const apyReward = calculateApy(pool.venusSpeeds, priceOf[XVS], tvl);
-        const readyToExport = exportFormatter(pool.poolId, 'Binance', pool.tokenSymbol, tvl, apyBase, apyReward, pool.underlyingToken, pool.rewardTokens);
+        const apyReward = calculateApy(pool.venusSpeeds, priceOf[XVS], totalSupplyUsd);
+        const apyBaseBorrow = calculateApy(pool.borrowRatePerBlock);
+        const apyRewardBorrow = calculateApy(pool.venusSpeeds, priceOf[XVS], totalBorrowUsd);
+        const ltv = parseInt(pool.collateralFactor) / 1e18;
+        const readyToExport = exportFormatter(pool.poolId, 'Binance', pool.tokenSymbol, tvl, apyBase, apyReward,
+            pool.underlyingToken, pool.rewardTokens, apyBaseBorrow, apyRewardBorrow, totalSupplyUsd, totalBorrowUsd, ltv);
+
         return readyToExport;
     });
 
     return yieldPools;
 }
 
-function exportFormatter(poolId, chain, symbol, tvlUsd, apyBase, apyReward, underlyingTokens, rewardTokens) {
+function exportFormatter(poolId, chain, symbol, tvlUsd, apyBase, apyReward,
+    underlyingTokens, rewardTokens, apyBaseBorrow, apyRewardBorrow, totalSupplyUsd, totalBorrowUsd, ltv) {
 
     return {
         pool: `${poolId}-${chain}`.toLowerCase(),
@@ -150,6 +161,11 @@ function exportFormatter(poolId, chain, symbol, tvlUsd, apyBase, apyReward, unde
         apyReward,
         underlyingTokens: [underlyingTokens],
         rewardTokens,
+        apyBaseBorrow,
+        apyRewardBorrow,
+        totalSupplyUsd,
+        totalBorrowUsd,
+        ltv,
     };
 }
 
