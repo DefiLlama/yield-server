@@ -81,6 +81,7 @@ const getPools = async (): Promise<MeroPool[]> => {
       apyReward: 0,
       underlyingTokens: [metadata.underlying],
       rewardTokens: [],
+      url: `https://mero.finance/pool/mero${metadata.symbol}`,
     };
   });
 };
@@ -88,5 +89,4 @@ const getPools = async (): Promise<MeroPool[]> => {
 module.exports = {
   timetravel: false,
   apy: getPools,
-  url: 'https://mero.finance/pools',
 };

@@ -11,6 +11,7 @@ const main = async () => {
       pool: `${p.symbol.replace(/\s/g, '-')}-${project}`,
       symbol: name[0],
       poolMeta: name.length > 1 ? name.slice(1).join(' ') : null,
+      url: `https://www.notional.finance/lend/${name}`,
     };
   });
 
@@ -20,5 +21,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://notional.finance',
 };

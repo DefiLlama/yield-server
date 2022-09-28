@@ -24,7 +24,7 @@ const protocolFeesCollector = '0xce88686553686DA562CE7Cea497CE749DA109f9F';
 
 const queryGauge = gql`
   {
-    liquidityGauges(first: 999) {
+    liquidityGauges(first: 200) {
       id
       symbol
       poolId
@@ -44,7 +44,7 @@ const queryGauge = gql`
 const query = gql`
   {
     pools(
-      first: 1000
+      first: 200
       orderBy: "totalLiquidity"
       orderDirection: "desc"
       where: { totalShares_gt: 0.01 }
@@ -321,6 +321,9 @@ const topLvl = async (
     apyReward: p.aprLM,
     rewardTokens: p.rewardTokens,
     underlyingTokens: p.tokensList,
+    url: `https://${
+      chainString === 'ethereum' ? 'app' : chainString
+    }.balancer.fi/#/pool/${p.id}`,
   }));
 };
 
@@ -375,5 +378,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.balancer.fi/#/',
 };

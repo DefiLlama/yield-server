@@ -42,6 +42,7 @@ const apy = async () => {
       tvlUsd: pool.availableLiquidityInUSD,
       apyBase: (pool.depositAPY_RAY / 1e27) * 100,
       underlyingTokens: [underlyingTokens[i]],
+      url: `https://app.gearbox.fi/pools/add/${pool.addr}`,
     };
   });
 
@@ -51,5 +52,4 @@ const apy = async () => {
 module.exports = {
   apy,
   timetravel: false,
-  url: 'https://app.gearbox.fi/pools',
 };

@@ -10,6 +10,12 @@ const subgraphs = {
   avalanche: `${url}/protocol-v2-avalanche`,
 };
 
+const chainUrlParam = {
+  ethereum: 'proto_mainnet',
+  polygon: 'proto_polygon',
+  avalanche: 'proto_avalanche',
+};
+
 const query = gql`
   {
     reserves {
@@ -81,6 +87,7 @@ const main = async () => {
           totalSupplyUsd,
           totalBorrowUsd: totalSupplyUsd - tvlUsd,
           ltv: Number(p.baseLTVasCollateral) / 10000,
+          url: `https://app.aave.com/reserve-overview/?underlyingAsset=${p.underlyingAsset}&marketName=${chainUrlParam[chainString]}`,
         };
       });
     })
@@ -92,5 +99,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.aave.com/markets/',
 };

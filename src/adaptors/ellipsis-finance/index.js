@@ -14,6 +14,7 @@ const poolsFunction = async () => {
         symbol: obj.assets,
         tvlUsd: parseFloat(obj.tvl),
         apy: parseFloat(obj.totalApr),
+        url: `https://ellipsis.finance/pool/${obj.address}`,
       });
   }
   return pools;
@@ -22,5 +23,4 @@ const poolsFunction = async () => {
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
-  url: 'https://ellipsis.finance/pool',
 };
