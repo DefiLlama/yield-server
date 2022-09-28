@@ -78,6 +78,7 @@ const getApy = async () => {
       apyBase: Number(farm.feeRewardRate),
       underlyingTokens: [farm.token0, farm.token1],
       rewardTokens: [MESH_TOKEN],
+      url: `https://meshswap.fi/exchange/pool/detail/${farm.exchange_address}`,
     };
   });
 
@@ -89,5 +90,4 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://meshswap.fi/exchange/pool',
 };

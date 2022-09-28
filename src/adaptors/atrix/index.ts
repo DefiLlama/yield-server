@@ -37,6 +37,7 @@ const getApy = async () => {
       apyReward: pool.farms[0].apr || 0,
       underlyingTokens: [pool.mints.base.key, pool.mints.quote.key],
       rewardTokens: [pool.farms[0].crops[0].cropRewardTokenAccount],
+      url: `https://app.atrix.finance/liquidity/${pool.key}/deposit`,
     };
   });
 
@@ -46,5 +47,4 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://app.atrix.finance/liquidity',
 };

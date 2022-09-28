@@ -168,6 +168,7 @@ const apy = async () => {
       apyReward,
       underlyingTokens: [tokens0[i], tokens1[i]],
       rewardTokens: [BSW_TOKEN],
+      url: `https://exchange.biswap.org/#/add/${tokens0[i]}/${tokens1[i]}`,
     };
   });
 
@@ -177,5 +178,4 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy: apy,
-  url: 'https://biswap.org/farms',
 };
