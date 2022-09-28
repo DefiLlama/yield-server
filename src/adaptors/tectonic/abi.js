@@ -1,12 +1,6 @@
 module.exports = {
   comptrollerAbi: [
     {
-      inputs: [],
-      payable: false,
-      stateMutability: 'nonpayable',
-      type: 'constructor',
-    },
-    {
       anonymous: false,
       inputs: [
         {
@@ -48,6 +42,37 @@ module.exports = {
         },
       ],
       name: 'ActionPaused',
+      type: 'event',
+    },
+    {
+      anonymous: false,
+      inputs: [
+        {
+          indexed: false,
+          internalType: 'uint256',
+          name: 'currentBlock',
+          type: 'uint256',
+        },
+        {
+          indexed: false,
+          internalType: 'uint256',
+          name: 'lastBlock',
+          type: 'uint256',
+        },
+        {
+          indexed: false,
+          internalType: 'uint256',
+          name: 'tonicTokens',
+          type: 'uint256',
+        },
+        {
+          indexed: false,
+          internalType: 'uint256',
+          name: 'currentAmount',
+          type: 'uint256',
+        },
+      ],
+      name: 'CollectVaultReward',
       type: 'event',
     },
     {
@@ -369,6 +394,25 @@ module.exports = {
       anonymous: false,
       inputs: [
         {
+          indexed: true,
+          internalType: 'contract TToken',
+          name: 'tToken',
+          type: 'address',
+        },
+        {
+          indexed: false,
+          internalType: 'uint256',
+          name: 'newSpeed',
+          type: 'uint256',
+        },
+      ],
+      name: 'TonicBorrowSpeedUpdated',
+      type: 'event',
+    },
+    {
+      anonymous: false,
+      inputs: [
+        {
           indexed: false,
           internalType: 'address',
           name: 'recipient',
@@ -401,6 +445,25 @@ module.exports = {
         },
       ],
       name: 'TonicSpeedUpdated',
+      type: 'event',
+    },
+    {
+      anonymous: false,
+      inputs: [
+        {
+          indexed: true,
+          internalType: 'contract TToken',
+          name: 'tToken',
+          type: 'address',
+        },
+        {
+          indexed: false,
+          internalType: 'uint256',
+          name: 'newSpeed',
+          type: 'uint256',
+        },
+      ],
+      name: 'TonicSupplySpeedUpdated',
       type: 'event',
     },
     {
@@ -664,6 +727,23 @@ module.exports = {
     },
     {
       constant: false,
+      inputs: [
+        {
+          internalType: 'contract TToken[]',
+          name: 'tTokens',
+          type: 'address[]',
+        },
+        { internalType: 'uint256[]', name: 'supplySpeeds', type: 'uint256[]' },
+        { internalType: 'uint256[]', name: 'borrowSpeeds', type: 'uint256[]' },
+      ],
+      name: '_setTonicSpeeds',
+      outputs: [],
+      payable: false,
+      stateMutability: 'nonpayable',
+      type: 'function',
+    },
+    {
+      constant: false,
       inputs: [{ internalType: 'bool', name: 'state', type: 'bool' }],
       name: '_setTransferPaused',
       outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
@@ -706,6 +786,15 @@ module.exports = {
         },
       ],
       name: '_updateTvlProtectLimit',
+      outputs: [],
+      payable: false,
+      stateMutability: 'nonpayable',
+      type: 'function',
+    },
+    {
+      constant: false,
+      inputs: [],
+      name: '_upgradeSplitTonicRewards',
       outputs: [],
       payable: false,
       stateMutability: 'nonpayable',
@@ -856,6 +945,15 @@ module.exports = {
       outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
       payable: false,
       stateMutability: 'view',
+      type: 'function',
+    },
+    {
+      constant: false,
+      inputs: [],
+      name: 'collectTonicToVault',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      payable: false,
+      stateMutability: 'nonpayable',
       type: 'function',
     },
     {
@@ -1243,9 +1341,41 @@ module.exports = {
       type: 'function',
     },
     {
+      constant: false,
+      inputs: [
+        { internalType: 'address', name: 'vaultAddress', type: 'address' },
+        { internalType: 'uint256', name: 'tonicSpeed', type: 'uint256' },
+        { internalType: 'uint256', name: 'tonicCap', type: 'uint256' },
+        { internalType: 'uint256', name: 'initialSupply', type: 'uint256' },
+      ],
+      name: 'setVaultReward',
+      outputs: [],
+      payable: false,
+      stateMutability: 'nonpayable',
+      type: 'function',
+    },
+    {
       constant: true,
       inputs: [],
       name: 'tectonicCoreImplementation',
+      outputs: [{ internalType: 'address', name: '', type: 'address' }],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+    {
+      constant: true,
+      inputs: [],
+      name: 'tectonicCoreVersion',
+      outputs: [{ internalType: 'uint8', name: '', type: 'uint8' }],
+      payable: false,
+      stateMutability: 'pure',
+      type: 'function',
+    },
+    {
+      constant: true,
+      inputs: [],
+      name: 'tectonicVaultContract',
       outputs: [{ internalType: 'address', name: '', type: 'address' }],
       payable: false,
       stateMutability: 'view',
@@ -1264,6 +1394,15 @@ module.exports = {
       constant: true,
       inputs: [{ internalType: 'address', name: '', type: 'address' }],
       name: 'tonicAccrued',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+    {
+      constant: true,
+      inputs: [{ internalType: 'address', name: '', type: 'address' }],
+      name: 'tonicBorrowSpeeds',
       outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
       payable: false,
       stateMutability: 'view',
@@ -1344,11 +1483,56 @@ module.exports = {
     {
       constant: true,
       inputs: [{ internalType: 'address', name: '', type: 'address' }],
+      name: 'tonicSupplySpeeds',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+    {
+      constant: true,
+      inputs: [{ internalType: 'address', name: '', type: 'address' }],
       name: 'tonicSupplyState',
       outputs: [
         { internalType: 'uint224', name: 'index', type: 'uint224' },
         { internalType: 'uint32', name: 'block', type: 'uint32' },
       ],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+    {
+      constant: true,
+      inputs: [],
+      name: 'tonicToVaultAmount',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+    {
+      constant: true,
+      inputs: [],
+      name: 'tonicToVaultAmountCap',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+    {
+      constant: true,
+      inputs: [],
+      name: 'tonicToVaultLastBlock',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+    {
+      constant: true,
+      inputs: [],
+      name: 'tonicToVaultSpeed',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
       payable: false,
       stateMutability: 'view',
       type: 'function',
