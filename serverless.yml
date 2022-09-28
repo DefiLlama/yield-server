@@ -186,9 +186,6 @@ functions:
       - httpApi:
           method: get
           path: /url
-      - httpApi:
-          method: get
-          path: /urlNew
 
   getDistinctID:
     handler: src/handlers/getDistinctID.handler
