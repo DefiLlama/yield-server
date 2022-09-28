@@ -59,6 +59,35 @@ const getUrl = async () => {
   return out;
 };
 
+// get distinct urls per project
+const getUrlNew = async () => {
+  const conn = await connect();
+
+  const query = minify(
+    `
+    SELECT
+        config_id,
+        url
+    FROM
+        $<table:name>
+    `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query, { table: tableName });
+
+  if (!response) {
+    return new AppError(`Couldn't get ${tableName} data`, 404);
+  }
+
+  const out = {};
+  for (const e of response) {
+    out[e.config_id] = e.url;
+  }
+
+  return out;
+};
+
 // get unique pool values
 // (used during adapter testing to check if a pool field is already in the DB)
 const getDistinctID = async () => {
@@ -115,6 +144,7 @@ module.exports = {
   getConfigProject,
   buildInsertConfigQuery,
   getUrl,
+  getUrlNew,
   getDistinctID,
   tableName,
 };
