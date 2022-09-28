@@ -34,6 +34,9 @@ const buildPool = (el, chainString) => {
     apyBase: utils.aprToApy(Number(aprFee?.apr || 0)) * 100,
     apyReward: utils.aprToApy(Number(aprReward?.apr || 0)) * 100,
     rewardTokens: [rewardToken],
+    url: `https://${chainString === 'optimism' ? 'op.' : ''}beets.fi/pool/${
+      el.id
+    }`,
   };
 
   return newObj;
@@ -64,5 +67,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://beets.fi/#/pools',
 };

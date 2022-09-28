@@ -41,7 +41,8 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
   });
 
   test("Check if link to the pool's page exist", () => {
-    expect(typeof poolsUrl).toBe('string');
+    const poolsLink = apy[0].url || poolsUrl;
+    expect(typeof poolsLink).toBe('string');
   });
 
   test('Check for unique pool ids', () => {

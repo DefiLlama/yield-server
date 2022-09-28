@@ -112,6 +112,7 @@ const main = async () => {
           rewardTokens: apyReward > 0 ? [rewards[adaptedChain]] : [],
           underlyingTokens: [tokenAddress, hopTokenAddress],
           tvlUsd,
+          url: `https://app.hop.exchange/#/pool?token=${token}`,
         };
       });
     })
@@ -124,5 +125,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.hop.exchange/#/pool?token=ETH',
 };

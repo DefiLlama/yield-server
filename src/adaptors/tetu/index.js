@@ -13,29 +13,29 @@ const TETU_Reward_Token_FTM = '0x65c9d9d080714cDa7b5d58989Dc27f897F165179';
 const TETU_Reward_Token_MATIC = '0x255707B70BF90aa112006E1b07B9AeA6De021424';
 
 const chainDataMap = {
-  'polygon': {
-    'BOOKKEEPER_ADDRESS': POLY_BOOKKEEPER,
-    'CONTRACT_READER': POLY_CONTRACT_READER,
-    'BASE_REWARD_TOKEN': TETU_Reward_Token_MATIC
+  polygon: {
+    BOOKKEEPER_ADDRESS: POLY_BOOKKEEPER,
+    CONTRACT_READER: POLY_CONTRACT_READER,
+    BASE_REWARD_TOKEN: TETU_Reward_Token_MATIC,
   },
-  'fantom': {
-    'BOOKKEEPER_ADDRESS': FTM_BOOKKEEPER,
-    'CONTRACT_READER': FTM_CONTRACT_READER,
-    'BASE_REWARD_TOKEN': TETU_Reward_Token_FTM
+  fantom: {
+    BOOKKEEPER_ADDRESS: FTM_BOOKKEEPER,
+    CONTRACT_READER: FTM_CONTRACT_READER,
+    BASE_REWARD_TOKEN: TETU_Reward_Token_FTM,
   },
 };
 
 const apyChain = async (chain) => {
   const vaultsAdderssCall = await sdk.api.abi.call({
-    abi: abi.find(e  => e.name === 'vaults'),
+    abi: abi.find((e) => e.name === 'vaults'),
     chain: chain,
     target: chainDataMap[chain]['BOOKKEEPER_ADDRESS'],
     params: [],
-  })
+  });
   const vaultAddress = vaultsAdderssCall.output;
 
   const vaultInfoCall = await sdk.api.abi.multiCall({
-    abi: abi.find(e => e.name === 'vaultInfo'),
+    abi: abi.find((e) => e.name === 'vaultInfo'),
     calls: vaultAddress.map((vault) => ({
       target: chainDataMap[chain]['CONTRACT_READER'],
       params: vault,
@@ -43,30 +43,30 @@ const apyChain = async (chain) => {
     chain: chain,
   });
 
-  const vaultInfo = vaultInfoCall.output.map(e => e.output)
-    .filter(e => e?.active)
-    .filter(e => e.ppfsApr !== 0);
+  const vaultInfo = vaultInfoCall.output
+    .map((e) => e.output)
+    .filter((e) => e?.active)
+    .filter((e) => e.ppfsApr !== 0);
 
   const lpSymbol = await Promise.all(
     vaultInfo.map(async (pool, i) =>
-    (
-      await sdk.api.abi.multiCall({
-        calls: pool.assets.map((assetsAddress) => ({
-          target: assetsAddress,
-        })),
-        abi: 'erc20:symbol',
-        chain: chain,
-      })
+      (
+        await sdk.api.abi.multiCall({
+          calls: pool.assets.map((assetsAddress) => ({
+            target: assetsAddress,
+          })),
+          abi: 'erc20:symbol',
+          chain: chain,
+        })
       ).output.map(({ output }) => output)
     )
   );
 
   const result = vaultInfo.map((pool, index) => {
     const tvlUsd = BigNumber(pool.tvlUsdc).div(BigNumber('10').pow(18));
-    const ppfsApr = BigNumber(pool.ppfsApr || '0')
-      .div(BigNumber('10').pow(18))
+    const ppfsApr = BigNumber(pool.ppfsApr || '0').div(BigNumber('10').pow(18));
     const rewardApr = pool.rewardsApr
-      .reduce((acc, pev) =>  acc.plus(BigNumber(pev)) , BigNumber('0'))
+      .reduce((acc, pev) => acc.plus(BigNumber(pev)), BigNumber('0'))
       .div(BigNumber('10').pow(18));
 
     return {
@@ -77,8 +77,11 @@ const apyChain = async (chain) => {
       tvlUsd: tvlUsd.toNumber(),
       apyReward: rewardApr.toNumber(),
       apyBase: ppfsApr.toNumber(),
-      rewardTokens: pool.rewardTokens.length ? pool.rewardTokens : [chainDataMap[chain]['BASE_REWARD_TOKEN']]
-    }
+      rewardTokens: pool.rewardTokens.length
+        ? pool.rewardTokens
+        : [chainDataMap[chain]['BASE_REWARD_TOKEN']],
+      url: `https://app.tetu.io/vault/${pool.addr}`,
+    };
   });
   return result;
 };
@@ -92,5 +95,4 @@ async function apy() {
 module.exports = {
   timetravel: false,
   apy: apy,
-  url: 'https://tetu.io/',
 };

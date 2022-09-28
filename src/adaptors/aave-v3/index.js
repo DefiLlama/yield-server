@@ -7,6 +7,16 @@ const { aTokenAbi } = require('./abi');
 
 const SECONDS_PER_YEAR = 31536000;
 
+const chainUrlParam = {
+  ethereum: 'proto_mainnet_v3',
+  polygon: 'proto_polygon_v3',
+  avalanche: 'proto_avalanche_v3',
+  arbitrum: 'proto_arbitrum_v3',
+  fantom: 'proto_fantom_v3',
+  harmony: 'proto_harmony_v3',
+  optimism: 'proto_optimism_v3',
+};
+
 const getPrices = async (addresses) => {
   const prices = (
     await superagent.post('https://coins.llama.fi/prices').send({
@@ -182,6 +192,7 @@ const apy = async () => {
         apyBaseBorrow: Number(pool.variableBorrowRate) / 1e25,
         apyRewardBorrow: (rewardPerYearBorrow / totalBorrowUsd) * 100,
         ltv: Number(pool.baseLTVasCollateral) / 10000,
+        url: `https://app.aave.com/reserve-overview/?underlyingAsset=${pool.aToken.underlyingAssetAddress}&marketName=${chainUrlParam[chain]}`,
       };
     });
 
@@ -194,5 +205,4 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy: apy,
-  url: 'https://app.aave.com/markets/',
 };
