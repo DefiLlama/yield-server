@@ -186,12 +186,6 @@ functions:
       - httpApi:
           method: get
           path: /url
-
-  getUrlNew:
-    handler: src/handlers/getUrlNew.handler
-    description: Lambda for retrieving project url's
-    timeout: 20
-    events:
       - httpApi:
           method: get
           path: /urlNew
