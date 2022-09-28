@@ -148,6 +148,7 @@ const main = async () => {
       getPairInfo(lpTokens[i]).then(({ pair: pairInfo }) => {
         // the first two pools are for lotteries, etc.
         if (i < 2) return;
+        if (!pairInfo) return null;
 
         const poolInfo = poolsInfo[i];
         const reserves = reservesData[i];
