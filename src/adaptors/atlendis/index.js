@@ -50,7 +50,7 @@ const buildPool = (entry) => {
     symbol: symbolSplit[1],
     poolMeta: `${symbolSplit[0]} ${symbolSplit[2]}`,
     tvlUsd: entry.tvl,
-    apy: entry.apy,
+    apyBase: entry.apy,
     url: `https://app.atlendis.io/pools/${entry.pool.id}/deposit`,
   };
 
