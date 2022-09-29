@@ -24,6 +24,11 @@ const query = gql`
       }
       isActive
       underlyingAsset
+      variableBorrowRate
+      baseLTVasCollateral
+      totalDeposits
+      totalLiquidity
+      totalCurrentVariableDebt
     }
   }
 `;
@@ -36,7 +41,10 @@ const main = async () => {
       ).reserves.filter((p) => p.isActive);
 
       return data.map((p) => {
-        tvlUsd = ((Number(p.availableLiquidity) / `1e${p.decimals}`) * Number(p.price.priceInEth)) / 1e8;
+        tvlUsd =
+          ((Number(p.availableLiquidity) / `1e${p.decimals}`) *
+            Number(p.price.priceInEth)) /
+          1e8;
 
         return {
           pool: p.id,
@@ -46,6 +54,17 @@ const main = async () => {
           tvlUsd,
           apyBase: Number(p.liquidityRate) / 1e25,
           underlyingTokens: [p.underlyingAsset],
+          apyBaseBorrow: p.variableBorrowRate / 1e25,
+          apyRewardBorrow: 0,
+          totalSupplyUsd:
+            ((Number(p.totalDeposits) / `1e${p.decimals}`) *
+              Number(p.price.priceInEth)) /
+            1e8,
+          totalBorrowUsd:
+            ((Number(p.totalCurrentVariableDebt) / `1e${p.decimals}`) *
+              Number(p.price.priceInEth)) /
+            1e8,
+          ltv: p.baseLTVasCollateral / 10000,
         };
       });
     })

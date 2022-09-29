@@ -22,6 +22,7 @@ const query = gql`
         supplySpeeds
         borrowSpeeds
         usd
+        collateralFactor
       }
       p2pData {
         p2pSupplyIndex
@@ -38,6 +39,7 @@ const query = gql`
         borrowBalanceInP2P
         supplyBalanceInP2P
         totalSupplyOnPool
+        totalBorrowOnPool
       }
     }
   }
@@ -45,7 +47,7 @@ const query = gql`
 const rateToAPY = (rate) => Math.pow(1 + rate, 365) - 1;
 
 const computeCompRewardsAPY = (marketFromGraph, compPrice) => {
-  const poolSupplyCompSpeed = +marketFromGraph.reserveData.supplySpeeds / 1e18;
+  const poolSupplyCompSpeed = +marketFromGraph.reserveData.borrowSpeeds / 1e18;
   const compDistributedEachDays =
     (poolSupplyCompSpeed * SECONDS_PER_DAY) / apxBlockSpeedInSeconds;
 
@@ -58,6 +60,23 @@ const computeCompRewardsAPY = (marketFromGraph, compPrice) => {
       Math.pow(10, 18 + marketFromGraph.token.decimals)) *
     price;
   const compRate = (compDistributedEachDays * compPrice) / totalPoolSupplyUsd;
+  return rateToAPY(compRate);
+};
+
+const computeCompBorrowRewardsAPY = (marketFromGraph, compPrice) => {
+  const poolSupplyCompSpeed = +marketFromGraph.reserveData.supplySpeeds / 1e18;
+  const compDistributedEachDays =
+    (poolSupplyCompSpeed * SECONDS_PER_DAY) / apxBlockSpeedInSeconds;
+
+  const price =
+    marketFromGraph.reserveData.usd /
+    Math.pow(10, 18 * 2 - marketFromGraph.token.decimals);
+  const totalBorrowPoolUsd =
+    ((marketFromGraph.metrics.totalBorrowOnPool *
+      marketFromGraph.reserveData.borrowPoolIndex) /
+      Math.pow(10, 18 + marketFromGraph.token.decimals)) *
+    price;
+  const compRate = (compDistributedEachDays * compPrice) / totalBorrowPoolUsd;
   return rateToAPY(compRate);
 };
 
@@ -75,11 +94,18 @@ const main = async () => {
         +marketFromGraph.p2pData.p2pSupplyIndex) /
       `1e${18 + marketFromGraph.token.decimals}`;
     const totalSupply = totalSupplyOnPool + totalSupplyP2P;
+    const totalBorrow =
+      (+marketFromGraph.metrics.borrowBalanceOnPool *
+        +marketFromGraph.reserveData.borrowPoolIndex) /
+      `1e${18 + marketFromGraph.token.decimals}`;
     const tvlUsd =
       totalSupply *
       (marketFromGraph.reserveData.usd /
         `1e${18 * 2 - marketFromGraph.token.decimals}`);
-
+    const tvlBorrow =
+      totalBorrow *
+      (marketFromGraph.reserveData.usd /
+        `1e${18 * 2 - marketFromGraph.token.decimals}`);
     const poolSupplyRate = +marketFromGraph.reserveData.supplyPoolRate;
     const poolBorrowRate = +marketFromGraph.reserveData.borrowPoolRate;
 
@@ -95,6 +121,11 @@ const main = async () => {
         : (totalSupplyOnPool * poolSupplyAPY + totalSupplyP2P * p2pSupplyAPY) /
           totalSupply;
     const compAPY = computeCompRewardsAPY(marketFromGraph, compPrice);
+    const compBorrowAPY = computeCompBorrowRewardsAPY(
+      marketFromGraph,
+      compPrice
+    );
+
     const avgCompSupplyAPY =
       totalSupply === 0 ? 0 : (compAPY * totalSupplyOnPool) / totalSupply; // Morpho redistributes comp rewards to users on Pool
 
@@ -111,6 +142,11 @@ const main = async () => {
       rewardTokens: [compToken, '0x9994e35db50125e0df82e4c2dde62496ce330999'],
       tvlUsd,
       underlyingTokens: [marketFromGraph.token.address],
+      apyBaseBorrow: poolBorrowAPY * 100,
+      apyRewardBorrow: compBorrowAPY * 100,
+      totalSupplyUsd: tvlUsd,
+      totalBorrowUsd: tvlBorrow,
+      ltv: marketFromGraph.reserveData.collateralFactor / 1e18,
     };
   });
 };
