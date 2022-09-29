@@ -234,6 +234,62 @@ const getYieldOffset = async (project, offset) => {
   return response;
 };
 
+// get last DB entry per unique pool (lending/borrow fields only)
+const getYieldLendBorrow = async () => {
+  const conn = await connect();
+
+  const query = minify(
+    `
+    SELECT
+        "configID",
+        project,
+        chain,
+        symbol,
+        "poolMeta",
+        "apyBase",
+        "apyReward",
+        "apyBaseBorrow",
+        "apyRewardBorrow",
+        "totalSupplyUsd",
+        "totalBorrowUsd",
+        "ltv"
+    FROM
+        (
+            SELECT
+                DISTINCT ON ("configID") *
+            FROM
+                $<yieldTable:name>
+            WHERE
+                "totalSupplyUsd" >= $<tvlLB>
+                AND timestamp >= NOW() - INTERVAL '$<age> DAY'
+            ORDER BY
+                "configID",
+                timestamp DESC
+        ) AS y
+        INNER JOIN $<configTable:name> AS c ON c.config_id = y."configID"
+    WHERE
+        pool NOT IN ($<excludePools:csv>)
+        AND project NOT IN ($<excludeProjects:csv>)
+  `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query, {
+    tvlLB: exclude.boundaries.tvlUsdUI.lb,
+    age: exclude.boundaries.age,
+    yieldTable: tableName,
+    configTable: configTableName,
+    excludePools: exclude.excludePools,
+    excludeProjects: exclude.excludeAdaptors,
+  });
+
+  if (!response) {
+    return new AppError(`Couldn't get ${tableName} data`, 404);
+  }
+
+  return response;
+};
+
 // multi row insert query generator
 const buildInsertYieldQuery = (payload) => {
   // note: even though apyBase and apyReward are optional fields
@@ -261,5 +317,6 @@ module.exports = {
   getYieldHistory,
   getYieldOffset,
   getYieldProject,
+  getYieldLendBorrow,
   buildInsertYieldQuery,
 };

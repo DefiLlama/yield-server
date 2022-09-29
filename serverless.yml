@@ -196,6 +196,15 @@ functions:
           method: get
           path: /distinctID
 
+  getLendBorrow:
+    handler: src/handlers/getLendBorrow.handler
+    description: Lambda for retrieving lending + borrow data
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /lendBorrow
+
 resources:
   Resources:
     # QUEUES
