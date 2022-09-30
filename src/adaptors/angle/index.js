@@ -34,8 +34,11 @@ const getPoolsData = async () => {
       chain: networks[apyData[staking]?.network] || 'Other',
       project: 'angle',
       symbol: symbol,
-      tvlUsd: apyData[staking]?.tvl,
-      apy: apyData[staking]['apr']?.value,
+      tvlUsd: apyData[staking]?.tvl || 0,
+      apyBase:
+        apyData[staking]['apr']?.value ||
+        apyData[staking]['apr']?.details['ANGLE - Tight range (+- 1%)'] ||
+        0,
     };
     result.push(pool);
   }
