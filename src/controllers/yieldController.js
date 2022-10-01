@@ -287,7 +287,7 @@ const getYieldLendBorrow = async () => {
     return new AppError(`Couldn't get ${tableName} data`, 404);
   }
 
-  return response;
+  return { status: 'success', data: response };
 };
 
 // multi row insert query generator
