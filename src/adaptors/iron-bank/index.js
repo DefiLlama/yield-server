@@ -19,25 +19,28 @@ const getApy = async () => {
   );
 
   const pools = vaultsData.map((chainData) => {
-    const chainPools = chainData.data.map((pool) => ({
-      pool: `${pool.token_address}-${chainData.chain}`,
-      chain: utils.formatChain(chainData.chain),
-      project: 'iron-bank',
-      symbol: pool.underlying_symbol,
-      tvlUsd: Number(pool.cash.value) * Number(pool.underlying_price.value),
-      apyBase: Number(pool.supply_apy.value) * 100,
-      underlyingTokens: [pool.underlying_address],
-      // borrow fields
-      // total_supply is in usd but scaled by * 100...
-      totalSupplyUsd:
-        (Number(pool.total_supply.value) *
-          Number(pool.underlying_price.value)) /
-        100,
-      totalBorrowUsd:
-        Number(pool.total_borrows.value) * Number(pool.underlying_price.value),
-      apyBaseBorrow: Number(pool.borrow_apy.value) * 100,
-      ltv: Number(pool.collateral_factor.value),
-    }));
+    const chainPools = chainData.data.map((pool) => {
+      const tvlUsd =
+        Number(pool.cash.value) * Number(pool.underlying_price.value);
+      const totalBorrowUsd =
+        Number(pool.total_borrows.value) * Number(pool.underlying_price.value);
+      const totalSupplyUsd = totalBorrowUsd + tvlUsd;
+
+      return {
+        pool: `${pool.token_address}-${chainData.chain}`,
+        chain: utils.formatChain(chainData.chain),
+        project: 'iron-bank',
+        symbol: pool.underlying_symbol,
+        tvlUsd,
+        apyBase: Number(pool.supply_apy.value) * 100,
+        underlyingTokens: [pool.underlying_address],
+        // borrow fields
+        totalSupplyUsd,
+        totalBorrowUsd,
+        apyBaseBorrow: Number(pool.borrow_apy.value) * 100,
+        ltv: Number(pool.collateral_factor.value),
+      };
+    });
     return chainPools;
   });
 
