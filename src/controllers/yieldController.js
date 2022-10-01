@@ -241,7 +241,7 @@ const getYieldLendBorrow = async () => {
   const query = minify(
     `
     SELECT
-        "configID",
+        "configID" as pool,
         project,
         chain,
         symbol,
