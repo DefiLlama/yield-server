@@ -28,8 +28,13 @@ const getApy = async () => {
       apyBase: Number(pool.supply_apy.value) * 100,
       underlyingTokens: [pool.underlying_address],
       // borrow fields
-      totalSupplyUsd: Number(pool.total_supply.value),
-      totalBorrowUsd: Number(pool.total_borrows.value),
+      // total_supply is in usd but scaled by * 100...
+      totalSupplyUsd:
+        (Number(pool.total_supply.value) *
+          Number(pool.underlying_price.value)) /
+        100,
+      totalBorrowUsd:
+        Number(pool.total_borrows.value) * Number(pool.underlying_price.value),
       apyBaseBorrow: Number(pool.borrow_apy.value) * 100,
       ltv: Number(pool.collateral_factor.value),
     }));
