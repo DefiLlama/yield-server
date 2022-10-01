@@ -242,12 +242,6 @@ const getYieldLendBorrow = async () => {
     `
     SELECT
         "configID" as pool,
-        project,
-        chain,
-        symbol,
-        "poolMeta",
-        "apyBase",
-        "apyReward",
         "apyBaseBorrow",
         "apyRewardBorrow",
         "totalSupplyUsd",
@@ -287,7 +281,7 @@ const getYieldLendBorrow = async () => {
     return new AppError(`Couldn't get ${tableName} data`, 404);
   }
 
-  return { status: 'success', data: response };
+  return response;
 };
 
 // multi row insert query generator
