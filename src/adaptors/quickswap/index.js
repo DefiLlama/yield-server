@@ -42,7 +42,7 @@ const buildPool = (entry, chainString) => {
     project: 'quickswap',
     symbol,
     tvlUsd: entry.totalValueLockedUSD,
-    apy: entry.apy,
+    apyBase: entry.apy,
   };
 
   return newObj;
