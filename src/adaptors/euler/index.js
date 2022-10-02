@@ -88,6 +88,7 @@ const main = async () => {
       totalSupplyUsd,
       totalBorrowUsd,
       underlyingTokens: [pool.id],
+      rewardTokens: ['0xd9fcd98c322942075a5c3860693e9f4f03aae07b'],
       ltv: Number.isFinite(ltv) ? ltv : null,
       url: `https://app.euler.finance/market/${pool.id}`,
     };
