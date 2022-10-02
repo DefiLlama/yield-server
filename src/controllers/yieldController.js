@@ -246,7 +246,8 @@ const getYieldLendBorrow = async () => {
         "apyRewardBorrow",
         "totalSupplyUsd",
         "totalBorrowUsd",
-        "ltv"
+        "ltv",
+        "rewardTokens"
     FROM
         (
             SELECT
