@@ -62,18 +62,18 @@ const main = async () => {
       reserveConfig.marketName.slice(1) +
       ' Pool';
 
-    // total supply
-    const totalSupplyUsd =
-      (Number(collateral.mintTotalSupply) / 10 ** liquidity.mintDecimals) *
-      (liquidity.marketPrice / 10 ** 18);
-
     // available liquidity
     const tvlUsd =
       (Number(liquidity.availableAmount) / 10 ** liquidity.mintDecimals) *
       (liquidity.marketPrice / 10 ** 18);
 
     // total borrow
-    const totalBorrowUsd = totalSupplyUsd - tvlUsd;
+    const totalBorrowUsd =
+      (Number(liquidity.borrowedAmountWads / 1e18) /
+        10 ** liquidity.mintDecimals) *
+      (liquidity.marketPrice / 10 ** 18);
+
+    const totalSupplyUsd = tvlUsd + totalBorrowUsd;
 
     return {
       pool: reserveConfig.address,
