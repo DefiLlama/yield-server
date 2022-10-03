@@ -76,13 +76,18 @@ const apy = async () => {
     const aprData =
       aprs.find((apr) => apr.underlyingToken.id === pool.id) || {};
 
+    let apyReward = Number(aprData.medianBoostedAPR);
+    apyReward = pool.symbol.toLowerCase().includes('bnb')
+      ? apyReward
+      : apyReward * 100;
+
     return {
       pool: aprData.id,
       project: 'wombat-exchange',
       chain: 'Binance',
       tvlUsd: Number(pool.liabilityUSD) || 0,
       symbol: pool.symbol,
-      apyReward: Number(aprData.medianBoostedAPR) * 100,
+      apyReward,
       underlyingTokens: [pool.id],
       rewardTokens: [
         '0xAD6742A35fB341A9Cc6ad674738Dd8da98b94Fb1', // WOM
