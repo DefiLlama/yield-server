@@ -161,7 +161,7 @@ const main = async () => {
       }
       return {
         pool: `${poolAddress}`,
-        poolMeta: `${poolName}`,
+        // poolMeta: `${poolName}`,
         chain: chain,
         project: protocolSlug,
         symbol: utils.formatSymbol(poolSymbol),
