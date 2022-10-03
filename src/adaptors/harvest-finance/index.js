@@ -1,4 +1,6 @@
 const superagent = require('superagent');
+const cloudscraper = require('cloudscraper');
+
 const utils = require('../utils');
 const farmsUrl =
   'https://api.harvest.finance/vaults?key=41e90ced-d559-4433-b390-af424fdc76d6';
@@ -24,10 +26,9 @@ function aggregateApys(farm, poolsResponse) {
 }
 
 async function apy() {
-  const farmsResponse = (await superagent.get(farmsUrl)).body;
-  const poolsResponse = (await superagent.get(poolsUrl)).body;
-
   let allVaults = [];
+  const farmsResponse = JSON.parse(await cloudscraper.get(farmsUrl));
+  const poolsResponse = JSON.parse(await cloudscraper.get(poolsUrl));
 
   // for binance inactive !== true
   for (let chain of Object.keys(chains)) {
