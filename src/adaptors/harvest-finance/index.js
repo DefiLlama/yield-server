@@ -1,9 +1,9 @@
 const superagent = require('superagent');
 const utils = require('../utils');
 const farmsUrl =
-  'https://api-ui.harvest.finance/vaults?key=41e90ced-d559-4433-b390-af424fdc76d6';
+  'https://api.harvest.finance/vaults?key=41e90ced-d559-4433-b390-af424fdc76d6';
 const poolsUrl =
-  'https://api-ui.harvest.finance/pools?key=41e90ced-d559-4433-b390-af424fdc76d6';
+  'https://api.harvest.finance/pools?key=41e90ced-d559-4433-b390-af424fdc76d6';
 const chains = {
   bsc: 'binance',
   eth: 'ethereum',
@@ -32,7 +32,7 @@ async function apy() {
   // for binance inactive !== true
   for (let chain of Object.keys(chains)) {
     const activeFarms = Object.values(farmsResponse[chain]).filter(
-      (v) => !v.category?.includes("INACTIVE")
+      (v) => !v.category?.includes('INACTIVE')
     );
     const farms = activeFarms.map((v) => {
       const s = v.displayName.split(' ');
