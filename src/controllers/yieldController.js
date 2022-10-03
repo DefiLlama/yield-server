@@ -285,6 +285,55 @@ const getYieldLendBorrow = async () => {
   return response;
 };
 
+// get full history of given configID
+const getYieldLendBorrowHistory = async (configID) => {
+  const conn = await connect();
+
+  const query = minify(
+    `
+    SELECT
+        timestamp,
+        "totalSupplyUsd",
+        "totalBorrowUsd",
+        "apyBase",
+        "apyReward",
+        "apyBaseBorrow",
+        "apyRewardBorrow"
+    FROM
+        $<table:name>
+    WHERE
+        timestamp IN (
+            SELECT
+                max(timestamp)
+            FROM
+                $<table:name>
+            WHERE
+                "configID" = $<configIDValue>
+            GROUP BY
+                (timestamp :: date)
+        )
+        AND "configID" = $<configIDValue>
+    ORDER BY
+        timestamp ASC
+  `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query, {
+    configIDValue: configID,
+    table: tableName,
+  });
+
+  if (!response) {
+    return new AppError(`Couldn't get ${tableName} history data`, 404);
+  }
+
+  return lambdaResponse({
+    status: 'success',
+    data: response,
+  });
+};
+
 // multi row insert query generator
 const buildInsertYieldQuery = (payload) => {
   // note: even though apyBase and apyReward are optional fields
@@ -313,5 +362,6 @@ module.exports = {
   getYieldOffset,
   getYieldProject,
   getYieldLendBorrow,
+  getYieldLendBorrowHistory,
   buildInsertYieldQuery,
 };
