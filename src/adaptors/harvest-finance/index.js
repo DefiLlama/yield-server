@@ -1,10 +1,12 @@
 const superagent = require('superagent');
 
 const utils = require('../utils');
-const farmsUrl =
-  'https://api.harvest.finance/vaults?key=41e90ced-d559-4433-b390-af424fdc76d6';
-const poolsUrl =
-  'https://api.harvest.finance/pools?key=41e90ced-d559-4433-b390-af424fdc76d6';
+const { readFromS3 } = require('../../utils/s3');
+// no longer needed, see note below
+// const farmsUrl =
+//   'https://api.harvest.finance/vaults?key=41e90ced-d559-4433-b390-af424fdc76d6';
+// const poolsUrl =
+//   'https://api.harvest.finance/pools?key=41e90ced-d559-4433-b390-af424fdc76d6';
 const chains = {
   bsc: 'binance',
   eth: 'ethereum',
@@ -27,8 +29,15 @@ function aggregateApys(farm, poolsResponse) {
 async function apy() {
   let allVaults = [];
 
-  const farmsResponse = (await superagent.get(farmsUrl)).body;
-  const poolsResponse = (await superagent.get(poolsUrl)).body;
+  // note (!) calling their api via aws lambda stopped working due to cloudflare bot protection.
+  // instead, we use a python lambda which bypasses cloudflare
+  // and stores the output to s3 (i tried node js packages, none of them worked; the repo to the
+  // lambda:
+  // const farmsResponse = (await superagent.get(farmsUrl)).body;
+  // const poolsResponse = (await superagent.get(poolsUrl)).body;
+  const data = await readFromS3('llama-apy-prod-data', 'harvest_api_data.json');
+  const farmsResponse = data['vaults'];
+  const poolsResponse = data['pools'];
 
   // for binance inactive !== true
   for (let chain of Object.keys(chains)) {
@@ -54,7 +63,12 @@ async function apy() {
     allVaults = [...allVaults, ...farms];
   }
 
-  return allVaults.filter((p) => utils.keepFinite(p));
+  return (
+    allVaults
+      .filter((p) => utils.keepFinite(p))
+      // getting a conflict on that particular pool, removing for now until i know why
+      .filter((p) => p.pool !== '0xE4E6055A7eB29F2Fa507ba7f8c4FAcc0C5ef9a2A')
+  );
 }
 
 module.exports = {
