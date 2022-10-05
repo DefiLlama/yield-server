@@ -6,7 +6,7 @@ const arbitrumMycAddress = '0xc74fe4c715510ec2f8c61d70d397b32043f55abe';
 const arbitrumMlpAddress = '0x752b746426b6D0c3188bb530660374f92FD9cf7c';
 const arbitrumMlpManagerAddress = '0x2DE28AB4827112Cd3F89E5353Ca5A8D80dB7018f';
 const arbitrumFeeMycTrackerAddress =
-  '0xd2D1162512F927a7e282Ef43a362659E4F2a728F';
+  '0x0cA0147c21F9DB9D4627e6a996342A11D25972C5';
 const arbitrumInflationMycTrackerAddress =
   '0x2BC8E28f5d41a4b112BC62EB7Db1B757c85f37Ff';
 const arbitrumFeeMlpTrackerAddress =
