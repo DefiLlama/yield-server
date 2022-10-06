@@ -129,6 +129,7 @@ const apy = async () => {
     underlyingTokens: [t],
     // borrow fields
     totalSupplyUsd: collateralTotalSupplyUsd[i],
+    ltv: assetInfo[i].borrowCollateralFactor / 1e18,
   }));
 
   // 2) usdc pool
