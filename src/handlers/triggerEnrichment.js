@@ -308,6 +308,8 @@ const checkStablecoin = (el, stablecoins) => {
     stable = false;
   } else if (el.project === 'hermes-protocol' && symbolLC.includes('maia')) {
     stable = false;
+  } else if (tokens.includes('sushi')) {
+    stable = false;
   } else if (tokens.length === 1) {
     stable = stablecoins.some((x) =>
       tokens[0].replace(/\s*\(.*?\)\s*/g, '').includes(x)
@@ -328,7 +330,7 @@ const checkStablecoin = (el, stablecoins) => {
 // 2: - 1 asset
 // 3: - more than 1 asset but same underlying assets
 const checkIlRisk = (el) => {
-  const l1Token = ['btc', 'eth', 'avax', 'matic', 'eur', 'link'];
+  const l1Token = ['btc', 'eth', 'avax', 'matic', 'eur', 'link', 'sushi'];
   const symbol = el.symbol.toLowerCase();
   const tokens = symbol.split('-');
 
