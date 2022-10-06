@@ -12,6 +12,25 @@
         "stateMutability": "view",
         "type": "function"
     },
+    "compSpeeds": {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "name": "compSpeeds",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
     "getCash": {
         "inputs": [],
         "name": "getCash",
@@ -41,6 +60,19 @@
     "totalReserves": {
         "inputs": [],
         "name": "totalReserves",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    "borrowRatePerBlock": {
+        "inputs": [],
+        "name": "borrowRatePerBlock",
         "outputs": [
             {
                 "internalType": "uint256",

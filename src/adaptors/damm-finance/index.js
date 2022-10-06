@@ -3,36 +3,36 @@ const superagent = require('superagent');
 const abi = require("./abis.json");
 
 const unitroller = "0x4F96AB61520a6636331a48A11eaFBA8FB51f74e4";
+const bdAMM = "0xfa372fF1547fa1a283B5112a4685F1358CE5574d";
 
 
 const poolInfo = async (chain) => {
 
     const allMarkets = await sdk.api.abi.call({ target: unitroller, chain, abi: abi.getAllMarkets });
 
-    const supplyRatePerBlock = (await sdk.api.abi.multiCall({
-        abi: abi.supplyRatePerBlock,
+    const compSpeedsPerBlock = (await sdk.api.abi.multiCall({
+        abi: abi.compSpeeds,
+        target: unitroller,
         calls: allMarkets.output.map(token => ({
-            target: token
+            params: token
         })),
         chain
-    })).output.map((markets) => markets.output);
+    })).output.map((speeds) => speeds.output);
 
-    const yieldMarkets = allMarkets.output.map((poolId, i) => {
-        const supplyRate = Number(supplyRatePerBlock[i]);
-        return { poolId, supplyRate };
-    }).filter((pool) => pool.supplyRate > 1000000);
+    const yieldMarkets = allMarkets.output.map((pool) => {
+        return { pool };
+    });
 
-    const [cash, borrows, reserves, underlying, symbol] = await Promise.all(
-        ['getCash', 'totalBorrows', 'totalReserves', 'underlying', 'symbol'].map((method) => sdk.api.abi.multiCall({
+    const getOutput = ({ output }) => output.map(({ output }) => output);
+    const [supplyRatePerBlock, getCash, totalBorrows, totalReserves, underlyingToken, tokenSymbol] = await Promise.all(
+        ['supplyRatePerBlock', 'getCash', 'totalBorrows', 'totalReserves', 'underlying', 'symbol'].map((method) => sdk.api.abi.multiCall({
             abi: abi[method],
             calls: yieldMarkets.map((address) => ({
-                target: address.poolId
+                target: address.pool
             })),
             chain
         }))
-    );
-    const [getCash, totalBorrows, totalReserves, underlyingToken, tokenSymbol] =
-        [cash.output, borrows.output, reserves.output, underlying.output, symbol.output].map((data) => data.map((d) => d.output));
+    ).then((data) => data.map(getOutput));
 
     const underlyingTokenDecimals = (await sdk.api.abi.multiCall({
         abi: abi.decimals,
@@ -45,6 +45,8 @@ const poolInfo = async (chain) => {
     const price = await getPrices('ethereum', underlyingToken);
 
     yieldMarkets.map((data, i) => {
+        data.supplyRate = supplyRatePerBlock[i];
+        data.compSpeeds = compSpeedsPerBlock[i];
         data.getCash = getCash[i];
         data.totalBorrows = totalBorrows[i];
         data.totalReserves = totalReserves[i];
@@ -75,11 +77,18 @@ const getPrices = async (chain, addresses) => {
     return pricesObj;
 };
 
-function calculateApy(rate) {
+const getTerminalPrices = async (chain, addresses) => {
+    const prices = (
+        await superagent.get('https://app.geckoterminal.com/api/p1/eth/pools/0x1971f78a7636632101e06931e0856be2f9bcec02?base_token=0')
+    ).body.data.attributes.price_in_usd;
+    return prices;
+};
+
+function calculateApy(rate, price = 1, tvl = 1) {
     // supply rate per block * number of blocks per year
     const BLOCK_TIME = 12;
     const YEARLY_BLOCKS = 365 * 24 * 60 * 60 / BLOCK_TIME;
-    const apy = ((rate / 1e18) * YEARLY_BLOCKS) * 100;
+    const apy = ((rate / 1e18) * YEARLY_BLOCKS * price / tvl) * 100;
     return apy;
 };
 
@@ -90,21 +99,22 @@ function calculateTvl(cash, borrows, price, decimals) {
 };
 
 const getApy = async () => {
-
+    const bdammPrice = await getTerminalPrices();
     const yieldPools = (await poolInfo('ethereum')).yieldMarkets.map((pool, i) => {
         const tvl = calculateTvl(pool.getCash, pool.totalBorrows, pool.price, pool.underlyingTokenDecimals);
         const apyBase = calculateApy(pool.supplyRate);
-        const readyToExport = exportFormatter(pool.poolId, 'Ethereum', pool.tokenSymbol, tvl, apyBase, null, pool.underlyingToken);
+        const apyReward = calculateApy(pool.compSpeeds, bdammPrice, tvl);
+        const readyToExport = exportFormatter(pool.pool, 'Ethereum', pool.tokenSymbol, tvl, apyBase, apyReward, pool.underlyingToken, [bdAMM]);
         return readyToExport;
     });
 
     return yieldPools;
 };
 
-function exportFormatter(poolId, chain, symbol, tvlUsd, apyBase, apyReward, underlyingTokens) {
+function exportFormatter(pool, chain, symbol, tvlUsd, apyBase, apyReward, underlyingTokens, rewardTokens) {
 
     return {
-        pool: `${poolId}-${chain}`.toLowerCase(),
+        pool: `${pool}-${chain}`.toLowerCase(),
         chain,
         project: 'damm-finance',
         symbol,
@@ -112,6 +122,7 @@ function exportFormatter(poolId, chain, symbol, tvlUsd, apyBase, apyReward, unde
         apyBase,
         apyReward,
         underlyingTokens: [underlyingTokens],
+        rewardTokens,
     };
 };
 
