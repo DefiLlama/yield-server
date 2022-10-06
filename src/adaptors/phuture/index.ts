@@ -40,7 +40,7 @@ const main = (chain) => async (): Promise<Array<object>> => {
       apyBase: apy / 10e6,
       rewardTokens: [asset],
       underlyingTokens: [asset],
-      url: url + '/index/' + usvAddress,
+      url: url + '/index/' + usvAddress.toLowerCase(),
     },
   ];
 };
