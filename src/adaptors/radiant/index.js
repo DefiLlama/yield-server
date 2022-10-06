@@ -4,6 +4,7 @@ const utils = require('../utils');
 const pools = require('./pools.json');
 const sdk = require('@defillama/sdk');
 const abi = require('./abi.json');
+const abiDataProvider = require('./abiDataProvider.json');
 
 const url = 'https://newapi4.radiant.capital/42161.json';
 
@@ -12,6 +13,9 @@ const sleep = async (ms) => {
     setTimeout(resolve, ms);
   });
 };
+
+const radiantAaveProtocolDataProvider =
+  '0xa3e42d11d8CC148160CC3ACED757FB44696a9CcA';
 
 const apy = async (pools, dataTvl) => {
   const maxCallsPerSec = 5;
@@ -25,6 +29,17 @@ const apy = async (pools, dataTvl) => {
       await sdk.api.abi.call({
         target: '0x2032b9A8e9F7e76768CA9271003d3e43E1616B1F',
         abi: abi.find((a) => a.name === 'getReserveData'),
+        chain: 'arbitrum',
+        params: [pool.underlyingAsset],
+      })
+    ).output;
+
+    const configuration = (
+      await sdk.api.abi.call({
+        target: radiantAaveProtocolDataProvider,
+        abi: abiDataProvider.find(
+          (a) => a.name === 'getReserveConfigurationData'
+        ),
         chain: 'arbitrum',
         params: [pool.underlyingAsset],
       })
@@ -72,6 +87,7 @@ const apy = async (pools, dataTvl) => {
       rewardApyBorrow: debt.apy * 100,
       totalSupplyUsd,
       totalBorrowUsd,
+      ltv: configuration.ltv / 1e4,
     });
   }
   return data;
@@ -124,6 +140,7 @@ const topLvl = async (chainString, url) => {
       apyRewardBorrow: p.rewardApyBorrow,
       totalSupplyUsd: p.totalSupplyUsd,
       totalBorrowUsd: p.totalBorrowUsd,
+      ltv: p.ltv,
     };
   });
 };
