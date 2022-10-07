@@ -2,9 +2,12 @@ const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const abi = require('./abi.json');
+const abiDataProvider = require('./abiDataProvider.json');
 const pools = require('./pools.json');
 
 const url = 'https://api.geist.finance/api/lendingPoolRewards';
+
+const aaveProtocolDataProvider = '0xf3B0611e2E4D2cd6aB4bb3e01aDe211c3f42A8C3';
 
 const main = async () => {
   // total supply for each pool + reward apr for both lend and borrow side
@@ -36,34 +39,49 @@ const main = async () => {
   const decimalsData = decimalsRes.output.map((o) => o.output);
   const symbolsData = symbolsRes.output.map((o) => o.output);
 
-  return reserveData.map((p, i) => {
-    const interest = rewardAPRs.find(
-      (el) => el.tokenAddress === p.aTokenAddress
-    );
-    const debt = rewardAPRs.find(
-      (el) => el.tokenAddress === p.variableDebtTokenAddress
-    );
+  return await Promise.all(
+    reserveData.map(async (p, i) => {
+      const interest = rewardAPRs.find(
+        (el) => el.tokenAddress === p.aTokenAddress
+      );
+      const debt = rewardAPRs.find(
+        (el) => el.tokenAddress === p.variableDebtTokenAddress
+      );
 
-    return {
-      pool: p.aTokenAddress,
-      chain: 'Fantom',
-      project: 'geist-finance',
-      symbol: utils.formatSymbol(symbolsData[i]),
-      // note(!) this is total supply instead of available liquidity, will need to update
-      tvlUsd: interest.poolValue,
-      apyBase: p.currentLiquidityRate / 1e25,
-      apyReward: interest.apy * 100,
-      underlyingTokens: [interest.underlyingAsset],
-      rewardTokens: ['0xd8321aa83fb0a4ecd6348d4577431310a6e0814d'], // Geist
-      // borrow fields
-      apyBaseBorrow: p.currentVariableBorrowRate / 1e25,
-      apyRewardBorrow: debt.apy * 100,
-      totalSupplyUsd: interest.poolValue,
-      totalBorrowUsd:
-        interest.poolValue -
-        (liquidityData[i] / 10 ** decimalsData[i]) * interest.assetPrice,
-    };
-  });
+      const ltv =
+        (
+          await sdk.api.abi.call({
+            target: aaveProtocolDataProvider,
+            params: [interest.underlyingAsset],
+            abi: abiDataProvider.find(
+              (n) => n.name === 'getReserveConfigurationData'
+            ),
+            chain: 'fantom',
+          })
+        ).output.ltv / 1e4;
+
+      return {
+        pool: p.aTokenAddress,
+        chain: 'Fantom',
+        project: 'geist-finance',
+        symbol: utils.formatSymbol(symbolsData[i]),
+        // note(!) this is total supply instead of available liquidity, will need to update
+        tvlUsd: interest.poolValue,
+        apyBase: p.currentLiquidityRate / 1e25,
+        apyReward: interest.apy * 100,
+        underlyingTokens: [interest.underlyingAsset],
+        rewardTokens: ['0xd8321aa83fb0a4ecd6348d4577431310a6e0814d'], // Geist
+        // borrow fields
+        apyBaseBorrow: p.currentVariableBorrowRate / 1e25,
+        apyRewardBorrow: debt.apy * 100,
+        totalSupplyUsd: interest.poolValue,
+        totalBorrowUsd:
+          interest.poolValue -
+          (liquidityData[i] / 10 ** decimalsData[i]) * interest.assetPrice,
+        ltv,
+      };
+    })
+  );
 };
 
 module.exports = {
