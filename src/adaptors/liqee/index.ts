@@ -1,7 +1,10 @@
 const utils = require('../utils');
+const abi = require('./abi.json');
 const sdk = require('@defillama/sdk');
 
 const API_URL = 'https://app.liqee.io/pos/markets?network=mainnet';
+
+const controller = '0x8f1f15DCf4c70873fAF1707973f6029DEc4164b3';
 
 interface Staking {
   [addres: string]: number;
@@ -31,6 +34,17 @@ interface Markets {
 const apy = async () => {
   const data: Markets = await utils.getData(API_URL);
 
+  const markets = (
+    await sdk.api.abi.multiCall({
+      chain: 'ethereum',
+      abi: abi.find((n) => n.name === 'markets'),
+      calls: data.supplyMarkets.map((m) => ({
+        target: controller,
+        params: [m.address],
+      })),
+    })
+  ).output.map((o) => o.output);
+
   const res = data.supplyMarkets.map((market, i) => {
     const apyReward =
       (Number(market.rewardSupplyApy) / 10 ** Number(market.decimals)) * 100;
@@ -47,7 +61,7 @@ const apy = async () => {
       apyReward,
       rewardTokens: apyReward > 0 ? [market.address] : null,
       underlyingTokens:
-        market.underlyingSymbol === 'ETH'
+        market.underlying_symbol === 'ETH'
           ? ['0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2']
           : [data.underlyingToken[i].underlying],
       // borrow fields
@@ -59,6 +73,7 @@ const apy = async () => {
         (Number(market.borrowAPY) / 10 ** Number(market.decimals)) * 100,
       apyRewardBorrow:
         (Number(market.rewardBorrowApy) / 10 ** Number(market.decimals)) * 100,
+      ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
     };
   });
 
