@@ -106,6 +106,17 @@ const getApy = async () => {
 
   const allMarkets = Object.values(allMarketsRes);
 
+  const markets = (
+    await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      abi: comptrollerAbi.find((n) => n.name === 'markets'),
+      calls: allMarkets.map((m) => ({
+        target: COMPTROLLER_ADDRESS,
+        params: [m],
+      })),
+    })
+  ).output.map((o) => o.output);
+
   // supply side
   const protocolRewards = await getRewards(
     allMarkets,
@@ -247,6 +258,7 @@ const getApy = async () => {
       totalBorrowUsd,
       apyBaseBorrow,
       apyRewardBorrow: apyRewardBorrow + apyNativeRewardBorrow,
+      ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
     };
   });
 
