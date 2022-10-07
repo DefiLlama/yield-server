@@ -16,6 +16,7 @@ const erc20ABI = [
 
 const unitrollerABI = [
   'function getAllMarkets() external view returns(address[] memory)',
+  'function markets(address) external view returns(bool isListed,bool autoCollaterize,uint256 collateralFactorMantissa)',
 ];
 
 const oracleABI = [
