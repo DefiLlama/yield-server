@@ -170,7 +170,7 @@ async function getV2FarmData() {
     });
     const { token_symbols, token_account_ids } = pool;
     const target = {
-      pool: pool.id,
+      pool: 'ref-pool-' + pool.id,
       chain: 'NEAR',
       project: 'ref-finance',
       symbol: token_symbols?.join('-'),
