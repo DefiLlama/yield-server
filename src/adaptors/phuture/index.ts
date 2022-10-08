@@ -35,12 +35,13 @@ const main = (chain) => async (): Promise<Array<object>> => {
       pool: `${usvAddress}-${chain}`.toLowerCase(),
       chain: utils.formatChain(chain),
       project,
-      symbol: utils.formatSymbol('USV'),
+      symbol: 'USDC',
       tvlUsd: +totalAssets / 1e6,
       apyBase: apy / 10e6,
       rewardTokens: [asset],
       underlyingTokens: [asset],
       url: url + '/index/' + usvAddress.toLowerCase(),
+      poolMeta: 'USV',
     },
   ];
 };
