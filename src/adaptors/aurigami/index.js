@@ -4,10 +4,12 @@ const superagent = require('superagent');
 
 const utils = require('../utils');
 const abi = require('./abi');
+const comptrollerAbi = require('./comptrollerAbi.json');
 
 const url = 'https://api.aurigami.finance/apys';
 
 const WETH = '0xC9BdeEd33CD01541e1eeD10f90519d2C06Fe3feB';
+const unitroller = '0x817af6cfAF35BdC1A634d6cC94eE9e4c68369Aeb';
 
 const START_DATE = new Date(2022, 07, 12);
 const END_DATE = new Date(2023, 03, 5);
@@ -43,6 +45,17 @@ const apy = async () => {
   const underlyingData = underlyingRes.output.map((o) => o.output);
   const totalBorrowsData = totalBorrowsRes.output.map((o) => o.output);
   const cashData = getCashRes.output.map((o) => o.output);
+
+  const markets = (
+    await sdk.api.abi.multiCall({
+      chain: 'aurora',
+      abi: comptrollerAbi.find((n) => n.name === 'markets'),
+      calls: data.map((m) => ({
+        target: unitroller,
+        params: [m.market],
+      })),
+    })
+  ).output.map((o) => o.output);
 
   const gasTokenIndex = underlyingData.indexOf(null);
   underlyingData[gasTokenIndex] = WETH;
@@ -96,6 +109,7 @@ const apy = async () => {
           : isNaN(100 * d.borrow.apyReward)
           ? null
           : 100 * d.borrow.apyReward * currentRewardRatio,
+      ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
     };
   });
 
