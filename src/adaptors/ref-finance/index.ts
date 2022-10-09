@@ -215,7 +215,7 @@ async function getV2FarmData() {
         symbol: token_symbols?.join('-'),
         tvlUsd: seedTvl,
         apyReward: totalApy * 100,
-        baseApy: poolApy * 100,
+        apyBase: poolApy * 100,
         underlyingTokens: token_account_ids,
         rewardTokens: rewardsTokens,
       };
