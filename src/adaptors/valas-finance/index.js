@@ -6,15 +6,15 @@ const abiProtocolDataProvider = require('./abiProtocolDataProvider.json');
 const abiChefIncentiveController = require('./abiChefIncentiveController.json');
 const utils = require('../utils');
 
-const lendingPool = '0x2409aF0251DCB89EE3Dee572629291f9B087c668';
-const protocolDataProvider = '0x17938eDE656Ca1901807abf43a6B1D138D8Cd521';
-const chefIncentiveController = '0x21953192664867e19F85E96E1D1Dd79dc31cCcdB';
+const lendingPool = '0xE29A55A6AEFf5C8B1beedE5bCF2F0Cb3AF8F91f5';
+const protocolDataProvider = '0xc9704604E18982007fdEA348e8DDc7CC652E34cA';
+const chefIncentiveController = '0xB7c1d99069a4eb582Fc04E7e1124794000e7ecBF';
 const lendingPoolAddressesProvider =
-  '0x011c0d38da64b431a1bdfc17ad72678eabf7f1fb';
-const rewardToken = '0x55c08ca52497e2f1534b59e2917bf524d4765257';
+  '0x0736B3dAdDe5B78354BF7F7faaFAcEE82B1851b9';
+const rewardToken = '0xb1ebdd56729940089ecc3ad0bbeeb12b6842ea6f';
 
 const apy = async () => {
-  const chain = 'ethereum';
+  const chain = 'bsc';
   // underlying pools
   const reservesList = (
     await sdk.api.abi.call({
@@ -119,9 +119,9 @@ const apy = async () => {
   ).output.map((o) => o.output);
 
   // prices
-  const pricesArray = [rewardToken, ...reservesList]
-    .map((t) => `${chain}:${t}`)
-    .concat(['coingecko:wrapped-memory']);
+  const pricesArray = [rewardToken, ...reservesList].map(
+    (t) => `${chain}:${t}`
+  );
   const prices = (
     await superagent.get(`https://coins.llama.fi/prices/current/${pricesArray}`)
   ).body.coins;
@@ -163,14 +163,15 @@ const apy = async () => {
     const ltv = reserveConfigurationData[i].ltv / 1e4;
 
     // url for pools
-    const url =
-      `https://app.uwulend.fi/reserve-overview/${t}-${t}${lendingPoolAddressesProvider}`.toLowerCase();
+    const url = `https://valasfinance.com/reserve-overview/${
+      symbols[i]
+    }-${t.toLowerCase()}${lendingPoolAddressesProvider.toLowerCase()}`;
 
     return {
       pool: reserveData[i].aTokenAddress,
       symbol: utils.formatSymbol(symbols[i]),
-      project: 'uwu-lend',
-      chain: 'Ethereum',
+      project: 'valas-finance',
+      chain: utils.formatChain(chain),
       tvlUsd,
       apyBase,
       apyReward,
