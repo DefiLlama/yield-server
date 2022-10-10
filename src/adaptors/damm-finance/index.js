@@ -78,11 +78,13 @@ const getPrices = async (chain, addresses) => {
 };
 
 const getTerminalPrices = async (chain, addresses) => {
+    const key = 'ethereum:0xfa372ff1547fa1a283b5112a4685f1358ce5574d';
     const prices = (
-        await superagent.get('https://app.geckoterminal.com/api/p1/eth/pools/0x1971f78a7636632101e06931e0856be2f9bcec02?base_token=0')
-    ).body.data.attributes.price_in_usd;
+      await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
+    ).body.coins[key].price;
     return prices;
-};
+  };
+  
 
 function calculateApy(rate, price = 1, tvl = 1) {
     // supply rate per block * number of blocks per year
