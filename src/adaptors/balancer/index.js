@@ -84,6 +84,19 @@ const queryPrior = gql`
 }
 `;
 
+// for Balancer Aave Boosted StablePool (there are 2 pools, but underlying addresses for one of them
+// don't return any price data from our api, the other pool does though and both have the same underlying tokens)
+// specifically, bb-a-usdc, bb-a-dai, bb-a-usdt
+// -> use this mapping to get price data for both of them
+const bbTokenMapping = {
+  '0x2f4eb100552ef93840d5adc30560e5513dfffacb':
+    '0x2bbf681cc4eb09218bee85ea2a5d3d13fa40fc0c',
+  '0x82698aecc9e28e9bb27608bd52cf57f704bd1b83':
+    '0x9210f1204b5a24742eba12f710636d76240df3d0',
+  '0xae37d54ae477268b9997d4161b96b8200755935c':
+    '0x804cdb9116a10bb78768d3252355a1b18067bf8f',
+};
+
 const correctMaker = (entry) => {
   entry = { ...entry };
   // for some reason the MKR symbol is not there, add this manually for
@@ -100,15 +113,23 @@ const correctMaker = (entry) => {
 const tvl = (entry, tokenPriceList, chainString) => {
   entry = { ...entry };
 
+  // the boosted pools also contain bb-a-usd as underlying, which imo is wrong (seems like this is
+  // representing the total from `getActualSupply`); removing them from the array to get the correct tvl
+  const excludeTokenList = [
+    '0x7b50775383d3d6f0215a8f290f2c9e2eebbeceb2',
+    '0xa13a9247ea42d743238089903570127dda72fe44',
+  ];
+
   const balanceDetails = entry.tokens;
   const d = {
     id: entry.id,
     symbol: balanceDetails.map((tok) => tok.symbol).join('-'),
     tvl: 0,
     totalShares: entry.totalShares,
-    tokensList: entry.tokensList,
+    tokensList: entry.tokensList.filter((p) => !excludeTokenList.includes(p)),
   };
   for (const el of balanceDetails) {
+    if (excludeTokenList.includes(el.address)) continue;
     // some addresses are from tokens which are not listed on coingecko so these will result in undefined
 
     let price =
@@ -121,6 +142,12 @@ const tvl = (entry, tokenPriceList, chainString) => {
         tokenPriceList['solana:So11111111111111111111111111111111111111112']
           ?.price;
     // if price is undefined of one token in pool, the total tvl will be NaN
+    if (
+      entry.id ===
+      '0xa13a9247ea42d743238089903570127dda72fe4400000000000000000000035d'
+    ) {
+      price = tokenPriceList[`ethereum:${bbTokenMapping[el.address]}`]?.price;
+    }
     d.tvl += Number(el.balance) * price;
   }
 
@@ -315,7 +342,9 @@ const topLvl = async (
     pool: p.id,
     chain: utils.formatChain(chainString),
     project: 'balancer',
-    symbol: utils.formatSymbol(p.symbol),
+    symbol: p.symbol.includes('bb-a-USD')
+      ? 'bb-a-USDT-bb-a-USDC-bb-a-DAI'
+      : utils.formatSymbol(p.symbol),
     tvlUsd: p.tvl,
     apyBase: p.aprFee,
     apyReward: p.aprLM,
