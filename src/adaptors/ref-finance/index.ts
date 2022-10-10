@@ -37,7 +37,7 @@ async function commonCall(url, method, args = {}) {
     params: args,
   });
   if (result.data.error) {
-    throw new Error(`${result.data.error.message}: ${result.data.error.data}`)
+    throw new Error(`${result.data.error.message}: ${result.data.error.data}`);
   }
   return result.data;
 }
@@ -215,7 +215,7 @@ async function getV2FarmData() {
         symbol: token_symbols?.join('-'),
         tvlUsd: seedTvl,
         apyReward: totalApy * 100,
-        apyBase: poolApy,
+        apyBase: Number(poolApy),
         underlyingTokens: token_account_ids,
         rewardTokens: rewardsTokens,
       };
