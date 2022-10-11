@@ -1,154 +1,226 @@
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
-const abi = require("./abis.json");
+const abi = require('./abis.json');
 
-const unitroller = "0x4F96AB61520a6636331a48A11eaFBA8FB51f74e4";
-const bdAMM = "0xfa372fF1547fa1a283B5112a4685F1358CE5574d";
-
+const unitroller = '0x4F96AB61520a6636331a48A11eaFBA8FB51f74e4';
+const bdAMM = '0xfa372fF1547fa1a283B5112a4685F1358CE5574d';
 
 const poolInfo = async (chain) => {
+  const allMarkets = await sdk.api.abi.call({
+    target: unitroller,
+    chain,
+    abi: abi.getAllMarkets,
+  });
 
-    const allMarkets = await sdk.api.abi.call({ target: unitroller, chain, abi: abi.getAllMarkets });
+  const yieldMarkets = allMarkets.output.map((pool) => {
+    return { pool };
+  });
 
-    const yieldMarkets = allMarkets.output.map((pool) => {
-        return { pool };
-    });
-
-    const getOutput = ({ output }) => output.map(({ output }) => output);
-    const [markets, compSpeeds] = await Promise.all(
-        ['markets', 'compSpeeds'].map((method) => sdk.api.abi.multiCall({
-            abi: abi[method],
-            target: unitroller,
-            calls: yieldMarkets.map((pool) => ({
-                params: pool.pool
-            })),
-            chain
-        }))
-    ).then((data) => data.map(getOutput));
-    const collateralFactor = markets.map((data) => data.collateralFactorMantissa);
-
-    const [borrowRatePerBlock, supplyRatePerBlock, getCash, totalBorrows, totalReserves, underlyingToken, tokenSymbol] = await Promise.all(
-        ['borrowRatePerBlock', 'supplyRatePerBlock', 'getCash', 'totalBorrows', 'totalReserves', 'underlying', 'symbol'].map((method) => sdk.api.abi.multiCall({
-            abi: abi[method],
-            calls: yieldMarkets.map((address) => ({
-                target: address.pool
-            })),
-            chain
-        }))
-    ).then((data) => data.map(getOutput));
-
-    const underlyingTokenDecimals = (await sdk.api.abi.multiCall({
-        abi: abi.decimals,
-        calls: underlyingToken.map(token => ({
-            target: token
+  const getOutput = ({ output }) => output.map(({ output }) => output);
+  const [markets, compSpeeds] = await Promise.all(
+    ['markets', 'compSpeeds'].map((method) =>
+      sdk.api.abi.multiCall({
+        abi: abi[method],
+        target: unitroller,
+        calls: yieldMarkets.map((pool) => ({
+          params: pool.pool,
         })),
-        chain
-    })).output.map((decimal) => Math.pow(10, Number(decimal.output)));
+        chain,
+      })
+    )
+  ).then((data) => data.map(getOutput));
+  const collateralFactor = markets.map((data) => data.collateralFactorMantissa);
 
-    const price = await getPrices('ethereum', underlyingToken);
+  const [
+    borrowRatePerBlock,
+    supplyRatePerBlock,
+    getCash,
+    totalBorrows,
+    totalReserves,
+    underlyingToken,
+    tokenSymbol,
+  ] = await Promise.all(
+    [
+      'borrowRatePerBlock',
+      'supplyRatePerBlock',
+      'getCash',
+      'totalBorrows',
+      'totalReserves',
+      'underlying',
+      'symbol',
+    ].map((method) =>
+      sdk.api.abi.multiCall({
+        abi: abi[method],
+        calls: yieldMarkets.map((address) => ({
+          target: address.pool,
+        })),
+        chain,
+      })
+    )
+  ).then((data) => data.map(getOutput));
 
-    yieldMarkets.map((data, i) => {
-        data.collateralFactor = collateralFactor[i];
-        data.borrowRate = borrowRatePerBlock[i];
-        data.supplyRate = supplyRatePerBlock[i];
-        data.compSpeeds = compSpeeds[i];
-        data.getCash = getCash[i];
-        data.totalBorrows = totalBorrows[i];
-        data.totalReserves = totalReserves[i];
-        data.underlyingToken = underlyingToken[i];
-        data.tokenSymbol = tokenSymbol[i];
-        data.price = price[underlyingToken[i].toLowerCase()];
-        data.underlyingTokenDecimals = underlyingTokenDecimals[i];
-    });
+  const underlyingTokenDecimals = (
+    await sdk.api.abi.multiCall({
+      abi: abi.decimals,
+      calls: underlyingToken.map((token) => ({
+        target: token,
+      })),
+      chain,
+    })
+  ).output.map((decimal) => Math.pow(10, Number(decimal.output)));
 
-    return { yieldMarkets };
+  const price = await getPrices('ethereum', underlyingToken);
+
+  yieldMarkets.map((data, i) => {
+    data.collateralFactor = collateralFactor[i];
+    data.borrowRate = borrowRatePerBlock[i];
+    data.supplyRate = supplyRatePerBlock[i];
+    data.compSpeeds = compSpeeds[i];
+    data.getCash = getCash[i];
+    data.totalBorrows = totalBorrows[i];
+    data.totalReserves = totalReserves[i];
+    data.underlyingToken = underlyingToken[i];
+    data.tokenSymbol = tokenSymbol[i];
+    data.price = price[underlyingToken[i].toLowerCase()];
+    data.underlyingTokenDecimals = underlyingTokenDecimals[i];
+  });
+
+  return { yieldMarkets };
 };
 
 const getPrices = async (chain, addresses) => {
-    const prices = (
-        await superagent.post('https://coins.llama.fi/prices').send({
-            coins: addresses.map((address) => `${chain}:${address}`),
-        })
-    ).body.coins;
+  const prices = (
+    await superagent.post('https://coins.llama.fi/prices').send({
+      coins: addresses.map((address) => `${chain}:${address}`),
+    })
+  ).body.coins;
 
-    const pricesObj = Object.entries(prices).reduce(
-        (acc, [address, price]) => ({
-            ...acc,
-            [address.split(':')[1].toLowerCase()]: price.price,
-        }),
-        {}
-    );
+  const pricesObj = Object.entries(prices).reduce(
+    (acc, [address, price]) => ({
+      ...acc,
+      [address.split(':')[1].toLowerCase()]: price.price,
+    }),
+    {}
+  );
 
-    return pricesObj;
+  return pricesObj;
 };
 
 const getTerminalPrices = async (chain, addresses) => {
-    const key = 'ethereum:0xfa372ff1547fa1a283b5112a4685f1358ce5574d';
-    const prices = (
-      await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-    ).body.coins[key].price;
-    return prices;
-  };
-  
+  const key = 'ethereum:0xfa372ff1547fa1a283b5112a4685f1358ce5574d';
+  const prices = (
+    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
+  ).body.coins[key].price;
+  return prices;
+};
 
 function calculateApy(rate, price = 1, tvl = 1) {
-    // supply rate per block * number of blocks per year
-    const BLOCK_TIME = 12;
-    const YEARLY_BLOCKS = 365 * 24 * 60 * 60 / BLOCK_TIME;
-    const safeTvl = (tvl === 0) ? 1 : tvl;
-    const apy = ((rate / 1e18) * YEARLY_BLOCKS * price / safeTvl) * 100;
-    return apy;
-};
+  // supply rate per block * number of blocks per year
+  const BLOCK_TIME = 12;
+  const YEARLY_BLOCKS = (365 * 24 * 60 * 60) / BLOCK_TIME;
+  const safeTvl = tvl === 0 ? 1 : tvl;
+  const apy = (((rate / 1e18) * YEARLY_BLOCKS * price) / safeTvl) * 100;
+  return apy;
+}
 
 function calculateTvl(cash, borrows, reserves, price, decimals) {
-    // ( cash + totalBorrows - reserve value ) * underlying price = balance
-    const tvl = ((parseFloat(cash) + parseFloat(borrows) - parseFloat(reserves)) / decimals) * price;
-    return tvl;
-};
+  // ( cash + totalBorrows - reserve value ) * underlying price = balance
+  const tvl =
+    ((parseFloat(cash) + parseFloat(borrows) - parseFloat(reserves)) /
+      decimals) *
+    price;
+  return tvl;
+}
 
 const getApy = async () => {
-    const bdammPrice = await getTerminalPrices();
-    const yieldPools = (await poolInfo('ethereum')).yieldMarkets.map((pool, i) => {
-        const totalSupplyUsd = calculateTvl(pool.getCash, pool.totalBorrows, pool.totalReserves, pool.price, pool.underlyingTokenDecimals);
-        const totalBorrowUsd = calculateTvl(0, pool.totalBorrows, 0, pool.price, pool.underlyingTokenDecimals);
-        const tvlUsd = totalSupplyUsd - totalBorrowUsd;
-        const apyBase = calculateApy(pool.supplyRate);
-        const apyReward = calculateApy(pool.compSpeeds, bdammPrice, totalSupplyUsd);
-        const apyBaseBorrow = calculateApy(pool.borrowRate);
-        const apyRewardBorrow = calculateApy(pool.compSpeeds, bdammPrice, totalBorrowUsd);
-        const ltv = parseInt(pool.collateralFactor) / 1e18;
-        const readyToExport = exportFormatter(pool.pool, 'Ethereum', pool.tokenSymbol, tvlUsd, apyBase, apyReward,
-            pool.underlyingToken, [bdAMM], apyBaseBorrow, apyRewardBorrow, totalSupplyUsd, totalBorrowUsd, ltv);
-        return readyToExport;
-    });
-
-    return yieldPools;
-};
-
-function exportFormatter(pool, chain, symbol, tvlUsd, apyBase, apyReward,
-    underlyingTokens, rewardTokens, apyBaseBorrow, apyRewardBorrow, totalSupplyUsd, totalBorrowUsd, ltv) {
-
-    return {
-        pool: `${pool}-${chain}`.toLowerCase(),
-        chain,
-        project: 'damm-finance',
-        symbol,
+  const bdammPrice = await getTerminalPrices();
+  const yieldPools = (await poolInfo('ethereum')).yieldMarkets.map(
+    (pool, i) => {
+      const totalSupplyUsd = calculateTvl(
+        pool.getCash,
+        pool.totalBorrows,
+        pool.totalReserves,
+        pool.price,
+        pool.underlyingTokenDecimals
+      );
+      const totalBorrowUsd = calculateTvl(
+        0,
+        pool.totalBorrows,
+        0,
+        pool.price,
+        pool.underlyingTokenDecimals
+      );
+      const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+      const apyBase = calculateApy(pool.supplyRate);
+      const apyReward = calculateApy(
+        pool.compSpeeds,
+        bdammPrice,
+        totalSupplyUsd
+      );
+      const apyBaseBorrow = calculateApy(pool.borrowRate);
+      const apyRewardBorrow = calculateApy(
+        pool.compSpeeds,
+        bdammPrice,
+        totalBorrowUsd
+      );
+      const ltv = parseInt(pool.collateralFactor) / 1e18;
+      const readyToExport = exportFormatter(
+        pool.pool,
+        'Ethereum',
+        pool.tokenSymbol,
         tvlUsd,
         apyBase,
         apyReward,
-        underlyingTokens: [underlyingTokens],
-        rewardTokens,
+        pool.underlyingToken,
+        [bdAMM],
         apyBaseBorrow,
         apyRewardBorrow,
         totalSupplyUsd,
         totalBorrowUsd,
-        ltv,
-    };
+        ltv
+      );
+      return readyToExport;
+    }
+  );
+
+  return yieldPools;
 };
 
+function exportFormatter(
+  pool,
+  chain,
+  symbol,
+  tvlUsd,
+  apyBase,
+  apyReward,
+  underlyingTokens,
+  rewardTokens,
+  apyBaseBorrow,
+  apyRewardBorrow,
+  totalSupplyUsd,
+  totalBorrowUsd,
+  ltv
+) {
+  return {
+    pool: `${pool}-${chain}`.toLowerCase(),
+    chain,
+    project: 'damm-finance',
+    symbol,
+    tvlUsd,
+    apyBase,
+    apyReward,
+    underlyingTokens: [underlyingTokens],
+    rewardTokens,
+    // apyBaseBorrow,
+    // apyRewardBorrow,
+    totalSupplyUsd,
+    totalBorrowUsd,
+    ltv,
+  };
+}
 
 module.exports = {
-    timetravel: false,
-    apy: getApy,
-    url: 'https://app.damm.finance/dashboard',
+  timetravel: false,
+  apy: getApy,
+  url: 'https://app.damm.finance/dashboard',
 };
