@@ -6,15 +6,23 @@ const abiProtocolDataProvider = require('./abiProtocolDataProvider.json');
 const abiChefIncentiveController = require('./abiChefIncentiveController.json');
 const utils = require('../utils');
 
-const lendingPool = '0xE29A55A6AEFf5C8B1beedE5bCF2F0Cb3AF8F91f5';
-const protocolDataProvider = '0xc9704604E18982007fdEA348e8DDc7CC652E34cA';
-const chefIncentiveController = '0xB7c1d99069a4eb582Fc04E7e1124794000e7ecBF';
+const lendingPool = '0x1b9c074111ec65E1342Ea844f7273D5449D2194B';
+const protocolDataProvider = '0x1C08Af0455A4D90667172D87D23E60669f90eA4E';
+const chefIncentiveController = '0x422ABB57E4Bb7D46032852b884b7bB4Cc4A39CC7';
 const lendingPoolAddressesProvider =
-  '0x0736B3dAdDe5B78354BF7F7faaFAcEE82B1851b9';
-const rewardToken = '0xb1ebdd56729940089ecc3ad0bbeeb12b6842ea6f';
+  '0x78b6ADDE60A9181C1889913D31906bbF5C3795dD';
+const rewardToken = '0xd109065ee17e2dc20b3472a4d4fb5907bd687d09';
+
+const synapseAssets = [
+  '0x6270B58BE569a7c0b8f47594F191631Ae5b2C86C', // USDC,
+  '0xd6dAb4CfF47dF175349e6e7eE2BF7c40Bb8C05A3', // USDT,
+  '0xDCbacF3f7a069922E677912998c8d57423C37dfA', // WBTC
+  '0xCD6f29dC9Ca217d0973d3D21bF58eDd3CA871a86', // WETH
+  '0x078dB7827a5531359f6CB63f62CFA20183c4F10c', // DAI
+];
 
 const apy = async () => {
-  const chain = 'bsc';
+  const chain = 'klaytn';
   // underlying pools
   const reservesList = (
     await sdk.api.abi.call({
@@ -87,18 +95,20 @@ const apy = async () => {
 
   const totalAllocPoint = (
     await sdk.api.abi.call({
-      abi: abiChefIncentiveController.find((n) => n.name === 'totalAllocPoint'),
+      abi: abiChefIncentiveController.find(
+        (n) => n.name === 'totalAllocPoints'
+      ),
       target: chefIncentiveController,
       chain,
     })
   ).output;
 
-  // poolInfo (alloc point)
+  // allocPoints (poolInfo is available but doesn't have allocation point value) (alloc point)
   // need to run this twice,
-  // once for inteteres bearing and another time for debt bearing tokens
-  const poolInfoInterest = (
+  // once for interest bearing and another time for debt bearing tokens
+  const allocPointsInterest = (
     await sdk.api.abi.multiCall({
-      abi: abiChefIncentiveController.find((n) => n.name === 'poolInfo'),
+      abi: abiChefIncentiveController.find((n) => n.name === 'allocPoints'),
       calls: reserveData.map((t, i) => ({
         target: chefIncentiveController,
         params: reserveData[i].aTokenAddress,
@@ -107,9 +117,9 @@ const apy = async () => {
     })
   ).output.map((o) => o.output);
 
-  const poolInfoDebt = (
+  const allocPointsDebt = (
     await sdk.api.abi.multiCall({
-      abi: abiChefIncentiveController.find((n) => n.name === 'poolInfo'),
+      abi: abiChefIncentiveController.find((n) => n.name === 'allocPoints'),
       calls: reserveData.map((t, i) => ({
         target: chefIncentiveController,
         params: reserveData[i].variableDebtTokenAddress,
@@ -119,9 +129,18 @@ const apy = async () => {
   ).output.map((o) => o.output);
 
   // prices
-  const pricesArray = [rewardToken, ...reservesList].map(
-    (t) => `${chain}:${t}`
-  );
+  let pricesArray = [rewardToken, ...reservesList].map((t) => `${chain}:${t}`);
+  // note: we don't have prices for many of those tokens -> defaulting to the
+  // base token (eg wrapped sol on klaytn -> sol price) using gecko ids
+  const geckoIds = [
+    'solana',
+    'wrapped-avax',
+    'binance-usd',
+    'wbnb',
+    'tether',
+  ].map((t) => `coingecko:${t}`);
+  pricesArray = pricesArray.concat(geckoIds);
+
   const prices = (
     await superagent.get(`https://coins.llama.fi/prices/current/${pricesArray}`)
   ).body.coins;
@@ -133,7 +152,9 @@ const apy = async () => {
     prices[`${chain}:${rewardToken}`].price;
 
   return reservesList.map((t, i) => {
-    const price = prices[`${chain}:${t}`]?.price;
+    const price =
+      prices[`${chain}:${t}`]?.price ??
+      Object.values(prices).find((pr) => pr.symbol === symbols[i])?.price;
 
     // tvl data
     const tvlUsd = (liquidity[i] / 10 ** decimals[i]) * price;
@@ -146,33 +167,36 @@ const apy = async () => {
 
     // apy reward
     const apyReward =
-      (((poolInfoInterest[i].allocPoint / totalAllocPoint) * rewardPerYear) /
+      ((((allocPointsInterest[i] / totalAllocPoint) * rewardPerYear) /
         totalSupplyUsd) *
-      100;
+        100) /
+      2;
 
     const apyRewardBorrow =
-      (((poolInfoDebt[i].allocPoint / totalAllocPoint) * rewardPerYear) /
+      ((((allocPointsDebt[i] / totalAllocPoint) * rewardPerYear) /
         totalBorrowUsd) *
-      100;
+        100) /
+      2;
 
     // ltv
     const ltv = reserveConfigurationData[i].ltv / 1e4;
 
     // url for pools
-    const url = `https://valasfinance.com/reserve-overview/${
-      symbols[i]
-    }-${t.toLowerCase()}${lendingPoolAddressesProvider.toLowerCase()}`;
+    const poolUrl = reservesList[i];
+    const url =
+      `https://app.klap.finance/reserve-overview/${poolUrl}-${poolUrl}${lendingPoolAddressesProvider}`.toLowerCase();
 
     return {
       pool: reserveData[i].aTokenAddress,
       symbol: utils.formatSymbol(symbols[i]),
-      project: 'valas-finance',
+      project: 'klap',
       chain: utils.formatChain(chain),
       tvlUsd,
       apyBase,
       apyReward,
       underlyingTokens: [t],
       rewardTokens: [rewardToken],
+      poolMeta: synapseAssets.includes(t) ? 'Synapse' : null,
       url,
       // borrow fields
       totalSupplyUsd,
