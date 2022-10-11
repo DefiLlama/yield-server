@@ -36,6 +36,9 @@ const apy = async () => {
   });
 
   const pools = data.map((pool) => {
+    // exclude permissioned pools
+    if (pool.poolName.toLowerCase().includes('permissioned')) return {};
+
     const tokenPrice = pool.liquidityAsset.price / 1e8;
 
     return {
