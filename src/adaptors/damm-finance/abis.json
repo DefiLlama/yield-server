@@ -12,6 +12,35 @@
         "stateMutability": "view",
         "type": "function"
     },
+    "markets": {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "name": "markets",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "isListed",
+                "type": "bool"
+            },
+            {
+                "internalType": "uint256",
+                "name": "collateralFactorMantissa",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bool",
+                "name": "isComped",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
     "compSpeeds": {
         "inputs": [
             {
