@@ -36,6 +36,7 @@ const poolsFunction = async () => {
         totalSupplyUsd: pool.poolSize,
         totalBorrowUsd: pool.utilization,
         apyBaseBorrow: pool.borrowAPR,
+        ltv: 0, //permissioned
       });
     });
   });
