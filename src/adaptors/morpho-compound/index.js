@@ -96,7 +96,9 @@ const main = async () => {
     const totalSupply = totalSupplyOnPool + totalSupplyP2P;
     const totalBorrow =
       (+marketFromGraph.metrics.borrowBalanceOnPool *
-        +marketFromGraph.reserveData.borrowPoolIndex) /
+        +marketFromGraph.reserveData.borrowPoolIndex +
+        +marketFromGraph.metrics.borrowBalanceInP2P *
+          +marketFromGraph.p2pData.p2pBorrowIndex) /
       `1e${18 + marketFromGraph.token.decimals}`;
     const tvlUsd =
       totalSupply *
