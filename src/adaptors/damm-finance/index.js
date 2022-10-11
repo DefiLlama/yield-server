@@ -10,22 +10,25 @@ const poolInfo = async (chain) => {
 
     const allMarkets = await sdk.api.abi.call({ target: unitroller, chain, abi: abi.getAllMarkets });
 
-    const compSpeedsPerBlock = (await sdk.api.abi.multiCall({
-        abi: abi.compSpeeds,
-        target: unitroller,
-        calls: allMarkets.output.map(token => ({
-            params: token
-        })),
-        chain
-    })).output.map((speeds) => speeds.output);
-
     const yieldMarkets = allMarkets.output.map((pool) => {
         return { pool };
     });
 
     const getOutput = ({ output }) => output.map(({ output }) => output);
-    const [supplyRatePerBlock, getCash, totalBorrows, totalReserves, underlyingToken, tokenSymbol] = await Promise.all(
-        ['supplyRatePerBlock', 'getCash', 'totalBorrows', 'totalReserves', 'underlying', 'symbol'].map((method) => sdk.api.abi.multiCall({
+    const [markets, compSpeeds] = await Promise.all(
+        ['markets', 'compSpeeds'].map((method) => sdk.api.abi.multiCall({
+            abi: abi[method],
+            target: unitroller,
+            calls: yieldMarkets.map((pool) => ({
+                params: pool.pool
+            })),
+            chain
+        }))
+    ).then((data) => data.map(getOutput));
+    const collateralFactor = markets.map((data) => data.collateralFactorMantissa);
+
+    const [borrowRatePerBlock, supplyRatePerBlock, getCash, totalBorrows, totalReserves, underlyingToken, tokenSymbol] = await Promise.all(
+        ['borrowRatePerBlock', 'supplyRatePerBlock', 'getCash', 'totalBorrows', 'totalReserves', 'underlying', 'symbol'].map((method) => sdk.api.abi.multiCall({
             abi: abi[method],
             calls: yieldMarkets.map((address) => ({
                 target: address.pool
@@ -45,8 +48,10 @@ const poolInfo = async (chain) => {
     const price = await getPrices('ethereum', underlyingToken);
 
     yieldMarkets.map((data, i) => {
+        data.collateralFactor = collateralFactor[i];
+        data.borrowRate = borrowRatePerBlock[i];
         data.supplyRate = supplyRatePerBlock[i];
-        data.compSpeeds = compSpeedsPerBlock[i];
+        data.compSpeeds = compSpeeds[i];
         data.getCash = getCash[i];
         data.totalBorrows = totalBorrows[i];
         data.totalReserves = totalReserves[i];
@@ -90,30 +95,38 @@ function calculateApy(rate, price = 1, tvl = 1) {
     // supply rate per block * number of blocks per year
     const BLOCK_TIME = 12;
     const YEARLY_BLOCKS = 365 * 24 * 60 * 60 / BLOCK_TIME;
-    const apy = ((rate / 1e18) * YEARLY_BLOCKS * price / tvl) * 100;
+    const safeTvl = (tvl === 0) ? 1 : tvl;
+    const apy = ((rate / 1e18) * YEARLY_BLOCKS * price / safeTvl) * 100;
     return apy;
 };
 
-function calculateTvl(cash, borrows, price, decimals) {
+function calculateTvl(cash, borrows, reserves, price, decimals) {
     // ( cash + totalBorrows - reserve value ) * underlying price = balance
-    const tvl = (parseFloat(cash) + parseFloat(borrows)) / decimals * price;
+    const tvl = ((parseFloat(cash) + parseFloat(borrows) - parseFloat(reserves)) / decimals) * price;
     return tvl;
 };
 
 const getApy = async () => {
     const bdammPrice = await getTerminalPrices();
     const yieldPools = (await poolInfo('ethereum')).yieldMarkets.map((pool, i) => {
-        const tvl = calculateTvl(pool.getCash, pool.totalBorrows, pool.price, pool.underlyingTokenDecimals);
+        const totalSupplyUsd = calculateTvl(pool.getCash, pool.totalBorrows, pool.totalReserves, pool.price, pool.underlyingTokenDecimals);
+        const totalBorrowUsd = calculateTvl(0, pool.totalBorrows, 0, pool.price, pool.underlyingTokenDecimals);
+        const tvlUsd = totalSupplyUsd - totalBorrowUsd;
         const apyBase = calculateApy(pool.supplyRate);
-        const apyReward = calculateApy(pool.compSpeeds, bdammPrice, tvl);
-        const readyToExport = exportFormatter(pool.pool, 'Ethereum', pool.tokenSymbol, tvl, apyBase, apyReward, pool.underlyingToken, [bdAMM]);
+        const apyReward = calculateApy(pool.compSpeeds, bdammPrice, totalSupplyUsd);
+        const apyBaseBorrow = calculateApy(pool.borrowRate);
+        const apyRewardBorrow = calculateApy(pool.compSpeeds, bdammPrice, totalBorrowUsd);
+        const ltv = parseInt(pool.collateralFactor) / 1e18;
+        const readyToExport = exportFormatter(pool.pool, 'Ethereum', pool.tokenSymbol, tvlUsd, apyBase, apyReward,
+            pool.underlyingToken, [bdAMM], apyBaseBorrow, apyRewardBorrow, totalSupplyUsd, totalBorrowUsd, ltv);
         return readyToExport;
     });
 
     return yieldPools;
 };
 
-function exportFormatter(pool, chain, symbol, tvlUsd, apyBase, apyReward, underlyingTokens, rewardTokens) {
+function exportFormatter(pool, chain, symbol, tvlUsd, apyBase, apyReward,
+    underlyingTokens, rewardTokens, apyBaseBorrow, apyRewardBorrow, totalSupplyUsd, totalBorrowUsd, ltv) {
 
     return {
         pool: `${pool}-${chain}`.toLowerCase(),
@@ -125,6 +138,11 @@ function exportFormatter(pool, chain, symbol, tvlUsd, apyBase, apyReward, underl
         apyReward,
         underlyingTokens: [underlyingTokens],
         rewardTokens,
+        apyBaseBorrow,
+        apyRewardBorrow,
+        totalSupplyUsd,
+        totalBorrowUsd,
+        ltv,
     };
 };
 
