@@ -36,6 +36,8 @@ async function apy() {
       apyReward: parseFloat(estimatedApyFromGfiRaw) * 100,
       underlyingTokens: [USDC_ADDRESS],
       rewardTokens: [GFI_ADDRESS],
+      // borrow fields
+      ltv: 0, // permissioned
     },
   ];
 }
