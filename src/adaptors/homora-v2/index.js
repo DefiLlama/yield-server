@@ -4,8 +4,8 @@ const abi = require('./abi.json');
 const {
   unwrapUniswapLPs,
   genericUnwrapCrv,
-} = require('./../../helper/unwrapLPs');
-const { getChainTransform } = require('./../../helper/transform');
+} = require('../../helper/unwrapLPs');
+const { getChainTransform } = require('../../helper/transform');
 const { default: computeTVL } = require('@defillama/sdk/build/computeTVL');
 const chains = {
   1: 'Ethereum',
@@ -216,7 +216,7 @@ async function chefs(apys, chainId) {
   return Object.entries(apys).map(([k, v], i) => ({
     pool: `${k}`,
     chain: chainId == 43114 ? 'Avalanche' : chains[chainId],
-    project: 'homora',
+    project: 'homora-v2',
     symbol: symbols[i],
     tvlUsd: tvls[i],
     apy: Number(v.totalAPY),
@@ -317,7 +317,7 @@ async function erc20s(apys, chainId) {
   return Object.entries(apys).map(([k, v], i) => ({
     pool: `${k}`,
     chain: chainId == 43114 ? 'Avalanche' : chains[chainId],
-    project: 'homora',
+    project: 'homora-v2',
     symbol: symbols[i],
     tvlUsd: tvls[i],
     apy: Number(v.totalAPY),
@@ -349,7 +349,7 @@ async function gauge(apys, chainId) {
   return Object.entries(apys).map(([k, v], i) => ({
     pool: `${k}`,
     chain: chainId == 43114 ? 'Avalanche' : chains[chainId],
-    project: 'homora',
+    project: 'homora-v2',
     symbol: symbols[i].output,
     tvlUsd: tvls[i],
     apy: Number(v.totalAPY),
@@ -477,7 +477,7 @@ async function staking(apys, chainId) {
     pools.push({
       pool: Object.keys(apys)[i],
       chain: chainId == 43114 ? 'Avalanche' : chains[chainId],
-      project: 'homora',
+      project: 'homora-v2',
       symbol,
       tvlUsd: (
         await computeTVL(balances, 'now', false, [], getCoingeckoLock, 5)
