@@ -39,7 +39,7 @@ const buildPool = (entry, chainString) => {
   const newObj = {
     pool: entry.id,
     chain: utils.formatChain(chainString),
-    project: 'quickswap',
+    project: 'quickswap-dex',
     symbol,
     tvlUsd: entry.totalValueLockedUSD,
     apyBase: entry.apy,
