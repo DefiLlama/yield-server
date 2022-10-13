@@ -12,7 +12,7 @@ const TOTAL_BORROWS = 'totalBorrows';
 const GET_CHASH = 'getCash';
 const UNDERLYING = 'underlying';
 const BLOCKS_PER_DAY = 86400;
-const PROJECT_NAME = 'trader-joe';
+const PROJECT_NAME = 'trader-joe-dex';
 
 const NATIVE_TOKEN = {
   decimals: 18,
