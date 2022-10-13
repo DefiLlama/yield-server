@@ -10,8 +10,16 @@ async function fetch() {
 }
 
 const main = async () => {
-  const data = fetch();
-  return data;
+  const data = await fetch();
+
+  return data.map((p) => {
+    const symbol = p.symbol.split('-');
+    return {
+      ...p,
+      symbol: symbol[1],
+      poolMeta: symbol[2],
+    };
+  });
 };
 
 module.exports = {
