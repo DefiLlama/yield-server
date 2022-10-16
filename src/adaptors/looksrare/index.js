@@ -83,10 +83,9 @@ function compounderApy(wethApy, looksApr) {
 }
 
 const getPrices = async (chain, addresses) => {
+    const uri = `${addresses.map((address) => `${chain}:${address}`)}`;
     const prices = (
-        await superagent.post('https://coins.llama.fi/prices').send({
-            coins: addresses.map((address) => `${chain}:${address}`),
-        })
+        await superagent.get('https://coins.llama.fi/prices/current/' + uri)
     ).body.coins;
 
     const pricesObj = Object.entries(prices).reduce(
