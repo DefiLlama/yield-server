@@ -89,11 +89,10 @@ const poolInfo = async (chain) => {
 };
 
 const getPrices = async (chain, addresses) => {
+  const uri = `${addresses.map((address) => `${chain}:${address}`)}`;
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses.map((address) => `${chain}:${address}`),
-    })
-  ).body.coins;
+    await superagent.get('https://coins.llama.fi/prices/current/' + uri)
+    ).body.coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -104,14 +103,6 @@ const getPrices = async (chain, addresses) => {
   );
 
   return pricesObj;
-};
-
-const getTerminalPrices = async (chain, addresses) => {
-  const key = 'ethereum:0xfa372ff1547fa1a283b5112a4685f1358ce5574d';
-  const prices = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).body.coins[key].price;
-  return prices;
 };
 
 function calculateApy(rate, price = 1, tvl = 1) {
@@ -133,7 +124,7 @@ function calculateTvl(cash, borrows, reserves, price, decimals) {
 }
 
 const getApy = async () => {
-  const bdammPrice = await getTerminalPrices();
+  const bdammPrice = (await getPrices(['ethereum'], [bdAMM]))[bdAMM.toLowerCase()];
   const yieldPools = (await poolInfo('ethereum')).yieldMarkets.map(
     (pool, i) => {
       const totalSupplyUsd = calculateTvl(
