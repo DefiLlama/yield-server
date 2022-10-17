@@ -51,7 +51,7 @@ const getMlpTvl = async () => {
   return tvl.output * 10 ** -18;
 };
 
-const getStakingRewards = async (priceData) => {
+const getStakingApr = async (priceData) => {
   const totalAssets = await sdk.api.abi.call({
     target: arbitrumMycStaking,
     abi: abi['totalAssets'],
@@ -94,7 +94,8 @@ const getStakingRewards = async (priceData) => {
   const ethUSDValue =
     ethers.utils.formatUnits(ethDistributed) * priceData.ethereum.usd;
   const aprPercentageCycle = ethUSDValue / mycUSDValue;
-  const aprPercentageYearly = aprPercentageCycle * FORTNIGHTS_IN_YEAR * 100;
+  const aprPercentageYearly =
+    aprPercentageCycle * FORTNIGHTS_IN_YEAR * 100000000;
 
   return aprPercentageYearly;
 };
@@ -142,22 +143,14 @@ const getPoolMlp = async (
   };
 };
 
-const getPoolMyc = async (pTvl, pRewards, pStaking, pPriceData) => {
-  const mycDeposited = pTvl;
-  const ethDistributed = pRewards;
-  const mycUsdValue = mycDeposited * pPriceData.mycelium.usd;
-  const ethUsdValue = ethDistributed * pPriceData.ethereum.usd;
-  const aprPercentageCycle = ethUsdValue / mycUsdValue;
-  const aprPercentageYearly =
-    aprPercentageCycle * FORTNIGHTS_IN_YEAR * 100000000;
-
+const getPoolMyc = async (pTvl, pApy, pStaking, pPriceData) => {
   return {
     pool: pStaking,
     chain: utils.formatChain(CHAIN_STRING),
     project: 'mycelium.xyz',
     symbol: utils.formatSymbol('MYC'),
-    tvlUsd: parseFloat(mycUsdValue),
-    apyBase: aprPercentageYearly,
+    tvlUsd: pTvl * pPriceData.mycelium.usd,
+    apyBase: pApy,
     rewardTokens: [arbitrumMyc],
     underlyingTokens: [arbitrumMyc],
     underlyingTokens: [arbitrumMlp],
@@ -192,7 +185,7 @@ const getPools = async () => {
   pools.push(
     await getPoolMyc(
       await getStakingTvl(),
-      await getStakingRewards(priceData),
+      await getStakingApr(priceData),
       arbitrumMycStaking,
       priceData
     )
