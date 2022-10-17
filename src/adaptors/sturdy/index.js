@@ -15,6 +15,7 @@ const poolsFunction = async () => {
     apyBaseBorrow: item.borrowAPY * 100,
     totalSupplyUsd: item.tvl,
     totalBorrowUsd: item.totalBorrowUsd,
+    ltv: item.ltv,
   }));
 
   const ethVaultData = await utils.getData(
@@ -31,6 +32,7 @@ const poolsFunction = async () => {
     apyBaseBorrow: item.borrowAPY * 100,
     totalSupplyUsd: item.tvl,
     totalBorrowUsd: item.totalBorrowUsd,
+    ltv: item.ltv,
   }));
   return [...ftmData, ...ethData];
 };
