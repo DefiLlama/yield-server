@@ -11,6 +11,10 @@ const poolsFunction = async () => {
     symbol: utils.formatSymbol(item.tokens),
     tvlUsd: item.tvl,
     apyBase: item.base * 100,
+    // borrow fields
+    apyBaseBorrow: item.borrowAPY * 100,
+    totalSupplyUsd: item.tvl,
+    totalBorrowUsd: item.totalBorrowUsd,
   }));
 
   const ethVaultData = await utils.getData(
@@ -23,6 +27,10 @@ const poolsFunction = async () => {
     symbol: utils.formatSymbol(item.tokens),
     tvlUsd: item.tvl,
     apyBase: item.base * 100,
+    // borrow fields
+    apyBaseBorrow: item.borrowAPY * 100,
+    totalSupplyUsd: item.tvl,
+    totalBorrowUsd: item.totalBorrowUsd,
   }));
   return [...ftmData, ...ethData];
 };
