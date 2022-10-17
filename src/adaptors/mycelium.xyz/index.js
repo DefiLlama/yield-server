@@ -3,6 +3,9 @@ const utils = require('../utils');
 const abi = require('./abis/abi.json');
 const { ethers } = require('ethers');
 
+const convertToBigNumberWithDecimals = (balance) =>
+  ethers.BigNumber.from(balance);
+
 const arbitrumMyc = '0xc74fe4c715510ec2f8c61d70d397b32043f55abe';
 const arbitrumMlp = '0x752b746426b6D0c3188bb530660374f92FD9cf7c';
 const arbitrumMlpManager = '0x2DE28AB4827112Cd3F89E5353Ca5A8D80dB7018f';
@@ -48,14 +51,26 @@ const getMlpTvl = async () => {
   return tvl.output * 10 ** -18;
 };
 
-const getStakingRewards = async () => {
+const getStakingRewards = async (priceData) => {
+  const totalAssets = await sdk.api.abi.call({
+    target: arbitrumMycStaking,
+    abi: abi['totalAssets'],
+    chain: CHAIN_STRING,
+  });
+
+  const pendingDeposits = await sdk.api.abi.call({
+    target: arbitrumMycStaking,
+    abi: abi['pendingDeposits'],
+    chain: CHAIN_STRING,
+  });
+
   const currentCycle = await sdk.api.abi.call({
     target: arbitrumMycStaking,
     abi: abi['cycle'],
     chain: CHAIN_STRING,
   });
 
-  const prevCycle = currentCycle.output - 1;
+  const prevCycle = parseInt(currentCycle.output) - 1;
 
   const prevCycleEthRewards = await sdk.api.abi.call({
     target: arbitrumMycStaking,
@@ -64,7 +79,24 @@ const getStakingRewards = async () => {
     params: [prevCycle],
   });
 
-  return prevCycleEthRewards.output * 10 ** -18;
+  const pendingDepositsFormatted = convertToBigNumberWithDecimals(
+    pendingDeposits.output
+  );
+
+  const mycDeposited = convertToBigNumberWithDecimals(totalAssets.output).add(
+    pendingDepositsFormatted
+  );
+  const ethDistributed = convertToBigNumberWithDecimals(
+    prevCycleEthRewards.output
+  );
+  const mycUSDValue =
+    ethers.utils.formatUnits(mycDeposited) * priceData.mycelium.usd;
+  const ethUSDValue =
+    ethers.utils.formatUnits(ethDistributed) * priceData.ethereum.usd;
+  const aprPercentageCycle = ethUSDValue / mycUSDValue;
+  const aprPercentageYearly = aprPercentageCycle * FORTNIGHTS_IN_YEAR * 100;
+
+  return aprPercentageYearly;
 };
 
 const getStakingTvl = async () => {
@@ -78,7 +110,6 @@ const getStakingTvl = async () => {
     abi: abi['pendingDeposits'],
     chain: CHAIN_STRING,
   });
-
   const totalAssetsBN = ethers.BigNumber.from(totalAssets.output);
   const pendingDepositsBN = ethers.BigNumber.from(pendingDeposits.output);
 
@@ -117,7 +148,8 @@ const getPoolMyc = async (pTvl, pRewards, pStaking, pPriceData) => {
   const mycUsdValue = mycDeposited * pPriceData.mycelium.usd;
   const ethUsdValue = ethDistributed * pPriceData.ethereum.usd;
   const aprPercentageCycle = ethUsdValue / mycUsdValue;
-  const aprPercentageYearly = aprPercentageCycle * FORTNIGHTS_IN_YEAR * 100;
+  const aprPercentageYearly =
+    aprPercentageCycle * FORTNIGHTS_IN_YEAR * 100000000;
 
   return {
     pool: pStaking,
@@ -126,7 +158,6 @@ const getPoolMyc = async (pTvl, pRewards, pStaking, pPriceData) => {
     symbol: utils.formatSymbol('MYC'),
     tvlUsd: parseFloat(mycUsdValue),
     apyBase: aprPercentageYearly,
-    apyReward: 0,
     rewardTokens: [arbitrumMyc],
     underlyingTokens: [arbitrumMyc],
     underlyingTokens: [arbitrumMlp],
@@ -161,7 +192,7 @@ const getPools = async () => {
   pools.push(
     await getPoolMyc(
       await getStakingTvl(),
-      await getStakingRewards(),
+      await getStakingRewards(priceData),
       arbitrumMycStaking,
       priceData
     )
