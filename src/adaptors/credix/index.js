@@ -20,6 +20,8 @@ async function apy() {
     tvlUsd: tvl,
     apyBase: credixApy * 100,
     underlyingTokens: ['EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'],
+    // borrow fields
+    ltv: 0, // permissioned
   };
   const pool = [poolObj];
 

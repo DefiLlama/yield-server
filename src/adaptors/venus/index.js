@@ -52,7 +52,7 @@ const poolInfo = async (chain) => {
     })).output.map((decimal) => Math.pow(10, Number(decimal.output)));
 
     //incorrect beth price swap beth 0xaddress -> coingecko id
-    const price = await getPricesConditionalId(chain, underlyingToken, BETH, 'binance-eth');
+    const price = await getPrices('bsc', underlyingToken);
 
     yieldMarkets.map((data, index) => {
         data.collateralFactor = collateralFactor[index];
@@ -64,38 +64,19 @@ const poolInfo = async (chain) => {
         data.totalReserves = totalReserves[index];
         data.underlyingToken = underlyingToken[index];
         data.tokenSymbol = tokenSymbol[index];
-        data.price = price.priceList[price.addressList[index].toLowerCase()];
+        data.price = price[underlyingToken[index].toLowerCase()];
         data.underlyingTokenDecimals = underlyingTokenDecimals[index];
         data.rewardTokens = [XVS];
     });
-    console.log(yieldMarkets);
+
     return { yieldMarkets };
 }
 
-const getPricesConditionalId = async (chain, addresses, condition, id) => {
-    const chainList = [];
-    const addressList = [];
-    addresses.map((token, index) => {
-        if (token.toLowerCase() === condition.toLowerCase()) {
-            chainList.push('coingecko');
-            addressList[index] = id;
-        } else {
-            chainList.push(chain);
-            addressList[index] = token;
-        }
-    });
-
-    const priceList = await getPrices(chainList, addressList);
-
-    return { priceList, addressList };
-}
-
 const getPrices = async (chain, addresses) => {
+    const uri = `${addresses.map((address) => `${chain}:${address}`)}`;
     const prices = (
-        await superagent.post('https://coins.llama.fi/prices').send({
-            coins: addresses.map((address, index) => `${chain[index]}:${address}`),
-        })
-    ).body.coins;
+        await superagent.get('https://coins.llama.fi/prices/current/' + uri)
+        ).body.coins;
 
     const pricesObj = Object.entries(prices).reduce(
         (acc, [address, price]) => ({
@@ -138,7 +119,7 @@ const getApy = async () => {
 
         return readyToExport;
     });
-    console.log(yieldPools);
+
     return yieldPools;
 }
 

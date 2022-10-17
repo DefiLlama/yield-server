@@ -35,7 +35,7 @@ const poolsFunction = async () => {
         poolMeta: pool.borrower.name, // A string value which can stand for any specific details of a pool position, market, fee tier, lock duration, specific strategy etc
         totalSupplyUsd: pool.poolSize,
         totalBorrowUsd: pool.utilization,
-        apyBaseBorrow: pool.borrowAPR,
+        ltv: 0, //permissioned
       });
     });
   });

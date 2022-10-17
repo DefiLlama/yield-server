@@ -19,7 +19,14 @@ async function main() {
   let tvl;
 
   // retrieve up-to-date tokens list
-  const strategiesList = await getAllMarkets();
+  const unitrollerContract = new ethers.Contract(
+    unitroller,
+    unitrollerABI,
+    PROVIDER
+  );
+
+  // get all the oToken addresses from the unitroller contract
+  const strategiesList = await unitrollerContract.getAllMarkets();
 
   for (let strategy of strategiesList) {
     const OvixAPYs = await getAPY(strategy);
@@ -41,6 +48,8 @@ async function main() {
     const preminedVixApr =
       tvl.tvlUsd === 0 ? 0 : preminingRewards * (52 / tvl.tvlUsd) * 0.3 * 100;
 
+    const ltv = await unitrollerContract.markets(strategy);
+
     const newObj = {
       pool: strategy,
       project: '0vix',
@@ -49,11 +58,13 @@ async function main() {
       apyBase: OvixAPYs.supplyAPY,
       apyReward: preminedVixApr,
       rewardTokens: ['0x108ADA79428ea427E6A2175D3AB678abA2947a4a'],
+      tvlUsd: tvl.tvlUsd,
+      // borrow fields
       apyBaseBorrow: OvixAPYs.borrowAPY,
       apyRewardBorrow: preminedVixApr,
       totalSupplyUsd: tvl.totalSupplyUsd,
       totalBorrowUsd: tvl.totalBorrowsUsd,
-      tvlUsd: tvl.tvlUsd,
+      ltv: parseInt(ltv.collateralFactorMantissa) / 1e18,
     };
 
     data.push(newObj);
@@ -84,20 +95,6 @@ function calculateAPY(rate) {
   a = parseFloat(String(a));
   const b = Math.pow(a, year);
   return (b - 1) * 100;
-}
-
-// retrieve all token markets
-async function getAllMarkets() {
-  const unitrollerContract = new ethers.Contract(
-    unitroller,
-    unitrollerABI,
-    PROVIDER
-  );
-
-  // get all the oToken addresses from the unitroller contract
-  const allMarkets = await unitrollerContract.getAllMarkets();
-
-  return allMarkets;
 }
 
 async function getErc20Balances(strategy) {

@@ -36,6 +36,9 @@ const apy = async () => {
   });
 
   const pools = data.map((pool) => {
+    // exclude permissioned pools
+    if (pool.poolName.toLowerCase().includes('permissioned')) return {};
+
     const tokenPrice = pool.liquidityAsset.price / 1e8;
 
     return {
@@ -53,6 +56,8 @@ const apy = async () => {
       rewardTokens: [
         '0x33349b282065b0284d756f0577fb39c158f935e6', //MAPLE
       ],
+      // borrow fields
+      ltv: 0, // permissioned
     };
   });
   return pools.filter((p) => p.pool);

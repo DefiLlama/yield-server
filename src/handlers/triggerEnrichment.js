@@ -301,12 +301,14 @@ const checkStablecoin = (el, stablecoins) => {
     stable = true;
   } else if (el.project === 'convex-finance' && symbolLC.includes('3crv')) {
     stable = true;
-  } else if (el.project === 'aave' && symbolLC.includes('amm')) {
+  } else if (el.project === 'aave-v2' && symbolLC.includes('amm')) {
     tok = tokens[0].split('weth');
     stable = tok[0].includes('wbtc') ? false : tok.length > 1 ? false : true;
   } else if (tokens[0].includes('torn')) {
     stable = false;
   } else if (el.project === 'hermes-protocol' && symbolLC.includes('maia')) {
+    stable = false;
+  } else if (tokens.some((t) => t.includes('sushi'))) {
     stable = false;
   } else if (tokens.length === 1) {
     stable = stablecoins.some((x) =>
@@ -328,7 +330,7 @@ const checkStablecoin = (el, stablecoins) => {
 // 2: - 1 asset
 // 3: - more than 1 asset but same underlying assets
 const checkIlRisk = (el) => {
-  const l1Token = ['btc', 'eth', 'avax', 'matic', 'eur', 'link'];
+  const l1Token = ['btc', 'eth', 'avax', 'matic', 'eur', 'link', 'sushi'];
   const symbol = el.symbol.toLowerCase();
   const tokens = symbol.split('-');
 

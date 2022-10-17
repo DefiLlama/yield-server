@@ -120,6 +120,7 @@ const getApy = async () => {
         tvlUsd: tvl || 0,
         apy: Number(vault.apr.averageApr),
         url: `https://beta.arrakis.finance/vaults/${CHAIN_IDS[chain]}/${vault.id}`,
+        underlyingTokens: [vault.token0.address, vault.token1.address],
       };
     });
     return chainAprs;

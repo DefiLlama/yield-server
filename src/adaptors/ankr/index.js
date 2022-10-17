@@ -23,7 +23,7 @@ const buildObject = (entry, tokenString, chainString, serviceName) => {
 };
 
 const fetch = async (serviceName, tokenString, chainString) => {
-  data = await utils.getData('https://api.stkr.io/v1alpha/metrics');
+  data = await utils.getData('https://api.staking.ankr.com/v1alpha/metrics');
 
   const idx = data.services.findIndex(
     (service) => service.serviceName === serviceName

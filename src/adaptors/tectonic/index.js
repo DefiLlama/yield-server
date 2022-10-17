@@ -91,6 +91,17 @@ const getApy = async () => {
 
   const allMarkets = Object.values(allMarketsRes);
 
+  const markets = (
+    await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      abi: comptrollerAbi.find((n) => n.name === 'markets'),
+      calls: allMarkets.map((m) => ({
+        target: COMPTROLLER_ADDRESS,
+        params: [m],
+      })),
+    })
+  ).output.map((o) => o.output);
+
   const extraRewards = await getRewards(allMarkets, REWARD_SPEED);
   const extraRewardsBorrow = await getRewards(allMarkets, REWARD_SPEED_BORROW);
 
@@ -181,12 +192,13 @@ const getApy = async () => {
       apyReward,
       underlyingTokens: [token],
       rewardTokens: [apyReward ? PROTOCOL_TOKEN.address : null].filter(Boolean),
+      url: `https://app.tectonic.finance/markets/${symbol.toLowerCase()}`,
       // borrow fields
       totalSupplyUsd,
       totalBorrowUsd,
       apyBaseBorrow,
       apyRewardBorrow,
-      url: `https://app.tectonic.finance/markets/${symbol.toLowerCase()}`,
+      ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
     };
   });
 

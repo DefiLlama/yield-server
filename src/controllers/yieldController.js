@@ -247,7 +247,8 @@ const getYieldLendBorrow = async () => {
         "totalSupplyUsd",
         "totalBorrowUsd",
         "ltv",
-        "rewardTokens"
+        "rewardTokens",
+        "underlyingTokens"
     FROM
         (
             SELECT
@@ -255,8 +256,7 @@ const getYieldLendBorrow = async () => {
             FROM
                 $<yieldTable:name>
             WHERE
-                "totalSupplyUsd" >= $<tvlLB>
-                AND timestamp >= NOW() - INTERVAL '$<age> DAY'
+                timestamp >= NOW() - INTERVAL '$<age> DAY'
             ORDER BY
                 "configID",
                 timestamp DESC
@@ -265,6 +265,7 @@ const getYieldLendBorrow = async () => {
     WHERE
         pool NOT IN ($<excludePools:csv>)
         AND project NOT IN ($<excludeProjects:csv>)
+        AND ltv >= 0
   `,
     { compress: true }
   );
