@@ -29,7 +29,7 @@ const main = async () => {
   return [icEth];
 };
 
-export default {
+module.exports = {
   timetravel: false,
   apy: main,
   url: 'https://app.indexcoop.com/products',
