@@ -46,6 +46,7 @@ const VaultsQuery = gql`
       underlyingDecimals
       underlyingAsset
       totalBalance
+      symbol
     }
   }
 `;
@@ -72,6 +73,8 @@ const apyChain = async (chain) => {
   );
 
   const pools = vaults.map((vault, i) => {
+    // remove deprecated APE pool
+    if (vault.id === '0xc0cf10dd710aefb209d9dc67bc746510ffd98a53') return {};
     const perf = vaultPerfs[i];
 
     const apy = mean(
@@ -80,14 +83,18 @@ const apyChain = async (chain) => {
 
     const price = prices[vault.underlyingAsset];
 
+    let symbol = vault.symbol.replace('-THETA', '').slice(1);
+    symbol = symbol.includes('yvUSDC') ? 'USDC' : symbol;
+
     return {
       pool: vault.id,
       project: 'ribbon',
       chain: chain,
-      symbol: vault.underlyingSymbol,
+      symbol,
       tvlUsd: price * (vault.totalBalance / 10 ** vault.underlyingDecimals),
       apyBase: apy,
       underlyingTokens: [vault.underlyingAsset],
+      poolMeta: vault.name.includes('Put') ? 'Put-Selling' : 'Covered-Call',
     };
   });
 
