@@ -131,10 +131,10 @@ const topLvl = async (
 
 const main = async (timestamp = null) => {
   let data = await Promise.all([
-    // topLvl('ethereum', url, query, queryPrior, 'v3', timestamp),
-    // topLvl('polygon', urlPolygon, query, queryPrior, 'v3', timestamp),
+    topLvl('ethereum', url, query, queryPrior, 'v3', timestamp),
+    topLvl('polygon', urlPolygon, query, queryPrior, 'v3', timestamp),
     topLvl('arbitrum', urlArbitrum, query, queryPrior, 'v3', timestamp),
-    // topLvl('optimism', urlOptimism, query, queryPrior, 'v3', timestamp),
+    topLvl('optimism', urlOptimism, query, queryPrior, 'v3', timestamp),
   ]);
 
   return data.flat().filter((p) => utils.keepFinite(p));
