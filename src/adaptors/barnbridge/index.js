@@ -14,7 +14,7 @@ const query = () => {
 
   return gql`
     {
-      terms(where: { end_gt: ${now} }) {
+      terms(where: { start_lte: ${now}, end_gt: ${now} }) {
         id
         assetName
         assetSymbol
