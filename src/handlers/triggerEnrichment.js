@@ -382,6 +382,8 @@ const checkExposure = (el) => {
         : exposure;
   } else if (el.project === 'badger-dao') {
     exposure = el.symbol.toLowerCase().includes('crv') ? 'multi' : exposure;
+  } else if (el.project === 'dot-dot-finance') {
+    exposure = 'multi';
   }
 
   return exposure;
