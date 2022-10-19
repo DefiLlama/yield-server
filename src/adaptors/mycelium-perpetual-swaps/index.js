@@ -22,6 +22,8 @@ const SECONDS_PER_YEAR = 60 * 60 * 24 * 365;
 const CHAIN_STRING = 'arbitrum';
 const ETH_DISTRIBUTED_PER_CYCLE = '34.5807416';
 
+const projectSlug = 'mycelium-perpetual-swaps';
+
 const getAdjustedAmount = async (pTarget, pAbi, pParams = []) => {
   const decimals = await sdk.api.abi.call({
     target: pTarget,
@@ -132,7 +134,7 @@ const getPoolMlp = async (
   return {
     pool: pInflationTracker,
     chain: utils.formatChain(CHAIN_STRING),
-    project: 'mycelium.xyz',
+    project: projectSlug,
     symbol: utils.formatSymbol('MLP'),
     tvlUsd: parseFloat(pTvl),
     apyBase: apyFee,
@@ -147,7 +149,7 @@ const getPoolMyc = async (pTvl, pApy, pStaking, pPriceData) => {
   return {
     pool: pStaking,
     chain: utils.formatChain(CHAIN_STRING),
-    project: 'mycelium.xyz',
+    project: projectSlug,
     symbol: utils.formatSymbol('MYC'),
     tvlUsd: pTvl * pPriceData.mycelium.usd,
     apyBase: pApy,
