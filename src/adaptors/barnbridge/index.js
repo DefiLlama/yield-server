@@ -53,15 +53,15 @@ const earnedYield = async (terms, termId) => {
     (t) => t.nextTerm && t.nextTerm.id.toLowerCase() === termId.toLowerCase()
   );
 
-  const currentRealizedYield = (
-    await sdk.api.abi.call({
-      target: SMART_YIELD,
-      abi: abi.find((i) => i.name === '_currentRealizedYield'),
-      chain: 'ethereum',
-    })
-  ).output;
+  if (nextTerm) {
+    const currentRealizedYield = (
+      await sdk.api.abi.call({
+        target: SMART_YIELD,
+        abi: abi.find((i) => i.name === '_currentRealizedYield'),
+        chain: 'ethereum',
+      })
+    ).output;
 
-  if (currentRealizedYield && nextTerm) {
     const _earnedYield =
       Number(currentRealizedYield) / `1e${terms[0].assetDecimals}`;
 
