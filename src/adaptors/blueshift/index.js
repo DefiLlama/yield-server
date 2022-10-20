@@ -147,7 +147,7 @@ async function farming(aprWeights, rewardToken, BLUES_PRICE, portfolios) {
     const aprReward = rewardedStake / deposited;
 
     const apyBase = tokensAddresses.includes(rewardToken) ? apy(aprBase, aprWeights) : aprBase; 
-    const apyReward = tokensAddresses.includes(rewardToken) ? apy(aprReward, aprWeights) : aprReward;
+    const apyReward = aprReward;
 
     // console.log(tokensSymbols);
     // console.log("aprBase:", aprBase.toString());
