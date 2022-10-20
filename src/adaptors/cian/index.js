@@ -13,11 +13,15 @@ const main = async () => {
   const data = await fetch();
 
   return data.map((p) => {
-    const symbol = p.symbol.split('-');
+    const symbolSplit = p.symbol.split('-')[1];
+    const symbol = symbolSplit.replace(/ *\([^)]*\) */g, '');
+    // extract content within () -> meta data
+    const poolMeta = /\(([^)]+)\)/.exec(symbolSplit)[1];
+
     return {
       ...p,
-      symbol: symbol[1],
-      poolMeta: symbol[2],
+      symbol,
+      poolMeta,
     };
   });
 };
