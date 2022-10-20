@@ -3,7 +3,6 @@ const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
-const lending = require('./lending');
 const abi_masterchef = require('./abi_masterchef');
 
 const url = 'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/exchange';
@@ -151,13 +150,11 @@ const topLvl = async (chainString, timestamp, url) => {
 
 const main = async (timestamp = null) => {
   const data = await Promise.all([topLvl('avalanche', timestamp, url)]);
-  const lendingData = await lending.apy();
-  const res = data.concat(lendingData);
-  return res.flat().filter((p) => utils.keepFinite(p));
+  return data.flat().filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
-  timetravel: true,
+  timetravel: false,
   apy: main,
   url: 'https://traderjoexyz.com/pool',
 };

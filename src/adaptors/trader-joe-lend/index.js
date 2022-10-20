@@ -12,7 +12,7 @@ const TOTAL_BORROWS = 'totalBorrows';
 const GET_CHASH = 'getCash';
 const UNDERLYING = 'underlying';
 const BLOCKS_PER_DAY = 86400;
-const PROJECT_NAME = 'trader-joe-dex';
+const PROJECT_NAME = 'trader-joe-lend';
 
 const NATIVE_TOKEN = {
   decimals: 18,
@@ -137,6 +137,7 @@ const lendingApy = async () => {
       tvlUsd,
       apyBase,
       underlyingTokens: [token],
+      url: `https://traderjoexyz.com/lending/supply/${market}`,
     };
   });
 
@@ -146,5 +147,4 @@ const lendingApy = async () => {
 module.exports = {
   timetravel: false,
   apy: lendingApy,
-  url: 'https://app.tectonic.finance/markets/',
 };
