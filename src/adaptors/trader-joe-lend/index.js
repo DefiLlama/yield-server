@@ -8,6 +8,7 @@ const COMPTROLLER_ADDRESS = '0xdc13687554205E5b89Ac783db14bb5bba4A1eDaC';
 const CHAIN = 'avax';
 const GET_ALL_MARKETS = 'getAllMarkets';
 const SUPPLY_RATE = 'supplyRatePerSecond';
+const BORROW_RATE = 'borrowRatePerSecond';
 const TOTAL_BORROWS = 'totalBorrows';
 const GET_CHASH = 'getCash';
 const UNDERLYING = 'underlying';
@@ -74,9 +75,26 @@ const lendingApy = async () => {
 
   const allMarkets = Object.values(allMarketsRes);
 
+  const markets = (
+    await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      abi: comptrollerAbi.find((n) => n.name === 'markets'),
+      calls: allMarkets.map((m) => ({
+        target: COMPTROLLER_ADDRESS,
+        params: [m],
+      })),
+    })
+  ).output.map((o) => o.output);
+
   const supplyRewards = await multiCallMarkets(
     allMarkets,
     SUPPLY_RATE,
+    ercDelegator
+  );
+
+  const borrowRewards = await multiCallMarkets(
+    allMarkets,
+    BORROW_RATE,
     ercDelegator
   );
 
@@ -127,7 +145,10 @@ const lendingApy = async () => {
       price;
     const tvlUsd = (marketsCash[i] / 10 ** decimals) * price;
 
+    const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
+
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
+    const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
 
     return {
       pool: market,
@@ -138,6 +159,11 @@ const lendingApy = async () => {
       apyBase,
       underlyingTokens: [token],
       url: `https://traderjoexyz.com/lending/supply/${market}`,
+      // borrow fields
+      totalSupplyUsd,
+      totalBorrowUsd,
+      apyBaseBorrow,
+      ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
     };
   });
 
