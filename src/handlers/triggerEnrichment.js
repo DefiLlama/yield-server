@@ -374,6 +374,10 @@ const checkExposure = (el) => {
   // generic
   let exposure = el.symbol.includes('-') ? 'multi' : 'single';
 
+  // generic 3crv check
+  if (exposure === 'single' && el.symbol.toLowerCase().includes('3crv'))
+    return 'multi';
+
   // project specific
   if (el.project === 'aave') {
     exposure =
