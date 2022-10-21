@@ -18,8 +18,16 @@ const getFormatter = (symbol) => {
 };
 
 // replace / with - and trim potential whitespace
-exports.formatSymbol = (symbol) =>
-  symbol.replace(getFormatter(symbol), '-').replace(/\s/g, '').trim();
+// set mimatic to mai, uppercase all symbols
+exports.formatSymbol = (symbol) => {
+  return symbol
+    .replace(getFormatter(symbol), '-')
+    .replace(/\s/g, '')
+    .trim()
+    .toLowerCase()
+    .replaceAll('mimatic', 'mai')
+    .toUpperCase();
+};
 
 exports.getData = async (url, query = null) => {
   if (query !== null) {
