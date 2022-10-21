@@ -235,7 +235,7 @@ async function apy(chain) {
   const pools = response.map((p) => ({
     pool: `${p.stakedToken}-moonriver`.toLowerCase(),
     chain: 'moonriver',
-    project: 'Zircon-Gamma',
+    project: 'zircon-gamma',
     symbol: `${p.tokenSymbol}`,
     tvlUsd: Number(p.tvl),
     apyBase: Number(p.feesAPR),
