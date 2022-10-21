@@ -6,10 +6,8 @@ const {CONTRACT_ABI,
   SUBGRAPH_URI, VAULT_CONTRACT_ABI, ZRG_ADDRESS, WMOVR_ADDRESS, PAIR_CONTRACT_ABI, MOVR_ZRG_PAIR_ADDRESS,
   MOVR_USDC_PAIR_ADDRESS, PT_CONTRACT_ABI, PYLON_CONTRACT_ABI, GAMMA_SUBGRAPH_URI
 } = require("./constants");
-// const {ApolloClient, InMemoryCache} = require("@apollo/client");
 const axios = require('axios');
 const {BigNumber} = require("bignumber.js");
-// const sdk = require('@defillama/sdk');
 const web3 = new Web3(PROVIDER_URL);
 
 let getPoolsSubgraph = async function() {
@@ -124,19 +122,6 @@ let getPools =  async function () {
         const token1Decimals = await token1Contract.methods.decimals().call();
         const token1Symbol = await token1Contract.methods.symbol().call();
 
-        // const [poolsRes, lpTokensRes] = await Promise.all(
-        //   ['poolInfo', 'lpToken'].map((method) =>
-        //     sdk.api.abi.multiCall({
-        //       abi: masterChefABI.filter(({ name }) => name === method)[0],
-        //       calls: [...Array(Number(poolsCount)).keys()].map((i) => ({
-        //         target: MASTERCHEF_ADDRESS,
-        //         params: i,
-        //       })),
-        //       chain,
-        //     })
-        //   )
-        // );
-
         // Retrieving Price From Binance
         let symbol = token1Symbol === "WMOVR" ? "MOVR" : token1Symbol;
         symbol = symbol.replace("xc", "");// For cross chain tokens
@@ -250,13 +235,14 @@ async function apy(chain) {
   const pools = response.map((p) => ({
     pool: `${p.stakedToken}-moonriver`.toLowerCase(),
     chain: 'moonriver',
-    project: 'zircon-gamma',
-    symbol: `${p.isAnchor ?  'S-' : 'F-'}${p.tokenSymbol} ${p.underlyingTokensSymbol.join("-")}`,
+    project: 'Zircon-Gamma',
+    symbol: `${p.tokenSymbol}`,
     tvlUsd: Number(p.tvl),
     apyBase: Number(p.feesAPR),
     apyReward: Number(p.apr),
     rewardTokens: p.rewardTokens,
-    underlyingTokens: p.underlyingTokens
+    underlyingTokens: p.underlyingTokens,
+    poolMeta: `${p.isAnchor ? 'Stable' : 'Float'} ${p.underlyingTokensSymbol.join("-")}`
   }));
 
 
