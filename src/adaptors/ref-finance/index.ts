@@ -207,6 +207,8 @@ async function getV2FarmData() {
       rewardsTokens.push(reward_token);
     });
     const { token_symbols, token_account_ids } = pool;
+    const baseApy = poolApy / 2;
+
     if (boostBlackList.indexOf(pool.id) == -1) {
       const target = {
         pool: 'ref-pool-' + pool.id,
@@ -215,7 +217,7 @@ async function getV2FarmData() {
         symbol: token_symbols?.join('-'),
         tvlUsd: seedTvl,
         apyReward: totalApy * 100,
-        apyBase: Number(poolApy),
+        apyBase: Number(baseApy),
         underlyingTokens: token_account_ids,
         rewardTokens: rewardsTokens,
       };
