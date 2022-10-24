@@ -11,9 +11,7 @@ const query = gql`
             id
             stabilityFee
             totalDebt
-            debtNormalized
-            debtCeiling
-            auctionDuration
+            vaultDebtFloor
             price {
                 id
                 value
@@ -24,7 +22,7 @@ const query = gql`
 
 const main = async (timestamp) => {
     const data = (await request(URL, query)).collateralTypes
-    return data.map(pool => {
+    return data.filter(e => Number(e.vaultDebtFloor) !== 0).map(pool => {
         return {
             pool: pool.id + `-ethereum`,
             chain: utils.formatChain('ethereum'),
@@ -32,7 +30,7 @@ const main = async (timestamp) => {
             symbol: pool.id,
             apy: 0,
             tvlUsd: Number(pool.totalCollateral),
-            apyBaseBorrow: Number(pool.rate),
+            apyBaseBorrow: Number(pool.vaultDebtFloor) / 10000,
         }
     })
 };
