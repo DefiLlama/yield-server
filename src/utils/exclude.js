@@ -16,6 +16,7 @@ const excludePools = [
   '0xEc54859519293B8784bc5Bf28144166f313618aF', // dai-o uniswap
   'BRnJFznuWEuqMZTHGKyWjYijugcj8wtb3oiLMyu2Tj4R', // usdh soldust pool
   '0xec54859519293b8784bc5bf28144166f313618af', // dai-o uniswap
+  '0xE6D31ab5607eb7618a16B5923b67314d16BD350f-miMATIC-fantom', // decomissioned tarot pool
 ];
 
 const boundaries = {
