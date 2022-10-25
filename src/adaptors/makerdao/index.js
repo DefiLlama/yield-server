@@ -1,4 +1,3 @@
-// import BigNumber from 'bignumber.js';
 const ethers = require('ethers');
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
@@ -334,5 +333,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.yeti.finance/',
+  url: 'https://makerdao.com/',
 };
