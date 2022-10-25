@@ -303,8 +303,26 @@ const main = async () => {
 
   const mapPrice = gems.map((address) => `ethereum:${address}`);
   const prices = await getPrices(mapPrice);
+  const apyBaseBorrows = rate.map((e) =>
+    e !== '0'
+      ? new BigNumber(e)
+          .dividedBy(RAY)
+          .pow(SECONDS_PER_YEAR)
+          .minus(1)
+          .toNumber()
+      : 0
+  );
+
   return ilkIds
     .map((ilk, index) => {
+      const apyBaseBorrow =
+        rate[index] !== '0'
+          ? new BigNumber(rate[index])
+              .dividedBy(RAY)
+              .pow(SECONDS_PER_YEAR)
+              .minus(1)
+              .toNumber()
+          : 0;
       return {
         pool: joins[index],
         project: 'makerdao',
@@ -316,11 +334,7 @@ const main = async () => {
           .multipliedBy(prices[gems[index].toLowerCase()])
           .toNumber(),
         // borrow fields
-        apyBaseBorrow: new BigNumber(rate[index])
-          .dividedBy(RAY)
-          .pow(SECONDS_PER_YEAR)
-          .minus(1)
-          .toNumber(),
+        apyBaseBorrow: apyBaseBorrows[index],
         totalSupplyUsd: 0,
         totalBorrowUsd: 0,
       };
