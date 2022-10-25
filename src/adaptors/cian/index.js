@@ -13,7 +13,9 @@ const main = async () => {
   const data = await fetch();
 
   return data.map((p) => {
-    const symbolSplit = p.symbol.split('-')[1];
+    // if - in symbol -> split, keep 1 in array, otherwise don't split
+    let symbolSplit = p.symbol.split('-');
+    symbolSplit = symbolSplit.length > 1 ? symbolSplit[1] : symbolSplit[0];
     const symbol = symbolSplit.replace(/ *\([^)]*\) */g, '');
     // extract content within () -> meta data
     const poolMeta = /\(([^)]+)\)/.exec(symbolSplit)[1];
