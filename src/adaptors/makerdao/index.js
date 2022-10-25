@@ -316,7 +316,7 @@ const main = async () => {
           .multipliedBy(prices[gems[index].toLowerCase()])
           .toNumber(),
         // borrow fields
-        apyBaseBorrow: new BigNumber(tokenBalances[index])
+        apyBaseBorrow: new BigNumber(rate[index])
           .dividedBy(RAY)
           .pow(SECONDS_PER_YEAR)
           .minus(1)
