@@ -43,6 +43,11 @@ const apy = async () => {
       apyBase: (pool.depositAPY_RAY / 1e27) * 100,
       underlyingTokens: [underlyingTokens[i]],
       url: `https://app.gearbox.fi/pools/add/${pool.addr}`,
+      // borrow fields
+      totalSupplyUsd: pool.expectedLiquidityInUSD,
+      totalBorrowUsd: pool.totalBorrowedInUSD,
+      apyBaseBorrow: (pool.borrowAPY_RAY / 1e27) * 100,
+      ltv: 0, // this is currently just for the isolated earn page
     };
   });
 
