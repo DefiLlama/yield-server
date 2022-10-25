@@ -188,31 +188,30 @@ const main = async () => {
   ).output;
   const cdps = Array.from(Array(Number(cdpi)).keys()).map((x) => x + 1); // starts from 1
 
-  const ilkIdsCall = (
+  const ilkIds = (
     await sdk.api.abi.multiCall({
       calls: cdps.map((i) => ({ target: CDP_MANAGER.address, params: [i] })),
       abi: CDP_MANAGER.abis.ilks,
       requery: true,
     })
   ).output.map((x) => x.output);
-  const ilkIds = ilkIdsCall.filter(onlyUnique);
+  // const ilkIds = ilkIdsCall.filter(onlyUnique);
 
-  // // const urnHandlers = (
-  // //   await sdk.api.abi.multiCall({
-  // //     calls: cdps.map((i) => ({ target: CDP_MANAGER.address, params: [i] })),
-  // //     abi: CDP_MANAGER.abis.urns,
-  // //     requery: true,
-  // //   })
-  // // ).output.map((x) => x.output);
+  const urnHandlers = (
+    await sdk.api.abi.multiCall({
+      calls: cdps.map((i) => ({ target: CDP_MANAGER.address, params: [i] })),
+      abi: CDP_MANAGER.abis.urns,
+      requery: true,
+    })
+  ).output.map((x) => x.output);
 
-  // const ownerCall = (
-  //   await sdk.api.abi.multiCall({
-  //     calls: cdps.map((i) => ({ target: CDP_MANAGER.address, params: [i] })),
-  //     abi: CDP_MANAGER.abis.owns,
-  //     requery: true,
-  //   })
-  // ).output.map((x) => x.output);
-  // const owners = new Set(ownerCall);
+  const owners = (
+    await sdk.api.abi.multiCall({
+      calls: cdps.map((i) => ({ target: CDP_MANAGER.address, params: [i] })),
+      abi: CDP_MANAGER.abis.owns,
+      requery: true,
+    })
+  ).output.map((x) => x.output);
 
   const collaterals = (
     await sdk.api.abi.multiCall({
@@ -223,29 +222,27 @@ const main = async () => {
       abi: ILK_REGISTRY.abis.gem,
       requery: true,
     })
-  ).output
-    .map((x) => x.output)
-    .filter((e) => e !== ZERO_ADDRESS);
+  ).output.map((x) => x.output);
   // console.log(collaterals);
 
-  // const spots = (
-  //   await sdk.api.abi.multiCall({
-  //     calls: ilkIds.map((ilkId) => ({
-  //       target: MCD_SPOT.address,
-  //       params: [ilkId],
-  //     })),
-  //     abi: MCD_SPOT.abis.ilks,
-  //     requery: true,
-  //   })
-  // ).output.map((x) => x.output);
+  const spots = (
+    await sdk.api.abi.multiCall({
+      calls: ilkIds.map((ilkId) => ({
+        target: MCD_SPOT.address,
+        params: [ilkId],
+      })),
+      abi: MCD_SPOT.abis.ilks,
+      requery: true,
+    })
+  ).output.map((x) => x.output);
 
-  // const decimals = (
-  //   await sdk.api.abi.multiCall({
-  //     calls: collaterals.map((collateral) => ({ target: collateral })),
-  //     abi: 'erc20:decimals',
-  //     //   requery: true,
-  //   })
-  // ).output.map((x) => x.output);
+  const decimals = (
+    await sdk.api.abi.multiCall({
+      calls: collaterals.map((collateral) => ({ target: collateral })),
+      abi: 'erc20:decimals',
+      //   requery: true,
+    })
+  ).output.map((x) => x.output);
 
   const urnParamPairs = cdps.map((i) => [ilkIds[i - 1], urnHandlers[i - 1]]);
   const urns = (
@@ -259,57 +256,61 @@ const main = async () => {
     })
   ).output.map((x) => x.output);
 
-  // const ilks = (
-  //   await sdk.api.abi.multiCall({
-  //     calls: ilkIds.map((ilkId) => ({
-  //       target: MCD_VAT.address,
-  //       params: [ilkId],
-  //     })),
-  //     abi: MCD_VAT.abis.ilks,
-  //     requery: true,
-  //   })
-  // ).output.map((x) => x.output);
-  // console.log(urns);
-  // console.log(cdps);
-  // const positions = cdps.map((i) => {
-  //   const urn = urns[i - 1];
-  //   const _collateralAmount = urn.ink;
-  //   const collateralAmount = new BigNumber(_collateralAmount).div(1e18); // in wei
-  //   const normalizedDebt = new BigNumber(urn.art).div(1e18); // in wei
-  //   const ilk = ilks[i - 1];
-  //   const normalizedIlkDebt = ilk.Art; // in wei
-  //   const debtScalingFactor = new BigNumber(ilk.rate).div(1e27); // in ray (27 decimal places)
-  //   const maxDebtPerUnitCollateral = ilk.spot; // in ray (27 decimal places)
-  //   const debtCeiling = ilk.line; // in rad (45 decimal places)
-  //   const debtFloor = ilk.dust; // in rad (45 decimal places)
-  //   const spot = spots[i - 1];
-  //   const liquidationRatio = new BigNumber(spot.mat).div(1e27); // in ray (27 decimal places)
-  //   const debt = normalizedDebt.times(debtScalingFactor);
+  const ilks = (
+    await sdk.api.abi.multiCall({
+      calls: ilkIds.map((ilkId) => ({
+        target: MCD_VAT.address,
+        params: [ilkId],
+      })),
+      abi: MCD_VAT.abis.ilks,
+      requery: true,
+    })
+  ).output.map((x) => x.output);
 
-  //   const liqPrice = collateralPriceAtRatio({
-  //     colRatio: liquidationRatio,
-  //     collateral: collateralAmount,
-  //     vaultDebt: debt,
-  //   }).toNumber();
+  const positions = cdps
+    .map((i) => {
+      const urn = urns[i - 1];
+      const _collateralAmount = urn.ink;
+      const collateralAmount = new BigNumber(_collateralAmount).div(1e18); // in wei
+      const normalizedDebt = new BigNumber(urn.art).div(1e18); // in wei
+      const ilk = ilks[i - 1];
+      const normalizedIlkDebt = ilk.Art; // in wei
+      const debtScalingFactor = new BigNumber(ilk.rate).div(1e27); // in ray (27 decimal places)
+      const maxDebtPerUnitCollateral = ilk.spot; // in ray (27 decimal places)
+      const debtCeiling = ilk.line; // in rad (45 decimal places)
+      const debtFloor = ilk.dust; // in rad (45 decimal places)
+      const spot = spots[i - 1];
+      const liquidationRatio = new BigNumber(spot.mat).div(1e27); // in ray (27 decimal places)
+      const debt = normalizedDebt.times(debtScalingFactor);
 
-  //   const owner = owners[i - 1].toLowerCase();
-  //   const collateral = 'ethereum:' + collaterals[i - 1].toLowerCase();
+      const liqPrice = collateralPriceAtRatio({
+        colRatio: liquidationRatio,
+        collateral: collateralAmount,
+        vaultDebt: debt,
+      }).toNumber();
 
-  //   const decimal = decimals[i - 1];
-  //   const collateralAmountFormatted = collateralAmount
-  //     .times(10 ** Number(decimal))
-  //     .toFixed(0);
+      const owner = owners[i - 1].toLowerCase();
+      const collateral = 'ethereum:' + collaterals[i - 1].toLowerCase();
 
-  //   return {
-  //     collateralAmount: collateralAmountFormatted,
-  //     collateral,
-  //     liqPrice,
-  //     owner,
-  //     normalizedIlkDebt,
-  //     debtCeiling,
-  //   };
-  // });
-  // console.log(positions);
+      const decimal = decimals[i - 1];
+      const collateralAmountFormatted = collateralAmount
+        .times(10 ** Number(decimal))
+        .toFixed(0);
+
+      return {
+        collateralAmount: collateralAmountFormatted,
+        collateral,
+        owner,
+        normalizedIlkDebt,
+        debtCeiling,
+        debtFloor,
+        debtScalingFactor: debtScalingFactor.toString(),
+        maxDebtPerUnitCollateral,
+        liquidationRatio: liquidationRatio.toString(),
+      };
+    })
+    .filter((e) => e.collateralAmount !== '0');
+  console.log(positions.slice(100, 110));
   return [];
 };
 
