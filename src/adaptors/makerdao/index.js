@@ -252,6 +252,7 @@ const main = async () => {
     await sdk.api.abi.call({
       target: CDP_MANAGER.address,
       abi: CDP_MANAGER.abis.cdpi,
+      chain: 'ethereum',
     })
   ).output;
   const cdps = Array.from(Array(Number(cdpi)).keys()).map((x) => x + 1); // starts from 1
@@ -290,39 +291,25 @@ const main = async () => {
     })
   ).output.map((x) => x.output);
   const rate = ilksDatas.map((e) => e.duty);
-
   const tokenBalances = (
     await sdk.api.abi.multiCall({
       abi: 'erc20:balanceOf',
       calls: gems.map((address, index) => {
-        return { target: address, params: joins[index] };
+        return { target: address, params: [joins[index]] };
       }),
       chain: 'ethereum',
+      requery: false,
     })
   ).output.map((e) => e.output);
 
   const mapPrice = gems.map((address) => `ethereum:${address}`);
   const prices = await getPrices(mapPrice);
-  const apyBaseBorrows = rate.map((e) =>
-    e !== '0'
-      ? new BigNumber(e)
-          .dividedBy(RAY)
-          .pow(SECONDS_PER_YEAR)
-          .minus(1)
-          .toNumber()
-      : 0
-  );
+  return joins
+    .map((_, index) => {
+      const normalizRate = new BigNumber(rate[index]).dividedBy(RAY);
+      BigNumber.config({ POW_PRECISION: 100 });
+      const stabilityFee = normalizRate.pow(SECONDS_PER_YEAR).minus(1);
 
-  return ilkIds
-    .map((ilk, index) => {
-      const apyBaseBorrow =
-        rate[index] !== '0'
-          ? new BigNumber(rate[index])
-              .dividedBy(RAY)
-              .pow(SECONDS_PER_YEAR)
-              .minus(1)
-              .toNumber()
-          : 0;
       return {
         pool: joins[index],
         project: 'makerdao',
@@ -334,7 +321,7 @@ const main = async () => {
           .multipliedBy(prices[gems[index].toLowerCase()])
           .toNumber(),
         // borrow fields
-        apyBaseBorrow: apyBaseBorrows[index],
+        apyBaseBorrow: stabilityFee.toNumber() * 100,
         totalSupplyUsd: 0,
         totalBorrowUsd: 0,
       };
