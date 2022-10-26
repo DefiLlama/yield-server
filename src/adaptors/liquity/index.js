@@ -46,5 +46,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://makerdao.com/',
+  url: 'https://defi.instadapp.io/liquity',
 };
