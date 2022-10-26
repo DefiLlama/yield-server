@@ -55,10 +55,10 @@ const main = async () => {
       symbol: 'WETH',
       chain: 'ethereum',
       apy: 0,
-      tvlUsd: totalSupplyUsd,
+      tvlUsd: (Number(troveEthTvl) / 1e18) * Number(troveType.price),
       apyBaseBorrow: Number(troveType.borrowFee) * 100,
-      totalSupplyUsd: totalSupplyUsd,
-      totalBorrowUsd: (Number(troveEthTvl) / 1e18) * Number(troveType.price),
+      totalSupplyUsd: (Number(troveEthTvl) / 1e18) * Number(troveType.price),
+      totalBorrowUsd: totalSupplyUsd,
     },
   ];
 };
