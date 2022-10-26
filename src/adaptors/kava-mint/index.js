@@ -1,0 +1,75 @@
+const axios = require('axios');
+
+const main = async () => {
+  const deposits_balances = {};
+
+  const deposits = (await axios.get('https://api2.kava.io/cdp/totalCollateral'))
+    .data.result;
+  for (let i = 0; i < deposits.length; i++) {
+    const info = convertSymbol(deposits[i].amount.denom);
+    if (info.id in balances) {
+      deposits_balances[info.id] =
+        Number(deposits_balances[info.id]) +
+        Number(deposits[i].amount.amount / 10 ** info.decimals);
+    } else {
+      deposits_balances[info.id] =
+        deposits[i].amount.amount / 10 ** info.decimals;
+    }
+  }
+  console.log(deposits_balances);
+
+  // let borrowed = (
+  //   await retry(
+  //     async (bail) => await axios.get('https://api2.kava.io/cdp/totalPrincipal')
+  //   )
+  // ).data.result;
+  // for (let i = 0; i < borrowed.length; i++) {
+  //   const symbol = borrowed[i].collateral_type.substring(
+  //     0,
+  //     borrowed[i].collateral_type.indexOf('-')
+  //   );
+  //   const info = convertSymbol(symbol);
+  //   const tokenPrice = (
+  //     await retry(
+  //       async (bail) =>
+  //         await axios.get(
+  //           `https://api.coingecko.com/api/v3/simple/price?ids=${info.id}&vs_currencies=usd`
+  //         )
+  //     )
+  //   ).data[info.id].usd;
+  //   const borrowedQty = borrowed[i].amount.amount / (tokenPrice * 10 ** 6);
+  //   balances[info.id] = Number(balances[info.id]) - Number(borrowedQty);
+  // }
+  return [];
+};
+
+function convertSymbol(symbol) {
+  switch (symbol) {
+    case 'bnb':
+      return { id: 'binancecoin', decimals: 8 };
+    case 'btcb':
+      return { id: 'bitcoin', decimals: 8 };
+    case 'busd':
+      return { id: 'binance-usd', decimals: 8 };
+    case 'hard':
+      return { id: 'kava-lend', decimals: 6 };
+    case 'hbtc':
+      return { id: 'bitcoin', decimals: 8 };
+    case 'swp':
+      return { id: 'kava-swap', decimals: 6 };
+    case 'ukava':
+      return { id: 'kava', decimals: 6 };
+    case 'xrpb':
+      return { id: 'ripple', decimals: 8 };
+    case 'ibc/B448C0CA358B958301D328CCDC5D5AD642FC30A6D3AE106FF721DB315F3DDE5C':
+      return { id: 'terra-usd', decimals: 6 };
+    default:
+      console.log(symbol);
+  }
+}
+
+module.exports = {
+  timetravel: false,
+  apy: main,
+  url: 'https://www.kava.io/',
+};
