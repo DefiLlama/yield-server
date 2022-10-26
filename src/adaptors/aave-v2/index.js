@@ -86,7 +86,11 @@ const main = async () => {
           apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
           totalSupplyUsd,
           totalBorrowUsd: totalSupplyUsd - tvlUsd,
-          ltv: Number(p.baseLTVasCollateral) / 10000,
+          ltv:
+            // steth not borrowable
+            p.aToken.id === '0x1982b2f5814301d4e9a8b0201555376e62f82428'
+              ? 0
+              : Number(p.baseLTVasCollateral) / 10000,
           url: `https://app.aave.com/reserve-overview/?underlyingAsset=${p.underlyingAsset}&marketName=${chainUrlParam[chainString]}`,
         };
       });
