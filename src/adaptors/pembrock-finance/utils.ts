@@ -3,37 +3,25 @@ const BigNumber = require('bignumber.js');
 
 const statsUrl = 'https://api.stats.ref.finance/';
 
-const WBTC_TOKEN_ID =
-  '2260fac5e5542a773aa44fbcfedf7c193bc2c599.factory.bridge.near';
-const ETH_TOKEN_ID = 'aurora';
 const PEM_TOKEN = 'token.pembrock.near';
 
 interface Volume {
   pool_id: string;
-  dateString: string;
-  fiat_volume: string;
-  asset_volume: string;
   volume_dollar: string;
 }
 
 interface PoolInfo {
   amounts: string[];
-  amp: number;
   farming: boolean;
   id: string;
   pool_kind: string;
   shares_total_supply: string;
-  token0_ref_price: string;
   token_account_ids: string[];
-  token_symbols: string[];
   total_fee: number;
   tvl: string;
 }
 
 interface FarmInfo {
-  has_ref_farm: boolean;
-  fee: number;
-  kill_factor: number;
   max_leverage: number;
   ref_pool_id: number;
   shares: string;
@@ -41,12 +29,9 @@ interface FarmInfo {
   token2_id: string;
   value: string;
 
-  seedId?: string;
   seedInfo?: object;
   token1?: TokenInfo;
   token2?: TokenInfo;
-  t1meta?: TokenMetadata;
-  t2meta?: TokenMetadata;
   listFarmsBySeed?: [];
   pool?: PoolInfo;
   volume?: Volume[];
@@ -56,21 +41,11 @@ interface FarmInfo {
 
 interface TokenMetadata {
   id: string;
-  name: string;
-  symbol: string;
   decimals: number;
-  icon: string;
-  ref?: number | string;
-  near?: number | string;
-  total?: number;
-  amountLabel?: string;
-  amount?: number;
-  nearNonVisible?: number | string;
   price?: string;
 }
 
 interface TokenInfo {
-  account_balance: string;
   total_supply: string;
   total_borrowed: string;
   lend_shares: string;
@@ -78,8 +53,6 @@ interface TokenInfo {
   debt_rate?: string;
   debt_apy?: string; // APR (not APY !!!)
   lend_apy?: string; // APR (not APY !!!)
-  borrowable: string;
-  last_accrue_time: string;
   lend_reward_rate_per_week: string;
   debt_reward_rate_per_week: string;
 }
@@ -88,6 +61,26 @@ interface TokenWithMetadata extends TokenInfo {
   id: string;
   metadata: TokenMetadata;
   refPrice?: string;
+}
+
+interface FarmTableData {
+  apy: string;
+  tvl?: string;
+}
+
+interface LendTableData {
+  totalLendAPY: string;
+}
+
+interface TVL {
+  pool_id: string;
+  asset_amount: string;
+  fiat_amount: string;
+  asset_price: string;
+  fiat_price: string;
+  asset_tvl: string;
+  fiat_tvl: string;
+  date: string;
 }
 
 async function commonCall(url, method, args = {}) {
@@ -106,17 +99,6 @@ const apr2apy = (apr: BigNumber): BigNumber => {
   return apr.div(365).plus(1).pow(365).minus(1);
 };
 
-export interface TVL {
-  pool_id: string;
-  asset_amount: string;
-  fiat_amount: string;
-  asset_price: string;
-  fiat_price: string;
-  asset_tvl: string;
-  fiat_tvl: string;
-  date: string;
-}
-
 const getTvl = async (id: string): Promise<[TVL]> => {
   return commonCall(statsUrl, `api/pool/${id}/tvl`);
 };
@@ -124,71 +106,6 @@ const getTvl = async (id: string): Promise<[TVL]> => {
 const getVolume = async (id: string): Promise<[Volume]> => {
   return commonCall(statsUrl, `api/pool/${id}/volume`);
 };
-
-const toReadableNumber = (decimals: number, number = '0'): string => {
-  if (!decimals) return number;
-
-  const wholeStr =
-    number.substring(0, number.split('.')[0].length - decimals) || '0';
-
-  const fractionStr = number
-    .substring(number.split('.')[0].length - decimals)
-    .padStart(decimals, '0')
-    .substring(0, decimals);
-
-  return `${wholeStr}.${fractionStr}`.replace(/\.?0+$/, '');
-};
-
-function formatWithCommas(value: string): string {
-  const pattern = /(-?\d+)(\d{3})/;
-  while (pattern.test(value)) {
-    value = value.replace(pattern, '$1,$2');
-  }
-  return value;
-}
-
-const toPrecision = (
-  number: string,
-  precision: number,
-  withCommas = false,
-  atLeastOne = true
-): string => {
-  const [whole, decimal = ''] = number.split('.');
-
-  let str = `${withCommas ? formatWithCommas(whole) : whole}.${decimal.slice(
-    0,
-    precision
-  )}`.replace(/\.$/, '');
-  if (atLeastOne && Number(str) === 0 && str.length > 1) {
-    const n = str.lastIndexOf('0');
-    str = str.slice(0, n) + str.slice(n).replace('0', '1');
-  }
-
-  return str;
-};
-
-interface FarmTableData {
-  tvl?: string;
-  apy: string;
-  yieldFarming: string;
-  tradingFees: string;
-  dailyAPR: string;
-  totalAPR: string;
-  borrowInterest: string;
-  rewardsAPR: string;
-  rewardsRate: string;
-}
-
-interface LendTableData {
-  lendAPY: string;
-  lendRewardsAPR: string;
-  totalLendAPY: string;
-  totalSupply: string;
-  totalBorrowed: string;
-  utilization: string;
-  balance: string;
-  rewards: string;
-}
 
 const calcTradingFees = (farm: FarmInfo): BigNumber => {
   const { pool, volume, tvl } = farm;
@@ -220,7 +137,6 @@ const calcTradingFees = (farm: FarmInfo): BigNumber => {
 
 const calcYieldFarming = (farm: FarmInfo): BigNumber => {
   const { listFarmsBySeed, seedInfo, pool, tokensPriceList } = farm;
-  // console.log(listFarmsBySeed);
   // Calc Yield Farming
   const refTVL = pool && new BigNumber(pool['tvl']);
   const refSharesTotalSupply =
@@ -260,7 +176,7 @@ const calcLeveragedFarmData = (
 ) => {
   const rewardsAPR = calcDebtRewardsAPR(token, pemToken?.refPrice);
 
-  const _leverage = new BigNumber(leverage).multipliedBy(1000);
+  const _leverage = new BigNumber(leverage);
 
   let yieldFarming = calcYieldFarming(farm);
   let tradingFees = calcTradingFees(farm);
@@ -272,7 +188,7 @@ const calcLeveragedFarmData = (
     .minus(1000)
     .negated()
     .multipliedBy(debtRate)
-    .dividedBy(1000); // leverage divisor
+    .dividedBy(1000); // leverage divisor // ! differe from docs, not divided by 10000
   let rewardsAprLev = _leverage
     .minus(1000)
     .multipliedBy(rewardsAPR)
@@ -289,18 +205,9 @@ const calcLeveragedFarmData = (
     .plus(1)
     .pow(365)
     .minus(1)
-    .plus(rewardsAprLev.isNaN() ? 0 : rewardsAprLev);
+    .plus(rewardsAprLev.isNaN() ? 0 : rewardsAprLev); // ! differe from docs, rewardsAprLev added
 
-  let result = {
-    yieldFarmingLev,
-    tradingFeesLev,
-    totalApr,
-    totalApy,
-    borrowInterestLev,
-    rewardsAprLev,
-  };
-
-  return result;
+  return { totalApy };
 };
 
 function formatBigNumber(num: any, showDecimals: number = 2): string {
@@ -354,20 +261,6 @@ const calcLeveragedFarmDataFormatted = (
   );
   return {
     apy: formatBigNumber(calcData.totalApy.multipliedBy(100)),
-    yieldFarming: formatBigNumber(calcData.yieldFarmingLev.multipliedBy(100)),
-    tradingFees: formatBigNumber(calcData.tradingFeesLev.multipliedBy(100)),
-    dailyAPR: formatBigNumber(
-      calcData.totalApr.dividedBy(365).multipliedBy(100)
-    ),
-    totalAPR: formatBigNumber(calcData.totalApr.multipliedBy(100)),
-    borrowInterest: formatBigNumber(
-      calcData.borrowInterestLev.multipliedBy(100)
-    ),
-    rewardsAPR: formatBigNumber(calcData.rewardsAprLev.multipliedBy(100)),
-    rewardsRate: toPrecision(
-      toReadableNumber(18, token.debt_reward_rate_per_week),
-      2
-    ),
   };
 };
 
@@ -440,52 +333,9 @@ const calculateLendTableData = (
   );
   const lendAPY = apr2apy(lendAPR).multipliedBy(100);
   const totalLendAPY = lendAPY.plus(lendRewardsAPR);
-  //console.log("calculateLendTableData", token.debt_apy, lendAPR.toFixed(6), lendAPY.toFixed(6));
-  /*
-  console.log('token',token.id);
-  console.log('lendAPR',lendAPR.toFixed(4));
-  console.log('lendRewardsAPR',lendRewardsAPR.toFixed(4));
-  console.log('lendAPY',lendAPY.toFixed(4));
-  console.log('totalLendAPY',totalLendAPY.toFixed(4));
-  */
-
-  const precisionForDiffTokens =
-    token.metadata.id === WBTC_TOKEN_ID || token.metadata.id === ETH_TOKEN_ID
-      ? 4
-      : 2;
-
-  const balance = toPrecision(
-    toReadableNumber(token['metadata']['decimals'], token['account_balance']),
-    precisionForDiffTokens
-  );
-
-  const borrowed = new BigNumber(token['total_borrowed']);
-  const supply = new BigNumber(token['total_supply']);
-
-  const calculateSupply = supply.isZero()
-    ? 0
-    : borrowed.dividedBy(supply).multipliedBy(100).toFixed();
-
-  const rewards = toPrecision(
-    toReadableNumber(18, token['lend_reward_rate_per_week']),
-    2
-  );
 
   return {
-    lendAPY: lendAPY.toFixed(2),
-    lendRewardsAPR: lendRewardsAPR.isNaN() ? '0' : lendRewardsAPR.toFixed(2),
     totalLendAPY: totalLendAPY.toFixed(2),
-    totalSupply: toPrecision(
-      toReadableNumber(token.metadata.decimals, token.total_supply),
-      2
-    ),
-    totalBorrowed: toPrecision(
-      toReadableNumber(token.metadata.decimals, borrowed.toFixed()),
-      2
-    ),
-    utilization: toPrecision(calculateSupply.toString(), 2),
-    balance: balance,
-    rewards,
   };
 };
 

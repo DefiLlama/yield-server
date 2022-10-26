@@ -156,23 +156,21 @@ async function getLendPoolApyData(tokenInfos, pemTokenPrice) {
   return lendPoolsApyData;
 }
 
-async function getFarmPoolApyData(tokenInfos, pemTokenPrice) {
+async function getFarmPoolApyData(tokenInfos) {
   const [farms, tokens] = await getFormattedFarms(tokenInfos);
   const farmPoolsApyData = [];
-  // console.log(farms[0]);
+
   for (let farm of Object.values(farms)) {
-    // console.log(farm);
     const token1 = tokensMetadata[farm['token1_id']];
     const token2 = tokensMetadata[farm['token2_id']];
 
-    const debtIsToken1 =
-      typeof farm.token1.debt_rate === 'undefined'
-        ? new BigNumber(farm.token1.debt_apy).lt(farm.token2.debt_apy)
-        : new BigNumber(farm.token1.debt_rate).lt(farm.token2.debt_rate);
-    const leverage = farm.max_leverage / 1000;
+    const leverage = farm.max_leverage;
 
-    const data = calcFarmTableData(farm, debtIsToken1, leverage, tokens);
-    console.log(data);
+    const dataToken1 = calcFarmTableData(farm, true, leverage, tokens);
+    const dataToken2 = calcFarmTableData(farm, false, leverage, tokens);
+
+    const data = dataToken1.apy > dataToken2.apy ? dataToken1 : dataToken2;
+
     farmPoolsApyData.push({
       pool: `ref-pool-${farm.ref_pool_id}-farming`,
       chain: 'NEAR',
@@ -192,7 +190,7 @@ async function getPemApy() {
   const pemToken = tokenInfos[PEM_TOKEN];
 
   const lendPools = await getLendPoolApyData(tokenInfos, pemToken.price);
-  const farmPools = await getFarmPoolApyData(tokenInfos, pemToken.price);
+  const farmPools = await getFarmPoolApyData(tokenInfos);
   return [...lendPools, ...farmPools];
 }
 
