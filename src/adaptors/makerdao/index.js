@@ -239,6 +239,11 @@ const main = async () => {
 
   const mapPrice = gems.map((address) => `ethereum:${address}`);
   const prices = await getPrices(mapPrice);
+  const blackList = [
+    '0x3435353434383264343130303030303030303030303030303030303030303030',
+    '0x3432343135343264343130303030303030303030303030303030303030303030',
+    '0x3078353734323534343332643433303030303030303030303030303030303030',
+  ];
   return joins
     .map((_, index) => {
       const normalizRate = new BigNumber(rate[index]).dividedBy(RAY);
@@ -250,6 +255,9 @@ const main = async () => {
         project: 'makerdao',
         symbol: symbols[index],
         chain: 'ethereum',
+        poolMeta: !blackList.includes(ilkIds[index])
+          ? ethers.utils.parseBytes32String(ilkIds[index])
+          : '',
         apy: 0,
         tvlUsd: new BigNumber(tokenBalances[index])
           .dividedBy(new BigNumber(10).pow(decimals[index]))
