@@ -9,6 +9,7 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'kcc') return 'KCC';
   if (chain && chain.toLowerCase() === 'okexchain') return 'OKExChain';
   if (chain && chain.toLowerCase() === 'bsc') return 'Binance';
+  if (chain && chain.toLowerCase() === 'milkomeda') return 'Milkomeda C1';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
