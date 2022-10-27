@@ -1,68 +1,116 @@
 const axios = require('axios');
+const superagent = require('superagent');
+const utils = require('../utils');
+
+const getPrices = async (addresses) => {
+  const prices = (
+    await superagent.post('https://coins.llama.fi/prices').send({
+      coins: addresses,
+    })
+  ).body.coins;
+
+  const pricesObj = Object.entries(prices).reduce(
+    (acc, [address, price]) => ({
+      ...acc,
+      [address.split(':')[1].toLowerCase()]: price.price,
+    }),
+    {}
+  );
+  return pricesObj;
+};
 
 const main = async () => {
-  const deposits_balances = {};
+  const parametersUrl = 'https://api2.kava.io/cdp/parameters';
+  const dispoistedUrl = 'https://api2.kava.io/cdp/totalCollateral';
+  const principalUrl = 'https://api2.kava.io/cdp/totalPrincipal';
 
-  const deposits = (await axios.get('https://api2.kava.io/cdp/totalCollateral'))
-    .data.result;
-  for (let i = 0; i < deposits.length; i++) {
-    const info = convertSymbol(deposits[i].amount.denom);
-    if (info.id in balances) {
-      deposits_balances[info.id] =
-        Number(deposits_balances[info.id]) +
-        Number(deposits[i].amount.amount / 10 ** info.decimals);
-    } else {
-      deposits_balances[info.id] =
-        deposits[i].amount.amount / 10 ** info.decimals;
-    }
-  }
-  console.log(deposits_balances);
+  const [parametersCall, dispoistedCall, principalCall] = (
+    await Promise.all([
+      axios.get(parametersUrl),
+      axios.get(dispoistedUrl),
+      axios.get(principalUrl),
+    ])
+  ).map((e) => e.data.result);
 
-  // let borrowed = (
-  //   await retry(
-  //     async (bail) => await axios.get('https://api2.kava.io/cdp/totalPrincipal')
-  //   )
-  // ).data.result;
-  // for (let i = 0; i < borrowed.length; i++) {
-  //   const symbol = borrowed[i].collateral_type.substring(
-  //     0,
-  //     borrowed[i].collateral_type.indexOf('-')
-  //   );
-  //   const info = convertSymbol(symbol);
-  //   const tokenPrice = (
-  //     await retry(
-  //       async (bail) =>
-  //         await axios.get(
-  //           `https://api.coingecko.com/api/v3/simple/price?ids=${info.id}&vs_currencies=usd`
-  //         )
-  //     )
-  //   ).data[info.id].usd;
-  //   const borrowedQty = borrowed[i].amount.amount / (tokenPrice * 10 ** 6);
-  //   balances[info.id] = Number(balances[info.id]) - Number(borrowedQty);
-  // }
-  return [];
+  const parameters = parametersCall.collateral_params.map((e) => {
+    return {
+      ...convertSymbol(e.denom),
+      stability_fee: e.stability_fee,
+      type: e.type,
+      liquidation_ratio: e.liquidation_ratio,
+    };
+  });
+
+  const dispoisted = dispoistedCall.map((e) => {
+    const info = convertSymbol(e.amount.denom);
+    return {
+      ...info,
+      amount: Number(e.amount.amount / 10 ** (info?.decimals || 0)),
+    };
+  });
+
+  const borrowed = principalCall.map((e) => {
+    const info = convertSymbol(e.collateral_type.split('-')[0]);
+    return {
+      ...info,
+      amount: Number(e.amount.amount / 10 ** (info?.decimals || 0)),
+    };
+  });
+
+  const coins = dispoisted.map((e) => `coingecko:${e.id}`);
+  const prices = await getPrices(coins);
+
+  return parameters
+    .filter((e) => e.id)
+    .map((pool) => {
+      const parameter = parameters.find((e) => e.id === pool.id);
+      const collateral = dispoisted.find((e) => e.id === pool.id);
+      const _borrowed = borrowed.find((e) => e.id === pool.id);
+      const totalSupplyUsd = collateral.amount * prices[pool.id.toLowerCase()];
+      const totalBorrowUsd = _borrowed.amount * prices[pool.id.toLowerCase()];
+      const ltv = (1 / Number(parameter.liquidation_ratio)) * 100;
+      return {
+        pool: `${pool.id}-${pool.symbol}-${pool.type}`,
+        chain: utils.formatChain('kava'),
+        project: 'kava-mint',
+        symbol: pool.symbol,
+        tvlUsd: 0,
+        apy: 0,
+        poolMeta: pool.type,
+        apyBaseBorrow:
+          pool.type === 'busd-b'
+            ? 50
+            : (Number(parameter.stability_fee) ** 31536000 - 1) * 100,
+        apyRewardBorrow: 0,
+        totalSupplyUsd: totalSupplyUsd,
+        totalBorrowUsd: totalBorrowUsd,
+        ltv: ltv,
+      };
+    });
 };
 
 function convertSymbol(symbol) {
   switch (symbol) {
     case 'bnb':
-      return { id: 'binancecoin', decimals: 8 };
+      return { id: 'binancecoin', decimals: 8, symbol: 'WBNB' };
     case 'btcb':
-      return { id: 'bitcoin', decimals: 8 };
+      return { id: 'bitcoin', decimals: 8, symbol: 'WBTC' };
     case 'busd':
-      return { id: 'binance-usd', decimals: 8 };
+      return { id: 'binance-usd', decimals: 8, symbol: 'BUSD' };
     case 'hard':
-      return { id: 'kava-lend', decimals: 6 };
+      return { id: 'kava-lend', decimals: 6, symbol: 'HARD' };
     case 'hbtc':
-      return { id: 'bitcoin', decimals: 8 };
+      return { id: 'bitcoin', decimals: 8, symbol: 'WBTC' };
     case 'swp':
-      return { id: 'kava-swap', decimals: 6 };
+      return { id: 'kava-swap', decimals: 6, symbol: 'SWP' };
     case 'ukava':
-      return { id: 'kava', decimals: 6 };
+      return { id: 'kava', decimals: 6, symbol: 'KAVA' };
     case 'xrpb':
-      return { id: 'ripple', decimals: 8 };
+      return { id: 'ripple', decimals: 8, symbol: 'XRP' };
     case 'ibc/B448C0CA358B958301D328CCDC5D5AD642FC30A6D3AE106FF721DB315F3DDE5C':
-      return { id: 'terra-usd', decimals: 6 };
+      return { id: 'terra-usd', decimals: 6, symbol: 'UST' };
+    case 'ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2':
+      return { id: 'kava-swap', decimals: 6, symbol: 'SWP' };
     default:
       console.log(symbol);
   }
