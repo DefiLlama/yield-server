@@ -135,16 +135,15 @@ async function farming(aprWeights, rewardToken, BLUES_PRICE, portfolios) {
     const rewardedFee = Number(formatBigNumber(BigNumber.from(fees[portfolioInfo.contractAddress]).mul(MONTHS_IN_YEAR).toString(), 6));
     const rewardedStake = Number(formatBigNumber(BigNumber.from(farmInfo.rewardPerBlock).mul(BLOCKS_PER_YEAR).mul(BLUES_PRICE).div(BigNumber.from(10).pow(18)).toString(), 6));
 
-    const depositedBalances = {};
-    await sdk.util.sumSingleBalance(
-      depositedBalances,
-      transform(portfolioInfo.baseTokenAddress),
-      BigNumber.from(farmInfo.accDeposited).mul(BigNumber.from(portfolioInfo.lpTokenPrice)).div(BigNumber.from(10).pow(18)).toString()
-    );
-    const deposited = (await sdk.util.computeTVL(depositedBalances, "now")).usdTvl;
+    let tvl = farmInfo.accDeposited;
+    tvl = BigNumber.from(tvl).mul(BigNumber.from(portfolioInfo.lpTokenPrice)).div(BigNumber.from(10).pow(18));
 
-    const aprBase = rewardedFee / deposited;
-    const aprReward = rewardedStake / deposited;
+    const balances = {};
+    await sdk.util.sumSingleBalance(balances, transform(portfolioInfo.baseTokenAddress), tvl.toString());
+    const tvlUsd = (await sdk.util.computeTVL(balances, "now")).usdTvl;
+
+    const aprBase = rewardedFee / tvlUsd;
+    const aprReward = rewardedStake / tvlUsd;
 
     const apyBase = tokensAddresses.includes(rewardToken) ? apy(aprBase, aprWeights) : aprBase; 
     const apyReward = aprReward;
@@ -155,29 +154,18 @@ async function farming(aprWeights, rewardToken, BLUES_PRICE, portfolios) {
     // console.log("apyBase:", apyBase.toString());
     // console.log("apyReward:", apyReward.toString());
 
-    let tvl = (await sdk.api.erc20.balanceOf({
-      chain: 'milkomeda',
-      target: receivedToken,
-      owner: farm,
-      // block: chainBlocks['milkomeda']
-    })).output;
-    tvl = BigNumber.from(tvl).mul(BigNumber.from(portfolioInfo.lpTokenPrice)).div(BigNumber.from(10).pow(18));
-
-    const balances = {};
-    await sdk.util.sumSingleBalance(balances, transform(portfolioInfo.baseTokenAddress), tvl.toString());
-    const tvlUsd = (await sdk.util.computeTVL(balances, "now")).usdTvl;
-
     res.push({
       pool: `${farm}`.toLowerCase(),
       chain: utils.formatChain('milkomeda'),
       project: 'blueshift',
-      symbol: `${portfolioInfo.name} (${tokensSymbols.join('-')})`,
+      symbol: tokensSymbols.join('-'),
       apyBase: aprBase * 100,
       apyReward: aprReward * 100,
       tvlUsd: tvlUsd,
       rewardTokens: [rewardToken],
       underlyingTokens: tokensAddresses,
-      url: 'https://app.blueshift.fi/#/farming'
+      url: 'https://app.blueshift.fi/#/farming',
+      poolMeta: portfolioInfo.name
     });
   }
 
@@ -223,23 +211,14 @@ async function staking(aprWeights, rewardToken, BLUES_PRICE, portfolios) {
       continue;
     }
 
-    const aprReward = BigNumber.from(stakingInfo.rewardPerBlock).mul(BLOCKS_PER_YEAR)
-      .mul(10000)
-      .div(BigNumber.from(stakingInfo.accDeposited));
+    let tvl = stakingInfo.accDeposited;
+    const tvlUsd = BigNumber.from(tvl).mul(BLUES_PRICE).div(BigNumber.from(10).pow(18)).toString();
 
+    const aprReward = BigNumber.from(stakingInfo.rewardPerBlock).mul(BLOCKS_PER_YEAR).mul(10000).div(tvl);
     const apyReward = apy(Number(formatBigNumber(aprReward.toString(), 4)), aprWeights);
 
     // console.log("aprReward:", formatBigNumber(aprReward.toString(), 4));
     // console.log("apyReward:", apyReward.toString());
-
-    let tvl = (await sdk.api.erc20.balanceOf({
-      chain: 'milkomeda',
-      target: receivedToken,
-      owner: staking,
-      // block: chainBlocks['milkomeda']
-    })).output;
-
-    const tvlUsd = BigNumber.from(tvl).mul(BLUES_PRICE).div(BigNumber.from(10).pow(18)).toString();
 
     res.push({
       pool: `${staking}`.toLowerCase(),
