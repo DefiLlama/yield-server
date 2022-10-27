@@ -247,6 +247,7 @@ const getYieldLendBorrow = async () => {
         "totalSupplyUsd",
         "totalBorrowUsd",
         "ltv",
+        "borrowable",
         "rewardTokens",
         "underlyingTokens"
     FROM
