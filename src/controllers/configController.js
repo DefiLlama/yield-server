@@ -101,6 +101,7 @@ const buildInsertConfigQuery = (payload) => {
     { name: 'rewardTokens', def: null },
     'url',
     { name: 'ltv', def: null },
+    { name: 'borrowable', def: null },
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
   const query =
