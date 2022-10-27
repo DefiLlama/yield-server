@@ -74,7 +74,7 @@ const main = async () => {
         chain: utils.formatChain('kava'),
         project: 'kava-mint',
         symbol: pool.symbol,
-        tvlUsd: 0,
+        tvlUsd: totalSupplyUsd,
         apy: 0,
         poolMeta: pool.type,
         apyBaseBorrow:
