@@ -18,12 +18,27 @@ const ABIS = {
     stateMutability: 'view',
     type: 'function',
   },
+  getMCR: {
+    inputs: [],
+    name: 'MCR',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 };
 const main = async () => {
   const troveEthTvl = (
     await sdk.api.abi.call({
       target: TROVE_MANAGER_ADDRESS,
       abi: ABIS.getEntireSystemColl,
+      chain: 'ethereum',
+    })
+  ).output;
+
+  const mcr = (
+    await sdk.api.abi.call({
+      target: TROVE_MANAGER_ADDRESS,
+      abi: ABIS.getMCR,
       chain: 'ethereum',
     })
   ).output;
@@ -59,6 +74,7 @@ const main = async () => {
       apyBaseBorrow: Number(troveType.borrowFee) * 100,
       totalSupplyUsd: (Number(troveEthTvl) / 1e18) * Number(troveType.price),
       totalBorrowUsd: totalSupplyUsd,
+      ltv: 1 / (mcr / 1e18),
     },
   ];
 };
