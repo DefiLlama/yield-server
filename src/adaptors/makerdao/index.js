@@ -287,6 +287,10 @@ const main = async () => {
       const debtScalingFactor = new BigNumber(ilks[index].rate).div(1e27);
       const totalBorrowUsd = debtScalingFactor.multipliedBy(art);
       const debtCeilingUsd = new BigNumber(ilks[index].line).div(1e45);
+      const tvlUsd = new BigNumber(tokenBalances[index])
+        .dividedBy(new BigNumber(10).pow(decimals[index]))
+        .multipliedBy(prices[gems[index].toLowerCase()])
+        .toNumber();
       return {
         pool: joins[index],
         project: 'makerdao',
@@ -296,13 +300,10 @@ const main = async () => {
           ? ethers.utils.parseBytes32String(ilkIds[index])
           : '',
         apy: 0,
-        tvlUsd: new BigNumber(tokenBalances[index])
-          .dividedBy(new BigNumber(10).pow(decimals[index]))
-          .multipliedBy(prices[gems[index].toLowerCase()])
-          .toNumber(),
+        tvlUsd: tvlUsd,
         // borrow fields
         apyBaseBorrow: stabilityFee.toNumber() * 100,
-        totalSupplyUsd: 0,
+        totalSupplyUsd: tvlUsd,
         totalBorrowUsd: totalBorrowUsd.toNumber(),
         debtCeilingUsd: debtCeilingUsd.toNumber(),
       };
