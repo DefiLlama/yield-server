@@ -249,6 +249,7 @@ const getYieldLendBorrow = async () => {
         "debtCeilingUsd",
         "ltv",
         "borrowable",
+        "mintedCoin",
         "rewardTokens",
         "underlyingTokens"
     FROM
