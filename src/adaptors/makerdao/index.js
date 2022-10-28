@@ -288,7 +288,7 @@ const main = async () => {
       const totalBorrowUsd = debtScalingFactor.multipliedBy(art);
       const debtCeilingUsd = new BigNumber(ilks[index].line).div(1e45);
       return {
-        pool: ilkIds[index],
+        pool: joins[index],
         project: 'makerdao',
         symbol: symbols[index],
         chain: 'ethereum',
