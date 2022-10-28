@@ -56,7 +56,7 @@ const main = async () => {
     const info = convertSymbol(e.collateral_type.split('-')[0]);
     return {
       ...info,
-      amount: Number(e.amount.amount / 10 ** (info?.decimals || 0)),
+      amount: Number(e.amount.amount / 10 ** 6),
       type: e.collateral_type,
     };
   });
@@ -71,11 +71,11 @@ const main = async () => {
       const collateral = dispoisted.find((e) => e.type === pool.type);
       const _borrowed = borrowed.find((e) => e.type === pool.type);
       const totalSupplyUsd = collateral.amount * prices[pool.id.toLowerCase()];
-      const totalBorrowUsd = _borrowed.amount * prices[pool.id.toLowerCase()];
+      const totalBorrowUsd = _borrowed.amount * prices[USDX_ID.toLowerCase()];
       const ltv = (1 / Number(parameter.liquidation_ratio)) * 100;
-      const debtCeiling =
-        Number(parameter.debt_limit / 10 ** 6) - Number(collateral.amount);
-      const debtCeilingUsd = debtCeiling * prices[USDX_ID.toLowerCase()];
+      const debtCeilingUsd =
+        Number(parameter.debt_limit / 10 ** 6) * prices[USDX_ID.toLowerCase()];
+      // const totalBorrowUsd = debtCeilingUsd - totalBorrow;
       return {
         pool: `${pool.id}-${pool.symbol}-${pool.type}`,
         chain: utils.formatChain('kava'),
