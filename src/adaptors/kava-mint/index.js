@@ -1,6 +1,7 @@
 const axios = require('axios');
 const superagent = require('superagent');
 const utils = require('../utils');
+const USDX_ID = 'usdx';
 
 const getPrices = async (addresses) => {
   const prices = (
@@ -38,6 +39,7 @@ const main = async () => {
       stability_fee: e.stability_fee,
       type: e.type,
       liquidation_ratio: e.liquidation_ratio,
+      debt_limit: e.debt_limit.amount,
     };
   });
 
@@ -60,7 +62,7 @@ const main = async () => {
   });
 
   const coins = dispoisted.map((e) => `coingecko:${e.id}`);
-  const prices = await getPrices(coins);
+  const prices = await getPrices([...coins, `coingecko:${USDX_ID}`]);
 
   return parameters
     .filter((e) => e.id)
@@ -71,6 +73,9 @@ const main = async () => {
       const totalSupplyUsd = collateral.amount * prices[pool.id.toLowerCase()];
       const totalBorrowUsd = _borrowed.amount * prices[pool.id.toLowerCase()];
       const ltv = (1 / Number(parameter.liquidation_ratio)) * 100;
+      const debtCeiling =
+        Number(parameter.debt_limit / 10 ** 6) - Number(collateral.amount);
+      const debtCeilingUsd = debtCeiling * prices[USDX_ID.toLowerCase()];
       return {
         pool: `${pool.id}-${pool.symbol}-${pool.type}`,
         chain: utils.formatChain('kava'),
@@ -87,6 +92,7 @@ const main = async () => {
         totalSupplyUsd: totalSupplyUsd,
         totalBorrowUsd: totalBorrowUsd,
         ltv: ltv,
+        debtCeilingUsd: debtCeilingUsd,
       };
     });
 };
