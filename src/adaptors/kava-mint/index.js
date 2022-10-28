@@ -46,6 +46,7 @@ const main = async () => {
     return {
       ...info,
       amount: Number(e.amount.amount / 10 ** (info?.decimals || 0)),
+      type: e.collateral_type,
     };
   });
 
@@ -54,6 +55,7 @@ const main = async () => {
     return {
       ...info,
       amount: Number(e.amount.amount / 10 ** (info?.decimals || 0)),
+      type: e.collateral_type,
     };
   });
 
@@ -63,9 +65,9 @@ const main = async () => {
   return parameters
     .filter((e) => e.id)
     .map((pool) => {
-      const parameter = parameters.find((e) => e.id === pool.id);
-      const collateral = dispoisted.find((e) => e.id === pool.id);
-      const _borrowed = borrowed.find((e) => e.id === pool.id);
+      const parameter = parameters.find((e) => e.type === pool.type);
+      const collateral = dispoisted.find((e) => e.type === pool.type);
+      const _borrowed = borrowed.find((e) => e.type === pool.type);
       const totalSupplyUsd = collateral.amount * prices[pool.id.toLowerCase()];
       const totalBorrowUsd = _borrowed.amount * prices[pool.id.toLowerCase()];
       const ltv = (1 / Number(parameter.liquidation_ratio)) * 100;
