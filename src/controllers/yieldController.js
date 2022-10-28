@@ -246,7 +246,9 @@ const getYieldLendBorrow = async () => {
         "apyRewardBorrow",
         "totalSupplyUsd",
         "totalBorrowUsd",
+        "debtCeilingUsd",
         "ltv",
+        "borrowable",
         "rewardTokens",
         "underlyingTokens"
     FROM
@@ -296,6 +298,7 @@ const getYieldLendBorrowHistory = async (configID) => {
         timestamp,
         "totalSupplyUsd",
         "totalBorrowUsd",
+        "debtCeilingUsd",
         "apyBase",
         "apyReward",
         "apyBaseBorrow",
@@ -352,6 +355,7 @@ const buildInsertYieldQuery = (payload) => {
     { name: 'apyRewardBorrow', def: null },
     { name: 'totalSupplyUsd', def: null },
     { name: 'totalBorrowUsd', def: null },
+    { name: 'debtCeilingUsd', def: null },
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
   return pgp.helpers.insert(payload, cs);

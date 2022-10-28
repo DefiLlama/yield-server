@@ -160,6 +160,27 @@ const ILK_REGISTRY = {
   },
 };
 
+const MCD_VAT = {
+  address: '0x35D1b3F3D7966A1DFe207aa4514C12a259A0492B',
+  abis: {
+    ilks: {
+      constant: true,
+      inputs: [{ internalType: 'bytes32', name: '', type: 'bytes32' }],
+      name: 'ilks',
+      outputs: [
+        { internalType: 'uint256', name: 'Art', type: 'uint256' },
+        { internalType: 'uint256', name: 'rate', type: 'uint256' },
+        { internalType: 'uint256', name: 'spot', type: 'uint256' },
+        { internalType: 'uint256', name: 'line', type: 'uint256' },
+        { internalType: 'uint256', name: 'dust', type: 'uint256' },
+      ],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+  },
+};
+
 function onlyUnique(value, index, self) {
   return self.indexOf(value) === index;
 }
@@ -225,6 +246,18 @@ const main = async () => {
       requery: true,
     })
   ).output.map((x) => x.output);
+
+  const ilks = (
+    await sdk.api.abi.multiCall({
+      calls: ilkIds.map((ilkId) => ({
+        target: MCD_VAT.address,
+        params: [ilkId],
+      })),
+      abi: MCD_VAT.abis.ilks,
+      requery: true,
+    })
+  ).output.map((x) => x.output);
+
   const rate = ilksDatas.map((e) => e.duty);
   const tokenBalances = (
     await sdk.api.abi.multiCall({
@@ -244,12 +277,20 @@ const main = async () => {
     '0x3432343135343264343130303030303030303030303030303030303030303030',
     '0x3078353734323534343332643433303030303030303030303030303030303030',
   ];
+
   return joins
     .map((_, index) => {
       const normalizRate = new BigNumber(rate[index]).dividedBy(RAY);
       BigNumber.config({ POW_PRECISION: 100 });
       const stabilityFee = normalizRate.pow(SECONDS_PER_YEAR).minus(1);
-
+      const art = new BigNumber(ilks[index].Art).div(1e18);
+      const debtScalingFactor = new BigNumber(ilks[index].rate).div(1e27);
+      const totalBorrowUsd = debtScalingFactor.multipliedBy(art);
+      const debtCeilingUsd = new BigNumber(ilks[index].line).div(1e45);
+      const tvlUsd = new BigNumber(tokenBalances[index])
+        .dividedBy(new BigNumber(10).pow(decimals[index]))
+        .multipliedBy(prices[gems[index].toLowerCase()])
+        .toNumber();
       return {
         pool: joins[index],
         project: 'makerdao',
@@ -259,14 +300,12 @@ const main = async () => {
           ? ethers.utils.parseBytes32String(ilkIds[index])
           : '',
         apy: 0,
-        tvlUsd: new BigNumber(tokenBalances[index])
-          .dividedBy(new BigNumber(10).pow(decimals[index]))
-          .multipliedBy(prices[gems[index].toLowerCase()])
-          .toNumber(),
+        tvlUsd: tvlUsd,
         // borrow fields
         apyBaseBorrow: stabilityFee.toNumber() * 100,
-        totalSupplyUsd: 0,
-        totalBorrowUsd: 0,
+        totalSupplyUsd: tvlUsd,
+        totalBorrowUsd: totalBorrowUsd.toNumber(),
+        debtCeilingUsd: debtCeilingUsd.toNumber(),
       };
     })
     .filter((e) => e.tvlUsd !== NaN)
