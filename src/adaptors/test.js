@@ -28,7 +28,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'totalBorrowUsd',
       'ltv',
       'borrowable',
-      'debtCeiling',
+      'debtCeilingUsd',
     ];
     const fields = [...Object.keys(baseFields), ...optionalFields, 'tvlUsd'];
     apy.forEach((pool) => {
