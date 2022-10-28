@@ -163,13 +163,14 @@ async function getFarmPoolApyData(tokenInfos) {
   for (let farm of Object.values(farms)) {
     const token1 = tokensMetadata[farm['token1_id']];
     const token2 = tokensMetadata[farm['token2_id']];
+    const farmInfos = [];
 
-    const leverage = farm.max_leverage;
+    for (let lev = 1000; lev <= farm.max_leverage; lev += 500) {
+      farmInfos.push(calcFarmTableData(farm, true, lev, tokens));
+      farmInfos.push(calcFarmTableData(farm, false, lev, tokens));
+    }
 
-    const dataToken1 = calcFarmTableData(farm, true, leverage, tokens);
-    const dataToken2 = calcFarmTableData(farm, false, leverage, tokens);
-
-    const data = dataToken1.apy > dataToken2.apy ? dataToken1 : dataToken2;
+    const data = farmInfos.sort((info1, info2) => info2.apy - info1.apy)[0];
 
     farmPoolsApyData.push({
       pool: `ref-pool-${farm.ref_pool_id}-farming`,
