@@ -51,7 +51,6 @@ interface TokenInfo {
   lend_shares: string;
   debt_shares: string;
   debt_rate?: string;
-  lend_apy?: string; // APR (not APY !!!)
   lend_reward_rate_per_week: string;
   debt_reward_rate_per_week: string;
 }
