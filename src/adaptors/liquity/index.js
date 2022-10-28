@@ -75,6 +75,7 @@ const main = async () => {
       totalSupplyUsd: (Number(troveEthTvl) / 1e18) * Number(troveType.price),
       totalBorrowUsd: totalSupplyUsd,
       ltv: 1 / (mcr / 1e18),
+      mintedCoin: 'LUSD',
     },
   ];
 };
