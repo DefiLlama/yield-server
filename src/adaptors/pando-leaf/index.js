@@ -35,6 +35,8 @@ async function main() {
       .times(prices[PUSD_ID.toLowerCase()])
       .toNumber();
     const ltv = (1 / Number(col.mat)) * 100;
+    const debtCeiling = Number(col.line) - Number(col.debt);
+    const debtCeilingUsd = debtCeiling * prices[PUSD_ID.toLowerCase()];
     return {
       pool: col.id,
       project: 'pando-leaf',
@@ -46,6 +48,7 @@ async function main() {
       totalSupplyUsd: totalSupplyUsd,
       totalBorrowUsd: totalBorrowUsd,
       ltv: ltv,
+      debtCeilingUsd: debtCeilingUsd,
     };
   });
 }
