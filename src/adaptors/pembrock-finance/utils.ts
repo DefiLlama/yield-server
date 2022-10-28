@@ -51,7 +51,6 @@ interface TokenInfo {
   lend_shares: string;
   debt_shares: string;
   debt_rate?: string;
-  debt_apy?: string; // APR (not APY !!!)
   lend_apy?: string; // APR (not APY !!!)
   lend_reward_rate_per_week: string;
   debt_reward_rate_per_week: string;
@@ -242,28 +241,6 @@ const calcFarmTVL = (
   return token1_value.plus(token2_value);
 };
 
-const calcLeveragedFarmDataFormatted = (
-  farm: FarmInfo,
-  leverage: number,
-  token: TokenWithMetadata,
-  pemToken: TokenWithMetadata
-): FarmTableData => {
-  let debtRate =
-    typeof token.debt_rate === 'undefined'
-      ? new BigNumber(token.debt_apy).div(10000)
-      : new BigNumber(token.debt_rate).shiftedBy(-24);
-  const calcData = calcLeveragedFarmData(
-    farm,
-    leverage,
-    debtRate,
-    token,
-    pemToken
-  );
-  return {
-    apy: formatBigNumber(calcData.totalApy.multipliedBy(100)),
-  };
-};
-
 const calcFarmTableData = (
   farm: FarmInfo,
   debtIsToken1: boolean,
@@ -275,14 +252,19 @@ const calcFarmTableData = (
     (item) => item.id === (debtIsToken1 ? farm.token1_id : farm.token2_id)
   );
 
-  let obj = {
+  const debtRate = new BigNumber(token.debt_rate).shiftedBy(-24);
+  const calcData = calcLeveragedFarmData(
+    farm,
+    leverage,
+    debtRate,
+    token,
+    pemToken
+  );
+
+  return {
     tvl: formatBigNumber(calcFarmTVL(farm, tokens)),
-    ...calcLeveragedFarmDataFormatted(farm, leverage, token, pemToken),
+    apy: formatBigNumber(calcData.totalApy.multipliedBy(100)),
   };
-
-  //console.log("calcFarmTableData", obj);
-
-  return obj;
 };
 
 const calcLendRewardsAPR = (
@@ -317,10 +299,7 @@ const calculateLendTableData = (
 ): LendTableData => {
   // TODO: use settings.borrow_fee
   const borrow_fee = 100; // 10%
-  const debt_rate =
-    typeof token.debt_rate === 'undefined'
-      ? new BigNumber(token.debt_apy).div(10000)
-      : new BigNumber(token.debt_rate).shiftedBy(-24);
+  const debt_rate = new BigNumber(token.debt_rate).shiftedBy(-24);
   const lendAPR = token.total_supply
     ? debt_rate
         .multipliedBy(10000 - borrow_fee)
