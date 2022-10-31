@@ -30,8 +30,6 @@ provider:
           Resource: '*'
 
   environment:
-    # for entrypoint and enrichment
-    ADAPTORS: ${file(./env.js):ADAPTORS}
     # for api handlers
     APIG_URL:
       {
