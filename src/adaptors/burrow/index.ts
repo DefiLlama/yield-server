@@ -17,17 +17,15 @@ function getBurrowStats() {
 }
 
 async function getBurrowFarms() {
-    let burrowPoolStats = await getBurrowStats();
-
     const target_list = [];
-    burrowPoolStats.map(item => {
+    (await getBurrowStats()).map(item => {
         const target = {
             pool: 'burrow-pool-' + item.token_id,
             chain: 'NEAR',
             project: 'burrow',
             symbol: item.symbol,
             tvlUsd: item.tvlUsd,
-            apyReward: item.apyReward,
+            apyReward: item.apyReward + item.apyRewardTvl,
             apyBase: item.apyBase,
             underlyingTokens: [item.token_id],
             rewardTokens: item.rewardTokens,
