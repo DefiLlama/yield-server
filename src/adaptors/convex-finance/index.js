@@ -8,7 +8,6 @@ const abi = require('./abi.json');
 const baseRewardPoolAbi = require('./baseRewardPoolAbi.json');
 const virtualBalanceRewardPoolAbi = require('./virtualBalanceRewardPoolAbi.json');
 
-const poolsDefault = require('./pools.json');
 const { symbol } = require('@defillama/sdk/build/erc20');
 
 const web3 = new Web3(process.env.INFURA_CONNECTION);
@@ -318,37 +317,21 @@ const main = async () => {
     })
   );
 
-  const getPoolApy = (pool) => {
-    const defaultPool =
-      poolsDefault.find(
-        ({ lptoken }) => lptoken.toLowerCase() === pool.lptoken.toLowerCase()
-      ) || {};
-    const poolName =
-      defaultPool.name ||
-      (
-        (pool.name || '').toLowerCase() +
-        (pool.symbol || '').toLowerCase() +
-        pool.coins.map(({ symbol }) => symbol.toLowerCase()).join('')
-      ).replace('/', '');
-
-    let [name, apyObj] =
-      Object.entries(curveApys).find(([name, val]) =>
-        poolName.includes(name)
-      ) || [];
-
-    if (defaultPool.name) {
-      name = defaultPool.name;
-      apyObj = curveApys[defaultPool.name];
-    }
-
-    const baseApy = (apyObj && apyObj.baseApy) || 0;
-
-    return { baseApy };
-  };
-
   const res = poolsWithApr
     .map((pool) => {
-      const { baseApy } = getPoolApy(pool);
+      let poolObj = poolsList.filter(
+        (p) => p.address?.toLowerCase() === pool.address?.toLowerCase()
+      );
+      // for some pools (i saw it with ~5) poolsList has
+      // duplicated objects with exact same address but different id's.
+      // in that case, we remove the one with factory in the id string
+      poolObj =
+        poolObj?.length > 1
+          ? poolObj.find((p) => !p.id.includes('factory'))
+          : poolObj[0];
+
+      const poolId = poolObj?.id;
+      const baseApy = poolId ? curveApys[poolId]?.baseApy : undefined;
 
       return {
         pool: pool.lptoken,
