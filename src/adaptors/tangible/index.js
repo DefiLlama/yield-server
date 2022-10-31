@@ -19,8 +19,6 @@ const poolsFunction = async () => {
   const apyData = await utils.getData(
     'http://usdr-api.us-east-1.elasticbeanstalk.com/usdr/apy'
   );
-  const usdrAPY = Number(apyData.usdr);
-  const tngblAPY = Number(apyData.tngbl);
 
   const totalSupply = await USDR.totalSupply();
 
@@ -30,8 +28,8 @@ const poolsFunction = async () => {
     project: 'tangible',
     symbol: utils.formatSymbol('USDR'),
     tvlUsd: Number(totalSupply) / 1e9,
-    apy: usdrAPY + tngblAPY,
-    apyReward: tngblAPY,
+    apyBase: Number(apyData.usdr),
+    apyReward: Number(apyData.tngbl),
     rewardTokens: [TNGBL_ADDRESS],
     underlyingTokens: [USDR_ADDRESS],
   };
