@@ -28,7 +28,7 @@ const poolsFunction = async () => {
     project: 'tangible',
     symbol: utils.formatSymbol('USDR'),
     tvlUsd: Number(totalSupply) / 1e9,
-    apy: Number(apyData.usdr),
+    apyBase: Number(apyData.usdr),
     apyReward: Number(apyData.tngbl),
     rewardTokens: [TNGBL_ADDRESS],
     underlyingTokens: [USDR_ADDRESS],
