@@ -3,14 +3,14 @@ const ethers = require('ethers');
 const utils = require('../utils');
 
 const provider = new ethers.providers.StaticJsonRpcProvider(
-    'https://polygon-rpc.com'
+  'https://polygon-rpc.com'
 );
 
 const USDR_ADDRESS = '0xb5DFABd7fF7F83BAB83995E72A52B97ABb7bcf63';
 const USDR = new ethers.Contract(
-    USDR_ADDRESS,
-    ['function totalSupply() view returns (uint256)'],
-    provider
+  USDR_ADDRESS,
+  ['function totalSupply() view returns (uint256)'],
+  provider
 );
 
 const TNGBL_ADDRESS = '0x49e6A20f1BBdfEeC2a8222E052000BbB14EE6007';
@@ -31,7 +31,7 @@ const poolsFunction = async () => {
     apy: Number(apyData.usdr),
     apyReward: Number(apyData.tngbl),
     rewardTokens: [TNGBL_ADDRESS],
-    poolMeta: 'USDR'
+    underlyingTokens: [USDR_ADDRESS],
   };
 
   return [usdrPool];
