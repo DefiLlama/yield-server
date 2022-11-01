@@ -54,6 +54,9 @@ const ABI = {
     type: 'function',
   },
 };
+const HOUR = 60 * 60;
+const DAY = 24 * HOUR;
+const SECONDS_PER_YEAR = 365 * DAY;
 
 const BIG_TEN = new BigNumber(10);
 const main = async () => {
@@ -81,6 +84,14 @@ const main = async () => {
   const totalBorrowUsd = new BigNumber(collateralTypesCall.debtAmount)
     .div(BIG_TEN.pow(18))
     .times(prices[RAI.toLowerCase()]);
+  const debtCeilingUsd = new BigNumber(collateralTypesCall.debtCeiling)
+    .div(BIG_TEN.pow(45))
+    .times(prices[RAI.toLowerCase()]);
+  const normalizRate = new BigNumber(
+    collateralTypesCall.accumulatedRate
+  ).dividedBy(BIG_TEN.pow(27));
+  BigNumber.config({ POW_PRECISION: 100 });
+  const stabilityFee = normalizRate.toNumber();
   return [
     {
       pool: ETH_JOIN,
@@ -90,10 +101,10 @@ const main = async () => {
       apy: 0,
       tvlUsd: tvlUsd.toNumber(),
       // borrow fields
-      apyBaseBorrow: 0,
+      apyBaseBorrow: ((stabilityFee - 1) / 1) * 100,
       totalSupplyUsd: tvlUsd.toNumber(),
       totalBorrowUsd: totalBorrowUsd.toNumber(),
-      debtCeilingUsd: 0,
+      debtCeilingUsd: debtCeilingUsd.toNumber(),
       mintedCoin: 'RAI',
     },
   ];
