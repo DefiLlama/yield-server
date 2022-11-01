@@ -47,15 +47,13 @@ const cdpDataFunction = async () => {
         project: 'kokoa-finance',
         symbol: symbols[index],
         chain: utils.formatChain('klaytn'),
-        apyBase: Number(pool.yieldApr),
-        apyReward: Number(pool.rewardApr),
-        poolMeta: ethers.utils.parseBytes32String(pool.collateralType),
+        apy: 0,
         tvlUsd: totalSupplyUsd,
-        apyBaseBorrow: Number(pool.stabilityFeeApr),
+        apyRewardBorrow: Number(pool.rewardApr),
         totalSupplyUsd: totalSupplyUsd,
         rewardTokens: [KOKOA],
         totalBorrowUsd: totalBorrowUsd,
-        ltv: Number(pool.liqLtvPercent),
+        ltv: Number(pool.liqLtvPercent) / 100,
         mintedCoin: 'KSD',
       };
     })
