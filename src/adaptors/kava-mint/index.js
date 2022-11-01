@@ -91,6 +91,7 @@ const main = async () => {
         totalBorrowUsd: totalBorrowUsd,
         ltv: ltv,
         debtCeilingUsd: debtCeilingUsd,
+        mintedCoin: 'KSD',
       };
     });
 };
