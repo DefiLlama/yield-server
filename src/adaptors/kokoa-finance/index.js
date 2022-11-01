@@ -50,6 +50,7 @@ const cdpDataFunction = async () => {
         apy: 0,
         tvlUsd: totalSupplyUsd,
         apyRewardBorrow: Number(pool.rewardApr),
+        apyBaseBorrow: Number(pool.stabilityFeeApr),
         totalSupplyUsd: totalSupplyUsd,
         rewardTokens: [KOKOA],
         totalBorrowUsd: totalBorrowUsd,
