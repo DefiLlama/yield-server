@@ -72,10 +72,9 @@ const main = async () => {
       const _borrowed = borrowed.find((e) => e.type === pool.type);
       const totalSupplyUsd = collateral.amount * prices[pool.id.toLowerCase()];
       const totalBorrowUsd = _borrowed.amount * prices[USDX_ID.toLowerCase()];
-      const ltv = (1 / Number(parameter.liquidation_ratio)) * 100;
+      const ltv = 1 / Number(parameter.liquidation_ratio);
       const debtCeilingUsd =
         Number(parameter.debt_limit / 10 ** 6) * prices[USDX_ID.toLowerCase()];
-      // const totalBorrowUsd = debtCeilingUsd - totalBorrow;
       return {
         pool: `${pool.id}-${pool.symbol}-${pool.type}`,
         chain: utils.formatChain('kava'),
@@ -88,7 +87,6 @@ const main = async () => {
           pool.type === 'busd-b'
             ? 50
             : (Number(parameter.stability_fee) ** 31536000 - 1) * 100,
-        apyRewardBorrow: 0,
         totalSupplyUsd: totalSupplyUsd,
         totalBorrowUsd: totalBorrowUsd,
         ltv: ltv,
