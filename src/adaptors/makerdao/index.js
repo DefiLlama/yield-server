@@ -157,6 +157,13 @@ const ILK_REGISTRY = {
       stateMutability: 'view',
       type: 'function',
     },
+    list: {
+      inputs: [],
+      name: 'list',
+      outputs: [{ internalType: 'bytes32[]', name: '', type: 'bytes32[]' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
   },
 };
 
@@ -204,23 +211,13 @@ const getPrices = async (addresses) => {
 };
 
 const main = async () => {
-  const cdpi = (
+  const ilkIds = (
     await sdk.api.abi.call({
-      target: CDP_MANAGER.address,
-      abi: CDP_MANAGER.abis.cdpi,
+      target: ILK_REGISTRY.address,
+      abi: ILK_REGISTRY.abis.list,
       chain: 'ethereum',
     })
   ).output;
-  const cdps = Array.from(Array(Number(cdpi)).keys()).map((x) => x + 1); // starts from 1
-
-  const ilkIdsCall = (
-    await sdk.api.abi.multiCall({
-      calls: cdps.map((i) => ({ target: CDP_MANAGER.address, params: [i] })),
-      abi: CDP_MANAGER.abis.ilks,
-      requery: true,
-    })
-  ).output.map((x) => x.output);
-  const ilkIds = ilkIdsCall.filter(onlyUnique);
   const ilkDatas = (
     await sdk.api.abi.multiCall({
       calls: ilkIds.map((ilkId) => ({
@@ -306,6 +303,7 @@ const main = async () => {
         totalSupplyUsd: tvlUsd,
         totalBorrowUsd: totalBorrowUsd.toNumber(),
         debtCeilingUsd: debtCeilingUsd.toNumber(),
+        mintedCoin: 'DAI',
       };
     })
     .filter((e) => e.tvlUsd !== NaN)
