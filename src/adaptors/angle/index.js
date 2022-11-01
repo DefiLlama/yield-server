@@ -97,7 +97,7 @@ const cdpData = async () => {
         apyBaseBorrow: ((_vault.stabilityFee - 1) / 1) * 100,
         totalSupplyUsd: totalSupplyUsd,
         totalBorrowUsd: totalBorrowUsd,
-        ltv: Number(_vault.maxLTV) * 100,
+        ltv: Number(_vault.maxLTV),
         mintedCoin: 'agEUR',
         debtCeilingUsd:
           (Number(_vault.debtCeiling) / 10 ** 18) * mintedCoinPrice,
