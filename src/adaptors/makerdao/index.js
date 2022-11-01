@@ -188,6 +188,24 @@ const MCD_VAT = {
   },
 };
 
+const MCD_SPOT = {
+  address: '0x65C79fcB50Ca1594B025960e539eD7A9a6D434A3',
+  abis: {
+    ilks: {
+      constant: true,
+      inputs: [{ internalType: 'bytes32', name: '', type: 'bytes32' }],
+      name: 'ilks',
+      outputs: [
+        { internalType: 'contract PipLike', name: 'pip', type: 'address' },
+        { internalType: 'uint256', name: 'mat', type: 'uint256' },
+      ],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+  },
+};
+
 function onlyUnique(value, index, self) {
   return self.indexOf(value) === index;
 }
@@ -254,7 +272,16 @@ const main = async () => {
       requery: true,
     })
   ).output.map((x) => x.output);
-
+  const spots = (
+    await sdk.api.abi.multiCall({
+      calls: ilkIds.map((ilkId) => ({
+        target: MCD_SPOT.address,
+        params: [ilkId],
+      })),
+      abi: MCD_SPOT.abis.ilks,
+      requery: true,
+    })
+  ).output.map((x) => x.output);
   const rate = ilksDatas.map((e) => e.duty);
   const tokenBalances = (
     await sdk.api.abi.multiCall({
@@ -288,6 +315,8 @@ const main = async () => {
         .dividedBy(new BigNumber(10).pow(decimals[index]))
         .multipliedBy(prices[gems[index].toLowerCase()])
         .toNumber();
+      const spot = spots[index];
+      const liquidationRatio = new BigNumber(spot.mat).div(1e27);
       return {
         pool: joins[index],
         project: 'makerdao',
@@ -304,6 +333,7 @@ const main = async () => {
         totalBorrowUsd: totalBorrowUsd.toNumber(),
         debtCeilingUsd: debtCeilingUsd.toNumber(),
         mintedCoin: 'DAI',
+        ltv: 1 / Number(liquidationRatio.toNumber()),
       };
     })
     .filter((e) => e.tvlUsd !== NaN)
