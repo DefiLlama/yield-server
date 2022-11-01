@@ -34,7 +34,7 @@ async function main() {
       .multipliedBy(new BigNumber(col.rate))
       .times(prices[PUSD_ID.toLowerCase()])
       .toNumber();
-    const ltv = (1 / Number(col.mat)) * 100;
+    const ltv = 1 / Number(col.mat);
     const debtCeiling = Number(col.line) - Number(col.debt);
     const debtCeilingUsd = debtCeiling * prices[PUSD_ID.toLowerCase()];
     return {
@@ -49,6 +49,7 @@ async function main() {
       totalBorrowUsd: totalBorrowUsd,
       ltv: ltv,
       debtCeilingUsd: debtCeilingUsd,
+      mintedCoin: 'pUSD',
     };
   });
 }
