@@ -137,6 +137,7 @@ const getApy = async () => {
         (Number(collateral) / 1e18) * prices[`bsc:${WBNB.toLowerCase()}`].price,
       totalBorrowUsd: totalSupplyUsd,
       ltv: 1 / Number(liquidationRatio.toNumber()),
+      mintedCoin: 'HAY',
     },
   ];
 };
