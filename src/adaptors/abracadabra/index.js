@@ -1,4 +1,5 @@
 const sdk = require('@defillama/sdk');
+const { default: BigNumber } = require('bignumber.js');
 const superagent = require('superagent');
 const utils = require('../utils');
 const { poolAbi, lpAbi, curveLpAbi } = require('./abi');
@@ -249,9 +250,147 @@ const getApy = async () => {
 
   return pools.flat();
 };
+const ABICDP = {
+  collateral: {
+    inputs: [],
+    name: 'collateral',
+    outputs: [
+      {
+        internalType: 'contract IERC20',
+        name: '',
+        type: 'address',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  COLLATERIZATION_RATE: {
+    inputs: [],
+    name: 'COLLATERIZATION_RATE',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  totalBorrow: {
+    inputs: [],
+    name: 'totalBorrow',
+    outputs: [
+      {
+        internalType: 'uint128',
+        name: 'elastic',
+        type: 'uint128',
+      },
+      {
+        internalType: 'uint128',
+        name: 'base',
+        type: 'uint128',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+};
+
+const cdpChainMap = {
+  1: 'ethereum',
+  43114: 'avalanche',
+  250: 'fantom',
+  42161: 'arbitrum',
+  56: 'binance',
+};
+
+const chainMap = {
+  1: 'ethereum',
+  43114: 'avax',
+  250: 'fantom',
+  42161: 'arbitrum',
+  56: 'bsc',
+};
+const MIM_ID = 'magic-internet-money';
+const getCdp = async () => {
+  const URL = 'https://analytics.abracadabra.money/api/pools';
+  const data = (await utils.getData(URL)).pools;
+  const mimPrice = (await utils.getPrices([`coingecko:${MIM_ID}`]))
+    .pricesByAddress[MIM_ID.toLowerCase()];
+  const result = [];
+  for (const chainId of Object.keys(cdpChainMap)) {
+    const dataByChain = data.filter((e) => e.network == chainId);
+    const chain = cdpChainMap[chainId];
+    console.log(chain);
+    const collateralAddress = (
+      await sdk.api.abi.multiCall({
+        abi: ABICDP.collateral,
+        calls: dataByChain.map((p) => {
+          return { target: p.address };
+        }),
+        chain: chainMap[chainId],
+      })
+    ).output.map((e) => e.output);
+
+    const collateralRate = (
+      await sdk.api.abi.multiCall({
+        abi: ABICDP.COLLATERIZATION_RATE,
+        calls: dataByChain.map((p) => {
+          return { target: p.address };
+        }),
+        chain: chainMap[chainId],
+      })
+    ).output.map((e) => e.output);
+
+    const underlyings = (
+      await sdk.api.abi.multiCall({
+        abi: 'erc20:symbol',
+        calls: collateralAddress.map((target) => {
+          return { target };
+        }),
+        chain: chainMap[chainId],
+        requery: false,
+      })
+    ).output.map((e) => e.output);
+    const coins = collateralAddress.map((address) => `${chain}:${address}`);
+    const prices = (await utils.getPrices(coins)).pricesByAddress;
+
+    const _result = dataByChain.map((pool, index) => {
+      const totalSupplyUsd =
+        Number(pool.totalCollaterel) *
+        prices[collateralAddress[index].toLowerCase()];
+      const totalBorrowUsd = Number(pool.totalBorrowed) * mimPrice;
+      return {
+        pool: `${pool.address}-${chain}`,
+        project: 'abracadabra',
+        chain: utils.formatChain(chain),
+        symbol: underlyings[index],
+        apy: 0,
+        tvlUsd: totalSupplyUsd,
+        apyBaseBorrow: Number(pool.borrowFee),
+        totalSupplyUsd: totalSupplyUsd,
+        totalBorrowUsd: totalBorrowUsd,
+        ltv: collateralRate[index] / 1000,
+        mintedCoin: 'MIM',
+      };
+    });
+    result.push(_result);
+  }
+  return result
+    .flat()
+    .filter((e) => e.tvlUsd)
+    .filter((e) => e.totalSupplyUsd);
+};
+
+const main = async () => {
+  const apy = await getApy();
+  const cdp = await getCdp();
+  return [...apy, ...cdp];
+};
 
 module.exports = {
   timetravel: false,
-  apy: getApy,
+  apy: main,
   url: 'https://abracadabra.money/markets/farm',
 };
