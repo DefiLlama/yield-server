@@ -50,7 +50,9 @@ const calculateApy = (ratePerTimestamps) => {
   const daysPerYear = 365;
 
   return (
-    (Math.pow(ratePerTimestamps * secondsPerDay + 1, daysPerYear) - 1) * 100
+    (Math.pow((ratePerTimestamps / 1e18) * secondsPerDay + 1, daysPerYear) -
+      1) *
+    100
   );
 };
 
@@ -101,7 +103,6 @@ const getApy = async () => {
     })
   ).output.map(({ output }) => output);
 
-  console.log(marketsInfo);
   const qiRewards = await getRewards(REWARD_TYPES.QI, allMarkets);
   const avaxRewards = await getRewards(REWARD_TYPES.AVAX, allMarkets);
 
@@ -111,13 +112,13 @@ const getApy = async () => {
     allMarkets,
     true
   );
-  const supplyRewards = await multiCallMarkets(
+  const supplyRatePerTimestamp = await multiCallMarkets(
     allMarkets,
     'supplyRatePerTimestamp',
     qiErc
   );
 
-  const borrowRewards = await multiCallMarkets(
+  const borrowRatePerTimestamp = await multiCallMarkets(
     allMarkets,
     'borrowRatePerTimestamp',
     qiErc
@@ -162,8 +163,8 @@ const getApy = async () => {
     const tvlUsd =
       (marketsCash[i] / 10 ** decimals) * prices[token.toLowerCase()];
 
-    const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
-    const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
+    const apyBase = calculateApy(supplyRatePerTimestamp[i]);
+    const apyBaseBorrow = calculateApy(borrowRatePerTimestamp[i]);
 
     const qiApy =
       (((qiRewards[i] / 10 ** QI.decimals) *
