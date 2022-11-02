@@ -173,6 +173,11 @@ const main = async (body) => {
         p.totalBorrowUsd === undefined || p.totalBorrowUsd === null
           ? null
           : Math.round(p.totalBorrowUsd),
+      debtCeilingUsd:
+        p.debtCeilingUsd === undefined || p.debtCeilingUsd === null
+          ? null
+          : Math.round(p.debtCeilingUsd),
+      mintedCoin: p.mintedCoin ? utils.formatSymbol(p.mintedCoin) : null,
     };
   });
 
