@@ -253,45 +253,47 @@ const main = async () => {
   );
   const prices = (await utils.getPrices(coins)).pricesByAddress;
 
-  return vaults.map((vaultAddress, index) => {
-    const tvlUsd = new BigNumber(totalCollaterals[index])
-      .dividedBy(BIG_10.pow(decimalCollaterals[index]))
-      .times(prices[collateralContracts[index].toLowerCase()]);
-    const totalBorrowUsd = new BigNumber(totalBorrows[index].amount)
-      .dividedBy(BIG_10.pow(18))
-      .times(prices[FRAX.toLowerCase()]);
+  return vaults
+    .map((vaultAddress, index) => {
+      const tvlUsd = new BigNumber(totalCollaterals[index])
+        .dividedBy(BIG_10.pow(decimalCollaterals[index]))
+        .times(prices[collateralContracts[index].toLowerCase()]);
+      const totalBorrowUsd = new BigNumber(totalBorrows[index].amount)
+        .dividedBy(BIG_10.pow(18))
+        .times(prices[FRAX.toLowerCase()]);
 
-    const debtCeilingUsd = new BigNumber(totalSupplys[index])
-      .dividedBy(BIG_10.pow(18))
-      .times(prices[FRAX.toLowerCase()]);
+      const debtCeilingUsd = new BigNumber(totalSupplys[index])
+        .dividedBy(BIG_10.pow(18))
+        .times(prices[FRAX.toLowerCase()]);
 
-    const apyBaseBorrow = new BigNumber(currentRateInfos[index].ratePerSec)
-      .multipliedBy(SECONDS_PER_YEAR)
-      .div(BIG_10.pow(18))
-      .multipliedBy(100);
+      const apyBaseBorrow = new BigNumber(currentRateInfos[index].ratePerSec)
+        .multipliedBy(SECONDS_PER_YEAR)
+        .div(BIG_10.pow(18))
+        .multipliedBy(100);
 
-    const apyRewardBorrow = apyBaseBorrow
-      .multipliedBy(new BigNumber(totalBorrows[index].amount))
-      .div(new BigNumber(totalAssets[index].amount));
-    return {
-      pool: vaultAddress,
-      project: 'fraxlend',
-      symbol: underlyingCollaterals[index],
-      chain: 'ethereum',
-      apy: 0,
-      tvlUsd: tvlUsd.toNumber(),
-      // borrow fields
-      apyBaseBorrow: apyBaseBorrow.toNumber(),
-      apyRewardBorrow: apyRewardBorrow.toNumber(),
-      totalSupplyUsd: tvlUsd.toNumber(),
-      totalBorrowUsd: totalBorrowUsd.toNumber(),
-      debtCeilingUsd: debtCeilingUsd.toNumber(),
-      mintedCoin: 'FRAX',
-      ltv: new BigNumber(maxLTVs[index])
-        .dividedBy(new BigNumber(10000))
-        .toNumber(),
-    };
-  });
+      const apyRewardBorrow = apyBaseBorrow
+        .multipliedBy(new BigNumber(totalBorrows[index].amount))
+        .div(new BigNumber(totalAssets[index].amount));
+      return {
+        pool: vaultAddress,
+        project: 'fraxlend',
+        symbol: underlyingCollaterals[index],
+        chain: 'ethereum',
+        apy: 0,
+        tvlUsd: tvlUsd.toNumber(),
+        // borrow fields
+        apyBaseBorrow: apyBaseBorrow.toNumber(),
+        apyRewardBorrow: apyRewardBorrow.toNumber(),
+        totalSupplyUsd: tvlUsd.toNumber(),
+        totalBorrowUsd: totalBorrowUsd.toNumber(),
+        debtCeilingUsd: debtCeilingUsd.toNumber(),
+        mintedCoin: 'FRAX',
+        ltv: new BigNumber(maxLTVs[index])
+          .dividedBy(new BigNumber(10000))
+          .toNumber(),
+      };
+    })
+    .filter((e) => e.tvlUsd);
 };
 
 module.exports = {
