@@ -2,6 +2,14 @@ const utils = require('../utils');
 const ethers = require('ethers');
 const sdk = require('@defillama/sdk');
 
+const LP_Mapping = {
+  '0x029e2A1B2bb91B66bd25027E1C211E5628dbcb93': 'oETH-oUSDT',
+  '0x2E9269B718cc816De6A9E3C27E5bdb0F6A01b0ac': 'oUSDT-oUSDC',
+  '0xc320066b25B731A11767834839Fe57f9b2186f84': 'oUSDT-KDAI',
+  '0xE75a6A3a800A2C5123e67e3bde911Ba761FE0705': 'KSP-oUSDT',
+  '0x4B50d0e4F29bF5B39a6234B11753fDB3b28E76Fc': 'oXRP-KDAI',
+};
+
 const poolsFunction = async () => {
   const dksdData = await utils.getData(
     'https://prod.kokoa-api.com/earn/status'
@@ -45,7 +53,8 @@ const cdpDataFunction = async () => {
       return {
         pool: pool.address,
         project: 'kokoa-finance',
-        symbol: symbols[index],
+        symbol:
+          symbols[index] === 'KSLP' ? LP_Mapping[pool.address] : symbols[index],
         chain: utils.formatChain('klaytn'),
         apy: 0,
         tvlUsd: totalSupplyUsd,
@@ -56,6 +65,7 @@ const cdpDataFunction = async () => {
         totalBorrowUsd: totalBorrowUsd,
         ltv: Number(pool.liqLtvPercent) / 100,
         mintedCoin: 'KSD',
+        poolMeta: symbols[index] === 'KSLP' ? 'KlaySwap LP' : null,
       };
     })
     .filter((e) => e.symbol);
