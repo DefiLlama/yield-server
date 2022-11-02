@@ -74,6 +74,7 @@ const query = gql`
           rewardToken
           rewardTokenDecimals
           rewardTokenSymbol
+          distributionEnd
         }
       }
       symbol
@@ -184,13 +185,22 @@ const apy = async () => {
         symbol: pool.symbol,
         tvlUsd,
         apyBase: (pool.liquidityRate / 10 ** 27) * 100,
-        apyReward: (rewardPerYear / totalSupplyUsd) * 100,
-        rewardTokens: rewards.map((rew) => rew.rewardToken),
+        apyReward:
+          pool.vToken.distributionEnd > new Date()
+            ? (rewardPerYear / totalSupplyUsd) * 100
+            : null,
+        rewardTokens:
+          pool.vToken.distributionEnd > new Date()
+            ? rewards.map((rew) => rew.rewardToken)
+            : null,
         underlyingTokens: [pool.aToken.underlyingAssetAddress],
         totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow: Number(pool.variableBorrowRate) / 1e25,
-        apyRewardBorrow: (rewardPerYearBorrow / totalBorrowUsd) * 100,
+        apyRewardBorrow:
+          pool.vToken.distributionEnd > new Date()
+            ? (rewardPerYearBorrow / totalBorrowUsd) * 100
+            : null,
         ltv: Number(pool.baseLTVasCollateral) / 10000,
         url: `https://app.aave.com/reserve-overview/?underlyingAsset=${pool.aToken.underlyingAssetAddress}&marketName=${chainUrlParam[chain]}`,
       };
