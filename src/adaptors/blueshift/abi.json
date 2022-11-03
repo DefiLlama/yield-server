@@ -200,7 +200,7 @@
         },
         {
           "internalType": "uint256",
-          "name": "_block",
+          "name": "_timestamp",
           "type": "uint256"
         }
       ],
@@ -266,7 +266,7 @@
         },
         {
           "internalType": "uint256",
-          "name": "_block",
+          "name": "_timestamp",
           "type": "uint256"
         }
       ],
