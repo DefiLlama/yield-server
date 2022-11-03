@@ -95,7 +95,7 @@ async function farming(aprWeights, rewardToken, BLUES_PRICE, portfolios) {
     target: MINTER_CONTRACT,
     params: [
       "0x0000000000000000000000000000000000000000",
-      (await sdk.api.util.getLatestBlock("milkomeda")).number
+      (await sdk.api.util.getLatestBlock("milkomeda")).timestamp
     ],
     // block: chainBlocks['milkomeda'],
   })).output;
@@ -192,7 +192,7 @@ async function staking(aprWeights, rewardToken, BLUES_PRICE, portfolios) {
     target: MINTER_CONTRACT,
     params: [
       "0x0000000000000000000000000000000000000000",
-      (await sdk.api.util.getLatestBlock("milkomeda")).number
+      (await sdk.api.util.getLatestBlock("milkomeda")).timestamp
     ],
     // block: chainBlocks['milkomeda'],
   })).output;
