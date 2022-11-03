@@ -2,17 +2,17 @@
 
 const ChainId = {
   MAINNET: 'ethereum',
-  // FANTOM: 'fantom',
-  // AVALANCHE: 'avax',
-  // ARBITRUM: 'arbitrum',
-  // OPTIMISM: 'optimism',
-  // MOONRIVER: 'moonriver',
-  // MOONBEAM: 'moonbeam',
-  // HARMONY: 'harmony',
-  // BSC: 'bsc',
-  // XDAI: 'xdai',
-  // MATIC: 'polygon',
-  // METIS: 'metis',
+  FANTOM: 'fantom',
+  // AVALANCHE: 'avax', // not found v2
+  // ARBITRUM: 'arbitrum', // not found v2
+  OPTIMISM: 'optimism',
+  // MOONRIVER: 'moonriver', // not found v2
+  MOONBEAM: 'moonbeam',
+  // HARMONY: 'harmony', // not found v2
+  BSC: 'bsc',
+  // XDAI: 'xdai', // not found v2
+  MATIC: 'polygon',
+  METIS: 'metis',
 };
 const FRONTEND = {
   MAI: 'MAI',

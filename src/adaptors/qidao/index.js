@@ -138,10 +138,9 @@ const main = async () => {
       const totalBorrowUsd = new BigNumber(totalBorroweds[index])
         .div(BIG_10.pow(18))
         .times(prices[MAI_ID.toLowerCase()]);
-      const ltv = new BigNumber(totalSupplys[index]).multipliedBy(
-        totalBorroweds[index]
-      );
-      // .div(BIG_10.pow(18));
+      const ltv = new BigNumber(totalSupplys[index])
+        .multipliedBy(totalBorroweds[index])
+        .div(BIG_10.pow(25));
 
       return {
         pool: `${e.vaultAddress}-${_chain}`,
