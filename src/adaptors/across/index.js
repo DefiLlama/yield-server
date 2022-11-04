@@ -1,83 +1,64 @@
-const utils = require('../utils');
 const superagent = require('superagent');
+const utils = require('../utils');
+const { tokens } = require('./constants');
 
 const buildPool = (
-  tokenAddress,
-  tokenSymbol,
-  acrossApiPoolDataForToken,
-  wethPriceData,
-  decimals
+  token,
+  liquidityPool,
 ) => {
   return {
-    pool: tokenAddress,
+    pool: token.address,
     chain: utils.formatChain('ethereum'), // All yield on Mainnet
     project: 'across',
-    symbol: utils.formatSymbol(tokenSymbol),
-    tvlUsd:
-      (wethPriceData.body.coins[`ethereum:${tokenAddress}`].price *
-        Number(acrossApiPoolDataForToken.totalPoolSize)) /
-      10 ** decimals,
-    apyBase: Number(acrossApiPoolDataForToken.estimatedApy) * 100,
-    underlyingTokens: [tokenAddress],
+    symbol: utils.formatSymbol(token.symbol),
+    tvlUsd: (token.price * Number(liquidityPool.totalPoolSize)) / 10 ** token.decimals,
+    apyBase: Number(liquidityPool.estimatedApy) * 100,
+    underlyingTokens: [token.address],
   };
 };
 
-const topLvl = async (token) => {
-  let data = await utils.getData(`https://across.to/api/pools?token=${token}`);
-  return data;
+const queryLiquidityPool = async (l1TokenAddr) => {
+  return await utils.getData(`https://across.to/api/pools?token=${l1TokenAddr}`);
+};
+
+const queryLiquidityPools = async (l1TokenAddrs) => {
+  const pools = await Promise.all(l1TokenAddrs.map((l1TokenAddr) => queryLiquidityPool(l1TokenAddr)));
+  return Object.fromEntries(
+    pools.map((pool) => { return [pool.l1Token.toLowerCase(), pool] })
+  );
+};
+
+const l1TokenPrices = async (l1TokenAddrs) => {
+  const l1TokenQuery = l1TokenAddrs.map((addr) => `ethereum:${addr}`).join();
+  const data = await utils.getData(`https://coins.llama.fi/prices/current/${l1TokenQuery}`);
+
+  return Object.fromEntries(
+    l1TokenAddrs.map((addr) => {
+      const { decimals, price } = data.coins[`ethereum:${addr}`];
+      return [addr.toLowerCase(), { price, decimals }];
+    })
+  );
 };
 
 const main = async () => {
-  const [weth, usdc, wbtc, dai, wethPrice, usdcPrice, wbtcPrice, daiPrice] =
-    await Promise.all([
-      topLvl('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'),
-      topLvl('0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'),
-      topLvl('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'),
-      topLvl('0x6b175474e89094c44da98b954eedeac495271d0f'),
-      superagent.post('https://coins.llama.fi/prices').send({
-        coins: ['ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'],
-      }),
-      superagent.post('https://coins.llama.fi/prices').send({
-        coins: ['ethereum:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'],
-      }),
-      superagent.post('https://coins.llama.fi/prices').send({
-        coins: ['ethereum:0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'],
-      }),
-      superagent.post('https://coins.llama.fi/prices').send({
-        coins: ['ethereum:0x6b175474e89094c44da98b954eedeac495271d0f'],
-      }),
-    ]);
+  const tokenAddrs = Object.values(tokens).map((token) => token.address);
 
-  return [
-    buildPool(
-      '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
-      'WETH',
-      weth,
-      wethPrice,
-      18
-    ),
-    buildPool(
-      '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-      'USDC',
-      usdc,
-      usdcPrice,
-      6
-    ),
-    buildPool(
-      '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
-      'WBTC',
-      wbtc,
-      wbtcPrice,
-      8
-    ),
-    buildPool(
-      '0x6b175474e89094c44da98b954eedeac495271d0f',
-      'DAI',
-      dai,
-      daiPrice,
-      18
-    ),
-  ];
+  const [liquidityPools, tokenPrices] = await Promise.all([
+    queryLiquidityPools(tokenAddrs), l1TokenPrices(tokenAddrs),
+  ]);
+
+  return Object.entries(tokens).map(([symbol, token]) => {
+    const { address } = token;
+    return buildPool(
+      {
+        address,
+        symbol,
+        decimals: tokenPrices[address].decimals,
+        price: tokenPrices[address].price
+      },
+      liquidityPools[address],
+    );
+  });
 };
 
 module.exports = {
