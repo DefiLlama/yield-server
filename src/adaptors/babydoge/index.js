@@ -56,7 +56,7 @@ const main = async (timestamp = null) => {
       symbol,
       tvlUsd: p.totalStakedUsdValue,
       rewardTokens: [p.rewardToken.id],
-      apyBase: p.APR,
+      apyBase: Number(p.APR) * 100,
       underlyingTokens,
     };
   });
