@@ -61,7 +61,7 @@ const main = async (timestamp = null) => {
     };
   });
 
-  return data.filter((p) => utils.keepFinite(p));
+  return pools.filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
