@@ -21,6 +21,7 @@ const getFormatter = (symbol) => {
 // replace / with - and trim potential whitespace
 // set mimatic to mai, uppercase all symbols
 exports.formatSymbol = (symbol) => {
+  return symbol.toUpperCase()
   return symbol
     .replace(getFormatter(symbol), '-')
     .replace(/\s/g, '')

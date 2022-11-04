@@ -88,7 +88,7 @@ const getLpTokens = async (farms) => {
 const farmDataMapping = (entry, lpTokens) => {
   entry = { ...entry };
   entry['lpTokenInfo'] = entry.isStakeTokenLpToken ? lpTokens.find(
-    ({ id }) => id?.toLocaleLowerCase() === entry.stakeToken?.address?.toLocaleLowerCase()) : null
+    ({ id }) => id?.toLocaleLowerCase() === entry.stakeToken?.id?.toLocaleLowerCase()) : null
   return entry
 }
 
@@ -162,7 +162,7 @@ const main = async (timestamp = null) => {
       tvlUsd: Number(p.totalStakedUsdValue),
       rewardTokens: [p.rewardToken.id],
       apyReward: Number(p.APR) * 100,
-      apyBase: Number(p.apy) * 100,
+      apyBase: Number(p.apy),
       underlyingTokens,
     };
   });
