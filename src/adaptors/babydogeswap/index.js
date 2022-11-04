@@ -112,7 +112,10 @@ const getLpFeesAndApr = (volumeUSD, volumeUSDWeek, liquidityUSD) => {
 
 const farmApy = (entry) => {
   entry = { ...entry };
-  if (!entry.lpTokenInfo || entry.lpTokenInfo.reserveUSD === '0') entry['apy'] = 0
+  if (!entry.lpTokenInfo || entry.lpTokenInfo.reserveUSD === '0') {
+    entry['apy'] = 0
+    return entry
+  }
 
   const { lpApr7d } = getLpFeesAndApr(
     parseFloat(entry.lpTokenInfo.volumeUSD),
