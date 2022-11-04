@@ -147,7 +147,7 @@ async function getLendPoolApyData(tokenInfos, pemTokenPrice) {
       pool: `${token}-lending`,
       chain: 'NEAR',
       project: 'pembrock-finance',
-      symbol: tokensMetadata[token].symbol,
+      symbol: tokensMetadata[token]?.symbol,
       poolMeta: 'Ref-Finance',
       apy: +totalLendAPY,
       tvlUsd: tokenPrice.toNumber(),
@@ -194,7 +194,7 @@ async function getPemApy() {
 
   const lendPools = await getLendPoolApyData(tokenInfos, pemToken.price);
   const farmPools = await getFarmPoolApyData(tokenInfos);
-  return [...lendPools, ...farmPools];
+  return [...lendPools, ...farmPools].filter((p) => p.symbol);
 }
 
 module.exports = {
