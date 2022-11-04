@@ -44,7 +44,7 @@ const getLpTokens = async (farms) => {
   const week_ago_timestamp = Math.floor(week_ago.getTime() / 1000)
   const pairs = farms
     .filter((farm) => farm.isStakeTokenLpToken)
-    .map((farm) => farm.stakeToken?.address)
+    .map((farm) => farm.stakeToken?.id)
   if (pairs.length > 0) {
     const lpQuery = gql`
     {
