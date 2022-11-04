@@ -57,6 +57,7 @@ const main = async (timestamp = null) => {
       project: 'babydoge',
       symbol,
       tvlUsd: p.totalStakedUsdValue,
+      rewardTokens: [p.rewardToken.id],
       apyBase: p.APR,
       underlyingTokens,
     };
