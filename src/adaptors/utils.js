@@ -21,7 +21,6 @@ const getFormatter = (symbol) => {
 // replace / with - and trim potential whitespace
 // set mimatic to mai, uppercase all symbols
 exports.formatSymbol = (symbol) => {
-  return symbol.toUpperCase()
   return symbol
     .replace(getFormatter(symbol), '-')
     .replace(/\s/g, '')
@@ -80,12 +79,10 @@ const getLatestBlockSubgraph = async (url) => {
   //   'https://api.thegraph.com/index-node/graphql',
   //   queryGraph.replace('<PLACEHOLDER>', url.split('name/')[1])
   // );
-  const blockGraph = url.includes('babydoge/faas')
-    ? await request(url, queryGraph)
-    : await request(
-        `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
-        queryGraph
-      );
+  const blockGraph = await request(
+    `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
+    queryGraph
+  );
 
   // return Number(
   //   blockGraph.indexingStatusForCurrentVersion.chains[0].latestBlock.number
