@@ -270,13 +270,15 @@ const calcLendRewardsAPR = (
   token: TokenWithMetadata,
   pemTokenPrice: string
 ): BigNumber => {
-  return new BigNumber(52)
-    .multipliedBy(token.lend_reward_rate_per_week)
-    .multipliedBy(pemTokenPrice)
-    .shiftedBy(token.metadata.decimals)
-    .dividedBy(token.total_supply)
-    .dividedBy(token.refPrice)
-    .shiftedBy(-18);
+  return token.metadata?.decimals
+    ? new BigNumber(52)
+        .multipliedBy(token.lend_reward_rate_per_week)
+        .multipliedBy(pemTokenPrice)
+        .shiftedBy(token.metadata.decimals)
+        .dividedBy(token.total_supply)
+        .dividedBy(token.refPrice)
+        .shiftedBy(-18)
+    : BigNumber(0);
 };
 
 const calcDebtRewardsAPR = (
