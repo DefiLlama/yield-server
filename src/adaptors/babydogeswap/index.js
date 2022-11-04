@@ -32,7 +32,7 @@ const query = gql`
 `;
 
 const main = async (timestamp = null) => {
-  const [block, blockPrior] = await utils.getBlocks('binance', timestamp, [
+  const [block, blockPrior] = await utils.getBlocks('bsc', timestamp, [
     url,
   ]);
 
@@ -54,7 +54,7 @@ const main = async (timestamp = null) => {
       chain: utils.formatChain('binance'),
       project: 'babydogeswap',
       symbol,
-      tvlUsd: p.totalStakedUsdValue,
+      tvlUsd: Number(p.totalStakedUsdValue),
       rewardTokens: [p.rewardToken.id],
       apyBase: Number(p.APR) * 100,
       underlyingTokens,
