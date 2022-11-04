@@ -2,13 +2,15 @@ const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
-const url = 'https://graph-bsc-mainnet.babydoge.com/subgraphs/name/babydoge/faas';
-const info_url = 'https://graph-bsc-mainnet.babydoge.com/subgraphs/name/babydoge/exchange';
+const url =
+  'https://graph-bsc-mainnet.babydoge.com/subgraphs/name/babydoge/faas';
+const info_url =
+  'https://graph-bsc-mainnet.babydoge.com/subgraphs/name/babydoge/exchange';
 
-const WEEKS_IN_YEAR = 52.1429
+const WEEKS_IN_YEAR = 52.1429;
 
-const TOTAL_FEE = 0.0025
-const LP_HOLDERS_FEE = 0.0017
+const TOTAL_FEE = 0.0025;
+const LP_HOLDERS_FEE = 0.0017;
 
 const query = gql`
   {
@@ -39,18 +41,18 @@ const query = gql`
 `;
 
 const getLpTokens = async (farms) => {
-  const week_ago = new Date()
-  week_ago.setDate(week_ago.getDate() - 7)
-  const week_ago_timestamp = Math.floor(week_ago.getTime() / 1000)
+  const week_ago = new Date();
+  week_ago.setDate(week_ago.getDate() - 7);
+  const week_ago_timestamp = Math.floor(week_ago.getTime() / 1000);
   const pairs = farms
     .filter((farm) => farm.isStakeTokenLpToken)
-    .map((farm) => farm.stakeToken?.id)
+    .map((farm) => farm.stakeToken?.id);
   if (pairs.length > 0) {
     const lpQuery = gql`
     {
         ${pairs
-        .map(
-          (pair) => `
+          .map(
+            (pair) => `
             p${pair}:pairDayDatas(
                 where: {pairAddress: "${pair}", date_gt: ${week_ago_timestamp}}
                 orderDirection: desc
@@ -64,73 +66,77 @@ const getLpTokens = async (farms) => {
                 reserveUSD
                 volumeUSD
             }
-            `,
-        )
-        .join('')}
-    }`
-    const data = await request(info_url, lpQuery)
-    const keys = Object.keys(data).filter((key) => key.startsWith('pd'))
-    const average = (arr) => arr.reduce((p, c) => p + Number(c.dailyVolumeUSD), 0) / arr.length
+            `
+          )
+          .join('')}
+    }`;
+    const data = await request(info_url, lpQuery);
+    const keys = Object.keys(data).filter((key) => key.startsWith('pd'));
+    const average = (arr) =>
+      arr.reduce((p, c) => p + Number(c.dailyVolumeUSD), 0) / arr.length;
     const lpTokens = keys.map((key) => {
-      const id = key.slice(2)
-      const volumeUSD_avg7d = average(data[`p${id}`])
+      const id = key.slice(2);
+      const volumeUSD_avg7d = average(data[`p${id}`]);
       return {
         ...data[key],
         id,
         volumeUSD_avg7d,
-      }
-    })
-    return lpTokens
+      };
+    });
+    return lpTokens;
   }
-  return []
-}
+  return [];
+};
 
 const farmDataMapping = (entry, lpTokens) => {
   entry = { ...entry };
-  entry['lpTokenInfo'] = entry.isStakeTokenLpToken ? lpTokens.find(
-    ({ id }) => id?.toLocaleLowerCase() === entry.stakeToken?.id?.toLocaleLowerCase()) : null
-  return entry
-}
+  entry['lpTokenInfo'] = entry.isStakeTokenLpToken
+    ? lpTokens.find(
+        ({ id }) =>
+          id?.toLocaleLowerCase() === entry.stakeToken?.id?.toLocaleLowerCase()
+      )
+    : null;
+  return entry;
+};
 
 const getLpFeesAndApr = (volumeUSD, volumeUSDWeek, liquidityUSD) => {
-  const totalFees24h = volumeUSD * TOTAL_FEE
-  const totalFees7d = volumeUSDWeek * TOTAL_FEE
-  const lpFees24h = volumeUSD * LP_HOLDERS_FEE
-  const lpFees7d = volumeUSDWeek * LP_HOLDERS_FEE
+  const totalFees24h = volumeUSD * TOTAL_FEE;
+  const totalFees7d = volumeUSDWeek * TOTAL_FEE;
+  const lpFees24h = volumeUSD * LP_HOLDERS_FEE;
+  const lpFees7d = volumeUSDWeek * LP_HOLDERS_FEE;
 
   const lpApr7d =
-    liquidityUSD > 0 ? (volumeUSDWeek * LP_HOLDERS_FEE * WEEKS_IN_YEAR * 100) / liquidityUSD : 0
+    liquidityUSD > 0
+      ? (volumeUSDWeek * LP_HOLDERS_FEE * WEEKS_IN_YEAR * 100) / liquidityUSD
+      : 0;
   return {
     totalFees24h,
     totalFees7d,
     lpFees24h,
     lpFees7d,
     lpApr7d: lpApr7d !== Infinity ? lpApr7d : 0,
-  }
-}
-
+  };
+};
 
 const farmApy = (entry) => {
   entry = { ...entry };
   if (!entry.lpTokenInfo || entry.lpTokenInfo.reserveUSD === '0') {
-    entry['apy'] = 0
-    return entry
+    entry['apy'] = 0;
+    return entry;
   }
 
   const { lpApr7d } = getLpFeesAndApr(
     parseFloat(entry.lpTokenInfo.volumeUSD),
     parseFloat(entry.lpTokenInfo.volumeUSD_avg7d),
-    parseFloat(entry.lpTokenInfo.reserveUSD),
-  )
-  
-  entry['apy'] = lpApr7d
-  return entry
-}
+    parseFloat(entry.lpTokenInfo.reserveUSD)
+  );
+
+  entry['apy'] = lpApr7d;
+  return entry;
+};
 
 const main = async (timestamp = null) => {
-  const [block, blockPrior] = await utils.getBlocks('bsc', timestamp, [
-    url,
-  ]);
+  const [block, blockPrior] = await utils.getBlocks('bsc', timestamp, [url]);
 
   // pull data
   let queryC = query;
@@ -138,21 +144,18 @@ const main = async (timestamp = null) => {
   dataNow = dataNow.farms;
 
   // get lp tokens
-  let lpTokens = await getLpTokens(dataNow)
+  let lpTokens = await getLpTokens(dataNow);
 
   // matching lp tokens to farms
-  dataNow = dataNow.map((el) => farmDataMapping(el, lpTokens))
+  dataNow = dataNow.map((el) => farmDataMapping(el, lpTokens));
 
   // calculate APY
-  const data = dataNow.map((el) => farmApy(el))
+  const data = dataNow.map((el) => farmApy(el));
 
   const pools = data.map((p) => {
-    const symbol0 = p.stakeToken.isLpToken ?
-      utils.formatSymbol(`${p.stakeToken.token0.symbol}/${p.stakeToken.token1.symbol}`) :
-      utils.formatSymbol(p.stakeToken.symbol);
-    const symbol1 = utils.formatSymbol(p.rewardToken.symbol);
-    const symbol = utils.formatSymbol(`${symbol0}-${symbol1}`);
-    const underlyingTokens = [p.stakeToken.id, p.rewardToken.id];
+    if (!p.stakeToken.isLpToken) return null;
+    const symbol = `${p.stakeToken.token0.symbol}-${p.stakeToken.token1.symbol}`;
+    const underlyingTokens = [p.stakeToken.token0.id, p.stakeToken.token1.id];
 
     return {
       pool: p.id,
@@ -167,7 +170,7 @@ const main = async (timestamp = null) => {
     };
   });
 
-  return pools.filter((p) => utils.keepFinite(p));
+  return pools.filter((p) => p && utils.keepFinite(p));
 };
 
 module.exports = {
