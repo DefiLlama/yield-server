@@ -4,6 +4,7 @@ const utils = require('../utils');
 const { vaults, ChainId, FRONTEND } = require('./vaults');
 const BIG_10 = new BigNumber(10);
 const MAI_ID = 'mimatic';
+const url = 'https://api.mai.finance/v2/vaultIncentives';
 const VAULT = {
   abis: {
     totalSupply: {
@@ -60,8 +61,23 @@ const VAULT = {
     },
   },
 };
+const chainIdMap = {
+  ethereum: 1,
+  optimism: 10,
+  polygon: 137,
+  metis: 1088,
+};
+
+const HOUR = 60 * 60;
+const DAY = 24 * HOUR;
+const SECONDS_PER_YEAR = 365 * DAY;
 const main = async () => {
   const result = [];
+  const vaultIncentives = (await utils.getData(url)).incentives;
+  const incentives = Object.keys(vaultIncentives).flatMap(
+    (e) => vaultIncentives[e]
+  );
+
   for (const [index, chain] of Object.keys(ChainId).entries()) {
     const _vaultsInfo = vaults[ChainId[chain]].filter((e) => e.version === 2);
     const _chain = ChainId[chain];
@@ -126,6 +142,9 @@ const main = async () => {
     const coins_id = [MAI_ID].map((e) => `coingecko:${e}`);
     const prices = (await utils.getPrices([...coins_address, ...coins_id]))
       .pricesByAddress;
+    const _incentive = incentives.filter(
+      (e) => Number(e.chainId) === chainIdMap[_chain]
+    );
 
     const _result = _vaultsInfo.map((e, index) => {
       const tvlUsd = new BigNumber(balances[index])
@@ -140,8 +159,16 @@ const main = async () => {
         .times(prices[MAI_ID.toLowerCase()]);
       const ltv = new BigNumber(totalSupplys[index])
         .multipliedBy(totalBorroweds[index])
-        .div(BIG_10.pow(25));
+        .dividedBy(BIG_10.pow(25));
 
+      const apyCall = _incentive.find(
+        (x) => x.vaultAddress.toLowerCase() === e.vaultAddress.toLowerCase()
+      );
+
+      let apyRewardBorrow = Number(apyCall?.apr || '0');
+      if (apyRewardBorrow === 0 && _chain === 'metis') {
+        apyRewardBorrow = Number(apyCall?.extraRewards[0]?.apr || '0');
+      }
       return {
         pool: `${e.vaultAddress}-${_chain}`,
         project: 'qidao',
@@ -151,6 +178,7 @@ const main = async () => {
         tvlUsd: tvlUsd.toNumber(),
         // borrow fields
         apyBaseBorrow: Number(iRs[index]),
+        apyRewardBorrow: apyRewardBorrow,
         totalSupplyUsd: tvlUsd.toNumber(),
         totalBorrowUsd: totalBorrowUsd.toNumber(),
         debtCeilingUsd: totalBorrowUsd.plus(debtCeilingUsd).toNumber(),
