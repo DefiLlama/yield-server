@@ -52,7 +52,7 @@ const main = async (timestamp = null) => {
     return {
       pool: p.id,
       chain: utils.formatChain('binance'),
-      project: 'babydoge',
+      project: 'babydogeswap',
       symbol,
       tvlUsd: p.totalStakedUsdValue,
       rewardTokens: [p.rewardToken.id],
