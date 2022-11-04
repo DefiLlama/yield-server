@@ -48,8 +48,6 @@ const main = async (timestamp = null) => {
     const symbol1 = utils.formatSymbol(p.rewardToken.symbol);
     const symbol = utils.formatSymbol(`${symbol0}-${symbol1}`);
     const underlyingTokens = [p.stakeToken.id, p.rewardToken.id];
-    const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
-    const token1 = underlyingTokens === undefined ? '' : underlyingTokens[1];
 
     return {
       pool: p.id,
