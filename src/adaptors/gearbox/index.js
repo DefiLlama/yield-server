@@ -128,7 +128,17 @@ const getApy = async () => {
   const totalGearSupply = 10000000000;
   const gearPrice = fdv / totalGearSupply;
 
-  const pools = (await poolInfo('ethereum')).yieldPools.map((pool, i) => {
+  const yieldPools = (await poolInfo('ethereum')).yieldPools;
+
+  const symbol = (
+    await sdk.api.abi.multiCall({
+      abi: 'erc20:symbol',
+      calls: yieldPools.map((p) => ({ target: p.underlyingToken })),
+      chain: 'ethereum',
+    })
+  ).output.map((o) => o.output);
+
+  const pools = yieldPools.map((pool, i) => {
     const totalSupplyUsd = calculateTvl(
       pool.availableLiquidity,
       pool.totalBorrowed,
@@ -156,7 +166,7 @@ const getApy = async () => {
     return (readyToExport = exportFormatter(
       pool.pool,
       'Ethereum',
-      pool.symbol,
+      symbol[i],
       tvlUsd,
       (pool.depositAPY_RAY / 1e27) * 100,
       LpRewardApy,

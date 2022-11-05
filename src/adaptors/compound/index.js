@@ -26,7 +26,7 @@ const main = async () => {
       pool: p.token_address,
       chain: 'Ethereum',
       project: 'compound',
-      symbol: p.symbol === 'cWBTC2' ? 'cWBTC' : p.symbol,
+      symbol: p.symbol === 'cWBTC2' ? 'cWBTC' : p.underlying_symbol,
       tvlUsd:
         (Number(p.cash.value) +
           Number(p.total_borrows.value) -

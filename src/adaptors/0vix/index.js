@@ -57,7 +57,7 @@ async function main() {
     const newObj = {
       pool: strategy,
       project: '0vix',
-      symbol: OvixAPYs.symbol,
+      symbol: OvixAPYs.symbol.slice(1),
       chain: 'polygon',
       apyBase: OvixAPYs.supplyAPY,
       apyReward: preminedVixApr,
