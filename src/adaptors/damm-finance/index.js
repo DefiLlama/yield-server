@@ -92,7 +92,7 @@ const getPrices = async (chain, addresses) => {
   const uri = `${addresses.map((address) => `${chain}:${address}`)}`;
   const prices = (
     await superagent.get('https://coins.llama.fi/prices/current/' + uri)
-    ).body.coins;
+  ).body.coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -124,55 +124,62 @@ function calculateTvl(cash, borrows, reserves, price, decimals) {
 }
 
 const getApy = async () => {
-  const bdammPrice = (await getPrices(['ethereum'], [bdAMM]))[bdAMM.toLowerCase()];
-  const yieldPools = (await poolInfo('ethereum')).yieldMarkets.map(
-    (pool, i) => {
-      const totalSupplyUsd = calculateTvl(
-        pool.getCash,
-        pool.totalBorrows,
-        pool.totalReserves,
-        pool.price,
-        pool.underlyingTokenDecimals
-      );
-      const totalBorrowUsd = calculateTvl(
-        0,
-        pool.totalBorrows,
-        0,
-        pool.price,
-        pool.underlyingTokenDecimals
-      );
-      const tvlUsd = totalSupplyUsd - totalBorrowUsd;
-      const apyBase = calculateApy(pool.supplyRate);
-      const apyReward = calculateApy(
-        pool.compSpeeds,
-        bdammPrice,
-        totalSupplyUsd
-      );
-      const apyBaseBorrow = calculateApy(pool.borrowRate);
-      const apyRewardBorrow = calculateApy(
-        pool.compSpeeds,
-        bdammPrice,
-        totalBorrowUsd
-      );
-      const ltv = parseInt(pool.collateralFactor) / 1e18;
-      const readyToExport = exportFormatter(
-        pool.pool,
-        'Ethereum',
-        pool.tokenSymbol,
-        tvlUsd,
-        apyBase,
-        apyReward,
-        pool.underlyingToken,
-        [bdAMM],
-        apyBaseBorrow,
-        apyRewardBorrow,
-        totalSupplyUsd,
-        totalBorrowUsd,
-        ltv
-      );
-      return readyToExport;
-    }
-  );
+  const bdammPrice = (await getPrices(['ethereum'], [bdAMM]))[
+    bdAMM.toLowerCase()
+  ];
+
+  const yieldMarkets = (await poolInfo('ethereum')).yieldMarkets;
+
+  const symbol = (
+    await sdk.api.abi.multiCall({
+      abi: 'erc20:symbol',
+      calls: yieldMarkets.map((p) => ({ target: p.underlyingToken })),
+      chain: 'ethereum',
+    })
+  ).output.map((o) => o.output);
+
+  const yieldPools = yieldMarkets.map((pool, i) => {
+    const totalSupplyUsd = calculateTvl(
+      pool.getCash,
+      pool.totalBorrows,
+      pool.totalReserves,
+      pool.price,
+      pool.underlyingTokenDecimals
+    );
+    const totalBorrowUsd = calculateTvl(
+      0,
+      pool.totalBorrows,
+      0,
+      pool.price,
+      pool.underlyingTokenDecimals
+    );
+    const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+    const apyBase = calculateApy(pool.supplyRate);
+    const apyReward = calculateApy(pool.compSpeeds, bdammPrice, totalSupplyUsd);
+    const apyBaseBorrow = calculateApy(pool.borrowRate);
+    const apyRewardBorrow = calculateApy(
+      pool.compSpeeds,
+      bdammPrice,
+      totalBorrowUsd
+    );
+    const ltv = parseInt(pool.collateralFactor) / 1e18;
+    const readyToExport = exportFormatter(
+      pool.pool,
+      'Ethereum',
+      symbol[i],
+      tvlUsd,
+      apyBase,
+      apyReward,
+      pool.underlyingToken,
+      [bdAMM],
+      apyBaseBorrow,
+      apyRewardBorrow,
+      totalSupplyUsd,
+      totalBorrowUsd,
+      ltv
+    );
+    return readyToExport;
+  });
 
   return yieldPools;
 };
