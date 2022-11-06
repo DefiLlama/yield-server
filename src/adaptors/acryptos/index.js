@@ -3,6 +3,8 @@ const utils = require('../utils');
 const urlApi = 'https://api.unrekt.net/api/v2/acryptos-asset.json';
 
 const chainMapping = {
+  1: 'ethereum',
+  10: 'optimism',
   56: 'binance',
   25: 'cronos',
   100: 'xdai',
@@ -10,6 +12,7 @@ const chainMapping = {
   592: 'astar',
   1284: 'moonbeam',
   1285: 'moonriver',
+  42161: 'arbitrum',
   43114: 'avalanche',
   1666600000: 'harmony',
 };
