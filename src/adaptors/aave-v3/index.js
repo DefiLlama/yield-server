@@ -81,17 +81,23 @@ const query = gql`
       liquidityRate
       variableBorrowRate
       baseLTVasCollateral
+      isFrozen
     }
   }
 `;
 
 const apy = async () => {
-  const data = await Promise.all(
+  let data = await Promise.all(
     Object.entries(API_URLS).map(async ([chain, url]) => [
       chain,
       (await request(url, query)).reserves,
     ])
   );
+  data = data.map(([chain, reserves]) => [
+    chain,
+    reserves.filter((p) => !p.isFrozen),
+  ]);
+
   const totalSupply = await Promise.all(
     data.map(async ([chain, reserves]) =>
       (
