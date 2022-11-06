@@ -6,35 +6,7 @@ const baseUrl = 'https://api.solend.fi';
 const configEndpoint = `${baseUrl}/v1/config`;
 const reservesEndpoint = `${baseUrl}/v1/reserves`;
 
-const buildPool = async (reserveConfig, reserveData) => {
-  const liquidity = reserveData.reserve.liquidity;
-  const apy =
-    Number(reserveData.rates.supplyInterest) +
-    reserveData.rewards.reduce(
-      (acc, reward) =>
-        reward.side === 'supply' ? Number(reward.apy) + acc : acc,
-      0
-    );
-  const secondaryString =
-    reserveConfig.marketName.charAt(0).toUpperCase() +
-    reserveConfig.marketName.slice(1) +
-    ' Pool';
-
-  const newObj = {
-    pool: reserveConfig.address,
-    chain: utils.formatChain('solana'),
-    project: 'solend',
-    symbol: `${reserveConfig.asset} (${secondaryString})`,
-    tvlUsd:
-      (Number(liquidity.availableAmount) / 10 ** liquidity.mintDecimals) *
-      (liquidity.marketPrice / 10 ** 18),
-    apy,
-  };
-
-  return newObj;
-};
-
-const topLvl = async () => {
+const main = async () => {
   const configResponse = await fetch(`${configEndpoint}?deployment=production`);
 
   const config = await configResponse.json();
@@ -61,20 +33,70 @@ const topLvl = async () => {
     reserves.push(res);
   }
 
-  return Promise.all(
-    reserves
-      .flat()
-      .map((reserve, index) => buildPool(reservesConfigs[index], reserve))
-  );
-};
+  return reserves.flat().map((reserveData, index) => {
+    const reserveConfig = reservesConfigs[index];
+    const liquidity = reserveData.reserve.liquidity;
+    const collateral = reserveData.reserve.collateral;
+    const apyBase = Number(reserveData.rates.supplyInterest);
+    const apyBaseBorrow = Number(reserveData.rates.borrowInterest);
+    const apyReward = reserveData.rewards.reduce(
+      (acc, reward) =>
+        reward.side === 'supply' ? (Number(reward.apy) || 0) + acc : acc,
+      0
+    );
+    const apyRewardBorrow = reserveData.rewards.reduce(
+      (acc, reward) =>
+        reward.side === 'borrow' ? (Number(reward.apy) || 0) + acc : acc,
+      0
+    );
 
-const main = async () => {
-  const data = await topLvl();
+    const rewardTokens = reserveData.rewards
+      .filter((r) => r.side == 'supply')
+      .map((r) =>
+        r?.rewardMint === 'SLND_OPTION'
+          ? 'SLNDpmoWTVADgEdndyvWzroNL7zSi1dF9PC3xHGtPwp'
+          : r?.rewardMint
+      );
+    const secondaryString =
+      reserveConfig.marketName.charAt(0).toUpperCase() +
+      reserveConfig.marketName.slice(1) +
+      ' Pool';
 
-  return data;
+    // available liquidity
+    const tvlUsd =
+      (Number(liquidity.availableAmount) / 10 ** liquidity.mintDecimals) *
+      (liquidity.marketPrice / 10 ** 18);
+
+    // total borrow
+    const totalBorrowUsd =
+      (Number(liquidity.borrowedAmountWads / 1e18) /
+        10 ** liquidity.mintDecimals) *
+      (liquidity.marketPrice / 10 ** 18);
+
+    const totalSupplyUsd = tvlUsd + totalBorrowUsd;
+
+    return {
+      pool: reserveConfig.address,
+      chain: utils.formatChain('solana'),
+      project: 'solend',
+      symbol: `${reserveConfig.asset}`,
+      poolMeta: secondaryString,
+      tvlUsd,
+      apyBase,
+      apyReward,
+      rewardTokens: apyReward > 0 ? rewardTokens : [],
+      underlyingTokens: [reserveData.reserve.liquidity.mintPubkey],
+      totalSupplyUsd,
+      totalBorrowUsd,
+      apyBaseBorrow,
+      apyRewardBorrow: apyRewardBorrow > 0 ? apyRewardBorrow : null,
+      ltv: reserveData.reserve.config.loanToValueRatio / 100,
+    };
+  });
 };
 
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://solend.fi/pools',
 };

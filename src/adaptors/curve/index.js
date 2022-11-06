@@ -1,278 +1,309 @@
 const superagent = require('superagent');
+const { default: BigNumber } = require('bignumber.js');
 
 const utils = require('../utils');
-const pools = require('./pools');
 
-// comes from different locations, merging func
-const mergeBaseApy = async () => {
-  // this is the base apy data, split up into 2 different json files
-  let dataBaseApy = await utils.getData(
-    'https://stats.curve.fi/raw-stats/apys.json'
-  );
-  dataBaseApy = dataBaseApy.apy.day;
+const {
+  CRV_API_BASE_URL,
+  BLOCKCHAINIDS,
+  BLOCKCHAINID_TO_REGISTRIES,
+} = require('./config');
 
-  let dataBaseApyOther = await utils.getData(
-    'https://stats.curve.fi/raw-stats-crypto/apys.json'
-  );
-  dataBaseApyOther = dataBaseApyOther.apy.week;
-
-  const keys = Object.keys(dataBaseApyOther);
-
-  for (const i of keys) {
-    dataBaseApy[i] = dataBaseApyOther[i];
-  }
-
-  return [dataBaseApy, keys];
+const assetTypeMapping = {
+  btc: 'ethereum:0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
+  eth: 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
 };
 
-const getDataEth = async () => {
-  const poolStats = [];
+const THREE_CRV_ADDRESS = '0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490';
 
-  // 1) get price data
-  const addresses = {
-    ethereum: 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
-    bitcoin: 'ethereum:0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
-    chainlink: 'ethereum:0x514910771af9ca656af840dff83e8264ecf986ca',
-    'stasis-eurs': 'ethereum:0x514910771af9ca656af840dff83e8264ecf986ca',
-  };
-  const pricesUSD = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: Object.values(addresses),
-    })
-  ).body.coins;
-
-  // 2) get complete base apy data (this does not include any of the factory pool data...)
-  const [dataBaseApy, keysExtra] = await mergeBaseApy();
-
-  // 3) pull curve pool stats data and prepare the individual pool data
-  for (const [pool, apy] of Object.entries(dataBaseApy)) {
-    // there are few pools in the data which are actually not
-    // displayed on the frontend, I remove them
-    // here, probably not the best idea hardcoding this...
-    if ('rens,linkusd,idle'.includes(pool)) {
+const getPools = async (blockchainId) => {
+  const poolsByAddress = {};
+  for (const registry of BLOCKCHAINID_TO_REGISTRIES[blockchainId]) {
+    const uri = `/getPools/${blockchainId}/${registry}`;
+    let response;
+    try {
+      response = await utils.getData(CRV_API_BASE_URL + uri);
+    } catch (error) {
       continue;
     }
-
-    if (keysExtra.includes(pool)) {
-      url = `https://stats.curve.fi/raw-stats-crypto/${pool}-1440m.json`;
-    } else {
-      url = `https://stats.curve.fi/raw-stats/${pool}-1440m.json`;
+    if (response?.success) {
+      const poolsByAddressForRegistry = Object.fromEntries(
+        response.data.poolData.map((pool) => [pool.address, pool])
+      );
+      Object.assign(poolsByAddress, poolsByAddressForRegistry);
     }
-    let poolData = await utils.getData(url);
-    const maxTimestamp = Math.max(...poolData.map((el) => el.timestamp), 0);
-    poolData = poolData.find((el) => el.timestamp === maxTimestamp);
-
-    // the price will be different depending on pool type
-    // usd pools are 1, btc pools need to be multiplied by the btc price etc
-    // cause total supply is in the native unit, like balance
-    if (pool.includes('eth')) {
-      price = pricesUSD[addresses.ethereum].price;
-    } else if (pool.includes('btc')) {
-      price = pricesUSD[addresses.bitcoin].price;
-    } else if (pool.includes('link')) {
-      price = pricesUSD[addresses.chainlink].price;
-    } else if (pool.includes('eur')) {
-      price = pricesUSD[addresses['stasis-eurs']].price;
-    } else {
-      price = 1;
-    }
-
-    // for tricrypto pools i use the balances and prices cause
-    // supply cant just be multiplied by a single price
-    const scalingFactor = 1e18;
-    poolData.virtual_price /= scalingFactor;
-    poolData.supply /= scalingFactor;
-
-    if (keysExtra.includes(pool)) {
-      if (pool.includes('tricrypto')) {
-        decimals = [1e6, 1e8, 1e18]; // usdt, btc, eth
-      } else if (pool.includes('eurtusd')) {
-        decimals = [1e6, 1e18];
-      } else if (pool.includes('eursusd')) {
-        decimals = [1e6, 1e2];
-      } else if (pool.includes('crveth')) {
-        decimals = [1e18, 1e18];
-      } else if (pool.includes('cvxeth')) {
-        decimals = [1e18, 1e18];
-      } else if (pool.includes('xautusd')) {
-        decimals = [1e6, 1e18];
-      } else if (pool.includes('spelleth')) {
-        decimals = [1e18, 1e18];
-      } else if (pool.includes('teth')) {
-        decimals = [1e18, 1e18];
-      }
-
-      if (pool === 'eurtusd') {
-        tvl = (poolData.balances[0] / decimals[0]) * poolData.price_scale;
-        tvl += poolData.balances[1] / decimals[1];
-      } else if (pool === 'eursusd') {
-        tvl = (poolData.balances[0] / decimals[0]) * poolData.price_scale;
-        tvl += poolData.balances[1] / decimals[1];
-      } else if (pool === 'xautusd') {
-        tvl = (poolData.balances[0] / decimals[0]) * poolData.price_scale;
-        tvl += poolData.balances[1] / decimals[1];
-      } else {
-        tvl = 0;
-        poolData.balances.forEach((el, i) => {
-          tvl += (el / decimals[i]) * poolData.crypto_prices[i];
-        });
-      }
-    } else {
-      // for all else
-      tvl = poolData.supply * price;
-    }
-
-    // scale by virtual price
-    tvl *= poolData.virtual_price;
-
-    let apyBase = apy * 100;
-    // some of the values are negative, set to 0
-    apyBase = apyBase < 0 ? 0 : apyBase;
-
-    // 4) get crv+reward apr data
-    let dataCrvApy = await utils.getData(
-      'https://www.convexfinance.com/api/curve-apys'
-    );
-    let dataRewardApy = await utils.getData('https://api.curve.fi/api/getApys');
-    dataCrvApy = dataCrvApy.apys;
-    dataRewardApy = dataRewardApy.data;
-
-    // unfort these two endpoints have different keys for some pools
-    let searchKey = pool;
-    if (pool === 'y') {
-      searchKey = 'iearn';
-    } else if (pool === 'susd') {
-      searchKey = 'susdv2';
-    } else if (pool === 'ren2') {
-      searchKey = 'ren';
-    }
-
-    const apyCrv = dataCrvApy[searchKey]?.crvApy;
-
-    // need to sum up the potential rewards apys
-    const apyRewardsArray = dataRewardApy[searchKey]?.additionalRewards;
-    let apyRewardsSum = 0;
-    if (apyRewardsArray?.length > 0) {
-      apyRewardsSum = apyRewardsArray
-        .map((el) => el.apy)
-        .reduce((accumulator, curr) => accumulator + curr);
-    }
-    const apySum =
-      apyRewardsSum === undefined
-        ? apyBase + apyCrv
-        : apyBase + apyCrv + apyRewardsSum;
-
-    // 6) append output to object
-    poolStats.push({
-      pool,
-      virtual_price: poolData.virtual_price,
-      totalSupply: poolData.supply,
-      tvl,
-      apyBase,
-      apyCrv,
-      apyRewardsArray,
-      apyRewardsSum,
-      apy: apySum,
-    });
   }
-
-  // note(temporary only, investiage 4pool and 2pool apy)
-  return poolStats.filter((el) => el.pool !== '4pool' && el.pool !== '2pool');
+  return poolsByAddress;
 };
 
-const getDataEVM = async (chainString) => {
-  let tvl = await utils.getData(
-    `https://api.curve.fi/api/getTVL${
-      chainString.charAt(0).toUpperCase() + chainString.slice(1)
-    }`
-  );
-  tvl = tvl.data.pools;
-
-  const poolNames = Object.keys(tvl);
-  let dataTvl = [];
-  for (const p of poolNames) {
-    const obj = tvl[p];
-    obj['pool'] = p;
-    dataTvl.push(obj);
+const getSubGraphData = async (blockchainId) => {
+  const uri = `/getSubgraphData/${blockchainId}`;
+  let response;
+  try {
+    response = await utils.getData(CRV_API_BASE_URL + uri);
+  } catch (error) {
+    return {};
   }
-
-  if (chainString === 'fantom') {
-    dataApy = await utils.getData(
-      `https://stats.curve.fi/raw-stats-ftm/apys.json`
+  if (response?.success) {
+    const poolSubgraphsByAddress = Object.fromEntries(
+      response.data.poolList.map((pool) => [pool.address, pool])
     );
+    return poolSubgraphsByAddress;
   } else {
-    dataApy = await utils.getData(
-      `https://stats.curve.fi/raw-stats-${chainString}/apys.json`
-    );
+    return {};
   }
-  for (const el of dataTvl) {
-    el.apy = dataApy.apy.day[el.pool];
+};
+
+const getGaugesByChain = async () => {
+  const gaugeUri = '/getGauges';
+  let gaugeResponse;
+  try {
+    gaugeResponse = await utils.getData(CRV_API_BASE_URL + gaugeUri);
+  } catch (error) {
+    return {};
   }
 
-  dataTvl = dataTvl.filter((el) =>
-    Object.keys(pools.tokenMapping[chainString]).includes(el.pool)
+  const blockchainRegExps = BLOCKCHAINIDS.filter(
+    (blockchainId) => blockchainId !== 'ethereum'
+  ).map((blockchainId) => new RegExp(`^(${blockchainId})-(.+)`));
+
+  const gaugesDataByChain = Object.fromEntries(
+    BLOCKCHAINIDS.map((blockchainId) => [blockchainId, {}])
   );
-
-  return dataTvl;
-};
-
-const buildPool = (entry, chainString) => {
-  const token = pools.tokenMapping[chainString][entry.pool];
-  const id = pools.pools[chainString].find(
-    (el) => el.name === entry.pool
-  )?.swap;
-  let apy = entry.apy < 0 ? 0 : entry.apy;
-  apy = chainString === 'ethereum' ? apy : apy * 100;
-
-  const newObj = {
-    // ugly, but some swap pools have same address on diff networks
-    pool: `${id}-${chainString}`,
-    chain: utils.formatChain(chainString),
-    project: 'curve',
-    symbol: utils.formatSymbol(token),
-    tvlUsd: entry.tvl,
-    apy: apy,
-  };
-  return newObj;
-};
-
-const topLvl = async (chainString) => {
-  if (chainString === 'ethereum') {
-    // pull data
-    poolStats = await getDataEth();
-  } else {
-    // pull data
-    poolStats = await getDataEVM(chainString);
-  }
-  // build pool objects
-  let data = poolStats.map((el) => {
-    if (pools.tokenMapping[chainString][el.pool] === undefined) {
-      return null;
+  for (const [gaugeName, gaugeDatum] of Object.entries(
+    gaugeResponse.data.gauges
+  )) {
+    let match = null;
+    for (const re of blockchainRegExps) {
+      match = gaugeName.match(re);
+      if (match) {
+        break;
+      }
     }
-    return buildPool(el, chainString);
-  });
+    // if no match, it's an ethereum gauge
+    let blockchainId;
+    let _gaugeName;
+    if (!match) {
+      _gaugeName = gaugeName;
+      blockchainId = 'ethereum';
+    } else {
+      blockchainId = match[1];
+      _gaugeName = match[2];
+    }
+    const _gaugeDatum = Object.assign(
+      {
+        gaugeName: _gaugeName,
+      },
+      gaugeDatum
+    );
+    // gauge address on pools crv API is lowercase
+    gaugesDataByChain[blockchainId][_gaugeDatum.gauge.toLowerCase()] =
+      _gaugeDatum;
+  }
 
-  data = data.filter((el) => el !== null);
-  return data;
+  return gaugesDataByChain;
+};
+
+const getMainPoolGaugeRewards = async () => {
+  const uri = '/getMainPoolsGaugeRewards';
+  let response;
+  try {
+    response = await utils.getData(CRV_API_BASE_URL + uri);
+    if (!response.success) {
+      throw "call to '/getMainPoolsGaugeRewards' didn't succeed";
+    }
+    return response.data.mainPoolsGaugeRewards;
+  } catch (error) {
+    return {};
+  }
+};
+
+const getPoolAPR = (pool, subgraph, gauge, crvPrice, underlyingPrices) => {
+  if (gauge.is_killed) return 0;
+  const crvPriceBN = BigNumber(crvPrice);
+  const decimals = BigNumber(1e18);
+  const workingSupply = BigNumber(gauge.gauge_data.working_supply).div(
+    decimals
+  );
+  const inflationRate = BigNumber(gauge.gauge_data.inflation_rate).div(
+    decimals
+  );
+  const relativeWeight = BigNumber(
+    gauge.gauge_controller.gauge_relative_weight
+  ).div(decimals);
+  const totalSupply = BigNumber(pool.totalSupply).div(decimals);
+  const virtualPrice = BigNumber(subgraph.virtualPrice).div(decimals);
+  let poolAPR;
+  try {
+    if (
+      pool.totalSupply &&
+      !pool.coinsAddresses.includes(THREE_CRV_ADDRESS) &&
+      pool.implementation !== 'metausd-fraxusdc'
+    ) {
+      poolAPR = inflationRate
+        .times(relativeWeight)
+        .times(31536000)
+        .times(0.4)
+        .div(workingSupply)
+        .times(totalSupply)
+        .div(pool.usdTotalExcludingBasePool)
+        .times(crvPrice)
+        .times(100);
+    } else {
+      assetPrice =
+        pool.assetTypeName === 'usd'
+          ? 1
+          : underlyingPrices[assetTypeMapping[pool.assetTypeName]].price;
+      poolAPR = crvPriceBN
+        .times(inflationRate)
+        .times(relativeWeight)
+        .times(12614400)
+        .div(workingSupply)
+        .div(assetPrice)
+        .div(virtualPrice)
+        .times(100);
+    }
+  } catch (error) {
+    return 0;
+  }
+
+  poolAPR = poolAPR.toNumber();
+
+  return Number.isFinite(poolAPR) ? poolAPR : 0;
+};
+
+const getPriceCrv = (pools) => {
+  //parse through pool coins and return price of crv dao token
+  for (const coin of pools.map((pool) => pool.coins).flat()) {
+    if (coin.address === '0xD533a949740bb3306d119CC777fa900bA034cd52') {
+      return coin.usdPrice;
+    }
+  }
 };
 
 const main = async () => {
-  let data = await Promise.all([
-    topLvl('ethereum'),
-    topLvl('arbitrum'),
-    topLvl('avalanche'),
-    topLvl('fantom'),
-    topLvl('harmony'),
-    topLvl('optimism'),
-    topLvl('polygon'),
-  ]);
+  // request promises
+  const gaugePromise = getGaugesByChain();
+  const extraRewardPromise = getMainPoolGaugeRewards();
+  const blockchainToPoolSubgraphPromise = Object.fromEntries(
+    BLOCKCHAINIDS.map((blockchainId) => [
+      blockchainId,
+      getSubGraphData(blockchainId),
+    ])
+  );
+  const blockchainToPoolPromise = Object.fromEntries(
+    BLOCKCHAINIDS.map((blockchainId) => [blockchainId, getPools(blockchainId)])
+  );
 
-  return data.flat();
+  // we need the ethereum data first for the crv prive and await extra query to CG
+  const ethereumPools = await blockchainToPoolPromise.ethereum;
+  const priceCrv = getPriceCrv(Object.values(ethereumPools));
+
+  // get wbtc and weth price which we use for reward APR in case totalSupply field = 0
+  const underlyingPrices = (
+    await superagent.post('https://coins.llama.fi/prices').send({
+      coins: Object.values(assetTypeMapping),
+    })
+  ).body.coins;
+
+  // create feeder closure to fill defillamaPooldata asynchroniously
+  const defillamaPooldata = [];
+  const feedLlama = (poolData, blockchainId) => {
+    const [
+      addressToPool,
+      addressToPoolSubgraph,
+      addressToGauge,
+      gaugeAddressToExtraRewards,
+    ] = poolData;
+    for (const [address, pool] of Object.entries(addressToPool)) {
+      const subgraph = addressToPoolSubgraph[address];
+      const gauge = addressToGauge[blockchainId][pool.gaugeAddress];
+      // one gauge can have multiple (different) extra rewards
+      const extraRewards = gaugeAddressToExtraRewards[pool.gaugeAddress];
+
+      const apyBase = subgraph ? parseFloat(subgraph.latestDailyApy) : 0;
+      const aprCrv =
+        gauge && subgraph
+          ? getPoolAPR(pool, subgraph, gauge, priceCrv, underlyingPrices)
+          : 0;
+      const aprExtra = extraRewards
+        ? extraRewards.map((reward) => reward.apy).reduce((a, b) => a + b)
+        : 0;
+
+      // tokens are listed using their contract addresses
+      // https://github.com/DefiLlama/yield-server#adaptors
+      const underlyingTokens = pool.coins.map((coin) => coin.address);
+      const rewardTokens = extraRewards
+        ? extraRewards.map((reward) => reward.tokenAddress)
+        : [];
+      if (aprCrv) {
+        rewardTokens.push('0xD533a949740bb3306d119CC777fa900bA034cd52'); // CRV
+      }
+
+      // note(!) curve api uses coingecko prices and am3CRV is wrongly priced
+      // this leads to pool.usdTotal to be inflated, going to hardcode temporarly hardcode this
+      // to 1usd
+      // am3CRV
+      const am3CRV = '0xE7a24EF0C5e95Ffb0f6684b813A78F2a3AD7D171';
+      const x = pool.coins.find((c) => c.address === am3CRV && c.usdPrice > 2);
+      let tvlUsd;
+      if (x) {
+        tvlUsd = pool.coins
+          .map((c) =>
+            c.address === am3CRV
+              ? (c.poolBalance / `1e${c.decimals}`) * 1
+              : (c.poolBalance / `1e${c.decimals}`) * c.usdPrice
+          )
+          .reduce((a, b) => a + b, 0);
+      } else {
+        tvlUsd = pool.usdTotal;
+      }
+
+      if (tvlUsd < 1) {
+        continue;
+      }
+
+      defillamaPooldata.push({
+        pool: address + '-' + blockchainId,
+        chain: utils.formatChain(blockchainId),
+        project: 'curve',
+        symbol: pool.coins.map((coin) => coin.symbol).join('-'),
+        tvlUsd,
+        apyBase,
+        apyReward: aprCrv + aprExtra,
+        rewardTokens,
+        underlyingTokens,
+      });
+    }
+  };
+
+  // group Promises by blockchain and feed the llama array
+  const responses = [];
+  for (const [blockchainId, poolPromise] of Object.entries(
+    blockchainToPoolPromise
+  )) {
+    responses.push(
+      Promise.all([
+        poolPromise,
+        blockchainToPoolSubgraphPromise[blockchainId],
+        gaugePromise,
+        extraRewardPromise,
+      ]).then((poolData) => feedLlama(poolData, blockchainId))
+    );
+  }
+
+  // wait for all Group promises to resolve
+  try {
+    await Promise.all(responses);
+  } catch (error) {
+    console.error(error);
+  }
+
+  return defillamaPooldata;
 };
 
 module.exports = {
   timetravel: false,
   apy: main,
-  curvePoolStats: getDataEth,
-  tokenMapping: pools.tokenMapping['ethereum'],
+  url: 'https://curve.fi/pools',
 };

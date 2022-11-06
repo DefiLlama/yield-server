@@ -6,6 +6,7 @@ const urls = {
   ethereum: `${baseUrl}/1/vaults/all`,
   fantom: `${baseUrl}/250/vaults/all`,
   arbitrum: `${baseUrl}/42161/vaults/all`,
+  optimism: `${baseUrl}/10/vaults/all`,
 };
 
 const buildPool = (entry, chainString) => {
@@ -38,6 +39,7 @@ const main = async () => {
     topLvl('ethereum'),
     topLvl('fantom'),
     topLvl('arbitrum'),
+    topLvl('optimism'),
   ]);
 
   return data.flat();
@@ -46,4 +48,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://yearn.finance/vaults',
 };

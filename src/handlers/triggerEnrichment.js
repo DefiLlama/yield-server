@@ -2,51 +2,47 @@ const superagent = require('superagent');
 const ss = require('simple-statistics');
 
 const utils = require('../utils/s3');
+const {
+  getYieldFiltered,
+  getYieldOffset,
+} = require('../controllers/yieldController');
+const { getStat } = require('../controllers/statController');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
 const { welfordUpdate } = require('../utils/welford');
 
-module.exports.handler = async () => {
+module.exports.handler = async (event, context) => {
   await main();
 };
 
 const main = async () => {
   console.log('START DATA ENRICHMENT');
 
-  const urlBase = process.env.APIG_URL;
-  console.log('\n1. pulling base data...');
-  let data = (await superagent.get(`${urlBase}/simplePools`)).body.data;
-  // derive final apy field via:
-  data = data.map((p) => ({
-    ...p,
-    apy: p.apy ?? p.apyBase + p.apyReward,
-  }));
-  // remove any potential null values
-  data = data.filter((p) => p.apy !== null);
+  // ---------- get lastet unique pool
+  console.log('\ngetting pools');
+  const data = await getYieldFiltered();
 
-  ////// 2 add pct-change columns
+  // ---------- add additional fields
   // for each project we get 3 offsets (1D, 7D, 30D) and calculate absolute apy pct-change
-  console.log('\n2. adding pct-change fields...');
+  console.log('\nadding pct-change fields');
   const days = ['1', '7', '30'];
   let dataEnriched = [];
   const failed = [];
 
   for (const adaptor of [...new Set(data.map((p) => p.project))]) {
-    console.log(adaptor);
-
     // filter data to project
     const dataProject = data.filter((el) => el.project === adaptor);
 
     // api calls
     const promises = [];
     for (let i = 0; i < days.length; i++) {
-      promises.push(superagent.get(`${urlBase}/offsets/${adaptor}/${days[i]}`));
+      promises.push(getYieldOffset(adaptor, days[i]));
     }
     try {
       const offsets = await Promise.all(promises);
       // calculate pct change for each pool
       dataEnriched = [
         ...dataEnriched,
-        ...dataProject.map((pool) => enrich(pool, days, offsets)),
+        ...dataProject.map((p) => enrich(p, days, offsets)),
       ];
     } catch (err) {
       console.log(err);
@@ -59,34 +55,38 @@ const main = async () => {
       continue;
     }
   }
-  console.log('Nb of pools: ', dataEnriched.length);
-  console.log(
-    `Nb of failed adaptor offset calculations: ${failed.length}, List of failed adaptors: ${failed}`
-  );
 
-  console.log('\n3. adding additional pool info fields');
+  // add info about stablecoin, exposure etc.
+  console.log('\nadding additional pool info fields');
   const stablecoins = (
     await superagent.get(
       'https://stablecoins.llama.fi/stablecoins?includePrices=true'
     )
   ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
-  dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins));
+  if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
 
+  // get catgory data (we hardcode IL to true for options protocols)
+  const config = (
+    await superagent.get('https://api.llama.fi/config/yields?a=1')
+  ).body.protocols;
+  dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins, config));
+
+  // add ML and overview plot fields
   // expanding mean, expanding standard deviation,
   // geometric mean and standard deviation (of daily returns)
-  console.log('\n4. adding stats columns');
+  console.log('\nadding stats columns');
   const T = 365;
   dataEnriched = dataEnriched.map((p) => ({
     ...p,
     return: (1 + p.apy / 100) ** (1 / T) - 1,
   }));
 
-  const dataStats = (await superagent.get(`${urlBase}/stats`)).body.data;
-  const statsColumns = welfordUpdate(dataEnriched, dataStats);
+  const dataStat = await getStat();
+  const statColumns = welfordUpdate(dataEnriched, dataStat);
   // add columns to dataEnriched
   for (const p of dataEnriched) {
-    const x = statsColumns.find((i) => i.pool === p.pool);
+    const x = statColumns.find((i) => i.configID === p.configID);
     // create columns
     // a) ML section
     p['count'] = x.count;
@@ -96,9 +96,8 @@ const main = async () => {
     // b) scatterchart section
     p['mu'] = (x.productDR ** (T / x.count) - 1) * 100;
     p['sigma'] =
-      x.count < 2 ? null : Math.sqrt((x.mean2DR / (x.count - 1)) * T) * 100;
+      x.count < 2 ? 0 : Math.sqrt((x.mean2DR / (x.count - 1)) * T) * 100;
   }
-
   // mark pools as outliers if outside boundary (let user filter via toggle on frontend)
   const columns = ['mu', 'sigma'];
   const outlierBoundaries = {};
@@ -110,9 +109,8 @@ const main = async () => {
     const distance = 1.5;
     const x_lb = x_median - distance * x_iqr;
     const x_ub = x_median + distance * x_iqr;
-    outlierBoundaries[col] = { lb: x_lb, ub: x_ub };
+    outlierBoundaries[col] = { lb: Math.max(0, x_lb), ub: x_ub };
   }
-
   // before adding the new outlier field,
   // i'm setting sigma to 0 instead of keeping it to null
   // so the label on the scatterchart makes more sense
@@ -131,13 +129,13 @@ const main = async () => {
       p['sigma'] > outlierBoundaries['sigma']['ub'],
   }));
 
-  console.log('\n5. adding apy runway prediction');
+  // add ML predictions
+  console.log('\nadding apy runway prediction');
   // load categorical feature mappings
   const modelMappings = await utils.readFromS3(
     'llama-apy-prediction-prod',
     'mlmodelartefacts/categorical_feature_mapping_2022_05_20.json'
   );
-  console.log(modelMappings);
   for (const el of dataEnriched) {
     project_fact = modelMappings.project_factorized[el.project];
     chain_fact = modelMappings.chain_factorized[el.chain];
@@ -147,9 +145,6 @@ const main = async () => {
     el.project_factorized = project_fact === undefined ? -1 : project_fact;
     el.chain_factorized = chain_fact === undefined ? -1 : chain_fact;
   }
-
-  // remove any potential objects which have null value on mean
-  dataEnriched = dataEnriched.filter((el) => el.apyMeanExpanding !== null);
 
   // impute null values on apyStdExpanding (this will be null whenever we have pools with less than 2
   // samples, eg. whenever a new pool project is listed or an existing project adds new pools
@@ -185,8 +180,7 @@ const main = async () => {
   for (const [i, el] of dataEnriched.entries()) {
     // for certain conditions we don't want to show predictions on the frontend
     // 1. apy === 0
-    // 2. project === 'anchor' ("stable" apy, prediction would be confusing)
-    // 3. less than 7 datapoints per pool
+    // 2. less than 7 datapoints per pool
     // (low confidence in the model predictions backward looking features (mean and std)
     // are undeveloped and might skew prediction results)
 
@@ -196,8 +190,7 @@ const main = async () => {
       1: 'Stable/Up',
     };
 
-    const nullifyPredictionsCond =
-      el.apy <= 0 || el.count < 7 || el.project === 'anchor';
+    const nullifyPredictionsCond = el.apy <= 0 || el.count < 7;
     const cond = y_pred[i][0] >= y_pred[i][1];
     // (we add label + probabalilty of the class with the larger probability)
     const predictedClass = nullifyPredictionsCond
@@ -243,19 +236,36 @@ const main = async () => {
         : 3;
   }
 
+  // round numbers
+  const precision = 5;
+  dataEnriched = dataEnriched.map((p) =>
+    Object.fromEntries(
+      Object.entries(p).map(([k, v]) => [
+        k,
+        typeof v === 'number' ? +v.toFixed(precision) : v,
+      ])
+    )
+  );
+
+  // before saving, we set pool = configID for the api response of /pools & /poolsEnriched
+  // so we can have the same usage pattern on /chart without breaking changes
+  dataEnriched = dataEnriched
+    .map((p) => ({ ...p, pool_old: p.pool, pool: p.configID }))
+    .map(({ configID, ...p }) => p);
+
+  // ---------- save output to S3
   console.log('\nsaving data to S3');
+  console.log('nb of pools', dataEnriched.length);
   const bucket = process.env.BUCKET_DATA;
   const key = 'enriched/dataEnriched.json';
   dataEnriched = dataEnriched.sort((a, b) => b.tvlUsd - a.tvlUsd);
   await utils.writeToS3(bucket, key, dataEnriched);
 
-  // also save to other "folder" where we keep track of daily predictions (this will be used
-  // for ML dashboard performance monitoring)
-  const timestamp = new Date(
-    Math.floor(Date.now() / 1000 / 60 / 60) * 60 * 60 * 1000
-  ).toISOString();
+  // store ML predictions so we can keep track of model performance
+  const f = 1000 * 60 * 60;
+  const timestamp = new Date(Math.floor(Date.now() / f) * f).toISOString();
 
-  if (timestamp.split('T') === '23:00:00.000Z') {
+  if (timestamp.split('T')[1] === '23:00:00.000Z') {
     const keyPredictions = `predictions-hourly/dataEnriched_${timestamp}.json`;
     await utils.writeToS3(bucket, keyPredictions, dataEnriched);
   }
@@ -272,8 +282,8 @@ const main = async () => {
 const enrich = (pool, days, offsets) => {
   const poolC = { ...pool };
   for (let d = 0; d < days.length; d++) {
-    let X = offsets[d].body.data.offsets;
-    const apyOffset = X.find((x) => x.pool === poolC.pool)?.apy;
+    let X = offsets[d];
+    const apyOffset = X.find((x) => x.configID === poolC.configID)?.apy;
     poolC[`apyPct${days[d]}D`] = poolC['apy'] - apyOffset;
   }
   return poolC;
@@ -281,12 +291,26 @@ const enrich = (pool, days, offsets) => {
 
 const checkStablecoin = (el, stablecoins) => {
   let tokens = el.symbol.split('-').map((el) => el.toLowerCase());
+  const symbolLC = el.symbol.toLowerCase();
 
   let stable;
-  // specific case for aave amm positions
-  if (el.project === 'aave' && el.symbol.toLowerCase().includes('amm')) {
+  if (
+    el.project === 'curve' &&
+    symbolLC.includes('3crv') &&
+    !symbolLC.includes('btc')
+  ) {
+    stable = true;
+  } else if (el.project === 'convex-finance' && symbolLC.includes('3crv')) {
+    stable = true;
+  } else if (el.project === 'aave-v2' && symbolLC.includes('amm')) {
     tok = tokens[0].split('weth');
     stable = tok[0].includes('wbtc') ? false : tok.length > 1 ? false : true;
+  } else if (tokens[0].includes('torn')) {
+    stable = false;
+  } else if (el.project === 'hermes-protocol' && symbolLC.includes('maia')) {
+    stable = false;
+  } else if (tokens.some((t) => t.includes('sushi'))) {
+    stable = false;
   } else if (tokens.length === 1) {
     stable = stablecoins.some((x) =>
       tokens[0].replace(/\s*\(.*?\)\s*/g, '').includes(x)
@@ -297,11 +321,6 @@ const checkStablecoin = (el, stablecoins) => {
       x += stablecoins.some((x) => t.includes(x));
     }
     stable = x === tokens.length ? true : false;
-
-    // this case is for Bancor only
-    if (tokens.includes('bnt') && x > 0) {
-      stable = true;
-    }
   }
 
   return stable;
@@ -312,7 +331,7 @@ const checkStablecoin = (el, stablecoins) => {
 // 2: - 1 asset
 // 3: - more than 1 asset but same underlying assets
 const checkIlRisk = (el) => {
-  const l1Token = ['btc', 'eth', 'avax', 'matic', 'eur'];
+  const l1Token = ['btc', 'eth', 'avax', 'matic', 'eur', 'link', 'sushi'];
   const symbol = el.symbol.toLowerCase();
   const tokens = symbol.split('-');
 
@@ -326,9 +345,6 @@ const checkIlRisk = (el) => {
   ) {
     ilRisk = 'yes';
   } else if (tokens.length === 1) {
-    ilRisk = 'no';
-    // for bancor
-  } else if (tokens.length === 2 && tokens.includes('bnt')) {
     ilRisk = 'no';
   } else {
     const elements = [];
@@ -358,6 +374,10 @@ const checkExposure = (el) => {
   // generic
   let exposure = el.symbol.includes('-') ? 'multi' : 'single';
 
+  // generic 3crv check
+  if (exposure === 'single' && el.symbol.toLowerCase().includes('3crv'))
+    return 'multi';
+
   // project specific
   if (el.project === 'aave') {
     exposure =
@@ -365,22 +385,24 @@ const checkExposure = (el) => {
       el.symbol.toLowerCase().includes('ammbpt')
         ? 'multi'
         : exposure;
-  } else if (el.project === 'bancor') {
-    exposure = 'single';
   } else if (el.project === 'badger-dao') {
     exposure = el.symbol.toLowerCase().includes('crv') ? 'multi' : exposure;
+  } else if (el.project === 'dot-dot-finance') {
+    exposure = 'multi';
   }
 
   return exposure;
 };
 
-const addPoolInfo = (el, stablecoins) => {
+const addPoolInfo = (el, stablecoins, config) => {
   el['stablecoin'] = checkStablecoin(el, stablecoins);
 
   // complifi has single token exposure only cause the protocol
   // will pay traders via deposited amounts
   el['ilRisk'] =
-    el.project === 'complifi'
+    config[el.project]?.category === 'Options'
+      ? 'yes'
+      : el.project === 'complifi'
       ? 'yes'
       : el.stablecoin && el.symbol.toLowerCase().includes('eur')
       ? checkIlRisk(el)

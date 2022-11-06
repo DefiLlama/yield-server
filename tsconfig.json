@@ -1,18 +1,18 @@
 {
-    "compilerOptions": {
-      "module": "es2015",
-      "target": "esnext",
-      "strict": false,
-      "types": ["node"],
-      "resolveJsonModule": true,
-      "moduleResolution": "node",
-      "noUnusedLocals": true,
-      "noUnusedParameters": true,
-      "noImplicitReturns": true,
-      "noFallthroughCasesInSwitch": true,
-      "esModuleInterop": true,
-      "allowJs": true,
-      "lib": ["ES2020.Promise"]
-    },
-    "include": ["./src/**/*"],
-  }  
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES5",
+    "strict": false,
+    "types": ["node", "jest"],
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true,
+    "allowJs": true,
+    "lib": ["ES2020.Promise", "ES6"]
+  },
+  "include": ["./src/**/*"]
+}

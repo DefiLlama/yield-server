@@ -8,6 +8,7 @@ const gaugeABIArbitrum = require('./abis/gauge_arbitrum.json');
 const gaugeABIPolygon = require('./abis/gauge_polygon.json');
 const gaugeControllerEthereum = require('./abis/gauge_controller_ethereum.json');
 const protocolFeesCollectorABI = require('./abis/protocol_fees_collector.json');
+const { lte } = require('lodash');
 
 // Subgraph URLs
 const urlBase = 'https://api.thegraph.com/subgraphs/name/balancer-labs';
@@ -23,7 +24,7 @@ const protocolFeesCollector = '0xce88686553686DA562CE7Cea497CE749DA109f9F';
 
 const queryGauge = gql`
   {
-    liquidityGauges(first: 999) {
+    liquidityGauges(first: 200) {
       id
       symbol
       poolId
@@ -43,7 +44,7 @@ const queryGauge = gql`
 const query = gql`
   {
     pools(
-      first: 1000
+      first: 200
       orderBy: "totalLiquidity"
       orderDirection: "desc"
       where: { totalShares_gt: 0.01 }
@@ -83,6 +84,19 @@ const queryPrior = gql`
 }
 `;
 
+// for Balancer Aave Boosted StablePool (there are 2 pools, but underlying addresses for one of them
+// don't return any price data from our api, the other pool does though and both have the same underlying tokens)
+// specifically, bb-a-usdc, bb-a-dai, bb-a-usdt
+// -> use this mapping to get price data for both of them
+const bbTokenMapping = {
+  '0x2f4eb100552ef93840d5adc30560e5513dfffacb':
+    '0x2bbf681cc4eb09218bee85ea2a5d3d13fa40fc0c',
+  '0x82698aecc9e28e9bb27608bd52cf57f704bd1b83':
+    '0x9210f1204b5a24742eba12f710636d76240df3d0',
+  '0xae37d54ae477268b9997d4161b96b8200755935c':
+    '0x804cdb9116a10bb78768d3252355a1b18067bf8f',
+};
+
 const correctMaker = (entry) => {
   entry = { ...entry };
   // for some reason the MKR symbol is not there, add this manually for
@@ -99,19 +113,41 @@ const correctMaker = (entry) => {
 const tvl = (entry, tokenPriceList, chainString) => {
   entry = { ...entry };
 
+  // the boosted pools also contain bb-a-usd as underlying, which imo is wrong (seems like this is
+  // representing the total from `getActualSupply`); removing them from the array to get the correct tvl
+  const excludeTokenList = [
+    '0x7b50775383d3d6f0215a8f290f2c9e2eebbeceb2',
+    '0xa13a9247ea42d743238089903570127dda72fe44',
+  ];
+
   const balanceDetails = entry.tokens;
   const d = {
     id: entry.id,
     symbol: balanceDetails.map((tok) => tok.symbol).join('-'),
     tvl: 0,
     totalShares: entry.totalShares,
-    tokensList: entry.tokensList,
+    tokensList: entry.tokensList.filter((p) => !excludeTokenList.includes(p)),
   };
   for (const el of balanceDetails) {
+    if (excludeTokenList.includes(el.address)) continue;
     // some addresses are from tokens which are not listed on coingecko so these will result in undefined
-    const price =
+
+    let price =
       tokenPriceList[`${chainString}:${el.address.toLowerCase()}`]?.price;
+    if (
+      el.address.toLowerCase() ===
+      '0x7dff46370e9ea5f0bad3c4e29711ad50062ea7a4'.toLowerCase()
+    )
+      price =
+        tokenPriceList['solana:So11111111111111111111111111111111111111112']
+          ?.price;
     // if price is undefined of one token in pool, the total tvl will be NaN
+    if (
+      entry.id ===
+      '0xa13a9247ea42d743238089903570127dda72fe4400000000000000000000035d'
+    ) {
+      price = tokenPriceList[`ethereum:${bbTokenMapping[el.address]}`]?.price;
+    }
     d.tvl += Number(el.balance) * price;
   }
 
@@ -214,7 +250,10 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
       ).body.coins[key].price;
 
       // call reward data
-      const { rate } = await gauge.methods.reward_data(add).call();
+      const { rate, period_finish } = await gauge.methods
+        .reward_data(add)
+        .call();
+      if (period_finish * 1000 < new Date().getTime()) continue;
       const inflationRate = rate / 1e18;
       const tokenPayable = inflationRate * 7 * 86400;
       const totalSupply = (await gauge.methods.totalSupply().call()) / 1e18;
@@ -227,7 +266,6 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
       aprLMRewards.push(aprLM === Infinity ? null : aprLM);
       rewardTokens.push(add);
     }
-
     // add up individual LM rewards
     x.aprLM = aprLMRewards
       .filter((i) => isFinite(i))
@@ -245,22 +283,6 @@ const aprFee = (el, dataNow, dataPrior, swapFeePercentage) => {
 
   el.aprFee = ((swapFee24h * 365) / el.tvl) * 100 * swapFeePercentage;
   return el;
-};
-
-const buildPool = (el, chainString) => {
-  const newObj = {
-    pool: el.id,
-    chain: utils.formatChain(chainString),
-    project: 'balancer',
-    symbol: utils.formatSymbol(el.symbol),
-    tvlUsd: el.tvl,
-    apyBase: el.aprFee,
-    apyReward: el.aprLM,
-    rewardTokens: el.rewardTokens,
-    underlyingTokens: el.tokensList,
-  };
-
-  return newObj;
 };
 
 const topLvl = async (
@@ -298,7 +320,9 @@ const topLvl = async (
 
   const tokenPriceList = (
     await superagent.post('https://coins.llama.fi/prices').send({
-      coins: tokenList.map((t) => `${chainString}:${t}`),
+      coins: tokenList
+        .map((t) => `${chainString}:${t}`)
+        .concat(['solana:So11111111111111111111111111111111111111112']),
     })
   ).body.coins;
 
@@ -314,7 +338,22 @@ const topLvl = async (
   tvlInfo = await aprLM(tvlInfo, urlGauge, queryGauge, chainString, gaugeABI);
 
   // build pool objects
-  return tvlInfo.map((el) => buildPool(el, chainString));
+  return tvlInfo.map((p) => ({
+    pool: p.id,
+    chain: utils.formatChain(chainString),
+    project: 'balancer',
+    symbol: p.symbol.includes('bb-a-USD')
+      ? 'bb-a-USDT-bb-a-USDC-bb-a-DAI'
+      : utils.formatSymbol(p.symbol),
+    tvlUsd: p.tvl,
+    apyBase: p.aprFee,
+    apyReward: p.aprLM,
+    rewardTokens: p.rewardTokens,
+    underlyingTokens: p.tokensList,
+    url: `https://${
+      chainString === 'ethereum' ? 'app' : chainString
+    }.balancer.fi/#/pool/${p.id}`,
+  }));
 };
 
 const main = async () => {

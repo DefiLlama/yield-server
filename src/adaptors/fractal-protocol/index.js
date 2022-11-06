@@ -19,7 +19,7 @@ const usdfAbi = [
   },
 ];
 const USDF_TOKEN_CONTRACT = '0x51acB1ea45c1EC2512ae4202B9076C13016dc8aA';
-const FRACTAL_VAULT_CONTRACT = '0x3eB82f2eD4d992dc0Bed328214A0907250f4Ec82';
+const FRACTAL_VAULT_CONTRACT = '0x3EAa4b3e8967c02cE1304C1EB35e8C5409838DFC';
 
 const web3 = new Web3(process.env.INFURA_CONNECTION);
 
@@ -43,7 +43,7 @@ const fractalMetrics = async () => {
     pool: '0x3eB82f2eD4d992dc0Bed328214A0907250f4Ec82',
     chain: utils.formatChain('ethereum'),
     project: 'fractal-protocol',
-    symbol: utils.formatSymbol('USDF'),
+    symbol: utils.formatSymbol('USDC'),
     tvlUsd: tvl,
     apy: Number(apyData),
   };
@@ -54,4 +54,5 @@ const fractalMetrics = async () => {
 module.exports = {
   timetravel: false,
   apy: fractalMetrics,
+  url: 'https://app.fractalprotocol.org/',
 };

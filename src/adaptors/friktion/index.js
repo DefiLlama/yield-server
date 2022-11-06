@@ -43,7 +43,8 @@ async function tvl() {
       pool: currentVolt.voltVaultId,
       chain: utils.formatChain('solana'),
       project: 'friktion',
-      symbol: `${currentVolt.depositTokenSymbol} (${voltTypeMapping[voltType]})`,
+      symbol: currentVolt.depositTokenSymbol,
+      poolMeta: voltTypeMapping[voltType],
       tvlUsd: Number(poolsTvl[poolId]),
       apyBase: currentVolt.apy,
     };
@@ -55,4 +56,5 @@ async function tvl() {
 module.exports = {
   timetravel: false,
   apy: tvl,
+  url: 'https://app.friktion.fi/',
 };

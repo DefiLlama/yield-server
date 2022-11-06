@@ -21,6 +21,9 @@ const query = gql`
       cash
       underlyingPriceUSD
       totalBorrows
+      underlyingAddress
+      collateralFactor
+      borrowRate
     }
   }
 `;
@@ -44,6 +47,8 @@ const getRewardTokenApr = async (marketsData) => {
     marketsData.map(async (market) => ({
       market: market.id,
       reward: await comptroller.methods.compSpeeds(market.id).call(),
+      totalBorrowUSD:
+        Number(market.totalBorrows) * Number(market.underlyingPriceUSD),
       totalSupplyUSD:
         (Number(market.cash) + Number(market.totalBorrows)) *
         Number(market.underlyingPriceUSD),
@@ -51,13 +56,19 @@ const getRewardTokenApr = async (marketsData) => {
   );
 
   const apr = rewardsPerBlock.reduce(
-    (acc, { market, reward, totalSupplyUSD }) => {
+    (acc, { market, reward, totalBorrowUSD, totalSupplyUSD }) => {
       return {
         ...acc,
-        [market.toLowerCase()]:
-          (((reward / 10 ** 18) * BLOCKS_PER_YEAR * rewardTokenPrice) /
-            totalSupplyUSD) *
-          100,
+        [market.toLowerCase()]: {
+          apyReward:
+            (((reward / 10 ** 18) * BLOCKS_PER_YEAR * rewardTokenPrice) /
+              totalSupplyUSD) *
+            100,
+          apyRewardBorrow:
+            (((reward / 10 ** 18) * BLOCKS_PER_YEAR * rewardTokenPrice) /
+              totalBorrowUSD) *
+            100,
+        },
       };
     },
     {}
@@ -78,9 +89,19 @@ const getApy = async () => {
       project: 'scream',
       symbol: market.underlyingSymbol,
       tvlUsd: market.underlyingPriceUSD * market.cash,
-      apy:
-        Number(market.supplyRate) * 100 +
-        rewardTokenApr[market.id.toLowerCase()],
+      apyBase: Number(market.supplyRate) * 100,
+      apyReward: rewardTokenApr[market.id.toLowerCase()].apyReward,
+      rewardTokens: ['0xe0654c8e6fd4d733349ac7e09f6f23da256bf475'],
+      underlyingTokens: [market.underlyingAddress],
+      // borrow fields
+      totalSupplyUsd:
+        (Number(market.cash) + Number(market.totalBorrows)) *
+        Number(market.underlyingPriceUSD),
+      totalBorrowUsd:
+        Number(market.totalBorrows) * Number(market.underlyingPriceUSD),
+      apyBaseBorrow: market.borrowRate * 100,
+      apyRewardBorrow: rewardTokenApr[market.id.toLowerCase()].apyRewardBorrow,
+      ltv: Number(market.collateralFactor),
     };
   });
 
@@ -90,4 +111,5 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
+  url: 'https://scream.sh/lend',
 };
