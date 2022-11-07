@@ -118,6 +118,7 @@ const tvl = (entry, tokenPriceList, chainString) => {
   const excludeTokenList = [
     '0x7b50775383d3d6f0215a8f290f2c9e2eebbeceb2',
     '0xa13a9247ea42d743238089903570127dda72fe44',
+    '0xfb5e6d0c1dfed2ba000fbc040ab8df3615ac329c', // b-steth
   ];
 
   const balanceDetails = entry.tokens;
@@ -344,6 +345,8 @@ const topLvl = async (
     project: 'balancer',
     symbol: p.symbol.includes('bb-a-USD')
       ? 'bb-a-USDT-bb-a-USDC-bb-a-DAI'
+      : p.symbol.includes('B-stETH-Stable')
+      ? 'WSTETH-WETH'
       : utils.formatSymbol(p.symbol),
     tvlUsd: p.tvl,
     apyBase: p.aprFee,
