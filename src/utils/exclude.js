@@ -1,7 +1,7 @@
 // adaptors which we don't want to be triggered +
 // which we don't want to be included in the enriched dataset
 // in case we have old values in db
-const excludeAdaptors = ['koyo-finance', 'pony-finance'];
+const excludeAdaptors = ['koyo-finance', 'pony-finance', 'qidao'];
 
 const excludePools = [
   '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d',
@@ -16,6 +16,19 @@ const excludePools = [
   '0xEc54859519293B8784bc5Bf28144166f313618aF', // dai-o uniswap
   'BRnJFznuWEuqMZTHGKyWjYijugcj8wtb3oiLMyu2Tj4R', // usdh soldust pool
   '0xec54859519293b8784bc5bf28144166f313618af', // dai-o uniswap
+  '0xE6D31ab5607eb7618a16B5923b67314d16BD350f-miMATIC-fantom', // decomissioned tarot pool
+  // bunch of aave-v3 pools on fantom, are all frozen (updated adapter to consider frozen state, but need to add here
+  // otherwise we' gonna see those pools on the UI for the next 7days. (can be removed afterwards))
+  '0x191c10aa4af7c30e871e70c95db0e4eb77237530-fantom',
+  '0x6d80113e533a2c0fe82eabd35f1875dcea89ea97-fantom',
+  '0x078f358208685046a11c85e8ad32895ded33a249-fantom',
+  '0xf329e36c7bf6e5e86ce2150875a84ce77f477375-fantom',
+  '0xe50fa9b3c56ffb159cb0fca61f5c9d750e8128c8-fantom',
+  '0x82e64f49ed5ec1bc6e43dad4fc8af9bb3a2312ee-fantom',
+  '0x6ab707aca953edaefbc4fd23ba73294241490620-fantom',
+  '0xc45a479877e1e9dfe9fcd4056c699575a1045daa-fantom',
+  '0x625e7708f30ca75bfd92586e17077590c60eb4cd-fantom',
+  '0x513c7e3a9c69ca3e22550ef58ac1c0088e918fff-fantom',
 ];
 
 const boundaries = {

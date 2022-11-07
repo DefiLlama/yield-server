@@ -13,7 +13,7 @@ provider:
   tracing:
     apiGateway: true
     lambda: true
-  memorySize: 256
+  memorySize: 512
   iam:
     role:
       statements:
@@ -30,8 +30,6 @@ provider:
           Resource: '*'
 
   environment:
-    # for entrypoint and enrichment
-    ADAPTORS: ${file(./env.js):ADAPTORS}
     # for api handlers
     APIG_URL:
       {
