@@ -82,7 +82,7 @@ const main = async () => {
       return {
         pool: farm.address,
         chain: 'Avalanche',
-        project: 'yield-yak',
+        project: 'yield-yak-aggregator',
         symbol: farm.name,
         poolMeta: farm.platform,
         apyBase: apys[farm.address].apy,
