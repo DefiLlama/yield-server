@@ -8,9 +8,11 @@ const RAY_PRECISION = 27;
 const RAY = new BigNumber(10).pow(RAY_PRECISION);
 
 const WBNB = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c';
+const BUSD = '0xe9e7cea3dedca5984780bafc599bd69add087d56';
 const ceaBNBcAddress = '0x563282106A5B0538f8673c787B3A16D3Cc1DbF1a';
 const BNBJoin = '0xfA14F330711A2774eC438856BBCf2c9013c2a6a4';
 const HAY = '0x0782b6d8c4551B9760e74c0545a9bCD90bdc41E5';
+const hHAY = '0x0a1Fd12F73432928C190CAF0810b3B767A59717e';
 
 const pool =
   '0x636541424e426300000000000000000000000000000000000000000000000000';
@@ -74,6 +76,19 @@ const SPOT = {
   },
 };
 
+const JAR = {
+  address: hHAY,
+  abis: {
+    rate: {
+      inputs: [],
+      name: 'rate',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
+  },
+};
+
 const getApy = async () => {
   const baseRataCall = (
     await sdk.api.abi.call({
@@ -96,6 +111,22 @@ const getApy = async () => {
   const hayTotalSupply = (
     await sdk.api.abi.call({
       target: HAY,
+      abi: 'erc20:totalSupply',
+      chain: 'bsc',
+    })
+  ).output;
+
+  const hayRate = (
+    await sdk.api.abi.call({
+      target: hHAY,
+      abi: JAR.abis.rate,
+      chain: 'bsc',
+    })
+  ).output;
+
+  const hHayTotalSupply = (
+    await sdk.api.abi.call({
+      target: hHAY,
       abi: 'erc20:totalSupply',
       chain: 'bsc',
     })
@@ -138,6 +169,16 @@ const getApy = async () => {
       totalBorrowUsd: totalSupplyUsd,
       ltv: 1 / Number(liquidationRatio.toNumber()),
       mintedCoin: 'HAY',
+    },
+    {
+      pool: hHAY,
+      project: 'helio-protocol',
+      symbol: 'HAY',
+      chain: 'binance',
+      apy: new BigNumber(hayRate).times(SECONDS_PER_YEAR).div(hHayTotalSupply).times(100).toNumber(),
+      tvlUsd:
+        (Number(hHayTotalSupply) / 1e18) *
+        prices[`bsc:${HAY.toLowerCase()}`].price,
     },
   ];
 };
