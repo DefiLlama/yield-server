@@ -29,6 +29,10 @@ async function getBurrowFarms() {
             apyBase: item.apyBase,
             underlyingTokens: [item.token_id],
             rewardTokens: item.rewardTokens,
+            apyBaseBorrow: item.apyBaseBorrow,
+            totalSupplyUsd: item.totalSupplyUsd,
+            totalBorrowUsd: item.totalBorrowUsd,
+            ltv: item.ltv
         };
         target_list.push(target);
     })
