@@ -1,26 +1,24 @@
-const main = async () => {
-  const data = await utils.getData(
-    'https://api-osmosis.imperator.co/pools/v2/all?low_liquidity=false'
-  );
+const utils = require('../utils');
 
-  const pools = []
+const main = async () => {
+  const data = await utils.getData('http://localhost:3000/api/pool-gauges');
+
+  const pools = [];
 
   for (const entry of data) {
-    for (const duration of [1, 7, 14]) {
-      pool.push(      {
-        pool: `${entry.pool}-STRD`,
-        chain: utils.formatChain('Stride'),
-        project: 'stride',
-        symbol: utils.formatSymbol(entry.denom),
-        poolMeta: duration,
-        tvlUsd: entry.tvl,
-        apy: entry.apr_gauge[duration],
-      })
-    }
+    pools.push({
+      pool: `${entry.poolId}-${entry.duration}-${entry.token}`,
+      chain: utils.formatChain('Stride'),
+      project: 'stride',
+      symbol: utils.formatSymbol(entry.token),
+      poolMeta: `${entry.duration} day(s)`,
+      tvlUsd: entry.tvl,
+      apy: entry.apr,
+    });
   }
 
   return pools.filter((pool) => {
-    return utils.keepFinite(pool)
+    return utils.keepFinite(pool);
   });
 };
 
@@ -28,4 +26,4 @@ module.exports = {
   timetravel: false,
   apy: main,
   url: 'https://app.stride.zone/pools',
-};
+}; // npm run test --adapter=stride
