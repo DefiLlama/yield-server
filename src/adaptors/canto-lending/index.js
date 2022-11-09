@@ -4,7 +4,6 @@ const abi = require('./abis.json');
 
 const unitroller = '0x5E23dC409Fc2F832f83CEc191E245A191a4bCc5C';
 const WCANTO = '0x826551890Dc65655a0Aceca109aB11AbDbD7a07B';
-const cNOTE_POOL = '0xEe602429Ef7eCe0a13e4FfE8dBC16e101049504C';
 
 const getOutput = ({ output }) => output.map(({ output }) => output);
 
@@ -63,15 +62,27 @@ const poolInfo = async (chain) => {
   ).then((data) => data.map(getOutput));
   underlyingToken.find((token, index, arr) => { if (token === null) arr[index] = WCANTO });
 
-  const underlyingTokenDecimals = (
-    await sdk.api.abi.multiCall({
-      abi: abi.decimals,
-      calls: underlyingToken.map((token) => ({
-        target: token,
-      })),
-      chain,
-    })
-  ).output.map((decimal) => Math.pow(10, Number(decimal.output)));
+  const [
+    underlyingTokenDecimals,
+    underlyingTokenSymbol
+  ] = await Promise.all(
+    [
+      'decimals',
+      'symbol'
+    ].map((method) =>
+      sdk.api.abi.multiCall({
+        abi: abi[method],
+        calls: underlyingToken.map((token) => ({
+          target: token,
+        })),
+        chain,
+      })
+    )
+  ).then((data) => data.map(getOutput));
+
+  underlyingTokenDecimals.map((decimal, i, arr) => {
+    arr[i] = Math.pow(10, Number(decimal));
+  });
 
   const lpPoolsIdx = [];
   const coinPoolsIdx = [];
@@ -104,7 +115,7 @@ const poolInfo = async (chain) => {
     data.totalBorrows = totalBorrows[i];
     data.totalReserves = totalReserves[i];
     data.underlyingToken = underlyingToken[i];
-    data.tokenSymbol = tokenSymbol[i];
+    data.tokenSymbol = underlyingTokenSymbol[i];
     data.price = prices[underlyingToken[i].toLowerCase()].usd;
     data.underlyingTokenDecimals = underlyingTokenDecimals[i];
   });
@@ -252,8 +263,7 @@ const getApy = async () => {
         apyReward,
         pool.underlyingToken,
         [WCANTO],
-        //lp tokens cannot be borrowed
-        /[/]/.test(pool.tokenSymbol) === true ? 0 : apyBaseBorrow,
+        apyBaseBorrow,
         apyRewardBorrow,
         totalSupplyUsd,
         totalBorrowUsd,
