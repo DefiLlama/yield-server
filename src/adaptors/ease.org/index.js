@@ -4,7 +4,7 @@ const sdk = require('@defillama/sdk')
 const superagent = require('superagent');
 require('dotenv').config({ path: './config.env' });
 const bribePotAbi = require('./bribePotAbi.json');
-const web3 = new Web3(process.env.INFURA_CONNECTION);
+const web3 = new Web3("https://rpc.ankr.com/eth");
 
 const bribePotAddress = '0xEA5EdeF17C9be57228389962ba50b98397f1E28C';
 const easeTokenAddress = '0xEa5eDef1287AfDF9Eb8A46f9773AbFc10820c61c';
