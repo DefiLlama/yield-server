@@ -39,8 +39,7 @@ const gvEase = async () => {
 
   const weeklyYield = bribePerNextWeek / totalSupply;
   const x = ((1 + (weeklyYield)));
-  const estApy = Math.pow(x, 52)-1;
-  const estApr = weeklyYield * 52;
+  const estApy = (Math.pow(x, 52) - 1) * 100;
 
   const defillamaPooldata = [];
 
@@ -71,11 +70,10 @@ const gvEase = async () => {
     symbol: "gvEase",
     tvlUsd,
     apyBase: estApy,
-    apyReward: 0,
+    apyReward: estApy,
     rewardTokens: ['0xEa5eDef1287AfDF9Eb8A46f9773AbFc10820c61c'],
     underlyingTokens: ['0xEa5eDef1287AfDF9Eb8A46f9773AbFc10820c61c'],
   });
-
   return defillamaPooldata
 };
 
