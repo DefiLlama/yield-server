@@ -10,12 +10,10 @@ const { fetchURL } = require('../../helper/utils');
 const RPC_URL = 'https://bsc-dataseed1.binance.org/';
 const API_URL =
   'https://api.thegraph.com/subgraphs/name/makemyideatech/planet-finance-v3';
-const LP_APRS =
-  'https://api.planet.finance/v2/markets/getpoolsinfo';
+const LP_APRS = 'https://api.planet.finance/v2/markets/getpoolsinfo';
 const GAMMA_FARM_ADDRESS = '0x9EBce8B8d535247b2a0dfC0494Bc8aeEd7640cF9';
 const GAMMA = '0xb3Cb6d2f8f2FDe203a022201C81a96c167607F15';
 const GAMMA_RESERVOIR_ADDRESS = '0x7cF0E175908Fc6D7f51CE793271D5c0BD674660F';
-
 
 const BSC_BLOCK_TIME = 3;
 const BLOCKS_PER_YEAR = (60 / BSC_BLOCK_TIME) * 60 * 24 * 365;
@@ -39,11 +37,14 @@ const pairQuery = gql`
   }
 `;
 
-const farmv2driprate = async() => {
-  const reservoir_inst = await new web3.eth.Contract(gammaReservoirAbi, GAMMA_RESERVOIR_ADDRESS);
+const farmv2driprate = async () => {
+  const reservoir_inst = await new web3.eth.Contract(
+    gammaReservoirAbi,
+    GAMMA_RESERVOIR_ADDRESS
+  );
   const farmv2dripR = await reservoir_inst.methods.farmV2DripRate().call();
   return farmv2dripR;
-}
+};
 
 const getPairInfo = (pair) => {
   const pairInfo = request(API_URL, pairQuery, { id: pair.toLowerCase() });
@@ -63,7 +64,6 @@ const calculateApy = (
 
   return ((poolWeight * cakePerYear * cakePrice) / reserveUSD) * 100;
 };
-
 
 const calculateReservesUSD = (
   pairName,
@@ -91,7 +91,7 @@ const calculateReservesUSD = (
   if (token1.includes('BNB')) return reserve1.times(bnbPrice).times(2);
   if (token1.includes('Gamma')) return reserve1.times(gammaPrice).times(2);
   if (token1.includes('ETH')) return reserve1.times(ethPrice).times(2);
-  return reserve0.times(2)
+  return reserve0.times(2);
 };
 
 const getBaseTokensPrice = async () => {
@@ -112,17 +112,17 @@ const main = async () => {
   const { data: lpAprs } = await fetchURL(LP_APRS);
   const aprsObj = {};
   for (const key of Object.keys(lpAprs)) {
-    if(lpAprs[key].farmAddress.toLowerCase() == GAMMA_FARM_ADDRESS.toLowerCase()) {
+    if (
+      lpAprs[key].farmAddress.toLowerCase() == GAMMA_FARM_ADDRESS.toLowerCase()
+    ) {
       aprsObj[lpAprs[key].wantAddress.toLowerCase()] = {
-        baseApy : lpAprs[key].tradeFeeApy? lpAprs[key].tradeFeeApy : 0,
-        rewardApy : lpAprs[key].tradeFeeApy? lpAprs[key].totalApy - lpAprs[key].tradeFeeApy: lpAprs[key].totalApy
-      }
+        baseApy: lpAprs[key].tradeFeeApy ? lpAprs[key].tradeFeeApy : 0,
+        rewardApy: lpAprs[key].gammaApy,
+      };
     }
   }
   const poolsCount = await gammaFarmInst.methods.poolLength().call();
-  const totalAllocPoint = await gammaFarmInst.methods
-    .totalAllocPoint()
-    .call();
+  const totalAllocPoint = await gammaFarmInst.methods.totalAllocPoint().call();
   const gammaRateToRegularFarm = await farmv2driprate();
   const normalizedGammaPerBlock = gammaRateToRegularFarm / 1e18;
 
@@ -155,9 +155,7 @@ const main = async () => {
 
   const reservesData = reservesRes.output.map((res) => res.output);
   const supplyData = supplyRes.output.map((res) => res.output);
-  const gammaFarmBalData = gammaFarmBalancesRes.output.map(
-    (res) => res.output
-  );
+  const gammaFarmBalData = gammaFarmBalancesRes.output.map((res) => res.output);
 
   const pools = await Promise.all(
     poolsInfo.map((pool, i) =>
@@ -198,7 +196,8 @@ const main = async () => {
           tvlUsd: Number(reserveUSD),
           apyBase: aprsObj[pairInfo.id.toLowerCase()].baseApy,
           apyReward: aprsObj[pairInfo.id.toLowerCase()].rewardApy,
-          rewardTokens: aprsObj[pairInfo.id.toLowerCase()].rewardApy > 0 ? [GAMMA] : [],
+          rewardTokens:
+            aprsObj[pairInfo.id.toLowerCase()].rewardApy > 0 ? [GAMMA] : [],
           underlyingTokens: [pairInfo.token0.id, pairInfo.token1.id],
         };
         return pool;
