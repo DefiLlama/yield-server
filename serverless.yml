@@ -79,7 +79,6 @@ functions:
           batchSize: 2
           functionResponseType: ReportBatchItemFailures
     environment:
-      INFURA_CONNECTION: ${file(./env.js):INFURA_CONNECTION}
       ALCHEMY_CONNECTION_POLYGON: ${file(./env.js):ALCHEMY_CONNECTION_POLYGON}
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
       XDAI_RPC: ${file(./env.js):XDAI_RPC}
