@@ -1,7 +1,7 @@
 const utils = require('../utils');
 
 const main = async () => {
-  const data = await utils.getData('http://localhost:3000/api/pool-gauges');
+  const data = await utils.getData('https://app.stride.zone/api/pool-gauges');
 
   const pools = [];
 
