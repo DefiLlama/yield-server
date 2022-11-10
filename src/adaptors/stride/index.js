@@ -25,5 +25,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.stride.zone/pools',
+  url: 'https://app.stride.zone',
 }; // npm run test --adapter=stride
