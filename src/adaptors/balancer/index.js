@@ -367,11 +367,7 @@ const topLvl = async (
       pool: p.id,
       chain: utils.formatChain(chainString),
       project: 'balancer',
-      symbol: p.symbol.includes('bb-a-USD')
-        ? 'bb-a-USDT-bb-a-USDC-bb-a-DAI'
-        : p.symbol.includes('B-stETH-Stable')
-        ? 'WSTETH-WETH'
-        : utils.formatSymbol(p.symbol),
+      symbol: utils.formatSymbol(p.symbol),
       tvlUsd: p.tvl,
       apyBase: p.aprFee,
       apyReward: p.aprLM,
