@@ -1,7 +1,5 @@
 const utils = require('../utils');
 const sdk = require("@defillama/sdk");
-const sTlosAbi = require("./sTlos.json");
-const { ethers } = require("ethers");
 // https://api.telos.net/v1/apy/evm
 
 const sTlosAPYfunction = async () => {
