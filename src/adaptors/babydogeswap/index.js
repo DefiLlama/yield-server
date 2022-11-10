@@ -153,9 +153,18 @@ const main = async (timestamp = null) => {
   const data = dataNow.map((el) => farmApy(el));
 
   const pools = data.map((p) => {
-    if (!p.stakeToken.isLpToken) return null;
-    const symbol = `${p.stakeToken.token0.symbol}-${p.stakeToken.token1.symbol}`;
-    const underlyingTokens = [p.stakeToken.token0.id, p.stakeToken.token1.id];
+    let symbol;
+    let underlyingTokens;
+    // lp tokens
+    if (p.stakeToken.isLpToken) {
+      symbol = `${p.stakeToken.token0.symbol}-${p.stakeToken.token1.symbol}`;
+      underlyingTokens = [p.stakeToken.token0.id, p.stakeToken.token1.id];
+
+      // single staking
+    } else {
+      symbol = p.stakeToken.symbol;
+      underlyingTokens = [p.stakeToken.id];
+    }
 
     return {
       pool: p.id,

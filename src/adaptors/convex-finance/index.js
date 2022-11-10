@@ -1,5 +1,4 @@
 const superagent = require('superagent');
-const Web3 = require('web3');
 const sdk = require('@defillama/sdk');
 require('dotenv').config({ path: './config.env' });
 
@@ -8,108 +7,16 @@ const abi = require('./abi.json');
 const baseRewardPoolAbi = require('./baseRewardPoolAbi.json');
 const virtualBalanceRewardPoolAbi = require('./virtualBalanceRewardPoolAbi.json');
 
-const { symbol } = require('@defillama/sdk/build/erc20');
-
-const web3 = new Web3(process.env.INFURA_CONNECTION);
-
 const crvAddress = '0xD533a949740bb3306d119CC777fa900bA034cd52';
 const cvxAddress = '0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B';
+const convexBoosterAddress = '0xF403C135812408BFbE8713b5A23a04b3D48AAE31';
 
 const cliffSize = 100000; // * 1e18; //new cliff every 100,000 tokens
 const cliffCount = 1000; // 1,000 cliffs
 const maxSupply = 100000000; // * 1e18; //100 mil max supply
 const projectedAprTvlThr = 1e6;
 
-const getCVXMintAmount = async (crvEarned) => {
-  // first get total supply
-  const cvxSupply = await supplyOf(cvxAddress);
-  // get current cliff
-  const currentCliff = cvxSupply / cliffSize;
-  // if current cliff is under the max
-  if (currentCliff < cliffCount) {
-    // get remaining cliffs
-    let remaining = cliffCount - currentCliff;
-
-    // multiply ratio of remaining cliffs to total cliffs against amount CRV received
-    let cvxEarned = (crvEarned * remaining) / cliffCount;
-
-    // double check we have not gone over the max supply
-    let amountTillMax = maxSupply - cvxSupply;
-    if (cvxEarned > amountTillMax) {
-      cvxEarned = amountTillMax;
-    }
-    return cvxEarned;
-  }
-  return 0;
-};
-
-const supplyOf = async (contract) => {
-  const baseRewardPoolContract = new web3.eth.Contract(
-    baseRewardPoolAbi,
-    contract
-  );
-  const supply = await baseRewardPoolContract.methods.totalSupply().call();
-  return Number(supply) / 10 ** 18;
-};
-
 let extraRewardsPrices = {};
-
-const rewardRate = async (contract) => {
-  const baseRewardPoolContract = new web3.eth.Contract(
-    baseRewardPoolAbi,
-    contract
-  );
-  const res = await baseRewardPoolContract.methods.rewardRate().call();
-  const periodFinish = await baseRewardPoolContract.methods
-    .periodFinish()
-    .call();
-
-  const extraRewardsLength = await baseRewardPoolContract.methods
-    .extraRewardsLength()
-    .call();
-
-  const extraRewards = [];
-
-  for (let i = 0; i < extraRewardsLength; i++) {
-    const extraRewardPoolAddress = await baseRewardPoolContract.methods
-      .extraRewards(i)
-      .call();
-
-    const extraReward = new web3.eth.Contract(
-      baseRewardPoolAbi,
-      extraRewardPoolAddress
-    );
-    const periodFinish = await extraReward.methods.periodFinish().call();
-    const isFinished = new Date() > periodFinish * 1000;
-    // stETH rewards contract address
-    if (isFinished && contract !== '0x0A760466E1B4621579a82a39CB56Dda2F4E70f03')
-      continue;
-
-    const extraRewardRate =
-      (await extraReward.methods.rewardRate().call()) / 1e18;
-    const token = await extraReward.methods.rewardToken().call();
-    if (!extraRewardsPrices[token.toLowerCase()]) {
-      try {
-        const price = await utils.getData(
-          'https://api.coingecko.com/api/v3/coins/ethereum/contract/' +
-            token.toLowerCase()
-        );
-        extraRewardsPrices[token.toLowerCase()] =
-          price.market_data.current_price.usd;
-      } catch {
-        extraRewardsPrices[token.toLowerCase()] = 0;
-      }
-    }
-
-    extraRewards.push({ extraRewardRate, token });
-  }
-
-  const isFinished = new Date() > periodFinish * 1000;
-
-  const rate = res / 10 ** 18;
-
-  return { isFinished, rate, extraRewards };
-};
 
 const getCrvCvxPrice = async () => {
   const url =
@@ -159,22 +66,23 @@ const main = async () => {
     {}
   );
 
-  const convexBoosterAddress = '0xF403C135812408BFbE8713b5A23a04b3D48AAE31';
-  const convexBoosterContract = new web3.eth.Contract(
-    abi.Booster,
-    convexBoosterAddress
-  );
-
-  const poolLength = await convexBoosterContract.methods.poolLength().call();
-  const poolsRes = await sdk.api.abi.multiCall({
-    requery: true,
-    abi: abi.Booster.find(({ name }) => name === 'poolInfo'),
-    calls: [...Array.from({ length: poolLength }).keys()].map((i) => ({
+  const poolLength = (
+    await sdk.api.abi.call({
       target: convexBoosterAddress,
-      params: i,
-    })),
-  });
-  const pools = poolsRes.output.map(({ output }) => output);
+      abi: abi.Booster.find(({ name }) => name === 'poolLength'),
+      chain: 'ethereum',
+    })
+  ).output;
+  const pools = (
+    await sdk.api.abi.multiCall({
+      requery: true,
+      abi: abi.Booster.find(({ name }) => name === 'poolInfo'),
+      calls: [...Array.from({ length: poolLength }).keys()].map((i) => ({
+        target: convexBoosterAddress,
+        params: i,
+      })),
+    })
+  ).output.map(({ output }) => output);
 
   const enrichedPools = pools.map((pool) => ({
     ...pool,
@@ -186,59 +94,78 @@ const main = async () => {
     ),
   }));
 
-  let withCvxTvl = (
-    await Promise.all(
-      enrichedPools.map(async (pool) => {
-        const tokenContract = new web3.eth.Contract(abi.Pool, pool.token);
-        const totalSupply = await tokenContract.methods.totalSupply().call();
-        const decimals = await tokenContract.methods.decimals().call();
-        const gauge = mappedGauges[pool.lptoken.toLowerCase()];
-        if (!gauge) return;
-        const virtualPrice = gauge.swap_data.virtual_price / 10 ** 18;
-        if (!pool.coinsAddresses) return null;
-        let v2PoolUsd;
-        if (pool.totalSupply == 0) {
-          const usdValue = pool.coins.reduce(
-            (acc, coin) =>
-              acc +
-              (Number(coin.poolBalance) / 10 ** coin.decimals) * coin.usdPrice,
-            0
-          );
-          let supply = pool.coins.reduce(
-            (acc, coin) => acc + Number(coin.poolBalance) / 10 ** coin.decimals,
-            0
-          );
-
-          if (pool.assetTypeName === 'usd') supply = usdValue / virtualPrice;
-
-          v2PoolUsd = (totalSupply / 10 ** decimals / supply) * usdValue;
-        }
-
-        return {
-          ...pool,
-          coinsAddresses: pool.coinsAddresses.filter(
-            (address) =>
-              address !== '0x0000000000000000000000000000000000000000'
-          ),
-          cvxTvl: v2PoolUsd
-            ? v2PoolUsd
-            : ((totalSupply * virtualPrice) /
-                (pool.totalSupply * virtualPrice ||
-                  pool.usdTotal * 10 ** decimals)) *
-              pool.usdTotal,
-          currency: 'USD',
-        };
+  const [totalSupplyRes, decimalsRes] = await Promise.all(
+    ['totalSupply', 'decimals'].map((method) =>
+      sdk.api.abi.multiCall({
+        calls: enrichedPools.map((pool) => ({
+          target: pool.token,
+          params: null,
+        })),
+        abi: abi.Pool.find(({ name }) => name === method),
+        chain: 'ethereum',
       })
     )
-  ).filter(Boolean);
+  );
+  const totalSupply = totalSupplyRes.output.map(({ output }) => output);
+  const decimals = decimalsRes.output.map(({ output }) => output);
+
+  let withCvxTvl = enrichedPools
+    .map((pool, i) => {
+      const gauge = mappedGauges[pool.lptoken.toLowerCase()];
+      if (!gauge) return;
+      const virtualPrice = gauge.swap_data.virtual_price / 10 ** 18;
+      if (!pool.coinsAddresses) return null;
+      let v2PoolUsd;
+      if (pool.totalSupply == 0) {
+        const usdValue = pool.coins.reduce(
+          (acc, coin) =>
+            acc +
+            (Number(coin.poolBalance) / 10 ** coin.decimals) * coin.usdPrice,
+          0
+        );
+        let supply = pool.coins.reduce(
+          (acc, coin) => acc + Number(coin.poolBalance) / 10 ** coin.decimals,
+          0
+        );
+
+        if (pool.assetTypeName === 'usd') supply = usdValue / virtualPrice;
+
+        v2PoolUsd = (totalSupply[i] / 10 ** decimals[i] / supply) * usdValue;
+      }
+
+      return {
+        ...pool,
+        coinsAddresses: pool.coinsAddresses.filter(
+          (address) => address !== '0x0000000000000000000000000000000000000000'
+        ),
+        cvxTvl: v2PoolUsd
+          ? v2PoolUsd
+          : ((totalSupply[i] * virtualPrice) /
+              (pool.totalSupply * virtualPrice ||
+                pool.usdTotal * 10 ** decimals[i])) *
+            pool.usdTotal,
+        currency: 'USD',
+      };
+    })
+    .filter(Boolean);
 
   // --- add cvxCRV & CVX staking pools
   const cvxCRVRewards = '0x3Fe65692bfCD0e6CF84cB1E7d24108E434A7587e';
   const cvxCRV = '0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7';
   const cvxRewards = '0xCF50b810E57Ac33B91dCF525C6ddd9881B139332';
   const stakingTvl = await Promise.all(
-    [cvxCRVRewards, cvxRewards].map((a) => supplyOf(a))
+    [cvxCRVRewards, cvxRewards].map(
+      async (c) =>
+        (
+          await sdk.api.abi.call({
+            target: c,
+            abi: baseRewardPoolAbi.find((x) => x.name === 'totalSupply'),
+            chain: 'ethereum',
+          })
+        ).output / 1e18
+    )
   );
+
   const prices = (await utils.getPrices([cvxCRV, cvxAddress], 'ethereum'))
     .pricesByAddress;
 
@@ -270,11 +197,98 @@ const main = async () => {
   ];
   withCvxTvl = [...withCvxTvl, ...stakingPools];
 
+  // reward rates
+  const rewardRates = (
+    await sdk.api.abi.multiCall({
+      calls: withCvxTvl.map((pool) => ({ target: pool.crvRewards })),
+      abi: baseRewardPoolAbi.find((x) => x.name === 'rewardRate'),
+      chain: 'ethereum',
+    })
+  ).output.map((o) => o.output);
+
+  const periodFinish = (
+    await sdk.api.abi.multiCall({
+      calls: withCvxTvl.map((pool) => ({ target: pool.crvRewards })),
+      abi: baseRewardPoolAbi.find((x) => x.name === 'periodFinish'),
+      chain: 'ethereum',
+    })
+  ).output.map((o) => o.output);
+
+  const extraRewardsLength = (
+    await sdk.api.abi.multiCall({
+      calls: withCvxTvl.map((pool) => ({ target: pool.crvRewards })),
+      abi: baseRewardPoolAbi.find((x) => x.name === 'extraRewardsLength'),
+      chain: 'ethereum',
+    })
+  ).output.map((o) => o.output);
+
+  const cvxSupply =
+    (
+      await sdk.api.abi.call({
+        target: cvxAddress,
+        abi: baseRewardPoolAbi.find((x) => x.name === 'totalSupply'),
+        chain: 'ethereum',
+      })
+    ).output / 1e18;
+
   const poolsWithApr = await Promise.all(
-    withCvxTvl.map(async (pool) => {
-      const { rate, isFinished, extraRewards } = await rewardRate(
-        pool.crvRewards
-      );
+    withCvxTvl.map(async (pool, idx) => {
+      const isFinished = new Date() > periodFinish[idx] * 1000;
+      const rate = rewardRates[idx] / 10 ** 18;
+
+      const extraRewards = [];
+      for (let i = 0; i < extraRewardsLength[idx]; i++) {
+        const extraRewardPoolAddress = (
+          await sdk.api.abi.call({
+            target: pool.crvRewards,
+            abi: baseRewardPoolAbi.find((x) => x.name === 'extraRewards'),
+            params: [i],
+            chain: 'ethereum',
+          })
+        ).output;
+        const periodFinish = (
+          await sdk.api.abi.call({
+            target: extraRewardPoolAddress,
+            abi: baseRewardPoolAbi.find((x) => x.name === 'periodFinish'),
+            chain: 'ethereum',
+          })
+        ).output;
+        const isFinished = new Date() > periodFinish * 1000;
+        // stETH rewards contract address
+        if (
+          isFinished &&
+          pool.crvRewards !== '0x0A760466E1B4621579a82a39CB56Dda2F4E70f03'
+        )
+          continue;
+        const extraRewardRate =
+          (
+            await sdk.api.abi.call({
+              target: extraRewardPoolAddress,
+              abi: baseRewardPoolAbi.find((x) => x.name === 'rewardRate'),
+              chain: 'ethereum',
+            })
+          ).output / 1e18;
+        const token = (
+          await sdk.api.abi.call({
+            target: extraRewardPoolAddress,
+            abi: baseRewardPoolAbi.find((x) => x.name === 'rewardToken'),
+            chain: 'ethereum',
+          })
+        ).output;
+        if (!extraRewardsPrices[token.toLowerCase()]) {
+          try {
+            const price = await utils.getData(
+              'https://api.coingecko.com/api/v3/coins/ethereum/contract/' +
+                token.toLowerCase()
+            );
+            extraRewardsPrices[token.toLowerCase()] =
+              price.market_data.current_price.usd;
+          } catch {
+            extraRewardsPrices[token.toLowerCase()] = 0;
+          }
+        }
+        extraRewards.push({ extraRewardRate, token });
+      }
 
       const extraRewardsApr = extraRewards.map((extra) => {
         const usdPerYear =
@@ -290,18 +304,35 @@ const main = async () => {
       // hence why we use a different price below for `crvApr` which in that
       // case is actually the cvxCRV apr for the CVX staking pool
       const crvPerUnderlying = rate;
-
       const crvPerYear = crvPerUnderlying * 86400 * 365;
-      const cvxPerYear = await getCVXMintAmount(crvPerYear);
+      let cvxPerYear;
+
+      // get current cliff
+      const currentCliff = cvxSupply / cliffSize;
+      // if current cliff is under the max
+      if (currentCliff < cliffCount) {
+        // get remaining cliffs
+        let remaining = cliffCount - currentCliff;
+
+        // multiply ratio of remaining cliffs to total cliffs against amount CRV received
+        let cvxEarned = (crvPerYear * remaining) / cliffCount;
+
+        // double check we have not gone over the max supply
+        let amountTillMax = maxSupply - cvxSupply;
+        if (cvxEarned > amountTillMax) {
+          cvxEarned = amountTillMax;
+        }
+        cvxPerYear = cvxEarned;
+      } else {
+        cvxPerYear = 0;
+      }
 
       const apr = (cvxPerYear * cvxPrice * 100) / pool.cvxTvl;
       const crvApr =
         pool.lptoken === cvxAddress
           ? (crvPerYear * prices[cvxCRV.toLowerCase()] * 100) / pool.cvxTvl
           : (crvPerYear * crvPrice * 100) / pool.cvxTvl;
-
       const extrApr = extraRewardsApr.reduce((acc, val) => acc + val, 0) || 0;
-
       // we set 'CVX vAPR' and 'CRV vAPR' to 0 if both isFinished and tvl < THR;
       // reason: sometimes even for very large pools rewards aren't streaming and require
       // a harvest call. most often, for large pools the current apr (for CVX vAPR and CRV vAPR)
