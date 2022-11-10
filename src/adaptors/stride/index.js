@@ -7,11 +7,11 @@ const main = async () => {
 
   for (const entry of data) {
     pools.push({
-      pool: `${entry.poolId}-${entry.duration}-${entry.token}`,
+      pool: `${entry.poolId}-${entry.gaugeId}-${entry.token}`,
       chain: utils.formatChain('Stride'),
       project: 'stride',
       symbol: utils.formatSymbol(entry.token),
-      poolMeta: `${entry.duration} day(s)`,
+      poolMeta: `${entry.lockupDuration} day(s)`,
       tvlUsd: entry.tvl,
       apy: entry.apr,
     });
