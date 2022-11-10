@@ -257,7 +257,7 @@ const getApy = async () => {
       const readyToExport = exportFormatter(
         pool.pool,
         'Canto',
-        pool.tokenSymbol,
+        pool.tokenSymbol.replace('sAMM-', '').replace('vAMM-', ''),
         tvlUsd,
         apyBase,
         apyReward,
