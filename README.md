@@ -105,14 +105,3 @@ module.exports = {
 ```
 
 You can find examples for a bunch of other protocols in the [src/adaptors/](src/adaptors/) folder, and if you have any questions feel free to ask them on [our discord](https://discord.gg/defillama).
-
-## Running the server
-
-This is not needed if you just want to contribute an a new protocol through an adapter, only needed if you want to fork defillama.
-
-### set api keys in config.env
-
-```
-ETHERSCAN=
-INFURA_CONNECTION=
-```
