@@ -32,12 +32,12 @@ async function apy() {
   // note (!) calling their api via aws lambda stopped working due to cloudflare bot protection.
   // instead, we use a python lambda which bypasses cloudflare
   // and stores the output to s3 (i tried node js packages, none of them worked; the repo to the
-  // lambda:
-  const farmsResponse = (await superagent.get(farmsUrl)).body;
-  const poolsResponse = (await superagent.get(poolsUrl)).body;
-  // const data = await readFromS3('llama-apy-prod-data', 'harvest_api_data.json');
-  // const farmsResponse = data['vaults'];
-  // const poolsResponse = data['pools'];
+  // lambda
+  // const farmsResponse = (await superagent.get(farmsUrl)).body;
+  // const poolsResponse = (await superagent.get(poolsUrl)).body;
+  const data = await readFromS3('llama-apy-prod-data', 'harvest_api_data.json');
+  const farmsResponse = data['vaults'];
+  const poolsResponse = data['pools'];
 
   // for binance inactive !== true
   for (let chain of Object.keys(chains)) {

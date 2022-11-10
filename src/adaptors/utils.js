@@ -79,10 +79,12 @@ const getLatestBlockSubgraph = async (url) => {
   //   'https://api.thegraph.com/index-node/graphql',
   //   queryGraph.replace('<PLACEHOLDER>', url.split('name/')[1])
   // );
-  const blockGraph = await request(
-    `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
-    queryGraph
-  );
+  const blockGraph = url.includes('babydoge/faas')
+    ? await request(url, queryGraph)
+    : await request(
+        `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
+        queryGraph
+      );
 
   // return Number(
   //   blockGraph.indexingStatusForCurrentVersion.chains[0].latestBlock.number
