@@ -72,7 +72,7 @@ const apyChain = async (chain) => {
     return {
       pool: `${pool.addr}-${chain}`,
       chain: utils.formatChain(chain),
-      project: 'tetu',
+      project: 'tetu-earn',
       symbol: lpSymbol[index].join('-'),
       tvlUsd: tvlUsd.toNumber(),
       apyReward: rewardApr.toNumber(),

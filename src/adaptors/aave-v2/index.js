@@ -26,6 +26,7 @@ const query = gql`
       totalATokenSupply
       availableLiquidity
       baseLTVasCollateral
+      borrowingEnabled
       price {
         priceInEth
       }
@@ -87,6 +88,7 @@ const main = async () => {
           totalSupplyUsd,
           totalBorrowUsd: totalSupplyUsd - tvlUsd,
           ltv: Number(p.baseLTVasCollateral) / 10000,
+          borrowable: p.borrowingEnabled,
           url: `https://app.aave.com/reserve-overview/?underlyingAsset=${p.underlyingAsset}&marketName=${chainUrlParam[chainString]}`,
         };
       });

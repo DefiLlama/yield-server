@@ -64,6 +64,7 @@ const main = async () => {
     )
   ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
+  if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
 
   // get catgory data (we hardcode IL to true for options protocols)
   const config = (
@@ -372,6 +373,10 @@ const checkIlRisk = (el) => {
 const checkExposure = (el) => {
   // generic
   let exposure = el.symbol.includes('-') ? 'multi' : 'single';
+
+  // generic 3crv check
+  if (exposure === 'single' && el.symbol.toLowerCase().includes('3crv'))
+    return 'multi';
 
   // project specific
   if (el.project === 'aave') {

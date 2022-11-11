@@ -13,7 +13,7 @@ provider:
   tracing:
     apiGateway: true
     lambda: true
-  memorySize: 256
+  memorySize: 512
   iam:
     role:
       statements:
@@ -30,8 +30,6 @@ provider:
           Resource: '*'
 
   environment:
-    # for entrypoint and enrichment
-    ADAPTORS: ${file(./env.js):ADAPTORS}
     # for api handlers
     APIG_URL:
       {
@@ -81,8 +79,6 @@ functions:
           batchSize: 2
           functionResponseType: ReportBatchItemFailures
     environment:
-      INFURA_CONNECTION: ${file(./env.js):INFURA_CONNECTION}
-      ALCHEMY_CONNECTION_POLYGON: ${file(./env.js):ALCHEMY_CONNECTION_POLYGON}
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
       XDAI_RPC: ${file(./env.js):XDAI_RPC}
       CRONOS_RPC: ${file(./env.js):CRONOS_RPC}
