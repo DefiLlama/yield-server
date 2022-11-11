@@ -7,7 +7,7 @@ const AladdinConvexVaultABI = require('./abis/AladdinConvexVault.json');
 const AladdinCRVABI = require('./abis/AladdinCRV.json');
 const curvePools = require('./pools.js');
 
-const ALADDIN_API_BASE_URL = 'http://concentrator-api.aladdin.club/';
+const ALADDIN_API_BASE_URL = 'https://api.aladdin.club/api';
 
 const concentratorVault = '0xc8fF37F7d057dF1BB9Ad681b53Fa4726f268E0e8';
 const concentratorNewVault = '0x3Cf54F3A1969be9916DAD548f3C084331C4450b5';
@@ -20,20 +20,8 @@ function createIncrementArray(length) {
 }
 
 const getAllPools = async () => {
-  let dataApy = await utils.getData(`${ALADDIN_API_BASE_URL}apy`);
-  let vaultsTvls = await utils.getData(
-    `${ALADDIN_API_BASE_URL}data/vaults/tvl`
-  );
-  let vaultsApys = await utils.getData(
-    `${ALADDIN_API_BASE_URL}data/vaults/apy`
-  );
-
-  // const oldPoolLength = (
-  //   await sdk.api.abi.call({
-  //     target: concentratorVault,
-  //     abi: abi.poolLength,
-  //   })
-  // ).output;
+  let vaultsTvls = await utils.getData(`${ALADDIN_API_BASE_URL}/vaults/tvl`);
+  let vaultsApys = await utils.getData(`${ALADDIN_API_BASE_URL}/vaults/apy`);
 
   const poolLength = (
     await sdk.api.abi.call({
@@ -137,9 +125,7 @@ const getAcrvInfo = async () => {
 };
 
 const getAcrvPoolData = async () => {
-  let dataApy = await utils.getData(
-    'http://concentrator-api.aladdin.club/apy/'
-  );
+  let dataApy = await utils.getData(`${ALADDIN_API_BASE_URL}/vaults/apy`);
   const acrvInfo = await getAcrvInfo();
   const convexApy = getConvexInfo('CRV', dataApy)?.apy?.project || 0;
 
