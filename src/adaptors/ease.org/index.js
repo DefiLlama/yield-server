@@ -70,7 +70,7 @@ const gvEase = async () => {
     symbol: "gvEase",
     tvlUsd,
     apyBase: estApy,
-    apyReward: estApy,
+    apyReward: 0,
     rewardTokens: ['0xEa5eDef1287AfDF9Eb8A46f9773AbFc10820c61c'],
     underlyingTokens: ['0xEa5eDef1287AfDF9Eb8A46f9773AbFc10820c61c'],
   });
