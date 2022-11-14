@@ -82,7 +82,10 @@ const getBaseTokensPrice = async () => {
 const main = async () => {
   const { cakePrice, ethPrice, bnbPrice } = await getBaseTokensPrice();
   const masterChef = new web3.eth.Contract(masterChefABI, MASTERCHEF_ADDRESS);
-  const { data: lpAprs } = await fetchURL(LP_APRS);
+  let { data: lpAprs } = await fetchURL(LP_APRS);
+  lpAprs = Object.fromEntries(
+    Object.entries(lpAprs).map(([k, v]) => [k.toLowerCase(), v])
+  );
 
   const poolsCount = await masterChef.methods.poolLength().call();
   const totalAllocPoint = await masterChef.methods
