@@ -1,21 +1,31 @@
 const utils = require('../utils');
 
 const poolsFunction = async () => {
-  const dataTvl = await utils.getData(
-    'https://bolide.fi/api/tvl'
+  const dataTvl = await utils.getData('https://bolide.fi/api/tvl');
+  console.log(dataTvl);
+  const apyData = await utils.getData('https://bolide.fi/api/apy');
+  console.log(apyData);
+
+  const lrsTvlData = dataTvl.strategiesTvl.find(
+    ({ name }) => name === 'LOW_RISK_STRATEGY'
   );
-  const apyData = await utils.getData(
-    'https://bolide.fi/api/apy'
+  const lrsApyData = apyData.strategiesApy.find(
+    ({ name }) => name === 'LOW_RISK_STRATEGY'
   );
 
-  const lrsTvlData = dataTvl.strategiesTvl.find(({ name }) => name === 'LOW_RISK_STRATEGY');
-  const lrsApyData = apyData.strategiesApy.find(({ name }) => name === 'LOW_RISK_STRATEGY');
+  const btcTvlData = dataTvl.strategiesTvl.find(
+    ({ name }) => name === 'BTC Strategy'
+  );
+  const btcApyData = apyData.strategiesApy.find(
+    ({ name }) => name === 'BTC Strategy'
+  );
 
-  const btcTvlData = dataTvl.strategiesTvl.find(({ name }) => name === 'BTC Strategy');
-  const btcApyData = apyData.strategiesApy.find(({ name }) => name === 'BTC Strategy');
-
-  const ethTvlData = dataTvl.strategiesTvl.find(({ name }) => name === 'ETH Strategy');
-  const ethApyData = apyData.strategiesApy.find(({ name }) => name === 'ETH Strategy');
+  const ethTvlData = dataTvl.strategiesTvl.find(
+    ({ name }) => name === 'ETH Strategy'
+  );
+  const ethApyData = apyData.strategiesApy.find(
+    ({ name }) => name === 'ETH Strategy'
+  );
 
   const lowRiskPools = [
     {
@@ -94,7 +104,6 @@ const poolsFunction = async () => {
     ...ethPools,
     ...stakingBlid,
     ...farmingBlidUsdt,
-
   ];
 };
 
