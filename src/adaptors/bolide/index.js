@@ -1,10 +1,14 @@
 const utils = require('../utils');
+const { readFromS3 } = require('../../utils/s3');
 
 const poolsFunction = async () => {
-  const dataTvl = await utils.getData('https://bolide.fi/api/tvl');
-  console.log(dataTvl);
-  const apyData = await utils.getData('https://bolide.fi/api/apy');
-  console.log(apyData);
+  // const dataTvl = await utils.getData('https://bolide.fi/api/tvl');
+  // const apyData = await utils.getData('https://bolide.fi/api/apy');
+
+  // reading data from s3 (like with harvest-finance)
+  const data = await readFromS3('llama-apy-prod-data', 'bolide_api_data.json');
+  const dataTvl = data['tvl'];
+  const apyData = data['apy'];
 
   const lrsTvlData = dataTvl.strategiesTvl.find(
     ({ name }) => name === 'LOW_RISK_STRATEGY'
