@@ -15,9 +15,11 @@ interface Pool {
   mints: {
     base: {
       key: string;
+      symbol: string;
     };
     quote: {
       key: string;
+      symbol: string;
     };
   };
 }
@@ -31,10 +33,12 @@ const getApy = async () => {
       pool: pool.key,
       chain: utils.formatChain('solana'),
       project: 'atrix',
-      symbol: utils.formatSymbol(pool.marketData.stats.marketName),
-      tvlUsd: pool.farms[0].tvlUsd,
-      apy: pool.farms[0].apr || 0,
-      apyReward: pool.farms[0].apr || 0,
+      symbol: utils.formatSymbol(
+        `${pool.mints.base.symbol}-${pool.mints.quote.symbol}`
+      ),
+      tvlUsd: pool.farms[0]?.tvlUsd || 0,
+      apy: pool.farms[0]?.apr || 0,
+      apyReward: pool.farms[0]?.apr || 0,
       underlyingTokens: [pool.mints.base.key, pool.mints.quote.key],
       rewardTokens: [pool.farms[0].crops[0].cropRewardTokenAccount],
       url: `https://app.atrix.finance/liquidity/${pool.key}/deposit`,
