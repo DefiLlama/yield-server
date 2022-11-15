@@ -34,7 +34,7 @@ const getApy = async () => {
 
 const getPrice = async (index) => {
   const chain = utils.formatChain(index.chain);
-  const key = `${chain}:${index.address}`;
+  const key = `${chain}:${index.address}`.toLowerCase();
   const ethPriceUSD = (
     await superagent.post('https://coins.llama.fi/prices').send({
       coins: [key],
