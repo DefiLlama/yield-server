@@ -357,9 +357,7 @@ const getCdp = async () => {
     const prices = (await utils.getPrices(coins)).pricesByAddress;
 
     const _result = dataByChain.map((pool, index) => {
-      const totalSupplyUsd =
-        Number(pool.totalCollaterel) *
-        prices[collateralAddress[index].toLowerCase()];
+      const totalSupplyUsd = Number(pool.totalCollaterel);
       const totalBorrowUsd = Number(pool.totalBorrowed) * mimPrice;
       return {
         pool: `${pool.address}-${chain}`,
@@ -371,7 +369,7 @@ const getCdp = async () => {
         apyBaseBorrow: Number(pool.borrowFee),
         totalSupplyUsd: totalSupplyUsd,
         totalBorrowUsd: totalBorrowUsd,
-        ltv: collateralRate[index] / 1000,
+        ltv: collateralRate[index] / 1e5,
         mintedCoin: 'MIM',
       };
     });
