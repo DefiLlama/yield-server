@@ -15,15 +15,21 @@ const SetTokenABI = ['function totalSupply() external view returns (uint256)'];
 
 const buildPool = (index, apy, tvlUsd) => {
   const chain = utils.formatChain(index.chain);
-  const symbol = utils.formatSymbol(index.symbol);
   return {
     pool: `${index.address}-${chain}`.toLowerCase(),
     chain,
     project: 'index-coop',
-    symbol,
+    symbol: index.symbol,
     tvlUsd,
     apy,
   };
+};
+
+const getApy = async () => {
+  const res = await superagent.get('https://api.indexcoop.com/iceth/apy');
+  const json = JSON.parse(res.text);
+  const apy = BigNumber(json.apy);
+  return apy.div(1e18).toNumber();
 };
 
 const getPrice = async (index) => {
@@ -43,17 +49,18 @@ const getSupply = async (address) => {
   return await contract.totalSupply();
 };
 
-const main = async () => {
-  // Will only work from defillama.com domain (others can be requested)
-  const { apy } = await utils.getData('https://api.indexcoop.com/iceth/apy');
-  const apyNumber = BigNumber(apy).div(1e18).toNumber();
-
+const getTvlUsd = async () => {
   const priceUsd = await getPrice(icEthIndex);
   const supply = await getSupply(icEthIndex.address);
-  const supplyNumber = BigNumber(supply).div(1e18).toNumber();
-  const tvlUsd = supplyNumber * priceUsd;
+  const supplyNumber = new BigNumber(supply.toString());
+  const tvlUsd = supplyNumber.div(1e18).toNumber() * priceUsd;
+  return tvlUsd;
+};
 
-  const icEth = buildPool(icEthIndex, apyNumber, tvlUsd);
+const main = async () => {
+  const apy = await getApy();
+  const tvlUsd = await getTvlUsd();
+  const icEth = buildPool(icEthIndex, apy, tvlUsd);
   return [icEth];
 };
 
