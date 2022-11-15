@@ -185,7 +185,7 @@ async function loadWombatPoolInfo() {
     if (poolInfo.type == "WOMBAT_POOL") {
 
       const info = await getWombatPoolInfo(POOL_LIST[i]);
-      console.log(info)
+      // console.log(info)
       WombatPoolInfo[poolInfo.poolId] = info;
       WombatPoolRewardList[0].tokenPerSec = WombatPoolRewardList[0].tokenPerSec + info.emission;
       WombatPoolRewardList = WombatPoolRewardList.concat(info.rewardTokens)
@@ -373,7 +373,7 @@ async function apy() {
     }
     poolAprList.push({
       pool: poolInfo.type == "WOMBAT_POOL" ? `${poolInfo.type}-${poolInfo.wombatPoolType}-${poolInfo.stakingTokenInfo.showSymbol}`: `${poolInfo.type}-${poolInfo.stakingTokenInfo.showSymbol}`,
-      project: "magpiexyz",
+      project: "magpie",
       chain: utils.formatChain(CHAIN),
       symbol: poolInfo.stakingTokenInfo.showSymbol,
       tvlUsd: mgpApr[0].tvl,
