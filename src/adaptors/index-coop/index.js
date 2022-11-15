@@ -34,6 +34,7 @@ const getPrice = async (index) => {
       coins: [key],
     })
   ).body.coins[key].price;
+  return ethPriceUSD;
 };
 
 const getSupply = async (address) => {
