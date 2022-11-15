@@ -1,5 +1,7 @@
 const { default: BigNumber } = require('bignumber.js');
 const { ethers } = require('ethers');
+const superagent = require('superagent');
+
 const { getProvider } = require('@defillama/sdk/build/general');
 const utils = require('../utils');
 
