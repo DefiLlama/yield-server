@@ -37,7 +37,7 @@ const termsQuery = () => {
   `;
 };
 
-const LIQUITIDY_QUERY = gql`
+const LIQUIDITY_QUERY = gql`
   {
     contracts(where: { id: "SmartYield" }) {
       id
@@ -110,7 +110,7 @@ const yieldToBeDistributed = (term, earnedYield) => {
 
 const apy = async () => {
   const { terms } = await request(URL, termsQuery());
-  const { contracts } = await request(URL, LIQUITIDY_QUERY);
+  const { contracts } = await request(URL, LIQUIDITY_QUERY);
 
   const assets = [...new Set(terms.map((term) => term.underlying))];
 
