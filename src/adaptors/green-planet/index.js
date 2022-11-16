@@ -38,6 +38,19 @@ const main = async () => {
     gammaSpeeds[o.input.params[0]] = o.output
   });
 
+  const getGammaBoostPercentageRes = await sdk.api.abi.multiCall({
+    abi: abi.find((i) => i.name === 'getGammaBoostPercentage'),
+    calls: markets.map((t) => ({
+      target: gammatrollerAddress,
+      params: t.id,
+    })),
+    chain: 'bsc',
+  });
+  let getGammaBoostPercentage = {};
+  getGammaBoostPercentageRes.output.map((o) => {
+    getGammaBoostPercentage[o.input.params[0]] = o.output
+  });
+
   const pools = [];
   for (const p of markets) {
 
@@ -47,20 +60,25 @@ const main = async () => {
     const daysPerYear = 365;
     let totalSupply = Number(p.totalSupply) * Number(p.exchangeRate);
     let totalBorrows = Number(p.totalBorrows) 
-    let gammaPerDay =  (Number(gammaSpeeds[p.id])/1e18) * blocksPerDay;
+    let gammaPerBlock = ( 10000 - parseInt(getGammaBoostPercentage[p.id]) ) / 10000 * (Number(gammaSpeeds[p.id])/1e18);
+    let gammaPerDay = gammaPerBlock * blocksPerDay;
+    let gammaBorrowPerDay = (Number(gammaSpeeds[p.id])/1e18) * blocksPerDay;
     apyReward = 100 * (Math.pow(1 + (gammaPriceUSD * gammaPerDay) / (totalSupply * Number(p.underlyingPrice)), daysPerYear) - 1)
-    apyRewardBorrow = 100 * (Math.pow(1 + (gammaPriceUSD * gammaPerDay) / (totalBorrows * Number(p.underlyingPrice)), daysPerYear) - 1)
+    apyRewardBorrow = 100 * (Math.pow(1 + (gammaPriceUSD * gammaBorrowPerDay) / (totalBorrows * Number(p.underlyingPrice)), daysPerYear) - 1)
 
     if(p.totalBorrows == 0) {
       apyRewardBorrow = 0;
     }
-
+    let totalSupplyUsd = (Number(p.totalSupply) *
+        Number(p.exchangeRate) ) *
+        Number(p.underlyingPrice);
+    let totalBorrowUsd = (Number(p.totalBorrows) * Number(p.underlyingPrice)) ;
     pools.push({
       pool: p.id,
       chain: 'BSC',
       project: 'green-planet',
       symbol: p.symbol,
-      tvlUsd: totalSupply * Number(p.underlyingPrice),
+      tvlUsd: totalSupplyUsd - totalBorrowUsd,
       apyBase: (Math.pow((p.supplyRate) * blocksPerDay + 1, daysPerYear) - 1) * 100 ,
       apyReward,
       rewardTokens:
@@ -69,12 +87,8 @@ const main = async () => {
       // borrow fields
       apyBaseBorrow: (Math.pow((p.borrowRate) * blocksPerDay + 1, daysPerYear) - 1) * 100 ,
       apyRewardBorrow: apyRewardBorrow, 
-      totalSupplyUsd:
-        (Number(p.totalSupply) *
-          Number(p.exchangeRate) ) *
-        Number(p.underlyingPrice),
-      totalBorrowUsd:
-        (Number(p.totalBorrows) * Number(p.underlyingPrice))  ,
+      totalSupplyUsd: totalSupplyUsd,
+      totalBorrowUsd: totalBorrowUsd,
       ltv: Number(p.collateralFactor),
     });
   }
