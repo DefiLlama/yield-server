@@ -372,15 +372,17 @@ async function apy() {
       totalApr = totalApr.plus(new BigNumber(aprList[i].apr))
     }
     poolAprList.push({
-      pool: poolInfo.type == "WOMBAT_POOL" ? `${poolInfo.type}-${poolInfo.wombatPoolType}-${poolInfo.stakingTokenInfo.showSymbol}`: `${poolInfo.type}-${poolInfo.stakingTokenInfo.showSymbol}`,
+      pool: `${MasterMagpieAddress}-${poolInfo.poolId}`,
       project: "magpie",
       chain: utils.formatChain(CHAIN),
       symbol: poolInfo.stakingTokenInfo.showSymbol,
       tvlUsd: mgpApr[0].tvl,
       url: "https://magpiexyz.io/stake",
+      underlyingTokens: [poolInfo.stakingToken],
       // apy: totalApr.multipliedBy(100).toNumber(),
       apyReward: totalApr.multipliedBy(100).toNumber(),
-      rewardTokens: aprList.map(item => item.address)
+      rewardTokens: aprList.map(item => item.address),
+      poolMeta: poolInfo.type == "WOMBAT_POOL" ? "Wombat" : null
     })
     // return {
     //   totalApr: totalApr.toNumber(),
