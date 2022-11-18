@@ -92,7 +92,7 @@ const main = async () => {
     const balData = balPools.find(({ address }) => address === pool.lpToken.id);
     if (!balData) return;
     const swapApr = swapAprs.find(({ id }) => id === balData.id);
-    if (!swapApr.poolAprs) return;
+    if (!swapApr?.poolAprs) return;
     const tvlUsd = auraTvl[pool.lpToken.id] || 0;
     const balRewards = pool.rewardData.find(
       ({ token }) => token.id === BAL_ADDRESS

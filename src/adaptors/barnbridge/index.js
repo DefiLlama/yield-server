@@ -9,7 +9,7 @@ const URL = 'https://api.thegraph.com/subgraphs/name/barnbridge/bb-sy-graph';
 
 const SMART_YIELD = '0xa0b3d2AF5a37CDcEdA1af38b58897eCB30Feaa1A';
 
-const query = () => {
+const termsQuery = () => {
   const now = Math.floor(Date.now() / 1000);
 
   return gql`
@@ -36,6 +36,15 @@ const query = () => {
     }
   `;
 };
+
+const LIQUIDITY_QUERY = gql`
+  {
+    contracts(where: { id: "SmartYield" }) {
+      id
+      liquidity
+    }
+  }
+`;
 
 const getAssetUsdPrice = async (asset) => {
   const key = `ethereum:${asset}`;
@@ -100,7 +109,8 @@ const yieldToBeDistributed = (term, earnedYield) => {
 };
 
 const apy = async () => {
-  const { terms } = await request(URL, query());
+  const { terms } = await request(URL, termsQuery());
+  const { contracts } = await request(URL, LIQUIDITY_QUERY);
 
   const assets = [...new Set(terms.map((term) => term.underlying))];
 
@@ -114,7 +124,9 @@ const apy = async () => {
     terms.map(async (term) => {
       const tvlUsd =
         (term.depositedAmount * assetUsdPrices[term.underlying]) /
-        `1e${term.underlyingDecimals}`;
+          `1e${term.underlyingDecimals}` +
+        (contracts[0].liquidity * assetUsdPrices[term.underlying]) /
+          `1e${term.underlyingDecimals}`;
 
       const _earnedYield = await earnedYield(terms, term.id);
 
