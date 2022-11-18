@@ -2,7 +2,7 @@ const utils = require('../utils');
 
 const poolsFunction = async () => {
   const poolData = await utils.getData(
-    'https://neo-dashboard.com/json_data/gfund.json'
+    'https://api-external.ghostmarket.io/defillama/yield'
   );
   console.log(poolData)
   return [poolData]
