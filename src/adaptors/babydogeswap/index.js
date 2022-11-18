@@ -7,8 +7,10 @@ const info_url = 'https://graph-bsc-mainnet.babydoge.com/subgraphs/name/babydoge
 
 const WEEKS_IN_YEAR = 52.1429
 
-const TOTAL_FEE = 0.0025
-const LP_HOLDERS_FEE = 0.0017
+const TOTAL_FEE = 0.003
+const LP_HOLDERS_FEE = 0.002
+
+const ZERO_FEE_PAIRS = ['0x0536c8b0c3685b6e3c62a7b5c4e8b83f938f12d1']
 
 const query = gql`
   {
@@ -112,7 +114,8 @@ const getLpFeesAndApr = (volumeUSD, volumeUSDWeek, liquidityUSD) => {
 
 const farmApy = (entry) => {
   entry = { ...entry };
-  if (!entry.lpTokenInfo || entry.lpTokenInfo.reserveUSD === '0') {
+  const index = ZERO_FEE_PAIRS.findIndex((v) => v.toLocaleLowerCase() === entry.id.toLocaleLowerCase())
+  if (index > -1 || !entry.lpTokenInfo || entry.lpTokenInfo.reserveUSD === '0') {
     entry['apy'] = 0
     return entry
   }
