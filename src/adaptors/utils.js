@@ -174,6 +174,8 @@ exports.tvl = async (dataNow, networkString) => {
     }
 
     el['totalValueLockedUSD'] = tvl;
+    el['price0'] = price0;
+    el['price1'] = price1;
   }
 
   return dataNowCopy;
