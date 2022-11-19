@@ -135,22 +135,24 @@ const main = async () => {
         ].price
       )
     );
-    let apy = 0;
+    let apyBase = 0;
     if (strategyHash !== EMPTY_STRATEGY_HASH) {
       const fetchedApy = (
         await axios.get(`${get_strategy_apy_api}/${strategyHash}`)
       ).data;
-      apy = Number(fetchedApy.strategy_score.total_apy);
+      apyBase = Number(fetchedApy.strategy_score.total_apy);
     }
+    const opSymbol = vault.vault_token.symbol.split('-');
     pools.push({
       pool: `${vault.vault_token.address}-${vault.chain.chain_name}`.toLowerCase(),
       chain: utils.formatChain(vault.chain.chain_name),
       project: 'optyfi',
-      symbol: vault.vault_token.symbol,
+      symbol: opSymbol[0],
       tvlUsd,
-      apy,
+      apyBase,
       underlyingTokens: [vault.vault_underlying_token.address],
       url: `https://app.opty.fi/vault/${vault.vault_token.address}`,
+      poolMeta: opSymbol[1],
     });
   }
   return pools;
