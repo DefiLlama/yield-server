@@ -43,6 +43,7 @@ const buildPool = (entry, chainString) => {
     symbol,
     tvlUsd: entry.totalValueLockedUSD,
     apyBase: entry.apy,
+    underlyingTokens: [entry.token0.id, entry.token1.id],
   };
 
   return newObj;
