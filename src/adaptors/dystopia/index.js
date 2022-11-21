@@ -43,7 +43,8 @@ const buildPool = (entry, chainString) => {
     project: 'dystopia',
     symbol,
     tvlUsd: entry.totalValueLockedUSD,
-    apy: entry.apy,
+    apyBase: entry.apy,
+    underlyingTokens: [entry.token0.id, entry.token1.id],
   };
 
   return newObj;
