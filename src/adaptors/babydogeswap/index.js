@@ -179,6 +179,7 @@ const main = async (timestamp = null) => {
       apyReward: Number(p.APR) * 100,
       apyBase: Number(p.apy),
       underlyingTokens,
+      poolMetadata: `Stake ${symbol}, Earn ${p.rewardToken.symbol}`
     };
   });
 
