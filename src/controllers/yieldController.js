@@ -33,7 +33,8 @@ const getYieldFiltered = async () => {
         "tvlUsd",
         apy,
         "apyBase",
-        "apyReward"
+        "apyReward",
+        "il7d"
     FROM
         (
             SELECT
@@ -82,7 +83,8 @@ const getYieldHistory = async (configID) => {
         "tvlUsd",
         apy,
         "apyBase",
-        "apyReward"
+        "apyReward",
+        "il7d"
     FROM
         $<table:name>
     WHERE
@@ -352,6 +354,7 @@ const buildInsertYieldQuery = (payload) => {
     'apy',
     'apyBase',
     'apyReward',
+    'il7d',
     { name: 'apyBaseBorrow', def: null },
     { name: 'apyRewardBorrow', def: null },
     { name: 'totalSupplyUsd', def: null },
