@@ -42,7 +42,8 @@ const buildPool = (entry, chainString) => {
     project: 'pangolin',
     symbol,
     tvlUsd: entry.totalValueLockedUSD,
-    apy: entry.apy,
+    apyBase: entry.apy,
+    underlyingTokens: [entry.token0.id, entry.token1.id],
   };
 
   return newObj;
@@ -68,7 +69,9 @@ const topLvl = async (chainString, timestamp, url) => {
   let data = dataNow.map((el) => utils.apy(el, dataPrior.pairs, 'v2'));
 
   // build pool objects
-  data = data.map((el) => buildPool(el, chainString));
+  data = data
+    .map((el) => buildPool(el, chainString))
+    .filter((p) => utils.keepFinite(p));
 
   return data;
 };
