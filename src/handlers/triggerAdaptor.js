@@ -177,18 +177,22 @@ const main = async (body) => {
     // calc IL
     data = data.map((p) => {
       // extract prices
-      const price0 =
-        prices[`${p.chain}:${p.underlyingTokens[0]}`.toLowerCase()]?.price;
-      const price1 =
-        prices[`${p.chain}:${p.underlyingTokens[1]}`.toLowerCase()]?.price;
-      const price0_7d =
-        prices7d[`${p.chain}:${p.underlyingTokens[0]}`.toLowerCase()]?.price;
-      const price1_7d =
-        prices7d[`${p.chain}:${p.underlyingTokens[1]}`.toLowerCase()]?.price;
+      const token0 = `${p.chain}:${p.underlyingTokens[0]}`.toLowerCase();
+      const token1 = `${p.chain}:${p.underlyingTokens[1]}`.toLowerCase();
+
+      // now
+      const price0 = prices[token0]?.price;
+      const price1 = prices[token1]?.price;
+
+      // 7 days ago
+      const price0_7d = prices7d[token0]?.price;
+      const price1_7d = prices7d[token1]?.price;
 
       // relative price changes
       const pctChangeX = (price0 - price0_7d) / price0_7d;
       const pctChangeY = (price1 - price1_7d) / price1_7d;
+
+      // return in case of missing/weird prices
       if (!Number.isFinite(pctChangeX) || !Number.isFinite(pctChangeY))
         return { ...p };
 
