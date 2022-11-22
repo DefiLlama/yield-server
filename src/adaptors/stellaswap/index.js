@@ -17,7 +17,7 @@ const apy = async () => {
 
         let token0;
         let token1;
-        if (p.address !== '0xB326b5189AA42Acaa3C649B120f084Ed8F4dCaA6') {
+        if (p.tokens.split('-').length === 2) {
           token0 = (
             await sdk.api.abi.call({
               target: p.address,
@@ -45,9 +45,7 @@ const apy = async () => {
           apyReward: p.reward * 100,
           rewardTokens: [STELLA],
           underlyingTokens:
-            p.address === '0xB326b5189AA42Acaa3C649B120f084Ed8F4dCaA6'
-              ? null
-              : [token0, token1],
+            p.tokens.split('-').length === 2 ? [token0, token1] : null,
         };
       })
     )
