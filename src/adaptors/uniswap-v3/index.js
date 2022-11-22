@@ -1,13 +1,17 @@
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
+const superagent = require('superagent');
 
 const utils = require('../utils');
+const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 
 const baseUrl = 'https://api.thegraph.com/subgraphs/name';
-const url = `${baseUrl}/uniswap/uniswap-v3`;
-const urlPolygon = `${baseUrl}/ianlapham/uniswap-v3-polygon`;
-const urlArbitrum = `${baseUrl}/ianlapham/arbitrum-dev`;
-const urlOptimism = `${baseUrl}/ianlapham/optimism-post-regenesis`;
+const chains = {
+  ethereum: `${baseUrl}/uniswap/uniswap-v3`,
+  polygon: `${baseUrl}/ianlapham/uniswap-v3-polygon`,
+  arbitrum: `${baseUrl}/ianlapham/arbitrum-dev`,
+  optimism: `${baseUrl}/ianlapham/optimism-post-regenesis`,
+};
 
 const query = gql`
   {
@@ -46,7 +50,8 @@ const topLvl = async (
   query,
   queryPrior,
   version,
-  timestamp
+  timestamp,
+  stablecoins
 ) => {
   const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
     url,
@@ -101,11 +106,16 @@ const topLvl = async (
 
   // calculate tvl
   dataNow = await utils.tvl(dataNow, chainString);
+  dataNow = dataNow.filter((p) => p.totalValueLockedUSD >= 1000);
   // calculate apy
   let data = dataNow.map((el) => utils.apy(el, dataPrior, version));
 
+  // check if stable pool (we use this info in triggerAdapter) for calculating tick ranges
   return data.map((p) => {
     const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
+
+    const stablePool = checkStablecoin({ ...p, symbol }, stablecoins);
+
     const poolMeta = `${p.feeTier / 1e4}%`;
     const underlyingTokens = [p.token0.id, p.token1.id];
     const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
@@ -119,7 +129,7 @@ const topLvl = async (
       pool: p.id,
       chain: utils.formatChain(chainString),
       project: 'uniswap-v3',
-      poolMeta,
+      poolMeta: `${poolMeta}, stablePool=${stablePool}`,
       symbol,
       tvlUsd: p.totalValueLockedUSD,
       apyBase: p.apy,
@@ -130,12 +140,19 @@ const topLvl = async (
 };
 
 const main = async (timestamp = null) => {
-  let data = await Promise.all([
-    topLvl('ethereum', url, query, queryPrior, 'v3', timestamp),
-    topLvl('polygon', urlPolygon, query, queryPrior, 'v3', timestamp),
-    topLvl('arbitrum', urlArbitrum, query, queryPrior, 'v3', timestamp),
-    topLvl('optimism', urlOptimism, query, queryPrior, 'v3', timestamp),
-  ]);
+  const stablecoins = (
+    await superagent.get(
+      'https://stablecoins.llama.fi/stablecoins?includePrices=true'
+    )
+  ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
+  if (!stablecoins.includes('eur')) stablecoins.push('eur');
+  if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
+
+  const data = await Promise.all(
+    Object.entries(chains).map(([chain, url]) =>
+      topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins)
+    )
+  );
 
   return data.flat().filter((p) => utils.keepFinite(p));
 };

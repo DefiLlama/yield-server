@@ -148,7 +148,7 @@ const main = async (body) => {
   if (
     data[0]?.underlyingTokens.length &&
     protocolConfig[body.adaptor]?.category === 'Dexes' &&
-    !['uniswap-v3', 'balancer', 'curve', 'clipper'].includes(body.adaptor) &&
+    !['balancer', 'curve', 'clipper'].includes(body.adaptor) &&
     !['elrond', 'near', 'hedera'].includes(data[0].chain.toLowerCase())
   ) {
     // extract all unique underlyingTokens
@@ -200,7 +200,36 @@ const main = async (body) => {
       const d = (1 + pctChangeX) / (1 + pctChangeY);
 
       // IL(d)
-      return { ...p, il7d: ((2 * Math.sqrt(d)) / (1 + d) - 1) * 100 };
+      let il7d = ((2 * Math.sqrt(d)) / (1 + d) - 1) * 100;
+
+      // for uni v3
+      if (body.adaptor === 'uniswap-v3') {
+        const P = price1 / price0;
+
+        // for stablecoin pools, we assume a +/- 0.1% range around current price
+        // for non-stablecoin pools -> +/- 30%
+        const pct = 0.3;
+        const pctStablePool = 0.001;
+        const delta = p.poolMeta.includes('stablePool=true')
+          ? pctStablePool
+          : pct;
+
+        const [p_lb, p_ub] = [P * (1 - delta), P * (1 + delta)];
+
+        // https://medium.com/auditless/impermanent-loss-in-uniswap-v3-6c7161d3b445
+        // ilv3 = ilv2 * factor
+        const factor =
+          1 / (1 - (Math.sqrt(p_lb / P) + d * Math.sqrt(P / p_ub)) / (1 + d));
+
+        il7d *= factor;
+      }
+
+      return {
+        ...p,
+        poolMeta:
+          p.project === 'uniswap-v3' ? p.poolMeta?.split(',')[0] : p.poolMeta,
+        il7d,
+      };
     });
   }
 
@@ -251,6 +280,7 @@ const main = async (body) => {
           ? null
           : Math.round(p.debtCeilingUsd),
       mintedCoin: p.mintedCoin ? utils.formatSymbol(p.mintedCoin) : null,
+      poolMeta: p.poolMeta === undefined ? null : p.poolMeta,
       il7d: p.il7d ? +p.il7d.toFixed(precision) : null,
     };
   });
