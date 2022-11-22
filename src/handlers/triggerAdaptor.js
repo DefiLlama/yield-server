@@ -280,6 +280,7 @@ const main = async (body) => {
           ? null
           : Math.round(p.debtCeilingUsd),
       mintedCoin: p.mintedCoin ? utils.formatSymbol(p.mintedCoin) : null,
+      poolMeta: p.poolMeta === undefined ? null : p.poolMeta,
       il7d: p.il7d ? +p.il7d.toFixed(precision) : null,
     };
   });
