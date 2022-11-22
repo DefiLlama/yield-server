@@ -1,34 +1,61 @@
+const sdk = require('@defillama/sdk');
+const abi = require('./abi.js');
+
 const utils = require('../utils');
 
-const buildPool = (entry) => {
-  const newObj = {
-    pool: entry.id,
-    chain: utils.formatChain(entry.chain),
-    project: 'stellaswap',
-    symbol: entry.tokens,
-    tvlUsd: entry.tvl,
-    apy: (entry.reward + entry.base) * 100,
-  };
+const STELLA = '0x0e358838ce72d5e61e0018a2ffac4bec5f4c88d2';
 
-  return newObj;
-};
+const apy = async () => {
+  const data = (
+    await utils.getData('https://api.stellaswap.com/api/v1/coindix')
+  ).result;
 
-const farmsList = async () => {
-  let data = await utils.getData('https://api.stellaswap.com/api/v1/coindix');
+  return (
+    await Promise.all(
+      data.map(async (p, i) => {
+        if (!p.active) return null;
 
-  const nonActivefarms = data.result.filter((f) => f.active);
-  data = nonActivefarms.map((el) => buildPool(el));
+        let token0;
+        let token1;
+        if (p.address !== '0xB326b5189AA42Acaa3C649B120f084Ed8F4dCaA6') {
+          token0 = (
+            await sdk.api.abi.call({
+              target: p.address,
+              abi: abi.find((m) => m.name === 'token0'),
+              chain: 'moonbeam',
+            })
+          ).output;
 
-  return data;
-};
+          token1 = (
+            await sdk.api.abi.call({
+              target: p.address,
+              abi: abi.find((m) => m.name === 'token1'),
+              chain: 'moonbeam',
+            })
+          ).output;
+        }
 
-const main = async () => {
-  const data = await farmsList();
-  return data;
+        return {
+          pool: p.id,
+          chain: utils.formatChain(p.chain),
+          project: 'stellaswap',
+          symbol: p.tokens,
+          tvlUsd: p.tvl,
+          apyBase: p.base * 100,
+          apyReward: p.reward * 100,
+          rewardTokens: [STELLA],
+          underlyingTokens:
+            p.address === '0xB326b5189AA42Acaa3C649B120f084Ed8F4dCaA6'
+              ? null
+              : [token0, token1],
+        };
+      })
+    )
+  ).filter(Boolean);
 };
 
 module.exports = {
   timetravel: false,
-  apy: main,
+  apy,
   url: 'https://app.stellaswap.com/farm',
 };
