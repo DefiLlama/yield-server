@@ -137,6 +137,7 @@ const main = async (body) => {
     ...p,
     chain: p.chain === 'Binance' ? 'BSC' : p.chain,
   }));
+  console.log(data.length);
 
   // ---- add IL (only for dexes + pools with underlyingTokens array)
   // need the protocol response to check if adapter.body === 'Dexes' category
@@ -165,7 +166,7 @@ const main = async (body) => {
         coins: uniqueToken,
       })
     ).coins;
-    console.log(prices.length);
+    console.log(prices);
 
     const timestamp7daysAgo = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
     const prices7d = (
@@ -174,7 +175,7 @@ const main = async (body) => {
         timestamp: timestamp7daysAgo,
       })
     ).coins;
-    console.log(timestamp7daysAgo, prices7d.length);
+    console.log(timestamp7daysAgo, prices7d);
 
     // calc IL
     data = data.map((p) => {
