@@ -146,7 +146,7 @@ const main = async (body) => {
 
   // required conditions to calculate IL field
   if (
-    data[0]?.underlyingTokens.length &&
+    data[0]?.underlyingTokens?.length &&
     protocolConfig[body.adaptor]?.category === 'Dexes' &&
     !['balancer', 'curve', 'clipper'].includes(body.adaptor) &&
     !['elrond', 'near', 'hedera'].includes(data[0].chain.toLowerCase())
