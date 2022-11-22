@@ -266,7 +266,11 @@ const apy = async () => {
       chain: utils.formatChain('fantom'),
       project: 'spookyswap',
       symbol: pairInfo.name,
-      tvlUsd: Number(masterChefReservesUsd),
+      tvlUsd:
+        lpTokens[i].toLowerCase() ===
+        '0xaf918ef5b9f33231764a5557881e6d3e5277d456'
+          ? Number(lpReservesUsd)
+          : Number(masterChefReservesUsd),
       apyBase,
       apyReward,
       underlyingTokens: [tokens0[i], tokens1[i]],
