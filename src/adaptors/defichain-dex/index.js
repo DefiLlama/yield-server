@@ -11,7 +11,9 @@ const getApy = async () => {
     project: 'defichain-dex',
     symbol: pool.symbol,
     tvlUsd: Number(pool.totalLiquidity.usd) || 0,
-    apy: Number((pool.apr && pool.apr.total) || 0) * 100,
+    apyBase: pool.apr.commission * 100,
+    apyReward: pool.apr.reward * 100,
+    rewardTokens: ['DFI'],
   }));
 
   return pools;
