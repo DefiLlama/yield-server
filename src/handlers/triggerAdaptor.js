@@ -165,6 +165,7 @@ const main = async (body) => {
         coins: uniqueToken,
       })
     ).coins;
+    console.log(prices.length);
 
     const timestamp7daysAgo = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
     const prices7d = (
@@ -173,6 +174,7 @@ const main = async (body) => {
         timestamp: timestamp7daysAgo,
       })
     ).coins;
+    console.log(timestamp7daysAgo, prices7d.length);
 
     // calc IL
     data = data.map((p) => {
