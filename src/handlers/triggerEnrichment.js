@@ -413,3 +413,5 @@ const addPoolInfo = (el, stablecoins, config) => {
 
   return el;
 };
+
+module.exports.checkStablecoin = checkStablecoin;
