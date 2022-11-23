@@ -5,13 +5,14 @@ const superagent = require('superagent');
 const utils = require('../utils');
 const { EstimatedFees } = require('./estimateFee.ts');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
+const { boundaries } = require('../../utils/exclude');
 
 const baseUrl = 'https://api.thegraph.com/subgraphs/name';
 const chains = {
-  ethereum: `${baseUrl}/uniswap/uniswap-v3`,
+  // ethereum: `${baseUrl}/uniswap/uniswap-v3`,
   polygon: `${baseUrl}/ianlapham/uniswap-v3-polygon`,
-  arbitrum: `${baseUrl}/ianlapham/arbitrum-dev`,
-  optimism: `${baseUrl}/ianlapham/optimism-post-regenesis`,
+  // arbitrum: `${baseUrl}/ianlapham/arbitrum-dev`,
+  // optimism: `${baseUrl}/ianlapham/optimism-post-regenesis`,
 };
 
 const query = gql`
@@ -51,7 +52,8 @@ const topLvl = async (
   query,
   queryPrior,
   version,
-  timestamp
+  timestamp,
+  stablecoins
 ) => {
   const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
     url,
@@ -107,41 +109,41 @@ const topLvl = async (
   // calculate tvl
   dataNow = await utils.tvl(dataNow, chainString);
 
-  dataNow = dataNow.map((p) => ({
-    ...p,
-    symbol: utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`),
-  }));
-  dataNow = dataNow.filter((p) => p.totalValueLockedUSD >= 1000);
+  // to reduce the nb of subgraph calls for tick range, we apply the lb db filter in here
+  dataNow = dataNow.filter(
+    (p) => p.totalValueLockedUSD >= boundaries.tvlUsdDB.lb
+  );
+  // add the symbol for the stablecoin (we need to distinguish btw stable and non stable pools
+  // so we apply the correct tick range)
+  dataNow = dataNow.map((p) => {
+    const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
+    const stablecoin = checkStablecoin({ ...p, symbol }, stablecoins);
+    return {
+      ...p,
+      symbol,
+      stablecoin,
+    };
+  });
 
   // arbitrums subgraph is missing data (such as ticks), defaulting to full range
   if (chainString === 'arbitrum') {
     // calculate apy
     dataNow = dataNow.map((el) => utils.apy(el, dataPrior, version));
   } else {
-    const stablecoins = (
-      await superagent.get(
-        'https://stablecoins.llama.fi/stablecoins?includePrices=true'
-      )
-    ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
-    if (!stablecoins.includes('eur')) stablecoins.push('eur');
-    if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
-
     dataNow = dataNow.map((p) => ({
       ...p,
-      stablecoin: checkStablecoin(p, stablecoins),
       token1_in_token0: p.price1 / p.price0,
     }));
 
-    // split up calls into n-batches of size skip (tick response can be in the thousands per pool)
+    // split up subgraph tick calls into n-batches of size skip (tick response can be in the thousands per pool)
     const skip = 50;
     let start = 0;
     let stop = skip;
     const pages = Math.floor(dataNow.length / skip);
 
-    // for stablecoin pools, we assume a +/- 1% range around current price
-    // for non-stablecoin pools -> +/- 30%
+    // tick range
     const pct = 0.3;
-    const pctStablePool = 0.01;
+    const pctStablePool = 0.001;
 
     // assume an investment of 1e5 USD
     const investmentAmount = 1e5;
@@ -156,7 +158,7 @@ const topLvl = async (
         return EstimatedFees(
           p.id,
           priceAssumption,
-          [p.token1_in_token0 * (1 - delta), p.token1_in_token0 * (1 + delta)], // -/+ 30% of the current price
+          [p.token1_in_token0 * (1 - delta), p.token1_in_token0 * (1 + delta)],
           p.price1,
           p.price0,
           investmentAmount,
@@ -173,13 +175,12 @@ const topLvl = async (
     X = X.flat();
     dataNow = dataNow.map((p, i) => ({
       ...p,
-      fee: X[i],
       apy: ((X[i] * 365) / investmentAmount) * 100,
     }));
   }
 
+  // check if stable pool (we use this info in triggerAdapter) for calculating tick ranges
   return dataNow.map((p) => {
-    const symbol = p.symbol;
     const poolMeta = `${p.feeTier / 1e4}%`;
     const underlyingTokens = [p.token0.id, p.token1.id];
     const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
@@ -193,8 +194,8 @@ const topLvl = async (
       pool: p.id,
       chain: utils.formatChain(chainString),
       project: 'uniswap-v3',
-      poolMeta,
-      symbol,
+      poolMeta: `${poolMeta}, stablePool=${p.stablecoin}`,
+      symbol: p.symbol,
       tvlUsd: p.totalValueLockedUSD,
       apyBase: p.apy,
       underlyingTokens,
@@ -204,10 +205,20 @@ const topLvl = async (
 };
 
 const main = async (timestamp = null) => {
-  const data = [];
-  for (const [chain, url] of Object.entries(chains)) {
-    data.push(await topLvl(chain, url, query, queryPrior, 'v3', timestamp));
-  }
+  const stablecoins = (
+    await superagent.get(
+      'https://stablecoins.llama.fi/stablecoins?includePrices=true'
+    )
+  ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
+  if (!stablecoins.includes('eur')) stablecoins.push('eur');
+  if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
+
+  const data = await Promise.all(
+    Object.entries(chains).map(([chain, url]) =>
+      topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins)
+    )
+  );
+
   return data.flat().filter((p) => utils.keepFinite(p));
 };
 
