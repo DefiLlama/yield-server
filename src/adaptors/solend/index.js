@@ -18,14 +18,12 @@ const main = async () => {
     }))
   );
 
-  // note(slasher): seems like the solend team has made changes to the reserveEndpoint
-  // which now has a limit of max 5 ids, hence why i made this change to loop instead
+  // note(slasher): seems like the solend team has made changes to the reserveEndpoint, splitting up requests
   const tokenIds = reservesConfigs.map((reserve) => reserve.address);
   const reserves = [];
-  const maxIds = 5;
+  const maxIds = 50;
   for (let i = 0; i <= tokenIds.length; i += maxIds) {
-    const tokens = tokenIds.slice(i, i + 5).join(',');
-
+    const tokens = tokenIds.slice(i, i + maxIds).join(',');
     const reservesResponse = await fetch(`${reservesEndpoint}?ids=${tokens}`);
     const res = (await reservesResponse.json()).results;
 
@@ -74,6 +72,8 @@ const main = async () => {
       (liquidity.marketPrice / 10 ** 18);
 
     const totalSupplyUsd = tvlUsd + totalBorrowUsd;
+
+    console.log(reserveConfig.address);
 
     return {
       pool: reserveConfig.address,
