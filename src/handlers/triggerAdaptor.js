@@ -150,7 +150,9 @@ const main = async (body) => {
     data[0]?.underlyingTokens?.length &&
     protocolConfig[body.adaptor]?.category === 'Dexes' &&
     !['balancer', 'curve', 'clipper'].includes(body.adaptor) &&
-    !['elrond', 'near', 'hedera'].includes(data[0].chain.toLowerCase())
+    !['elrond', 'near', 'hedera', 'carbon'].includes(
+      data[0].chain.toLowerCase()
+    )
   ) {
     // extract all unique underlyingTokens
     const uniqueToken = [
