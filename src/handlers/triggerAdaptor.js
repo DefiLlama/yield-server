@@ -159,7 +159,7 @@ const main = async (body) => {
           .map((p) => p.underlyingTokens?.map((t) => `${p.chain}:${t}`))
           .flat()
       ),
-    ];
+    ].filter(Boolean);
 
     // prices now
     const priceUrl = 'https://coins.llama.fi/prices';
