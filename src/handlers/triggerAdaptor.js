@@ -166,16 +166,32 @@ const main = async (body) => {
         coins: uniqueToken,
       })
     ).coins;
-    console.log(prices);
 
     const timestamp7daysAgo = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
-    const prices7d = (
-      await utils.getData(priceUrl, {
-        coins: uniqueToken,
-        timestamp: timestamp7daysAgo,
-      })
-    ).coins;
-    console.log(timestamp7daysAgo, prices7d);
+    // price endpoint seems to break with too many tokens, splitting it to max 150 per request
+    const maxSize = 150;
+    const pages = Math.ceil(uniqueToken.length / maxSize);
+    let prices7d_ = [];
+    let x = '';
+    for (const p of [...Array(pages).keys()]) {
+      x = uniqueToken.slice(p * maxSize, maxSize * (p + 1)).join(',');
+      prices7d_ = [
+        ...prices7d_,
+        (
+          await superagent.get(
+            `https://coins.llama.fi/prices/historical/${timestamp7daysAgo}/${x}`
+          )
+        ).body.coins,
+      ];
+    }
+    // flatten
+    let prices7d = {};
+    for (const p of prices7d_.flat()) {
+      prices7d = { ...prices7d, ...p };
+    }
+    prices7d = Object.fromEntries(
+      Object.entries(prices7d).map(([k, v]) => [k.toLowerCase(), v])
+    );
 
     // calc IL
     data = data.map((p) => {
@@ -224,7 +240,11 @@ const main = async (body) => {
         const factor =
           1 / (1 - (Math.sqrt(p_lb / P) + d * Math.sqrt(P / p_ub)) / (1 + d));
 
+        // scale IL by factor
         il7d *= factor;
+        // if the factor is too large, it may result in IL values >100% which don't make sense
+        // -> clip to max -100% IL
+        il7d = il7d < 0 ? Math.max(il7d, -100) : il7d;
       }
 
       return {

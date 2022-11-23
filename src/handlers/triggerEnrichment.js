@@ -309,7 +309,12 @@ const checkStablecoin = (el, stablecoins) => {
     stable = false;
   } else if (el.project === 'hermes-protocol' && symbolLC.includes('maia')) {
     stable = false;
-  } else if (tokens.some((t) => t.includes('sushi'))) {
+  } else if (
+    tokens.some((t) => t.includes('sushi')) ||
+    tokens.some((t) => t.includes('dusk')) ||
+    tokens.some((t) => t.includes('fpis')) ||
+    tokens.some((t) => t.includes('emaid'))
+  ) {
     stable = false;
   } else if (tokens.length === 1) {
     stable = stablecoins.some((x) =>
