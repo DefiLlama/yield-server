@@ -155,7 +155,9 @@ const main = async (body) => {
     // extract all unique underlyingTokens
     const uniqueToken = [
       ...new Set(
-        data.map((p) => p.underlyingTokens.map((t) => `${p.chain}:${t}`)).flat()
+        data
+          .map((p) => p.underlyingTokens?.map((t) => `${p.chain}:${t}`))
+          .flat()
       ),
     ];
 
@@ -195,6 +197,8 @@ const main = async (body) => {
 
     // calc IL
     data = data.map((p) => {
+      if (p?.underlyingTokens === null || p?.underlyingTokens === undefined)
+        return { ...p };
       // extract prices
       const token0 = `${p.chain}:${p.underlyingTokens[0]}`.toLowerCase();
       const token1 = `${p.chain}:${p.underlyingTokens[1]}`.toLowerCase();
