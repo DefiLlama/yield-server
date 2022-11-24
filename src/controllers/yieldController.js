@@ -22,6 +22,7 @@ const getYieldFiltered = async () => {
     `
     SELECT
         "configID",
+        pool,
         timestamp,
         project,
         chain,
@@ -32,7 +33,8 @@ const getYieldFiltered = async () => {
         "tvlUsd",
         apy,
         "apyBase",
-        "apyReward"
+        "apyReward",
+        "il7d"
     FROM
         (
             SELECT
@@ -79,7 +81,10 @@ const getYieldHistory = async (configID) => {
     SELECT
         timestamp,
         "tvlUsd",
-        "apy"
+        apy,
+        "apyBase",
+        "apyReward",
+        "il7d"
     FROM
         $<table:name>
     WHERE
@@ -210,7 +215,7 @@ const getYieldOffset = async (project, offset) => {
         ) AS y
     ORDER BY
         "configID",
-        abs_delta DESC
+        abs_delta ASC
     `,
     { compress: true }
   );
@@ -231,6 +236,111 @@ const getYieldOffset = async (project, offset) => {
   return response;
 };
 
+// get last DB entry per unique pool (lending/borrow fields only)
+const getYieldLendBorrow = async () => {
+  const conn = await connect();
+
+  const query = minify(
+    `
+    SELECT
+        "configID" as pool,
+        "apyBaseBorrow",
+        "apyRewardBorrow",
+        "totalSupplyUsd",
+        "totalBorrowUsd",
+        "debtCeilingUsd",
+        "ltv",
+        "borrowable",
+        "mintedCoin",
+        "rewardTokens",
+        "underlyingTokens"
+    FROM
+        (
+            SELECT
+                DISTINCT ON ("configID") *
+            FROM
+                $<yieldTable:name>
+            WHERE
+                timestamp >= NOW() - INTERVAL '$<age> DAY'
+            ORDER BY
+                "configID",
+                timestamp DESC
+        ) AS y
+        INNER JOIN $<configTable:name> AS c ON c.config_id = y."configID"
+    WHERE
+        pool NOT IN ($<excludePools:csv>)
+        AND project NOT IN ($<excludeProjects:csv>)
+        AND ltv >= 0
+  `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query, {
+    tvlLB: exclude.boundaries.tvlUsdUI.lb,
+    age: exclude.boundaries.age,
+    yieldTable: tableName,
+    configTable: configTableName,
+    excludePools: exclude.excludePools,
+    excludeProjects: exclude.excludeAdaptors,
+  });
+
+  if (!response) {
+    return new AppError(`Couldn't get ${tableName} data`, 404);
+  }
+
+  return response;
+};
+
+// get full history of given configID
+const getYieldLendBorrowHistory = async (configID) => {
+  const conn = await connect();
+
+  const query = minify(
+    `
+    SELECT
+        timestamp,
+        "totalSupplyUsd",
+        "totalBorrowUsd",
+        "debtCeilingUsd",
+        "apyBase",
+        "apyReward",
+        "apyBaseBorrow",
+        "apyRewardBorrow"
+    FROM
+        $<table:name>
+    WHERE
+        timestamp IN (
+            SELECT
+                max(timestamp)
+            FROM
+                $<table:name>
+            WHERE
+                "configID" = $<configIDValue>
+            GROUP BY
+                (timestamp :: date)
+        )
+        AND "configID" = $<configIDValue>
+    ORDER BY
+        timestamp ASC
+  `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query, {
+    configIDValue: configID,
+    table: tableName,
+  });
+
+  if (!response) {
+    return new AppError(`Couldn't get ${tableName} history data`, 404);
+  }
+
+  return lambdaResponse({
+    status: 'success',
+    data: response,
+  });
+};
+
 // multi row insert query generator
 const buildInsertYieldQuery = (payload) => {
   // note: even though apyBase and apyReward are optional fields
@@ -244,6 +354,12 @@ const buildInsertYieldQuery = (payload) => {
     'apy',
     'apyBase',
     'apyReward',
+    'il7d',
+    { name: 'apyBaseBorrow', def: null },
+    { name: 'apyRewardBorrow', def: null },
+    { name: 'totalSupplyUsd', def: null },
+    { name: 'totalBorrowUsd', def: null },
+    { name: 'debtCeilingUsd', def: null },
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
   return pgp.helpers.insert(payload, cs);
@@ -254,5 +370,7 @@ module.exports = {
   getYieldHistory,
   getYieldOffset,
   getYieldProject,
+  getYieldLendBorrow,
+  getYieldLendBorrowHistory,
   buildInsertYieldQuery,
 };

@@ -10,13 +10,23 @@ const subgraphs = {
   avalanche: `${url}/protocol-v2-avalanche`,
 };
 
+const chainUrlParam = {
+  ethereum: 'proto_mainnet',
+  polygon: 'proto_polygon',
+  avalanche: 'proto_avalanche',
+};
+
 const query = gql`
   {
     reserves {
       symbol
       decimals
       liquidityRate
+      variableBorrowRate
+      totalATokenSupply
       availableLiquidity
+      baseLTVasCollateral
+      borrowingEnabled
       price {
         priceInEth
       }
@@ -45,7 +55,7 @@ const main = async () => {
       ).reserves.filter((p) => p.isActive);
 
       return data.map((p) => {
-        tvlUsd =
+        const tvlUsd =
           chainString !== 'avalanche'
             ? (((Number(p.availableLiquidity) / `1e${p.decimals}`) *
                 Number(p.price.priceInEth)) /
@@ -53,6 +63,16 @@ const main = async () => {
               ethPriceUSD
             : // priceInEth is the chainlink usd price for avalanche subgraph with different decimals
               ((Number(p.availableLiquidity) / `1e${p.decimals}`) *
+                Number(p.price.priceInEth)) /
+              1e8;
+
+        const totalSupplyUsd =
+          chainString !== 'avalanche'
+            ? (((Number(p.totalATokenSupply) / `1e${p.decimals}`) *
+                Number(p.price.priceInEth)) /
+                1e18) *
+              ethPriceUSD
+            : ((Number(p.totalATokenSupply) / `1e${p.decimals}`) *
                 Number(p.price.priceInEth)) /
               1e8;
 
@@ -64,6 +84,12 @@ const main = async () => {
           tvlUsd,
           apyBase: Number(p.liquidityRate) / 1e25,
           underlyingTokens: [p.underlyingAsset],
+          apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+          totalSupplyUsd,
+          totalBorrowUsd: totalSupplyUsd - tvlUsd,
+          ltv: Number(p.baseLTVasCollateral) / 10000,
+          borrowable: p.borrowingEnabled,
+          url: `https://app.aave.com/reserve-overview/?underlyingAsset=${p.underlyingAsset}&marketName=${chainUrlParam[chainString]}`,
         };
       });
     })
@@ -75,5 +101,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.aave.com/markets/',
 };

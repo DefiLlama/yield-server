@@ -30,14 +30,14 @@ const getConfigProject = async (project) => {
   return response;
 };
 
-// get distinct urls per project
+// get pool urls
 const getUrl = async () => {
   const conn = await connect();
 
   const query = minify(
     `
     SELECT
-        DISTINCT(project),
+        config_id,
         url
     FROM
         $<table:name>
@@ -53,7 +53,7 @@ const getUrl = async () => {
 
   const out = {};
   for (const e of response) {
-    out[e.project] = e.url;
+    out[e.config_id] = e.url;
   }
 
   return out;
@@ -100,6 +100,9 @@ const buildInsertConfigQuery = (payload) => {
     { name: 'underlyingTokens', def: null },
     { name: 'rewardTokens', def: null },
     'url',
+    { name: 'ltv', def: null },
+    { name: 'borrowable', def: null },
+    { name: 'mintedCoin', def: null },
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
   const query =
@@ -117,7 +120,3 @@ module.exports = {
   getDistinctID,
   tableName,
 };
-
-(async () => {
-  console.log(await getDistinctID());
-})();

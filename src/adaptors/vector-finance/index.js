@@ -2,7 +2,7 @@ const axios = require('axios');
 const utils = require('../utils');
 
 function aggregateApys(aprs, key, locking) {
-  const stakingApys = aprs.Staking[key].total;
+  const stakingApys = aprs.Staking[key]?.total;
   if (locking) {
     const lockingApys = aprs.Locking[key].total;
     return stakingApys + lockingApys;
@@ -21,20 +21,25 @@ async function apy() {
   const lockingLength = Object.entries(aprs.Locking).length;
 
   return [...Object.entries(aprs.Locking), ...Object.entries(aprs.Staking)].map(
-    ([k, v], i) => ({
-      pool: `vector-${k}-${i < lockingLength ? 'locking' : 'staking'}`,
-      chain: 'Avalanche',
-      project: 'vector-finance',
-      symbol: utils.formatSymbol(k.replace(/_/g, '-')),
-      tvlUsd:
-        Number(tvls[i < lockingLength ? 'Locking' : 'Staking'][k]) * prices[k],
-      apy: aggregateApys(aprs, k, i < lockingLength),
-    })
+    ([k, v], i) => {
+      if (['VTXAVAX', 'PTPXPTP', 'ZJOEJOE'].includes(k)) return undefined;
+
+      return {
+        pool: `vector-${k}-${i < lockingLength ? 'locking' : 'staking'}`,
+        chain: 'Avalanche',
+        project: 'vector-finance',
+        symbol: utils.formatSymbol(k.replace(/_/g, '-')),
+        tvlUsd:
+          Number(tvls[i < lockingLength ? 'Locking' : 'Staking'][k]) *
+          prices[k],
+        apy: aggregateApys(aprs, k, i < lockingLength),
+      };
+    }
   );
 }
 
 const main = async () => {
-  return await apy();
+  return (await apy()).filter(Boolean).filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

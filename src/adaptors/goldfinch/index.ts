@@ -1,5 +1,6 @@
 const BigNumber = require('bignumber.js');
 const { request, gql } = require('graphql-request');
+const axios = require('axios');
 
 const utils = require('../utils');
 
@@ -19,7 +20,14 @@ const apyQuery = gql`
     }
   }
 `;
+
+const GFI = '0xdab396ccf3d84cf2d07c4454e10c8a6f5b008d2b';
 async function apy() {
+  const priceKey = `ethereum:${GFI}`;
+  const gfiPrice = (
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
+  ).data.coins[priceKey].price;
+
   const { seniorPoolStatus } = await request(API_URL, apyQuery);
   const { estimatedApy, estimatedApyFromGfiRaw, totalPoolAssetsUsdc } =
     seniorPoolStatus;
@@ -33,9 +41,11 @@ async function apy() {
       symbol: 'USDC',
       tvlUsd,
       apyBase: parseFloat(estimatedApy) * 100,
-      apyReward: parseFloat(estimatedApyFromGfiRaw) * 100,
+      apyReward: parseFloat(estimatedApyFromGfiRaw) * gfiPrice * 100,
       underlyingTokens: [USDC_ADDRESS],
       rewardTokens: [GFI_ADDRESS],
+      // borrow fields
+      ltv: 0, // permissioned
     },
   ];
 }

@@ -8,6 +8,8 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'xdai') return 'Gnosis';
   if (chain && chain.toLowerCase() === 'kcc') return 'KCC';
   if (chain && chain.toLowerCase() === 'okexchain') return 'OKExChain';
+  if (chain && chain.toLowerCase() === 'bsc') return 'Binance';
+  if (chain && chain.toLowerCase() === 'milkomeda') return 'Milkomeda C1';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
@@ -17,8 +19,16 @@ const getFormatter = (symbol) => {
 };
 
 // replace / with - and trim potential whitespace
-exports.formatSymbol = (symbol) =>
-  symbol.replace(getFormatter(symbol), '-').replace(/\s/g, '').trim();
+// set mimatic to mai, uppercase all symbols
+exports.formatSymbol = (symbol) => {
+  return symbol
+    .replace(getFormatter(symbol), '-')
+    .replace(/\s/g, '')
+    .trim()
+    .toLowerCase()
+    .replaceAll('mimatic', 'mai')
+    .toUpperCase();
+};
 
 exports.getData = async (url, query = null) => {
   if (query !== null) {
@@ -69,10 +79,12 @@ const getLatestBlockSubgraph = async (url) => {
   //   'https://api.thegraph.com/index-node/graphql',
   //   queryGraph.replace('<PLACEHOLDER>', url.split('name/')[1])
   // );
-  const blockGraph = await request(
-    `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
-    queryGraph
-  );
+  const blockGraph = url.includes('babydoge/faas')
+    ? await request(url, queryGraph)
+    : await request(
+        `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
+        queryGraph
+      );
 
   // return Number(
   //   blockGraph.indexingStatusForCurrentVersion.chains[0].latestBlock.number

@@ -10,6 +10,8 @@ const CHAINS = {
   Cube: 'Cube',
   Metis: 'Metis',
   Celo: 'Celo',
+  KCC: 'Kucoin',
+  Astar: 'Astar',
 };
 
 const CHAIN_ENUM = {
@@ -24,6 +26,8 @@ const CHAIN_ENUM = {
   [CHAINS.Cube]: 1818,
   [CHAINS.Metis]: 1088,
   [CHAINS.Celo]: 42220,
+  [CHAINS.KCC]: 321,
+  [CHAINS.Astar]: 592,
 };
 
 const RATES_CHAIN = {
@@ -38,6 +42,8 @@ const RATES_CHAIN = {
   [CHAINS.Cube]: 'cube',
   [CHAINS.Metis]: 'metis',
   [CHAINS.Celo]: 'celo',
+  [CHAINS.KCC]: 'kcc',
+  [CHAINS.Astar]: 'astar',
 };
 
 const CHAIN_RPC_HOST = {
@@ -48,11 +54,13 @@ const CHAIN_RPC_HOST = {
   [CHAINS.Arbitrum]: 'https://arb1.arbitrum.io/rpc',
   [CHAINS.Gnosis]: 'https://rpc.gnosischain.com',
   [CHAINS.Avalanche]: 'https://api.avax.network/ext/bc/C/rpc',
-  [CHAINS.Optimism]: 'https://mainnet.optimism.io',
+  [CHAINS.Optimism]: 'https://1rpc.io/op',
   [CHAINS.Fantom]: 'https://rpc.ftm.tools',
   [CHAINS.Cube]: 'https://http-mainnet.cube.network',
   [CHAINS.Metis]: 'https://andromeda.metis.io',
   [CHAINS.Celo]: 'https://forno.celo.org',
+  [CHAINS.KCC]: 'https://rpc-mainnet.kcc.network',
+  [CHAINS.Astar]: 'https://rpc.astar.network:8545',
 };
 
 module.exports = {

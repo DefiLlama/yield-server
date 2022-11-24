@@ -18,14 +18,12 @@ const main = async () => {
     }))
   );
 
-  // note(slasher): seems like the solend team has made changes to the reserveEndpoint
-  // which now has a limit of max 5 ids, hence why i made this change to loop instead
+  // note(slasher): seems like the solend team has made changes to the reserveEndpoint, splitting up requests
   const tokenIds = reservesConfigs.map((reserve) => reserve.address);
   const reserves = [];
-  const maxIds = 5;
+  const maxIds = 50;
   for (let i = 0; i <= tokenIds.length; i += maxIds) {
-    const tokens = tokenIds.slice(i, i + 5).join(',');
-
+    const tokens = tokenIds.slice(i, i + maxIds).join(',');
     const reservesResponse = await fetch(`${reservesEndpoint}?ids=${tokens}`);
     const res = (await reservesResponse.json()).results;
 
@@ -36,10 +34,17 @@ const main = async () => {
   return reserves.flat().map((reserveData, index) => {
     const reserveConfig = reservesConfigs[index];
     const liquidity = reserveData.reserve.liquidity;
+    const collateral = reserveData.reserve.collateral;
     const apyBase = Number(reserveData.rates.supplyInterest);
+    const apyBaseBorrow = Number(reserveData.rates.borrowInterest);
     const apyReward = reserveData.rewards.reduce(
       (acc, reward) =>
         reward.side === 'supply' ? (Number(reward.apy) || 0) + acc : acc,
+      0
+    );
+    const apyRewardBorrow = reserveData.rewards.reduce(
+      (acc, reward) =>
+        reward.side === 'borrow' ? (Number(reward.apy) || 0) + acc : acc,
       0
     );
 
@@ -55,19 +60,37 @@ const main = async () => {
       reserveConfig.marketName.slice(1) +
       ' Pool';
 
+    // available liquidity
+    const tvlUsd =
+      (Number(liquidity.availableAmount) / 10 ** liquidity.mintDecimals) *
+      (liquidity.marketPrice / 10 ** 18);
+
+    // total borrow
+    const totalBorrowUsd =
+      (Number(liquidity.borrowedAmountWads / 1e18) /
+        10 ** liquidity.mintDecimals) *
+      (liquidity.marketPrice / 10 ** 18);
+
+    const totalSupplyUsd = tvlUsd + totalBorrowUsd;
+
+    console.log(reserveConfig.address);
+
     return {
       pool: reserveConfig.address,
       chain: utils.formatChain('solana'),
       project: 'solend',
       symbol: `${reserveConfig.asset}`,
       poolMeta: secondaryString,
-      tvlUsd:
-        (Number(liquidity.availableAmount) / 10 ** liquidity.mintDecimals) *
-        (liquidity.marketPrice / 10 ** 18),
+      tvlUsd,
       apyBase,
       apyReward,
       rewardTokens: apyReward > 0 ? rewardTokens : [],
       underlyingTokens: [reserveData.reserve.liquidity.mintPubkey],
+      totalSupplyUsd,
+      totalBorrowUsd,
+      apyBaseBorrow,
+      apyRewardBorrow: apyRewardBorrow > 0 ? apyRewardBorrow : null,
+      ltv: reserveData.reserve.config.loanToValueRatio / 100,
     };
   });
 };

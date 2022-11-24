@@ -41,6 +41,7 @@ const buildPoolsEnriched = async (queryString) => {
     'count',
     'outlier',
     'underlyingTokens',
+    'il7d',
   ]
     .map((el) => `t."${el}"`)
     .join(', ');
@@ -74,7 +75,6 @@ const buildPoolsEnriched = async (queryString) => {
 
   return data;
 };
-module.exports.buildPoolsEnriched = buildPoolsEnriched;
 
 const getDataUsingS3Select = async (params) => {
   const s3 = new S3();
@@ -130,3 +130,6 @@ const getDataUsingS3Select = async (params) => {
     });
   });
 };
+
+module.exports.buildPoolsEnriched = buildPoolsEnriched;
+module.exports.getDataUsingS3Select = getDataUsingS3Select;

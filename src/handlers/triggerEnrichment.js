@@ -64,6 +64,7 @@ const main = async () => {
     )
   ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
+  if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
 
   // get catgory data (we hardcode IL to true for options protocols)
   const config = (
@@ -249,7 +250,7 @@ const main = async () => {
   // before saving, we set pool = configID for the api response of /pools & /poolsEnriched
   // so we can have the same usage pattern on /chart without breaking changes
   dataEnriched = dataEnriched
-    .map((p) => ({ pool: p.configID, ...p }))
+    .map((p) => ({ ...p, pool_old: p.pool, pool: p.configID }))
     .map(({ configID, ...p }) => p);
 
   // ---------- save output to S3
@@ -290,23 +291,29 @@ const enrich = (pool, days, offsets) => {
 
 const checkStablecoin = (el, stablecoins) => {
   let tokens = el.symbol.split('-').map((el) => el.toLowerCase());
+  const symbolLC = el.symbol.toLowerCase();
+
   let stable;
-  // specific case for aave amm positions
-  if (el.project === 'curve' && el.symbol.toLowerCase().includes('3crv')) {
-    stable = true;
-  } else if (
-    el.project === 'convex-finance' &&
-    el.symbol.toLowerCase().includes('3crv')
+  if (
+    el.project === 'curve' &&
+    symbolLC.includes('3crv') &&
+    !symbolLC.includes('btc')
   ) {
     stable = true;
-  } else if (el.project === 'aave' && el.symbol.toLowerCase().includes('amm')) {
+  } else if (el.project === 'convex-finance' && symbolLC.includes('3crv')) {
+    stable = true;
+  } else if (el.project === 'aave-v2' && symbolLC.includes('amm')) {
     tok = tokens[0].split('weth');
     stable = tok[0].includes('wbtc') ? false : tok.length > 1 ? false : true;
   } else if (tokens[0].includes('torn')) {
     stable = false;
+  } else if (el.project === 'hermes-protocol' && symbolLC.includes('maia')) {
+    stable = false;
   } else if (
-    el.project === 'hermes-protocol' &&
-    el.symbol.toLowerCase().includes('maia')
+    tokens.some((t) => t.includes('sushi')) ||
+    tokens.some((t) => t.includes('dusk')) ||
+    tokens.some((t) => t.includes('fpis')) ||
+    tokens.some((t) => t.includes('emaid'))
   ) {
     stable = false;
   } else if (tokens.length === 1) {
@@ -329,7 +336,7 @@ const checkStablecoin = (el, stablecoins) => {
 // 2: - 1 asset
 // 3: - more than 1 asset but same underlying assets
 const checkIlRisk = (el) => {
-  const l1Token = ['btc', 'eth', 'avax', 'matic', 'eur'];
+  const l1Token = ['btc', 'eth', 'avax', 'matic', 'eur', 'link', 'sushi'];
   const symbol = el.symbol.toLowerCase();
   const tokens = symbol.split('-');
 
@@ -372,6 +379,10 @@ const checkExposure = (el) => {
   // generic
   let exposure = el.symbol.includes('-') ? 'multi' : 'single';
 
+  // generic 3crv check
+  if (exposure === 'single' && el.symbol.toLowerCase().includes('3crv'))
+    return 'multi';
+
   // project specific
   if (el.project === 'aave') {
     exposure =
@@ -381,6 +392,8 @@ const checkExposure = (el) => {
         : exposure;
   } else if (el.project === 'badger-dao') {
     exposure = el.symbol.toLowerCase().includes('crv') ? 'multi' : exposure;
+  } else if (el.project === 'dot-dot-finance') {
+    exposure = 'multi';
   }
 
   return exposure;
@@ -394,7 +407,7 @@ const addPoolInfo = (el, stablecoins, config) => {
   el['ilRisk'] =
     config[el.project]?.category === 'Options'
       ? 'yes'
-      : el.project === 'complifi'
+      : ['complifi', 'optyfi'].includes(el.project)
       ? 'yes'
       : el.stablecoin && el.symbol.toLowerCase().includes('eur')
       ? checkIlRisk(el)
@@ -405,3 +418,5 @@ const addPoolInfo = (el, stablecoins, config) => {
 
   return el;
 };
+
+module.exports.checkStablecoin = checkStablecoin;

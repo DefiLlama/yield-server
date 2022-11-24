@@ -32,7 +32,7 @@ async function getAutofarmBuildId() {
 
 async function getMetadataRoot() {
   const buildId = await getAutofarmBuildId();
-  const url = `https://autofarm.network/_next/data/${buildId}/index.json`;
+  const url = `https://autofarm.network/_next/data/${buildId}/vaults.json`;
   return (await superagent.get(url)).body.pageProps.initialFarmDataByChain;
 }
 

@@ -10,3 +10,4 @@ ccImages
 *.csv
 *.sql
 scripts/*.json
+src/adaptors/list.js

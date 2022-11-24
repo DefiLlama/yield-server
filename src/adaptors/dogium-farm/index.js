@@ -246,7 +246,7 @@ const getApy = async () => {
     };
   });
 
-  return res;
+  return res.filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
