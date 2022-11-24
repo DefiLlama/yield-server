@@ -31,6 +31,10 @@ const startPrice = 1000000;
 const yeildStartETH = 1645496542;
 // From Jul-08-2022 08:07:42
 const yeildStartASTAR = 1657264062;
+// From Aug-05-2022 08:03:34 UTC
+const yeildStartOP = 1659683014;
+// From Nov-14-2022 18:30:00 UTC
+const yeildStartARB = 1668450600;
 
 const data = [
   {
@@ -145,6 +149,48 @@ const data = [
     symbol: 'USDC',
     poolMeta: 'Astar Core-B Index',
   },
+  {
+    chain: 'optimism',
+    underlyingTokensContract: '0x9AC5895302662abF7C88f1A9289f629c21634aDf',
+    rewardTokensContract: null,
+    symbol: 'USDC',
+    poolMeta: 'Optimism Core-A Index',
+  },
+  {
+    chain: 'optimism',
+    underlyingTokensContract: '0x6D702e9eF07d0E5Ae32f5C4Bb53EdCf7BC61974F',
+    rewardTokensContract: null,
+    symbol: 'USDC',
+    poolMeta: 'Optimism Core-B Index',
+  },
+  {
+    chain: 'optimism',
+    underlyingTokensContract: '0xF3037Fa2185776601196bC10E88448a9518b848F',
+    rewardTokensContract: null,
+    symbol: 'USDC',
+    poolMeta: 'Optimism Core-C Index',
+  },
+  {
+    chain: 'optimism',
+    underlyingTokensContract: '0x5c9618F2DcC50B349d61F5F00B0371E94f203e29',
+    rewardTokensContract: null,
+    symbol: 'USDC',
+    poolMeta: 'Optimism Core-D Index',
+  },
+  {
+    chain: 'arbitrum',
+    underlyingTokensContract: '0xCA570cb02dCaB8C89f47e52E0d083ad481728283',
+    rewardTokensContract: null,
+    symbol: 'USDC',
+    poolMeta: 'Arbitrum Core-A Index',
+  },
+  {
+    chain: 'arbitrum',
+    underlyingTokensContract: '0x49f97e64b5eae37558976eb7a5bb1d7fba7b4cdb',
+    rewardTokensContract: null,
+    symbol: 'USDC',
+    poolMeta: 'Arbitrum Core-B Index',
+  },
 ];
 
 //get InflationRate of INSURE token
@@ -192,7 +238,7 @@ function getCoingeckoLock() {
 async function get_pools_liquidity(_underlyingTokensContract, _chainString) {
   let pools_liquidity = await sdk.api.abi.call({
     target: _underlyingTokensContract,
-    abi: abi['totalSupply'],
+    abi: abi['totalLiquidity'],
     chain: _chainString,
   });
   return pools_liquidity.output * 10 ** -6;
@@ -395,6 +441,8 @@ const getPools = async () => {
       yeildStart = yeildStartOP;
     } else if (chainString == 'astar') {
       yeildStart = yeildStartASTAR;
+    } else if (chainString == 'arbitrum') {
+      yeildStart = yeildStartARB;
     } else {
       null;
     }
