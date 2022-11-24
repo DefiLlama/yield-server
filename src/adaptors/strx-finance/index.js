@@ -64,8 +64,7 @@ const poolsFunction = async () => {
         project: 'strx-finance',
         symbol: utils.formatSymbol('TRX'),
         tvlUsd: dataTvl,
-        apy: Number(weeklyAPY),
-        poolMeta: "Staking Pool produces APY by lending Tron resources (energy/bandwidth) and taking part in block production."
+        apyBase: Number(weeklyAPY)
     };
 
     return [StakingPool];
