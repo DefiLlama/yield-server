@@ -210,11 +210,9 @@ const getPoolTicks = async (
   let result: Tick[] = [];
   let page = 0;
   while (true) {
-    const [pool1, pool2, pool3] = await Promise.all([
-      _getPoolTicksByPage(poolAddress, page, url),
-      _getPoolTicksByPage(poolAddress, page + 1, url),
-      _getPoolTicksByPage(poolAddress, page + 2, url),
-    ]);
+    const pool1 = await _getPoolTicksByPage(poolAddress, page, url);
+    const pool2 = await _getPoolTicksByPage(poolAddress, page + 1, url);
+    const pool3 = await _getPoolTicksByPage(poolAddress, page + 2, url);
 
     result = [...result, ...pool1, ...pool2, ...pool3];
     if (pool1.length === 0 || pool2.length === 0 || pool3.length === 0) {
@@ -259,31 +257,6 @@ const _queryUniswap = async (query: string, url: string): Promise<any> => {
   return data.data;
 };
 
-const getAvgTradingVolume = async (
-  poolAddress: string,
-  url: string,
-  numberOfDays: number = 7
-): Promise<number> => {
-  const { poolDayDatas } = await _queryUniswap(
-    `{
-    poolDayDatas(skip: 1, first: ${numberOfDays}, orderBy: date, orderDirection: desc, where:{pool: "${poolAddress}"}) {
-      volumeUSD
-    }
-  }`,
-    url
-  );
-
-  const volumes = poolDayDatas.map((d: { volumeUSD: string }) =>
-    Number(d.volumeUSD)
-  );
-
-  return averageArray(volumes);
-};
-
-const averageArray = (data: number[]): number => {
-  return data.reduce((result, val) => result + val, 0) / data.length;
-};
-
 module.exports.EstimatedFees = async (
   poolAddress,
   priceAssumptionValue,
@@ -294,7 +267,8 @@ module.exports.EstimatedFees = async (
   decimalsToken0,
   decimalsToken1,
   feeTier,
-  url
+  url,
+  volume
 ) => {
   const P = priceAssumptionValue;
   let Pl = priceRangeValue[0];
@@ -334,10 +308,8 @@ module.exports.EstimatedFees = async (
 
   const L = getLiquidityFromTick(poolTicks, currentTick);
 
-  const volumeAverage = await getAvgTradingVolume(poolAddress, url);
-
   const estimatedFee =
-    P >= Pl && P <= Pu ? estimateFee(deltaL, L, volumeAverage, feeTier) : 0;
+    P >= Pl && P <= Pu ? estimateFee(deltaL, L, volume, feeTier) : 0;
 
   return estimatedFee;
 };

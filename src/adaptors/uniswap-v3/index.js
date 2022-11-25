@@ -9,10 +9,10 @@ const { boundaries } = require('../../utils/exclude');
 
 const baseUrl = 'https://api.thegraph.com/subgraphs/name';
 const chains = {
-  // ethereum: `${baseUrl}/uniswap/uniswap-v3`,
+  ethereum: `${baseUrl}/uniswap/uniswap-v3`,
   polygon: `${baseUrl}/ianlapham/uniswap-v3-polygon`,
-  // arbitrum: `${baseUrl}/ianlapham/arbitrum-dev`,
-  // optimism: `${baseUrl}/ianlapham/optimism-post-regenesis`,
+  arbitrum: `${baseUrl}/ianlapham/arbitrum-dev`,
+  optimism: `${baseUrl}/ianlapham/optimism-post-regenesis`,
 };
 
 const query = gql`
@@ -58,6 +58,13 @@ const topLvl = async (
   const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
     url,
   ]);
+
+  const [_, blockPrior7d] = await utils.getBlocks(
+    chainString,
+    timestamp,
+    [url],
+    604800
+  );
 
   // pull data
   let queryC = query;
@@ -125,18 +132,39 @@ const topLvl = async (
     };
   });
 
-  // arbitrums subgraph is missing data (such as ticks), defaulting to full range
-  if (chainString === 'arbitrum') {
-    // calculate apy
-    dataNow = dataNow.map((el) => utils.apy(el, dataPrior, version));
-  } else {
+  // calc apy (note: old way of using 24h fees * 365 / tvl. keeping this for now) and will store the
+  // new apy calc as a separate field
+  // note re arbitrum: their subgraph is outdated (no tick data -> no uni v3 style apy calc)
+  dataNow = dataNow.map((el) => utils.apy(el, dataPrior, version));
+
+  // for new v3 apy calc
+  const dataPrior7d = (
+    await request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
+  ).pools;
+  // add 7d volume
+  dataNow = dataNow.map((p) => {
+    // extract cumulative usd volume from 7d ago
+    const volumeCumulative7dPrior = dataPrior7d.find(
+      (el) => el.id === p.id
+    )?.volumeUSD;
+    // 7d volumne
+    const volumeUSD7d = p.volumeUSD - volumeCumulative7dPrior;
+
+    return {
+      ...p,
+      volumeUSD7d: Number.isFinite(volumeUSD7d) ? volumeUSD7d : null,
+    };
+  });
+
+  if (chainString !== 'arbitrum') {
     dataNow = dataNow.map((p) => ({
       ...p,
       token1_in_token0: p.price1 / p.price0,
     }));
 
-    // split up subgraph tick calls into n-batches of size skip (tick response can be in the thousands per pool)
-    const skip = 50;
+    // split up subgraph tick calls into n-batches
+    // (tick response can be in the thousands per pool)
+    const skip = 100;
     let start = 0;
     let stop = skip;
     const pages = Math.floor(dataNow.length / skip);
@@ -152,7 +180,6 @@ const topLvl = async (
       let promises = dataNow.slice(start, stop).map((p) => {
         const delta = p.stablecoin ? pctStablePool : pct;
 
-        // for stablecoin pools need to set this to 1 (or veeery close to 1, otherwise the fees will be off)
         const priceAssumption = p.stablecoin ? 1 : p.token1_in_token0;
 
         return EstimatedFees(
@@ -165,7 +192,8 @@ const topLvl = async (
           p.token0.decimals,
           p.token1.decimals,
           p.feeTier,
-          url
+          url,
+          p.volumeUSD7d
         );
       });
       X.push(await Promise.all(promises));
@@ -175,7 +203,8 @@ const topLvl = async (
     X = X.flat();
     dataNow = dataNow.map((p, i) => ({
       ...p,
-      apy: ((X[i] * 365) / investmentAmount) * 100,
+      estimatedFee7d: X[i],
+      apy7d: ((X[i] * 52) / investmentAmount) * 100,
     }));
   }
 
@@ -198,6 +227,7 @@ const topLvl = async (
       symbol: p.symbol,
       tvlUsd: p.totalValueLockedUSD,
       apyBase: p.apy,
+      apyBase7d: p.apy7d,
       underlyingTokens,
       url,
     };
@@ -213,12 +243,13 @@ const main = async (timestamp = null) => {
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
 
-  const data = await Promise.all(
-    Object.entries(chains).map(([chain, url]) =>
-      topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins)
-    )
-  );
-
+  const data = [];
+  for (const [chain, url] of Object.entries(chains)) {
+    console.log(chain);
+    data.push(
+      await topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins)
+    );
+  }
   return data.flat().filter((p) => utils.keepFinite(p));
 };
 

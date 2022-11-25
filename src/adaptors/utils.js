@@ -95,13 +95,17 @@ const getLatestBlockSubgraph = async (url) => {
 // func which queries subgraphs for their latest block nb and compares it against
 // the latest block from https://coins.llama.fi/block/, if within a certain bound -> ok, otherwise
 // will break as data is stale
-exports.getBlocks = async (chainString, tsTimeTravel, urlArray) => {
+exports.getBlocks = async (
+  chainString,
+  tsTimeTravel,
+  urlArray,
+  offset = 86400
+) => {
   const timestamp =
     tsTimeTravel !== null
       ? Number(tsTimeTravel)
       : Math.floor(Date.now() / 1000);
 
-  const offset = 86400;
   const timestampPrior = timestamp - offset;
   let [block, blockPrior] = await this.getBlocksByTime(
     [timestamp, timestampPrior],
