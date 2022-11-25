@@ -355,6 +355,7 @@ const buildInsertYieldQuery = (payload) => {
     'apyBase',
     'apyReward',
     'il7d',
+    'apyBase7d',
     { name: 'apyBaseBorrow', def: null },
     { name: 'apyRewardBorrow', def: null },
     { name: 'totalSupplyUsd', def: null },
