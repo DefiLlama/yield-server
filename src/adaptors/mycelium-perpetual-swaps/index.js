@@ -7,6 +7,7 @@ const convertToBigNumberWithDecimals = (balance) =>
   ethers.BigNumber.from(balance);
 
 const arbitrumMyc = '0xc74fe4c715510ec2f8c61d70d397b32043f55abe';
+const arbitrumEsMyc = '0x7CEC785fba5ee648B48FBffc378d74C8671BB3cb';
 const arbitrumMlp = '0x752b746426b6D0c3188bb530660374f92FD9cf7c';
 const arbitrumMlpManager = '0x2DE28AB4827112Cd3F89E5353Ca5A8D80dB7018f';
 const arbitrumFeeMycTracker = '0x0cA0147c21F9DB9D4627e6a996342A11D25972C5';
@@ -15,12 +16,11 @@ const arbitrumInflationMycTracker =
 const arbitrumFeeMlpTracker = '0xF0BFB95087E611897096982c33B6934C8aBfA083';
 const arbitrumInflationMlpTracker =
   '0xF7Bd2ed13BEf9C27a2188f541Dc5ED85C5325306';
-const arbitrumMycStaking = '0x9B225FF56C48671d4D04786De068Ed8b88b672d6';
+const arbitrumMycStaking = '0xF9B003Ee160dA9677115Ad3c5bd6BB6dADcB2F93';
 
-const FORTNIGHTS_IN_YEAR = 365 / 14;
 const SECONDS_PER_YEAR = 60 * 60 * 24 * 365;
 const CHAIN_STRING = 'arbitrum';
-const ETH_DISTRIBUTED_PER_CYCLE = '34.5807416';
+const MYC_TOKEN_DECIMALS = 18;
 
 const projectSlug = 'mycelium-perpetual-swaps';
 
@@ -53,70 +53,55 @@ const getMlpTvl = async () => {
   return tvl.output * 10 ** -18;
 };
 
-const getStakingApr = async (priceData) => {
-  const totalAssets = await sdk.api.abi.call({
+const getStakingApr = async (pPriceData) => {
+  const tokensPerInterval = await sdk.api.abi.call({
     target: arbitrumMycStaking,
-    abi: abi['totalAssets'],
+    abi: abi['tokensPerInterval'],
     chain: CHAIN_STRING,
   });
 
-  const pendingDeposits = await sdk.api.abi.call({
+  const amountMycStaked = await sdk.api.abi.call({
     target: arbitrumMycStaking,
-    abi: abi['pendingDeposits'],
+    abi: abi['totalDepositSupply'],
     chain: CHAIN_STRING,
+    params: [arbitrumMyc],
   });
 
-  const currentCycle = await sdk.api.abi.call({
+  const amountEsMycStaked = await sdk.api.abi.call({
     target: arbitrumMycStaking,
-    abi: abi['cycle'],
+    abi: abi['totalDepositSupply'],
     chain: CHAIN_STRING,
+    params: [arbitrumEsMyc],
   });
 
-  const prevCycle = parseInt(currentCycle.output) - 1;
+  const ethUsdPrice = pPriceData.ethereum.usd;
+  const mycUsdPrice = pPriceData.mycelium.usd;
 
-  const prevCycleEthRewards = await sdk.api.abi.call({
-    target: arbitrumMycStaking,
-    abi: abi['cycleCumulativeEthRewards'],
-    chain: CHAIN_STRING,
-    params: [prevCycle],
-  });
+  const tokensPerIntervalBN = ethers.BigNumber.from(tokensPerInterval.output);
+  const amountMycStakedBN = ethers.BigNumber.from(amountMycStaked.output);
+  const amountEsMycStakedBN = ethers.BigNumber.from(amountEsMycStaked.output);
 
-  const pendingDepositsFormatted = convertToBigNumberWithDecimals(
-    pendingDeposits.output
+  const totalDepositTokens = amountMycStakedBN.add(amountEsMycStakedBN);
+  const annualRewardsUsd = tokensPerIntervalBN
+    .mul(SECONDS_PER_YEAR)
+    .mul(ethers.utils.parseEther(ethUsdPrice.toString()));
+  const totalDepositUsd = totalDepositTokens.mul(
+    ethers.utils.parseEther(mycUsdPrice.toString())
   );
-
-  const mycDeposited = convertToBigNumberWithDecimals(totalAssets.output).add(
-    pendingDepositsFormatted
-  );
-  const ethDistributed = convertToBigNumberWithDecimals(
-    prevCycleEthRewards.output
-  );
-  const mycUSDValue =
-    ethers.utils.formatUnits(mycDeposited) * priceData.mycelium.usd;
-  const ethUSDValue =
-    ethers.utils.formatUnits(ethDistributed) * priceData.ethereum.usd;
-  const aprPercentageCycle = ethUSDValue / mycUSDValue;
-  const aprPercentageYearly =
-    aprPercentageCycle * FORTNIGHTS_IN_YEAR * 100000000;
-
-  return aprPercentageYearly;
+  const apr = (annualRewardsUsd / totalDepositUsd) * 100;
+  return apr;
 };
 
 const getStakingTvl = async () => {
-  const totalAssets = await sdk.api.abi.call({
+  const totalStaked = await sdk.api.abi.call({
     target: arbitrumMycStaking,
-    abi: abi['totalAssets'],
+    abi: abi['totalSupply'],
     chain: CHAIN_STRING,
   });
-  const pendingDeposits = await sdk.api.abi.call({
-    target: arbitrumMycStaking,
-    abi: abi['pendingDeposits'],
-    chain: CHAIN_STRING,
-  });
-  const totalAssetsBN = ethers.BigNumber.from(totalAssets.output);
-  const pendingDepositsBN = ethers.BigNumber.from(pendingDeposits.output);
 
-  return totalAssetsBN.add(pendingDepositsBN) * 10 ** -18;
+  const totalAssetsBN = ethers.BigNumber.from(totalStaked.output);
+
+  return totalAssetsBN * 10 ** -18;
 };
 
 const getPoolMlp = async (
