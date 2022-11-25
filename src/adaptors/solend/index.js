@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 const utils = require('../utils');
 
 const baseUrl = 'https://api.solend.fi';
-const configEndpoint = `${baseUrl}/v1/config`;
+const configEndpoint = `${baseUrl}/v1/markets/configs`;
 const reservesEndpoint = `${baseUrl}/v1/reserves`;
 
 const main = async () => {
@@ -11,7 +11,7 @@ const main = async () => {
 
   const config = await configResponse.json();
 
-  const reservesConfigs = config.markets.flatMap((market) =>
+  const reservesConfigs = config.flatMap((market) =>
     market.reserves.map((reserve) => ({
       ...reserve,
       marketName: market.name,
@@ -73,13 +73,11 @@ const main = async () => {
 
     const totalSupplyUsd = tvlUsd + totalBorrowUsd;
 
-    console.log(reserveConfig.address);
-
     return {
       pool: reserveConfig.address,
       chain: utils.formatChain('solana'),
       project: 'solend',
-      symbol: `${reserveConfig.asset}`,
+      symbol: `${reserveConfig.liquidityToken.symbol}`,
       poolMeta: secondaryString,
       tvlUsd,
       apyBase,
