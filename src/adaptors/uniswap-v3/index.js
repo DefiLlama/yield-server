@@ -164,7 +164,7 @@ const topLvl = async (
 
     // split up subgraph tick calls into n-batches
     // (tick response can be in the thousands per pool)
-    const skip = 100;
+    const skip = 20;
     let start = 0;
     let stop = skip;
     const pages = Math.floor(dataNow.length / skip);
@@ -177,6 +177,7 @@ const topLvl = async (
     const investmentAmount = 1e5;
     let X = [];
     for (let i = 0; i <= pages; i++) {
+      console.log(i);
       let promises = dataNow.slice(start, stop).map((p) => {
         const delta = p.stablecoin ? pctStablePool : pct;
 
@@ -208,7 +209,6 @@ const topLvl = async (
     }));
   }
 
-  // check if stable pool (we use this info in triggerAdapter) for calculating tick ranges
   return dataNow.map((p) => {
     const poolMeta = `${p.feeTier / 1e4}%`;
     const underlyingTokens = [p.token0.id, p.token1.id];

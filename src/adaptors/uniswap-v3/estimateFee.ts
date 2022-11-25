@@ -242,7 +242,7 @@ const _getPoolTicksByPage = async (
     url
   );
 
-  return res.ticks;
+  return res === undefined ? [] : res.ticks;
 };
 
 const _queryUniswap = async (query: string, url: string): Promise<any> => {
@@ -303,7 +303,8 @@ module.exports.EstimatedFees = async (
   const poolTicks = await getPoolTicks(poolAddress, url);
 
   if (!poolTicks.length) {
-    console.error(`No pool ticks found for ${poolAddress}`);
+    console.log(`No pool ticks found for ${poolAddress}`);
+    return 0;
   }
 
   const L = getLiquidityFromTick(poolTicks, currentTick);
