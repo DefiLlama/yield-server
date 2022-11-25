@@ -151,18 +151,23 @@ const getRebondApy = async () => {
   const marketPrice = await _getBLusdMarketPrice();
 
   const marketPricePremium = (marketPrice / floorPrice) * (1 - chickenInFee);
+
   const rebondPeriodInDays =
     alphaAccrualFactor *
     ((1 + Math.sqrt(marketPricePremium)) / (marketPricePremium - 1));
+
   const controllerAdjustedRebondPeriodInDays =
     await _getControllerAdjustedRebondDays(rebondPeriodInDays);
 
   const rebondPeriodAccrualFactor =
     (1 / floorPrice) *
-    (controllerAdjustedRebondPeriodInDays /
-      (controllerAdjustedRebondPeriodInDays + alphaAccrualFactor));
-  const rebondRoi = rebondPeriodAccrualFactor * marketPrice - 1;
+    (rebondPeriodInDays / (rebondPeriodInDays + alphaAccrualFactor));
+
+  const rebondRoi =
+    (1 - chickenInFee) * rebondPeriodAccrualFactor * marketPrice - 1;
+
   const rebondApr = rebondRoi * (365 / controllerAdjustedRebondPeriodInDays);
+
   const rebondApy =
     (1 + rebondApr / (365 / controllerAdjustedRebondPeriodInDays)) **
       (365 / controllerAdjustedRebondPeriodInDays) -
