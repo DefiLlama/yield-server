@@ -53,7 +53,7 @@ async function apr() {
             ) / 10 ** 18 * Number(prices[v]) / 10 ** 18,
         apy: Number(aprs[vaultToName[v]]?.APY?.value) * 100,
         underlyingTokens: [underlying[v]]
-    })).filter((p) => p.apy);
+    })).filter(p => p.apy);
 
     const stabilityPool = [{
         pool: `Yeti-YUSD-StabilityPool`,
