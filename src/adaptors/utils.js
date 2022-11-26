@@ -191,33 +191,40 @@ exports.aprToApy = (apr, compoundFrequency = 365) => {
   );
 };
 // calculating apy based on subgraph data
-exports.apy = (entry, dataPrior, version) => {
-  entry = { ...entry };
+exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
+  pool = { ...pool };
 
   // uni v2 forks set feeTier to constant
   if (version === 'v2') {
-    entry['feeTier'] = 3000;
+    pool['feeTier'] = 3000;
   }
 
   // calc prior volume on 24h offset
-  entry['volumeUSDPrior'] = dataPrior.find(
-    (el) => el.id === entry.id
+  pool['volumeUSDPrior1d'] = dataPrior1d.find(
+    (el) => el.id === pool.id
+  )?.volumeUSD;
+
+  pool['volumeUSDPrior7d'] = dataPrior7d.find(
+    (el) => el.id === pool.id
   )?.volumeUSD;
 
   // calc 24h volume
-  entry['volumeUSD24h'] =
-    Number(entry.volumeUSD) - Number(entry.volumeUSDPrior);
+  pool['volumeUSD1d'] = Number(pool.volumeUSD) - Number(pool.volumeUSDPrior1d);
+  pool['volumeUSD7d'] = Number(pool.volumeUSD) - Number(pool.volumeUSDPrior7d);
 
   // calc fees
-  entry['feeUSD24h'] = (entry.volumeUSD24h * Number(entry.feeTier)) / 1e6;
+  pool['feeUSD1d'] = (pool.volumeUSD1d * Number(pool.feeTier)) / 1e6;
+  pool['feeUSD7d'] = (pool.volumeUSD7d * Number(pool.feeTier)) / 1e6;
 
   // annualise
-  entry['feeUSD365days'] = entry.feeUSD24h * 365;
+  pool['feeUSDyear1d'] = pool.feeUSD1d * 365;
+  pool['feeUSDyear7d'] = pool.feeUSD7d * 52;
 
   // calc apy
-  entry['apy'] = (entry.feeUSD365days / entry.totalValueLockedUSD) * 100;
+  pool['apy1d'] = (pool.feeUSDyear1d / pool.totalValueLockedUSD) * 100;
+  pool['apy7d'] = (pool.feeUSDyear7d / pool.totalValueLockedUSD) * 100;
 
-  return entry;
+  return pool;
 };
 
 exports.keepFinite = (p) => {
