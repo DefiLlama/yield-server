@@ -270,7 +270,11 @@ const main = async () => {
         symbol: pool.coins.map((coin) => coin.symbol).join('-'),
         tvlUsd,
         apyBase,
-        apyReward: aprCrv + aprExtra,
+        apyReward:
+          // isolated pool for which the aprCrv is wrong
+          address === '0xBaaa1F5DbA42C3389bDbc2c9D2dE134F5cD0Dc89'
+            ? null
+            : aprCrv + aprExtra,
         rewardTokens,
         underlyingTokens,
       });
