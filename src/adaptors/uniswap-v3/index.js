@@ -132,29 +132,15 @@ const topLvl = async (
     };
   });
 
-  // calc apy (note: old way of using 24h fees * 365 / tvl. keeping this for now) and will store the
-  // new apy calc as a separate field
-  // note re arbitrum: their subgraph is outdated (no tick data -> no uni v3 style apy calc)
-  dataNow = dataNow.map((el) => utils.apy(el, dataPrior, version));
-
   // for new v3 apy calc
   const dataPrior7d = (
     await request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
   ).pools;
-  // add 7d volume
-  dataNow = dataNow.map((p) => {
-    // extract cumulative usd volume from 7d ago
-    const volumeCumulative7dPrior = dataPrior7d.find(
-      (el) => el.id === p.id
-    )?.volumeUSD;
-    // 7d volumne
-    const volumeUSD7d = p.volumeUSD - volumeCumulative7dPrior;
 
-    return {
-      ...p,
-      volumeUSD7d: Number.isFinite(volumeUSD7d) ? volumeUSD7d : null,
-    };
-  });
+  // calc apy (note: old way of using 24h fees * 365 / tvl. keeping this for now) and will store the
+  // new apy calc as a separate field
+  // note re arbitrum: their subgraph is outdated (no tick data -> no uni v3 style apy calc)
+  dataNow = dataNow.map((el) => utils.apy(el, dataPrior, dataPrior7d, version));
 
   if (chainString !== 'arbitrum') {
     dataNow = dataNow.map((p) => ({
