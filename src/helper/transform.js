@@ -994,6 +994,25 @@ const energiFixMapping = {
   '0xa55f26319462355474a9f2c8790860776a329aa4': { coingeckoId: 'energi', decimals: 18, },
 }
 
+const milkomedaFixMapping = {
+  "0x0000000000000000000000000000000000000000": { coingeckoId: "cardano", decimals: 18 },
+  "0xAE83571000aF4499798d1e3b0fA0070EB3A3E3F9": { coingeckoId: "cardano", decimals: 18 },
+  "0x4bf769b05e832fcdc9053fffbc78ca889acb5e1e": { coingeckoId: "binance-usd", decimals: 18 },
+  '0x41eAFC40CD5Cb904157A10158F73fF2824dC1339': { coingeckoId: "dai", decimals: 6 },
+  '0xab58DA63DFDd6B97EAaB3C94165Ef6f43d951fb2': { coingeckoId: "tether", decimals: 6 },
+  '0x5a955FDdF055F2dE3281d99718f5f1531744B102': { coingeckoId: "usd-coin", decimals: 6 },
+  "0x8c008BBA2Dd56b99f4A6aB276bE3a478cB075F0C": { coingeckoId: "blueshift", decimals: 18 }
+}
+
+const milkomeda_a1FixMapping = {
+  "0x0000000000000000000000000000000000000000": { coingeckoId: "algorand", decimals: 18 },
+  "0xaF86E6c5Fd9dAf53e5100ed38BaB2572609fCA27": { coingeckoId: "algorand", decimals: 18 },
+  "0xBc31960A049Fe10297Ed8432Fb61DD734fEAd4ea": { coingeckoId: "usd-coin", decimals: 6 },
+  "0x32564ae38E5DBf316958CE25A6aD2A2249EbCc2D": { coingeckoId: "tether", decimals: 6 },
+  "0x522B61755b5FF8176B2931DA7bF1a5F9414Eb710": { coingeckoId: "tether", decimals: 6 },
+  "0xc9BAA8cfdDe8E328787E29b4B078abf2DaDc2055": { coingeckoId: "blueshift", decimals: 18 }
+}
+
 
 const fixBalancesMapping = {
   avax: fixAvaxBalances,
@@ -1014,6 +1033,8 @@ const fixBalancesMapping = {
   oasis: fixOasisBalances,
   bittorrent: b => fixBalances(b, bittorrentFixMapping, { removeUnmapped: false }),
   syscoin: b => fixBalances(b, syscoinFixMapping, { removeUnmapped: true }),
+  milkomeda: b => fixBalances(b, milkomedaFixMapping, { removeUnmapped: false }),
+  milkomeda_a1: b => fixBalances(b, milkomeda_a1FixMapping, { removeUnmapped: false }),
 }
 
 const chainTransforms = {
@@ -1034,6 +1055,7 @@ const chainTransforms = {
   optimism: transformOptimismAddress,
   moonriver: transformMoonriverAddress,
   milkomeda: transformMilkomedaAddress,
+  milkomeda_a1: transformMilkomedaAddress,
   okex: transformOkexAddress,
   kcc: transformKccAddress,
   arbitrum: transformArbitrumAddress,
@@ -1102,12 +1124,19 @@ async function transformMilkomedaAddress() {
     // '0x0000000000000000000000000000000000000000': '' // MilkADA
     '0x5950F9B6EF36f3127Ea66799e64D0ea1f5fdb9D1': '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',  // WETH
     '0x41eAFC40CD5Cb904157A10158F73fF2824dC1339': '0x6B175474E89094C44Da98b954EedeAC495271d0F',  // DAI
-    '0xab58DA63DFDd6B97EAaB3C94165Ef6f43d951fb2': '0xdAC17F958D2ee523a2206206994597C13D831ec7',  // USDT
-    '0x5a955FDdF055F2dE3281d99718f5f1531744B102': '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',  // USDC
+    '0x3795C36e7D12A8c252A20C5a7B455f7c57b60283': '0xdac17f958d2ee523a2206206994597c13d831ec7',  // Celer USDT -> USDT
+    '0xab58DA63DFDd6B97EAaB3C94165Ef6f43d951fb2': '0xdac17f958d2ee523a2206206994597c13d831ec7',  // Nomad USDT -> USDT
+    '0x5a955FDdF055F2dE3281d99718f5f1531744B102': '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',  // Nomad USDC -> USDC
     '0x48AEB7584BA26D3791f06fBA360dB435B3d7A174': '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',  // WBTC
   }
 
   return transformChainAddress(mapping, 'milkomeda')
+}
+
+async function transformMilkomedaA1Address() {
+  const mapping = {}
+
+  return transformChainAddress(mapping, 'milkomeda_a1')
 }
 
 async function transformFindoraAddress() {
@@ -1146,6 +1175,7 @@ async function getChainTransform(chain) {
 module.exports = {
   getChainTransform,
   getFixBalances,
+  transformBalances,
   transformCeloAddress,
   transformCronosAddress,
   transformFantomAddress,
@@ -1174,6 +1204,7 @@ module.exports = {
   transformOasisAddress,
   transformOasisAddressBase,
   transformMilkomedaAddress,
+  transformMilkomedaA1Address,
   transformDfkAddress,
   transformFindoraAddress,
   wavesMapping,
