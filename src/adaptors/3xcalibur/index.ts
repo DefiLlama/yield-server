@@ -7,7 +7,7 @@ interface Pool {
   token0: { address: string; symbol: string };
   token1: Pool['token0'];
   tvl: number;
-  apr: number;
+  apy: number;
 }
 
 type Response = Array<Pool>;
