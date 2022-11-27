@@ -1175,7 +1175,6 @@ async function getChainTransform(chain) {
 module.exports = {
   getChainTransform,
   getFixBalances,
-  transformBalances,
   transformCeloAddress,
   transformCronosAddress,
   transformFantomAddress,
