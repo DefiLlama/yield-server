@@ -20,8 +20,6 @@ const main = async () => {
   // ---------- get lastet unique pool
   console.log('\ngetting pools');
   let data = await getYieldFiltered();
-  // NOTE(!temporary until solend fixed)
-  data = data.filter((p) => p.project !== 'solend');
 
   // ---------- add additional fields
   // for each project we get 3 offsets (1D, 7D, 30D) and calculate absolute apy pct-change
