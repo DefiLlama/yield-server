@@ -108,7 +108,7 @@ const topLvl = async (
   dataNow = await utils.tvl(dataNow, chainString);
   dataNow = dataNow.filter((p) => p.totalValueLockedUSD >= 1000);
   // calculate apy
-  let data = dataNow.map((el) => utils.apy(el, dataPrior, version));
+  let data = dataNow.map((el) => utils.apy(el, dataPrior, [], version));
 
   // check if stable pool (we use this info in triggerAdapter) for calculating tick ranges
   return data.map((p) => {
@@ -132,7 +132,7 @@ const topLvl = async (
       poolMeta: `${poolMeta}, stablePool=${stablePool}`,
       symbol,
       tvlUsd: p.totalValueLockedUSD,
-      apyBase: p.apy,
+      apyBase: p.apy1d,
       underlyingTokens,
       url,
     };
