@@ -46,7 +46,7 @@ const getApy = async () => {
     gaugePairs = gaugePairs.map((pair: any, index: number) => {
       const rewardRate = gaugesRewardRates[index].toString();
       const apr = _calculateGaugeAPR(pair.reserveUSD, xcalPrice, rewardRate);
-      const apy = _aprToApy(apr);
+      const apy = _toApy(apr);
       // apy might have 20+ decimals for low liq pool, just show apr instead
       pair.apy = new BN(apy).gt(1_000_000)
         ? Number(apr)
@@ -60,7 +60,7 @@ const getApy = async () => {
         pair.reserveUSD,
         pair.stable
       );
-      const apy = _aprToApy(apr);
+      const apy = _toApy(apr);
       // apy might have 20+ decimals for low liq pool, just show apr instead
       pair.apy = new BN(apy).gt(1_000_000)
         ? Number(apr)
@@ -130,7 +130,7 @@ const _calculateGaugeAPR = (
   return gaugeAPR;
 };
 
-const _aprToApy = (apr: string) => {
+const _toApy = (apr: string) => {
   const anualCompounds = 365; // assume 1 compound per day
   const leftSide = new BN(1).plus(new BN(apr).div(anualCompounds));
   return new BN(leftSide).pow(anualCompounds).minus(1).toFixed(18);
