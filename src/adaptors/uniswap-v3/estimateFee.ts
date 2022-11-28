@@ -228,8 +228,10 @@ const _getPoolTicksByPage = async (
   page: number,
   url: string
 ): Promise<Tick[]> => {
-  const res = await _queryUniswap(
-    `{
+  let res;
+  try {
+    res = await _queryUniswap(
+      `{
     ticks(first: 1000, skip: ${
       page * 1000
     }, where: { poolAddress: "${poolAddress}" }, orderBy: tickIdx) {
@@ -239,8 +241,12 @@ const _getPoolTicksByPage = async (
       price1
     }
   }`,
-    url
-  );
+      url
+    );
+  } catch (e) {
+    console.log('_getPoolTicksByPage failed for', poolAddress);
+    return [];
+  }
 
   return res === undefined ? [] : res.ticks;
 };
@@ -304,7 +310,7 @@ module.exports.EstimatedFees = async (
 
   if (!poolTicks.length) {
     console.log(`No pool ticks found for ${poolAddress}`);
-    return 0;
+    return { poolAddress, estimatedFee: 0 };
   }
 
   const L = getLiquidityFromTick(poolTicks, currentTick);
@@ -312,5 +318,5 @@ module.exports.EstimatedFees = async (
   const estimatedFee =
     P >= Pl && P <= Pu ? estimateFee(deltaL, L, volume, feeTier) : 0;
 
-  return estimatedFee;
+  return { poolAddress, estimatedFee };
 };

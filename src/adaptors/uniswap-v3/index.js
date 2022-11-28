@@ -187,11 +187,14 @@ const topLvl = async (
       start += skip;
       stop += skip;
     }
-    X = X.flat();
-    dataNow = dataNow.map((p, i) => ({
+    const d = {};
+    X.flat().forEach((p) => {
+      d[p.poolAddress] = p.estimatedFee;
+    });
+
+    dataNow = dataNow.map((p) => ({
       ...p,
-      estimatedFee7d: X[i],
-      apy7d: ((X[i] * 52) / investmentAmount) * 100,
+      apy7d: ((d[p.id] * 52) / investmentAmount) * 100,
     }));
   }
 
@@ -212,7 +215,7 @@ const topLvl = async (
       poolMeta: `${poolMeta}, stablePool=${p.stablecoin}`,
       symbol: p.symbol,
       tvlUsd: p.totalValueLockedUSD,
-      apyBase: p.apy,
+      apyBase: p.apy1d,
       apyBase7d: p.apy7d,
       underlyingTokens,
       url,
