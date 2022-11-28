@@ -34,7 +34,8 @@ const getYieldFiltered = async () => {
         apy,
         "apyBase",
         "apyReward",
-        "il7d"
+        "il7d",
+        "apyBase7d"
     FROM
         (
             SELECT
@@ -84,7 +85,8 @@ const getYieldHistory = async (configID) => {
         apy,
         "apyBase",
         "apyReward",
-        "il7d"
+        "il7d",
+        "apyBase7d"
     FROM
         $<table:name>
     WHERE
