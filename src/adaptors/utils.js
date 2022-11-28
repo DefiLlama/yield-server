@@ -10,6 +10,7 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'okexchain') return 'OKExChain';
   if (chain && chain.toLowerCase() === 'bsc') return 'Binance';
   if (chain && chain.toLowerCase() === 'milkomeda') return 'Milkomeda C1';
+  if (chain && chain.toLowerCase() === 'milkomeda_a1') return 'Milkomeda A1';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
