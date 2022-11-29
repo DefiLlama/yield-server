@@ -5,15 +5,15 @@ const polygonPoolsUrl =
   'https://api-polygon.idle.finance/pools?api-key=bPrtC2bfnAvapyXLgdvzVzW8u8igKv6E';
 const chains = {
   eth: 'ethereum',
-  matic: 'polygon',
+  // matic: 'polygon',
 };
 
 async function apy() {
   const mainnetPoolsResponse = await utils.getData(mainnetPoolsUrl);
-  const polygonPoolsResponse = await utils.getData(polygonPoolsUrl);
+  // const polygonPoolsResponse = await utils.getData(polygonPoolsUrl);
 
   const poolsResponse = {
-    matic: polygonPoolsResponse,
+    // matic: polygonPoolsResponse,
     eth: mainnetPoolsResponse,
   };
 
@@ -25,12 +25,13 @@ async function apy() {
     const pools = chainPools.map((v) => {
       return {
         pool: v.address,
-        apy: Number(v.apr),
+        apyBase: Number(v.apr),
         symbol: v.tokenName,
         poolMeta: v.strategy,
         tvlUsd: Number(v.tvl),
         project: 'idle-finance',
         chain: utils.formatChain(chains[chain]),
+        underlyingTokens: [v.underlyingAddress],
       };
     });
 
