@@ -210,6 +210,15 @@ const main = async () => {
     };
   }
 
+  // hardcode notional's fixed rate pools to stable + high confidence
+  dataEnriched = dataEnriched.map((p) => ({
+    ...p,
+    predictions:
+      p.project === 'notional' && p.poolMeta.toLowerCase().includes('maturing')
+        ? { predictedClass: 'Stable/Up', predictedProbability: 100 }
+        : p.predictions,
+  }));
+
   // based on discussion here: https://github.com/DefiLlama/yield-ml/issues/2
   // the output of a random forest predict_proba are smoothed relative frequencies of
   // of class distributions and do not represent calibrated probabilities
