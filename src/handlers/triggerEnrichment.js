@@ -214,7 +214,7 @@ const main = async () => {
   dataEnriched = dataEnriched.map((p) => ({
     ...p,
     predictions:
-      p.project === 'notional' && p.poolMeta.toLowerCase().includes('maturing')
+      p.project === 'notional' && p.poolMeta?.toLowerCase().includes('maturing')
         ? { predictedClass: 'Stable/Up', predictedProbability: 100 }
         : p.predictions,
   }));
