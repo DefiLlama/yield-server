@@ -21,6 +21,12 @@ const main = async () => {
   console.log('\ngetting pools');
   let data = await getYieldFiltered();
 
+  // remove aave v2 frozen assets from dataEnriched (we keep ingesting into db, but don't
+  // want to display frozen pools on the UI)
+  data = data.filter(
+    (p) => !(p.project === 'aave-v2' && p.poolMeta === 'frozen')
+  );
+
   // ---------- add additional fields
   // for each project we get 3 offsets (1D, 7D, 30D) and calculate absolute apy pct-change
   console.log('\nadding pct-change fields');

@@ -31,6 +31,7 @@ const query = gql`
         priceInEth
       }
       isActive
+      isFrozen
       underlyingAsset
       aToken {
         id
@@ -90,6 +91,7 @@ const main = async () => {
           ltv: Number(p.baseLTVasCollateral) / 10000,
           borrowable: p.borrowingEnabled,
           url: `https://app.aave.com/reserve-overview/?underlyingAsset=${p.underlyingAsset}&marketName=${chainUrlParam[chainString]}`,
+          poolMeta: p.isFrozen ? 'frozen' : null,
         };
       });
     })
