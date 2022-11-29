@@ -11,6 +11,9 @@ const tokens = {
   DAI: {
     address: '0x6b175474e89094c44da98b954eedeac495271d0f',
   },
+  ACX: {
+    address: '0x44108f0223a3c3028f5fe7aec7f9bb2e66bef82f',
+  },
 };
 
 module.exports = {
