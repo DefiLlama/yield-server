@@ -34,7 +34,7 @@ const getGaugeData = () => {
 
 const query = gql`
   {
-    assets {
+    assets(first: 1000) {
       id
       symbol
       supplyAPY
