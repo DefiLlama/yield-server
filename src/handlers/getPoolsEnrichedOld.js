@@ -43,6 +43,7 @@ const buildPoolsEnrichedOld = async (queryString) => {
     'underlyingTokens',
     'il7d',
     'apyBase7d',
+    'apyMean30d',
   ]
     .map((el) => `t."${el}"`)
     .join(', ');

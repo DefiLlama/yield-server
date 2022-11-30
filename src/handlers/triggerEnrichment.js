@@ -65,7 +65,10 @@ const main = async () => {
 
   // add 30d avg apy
   const avgApy30d = await getYieldAvg30d();
-  console.log(avgApy30d);
+  dataEnriched = dataEnriched.map((p) => ({
+    ...p,
+    apyMean30d: avgApy30d[p.configID] ?? null,
+  }));
 
   // add info about stablecoin, exposure etc.
   console.log('\nadding additional pool info fields');
