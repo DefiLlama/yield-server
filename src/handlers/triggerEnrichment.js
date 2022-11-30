@@ -5,6 +5,7 @@ const utils = require('../utils/s3');
 const {
   getYieldFiltered,
   getYieldOffset,
+  getYieldAvg30d,
 } = require('../controllers/yieldController');
 const { getStat } = require('../controllers/statController');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
@@ -61,6 +62,10 @@ const main = async () => {
       continue;
     }
   }
+
+  // add 30d avg apy
+  const avgApy30d = await getYieldAvg30d();
+  console.log(avgApy30d);
 
   // add info about stablecoin, exposure etc.
   console.log('\nadding additional pool info fields');
