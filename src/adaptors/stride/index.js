@@ -1,16 +1,23 @@
 const utils = require('../utils');
 
+const getPoolSymbol = (entry) => {
+  // stATOM/ATOM -> stATOM-ATOM
+  return entry.poolName.split('/').join('-');
+};
+
 const main = async () => {
   const data = await utils.getData('https://app.stride.zone/api/pool-gauges');
 
   const pools = [];
 
   for (const entry of data) {
+    const symbol = getPoolSymbol(entry);
+
     pools.push({
       pool: `${entry.poolId}-${entry.gaugeId}-${entry.token}`,
       chain: utils.formatChain('Stride'),
       project: 'stride',
-      symbol: utils.formatSymbol(entry.token),
+      symbol: symbol,
       poolMeta: `${entry.lockupDuration} day(s)`,
       tvlUsd: entry.tvl,
       apy: entry.apr,
