@@ -3,7 +3,7 @@ const ADContractAbi = require('./abi/AcceleratingDistributor.json');
 const SECONDS_PER_YEAR = 31557600; // 365.25 days per year
 
 const contracts = {
-  'AcceleratedDistributor': {
+  AcceleratedDistributor: {
     address: '0x9040e41ef5e8b281535a96d9a48acb8cfabd9a48',
     abi: ADContractAbi,
   },
@@ -29,7 +29,7 @@ const tokens = {
   ACX: {
     address: '0x44108f0223a3c3028f5fe7aec7f9bb2e66bef82f',
     lpAddress: '0xb0c8fef534223b891d4a430e49537143829c4817',
- },
+  },
 };
 
 module.exports = {

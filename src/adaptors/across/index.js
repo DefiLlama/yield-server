@@ -3,38 +3,40 @@ const { getProvider } = require('@defillama/sdk/build/general');
 const utils = require('../utils');
 const { SECONDS_PER_YEAR, contracts, tokens } = require('./constants');
 
-const fixedPoint = ethers.utils.parseUnits("1");
+const fixedPoint = ethers.utils.parseUnits('1');
 
 const rewardApr = (underlyingToken, stakingPool, rewardToken) => {
-  const { enabled, baseEmissionRate, cumulativeStaked } = stakingPool.stakingTokens;
+  const { enabled, baseEmissionRate, cumulativeStaked } =
+    stakingPool.stakingTokens;
 
   if (!enabled) return 0.0;
 
   // Avoid divide by zero later on.
   if (cumulativeStaked.eq(0)) return Number.MAX_VALUE;
 
-  const underlyingTokenPrice = ethers.utils.parseUnits(underlyingToken.price.toString());
-  const rewardTokenPrice = ethers.utils.parseUnits(rewardToken.price.toString());
+  const underlyingTokenPrice = ethers.utils.parseUnits(
+    underlyingToken.price.toString()
+  );
+  const rewardTokenPrice = ethers.utils.parseUnits(
+    rewardToken.price.toString()
+  );
 
   // Normalise to 18 decimals and convert LP token => underlying token.
   const cumulativeStakedUsd = cumulativeStaked
-    .mul(ethers.utils.parseUnits("1", 18 - underlyingToken.decimals).toString())
+    .mul(ethers.utils.parseUnits('1', 18 - underlyingToken.decimals).toString())
     .mul(underlyingToken.exchangeRateCurrent)
     .div(fixedPoint)
     .mul(underlyingTokenPrice)
     .div(fixedPoint);
 
   const rewardsPerYearUsd = baseEmissionRate
-    .mul(ethers.utils.parseUnits("1", 18 - rewardToken.decimals).toString())
+    .mul(ethers.utils.parseUnits('1', 18 - rewardToken.decimals).toString())
     .mul(SECONDS_PER_YEAR.toString())
     .mul(rewardTokenPrice)
     .div(fixedPoint);
 
   const apr = ethers.utils.formatUnits(
-    rewardsPerYearUsd
-    .mul("100")
-    .mul(fixedPoint)
-    .div(cumulativeStakedUsd)
+    rewardsPerYearUsd.mul('100').mul(fixedPoint).div(cumulativeStakedUsd)
   );
 
   return Number(apr);
@@ -46,7 +48,7 @@ const buildPool = (token, tokenPrices, liquidityPool, stakingPool) => {
     {
       ...token,
       price: tokenPrices[token.address].price,
-      exchangeRateCurrent: liquidityPool.exchangeRateCurrent
+      exchangeRateCurrent: liquidityPool.exchangeRateCurrent,
     },
     stakingPool,
     tokenPrices[rewardTokenAddr]
@@ -65,9 +67,9 @@ const buildPool = (token, tokenPrices, liquidityPool, stakingPool) => {
   };
 
   if (apyReward > 0.0) {
-    poolData["rewardTokens"] = [rewardTokenAddr];
-    poolData["apyReward"] = apyReward;
-  };
+    poolData['rewardTokens'] = [rewardTokenAddr];
+    poolData['apyReward'] = apyReward;
+  }
 
   return poolData;
 };
@@ -91,14 +93,15 @@ const queryLiquidityPools = async (l1TokenAddrs) => {
 
 const queryStakingPool = async (adContract, lpTokenAddr) => {
   const [
-    baseReward, [
+    baseReward,
+    [
       enabled,
       baseEmissionRate,
       maxMultiplier,
       secondsToMaxMultiplier,
       cumulativeStaked,
       rewardsPerTokenStaked,
-      lastUpdateTime
+      lastUpdateTime,
     ],
   ] = await Promise.all([
     adContract.baseRewardPerToken(lpTokenAddr),
@@ -120,7 +123,7 @@ const queryStakingPool = async (adContract, lpTokenAddr) => {
 };
 
 const queryStakingPools = async (provider, lpTokenAddrs) => {
-  const { address, abi } = contracts.AcceleratedDistributor
+  const { address, abi } = contracts.AcceleratedDistributor;
   const adContract = new ethers.Contract(address, abi, provider);
   await adContract.connect();
 
@@ -169,7 +172,6 @@ const main = async () => {
     l1TokenPrices(tokenAddrs),
   ]);
 
-
   return Object.entries(tokens).map(([symbol, token]) => {
     const { address } = token;
     return buildPool(
@@ -184,7 +186,7 @@ const main = async () => {
       {
         rewardToken: stakingPools.rewardToken,
         ...stakingPools.pools[token.lpAddress],
-      },
+      }
     );
   });
 };
