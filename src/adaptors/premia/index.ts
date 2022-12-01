@@ -58,11 +58,6 @@ const getPoolsQuery = gql`
   }
 `;
 
-async function fetchChainPools(url: string): Promise<FetchedPool[]> {
-  const { pools } = await request(url, getPoolsQuery);
-  return pools;
-}
-
 function convert(fetchedPool: FetchedPool, chain: string): PoolType {
   const {
     name,
@@ -96,11 +91,22 @@ const chainToSubgraph = {
     'https://api.thegraph.com/subgraphs/name/premiafinance/premia-optimism',
 };
 
-async function poolsFunction(): Promise<PoolType[]> {
-  const results = Object.keys(chainToSubgraph).map(chain => {})
-  const result = await fetchChainPools();
+async function fetchChainPools(
+  url: string,
+  chain: string
+): Promise<PoolType[]> {
+  const { pools } = await request(url, getPoolsQuery);
+  return pools.map((pool) => convert(pool, chain));
+}
 
-  return result.map(convert);
+async function poolsFunction(): Promise<PoolType[]> {
+  const pools = await Promise.all(
+    Object.keys(chainToSubgraph).map(async (chain) =>
+      fetchChainPools(chainToSubgraph[chain], chain)
+    )
+  );
+
+  return pools.flat();
 }
 
 module.exports = {
