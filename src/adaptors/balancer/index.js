@@ -127,11 +127,11 @@ const tvl = (entry, tokenPriceList, chainString) => {
   const balanceDetails = entry.tokens;
   const d = {
     id: entry.id,
-    symbol: balanceDetails.map((tok) => tok.symbol).join('-'),
     tvl: 0,
     totalShares: entry.totalShares,
-    tokensList: entry.tokensList.filter((p) => !excludeTokenList.includes(p)),
   };
+  const symbols = [];
+  const tokensList = [];
   for (const el of balanceDetails) {
     if (excludeTokenList.includes(el.address)) continue;
     // some addresses are from tokens which are not listed on coingecko so these will result in undefined
@@ -152,8 +152,18 @@ const tvl = (entry, tokenPriceList, chainString) => {
     ) {
       price = tokenPriceList[`ethereum:${bbTokenMapping[el.address]}`]?.price;
     }
+    // include only symbols for which we get a price (eg stmatic-wmatic has a third token in the array
+    // `B-stMATIC-Stable` which shouldn't be in there)
+    if (Number.isFinite(price)) {
+      symbols.push(el.symbol);
+      tokensList.push(el.address);
+    }
+
+    price = price ?? 0;
     d.tvl += Number(el.balance) * price;
   }
+  d.symbol = symbols.join('-');
+  d.tokensList = tokensList;
 
   return d;
 };
