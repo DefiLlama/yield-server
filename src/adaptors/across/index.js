@@ -6,8 +6,7 @@ const { SECONDS_PER_YEAR, contracts, tokens } = require('./constants');
 const fixedPoint = ethers.utils.parseUnits('1');
 
 const rewardApr = (underlyingToken, stakingPool, rewardToken) => {
-  const { enabled, baseEmissionRate, cumulativeStaked } =
-    stakingPool.stakingTokens;
+  const { enabled, baseEmissionRate, cumulativeStaked } = stakingPool;
 
   if (!enabled) return 0.0;
 
@@ -91,37 +90,6 @@ const queryLiquidityPools = async (l1TokenAddrs) => {
   );
 };
 
-const queryStakingPool = async (adContract, lpTokenAddr) => {
-  const [
-    baseReward,
-    [
-      enabled,
-      baseEmissionRate,
-      maxMultiplier,
-      secondsToMaxMultiplier,
-      cumulativeStaked,
-      rewardsPerTokenStaked,
-      lastUpdateTime,
-    ],
-  ] = await Promise.all([
-    adContract.baseRewardPerToken(lpTokenAddr),
-    adContract.stakingTokens(lpTokenAddr),
-  ]);
-
-  return {
-    baseReward,
-    stakingTokens: {
-      enabled,
-      baseEmissionRate,
-      maxMultiplier,
-      secondsToMaxMultiplier,
-      cumulativeStaked,
-      rewardsPerTokenStaked,
-      lastUpdateTime,
-    },
-  };
-};
-
 const queryStakingPools = async (provider, lpTokenAddrs) => {
   const { address, abi } = contracts.AcceleratedDistributor;
   const adContract = new ethers.Contract(address, abi, provider);
@@ -131,7 +99,7 @@ const queryStakingPools = async (provider, lpTokenAddrs) => {
   const pools = Object.fromEntries(
     await Promise.all(
       Object.values(lpTokenAddrs).map(async (lpTokenAddr) => {
-        const pool = await queryStakingPool(adContract, lpTokenAddr);
+        const pool = await adContract.stakingTokens(lpTokenAddr);
         return [lpTokenAddr, pool];
       })
     )
