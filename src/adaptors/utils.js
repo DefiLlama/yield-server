@@ -198,6 +198,8 @@ exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
   // uni v2 forks set feeTier to constant
   if (version === 'v2') {
     pool['feeTier'] = 3000;
+  } else if (version === 'stellaswap') {
+    pool['feeTier'] = 2000;
   }
 
   // calc prior volume on 24h offset
