@@ -118,7 +118,7 @@ const getApy = async () => {
         project: 'arrakis-finance',
         symbol: `${vault.token0.symbol}-${vault.token1.symbol}`,
         tvlUsd: tvl || 0,
-        apy: Number(vault.snapshots[0].apr),
+        apy: Number(vault.snapshots[0]?.apr),
         url: `https://beta.arrakis.finance/vaults/${CHAIN_IDS[chain]}/${vault.id}`,
         underlyingTokens: [vault.token0.address, vault.token1.address],
       };
