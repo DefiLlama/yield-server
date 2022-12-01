@@ -32,6 +32,9 @@ const vaultsQuery = gql`
   {
     vaults {
       id
+      apr {
+        averageApr
+      }
       snapshots(orderBy: startTimestamp, orderDirection: desc, first:1) {
         apr
       }
@@ -118,7 +121,7 @@ const getApy = async () => {
         project: 'arrakis-finance',
         symbol: `${vault.token0.symbol}-${vault.token1.symbol}`,
         tvlUsd: tvl || 0,
-        apy: Number(vault.snapshots[0]?.apr),
+        apy: vault.snapshots[0]? Number(vault.snapshots[0].apr) : Number(vault.apr.averageApr),
         url: `https://beta.arrakis.finance/vaults/${CHAIN_IDS[chain]}/${vault.id}`,
         underlyingTokens: [vault.token0.address, vault.token1.address],
       };
