@@ -26,7 +26,7 @@ const query = gql`
     }
     marketAssets {
       id
-    	balance
+      balance
       supply
       protectedSupply
       tokenPriceUSD
