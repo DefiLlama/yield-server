@@ -6,11 +6,15 @@ const TGOV_ADDRESS =
   '0x84d7aeef42d38a5ffc3ccef853e1b82e4958659d16a7de736a29c55fbbeb0114';
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';
 const RESOURCE_URL = `${NODE_URL}/accounts/${TGOV_ADDRESS}/resources`;
+const COINS_LLAMA_PRICE_URL = 'https://coins.llama.fi/prices/current/';
+const DECIMALS = 1e8;
+
+const aptosCoinName = 'coingecko:aptos';
 
 async function main() {
   const [resources, aptPrice] = await Promise.all([
     utils.getData(RESOURCE_URL),
-    utils.getData(`https://api.binance.com/api/v3/ticker/price?symbol=APTBUSD`),
+    utils.getData(`${COINS_LLAMA_PRICE_URL}${aptosCoinName}`),
   ]);
 
   const stakingStatus = resources.filter((r) =>
@@ -64,7 +68,10 @@ async function main() {
       chain: utils.formatChain('aptos'),
       project: 'tortuga',
       symbol: utils.formatSymbol('tAPT'),
-      tvlUsd: aptStaked.multipliedBy(aptPrice.price).dividedBy(1e8).toNumber(),
+      tvlUsd: aptStaked
+        .multipliedBy(aptPrice.coins[aptosCoinName].price)
+        .dividedBy(DECIMALS)
+        .toNumber(),
       apy: apy.toNumber(),
     },
   ];
