@@ -76,7 +76,7 @@ const calculateApy = (
   chain
 ) => {
   const poolWeight = poolInfo.allocPoint / totalAllocPoint.output;
-  const perBlock = chain === 'bsc' ? bananaPerBlock : bananaPerBlock * 3;
+  const perBlock = chain === 'bsc' ? bananaPerBlock : bananaPerBlock * 2;
   const vvsPerYear = blocksYear * perBlock;
   return ((poolWeight * vvsPerYear * bananaPrice) / reserveUSD) * 100;
 };

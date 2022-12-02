@@ -30,8 +30,8 @@ exports.CHAINS = {
         banana: '0x5d47baba0d66083c52009271faf3f50dcc01023c',
         masterchef: '0x54aff400858Dcac39797a81894D9920f16972D1D',
         block: {
-            day: Math.floor((60 / 3) * 60 * 24),
-            year: Math.floor((60 / 3) * 60 * 24 * 365),
+            day: Math.floor((60 / 2) * 60 * 24),
+            year: Math.floor((60 / 2) * 60 * 24 * 365),
         },
         feeRate: 0.0005,
         apiUrl: 'https://api.thegraph.com/subgraphs/name/prof-sd/as-matic-graft',
