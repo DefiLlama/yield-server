@@ -88,9 +88,9 @@
     "stateMutability": "view",
     "type": "function"
   },
-  "totalSupply": {
+  "totalLiquidity": {
     "inputs": [],
-    "name": "totalSupply",
+    "name": "totalLiquidity",
     "outputs": [
       {
         "internalType": "uint256",

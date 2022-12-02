@@ -34,7 +34,7 @@ const getGaugeData = () => {
 
 const query = gql`
   {
-    assets {
+    assets(first: 1000) {
       id
       symbol
       supplyAPY
@@ -94,7 +94,10 @@ const main = async () => {
     };
   });
 
-  return pools;
+  // sUSD pool
+  return pools.filter(
+    (p) => p.pool !== '0x57ab1ec28d129707052df4df418d58a2d46d5f51-euler'
+  );
 };
 
 module.exports = {

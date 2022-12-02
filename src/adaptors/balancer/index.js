@@ -23,6 +23,8 @@ const urlGaugesArbitrum = `${urlBase}/balancer-gauges-arbitrum`;
 const protocolFeesCollector = '0xce88686553686DA562CE7Cea497CE749DA109f9F';
 const gaugeController = '0xC128468b7Ce63eA702C1f104D55A2566b13D3ABD';
 
+const BAL = '0xba100000625a3754423978a60c9317c58a424e3d';
+
 const queryGauge = gql`
   {
     liquidityGauges(first: 200) {
@@ -130,6 +132,8 @@ const tvl = (entry, tokenPriceList, chainString) => {
     totalShares: entry.totalShares,
     tokensList: entry.tokensList.filter((p) => !excludeTokenList.includes(p)),
   };
+  const symbols = [];
+  const tokensList = [];
   for (const el of balanceDetails) {
     if (excludeTokenList.includes(el.address)) continue;
     // some addresses are from tokens which are not listed on coingecko so these will result in undefined
@@ -150,6 +154,8 @@ const tvl = (entry, tokenPriceList, chainString) => {
     ) {
       price = tokenPriceList[`ethereum:${bbTokenMapping[el.address]}`]?.price;
     }
+
+    price = price ?? 0;
     d.tvl += Number(el.balance) * price;
   }
 
@@ -165,6 +171,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
 
   // get BAL inflation rate (constant among gauge contract ids)
   let inflationRate;
+  let price;
   if (chainString === 'ethereum') {
     inflationRate =
       (
@@ -176,8 +183,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
       ).output / 1e18;
 
     // get BAL price
-    balToken = '0xba100000625a3754423978a60c9317c58a424e3d';
-    const key = `${chainString}:${balToken}`;
+    const key = `${chainString}:${BAL}`;
     price = (
       await superagent.post('https://coins.llama.fi/prices').send({
         coins: [key],
@@ -227,7 +233,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
         const yearlyReward = weeklyReward * 52 * price;
         const aprLM = (yearlyReward / bptPrice) * 100;
         aprLMRewards.push(aprLM === Infinity ? 0 : aprLM);
-        rewardTokens.push(balToken);
+        rewardTokens.push(BAL);
       }
     }
 
@@ -254,7 +260,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
         await superagent.post('https://coins.llama.fi/prices').send({
           coins: [key],
         })
-      ).body.coins[key].price;
+      ).body.coins[key]?.price;
 
       // call reward data
       const { rate, period_finish } = (
@@ -359,10 +365,6 @@ const topLvl = async (
 
   // build pool objects
   return tvlInfo.map((p) => {
-    if (p.symbol.includes('bb-a-USD')) {
-      console.log(p.symbol);
-    }
-
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
