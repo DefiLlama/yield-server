@@ -1,7 +1,11 @@
 const { gql, request } = require('graphql-request');
 const { utils } = require('ethers');
 const { formatEther } = utils;
-const weiToNumber = (value: string) => Number(formatEther(value));
+
+const weiToNumber = (value: string) => {
+  if (!value) return 0;
+  return Number(formatEther(value));
+};
 
 interface PoolType {
   pool: string;
@@ -30,7 +34,7 @@ interface FetchedPool {
   openInterestInUsd: string;
   underlying: {
     address: string;
-    name: string;
+    symbol: string;
   };
   profitLossPercentage: string;
   totalLocked: string;
@@ -49,7 +53,7 @@ const getPoolsQuery = gql`
       id
       underlying {
         address
-        name
+        symbol
       }
       totalVolumeInUsd
       openInterestInUsd
@@ -81,7 +85,6 @@ function convert(fetchedPool: FetchedPool, chain: string): PoolType {
     underlying,
     profitLossPercentage,
     id,
-    totalLocked,
   } = fetchedPool;
 
   return {
@@ -91,10 +94,8 @@ function convert(fetchedPool: FetchedPool, chain: string): PoolType {
     underlyingTokens: [underlying.address],
     rewardTokens: [PREMIA_TOKEN_ADDRESS[chain]],
     tvlUsd: weiToNumber(netSizeInUsd),
-    totalSupplyUsd: weiToNumber(netSizeInUsd),
-    totalBorrowUsd: weiToNumber(totalLocked),
     project: 'premia',
-    symbol: underlying.name,
+    symbol: underlying.symbol,
     apyBase: weiToNumber(profitLossPercentage),
   };
 }
