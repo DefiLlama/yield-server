@@ -30,6 +30,18 @@ const tokens = {
     address: '0x44108f0223a3c3028f5fe7aec7f9bb2e66bef82f',
     lpAddress: '0xb0c8fef534223b891d4a430e49537143829c4817',
   },
+  UMA: {
+    address: '0x04fa0d235c4abf4bcf4787af4cf447de572ef828',
+    lpAddress: '0xb9921d28466304103a233fcd071833e498f12853',
+  },
+  BAL: {
+    address: '0xba100000625a3754423978a60c9317c58a424e3d',
+    lpAddress: '0xfacd2ec4647df2cb758f684c2aaab56a93288f9e',
+  },
+  BOBA: {
+    address: '0x42bbfa2e77757c645eeaad1655e0911a7553efbc',
+    lpAddress: '0x9306b6f45263f8cb6a18eff127313d10d06fccb5',
+  },
 };
 
 module.exports = {
