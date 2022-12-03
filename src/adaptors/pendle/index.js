@@ -43,7 +43,7 @@ async function poolApys(pools) {
     apyBase: p.aggregatedApy - p.pendleApy,
     apyReward: p.pendleApy,
     rewardTokens: ["0x808507121b80c02388fad14726482e061b8da827"],
-    underlyingTokens: [p.sy.underlyingAsset.address]
+    underlyingTokens: [p.pt.address, p.sy.address]
   }));
 }
 async function ptApys(pools) {
