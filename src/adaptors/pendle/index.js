@@ -43,7 +43,7 @@ async function poolApys(pools) {
     apyBase: p.aggregatedApy - p.pendleApy,
     apyReward: p.pendleApy,
     rewardTokens: ["0x808507121b80c02388fad14726482e061b8da827"],
-    underlyingTokens: [p.pt.address, p.sy.address]
+    underlyingTokens: [p.sy.underlyingAsset.address]
   }));
 }
 async function ptApys(pools) {
@@ -57,20 +57,9 @@ async function ptApys(pools) {
     underlyingTokens: [p.sy.underlyingAsset.address]
   }));
 }
-async function ytApys(pools) {
-  return pools.map((p) => ({
-    pool: p.yt.address,
-    chain: utils.formatChain("ethereum"),
-    project: "pendle",
-    symbol: utils.formatSymbol(p.yt.symbol),
-    tvlUsd: p.liquidity.usd,
-    apyBase: p.ytFloatingApy,
-    underlyingTokens: [p.sy.underlyingAsset.address]
-  }));
-}
 async function apy() {
   const pools = (await request(api, query)).markets.results;
-  return await Promise.all([poolApys(pools), ptApys(pools), ytApys(pools)]);
+  return await Promise.all([poolApys(pools), ptApys(pools)]);
 }
 const main = async () => await apy();
 module.exports = {
