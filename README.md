@@ -62,6 +62,15 @@ A note on how to set apy related fields:
 - if you are unsure/your data source doesn't contain a detailed breakdown, then provide an `apy` field indicating the total apy and omit the `apyBase` and `apyReward` fields (or set to null)
 ```
 
+#### FAQ
+> Why are some pools missing on DefiLlama which appear on my adapter?
+
+DefiLlama only displays pools with >10k TVL, so pools with less TVL than that will appear on the adapter but not on defillama
+
+> I'm getting errors when running `npm install`
+
+Just remove the packages `pg-promise`, `pg` and `pg-native` from package.json and then install again, make sure to avoid commiting these changes tho!
+
 #### Adapter module structure
 
 ```js
