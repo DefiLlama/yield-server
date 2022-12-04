@@ -206,6 +206,36 @@ const MCD_SPOT = {
   },
 };
 
+MCD_POT={
+  address: '0x197e90f9fad81970ba7976f33cbd77088e5d7cf7',
+  abis: {
+    Pie: {"constant":true,"inputs":[],"name":"Pie","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
+    dsr: {"constant":true,"inputs":[],"name":"dsr","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
+    chi: {"constant":true,"inputs":[],"name":"chi","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
+  }
+}
+
+async function dsr(){
+  const [Pie, chi, dsr] = await Promise.all(["Pie", "chi", "dsr"].map(async name=>(
+    await sdk.api.abi.call({
+      target: MCD_POT.address,
+      abi: MCD_POT.abis[name],
+    })
+  ).output))
+  const tvlUsd = BigNumber(Pie).times(chi).div(1e18).div(RAY) // check against https://makerburn.com/#/
+  const apy = BigNumber(dsr).div(RAY).pow(60*60*24*365).minus(1).times(100).toNumber()
+
+  return {
+    pool: MCD_POT.address,
+    project: 'makerdao',
+    symbol: "DAI",
+    chain: 'ethereum',
+    poolMeta: "DSR",
+    apy,
+    tvlUsd: tvlUsd.toNumber(),
+  }
+}
+
 function onlyUnique(value, index, self) {
   return self.indexOf(value) === index;
 }
@@ -229,6 +259,7 @@ const getPrices = async (addresses) => {
 };
 
 const main = async () => {
+  const dsrPool = dsr()
   const ilkIds = (
     await sdk.api.abi.call({
       target: ILK_REGISTRY.address,
@@ -335,7 +366,7 @@ const main = async () => {
         mintedCoin: 'DAI',
         ltv: 1 / Number(liquidationRatio.toNumber()),
       };
-    })
+    }).concat([await dsrPool])
     .filter((e) => e.tvlUsd !== NaN)
     .filter((e) => e.tvlUsd !== 0)
     .filter((e) => e.tvlUsd);
