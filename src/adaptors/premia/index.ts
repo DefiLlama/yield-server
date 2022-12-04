@@ -1,6 +1,5 @@
 const { gql, request } = require('graphql-request');
 const { utils } = require('ethers');
-const { PoolType, FetchedPool } = require('./types');
 const { PREMIA_TOKEN_ADDRESS } = require('./addresses');
 const { convert, getChainRewardData } = require('./utils');
 const { getPrices } = require('../utils');
@@ -42,6 +41,25 @@ const chainToSubgraph = {
   optimism:
     'https://api.thegraph.com/subgraphs/name/premiafinance/premia-optimism',
 };
+
+interface PoolType {
+  pool: string;
+  chain: string;
+  project: string;
+  symbol: string;
+  tvlUsd: number;
+  apyBase?: number;
+  apyReward?: number;
+  rewardTokens?: Array<string>;
+  underlyingTokens?: Array<string>;
+  poolMeta?: string;
+  url?: string;
+  apyBaseBorrow?: number;
+  apyRewardBorrow?: number;
+  totalSupplyUsd?: number;
+  totalBorrowUsd?: number;
+  ltv?: number;
+}
 
 async function fetchChainPools(
   url: string,
