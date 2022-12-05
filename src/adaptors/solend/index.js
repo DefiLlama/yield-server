@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 const utils = require('../utils');
 
 const baseUrl = 'https://api.solend.fi';
-const configEndpoint = `${baseUrl}/v1/config`;
+const configEndpoint = `${baseUrl}/v1/markets/configs`;
 const reservesEndpoint = `${baseUrl}/v1/reserves`;
 
 const main = async () => {
@@ -11,21 +11,19 @@ const main = async () => {
 
   const config = await configResponse.json();
 
-  const reservesConfigs = config.markets.flatMap((market) =>
+  const reservesConfigs = config.flatMap((market) =>
     market.reserves.map((reserve) => ({
       ...reserve,
       marketName: market.name,
     }))
   );
 
-  // note(slasher): seems like the solend team has made changes to the reserveEndpoint
-  // which now has a limit of max 5 ids, hence why i made this change to loop instead
+  // note(slasher): seems like the solend team has made changes to the reserveEndpoint, splitting up requests
   const tokenIds = reservesConfigs.map((reserve) => reserve.address);
   const reserves = [];
-  const maxIds = 5;
+  const maxIds = 50;
   for (let i = 0; i <= tokenIds.length; i += maxIds) {
-    const tokens = tokenIds.slice(i, i + 5).join(',');
-
+    const tokens = tokenIds.slice(i, i + maxIds).join(',');
     const reservesResponse = await fetch(`${reservesEndpoint}?ids=${tokens}`);
     const res = (await reservesResponse.json()).results;
 
@@ -79,7 +77,7 @@ const main = async () => {
       pool: reserveConfig.address,
       chain: utils.formatChain('solana'),
       project: 'solend',
-      symbol: `${reserveConfig.asset}`,
+      symbol: `${reserveConfig.liquidityToken.symbol}`,
       poolMeta: secondaryString,
       tvlUsd,
       apyBase,

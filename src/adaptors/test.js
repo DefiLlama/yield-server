@@ -30,6 +30,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'borrowable',
       'debtCeilingUsd',
       'mintedCoin',
+      'apyBase7d',
     ];
     const fields = [...Object.keys(baseFields), ...optionalFields, 'tvlUsd'];
     apy.forEach((pool) => {
