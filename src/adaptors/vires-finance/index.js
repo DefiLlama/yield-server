@@ -6,13 +6,13 @@ const API_URL_CONFIG = 'https://api.vires.finance/v2/config';
 const configStateIDMapping = {
   '3PCwFXSq8vj8iKitA5zrrLRbuqehfmimpce':
     'DG2xFkPdDwKUoBkzGAhQtLpSGzfXLiCYPEzeKH2Ad24p', // usdn
-  '3PEiD1zJWTMZNWSCyzhvBw9pxxAWeEwaghR':
+  '3PBEwUv36ZXRiDEaVmXR41sPvbGfm3nyC6k':
     '34N9YcEETLWn93qYQ64EsP1x89tSruJU44RrEMSXXEPJ', // usdt
   '3PA7QMFyHMtHeP66SUQnwCgwKQHKpCyXWwd':
     '8LQW8f7P5d5PZM7GtZEBgaqRPGSzS3DfPuiXrURJ4AJS', // btc
   '3PPdeWwrzaxqgr6BuReoF3sWfxW8SYv743D':
     '474jTeYx2r2Va35794tCScAXWJG9hU2HcgxzMowaZUnu', // eth
-  '3PGCkrHBxFMi7tz1xqnxgBpeNvn5E4M4g8S':
+  '3PN1LXdwuFWH3paF3fpMNCWk7oWRzXCeMSC':
     '6XtHjpXbs9RRJP2Sr9GUyVqzACcby9TkThHXnjVC5CDJ', // usdc
   '3PBjqiMwwag72VWUtHNnVrxTBrNK8D7bVcN':
     'DUk2YTxhRoAqMJLus4G2b3fR8hMHVh6eiyFx5r29VR6t', // eurn
@@ -28,6 +28,8 @@ const getApy = async () => {
   const { assets } = await utils.getData(API_URL_CONFIG);
 
   const pools = markets.map((item) => {
+    if (item.name.toLowerCase().includes('legacy')) return null;
+
     return {
       pool: item.address,
       chain: utils.formatChain('waves'),
@@ -42,10 +44,10 @@ const getApy = async () => {
       totalBorrowUsd: Number(item.totalDebtUsd),
       apyBaseBorrow: Number(item.borrowApr) * 100,
       apyRewardBorrow: Number(item.borrowViresApr) * 100,
-      ltv: assets[configStateIDMapping[item.address]].collateralFactor / 1000,
+      ltv: assets[configStateIDMapping[item.address]]?.collateralFactor / 1000,
     };
   });
-  return pools;
+  return pools.filter((p) => p !== null);
 };
 
 module.exports = {
