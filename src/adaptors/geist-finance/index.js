@@ -9,6 +9,9 @@ const url = 'https://api.geist.finance/api/lendingPoolRewards';
 
 const aaveProtocolDataProvider = '0xf3B0611e2E4D2cd6aB4bb3e01aDe211c3f42A8C3';
 
+// geist has an early exit penalty of 50%
+const earlyExitPenalty = 0.5;
+
 const main = async () => {
   // total supply for each pool + reward apr for both lend and borrow side
   const rewardAPRs = (await utils.getData(url)).data.poolAPRs;
@@ -68,12 +71,12 @@ const main = async () => {
         // note(!) this is total supply instead of available liquidity, will need to update
         tvlUsd: interest.poolValue,
         apyBase: p.currentLiquidityRate / 1e25,
-        apyReward: interest.apy * 100,
+        apyReward: interest.apy * 100 * earlyExitPenalty,
         underlyingTokens: [interest.underlyingAsset],
         rewardTokens: ['0xd8321aa83fb0a4ecd6348d4577431310a6e0814d'], // Geist
         // borrow fields
         apyBaseBorrow: p.currentVariableBorrowRate / 1e25,
-        apyRewardBorrow: debt.apy * 100,
+        apyRewardBorrow: debt.apy * 100 * earlyExitPenalty,
         totalSupplyUsd: interest.poolValue,
         totalBorrowUsd:
           interest.poolValue -
