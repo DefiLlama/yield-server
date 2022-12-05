@@ -116,30 +116,19 @@ const correctMaker = (entry) => {
 const tvl = (entry, tokenPriceList, chainString) => {
   entry = { ...entry };
 
-  // the boosted pools also contain bb-a-usd as underlying, which imo is wrong (seems like this is
-  // representing the total from `getActualSupply`); removing them from the array to get the correct tvl
-  const excludeTokenList = [
-    '0x7b50775383d3d6f0215a8f290f2c9e2eebbeceb2',
-    '0xa13a9247ea42d743238089903570127dda72fe44',
-    '0xfb5e6d0c1dfed2ba000fbc040ab8df3615ac329c', // b-steth
-  ];
-
   const balanceDetails = entry.tokens;
   const d = {
     id: entry.id,
     symbol: balanceDetails.map((tok) => tok.symbol).join('-'),
     tvl: 0,
     totalShares: entry.totalShares,
-    tokensList: entry.tokensList.filter((p) => !excludeTokenList.includes(p)),
+    tokensList: entry.tokensList,
   };
   const symbols = [];
   const tokensList = [];
+  let price;
   for (const el of balanceDetails) {
-    if (excludeTokenList.includes(el.address)) continue;
-    // some addresses are from tokens which are not listed on coingecko so these will result in undefined
-
-    let price =
-      tokenPriceList[`${chainString}:${el.address.toLowerCase()}`]?.price;
+    price = tokenPriceList[`${chainString}:${el.address.toLowerCase()}`]?.price;
     if (
       el.address.toLowerCase() ===
       '0x7dff46370e9ea5f0bad3c4e29711ad50062ea7a4'.toLowerCase()
@@ -147,7 +136,6 @@ const tvl = (entry, tokenPriceList, chainString) => {
       price =
         tokenPriceList['solana:So11111111111111111111111111111111111111112']
           ?.price;
-    // if price is undefined of one token in pool, the total tvl will be NaN
     if (
       entry.id ===
       '0xa13a9247ea42d743238089903570127dda72fe4400000000000000000000035d'
