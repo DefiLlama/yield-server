@@ -25,26 +25,26 @@ const poolsFunction = async () => {
 
     let pools = [];
     const allpools = Object.keys(dataPools).map((chainId) => {
-        dataPools[chainId].map(async (pool) => {
-            const extendedData = await utils.getData(`https://app.clearpool.finance/api/${chainId}/pool/${pool.address}`);
+        dataPools[chainId].map((pool) => {
             const chainName = utils.formatChain(networks[chainId]);
             pools.push({
                 pool: `${pool.address}-${chainName}`.toLowerCase(),
                 chain: chainName,
                 project: 'clearpool',
-                symbol: pool.curency.symbol,
+                symbol: pool.currencyName,
                 tvlUsd: pool.poolSize - pool.utilization,
-                apyBase: extendedData.pool.supplyAPR,
-                apyReward: extendedData.pool.cpoolAPR, // APY from pool LM rewards in % // CPOOL APR
+                apyBase: pool.supplyAPR,
+                apyReward: pool.cpoolAPR, // APY from pool LM rewards in % // CPOOL APR
                 rewardTokens: [rewardTokens[chainId]], // !!! // CPOOL token address // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
                 underlyingTokens: [underlyingTokens[chainId]], // Array of underlying token addresses from a pool, eg here USDC address on ethereum
-                poolMeta: `${pool.curency.symbol} (${pool.borrower.name})`, // A string value which can stand for any specific details of a pool position, market, fee tier, lock duration, specific strategy etc
+                poolMeta: `${ pool.currencyName} (${pool.borrowerName})`, // A string value which can stand for any specific details of a pool position, market, fee tier, lock duration, specific strategy etc
             });
         });
     });
 
     return pools;
 };
+
 module.exports = {
     timetravel: false,
     apy: poolsFunction,
