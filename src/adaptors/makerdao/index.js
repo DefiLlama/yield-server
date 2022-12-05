@@ -223,7 +223,7 @@ async function dsr(){
     })
   ).output))
   const tvlUsd = BigNumber(Pie).times(chi).div(1e18).div(RAY) // check against https://makerburn.com/#/
-  const apy = BigNumber(dsr).div(RAY).pow(60*60*24*365).minus(1).times(100).toNumber()
+  const apy = (BigNumber(dsr).div(RAY).toNumber() ** (60 * 60 * 24 * 365) - 1) * 100;
 
   return {
     pool: MCD_POT.address,
