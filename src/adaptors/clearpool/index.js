@@ -20,7 +20,7 @@ const poolsFunction = async () => {
     };
 
     const dataPools = await utils.getData(
-        'http://app.clearpool.finance/api/pools'
+        'https://app.clearpool.finance/api/pools'
     );
 
     let pools = [];
