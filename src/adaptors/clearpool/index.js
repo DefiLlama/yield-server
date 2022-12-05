@@ -1,3 +1,6 @@
+// pnpm i -f
+// pnpm i jest -g
+// npm run test --adapter=clearpool
 
 const utils = require('../utils');
 
