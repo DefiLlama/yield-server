@@ -51,7 +51,7 @@ const main = async () => {
 
   let data = [];
   for (const chain of Object.keys(networkMapping)) {
-    poolData = tvl[chain];
+    const poolData = tvl[chain];
     for (const pool of Object.keys(poolData)) {
       if (apy[pool] === undefined) {
         continue;
@@ -72,7 +72,10 @@ const main = async () => {
         pool: `${poolId}-${networkMapping[chain]}`.toLowerCase(),
         chain: utils.formatChain(networkMapping[chain]),
         project: 'beefy',
-        symbol: utils.formatSymbol(pool.split('-').slice(1).join('-')),
+        symbol:
+          poolMeta === undefined
+            ? 'BIFI'
+            : utils.formatSymbol(poolMeta?.assets.join('-')),
         tvlUsd: poolData[pool],
         apy: isActive ? apy[pool] * 100 : 0,
         poolMeta:
