@@ -24,10 +24,6 @@ async function main() {
 
   const YEAR_S = 365 * 86400;
 
-  const apr2apyDailyCompound = (apr) => {
-    return (apr.div(365).plus(1)).pow(365).minus(1)
-  }
-
   const lpSupply = coinInfo.data.supply.vec[0].integer.vec[0].value;
   const stakedANI = aniPoolInfo.data.coin_reserve.value;
   const interestANI = BigNumber(mcData.data.per_second_ANI)
@@ -36,23 +32,27 @@ async function main() {
     .multipliedBy(BigNumber(100).minus(mcData.data.dao_percent))
     .div(100)
     .multipliedBy(YEAR_S);
-  const apr = interestANI.div(stakedANI);
-  const apy = apr2apyDailyCompound(apr);
+  const apr = interestANI
+    .div(stakedANI)
+    .multipliedBy(100)
+    .toNumber();
+  const apy = utils.aprToApy(apr);
 
   const tvlUsd = BigNumber(stakedANI)
     .multipliedBy(swapPool.data.coin_x_reserve.value)
     .div(swapPool.data.coin_y_reserve.value)
     .multipliedBy(aptPrice.coins[aptosCoinName].price)
-    .div(DECIMALS);
+    .div(DECIMALS)
+    .toNumber();
 
   return [
     {
-      pool: `${STAKING_ADDRESS}-Aptos`,
+      pool: `${STAKING_ADDRESS}-aptos`,
       chain: utils.formatChain('Aptos'),
       project: 'animeswap',
       symbol: utils.formatSymbol('ANI'),
-      tvlUsd: tvlUsd.toNumber(),
-      apy: apy.toNumber(),
+      tvlUsd: tvlUsd,
+      apy: apy,
     },
   ];
 }
