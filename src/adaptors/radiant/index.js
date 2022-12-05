@@ -8,6 +8,11 @@ const abiDataProvider = require('./abiDataProvider.json');
 
 const url = 'https://newapi4.radiant.capital/42161.json';
 
+const RDNT = '0x0c4681e6c0235179ec3d4f4fc4df3d14fdd96017';
+
+// radiant has an early exit penalty of 50%
+const earlyExitPenalty = 0.5;
+
 const sleep = async (ms) => {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -97,12 +102,14 @@ const apyPool2 = async (pool2Info) => {
   const pool2 = '0xc963ef7d977ECb0Ab71d835C4cb1Bf737f28d010';
 
   return {
-    address: pool2,
-    id: pool2,
+    pool: pool2,
     symbol: 'RDNT-ETH',
-    underlyingAsset: '0x0c4681e6c0235179ec3d4f4fc4df3d14fdd96017',
+    underlyingTokens: ['0x0c4681e6c0235179ec3d4f4fc4df3d14fdd96017'],
     tvlUsd: pool2Info.data.totalLpStakedUSD,
-    rewardApy: pool2Info.data.apr * 100,
+    apyReward: pool2Info.data.apr * 100,
+    rewardTokens: [RDNT],
+    project: 'radiant',
+    chain: 'Arbitrum',
   };
 };
 
@@ -119,10 +126,8 @@ const topLvl = async (chainString, url) => {
   const dataTvl = await utils.getData(url);
 
   let data = await apy(pools, dataTvl.lendingPoolRewards.data.poolAPRs);
-  let pool2Data = await apyPool2(dataTvl.pool2Info);
-  data.push(pool2Data);
 
-  return data.map((p) => {
+  data = data.map((p) => {
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
@@ -130,19 +135,22 @@ const topLvl = async (chainString, url) => {
       symbol: utils.formatSymbol(p.symbol),
       tvlUsd: p.tvlUsd,
       apyBase: p.depositApy,
-      apyReward: p.rewardApy,
+      apyReward: p.rewardApy * earlyExitPenalty,
       underlyingTokens: [p.underlyingAsset],
-      rewardTokens: [
-        '0x0c4681e6c0235179ec3d4f4fc4df3d14fdd96017', // RNDT
-      ],
+      rewardTokens: [RDNT],
       // borrow fields
       apyBaseBorrow: p.borrowApy,
-      apyRewardBorrow: p.rewardApyBorrow,
+      apyRewardBorrow: p.rewardApyBorrow * earlyExitPenalty,
       totalSupplyUsd: p.totalSupplyUsd,
       totalBorrowUsd: p.totalBorrowUsd,
       ltv: p.ltv,
     };
   });
+
+  let pool2Data = await apyPool2(dataTvl.pool2Info);
+  data.push(pool2Data);
+
+  return data;
 };
 
 const main = async () => {
