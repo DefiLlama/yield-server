@@ -37,7 +37,7 @@ const poolsFunction = async () => {
                 apyReward: pool.cpoolAPR, // APY from pool LM rewards in % // CPOOL APR
                 rewardTokens: [rewardTokens[chainId]], // !!! // CPOOL token address // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
                 underlyingTokens: [underlyingTokens[chainId]], // Array of underlying token addresses from a pool, eg here USDC address on ethereum
-                poolMeta: `${ pool.currencyName} (${pool.borrowerName})`, // A string value which can stand for any specific details of a pool position, market, fee tier, lock duration, specific strategy etc
+                poolMeta: `${pool.currencyName} (${pool.borrowerName})`, // A string value which can stand for any specific details of a pool position, market, fee tier, lock duration, specific strategy etc
             });
         });
     });
