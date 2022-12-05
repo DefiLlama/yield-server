@@ -45,6 +45,16 @@ const CONFIG = {
     },
 };
 
+const CHAIN_MAP = {
+    fantom: 'ftm',
+    polygon: 'matic',
+    arbitrum: 'arbitrum',
+    optimism: 'optimism',
+    ethereum: 'eth',
+    bsc: 'bnb',
+    avax: 'avax'
+}
+
 
 const pools = async (poolIndex, chain) => {
     // info for tvl / apy calculations
@@ -83,10 +93,9 @@ const pools = async (poolIndex, chain) => {
 
 const getPrices = async (chain, addresses) => {
 
+    const uri = `${addresses.map((address) => `${chain}:${address}`)}`;
     const prices = (
-        await superagent.post('https://coins.llama.fi/prices').send({
-            coins: addresses.map((address) => `${chain}:${address}`),
-        })
+        await superagent.get('https://coins.llama.fi/prices/current/' + uri)
     ).body.coins;
 
     const pricesObj = Object.entries(prices).reduce(
@@ -119,7 +128,7 @@ function calcApy(chain, allocPoint, totalAllocPoint, reward, rewardPrice, reserv
     // blocks per year * reward * wieght * price
 
     // BLOCK_TIME is number of seconds for 1 block to settle
-    let BLOCK_TIME = 13.5;
+    let BLOCK_TIME = 12;
     if (chain == 'fantom') {
         BLOCK_TIME = 1;
     }
@@ -172,6 +181,7 @@ const getApy = async (chain) => {
             apyReward: apy,
             underlyingTokens: [`${pool.underlyingLpToken}`],
             rewardTokens: [`${CONFIG[chain].REWARD_TOKEN}`],
+            url: `https://stargate.finance/pool/${pool.lpTokenSymbol.replace('S*', '')}-${CHAIN_MAP[chain]}/add`,
         });
     }
 
@@ -200,5 +210,4 @@ const main = async () => {
 module.exports = {
     timetravel: false,
     apy: main,
-    url: 'https://stargate.finance/farm',
 };

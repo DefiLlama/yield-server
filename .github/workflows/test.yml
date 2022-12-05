@@ -13,8 +13,6 @@ jobs:
         uses: actions/checkout@v2
       - name: Run changes files through test script
         env:
-          INFURA_CONNECTION: ${{ secrets.INFURA_CONNECTION }}
-          ALCHEMY_CONNECTION_POLYGON: ${{ secrets.ALCHEMY_CONNECTION_POLYGON }}
           ALCHEMY_CONNECTION_ARBITRUM: ${{ secrets.ALCHEMY_CONNECTION_ARBITRUM }}
         run: |
           RUN_FILES=$(

@@ -19,6 +19,12 @@ const CHAINS_CG = {
   optimism: 'optimistic-ethereum',
 };
 
+const CHAIN_IDS = {
+  ethereum: 1,
+  optimism: 10,
+  polygon: 137,
+};
+
 const getUrl = (chain) =>
   `https://api.thegraph.com/subgraphs/name/arrakisfinance/vault-v1-${chain}`;
 
@@ -28,6 +34,9 @@ const vaultsQuery = gql`
       id
       apr {
         averageApr
+      }
+      snapshots(orderBy: startTimestamp, orderDirection: desc, first: 1) {
+        apr
       }
       token0 {
         symbol
@@ -112,7 +121,11 @@ const getApy = async () => {
         project: 'arrakis-finance',
         symbol: `${vault.token0.symbol}-${vault.token1.symbol}`,
         tvlUsd: tvl || 0,
-        apy: Number(vault.apr.averageApr),
+        apyBase: vault.snapshots[0]
+          ? Number(vault.snapshots[0].apr)
+          : Number(vault.apr.averageApr),
+        url: `https://beta.arrakis.finance/vaults/${CHAIN_IDS[chain]}/${vault.id}`,
+        underlyingTokens: [vault.token0.address, vault.token1.address],
       };
     });
     return chainAprs;
@@ -123,5 +136,4 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://beta.arrakis.finance/vaults',
 };

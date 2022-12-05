@@ -9,6 +9,10 @@
 5. Test your adaptor by running `npm run test --adapter=YOUR_ADAPTER` (remember to install dependencies with `npm i` first!)
 6. Submit a PR
 
+### Data sources
+
+The data must be fetched from on-chain calls or from subgraphs. Centralised api calls are only accepted if there is no other way of obtaining that data (eg off-chain gauge weights).
+
 ### Adaptors
 
 An adaptor is just a javascript (or typescript) file that exports an async function that returns an array of objects that represent pools of a protocol. The pools follow the following schema (all values are just examples):
@@ -25,6 +29,13 @@ interface Pool {
   rewardTokens?: Array<string>;
   underlyingTokens?: Array<string>;
   poolMeta?: string;
+  url?: string;
+  // optional lending protocol specific fields:
+  apyBaseBorrow?: number;
+  apyRewardBorrow?: number;
+  totalSupplyUsd?: number;
+  totalBorrowUsd?: number;
+  ltv?: number;
 }
 ```
 
@@ -51,13 +62,22 @@ A note on how to set apy related fields:
 - if you are unsure/your data source doesn't contain a detailed breakdown, then provide an `apy` field indicating the total apy and omit the `apyBase` and `apyReward` fields (or set to null)
 ```
 
+#### FAQ
+> Why are some pools missing on DefiLlama which appear on my adapter?
+
+DefiLlama only displays pools with >10k TVL, so pools with less TVL than that will appear on the adapter but not on defillama
+
+> I'm getting errors when running `npm install`
+
+Just remove the packages `pg-promise`, `pg` and `pg-native` from package.json and then install again, make sure to avoid commiting these changes tho!
+
 #### Adapter module structure
 
 ```js
 module.exports = {
   timetravel: false,
   apy: apy, // Main function, returns pools
-  url: 'https://example.com/pools', // Link to page with pools
+  url: 'https://example.com/pools', // Link to page with pools (Only required if you do not provide url's for each pool)
 };
 ```
 
@@ -89,18 +109,8 @@ const poolsFunction = async () => {
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
+  url: 'https://app.anchorprotocol.com/#/earn',
 };
 ```
 
 You can find examples for a bunch of other protocols in the [src/adaptors/](src/adaptors/) folder, and if you have any questions feel free to ask them on [our discord](https://discord.gg/defillama).
-
-## Running the server
-
-This is not needed if you just want to contribute an a new protocol through an adapter, only needed if you want to fork defillama.
-
-### set api keys in config.env
-
-```
-ETHERSCAN=
-INFURA_CONNECTION=
-```

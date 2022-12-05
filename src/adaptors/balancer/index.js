@@ -1,6 +1,6 @@
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
-const Web3 = require('web3');
+const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const gaugeABIEthereum = require('./abis/gauge_ethereum.json');
@@ -21,10 +21,13 @@ const urlGaugesPolygon = `${urlBase}/balancer-gauges-polygon`;
 const urlGaugesArbitrum = `${urlBase}/balancer-gauges-arbitrum`;
 
 const protocolFeesCollector = '0xce88686553686DA562CE7Cea497CE749DA109f9F';
+const gaugeController = '0xC128468b7Ce63eA702C1f104D55A2566b13D3ABD';
+
+const BAL = '0xba100000625a3754423978a60c9317c58a424e3d';
 
 const queryGauge = gql`
   {
-    liquidityGauges(first: 999) {
+    liquidityGauges(first: 200) {
       id
       symbol
       poolId
@@ -44,7 +47,7 @@ const queryGauge = gql`
 const query = gql`
   {
     pools(
-      first: 1000
+      first: 200
       orderBy: "totalLiquidity"
       orderDirection: "desc"
       where: { totalShares_gt: 0.01 }
@@ -84,6 +87,19 @@ const queryPrior = gql`
 }
 `;
 
+// for Balancer Aave Boosted StablePool (there are 2 pools, but underlying addresses for one of them
+// don't return any price data from our api, the other pool does though and both have the same underlying tokens)
+// specifically, bb-a-usdc, bb-a-dai, bb-a-usdt
+// -> use this mapping to get price data for both of them
+const bbTokenMapping = {
+  '0x2f4eb100552ef93840d5adc30560e5513dfffacb':
+    '0x2bbf681cc4eb09218bee85ea2a5d3d13fa40fc0c',
+  '0x82698aecc9e28e9bb27608bd52cf57f704bd1b83':
+    '0x9210f1204b5a24742eba12f710636d76240df3d0',
+  '0xae37d54ae477268b9997d4161b96b8200755935c':
+    '0x804cdb9116a10bb78768d3252355a1b18067bf8f',
+};
+
 const correctMaker = (entry) => {
   entry = { ...entry };
   // for some reason the MKR symbol is not there, add this manually for
@@ -108,11 +124,11 @@ const tvl = (entry, tokenPriceList, chainString) => {
     totalShares: entry.totalShares,
     tokensList: entry.tokensList,
   };
+  const symbols = [];
+  const tokensList = [];
+  let price;
   for (const el of balanceDetails) {
-    // some addresses are from tokens which are not listed on coingecko so these will result in undefined
-
-    let price =
-      tokenPriceList[`${chainString}:${el.address.toLowerCase()}`]?.price;
+    price = tokenPriceList[`${chainString}:${el.address.toLowerCase()}`]?.price;
     if (
       el.address.toLowerCase() ===
       '0x7dff46370e9ea5f0bad3c4e29711ad50062ea7a4'.toLowerCase()
@@ -120,7 +136,14 @@ const tvl = (entry, tokenPriceList, chainString) => {
       price =
         tokenPriceList['solana:So11111111111111111111111111111111111111112']
           ?.price;
-    // if price is undefined of one token in pool, the total tvl will be NaN
+    if (
+      entry.id ===
+      '0xa13a9247ea42d743238089903570127dda72fe4400000000000000000000035d'
+    ) {
+      price = tokenPriceList[`ethereum:${bbTokenMapping[el.address]}`]?.price;
+    }
+
+    price = price ?? 0;
     d.tvl += Number(el.balance) * price;
   }
 
@@ -134,34 +157,21 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
   // get liquidity gauges for each pool
   const { liquidityGauges } = await request(urlLM, queryLM);
 
-  // web 3 connection
-  if (chainString === 'ethereum') {
-    conn = process.env.INFURA_CONNECTION;
-  } else if (chainString === 'arbitrum') {
-    conn = process.env.ALCHEMY_CONNECTION_ARBITRUM;
-  } else if (chainString === 'polygon') {
-    conn = process.env.ALCHEMY_CONNECTION_POLYGON;
-  }
-  const web3 = new Web3(conn);
-
   // get BAL inflation rate (constant among gauge contract ids)
+  let inflationRate;
+  let price;
   if (chainString === 'ethereum') {
-    const gaugeContract = new web3.eth.Contract(
-      gaugeABI,
-      liquidityGauges[0].id
-    );
     inflationRate =
-      (await gaugeContract.methods.inflation_rate().call()) / 1e18;
-
-    const gaugeController = '0xC128468b7Ce63eA702C1f104D55A2566b13D3ABD';
-    gaugeControllerContract = new web3.eth.Contract(
-      gaugeControllerEthereum,
-      gaugeController
-    );
+      (
+        await sdk.api.abi.call({
+          target: liquidityGauges[0].id,
+          abi: gaugeABI.find((n) => n.name === 'inflation_rate'),
+          chain: chainString,
+        })
+      ).output / 1e18;
 
     // get BAL price
-    balToken = '0xba100000625a3754423978a60c9317c58a424e3d';
-    const key = `${chainString}:${balToken}`;
+    const key = `${chainString}:${BAL}`;
     price = (
       await superagent.post('https://coins.llama.fi/prices').send({
         coins: [key],
@@ -176,23 +186,34 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
       continue;
     }
 
-    // connect to specific gauge contract
-    const gauge = new web3.eth.Contract(gaugeABI, pool.id);
-
     const aprLMRewards = [];
     const rewardTokens = [];
 
     if (chainString === 'ethereum') {
       // get relative weight (of base BAL token rewards for a pool)
       const relativeWeight =
-        (await gaugeControllerContract.methods
-          .gauge_relative_weight(pool.id)
-          .call()) / 1e18;
+        (
+          await sdk.api.abi.call({
+            target: gaugeController,
+            abi: gaugeControllerEthereum.find(
+              (n) => n.name === 'gauge_relative_weight'
+            ),
+            params: [pool.id],
+            chain: 'ethereum',
+          })
+        ).output / 1e18;
 
       // for base BAL rewards
       if (relativeWeight !== 0) {
         const workingSupply =
-          (await gauge.methods.working_supply().call()) / 1e18;
+          (
+            await sdk.api.abi.call({
+              target: pool.id,
+              abi: gaugeABI.find((n) => n.name === 'working_supply'),
+              chain: 'ethereum',
+            })
+          ).output / 1e18;
+
         // bpt == balancer pool token
         const bptPrice = x.tvl / x.totalShares;
         const balPayable = inflationRate * 7 * 86400 * relativeWeight;
@@ -200,7 +221,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
         const yearlyReward = weeklyReward * 52 * price;
         const aprLM = (yearlyReward / bptPrice) * 100;
         aprLMRewards.push(aprLM === Infinity ? 0 : aprLM);
-        rewardTokens.push(balToken);
+        rewardTokens.push(BAL);
       }
     }
 
@@ -209,7 +230,14 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
     const MAX_REWARD_TOKENS = 8;
     for (let i = 0; i < MAX_REWARD_TOKENS; i++) {
       // get token reward address
-      const add = (await gauge.methods.reward_tokens(i).call()).toLowerCase();
+      const add = (
+        await sdk.api.abi.call({
+          target: pool.id,
+          abi: gaugeABI.find((n) => n.name === 'reward_tokens'),
+          params: [i],
+          chain: chainString,
+        })
+      ).output.toLowerCase();
       if (add === '0x0000000000000000000000000000000000000000') {
         break;
       }
@@ -220,16 +248,29 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
         await superagent.post('https://coins.llama.fi/prices').send({
           coins: [key],
         })
-      ).body.coins[key].price;
+      ).body.coins[key]?.price;
 
       // call reward data
-      const { rate, period_finish } = await gauge.methods
-        .reward_data(add)
-        .call();
+      const { rate, period_finish } = (
+        await sdk.api.abi.call({
+          target: pool.id,
+          abi: gaugeABI.find((n) => n.name === 'reward_data'),
+          params: [add],
+          chain: chainString,
+        })
+      ).output;
+
       if (period_finish * 1000 < new Date().getTime()) continue;
       const inflationRate = rate / 1e18;
       const tokenPayable = inflationRate * 7 * 86400;
-      const totalSupply = (await gauge.methods.totalSupply().call()) / 1e18;
+      const totalSupply =
+        (
+          await sdk.api.abi.call({
+            target: pool.id,
+            abi: gaugeABI.find((n) => n.name === 'totalSupply'),
+            chain: chainString,
+          })
+        ).output / 1e18;
 
       const weeklyRewards = (1 / (totalSupply + 1)) * tokenPayable;
       const yearlyRewards = weeklyRewards * 52 * price;
@@ -311,30 +352,36 @@ const topLvl = async (
   tvlInfo = await aprLM(tvlInfo, urlGauge, queryGauge, chainString, gaugeABI);
 
   // build pool objects
-  return tvlInfo.map((p) => ({
-    pool: p.id,
-    chain: utils.formatChain(chainString),
-    project: 'balancer',
-    symbol: utils.formatSymbol(p.symbol),
-    tvlUsd: p.tvl,
-    apyBase: p.aprFee,
-    apyReward: p.aprLM,
-    rewardTokens: p.rewardTokens,
-    underlyingTokens: p.tokensList,
-  }));
+  return tvlInfo.map((p) => {
+    return {
+      pool: p.id,
+      chain: utils.formatChain(chainString),
+      project: 'balancer',
+      symbol: utils.formatSymbol(p.symbol),
+      tvlUsd: p.tvl,
+      apyBase: p.aprFee,
+      apyReward: p.aprLM,
+      rewardTokens: p.rewardTokens,
+      underlyingTokens: p.tokensList,
+      url: `https://${
+        chainString === 'ethereum' ? 'app' : chainString
+      }.balancer.fi/#/pool/${p.id}`,
+    };
+  });
 };
 
 const main = async () => {
   // balancer splits off a pct cut of swap fees to the protocol, get pct value:
-  conn = process.env.INFURA_CONNECTION;
-  const web3 = new Web3(conn);
-
-  const feeCollectorContract = new web3.eth.Contract(
-    protocolFeesCollectorABI,
-    protocolFeesCollector
-  );
   const swapFeePercentage =
-    (await feeCollectorContract.methods.getSwapFeePercentage().call()) / 1e18;
+    (
+      await sdk.api.abi.call({
+        target: protocolFeesCollector,
+        abi: protocolFeesCollectorABI.find(
+          (n) => n.name === 'getSwapFeePercentage'
+        ),
+        chain: 'ethereum',
+      })
+    ).output / 1e18;
 
   const data = await Promise.all([
     topLvl(
@@ -375,5 +422,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.balancer.fi/#/',
 };

@@ -1,0 +1,32 @@
+[
+  {
+    "interestBearing": "0x4cD44E6fCfA68bf797c65889c74B26b8C2e5d4d3",
+    "debtBearing": "0x0e16bAE17C61789d8a96Ea6529d788B633C4c8B6",
+    "underlyingAsset": "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f",
+    "symbol": "WBTC"
+  },
+  {
+    "interestBearing": "0xEf47CCC71EC8941B67DC679D1a5f78fACfD0ec3C",
+    "debtBearing": "0x9C3A8644A9cA181b90094be98dC19496F6b38a24",
+    "underlyingAsset": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+    "symbol": "USDT"
+  },
+  {
+    "interestBearing": "0x805ba50001779CeD4f59CfF63aea527D12B94829",
+    "debtBearing": "0xf92d501e74bd1e4308E6676C38Ab4d84389d7Bf3",
+    "underlyingAsset": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
+    "symbol": "USDC"
+  },
+  {
+    "interestBearing": "0x5293c6CA56b8941040b8D18f557dFA82cF520216",
+    "debtBearing": "0x2E9B46867469350E4889c280f74Bfa55Ca44fcd4",
+    "underlyingAsset": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+    "symbol": "DAI"
+  },
+  {
+    "interestBearing": "0x15b53d277Af860f51c3E6843F8075007026BBb3a",
+    "debtBearing": "0x4e75D4bc81D9AD1a1abc972a3dd53d581e1CE16b",
+    "underlyingAsset": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+    "symbol": "WETH"
+  }
+]

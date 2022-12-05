@@ -28,14 +28,17 @@ const poolsFunction = async () => {
     utils.getData(`${STRATEGIES_ENDPOINT}`),
     utils.getData(`${STRATEGIES_ENDPOINT}/curve`),
     utils.getData(`${STRATEGIES_ENDPOINT}/balancer`),
+    utils.getData(`${STRATEGIES_ENDPOINT}/fraxv2`),
   ]);
   const angleStrategies = resp[0];
   const curveStrategies = resp[1];
   const balancerStrategies = resp[2];
+  const fraxv2Strategies = resp[3];
 
   const allStrats = angleStrategies
     .concat(curveStrategies)
-    .concat(balancerStrategies);
+    .concat(balancerStrategies)
+    .concat(fraxv2Strategies);
 
   const strats = allStrats.reduce((acc, strat) => {
     const rewardTokens = strat?.aprBreakdown
@@ -48,17 +51,35 @@ const poolsFunction = async () => {
       })
       .map((t) => t.token.address);
 
-    const apyReward =
-      strat?.aprBreakdown?.reduce((acc, t) => {
-        if (t.token.address === SDT_ADDRESS) {
-          return acc + parseFloat(t.maxAprFuture);
-        }
+    let apyBase;
+    let apyReward;
+    if (
+      ['angle-agEUR-ETH', 'angle-agEUR-USDC', 'factory-v2-101'].includes(
+        strat.key
+      )
+    ) {
+      const aprBreakdown = strat?.aprBreakdown[1];
+      apyBase = (aprBreakdown.fees + aprBreakdown.interests) * 100;
 
-        return acc + t.apr;
-      }, 0.0) * 100;
+      // angle
+      const apyAngle = aprBreakdown.currentAPR * 100;
 
-    const apy = strat.maxAprFuture * 100;
-    const apyBase = apy - apyReward;
+      // sdt
+      const apySDT = strat?.aprBreakdown[0].minApr * 100;
+
+      apyReward = apyAngle + apySDT;
+    } else {
+      apyReward =
+        strat?.aprBreakdown?.reduce((acc, t) => {
+          if (t.token.address === SDT_ADDRESS) {
+            return acc + parseFloat(t.maxAprFuture);
+          }
+
+          return acc + t.apr;
+        }, 0.0) * 100;
+
+      apyBase = strat.maxAprFuture * 100 - apyReward;
+    }
 
     let symbol = strat.name.replace('/', '-').split(' ');
     symbol = symbol.length > 2 ? symbol[1] : symbol[0];

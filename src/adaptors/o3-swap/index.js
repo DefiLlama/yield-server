@@ -230,6 +230,7 @@ function getTvlUsd(pool, balance, rates) {
 }
 function getStakingAPR(pool, stakingInfo, rates) {
   const yearSecond = new BigNumber('31536000');
+  if (stakingInfo?.totalStaked === undefined) return 0;
   const totalStaked = stakingInfo.totalStaked;
   const sharePerSecond = stakingInfo.sharePerSecond;
   const tokenPrice =
@@ -267,6 +268,11 @@ async function main() {
           const stakingInfo = result[2];
           resolve(
             o3SwapPools.map((poolItem) => {
+              const tvlUsd = getTvlUsd(
+                poolItem,
+                poolBalances[poolItem.chain][poolItem.symbol],
+                rates
+              );
               return {
                 pool: poolItem.pool,
                 symbol: poolItem.symbol,
@@ -274,11 +280,7 @@ async function main() {
                 project: poolItem.project,
                 rewardTokens: poolItem.rewardTokens,
                 underlyingTokens: poolItem.underlyingTokens,
-                tvlUsd: getTvlUsd(
-                  poolItem,
-                  poolBalances[poolItem.chain][poolItem.symbol],
-                  rates
-                ),
+                tvlUsd: Number.isFinite(tvlUsd) ? tvlUsd : 0,
                 apyReward: getStakingAPR(
                   poolItem,
                   stakingInfo[poolItem.chain][poolItem.symbol],
