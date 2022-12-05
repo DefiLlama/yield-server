@@ -104,7 +104,7 @@ const topLvl = async (chainString, url, timestamp) => {
       apyReward,
       rewardTokens: apyReward > 0 ? farm.rewardTokens.map((r) => r.id) : [],
       underlyingTokens: [p.token0.id, p.token1.id],
-      poolMeta: p.feeTier / 1e4,
+      poolMeta: `${p.feeTier / 1e4}%`,
     };
   });
 };
