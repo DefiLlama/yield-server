@@ -51,6 +51,17 @@ const query = gql`
 }
 `;
 
+const buildMarketName = (symbol) => {
+  let formattedSymbol = utils.formatSymbol(symbol);
+  if(formattedSymbol === 'ETH') {
+    return 'ETH-XAI';
+  } else if (formattedSymbol === 'XAI') {
+    return 'XAI-ETH';
+  } else {
+    return `${formattedSymbol}-ETH-XAI`
+  }
+}
+
 const main = async () => {
   // market data
   const data = await request(url, query);
@@ -83,7 +94,7 @@ const main = async () => {
       pool: `${market.id}-ethereum`,
       chain: 'Ethereum',
       project: 'silo-finance',
-      symbol: utils.formatSymbol(name),
+      symbol: buildMarketName(name),
       tvlUsd,
       apyBase: Number(inputTokenSupplyRateObject.rate),
       apyBaseBorrow: Number(inputTokenBorrowRateObject.rate),
