@@ -1,36 +1,28 @@
-const { gql, default: request } = require('graphql-request');
+const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
-const API_URL =
-  'https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic-mainnet';
+const url =
+  'https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic';
 
-const CHAINS_API = {
-  ethereum:
-    'https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic-mainnet',
-  arbitrum:
-    'https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic-arbitrum-one',
-  polygon:
-    'https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic-matic',
-  avalanche:
-    'https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic-avalanche',
-  binance:
-    'https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic-bsc',
-  fantom:
-    'https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic-fantom',
+CHAINS_API = {
+  ethereum: `${url}-mainnet`,
+  arbitrum: `${url}-arbitrum-one`,
+  polygon: `${url}-matic`,
+  avalanche: `${url}-avalanche`,
+  binance: `${url}-bsc`,
+  fantom: `${url}-fantom`,
   cronos:
     'https://cronos-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-elastic-cronos',
-  optimism:
-    'https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic-optimism',
+  optimism: `${url}-optimism`,
 };
 
-const chains = Object.keys(CHAINS_API);
-
 const query = gql`
-  query Query {
-    pools(orderBy: totalValueLockedUSD, orderDirection: desc) {
+  {
+    pools(first: 1000, orderBy: totalValueLockedUSD, orderDirection: desc block: {number: <PLACEHOLDER>}) {
       id
-      feesUSD
+      volumeUSD
+      feeTier
       token0 {
         symbol
         id
@@ -39,47 +31,87 @@ const query = gql`
         symbol
         id
       }
-      totalValueLockedUSD
-      poolDayData(orderBy: date, orderDirection: desc, first: 14) {
-        feesUSD
-      }
+      totalValueLockedToken0
+      totalValueLockedToken1
     }
   }
 `;
 
-const apy = async () => {
-  const data = await Promise.all(
-    chains.map(async (chain) => [
-      chain,
-      await request(CHAINS_API[chain], query),
-    ])
-  );
-  const res = data.map(([chain, { pools }]) => {
-    const chainPools = pools.map((pool) => {
-      const twoWeeksFees = pool.poolDayData.reduce(
-        (acc, { feesUSD }) => acc + Number(feesUSD),
-        0
-      );
-      const yearFees = twoWeeksFees * 26;
-      const apyBase = (yearFees / Number(pool.totalValueLockedUSD)) * 100;
-      return {
-        pool: pool.id,
-        project: 'kyberswap',
-        chain: utils.formatChain(chain),
-        symbol: `${pool.token0.symbol}-${pool.token1.symbol}`,
-        tvlUsd: Number(pool.totalValueLockedUSD),
-        apyBase,
-        underlyingTokens: [pool.token0.id, pool.token1.id],
-      };
-    });
-    return chainPools;
-  });
+const queryPrior = gql`
+  {
+    pools (first: 1000 orderBy: totalValueLockedUSD orderDirection: desc block: {number: <PLACEHOLDER>}) { 
+      id 
+      volumeUSD 
+    }
+  }
+`;
 
-  return res.flat().filter((pool) => pool.tvlUsd && pool.apyBase);
+const topLvl = async (chainString, url, timestamp) => {
+  const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
+    url,
+  ]);
+
+  const [_, blockPrior7d] = await utils.getBlocks(
+    chainString,
+    timestamp,
+    [url],
+    604800
+  );
+
+  let data = (await request(url, query.replace('<PLACEHOLDER>', block))).pools;
+
+  const dataPrior = (
+    await request(url, queryPrior.replace('<PLACEHOLDER>', blockPrior))
+  ).pools;
+
+  const dataPrior7d = (
+    await request(url, queryPrior.replace('<PLACEHOLDER>', blockPrior7d))
+  ).pools;
+
+  data = data.map((p) => ({
+    ...p,
+    reserve0: p.totalValueLockedToken0,
+    reserve1: p.totalValueLockedToken1,
+    feeTier: p.feeTier * 10,
+  }));
+  data = await utils.tvl(data, chainString);
+
+  data = data.map((p) => utils.apy(p, dataPrior, dataPrior7d));
+
+  return data.map((p) => {
+    const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
+    return {
+      pool: p.id,
+      chain: utils.formatChain(chainString),
+      project: 'kyberswap',
+      symbol,
+      tvlUsd: p.totalValueLockedUSD,
+      apyBase: p.apy1d,
+      apyBase7d: p.apy7d,
+      underlyingTokens: [p.token0.id, p.token1.id],
+    };
+  });
+};
+
+const main = async (timestamp = null) => {
+  const data = await Promise.all(
+    Object.entries(CHAINS_API).map(([chain, url]) =>
+      topLvl(chain === 'binance' ? 'bsc' : chain, url, timestamp)
+    )
+  );
+
+  return data
+    .flat()
+    .filter(
+      (p) =>
+        utils.keepFinite(p) &&
+        !p.symbol.includes('ANKRBNB') &&
+        p.pool !== '0xfd117d9a917a8990cc8f804c0ce91f40340dacac'
+    );
 };
 
 module.exports = {
-  apy,
+  apy: main,
   timetravel: false,
   url: 'https://kyberswap.com/pools',
 };
