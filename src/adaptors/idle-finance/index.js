@@ -1,49 +1,52 @@
 const utils = require('../utils');
-const mainnetPoolsUrl = 'https://api.idle.finance/pools?api-key=bPrtC2bfnAvapyXLgdvzVzW8u8igKv6E';
-const polygonPoolsUrl = 'https://api-polygon.idle.finance/pools?api-key=bPrtC2bfnAvapyXLgdvzVzW8u8igKv6E';
+const mainnetPoolsUrl =
+  'https://api.idle.finance/pools?api-key=bPrtC2bfnAvapyXLgdvzVzW8u8igKv6E';
+const polygonPoolsUrl =
+  'https://api-polygon.idle.finance/pools?api-key=bPrtC2bfnAvapyXLgdvzVzW8u8igKv6E';
 const chains = {
-    "eth": "ethereum",
-    "matic": "polygon"
+  eth: 'ethereum',
+  // matic: 'polygon',
 };
 
 async function apy() {
-    const mainnetPoolsResponse = await utils.getData(mainnetPoolsUrl);
-    const polygonPoolsResponse = await utils.getData(polygonPoolsUrl);
+  const mainnetPoolsResponse = await utils.getData(mainnetPoolsUrl);
+  // const polygonPoolsResponse = await utils.getData(polygonPoolsUrl);
 
-    const poolsResponse = {
-        'matic':polygonPoolsResponse,
-        "eth":mainnetPoolsResponse
-    };
+  const poolsResponse = {
+    // matic: polygonPoolsResponse,
+    eth: mainnetPoolsResponse,
+  };
 
-    let allVaults = [];
+  let allVaults = [];
 
-    for (let chain of Object.keys(chains)) {
-        const chainPools = Object.values(poolsResponse[chain]);
+  for (let chain of Object.keys(chains)) {
+    const chainPools = Object.values(poolsResponse[chain]);
 
-        const pools = chainPools.map(v => {
-            var poolNameParts = v.poolName.split(' ');
-            let poolName = (utils.formatSymbol(poolNameParts[0].toUpperCase())+' '+poolNameParts.slice(1,poolNameParts.length).join(' ')).trim();
-            return {
-                pool: v.address,
-                apy: Number(v.apr),
-                symbol: poolName,
-                tvlUsd: Number(v.tvl),
-                project: 'idle-finance',
-                chain: utils.formatChain(chains[chain])
-            };
-        });
+    const pools = chainPools.map((v) => {
+      return {
+        pool: v.address,
+        apyBase: Number(v.apr),
+        symbol: v.tokenName,
+        poolMeta: v.strategy,
+        tvlUsd: Number(v.tvl),
+        project: 'idle-finance',
+        chain: utils.formatChain(chains[chain]),
+        underlyingTokens: [v.underlyingAddress],
+      };
+    });
 
-        allVaults = [...allVaults, ...pools];
-    };
+    allVaults = [...allVaults, ...pools];
+  }
 
-    return allVaults;
-};
+  return allVaults;
+}
 
 const main = async () => {
-    return await apy();
+  return await apy();
 };
 
 module.exports = {
-    apy: main,
-    timetravel: false,
+  apy: main,
+  timetravel: false,
+  url: 'https://app.idle.finance/#/best',
 };

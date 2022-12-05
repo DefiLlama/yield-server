@@ -1,43 +1,49 @@
 const S3 = require('aws-sdk/clients/s3');
 
 const AppError = require('../utils/appError');
+const { lambdaResponse } = require('../utils/lambda');
 
 // returns enriched pool data
-module.exports.handler = async (event, context, callback) => {
-  const response = await main(event.queryStringParameters);
+module.exports.handler = async (event) => {
+  const response = await buildPoolsEnriched(event.queryStringParameters);
 
   if (!response) {
     return new AppError("Couldn't retrieve data", 404);
   }
 
-  return {
+  return lambdaResponse({
     status: 'success',
     data: response,
-  };
+  });
 };
 
-const main = async (queryString) => {
+const buildPoolsEnriched = async (queryString) => {
   const columns = [
     'chain',
     'project',
     'symbol',
     'tvlUsd',
+    'apyBase',
+    'apyReward',
     'apy',
+    'rewardTokens',
     'pool',
     'apyPct1D',
     'apyPct7D',
     'apyPct30D',
-    'projectName',
     'stablecoin',
     'ilRisk',
     'exposure',
     'predictions',
-    'audits',
-    'audit_links',
-    'url',
-    'twitter',
-    'category',
-    'market',
+    'poolMeta',
+    'mu',
+    'sigma',
+    'count',
+    'outlier',
+    'underlyingTokens',
+    'il7d',
+    'apyBase7d',
+    'apyMean30d',
   ]
     .map((el) => `t."${el}"`)
     .join(', ');
@@ -67,10 +73,7 @@ const main = async (queryString) => {
     },
   };
 
-  let data = await getDataUsingS3Select(params);
-  // rook requires an adaptor change, we going to remove it from the enriched
-  // dataset for now
-  data = data.filter((el) => el.project !== 'rook');
+  const data = await getDataUsingS3Select(params);
 
   return data;
 };
@@ -129,3 +132,6 @@ const getDataUsingS3Select = async (params) => {
     });
   });
 };
+
+module.exports.buildPoolsEnriched = buildPoolsEnriched;
+module.exports.getDataUsingS3Select = getDataUsingS3Select;

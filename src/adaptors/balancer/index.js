@@ -1,19 +1,53 @@
+const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
-const fetch = require('node-fetch');
+const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const gaugeABIEthereum = require('./abis/gauge_ethereum.json');
+const gaugeABIArbitrum = require('./abis/gauge_arbitrum.json');
+const gaugeABIPolygon = require('./abis/gauge_polygon.json');
+const gaugeControllerEthereum = require('./abis/gauge_controller_ethereum.json');
+const protocolFeesCollectorABI = require('./abis/protocol_fees_collector.json');
+const { lte } = require('lodash');
 
-const urlLM =
-  'https://raw.githubusercontent.com/balancer-labs/frontend-v2/master/src/lib/utils/liquidityMining/MultiTokenLiquidityMining.json';
+// Subgraph URLs
 const urlBase = 'https://api.thegraph.com/subgraphs/name/balancer-labs';
 const urlEthereum = `${urlBase}/balancer-v2`;
 const urlPolygon = `${urlBase}/balancer-polygon-v2`;
 const urlArbitrum = `${urlBase}/balancer-arbitrum-v2`;
 
+const urlGaugesEthereum = `${urlBase}/balancer-gauges`;
+const urlGaugesPolygon = `${urlBase}/balancer-gauges-polygon`;
+const urlGaugesArbitrum = `${urlBase}/balancer-gauges-arbitrum`;
+
+const protocolFeesCollector = '0xce88686553686DA562CE7Cea497CE749DA109f9F';
+const gaugeController = '0xC128468b7Ce63eA702C1f104D55A2566b13D3ABD';
+
+const BAL = '0xba100000625a3754423978a60c9317c58a424e3d';
+
+const queryGauge = gql`
+  {
+    liquidityGauges(first: 200) {
+      id
+      symbol
+      poolId
+      totalSupply
+      factory {
+        id
+      }
+      tokens {
+        id
+        symbol
+        decimals
+      }
+    }
+  }
+`;
+
 const query = gql`
   {
     pools(
-      first: 1000
+      first: 200
       orderBy: "totalLiquidity"
       orderDirection: "desc"
       where: { totalShares_gt: 0.01 }
@@ -22,6 +56,7 @@ const query = gql`
       id
       tokensList
       totalSwapFee
+      totalShares
       tokens {
         address
         balance
@@ -52,81 +87,17 @@ const queryPrior = gql`
 }
 `;
 
-const prepareLMData = async () => {
-  let dataLm = await fetch(urlLM);
-  dataLm = await dataLm.json();
-
-  const latestWeekId = Object.keys(dataLm).slice(-1);
-  // this contains both info for ethereum (chain id 1) and polygon (chain id 137)
-  dataLm = dataLm[latestWeekId];
-
-  let rewardAddressesEth = [];
-  let rewardAddressesPoly = [];
-  let rewardAddressesArbi = [];
-
-  for (const obj of dataLm) {
-    // i hardcode this, mainly because I'm afraid they might add anew L2 and things will break
-    if (obj.chainId !== 1 && obj.chainId !== 137 && obj.chainId !== 42161) {
-      break;
-    }
-    const poolData = obj.pools;
-
-    Object.keys(poolData).forEach((pool) => {
-      a = poolData[pool].map((x) => x.tokenAddress);
-      if (obj.chainId === 1) {
-        rewardAddressesEth.push(a);
-      } else if (obj.chainId === 137) {
-        rewardAddressesPoly.push(a);
-      } else if (obj.chainId === 42161) {
-        rewardAddressesArbi.push(a);
-      }
-    });
-  }
-
-  rewardAddressesEth = [...new Set(rewardAddressesEth)].join();
-  rewardAddressesPoly = [...new Set(rewardAddressesPoly)].join();
-  rewardAddressesArbi = [...new Set(rewardAddressesArbi)].join();
-  // get the coingecko price data for each unique reward token address
-  const pricesEthereum = await utils.getCGpriceData(rewardAddressesEth);
-  const pricesPolygon = await utils.getCGpriceData(
-    rewardAddressesPoly,
-    false,
-    'polygon-pos'
-  );
-  const pricesArbitrum = await utils.getCGpriceData(
-    rewardAddressesArbi,
-    false,
-    'arbitrum-one'
-  );
-  // concat
-  const prices = { ...pricesEthereum, ...pricesPolygon, ...pricesArbitrum };
-
-  // we no longer need the chainId, so I remove that
-  let lmRewards = dataLm.map((el) => el.pools);
-  // and flatten the content (from array of objects into 1 object)
-  lmRewards = Object.assign(...lmRewards);
-
-  const incentivsedPools = Object.keys(lmRewards);
-  const lmYearlyRewardsUsdArray = [];
-  for (const poolAdr of incentivsedPools) {
-    let amountWeek = lmRewards[poolAdr].map(
-      (el) => el.amount * prices[el.tokenAddress.toLowerCase()]?.usd
-    );
-    // in case no cg price, the map will be amount * undefined -> NaN, and reduce would be NaN as well
-    // instead i remove the NaN elements from amountWeek array. useful in case there are 2 reward token for a pool
-    // where cg returns 1 price but not the other (so at least we count the 1 token rewards), without removing we would
-    // get NaN only
-    amountWeek = amountWeek
-      .filter((el) => !isNaN(el))
-      .reduce((a, b) => a + b, 0);
-
-    const amountYear = amountWeek * 52;
-    lmYearlyRewardsUsdArray.push({
-      id: poolAdr,
-      lmYearlyRewardsUsd: amountYear,
-    });
-  }
-  return lmYearlyRewardsUsdArray;
+// for Balancer Aave Boosted StablePool (there are 2 pools, but underlying addresses for one of them
+// don't return any price data from our api, the other pool does though and both have the same underlying tokens)
+// specifically, bb-a-usdc, bb-a-dai, bb-a-usdt
+// -> use this mapping to get price data for both of them
+const bbTokenMapping = {
+  '0x2f4eb100552ef93840d5adc30560e5513dfffacb':
+    '0x2bbf681cc4eb09218bee85ea2a5d3d13fa40fc0c',
+  '0x82698aecc9e28e9bb27608bd52cf57f704bd1b83':
+    '0x9210f1204b5a24742eba12f710636d76240df3d0',
+  '0xae37d54ae477268b9997d4161b96b8200755935c':
+    '0x804cdb9116a10bb78768d3252355a1b18067bf8f',
 };
 
 const correctMaker = (entry) => {
@@ -142,64 +113,214 @@ const correctMaker = (entry) => {
   return entry;
 };
 
-const tvl = (entry, tokenPriceList) => {
+const tvl = (entry, tokenPriceList, chainString) => {
   entry = { ...entry };
+
+  // the boosted pools also contain bb-a-usd as underlying, which imo is wrong (seems like this is
+  // representing the total from `getActualSupply`); removing them from the array to get the correct tvl
+  const excludeTokenList = [
+    '0x7b50775383d3d6f0215a8f290f2c9e2eebbeceb2',
+    '0xa13a9247ea42d743238089903570127dda72fe44',
+    '0xfb5e6d0c1dfed2ba000fbc040ab8df3615ac329c', // b-steth
+  ];
 
   const balanceDetails = entry.tokens;
   const d = {
     id: entry.id,
     symbol: balanceDetails.map((tok) => tok.symbol).join('-'),
     tvl: 0,
+    totalShares: entry.totalShares,
+    tokensList: entry.tokensList.filter((p) => !excludeTokenList.includes(p)),
   };
+  const symbols = [];
+  const tokensList = [];
   for (const el of balanceDetails) {
+    if (excludeTokenList.includes(el.address)) continue;
     // some addresses are from tokens which are not listed on coingecko so these will result in undefined
-    const price = tokenPriceList[el.address]?.usd;
+
+    let price =
+      tokenPriceList[`${chainString}:${el.address.toLowerCase()}`]?.price;
+    if (
+      el.address.toLowerCase() ===
+      '0x7dff46370e9ea5f0bad3c4e29711ad50062ea7a4'.toLowerCase()
+    )
+      price =
+        tokenPriceList['solana:So11111111111111111111111111111111111111112']
+          ?.price;
     // if price is undefined of one token in pool, the total tvl will be NaN
+    if (
+      entry.id ===
+      '0xa13a9247ea42d743238089903570127dda72fe4400000000000000000000035d'
+    ) {
+      price = tokenPriceList[`ethereum:${bbTokenMapping[el.address]}`]?.price;
+    }
+
+    price = price ?? 0;
     d.tvl += Number(el.balance) * price;
   }
 
   return d;
 };
 
-const apy = (el, dataNow, dataPrior, dataLM, chainString) => {
+const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
+  // copy
+  const data = tvlData.map((a) => ({ ...a }));
+
+  // get liquidity gauges for each pool
+  const { liquidityGauges } = await request(urlLM, queryLM);
+
+  // get BAL inflation rate (constant among gauge contract ids)
+  let inflationRate;
+  let price;
+  if (chainString === 'ethereum') {
+    inflationRate =
+      (
+        await sdk.api.abi.call({
+          target: liquidityGauges[0].id,
+          abi: gaugeABI.find((n) => n.name === 'inflation_rate'),
+          chain: chainString,
+        })
+      ).output / 1e18;
+
+    // get BAL price
+    const key = `${chainString}:${BAL}`;
+    price = (
+      await superagent.post('https://coins.llama.fi/prices').send({
+        coins: [key],
+      })
+    ).body.coins[key].price;
+  }
+
+  // add LM rewards if available to each pool in data
+  for (const pool of liquidityGauges) {
+    const x = data.find((el) => el.id === pool.poolId);
+    if (x === undefined) {
+      continue;
+    }
+
+    const aprLMRewards = [];
+    const rewardTokens = [];
+
+    if (chainString === 'ethereum') {
+      // get relative weight (of base BAL token rewards for a pool)
+      const relativeWeight =
+        (
+          await sdk.api.abi.call({
+            target: gaugeController,
+            abi: gaugeControllerEthereum.find(
+              (n) => n.name === 'gauge_relative_weight'
+            ),
+            params: [pool.id],
+            chain: 'ethereum',
+          })
+        ).output / 1e18;
+
+      // for base BAL rewards
+      if (relativeWeight !== 0) {
+        const workingSupply =
+          (
+            await sdk.api.abi.call({
+              target: pool.id,
+              abi: gaugeABI.find((n) => n.name === 'working_supply'),
+              chain: 'ethereum',
+            })
+          ).output / 1e18;
+
+        // bpt == balancer pool token
+        const bptPrice = x.tvl / x.totalShares;
+        const balPayable = inflationRate * 7 * 86400 * relativeWeight;
+        const weeklyReward = (0.4 / (workingSupply + 0.4)) * balPayable;
+        const yearlyReward = weeklyReward * 52 * price;
+        const aprLM = (yearlyReward / bptPrice) * 100;
+        aprLMRewards.push(aprLM === Infinity ? 0 : aprLM);
+        rewardTokens.push(BAL);
+      }
+    }
+
+    // first need to find the reward token
+    // (balancer UI loops up to 8times, will replicate the same logic)
+    const MAX_REWARD_TOKENS = 8;
+    for (let i = 0; i < MAX_REWARD_TOKENS; i++) {
+      // get token reward address
+      const add = (
+        await sdk.api.abi.call({
+          target: pool.id,
+          abi: gaugeABI.find((n) => n.name === 'reward_tokens'),
+          params: [i],
+          chain: chainString,
+        })
+      ).output.toLowerCase();
+      if (add === '0x0000000000000000000000000000000000000000') {
+        break;
+      }
+
+      // get cg price of reward token
+      const key = `${chainString}:${add}`;
+      const price = (
+        await superagent.post('https://coins.llama.fi/prices').send({
+          coins: [key],
+        })
+      ).body.coins[key]?.price;
+
+      // call reward data
+      const { rate, period_finish } = (
+        await sdk.api.abi.call({
+          target: pool.id,
+          abi: gaugeABI.find((n) => n.name === 'reward_data'),
+          params: [add],
+          chain: chainString,
+        })
+      ).output;
+
+      if (period_finish * 1000 < new Date().getTime()) continue;
+      const inflationRate = rate / 1e18;
+      const tokenPayable = inflationRate * 7 * 86400;
+      const totalSupply =
+        (
+          await sdk.api.abi.call({
+            target: pool.id,
+            abi: gaugeABI.find((n) => n.name === 'totalSupply'),
+            chain: chainString,
+          })
+        ).output / 1e18;
+
+      const weeklyRewards = (1 / (totalSupply + 1)) * tokenPayable;
+      const yearlyRewards = weeklyRewards * 52 * price;
+      const bptPrice = x.tvl / x.totalShares;
+      const aprLM = (yearlyRewards / bptPrice) * 100;
+
+      aprLMRewards.push(aprLM === Infinity ? null : aprLM);
+      rewardTokens.push(add);
+    }
+    // add up individual LM rewards
+    x.aprLM = aprLMRewards
+      .filter((i) => isFinite(i))
+      .reduce((a, b) => a + b, 0);
+
+    x.rewardTokens = rewardTokens;
+  }
+  return data;
+};
+
+const aprFee = (el, dataNow, dataPrior, swapFeePercentage) => {
   const swapFeeNow = dataNow.find((x) => x.id === el.id)?.totalSwapFee;
   const swapFeePrior = dataPrior.find((x) => x.id === el.id)?.totalSwapFee;
   const swapFee24h = Number(swapFeeNow) - Number(swapFeePrior);
-  const lmRewards = dataLM.find(
-    (element) => element.id === el.id
-  )?.lmYearlyRewardsUsd;
 
-  el.swapFee24h = swapFee24h;
-  // in case there no LM reward for a pool (not all of them receive rewards) we set the value to 0
-  // so we dont end up with issues when summing up values for total apy
-  el.lmYearlyRewardsUsd = lmRewards === undefined ? 0 : lmRewards;
-
-  // add network
-  el.network = chainString;
-
-  el.apyFee = ((el.swapFee24h * 365) / el.tvl) * 100;
-  el.apyLM = (el.lmYearlyRewardsUsd / el.tvl) * 100;
-
+  el.aprFee = ((swapFee24h * 365) / el.tvl) * 100 * swapFeePercentage;
   return el;
 };
 
-const buildPool = (el, chainString) => {
-  const apyFee = ((el.swapFee24h * 365) / el.tvl) * 100;
-  const apyLM = (el.lmYearlyRewardsUsd / el.tvl) * 100;
-
-  const newObj = {
-    pool: el.id,
-    chain: utils.formatChain(chainString),
-    project: 'balancer',
-    symbol: utils.formatSymbol(el.symbol),
-    tvlUsd: el.tvl,
-    apy: apyFee + apyLM,
-  };
-
-  return newObj;
-};
-
-const topLvl = async (chainString, url, dataLM) => {
+const topLvl = async (
+  chainString,
+  url,
+  query,
+  queryPrior,
+  urlGauge,
+  queryGauge,
+  gaugeABI,
+  swapFeePercentage
+) => {
   const [_, blockPrior] = await utils.getBlocks(chainString, null, [url]);
   // pull data
   let dataNow = await request(url, query);
@@ -212,7 +333,8 @@ const topLvl = async (chainString, url, dataLM) => {
   dataNow = dataNow.pools.map((el) => correctMaker(el));
   dataPrior = dataPrior.pools.map((el) => correctMaker(el));
 
-  // get unique tokenList (addresses)(for which we pull prices from cg)
+  // for tvl, we gonna pull token prices from our price api, which we use to calculate tvl
+  // note: the subgraph already comes with usd tvl values, but sometimes they are inflated
   const tokenList = [
     ...new Set(
       dataNow
@@ -222,59 +344,91 @@ const topLvl = async (chainString, url, dataLM) => {
     ),
   ];
 
-  // NOTE(!) had to split the list cause i was getting errors on full list
-  // guess because of too many token
-  const idxSplitter = Math.floor(tokenList.length / 2);
-  const tokenListP1 = tokenList.splice(0, idxSplitter);
-  const tokenListP2 = tokenList.splice(idxSplitter);
-
-  const networkMappingCC = {
-    ethereum: 'ethereum',
-    polygon: 'polygon-pos',
-    arbitrum: 'arbitrum-one',
-  };
-
-  // pull prices from coingecko
-  const tokenPriceList1 = await utils.getCGpriceData(
-    tokenListP1.join(),
-    false,
-    networkMappingCC[chainString]
-  );
-  const tokenPriceList2 = await utils.getCGpriceData(
-    tokenListP2.join(),
-    false,
-    networkMappingCC[chainString]
-  );
-
-  const tokenPriceList = { ...tokenPriceList1, ...tokenPriceList2 };
+  const tokenPriceList = (
+    await superagent.post('https://coins.llama.fi/prices').send({
+      coins: tokenList
+        .map((t) => `${chainString}:${t}`)
+        .concat(['solana:So11111111111111111111111111111111111111112']),
+    })
+  ).body.coins;
 
   // calculate tvl
-  let tvlInfo = dataNow.map((el) => tvl(el, tokenPriceList));
+  let tvlInfo = dataNow.map((el) => tvl(el, tokenPriceList, chainString));
 
-  // calculate apy
+  // calculate fee apy
   tvlInfo = tvlInfo.map((el) =>
-    apy(el, dataNow, dataPrior, dataLM, chainString)
+    aprFee(el, dataNow, dataPrior, swapFeePercentage)
   );
 
+  // calculate reward apr
+  tvlInfo = await aprLM(tvlInfo, urlGauge, queryGauge, chainString, gaugeABI);
+
   // build pool objects
-  let data = tvlInfo.map((el) => buildPool(el, chainString));
-
-  // remove samples for which apy is NaN (usually the case if tvl is Nan, because of no price from CG)
-  data = data.filter((el) => Number.isNaN(el.apy) !== true);
-
-  return data;
+  return tvlInfo.map((p) => {
+    return {
+      pool: p.id,
+      chain: utils.formatChain(chainString),
+      project: 'balancer',
+      symbol: utils.formatSymbol(p.symbol),
+      tvlUsd: p.tvl,
+      apyBase: p.aprFee,
+      apyReward: p.aprLM,
+      rewardTokens: p.rewardTokens,
+      underlyingTokens: p.tokensList,
+      url: `https://${
+        chainString === 'ethereum' ? 'app' : chainString
+      }.balancer.fi/#/pool/${p.id}`,
+    };
+  });
 };
 
 const main = async () => {
-  // note(!) since week 98 no rewards in the above LM reward file for ethereum...
-  const dataLM = await prepareLMData();
+  // balancer splits off a pct cut of swap fees to the protocol, get pct value:
+  const swapFeePercentage =
+    (
+      await sdk.api.abi.call({
+        target: protocolFeesCollector,
+        abi: protocolFeesCollectorABI.find(
+          (n) => n.name === 'getSwapFeePercentage'
+        ),
+        chain: 'ethereum',
+      })
+    ).output / 1e18;
+
   const data = await Promise.all([
-    topLvl('ethereum', urlEthereum, dataLM),
-    topLvl('polygon', urlPolygon, dataLM),
-    topLvl('arbitrum', urlArbitrum, dataLM),
+    topLvl(
+      'ethereum',
+      urlEthereum,
+      query,
+      queryPrior,
+      urlGaugesEthereum,
+      queryGauge,
+      gaugeABIEthereum,
+      swapFeePercentage
+    ),
+    topLvl(
+      'polygon',
+      urlPolygon,
+      query,
+      queryPrior,
+      urlGaugesPolygon,
+      queryGauge,
+      gaugeABIPolygon,
+      swapFeePercentage
+    ),
+    topLvl(
+      'arbitrum',
+      urlArbitrum,
+      query,
+      queryPrior,
+      urlGaugesArbitrum,
+      queryGauge,
+      gaugeABIArbitrum,
+      swapFeePercentage
+    ),
   ]);
 
-  return data.flat();
+  return data.flat().filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

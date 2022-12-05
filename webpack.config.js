@@ -8,7 +8,7 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.js$/,
+        test: /\.(ts|js)$/,
         use: { loader: 'babel-loader' },
         include: path.resolve(__dirname, 'src'),
         exclude: /node_modules/,
@@ -16,7 +16,8 @@ module.exports = {
     ],
   },
   resolve: {
-    extensions: ['.js', '.json'],
+    mainFields: ['main'],
+    extensions: ['.js', '.ts', '.json'],
     alias: {
       'bignumber.js$': 'bignumber.js/bignumber.js',
       'node-fetch$': 'node-fetch/lib/index.js',

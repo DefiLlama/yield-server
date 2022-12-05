@@ -42,43 +42,59 @@ const buildPool = (entry, chainString) => {
     project: 'pangolin',
     symbol,
     tvlUsd: entry.totalValueLockedUSD,
-    apy: entry.apy,
+    apyBase: entry.apy1d,
+    apyBase7d: entry.apy7d,
+    underlyingTokens: [entry.token0.id, entry.token1.id],
   };
 
   return newObj;
 };
 
-const topLvl = async (chainString, timestamp, url) => {
+const topLvl = async (chainString, timestamp, url, version) => {
   const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
     url,
   ]);
 
-  dataNow = await request(url, query.replace('<PLACEHOLDER>', block));
-
-  // pull 24h offset data to calculate fees from swap volume
-  let dataPrior = await request(
-    url,
-    queryPrior.replace('<PLACEHOLDER>', blockPrior)
+  const [_, blockPrior7d] = await utils.getBlocks(
+    chainString,
+    timestamp,
+    [url],
+    604800
   );
 
+  let data = (await request(url, query.replace('<PLACEHOLDER>', block))).pairs;
+
+  // pull 24h offset data to calculate fees from swap volume
+  const dataPrior = (
+    await request(url, queryPrior.replace('<PLACEHOLDER>', blockPrior))
+  ).pairs;
+
+  // 7d offset
+  const dataPrior7d = (
+    await request(url, queryPrior.replace('<PLACEHOLDER>', blockPrior7d))
+  ).pairs;
+
   // calculate tvl
-  dataNow = await utils.tvl(dataNow.pairs, 'avalanche');
+  data = await utils.tvl(data, chainString);
 
   // calculate apy
-  let data = dataNow.map((el) => utils.apy(el, dataPrior.pairs, 'v2'));
+  data = data.map((el) => utils.apy(el, dataPrior, dataPrior7d, version));
 
   // build pool objects
-  data = data.map((el) => buildPool(el, chainString));
+  data = data
+    .map((el) => buildPool(el, chainString))
+    .filter((p) => utils.keepFinite(p));
 
   return data;
 };
 
 const main = async (timestamp = null) => {
-  const data = await Promise.all([topLvl('avalanche', timestamp, url)]);
+  const data = await Promise.all([topLvl('avalanche', timestamp, url, 'v2')]);
   return data.flat();
 };
 
 module.exports = {
   timetravel: true,
   apy: main,
+  url: 'https://app.pangolin.exchange/#/pool',
 };
