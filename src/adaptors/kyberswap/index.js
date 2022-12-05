@@ -1,16 +1,20 @@
 const { request, gql } = require('graphql-request');
+const axios = require('axios');
 
 const utils = require('../utils');
 
 const url =
   'https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic';
 
+const urlFarm =
+  'https://pool-farm.kyberswap.com/<CHAIN>/api/v1/elastic/farm-pools?page=1&perPage=10000';
+
 CHAINS_API = {
   ethereum: `${url}-mainnet`,
   arbitrum: `${url}-arbitrum-one`,
   polygon: `${url}-matic`,
   avalanche: `${url}-avalanche`,
-  binance: `${url}-bsc`,
+  bsc: `${url}-bsc`,
   fantom: `${url}-fantom`,
   cronos:
     'https://cronos-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-elastic-cronos',
@@ -78,7 +82,16 @@ const topLvl = async (chainString, url, timestamp) => {
 
   data = data.map((p) => utils.apy(p, dataPrior, dataPrior7d));
 
+  const farmData = (await axios.get(urlFarm.replace('<CHAIN>', chainString)))
+    .data.data.farmPools;
+
   return data.map((p) => {
+    const farm = farmData.find(
+      (x) => x.pool.id.toLowerCase() === p.id.toLowerCase()
+    );
+    const apyReward =
+      farm?.endTime > Date.now() / 1000 ? +farm?.pool.farmApr : 0;
+
     const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
     return {
       pool: p.id,
@@ -88,7 +101,10 @@ const topLvl = async (chainString, url, timestamp) => {
       tvlUsd: p.totalValueLockedUSD,
       apyBase: p.apy1d,
       apyBase7d: p.apy7d,
+      apyReward,
+      rewardTokens: apyReward > 0 ? farm.rewardTokens.map((r) => r.id) : [],
       underlyingTokens: [p.token0.id, p.token1.id],
+      poolMeta: p.feeTier / 1e4,
     };
   });
 };
@@ -96,7 +112,7 @@ const topLvl = async (chainString, url, timestamp) => {
 const main = async (timestamp = null) => {
   const data = await Promise.all(
     Object.entries(CHAINS_API).map(([chain, url]) =>
-      topLvl(chain === 'binance' ? 'bsc' : chain, url, timestamp)
+      topLvl(chain, url, timestamp)
     )
   );
 
