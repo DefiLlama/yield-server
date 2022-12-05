@@ -80,12 +80,14 @@ const getLatestBlockSubgraph = async (url) => {
   //   'https://api.thegraph.com/index-node/graphql',
   //   queryGraph.replace('<PLACEHOLDER>', url.split('name/')[1])
   // );
-  const blockGraph = url.includes('babydoge/faas')
-    ? await request(url, queryGraph)
-    : await request(
-        `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
-        queryGraph
-      );
+  const blockGraph =
+    url.includes('babydoge/faas') ||
+    url.includes('kybernetwork/kyberswap-elastic-cronos')
+      ? await request(url, queryGraph)
+      : await request(
+          `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
+          queryGraph
+        );
 
   // return Number(
   //   blockGraph.indexingStatusForCurrentVersion.chains[0].latestBlock.number
@@ -128,7 +130,8 @@ exports.getBlocks = async (
     blockDelta = Math.abs(block - blockGraph);
 
     // check delta (keeping this large for now)
-    const thr = chainString === 'ethereum' ? 300 : 3000;
+    const thr =
+      chainString === 'ethereum' ? 300 : chainString === 'cronos' ? 6000 : 3000;
     if (blockDelta > thr) {
       console.log(`block: ${block}, blockGraph: ${blockGraph}`);
       throw new Error(`Stale subgraph of ${blockDelta} blocks!`);
