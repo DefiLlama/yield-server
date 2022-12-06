@@ -6,8 +6,9 @@
 2. Fork this repository
 3. Create a new folder within [src/adaptors/](src/adaptors/) with your protocol name (use your project `slug` from `https://api.llama.fi/protocols`)
 4. Write an adaptor for your protocol (tutorial below)
-5. Test your adaptor by running `npm run test --adapter=YOUR_ADAPTER` (remember to install dependencies with `npm i` first!)
-6. Submit a PR
+5. `cd src/adaptors` and run `npm i`
+6. Test your adaptor by running `npm run test --adapter=YOUR_ADAPTER`
+7. Submit a PR
 
 ### Data sources
 
@@ -63,6 +64,7 @@ A note on how to set apy related fields:
 ```
 
 #### FAQ
+
 > Why are some pools missing on DefiLlama which appear on my adapter?
 
 DefiLlama only displays pools with >10k TVL, so pools with less TVL than that will appear on the adapter but not on defillama
