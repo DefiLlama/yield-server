@@ -61,7 +61,7 @@ async function main() {
       chain: 'polygon',
       apyBase: OvixAPYs.supplyAPY,
       apyRewardFake: preminedVixApr,
-      rewardTokens: ['0x108ADA79428ea427E6A2175D3AB678abA2947a4a'],
+      // rewardTokens: ['0x108ADA79428ea427E6A2175D3AB678abA2947a4a'],
       tvlUsd: tvl.tvlUsd,
       // borrow fields
       apyBaseBorrow: OvixAPYs.borrowAPY,

@@ -209,7 +209,7 @@ function exportFormatter(
     apyBase,
     apyRewardFake: apyReward,
     underlyingTokens: [underlyingToken],
-    rewardTokens,
+    // rewardTokens,
     url,
     apyBaseBorrow,
     apyRewardBorrowFake: apyRewardBorrow,
