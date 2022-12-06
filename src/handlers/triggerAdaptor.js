@@ -69,6 +69,8 @@ const main = async (body) => {
     apyBaseBorrow: strToNum(p.apyBaseBorrow),
     apyRewardBorrow: strToNum(p.apyRewardBorrow),
     apyBase7d: strToNum(p.apyBase7d),
+    apyRewardFake: strToNum(p.apyRewardFake),
+    apyRewardBorrowFake: strToNum(p.apyRewardBorrowFake),
   }));
 
   // filter tvl to be btw lb-ub
@@ -89,6 +91,10 @@ const main = async (body) => {
       ? p.apyRewardBorrow
       : null,
     apyBase7d: Number.isFinite(p.apyBase7d) ? p.apyBase7d : null,
+    apyRewardFake: Number.isFinite(p.apyRewardFake) ? p.apyRewardFake : null,
+    apyRewardBorrowFake: Number.isFinite(p.apyRewardBorrowFake)
+      ? p.apyRewardBorrowFake
+      : null,
   }));
 
   // remove pools where all 3 apy related fields are null
@@ -105,6 +111,8 @@ const main = async (body) => {
     apyBaseBorrow: p.apyBaseBorrow < 0 ? 0 : p.apyBaseBorrow,
     apyRewardBorrow: p.apyRewardBorrow < 0 ? 0 : p.apyRewardBorrow,
     apyBase7d: p.apyBase7d < 0 ? 0 : p.apyBase7d,
+    apyRewardFake: p.apyRewardFake < 0 ? 0 : p.apyRewardFake,
+    apyRewardBorrowFake: p.apyRewardBorrowFake < 0 ? 0 : p.apyRewardBorrowFake,
   }));
 
   // derive final total apy field
@@ -316,6 +324,14 @@ const main = async (body) => {
       il7d: p.il7d ? +p.il7d.toFixed(precision) : null,
       apyBase7d:
         p.apyBase7d !== null ? +p.apyBase7d.toFixed(precision) : p.apyBase7d,
+      apyRewardFake:
+        p.apyRewardFake !== null
+          ? +p.apyRewardFake.toFixed(precision)
+          : p.apyRewardFake,
+      apyRewardBorrowFake:
+        p.apyRewardBorrowFake !== null
+          ? +p.apyRewardBorrowFake.toFixed(precision)
+          : p.apyRewardBorrowFake,
     };
   });
 
