@@ -60,7 +60,7 @@
     "webpack": "^5.70.0"
   },
   "jest": {
-    "globalSetup": "./src/adaptors/beforeTests.js",
-    "globalTeardown": "./src/adaptors/afterTests.js"
+    "globalSetup": "./beforeTests.js",
+    "globalTeardown": "./afterTests.js"
   }
 }
