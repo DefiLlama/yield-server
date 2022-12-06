@@ -3,7 +3,7 @@ const axios = require('axios');
 const fs = require('fs');
 
 module.exports = async function () {
-  require('dotenv').config({ path: './config.env' });
+  require('dotenv').config({ path: '../../config.env' });
 
   const adapter = process.env.npm_config_adapter;
   const timestamp = process.env.npm_config_timestamp;
@@ -13,7 +13,11 @@ module.exports = async function () {
     );
     process.exit(1);
   }
-  const passedFile = path.resolve(process.cwd(), `./src/adaptors/${adapter}`);
+
+  const cwd = process.cwd();
+  const passedFile = cwd.includes('src/adaptors')
+    ? path.resolve(cwd, adapter)
+    : path.resolve(cwd, `./src/adaptors/${adapter}`);
   const module = require(passedFile);
 
   global.adapter = adapter;
