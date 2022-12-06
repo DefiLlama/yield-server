@@ -207,12 +207,12 @@ function exportFormatter(
     symbol,
     tvlUsd,
     apyBase,
-    apyReward,
+    apyRewardFake: apyReward,
     underlyingTokens: [underlyingToken],
     rewardTokens,
     url,
     apyBaseBorrow,
-    apyRewardBorrow,
+    apyRewardBorrowFake: apyRewardBorrow,
     totalSupplyUsd,
     totalBorrowUsd,
     ltv,
@@ -222,5 +222,4 @@ function exportFormatter(
 module.exports = {
   timetravel: false,
   apy: getApy,
-  // url: 'https://app.gearbox.fi/pools/',
 };
