@@ -13,7 +13,7 @@ exports.CHAINS = {
         callsName: {
             length: 'poolLength',
             alloc: 'totalAllocPoint',
-            perBlock: 'cakePerBlock',
+            bananaPerBlock: 'cakePerBlock',
             poolInfo: 'poolInfo'
         },
         abi: masterChefABIBNB,
@@ -38,7 +38,7 @@ exports.CHAINS = {
         callsName: {
             length: 'poolLength',
             alloc: 'totalAllocPoint',
-            perBlock: 'bananaPerSecond',
+            bananaPerBlock: 'bananaPerSecond',
             poolInfo: 'poolInfo'
         },
         abi: masterChefABIPolygon,

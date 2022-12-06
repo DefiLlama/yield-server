@@ -3,7 +3,6 @@ const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const { default: BigNumber } = require('bignumber.js');
 
-// const masterChefABI = require('./abis/abi-master-chef.json');
 const lpTokenABI = require('./abis/abi-lp-token.json');
 const erc20ABI = require('./abis/abi-erc20.json');
 const apePriceABI = require('./abis/abi-ape-price-getter.json');
@@ -76,9 +75,9 @@ const calculateApy = (
   chain
 ) => {
   const poolWeight = poolInfo.allocPoint / totalAllocPoint.output;
-  const perBlock = chain === 'bsc' ? bananaPerBlock : bananaPerBlock * 2;
-  const vvsPerYear = blocksYear * perBlock;
-  return ((poolWeight * vvsPerYear * bananaPrice) / reserveUSD) * 100;
+  const totalBBananaPerBlock = chain === 'bsc' ? bananaPerBlock : bananaPerBlock * 2;
+  const bananaPerYear = blocksYear * totalBBananaPerBlock;
+  return ((poolWeight * bananaPerYear * bananaPrice) / reserveUSD) * 100;
 };
 
 const calculateReservesUSD = (
@@ -120,7 +119,7 @@ const apy = async (chain) => {
   const bananaPerBlock = await sdk.api.abi.call({
     target: masterchef,
     chain,
-    abi: masterChefABI.find((e) => e.name === CHAINS[chain].callsName.perBlock),
+    abi: masterChefABI.find((e) => e.name === CHAINS[chain].callsName.bananaPerBlock),
   });
   const normalizedbananaPerBlock = bananaPerBlock.output / 1e18;
   const poolsRes = await sdk.api.abi.multiCall({
@@ -260,7 +259,7 @@ const apy = async (chain) => {
     );
 
     return {
-      pool: `${pool.lpToken}-${chain}`.toLowerCase(),
+      pool: pool.lpToken,
       chain: utils.formatChain(chain),
       project: 'apeswap-amm',
       symbol: `${pairInfo.token0.symbol}-${pairInfo.token1.symbol}`,
@@ -361,7 +360,7 @@ const apyTelos = async (chain) => {
     const lpToken = farm.stakingToken.address[40];
     const { apr, totalStakedUsd, rewardToken } = await getAprAndStakedUsd(farm, prices.flat(), chain);
     return {
-      pool: `${lpToken}-${chain}`.toLowerCase(),
+      pool: lpToken,
       chain: utils.formatChain(chain),
       project: 'apeswap-amm',
       symbol: `${farm.lpTokens.token.symbol}-${farm.lpTokens.quoteToken.symbol}`,
