@@ -8,14 +8,9 @@ const query = gql`
         aggregatedApy
         pendleApy
         impliedApy
-        ytFloatingApy
         proName
         address
         pt {
-          address
-          symbol
-        }
-        yt {
           address
           symbol
         }
@@ -38,12 +33,13 @@ async function poolApys(pools) {
     pool: p.address,
     chain: utils.formatChain("ethereum"),
     project: "pendle",
-    symbol: utils.formatSymbol(p.sy.underlyingAsset.symbol),
+    symbol: utils.formatSymbol(p.proName),
     tvlUsd: p.liquidity.usd,
-    apyBase: p.aggregatedApy - p.pendleApy,
-    apyReward: p.pendleApy,
+    apyBase: (p.aggregatedApy - p.pendleApy) * 100,
+    apyReward: p.pendleApy * 100,
     rewardTokens: ["0x808507121b80c02388fad14726482e061b8da827"],
-    underlyingTokens: [p.pt.address, p.sy.address]
+    underlyingTokens: [p.pt.address, p.sy.address],
+    poolMeta: `${p.proName} -> for liquidity provision`
   }));
 }
 async function ptApys(pools) {
@@ -53,17 +49,18 @@ async function ptApys(pools) {
     project: "pendle",
     symbol: utils.formatSymbol(p.pt.symbol),
     tvlUsd: p.liquidity.usd,
-    apyBase: p.impliedApy,
-    underlyingTokens: [p.sy.underlyingAsset.address]
+    apyBase: p.impliedApy * 100,
+    underlyingTokens: [p.sy.underlyingAsset.address],
+    poolMeta: `${p.pt.symbol} -> for buying PT`
   }));
 }
 async function apy() {
   const pools = (await request(api, query)).markets.results;
-  return await Promise.all([poolApys(pools), ptApys(pools)]);
+  let results = await Promise.all([poolApys(pools), ptApys(pools)]);
+  return results.flat();
 }
 const main = async () => await apy();
 module.exports = {
   timetravel: false,
   apy: main
 };
-main();
