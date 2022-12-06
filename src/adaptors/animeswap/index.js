@@ -63,17 +63,9 @@ async function main() {
       project: 'animeswap',
       symbol: utils.formatSymbol('ANI'),
       tvlUsd: tvlUsdStakeAni,
-      apy: apr,
+      apyReward: apr,
+      rewardTokens: [aniCoinName],
       poolMeta: 'Stake ANI',
-    },
-    {
-      pool: `${STAKING_ADDRESS}-HolderPool-aptos`,
-      chain: utils.formatChain('Aptos'),
-      project: 'animeswap',
-      symbol: utils.formatSymbol('ANI'),
-      tvlUsd: tvlUsdHolderPool,
-      apy: apy,
-      poolMeta: 'Holder Pool. Auto-Compound. Lock 30 days or 20% unstaking fee penalty',
     },
   ];
 }
