@@ -6,6 +6,7 @@
     "deploy:prod": "export AWS_PROFILE='defillama' && export NODE_ENV=prod && npm run deploy:env",
     "deploy:dev": "export AWS_PROFILE='defillama' && export NODE_ENV=dev && npm run deploy:env",
     "deploy": "export NODE_ENV=prod && npm run deploy:env",
+    "build": "sls package",
     "test": "jest",
     "migrate": "node-pg-migrate"
   },
@@ -60,7 +61,7 @@
     "webpack": "^5.70.0"
   },
   "jest": {
-    "globalSetup": "./beforeTests.js",
-    "globalTeardown": "./afterTests.js"
+    "globalSetup": "./src/adaptors/beforeTests.js",
+    "globalTeardown": "./src/adaptors/afterTests.js"
   }
 }

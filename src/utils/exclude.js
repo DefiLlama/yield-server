@@ -30,6 +30,7 @@ const excludePools = [
   '0x625e7708f30ca75bfd92586e17077590c60eb4cd-fantom',
   '0x513c7e3a9c69ca3e22550ef58ac1c0088e918fff-fantom',
   '0xf0d17f404343D7Ba66076C818c9DC726650E2435-dot-dot-finance',
+  '0xa3B615667CBd33cfc69843Bf11Fbb2A1D926BD46-6', // magpie ABNBC pool
 ];
 
 const boundaries = {
