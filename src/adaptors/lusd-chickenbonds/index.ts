@@ -4,6 +4,10 @@ const { getRebondApy, contractCall, getLusdUsdPrice } = require('./helpers');
 const {
   CHICKEN_BOND_MANAGER_ADDRESS,
   BLUSD_LUSD_3CRV_POOL_ADDRESS,
+  LUSD_ADDRESS,
+  BLUSD_ADDRESS,
+  LUSD_3CRV_POOL_ADDRESS,
+  CRV_ADDRESS,
 } = require('./addresses');
 import type {
   PartialCurvePoolData,
@@ -32,8 +36,8 @@ const getBLusdRebondStrategy = async (): Promise<ChickenBondsStrategy> => {
     chain: 'ethereum',
     tvlUsd,
     apyBase: rebondApy,
-    underlyingTokens: ['LUSD', 'bLUSD'],
-    rewardTokens: ['LUSD'],
+    underlyingTokens: [LUSD_ADDRESS, BLUSD_ADDRESS],
+    rewardTokens: [LUSD_ADDRESS],
     poolMeta:
       'Rebonding bLUSD strategy continuously performs the following steps: create an LUSD bond, claim it at the optimum rebond time, sell the acquired bLUSD back to LUSD, and then bond again.',
   };
@@ -75,8 +79,8 @@ const getBLusdLusd3CrvStrategy = async (): Promise<ChickenBondsStrategy> => {
     tvlUsd,
     apyBase,
     apyReward,
-    underlyingTokens: ['LUSD', 'bLUSD', 'LUSD-3CRV'],
-    rewardTokens: ['bLUSD', 'LUSD-3CRV', 'LUSD', 'CRV'],
+    underlyingTokens: [LUSD_ADDRESS, BLUSD_ADDRESS, LUSD_3CRV_POOL_ADDRESS],
+    rewardTokens: [BLUSD_ADDRESS, LUSD_3CRV_POOL_ADDRESS, LUSD_ADDRESS, CRV_ADDRESS],
     poolMeta:
       'Staking bLUSD/LUSD-3CRV LP tokens in the Curve gauge earns yield from trade fees, Curve rewards and LUSD rewards from claimed bonds.',
   };
