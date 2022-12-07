@@ -1,11 +1,10 @@
 const { request, gql } = require('graphql-request');
 
+const { getLpTokens } = require('./utils')
 const utils = require('../utils');
 
 const url =
   'https://graph-bsc-mainnet.babydoge.com/subgraphs/name/babydoge/faas';
-const info_url =
-  'https://graph-bsc-mainnet.babydoge.com/subgraphs/name/babydoge/exchange';
 
 const WEEKS_IN_YEAR = 52.1429;
 
@@ -41,54 +40,6 @@ const query = gql`
     }
   }
 `;
-
-const getLpTokens = async (farms) => {
-  const week_ago = new Date();
-  week_ago.setDate(week_ago.getDate() - 7);
-  const week_ago_timestamp = Math.floor(week_ago.getTime() / 1000);
-  const pairs = farms
-    .filter((farm) => farm.isStakeTokenLpToken)
-    .map((farm) => farm.stakeToken?.id);
-  if (pairs.length > 0) {
-    const lpQuery = gql`
-    {
-        ${pairs
-          .map(
-            (pair) => `
-            p${pair}:pairDayDatas(
-                where: {pairAddress: "${pair}", date_gt: ${week_ago_timestamp}}
-                orderDirection: desc
-                orderBy: date
-            ) {
-                dailyVolumeUSD
-            }
-            pd${pair}:pair(id: "${pair}") {
-                name
-                totalSupply
-                reserveUSD
-                volumeUSD
-            }
-            `
-          )
-          .join('')}
-    }`;
-    const data = await request(info_url, lpQuery);
-    const keys = Object.keys(data).filter((key) => key.startsWith('pd'));
-    const average = (arr) =>
-      arr.reduce((p, c) => p + Number(c.dailyVolumeUSD), 0) / arr.length;
-    const lpTokens = keys.map((key) => {
-      const id = key.slice(2);
-      const volumeUSD_avg7d = average(data[`p${id}`]);
-      return {
-        ...data[key],
-        id,
-        volumeUSD_avg7d,
-      };
-    });
-    return lpTokens;
-  }
-  return [];
-};
 
 const farmDataMapping = (entry, lpTokens) => {
   entry = { ...entry };
@@ -154,6 +105,7 @@ const main = async (timestamp = null) => {
 
   // calculate APY
   const data = dataNow.map((el) => farmApy(el));
+  console.log('data', data)
 
   const pools = data.map((p) => {
     let symbol;
