@@ -73,7 +73,7 @@ const getLpFeesAndApr = (volumeUSD, volumeUSDWeek, liquidityUSD) => {
 
 const farmApy = (entry) => {
   entry = { ...entry };
-  const index = ZERO_FEE_PAIRS.findIndex((v) => v.toLocaleLowerCase() === entry.id.toLocaleLowerCase());
+  const index = ZERO_FEE_PAIRS.findIndex((v) => v.toLocaleLowerCase() === entry.stakeToken.id.toLocaleLowerCase());
   if (index > -1 || !entry.lpTokenInfo || entry.lpTokenInfo.reserveUSD === '0') {
     entry['apy'] = 0;
     return entry;
