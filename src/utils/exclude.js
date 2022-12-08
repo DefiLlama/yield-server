@@ -1,7 +1,7 @@
 // adaptors which we don't want to be triggered +
 // which we don't want to be included in the enriched dataset
 // in case we have old values in db
-const excludeAdaptors = ['koyo-finance', 'pony-finance', 'qidao', 'optifi'];
+const excludeAdaptors = ['koyo-finance', 'pony-finance', 'optifi'];
 
 const excludePools = [
   '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d',
