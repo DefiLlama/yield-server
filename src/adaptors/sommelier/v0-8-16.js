@@ -16,7 +16,7 @@ async function getApy(cellarAddress) {
   const prevPrice = new BigNumber(dayData[dayData.length - 1].shareValue);
   const yieldRatio = price.minus(prevPrice).div(prevPrice);
 
-  return yieldRatio.times(52).times(100).toNumber();
+  return yieldRatio.times(12).times(100).toNumber();
 }
 
 // Call getPositions() to get a list of assets held by the Cellar
