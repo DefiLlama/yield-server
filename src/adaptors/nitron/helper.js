@@ -5,8 +5,8 @@ const moment = require('moment');
 
 const BN_ZERO = new BigNumber(0)
 const BN_ONE = new BigNumber(1)
-const modAddress = 'tswth1wq9ts6l7atfn45ryxrtg4a2gwegsh3xh6ekpl6'
-const cdpModAddress = 'tswth1zkmw9w5j0ew57hzsvcwautrsfpcq7z5zd7adeu'
+const modAddress = 'swth1wq9ts6l7atfn45ryxrtg4a2gwegsh3xh7w83xl'
+const cdpModAddress = 'swth1zkmw9w5j0ew57hzsvcwautrsfpcq7z5zffvaqe'
 
 const secondsInMinBN = new BigNumber(60)
 const secondsInHourBN = secondsInMinBN.multipliedBy(60)
@@ -85,40 +85,40 @@ module.exports.getTokenAprArr = async (rewardSchemes, tokenPrices, tokens, type,
 }
 
 module.exports.getAllBorrowAssets = async () => {
-  const allAssets = (await axios.get('https://test-api.carbon.network/carbon/cdp/v1/asset')).data.asset_params_all
+  const allAssets = (await axios.get('https://api.carbon.network/carbon/cdp/v1/asset')).data.asset_params_all
   return allAssets
 }
 module.exports.getDebtInfos = async () => {
-  const debtInfos = (await axios.get('https://test-api.carbon.network/carbon/cdp/v1/token_debt')).data.debt_infos_all
+  const debtInfos = (await axios.get('https://api.carbon.network/carbon/cdp/v1/token_debt')).data.debt_infos_all
   return debtInfos
 }
 module.exports.getModBalances = async () => {
-  const modBalances = (await axios.get(`https://test-api.carbon.network/carbon/coin/v1/balances/${modAddress}`)).data.token_balances
+  const modBalances = (await axios.get(`https://api.carbon.network/carbon/coin/v1/balances/${modAddress}`)).data.token_balances
   return modBalances
 }
 
 module.exports.getCdpModBalances = async () => {
-  const cdpModBalances = (await axios.get(`https://test-api.carbon.network/carbon/coin/v1/balances/${cdpModAddress}`)).data.token_balances
+  const cdpModBalances = (await axios.get(`https://api.carbon.network/carbon/coin/v1/balances/${cdpModAddress}`)).data.token_balances
   return cdpModBalances
 }
 
 module.exports.getCdpTotalSupply = async () => {
-  const cdpTotalSupply = (await axios.get(`https://test-api.carbon.network/cosmos/bank/v1beta1/supply?pagination.limit=100000`)).data.supply
+  const cdpTotalSupply = (await axios.get(`https://api.carbon.network/cosmos/bank/v1beta1/supply?pagination.limit=100000`)).data.supply
   return cdpTotalSupply
 }
 
 module.exports.getAllStrats = async () => {
-  const allStrategies = (await axios.get(`https://test-api.carbon.network/carbon/cdp/v1/rate_strategy`)).data.rate_strategy_params_all
+  const allStrategies = (await axios.get(`https://api.carbon.network/carbon/cdp/v1/rate_strategy`)).data.rate_strategy_params_all
   return allStrategies
 }
 
 module.exports.getParams = async () => {
-  const params = (await axios.get(`https://test-api.carbon.network/carbon/cdp/v1/params`)).data.params
+  const params = (await axios.get(`https://api.carbon.network/carbon/cdp/v1/params`)).data.params
   return params
 }
 
 module.exports.getRewardSchemes = async () => {
-  const rewardSchemes = (await axios.get(`https://test-api.carbon.network/carbon/cdp/v1/reward_schemes`)).data.reward_schemes
+  const rewardSchemes = (await axios.get(`https://api.carbon.network/carbon/cdp/v1/reward_schemes`)).data.reward_schemes
   return rewardSchemes
 }
 
@@ -171,7 +171,6 @@ const calculateInterestForTimePeriod = (offsetSeconds, debtInfo, borrowAPY) => {
 
   const now = dayjs().add(offsetSeconds, 'seconds').toDate()
   const lastDate = debtInfo.last_updated_time ?? now
-  // const interest = CDPModule.calculateInterestForTimePeriod(interestAPY, lastDate, now)
   const diffMs = end.getTime() - start.getTime();
   if (diffMs <= 0) {
     return BN_ZERO

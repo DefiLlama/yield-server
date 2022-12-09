@@ -9,7 +9,7 @@ const bnOrZero = (number) => {
 }
 
 const apr = async () => {
-  const tokens = await(await utils.getData('https://test-api.carbon.network/carbon/coin/v1/tokens?pagination.limit=10000')).tokens
+  const tokens = await(await utils.getData('https://api.carbon.network/carbon/coin/v1/tokens?pagination.limit=10000')).tokens
   const allAssets = await getAllBorrowAssets()
   const debtInfos = await getDebtInfos()
   const modAccBalances = await getModBalances()
