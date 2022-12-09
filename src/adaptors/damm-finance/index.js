@@ -4,6 +4,7 @@ const abi = require('./abis.json');
 
 const unitroller = '0x4F96AB61520a6636331a48A11eaFBA8FB51f74e4';
 const bdAMM = '0xfa372fF1547fa1a283B5112a4685F1358CE5574d';
+const dAMM = '0xb3207935ff56120f3499e8ad08461dd403bf16b8';
 
 const poolInfo = async (chain) => {
   const allMarkets = await sdk.api.abi.call({
@@ -124,9 +125,14 @@ function calculateTvl(cash, borrows, reserves, price, decimals) {
 }
 
 const getApy = async () => {
-  const bdammPrice = (await getPrices(['ethereum'], [bdAMM]))[
-    bdAMM.toLowerCase()
-  ];
+  const prices = await getPrices(['ethereum'], [bdAMM, dAMM]);
+
+  const bdammPrice = prices[bdAMM.toLowerCase()];
+  const dammPrice = prices[dAMM.toLowerCase()];
+
+  // const discountRatio = bdammPrice / dammPrice
+  // hardcoding this. need to see how they derive their bdammPrices...
+  const discountRate = 0.05;
 
   const yieldMarkets = (await poolInfo('ethereum')).yieldMarkets;
 
@@ -169,11 +175,11 @@ const getApy = async () => {
       symbol[i],
       tvlUsd,
       apyBase,
-      apyReward,
+      apyReward * discountRate,
       pool.underlyingToken,
       [bdAMM],
       apyBaseBorrow,
-      apyRewardBorrow,
+      apyRewardBorrow * discountRate,
       totalSupplyUsd,
       totalBorrowUsd,
       ltv
@@ -206,9 +212,9 @@ function exportFormatter(
     symbol,
     tvlUsd,
     apyBase,
-    apyReward,
+    // apyReward,
     underlyingTokens: [underlyingTokens],
-    rewardTokens,
+    // rewardTokens,
     // apyBaseBorrow,
     // apyRewardBorrow,
     totalSupplyUsd,
