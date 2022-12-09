@@ -100,6 +100,17 @@ const bbTokenMapping = {
     '0x804cdb9116a10bb78768d3252355a1b18067bf8f',
 };
 
+// for Balancer Aave Boosted StablePool on Polygon there is no price data
+// Using underlying assets for price 
+const polygonBBTokenMapping = {
+  '0x178e029173417b1f9c8bc16dcec6f697bc323746': 
+    '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063', // DAI
+  '0xf93579002dbe8046c43fefe86ec78b1112247bb8': 
+    '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', // USDC
+  '0xff4ce5aaab5a627bf82f4a571ab1ce94aa365ea6': 
+    '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', // USDT
+};
+
 const correctMaker = (entry) => {
   entry = { ...entry };
   // for some reason the MKR symbol is not there, add this manually for
@@ -142,7 +153,12 @@ const tvl = (entry, tokenPriceList, chainString) => {
     ) {
       price = tokenPriceList[`ethereum:${bbTokenMapping[el.address]}`]?.price;
     }
-
+    if (
+      chainString == 'polygon'  && entry.id ===
+      '0x48e6b98ef6329f8f0a30ebb8c7c960330d64808500000000000000000000075b'      
+    ) {
+      price = tokenPriceList[`polygon:${polygonBBTokenMapping[el.address]}`]?.price;
+    }
     price = price ?? 0;
     d.tvl += Number(el.balance) * price;
   }
