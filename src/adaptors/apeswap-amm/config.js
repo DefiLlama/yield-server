@@ -42,7 +42,7 @@ exports.CHAINS = {
             poolInfo: 'poolInfo'
         },
         abi: masterChefABIPolygon,
-        exclude: []
+        exclude: ['0xe9699f65a4981035589727f448c3a642F0E19209'],
     },
     'telos': {
         farmsUrl: 'https://raw.githubusercontent.com/ApeSwapFinance/apeswap-lists/main/config/jungleFarms.json',
