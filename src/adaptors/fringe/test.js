@@ -1,8 +1,10 @@
+// const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const abiProtocol = require('./abis/protocolContractABI.json')
 const abiLendingPools = require('./abis/lendingPoolsABI.json');
+// const { tokens } = require('../across/constants');
 
 // Fringe's primary contract addy for each chain. 
 // The primary contract tells us the list of lending pool contracts.
@@ -27,7 +29,7 @@ const getPrices = async (chain, addresses) => {
             }),
             {}
         );
-      
+        console.log(pricesObj);
         return pricesObj;
     
     } catch (error) {
@@ -51,14 +53,16 @@ const getLenderAPY = async (chain, lendingTokenPoolAddy) => {
     return (((supplyRatePerBlock / 1e18) * 7200 + 1) ** 365 - 1) * 100;
 };
 
+
 // Notes: lending tokens = our interest-bearing fTokens.
+
 
 // Get the list of lending tokens listed by Fringe, chain by chain.
 const allLendingTokens = async () => {
     
     let lendingTokens = [];
 
-
+    console.log('primaryContractAddys.length', primaryContractAddys.length);
     for (let i = 0; i < primaryContractAddys.length; i++) {
         
         const chainSpecific = primaryContractAddys[i];
@@ -72,9 +76,12 @@ const allLendingTokens = async () => {
         });
         let lendingTokensCount = lendingTokensCountRes['output'];
 
+        console.log('lendingTokensCount', lendingTokensCount);
+
         // Add lending tokens for this chain to our full list. 
         for (let i = 0; i < lendingTokensCount; i++) {
             
+            console.log('in lending tokens count loop',i);
             // e.g. USDC addy
             let underlyingTokenAddyRes = await sdk.api.abi.call({
                 target: chainSpecific.chainSpecificProtocolContractAddy,
@@ -84,6 +91,8 @@ const allLendingTokens = async () => {
             });
 
             let underlyingTokenAddy = underlyingTokenAddyRes['output'].toLowerCase();
+
+            console.log('underlyingTokenAddy ',underlyingTokenAddy);
 
             // fToken addy. e.g. fUSDC addy 
             let lendingTokenPoolAddyRes = await sdk.api.abi.call({
@@ -95,6 +104,8 @@ const allLendingTokens = async () => {
 
             let lendingTokenPoolAddy = lendingTokenPoolAddyRes['output']['bLendingToken'].toLowerCase();
 
+            console.log('lendingTokenPoolAddy', lendingTokenPoolAddy);
+
             // e.g. USDC
             let underlyingTokenSymbolRes = await sdk.api.abi.call({
                 target: underlyingTokenAddy,
@@ -105,8 +116,12 @@ const allLendingTokens = async () => {
 
             let underlyingTokenSymbol = underlyingTokenSymbolRes['output'];
 
+            console.log('underlyingTokenSymbol', underlyingTokenSymbol);
+
             // Get lend APY for this lending token.
             let lenderAPY = await getLenderAPY(chainSpecific.chain, lendingTokenPoolAddy);
+
+            console.log('lenderAPY', lenderAPY);
 
             //////////// Calc TVL in USD for the lending token.
             // From the lending token, get decimals. 
@@ -119,6 +134,8 @@ const allLendingTokens = async () => {
 
             let decimalsOfLendingToken = decimalsOfLendingTokenRes['output'];
 
+            console.log('decimalsOfLendingToken', decimalsOfLendingToken);
+
             // From the lending token, get balance held by our contract. 
             let balanceOfLendingTokenRes = await sdk.api.abi.call({
                 target: underlyingTokenAddy,
@@ -129,11 +146,16 @@ const allLendingTokens = async () => {
 
             let balanceOfLendingToken = balanceOfLendingTokenRes['output'] / 10 ** decimalsOfLendingToken;
 
+            console.log('balanceOfLendingToken', balanceOfLendingToken);
+
             // // Calc the USD-equivalent.
             let priceUSDRes = await getPrices(chainSpecific.chain, [underlyingTokenAddy]); 
             let priceUSD = priceUSDRes[underlyingTokenAddy];
-   
+
+            console.log('priceUSD', priceUSD);
+    
             let tvlUSD = balanceOfLendingToken * priceUSD;
+            console.log('tvlUSD', tvlUSD);
 
             lendingTokens.push({
                 pool: lendingTokenPoolAddy,
@@ -145,17 +167,21 @@ const allLendingTokens = async () => {
                 underlyingTokens: [underlyingTokenAddy],
                 poolMeta: "V1 markets"
             });
-        }
-    }
+        };
+    };
 
-    // console.log('allLendingTokens\n', lendingTokens);  // works all ok.
+    console.log('in fn... lendingTokens', lendingTokens);
     return lendingTokens;
 };
 
 module.exports = {
   timetravel: false,
-  apy: allLendingTokens,
+  apy: allLendingTokens(),
   url: 'https://app.fringe.fi/lend'
 };
 
+// console.log (allLendingTokens);
+
+// let xxx = allLendingTokens();
+// console.log ('lending tokens', xxx);
 
