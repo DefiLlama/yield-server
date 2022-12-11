@@ -58,12 +58,10 @@ const allLendingTokens = async () => {
     
     let lendingTokens = [];
 
-
     for (let i = 0; i < primaryContractAddys.length; i++) {
         
         const chainSpecific = primaryContractAddys[i];
         
-
         // Get count of lending tokens for this chain.
         let lendingTokensCountRes = await sdk.api.abi.call({
             target: chainSpecific.chainSpecificProtocolContractAddy,
@@ -118,8 +116,8 @@ const allLendingTokens = async () => {
             });
 
             let decimalsOfLendingToken = decimalsOfLendingTokenRes['output'];
-
-            // From the lending token, get balance held by our contract. 
+            
+            // From the lending token, get balance owned by our contract. 
             let balanceOfLendingTokenRes = await sdk.api.abi.call({
                 target: underlyingTokenAddy,
                 chain: chainSpecific.chain,
@@ -129,11 +127,26 @@ const allLendingTokens = async () => {
 
             let balanceOfLendingToken = balanceOfLendingTokenRes['output'] / 10 ** decimalsOfLendingToken;
 
-            // // Calc the USD-equivalent.
+            // Get conversion factor to USD.
             let priceUSDRes = await getPrices(chainSpecific.chain, [underlyingTokenAddy]); 
             let priceUSD = priceUSDRes[underlyingTokenAddy];
-   
-            let tvlUSD = balanceOfLendingToken * priceUSD;
+            
+            // Calc the USD-equivalent.   
+            let balanceOwnedUSD = balanceOfLendingToken * priceUSD;
+
+            // Get total borrow of this lending token
+            let totalBorrowRes = await sdk.api.abi.call({
+                target: lendingTokenPoolAddy,
+                chain: chainSpecific.chain,
+                abi: abiLendingPools.find((e) => e.name === 'totalBorrows')
+            });
+        
+            let totalBorrow = totalBorrowRes['output'] / 10 ** decimalsOfLendingToken;
+            
+            // Calc the USD-equivalent.
+            let totalBorrowUSD = totalBorrow * priceUSD;
+    
+            let tvlUSD = balanceOwnedUSD + totalBorrowUSD; 
 
             // Push it good.
             lendingTokens.push({
@@ -144,7 +157,8 @@ const allLendingTokens = async () => {
                 tvlUsd: Number(tvlUSD),
                 apyBase: Number(lenderAPY),
                 underlyingTokens: [underlyingTokenAddy],
-                poolMeta: "V1 markets"
+                poolMeta: "V1 markets",
+                totalBorrowUsd: Number(totalBorrowUSD)
             });
         }
     }
