@@ -135,6 +135,7 @@ const allLendingTokens = async () => {
    
             let tvlUSD = balanceOfLendingToken * priceUSD;
 
+            // Push it good.
             lendingTokens.push({
                 pool: lendingTokenPoolAddy,
                 chain: chainSpecific.chain,
