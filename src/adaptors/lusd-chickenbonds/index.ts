@@ -38,8 +38,6 @@ const getBLusdRebondStrategy = async (): Promise<ChickenBondsStrategy> => {
     apyBase: rebondApy,
     underlyingTokens: [LUSD_ADDRESS, BLUSD_ADDRESS],
     rewardTokens: [LUSD_ADDRESS],
-    poolMeta:
-      'Rebonding bLUSD strategy continuously performs the following steps: create an LUSD bond, claim it at the optimum rebond time, sell the acquired bLUSD back to LUSD, and then bond again.',
   };
 };
 
@@ -81,8 +79,6 @@ const getBLusdLusd3CrvStrategy = async (): Promise<ChickenBondsStrategy> => {
     apyReward,
     underlyingTokens: [LUSD_ADDRESS, BLUSD_ADDRESS, LUSD_3CRV_POOL_ADDRESS],
     rewardTokens: [BLUSD_ADDRESS, LUSD_3CRV_POOL_ADDRESS, LUSD_ADDRESS, CRV_ADDRESS],
-    poolMeta:
-      'Staking bLUSD/LUSD-3CRV LP tokens in the Curve gauge earns yield from trade fees, Curve rewards and LUSD rewards from claimed bonds.',
   };
 };
 
