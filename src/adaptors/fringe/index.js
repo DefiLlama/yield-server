@@ -9,7 +9,8 @@ const abiLendingPools = require('./abis/lendingPoolsABI.json');
 const primaryContractAddys = [
     {
         "chain":"ethereum",
-        "chainSpecificProtocolContractAddy": "0x46558DA82Be1ae1955DE6d6146F8D2c1FE2f9C5E"
+        "chainSpecificProtocolContractAddy": "0x46558DA82Be1ae1955DE6d6146F8D2c1FE2f9C5E",
+        "blocksPerDay": 7200
     }
 ];
 
@@ -35,10 +36,9 @@ const getPrices = async (chain, addresses) => {
     }
 };
 
-const getLenderAPY = async (chain, lendingTokenPoolAddy) => {
+const getLenderAPY = async (chain, lendingTokenPoolAddy, blocksPerDay) => {
     // Calc lender APY for this lending token.
     // Lender APY for lending = (((supplyRatePerBlock / 1e18) * BLOCK_PER_DAY + 1)^DAY_PER_YEAR - 1) * 100
-    
     
     let supplyRatePerBlockRes = await sdk.api.abi.call({
         target: lendingTokenPoolAddy,
@@ -48,7 +48,23 @@ const getLenderAPY = async (chain, lendingTokenPoolAddy) => {
 
     let supplyRatePerBlock = supplyRatePerBlockRes['output'];
 
-    return (((supplyRatePerBlock / 1e18) * 7200 + 1) ** 365 - 1) * 100;
+    return (((supplyRatePerBlock / 1e18) * blocksPerDay + 1) ** 365 - 1) * 100;
+};
+
+const getBorrowAPY = async (chain, lendingTokenPoolAddy, blocksPerDay) => {
+    // Calc borrow APY for this lending token.
+    // Borrow APY for lending = (((borrowRatePerBlock / 1e18) * BLOCK_PER_DAY + 1)^DAY_PER_YEAR - 1) * 100
+    
+    
+    let borrowRatePerBlockRes = await sdk.api.abi.call({
+        target: lendingTokenPoolAddy,
+        chain: chain,
+        abi: abiLendingPools.find((e) => e.name === 'borrowRatePerBlock')
+    });
+
+    let borrowRatePerBlock = borrowRatePerBlockRes['output'];
+
+    return (((borrowRatePerBlock / 1e18) * blocksPerDay + 1) ** 365 - 1) * 100;
 };
 
 // Notes: lending tokens = our interest-bearing fTokens.
@@ -103,8 +119,9 @@ const allLendingTokens = async () => {
 
             let underlyingTokenSymbol = underlyingTokenSymbolRes['output'];
 
-            // Get lend APY for this lending token.
-            let lenderAPY = await getLenderAPY(chainSpecific.chain, lendingTokenPoolAddy);
+            // Get lend APY and borrow APY for this lending token.
+            let lenderAPY = await getLenderAPY(chainSpecific.chain, lendingTokenPoolAddy, chainSpecific.blocksPerDay);
+            let borrowAPY = await getBorrowAPY(chainSpecific.chain, lendingTokenPoolAddy, chainSpecific.blocksPerDay);
 
             //////////// Calc TVL in USD for the lending token.
             // From the lending token, get decimals. 
@@ -156,6 +173,8 @@ const allLendingTokens = async () => {
                 symbol: underlyingTokenSymbol,
                 tvlUsd: Number(tvlUSD),
                 apyBase: Number(lenderAPY),
+                apyBaseBorrow: Number(borrowAPY),
+                totalSupplyUsd: Number(tvlUSD),
                 underlyingTokens: [underlyingTokenAddy],
                 poolMeta: "V1 markets",
                 totalBorrowUsd: Number(totalBorrowUSD)
