@@ -31,6 +31,7 @@ const excludePools = [
   '0x513c7e3a9c69ca3e22550ef58ac1c0088e918fff-fantom',
   '0xf0d17f404343D7Ba66076C818c9DC726650E2435-dot-dot-finance',
   '0xa3B615667CBd33cfc69843Bf11Fbb2A1D926BD46-6', // magpie ABNBC pool
+  '0x1d03D8199f43ea030a5D1c2a5d4675d18581D129', // dino pool form unicrypt, jumped from 1mil to > 800mil in tvl
 ];
 
 const boundaries = {
