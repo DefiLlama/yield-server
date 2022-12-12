@@ -28,7 +28,7 @@ const createPool = (pair, chainString) => {
 
   const symbol = utils.formatSymbol(`${token0.symbol}-${token1.symbol}`);
 
-  const apy = rewardsAPR[id.toLowerCase()];
+  const apyReward = rewardsAPR[id.toLowerCase()];
 
   let chain = utils.formatChain(chainString);
 
@@ -40,7 +40,8 @@ const createPool = (pair, chainString) => {
     project: PROJECT_NAME,
     symbol,
     tvlUsd,
-    apy,
+    apyReward,
+    rewardTokens: ['0x6cacdb97e3fc8136805a9e7c342d866ab77d0957'],
   };
 };
 
@@ -184,7 +185,9 @@ const main = async (timestamp = null) => {
     topLvl(ARBITRUM_CHAIN, ARBITRUM_ENDPOINT, timestamp),
   ]);
 
-  return data.flat().filter((pool) => isFinite(pool.apy) && !isNaN(pool.apy));
+  return data
+    .flat()
+    .filter((pool) => isFinite(pool.apyReward) && !isNaN(pool.apyReward));
 };
 
 module.exports = {

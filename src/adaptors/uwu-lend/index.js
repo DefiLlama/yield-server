@@ -13,6 +13,9 @@ const lendingPoolAddressesProvider =
   '0x011c0d38da64b431a1bdfc17ad72678eabf7f1fb';
 const rewardToken = '0x55c08ca52497e2f1534b59e2917bf524d4765257';
 
+// uwu-lend has an early exit penalty of 50%
+const earlyExitPenalty = 0.5;
+
 const apy = async () => {
   const chain = 'ethereum';
   // underlying pools
@@ -132,59 +135,63 @@ const apy = async () => {
     secondsPerYear *
     prices[`${chain}:${rewardToken}`].price;
 
-  return reservesList.map((t, i) => {
-    const price =
-      // wmemo no price via chain:address but only via cg id
-      t === '0x3b79a28264fC52c7b4CEA90558AA0B162f7Faf57'
-        ? prices['coingecko:wrapped-memory']?.price
-        : prices[`${chain}:${t}`]?.price;
+  return reservesList
+    .map((t, i) => {
+      const price =
+        // wmemo no price via chain:address but only via cg id
+        t === '0x3b79a28264fC52c7b4CEA90558AA0B162f7Faf57'
+          ? prices['coingecko:wrapped-memory']?.price
+          : prices[`${chain}:${t}`]?.price;
 
-    // tvl data
-    const tvlUsd = (liquidity[i] / 10 ** decimals[i]) * price;
-    const totalBorrowUsd = (totalBorrow[i] / 10 ** decimals[i]) * price;
-    const totalSupplyUsd = tvlUsd + totalBorrowUsd;
+      // tvl data
+      const tvlUsd = (liquidity[i] / 10 ** decimals[i]) * price;
+      const totalBorrowUsd = (totalBorrow[i] / 10 ** decimals[i]) * price;
+      const totalSupplyUsd = tvlUsd + totalBorrowUsd;
 
-    // apy base
-    const apyBase = reserveData[i].currentLiquidityRate / 1e25;
-    const apyBaseBorrow = reserveData[i].currentVariableBorrowRate / 1e25;
+      // apy base
+      const apyBase = reserveData[i].currentLiquidityRate / 1e25;
+      const apyBaseBorrow = reserveData[i].currentVariableBorrowRate / 1e25;
 
-    // apy reward
-    const apyReward =
-      (((poolInfoInterest[i].allocPoint / totalAllocPoint) * rewardPerYear) /
-        totalSupplyUsd) *
-      100;
+      // apy reward
+      const apyReward =
+        (((poolInfoInterest[i].allocPoint / totalAllocPoint) * rewardPerYear) /
+          totalSupplyUsd) *
+        100 *
+        earlyExitPenalty;
 
-    const apyRewardBorrow =
-      (((poolInfoDebt[i].allocPoint / totalAllocPoint) * rewardPerYear) /
-        totalBorrowUsd) *
-      100;
+      const apyRewardBorrow =
+        (((poolInfoDebt[i].allocPoint / totalAllocPoint) * rewardPerYear) /
+          totalBorrowUsd) *
+        100 *
+        earlyExitPenalty;
 
-    // ltv
-    const ltv = reserveConfigurationData[i].ltv / 1e4;
+      // ltv
+      const ltv = reserveConfigurationData[i].ltv / 1e4;
 
-    // url for pools
-    const url =
-      `https://app.uwulend.fi/reserve-overview/${t}-${t}${lendingPoolAddressesProvider}`.toLowerCase();
+      // url for pools
+      const url =
+        `https://app.uwulend.fi/reserve-overview/${t}-${t}${lendingPoolAddressesProvider}`.toLowerCase();
 
-    return {
-      pool: reserveData[i].aTokenAddress,
-      symbol: utils.formatSymbol(symbols[i]),
-      project: 'uwu-lend',
-      chain: 'Ethereum',
-      tvlUsd,
-      apyBase,
-      apyReward,
-      underlyingTokens: [t],
-      rewardTokens: [rewardToken],
-      url,
-      // borrow fields
-      totalSupplyUsd,
-      totalBorrowUsd,
-      apyBaseBorrow,
-      apyRewardBorrow,
-      ltv,
-    };
-  });
+      return {
+        pool: reserveData[i].aTokenAddress,
+        symbol: utils.formatSymbol(symbols[i]),
+        project: 'uwu-lend',
+        chain: 'Ethereum',
+        tvlUsd,
+        apyBase,
+        apyReward,
+        underlyingTokens: [t],
+        rewardTokens: [rewardToken],
+        url,
+        // borrow fields
+        totalSupplyUsd,
+        totalBorrowUsd,
+        apyBaseBorrow,
+        apyRewardBorrow,
+        ltv,
+      };
+    })
+    .filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

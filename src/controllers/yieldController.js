@@ -34,7 +34,8 @@ const getYieldFiltered = async () => {
         apy,
         "apyBase",
         "apyReward",
-        "il7d"
+        "il7d",
+        "apyBase7d"
     FROM
         (
             SELECT
@@ -84,7 +85,8 @@ const getYieldHistory = async (configID) => {
         apy,
         "apyBase",
         "apyReward",
-        "il7d"
+        "il7d",
+        "apyBase7d"
     FROM
         $<table:name>
     WHERE
@@ -341,6 +343,43 @@ const getYieldLendBorrowHistory = async (configID) => {
   });
 };
 
+// get 30day avg
+const getYieldAvg30d = async () => {
+  const conn = await connect();
+
+  const query = minify(
+    `
+    SELECT
+        "configID",
+        round(avg(apy), 5) as "avgApy30d"
+    FROM
+        $<table:name>
+    WHERE
+        timestamp >= NOW() - INTERVAL '$<age> DAY'
+    GROUP BY
+        "configID"
+  `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query, {
+    age: 30,
+    table: tableName,
+  });
+
+  if (!response) {
+    return new AppError(`Couldn't get ${tableName} 30day avg data`, 404);
+  }
+
+  // reformat
+  const responseObject = {};
+  for (const p of response) {
+    responseObject[p.configID] = p.avgApy30d;
+  }
+
+  return responseObject;
+};
+
 // multi row insert query generator
 const buildInsertYieldQuery = (payload) => {
   // note: even though apyBase and apyReward are optional fields
@@ -355,6 +394,9 @@ const buildInsertYieldQuery = (payload) => {
     'apyBase',
     'apyReward',
     'il7d',
+    'apyBase7d',
+    'apyRewardFake',
+    'apyRewardBorrowFake',
     { name: 'apyBaseBorrow', def: null },
     { name: 'apyRewardBorrow', def: null },
     { name: 'totalSupplyUsd', def: null },
@@ -373,4 +415,5 @@ module.exports = {
   getYieldLendBorrow,
   getYieldLendBorrowHistory,
   buildInsertYieldQuery,
+  getYieldAvg30d,
 };

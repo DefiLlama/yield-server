@@ -8,7 +8,9 @@ const fileSet = new Set();
     root0 === 'src' &&
     root1 === 'adaptors' &&
     dir !== 'test.js' &&
-    dir !== 'utils.js'
+    dir !== 'utils.js' &&
+    dir !== 'package.json' &&
+    dir !== 'package-lock.json'
   )
     fileSet.add(dir);
 });

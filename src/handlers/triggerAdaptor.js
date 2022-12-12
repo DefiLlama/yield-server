@@ -68,6 +68,9 @@ const main = async (body) => {
     apyReward: strToNum(p.apyReward),
     apyBaseBorrow: strToNum(p.apyBaseBorrow),
     apyRewardBorrow: strToNum(p.apyRewardBorrow),
+    apyBase7d: strToNum(p.apyBase7d),
+    apyRewardFake: strToNum(p.apyRewardFake),
+    apyRewardBorrowFake: strToNum(p.apyRewardBorrowFake),
   }));
 
   // filter tvl to be btw lb-ub
@@ -87,6 +90,11 @@ const main = async (body) => {
     apyRewardBorrow: Number.isFinite(p.apyRewardBorrow)
       ? p.apyRewardBorrow
       : null,
+    apyBase7d: Number.isFinite(p.apyBase7d) ? p.apyBase7d : null,
+    apyRewardFake: Number.isFinite(p.apyRewardFake) ? p.apyRewardFake : null,
+    apyRewardBorrowFake: Number.isFinite(p.apyRewardBorrowFake)
+      ? p.apyRewardBorrowFake
+      : null,
   }));
 
   // remove pools where all 3 apy related fields are null
@@ -102,6 +110,9 @@ const main = async (body) => {
     apyReward: p.apyReward < 0 ? 0 : p.apyReward,
     apyBaseBorrow: p.apyBaseBorrow < 0 ? 0 : p.apyBaseBorrow,
     apyRewardBorrow: p.apyRewardBorrow < 0 ? 0 : p.apyRewardBorrow,
+    apyBase7d: p.apyBase7d < 0 ? 0 : p.apyBase7d,
+    apyRewardFake: p.apyRewardFake < 0 ? 0 : p.apyRewardFake,
+    apyRewardBorrowFake: p.apyRewardBorrowFake < 0 ? 0 : p.apyRewardBorrowFake,
   }));
 
   // derive final total apy field
@@ -137,6 +148,7 @@ const main = async (body) => {
     ...p,
     chain: p.chain === 'Binance' ? 'BSC' : p.chain,
   }));
+  console.log(data.length);
 
   // ---- add IL (only for dexes + pools with underlyingTokens array)
   // need the protocol response to check if adapter.body === 'Dexes' category
@@ -146,17 +158,21 @@ const main = async (body) => {
 
   // required conditions to calculate IL field
   if (
-    data[0]?.underlyingTokens.length &&
+    data[0]?.underlyingTokens?.length &&
     protocolConfig[body.adaptor]?.category === 'Dexes' &&
-    !['uniswap-v3', 'balancer', 'curve', 'clipper'].includes(body.adaptor) &&
-    !['elrond', 'near', 'hedera'].includes(data[0].chain.toLowerCase())
+    !['balancer', 'curve', 'clipper'].includes(body.adaptor) &&
+    !['elrond', 'near', 'hedera', 'carbon'].includes(
+      data[0].chain.toLowerCase()
+    )
   ) {
     // extract all unique underlyingTokens
     const uniqueToken = [
       ...new Set(
-        data.map((p) => p.underlyingTokens.map((t) => `${p.chain}:${t}`)).flat()
+        data
+          .map((p) => p.underlyingTokens?.map((t) => `${p.chain}:${t}`))
+          .flat()
       ),
-    ];
+    ].filter(Boolean);
 
     // prices now
     const priceUrl = 'https://coins.llama.fi/prices';
@@ -167,15 +183,35 @@ const main = async (body) => {
     ).coins;
 
     const timestamp7daysAgo = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
-    const prices7d = (
-      await utils.getData(priceUrl, {
-        coins: uniqueToken,
-        timestamp: timestamp7daysAgo,
-      })
-    ).coins;
+    // price endpoint seems to break with too many tokens, splitting it to max 150 per request
+    const maxSize = 150;
+    const pages = Math.ceil(uniqueToken.length / maxSize);
+    let prices7d_ = [];
+    let x = '';
+    for (const p of [...Array(pages).keys()]) {
+      x = uniqueToken.slice(p * maxSize, maxSize * (p + 1)).join(',');
+      prices7d_ = [
+        ...prices7d_,
+        (
+          await superagent.get(
+            `https://coins.llama.fi/prices/historical/${timestamp7daysAgo}/${x}`
+          )
+        ).body.coins,
+      ];
+    }
+    // flatten
+    let prices7d = {};
+    for (const p of prices7d_.flat()) {
+      prices7d = { ...prices7d, ...p };
+    }
+    prices7d = Object.fromEntries(
+      Object.entries(prices7d).map(([k, v]) => [k.toLowerCase(), v])
+    );
 
     // calc IL
     data = data.map((p) => {
+      if (p?.underlyingTokens === null || p?.underlyingTokens === undefined)
+        return { ...p };
       // extract prices
       const token0 = `${p.chain}:${p.underlyingTokens[0]}`.toLowerCase();
       const token1 = `${p.chain}:${p.underlyingTokens[1]}`.toLowerCase();
@@ -200,7 +236,40 @@ const main = async (body) => {
       const d = (1 + pctChangeX) / (1 + pctChangeY);
 
       // IL(d)
-      return { ...p, il7d: ((2 * Math.sqrt(d)) / (1 + d) - 1) * 100 };
+      let il7d = ((2 * Math.sqrt(d)) / (1 + d) - 1) * 100;
+
+      // for uni v3
+      if (body.adaptor === 'uniswap-v3') {
+        const P = price1 / price0;
+
+        // for stablecoin pools, we assume a +/- 0.1% range around current price
+        // for non-stablecoin pools -> +/- 30%
+        const pct = 0.3;
+        const pctStablePool = 0.001;
+        const delta = p.poolMeta.includes('stablePool=true')
+          ? pctStablePool
+          : pct;
+
+        const [p_lb, p_ub] = [P * (1 - delta), P * (1 + delta)];
+
+        // https://medium.com/auditless/impermanent-loss-in-uniswap-v3-6c7161d3b445
+        // ilv3 = ilv2 * factor
+        const factor =
+          1 / (1 - (Math.sqrt(p_lb / P) + d * Math.sqrt(P / p_ub)) / (1 + d));
+
+        // scale IL by factor
+        il7d *= factor;
+        // if the factor is too large, it may result in IL values >100% which don't make sense
+        // -> clip to max -100% IL
+        il7d = il7d < 0 ? Math.max(il7d, -100) : il7d;
+      }
+
+      return {
+        ...p,
+        poolMeta:
+          p.project === 'uniswap-v3' ? p.poolMeta?.split(',')[0] : p.poolMeta,
+        il7d,
+      };
     });
   }
 
@@ -251,7 +320,18 @@ const main = async (body) => {
           ? null
           : Math.round(p.debtCeilingUsd),
       mintedCoin: p.mintedCoin ? utils.formatSymbol(p.mintedCoin) : null,
+      poolMeta: p.poolMeta === undefined ? null : p.poolMeta,
       il7d: p.il7d ? +p.il7d.toFixed(precision) : null,
+      apyBase7d:
+        p.apyBase7d !== null ? +p.apyBase7d.toFixed(precision) : p.apyBase7d,
+      apyRewardFake:
+        p.apyRewardFake !== null
+          ? +p.apyRewardFake.toFixed(precision)
+          : p.apyRewardFake,
+      apyRewardBorrowFake:
+        p.apyRewardBorrowFake !== null
+          ? +p.apyRewardBorrowFake.toFixed(precision)
+          : p.apyRewardBorrowFake,
     };
   });
 

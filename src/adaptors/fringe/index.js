@@ -184,6 +184,7 @@ const allLendingTokens = async () => {
 
     // console.log('allLendingTokens\n', lendingTokens);  // works all ok.
     return lendingTokens;
+
 };
 
 module.exports = {
