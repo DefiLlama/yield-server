@@ -93,7 +93,7 @@ const main = async () => {
 
     let ltv = marketAssets.reduce((acc, marketAsset) => {
       if(marketAsset.asset.id === inputToken.id) {
-        acc = Number(marketAsset.maximumLTV);
+        acc = new BigNumber(marketAsset.maximumLTV).dividedBy(100).toNumber();
       }
       return acc;
     }, 0);
