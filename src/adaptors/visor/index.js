@@ -124,7 +124,7 @@ const getApy = async () => {
         project: 'visor',
         symbol: `${hypervisor.pool.token0.symbol}-${hypervisor.pool.token1.symbol}`,
         tvlUsd: TVL || 0,
-        apyBase: apr || apr,
+        apyBase: apy || apr,
         underlyingTokens: [hypervisor.pool.token0.id, hypervisor.pool.token1.id],
         poolMeta: `${hypervisor.pool.fee/10000}% uniswapv3 pool`,
       };
