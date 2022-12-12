@@ -163,7 +163,7 @@ const allLendingTokens = async () => {
             // Calc the USD-equivalent.
             let totalBorrowUSD = totalBorrow * priceUSD;
     
-            let tvlUSD = balanceOwnedUSD + totalBorrowUSD; 
+            let totalSupplyUSD = balanceOwnedUSD + totalBorrowUSD; 
 
             // Push it good.
             lendingTokens.push({
@@ -171,10 +171,10 @@ const allLendingTokens = async () => {
                 chain: chainSpecific.chain,
                 project: 'fringe',
                 symbol: underlyingTokenSymbol,
-                tvlUsd: Number(tvlUSD),
+                tvlUsd: Number(balanceOwnedUSD),
                 apyBase: Number(lenderAPY),
                 apyBaseBorrow: Number(borrowAPY),
-                totalSupplyUsd: Number(tvlUSD),
+                totalSupplyUsd: Number(totalSupplyUSD),
                 underlyingTokens: [underlyingTokenAddy],
                 poolMeta: "V1 markets",
                 totalBorrowUsd: Number(totalBorrowUSD)
