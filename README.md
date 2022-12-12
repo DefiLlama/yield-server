@@ -24,7 +24,7 @@ interface Pool {
   chain: string;
   project: string;
   symbol: string;
-  tvlUsd: number;
+  tvlUsd: number; // for lending protocols: tvlUsd = totalSupplyUsd - totalBorrowUsd
   apyBase?: number;
   apyReward?: number;
   rewardTokens?: Array<string>;
@@ -36,7 +36,7 @@ interface Pool {
   apyRewardBorrow?: number;
   totalSupplyUsd?: number;
   totalBorrowUsd?: number;
-  ltv?: number;
+  ltv?: number; // btw [0, 1]
 }
 ```
 
