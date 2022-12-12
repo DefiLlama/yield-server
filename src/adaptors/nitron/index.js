@@ -35,7 +35,7 @@ const apr = async () => {
     const totalSupplied = new BigNumber(total_principal ?? 0).plus(new BigNumber(assetBalance?.available ?? 0))
     const totalSuppliedUSD = totalSupplied.multipliedBy(usdValue).shiftedBy(-Number(tokenInfo.decimals)).toNumber()
     const totalBorrowedUSD = (new BigNumber(total_principal)).multipliedBy(usdValue).shiftedBy(-Number(tokenInfo.decimals)).toNumber()
-    
+    const tvl = totalSuppliedUSD - totalBorrowedUSD
     //  Borrow APY
     const borrowAPY = calculateInterestAPY(debtInfo, strategy)
     //  Supply APY
@@ -52,7 +52,7 @@ const apr = async () => {
       project: 'nitron',
       symbol: symbol,
       // Supply and Borrowing
-      tvlUsd: totalSuppliedUSD,
+      tvlUsd: tvl, // totalSuppliedUSD - totalBorrowedUSD
       apyBase: supplyAPY.shiftedBy(2).toNumber(), // supplying in %
       apyReward: overallSupplyRewardApr?.shiftedBy(2)?.toNumber() ?? 0, // APY from rewards in %
       rewardTokens: [...new Set([...rewardTokensSupply ,...rewardTokensBorrow])],
@@ -61,8 +61,7 @@ const apr = async () => {
       apyRewardBorrow: overallRewardApr?.shiftedBy(2)?.toNumber() ?? 0,
       totalSupplyUsd: totalSuppliedUSD,
       totalBorrowUsd: totalBorrowedUSD,
-      ltv: new BigNumber(asset.loan_to_value).shiftedBy(-2).toNumber(),
-      apy: 0,
+      ltv: new BigNumber(asset.loan_to_value).shiftedBy(-2).toNumber() / 100,
     });
   }
   return result;
