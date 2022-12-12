@@ -4,71 +4,64 @@ const query = gql`
   query ($days: Int!, $mexID: String!, $offset: Int, $pairsLimit: Int) {
     totalAggregatedRewards(days: $days)
     farms {
-      address
-      farmedToken {
-        balance
-        decimals
-        name
-        identifier
-        ticker
-        owner
-        assets {
-          website
-          description
-          status
-          pngUrl
-          svgUrl
+      ... on FarmModelV1_3 {
+        __typename
+        address
+        farmedToken {
+          balance
+          decimals
+          name
+          identifier
+          ticker
+          owner
+          assets {
+            website
+            description
+            status
+            pngUrl
+            svgUrl
+            __typename
+          }
+          price
+          type
           __typename
         }
-        price
-        type
-        __typename
-      }
-      farmedTokenPriceUSD
-      farmToken {
-        decimals
-        name
-        collection
-        ticker
-        __typename
-      }
-      farmTokenPriceUSD
-      farmTokenSupply
-      farmingToken {
-        balance
-        decimals
-        name
-        identifier
-        ticker
-        owner
-        assets {
-          website
-          description
-          status
-          pngUrl
-          svgUrl
+        farmedTokenPriceUSD
+        farmToken {
+          decimals
+          name
+          collection
+          ticker
           __typename
         }
-        price
-        type
+        farmTokenPriceUSD
+        farmTokenSupply
+        farmingToken {
+          balance
+          decimals
+          name
+          identifier
+          ticker
+          owner
+          assets {
+            website
+            description
+            status
+            pngUrl
+            svgUrl
+            __typename
+          }
+          price
+          type
+          __typename
+        }
+        farmingTokenPriceUSD
+        perBlockRewards
+        totalValueLockedUSD
+        produceRewardsEnabled
+        apr
         __typename
       }
-      farmingTokenPriceUSD
-      farmingTokenReserve
-      state
-      penaltyPercent
-      minimumFarmingEpochs
-      version
-      rewardType
-      requireWhitelist
-      perBlockRewards
-      totalValueLockedUSD
-      produceRewardsEnabled
-      aprMultiplier
-      apr
-      unlockedRewardsAPR
-      lockedRewardsAPR
-      __typename
     }
     pairs(offset: $offset, limit: $pairsLimit) {
       address
@@ -207,9 +200,7 @@ const query = gql`
       }
       state
       minUnboundEpochs
-      penaltyPercent
       annualPercentageRewards
-      minimumFarmingEpochs
       rewardPerShare
       farmTokenSupply
       perBlockRewards

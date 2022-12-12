@@ -41,6 +41,9 @@ const buildPoolsEnrichedOld = async (queryString) => {
     'count',
     'outlier',
     'underlyingTokens',
+    'il7d',
+    'apyBase7d',
+    'apyMean30d',
   ]
     .map((el) => `t."${el}"`)
     .join(', ');
@@ -96,7 +99,7 @@ const buildRedirect = (filename) => {
     headers: {
       Location: `https://defillama-datasets.s3.eu-central-1.amazonaws.com/temp/${filename}`,
       Expires: next21Minutedate(),
-      "Access-Control-Allow-Origin": "*",
+      'Access-Control-Allow-Origin': '*',
     },
   };
 };
