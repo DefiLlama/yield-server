@@ -30,6 +30,7 @@ const query = gql`
       supply
       protectedSupply
       tokenPriceUSD
+      maximumLTV
       asset {
         id
         symbol
@@ -89,6 +90,13 @@ const main = async () => {
 
     let inputTokenBorrowRateObject = rates.find(rate => (rate.token.id === inputToken.id) && (rate.side === 'BORROWER'));
     let inputTokenSupplyRateObject = rates.find(rate => (rate.token.id === inputToken.id) && (rate.side === 'LENDER'));
+
+    let ltv = marketAssets.reduce((acc, marketAsset) => {
+      if(marketAsset.asset.id === inputToken.id) {
+        acc = Number(marketAsset.maximumLTV);
+      }
+      return acc;
+    }, 0);
     
     markets.push({
       pool: `${market.id}-ethereum`,
@@ -101,6 +109,7 @@ const main = async () => {
       url: `https://app.silo.finance/silo/${market.id}`,
       underlyingTokens: underlyingAssetAddresses,
       poolMeta: buildMarketName(name),
+      ...(ltv && {ltv}),
     })
   };
 
