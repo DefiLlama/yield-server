@@ -8,6 +8,8 @@ const API_URLS = {
   avalanche: `${API_URL}?network=avax`,
   fantom: `${API_URL}?network=fantom`,
   polygon: `${API_URL}?network=polygon`,
+  arbitrum: `${API_URL}?network=arbitrum`,
+  optimism: `${API_URL}?network=optimism`,
 };
 
 const xWOOMapping = {
@@ -15,7 +17,9 @@ const xWOOMapping = {
   avalanche: '0xcd1B9810872aeC66d450c761E93638FB9FE09DB0',
   fantom: '0x2Fe5E5D341cFFa606a5d9DA1B6B646a381B0f7ec',
   polygon: '0x9BCf8b0B62F220f3900e2dc42dEB85C3f79b405B',
-};
+  arbitrum: '0x9321785D257b3f0eF7Ff75436a87141C683DC99d',
+  optimism: '0x871f2F2ff935FD1eD867842FF2a7bfD051A5E527', // No xWOO on Optimism, only WOO
+}
 
 const main = async () => {
   const datas = await Promise.all(
