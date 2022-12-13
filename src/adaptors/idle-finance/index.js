@@ -15,54 +15,54 @@ const tranches = [
     name: 'lido_stETH',
     cdo: '0x34dCd573C5dE4672C8248cd12A99f875Ca112Ad8',
   },
-  // {
-  //   name: 'lido_stMatic',
-  //   cdo: '0xF87ec7e1Ee467d7d78862089B92dd40497cBa5B8',
-  // },
-  // {
-  //   name: 'convex_frax3Crv',
-  //   cdo: '0x4CCaf1392a17203eDAb55a1F2aF3079A8Ac513E7',
-  // },
-  // {
-  //   name: 'convex_steCRV',
-  //   cdo: '0x7EcFC031758190eb1cb303D8238D553b1D4Bc8ef',
-  // },
-  // {
-  //   name: 'convex_alusd3crv',
-  //   cdo: '0x008C589c471fd0a13ac2B9338B69f5F7a1A843e1',
-  // },
-  // {
-  //   name: 'convex_3eur',
-  //   cdo: '0x858F5A3a5C767F8965cF7b77C51FD178C4A92F05',
-  // },
-  // {
-  //   name: 'convex_pbtccrv',
-  //   cdo: '0xf324Dca1Dc621FCF118690a9c6baE40fbD8f09b7',
-  // },
-  // {
-  //   name: 'euler_eUSDC',
-  //   cdo: '0xF5a3d259bFE7288284Bd41823eC5C8327a314054',
-  // },
-  // {
-  //   name: 'euler_eDAI',
-  //   cdo: '0x46c1f702A6aAD1Fd810216A5fF15aaB1C62ca826',
-  // },
-  // {
-  //   name: 'euler_eUSDT',
-  //   cdo: '0xD5469DF8CA36E7EaeDB35D428F28E13380eC8ede',
-  // },
-  // {
-  //   name: 'euler_eagEUR',
-  //   cdo: '0x2398Bc075fa62Ee88d7fAb6A18Cd30bFf869bDa4',
-  // },
-  // {
-  //   name: 'cp_WIN_USDC',
-  //   cdo: '0xDBCEE5AE2E9DAf0F5d93473e08780C9f45DfEb93',
-  // },
-  // {
-  //   name: 'cp_FOL_DAI',
-  //   cdo: '0xDcE26B2c78609b983cF91cCcD43E238353653b0E',
-  // },
+  {
+    name: 'lido_stMatic',
+    cdo: '0xF87ec7e1Ee467d7d78862089B92dd40497cBa5B8',
+  },
+  {
+    name: 'convex_frax3Crv',
+    cdo: '0x4CCaf1392a17203eDAb55a1F2aF3079A8Ac513E7',
+  },
+  {
+    name: 'convex_steCRV',
+    cdo: '0x7EcFC031758190eb1cb303D8238D553b1D4Bc8ef',
+  },
+  {
+    name: 'convex_alusd3crv',
+    cdo: '0x008C589c471fd0a13ac2B9338B69f5F7a1A843e1',
+  },
+  {
+    name: 'convex_3eur',
+    cdo: '0x858F5A3a5C767F8965cF7b77C51FD178C4A92F05',
+  },
+  {
+    name: 'convex_pbtccrv',
+    cdo: '0xf324Dca1Dc621FCF118690a9c6baE40fbD8f09b7',
+  },
+  {
+    name: 'euler_eUSDC',
+    cdo: '0xF5a3d259bFE7288284Bd41823eC5C8327a314054',
+  },
+  {
+    name: 'euler_eDAI',
+    cdo: '0x46c1f702A6aAD1Fd810216A5fF15aaB1C62ca826',
+  },
+  {
+    name: 'euler_eUSDT',
+    cdo: '0xD5469DF8CA36E7EaeDB35D428F28E13380eC8ede',
+  },
+  {
+    name: 'euler_eagEUR',
+    cdo: '0x2398Bc075fa62Ee88d7fAb6A18Cd30bFf869bDa4',
+  },
+  {
+    name: 'cp_WIN_USDC',
+    cdo: '0xDBCEE5AE2E9DAf0F5d93473e08780C9f45DfEb93',
+  },
+  {
+    name: 'cp_FOL_DAI',
+    cdo: '0xDcE26B2c78609b983cF91cCcD43E238353653b0E',
+  },
 ];
 
 const getApy = async () => {
@@ -121,6 +121,16 @@ const apyTranches = async () => {
     })
   ).output.map((o) => o.output);
 
+  const underlyingTokens = (
+    await sdk.api.abi.multiCall({
+      calls: Object.values(tranches).map((t) => ({
+        target: t.cdo,
+      })),
+      abi: idleCdoAbi.find((m) => m.name === 'token'),
+      chain: 'ethereum',
+    })
+  ).output.map((o) => o.output);
+
   const balances = (
     await sdk.api.abi.multiCall({
       calls: strategyTokens.map((t, i) => ({
@@ -144,7 +154,7 @@ const apyTranches = async () => {
 
   const underlyingPrices = (
     await axios.get(
-      `https://coins.llama.fi/prices/current/${strategyTokens
+      `https://coins.llama.fi/prices/current/${underlyingTokens
         .map((t) => `ethereum:${t}`)
         .join(',')}`
     )
@@ -192,20 +202,37 @@ const apyTranches = async () => {
     })
   ).output.map((o) => o.output);
 
-  return tranches.map((t, i) => {
+  const pools = [];
+  for (const [i, t] of tranches.entries()) {
     const tvlUsd =
       (balances[i] / 10 ** decimals[i]) *
-      underlyingPrices[`ethereum:${strategyTokens[i]}`]?.price;
+      underlyingPrices[`ethereum:${underlyingTokens[i]}`]?.price;
 
-    return {
+    // AA tranche
+    pools.push({
       pool: t.cdo,
       symbol: t.name,
       apyBase: (Number(aprAA[i]) + Number(strategyApr[i])) / 1e18,
       tvlUsd: (tvlUsd * Number(currentAARatio[i])) / Number(FULL_ALLOC[i]),
       project: 'idle-finance',
       chain: 'ethereum',
-    };
-  });
+      poolMeta: 'Senior Tranche',
+    });
+
+    // AA tranche
+    pools.push({
+      pool: t.cdo,
+      symbol: t.name,
+      apyBase: (Number(aprBB[i]) + Number(strategyApr[i])) / 1e18,
+      tvlUsd:
+        (tvlUsd * (1 - Number(currentAARatio[i]))) / Number(FULL_ALLOC[i]),
+      project: 'idle-finance',
+      chain: 'ethereum',
+      poolMeta: 'Junior Tranche',
+    });
+  }
+
+  return pools;
 };
 
 const apyBestYield = async () => {
