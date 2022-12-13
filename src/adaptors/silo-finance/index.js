@@ -52,17 +52,6 @@ const query = gql`
 }
 `;
 
-const buildMarketName = (symbol) => {
-  let formattedSymbol = utils.formatSymbol(symbol);
-  if(formattedSymbol === 'ETH') {
-    return 'ETH-XAI';
-  } else if (formattedSymbol === 'XAI') {
-    return 'XAI-ETH';
-  } else {
-    return `${formattedSymbol}-ETH-XAI`
-  }
-}
-
 const main = async () => {
   // market data
   const data = await request(url, query);
@@ -108,8 +97,8 @@ const main = async () => {
       apyBaseBorrow: Number(inputTokenBorrowRateObject.rate),
       url: `https://app.silo.finance/silo/${market.id}`,
       underlyingTokens: underlyingAssetAddresses,
-      poolMeta: buildMarketName(name),
-      ...(ltv && {ltv}),
+      poolMeta: 'Siloed Lending',
+      // ...(ltv && {ltv}), // temp disabled until totalSupplyUsd and totalBorrowUsd ready
     })
   };
 
