@@ -1,7 +1,7 @@
 // adaptors which we don't want to be triggered +
 // which we don't want to be included in the enriched dataset
 // in case we have old values in db
-const excludeAdaptors = ['koyo-finance', 'pony-finance', 'qidao', 'optifi'];
+const excludeAdaptors = ['koyo-finance', 'pony-finance', 'optifi'];
 
 const excludePools = [
   '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d',
@@ -30,6 +30,8 @@ const excludePools = [
   '0x625e7708f30ca75bfd92586e17077590c60eb4cd-fantom',
   '0x513c7e3a9c69ca3e22550ef58ac1c0088e918fff-fantom',
   '0xf0d17f404343D7Ba66076C818c9DC726650E2435-dot-dot-finance',
+  '0xa3B615667CBd33cfc69843Bf11Fbb2A1D926BD46-6', // magpie ABNBC pool
+  '0x1d03D8199f43ea030a5D1c2a5d4675d18581D129', // dino pool form unicrypt, jumped from 1mil to > 800mil in tvl
 ];
 
 const boundaries = {

@@ -51,62 +51,70 @@ const queryPrior = gql`
 `;
 
 const topLvl = async (chainString, url, timestamp) => {
-  const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
-    url,
-  ]);
+  try {
+    const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
+      url,
+    ]);
 
-  const [_, blockPrior7d] = await utils.getBlocks(
-    chainString,
-    timestamp,
-    [url],
-    604800
-  );
-
-  let data = (await request(url, query.replace('<PLACEHOLDER>', block))).pools;
-
-  const dataPrior = (
-    await request(url, queryPrior.replace('<PLACEHOLDER>', blockPrior))
-  ).pools;
-
-  const dataPrior7d = (
-    await request(url, queryPrior.replace('<PLACEHOLDER>', blockPrior7d))
-  ).pools;
-
-  data = data.map((p) => ({
-    ...p,
-    reserve0: p.totalValueLockedToken0,
-    reserve1: p.totalValueLockedToken1,
-    feeTier: p.feeTier * 10,
-  }));
-  data = await utils.tvl(data, chainString);
-
-  data = data.map((p) => utils.apy(p, dataPrior, dataPrior7d));
-
-  const farmData = (await axios.get(urlFarm.replace('<CHAIN>', chainString)))
-    .data.data.farmPools;
-
-  return data.map((p) => {
-    const farm = farmData.find(
-      (x) => x.pool.id.toLowerCase() === p.id.toLowerCase()
+    const [_, blockPrior7d] = await utils.getBlocks(
+      chainString,
+      timestamp,
+      [url],
+      604800
     );
-    const apyReward =
-      farm?.endTime > Date.now() / 1000 ? +farm?.pool.farmApr : 0;
 
-    const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
-    return {
-      pool: p.id,
-      chain: utils.formatChain(chainString),
-      project: 'kyberswap',
-      symbol,
-      tvlUsd: p.totalValueLockedUSD,
-      apyBase: p.apy1d,
-      apyBase7d: p.apy7d,
-      apyReward,
-      rewardTokens: apyReward > 0 ? farm.rewardTokens.map((r) => r.id) : [],
-      underlyingTokens: [p.token0.id, p.token1.id],
-      poolMeta: `${p.feeTier / 1e4}%`,
-    };
-  });
+    let data = (await request(url, query.replace('<PLACEHOLDER>', block)))
+      .pools;
+
+    const dataPrior = (
+      await request(url, queryPrior.replace('<PLACEHOLDER>', blockPrior))
+    ).pools;
+
+    const dataPrior7d = (
+      await request(url, queryPrior.replace('<PLACEHOLDER>', blockPrior7d))
+    ).pools;
+
+    data = data.map((p) => ({
+      ...p,
+      reserve0: p.totalValueLockedToken0,
+      reserve1: p.totalValueLockedToken1,
+      feeTier: p.feeTier * 10,
+    }));
+    data = await utils.tvl(data, chainString);
+
+    data = data.map((p) => utils.apy(p, dataPrior, dataPrior7d));
+
+    const farmData = (await axios.get(urlFarm.replace('<CHAIN>', chainString)))
+      .data.data.farmPools;
+
+    return data.map((p) => {
+      const farm = farmData.find(
+        (x) => x.pool.id.toLowerCase() === p.id.toLowerCase()
+      );
+      const apyReward =
+        farm?.endTime > Date.now() / 1000 ? +farm?.pool.farmApr : 0;
+
+      const symbol = utils.formatSymbol(
+        `${p.token0.symbol}-${p.token1.symbol}`
+      );
+      return {
+        pool: p.id,
+        chain: utils.formatChain(chainString),
+        project: 'kyberswap',
+        symbol,
+        tvlUsd: p.totalValueLockedUSD,
+        apyBase: p.apy1d,
+        apyBase7d: p.apy7d,
+        apyReward,
+        rewardTokens: apyReward > 0 ? farm.rewardTokens.map((r) => r.id) : [],
+        underlyingTokens: [p.token0.id, p.token1.id],
+        poolMeta: `${p.feeTier / 1e4}%`,
+      };
+    });
+  } catch (e) {
+    if (e.message.includes('Stale subgraph')) return [];
+    else throw e;
+  }
 };
 
 const main = async (timestamp = null) => {

@@ -11,7 +11,7 @@ const apy = async () => {
   const pools = pairs.map((pair) => {
     const farm = farms.find(
       ({ farmingToken, apr }) =>
-        farmingToken.identifier === pair.liquidityPoolToken.identifier && apr
+        farmingToken?.identifier === pair?.liquidityPoolToken?.identifier && apr
     );
 
     const apyReward = Number(farm && farm.apr) * 100 || 0;
@@ -26,8 +26,8 @@ const apy = async () => {
       apyReward: apyReward,
       rewardTokens: apyReward ? ['MEX-455c57'] : [],
       underlyingTokens: [
-        pair.firstToken.identifier,
-        pair.secondToken.identifier,
+        pair.firstToken?.identifier,
+        pair.secondToken?.identifier,
       ],
     };
   });

@@ -6,8 +6,9 @@
 2. Fork this repository
 3. Create a new folder within [src/adaptors/](src/adaptors/) with your protocol name (use your project `slug` from `https://api.llama.fi/protocols`)
 4. Write an adaptor for your protocol (tutorial below)
-5. Test your adaptor by running `npm run test --adapter=YOUR_ADAPTER` (remember to install dependencies with `npm i` first!)
-6. Submit a PR
+5. `cd src/adaptors` and run `npm i`
+6. Test your adaptor by running `npm run test --adapter=YOUR_ADAPTER`
+7. Submit a PR
 
 ### Data sources
 
@@ -23,7 +24,7 @@ interface Pool {
   chain: string;
   project: string;
   symbol: string;
-  tvlUsd: number;
+  tvlUsd: number; // for lending protocols: tvlUsd = totalSupplyUsd - totalBorrowUsd
   apyBase?: number;
   apyReward?: number;
   rewardTokens?: Array<string>;
@@ -35,7 +36,7 @@ interface Pool {
   apyRewardBorrow?: number;
   totalSupplyUsd?: number;
   totalBorrowUsd?: number;
-  ltv?: number;
+  ltv?: number; // btw [0, 1]
 }
 ```
 
@@ -63,6 +64,7 @@ A note on how to set apy related fields:
 ```
 
 #### FAQ
+
 > Why are some pools missing on DefiLlama which appear on my adapter?
 
 DefiLlama only displays pools with >10k TVL, so pools with less TVL than that will appear on the adapter but not on defillama
@@ -113,4 +115,4 @@ module.exports = {
 };
 ```
 
-You can find examples for a bunch of other protocols in the [src/adaptors/](src/adaptors/) folder, and if you have any questions feel free to ask them on [our discord](https://discord.gg/defillama).
+You can find examples for a bunch of other protocols in the [src/adaptors/](src/adaptors/) folder, and if you have any questions feel free to ask them on [our discord](https://discord.defillama.com/).

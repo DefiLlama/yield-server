@@ -1,10 +1,14 @@
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
+const BIG_10 = new BigNumber(10);
+
 const utils = require('../utils');
 const { vaults, ChainId, FRONTEND } = require('./vaults');
-const BIG_10 = new BigNumber(10);
+
 const MAI_ID = 'mimatic';
 const url = 'https://api.mai.finance/v2/vaultIncentives';
+const qidao = '0xD694620D4621124F341951a2bae4C794baFD1723';
+
 const VAULT = {
   abis: {
     totalSupply: {
@@ -59,8 +63,16 @@ const VAULT = {
       stateMutability: 'view',
       type: 'function',
     },
+    _minimumCollateralPercentage: {
+      inputs: [],
+      name: '_minimumCollateralPercentage',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
   },
 };
+
 const chainIdMap = {
   ethereum: 1,
   optimism: 10,
@@ -136,6 +148,19 @@ const main = async () => {
         requery: true,
       })
     ).output.map((x) => x.output);
+
+    const ltv = (
+      await sdk.api.abi.multiCall({
+        calls: _vaultsInfo.map(({ token, vaultAddress }) => ({
+          target: vaultAddress,
+          params: null,
+        })),
+        abi: VAULT.abis._minimumCollateralPercentage,
+        chain: _chain,
+        requery: true,
+      })
+    ).output.map((x) => x.output);
+
     const coins_address = _vaultsInfo.map(
       (e) => `${_chain}:${e.token.address}`
     );
@@ -157,33 +182,37 @@ const main = async () => {
       const totalBorrowUsd = new BigNumber(totalBorroweds[index])
         .div(BIG_10.pow(18))
         .times(prices[MAI_ID.toLowerCase()]);
-      const ltv = new BigNumber(totalSupplys[index])
-        .multipliedBy(totalBorroweds[index])
-        .dividedBy(BIG_10.pow(25));
 
       const apyCall = _incentive.find(
         (x) => x.vaultAddress.toLowerCase() === e.vaultAddress.toLowerCase()
       );
 
+      const rewardTokens = [qidao];
       let apyRewardBorrow = Number(apyCall?.apr || '0');
-      if (apyRewardBorrow === 0 && _chain === 'metis') {
-        apyRewardBorrow = Number(apyCall?.extraRewards[0]?.apr || '0');
+      if (_chain === 'metis' && apyCall?.extraRewards?.length > 0) {
+        const rewards = apyCall?.extraRewards[0];
+        apyRewardBorrow += Number(rewards?.apr || '0');
+        rewardTokens.push(rewards?.address);
       }
+
+      const symbol = e.token.symbol;
+
       return {
         pool: `${e.vaultAddress}-${_chain}`,
         project: 'qidao',
-        symbol: e.token.symbol,
+        symbol: symbol === 'yvcurve-eth-steth' ? 'eth-steth' : symbol,
+        poolMeta: symbol === 'yvcurve-eth-steth' ? 'Curve' : null,
         chain: _chain,
         apy: 0,
         tvlUsd: tvlUsd.toNumber(),
         // borrow fields
         apyBaseBorrow: Number(iRs[index]),
-        apyRewardBorrow: apyRewardBorrow,
+        // apyRewardBorrow, // ignoring this cause its only available within a specific range of collateral factor
         totalSupplyUsd: tvlUsd.toNumber(),
         totalBorrowUsd: totalBorrowUsd.toNumber(),
         debtCeilingUsd: totalBorrowUsd.plus(debtCeilingUsd).toNumber(),
         mintedCoin: 'MAI',
-        ltv: ltv.toNumber(),
+        ltv: (1 / ltv[index]) * 100,
       };
     });
     result.push(_result);

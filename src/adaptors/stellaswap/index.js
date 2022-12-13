@@ -5,9 +5,12 @@ const axios = require('axios');
 const utils = require('../utils');
 const abiMasterchef = require('./abiMasterchef.js');
 const abiLpToken = require('./abiLpToken.js');
+const abiStableSwap = require('./abiStableSwap.js');
 const pools = require('../concentrator/pools');
 
 const url = 'https://api.thegraph.com/subgraphs/name/stellaswap/stella-swap';
+const urlStable =
+  'https://api.thegraph.com/subgraphs/name/stellaswap/stable-amm-2';
 const masterchef = '0xF3a5454496E26ac57da879bf3285Fa85DEBF0388';
 const STELLA = '0x0e358838ce72d5e61e0018a2ffac4bec5f4c88d2';
 const STELLA_DEC = 18;
@@ -48,7 +51,34 @@ const queryPrior = gql`
   }
 `;
 
-const topLvl = async (
+const queryStablePools = gql`
+  query swapData($id: String!) {
+    swap(id: $id) {
+      id
+      lpToken
+      tokens {
+        decimals
+        symbol
+        address
+      }
+      weeklyVolumes(first: 1) {
+        volume
+      }
+      dailyVolumes(first: 1) {
+        volume
+      }
+      swapFee
+    }
+  }
+`;
+
+const stablePools = [
+  '0xb1bc9f56103175193519ae1540a0a4572b1566f6',
+  '0xa1ffdc79f998e7fa91ba3a6f098b84c9275b0483',
+  '0xf0a2ae65342f143fc09c83e5f19b706abb37414d',
+];
+
+const apyBase = async (
   chainString,
   url,
   query,
@@ -86,7 +116,7 @@ const topLvl = async (
   // calculate apy
   dataNow = dataNow.map((p) => utils.apy(p, dataPrior, dataPrior7d, version));
 
-  return dataNow.map((p) => {
+  dataNow = dataNow.map((p) => {
     const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
     const underlyingTokens = [p.token0.id, p.token1.id];
     const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
@@ -104,12 +134,81 @@ const topLvl = async (
       underlyingTokens,
     };
   });
+
+  // stable pools
+  const stablePoolUnderlyingTokens = (
+    await sdk.api.abi.multiCall({
+      calls: stablePools.map((p) => ({ target: p })),
+      chain: 'moonbeam',
+      abi: abiStableSwap.find((m) => m.name === 'getTokens'),
+    })
+  ).output.map((o) => o.output);
+
+  const stablePoolBalances = (
+    await sdk.api.abi.multiCall({
+      calls: stablePools.map((p) => ({ target: p })),
+      chain: 'moonbeam',
+      abi: abiStableSwap.find((m) => m.name === 'getTokenBalances'),
+    })
+  ).output.map((o) => o.output);
+
+  let dataStables = await Promise.all(
+    stablePools.map((p) => {
+      return request(urlStable, queryStablePools, {
+        id: p.toLowerCase(),
+      });
+    })
+  );
+
+  console.log(dataStables[0].swap);
+  console.log(stablePoolBalances[0]);
+  console.log(stablePoolUnderlyingTokens[0]);
+  // process.exit(0);
+
+  dataStables = dataStables.map((p, i) => {
+    const pool = p.swap;
+    if (pool === null) return null;
+
+    const tvlUsd = stablePoolBalances[i]
+      .map((balance, j) => {
+        const decimal = pool.tokens.find(
+          (x) =>
+            x.address.toLowerCase() ===
+            stablePoolUnderlyingTokens[i][j].toLowerCase()
+        ).decimals;
+
+        return balance / 10 ** decimal;
+      })
+      .reduce((a, b) => a + b);
+
+    const apyBase =
+      ((pool.dailyVolumes[0].volume * pool.swapFee) / 1e8 / tvlUsd) * 100;
+    const apyBase7d =
+      ((pool.weeklyVolumes[0].volume * pool.swapFee) / 1e8 / tvlUsd) * 100;
+    const symbol = utils.formatSymbol(
+      pool.tokens.map((t) => t.symbol).join('-')
+    );
+    const underlyingTokens = pool.tokens.map((t) => t.address);
+
+    return {
+      pool: pool.lpToken.toLowerCase(),
+      chain: utils.formatChain(chainString),
+      project: 'stellaswap',
+      symbol,
+      tvlUsd,
+      apyBase,
+      apyBase7d,
+      underlyingTokens,
+    };
+  });
+
+  return [...dataNow, ...dataStables].filter((p) => p !== null);
 };
 
 const getApy = async (timestamp = null) => {
   // ------------ fee apr for all pools
   const dataFee = (
-    await topLvl('moonbeam', url, query, queryPrior, 'stellaswap', timestamp)
+    await apyBase('moonbeam', url, query, queryPrior, 'stellaswap', timestamp)
   ).filter((p) => utils.keepFinite(p));
 
   // ------------ add reward apr only for pools in farms
