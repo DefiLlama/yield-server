@@ -115,8 +115,8 @@ const getApy = async () => {
       
       
       const TVL = Number(hypervisor.tvlUSD);
-      const apy = hype_return[chain][hypervisor.id]["monthly"]["feeApy"];
-      const apr = hype_return[chain][hypervisor.id]["monthly"]["feeApr"];
+      const apy = hype_return[chain][hypervisor.id]["daily"]["feeApy"];
+      const apr = hype_return[chain][hypervisor.id]["daily"]["feeApr"];
 
       // create a unique pool name
       var pool_name = hypervisor.id;
@@ -128,12 +128,11 @@ const getApy = async () => {
       return {
         pool: pool_name,
         chain: utils.formatChain(chain),
-        project: 'visor',
+        project: 'gamma',
         symbol: `${hypervisor.pool.token0.symbol}-${hypervisor.pool.token1.symbol}`,
         tvlUsd: TVL || 0,
         apyBase: apy || apr,
         underlyingTokens: [hypervisor.pool.token0.id, hypervisor.pool.token1.id],
-        poolMeta: `${hypervisor.pool.fee/10000}% uniswapv3 pool`,
       };
     });
     return chainAprs;
