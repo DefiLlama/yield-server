@@ -19,7 +19,6 @@ const CHAINS_API = {
     arbitrum: 'arbitrum/',
     celo: 'celo/'
   };
-  
 const CHAIN_IDS = {
     ethereum: 1,
     optimism: 10,
@@ -28,6 +27,7 @@ const CHAIN_IDS = {
     celo: 42220
   };
 
+var pools_processed = []; // unique pools name
 
 const getUrl_returns = (chain) =>
   `https://gammawire.net/${chain}hypervisors/returns`;
@@ -118,8 +118,15 @@ const getApy = async () => {
       const apy = hype_return[chain][hypervisor.id]["monthly"]["feeApy"];
       const apr = hype_return[chain][hypervisor.id]["monthly"]["feeApr"];
 
+      // create a unique pool name
+      var pool_name = hypervisor.id;
+      if (pools_processed.indexOf(pool_name) >= 0){
+        pool_name = `${hypervisor.id}-${utils.formatChain(chain)}`
+      };
+      pools_processed.push(pool_name);
+    
       return {
-        pool: hypervisor.id,
+        pool: pool_name,
         chain: utils.formatChain(chain),
         project: 'visor',
         symbol: `${hypervisor.pool.token0.symbol}-${hypervisor.pool.token1.symbol}`,
