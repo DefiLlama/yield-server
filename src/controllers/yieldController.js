@@ -273,6 +273,7 @@ const getYieldLendBorrow = async () => {
         pool NOT IN ($<excludePools:csv>)
         AND project NOT IN ($<excludeProjects:csv>)
         AND ltv >= 0
+        AND "totalSupplyUsd" >= 0
   `,
     { compress: true }
   );
