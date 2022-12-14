@@ -7,6 +7,7 @@ const graphQuery = () => gql`
   {
     bonds(where: { state: active }) {
       id
+      createdAt
       collateralTokenAmount
       collateralToken {
         id
@@ -22,8 +23,6 @@ const graphQuery = () => gql`
     }
   }
 `;
-
-//Full list of bids; iterate over each bid (increment until gt max offering size); bid object will have price
 
 const graphUrl =
   'https://api.thegraph.com/subgraphs/name/alwaysbegrowing/arbor-v1';
@@ -44,8 +43,8 @@ const poolsFunction = async () => {
     const tvl = tokenPrice * tokenAmount;
 
     const date = dayjs.unix(bond.maturityDate);
-    const currentDate = dayjs(new Date());
-    const yearsUntilMaturity = date.diff(currentDate, 'year', true);
+    const issuanceDate = dayjs.unix(bond.createdAt);
+    const yearsUntilMaturity = date.diff(issuanceDate, 'year', true);
 
     const price = () => {
       if (!bond.clearingPrice) {
@@ -75,3 +74,5 @@ module.exports = {
   apy: poolsFunction,
   url: 'https://app.arbor.finance/offerings',
 };
+
+//npm run test --adapter=arbor-finance
