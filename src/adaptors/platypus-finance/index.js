@@ -21,6 +21,7 @@ const poolsQuery = gql`
       id
       pool {
         name
+        id
       }
     }
   }
@@ -180,8 +181,13 @@ const apy = async () => {
         if (apyRewardExtra > 0) rewardTokens.push(extraRewardToken);
       }
 
+      const poolName = assets.find(
+        (a) => a.id.toLowerCase() === t.toLowerCase()
+      );
+      if (poolName === undefined) return null;
+
       return {
-        pool: t,
+        pool: `${poolName.pool.id}-${underlyingTokens[i]}`.toLowerCase(),
         symbol: symbols[i],
         chain: 'avalanche',
         project: 'platypus-finance',
@@ -189,17 +195,16 @@ const apy = async () => {
         apyReward: apyRewardPTP + apyRewardExtra,
         underlyingTokens: [underlyingTokens[i]],
         rewardTokens,
-        poolMeta: assets.find((a) => a.id.toLowerCase() === t.toLowerCase())
-          ?.pool?.name,
+        poolMeta: poolName?.pool?.name,
       };
     })
     .filter(
       (p) =>
+        p !== null &&
         p.tvlUsd > 0 &&
-        ![
-          '0xFC95481F79eC965A535Ed8cef4630e1dd308d319', // UST pool
-          '0xc7388D98Fa86B6639d71A0A6d410D5cDfc63A1d0', // UST pool
-        ].includes(p.pool)
+        p.poolMeta !== 'UST Pool' &&
+        p.pool !==
+          '0x66357dcace80431aee0a7507e2e361b7e2402370-0x130966628846bfd36ff31a822705796e8cb8c18d' // MIM in main pool not available
     );
 };
 
