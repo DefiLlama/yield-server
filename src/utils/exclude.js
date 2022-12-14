@@ -7,7 +7,8 @@ const excludeAdaptors = [
   'pony-finance',
   'optifi',
   'cbridge',
-  'qidao',
+  'qidao', // temporarily disabled cause of a bug in the adapter,
+  'barnbridge', // temporarily cause they disbaled there current app. going to launch new version on arbi
 ];
 
 const excludePools = [
