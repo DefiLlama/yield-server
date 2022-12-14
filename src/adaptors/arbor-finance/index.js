@@ -32,9 +32,9 @@ const poolsFunction = async () => {
   const { bonds } = await request(graphUrl, graphQuery(), {});
 
   const bondPools = bonds.map(async (bond) => {
-    const usdTvl = {};
+    const balances = {};
     const token = bond.collateralToken.id;
-    const transform = await transformAddress();
+    // const transform = await transformAddress();
     const tvl = await api.abi.call({
       abi: 'erc20:balanceOf',
       chain: 'ethereum',
@@ -44,15 +44,11 @@ const poolsFunction = async () => {
 
     //   bond.collateralTokenAmount / 10 ** bond.collateralToken.decimals;
 
-    console.log(usdTvl, token, tvl.output);
+    console.log(balances, token, tvl.output);
 
-    await util.sumSingleBalance(
-      usdTvl,
-      `0xc2132d05d31c914a87c6611c10748aeb04b58e8f`,
-      tvl.output
-    );
+    util.sumSingleBalance(balances, token, tvl.output);
 
-    console.log(usdTvl);
+    console.log(balances);
 
     const date = dayjs.unix(bond.maturityDate);
     const currentDate = dayjs(new Date());
@@ -73,12 +69,12 @@ const poolsFunction = async () => {
       chain: utils.formatChain('ethereum'),
       project: 'arbor-finance',
       symbol: utils.formatSymbol(bond.symbol),
-      tvlUsd: bond.collateralTokenAmount / 10 ** bond.collateralToken.decimals,
+      tvlUsd: Number(balances[bond.collateralToken.id]), //bond.collateralTokenAmount / 10 ** bond.collateralToken.decimals,
       apy: (1 / bondPrice) ** (1 / yearsUntilMaturity) - 1,
     };
   });
 
-  return bondPools; // Anchor only has a single pool with APY
+  return await Promise.all(bondPools); // Anchor only has a single pool with APY
 };
 
 module.exports = {
