@@ -28,27 +28,20 @@ const graphQuery = () => gql`
 const graphUrl =
   'https://api.thegraph.com/subgraphs/name/alwaysbegrowing/arbor-v1';
 
+const defiUrl = 'https://coins.llama.fi/prices/current/';
+
 const poolsFunction = async () => {
   const { bonds } = await request(graphUrl, graphQuery(), {});
 
   const bondPools = bonds.map(async (bond) => {
-    const balances = {};
-    const token = bond.collateralToken.id;
-    // const transform = await transformAddress();
-    const tvl = await api.abi.call({
-      abi: 'erc20:balanceOf',
-      chain: 'ethereum',
-      target: bond.collateralToken.id, //FOX token
-      params: bond.id, //Bond id
-    });
+    const coinUrl = `ethereum:${bond.collateralToken.id}`;
+    const fullUrl = defiUrl + coinUrl;
+    const { coins } = await utils.getData(fullUrl);
+    const tokenPrice = await coins[coinUrl].price;
+    const tokenAmount =
+      bond.collateralTokenAmount / 10 ** bond.collateralToken.decimals;
 
-    //   bond.collateralTokenAmount / 10 ** bond.collateralToken.decimals;
-
-    console.log(balances, token, tvl.output);
-
-    util.sumSingleBalance(balances, token, tvl.output);
-
-    console.log(balances);
+    const tvl = tokenPrice * tokenAmount;
 
     const date = dayjs.unix(bond.maturityDate);
     const currentDate = dayjs(new Date());
@@ -69,12 +62,12 @@ const poolsFunction = async () => {
       chain: utils.formatChain('ethereum'),
       project: 'arbor-finance',
       symbol: utils.formatSymbol(bond.symbol),
-      tvlUsd: Number(balances[bond.collateralToken.id]), //bond.collateralTokenAmount / 10 ** bond.collateralToken.decimals,
+      tvlUsd: tvl,
       apy: (1 / bondPrice) ** (1 / yearsUntilMaturity) - 1,
     };
   });
 
-  return await Promise.all(bondPools); // Anchor only has a single pool with APY
+  return await Promise.all(bondPools);
 };
 
 module.exports = {
