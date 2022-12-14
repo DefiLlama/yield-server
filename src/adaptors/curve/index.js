@@ -250,17 +250,17 @@ const main = async () => {
 
       // separate reward tokens (eg OP on curve optimism), adding this to aprExtra if available
       if (blockchainId === 'optimism') {
-        const extraRewardsFactory = factoryAprData
-          .find(
-            (x) => x.gauge?.toLowerCase() === pool.gaugeAddress?.toLowerCase()
-          )
-          ?.extraRewards.filter((i) => i.apyData.isRewardStillActive)
+        const x = factoryAprData.find(
+          (x) => x.gauge?.toLowerCase() === pool.gaugeAddress?.toLowerCase()
+        );
+        const extraRewardsFactory = x?.extraRewards
+          .filter((i) => i.apyData.isRewardStillActive)
           .map((i) => i.apy)
           .reduce((a, b) => a + b, 0);
 
         if (extraRewardsFactory > 0) {
           aprExtra += extraRewardsFactory;
-          rewardTokens.push('0x4200000000000000000000000000000000000042'); // OP
+          rewardTokens.push(x.extraRewards.map((i) => i.tokenAddress));
         }
       }
       // note(!) curve api uses coingecko prices and am3CRV is wrongly priced
@@ -298,7 +298,7 @@ const main = async () => {
           address === '0xBaaa1F5DbA42C3389bDbc2c9D2dE134F5cD0Dc89'
             ? null
             : aprCrv + aprExtra,
-        rewardTokens,
+        rewardTokens: rewardTokens.flat(),
         underlyingTokens,
       });
     }
