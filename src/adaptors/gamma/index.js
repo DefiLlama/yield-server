@@ -73,8 +73,8 @@ const ro_hypervisors = {
               arbitrum: [],
               celo: []
 };
-const getUrl_returns = (chain) =>
-  `https://gammawire.net/${chain}hypervisors/returns`;
+const getUrl_allData = (chain) =>
+  `https://gammawire.net/${chain}hypervisors/allData`;
 
 const getUrl = (chain) =>
 `https://api.thegraph.com/subgraphs/name/gammastrategies/${chain}`;
@@ -122,11 +122,11 @@ const getApy = async () => {
     )
   );
 
-  const hype_return = pairsToObj(
+  const hype_allData = pairsToObj(
     await Promise.all(
       Object.keys(CHAINS).map(async (chain) => [
         chain,
-        await utils.getData(getUrl_returns(CHAINS_API[chain])),
+        await utils.getData(getUrl_allData(CHAINS_API[chain])),
       ])
     )
   );
@@ -157,7 +157,6 @@ const getApy = async () => {
 
   const pools = Object.keys(CHAINS).map((chain) => {
     const { uniswapV3Hypervisors: chainHypervisors } = hypervisorsDta[chain];
-    const { uniswapV3Hypervisors: returnHypervisors } = hype_return[chain];
 
     const chainAprs = chainHypervisors.filter(function(hyp) {
       if (ro_hypervisors[chain].indexOf(hyp.id) >= 0){
@@ -171,8 +170,8 @@ const getApy = async () => {
           const TVL =
               (hypervisor.tvl0/(10**hypervisor.pool.token0.decimals) ) * prices[`${chain}:${hypervisor.pool.token0.id}`]?.price +
               (hypervisor.tvl1/(10**hypervisor.pool.token1.decimals) ) * prices[`${chain}:${hypervisor.pool.token1.id}`]?.price;
-          const apy = hype_return[chain][hypervisor.id]["daily"]["feeApy"];
-          const apr = hype_return[chain][hypervisor.id]["daily"]["feeApr"];
+          const apy = hype_allData[chain][hypervisor.id]["returns"]["daily"]["feeApy"];
+          const apr = hype_allData[chain][hypervisor.id]["returns"]["daily"]["feeApr"];
           const TVL_alternative = Number(hypervisor.tvlUSD);
          
           
