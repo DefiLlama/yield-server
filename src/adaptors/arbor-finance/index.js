@@ -14,6 +14,10 @@ const graphQuery = () => gql`
         decimals
       }
       clearingPrice
+      paymentToken {
+        id
+        symbol
+      }
       maturityDate
       symbol
       auctions {
@@ -60,9 +64,10 @@ const poolsFunction = async () => {
       pool: `${bond.id}-ethereum`.toLowerCase(),
       chain: utils.formatChain('ethereum'),
       project: 'arbor-finance',
-      symbol: utils.formatSymbol(bond.symbol),
+      symbol: utils.formatSymbol(bond.paymentToken.symbol),
       tvlUsd: tvl,
-      apy: (1 / bondPrice) ** (1 / yearsUntilMaturity) - 1,
+      apy: ((1 / bondPrice) ** (1 / yearsUntilMaturity) - 1) * 100,
+      poolMeta: bond.symbol,
     };
   });
 
