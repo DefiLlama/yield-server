@@ -41,6 +41,7 @@ const excludePools = [
   '0xa3B615667CBd33cfc69843Bf11Fbb2A1D926BD46-6', // magpie ABNBC pool
   '0x1d03D8199f43ea030a5D1c2a5d4675d18581D129', // dino pool form unicrypt, jumped from 1mil to > 800mil in tvl
   '0x726e324c29a1e49309672b244bdc4ff62a270407000200000000000000000702', // USDC-XSGD balancer pool on polygon. can't find on UI
+  '0xf4c0dd9b82da36c07605df83c8a416f11724d88b', // GNO-WETH on aura
 ];
 
 const boundaries = {
