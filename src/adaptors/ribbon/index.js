@@ -77,8 +77,12 @@ const apyChain = async (chain) => {
     if (vault.id === '0xc0cf10dd710aefb209d9dc67bc746510ffd98a53') return {};
     const perf = vaultPerfs[i];
 
+    const fee = 0.12;
     const apy = mean(
-      [1, 2, 3, 4, 5].map((n) => getNWeekApy(perf, perf.length - n))
+      [1, 2, 3, 4].map((n) => {
+        const nWeekApy = getNWeekApy(perf, perf.length - n);
+        return nWeekApy > 0 ? nWeekApy * (1 - fee) : nWeekApy;
+      })
     );
 
     const price = prices[vault.underlyingAsset];
