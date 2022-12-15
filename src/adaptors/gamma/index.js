@@ -28,8 +28,51 @@ const CHAIN_IDS = {
   };
 
 var pools_processed = []; // unique pools name
-const custom_hyp = ["0x33682bfc1d94480a0e3de0a565180b182b71d485","0x6c8116abe5c5f2c39553c6f4217840e71462539c","0xd930ab15c8078ebae4ac8da1098a81583603f7ce","0xde8edc067b079b3965fde36d11aa834287f9b663","0xfb3a24c0f289e695ceb87b32fc18a2b8bd896167"];
-
+// v1 pools (read only) and private hypervisors ( non retail)
+const ro_hypervisors = {
+              ethereum:["0xd930ab15c8078ebae4ac8da1098a81583603f7ce",
+                        "0xdbaa93e030bf2983add67c851892a9e2ee51e66a",
+                        "0x586880065937a0b1b9541723619b75739df8ef13",
+                        "0x33412fef1af035d6dba8b2f9b33b022e4c31dbb4",
+                        "0xf6eeca73646ea6a5c878814e6508e87facc7927c",
+                        "0x336d7e0a0f87e2729c0080f86801e6f4becf146f",
+                        "0xc86b1e7fa86834cac1468937cdd53ba3ccbc1153",
+                        "0x85cbed523459b7f6f81c11e710df969703a8a70c",
+                        "0x7f92463e24b2ea1f7267aceed3ad68f7a956d2d8",
+                        "0x23c85dca3d19b31f14aeea19beac32c2cb2ffc72",
+                        "0x5230371a6d5311b1d7dd30c0f5474c2ef0a24661",
+                        "0xc14e7ec60699a39cfd59bae06168afc2c76f32ac",
+                        "0xbff4a47a0f77637f735e3a0ce10ff2bf9be12e89",
+                        "0x93acb12ae1effb3426220c20c6d408eeaae59d72",
+                        "0x65bc5c6a2630a87c2b494f36148e338dd76c054f",
+                        "0xed354a827d99992d9cdada809449985cb73b8bb1",
+                        "0xb666bfdb553a1aff4042c1e4f39e43852ba9731d",
+                        "0xbb9b86a75ca3115caab045e2af17b0bba483acbc",
+                        "0x0407c810546f1dc007f01a80e65983072d5c6dfa",
+                        "0x4564a37c88e3b13d3a0c08832dcf88278997e6fe",
+                        "0xd8dbdb77305898365d7ba6dd438f2663f7d4e409",
+                        "0x33682bfc1d94480a0e3de0a565180b182b71d485",
+                        "0x53a4512bbe5083695d8e890789fe1cf6f5686d52",
+                        "0x09b8d86c6275e707155cdb5963cf611a432ccb21",
+                        "0xc92ff322c8a18e38b46393dbcc8a7c5691586497",
+                        "0x6e67bb258b6485b688cbb526c868d4428b634cf1",
+                        "0x18d3284d9eff64fc97b64ab2b871738e684aa151",
+                        "0x407e99b20d61f245426031df872966953909e9d3",
+                        "0x97491b65c9c8e8754b5c55ed208ff490b2ee6190",
+                        "0x6c8116abe5c5f2c39553c6f4217840e71462539c",
+                        "0x716bd8a7f8a44b010969a1825ae5658e7a18630d",
+                        "0x9a98bffabc0abf291d6811c034e239e916bbcec0",
+                        "0xe065ff6a26f286ddb0e823920caaecd1fcd57ba1",
+                        "0x5d40e4687e36628267854d0b985a9b6e26493b74",
+                        "0xf0a9f5c64f80fa390a46b298791dab9e2bb29bca",
+                        "0xe14dbb7d054ff1ff5c0cd6adac9f8f26bc7b8945",
+                        "0xa625ea468a4c70f13f9a756ffac3d0d250a5c276",
+                          ],
+              optimism:[],
+              polygon: [],
+              arbitrum: [],
+              celo: []
+};
 const getUrl_returns = (chain) =>
   `https://gammawire.net/${chain}hypervisors/returns`;
 
@@ -59,13 +102,8 @@ const hypervisorsQuery = gql`
         }
         fee
       }
-      rebalances(orderBy: timestamp, orderDirection: desc, first: 100) {
-        timestamp
-        totalAmountUSD
-        grossFeesUSD
-      }
     }
-  }
+}
 `;
 
 const getSumByKey = (arr, key) => {
@@ -122,47 +160,38 @@ const getApy = async () => {
     const { uniswapV3Hypervisors: returnHypervisors } = hype_return[chain];
 
     const chainAprs = chainHypervisors.filter(function(hyp) {
+      if (ro_hypervisors[chain].indexOf(hyp.id) >= 0){
+        return false;
+      }else{ 
         return true;
+      };
       }).map((hypervisor) => {
       
-      
-        // MAIN CALC 
-      const TVL =
-          (hypervisor.tvl0/(10**hypervisor.pool.token0.decimals) ) * prices[`${chain}:${hypervisor.pool.token0.id}`]?.price +
-          (hypervisor.tvl1/(10**hypervisor.pool.token1.decimals) ) * prices[`${chain}:${hypervisor.pool.token1.id}`]?.price;
-      var apy = hype_return[chain][hypervisor.id]["daily"]["feeApy"];
-      const apr = hype_return[chain][hypervisor.id]["daily"]["feeApr"];
-      const TVL_alternative = Number(hypervisor.tvlUSD);
-
-      // a few pools have err apy: temporarely use rebalances to mitigate error
-      if (custom_hyp.indexOf(hypervisor.id) >= 0){
-        const aggregatedtvl = getSumByKey(hypervisor.rebalances, 'totalAmountUSD');
-        const aggregatedfees = getSumByKey(hypervisor.rebalances, 'grossFeesUSD');
-        const secs_passed = hypervisor.rebalances[0]?.timestamp-hypervisor.rebalances[hypervisor.rebalances.length-1]?.timestamp;
-        const averageTVL = ((aggregatedtvl > aggregatedfees) ? (aggregatedtvl-aggregatedfees)/hypervisor.rebalances.length : aggregatedtvl/hypervisor.rebalances.length);
-        const yearlyFees = ((aggregatedfees/secs_passed)*(60*60*24*365))
-        const apr_alternative = yearlyFees/averageTVL
-        apy = apr_alternative;
-      }
-      
-
-
-      // create a unique pool name
-      var pool_name = hypervisor.id;
-      if (pools_processed.indexOf(pool_name) >= 0){
-        pool_name = `${hypervisor.id}-${utils.formatChain(chain)}`
-      };
-      pools_processed.push(pool_name);
-    
-      return {
-        pool: pool_name,
-        chain: utils.formatChain(chain),
-        project: 'gamma',
-        symbol: `${hypervisor.pool.token0.symbol}-${hypervisor.pool.token1.symbol}`,
-        tvlUsd: TVL || TVL_alternative,
-        apyBase: apy || apr,
-        underlyingTokens: [hypervisor.pool.token0.id, hypervisor.pool.token1.id],
-      };
+            // MAIN CALC 
+          const TVL =
+              (hypervisor.tvl0/(10**hypervisor.pool.token0.decimals) ) * prices[`${chain}:${hypervisor.pool.token0.id}`]?.price +
+              (hypervisor.tvl1/(10**hypervisor.pool.token1.decimals) ) * prices[`${chain}:${hypervisor.pool.token1.id}`]?.price;
+          const apy = hype_return[chain][hypervisor.id]["daily"]["feeApy"];
+          const apr = hype_return[chain][hypervisor.id]["daily"]["feeApr"];
+          const TVL_alternative = Number(hypervisor.tvlUSD);
+         
+          
+          // create a unique pool name
+          var pool_name = hypervisor.id;
+          if (pools_processed.indexOf(pool_name) >= 0){
+            pool_name = `${hypervisor.id}-${utils.formatChain(chain)}`
+          };
+          pools_processed.push(pool_name);
+        
+          return {
+            pool: pool_name,
+            chain: utils.formatChain(chain),
+            project: 'gamma',
+            symbol: `${hypervisor.pool.token0.symbol}-${hypervisor.pool.token1.symbol}`,
+            tvlUsd: TVL || TVL_alternative,
+            apyBase: apr*100 || apy*100,
+            underlyingTokens: [hypervisor.pool.token0.id, hypervisor.pool.token1.id],
+          };
     });
     return chainAprs;
   });
