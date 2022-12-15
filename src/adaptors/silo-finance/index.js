@@ -294,6 +294,7 @@ const main = async () => {
       apyBaseBorrow: Number(inputTokenBorrowRateObject.rate),
       url: `https://app.silo.finance/silo/${market.id}`,
       underlyingTokens: underlyingAssetAddresses,
+      // Pending subgraph update:
       // ...(ltv && {ltv}), // temp disabled until totalSupplyUsd and totalBorrowUsd ready
     })
   };
