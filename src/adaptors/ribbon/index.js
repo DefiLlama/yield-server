@@ -9,7 +9,6 @@ const API = {
 };
 
 const getNWeekApy = (perf, weekN) => {
-  console;
   return (
     ((1 +
       (perf[weekN].pricePerShare - perf[weekN - 1].pricePerShare) /
@@ -85,6 +84,13 @@ const apyChain = async (chain) => {
       })
     );
 
+    // for 7d IL we use the current weeks performance, if positive -> no IL, otherwise use that
+    // value as the IL
+    const weekN = perf.length - 1;
+    (perf[weekN].pricePerShare - perf[weekN - 1].pricePerShare) /
+      perf[weekN].pricePerShare;
+    const il7d = weekN > 0 ? null : weekN;
+
     const price = prices[vault.underlyingAsset];
 
     let symbol = vault.symbol.replace('-THETA', '').slice(1);
@@ -99,6 +105,7 @@ const apyChain = async (chain) => {
       apyBase: apy,
       underlyingTokens: [vault.underlyingAsset],
       poolMeta: vault.name.includes('Put') ? 'Put-Selling' : 'Covered-Call',
+      il7d,
     };
   });
 
