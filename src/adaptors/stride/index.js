@@ -11,6 +11,7 @@ const main = async () => {
   const pools = [];
 
   for (const entry of data) {
+    if (!entry.poolId) continue;
     const symbol = getPoolSymbol(entry);
 
     pools.push({
