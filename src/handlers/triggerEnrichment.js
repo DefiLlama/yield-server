@@ -430,7 +430,7 @@ const addPoolInfo = (el, stablecoins, config) => {
   el['ilRisk'] =
     config[el.project]?.category === 'Options'
       ? 'yes'
-      : ['complifi', 'optyfi'].includes(el.project)
+      : ['complifi', 'optyfi', 'arbor-finance'].includes(el.project)
       ? 'yes'
       : el.stablecoin && el.symbol.toLowerCase().includes('eur')
       ? checkIlRisk(el)
