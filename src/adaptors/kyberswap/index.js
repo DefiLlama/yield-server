@@ -88,9 +88,12 @@ const topLvl = async (chainString, url, timestamp) => {
       .data.data.farmPools;
 
     return data.map((p) => {
-      const farm = farmData.find(
-        (x) => x.pool.id.toLowerCase() === p.id.toLowerCase()
-      );
+      // farmData includes historical reward entries per pool.
+      // filter to current one
+      const farm = farmData
+        .filter((x) => x.pool.id.toLowerCase() === p.id.toLowerCase())
+        .sort((a, b) => b.pid - a.pid)[0];
+
       const apyReward =
         farm?.endTime > Date.now() / 1000 ? +farm?.pool.farmApr : 0;
 
