@@ -37,11 +37,6 @@ async function getRevenue() {
 	return (data.tron.transfers[0].amount * (10 ** 6));
 }
 
-async function getTrxBalance(address) {
-	const data = await utils.getData('https://apilist.tronscan.org/api/account?address=' + address);
-	return data.balance + (data.totalFrozen || 0)
-}
-
 async function getCurrentStake() {
 	let postdata = {
 		"contract_address": "414b8a2c619bccb710206b3d11e28dce62d8d72a8b",
