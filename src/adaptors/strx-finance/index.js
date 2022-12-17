@@ -5,8 +5,7 @@ const {
 	GraphQLClient
 } = require('graphql-request');
 
-const client = new GraphQL
-('https://graphql.bitquery.io', {
+const client = new GraphQLClient('https://graphql.bitquery.io', {
 	headers: {
 		'X-API-KEY': 'BQYXycn5sT0mgVrAyf0FjAeMwfGeVEia'
 	}
