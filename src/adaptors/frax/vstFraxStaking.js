@@ -48,7 +48,7 @@ const vstFraxStaking = async () => {
     if (!data) return;
 
     return {
-      pool: lp,
+      pool: STAKING_CONTRACTS['Curve VSTFRAX-f'],
       project: 'frax',
       chain: 'arbitrum',
       symbol: 'VST-FRAX',
