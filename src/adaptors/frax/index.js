@@ -19,6 +19,10 @@ const STAKING_CONTRACTS = {
   'Fraxswap FRAX/SYN': '0xE8453a2e8E97cba69365A1d727Fde3768b18d814',
 };
 
+const FRAX_CRV_STAKING_CONTRACTS = {
+  'Curve VSTFRAX-f': '0x127963A74c07f72D862F2Bdc225226c3251BD117'
+}
+
 const apy = async () => {
   const { pools: fxswapData } = await utils.getData(FRAXSWAP_POOLS_URL);
   const stakingData = await utils
