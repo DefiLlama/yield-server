@@ -10,7 +10,7 @@ const STAKING_CONTRACTS = {
   'Curve VSTFRAX-f': '0x127963A74c07f72D862F2Bdc225226c3251BD117',
 };
 
-const apy = async () => {
+const vstFraxStaking = async () => {
   const stakingData = await utils
     .getData(STAKING_URL)
     .then((data) => data.filter((el) => el.platform === 'curve_arbi_vstfrax'));
@@ -63,7 +63,5 @@ const apy = async () => {
 };
 
 module.exports = {
-  timetravel: false,
-  apy,
-  url: 'https://app.frax.finance/staking/overview',
+  vstFraxStaking,
 };
