@@ -55,7 +55,7 @@ const vstFraxStaking = async () => {
       tvlUsd: data.liquidity_locked,
       apyReward: data.apy,
       underlyingTokens: [underlyingTokens0[i], underlyingTokens1[i]],
-      rewardTokens: rewardTokens[i],
+      rewardTokens: [rewardTokens[i]],
     };
   });
 
