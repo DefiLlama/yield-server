@@ -53,6 +53,7 @@ const getYieldFiltered = async () => {
     WHERE
         pool NOT IN ($<excludePools:csv>)
         AND project NOT IN ($<excludeProjects:csv>)
+        AND symbol not like '%RENBTC%'
   `,
     { compress: true }
   );
@@ -274,6 +275,7 @@ const getYieldLendBorrow = async () => {
         AND project NOT IN ($<excludeProjects:csv>)
         AND ltv >= 0
         AND "totalSupplyUsd" >= 0
+        AND symbol not like '%RENBTC%'
   `,
     { compress: true }
   );
