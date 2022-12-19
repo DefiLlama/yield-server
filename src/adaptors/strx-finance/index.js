@@ -13,9 +13,8 @@ const client = new GraphQLClient('https://graphql.bitquery.io', {
 
 const STAKING_ADDRESS = 'TGrdCu9fu8csFmQptVE25fDzFmPU9epamH';
 const FREEZE_ADDRESS = 'TSTrx3UteLMBdeGe9Edwwi2hLeQCmLPZ5g';
-const DAYS = 1;
 
-async function getRevenue() {
+async function getRevenue(_days) {
 	const query = gql`
 	  query {
 	    tron {
@@ -24,7 +23,7 @@ async function getRevenue() {
 		receiver: {is: "${STAKING_ADDRESS}"}
 		success: true
 		external: true
-		date: {since: "${new Date(new Date()-86400*DAYS*1000).toISOString()}", till: "${new Date().toISOString()}"}
+		date: {since: "${new Date(new Date()-86400*_days*1000).toISOString()}", till: "${new Date().toISOString()}"}
 	      ) {
 		amount
 		contractType(contractType: {is: Transfer})
@@ -49,14 +48,14 @@ async function getCurrentStake() {
 	return stake;
 }
 
-async function calcAPY(revenue, stake) {
-	return (revenue * 365 / DAYS / stake) * 100;
+async function calcAPY(revenue, stake, _days) {
+	return (revenue * 365 / _days / stake) * 100;
 }
 
-const poolsFunction = async () => {
-	const revenue = await getRevenue();
+const poolsFunction = async (_days) => {
+	const revenue = await getRevenue(_days);
 	const totalStake = await getCurrentStake();
-	const weeklyAPY = await calcAPY(revenue, totalStake);
+	const weeklyAPY = await calcAPY(revenue, totalStake, _days);
 	const dataTvl = await utils.getData(
 		'https://api.llama.fi/tvl/strx-finance'
 	);
@@ -71,8 +70,15 @@ const poolsFunction = async () => {
 	return [StakingPool];
 };
 
+const poolsFunction1D = async () => {
+	return await poolsFunction(1);
+}
+const poolsFunction7D = async () => {
+	return await poolsFunction(7);
+}
 module.exports = {
 	timetravel: false,
-	apy: poolsFunction,
+	apy: poolsFunction1D,
+	apyBase7d: poolsFunction7D,
 	url: "https://app.strx.finance",
 };
