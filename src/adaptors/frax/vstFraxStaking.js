@@ -10,6 +10,8 @@ const STAKING_CONTRACTS = {
   'Curve VSTFRAX-f': '0x127963A74c07f72D862F2Bdc225226c3251BD117',
 };
 
+const VST = '0x64343594ab9b56e99087bfa6f2335db24c2d1f17';
+
 const vstFraxStaking = async () => {
   const stakingData = await utils
     .getData(STAKING_URL)
@@ -55,7 +57,7 @@ const vstFraxStaking = async () => {
       tvlUsd: data.liquidity_locked,
       apyReward: data.apy,
       underlyingTokens: [underlyingTokens0[i], underlyingTokens1[i]],
-      rewardTokens: [rewardTokens[i]],
+      rewardTokens: [rewardTokens[i], VST],
     };
   });
 
