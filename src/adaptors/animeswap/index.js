@@ -12,6 +12,7 @@ const DECIMALS = 1e8;
 const aptosCoinName = 'coingecko:aptos';
 const aptCoinName = '0x1::aptos_coin::AptosCoin';
 const aniCoinName = `${DEPLOYER_ADDRESS}::AnimeCoin::ANI`;
+const zusdcCoinName = '0xf22bede237a07e121b56d91a491eb7bcdfd1f5907926a9e58338f964a01b17fa::asset::USDC';
 
 async function getPricePerLPCoin(coinX, coinY, ledgerVersion) {
   const [lp, lpCoinInfo] = await Promise.all([
@@ -27,12 +28,15 @@ async function getPricePerLPCoin(coinX, coinY, ledgerVersion) {
 }
 
 async function main() {
-  const [aptPrice, coinInfo, swapPool, aniPoolInfo, lpPoolInfo, mcData, ledgerInfo] = await Promise.all([
+  const [aptPrice, coinInfo, coinInfoAPTzUDSC, swapPool, swapPoolAPTzUDSC, aniPoolInfo, lpPoolInfo, lpPoolInfoAPTzUDSC, mcData, ledgerInfo] = await Promise.all([
     utils.getData(`${COINS_LLAMA_PRICE_URL}${aptosCoinName}`),
     utils.getData(`${NODE_URL}/accounts/${POOL_ADDRESS}/resource/0x1::coin::CoinInfo<${POOL_ADDRESS}::LPCoinV1::LPCoin<${aptCoinName},${aniCoinName}>>`),
+    utils.getData(`${NODE_URL}/accounts/${POOL_ADDRESS}/resource/0x1::coin::CoinInfo<${POOL_ADDRESS}::LPCoinV1::LPCoin<${aptCoinName},${zusdcCoinName}>>`),
     utils.getData(`${NODE_URL}/accounts/${POOL_ADDRESS}/resource/${DEPLOYER_ADDRESS}::AnimeSwapPoolV1::LiquidityPool<${aptCoinName},${aniCoinName}>`),
+    utils.getData(`${NODE_URL}/accounts/${POOL_ADDRESS}/resource/${DEPLOYER_ADDRESS}::AnimeSwapPoolV1::LiquidityPool<${aptCoinName},${zusdcCoinName}>`),
     utils.getData(`${NODE_URL}/accounts/${STAKING_ADDRESS}/resource/${DEPLOYER_ADDRESS}::AnimeMasterChefV1::PoolInfo<${aniCoinName}>`),
     utils.getData(`${NODE_URL}/accounts/${STAKING_ADDRESS}/resource/${DEPLOYER_ADDRESS}::AnimeMasterChefV1::PoolInfo<${POOL_ADDRESS}::LPCoinV1::LPCoin<${aptCoinName},${aniCoinName}>>`),
+    utils.getData(`${NODE_URL}/accounts/${STAKING_ADDRESS}/resource/${DEPLOYER_ADDRESS}::AnimeMasterChefV1::PoolInfo<${POOL_ADDRESS}::LPCoinV1::LPCoin<${aptCoinName},${zusdcCoinName}>>`),
     utils.getData(`${NODE_URL}/accounts/${STAKING_ADDRESS}/resource/${DEPLOYER_ADDRESS}::AnimeMasterChefV1::MasterChefData`),
     utils.getData(`${NODE_URL}/`),
   ]);
@@ -85,15 +89,42 @@ async function main() {
     .div(DECIMALS)
     .toNumber();
 
+  // APT-zUSDC
+  const lpSupplyAPTzUDSC = coinInfoAPTzUDSC.data.supply.vec[0].integer.vec[0].value;
+  const stakedLPAPTzUDSC = lpPoolInfoAPTzUDSC.data.coin_reserve.value;
+  const interestANI3 = BigNumber(mcData.data.per_second_ANI)
+    .multipliedBy(lpPoolInfoAPTzUDSC.data.alloc_point)
+    .div(mcData.data.total_alloc_point)
+    .multipliedBy(BigNumber(100).minus(mcData.data.dao_percent))
+    .div(100)
+    .multipliedBy(YEAR_S);
+  const lpCoinAPTzUDSCValue2ANI = BigNumber(stakedLPAPTzUDSC)
+    .div(lpSupplyAPTzUDSC)
+    .multipliedBy(swapPoolAPTzUDSC.data.coin_x_reserve.value)
+    .multipliedBy(swapPool.data.coin_y_reserve.value)
+    .div(swapPool.data.coin_x_reserve.value)
+    .multipliedBy(2);
+  const aprLPCoinAPTzUDSCReward = interestANI3
+    .div(lpCoinAPTzUDSCValue2ANI)
+    .multipliedBy(100)
+    .toNumber();
+
+  const tvlAPTzUDSCUsdLPCoin = lpCoinAPTzUDSCValue2ANI
+    .multipliedBy(swapPool.data.coin_x_reserve.value)
+    .div(swapPool.data.coin_y_reserve.value)
+    .multipliedBy(aptPrice.coins[aptosCoinName].price)
+    .div(DECIMALS)
+    .toNumber();
+
   // calculate pool apy base
   const currentLedgerVersion = BigNumber(ledgerInfo.ledger_version);
   const queryLedgerVersion = currentLedgerVersion.minus(1e6);
   const currentTimestamp = ledgerInfo.ledger_timestamp;
-  const coinX = aptCoinName;
-  const coinY = aniCoinName;
-  const [currentPricePerLPCoin, queryPricePerLPCoin, queryTx] = await Promise.all([
-    getPricePerLPCoin(coinX, coinY, currentLedgerVersion),
-    getPricePerLPCoin(coinX, coinY, queryLedgerVersion),
+  const [currentPricePerLPCoin, queryPricePerLPCoin, currentPricePerLPCoinAPTzUDSC, queryPricePerLPCoinAPTzUDSC, queryTx] = await Promise.all([
+    getPricePerLPCoin(aptCoinName, aniCoinName, currentLedgerVersion),
+    getPricePerLPCoin(aptCoinName, aniCoinName, queryLedgerVersion),
+    getPricePerLPCoin(aptCoinName, zusdcCoinName, currentLedgerVersion),
+    getPricePerLPCoin(aptCoinName, zusdcCoinName, queryLedgerVersion),
     utils.getData(`${NODE_URL}/transactions/by_version/${queryLedgerVersion}`),
   ]);
   const deltaTimestamp = BigNumber(currentTimestamp)
@@ -102,6 +133,13 @@ async function main() {
   const apyLPCoinBase = currentPricePerLPCoin
     .minus(queryPricePerLPCoin)
     .div(queryPricePerLPCoin)
+    .multipliedBy(YEAR_S)
+    .div(deltaTimestamp)
+    .multipliedBy(100)
+    .toNumber();
+  const apyLPCoinAPTzUDSCBase = currentPricePerLPCoinAPTzUDSC
+    .minus(queryPricePerLPCoinAPTzUDSC)
+    .div(queryPricePerLPCoinAPTzUDSC)
     .multipliedBy(YEAR_S)
     .div(deltaTimestamp)
     .multipliedBy(100)
@@ -126,6 +164,16 @@ async function main() {
       tvlUsd: tvlUsdLPCoin,
       apyBase: apyLPCoinBase,
       apyReward: aprLPCoinReward,
+      rewardTokens: [aniCoinName],
+    },
+    {
+      pool: `${STAKING_ADDRESS}-APT-zUSDC-aptos`,
+      chain: utils.formatChain('Aptos'),
+      project: 'animeswap',
+      symbol: utils.formatSymbol('APT-zUSDC'),
+      tvlUsd: tvlAPTzUDSCUsdLPCoin,
+      apyBase: apyLPCoinAPTzUDSCBase,
+      apyReward: aprLPCoinAPTzUDSCReward,
       rewardTokens: [aniCoinName],
     },
   ];
