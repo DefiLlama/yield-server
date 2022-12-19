@@ -9,12 +9,12 @@ const { chain } = require('./config');
 const call = sdk.api.abi.call;
 
 async function getApy(cellarAddress) {
-  const dayData = await queries.getDayData(cellarAddress, 10);
+  const dayData = await queries.getDayData(cellarAddress, 30);
 
   // Find the most recent accural event (the date shareValue changed)
   // Use the yield / loss to extrapolate APR
   const idx = dayData.findIndex((el, idx, arr) => {
-    if (idx === dayData.length) return false;
+    if (idx === dayData.length - 1) return false;
 
     const price = el.shareValue;
     const prevPrice = arr[idx + 1].shareValue;
