@@ -46,11 +46,15 @@ async function tvl() {
       symbol: currentVolt.depositTokenSymbol,
       poolMeta: voltTypeMapping[voltType],
       tvlUsd: Number(poolsTvl[poolId]),
-      apyBase: currentVolt.apy,
+      apyBase:
+        utils.aprToApy(currentVolt.latestEpochYield * 52, 52) *
+        (1 - (currentVolt.performanceFeeRate + currentVolt.withdrawalFeeRate)),
+      il7d:
+        currentVolt.latestEpochYield < 0 ? currentVolt.latestEpochYield : null,
     };
     pools.push(poolObj);
   }
-  return pools;
+  return pools.filter((p) => utils.keepFinite(p));
 }
 
 module.exports = {
