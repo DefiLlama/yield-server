@@ -432,6 +432,9 @@ const addPoolInfo = (el, stablecoins, config) => {
       ? 'yes'
       : ['complifi', 'optyfi', 'arbor-finance'].includes(el.project)
       ? 'yes'
+      : ['mycelium-perpetual-swaps', 'gmx'].includes(el.project) &&
+        ['mlp', 'glp'].includes(el.symbol.toLowerCase())
+      ? 'yes'
       : el.stablecoin && el.symbol.toLowerCase().includes('eur')
       ? checkIlRisk(el)
       : el.stablecoin
