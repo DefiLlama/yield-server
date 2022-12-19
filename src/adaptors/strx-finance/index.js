@@ -13,25 +13,25 @@ const client = new GraphQLClient('https://graphql.bitquery.io', {
 
 const STAKING_ADDRESS = 'TGrdCu9fu8csFmQptVE25fDzFmPU9epamH';
 const FREEZE_ADDRESS = 'TSTrx3UteLMBdeGe9Edwwi2hLeQCmLPZ5g';
-const DAYS = 30;
+const DAYS = 1;
 
 async function getRevenue() {
 	const query = gql`
-  query {
-    tron {
-      transfers(
-        currency: {is: "TRX"}
-        receiver: {is: "${STAKING_ADDRESS}"}
-        success: true
-        external: true
-        date: {since: "${new Date(new Date()-86400*DAYS*1000).toISOString()}", till: "${new Date().toISOString()}"}
-      ) {
-        amount
-        contractType(contractType: {is: Transfer})
-      }
-    }
-  }
-  `;
+	  query {
+	    tron {
+	      transfers(
+		currency: {is: "TRX"}
+		receiver: {is: "${STAKING_ADDRESS}"}
+		success: true
+		external: true
+		date: {since: "${new Date(new Date()-86400*DAYS*1000).toISOString()}", till: "${new Date().toISOString()}"}
+	      ) {
+		amount
+		contractType(contractType: {is: Transfer})
+	      }
+	    }
+	  }
+	`;
 	const data = await client.request(query);
 	return (data.tron.transfers[0].amount * (10 ** 6));
 }
