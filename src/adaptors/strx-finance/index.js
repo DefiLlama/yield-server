@@ -12,7 +12,6 @@ const client = new GraphQLClient('https://graphql.bitquery.io', {
 });
 
 const STAKING_ADDRESS = 'TGrdCu9fu8csFmQptVE25fDzFmPU9epamH';
-const FREEZE_ADDRESS = 'TSTrx3UteLMBdeGe9Edwwi2hLeQCmLPZ5g';
 
 async function getRevenue(_days) {
 	const query = gql`
@@ -51,34 +50,28 @@ async function getCurrentStake() {
 async function calcAPY(revenue, stake, _days) {
 	return (revenue * 365 / _days / stake) * 100;
 }
-
-const poolsFunction = async (_days) => {
-	const revenue = await getRevenue(_days);
+const poolsFunction = async () => {
+	const revenue1D = await getRevenue(1);
+	const revenue7D = await getRevenue(7);
 	const totalStake = await getCurrentStake();
-	const weeklyAPY = await calcAPY(revenue, totalStake, _days);
+	const dailyAPY = await calcAPY(revenue1D, totalStake, 1);
+	const weeklyAPY = await calcAPY(revenue7D, totalStake, 7);
 	const dataTvl = await utils.getData(
 		'https://api.llama.fi/tvl/strx-finance'
 	);
 	const StakingPool = {
-		pool: 'TGrdCu9fu8csFmQptVE25fDzFmPU9epamH',
+		pool: STAKING_ADDRESS,
 		chain: utils.formatChain('tron'),
 		project: 'strx-finance',
 		symbol: utils.formatSymbol('TRX'),
 		tvlUsd: dataTvl,
-		apyBase: Number(weeklyAPY)
+		apyBase: Number(dailyAPY),
+		apyBase7d: Number(weeklyAPY)
 	};
 	return [StakingPool];
-};
-
-const poolsFunction1D = async () => {
-	return await poolsFunction(1);
-}
-const poolsFunction7D = async () => {
-	return await poolsFunction(7);
 }
 module.exports = {
 	timetravel: false,
-	apy: poolsFunction1D,
-	apyBase7d: poolsFunction7D,
+	apy: poolsFunction,
 	url: "https://app.strx.finance",
 };
