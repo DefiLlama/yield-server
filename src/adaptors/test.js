@@ -34,6 +34,8 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'apyRewardFake',
       'apyRewardBorrowFake',
       'il7d',
+      'volumeUsd1d',
+      'volumeUsd7d',
     ];
     const fields = [...Object.keys(baseFields), ...optionalFields, 'tvlUsd'];
     apy.forEach((pool) => {
