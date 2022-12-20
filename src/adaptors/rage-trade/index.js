@@ -47,20 +47,26 @@ const poolsFunction = async () => {
   );
 
   const apys = {
-    tricryptoVault:
-      (tricryptoVaultApyData.result.crvEmissions +
-        tricryptoVaultApyData.result.tricryptoLpFees +
-        tricryptoVaultApyData.result.rageLpFees) *
-      100,
-    dnGmxJuniorVault:
-      dnVaultsApyData.result.juniorVault.glpTraderPnl +
-      dnVaultsApyData.result.juniorVault.glpRewardsPct +
-      dnVaultsApyData.result.juniorVault.esGmxRewards +
-      dnVaultsApyData.result.juniorVault.btcBorrowApy +
-      dnVaultsApyData.result.juniorVault.ethBorrowApy,
-    dnGmxSeniorVault:
-      dnVaultsApyData.result.seniorVault.aaveSupplyApy +
-      dnVaultsApyData.result.seniorVault.glpRewardsPct,
+    tricryptoVault: {
+      base:
+        (tricryptoVaultApyData.result.tricryptoLpFees +
+          tricryptoVaultApyData.result.rageLpFees) *
+        100,
+      reward: tricryptoVaultApyData.result.crvEmissions * 100,
+    },
+    dnGmxJuniorVault: {
+      base:
+        dnVaultsApyData.result.juniorVault.glpTraderPnl +
+        dnVaultsApyData.result.juniorVault.btcBorrowApy +
+        dnVaultsApyData.result.juniorVault.ethBorrowApy,
+      reward:
+        dnVaultsApyData.result.juniorVault.glpRewardsPct +
+        dnVaultsApyData.result.juniorVault.esGmxRewards,
+    },
+    dnGmxSeniorVault: {
+      base: dnVaultsApyData.result.seniorVault.aaveSupplyApy,
+      reward: dnVaultsApyData.result.seniorVault.glpRewardsPct,
+    },
   };
 
   const tricryptoVault = {
@@ -69,25 +75,30 @@ const poolsFunction = async () => {
     project: 'rage-trade',
     symbol: utils.formatSymbol('80-20-Tricrypto'),
     tvlUsd: tvls.tricryptoVault,
-    apy: apys.tricryptoVault,
+    underlyingTokens: ['0x8e0B8c8BB9db49a46697F3a5Bb8A308e744821D2'], // tricrypto
+    apy: apys.tricryptoVault.base + apys.tricryptoVault.reward,
   };
 
   const dnGmxJuniorVault = {
     pool: '0x8478AB5064EbAC770DdCE77E7D31D969205F041E',
     chain: utils.formatChain('arbitrum'),
     project: 'rage-trade',
-    symbol: utils.formatSymbol('DN_GMX_JUNIOR'),
+    symbol: utils.formatSymbol('USDC'),
     tvlUsd: tvls.dnGmxJuniorVault,
-    apy: apys.dnGmxJuniorVault,
+    poolMeta: 'DN_GMX_JUNIOR',
+    underlyingTokens: ['0x2F546AD4eDD93B956C8999Be404cdCAFde3E89AE'], // sglp
+    apy: apys.dnGmxJuniorVault.base + apys.dnGmxJuniorVault.reward,
   };
 
   const dnGmxSeniorVault = {
     pool: '0xf9305009FbA7E381b3337b5fA157936d73c2CF36',
     chain: utils.formatChain('arbitrum'),
     project: 'rage-trade',
-    symbol: utils.formatSymbol('DN_GMX_SENIOR'),
+    symbol: utils.formatSymbol('USDC'),
     tvlUsd: tvls.dnGmxSeniorVault,
-    apy: apys.dnGmxSeniorVault,
+    poolMeta: 'DN_GMX_SENIOR',
+    underlyingTokens: ['0xff970a61a04b1ca14834a43f5de4533ebddb5cc8'], // usdc
+    apy: apys.dnGmxSeniorVault.base + apys.dnGmxSeniorVault.reward,
   };
 
   return [tricryptoVault, dnGmxJuniorVault, dnGmxSeniorVault];
