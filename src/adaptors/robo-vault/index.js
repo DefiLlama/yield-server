@@ -1,7 +1,7 @@
 const utils = require('../utils');
 
 const poolsFunction = async () => {
-  const vaultData = await utils.getData('https://api.robo-vault.com/vaults');
+  const vaultData = await utils.getData('https://api.v2.robo-vault.com/vaults');
 
   return vaultData
     .filter((p) => p.status.toLowerCase() === 'active' && p.tvlUsd > 10_000)
@@ -11,7 +11,8 @@ const poolsFunction = async () => {
       project: 'robo-vault',
       symbol: utils.formatSymbol(item.symbol).replace('sAMM-', ''),
       tvlUsd: item.tvlUsd,
-      apyBase: item.apy3d * 100,
+      apyBase: item.apy1d * 100,
+      apyBase7d: item.apy7d * 100
     }));
 };
 
