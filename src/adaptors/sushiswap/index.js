@@ -146,6 +146,8 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
         apyBase: Number(p.apy1d),
         apyBase7d: Number(p.apy7d),
         underlyingTokens: [p.token0.id, p.token1.id],
+        volumeUsd1d: p.volumeUSD1d,
+        volumeUsd7d: p.volumeUSD7d,
       }));
     }
 
@@ -424,6 +426,8 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
         apyReward,
         rewardTokens,
         underlyingTokens: [p.token0.id, p.token1.id],
+        volumeUsd1d: p.volumeUSD1d,
+        volumeUsd7d: p.volumeUSD7d,
       };
     });
 

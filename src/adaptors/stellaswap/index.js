@@ -132,6 +132,8 @@ const apyBase = async (
       apyBase: p.apy1d,
       apyBase7d: p.apy7d,
       underlyingTokens,
+      volumeUsd1d: p.volumeUSD1d,
+      volumeUsd7d: p.volumeUSD7d,
     };
   });
 
@@ -159,11 +161,6 @@ const apyBase = async (
       });
     })
   );
-
-  console.log(dataStables[0].swap);
-  console.log(stablePoolBalances[0]);
-  console.log(stablePoolUnderlyingTokens[0]);
-  // process.exit(0);
 
   dataStables = dataStables.map((p, i) => {
     const pool = p.swap;

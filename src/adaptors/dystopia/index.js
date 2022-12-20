@@ -46,6 +46,8 @@ const buildPool = (entry, chainString) => {
     apyBase: entry.apy1d,
     apyBase7d: entry.apy7d,
     underlyingTokens: [entry.token0.id, entry.token1.id],
+    volumeUsd1d: entry.volumeUSD1d,
+    volumeUsd7d: entry.volumeUSD7d,
   };
 
   return newObj;

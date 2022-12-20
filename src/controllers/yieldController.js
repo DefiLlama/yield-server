@@ -35,7 +35,9 @@ const getYieldFiltered = async () => {
         "apyBase",
         "apyReward",
         "il7d",
-        "apyBase7d"
+        "apyBase7d",
+        "volumeUsd1d",
+        "volumeUsd7d"
     FROM
         (
             SELECT
@@ -400,6 +402,8 @@ const buildInsertYieldQuery = (payload) => {
     'apyBase7d',
     'apyRewardFake',
     'apyRewardBorrowFake',
+    'volumeUsd1d',
+    'volumeUsd7d',
     { name: 'apyBaseBorrow', def: null },
     { name: 'apyRewardBorrow', def: null },
     { name: 'totalSupplyUsd', def: null },
