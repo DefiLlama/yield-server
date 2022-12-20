@@ -8,6 +8,7 @@ const excludeAdaptors = [
   'optifi',
   'cbridge',
   'barnbridge', // temporarily cause they disbaled there current app. going to launch new version on arbi
+  'maple', // requires a new implementation for their v2
 ];
 
 const excludePools = [
