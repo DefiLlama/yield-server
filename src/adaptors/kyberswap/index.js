@@ -112,6 +112,8 @@ const topLvl = async (chainString, url, timestamp) => {
         rewardTokens: apyReward > 0 ? farm.rewardTokens.map((r) => r.id) : [],
         underlyingTokens: [p.token0.id, p.token1.id],
         poolMeta: `${p.feeTier / 1e4}%`,
+        volumeUsd1d: p.volumeUSD1d,
+        volumeUsd7d: p.volumeUSD7d,
       };
     });
   } catch (e) {

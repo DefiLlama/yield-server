@@ -55,6 +55,8 @@ const buildPool = (entry, chainString) => {
     rewardTokens: apyJoe > 0 ? [JOE_TOKEN] : [],
     underlyingTokens: [entry.token0.id, entry.token1.id],
     apyBase7d: entry.apy7d,
+    volumeUsd1d: entry.volumeUSD1d,
+    volumeUsd7d: entry.volumeUSD7d,
   };
 
   return newObj;

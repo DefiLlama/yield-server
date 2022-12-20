@@ -219,6 +219,8 @@ const topLvl = async (
       apyBase7d: p.apy7d,
       underlyingTokens,
       url,
+      volumeUsd1d: p.volumeUSD1d,
+      volumeUsd7d: p.volumeUSD7d,
     };
   });
 };
