@@ -94,8 +94,7 @@ const topLvl = async (chainString, url, timestamp) => {
         .filter((x) => x.pool.id.toLowerCase() === p.id.toLowerCase())
         .sort((a, b) => b.pid - a.pid)[0];
 
-      const apyReward =
-        farm?.endTime > Date.now() / 1000 ? +farm?.pool.farmApr : 0;
+      const apyReward = farm?.endTime > Date.now() / 1000 ? +farm?.apr : 0;
 
       const symbol = utils.formatSymbol(
         `${p.token0.symbol}-${p.token1.symbol}`
@@ -108,8 +107,8 @@ const topLvl = async (chainString, url, timestamp) => {
         tvlUsd: p.totalValueLockedUSD,
         apyBase: p.apy1d,
         apyBase7d: p.apy7d,
-        // apyReward,
-        // rewardTokens: apyReward > 0 ? farm.rewardTokens.map((r) => r.id) : [],
+        apyReward,
+        rewardTokens: apyReward > 0 ? farm.rewardTokens.map((r) => r.id) : [],
         underlyingTokens: [p.token0.id, p.token1.id],
         poolMeta: `${p.feeTier / 1e4}%`,
         volumeUsd1d: p.volumeUSD1d,
