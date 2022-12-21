@@ -83,7 +83,7 @@ const poolsFunction = async () => {
     pool: '0x8478AB5064EbAC770DdCE77E7D31D969205F041E',
     chain: utils.formatChain('arbitrum'),
     project: 'rage-trade',
-    symbol: utils.formatSymbol('USDC'),
+    symbol: 'GLP',
     tvlUsd: tvls.dnGmxJuniorVault,
     poolMeta: 'DN_GMX_JUNIOR',
     underlyingTokens: ['0x2F546AD4eDD93B956C8999Be404cdCAFde3E89AE'], // sglp
