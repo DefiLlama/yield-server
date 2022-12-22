@@ -45,6 +45,8 @@ async function handleV0815(pool, sommPrice) {
     apyBase,
     apyReward,
     underlyingTokens,
+    poolMeta:
+      apyReward > 0 ? `${pool.poolMeta} - 3day Bonding Lock` : pool.poolMeta,
   };
 }
 
@@ -63,6 +65,8 @@ async function handleV0816(pool, sommPrice) {
     apyBase,
     apyReward,
     underlyingTokens,
+    poolMeta:
+      apyReward > 0 ? `${pool.poolMeta} - 3day Bonding Lock` : pool.poolMeta,
   };
 }
 
