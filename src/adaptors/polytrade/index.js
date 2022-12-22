@@ -34,26 +34,31 @@ const poolsFunction = async () => {
     chain
   })
 
+  // Total liquidity in pool
   const totalTVL = formatUnits(tvl, '6');
 
+  // Get rewards in TRADE token
   const tradeReward = await sdk.api2.abi.call({
     target: TRADE_REWARD,
     abi: abis.getReward,
     chain,
   });
 
+  // Get rewards in USDC
   const stableReward = await sdk.api2.abi.call({
     target: STABLE_REWARD,
     abi: abis.getReward,
     chain,
   });
 
+  // TRADE rewards in USD
   const tokenPrice = await getTokenPrice(
     "TRADE",
     "USD",
     formatUnits(tradeReward, '3'),
   );
 
+  // TRADE + USDC Rewards
 const totalAPY = formatUnits(stableReward, '2') + tokenPrice;
 
   // const data = await utils.getData(
