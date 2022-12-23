@@ -85,6 +85,34 @@ const getDistinctID = async () => {
   return response;
 };
 
+// get config data of pool
+const getConfigPool = async (configIDs) => {
+  const conn = await connect();
+
+  const query = minify(
+    `
+    SELECT
+      *
+    FROM
+        $<table:name>
+    WHERE
+        config_id IN ($<configIDs:csv>)
+    `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query, {
+    table: tableName,
+    configIDs: configIDs.split(','),
+  });
+
+  if (!response) {
+    return new AppError(`Couldn't get ${tableName} data`, 404);
+  }
+
+  return response;
+};
+
 // multi row insert (update on conflict) query generator
 const buildInsertConfigQuery = (payload) => {
   const columns = [
@@ -118,5 +146,6 @@ module.exports = {
   buildInsertConfigQuery,
   getUrl,
   getDistinctID,
+  getConfigPool,
   tableName,
 };
