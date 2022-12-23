@@ -1,6 +1,7 @@
 const minify = require('pg-minify');
 
 const { pgp, connect } = require('../utils/dbConnection');
+const { lambdaResponse } = require('../utils/lambda');
 
 const tableName = 'config';
 
@@ -110,7 +111,10 @@ const getConfigPool = async (configIDs) => {
     return new AppError(`Couldn't get ${tableName} data`, 404);
   }
 
-  return response;
+  return lambdaResponse({
+    status: 'success',
+    data: response,
+  });
 };
 
 // multi row insert (update on conflict) query generator
