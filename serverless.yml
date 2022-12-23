@@ -211,6 +211,15 @@ functions:
           method: get
           path: /chartLendBorrow/{configID}
 
+  getConfigPool:
+    handler: src/handlers/getConfigPool.handler
+    description: Lambda for retrieving config data of configIDs
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /configPool/{configID}
+
 resources:
   Resources:
     # QUEUES
