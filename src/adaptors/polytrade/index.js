@@ -12,7 +12,7 @@ const formatUnits = (amount, decimals) => Number(ethers.utils.formatUnits(amount
 
 const poolsFunction = async () => {
 
-  const LENDER_POOL_CONTRACT = '0xE544a0Ca5F4a01f137AE5448027471D6a9eC9661';
+  const LIQUIDITY_POOL_CONTRACT = '0xE544a0Ca5F4a01f137AE5448027471D6a9eC9661';
   const TRADE_REWARD = '0x64f33da516bf8289cf2f607aa357285753d6f039';
   const STABLE_REWARD = '0x352A424Caf2aB698570b1E9a273209b5A0fF52BD';
   const chain = 'polygon';
@@ -22,34 +22,28 @@ const poolsFunction = async () => {
     getBalance: {"inputs":[],"name":"getBalance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
   };
 
-  const strategy = await sdk.api2.abi.call({
-    target: LENDER_POOL_CONTRACT,
-    abi: abis.strategy,
-    chain,
-  });
-
-  const tvl = await sdk.api2.abi.call({
-    target: strategy,
+  const tvl = await sdk.api.abi.call({
+    target: LIQUIDITY_POOL_CONTRACT,
     abi: abis.getBalance,
     chain
-  })
+  }).output;
 
   // Total liquidity in pool
   const totalTVL = formatUnits(tvl, '6');
 
   // Get rewards in TRADE token
-  const tradeReward = await sdk.api2.abi.call({
+  const tradeReward = await sdk.api.abi.call({
     target: TRADE_REWARD,
     abi: abis.getReward,
-    chain,
-  });
+    chain
+  }).output;
 
   // Get rewards in USDC
-  const stableReward = await sdk.api2.abi.call({
+  const stableReward = await sdk.api.abi.call({
     target: STABLE_REWARD,
     abi: abis.getReward,
-    chain,
-  });
+    chain
+  }).output;
 
   // TRADE rewards in USD
   const tokenPrice = await getTokenPrice(
