@@ -22,28 +22,28 @@ const poolsFunction = async () => {
     getBalance: {"inputs":[],"name":"getBalance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
   };
 
-  const tvl = await sdk.api.abi.call({
+  const tvl = (await sdk.api.abi.call({
     target: LIQUIDITY_POOL_CONTRACT,
     abi: abis.getBalance,
     chain
-  }).output;
+  })).output;
 
   // Total liquidity in pool
   const totalTVL = formatUnits(tvl, '6');
 
   // Get rewards in TRADE token
-  const tradeReward = await sdk.api.abi.call({
+  const tradeReward = (await sdk.api.abi.call({
     target: TRADE_REWARD,
     abi: abis.getReward,
     chain
-  }).output;
+  })).output;
 
   // Get rewards in USDC
-  const stableReward = await sdk.api.abi.call({
+  const stableReward = (await sdk.api.abi.call({
     target: STABLE_REWARD,
     abi: abis.getReward,
     chain
-  }).output;
+  })).output;
 
   // TRADE rewards in USD
   const tokenPrice = await getTokenPrice(
