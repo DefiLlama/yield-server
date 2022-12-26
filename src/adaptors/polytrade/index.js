@@ -12,7 +12,8 @@ const formatUnits = (amount, decimals) => Number(ethers.utils.formatUnits(amount
 
 const poolsFunction = async () => {
 
-  const LIQUIDITY_POOL_CONTRACT = '0xfE624A12b1732d19680A7a2a2efBe21f1C0F3F19';
+  const LENDER_POOL_CONTRACT = '0xE544a0Ca5F4a01f137AE5448027471D6a9eC9661';
+  const STRATEGY_CONTRACT = '0xfE624A12b1732d19680A7a2a2efBe21f1C0F3F19';
   const TRADE_REWARD = '0x64f33da516bf8289cf2f607aa357285753d6f039';
   const STABLE_REWARD = '0x352A424Caf2aB698570b1E9a273209b5A0fF52BD';
   const chain = 'polygon';
@@ -21,14 +22,12 @@ const poolsFunction = async () => {
     getBalance: {"inputs":[],"name":"getBalance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
   };
 
+  // GET total TVL
   const tvl = (await sdk.api.abi.call({
-    target: LIQUIDITY_POOL_CONTRACT,
+    target: STRATEGY_CONTRACT,
     abi: abis.getBalance,
     chain
   })).output;
-
-  // Total liquidity in pool
-  const totalTVL = formatUnits(tvl, '6');
 
   // Get rewards in TRADE token
   const tradeReward = (await sdk.api.abi.call({
@@ -54,19 +53,13 @@ const poolsFunction = async () => {
   // TRADE + USDC Rewards
 const totalAPY = formatUnits(stableReward, '2') + tokenPrice;
 
-  // const data = await utils.getData(
-  //   'https://api.polytrade.app/defi-llama/get/tvl/apy'
-  // );
-
-  //const { totalTVL, totalAPY } = data.data;
-
   const lenderPool = {
     pool: `${LENDER_POOL_CONTRACT}-${chain}`,
     chain: 'Polygon',
     project: 'polytrade',
     symbol: 'USDC',
-    tvlUsd: Number(totalTVL) / 1e6,
-    apy: Number(totalAPY) * 100,
+    tvlUsd: Number(tvl) / 1e6,
+    apy: Number(totalAPY),
   };
 
   return [lenderPool];
