@@ -59,7 +59,7 @@ const totalAPY = formatUnits(stableReward, '2') + tokenPrice;
     project: 'polytrade',
     symbol: 'USDC',
     tvlUsd: Number(tvl) / 1e6,
-    apy: Number(totalAPY),
+    apy: totalAPY,
   };
 
   return [lenderPool];
