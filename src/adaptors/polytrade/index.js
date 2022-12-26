@@ -17,7 +17,6 @@ const poolsFunction = async () => {
   const STABLE_REWARD = '0x352A424Caf2aB698570b1E9a273209b5A0fF52BD';
   const chain = 'polygon';
   const abis = {
-    strategy: {"inputs":[],"name":"strategy","outputs":[{"internalType":"contract IStrategy","name":"","type":"address"}],"stateMutability":"view","type":"function"},
     getReward: {"inputs":[],"name":"getReward","outputs":[{"internalType":"uint16","name":"","type":"uint16"}],"stateMutability":"view","type":"function"},
     getBalance: {"inputs":[],"name":"getBalance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
   };
