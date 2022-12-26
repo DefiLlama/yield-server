@@ -12,7 +12,7 @@ const formatUnits = (amount, decimals) => Number(ethers.utils.formatUnits(amount
 
 const poolsFunction = async () => {
 
-  const LIQUIDITY_POOL_CONTRACT = '0xE544a0Ca5F4a01f137AE5448027471D6a9eC9661';
+  const LIQUIDITY_POOL_CONTRACT = '0xfE624A12b1732d19680A7a2a2efBe21f1C0F3F19';
   const TRADE_REWARD = '0x64f33da516bf8289cf2f607aa357285753d6f039';
   const STABLE_REWARD = '0x352A424Caf2aB698570b1E9a273209b5A0fF52BD';
   const chain = 'polygon';
