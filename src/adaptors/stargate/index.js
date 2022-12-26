@@ -204,7 +204,7 @@ const main = async () => {
     poolsData.push(eth, bsc, avax, polygon, arbi, op, fantom);
     const exportData = poolsData.flat().filter((p) => utils.keepFinite(p));
 
-    return exportData;
+    return exportData.map((p) => ({ ...p, symbol: p.symbol.replace('S*', '') }));
 }
 
 module.exports = {
