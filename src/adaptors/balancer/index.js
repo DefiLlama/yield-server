@@ -127,7 +127,16 @@ const correctMaker = (entry) => {
 const tvl = (entry, tokenPriceList, chainString) => {
   entry = { ...entry };
 
-  const balanceDetails = entry.tokens;
+  const balanceDetails = entry.tokens.filter(
+    (t) =>
+      ![
+        'B-STETH-Stable',
+        'B-STMATIC-STABLE',
+        'B-MATICX-STABLE',
+        'B-CSMATIC',
+        'CBETH-WSTETH-BPT',
+      ].includes(t.symbol.toUpperCase().trim())
+  );
   const d = {
     id: entry.id,
     symbol: balanceDetails.map((tok) => tok.symbol).join('-'),
