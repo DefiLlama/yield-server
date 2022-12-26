@@ -14,7 +14,7 @@ const poolsFunction = async () => {
 
   const LENDER_POOL_CONTRACT = '0xE544a0Ca5F4a01f137AE5448027471D6a9eC9661';
   const STRATEGY_CONTRACT = '0xfE624A12b1732d19680A7a2a2efBe21f1C0F3F19';
-  const TRADE_REWARD = '0x64f33da516bf8289cf2f607aa357285753d6f039';
+  const TRADE_REWARD = '0xa3e8e842683d48bf2e929eda240c368ec6f8b986';
   const STABLE_REWARD = '0x352A424Caf2aB698570b1E9a273209b5A0fF52BD';
   const chain = 'polygon';
   const abis = {
