@@ -44,6 +44,7 @@ const excludePools = [
   '0xa33c1963d74d203df6bffdfda3bff39a1d76e1d0', // sol pool on lyra
   '0x7a5011bf1dad77a23ec35ce04dcc2ac7d29963c5', // matic-peco
   '0x19D3364A399d251E894aC732651be8B0E4e85001', // ydai
+  '0x09AA7178049Ba617119425A80faeee12dBe121de', // weth on klap
 ];
 
 const boundaries = {
