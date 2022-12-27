@@ -58,6 +58,7 @@ const poolsFunction = async () => {
     tvlUsd: Number(tvl) / 1e6,
     apyBase: formatUnits(stableReward, '2'),
     apyReward: tokenPrice,
+    rewardTokens: ['0x692ac1e363ae34b6b489148152b12e2785a3d8d6']
   };
 
   return [lenderPool];
