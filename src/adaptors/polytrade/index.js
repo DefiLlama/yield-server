@@ -50,16 +50,14 @@ const poolsFunction = async () => {
     formatUnits(tradeReward, '3'),
   );
 
-  // TRADE + USDC Rewards
-const totalAPY = formatUnits(stableReward, '2') + tokenPrice;
-
   const lenderPool = {
     pool: `${LENDER_POOL_CONTRACT}-${chain}`,
     chain: 'Polygon',
     project: 'polytrade',
     symbol: 'USDC',
     tvlUsd: Number(tvl) / 1e6,
-    apy: totalAPY,
+    apyBase: formatUnits(stableReward, '2'),
+    apyReward: tokenPrice,
   };
 
   return [lenderPool];
