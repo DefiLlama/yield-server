@@ -82,7 +82,11 @@ const poolsFunction = async () => {
           return acc + parseFloat(t.apr);
         }, 0.0) * 100;
 
-      apyBase = strat.maxAprFuture * 100 - apyReward;
+      if (strat?.aprBreakdown[2]?.isBribe) {
+        apyBase = strat.minAprFuture * 100 - apyReward;
+      } else {
+        apyBase = strat.maxAprFuture * 100 - apyReward;
+      }
     }
 
     let symbol = strat.name.replace('/', '-').split(' ');
