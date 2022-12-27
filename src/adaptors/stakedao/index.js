@@ -93,16 +93,20 @@ const poolsFunction = async () => {
       ? symbol.replace('san', '').split('-')[0]
       : symbol.replace('FRAXBP', '-crvFRAX');
 
-    let underlyingTokens =
-      strat?.underlyingTokens?.map((t) =>
-        t?.symbol === 'ETH'
-          ? '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
-          : t?.address
-      ) ?? [strat?.underlyingToken?.address] ??
-      [];
-
-    // check if this is a liquid locker
-    if (!underlyingTokens[0] || strat.key === 'bal') {
+    let underlyingTokens = [];
+    if(strat?.underlyingTokens?.length > 0) {
+    underlyingTokens =
+          strat?.underlyingTokens?.map((t) =>
+            t?.symbol === 'ETH'
+              ? '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+              : t?.address
+          );
+    } else if(strat?.underlyingToken?.address) {
+    underlyingTokens = [strat?.underlyingToken?.address];
+    } else {
+    underlyingTokens = [];
+    }
+    if (underlyingTokens.length === 0 || strat.key === 'bal') {
       underlyingTokens = [strat?.tokenReceipt?.address];
     }
     return acc.concat([
