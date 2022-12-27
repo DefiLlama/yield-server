@@ -2,51 +2,38 @@ const utils = require('../utils');
 
 const baseUrl = 'https://api.yearn.finance/v1/chains';
 
-const urls = {
-  ethereum: `${baseUrl}/1/vaults/all`,
-  fantom: `${baseUrl}/250/vaults/all`,
-  arbitrum: `${baseUrl}/42161/vaults/all`,
-  optimism: `${baseUrl}/10/vaults/all`,
+const chains = {
+  ethereum: 1,
+  fantom: 250,
+  arbitrum: 42161,
+  optimism: 10,
 };
 
-const buildPool = (entry, chainString) => {
-  const newObj = {
-    pool: entry.address,
-    chain: utils.formatChain(chainString),
-    project: 'yearn-finance',
-    symbol: utils.formatSymbol(entry.symbol),
-    tvlUsd: entry.tvl.tvl,
-    apy: entry.apy.net_apy * 100,
-  };
-  return newObj;
-};
+const getApy = async () => {
+  const data = await Promise.all(
+    Object.entries(chains).map(async (chain) => {
+      const data = (
+        await utils.getData(`${baseUrl}/${chain[1]}/vaults/all`)
+      ).filter((p) => p.type === 'v2');
 
-const topLvl = async (chainString) => {
-  // pull data
-  let data = await utils.getData(urls[chainString]);
-
-  // filter to v2 only
-  data = data.filter((el) => el.type === 'v2');
-
-  // build pool objects
-  data = data.map((el) => buildPool(el, chainString));
-
-  return data;
-};
-
-const main = async () => {
-  const data = await Promise.all([
-    topLvl('ethereum'),
-    topLvl('fantom'),
-    topLvl('arbitrum'),
-    topLvl('optimism'),
-  ]);
+      return data.map((p) => {
+        return {
+          pool: p.address,
+          chain: utils.formatChain(chain[0]),
+          project: 'yearn-finance',
+          symbol: utils.formatSymbol(p.symbol),
+          tvlUsd: p.tvl.tvl,
+          apy: p.apy.net_apy * 100,
+          url: `https://yearn.finance/vaults/${chains[chain[0]]}/${p.address}`,
+        };
+      });
+    })
+  );
 
   return data.flat();
 };
 
 module.exports = {
   timetravel: false,
-  apy: main,
-  url: 'https://yearn.finance/vaults',
+  apy: getApy,
 };
