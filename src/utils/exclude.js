@@ -42,6 +42,8 @@ const excludePools = [
   '0x726e324c29a1e49309672b244bdc4ff62a270407000200000000000000000702', // USDC-XSGD balancer pool on polygon. can't find on UI
   '0xf4c0dd9b82da36c07605df83c8a416f11724d88b', // GNO-WETH on aura
   '0xa33c1963d74d203df6bffdfda3bff39a1d76e1d0', // sol pool on lyra
+  '0x7a5011bf1dad77a23ec35ce04dcc2ac7d29963c5', // matic-peco
+  '0x19D3364A399d251E894aC732651be8B0E4e85001', // ydai
 ];
 
 const boundaries = {
