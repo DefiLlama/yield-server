@@ -1,7 +1,5 @@
 const utils = require('../utils');
 
-const baseUrl = 'https://api.yearn.finance/v1/chains';
-
 const chains = {
   ethereum: 1,
   fantom: 250,
@@ -12,17 +10,18 @@ const chains = {
 const getApy = async () => {
   const data = await Promise.all(
     Object.entries(chains).map(async (chain) => {
-      const data = (
-        await utils.getData(`${baseUrl}/${chain[1]}/vaults/all`)
-      ).filter((p) => p.type === 'v2');
+      const data = await utils.getData(
+        `https://ydaemon.yearn.finance/${chain[1]}/vaults/all`
+      );
 
       return data.map((p) => {
+        if (p.details.retired) return {};
         return {
           pool: p.address,
           chain: utils.formatChain(chain[0]),
           project: 'yearn-finance',
-          symbol: utils.formatSymbol(p.symbol),
-          tvlUsd: p.tvl.tvl,
+          symbol: utils.formatSymbol(p.token.display_symbol),
+          tvlUsd: p.tvl.tvl_deposited,
           apy: p.apy.net_apy * 100,
           url: `https://yearn.finance/vaults/${chains[chain[0]]}/${p.address}`,
         };
@@ -30,7 +29,7 @@ const getApy = async () => {
     })
   );
 
-  return data.flat();
+  return data.flat().filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
