@@ -64,7 +64,7 @@ const poolsFunction = async () => {
 		chain: utils.formatChain('tron'),
 		project: 'strx-finance',
 		symbol: utils.formatSymbol('TRX'),
-		tvlUsd: dataTvl,
+		tvlUsd: dataTvl.lastHourlyRecord.tvl,
 		apyBase: Number(dailyAPY),
 		apyBase7d: Number(weeklyAPY)
 	};
