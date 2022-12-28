@@ -11,7 +11,7 @@ const poolsFunction = async () => {
     chain: 'Ethereum',
     project: 'origin-dollar',
     symbol: 'OUSD',
-    tvlUsd: dataTvl,
+    tvlUsd: dataTvl.lastHourlyRecord.tvl,
     apy: Number(apyData.apy),
     underlyingTokens: [
       '0xdac17f958d2ee523a2206206994597c13d831ec7',
