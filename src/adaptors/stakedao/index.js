@@ -73,18 +73,37 @@ const poolsFunction = async () => {
 
       apyReward = apyAngle + apySDT;
     } else {
-      apyReward =
-        strat?.aprBreakdown?.reduce((acc, t) => {
-          if (t.token.address === SDT_ADDRESS) {
-            return acc + parseFloat(t.maxAprFuture);
-          }
+      // calcul for lockers APR
+      if (strat?.aprBreakdown[2]?.isBribe || strat.key === 'apw' || strat.key === 'bpt') {
+        apyReward =
+          strat?.aprBreakdown?.reduce((acc, t) => {
+            if (t.token.address === SDT_ADDRESS) {
+              return acc + parseFloat(t.maxApr);
+            }
+            return acc;
+          }, 0.0) * 100;
+        apyBase =         
+          strat?.aprBreakdown?.reduce((acc, t) => {
+            if (t.token.address === SDT_ADDRESS) {
+              return acc;
+            }
+            return acc + parseFloat(t?.apr);
+          }, 0.0) * 100;
 
-          return acc + parseFloat(t.apr);
-        }, 0.0) * 100;
-
-      if (strat?.aprBreakdown[2]?.isBribe) {
-        apyBase = strat.minAprFuture * 100 - apyReward;
-      } else {
+        if (strat?.aprBreakdown[2]?.isBribe) {
+          apyBase += strat.aprBreakdown[2]?.minApr *100;
+          apyReward += (strat.aprBreakdown[2]?.maxApr - strat.aprBreakdown[2]?.minApr)*100;
+        }
+      } 
+      // calcul for strategies APR
+      else {
+        apyReward =
+          strat?.aprBreakdown?.reduce((acc, t) => {
+            if (t.token.address === SDT_ADDRESS) {
+              return acc + parseFloat(t.maxApr);
+            }
+            return acc + parseFloat(t?.apr);
+          }, 0.0) * 100;
         apyBase = strat.maxAprFuture * 100 - apyReward;
       }
     }
@@ -111,6 +130,7 @@ const poolsFunction = async () => {
     underlyingTokens = [];
     }
     if (underlyingTokens.length === 0 || strat.key === 'bal') {
+
       underlyingTokens = [strat?.tokenReceipt?.address];
     }
     return acc.concat([
