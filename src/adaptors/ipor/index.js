@@ -1,6 +1,6 @@
 const superagent = require('superagent');
 
-const LP_STATS_URL = "https://ipor-mainnet-static-storage-public-bucket.s3.eu-central-1.amazonaws.com/monitor/liquiditypool-statistics";
+const LP_STATS_URL = "https://api.ipor.io/monitor/liquiditypool-statistics";
 const COIN_PRICES_URL = "https://coins.llama.fi/prices";
 
 const apy = async () => {
