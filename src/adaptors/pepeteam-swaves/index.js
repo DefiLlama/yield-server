@@ -1,13 +1,14 @@
 const utils = require('../utils');
 const { data } = require('./waves');
-const { ticker24h } = require('./binance');
+const { price } = require('./coingecko');
 
 const wavesStakingContract = '3PDPzZVLhN1EuzGy4xAxjjTVkawKDLEaHiV';
 
 async function tvlUsd() {
   const contractTVLInWAVES = await data(wavesStakingContract, 'STAKING_AMOUNT');
-  const wavesPrice = await ticker24h('WAVESUSDT');
-  return (contractTVLInWAVES.value / 1e8) * wavesPrice.weightedAvgPrice;
+  const priceResponse = await price('waves', 'usd');
+  const wavesPrice = priceResponse.waves.usd;
+  return (contractTVLInWAVES.value / 1e8) * wavesPrice;
 }
 
 async function apyBase() {
