@@ -1,12 +1,25 @@
 {
-  "asset": {
+  "holdingPosition": {
     "inputs": [],
-    "name": "asset",
+    "name": "holdingPosition",
     "outputs": [
       {
-        "internalType": "address",
+        "internalType": "contract ERC20",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  "getPositions": {
+    "inputs": [],
+    "name": "getPositions",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "",
+        "type": "address[]"
       }
     ],
     "stateMutability": "view",
