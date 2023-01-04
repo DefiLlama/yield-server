@@ -231,7 +231,9 @@ const main = async () => {
 
       const apyBase = subgraph ? parseFloat(subgraph.latestDailyApy) : 0;
       const aprCrv =
-        gauge && subgraph
+        blockchainId === 'optimism' && pool?.gaugeCrvApy?.length > 0
+          ? pool?.gaugeCrvApy[0]
+          : gauge && subgraph
           ? getPoolAPR(pool, subgraph, gauge, priceCrv, underlyingPrices)
           : 0;
       let aprExtra = extraRewards
