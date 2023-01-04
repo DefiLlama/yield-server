@@ -5,12 +5,13 @@ const utils = require('../utils');
 
 
 
-const CHAINS = {
-    ethereum: 'gamma',
-    optimism: 'optimism',
-    polygon: 'polygon',
-    arbitrum: 'arbitrum',
-    celo: 'celo'
+const EXCHANGES_API = {
+    uniswapv3: '',
+    quickswap: 'quickswap/'
+  };
+const EXCHANGES_CHAINS = {
+    uniswapv3: ["ethereum","optimism","polygon","arbitrum","celo"],
+    quickswap: ["polygon"]
   };
 const CHAINS_API = {
     ethereum: '',
@@ -26,6 +27,14 @@ const CHAIN_IDS = {
     arbitrum: 42161,
     celo: 42220
   };
+const UNISWAP_FEE = {
+  "100":"(0.01%)",
+  "500":"(0.05%)",
+  "1000":"(0.1%)",
+  "3000":"(0.3%)",
+  "10000":"(1%)",
+  "0":""
+}
 
 var pools_processed = []; // unique pools name
 // v1 pools (read only) and private hypervisors ( non retail)
@@ -73,71 +82,49 @@ const ro_hypervisors = {
               arbitrum: [],
               celo: []
 };
-const getUrl_allData = (chain) =>
-  `https://gammawire.net/${chain}hypervisors/allData`;
+const getUrl_allData = (chain,exchange) =>
+  `https://gammawire.net/${exchange}${chain}hypervisors/allData`;
 
-const getUrl = (chain) =>
-`https://api.thegraph.com/subgraphs/name/gammastrategies/${chain}`;
-
-
-const hypervisorsQuery = gql`
-{
-    uniswapV3Hypervisors(where: {  tvl0_gt: "0", totalSupply_gt: "0"}) {
-      id
-      symbol
-      created
-      tvlUSD
-      tvl0
-      tvl1
-      pool {
-        token0 {
-          symbol
-          id
-          decimals
-        }
-        token1 {
-          symbol
-          id
-          decimals
-        }
-        fee
-      }
-    }
-}
-`;
-
-const getSumByKey = (arr, key) => {
-    return arr.reduce((accumulator, current) => accumulator + Number(current[key]), 0)
-  }
 const pairsToObj = (pairs) =>
   pairs.reduce((acc, [el1, el2]) => ({ ...acc, [el1]: el2 }), {});
 
 const getApy = async () => {
-  const hypervisorsDta = pairsToObj(
-    await Promise.all(
-      Object.keys(CHAINS).map(async (chain) => [
-        chain,
-        await request(getUrl(CHAINS[chain]), hypervisorsQuery),
-      ])
-    )
-  );
+  
+  var hype_allData = {};
+  for (const [exchange, chains] of Object.entries(EXCHANGES_CHAINS)) {
+    try {
+      tmp_dict = pairsToObj(
+        await Promise.all(
+          Object.values(chains).map(async (chain) => [
+            chain,
+            await utils.getData(getUrl_allData(CHAINS_API[chain],EXCHANGES_API[exchange])),
+          ])
+        )
+      );
 
-  const hype_allData = pairsToObj(
-    await Promise.all(
-      Object.keys(CHAINS).map(async (chain) => [
-        chain,
-        await utils.getData(getUrl_allData(CHAINS_API[chain])),
-      ])
-    )
-  );
+      Object.entries(tmp_dict).forEach(([chain, hypervisors]) => {
+        // include exchange to hypervisor dta
+        Object.entries(hypervisors).forEach(([hyp_id, hyp_dta]) => {hyp_dta["dex"]=exchange});
 
-  const tokens = Object.entries(hypervisorsDta).reduce(
-    (acc, [chain, { uniswapV3Hypervisors }]) => ({
+        if (chain in hype_allData){
+          hype_allData[chain] = Object.assign(hype_allData[chain], hypervisors);
+        }else{
+          hype_allData[chain] = hypervisors;
+        };
+
+      });
+
+
+    } catch (error) {};
+  };
+
+  const tokens = Object.entries(hype_allData).reduce(
+    (acc, [chain, hypervisors]) => ({
       ...acc,
       [chain]: [
         ...new Set(
-            uniswapV3Hypervisors
-            .map((hypervisor) => [hypervisor.pool.token0.id, hypervisor.pool.token1.id])
+            Object.values(hypervisors)
+            .map((hypervisor) => [hypervisor.token0, hypervisor.token1])
             .flat()
         ),
       ],
@@ -155,41 +142,65 @@ const getApy = async () => {
     })
   ).body.coins;
 
-  const pools = Object.keys(CHAINS).map((chain) => {
-    const { uniswapV3Hypervisors: chainHypervisors } = hypervisorsDta[chain];
 
-    const chainAprs = chainHypervisors.filter(function(hyp) {
-      if (ro_hypervisors[chain].indexOf(hyp.id) >= 0){
+  const pools = Object.keys(hype_allData).map((chain) => {
+    
+    const chainAprs = Object.keys(hype_allData[chain]).filter((function(hypervisor_id) {
+      if (ro_hypervisors[chain].indexOf(hypervisor_id) >= 0){
         return false;
       }else{ 
         return true;
       };
-      }).map((hypervisor) => {
+      })).map((hypervisor_id) => {
       
-            // MAIN CALC 
+          // MAIN CALC
+          const hypervisor = hype_allData[chain][hypervisor_id]
           const TVL =
-              (hypervisor.tvl0/(10**hypervisor.pool.token0.decimals) ) * prices[`${chain}:${hypervisor.pool.token0.id}`]?.price +
-              (hypervisor.tvl1/(10**hypervisor.pool.token1.decimals) ) * prices[`${chain}:${hypervisor.pool.token1.id}`]?.price;
-          const apy = hype_allData[chain][hypervisor.id]["returns"]["daily"]["feeApy"];
-          const apr = hype_allData[chain][hypervisor.id]["returns"]["daily"]["feeApr"];
+              hypervisor.tvl0 * prices[`${chain}:${hypervisor.token0}`]?.price +
+              hypervisor.tvl1 * prices[`${chain}:${hypervisor.token1}`]?.price;
+          const apy = hypervisor["returns"]["daily"]["feeApy"];
+          const apr = hypervisor["returns"]["daily"]["feeApr"];
           const TVL_alternative = Number(hypervisor.tvlUSD);
          
           
           // create a unique pool name
-          var pool_name = hypervisor.id;
+          var pool_name = hypervisor_id;
           if (pools_processed.indexOf(pool_name) >= 0){
-            pool_name = `${hypervisor.id}-${utils.formatChain(chain)}`
+            pool_name = `${hypervisor_id}-${utils.formatChain(chain)}`
           };
           pools_processed.push(pool_name);
+
+          // create a symbol 
+          var symbol_name = hypervisor.name
+          // uniswap (fee%)  quickswap no fee
+          try {
+            var symbol_spl = hypervisor.name.split("-");
+            const fee_name = ` ${UNISWAP_FEE[symbol_spl[symbol_spl.length - 1]]}`;
+            if (fee_name == " undefined"){
+              fee_name = "";
+            };
+            symbol_spl.pop();
+            symbol_name = symbol_spl.join("-");
+            symbol_name += `${fee_name}`;
+            //symbol_name = `${prices[`${chain}:${hypervisor.token0}`]?.symbol}-${prices[`${chain}:${hypervisor.token1}`]?.symbol}${fee_name}`;
+            if (symbol_name.includes("undefined")){
+              symbol_name = hypervisor.name
+            }
+          } catch{
+            symbol_name = hypervisor.name
+          };
+
+
         
           return {
             pool: pool_name,
             chain: utils.formatChain(chain),
             project: 'gamma',
-            symbol: `${hypervisor.pool.token0.symbol}-${hypervisor.pool.token1.symbol}`,
+            symbol: `${symbol_name}`,
             tvlUsd: TVL || TVL_alternative,
             apyBase: apr*100 || apy*100,
-            underlyingTokens: [hypervisor.pool.token0.id, hypervisor.pool.token1.id],
+            underlyingTokens: [hypervisor.token0, hypervisor.token1],
+            poolMeta: `${hypervisor.dex}`
           };
     });
     return chainAprs;
