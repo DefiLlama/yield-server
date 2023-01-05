@@ -2,7 +2,7 @@ const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const utils = require('../utils');
-const { zenBullAbi } = require('./abi');
+const { zenBullAbi, eulerSimpleLens } = require('./abi');
 
 const getCrabVaultDetailsAbi = "function getCrabVaultDetails() external view returns (uint256,uint256)";
 
@@ -25,6 +25,8 @@ const poolsFunction = async () => {
         coins: [squeethKey],
         })
     ).body.coins[squeethKey].price;
+    const usdc = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+    const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
 
 
     /**************** Crab strategy APY and TVL ****************/
@@ -63,7 +65,6 @@ const poolsFunction = async () => {
     const annualizedUsdcReturns = (Math.pow(1 + historicalUsdcReturns / 100, 365 / crabNumberOfDays) - 1) * 100;
 
     const chain = "ethereum"
-    const usdc = "0x7EA2be2df7BA6E54B1A9C70676f668455E329d29"
     const usdcPool = {
         pool: `${usdc}-${chain}`,
         chain: chain,
@@ -76,6 +77,7 @@ const poolsFunction = async () => {
 
     /**************** Zen Bull strategy APY and TVL ****************/
     const zenBullAddress = "0xb46Fb07b0c80DBC3F97cae3BFe168AcaD46dF507";
+    const eulerSimpleLensAddress = "0x5077B7642abF198b4a5b7C4BdCE4f03016C7089C"
     const [ethInCrab, squeethInCrab] = (await sdk.api.abi.call({
         target: zenBullAddress,
         abi: zenBullAbi.find(({ name }) => name === 'getCrabVaultDetails'),
@@ -92,21 +94,18 @@ const poolsFunction = async () => {
         chain: "ethereum"
       })
     ).output
-    // euler dToken and eToken
-    const usdcDToken = "0x84721A3dB22EB852233AEAE74f9bC8477F8bcc42"
-    const wethEToken = "0x1b808F49ADD4b8C6b5117d9681cF7312Fcf0dC1D"
-    const bullDtokenBalance = (await sdk.api.erc20.balanceOf({
-        target: usdcDToken,
-        owner: zenBullAddress,
+    const bullDtokenBalance = (await sdk.api.abi.call({
+        target: eulerSimpleLensAddress,
+        abi: eulerSimpleLens.find(({ name }) => name === 'getDTokenBalance'),
+        params: [usdc, zenBullAddress],
         chain: "ethereum"
-      })
-    ).output
-    const bullEtokenBalance = (await sdk.api.erc20.balanceOf({
-        target: wethEToken,
-        owner: zenBullAddress,
+    })).output;
+    const bullEtokenBalance = (await sdk.api.abi.call({
+        target: eulerSimpleLensAddress,
+        abi: eulerSimpleLens.find(({ name }) => name === 'getETokenBalance'),
+        params: [weth, zenBullAddress],
         chain: "ethereum"
-      })
-    ).output
+    })).output;
 
     const crabUsdPrice = ((ethInCrab * ethPriceUSD / 1e18) - (squeethInCrab * squeethPriceUSD / 1e18)) / (crabTotalSupply / 1e18);    
     const zenBullTvl = (bullEtokenBalance * ethPriceUSD / 1e18) + (bullCrabBalance * crabUsdPrice / 1e18) - (bullDtokenBalance / 1e6);
@@ -122,7 +121,6 @@ const poolsFunction = async () => {
     const annualizedWethReturns = (Math.pow(1 + historicalWethReturns / 100, 365 / zenBullNumberOfDays) - 1) * 100;
 
     const zenBullChain = "ethereum"
-    const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
     const wethPool = {
         pool: `${weth}-${zenBullChain}`,
         chain: zenBullChain,
