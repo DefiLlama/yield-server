@@ -9,6 +9,7 @@ const poolsFunction = async () => {
         ethereum: 'https://api.thegraph.com/subgraphs/name/opynfinance/squeeth'
     };
     const currentTimestamp = new Date().getTime() / 1000;
+    const startTimestamp = currentTimestamp - (60 * 60 * 24 * 7)
     // get eth usd price
     const key = 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
     const ethPriceUSD = (
@@ -52,13 +53,13 @@ const poolsFunction = async () => {
 
     const crabTvl = (crabVaultQueryData[0][1].collateralAmount * ethPriceUSD / 1e18) - (crabVaultQueryData[0][1].shortAmount * squeethPriceUSD / 1e18);
     
-    const crabStartTimestamp = "1658966400";
     let crabApyData = (await utils.getData(
-        `https://data-dot-mm-bot-prod.uc.r.appspot.com/metrics/crabv2?start_timestamp=${crabStartTimestamp}&end_timestamp=${currentTimestamp}`
+        `https://data-dot-mm-bot-prod.uc.r.appspot.com/metrics/crabv2?start_timestamp=${startTimestamp}&end_timestamp=${currentTimestamp}`
     )).data;
     crabApyData = crabApyData[crabApyData.length - 1]
 
     const historicalUsdcReturns = crabApyData.crabPnL * 100
+    const crabStartTimestamp = "1658966400";
     const crabNumberOfDays = (Number(currentTimestamp) - Number(crabStartTimestamp)) / (60 * 60 * 24);
     const annualizedUsdcReturns = (Math.pow(1 + historicalUsdcReturns / 100, 365 / crabNumberOfDays) - 1) * 100;
 
@@ -108,13 +109,13 @@ const poolsFunction = async () => {
     const crabUsdPrice = ((ethInCrab * ethPriceUSD / 1e18) - (squeethInCrab * squeethPriceUSD / 1e18)) / (crabTotalSupply / 1e18);    
     const zenBullTvl = (bullEtokenBalance * ethPriceUSD / 1e18) + (bullCrabBalance * crabUsdPrice / 1e18) - (bullDtokenBalance / 1e6);
 
-    const zenBullStartTimestamp = "1671500159";
     let zenBullApyData = (await utils.getData(
-        `https://data-dot-mm-bot-prod.uc.r.appspot.com/metrics/zenbull/pnl/${zenBullStartTimestamp}/${currentTimestamp}`
+        `https://data-dot-mm-bot-prod.uc.r.appspot.com/metrics/zenbull/pnl/${startTimestamp}/${currentTimestamp}`
     )).data;
     zenBullApyData = zenBullApyData[zenBullApyData.length - 1]
 
     const historicalWethReturns = zenBullApyData.bullEthPnl
+    const zenBullStartTimestamp = "1671500159";
     const zenBullNumberOfDays = (Number(currentTimestamp) - Number(zenBullStartTimestamp)) / (60 * 60 * 24);
     const annualizedWethReturns = (Math.pow(1 + historicalWethReturns / 100, 365 / zenBullNumberOfDays) - 1) * 100;
 
