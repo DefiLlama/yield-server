@@ -16,22 +16,25 @@ const apyQuery = gql`
     seniorPoolStatus(id: 1) {
       estimatedApy
       estimatedApyFromGfiRaw
-      totalPoolAssetsUsdc
+      assets
     }
   }
 `;
 
 const GFI = '0xdab396ccf3d84cf2d07c4454e10c8a6f5b008d2b';
+const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
 async function apy() {
-  const priceKey = `ethereum:${GFI}`;
-  const gfiPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey].price;
+  const prices = (
+    await axios.get(
+      `https://coins.llama.fi/prices/current/ethereum:${GFI},ethereum:${USDC}`
+    )
+  ).data.coins;
 
   const { seniorPoolStatus } = await request(API_URL, apyQuery);
-  const { estimatedApy, estimatedApyFromGfiRaw, totalPoolAssetsUsdc } =
-    seniorPoolStatus;
-  const tvlUsd = new BigNumber(totalPoolAssetsUsdc).dividedBy(1e6).toNumber();
+  const { estimatedApy, estimatedApyFromGfiRaw, assets } = seniorPoolStatus;
+  const tvlUsd =
+    new BigNumber(assets).dividedBy(1e6).toNumber() *
+    prices[`ethereum:${USDC}`].price;
 
   return [
     {
@@ -41,7 +44,10 @@ async function apy() {
       symbol: 'USDC',
       tvlUsd,
       apyBase: parseFloat(estimatedApy) * 100,
-      apyReward: parseFloat(estimatedApyFromGfiRaw) * gfiPrice * 100,
+      apyReward:
+        parseFloat(estimatedApyFromGfiRaw) *
+        prices[`ethereum:${GFI}`].price *
+        100,
       underlyingTokens: [USDC_ADDRESS],
       rewardTokens: [GFI_ADDRESS],
       // borrow fields
