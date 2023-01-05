@@ -7,12 +7,12 @@ const lpABI = require('./abis/lp.json');
 
 const FISH_TOKEN = '0xb348B87b23D5977E2948E6f36ca07E1EC94d7328';
 const CHAINS = {
-    'arbitrum': {
-        'masterchef': '0x33141e87ad2DFae5FBd12Ed6e61Fa2374aAeD029',
-    },
-    'bsc': {
-        'masterchef': '0x671eFBa3F6874485cC39535fa7b525fe764985e9',
-    },
+  arbitrum: {
+    masterchef: '0x33141e87ad2DFae5FBd12Ed6e61Fa2374aAeD029',
+  },
+  bsc: {
+    masterchef: '0x671eFBa3F6874485cC39535fa7b525fe764985e9',
+  },
 };
 
 const getPairInfo = async (pair, tokenAddress, chain) => {
@@ -50,8 +50,8 @@ const getPrices = async (addresses, chain) => {
     await superagent.post('https://coins.llama.fi/prices').send({
       coins: addresses.map((address) => {
         // FISH is bridgeable, take price from the main chain
-        const priceChain = (address == FISH_TOKEN)? 'arbitrum' : chain
-        return `${priceChain}:${address}`
+        const priceChain = address == FISH_TOKEN ? 'arbitrum' : chain;
+        return `${priceChain}:${address}`;
       }),
     })
   ).body.coins;
@@ -106,7 +106,7 @@ const getApy = async () => {
   const poolsApy = [];
 
   for (chain in CHAINS) {
-    masterchefAddress = CHAINS[chain]["masterchef"];
+    masterchefAddress = CHAINS[chain]['masterchef'];
 
     const poolLength = await sdk.api.abi.call({
       target: masterchefAddress,
@@ -143,6 +143,8 @@ const getApy = async () => {
           ![
             '0xb348B87b23D5977E2948E6f36ca07E1EC94d7328',
             '0x666F4429681BeAfE36208FF9D0d16665755f488a',
+            '0x089a4b6E7EF16e401C24DAE1e736dc33Ab8aDE52',
+            '0x4CD8Ba83b30f3a39a5D63E086D31509399415b49',
           ].includes(k.lpToken)
       );
     const lpTokens = pools.map(({ lpToken }) => lpToken);
