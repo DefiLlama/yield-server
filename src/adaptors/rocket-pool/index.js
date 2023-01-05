@@ -1,9 +1,7 @@
 const utils = require('../utils');
 
 const poolsFunction = async () => {
-  const apyData = await utils.getData(
-    'https://api.rocketpool.net/api/apr'
-  );
+  const apyData = await utils.getData('https://api.rocketpool.net/api/apr');
   const dataTvl = await utils.getData(
     'https://api.rocketpool.net/api/mainnet/network/stats'
   );
@@ -14,10 +12,10 @@ const poolsFunction = async () => {
   const ethPool = {
     pool: '0xae78736cd615f374d3085123a210448e74fc6393',
     chain: utils.formatChain('ethereum'),
-    project: 'rocketpool',
-    symbol: utils.formatSymbol('ETH'),
+    project: 'rocket-pool',
+    symbol: utils.formatSymbol('RETH'),
     tvlUsd: Number(dataTvl.ethStakingTotal) * Number(priceUsd.ethereum.usd),
-    apyBase: apyData.yearlyAPR,
+    apyBase: parseFloat(apyData.yearlyAPR),
   };
 
   return [ethPool];
@@ -28,4 +26,3 @@ module.exports = {
   apy: poolsFunction,
   url: 'https://stake.rocketpool.net/',
 };
-
