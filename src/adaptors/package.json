@@ -7,7 +7,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@defillama/sdk": "^2.3.126",
+    "@defillama/sdk": "^3.0.22",
     "@types/jest": "^28.1.6",
     "@uniswap/sdk-core": "^3.0.1",
     "@uniswap/smart-order-router": "^2.8.0",
