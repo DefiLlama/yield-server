@@ -28,11 +28,11 @@ const CHAIN_IDS = {
     celo: 42220
   };
 const UNISWAP_FEE = {
-  "100":"(0.01%)",
-  "500":"(0.05%)",
-  "1000":"(0.1%)",
-  "3000":"(0.3%)",
-  "10000":"(1%)",
+  "100":"0.01%",
+  "500":"0.05%",
+  "1000":"0.1%",
+  "3000":"0.3%",
+  "10000":"1%",
   "0":""
 }
 
@@ -172,16 +172,16 @@ const getApy = async () => {
 
           // create a symbol 
           var symbol_name = hypervisor.name
+          let fee_name = ''
           // uniswap (fee%)  quickswap no fee
           try {
             var symbol_spl = hypervisor.name.split("-");
-            const fee_name = ` ${UNISWAP_FEE[symbol_spl[symbol_spl.length - 1]]}`;
+            fee_name = `${UNISWAP_FEE[symbol_spl[symbol_spl.length - 1]]}`;
             if (fee_name == " undefined"){
               fee_name = "";
             };
             symbol_spl.pop();
             symbol_name = symbol_spl.join("-");
-            symbol_name += `${fee_name}`;
             //symbol_name = `${prices[`${chain}:${hypervisor.token0}`]?.symbol}-${prices[`${chain}:${hypervisor.token1}`]?.symbol}${fee_name}`;
             if (symbol_name.includes("undefined")){
               symbol_name = hypervisor.name
@@ -200,7 +200,7 @@ const getApy = async () => {
             tvlUsd: TVL || TVL_alternative,
             apyBase: apr*100 || apy*100,
             underlyingTokens: [hypervisor.token0, hypervisor.token1],
-            poolMeta: `${hypervisor.dex}`
+            poolMeta: `${hypervisor.dex} ${fee_name}`
           };
     });
     return chainAprs;
