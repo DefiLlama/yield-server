@@ -33,7 +33,7 @@ const buildPoolInfo = (chainName, poolStatus, dailyPoolStatuses) => {
   const apy = poolStatus.adjustedApy;
 
   return {
-    pool: address,
+    pool: chainName === 'arbitrum' ? address.concat('-arbitrum') : address,
     chain: utils.formatChain(chainName),
     project: 'clipper',
     symbol: formattedSymbol,
