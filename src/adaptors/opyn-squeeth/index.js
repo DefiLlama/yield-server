@@ -4,8 +4,6 @@ const superagent = require('superagent');
 const utils = require('../utils');
 const { zenBullAbi, eulerSimpleLens } = require('./abi');
 
-const getCrabVaultDetailsAbi = "function getCrabVaultDetails() external view returns (uint256,uint256)";
-
 const poolsFunction = async () => {
     const API_URLS = {
         ethereum: 'https://api.thegraph.com/subgraphs/name/opynfinance/squeeth'
@@ -18,7 +16,7 @@ const poolsFunction = async () => {
         coins: [key],
         })
     ).body.coins[key].price;
-    // get eth usd price
+    // get squeeth usd price
     const squeethKey = 'ethereum:0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b';
     const squeethPriceUSD = (
         await superagent.post('https://coins.llama.fi/prices').send({
