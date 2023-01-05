@@ -231,7 +231,8 @@ const main = async () => {
 
       const apyBase = subgraph ? parseFloat(subgraph.latestDailyApy) : 0;
       const aprCrv =
-        blockchainId === 'optimism' && pool?.gaugeCrvApy?.length > 0
+        (blockchainId === 'optimism' && pool?.gaugeCrvApy?.length > 0) ||
+        address === '0xa1F8A6807c402E4A15ef4EBa36528A3FED24E577'
           ? pool?.gaugeCrvApy[0]
           : gauge && subgraph
           ? getPoolAPR(pool, subgraph, gauge, priceCrv, underlyingPrices)
