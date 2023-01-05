@@ -17,7 +17,7 @@ const poolsFunction = async () => {
     project: 'rocketpool',
     symbol: utils.formatSymbol('ETH'),
     tvlUsd: Number(dataTvl.ethStakingTotal) * Number(priceUsd.ethereum.usd),
-    apyBase: apyData.yearlyAPR
+    apyBase: apyData.yearlyAPR,
   };
 
   return [ethPool];
