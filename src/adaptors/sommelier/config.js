@@ -16,6 +16,10 @@ const stakingPools = {
     '0x9eeabfff5d15e8cedfd2f6c914c8826ba0a5fbbd',
   '0x6e2dac3b9e9adc0cbbae2d0b9fd81952a8d33872':
     '0x6ce314c39f30488b4a86b8892c81a5b7af83e337',
+  '0x6f069f711281618467dae7873541ecc082761b33':
+    '0x74a9a6fab61e128246a6a5242a3e96e56198cbdd',
+  '0x05641a27c82799aaf22b436f20a3110410f29652':
+    '0x7da7e27e4bcc6ec8bc06349e1cef6634f6df7c5c',
 };
 
 // List of v0815 Cellars
@@ -88,6 +92,32 @@ const v0816Pools = [
     rewardTokens,
     underlyingTokens: [],
     url: 'https://app.sommelier.finance/strategies/Steady-BTC',
+  },
+  {
+    pool: '0x6f069f711281618467dae7873541ecc082761b33-ethereum',
+    chain,
+    project,
+    symbol: 'UNI',
+    poolMeta: 'SteadyUNI',
+    tvlUsd: 0,
+    apyBase: 0,
+    apyReward: 0,
+    rewardTokens,
+    underlyingTokens: [],
+    url: 'https://app.sommelier.finance/strategies/Steady-UNI',
+  },
+  {
+    pool: '0x05641a27c82799aaf22b436f20a3110410f29652-ethereum',
+    chain,
+    project,
+    symbol: 'MATIC',
+    poolMeta: 'SteadyMATIC',
+    tvlUsd: 0,
+    apyBase: 0,
+    apyReward: 0,
+    rewardTokens,
+    underlyingTokens: [],
+    url: 'https://app.sommelier.finance/strategies/Steady-MATIC',
   },
 ];
 
