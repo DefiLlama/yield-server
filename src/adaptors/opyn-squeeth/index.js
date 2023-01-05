@@ -18,6 +18,13 @@ const poolsFunction = async () => {
         coins: [key],
         })
     ).body.coins[key].price;
+    // get eth usd price
+    const squeethKey = 'ethereum:0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b';
+    const squeethPriceUSD = (
+        await superagent.post('https://coins.llama.fi/prices').send({
+        coins: [squeethKey],
+        })
+    ).body.coins[squeethKey].price;
 
 
     /**************** Crab strategy APY and TVL ****************/
@@ -43,7 +50,7 @@ const poolsFunction = async () => {
         ])
     );
 
-    const crabTvl = crabVaultQueryData[0][1].collateralAmount * ethPriceUSD / 1e18;
+    const crabTvl = (crabVaultQueryData[0][1].collateralAmount * ethPriceUSD / 1e18) - (crabVaultQueryData[0][1].shortAmount * squeethPriceUSD / 1e18);
     
     const crabStartTimestamp = "1658966400";
     let crabApyData = (await utils.getData(
@@ -68,14 +75,6 @@ const poolsFunction = async () => {
 
 
     /**************** Zen Bull strategy APY and TVL ****************/
-    // get eth usd price
-    const squeethKey = 'ethereum:0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b';
-    const squeethPriceUSD = (
-        await superagent.post('https://coins.llama.fi/prices').send({
-        coins: [squeethKey],
-        })
-    ).body.coins[squeethKey].price;
-
     const zenBullAddress = "0xb46Fb07b0c80DBC3F97cae3BFe168AcaD46dF507";
     const [ethInCrab, squeethInCrab] = (await sdk.api.abi.call({
         target: zenBullAddress,
