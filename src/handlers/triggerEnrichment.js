@@ -432,7 +432,9 @@ const addPoolInfo = (el, stablecoins, config) => {
   el['ilRisk'] =
     config[el.project]?.category === 'Options'
       ? 'yes'
-      : ['complifi', 'optyfi', 'arbor-finance'].includes(el.project)
+      : ['complifi', 'optyfi', 'arbor-finance', 'opyn-squeeth'].includes(
+          el.project
+        )
       ? 'yes'
       : ['mycelium-perpetual-swaps', 'gmx', 'rage-trade'].includes(
           el.project
