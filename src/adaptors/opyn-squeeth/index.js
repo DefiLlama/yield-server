@@ -59,8 +59,6 @@ const poolsFunction = async () => {
     crabApyData = crabApyData[crabApyData.length - 1]
 
     const historicalUsdcReturns = crabApyData.crabPnL * 100
-    const crabStartTimestamp = "1658966400";
-    // const crabNumberOfDays = (Number(currentTimestamp) - Number(crabStartTimestamp)) / (60 * 60 * 24);
     const crabNumberOfDays = (Number(currentTimestamp) - Number(startTimestamp)) / (60 * 60 * 24);
     const annualizedUsdcReturns = (Math.pow(1 + historicalUsdcReturns / 100, 365 / crabNumberOfDays) - 1) * 100;
 
@@ -72,6 +70,7 @@ const poolsFunction = async () => {
         symbol: 'USDC',
         tvlUsd: crabTvl,
         apy: annualizedUsdcReturns,
+        poolMeta: 'Crab USDC',
     };
 
 
@@ -116,8 +115,6 @@ const poolsFunction = async () => {
     zenBullApyData = zenBullApyData[zenBullApyData.length - 1]
 
     const historicalWethReturns = zenBullApyData.bullEthPnl
-    const zenBullStartTimestamp = "1671500159";
-    // const zenBullNumberOfDays = (Number(currentTimestamp) - Number(zenBullStartTimestamp)) / (60 * 60 * 24);
     const zenBullNumberOfDays = (Number(currentTimestamp) - Number(startTimestamp)) / (60 * 60 * 24);
     const annualizedWethReturns = (Math.pow(1 + historicalWethReturns / 100, 365 / zenBullNumberOfDays) - 1) * 100;
 
@@ -128,7 +125,8 @@ const poolsFunction = async () => {
         project: 'opyn-squeeth',
         symbol: 'WETH',
         tvlUsd: zenBullTvl,
-        apy: annualizedWethReturns,
+        apyBase: annualizedWethReturns,
+        poolMeta: 'Zen Bull ETH',
     }
 
     return [usdcPool, wethPool];
