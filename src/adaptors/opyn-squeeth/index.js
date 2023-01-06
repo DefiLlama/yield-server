@@ -69,7 +69,7 @@ const poolsFunction = async () => {
         project: 'opyn-squeeth',
         symbol: 'USDC',
         tvlUsd: crabTvl,
-        apy: annualizedUsdcReturns,
+        apyBase: annualizedUsdcReturns,
         poolMeta: 'Crab USDC',
     };
 
