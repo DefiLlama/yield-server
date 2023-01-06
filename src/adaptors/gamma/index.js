@@ -199,8 +199,7 @@ const getApy = async () => {
             symbol: `${symbol_name}`,
             tvlUsd: TVL || TVL_alternative,
             apyBase: apr*100 || apy*100,
-            underlyingTokens: [hypervisor.token0, hypervisor.token1],
-            poolMeta: `${hypervisor.dex} ${fee_name}`
+            underlyingTokens: [hypervisor.token0, hypervisor.token1]
           };
     });
     return chainAprs;
