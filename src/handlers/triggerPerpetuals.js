@@ -13,7 +13,7 @@ const main = async () => {
       binance.getPerpData(),
       bybit.getPerpData(),
       dydx.getPerpData(),
-      okx.getPerpData(),
+      // okx.getPerpData(),
     ])
   ).flat();
 
