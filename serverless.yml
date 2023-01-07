@@ -229,6 +229,15 @@ functions:
           method: get
           path: /configPool/{configID}
 
+  getPerp:
+    handler: src/handlers/getPerp.handler
+    description: Lambda for retrieving latest perp data
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /perps
+
 resources:
   Resources:
     # QUEUES
