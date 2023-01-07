@@ -14,10 +14,12 @@ exports.getPerpData = async () => {
 
   const markets = [...new Set(okxFR.map((m) => m.instId.replace('-SWAP', '')))];
   const indexPrices = (
-    await Promise.all(markets.map((m) => axios.get(`${indexPrice}?index=${m}`)))
+    await Promise.allSettled(
+      markets.map((m) => axios.get(`${indexPrice}?index=${m}`))
+    )
   )
-    .map((m) => m.data.data)
-    .flat();
+    .filter((m) => m.status === 'fulfilled')
+    .map((m) => m.value.data.data);
 
   return okxFR.map((p) => ({
     marketPlace: 'okx',
