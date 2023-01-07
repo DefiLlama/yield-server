@@ -3,6 +3,8 @@ const bybit = require('../perpetuals/bybit');
 const dydx = require('../perpetuals/dydx');
 const okx = require('../perpetuals/okx');
 
+const { insertPerp } = require('../controllers/perpController');
+
 module.exports.handler = async () => {
   await main();
 };
@@ -29,5 +31,6 @@ const main = async () => {
     }))
     .filter((m) => m.indexPrice >= 0);
 
-  return perps;
+  const r = await insertPerp(perps);
+  console.log(r);
 };
