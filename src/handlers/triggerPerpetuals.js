@@ -13,11 +13,21 @@ const main = async () => {
       binance.getPerpData(),
       bybit.getPerpData(),
       dydx.getPerpData(),
-      // okx.getPerpData(),
+      okx.getPerpData(),
     ])
-  ).flat();
-
-  console.log(perps);
+  )
+    .flat()
+    .filter((m) => m.indexPrice !== null)
+    .map((m) => ({
+      ...m,
+      timestamp: new Date(Date.now()),
+      market: m.market.toUpperCase(),
+      baseAsset: m.baseAsset.toUpperCase(),
+      fundingRate: +m.fundingRate.toFixed(10),
+      indexPrice: +m.indexPrice.toFixed(5),
+      openInterest: Math.round(m.openInterest),
+    }))
+    .filter((m) => m.indexPrice >= 0);
 
   return perps;
 };
