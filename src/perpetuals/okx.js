@@ -5,7 +5,9 @@ const oi = 'https://www.okx.com/api/v5/public/open-interest?instType=SWAP';
 const fr = 'https://www.okx.com/api/v5/public/funding-rate';
 
 exports.getPerpData = async () => {
-  const okxOI = (await axios.get(oi)).data.data;
+  const okxOI = (await axios.get(oi)).data.data.filter((m) =>
+    m.instId.includes('-USDT-')
+  );
 
   const frUrls = okxOI.map((p) => `${fr}?instId=${p.instId}`);
   const okxFR = (await Promise.all(frUrls.map((u) => axios.get(u))))
@@ -23,7 +25,7 @@ exports.getPerpData = async () => {
 
   return okxFR.map((p) => ({
     marketPlace: 'okx',
-    market: p.instId,
+    market: p.instId.replace('-SWAP', ''),
     baseAsset: p.instId.split('-')[0],
     fundingRate: Number(p.nextFundingRate),
     openInterest: Number(okxOI.find((i) => i.instId === p.instId)?.oi),
