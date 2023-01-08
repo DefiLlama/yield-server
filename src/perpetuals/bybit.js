@@ -6,7 +6,7 @@ exports.getPerpData = async () => {
   const bybit = (await axios.get(api)).data.result;
 
   return bybit.map((p) => ({
-    marketPlace: 'bybit',
+    marketplace: 'Bybit',
     market: p.symbol,
     baseAsset: p.symbol.replace(/USDT/g, ''),
     fundingRate: Number(p.funding_rate),

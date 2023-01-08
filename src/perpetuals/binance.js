@@ -16,7 +16,7 @@ exports.getPerpData = async () => {
     const frM = fr.find((i) => i.symbol === m.symbol);
 
     return {
-      marketPlace: 'binance',
+      marketplace: 'Binance',
       market: m.symbol,
       baseAsset: m.symbol.replace(/USDT|BUSD/g, ''),
       fundingRate: Number(frM?.lastFundingRate) ?? null,

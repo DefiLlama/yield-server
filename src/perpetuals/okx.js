@@ -24,7 +24,7 @@ exports.getPerpData = async () => {
     .map((m) => m.value.data.data);
 
   return okxFR.map((p) => ({
-    marketPlace: 'okx',
+    marketplace: 'OKX',
     market: p.instId.replace('-SWAP', ''),
     baseAsset: p.instId.split('-')[0],
     fundingRate: Number(p.nextFundingRate),

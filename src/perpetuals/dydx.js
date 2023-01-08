@@ -7,7 +7,7 @@ exports.getPerpData = async () => {
 
   return Object.values(dydx).map((p) => {
     return {
-      marketPlace: 'dydx',
+      marketplace: 'dYdX',
       market: p.market,
       baseAsset: p.baseAsset,
       fundingRate: Number(p.nextFundingRate),
