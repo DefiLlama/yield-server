@@ -12,14 +12,14 @@ const getPerp = async () => {
   const query = minify(
     `
     SELECT
-        DISTINCT ON ("marketPlace", market) *
+        DISTINCT ON (marketplace, market) *
     FROM
         $<perpTable:name>
     WHERE
         timestamp >= NOW() - INTERVAL '$<age> HOUR'
     ORDER BY
-        "marketPlace", 
-        "market",
+        marketplace,
+        market,
         timestamp DESC
   `,
     { compress: true }
