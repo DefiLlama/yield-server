@@ -15,16 +15,19 @@ const getPerp = async () => {
         DISTINCT ON ("marketPlace", market) *
     FROM
         $<perpTable:name>
+    WHERE
+        timestamp >= NOW() - INTERVAL '$<age> HOUR'
     ORDER BY
         "marketPlace", 
         "market",
-        timestamp DESC   
+        timestamp DESC
   `,
     { compress: true }
   );
 
   const response = await conn.query(query, {
     perpTable: tableName,
+    age: 3,
   });
 
   if (!response) {
