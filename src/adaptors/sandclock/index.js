@@ -56,12 +56,12 @@ const apy = async () => {
         pool: `${LIQUITY_VAULT}-ethereum`,    
         chain,
         project: 'sandclock', 
-        symbol: "LUSD",
+        symbol: 'LUSD',
         tvlUsd,
         underlyingTokens: ['0x5f98805A4E8be255a32880FDeC7F6728C6568bA0'], // LUSD
         apy,
-        poolMeta: "Liquity Vault", 
-        url: "https://app.sandclock.org/"
+        poolMeta: 'Liquity Vault', 
+        url: 'https://app.sandclock.org/'
     };
 
     return [liquityPool];
