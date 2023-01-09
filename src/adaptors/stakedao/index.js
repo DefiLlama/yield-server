@@ -92,7 +92,6 @@ const poolsFunction = async () => {
 
         if (strat?.aprBreakdown[2]?.isBribe) {
           apyBase += strat.aprBreakdown[2]?.minApr *100;
-          apyReward += (strat.aprBreakdown[2]?.maxApr - strat.aprBreakdown[2]?.minApr)*100;
         }
       } 
       // calcul for strategies APR
