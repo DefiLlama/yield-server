@@ -30,7 +30,7 @@ const buildPoolInfo = (chainName, poolStatus, dailyPoolStatuses) => {
   const { value_in_usd, address } = poolStatus.pool;
   const assetSymbols = poolStatus.assets.map((asset) => asset.name).join('-');
   const formattedSymbol = utils.formatSymbol(assetSymbols);
-  const apy = poolStatus.adjustedApy;
+  const apy = poolStatus.apy;
 
   return {
     pool: chainName === 'arbitrum' ? address.concat('-arbitrum') : address,
