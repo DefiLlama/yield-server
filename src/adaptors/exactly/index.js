@@ -1,17 +1,18 @@
 const { util, api } = require("@defillama/sdk");
 const { aprToApy, getBlocksByTime, getPrices } = require("../utils");
+const { AddressZero } = require("@ethersproject/constants");
 
 const config = {
   ethereum: {
     auditor: "0x310A2694521f75C7B2b64b5937C16CE65C3EFE01",
   },
 };
-
 const url = "https://app.exact.ly";
+const INTERVAL = 86_400 * 7 * 4;
 
 const metadata = async (markets, chain, block) => {
-  const [asset, decimals, symbol] = await Promise.all(
-    ["asset", "decimals", "symbol"].map((key) =>
+  const [asset, decimals, symbol, maxFuturePools] = await Promise.all(
+    ["asset", "decimals", "symbol", "maxFuturePools"].map((key) =>
       api.abi.multiCall({
         abi: abis[key],
         calls: markets.map((target) => ({ target })),
@@ -24,6 +25,7 @@ const metadata = async (markets, chain, block) => {
     assets: asset.output.map(({ output }) => output),
     decimals: decimals.output.map(({ output }) => output),
     symbols: symbol.output.map(({ output }) => output),
+    maxFuturePools: maxFuturePools.output.map(({ output }) => output),
   };
 };
 
@@ -47,6 +49,38 @@ const totals = async (markets, chain, block) => {
   };
 };
 
+const rates = async (markets, chain, block) => {
+  const [previewFloatingAssetsAverages, backupFeeRates, interestRateModels] = await Promise.all(
+    ["previewFloatingAssetsAverage", "backupFeeRate", "interestRateModel"].map((key) =>
+      api.abi.multiCall({
+        abi: abis[key],
+        calls: markets.map((target) => ({ target })),
+        chain,
+        block,
+      })
+    )
+  );
+
+  return {
+    previewFloatingAssetsAverages: previewFloatingAssetsAverages.output.map(({ output }) => output),
+    backupFeeRates: backupFeeRates.output.map(({ output }) => output),
+    interestRateModels: interestRateModels.output.map(({ output }) => output),
+  };
+};
+
+const fixedPools = async (target, chain, block, maturities) => {
+  const [fixedPools] = await Promise.all([
+    api.abi.multiCall({
+      abi: abis.fixedPools,
+      calls: maturities.map((maturity) => ({ target, params: [maturity] })),
+      chain,
+      block,
+    }),
+  ]);
+
+  return fixedPools.output.map(({ output }) => output);
+};
+
 const apy = async () =>
   Promise.all(
     Object.entries(config).map(async ([chain, { auditor }]) => {
@@ -62,7 +96,7 @@ const apy = async () =>
         })
       ).output;
       const [
-        { assets, symbols, decimals },
+        { assets, symbols, decimals, maxFuturePools },
         {
           totalAssets: prevTotalAssets,
           totalSupply: prevTotalSupply,
@@ -70,44 +104,91 @@ const apy = async () =>
           totalFloatingBorrowShares: prevTotalFloatingBorrowShares,
         },
         { totalAssets, totalSupply, totalFloatingBorrowAssets, totalFloatingBorrowShares },
+        { previewFloatingAssetsAverages, backupFeeRates, interestRateModels },
       ] = await Promise.all([
         metadata(markets, chain, startBlock),
         totals(markets, chain, startBlock),
         totals(markets, chain, endBlock),
+        rates(markets, chain, endBlock),
       ]);
       const { pricesByAddress } = await getPrices(assets, chain);
+      const minMaturity = timestampNow - (timestampNow % INTERVAL) + INTERVAL;
 
-      return markets.map((market, i) => {
+      return markets.reduce(async (pools, market, i) => {
+        const usdUnitPrice = pricesByAddress[assets[i].toLowerCase()];
+        const poolMetadata = {
+          chain,
+          project: "exactly",
+          symbol: symbols[i],
+          tvlUsd: ((totalAssets[i] - totalFloatingBorrowAssets[i]) * usdUnitPrice) / 10 ** decimals[i],
+          underlyingTokens: [assets[i]],
+          url: `${url}/${symbols[i]}`,
+        };
         const shareValue = (totalAssets[i] * 1e18) / totalSupply[i];
         const prevShareValue = (prevTotalAssets[i] * 1e18) / prevTotalSupply[i];
         const proportion = (shareValue * 1e18) / prevShareValue;
         const apr = (proportion / 1e18 - 1) * 365;
-
         const borrowShareValue = (totalFloatingBorrowAssets[i] * 1e18) / totalFloatingBorrowShares[i];
         const prevBorrowShareValue = (prevTotalFloatingBorrowAssets[i] * 1e18) / prevTotalFloatingBorrowShares[i];
         const borrowProportion = (borrowShareValue * 1e18) / prevBorrowShareValue;
         const borrowApr = (borrowProportion / 1e18 - 1) * 365;
 
-        const usdUnitPrice = pricesByAddress[assets[i].toLowerCase()];
-
-        return {
+        const floating = {
+          ...poolMetadata,
           pool: `${market}-${chain}`.toLowerCase(),
-          chain,
-          project: "exactly",
-          symbol: symbols[i],
-          tvlUsd: ((totalAssets[i] - totalFloatingBorrowAssets[i]) * usdUnitPrice) / 10 ** decimals[i],
           apy: aprToApy(apr * 100),
-          underlyingTokens: [assets[i]],
-          url: `${url}/${symbols[i]}`,
           apyBaseBorrow: aprToApy(borrowApr),
           totalSupplyUsd: (totalSupply[i] * usdUnitPrice) / 10 ** decimals[i],
           totalBorrowUsd: (totalFloatingBorrowAssets[i] * usdUnitPrice) / 10 ** decimals[i],
+          // TODO: add ltv
         };
-      });
+
+        const maturities = Array.from({ length: maxFuturePools[i] }, (_, j) => minMaturity + INTERVAL * j);
+        const fixedPoolsData = await fixedPools(market, chain, endBlock, maturities);
+
+        const fixed = await Promise.all(
+          maturities.map(async (maturity, j) => {
+            const { borrowed, supplied, unassignedEarnings } = fixedPoolsData[j];
+            const depositRate =
+              borrowed - Math.min(borrowed, supplied) > 0
+                ? (unassignedEarnings * (1e18 - backupFeeRates[i])) / (borrowed - Math.min(borrowed, supplied))
+                : 0;
+
+            const secsToMaturity = maturity - timestampNow;
+            const fixedDepositAPR = (31_536_000 * depositRate) / secsToMaturity / 1e16;
+
+            const { rate: minFixedRate } = (
+              await api.abi.call({
+                target: interestRateModels[i],
+                abi: abis.minFixedRate,
+                params: [borrowed, supplied, previewFloatingAssetsAverages[i]],
+                block: endBlock,
+                chain,
+              })
+            ).output;
+            const fixedBorrowAPR = previewFloatingAssetsAverages[i] + supplied > 0 ? minFixedRate / 1e16 : 0;
+
+            return {
+              ...poolMetadata,
+              pool: `${market}-${chain}-${new Date(maturity * 1_000).toISOString()}`.toLowerCase(),
+              apy: aprToApy(fixedDepositAPR, secsToMaturity / 86_400),
+              apyBaseBorrow: aprToApy(fixedBorrowAPR, secsToMaturity / 86_400),
+              totalSupplyUsd: (supplied * usdUnitPrice) / 10 ** decimals[i],
+              totalBorrowUsd: (borrowed * usdUnitPrice) / 10 ** decimals[i],
+              // TODO: add ltv
+            };
+          })
+        );
+
+        return [...(await pools), floating, ...fixed];
+      }, []);
     })
   ).then((pools) => pools.flat());
 
-module.exports = { apy, url };
+module.exports = {
+  apy,
+  url,
+};
 
 const abis = {
   allMarkets: {
@@ -163,6 +244,60 @@ const abis = {
     inputs: [],
     name: "totalSupply",
     outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  maxFuturePools: {
+    inputs: [],
+    name: "maxFuturePools",
+    outputs: [{ internalType: "uint8", name: "", type: "uint8" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  fixedPools: {
+    inputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    name: "fixedPools",
+    outputs: [
+      { internalType: "uint256", name: "borrowed", type: "uint256" },
+      { internalType: "uint256", name: "supplied", type: "uint256" },
+      { internalType: "uint256", name: "unassignedEarnings", type: "uint256" },
+      { internalType: "uint256", name: "lastAccrual", type: "uint256" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  previewFloatingAssetsAverage: {
+    inputs: [],
+    name: "previewFloatingAssetsAverage",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  backupFeeRate: {
+    inputs: [],
+    name: "backupFeeRate",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  interestRateModel: {
+    inputs: [],
+    name: "interestRateModel",
+    outputs: [{ internalType: "contract InterestRateModel", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  minFixedRate: {
+    inputs: [
+      { internalType: "uint256", name: "borrowed", type: "uint256" },
+      { internalType: "uint256", name: "supplied", type: "uint256" },
+      { internalType: "uint256", name: "backupAssets", type: "uint256" },
+    ],
+    name: "minFixedRate",
+    outputs: [
+      { internalType: "uint256", name: "rate", type: "uint256" },
+      { internalType: "uint256", name: "utilization", type: "uint256" },
+    ],
     stateMutability: "view",
     type: "function",
   },
