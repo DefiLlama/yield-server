@@ -21,7 +21,7 @@ const apy = async () => {
     // combine LIQUTIY_VAULT and YEARN_VAULT to be consistent with the DefiLlama TVL adaptor
     // convert ethers BigNumber to bignumber's BigNumber to have decimal points
     const tvlLUSD = new BigNumber(lvl.add(yvl).toString());
-    console.log('tvlLUSD', tvlLUSD.toString());
+
     // we use USDC value assuming 1 USDC = 1 USD
     const oneLUSD = new BigNumber(10).pow(18);
     const oneUSDC = new BigNumber(10**6);
