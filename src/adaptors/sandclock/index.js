@@ -46,12 +46,11 @@ const apy = async () => {
 
     // Let sp1 be the current share price in LUSD, i.e., sp1 = u1 / s1
     // Let sp0 be the share price in LSUD a day before, i.e., sp0 = u0 / s0
-    // current apy percentage = (sp1 - sp0) * 100 * 365 / sp0,
-    // that is, (u1 / s1 - u0 / s0) * 36500 / (u0 / s0),
-    // which can be converted to (u1 * s0 - u0 * s1) * 36500 / (u0 * s1)
-    // suppose t = u0 * s1, then apy = (u1 * s0 - t) * 36500 / t
-    const t = new BigNumber(u0.mul(s1).toString());
-    const apy = new BigNumber(u1.mul(s0).toString()).minus(t).times(36500).div(t).toNumber();
+    // current apy percentage = {[sp1 / sp0]^365 - 1} * 100,
+    // that is, {[u1 * s0 / (u0 * s1)]^365 - 1} * 100
+    const n = new BigNumber(u1.mul(s0).toString());
+    const d = new BigNumber(u0.mul(s1).toString());
+    const apy = n.div(d).pow(365).minus(1).times(100).toNumber();
 
     const liquityPool = {
         pool: `${LIQUITY_VAULT}-ethereum`,    
