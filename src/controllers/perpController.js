@@ -46,7 +46,7 @@ const insertPerp = async (payload) => {
 
   const columns = [
     'timestamp',
-    'marketPlace',
+    'marketplace',
     'market',
     'baseAsset',
     'fundingRate',
