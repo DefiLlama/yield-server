@@ -61,6 +61,7 @@ const poolsFunction = async () => {
     const historicalUsdcReturns = crabApyData.crabPnL * 100
     const crabNumberOfDays = (Number(currentTimestamp) - Number(startTimestamp)) / (60 * 60 * 24);
     const annualizedUsdcReturns = (Math.pow(1 + historicalUsdcReturns / 100, 365 / crabNumberOfDays) - 1) * 100;
+    console.log(annualizedUsdcReturns)
 
     const chain = "ethereum"
     const usdcPool = {
@@ -117,6 +118,7 @@ const poolsFunction = async () => {
     const historicalWethReturns = zenBullApyData.bullEthPnl
     const zenBullNumberOfDays = (Number(currentTimestamp) - Number(startTimestamp)) / (60 * 60 * 24);
     const annualizedWethReturns = (Math.pow(1 + historicalWethReturns / 100, 365 / zenBullNumberOfDays) - 1) * 100;
+    console.log(annualizedWethReturns)
 
     const zenBullChain = "ethereum"
     const wethPool = {
