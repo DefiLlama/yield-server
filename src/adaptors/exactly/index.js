@@ -10,6 +10,11 @@ const config = {
 const url = "https://app.exact.ly";
 const INTERVAL = 86_400 * 7 * 4;
 
+/** @type {(markets: string[], chain: string, block: number) => Promise<{ 
+  previewFloatingAssetsAverages: number[];
+  backupFeeRates: number[];
+  interestRateModels: number[];
+}>} */
 const metadata = async (markets, chain, block) => {
   const [asset, decimals, symbol, maxFuturePools] = await Promise.all(
     ["asset", "decimals", "symbol", "maxFuturePools"].map((key) =>
@@ -29,6 +34,12 @@ const metadata = async (markets, chain, block) => {
   };
 };
 
+/** @type {(markets: string[], chain: string, block: number) => Promise<{ 
+  totalAssets: number[]
+  totalSupply: number[]
+  totalFloatingBorrowAssets: number[]
+  totalFloatingBorrowShares: number[]
+}>} */
 const totals = async (markets, chain, block) => {
   const [totalAssets, totalSupply, totalFloatingBorrowAssets, totalFloatingBorrowShares] = await Promise.all(
     ["totalAssets", "totalSupply", "totalFloatingBorrowAssets", "totalFloatingBorrowShares"].map((key) =>
@@ -49,6 +60,11 @@ const totals = async (markets, chain, block) => {
   };
 };
 
+/** @type {(markets: string[], chain: string, block: number) => Promise<{ 
+  previewFloatingAssetsAverages: number[]
+  backupFeeRates: number[]
+  interestRateModels: number[]
+}>} */
 const rates = async (markets, chain, block) => {
   const [previewFloatingAssetsAverages, backupFeeRates, interestRateModels] = await Promise.all(
     ["previewFloatingAssetsAverage", "backupFeeRate", "interestRateModel"].map((key) =>
@@ -68,6 +84,7 @@ const rates = async (markets, chain, block) => {
   };
 };
 
+/** @type {(target: string, chain: string, block: number, maturities: number[]) => Promise<FixedPool[]>} */
 const fixedPools = async (target, chain, block, maturities) => {
   const [fixedPools] = await Promise.all([
     api.abi.multiCall({
@@ -86,7 +103,9 @@ const apy = async () =>
     Object.entries(config).map(async ([chain, { auditor }]) => {
       const timestampNow = Math.floor(Date.now() / 1_000);
       const timestamp24hsAgo = timestampNow - 86_400;
+      /** @type {[number, number]} */
       const [startBlock, endBlock] = await getBlocksByTime([timestamp24hsAgo, timestampNow], chain);
+      /** @type {string[]} */
       const markets = (
         await api.abi.call({
           target: auditor,
@@ -95,6 +114,7 @@ const apy = async () =>
           chain,
         })
       ).output;
+
       const [
         { assets, symbols, decimals, maxFuturePools },
         {
@@ -115,12 +135,15 @@ const apy = async () =>
       const minMaturity = timestampNow - (timestampNow % INTERVAL) + INTERVAL;
 
       return markets.reduce(async (pools, market, i) => {
+        /** @type {number} */
         const usdUnitPrice = pricesByAddress[assets[i].toLowerCase()];
         const poolMetadata = {
           chain,
           project: "exactly",
+          /** @type {string} */
           symbol: symbols[i],
           tvlUsd: ((totalAssets[i] - totalFloatingBorrowAssets[i]) * usdUnitPrice) / 10 ** decimals[i],
+          /** @type {string[]} */
           underlyingTokens: [assets[i]],
           url: `${url}/${symbols[i]}`,
         };
@@ -133,6 +156,7 @@ const apy = async () =>
         const borrowProportion = (borrowShareValue * 1e18) / prevBorrowShareValue;
         const borrowApr = (borrowProportion / 1e18 - 1) * 365;
 
+        /** @type {Pool} */
         const floating = {
           ...poolMetadata,
           pool: `${market}-${chain}`.toLowerCase(),
@@ -146,6 +170,7 @@ const apy = async () =>
         const maturities = Array.from({ length: maxFuturePools[i] }, (_, j) => minMaturity + INTERVAL * j);
         const fixedPoolsData = await fixedPools(market, chain, endBlock, maturities);
 
+        /** @type {Pool[]} */
         const fixed = await Promise.all(
           maturities.map(async (maturity, j) => {
             const { borrowed, supplied, unassignedEarnings } = fixedPoolsData[j];
@@ -168,6 +193,7 @@ const apy = async () =>
             ).output;
             const fixedBorrowAPR = previewFloatingAssetsAverages[i] + supplied > 0 ? minFixedRate / 1e16 : 0;
 
+            /** @type {Pool} */
             return {
               ...poolMetadata,
               pool: `${market}-${chain}-${new Date(maturity * 1_000).toISOString()}`.toLowerCase(),
@@ -302,3 +328,6 @@ const abis = {
     type: "function",
   },
 };
+
+/** @typedef {{ pool: string, chain: string, project: string, symbol: string, tvlUsd: number, apyBase?: number, apyReward?: number, rewardTokens?: Array<string>, underlyingTokens?: Array<string>, poolMeta?: string, url?: string, apyBaseBorrow?: number, apyRewardBorrow?: number, totalSupplyUsd?: number, totalBorrowUsd?: number, ltv?: number }} Pool */
+/** @typedef {{ borrowed: number, supplied: number, unassignedEarnings: number }} FixedPool */
