@@ -27,12 +27,13 @@ const getRates = async () => {
     (await sdk.api.abi.call({ target: rETH, chain: 'ethereum', abi: rETHAbi }))
       .output / 1e18;
 
-  return {
-    [cbETH]: {
+  return [
+    {
+      address: cbETH,
       name: 'Coinbase Wrapped Staked ETH',
       rate: cbETHRate,
     },
-    [rETH]: { name: 'Rocket Pool', rate: rETHRate },
-    [ankrETH]: { name: 'Ankr', rate: 1.0964 },
-  };
+    { address: rETH, name: 'Rocket Pool', rate: rETHRate },
+    { address: ankrETH, name: 'Ankr', rate: 1.0964 },
+  ];
 };
