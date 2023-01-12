@@ -50,6 +50,10 @@ const main = async (body) => {
   const project = require(`../adaptors/${body.adaptor}`);
   let data = await project.apy();
 
+  const protocolConfig = (
+    await superagent.get('https://api.llama.fi/config/yields?a=1')
+  ).body.protocols;
+
   // ---------- prepare prior insert
   // remove potential null/undefined objects in array
   data = data.filter((p) => p);
@@ -103,10 +107,16 @@ const main = async (body) => {
   );
 
   // in case of negative apy values (cause of bug, or else we set those to 0)
+  // note: for options apyBase can be negative
   data = data.map((p) => ({
     ...p,
     apy: p.apy < 0 ? 0 : p.apy,
-    apyBase: p.apyBase < 0 ? 0 : p.apyBase,
+    apyBase:
+      protocolConfig[body.adaptor]?.category === 'Options'
+        ? p.apyBase
+        : p.apyBase < 0
+        ? 0
+        : p.apyBase,
     apyReward: p.apyReward < 0 ? 0 : p.apyReward,
     apyBaseBorrow: p.apyBaseBorrow < 0 ? 0 : p.apyBaseBorrow,
     apyRewardBorrow: p.apyRewardBorrow < 0 ? 0 : p.apyRewardBorrow,
@@ -152,9 +162,6 @@ const main = async (body) => {
 
   // ---- add IL (only for dexes + pools with underlyingTokens array)
   // need the protocol response to check if adapter.body === 'Dexes' category
-  const protocolConfig = (
-    await superagent.get('https://api.llama.fi/config/yields?a=1')
-  ).body.protocols;
 
   // required conditions to calculate IL field
   if (
@@ -332,6 +339,9 @@ const main = async (body) => {
         p.apyRewardBorrowFake !== null
           ? +p.apyRewardBorrowFake.toFixed(precision)
           : p.apyRewardBorrowFake,
+
+      volumeUsd1d: p.volumeUsd1d ? +p.volumeUsd1d.toFixed(precision) : null,
+      volumeUsd7d: p.volumeUsd7d ? +p.volumeUsd7d.toFixed(precision) : null,
     };
   });
 

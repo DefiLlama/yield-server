@@ -134,6 +134,15 @@ functions:
     environment:
       STALE_PROJECTS_WEBHOOK: ${file(./env.js):STALE_PROJECTS_WEBHOOK}
 
+  # --- trigger perpetuals
+  triggerPerpertuals:
+    handler: src/handlers/triggerPerpetuals.handler
+    description: Lambda which triggers perp files
+    timeout: 300
+    events:
+      # every new hour
+      - schedule: cron(0 * * * ? *)
+
   # ---------- GET HANDLERS
   getPoolsEnriched:
     handler: src/handlers/getPoolsEnriched.handler
@@ -210,6 +219,33 @@ functions:
       - httpApi:
           method: get
           path: /chartLendBorrow/{configID}
+
+  getConfigPool:
+    handler: src/handlers/getConfigPool.handler
+    description: Lambda for retrieving config data of configIDs
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /configPool/{configID}
+
+  getPerp:
+    handler: src/handlers/getPerp.handler
+    description: Lambda for retrieving latest perp data
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /perps
+
+  getLSDRates:
+    handler: src/handlers/getLSDRates.handler
+    description: Lambda for retrieving ETH LSD Rates
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /lsdRates
 
 resources:
   Resources:

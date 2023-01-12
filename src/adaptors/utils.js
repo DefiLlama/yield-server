@@ -194,6 +194,14 @@ exports.aprToApy = (apr, compoundFrequency = 365) => {
     ((1 + (apr * 0.01) / compoundFrequency) ** compoundFrequency - 1) * 100
   );
 };
+
+exports.apyToApr = (apy, compoundFrequency = 365) => {
+  return (
+    (((apy / 100 + 1) ** (1 / compoundFrequency) - 1) * compoundFrequency) /
+    0.01
+  );
+};
+
 // calculating apy based on subgraph data
 exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
   pool = { ...pool };

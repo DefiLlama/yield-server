@@ -1,7 +1,8 @@
 // adaptors which we don't want to be triggered +
 // which we don't want to be included in the enriched dataset
 // in case we have old values in db
-const excludeAdaptors = ['koyo-finance', 'pony-finance', 'optifi'];
+// note (added cbridge cause their apy values are kinda fake given they move the positions to a different chain)
+const excludeAdaptors = ['koyo-finance', 'pony-finance', 'optifi', 'cbridge'];
 
 const excludePools = [
   '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d',
@@ -32,6 +33,13 @@ const excludePools = [
   '0xf0d17f404343D7Ba66076C818c9DC726650E2435-dot-dot-finance',
   '0xa3B615667CBd33cfc69843Bf11Fbb2A1D926BD46-6', // magpie ABNBC pool
   '0x1d03D8199f43ea030a5D1c2a5d4675d18581D129', // dino pool form unicrypt, jumped from 1mil to > 800mil in tvl
+  '0x726e324c29a1e49309672b244bdc4ff62a270407000200000000000000000702', // USDC-XSGD balancer pool on polygon. can't find on UI
+  '0xf4c0dd9b82da36c07605df83c8a416f11724d88b', // GNO-WETH on aura
+  '0xa33c1963d74d203df6bffdfda3bff39a1d76e1d0', // sol pool on lyra
+  '0x7a5011bf1dad77a23ec35ce04dcc2ac7d29963c5', // matic-peco
+  '0x19D3364A399d251E894aC732651be8B0E4e85001', // ydai
+  '0x09AA7178049Ba617119425A80faeee12dBe121de', // weth on klap
+  '0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9', // old usdc vault on yearn
 ];
 
 const boundaries = {

@@ -14,6 +14,12 @@
 
 The data must be fetched from on-chain calls or from subgraphs. Centralised api calls are only accepted if there is no other way of obtaining that data (eg off-chain gauge weights).
 
+### APY Methodology
+
+- APY values should be calculated over a 24h window and contain only unboosted Rewards.
+- If Incentive Rewards are slashed when exiting a pool early, then set the Reward APY to that lower bound.
+- Omit pre-mined Incentive Rewards
+
 ### Adaptors
 
 An adaptor is just a javascript (or typescript) file that exports an async function that returns an array of objects that represent pools of a protocol. The pools follow the following schema (all values are just examples):
