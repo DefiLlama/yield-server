@@ -1,20 +1,58 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
+const lsdTokens = [
+  { name: 'Lido', address: '0xae7ab96520de3a18e5e111b5eaab095312d7fe84' },
+  {
+    name: 'Coinbase Wrapped Staked ETH',
+    address: '0xbe9895146f7af43049ca1c1ae358b0541ea49704',
+  },
+  {
+    name: 'Rocket Pool',
+    address: '0xae78736cd615f374d3085123a210448e74fc6393',
+  },
+  { name: 'StakeWise', adress: '0xfe2e637202056d30016725477c5da089ab0a043a' },
+  { name: 'Ankr', address: '0xe95a203b1a91a908f9b9ce46459d101078c2c3cb' },
+  { name: 'Frax Ether', address: '0x5e8422345238f34275888049021821e8e08caa1f' },
+  {
+    name: 'SharedStake',
+    address: '0x898bad2774eb97cf6b94605677f43b41871410b1',
+  },
+  { name: 'Stafi', address: '0x9559aaa82d9649c7a7b220e7c461d2e74c9a3593' },
+  { name: 'StakeHound', address: '0xdfe66b14d37c77f4e9b180ceb433d1b164f0281d' },
+];
+
+const oneInchUrl = 'https://api.1inch.io/v5.0/1/quote';
+const cbETHRateUrl =
+  'https://api-public.sandbox.pro.coinbase.com/wrapped-assets/CBETH/conversion-rate';
+
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
-  return await getRates();
+  const marketRates = await getMarketRates();
+  const expectedRates = await getExpectedRates();
+
+  return {
+    marketRates,
+    expectedRates,
+  };
 };
 
-const getRates = async () => {
-  const cbETHRateUrl =
-    'https://api-public.sandbox.pro.coinbase.com/wrapped-assets/CBETH/conversion-rate';
+const getMarketRates = async () => {
+  const eth = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+  const amount = 1e18;
+  const urls = lsdTokens.map(
+    (lsd) =>
+      `${oneInchUrl}?fromTokenAddress=${lsd.address}&toTokenAddress=${eth}&amount=${amount}`
+  );
 
-  const cbETH = '0xbe9895146f7af43049ca1c1ae358b0541ea49704';
-  const rETH = '0xae78736Cd615f374D3085123A210448E74Fc6393';
-  const ankrETH = '0xe95a203b1a91a908f9b9ce46459d101078c2c3cb';
-  const rETHStafi = '0x9559Aaa82d9649C7A7b220E7c461d2E74c9a3593';
+  const marketRates = (await Promise.allSettled(urls.map((u) => axios.get(u))))
+    .map((p) => p.value?.data)
+    .filter(Boolean);
 
+  return marketRates;
+};
+
+const getExpectedRates = async () => {
   // same for rETHStafi
   const rETHAbi = {
     inputs: [],
@@ -37,14 +75,19 @@ const getRates = async () => {
 
   // --- rETH (rocket pool)
   const rETHRate =
-    (await sdk.api.abi.call({ target: rETH, chain: 'ethereum', abi: rETHAbi }))
-      .output / 1e18;
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Rocket Pool').address,
+        chain: 'ethereum',
+        abi: rETHAbi,
+      })
+    ).output / 1e18;
 
   // --- rETH (stafi)
   const rETHStafiRate =
     (
       await sdk.api.abi.call({
-        target: rETHStafi,
+        target: lsdTokens.find((lsd) => lsd.name === 'Stafi').address,
         chain: 'ethereum',
         abi: rETHAbi,
       })
@@ -55,21 +98,24 @@ const getRates = async () => {
     1 /
     ((
       await sdk.api.abi.call({
-        target: ankrETH,
+        target: lsdTokens.find((lsd) => lsd.name === 'Ankr').address,
         chain: 'ethereum',
         abi: ankrETHAbi,
       })
     ).output /
       1e18);
 
-  return [
-    {
-      address: cbETH,
-      name: 'Coinbase Wrapped Staked ETH',
-      rate: cbETHRate,
-    },
-    { address: rETH, name: 'Rocket Pool', rate: rETHRate },
-    { address: rETHStafi, name: 'Stafi', rate: rETHStafiRate },
-    { address: ankrETH, name: 'Ankr', rate: ankrETHRate },
-  ];
+  return lsdTokens.map((lsd) => ({
+    ...lsd,
+    expectedRate:
+      lsd.name === 'Coinbase Wrapped Staked ETH'
+        ? cbETHRate
+        : lsd.name === 'Rocket Pool'
+        ? rETHRate
+        : lsd.name === 'Stafi'
+        ? rETHStafiRate
+        : lsd.name === 'Ankr'
+        ? ankrETHRate
+        : 1,
+  }));
 };
