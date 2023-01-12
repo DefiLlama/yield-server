@@ -12,22 +12,50 @@ const getPerp = async () => {
   const query = minify(
     `
     SELECT
-        DISTINCT ON (marketplace, market) *
+        perp_id,
+        "timestamp",
+        main.marketplace,
+        main.market,
+        "baseAsset",
+        "fundingRate",
+        "openInterest",
+        "indexPrice",
+        "fundingRate7dAverage"
     FROM
-        $<perpTable:name>
-    WHERE
-        timestamp >= NOW() - INTERVAL '$<age> HOUR'
-    ORDER BY
-        marketplace,
-        market,
-        timestamp DESC
-  `,
+      (
+          SELECT
+              DISTINCT ON (marketplace, market) *
+          FROM
+              $<perpTable:name>
+          WHERE
+              timestamp >= NOW() - INTERVAL '$<age> HOUR'
+          ORDER BY
+              marketplace,
+              market,
+              timestamp DESC
+      ) AS main
+      JOIN (
+          SELECT
+              marketplace,
+              market,
+              round(avg("fundingRate"), 5) AS "fundingRate7dAverage"
+          FROM
+              $<perpTable:name>
+          WHERE
+              timestamp >= NOW() - INTERVAL '$<fundingRate7dAverageAge> DAY'
+          GROUP BY
+              marketplace,
+              market
+      ) AS avg7d ON avg7d.marketplace = main.marketplace
+      AND avg7d.market = main.market
+    `,
     { compress: true }
   );
 
   const response = await conn.query(query, {
     perpTable: tableName,
     age: 3,
+    fundingRate7dAverageAge: 7,
   });
 
   if (!response) {
