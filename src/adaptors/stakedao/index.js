@@ -41,8 +41,8 @@ const poolsFunction = async () => {
   const allStrats = angleStrategies
     .concat(curveStrategies)
     .concat(balancerStrategies)
-    //.concat(fraxv2Strategies)
-    //.concat(lockers);
+    .concat(fraxv2Strategies)
+    .concat(lockers);
 
   const strats = allStrats.reduce((acc, strat) => {
     const rewardTokens = strat?.aprBreakdown
