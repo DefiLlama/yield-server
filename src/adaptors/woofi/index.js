@@ -32,7 +32,13 @@ const main = async () => {
   let results = [];
   for (const [chain, data] of datas) {
     for (const [address, info] of Object.entries(data)) {
-      if (info['source'] !== 'woofi_super_charger') continue;
+      let source = info['source'];
+      if (source.indexOf('woofi_super_charger') === -1) continue;
+
+      let version = 'V1';
+      if (source.split('_').length >= 4) {
+        version = source.split('_')[3].toUpperCase();
+      }
 
       let decimals = info['decimals'];
       results.push({
@@ -40,7 +46,7 @@ const main = async () => {
         chain: utils.formatChain(chain),
         project: 'woofi',
         symbol: utils.formatSymbol(info['symbol']),
-        poolMeta: 'Supercharger',
+        poolMeta: `Supercharger${version}`,
         tvlUsd: parseFloat(BigNumber(info['tvl']).div(10 ** decimals)),
         apyBase: info['weighted_average_apr'],
         apyReward: info['x_woo_rewards_apr'],
