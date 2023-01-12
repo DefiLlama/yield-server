@@ -332,6 +332,8 @@ const checkStablecoin = (el, stablecoins) => {
     stable = false;
   } else if (el.project === 'hermes-protocol' && symbolLC.includes('maia')) {
     stable = false;
+  } else if (el.project === 'sideshift' && symbolLC.includes('xai')) {
+    stable = false;
   } else if (
     tokens.some((t) => t.includes('sushi')) ||
     tokens.some((t) => t.includes('dusk')) ||
@@ -430,7 +432,9 @@ const addPoolInfo = (el, stablecoins, config) => {
   el['ilRisk'] =
     config[el.project]?.category === 'Options'
       ? 'yes'
-      : ['complifi', 'optyfi', 'arbor-finance'].includes(el.project)
+      : ['complifi', 'optyfi', 'arbor-finance', 'opyn-squeeth'].includes(
+          el.project
+        )
       ? 'yes'
       : ['mycelium-perpetual-swaps', 'gmx', 'rage-trade'].includes(
           el.project

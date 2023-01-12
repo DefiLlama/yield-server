@@ -15,7 +15,7 @@ const getApy = async () => {
       );
 
       return data.map((p) => {
-        if (p.details.retired) return {};
+        if (p.details.retired || p.details.hideAlways) return {};
         return {
           pool: p.address,
           chain: utils.formatChain(chain[0]),
@@ -29,7 +29,13 @@ const getApy = async () => {
     })
   );
 
-  return data.flat().filter((p) => utils.keepFinite(p));
+  return (
+    data
+      .flat()
+      .filter((p) => utils.keepFinite(p))
+      // old usdc vault
+      .filter((p) => p.pool !== '0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9')
+  );
 };
 
 module.exports = {

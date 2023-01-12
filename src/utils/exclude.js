@@ -2,13 +2,7 @@
 // which we don't want to be included in the enriched dataset
 // in case we have old values in db
 // note (added cbridge cause their apy values are kinda fake given they move the positions to a different chain)
-const excludeAdaptors = [
-  'koyo-finance',
-  'pony-finance',
-  'optifi',
-  'cbridge',
-  'barnbridge', // temporarily cause they disbaled there current app. going to launch new version on arbi
-];
+const excludeAdaptors = ['koyo-finance', 'pony-finance', 'optifi', 'cbridge'];
 
 const excludePools = [
   '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d',
@@ -45,6 +39,7 @@ const excludePools = [
   '0x7a5011bf1dad77a23ec35ce04dcc2ac7d29963c5', // matic-peco
   '0x19D3364A399d251E894aC732651be8B0E4e85001', // ydai
   '0x09AA7178049Ba617119425A80faeee12dBe121de', // weth on klap
+  '0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9', // old usdc vault on yearn
 ];
 
 const boundaries = {

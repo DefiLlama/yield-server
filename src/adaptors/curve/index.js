@@ -223,6 +223,7 @@ const main = async () => {
       ).data.gauges;
     }
 
+    const stETHPool = '0xDC24316b9AE028F1497c275EB9192a3Ea0f67022';
     for (const [address, pool] of Object.entries(addressToPool)) {
       const subgraph = addressToPoolSubgraph[address];
       const gauge = addressToGauge[blockchainId][pool.gaugeAddress];
@@ -231,13 +232,16 @@ const main = async () => {
 
       const apyBase = subgraph ? parseFloat(subgraph.latestDailyApy) : 0;
       const aprCrv =
-        blockchainId === 'optimism' && pool?.gaugeCrvApy?.length > 0
+        (blockchainId === 'optimism' && pool?.gaugeCrvApy?.length > 0) ||
+        address === '0xa1F8A6807c402E4A15ef4EBa36528A3FED24E577'
           ? pool?.gaugeCrvApy[0]
           : gauge && subgraph
           ? getPoolAPR(pool, subgraph, gauge, priceCrv, underlyingPrices)
           : 0;
       let aprExtra = extraRewards
         ? extraRewards.map((reward) => reward.apy).reduce((a, b) => a + b)
+        : address === stETHPool
+        ? pool.gaugeRewards[0].apy
         : 0;
 
       // tokens are listed using their contract addresses
@@ -245,6 +249,8 @@ const main = async () => {
       const underlyingTokens = pool.coins.map((coin) => coin.address);
       const rewardTokens = extraRewards
         ? extraRewards.map((reward) => reward.tokenAddress)
+        : address === stETHPool
+        ? ['0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32'] // LDO
         : [];
       if (aprCrv) {
         rewardTokens.push('0xD533a949740bb3306d119CC777fa900bA034cd52'); // CRV
