@@ -41,8 +41,8 @@ const poolsFunction = async () => {
   const allStrats = angleStrategies
     .concat(curveStrategies)
     .concat(balancerStrategies)
-    .concat(fraxv2Strategies)
-    .concat(lockers);
+    //.concat(fraxv2Strategies)
+    //.concat(lockers);
 
   const strats = allStrats.reduce((acc, strat) => {
     const rewardTokens = strat?.aprBreakdown
@@ -131,6 +131,10 @@ const poolsFunction = async () => {
     if (underlyingTokens.length === 0 || strat.key === 'bal') {
 
       underlyingTokens = [strat?.tokenReceipt?.address];
+    }
+    const sdTknTknPool = ['factory-v2-109','factory-v2-101','factory-v2-239','b_80ldo_20weth_sdbal']
+    if (sdTknTknPool.includes(strat?.key)) {
+      underlyingTokens.pop()
     }
     return acc.concat([
       {
