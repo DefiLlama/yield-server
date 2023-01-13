@@ -18,6 +18,8 @@ const getPerp = async () => {
         main.market,
         "baseAsset",
         "fundingRate",
+        "fundingRatePrevious",
+        "fundingTimePrevious",
         "openInterest",
         "indexPrice",
         "fundingRate7dAverage"
@@ -78,6 +80,8 @@ const insertPerp = async (payload) => {
     'market',
     'baseAsset',
     'fundingRate',
+    'fundingRatePrevious',
+    'fundingTimePrevious',
     'openInterest',
     'indexPrice',
   ];
