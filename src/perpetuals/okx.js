@@ -51,7 +51,7 @@ exports.getPerpData = async () => {
       marketplace: 'OKX',
       market: p.instId.replace('-SWAP', ''),
       baseAsset: p.instId.split('-')[0],
-      fundingRate: Number(p.nextFundingRate),
+      fundingRate: Number(p.fundingRate),
       openInterest: Number(okxOI.find((i) => i.instId === p.instId)?.oiCcy),
       indexPrice: Number(
         indexPrices.find((i) => i.instId === p.instId.replace('-SWAP', ''))
