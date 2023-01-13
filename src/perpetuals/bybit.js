@@ -1,16 +1,17 @@
 const axios = require('axios');
 
-const api = 'https://api.bybit.com/v2/public/tickers';
-
-const apiFrHistory =
-  'https://api.bybit.com/derivatives/v3/public/funding/history-funding-rate';
+const api = 'https://api.bybit.com';
 
 exports.getPerpData = async () => {
-  const bybit = (await axios.get(api)).data.result;
+  const bybit = (await axios.get(`${api}/v2/public/tickers`)).data.result;
 
   const previousFRs = (
     await Promise.all(
-      bybit.map((p) => axios.get(`${apiFrHistory}?symbol=${p.symbol}&limit=1`))
+      bybit.map((p) =>
+        axios.get(
+          `${api}/derivatives/v3/public/funding/history-funding-rate?symbol=${p.symbol}&limit=1`
+        )
+      )
     )
   )
     .map((p) => p.data.result.list)
