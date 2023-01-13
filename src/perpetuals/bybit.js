@@ -3,7 +3,9 @@ const axios = require('axios');
 const api = 'https://api.bybit.com';
 
 exports.getPerpData = async () => {
-  const bybit = (await axios.get(`${api}/v2/public/tickers`)).data.result;
+  const bybit = (
+    await axios.get(`${api}/v2/public/tickers`)
+  ).data.result.filter((p) => !p.symbol.includes('23'));
 
   const previousFRs = (
     await Promise.all(
