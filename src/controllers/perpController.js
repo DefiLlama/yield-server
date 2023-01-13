@@ -24,32 +24,42 @@ const getPerp = async () => {
         "indexPrice",
         "fundingRate7dAverage"
     FROM
-      (
-          SELECT
-              DISTINCT ON (marketplace, market) *
-          FROM
-              $<perpTable:name>
-          WHERE
-              timestamp >= NOW() - INTERVAL '$<age> HOUR'
-          ORDER BY
-              marketplace,
-              market,
-              timestamp DESC
-      ) AS main
-      JOIN (
-          SELECT
-              marketplace,
-              market,
-              round(avg("fundingRate"), 5) AS "fundingRate7dAverage"
-          FROM
-              $<perpTable:name>
-          WHERE
-              timestamp >= NOW() - INTERVAL '$<fundingRate7dAverageAge> DAY'
-          GROUP BY
-              marketplace,
-              market
-      ) AS avg7d ON avg7d.marketplace = main.marketplace
-      AND avg7d.market = main.market
+        (
+            SELECT
+                DISTINCT ON (marketplace, market) *
+            FROM
+                $<perpTable:name>
+            WHERE
+                timestamp >= NOW() - INTERVAL '$<age> HOUR'
+            ORDER BY
+                marketplace,
+                market,
+                timestamp DESC
+        ) AS main
+        JOIN (
+            SELECT
+                marketplace,
+                market,
+                round(avg("fundingRatePrevious"), 5) AS "fundingRate7dAverage"
+            FROM
+                (
+                    SELECT
+                        DISTINCT ON (marketplace, market, "fundingTimePrevious") *
+                    FROM
+                      $<perpTable:name>
+                    WHERE
+                        "fundingTimePrevious" IS NOT NULL
+                        AND timestamp >= NOW() - INTERVAL '$<fundingRate7dAverageAge> DAY'
+                    ORDER BY
+                        marketplace,
+                        market,
+                        "fundingTimePrevious" DESC
+                ) AS main
+            GROUP BY
+                marketplace,
+                market
+        ) AS avg7d ON avg7d.marketplace = main.marketplace
+        AND avg7d.market = main.market
     `,
     { compress: true }
   );
