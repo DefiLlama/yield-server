@@ -12,14 +12,20 @@ exports.getPerpData = async () => {
     .filter((m) => m.status === 'fulfilled')
     .map((m) => m.value.data);
 
+  const previousFR = (await axios.get(`${api}/fundingRate?limit=${fr.length}`))
+    .data;
+
   return oi.map((m) => {
     const frM = fr.find((i) => i.symbol === m.symbol);
+    const frP = previousFR.find((i) => i.symbol === m.symbol);
 
     return {
       marketplace: 'Binance',
       market: m.symbol,
       baseAsset: m.symbol.replace(/USDT|BUSD/g, ''),
       fundingRate: Number(frM?.lastFundingRate) ?? null,
+      fundingRatePrevious: Number(frP?.fundingRate),
+      fundingTimePrevious: frP?.fundingTime,
       openInterest: Number(m.openInterest),
       indexPrice: Number(frM?.indexPrice),
     };
