@@ -1,24 +1,46 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
+const rebase =
+  'Rebase Token: Staking rewards accrue as new tokens. Expected Peg = 1 : 1';
+const valueAccruing =
+  'Value Accruing Token: Staking rewards are earned in form of an appreciating LSD value.';
 const lsdTokens = [
-  { name: 'Lido', address: '0xae7ab96520de3a18e5e111b5eaab095312d7fe84' },
+  {
+    name: 'Lido',
+    address: '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
+    peg: rebase,
+  },
   {
     name: 'Coinbase Wrapped Staked ETH',
     address: '0xbe9895146f7af43049ca1c1ae358b0541ea49704',
+    peg: valueAccruing,
   },
   {
     name: 'Rocket Pool',
     address: '0xae78736cd615f374d3085123a210448e74fc6393',
+    peg: valueAccruing,
   },
   { name: 'StakeWise', adress: '0xfe2e637202056d30016725477c5da089ab0a043a' },
-  { name: 'Ankr', address: '0xe95a203b1a91a908f9b9ce46459d101078c2c3cb' },
-  { name: 'Frax Ether', address: '0x5e8422345238f34275888049021821e8e08caa1f' },
+  {
+    name: 'Ankr',
+    address: '0xe95a203b1a91a908f9b9ce46459d101078c2c3cb',
+    peg: valueAccruing,
+  },
+  {
+    name: 'Frax Ether',
+    address: '0x5e8422345238f34275888049021821e8e08caa1f',
+    peg: rebase,
+  },
   {
     name: 'SharedStake',
     address: '0x898bad2774eb97cf6b94605677f43b41871410b1',
   },
-  { name: 'Stafi', address: '0x9559aaa82d9649c7a7b220e7c461d2e74c9a3593' },
+  {
+    name: 'Stafi',
+    address: '0x9559aaa82d9649c7a7b220e7c461d2e74c9a3593',
+    peg: valueAccruing,
+  },
   { name: 'StakeHound', address: '0xdfe66b14d37c77f4e9b180ceb433d1b164f0281d' },
 ];
 

@@ -241,7 +241,7 @@ functions:
   getLSDRates:
     handler: src/handlers/getLSDRates.handler
     description: Lambda for retrieving ETH LSD Rates
-    timeout: 20
+    timeout: 30
     events:
       - httpApi:
           method: get
