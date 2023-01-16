@@ -46,7 +46,7 @@ const getApy = async () => {
       project: 'coinbase-wrapped-staked-eth',
       symbol: 'cbeth',
       tvlUsd: tvl * ethPrice,
-      apy: apr,
+      apyBase: apr,
       underlyingTokens: [weth],
     },
   ];
