@@ -5,14 +5,14 @@ const { default: BigNumber } = require("bignumber.js");
 const RAY = "1000000000000000000000000000";
 const SECONDS_PER_YEAR = "31536000";
 
-const calculateApyBorrow = (variableBorrowRate) => {
-  const apr = variableBorrowRate / parseInt(RAY);
+const calculateApyEarn = (liquidityRate) => {
+  const aprNumber = Number(liquidityRate) / parseInt(RAY);
 
-  const base = apr / parseInt(SECONDS_PER_YEAR) + 1;
+  const apyNumber =
+    (aprNumber / parseInt(SECONDS_PER_YEAR) + 1) ** parseInt(SECONDS_PER_YEAR) -
+    1;
 
-  const apy = base ** parseInt(SECONDS_PER_YEAR) - 1;
-
-  return apy;
+  return apyNumber;
 };
 
 const poolsFunction = async () => {
@@ -37,7 +37,7 @@ const poolsFunction = async () => {
       project: "unlockd",
       symbol: utils.formatSymbol(d.symbol),
       tvlUsd: reserveBalances[d.underlyingAsset],
-      apy: calculateApyBorrow(BigNumber(d.variableBorrowRate).div(1e18).toNumber())
+      apy: calculateApyEarn(BigNumber(d.liquidityRate).div(1e18).toNumber())
     };
   });
 
