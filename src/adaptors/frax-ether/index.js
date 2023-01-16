@@ -23,7 +23,7 @@ const getApy = async () => {
       project: 'frax-ether',
       symbol: 'frxeth',
       tvlUsd: tvl * ethPrice,
-      apy: apyData.sfrxethApr,
+      apyBase: apyData.sfrxethApr,
       underlyingTokens: [weth],
     },
   ];

@@ -21,7 +21,7 @@ const getApy = async () => {
       project: 'bifrost-staking',
       symbol: 'veth',
       tvlUsd: tvl * ethPrice,
-      apy: apyData['vETH'].stakingApy,
+      apyBase: apyData['vETH'].stakingApy,
       underlyingTokens: [weth],
     },
   ];
