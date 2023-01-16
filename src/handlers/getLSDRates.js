@@ -42,6 +42,11 @@ const lsdTokens = [
     peg: valueAccruing,
   },
   { name: 'StakeHound', address: '0xdfe66b14d37c77f4e9b180ceb433d1b164f0281d' },
+  {
+    name: 'Bifrost',
+    address: '0xc3d088842dcf02c13699f936bb83dfbbc6f721ab',
+    peg: rebase,
+  },
 ];
 
 const oneInchUrl = 'https://api.1inch.io/v5.0/1/quote';
