@@ -19,8 +19,8 @@ const poolsFunction = async () => {
   const reserveBalances = {};
 
   const { output: simpleReservesData } = await sdk.api.abi.call({
-    target: "0x5250cCE48E43AB930e45Cc8E71C87Ca4B51244cf",   // ui data provider
-    params: ["0x24451F47CaF13B24f4b5034e1dF6c0E401ec0e46"], // lend pool address provider
+    target: "0x5250cCE48E43AB930e45Cc8E71C87Ca4B51244cf",   // TODO: Mainnet UIDataProvider Address
+    params: ["0x24451F47CaF13B24f4b5034e1dF6c0E401ec0e46"], // TODO: Mainnet LendPoolAddressProvider Address
     abi: UiPoolDataProviderABI.find((a) => a.name === "getSimpleReservesData"),
     chain: "ethereum",
   });
@@ -47,5 +47,5 @@ const poolsFunction = async () => {
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
-  url: 'https://app.unlockd.finance',
+  url: 'https://app.unlockd.finance', // TODO Mainnet Dapp Address
 };
