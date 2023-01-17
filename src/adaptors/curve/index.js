@@ -223,7 +223,10 @@ const main = async () => {
       ).data.gauges;
     }
 
-    const stETHPool = '0xDC24316b9AE028F1497c275EB9192a3Ea0f67022';
+    const stETHPools = [
+      '0xDC24316b9AE028F1497c275EB9192a3Ea0f67022',
+      '0x6eB2dc694eB516B16Dc9FBc678C60052BbdD7d80',
+    ];
     for (const [address, pool] of Object.entries(addressToPool)) {
       const subgraph = addressToPoolSubgraph[address];
       const gauge = addressToGauge[blockchainId][pool.gaugeAddress];
@@ -240,7 +243,7 @@ const main = async () => {
           : 0;
       let aprExtra = extraRewards
         ? extraRewards.map((reward) => reward.apy).reduce((a, b) => a + b)
-        : address === stETHPool
+        : stETHPools.includes(address)
         ? pool.gaugeRewards[0].apy
         : 0;
 
@@ -249,7 +252,7 @@ const main = async () => {
       const underlyingTokens = pool.coins.map((coin) => coin.address);
       const rewardTokens = extraRewards
         ? extraRewards.map((reward) => reward.tokenAddress)
-        : address === stETHPool
+        : stETHPools.includes(address)
         ? ['0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32'] // LDO
         : [];
       if (aprCrv) {
