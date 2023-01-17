@@ -5,6 +5,8 @@ const rebase =
   'Rebase Token: Staking rewards accrue as new tokens. Expected Peg = 1 : 1';
 const valueAccruing =
   'Value Accruing Token: Staking rewards are earned in form of an appreciating LSD value.';
+
+// name field must match `name` in our protocols endpoint
 const lsdTokens = [
   {
     name: 'Lido',
@@ -21,7 +23,11 @@ const lsdTokens = [
     address: '0xae78736cd615f374d3085123a210448e74fc6393',
     peg: valueAccruing,
   },
-  { name: 'StakeWise', adress: '0xfe2e637202056d30016725477c5da089ab0a043a' },
+  {
+    name: 'StakeWise',
+    address: '0xfe2e637202056d30016725477c5da089ab0a043a',
+    peg: rebase,
+  },
   {
     name: 'Ankr',
     address: '0xe95a203b1a91a908f9b9ce46459d101078c2c3cb',
@@ -42,6 +48,11 @@ const lsdTokens = [
     peg: valueAccruing,
   },
   { name: 'StakeHound', address: '0xdfe66b14d37c77f4e9b180ceb433d1b164f0281d' },
+  {
+    name: 'Bifrost Staking',
+    address: '0xc3d088842dcf02c13699f936bb83dfbbc6f721ab',
+    peg: rebase,
+  },
 ];
 
 const oneInchUrl = 'https://api.1inch.io/v5.0/1/quote';

@@ -13,7 +13,7 @@ const API_URL =
 
 const apyQuery = gql`
   query {
-    seniorPoolStatus(id: 1) {
+    seniorPools {
       estimatedApy
       estimatedApyFromGfiRaw
       assets
@@ -30,8 +30,8 @@ async function apy() {
     )
   ).data.coins;
 
-  const { seniorPoolStatus } = await request(API_URL, apyQuery);
-  const { estimatedApy, estimatedApyFromGfiRaw, assets } = seniorPoolStatus;
+  const { seniorPools } = await request(API_URL, apyQuery);
+  const { estimatedApy, estimatedApyFromGfiRaw, assets } = seniorPools[0];
   const tvlUsd =
     new BigNumber(assets).dividedBy(1e6).toNumber() *
     prices[`ethereum:${USDC}`].price;
