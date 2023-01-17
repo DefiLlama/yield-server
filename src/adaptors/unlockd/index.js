@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const { UiPoolDataProviderABI } = require('./abis');
 const { default: BigNumber } = require("bignumber.js");
+const utils = require('../utils');
 
 const RAY = "1000000000000000000000000000";
 const SECONDS_PER_YEAR = "31536000";
