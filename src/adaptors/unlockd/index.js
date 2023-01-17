@@ -37,7 +37,7 @@ const poolsFunction = async () => {
       chain: utils.formatChain('ethereum'),
       project: "unlockd",
       symbol: utils.formatSymbol(d.symbol),
-      tvlUsd: reserveBalances[d.underlyingAsset],
+      tvlUsd: Number(reserveBalances[d.underlyingAsset].toNumber()),
       apy: calculateApyEarn(BigNumber(d.liquidityRate).div(1e18).toNumber())
     };
   });
