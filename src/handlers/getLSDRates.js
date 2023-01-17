@@ -5,6 +5,8 @@ const rebase =
   'Rebase Token: Staking rewards accrue as new tokens. Expected Peg = 1 : 1';
 const valueAccruing =
   'Value Accruing Token: Staking rewards are earned in form of an appreciating LSD value.';
+
+// name field must match `name` in our protocols endpoint
 const lsdTokens = [
   {
     name: 'Lido',
@@ -21,7 +23,11 @@ const lsdTokens = [
     address: '0xae78736cd615f374d3085123a210448e74fc6393',
     peg: valueAccruing,
   },
-  { name: 'StakeWise', adress: '0xfe2e637202056d30016725477c5da089ab0a043a' },
+  {
+    name: 'StakeWise',
+    address: '0xfe2e637202056d30016725477c5da089ab0a043a',
+    peg: rebase,
+  },
   {
     name: 'Ankr',
     address: '0xe95a203b1a91a908f9b9ce46459d101078c2c3cb',
