@@ -138,7 +138,7 @@ const main = async () => {
     })
   ).output;
 
-  const addressesToPrice = underlyings.concat([DBR]);
+  const addressesToPrice = underlyings.concat([DBR, DOLA]);
   const prices = await l1TokenPrices(addressesToPrice);
 
   allBalances.map((b, i) => {
@@ -159,7 +159,7 @@ const main = async () => {
     const symbol = prices[underlying].symbol;
     const totalSupplyUsd = (Number(balances[m]) / (10 ** decimals)) * prices[underlying].price;
     const totalBorrowUsd = Number(allDebt[marketIndex].output) / 1e18;
-    const debtCeilingUsd = Number(allLiquidity[marketIndex].output) / 1e18;
+    const debtCeilingUsd = Number(allLiquidity[marketIndex].output) / 1e18 * prices[DOLA].price;
     return {
       pool: `firm-${m}`,
       chain: 'Ethereum',
