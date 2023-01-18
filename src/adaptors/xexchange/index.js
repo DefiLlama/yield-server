@@ -14,7 +14,7 @@ const apy = async () => {
     return {
       pool: farm.pair.address,
       project: 'xexchange',
-      chain: 'Elrond',
+      chain: 'MultiversX',
       symbol: `${farm.pair.firstToken.ticker}-${farm.pair.secondToken.ticker}`,
       tvlUsd: Number(farm.totalValueLockedUSD),
       apyBase: Number(farm.pair.feesAPR) * 100 || 0,
