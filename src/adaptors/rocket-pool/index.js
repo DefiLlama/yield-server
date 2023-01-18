@@ -1,10 +1,12 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const abi = require('./abi.js');
+const rethAbi = require('./rethAbi.js');
 
 const rocketMinipoolManager = '0x6293B8abC1F36aFB22406Be5f96D893072A8cF3a';
 const rocketVault = '0x3bDC69C4E5e13E52A65f5583c23EFB9636b469d6';
 const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+const token = '0xae78736cd615f374d3085123a210448e74fc6393'; //reth
 
 // mostly copy pasta from tvl adapter
 const getApy = async () => {
@@ -68,7 +70,31 @@ const getApy = async () => {
     parseFloat(rocketDepositPoolBalance) / 1e18 +
     parseFloat(rocketTokenRETHBalance) / 1e18;
 
-  const apyData = (await axios.get('https://api.rocketpool.net/api/apr')).data;
+  const timestamp1dayAgo = Math.floor(Date.now() / 1000) - 86400;
+  const duration = 1; // day
+  const block1dayAgo = (
+    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp1dayAgo}`)
+  ).data.height;
+
+  const exchangeRates = await Promise.all([
+    sdk.api.abi.call({
+      target: token,
+      abi: rethAbi.find((m) => m.name === 'getExchangeRate'),
+      chain: 'ethereum',
+    }),
+    sdk.api.abi.call({
+      target: token,
+      abi: rethAbi.find((m) => m.name === 'getExchangeRate'),
+      chain: 'ethereum',
+      block: block1dayAgo,
+    }),
+  ]);
+
+  const apr =
+    ((exchangeRates[0].output - exchangeRates[1].output) / 1e18 / duration) *
+    365 *
+    100;
+
   const priceKey = `ethereum:${weth}`;
   const ethPrice = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
@@ -76,12 +102,12 @@ const getApy = async () => {
 
   return [
     {
-      pool: '0xae78736cd615f374d3085123a210448e74fc6393',
+      pool: token,
       chain: 'ethereum',
       project: 'rocket-pool',
       symbol: 'rETH',
       tvlUsd: ETH_TVL * ethPrice,
-      apyBase: Number(apyData.yearlyAPR),
+      apyBase: apr,
       underlyingTokens: [weth],
     },
   ];
