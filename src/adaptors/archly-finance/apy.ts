@@ -45,36 +45,40 @@ const getApy = async () => {
     // gauge pairs apr/apy
     gaugePairs = gaugePairs.map((pair, index) => {
       const rewardRate = gaugesRewardRates[index].toString();
-      const apr = _calculateGaugeAPR(pair.reserveUSD, rewardRate, arcPrice);
-      
-      // apy might have 20+ decimals for low liq pool, just show apr instead
-      pair.apy = Number(apr)
-      return pair;
-    });
-    // none-gauge pairs apr/apy
-    nonGaugePairs = nonGaugePairs.map((pair) => {
-      const apr = _calculateSwapFeeAPR(
+      const aprReward = _calculateGaugeAPR(pair.reserveUSD, rewardRate, arcPrice);
+      const aprFee = _calculateSwapFeeAPR(
         pair.volumeUSD,
         pair.reserveUSD,
         pair.stable
       );
-      const apy = _toApy(apr);
-      // apy might have 20+ decimals for low liq pool, just show apr instead
-      pair.apy = new BN(apy).gt(1_000_000)
-        ? Number(apr)
-        : new BN(apy).times(100).toNumber();
+      
+      pair.apyBase = Number(aprFee);
+      pair.apyReward = Number(aprReward);
+      return pair;
+    });
+    // none-gauge pairs apr/apy
+    nonGaugePairs = nonGaugePairs.map((pair) => {
+      const aprFee = _calculateSwapFeeAPR(
+        pair.volumeUSD,
+        pair.reserveUSD,
+        pair.stable
+      );
+      
+      pair.apyBase = Number(aprFee);
+      pair.apyReward = Number(0);
       return pair;
     });
 
     return [...gaugePairs, ...nonGaugePairs]
       .sort((a, b) => Number(b.reserveUSD) - Number(a.reserveUSD))
-      .map(({ address, token0, token1, reserveUSD, apy }) => ({
+      .map(({ address, token0, token1, reserveUSD, apyBase, apyReward }) => ({
         pool: address,
         chain: utils.formatChain('telos'),
         project: 'archly-finance',
         symbol: `${token0.symbol}-${token1.symbol}`,
         tvlUsd: Number(reserveUSD),
-        apyReward: apy,
+        apyBase: apyBase,
+        apyReward: apyReward,
         underlyingTokens: [token0.address, token1.address],
         rewardTokens: [ARC_ADDRESS],
         url: `https://archly.fi/liquidity/${address}`,
@@ -127,12 +131,6 @@ const _calculateGaugeAPR = (
     .toFixed(18);
 
   return gaugeAPR;
-};
-
-const _toApy = (apr) => {
-  const anualCompounds = 365; // assume 1 compound per day
-  const leftSide = new BN(1).plus(new BN(apr).div(anualCompounds));
-  return new BN(leftSide).pow(anualCompounds).minus(1).toFixed(18);
 };
 
 module.exports = {
