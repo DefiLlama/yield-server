@@ -66,7 +66,7 @@ A note on how to set apy related fields:
 
 - if a pool's apy only consists of a base component, provide `apyBase` and omit `apyReward` (or set to null) [and vice versa]
 - if a pool's apy consists of both, provide both fields
-- if a pool's apy requires locking to receive the rewards or fees, then omit `apyBase` or `apyReward` (or set to null) for the fields that the lock is required.
+- if a pool's apy is based on rewards or fees that are locked once earned, then omit `apyBase` or `apyReward` (or set to null) for the fields that locks the rewards or fees from being claimed immediately
 - if you are unsure/your data source doesn't contain a detailed breakdown, then provide an `apy` field indicating the total apy and omit the `apyBase` and `apyReward` fields (or set to null)
 ```
 
