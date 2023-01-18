@@ -9,6 +9,7 @@ const abi = require('./abi');
 
 const firmStart = 16159015;
 const DBR = '0xAD038Eb671c44b853887A7E32528FaB35dC5D710';
+const DOLA = '0x865377367054516e17014CcdED1e7d814EDC9ce4';
 
 const l1TokenPrices = async (l1TokenAddrs) => {
   const l1TokenQuery = l1TokenAddrs.map((addr) => `ethereum:${addr}`).join();
@@ -124,6 +125,19 @@ const main = async () => {
     })
   ).output;
 
+  const allLiquidity = (
+    await sdk.api.abi.multiCall({
+      chain: 'ethereum',
+      calls: markets.map(
+        (m) => ({
+          target: DOLA,
+          params: [m],
+        })
+      ),
+      abi: 'erc20:balanceOf',
+    })
+  ).output;
+
   const addressesToPrice = underlyings.concat([DBR]);
   const prices = await l1TokenPrices(addressesToPrice);
 
@@ -145,22 +159,20 @@ const main = async () => {
     const symbol = prices[underlying].symbol;
     const totalSupplyUsd = (Number(balances[m]) / (10 ** decimals)) * prices[underlying].price;
     const totalBorrowUsd = Number(allDebt[marketIndex].output) / 1e18;
+    const debtCeilingUsd = Number(allLiquidity[marketIndex].output) / 1e18;
     return {
       pool: `firm-${m}`,
       chain: 'Ethereum',
       project: 'inverse-finance-firm',
+      mintedCoin: 'DOLA',
       symbol,
-      tvlUsd: totalSupplyUsd - totalBorrowUsd,
+      tvlUsd: totalSupplyUsd,
       apyBase: 0,
-      apyReward: 0,
-      rewardTokens: [],
       underlyingTokens: [underlying],
       poolMeta: 'Fixed Borrow Rate',
       url: 'https://inverse.finance/firm/'+symbol,
       apyBaseBorrow: currentFixedRate,
-      apyRewardBorrow: 0,      
-      // === new attribute request: isFixedBorrowRate to then be able to filter by fixed-rate in the borrow aggregator ===
-      isFixedBorrowRate: true,      
+      debtCeilingUsd,
       totalSupplyUsd,
       totalBorrowUsd,
       borrowable: !allBorrowPaused[marketIndex].output,
