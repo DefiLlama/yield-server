@@ -70,30 +70,7 @@ const getApy = async () => {
     parseFloat(rocketDepositPoolBalance) / 1e18 +
     parseFloat(rocketTokenRETHBalance) / 1e18;
 
-  const timestamp1dayAgo = Math.floor(Date.now() / 1000) - 86400;
-  const duration = 1; // day
-  const block1dayAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp1dayAgo}`)
-  ).data.height;
-
-  const exchangeRates = await Promise.all([
-    sdk.api.abi.call({
-      target: token,
-      abi: rethAbi.find((m) => m.name === 'getExchangeRate'),
-      chain: 'ethereum',
-    }),
-    sdk.api.abi.call({
-      target: token,
-      abi: rethAbi.find((m) => m.name === 'getExchangeRate'),
-      chain: 'ethereum',
-      block: block1dayAgo,
-    }),
-  ]);
-
-  const apr =
-    ((exchangeRates[0].output - exchangeRates[1].output) / 1e18 / duration) *
-    365 *
-    100;
+  const apyData = (await axios.get('https://api.rocketpool.net/api/apr')).data;
 
   const priceKey = `ethereum:${weth}`;
   const ethPrice = (
@@ -107,7 +84,7 @@ const getApy = async () => {
       project: 'rocket-pool',
       symbol: 'rETH',
       tvlUsd: ETH_TVL * ethPrice,
-      apyBase: apr,
+      apyBase: Number(apyData.yearlyAPR),
       underlyingTokens: [weth],
     },
   ];
