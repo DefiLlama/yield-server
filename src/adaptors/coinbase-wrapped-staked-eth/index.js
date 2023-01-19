@@ -10,6 +10,7 @@ const getApy = async () => {
     (await sdk.api.erc20.totalSupply({ target: token })).output / 1e18;
 
   const timestamp1dayAgo = Math.floor(Date.now() / 1000) - 86400;
+  const duration = 1; // day
   const block1dayAgo = (
     await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp1dayAgo}`)
   ).data.height;
@@ -29,8 +30,7 @@ const getApy = async () => {
   ]);
 
   const apr =
-    ((exchangeRates[0].output - exchangeRates[1].output) /
-      exchangeRates[1].output) *
+    ((exchangeRates[0].output - exchangeRates[1].output) / 1e18 / duration) *
     365 *
     100;
 
