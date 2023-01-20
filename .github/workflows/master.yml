@@ -25,6 +25,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           ALCHEMY_CONNECTION_ARBITRUM: ${{ secrets.ALCHEMY_CONNECTION_ARBITRUM }}
+          ALCHEMY_CONNECTION_ETHEREUM: ${{ secrets.ALCHEMY_CONNECTION_ETHEREUM }}
           XDAI_RPC: ${{ secrets.XDAI_RPC }}
           CRONOS_RPC: ${{ secrets.CRONOS_RPC }}
           FANTOM_RPC: ${{ secrets.FANTOM_RPC }}
