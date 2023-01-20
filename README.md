@@ -16,9 +16,14 @@ The data must be fetched from on-chain calls or from subgraphs. Centralised api 
 
 ### APY Methodology
 
-- APY values should be calculated over a 24h window and contain only unboosted Rewards.
-- If Incentive Rewards are slashed when exiting a pool early, then set the Reward APY to that lower bound.
-- Omit pre-mined Incentive Rewards
+Our goal is to display minimum attainable yield values for all listed projects:
+
+- Omit any pre-mined rewards
+- Use unboosted (lower bound) apy values
+- If rewards are slashed when exiting a pool early, then set the apy value to that lower bound.
+- Omit any yield which requires an additional token aside from the LP token (eg veCRV to boost reward yields)
+- Omit any locked rewards
+- Fee based APY values should be calculated over a 24h window
 
 ### Adaptors
 
