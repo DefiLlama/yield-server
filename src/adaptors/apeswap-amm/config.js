@@ -24,6 +24,7 @@ exports.CHAINS = {
             '0xeCabfEd917852D5951CAE753985aE23bd0489d3D',
             '0x8A49764C91718eF2b6264E54e1b6497CcC945D49',
             '0x703b40842eF1A81777e7696e37c335d32D094a80',
+            '0x1e8732890dB1d070FC7D6befE0008e39C7953814',
           ]
     },
     'polygon': {
