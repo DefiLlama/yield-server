@@ -49,10 +49,8 @@ const calculateTokenTVLUsd = (token, tokenReserve) => {
 };
 
 const main = async () => {
-  const [farmData, poolsData, fiveDAvgData, staderData] = await Promise.all(
-    ['farms', 'pools', 'fiveDAvg', 'stader'].map((key) =>
-      utils.getData(apis[key])
-    )
+  const [farmData, poolsData, fiveDAvgData] = await Promise.all(
+    ['farms', 'pools', 'fiveDAvg'].map((key) => utils.getData(apis[key]))
   );
   let emissionPriceUsd = {};
   // get emission tokens' id and price from pool data
@@ -102,8 +100,8 @@ const main = async () => {
     };
   }
   // hbarx pools get staderAPY / 2 since they are staked in one of the pairs.
-  const staderApy = BigNumber(staderData.apy);
-  const staderPoolApy = staderApy.div(BigNumber(2));
+  // const staderApy = BigNumber(staderData.apy);
+  // const staderPoolApy = staderApy.div(BigNumber(2));
   let data = poolsData
     .map((pool) => {
       // skip if pool id doesn't exist or we don't have farm data
@@ -157,7 +155,8 @@ const main = async () => {
         tokenA.symbol === hbarXTokenSymbol ||
         tokenB.symbol === hbarXTokenSymbol
       ) {
-        baseFarmApr = baseFarmApr.plus(staderPoolApy);
+        // baseFarmApr = baseFarmApr.plus(staderPoolApy);
+        baseFarmApr = baseFarmApr;
       }
       return {
         pool: `${poolAddress}`,
