@@ -11,6 +11,8 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'bsc') return 'Binance';
   if (chain && chain.toLowerCase() === 'milkomeda') return 'Milkomeda C1';
   if (chain && chain.toLowerCase() === 'milkomeda_a1') return 'Milkomeda A1';
+  if (chain && chain.toLowerCase() === 'boba_avax') return 'Boba_Avax';
+  if (chain && chain.toLowerCase() === 'boba_bnb') return 'Boba_Bnb';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
