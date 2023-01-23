@@ -44,14 +44,17 @@ const poolsFunction = async () => {
       chain: utils.formatChain('ethereum'),
       project: 'unlockd',
       symbol: utils.formatSymbol(d.symbol),
-      tvlUsd: reserveBalances[d.underlyingAsset].toNumber() * ethPrice,
+      tvlUsd:
+        reserveBalances[d.underlyingAsset].div(1e18).toNumber() * ethPrice,
       apyBase: calculateApy(d.liquidityRate),
       apyBaseBorrow: calculateApy(d.variableBorrowRate),
       totalSupplyUsd:
         reserveBalances[d.underlyingAsset]
           .plus(reserveBorrows[d.underlyingAsset])
+          .div(1e18)
           .toNumber() * ethPrice,
-      totalBorrowUsd: reserveBorrows[d.underlyingAsset].toNumber() * ethPrice,
+      totalBorrowUsd:
+        reserveBorrows[d.underlyingAsset].div(1e18).toNumber() * ethPrice,
     };
   });
 
