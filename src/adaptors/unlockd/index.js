@@ -45,6 +45,8 @@ const poolsFunction = async () => {
       chain: utils.formatChain('ethereum'),
       project: 'unlockd',
       symbol: utils.formatSymbol(d.symbol),
+      tvlUsd:
+        reserveBalances[d.underlyingAsset].div(ONE_ETHER).toNumber() * ethPrice,
       apyBase: calculateApy(d.liquidityRate),
       apyBaseBorrow: calculateApy(d.variableBorrowRate),
       totalSupplyUsd:
