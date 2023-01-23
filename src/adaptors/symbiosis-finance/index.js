@@ -80,6 +80,7 @@ const main = async () => {
       symbol,
       tvlUsd: tvl[stable],
       apyBase: apyData[id].apr,
+      underlyingTokens: [stable]
     });
   })
 

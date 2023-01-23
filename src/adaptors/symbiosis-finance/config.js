@@ -20,7 +20,7 @@ module.exports = {
     },
     {
       id: 43114,
-      name: 'avax',
+      name: 'avalanche',
       stable: '0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664',
       symbol: 'USDC.e',
       sStable: '0x6dF9C221F52537DFD63d70721EEAA0C4d4472C18'
