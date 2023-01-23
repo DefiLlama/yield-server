@@ -5,6 +5,7 @@ const utils = require('../utils');
 
 const RAY = '1000000000000000000000000000';
 const SECONDS_PER_YEAR = 31536000;
+const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 
 const calculateApy = (rate) => {
   const aprBase = BigNumber(rate).div(RAY).toNumber() / SECONDS_PER_YEAR + 1;
@@ -31,19 +32,25 @@ const poolsFunction = async () => {
     ).plus(d.totalVariableDebt);
   });
 
+  const priceKey = `ethereum:${weth}`;
+  const ethPrice = (
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
+  ).data.coins[priceKey]?.price;
+
   const pools = simpleReservesData.map((d) => {
     return {
       pool: d.underlyingAsset,
       chain: utils.formatChain('ethereum'),
-      project: 'Unlockd',
+      project: 'unlockd',
       symbol: utils.formatSymbol(d.symbol),
-      tvlUsd: reserveBalances[d.underlyingAsset].toNumber(),
+      tvlUsd: reserveBalances[d.underlyingAsset].toNumber() * ethPrice,
       apyBase: calculateApy(d.liquidityRate),
       apyBaseBorrow: calculateApy(d.variableBorrowRate),
-      totalSupplyUsd: reserveBalances[d.underlyingAsset]
-        .plus(reserveBorrows[d.underlyingAsset])
-        .toNumber(),
-      totalBorrowUsd: reserveBorrows[d.underlyingAsset].toNumber(),
+      totalSupplyUsd:
+        reserveBalances[d.underlyingAsset]
+          .plus(reserveBorrows[d.underlyingAsset])
+          .toNumber() * ethPrice,
+      totalBorrowUsd: reserveBorrows[d.underlyingAsset].toNumber() * ethPrice,
     };
   });
 
