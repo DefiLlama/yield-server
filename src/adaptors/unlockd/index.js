@@ -4,7 +4,8 @@ const { UiPoolDataProviderABI } = require('./abis');
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
 
-const RAY = '1000000000000000000000000000';
+const RAY = '1e27';
+const ONE_ETHER = '1e18';
 const SECONDS_PER_YEAR = 31536000;
 const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 
@@ -44,17 +45,15 @@ const poolsFunction = async () => {
       chain: utils.formatChain('ethereum'),
       project: 'unlockd',
       symbol: utils.formatSymbol(d.symbol),
-      tvlUsd:
-        reserveBalances[d.underlyingAsset].div(1e18).toNumber() * ethPrice,
       apyBase: calculateApy(d.liquidityRate),
       apyBaseBorrow: calculateApy(d.variableBorrowRate),
       totalSupplyUsd:
         reserveBalances[d.underlyingAsset]
           .plus(reserveBorrows[d.underlyingAsset])
-          .div(1e18)
+          .div(ONE_ETHER)
           .toNumber() * ethPrice,
       totalBorrowUsd:
-        reserveBorrows[d.underlyingAsset].div(1e18).toNumber() * ethPrice,
+        reserveBorrows[d.underlyingAsset].div(ONE_ETHER).toNumber() * ethPrice,
     };
   });
 
