@@ -48,7 +48,7 @@ const poolsFunction = async () => {
       tvlUsd:
         reserveBalances[d.underlyingAsset].div(ONE_ETHER).toNumber() * ethPrice,
       apyBase: calculateApy(d.liquidityRate) * 100,
-      apyBaseBorrow: calculateApy(d.variableBorrowRate) * 100,
+      apyBaseBorrow: calculateApy(d.variableBorrowRate),
       totalSupplyUsd:
         reserveBalances[d.underlyingAsset]
           .plus(reserveBorrows[d.underlyingAsset])
