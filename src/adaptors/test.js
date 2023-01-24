@@ -36,6 +36,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'il7d',
       'volumeUsd1d',
       'volumeUsd7d',
+      'apyBaseInception',
     ];
     const fields = [...Object.keys(baseFields), ...optionalFields, 'tvlUsd'];
     apy.forEach((pool) => {
