@@ -37,7 +37,8 @@ const getYieldFiltered = async () => {
         "il7d",
         "apyBase7d",
         "volumeUsd1d",
-        "volumeUsd7d"
+        "volumeUsd7d",
+        "apyBaseInception"
     FROM
         (
             SELECT
