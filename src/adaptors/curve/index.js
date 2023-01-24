@@ -236,7 +236,11 @@ const main = async () => {
       const apyBase = subgraph ? parseFloat(subgraph.latestDailyApy) : 0;
       const aprCrv =
         (blockchainId === 'optimism' && pool?.gaugeCrvApy?.length > 0) ||
-        address === '0xa1F8A6807c402E4A15ef4EBa36528A3FED24E577'
+        [
+          '0xa1F8A6807c402E4A15ef4EBa36528A3FED24E577',
+          '0x960ea3e3C7FB317332d990873d354E18d7645590',
+          '0x7f90122BF0700F9E7e1F688fe926940E8839F353',
+        ].includes(address)
           ? pool?.gaugeCrvApy[0]
           : gauge && subgraph
           ? getPoolAPR(pool, subgraph, gauge, priceCrv, underlyingPrices)
