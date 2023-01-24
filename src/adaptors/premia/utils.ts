@@ -25,6 +25,7 @@ export interface PoolType {
   totalSupplyUsd?: number;
   totalBorrowUsd?: number;
   ltv?: number;
+  apyBaseInception?: number;
 }
 
 export interface Token {
@@ -155,6 +156,7 @@ async function convert(
     project: 'premia',
     symbol: underlying.symbol,
     apyBase: weiToNumber(annualPercentageReturn),
+    apyBaseInception: weiToNumber(annualPercentageReturn),
   };
 }
 

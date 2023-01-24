@@ -59,6 +59,7 @@ interface PoolType {
   totalSupplyUsd?: number;
   totalBorrowUsd?: number;
   ltv?: number;
+  apyBaseInception?: number;
 }
 
 async function fetchChainPools(
