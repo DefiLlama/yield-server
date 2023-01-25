@@ -13,14 +13,9 @@ const BrcABI = require('./brc_abi.json');
 const utils = require('../utils');
 const Web3 = require('web3');
 const jsonRpcProvider = new JsonRpcProvider(
-  'https://arbitrum-mainnet.infura.io/v3/f6386ed05ec143e2a714258a78b58ee0'
-  // "https://arb-mainnet.g.alchemy.com/v2/m_-QIjfwLgR7QwQBw-3G3336RK5jHt3d"
-  // process.env.ALCHEMY_CONNECTION_ARBITRUM
+  process.env.ALCHEMY_CONNECTION_ARBITRUM
 );
-const web3 = new Web3(
-  // process.env.ALCHEMY_CONNECTION_ARBITRUM
-  'https://arbitrum-mainnet.infura.io/v3/f6386ed05ec143e2a714258a78b58ee0'
-);
+const web3 = new Web3(process.env.ALCHEMY_CONNECTION_ARBITRUM);
 
 const STAKING_CONTRACT = '0x9A28f7Ab9aEb4f14Fc4c580938F8F5E89ce98084';
 const BRC = '0xB5de3f06aF62D8428a8BF7b4400Ea42aD2E0bc53';
