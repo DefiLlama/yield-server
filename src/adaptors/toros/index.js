@@ -1,7 +1,10 @@
+const axios = require('axios');
 const BN = require('bignumber.js');
 const { request, gql } = require('graphql-request');
 
 const { formatChain } = require('../utils');
+
+const DHEDGE_REWARDS_API_URL = 'https://app.dhedge.org/api/rewards';
 
 const DHEDGE_API_URL = 'https://api-v2.dhedge.org/graphql';
 
@@ -72,8 +75,21 @@ const fetchTorosYieldProducts = async () => {
   }
 };
 
+const fetchRewardIncentivesData = async () => {
+  try {
+    const response = await axios.get(DHEDGE_REWARDS_API_URL);
+    return response.data;
+  } catch (err) {
+    console.error('Failed to fetch toros reward data: ', err);
+    return;
+  }
+};
+
 const listTorosYieldProducts = async () => {
-  const products = await fetchTorosYieldProducts();
+  const [products, rewardData] = await Promise.all([
+    fetchTorosYieldProducts(),
+    fetchRewardIncentivesData(),
+  ]);
 
   return products.map(
     ({
@@ -84,23 +100,35 @@ const listTorosYieldProducts = async () => {
       performanceMetrics,
       blockTime,
       fundComposition,
-    }) => ({
-      pool: address,
-      chain: formatChain(blockchainCode.toLowerCase()),
-      project: 'toros',
-      symbol,
-      tvlUsd: formatValue(totalValue),
-      apyBase: calcApy(blockTime, performanceMetrics),
-      apyReward: null,
-      underlyingTokens: fundComposition
-        .filter(({ amount }) => amount !== '0')
-        .map(({ tokenAddress }) => tokenAddress),
-    })
+    }) => {
+      const rewardIncentivisedPool = rewardData?.poolsWithRewards
+        .map((address) => address.toLowerCase())
+        .includes(address.toLowerCase());
+      return {
+        pool: address,
+        chain: formatChain(blockchainCode.toLowerCase()),
+        project: 'toros',
+        symbol,
+        tvlUsd: formatValue(totalValue),
+        apyBase: calcApy(blockTime, performanceMetrics),
+        apyReward:
+          rewardIncentivisedPool && rewardData?.rewardApy
+            ? +rewardData.rewardApy * 100
+            : null,
+        rewardTokens:
+          rewardIncentivisedPool && rewardData?.rewardToken
+            ? [rewardData.rewardToken]
+            : [],
+        underlyingTokens: fundComposition
+          .filter(({ amount }) => amount !== '0')
+          .map(({ tokenAddress }) => tokenAddress),
+        url: `https://toros.finance/pool/${address}`,
+      };
+    }
   );
 };
 
 module.exports = {
   timetravel: false,
   apy: listTorosYieldProducts,
-  url: 'https://toros.finance/',
 };

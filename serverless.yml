@@ -80,6 +80,7 @@ functions:
           functionResponseType: ReportBatchItemFailures
     environment:
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
+      ALCHEMY_CONNECTION_ETHEREUM: ${file(./env.js):ALCHEMY_CONNECTION_ETHEREUM}
       XDAI_RPC: ${file(./env.js):XDAI_RPC}
       CRONOS_RPC: ${file(./env.js):CRONOS_RPC}
       FANTOM_RPC: ${file(./env.js):FANTOM_RPC}
@@ -237,6 +238,15 @@ functions:
       - httpApi:
           method: get
           path: /perps
+
+  getLSDRates:
+    handler: src/handlers/getLSDRates.handler
+    description: Lambda for retrieving ETH LSD Rates
+    timeout: 30
+    events:
+      - httpApi:
+          method: get
+          path: /lsdRates
 
 resources:
   Resources:

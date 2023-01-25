@@ -75,6 +75,7 @@ const main = async (body) => {
     apyBase7d: strToNum(p.apyBase7d),
     apyRewardFake: strToNum(p.apyRewardFake),
     apyRewardBorrowFake: strToNum(p.apyRewardBorrowFake),
+    apyBaseInception: strToNum(p.apyBaseInception),
   }));
 
   // filter tvl to be btw lb-ub
@@ -98,6 +99,9 @@ const main = async (body) => {
     apyRewardFake: Number.isFinite(p.apyRewardFake) ? p.apyRewardFake : null,
     apyRewardBorrowFake: Number.isFinite(p.apyRewardBorrowFake)
       ? p.apyRewardBorrowFake
+      : null,
+    apyBaseInception: Number.isFinite(p.apyBaseInception)
+      ? p.apyBaseInception
       : null,
   }));
 
@@ -339,9 +343,11 @@ const main = async (body) => {
         p.apyRewardBorrowFake !== null
           ? +p.apyRewardBorrowFake.toFixed(precision)
           : p.apyRewardBorrowFake,
-
       volumeUsd1d: p.volumeUsd1d ? +p.volumeUsd1d.toFixed(precision) : null,
       volumeUsd7d: p.volumeUsd7d ? +p.volumeUsd7d.toFixed(precision) : null,
+      apyBaseInception: p.apyBaseInception
+        ? +p.apyBaseInception.toFixed(precision)
+        : null,
     };
   });
 

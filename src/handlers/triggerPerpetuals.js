@@ -26,6 +26,8 @@ const main = async () => {
       market: m.market.toUpperCase(),
       baseAsset: m.baseAsset.toUpperCase(),
       fundingRate: +m.fundingRate.toFixed(10),
+      fundingRatePrevious: +m.fundingRatePrevious.toFixed(10),
+      fundingTimePrevious: Number(m.fundingTimePrevious),
       indexPrice: +m.indexPrice.toFixed(5),
       openInterest: Math.round(m.openInterest),
     }))

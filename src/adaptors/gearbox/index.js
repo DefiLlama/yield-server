@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
+const axios = require('axios');
 const abi = require('./abis.json');
 
 const contractsRegister = '0xA50d4E7D8946a7c90652339CDBd262c375d54D99';
@@ -124,9 +125,10 @@ function calculateTvl(availableLiquidity, totalBorrowed, price, decimals) {
 const getApy = async () => {
   //https://gov.gearbox.fi/t/gip-22-gearbox-v2-liquidity-mining-programs/1550
   //"FDV is taken at a smol increase to the 200M$ FDV for strategic rounds"
-  const fdv = 200000000;
-  const totalGearSupply = 10000000000;
-  const gearPrice = fdv / totalGearSupply;
+  const priceKey = `ethereum:${gear}`;
+  const gearPrice = (
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
+  ).data.coins[priceKey]?.price;
 
   const yieldPools = (await poolInfo('ethereum')).yieldPools;
 
@@ -207,12 +209,12 @@ function exportFormatter(
     symbol,
     tvlUsd,
     apyBase,
-    apyRewardFake: apyReward,
+    apyReward,
     underlyingTokens: [underlyingToken],
-    // rewardTokens,
+    rewardTokens,
     url,
     apyBaseBorrow,
-    apyRewardBorrowFake: apyRewardBorrow,
+    apyRewardBorrow,
     totalSupplyUsd,
     totalBorrowUsd,
     ltv,

@@ -46,6 +46,7 @@ const buildPoolsEnriched = async (queryString) => {
     'apyMean30d',
     'volumeUsd1d',
     'volumeUsd7d',
+    'apyBaseInception',
   ]
     .map((el) => `t."${el}"`)
     .join(', ');

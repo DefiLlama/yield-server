@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
-const abi = require('./abis.json');
+const abiUnitroller = require('./abiUnitroller');
+const abiPool = require('./abiPool');
 
 const unitroller = '0xfD36E2c2a6789Db23113685031d7F16329158384';
 const VBNB = '0xA07c5b74C9B40447a954e1466938b865b6BBea36';
@@ -12,7 +13,7 @@ const poolInfo = async (chain) => {
   const getAllMarkets = await sdk.api.abi.call({
     target: unitroller,
     chain,
-    abi: abi.getAllMarkets,
+    abi: abiUnitroller.find((m) => m.name === 'getAllMarkets'),
   });
 
   // filter out unsupported vcan pool
@@ -26,10 +27,10 @@ const poolInfo = async (chain) => {
     );
 
   const getOutput = ({ output }) => output.map(({ output }) => output);
-  const [markets, venusSpeeds] = await Promise.all(
-    ['markets', 'venusSpeeds'].map((method) =>
+  const [markets, venusSupplySpeeds, venusBorrowSpeeds] = await Promise.all(
+    ['markets', 'venusSupplySpeeds', 'venusBorrowSpeeds'].map((method) =>
       sdk.api.abi.multiCall({
-        abi: abi[method],
+        abi: abiUnitroller.find((m) => m.name === method),
         target: unitroller,
         calls: yieldMarkets.map((pool) => ({
           params: pool.pool,
@@ -38,6 +39,7 @@ const poolInfo = async (chain) => {
       })
     )
   ).then((data) => data.map(getOutput));
+
   const collateralFactor = markets.map((data) => data.collateralFactorMantissa);
 
   const [
@@ -59,7 +61,7 @@ const poolInfo = async (chain) => {
       'symbol',
     ].map((method) =>
       sdk.api.abi.multiCall({
-        abi: abi[method],
+        abi: abiPool.find((m) => m.name === method),
         calls: yieldMarkets.map((pool) => ({
           target: pool.pool,
         })),
@@ -75,7 +77,7 @@ const poolInfo = async (chain) => {
 
   const underlyingTokenDecimals = (
     await sdk.api.abi.multiCall({
-      abi: abi.decimals,
+      abi: abiPool.find((m) => m.name === 'decimals'),
       calls: underlyingToken.map((token) => ({
         target: token,
       })),
@@ -88,7 +90,8 @@ const poolInfo = async (chain) => {
 
   yieldMarkets.map((data, index) => {
     data.collateralFactor = collateralFactor[index];
-    data.venusSpeeds = venusSpeeds[index];
+    data.venusSupplySpeeds = venusSupplySpeeds[index];
+    data.venusBorrowSpeeds = venusBorrowSpeeds[index];
     data.borrowRatePerBlock = borrowRatePerBlock[index];
     data.supplyRatePerBlock = supplyRatePerBlock[index];
     data.getCash = getCash[index];
@@ -169,13 +172,14 @@ const getApy = async () => {
     const tvl = totalSupplyUsd - totalBorrowUsd;
     const apyBase = calculateApy(pool.supplyRatePerBlock);
     const apyReward = calculateApy(
-      pool.venusSpeeds,
+      pool.venusSupplySpeeds,
       priceOf[XVS],
       totalSupplyUsd
     );
+
     const apyBaseBorrow = calculateApy(pool.borrowRatePerBlock);
     const apyRewardBorrow = calculateApy(
-      pool.venusSpeeds,
+      pool.venusBorrowSpeeds,
       priceOf[XVS],
       totalBorrowUsd
     );
