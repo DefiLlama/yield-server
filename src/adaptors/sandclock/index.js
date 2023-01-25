@@ -37,24 +37,20 @@ const apy = async () => {
     
     const BLOCKS_PER_DAY = 7160;
 
-    // one day does not change enough for BigNumber's precision, so
-    // we get data 2 days ago
-    // s0: totalShares two days before
-    // u0: LUSD in the vault two days before
+    // s0: totalShares 1 day before
+    // u0: LUSD in the vault 1 day before
     const [s0, u0] = await Promise.all([
-        await liquityVault.totalShares({ blockTag: -BLOCKS_PER_DAY * 2 }), 
-        await liquityVault.totalUnderlyingMinusSponsored({ blockTag: -BLOCKS_PER_DAY * 2 })
+        await liquityVault.totalShares({ blockTag: -BLOCKS_PER_DAY }), 
+        await liquityVault.totalUnderlyingMinusSponsored({ blockTag: -BLOCKS_PER_DAY })
     ]);
 
     // Let sp1 be the current share price in LUSD, i.e., sp1 = u1 / s1
-    // Let sp0 be the share price in LSUD two days before, i.e., sp0 = u0 / s0
-    // we compound two days return 183 times to get the apy, as 
-    // 183 * 2 = 366 which is pretty close to 365 days a year
-    // current apy percentage = {[sp1 / sp0]^183 - 1} * 100,
-    // that is, {[u1 * s0 / (u0 * s1)]^183 - 1} * 100
+    // Let sp0 be the share price in LSUD a day before, i.e., sp0 = u0 / s0
+    // we compound 1 day return 365 times to get the apy, as 
+    // that is, {[u1 * s0 / (u0 * s1)]^365 - 1} * 100
     const n = new BigNumber(u1.mul(s0).toString());
     const d = new BigNumber(u0.mul(s1).toString());
-    const apy = n.div(d).pow(183).minus(1).times(100).toNumber();
+    const apy = n.div(d).pow(365).minus(1).times(100).toNumber();
 
     const liquityPool = {
         pool: `${LIQUITY_VAULT}-ethereum`,    
@@ -62,7 +58,7 @@ const apy = async () => {
         project: 'sandclock', 
         symbol: 'LUSD',
         tvlUsd,
-        underlyingTokens: ['0x5f98805A4E8be255a32880FDeC7F6728C6568bA0'], // LUSD
+        underlyingTokens: [LUSD],
         apy,
         poolMeta: 'Liquity Vault', 
         url: 'https://app.sandclock.org/'
