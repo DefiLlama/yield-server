@@ -2,7 +2,9 @@ const { gql, default: request } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
-const AURA_API = 'https://api.thegraph.com/subgraphs/name/aurafinance/aura';
+// new subgraph for new rewarder see https://twitter.com/AuraFinance/status/1602809800475058176
+const AURA_API =
+  'https://graph.aura.finance/subgraphs/name/aura/aura-mainnet-v2';
 const BAL_API =
   'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-v2';
 const AURA_TVL_API = 'https://aura-metrics.onrender.com/tvl';
@@ -12,11 +14,6 @@ const AURA_ADDRESS = '0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF'.toLowerCase();
 const BAL_ADDRESS = '0xba100000625a3754423978a60c9317c58a424e3D'.toLowerCase();
 
 const SECONDS_PER_YEAR = 60 * 60 * 24 * 365;
-
-const cliffSize = 100_000;
-const cliffCount = 500;
-const maxSupply = 100_000_000;
-const minSupply = 50_000_000;
 
 const getAuraMintAmount = (balEarned, auraSupply) => {
   const auraUnitsMinted =
@@ -93,11 +90,11 @@ const main = async () => {
     address_in: pools.map(({ lpToken }) => lpToken.id),
   });
 
-  const res = pools.map((pool) => {
+  let res = pools.map((pool) => {
     const balData = balPools.find(({ address }) => address === pool.lpToken.id);
     if (!balData) return;
     const swapApr = swapAprs.find(({ id }) => id === balData.id);
-    if (!swapApr.poolAprs) return;
+    if (!swapApr?.poolAprs) return;
     const tvlUsd = auraTvl[pool.lpToken.id] || 0;
     const balRewards = pool.rewardData.find(
       ({ token }) => token.id === BAL_ADDRESS
@@ -128,7 +125,18 @@ const main = async () => {
     };
   });
 
-  return res.filter(Boolean);
+  res = res
+    .filter(Boolean)
+    .filter((p) => p.pool !== '0xe8cc7e765647625b95f59c15848379d10b9ab4af')
+    .sort((a, b) => a.apyReward - b.apyReward);
+
+  // subgraph returns some pools more than once, removing those dupes here
+  const uniquePools = new Set();
+  return res.filter((p) => {
+    const x = uniquePools.has(p.pool);
+    uniquePools.add(p.pool);
+    return !x;
+  });
 };
 
 module.exports = {

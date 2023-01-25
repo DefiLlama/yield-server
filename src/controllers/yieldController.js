@@ -1,56 +1,73 @@
 const minify = require('pg-minify');
 
 const AppError = require('../utils/appError');
-const { boundaries } = require('../utils/exclude');
-const { pgp, connect } = require('../utils/dbConnectionPostgres');
+const exclude = require('../utils/exclude');
+const { pgp, connect } = require('../utils/dbConnection');
+const {
+  tableName: configTableName,
+} = require('../controllers/configController');
+const { lambdaResponse } = require('../utils/lambda');
 
 const tableName = 'yield';
 
-const getYield = async () => {
+// get last DB entry per unique pool (with exclusion; this is what we use in enrichment handler)
+const getYieldFiltered = async () => {
   const conn = await connect();
 
-  // -- get latest yield row per unique pool id
+  // -- get latest yield row per unique configID (a pool)
   // -- exclude if tvlUsd is < LB
   // -- exclude if pool age > 7days
-  // -- join meta data
-  // -- NOTE: i use sqlformatter vscode extension. one issue i found is that it formats
-  // -- named parameter placeholders such as $<tvlLB> to $ < tvlLB > which is invalid and
-  // -- which pg-promise's internal formatter can't correct (at least i didn't find a way how to)
-  // -- in order to get around this i'm using the formatter to generally format the query
-  // -- but make sure to use cmd shift p -> save without formatting before pushing any changes to the repo
+  // -- join config data
   const query = minify(
     `
     SELECT
-        y.pool,
-        symbol,
-        chain,
+        "configID",
+        pool,
+        timestamp,
         project,
-        apy,
-        "tvlUsd",
-        "rewardTokens",
+        chain,
+        symbol,
+        "poolMeta",
         "underlyingTokens",
-        "poolMeta"
+        "rewardTokens",
+        "tvlUsd",
+        apy,
+        "apyBase",
+        "apyReward",
+        "il7d",
+        "apyBase7d",
+        "volumeUsd1d",
+        "volumeUsd7d",
+        "apyBaseInception"
     FROM
         (
             SELECT
-                DISTINCT ON (pool) *
+                DISTINCT ON ("configID") *
             FROM
-                yield
+                $<yieldTable:name>
             WHERE
                 "tvlUsd" >= $<tvlLB>
                 AND timestamp >= NOW() - INTERVAL '$<age> DAY'
             ORDER BY
-                pool,
+                "configID",
                 timestamp DESC
         ) AS y
-        INNER JOIN meta AS m ON y.pool = m.pool
+        INNER JOIN $<configTable:name> AS c ON c.config_id = y."configID"
+    WHERE
+        pool NOT IN ($<excludePools:csv>)
+        AND project NOT IN ($<excludeProjects:csv>)
+        AND symbol not like '%RENBTC%'
   `,
     { compress: true }
   );
 
   const response = await conn.query(query, {
-    tvlLB: boundaries.tvlUsdUI.lb,
-    age: boundaries.age,
+    tvlLB: exclude.boundaries.tvlUsdUI.lb,
+    age: exclude.boundaries.age,
+    yieldTable: tableName,
+    configTable: configTableName,
+    excludePools: exclude.excludePools,
+    excludeProjects: exclude.excludeAdaptors,
   });
 
   if (!response) {
@@ -60,7 +77,8 @@ const getYield = async () => {
   return response;
 };
 
-const getYieldHistory = async (pool) => {
+// get full history of given configID
+const getYieldHistory = async (configID) => {
   const conn = await connect();
 
   const query = minify(
@@ -68,93 +86,86 @@ const getYieldHistory = async (pool) => {
     SELECT
         timestamp,
         "tvlUsd",
-        "apy"
+        apy,
+        "apyBase",
+        "apyReward",
+        "il7d",
+        "apyBase7d"
     FROM
-        yield
+        $<table:name>
     WHERE
         timestamp IN (
             SELECT
                 max(timestamp)
             FROM
-                yield
+                $<table:name>
             WHERE
-                pool = $<poolValue>
+                "configID" = $<configIDValue>
             GROUP BY
                 (timestamp :: date)
         )
-        AND pool = $<poolValue>
+        AND "configID" = $<configIDValue>
     ORDER BY
         timestamp ASC
   `,
     { compress: true }
   );
 
-  const response = await conn.query(query, { poolValue: pool });
+  const response = await conn.query(query, {
+    configIDValue: configID,
+    table: tableName,
+  });
 
   if (!response) {
     return new AppError(`Couldn't get ${tableName} history data`, 404);
   }
 
-  return {
+  return lambdaResponse({
     status: 'success',
     data: response,
-  };
+  });
 };
 
+// get last DB entry per unique pool for a given project (used by adapter handler to check for TVL spikes)
 const getYieldProject = async (project) => {
   const conn = await connect();
 
-  // -- get latest yield row per unique pool id for a specific project
+  // -- get latest yield row per unique configID (a pool) for a specific project
   // -- exclude if tvlUsd is < LB
   // -- exclude if pool age > 7days
-  // -- join meta data
+  // -- join config data
   const query = minify(
     `
     SELECT
-        y.pool,
-        symbol,
-        chain,
-        project,
-        apy,
+        DISTINCT ON ("configID") "configID",
         "tvlUsd",
-        "rewardTokens",
-        "underlyingTokens",
-        "poolMeta"
+        timestamp
     FROM
-        (
+        $<yieldTable:name>
+    WHERE
+        "configID" IN (
             SELECT
-                DISTINCT ON (pool) *
+                DISTINCT (config_id)
             FROM
-                yield
+                $<configTable:name>
             WHERE
-                pool IN (
-                    SELECT
-                        *
-                    FROM
-                        (
-                            SELECT
-                                DISTINCT (pool)
-                            FROM
-                                meta
-                            WHERE
-                                "project" = $<project>
-                        ) AS m
-                )
-                AND "tvlUsd" >= $<tvlLB>
-                AND timestamp >= NOW() - INTERVAL '$<age> DAY'
-            ORDER BY
-                pool,
-                timestamp DESC
-        ) AS y
-        INNER JOIN meta AS m ON y.pool = m.pool
+                "project" = $<project>
+        )
+        AND "tvlUsd" >= $<tvlLB>
+        AND timestamp >= NOW() - INTERVAL '$<age> DAY'
+    ORDER BY
+        "configID",
+        timestamp DESC
     `,
     { compress: true }
   );
 
   const response = await conn.query(query, {
-    tvlLB: boundaries.tvlUsdUI.lb,
-    age: boundaries.age,
+    tvlLB: exclude.boundaries.tvlUsdUI.lb,
+    age: exclude.boundaries.age,
     project,
+    yieldTable: tableName,
+    configTable: configTableName,
   });
 
   if (!response) {
@@ -164,10 +175,12 @@ const getYieldProject = async (project) => {
   return response;
 };
 
-const getYieldOffset = async (project, days) => {
+// get apy offset value for project/day combo
+const getYieldOffset = async (project, offset) => {
   const conn = await connect();
 
-  const daysMilliSeconds = Number(days) * 60 * 60 * 24 * 1000;
+  const age = Number(offset);
+  const daysMilliSeconds = age * 60 * 60 * 24 * 1000;
   const tOffset = Date.now() - daysMilliSeconds;
 
   // 3 hour window
@@ -176,19 +189,19 @@ const getYieldOffset = async (project, days) => {
   const tsLB = new Date(tOffset - tWindow);
   const tsUB = new Date(tOffset + tWindow);
 
-  const tvlLB = boundaries.tvlUsdUI.lb;
+  const tvlLB = exclude.boundaries.tvlUsdUI.lb;
 
   // -- retrieve the historical offset data for a every unique pool given an offset day (1d/7d/30d)
   // -- to calculate pct changes. allow some buffer (+/- 3hs) in case of missing data (via tsLB and tsUB)
   const query = minify(
     `
     SELECT
-        DISTINCT ON (pool) pool,
+        DISTINCT ON ("configID") "configID",
         apy
     FROM
         (
             SELECT
-                y.pool,
+                "configID",
                 apy,
                 abs(
                     extract (
@@ -198,16 +211,16 @@ const getYieldOffset = async (project, days) => {
                     )
                 ) AS abs_delta
             FROM
-                yield AS y
-                INNER JOIN meta AS m ON m.pool = y.pool
+                $<table:name> AS y
+                INNER JOIN config AS c ON c.config_id = y."configID"
             WHERE
                 "tvlUsd" >= $<tvlLB>
                 AND project = $<project>
                 AND timestamp >= $<tsLB>
                 AND timestamp <= $<tsUB>
-        ) y
+        ) AS y
     ORDER BY
-        pool,
+        "configID",
         abs_delta ASC
     `,
     { compress: true }
@@ -215,10 +228,11 @@ const getYieldOffset = async (project, days) => {
 
   const response = await conn.query(query, {
     project,
-    age: days,
+    age,
     tsLB,
     tsUB,
     tvlLB,
+    table: tableName,
   });
 
   if (!response) {
@@ -228,40 +242,187 @@ const getYieldOffset = async (project, days) => {
   return response;
 };
 
-const insertYield = async (payload) => {
+// get last DB entry per unique pool (lending/borrow fields only)
+const getYieldLendBorrow = async () => {
   const conn = await connect();
 
+  const query = minify(
+    `
+    SELECT
+        "configID" as pool,
+        "apyBaseBorrow",
+        "apyRewardBorrow",
+        "totalSupplyUsd",
+        "totalBorrowUsd",
+        "debtCeilingUsd",
+        "ltv",
+        "borrowable",
+        "mintedCoin",
+        "rewardTokens",
+        "underlyingTokens"
+    FROM
+        (
+            SELECT
+                DISTINCT ON ("configID") *
+            FROM
+                $<yieldTable:name>
+            WHERE
+                timestamp >= NOW() - INTERVAL '$<age> DAY'
+            ORDER BY
+                "configID",
+                timestamp DESC
+        ) AS y
+        INNER JOIN $<configTable:name> AS c ON c.config_id = y."configID"
+    WHERE
+        pool NOT IN ($<excludePools:csv>)
+        AND project NOT IN ($<excludeProjects:csv>)
+        AND ltv >= 0
+        AND "totalSupplyUsd" >= 0
+        AND symbol not like '%RENBTC%'
+  `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query, {
+    tvlLB: exclude.boundaries.tvlUsdUI.lb,
+    age: exclude.boundaries.age,
+    yieldTable: tableName,
+    configTable: configTableName,
+    excludePools: exclude.excludePools,
+    excludeProjects: exclude.excludeAdaptors,
+  });
+
+  if (!response) {
+    return new AppError(`Couldn't get ${tableName} data`, 404);
+  }
+
+  return response;
+};
+
+// get full history of given configID
+const getYieldLendBorrowHistory = async (configID) => {
+  const conn = await connect();
+
+  const query = minify(
+    `
+    SELECT
+        timestamp,
+        "totalSupplyUsd",
+        "totalBorrowUsd",
+        "debtCeilingUsd",
+        "apyBase",
+        "apyReward",
+        "apyBaseBorrow",
+        "apyRewardBorrow"
+    FROM
+        $<table:name>
+    WHERE
+        timestamp IN (
+            SELECT
+                max(timestamp)
+            FROM
+                $<table:name>
+            WHERE
+                "configID" = $<configIDValue>
+            GROUP BY
+                (timestamp :: date)
+        )
+        AND "configID" = $<configIDValue>
+    ORDER BY
+        timestamp ASC
+  `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query, {
+    configIDValue: configID,
+    table: tableName,
+  });
+
+  if (!response) {
+    return new AppError(`Couldn't get ${tableName} history data`, 404);
+  }
+
+  return lambdaResponse({
+    status: 'success',
+    data: response,
+  });
+};
+
+// get 30day avg
+const getYieldAvg30d = async () => {
+  const conn = await connect();
+
+  const query = minify(
+    `
+    SELECT
+        "configID",
+        round(avg(apy), 5) as "avgApy30d"
+    FROM
+        $<table:name>
+    WHERE
+        timestamp >= NOW() - INTERVAL '$<age> DAY'
+    GROUP BY
+        "configID"
+  `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query, {
+    age: 30,
+    table: tableName,
+  });
+
+  if (!response) {
+    return new AppError(`Couldn't get ${tableName} 30day avg data`, 404);
+  }
+
+  // reformat
+  const responseObject = {};
+  for (const p of response) {
+    responseObject[p.configID] = p.avgApy30d;
+  }
+
+  return responseObject;
+};
+
+// multi row insert query generator
+const buildInsertYieldQuery = (payload) => {
   // note: even though apyBase and apyReward are optional fields
   // they are both added in the adapter handler to derive final apy.
   // hence, there is no need to specify optional fields defaults for pg-promise
-  // (in contrast to `insertMeta`)
+  // (in contrast to some fields in `insertConfig`)
   const columns = [
-    'pool',
+    'configID',
+    'timestamp',
     'tvlUsd',
     'apy',
     'apyBase',
     'apyReward',
-    'timestamp',
+    'il7d',
+    'apyBase7d',
+    'apyRewardFake',
+    'apyRewardBorrowFake',
+    'volumeUsd1d',
+    'volumeUsd7d',
+    'apyBaseInception',
+    { name: 'apyBaseBorrow', def: null },
+    { name: 'apyRewardBorrow', def: null },
+    { name: 'totalSupplyUsd', def: null },
+    { name: 'totalBorrowUsd', def: null },
+    { name: 'debtCeilingUsd', def: null },
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
-  // multi row insert
-  const query = pgp.helpers.insert(payload, cs);
-  const response = await conn.result(query);
-
-  if (!response) {
-    return new AppError(`Couldn't insert ${tableName} data`, 404);
-  }
-
-  return {
-    status: 'success',
-    response: `Inserted ${payload.length} samples`,
-  };
+  return pgp.helpers.insert(payload, cs);
 };
 
 module.exports = {
-  getYield,
+  getYieldFiltered,
   getYieldHistory,
   getYieldOffset,
   getYieldProject,
-  insertYield,
+  getYieldLendBorrow,
+  getYieldLendBorrowHistory,
+  buildInsertYieldQuery,
+  getYieldAvg30d,
 };

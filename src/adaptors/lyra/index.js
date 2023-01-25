@@ -2,7 +2,7 @@ const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
-const url = 'https://api.thegraph.com/subgraphs/name/lyra-finance/mainnet';
+const url = 'https://subgraph.satsuma-prod.com/lyra/optimism-mainnet/api';
 
 const SECONDS_IN_MONTH = 2592000;
 const MONTHS_IN_YEAR = 12;
@@ -47,69 +47,76 @@ const queryNow = gql`
   }
 `;
 
-const buildPool = (entry, chainString) => {
-  const newObj = {
-    pool: entry.liquidityPool.id,
-    chain: utils.formatChain(chainString),
-    project: 'lyra',
-    symbol: 'sUSD',
-    poolMeta: `${entry.name}-Vault`,
-    apyBase: entry.apy,
-    tvlUsd: entry.NAV,
-    underlyingTokens: [entry.quoteAddress],
-  };
+const apy = async (timestamp = null) => {
+  const data = (
+    await request(
+      url,
+      (timestamp == null ? queryNow : query).replace('<PLACEHOLDER>', timestamp)
+    )
+  ).markets;
 
-  return newObj;
-};
-
-const getAPY = (dataNow, dataPrior) => {
-  dataNow['NAV'] = dataNow.marketTotalValueHistory[0].NAV / 1e18;
-  dataNow['tokenPriceNow'] =
-    dataNow.marketTotalValueHistory[0].tokenPrice / 1e18;
-  dataNow['tokenPricePrior'] = 1;
-  dataNow['tokenPricePrior'] =
-    dataPrior.find((el) => el.id === dataNow.id)?.marketTotalValueHistory[0]
-      .tokenPrice / 1e18;
-  dataNow['apy'] =
-    ((dataNow['tokenPriceNow'] - dataNow['tokenPricePrior']) /
-      dataNow['tokenPricePrior']) *
-    MONTHS_IN_YEAR *
-    100;
-  return dataNow;
-};
-
-const topLvl = async (chainString, timestamp, url) => {
-  dataNow = await request(
-    url,
-    (timestamp == null ? queryNow : query).replace('<PLACEHOLDER>', timestamp)
-  );
-  let priorTimestamp =
+  // note: lyra used 30day window for calculating this...given their options have a 7d window
+  // it would make more sense to switch to 7day apy values instead...
+  const priorTimestamp30d =
     timestamp == null
       ? Math.floor(Date.now() / 1000) - SECONDS_IN_MONTH
       : timestamp - SECONDS_IN_MONTH;
 
-  // pull 24h offset data to calculate fees from swap volume
-  let dataPrior = await request(
-    url,
-    query.replace('<PLACEHOLDER>', priorTimestamp)
-  );
+  const dataPrior30d = (
+    await request(url, query.replace('<PLACEHOLDER>', priorTimestamp30d))
+  ).markets;
 
-  // calculate apy
-  let data = dataNow.markets.map((el) => getAPY(el, dataPrior.markets, 'v2'));
+  const priorTimestamp7d = Math.floor(Date.now() / 1000) - 604800;
+  const dataPrior7d = (
+    await request(url, query.replace('<PLACEHOLDER>', priorTimestamp7d))
+  ).markets;
 
-  // build pool objects
-  data = data.map((el) => buildPool(el, chainString));
+  return data
+    .map((p) => {
+      const marketTotalValueHistory30d = dataPrior30d.find(
+        (el) => el.id === p.id
+      )?.marketTotalValueHistory;
 
-  return data;
-};
+      const marketTotalValueHistory7d = dataPrior7d.find(
+        (el) => el.id === p.id
+      )?.marketTotalValueHistory;
 
-const main = async (timestamp = null) => {
-  const data = await Promise.all([topLvl('optimism', timestamp, url)]);
-  return data.flat();
+      if (
+        !marketTotalValueHistory30d?.length ||
+        !marketTotalValueHistory7d?.length
+      )
+        return null;
+
+      const NAV = p.marketTotalValueHistory[0].NAV / 1e18;
+      const tokenPriceNow = p.marketTotalValueHistory[0].tokenPrice / 1e18;
+
+      const tokenPricePrior30d =
+        marketTotalValueHistory30d[0].tokenPrice / 1e18;
+
+      const tokenPricePrior7d = marketTotalValueHistory7d[0].tokenPrice / 1e18;
+
+      const return30d =
+        (tokenPriceNow - tokenPricePrior30d) / tokenPricePrior30d;
+
+      const return7d = (tokenPriceNow - tokenPricePrior7d) / tokenPricePrior7d;
+
+      return {
+        pool: p.liquidityPool.id,
+        chain: utils.formatChain('optimism'),
+        project: 'lyra',
+        symbol: 'sUSD',
+        poolMeta: `${p.name}-Vault`,
+        apyBase: return30d * MONTHS_IN_YEAR * 100,
+        tvlUsd: NAV,
+        underlyingTokens: [p.quoteAddress],
+        il7d: return7d > 0 ? null : return7d * 100,
+      };
+    })
+    .filter((p) => p !== null);
 };
 
 module.exports = {
   timetravel: true,
-  apy: main,
+  apy,
   url: 'https://app.lyra.finance/vaults',
 };

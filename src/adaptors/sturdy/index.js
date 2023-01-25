@@ -10,7 +10,12 @@ const poolsFunction = async () => {
     project: 'sturdy',
     symbol: utils.formatSymbol(item.tokens),
     tvlUsd: item.tvl,
-    apy: item.base * 100,
+    apyBase: item.base * 100,
+    // borrow fields
+    apyBaseBorrow: item.borrowAPY * 100,
+    totalSupplyUsd: item.tvl,
+    totalBorrowUsd: item.totalBorrowUsd,
+    ltv: item.ltv,
   }));
 
   const ethVaultData = await utils.getData(
@@ -22,7 +27,12 @@ const poolsFunction = async () => {
     project: 'sturdy',
     symbol: utils.formatSymbol(item.tokens),
     tvlUsd: item.tvl,
-    apy: item.base * 100,
+    apyBase: item.base * 100,
+    // borrow fields
+    apyBaseBorrow: item.borrowAPY * 100,
+    totalSupplyUsd: item.tvl,
+    totalBorrowUsd: item.totalBorrowUsd,
+    ltv: item.ltv,
   }));
   return [...ftmData, ...ethData];
 };

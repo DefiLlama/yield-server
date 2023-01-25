@@ -1,83 +1,162 @@
+const { ethers } = require('ethers');
+const { getProvider } = require('@defillama/sdk/build/general');
 const utils = require('../utils');
-const superagent = require('superagent');
+const { SECONDS_PER_YEAR, contracts, tokens } = require('./constants');
 
-const buildPool = (
-  tokenAddress,
-  tokenSymbol,
-  acrossApiPoolDataForToken,
-  wethPriceData,
-  decimals
-) => {
-  return {
-    pool: tokenAddress,
+const fixedPoint = ethers.utils.parseUnits('1');
+
+const rewardApr = (underlyingToken, stakingPool, rewardToken) => {
+  const { enabled, baseEmissionRate, cumulativeStaked } = stakingPool;
+
+  if (!enabled) return 0.0;
+
+  // Avoid divide by zero later on.
+  if (cumulativeStaked.eq(0)) return Number.MAX_VALUE;
+
+  const underlyingTokenPrice = ethers.utils.parseUnits(
+    underlyingToken.price.toString()
+  );
+  const rewardTokenPrice = ethers.utils.parseUnits(
+    rewardToken.price.toString()
+  );
+
+  // Normalise to 18 decimals and convert LP token => underlying token.
+  const cumulativeStakedUsd = cumulativeStaked
+    .mul(ethers.utils.parseUnits('1', 18 - underlyingToken.decimals).toString())
+    .mul(underlyingToken.exchangeRateCurrent)
+    .div(fixedPoint)
+    .mul(underlyingTokenPrice)
+    .div(fixedPoint);
+
+  const rewardsPerYearUsd = baseEmissionRate
+    .mul(ethers.utils.parseUnits('1', 18 - rewardToken.decimals).toString())
+    .mul(SECONDS_PER_YEAR.toString())
+    .mul(rewardTokenPrice)
+    .div(fixedPoint);
+
+  const apr = ethers.utils.formatUnits(
+    rewardsPerYearUsd.mul('100').mul(fixedPoint).div(cumulativeStakedUsd)
+  );
+
+  return Number(apr);
+};
+
+const buildPool = (token, tokenPrices, liquidityPool, stakingPool) => {
+  const rewardTokenAddr = stakingPool.rewardToken;
+  const apyReward = rewardApr(
+    {
+      ...token,
+      price: tokenPrices[token.address].price,
+      exchangeRateCurrent: liquidityPool.exchangeRateCurrent,
+    },
+    stakingPool,
+    tokenPrices[rewardTokenAddr]
+  ).toFixed(6);
+
+  const poolData = {
+    pool: token.address,
     chain: utils.formatChain('ethereum'), // All yield on Mainnet
     project: 'across',
-    symbol: utils.formatSymbol(tokenSymbol),
+    symbol: utils.formatSymbol(token.symbol),
     tvlUsd:
-      (wethPriceData.body.coins[`ethereum:${tokenAddress}`].price *
-        Number(acrossApiPoolDataForToken.totalPoolSize)) /
-      10 ** decimals,
-    apyBase: Number(acrossApiPoolDataForToken.estimatedApy) * 100,
-    underlyingTokens: [tokenAddress],
+      (token.price * Number(liquidityPool.totalPoolSize)) /
+      10 ** token.decimals,
+    underlyingTokens: [token.address],
+    apyBase: Number(liquidityPool.estimatedApy) * 100,
+  };
+
+  if (apyReward > 0.0) {
+    poolData['rewardTokens'] = [rewardTokenAddr];
+    poolData['apyReward'] = apyReward;
+  }
+
+  return poolData;
+};
+
+const queryLiquidityPool = async (l1TokenAddr) => {
+  return await utils.getData(
+    `https://across.to/api/pools?token=${l1TokenAddr}`
+  );
+};
+
+const queryLiquidityPools = async (l1TokenAddrs) => {
+  const pools = await Promise.all(
+    l1TokenAddrs.map((l1TokenAddr) => queryLiquidityPool(l1TokenAddr))
+  );
+  return Object.fromEntries(
+    pools.map((pool) => {
+      return [pool.l1Token.toLowerCase(), pool];
+    })
+  );
+};
+
+const queryStakingPools = async (provider, lpTokenAddrs) => {
+  const { address, abi } = contracts.AcceleratedDistributor;
+  const adContract = new ethers.Contract(address, abi, provider);
+  await adContract.connect();
+
+  const rewardToken = (await adContract.rewardToken()).toLowerCase();
+  const pools = Object.fromEntries(
+    await Promise.all(
+      Object.values(lpTokenAddrs).map(async (lpTokenAddr) => {
+        const pool = await adContract.stakingTokens(lpTokenAddr);
+        return [lpTokenAddr, pool];
+      })
+    )
+  );
+
+  return {
+    rewardToken: rewardToken,
+    pools: pools,
   };
 };
 
-const topLvl = async (token) => {
-  let data = await utils.getData(`https://across.to/api/pools?token=${token}`);
-  return data;
+const l1TokenPrices = async (l1TokenAddrs) => {
+  const l1TokenQuery = l1TokenAddrs.map((addr) => `ethereum:${addr}`).join();
+  const data = await utils.getData(
+    `https://coins.llama.fi/prices/current/${l1TokenQuery}`
+  );
+
+  return Object.fromEntries(
+    l1TokenAddrs.map((addr) => {
+      const { decimals, price } = data.coins[`ethereum:${addr}`];
+      return [addr, { price, decimals }];
+    })
+  );
 };
 
 const main = async () => {
-  const [weth, usdc, wbtc, dai, wethPrice, usdcPrice, wbtcPrice, daiPrice] =
-    await Promise.all([
-      topLvl('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'),
-      topLvl('0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'),
-      topLvl('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'),
-      topLvl('0x6b175474e89094c44da98b954eedeac495271d0f'),
-      superagent.post('https://coins.llama.fi/prices').send({
-        coins: ['ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'],
-      }),
-      superagent.post('https://coins.llama.fi/prices').send({
-        coins: ['ethereum:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'],
-      }),
-      superagent.post('https://coins.llama.fi/prices').send({
-        coins: ['ethereum:0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'],
-      }),
-      superagent.post('https://coins.llama.fi/prices').send({
-        coins: ['ethereum:0x6b175474e89094c44da98b954eedeac495271d0f'],
-      }),
-    ]);
+  const provider = getProvider('ethereum');
 
-  return [
-    buildPool(
-      '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
-      'WETH',
-      weth,
-      wethPrice,
-      18
-    ),
-    buildPool(
-      '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-      'USDC',
-      usdc,
-      usdcPrice,
-      6
-    ),
-    buildPool(
-      '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
-      'WBTC',
-      wbtc,
-      wbtcPrice,
-      8
-    ),
-    buildPool(
-      '0x6b175474e89094c44da98b954eedeac495271d0f',
-      'DAI',
-      dai,
-      daiPrice,
-      18
-    ),
-  ];
+  // Note lpTokenAddrs is included in the Across API /pools response. These
+  // LP token addresses are however hardcoded in constants so that the staking
+  // pool lookups can occur in parallel with all other external lookups.
+  const tokenAddrs = Object.values(tokens).map((token) => token.address);
+  const lpTokenAddrs = Object.values(tokens).map((token) => token.lpAddress);
+
+  const [liquidityPools, stakingPools, tokenPrices] = await Promise.all([
+    queryLiquidityPools(tokenAddrs),
+    queryStakingPools(provider, lpTokenAddrs),
+    l1TokenPrices(tokenAddrs),
+  ]);
+
+  return Object.entries(tokens).map(([symbol, token]) => {
+    const { address } = token;
+    return buildPool(
+      {
+        address,
+        symbol,
+        decimals: tokenPrices[address].decimals,
+        price: tokenPrices[address].price,
+      },
+      tokenPrices,
+      liquidityPools[address],
+      {
+        rewardToken: stakingPools.rewardToken,
+        ...stakingPools.pools[token.lpAddress],
+      }
+    );
+  });
 };
 
 module.exports = {

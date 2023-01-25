@@ -1,70 +1,68 @@
 const utils = require('../utils');
+const { readFromS3 } = require('../../utils/s3');
+const _ = require('lodash');
 
 const poolsFunction = async () => {
-  const dataTvl = await utils.getData(
-    'https://bolide.fi/api/tvl'
-  );
-  const apyData = await utils.getData(
-    'https://bolide.fi/api/apy'
-  );
+  // const dataTvl = await utils.getData('https://bolide.fi/api/tvl');
+  // const apyData = await utils.getData('https://bolide.fi/api/apy');
 
-  const lrsTvlData = dataTvl.strategiesTvl.find(({ name }) => name === 'LOW_RISK_STRATEGY');
-  const lrsApyData = apyData.strategiesApy.find(({ name }) => name === 'LOW_RISK_STRATEGY');
+  // reading data from s3 (like with harvest-finance)
+  const data = await readFromS3('llama-apy-prod-data', 'bolide_api_data.json');
 
-  const btcTvlData = dataTvl.strategiesTvl.find(({ name }) => name === 'BTC Strategy');
-  const btcApyData = apyData.strategiesApy.find(({ name }) => name === 'BTC Strategy');
+  const dataTvl = data['tvl'];
+  const apyData = data['apy'];
 
-  const ethTvlData = dataTvl.strategiesTvl.find(({ name }) => name === 'ETH Strategy');
-  const ethApyData = apyData.strategiesApy.find(({ name }) => name === 'ETH Strategy');
+  const VAULTS_NAMES = {
+    LRS: 'LOW_RISK_STRATEGY',
+    BTC: 'BTC Strategy',
+    ETH: 'ETH Strategy',
+    ALTCOINS: 'Altcoins Strategy',
+  };
 
-  const lowRiskPools = [
-    {
-      pool: '0xf1f25A26499B023200B3f9A30a8eCEE87b031Ee1' + 'USDT',
-      chain: 'binance',
-      project: 'bolide',
-      symbol: 'USDT',
-      tvlUsd: lrsTvlData.tokensTvl['USDT'].tvl,
-      apy: lrsApyData.apy,
-    },
-    {
-      pool: '0xf1f25A26499B023200B3f9A30a8eCEE87b031Ee1' + 'USDC',
-      chain: 'binance',
-      project: 'bolide',
-      symbol: 'USDC',
-      tvlUsd: lrsTvlData.tokensTvl['USDC'].tvl,
-      apy: lrsApyData.apy,
-    },
-    {
-      pool: '0xf1f25A26499B023200B3f9A30a8eCEE87b031Ee1' + 'BUSD',
-      chain: 'binance',
-      project: 'bolide',
-      symbol: 'BUSD',
-      tvlUsd: lrsTvlData.tokensTvl['BUSD'].tvl,
-      apy: lrsApyData.apy,
-    },
-  ];
+  const VAULTS_TOKENS = {
+    LRS: ['USDT', 'USDC', 'BUSD', 'DAI'],
+    BTC: ['BTC'],
+    ETH: ['ETH'],
+    ALTCOINS: ['XRP', 'XVS', 'LTC', 'ADA', 'LINK', 'DOT', 'MATIC'],
+  };
 
-  const btcPools = [
-    {
-      pool: '0xed18f1CE58fED758C7937cC0b8BE66CB02Dc45c6' + 'BTC',
-      chain: 'binance',
-      project: 'bolide',
-      symbol: 'BTC',
-      tvlUsd: btcTvlData.tokensTvl['BTC'].tvl,
-      apy: btcApyData.apy,
-    },
-  ];
+  const VAULTS_ADDRESSES = {
+    LRS: '0xf1f25A26499B023200B3f9A30a8eCEE87b031Ee1',
+    BTC: '0xed18f1CE58fED758C7937cC0b8BE66CB02Dc45c6',
+    ETH: '0x941ef9AaF3277052e2e6c737ae9a75b229A20988',
+    ALTCOINS: '0x5d735e9ffE9664B80c405D16921912E5B989688C',
+  };
 
-  const ethPools = [
-    {
-      pool: '0x941ef9AaF3277052e2e6c737ae9a75b229A20988' + 'ETH',
-      chain: 'binance',
-      project: 'bolide',
-      symbol: 'ETH',
-      tvlUsd: ethTvlData.tokensTvl['ETH'].tvl,
-      apy: ethApyData.apy,
-    },
-  ];
+  const tvls = _.keyBy(dataTvl.strategiesTvl, 'name');
+  const apys = _.keyBy(apyData.strategiesApy, 'name');
+
+  const pools = [];
+
+  for (const key in VAULTS_NAMES) {
+    const name = VAULTS_NAMES[key];
+    const address = VAULTS_ADDRESSES[key];
+    const tokens = VAULTS_TOKENS[key];
+
+    const vaultTvl = tvls[name];
+    const vaultApy = apys[name];
+
+    for (const token of tokens) {
+      if (vaultTvl.tokensTvl[token]) {
+        const tvlUsd = vaultTvl.tokensTvl[token].tvl;
+        
+        pools.push(
+          {
+            pool: `${address}${token}`,
+            chain: 'binance',
+            project: 'bolide',
+            symbol: token,
+            tvlUsd,
+            apy: vaultApy.apy,
+          },
+        );
+      }
+    }
+  }
 
   const stakingBlid = [
     {
@@ -89,12 +87,9 @@ const poolsFunction = async () => {
   ];
 
   return [
-    ...lowRiskPools,
-    ...btcPools,
-    ...ethPools,
+    ...pools,
     ...stakingBlid,
     ...farmingBlidUsdt,
-
   ];
 };
 

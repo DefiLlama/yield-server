@@ -1,51 +1,38 @@
-const mongoose = require('mongoose');
-const SSM = require('aws-sdk/clients/ssm');
+const path = require('path');
 
-// https://mongoosejs.com/docs/lambda.html
-// Because conn is in the global scope, Lambda may retain it between
-// function calls thanks to `callbackWaitsForEmptyEventLoop`.
-// This means your Lambda function doesn't have to go through the
-// potentially expensive process of connecting to MongoDB every time.
+require('dotenv').config({ path: path.resolve(__dirname, '../../config.env') });
 
-// more about callbackWaitsForEmptyEventLoop (which we add to every lambda which makes
-// a connection to the db)
-// See https://www.mongodb.com/blog/post/serverless-development-with-nodejs-aws-lambda-mongodb-atlas
+const pgp = require('pg-promise')({
+  /* initialization options */
+  capSQL: true, // capitalize all generated SQL
+});
+// set type options (pg-promise returns integers and numeric types as strings)
+// id 20 = INTEGER
+// id 1700 = NUMERIC
+pgp.pg.types.setTypeParser(20, parseInt);
+pgp.pg.types.setTypeParser(1700, parseFloat);
 
 // on first connect, cache db connection for reuse so we don't
 // need to connect on new requests
 let conn = null;
 
-exports.connect = async () => {
+const connect = async () => {
   if (conn === null) {
     console.log('using new db connection');
-
-    // 1) retrieve db connection secrets from SSM
-    const ssm = new SSM();
-    const options = {
-      Name: `${process.env.SSM_PATH}/dbconnection`,
-      WithDecryption: true,
-    };
-    let params = await ssm.getParameter(options).promise();
-    params = JSON.parse(params.Parameter.Value);
-
-    const DB = params.database.replace('<password>', params.database_password);
-    // set conection
-    conn = mongoose
-      .connect(DB, {
-        useNewUrlParser: true,
-        useCreateIndex: true,
-        useFindAndModify: false,
-        useUnifiedTopology: true,
-        // and tell the MongoDB driver to not wait more than 5 seconds
-        // before erroring out if it isn't connected
-        serverSelectionTimeoutMS: 5000,
-      })
-      .then(() => mongoose);
-
-    // awaiting connection after assigning to the `conn` variable
-    // to avoid multiple function calls creating new connections
-    await conn;
+    // set connection
+    conn = pgp({
+      connectionString: process.env.DATABASE_URL,
+      // max milliseconds a client can go unused before it is removed
+      // from the connection pool and destroyed.
+      // overriding default of 30sec to 60sec to decrease nb of potential reconnects of 1 lambda
+      // running multiple adapters
+      idleTimeoutMillis: 60000,
+    });
   }
-
   return conn;
+};
+
+module.exports = {
+  pgp,
+  connect,
 };

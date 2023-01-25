@@ -19,6 +19,9 @@ const networkMapping = {
   122: 'fuse',
   56: 'binance',
   25: 'cronos',
+  1284: 'moonbeam',
+  42262: 'oasis',
+  1313161554: 'aurora',
 };
 
 // hardcode bifi token addresses per chain
@@ -36,6 +39,9 @@ const bifiMapping = {
   122: '0x2bF9b864cdc97b08B6D79ad4663e71B8aB65c45c',
   56: '0xCa3F508B8e4Dd382eE878A314789373D80A5190A',
   25: '0xe6801928061CDbE32AC5AD0634427E140EFd05F9',
+  1284: '0x595c8481c48894771CE8FaDE54ac6Bf59093F9E8',
+  42262: '0x65e66a61D0a8F1e686C2D6083ad611a10D84D97A',
+  1313161554: '0x218c3c3D49d0E7B37aff0D8bB079de36Ae61A4c0',
 };
 
 const main = async () => {
@@ -45,7 +51,7 @@ const main = async () => {
 
   let data = [];
   for (const chain of Object.keys(networkMapping)) {
-    poolData = tvl[chain];
+    const poolData = tvl[chain];
     for (const pool of Object.keys(poolData)) {
       if (apy[pool] === undefined) {
         continue;
@@ -58,15 +64,20 @@ const main = async () => {
           ? bifiMapping[chain]
           : poolMeta.earnedTokenAddress;
 
+      const isActive = poolMeta === undefined || poolMeta.status == 'active';
+
       if (!poolId) continue;
 
       data.push({
         pool: `${poolId}-${networkMapping[chain]}`.toLowerCase(),
         chain: utils.formatChain(networkMapping[chain]),
         project: 'beefy',
-        symbol: utils.formatSymbol(pool.split('-').slice(1).join('-')),
+        symbol:
+          poolMeta === undefined
+            ? 'BIFI'
+            : utils.formatSymbol(poolMeta?.assets.join('-')),
         tvlUsd: poolData[pool],
-        apy: apy[pool] * 100,
+        apy: isActive ? apy[pool] * 100 : 0,
         poolMeta:
           platformId === undefined ? null : utils.formatChain(platformId),
       });

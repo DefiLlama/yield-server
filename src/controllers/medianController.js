@@ -1,8 +1,10 @@
 const minify = require('pg-minify');
-const { pgp, connect } = require('../utils/dbConnectionPostgres');
+
+const { pgp, connect } = require('../utils/dbConnection');
 
 const tableName = 'median';
 
+// get full content from median table
 const getMedian = async () => {
   const conn = await connect();
 
@@ -13,12 +15,14 @@ const getMedian = async () => {
         "uniquePools",
         "medianAPY"
     FROM
-        median
+        $<table:name>
+    ORDER BY
+        timestamp ASC
     `,
     { compress: true }
   );
 
-  const response = await conn.query(query);
+  const response = await conn.query(query, { table: tableName });
 
   if (!response) {
     return new AppError(`Couldn't get ${tableName} data`, 404);
@@ -27,12 +31,12 @@ const getMedian = async () => {
   return response;
 };
 
+// insert
 const insertMedian = async (payload) => {
   const conn = await connect();
 
-  const columns = ['uniquePools', 'medianAPY', 'timestamp'];
+  const columns = ['timestamp', 'uniquePools', 'medianAPY'];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
-  // multi row insert
   const query = pgp.helpers.insert(payload, cs);
   const response = await conn.result(query);
 
@@ -40,10 +44,7 @@ const insertMedian = async (payload) => {
     return new AppError(`Couldn't insert ${tableName} data`, 404);
   }
 
-  return {
-    status: 'success',
-    response: `Inserted ${payload.length} samples`,
-  };
+  return response;
 };
 
 module.exports = {

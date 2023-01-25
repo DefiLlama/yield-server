@@ -7,6 +7,16 @@ const { aTokenAbi } = require('./abi');
 
 const SECONDS_PER_YEAR = 31536000;
 
+const chainUrlParam = {
+  ethereum: 'proto_mainnet_v3',
+  polygon: 'proto_polygon_v3',
+  avalanche: 'proto_avalanche_v3',
+  arbitrum: 'proto_arbitrum_v3',
+  fantom: 'proto_fantom_v3',
+  harmony: 'proto_harmony_v3',
+  optimism: 'proto_optimism_v3',
+};
+
 const getPrices = async (addresses) => {
   const prices = (
     await superagent.post('https://coins.llama.fi/prices').send({
@@ -46,6 +56,7 @@ const query = gql`
   query ReservesQuery {
     reserves {
       name
+      borrowingEnabled
       aToken {
         id
         rewards {
@@ -54,27 +65,41 @@ const query = gql`
           rewardToken
           rewardTokenDecimals
           rewardTokenSymbol
+          distributionEnd
         }
         underlyingAssetAddress
         underlyingAssetDecimals
       }
-      totalLiquidity
+      vToken {
+        rewards {
+          emissionsPerSecond
+          rewardToken
+          rewardTokenDecimals
+          rewardTokenSymbol
+          distributionEnd
+        }
+      }
       symbol
-      totalSupplies
       liquidityRate
-      supplyCap
-      totalCurrentVariableDebt
+      variableBorrowRate
+      baseLTVasCollateral
+      isFrozen
     }
   }
 `;
 
 const apy = async () => {
-  const data = await Promise.all(
+  let data = await Promise.all(
     Object.entries(API_URLS).map(async ([chain, url]) => [
       chain,
       (await request(url, query)).reserves,
     ])
   );
+  data = data.map(([chain, reserves]) => [
+    chain,
+    reserves.filter((p) => !p.isFrozen),
+  ]);
+
   const totalSupply = await Promise.all(
     data.map(async ([chain, reserves]) =>
       (
@@ -149,6 +174,22 @@ const apy = async () => {
         0
       );
 
+      const { rewards: rewardsBorrow } = pool.vToken;
+      const rewardPerYearBorrow = rewardsBorrow.reduce(
+        (acc, rew) =>
+          acc +
+          (rew.emissionsPerSecond / 10 ** rew.rewardTokenDecimals) *
+            SECONDS_PER_YEAR *
+            (pricesByAddress[rew.rewardToken] ||
+              pricesBySymbol[rew.rewardTokenSymbol]),
+        0
+      );
+      let totalBorrowUsd = totalSupplyUsd - tvlUsd;
+      totalBorrowUsd = totalBorrowUsd < 0 ? 0 : totalBorrowUsd;
+
+      const supplyRewardEnd = pool.aToken.rewards[0]?.distributionEnd;
+      const borrowRewardEnd = pool.vToken.rewards[0]?.distributionEnd;
+
       return {
         pool: `${pool.aToken.id}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
@@ -156,9 +197,25 @@ const apy = async () => {
         symbol: pool.symbol,
         tvlUsd,
         apyBase: (pool.liquidityRate / 10 ** 27) * 100,
-        apyReward: (rewardPerYear / totalSupplyUsd) * 100,
-        rewardTokens: rewards.map((rew) => rew.rewardToken),
+        apyReward:
+          supplyRewardEnd * 1000 > new Date()
+            ? (rewardPerYear / totalSupplyUsd) * 100
+            : null,
+        rewardTokens:
+          supplyRewardEnd * 1000 > new Date()
+            ? rewards.map((rew) => rew.rewardToken)
+            : null,
         underlyingTokens: [pool.aToken.underlyingAssetAddress],
+        totalSupplyUsd,
+        totalBorrowUsd,
+        apyBaseBorrow: Number(pool.variableBorrowRate) / 1e25,
+        apyRewardBorrow:
+          borrowRewardEnd * 1000 > new Date()
+            ? (rewardPerYearBorrow / totalBorrowUsd) * 100
+            : null,
+        ltv: Number(pool.baseLTVasCollateral) / 10000,
+        url: `https://app.aave.com/reserve-overview/?underlyingAsset=${pool.aToken.underlyingAssetAddress}&marketName=${chainUrlParam[chain]}`,
+        borrowable: pool.borrowingEnabled,
       };
     });
 
@@ -171,5 +228,4 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy: apy,
-  url: 'https://app.aave.com/markets/',
 };

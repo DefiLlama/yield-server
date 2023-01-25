@@ -80,36 +80,48 @@ const getAdaptedChain = (chain) => {
 const main = async () => {
   const {
     data: { data },
-  } = await axios.get('https://assets.hop.exchange/v1-pool-stats.json');
+  } = await axios.get('https://assets.hop.exchange/v1.1-pool-stats.json');
 
-  const tokens = Object.keys(data);
+  const tokens = Object.keys(data.pools);
   const coreConfig = await getCoreConfig();
 
   const promises = tokens
     .map((token) => {
-      const tokenPools = data[token];
-      const chains = Object.keys(data[token]);
+      const tokenPools = data.pools[token];
+      const chains = Object.keys(tokenPools);
       return chains.map(async (chain) => {
         const tvlUsd = await getPoolTvl(coreConfig, chain, token);
         const tokenAddress = coreConfig[token][chain].l2CanonicalToken;
         const hopTokenAddress = coreConfig[token][chain].l2HopBridgeToken;
         const adaptedChain = getAdaptedChain(chain);
 
-        const apyReward = tokenPools[chain].stakingApr * 100;
+        let optimalStakingRewardData;
+        let stakingRewardAddresses = [];
+        const stakingRewards = data.stakingRewards?.[token]?.[chain];
+        if (stakingRewards) {
+          const stakingRewardsContracts = Object.keys(stakingRewards);
+          for (const stakingRewardsContract of stakingRewardsContracts) {
+            const stakingRewardsContractData = stakingRewards[stakingRewardsContract];
+            const isOptimal = stakingRewardsContractData.isOptimalStakingContract;
+            if (isOptimal) {
+              optimalStakingRewardData = stakingRewardsContractData;
+            }
+            stakingRewardAddresses.push(stakingRewardsContractData.rewardTokenAddress);
+          }
+        }
+        const apyReward = optimalStakingRewardData ? optimalStakingRewardData.apy * 100 : 0;
 
         return {
           pool: `${chain}-${token}`,
           chain: utils.formatChain(adaptedChain),
           project: 'hop-protocol',
           symbol: token,
-          apyBase: tokenPools[chain].apr * 100,
+          apyBase: tokenPools[chain].apy * 100,
           apyReward,
-          rewardTokens:
-            adaptedChain === 'polygon' && apyReward > 0
-              ? ['0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270'] // wmatic
-              : [],
+          rewardTokens: apyReward > 0 ? stakingRewardAddresses : [],
           underlyingTokens: [tokenAddress, hopTokenAddress],
           tvlUsd,
+          url: `https://app.hop.exchange/#/pool?token=${token}`,
         };
       });
     })
@@ -122,5 +134,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.hop.exchange/#/pool?token=ETH',
 };

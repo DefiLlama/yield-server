@@ -1,15 +1,17 @@
 const minify = require('pg-minify');
-const { pgp, connect } = require('../utils/dbConnectionPostgres');
+
+const { pgp, connect } = require('../utils/dbConnection');
 
 const tableName = 'stat';
 
+// get full content from stat table
 const getStat = async () => {
   const conn = await connect();
 
   const query = minify(
     `
     SELECT
-        pool,
+        "configID",
         count,
         "meanAPY",
         "mean2APY",
@@ -17,25 +19,33 @@ const getStat = async () => {
         "mean2DR",
         "productDR"
     FROM
-        stat
+        $<table:name>
     `,
     { compress: true }
   );
 
-  const response = await conn.query(query);
+  const response = await conn.query(query, { table: tableName });
 
   if (!response) {
     return new AppError(`Couldn't get ${tableName} data`, 404);
   }
 
-  return response;
+  // reformat
+  const responseObject = {};
+  for (const p of response) {
+    const configID = p.configID;
+    responseObject[configID] = { configID, ...p };
+  }
+
+  return responseObject;
 };
 
+// multi row insert (update on conflict)
 const insertStat = async (payload) => {
   const conn = await connect();
 
   const columns = [
-    'pool',
+    'configID',
     'count',
     'meanAPY',
     'mean2APY',
@@ -45,11 +55,10 @@ const insertStat = async (payload) => {
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
 
-  // multi-row insert/update
   const query =
     pgp.helpers.insert(payload, cs) +
-    ' ON CONFLICT(pool) DO UPDATE SET ' +
-    cs.assignColumns({ from: 'EXCLUDED', skip: 'pool' });
+    ' ON CONFLICT("configID") DO UPDATE SET ' +
+    cs.assignColumns({ from: 'EXCLUDED', skip: 'configID' });
 
   const response = await conn.result(query);
 

@@ -17,11 +17,9 @@ const topLvl = async (chainString, url, token, address) => {
   data.token = token;
   data.address = address;
 
-  // apy values from https://solana.lido.fi/api/stats for solana are incorrect
-  // using other endpoint instead. for more details see https://github.com/DefiLlama/yield-server/issues/6
   if (chainString === 'solana') {
-    apy = await utils.getData('https://solana.lido.fi/api/apy/apy?days=14');
-    data.apr = apy.annual_percentage_yield;
+    apy = await utils.getData(url);
+    data.apr = apy.apy.find((i) => i.title.includes('14-day')).apy;
   }
 
   return {
@@ -59,6 +57,12 @@ const main = async () => {
       'https://kusama.lido.fi/api/stats',
       'stKSM',
       '0xFfc7780C34B450d917d557E728f033033CB4fA8C'
+    ),
+    topLvl(
+      'polkadot',
+      'https://polkadot.lido.fi/api/stats',
+      'stDOT',
+      '0xFA36Fe1dA08C89eC72Ea1F0143a35bFd5DAea108'
     ),
   ]);
 
