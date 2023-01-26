@@ -67,6 +67,7 @@ const apy = async () => {
                 apyBase: Number(lpApr),
                 apyReward: Number(apyReward),
                 underlyingTokens: [asset.assetAddress],
+                rewardTokens: [IPOR_TOKEN]
             });
         }
 
