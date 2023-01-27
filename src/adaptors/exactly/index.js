@@ -16,8 +16,8 @@ const INTERVAL = 86_400 * 7 * 4;
   interestRateModels: number[];
 }>} */
 const metadata = async (markets, chain, block) => {
-  const [asset, decimals, symbol, maxFuturePools] = await Promise.all(
-    ["asset", "decimals", "symbol", "maxFuturePools"].map((key) =>
+  const [asset, decimals, maxFuturePools] = await Promise.all(
+    ["asset", "decimals", "maxFuturePools"].map((key) =>
       api.abi.multiCall({
         abi: abis[key],
         calls: markets.map((target) => ({ target })),
@@ -29,7 +29,6 @@ const metadata = async (markets, chain, block) => {
   return {
     assets: asset.output.map(({ output }) => output),
     decimals: decimals.output.map(({ output }) => output),
-    symbols: symbol.output.map(({ output }) => output),
     maxFuturePools: maxFuturePools.output.map(({ output }) => output),
   };
 };
@@ -125,7 +124,7 @@ const apy = async () =>
       ).output.map(({ output: { adjustFactor } }) => adjustFactor);
 
       const [
-        { assets, symbols, decimals, maxFuturePools },
+        { assets, decimals, maxFuturePools },
         {
           totalAssets: prevTotalAssets,
           totalSupply: prevTotalSupply,
@@ -140,6 +139,16 @@ const apy = async () =>
         totals(markets, chain, endBlock),
         rates(markets, chain, endBlock),
       ]);
+
+      const symbols = (
+        await api.abi.multiCall({
+          abi: abis.symbol,
+          calls: assets.map((target) => ({ target })),
+          chain,
+          block: endBlock,
+        })
+      ).output.map(({ output }) => output);
+
       const { pricesByAddress } = await getPrices(assets, chain);
       const minMaturity = timestampNow - (timestampNow % INTERVAL) + INTERVAL;
 
