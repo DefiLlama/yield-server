@@ -115,6 +115,15 @@ const apy = async () =>
         })
       ).output;
 
+      const adjustFactors = (
+        await api.abi.multiCall({
+          abi: abis.marketsData,
+          calls: markets.map((market) => ({ target: auditor, params: [market] })),
+          chain,
+          block: endBlock,
+        })
+      ).output.map(({ output: { adjustFactor } }) => adjustFactor);
+
       const [
         { assets, symbols, decimals, maxFuturePools },
         {
@@ -146,6 +155,7 @@ const apy = async () =>
           /** @type {string[]} */
           underlyingTokens: [assets[i]],
           url: `${url}/${symbols[i]}`,
+          ltv: adjustFactors[i] / 1e18,
         };
         const shareValue = (totalAssets[i] * 1e18) / totalSupply[i];
         const prevShareValue = (prevTotalAssets[i] * 1e18) / prevTotalSupply[i];
@@ -164,7 +174,6 @@ const apy = async () =>
           apyBaseBorrow: aprToApy(borrowApr),
           totalSupplyUsd: (totalSupply[i] * usdUnitPrice) / 10 ** decimals[i],
           totalBorrowUsd: (totalFloatingBorrowAssets[i] * usdUnitPrice) / 10 ** decimals[i],
-          // TODO: add ltv
         };
 
         const maturities = Array.from({ length: maxFuturePools[i] }, (_, j) => minMaturity + INTERVAL * j);
@@ -201,7 +210,6 @@ const apy = async () =>
               apyBaseBorrow: aprToApy(fixedBorrowAPR, secsToMaturity / 86_400),
               totalSupplyUsd: (supplied * usdUnitPrice) / 10 ** decimals[i],
               totalBorrowUsd: (borrowed * usdUnitPrice) / 10 ** decimals[i],
-              // TODO: add ltv
             };
           })
         );
@@ -323,6 +331,45 @@ const abis = {
     outputs: [
       { internalType: "uint256", name: "rate", type: "uint256" },
       { internalType: "uint256", name: "utilization", type: "uint256" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  marketsData: {
+    inputs: [
+      {
+        internalType: "contract Market",
+        name: "",
+        type: "address",
+      },
+    ],
+    name: "markets",
+    outputs: [
+      {
+        internalType: "uint128",
+        name: "adjustFactor",
+        type: "uint128",
+      },
+      {
+        internalType: "uint8",
+        name: "decimals",
+        type: "uint8",
+      },
+      {
+        internalType: "uint8",
+        name: "index",
+        type: "uint8",
+      },
+      {
+        internalType: "bool",
+        name: "isListed",
+        type: "bool",
+      },
+      {
+        internalType: "contract IPriceFeed",
+        name: "priceFeed",
+        type: "address",
+      },
     ],
     stateMutability: "view",
     type: "function",
