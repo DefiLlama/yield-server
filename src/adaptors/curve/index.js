@@ -240,6 +240,13 @@ const main = async () => {
           '0xa1F8A6807c402E4A15ef4EBa36528A3FED24E577',
           '0x960ea3e3C7FB317332d990873d354E18d7645590',
           '0x7f90122BF0700F9E7e1F688fe926940E8839F353',
+          '0x326290A1B0004eeE78fa6ED4F1d8f4b2523ab669',
+          '0x6a6283aB6e31C2AeC3fA08697A8F806b740660b2',
+          '0x13B876C26Ad6d21cb87AE459EaF6d7A1b788A113',
+          '0x66E335622ad7a6C9c72c98dbfCCE684996a20Ef9',
+          '0x3e3C6c7db23cdDEF80B694679aaF1bCd9517D0Ae',
+          '0xFc1e8bf3E81383Ef07Be24c3FD146745719DE48D',
+          '0x84C333e94AEA4a51a21F6cf0C7F528C50Dc7592C',
         ].includes(address)
           ? pool?.gaugeCrvApy[0]
           : gauge && subgraph
