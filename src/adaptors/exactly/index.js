@@ -160,17 +160,17 @@ const apy = async () =>
         const shareValue = (totalAssets[i] * 1e18) / totalSupply[i];
         const prevShareValue = (prevTotalAssets[i] * 1e18) / prevTotalSupply[i];
         const proportion = (shareValue * 1e18) / prevShareValue;
-        const apr = (proportion / 1e18 - 1) * 365;
+        const apr = (proportion / 1e18 - 1) * 365 * 100;
         const borrowShareValue = (totalFloatingBorrowAssets[i] * 1e18) / totalFloatingBorrowShares[i];
         const prevBorrowShareValue = (prevTotalFloatingBorrowAssets[i] * 1e18) / prevTotalFloatingBorrowShares[i];
         const borrowProportion = (borrowShareValue * 1e18) / prevBorrowShareValue;
-        const borrowApr = (borrowProportion / 1e18 - 1) * 365;
+        const borrowApr = (borrowProportion / 1e18 - 1) * 365 * 100;
 
         /** @type {Pool} */
         const floating = {
           ...poolMetadata,
           pool: `${market}-${chain}`.toLowerCase(),
-          apy: aprToApy(apr * 100),
+          apy: aprToApy(apr),
           apyBaseBorrow: aprToApy(borrowApr),
           totalSupplyUsd: (totalSupply[i] * usdUnitPrice) / 10 ** decimals[i],
           totalBorrowUsd: (totalFloatingBorrowAssets[i] * usdUnitPrice) / 10 ** decimals[i],
