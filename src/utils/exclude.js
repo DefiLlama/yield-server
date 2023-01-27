@@ -2,7 +2,13 @@
 // which we don't want to be included in the enriched dataset
 // in case we have old values in db
 // note (added cbridge cause their apy values are kinda fake given they move the positions to a different chain)
-const excludeAdaptors = ['koyo-finance', 'pony-finance', 'optifi', 'cbridge'];
+const excludeAdaptors = [
+  'koyo-finance',
+  'pony-finance',
+  'optifi',
+  'cbridge',
+  'friktion',
+];
 
 const excludePools = [
   '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d',
