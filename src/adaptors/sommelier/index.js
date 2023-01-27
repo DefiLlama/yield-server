@@ -8,9 +8,11 @@ const {
   stakingPools,
   v0815Pools,
   v0816Pools,
+  v2Pools,
 } = require('./config');
 const v0815 = require('./v0-8-15');
 const v0816 = require('./v0-8-16');
+const v2 = require('./v2');
 const stakingAbi = require('./staking-v0-8-15.json');
 
 const call = sdk.api.abi.call;
@@ -24,6 +26,7 @@ async function main() {
   promises = promises.concat(
     v0816Pools.map((pool) => handleV0816(pool, sommPrice))
   );
+  promises = promises.concat(v2Pools.map((pool) => handleV2(pool, sommPrice)));
 
   const pools = await Promise.all(promises);
 
@@ -58,6 +61,28 @@ async function handleV0816(pool, sommPrice) {
   const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset);
   const apyBase = await v0816.getApy(cellarAddress);
   const apyReward = await getRewardApy(stakingPools[cellarAddress], sommPrice);
+
+  return {
+    ...pool,
+    tvlUsd,
+    apyBase,
+    apyReward,
+    underlyingTokens,
+    poolMeta:
+      apyReward > 0 ? `${pool.poolMeta} - 3day Bonding Lock` : pool.poolMeta,
+  };
+}
+
+async function handleV2(pool, sommPrice) {
+  const cellarAddress = pool.pool.split('-')[0];
+
+  const underlyingTokens = await v2.getUnderlyingTokens(cellarAddress);
+  const asset = await v2.getHoldingPosition(cellarAddress);
+  const apyReward = await getRewardApy(stakingPools[cellarAddress], sommPrice);
+
+  // getTvlUsd and getApy implementation hasn't changed since v1.5 (v0.8.16)
+  const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset);
+  const apyBase = await v0816.getApy(cellarAddress);
 
   return {
     ...pool,
