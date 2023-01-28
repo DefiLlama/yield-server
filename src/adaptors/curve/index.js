@@ -247,6 +247,7 @@ const main = async () => {
           '0x3e3C6c7db23cdDEF80B694679aaF1bCd9517D0Ae',
           '0xFc1e8bf3E81383Ef07Be24c3FD146745719DE48D',
           '0x84C333e94AEA4a51a21F6cf0C7F528C50Dc7592C',
+          '0xB755B949C126C04e0348DD881a5cF55d424742B2',
         ].includes(address)
           ? pool?.gaugeCrvApy[0]
           : gauge && subgraph
@@ -317,7 +318,10 @@ const main = async () => {
         apyBase,
         apyReward:
           // isolated pool for which the aprCrv is wrong
-          address === '0xBaaa1F5DbA42C3389bDbc2c9D2dE134F5cD0Dc89'
+          [
+            '0xBaaa1F5DbA42C3389bDbc2c9D2dE134F5cD0Dc89',
+            '0x7f90122BF0700F9E7e1F688fe926940E8839F353',
+          ].includes(address)
             ? null
             : aprCrv + aprExtra,
         rewardTokens: rewardTokens.flat(),
