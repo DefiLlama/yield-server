@@ -1,7 +1,8 @@
 const utils = require('../utils');
 
-const API_URL = 'https://fraktion-monorep.herokuapp.com/liquidity/pools';
-const SOLANA_PRICE_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd';
+const API_URL = 'https://api.frakt.xyz/liquidity/pools';
+const SOLANA_PRICE_URL =
+  'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd';
 
 const apy = async () => {
   const { pools } = await utils.getData(API_URL);

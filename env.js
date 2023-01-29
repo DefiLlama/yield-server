@@ -5,6 +5,7 @@ try {
 module.exports = {
   // API keys
   ALCHEMY_CONNECTION_ARBITRUM: process.env.ALCHEMY_CONNECTION_ARBITRUM,
+  ALCHEMY_CONNECTION_ETHEREUM: process.env.ALCHEMY_CONNECTION_ETHEREUM,
   XDAI_RPC: process.env.XDAI_RPC,
   CRONOS_RPC: process.env.CRONOS_RPC,
   FANTOM_RPC: process.env.FANTOM_RPC,

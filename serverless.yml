@@ -80,6 +80,7 @@ functions:
           functionResponseType: ReportBatchItemFailures
     environment:
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
+      ALCHEMY_CONNECTION_ETHEREUM: ${file(./env.js):ALCHEMY_CONNECTION_ETHEREUM}
       XDAI_RPC: ${file(./env.js):XDAI_RPC}
       CRONOS_RPC: ${file(./env.js):CRONOS_RPC}
       FANTOM_RPC: ${file(./env.js):FANTOM_RPC}
@@ -133,6 +134,15 @@ functions:
       - schedule: cron(30 * * * ? *)
     environment:
       STALE_PROJECTS_WEBHOOK: ${file(./env.js):STALE_PROJECTS_WEBHOOK}
+
+  # --- trigger perpetuals
+  triggerPerpertuals:
+    handler: src/handlers/triggerPerpetuals.handler
+    description: Lambda which triggers perp files
+    timeout: 300
+    events:
+      # every new hour
+      - schedule: cron(0 * * * ? *)
 
   # ---------- GET HANDLERS
   getPoolsEnriched:
@@ -219,6 +229,24 @@ functions:
       - httpApi:
           method: get
           path: /configPool/{configID}
+
+  getPerp:
+    handler: src/handlers/getPerp.handler
+    description: Lambda for retrieving latest perp data
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /perps
+
+  getLSDRates:
+    handler: src/handlers/getLSDRates.handler
+    description: Lambda for retrieving ETH LSD Rates
+    timeout: 30
+    events:
+      - httpApi:
+          method: get
+          path: /lsdRates
 
 resources:
   Resources:

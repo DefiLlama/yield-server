@@ -40,11 +40,11 @@ const fetch = async (serviceName, tokenString, chainString) => {
 
 const main = async () => {
   const data = await Promise.all([
-    fetch('eth', 'aETHc', 'ethereum'),
-    fetch('bnb', 'aBNBc', 'binance'),
-    fetch('ftm', 'aFTMc', 'fantom'),
-    fetch('polygon', 'aMATICc', 'polygon'),
-    fetch('avax', 'aAVAXc', 'avalanche'),
+    fetch('eth', 'ankrETH', 'ethereum'),
+    fetch('bnb', 'ankrBNB', 'binance'),
+    fetch('ftm', 'ankrFTM', 'fantom'),
+    fetch('polygon', 'ankrMATIC', 'polygon'),
+    fetch('avax', 'ankrAVAX', 'avalanche'),
   ]);
   return data.flat();
 };

@@ -84,7 +84,7 @@ const main = async () => {
     })
   ).output.map(({ output }) => output);
 
-  const enrichedPools = pools.map((pool) => ({
+  let enrichedPools = pools.map((pool) => ({
     ...pool,
     ...poolsList.find(
       ({ address, lpTokenAddress, gaugeAddress }) =>
@@ -93,6 +93,10 @@ const main = async () => {
         (gaugeAddress || '').toLowerCase() === pool.gauge.toLowerCase()
     ),
   }));
+  // remove dupes on lptoken
+  enrichedPools = enrichedPools.filter(
+    (v, i, a) => a.findIndex((v2) => v2.lptoken === v.lptoken) === i
+  );
 
   const [totalSupplyRes, decimalsRes] = await Promise.all(
     ['totalSupply', 'decimals'].map((method) =>
@@ -109,11 +113,15 @@ const main = async () => {
   const totalSupply = totalSupplyRes.output.map(({ output }) => output);
   const decimals = decimalsRes.output.map(({ output }) => output);
 
+  const yCrv = '0x453D92C7d4263201C69aACfaf589Ed14202d83a4';
   let withCvxTvl = enrichedPools
     .map((pool, i) => {
       const gauge = mappedGauges[pool.lptoken.toLowerCase()];
-      if (!gauge) return;
-      const virtualPrice = gauge.swap_data.virtual_price / 10 ** 18;
+      if (!gauge && pool.lptoken !== yCrv) return;
+      const virtualPrice =
+        pool.lptoken === yCrv
+          ? pool.virtualPrice
+          : gauge.swap_data.virtual_price / 10 ** 18;
       if (!pool.coinsAddresses) return null;
       let v2PoolUsd;
       if (pool.totalSupply == 0) {
