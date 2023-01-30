@@ -145,6 +145,7 @@ const main = async () => {
         rewardTokens: [EULER],
         ltv: Number.isFinite(ltv) ? ltv : null,
         url: `https://app.euler.finance/market/${m}`,
+        borrowFactor: underlyingToAssetConfig[i]?.borrowFactor / 4e9,
       };
     })
     .filter((p) => utils.keepFinite(p));

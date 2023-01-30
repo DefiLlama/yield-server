@@ -259,7 +259,8 @@ const getYieldLendBorrow = async () => {
         "borrowable",
         "mintedCoin",
         "rewardTokens",
-        "underlyingTokens"
+        "underlyingTokens",
+        "borrowFactor"
     FROM
         (
             SELECT
