@@ -317,7 +317,9 @@ const main = async () => {
         tvlUsd: currentTotalLiquidityBalanceInUsd,
         apyBase: Number(calculateApr(poolInfo._totalLiquidity, pool)),
         underlyingTokens: [pool.loanTokenAddress, pool.collTokenAddress],
-
+        poolMeta: `Fixed interest rates for borrowers. Loans have a fixed tenor ${
+          Math.round(Number(pool.loanTenor) / (360 * 24)) / 10
+        } days. Pool is open-ended`,
         // borrow fields
         totalSupplyUsd:
           currentTotalLiquidityBalanceInUsd + currentCollTokenBalanceInUsd,
