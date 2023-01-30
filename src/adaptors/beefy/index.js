@@ -6,6 +6,7 @@ const urlTvl = `${url}/tvl`;
 const urlMeta = `${url}/vaults`;
 
 const networkMapping = {
+  1: 'ethereum',
   10: 'optimism',
   43114: 'avalanche',
   1666600000: 'harmony',
@@ -26,6 +27,7 @@ const networkMapping = {
 
 // hardcode bifi token addresses per chain
 const bifiMapping = {
+  1: '0x5870700f1272a1AdbB87C3140bD770880a95e55D',
   10: '0x4E720DD3Ac5CFe1e1fbDE4935f386Bb1C66F4642',
   43114: '0xd6070ae98b8069de6B494332d1A1a81B6179D960',
   1666600000: '0x6ab6d61428fde76768d7b45d8bfeec19c6ef91a8',
