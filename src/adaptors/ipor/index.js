@@ -29,16 +29,6 @@ const apy = async () => {
         })
     ).output.map(stats => [stats.input.params[0].toLowerCase(), stats.output]));
 
-    const stakedLpTokens = new Map((
-        await sdk.api.abi.multiCall({
-            abi: 'erc20:balanceOf',
-            calls: lpTokenAddresses.map((lpTokenAddress) => ({
-                target: lpTokenAddress,
-                params: LM_ADDRESS
-            }))
-        })
-    ).output.map(balance => [balance.input.target.toLowerCase(), balance.output]));
-
     const pools = [];
 
     for (const asset of assets) {
@@ -49,12 +39,13 @@ const apy = async () => {
         const lpTokenPriceHistory = asset.periods.find(({period}) => period === "HOUR").ipTokenExchangeRates;
         const lpTokenPrice = lpTokenPriceHistory[lpTokenPriceHistory.length - 1].exchangeRate;
         const liquidityMiningGlobalStats = globalStats.get(asset.ipTokenAssetAddress.toLowerCase());
-        const staked = stakedLpTokens.get(asset.ipTokenAssetAddress.toLowerCase()) / 1e18;
         const apyReward = (liquidityMiningGlobalStats.rewardsPerBlock / 1e8)
-            / staked
+            / (liquidityMiningGlobalStats.aggregatedPowerUp / 1e18)
+            * 0.4 //base powerup
             * BLOCKS_PER_YEAR
             * iporTokenUsdPrice
             / lpTokenPrice
+            / 2 //50% early withdraw fee
             * 100; //percentage
 
         pools.push({
