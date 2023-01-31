@@ -313,13 +313,13 @@ const main = async () => {
         pool: pool.poolAddress.toLowerCase(),
         chain: utils.formatChain(chain),
         project: PROJECT_NAME,
-        symbol: `${loanTokenSymbol}-${collTokenSymbol}`,
+        symbol: loanTokenSymbol,
         tvlUsd: currentTotalLiquidityBalanceInUsd,
         apyBase: Number(calculateApr(poolInfo._totalLiquidity, pool)),
         underlyingTokens: [pool.loanTokenAddress, pool.collTokenAddress],
-        poolMeta: `Fixed interest rates for borrowers. Loans have a fixed tenor ${
+        poolMeta: `Fixed interest for borrowers, ${
           Math.round(Number(pool.loanTenor) / (360 * 24)) / 10
-        } days. Pool is open-ended`,
+        }days loan tenor`,
         // borrow fields
         totalSupplyUsd:
           currentTotalLiquidityBalanceInUsd + currentCollTokenBalanceInUsd,
