@@ -8,6 +8,7 @@ const excludeAdaptors = [
   'optifi',
   'cbridge',
   'friktion',
+  'armor', // is now ease.org
 ];
 
 const excludePools = [
