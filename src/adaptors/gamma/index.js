@@ -39,7 +39,7 @@ const UNISWAP_FEE = {
 
 var pools_processed = []; // unique pools name
 // v1 pools (read only) and private hypervisors ( non retail)
-const ro_hypervisors = {
+const blacklist = {
   ethereum: ["0xd930ab15c8078ebae4ac8da1098a81583603f7ce",
     "0xdbaa93e030bf2983add67c851892a9e2ee51e66a",
     "0x586880065937a0b1b9541723619b75739df8ef13",
@@ -124,31 +124,28 @@ const getApy = async () => {
 
     // try add rewards
     try {
-      if (exchange == "quickswap") {
-        let tmp_rwrds_dict = pairsToObj(
-          await Promise.all(
-            Object.values(chains).map(async (chain) => [
-              chain,
-              await utils.getData(getUrl_allRewards2(CHAINS_API[chain], EXCHANGES_API[exchange])),
-            ])
-          )
-        );
-        // merge apr
-        Object.entries(tmp_rwrds_dict).forEach(([chain, items]) => {
-          Object.entries(items).forEach(([hyp_id, hyp_dta]) => {
-            Object.entries(hyp_dta["pools"]).forEach(([k, v]) => {
-              if (k in hype_allData[chain]) {
-                if (!("apr_rewards2" in hype_allData[chain][k])) {
-                  hype_allData[chain][k]["apr_rewards2"] = [];
-                  hype_allData[chain][k]["apr_rewards2"].push(v);
-                }
+      let tmp_rwrds_dict = pairsToObj(
+        await Promise.all(
+          Object.values(chains).map(async (chain) => [
+            chain,
+            await utils.getData(getUrl_allRewards2(CHAINS_API[chain], EXCHANGES_API[exchange])),
+          ])
+        )
+      );
+      // merge apr
+      Object.entries(tmp_rwrds_dict).forEach(([chain, items]) => {
+        Object.entries(items).forEach(([hyp_id, hyp_dta]) => {
+          Object.entries(hyp_dta["pools"]).forEach(([k, v]) => {
+            if (k in hype_allData[chain]) {
+              if (!("apr_rewards2" in hype_allData[chain][k])) {
+                hype_allData[chain][k]["apr_rewards2"] = [];
+                hype_allData[chain][k]["apr_rewards2"].push(v);
               }
-            });
+            }
           });
-
         });
 
-      }
+      });
     } catch (error) { };
   };
 
@@ -180,7 +177,7 @@ const getApy = async () => {
   const pools = Object.keys(hype_allData).map((chain) => {
 
     const chainAprs = Object.keys(hype_allData[chain]).filter((function (hypervisor_id) {
-      if (ro_hypervisors[chain].indexOf(hypervisor_id) >= 0) {
+      if (blacklist[chain].indexOf(hypervisor_id) >= 0) {
         return false;
       } else {
         return true;
