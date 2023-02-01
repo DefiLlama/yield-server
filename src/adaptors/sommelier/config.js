@@ -1,6 +1,9 @@
 const chain = 'ethereum';
 const project = 'sommelier';
 
+// Addresses
+const realYieldUsd = '0x97e6e0a40a3d02f12d1cec30ebfbae04e37c119e';
+
 // Rewards are paid out in EVM SOMM
 const rewardTokens = ['0xa670d7237398238de01267472c6f13e5b8010fd1'];
 
@@ -20,8 +23,12 @@ const stakingPools = {
     '0x74a9a6fab61e128246a6a5242a3e96e56198cbdd',
   '0x05641a27c82799aaf22b436f20a3110410f29652':
     '0x7da7e27e4bcc6ec8bc06349e1cef6634f6df7c5c',
-  '0x97e6e0a40a3d02f12d1cec30ebfbae04e37c119e':
-    '0x8510f22bd1932afb4753b6b3edf5db00c7e7a748',
+  [realYieldUsd]: '0x8510f22bd1932afb4753b6b3edf5db00c7e7a748',
+};
+
+// Date when cellar was launched
+const launchEpochs = {
+  [realYieldUsd]: 1674604800,
 };
 
 // List of v0815 Cellars
@@ -125,7 +132,7 @@ const v0816Pools = [
 
 const v2Pools = [
   {
-    pool: '0x97e6e0a40a3d02f12d1cec30ebfbae04e37c119e-ethereum',
+    pool: `${realYieldUsd}-ethereum`,
     chain,
     project,
     symbol: 'USDC-USDT-DAI',
@@ -141,6 +148,7 @@ const v2Pools = [
 
 module.exports = {
   chain,
+  launchEpochs,
   project,
   rewardTokens,
   stakingPools,

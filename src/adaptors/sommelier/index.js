@@ -4,6 +4,7 @@ const utils = require('../utils');
 
 const {
   chain,
+  launchEpochs,
   rewardTokens,
   stakingPools,
   v0815Pools,
@@ -79,10 +80,10 @@ async function handleV2(pool, sommPrice) {
   const underlyingTokens = await v2.getUnderlyingTokens(cellarAddress);
   const asset = await v2.getHoldingPosition(cellarAddress);
   const apyReward = await getRewardApy(stakingPools[cellarAddress], sommPrice);
+  const apyBase = await v2.getApy(cellarAddress, launchEpochs[cellarAddress]);
 
-  // getTvlUsd and getApy implementation hasn't changed since v1.5 (v0.8.16)
+  // getTvlUsd implementation hasn't changed since v1.5 (v0.8.16)
   const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset);
-  const apyBase = await v0816.getApy(cellarAddress);
 
   return {
     ...pool,
