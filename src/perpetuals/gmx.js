@@ -3,6 +3,18 @@ const { request, gql } = require('graphql-request');
 
 const api = 'https://api.gmx.io';
 
+const chains = {
+  arbitrum: {
+    api: 'https://api.gmx.io',
+    subgraph: 'https://api.thegraph.com/subgraphs/name/gmx-io/gmx-stats',
+  },
+  avalanche: {
+    api: 'https://gmx-avax-server.uc.r.appspot.com',
+    subgraph:
+      'https://api.thegraph.com/subgraphs/name/gmx-io/gmx-avalanche-stats',
+  },
+};
+
 const q = gql`
   query MyQuery($tokens: [String]) {
     fundingRates(
@@ -21,42 +33,49 @@ const q = gql`
 `;
 
 exports.getPerpData = async () => {
-  const prices = (await axios.get(`${api}/prices`)).data;
-  const tokens = Object.values((await axios.get(`${api}/tokens`)).data);
+  const data = await Promise.all(
+    Object.keys(chains).map(async (chain) => {
+      const prices = (await axios.get(`${chains[chain].api}/prices`)).data;
+      const tokens = Object.values(
+        (await axios.get(`${chains[chain].api}/tokens`)).data
+      );
 
-  const markets = Object.keys(prices).map((m) => m.toLowerCase());
+      const markets = Object.keys(prices).map((m) => m.toLowerCase());
 
-  const url = 'https://api.thegraph.com/subgraphs/name/gmx-io/gmx-stats';
-  const fundingRates = (
-    await request(url, q, {
-      tokens: markets,
+      const fundingRates = (
+        await request(chains[chain].subgraph, q, {
+          tokens: markets,
+        })
+      ).fundingRates.filter((p) => !p.id.includes('total'));
+
+      return Object.entries(prices).map((i) => {
+        const token = tokens.find((t) => t.id === i[0]).data;
+        const price = Number(i[1]) / 10 ** 30;
+
+        const oiLong = token.guaranteedUsd / 1e30;
+        const oiShort = (token.globalShortSize / token.liqMaxPrice) * price;
+
+        const fr = fundingRates.filter(
+          (t) => t.token.toLowerCase() === i[0].toLowerCase()
+        )[1]; // 0 -> most recent, 1 -> previous
+
+        const timeDelta = (fr.endTimestamp - fr.startTimestamp) / (60 * 60);
+
+        const frPrevious =
+          (fr.endFundingRate - fr.startFundingRate) / timeDelta;
+
+        return {
+          marketplace: `GMX-${chain}`,
+          market: `${token.symbol}-USD`,
+          baseAsset: token.symbol,
+          fundingRate: Number(token.fundingRate) / 1e6,
+          fundingRatePrevious: frPrevious / 1e6,
+          fundingTimePrevious: fr.endTimestamp,
+          openInterest: oiLong + oiShort,
+          indexPrice: price,
+        };
+      });
     })
-  ).fundingRates.filter((p) => !p.id.includes('total'));
-
-  return Object.entries(prices).map((i) => {
-    const token = tokens.find((t) => t.id === i[0]).data;
-    const price = Number(i[1]) / 10 ** 30;
-
-    const oiLong = token.guaranteedUsd / 1e30;
-    const oiShort = (token.globalShortSize / token.liqMaxPrice) * price;
-
-    const fr = fundingRates.filter(
-      (t) => t.token.toLowerCase() === i[0].toLowerCase()
-    )[1]; // 0 -> most recent, 1 -> previous
-
-    const timeDelta = (fr.endTimestamp - fr.startTimestamp) / (60 * 60);
-
-    const frPrevious = (fr.endFundingRate - fr.startFundingRate) / timeDelta;
-
-    return {
-      marketplace: 'GMX',
-      market: token.symbol,
-      baseAsset: token.symbol,
-      fundingRate: Number(token.fundingRate) / 1e6,
-      fundingRatePrevious: frPrevious / 1e6,
-      fundingTimePrevious: fr.endTimestamp,
-      openInterest: oiLong + oiShort,
-      indexPrice: price,
-    };
-  });
+  );
+  return data.flat();
 };
