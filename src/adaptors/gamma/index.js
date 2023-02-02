@@ -83,6 +83,13 @@ const blacklist = {
   arbitrum: [],
   celo: []
 };
+const masterchef_blacklist = {
+  ethereum: [],
+  optimism: ["0x097264485014bad028890b6e03ad2dc72bd43bf2", "0x3c21bc5d9fdbb395feba595c5c8ee803fcee84cf"],
+  polygon: ["0x5ca8b7eb3222e7ce6864e59807ddd1a3c3073826", "0x9c64060cac9a20a44dbf9eff47bd4de7d049877d"],
+  arbitrum: [],
+  celo: [],
+};
 const getUrl_allData = (chain, exchange) =>
   `https://gammawire.net/${exchange}${chain}hypervisors/allData`;
 
@@ -135,15 +142,17 @@ const getApy = async () => {
           if (result.status == "fulfilled") {
             // result.value[0] = chain
             // result.value[1] = items
-            Object.entries(result.value[1]).forEach(([hyp_id, hyp_dta]) => {
-              Object.entries(hyp_dta["pools"]).forEach(([k, v]) => {
-                if (k in hype_allData[result.value[0]]) {
-                  if (!("apr_rewards2" in hype_allData[result.value[0]][k])) {
-                    hype_allData[result.value[0]][k]["apr_rewards2"] = [];
+            Object.entries(result.value[1]).forEach(([chef_id, chef_dta]) => {
+              if (masterchef_blacklist[result.value[0]].indexOf(chef_id) == -1) {
+                Object.entries(chef_dta["pools"]).forEach(([k, v]) => {
+                  if (k in hype_allData[result.value[0]]) {
+                    if (!("apr_rewards2" in hype_allData[result.value[0]][k])) {
+                      hype_allData[result.value[0]][k]["apr_rewards2"] = [];
+                    }
                     hype_allData[result.value[0]][k]["apr_rewards2"].push(v);
                   }
-                }
-              });
+                });
+              }
             });
           }
         })
@@ -199,12 +208,18 @@ const getApy = async () => {
 
       // rewards
       let apr_rewards2 = 0;
-      let rewards2_tokens = [];
+      const rewards2_tokens = new Set();
       try {
-        apr_rewards2 = hype_allData[chain][hypervisor_id]["apr_rewards2"][0]["apr"];
-        Object.entries(hype_allData[chain][hypervisor_id]["apr_rewards2"][0]["rewarders"]).forEach(([k, v]) => {
-          rewards2_tokens.push(v["rewardToken"])
-        });
+
+        hype_allData[chain][hypervisor_id]["apr_rewards2"].forEach((item) => {
+          // sum of all
+          apr_rewards2 += item["apr"]
+          // add token addresses
+          Object.entries(item["rewarders"]).forEach(([k, v]) => {
+            rewards2_tokens.add(v["rewardToken"])
+          });
+        }
+        );
       } catch (error) { };
 
       // create a unique pool name
@@ -244,7 +259,7 @@ const getApy = async () => {
         tvlUsd: TVL || TVL_alternative,
         apyBase: apr * 100 || apy * 100,
         apyReward: apr_rewards2 * 100,
-        rewardTokens: rewards2_tokens,
+        rewardTokens: [...rewards2_tokens],
         underlyingTokens: [hypervisor.token0, hypervisor.token1]
       };
     });
