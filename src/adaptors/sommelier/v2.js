@@ -43,6 +43,24 @@ async function getApy(cellarAddress) {
   return yieldRatio.times(365).times(100).toNumber();
 }
 
+const windowInDays = 7;
+
+async function getApy7d(cellarAddress) {
+  // Returns dayData in desc order, today is index 0
+  const dayData = await queries.getDayData(cellarAddress, windowInDays);
+
+  // Need a minimum of 7 days to calculate yield
+  if (dayData.length < 7) {
+    return 0;
+  }
+
+  const price = new BigNumber(dayData[0].shareValue); // Now price
+  const prevPrice = new BigNumber(dayData[dayData.length - 1].shareValue); // Comparison price
+  const yieldRatio = price.minus(prevPrice).div(prevPrice);
+
+  return yieldRatio.times(52).times(100).toNumber();
+}
+
 // Call getPositionAssets to get all the credit position's underlying assets
 async function getUnderlyingTokens(cellarAddress) {
   const assets = (
@@ -71,6 +89,7 @@ async function getHoldingPosition(cellarAddress) {
 
 module.exports = {
   getApy,
+  getApy7d,
   getHoldingPosition,
   getUnderlyingTokens,
 };

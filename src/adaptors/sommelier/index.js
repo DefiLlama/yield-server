@@ -80,6 +80,7 @@ async function handleV2(pool, sommPrice) {
   const asset = await v2.getHoldingPosition(cellarAddress);
   const apyReward = await getRewardApy(stakingPools[cellarAddress], sommPrice);
   const apyBase = await v2.getApy(cellarAddress);
+  const apyBase7d = await v2.getApy7d(cellarAddress);
 
   // getTvlUsd implementation hasn't changed since v1.5 (v0.8.16)
   const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset);
@@ -88,6 +89,7 @@ async function handleV2(pool, sommPrice) {
     ...pool,
     tvlUsd,
     apyBase,
+    apyBase7d,
     apyReward,
     underlyingTokens,
     poolMeta:
