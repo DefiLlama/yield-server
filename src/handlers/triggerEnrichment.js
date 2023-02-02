@@ -76,7 +76,10 @@ const main = async () => {
     await superagent.get(
       'https://stablecoins.llama.fi/stablecoins?includePrices=true'
     )
-  ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
+  ).body.peggedAssets
+    // removing any stable which a price 30% from 1usd
+    .filter((s) => s.price >= 0.7)
+    .map((s) => s.symbol.toLowerCase());
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
 
