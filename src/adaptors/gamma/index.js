@@ -120,33 +120,37 @@ const getApy = async () => {
       });
 
 
-    } catch (error) { };
+    } catch (error) { console.log(error) };
 
     // try add rewards
     try {
-      let tmp_rwrds_dict = pairsToObj(
-        await Promise.all(
-          Object.values(chains).map(async (chain) => [
-            chain,
-            await utils.getData(getUrl_allRewards2(CHAINS_API[chain], EXCHANGES_API[exchange])),
-          ])
-        )
-      );
-      // merge apr
-      Object.entries(tmp_rwrds_dict).forEach(([chain, items]) => {
-        Object.entries(items).forEach(([hyp_id, hyp_dta]) => {
-          Object.entries(hyp_dta["pools"]).forEach(([k, v]) => {
-            if (k in hype_allData[chain]) {
-              if (!("apr_rewards2" in hype_allData[chain][k])) {
-                hype_allData[chain][k]["apr_rewards2"] = [];
-                hype_allData[chain][k]["apr_rewards2"].push(v);
-              }
-            }
-          });
-        });
+
+      let tmp_rwrds_dict = await Promise.allSettled(
+        Object.values(chains).map(async (chain) => [
+          chain,
+          await utils.getData(getUrl_allRewards2(CHAINS_API[chain], EXCHANGES_API[exchange])),
+        ])
+      ).then((results) => {
+        results.forEach((result) => {
+          if (result.status == "fulfilled") {
+            // result.value[0] = chain
+            // result.value[1] = items
+            Object.entries(result.value[1]).forEach(([hyp_id, hyp_dta]) => {
+              Object.entries(hyp_dta["pools"]).forEach(([k, v]) => {
+                if (k in hype_allData[result.value[0]]) {
+                  if (!("apr_rewards2" in hype_allData[result.value[0]][k])) {
+                    hype_allData[result.value[0]][k]["apr_rewards2"] = [];
+                    hype_allData[result.value[0]][k]["apr_rewards2"].push(v);
+                  }
+                }
+              });
+            });
+          }
+        })
 
       });
-    } catch (error) { };
+
+    } catch (error) { console.log(error) };
   };
 
   const tokens = Object.entries(hype_allData).reduce(
