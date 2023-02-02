@@ -37,20 +37,20 @@ const apy = async () => {
     
     const BLOCKS_PER_DAY = 7160;
 
-    // s0: totalShares 1 day before
-    // u0: LUSD in the vault 1 day before
+    // s0: totalShares 28 days before
+    // u0: LUSD in the vault 28 days before
     const [s0, u0] = await Promise.all([
-        await liquityVault.totalShares({ blockTag: -BLOCKS_PER_DAY }), 
-        await liquityVault.totalUnderlyingMinusSponsored({ blockTag: -BLOCKS_PER_DAY })
+        await liquityVault.totalShares({ blockTag: -BLOCKS_PER_DAY * 28 }), 
+        await liquityVault.totalUnderlyingMinusSponsored({ blockTag: -BLOCKS_PER_DAY * 28 })
     ]);
 
     // Let sp1 be the current share price in LUSD, i.e., sp1 = u1 / s1
-    // Let sp0 be the share price in LSUD a day before, i.e., sp0 = u0 / s0
-    // we compound 1 day return 365 times to get the apy, as 
-    // that is, {[u1 * s0 / (u0 * s1)]^365 - 1} * 100
+    // Let sp0 be the share price in LSUD 28 days before, i.e., sp0 = u0 / s0
+    // we compound 28 days return 13 times to get the apy, as 
+    // that is, {[u1 * s0 / (u0 * s1)]^13 - 1} * 100
     const n = new BigNumber(u1.mul(s0).toString());
     const d = new BigNumber(u0.mul(s1).toString());
-    const apy = n.div(d).pow(365).minus(1).times(100).toNumber();
+    const apy = n.div(d).pow(13).minus(1).times(100).toNumber();
 
     const liquityPool = {
         pool: `${LIQUITY_VAULT}-ethereum`,    

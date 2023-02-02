@@ -275,8 +275,10 @@ const allPools = async () => {
 };
 
 const main = async () => {
-  const pools = Promise.all(
-    (await allPools()).map(async (pool, i) => {
+  const pools = await Promise.all(
+    (
+      await allPools()
+    ).map(async (pool, i) => {
       const chain = mapChainIdToChainName[pool.chainId];
 
       const poolInfo = await getPoolInfo({
@@ -309,40 +311,63 @@ const main = async () => {
         chain,
       });
 
-      return {
-        pool: pool.poolAddress.toLowerCase(),
-        chain: utils.formatChain(chain),
-        project: PROJECT_NAME,
-        symbol: loanTokenSymbol,
-        tvlUsd: currentTotalLiquidityBalanceInUsd,
-        apyBase: Number(calculateApr(poolInfo._totalLiquidity, pool)),
-        underlyingTokens: [pool.loanTokenAddress, pool.collTokenAddress],
-        poolMeta: `Fixed interest for borrowers, ${
-          Math.round(Number(pool.loanTenor) / (360 * 24)) / 10
-        }days loan tenor`,
-        // borrow fields
-        totalSupplyUsd:
-          currentTotalLiquidityBalanceInUsd + currentCollTokenBalanceInUsd,
-        totalBorrowUsd: currentCollTokenBalanceInUsd,
-        apyBaseBorrow: calculateBorrowApr(poolInfo._totalLiquidity, pool),
-        ltv:
-          Number(
-            ethers.utils.formatUnits(
-              getLTV(
-                poolInfo._maxLoanPerColl,
-                pool.loanTokenDecimals,
-                pool.loanTokenPrice,
-                pool.collTokenPrice
-              ),
-              1
-            )
-          ) / 100,
-        borrowable: pool.loanVersion > '1.0',
-      };
+      const ltv =
+        Number(
+          ethers.utils.formatUnits(
+            getLTV(
+              poolInfo._maxLoanPerColl,
+              pool.loanTokenDecimals,
+              pool.loanTokenPrice,
+              pool.collTokenPrice
+            ),
+            1
+          )
+        ) / 100;
+
+      const apyBaseBorrow = calculateBorrowApr(poolInfo._totalLiquidity, pool);
+
+      return [
+        {
+          pool: pool.poolAddress.toLowerCase(),
+          chain: utils.formatChain(chain),
+          project: PROJECT_NAME,
+          symbol: loanTokenSymbol,
+          tvlUsd: currentTotalLiquidityBalanceInUsd,
+          apyBase: Number(calculateApr(poolInfo._totalLiquidity, pool)),
+          underlyingTokens: [pool.loanTokenAddress, pool.collTokenAddress],
+          poolMeta: `Fixed interest for borrowers, ${
+            Math.round(Number(pool.loanTenor) / (360 * 24)) / 10
+          }days loan tenor`,
+          // borrow fields
+          totalSupplyUsd:
+            currentTotalLiquidityBalanceInUsd + currentCollTokenBalanceInUsd,
+          totalBorrowUsd: currentCollTokenBalanceInUsd,
+          apyBaseBorrow,
+          ltv,
+          borrowable: pool.loanVersion > '1.0',
+        },
+        {
+          pool: `${pool.poolAddress.toLowerCase()}-borrow`,
+          chain: utils.formatChain(chain),
+          project: PROJECT_NAME,
+          symbol: collTokenSymbol,
+          tvlUsd: currentCollTokenBalanceInUsd,
+          apyBase: 0,
+          underlyingTokens: [pool.collTokenAddress],
+          poolMeta: `Fixed interest for borrowers, ${
+            Math.round(Number(pool.loanTenor) / (360 * 24)) / 10
+          }days loan tenor`,
+          totalSupplyUsd: currentCollTokenBalanceInUsd,
+          totalBorrowUsd: 0,
+          apyBaseBorrow,
+          ltv,
+          mintedCoin: loanTokenSymbol,
+        },
+      ];
     })
   );
 
-  return pools;
+  return pools.flat();
 };
 
 module.exports = {
