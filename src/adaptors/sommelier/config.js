@@ -26,11 +26,6 @@ const stakingPools = {
   [realYieldUsd]: '0x8510f22bd1932afb4753b6b3edf5db00c7e7a748',
 };
 
-// Date when cellar was launched
-const launchEpochs = {
-  [realYieldUsd]: 1674604800,
-};
-
 // List of v0815 Cellars
 const v0815Pools = [
   {
@@ -148,7 +143,6 @@ const v2Pools = [
 
 module.exports = {
   chain,
-  launchEpochs,
   project,
   rewardTokens,
   stakingPools,

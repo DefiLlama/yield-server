@@ -11,48 +11,36 @@ const getPositionAssets = cellarAbi.find(
   (el) => el.name === 'getPositionAssets'
 );
 
-const dayInSecs = 60 * 60 * 24;
-const windowInDays = 7;
+const windowInHrs = 48; // 2 days
 
-// Use the change in price over 7 days to calculate an APR
-// If the cellar has been live for less than 7 days use the
-// number of days since launch.
-async function getApy(cellarAddress, launchEpoch) {
-  // Returns dayData in desc order, today is index 0
-  const dayData = await queries.getDayData(cellarAddress, windowInDays);
+// Use the change in avg daily price between the last 2 days to calculate an APR
+// If there isn't at least 48 hours of hour data then we shold set the pool property
+// `apyBaseInception` to the backtested APY
+async function getApy(cellarAddress) {
+  // Returns hourData in desc order, current hour is index 0
+  const hrData = await queries.getHourData(cellarAddress, windowInHrs);
 
-  // Need a minimum of 2 days to calculate yield
-  if (dayData.length < 2) {
+  // Need a minimum of 2 days of data to calculate yield
+  if (hrData.length < 48) {
     return 0;
   }
 
-  let numDays = dayData.length;
-  let previousDayIdx = numDays - 1;
+  // Sum hourly price of the last 2 days individually
+  let sumPrice = new BigNumber(0);
+  let sumPrevPrice = new BigNumber(0);
+  for (let i = 0; i < 24; i++) {
+    // Current 24hrs
+    sumPrice = sumPrice.plus(hrData[i].shareValue);
 
-  const windowDaysAfterLaunch = dayInSecs * windowInDays + launchEpoch;
-
-  // We are less than a week since launch, calculate APR using
-  // days since launch as the window
-  if (numDays < windowInDays || dayData[0].date < windowDaysAfterLaunch) {
-    const launchDayIdx = dayData.findIndex((data) => data.date === launchEpoch);
-
-    if (launchDayIdx === -1) {
-      // Noop, leaving a comment to describe behavior
-      // We should have found the launch day data, but the epoch must have been configured incorrectly
-      // in src/adaptors/sommelier/config.js. Use window based on number of day datas returned by subgraph.
-    } else {
-      // We found the launch day data. Determine how many days have elapsed.
-      numDays = launchDayIdx + 1;
-      previousDayIdx = launchDayIdx;
-    }
+    // Previous 24hrs
+    sumPrevPrice = sumPrevPrice.plus(hrData[i + 24].shareValue);
   }
 
-  const windowsInYear = 365 / numDays; // Normally ~52 unless we are less than a week since launch
-  const price = new BigNumber(dayData[0].shareValue); // Now price
-  const prevPrice = new BigNumber(dayData[previousDayIdx].shareValue); // Comparison price
+  const price = sumPrice.div(24);
+  const prevPrice = sumPrevPrice.div(24);
   const yieldRatio = price.minus(prevPrice).div(prevPrice);
 
-  return yieldRatio.times(windowsInYear).times(100).toNumber();
+  return yieldRatio.times(365).times(100).toNumber();
 }
 
 // Call getPositionAssets to get all the credit position's underlying assets
