@@ -236,7 +236,7 @@ const getApy = async () => {
       try {
         var symbol_spl = hypervisor.name.split("-");
         fee_name = `${UNISWAP_FEE[symbol_spl[symbol_spl.length - 1]]}`;
-        if (fee_name == " undefined") {
+        if (fee_name == " undefined" || fee_name == "undefined") {
           fee_name = "";
         };
         symbol_spl.pop();
@@ -250,7 +250,6 @@ const getApy = async () => {
       };
 
 
-
       return {
         pool: pool_name,
         chain: utils.formatChain(chain),
@@ -260,7 +259,8 @@ const getApy = async () => {
         apyBase: apr * 100 || apy * 100,
         apyReward: apr_rewards2 * 100,
         rewardTokens: [...rewards2_tokens],
-        underlyingTokens: [hypervisor.token0, hypervisor.token1]
+        underlyingTokens: [hypervisor.token0, hypervisor.token1],
+        poolMeta: fee_name
       };
     });
     return chainAprs;
