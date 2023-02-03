@@ -33,7 +33,12 @@ const getYieldFiltered = async () => {
         "tvlUsd",
         apy,
         "apyBase",
-        "apyReward"
+        "apyReward",
+        "il7d",
+        "apyBase7d",
+        "volumeUsd1d",
+        "volumeUsd7d",
+        "apyBaseInception"
     FROM
         (
             SELECT
@@ -51,6 +56,7 @@ const getYieldFiltered = async () => {
     WHERE
         pool NOT IN ($<excludePools:csv>)
         AND project NOT IN ($<excludeProjects:csv>)
+        AND symbol not like '%RENBTC%'
   `,
     { compress: true }
   );
@@ -82,7 +88,9 @@ const getYieldHistory = async (configID) => {
         "tvlUsd",
         apy,
         "apyBase",
-        "apyReward"
+        "apyReward",
+        "il7d",
+        "apyBase7d"
     FROM
         $<table:name>
     WHERE
@@ -251,7 +259,8 @@ const getYieldLendBorrow = async () => {
         "borrowable",
         "mintedCoin",
         "rewardTokens",
-        "underlyingTokens"
+        "underlyingTokens",
+        "borrowFactor"
     FROM
         (
             SELECT
@@ -269,6 +278,8 @@ const getYieldLendBorrow = async () => {
         pool NOT IN ($<excludePools:csv>)
         AND project NOT IN ($<excludeProjects:csv>)
         AND ltv >= 0
+        AND "totalSupplyUsd" >= 0
+        AND symbol not like '%RENBTC%'
   `,
     { compress: true }
   );
@@ -339,6 +350,43 @@ const getYieldLendBorrowHistory = async (configID) => {
   });
 };
 
+// get 30day avg
+const getYieldAvg30d = async () => {
+  const conn = await connect();
+
+  const query = minify(
+    `
+    SELECT
+        "configID",
+        round(avg(apy), 5) as "avgApy30d"
+    FROM
+        $<table:name>
+    WHERE
+        timestamp >= NOW() - INTERVAL '$<age> DAY'
+    GROUP BY
+        "configID"
+  `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query, {
+    age: 30,
+    table: tableName,
+  });
+
+  if (!response) {
+    return new AppError(`Couldn't get ${tableName} 30day avg data`, 404);
+  }
+
+  // reformat
+  const responseObject = {};
+  for (const p of response) {
+    responseObject[p.configID] = p.avgApy30d;
+  }
+
+  return responseObject;
+};
+
 // multi row insert query generator
 const buildInsertYieldQuery = (payload) => {
   // note: even though apyBase and apyReward are optional fields
@@ -352,6 +400,13 @@ const buildInsertYieldQuery = (payload) => {
     'apy',
     'apyBase',
     'apyReward',
+    'il7d',
+    'apyBase7d',
+    'apyRewardFake',
+    'apyRewardBorrowFake',
+    'volumeUsd1d',
+    'volumeUsd7d',
+    'apyBaseInception',
     { name: 'apyBaseBorrow', def: null },
     { name: 'apyRewardBorrow', def: null },
     { name: 'totalSupplyUsd', def: null },
@@ -370,4 +425,5 @@ module.exports = {
   getYieldLendBorrow,
   getYieldLendBorrowHistory,
   buildInsertYieldQuery,
+  getYieldAvg30d,
 };

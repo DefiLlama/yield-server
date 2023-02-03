@@ -4,6 +4,7 @@ const abi = require('./abis.json');
 
 const unitroller = '0x4F96AB61520a6636331a48A11eaFBA8FB51f74e4';
 const bdAMM = '0xfa372fF1547fa1a283B5112a4685F1358CE5574d';
+const dAMM = '0xb3207935ff56120f3499e8ad08461dd403bf16b8';
 
 const poolInfo = async (chain) => {
   const allMarkets = await sdk.api.abi.call({
@@ -92,7 +93,7 @@ const getPrices = async (chain, addresses) => {
   const uri = `${addresses.map((address) => `${chain}:${address}`)}`;
   const prices = (
     await superagent.get('https://coins.llama.fi/prices/current/' + uri)
-    ).body.coins;
+  ).body.coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -124,55 +125,67 @@ function calculateTvl(cash, borrows, reserves, price, decimals) {
 }
 
 const getApy = async () => {
-  const bdammPrice = (await getPrices(['ethereum'], [bdAMM]))[bdAMM.toLowerCase()];
-  const yieldPools = (await poolInfo('ethereum')).yieldMarkets.map(
-    (pool, i) => {
-      const totalSupplyUsd = calculateTvl(
-        pool.getCash,
-        pool.totalBorrows,
-        pool.totalReserves,
-        pool.price,
-        pool.underlyingTokenDecimals
-      );
-      const totalBorrowUsd = calculateTvl(
-        0,
-        pool.totalBorrows,
-        0,
-        pool.price,
-        pool.underlyingTokenDecimals
-      );
-      const tvlUsd = totalSupplyUsd - totalBorrowUsd;
-      const apyBase = calculateApy(pool.supplyRate);
-      const apyReward = calculateApy(
-        pool.compSpeeds,
-        bdammPrice,
-        totalSupplyUsd
-      );
-      const apyBaseBorrow = calculateApy(pool.borrowRate);
-      const apyRewardBorrow = calculateApy(
-        pool.compSpeeds,
-        bdammPrice,
-        totalBorrowUsd
-      );
-      const ltv = parseInt(pool.collateralFactor) / 1e18;
-      const readyToExport = exportFormatter(
-        pool.pool,
-        'Ethereum',
-        pool.tokenSymbol,
-        tvlUsd,
-        apyBase,
-        apyReward,
-        pool.underlyingToken,
-        [bdAMM],
-        apyBaseBorrow,
-        apyRewardBorrow,
-        totalSupplyUsd,
-        totalBorrowUsd,
-        ltv
-      );
-      return readyToExport;
-    }
-  );
+  const prices = await getPrices(['ethereum'], [bdAMM, dAMM]);
+
+  const bdammPrice = prices[bdAMM.toLowerCase()];
+  const dammPrice = prices[dAMM.toLowerCase()];
+
+  // const discountRatio = bdammPrice / dammPrice
+  // hardcoding this. need to see how they derive their bdammPrices...
+  const discountRate = 0.05;
+
+  const yieldMarkets = (await poolInfo('ethereum')).yieldMarkets;
+
+  const symbol = (
+    await sdk.api.abi.multiCall({
+      abi: 'erc20:symbol',
+      calls: yieldMarkets.map((p) => ({ target: p.underlyingToken })),
+      chain: 'ethereum',
+    })
+  ).output.map((o) => o.output);
+
+  const yieldPools = yieldMarkets.map((pool, i) => {
+    const totalSupplyUsd = calculateTvl(
+      pool.getCash,
+      pool.totalBorrows,
+      pool.totalReserves,
+      pool.price,
+      pool.underlyingTokenDecimals
+    );
+    const totalBorrowUsd = calculateTvl(
+      0,
+      pool.totalBorrows,
+      0,
+      pool.price,
+      pool.underlyingTokenDecimals
+    );
+    const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+    const apyBase = calculateApy(pool.supplyRate);
+    const apyReward = calculateApy(pool.compSpeeds, bdammPrice, totalSupplyUsd);
+    const apyBaseBorrow = calculateApy(pool.borrowRate);
+    const apyRewardBorrow = calculateApy(
+      pool.compSpeeds,
+      bdammPrice,
+      totalBorrowUsd
+    );
+    const ltv = parseInt(pool.collateralFactor) / 1e18;
+    const readyToExport = exportFormatter(
+      pool.pool,
+      'Ethereum',
+      symbol[i],
+      tvlUsd,
+      apyBase,
+      apyReward * discountRate,
+      pool.underlyingToken,
+      [bdAMM],
+      apyBaseBorrow,
+      apyRewardBorrow * discountRate,
+      totalSupplyUsd,
+      totalBorrowUsd,
+      ltv
+    );
+    return readyToExport;
+  });
 
   return yieldPools;
 };
@@ -199,9 +212,9 @@ function exportFormatter(
     symbol,
     tvlUsd,
     apyBase,
-    apyReward,
+    // apyReward,
     underlyingTokens: [underlyingTokens],
-    rewardTokens,
+    // rewardTokens,
     // apyBaseBorrow,
     // apyRewardBorrow,
     totalSupplyUsd,

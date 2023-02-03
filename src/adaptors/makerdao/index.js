@@ -157,6 +157,13 @@ const ILK_REGISTRY = {
       stateMutability: 'view',
       type: 'function',
     },
+    list: {
+      inputs: [],
+      name: 'list',
+      outputs: [{ internalType: 'bytes32[]', name: '', type: 'bytes32[]' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
   },
 };
 
@@ -181,6 +188,54 @@ const MCD_VAT = {
   },
 };
 
+const MCD_SPOT = {
+  address: '0x65C79fcB50Ca1594B025960e539eD7A9a6D434A3',
+  abis: {
+    ilks: {
+      constant: true,
+      inputs: [{ internalType: 'bytes32', name: '', type: 'bytes32' }],
+      name: 'ilks',
+      outputs: [
+        { internalType: 'contract PipLike', name: 'pip', type: 'address' },
+        { internalType: 'uint256', name: 'mat', type: 'uint256' },
+      ],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+  },
+};
+
+MCD_POT={
+  address: '0x197e90f9fad81970ba7976f33cbd77088e5d7cf7',
+  abis: {
+    Pie: {"constant":true,"inputs":[],"name":"Pie","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
+    dsr: {"constant":true,"inputs":[],"name":"dsr","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
+    chi: {"constant":true,"inputs":[],"name":"chi","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
+  }
+}
+
+async function dsr(){
+  const [Pie, chi, dsr] = await Promise.all(["Pie", "chi", "dsr"].map(async name=>(
+    await sdk.api.abi.call({
+      target: MCD_POT.address,
+      abi: MCD_POT.abis[name],
+    })
+  ).output))
+  const tvlUsd = BigNumber(Pie).times(chi).div(1e18).div(RAY) // check against https://makerburn.com/#/
+  const apy = (BigNumber(dsr).div(RAY).toNumber() ** (60 * 60 * 24 * 365) - 1) * 100;
+
+  return {
+    pool: MCD_POT.address,
+    project: 'makerdao',
+    symbol: "DAI",
+    chain: 'ethereum',
+    poolMeta: "DSR",
+    apy,
+    tvlUsd: tvlUsd.toNumber(),
+  }
+}
+
 function onlyUnique(value, index, self) {
   return self.indexOf(value) === index;
 }
@@ -204,23 +259,14 @@ const getPrices = async (addresses) => {
 };
 
 const main = async () => {
-  const cdpi = (
+  const dsrPool = dsr()
+  const ilkIds = (
     await sdk.api.abi.call({
-      target: CDP_MANAGER.address,
-      abi: CDP_MANAGER.abis.cdpi,
+      target: ILK_REGISTRY.address,
+      abi: ILK_REGISTRY.abis.list,
       chain: 'ethereum',
     })
   ).output;
-  const cdps = Array.from(Array(Number(cdpi)).keys()).map((x) => x + 1); // starts from 1
-
-  const ilkIdsCall = (
-    await sdk.api.abi.multiCall({
-      calls: cdps.map((i) => ({ target: CDP_MANAGER.address, params: [i] })),
-      abi: CDP_MANAGER.abis.ilks,
-      requery: true,
-    })
-  ).output.map((x) => x.output);
-  const ilkIds = ilkIdsCall.filter(onlyUnique);
   const ilkDatas = (
     await sdk.api.abi.multiCall({
       calls: ilkIds.map((ilkId) => ({
@@ -257,7 +303,16 @@ const main = async () => {
       requery: true,
     })
   ).output.map((x) => x.output);
-
+  const spots = (
+    await sdk.api.abi.multiCall({
+      calls: ilkIds.map((ilkId) => ({
+        target: MCD_SPOT.address,
+        params: [ilkId],
+      })),
+      abi: MCD_SPOT.abis.ilks,
+      requery: true,
+    })
+  ).output.map((x) => x.output);
   const rate = ilksDatas.map((e) => e.duty);
   const tokenBalances = (
     await sdk.api.abi.multiCall({
@@ -291,6 +346,8 @@ const main = async () => {
         .dividedBy(new BigNumber(10).pow(decimals[index]))
         .multipliedBy(prices[gems[index].toLowerCase()])
         .toNumber();
+      const spot = spots[index];
+      const liquidationRatio = new BigNumber(spot.mat).div(1e27);
       return {
         pool: joins[index],
         project: 'makerdao',
@@ -306,8 +363,10 @@ const main = async () => {
         totalSupplyUsd: tvlUsd,
         totalBorrowUsd: totalBorrowUsd.toNumber(),
         debtCeilingUsd: debtCeilingUsd.toNumber(),
+        mintedCoin: 'DAI',
+        ltv: 1 / Number(liquidationRatio.toNumber()),
       };
-    })
+    }).concat([await dsrPool])
     .filter((e) => e.tvlUsd !== NaN)
     .filter((e) => e.tvlUsd !== 0)
     .filter((e) => e.tvlUsd);

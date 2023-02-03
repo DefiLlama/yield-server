@@ -56,6 +56,7 @@ const query = gql`
   query ReservesQuery {
     reserves {
       name
+      borrowingEnabled
       aToken {
         id
         rewards {
@@ -64,6 +65,7 @@ const query = gql`
           rewardToken
           rewardTokenDecimals
           rewardTokenSymbol
+          distributionEnd
         }
         underlyingAssetAddress
         underlyingAssetDecimals
@@ -74,23 +76,30 @@ const query = gql`
           rewardToken
           rewardTokenDecimals
           rewardTokenSymbol
+          distributionEnd
         }
       }
       symbol
       liquidityRate
       variableBorrowRate
       baseLTVasCollateral
+      isFrozen
     }
   }
 `;
 
 const apy = async () => {
-  const data = await Promise.all(
+  let data = await Promise.all(
     Object.entries(API_URLS).map(async ([chain, url]) => [
       chain,
       (await request(url, query)).reserves,
     ])
   );
+  data = data.map(([chain, reserves]) => [
+    chain,
+    reserves.filter((p) => !p.isFrozen),
+  ]);
+
   const totalSupply = await Promise.all(
     data.map(async ([chain, reserves]) =>
       (
@@ -177,6 +186,10 @@ const apy = async () => {
       );
       let totalBorrowUsd = totalSupplyUsd - tvlUsd;
       totalBorrowUsd = totalBorrowUsd < 0 ? 0 : totalBorrowUsd;
+
+      const supplyRewardEnd = pool.aToken.rewards[0]?.distributionEnd;
+      const borrowRewardEnd = pool.vToken.rewards[0]?.distributionEnd;
+
       return {
         pool: `${pool.aToken.id}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
@@ -184,15 +197,25 @@ const apy = async () => {
         symbol: pool.symbol,
         tvlUsd,
         apyBase: (pool.liquidityRate / 10 ** 27) * 100,
-        apyReward: (rewardPerYear / totalSupplyUsd) * 100,
-        rewardTokens: rewards.map((rew) => rew.rewardToken),
+        apyReward:
+          supplyRewardEnd * 1000 > new Date()
+            ? (rewardPerYear / totalSupplyUsd) * 100
+            : null,
+        rewardTokens:
+          supplyRewardEnd * 1000 > new Date()
+            ? rewards.map((rew) => rew.rewardToken)
+            : null,
         underlyingTokens: [pool.aToken.underlyingAssetAddress],
         totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow: Number(pool.variableBorrowRate) / 1e25,
-        apyRewardBorrow: (rewardPerYearBorrow / totalBorrowUsd) * 100,
+        apyRewardBorrow:
+          borrowRewardEnd * 1000 > new Date()
+            ? (rewardPerYearBorrow / totalBorrowUsd) * 100
+            : null,
         ltv: Number(pool.baseLTVasCollateral) / 10000,
         url: `https://app.aave.com/reserve-overview/?underlyingAsset=${pool.aToken.underlyingAssetAddress}&marketName=${chainUrlParam[chain]}`,
+        borrowable: pool.borrowingEnabled,
       };
     });
 

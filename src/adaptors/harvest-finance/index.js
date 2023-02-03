@@ -3,10 +3,10 @@ const superagent = require('superagent');
 const utils = require('../utils');
 const { readFromS3 } = require('../../utils/s3');
 // no longer needed, see note below
-// const farmsUrl =
-//   'https://api.harvest.finance/vaults?key=41e90ced-d559-4433-b390-af424fdc76d6';
-// const poolsUrl =
-//   'https://api.harvest.finance/pools?key=41e90ced-d559-4433-b390-af424fdc76d6';
+const farmsUrl =
+  'https://api.harvest.finance/vaults?key=41e90ced-d559-4433-b390-af424fdc76d6';
+const poolsUrl =
+  'https://api.harvest.finance/pools?key=41e90ced-d559-4433-b390-af424fdc76d6';
 const chains = {
   bsc: 'binance',
   eth: 'ethereum',
@@ -32,7 +32,7 @@ async function apy() {
   // note (!) calling their api via aws lambda stopped working due to cloudflare bot protection.
   // instead, we use a python lambda which bypasses cloudflare
   // and stores the output to s3 (i tried node js packages, none of them worked; the repo to the
-  // lambda:
+  // lambda
   // const farmsResponse = (await superagent.get(farmsUrl)).body;
   // const poolsResponse = (await superagent.get(poolsUrl)).body;
   const data = await readFromS3('llama-apy-prod-data', 'harvest_api_data.json');
@@ -46,15 +46,25 @@ async function apy() {
     );
     const farms = activeFarms.map((v) => {
       const s = v.displayName.split(' ');
-      const symbol = s.length > 2 ? s[2] : s.length > 1 ? s[1] : s[0];
-      s[0];
+      const symbol = s.includes('YEL-ETH')
+        ? 'YEL-ETH'
+        : s.length > 2
+        ? s[2]
+        : s.length > 1
+        ? s[1]
+        : s[0];
 
       return {
         pool: v.vaultAddress,
         chain: utils.formatChain(chains[chain]),
         project: 'harvest-finance',
-        symbol: utils.formatSymbol(symbol),
-        poolMeta: s.length > 1 ? s[0].replace(':', '') : null,
+        symbol: utils.formatSymbol(symbol).replace(/[{()}]/g, ''),
+        poolMeta:
+          symbol === 'YEL-ETH'
+            ? 'Sushi'
+            : s.length > 1
+            ? s[0].replace(':', '')
+            : null,
         tvlUsd: Number(v.totalValueLocked),
         apy: aggregateApys(v, poolsResponse[chain]),
       };

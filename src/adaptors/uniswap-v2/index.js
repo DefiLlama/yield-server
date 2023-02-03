@@ -45,6 +45,13 @@ const topLvl = async (
     url,
   ]);
 
+  const [_, blockPrior7d] = await utils.getBlocks(
+    chainString,
+    timestamp,
+    [url],
+    604800
+  );
+
   // pull data
   let queryC = query;
   let dataNow = await request(url, queryC.replace('<PLACEHOLDER>', block));
@@ -58,12 +65,17 @@ const topLvl = async (
   );
   dataPrior = dataPrior.pairs;
 
+  // 7d offset
+  const dataPrior7d = (
+    await request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
+  ).pairs;
+
   // calculate tvl
   dataNow = await utils.tvl(dataNow, chainString);
   // calculate apy
-  let data = dataNow.map((el) => utils.apy(el, dataPrior, version));
+  dataNow = dataNow.map((el) => utils.apy(el, dataPrior, dataPrior7d, version));
 
-  return data.map((p) => {
+  return dataNow.map((p) => {
     const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
     const underlyingTokens = [p.token0.id, p.token1.id];
     const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
@@ -77,9 +89,12 @@ const topLvl = async (
       project: 'uniswap-v2',
       symbol,
       tvlUsd: p.totalValueLockedUSD,
-      apyBase: p.apy,
+      apyBase: p.apy1d,
+      apyBase7d: p.apy7d,
       underlyingTokens,
       url,
+      volumeUsd1d: p.volumeUSD1d,
+      volumeUsd7d: p.volumeUSD7d,
     };
   });
 };
