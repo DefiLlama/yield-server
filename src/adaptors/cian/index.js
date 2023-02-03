@@ -3,12 +3,14 @@ const axios = require('axios');
 const apiUrl_avax = 'https://data.cian.app/api/v1/staking_avax/apr';
 const apiUrl_btc = 'https://data.cian.app/api/v1/staking_btc/apr';
 const apiUrl_matic = 'https://data.cian.app/polygon/api/v1/staking_matic/apy';
+const apiUrl_steth = 'https://data.cian.app/ethereum/api/v1/staking_eth/apy';
 
 async function fetch() {
   const response_avax = (await axios.get(apiUrl_avax)).data.data;
   const response_btc = (await axios.get(apiUrl_btc)).data.data;
   const response_matic = (await axios.get(apiUrl_matic)).data.data;
-  return [...response_avax, ...response_btc, ...response_matic];
+  const response_steth = (await axios.get(apiUrl_steth)).data.data;
+  return [...response_avax, ...response_btc, ...response_matic, ...response_steth];
 }
 
 const main = async () => {
