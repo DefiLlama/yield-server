@@ -10,7 +10,7 @@ async function fetch() {
   const response_btc = (await axios.get(apiUrl_btc)).data.data;
   const response_matic = (await axios.get(apiUrl_matic)).data.data;
   const response_steth = (await axios.get(apiUrl_steth)).data.data;
-  return [...response_avax, ...response_btc, ...response_matic, ...response_steth];
+  return [...response_avax, ...response_btc, ...response_matic, response_steth];
 }
 
 const main = async () => {
