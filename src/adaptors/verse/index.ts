@@ -88,7 +88,7 @@ const getPoolsData = async (
         return {
           pool: p.id,
           chain: utils.formatChain(chainString),
-          project: 'versedex',
+          project: 'verse',
           symbol,
           tvlUsd: p.totalValueLockedUSD,
           apyBase: p.apy1d,
