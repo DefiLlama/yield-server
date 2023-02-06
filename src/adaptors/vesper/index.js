@@ -17,7 +17,7 @@ async function apy(chain) {
 
   const farms = response.map((v) => {
     const apyReward = v.poolTokenRewardRates.reduce(
-      (a, r) => Number(r.tokenDeltaRates[30]) + Number(a),
+      (a, r) => Number(r.tokenDeltaRates[14]) + Number(a),
       0
     );
 
@@ -25,13 +25,16 @@ async function apy(chain) {
       pool: `${v.address}`,
       chain: utils.formatChain(chain),
       project: 'vesper',
-      symbol: v.name.startsWith('ve')
-        ? v.name.split('-')[0]
-        : utils.formatSymbol(v.name),
-      poolMeta: v.name.startsWith('ve') ? `earn ${v.name.split('-')[1]}` : null,
+      symbol: v.asset.symbol,
+      poolMeta: v.name.startsWith('ve')
+        ? `earn ${v.name.split('-')[1]}`
+        : v.name.startsWith('va')
+        ? 'Aggressive'
+        : 'Conservative',
       tvlUsd:
         (Number(v.totalValue) / 10 ** Number(v.asset.decimals)) * v.asset.price,
-      apyBase: v.earningRates[30],
+      apyBase: v.earningRates[14],
+      apyBase7d: v.earningRates[7],
       apyReward,
       rewardTokens: apyReward > 0 ? [v.rewardsTokenAddress] : [],
       underlyingTokens:
