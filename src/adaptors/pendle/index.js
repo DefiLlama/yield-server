@@ -36,7 +36,7 @@ async function poolApys(pools) {
     chain: utils.formatChain('ethereum'),
     project: 'pendle',
     symbol: utils.formatSymbol(p.proName),
-    tvlUsd: p.liquidity.usd,
+    tvlUsd: p.liquidity?.usd,
     apyBase: (p.aggregatedApy - p.pendleApy) * 100,
     apyReward: p.pendleApy * 100,
     rewardTokens: ['0x808507121b80c02388fad14726482e061b8da827'],
@@ -51,7 +51,7 @@ async function ptApys(pools) {
     chain: utils.formatChain('ethereum'),
     project: 'pendle',
     symbol: utils.formatSymbol(p.proName),
-    tvlUsd: p.liquidity.usd,
+    tvlUsd: p.liquidity?.usd,
     apyBase: p.impliedApy * 100,
     underlyingTokens: [p.sy.underlyingAsset.address],
     poolMeta: `For buying ${p.pt.symbol}`,
@@ -62,7 +62,7 @@ async function ptApys(pools) {
 async function apy() {
   const pools = (await request(api, query)).markets.results;
   let results = await Promise.all([poolApys(pools), ptApys(pools)]);
-  return results.flat();
+  return results.flat().filter((p) => utils.keepFinite(p));
 }
 
 module.exports = {
