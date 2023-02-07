@@ -10,6 +10,7 @@ const virtualBalanceRewardPoolAbi = require('./virtualBalanceRewardPoolAbi.json'
 const crvAddress = '0xD533a949740bb3306d119CC777fa900bA034cd52';
 const cvxAddress = '0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B';
 const convexBoosterAddress = '0xF403C135812408BFbE8713b5A23a04b3D48AAE31';
+const convexBoosterFrax = '0xA2cF21b157b2f203e37b616b619f438B5aa86Ee5';
 
 const cliffSize = 100000; // * 1e18; //new cliff every 100,000 tokens
 const cliffCount = 1000; // 1,000 cliffs
@@ -97,6 +98,9 @@ const main = async () => {
   enrichedPools = enrichedPools.filter(
     (v, i, a) => a.findIndex((v2) => v2.lptoken === v.lptoken) === i
   );
+
+  console.log(enrichedPools);
+  process.exit();
 
   const [totalSupplyRes, decimalsRes] = await Promise.all(
     ['totalSupply', 'decimals'].map((method) =>
