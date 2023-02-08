@@ -79,7 +79,7 @@ async function pools() {
         pool: glpTracker,
         tvlUsd: Number(tvlG),
         apy: apy7djGLP,
-        apyBase: apyInceptionjGLP
+        apyBaseInception: apyInceptionjGLP
     }
 
     return [jUsdcPool, jGlpPool];
