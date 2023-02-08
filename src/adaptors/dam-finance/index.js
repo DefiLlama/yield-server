@@ -12,15 +12,15 @@ const poolsFunction = async () => {
     pool: damData.name,
     chain: 'moonbeam',
     project: 'dam-finance',
-    symbol: 'd2o-USDT',
+    symbol: 'd2o-xcUSDT',
     tvlUsd: damData.usdTotal,
     apy: damData.gaugeRewards[0].apy,
+    underlyingTokens: ['d2o', 'xcUSDT'],
+    rewardTokens: ['GLMR'],
   };
 
   return [d2oxcUSDTpool];
 };
-
-poolsFunction()
 
 module.exports = {
   timetravel: false,
