@@ -41,8 +41,7 @@ const GET_POOL_ASSETS_WITH_DATA = 'getPoolAssetsWithData';
 const GET_MARKET_REWARDS_INFO = 'getMarketRewardsInfo';
 
 const PROJECT_NAME = 'midas-capital';
-const PROJECT_URL = 'localhost:3000';
-// const PROJECT_URL = 'https://app.midascapital.xyz';
+const PROJECT_URL = 'https://app.midascapital.xyz';
 
 const ratePerBlockToAPY = (ratePerBlock, blocksPerMin) => {
   const blocksPerDay = blocksPerMin * 60 * 24;
