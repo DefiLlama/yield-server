@@ -57,37 +57,45 @@ const poolsFunction = async () => {
     symbol: utils.formatSymbol('PINA'),
     tvlUsd: Number(BN(pool[0].output[2]).div(1e18).toString()),
     apy: Number(BN(pool[0].output[1]).div(1e6).toString()),
-    poolMeta: 'Forge Pool',
+    rewardTokens: ['0x02814F435dD04e254Be7ae69F61FCa19881a780D'],
+    poolMeta:
+      'Forge Pool, Staking events on this pool will restart the lockup timer（exit lockup: 20 epochs, an epoch defines a period within the Meme Dollar ecosystem, 1 epoch equals 6 hours, 4x daily. ',
   };
 
   const pina_usdc = {
     pool: '0x58624E7a53700cb39772E0267ca0AC70f064078B-ethereum',
     chain: chain,
     project: 'meme-dollar',
-    symbol: utils.formatSymbol('PINA'),
+    symbol: utils.formatSymbol('PINA-USDC'),
     tvlUsd: Number(BN(usdctvl[0].output).div(1e18).toString()),
     apy: Number(BN(usdcapr[0].output).div(1e6).toString()),
-    poolMeta: 'PINA_USDC Pool',
+    rewardTokens: ['0x02814F435dD04e254Be7ae69F61FCa19881a780D'],
+    poolMeta:
+      'PINA-USDC Pool, Staking events on this pool will restart the lockup timer（exit lockup: 12 epochs, an epoch defines a period within the Meme Dollar ecosystem, 1 epoch equals 6 hours, 4x daily.',
   };
 
   const pina_meme = {
     pool: '0x713afA49478f1A33c3194Ff65dbf3c8058406670-ethereum',
     chain: chain,
     project: 'meme-dollar',
-    symbol: utils.formatSymbol('PINA'),
+    symbol: utils.formatSymbol('PINA-MEME'),
     tvlUsd: Number(BN(pool[0].output[5]).div(1e18).toString()),
     apy: Number(BN(pool[0].output[4]).div(1e6).toString()),
-    poolMeta: 'PINA_MEME Pool',
+    rewardTokens: ['0x02814F435dD04e254Be7ae69F61FCa19881a780D'],
+    poolMeta:
+      'PINA-MEME Pool, Staking events on this pool will restart the lockup timer（exit lockup: 12 epochs, an epoch defines a period within the Meme Dollar ecosystem, 1 epoch equals 6 hours, 4x daily.',
   };
 
   const meme_eth = {
     pool: '0xb892A4b35F227F27e4B58cc20691B3C671D0beC8-ethereum',
     chain: chain,
     project: 'meme-dollar',
-    symbol: utils.formatSymbol('PINA'),
+    symbol: utils.formatSymbol('MEME-ETH'),
     tvlUsd: Number(BN(pool[0].output[8]).div(1e18).toString()),
     apy: Number(BN(pool[0].output[7]).div(1e6).toString()),
-    poolMeta: 'MEME_ETH Pool',
+    rewardTokens: ['0x02814F435dD04e254Be7ae69F61FCa19881a780D'],
+    poolMeta:
+      'MEME-ETH Pool, Staking events on this pool will restart the lockup timer（exit lockup: 12 epochs, an epoch defines a period within the Meme Dollar ecosystem, 1 epoch equals 6 hours, 4x daily.',
   };
   return [forge, pina_usdc, pina_meme, meme_eth];
 };
