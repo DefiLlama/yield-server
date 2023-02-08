@@ -6,7 +6,6 @@ const utils = require('../utils');
 const poolDirectoryAbi = require('../midas-capital/abiPoolDirectory');
 const poolLensAbi = require('../midas-capital/abiPoolLens');
 const flywheelLensRouterAbi = require('../midas-capital/abiFlywheelLensRouter');
-const plugins = require('../midas-capital/plugins');
 
 const CHAINS = { bsc: 'bsc', polygon: 'polygon' };
 const CHAIN_NUMBER = { [CHAINS.bsc]: '56', [CHAINS.polygon]: '137' };
@@ -42,7 +41,8 @@ const GET_POOL_ASSETS_WITH_DATA = 'getPoolAssetsWithData';
 const GET_MARKET_REWARDS_INFO = 'getMarketRewardsInfo';
 
 const PROJECT_NAME = 'midas-capital';
-const PROJECT_URL = 'https://app.midascapital.xyz';
+const PROJECT_URL = 'localhost:3000';
+// const PROJECT_URL = 'https://app.midascapital.xyz';
 
 const ratePerBlockToAPY = (ratePerBlock, blocksPerMin) => {
   const blocksPerDay = blocksPerMin * 60 * 24;
@@ -56,7 +56,7 @@ const apyFromPlugin = async (pluginAddress, chain) => {
   if (pluginAddress) {
     const res = (
       await superagent.get(
-        `${PROJECT_URL}/api/rewards?chainId=${CHAIN_NUMBER[chain]}&pluginAddress=${pluginAddress}`
+        `${PROJECT_URL}/api/public/rewards?chainId=${CHAIN_NUMBER[chain]}&pluginAddress=${pluginAddress}`
       )
     ).body;
 
@@ -123,6 +123,8 @@ const main = async () => {
     ).body.coins[CG_KEY[chain]].price;
 
     for (const market of allMarkets) {
+      if (market.mintGuardianPaused && market.borrowGuardianPaused) continue;
+
       const totalSupplyUsd =
         Number(
           ethers.utils.formatUnits(
@@ -153,17 +155,13 @@ const main = async () => {
         BLOCKS_PER_MIN[chain]
       );
 
-      const marketToPlugin = Object.entries(plugins[chain]).reduce(
-        (acc, [plugin, pluginData]) => {
-          return { ...acc, [pluginData.market]: plugin };
-        },
-        {}
-      );
+      const apyReward = await apyFromPlugin(market.cToken, chain);
 
-      const apyReward = await apyFromPlugin(
-        marketToPlugin[market.cToken],
-        chain
-      );
+      const pluginAddress = (
+        await superagent.get(
+          `${PROJECT_URL}/api/public/plugins?chainId=${CHAIN_NUMBER[chain]}&marketAddress=${market.cToken}`
+        )
+      ).body;
 
       markets.push({
         pool: market.cToken.toLowerCase(),
@@ -174,9 +172,7 @@ const main = async () => {
         apyBase,
         apyReward,
         underlyingTokens: [market.underlyingToken],
-        rewardTokens: marketToPlugin[market.cToken]
-          ? [marketToPlugin[market.cToken]]
-          : [],
+        rewardTokens: pluginAddress ? [pluginAddress] : [],
         totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow,
