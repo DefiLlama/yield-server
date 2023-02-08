@@ -154,13 +154,13 @@ const main = async () => {
         BLOCKS_PER_MIN[chain]
       );
 
-      const apyReward = await apyFromPlugin(market.cToken, chain);
-
       const pluginAddress = (
         await superagent.get(
           `${PROJECT_URL}/api/public/plugins?chainId=${CHAIN_NUMBER[chain]}&marketAddress=${market.cToken}`
         )
       ).body;
+
+      const apyReward = await apyFromPlugin(pluginAddress, chain);
 
       markets.push({
         pool: market.cToken.toLowerCase(),
