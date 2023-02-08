@@ -1,5 +1,5 @@
 const { basename } = require('node:path');
-const { getFarms } = require('./helpers');
+const { getFarms } = require('../quipuswap/helpers');
 
 const projectName = basename(__dirname);
 
