@@ -364,7 +364,7 @@ async function apy() {
             pool: `${lpTokenTargets[i].target}-${chain}`.toLowerCase(),
             chain: utils.formatChain(chain),
             project: 'quoll',
-            symbol: lpSymbols.output[i].output,
+            symbol: lpSymbols.output[i].output.replace('LP-', ''),
             tvlUsd: quollBalanceAmount,
             apy: +apr.toDecimal(),
             underlyingTokens: [underlyingTokenAddress],
