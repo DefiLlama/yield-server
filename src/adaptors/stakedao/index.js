@@ -2,6 +2,7 @@ const utils = require('../utils');
 
 const LOCKERS_ENDPOINT = 'https://lockers.stakedao.org/api/lockers/cache';
 const STRATEGIES_ENDPOINT = 'https://lockers.stakedao.org/api/strategies/cache';
+const OPTIONS_ENDPOINT = 'https://app.stakedao.org/api/defillama';
 const SDT_ADDRESS = '0x73968b9a57c6e53d41345fd57a6e6ae27d6cdb2f';
 
 const symbolMapping = {
@@ -30,13 +31,15 @@ const poolsFunction = async () => {
     utils.getData(`${STRATEGIES_ENDPOINT}/curve`),
     utils.getData(`${STRATEGIES_ENDPOINT}/balancer`),
     utils.getData(`${STRATEGIES_ENDPOINT}/fraxv2`),
-    utils.getData(`${LOCKERS_ENDPOINT}`)
+    utils.getData(`${LOCKERS_ENDPOINT}`),
+    utils.getData(`${OPTIONS_ENDPOINT}`)
   ]);
   const angleStrategies = resp[0];
   const curveStrategies = resp[1];
   const balancerStrategies = resp[2];
   const fraxv2Strategies = resp[3];
   const lockers = resp[4];
+  const optionsData = resp[5].data; 
 
   const allStrats = angleStrategies
     .concat(curveStrategies)
@@ -153,7 +156,24 @@ const poolsFunction = async () => {
     ]);
   }, []);
 
-  return strats;
+  const options = optionsData.map((option) => {
+    const rewardTokens = option.underlyingTokens.map((token) => token.address || '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE')
+    return {    
+    pool: option.key,
+    chain: utils.formatChain('ethereum'),
+    project: 'stakedao',
+    symbol: utils.formatSymbol(option.symbol),
+    poolMeta: utils.formatChain('Opyn'),
+    tvlUsd: parseFloat(option.tvlUSD),
+    apyReward: 0,
+    apyBase: option.apy,
+    rewardTokens,
+    underlyingTokens: rewardTokens
+  }
+  })
+
+
+  return strats.concat(options);
 };
 
 module.exports = {
