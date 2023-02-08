@@ -58,8 +58,7 @@ const poolsFunction = async () => {
     tvlUsd: Number(BN(pool[0].output[2]).div(1e18).toString()),
     apy: Number(BN(pool[0].output[1]).div(1e6).toString()),
     rewardTokens: ['0x02814F435dD04e254Be7ae69F61FCa19881a780D'],
-    poolMeta:
-      'Forge Pool, Staking events on this pool will restart the lockup timer（exit lockup: 20 epochs, an epoch defines a period within the Meme Dollar ecosystem, 1 epoch equals 6 hours, 4x daily. ',
+    poolMeta: 'Exit lockup: 5days ',
   };
 
   const pina_usdc = {
@@ -70,8 +69,7 @@ const poolsFunction = async () => {
     tvlUsd: Number(BN(usdctvl[0].output).div(1e18).toString()),
     apy: Number(BN(usdcapr[0].output).div(1e6).toString()),
     rewardTokens: ['0x02814F435dD04e254Be7ae69F61FCa19881a780D'],
-    poolMeta:
-      'PINA-USDC Pool, Staking events on this pool will restart the lockup timer（exit lockup: 12 epochs, an epoch defines a period within the Meme Dollar ecosystem, 1 epoch equals 6 hours, 4x daily.',
+    poolMeta: 'Exit lockup: 3days',
   };
 
   const pina_meme = {
@@ -82,8 +80,7 @@ const poolsFunction = async () => {
     tvlUsd: Number(BN(pool[0].output[5]).div(1e18).toString()),
     apy: Number(BN(pool[0].output[4]).div(1e6).toString()),
     rewardTokens: ['0x02814F435dD04e254Be7ae69F61FCa19881a780D'],
-    poolMeta:
-      'PINA-MEME Pool, Staking events on this pool will restart the lockup timer（exit lockup: 12 epochs, an epoch defines a period within the Meme Dollar ecosystem, 1 epoch equals 6 hours, 4x daily.',
+    poolMeta: 'Exit lockup: 3days',
   };
 
   const meme_eth = {
@@ -94,8 +91,7 @@ const poolsFunction = async () => {
     tvlUsd: Number(BN(pool[0].output[8]).div(1e18).toString()),
     apy: Number(BN(pool[0].output[7]).div(1e6).toString()),
     rewardTokens: ['0x02814F435dD04e254Be7ae69F61FCa19881a780D'],
-    poolMeta:
-      'MEME-ETH Pool, Staking events on this pool will restart the lockup timer（exit lockup: 12 epochs, an epoch defines a period within the Meme Dollar ecosystem, 1 epoch equals 6 hours, 4x daily.',
+    poolMeta: 'Exit lockup: 3days',
   };
   return [forge, pina_usdc, pina_meme, meme_eth];
 };
