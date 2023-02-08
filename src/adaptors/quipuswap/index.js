@@ -23,7 +23,7 @@ const poolsFunction = async () => {
       return {
         pool: pool.contractAddress,
         chain: utils.formatChain('Tezos'),
-        project: pool.rewardToken.metadata.name,
+        project: 'quipuswap',
         symbol: symbol.join('-'),
         tvlUsd: parseFloat(pool.tvlInUsd),
         apy: pool.apy,
