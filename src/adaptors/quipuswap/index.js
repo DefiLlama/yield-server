@@ -1,7 +1,6 @@
-const { basename } = require('node:path');
 const { getFarms } = require('./helpers');
 
-const projectName = basename(__dirname);
+const projectName = 'quipuswap';
 
 const poolsFunction = async () =>
   getFarms(
