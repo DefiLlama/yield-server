@@ -6,7 +6,10 @@ const utils = require('../utils');
 const abi = require('./abi');
 const gaugeAbi = require('./gaugeAbi');
 const gaugeControllerAbi = require('./gaugeControllerAbi');
+const gaugeMinterAbi = require('./gaugeMinterAbi');
+
 const gaugeController = '0x99Cb6c36816dE2131eF2626bb5dEF7E5cc8b9B14';
+const gaugeMinter = '0x358fE82370a1B9aDaE2E3ad69D6cF9e503c96018';
 
 const sdl = '0xf1dc500fde233a4055e25e5bbf516372bc4f6871';
 
@@ -22,6 +25,7 @@ const apy = async () => {
     })
   ).output;
 
+  // includes LiqV5 and root gauges (which are used together with child gauges on arbitrum)
   const gauges = (
     await sdk.api.abi.multiCall({
       calls: [...Array(Number(n_gauges)).keys()].map((i) => ({
@@ -45,14 +49,12 @@ const apy = async () => {
   ).output.map((o) => o.output);
 
   const inflationRate = (
-    await sdk.api.abi.multiCall({
-      calls: gauges.map((gauge) => ({
-        target: gauge,
-      })),
-      abi: gaugeAbi.find((m) => m.name === 'inflation_rate'),
+    await sdk.api.abi.call({
+      target: gaugeMinter,
+      abi: gaugeMinterAbi.find((m) => m.name === 'rate'),
       chain: 'ethereum',
     })
-  ).output.map((o) => o.output);
+  ).output;
 
   const lpToken = (
     await sdk.api.abi.multiCall({
@@ -67,10 +69,7 @@ const apy = async () => {
   const lpTokenRelWeightMap = {};
   for (const [i, weight] of gaugeRelativeWeight.entries()) {
     if (lpToken[i]) {
-      lpTokenRelWeightMap[lpToken[i].toLowerCase()] = {
-        w: weight,
-        iR: inflationRate[i],
-      };
+      lpTokenRelWeightMap[lpToken[i].toLowerCase()] = weight;
     }
   }
 
@@ -151,10 +150,10 @@ const apy = async () => {
       const apr = ((365 * p.volume * (p.swap.swapFee / 1e10)) / tvlUsd) * 100;
 
       // sdl apr
-      const weight =
-        lpTokenRelWeightMap[p.swap.lpToken.toLowerCase()]?.w / 1e18;
-      const rate = lpTokenRelWeightMap[p.swap.lpToken.toLowerCase()]?.iR / 1e18;
+      const weight = lpTokenRelWeightMap[p.swap.lpToken.toLowerCase()] / 1e18;
+      const rate = inflationRate / 1e18;
 
+      // need the gauge tvl
       const apyReward =
         ((rate * 86400 * 365 * prices[`ethereum:${sdl}`]?.price * weight) /
           tvlUsd) *
