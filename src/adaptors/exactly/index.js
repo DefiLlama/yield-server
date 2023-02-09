@@ -103,7 +103,7 @@ const apy = async () =>
           const floating = {
             ...poolMetadata,
             pool: `${market}-${chain}`.toLowerCase(),
-            apy: aprToApy(apr),
+            apyBase: aprToApy(apr),
             apyBaseBorrow: aprToApy(borrowApr),
             totalSupplyUsd: (totalSupply[i] * usdUnitPrice) / 10 ** decimals[i],
             totalBorrowUsd: (totalFloatingBorrowAssets[i] * usdUnitPrice) / 10 ** decimals[i],
@@ -139,12 +139,14 @@ const apy = async () =>
               });
 
               const fixedBorrowAPR = previewFloatingAssetsAverages[i] + supplied > 0 ? minFixedRate / 1e16 : 0;
+              const poolMeta = new Date(maturity * 1_000).toISOString();
 
               /** @type {Pool} */
               return {
                 ...poolMetadata,
-                pool: `${market}-${chain}-${new Date(maturity * 1_000).toISOString()}`.toLowerCase(),
-                apy: aprToApy(fixedDepositAPR, secsToMaturity / 86_400),
+                pool: `${market}-${chain}-${poolMeta}`.toLowerCase(),
+                poolMeta,
+                apyBase: aprToApy(fixedDepositAPR, secsToMaturity / 86_400),
                 apyBaseBorrow: aprToApy(fixedBorrowAPR, secsToMaturity / 86_400),
                 totalSupplyUsd: (supplied * usdUnitPrice) / 10 ** decimals[i],
                 totalBorrowUsd: (borrowed * usdUnitPrice) / 10 ** decimals[i],
