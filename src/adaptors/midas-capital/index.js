@@ -41,7 +41,7 @@ const GET_POOL_ASSETS_WITH_DATA = 'getPoolAssetsWithData';
 const GET_MARKET_REWARDS_INFO = 'getMarketRewardsInfo';
 
 const PROJECT_NAME = 'midas-capital';
-const PROJECT_URL = 'https://app.midascapital.xyz';
+const PROJECT_URL = 'https://development.midascapital.xyz';
 
 const ratePerBlockToAPY = (ratePerBlock, blocksPerMin) => {
   const blocksPerDay = blocksPerMin * 60 * 24;
@@ -60,7 +60,13 @@ const apyFromPlugin = async (pluginAddress, chain) => {
     ).body;
 
     if (res.length > 0) {
-      const apy = res.reduce((apy, obj) => apy + Number(obj.apy), 0);
+      const apy = res.reduce(
+        (apy, obj) =>
+          obj.status !== 'paused' && obj.apy !== undefined
+            ? apy + Number(obj.apy)
+            : apy,
+        0
+      );
 
       return apy;
     } else {
@@ -189,4 +195,3 @@ module.exports = {
   apy: main,
   url: PROJECT_URL,
 };
-
