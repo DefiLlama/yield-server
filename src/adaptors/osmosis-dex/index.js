@@ -7,7 +7,7 @@ const buildPool = (entry, chainString) => {
   const newObj = {
     pool: `${pool}-${entry.symbol}-${entry.duration}`,
     chain: utils.formatChain(chainString),
-    project: 'osmosis',
+    project: 'osmosis-dex',
     symbol: utils.formatSymbol(entry.symbol),
     poolMeta: entry.duration,
     tvlUsd: entry.liquidity,
