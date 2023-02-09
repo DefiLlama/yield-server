@@ -255,7 +255,8 @@ const main = async () => {
           : 0;
       let aprExtra = extraRewards
         ? extraRewards.map((reward) => reward.apy).reduce((a, b) => a + b)
-        : stETHPools.includes(address)
+        : stETHPools.includes(address) ||
+          address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' // pool on moonbeam
         ? pool.gaugeRewards[0].apy
         : 0;
 
