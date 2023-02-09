@@ -65,10 +65,11 @@ async function pools() {
         chain: "arbitrum",
         project: "jones-dao",
         symbol: "jUSDC",
-        apy: apy7d,
+        apyBase: apy7d,
         apyBaseInception: apyInception,
         tvlUsd: Number(tvlU),
         underlyingTokens: [usdc],
+        poolMeta: "1day"
     }
 
     const jGlpPool = {
@@ -78,7 +79,7 @@ async function pools() {
         underlyingTokens: [glp],
         pool: glpTracker,
         tvlUsd: Number(tvlG),
-        apy: apy7djGLP,
+        apyBase: apy7djGLP,
         apyBaseInception: apyInceptionjGLP
     }
 
@@ -87,6 +88,6 @@ async function pools() {
 
 module.exports = { 
     timetravel: false,
-    url: "https://app.jonesdao.io/vaults/leveraged/usdc",
+    url: "https://app.jonesdao.io/vaults",
     apy: pools,
 }
