@@ -1,42 +1,58 @@
 const utils = require('../utils');
 
+const uniquePools = new Set();
 const getApy = async () => {
-  const tvl = await utils.getData(
+  const tvlData = await utils.getData(
     'https://api-osmosis.imperator.co/pools/v2/all?low_liquidity=false'
   );
-  const apr = await utils.getData(
+  const aprData = await utils.getData(
     'https://api-osmosis.imperator.co/apr/v2/all'
   );
 
-  let data = [];
-  for (const poolId of Object.keys(tvl)) {
-    const pos = tvl[poolId];
-    const symbol = `${pos[0].symbol}-${pos[1].symbol}`;
+  const data = Object.keys(tvlData).map((poolId) => {
+    const tvl = tvlData[poolId];
+    const x = tvl[0];
 
-    const x = pos[0];
-    x.poolId = poolId;
-    x.symbol = symbol;
-    const apr14day = apr
-      .find((x) => String(x.pool_id) === poolId)
-      ?.apr_list.find((el) => el.symbol === 'OSMO')?.apr_14d;
-
-    const y = { ...x };
-    y.apr = apr14day;
-    data.push(y);
-  }
-
-  data = data.map((p) => {
-    const poolSplit = p.denom.split('/');
+    const poolSplit = x.denom.split('/');
     const pool = poolSplit.length > 1 ? poolSplit[1] : poolSplit[0];
 
+    if (uniquePools.has(pool)) return [];
+    uniquePools.add(pool);
+
+    const tvlUsd = x.liquidity;
+
+    // base apr
+    const feeTier = x.fees.replace('%', '') / 100;
+    const fees24h = x.volume_24h * feeTier;
+    const fees7d = x.volume_7d * feeTier;
+    const aprBase = ((fees24h * 365) / tvlUsd) * 100;
+    const aprBase7d = ((fees7d * 52) / tvlUsd) * 100;
+
+    // reward apr
+    const aprs = aprData.find((a) => String(a.pool_id) === poolId)?.apr_list;
+
+    const aprReward = aprs?.reduce((acc, reward) => acc + reward.apr_14d, 0);
+    const aprSuperfluid = aprs?.reduce(
+      (acc, reward) => acc + reward.apr_superfluid,
+      0
+    );
+    const apyReward = aprSuperfluid > 0 ? aprSuperfluid : aprReward;
+
+    const symbol = `${tvl[0].symbol}-${tvl[1].symbol}`;
+
     return {
-      pool: `${pool}-${p.symbol}-14day`,
+      pool: `${pool}-${symbol}-14day`,
       chain: 'Osmosis',
       project: 'osmosis-dex',
-      symbol: utils.formatSymbol(p.symbol),
+      symbol: utils.formatSymbol(symbol),
       poolMeta: '14day',
-      tvlUsd: p.liquidity,
-      apy: p.apr,
+      tvlUsd: x.liquidity,
+      apyBase: aprBase,
+      apyBase7d: aprBase7d,
+      apyReward,
+      rewardTokens: aprs?.map((a) => a.symbol) ?? [],
+      volumeUsd1d: x.volume_24h,
+      volumeUsd7d: x.volume_7d,
     };
   });
 
