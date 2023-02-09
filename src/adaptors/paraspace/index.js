@@ -4,6 +4,7 @@ const BigNumber = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 const address = require('./address');
 const { UiPoolDataProvider } = require('./abi');
+const { calculateAPY } = require('./utils');
 
 const chain = 'ethereum';
 const { UiPoolDataProvider: uiPool, PoolAddressProvider } = address[chain];
@@ -50,11 +51,12 @@ const apy = async () => {
         project: 'paraspace',
         symbol: reserve.symbol,
         tvlUsd,
-        apyBase: reserve.liquidityRate / 10 ** 25,
+        apyBase: calculateAPY(reserve.liquidityRate).toNumber() * 100,
         underlyingTokens: [reserve.underlyingAsset],
         totalSupplyUsd,
         totalBorrowUsd: totalSupplyUsd - tvlUsd,
-        apyBaseBorrow: reserve.variableBorrowRate / 10 ** 25,
+        apyBaseBorrow:
+          calculateAPY(reserve.variableBorrowRate).toNumber() * 100,
         ltv: reserve.baseLTVasCollateral / 10000,
         url: `https://app.para.space/`,
         borrowable: reserve.borrowingEnabled,
