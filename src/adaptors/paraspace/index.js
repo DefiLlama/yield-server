@@ -54,7 +54,7 @@ const apy = async () => {
         apyBase: calculateAPY(reserve.liquidityRate).toNumber() * 100,
         underlyingTokens: [reserve.underlyingAsset],
         totalSupplyUsd,
-        totalBorrowUsd: totalSupplyUsd - tvlUsd,
+        totalBorrowUsd,
         apyBaseBorrow:
           calculateAPY(reserve.variableBorrowRate).toNumber() * 100,
         ltv: reserve.baseLTVasCollateral / 10000,
