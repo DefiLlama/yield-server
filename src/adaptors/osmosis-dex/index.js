@@ -1,24 +1,6 @@
 const utils = require('../utils');
 
-const buildPool = (entry, chainString) => {
-  const poolSplit = entry.denom.split('/');
-  const pool = poolSplit.length > 1 ? poolSplit[1] : poolSplit[0];
-
-  const newObj = {
-    pool: `${pool}-${entry.symbol}-${entry.duration}`,
-    chain: utils.formatChain(chainString),
-    project: 'osmosis-dex',
-    symbol: utils.formatSymbol(entry.symbol),
-    poolMeta: entry.duration,
-    tvlUsd: entry.liquidity,
-    apy: entry.apr,
-    poolMeta: entry.duration,
-  };
-
-  return newObj;
-};
-
-const topLvl = async (chainString) => {
+const getApy = async () => {
   const tvl = await utils.getData(
     'https://api-osmosis.imperator.co/pools/v2/all?low_liquidity=false'
   );
@@ -34,31 +16,35 @@ const topLvl = async (chainString) => {
     const x = pos[0];
     x.poolId = poolId;
     x.symbol = symbol;
-    aprs = apr
+    const apr14day = apr
       .find((x) => String(x.pool_id) === poolId)
-      ?.apr_list.find((el) => el.symbol === 'OSMO');
+      ?.apr_list.find((el) => el.symbol === 'OSMO')?.apr_14d;
 
-    // add all 3 apy durations
-    for (const d of [1, 7, 14]) {
-      const y = { ...x };
-      y.apr = aprs?.[`apr_${d}d`];
-      y.duration = `${d}day`;
-      data.push(y);
-    }
+    const y = { ...x };
+    y.apr = apr14day;
+    data.push(y);
   }
 
-  data = data.map((el) => buildPool(el, chainString));
+  data = data.map((p) => {
+    const poolSplit = p.denom.split('/');
+    const pool = poolSplit.length > 1 ? poolSplit[1] : poolSplit[0];
+
+    return {
+      pool: `${pool}-${p.symbol}-14day`,
+      chain: 'Osmosis',
+      project: 'osmosis-dex',
+      symbol: utils.formatSymbol(p.symbol),
+      poolMeta: '14day',
+      tvlUsd: p.liquidity,
+      apy: p.apr,
+    };
+  });
 
   return data.filter((p) => utils.keepFinite(p));
 };
 
-const main = async () => {
-  const data = await topLvl('osmosis');
-  return data;
-};
-
 module.exports = {
   timetravel: false,
-  apy: main,
+  apy: getApy,
   url: 'https://app.osmosis.zone/pools',
 };
