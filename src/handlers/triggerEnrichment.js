@@ -433,7 +433,9 @@ const addPoolInfo = (el, stablecoins, config) => {
   // complifi has single token exposure only cause the protocol
   // will pay traders via deposited amounts
   el['ilRisk'] =
-    config[el.project]?.category === 'Options'
+    el.pool === '0x13C6Bed5Aa16823Aba5bBA691CAeC63788b19D9d' // jones-dao jusdc pool
+      ? 'no'
+      : config[el.project]?.category === 'Options'
       ? 'yes'
       : ['complifi', 'optyfi', 'arbor-finance', 'opyn-squeeth'].includes(
           el.project
