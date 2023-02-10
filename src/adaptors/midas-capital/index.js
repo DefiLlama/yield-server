@@ -190,7 +190,7 @@ const main = async () => {
         apyRewardBorrow: undefined,
         ltv: Number(ethers.utils.formatUnits(market.collateralFactor)),
         borrowable: !market.borrowGuardianPaused,
-        poolMeta: market.poolName,
+        poolMeta: `${market.poolName} pool in ${chain}`,
       });
     }
   }
