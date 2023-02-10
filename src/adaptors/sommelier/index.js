@@ -22,10 +22,10 @@ async function main() {
     .pricesBySymbol.somm;
 
   let promises = [];
-  promises = v0815Pools.map((pool) => handleV0815(pool, sommPrice));
-  promises = promises.concat(
-    v0816Pools.map((pool) => handleV0816(pool, sommPrice))
-  );
+  // promises = v0815Pools.map((pool) => handleV0815(pool, sommPrice));
+  // promises = promises.concat(
+  //   v0816Pools.map((pool) => handleV0816(pool, sommPrice))
+  // );
   promises = promises.concat(v2Pools.map((pool) => handleV2(pool, sommPrice)));
 
   const pools = await Promise.all(promises);

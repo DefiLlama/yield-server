@@ -12,35 +12,61 @@ const getPositionAssets = cellarAbi.find(
 );
 
 const windowInHrs = 48; // 2 days
+const dayInSec = 60 * 60 * 24; // 1 day in seconds
+
+async function calcApy(cellarAddress, startEpochSecs, endEpochSecs) {
+  // Returns hourData in desc order, current hour is index 0
+  const hrData = await queries.getHourData(
+    cellarAddress,
+    startEpochSecs,
+    endEpochSecs
+  );
+
+  const remainder = endEpochSecs % dayInSec;
+  const startOfEnd =
+    remainder === 0 ? endEpochSecs - dayInSec : endEpochSecs - remainder;
+
+  // TODO: What should we do for the first two days?
+  // set launch date 2 days after actual launch
+  // if (now < launchDate + 2) { return 0; }
+
+  // Bucket hr datas by day
+  const dayBefore = [];
+  const twoDaysBefore = [];
+  hrData.forEach((data) => {
+    if (data.date < startOfEnd) {
+      twoDaysBefore.push(data);
+    } else {
+      dayBefore.push(data);
+    }
+  });
+
+  // Sum hourly price of the last 2 days individually
+  let sumPrice = dayBefore.reduce((memo, data) => {
+    return memo.plus(data.shareValue);
+  }, new BigNumber(0));
+
+  let sumPrevPrice = twoDaysBefore.reduce((memo, data) => {
+    return memo.plus(data.shareValue);
+  }, new BigNumber(0));
+
+  const price = sumPrice.div(dayBefore.length);
+  const prevPrice = sumPrevPrice.div(twoDaysBefore.length);
+  const yieldRatio = price.minus(prevPrice).div(prevPrice);
+
+  return yieldRatio.times(365).times(100).toNumber();
+}
 
 // Use the change in avg daily price between the last 2 days to calculate an APR
 // If there isn't at least 48 hours of hour data then we shold set the pool property
 // `apyBaseInception` to the backtested APY
 async function getApy(cellarAddress) {
-  // Returns hourData in desc order, current hour is index 0
-  const hrData = await queries.getHourData(cellarAddress, windowInHrs);
+  const now = Math.floor(Date.now() / 1000);
+  const mod = now % dayInSec;
+  const end = now - mod - 1;
+  const start = end - dayInSec - dayInSec + 1;
 
-  // Need a minimum of 2 days of data to calculate yield
-  if (hrData.length < 48) {
-    return 0;
-  }
-
-  // Sum hourly price of the last 2 days individually
-  let sumPrice = new BigNumber(0);
-  let sumPrevPrice = new BigNumber(0);
-  for (let i = 0; i < 24; i++) {
-    // Current 24hrs
-    sumPrice = sumPrice.plus(hrData[i].shareValue);
-
-    // Previous 24hrs
-    sumPrevPrice = sumPrevPrice.plus(hrData[i + 24].shareValue);
-  }
-
-  const price = sumPrice.div(24);
-  const prevPrice = sumPrevPrice.div(24);
-  const yieldRatio = price.minus(prevPrice).div(prevPrice);
-
-  return yieldRatio.times(365).times(100).toNumber();
+  return calcApy(start, end);
 }
 
 const windowInDays = 7;
@@ -88,6 +114,7 @@ async function getHoldingPosition(cellarAddress) {
 }
 
 module.exports = {
+  calcApy,
   getApy,
   getApy7d,
   getHoldingPosition,
