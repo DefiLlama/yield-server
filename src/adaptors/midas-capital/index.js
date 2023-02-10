@@ -117,7 +117,13 @@ const main = async () => {
           );
         });
 
-        allMarkets.push(...assets);
+        const assetsWithPoolInfo = assets.map((asset) => {
+          asset.poolName = pools[poolId].name;
+
+          return asset;
+        });
+
+        allMarkets.push(...assetsWithPoolInfo);
       } catch (e) {}
     }
 
@@ -183,6 +189,8 @@ const main = async () => {
         apyBaseBorrow,
         apyRewardBorrow: undefined,
         ltv: Number(ethers.utils.formatUnits(market.collateralFactor)),
+        borrowable: !market.borrowGuardianPaused,
+        poolMeta: market.poolName,
       });
     }
   }
