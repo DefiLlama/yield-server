@@ -68,7 +68,7 @@ const apyFromPlugin = async (pluginAddress, chain) => {
         0
       );
 
-      return apy;
+      return apy * 100;
     } else {
       return undefined;
     }
@@ -91,7 +91,7 @@ const main = async () => {
 
     const allMarkets = [];
 
-    for (const poolId of poolIndexes) {
+    for (const [index, poolId] of poolIndexes.entries()) {
       try {
         const { comptroller } = (
           await sdk.api.abi.call({
@@ -118,7 +118,7 @@ const main = async () => {
         });
 
         const assetsWithPoolInfo = assets.map((asset) => {
-          asset.poolName = pools[poolId].name;
+          asset.poolName = pools[index].name;
 
           return asset;
         });
