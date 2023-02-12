@@ -8,6 +8,7 @@ exports.BLOCKCHAINIDS = [
   'optimism',
   'xdai',
   'moonbeam',
+  'celo',
 ];
 // https://github.com/curvefi/curve-api/blob/main/endpoints.md#getpools
 REGISTRY_TYPES = ['main', 'crypto', 'factory', 'factory-crypto', 'optimism'];
