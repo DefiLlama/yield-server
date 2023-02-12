@@ -1,7 +1,8 @@
 const utils = require('../utils');
 const superagent = require('superagent');
 
-const AUTH_TOKEN_ENCODED = 'ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR2xsYm5SSlpDSTZJa0Z3Y0RZaUxDSnBZWFFpT2pFMk56QXlNemMxTWpkOS5rbnNtekVOSm40Yk5Ea0ZCM3h2eWZyaDBwVlFLTHY0NW9JanJQNHdRTU5N'
+const AUTH_TOKEN_ENCODED =
+  'ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR2xsYm5SSlpDSTZJa0Z3Y0RZaUxDSnBZWFFpT2pFMk56QXlNemMxTWpkOS5rbnNtekVOSm40Yk5Ea0ZCM3h2eWZyaDBwVlFLTHY0NW9JanJQNHdRTU5N';
 
 const mainnetPoolsUrl = 'https://api.idle.finance/pools';
 // const polygonPoolsUrl = 'https://api-polygon.idle.finance/pools';
@@ -11,14 +12,19 @@ const chains = {
   // matic: 'polygon',
 };
 
-async function getDataWithAuth(url, token){
-  const data = await superagent.get(url).set('Authorization', `Bearer ${token}`);
-  return data?.body
+async function getDataWithAuth(url, token) {
+  const data = await superagent
+    .get(url)
+    .set('Authorization', `Bearer ${token}`);
+  return data?.body;
 }
 
 async function apy() {
-  const AUTH_TOKEN_DECODED = atob(AUTH_TOKEN_ENCODED)
-  const mainnetPoolsResponse = await getDataWithAuth(mainnetPoolsUrl, AUTH_TOKEN_DECODED)
+  const AUTH_TOKEN_DECODED = atob(AUTH_TOKEN_ENCODED);
+  const mainnetPoolsResponse = await getDataWithAuth(
+    mainnetPoolsUrl,
+    AUTH_TOKEN_DECODED
+  );
 
   // console.log('mainnetPoolsResponse', mainnetPoolsResponse)
   // const polygonPoolsResponse = await utils.getData(polygonPoolsUrl);
@@ -39,10 +45,10 @@ async function apy() {
       symbol: v.tokenName,
       poolMeta: v.strategy,
       tvlUsd: Number(v.tvl),
-      project: 'idle-finance',
+      project: 'idle',
       chain: utils.formatChain(chains[chain]),
       underlyingTokens: [v.underlyingAddress],
-    }))
+    }));
 
     allVaults = [...allVaults, ...pools];
   }
