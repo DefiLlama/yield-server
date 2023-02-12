@@ -66,10 +66,34 @@ const apy = async () => {
     })
   ).output.map((o) => o.output);
 
+  const totalSupply = (
+    await sdk.api.abi.multiCall({
+      calls: lpToken.map((lp) => ({
+        target: lp,
+      })),
+      abi: 'erc20:totalSupply',
+      chain: 'ethereum',
+    })
+  ).output.map((o) => o.output);
+
+  const balanceOf = (
+    await sdk.api.abi.multiCall({
+      calls: lpToken.map((lp, i) => ({
+        target: lp,
+        params: gauges[i],
+      })),
+      abi: 'erc20:balanceOf',
+      chain: 'ethereum',
+    })
+  ).output.map((o) => o.output);
+
   const lpTokenRelWeightMap = {};
   for (const [i, weight] of gaugeRelativeWeight.entries()) {
     if (lpToken[i]) {
-      lpTokenRelWeightMap[lpToken[i].toLowerCase()] = weight;
+      lpTokenRelWeightMap[lpToken[i].toLowerCase()] = {
+        gaugeWeight: weight,
+        gaugeShare: balanceOf[i] / totalSupply[i],
+      };
     }
   }
 
@@ -150,14 +174,17 @@ const apy = async () => {
       const apr = ((365 * p.volume * (p.swap.swapFee / 1e10)) / tvlUsd) * 100;
 
       // sdl apr
-      const weight = lpTokenRelWeightMap[p.swap.lpToken.toLowerCase()] / 1e18;
-      const rate = inflationRate / 1e18;
-
-      // need the gauge tvl
+      const gaugeWeight =
+        lpTokenRelWeightMap[p.swap.lpToken.toLowerCase()]?.gaugeWeight / 1e18;
+      const rate = inflationRate / 1e18; // sdl per second
+      const gaugeShare =
+        lpTokenRelWeightMap[p.swap.lpToken.toLowerCase()]?.gaugeShare;
+      const gaugeTvl = gaugeShare * tvlUsd;
       const apyReward =
-        ((rate * 86400 * 365 * prices[`ethereum:${sdl}`]?.price * weight) /
-          tvlUsd) *
-        100;
+        ((rate * 86400 * 365 * prices[`ethereum:${sdl}`]?.price * gaugeWeight) /
+          gaugeTvl) *
+        100 *
+        0.4; // lower bound
 
       return {
         pool: p.swap.id,
