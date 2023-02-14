@@ -226,11 +226,12 @@ const main = async () => {
         apyBase,
         apyReward,
         underlyingTokens: [market.underlyingToken],
-        rewardTokens: market.rewardTokens && market.rewardTokens.length > 0
-          ? market.rewardTokens
-          : pluginAddress
-          ? [pluginAddress]
-          : [],
+        rewardTokens:
+          market.rewardTokens && market.rewardTokens.length > 0
+            ? market.rewardTokens
+            : pluginAddress
+            ? [pluginAddress]
+            : [],
         totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow,
