@@ -5,9 +5,9 @@ const ChainId = {
   FANTOM: 'fantom',
   // AVALANCHE: 'avax', // not found v2
   // ARBITRUM: 'arbitrum', // not found v2
-  OPTIMISM: 'optimism',
+  // OPTIMISM: 'optimism',
   // MOONRIVER: 'moonriver', // not found v2
-  MOONBEAM: 'moonbeam',
+  // MOONBEAM: 'moonbeam', // apyBaseBorrow is weird
   // HARMONY: 'harmony', // not found v2
   BSC: 'bsc',
   // XDAI: 'xdai', // not found v2
@@ -1264,19 +1264,19 @@ const vaults = {
       vaultAddress: '0x4b7509ce029656341D0B59D387D9B5312E41615a',
       version: 2,
     },
-    {
-      chainId: ChainId.MATIC,
-      token: Token.deserializer(
-        ChainId.MATIC,
-        '0x3A58a54C066FdC0f2D55FC9C89F0415C92eBf3C4',
-        18,
-        'stMatic',
-        'Staked Matic'
-      ),
-      frontend: FRONTEND.MANHATTAN,
-      vaultAddress: '0x34fa22892256216a659D4f635354250b4D771458',
-      version: 2,
-    },
+    // {
+    //   chainId: ChainId.MATIC,
+    //   token: Token.deserializer(
+    //     ChainId.MATIC,
+    //     '0x3A58a54C066FdC0f2D55FC9C89F0415C92eBf3C4',
+    //     18,
+    //     'stMatic',
+    //     'Staked Matic'
+    //   ),
+    //   frontend: FRONTEND.MANHATTAN,
+    //   vaultAddress: '0x34fa22892256216a659D4f635354250b4D771458',
+    //   version: 2,
+    // },
   ],
   [ChainId.METIS]: [
     {
@@ -1305,32 +1305,32 @@ const vaults = {
       frontend: FRONTEND.MAI,
       version: 2,
     },
-    {
-      vaultAddress: '0xB89c1b3d9f335B9d8Bb16016F3d60160AE71041f',
-      chainId: ChainId.METIS,
-      token: Token.deserializer(
-        ChainId.METIS,
-        METIS_WBTC_ADDRESS,
-        8,
-        'WBTC',
-        'Wrapped BTC'
-      ),
-      frontend: FRONTEND.MAI,
-      version: 2,
-    },
-    {
-      vaultAddress: '0x5A03716bd1f338D7849f5c9581AD5015ce0020B0',
-      chainId: ChainId.METIS,
-      token: Token.deserializer(
-        ChainId.METIS,
-        '0x433e43047b95cb83517abd7c9978bdf7005e9938',
-        8,
-        'm.WBTC',
-        'Metis Wrapped BTC'
-      ),
-      frontend: FRONTEND.MAI,
-      version: 2,
-    },
+    // {
+    //   vaultAddress: '0xB89c1b3d9f335B9d8Bb16016F3d60160AE71041f',
+    //   chainId: ChainId.METIS,
+    //   token: Token.deserializer(
+    //     ChainId.METIS,
+    //     METIS_WBTC_ADDRESS,
+    //     8,
+    //     'WBTC',
+    //     'Wrapped BTC'
+    //   ),
+    //   frontend: FRONTEND.MAI,
+    //   version: 2,
+    // },
+    // {
+    //   vaultAddress: '0x5A03716bd1f338D7849f5c9581AD5015ce0020B0',
+    //   chainId: ChainId.METIS,
+    //   token: Token.deserializer(
+    //     ChainId.METIS,
+    //     '0x433e43047b95cb83517abd7c9978bdf7005e9938',
+    //     8,
+    //     'm.WBTC',
+    //     'Metis Wrapped BTC'
+    //   ),
+    //   frontend: FRONTEND.MAI,
+    //   version: 2,
+    // },
   ],
 };
 

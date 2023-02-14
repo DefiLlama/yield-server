@@ -54,7 +54,9 @@ const getApy = async () => {
       pool: `${pool.pool}-dot-dot-finance`,
       chain: utils.formatChain('binance'),
       project: 'dot-dot-finance',
-      symbol: utils.formatSymbol(pool.symbol),
+      symbol: utils.formatSymbol(
+        pool.symbol.replace('val3EPS', 'valBUSD/valUSDC/valUSDT')
+      ),
       tvlUsd: pool.dddTvlUSD,
       apyReward,
       apyBase: pool.baseApr || 0,
@@ -66,7 +68,7 @@ const getApy = async () => {
       ],
     };
   });
-  const res = [...pools, stakingPool];
+  const res = [...pools, stakingPool].filter((p) => utils.keepFinite(p));
 
   return res;
 };

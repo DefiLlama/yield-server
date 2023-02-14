@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const { farmAbi, pairAbi } = require('./abi');
+const { vstFraxStaking } = require('./vstFraxStaking');
 
 const FRAXSWAP_POOLS_URL = 'https://api.frax.finance/v2/fraxswap/pools';
 const STAKING_URL = 'https://api.frax.finance/v1/pools';
@@ -79,7 +80,12 @@ const apy = async () => {
     };
   });
 
-  return fraxSwapRes.concat(stakingRes).filter(Boolean);
+  const vstFraxStakingRes = await vstFraxStaking();
+
+  return fraxSwapRes
+    .concat(stakingRes)
+    .concat(vstFraxStakingRes)
+    .filter(Boolean);
 };
 
 module.exports = {
