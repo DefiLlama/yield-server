@@ -117,8 +117,11 @@ const main = async () => {
           .map((marketReward) => ({
             underlyingPrice: marketReward.underlyingPrice,
             market: marketReward.market,
-            rewardsInfo: marketReward.rewardsInfo.filter((info) =>
-              info.rewardSpeedPerSecondPerToken.gt(0)
+            rewardsInfo: marketReward.rewardsInfo.filter(
+              (info) =>
+                Number(
+                  ethers.utils.formatUnits(info.rewardSpeedPerSecondPerToken)
+                ) > 0
             ),
           }))
           .filter((marketReward) => marketReward.rewardsInfo.length > 0);
@@ -150,7 +153,7 @@ const main = async () => {
 
             reward.rewardsInfo.map((info) => {
               if (info.formattedAPR) {
-                apy += parseFloat(ethers.utils.formatUnits(info.formattedAPR));
+                apy += Number(ethers.utils.formatUnits(info.formattedAPR));
               }
             });
 
@@ -158,7 +161,7 @@ const main = async () => {
           }
 
           return asset;
-        });        
+        });
 
         allMarkets.push(...assetsWithPoolInfo);
       } catch (e) {}
