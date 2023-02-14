@@ -149,15 +149,16 @@ const main = async () => {
           );
 
           if (reward) {
-            let apy = 0;
+            asset.apyReward = 0;
+            asset.rewardTokens = [];
 
             reward.rewardsInfo.map((info) => {
               if (info.formattedAPR) {
-                apy += Number(ethers.utils.formatUnits(info.formattedAPR));
+                asset.apyReward +=
+                  Number(ethers.utils.formatUnits(info.formattedAPR)) * 100;
+                asset.rewardTokens.push(info.rewardToken);
               }
             });
-
-            asset.apyReward = apy * 100;
           }
 
           return asset;
@@ -225,7 +226,11 @@ const main = async () => {
         apyBase,
         apyReward,
         underlyingTokens: [market.underlyingToken],
-        rewardTokens: pluginAddress ? [pluginAddress] : [],
+        rewardTokens: asset.rewardTokens
+          ? asset.rewardTokens
+          : pluginAddress
+          ? [pluginAddress]
+          : [],
         totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow,
