@@ -21,8 +21,8 @@ const POOL_LENS_ADDRESS = {
 };
 
 const MIDAS_FLYWHEEL_LENS_ROUTER = {
-  [CHAINS.bsc]: '0xbC58155360A097A544276a8bF96f3fc468e49dd2',
-  [CHAINS.polygon]: '0xACE76A60D4bF76BCa8ccd274Ae6D081904bBbAe3',
+  [CHAINS.bsc]: '0xb4c8353412633B779893Bb728435930b7d3610C8',
+  [CHAINS.polygon]: '0xda359cB8c4732C7260CD72dD052CD053765f1Dcf',
 };
 
 const CG_KEY = {
@@ -102,6 +102,27 @@ const main = async () => {
           })
         ).output;
 
+        const marketRewards = (
+          await sdk.api.abi.call({
+            target: MIDAS_FLYWHEEL_LENS_ROUTER[chain],
+            chain: chain,
+            abi: flywheelLensRouterAbi.find(
+              ({ name }) => name === GET_MARKET_REWARDS_INFO
+            ),
+            params: [comptroller],
+          })
+        ).output;
+
+        const adaptedMarketRewards = marketRewards
+          .map((marketReward) => ({
+            underlyingPrice: marketReward.underlyingPrice,
+            market: marketReward.market,
+            rewardsInfo: marketReward.rewardsInfo.filter((info) =>
+              info.rewardSpeedPerSecondPerToken.gt(0)
+            ),
+          }))
+          .filter((marketReward) => marketReward.rewardsInfo.length > 0);
+
         const assets = (
           await sdk.api.abi.call({
             target: POOL_LENS_ADDRESS[chain],
@@ -120,8 +141,24 @@ const main = async () => {
         const assetsWithPoolInfo = assets.map((asset) => {
           asset.poolName = pools[index].name;
 
+          const reward = adaptedMarketRewards.find(
+            (reward) => reward.market === asset.cToken
+          );
+
+          if (reward) {
+            let apy = 0;
+
+            reward.rewardsInfo.map((info) => {
+              if (info.formattedAPR) {
+                apy += parseFloat(ethers.utils.formatUnits(info.formattedAPR));
+              }
+            });
+
+            asset.apyReward = apy * 100;
+          }
+
           return asset;
-        });
+        });        
 
         allMarkets.push(...assetsWithPoolInfo);
       } catch (e) {}
@@ -172,7 +209,9 @@ const main = async () => {
         )
       ).body;
 
-      const apyReward = await apyFromPlugin(pluginAddress, chain);
+      const apyReward = market.apyReward
+        ? market.apyReward
+        : await apyFromPlugin(pluginAddress, chain);
 
       markets.push({
         pool: market.cToken.toLowerCase(),
