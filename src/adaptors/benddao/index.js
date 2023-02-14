@@ -174,7 +174,7 @@ async function apy() {
                 pool: `${AddressMap[chain].UniswapV2PairWETH}-${chain}`,
                 chain: ChainName[chain],
                 project: 'benddao',
-                symbol: 'BEND-ETH',
+                symbol: 'BEND-WETH',
                 tvlUsd: new BigNumber(
                   new BigNumber(wethBalance)
                     .shiftedBy(-18)
