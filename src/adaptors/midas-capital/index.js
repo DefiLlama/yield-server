@@ -226,8 +226,8 @@ const main = async () => {
         apyBase,
         apyReward,
         underlyingTokens: [market.underlyingToken],
-        rewardTokens: asset.rewardTokens
-          ? asset.rewardTokens
+        rewardTokens: market.rewardTokens
+          ? market.rewardTokens
           : pluginAddress
           ? [pluginAddress]
           : [],
