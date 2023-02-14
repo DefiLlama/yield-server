@@ -190,6 +190,7 @@ async function apy() {
                   .shiftedBy(-18)
                   .multipliedBy(100)
                   .toNumber(),
+                rewardTokens: [AddressMap[chain].Bend],
                 underlyingTokens: [
                   AddressMap[chain].Bend,
                   AddressMap[chain].WETH,
