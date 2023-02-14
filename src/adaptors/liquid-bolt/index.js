@@ -156,6 +156,7 @@ const getApy = async () => {
           symbol: lp.name,
           tvlUsd: 0,
           apyBase: lp.apy_base,
+          apyBase7d: lp.apy_base_7days,
           underlyingTokens: [lp.token0, lp.token1],
           rewardTokens: [lp.token0, lp.token1],
         });
