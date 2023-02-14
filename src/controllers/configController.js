@@ -1,6 +1,7 @@
 const minify = require('pg-minify');
 
 const { pgp, connect } = require('../utils/dbConnection');
+const { lambdaResponse } = require('../utils/lambda');
 
 const tableName = 'config';
 
@@ -85,6 +86,37 @@ const getDistinctID = async () => {
   return response;
 };
 
+// get config data of pool
+const getConfigPool = async (configIDs) => {
+  const conn = await connect();
+
+  const query = minify(
+    `
+    SELECT
+      *
+    FROM
+        $<table:name>
+    WHERE
+        config_id IN ($<configIDs:csv>)
+    `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query, {
+    table: tableName,
+    configIDs: configIDs.split(','),
+  });
+
+  if (!response) {
+    return new AppError(`Couldn't get ${tableName} data`, 404);
+  }
+
+  return lambdaResponse({
+    status: 'success',
+    data: response,
+  });
+};
+
 // multi row insert (update on conflict) query generator
 const buildInsertConfigQuery = (payload) => {
   const columns = [
@@ -103,6 +135,7 @@ const buildInsertConfigQuery = (payload) => {
     { name: 'ltv', def: null },
     { name: 'borrowable', def: null },
     { name: 'mintedCoin', def: null },
+    { name: 'borrowFactor', def: null },
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
   const query =
@@ -118,5 +151,6 @@ module.exports = {
   buildInsertConfigQuery,
   getUrl,
   getDistinctID,
+  getConfigPool,
   tableName,
 };

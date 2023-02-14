@@ -11,6 +11,8 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'bsc') return 'Binance';
   if (chain && chain.toLowerCase() === 'milkomeda') return 'Milkomeda C1';
   if (chain && chain.toLowerCase() === 'milkomeda_a1') return 'Milkomeda A1';
+  if (chain && chain.toLowerCase() === 'boba_avax') return 'Boba_Avax';
+  if (chain && chain.toLowerCase() === 'boba_bnb') return 'Boba_Bnb';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
@@ -194,6 +196,14 @@ exports.aprToApy = (apr, compoundFrequency = 365) => {
     ((1 + (apr * 0.01) / compoundFrequency) ** compoundFrequency - 1) * 100
   );
 };
+
+exports.apyToApr = (apy, compoundFrequency = 365) => {
+  return (
+    (((apy / 100 + 1) ** (1 / compoundFrequency) - 1) * compoundFrequency) /
+    0.01
+  );
+};
+
 // calculating apy based on subgraph data
 exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
   pool = { ...pool };
@@ -203,6 +213,8 @@ exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
     pool['feeTier'] = 3000;
   } else if (version === 'stellaswap') {
     pool['feeTier'] = 2000;
+  } else if (version === 'zyberswap') {
+    pool['feeTier'] = 1500;
   }
 
   // calc prior volume on 24h offset

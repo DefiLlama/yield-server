@@ -7,7 +7,9 @@ const excludeAdaptors = [
   'pony-finance',
   'optifi',
   'cbridge',
-  'barnbridge', // temporarily cause they disbaled there current app. going to launch new version on arbi
+  'friktion',
+  'armor', // is now ease.org
+  'lachain-yield-market',
 ];
 
 const excludePools = [
@@ -42,6 +44,10 @@ const excludePools = [
   '0x726e324c29a1e49309672b244bdc4ff62a270407000200000000000000000702', // USDC-XSGD balancer pool on polygon. can't find on UI
   '0xf4c0dd9b82da36c07605df83c8a416f11724d88b', // GNO-WETH on aura
   '0xa33c1963d74d203df6bffdfda3bff39a1d76e1d0', // sol pool on lyra
+  '0x7a5011bf1dad77a23ec35ce04dcc2ac7d29963c5', // matic-peco
+  '0x19D3364A399d251E894aC732651be8B0E4e85001', // ydai
+  '0x09AA7178049Ba617119425A80faeee12dBe121de', // weth on klap
+  '0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9', // old usdc vault on yearn
 ];
 
 const boundaries = {
@@ -52,7 +58,7 @@ const boundaries = {
   // we only get pools for the UI with a maximum apy of 1million %
   apy: { lb: 0, ub: 1e6 },
   // reading from database returns only pools which is max 7 days old
-  age: 7,
+  age: 5,
 };
 
 module.exports = {

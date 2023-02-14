@@ -2,19 +2,32 @@ const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 
-const abi = require('./abi.js');
-const utils = require('../utils');
+const ERC20 = require('./abis/ERC20.js');
+const IProvider = require('./abis/IProvider.js');
 
-const URL = 'https://api.thegraph.com/subgraphs/name/barnbridge/bb-sy-graph';
-
-const SMART_YIELD = '0xa0b3d2AF5a37CDcEdA1af38b58897eCB30Feaa1A';
+const CHAINS = [
+  {
+    id: 1,
+    name: 'ethereum',
+    url: 'https://api.thegraph.com/subgraphs/name/barnbridge/bb-sy-mainnet',
+    address: '0x8A897a3b2dd6756fF7c17E5cc560367a127CA11F',
+    abi: require('./abis/SmartYieldaV2.js'),
+  },
+  {
+    id: 42161,
+    name: 'arbitrum',
+    url: 'https://api.thegraph.com/subgraphs/name/barnbridge/bb-sy-arbitrum',
+    address: '0x1ADDAbB3fAc49fC458f2D7cC24f53e53b290d09e',
+    abi: require('./abis/SmartYieldaV3.js'),
+  },
+];
 
 const termsQuery = () => {
   const now = Math.floor(Date.now() / 1000);
 
   return gql`
     {
-      terms(where: { start_lte: ${now}, end_gt: ${now} }) {
+      terms(where: { end_gt: ${now} }) {
         id
         assetName
         assetSymbol
@@ -37,17 +50,8 @@ const termsQuery = () => {
   `;
 };
 
-const LIQUIDITY_QUERY = gql`
-  {
-    contracts(where: { id: "SmartYield" }) {
-      id
-      liquidity
-    }
-  }
-`;
-
-const getAssetUsdPrice = async (asset) => {
-  const key = `ethereum:${asset}`;
+const getAssetUsdPrice = async (chain, asset) => {
+  const key = `${chain.name}:${asset}`;
   const assetPriceUSD = (
     await superagent.post('https://coins.llama.fi/prices').send({
       coins: [key],
@@ -57,22 +61,77 @@ const getAssetUsdPrice = async (asset) => {
   return assetPriceUSD;
 };
 
-const earnedYield = async (terms, termId) => {
+const underlying = async () =>
+  (
+    await sdk.api.abi.call({
+      abi: chain.abi.find((i) => i.name === 'underlying'),
+      chain: chain.name,
+      target: chain.address,
+    })
+  ).output;
+
+const decimals = async (chain, target) =>
+  (
+    await sdk.api.abi.call({
+      abi: ERC20.find((i) => i.name === 'decimals'),
+      chain: chain.name,
+      target: target,
+    })
+  ).output;
+
+const bondProvider = async (chain) =>
+  (
+    await sdk.api.abi.call({
+      abi: chain.abi.find((i) => i.name === 'bondProvider'),
+      chain: chain.name,
+      target: chain.address,
+    })
+  ).output;
+
+const underlyingBalance = async (chain, target) =>
+  (
+    await sdk.api.abi.call({
+      abi: IProvider.find((i) => i.name === 'underlyingBalance'),
+      chain: chain.name,
+      target: target,
+    })
+  ).output;
+
+const totalUnRedeemed = async (chain, target) =>
+  (
+    await sdk.api.abi.call({
+      abi: IProvider.find((i) => i.name === 'totalUnRedeemed'),
+      chain: chain.name,
+      target: target,
+    })
+  ).output;
+
+const liquidityProviderBalance = async (chain) => {
+  const balance = (
+    await sdk.api.abi.call({
+      abi: chain.abi.find((i) => i.name === 'liquidityProviderBalance'),
+      chain: chain.name,
+      target: chain.address,
+    })
+  ).output;
+
+  return balance;
+};
+
+const earnedYield = async (chain, terms, termId) => {
   const nextTerm = terms.find(
     (t) => t.nextTerm && t.nextTerm.id.toLowerCase() === termId.toLowerCase()
   );
 
   if (nextTerm) {
-    const currentRealizedYield = (
-      await sdk.api.abi.call({
-        target: SMART_YIELD,
-        abi: abi.find((i) => i.name === '_currentRealizedYield'),
-        chain: 'ethereum',
-      })
-    ).output;
+    const underlying = underlying(chain);
+    const decimals = decimals(chain, underlying);
+    const bondProvider = bondProvider(chain);
+    const underlyingBalance = underlyingBalance(chain, bondProvider);
+    const totalUnRedeemed = totalUnRedeemed(chain, bondProvider);
 
     const _earnedYield =
-      Number(currentRealizedYield) / `1e${terms[0].assetDecimals}`;
+      (Number(underlyingBalance) - Number(totalUnRedeemed)) / `1e${decimals}`;
 
     return _earnedYield;
   }
@@ -109,46 +168,54 @@ const yieldToBeDistributed = (term, earnedYield) => {
 };
 
 const apy = async () => {
-  const { terms } = await request(URL, termsQuery());
-  const { contracts } = await request(URL, LIQUIDITY_QUERY);
-
-  const assets = [...new Set(terms.map((term) => term.underlying))];
-
-  const assetAndUsdPrices = await Promise.all(
-    assets.map(async (asset) => [asset, await getAssetUsdPrice(asset)])
-  );
-
-  const assetUsdPrices = Object.fromEntries(assetAndUsdPrices);
-
   const pools = await Promise.all(
-    terms.map(async (term) => {
-      const tvlUsd =
-        (term.depositedAmount * assetUsdPrices[term.underlying]) /
-          `1e${term.underlyingDecimals}` +
-        (contracts[0].liquidity * assetUsdPrices[term.underlying]) /
-          `1e${term.underlyingDecimals}`;
+    CHAINS.map(async (chain) => {
+      const { terms } = await request(chain.url, termsQuery());
 
-      const _earnedYield = await earnedYield(terms, term.id);
+      const assets = [...new Set(terms.map((term) => term.underlying))];
 
-      return {
-        pool: `${term.id}`.toLowerCase(),
-        chain: 'ethereum',
-        project: 'barnbridge',
-        symbol: 'DAI',
-        poolMeta: term.assetName,
-        tvlUsd,
-        apyBase: apyBase(term, _earnedYield),
-        underlyingTokens: [term.underlying],
-        url: `https://app.barnbridge.com/fixed-yield/pools/${term.id}/`,
-      };
+      const assetAndUsdPrices = await Promise.all(
+        assets.map(async (asset) => [
+          asset,
+          await getAssetUsdPrice(chain, asset),
+        ])
+      );
+
+      const assetUsdPrices = Object.fromEntries(assetAndUsdPrices);
+
+      return await Promise.all(
+        terms.map(async (term) => {
+          const liquidity = await liquidityProviderBalance(chain);
+
+          const tvlUsd =
+            (term.depositedAmount * assetUsdPrices[term.underlying]) /
+              `1e${term.underlyingDecimals}` +
+            (liquidity * assetUsdPrices[term.underlying]) /
+              `1e${term.underlyingDecimals}`;
+
+          const _earnedYield = await earnedYield(chain, terms, term.id);
+
+          return {
+            pool: `${term.id}`.toLowerCase(),
+            chain: chain.name,
+            project: 'barnbridge',
+            symbol: term.underlyingSymbol,
+            poolMeta: term.assetName,
+            tvlUsd,
+            apyBase: apyBase(term, _earnedYield),
+            underlyingTokens: [term.underlying],
+            url: `https://app.barnbridge.com/fixed-yield/pools/details/?id=${term.id}&chainId=${chain.id}`,
+          };
+        })
+      );
     })
   );
 
-  return pools;
+  return pools.flat();
 };
 
 module.exports = {
-  timetravel: false,
   apy,
   url: 'https://app.barnbridge.com/fixed-yield/pools/',
+  timetravel: false,
 };
