@@ -10,6 +10,7 @@ module.exports = {
   CRONOS_RPC: process.env.CRONOS_RPC,
   FANTOM_RPC: process.env.FANTOM_RPC,
   OPTIMISM_RPC: process.env.OPTIMISM_RPC,
+  AVAX_RPC: process.env.AVAX_RPC,
   TVL_SPIKE_WEBHOOK: process.env.TVL_SPIKE_WEBHOOK,
   NEW_YIELDS_WEBHOOK: process.env.NEW_YIELDS_WEBHOOK,
   STALE_PROJECTS_WEBHOOK: process.env.STALE_PROJECTS_WEBHOOK,
