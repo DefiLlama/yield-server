@@ -46,7 +46,7 @@ const getApy = async () => {
           abi: abiLendingPool.find((m) => m.name === 'getReserveData'),
           chain: sdkChain,
         })
-      ).output;
+      ).output.map((o) => o.output);
 
       const [liquidityRes, decimalsRes, symbolsRes] = await Promise.all(
         ['erc20:balanceOf', 'erc20:decimals', 'erc20:symbol'].map((method) =>
@@ -99,50 +99,48 @@ const getApy = async () => {
         await axios.get(`https://coins.llama.fi/prices/current/${pricesArray}`)
       ).data.coins;
 
-      return reservesList
-        .map((t, i) => {
-          const config = reserveConfigurationData[i];
-          if (!config.isActive) return null;
+      return reservesList.map((t, i) => {
+        const config = reserveConfigurationData[i];
+        if (!config.isActive) return null;
 
-          const price = prices[`${sdkChain}:${t}`]?.price;
+        const price = prices[`${sdkChain}:${t}`]?.price;
 
-          const tvlUsd = (liquidity[i] / 10 ** decimals[i]) * price;
-          const totalBorrowUsd = (totalBorrow[i] / 10 ** decimals[i]) * price;
-          const totalSupplyUsd = tvlUsd + totalBorrowUsd;
+        const tvlUsd = (liquidity[i] / 10 ** decimals[i]) * price;
+        const totalBorrowUsd = (totalBorrow[i] / 10 ** decimals[i]) * price;
+        const totalSupplyUsd = tvlUsd + totalBorrowUsd;
 
-          const apyBase = reserveData[i].currentLiquidityRate / 1e25;
-          const apyBaseBorrow = reserveData[i].currentVariableBorrowRate / 1e25;
+        const apyBase = reserveData[i].currentLiquidityRate / 1e25;
+        const apyBaseBorrow = reserveData[i].currentVariableBorrowRate / 1e25;
 
-          const ltv = config.ltv / 1e4;
-          const borrowable = config.borrowingEnabled;
-          const frozen = config.isFrozen;
+        const ltv = config.ltv / 1e4;
+        const borrowable = config.borrowingEnabled;
+        const frozen = config.isFrozen;
 
-          const url = `https://app.aave.com/reserve-overview/?underlyingAsset=${t.toLowerCase()}&marketName=proto_${
-            chains[chain].url
-          }`;
+        const url = `https://app.aave.com/reserve-overview/?underlyingAsset=${t.toLowerCase()}&marketName=proto_${
+          chains[chain].url
+        }`;
 
-          return {
-            pool: `${reserveData[i].aTokenAddress}-${chain}`.toLowerCase(),
-            symbol: symbols[i],
-            project: 'aave-v2',
-            chain,
-            tvlUsd,
-            apyBase,
-            underlyingTokens: [t],
-            url,
-            // borrow fields
-            totalSupplyUsd,
-            totalBorrowUsd,
-            apyBaseBorrow,
-            ltv,
-            borrowable,
-            poolMeta: frozen ? 'frozen' : null,
-          };
-        })
-        .filter((p) => utils.keepFinite(p));
+        return {
+          pool: `${reserveData[i].aTokenAddress}-${chain}`.toLowerCase(),
+          symbol: symbols[i],
+          project: 'aave-v2',
+          chain,
+          tvlUsd,
+          apyBase,
+          underlyingTokens: [t],
+          url,
+          // borrow fields
+          totalSupplyUsd,
+          totalBorrowUsd,
+          apyBaseBorrow,
+          ltv,
+          borrowable,
+          poolMeta: frozen ? 'frozen' : null,
+        };
+      });
     })
   );
-  return pools.flat();
+  return pools.flat().filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
