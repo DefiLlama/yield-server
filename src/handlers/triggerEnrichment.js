@@ -341,7 +341,8 @@ const checkStablecoin = (el, stablecoins) => {
     tokens.some((t) => t.includes('sushi')) ||
     tokens.some((t) => t.includes('dusk')) ||
     tokens.some((t) => t.includes('fpis')) ||
-    tokens.some((t) => t.includes('emaid'))
+    tokens.some((t) => t.includes('emaid')) ||
+    tokens.some((t) => t.includes('grail'))
   ) {
     stable = false;
   } else if (tokens.length === 1) {
