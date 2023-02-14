@@ -118,7 +118,6 @@ async function apy() {
                     .toNumber(),
                   rewardTokens: [AddressMap[chain].Bend],
                   underlyingTokens: [reserve.underlyingAsset],
-                  poolMeta: `isActive:${reserve.isActive} isFrozen:${reserve.isFrozen} borrowingEnabled:${reserve.borrowingEnabled}`,
                   url: 'https://benddao.xyz',
                   apyBaseBorrow: new BigNumber(reserve.variableBorrowRate)
                     .shiftedBy(-27)
@@ -137,6 +136,7 @@ async function apy() {
                     .plus(totalVariableDebtUsd)
                     .toNumber(),
                   totalBorrowUsd: totalVariableDebtUsd.toNumber(),
+                  borrowable: reserve.borrowingEnabled,
                 };
               })
             ),
