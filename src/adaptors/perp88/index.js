@@ -105,7 +105,7 @@ const apy = async () => {
     pool: `${addresses.PLP_STAKING}-polygon`,
     chain: 'Polygon',
     project: 'perp88',
-    symbol: 'PLP',
+    symbol: 'USDC-USDT-WBTC-ETH-MATIC',
     tvlUsd: tvl.toNumber(),
     apy: apr.toNumber(),
     rewardTokens: [addresses.USDC],
