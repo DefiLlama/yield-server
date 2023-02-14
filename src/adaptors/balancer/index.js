@@ -23,6 +23,8 @@ const urlGaugesArbitrum = `${urlBase}/balancer-gauges-arbitrum`;
 const protocolFeesCollector = '0xce88686553686DA562CE7Cea497CE749DA109f9F';
 const gaugeController = '0xC128468b7Ce63eA702C1f104D55A2566b13D3ABD';
 
+const BAL = '0xba100000625a3754423978a60c9317c58a424e3d';
+
 const queryGauge = gql`
   {
     liquidityGauges(first: 200) {
@@ -98,6 +100,17 @@ const bbTokenMapping = {
     '0x804cdb9116a10bb78768d3252355a1b18067bf8f',
 };
 
+// for Balancer Aave Boosted StablePool on Polygon there is no price data
+// Using underlying assets for price
+const polygonBBTokenMapping = {
+  '0x178e029173417b1f9c8bc16dcec6f697bc323746':
+    '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063', // DAI
+  '0xf93579002dbe8046c43fefe86ec78b1112247bb8':
+    '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', // USDC
+  '0xff4ce5aaab5a627bf82f4a571ab1ce94aa365ea6':
+    '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', // USDT
+};
+
 const correctMaker = (entry) => {
   entry = { ...entry };
   // for some reason the MKR symbol is not there, add this manually for
@@ -114,28 +127,28 @@ const correctMaker = (entry) => {
 const tvl = (entry, tokenPriceList, chainString) => {
   entry = { ...entry };
 
-  // the boosted pools also contain bb-a-usd as underlying, which imo is wrong (seems like this is
-  // representing the total from `getActualSupply`); removing them from the array to get the correct tvl
-  const excludeTokenList = [
-    '0x7b50775383d3d6f0215a8f290f2c9e2eebbeceb2',
-    '0xa13a9247ea42d743238089903570127dda72fe44',
-    '0xfb5e6d0c1dfed2ba000fbc040ab8df3615ac329c', // b-steth
-  ];
-
-  const balanceDetails = entry.tokens;
+  const balanceDetails = entry.tokens.filter(
+    (t) =>
+      ![
+        'B-STETH-Stable',
+        'B-STMATIC-STABLE',
+        'B-MATICX-STABLE',
+        'B-CSMATIC',
+        'CBETH-WSTETH-BPT',
+      ].includes(t.symbol.toUpperCase().trim())
+  );
   const d = {
     id: entry.id,
     symbol: balanceDetails.map((tok) => tok.symbol).join('-'),
     tvl: 0,
     totalShares: entry.totalShares,
-    tokensList: entry.tokensList.filter((p) => !excludeTokenList.includes(p)),
+    tokensList: entry.tokensList,
   };
+  const symbols = [];
+  const tokensList = [];
+  let price;
   for (const el of balanceDetails) {
-    if (excludeTokenList.includes(el.address)) continue;
-    // some addresses are from tokens which are not listed on coingecko so these will result in undefined
-
-    let price =
-      tokenPriceList[`${chainString}:${el.address.toLowerCase()}`]?.price;
+    price = tokenPriceList[`${chainString}:${el.address.toLowerCase()}`]?.price;
     if (
       el.address.toLowerCase() ===
       '0x7dff46370e9ea5f0bad3c4e29711ad50062ea7a4'.toLowerCase()
@@ -143,13 +156,21 @@ const tvl = (entry, tokenPriceList, chainString) => {
       price =
         tokenPriceList['solana:So11111111111111111111111111111111111111112']
           ?.price;
-    // if price is undefined of one token in pool, the total tvl will be NaN
     if (
       entry.id ===
       '0xa13a9247ea42d743238089903570127dda72fe4400000000000000000000035d'
     ) {
       price = tokenPriceList[`ethereum:${bbTokenMapping[el.address]}`]?.price;
     }
+    if (
+      chainString == 'polygon' &&
+      entry.id ===
+        '0x48e6b98ef6329f8f0a30ebb8c7c960330d64808500000000000000000000075b'
+    ) {
+      price =
+        tokenPriceList[`polygon:${polygonBBTokenMapping[el.address]}`]?.price;
+    }
+    price = price ?? 0;
     d.tvl += Number(el.balance) * price;
   }
 
@@ -165,6 +186,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
 
   // get BAL inflation rate (constant among gauge contract ids)
   let inflationRate;
+  let price;
   if (chainString === 'ethereum') {
     inflationRate =
       (
@@ -176,8 +198,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
       ).output / 1e18;
 
     // get BAL price
-    balToken = '0xba100000625a3754423978a60c9317c58a424e3d';
-    const key = `${chainString}:${balToken}`;
+    const key = `${chainString}:${BAL}`;
     price = (
       await superagent.post('https://coins.llama.fi/prices').send({
         coins: [key],
@@ -227,7 +248,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
         const yearlyReward = weeklyReward * 52 * price;
         const aprLM = (yearlyReward / bptPrice) * 100;
         aprLMRewards.push(aprLM === Infinity ? 0 : aprLM);
-        rewardTokens.push(balToken);
+        rewardTokens.push(BAL);
       }
     }
 
@@ -254,7 +275,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
         await superagent.post('https://coins.llama.fi/prices').send({
           coins: [key],
         })
-      ).body.coins[key].price;
+      ).body.coins[key]?.price;
 
       // call reward data
       const { rate, period_finish } = (
@@ -359,10 +380,6 @@ const topLvl = async (
 
   // build pool objects
   return tvlInfo.map((p) => {
-    if (p.symbol.includes('bb-a-USD')) {
-      console.log(p.symbol);
-    }
-
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
@@ -370,7 +387,11 @@ const topLvl = async (
       symbol: utils.formatSymbol(p.symbol),
       tvlUsd: p.tvl,
       apyBase: p.aprFee,
-      apyReward: p.aprLM,
+      apyReward:
+        p.id ===
+        '0x8167a1117691f39e05e9131cfa88f0e3a620e96700020000000000000000038c' // WETH-T wrong bal apr
+          ? 0
+          : p.aprLM,
       rewardTokens: p.rewardTokens,
       underlyingTokens: p.tokensList,
       url: `https://${

@@ -124,28 +124,6 @@ const POOL_LIST = [
     },
     {
         "type": "WOMBAT_POOL",
-        "poolId": 6,
-        "helper": "0x399cB05deb6a9C9F0172EC50A972590e760dbf71",
-        "helperNeedsHarvest": true,
-        "locker": "0x0000000000000000000000000000000000000000",
-        "rewarder": "0xf0630d4F3d92E2E8CF9dA4D5A0418dc4BA26664f",
-        "stakingToken": "0xE85aFCcDaFBE7F2B096f268e31ccE3da8dA2990A",
-        "rawStakingToken": "0x57dbD8F307740c12B492A9a6333Eb84A680E6878",
-        "desc": "on Wombat",
-        "apr": "0.0%",
-        "isNative": false,
-        "stakingTokenInfo": {
-            "name": "aBNBc",
-            "symbol": "aBNBc",
-            "showSymbol": "aBNBc",
-            "priceId": "ABNBC",
-           
-        },
-        "wombatPoolType": "BNB_POOL",
-
-    },
-    {
-        "type": "WOMBAT_POOL",
         "poolId": 7,
         "helper": "0xbf925c91f3AB02aDAcB707643acFae287d593be1",
         "helperNeedsHarvest": true,

@@ -1,7 +1,7 @@
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const abi = require('./abi.json');
-const { getData } = require('../utils');
+const axios = require('axios');
 
 const url = 'https://api.shipyard.finance';
 const urlVaults = `${url}/vaults`;
@@ -24,10 +24,8 @@ const getVaultTvl = async (vaults) => {
   }
 
   const coinsData = (
-    await getData('https://coins.llama.fi/prices', {
-      coins: coins,
-    })
-  ).coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${coins}`)
+  ).data.coins;
 
   for (const vault of vaults) {
     const want = vault.tokenAddress;
@@ -54,7 +52,8 @@ const getVaultTvl = async (vaults) => {
 };
 
 const main = async () => {
-  const vaults = await utils.getData(urlVaults);
+  const vaults = (await axios.get(urlVaults)).data;
+
   const dicVaultAndTvl = await getVaultTvl(vaults);
 
   const promised = vaults

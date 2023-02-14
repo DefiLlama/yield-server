@@ -6,12 +6,24 @@
 2. Fork this repository
 3. Create a new folder within [src/adaptors/](src/adaptors/) with your protocol name (use your project `slug` from `https://api.llama.fi/protocols`)
 4. Write an adaptor for your protocol (tutorial below)
-5. Test your adaptor by running `npm run test --adapter=YOUR_ADAPTER` (remember to install dependencies with `npm i` first!)
-6. Submit a PR
+5. `cd src/adaptors` and run `npm i`
+6. Test your adaptor by running `npm run test --adapter=YOUR_ADAPTER`
+7. Submit a PR
 
 ### Data sources
 
 The data must be fetched from on-chain calls or from subgraphs. Centralised api calls are only accepted if there is no other way of obtaining that data (eg off-chain gauge weights).
+
+### APY Methodology
+
+Our goal is to display minimum attainable yield values for all listed projects:
+
+- Omit any pre-mined rewards
+- Use unboosted (lower bound) apy values
+- If rewards are slashed when exiting a pool early, then set the apy value to that lower bound.
+- Omit any yield which requires an additional token aside from the LP token (eg veCRV to boost reward yields)
+- Omit any locked rewards
+- Fee based APY values should be calculated over a 24h window
 
 ### Adaptors
 
@@ -23,7 +35,7 @@ interface Pool {
   chain: string;
   project: string;
   symbol: string;
-  tvlUsd: number;
+  tvlUsd: number; // for lending protocols: tvlUsd = totalSupplyUsd - totalBorrowUsd
   apyBase?: number;
   apyReward?: number;
   rewardTokens?: Array<string>;
@@ -35,7 +47,7 @@ interface Pool {
   apyRewardBorrow?: number;
   totalSupplyUsd?: number;
   totalBorrowUsd?: number;
-  ltv?: number;
+  ltv?: number; // btw [0, 1]
 }
 ```
 
@@ -61,6 +73,16 @@ A note on how to set apy related fields:
 - if a pool's apy consists of both, provide both fields
 - if you are unsure/your data source doesn't contain a detailed breakdown, then provide an `apy` field indicating the total apy and omit the `apyBase` and `apyReward` fields (or set to null)
 ```
+
+#### FAQ
+
+> Why are some pools missing on DefiLlama which appear on my adapter?
+
+DefiLlama only displays pools with >10k TVL, so pools with less TVL than that will appear on the adapter but not on defillama
+
+> I'm getting errors when running `npm install`
+
+Just remove the packages `pg-promise`, `pg` and `pg-native` from package.json and then install again, make sure to avoid commiting these changes tho!
 
 #### Adapter module structure
 
@@ -104,4 +126,4 @@ module.exports = {
 };
 ```
 
-You can find examples for a bunch of other protocols in the [src/adaptors/](src/adaptors/) folder, and if you have any questions feel free to ask them on [our discord](https://discord.gg/defillama).
+You can find examples for a bunch of other protocols in the [src/adaptors/](src/adaptors/) folder, and if you have any questions feel free to ask them on [our discord](https://discord.defillama.com/).
