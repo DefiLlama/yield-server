@@ -69,7 +69,7 @@ async function pools() {
         apyBaseInception: apyInception,
         tvlUsd: Number(tvlU),
         underlyingTokens: [usdc],
-        poolMeta: "1day lock"
+        poolMeta: "1day lock, 0.97% withdraw penalty"
     }
 
     const jGlpPool = {
