@@ -29,8 +29,8 @@ const epochs = days.map((day) => Math.floor(day.getTime() / 1000));
 // Get apys
 const promises = epochs.map((epoch) => {
   // Today's APY is calculated from yesterday's gains
-  const end = epoch - 1;
-  const start = epoch - dayInSec - dayInSec;
+  const end = epoch - 1; // <date>T11:59:99.000
+  const start = epoch - dayInSec - dayInSec; // <date -1>T00:00:00.000
 
   return calcApy(cellarAddress, start, end);
 });

@@ -59,7 +59,7 @@ async function getApy(cellarAddress) {
   const end = now - remainder - 1;
   const start = end - dayInSec - dayInSec + 1;
 
-  return calcApy(start, end);
+  return calcApy(cellarAddress, start, end);
 }
 
 const windowInDays = 7;
