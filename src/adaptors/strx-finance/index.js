@@ -38,7 +38,7 @@ async function getRevenueOld(_days) {
 	  }
 	`;
 	const data = await client.request(query);
-	return (data.tron.transfers[0].amount * (10 ** 6));
+	return data.tron.transfers.length > 0 ? (data.tron.transfers[0].amount * (10 ** 6)) : 0;
 }
 async function getRevenueNew(_days) {
 	const query = gql`
@@ -58,7 +58,7 @@ async function getRevenueNew(_days) {
 	  }
 	`;
 	const data = await client.request(query);
-	return (data.tron.transfers[0].amount * (10 ** 6));
+	return data.tron.transfers.length > 0 ? (data.tron.transfers[0].amount * (10 ** 6)) : 0;
 }
 
 async function getCurrentStake() {
