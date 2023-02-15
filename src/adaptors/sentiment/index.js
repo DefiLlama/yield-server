@@ -91,7 +91,7 @@ const apy = async () => {
       project: 'sentiment',
       symbol: utils.formatSymbol(config['symbol']),
       tvlUsd: tvl.toNumber(),
-      apy: parseFloat(market['supplyAPY']),
+      apyBase: parseFloat(market['supplyAPY']),
       underlyingTokens: [config.underlyingAddress],
       apyBaseBorrow: parseFloat(market['borrowAPY']),
       totalSupplyUsd: BigNumber(market['liquidity'])
@@ -103,6 +103,7 @@ const apy = async () => {
         .div(decimals)
         .times(BigNumber(prices[config.underlyingAddress.toLowerCase()]))
         .toNumber(),
+        ltv: 1
     });
   });
 
