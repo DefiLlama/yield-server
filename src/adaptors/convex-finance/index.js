@@ -117,6 +117,7 @@ const main = async () => {
     '0x453D92C7d4263201C69aACfaf589Ed14202d83a4', // yCrv
     '0x5b6C539b224014A09B3388e51CaAA8e354c959C8', // cbETH
     '0x051d7e5609917Bd9b73f04BAc0DED8Dd46a74301', // wbtc-sBTC
+    '0x9848482da3Ee3076165ce6497eDA906E66bB85C5', // eth-peth
   ];
   let withCvxTvl = enrichedPools
     .map((pool, i) => {
