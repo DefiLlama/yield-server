@@ -14,6 +14,9 @@ const getPositionAssets = cellarAbi.find(
 const windowInHrs = 48; // 2 days
 const dayInSec = 60 * 60 * 24; // 1 day in seconds
 
+// Calculate daily APY given a start and end time in seconds since epoch
+// APY should only be calculated with data from a full day. To calculate today's
+// APY, use the complete data from the previous 2 days.
 async function calcApy(cellarAddress, startEpochSecs, endEpochSecs) {
   // Returns hourData in desc order, current hour is index 0
   const hrData = await queries.getHourData(
@@ -22,24 +25,15 @@ async function calcApy(cellarAddress, startEpochSecs, endEpochSecs) {
     endEpochSecs
   );
 
+  // How many seconds have elapsed today
   const remainder = endEpochSecs % dayInSec;
+  // Start of the 2nd day
   const startOfEnd =
     remainder === 0 ? endEpochSecs - dayInSec : endEpochSecs - remainder;
 
-  // TODO: What should we do for the first two days?
-  // set launch date 2 days after actual launch
-  // if (now < launchDate + 2) { return 0; }
-
-  // Bucket hr datas by day
-  const dayBefore = [];
-  const twoDaysBefore = [];
-  hrData.forEach((data) => {
-    if (data.date < startOfEnd) {
-      twoDaysBefore.push(data);
-    } else {
-      dayBefore.push(data);
-    }
-  });
+  // Bucket hr datas by date
+  const dayBefore = hrData.filter((data) => data.date >= startOfEnd);
+  const twoDaysBefore = hrData.filter((data) => data.date < startOfEnd);
 
   // Sum hourly price of the last 2 days individually
   let sumPrice = dayBefore.reduce((memo, data) => {
@@ -50,6 +44,7 @@ async function calcApy(cellarAddress, startEpochSecs, endEpochSecs) {
     return memo.plus(data.shareValue);
   }, new BigNumber(0));
 
+  // Calculate yesterday's yield
   const price = sumPrice.div(dayBefore.length);
   const prevPrice = sumPrevPrice.div(twoDaysBefore.length);
   const yieldRatio = price.minus(prevPrice).div(prevPrice);
@@ -58,12 +53,10 @@ async function calcApy(cellarAddress, startEpochSecs, endEpochSecs) {
 }
 
 // Use the change in avg daily price between the last 2 days to calculate an APR
-// If there isn't at least 48 hours of hour data then we shold set the pool property
-// `apyBaseInception` to the backtested APY
 async function getApy(cellarAddress) {
   const now = Math.floor(Date.now() / 1000);
-  const mod = now % dayInSec;
-  const end = now - mod - 1;
+  const remainder = now % dayInSec;
+  const end = now - remainder - 1;
   const start = end - dayInSec - dayInSec + 1;
 
   return calcApy(start, end);
