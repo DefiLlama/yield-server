@@ -81,19 +81,59 @@ const getApy = async () => {
     const { data: poolsRes }: Response = await utils.getData(API_URL);
 
     const apyDict: any = {}
+    const alreadySeen = []
+    let priceApiCoins = ''
 
     for(const pool of poolsRes) {
         apyDict[pool.address.toLowerCase()] = pool.totalLpApr.current
     }
 
     const pairs = await getPairs();
+    for(const pair of pairs) {
+        const token0Key = 'ethereum:' + pair.token0.id.toLowerCase()
+        const token1Key = 'ethereum:' + pair.token1.id.toLowerCase()
+
+        if(!alreadySeen.includes(token0Key)) {
+            alreadySeen.push(token0Key)
+            priceApiCoins += token0Key + ','
+        }
+
+        if(!alreadySeen.includes(token1Key)) {
+            alreadySeen.push(token1Key)
+            priceApiCoins += token1Key + ','
+        }
+    }
+
+    // asking price to defillama chunking requests (currently running with 1 request could be lowered if needed)
+    let fullCoin = {}
+    const chunkSize = 60;
+    for (let i = 0; i < alreadySeen.length; i += chunkSize) {
+        const chunk = alreadySeen.slice(i, i + chunkSize);
+        
+        const { coins }: any = await utils.getData(`https://coins.llama.fi/prices/current/${chunk.join(',')}?searchWidth=4h`);
+        fullCoin = {...fullCoin, ...coins}
+    }
+
     const pools = pairs.map((pair: GraphPair) => {
+        let tvl = 0
+
+        if(fullCoin['ethereum:' + pair.token0.id.toLowerCase()] && fullCoin['ethereum:' + pair.token1.id.toLowerCase()]) {
+          const token0ValueInReserve = parseFloat(pair.reserve0) * parseFloat(fullCoin['ethereum:' + pair.token0.id.toLowerCase()].price)
+          const token1ValueInReserve = parseFloat(pair.reserve1) * parseFloat(fullCoin['ethereum:' + pair.token1.id.toLowerCase()].price)
+  
+          tvl = token0ValueInReserve + token1ValueInReserve
+        }
+        else {
+          // fallbacking to the one from api if defillama price are missing
+          tvl = parseFloat(pair.reserveUSD)
+        }
+
         return {
             pool: pair.id,
             chain: utils.formatChain('ethereum'),
             project: 'solidly-v2',
             symbol: `${pair.token0.symbol}-${pair.token1.symbol}`,
-            tvlUsd: parseFloat(pair.reserveUSD),
+            tvlUsd: tvl,
             apyReward: parseFloat(apyDict[pair.id.toLowerCase()]),
             underlyingTokens: [pair.token0.id, pair.token1.id],
             rewardTokens: [
