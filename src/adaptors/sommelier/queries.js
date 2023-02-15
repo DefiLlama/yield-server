@@ -27,9 +27,9 @@ async function getDayData(cellarAddress, numDays) {
 const hourDataQuery = gql`
   {
     cellarHourDatas(
-      where: {cellar: "<CELLAR>" }
+      where: {cellar: "<CELLAR>", date_gte: <START>, date_lte: <END> }
       orderDirection: desc
-      orderBy: date, first: <DAYS>
+      orderBy: date
     ) {
       date
       shareValue
@@ -37,9 +37,10 @@ const hourDataQuery = gql`
   }
 `;
 
-async function getHourData(cellarAddress, numHours) {
+async function getHourData(cellarAddress, startDate, endDate) {
   let query = hourDataQuery.replace('<CELLAR>', cellarAddress);
-  query = query.replace('<DAYS>', numHours);
+  query = query.replace('<START>', startDate);
+  query = query.replace('<END>', endDate);
 
   const data = await request(url, query);
 
