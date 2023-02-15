@@ -29,10 +29,7 @@ const apy = async () =>
         })
       ).map(([adjustFactor]) => adjustFactor);
 
-      /** @type [assets: string[], decimals: number[], maxFuturePools: number[], prevTotalAssets: number[], prevTotalSupply: number[],
-      prevTotalFloatingBorrowAssets: number[], prevTotalFloatingBorrowShares: number[], totalAssets: number[], totalSupply: number[],
-      totalFloatingBorrowAssets: number[], totalFloatingBorrowShares: number[], previewFloatingAssetsAverages: number[],
-      backupFeeRates: number[], interestRateModels: number[] ] */
+      /** @type [assets: string[], decimals: number[], maxFuturePools: number[], prevTotalAssets: string[], prevTotalSupply: string[], prevTotalFloatingBorrowAssets: string[], prevTotalFloatingBorrowShares: string[], totalAssets: string[], totalSupply: string[], totalFloatingBorrowAssets: string[], totalFloatingBorrowShares: string[], previewFloatingAssetsAverages: string[], backupFeeRates: bigint[], interestRateModels: number[] ] */
       const [
         assets,
         decimals,
@@ -97,14 +94,14 @@ const apy = async () =>
           const borrowShareValue = (totalFloatingBorrowAssets[i] * 1e18) / totalFloatingBorrowShares[i];
           const prevBorrowShareValue = (prevTotalFloatingBorrowAssets[i] * 1e18) / prevTotalFloatingBorrowShares[i];
           const borrowProportion = (borrowShareValue * 1e18) / prevBorrowShareValue;
-          const borrowApr = (borrowProportion / 1e18 - 1) * 365 * 100;
+          const borrowAPR = (borrowProportion / 1e18 - 1) * 365 * 100;
 
           /** @type {Pool} */
           const floating = {
             ...poolMetadata,
             pool: `${market}-${chain}`.toLowerCase(),
             apyBase: aprToApy(apr),
-            apyBaseBorrow: aprToApy(borrowApr),
+            apyBaseBorrow: aprToApy(borrowAPR),
             totalSupplyUsd: (totalSupply[i] * usdUnitPrice) / 10 ** decimals[i],
             totalBorrowUsd: (totalFloatingBorrowAssets[i] * usdUnitPrice) / 10 ** decimals[i],
           };
@@ -121,14 +118,29 @@ const apy = async () =>
           /** @type {Pool[]} */
           const fixed = await Promise.all(
             maturities.map(async (maturity, j) => {
-              const { borrowed, supplied, unassignedEarnings } = fixedPools[j];
-              const depositRate =
-                borrowed - Math.min(borrowed, supplied) > 0
-                  ? (unassignedEarnings * (1e18 - backupFeeRates[i])) / (borrowed - Math.min(borrowed, supplied))
+              const { borrowed, supplied, unassignedEarnings, lastAccrual } = fixedPools[j];
+
+              const fixBorrowed = BigInt(borrowed),
+                fixSupplied = BigInt(supplied),
+                fixUnassignedEarnings = BigInt(unassignedEarnings);
+
+              const unassignedEarning =
+                fixUnassignedEarnings -
+                (fixUnassignedEarnings * BigInt(timestampNow - lastAccrual)) /
+                  BigInt(timestampNow - (timestampNow % INTERVAL) + INTERVAL * (j + 1) - lastAccrual);
+              const optimalDeposit = fixBorrowed - (fixBorrowed > fixSupplied ? fixSupplied : fixBorrowed);
+
+              const fixedDepositAPR =
+                optimalDeposit > 0n
+                  ? Number(
+                      (31_536_000n *
+                        (((unassignedEarning * (10n ** 18n - BigInt(backupFeeRates[i]))) / 10n ** 18n) * 10n ** 18n)) /
+                        optimalDeposit /
+                        BigInt(INTERVAL * (j + 1) - (timestampNow % INTERVAL))
+                    ) / 1e16
                   : 0;
 
               const secsToMaturity = maturity - timestampNow;
-              const fixedDepositAPR = (31_536_000 * depositRate) / secsToMaturity / 1e16;
 
               const { rate: minFixedRate } = await api2.abi.call({
                 target: interestRateModels[i],
@@ -139,7 +151,7 @@ const apy = async () =>
               });
 
               const fixedBorrowAPR = previewFloatingAssetsAverages[i] + supplied > 0 ? minFixedRate / 1e16 : 0;
-              const poolMeta = new Date(maturity * 1_000).toISOString();
+              const poolMeta = new Date(maturity * 1_000).toISOString().slice(0, 10);
 
               /** @type {Pool} */
               return {
@@ -176,7 +188,7 @@ const abis = {
   totalSupply: "function totalSupply() view returns (uint256)",
   maxFuturePools: "function maxFuturePools() view returns (uint8)",
   fixedPools:
-    "function fixedPools(uint256) view returns (uint256 borrowed, uint256 supplied, uint256 unassignedEarnings, uint256)",
+    "function fixedPools(uint256) view returns (uint256 borrowed, uint256 supplied, uint256 unassignedEarnings, uint256 lastAccrual)",
   previewFloatingAssetsAverage: "function previewFloatingAssetsAverage() view returns (uint256)",
   backupFeeRate: "function backupFeeRate() view returns (uint256)",
   interestRateModel: "function interestRateModel() view returns (address)",
@@ -185,4 +197,4 @@ const abis = {
 };
 
 /** @typedef {{ pool: string, chain: string, project: string, symbol: string, tvlUsd: number, apyBase?: number, apyReward?: number, rewardTokens?: Array<string>, underlyingTokens?: Array<string>, poolMeta?: string, url?: string, apyBaseBorrow?: number, apyRewardBorrow?: number, totalSupplyUsd?: number, totalBorrowUsd?: number, ltv?: number }} Pool */
-/** @typedef {{ borrowed: number, supplied: number, unassignedEarnings: number }} FixedPool */
+/** @typedef {{ borrowed: string, supplied: string, unassignedEarnings: string, lastAccrual: number }} FixedPool */
