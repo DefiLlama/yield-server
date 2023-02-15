@@ -72,6 +72,7 @@ async function pools() {
 
   // 0.97% see https://docs.jonesdao.io/jones-dao/features/incentives
   const jusdcFee = 1 - 0.97 / 100;
+  const jglpFee = 1 - 3 / 100;
 
   const jUsdcPool = {
     pool: `${uvrtTracker}`,
@@ -92,7 +93,7 @@ async function pools() {
     underlyingTokens: [glp],
     pool: glpTracker,
     tvlUsd: Number(tvlG),
-    apyBase: apy7djGLP,
+    apyBase: apy7djGLP * jglpFee,
     apyBaseInception: apyInceptionjGLP,
   };
 
