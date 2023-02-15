@@ -38,7 +38,27 @@ async function getRevenueOld(_days) {
 	  }
 	`;
 	const data = await client.request(query);
-	return (data.tron.transfers[0].amount * (10 ** 6));
+	return data.tron.transfers.length > 0 ? (data.tron.transfers[0].amount * (10 ** 6)) : 0;
+}
+async function getRevenueNew(_days) {
+	const query = gql`
+	  query {
+	    tron {
+	      transfers(
+		currency: {is: "TRX"}
+		receiver: {is: "${REVENUE_ADDRESS}"}
+		success: true
+		external: true
+		date: {since: "${new Date(new Date()-86400*_days*1000).toISOString()}", till: "${new Date().toISOString()}"}
+	      ) {
+		amount
+		contractType(contractType: {is: Transfer})
+	      }
+	    }
+	  }
+	`;
+	const data = await client.request(query);
+	return data.tron.transfers.length > 0 ? (data.tron.transfers[0].amount * (10 ** 6)) : 0;
 }
 async function getRevenueNew(_days) {
 	const query = gql`
