@@ -48,7 +48,6 @@ async function getMarketsState() {
       chain: 'arbitrum',
     })
   ).output;
-
   const marketsState = [];
 
   marketsOnChainState.forEach((state) => {
@@ -61,6 +60,7 @@ async function getMarketsState() {
       liquidity: state.liquidity,
       supplyAPY: supplyAPR.div(10 ** 16),
       market: state.lToken,
+      totalSupply: state.totalSupply,
     });
   });
 
@@ -78,18 +78,18 @@ const apy = async () => {
   ).pricesByAddress;
 
   apyData.forEach((market) => {
-    const config = marketConfig[market['market']];
+    const config = marketConfig[market.market];
     const decimals = BigNumber(10 ** config.decimals);
-    const tvl = BigNumber(market['liquidity'])
+    const tvl = BigNumber(market.totalSupply)
       .div(decimals)
       .times(BigNumber(prices[config.underlyingAddress.toLowerCase()]));
     pools.push({
-      pool: `${market['market']}-arbitrum`.toLowerCase(),
+      pool: `${market.market}-arbitrum`.toLowerCase(),
       chain: utils.formatChain('arbitrum'),
       project: 'sentiment',
-      symbol: utils.formatSymbol(config['symbol']),
+      symbol: utils.formatSymbol(config.symbol),
       tvlUsd: tvl.toNumber(),
-      apy: parseFloat(market['supplyAPY']),
+      apy: parseFloat(market.supplyAPY),
     });
   });
 
