@@ -68,15 +68,13 @@ const getPrices = async (addresses, chain) => {
 const calculateApy = (
   poolInfo,
   totalAllocPoint,
-  bananaPerBlock,
+  bananaPerSecond,
   bananaPrice,
   reserveUSD,
-  blocksYear,
   chain
 ) => {
   const poolWeight = poolInfo.allocPoint / totalAllocPoint.output;
-  const totalBBananaPerBlock = chain === 'bsc' ? bananaPerBlock : bananaPerBlock * 2;
-  const bananaPerYear = blocksYear * totalBBananaPerBlock;
+  const bananaPerYear = bananaPerSecond * SECONDS_PER_YEAR;
   return ((poolWeight * bananaPerYear * bananaPrice) / reserveUSD) * 100;
 };
 
@@ -116,12 +114,12 @@ const apy = async (chain) => {
     chain,
     abi: masterChefABI.find((e) => e.name === CHAINS[chain].callsName.alloc),
   });
-  const bananaPerBlock = await sdk.api.abi.call({
+  const bananaPerSecond = await sdk.api.abi.call({
     target: masterchef,
     chain,
-    abi: masterChefABI.find((e) => e.name === CHAINS[chain].callsName.bananaPerBlock),
+    abi: masterChefABI.find((e) => e.name === CHAINS[chain].callsName.bananaPerSecond),
   });
-  const normalizedbananaPerBlock = bananaPerBlock.output / 1e18;
+  const normalizedbananaPerBlock = bananaPerSecond.output / 1e18;
   const poolsRes = await sdk.api.abi.multiCall({
     abi: masterChefABI.filter(({ name }) => name === CHAINS[chain].callsName.poolInfo)[0],
     calls: [...Array(Number(poolLength.output)).keys()].map((i) => ({
@@ -142,9 +140,9 @@ const apy = async (chain) => {
     requery: true,
   }) : [];
   const pools = poolsRes.output
-    .map(({ output }, i) => ({ ...output, ...{ lpToken: output.lpToken ?? lpTokensAddress.output[i].output }, i }))
+    .map(({ output }, i) => ({ ...output, ...{ lpToken: output[CHAINS[chain].lpToken] ?? lpTokensAddress.output[i].output }, i }))
     .filter((e) => e.allocPoint !== '0')
-    .filter((e) => !CHAINS[chain].exclude.includes(e.lpToken));
+    .filter((e) => !CHAINS[chain].exclude.includes(e[CHAINS[chain].lpToken]));
   const lpTokens = pools.map(({ lpToken }) => lpToken);
   const [reservesRes, supplyRes, masterChefBalancesRes] = await Promise.all(
     ['getReserves', 'totalSupply', 'balanceOf'].map((method) =>
@@ -254,7 +252,6 @@ const apy = async (chain) => {
       normalizedbananaPerBlock,
       tokensPrices[banana.toLowerCase()],
       masterChefReservesUsd,
-      CHAINS[chain].block.year,
       chain
     );
 
