@@ -51,7 +51,7 @@ const ratePerBlockToAPY = (ratePerBlock, blocksPerMin) => {
   return (Math.pow(rateAsNumber * blocksPerDay + 1, daysPerYear) - 1) * 100;
 };
 
-const apyFromPlugin = async (pluginAddress, chain) => {
+const getPluginRewards = async (pluginAddress, chain) => {
   if (pluginAddress) {
     const res = (
       await superagent.get(
@@ -59,19 +59,7 @@ const apyFromPlugin = async (pluginAddress, chain) => {
       )
     ).body;
 
-    if (res.length > 0) {
-      const apy = res.reduce(
-        (apy, obj) =>
-          obj.status !== 'paused' && obj.apy !== undefined
-            ? apy + Number(obj.apy)
-            : apy,
-        0
-      );
-
-      return apy * 100;
-    } else {
-      return undefined;
-    }
+    return res;
   } else {
     return undefined;
   }
@@ -149,16 +137,7 @@ const main = async () => {
           );
 
           if (reward) {
-            asset.apyReward = 0;
-            asset.rewardTokens = [];
-
-            reward.rewardsInfo.map((info) => {
-              if (info.formattedAPR) {
-                asset.apyReward +=
-                  Number(ethers.utils.formatUnits(info.formattedAPR)) * 100;
-                asset.rewardTokens.push(info.rewardToken);
-              }
-            });
+            asset.rewardsFromContract = reward;
           }
 
           return asset;
@@ -213,9 +192,49 @@ const main = async () => {
         )
       ).body;
 
-      const apyReward = market.apyReward
-        ? market.apyReward
-        : await apyFromPlugin(pluginAddress, chain);
+      const pluginRewards = await getPluginRewards(pluginAddress, chain);
+      const allRewards =
+        pluginRewards && pluginRewards.length > 0 ? [...pluginRewards] : [];
+      const rewardTokens =
+        pluginRewards && pluginRewards.length > 0
+          ? [pluginRewards[0].plugin]
+          : [];
+
+      if (market.rewardsFromContract) {
+        const flywheelsInPluginResponse = pluginRewards ? pluginRewards
+          .map((pluginReward) =>
+            'flywheel' in pluginReward
+              ? pluginReward.flywheel.toLowerCase()
+              : null
+          )
+          .filter((f) => !!f) : [];
+
+        for (const info of market.rewardsFromContract.rewardsInfo) {
+          if (
+            !flywheelsInPluginResponse.includes(info.flywheel.toLowerCase())
+          ) {
+            allRewards.push({
+              flywheel: info.flywheel,
+              apy: info.formattedAPR
+                ? Number(ethers.utils.formatUnits(info.formattedAPR))
+                : undefined,
+              token: info.rewardToken,
+            });
+
+            if (!rewardTokens.includes(info.rewardToken)) {
+              rewardTokens.push(info.rewardToken);
+            }
+          }
+        }
+      }
+
+      const apyReward = allRewards.reduce(
+        (apy, obj) =>
+          obj.status !== 'paused' && obj.apy !== undefined
+            ? apy + Number(obj.apy) * 100
+            : apy,
+        0
+      );
 
       markets.push({
         pool: market.cToken.toLowerCase(),
@@ -226,12 +245,7 @@ const main = async () => {
         apyBase,
         apyReward,
         underlyingTokens: [market.underlyingToken],
-        rewardTokens:
-          market.rewardTokens && market.rewardTokens.length > 0
-            ? market.rewardTokens
-            : pluginAddress
-            ? [pluginAddress]
-            : [],
+        rewardTokens,
         totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow,
