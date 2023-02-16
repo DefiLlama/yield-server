@@ -21,8 +21,8 @@ const POOL_LENS_ADDRESS = {
 };
 
 const MIDAS_FLYWHEEL_LENS_ROUTER = {
-  [CHAINS.bsc]: '0xbC58155360A097A544276a8bF96f3fc468e49dd2',
-  [CHAINS.polygon]: '0xACE76A60D4bF76BCa8ccd274Ae6D081904bBbAe3',
+  [CHAINS.bsc]: '0xb4c8353412633B779893Bb728435930b7d3610C8',
+  [CHAINS.polygon]: '0xda359cB8c4732C7260CD72dD052CD053765f1Dcf',
 };
 
 const CG_KEY = {
@@ -51,7 +51,7 @@ const ratePerBlockToAPY = (ratePerBlock, blocksPerMin) => {
   return (Math.pow(rateAsNumber * blocksPerDay + 1, daysPerYear) - 1) * 100;
 };
 
-const apyFromPlugin = async (pluginAddress, chain) => {
+const getPluginRewards = async (pluginAddress, chain) => {
   if (pluginAddress) {
     const res = (
       await superagent.get(
@@ -59,19 +59,7 @@ const apyFromPlugin = async (pluginAddress, chain) => {
       )
     ).body;
 
-    if (res.length > 0) {
-      const apy = res.reduce(
-        (apy, obj) =>
-          obj.status !== 'paused' && obj.apy !== undefined
-            ? apy + Number(obj.apy)
-            : apy,
-        0
-      );
-
-      return apy * 100;
-    } else {
-      return undefined;
-    }
+    return res;
   } else {
     return undefined;
   }
@@ -102,6 +90,30 @@ const main = async () => {
           })
         ).output;
 
+        const marketRewards = (
+          await sdk.api.abi.call({
+            target: MIDAS_FLYWHEEL_LENS_ROUTER[chain],
+            chain: chain,
+            abi: flywheelLensRouterAbi.find(
+              ({ name }) => name === GET_MARKET_REWARDS_INFO
+            ),
+            params: [comptroller],
+          })
+        ).output;
+
+        const adaptedMarketRewards = marketRewards
+          .map((marketReward) => ({
+            underlyingPrice: marketReward.underlyingPrice,
+            market: marketReward.market,
+            rewardsInfo: marketReward.rewardsInfo.filter(
+              (info) =>
+                Number(
+                  ethers.utils.formatUnits(info.rewardSpeedPerSecondPerToken)
+                ) > 0
+            ),
+          }))
+          .filter((marketReward) => marketReward.rewardsInfo.length > 0);
+
         const assets = (
           await sdk.api.abi.call({
             target: POOL_LENS_ADDRESS[chain],
@@ -119,6 +131,14 @@ const main = async () => {
 
         const assetsWithPoolInfo = assets.map((asset) => {
           asset.poolName = pools[index].name;
+
+          const reward = adaptedMarketRewards.find(
+            (reward) => reward.market === asset.cToken
+          );
+
+          if (reward) {
+            asset.rewardsFromContract = reward;
+          }
 
           return asset;
         });
@@ -172,7 +192,49 @@ const main = async () => {
         )
       ).body;
 
-      const apyReward = await apyFromPlugin(pluginAddress, chain);
+      const pluginRewards = await getPluginRewards(pluginAddress, chain);
+      const allRewards =
+        pluginRewards && pluginRewards.length > 0 ? [...pluginRewards] : [];
+      const rewardTokens =
+        pluginRewards && pluginRewards.length > 0
+          ? [pluginRewards[0].plugin]
+          : [];
+
+      if (market.rewardsFromContract) {
+        const flywheelsInPluginResponse = pluginRewards ? pluginRewards
+          .map((pluginReward) =>
+            'flywheel' in pluginReward
+              ? pluginReward.flywheel.toLowerCase()
+              : null
+          )
+          .filter((f) => !!f) : [];
+
+        for (const info of market.rewardsFromContract.rewardsInfo) {
+          if (
+            !flywheelsInPluginResponse.includes(info.flywheel.toLowerCase())
+          ) {
+            allRewards.push({
+              flywheel: info.flywheel,
+              apy: info.formattedAPR
+                ? Number(ethers.utils.formatUnits(info.formattedAPR))
+                : undefined,
+              token: info.rewardToken,
+            });
+
+            if (!rewardTokens.includes(info.rewardToken)) {
+              rewardTokens.push(info.rewardToken);
+            }
+          }
+        }
+      }
+
+      const apyReward = allRewards.reduce(
+        (apy, obj) =>
+          obj.status !== 'paused' && obj.apy !== undefined
+            ? apy + Number(obj.apy) * 100
+            : apy,
+        0
+      );
 
       markets.push({
         pool: market.cToken.toLowerCase(),
@@ -183,7 +245,7 @@ const main = async () => {
         apyBase,
         apyReward,
         underlyingTokens: [market.underlyingToken],
-        rewardTokens: pluginAddress ? [pluginAddress] : [],
+        rewardTokens,
         totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow,

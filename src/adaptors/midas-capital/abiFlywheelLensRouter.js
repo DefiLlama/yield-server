@@ -2,7 +2,7 @@ module.exports = [
   {
     inputs: [
       {
-        internalType: 'contract Comptroller',
+        internalType: 'contract IComptroller',
         name: 'comptroller',
         type: 'address',
       },
@@ -17,7 +17,7 @@ module.exports = [
             type: 'uint256',
           },
           {
-            internalType: 'contract CToken',
+            internalType: 'contract CErc20Token',
             name: 'market',
             type: 'address',
           },
@@ -49,12 +49,12 @@ module.exports = [
                 type: 'address',
               },
             ],
-            internalType: 'struct FuseFlywheelLensRouter.RewardsInfo[]',
+            internalType: 'struct MidasFlywheelLensRouter.RewardsInfo[]',
             name: 'rewardsInfo',
             type: 'tuple[]',
           },
         ],
-        internalType: 'struct FuseFlywheelLensRouter.MarketRewardsInfo[]',
+        internalType: 'struct MidasFlywheelLensRouter.MarketRewardsInfo[]',
         name: '',
         type: 'tuple[]',
       },
@@ -70,12 +70,12 @@ module.exports = [
         type: 'address',
       },
       {
-        internalType: 'contract CToken[]',
+        internalType: 'contract CErc20Token[]',
         name: 'markets',
         type: 'address[]',
       },
       {
-        internalType: 'contract FuseFlywheelCore[]',
+        internalType: 'contract MidasFlywheelCore[]',
         name: 'flywheels',
         type: 'address[]',
       },
@@ -104,12 +104,12 @@ module.exports = [
         type: 'address',
       },
       {
-        internalType: 'contract CToken',
+        internalType: 'contract ERC20',
         name: 'market',
         type: 'address',
       },
       {
-        internalType: 'contract FuseFlywheelCore[]',
+        internalType: 'contract MidasFlywheelCore[]',
         name: 'flywheels',
         type: 'address[]',
       },
