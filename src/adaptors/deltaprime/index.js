@@ -34,11 +34,17 @@ const WAVAX_TOKEN_ADDRESS = '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7';
 const USDC_TOKEN_ADDRESS = '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E';
 
 const getPoolTVL = async (poolAddress) => {
-  return (await sdk.api.abi.call({
-    abi: getPoolTotalSupplyAbi,
+  const token = (await sdk.api.abi.call({
+    abi: {"inputs":[],"name":"tokenAddress","outputs":[{"internalType":"address payable","name":"","type":"address"}],"stateMutability":"view","type":"function"},
     chain: 'avax',
     target: poolAddress,
     params: [],
+  })).output;
+  return (await sdk.api.abi.call({
+    abi: "erc20:balanceOf",
+    chain: 'avax',
+    target: token,
+    params: [poolAddress],
   })).output;
 }
 
