@@ -1,22 +1,19 @@
-const masterChefABIBNB = require('./abis/abi-master-chef.json');
+const masterChefV2ABIBNB = require('./abis/abi-master-chef-v2.json');
 const masterChefABIPolygon = require('./abis/abi-master-chef-polygon.json');
 exports.CHAINS = {
     'bsc': {
         banana: '0x603c7f932ED1fc6575303D8Fb018fDCBb0f39a95',
-        masterchef: '0x5c8D727b265DBAfaba67E050f2f739cAeEB4A6F9',
-        block: {
-            day: Math.floor((60 / 3) * 60 * 24),
-            year: Math.floor((60 / 3) * 60 * 24 * 365),
-        },
+        masterchef: '0x71354AC3c695dfB1d3f595AfA5D4364e9e06339B',
         feeRate: 0.0005,
         apiUrl: 'https://bnb.apeswapgraphs.com/subgraphs/name/ape-swap/apeswap-subgraph',
         callsName: {
             length: 'poolLength',
             alloc: 'totalAllocPoint',
-            bananaPerBlock: 'cakePerBlock',
+            bananaPerSecond: 'bananaPerSecond',
             poolInfo: 'poolInfo'
         },
-        abi: masterChefABIBNB,
+        abi: masterChefV2ABIBNB,
+        lpToken: 'stakeToken',
         exclude: [
             '0x344a9C3a0961DA3Cd78A8f5A62Bd04A0358178be',
             '0x603c7f932ED1fc6575303D8Fb018fDCBb0f39a95',
@@ -30,19 +27,16 @@ exports.CHAINS = {
     'polygon': {
         banana: '0x5d47baba0d66083c52009271faf3f50dcc01023c',
         masterchef: '0x54aff400858Dcac39797a81894D9920f16972D1D',
-        block: {
-            day: Math.floor((60 / 2) * 60 * 24),
-            year: Math.floor((60 / 2) * 60 * 24 * 365),
-        },
         feeRate: 0.0005,
         apiUrl: 'https://api.thegraph.com/subgraphs/name/prof-sd/as-matic-graft',
         callsName: {
             length: 'poolLength',
             alloc: 'totalAllocPoint',
-            bananaPerBlock: 'bananaPerSecond',
+            bananaPerSecond: 'bananaPerSecond',
             poolInfo: 'poolInfo'
         },
         abi: masterChefABIPolygon,
+        lpToken: 'lpToken',
         exclude: ['0xe9699f65a4981035589727f448c3a642F0E19209'],
     },
     'telos': {
