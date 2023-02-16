@@ -30,14 +30,14 @@ const marketConfig = {
   },
 };
 
-function getSupplyRate(liquidity, borrows, borrowRatePerBlock) {
+function getSupplyAndBorrowRate(liquidity, borrows, borrowRatePerBlock) {
   const utilization = BigNumber(borrows).isZero()
     ? BigNumber(0)
     : BigNumber(borrows).times(10000).div(BigNumber(liquidity).plus(borrows));
 
   const borrowAPR = BigNumber(borrowRatePerBlock).times(31556952);
   const supplyAPR = utilization.times(borrowAPR).div(10000);
-  return supplyAPR;
+  return [supplyAPR, borrowAPR];
 }
 
 async function getMarketsState() {
@@ -52,14 +52,16 @@ async function getMarketsState() {
   const marketsState = [];
 
   marketsOnChainState.forEach((state) => {
-    const supplyAPR = getSupplyRate(
+    const [supplyAPR, borrowAPR] = getSupplyAndBorrowRate(
       state.liquidity,
       state.borrows,
       state.borrowRate
     );
     marketsState.push({
       liquidity: state.liquidity,
+      borrows: state.borrows,
       supplyAPY: supplyAPR.div(10 ** 16),
+      borrowAPY: borrowAPR.div(10 ** 16),
       market: state.lToken,
     });
   });
@@ -89,7 +91,19 @@ const apy = async () => {
       project: 'sentiment',
       symbol: utils.formatSymbol(config['symbol']),
       tvlUsd: tvl.toNumber(),
-      apy: parseFloat(market['supplyAPY']),
+      apyBase: parseFloat(market['supplyAPY']),
+      underlyingTokens: [config.underlyingAddress],
+      apyBaseBorrow: parseFloat(market['borrowAPY']),
+      totalSupplyUsd: BigNumber(market['liquidity'])
+        .div(decimals)
+        .plus(BigNumber(market['borrows']).div(decimals))
+        .times(BigNumber(prices[config.underlyingAddress.toLowerCase()]))
+        .toNumber(),
+      totalBorrowUsd: BigNumber(market['borrows'])
+        .div(decimals)
+        .times(BigNumber(prices[config.underlyingAddress.toLowerCase()]))
+        .toNumber(),
+        ltv: 1
     });
   });
 
