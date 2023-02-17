@@ -16,10 +16,13 @@ const getApy = async () => {
     const poolSplit = x.denom.split('/');
     const pool = poolSplit.length > 1 ? poolSplit[1] : poolSplit[0];
 
-    if (uniquePools.has(pool)) return [];
-    uniquePools.add(pool);
-
     const tvlUsd = x.liquidity;
+
+    const symbol = `${tvl[0].symbol}-${tvl[1].symbol}`;
+
+    const p = `${pool}-${symbol}-14day`;
+    if (uniquePools.has(p)) return [];
+    uniquePools.add(p);
 
     // base apr
     const feeTier = x.fees.replace('%', '') / 100;
@@ -38,10 +41,8 @@ const getApy = async () => {
     );
     const apyReward = aprSuperfluid > 0 ? aprSuperfluid : aprReward;
 
-    const symbol = `${tvl[0].symbol}-${tvl[1].symbol}`;
-
     return {
-      pool: `${pool}-${symbol}-14day`,
+      pool: p,
       chain: 'Osmosis',
       project: 'osmosis-dex',
       symbol: utils.formatSymbol(symbol),
