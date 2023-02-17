@@ -218,6 +218,7 @@ const apy = async (chain) => {
     const poolInfo = pool;
     const reserves = reservesData[i];
     const pairInfo = pairsInfo[pool.lpToken.toLowerCase()];
+    if (!pairInfo) return null;
     const supply = supplyData[i];
     const masterChefBalance = masterChefBalData[i];
     const masterChefReservesUsd = calculateReservesUSD(
@@ -373,7 +374,10 @@ const main = async () => {
   const data = await Promise.all(
     Object.keys(CHAINS).map((chain) => chain !== 'telos' ? apy(chain) : apyTelos(chain)),
   );
-  return data.flat();
+  return data
+  .flat()
+  .filter(Boolean)
+  .filter((p) => utils.keepFinite(p));
 }
 module.exports = {
   timetravel: false,
