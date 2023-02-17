@@ -6,6 +6,7 @@ const {
   getYieldFiltered,
   getYieldOffset,
   getYieldAvg30d,
+  getYieldLendBorrow,
 } = require('../controllers/yieldController');
 const { getStat } = require('../controllers/statController');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
@@ -301,6 +302,13 @@ const main = async () => {
     status: 'success',
     data: await buildPoolsEnriched(undefined),
   });
+
+  // query db for lendBorrow and store to s3 as origin for cloudfront
+  await utils.storeAPIResponse(
+    'defillama-datasets',
+    'yield-api/lendBorrow',
+    await getYieldLendBorrow()
+  );
 };
 
 ////// helper functions
