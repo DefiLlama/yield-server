@@ -48,7 +48,7 @@ async function _getPrices(tokens) {
 }
 
 async function apy() {
-  const pools = [];
+  const pairs = {};
   const tokens = {};
 
   const { output } = await sdk.api.abi.call({
@@ -73,17 +73,27 @@ async function apy() {
       tokens[quoteToken] = apr;
     }
 
+    if (!pairs[`${baseToken}-${quoteToken}`] || pairs[`${baseToken}-${quoteToken}`] < apr) {
+      pairs[`${baseToken}-${quoteToken}`] = apr;
+    }
+  });
+
+  const pools = [];
+
+  Object.entries(pairs).forEach(([symbol, apr], i) => {
+    const [baseToken, quoteToken] = symbol.split('-');
+
     pools.push({
       pool: `${i}-${CHAIN}`, // we don't have a specific contract address for each pool
       chain: utils.formatChain(CHAIN),
       project: SLUG,
-      symbol: `${baseToken}-${quoteToken}`,
+      symbol,
       apyBase: apr,
       underlyingTokens: [baseToken, quoteToken],
     });
   });
 
-  Object.entries(tokens).forEach(([token, apr], i) => {
+  Object.entries(tokens).forEach(([token, apr]) => {
     pools.push({
       pool: `${token}-${CHAIN}`,
       chain: utils.formatChain(CHAIN),
