@@ -91,10 +91,10 @@ const masterchef_blacklist = {
   celo: [],
 };
 const getUrl_allData = (chain, exchange) =>
-  `https://gammawire.net/${exchange}${chain}hypervisors/allData`;
+  `https://wire2.gamma.xyz/${exchange}${chain}hypervisors/allData`;
 
 const getUrl_allRewards2 = (chain, exchange) =>
-  `https://gammawire.net/${exchange}${chain}allRewards2`
+  `https://wire2.gamma.xyz/${exchange}${chain}allRewards2`
 
 const pairsToObj = (pairs) =>
   pairs.reduce((acc, [el1, el2]) => ({ ...acc, [el1]: el2 }), {});
