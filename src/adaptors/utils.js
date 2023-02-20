@@ -84,7 +84,8 @@ const getLatestBlockSubgraph = async (url) => {
   // );
   const blockGraph =
     url.includes('babydoge/faas') ||
-    url.includes('kybernetwork/kyberswap-elastic-cronos')
+    url.includes('kybernetwork/kyberswap-elastic-cronos') ||
+    url.includes('kybernetwork/kyberswap-elastic-polygon')
       ? await request(url, queryGraph)
       : await request(
           `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
