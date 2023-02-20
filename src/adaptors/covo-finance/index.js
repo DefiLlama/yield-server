@@ -1,17 +1,20 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const abi = require('./abis/abi.json');
+const { Decimal } = require('decimal.js');
+const { request, gql } = require('graphql-request');
 
-const arbitrumGmxAddress = '0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a';
-const arbitrumGlpManagerAddress = '0x321F653eED006AD1C29D174e17d96351BDe22649';
+
+const arbitrumGmxAddress = '0x681D3e1b54B3E1a338feB5B076cebf53a697d51F';
+const arbitrumGlpManagerAddress = '0x8d5398E5f97554334DDdc8ec4b9855652c887802';
 const arbitrumFeeGmxTrackerAddress =
-  '0xd2D1162512F927a7e282Ef43a362659E4F2a728F';
+  '0x93bCfA19C135685b8029F85110Be38c1F8652dF1';
 const arbitrumInflationGmxTrackerAddress =
-  '0x908C4D94D34924765f1eDc22A1DD098397c59dD4';
+  '0x8D084d359aEC7e9C810E4Ce3fe5434750a230FD1';
 const arbitrumFeeGlpTrackerAddress =
-  '0x4e971a87900b931fF39d1Aad67697F49835400b6';
+  '0x16240E94B7F4A34aDc5e8407fb34d72530eE6c4A';
 const arbitrumInflationGlpTrackerAddress =
-  '0x1aDDD80E6039594eE970E5872D247bf0414C8903';
+  '0xffCC76DeE7221E1a19421920e1fc3B5eAd4C23a0';
 
 const avalacheGmxAddress = '0x62edc0692BD897D2295872a9FFCac5425011c661';
 const avalancheGlpManagerAddress = '0xe1ae4d4b06A5Fe1fc288f6B4CD72f9F8323B107F';
@@ -25,6 +28,7 @@ const avalancheInflationGlpTrackerAddress =
   '0x9e295B5B976a184B14aD8cd72413aD846C299660';
 
 const secondsPerYear = 31536000;
+const divisor = 10n ** 30n;
 
 async function getAdjustedAmount(pTarget, pChain, pAbi, pParams = []) {
   let decimals = await sdk.api.abi.call({
@@ -47,7 +51,7 @@ async function getAdjustedAmount(pTarget, pChain, pAbi, pParams = []) {
 async function getGlpTvl(pChain) {
   let tvl = await sdk.api.abi.call({
     target:
-      pChain == 'arbitrum'
+      pChain == 'polygon'
         ? arbitrumGlpManagerAddress
         : avalancheGlpManagerAddress,
     abi: abi['getAumInUsdg'],
@@ -70,18 +74,18 @@ async function getPoolGmx(
   const tvlGmx =
     pPriceData.gmx.usd *
     (await getAdjustedAmount(
-      pChain == 'arbitrum' ? arbitrumGmxAddress : avalacheGmxAddress,
+      pChain == 'polygon' ? arbitrumGmxAddress : avalacheGmxAddress,
       pChain,
       'erc20:balanceOf',
-      pChain == 'arbitrum'
+      pChain == 'polygon'
         ? [arbitrumInflationGmxTrackerAddress]
         : [avalancheInflationGmxTrackerAddress]
     ));
   const tvsGmx = pStakedGmx * pPriceData.gmx.usd;
   const tvsEsGmx = pStakedEsGmx * pPriceData.gmx.usd;
   const yearlyFeeGmx =
-    pChain == 'arbitrum'
-      ? pFeeGmx * pPriceData.ethereum.usd
+    pChain == 'polygon'
+      ? pFeeGmx * pPriceData.wmatic.usd
       : pFeeGmx * pPriceData['avalanche-2'].usd;
   const yearlyInflationGmx = pInflationGmx * pPriceData.gmx.usd;
   const apyFee = (yearlyFeeGmx / tvsGmx) * 100;
@@ -91,15 +95,15 @@ async function getPoolGmx(
   return {
     pool: pInflationTrackerAddress,
     chain: utils.formatChain(chainString),
-    project: 'gmx',
-    symbol: utils.formatSymbol('GMX'),
+    project: 'covo-finance',
+    symbol: utils.formatSymbol('COVO'),
     tvlUsd: tvlGmx,
     apyBase: apyFee,
     apyReward: apyInflation,
     rewardTokens:
-      chainString === 'arbitrum' ? [arbitrumGmxAddress] : [avalacheGmxAddress],
+      chainString === 'polygon' ? [arbitrumGmxAddress] : [avalacheGmxAddress],
     underlyingTokens: [
-      chainString === 'arbitrum' ? arbitrumGmxAddress : avalacheGmxAddress,
+      chainString === 'polygon' ? arbitrumGmxAddress : avalacheGmxAddress,
     ],
   };
 }
@@ -113,8 +117,8 @@ async function getPoolGlp(
   pPriceData
 ) {
   const yearlyFeeGlp =
-    pChain == 'arbitrum'
-      ? pFeeGlp * pPriceData.ethereum.usd
+    pChain == 'polygon'
+      ? pFeeGlp * pPriceData.wmatic.usd
       : pFeeGlp * pPriceData['avalanche-2'].usd;
   const yearlyInflationGlp = pInflationGlp * pPriceData.gmx.usd;
   const apyFee = (yearlyFeeGlp / pTvl) * 100;
@@ -124,55 +128,81 @@ async function getPoolGlp(
   return {
     pool: pInflationTrackerAddress,
     chain: utils.formatChain(chainString),
-    project: 'gmx',
-    symbol: utils.formatSymbol('GLP'),
+    project: 'covo-finance',
+    symbol: utils.formatSymbol('COVOLP'),
     tvlUsd: parseFloat(pTvl),
     apyBase: apyFee,
     apyReward: apyInflation,
     rewardTokens:
-      chainString === 'arbitrum' ? [arbitrumGmxAddress] : [avalacheGmxAddress],
+      chainString === 'polygon' ? [arbitrumGmxAddress] : [avalacheGmxAddress],
 
     underlyingTokens: [
-      chainString === 'arbitrum' ? arbitrumGmxAddress : avalacheGmxAddress,
+      chainString === 'polygon' ? arbitrumGmxAddress : avalacheGmxAddress,
     ],
     underlyingTokens: [
-      chainString === 'arbitrum'
+      chainString === 'polygon'
         ? '0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258'
         : '0x01234181085565ed162a948b6a5e88758CD7c7b8',
     ],
   };
 }
 
+const baseUrl = 'https://api.thegraph.com/subgraphs/name/defi-techz/covo-price';
+
+const query = gql`
+{
+  uniswapPrice(id:"0x681D3e1b54B3E1a338feB5B076cebf53a697d51F") {
+        token
+value
+timestamp
+  }
+}
+
+`;
+
+
 const getPools = async () => {
   let pools = [];
 
   const priceData = await utils.getData(
-    'https://api.coingecko.com/api/v3/simple/price?ids=gmx%2Cethereum%2Cavalanche-2&vs_currencies=usd'
+    'https://api.coingecko.com/api/v3/simple/price?ids=gmx%2Cwmatic%2Cavalanche-2&vs_currencies=usd'
   );
+
+
+  let queryC = query;
+  let covographprice = await request(baseUrl, queryC);
+  covographprice = covographprice.uniswapPrice;
+
+  const covopricedec = new Decimal(covographprice.value);
+
+  const covopricedecstring = covopricedec.div(divisor.toString()); // perform the division using Decimal
+  const covoprice = parseFloat(covopricedecstring.toString()); 
+  priceData.gmx.usd = covoprice;
+ 
 
   const arbitrumStakedGmx = await getAdjustedAmount(
     arbitrumFeeGmxTrackerAddress,
-    'arbitrum',
+    'polygon',
     'erc20:totalSupply'
   );
   const arbitrumStakedEsGmx = await getAdjustedAmount(
     arbitrumInflationGmxTrackerAddress,
-    'arbitrum',
+    'polygon',
     'erc20:totalSupply'
   );
   const arbitrumFeeGmx = await getAdjustedAmount(
     arbitrumFeeGmxTrackerAddress,
-    'arbitrum',
+    'polygon',
     abi['tokensPerInterval']
   );
   const arbitrumInflationGmx = await getAdjustedAmount(
     arbitrumInflationGmxTrackerAddress,
-    'arbitrum',
+    'polygon',
     abi['tokensPerInterval']
   );
   pools.push(
     await getPoolGmx(
-      'arbitrum',
+      'polygon',
       arbitrumInflationGmxTrackerAddress,
       arbitrumStakedGmx,
       arbitrumStakedEsGmx,
@@ -184,18 +214,18 @@ const getPools = async () => {
 
   const arbitrumFeeGlp = await getAdjustedAmount(
     arbitrumFeeGlpTrackerAddress,
-    'arbitrum',
+    'polygon',
     abi['tokensPerInterval']
   );
   const arbitrumInflationGlp = await getAdjustedAmount(
     arbitrumInflationGlpTrackerAddress,
-    'arbitrum',
+    'polygon',
     abi['tokensPerInterval']
   );
   pools.push(
     await getPoolGlp(
-      'arbitrum',
-      await getGlpTvl('arbitrum'),
+      'polygon',
+      await getGlpTvl('polygon'),
       arbitrumInflationGlpTrackerAddress,
       arbitrumFeeGlp,
       arbitrumInflationGlp,
@@ -223,17 +253,7 @@ const getPools = async () => {
     'avax',
     abi['tokensPerInterval']
   );
-  pools.push(
-    await getPoolGmx(
-      'avax',
-      avalancheInflationGmxTrackerAddress,
-      avalancheStakedGmx,
-      avalancheStakedEsGmx,
-      avalancheFeeGmx,
-      avalancheInflationGmx,
-      priceData
-    )
-  );
+  
 
   const avalancheFeeGlp = await getAdjustedAmount(
     avalancheFeeGlpTrackerAddress,
@@ -245,16 +265,7 @@ const getPools = async () => {
     'avax',
     abi['tokensPerInterval']
   );
-  pools.push(
-    await getPoolGlp(
-      'avax',
-      await getGlpTvl('avax'),
-      avalancheInflationGlpTrackerAddress,
-      avalancheFeeGlp,
-      avalancheInflationGlp,
-      priceData
-    )
-  );
+ 
 
   return pools;
 };
@@ -262,5 +273,5 @@ const getPools = async () => {
 module.exports = {
   timetravel: false,
   apy: getPools,
-  url: 'https://app.gmx.io/#/earn',
+  url: 'https://app.covo.finance/#/earn',
 };
