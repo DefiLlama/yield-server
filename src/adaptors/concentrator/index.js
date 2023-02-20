@@ -127,7 +127,7 @@ const getConvexInfo = (tokenName, dataApy) => {
 
 const buildPool = (entry, chainString) => {
   const newObj = {
-    pool: `${entry.lpToken}-concentrator`,
+    pool: `${entry.lpToken}-concentrator`.toLowerCase(),
     chain: utils.formatChain(chainString),
     project: 'concentrator',
     symbol: utils.formatSymbol(entry.symbol),
