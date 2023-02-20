@@ -82,11 +82,11 @@ async function apy() {
 
   const pools = [];
 
-  Object.entries(pairs).forEach(([symbol, apr], i) => {
+  Object.entries(pairs).forEach(([symbol, apr]) => {
     const [baseToken, quoteToken] = symbol.split('-');
 
     pools.push({
-      pool: `${i}-${CHAIN}`, // we don't have a specific contract address for each pool
+      pool: `${VAULT}-${CHAIN}`, // we don't have a specific contract address for each pool
       chain: utils.formatChain(CHAIN),
       project: SLUG,
       symbol,
