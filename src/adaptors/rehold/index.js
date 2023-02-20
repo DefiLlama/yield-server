@@ -86,7 +86,7 @@ async function apy() {
     const [baseToken, quoteToken] = symbol.split('-');
 
     pools.push({
-      pool: `${i}-${CHAIN}`, // we don't have a specific contract address for each pool
+      pool: `${VAULT}-${i}-${CHAIN}`, // we don't have a specific contract address for each pool
       chain: utils.formatChain(CHAIN),
       project: SLUG,
       symbol,
