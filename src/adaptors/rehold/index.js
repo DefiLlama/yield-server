@@ -9,6 +9,8 @@ const VAULT = '0xd476ce848c61650e3051f7571f3ae437fe9a32e0';
 const CHAIN = 'bsc';
 const SLUG = 'rehold';
 
+const POOL_META = 'Calculated as: 24h yield * 365. APY is fixed, and extendable with no limits after the staking period ends.';
+
 function _map(array) {
   return array.reduce((acc, item) => {
     acc[item.input.target.toLowerCase()] = item.output;
@@ -57,7 +59,7 @@ async function apy() {
     abi: dualAbi.find((m) => m.name === 'tariffs'),
   });
 
-  output.forEach((tariff, i) => {
+  output.forEach((tariff) => {
     const { baseToken, quoteToken, stakingPeriod, yield: _yield } = tariff;
     const apr = +new BN(_yield)
       .div(stakingPeriod)
@@ -164,6 +166,7 @@ async function apy() {
 
     pool.symbol = [symbolA, symbolB].filter(Boolean).join('-');
     pool.tvlUsd = balanceA + balanceB;
+    pool.poolMeta = POOL_META;
   });
 
   return pools;
