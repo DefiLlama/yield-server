@@ -12,7 +12,8 @@ const urlFarm =
 CHAINS_API = {
   ethereum: `${url}-mainnet`,
   arbitrum: `${url}-arbitrum-one`,
-  polygon: `${url}-matic`,
+  polygon:
+    'https://polygon-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-elastic-polygon',
   avalanche: `${url}-avalanche`,
   bsc: `${url}-bsc`,
   fantom: `${url}-fantom`,
