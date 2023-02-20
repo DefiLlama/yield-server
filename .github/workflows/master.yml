@@ -30,6 +30,7 @@ jobs:
           CRONOS_RPC: ${{ secrets.CRONOS_RPC }}
           FANTOM_RPC: ${{ secrets.FANTOM_RPC }}
           OPTIMISM_RPC: ${{ secrets.OPTIMISM_RPC }}
+          AVAX_RPC: ${{ secrets.AVAX_RPC }}
           TVL_SPIKE_WEBHOOK: ${{ secrets.TVL_SPIKE_WEBHOOK }}
           NEW_YIELDS_WEBHOOK: ${{ secrets.NEW_YIELDS_WEBHOOK }}
           STALE_PROJECTS_WEBHOOK: ${{ secrets.STALE_PROJECTS_WEBHOOK }}

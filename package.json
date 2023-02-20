@@ -14,6 +14,7 @@
   "license": "ISC",
   "dependencies": {
     "@defillama/sdk": "^2.3.126",
+    "@defillama/sdk3": "npm:@defillama/sdk@^3.0.34",
     "@types/jest": "^28.1.6",
     "@uniswap/sdk-core": "^3.0.1",
     "@uniswap/smart-order-router": "^2.8.0",
@@ -31,6 +32,7 @@
     "pg-promise": "^10.11.1",
     "simple-statistics": "^7.7.5",
     "superagent": "^6.1.0",
+    "validator": "^13.9.0",
     "web3": "^1.4.0"
   },
   "devDependencies": {

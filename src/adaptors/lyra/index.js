@@ -2,7 +2,7 @@ const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
-const url = 'https://subgraph.satsuma-prod.com/lyra/optimism-mainnet/api';
+const url = 'https://api.lyra.finance/subgraph/optimism/v1/api';
 
 const SECONDS_IN_MONTH = 2592000;
 const MONTHS_IN_YEAR = 12;
