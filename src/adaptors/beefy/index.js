@@ -70,6 +70,8 @@ const main = async () => {
 
       if (!poolId) continue;
 
+      const underlyingTokens = (!!poolMeta && poolMeta.assets.length === 1 && poolMeta.tokenAddress) ? [poolMeta.tokenAddress] : undefined;
+
       data.push({
         pool: `${poolId}-${networkMapping[chain]}`.toLowerCase(),
         chain: utils.formatChain(networkMapping[chain]),
@@ -82,6 +84,7 @@ const main = async () => {
         apy: isActive ? apy[pool] * 100 : 0,
         poolMeta:
           platformId === undefined ? null : utils.formatChain(platformId),
+        underlyingTokens,
       });
     }
   }

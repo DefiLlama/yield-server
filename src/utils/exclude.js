@@ -9,6 +9,7 @@ const excludeAdaptors = [
   'cbridge',
   'friktion',
   'armor', // is now ease.org
+  'lachain-yield-market',
 ];
 
 const excludePools = [

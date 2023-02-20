@@ -155,12 +155,12 @@ const getApy = async () => {
     );
     const tvlUsd = totalSupplyUsd - totalBorrowUsd;
     const LpRewardApy = calculateApy(
-      pool.gearPerBlock.LP,
+      pool.gearPerBlock?.LP,
       gearPrice,
       totalSupplyUsd
     );
     const CaRewardApy = calculateApy(
-      pool.gearPerBlock.CA,
+      pool.gearPerBlock?.CA,
       gearPrice,
       totalBorrowUsd
     );

@@ -49,6 +49,7 @@ const main = async (body) => {
   console.log(body.adaptor);
   const project = require(`../adaptors/${body.adaptor}`);
   let data = await project.apy();
+  console.log(data[0]);
 
   const protocolConfig = (
     await superagent.get('https://api.llama.fi/config/yields?a=1')

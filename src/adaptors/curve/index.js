@@ -217,11 +217,17 @@ const main = async () => {
     ] = poolData;
 
     let factoryAprData;
-    if (blockchainId === 'optimism') {
+    if (['optimism', 'celo', 'kava'].includes(blockchainId)) {
       factoryAprData = (
-        await utils.getData('https://api.curve.fi/api/getFactoGauges/optimism')
+        await utils.getData(
+          `https://api.curve.fi/api/getFactoGauges/${blockchainId}`
+        )
       ).data.gauges;
     }
+
+    const celoApy = (
+      await utils.getData('https://api.curve.fi/api/getFactoryAPYs-celo')
+    ).data.poolDetails;
 
     const stETHPools = [
       '0xDC24316b9AE028F1497c275EB9192a3Ea0f67022',
@@ -233,7 +239,11 @@ const main = async () => {
       // one gauge can have multiple (different) extra rewards
       const extraRewards = gaugeAddressToExtraRewards[pool.gaugeAddress];
 
-      const apyBase = subgraph ? parseFloat(subgraph.latestDailyApy) : 0;
+      const apyBase = subgraph
+        ? parseFloat(subgraph.latestDailyApy)
+        : blockchainId === 'celo'
+        ? celoApy.find((i) => i.poolAddress === address)?.apy
+        : 0;
       const aprCrv =
         (blockchainId === 'optimism' && pool?.gaugeCrvApy?.length > 0) ||
         [
@@ -255,7 +265,8 @@ const main = async () => {
           : 0;
       let aprExtra = extraRewards
         ? extraRewards.map((reward) => reward.apy).reduce((a, b) => a + b)
-        : stETHPools.includes(address)
+        : stETHPools.includes(address) ||
+          address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' // pool on moonbeam
         ? pool.gaugeRewards[0].apy
         : 0;
 
@@ -266,6 +277,8 @@ const main = async () => {
         ? extraRewards.map((reward) => reward.tokenAddress)
         : stETHPools.includes(address)
         ? ['0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32'] // LDO
+        : address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' // pool on moonbeam
+        ? ['0xacc15dc74880c9944775448304b263d191c6077f'] // wglmr
         : [];
       if (aprCrv) {
         rewardTokens.push('0xD533a949740bb3306d119CC777fa900bA034cd52'); // CRV
