@@ -50,7 +50,6 @@ async function _getPrices(tokens) {
 async function apy() {
   const pairs = {};
   const tokens = {};
-  const periods = {};
 
   const { output } = await sdk.api.abi.call({
     chain: CHAIN,
@@ -68,12 +67,10 @@ async function apy() {
 
     if (!tokens[baseToken] || tokens[baseToken] < apr) {
       tokens[baseToken] = apr;
-      periods[baseToken] = stakingPeriod;
     }
 
     if (!tokens[quoteToken] || tokens[quoteToken] < apr) {
       tokens[quoteToken] = apr;
-      periods[quoteToken] = stakingPeriod;
     }
 
     if (
@@ -81,7 +78,6 @@ async function apy() {
       pairs[`${baseToken}-${quoteToken}`] < apr
     ) {
       pairs[`${baseToken}-${quoteToken}`] = apr;
-      periods[`${baseToken}-${quoteToken}`] = stakingPeriod;
     }
   });
 
@@ -97,7 +93,6 @@ async function apy() {
       symbol,
       apyBase: apr,
       underlyingTokens: [baseToken, quoteToken],
-      poolMeta: periods[symbol],
     });
   });
 
@@ -109,7 +104,6 @@ async function apy() {
       symbol: token,
       apyBase: apr,
       underlyingTokens: [token],
-      poolMeta: periods[token],
     });
   });
 
@@ -173,7 +167,8 @@ async function apy() {
 
     pool.symbol = [symbolA, symbolB].filter(Boolean).join('-');
     pool.tvlUsd = balanceA + balanceB;
-    pool.poolMeta = `${pool.poolMeta}h-lock`;
+    pool.poolMeta =
+      'APY for 24h lock, extendable with no limits after the period ends.';
   });
 
   return pools;
