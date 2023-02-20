@@ -9,8 +9,6 @@ const VAULT = '0xd476ce848c61650e3051f7571f3ae437fe9a32e0';
 const CHAIN = 'bsc';
 const SLUG = 'rehold';
 
-const POOL_META = 'Calculated as: 24h yield * 365. APY is fixed, and extendable with no limits after the staking period ends.';
-
 function _map(array) {
   return array.reduce((acc, item) => {
     acc[item.input.target.toLowerCase()] = item.output;
@@ -52,6 +50,7 @@ async function _getPrices(tokens) {
 async function apy() {
   const pairs = {};
   const tokens = {};
+  const periods = {};
 
   const { output } = await sdk.api.abi.call({
     chain: CHAIN,
@@ -69,14 +68,20 @@ async function apy() {
 
     if (!tokens[baseToken] || tokens[baseToken] < apr) {
       tokens[baseToken] = apr;
+      periods[baseToken] = stakingPeriod;
     }
 
     if (!tokens[quoteToken] || tokens[quoteToken] < apr) {
       tokens[quoteToken] = apr;
+      periods[quoteToken] = stakingPeriod;
     }
 
-    if (!pairs[`${baseToken}-${quoteToken}`] || pairs[`${baseToken}-${quoteToken}`] < apr) {
+    if (
+      !pairs[`${baseToken}-${quoteToken}`] ||
+      pairs[`${baseToken}-${quoteToken}`] < apr
+    ) {
       pairs[`${baseToken}-${quoteToken}`] = apr;
+      periods[`${baseToken}-${quoteToken}`] = stakingPeriod;
     }
   });
 
@@ -92,6 +97,7 @@ async function apy() {
       symbol,
       apyBase: apr,
       underlyingTokens: [baseToken, quoteToken],
+      poolMeta: periods[symbol],
     });
   });
 
@@ -103,6 +109,7 @@ async function apy() {
       symbol: token,
       apyBase: apr,
       underlyingTokens: [token],
+      poolMeta: periods[token],
     });
   });
 
@@ -166,7 +173,7 @@ async function apy() {
 
     pool.symbol = [symbolA, symbolB].filter(Boolean).join('-');
     pool.tvlUsd = balanceA + balanceB;
-    pool.poolMeta = POOL_META;
+    pool.poolMeta = `${pool.poolMeta}h-lock`;
   });
 
   return pools;
