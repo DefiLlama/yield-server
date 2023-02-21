@@ -1,8 +1,10 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const abi = require('./abis/abi.json');
-const { Decimal } = require('decimal.js');
 const { request, gql } = require('graphql-request');
+const BigNumber = require('bignumber.js');
+
+const baseUrl = 'https://api.thegraph.com/subgraphs/name/defi-techz/covo-price';
 
 
 const arbitrumGmxAddress = '0x681D3e1b54B3E1a338feB5B076cebf53a697d51F';
@@ -28,7 +30,7 @@ const avalancheInflationGlpTrackerAddress =
   '0x9e295B5B976a184B14aD8cd72413aD846C299660';
 
 const secondsPerYear = 31536000;
-const divisor = 10n ** 30n;
+
 
 async function getAdjustedAmount(pTarget, pChain, pAbi, pParams = []) {
   let decimals = await sdk.api.abi.call({
@@ -147,8 +149,6 @@ async function getPoolGlp(
   };
 }
 
-const baseUrl = 'https://api.thegraph.com/subgraphs/name/defi-techz/covo-price';
-
 const query = gql`
 {
   uniswapPrice(id:"0x681D3e1b54B3E1a338feB5B076cebf53a697d51F") {
@@ -159,6 +159,36 @@ timestamp
 }
 
 `;
+function divideStrings(dividend, divisor) {
+  let quotient = "";
+  let remainder = "";
+  let idx = 0;
+
+  while (idx < dividend.length) {
+    let currentDigit = Number(dividend[idx]);
+    remainder = remainder.concat(currentDigit.toString());
+    while (remainder.length > 1 && remainder[0] === "0") {
+      remainder = remainder.slice(1);
+    }
+    if (Number(remainder) < Number(divisor)) {
+      quotient = quotient.concat("0");
+    } else {
+      let count = 0;
+      while (Number(remainder) >= Number(divisor)) {
+        remainder = (Number(remainder) - Number(divisor)).toString();
+        count++;
+      }
+      quotient = quotient.concat(count.toString());
+    }
+    idx++;
+  }
+
+  while (quotient.length > 1 && quotient[0] === "0") {
+    quotient = quotient.slice(1);
+  }
+
+  return quotient;
+}
 
 
 const getPools = async () => {
@@ -171,13 +201,15 @@ const getPools = async () => {
 
   let queryC = query;
   let covographprice = await request(baseUrl, queryC);
-  covographprice = covographprice.uniswapPrice;
+  covographprice = new BigNumber (covographprice.uniswapPrice.value);
+  decimal = new BigNumber (1000000000000000000000000000000);
 
-  const covopricedec = new Decimal(covographprice.value);
 
-  const covopricedecstring = covopricedec.div(divisor.toString()); // perform the division using Decimal
+  const covopricedecstring =  covographprice.dividedBy(decimal);
+
   const covoprice = parseFloat(covopricedecstring.toString()); 
   priceData.gmx.usd = covoprice;
+
  
 
   const arbitrumStakedGmx = await getAdjustedAmount(
