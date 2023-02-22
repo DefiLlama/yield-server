@@ -24,13 +24,14 @@ const getApy = async () => {
             const addresses = chains[chain];
             const sdkChain = chain === 'avalanche' ? 'avax' : chain;
 
-            const reservesList = (
+            const reserveList = (
                 await sdk.api.abi.call({
                     target: addresses.LendingPool,
                     abi: abiLendingPool.find((m) => m.name === 'getReservesList'),
                     chain: 'telos',
                 })
             ).output;
+            reservesList = reserveList.filter(e => e !== '0x7C598c96D02398d89FbCb9d41Eab3DF0C16F227D');
 
             const reserveData = (
                 await sdk.api.abi.multiCall({
@@ -161,6 +162,7 @@ const getApy = async () => {
             });
         })
     );
+
     return pools.flat().filter((p) => utils.keepFinite(p));
 };
 
