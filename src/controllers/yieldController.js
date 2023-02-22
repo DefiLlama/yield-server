@@ -37,7 +37,8 @@ const getYieldFiltered = async () => {
         "il7d",
         "apyBase7d",
         "volumeUsd1d",
-        "volumeUsd7d"
+        "volumeUsd7d",
+        "apyBaseInception"
     FROM
         (
             SELECT
@@ -258,7 +259,8 @@ const getYieldLendBorrow = async () => {
         "borrowable",
         "mintedCoin",
         "rewardTokens",
-        "underlyingTokens"
+        "underlyingTokens",
+        "borrowFactor"
     FROM
         (
             SELECT
@@ -404,6 +406,7 @@ const buildInsertYieldQuery = (payload) => {
     'apyRewardBorrowFake',
     'volumeUsd1d',
     'volumeUsd7d',
+    'apyBaseInception',
     { name: 'apyBaseBorrow', def: null },
     { name: 'apyRewardBorrow', def: null },
     { name: 'totalSupplyUsd', def: null },

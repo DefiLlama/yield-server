@@ -81,7 +81,7 @@ const chainMapping = {
 
 const main = async () => {
   const [avax] = await Promise.all([apy('43114')]);
-  return [...avax];
+  return [...avax].filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

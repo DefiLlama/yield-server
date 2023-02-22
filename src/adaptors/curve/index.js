@@ -217,11 +217,17 @@ const main = async () => {
     ] = poolData;
 
     let factoryAprData;
-    if (blockchainId === 'optimism') {
+    if (['optimism', 'celo', 'kava'].includes(blockchainId)) {
       factoryAprData = (
-        await utils.getData('https://api.curve.fi/api/getFactoGauges/optimism')
+        await utils.getData(
+          `https://api.curve.fi/api/getFactoGauges/${blockchainId}`
+        )
       ).data.gauges;
     }
+
+    const celoApy = (
+      await utils.getData('https://api.curve.fi/api/getFactoryAPYs-celo')
+    ).data.poolDetails;
 
     const stETHPools = [
       '0xDC24316b9AE028F1497c275EB9192a3Ea0f67022',
@@ -233,17 +239,34 @@ const main = async () => {
       // one gauge can have multiple (different) extra rewards
       const extraRewards = gaugeAddressToExtraRewards[pool.gaugeAddress];
 
-      const apyBase = subgraph ? parseFloat(subgraph.latestDailyApy) : 0;
+      const apyBase = subgraph
+        ? parseFloat(subgraph.latestDailyApy)
+        : blockchainId === 'celo'
+        ? celoApy.find((i) => i.poolAddress === address)?.apy
+        : 0;
       const aprCrv =
         (blockchainId === 'optimism' && pool?.gaugeCrvApy?.length > 0) ||
-        address === '0xa1F8A6807c402E4A15ef4EBa36528A3FED24E577'
+        [
+          '0xa1F8A6807c402E4A15ef4EBa36528A3FED24E577',
+          '0x960ea3e3C7FB317332d990873d354E18d7645590',
+          '0x7f90122BF0700F9E7e1F688fe926940E8839F353',
+          '0x326290A1B0004eeE78fa6ED4F1d8f4b2523ab669',
+          '0x6a6283aB6e31C2AeC3fA08697A8F806b740660b2',
+          '0x13B876C26Ad6d21cb87AE459EaF6d7A1b788A113',
+          '0x66E335622ad7a6C9c72c98dbfCCE684996a20Ef9',
+          '0x3e3C6c7db23cdDEF80B694679aaF1bCd9517D0Ae',
+          '0xFc1e8bf3E81383Ef07Be24c3FD146745719DE48D',
+          '0x84C333e94AEA4a51a21F6cf0C7F528C50Dc7592C',
+          '0xB755B949C126C04e0348DD881a5cF55d424742B2',
+        ].includes(address)
           ? pool?.gaugeCrvApy[0]
           : gauge && subgraph
           ? getPoolAPR(pool, subgraph, gauge, priceCrv, underlyingPrices)
           : 0;
       let aprExtra = extraRewards
         ? extraRewards.map((reward) => reward.apy).reduce((a, b) => a + b)
-        : stETHPools.includes(address)
+        : stETHPools.includes(address) ||
+          address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' // pool on moonbeam
         ? pool.gaugeRewards[0].apy
         : 0;
 
@@ -254,6 +277,8 @@ const main = async () => {
         ? extraRewards.map((reward) => reward.tokenAddress)
         : stETHPools.includes(address)
         ? ['0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32'] // LDO
+        : address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' // pool on moonbeam
+        ? ['0xacc15dc74880c9944775448304b263d191c6077f'] // wglmr
         : [];
       if (aprCrv) {
         rewardTokens.push('0xD533a949740bb3306d119CC777fa900bA034cd52'); // CRV
@@ -306,7 +331,10 @@ const main = async () => {
         apyBase,
         apyReward:
           // isolated pool for which the aprCrv is wrong
-          address === '0xBaaa1F5DbA42C3389bDbc2c9D2dE134F5cD0Dc89'
+          [
+            '0xBaaa1F5DbA42C3389bDbc2c9D2dE134F5cD0Dc89',
+            '0x7f90122BF0700F9E7e1F688fe926940E8839F353',
+          ].includes(address)
             ? null
             : aprCrv + aprExtra,
         rewardTokens: rewardTokens.flat(),
