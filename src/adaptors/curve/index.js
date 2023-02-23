@@ -336,6 +336,12 @@ const main = async () => {
             '0x7f90122BF0700F9E7e1F688fe926940E8839F353',
           ].includes(address)
             ? null
+            : [
+                '0x9F2fE3500B1a7E285FDc337acacE94c480e00130',
+                '0x061b87122Ed14b9526A813209C8a59a633257bAb',
+                '0x29A3d66B30Bc4AD674A4FDAF27578B64f6afbFe7',
+              ].includes(address)
+            ? aprExtra
             : aprCrv + aprExtra,
         rewardTokens: rewardTokens.flat(),
         underlyingTokens,
