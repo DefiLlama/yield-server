@@ -206,6 +206,10 @@ const main = async () => {
     })
   ).body.coins;
 
+  const celoApy = (
+    await utils.getData('https://api.curve.fi/api/getFactoryAPYs-celo')
+  ).data.poolDetails;
+
   // create feeder closure to fill defillamaPooldata asynchroniously
   const defillamaPooldata = [];
   const feedLlama = async (poolData, blockchainId) => {
@@ -224,10 +228,6 @@ const main = async () => {
         )
       ).data.gauges;
     }
-
-    const celoApy = (
-      await utils.getData('https://api.curve.fi/api/getFactoryAPYs-celo')
-    ).data.poolDetails;
 
     const stETHPools = [
       '0xDC24316b9AE028F1497c275EB9192a3Ea0f67022',
