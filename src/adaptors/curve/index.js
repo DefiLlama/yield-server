@@ -345,6 +345,7 @@ const main = async () => {
             : aprCrv + aprExtra,
         rewardTokens: rewardTokens.flat(),
         underlyingTokens,
+        url: `https://curve.fi/#/${blockchainId}/pools`,
       });
     }
   };
@@ -377,5 +378,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://curve.fi/pools',
 };
