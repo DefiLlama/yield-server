@@ -38,7 +38,7 @@ async function getRevenueOld(_days) {
 	  }
 	`;
 	const data = await client.request(query);
-	return data.tron.transfers.length > 0 ? (data.tron.transfers[0].amount * (10 ** 6)) : 0;
+	return data.tron.transfers.length > 0 ? (data.tron.transfers[0]?.amount * (10 ** 6)) : 0;
 }
 async function getRevenueNew(_days) {
 	const query = gql`
@@ -58,7 +58,7 @@ async function getRevenueNew(_days) {
 	  }
 	`;
 	const data = await client.request(query);
-	return data.tron.transfers.length > 0 ? (data.tron.transfers[0].amount * (10 ** 6)) : 0;
+	return data.tron.transfers.length > 0 ? (data.tron.transfers[0]?.amount * (10 ** 6)) : 0;
 }
 async function getRevenueNew(_days) {
 	const query = gql`
@@ -78,7 +78,7 @@ async function getRevenueNew(_days) {
 	  }
 	`;
 	const data = await client.request(query);
-	return (data.tron.transfers[0].amount * (10 ** 6));
+	return (data.tron.transfers[0]?.amount * (10 ** 6));
 }
 
 async function getCurrentStake() {
@@ -112,10 +112,11 @@ const poolsFunction = async () => {
 		project: 'strx-finance',
 		symbol: utils.formatSymbol('TRX'),
 		tvlUsd: dataTvl,
-		apyBase: Number(dailyAPY),
+		apyBase: dailyAPY > 0 ? Number(dailyAPY) : 0,
 		apyBase7d: Number(weeklyAPY)
 	};
-	return [StakingPool];
+
+	return [StakingPool]
 }
 module.exports = {
 	timetravel: false,
