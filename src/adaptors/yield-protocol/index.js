@@ -29,6 +29,7 @@ const getPools = async (chain) => {
           id
           totalSupply
           maturity
+          symbol
         }
         currentFYTokenPriceInBase
         tvlInBase
@@ -52,9 +53,13 @@ const getPools = async (chain) => {
     subgraphPools.map(async (pool) => {
       const {
         id: poolAddress,
-        // symbol: poolSymbol,
         base: baseAddr,
-        fyToken: { id: fyTokenAddr, totalSupply: fyTokenTotalSupply, maturity },
+        fyToken: {
+          id: fyTokenAddr,
+          totalSupply: fyTokenTotalSupply,
+          maturity,
+          symbol,
+        },
         tvlInBase,
         currentFYTokenPriceInBase,
         // apy,
@@ -84,9 +89,9 @@ const getPools = async (chain) => {
       const apyBaseBorrow = 0; // TODO: calculate/estimate apr borrow
       const apyBaseSupply = 0; // TODO: calculate/estimate apr borrow
 
+      // extra data
       const maturityFormatted = formatMaturity(maturity);
       const name = `${poolAddress}-${chain}`.toLowerCase();
-      const poolSymbol = `${price.symbol}-${maturityFormatted}`;
       const poolMeta =
         `Yield Protocol ${price.symbol} ${maturityFormatted}`.trim();
 
@@ -94,7 +99,7 @@ const getPools = async (chain) => {
         pool: name,
         chain: formatChain(chain),
         project: 'yield-protocol',
-        symbol: formatSymbol(poolSymbol),
+        symbol: formatSymbol(`${symbol}LP`),
         tvlUsd,
         apy: 0, // pool apy estimate
         apyReward: 0, // pool reward apy estimate
