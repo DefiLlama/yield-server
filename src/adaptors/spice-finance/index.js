@@ -29,7 +29,7 @@ async function apr() {
       pool: `Spice-Prologue-Vault`,
       chain: 'Ethereum',
       project: 'spice-finance',
-      symbol: 'SPICE',
+      symbol: 'WETH',
       tvlUsd,
       apy,
     },
