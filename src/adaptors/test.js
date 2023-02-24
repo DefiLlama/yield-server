@@ -131,7 +131,6 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
   });
 
   test('Check project field is constant in all pools and if folder name and project field in pool objects matches the information in /protocols slug', () => {
-    console.log(adapter,123,protocolsSlug.filter(item=>item.startsWith('bifrost')),123)
     expect(new Set(apy.map((p) => p.project)).size).toBe(1);
     expect(
       protocolsSlug.includes(apy[0].project) && apy[0].project === adapter
