@@ -13,6 +13,9 @@ const lendingPoolAddressesProvider =
   '0x0736B3dAdDe5B78354BF7F7faaFAcEE82B1851b9';
 const rewardToken = '0xb1ebdd56729940089ecc3ad0bbeeb12b6842ea6f';
 
+// valas has an early exit penalty of 75% -> 25% of the rewards are left
+const earlyExitPenalty = 1 - 0.75;
+
 const apy = async () => {
   const chain = 'bsc';
   // underlying pools
@@ -148,12 +151,14 @@ const apy = async () => {
     const apyReward =
       (((poolInfoInterest[i].allocPoint / totalAllocPoint) * rewardPerYear) /
         totalSupplyUsd) *
-      100;
+      100 *
+      earlyExitPenalty;
 
     const apyRewardBorrow =
       (((poolInfoDebt[i].allocPoint / totalAllocPoint) * rewardPerYear) /
         totalBorrowUsd) *
-      100;
+      100 *
+      earlyExitPenalty;
 
     // ltv
     const ltv = reserveConfigurationData[i].ltv / 1e4;

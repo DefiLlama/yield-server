@@ -6,6 +6,7 @@ const urlTvl = `${url}/tvl`;
 const urlMeta = `${url}/vaults`;
 
 const networkMapping = {
+  1: 'ethereum',
   10: 'optimism',
   43114: 'avalanche',
   1666600000: 'harmony',
@@ -26,6 +27,7 @@ const networkMapping = {
 
 // hardcode bifi token addresses per chain
 const bifiMapping = {
+  1: '0x5870700f1272a1AdbB87C3140bD770880a95e55D',
   10: '0x4E720DD3Ac5CFe1e1fbDE4935f386Bb1C66F4642',
   43114: '0xd6070ae98b8069de6B494332d1A1a81B6179D960',
   1666600000: '0x6ab6d61428fde76768d7b45d8bfeec19c6ef91a8',
@@ -51,7 +53,7 @@ const main = async () => {
 
   let data = [];
   for (const chain of Object.keys(networkMapping)) {
-    poolData = tvl[chain];
+    const poolData = tvl[chain];
     for (const pool of Object.keys(poolData)) {
       if (apy[pool] === undefined) {
         continue;
@@ -68,15 +70,21 @@ const main = async () => {
 
       if (!poolId) continue;
 
+      const underlyingTokens = (!!poolMeta && poolMeta.assets.length === 1 && poolMeta.tokenAddress) ? [poolMeta.tokenAddress] : undefined;
+
       data.push({
         pool: `${poolId}-${networkMapping[chain]}`.toLowerCase(),
         chain: utils.formatChain(networkMapping[chain]),
         project: 'beefy',
-        symbol: utils.formatSymbol(pool.split('-').slice(1).join('-')),
+        symbol:
+          poolMeta === undefined
+            ? 'BIFI'
+            : utils.formatSymbol(poolMeta?.assets.join('-')),
         tvlUsd: poolData[pool],
         apy: isActive ? apy[pool] * 100 : 0,
         poolMeta:
           platformId === undefined ? null : utils.formatChain(platformId),
+        underlyingTokens,
       });
     }
   }

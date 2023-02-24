@@ -1,6 +1,9 @@
 const { getYieldHistory } = require('../controllers/yieldController');
+const validator = require('validator');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
-  return await getYieldHistory(event.pathParameters.configID);
+  const configID = event.pathParameters.configID;
+  if (!validator.isUUID(configID)) return { status: 'invalid uuid parameter' };
+  return await getYieldHistory(configID);
 };
