@@ -2,7 +2,9 @@ const { gql, default: request } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
-const AURA_API = 'https://api.thegraph.com/subgraphs/name/aurafinance/aura';
+// new subgraph for new rewarder see https://twitter.com/AuraFinance/status/1602809800475058176
+const AURA_API =
+  'https://graph.aura.finance/subgraphs/name/aura/aura-mainnet-v2';
 const BAL_API =
   'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-v2';
 const AURA_TVL_API = 'https://aura-metrics.onrender.com/tvl';
@@ -92,7 +94,7 @@ const main = async () => {
     const balData = balPools.find(({ address }) => address === pool.lpToken.id);
     if (!balData) return;
     const swapApr = swapAprs.find(({ id }) => id === balData.id);
-    if (!swapApr.poolAprs) return;
+    if (!swapApr?.poolAprs) return;
     const tvlUsd = auraTvl[pool.lpToken.id] || 0;
     const balRewards = pool.rewardData.find(
       ({ token }) => token.id === BAL_ADDRESS

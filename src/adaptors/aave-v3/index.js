@@ -4,6 +4,7 @@ const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const { aTokenAbi } = require('./abi');
+const poolAbi = require('./poolAbi');
 
 const SECONDS_PER_YEAR = 31536000;
 
@@ -56,6 +57,7 @@ const query = gql`
   query ReservesQuery {
     reserves {
       name
+      borrowingEnabled
       aToken {
         id
         rewards {
@@ -64,6 +66,7 @@ const query = gql`
           rewardToken
           rewardTokenDecimals
           rewardTokenSymbol
+          distributionEnd
         }
         underlyingAssetAddress
         underlyingAssetDecimals
@@ -74,23 +77,139 @@ const query = gql`
           rewardToken
           rewardTokenDecimals
           rewardTokenSymbol
+          distributionEnd
         }
       }
       symbol
       liquidityRate
       variableBorrowRate
       baseLTVasCollateral
+      isFrozen
     }
   }
 `;
 
+const ethV3Pools = async () => {
+  const AaveProtocolDataProviderV3Mainnet =
+    '0x7B4EB56E7CD4b454BA8ff71E4518426369a138a3';
+  const reserveTokens = (
+    await sdk.api.abi.call({
+      target: AaveProtocolDataProviderV3Mainnet,
+      abi: poolAbi.find((m) => m.name === 'getAllReservesTokens'),
+      chain: 'ethereum',
+    })
+  ).output;
+
+  const aTokens = (
+    await sdk.api.abi.call({
+      target: AaveProtocolDataProviderV3Mainnet,
+      abi: poolAbi.find((m) => m.name === 'getAllATokens'),
+      chain: 'ethereum',
+    })
+  ).output;
+
+  const poolsReserveData = (
+    await sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({
+        target: AaveProtocolDataProviderV3Mainnet,
+        params: p.tokenAddress,
+      })),
+      abi: poolAbi.find((m) => m.name === 'getReserveData'),
+      chain: 'ethereum',
+    })
+  ).output.map((o) => o.output);
+
+  const poolsReservesConfigurationData = (
+    await sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({
+        target: AaveProtocolDataProviderV3Mainnet,
+        params: p.tokenAddress,
+      })),
+      abi: poolAbi.find((m) => m.name === 'getReserveConfigurationData'),
+      chain: 'ethereum',
+    })
+  ).output.map((o) => o.output);
+
+  const totalSupplyEthereum = (
+    await sdk.api.abi.multiCall({
+      chain: 'ethereum',
+      abi: aTokenAbi.find(({ name }) => name === 'totalSupply'),
+      calls: aTokens.map((t) => ({
+        target: t.tokenAddress,
+      })),
+    })
+  ).output.map((o) => o.output);
+
+  const underlyingBalancesEthereum = (
+    await sdk.api.abi.multiCall({
+      chain: 'ethereum',
+      abi: aTokenAbi.find(({ name }) => name === 'balanceOf'),
+      calls: aTokens.map((t, i) => ({
+        target: reserveTokens[i].tokenAddress,
+        params: [t.tokenAddress],
+      })),
+    })
+  ).output.map((o) => o.output);
+
+  const underlyingDecimalsEthereum = (
+    await sdk.api.abi.multiCall({
+      chain: 'ethereum',
+      abi: aTokenAbi.find(({ name }) => name === 'decimals'),
+      calls: aTokens.map((t) => ({
+        target: t.tokenAddress,
+      })),
+    })
+  ).output.map((o) => o.output);
+
+  const priceKeys = reserveTokens
+    .map((t) => `ethereum:${t.tokenAddress}`)
+    .join(',');
+  const pricesEthereum = (
+    await superagent.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).body.coins;
+
+  return reserveTokens.map((pool, i) => {
+    const p = poolsReserveData[i];
+    const price = pricesEthereum[`ethereum:${pool.tokenAddress}`]?.price;
+
+    const supply = totalSupplyEthereum[i];
+    const totalSupplyUsd =
+      (supply / 10 ** underlyingDecimalsEthereum[i]) * price;
+
+    const currentSupply = underlyingBalancesEthereum[i];
+    const tvlUsd =
+      (currentSupply / 10 ** underlyingDecimalsEthereum[i]) * price;
+
+    return {
+      pool: `${aTokens[i].tokenAddress}-ethereum`.toLowerCase(),
+      chain: 'Ethereum',
+      project: 'aave-v3',
+      symbol: pool.symbol,
+      tvlUsd,
+      apyBase: (p.liquidityRate / 10 ** 27) * 100,
+      underlyingTokens: [pool.tokenAddress],
+      totalSupplyUsd,
+      totalBorrowUsd: totalSupplyUsd - tvlUsd,
+      apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+      ltv: poolsReservesConfigurationData[i].ltv / 10000,
+      url: `https://app.aave.com/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=proto_mainnet_v3`,
+      borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
+    };
+  });
+};
+
 const apy = async () => {
-  const data = await Promise.all(
+  let data = await Promise.all(
     Object.entries(API_URLS).map(async ([chain, url]) => [
       chain,
       (await request(url, query)).reserves,
     ])
   );
+  data = data.map(([chain, reserves]) => [
+    chain,
+    reserves.filter((p) => !p.isFrozen),
+  ]);
+
   const totalSupply = await Promise.all(
     data.map(async ([chain, reserves]) =>
       (
@@ -177,6 +296,10 @@ const apy = async () => {
       );
       let totalBorrowUsd = totalSupplyUsd - tvlUsd;
       totalBorrowUsd = totalBorrowUsd < 0 ? 0 : totalBorrowUsd;
+
+      const supplyRewardEnd = pool.aToken.rewards[0]?.distributionEnd;
+      const borrowRewardEnd = pool.vToken.rewards[0]?.distributionEnd;
+
       return {
         pool: `${pool.aToken.id}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
@@ -184,22 +307,34 @@ const apy = async () => {
         symbol: pool.symbol,
         tvlUsd,
         apyBase: (pool.liquidityRate / 10 ** 27) * 100,
-        apyReward: (rewardPerYear / totalSupplyUsd) * 100,
-        rewardTokens: rewards.map((rew) => rew.rewardToken),
+        apyReward:
+          supplyRewardEnd * 1000 > new Date()
+            ? (rewardPerYear / totalSupplyUsd) * 100
+            : null,
+        rewardTokens:
+          supplyRewardEnd * 1000 > new Date()
+            ? rewards.map((rew) => rew.rewardToken)
+            : null,
         underlyingTokens: [pool.aToken.underlyingAssetAddress],
         totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow: Number(pool.variableBorrowRate) / 1e25,
-        apyRewardBorrow: (rewardPerYearBorrow / totalBorrowUsd) * 100,
+        apyRewardBorrow:
+          borrowRewardEnd * 1000 > new Date()
+            ? (rewardPerYearBorrow / totalBorrowUsd) * 100
+            : null,
         ltv: Number(pool.baseLTVasCollateral) / 10000,
         url: `https://app.aave.com/reserve-overview/?underlyingAsset=${pool.aToken.underlyingAssetAddress}&marketName=${chainUrlParam[chain]}`,
+        borrowable: pool.borrowingEnabled,
       };
     });
 
     return chainPools;
   });
 
-  return pools.flat();
+  const ethPools = await ethV3Pools();
+
+  return pools.flat().concat(ethPools);
 };
 
 module.exports = {

@@ -9,8 +9,12 @@ async function getVaultsData() {
     throw new Error('Unable to retrieve PsyFinance vaults from the api');
   }
 
+  const performanceFeeRate = 0.1;
+  const withdrawalFeeRate = 0.001;
   const vaults = [];
   Object.values(vaultResponse.data.vaults).map(async (vaultInfo) => {
+    const currentWeekPerformance =
+      utils.apyToApr(vaultInfo.apy.currentEpochApy, 52) / 52;
     const vault = {
       pool: vaultInfo.id,
       chain: utils.formatChain('solana'),
@@ -24,7 +28,10 @@ async function getVaultsData() {
       tvlUsd:
         Number(vaultInfo.deposits.current) *
         (vaultInfo.collateralTokenPrice?.value || 0),
-      apyBase: vaultInfo.apy.standardApy.apyBeforeFees || 0,
+      apyBase:
+        vaultInfo.apy.currentEpochApy *
+          (1 - (performanceFeeRate + withdrawalFeeRate)) || 0,
+      il7d: currentWeekPerformance < 0 ? currentWeekPerformance : null,
     };
     if (vaultInfo?.staking?.stakingApr[0]) {
       vault.apyReward = vaultInfo.staking?.stakingApr[0];

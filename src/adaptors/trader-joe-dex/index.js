@@ -3,7 +3,6 @@ const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
-const lending = require('./lending');
 const abi_masterchef = require('./abi_masterchef');
 
 const url = 'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/exchange';
@@ -40,7 +39,7 @@ const queryPrior = gql`
 `;
 
 const buildPool = (entry, chainString) => {
-  const apyFee = Number(entry.apy);
+  const apyFee = Number(entry.apy1d);
   const apyJoe = isNaN(entry.apyJoe) ? null : entry.apyJoe;
   const symbol = utils.formatSymbol(
     `${entry.token0.symbol}-${entry.token1.symbol}`
@@ -55,6 +54,9 @@ const buildPool = (entry, chainString) => {
     apyReward: apyJoe,
     rewardTokens: apyJoe > 0 ? [JOE_TOKEN] : [],
     underlyingTokens: [entry.token0.id, entry.token1.id],
+    apyBase7d: entry.apy7d,
+    volumeUsd1d: entry.volumeUSD1d,
+    volumeUsd7d: entry.volumeUSD7d,
   };
 
   return newObj;
@@ -65,6 +67,13 @@ const topLvl = async (chainString, timestamp, url) => {
     url,
   ]);
 
+  const [_, blockPrior7d] = await utils.getBlocks(
+    chainString,
+    timestamp,
+    [url],
+    604800
+  );
+
   // pull data
   let dataNow = await request(url, query.replace('<PLACEHOLDER>', block));
 
@@ -74,11 +83,18 @@ const topLvl = async (chainString, timestamp, url) => {
     queryPrior.replace('<PLACEHOLDER>', blockPrior)
   );
 
+  // 7d offset
+  const dataPrior7d = (
+    await request(url, queryPrior.replace('<PLACEHOLDER>', blockPrior7d))
+  ).pairs;
+
   // calculate tvl
   dataNow = await utils.tvl(dataNow.pairs, 'avax');
 
   // calculate apy
-  let data = dataNow.map((el) => utils.apy(el, dataPrior.pairs, 'v2'));
+  let data = dataNow.map((el) =>
+    utils.apy(el, dataPrior.pairs, dataPrior7d, 'v2')
+  );
 
   // prepare LM rewards
   const joePerSec = (
@@ -151,13 +167,11 @@ const topLvl = async (chainString, timestamp, url) => {
 
 const main = async (timestamp = null) => {
   const data = await Promise.all([topLvl('avalanche', timestamp, url)]);
-  const lendingData = await lending.apy();
-  const res = data.concat(lendingData);
-  return res.flat().filter((p) => utils.keepFinite(p));
+  return data.flat().filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
-  timetravel: true,
+  timetravel: false,
   apy: main,
   url: 'https://traderjoexyz.com/pool',
 };

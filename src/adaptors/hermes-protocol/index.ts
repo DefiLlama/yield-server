@@ -1,6 +1,6 @@
 const utils = require('../utils');
 
-const API_URL: string = 'http://api.maiadao.io/apr';
+const API_URL: string = 'http://api.maiadao.io:9090/apr';
 
 const getApy = async () => {
   const res = await utils.getData(API_URL);
