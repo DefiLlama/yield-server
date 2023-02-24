@@ -112,6 +112,7 @@ async function main() {
             apyBaseBorrow: borrowingInterest,
             totalSupplyUsd: totalSupply.multipliedBy(priceConversionFactor).toNumber(),
             totalBorrowUsd: totalBorrowed.multipliedBy(priceConversionFactor).toNumber(),
+            ltv: 0
         };
     }).filter(v => v);
     return apy;
