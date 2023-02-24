@@ -44,7 +44,7 @@ const getPools = async () => {
     project: 'bifrost-finance',
     symbol: 'vDOT',
     tvlUsd: vToken.vDOT.tvm * dotUsd,
-    apyBase: vToken.vDOT.apy,
+    apyBase: Number(vToken.vDOT.apy),
   };
 
   const vGLMR = {
@@ -53,7 +53,7 @@ const getPools = async () => {
     project: 'bifrost-finance',
     symbol: 'vGLMR',
     tvlUsd: vToken.vGLMR.tvm * glmrUsd,
-    apyBase: vToken.vGLMR.apy,
+    apyBase: Number(vToken.vGLMR.apy),
   };
 
   const vMOVR = {
@@ -62,7 +62,7 @@ const getPools = async () => {
     project: 'bifrost-finance',
     symbol: 'vMOVR',
     tvlUsd: vToken.vMOVR.tvm * movrUsd,
-    apyBase: vToken.vMOVR.apy,
+    apyBase: Number(vToken.vMOVR.apy),
   };
 
   const vBNC = {
@@ -71,7 +71,7 @@ const getPools = async () => {
     project: 'bifrost-finance',
     symbol: 'vBNC',
     tvlUsd: vToken.vBNC.tvm * bncUsd,
-    apyBase: vToken.vBNC.apy,
+    apyBase: Number(vToken.vBNC.apy),
   };
 
   const vKSM = {
@@ -80,7 +80,7 @@ const getPools = async () => {
     project: 'bifrost-finance',
     symbol: 'vKSM',
     tvlUsd: vToken.vKSM.tvm * ksmUsd,
-    apyBase: vToken.vKSM.apy,
+    apyBase: Number(vToken.vKSM.apy),
   };
 
 
