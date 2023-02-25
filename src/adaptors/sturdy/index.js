@@ -30,7 +30,6 @@ const poolsFunction = async () => {
     apyBase: item.base * 100,
     apyReward: item.reward * 100,
     rewardTokens: item.rewardTokens || [],
-
     // borrow fields
     apyBaseBorrow: item.borrowAPY * 100,
     totalSupplyUsd: item.tvl,

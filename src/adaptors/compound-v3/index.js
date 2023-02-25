@@ -3,14 +3,27 @@ const superagent = require('superagent');
 const abi = require('./abi.js');
 const sdk = require('@defillama/sdk');
 
-const apy = async () => {
-  const cUSDCv3 = '0xc3d688B66703497DAA19211EEdff47f25384cdc3';
-  const rewardToken = '0xc00e94Cb662C3520282E6f5717214004A7f26888';
-  const usdc = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+const rewardToken = '0xc00e94Cb662C3520282E6f5717214004A7f26888';
 
+const markets = [
+  {
+    address: '0xc3d688B66703497DAA19211EEdff47f25384cdc3',
+    symbol: 'cUSDCv3',
+    underlying: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+    underlyingSymbol: 'USDC',
+  },
+  {
+    address: '0xA17581A9E3356d9A858b789D68B4d866e593aE94',
+    symbol: 'cWETHv3',
+    underlying: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    underlyingSymbol: 'ETH',
+  },
+];
+
+const main = async (pool) => {
   const numAssets = (
     await sdk.api.abi.call({
-      target: cUSDCv3,
+      target: pool.address,
       abi: abi.find((i) => i.name === 'numAssets'),
       chain: 'ethereum',
     })
@@ -20,7 +33,7 @@ const apy = async () => {
   const assetInfoRes = await sdk.api.abi.multiCall({
     abi: abi.find((i) => i.name === 'getAssetInfo'),
     calls: [...Array(Number(numAssets)).keys()].map((i) => ({
-      target: cUSDCv3,
+      target: pool.address,
       params: i,
     })),
     chain: 'ethereum',
@@ -41,7 +54,7 @@ const apy = async () => {
   const totalsCollateralRes = await sdk.api.abi.multiCall({
     abi: abi.find((i) => i.name === 'totalsCollateral'),
     calls: tokens.map((t) => ({
-      target: cUSDCv3,
+      target: pool.address,
       params: t,
     })),
     chain: 'ethereum',
@@ -50,7 +63,8 @@ const apy = async () => {
 
   // get prices
   const priceKeys = [
-    `ethereum:${usdc}`,
+    `ethereum:${pool.underlying}`,
+    `ethereum:${rewardToken}`,
     ...tokens.map((t) => `ethereum:${t}`),
   ].join(',');
   const prices = (
@@ -75,7 +89,7 @@ const apy = async () => {
   // pool utilization
   const utilization = (
     await sdk.api.abi.call({
-      target: cUSDCv3,
+      target: pool.address,
       abi: abi.find((i) => i.name === 'getUtilization'),
       chain: 'ethereum',
     })
@@ -104,7 +118,7 @@ const apy = async () => {
         'decimals',
       ].map((method) =>
         sdk.api.abi.call({
-          target: cUSDCv3,
+          target: pool.address,
           abi: abi.find((i) => i.name === method),
           params:
             method === 'getSupplyRate' || method === 'getBorrowRate'
@@ -120,7 +134,7 @@ const apy = async () => {
 
   // 1) collateral pools (no apy fields)
   const collateralOnlyPools = tokens.map((t, i) => ({
-    pool: `${t}-cUSDCv3`,
+    pool: `${t}-${pool.symbol}`,
     symbol: symbols[i],
     chain: 'Ethereum',
     project: 'compound-v3',
@@ -130,13 +144,14 @@ const apy = async () => {
     // borrow fields
     totalSupplyUsd: collateralTotalSupplyUsd[i],
     ltv: assetInfo[i].borrowCollateralFactor / 1e18,
+    poolMeta: `${pool.underlyingSymbol}-pool`,
   }));
 
   // 2) usdc pool
   // --- calc apy's
   const secondsPerYear = 60 * 60 * 24 * 365;
   const compPrice = prices[`ethereum:${rewardToken}`].price;
-  const usdcPrice = prices[`ethereum:${usdc}`].price;
+  const usdcPrice = prices[`ethereum:${pool.underlying}`].price;
 
   // supply side
   const totalSupplyUsd = (totalSupply / 10 ** decimals) * usdcPrice;
@@ -161,14 +176,14 @@ const apy = async () => {
   return [
     ...collateralOnlyPools,
     {
-      pool: cUSDCv3,
-      symbol: 'USDC',
+      pool: pool.address,
+      symbol: pool.underlyingSymbol,
       chain: 'Ethereum',
       project: 'compound-v3',
       tvlUsd: totalSupplyUsd - totalBorrowUsd,
       apyBase,
       apyReward,
-      underlyingTokens: [usdc],
+      underlyingTokens: [pool.underlying],
       rewardTokens: [rewardToken],
       // borrow fields
       apyBaseBorrow,
@@ -177,6 +192,11 @@ const apy = async () => {
       totalBorrowUsd,
     },
   ];
+};
+
+const apy = async () => {
+  const pools = (await Promise.all(markets.map((p) => main(p)))).flat();
+  return pools;
 };
 
 module.exports = {

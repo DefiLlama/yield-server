@@ -206,28 +206,69 @@ const main = async () => {
     })
   ).body.coins;
 
+  const celoApy = (
+    await utils.getData('https://api.curve.fi/api/getFactoryAPYs-celo')
+  ).data.poolDetails;
+
   // create feeder closure to fill defillamaPooldata asynchroniously
   const defillamaPooldata = [];
-  const feedLlama = (poolData, blockchainId) => {
+  const feedLlama = async (poolData, blockchainId) => {
     const [
       addressToPool,
       addressToPoolSubgraph,
       addressToGauge,
       gaugeAddressToExtraRewards,
     ] = poolData;
+
+    let factoryAprData;
+    if (['optimism', 'celo', 'kava'].includes(blockchainId)) {
+      factoryAprData = (
+        await utils.getData(
+          `https://api.curve.fi/api/getFactoGauges/${blockchainId}`
+        )
+      ).data.gauges;
+    }
+
+    const stETHPools = [
+      '0xDC24316b9AE028F1497c275EB9192a3Ea0f67022',
+      '0x6eB2dc694eB516B16Dc9FBc678C60052BbdD7d80',
+    ];
     for (const [address, pool] of Object.entries(addressToPool)) {
       const subgraph = addressToPoolSubgraph[address];
       const gauge = addressToGauge[blockchainId][pool.gaugeAddress];
       // one gauge can have multiple (different) extra rewards
       const extraRewards = gaugeAddressToExtraRewards[pool.gaugeAddress];
 
-      const apyBase = subgraph ? parseFloat(subgraph.latestDailyApy) : 0;
+      const apyBase = subgraph
+        ? parseFloat(subgraph.latestDailyApy)
+        : blockchainId === 'celo'
+        ? celoApy.find((i) => i.poolAddress === address)?.apy
+        : 0;
       const aprCrv =
-        gauge && subgraph
+        (blockchainId === 'optimism' && pool?.gaugeCrvApy?.length > 0) ||
+        [
+          '0xa1F8A6807c402E4A15ef4EBa36528A3FED24E577',
+          '0x960ea3e3C7FB317332d990873d354E18d7645590',
+          '0x7f90122BF0700F9E7e1F688fe926940E8839F353',
+          '0x326290A1B0004eeE78fa6ED4F1d8f4b2523ab669',
+          '0x6a6283aB6e31C2AeC3fA08697A8F806b740660b2',
+          '0x13B876C26Ad6d21cb87AE459EaF6d7A1b788A113',
+          '0x66E335622ad7a6C9c72c98dbfCCE684996a20Ef9',
+          '0x3e3C6c7db23cdDEF80B694679aaF1bCd9517D0Ae',
+          '0xFc1e8bf3E81383Ef07Be24c3FD146745719DE48D',
+          '0x84C333e94AEA4a51a21F6cf0C7F528C50Dc7592C',
+          '0xB755B949C126C04e0348DD881a5cF55d424742B2',
+          '0x7f90122BF0700F9E7e1F688fe926940E8839F353',
+        ].includes(address)
+          ? pool?.gaugeCrvApy[0]
+          : gauge && subgraph
           ? getPoolAPR(pool, subgraph, gauge, priceCrv, underlyingPrices)
           : 0;
-      const aprExtra = extraRewards
+      let aprExtra = extraRewards
         ? extraRewards.map((reward) => reward.apy).reduce((a, b) => a + b)
+        : stETHPools.includes(address) ||
+          address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' // pool on moonbeam
+        ? pool.gaugeRewards[0].apy
         : 0;
 
       // tokens are listed using their contract addresses
@@ -235,11 +276,30 @@ const main = async () => {
       const underlyingTokens = pool.coins.map((coin) => coin.address);
       const rewardTokens = extraRewards
         ? extraRewards.map((reward) => reward.tokenAddress)
+        : stETHPools.includes(address)
+        ? ['0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32'] // LDO
+        : address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' // pool on moonbeam
+        ? ['0xacc15dc74880c9944775448304b263d191c6077f'] // wglmr
         : [];
       if (aprCrv) {
         rewardTokens.push('0xD533a949740bb3306d119CC777fa900bA034cd52'); // CRV
       }
 
+      // separate reward tokens (eg OP on curve optimism), adding this to aprExtra if available
+      if (blockchainId === 'optimism') {
+        const x = factoryAprData.find(
+          (x) => x.gauge?.toLowerCase() === pool.gaugeAddress?.toLowerCase()
+        );
+        const extraRewardsFactory = x?.extraRewards
+          .filter((i) => i.apyData.isRewardStillActive)
+          .map((i) => i.apy)
+          .reduce((a, b) => a + b, 0);
+
+        if (extraRewardsFactory > 0) {
+          aprExtra += extraRewardsFactory;
+          rewardTokens.push(x.extraRewards.map((i) => i.tokenAddress));
+        }
+      }
       // note(!) curve api uses coingecko prices and am3CRV is wrongly priced
       // this leads to pool.usdTotal to be inflated, going to hardcode temporarly hardcode this
       // to 1usd
@@ -270,9 +330,20 @@ const main = async () => {
         symbol: pool.coins.map((coin) => coin.symbol).join('-'),
         tvlUsd,
         apyBase,
-        apyReward: aprCrv + aprExtra,
-        rewardTokens,
+        apyReward:
+          // isolated pool for which the aprCrv is wrong
+          ['0xBaaa1F5DbA42C3389bDbc2c9D2dE134F5cD0Dc89'].includes(address)
+            ? null
+            : [
+                '0x9F2fE3500B1a7E285FDc337acacE94c480e00130',
+                '0x061b87122Ed14b9526A813209C8a59a633257bAb',
+                '0x29A3d66B30Bc4AD674A4FDAF27578B64f6afbFe7',
+              ].includes(address)
+            ? aprExtra
+            : aprCrv + aprExtra,
+        rewardTokens: rewardTokens.flat(),
         underlyingTokens,
+        url: `https://curve.fi/#/${blockchainId}/pools`,
       });
     }
   };
@@ -305,5 +376,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://curve.fi/pools',
 };

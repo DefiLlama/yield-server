@@ -2,7 +2,7 @@ const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
-const baseUrl = 'https://api.thegraph.com/subgraphs/name/atlendis';
+const baseUrl = 'https://atlendis.herokuapp.com/graphql';
 const urlPolygon = `${baseUrl}/atlendis-hosted-service-polygon`;
 
 const query = gql`
@@ -59,7 +59,7 @@ const buildPool = (entry) => {
 
 const main = async () => {
   // pull data
-  data = await request(urlPolygon, query);
+  let data = await request(urlPolygon, query);
 
   // build pool objects
   data = data.poolStatuses.map((el) => buildPool(el));

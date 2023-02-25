@@ -31,7 +31,7 @@ async function main() {
   for (let strategy of strategiesList) {
     const OvixAPYs = await getAPY(strategy);
 
-    tvl = await getErc20Balances(strategy);
+    const tvl = await getErc20Balances(strategy);
 
     // retrieve the premining rewards contract
     const preminingContract = new ethers.Contract(
@@ -45,23 +45,27 @@ async function main() {
     );
 
     // calculate premined rewards APY for this market
+    // see https://docs.0vix.com/developers/usdvix-pre-mining/usdvix-pre-mining-aprs
+    const w = 0.5;
     const preminedVixApr =
-      tvl.tvlUsd === 0 ? 0 : preminingRewards * (52 / tvl.tvlUsd) * 0.3 * 100;
+      (preminingRewards * w * 52 * 100 * 0.3) / tvl.totalSupplyUsd;
+    const preminedVixAprBorrow =
+      (preminingRewards * (1 - w) * 52 * 100 * 0.3) / tvl.totalBorrowsUsd;
 
     const ltv = await unitrollerContract.markets(strategy);
 
     const newObj = {
       pool: strategy,
       project: '0vix',
-      symbol: OvixAPYs.symbol,
+      symbol: OvixAPYs.symbol.slice(1),
       chain: 'polygon',
       apyBase: OvixAPYs.supplyAPY,
-      apyReward: preminedVixApr,
-      rewardTokens: ['0x108ADA79428ea427E6A2175D3AB678abA2947a4a'],
+      apyRewardFake: preminedVixApr,
+      // rewardTokens: ['0x108ADA79428ea427E6A2175D3AB678abA2947a4a'],
       tvlUsd: tvl.tvlUsd,
       // borrow fields
       apyBaseBorrow: OvixAPYs.borrowAPY,
-      apyRewardBorrow: preminedVixApr,
+      apyRewardBorrowFake: preminedVixAprBorrow,
       totalSupplyUsd: tvl.totalSupplyUsd,
       totalBorrowUsd: tvl.totalBorrowsUsd,
       ltv: parseInt(ltv.collateralFactorMantissa) / 1e18,
@@ -166,15 +170,9 @@ function convertTvlUSD(
   const totalBorrowsUsd =
     (totalBorrows * oracleUnderlyingPrice) / 10 ** (28 + underlyingDecimals);
 
-  const tvlUsd = totalSupplyUsd + totalBorrowsUsd;
+  const tvlUsd = totalSupplyUsd - totalBorrowsUsd;
 
   return { totalSupplyUsd, totalBorrowsUsd, tvlUsd };
-
-  // const tvlUsd = ((((totalSupply * exchangeRateStored) / 10 ** (18 + underlyingDecimals)) *
-  //     oracleUnderlyingPrice) /
-  // 10 ** (36 - underlyingDecimals)) +
-  //
-  // (((totalBorrows ) * oracleUnderlyingPrice) / 10 ** (28 + underlyingDecimals)   );
 }
 
 module.exports = {

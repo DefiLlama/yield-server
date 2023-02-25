@@ -41,23 +41,45 @@ let govBrincPerWeek = 0;
 let stakingBRCSupply = 0;
 let stakingRatio = 0;
 let totalSupplyMultWeight = 0;
+let MODE1Weight = 0;
+let MODE2Weight = 0;
+let MODE3Weight = 0;
+let MODE4Weight = 0;
+let MODE5Weight = 0;
+let MODE6Weight = 0;
+
+const getAllPoolWeights = async () => {
+  MODE1Weight = Number(await stakingContract.methods.getPoolWeight(0).call());
+  MODE2Weight = Number(await stakingContract.methods.getPoolWeight(1).call());
+  MODE3Weight = Number(await stakingContract.methods.getPoolWeight(2).call());
+  MODE4Weight = Number(await stakingContract.methods.getPoolWeight(3).call());
+  MODE5Weight = Number(await stakingContract.methods.getPoolWeight(4).call());
+  MODE6Weight = Number(await stakingContract.methods.getPoolWeight(5).call());
+};
 
 const getPoolWeight = (stakePool) => {
   switch (stakePool) {
     case 0:
-      return 3;
+      return MODE1Weight;
     case 1:
-      return 5;
+      return MODE2Weight;
     case 2:
-      return 10;
+      return MODE3Weight;
     case 3:
-      return 10;
+      return MODE4Weight;
     case 4:
-      return 40;
+      return MODE5Weight;
     case 5:
-      return 500;
+      return MODE6Weight;
     default:
-      return 0;
+      return (
+        MODE1Weight +
+        MODE2Weight +
+        MODE3Weight +
+        MODE4Weight +
+        MODE5Weight +
+        MODE6Weight
+      );
   }
 };
 
@@ -128,6 +150,9 @@ const getGBRCPrice = async (amount) => {
 };
 
 const loadEssentials = async () => {
+  // pool weights
+  await getAllPoolWeights();
+
   // load prices
   daiCost = await getBRCPrice((1e18).toString());
   gBRCCost = await getGBRCPriceFromBRC((1e18).toString());
@@ -154,22 +179,22 @@ const getAPR = async (brcStake, weight) => {
   if (Number(totalSupplyMultWeight) === 0) {
     const pool1SupplyMultWeight = new BigNumber(
       await stakingContract.methods.getPoolSupply(0).call()
-    ).times(getPoolWeight(0));
+    ).times(MODE1Weight);
     const pool2SupplyMultWeight = new BigNumber(
       await stakingContract.methods.getPoolSupply(1).call()
-    ).times(getPoolWeight(1));
+    ).times(MODE2Weight);
     const pool3SupplyMultWeight = new BigNumber(
       await stakingContract.methods.getPoolSupply(2).call()
-    ).times(getPoolWeight(2));
+    ).times(MODE3Weight);
     const pool4SupplyMultWeight = new BigNumber(
       await stakingContract.methods.getPoolSupply(3).call()
-    ).times(getPoolWeight(3));
+    ).times(MODE4Weight);
     const pool5SupplyMultWeight = new BigNumber(
       await stakingContract.methods.getPoolSupply(4).call()
-    ).times(getPoolWeight(4));
+    ).times(MODE5Weight);
     const pool6SupplyMultWeight = new BigNumber(
       await stakingContract.methods.getPoolSupply(5).call()
-    ).times(getPoolWeight(5));
+    ).times(MODE6Weight);
     totalSupplyMultWeight = new BigNumber(pool1SupplyMultWeight)
       .plus(pool2SupplyMultWeight)
       .plus(pool3SupplyMultWeight)
@@ -270,7 +295,8 @@ const getAPYAndSupply = async (pool) => {
 const getPools = async () => {
   let apys = [];
 
-  for (let stakePool = 0; stakePool < 6; stakePool++) {
+  // pool index starts from 3 to exclude BRC-only pools
+  for (let stakePool = 3; stakePool < 6; stakePool++) {
     const { apy, brcStaked, gbrcStaked } = await getAPYAndSupply(stakePool);
     apys.push({
       tvl: await getPoolTVL(stakePool, brcStaked, gbrcStaked),

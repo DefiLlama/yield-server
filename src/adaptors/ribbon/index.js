@@ -9,11 +9,10 @@ const API = {
 };
 
 const getNWeekApy = (perf, weekN) => {
-  console;
   return (
     ((1 +
-      (perf[weekN].pricePerShare - perf[weekN - 1].pricePerShare) /
-        perf[weekN].pricePerShare) **
+      (perf[weekN]?.pricePerShare - perf[weekN - 1]?.pricePerShare) /
+        perf[weekN - 1]?.pricePerShare) **
       52 -
       1) *
     100
@@ -77,9 +76,21 @@ const apyChain = async (chain) => {
     if (vault.id === '0xc0cf10dd710aefb209d9dc67bc746510ffd98a53') return {};
     const perf = vaultPerfs[i];
 
+    const fee = 0.12;
     const apy = mean(
-      [1, 2, 3, 4, 5].map((n) => getNWeekApy(perf, perf.length - n))
+      [1, 2, 3, 4].map((n) => {
+        const nWeekApy = getNWeekApy(perf, perf.length - n);
+        return nWeekApy > 0 ? nWeekApy * (1 - fee) : nWeekApy;
+      })
     );
+
+    // for 7d IL we use the current weeks performance, if positive -> no IL, otherwise use that
+    // value as the IL
+    const weekN = perf.length - 1;
+    const weeklyPerf =
+      (perf[weekN]?.pricePerShare - perf[weekN - 1]?.pricePerShare) /
+      perf[weekN - 1]?.pricePerShare;
+    const il7d = weeklyPerf > 0 ? null : weeklyPerf;
 
     const price = prices[vault.underlyingAsset];
 
@@ -95,6 +106,11 @@ const apyChain = async (chain) => {
       apyBase: apy,
       underlyingTokens: [vault.underlyingAsset],
       poolMeta: vault.name.includes('Put') ? 'Put-Selling' : 'Covered-Call',
+      il7d,
+      apyBaseInception:
+        ((perf[perf.length - 1]?.pricePerShare - perf[0]?.pricePerShare) /
+          perf[0]?.pricePerShare) *
+        100,
     };
   });
 
