@@ -22,6 +22,12 @@ const processItems = async (data) => {
       const tvlInPrincipal = parseInt(poolDataItem['tvlInPrincipal']) / 10**decimals;
       const tvlInUSD = parseFloat(poolDataItem['principalToken']['tokenUSDCPrice']) * tvlInPrincipal;
 
+      /*
+        Note that this data is available if needed when processing historical
+          blockNumber: poolDataItem['blockNumber']
+          blockTimestamp: poolDataItem['blockTimestamp']
+       */
+
       returnPayload.push({
         pool: `${poolDataItem['network']}:${poolDataItem['strategyAddress']}`.toLowerCase(),
         chain: poolDataItem['network'],
@@ -29,12 +35,7 @@ const processItems = async (data) => {
         symbol: poolDataItem['principalToken']['symbol'],
         tvlUsd: tvlInUSD,
         apy: parseFloat(poolDataItem["apr"]),
-        poolMeta: {
-          "blockNumber": poolDataItem['blockNumber'],
-          "blockTimestamp": poolDataItem['blockTimestamp'],
-          "blockTimestampHuman": new Date(poolDataItem['blockTimestamp'] * 1000).toISOString(),
-          "principalAddress": poolDataItem['principalToken']['address'],
-        }
+        poolMeta: "1min lock"
       })
     }
   }
