@@ -102,6 +102,7 @@ const main = async () => {
 
   const extraRewards = await getRewards(allMarkets, REWARD_SPEED);
   const extraRewardsBorrow = await getRewards(allMarkets, REWARD_SPEED_BORROW);
+  const isPaused = await getRewards(allMarkets, "mintGuardianPaused");
 
   const supplyRewards = await multiCallMarkets(
     allMarkets,
@@ -186,7 +187,7 @@ const main = async () => {
     const apyReward = calcRewardApy(extraRewards, totalSupplyUsd);
     const apyRewardBorrow = calcRewardApy(extraRewardsBorrow, totalBorrowUsd);
 
-    return {
+    let poolReturned = {
       pool: market.toLowerCase(),
       chain: utils.formatChain(CHAIN),
       project: PROJECT_NAME,
@@ -196,13 +197,19 @@ const main = async () => {
       apyReward,
       underlyingTokens: [token],
       rewardTokens: [apyReward ? PROTOCOL_TOKEN.address : null].filter(Boolean),
-      // borrow fields
-      totalSupplyUsd,
-      totalBorrowUsd,
-      apyBaseBorrow,
-      apyRewardBorrow,
-      ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
     };
+    if(isPaused[i] === false){
+      poolReturned = {
+        ...poolReturned,
+        // borrow fields
+        totalSupplyUsd,
+        totalBorrowUsd,
+        apyBaseBorrow,
+        apyRewardBorrow,
+        ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
+      }
+    }
+    return poolReturned
   });
 
   return pools.filter(
