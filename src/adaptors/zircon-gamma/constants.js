@@ -38,9 +38,9 @@ module.exports = Object.freeze({
       name:"BSC"
     }},
   PROVIDER_URL: {
-    "1285":"https://moonriver.blastapi.io/b6696267-6c12-4e8b-9214-12824d9cb858",
+    "1285":"https://moonriver.public.blastapi.io",
     "1287":'https://rpc.api.moonbase.moonbeam.network',
-    "56":"https://old-winter-glade.bsc.discover.quiknode.pro/f6e4aea270983e148a521b2a7fb5dae6bcf1c2bc/"
+    "56":"https://rpc.ankr.com/bsc"
   },
   BRANCH: 'dev',
   SUBGRAPH_URI: {
