@@ -78,5 +78,10 @@ module.exports = Object.freeze({
     "1285": 6500,
     "1287": 5760,
     "56": 28800
+  },
+  CHAIN_NAME: {
+    1285: "moonriver",
+    1287: "moonbase",
+    56: "bsc"
   }
 })

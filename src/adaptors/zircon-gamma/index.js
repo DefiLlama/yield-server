@@ -4,10 +4,11 @@ const {CONTRACT_ABI,
   PROVIDER_URL,
   SUBGRAPH_URI, VAULT_CONTRACT_ABI, ZRG_ADDRESS, WMOVR_ADDRESS, PAIR_CONTRACT_ABI, MOVR_ZRG_PAIR_ADDRESS,
   MOVR_USDC_PAIR_ADDRESS, PT_CONTRACT_ABI, PYLON_CONTRACT_ABI, GAMMA_SUBGRAPH_URI, NTV_ZRG_PAIR_ADDRESS,
-  NTV_USDC_PAIR_ADDRESS, DAILY_BLOCK
+  NTV_USDC_PAIR_ADDRESS, DAILY_BLOCK, CHAIN_NAME
 } = require("./constants");
 const axios = require('axios');
 const {BigNumber} = require("bignumber.js");
+const utils = require('../utils');
 
 let getPoolsSubgraph = async function(chainId, web3) {
   let blockNumber = await web3.eth.getBlockNumber();
@@ -26,6 +27,15 @@ let getPoolsSubgraph = async function(chainId, web3) {
   `;
   let query = await axios.post(SUBGRAPH_URI[chainId], JSON.stringify({query: QUERY, variables: null, operationName: undefined} ), )
   return query.data.data.psionicFarms
+}
+
+const getTokenPrice = async (tokenAddress, chain='moonriver') => {
+  let key = `${chain}:${tokenAddress}`
+  const data = await utils.getData(
+    `https://coins.llama.fi/prices/current/${key}`
+  );
+  console.log(data)
+  return data.coins[key]
 }
 
 let gettingDailyVolume = async function (pairAddress, chainId) {
@@ -148,7 +158,9 @@ let getPools =  async function (chainId) {
         symbol = symbol.replace("xc", "");// For cross chain tokens
         symbol = `${symbol}BUSD`
         symbol = symbol === "USDTBUSD" ? "BUSDUSDT" : symbol;
-        const stablePrice = await axios.get(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`)
+        const stablePrice = await getTokenPrice(!isFloatRes0 ? token0 : token1, CHAIN_NAME[chainId]);
+
+          //await axios.get(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`)
 
         // Getting Staked Ratio of PT in farm
         const totalStaked = await ptStakedContract.methods.balanceOf(pool.id).call();
@@ -174,11 +186,11 @@ let getPools =  async function (chainId) {
         const pairRes1 = isFloatRes0 ? r1 : r0
         const ratio = pairRes1.dividedBy(pairRes0);
 
-        const tvlPair = new BigNumber(pairRes1).multipliedBy(2).multipliedBy(stablePrice.data.price);
+        const tvlPair = new BigNumber(pairRes1).multipliedBy(2).multipliedBy(stablePrice.price);
         const r0Pylon = new BigNumber(pylonReserves[0].toString()).dividedBy(new BigNumber(10).pow(token0Decimals.toString()))
         const r1Pylon = new BigNumber(pylonReserves[1].toString()).dividedBy(new BigNumber(10).pow(token1Decimals.toString()))
 
-        const r0PylonTVL = r0Pylon.multipliedBy(ratio).multipliedBy(stablePrice.data.price);
+        const r0PylonTVL = r0Pylon.multipliedBy(ratio).multipliedBy(stablePrice.price);
         const r1PylonTVL = r1Pylon.dividedBy(new BigNumber(10).pow(token1Decimals.toString()))
 
         const tvlPylon = r0PylonTVL.plus(r1PylonTVL);
@@ -193,25 +205,25 @@ let getPools =  async function (chainId) {
         if (isAnchor) {
           const vabDecimals = new BigNumber(vab.toString()).dividedBy(new BigNumber(10).pow(token1Decimals.toString()));
           const vabFarm = vabDecimals.multipliedBy(stakedRatio);
-          tokenReserveUSD = new BigNumber(vabFarm).multipliedBy(parseFloat(stablePrice.data.price));
+          tokenReserveUSD = new BigNumber(vabFarm).multipliedBy(parseFloat(stablePrice.price));
           staked = vabDecimals
           // Calculating Stable fees APR
           // daylyFees*365*muu/vab
           let muuDivided = (new BigNumber(muu.toString())).dividedBy(1e18);
-          feesAPR = new BigNumber(dailyFees.toString()).multipliedBy(muuDivided).multipliedBy(365).dividedBy(vabDecimals.multipliedBy(stablePrice.data.price)).multipliedBy(100);
+          feesAPR = new BigNumber(dailyFees.toString()).multipliedBy(muuDivided).multipliedBy(365).dividedBy(vabDecimals.multipliedBy(stablePrice.price)).multipliedBy(100);
         } else {
 
 
           const gammaDivided = new BigNumber(gamma.toString()).dividedBy(new BigNumber(10).pow(18));
           const reserveTR = new BigNumber(pairRes1).multipliedBy(2).multipliedBy(gammaDivided).multipliedBy(pylonRatio.toString());
           const vfb = new BigNumber(pylonReserves[0].toString()).multipliedBy(ratio).dividedBy(new BigNumber(10).pow(token0Decimals.toString())).plus(reserveTR)
-          tokenReserveUSD = new BigNumber(vfb).multipliedBy(stablePrice.data.price).multipliedBy(stakedRatio);
+          tokenReserveUSD = new BigNumber(vfb).multipliedBy(stablePrice.price).multipliedBy(stakedRatio);
           staked = vfb
 
           // Calculating Float fees APR
           // daylyFees*365*(1-muu)/vfb
           let muuDivided = (new BigNumber(1e18).minus(muu.toString())).dividedBy(1e18);
-          feesAPR = new BigNumber(dailyFees.toString()).multipliedBy(muuDivided).multipliedBy(365).dividedBy(vfb.multipliedBy(stablePrice.data.price)).multipliedBy(100);
+          feesAPR = new BigNumber(dailyFees.toString()).multipliedBy(muuDivided).multipliedBy(365).dividedBy(vfb.multipliedBy(stablePrice.price)).multipliedBy(100);
         }
 
         // Calculating Total Pending Rewards to subtract from block balance
