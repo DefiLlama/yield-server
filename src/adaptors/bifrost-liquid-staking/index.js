@@ -55,7 +55,6 @@ const getApy = async () => {
     project: 'bifrost-liquid-staking',
     symbol: 'vDOT',
     tvlUsd: vToken.vDOT.tvm * dotUsd,
-    apy: Number(vToken.vDOT.apy),
     apyBase: Number(vToken.vDOT.apyBase),
     apyReward: Number(vToken.vDOT.apyReward),
     rewardTokens: ['DOT']
@@ -67,7 +66,6 @@ const getApy = async () => {
     project: 'bifrost-liquid-staking',
     symbol: 'vGLMR',
     tvlUsd: vToken.vGLMR.tvm * glmrUsd,
-    apy: Number(vToken.vGLMR.apy),
     apyBase: Number(vToken.vGLMR.apyBase),
     apyReward: Number(vToken.vGLMR.apyReward),
     rewardTokens: ['GLMR']
@@ -79,7 +77,6 @@ const getApy = async () => {
     project: 'bifrost-liquid-staking',
     symbol: 'vMOVR',
     tvlUsd: vToken.vMOVR.tvm * movrUsd,
-    apy: Number(vToken.vMOVR.apy),
     apyBase: Number(vToken.vMOVR.apyBase),
     apyReward: Number(vToken.vMOVR.apyReward),
     rewardTokens: ['MOVR']
@@ -91,7 +88,6 @@ const getApy = async () => {
     project: 'bifrost-liquid-staking',
     symbol: 'vBNC',
     tvlUsd: vToken.vBNC.tvm * bncUsd,
-    apy: Number(vToken.vBNC.apy),
     apyBase: Number(vToken.vBNC.apyBase),
     apyReward: Number(vToken.vBNC.apyReward),
     rewardTokens: ['BNC']
@@ -103,7 +99,6 @@ const getApy = async () => {
     project: 'bifrost-liquid-staking',
     symbol: 'vKSM',
     tvlUsd: vToken.vKSM.tvm * ksmUsd,
-    apy: Number(vToken.vKSM.apy),
     apyBase: Number(vToken.vKSM.apyBase),
     apyReward: Number(vToken.vKSM.apyReward),
     rewardTokens: ['KSM']
@@ -115,7 +110,6 @@ const getApy = async () => {
     project: 'bifrost-liquid-staking',
     symbol: 'veth',
     tvlUsd: tvl * ethPrice,
-    apy: Number(vToken.vETH.totalApy),
     apyBase: vToken.vETH.stakingApy,
     apyReward: Number(vToken.vETH.mevApy) + Number(vToken.vETH.gasFeeApy),
     underlyingTokens: [weth],
