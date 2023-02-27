@@ -52,7 +52,7 @@ const poolsFunction = async () => {
 
     const price = () => {
       if (!bond.clearingPrice) {
-        return (bondPrice = bond.auctions[0].minimumBondPrice);
+        return (bondPrice = bond.auctions[0]?.minimumBondPrice);
       } else {
         return (bondPrice = bond.clearingPrice);
       }
@@ -71,7 +71,7 @@ const poolsFunction = async () => {
     };
   });
 
-  return await Promise.all(bondPools);
+  return (await Promise.all(bondPools)).filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
