@@ -9,7 +9,6 @@ const getApy = async () => {
   const tvl =
     (await sdk.api.erc20.totalSupply({ target: token })).output / 1e18;
 
-  const apyData = (await axios.get('https://api.bifrost.app/api/site')).data;
   const priceKey = `ethereum:${weth}`;
   const ethPrice = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
@@ -56,7 +55,10 @@ const getApy = async () => {
     project: 'bifrost-liquid-staking',
     symbol: 'vDOT',
     tvlUsd: vToken.vDOT.tvm * dotUsd,
-    apyBase: Number(vToken.vDOT.apy),
+    apy: Number(vToken.vDOT.apy),
+    apyBase: Number(vToken.vDOT.apyBase),
+    apyReward: Number(vToken.vDOT.apyReward),
+    rewardTokens: ['DOT']
   };
 
   const vGLMR = {
@@ -65,7 +67,10 @@ const getApy = async () => {
     project: 'bifrost-liquid-staking',
     symbol: 'vGLMR',
     tvlUsd: vToken.vGLMR.tvm * glmrUsd,
-    apyBase: Number(vToken.vGLMR.apy),
+    apy: Number(vToken.vGLMR.apy),
+    apyBase: Number(vToken.vGLMR.apyBase),
+    apyReward: Number(vToken.vGLMR.apyReward),
+    rewardTokens: ['GLMR']
   };
 
   const vMOVR = {
@@ -74,7 +79,10 @@ const getApy = async () => {
     project: 'bifrost-liquid-staking',
     symbol: 'vMOVR',
     tvlUsd: vToken.vMOVR.tvm * movrUsd,
-    apyBase: Number(vToken.vMOVR.apy),
+    apy: Number(vToken.vMOVR.apy),
+    apyBase: Number(vToken.vMOVR.apyBase),
+    apyReward: Number(vToken.vMOVR.apyReward),
+    rewardTokens: ['MOVR']
   };
 
   const vBNC = {
@@ -83,7 +91,10 @@ const getApy = async () => {
     project: 'bifrost-liquid-staking',
     symbol: 'vBNC',
     tvlUsd: vToken.vBNC.tvm * bncUsd,
-    apyBase: Number(vToken.vBNC.apy),
+    apy: Number(vToken.vBNC.apy),
+    apyBase: Number(vToken.vBNC.apyBase),
+    apyReward: Number(vToken.vBNC.apyReward),
+    rewardTokens: ['BNC']
   };
 
   const vKSM = {
@@ -92,21 +103,26 @@ const getApy = async () => {
     project: 'bifrost-liquid-staking',
     symbol: 'vKSM',
     tvlUsd: vToken.vKSM.tvm * ksmUsd,
-    apyBase: Number(vToken.vKSM.apy),
+    apy: Number(vToken.vKSM.apy),
+    apyBase: Number(vToken.vKSM.apyBase),
+    apyReward: Number(vToken.vKSM.apyReward),
+    rewardTokens: ['KSM']
   };
 
-  return [
-    {
-      pool: token,
-      chain: 'ethereum',
-      project: 'bifrost-liquid-staking',
-      symbol: 'veth',
-      tvlUsd: tvl * ethPrice,
-      apyBase: apyData['vETH'].stakingApy,
-      underlyingTokens: [weth],
-    },
-    vDOT, vGLMR, vMOVR, vKSM, vBNC
-  ];
+  const vETH = {
+    pool: token,
+    chain: 'ethereum',
+    project: 'bifrost-liquid-staking',
+    symbol: 'veth',
+    tvlUsd: tvl * ethPrice,
+    apy: Number(vToken.vETH.totalApy),
+    apyBase: vToken.vETH.stakingApy,
+    apyReward: Number(vToken.vETH.mevApy) + Number(vToken.vETH.gasFeeApy),
+    underlyingTokens: [weth],
+    rewardTokens: ['ETH']
+  }
+
+  return [vETH, vDOT, vGLMR, vMOVR, vKSM, vBNC];
 };
 
 module.exports = {
