@@ -51,45 +51,45 @@ const getApy = async () => {
   ).data.moonriver.usd;
 
   const vDOT = {
-    pool: 'polkadot-vdot',
+    pool: 'polkadot-dot',
     chain: 'Polkadot',
-    project: 'bifrost-staking',
+    project: 'bifrost-liquid-staking',
     symbol: 'vDOT',
     tvlUsd: vToken.vDOT.tvm * dotUsd,
     apyBase: Number(vToken.vDOT.apy),
   };
 
   const vGLMR = {
-    pool: 'moonbeam-vglmr',
+    pool: 'moonbeam-glmr',
     chain: 'Moonbeam',
-    project: 'bifrost-staking',
+    project: 'bifrost-liquid-staking',
     symbol: 'vGLMR',
     tvlUsd: vToken.vGLMR.tvm * glmrUsd,
     apyBase: Number(vToken.vGLMR.apy),
   };
 
   const vMOVR = {
-    pool: 'moonriver-vmovr',
+    pool: 'moonriver-movr',
     chain: 'Moonriver',
-    project: 'bifrost-staking',
+    project: 'bifrost-liquid-staking',
     symbol: 'vMOVR',
     tvlUsd: vToken.vMOVR.tvm * movrUsd,
     apyBase: Number(vToken.vMOVR.apy),
   };
 
   const vBNC = {
-    pool: 'bifrost-vbnc',
+    pool: 'bifrost-bnc',
     chain: 'Bifrost',
-    project: 'bifrost-staking',
+    project: 'bifrost-liquid-staking',
     symbol: 'vBNC',
     tvlUsd: vToken.vBNC.tvm * bncUsd,
     apyBase: Number(vToken.vBNC.apy),
   };
 
   const vKSM = {
-    pool: 'kusama-vksm',
+    pool: 'kusama-ksm',
     chain: 'Kusama',
-    project: 'bifrost-staking',
+    project: 'bifrost-liquid-staking',
     symbol: 'vKSM',
     tvlUsd: vToken.vKSM.tvm * ksmUsd,
     apyBase: Number(vToken.vKSM.apy),
@@ -97,9 +97,9 @@ const getApy = async () => {
 
   return [
     {
-      pool: token,
+      pool: 'ethereum-eth',
       chain: 'ethereum',
-      project: 'bifrost-staking',
+      project: 'bifrost-liquid-staking',
       symbol: 'veth',
       tvlUsd: tvl * ethPrice,
       apyBase: apyData['vETH'].stakingApy,
