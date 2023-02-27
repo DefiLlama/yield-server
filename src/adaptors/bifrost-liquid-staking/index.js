@@ -51,7 +51,7 @@ const getApy = async () => {
   ).data.moonriver.usd;
 
   const vDOT = {
-    pool: 'polkadot-dot',
+    pool: 'polkadot-vdot',
     chain: 'Polkadot',
     project: 'bifrost-liquid-staking',
     symbol: 'vDOT',
@@ -60,7 +60,7 @@ const getApy = async () => {
   };
 
   const vGLMR = {
-    pool: 'moonbeam-glmr',
+    pool: 'moonbeam-vglmr',
     chain: 'Moonbeam',
     project: 'bifrost-liquid-staking',
     symbol: 'vGLMR',
@@ -69,7 +69,7 @@ const getApy = async () => {
   };
 
   const vMOVR = {
-    pool: 'moonriver-movr',
+    pool: 'moonriver-vmovr',
     chain: 'Moonriver',
     project: 'bifrost-liquid-staking',
     symbol: 'vMOVR',
@@ -78,7 +78,7 @@ const getApy = async () => {
   };
 
   const vBNC = {
-    pool: 'bifrost-bnc',
+    pool: 'bifrost-vbnc',
     chain: 'Bifrost',
     project: 'bifrost-liquid-staking',
     symbol: 'vBNC',
@@ -87,7 +87,7 @@ const getApy = async () => {
   };
 
   const vKSM = {
-    pool: 'kusama-ksm',
+    pool: 'kusama-vksm',
     chain: 'Kusama',
     project: 'bifrost-liquid-staking',
     symbol: 'vKSM',
@@ -97,7 +97,7 @@ const getApy = async () => {
 
   return [
     {
-      pool: 'ethereum-eth',
+      pool: token,
       chain: 'ethereum',
       project: 'bifrost-liquid-staking',
       symbol: 'veth',
