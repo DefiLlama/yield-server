@@ -82,7 +82,7 @@ const poolsFunction = async () => {
     project: 'hedgefarm',
     symbol: utils.formatSymbol('BTC.b'),
     tvlUsd: balanceAlpha2 / 1e8 * btcbTokenPrice,
-    apy: alpha2ApyData.historicalPerformance.apy * 100,
+    apy: alpha2ApyData.last24hApy * 100,
   };
 
   return [alpha1, alpha2];
