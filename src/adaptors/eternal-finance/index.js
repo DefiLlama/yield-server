@@ -112,7 +112,8 @@ async function main() {
             apyBaseBorrow: borrowingInterest,
             totalSupplyUsd: totalSupply.multipliedBy(priceConversionFactor).toNumber(),
             totalBorrowUsd: totalBorrowed.multipliedBy(priceConversionFactor).toNumber(),
-            ltv: 0
+            ltv: 0,
+            poolMeta: '2x leverage'
         };
     }).filter(v => v);
     return apy;
