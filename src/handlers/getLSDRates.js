@@ -58,6 +58,11 @@ const lsdTokens = [
     address: '0x3802c218221390025bceabbad5d8c59f40eb74b8',
     peg: rebase,
   },
+  {
+    name: 'Hord',
+    address: '0x5bBe36152d3CD3eB7183A82470b39b29EedF068B',
+    peg: valueAccruing,
+  },
 ];
 
 const oneInchUrl = 'https://api.1inch.io/v5.0/1/quote';
