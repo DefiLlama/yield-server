@@ -383,7 +383,7 @@ const topLvl = async (
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
-      project: 'balancer',
+      project: 'balancer-v2',
       symbol: utils.formatSymbol(p.symbol),
       tvlUsd: p.tvl,
       apyBase: p.aprFee,
