@@ -46,7 +46,13 @@ const main = async () => {
       }
     }
   }
-  return data;
+  return data.filter(
+    (p) =>
+      ![
+        '0x152d62dccc2c7c7930c4483cc2a24fefd23c24c2-fantom',
+        '0x5427f192137405e6a4143d1c3321359bab2dbd87-fantom',
+      ].includes(p.pool)
+  );
 };
 
 
