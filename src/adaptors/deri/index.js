@@ -8,7 +8,7 @@ const pools = [
     chainId: "56"
   },
   {
-    pool: "0xDE3447Eb47EcDf9B5F90E7A6960a14663916CeE8",
+    pool: "0x243681B8Cd79E3823fF574e07B2378B8Ab292c1E",
     project: "Deri Protocol",
     chain: utils.formatChain('arbitrum'),
     chainId: "42161"
@@ -53,10 +53,10 @@ const poolsFunction = async () => {
         let obj = tvlItem.find(tvlItems => tvlItems.pool === apyItem.pool && tvlItems.symbol === apyItem.symbol)
         if (obj && obj.tvlUsd !== "NaN") {
           let poolObj = {
-            "pool": apyItem.pool,
+            "pool": `${apyItem.pool}-Deri Protocol`,
             "chain": apyItem.chain,
             "project": apyItem.project,
-            "tvlUsd": obj.tvlUsd,
+            "tvlUsd": Number(obj.tvlUsd),
             "symbol": apyItem.symbol,
             "apy": apyItem.apy
           }
