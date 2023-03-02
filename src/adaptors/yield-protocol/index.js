@@ -11,6 +11,47 @@ const SUBGRAPHS = {
   arbitrum: `${SUBGRAPH_BASE}v2-arbitrum`,
 };
 
+// in certain pools, the underlying is deposited to earn interest; therefore, as a liquidity provider, a portion of the provided liquidity earns interest
+// currently only mainnet pools are depositing base (underlying) into euler markets to accumulate interest
+const getBlendedSharesTokenAPY = async (
+  sharesTokenAddr,
+  chain,
+  poolBaseValue,
+  sharesReserves,
+  currentSharePrice
+) => {
+  if (chain !== 'ethereum') return 0;
+
+  const EULER_SUPGRAPH_ENDPOINT =
+    'https://api.thegraph.com/subgraphs/name/euler-xyz/euler-mainnet';
+
+  const query = `
+  query ($address: Bytes!) {
+    eulerMarketStore(id: "euler-market-store") {
+      markets(where:{eTokenAddress:$address}) {
+        supplyAPY
+       } 
+    }
+  }
+`;
+
+  try {
+    const {
+      eulerMarketStore: { markets },
+    } = await request(EULER_SUPGRAPH_ENDPOINT, query, {
+      address: sharesTokenAddr,
+    });
+    const sharesAPY = (+markets[0].supplyAPY * 100) / 1e27;
+
+    // convert shares to base
+    const sharesBaseVal = getBase(sharesReserves);
+    const sharesValRatio = (sharesBaseVal * currentSharePrice) / poolBaseValue;
+    return sharesAPY * sharesValRatio;
+  } catch (e) {
+    return 0;
+  }
+};
+
 const formatMaturity = (maturity) => {
   return format(new Date(maturity * 1000), 'dd MMM yyyy');
 };
@@ -44,10 +85,16 @@ const getPools = async (chain) => {
         fyToken {
           id
           pools {
-            apr
+            borrowAPR
+            lendAPR
+            feeAPR
+            fyTokenInterestAPR
             id
             currentFYTokenPriceInBase
             tvlInBase
+            sharesToken
+            baseReserves
+            currentSharePrice
           }
           totalSupply
           symbol
@@ -77,11 +124,18 @@ const getPools = async (chain) => {
       } = seriesEntity;
 
       const pool = pools[0]; // grab the first pool since there should be only one pool per seriesEntity
+
       const {
         id: poolAddr,
         currentFYTokenPriceInBase,
         tvlInBase,
-        // borrowApy, lendApy, poolApy,
+        borrowAPR,
+        lendAPR,
+        fyTokenInterestAPR,
+        feeAPR,
+        sharesToken,
+        baseReserves,
+        currentSharePrice,
       } = pool;
 
       // price of base token in USD terms
@@ -102,11 +156,19 @@ const getPools = async (chain) => {
         (await getTotalBorrow(seriesEntityId, chain)) * priceBaseUsd;
 
       // apy estimate when providing liquidity
-      const apy = 0; // TODO: calculate/estimate lp token return
-      // apy estimate when lending (buying fyToken)
-      const apyBase = 0; // TODO: calculate/estimate apy lend
-      // apy estimate when borrowing from the pool
-      const apyBaseBorrow = 0; // TODO: calculate/estimate apy borrow
+      // pool apy = sharesTokenAPY + fyTokenInterestAPR + feeAPR
+      // only calc if the pool uses shares token
+      const sharesTokenAPY =
+        baseAddr === sharesToken
+          ? 0
+          : await getBlendedSharesTokenAPY(
+              sharesToken,
+              chain,
+              tvlInBase,
+              sharesReserves,
+              currentSharePrice
+            );
+      const apy = sharesTokenAPY + fyTokenInterestAPR + feeAPR;
 
       // extra data
       const maturityFormatted = formatMaturity(maturity);
@@ -122,9 +184,9 @@ const getPools = async (chain) => {
         symbol: formatSymbol(`${fyTokenSymbol}LP`),
         underlyingTokens: [baseAddr, fyTokenAddr],
         apy, // liquidity providing apy estimate
-        apyReward: 0, // pool reward apy estimate
-        apyBase, // lend apy estimate
-        apyBaseBorrow, // borow apy estimate
+        apyReward: 0, // TODO: pool/strategy reward apy estimate
+        apyBase: lendAPR, // lend apr estimate when using one unit to the decimals of base
+        apyBaseBorrow: borrowAPR, // borrow apr estimate when using one unit to the decimals of base
         tvlUsd,
         totalSupplyUsd,
         totalBorrowUsd,
