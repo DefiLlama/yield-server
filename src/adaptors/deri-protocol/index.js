@@ -52,8 +52,9 @@ const poolsFunction = async () => {
       let tvlObj = tvlData.map((tvlItem) => {
         let obj = tvlItem.find(tvlItems => tvlItems.pool === apyItem.pool && tvlItems.symbol === apyItem.symbol)
         if (obj && obj.tvlUsd !== "NaN") {
+          let pool = `${apyItem.pool}-${apyItem.chain}`
           let poolObj = {
-            "pool": `${apyItem.pool}-${apyItem.chain}`,
+            "pool": pool.toLowerCase(),
             "chain": apyItem.chain,
             "project": apyItem.project,
             "tvlUsd": Number(obj.tvlUsd),
