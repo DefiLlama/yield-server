@@ -18,32 +18,38 @@ const poolsFunction = async () => {
   let apyData = pools.map(async (item) => {
     let url = `https://api.deri.io/pool_mining_info/${item.chainId}/${item.pool}`
     let res = await utils.getData(url)
-    let obj = res.data.bTokens.map((token) => {
-      let apy = Number(token.apy) + Number(token.supplyApy) + Number(token.xvsApy)
-      return {
-        pool: item.pool,
-        chain: item.chain,
-        project: item.project,
-        apy: apy * 100,
-        symbol: token.bTokenSymbol
+    let data = []
+    let obj = res.data.data.bTokens.map((token) => {
+      if (token.bTokenSymbol === item.btoken) {
+        let apy = Number(token.apy) + Number(token.supplyApy) + Number(token.xvsApy)
+        data.push({
+          pool: item.pool,
+          chain: item.chain,
+          project: item.project,
+          apy: apy * 100,
+          symbol: token.bTokenSymbol
+        })
       }
     })
-    return obj
+    return data
   })
   apyData = await Promise.all(apyData)
   let tvlData = pools.map(async (item) => {
     let url = `https://infoapi.deri.io/get_tokens?pool=${item.pool}`
     let res = await utils.getData(url)
-    let obj = res.data.btokens.map((token) => {
-      return {
-        pool: item.pool,
-        chain: item.chain,
-        project: item.project,
-        tvlUsd: token.value,
-        symbol: token.name
+    let data = []
+    let obj = res.data.data.btokens.map((token) => {
+      if (token.name === item.btoken) {
+        data.push({
+          pool: item.pool,
+          chain: item.chain,
+          project: item.project,
+          tvlUsd: token.value,
+          symbol: token.name
+        })
       }
     })
-    return obj
+    return data
   })
   tvlData = await Promise.all(tvlData)
   let Pool = []
