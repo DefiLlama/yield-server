@@ -53,7 +53,7 @@ const poolsFunction = async () => {
         let obj = tvlItem.find(tvlItems => tvlItems.pool === apyItem.pool && tvlItems.symbol === apyItem.symbol)
         if (obj && obj.tvlUsd !== "NaN") {
           let poolObj = {
-            "pool": `${apyItem.pool}-Deri Protocol`,
+            "pool": `${apyItem.pool}-${apyItem.chain}`,
             "chain": apyItem.chain,
             "project": apyItem.project,
             "tvlUsd": Number(obj.tvlUsd),
