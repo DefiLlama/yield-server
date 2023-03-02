@@ -35,8 +35,8 @@ const lsdTokens = [
   },
   {
     name: 'Frax Ether',
-    address: '0x5e8422345238f34275888049021821e8e08caa1f',
-    peg: rebase,
+    address: '0xac3e018457b222d93114458476f3e3416abbe38f',
+    peg: valueAccruing,
   },
   {
     name: 'SharedStake',
@@ -57,6 +57,11 @@ const lsdTokens = [
     name: 'GETH',
     address: '0x3802c218221390025bceabbad5d8c59f40eb74b8',
     peg: rebase,
+  },
+  {
+    name: 'Hord',
+    address: '0x5bBe36152d3CD3eB7183A82470b39b29EedF068B',
+    peg: valueAccruing,
   },
 ];
 
@@ -114,6 +119,14 @@ const getExpectedRates = async () => {
     type: 'function',
   };
 
+  const sfrxETHAbi = {
+    inputs: [],
+    name: 'pricePerShare',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
   // --- cbETH
   const cbETHRate = Number((await axios.get(cbETHRateUrl)).data.amount);
 
@@ -149,6 +162,16 @@ const getExpectedRates = async () => {
     ).output /
       1e18);
 
+  // --- sfrxETH
+  const sfrxETH =
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Frax Ether').address,
+        chain: 'ethereum',
+        abi: sfrxETHAbi,
+      })
+    ).output / 1e18;
+
   return lsdTokens.map((lsd) => ({
     ...lsd,
     expectedRate:
@@ -160,6 +183,8 @@ const getExpectedRates = async () => {
         ? rETHStafiRate
         : lsd.name === 'Ankr'
         ? ankrETHRate
+        : lsd.name === 'Frax Ether'
+        ? sfrxETH
         : 1,
   }));
 };

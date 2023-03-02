@@ -145,6 +145,7 @@ const main = async () => {
         rewardTokens: [EULER],
         ltv: Number.isFinite(ltv) ? ltv : null,
         url: `https://app.euler.finance/market/${m}`,
+        borrowFactor: underlyingToAssetConfig[i]?.borrowFactor / 4e9,
       };
     })
     .filter((p) => utils.keepFinite(p));
@@ -238,12 +239,17 @@ const main = async () => {
       const eulerPerDay = (rewardRate[i] / 1e18) * 3600 * 24;
       const apyReward = ((eulerPerDay * 365 * eulPrice) / tvlUsd) * 100;
 
+      const apyBase = lendingPools.find((lp) =>
+        lp.pool.toLowerCase().includes(ePool.id.toLowerCase())
+      )?.apyBase;
+
       return {
         pool: distributions[i].destination,
         chain: 'Ethereum',
         project: 'euler',
         symbol: `e${ePool.symbol}`,
         tvlUsd,
+        apyBase,
         apyReward,
         underlyingTokens: [ePool.id],
         rewardTokens: [EULER],

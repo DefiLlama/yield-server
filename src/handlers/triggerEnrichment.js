@@ -6,6 +6,7 @@ const {
   getYieldFiltered,
   getYieldOffset,
   getYieldAvg30d,
+  getYieldLendBorrow,
 } = require('../controllers/yieldController');
 const { getStat } = require('../controllers/statController');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
@@ -76,7 +77,10 @@ const main = async () => {
     await superagent.get(
       'https://stablecoins.llama.fi/stablecoins?includePrices=true'
     )
-  ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
+  ).body.peggedAssets
+    // removing any stable which a price 30% from 1usd
+    .filter((s) => s.price >= 0.7)
+    .map((s) => s.symbol.toLowerCase());
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
 
@@ -298,6 +302,13 @@ const main = async () => {
     status: 'success',
     data: await buildPoolsEnriched(undefined),
   });
+
+  // query db for lendBorrow and store to s3 as origin for cloudfront
+  await utils.storeAPIResponse(
+    'defillama-datasets',
+    'yield-api/lendBorrow',
+    await getYieldLendBorrow()
+  );
 };
 
 ////// helper functions
@@ -338,7 +349,10 @@ const checkStablecoin = (el, stablecoins) => {
     tokens.some((t) => t.includes('sushi')) ||
     tokens.some((t) => t.includes('dusk')) ||
     tokens.some((t) => t.includes('fpis')) ||
-    tokens.some((t) => t.includes('emaid'))
+    tokens.some((t) => t.includes('emaid')) ||
+    tokens.some((t) => t.includes('grail')) ||
+    tokens.some((t) => t.includes('oxai')) ||
+    tokens.some((t) => t.includes('crv'))
   ) {
     stable = false;
   } else if (tokens.length === 1) {
@@ -430,7 +444,9 @@ const addPoolInfo = (el, stablecoins, config) => {
   // complifi has single token exposure only cause the protocol
   // will pay traders via deposited amounts
   el['ilRisk'] =
-    config[el.project]?.category === 'Options'
+    el.pool === '0x13C6Bed5Aa16823Aba5bBA691CAeC63788b19D9d' // jones-dao jusdc pool
+      ? 'no'
+      : config[el.project]?.category === 'Options'
       ? 'yes'
       : ['complifi', 'optyfi', 'arbor-finance', 'opyn-squeeth'].includes(
           el.project

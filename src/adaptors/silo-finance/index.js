@@ -7,11 +7,8 @@ const utils = require('../utils');
 
 BigNumber.config({ EXPONENTIAL_AT: [-1e+9, 1e+9] });
 
-// 2.1.0 temp disable until fixed
-// const url = 'https://api.thegraph.com/subgraphs/id/QmcsWW8j9jKvCbfv4CfoavYBbWMmHfdgHyXMj3Pm9s9ihA';
-
-// 2.0.3
-const url = 'https://api.thegraph.com/subgraphs/id/QmT8631Rt8ZaGtD48F7WP6trs5Wd2RNoacMRPYLfuotDwB';
+// 2.1.2
+const url = 'https://api.thegraph.com/subgraphs/id/QmRMtCkaYsizfmoavcE1ULwc2DkG1GZjXDHTwHjXAAH9sp';
 
 const pageSizeLimit = 100;
 
@@ -114,8 +111,8 @@ const getAssetStateAbi = {
   "type": "function"
 }
 
-const START_BLOCK = 15307294
-const SILO_FACTORY = '0x4D919CEcfD4793c0D47866C8d0a02a0950737589'
+const START_BLOCK_ETHEREUM = 15307294
+const SILO_FACTORY_ETHEREUM = '0x4D919CEcfD4793c0D47866C8d0a02a0950737589'
 
 const query = gql`
 {
@@ -131,22 +128,23 @@ const query = gql`
       # totalSupply
       lastPriceUSD
     }
-    # 2.1.0
-    # marketAssets {
-    #   id
-    #   balance
-    #   supply
-    #   protectedSupply
-    #   tokenPriceUSD
-    #   maximumLTV
-    #   asset {
-    #     id
-    #     symbol
-    #     decimals
-    #     totalSupply
-    #     lastPriceUSD
-    #   }
-    # }
+    marketAssets {
+      id
+      balance
+      supply
+      protectedSupply
+      tokenPriceUSD
+      maximumLTV
+      dToken {
+        totalSupply
+        derivativeConversion
+      }
+      asset {
+        id
+        decimals
+        lastPriceUSD
+      }
+    }
     rates {
       rate
       side
@@ -276,13 +274,15 @@ const main = async () => {
     let inputTokenBorrowRateObject = rates.find(rate => (rate.token.id === inputToken.id) && (rate.side === 'BORROWER'));
     let inputTokenSupplyRateObject = rates.find(rate => (rate.token.id === inputToken.id) && (rate.side === 'LENDER'));
 
-    // 2.1.0
-    // let ltv = marketAssets.reduce((acc, marketAsset) => {
-    //   if(marketAsset.asset.id === inputToken.id) {
-    //     acc = new BigNumber(marketAsset.maximumLTV).dividedBy(100).toNumber();
-    //   }
-    //   return acc;
-    // }, 0);
+    let inputMarketAsset = marketAssets.filter((marketAsset) => marketAsset.asset.id === inputToken.id)?.[0];
+
+    let ltvInputToken = new BigNumber(inputMarketAsset?.maximumLTV).dividedBy(100).toNumber();
+
+    let totalBorrowUsdInputTokenRaw = new BigNumber(inputMarketAsset?.dToken.totalSupply).multipliedBy(inputMarketAsset?.dToken.derivativeConversion).decimalPlaces(0, 1).toString()
+    let totalBorrowUsdInputToken = new BigNumber(ethers.utils.formatUnits(totalBorrowUsdInputTokenRaw, inputMarketAsset?.asset?.decimals)).multipliedBy(inputMarketAsset?.asset?.lastPriceUSD).toString();
+
+    let totalSupplyUsdInputTokenRaw = new BigNumber(inputMarketAsset?.supply).minus(inputMarketAsset?.protectedSupply).toString();
+    let totalSupplyUsdInputToken = new BigNumber(ethers.utils.formatUnits(totalSupplyUsdInputTokenRaw, inputMarketAsset?.asset?.decimals)).multipliedBy(inputMarketAsset?.asset?.lastPriceUSD).toString();
     
     markets.push({
       pool: `${market.id}-ethereum`,
@@ -294,8 +294,9 @@ const main = async () => {
       apyBaseBorrow: Number(inputTokenBorrowRateObject.rate),
       url: `https://app.silo.finance/silo/${market.id}`,
       underlyingTokens: underlyingAssetAddresses,
-      // Pending subgraph update:
-      // ...(ltv && {ltv}), // temp disabled until totalSupplyUsd and totalBorrowUsd ready
+      ltv: ltvInputToken,
+      totalBorrowUsd: totalBorrowUsdInputToken,
+      totalSupplyUsd: totalSupplyUsdInputToken,
     })
   };
 

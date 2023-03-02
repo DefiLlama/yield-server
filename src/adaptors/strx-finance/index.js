@@ -12,8 +12,15 @@ const client = new GraphQLClient('https://graphql.bitquery.io', {
 });
 
 const STAKING_ADDRESS = 'TGrdCu9fu8csFmQptVE25fDzFmPU9epamH';
+const REVENUE_ADDRESS = 'TWisShDfhZGXLy1s5uoWjyyucSKwfkohu7';
 
 async function getRevenue(_days) {
+	let oldRevenue = await getRevenueOld(_days);
+	let newRevenue = await getRevenueNew(_days);
+	let totalRevenue = oldRevenue+newRevenue;
+	return totalRevenue;
+}
+async function getRevenueOld(_days) {
 	const query = gql`
 	  query {
 	    tron {
@@ -31,7 +38,47 @@ async function getRevenue(_days) {
 	  }
 	`;
 	const data = await client.request(query);
-	return (data.tron.transfers[0].amount * (10 ** 6));
+	return data.tron.transfers.length > 0 ? (data.tron.transfers[0]?.amount * (10 ** 6)) : 0;
+}
+async function getRevenueNew(_days) {
+	const query = gql`
+	  query {
+	    tron {
+	      transfers(
+		currency: {is: "TRX"}
+		receiver: {is: "${REVENUE_ADDRESS}"}
+		success: true
+		external: true
+		date: {since: "${new Date(new Date()-86400*_days*1000).toISOString()}", till: "${new Date().toISOString()}"}
+	      ) {
+		amount
+		contractType(contractType: {is: Transfer})
+	      }
+	    }
+	  }
+	`;
+	const data = await client.request(query);
+	return data.tron.transfers.length > 0 ? (data.tron.transfers[0]?.amount * (10 ** 6)) : 0;
+}
+async function getRevenueNew(_days) {
+	const query = gql`
+	  query {
+	    tron {
+	      transfers(
+		currency: {is: "TRX"}
+		receiver: {is: "${REVENUE_ADDRESS}"}
+		success: true
+		external: true
+		date: {since: "${new Date(new Date()-86400*_days*1000).toISOString()}", till: "${new Date().toISOString()}"}
+	      ) {
+		amount
+		contractType(contractType: {is: Transfer})
+	      }
+	    }
+	  }
+	`;
+	const data = await client.request(query);
+	return (data.tron.transfers[0]?.amount * (10 ** 6));
 }
 
 async function getCurrentStake() {
@@ -65,10 +112,11 @@ const poolsFunction = async () => {
 		project: 'strx-finance',
 		symbol: utils.formatSymbol('TRX'),
 		tvlUsd: dataTvl,
-		apyBase: Number(dailyAPY),
+		apyBase: dailyAPY > 0 ? Number(dailyAPY) : 0,
 		apyBase7d: Number(weeklyAPY)
 	};
-	return [StakingPool];
+
+	return [StakingPool]
 }
 module.exports = {
 	timetravel: false,

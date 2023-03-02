@@ -1,6 +1,6 @@
 const { request, gql } = require('graphql-request');
 
-const url = 'https://api.thegraph.com/subgraphs/name/peggyjv/cellars';
+const url = 'https://api.thegraph.com/subgraphs/name/elkdao/cellarsnext';
 
 const dayDataQuery = gql`
   {
@@ -24,6 +24,30 @@ async function getDayData(cellarAddress, numDays) {
   return data.cellarDayDatas;
 }
 
+const hourDataQuery = gql`
+  {
+    cellarHourDatas(
+      where: {cellar: "<CELLAR>", date_gte: <START>, date_lte: <END> }
+      orderDirection: desc
+      orderBy: date
+    ) {
+      date
+      shareValue
+    }
+  }
+`;
+
+async function getHourData(cellarAddress, startDate, endDate) {
+  let query = hourDataQuery.replace('<CELLAR>', cellarAddress);
+  query = query.replace('<START>', startDate);
+  query = query.replace('<END>', endDate);
+
+  const data = await request(url, query);
+
+  return data.cellarHourDatas;
+}
+
 module.exports = {
   getDayData,
+  getHourData,
 };
