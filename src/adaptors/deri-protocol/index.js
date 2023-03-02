@@ -19,7 +19,8 @@ const poolsFunction = async () => {
     let url = `https://api.deri.io/pool_mining_info/${item.chainId}/${item.pool}`
     let res = await utils.getData(url)
     let data = []
-    let obj = res.data.data.bTokens.map((token) => {
+    console.log("apyData",res)
+    let obj = res.data.bTokens.map((token) => {
       if (token.bTokenSymbol === item.btoken) {
         let apy = Number(token.apy) + Number(token.supplyApy) + Number(token.xvsApy)
         data.push({
@@ -38,7 +39,7 @@ const poolsFunction = async () => {
     let url = `https://infoapi.deri.io/get_tokens?pool=${item.pool}`
     let res = await utils.getData(url)
     let data = []
-    let obj = res.data.data.btokens.map((token) => {
+    let obj = res.data.btokens.map((token) => {
       if (token.name === item.btoken) {
         data.push({
           pool: item.pool,
@@ -72,6 +73,7 @@ const poolsFunction = async () => {
       })
     })
   }
+  console.log(Pool)
   return Pool
 
 }
