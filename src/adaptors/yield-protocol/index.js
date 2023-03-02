@@ -44,8 +44,7 @@ const getBlendedSharesTokenAPY = async (
     const sharesAPY = (+markets[0].supplyAPY * 100) / 1e27;
 
     // convert shares to base
-    const sharesBaseVal = getBase(sharesReserves);
-    const sharesValRatio = (sharesBaseVal * currentSharePrice) / poolBaseValue;
+    const sharesValRatio = (sharesReserves * currentSharePrice) / poolBaseValue;
     return sharesAPY * sharesValRatio;
   } catch (e) {
     return 0;
@@ -165,7 +164,7 @@ const getPools = async (chain) => {
               sharesToken,
               chain,
               tvlInBase,
-              sharesReserves,
+              baseReserves, // when pool is tv, this is actually shares
               currentSharePrice
             );
       const apy = sharesTokenAPY + fyTokenInterestAPR + feeAPR;
