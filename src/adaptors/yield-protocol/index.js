@@ -167,7 +167,7 @@ const getPools = async (chain) => {
               baseReserves, // when pool is tv, this is actually shares
               currentSharePrice
             );
-      const apy = sharesTokenAPY + fyTokenInterestAPR + feeAPR;
+      const apy = sharesTokenAPY + +fyTokenInterestAPR + +feeAPR;
 
       // extra data
       const maturityFormatted = formatMaturity(maturity);
