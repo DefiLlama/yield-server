@@ -3,13 +3,13 @@ const utils = require('../utils');
 const pools = [
   {
     pool: "0x243681B8Cd79E3823fF574e07B2378B8Ab292c1E",
-    project: "Deri Protocol",
+    project: "deri-protocol",
     chain: utils.formatChain('bsc'),
     chainId: "56"
   },
   {
-    pool: "0x243681B8Cd79E3823fF574e07B2378B8Ab292c1E",
-    project: "Deri Protocol",
+    pool: "0xDE3447Eb47EcDf9B5F90E7A6960a14663916CeE8",
+    project: "deri-protocol",
     chain: utils.formatChain('arbitrum'),
     chainId: "42161"
   }
