@@ -5,13 +5,15 @@ const pools = [
     pool: "0x243681B8Cd79E3823fF574e07B2378B8Ab292c1E",
     project: "deri-protocol",
     chain: utils.formatChain('bsc'),
-    chainId: "56"
+    chainId: "56",
+    btoken: "BNB"
   },
   {
     pool: "0xDE3447Eb47EcDf9B5F90E7A6960a14663916CeE8",
     project: "deri-protocol",
     chain: utils.formatChain('arbitrum'),
-    chainId: "42161"
+    chainId: "42161",
+    btoken: "ETH"
   }
 ]
 const poolsFunction = async () => {
@@ -19,7 +21,6 @@ const poolsFunction = async () => {
     let url = `https://api.deri.io/pool_mining_info/${item.chainId}/${item.pool}`
     let res = await utils.getData(url)
     let data = []
-    console.log("apyData",res)
     let obj = res.data.bTokens.map((token) => {
       if (token.bTokenSymbol === item.btoken) {
         let apy = Number(token.apy) + Number(token.supplyApy) + Number(token.xvsApy)
@@ -73,9 +74,7 @@ const poolsFunction = async () => {
       })
     })
   }
-  console.log(Pool)
   return Pool
-
 }
 module.exports = {
   timetravel: false,
