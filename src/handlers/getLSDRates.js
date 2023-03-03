@@ -94,9 +94,18 @@ const getMarketRates = async () => {
       `${oneInchUrl}?fromTokenAddress=${lsd.address}&toTokenAddress=${eth}&amount=${amount}`
   );
 
-  const marketRates = (await Promise.allSettled(urls.map((u) => axios.get(u))))
-    .map((p) => p.value?.data)
-    .filter(Boolean);
+  const marketRates = [];
+  for (const url of urls) {
+    try {
+      marketRates.push((await axios.get(url)).data);
+    } catch (err) {
+      console.log(url, err);
+    }
+  }
+
+  // const marketRates = (await Promise.allSettled(urls.map((u) => axios.get(u))))
+  //   .map((p) => p.value?.data)
+  //   .filter(Boolean);
 
   return marketRates;
 };
