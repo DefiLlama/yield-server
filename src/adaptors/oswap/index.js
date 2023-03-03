@@ -16,12 +16,12 @@ const poolsFunction = async () => {
     return poolsData.map(({ address, pool, apyBase, ...rest }) => ({
         url: `https://oswap.io/#/swap/${address}`,
         apyReward: apyRewards[address] || null,
-        apyBase: apyBase || null,
+        apyBase,
         rewardTokens: ['GBYTE'],
         pool: `${address}-obyte`.toLowerCase(),
         ...rest,
         ...COMMON_DATA
-    })).filter(({ apyBase, apyReward }) => apyBase || apyReward);
+    }));
 };
 
 module.exports = {
