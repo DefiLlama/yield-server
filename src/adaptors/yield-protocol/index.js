@@ -169,12 +169,8 @@ const getPools = async (chain) => {
             );
       const apy = sharesTokenAPY + +fyTokenInterestAPR + +feeAPR;
 
-      // extra data
-      const maturityFormatted = formatMaturity(maturity);
-      const name = `${poolAddr}-${chain}`.toLowerCase();
-
       return {
-        pool: name,
+        pool: `${poolAddr}-${chain}`.toLowerCase(),
         chain: formatChain(chain),
         project: 'yield-protocol',
         symbol: formatSymbol(`${fyTokenSymbol}LP`),
@@ -187,7 +183,7 @@ const getPools = async (chain) => {
         totalSupplyUsd,
         totalBorrowUsd,
         url: `https://app.yieldprotocol.com/`,
-        poolMeta: maturityFormatted,
+        poolMeta: formatMaturity(maturity),
       };
     })
   );
