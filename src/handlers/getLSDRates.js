@@ -1,10 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 const rebase =
   'Rebase Token: Staking rewards accrue as new tokens. Expected Peg = 1 : 1';
 const valueAccruing =
@@ -69,7 +65,6 @@ const lsdTokens = [
   },
 ];
 
-const oneInchUrl = 'https://api.1inch.io/v5.0/1/quote';
 const cbETHRateUrl =
   'https://api-public.sandbox.pro.coinbase.com/wrapped-assets/CBETH/conversion-rate';
 
@@ -82,8 +77,6 @@ const getRates = async () => {
   const marketRates = await getMarketRates();
   const expectedRates = await getExpectedRates();
 
-  console.log(marketRates);
-
   return {
     marketRates,
     expectedRates,
@@ -92,24 +85,20 @@ const getRates = async () => {
 
 const getMarketRates = async () => {
   const eth = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
-  const amount = 1e18;
-  const urls = lsdTokens.map(
-    (lsd) =>
-      `${oneInchUrl}?fromTokenAddress=${lsd.address}&toTokenAddress=${eth}&amount=${amount}`
-  );
+  const priceKeys = lsdTokens
+    .map((lsd) => `ethereum:${lsd.address}`)
+    .concat(`ethereum:${eth}`)
+    .join(',');
+  const prices = (
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).data.coins;
 
-  const marketRates = [];
-  for (const url of urls) {
-    try {
-      marketRates.push((await axios.get(url)).data);
-      // 1inch api 5requests/sec max
-      await sleep(300);
-    } catch (err) {
-      console.log(url, err);
-    }
+  for (const key of Object.keys(prices)) {
+    prices[key]['marketRate'] =
+      prices[key].price / prices[`ethereum:${eth}`].price;
   }
 
-  return marketRates;
+  return prices;
 };
 
 const getExpectedRates = async () => {
