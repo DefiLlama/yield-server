@@ -172,9 +172,6 @@ const getPools = async (chain) => {
       // extra data
       const maturityFormatted = formatMaturity(maturity);
       const name = `${poolAddr}-${chain}`.toLowerCase();
-      const poolMeta = `Yield Protocol ${formatSymbol(
-        baseSymbol
-      )} ${maturityFormatted}`.trim();
 
       return {
         pool: name,
@@ -190,7 +187,7 @@ const getPools = async (chain) => {
         totalSupplyUsd,
         totalBorrowUsd,
         url: `https://app.yieldprotocol.com/`,
-        poolMeta,
+        poolMeta: maturityFormatted,
       };
     })
   );
