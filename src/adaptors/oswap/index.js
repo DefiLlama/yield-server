@@ -15,7 +15,7 @@ const poolsFunction = async () => {
 
     return poolsData.map(({ address, pool, ...rest }) => ({
         url: `https://oswap.io/#/swap/${address}`,
-        apyReward: apyRewards[address] || 0,
+        apyReward: apyRewards[address] || null,
         rewardTokens: ['GBYTE'],
         pool: `${address}-obyte`.toLowerCase(),
         ...rest,
