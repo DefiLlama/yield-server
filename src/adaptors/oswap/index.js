@@ -21,7 +21,7 @@ const poolsFunction = async () => {
         pool: `${address}-obyte`.toLowerCase(),
         ...rest,
         ...COMMON_DATA
-    }));
+    })).filter(({ apyBase }) => apyBase !== null);
 };
 
 module.exports = {
