@@ -13,9 +13,10 @@ const poolsFunction = async () => {
         `${LIQUIDITY_PROVIDER_ENDPOINT}/mining-apy`
     );
 
-    return poolsData.map(({ address, pool, ...rest }) => ({
+    return poolsData.map(({ address, pool, apyBase, ...rest }) => ({
         url: `https://oswap.io/#/swap/${address}`,
         apyReward: apyRewards[address] || null,
+        apyBase: apyBase || null,
         rewardTokens: ['GBYTE'],
         pool: `${address}-obyte`.toLowerCase(),
         ...rest,
