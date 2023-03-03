@@ -173,7 +173,7 @@ const getPools = async (chain) => {
         pool: `${poolAddr}-${chain}`.toLowerCase(),
         chain: formatChain(chain),
         project: 'yield-protocol',
-        symbol: formatSymbol(`${fyTokenSymbol}LP`),
+        symbol: baseSymbol,
         underlyingTokens: [baseAddr, fyTokenAddr],
         apy, // liquidity providing apy estimate
         apyReward: 0, // TODO: pool/strategy reward apy estimate
