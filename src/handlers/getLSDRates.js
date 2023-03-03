@@ -1,6 +1,10 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 const rebase =
   'Rebase Token: Staking rewards accrue as new tokens. Expected Peg = 1 : 1';
 const valueAccruing =
@@ -98,14 +102,12 @@ const getMarketRates = async () => {
   for (const url of urls) {
     try {
       marketRates.push((await axios.get(url)).data);
+      // 1inch api 5requests/sec max
+      await sleep(300);
     } catch (err) {
       console.log(url, err);
     }
   }
-
-  // const marketRates = (await Promise.allSettled(urls.map((u) => axios.get(u))))
-  //   .map((p) => p.value?.data)
-  //   .filter(Boolean);
 
   return marketRates;
 };
