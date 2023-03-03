@@ -267,25 +267,20 @@ const getApy = async (chain) => {
       singlePrice[singleToken[chain]],
       blocksPerYears[chain]
     );
-    const bo =
-      (secondToYearlyInterestRate(interestRate[idx]) *
-        (1 - lendingPerformanceFeeBps[idx]/10000) *
-        totalBorrowed[idx]) /
-      totalSupply[idx] * 100;
-
     return {
       pool: pool.address,
       chain: utils.formatChain(chain),
       project: 'single-finance',
-      symbol: pool.token.id,
+      symbol: pool.token.symbol,
       tvlUsd: totalSupplyUsd - totalBorrowUsd,
-      apyBaseBorrow: secondToYearlyInterestRate(interestRate[idx])*100,
+      apyBaseBorrow: secondToYearlyInterestRate(interestRate[idx]) * 100,
       totalSupplyUsd,
       totalBorrowUsd,
       apyBase,
       apyReward: chain === 'cronos' ? apyReward : 0,
-      underlyingTokens: [pool.token.id, pool.debtToken.id],
+      underlyingTokens: [pool.token.id],
       rewardTokens: chain === 'cronos' ? [singleToken[chain]] : [],
+      ltv: 0,
     };
   });
   return res;
