@@ -51,12 +51,12 @@ async function getStats(query,variables) {
 const poolsFunction = async () => {
   const apyData = await getStats(underlyingStats);
   const variablesArr = apyData.underlyingCurrencies.map(item => ({
-    loanAmount: 1, //Required param otherwise does not in
+    loanAmount: 1, //Required param otherwise does not have any impact on the calculation
     loanTerm: item.symbol === "SMARTCREDIT" ? 90 : 30,
     loanRequestValidity: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
     collateralCurrency: item.symbol,
     underlyingCurrency: item.symbol,
-    userRating: 1, //calculating lower bound(worst credit score)
+    userRating: 1,   //calculating lower bound(worst credit score)
   }));
   const resultArr = await Promise.all(variablesArr.map(variables => getStats(requiredCollateralRatio, variables)));
   return apyData.underlyingCurrencies.map((item, i) => ({
@@ -69,7 +69,7 @@ const poolsFunction = async () => {
     apyReward: Math.floor(item.lendersAPY),
     rewardTokens: [SMART_CREDIT],
     underlyingTokens: [(item.ethAddress).toLowerCase()],
-    apyBaseBorrow: -Math.abs(item.minInterestRate),
+    apyBaseBorrow: Math.floor(item.minInterestRate),
     apyRewardBorrow: Math.floor(item.borrowersAPY),
     totalSupplyUsd: item.totalLendedValueInUSD,
     totalBorrowUsd: item.totalBorrowedValueInUSD,
