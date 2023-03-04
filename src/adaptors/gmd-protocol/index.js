@@ -1,28 +1,52 @@
+const fetch = require("node-fetch")
+// import fetch from "node-fetch";
 
-
-async function getData () {
-    const res = await fetch("https://gmd-stats-backend.vercel.app/getTvlAndApr", {
+const getData = async () => {
+    let res = await fetch("https://gmd-stats-backend.vercel.app/getTvlAndApy", {
         method: 'GET',
         headers: {
             "Content-type": "application/json"
         },
         credentials: "include",
     });
-    return {
-        usdcPool: {
-            tvl: res.tvl.usdc,
-            apy: res.apy.usdc
+    const fee = 1 - 0.5/100;
+    res = await res.json();
+    
+    apy = [
+        {
+            pool: "0x8080B5cE6dfb49a6B86370d6982B3e2A86FBBb08",
+            chain: "Arbitrum",
+            project: "gmd-protocol",
+            symbol: "gmdUSDC",
+            tvlUsd: res.tvl.usdc,
+            apyBase: res.apy.usdc*fee
         },
-        ethPool: {
-            tvl: res.tvl.eth,
-            apy: res.apy.eth
+        {
+            pool: "0x8080B5cE6dfb49a6B86370d6982B3e2A86FBBb08",
+            chain: "Arbitrum",
+            project: "gmd-protocol",
+            symbol: "gmdETH",
+            tvlUsd: res.tvl.eth,
+            apyBase: res.apy.eth*fee
         },
-        btcPool: {
-            tvl: res.tvl.btc,
-            apy: res.apy.btc
+        {
+            pool: "0x8080B5cE6dfb49a6B86370d6982B3e2A86FBBb08",
+            chain: "Arbitrum",
+            project: "gmd-protocol",
+            symbol: "gmdBTC",
+            tvlUsd: res.tvl.btc,
+            apyBase: res.apy.btc*fee
         }
-    };
+    ];
+    // apy.forEach((pool) => {
+    //     console.log(pool);
+    // });
+    return apy;
 }
+
+
+
+
 
 module.exports = {
   timetravel: false,
