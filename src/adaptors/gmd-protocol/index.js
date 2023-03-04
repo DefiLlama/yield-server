@@ -1,17 +1,13 @@
-const fetch = require("node-fetch")
-// import fetch from "node-fetch";
+const axios = require('axios');
 
 const getData = async () => {
-    let res = await fetch("https://gmd-stats-backend.vercel.app/getTvlAndApy", {
-        method: 'GET',
-        headers: {
-            "Content-type": "application/json"
-        },
-        credentials: "include",
-    });
     const fee = 1 - 0.5/100;
-    res = await res.json();
-    
+    let res = null;
+    let request = await axios
+        .get("https://gmd-stats-backend.vercel.app/getTvlAndApy")
+        .then(({data}) => {
+            res = data;
+        });
     apy = [
         {
             pool: "0x4A723DE8aF2be96292dA3F824a96bfA053d4aF66",
