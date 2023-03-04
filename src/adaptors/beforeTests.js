@@ -14,7 +14,7 @@ module.exports = async function () {
     process.exit(1);
   }
 
-  const cwd = process.cwd();
+  const cwd = process.cwd().replaceAll('\\','/');
   const passedFile = cwd.includes('src/adaptors')
     ? path.resolve(cwd, adapter)
     : path.resolve(cwd, `./src/adaptors/${adapter}`);

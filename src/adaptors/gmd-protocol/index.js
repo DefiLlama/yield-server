@@ -14,7 +14,7 @@ const getData = async () => {
     
     apy = [
         {
-            pool: "0x8080B5cE6dfb49a6B86370d6982B3e2A86FBBb08",
+            pool: "0x4A723DE8aF2be96292dA3F824a96bfA053d4aF66",
             chain: "Arbitrum",
             project: "gmd-protocol",
             symbol: "gmdUSDC",
@@ -22,7 +22,7 @@ const getData = async () => {
             apyBase: res.apy.usdc*fee
         },
         {
-            pool: "0x8080B5cE6dfb49a6B86370d6982B3e2A86FBBb08",
+            pool: "0xc5182E92bf001baE7049c4496caD96662Db1A186",
             chain: "Arbitrum",
             project: "gmd-protocol",
             symbol: "gmdETH",
@@ -30,7 +30,7 @@ const getData = async () => {
             apyBase: res.apy.eth*fee
         },
         {
-            pool: "0x8080B5cE6dfb49a6B86370d6982B3e2A86FBBb08",
+            pool: "0xEffaE8eB4cA7db99e954adc060B736Db78928467",
             chain: "Arbitrum",
             project: "gmd-protocol",
             symbol: "gmdBTC",
@@ -38,9 +38,6 @@ const getData = async () => {
             apyBase: res.apy.btc*fee
         }
     ];
-    // apy.forEach((pool) => {
-    //     console.log(pool);
-    // });
     return apy;
 }
 
