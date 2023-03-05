@@ -2,9 +2,9 @@ const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
-const { comptrollerAbi, ercDelegator } = require('../compound/abi');
+const { comptrollerAbi, ercDelegator } = require('./abi');
 
-const COMPTROLLER_ADDRESS = '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B';
+const COMPTROLLER_ADDRESS = '0x95Af143a021DF745bc78e845b54591C53a8B3A51';
 const CHAIN = 'ethereum';
 const GET_ALL_MARKETS = 'getAllMarkets';
 const REWARD_SPEED = 'compSupplySpeeds';
@@ -15,18 +15,12 @@ const TOTAL_BORROWS = 'totalBorrows';
 const GET_CHASH = 'getCash';
 const UNDERLYING = 'underlying';
 const BLOCKS_PER_DAY = 86400 / 12;
-const PROJECT_NAME = 'compound';
+const PROJECT_NAME = 'flux-finance';
 
 const NATIVE_TOKEN = {
   decimals: 18,
   symbol: 'WETH',
   address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'.toLowerCase(),
-};
-
-const PROTOCOL_TOKEN = {
-  decimals: 18,
-  symbol: 'COMP',
-  address: '0xc00e94Cb662C3520282E6f5717214004A7f26888'.toLowerCase(),
 };
 
 const getPrices = async (addresses) => {
@@ -102,7 +96,7 @@ const main = async () => {
 
   const extraRewards = await getRewards(allMarkets, REWARD_SPEED);
   const extraRewardsBorrow = await getRewards(allMarkets, REWARD_SPEED_BORROW);
-  const isPaused = await getRewards(allMarkets, "mintGuardianPaused");
+  const isPaused = await getRewards(allMarkets, 'mintGuardianPaused');
 
   const supplyRewards = await multiCallMarkets(
     allMarkets,
@@ -152,12 +146,7 @@ const main = async () => {
 
   const pools = allMarkets.map((market, i) => {
     const token = underlyingTokens[i] || NATIVE_TOKEN.address;
-    const symbol =
-      // for maker
-      underlyingTokens[i]?.toLowerCase() ===
-      '0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2'
-        ? 'MKR'
-        : underlyingSymbols[i] || NATIVE_TOKEN.symbol;
+    const symbol = underlyingSymbols[i] || NATIVE_TOKEN.symbol;
 
     const decimals = Number(underlyingDecimals[i]) || NATIVE_TOKEN.decimals;
     let price = prices[token.toLowerCase()];
@@ -174,16 +163,7 @@ const main = async () => {
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
     const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
 
-    const calcRewardApy = (rewards, denom) => {
-      return (
-        (((rewards[i] / 10 ** PROTOCOL_TOKEN.decimals) *
-          BLOCKS_PER_DAY *
-          365 *
-          prices[PROTOCOL_TOKEN.address]) /
-          denom) *
-        100
-      );
-    };
+    const calcRewardApy = (rewards, denom) => 0;
     const apyReward = calcRewardApy(extraRewards, totalSupplyUsd);
     const apyRewardBorrow = calcRewardApy(extraRewardsBorrow, totalBorrowUsd);
 
@@ -196,9 +176,9 @@ const main = async () => {
       apyBase,
       apyReward,
       underlyingTokens: [token],
-      rewardTokens: [apyReward ? PROTOCOL_TOKEN.address : null].filter(Boolean),
+      rewardTokens: [],
     };
-    if(isPaused[i] === false){
+    if (isPaused[i] === false) {
       poolReturned = {
         ...poolReturned,
         // borrow fields
@@ -207,24 +187,16 @@ const main = async () => {
         apyBaseBorrow,
         apyRewardBorrow,
         ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
-      }
+      };
     }
-    return poolReturned
+    return poolReturned;
   });
 
-  return pools.filter(
-    (p) =>
-      ![
-        '0x158079ee67fce2f58472a96584a73c7ab9ac95c1',
-        '0x7713dd9ca933848f6819f38b8352d9a15ea73f67',
-        '0xf5dce57282a584d2746faf1593d3121fcac444dc',
-        '0xc11b1268c1a384e55c48c2391d8d480264a3a7f4',
-      ].includes(p.pool)
-  );
+  return pools;
 };
 
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.compound.finance/',
+  url: 'https://fluxfinance.com/markets',
 };

@@ -48,6 +48,8 @@ const excludePools = [
   '0x19D3364A399d251E894aC732651be8B0E4e85001', // ydai
   '0x09AA7178049Ba617119425A80faeee12dBe121de', // weth on klap
   '0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9', // old usdc vault on yearn
+  '0x152d62dccc2c7c7930c4483cc2a24fefd23c24c2-fantom',
+  '0x5427f192137405e6a4143d1c3321359bab2dbd87-fantom',
 ];
 
 const boundaries = {

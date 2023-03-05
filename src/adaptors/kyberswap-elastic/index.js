@@ -103,7 +103,7 @@ const topLvl = async (chainString, url, timestamp) => {
       return {
         pool: p.id,
         chain: utils.formatChain(chainString),
-        project: 'kyberswap',
+        project: 'kyberswap-elastic',
         symbol,
         tvlUsd: p.totalValueLockedUSD,
         apyBase: p.apy1d,
