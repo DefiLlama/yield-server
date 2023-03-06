@@ -157,7 +157,11 @@ async function poolsFunction() {
       delete t.isCollateral;
       delete t.yieldApr;
 
-      return { ...t, apyBase: (depositApy + yieldApy) * 100 };
+      return {
+        ...t,
+        apyBase: (depositApy + yieldApy) * 100,
+        apyBaseBorrow: t.apyBaseBorrow * 100,
+      };
     });
   return poolsData;
 }
