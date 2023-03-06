@@ -267,6 +267,7 @@ const getApy = async (chain) => {
       singlePrice[singleToken[chain]],
       blocksPerYears[chain]
     );
+    
     return {
       pool: pool.address,
       chain: utils.formatChain(chain),
