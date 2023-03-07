@@ -107,9 +107,12 @@ const getPools = async (chain) => {
     }
   `;
   const { seriesEntities } = await request(url, query);
+  // double check is not matured
+  const NOW = Math.floor(Date.now() / 1000);
+  const filteredSeriesEntities = seriesEntities.filter((s) => NOW < s.maturity);
 
   const pools = await Promise.all(
-    seriesEntities.map(async (seriesEntity) => {
+    filteredSeriesEntities.map(async (seriesEntity) => {
       const {
         id: seriesEntityId,
         fyToken: {
@@ -167,28 +170,44 @@ const getPools = async (chain) => {
               baseReserves, // when pool is tv, this is actually shares
               currentSharePrice
             );
-      const apy = sharesTokenAPY + +fyTokenInterestAPR + +feeAPR;
+      const poolAPY = sharesTokenAPY + +fyTokenInterestAPR + +feeAPR;
+      const poolRewardsAPY = 0;
 
-      return {
-        pool: `${poolAddr}-${chain}`.toLowerCase(),
-        chain: formatChain(chain),
-        project: 'yield-protocol',
-        symbol: baseSymbol,
-        underlyingTokens: [baseAddr, fyTokenAddr],
-        apy, // liquidity providing apy estimate
-        apyReward: 0, // TODO: pool/strategy reward apy estimate
-        apyBase: lendAPR, // lend apr estimate when using one unit to the decimals of base
-        apyBaseBorrow: borrowAPR, // borrow apr estimate when using one unit to the decimals of base
-        tvlUsd,
-        totalSupplyUsd,
-        totalBorrowUsd,
-        url: `https://app.yieldprotocol.com/`,
-        poolMeta: formatMaturity(maturity),
-      };
+      // split the yield protocol pool into a liquidity providing object, and a lending/borrowing object for ease of data representation
+      return [
+        {
+          pool: `${poolAddr}-lp-${chain}`.toLowerCase(),
+          chain: formatChain(chain),
+          project: 'yield-protocol',
+          symbol: baseSymbol,
+          underlyingTokens: [baseAddr, fyTokenAddr],
+          apyReward: poolRewardsAPY, // TODO: pool/strategy reward apy estimate
+          apyBase: poolAPY, // variable apy estimate for providing liquidity
+          tvlUsd,
+          totalSupplyUsd,
+          totalBorrowUsd,
+          url: `https://app.yieldprotocol.com/`,
+          poolMeta: `variable rate ${formatMaturity(maturity)}`,
+        },
+        {
+          pool: `${poolAddr}-lendborrow-${chain}`.toLowerCase(),
+          chain: formatChain(chain),
+          project: 'yield-protocol',
+          symbol: baseSymbol,
+          underlyingTokens: [baseAddr, fyTokenAddr],
+          apyBase: +lendAPR, // fixed rate lend apr estimate when using one unit to the decimals of base
+          apyBaseBorrow: +borrowAPR, // fixed rate borrow apr estimate when using one unit to the decimals of base
+          tvlUsd,
+          totalSupplyUsd,
+          totalBorrowUsd,
+          url: `https://app.yieldprotocol.com/`,
+          poolMeta: `fixed rate ${formatMaturity(maturity)}`,
+        },
+      ];
     })
   );
 
-  return compact(pools);
+  return compact(pools).flat();
 };
 
 const main = async () => {
