@@ -69,6 +69,7 @@ const poolsFunction = async () => {
     apyReward: Math.floor(item.lendersAPY),
     rewardTokens: [SMART_CREDIT],
     underlyingTokens: [(item.ethAddress).toLowerCase()],
+    poolMeta:item.symbol === "SMARTCREDIT" ? '90-180 days' : '30-90 days',
     apyBaseBorrow: Math.floor(item.minInterestRate),
     apyRewardBorrow: Math.floor(item.borrowersAPY),
     totalSupplyUsd: item.totalLendedValueInUSD,
