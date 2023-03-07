@@ -1,19 +1,21 @@
 const utils = require('../utils');
+const abi = require('./abi.js');
+const sdk = require('@defillama/sdk');
 
 const pools = [
   {
     pool: "0x243681B8Cd79E3823fF574e07B2378B8Ab292c1E",
     project: "deri-protocol",
-    chain: utils.formatChain('bsc'),
+    chain: "bsc",
     chainId: "56",
-    btoken: "BNB"
+    btoken: "BUSD",
   },
   {
     pool: "0xDE3447Eb47EcDf9B5F90E7A6960a14663916CeE8",
     project: "deri-protocol",
-    chain: utils.formatChain('arbitrum'),
+    chain: "arbitrum",
     chainId: "42161",
-    btoken: "ETH"
+    btoken: "USDC",
   }
 ]
 const poolsFunction = async () => {
@@ -28,51 +30,36 @@ const poolsFunction = async () => {
           pool: item.pool,
           chain: item.chain,
           project: item.project,
-          apy: apy * 100,
-          symbol: token.bTokenSymbol
+          apyBase: apy * 100,
+          symbol: token.bTokenSymbol,
         })
       }
     })
     return data
   })
   apyData = await Promise.all(apyData)
-  let tvlData = pools.map(async (item) => {
-    let url = `https://infoapi.deri.io/get_tokens?pool=${item.pool}`
-    let res = await utils.getData(url)
-    let data = []
-    let obj = res.data.btokens.map((token) => {
-      if (token.name === item.btoken) {
-        data.push({
-          pool: item.pool,
-          chain: item.chain,
-          project: item.project,
-          tvlUsd: token.value,
-          symbol: token.name
-        })
-      }
-    })
-    return data
-  })
-  tvlData = await Promise.all(tvlData)
+
   let Pool = []
   for (let index = 0; index < apyData.length; index++) {
-    apyData[index].map((apyItem) => {
-      let tvlObj = tvlData.map((tvlItem) => {
-        let obj = tvlItem.find(tvlItems => tvlItems.pool === apyItem.pool && tvlItems.symbol === apyItem.symbol)
-        if (obj && obj.tvlUsd !== "NaN") {
-          let pool = `${apyItem.pool}-${apyItem.chain}`
-          let poolObj = {
-            "pool": pool.toLowerCase(),
-            "chain": apyItem.chain,
-            "project": apyItem.project,
-            "tvlUsd": Number(obj.tvlUsd),
-            "symbol": apyItem.symbol,
-            "apy": apyItem.apy
-          }
-          Pool.push(poolObj)
-        }
+    let obj = apyData[index].map(async (apyItem) => {
+      let tvl = await sdk.api.abi.call({
+        target: apyItem.pool,
+        abi: abi.find((m) => m.name === 'liquidity'),
+        chain: apyItem.chain
       })
+      let pool = `${apyItem.pool}-${apyItem.chain}`
+      let poolObj = {
+        "pool": pool.toLowerCase(),
+        "chain": utils.formatChain(apyItem.chain),
+        "project": apyItem.project,
+        "tvlUsd": Number(tvl.output) / 10 ** 18,
+        "symbol": apyItem.symbol,
+        "apyBase": apyItem.apyBase
+      }
+      return poolObj
     })
+    let tvl = await Promise.all(obj)
+    Pool.push(tvl[0])
   }
   return Pool
 }
