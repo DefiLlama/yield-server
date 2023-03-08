@@ -184,8 +184,6 @@ const getPools = async (chain) => {
           apyReward: poolRewardsAPY, // TODO: pool/strategy reward apy estimate
           apyBase: poolAPY, // variable apy estimate for providing liquidity
           tvlUsd,
-          totalSupplyUsd,
-          totalBorrowUsd,
           url: `https://app.yieldprotocol.com/`,
           poolMeta: `variable rate ${formatMaturity(maturity)}`,
         },
