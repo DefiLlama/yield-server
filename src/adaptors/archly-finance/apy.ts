@@ -5,8 +5,8 @@ const utils = require('../utils');
 const { getArcPrice, getPairs } = require('./subgraph');
 const GAUGE_ABI = require('./gauge_abi.json');
 
-const STABLE_FEE_PERCENTAGE = 0.003;
-const VARIABLE_FEE_PERCENTAGE = 0.003;
+const STABLE_FEE_PERCENTAGE = 0.005;
+const VARIABLE_FEE_PERCENTAGE = 0.005;
 
 const CHAIN = 'telos';
 
