@@ -71,13 +71,12 @@ const getApy = async () => {
 
     return [...gaugePairs, ...nonGaugePairs]
       .sort((a, b) => Number(b.reserveUSD) - Number(a.reserveUSD))
-      .map(({ address, token0, token1, reserveUSD, apyBase, apyReward }) => ({
+      .map(({ address, token0, token1, reserveUSD, apyReward }) => ({
         pool: address,
         chain: utils.formatChain('telos'),
         project: 'archly-finance',
         symbol: `${token0.symbol}-${token1.symbol}`.toUpperCase(),
         tvlUsd: Number(reserveUSD),
-        apyBase: apyBase,
         apyReward: apyReward,
         underlyingTokens: [token0.address, token1.address],
         rewardTokens: [ARC_ADDRESS],
