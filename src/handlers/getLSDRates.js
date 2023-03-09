@@ -35,8 +35,8 @@ const lsdTokens = [
   },
   {
     name: 'Frax Ether',
-    address: '0x5e8422345238f34275888049021821e8e08caa1f',
-    peg: rebase,
+    address: '0xac3e018457b222d93114458476f3e3416abbe38f',
+    peg: valueAccruing,
   },
   {
     name: 'SharedStake',
@@ -49,7 +49,7 @@ const lsdTokens = [
   },
   { name: 'StakeHound', address: '0xdfe66b14d37c77f4e9b180ceb433d1b164f0281d' },
   {
-    name: 'Bifrost Staking',
+    name: 'Bifrost Liquid Staking',
     address: '0xc3d088842dcf02c13699f936bb83dfbbc6f721ab',
     peg: rebase,
   },
@@ -58,9 +58,13 @@ const lsdTokens = [
     address: '0x3802c218221390025bceabbad5d8c59f40eb74b8',
     peg: rebase,
   },
+  {
+    name: 'Hord',
+    address: '0x5bBe36152d3CD3eB7183A82470b39b29EedF068B',
+    peg: valueAccruing,
+  },
 ];
 
-const oneInchUrl = 'https://api.1inch.io/v5.0/1/quote';
 const cbETHRateUrl =
   'https://api-public.sandbox.pro.coinbase.com/wrapped-assets/CBETH/conversion-rate';
 
@@ -73,8 +77,6 @@ const getRates = async () => {
   const marketRates = await getMarketRates();
   const expectedRates = await getExpectedRates();
 
-  console.log(marketRates);
-
   return {
     marketRates,
     expectedRates,
@@ -83,17 +85,20 @@ const getRates = async () => {
 
 const getMarketRates = async () => {
   const eth = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
-  const amount = 1e18;
-  const urls = lsdTokens.map(
-    (lsd) =>
-      `${oneInchUrl}?fromTokenAddress=${lsd.address}&toTokenAddress=${eth}&amount=${amount}`
-  );
+  const priceKeys = lsdTokens
+    .map((lsd) => `ethereum:${lsd.address}`)
+    .concat(`ethereum:${eth}`)
+    .join(',');
+  const prices = (
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).data.coins;
 
-  const marketRates = (await Promise.allSettled(urls.map((u) => axios.get(u))))
-    .map((p) => p.value?.data)
-    .filter(Boolean);
+  for (const key of Object.keys(prices)) {
+    prices[key]['marketRate'] =
+      prices[key].price / prices[`ethereum:${eth}`].price;
+  }
 
-  return marketRates;
+  return prices;
 };
 
 const getExpectedRates = async () => {
@@ -109,6 +114,14 @@ const getExpectedRates = async () => {
   const ankrETHAbi = {
     inputs: [],
     name: 'ratio',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
+  const sfrxETHAbi = {
+    inputs: [],
+    name: 'pricePerShare',
     outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
@@ -149,6 +162,16 @@ const getExpectedRates = async () => {
     ).output /
       1e18);
 
+  // --- sfrxETH
+  const sfrxETH =
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Frax Ether').address,
+        chain: 'ethereum',
+        abi: sfrxETHAbi,
+      })
+    ).output / 1e18;
+
   return lsdTokens.map((lsd) => ({
     ...lsd,
     expectedRate:
@@ -160,6 +183,8 @@ const getExpectedRates = async () => {
         ? rETHStafiRate
         : lsd.name === 'Ankr'
         ? ankrETHRate
+        : lsd.name === 'Frax Ether'
+        ? sfrxETH
         : 1,
   }));
 };
