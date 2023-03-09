@@ -3,7 +3,7 @@ const BN = require('bignumber.js');
 
 const ARC_USDC_PAIR_ADDRESS = '0xeab0f20cb5536f07135f9d32c93fc77911317ab6';
 const ARC_USDT_PAIR_ADDRESS = '0x309c5c0285d8051f7d4921b108526c173ef43507';
-const AMM_SUBGRAPH_URL = 'http://api.archly.fi/subgraphs/name/archly/amm';
+const AMM_SUBGRAPH_URL = 'https://api.archly.fi/subgraphs/name/archly/amm';
 
 const pairsQuery = gql`
   query PairsQuery {
