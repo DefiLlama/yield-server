@@ -1,0 +1,104 @@
+Arguments: 
+  D:\node\node.exe D:\node\node_modules\yarn\bin\yarn.js
+
+PATH: 
+  D:\mysql\bin;D:\Python.3.9;D:\java\bin;C:\Program Files\Git\cmd;D:\node;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;D:\node.js\node_global;D:\node\;C:\Program Files (x86)\NetSarang\Xshell 7\;D:\Python 3.9;D:\node;C:\Users\Administrator\AppData\Roaming\npm;D:\GitHub CLI\;C:\Users\Administrator\AppData\Local\GitHubDesktop\bin;D:\新建文件夹\Microsoft VS Code\bin
+
+Yarn version: 
+  1.22.19
+
+Node version: 
+  14.17.1
+
+Platform: 
+  win32 x64
+
+Trace: 
+  Error: https://registry.npmmirror.com/date-fns/-/date-fns-2.29.3.tgz: ESOCKETTIMEDOUT
+      at ClientRequest.<anonymous> (D:\node\node_modules\yarn\lib\cli.js:141517:19)
+      at Object.onceWrapper (events.js:481:28)
+      at ClientRequest.emit (events.js:375:28)
+      at TLSSocket.emitRequestTimeout (_http_client.js:790:9)
+      at Object.onceWrapper (events.js:481:28)
+      at TLSSocket.emit (events.js:387:35)
+      at TLSSocket.Socket._onTimeout (net.js:484:8)
+      at listOnTimeout (internal/timers.js:557:17)
+      at processTimers (internal/timers.js:500:7)
+
+npm manifest: 
+  {
+    "name": "defillama-apy-server",
+    "version": "1.0.0",
+    "scripts": {
+      "deploy:env": "sls deploy --stage $NODE_ENV",
+      "deploy:prod": "export AWS_PROFILE='defillama' && export NODE_ENV=prod && npm run deploy:env",
+      "deploy:dev": "export AWS_PROFILE='defillama' && export NODE_ENV=dev && npm run deploy:env",
+      "deploy": "export NODE_ENV=prod && npm run deploy:env",
+      "build": "sls package",
+      "test": "jest",
+      "migrate": "node-pg-migrate"
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+      "@defillama/sdk": "^2.3.126",
+      "@defillama/sdk3": "npm:@defillama/sdk@^3.0.34",
+      "@types/jest": "^28.1.6",
+      "@uniswap/sdk-core": "^3.0.1",
+      "@uniswap/smart-order-router": "^2.8.0",
+      "async-retry": "^1.3.3",
+      "axios": "^0.27.2",
+      "bignumber.js": "^9.0.2",
+      "csv-writer": "^1.6.0",
+      "date-fns": "^2.23.0",
+      "dotenv": "^10.0.0",
+      "graphql": "^15.5.1",
+      "graphql-request": "^3.5.0",
+      "lambert-w-function": "^3.0.0",
+      "lodash": "^4.17.21",
+      "node-fetch": "^2.6.1",
+      "pg-promise": "^10.11.1",
+      "simple-statistics": "^7.7.5",
+      "superagent": "^6.1.0",
+      "validator": "^13.9.0",
+      "web3": "^1.4.0"
+    },
+    "devDependencies": {
+      "@babel/core": "^7.17.8",
+      "@babel/plugin-transform-runtime": "^7.18.6",
+      "@babel/preset-typescript": "^7.18.6",
+      "@babel/runtime": "^7.18.6",
+      "aws-sdk": "^2.987.0",
+      "babel-loader": "^8.2.3",
+      "electron": "^17.1.2",
+      "encoding": "^0.1.13",
+      "eslint": "^7.18.0",
+      "eslint-config-airbnb": "^18.2.1",
+      "eslint-config-prettier": "^7.2.0",
+      "eslint-plugin-import": "^2.22.1",
+      "eslint-plugin-jsx-a11y": "^6.4.1",
+      "eslint-plugin-node": "^11.1.0",
+      "eslint-plugin-prettier": "^3.3.1",
+      "eslint-plugin-react": "^7.22.0",
+      "jest": "^28.1.3",
+      "node-pg-migrate": "^6.2.2",
+      "pg": "^8.8.0",
+      "pg-native": "^3.0.1",
+      "prettier": "^2.2.1",
+      "serverless": "^3.8.0",
+      "serverless-prune-plugin": "^2.0.1",
+      "serverless-webpack": "^5.6.1",
+      "ts-node": "^10.9.1",
+      "webpack": "^5.70.0"
+    },
+    "jest": {
+      "globalSetup": "./src/adaptors/beforeTests.js",
+      "globalTeardown": "./src/adaptors/afterTests.js"
+    }
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile
