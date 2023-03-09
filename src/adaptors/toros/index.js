@@ -120,11 +120,7 @@ const listTorosYieldProducts = async () => {
         project: 'toros',
         symbol,
         tvlUsd: formatValue(totalValue),
-        apyBase: apy ?? calcApy(blockTime, performanceMetrics),
-        apyReward:
-          rewardIncentivisedPool && rewardData?.rewardApy
-            ? +rewardData.rewardApy * 100
-            : null,
+        apy: apy ?? calcApy(blockTime, performanceMetrics),
         rewardTokens:
           rewardIncentivisedPool && rewardData?.rewardToken
             ? [rewardData.rewardToken]
