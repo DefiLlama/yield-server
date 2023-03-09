@@ -55,7 +55,7 @@ const poolsFunction = async () => {
         "tvlUsd": Number(tvl.output) / 10 ** 18,
         "symbol": apyItem.symbol,
         "apyReward": apyItem.apyReward,
-        "rewardTokens":["Deri"]
+        "rewardTokens":["0xa487bf43cf3b10dffc97a9a744cbb7036965d3b9"]
       }
       return poolObj
     })
