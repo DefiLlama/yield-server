@@ -200,6 +200,7 @@ const getPools = async (chain) => {
           totalBorrowUsd,
           url: `https://app.yieldprotocol.com/`,
           poolMeta: `fixed rate ${formatMaturity(maturity)}`,
+          ltv: 0.7, // using 70% ltv, which is close to an eth/stable borrow, but the ltv differs between each collateral/base pair (there are many collateral assets available for each base)
         },
       ];
     })
