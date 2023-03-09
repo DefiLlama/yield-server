@@ -5,7 +5,8 @@ const url = 'https://backend-api-prod.frfi.io/autofarm?$limit=1000';
 const ChainMap = {
   56: 'bsc',
   137: 'polygon',
-  1: 'ethereum'
+  1: 'ethereum',
+  2222: 'kava'
 }
 
 const main = async () => {
