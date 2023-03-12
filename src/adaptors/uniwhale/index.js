@@ -30,8 +30,7 @@ const getApy = async (...args) => {
       apyBase: utils.aprToApy(
         apr.data.data.latest_trade_stats_7d[0].apr_7d * 0.7
       ),
-      rewardTokens: [USDT],
-      underlyingTokens: [USDT],
+      underlyingTokens: [UNIWHALE_LIQUIDITY_POOL],
       url: 'https://app.uniwhale.co/liquidity',
     },
   ];
