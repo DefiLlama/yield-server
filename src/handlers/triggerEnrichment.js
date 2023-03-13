@@ -280,6 +280,11 @@ const main = async () => {
     .map((p) => ({ ...p, pool_old: p.pool, pool: p.configID }))
     .map(({ configID, ...p }) => p);
 
+  // temporarily remove OP pools on uniswap-v3 cause subgraph volume values are totally wrong
+  dataEnriched = dataEnriched.filter(
+    (p) => !(p.project === 'uniswap-v3' && p.chain === 'Optimism')
+  );
+
   // ---------- save output to S3
   console.log('\nsaving data to S3');
   console.log('nb of pools', dataEnriched.length);
