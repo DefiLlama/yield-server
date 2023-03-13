@@ -22,7 +22,7 @@ const config = {
             },
         ]
     },
-    avax: {
+    Avax: {
         SYN_TOKEN_ADDRESS: "0x1f1E7c893855525b303f99bDF5c3c05Be09ca251",
         LP_STAKING_ADDRESS: "0x3a01521F8E7F012eB37eAAf1cb9490a5d9e18249",
         Pools: [
@@ -30,9 +30,10 @@ const config = {
                 address: "0xED2a7edd7413021d440b09D654f3b87712abAB66", // nUSD, DAI, USDC, USDT (10m)
                 underlyingTokenCount: 4 
             }
-        ]
+        ],
+        formattedChainName: "Avalanche"
     },
-    ethereum: {
+    Ethereum: {
         SYN_TOKEN_ADDRESS: "0x0f2D719407FdBeFF09D87557AbB7232601FD9F29",
         LP_STAKING_ADDRESS: "0xd10eF2A513cEE0Db54E959eF16cAc711470B62cF",
         Pools: [
@@ -58,7 +59,7 @@ const config = {
                 address: "0x2913E812Cf0dcCA30FB28E6Cac3d2DCFF4497688", // Legacy stableswap USDC USDT MIM nUSD (600k)
                 underlyingTokenCount: 4
             }
-        ]
+        ],
     },
     Optimism: {
         SYN_TOKEN_ADDRESS: "0x5A5fFf6F753d7C11A56A52FE47a177a87e431655",
@@ -151,15 +152,26 @@ const main = async () => {
     let allPools = []
     for (let x =0; x < chainNames.length; x++) {
         const chainKey = chainNames[x].toLowerCase()
+        const configPerChain = config[chainNames[x]]
 
-        // if (chainKey !== "bsc") {
-        //     continue;
-        // }
+        if (chainKey !== "arbitrum") {
+            continue;
+        }
 
-        const LP_STAKING_ADDRESS = config[chainNames[x]].LP_STAKING_ADDRESS
-        const SYN_TOKEN_ADDRESS = config[chainNames[x]].SYN_TOKEN_ADDRESS
+        const LP_STAKING_ADDRESS = configPerChain.LP_STAKING_ADDRESS
+        const SYN_TOKEN_ADDRESS = configPerChain.SYN_TOKEN_ADDRESS
 
         const poolLength = parseInt((await sdk.api.abi.call({ abi: abi.poolLength, target: LP_STAKING_ADDRESS, chain: chainKey })).output)
+        
+        const allLpTokens = (
+            await sdk.api.abi.multiCall({
+              calls: configPerChain.Pools.map(poolData => ({ target: poolData.address})),
+              abi: abi.swapStorage,
+              chain: chainKey,
+            })
+        ).output.map(data => ({lpToken: data.output.lpToken, poolAddress: data.input.target}))//.map(({ output }) => output);
+
+        console.log(allLpTokens)
         for (let y = 0; y < poolLength; y++) {
             console.log(`chain ${chainKey} | y ${y}`)
 
@@ -177,8 +189,8 @@ const main = async () => {
 
 
             allPools.push({
-                pool: `${relevantInfo.lpToken}-${utils.formatChain(chainKey)}`,
-                chain: utils.formatChain(chainKey),
+                pool: `${relevantInfo.lpToken}-${utils.formatChain(chainKey)}`.toLowerCase(),
+                chain: configPerChain.formattedChainName ? configPerChain.formattedChainName : utils.formatChain(chainKey),
                 symbol: relevantInfo.lpTokenSymbol,
                 project: 'synapse',
                 tvlUsd: tvl,

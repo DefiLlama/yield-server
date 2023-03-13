@@ -174,5 +174,48 @@
         ],
         "stateMutability": "view",
         "type": "function"
+    },
+    "swapStorage": {
+        "inputs":[],
+        "name":"swapStorage",
+        "outputs":[
+           {
+              "internalType":"uint256",
+              "name":"initialA",
+              "type":"uint256"
+           },
+           {
+              "internalType":"uint256",
+              "name":"futureA",
+              "type":"uint256"
+           },
+           {
+              "internalType":"uint256",
+              "name":"initialATime",
+              "type":"uint256"
+           },
+           {
+              "internalType":"uint256",
+              "name":"futureATime",
+              "type":"uint256"
+           },
+           {
+              "internalType":"uint256",
+              "name":"swapFee",
+              "type":"uint256"
+           },
+           {
+              "internalType":"uint256",
+              "name":"adminFee",
+              "type":"uint256"
+           },
+           {
+              "internalType":"contract LPToken",
+              "name":"lpToken",
+              "type":"address"
+           }
+        ],
+        "stateMutability":"view",
+        "type":"function"
     }
 }
