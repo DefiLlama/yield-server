@@ -8,6 +8,7 @@ const chainMapping = {
   56: 'binance',
   25: 'cronos',
   100: 'xdai',
+  137: 'polygon',
   250: 'fantom',
   592: 'astar',
   1284: 'moonbeam',
