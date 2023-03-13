@@ -10,6 +10,7 @@ const excludeAdaptors = [
   'friktion',
   'armor', // is now ease.org
   'lachain-yield-market',
+  'euler', // adapter is breaking since hack, need to fix
 ];
 
 const excludePools = [
