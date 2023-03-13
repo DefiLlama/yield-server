@@ -121,7 +121,7 @@ exports.ConfigContent = {
     'https://github.com/peckshield/publications/blob/master/audit_reports/bella_audit_report_2020_48_en_1_0.pdf',
   binancePriceApi: 'https://api.binance.com/api/v3/avgPrice?symbol=',
   coingeckoPriceApi: 'https://api.coingecko.com/api/v3/simple/price?ids=',
-  crvBaseApyUrl: 'https://stats.curve.fi/raw-stats/apys.json',
+  crvBaseApyUrl: 'http://stats.curve.fi/raw-stats/apys.json',
 
   // 3pool crv api
   crvApy: 13.89,

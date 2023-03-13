@@ -1,4 +1,4 @@
-exports.crvBaseApyUrl = 'https://stats.curve.fi/raw-stats/apys.json';
+exports.crvBaseApyUrl = 'http://stats.curve.fi/raw-stats/apys.json';
 
 exports.ContractAddresses = {
   // curr vault support tokens
