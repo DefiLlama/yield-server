@@ -65,16 +65,16 @@ const poolsFunction = async () => {
     project: "smartcredit",
     symbol: utils.formatSymbol(item.symbol),
     tvlUsd: item.totalLendedValueInUSD - item.totalBorrowedValueInUSD,
-    apyBase: Math.floor(item.maxAPY),
-    apyReward: Math.floor(item.lendersAPY),
+    apyBase: +(item.maxAPY),
+    apyReward: +(item.lendersAPY),
     rewardTokens: [SMART_CREDIT],
     underlyingTokens: [(item.ethAddress).toLowerCase()],
     poolMeta:item.symbol === "SMARTCREDIT" ? '90-180 days' : '30-90 days',
-    apyBaseBorrow: Math.floor(item.minInterestRate),
-    apyRewardBorrow: Math.floor(item.borrowersAPY),
+    apyBaseBorrow: +(item.minInterestRate),
+    apyRewardBorrow: +(item.borrowersAPY),
     totalSupplyUsd: item.totalLendedValueInUSD,
     totalBorrowUsd: item.totalBorrowedValueInUSD,
-    ltv: (resultArr[i].requiredCollateralRatio.collateralRatio / 1000)
+    ltv: (1 / (resultArr[i].requiredCollateralRatio.collateralRatio / 100))
   }));
 };
 
