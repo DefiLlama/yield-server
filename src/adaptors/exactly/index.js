@@ -5,6 +5,9 @@ const config = {
   ethereum: {
     auditor: "0x310A2694521f75C7B2b64b5937C16CE65C3EFE01",
   },
+  optimism: {
+    auditor: "0xaEb62e6F27BC103702E7BC879AE98bceA56f027E",
+  },
 };
 const url = "https://app.exact.ly";
 const INTERVAL = 86_400 * 7 * 4;
