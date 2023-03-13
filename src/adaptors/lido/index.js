@@ -8,7 +8,7 @@ const topLvl = async (chainString, url, token, address) => {
 
   if (chainString === 'ethereum') {
     dataTvl = await utils.getData(`${url}/short-lido-stats`);
-    dataApy = await utils.getData(`${url}/steth-apr`);
+    dataApy = await utils.getData(`${url}/sma-steth-apr`);
     dataTvl.apr = dataApy;
     data = { ...dataTvl };
   } else {
