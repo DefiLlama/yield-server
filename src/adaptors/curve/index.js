@@ -335,8 +335,8 @@ const main = async () => {
           ['0xBaaa1F5DbA42C3389bDbc2c9D2dE134F5cD0Dc89'].includes(address)
             ? null
             : [
-                '0x9F2fE3500B1a7E285FDc337acacE94c480e00130',
                 '0x061b87122Ed14b9526A813209C8a59a633257bAb',
+                '0x9F2fE3500B1a7E285FDc337acacE94c480e00130',
                 '0x29A3d66B30Bc4AD674A4FDAF27578B64f6afbFe7',
               ].includes(address)
             ? aprExtra
