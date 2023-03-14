@@ -1,6 +1,8 @@
 const axios = require('axios');
 const utils = require('../utils');
 
+const project = 'alpaca-leveraged-yield-farming';
+
 async function apy(chain) {
   const response = (
     await axios.get(
@@ -17,7 +19,7 @@ async function apy(chain) {
   const fairLaunchStakingPools = filteredStakingPools.map((p) => ({
     pool: `${p.stakingToken.address}-staking-${chainString}`.toLowerCase(),
     chain: chainString,
-    project: 'alpaca-finance',
+    project,
     symbol: utils.formatSymbol(p.symbol.split(' ')[0]),
     tvlUsd: Number(p.tvl),
     apy: Number(p.apy),
@@ -26,7 +28,7 @@ async function apy(chain) {
   const strategyPools = response.strategyPools.map((p) => ({
     pool: `${p.address}-${chainString}`.toLowerCase(),
     chain: chainString,
-    project: 'alpaca-finance',
+    project,
     symbol: p.workingToken.symbol.split(' ')[0],
     poolMeta: p.name,
     tvlUsd: Number(p.tvl),
@@ -36,7 +38,7 @@ async function apy(chain) {
   const farmingPools = response.farmingPools.map((p) => ({
     pool: `${p.workingToken.address}-farming-${chainString}`.toLowerCase(),
     chain: chainString,
-    project: 'alpaca-finance',
+    project,
     symbol: p.sourceName.split(' ')[1],
     poolMeta: p.sourceName.split(' ')[0],
     tvlUsd: Number(p.tvl),
@@ -48,7 +50,7 @@ async function apy(chain) {
   const ausdPools = response.ausdPools.map((p) => ({
     pool: `${p.key}-aUSD-pool`,
     chain: chainString,
-    project: 'alpaca-finance',
+    project,
     symbol: utils.formatSymbol(p.sourceName),
     tvlUsd: Number(p.tvl),
     apy: Number(p.totalApy),
@@ -57,7 +59,7 @@ async function apy(chain) {
   const lendingPools = response.lendingPools.map((p) => ({
     pool: `${p.ibToken.address}-${chainString}`.toLowerCase(),
     chain: chainString,
-    project: 'alpaca-finance',
+    project,
     symbol: utils.formatSymbol(p.symbol),
     tvlUsd: Number(p.tvl),
     apy: Number(p.totalApy),
