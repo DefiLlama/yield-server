@@ -438,6 +438,8 @@ const checkExposure = (el) => {
     exposure = el.symbol.toLowerCase().includes('crv') ? 'multi' : exposure;
   } else if (el.project === 'dot-dot-finance') {
     exposure = 'multi';
+  } else if (el.project === 'synapse') {
+    exposure = 'multi';
   }
 
   return exposure;

@@ -225,7 +225,7 @@ const main = async () => {
             allPools.push({
                 pool: `${relevantInfo.lpToken}-${utils.formatChain(chainKey)}`.toLowerCase(),
                 chain: configPerChain.formattedChainName ? configPerChain.formattedChainName : utils.formatChain(chainKey),
-                symbol: relevantInfo.lpTokenSymbol,
+                symbol: relevantInfo.lpTokenSymbol.replace('-LP', ''),
                 project: 'synapse',
                 underlyingTokens,
                 tvlUsd,
