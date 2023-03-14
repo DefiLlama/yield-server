@@ -50,7 +50,7 @@ const config = {
         LP_STAKING_ADDRESS: "0xaed5b25be1c3163c907a471082640450f928ddfe",
         Pools: [
             {
-                address: "0x8D9bA570D6cb60C7e3e0F31343Efe75AB8E65FB1", // hETH ETH (50k)
+                address: "0x8D9bA570D6cb60C7e3e0F31343Efe75AB8E65FB1", // nETH ETH (50k)
                 underlyingTokenCount: 2
             },
             {
@@ -68,11 +68,11 @@ const config = {
         LP_STAKING_ADDRESS: "0xe8c610fcb63A4974F02Da52f0B4523937012Aaa0",
         Pools: [
             {
-                address: "0xE27BFf97CE92C3e1Ff7AA9f86781FDd6D48F5eE9", // hETH ETH (3m)
+                address: "0xE27BFf97CE92C3e1Ff7AA9f86781FDd6D48F5eE9", // nETH ETH (3m)
                 underlyingTokenCount: 2
             },
             {
-                address: "0xF44938b0125A6662f9536281aD2CD6c499F22004", // hUSD USDC (4m)
+                address: "0xF44938b0125A6662f9536281aD2CD6c499F22004", // nUSD USDC (4m)
                 underlyingTokenCount: 2
             }
         ]
