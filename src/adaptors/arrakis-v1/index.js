@@ -1,7 +1,6 @@
 const superagent = require('superagent');
 
 const { gql, request } = require('graphql-request');
-const { get } = require('lodash');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
@@ -11,12 +10,6 @@ const CHAINS = {
   ethereum: 'mainnet',
   polygon: 'polygon',
   optimism: 'optimism',
-};
-
-const CHAINS_CG = {
-  ethereum: 'ethereum',
-  polygon: 'polygon-pos',
-  optimism: 'optimistic-ethereum',
 };
 
 const CHAIN_IDS = {
@@ -118,7 +111,7 @@ const getApy = async () => {
       return {
         pool: vault.id,
         chain: utils.formatChain(chain),
-        project: 'arrakis-finance',
+        project: 'arrakis-v1',
         symbol: `${vault.token0.symbol}-${vault.token1.symbol}`,
         tvlUsd: tvl || 0,
         apyBase: vault.snapshots[0]
