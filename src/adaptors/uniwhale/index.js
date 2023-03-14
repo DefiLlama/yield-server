@@ -28,7 +28,7 @@ const getApy = async (...args) => {
       symbol: utils.formatSymbol('ULP'),
       tvlUsd: parseInt(tvl.data.result.substring(2), 16) / 1e18,
       apyBase: utils.aprToApy(
-        apr.data.data.latest_trade_stats_7d[0].apr_7d * 0.7
+        apr.data.data.latest_trade_stats_7d[0].apr_7d * 70
       ),
       underlyingTokens: [UNIWHALE_LIQUIDITY_POOL],
       url: 'https://app.uniwhale.co/liquidity',
