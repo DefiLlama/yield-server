@@ -2,7 +2,9 @@ const utils = require("../utils")
 const sdk = require('@defillama/sdk');
 const abi = require("./abis.json");
 const { formatChain, getData } = require("../utils")
+const _ = require("lodash")
 
+// Pools are the treasurys that hold the underlying assets
 const config = {
     Arbitrum: {
         SYN_TOKEN_ADDRESS: "0x080F6AEd32Fc474DD5717105Dba5ea57268F46eb",
@@ -120,32 +122,65 @@ const relevantPoolInfo = async (poolIndex, chain, LP_STAKING_ADDRESS) => {
 
     const lpToken = (await sdk.api.abi.call({ abi: abi.lpToken, target: LP_STAKING_ADDRESS, chain: chain, params: poolIndex })).output;
     const lpTokenSymbol = (await sdk.api.abi.call({ abi: abi.symbol, target: lpToken, chain: chain })).output; // dont need
-    // const underlyingLpToken = (await sdk.api.abi.call({ abi: abi.token, target: lpToken, chain: chain })).output;
     const lpTokenDecimals = (await sdk.api.abi.call({ abi: abi.decimals, target: lpToken, chain: chain })).output;
 
     const allocPoint = await poolInfo.allocPoint;
-    const totalAllocPoint = (await sdk.api.abi.call({ abi: abi.totalAllocPoint, target: LP_STAKING_ADDRESS, chain: chain })).output;
+    // const totalAllocPoint = (await sdk.api.abi.call({ abi: abi.totalAllocPoint, target: LP_STAKING_ADDRESS, chain: chain })).output;
 
-    const reserve = (await sdk.api.abi.call({ abi: abi.balanceOf, target: lpToken, chain: chain, params: LP_STAKING_ADDRESS })).output / (1 * 10 ** lpTokenDecimals); // is incorrect
-    const synapsePerSecond = (await sdk.api.abi.call({ abi: abi.synapsePerSecond, target: LP_STAKING_ADDRESS, chain: chain })).output;
+    // const synapsePerSecond = (await sdk.api.abi.call({ abi: abi.synapsePerSecond, target: LP_STAKING_ADDRESS, chain: chain })).output;
 
     return {
         lpToken,
         lpTokenSymbol,
-        // underlyingLpToken,
         allocPoint,
-        totalAllocPoint,
-        reserve,
-        synapsePerSecond,
     };
 }
 
-const tvl = async (chain, symbol, underlyingLpToken, reserve) => {
-    // total number of coins in pool * coin price
-    const price = (await getPrices(chain, [underlyingLpToken]))[token.toLowerCase()];
-    const reserveUSD = reserve * price;
+const getTvl = async (chain, underlyingAssetsTreasury, lpToken, underlyingTokenCount, synPrice) => {    
+    const allUnderlyingTokenAddresses = (
+        // get all the tokens underlying the LP
+        await sdk.api.abi.multiCall({
+          calls: _.map(_.range(0,underlyingTokenCount), (index) => ({target: underlyingAssetsTreasury, params: [index]})),
+          abi: abi.getToken,
+          chain: chain,
+        })
+    ).output.map(({ output }) => output);
 
-    return reserveUSD;
+    const tokenPrices = await getPrices(chain, allUnderlyingTokenAddresses)
+
+
+    // get all the token balances underlying the LP
+    const allUnderlyingTokenBalances = (
+        await sdk.api.abi.multiCall({
+          calls: _.map(_.range(0,underlyingTokenCount), (index) => ({target: underlyingAssetsTreasury, params: [index]})),
+          abi: abi.getTokenBalance,
+          chain: chain,
+        })
+    ).output.map(({ output }) => output);
+
+    // get decimals to correct the returned balances
+    const allUnderlyingTokenDecimals = (
+        await sdk.api.abi.multiCall({
+          calls: allUnderlyingTokenAddresses.map(tokenAddress => ({target: tokenAddress})),
+          abi: abi.decimals,
+          chain: chain,
+        })
+    ).output.map(({ output }) => output);
+
+    let tvl = 0;
+    for (let i = 0; i < allUnderlyingTokenAddresses.length; i++) {
+        const tokenAddress = allUnderlyingTokenAddresses[i];
+        const balance = parseFloat(allUnderlyingTokenBalances[i]) / (1 * 10 ** parseInt(allUnderlyingTokenDecimals[i]));
+        let price = tokenPrices[tokenAddress.toLowerCase()];
+        if (!price) {
+            // hETH or hUSD will not be found in tokenPrices so we use the average price to dictate its price
+            price = Object.values(tokenPrices).reduce((acc, curr) => acc + curr, 0) / Object.values(tokenPrices).length;
+        }
+        const value = balance * price;
+        tvl += value;
+    }
+
+    return {tvlUsd: tvl * synPrice, underlyingTokens: allUnderlyingTokenAddresses}
 }
 
 const main = async () => {
@@ -154,46 +189,46 @@ const main = async () => {
         const chainKey = chainNames[x].toLowerCase()
         const configPerChain = config[chainNames[x]]
 
-        if (chainKey !== "arbitrum") {
-            continue;
-        }
-
         const LP_STAKING_ADDRESS = configPerChain.LP_STAKING_ADDRESS
         const SYN_TOKEN_ADDRESS = configPerChain.SYN_TOKEN_ADDRESS
 
+        const totalAllocPoint = (await sdk.api.abi.call({ abi: abi.totalAllocPoint, target: LP_STAKING_ADDRESS, chain: chainKey })).output;
+        const synapsePerSecond = (await sdk.api.abi.call({ abi: abi.synapsePerSecond, target: LP_STAKING_ADDRESS, chain: chainKey })).output;
         const poolLength = parseInt((await sdk.api.abi.call({ abi: abi.poolLength, target: LP_STAKING_ADDRESS, chain: chainKey })).output)
-        
+        const synPrice = Object.values(await getPrices(chainKey, [configPerChain.SYN_TOKEN_ADDRESS]))[0]
+
         const allLpTokens = (
             await sdk.api.abi.multiCall({
               calls: configPerChain.Pools.map(poolData => ({ target: poolData.address})),
               abi: abi.swapStorage,
               chain: chainKey,
             })
-        ).output.map(data => ({lpToken: data.output.lpToken, poolAddress: data.input.target}))//.map(({ output }) => output);
+        ).output.map(data => ({lpToken: data.output.lpToken, poolAddress: data.input.target, underlyingTokenCount: (configPerChain.Pools.find(poolData => poolData.address ===  data.input.target)).underlyingTokenCount}))
 
-        console.log(allLpTokens)
         for (let y = 0; y < poolLength; y++) {
-            console.log(`chain ${chainKey} | y ${y}`)
+
+            // For each pool index, we have to see if we have info about it.
+            // if so, we can get the tvl for the chain and move from there
+            // if not, keep going
 
             const relevantInfo = await relevantPoolInfo(y, chainKey, LP_STAKING_ADDRESS)
-            console.log(`chain ${chainKey} | y ${y} | rel`)
+            const underlyingAssetsTreasury = allLpTokens.find(x => x.lpToken === relevantInfo.lpToken)
 
-            let tvl = relevantInfo.reserve
+            // We are excluding some of the low tvl pools that are onchain but not shown on web app
+            // If you want to include these, add it to the config var
+            if (!underlyingAssetsTreasury) { continue } 
 
-            // Pools can either be stablecoin pools (tvl = tokens) or eth pools (tvl = tokens * ethPrice)
-            if (relevantInfo.lpTokenSymbol.toLowerCase().indexOf("usd") === -1 ) {
-                tvl *= 1400 //await getPrices(chainKey, []) 
-            }
+            const {tvlUsd,underlyingTokens} = await getTvl(chainKey, underlyingAssetsTreasury.poolAddress, underlyingAssetsTreasury.lpToken, underlyingAssetsTreasury.underlyingTokenCount, synPrice)
 
-            const apy = calcApy(1, tvl, relevantInfo.synapsePerSecond / (1 * 10 ** 18), relevantInfo.totalAllocPoint, relevantInfo.allocPoint)
-
+            const apy = calcApy(1, tvlUsd, synapsePerSecond / (1 * 10 ** 18), totalAllocPoint, relevantInfo.allocPoint)
 
             allPools.push({
                 pool: `${relevantInfo.lpToken}-${utils.formatChain(chainKey)}`.toLowerCase(),
                 chain: configPerChain.formattedChainName ? configPerChain.formattedChainName : utils.formatChain(chainKey),
                 symbol: relevantInfo.lpTokenSymbol,
                 project: 'synapse',
-                tvlUsd: tvl,
+                underlyingTokens,
+                tvlUsd,
                 apy
             })
         }
@@ -207,11 +242,3 @@ module.exports = {
     timetravel: false,
     apy: main,
 };
-
-/*
-
-Go through all the pools and get their token and token balances
-After multicalling all of that, make a bulk request per chain to have cached results for pricing for each token
-    keep in mind that we cannot calculate for nUSD and nETH so just set that value to the same as ETH
-
-*/
