@@ -31,6 +31,10 @@ const config = {
             {
                 address: "0xED2a7edd7413021d440b09D654f3b87712abAB66", // nUSD, DAI, USDC, USDT (10m)
                 underlyingTokenCount: 4 
+            },
+            {
+                address: "0x77a7e60555bC18B4Be44C181b2575eee46212d44", // avWETH, nETH (6m)
+                underlyingTokenCount: 2
             }
         ],
         formattedChainName: "Avalanche"
@@ -119,19 +123,11 @@ const relevantPoolInfo = async (poolIndex, chain, LP_STAKING_ADDRESS) => {
 
     // info for tvl / apy calculations
     const poolInfo = (await sdk.api.abi.call({ abi: abi.poolInfo, target: LP_STAKING_ADDRESS, chain: chain, params: poolIndex })).output;
-
     const lpToken = (await sdk.api.abi.call({ abi: abi.lpToken, target: LP_STAKING_ADDRESS, chain: chain, params: poolIndex })).output;
-    const lpTokenSymbol = (await sdk.api.abi.call({ abi: abi.symbol, target: lpToken, chain: chain })).output; // dont need
-    const lpTokenDecimals = (await sdk.api.abi.call({ abi: abi.decimals, target: lpToken, chain: chain })).output;
-
     const allocPoint = await poolInfo.allocPoint;
-    // const totalAllocPoint = (await sdk.api.abi.call({ abi: abi.totalAllocPoint, target: LP_STAKING_ADDRESS, chain: chain })).output;
-
-    // const synapsePerSecond = (await sdk.api.abi.call({ abi: abi.synapsePerSecond, target: LP_STAKING_ADDRESS, chain: chain })).output;
 
     return {
         lpToken,
-        lpTokenSymbol,
         allocPoint,
     };
 }
@@ -168,6 +164,7 @@ const getTvl = async (chain, underlyingAssetsTreasury, lpToken, underlyingTokenC
     ).output.map(({ output }) => output);
 
     let tvl = 0;
+    let currencySymbol = "Stable";
     for (let i = 0; i < allUnderlyingTokenAddresses.length; i++) {
         const tokenAddress = allUnderlyingTokenAddresses[i];
         const balance = parseFloat(allUnderlyingTokenBalances[i]) / (1 * 10 ** parseInt(allUnderlyingTokenDecimals[i]));
@@ -176,11 +173,15 @@ const getTvl = async (chain, underlyingAssetsTreasury, lpToken, underlyingTokenC
             // hETH or hUSD will not be found in tokenPrices so we use the average price to dictate its price
             price = Object.values(tokenPrices).reduce((acc, curr) => acc + curr, 0) / Object.values(tokenPrices).length;
         }
+        // Label pools as Stable or ETH depending on if price is greater than stablecoin price ($2 as a high safeguard) 
+        if (price > 2.0) {
+            currencySymbol = "ETH"
+        }
         const value = balance * price;
         tvl += value;
     }
 
-    return {tvlUsd: tvl * synPrice, underlyingTokens: allUnderlyingTokenAddresses}
+    return {tvlUsd: tvl * synPrice, underlyingTokens: allUnderlyingTokenAddresses, currencySymbol}
 }
 
 const main = async () => {
@@ -218,7 +219,7 @@ const main = async () => {
             // If you want to include these, add it to the config var
             if (!underlyingAssetsTreasury) { continue } 
 
-            const {tvlUsd,underlyingTokens} = await getTvl(chainKey, underlyingAssetsTreasury.poolAddress, underlyingAssetsTreasury.lpToken, underlyingAssetsTreasury.underlyingTokenCount, synPrice)
+            const {tvlUsd,underlyingTokens, currencySymbol} = await getTvl(chainKey, underlyingAssetsTreasury.poolAddress, underlyingAssetsTreasury.lpToken, underlyingAssetsTreasury.underlyingTokenCount, synPrice)
 
             const apy = calcApy(1, tvlUsd, synapsePerSecond / (1 * 10 ** 18), totalAllocPoint, relevantInfo.allocPoint)
 
