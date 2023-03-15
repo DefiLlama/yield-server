@@ -267,7 +267,8 @@ const main = async () => {
       let aprExtra = extraRewards
         ? extraRewards.map((reward) => reward.apy).reduce((a, b) => a + b)
         : stETHPools.includes(address) ||
-          address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' // pool on moonbeam
+          address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' || // pool on moonbeam
+          address === '0xe9123CBC5d1EA65301D417193c40A72Ac8D53501' // lvusd
         ? pool.gaugeRewards[0].apy
         : 0;
 
