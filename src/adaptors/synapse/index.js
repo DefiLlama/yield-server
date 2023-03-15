@@ -1,4 +1,3 @@
-const utils = require("../utils")
 const sdk = require('@defillama/sdk');
 const abi = require("./abis.json");
 const { formatChain, getData } = require("../utils")
@@ -224,9 +223,9 @@ const main = async () => {
             const apy = calcApy(1, tvlUsd, synapsePerSecond / (1 * 10 ** 18), totalAllocPoint, relevantInfo.allocPoint)
 
             allPools.push({
-                pool: `${relevantInfo.lpToken}-${utils.formatChain(chainKey)}`.toLowerCase(),
-                chain: configPerChain.formattedChainName ? configPerChain.formattedChainName : utils.formatChain(chainKey),
-                symbol: relevantInfo.lpTokenSymbol.replace('-LP', ''),
+                pool: `${relevantInfo.lpToken}-${formatChain(chainKey)}`.toLowerCase(),
+                chain: configPerChain.formattedChainName ? configPerChain.formattedChainName : formatChain(chainKey),
+                symbol: currencySymbol.replace('-LP', ''),
                 project: 'synapse',
                 underlyingTokens,
                 tvlUsd,
