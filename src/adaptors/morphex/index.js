@@ -79,7 +79,13 @@ async function getPoolMPX(
     project: 'morphex',
     symbol: utils.formatSymbol('MPX'),
     tvlUsd: tvlMpx,
-    apy: apyFee + apyInflation,
+    apyBase: apyFee,
+    apyReward: apyInflation,
+    rewardTokens:
+      pChain === 'fantom' ? [tokenAddressMPX] : [],
+    underlyingTokens: [
+      pChain === 'fantom' ? tokenAddressMPX : '',
+    ],
   };
 }
 
@@ -103,7 +109,19 @@ async function getPoolMLP(
     project: 'morphex',
     symbol: utils.formatSymbol('MLP (FTM-BTC-ETH-USDC-USDT-DAI)'),
     tvlUsd: parseFloat(pTvl),
-    apy: apyFee + apyInflation,
+    apyBase: apyFee,
+    apyReward: apyInflation,
+    rewardTokens:
+      pChain === 'fantom' ? [tokenAddressMPX] : [],
+
+    underlyingTokens: [
+      pChain === 'fantom' ? tokenAddressMPX : '',
+    ],
+    underlyingTokens: [
+      pChain === 'fantom'
+        ? '0xd5c313DE2d33bf36014e6c659F13acE112B80a8E'
+        : '',
+    ],
   };
 }
 
