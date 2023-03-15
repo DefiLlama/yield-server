@@ -162,8 +162,17 @@ const getTvl = async (chain, underlyingAssetsTreasury, lpToken, underlyingTokenC
         })
     ).output.map(({ output }) => output);
 
+
+    // get decimals to correct the returned balances
+    const allUnderlyingTokenSymbols = (
+        await sdk.api.abi.multiCall({
+            calls: allUnderlyingTokenAddresses.map(tokenAddress => ({target: tokenAddress})),
+            abi: abi.symbol,
+            chain: chain,
+        })
+    ).output.map(({ output }) => output);
+
     let tvl = 0;
-    let currencySymbol = "Stable";
     for (let i = 0; i < allUnderlyingTokenAddresses.length; i++) {
         const tokenAddress = allUnderlyingTokenAddresses[i];
         const balance = parseFloat(allUnderlyingTokenBalances[i]) / (1 * 10 ** parseInt(allUnderlyingTokenDecimals[i]));
@@ -172,15 +181,11 @@ const getTvl = async (chain, underlyingAssetsTreasury, lpToken, underlyingTokenC
             // hETH or hUSD will not be found in tokenPrices so we use the average price to dictate its price
             price = Object.values(tokenPrices).reduce((acc, curr) => acc + curr, 0) / Object.values(tokenPrices).length;
         }
-        // Label pools as Stable or ETH depending on if price is greater than stablecoin price ($2 as a high safeguard) 
-        if (price > 2.0) {
-            currencySymbol = "ETH"
-        }
         const value = balance * price;
         tvl += value;
     }
 
-    return {tvlUsd: tvl * synPrice, underlyingTokens: allUnderlyingTokenAddresses, currencySymbol}
+    return {tvlUsd: tvl * synPrice, underlyingTokens: allUnderlyingTokenAddresses, allUnderlyingTokenSymbols}
 }
 
 const main = async () => {
@@ -218,14 +223,14 @@ const main = async () => {
             // If you want to include these, add it to the config var
             if (!underlyingAssetsTreasury) { continue } 
 
-            const {tvlUsd,underlyingTokens, currencySymbol} = await getTvl(chainKey, underlyingAssetsTreasury.poolAddress, underlyingAssetsTreasury.lpToken, underlyingAssetsTreasury.underlyingTokenCount, synPrice)
+            const {tvlUsd,underlyingTokens, allUnderlyingTokenSymbols} = await getTvl(chainKey, underlyingAssetsTreasury.poolAddress, underlyingAssetsTreasury.lpToken, underlyingAssetsTreasury.underlyingTokenCount, synPrice)
 
             const apy = calcApy(1, tvlUsd, synapsePerSecond / (1 * 10 ** 18), totalAllocPoint, relevantInfo.allocPoint)
 
             allPools.push({
                 pool: `${relevantInfo.lpToken}-${formatChain(chainKey)}`.toLowerCase(),
                 chain: configPerChain.formattedChainName ? configPerChain.formattedChainName : formatChain(chainKey),
-                symbol: currencySymbol.replace('-LP', ''),
+                symbol: allUnderlyingTokenSymbols.join("-"),
                 project: 'synapse',
                 underlyingTokens,
                 tvlUsd,
