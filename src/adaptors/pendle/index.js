@@ -81,7 +81,6 @@ async function apy() {
   )
     .flat()
     .filter((p) => p.liquidity != null);
-  let results = [poolApys(pools), ptApys(pools)].flat();
   return [poolApys(pools), ptApys(pools)].flat();
 }
 
