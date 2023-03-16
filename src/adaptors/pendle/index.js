@@ -67,7 +67,7 @@ function ptApys(pools) {
     apyBase: p.impliedApy * 100,
     underlyingTokens: [p.sy.underlyingAsset.address],
     poolMeta: `For buying ${p.pt.symbol}`,
-    url: `https://app.pendle.finance/pro/pools/${p.address}/zap/in`,
+    url: `https://app.pendle.finance/simple/discounted-assets/${p.address}`,
   }));
 }
 
