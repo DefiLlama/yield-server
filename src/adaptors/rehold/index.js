@@ -1,15 +1,36 @@
 const BN = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
-const dualAbi = require('./dualAbi.json');
+const DualV1 = require('./abis/v1/Dual.json');
+const DualV2 = require('./abis/v2/Dual.json');
 
-const DUAL = '0x3185b7c3a4e646fb23c6c04d979e61da7871b5c1';
-const VAULT = '0xd476ce848c61650e3051f7571f3ae437fe9a32e0';
+const CHAINS = {
+  bsc: {
+    dual: {
+      address: '0x3185b7c3a4e646fb23c6c04d979e61da7871b5c1',
+      abi: DualV1,
+    },
 
-const CHAIN = 'bsc';
+    vault: {
+      address: '0xd476ce848c61650e3051f7571f3ae437fe9a32e0',
+    },
+  },
+
+  polygon: {
+    dual: {
+      address: '0x868a943ca49a63eb0456a00ae098d470915eea0d',
+      abi: DualV2,
+    },
+
+    vault: {
+      address: '0xd476ce848c61650e3051f7571f3ae437fe9a32e0',
+    },
+  },
+};
+
 const SLUG = 'rehold';
 
-const POOL_META = 'Calculated as: 24h yield * 365. APY is fixed, and extendable with no limits after the staking period ends.';
+const POOL_META = 'Calculated as: 24h yield * 365. APY is fixed, and extendable with no limits after the staking period ends';
 
 function _map(array) {
   return array.reduce((acc, item) => {
@@ -18,11 +39,11 @@ function _map(array) {
   }, {});
 }
 
-async function _getPrices(tokens) {
+async function _getPrices(chain, tokens) {
   const [{ coins: prices1 }, prices2] = await Promise.all([
     utils.getData(
       `https://coins.llama.fi/prices/current/${tokens
-        .map((t) => `${CHAIN}:${t}`)
+        .map((t) => `${chain}:${t}`)
         .join(',')}`
     ),
 
@@ -49,14 +70,14 @@ async function _getPrices(tokens) {
   };
 }
 
-async function apy() {
+async function _apy(chain) {
   const pairs = {};
   const tokens = {};
 
   const { output } = await sdk.api.abi.call({
-    chain: CHAIN,
-    target: DUAL,
-    abi: dualAbi.find((m) => m.name === 'tariffs'),
+    chain,
+    target: CHAINS[chain].dual.address,
+    abi: CHAINS[chain].dual.abi.find((m) => m.name === 'tariffs'),
   });
 
   output.forEach((tariff) => {
@@ -86,8 +107,8 @@ async function apy() {
     const [baseToken, quoteToken] = symbol.split('-');
 
     pools.push({
-      pool: `${VAULT}-${i}-${CHAIN}`, // we don't have a specific contract address for each pool
-      chain: utils.formatChain(CHAIN),
+      pool: `${CHAINS[chain].vault.address}-${i}-${chain}`, // we don't have a specific contract address for each pool
+      chain: utils.formatChain(chain),
       project: SLUG,
       symbol,
       apyBase: apr,
@@ -97,8 +118,8 @@ async function apy() {
 
   Object.entries(tokens).forEach(([token, apr]) => {
     pools.push({
-      pool: `${token}-${CHAIN}`,
-      chain: utils.formatChain(CHAIN),
+      pool: `${token}-${chain}`,
+      chain: utils.formatChain(chain),
       project: SLUG,
       symbol: token,
       apyBase: apr,
@@ -114,9 +135,9 @@ async function apy() {
         abi: 'erc20:balanceOf',
         calls: tokenAddresses.map((token) => ({
           target: token,
-          params: VAULT,
+          params: CHAINS[chain].vault.address,
         })),
-        chain: CHAIN,
+        chain,
       }),
 
       sdk.api.abi.multiCall({
@@ -124,7 +145,7 @@ async function apy() {
         calls: tokenAddresses.map((token) => ({
           target: token,
         })),
-        chain: CHAIN,
+        chain,
       }),
 
       sdk.api.abi.multiCall({
@@ -132,14 +153,14 @@ async function apy() {
         calls: tokenAddresses.map((token) => ({
           target: token,
         })),
-        chain: CHAIN,
+        chain,
       }),
     ]);
 
   const symbols = _map(_symbols);
   const decimals = _map(_decimals);
 
-  const { prices1, prices2 } = await _getPrices(tokenAddresses);
+  const { prices1, prices2 } = await _getPrices(chain, tokenAddresses);
 
   const balances = _balances.reduce((acc, balance) => {
     const token = balance.input.target.toLowerCase();
@@ -168,6 +189,16 @@ async function apy() {
     pool.tvlUsd = balanceA + balanceB;
     pool.poolMeta = POOL_META;
   });
+
+  return pools;
+}
+
+async function apy() {
+  const pools = [];
+
+  for (const chain in CHAINS) {
+    pools.push(...(await _apy(chain)));
+  }
 
   return pools;
 }
