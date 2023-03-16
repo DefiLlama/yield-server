@@ -35,7 +35,7 @@ const blocksPerYears = {
 };
 
 const availablePools = {
-  cronos: ['CRO', 'USDC', 'VVS', 'MMF', 'USDT', 'VERSA', 'ARGO', 'bCRO'],
+  cronos: ['CRO', 'USDC', 'VVS', 'MMF', 'USDT', 'VERSA', 'ARGO', 'bCRO', 'VNO'],
   fantom: ['FTM', 'USDC', 'fUSDT'],
   // cronos: ['CRO',],
   // fantom:[],
