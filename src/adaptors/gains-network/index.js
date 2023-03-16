@@ -7,10 +7,14 @@ const chains = {
   polygon: {
     gns: '0xE5417Af564e4bFDA1c483642db72007871397896',
     staking: '0xFb06a737f549Eb2512Eb6082A808fc7F16C0819D',
+    gDAI: '0x91993f2101cc758D0dEB7279d41e880F7dEFe827',
+    dai: '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063',
   },
   arbitrum: {
     gns: '0x18c11FD286C5EC11c3b683Caa813B77f5163A122',
     staking: '0x6B8D3C08072a020aC065c467ce922e3A36D3F9d6',
+    gDAI: '0xd85E038593d7A098614721EaE955EC2022B9B91B',
+    dai: '0xda10009cbd5d07dd0cecc66161fc93d7c9000da1',
   },
 };
 
@@ -46,6 +50,15 @@ const getApy = async () => {
           tvlUsd: balance * gnsPrice,
           apyBase: utils.aprToApy(apr.sssBaseApr),
           underlyingTokens: [y.gns],
+        },
+        {
+          chain,
+          project: 'gains-network',
+          pool: y.gDAI,
+          symbol: 'DAI',
+          tvlUsd: Number(apr.vaultTvl) / 1e18,
+          apyBase: utils.aprToApy(apr.vaultApr),
+          underlyingTokens: [y.dai],
         },
       ];
     })
