@@ -1,4 +1,3 @@
-const utils = require("../utils")
 const sdk = require('@defillama/sdk');
 const abi = require("./abis.json");
 const { formatChain, getData } = require("../utils")
@@ -31,6 +30,10 @@ const config = {
             {
                 address: "0xED2a7edd7413021d440b09D654f3b87712abAB66", // nUSD, DAI, USDC, USDT (10m)
                 underlyingTokenCount: 4 
+            },
+            {
+                address: "0x77a7e60555bC18B4Be44C181b2575eee46212d44", // avWETH, nETH (6m)
+                underlyingTokenCount: 2
             }
         ],
         formattedChainName: "Avalanche"
@@ -119,19 +122,11 @@ const relevantPoolInfo = async (poolIndex, chain, LP_STAKING_ADDRESS) => {
 
     // info for tvl / apy calculations
     const poolInfo = (await sdk.api.abi.call({ abi: abi.poolInfo, target: LP_STAKING_ADDRESS, chain: chain, params: poolIndex })).output;
-
     const lpToken = (await sdk.api.abi.call({ abi: abi.lpToken, target: LP_STAKING_ADDRESS, chain: chain, params: poolIndex })).output;
-    const lpTokenSymbol = (await sdk.api.abi.call({ abi: abi.symbol, target: lpToken, chain: chain })).output; // dont need
-    const lpTokenDecimals = (await sdk.api.abi.call({ abi: abi.decimals, target: lpToken, chain: chain })).output;
-
     const allocPoint = await poolInfo.allocPoint;
-    // const totalAllocPoint = (await sdk.api.abi.call({ abi: abi.totalAllocPoint, target: LP_STAKING_ADDRESS, chain: chain })).output;
-
-    // const synapsePerSecond = (await sdk.api.abi.call({ abi: abi.synapsePerSecond, target: LP_STAKING_ADDRESS, chain: chain })).output;
 
     return {
         lpToken,
-        lpTokenSymbol,
         allocPoint,
     };
 }
@@ -167,6 +162,16 @@ const getTvl = async (chain, underlyingAssetsTreasury, lpToken, underlyingTokenC
         })
     ).output.map(({ output }) => output);
 
+
+    // get decimals to correct the returned balances
+    const allUnderlyingTokenSymbols = (
+        await sdk.api.abi.multiCall({
+            calls: allUnderlyingTokenAddresses.map(tokenAddress => ({target: tokenAddress})),
+            abi: abi.symbol,
+            chain: chain,
+        })
+    ).output.map(({ output }) => output);
+
     let tvl = 0;
     for (let i = 0; i < allUnderlyingTokenAddresses.length; i++) {
         const tokenAddress = allUnderlyingTokenAddresses[i];
@@ -180,7 +185,7 @@ const getTvl = async (chain, underlyingAssetsTreasury, lpToken, underlyingTokenC
         tvl += value;
     }
 
-    return {tvlUsd: tvl * synPrice, underlyingTokens: allUnderlyingTokenAddresses}
+    return {tvlUsd: tvl * synPrice, underlyingTokens: allUnderlyingTokenAddresses, allUnderlyingTokenSymbols}
 }
 
 const main = async () => {
@@ -218,14 +223,14 @@ const main = async () => {
             // If you want to include these, add it to the config var
             if (!underlyingAssetsTreasury) { continue } 
 
-            const {tvlUsd,underlyingTokens} = await getTvl(chainKey, underlyingAssetsTreasury.poolAddress, underlyingAssetsTreasury.lpToken, underlyingAssetsTreasury.underlyingTokenCount, synPrice)
+            const {tvlUsd,underlyingTokens, allUnderlyingTokenSymbols} = await getTvl(chainKey, underlyingAssetsTreasury.poolAddress, underlyingAssetsTreasury.lpToken, underlyingAssetsTreasury.underlyingTokenCount, synPrice)
 
             const apy = calcApy(1, tvlUsd, synapsePerSecond / (1 * 10 ** 18), totalAllocPoint, relevantInfo.allocPoint)
 
             allPools.push({
-                pool: `${relevantInfo.lpToken}-${utils.formatChain(chainKey)}`.toLowerCase(),
-                chain: configPerChain.formattedChainName ? configPerChain.formattedChainName : utils.formatChain(chainKey),
-                symbol: relevantInfo.lpTokenSymbol.replace('-LP', ''),
+                pool: `${relevantInfo.lpToken}-${formatChain(chainKey)}`.toLowerCase(),
+                chain: configPerChain.formattedChainName ? configPerChain.formattedChainName : formatChain(chainKey),
+                symbol: allUnderlyingTokenSymbols.join("-"),
                 project: 'synapse',
                 underlyingTokens,
                 tvlUsd,
