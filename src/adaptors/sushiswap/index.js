@@ -135,6 +135,10 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
 
     data = await utils.tvl(data, chainString);
     data = data.map((p) => utils.apy(p, dataPrior, dataPrior7d, 'v2'));
+    data = data.map((p) => ({
+      ...p,
+      totalValueLockedUSDlp: p.totalValueLockedUSD,
+    }));
 
     if (chainString === 'avalanche') {
       return data.map((p) => ({
@@ -142,7 +146,7 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
         chain: utils.formatChain(chainString),
         project: 'sushiswap',
         symbol: utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`),
-        tvlUsd: p.totalValueLockedUSD,
+        tvlUsd: p.totalValueLockedUSDlp,
         apyBase: Number(p.apy1d),
         apyBase7d: Number(p.apy7d),
         underlyingTokens: [p.token0.id, p.token1.id],
@@ -420,7 +424,7 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
         chain: utils.formatChain(chainString),
         project: 'sushiswap',
         symbol: utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`),
-        tvlUsd: p.totalValueLockedUSD,
+        tvlUsd: p.totalValueLockedUSDlp,
         apyBase: Number(p.apy1d),
         apyBase7d: Number(p.apy7d),
         apyReward,
