@@ -110,17 +110,35 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
       urlRewards,
     ]);
 
-    // calc base apy
-    let dataNow = await request(
-      urlExchange,
-      query.replace('<PLACEHOLDER>', block)
+    const [_, blockPrior7d] = await utils.getBlocks(
+      chainString,
+      null,
+      [urlExchange, urlRewards],
+      604800
     );
+
+    // calc base apy
+    let data = (
+      await request(urlExchange, query.replace('<PLACEHOLDER>', block))
+    ).pairs;
     let queryPriorC = queryPrior;
     queryPriorC = queryPriorC.replace('<PLACEHOLDER>', blockPrior);
-    const dataPrior = await request(urlExchange, queryPriorC);
+    const dataPrior = (await request(urlExchange, queryPriorC)).pairs;
 
-    dataNow = await utils.tvl(dataNow.pairs, chainString);
-    let data = dataNow.map((p) => utils.apy(p, dataPrior.pairs, 'v2'));
+    // 7d offset
+    const dataPrior7d = (
+      await request(
+        urlExchange,
+        queryPrior.replace('<PLACEHOLDER>', blockPrior7d)
+      )
+    ).pairs;
+
+    data = await utils.tvl(data, chainString);
+    data = data.map((p) => utils.apy(p, dataPrior, dataPrior7d, 'v2'));
+    data = data.map((p) => ({
+      ...p,
+      totalValueLockedUSDlp: p.totalValueLockedUSD,
+    }));
 
     if (chainString === 'avalanche') {
       return data.map((p) => ({
@@ -128,9 +146,12 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
         chain: utils.formatChain(chainString),
         project: 'sushiswap',
         symbol: utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`),
-        tvlUsd: p.totalValueLockedUSD,
-        apyBase: Number(p.apy),
+        tvlUsd: p.totalValueLockedUSDlp,
+        apyBase: Number(p.apy1d),
+        apyBase7d: Number(p.apy7d),
         underlyingTokens: [p.token0.id, p.token1.id],
+        volumeUsd1d: p.volumeUSD1d,
+        volumeUsd7d: p.volumeUSD7d,
       }));
     }
 
@@ -403,11 +424,14 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
         chain: utils.formatChain(chainString),
         project: 'sushiswap',
         symbol: utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`),
-        tvlUsd: p.totalValueLockedUSD,
-        apyBase: Number(p.apy),
+        tvlUsd: p.totalValueLockedUSDlp,
+        apyBase: Number(p.apy1d),
+        apyBase7d: Number(p.apy7d),
         apyReward,
         rewardTokens,
         underlyingTokens: [p.token0.id, p.token1.id],
+        volumeUsd1d: p.volumeUSD1d,
+        volumeUsd7d: p.volumeUSD7d,
       };
     });
 

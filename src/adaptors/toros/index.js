@@ -1,7 +1,10 @@
+const axios = require('axios');
 const BN = require('bignumber.js');
 const { request, gql } = require('graphql-request');
 
 const { formatChain } = require('../utils');
+
+const DHEDGE_REWARDS_API_URL = 'https://app.dhedge.org/api/rewards';
 
 const DHEDGE_API_URL = 'https://api-v2.dhedge.org/graphql';
 
@@ -9,6 +12,10 @@ const YIELD_PRODUCTS_QUERY = gql`
   query YieldProducts {
     yieldProducts {
       address
+    }
+    apyForTorosFunds {
+      fundAddress
+      monthly
     }
   }
 `;
@@ -41,6 +48,7 @@ const formatValue = (value) => new BN(value).shiftedBy(-18).toNumber();
 const getDaysSincePoolCreation = (blockTime) =>
   Math.round((Date.now() / 1000 - +blockTime) / 86400);
 
+// Fallback APY calculation simply based on pool's past performance
 const calcApy = (blockTime, metrics) => {
   const daysActive = getDaysSincePoolCreation(blockTime);
   return daysActive >= 360
@@ -56,13 +64,17 @@ const calcApy = (blockTime, metrics) => {
 
 const fetchTorosYieldProducts = async () => {
   try {
-    const addresses = await request(DHEDGE_API_URL, YIELD_PRODUCTS_QUERY);
+    const response = await request(DHEDGE_API_URL, YIELD_PRODUCTS_QUERY);
+    const apyData = response.apyForTorosFunds;
     const products = await Promise.all(
-      addresses.yieldProducts.map(async ({ address }) => {
-        const poolData = await request(DHEDGE_API_URL, POOL_DATA_QUERY, {
+      response.yieldProducts.map(async ({ address }) => {
+        const { fund } = await request(DHEDGE_API_URL, POOL_DATA_QUERY, {
           address,
         });
-        return poolData.fund;
+        const poolApyData = apyData.find(
+          ({ fundAddress }) => fundAddress === fund.address
+        );
+        return { ...fund, apy: poolApyData?.monthly };
       })
     );
     return products;
@@ -72,8 +84,21 @@ const fetchTorosYieldProducts = async () => {
   }
 };
 
+const fetchRewardIncentivesData = async () => {
+  try {
+    const response = await axios.get(DHEDGE_REWARDS_API_URL);
+    return response.data;
+  } catch (err) {
+    console.error('Failed to fetch toros reward data: ', err);
+    return;
+  }
+};
+
 const listTorosYieldProducts = async () => {
-  const products = await fetchTorosYieldProducts();
+  const [products, rewardData] = await Promise.all([
+    fetchTorosYieldProducts(),
+    fetchRewardIncentivesData(),
+  ]);
 
   return products.map(
     ({
@@ -84,23 +109,32 @@ const listTorosYieldProducts = async () => {
       performanceMetrics,
       blockTime,
       fundComposition,
-    }) => ({
-      pool: address,
-      chain: formatChain(blockchainCode.toLowerCase()),
-      project: 'toros',
-      symbol,
-      tvlUsd: formatValue(totalValue),
-      apyBase: calcApy(blockTime, performanceMetrics),
-      apyReward: null,
-      underlyingTokens: fundComposition
-        .filter(({ amount }) => amount !== '0')
-        .map(({ tokenAddress }) => tokenAddress),
-    })
+      apy,
+    }) => {
+      const rewardIncentivisedPool = rewardData?.poolsWithRewards
+        .map((address) => address.toLowerCase())
+        .includes(address.toLowerCase());
+      return {
+        pool: address,
+        chain: formatChain(blockchainCode.toLowerCase()),
+        project: 'toros',
+        symbol,
+        tvlUsd: formatValue(totalValue),
+        apy: apy ?? calcApy(blockTime, performanceMetrics),
+        rewardTokens:
+          rewardIncentivisedPool && rewardData?.rewardToken
+            ? [rewardData.rewardToken]
+            : [],
+        underlyingTokens: fundComposition
+          .filter(({ amount }) => amount !== '0')
+          .map(({ tokenAddress }) => tokenAddress),
+        url: `https://toros.finance/pool/${address}`,
+      };
+    }
   );
 };
 
 module.exports = {
   timetravel: false,
   apy: listTorosYieldProducts,
-  url: 'https://toros.finance/',
 };

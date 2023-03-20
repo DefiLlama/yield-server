@@ -77,7 +77,7 @@ const main = async () => {
       pool: p.id,
       chain: 'BSC',
       project: 'green-planet',
-      symbol: p.symbol,
+      symbol: p.symbol.slice(1),
       tvlUsd: totalSupplyUsd - totalBorrowUsd,
       apyBase: (Math.pow((p.supplyRate) * blocksPerDay + 1, daysPerYear) - 1) * 100 ,
       apyReward,
