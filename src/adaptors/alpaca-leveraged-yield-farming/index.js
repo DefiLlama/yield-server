@@ -56,21 +56,11 @@ async function apy(chain) {
     apy: Number(p.totalApy),
   }));
 
-  const lendingPools = response.lendingPools.map((p) => ({
-    pool: `${p.ibToken.address}-${chainString}`.toLowerCase(),
-    chain: chainString,
-    project,
-    symbol: utils.formatSymbol(p.symbol),
-    tvlUsd: Number(p.tvl),
-    apy: Number(p.totalApy),
-  }));
-
   return [
     ...fairLaunchStakingPools,
     ...strategyPools,
     ...farmingPools,
     ...ausdPools,
-    ...lendingPools,
   ];
 }
 
