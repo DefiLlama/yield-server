@@ -268,10 +268,6 @@ async function apy() {
       poolMeta: poolInfo.type == "WOMBAT_POOL" ? "Wombat" : null
     })
   }
-
-  console.log(poolAprList)
-
-
   return poolAprList;
 }
 
