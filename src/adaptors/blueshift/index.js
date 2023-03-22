@@ -263,7 +263,8 @@ module.exports = {
   timetravel: false,
   apy: async () => (await Promise.all([
     "milkomeda",
-    "milkomeda_a1"
+    "milkomeda_a1",
+    "kava"
   ].map(async chain => await poolsApy(chain))))
   .reduce((a, b) => [...a, ...b])
 };
