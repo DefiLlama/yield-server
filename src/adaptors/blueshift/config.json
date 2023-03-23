@@ -1,18 +1,22 @@
 {
   "network": {
     "milkomeda": "Cardano",
-    "milkomeda_a1": "Algorand"
+    "milkomeda_a1": "Algorand",
+    "kava":  "Kava"
   },
   "apiUrl": {
     "milkomeda": "https://api.blueshift.fi/api",
-    "milkomeda_a1": "https://a1.api.blueshift.fi/api"
+    "milkomeda_a1": "https://a1.api.blueshift.fi/api",
+    "kava": "https://kava.api.blueshift.fi/api"
   },
   "registry": {
     "milkomeda": "0x83E384d119adA05195Caca26396B8f56fdDA1c91",
-    "milkomeda_a1": "0x93e9c79582cAd65627758bbdB067EAB1c79E005c"
+    "milkomeda_a1": "0x93e9c79582cAd65627758bbdB067EAB1c79E005c",
+    "kava": "0xe46e53672B160a67faEdE644d4A339CDeC1f671c"
   },
   "minter": {
     "milkomeda": "0xdE6AB15d0786a0034B28Ed7e6B21ed95099CF48B",
-    "milkomeda_a1": "0x6455b3FE3cB9815d71D296f0CFFEfc1d591A91f3"
+    "milkomeda_a1": "0x6455b3FE3cB9815d71D296f0CFFEfc1d591A91f3",
+    "kava": "0x39F220f50f67BC6d7CeD35affba82191c43668b5"
   }
 }
