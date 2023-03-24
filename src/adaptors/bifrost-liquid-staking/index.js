@@ -33,9 +33,9 @@ const getApy = async () => {
 
   const bncUsd = (
     await axios.get(
-      'https://api.coingecko.com/api/v3/simple/price?ids=bifrost&vs_currencies=usd'
+      'https://api.coingecko.com/api/v3/simple/price?ids=bifrost-native-coin&vs_currencies=usd'
     )
-  ).data.bifrost.usd;
+  ).data.['bifrost-native-coin'].usd;
 
   const glmrUsd = (
     await axios.get(
