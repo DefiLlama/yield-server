@@ -187,12 +187,12 @@ const yearnHives = [
     hive: "0x5Aa6dd6bA3091ba151B4E5c0C0c4f06335e91482",
     token: "0xa97e46dc17e2b678e5f049a2670fae000b57f05e",
     name: "Thena"
-  },
+  },/*
   {
     hive: "0x38b2f5038F70b8A4a54A2CC8d35d85Cc5f0794e4",
     token: "0xc8da40f8a354530f04ce2dde98ebc2960a9ea449",
     name: "Thena"
-  },
+  },*/
   {
     hive: "0x3dF96fE4E92f38F7C931fA5A00d1f644D1c60dbF",
     token: "0x075e794f631ee81df1aadb510ac6ec8803b0fa35",
@@ -531,7 +531,7 @@ async function apy() {
       .toString()
 
     return {
-      pool: pool.token,
+      pool: pool.hive,
       chain: utils.formatChain('binance'),
       project: 'grizzlyfi',
       symbol: pairInfo.pairName,
