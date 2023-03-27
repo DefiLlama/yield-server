@@ -273,7 +273,7 @@ const calculateReservesUSD = (
   return reserve0.times(token0Price).plus(reserve1.times(token1Price));
 };
 
-const getPairInfo = async (pair, tokenAddress, additionalName) => {
+const getPairInfo = async (pair, tokenAddress) => {
   const [tokenSymbol, tokenDecimals] = await Promise.all(
     ['erc20:symbol', 'erc20:decimals'].map((method) =>
       sdk.api.abi.multiCall({
@@ -288,7 +288,7 @@ const getPairInfo = async (pair, tokenAddress, additionalName) => {
     ));
   return {
     lpToken: pair.toLowerCase(),
-    pairName: tokenSymbol.output.map(e => e.output).join('-') + '-' + additionalName,
+    pairName: tokenSymbol.output.map(e => e.output).join('-'),
     token0: {
       address: tokenAddress[0],
       symbol: tokenSymbol.output[0].output,
@@ -532,6 +532,7 @@ async function apy() {
 
     return {
       pool: pool.hive,
+      poolMeta: pairInfo.pairName + "-" + pool.name,
       chain: utils.formatChain('binance'),
       project: 'grizzlyfi',
       symbol: pairInfo.pairName,
