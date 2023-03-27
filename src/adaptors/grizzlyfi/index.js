@@ -502,18 +502,23 @@ async function apy() {
 
     let baseAPY, rewardAPY;
 
-    const baseAPYHive = fields.find(f => f.field == "LP-APR");
-    if (baseAPYHive != null) {
-      baseAPY = baseAPYHive.value
-      rewardAPY = fields.find(f => f.field == "Base-APR").value
+    const grizzlyAPYHive = fields.find(f => f.field == "Grizzly-APY");
+    if (grizzlyAPYHive != null) {
+      rewardAPY = grizzlyAPYHive.value
+      baseAPY = fields.find(f => f.field == "LP-APR").value
+    } else {
+      const farmApr = fields.find(f => f.field == "LP-APR");
+      if (farmApr != null) {
+        rewardAPY = fields.find(f => f.field == "Base-APR").value
+        baseAPY = farmApr.value
+      } else {
+        const yearnHiveAPY = fields.find(f => f.field == "APY");
+        if (yearnHiveAPY != null) {
+          baseAPY = yearnHiveAPY.value
+          rewardAPY = 0
+        }
+      }
     }
-
-    const yearnHiveAPY = fields.find(f => f.field == "APY");
-    if (yearnHiveAPY != null) {
-      baseAPY = yearnHiveAPY.value
-      rewardAPY = yearnHiveAPY.value
-    }
-
 
     const masterChefReservesUsd = calculateReservesUSD(
       reserves,
