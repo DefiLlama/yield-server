@@ -1,6 +1,7 @@
 const { request, gql } = require('graphql-request');
 
-const url = 'https://api.thegraph.com/subgraphs/name/elkdao/cellarsnext';
+const url =
+  'https://subgraphs.sommelier.finance/subgraphs/name/peggyjv/cellars';
 
 const dayDataQuery = gql`
   {
