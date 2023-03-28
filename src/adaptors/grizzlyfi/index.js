@@ -537,8 +537,8 @@ async function apy() {
       project: 'grizzlyfi',
       symbol: pairInfo.pairName,
       tvlUsd: Number(masterChefReservesUsd),
-      apyBase: baseAPY,
-      apyReward: rewardAPY,
+      apyBase: Number(baseAPY) * 100,
+      apyReward: Number(rewardAPY) * 100,
       underlyingTokens: [tokens0[i], tokens1[i]],
       rewardTokens: [GHNY],
     };
