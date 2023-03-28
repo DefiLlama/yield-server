@@ -115,9 +115,10 @@ const getPools = async () => {
         pool: reward_tracker_arbitrum_elp1,
         chain: utils.formatChain('arbitrum'),
         project: 'el-dorado-exchange',
-        symbol: utils.formatSymbol('ELP1'),
+        symbol: utils.formatSymbol('WETH'),
         tvlUsd: parseFloat(tvl_arbitrum_elp1),
-        apy: apr_ede_elp+apr_eusd_elp
+        apy: apr_ede_elp+apr_eusd_elp,
+        poolMeta: "ELP-1"
     })
 
     return pools;
