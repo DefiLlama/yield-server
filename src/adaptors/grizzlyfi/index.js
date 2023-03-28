@@ -532,7 +532,7 @@ async function apy() {
 
     return {
       pool: pool.hive,
-      poolMeta: pairInfo.pairName + "-" + pool.name,
+      poolMeta: pool.name,
       chain: utils.formatChain('binance'),
       project: 'grizzlyfi',
       symbol: pairInfo.pairName,
