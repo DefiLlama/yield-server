@@ -117,7 +117,8 @@ const getPools = async () => {
         project: 'el-dorado-exchange',
         symbol: utils.formatSymbol('WETH'),
         tvlUsd: parseFloat(tvl_arbitrum_elp1),
-        apy: apr_ede_elp+apr_eusd_elp,
+        apyBase: apr_eusd_elp,
+        apyReward: apr_ede_elp,
         poolMeta: "ELP-1"
     })
 
