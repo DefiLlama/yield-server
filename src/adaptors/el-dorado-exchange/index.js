@@ -5,6 +5,8 @@ const abi_rewardrouter_arb = require('./abis/RwardRouter_arb.json');
 const abi_Elp_arb = require('./abis/Elp_arb.json');
 const abi_ElpManager_arb = require('./abis/ElpManager_arb.json');
 
+const AEDE = "0x5566d132324181427eD4f46989121030BC6689C7"
+const EUSD = "0xB00885eef0610C1A9D0f4c125Abe959B63F6B2BF"
 const reward_tracker_arbitrum_elp1 = "0x2108397905f6d3a9b277c545948c6d6e1ca22d06"
 const reward_router_arbitrum_elp1 = "0x86af1e551c081ec2269f62708c291af1627fa4ed"
 const elp1_arbitrum = "0xec08b5a75473fd581be6628d4e2ed08b49078df0"
@@ -119,6 +121,7 @@ const getPools = async () => {
         tvlUsd: parseFloat(tvl_arbitrum_elp1),
         apyBase: apr_eusd_elp,
         apyReward: apr_ede_elp,
+        rewardTokens: [EUSD, AEDE],
         poolMeta: "ELP-1"
     })
 
