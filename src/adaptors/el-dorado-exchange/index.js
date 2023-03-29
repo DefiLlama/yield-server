@@ -117,10 +117,10 @@ const getPools = async () => {
         pool: reward_tracker_arbitrum_elp1,
         chain: utils.formatChain('arbitrum'),
         project: 'el-dorado-exchange',
-        symbol: utils.formatSymbol('WETH'),
+        symbol: 'WETH-WBTC-USDC-USDT-DAI',
         tvlUsd: parseFloat(tvl_arbitrum_elp1),
-        apyBase: apr_eusd_elp,
-        apyReward: apr_ede_elp,
+        apyBase: apr_eusd_elp * 100,
+        apyReward: apr_ede_elp * 100,
         rewardTokens: [EUSD, AEDE],
         poolMeta: "ELP-1"
     })
