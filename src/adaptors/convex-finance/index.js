@@ -19,13 +19,14 @@ const projectedAprTvlThr = 1e6;
 let extraRewardsPrices = {};
 
 const getCrvCvxPrice = async () => {
-  const url =
-    'https://api.coingecko.com/api/v3/simple/price?ids=convex-finance%2Ccurve-dao-token&vs_currencies=usd';
+  const tokens = [crvAddress, cvxAddress].map((t) => `ethereum:${t}`).join(',');
+
+  const url = `https://coins.llama.fi/prices/current/${tokens}`;
 
   const response = await superagent.get(url);
-  const data = response.body;
-  const crvPrice = data['curve-dao-token'].usd;
-  const cvxPrice = data['convex-finance'].usd;
+  const data = response.body.coins;
+  const crvPrice = data[`ethereum:${crvAddress}`].price;
+  const cvxPrice = data[`ethereum:${cvxAddress}`].price;
   return { crvPrice, cvxPrice };
 };
 
@@ -289,12 +290,13 @@ const main = async () => {
         ).output;
         if (!extraRewardsPrices[token.toLowerCase()]) {
           try {
-            const price = await utils.getData(
-              'https://api.coingecko.com/api/v3/coins/ethereum/contract/' +
-                token.toLowerCase()
-            );
+            const price = (
+              await utils.getData(
+                `https://coins.llama.fi/prices/current/ethereum:${token.toLowerCase()}`
+              )
+            ).coins;
             extraRewardsPrices[token.toLowerCase()] =
-              price.market_data.current_price.usd;
+              price[`ethereum:${token.toLowerCase()}`].price;
           } catch {
             extraRewardsPrices[token.toLowerCase()] = 0;
           }
