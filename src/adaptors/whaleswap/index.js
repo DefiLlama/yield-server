@@ -81,16 +81,20 @@ const calculateReservesUSD = (
 };
 
 const getBaseTokensPrice = async () => {
-  const prices = await utils.getData(
-    'https://api.coingecko.com/api/v3/simple/price?ids=binancecoin%2Cethereum&vs_currencies=usd'
+  const tokens = ['binancecoin', 'ethereum']
+    .map((t) => `coingecko:${t}`)
+    .join(',');
+  const { coins: prices } = await utils.getData(
+    `https://coins.llama.fi/prices/current/${tokens}`
   );
+
   const podPriceResult = await request(API_URL, priceQuery, {
     id: '0xdded222297b3d08dafdac8f65eeb799b2674c78f',
   });
 
   const podPrice = podPriceResult.token.derivedUSD;
-  const ethPrice = prices.ethereum.usd;
-  const bnbPrice = prices.binancecoin.usd;
+  const ethPrice = prices['coingecko:ethereum'].price;
+  const bnbPrice = prices['coingecko:binancecoin'].price;
 
   return { podPrice, ethPrice, bnbPrice };
 };
