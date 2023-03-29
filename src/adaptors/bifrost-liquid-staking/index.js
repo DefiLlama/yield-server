@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const utils = require("../utils");
+const utils = require('../utils');
 
 const token = '0xc3d088842dcf02c13699f936bb83dfbbc6f721ab';
 const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
@@ -14,16 +14,19 @@ const getApy = async () => {
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).data.coins[priceKey]?.price;
 
-  const vToken = await utils.getData(
-    'https://api.bifrost.app/api/site'
-  );
+  const vToken = await utils.getData('https://api.bifrost.app/api/site');
+
+  const filUsd = (
+    await axios.get(
+      'https://api.coingecko.com/api/v3/simple/price?ids=filecoin&vs_currencies=usd'
+    )
+  ).data.filecoin.usd;
 
   const dotUsd = (
     await axios.get(
       'https://api.coingecko.com/api/v3/simple/price?ids=polkadot&vs_currencies=usd'
     )
   ).data.polkadot.usd;
-
 
   const ksmUsd = (
     await axios.get(
@@ -57,7 +60,7 @@ const getApy = async () => {
     tvlUsd: vToken.vDOT.tvm * dotUsd,
     apyBase: Number(vToken.vDOT.apyBase),
     apyReward: Number(vToken.vDOT.apyReward),
-    rewardTokens: ['DOT']
+    rewardTokens: ['DOT'],
   };
 
   const vGLMR = {
@@ -68,7 +71,18 @@ const getApy = async () => {
     tvlUsd: vToken.vGLMR.tvm * glmrUsd,
     apyBase: Number(vToken.vGLMR.apyBase),
     apyReward: Number(vToken.vGLMR.apyReward),
-    rewardTokens: ['GLMR']
+    rewardTokens: ['GLMR'],
+  };
+
+  const vFIL = {
+    pool: 'filecoin-vfil',
+    chain: 'Filecoin',
+    project: 'bifrost-liquid-staking',
+    symbol: 'vFIL',
+    tvlUsd: vToken.vFIL.tvm * filUsd,
+    apyBase: Number(vToken.vFIL.apyBase),
+    apyReward: Number(vToken.vFIL.apyReward),
+    rewardTokens: ['FIL'],
   };
 
   const vMOVR = {
@@ -79,7 +93,7 @@ const getApy = async () => {
     tvlUsd: vToken.vMOVR.tvm * movrUsd,
     apyBase: Number(vToken.vMOVR.apyBase),
     apyReward: Number(vToken.vMOVR.apyReward),
-    rewardTokens: ['MOVR']
+    rewardTokens: ['MOVR'],
   };
 
   const vBNC = {
@@ -90,7 +104,7 @@ const getApy = async () => {
     tvlUsd: vToken.vBNC.tvm * bncUsd,
     apyBase: Number(vToken.vBNC.apyBase),
     apyReward: Number(vToken.vBNC.apyReward),
-    rewardTokens: ['BNC']
+    rewardTokens: ['BNC'],
   };
 
   const vKSM = {
@@ -101,7 +115,7 @@ const getApy = async () => {
     tvlUsd: vToken.vKSM.tvm * ksmUsd,
     apyBase: Number(vToken.vKSM.apyBase),
     apyReward: Number(vToken.vKSM.apyReward),
-    rewardTokens: ['KSM']
+    rewardTokens: ['KSM'],
   };
 
   const vETH = {
@@ -113,10 +127,10 @@ const getApy = async () => {
     apyBase: vToken.vETH.stakingApy,
     apyReward: Number(vToken.vETH.mevApy) + Number(vToken.vETH.gasFeeApy),
     underlyingTokens: [weth],
-    rewardTokens: ['ETH']
-  }
+    rewardTokens: ['ETH'],
+  };
 
-  return [vETH, vDOT, vGLMR, vMOVR, vKSM, vBNC];
+  return [vETH, vDOT, vGLMR, vMOVR, vKSM, vBNC, vFIL];
 };
 
 module.exports = {
