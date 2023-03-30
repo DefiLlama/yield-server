@@ -10,12 +10,12 @@ const getPools = async () => {
     'https://api.taigaprotocol.io/tokens/tdot/stats'
   );
 
-  const dotUsd = (
-    await axios.get(
-      'https://api.coingecko.com/api/v3/simple/price?ids=polkadot&vs_currencies=usd'
-    )
-  ).data.polkadot.usd;
+  const priceKey = 'coingecko:polkadot';
 
+  const { coins: prices } = await utils.getData(
+    `https://coins.llama.fi/prices/current/${priceKey}`
+  );
+  const dotUsd = prices[priceKey].price;
   const tdot = {
     pool: 'acala-sa0-tapio',
     chain: 'Acala',

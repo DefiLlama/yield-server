@@ -269,7 +269,8 @@ async function getPoolUniLp(
   const yearlyInflationRate =
     pInflationRate * secondsPerYear * pGauge_relative_weight;
 
-  const yearlyInflationInsure = yearlyInflationRate * pPriceData.insuredao.usd;
+  const yearlyInflationInsure =
+    yearlyInflationRate * pPriceData['coingecko:insuredao'].price;
 
   const apyInflation = parseFloat(
     BigNumber(yearlyInflationInsure).div(pTvl).times(100)
@@ -302,7 +303,8 @@ async function getVlInsurePoolLp(
   const yearlyInflationRate =
     pInflationRate * secondsPerYear * pGauge_relative_weight;
 
-  const yearlyInflationInsure = yearlyInflationRate * pPriceData.insuredao.usd;
+  const yearlyInflationInsure =
+    yearlyInflationRate * pPriceData['coingecko:insuredao'].price;
 
   const apyInflation = (yearlyInflationInsure / pTvl) * 100;
 
@@ -363,12 +365,14 @@ const getPools = async () => {
 
   const balances = {};
 
+  const priceKeys = ['insuredao', 'ethereum']
+    .map((t) => `coingecko:${t}`)
+    .join(',');
+
   const [gauge_relative_weight_data, priceData, inflationRate] =
     await Promise.all([
       gauge_relative_weight(gageAddressUniLP),
-      utils.getData(
-        'https://api.coingecko.com/api/v3/simple/price?ids=insuredao%2Cethereum&vs_currencies=usd'
-      ),
+      utils.getData(`https://coins.llama.fi/prices/current/${priceKeys}`),
       getRate('ethereum'),
     ]);
 
@@ -390,7 +394,7 @@ const getPools = async () => {
       gageAddressUniLP,
       gauge_relative_weight_data,
       inflationRate,
-      priceData
+      priceData.coins
     )
   );
 
@@ -404,7 +408,7 @@ const getPools = async () => {
       })
     ).output *
     10 ** -18 *
-    priceData.insuredao.usd;
+    priceData.coins['coingecko:insuredao'].price;
 
   const gauge_relative_weight_data_vlinsure = await gauge_relative_weight(
     gageAddressVlINSURE
@@ -417,7 +421,7 @@ const getPools = async () => {
       vlINSURE,
       gauge_relative_weight_data_vlinsure,
       inflationRate,
-      priceData
+      priceData.coins
     )
   );
 
