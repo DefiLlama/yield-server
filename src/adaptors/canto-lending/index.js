@@ -111,7 +111,7 @@ const poolInfo = async (chain) => {
     data.totalReserves = totalReserves[i];
     data.underlyingToken = underlyingToken[i];
     data.tokenSymbol = underlyingTokenSymbol[i];
-    data.price = prices[`canto:${underlyingToken[i].toLowerCase()}`]?.price;
+    data.price = prices[underlyingToken[i].toLowerCase()].usd;
     data.underlyingTokenDecimals = underlyingTokenDecimals[i];
   });
 
@@ -161,28 +161,33 @@ const unwrapLP = async (chain, lpTokens) => {
   lpMarkets.map((token, i) => {
     token.lpPrice =
       ((getReserves[i]._reserve0 / token0Decimals[i]) *
-        token0Price[`canto:${token0[i].toLowerCase()}`].price +
+        token0Price[token0[i].toLowerCase()].usd +
         (getReserves[i]._reserve1 / token1Decimals[i]) *
-          token1Price[`canto:${token1[i].toLowerCase()}`].price) /
+          token1Price[token1[i].toLowerCase()].usd) /
       (totalSupply[i] / 1e18);
   });
 
   const lpPrices = {};
   lpMarkets.map((lp) => {
-    lpPrices[lp.lpToken.toLowerCase()] = { price: lp.lpPrice };
+    lpPrices[lp.lpToken.toLowerCase()] = { usd: lp.lpPrice };
   });
 
   return lpPrices;
 };
 
 const getPrices = async (chain, addresses) => {
-  const priceKeys = addresses.map((a) => `canto:${a}`.toLowerCase()).join(',');
+  const priceKeys = addresses
+    .map((a) => `${chain}:${a.toLowerCase()}`)
+    .join(',');
 
   const prices = (
     await superagent.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
   ).body.coins;
 
-  return prices;
+  return Object.entries(prices).reduce((acc, [k, v]) => {
+    acc[k.replace(`${chain}:`, '')] = { usd: v.price };
+    return acc;
+  }, {});
 };
 
 function calculateApy(rate, price = 1, tvl = 1) {
@@ -204,38 +209,36 @@ function calculateTvl(cash, borrows, reserves, price, decimals) {
 }
 
 const getApy = async () => {
-  const wCantoPrice = (await getPrices('canto', [WCANTO]))[`canto:${WCANTO}`];
-
-  const x = await poolInfo('canto');
-  console.log(x);
-  process.exit();
+  const wCantoPrice = (await getPrices('canto', [WCANTO]))[
+    WCANTO.toLowerCase()
+  ];
 
   const yieldPools = (await poolInfo('canto')).yieldMarkets.map((pool, i) => {
     const totalSupplyUsd = calculateTvl(
       pool.getCash,
       pool.totalBorrows,
       pool.totalReserves,
-      pool?.price,
+      pool.price,
       pool.underlyingTokenDecimals
     );
     const totalBorrowUsd = calculateTvl(
       0,
       pool.totalBorrows,
       0,
-      pool?.price,
+      pool.price,
       pool.underlyingTokenDecimals
     );
     const tvlUsd = totalSupplyUsd - totalBorrowUsd;
     const apyBase = calculateApy(pool.supplyRate);
     const apyReward = calculateApy(
       pool.compSupplySpeeds,
-      wCantoPrice.price,
+      wCantoPrice.usd,
       totalSupplyUsd
     );
     const apyBaseBorrow = calculateApy(pool.borrowRate);
     const apyRewardBorrow = calculateApy(
       pool.compBorrowSpeeds,
-      wCantoPrice.price,
+      wCantoPrice.usd,
       totalBorrowUsd
     );
     const ltv = parseInt(pool.collateralFactor) / 1e18;
