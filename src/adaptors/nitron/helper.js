@@ -165,20 +165,20 @@ module.exports.getRewardSchemes = async () => {
 };
 
 module.exports.getUSDValues = async (assets, denomToGeckoIdMap) => {
-  let query = '';
-  for (asset of assets) {
-    query += `${denomToGeckoIdMap[asset.denom]},`;
-  }
+  const query = assets
+    .map((a) => `coingecko:${denomToGeckoIdMap[a.denom]}`)
+    .join(',');
+
+  const priceKey = `coingecko:${query}`;
   const prices = (
-    await axios.get(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${query}&vs_currencies=usd`
-    )
-  ).data;
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
+  ).data.coins;
+
   let result = {};
   assets.forEach((asset) => {
     const denomtInGeckoId = denomToGeckoIdMap[asset.denom];
     if (denomtInGeckoId) {
-      const usd = prices[denomtInGeckoId].usd;
+      const usd = prices[`coingecko:${denomtInGeckoId}`]?.price;
       result[asset.denom] = { ...asset, usd };
     }
   });
