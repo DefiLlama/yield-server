@@ -186,13 +186,9 @@ const main = async () => {
     return poolReturned
   });
 
-  return pools;
-  // return pools.filter(
-  //   (p) =>
-  //     ![
-  //       '0xef0b81a38a3e61c94d1c3f9d24c22faa9772fa95'
-  //     ].includes(p.pool)
-  // );
+  return pools.filter(
+    (p) => p.totalBorrowUsd !== 0
+  );
 };
 
 module.exports = {
