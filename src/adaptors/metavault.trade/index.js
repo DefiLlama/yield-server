@@ -56,7 +56,7 @@ async function getPoolMvx(
   pPriceData
 ) {
   const tvlMvx =
-    pPriceData.mvx.usd *
+    pPriceData.mvx.price *
     (await getAdjustedAmount(
       pChain == 'polygon' ? polygonMvxAddress : '',
       pChain,
@@ -64,11 +64,12 @@ async function getPoolMvx(
       pChain == 'polygon' ? [polygonInflationMvxTrackerAddress] : []
     ));
 
-  const tvsMvx = pStakedMvx * pPriceData.mvx.usd;
-  const tvsEsMvx = pStakedEsMvx * pPriceData.mvx.usd;
+  const tvsMvx = pStakedMvx * pPriceData.mvx.price;
+  const tvsEsMvx = pStakedEsMvx * pPriceData.mvx.price;
 
-  const yearlyFeeMvx = pChain == 'polygon' ? pFeeMvx * pPriceData.matic.usd : 0;
-  const yearlyInflationMvx = pInflationMvx * pPriceData.mvx.usd;
+  const yearlyFeeMvx =
+    pChain == 'polygon' ? pFeeMvx * pPriceData.matic.price : 0;
+  const yearlyInflationMvx = pInflationMvx * pPriceData.mvx.price;
 
   const apyFee = (yearlyFeeMvx / tvsMvx) * 100;
   const apyInflation = (yearlyInflationMvx / tvsEsMvx) * 100;
@@ -92,8 +93,8 @@ async function getPoolMvlp(
   pPriceData
 ) {
   const yearlyFeeMvlp =
-    pChain == 'polygon' ? pFeeMvlp * pPriceData.matic.usd : 0;
-  const yearlyInflationMvlp = pInflationMvlp * pPriceData.mvx.usd;
+    pChain == 'polygon' ? pFeeMvlp * pPriceData.matic.price : 0;
+  const yearlyInflationMvlp = pInflationMvlp * pPriceData.mvx.price;
   const apyFee = (yearlyFeeMvlp / pTvl) * 100;
   const apyInflation = (yearlyInflationMvlp / pTvl) * 100;
 
@@ -110,13 +111,15 @@ async function getPoolMvlp(
 const getPools = async () => {
   let pools = [];
 
-  const priceDataRes = await utils.getData(
-    'https://api.coingecko.com/api/v3/simple/price?ids=metavault-trade%2Cmatic-network%2C&vs_currencies=usd'
+  const priceKeys = ['metavault-trade', 'matic-network']
+    .map((t) => `coingecko:${t}`)
+    .join(',');
+  const { coins: priceDataRes } = await utils.getData(
+    `https://coins.llama.fi/prices/current/${priceKeys}`
   );
-
   const priceData = {
-    mvx: priceDataRes['metavault-trade'],
-    matic: priceDataRes['matic-network'],
+    mvx: priceDataRes['coingecko:metavault-trade'],
+    matic: priceDataRes['coingecko:matic-network'],
   };
 
   const polygonStakedMvx = await getAdjustedAmount(
