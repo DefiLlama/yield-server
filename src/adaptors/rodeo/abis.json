@@ -1,5 +1,5 @@
-[
-  {
+{
+  "peekPools": {
     "inputs": [
       {
         "internalType": "address[]",
@@ -43,7 +43,7 @@
     "stateMutability": "view",
     "type": "function"
   },
-  {
+  "peekPoolInfos" : {
     "inputs": [
       {
         "internalType": "address[]",
@@ -86,5 +86,31 @@
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  "symbol": {
+    "inputs": [],
+    "name": "symbol",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  "decimals": {
+    "inputs": [],
+    "name": "decimals",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   }
-]
+}

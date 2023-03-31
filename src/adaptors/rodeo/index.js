@@ -5,7 +5,7 @@ const abi = require('./abis.json');
 
 const investor = '0x8accf43Dd31DfCd4919cc7d65912A475BfA60369';
 const investorHelper = '0x6f456005A7CfBF0228Ca98358f60E6AE1d347E18';
-const pools = [
+const allPools = [
     {
         asset: "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
         address: "0x0032F5E1520a66C6E572e96A11fBF54aea26f9bE",
@@ -29,43 +29,33 @@ const strategies = [
 ]
 
 const poolInfo = async (chain) => {
-    const peekPools = await sdk.api.abi.call({
-        target: investorHelper,
-        chain,
-        abi: abi.peekPools,
-        params: [
-            pools[0].address
-        ],
+    const yieldPools = allPools.map((pool) => {
+        return { ...pool };
     });
 
-    const yieldPools = peekPools.output.map((data) => {
-        return {
-            pool: pools.map((p, i) => ({
-                info: p,
-                data: {
-                    index: data[0][i],
-                    share: data[1][i],
-                    supply: data[2][i],
-                    borrow: data[3][i],
-                    rate: data[4][i],
-                    price: data[5][i],
-                },
-            }))
-        };
-    });
+    const peekPools = (
+        await sdk.api.abi.multiCall({
+            target: investorHelper,
+            chain,
+            abi: abi.peekPools,
+            calls: yieldPools.map((pool) => ({
+                params: [[pool.address]],
+            })),
+        })
+    ).output;
+    peekPools.map(i => console.log(i, 'peekPools>>>>'));
 
-    const gearPerBlock = {};
-
-    const poolData = (
+    const peekPoolInfos = (
         await sdk.api.abi.multiCall({
             target: investorHelper,
             chain,
             abi: abi.peekPoolInfos,
-            calls: yieldPools.map((address) => ({
-                params: address.info.address,
+            calls: yieldPools.map((pool) => ({
+                params: [[pool.address]],
             })),
         })
     ).output;
+    peekPoolInfos.map(i => console.log(i, 'peekPoolInfos>>>>'));
 
     const getOutput = ({ output }) => output.map(({ output }) => output);
     const [symbol, decimals] = await Promise.all(
@@ -73,7 +63,7 @@ const poolInfo = async (chain) => {
             sdk.api.abi.multiCall({
                 abi: abi[method],
                 calls: yieldPools.map((token, i) => ({
-                    target: pools[0].asset,
+                    target: peekPoolInfos[i].output[0][0],
                 })),
                 chain,
             })
@@ -83,41 +73,22 @@ const poolInfo = async (chain) => {
         Math.pow(10, Number(decimal))
     );
 
-    const underlyingTokens = poolData.map((pool) => pool.output.address);
-
-    const price = await getPrices('arbitrum', underlyingTokens);
+    const underlyingTokens = peekPoolInfos.map((pool) => pool.output[0][0]);
 
     yieldPools.map((pool, i) => {
-        pool.gearPerBlock = ""; // gearPerBlock[pool.pool]
-        pool.availableLiquidity = ""; // poolData[i].output.availableLiquidity
-        pool.totalBorrowed = ""; // poolData[i].output.totalBorrowed
-        pool.depositAPY_RAY = ""; // poolData[i].output.depositAPY_RAY
-        pool.borrowAPY_RAY = ""; // poolData[i].output.borrowAPY_RAY
+        pool.gearPerBlock = "";
+        pool.availableLiquidity = "";
+        pool.totalBorrowed = peekPools[i].output[0][3];
+        pool.depositAPY_RAY = peekPools[i].output[0][2];
+        pool.borrowAPY_RAY = "";
         pool.underlyingToken = underlyingTokens[i];
-        pool.withdrawFee = poolData[i].output.withdrawFee;
+        pool.withdrawFee = "";
         pool.symbol = symbol[i];
-        pool.price = price[underlyingTokens[i].toLowerCase()];
+        pool.price = peekPools[i].output[0][5];
         pool.decimals = dTokenDecimals[i];
     });
 
     return { yieldPools };
-};
-
-const getPrices = async (chain, addresses) => {
-    const uri = `${addresses.map((address) => `${chain}:${address}`)}`;
-    const prices = (
-        await superagent.get('https://coins.llama.fi/prices/current/' + uri)
-    ).body.coins;
-
-    const pricesObj = Object.entries(prices).reduce(
-        (acc, [address, price]) => ({
-            ...acc,
-            [address.split(':')[1].toLowerCase()]: price.price,
-        }),
-        {}
-    );
-
-    return pricesObj;
 };
 
 function calculateApy(rate, price = 1, tvl = 1) {
@@ -129,11 +100,6 @@ function calculateTvl(availableLiquidity, totalBorrowed, price, decimals) {
 }
 
 const getApy = async () => {
-    const priceKey = `arbitrum:${pools[0].asset}`;
-    const assetPrice = (
-        await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-    ).data.coins[priceKey]?.price;
-
     const yieldPools = (await poolInfo('arbitrum')).yieldPools;
 
     const symbol = (
@@ -158,8 +124,8 @@ const getApy = async () => {
             (pool.depositAPY_RAY / 1e27) * 100,
             LpRewardApy,
             pool.underlyingToken,
-            [pools[0].asset],
-            `https://app.gearbox.fi/pools/add/${pool.pool}`,
+            [allPools[0].asset],
+            `https://www.rodeofinance.xyz/api/pools/history?address=${pool.address}`,
             (pool.borrowAPY_RAY / 1e27) * 100,
             0,
             totalSupplyUsd,
