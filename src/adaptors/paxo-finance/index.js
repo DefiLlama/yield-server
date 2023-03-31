@@ -186,6 +186,7 @@ const main = async () => {
     return poolReturned
   });
 
+  // supply yield only available for borrowMarket
   return pools.filter(
     (p) => p.totalBorrowUsd !== 0
   );
@@ -194,5 +195,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://www.app.paxo.finance/',
+  url: 'https://www.beta.vaults.paxo.finance/',
 };
