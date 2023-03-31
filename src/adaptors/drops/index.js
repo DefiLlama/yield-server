@@ -14,7 +14,10 @@ const COMPTROLLER_ADDRESS = {
 
 const CHAIN = 'ethereum';
 const GET_ALL_MARKETS = 'getAllMarkets';
-const REWARD_SPEED = 'compSpeeds';
+
+const REWARD_SPEED_OG = 'compSpeeds';
+const REWARD_SPEED = 'compSupplySpeeds';
+const REWARD_SPEED_BORROW = 'compBorrowSpeeds';
 const SUPPLY_RATE = 'supplyRatePerBlock';
 const BORROW_RATE = 'borrowRatePerBlock';
 const TOTAL_BORROWS = 'totalBorrows';
@@ -115,7 +118,8 @@ const main = async () => {
       })
     ).output.map((o) => o.output);
 
-    const extraRewards = await getRewards(comptrollerAddress, allMarkets, REWARD_SPEED);
+    const extraRewards = await getRewards(comptrollerAddress, allMarkets, comptrollerAddress == '0x79b56CB219901DBF42bB5951a0eDF27465F96206' ? REWARD_SPEED_OG : REWARD_SPEED);
+    const extraRewardsBorrow = await getRewards(comptrollerAddress, allMarkets, comptrollerAddress == '0x79b56CB219901DBF42bB5951a0eDF27465F96206' ? REWARD_SPEED_OG : REWARD_SPEED_BORROW);
 
     const supplyRewards = await multiCallMarkets(
       allMarkets,
@@ -202,7 +206,7 @@ const main = async () => {
         );
       };
       const apyReward = totalSupplyUsd ? calcRewardApy(extraRewards, totalSupplyUsd) : 0;
-      const apyRewardBorrow = totalBorrowUsd ? calcRewardApy(extraRewards, totalBorrowUsd) : 0;
+      const apyRewardBorrow = totalBorrowUsd ? calcRewardApy(extraRewardsBorrow, totalBorrowUsd) : 0;
 
       return {
         pool: `${comptrollerAddress}-${market.toLowerCase()}`,
