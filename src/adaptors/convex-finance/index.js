@@ -46,9 +46,9 @@ const main = async () => {
     .map(({ data }) => data.poolData)
     .flat();
 
-  const {
-    data: { gauges },
-  } = await utils.getData('https://api.curve.fi/api/getGauges');
+  const { data: gauges } = await utils.getData(
+    'https://api.curve.fi/api/getAllGauges'
+  );
 
   const mappedGauges = Object.entries(gauges).reduce(
     (acc, [name, gauge]) => ({
