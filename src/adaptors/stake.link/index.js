@@ -21,10 +21,11 @@ const pools = [
 ];
 
 const fetchPrice = async (tokenId) => {
-  let data = await utils.getData(
-    `https://api.coingecko.com/api/v3/simple/price?ids=${tokenId}&vs_currencies=usd`
+  const priceKey = `coingecko:${tokenId}`;
+  const data = await utils.getData(
+    `https://coins.llama.fi/prices/current/${priceKey}`
   );
-  return data[tokenId].usd;
+  return data.coins[priceKey].price;
 };
 
 const fetchPool = async (pool) => {
