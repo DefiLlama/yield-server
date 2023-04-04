@@ -77,9 +77,9 @@ const poolInfo = async (chain) => {
 
     yieldPools.map((pool, i) => {
         pool.gearPerBlock = "";
-        pool.availableLiquidity = "";
+        pool.availableLiquidity = peekPools[i].output[0][2];
         pool.totalBorrowed = peekPools[i].output[0][3];
-        pool.depositAPY_RAY = peekPools[i].output[0][2];
+        pool.depositAPY_RAY = peekPools[i].output[0][1];
         pool.borrowAPY_RAY = "";
         pool.underlyingToken = underlyingTokens[i];
         pool.withdrawFee = "";
@@ -91,8 +91,8 @@ const poolInfo = async (chain) => {
     return { yieldPools };
 };
 
-function calculateApy(rate, price = 1, tvl = 1) {
-
+function calculateApy(apys) {
+    return 0;
 }
 
 function calculateTvl(availableLiquidity, totalBorrowed, price, decimals) {
@@ -101,6 +101,10 @@ function calculateTvl(availableLiquidity, totalBorrowed, price, decimals) {
 
 const getApy = async () => {
     const yieldPools = (await poolInfo('arbitrum')).yieldPools;
+
+    const historyApys = (
+        await axios.get(`https://www.rodeofinance.xyz/api/apys/history`)
+    ).data;
 
     const symbol = (
         await sdk.api.abi.multiCall({
@@ -114,10 +118,10 @@ const getApy = async () => {
         const totalSupplyUsd = 0;
         const totalBorrowUsd = 0;
         const tvlUsd = totalSupplyUsd - totalBorrowUsd;
-        const LpRewardApy = 0;
+        const LpRewardApy = calculateApy(historyApys);
 
         return (readyToExport = exportFormatter(
-            pool.pool,
+            pool.address,
             'Arbitrum',
             symbol[i],
             tvlUsd,
