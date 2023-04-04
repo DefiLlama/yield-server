@@ -13,6 +13,7 @@ const allPools = [
     },
 ];
 
+
 const strategies = [
     '0x6A77FEC52D8575AC70F5196F833bd4A6c86c81AE',
     '0x81E37797D44d348E664247298Faa6A90Db90C1B9',
