@@ -19,7 +19,7 @@ const xWOOMapping = {
   polygon: '0x9BCf8b0B62F220f3900e2dc42dEB85C3f79b405B',
   arbitrum: '0x9321785D257b3f0eF7Ff75436a87141C683DC99d',
   optimism: '0x871f2F2ff935FD1eD867842FF2a7bfD051A5E527', // No xWOO on Optimism, only WOO
-}
+};
 
 const main = async () => {
   const datas = await Promise.all(
@@ -44,7 +44,7 @@ const main = async () => {
       results.push({
         pool: `${address}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
-        project: 'woofi',
+        project: 'woofi-earn',
         symbol: utils.formatSymbol(info['symbol']),
         poolMeta: `Supercharger${version}`,
         tvlUsd: parseFloat(BigNumber(info['tvl']).div(10 ** decimals)),

@@ -28,6 +28,12 @@ const marketConfig = {
     decimals: 18,
     underlyingAddress: '0x17FC002b466eEc40DaE837Fc4bE5c67993ddBd6F',
   },
+  '0x21202227Bc15276E40d53889Bc83E59c3CccC121': {
+    name: 'LARB',
+    symbol: 'LARB',
+    decimals: 18,
+    underlyingAddress: '0x912CE59144191C1204E64559FE8253a0e49E6548',
+  },
 };
 
 function getSupplyAndBorrowRate(liquidity, borrows, borrowRatePerBlock) {
@@ -103,7 +109,7 @@ const apy = async () => {
         .div(decimals)
         .times(BigNumber(prices[config.underlyingAddress.toLowerCase()]))
         .toNumber(),
-        ltv: 1
+      ltv: 1,
     });
   });
 
