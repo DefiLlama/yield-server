@@ -131,7 +131,7 @@ const getApy = async () => {
             0,
             pool.underlyingToken,
             [allPools[0].asset],
-            `https://www.rodeofinance.xyz/api/pools/history?address=${pool.address}&chain=42161`,
+            `https://www.rodeofinance.xyz/farm`,
             borrowAPR,
             0,
             totalSupplyUsd,
