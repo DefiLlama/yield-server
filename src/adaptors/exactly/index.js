@@ -89,7 +89,7 @@ const apy = async () =>
             /** @type {string[]} */
             underlyingTokens: [assets[i]],
             url: `${url}/${symbols[i]}`,
-            ltv: adjustFactors[i] / 1e18,
+            ltv: (adjustFactors[i] / 1e18) ** 2,
           };
           const shareValue = (totalAssets[i] * 1e18) / totalSupply[i];
           const prevShareValue = (prevTotalAssets[i] * 1e18) / prevTotalSupply[i];
