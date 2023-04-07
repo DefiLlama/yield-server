@@ -16,9 +16,13 @@ const BLOCKS_PER_YEAR = Math.floor((60 / CRONOS_BLOCK_TIME) * 60 * 24 * 365);
 const BLOCKS_PER_DAY = Math.floor((60 / CRONOS_BLOCK_TIME) * 60 * 24);
 const SECONDS_PER_YEAR = 60 * 60 * 24 * 365;
 const FEE_RATE = 0.002;
+
+const ARGO = '0x47a9d630dc5b28f75d3af3be3aaa982512cd89aa';
+const FERRO = '0x39bc1e38c842c60775ce37566d03b41a7a66c782';
+
 const EXTRA_REWARD_ADDRESS = {
   34: '0xb966b5d6a0fcd5b373b180bbe072bbfbbee10552',
-  36: '0x39bc1e38c842c60775ce37566d03b41a7a66c782',
+  36: FERRO,
 };
 
 const web3 = new Web3(RPC_URL, 25);
@@ -103,9 +107,13 @@ const calculateReservesUSD = (
 };
 
 const getExtraRewardPoolsPerYear = async () => {
-  const prices = await utils.getData(
-    `https://api.coingecko.com/api/v3/simple/price?ids=argo-finance%2Cferro&vs_currencies=usd`
-  );
+  const tokens = ['argo-finance', 'ferro']
+    .map((t) => `coingecko:${t}`)
+    .join(',');
+  const prices = (
+    await utils.getData(`https://coins.llama.fi/prices/current/${tokens}`)
+  ).coins;
+
   const poolsRewardPerSec = {
     'argo-finance': 1.04,
     ferro: 1.929,
@@ -117,29 +125,34 @@ const getExtraRewardPoolsPerYear = async () => {
 
   const rewardTokenAddress = {
     'argo-finance': '0xb966b5d6a0fcd5b373b180bbe072bbfbbee10552',
-    ferro: '0x39bc1e38c842c60775ce37566d03b41a7a66c782',
+    ferro: FERRO,
   };
 
   return Object.entries(prices).reduce(
     (acc, [name, price]) => ({
       ...acc,
-      [poolsIds[name]]: poolsRewardPerSec[name] * SECONDS_PER_YEAR * price.usd,
+      [poolsIds[name.replace('coingecko:', '')]]:
+        poolsRewardPerSec[name.replace('coingecko:', '')] *
+        SECONDS_PER_YEAR *
+        price.price,
     }),
     {}
   );
 };
 
 const getBaseTokensPrice = async () => {
-  const prices = await utils.getData(
-    `https://api.coingecko.com/api/v3/simple/price?ids=${BASE_TOKENS.map(
-      ({ cgName }) => cgName
-    ).join('%2C')}&vs_currencies=usd`
-  );
+  const prices = (
+    await utils.getData(
+      `https://coins.llama.fi/prices/current/${BASE_TOKENS.map(
+        ({ cgName }) => `coingecko:${cgName}`
+      ).join(',')}`
+    )
+  ).coins;
 
   const pricesMap = BASE_TOKENS.reduce(
     (acc, token) => ({
       ...acc,
-      [token.symbol]: prices[token.cgName].usd,
+      [token.symbol]: prices[`coingecko:${token.cgName}`].price,
     }),
     {}
   );

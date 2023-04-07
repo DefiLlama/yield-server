@@ -8,25 +8,31 @@ const { print } = require('graphql');
 
 const EXCHANGES_API = {
   uniswapv3: '',
-  quickswap: 'quickswap/'
+  quickswap: 'quickswap/',
+  zyberswap: 'zyberswap/',
+  thena: 'thena/'
 };
 const EXCHANGES_CHAINS = {
-  uniswapv3: ["ethereum", "optimism", "polygon", "arbitrum", "celo"],
-  quickswap: ["polygon"]
+  uniswapv3: ["ethereum", "optimism", "polygon", "arbitrum", "celo", "bsc"],
+  quickswap: ["polygon"],
+  zyberswap: ["arbitrum"],
+  thena: ["bsc"]
 };
 const CHAINS_API = {
   ethereum: '',
   optimism: 'optimism/',
   polygon: 'polygon/',
   arbitrum: 'arbitrum/',
-  celo: 'celo/'
+  celo: 'celo/',
+  bsc: 'bsc/'
 };
 const CHAIN_IDS = {
   ethereum: 1,
   optimism: 10,
   polygon: 137,
   arbitrum: 42161,
-  celo: 42220
+  celo: 42220,
+  bsc: 56
 };
 const UNISWAP_FEE = {
   "100": "0.01%",
@@ -81,7 +87,8 @@ const blacklist = {
   optimism: [],
   polygon: [],
   arbitrum: [],
-  celo: []
+  celo: [],
+  bsc: []
 };
 const masterchef_blacklist = {
   ethereum: [],
@@ -89,12 +96,13 @@ const masterchef_blacklist = {
   polygon: ["0x5ca8b7eb3222e7ce6864e59807ddd1a3c3073826", "0x9c64060cac9a20a44dbf9eff47bd4de7d049877d"],
   arbitrum: [],
   celo: [],
+  bsc: []
 };
 const getUrl_allData = (chain, exchange) =>
-  `https://gammawire.net/${exchange}${chain}hypervisors/allData`;
+  `https://wire2.gamma.xyz/${exchange}${chain}hypervisors/allData`;
 
 const getUrl_allRewards2 = (chain, exchange) =>
-  `https://gammawire.net/${exchange}${chain}allRewards2`
+  `https://wire2.gamma.xyz/${exchange}${chain}allRewards2`
 
 const pairsToObj = (pairs) =>
   pairs.reduce((acc, [el1, el2]) => ({ ...acc, [el1]: el2 }), {});

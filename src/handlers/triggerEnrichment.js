@@ -6,6 +6,7 @@ const {
   getYieldFiltered,
   getYieldOffset,
   getYieldAvg30d,
+  getYieldLendBorrow,
 } = require('../controllers/yieldController');
 const { getStat } = require('../controllers/statController');
 const { buildPoolsEnriched } = require('./getPoolsEnriched');
@@ -279,6 +280,11 @@ const main = async () => {
     .map((p) => ({ ...p, pool_old: p.pool, pool: p.configID }))
     .map(({ configID, ...p }) => p);
 
+  // temporarily remove OP pools on uniswap-v3 cause subgraph volume values are totally wrong
+  dataEnriched = dataEnriched.filter(
+    (p) => !(p.project === 'uniswap-v3' && p.chain === 'Optimism')
+  );
+
   // ---------- save output to S3
   console.log('\nsaving data to S3');
   console.log('nb of pools', dataEnriched.length);
@@ -301,6 +307,13 @@ const main = async () => {
     status: 'success',
     data: await buildPoolsEnriched(undefined),
   });
+
+  // query db for lendBorrow and store to s3 as origin for cloudfront
+  await utils.storeAPIResponse(
+    'defillama-datasets',
+    'yield-api/lendBorrow',
+    await getYieldLendBorrow()
+  );
 };
 
 ////// helper functions
@@ -337,11 +350,25 @@ const checkStablecoin = (el, stablecoins) => {
     stable = false;
   } else if (el.project === 'sideshift' && symbolLC.includes('xai')) {
     stable = false;
+  } else if (el.project === 'archimedes-finance' && symbolLC.includes('usd')) {
+    stable = true;
+  } else if (
+    el.project === 'aura' &&
+    [
+      '0xa13a9247ea42d743238089903570127dda72fe44',
+      '0x99c88ad7dc566616548adde8ed3effa730eb6c34',
+      '0xf3aeb3abba741f0eece8a1b1d2f11b85899951cb',
+    ].includes(el.pool)
+  ) {
+    stable = true;
   } else if (
     tokens.some((t) => t.includes('sushi')) ||
     tokens.some((t) => t.includes('dusk')) ||
     tokens.some((t) => t.includes('fpis')) ||
-    tokens.some((t) => t.includes('emaid'))
+    tokens.some((t) => t.includes('emaid')) ||
+    tokens.some((t) => t.includes('grail')) ||
+    tokens.some((t) => t.includes('oxai')) ||
+    tokens.some((t) => t.includes('crv'))
   ) {
     stable = false;
   } else if (tokens.length === 1) {
@@ -422,6 +449,8 @@ const checkExposure = (el) => {
     exposure = el.symbol.toLowerCase().includes('crv') ? 'multi' : exposure;
   } else if (el.project === 'dot-dot-finance') {
     exposure = 'multi';
+  } else if (el.project === 'synapse') {
+    exposure = 'multi';
   }
 
   return exposure;
@@ -433,7 +462,9 @@ const addPoolInfo = (el, stablecoins, config) => {
   // complifi has single token exposure only cause the protocol
   // will pay traders via deposited amounts
   el['ilRisk'] =
-    config[el.project]?.category === 'Options'
+    el.pool === '0x13C6Bed5Aa16823Aba5bBA691CAeC63788b19D9d' // jones-dao jusdc pool
+      ? 'no'
+      : config[el.project]?.category === 'Options'
       ? 'yes'
       : ['complifi', 'optyfi', 'arbor-finance', 'opyn-squeeth'].includes(
           el.project

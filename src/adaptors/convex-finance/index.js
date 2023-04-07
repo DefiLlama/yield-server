@@ -19,13 +19,14 @@ const projectedAprTvlThr = 1e6;
 let extraRewardsPrices = {};
 
 const getCrvCvxPrice = async () => {
-  const url =
-    'https://api.coingecko.com/api/v3/simple/price?ids=convex-finance%2Ccurve-dao-token&vs_currencies=usd';
+  const tokens = [crvAddress, cvxAddress].map((t) => `ethereum:${t}`).join(',');
+
+  const url = `https://coins.llama.fi/prices/current/${tokens}`;
 
   const response = await superagent.get(url);
-  const data = response.body;
-  const crvPrice = data['curve-dao-token'].usd;
-  const cvxPrice = data['convex-finance'].usd;
+  const data = response.body.coins;
+  const crvPrice = data[`ethereum:${crvAddress}`].price;
+  const cvxPrice = data[`ethereum:${cvxAddress}`].price;
   return { crvPrice, cvxPrice };
 };
 
@@ -45,9 +46,9 @@ const main = async () => {
     .map(({ data }) => data.poolData)
     .flat();
 
-  const {
-    data: { gauges },
-  } = await utils.getData('https://api.curve.fi/api/getGauges');
+  const { data: gauges } = await utils.getData(
+    'https://api.curve.fi/api/getAllGauges'
+  );
 
   const mappedGauges = Object.entries(gauges).reduce(
     (acc, [name, gauge]) => ({
@@ -117,6 +118,7 @@ const main = async () => {
     '0x453D92C7d4263201C69aACfaf589Ed14202d83a4', // yCrv
     '0x5b6C539b224014A09B3388e51CaAA8e354c959C8', // cbETH
     '0x051d7e5609917Bd9b73f04BAc0DED8Dd46a74301', // wbtc-sBTC
+    '0x9848482da3Ee3076165ce6497eDA906E66bB85C5', // eth-peth
   ];
   let withCvxTvl = enrichedPools
     .map((pool, i) => {
@@ -288,12 +290,13 @@ const main = async () => {
         ).output;
         if (!extraRewardsPrices[token.toLowerCase()]) {
           try {
-            const price = await utils.getData(
-              'https://api.coingecko.com/api/v3/coins/ethereum/contract/' +
-                token.toLowerCase()
-            );
+            const price = (
+              await utils.getData(
+                `https://coins.llama.fi/prices/current/ethereum:${token.toLowerCase()}`
+              )
+            ).coins;
             extraRewardsPrices[token.toLowerCase()] =
-              price.market_data.current_price.usd;
+              price[`ethereum:${token.toLowerCase()}`].price;
           } catch {
             extraRewardsPrices[token.toLowerCase()] = 0;
           }
