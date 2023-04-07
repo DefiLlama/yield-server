@@ -89,7 +89,7 @@ const apy = async () =>
             /** @type {string[]} */
             underlyingTokens: [assets[i]],
             url: `${url}/${symbols[i]}`,
-            ltv: adjustFactors[i] / 1e18,
+            ltv: (adjustFactors[i] / 1e18) ** 2,
           };
           const shareValue = (totalAssets[i] * 1e18) / totalSupply[i];
           const prevShareValue = (prevTotalAssets[i] * 1e18) / prevTotalSupply[i];
@@ -123,15 +123,36 @@ const apy = async () =>
                   chain,
                 });
                 /** @type number */
-                const rewardUsd = rewardsPrices[reward.toLowerCase()] || 2.47e18;
+                const rewardUsd = rewardsPrices[reward.toLowerCase()];
 
+                const firstMaturity = configStart - (configStart % INTERVAL) + INTERVAL;
+                const maxMaturity = timestampNow - (timestampNow % INTERVAL) + INTERVAL + maxFuturePools[i] * INTERVAL;
+                const rewardMaturities = Array.from(
+                  { length: (maxMaturity - firstMaturity) / INTERVAL },
+                  (_, j) => firstMaturity + j * INTERVAL
+                );
+                /** @type {{borrowed: string, deposited: string}[]} */
+                const fixedBalances = await api2.abi.multiCall({
+                  abi: abis.fixedPoolBalance,
+                  calls: rewardMaturities.map((maturity) => ({ target: market, params: [maturity] })),
+                  chain,
+                  block,
+                });
+                const fixedDebt = fixedBalances.reduce((total, { borrowed }) => total + Number(borrowed), 0);
+                const previewRepay = await api2.abi.call({
+                  target: market,
+                  abi: abis.previewRepay,
+                  params: [String(fixedDebt)],
+                  block,
+                  chain,
+                });
                 return {
                   borrow:
-                    totalFloatingBorrowAssets[i] > 0
+                    totalFloatingBorrowAssets[i] + fixedDebt > 0
                       ? (projectedBorrowIndex - borrowIndex) *
-                        (totalFloatingBorrowShares[i] / 10 ** decimals[i]) *
+                        ((totalFloatingBorrowShares[i] + previewRepay) / 10 ** decimals[i]) *
                         (rewardUsd / 1e18) *
-                        (10 ** decimals[i] / ((totalFloatingBorrowAssets[i] * usdUnitPrice) / 1e18)) *
+                        (10 ** decimals[i] / (((totalFloatingBorrowAssets[i] + fixedDebt) * usdUnitPrice) / 1e18)) *
                         (365 * 24)
                       : 0,
                   deposit:
@@ -263,6 +284,8 @@ const abis = {
     "function previewAllocation(address market, address reward, uint256 deltaTime) external view returns (uint256 borrowIndex, uint256 depositIndex, uint256 newUndistributed)",
   distributionTime:
     "function distributionTime(address market, address reward) external view returns (uint32 start, uint32 end, uint32 lastUpdate)",
+  fixedPoolBalance: "function fixedPoolBalance(uint256 maturity) external view returns (uint256 borrowed, uint256)",
+  previewRepay: "function previewRepay(uint256 assets) external view returns (uint256)",
 };
 
 /** @typedef {{ pool: string, chain: string, project: string, symbol: string, tvlUsd: number, apyBase?: number, apyReward?: number, rewardTokens?: Array<string>, underlyingTokens?: Array<string>, poolMeta?: string, url?: string, apyBaseBorrow?: number, apyRewardBorrow?: number, totalSupplyUsd?: number, totalBorrowUsd?: number, ltv?: number }} Pool */
