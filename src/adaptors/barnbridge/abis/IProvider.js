@@ -247,8 +247,21 @@ module.exports = [
     type: 'function',
   },
   {
-    inputs: [],
+    inputs: [
+      {
+        internalType: 'uint256[]',
+        name: '',
+        type: 'uint256[]',
+      },
+    ],
     name: 'harvest',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'preHarvest',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
