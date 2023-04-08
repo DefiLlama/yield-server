@@ -4,6 +4,7 @@ const ethers = require('ethers');
 let cbETHAdaptor = require('../coinbase-wrapped-staked-eth');
 let darknetABI = require('./DarknetABI');
 let lsdVaultABI = require('./LSDVaultABI');
+let farmABI = require('./FarmABI');
 
 const tokensToCheck = [
   "sfrxETH",
@@ -11,6 +12,9 @@ const tokensToCheck = [
   "wstETH",
   "cbETH"
 ];
+
+const seconds_per_year = 60 * 60 * 24 * 365;
+const denomination = 1e18;
 
 let contract_addresses = {    
   "darknet": "0xe8ef2e07e2fca3305372cb0345c686efbec75658",
@@ -36,6 +40,9 @@ const getApy = async () => {
   let apyBase = await getWeightedApr();
   let tvlUsd = await getTVLUSD();
 
+  let usdRewardPerYear = await getUSDRewardPerYear();
+  let apyReward = parseFloat(usdRewardPerYear / tvlUsd * 100).toFixed(2) ;
+
   return [
     {
       pool: `${contract_addresses['unshETH-farm']}-ethereum`,
@@ -44,12 +51,36 @@ const getApy = async () => {
       symbol: 'unshETH',
       tvlUsd,
       apyBase,
-      // apyReward: aprReward,
+      apyReward,
       rewardTokens: [contract_addresses.USH],
       underlyingTokens: [contract_addresses.WETH]
     },
   ];
 };
+
+
+
+async function getUSDRewardPerYear(){
+  let provider = new ethers.providers.JsonRpcProvider(process.env.ALCHEMY_CONNECTION_ETHEREUM);
+  let farmContract = new ethers.Contract(contract_addresses["unshETH-farm"], farmABI, provider);
+
+  let baseRewardsPerSecond = (await farmContract.getAllRewardRates())[0];
+
+  let rewardsPerSecond = (parseFloat(baseRewardsPerSecond)/denomination)
+
+  let rewardsPerYear = rewardsPerSecond * seconds_per_year;
+
+
+  let priceKey = `coingecko:unsheth`;
+  let USHPrice = (
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
+  ).data.coins[priceKey]?.price;
+  
+
+  let USDRewardPerYear = USHPrice * parseFloat(rewardsPerYear);
+
+  return USDRewardPerYear;
+}
 
 async function getTVLUSD(){
 
@@ -59,21 +90,17 @@ async function getTVLUSD(){
   ).data.coins[priceKey]?.price;
 
 
-  //get the darknet rate that converts each lsds into the respective amount of ETH
   let darknetRates = await getDarknetRates();
 
-  //get the balances of each LSD in the LSD Vault Contract
   let lsdVaultTokenBalances = await getLSDVaultTokenBalances();
 
-  //convert the balances to their eth amounts
   let lsdVaultEthBalances = {
-    sfrxETH: parseFloat(lsdVaultTokenBalances.sfrxETH)/1e18 * parseFloat(darknetRates.sfrxETH)/1e18,
-    cbETH: parseFloat(lsdVaultTokenBalances.cbETH)/1e18 * parseFloat(darknetRates.cbETH)/1e18,
-    rETH: parseFloat(lsdVaultTokenBalances.rETH)/1e18 * parseFloat(darknetRates.rETH)/1e18,
-    wstETH: parseFloat(lsdVaultTokenBalances.wstETH)/1e18 * parseFloat(darknetRates.wstETH)/1e18
+    sfrxETH: parseFloat(lsdVaultTokenBalances.sfrxETH)/denomination * parseFloat(darknetRates.sfrxETH)/denomination,
+    cbETH: parseFloat(lsdVaultTokenBalances.cbETH)/denomination * parseFloat(darknetRates.cbETH)/denomination,
+    rETH: parseFloat(lsdVaultTokenBalances.rETH)/denomination * parseFloat(darknetRates.rETH)/denomination,
+    wstETH: parseFloat(lsdVaultTokenBalances.wstETH)/denomination * parseFloat(darknetRates.wstETH)/denomination
   }
 
-  //now get the total usd balance by multiplying each eth balance by the eth-usd price 
   let totalUsdBalance = 0;
   for (const [key, value] of Object.entries(lsdVaultEthBalances)) {
     totalUsdBalance += value * ethPrice;
@@ -91,13 +118,11 @@ async function getPercentageOfUnshethInFarm(){
     "function totalSupply() view returns (uint256)"
   ];
 
-  //now get the total supply of unshETH and get the balance of unshETH in the unshETH farm using ethers
   let unshETHContract = new ethers.Contract(contract_addresses.unshETH, erc20Abi, provider);
   
   let unshETHFarmBalance = await unshETHContract.balanceOf(contract_addresses['unshETH-farm']);
   let unshETHFarmTotalSupply = await unshETHContract.totalSupply();
 
-  //get the percentage of unshETH in the farm
   let percentageOfUnshETHInFarm = parseFloat(unshETHFarmBalance)/parseFloat(unshETHFarmTotalSupply);
 
   return percentageOfUnshETHInFarm;
@@ -105,7 +130,6 @@ async function getPercentageOfUnshethInFarm(){
 
 async function getWeightedApr(){
 
-  //get APRS of the underlying LSDs
   let underlyingAPR = {
     sfrxETH: (await axios.get('https://api.frax.finance/v2/frxeth/summary/latest')).data.sfrxethApr,
     cbETH: (await cbETHAdaptor.apy())[0].apyBase,
@@ -113,21 +137,17 @@ async function getWeightedApr(){
     wstETH: parseFloat((await axios.get('https://stake.lido.fi/api/sma-steth-apr')).data)
   }
 
-  //get the darknet rate that converts each lsds into the respective amount of ETH
   let darknetRates = await getDarknetRates();
 
-  //get the balances of each LSD in the LSD Vault Contract
   let lsdVaultTokenBalances = await getLSDVaultTokenBalances();
 
-  //convert the balances to their eth amounts
   let lsdVaultEthBalances = {
-    sfrxETH: parseFloat(lsdVaultTokenBalances.sfrxETH)/1e18 * parseFloat(darknetRates.sfrxETH)/1e18,
-    cbETH: parseFloat(lsdVaultTokenBalances.cbETH)/1e18 * parseFloat(darknetRates.cbETH)/1e18,
-    rETH: parseFloat(lsdVaultTokenBalances.rETH)/1e18 * parseFloat(darknetRates.rETH)/1e18,
-    wstETH: parseFloat(lsdVaultTokenBalances.wstETH)/1e18 * parseFloat(darknetRates.wstETH)/1e18
+    sfrxETH: parseFloat(lsdVaultTokenBalances.sfrxETH)/denomination * parseFloat(darknetRates.sfrxETH)/denomination,
+    cbETH: parseFloat(lsdVaultTokenBalances.cbETH)/denomination * parseFloat(darknetRates.cbETH)/denomination,
+    rETH: parseFloat(lsdVaultTokenBalances.rETH)/denomination * parseFloat(darknetRates.rETH)/denomination,
+    wstETH: parseFloat(lsdVaultTokenBalances.wstETH)/denomination * parseFloat(darknetRates.wstETH)/denomination
   }
 
-  //now calculate the weight of each lsd in the vault 
   let totalEthBalance = 0;
   for (let lsd in lsdVaultEthBalances) {
     totalEthBalance += lsdVaultEthBalances[lsd];
@@ -139,7 +159,6 @@ async function getWeightedApr(){
     wstETH: lsdVaultEthBalances.wstETH/totalEthBalance
   }
 
-  //now multiply the apr of each lsd by its weight to get the weighted average apr
   let weightedApr = 0;
   for (let lsd in lsdVaultWeights) {
     weightedApr += underlyingAPR[lsd] * lsdVaultWeights[lsd];
@@ -148,7 +167,6 @@ async function getWeightedApr(){
   return weightedApr;
 }
 
-//get the darknet rate that converts each lsds into the respective amount of ETH
 async function getDarknetRates() {
   const provider = new ethers.providers.JsonRpcProvider(process.env.ALCHEMY_CONNECTION_ETHEREUM);
   let darknet = new ethers.Contract(contract_addresses.darknet, darknetABI, provider);
@@ -170,7 +188,6 @@ async function getLSDVaultTokenBalances() {
     "function balanceOf(address account) view returns (uint256)"
   ];
 
-  // Iterate through the tokens and get the balance in LSDVault
   for (const tokenKey of tokensToCheck) {
     const tokenAddress = contract_addresses[tokenKey];
     const tokenContract = new ethers.Contract(tokenAddress, erc20Abi, provider);
