@@ -5,11 +5,18 @@ let cbETHAdaptor = require('../coinbase-wrapped-staked-eth');
 let darknetABI = require('./DarknetABI');
 let lsdVaultABI = require('./LSDVaultABI');
 
+const tokensToCheck = [
+  "sfrxETH",
+  "rETH",
+  "wstETH",
+  "cbETH"
+];
+
 let contract_addresses = {    
   "darknet": "0xe8ef2e07e2fca3305372cb0345c686efbec75658",
   "LSDVault": "0x51A80238B5738725128d3a3e06Ab41c1d4C05C74",
 
-  "unshETH": "0x0Ae38f7E10A43B5b2fB064B42a2f4514cbA909ef", // temp one 0x50d77839538ba405136d907d6cdcbe497f2ada9e
+  "unshETH": "0x0Ae38f7E10A43B5b2fB064B42a2f4514cbA909ef",
   "USH": "0xe60779cc1b2c1d0580611c526a8df0e3f870ec48", 
 
   "USH-farm": "0xf728dB9182e7c3a9dFfbD71f9506d04f129Ac9C8",
@@ -158,16 +165,7 @@ async function getDarknetRates() {
 
 async function getLSDVaultTokenBalances() {
   const provider = new ethers.providers.JsonRpcProvider(process.env.ALCHEMY_CONNECTION_ETHEREUM);
-  const tokensToCheck = [
-    "sfrxETH",
-    "rETH",
-    "wstETH",
-    "cbETH"
-  ];
-  // Initialize the result object
   const balances = {};
-
-  // Define the ERC20 ABI (relevant part)
   const erc20Abi = [
     "function balanceOf(address account) view returns (uint256)"
   ];
@@ -179,7 +177,6 @@ async function getLSDVaultTokenBalances() {
     balances[tokenKey]  = await tokenContract.balanceOf(contract_addresses.LSDVault);
   }
 
-  // Return the result object
   return balances;
 }
 
