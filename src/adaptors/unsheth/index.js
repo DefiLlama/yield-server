@@ -31,7 +31,7 @@ const getApy = async () => {
 
   return [
     {
-      pool: `${contract_addresses.unshETH}-ethereum`,
+      pool: `${contract_addresses['unshETH-farm']}-ethereum`,
       chain: 'ethereum',
       project: 'unsheth',
       symbol: 'unshETH',
