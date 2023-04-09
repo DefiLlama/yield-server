@@ -121,9 +121,9 @@ async function getPercentageOfUnshethInFarm(){
   let unshETHContract = new ethers.Contract(contract_addresses.unshETH, erc20Abi, provider);
   
   let unshETHFarmBalance = await unshETHContract.balanceOf(contract_addresses['unshETH-farm']);
-  let unshETHFarmTotalSupply = await unshETHContract.totalSupply();
+  let unshETHTotalSupply = await unshETHContract.totalSupply();
 
-  let percentageOfUnshETHInFarm = parseFloat(unshETHFarmBalance)/parseFloat(unshETHFarmTotalSupply);
+  let percentageOfUnshETHInFarm = parseFloat(unshETHFarmBalance)/parseFloat(unshETHTotalSupply);
 
   return percentageOfUnshETHInFarm;
 }
