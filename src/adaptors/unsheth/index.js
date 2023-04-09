@@ -13,10 +13,10 @@ const tokensToCheck = [
   "cbETH"
 ];
 
-const seconds_per_year = 60 * 60 * 24 * 365;
+const seconds_per_year = 60 * 60 * 24 * 365.25;
 const denomination = 1e18;
 
-let contract_addresses = {    
+let contract_addresses = {
   "darknet": "0xe8ef2e07e2fca3305372cb0345c686efbec75658",
   "LSDVault": "0x51A80238B5738725128d3a3e06Ab41c1d4C05C74",
 
@@ -72,9 +72,7 @@ async function getUSDRewardPerYear(){
 
 
   let priceKey = `coingecko:unsheth`;
-  let USHPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  let USHPrice = (await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)).data.coins[priceKey]?.price;
   
 
   let USDRewardPerYear = USHPrice * parseFloat(rewardsPerYear);
@@ -83,32 +81,48 @@ async function getUSDRewardPerYear(){
 }
 
 async function getTVLUSD(){
-
   const priceKey = `ethereum:${contract_addresses.WETH}`;
-  const ethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
-
+  const ethPrice = (await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)).data.coins[priceKey]?.price;
 
   let darknetRates = await getDarknetRates();
 
   let lsdVaultTokenBalances = await getLSDVaultTokenBalances();
 
-  let lsdVaultEthBalances = {
-    sfrxETH: parseFloat(lsdVaultTokenBalances.sfrxETH)/denomination * parseFloat(darknetRates.sfrxETH)/denomination,
-    cbETH: parseFloat(lsdVaultTokenBalances.cbETH)/denomination * parseFloat(darknetRates.cbETH)/denomination,
-    rETH: parseFloat(lsdVaultTokenBalances.rETH)/denomination * parseFloat(darknetRates.rETH)/denomination,
-    wstETH: parseFloat(lsdVaultTokenBalances.wstETH)/denomination * parseFloat(darknetRates.wstETH)/denomination
+  let lsdPrices = await getLSDPrices();
+
+  let lsdVaultUSDBalances = {
+    sfrxETH: parseFloat(lsdVaultTokenBalances.sfrxETH)/denomination * lsdPrices.sfrxETH,
+    cbETH: parseFloat(lsdVaultTokenBalances.cbETH)/denomination * lsdPrices.cbETH,
+    rETH: parseFloat(lsdVaultTokenBalances.rETH)/denomination * lsdPrices.rETH,
+    wstETH: parseFloat(lsdVaultTokenBalances.wstETH)/denomination * lsdPrices.wstETH
   }
 
   let totalUsdBalance = 0;
-  for (const [key, value] of Object.entries(lsdVaultEthBalances)) {
-    totalUsdBalance += value * ethPrice;
+  for (const [key, value] of Object.entries(lsdVaultUSDBalances)) {
+    totalUsdBalance += value;
   }
 
   let percentageOfUnshETHInFarm = await getPercentageOfUnshethInFarm();
 
   return totalUsdBalance*percentageOfUnshETHInFarm;
+}
+
+async function getLSDPrices() {
+  const coingeckoIds = {
+    sfrxETH: 'staked-frax-ether',
+    rETH: 'rocket-pool-eth',
+    wstETH: 'staked-ether',
+    cbETH: 'coinbase-wrapped-staked-eth',
+  };
+
+  let prices = {
+    sfrxETH: (await axios.get(`https://coins.llama.fi/prices/current/coingecko:${coingeckoIds.sfrxETH}`)).data.coins[`coingecko:${coingeckoIds.sfrxETH}`]?.price,
+    rETH: (await axios.get(`https://coins.llama.fi/prices/current/coingecko:${coingeckoIds.rETH}`)).data.coins[`coingecko:${coingeckoIds.rETH}`]?.price,
+    wstETH: (await axios.get(`https://coins.llama.fi/prices/current/coingecko:${coingeckoIds.wstETH}`)).data.coins[`coingecko:${coingeckoIds.wstETH}`]?.price,
+    cbETH: (await axios.get(`https://coins.llama.fi/prices/current/coingecko:${coingeckoIds.cbETH}`)).data.coins[`coingecko:${coingeckoIds.cbETH}`]?.price,
+  }
+
+  return prices
 }
 
 async function getPercentageOfUnshethInFarm(){
