@@ -22,7 +22,7 @@ const getPoolInfo = async () => {
       pool: `${contract_addresses['BNBpancake-farm']}-${utils.formatChain('binance')}`,
       chain: utils.formatChain('binance'),
       project: 'unsheth',
-      symbol: 'Cake-LP',
+      symbol: 'USH-WBNB',
       tvlUsd,
       apyBase,
       apyReward,

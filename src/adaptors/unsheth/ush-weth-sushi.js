@@ -22,7 +22,7 @@ const getPoolInfo = async () => {
       pool: `${contract_addresses['sushi-farm']}-${utils.formatChain('ethereum')}`,
       chain: utils.formatChain('ethereum'),
       project: 'unsheth',
-      symbol: 'SLP',
+      symbol: 'USH-WETH',
       tvlUsd,
       apyBase,
       apyReward,

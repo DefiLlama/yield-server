@@ -10,9 +10,10 @@ const pancakeFarm = require('./ush-bnb-pancake');
 // -- For cbETH we use the DefiLlama calculation and import it directly since there's no official API (pls let us know if this is ok)
 // 2) We are calculating the farm APR for unshETH based on the USH emissions
 // .
-// We are also including the yield for USH-ETH and USH-BNB LPs on Sushi and PancakeSwap.  These are pool2 yields:
+// We are also including the yield for USH-WETH and USH-WBNB LPs on Sushi and PancakeSwap.  These are pool2 yields:
 // 1) For the base APR based on trading volume, we're pulling using Sushi and Pancakeswap APIs
 // -- For the PancakeSwap API, we're using the NodeReal subgraph URL as used in official PancakeSwap repo. If there's a official Defillama API Key, pls let us know how to include it (we included a free API key)
+// -- Maybe we weren't looking properly, but we didn't see any Pancakeswap pool2 in the yield section?
 // 2) Farm APR is based on the USH emissions
 // .
 // How do we get properly listed with the right attributes on Defillama?
