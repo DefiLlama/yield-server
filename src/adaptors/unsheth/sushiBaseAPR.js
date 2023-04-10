@@ -4,10 +4,6 @@ const contract_addresses = require('./contract_addresses');
 const axios = require('axios');
 const fetch = require('node-fetch');
 
-try {
-  require('dotenv').config({ path: './config.env' });
-} catch (e) {}
-
 async function getBlockNumberOf24HoursAgo(providerUrl) {
     const provider = new ethers.providers.JsonRpcProvider(providerUrl);
   
@@ -149,6 +145,7 @@ async function getLatestAPRSushi() {
     return totalAPR;
   }
   catch(err){
+    console.log("here in sushi");
     console.log(err);
   }
 }
