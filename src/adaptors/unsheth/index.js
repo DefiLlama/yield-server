@@ -16,7 +16,6 @@ const getApy = async () => {
   let sushiPool = await sushiFarm.getPoolInfo();
   let pancakePool = await pancakeFarm.getPoolInfo();
 
-
   return [
     unshETHPool,
     bnbUnshETHPool,

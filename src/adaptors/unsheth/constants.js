@@ -16,9 +16,20 @@ const tokensToCheck = [
 "cbETH"
 ];
 
-const BINANCE_RPC_URL = "https://bsc-dataseed.binance.org/"; //TODO Change
+const BINANCE_RPC_URL = "https://bsc-dataseed.binance.org/";
+
+const sushiSwapSubgraphUrl = "https://api.thegraph.com/subgraphs/name/sushiswap/exchange";
+const pancakeSwapSubgraphUrl = "https://data-platform.nodereal.io/graph/v1/a1db26ba19064757ac7f991b9383402d/projects/pancakeswap";
+const BLOCK_TIME_SECONDS = 12; // Approximate block time in seconds
+const BNB_BLOCK_TIME_SECONDS = 3;
+const feeRate = 0.003; // Sushi Swap Pool Fee
 
 module.exports = {   
+    BNB_BLOCK_TIME_SECONDS,
+    pancakeSwapSubgraphUrl,
+    sushiSwapSubgraphUrl,
+    BLOCK_TIME_SECONDS,
+    feeRate,
     BINANCE_RPC_URL,
     tokensToCheck,
     seconds_per_year,

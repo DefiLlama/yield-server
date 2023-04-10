@@ -7,12 +7,11 @@ const darknetABI = require('./DarknetABI');
 const lsdVaultABI = require('./LSDVaultABI');
 const farmABI = require('./FarmABI');
 const { seconds_per_year, denomination, tokensToCheck } = require('./constants');
+const {getLatestAPRSushi} = require('./sushiBaseAPR');
 const utils = require('../utils');
 
 const getPoolInfo = async () => {
-  const response = await fetch('https://api.unsheth.xyz/apr');
-  const data = await response.json();
-  const apyBase = data.sushi;
+  const apyBase = await getLatestAPRSushi();
 
   let tvlUsd = await getTVLUSD();
 

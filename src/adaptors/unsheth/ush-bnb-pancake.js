@@ -8,11 +8,10 @@ const lsdVaultABI = require('./LSDVaultABI');
 const farmABI = require('./FarmABI');
 const { seconds_per_year, denomination, tokensToCheck, BINANCE_RPC_URL } = require('./constants');
 const utils = require('../utils');
+const { getLatestAPRPancake } = require('./pancakeBaseAPR');
 
 const getPoolInfo = async () => {
-  const response = await fetch('https://api.unsheth.xyz/apr');
-  const data = await response.json();
-  const apyBase = data.pancake;
+  const apyBase = await getLatestAPRPancake();
 
   let tvlUsd = await getTVLUSD();
 
