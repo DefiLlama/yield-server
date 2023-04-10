@@ -1,4 +1,3 @@
-const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const ethers = require('ethers');
 const contract_addresses = require('./contract_addresses');
