@@ -13,7 +13,7 @@ const getPoolInfo = async () => {
   let tvlUsd = await getTVLUSD();
 
   let usdRewardPerYear = await getUSDRewardPerYear();
-  let apyReward = parseFloat(usdRewardPerYear / tvlUsd * 100).toFixed(2) ;
+  let apyReward = parseFloat(parseFloat(usdRewardPerYear / tvlUsd * 100).toFixed(2));
 
   return {
       pool: `${contract_addresses['unshETH-farm']}-${utils.formatChain('ethereum')}`,
