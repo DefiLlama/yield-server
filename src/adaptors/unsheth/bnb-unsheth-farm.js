@@ -25,7 +25,7 @@ const getPoolInfo = async () => {
         apyBase,
         apyReward,
         rewardTokens: [contract_addresses.BNBUSH],
-        underlyingTokens: [contract_addresses.BNBunshETH]
+        underlyingTokens: [contract_addresses.BNBETH]
     }
   }
   catch (e) {

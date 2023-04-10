@@ -24,7 +24,7 @@ const getPoolInfo = async () => {
       apyBase,
       apyReward,
       rewardTokens: [contract_addresses.USH],
-      underlyingTokens: [contract_addresses.unshETH]
+      underlyingTokens: [contract_addresses.WETH]
   }
 };
 
