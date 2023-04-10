@@ -5,7 +5,7 @@ const cbETHAdaptor = require('../coinbase-wrapped-staked-eth');
 const darknetABI = require('./DarknetABI');
 const lsdVaultABI = require('./LSDVaultABI');
 const farmABI = require('./FarmABI');
-const { seconds_per_year, denomination, tokensToCheck } = require('./constants');
+const { seconds_per_year, denomination, tokensToCheck, ETHEREUM_RPC_URL} = require('./constants');
 const utils = require('../utils');
 
 const getPoolInfo = async () => {
@@ -29,7 +29,7 @@ const getPoolInfo = async () => {
 };
 
 async function getUSDRewardPerYear(){
-  let provider = new ethers.providers.JsonRpcProvider(process.env.ALCHEMY_CONNECTION_ETHEREUM);
+  let provider = new ethers.providers.JsonRpcProvider(ETHEREUM_RPC_URL);
   let farmContract = new ethers.Contract(contract_addresses["unshETH-farm"], farmABI, provider);
 
   let baseRewardsPerSecond = (await farmContract.getAllRewardRates())[0];

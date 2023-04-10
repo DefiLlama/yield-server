@@ -1,7 +1,10 @@
 const ethers  = require('ethers');
-const {sushiSwapSubgraphUrl, BLOCK_TIME_SECONDS, feeRate} = require('./constants');
+const {sushiSwapSubgraphUrl, BLOCK_TIME_SECONDS, feeRate, ETHEREUM_RPC_URL} = require('./constants');
 const contract_addresses = require('./contract_addresses');
 const axios = require('axios');
+try {
+  require('dotenv').config({ path: './config.env' });
+} catch (e) {}
 
 async function getBlockNumberOf24HoursAgo(providerUrl) {
     const provider = new ethers.providers.JsonRpcProvider(providerUrl);
@@ -138,7 +141,7 @@ async function calculateTotalAPRSushi(pairAddress, providerUrl) {
 async function getLatestAPRSushi() {
   try {
     const pairAddress = contract_addresses.sushiSwapLP;
-    const providerUrl = process.env.ALCHEMY_CONNECTION_ETHEREUM;
+    const providerUrl = ETHEREUM_RPC_URL;
 
     const totalAPR = await calculateTotalAPRSushi(pairAddress, providerUrl);
     return totalAPR;
