@@ -2,6 +2,7 @@ const ethers  = require('ethers');
 const {pancakeSwapSubgraphUrl, BNB_BLOCK_TIME_SECONDS, feeRate, BINANCE_RPC_URL} = require('./constants');
 const contract_addresses = require('./contract_addresses');
 const axios = require('axios');
+const fetch = require('node-fetch');
 
 async function getBlockNumberOf24HoursAgo(providerUrl) {
     const provider = new ethers.providers.JsonRpcProvider(providerUrl);

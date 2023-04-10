@@ -2,6 +2,8 @@ const ethers  = require('ethers');
 const {sushiSwapSubgraphUrl, BLOCK_TIME_SECONDS, feeRate, ETHEREUM_RPC_URL} = require('./constants');
 const contract_addresses = require('./contract_addresses');
 const axios = require('axios');
+const fetch = require('node-fetch');
+
 try {
   require('dotenv').config({ path: './config.env' });
 } catch (e) {}
@@ -147,7 +149,6 @@ async function getLatestAPRSushi() {
     return totalAPR;
   }
   catch(err){
-    console.log("here in sushi");
     console.log(err);
   }
 }
