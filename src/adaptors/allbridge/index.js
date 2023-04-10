@@ -8,6 +8,7 @@ const chainMapping = {
   POL: 'Polygon',
   TRX: 'Tron',
   SOL: 'Solana',
+  ARB: 'Arbitrum',
 };
 
 const getApy = async () => {
@@ -21,7 +22,7 @@ const getApy = async () => {
           project: 'allbridge',
           pool: t.poolAddress,
           symbol: t.symbol,
-          apyBase: t.apr * 100,
+          apyBase: Number(t.apr),
           tvlUsd: Number(t.poolInfo.totalLpAmount) / 1e3,
         };
       });
