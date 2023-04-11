@@ -190,7 +190,7 @@ const topLvl = async (chainString, timestamp, url) => {
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
-      project: 'camelot',
+      project: 'camelot-v2',
       symbol,
       tvlUsd: p.totalValueLockedUSD,
       apyBase: p.apy1d,
