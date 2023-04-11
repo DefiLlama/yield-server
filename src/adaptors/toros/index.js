@@ -13,6 +13,10 @@ const YIELD_PRODUCTS_QUERY = gql`
     yieldProducts {
       address
     }
+    apyForTorosFunds {
+      fundAddress
+      monthly
+    }
   }
 `;
 
@@ -44,6 +48,7 @@ const formatValue = (value) => new BN(value).shiftedBy(-18).toNumber();
 const getDaysSincePoolCreation = (blockTime) =>
   Math.round((Date.now() / 1000 - +blockTime) / 86400);
 
+// Fallback APY calculation simply based on pool's past performance
 const calcApy = (blockTime, metrics) => {
   const daysActive = getDaysSincePoolCreation(blockTime);
   return daysActive >= 360
@@ -59,13 +64,17 @@ const calcApy = (blockTime, metrics) => {
 
 const fetchTorosYieldProducts = async () => {
   try {
-    const addresses = await request(DHEDGE_API_URL, YIELD_PRODUCTS_QUERY);
+    const response = await request(DHEDGE_API_URL, YIELD_PRODUCTS_QUERY);
+    const apyData = response.apyForTorosFunds;
     const products = await Promise.all(
-      addresses.yieldProducts.map(async ({ address }) => {
-        const poolData = await request(DHEDGE_API_URL, POOL_DATA_QUERY, {
+      response.yieldProducts.map(async ({ address }) => {
+        const { fund } = await request(DHEDGE_API_URL, POOL_DATA_QUERY, {
           address,
         });
-        return poolData.fund;
+        const poolApyData = apyData.find(
+          ({ fundAddress }) => fundAddress === fund.address
+        );
+        return { ...fund, apy: poolApyData?.monthly };
       })
     );
     return products;
@@ -100,6 +109,7 @@ const listTorosYieldProducts = async () => {
       performanceMetrics,
       blockTime,
       fundComposition,
+      apy,
     }) => {
       const rewardIncentivisedPool = rewardData?.poolsWithRewards
         .map((address) => address.toLowerCase())
@@ -110,11 +120,7 @@ const listTorosYieldProducts = async () => {
         project: 'toros',
         symbol,
         tvlUsd: formatValue(totalValue),
-        apyBase: calcApy(blockTime, performanceMetrics),
-        apyReward:
-          rewardIncentivisedPool && rewardData?.rewardApy
-            ? +rewardData.rewardApy * 100
-            : null,
+        apy: apy ?? calcApy(blockTime, performanceMetrics),
         rewardTokens:
           rewardIncentivisedPool && rewardData?.rewardToken
             ? [rewardData.rewardToken]

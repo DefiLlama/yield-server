@@ -206,6 +206,10 @@ const main = async () => {
     })
   ).body.coins;
 
+  const celoApy = (
+    await utils.getData('https://api.curve.fi/api/getFactoryAPYs-celo')
+  ).data.poolDetails;
+
   // create feeder closure to fill defillamaPooldata asynchroniously
   const defillamaPooldata = [];
   const feedLlama = async (poolData, blockchainId) => {
@@ -224,10 +228,6 @@ const main = async () => {
         )
       ).data.gauges;
     }
-
-    const celoApy = (
-      await utils.getData('https://api.curve.fi/api/getFactoryAPYs-celo')
-    ).data.poolDetails;
 
     const stETHPools = [
       '0xDC24316b9AE028F1497c275EB9192a3Ea0f67022',
@@ -258,6 +258,7 @@ const main = async () => {
           '0xFc1e8bf3E81383Ef07Be24c3FD146745719DE48D',
           '0x84C333e94AEA4a51a21F6cf0C7F528C50Dc7592C',
           '0xB755B949C126C04e0348DD881a5cF55d424742B2',
+          '0x7f90122BF0700F9E7e1F688fe926940E8839F353',
         ].includes(address)
           ? pool?.gaugeCrvApy[0]
           : gauge && subgraph
@@ -266,7 +267,8 @@ const main = async () => {
       let aprExtra = extraRewards
         ? extraRewards.map((reward) => reward.apy).reduce((a, b) => a + b)
         : stETHPools.includes(address) ||
-          address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' // pool on moonbeam
+          address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' || // pool on moonbeam
+          address === '0xe9123CBC5d1EA65301D417193c40A72Ac8D53501' // lvusd
         ? pool.gaugeRewards[0].apy
         : 0;
 
@@ -331,14 +333,18 @@ const main = async () => {
         apyBase,
         apyReward:
           // isolated pool for which the aprCrv is wrong
-          [
-            '0xBaaa1F5DbA42C3389bDbc2c9D2dE134F5cD0Dc89',
-            '0x7f90122BF0700F9E7e1F688fe926940E8839F353',
-          ].includes(address)
+          ['0xBaaa1F5DbA42C3389bDbc2c9D2dE134F5cD0Dc89'].includes(address)
             ? null
+            : [
+                '0x061b87122Ed14b9526A813209C8a59a633257bAb',
+                '0x9F2fE3500B1a7E285FDc337acacE94c480e00130',
+                '0x29A3d66B30Bc4AD674A4FDAF27578B64f6afbFe7',
+              ].includes(address)
+            ? aprExtra
             : aprCrv + aprExtra,
         rewardTokens: rewardTokens.flat(),
         underlyingTokens,
+        url: `https://curve.fi/#/${blockchainId}/pools`,
       });
     }
   };
@@ -371,5 +377,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://curve.fi/pools',
 };

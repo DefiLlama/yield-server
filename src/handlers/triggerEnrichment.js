@@ -280,6 +280,11 @@ const main = async () => {
     .map((p) => ({ ...p, pool_old: p.pool, pool: p.configID }))
     .map(({ configID, ...p }) => p);
 
+  // temporarily remove OP pools on uniswap-v3 cause subgraph volume values are totally wrong
+  dataEnriched = dataEnriched.filter(
+    (p) => !(p.project === 'uniswap-v3' && p.chain === 'Optimism')
+  );
+
   // ---------- save output to S3
   console.log('\nsaving data to S3');
   console.log('nb of pools', dataEnriched.length);
@@ -345,12 +350,25 @@ const checkStablecoin = (el, stablecoins) => {
     stable = false;
   } else if (el.project === 'sideshift' && symbolLC.includes('xai')) {
     stable = false;
+  } else if (el.project === 'archimedes-finance' && symbolLC.includes('usd')) {
+    stable = true;
+  } else if (
+    el.project === 'aura' &&
+    [
+      '0xa13a9247ea42d743238089903570127dda72fe44',
+      '0x99c88ad7dc566616548adde8ed3effa730eb6c34',
+      '0xf3aeb3abba741f0eece8a1b1d2f11b85899951cb',
+    ].includes(el.pool)
+  ) {
+    stable = true;
   } else if (
     tokens.some((t) => t.includes('sushi')) ||
     tokens.some((t) => t.includes('dusk')) ||
     tokens.some((t) => t.includes('fpis')) ||
     tokens.some((t) => t.includes('emaid')) ||
-    tokens.some((t) => t.includes('grail'))
+    tokens.some((t) => t.includes('grail')) ||
+    tokens.some((t) => t.includes('oxai')) ||
+    tokens.some((t) => t.includes('crv'))
   ) {
     stable = false;
   } else if (tokens.length === 1) {
@@ -430,6 +448,8 @@ const checkExposure = (el) => {
   } else if (el.project === 'badger-dao') {
     exposure = el.symbol.toLowerCase().includes('crv') ? 'multi' : exposure;
   } else if (el.project === 'dot-dot-finance') {
+    exposure = 'multi';
+  } else if (el.project === 'synapse') {
     exposure = 'multi';
   }
 

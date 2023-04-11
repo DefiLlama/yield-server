@@ -77,7 +77,13 @@ async function apy() {
     allVaults
       .filter((p) => utils.keepFinite(p))
       // getting a conflict on that particular pool, removing for now until i know why
-      .filter((p) => p.pool !== '0xE4E6055A7eB29F2Fa507ba7f8c4FAcc0C5ef9a2A')
+      .filter(
+        (p) =>
+          ![
+            '0xE4E6055A7eB29F2Fa507ba7f8c4FAcc0C5ef9a2A',
+            '0xd7b17297B9884Aa73BF5E6e39e3cEC107ffe6b17',
+          ].includes(p.pool)
+      )
   );
 }
 
