@@ -5,17 +5,19 @@ const abiLockup = require('./abiLockup');
 const main = async () => {
     const latestBlock = await sdk.api.util.getLatestBlock('arbitrum');
 
-    const INTERVALS_IN_YEAR = 365;
-    const BLOCKS_IN_INTERVAL = Math.round((31_536_000 / INTERVALS_IN_YEAR) * 4);
+    const SECONDS_IN_DAY = 86400;
+    const DAYS_IN_YEAR = 365;
 
-    const oldBlockHeight = latestBlock.number - BLOCKS_IN_INTERVAL;
-
+    const oldBlock = await sdk.api.util.lookupBlock(
+        latestBlock.timestamp - SECONDS_IN_DAY,
+        { chain: 'arbitrum' }
+    );
     const valueOld = (
         await sdk.api.abi.call({
             target: '0x3296EE4Fa62D0D78B1999617886E969a22653383',
             abi: abiLockup.find((m) => m.name === 'value'),
             chain: 'arbitrum',
-            block: oldBlockHeight
+            block: oldBlock.block
         })
     ).output / (10 ** 18);
 
@@ -23,7 +25,8 @@ const main = async () => {
         await sdk.api.abi.call({
             target: '0x3296EE4Fa62D0D78B1999617886E969a22653383',
             abi: abiLockup.find((m) => m.name === 'totalSupply'),
-            chain: 'arbitrum'
+            chain: 'arbitrum',
+            block: latestBlock.number
         })
     ).output / (10 ** 18);
 
@@ -31,11 +34,12 @@ const main = async () => {
         await sdk.api.abi.call({
             target: '0x3296EE4Fa62D0D78B1999617886E969a22653383',
             abi: abiLockup.find((m) => m.name === 'value'),
-            chain: 'arbitrum'
+            chain: 'arbitrum',
+            block: latestBlock.number
         })
     ).output / (10 ** 18);
 
-    const apy = (((value / valueOld) ** INTERVALS_IN_YEAR) - 1) * 100;
+    const apy = (((value / valueOld) ** DAYS_IN_YEAR) - 1) * 100;
 
     return [{
         pool: '0x3296EE4Fa62D0D78B1999617886E969a22653383-arbitrum',
