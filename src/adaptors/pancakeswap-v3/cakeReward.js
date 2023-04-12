@@ -1,4 +1,3 @@
-const Web3 = require('web3');
 const abiMcV3 = require('./masterchefv3.json');
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
@@ -60,12 +59,13 @@ const getCakeAprs = async (chain) => {
 
   const { cakePrice } = await getBaseTokensPrice();
 
-  // Here a little too complex to get the total staked liquidity in MasterChef `in-range`, can use api to get it instead?
+  // TODO: Here a little too complex to get the total staked liquidity in MasterChef `in-range`, can use api to get it instead?
   // https://github.com/pancakeswap/pancake-frontend/blob/develop/apps/web/src/pages/api/v3/%5BchainId%5D/farms/liquidity/%5Baddress%5D.ts
+  // https://pancakeswap.finance/api/v3/1/farms/liquidity/0x1ac1A8FEaAEa1900C4166dEeed0C11cC10669D36
   // by lp address
   const tvls = {};
 
-  // convert it into usd
+  // TODO: convert it into usd
   // by lp address
   const tvlsUSD = {};
 
