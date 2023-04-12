@@ -243,22 +243,30 @@ const main = async (timestamp = null) => {
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
 
   const data = [];
+  let cakeAPRsByChain = {};
   for (const [chain, url] of Object.entries(chains)) {
-    const cakeAPRs = await getCakeAprs(chain);
+    cakeAPRsByChain.chain = await getCakeAprs(chain);
     console.log(chain);
     data.push(
       await topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins)
     );
   }
-  return data.flat().filter((p) => utils.keepFinite(p)).map(p => {
-    if (cakeAPRs[p.id]) {
-      return {
-        ...p,
-        apyReward: cakeAPRs[p.id]
+  return data
+    .flat()
+    .filter((p) => utils.keepFinite(p))
+    .map((p) => {
+      if (
+        cakeAPRsByChain[p.chain] &&
+        cakeAPRsByChain[p.chain].cakeAPRs &&
+        cakeAPRsByChain[p.chain].cakeAPRs[p.id]
+      ) {
+        return {
+          ...p,
+          apyReward: cakeAPRsByChain[p.chain].cakeAPRs[p.id],
+        };
       }
-    }
-    return p
-  });
+      return p;
+    });
 };
 
 module.exports = {
