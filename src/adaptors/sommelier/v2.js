@@ -49,7 +49,9 @@ async function calcApy(cellarAddress, startEpochSecs, endEpochSecs) {
   const prevPrice = sumPrevPrice.div(twoDaysBefore.length);
   const yieldRatio = price.minus(prevPrice).div(prevPrice);
 
-  return yieldRatio.times(365).times(100).toNumber();
+  const result = yieldRatio.times(365).times(100).toNumber();
+
+  return Number.isNaN(result) ? 0 : result;
 }
 
 // Use the change in avg daily price between the last 2 days to calculate an APR
@@ -77,7 +79,8 @@ async function getApy7d(cellarAddress) {
   const prevPrice = new BigNumber(dayData[dayData.length - 1].shareValue); // Comparison price
   const yieldRatio = price.minus(prevPrice).div(prevPrice);
 
-  return yieldRatio.times(52).times(100).toNumber();
+  const result = yieldRatio.times(52).times(100).toNumber();
+  return Number.isNaN(result) ? 0 : result;
 }
 
 // Call getPositionAssets to get all the credit position's underlying assets

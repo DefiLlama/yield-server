@@ -3,6 +3,7 @@ const project = 'sommelier';
 
 // Addresses
 const realYieldUsd = '0x97e6e0a40a3d02f12d1cec30ebfbae04e37c119e';
+const realYieldEth = '0xb5b29320d2dde5ba5bafa1ebcd270052070483ec';
 
 // Rewards are paid out in EVM SOMM
 const rewardTokens = ['0xa670d7237398238de01267472c6f13e5b8010fd1'];
@@ -24,6 +25,7 @@ const stakingPools = {
   '0x05641a27c82799aaf22b436f20a3110410f29652':
     '0x7da7e27e4bcc6ec8bc06349e1cef6634f6df7c5c',
   [realYieldUsd]: '0x8510f22bd1932afb4753b6b3edf5db00c7e7a748',
+  [realYieldEth]: '0x955a31153e6764fe892757ace79123ae996b0afb',
 };
 
 // List of v0815 Cellars
@@ -138,6 +140,19 @@ const v2Pools = [
     rewardTokens,
     underlyingTokens: [],
     url: 'https://app.sommelier.finance/strategies/Real-Yield-USD',
+  },
+  {
+    pool: `${realYieldEth}-ethereum`,
+    chain,
+    project,
+    symbol: 'WETH-stETH-cbETH-rETH',
+    poolMeta: 'RealYieldETH',
+    tvlUsd: 0,
+    apyBase: 0,
+    apyReward: 0,
+    rewardTokens,
+    underlyingTokens: [],
+    url: 'https://app.sommelier.finance/strategies/Real-Yield-ETH',
   },
 ];
 
