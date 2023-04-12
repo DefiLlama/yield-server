@@ -27,7 +27,8 @@ const getPoolInfo = async () => {
       apyBase,
       apyReward,
       rewardTokens: [contract_addresses.USH],
-      underlyingTokens: [contract_addresses['sushiSwapLP']]
+      underlyingTokens: [contract_addresses['sushiSwapLP']],
+      poolMeta: 'Sushiswap LP'
   }
 };
 
