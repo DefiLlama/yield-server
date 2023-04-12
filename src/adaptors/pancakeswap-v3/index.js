@@ -253,7 +253,7 @@ const main = async (timestamp = null) => {
   return data.flat().filter((p) => utils.keepFinite(p)).map(p => {
     if (cakeAPRs[p.id]) {
       return {
-        ...p
+        ...p,
         apyReward: cakeAPRs[p.id]
       }
     }
