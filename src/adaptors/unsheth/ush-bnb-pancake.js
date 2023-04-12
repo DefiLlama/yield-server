@@ -27,7 +27,8 @@ const getPoolInfo = async () => {
       apyBase,
       apyReward,
       rewardTokens: [contract_addresses.BNBUSH],
-      underlyingTokens: [contract_addresses['BNBpancakeSwapLP']]
+      underlyingTokens: [contract_addresses['BNBpancakeSwapLP']],
+      poolMeta: 'Pancakeswap LP'
   }
 };
 
