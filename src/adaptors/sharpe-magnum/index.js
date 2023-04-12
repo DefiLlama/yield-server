@@ -58,15 +58,23 @@ async function apy(vaultAddress) {
   
 }
 
+async function getTVLInUSD() {
+  const url = 'https://api.llama.fi/tvl/sharpe-magnum';
+  const response = await axios.get(url);
+  return response.data;
+}
+
 const getApy = async () => {
   const vaultAddress = "0xfc85db895e070017ab9c84cb65b911d56b729ee9";
   const apyVal = await apy(vaultAddress)
+  const tvlUSD = await getTVLInUSD();
 
   const Eth = {
     pool: '0xfc85db895e070017ab9c84cb65b911d56b729ee9-ethereum',
     chain: utils.formatChain('Ethereum'),
     project: 'sharpe-magnum',
     symbol: utils.formatSymbol('ETH'),
+    tvlUsd : tvlUSD,
     apy: apyVal,
   };
 
