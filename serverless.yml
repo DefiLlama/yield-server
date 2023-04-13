@@ -251,6 +251,15 @@ functions:
           method: get
           path: /lsdRates
 
+  getLSDRatesX:
+    handler: src/handlers/getLSDRatesX.handler
+    description: Lambda for retrieving ETH LSD Rates
+    timeout: 30
+    events:
+      - httpApi:
+          method: get
+          path: /lsdRatesX
+
 resources:
   Resources:
     # QUEUES
