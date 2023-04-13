@@ -199,5 +199,3 @@ const getExpectedRates = async () => {
         : 1,
   }));
 };
-
-getRates().then(console.log);
