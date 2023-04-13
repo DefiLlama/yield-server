@@ -31,7 +31,7 @@ async function apr() {
       project: 'spice-finance',
       symbol: 'WETH',
       tvlUsd,
-      apy,
+      apyBase: apr,
     },
   ];
 }
@@ -43,6 +43,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  apyBase: main,
   url: 'https://www.spicefi.xyz/',
 };
