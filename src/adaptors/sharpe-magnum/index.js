@@ -4,6 +4,7 @@ const ethers = require('ethers');
 const {abi} = require("./ABI")
 const {vaultAbi} = require("./vaultAbi")
 const sdk = require('@defillama/sdk');
+const { ChainId, Token, Fetcher } = require('@defillama/sdk');
 
 async function fetchSmaApr() {
   const url = 'https://eth-api.lido.fi/v1/protocol/steth/apr/sma';
@@ -58,16 +59,33 @@ async function apy(vaultAddress) {
   
 }
 
-async function getTVLInUSD() {
-  const url = 'https://api.llama.fi/tvl/sharpe-magnum';
-  const response = await axios.get(url);
-  return response.data;
+async function getTVLInUSD(vaultAddress) {
+  const tvl = (
+    await sdk.api.abi.call({
+      target: vaultAddress,
+      chain: "ethereum",
+      abi: vaultAbi.find((m) => m.name === 'getVaultsActualBalance')
+    })
+  ).output;
+
+  const address = "ethereum:0x0000000000000000000000000000000000000000";
+  const response = await fetch(`https://coins.llama.fi/prices/current/${address}`);
+  const data = await response.json();
+  const ethData = data.coins[address];
+  if (!ethData) {
+    throw new Error(`ETH data not found for address ${address}`);
+  }
+  const ethPrice = ethData.price;
+  
+  const tvlUSD = ethers.utils.formatEther(tvl) * ethPrice;
+  
+  return tvlUSD;
 }
 
 const getApy = async () => {
   const vaultAddress = "0xfc85db895e070017ab9c84cb65b911d56b729ee9";
   const apyVal = await apy(vaultAddress)
-  const tvlUSD = await getTVLInUSD();
+  const tvlUSD = await getTVLInUSD(vaultAddress);
 
   const Eth = {
     pool: '0xfc85db895e070017ab9c84cb65b911d56b729ee9-ethereum',
