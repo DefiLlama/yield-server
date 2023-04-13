@@ -128,29 +128,29 @@ async function getPools() {
         })
       ).output;
 
-      const scoreOneLTVs = (
+      const scoreTenLTVs = (
         await sdk.api.abi.call({
           target: ROCI_SETTINGS_PROVIDER,
           chain,
           abi: abi.settingsProvider.getPoolToScoreLtvs,
-          params: [pool, 1],
+          params: [pool, 10],
         })
       ).output;
 
       const ltv =
-        parseFloat(formatEther(scoreOneLTVs[scoreOneLTVs.length - 1])) / 100;
+        parseFloat(formatEther(scoreTenLTVs[scoreTenLTVs.length - 1])) / 100;
 
-      const scoreOneBorrowSettings = (
+      const scoreTenBorrowSettings = (
         await sdk.api.abi.call({
           target: ROCI_SETTINGS_PROVIDER,
           chain,
           abi: abi.settingsProvider.getInterestSettings,
-          params: [pool, 1, scoreOneLTVs[0], 7 * ONE_DAY],
+          params: [pool, 10, scoreTenLTVs[0], 7 * ONE_DAY],
         })
       ).output;
 
       const apyBaseBorrow = parseFloat(
-        formatEther(scoreOneBorrowSettings.interest)
+        formatEther(scoreTenBorrowSettings.interest)
       );
 
       return {
