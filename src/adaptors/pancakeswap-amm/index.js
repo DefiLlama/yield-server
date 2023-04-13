@@ -203,7 +203,7 @@ const main = async () => {
       return {
         pool: lpTokens[i].toLowerCase(),
         chain: utils.formatChain('binance'),
-        project: 'pancakeswap',
+        project: 'pancakeswap-amm',
         symbol,
         tvlUsd: Number(reserveUSD),
         apyBase: lpAprs[lpTokens[i].toLowerCase()],
