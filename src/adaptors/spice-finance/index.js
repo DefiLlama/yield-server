@@ -31,6 +31,7 @@ async function apr() {
       project: 'spice-finance',
       symbol: 'WETH',
       tvlUsd,
+      apy,
       apyBase: apr,
     },
   ];
