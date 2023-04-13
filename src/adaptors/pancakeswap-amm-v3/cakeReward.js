@@ -121,8 +121,6 @@ const getCakeAprs = async (chain) => {
     };
   }, {});
 
-  console.log(tvlsUSD, 'tvlsUSD')
-
   const cakeAPRs = poolInfos.reduce((cakeAprs, poolInfo) => {
     const v3Pool = poolInfo.v3Pool;
     const allocPoint = poolInfo.allocPoint;

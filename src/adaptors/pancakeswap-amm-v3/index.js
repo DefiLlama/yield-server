@@ -221,7 +221,7 @@ const topLvl = async (
         pool: p.id,
         chain: utils.formatChain(chainString),
         project: 'pancakeswap-amm-v3',
-        poolMeta: `${poolMeta}, stablePool=${p.stablecoin}`,
+        poolMeta: poolMeta,
         symbol: p.symbol,
         tvlUsd: p.totalValueLockedUSD,
         apyBase: p.apy1d,
