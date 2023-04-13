@@ -14,6 +14,11 @@ const chains = {
   bsc: `${baseUrl}/pancakeswap/exchange-v3-bsc`,
 };
 
+const CAKE = {
+  [utils.formatChain('ethereum')]: '0x152649eA73beAb28c5b49B26eb48f7EAD6d4c898',
+  [utils.formatChain('bsc')]: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
+};
+
 const query = gql`
   {
     pools(first: 1000, orderBy: totalValueLockedUSD, orderDirection: desc block: {number: <PLACEHOLDER>}) {
@@ -215,7 +220,7 @@ const topLvl = async (
       return {
         pool: p.id,
         chain: utils.formatChain(chainString),
-        project: 'pancakeswap-v3',
+        project: 'pancakeswap-amm-v3',
         poolMeta: `${poolMeta}, stablePool=${p.stablecoin}`,
         symbol: p.symbol,
         tvlUsd: p.totalValueLockedUSD,
@@ -245,24 +250,26 @@ const main = async (timestamp = null) => {
   const data = [];
   let cakeAPRsByChain = {};
   for (const [chain, url] of Object.entries(chains)) {
-    cakeAPRsByChain.chain = await getCakeAprs(chain);
+    cakeAPRsByChain[utils.formatChain(chain)] = await getCakeAprs(chain);
     console.log(chain);
     data.push(
       await topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins)
     );
   }
+
   return data
     .flat()
     .filter((p) => utils.keepFinite(p))
     .map((p) => {
       if (
         cakeAPRsByChain[p.chain] &&
-        cakeAPRsByChain[p.chain].cakeAPRs &&
-        cakeAPRsByChain[p.chain].cakeAPRs[p.id]
+        cakeAPRsByChain[p.chain] &&
+        cakeAPRsByChain[p.chain][p.pool]
       ) {
         return {
           ...p,
-          apyReward: cakeAPRsByChain[p.chain].cakeAPRs[p.id],
+          apyReward: cakeAPRsByChain[p.chain][p.pool],
+          rewardTokens: [CAKE[p.chain]],
         };
       }
       return p;

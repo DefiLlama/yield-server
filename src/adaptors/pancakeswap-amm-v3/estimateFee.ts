@@ -334,6 +334,7 @@ module.exports.EstimatedFees = async (
   const estimatedFee =
     P >= Pl && P <= Pu ? estimateFee(deltaL, L, volume, feeTier) : 0;
 
+
   const estimatedFeeAfterProtocolFee = estimatedFee * (1 - protocolFee);
 
   return { poolAddress, estimatedFee: estimatedFeeAfterProtocolFee };
