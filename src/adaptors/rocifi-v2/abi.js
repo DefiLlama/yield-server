@@ -44,5 +44,75 @@ module.exports = {
       stateMutability: 'view',
       type: 'function',
     },
+    getPoolToScoreLtvs: {
+      inputs: [
+        {
+          internalType: 'contract IPool',
+          name: 'pool',
+          type: 'address',
+        },
+        {
+          internalType: 'uint16',
+          name: 'score',
+          type: 'uint16',
+        },
+      ],
+      name: 'getPoolToScoreLtvs',
+      outputs: [
+        {
+          internalType: 'uint256[]',
+          name: '',
+          type: 'uint256[]',
+        },
+      ],
+      stateMutability: 'view',
+      type: 'function',
+    },
+    getInterestSettings: {
+      inputs: [
+        {
+          internalType: 'contract IPool',
+          name: 'pool',
+          type: 'address',
+        },
+        {
+          internalType: 'uint16',
+          name: 'score',
+          type: 'uint16',
+        },
+        {
+          internalType: 'uint256',
+          name: 'ltv',
+          type: 'uint256',
+        },
+        {
+          internalType: 'uint256',
+          name: 'duration',
+          type: 'uint256',
+        },
+      ],
+      name: 'getInterestSettings',
+      outputs: [
+        {
+          components: [
+            {
+              internalType: 'uint256',
+              name: 'interest',
+              type: 'uint256',
+            },
+            {
+              internalType: 'uint256',
+              name: 'limit',
+              type: 'uint256',
+            },
+          ],
+          internalType: 'struct ISettingsProvider.InterestSettings',
+          name: '',
+          type: 'tuple',
+        },
+      ],
+      stateMutability: 'view',
+      type: 'function',
+    },
   },
 };

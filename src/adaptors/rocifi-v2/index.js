@@ -2,6 +2,9 @@ const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const { default: BigNumber } = require('bignumber.js');
+const {
+  utils: { formatEther },
+} = require('ethers');
 const abi = require('./abi');
 
 const GRAPH_URL =
@@ -125,6 +128,31 @@ async function getPools() {
         })
       ).output;
 
+      const scoreOneLTVs = (
+        await sdk.api.abi.call({
+          target: ROCI_SETTINGS_PROVIDER,
+          chain,
+          abi: abi.settingsProvider.getPoolToScoreLtvs,
+          params: [pool, 1],
+        })
+      ).output;
+
+      const ltv =
+        parseFloat(formatEther(scoreOneLTVs[scoreOneLTVs.length - 1])) / 100;
+
+      const scoreOneBorrowSettings = (
+        await sdk.api.abi.call({
+          target: ROCI_SETTINGS_PROVIDER,
+          chain,
+          abi: abi.settingsProvider.getInterestSettings,
+          params: [pool, 1, scoreOneLTVs[0], 7 * ONE_DAY],
+        })
+      ).output;
+
+      const apyBaseBorrow = parseFloat(
+        formatEther(scoreOneBorrowSettings.interest)
+      );
+
       return {
         address: pool,
         symbol,
@@ -133,6 +161,8 @@ async function getPools() {
         underlyingSymbol,
         tvl: poolTvl,
         totalBorrowed,
+        apyBaseBorrow,
+        ltv,
       };
     })
   );
@@ -173,6 +203,8 @@ async function getPoolData() {
         poolMeta: `RociFi ${pool.underlyingSymbol} lending pool`,
         totalBorrowUsd,
         totalSupplyUsd,
+        apyBaseBorrow: pool.apyBaseBorrow,
+        ltv: pool.ltv,
       };
     })
   );
