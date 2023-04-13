@@ -62,7 +62,6 @@ const main = async () => {
         project: 'yama-finance',
         symbol: utils.formatSymbol('USDT'),
         tvlUsd: totalSupply * value,
-        apy: apy,
         apyBase: apy,
         apyBase7d: apy7d,
         underlyingTokens: ['0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9'],
