@@ -197,7 +197,7 @@ const mulDiv = (a: bn, b: bn, multiplier: bn) => {
 const getFeeTierPercentage = (tier: string): number => {
   if (tier === '100') return 0.01 / 100;
   if (tier === '500') return 0.05 / 100;
-  if (tier === '3000') return 0.3 / 100;
+  if (tier === '2500') return 0.25 / 100;
   if (tier === '10000') return 1 / 100;
   return 0;
 };
