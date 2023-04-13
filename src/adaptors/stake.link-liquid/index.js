@@ -40,7 +40,7 @@ const fetchPool = async (pool) => {
   return {
     pool: `${address}-${CHAIN_NAME}`.toLowerCase(),
     chain: CHAIN_NAME,
-    project: 'stake.link',
+    project: 'stake.link-liquid',
     symbol,
     tvlUsd: tvl,
     apyBase: apy,

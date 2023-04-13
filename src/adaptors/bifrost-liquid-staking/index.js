@@ -1,13 +1,13 @@
 const sdk = require('@defillama/sdk');
-const axios = require('axios');
 const utils = require('../utils');
 
-const token = '0xc3d088842dcf02c13699f936bb83dfbbc6f721ab';
-const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+const veth = '0x4bc3263eb5bb2ef7ad9ab6fb68be80e43b43801f';
+const veth_v1 = '0xc3d088842dcf02c13699f936bb83dfbbc6f721ab';
 
 const getApy = async () => {
-  const tvl =
-    (await sdk.api.erc20.totalSupply({ target: token })).output / 1e18;
+  const tvl =  (await sdk.api.erc20.totalSupply({ target: veth })).output / 1e18;
+  const tvl_1 =
+    (await sdk.api.erc20.totalSupply({ target: veth_v1 })).output / 1e18;
 
   const vToken = await utils.getData('https://api.bifrost.app/api/site');
 
@@ -93,18 +93,30 @@ const getApy = async () => {
   };
 
   const vETH = {
-    pool: token,
+    pool: veth,
     chain: 'ethereum',
     project: 'bifrost-liquid-staking',
     symbol: 'veth',
     tvlUsd: tvl * prices['coingecko:ethereum'].price,
-    apyBase: vToken.vETH.stakingApy,
-    apyReward: Number(vToken.vETH.mevApy) + Number(vToken.vETH.gasFeeApy),
-    underlyingTokens: [weth],
+    apyBase: vToken.vETH2.apyBase,
+    apyReward:vToken.vETH2.apyReward,
+    underlyingTokens: [veth],
     rewardTokens: ['ETH'],
   };
 
-  return [vETH, vDOT, vGLMR, vMOVR, vKSM, vBNC, vFIL];
+  const vETH_1 = {
+    pool: veth_v1,
+    chain: 'ethereum',
+    project: 'bifrost-liquid-staking',
+    symbol: 'veth',
+    tvlUsd: tvl_1 * prices['coingecko:ethereum'].price,
+    apyBase: vToken.vETH.stakingApy,
+    apyReward: Number(vToken.vETH.mevApy) + Number(vToken.vETH.gasFeeApy),
+    underlyingTokens: [veth_v1],
+    rewardTokens: ['ETH'],
+  };
+
+  return [vETH, vETH_1, vDOT, vGLMR, vMOVR, vKSM, vBNC, vFIL];
 };
 
 module.exports = {
