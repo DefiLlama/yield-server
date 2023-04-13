@@ -206,9 +206,9 @@ const main = async () => {
     })
   ).body.coins;
 
-  const celoApy = (
-    await utils.getData('https://api.curve.fi/api/getFactoryAPYs-celo')
-  ).data.poolDetails;
+  // const celoApy = (
+  //   await utils.getData('https://api.curve.fi/api/getFactoryAPYs-celo')
+  // ).data.poolDetails;
 
   // create feeder closure to fill defillamaPooldata asynchroniously
   const defillamaPooldata = [];
