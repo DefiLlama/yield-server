@@ -97,8 +97,8 @@ functions:
     description: Lambda which runs enrichment process
     timeout: 300
     events:
-      # every hour at 20 past
-      - schedule: cron(20 * * * ? *)
+      # every hour at 16 past
+      - schedule: cron(16 * * * ? *)
 
   # --- stats update
   triggerStat:
