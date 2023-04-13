@@ -273,7 +273,17 @@ const getApy = async () => {
     });
     return chainAprs;
   });
-  return pools.flat();
+
+  // pools on optimism which have wrong reward apy
+  const x = [
+    '0x431f6e577a431d9ee87a535fde2db830e352e33c',
+    '0xed17209ab7f9224e29cc9894fa14a011f37b6115',
+  ];
+  return pools.flat().map((i) => ({
+    ...i,
+    apyReward: x.includes(i.pool) ? null : i.apyReward,
+    rewardTokens: x.includes(i.pool) ? null : i.rewardTokens,
+  }));
 };
 
 module.exports = {
