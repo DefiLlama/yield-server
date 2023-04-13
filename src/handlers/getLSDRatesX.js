@@ -82,6 +82,8 @@ const getRates = async () => {
   const marketRates = await getMarketRates();
   const expectedRates = await getExpectedRates();
 
+  console.log(marketRates);
+
   return {
     marketRates,
     expectedRates,
