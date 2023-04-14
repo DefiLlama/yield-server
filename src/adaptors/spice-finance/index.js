@@ -32,7 +32,7 @@ async function apr() {
       symbol: 'WETH',
       tvlUsd,
       apy,
-      apyBase: apr,
+      apyBase: apy,
     },
   ];
 }
