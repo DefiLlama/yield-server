@@ -12,6 +12,7 @@ const config = {
 };
 const url = "https://app.exact.ly";
 const INTERVAL = 86_400 * 7 * 4;
+const WAD = 10n ** 18n;
 
 const apy = async () =>
   Promise.all(
@@ -33,7 +34,7 @@ const apy = async () =>
         })
       ).map(([adjustFactor]) => adjustFactor);
 
-      /** @type [assets: string[], decimals: number[], maxFuturePools: number[], prevTotalAssets: string[], prevTotalSupply: string[], prevTotalFloatingBorrowAssets: string[], prevTotalFloatingBorrowShares: string[], totalAssets: string[], totalSupply: string[], totalFloatingBorrowAssets: string[], totalFloatingBorrowShares: string[], previewFloatingAssetsAverages: string[], backupFeeRates: bigint[], interestRateModels: number[] ] */
+      /** @type [assets: string[], decimals: number[], maxFuturePools: number[], prevTotalAssets: string[], prevTotalSupply: string[], prevTotalFloatingBorrowAssets: string[], prevTotalFloatingBorrowShares: string[], totalAssets: string[], totalSupply: string[], totalFloatingBorrowAssets: string[], totalFloatingBorrowShares: string[], previewFloatingAssetsAverages: string[], backupFeeRates: bigint[], interestRateModels: number[], reserveFactors: string[] ] */
       const [
         assets,
         decimals,
@@ -49,6 +50,7 @@ const apy = async () =>
         previewFloatingAssetsAverages,
         backupFeeRates,
         interestRateModels,
+        reserveFactors,
       ] = await Promise.all([
         ...[
           "asset",
@@ -67,6 +69,7 @@ const apy = async () =>
           "previewFloatingAssetsAverage",
           "backupFeeRate",
           "interestRateModel",
+          "reserveFactor",
         ].map((key) => api2.abi.multiCall({ abi: abis[key], calls: markets, chain, block })),
       ]);
 
@@ -99,6 +102,7 @@ const apy = async () =>
           const prevBorrowShareValue = (prevTotalFloatingBorrowAssets[i] * 1e18) / prevTotalFloatingBorrowShares[i];
           const borrowProportion = (borrowShareValue * 1e18) / prevBorrowShareValue;
           const borrowAPR = (borrowProportion / 1e18 - 1) * 365 * 100;
+          const baseUnit = 10 ** decimals[i];
 
           let aprReward, aprRewardBorrow, rewardTokens;
           const controller = await api2.abi.call({ target: market, abi: abis.rewardsController, block, chain });
@@ -150,17 +154,17 @@ const apy = async () =>
                   borrow:
                     totalFloatingBorrowAssets[i] + fixedDebt > 0
                       ? (projectedBorrowIndex - borrowIndex) *
-                        ((totalFloatingBorrowShares[i] + previewRepay) / 10 ** decimals[i]) *
+                        ((totalFloatingBorrowShares[i] + previewRepay) / baseUnit) *
                         (rewardUsd / 1e18) *
-                        (10 ** decimals[i] / (((totalFloatingBorrowAssets[i] + fixedDebt) * usdUnitPrice) / 1e18)) *
+                        (baseUnit / (((totalFloatingBorrowAssets[i] + fixedDebt) * usdUnitPrice) / 1e18)) *
                         (365 * 24)
                       : 0,
                   deposit:
                     totalAssets[i] > 0
                       ? (projectedDepositIndex - depositIndex) *
-                        (totalSupply[i] / 10 ** decimals[i]) *
+                        (totalSupply[i] / baseUnit) *
                         (rewardUsd / 1e18) *
-                        (10 ** decimals[i] / ((totalAssets[i] * usdUnitPrice) / 1e18)) *
+                        (baseUnit / ((totalAssets[i] * usdUnitPrice) / 1e18)) *
                         (365 * 24)
                       : 0,
                 };
@@ -177,8 +181,8 @@ const apy = async () =>
             pool: `${market}-${chain}`.toLowerCase(),
             apyBase: aprToApy(apr),
             apyBaseBorrow: aprToApy(borrowAPR),
-            totalSupplyUsd: (totalSupply[i] * usdUnitPrice) / 10 ** decimals[i],
-            totalBorrowUsd: (totalFloatingBorrowAssets[i] * usdUnitPrice) / 10 ** decimals[i],
+            totalSupplyUsd: (totalSupply[i] * usdUnitPrice) / baseUnit,
+            totalBorrowUsd: (totalFloatingBorrowAssets[i] * usdUnitPrice) / baseUnit,
             rewardTokens,
             apyReward: aprReward ? aprToApy(aprReward) : undefined,
             apyRewardBorrow: aprRewardBorrow ? aprToApy(aprRewardBorrow) : undefined,
@@ -211,8 +215,7 @@ const apy = async () =>
               const fixedDepositAPR =
                 optimalDeposit > 0n
                   ? Number(
-                      (31_536_000n *
-                        (((unassignedEarning * (10n ** 18n - BigInt(backupFeeRates[i]))) / 10n ** 18n) * 10n ** 18n)) /
+                      (31_536_000n * (((unassignedEarning * (WAD - BigInt(backupFeeRates[i]))) / WAD) * WAD)) /
                         optimalDeposit /
                         BigInt(INTERVAL * (j + 1) - (timestampNow % INTERVAL))
                     ) / 1e16
@@ -238,8 +241,15 @@ const apy = async () =>
                 poolMeta,
                 apyBase: aprToApy(fixedDepositAPR, secsToMaturity / 86_400),
                 apyBaseBorrow: aprToApy(fixedBorrowAPR, secsToMaturity / 86_400),
-                totalSupplyUsd: (supplied * usdUnitPrice) / 10 ** decimals[i],
-                totalBorrowUsd: (borrowed * usdUnitPrice) / 10 ** decimals[i],
+                totalSupplyUsd:
+                  (Number(
+                    BigInt(supplied) +
+                      (BigInt(totalSupply[i]) * (WAD - BigInt(reserveFactors[i]))) / WAD -
+                      BigInt(totalFloatingBorrowAssets[i])
+                  ) *
+                    usdUnitPrice) /
+                  baseUnit,
+                totalBorrowUsd: (borrowed * usdUnitPrice) / baseUnit,
                 rewardTokens,
                 apyRewardBorrow: aprRewardBorrow ? aprToApy(aprRewardBorrow, secsToMaturity / 86_400) : undefined,
               };
@@ -286,6 +296,7 @@ const abis = {
     "function distributionTime(address market, address reward) external view returns (uint32 start, uint32 end, uint32 lastUpdate)",
   fixedPoolBalance: "function fixedPoolBalance(uint256 maturity) external view returns (uint256 borrowed, uint256)",
   previewRepay: "function previewRepay(uint256 assets) external view returns (uint256)",
+  reserveFactor: "function reserveFactor() view returns (uint128)",
 };
 
 /** @typedef {{ pool: string, chain: string, project: string, symbol: string, tvlUsd: number, apyBase?: number, apyReward?: number, rewardTokens?: Array<string>, underlyingTokens?: Array<string>, poolMeta?: string, url?: string, apyBaseBorrow?: number, apyRewardBorrow?: number, totalSupplyUsd?: number, totalBorrowUsd?: number, ltv?: number }} Pool */

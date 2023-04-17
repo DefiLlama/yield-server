@@ -115,9 +115,14 @@ async function getRewardApy(stakingPool, sommPrice) {
       chain,
     })
   ).output;
-  const totalDepositsWithBoost = new BigNumber(totalDepositWithBoostResult).div(
+  let totalDepositsWithBoost = new BigNumber(totalDepositWithBoostResult).div(
     1e18
   );
+  if(stakingPool === "0x955a31153e6764fe892757ace79123ae996b0afb"){
+    const ethPrice = (await utils.getPrices(['coingecko:ethereum']))
+      .pricesBySymbol.eth;
+    totalDepositsWithBoost = totalDepositsWithBoost.times(ethPrice)
+  }
 
   const endTimestampResult = (
     await call({
