@@ -55,6 +55,17 @@ const getTvl = async(tvl, tokens, prices, decimals) => {
 
 }
 
+const transformLink = (link) => {
+    
+    let i = 0;
+    while (link[i] != 'v' || link[i + 1] != '2' || link[i + 2] != '/') {
+        i += 1;
+    }
+
+    return link.substr(i + 3, link.length);
+
+}
+
 const poolsFunction = async () => {
 
     const abiA = ["event TokenLocked(address indexed origin, address indexed sender, uint256 indexed nft)"];
@@ -73,12 +84,10 @@ const poolsFunction = async () => {
 
         const registry = config[chain].registry;
         const name = config[chain].name;
-
-        console.log(process.env.ALCHEMY_CONNECTION_ETHEREUM);
         
-        let provider = new ethers.providers.JsonRpcProvider(
-            (name == 'ethereum') ? 'homestead' : 'matic',
-            process.env.ALCHEMY_CONNECTION_ETHEREUM
+        let provider = new ethers.providers.AlchemyProvider(
+            name == 'ethereum' ? 'homestead' : 'matic',
+            transformLink(process.env.ALCHEMY_CONNECTION_ETHEREUM)
         );
 
         let contract = new ethers.Contract(registry, abiB, provider);
