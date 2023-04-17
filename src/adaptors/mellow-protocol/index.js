@@ -11,14 +11,12 @@ const config = {
         registry: '0xfd23f971696576331fcf96f80a20b4d3b31ca5b2',
         fromBlock: 15237714,
         name: 'ethereum'
-    }
-    /*,
+    },
     polygon: {
         registry: '0xd3d0e85f225348a2006270daf624d8c46cae4e1f',
         fromBlock: 31243728,
         name: 'polygon'
     }
-    */
 }
 
 const getPrices = async (addresses, timestamp) => {
@@ -75,8 +73,11 @@ const poolsFunction = async () => {
 
         const registry = config[chain].registry;
         const name = config[chain].name;
-
-        let provider = getProvider(name);
+        
+        let provider = new ethers.providers.AlchemyProvider(
+            (name == 'ethereum') ? 'homestead' : 'matic',
+            process.env.ALCHEMY_CONNECTION_ETHEREUM
+        );
 
         let contract = new ethers.Contract(registry, abiB, provider);
         const registered = await contract.queryFilter(contract.filters.VaultRegistered(), config[chain].fromBlock);
@@ -102,7 +103,7 @@ const poolsFunction = async () => {
         const tokens = await sdk.api.abi.multiCall({
             calls: calls,
             abi: rootVault.find(({ name }) => name === 'vaultTokens'),
-            name
+            chain: name
         });
 
         tokens.output.forEach(tokensI => {
@@ -137,13 +138,13 @@ const poolsFunction = async () => {
         const tvls = await sdk.api.abi.multiCall({
             calls: calls,
             abi: rootVault.find(({ name }) => name === 'tvl'),
-            name
+            chain: name
         });
 
         const supplys = await sdk.api.abi.multiCall({
             calls: calls,
             abi: rootVault.find(({ name }) => name === 'totalSupply'),
-            name
+            chain: name
         });
 
         let decimalsKTV = {};
