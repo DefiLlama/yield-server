@@ -74,7 +74,7 @@ const poolsFunction = async () => {
         const registry = config[chain].registry;
         const name = config[chain].name;
         
-        let provider = new ethers.providers.AlchemyProvider(
+        let provider = new ethers.providers.JsonRpcProvider(
             (name == 'ethereum') ? 'homestead' : 'matic',
             process.env.ALCHEMY_CONNECTION_ETHEREUM
         );
