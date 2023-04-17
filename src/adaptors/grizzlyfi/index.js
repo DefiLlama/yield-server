@@ -49,6 +49,13 @@ const abiYearn = {
   stateMutability: 'view',
   type: 'function'
 };
+const abiPcsV3 = {
+  inputs: [],
+  name: 'getUnderlyingBalances',
+  outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }, { internalType: 'uint256', name: '', type: 'uint256' }],
+  stateMutability: 'view',
+  type: 'function'
+};
 
 const tokenLpApi = (method) => {
   return {
@@ -220,34 +227,18 @@ const yearnHives = [
   }
 ]
 
-const hives = [
+const pcsV3Hives = [
   {
-    hive: '0xDa0Ae0710b080AC64e72Fa3eC44203F27750F801',
-    lpToken: '0x58F876857a02D6762E0101bb5C46A8c1ED44Dc16'
+    hive: '0x25223015ee4dbaf9525ddd43797cae1dcd83f6b5',
+    name: 'Pancakeswap-V3'
   },
   {
-    hive: '0x8D83Ad61Ae6eDE4274876EE9ad9127843ba2AbF7',
-    lpToken: '0xEc6557348085Aa57C72514D67070dC863C0a5A8c'
+    hive: '0x9eab3bf245da9b6d8705b1a906ee228382c38f93',
+    name: 'Pancakeswap-V3'
   },
   {
-    hive: '0xE4Dbb05498C42A6E780e4C6F96A4E20a7D7Cb1d6',
-    lpToken: '0x7EFaEf62fDdCCa950418312c6C91Aef321375A00'
-  },
-  {
-    hive: '0x66B1bACAB888017cA96abBf28ad8d10B7A7B5eC3',
-    lpToken: '0x2354ef4DF11afacb85a5C7f98B624072ECcddbB1'
-  },
-  {
-    hive: '0x9F45E2181D365F9057f67153e6D213e2358A5A4B',
-    lpToken: '0x66FDB2eCCfB58cF098eaa419e5EfDe841368e489'
-  },
-  {
-    hive: '0x3cbF1d01A650e9DB566A123E3D5e42B9684C6b6a',
-    lpToken: '0xEa26B78255Df2bBC31C1eBf60010D78670185bD0'
-  },
-  {
-    hive: '0x6fc2FEed99A97105B988657f9917B771CD809f40',
-    lpToken: '0xF45cd219aEF8618A92BAa7aD848364a158a24F33'
+    hive: '0x76ab668d93135bcd64df8e4a7ab9dd05fac4cdbf',
+    name: 'Pancakeswap-V3'
   }
 ];
 
@@ -273,7 +264,7 @@ const calculateReservesUSD = (
   return reserve0.times(token0Price).plus(reserve1.times(token1Price));
 };
 
-const getPairInfo = async (pair, tokenAddress) => {
+const getPairInfo = async (tokenAddress) => {
   const [tokenSymbol, tokenDecimals] = await Promise.all(
     ['erc20:symbol', 'erc20:decimals'].map((method) =>
       sdk.api.abi.multiCall({
@@ -287,7 +278,6 @@ const getPairInfo = async (pair, tokenAddress) => {
       )
     ));
   return {
-    lpToken: pair.toLowerCase(),
     pairName: tokenSymbol.output.map(e => e.output).join('-'),
     token0: {
       address: tokenAddress[0],
@@ -343,19 +333,24 @@ async function apy() {
       sdk.api.abi.multiCall({ calls: yearnHives.map(getHive), abi: abiYearn, chain: 'bsc', }),
     ]);
 
-  // deprecated
-  const hiveBalancesCall = await sdk.api.abi.multiCall({
-    calls: hives.map(getHive),
-    abi,
-    chain: 'bsc',
-  });
-
   const [underlyingToken0Uni, underlyingToken1Uni] = await Promise.all(
     ['token0', 'token1'].map((method) =>
       sdk.api.abi.multiCall({
         abi: tokenLpApi(method),
         calls: pcsHives.concat(farms).concat(yearnHives).map(({ token }) => ({
           target: token,
+        })),
+        chain: 'bsc',
+        requery: true,
+      }))
+  );
+
+  const [underlyingToken0V3, underlyingToken1V3] = await Promise.all(
+    ['token0', 'token1'].map((method) =>
+      sdk.api.abi.multiCall({
+        abi: tokenLpApi(method),
+        calls: pcsV3Hives.map(({ hive }) => ({
+          target: hive,
         })),
         chain: 'bsc',
         requery: true,
@@ -375,19 +370,6 @@ async function apy() {
       }))
   );
 
-  // deprecated
-  const [underlyingToken0, underlyingToken1] = await Promise.all(
-    ['token0', 'token1'].map((method) =>
-      sdk.api.abi.multiCall({
-        abi: tokenLpApi(method),
-        calls: hives.map(({ lpToken }) => ({
-          target: lpToken,
-        })),
-        chain: 'bsc',
-        requery: true,
-      }))
-  );
-
   const [reservesResUni, supplyResUni] = await Promise.all(
     ['getReserves', 'totalSupply'].map((method) =>
       sdk.api.abi.multiCall({
@@ -400,6 +382,17 @@ async function apy() {
       })
     )
   );
+
+  const [reservesV3] = await Promise.all([
+    sdk.api.abi.multiCall({
+      abi: abiPcsV3,
+      calls: pcsV3Hives.map(({ hive }) => ({
+        target: hive,
+      })),
+      chain: 'bsc',
+      requery: true,
+    })
+  ])
 
   const [reservesToken0Stable, reservesToken1Stable] = await Promise.all(
     [0, 1].map((coin) =>
@@ -424,21 +417,12 @@ async function apy() {
       requery: true,
     });
 
-  // deprecated
-  const [reservesRes, supplyRes] = await Promise.all(
-    ['getReserves', 'totalSupply'].map((method) =>
-      sdk.api.abi.multiCall({
-        abi: lpABI.filter(({ name }) => name === method)[0],
-        calls: hives.map(({ lpToken }) => ({
-          target: lpToken,
-        })),
-        chain: 'bsc',
-        requery: true,
-      })
-    )
-  );
-
   const reserveDataUni = reservesResUni.output.map((res) => res.output);
+  const reserveDataV3 = reservesV3.output.map((res) => {
+    return {
+      _reserve0: res.output[0], _reserve1: res.output[1]
+    }
+  });
   const reserveDataStable0 = reservesToken0Stable.output.map((res) => res.output);
   const reserveDataStable1 = reservesToken1Stable.output.map((res) => res.output);
 
@@ -450,12 +434,13 @@ async function apy() {
     }
   });
 
-  const reservesData = reserveDataUni.concat(reserveDataStable);
+  const reservesData = reserveDataUni.concat(reserveDataV3).concat(reserveDataStable);
 
   const supplyDataUni = supplyResUni.output.map((res) => res.output);
+  const supplyDataV3 = pcsV3Hives.map(() => 1);
   const supplyDataStable = totalSupplyStable.output.map((res) => res.output);
 
-  const supplyData = supplyDataUni.concat(supplyDataStable);
+  const supplyData = supplyDataUni.concat(supplyDataV3).concat(supplyDataStable);
 
   const hiveBalances = [];
 
@@ -470,6 +455,8 @@ async function apy() {
   hiveBalances.push(...farmBalances.output.map((res) => res.output));
   hiveBalances.push(...yearnBalances.output.map((res) => res.output));
 
+  hiveBalances.push(...pcsV3Hives.map(() => 1));
+
   hiveBalances.push(...stableHiveBalancesGrizzly.output.map((grizzly, i) => {
     const hbg = BigNumber(grizzly.output);
     const hbStd = BigNumber(stableHiveBalancesStandard.output[i].output);
@@ -478,20 +465,20 @@ async function apy() {
     return hbg.plus(hbStd).plus(hbStb).toString(10);
   }))
 
-  const tokens0 = underlyingToken0Uni.output.map((res) => res.output).concat(underlyingToken0Stable.output.map((res) => res.output));
-  const tokens1 = underlyingToken1Uni.output.map((res) => res.output).concat(underlyingToken1Stable.output.map((res) => res.output));
+  const tokens0 = underlyingToken0Uni.output.map((res) => res.output).concat(underlyingToken0V3.output.map((res) => res.output)).concat(underlyingToken0Stable.output.map((res) => res.output));
+  const tokens1 = underlyingToken1Uni.output.map((res) => res.output).concat(underlyingToken1V3.output.map((res) => res.output)).concat(underlyingToken1Stable.output.map((res) => res.output));
 
   const tokensPrices = await getPrices([...tokens0, ...tokens1]);
 
   const pairInfos = await Promise.all(
-    pcsHives.concat(farms).concat(yearnHives).concat(stableHives).map(
-      (val, index) => getPairInfo(val.token, [tokens0[index], tokens1[index]], val.name)
+    pcsHives.concat(farms).concat(yearnHives).concat(pcsV3Hives).concat(stableHives).map(
+      (val, index) => getPairInfo([tokens0[index], tokens1[index]])
     )
   );
 
   const apyComputed = await utils.getData(APY_URL);
 
-  const res = pcsHives.concat(farms).concat(yearnHives).concat(stableHives).map((pool, i) => {
+  const res = pcsHives.concat(farms).concat(yearnHives).concat(pcsV3Hives).concat(stableHives).map((pool, i) => {
     const pairInfo = pairInfos[i];
     const supply = supplyData[i];
     const reserves = reservesData[i];
@@ -543,6 +530,8 @@ async function apy() {
       rewardTokens: [GHNY],
     };
   });
+
+  console.log(res)
 
   return res;
 }
