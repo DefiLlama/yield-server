@@ -118,7 +118,7 @@ const main = async (body) => {
     apy: p.apy < 0 ? 0 : p.apy,
     apyBase:
       protocolConfig[body.adaptor]?.category === 'Options' ||
-      body.adaptor === 'mellow-protocol'
+      ['mellow-protocol', 'sommelier'].includes(body.adaptor)
         ? p.apyBase
         : p.apyBase < 0
         ? 0
