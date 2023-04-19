@@ -258,6 +258,7 @@ const main = async () => {
           '0xFc1e8bf3E81383Ef07Be24c3FD146745719DE48D',
           '0x84C333e94AEA4a51a21F6cf0C7F528C50Dc7592C',
           '0xB755B949C126C04e0348DD881a5cF55d424742B2',
+          '0xa138341185a9D0429B0021A11FB717B225e13e1F',
         ].includes(address)
           ? pool?.gaugeCrvApy[0]
           : gauge && subgraph
