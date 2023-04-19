@@ -91,7 +91,7 @@ const getApy = async () => {
     return {
       pool: pair.id,
       chain: utils.formatChain('bsc'),
-      project: 'thena-v2',
+      project: 'thena-v1',
       symbol: `${pair.token0.symbol}-${pair.token1.symbol}`,
       tvlUsd: tvl,
       apyReward: parseFloat(apyDict[pair.id.toLowerCase()]),
