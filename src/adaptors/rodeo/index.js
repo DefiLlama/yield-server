@@ -92,10 +92,6 @@ function calculateTvl(amount, price, decimals) {
 const getApy = async () => {
     const yieldPools = (await poolInfo('arbitrum')).yieldPools;
 
-    const historyApys = (
-        await axios.get(`https://www.rodeofinance.xyz/api/apys/history`)
-    ).data;
-
     const symbol = (
         await sdk.api.abi.multiCall({
             abi: 'erc20:symbol',
