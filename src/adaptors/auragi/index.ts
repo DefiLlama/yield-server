@@ -45,7 +45,7 @@ const getApy = async () => {
   const apyDict = {}
   const alreadySeen = []
 
-  for (const pool of poolsRes.data) {
+  for (const pool of poolsRes) {
     apyDict[pool.address.toLowerCase()] = pool.gauge.apr
   }
 
