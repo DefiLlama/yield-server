@@ -117,9 +117,7 @@ const main = async () => {
     //make sure to account for stETH rewards on certain pools
     const wstETHApy = swapApr.poolAprs.tokens.breakdown[WSTETH_ADDRESS] || 0;
 
-    const rewardTokens = wstETHApy
-      ? [BAL_ADDRESS, AURA_ADDRESS, WSTETH_ADDRESS]
-      : [BAL_ADDRESS, AURA_ADDRESS];
+    const rewardTokens = [BAL_ADDRESS, AURA_ADDRESS];
 
     return {
       pool: pool.lpToken.id,
@@ -127,8 +125,8 @@ const main = async () => {
       symbol: balData.tokens.map(({ symbol }) => symbol).join('-'),
       chain: utils.formatChain('ethereum'),
       tvlUsd,
-      apyBase: Number(swapApr.poolAprs.swap),
-      apyReward: apyBal + apyAura + auraExtraApy + wstETHApy,
+      apyBase: Number(swapApr.poolAprs.swap) + wstETHApy,
+      apyReward: apyBal + apyAura + auraExtraApy,
       underlyingTokens: balData.tokens.map(({ address }) => address),
       rewardTokens,
     };
