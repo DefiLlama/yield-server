@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk3');
 const axios = require('axios');
 const abiStakingPool = require('./abiStakingPool');
 
