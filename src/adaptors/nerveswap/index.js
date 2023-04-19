@@ -15,7 +15,7 @@ const getApy = async () => {
       tvlUsd: Number(new BigNumber(p.reserveUsdtValue).shiftedBy(-18).toFixed(6)),
       apyBase: p.feeUsdtValueARP / 100,
       apyReward: apyReward > 0 ? apyReward : null,
-      rewardTokens: apyReward > 0 ? [] : [],
+      rewardTokens: apyReward > 0 ? [p.lpMintingToken] : [],
       volumeUsd1d: Number(new BigNumber(p.amountUsdtValue24H).shiftedBy(-18).toFixed(6)),
       volumeUsd7d: Number(new BigNumber(p.amountUsdtValue7D).shiftedBy(-18).toFixed(6)),
       poolMeta: null
