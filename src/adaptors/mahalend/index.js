@@ -208,7 +208,7 @@ const apy = async () => {
     return chainPools;
   });
 
-  return pools.flat();
+  return pools.flat().filter((p) => !!p.tvlUsd);
 };
 
 module.exports = {
