@@ -128,7 +128,7 @@ const getApy = async () => {
   const priceKey = `ethereum:${gear}`;
   const gearPrice = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  ).data.coins[priceKey]?.price ?? 0;
 
   const yieldPools = (await poolInfo('ethereum')).yieldPools;
 
@@ -155,7 +155,7 @@ const getApy = async () => {
     );
     const tvlUsd = totalSupplyUsd - totalBorrowUsd;
     const LpRewardApy = calculateApy(
-      pool.gearPerBlock?.LP,
+      pool.gearPerBlock?.LP ?? 0,
       gearPrice,
       totalSupplyUsd
     );

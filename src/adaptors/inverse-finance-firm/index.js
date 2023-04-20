@@ -15,10 +15,10 @@ const firmStart = 16159015;
 const DBR = '0xAD038Eb671c44b853887A7E32528FaB35dC5D710';
 const DOLA = '0x865377367054516e17014CcdED1e7d814EDC9ce4';
 
-const provider = new ethersProviders.AlchemyProvider(
-  'homestead',
+const provider = new ethers.providers.JsonRpcProvider(
   process.env.ALCHEMY_CONNECTION_ETHEREUM
 );
+
 const l1TokenPrices = async (l1TokenAddrs) => {
   const l1TokenQuery = l1TokenAddrs.map((addr) => `ethereum:${addr}`).join();
   const data = await utils.getData(
@@ -178,7 +178,7 @@ const main = async () => {
     };
   });
 
-  return pools;
+  return pools.filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

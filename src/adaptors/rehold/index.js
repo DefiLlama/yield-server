@@ -38,6 +38,17 @@ const CHAINS = {
     },
   },
 
+  optimism: {
+    dual: {
+      address: '0x868a943ca49a63eb0456a00ae098d470915eea0d',
+      abi: DualV2,
+    },
+
+    vault: {
+      address: '0xd476ce848c61650e3051f7571f3ae437fe9a32e0',
+    },
+  },
+
   avax: {
     dual: {
       address: '0x868a943ca49a63eb0456a00ae098d470915eea0d',

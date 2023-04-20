@@ -83,6 +83,7 @@ const main = async () => {
     .map((s) => s.symbol.toLowerCase());
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
+  if (!stablecoins.includes('fraxbp')) stablecoins.push('fraxbp');
 
   // get catgory data (we hardcode IL to true for options protocols)
   const config = (
