@@ -5,7 +5,8 @@ exports.CHAINS = {
         banana: '0x603c7f932ED1fc6575303D8Fb018fDCBb0f39a95',
         masterchef: '0x71354AC3c695dfB1d3f595AfA5D4364e9e06339B',
         feeRate: 0.0005,
-        apiUrl: 'https://bnb.apeswapgraphs.com/subgraphs/name/ape-swap/apeswap-subgraph',
+        // apiUrl: 'https://bnb.apeswapgraphs.com/subgraphs/name/ape-swap/apeswap-subgraph',
+        apiUrl: 'https://api.thegraph.com/subgraphs/name/apeswapfinance/bsc-dex',
         callsName: {
             length: 'poolLength',
             alloc: 'totalAllocPoint',

@@ -83,6 +83,7 @@ const main = async () => {
     .map((s) => s.symbol.toLowerCase());
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
+  if (!stablecoins.includes('fraxbp')) stablecoins.push('fraxbp');
 
   // get catgory data (we hardcode IL to true for options protocols)
   const config = (
@@ -351,6 +352,15 @@ const checkStablecoin = (el, stablecoins) => {
   } else if (el.project === 'sideshift' && symbolLC.includes('xai')) {
     stable = false;
   } else if (el.project === 'archimedes-finance' && symbolLC.includes('usd')) {
+    stable = true;
+  } else if (
+    el.project === 'aura' &&
+    [
+      '0xa13a9247ea42d743238089903570127dda72fe44',
+      '0x99c88ad7dc566616548adde8ed3effa730eb6c34',
+      '0xf3aeb3abba741f0eece8a1b1d2f11b85899951cb',
+    ].includes(el.pool)
+  ) {
     stable = true;
   } else if (
     tokens.some((t) => t.includes('sushi')) ||
