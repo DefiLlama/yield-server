@@ -8,6 +8,11 @@ const poolAbi = require('../aave-v3/poolAbi');
 
 const SECONDS_PER_YEAR = 31536000;
 
+const chainUrlParam = {
+  ethereum: 'proto_mainnet_v3',
+  arbitrum: 'proto_arbitrum_v3',
+};
+
 const getPrices = async (addresses) => {
   const prices = (
     await superagent.post('https://coins.llama.fi/prices').send({
@@ -34,135 +39,176 @@ const getPrices = async (addresses) => {
   return { pricesByAddress, pricesBySymbol };
 };
 
-const pool = async (chain, provider, marketName) => {
-  const reserveTokens = (
-    await sdk.api.abi.call({
-      target: provider,
-      abi: poolAbi.find((m) => m.name === 'getAllReservesTokens'),
-      chain,
-    })
-  ).output;
-
-  const aTokens = (
-    await sdk.api.abi.call({
-      target: provider,
-      abi: poolAbi.find((m) => m.name === 'getAllATokens'),
-      chain,
-    })
-  ).output;
-
-  const poolsReserveData = (
-    await sdk.api.abi.multiCall({
-      calls: reserveTokens.map((p) => ({
-        target: provider,
-        params: p.tokenAddress,
-      })),
-      abi: poolAbi.find((m) => m.name === 'getReserveData'),
-      chain,
-    })
-  ).output.map((o) => o.output);
-
-  const poolsReservesConfigurationData = (
-    await sdk.api.abi.multiCall({
-      calls: reserveTokens.map((p) => ({
-        target: provider,
-        params: p.tokenAddress,
-      })),
-      abi: poolAbi.find((m) => m.name === 'getReserveConfigurationData'),
-      chain,
-    })
-  ).output.map((o) => o.output);
-
-  const totalSupplyEthereum = (
-    await sdk.api.abi.multiCall({
-      chain,
-      abi: aTokenAbi.find(({ name }) => name === 'totalSupply'),
-      calls: aTokens.map((t) => ({
-        target: t.tokenAddress,
-      })),
-    })
-  ).output.map((o) => o.output);
-
-  const underlyingBalancesEthereum = (
-    await sdk.api.abi.multiCall({
-      chain,
-      abi: aTokenAbi.find(({ name }) => name === 'balanceOf'),
-      calls: aTokens.map((t, i) => ({
-        target: reserveTokens[i].tokenAddress,
-        params: [t.tokenAddress],
-      })),
-    })
-  ).output.map((o) => o.output);
-
-  const underlyingDecimalsEthereum = (
-    await sdk.api.abi.multiCall({
-      chain,
-      abi: aTokenAbi.find(({ name }) => name === 'decimals'),
-      calls: aTokens.map((t) => ({
-        target: t.tokenAddress,
-      })),
-    })
-  ).output.map((o) => o.output);
-
-  const priceKeys = reserveTokens
-    .map((t) => `${chain}:${t.tokenAddress}`)
-    .join(',');
-
-  const pricesEthereum = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).body.coins;
-
-  return reserveTokens.map((pool, i) => {
-    const p = poolsReserveData[i];
-    const price = pricesEthereum[`${chain}:${pool.tokenAddress}`]?.price;
-
-    const supply = totalSupplyEthereum[i];
-    const totalSupplyUsd =
-      (supply / 10 ** underlyingDecimalsEthereum[i]) * price;
-
-    const currentSupply = underlyingBalancesEthereum[i];
-    const tvlUsd =
-      (currentSupply / 10 ** underlyingDecimalsEthereum[i]) * price;
-
-    return {
-      pool: `${aTokens[i].tokenAddress}-${chain}`.toLowerCase(),
-      chain,
-      project: 'mahalend',
-      symbol: pool.symbol,
-      tvlUsd,
-      apyBase: (p.liquidityRate / 10 ** 27) * 100,
-      underlyingTokens: [pool.tokenAddress],
-      totalSupplyUsd,
-      totalBorrowUsd: totalSupplyUsd - tvlUsd,
-      apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
-      ltv: poolsReservesConfigurationData[i].ltv / 10000,
-      url: `https://app.mahalend.com/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=${marketName}`,
-      borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
-    };
-  });
+const API_URLS = {
+  arbitrum:
+    'https://api.thegraph.com/subgraphs/name/mahalend/protocol-v3-arbitrum',
+  ethereum: 'https://api.thegraph.com/subgraphs/name/mahalend/mahalend-mainnet',
 };
 
+const query = gql`
+  query ReservesQuery {
+    reserves {
+      name
+      borrowingEnabled
+      aToken {
+        id
+        rewards {
+          id
+          emissionsPerSecond
+          rewardToken
+          rewardTokenDecimals
+          rewardTokenSymbol
+          distributionEnd
+        }
+        underlyingAssetAddress
+        underlyingAssetDecimals
+      }
+      vToken {
+        rewards {
+          emissionsPerSecond
+          rewardToken
+          rewardTokenDecimals
+          rewardTokenSymbol
+          distributionEnd
+        }
+      }
+      symbol
+      liquidityRate
+      variableBorrowRate
+      baseLTVasCollateral
+      isFrozen
+    }
+  }
+`;
+
 const apy = async () => {
-  const ethPools = await pool(
-    'ethereum',
-    '0xCB5a1D4a394C4BA58999FbD7629d64465DdA70BC',
-    'proto_mainnet_v3'
+  let data = await Promise.all(
+    Object.entries(API_URLS).map(async ([chain, url]) => [
+      chain,
+      (await request(url, query)).reserves,
+    ])
+  );
+  data = data.map(([chain, reserves]) => [
+    chain,
+    reserves.filter((p) => !p.isFrozen),
+  ]);
+
+  const totalSupply = await Promise.all(
+    data.map(async ([chain, reserves]) =>
+      (
+        await sdk.api.abi.multiCall({
+          chain: chain,
+          abi: aTokenAbi.find(({ name }) => name === 'totalSupply'),
+          calls: reserves.map((reserve) => ({
+            target: reserve.aToken.id,
+          })),
+        })
+      ).output.map(({ output }) => output)
+    )
   );
 
-  const arbPools = await pool(
-    'arbitrum',
-    '0xE76C1D2a7a56348574810e83D38c07D47f0641F3',
-    'proto_arbitrum_v3'
+  const underlyingBalances = await Promise.all(
+    data.map(async ([chain, reserves]) =>
+      (
+        await sdk.api.abi.multiCall({
+          chain: chain,
+          abi: aTokenAbi.find(({ name }) => name === 'balanceOf'),
+          calls: reserves.map((reserve, i) => ({
+            target: reserve.aToken.underlyingAssetAddress,
+            params: [reserve.aToken.id],
+          })),
+        })
+      ).output.map(({ output }) => output)
+    )
   );
 
-  const pools = [...ethPools, ...arbPools];
+  const underlyingTokens = data.map(([chain, reserves]) =>
+    reserves.map((pool) => `${chain}:${pool.aToken.underlyingAssetAddress}`)
+  );
 
-  const poolsToSkip = [
-    '0x23799bb4e743bde3783c34f9519098abd38ab9bc-ethereum', // ignore weth; not used
-    '0x1d6f76076e819f18d7f5a555631a4bcf1ea34511-arbitrum', // ignore sslp; not used
-  ];
+  const rewardTokens = data.map(([chain, reserves]) =>
+    reserves.map((pool) =>
+      pool.aToken.rewards.map((rew) => `${chain}:${rew.rewardToken}`)
+    )
+  );
 
-  return pools.filter((p) => !poolsToSkip.includes(p.pool));
+  const { pricesByAddress, pricesBySymbol } = await getPrices(
+    underlyingTokens.flat().concat(rewardTokens.flat(Infinity))
+  );
+
+  const pools = data.map(([chain, markets], i) => {
+    const chainPools = markets.map((pool, idx) => {
+      const supply = totalSupply[i][idx];
+      const currentSupply = underlyingBalances[i][idx];
+      const totalSupplyUsd =
+        (supply / 10 ** pool.aToken.underlyingAssetDecimals) *
+        (pricesByAddress[pool.aToken.underlyingAssetAddress] ||
+          pricesBySymbol[pool.symbol]);
+      const tvlUsd =
+        (currentSupply / 10 ** pool.aToken.underlyingAssetDecimals) *
+        (pricesByAddress[pool.aToken.underlyingAssetAddress] ||
+          pricesBySymbol[pool.symbol]);
+      const { rewards } = pool.aToken;
+
+      const rewardPerYear = rewards.reduce(
+        (acc, rew) =>
+          acc +
+          (rew.emissionsPerSecond / 10 ** rew.rewardTokenDecimals) *
+            SECONDS_PER_YEAR *
+            (pricesByAddress[rew.rewardToken] ||
+              pricesBySymbol[rew.rewardTokenSymbol]),
+        0
+      );
+
+      const { rewards: rewardsBorrow } = pool.vToken;
+      const rewardPerYearBorrow = rewardsBorrow.reduce(
+        (acc, rew) =>
+          acc +
+          (rew.emissionsPerSecond / 10 ** rew.rewardTokenDecimals) *
+            SECONDS_PER_YEAR *
+            (pricesByAddress[rew.rewardToken] ||
+              pricesBySymbol[rew.rewardTokenSymbol]),
+        0
+      );
+      let totalBorrowUsd = totalSupplyUsd - tvlUsd;
+      totalBorrowUsd = totalBorrowUsd < 0 ? 0 : totalBorrowUsd;
+
+      const supplyRewardEnd = pool.aToken.rewards[0]?.distributionEnd;
+      const borrowRewardEnd = pool.vToken.rewards[0]?.distributionEnd;
+
+      return {
+        pool: `${pool.aToken.id}-${chain}`.toLowerCase(),
+        chain: utils.formatChain(chain),
+        project: 'mahalend',
+        symbol: pool.symbol,
+        tvlUsd,
+        apyBase: (pool.liquidityRate / 10 ** 27) * 100,
+        apyReward:
+          supplyRewardEnd * 1000 > new Date()
+            ? (rewardPerYear / totalSupplyUsd) * 100
+            : null,
+        rewardTokens:
+          supplyRewardEnd * 1000 > new Date()
+            ? rewards.map((rew) => rew.rewardToken)
+            : null,
+        underlyingTokens: [pool.aToken.underlyingAssetAddress],
+        totalSupplyUsd,
+        totalBorrowUsd,
+        apyBaseBorrow: Number(pool.variableBorrowRate) / 1e25,
+        apyRewardBorrow:
+          borrowRewardEnd * 1000 > new Date()
+            ? (rewardPerYearBorrow / totalBorrowUsd) * 100
+            : null,
+        ltv: Number(pool.baseLTVasCollateral) / 10000,
+        url: `https://app.aave.com/reserve-overview/?underlyingAsset=${pool.aToken.underlyingAssetAddress}&marketName=${chainUrlParam[chain]}`,
+        borrowable: pool.borrowingEnabled,
+      };
+    });
+
+    return chainPools;
+  });
+
+  return pools.flat();
 };
 
 module.exports = {
