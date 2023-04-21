@@ -86,6 +86,7 @@ const troveManagerTVL = async () => {
       totalBorrowUsd: totalSupplyUsd,
       ltv: 1 / (mcr / 1e18),
       mintedCoin: 'ARTH',
+      url: 'https://arth.loans/#/loan/add/ETH?utm_source=defillama&utm_medium=listing&utm_campaign=external',
     },
   ];
 };
@@ -109,6 +110,7 @@ const stabilityEthPool = async (data) => {
       symbol: utils.formatSymbol('arth'),
       tvlUsd: Number(data.tvlUSD),
       apy: Number(data.current.min),
+      url: 'https://arth.loans/#/stability-pool/ETH?utm_source=defillama&utm_medium=listing&utm_campaign=external',
     },
   ];
 };
@@ -125,5 +127,5 @@ const poolsFunction = async () => {
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
-  url: 'https://farming.mahadao.com',
+  url: 'https://farming.mahadao.com?utm_source=defillama&utm_medium=listing&utm_campaign=external',
 };

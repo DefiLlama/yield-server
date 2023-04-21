@@ -200,7 +200,7 @@ const apy = async () => {
             ? (rewardPerYearBorrow / totalBorrowUsd) * 100
             : null,
         ltv: Number(pool.baseLTVasCollateral) / 10000,
-        url: `https://app.mahalend.com/reserve-overview/?underlyingAsset=${pool.aToken.underlyingAssetAddress}&marketName=${chainUrlParam[chain]}`,
+        url: `https://app.mahalend.com/reserve-overview/?underlyingAsset=${pool.aToken.underlyingAssetAddress}&marketName=${chainUrlParam[chain]}&utm_source=defillama&utm_medium=listing&utm_campaign=external`,
         borrowable: pool.borrowingEnabled,
       };
     });
