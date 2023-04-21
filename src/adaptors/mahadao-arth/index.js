@@ -2,12 +2,6 @@ const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 
-const bscPools = {
-  elipsisARTHBUSD: '0x21dE718BCB36F649E1A7a7874692b530Aa6f986d',
-  dotdotARTHBUSD: '0x21dE718BCB36F649E1A7a7874692b530Aa6f986d',
-  arthMahadao: '0x2c360b513AE52947EEb37cfAD57ac9B7c9373e1B',
-};
-
 const ABIS = {
   getEntireSystemColl: {
     inputs: [],
@@ -89,14 +83,6 @@ const troveManagerTVL = async () => {
       url: 'https://arth.loans/#/loan/add/ETH?utm_source=defillama&utm_medium=listing&utm_campaign=external',
     },
   ];
-};
-
-const getAypData = async (pool) => {
-  const apyData = await utils.getData(
-    'https://api.arthcoin.com/apy/guageV3Apy'
-  );
-  const poolData = apyData[pool];
-  return poolData;
 };
 
 const stabilityEthPool = async (data) => {
