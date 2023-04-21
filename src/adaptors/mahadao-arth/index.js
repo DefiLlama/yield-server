@@ -77,7 +77,7 @@ const troveManagerTVL = async () => {
       pool: TROVE_MANAGER_ADDRESS,
       project: 'mahadao-arth',
       symbol: 'WETH',
-      chain: 'ethereum',
+      chain: utils.formatChain('ethereum'),
       apy: 0,
       tvlUsd: (Number(troveEthTvl) / 1e18) * Number(troveType.price),
       //   apyBaseBorrow: Number(troveType.borrowFee) * 100,
@@ -103,7 +103,7 @@ const stabilityEthPool = async (data) => {
   return [
     {
       pool: `0x910f16455e5eb4605fe639e2846579c228eed3b5-ethereum`.toLowerCase(),
-      chain: utils.formatChain('eth'),
+      chain: utils.formatChain('ethereum'),
       project: 'mahadao-arth',
       rewardTokens: ['0x745407c86df8db893011912d3ab28e68b62e49b0', 'ETH'],
       underlyingTokens: ['0x8cc0f052fff7ead7f2edcccac895502e884a8a71'],
