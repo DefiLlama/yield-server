@@ -32,7 +32,6 @@ const poolInfo = async (chain) => {
   ).then((data) => data.map(getOutput));
   const collateralFactor = markets.map((data) => data.collateralFactorMantissa);
 
-
   const [
     borrowRatePerBlock,
     supplyRatePerBlock,
@@ -60,16 +59,12 @@ const poolInfo = async (chain) => {
       })
     )
   ).then((data) => data.map(getOutput));
-  underlyingToken.find((token, index, arr) => { if (token === null) arr[index] = WCANTO });
+  underlyingToken.find((token, index, arr) => {
+    if (token === null) arr[index] = WCANTO;
+  });
 
-  const [
-    underlyingTokenDecimals,
-    underlyingTokenSymbol
-  ] = await Promise.all(
-    [
-      'decimals',
-      'symbol'
-    ].map((method) =>
+  const [underlyingTokenDecimals, underlyingTokenSymbol] = await Promise.all(
+    ['decimals', 'symbol'].map((method) =>
       sdk.api.abi.multiCall({
         abi: abi[method],
         calls: underlyingToken.map((token) => ({
@@ -102,7 +97,7 @@ const poolInfo = async (chain) => {
 
   const prices = {
     ...coinPrices,
-    ...lpPrices
+    ...lpPrices,
   };
 
   yieldMarkets.map((data, i) => {
@@ -124,20 +119,8 @@ const poolInfo = async (chain) => {
 };
 
 const unwrapLP = async (chain, lpTokens) => {
-  const [
-    token0,
-    token1,
-    getReserves,
-    totalSupply,
-    symbol,
-  ] = await Promise.all(
-    [
-      'token0',
-      'token1',
-      'getReserves',
-      'totalSupply',
-      'symbol',
-    ].map((method) =>
+  const [token0, token1, getReserves, totalSupply, symbol] = await Promise.all(
+    ['token0', 'token1', 'getReserves', 'totalSupply', 'symbol'].map((method) =>
       sdk.api.abi.multiCall({
         abi: abi[method],
         calls: lpTokens.map((token) => ({
@@ -172,37 +155,39 @@ const unwrapLP = async (chain, lpTokens) => {
   const token1Price = await getPrices(chain, token1);
 
   const lpMarkets = lpTokens.map((lpToken) => {
-    return { lpToken }
+    return { lpToken };
   });
 
   lpMarkets.map((token, i) => {
     token.lpPrice =
-      (
-        ((getReserves[i]._reserve0 / token0Decimals[i]) * token0Price[token0[i].toLowerCase()].usd) +
-        ((getReserves[i]._reserve1 / token1Decimals[i]) * token1Price[token1[i].toLowerCase()].usd)
-      ) /
+      ((getReserves[i]._reserve0 / token0Decimals[i]) *
+        token0Price[token0[i].toLowerCase()].usd +
+        (getReserves[i]._reserve1 / token1Decimals[i]) *
+          token1Price[token1[i].toLowerCase()].usd) /
       (totalSupply[i] / 1e18);
   });
 
   const lpPrices = {};
   lpMarkets.map((lp) => {
-    lpPrices[lp.lpToken.toLowerCase()] = { usd: lp.lpPrice }
+    lpPrices[lp.lpToken.toLowerCase()] = { usd: lp.lpPrice };
   });
 
   return lpPrices;
-}
+};
 
-//https://api.coingecko.com/api/v3/simple/token_price/canto?contract_addresses=0xd567B3d7B8FE3C79a1AD8dA978812cfC4Fa05e75&vs_currencies=usd
 const getPrices = async (chain, addresses) => {
-  const uri = `${addresses.map((address) => `${address.toLowerCase()}`)}`;
-  const prices = (
-    await superagent
-      .get('https://api.coingecko.com/api/v3/simple/token_price/' + chain)
-      .query({ contract_addresses: uri })
-      .query({ vs_currencies: 'usd' })
-  ).body;
+  const priceKeys = addresses
+    .map((a) => `${chain}:${a.toLowerCase()}`)
+    .join(',');
 
-  return prices;
+  const prices = (
+    await superagent.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).body.coins;
+
+  return Object.entries(prices).reduce((acc, [k, v]) => {
+    acc[k.replace(`${chain}:`, '')] = { usd: v.price };
+    return acc;
+  }, {});
 };
 
 function calculateApy(rate, price = 1, tvl = 1) {
@@ -216,63 +201,66 @@ function calculateApy(rate, price = 1, tvl = 1) {
 
 function calculateTvl(cash, borrows, reserves, price, decimals) {
   // ( cash + totalBorrows ) * underlying price = balance
-  const tvl = ((parseFloat(cash) + parseFloat(borrows) - parseFloat(reserves)) / decimals) * price;
+  const tvl =
+    ((parseFloat(cash) + parseFloat(borrows) - parseFloat(reserves)) /
+      decimals) *
+    price;
   return tvl;
 }
 
 const getApy = async () => {
-  const wCantoPrice = (await getPrices('canto', [WCANTO]))[WCANTO.toLowerCase()];
+  const wCantoPrice = (await getPrices('canto', [WCANTO]))[
+    WCANTO.toLowerCase()
+  ];
 
-  const yieldPools = (await poolInfo('canto')).yieldMarkets.map(
-    (pool, i) => {
-      const totalSupplyUsd = calculateTvl(
-        pool.getCash,
-        pool.totalBorrows,
-        pool.totalReserves,
-        pool.price,
-        pool.underlyingTokenDecimals
-      );
-      const totalBorrowUsd = calculateTvl(
-        0,
-        pool.totalBorrows,
-        0,
-        pool.price,
-        pool.underlyingTokenDecimals
-      );
-      const tvlUsd = totalSupplyUsd - totalBorrowUsd;
-      const apyBase = calculateApy(pool.supplyRate);
-      const apyReward = calculateApy(
-        pool.compSupplySpeeds,
-        wCantoPrice.usd,
-        totalSupplyUsd
-      );
-      const apyBaseBorrow = calculateApy(pool.borrowRate);
-      const apyRewardBorrow = calculateApy(
-        pool.compBorrowSpeeds,
-        wCantoPrice.usd,
-        totalBorrowUsd
-      );
-      const ltv = parseInt(pool.collateralFactor) / 1e18;
+  const yieldPools = (await poolInfo('canto')).yieldMarkets.map((pool, i) => {
+    const totalSupplyUsd = calculateTvl(
+      pool.getCash,
+      pool.totalBorrows,
+      pool.totalReserves,
+      pool.price,
+      pool.underlyingTokenDecimals
+    );
+    const totalBorrowUsd = calculateTvl(
+      0,
+      pool.totalBorrows,
+      0,
+      pool.price,
+      pool.underlyingTokenDecimals
+    );
+    const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+    const apyBase = calculateApy(pool.supplyRate);
+    const apyReward = calculateApy(
+      pool.compSupplySpeeds,
+      wCantoPrice.usd,
+      totalSupplyUsd
+    );
+    const apyBaseBorrow = calculateApy(pool.borrowRate);
+    const apyRewardBorrow = calculateApy(
+      pool.compBorrowSpeeds,
+      wCantoPrice.usd,
+      totalBorrowUsd
+    );
+    const ltv = parseInt(pool.collateralFactor) / 1e18;
 
-      const readyToExport = exportFormatter(
-        pool.pool,
-        'Canto',
-        pool.tokenSymbol.replace('sAMM-', '').replace('vAMM-', ''),
-        tvlUsd,
-        apyBase,
-        apyReward,
-        pool.underlyingToken,
-        [WCANTO],
-        apyBaseBorrow,
-        apyRewardBorrow,
-        totalSupplyUsd,
-        totalBorrowUsd,
-        ltv
-      );
+    const readyToExport = exportFormatter(
+      pool.pool,
+      'Canto',
+      pool.tokenSymbol.replace('sAMM-', '').replace('vAMM-', ''),
+      tvlUsd,
+      apyBase,
+      apyReward,
+      pool.underlyingToken,
+      [WCANTO],
+      apyBaseBorrow,
+      apyRewardBorrow,
+      totalSupplyUsd,
+      totalBorrowUsd,
+      ltv
+    );
 
-      return readyToExport;
-    }
-  );
+    return readyToExport;
+  });
 
   return yieldPools;
 };

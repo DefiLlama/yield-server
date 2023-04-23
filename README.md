@@ -84,6 +84,10 @@ DefiLlama only displays pools with >10k TVL, so pools with less TVL than that wi
 
 Just remove the packages `pg-promise`, `pg` and `pg-native` from package.json and then install again, make sure to avoid commiting these changes tho!
 
+> Why is X pool missing from https://defillama.com/yields/stablecoins ?
+
+That page has stricter filters than other pages, only pools with >1M TVL and on audited protocols are included there.
+
 #### Adapter module structure
 
 ```js

@@ -62,7 +62,9 @@ const main = async () => {
   let data = await request(urlPolygon, query);
 
   // build pool objects
-  data = data.poolStatuses.map((el) => buildPool(el));
+  data = data.poolStatuses
+    .filter((p) => p.state === 'Opened')
+    .map((el) => buildPool(el));
 
   return data;
 };
