@@ -46,9 +46,9 @@ const apy = async () => {
         .toNumber();
       const totalSupplyUsd = tvlUsd + totalBorrowUsd;
       return {
-        pool: `${reserve.xTokenAddress}-${chain}`.toLowerCase(),
+        pool: `ParaSpace-${reserve.xTokenAddress}-${chain}`.toLowerCase(),
         chain: 'Ethereum',
-        project: 'paraspace',
+        project: 'paraspace-lending',
         symbol: reserve.symbol,
         tvlUsd,
         apyBase: calculateAPY(reserve.liquidityRate).toNumber() * 100,
