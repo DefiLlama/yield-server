@@ -14,6 +14,7 @@ const {
 const {
   getConfigProject,
   buildInsertConfigQuery,
+  getDistinctProjects,
 } = require('../controllers/configController');
 
 module.exports.handler = async (event, context) => {
@@ -422,8 +423,9 @@ const main = async (body) => {
   }
 
   // ---------- discord bot for newly added projects
+  const distinctProjects = await getDistinctProjects();
   if (
-    !dataInitial.length &&
+    !distinctProjects.includes(body.adaptor) &&
     dataDB.filter(({ tvlUsd }) => tvlUsd > exclude.boundaries.tvlUsdUI.lb)
       .length
   ) {
