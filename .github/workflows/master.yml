@@ -26,6 +26,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           ALCHEMY_CONNECTION_ARBITRUM: ${{ secrets.ALCHEMY_CONNECTION_ARBITRUM }}
           ALCHEMY_CONNECTION_ETHEREUM: ${{ secrets.ALCHEMY_CONNECTION_ETHEREUM }}
+          ALCHEMY_CONNECTION_POLYGON: ${{ secrets.ALCHEMY_CONNECTION_POLYGON }}
           ETHEREUM_RPC: ${{ secrets.ETHEREUM_RPC }}
           XDAI_RPC: ${{ secrets.XDAI_RPC }}
           CRONOS_RPC: ${{ secrets.CRONOS_RPC }}
