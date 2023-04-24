@@ -81,6 +81,7 @@ functions:
     environment:
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
       ALCHEMY_CONNECTION_ETHEREUM: ${file(./env.js):ALCHEMY_CONNECTION_ETHEREUM}
+      ALCHEMY_CONNECTION_POLYGON: ${file(./env.js):ALCHEMY_CONNECTION_POLYGON}
       ETHEREUM_RPC: ${file(./env.js):ETHEREUM_RPC}
       XDAI_RPC: ${file(./env.js):XDAI_RPC}
       CRONOS_RPC: ${file(./env.js):CRONOS_RPC}
@@ -146,6 +147,14 @@ functions:
     events:
       # every new hour
       - schedule: cron(0 * * * ? *)
+
+  triggerMedianProject:
+    handler: src/handlers/triggerMedianProject.handler
+    description: Lambda which triggers daily median calculation for each project
+    timeout: 300
+    events:
+      # 30min prior midnight
+      - schedule: cron(30 23 * * ? *)
 
   # ---------- GET HANDLERS
   getPoolsEnriched:
@@ -251,14 +260,14 @@ functions:
           method: get
           path: /lsdRates
 
-  getLSDRatesX:
-    handler: src/handlers/getLSDRatesX.handler
-    description: Lambda for retrieving ETH LSD Rates
-    timeout: 30
+  getMedianProject:
+    handler: src/handlers/getMedianProject.handler
+    description: Lambda for retrieving a projects median apy history
+    timeout: 20
     events:
       - httpApi:
           method: get
-          path: /lsdRatesX
+          path: /medianProject/{project}
 
 resources:
   Resources:
