@@ -12,7 +12,7 @@ const main = async () => {
   const query = minify(
     `
 INSERT INTO
-    median_project (timestamp, project, "uniquePools", "medianAPY") 
+    median_project (timestamp, project, "medianAPY", "uniquePools")
 WITH today AS (
         SELECT
             "configID",
