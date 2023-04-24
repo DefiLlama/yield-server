@@ -96,7 +96,7 @@ functions:
   triggerEnrichment:
     handler: src/handlers/triggerEnrichment.handler
     description: Lambda which runs enrichment process
-    timeout: 300
+    timeout: 600
     events:
       # every hour at 16 past
       - schedule: cron(16 * * * ? *)
