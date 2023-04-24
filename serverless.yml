@@ -147,6 +147,14 @@ functions:
       # every new hour
       - schedule: cron(0 * * * ? *)
 
+  triggerMedianProject:
+    handler: src/handlers/triggerMedianProject.handler
+    description: Lambda which triggers daily median calculation for each project
+    timeout: 300
+    events:
+      # 30min prior midnight
+      - schedule: cron(30 23 * * ? *)
+
   # ---------- GET HANDLERS
   getPoolsEnriched:
     handler: src/handlers/getPoolsEnriched.handler
