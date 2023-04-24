@@ -20,6 +20,7 @@ WITH daily_data AS (
     FROM yield
     WHERE "configID" IN (SELECT config_id FROM config WHERE project = $<project>)
     AND timestamp < current_date
+    AND apy > 0
 )
 SELECT timestamp,
         $<project> AS project,
