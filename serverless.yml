@@ -260,6 +260,15 @@ functions:
           method: get
           path: /lsdRatesX
 
+  getMedianProject:
+    handler: src/handlers/getMedianProject.handler
+    description: Lambda for retrieving a projects median apy history
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /medianProject/{project}
+
 resources:
   Resources:
     # QUEUES

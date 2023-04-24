@@ -8,7 +8,6 @@ ccImages
 .idea/
 *output.json
 *.csv
-*.sql
 scripts/*.json
 src/adaptors/list.js
 Untitled.ipynb
