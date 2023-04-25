@@ -1,6 +1,7 @@
 const minify = require('pg-minify');
 
 const { pgp, connect } = require('../utils/dbConnection');
+const { lambdaResponse } = require('../utils/lambda');
 
 const tableName = 'median_project';
 
@@ -29,7 +30,10 @@ const getMedianProject = async (project) => {
     return new AppError(`Couldn't get ${tableName} data`, 404);
   }
 
-  return response;
+  return lambdaResponse({
+    status: 'success',
+    data: response,
+  });
 };
 
 module.exports = {
