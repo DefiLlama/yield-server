@@ -65,9 +65,9 @@ exports.getPerpData = async () => {
                 baseAsset: token.asset,
                 fundingRate: Number(current.fundingRate) / 1e18,
                 fundingRatePrevious: Number(previous.fundingRate) / 1e18,
-                fundingTimePervious: Number(previous.timestamp),
-                openInterest: token.openInterest * token.price,
-                indexPrice: token.price
+                fundingTimePrevious: Number(previous.timestamp),
+                openInterest: Number(token.openInterest * token.price),
+                indexPrice: Number(token.price),
             }
         )
     }
