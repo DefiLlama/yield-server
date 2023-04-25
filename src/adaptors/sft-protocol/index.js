@@ -19,9 +19,6 @@ async function getTotalLockedFIL() {
   return totalLocked;
 }
 
-getTotalLockedFIL().catch(err => {
-  process.exit(1);
-})
 
 const getApy = async () => {
 
