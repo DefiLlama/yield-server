@@ -1,7 +1,7 @@
 const utils = require('../utils');
 const { request, gql } = require('graphql-request');
 
-const API_URL = 'https://api.thena.fi/api/v1/pools';
+const API_URL = 'https://api.thena.fi/api/v1/fusions';
 const SUBGRAPH_URL =
   'https://api.thegraph.com/subgraphs/name/thenaursa/thena-v1';
 
@@ -46,6 +46,8 @@ const getApy = async () => {
 
   const apyDict = {};
   const alreadySeen = [];
+
+  const v1Pools = poolsRes.filter((pool) => !pool.isGamma)
 
   for (const pool of poolsRes) {
     apyDict[pool.address.toLowerCase()] = pool.gauge.apr;
