@@ -103,7 +103,7 @@ const queryMc = gql`
   }
 `;
 
-const topLvl = async (chainString, urlExchange, urlRewards) => {
+const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
   try {
     const [block, blockPrior] = await utils.getBlocks(chainString, null, [
       urlExchange,
@@ -152,6 +152,7 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
         underlyingTokens: [p.token0.id, p.token1.id],
         volumeUsd1d: p.volumeUSD1d,
         volumeUsd7d: p.volumeUSD7d,
+        url: `https://www.sushi.com/earn/${chainId}:${p.id}`,
       }));
     }
 
@@ -432,6 +433,7 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
         underlyingTokens: [p.token0.id, p.token1.id],
         volumeUsd1d: p.volumeUSD1d,
         volumeUsd7d: p.volumeUSD7d,
+        url: `https://www.sushi.com/earn/${chainId}:${p.id}`,
       };
     });
 
@@ -444,10 +446,10 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
 
 const main = async () => {
   let data = await Promise.all([
-    topLvl('ethereum', urlEthereum, urlMc2),
-    topLvl('arbitrum', urlArbitrum, urlMcArbitrum),
-    topLvl('polygon', urlPolygon, urlMcPolygon),
-    topLvl('avalanche', urlAvalanche, null),
+    topLvl('ethereum', urlEthereum, urlMc2, 1),
+    topLvl('arbitrum', urlArbitrum, urlMcArbitrum, 42161),
+    topLvl('polygon', urlPolygon, urlMcPolygon, 137),
+    topLvl('avalanche', urlAvalanche, null, 43114),
   ]);
 
   return data.flat().filter((p) => utils.keepFinite(p));
@@ -456,5 +458,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.sushi.com/trident/pools?chainId=1',
 };
