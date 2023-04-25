@@ -286,6 +286,15 @@ const main = async () => {
     (p) => !(p.project === 'uniswap-v3' && p.chain === 'Optimism')
   );
 
+  // overwrite triggerAdapter apy calc for abracadabra (some of their vaults apply interest on collateral
+  // instead of borrowed mim) -> negative apyBase -> negative apy (we don't store negative apy values in db though
+  // nor do we use neg values on feature calc cause might break some things)
+  // hence the updated calc here to have correct nbs on UI
+  dataEnriched = dataEnriched.map((p) => ({
+    ...p,
+    apy: p.project === 'abracadabra' ? p.apyBase + p.apyReward : p.apy,
+  }));
+
   // ---------- save output to S3
   console.log('\nsaving data to S3');
   console.log('nb of pools', dataEnriched.length);
