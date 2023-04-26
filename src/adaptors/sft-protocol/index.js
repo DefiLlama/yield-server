@@ -23,7 +23,7 @@ async function getTotalLockedFIL() {
 const getApy = async () => {
 
   const apyInfo = await utils.getData('https://api.sftproject.io/api/v1/public/farm/apy');
-  const apy = apyInfo.data / 100;
+  const apy = apyInfo.data;
 
   const totalLockedFIL = await getTotalLockedFIL();
   const filecoinPrice = (await utils.getData('https://coins.llama.fi/prices/current/coingecko:filecoin'))['coins']['coingecko:filecoin']['price'];
@@ -37,6 +37,7 @@ const getApy = async () => {
     chain: sdkChain,
     tvlUsd,
     apy,
+    poolMeta: '12 month lock'
   }]
 }
  
