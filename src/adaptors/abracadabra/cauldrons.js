@@ -1,4 +1,5 @@
 const { utils: { formatEther, formatUnits } } = require('ethers');
+const _ = require('lodash');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const MARKET_LENS_ABI = require('./abis/MarketLens.json');
@@ -95,11 +96,19 @@ const POOLS = {
       { version: 2, address: '0x6371efe5cd6e3d2d7c477935b7669401143b7985' }, // cvx3pool (deprecated)
       { version: 2, address: '0x257101f20cb7243e2c7129773ed5dbbcef8b34e0' }, // cvx3pool
       { version: 3, address: '0x7ce7d9ed62b9a6c5ace1c6ec9aeb115fa3064757' }, // yvDAI
-      { version: 3, address: '0x53375add9d2dfe19398ed65baaeffe622760a9a6' }, // yvstETH Concentrated (deprecated)
+      {
+        version: 3,
+        address: '0x53375add9d2dfe19398ed65baaeffe622760a9a6',
+        cauldronMeta: "Whitelisted"
+      }, // yvstETH Concentrated (deprecated)
       { version: 3, address: '0xd31e19a0574dbf09310c3b06f3416661b4dc7324' }, // Stargate USDC
       { version: 3, address: '0xc6b2b3fe7c3d7a6f823d9106e22e66660709001e' }, // Stargate USDT
       { version: 3, address: '0x8227965a7f42956549afaec319f4e444aa438df5' }, // LUSD
-      { version: 4, address: '0x1062eb452f8c7a94276437ec1f4aaca9b1495b72' }, // Stargate USDT (POF)
+      {
+        version: 4,
+        address: '0x1062eb452f8c7a94276437ec1f4aaca9b1495b72',
+        cauldronMeta: "Whitelisted"
+      }, // Stargate USDT (POF)
       { version: 4, address: '0x207763511da879a900973a5e092382117c3c1588' }, // CRV
       { version: 4, address: '0x85f60d3ea4e86af43c9d4e9cc9095281fc25c405' }, // Migrated WBTC
       { version: 4, address: '0x7259e152103756e1616a77ae982353c3751a6a90' }, // yvCrv3Crypto
@@ -144,6 +153,14 @@ const getMarketLensDetailsForCauldrons = (chain, marketLensAddress, abiName, cau
     requery: true
   }).then(call => call.output.map(x => x.output));
 
+const enrichMarketInfos = (cauldrons, marketInfos) => marketInfos.map((marketInfo, i) => ({
+  cauldron: cauldrons[i].address,
+  maximumCollateralRatio: cauldrons[i].maximumCollateralRatio,
+  interestPerYear: cauldrons[i].interestPerYear,
+  cauldronMeta: cauldrons[i].cauldronMeta,
+  ...marketInfo
+})).map(enrichedMarketInfo => _.omitBy(enrichedMarketInfo, _.isUndefined));
+
 const getApyV1Cauldrons = async (chain, marketLensAddress, cauldrons) => {
   const [marketMaxBorrowCauldrons, totalBorrowedCauldrons, oracleExchangeRateCauldrons, totalCollateralCauldrons] = await Promise.all([
     getMarketLensDetailsForCauldrons(chain, marketLensAddress, 'getMaxMarketBorrowForCauldronV2', cauldrons),
@@ -159,22 +176,31 @@ const getApyV1Cauldrons = async (chain, marketLensAddress, cauldrons) => {
     getMarketLensDetailsForCauldrons(chain, marketLensAddress, 'getTotalCollateral', cauldrons)
   ]);
 
-  return cauldrons.map((cauldron, i) => ({
-    cauldron: cauldron.address,
-    maximumCollateralRatio: cauldron.maximumCollateralRatio,
-    interestPerYear: cauldron.interestPerYear,
+  const marketInfos = cauldrons.map((_, i) => ({
     marketMaxBorrow: marketMaxBorrowCauldrons[i],
     totalBorrowed: totalBorrowedCauldrons[i],
     oracleExchangeRate: oracleExchangeRateCauldrons[i],
     totalCollateral: totalCollateralCauldrons[i]
   }));
+
+  return enrichMarketInfos(cauldrons, marketInfos);
 };
 
 const getApyV2Cauldrons = (chain, marketLensAddress, cauldrons) =>
-  getMarketLensDetailsForCauldrons(chain, marketLensAddress, 'getMarketInfoCauldronV2', cauldrons);
+  getMarketLensDetailsForCauldrons(
+    chain,
+    marketLensAddress,
+    'getMarketInfoCauldronV2',
+    cauldrons
+  ).then(marketInfos => enrichMarketInfos(cauldrons, marketInfos));
 
 const getApyV3PlusCauldrons = (chain, marketLensAddress, cauldrons) =>
-  getMarketLensDetailsForCauldrons(chain, marketLensAddress, 'getMarketInfoCauldronV3', cauldrons);
+  getMarketLensDetailsForCauldrons(
+    chain,
+    marketLensAddress,
+    'getMarketInfoCauldronV3',
+    cauldrons
+  ).then(marketInfos => enrichMarketInfos(cauldrons, marketInfos));
 
 const getMarketInfos = (pools) => Promise.all(
   Object.entries(pools).map(async ([chain, chainPoolData]) => {
@@ -209,14 +235,15 @@ const getCauldronDetails = (pools, abiName) => Promise.all(
 
 const getStrategies = (collaterals, bentoboxes) => Promise.all(
   Object.entries(collaterals).map(async ([chain, chainCollaterals]) => {
-    const zippedStringCollateralBentoboxes = Object.keys(chainCollaterals).map(cauldronAddress =>
-      JSON.stringify([
-        collaterals[chain][cauldronAddress].toLowerCase(),
-        bentoboxes[chain][cauldronAddress].toLowerCase()
-      ])
+    const zippedCollateralBentoboxes = Object.keys(chainCollaterals).map(cauldronAddress => [
+      collaterals[chain][cauldronAddress].toLowerCase(),
+      bentoboxes[chain][cauldronAddress].toLowerCase()
+    ]);
+
+    const uniqueZippedCollateralBentoboxes = _.uniqWith(
+      zippedCollateralBentoboxes,
+      _.isEqual
     );
-    const uniqueZippedStringCollateralBentoboxes = [...new Set(zippedStringCollateralBentoboxes)];
-    const uniqueZippedCollateralBentoboxes = uniqueZippedStringCollateralBentoboxes.map(JSON.parse);
 
     const [strategies, strategyDataArray] = await Promise.all([
       sdk.api.abi.multiCall({
@@ -240,30 +267,24 @@ const getStrategies = (collaterals, bentoboxes) => Promise.all(
     ]);
 
     // Build result like {collateralAddress: {bentoboxAddress: {address: strategyAddress, strategyData: strategyData}}}
-    let result = {}
-    for (let i = 0; i < uniqueZippedCollateralBentoboxes.length; ++i) {
+    const zippedResults = _.zip(
+      uniqueZippedCollateralBentoboxes,
+      strategies,
+      strategyDataArray
+    ).filter(([_, strategy, strategyData]) =>
       // Ignore empty strategies and disabled strategies
-      if (strategies[i] !== '0x0000000000000000000000000000000000000000' && strategyDataArray[i].targetPercentage != 0) {
-        const [collateral, bentobox] = uniqueZippedCollateralBentoboxes[i];
+      strategy !== '0x0000000000000000000000000000000000000000' &&
+        strategyData.targetPercentage != 0
+    );
+    const resultObject = _.zipObjectDeep(
+      zippedResults.map(([collateralBentobox, _]) => collateralBentobox),
+      zippedResults.map(([_, strategy, strategyData]) => ({
+        address: strategy.toLowerCase(),
+        strategyData: strategyData
+      }))
+    );
 
-        if (result[collateral] === undefined) {
-          result[collateral] = {};
-        }
-        if (result[collateral][bentobox] === undefined) {
-          result[collateral][bentobox] = {};
-        }
-
-        result[collateral][bentobox] = {
-          address: strategies[i].toLowerCase(),
-          strategyData: strategyDataArray[i]
-        }
-      }
-    }
-
-    return [
-      chain,
-      result
-    ]
+    return [chain, resultObject];
   })
 ).then(Object.fromEntries);
 
@@ -342,6 +363,10 @@ const marketInfoToPool = (chain, marketInfo, collateral, pricesObj) => {
     pool.apy = 0;
   }
 
+  if (marketInfo.cauldronMeta !== undefined) {
+    pool.poolMeta = marketInfo.cauldronMeta;
+  }
+
   return pool;
 };
 
@@ -393,18 +418,12 @@ const getApy = async () => {
       };
 
       // Add negative strategy APY to collateral if there's one for the cauldron
-      if (
-        strategies[chain] !== undefined &&
-        strategies[chain][collateralAddress] !== undefined &&
-        strategies[chain][collateralAddress][bentobox] !== undefined
-      ) {
-        const strategy = strategies[chain][collateralAddress][bentobox].address.toLowerCase();
-        const targetPercentage = strategies[chain][collateralAddress][bentobox].strategyData.targetPercentage;
-        if (
-          negativeInterestStrategyApys[chain] !== undefined &&
-          negativeInterestStrategyApys[chain][strategy] !== undefined
-        ) {
-          const negativeInterestStrategyApy = negativeInterestStrategyApys[chain][strategy];
+      const strategyDetails = _.get(strategies, [chain, collateralAddress, bentobox]);
+      if (strategyDetails !== undefined) {
+        const strategy = strategyDetails.address.toLowerCase();
+        const targetPercentage = strategyDetails.strategyData.targetPercentage;
+        const negativeInterestStrategyApy = _.get(negativeInterestStrategyApys, [chain, strategy]);
+        if (negativeInterestStrategyApy !== undefined) {
           collateral.apyBase = targetPercentage / 100 * -negativeInterestStrategyApy;
         }
       }
