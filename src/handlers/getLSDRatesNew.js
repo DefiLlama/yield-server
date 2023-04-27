@@ -105,11 +105,13 @@ const getRates = async () => {
 
 const getMarketRates = async () => {
   const eth = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
-  const amount = 100000000000;
-  const urls = lsdTokens.map(
-    (lsd) =>
-      `${priceUrl}?sellToken=${lsd.address}&buyToken=${eth}&sellAmount=${amount}`
-  );
+  const amount = 1e18;
+  const urls = lsdTokens
+    .filter((i) => i.name !== 'StakeHound') // useless data
+    .map(
+      (lsd) =>
+        `${priceUrl}?sellToken=${lsd.address}&buyToken=${eth}&sellAmount=${amount}`
+    );
 
   const marketRates = [];
   for (const url of urls) {
