@@ -59,7 +59,11 @@ const lsdTokens = [
     address: '0x9559aaa82d9649c7a7b220e7c461d2e74c9a3593',
     peg: valueAccruing,
   },
-  { name: 'StakeHound', address: '0xdfe66b14d37c77f4e9b180ceb433d1b164f0281d' },
+  {
+    name: 'StakeHound',
+    symbol: 'stETH',
+    address: '0xdfe66b14d37c77f4e9b180ceb433d1b164f0281d',
+  },
   {
     name: 'Bifrost Liquid Staking',
     symbol: 'vETH',
