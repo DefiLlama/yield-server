@@ -105,7 +105,7 @@ const getRates = async () => {
 
 const getMarketRates = async () => {
   const eth = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
-  const amount = 1e18;
+  const amount = 100000000000;
   const urls = lsdTokens.map(
     (lsd) =>
       `${priceUrl}?sellToken=${lsd.address}&buyToken=${eth}&sellAmount=${amount}`
