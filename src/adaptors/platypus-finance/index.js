@@ -23,9 +23,13 @@ const poolsQuery = gql`
         name
         id
       }
-    }
+    } 
   }
 `;
+
+// new variables
+const poolName = "LP-ankrAVAX";
+const poolAddress = "0x542dd5f38fcb3aab28d6418cf3e1d36329a79ac7"; // Platypus aAVAXc Asset (LP-aAVAXc)
 
 const apy = async () => {
   const poolLength = (
