@@ -14,56 +14,67 @@ const valueAccruing =
 const lsdTokens = [
   {
     name: 'Lido',
+    symbol: 'stETH',
     address: '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
     peg: rebase,
   },
   {
     name: 'Coinbase Wrapped Staked ETH',
+    symbol: 'cbETH',
     address: '0xbe9895146f7af43049ca1c1ae358b0541ea49704',
     peg: valueAccruing,
   },
   {
     name: 'Rocket Pool',
+    symbol: 'rETH',
     address: '0xae78736cd615f374d3085123a210448e74fc6393',
     peg: valueAccruing,
   },
   {
     name: 'StakeWise',
+    symbol: 'sETH2',
     address: '0xfe2e637202056d30016725477c5da089ab0a043a',
     peg: rebase,
   },
   {
     name: 'Ankr',
+    symbol: 'ANKRETH',
     address: '0xe95a203b1a91a908f9b9ce46459d101078c2c3cb',
     peg: valueAccruing,
   },
   {
     name: 'Frax Ether',
+    symbol: 'sfrxETH',
     address: '0xac3e018457b222d93114458476f3e3416abbe38f',
     peg: valueAccruing,
   },
   {
     name: 'SharedStake',
+    symbol: 'vETH2',
     address: '0x898bad2774eb97cf6b94605677f43b41871410b1',
   },
   {
     name: 'Stafi',
+    symbol: 'rETH',
     address: '0x9559aaa82d9649c7a7b220e7c461d2e74c9a3593',
     peg: valueAccruing,
   },
   { name: 'StakeHound', address: '0xdfe66b14d37c77f4e9b180ceb433d1b164f0281d' },
   {
     name: 'Bifrost Liquid Staking',
+    symbol: 'vETH',
     address: '0xc3d088842dcf02c13699f936bb83dfbbc6f721ab',
     peg: rebase,
   },
   {
     name: 'GETH',
+    symbol: 'GETH',
     address: '0x3802c218221390025bceabbad5d8c59f40eb74b8',
     peg: rebase,
   },
   {
     name: 'Hord',
+    symbol: 'hETH',
     address: '0x5bBe36152d3CD3eB7183A82470b39b29EedF068B',
     peg: valueAccruing,
   },
