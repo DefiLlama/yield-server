@@ -32,14 +32,14 @@ const poolsFunction = async () => {
     utils.getData(`${STRATEGIES_ENDPOINT}/balancer`),
     utils.getData(`${STRATEGIES_ENDPOINT}/fraxv2`),
     utils.getData(`${LOCKERS_ENDPOINT}`),
-    utils.getData(`${OPTIONS_ENDPOINT}`)
+    // utils.getData(`${OPTIONS_ENDPOINT}`)
   ]);
   const angleStrategies = resp[0];
   const curveStrategies = resp[1];
   const balancerStrategies = resp[2];
   const fraxv2Strategies = resp[3];
   const lockers = resp[4];
-  const optionsData = resp[5].data; 
+  // const optionsData = resp[5].data;
 
   const allStrats = angleStrategies
     .concat(curveStrategies)
@@ -156,24 +156,25 @@ const poolsFunction = async () => {
     ]);
   }, []);
 
-  const options = optionsData.map((option) => {
-    const rewardTokens = option.underlyingTokens.map((token) => token.address || '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE')
-    return {    
-    pool: option.key,
-    chain: utils.formatChain('ethereum'),
-    project: 'stakedao',
-    symbol: utils.formatSymbol(option.symbol),
-    poolMeta: utils.formatChain('Opyn'),
-    tvlUsd: parseFloat(option.tvlUSD),
-    apyReward: 0,
-    apyBase: option.apy,
-    rewardTokens,
-    underlyingTokens: rewardTokens
-  }
-  })
+  // const options = optionsData.map((option) => {
+  //   const rewardTokens = option.underlyingTokens.map((token) => token.address || '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE')
+  //   return {
+  //   pool: option.key,
+  //   chain: utils.formatChain('ethereum'),
+  //   project: 'stakedao',
+  //   symbol: utils.formatSymbol(option.symbol),
+  //   poolMeta: utils.formatChain('Opyn'),
+  //   tvlUsd: parseFloat(option.tvlUSD),
+  //   apyReward: 0,
+  //   apyBase: option.apy,
+  //   rewardTokens,
+  //   underlyingTokens: rewardTokens
+  // }
+  // })
+  const options = []
 
-
-  return strats.concat(options);
+// duplicated pool ID
+  return strats.concat(options).filter(i => i.pool !== '2');
 };
 
 module.exports = {
