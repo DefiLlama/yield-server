@@ -44,29 +44,29 @@ async function apr() {
   return [
     {
       pool: `Spice-Prologue-Vault`,
+      poolMeta: 'Prologue Vault',
       chain: 'Ethereum',
       project: 'spice-finance',
       symbol: 'WETH',
       tvlUsd: tvlUsdPrologue,
-      apy: apyPrologue,
       apyBase: apyPrologue,
     },
     {
       pool: `Spice-Leverage-Vault`,
+      poolMeta: 'Leverage Vault',
       chain: 'Ethereum',
       project: 'spice-finance',
       symbol: 'WETH',
       tvlUsd: tvlUsdLeverage,
-      apy: apyLeverage,
       apyBase: apyLeverage,
     },
     {
       pool: `Spice-Flagship-Vault`,
+      poolMeta: 'Flagship Vault',
       chain: 'Ethereum',
       project: 'spice-finance',
       symbol: 'WETH',
       tvlUsd: tvlUsdFlagship,
-      apy: apyFlagship,
       apyBase: apyFlagship,
     },
   ];
