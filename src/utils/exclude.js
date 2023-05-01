@@ -56,6 +56,7 @@ const excludePools = [
   '0x45859D71D4caFb93694eD43a5ecE05776Fc2465d-dot-dot-finance', // until fixed
   '0xc3d088842dcf02c13699f936bb83dfbbc6f721ab', // bifrost veth v1
   '0x015908fec4ac33782d7bcd7a6ae88ab0ade405f4', //drop-usdc pool
+  '0x7578aa78d5c5f622800d9205e942b12d353432b7',
 ];
 
 const boundaries = {
