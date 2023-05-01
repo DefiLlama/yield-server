@@ -280,9 +280,6 @@ const main = async (body) => {
 
       return {
         ...p,
-        poolMeta: ['uniswap-v3', 'hydradex-v3'].includes(p.project)
-          ? p.poolMeta?.split(',')[0]
-          : p.poolMeta,
         il7d,
       };
     });
@@ -335,7 +332,12 @@ const main = async (body) => {
           ? null
           : Math.round(p.debtCeilingUsd),
       mintedCoin: p.mintedCoin ? utils.formatSymbol(p.mintedCoin) : null,
-      poolMeta: p.poolMeta === undefined ? null : p.poolMeta,
+      poolMeta:
+        p.poolMeta === undefined
+          ? null
+          : ['uniswap-v3', 'hydradex-v3'].includes(p.project)
+          ? p.poolMeta?.split(',')[0]
+          : p.poolMeta,
       il7d: p.il7d ? +p.il7d.toFixed(precision) : null,
       apyBase7d:
         p.apyBase7d !== null ? +p.apyBase7d.toFixed(precision) : p.apyBase7d,
