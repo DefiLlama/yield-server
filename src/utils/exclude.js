@@ -12,6 +12,7 @@ const excludeAdaptors = [
   'lachain-yield-market',
   'euler', // adapter is breaking since hack, need to fix,
   'ratio-finance',
+  '0vix', // pausing cause of hack
 ];
 
 const excludePools = [
