@@ -68,7 +68,8 @@ const getPools = async () => {
             apyBase: (Number(apy1[0]) + Number(apy1[1]))/ 1e18,
             apyReward: Number(apy1[2]) / 1e18,
             underlyingTokens: [WBTC, WETH, USDC],
-            poolMeta: 'LionDEX LP pool'
+            poolMeta: 'LionDEX LP pool',
+            rewardTokens: [LION]
         }
     );
 
