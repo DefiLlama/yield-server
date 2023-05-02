@@ -19,7 +19,7 @@ exports.BLOCKCHAINIDS.forEach((blockchainId) => {
       blockchainRegistries = REGISTRY_TYPES;
       break;
     case 'xdai':
-      blockchainRegistries = REGISTRY_TYPES.slice(0, 1);
+      blockchainRegistries = REGISTRY_TYPES.slice(0, 3);
       break;
     default:
       blockchainRegistries = REGISTRY_TYPES.slice(0, -1);

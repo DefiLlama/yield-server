@@ -268,7 +268,8 @@ const main = async () => {
         ? extraRewards.map((reward) => reward.apy).reduce((a, b) => a + b)
         : stETHPools.includes(address) ||
           address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' || // pool on moonbeam
-          address === '0xe9123CBC5d1EA65301D417193c40A72Ac8D53501' // lvusd
+          address === '0xe9123CBC5d1EA65301D417193c40A72Ac8D53501' || // lvusd
+          address === '0x056C6C5e684CeC248635eD86033378Cc444459B0' // eur pool gnosis
         ? pool.gaugeRewards[0].apy
         : 0;
 
@@ -283,6 +284,8 @@ const main = async () => {
         ? ['0xacc15dc74880c9944775448304b263d191c6077f'] // wglmr
         : address === '0xe9123CBC5d1EA65301D417193c40A72Ac8D53501'
         ? ['0x73C69d24ad28e2d43D03CBf35F79fE26EBDE1011']
+        : address === '0x056C6C5e684CeC248635eD86033378Cc444459B0'
+        ? ['0x6810e776880c02933d47db1b9fc05908e5386b96']
         : [];
       if (aprCrv) {
         rewardTokens.push('0xD533a949740bb3306d119CC777fa900bA034cd52'); // CRV
