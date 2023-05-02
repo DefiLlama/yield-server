@@ -67,23 +67,20 @@ const main = async () => {
     let data = await utils.getData(
         'https://illumigate-main.swivel.exchange/v1/pools'
     );
-    const project = 'illuminate';
-    data = data.map((p) => { // TODO: make this async
-        // fetch symbol of the pt
-        sdk.abi.api.call(['symbol'], p.pt);
+    data = await Promise.all(data.map(async p => {
         return {
             pool: p.address,
             chain: 'ethereum',
             project: 'illuminate',
-            symbol: getSymbol(p.pt),
-            tvlUsd: getTvl(p.pt, p.address),
-            apyBase: getBaseApy(p.pt, p.address),
+            symbol: await getSymbol(p.pt),
+            tvlUsd: await getTvl(p.pt, p.address),
+            apyBase: await getBaseApy(p.pt, p.address),
             apyReward: p.apy, // pool APY
             rewardTokens: [],
             underlyingTokens: [p.underlying],
             poolMeta: '',
         };
-    });
+    }));
 
     return data;
 }
