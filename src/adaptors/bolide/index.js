@@ -2,6 +2,8 @@ const utils = require('../utils');
 const { readFromS3 } = require('../../utils/s3');
 const _ = require('lodash');
 
+const BLID = '0x8a7adc1b690e81c758f1bd0f72dfe27ae6ec56a5';
+
 const poolsFunction = async () => {
   // const dataTvl = await utils.getData('https://bolide.fi/api/tvl');
   // const apyData = await utils.getData('https://bolide.fi/api/apy');
@@ -49,17 +51,16 @@ const poolsFunction = async () => {
     for (const token of tokens) {
       if (vaultTvl.tokensTvl[token]) {
         const tvlUsd = vaultTvl.tokensTvl[token].tvl;
-        
-        pools.push(
-          {
-            pool: `${address}${token}`,
-            chain: 'binance',
-            project: 'bolide',
-            symbol: token,
-            tvlUsd,
-            apy: vaultApy.apy,
-          },
-        );
+
+        pools.push({
+          pool: `${address}${token}`,
+          chain: 'binance',
+          project: 'bolide',
+          symbol: token,
+          tvlUsd,
+          apyReward: vaultApy.baseApy,
+          rewardTokens: [BLID],
+        });
       }
     }
   }
@@ -70,8 +71,9 @@ const poolsFunction = async () => {
       chain: 'binance',
       project: 'bolide',
       symbol: 'BLID',
-      tvlUsd: dataTvl.stakingTvl,
-      apy: apyData.stakingApy,
+      tvlUsd: Number(dataTvl.stakingTvl),
+      apyReward: Number(apyData.stakingApy),
+      rewardTokens: [BLID],
     },
   ];
 
@@ -81,16 +83,13 @@ const poolsFunction = async () => {
       chain: 'binance',
       project: 'bolide',
       symbol: 'BLID-USDT',
-      tvlUsd: dataTvl.farmingTvl,
-      apy: apyData.farmingApy,
+      tvlUsd: Number(dataTvl.farmingTvl),
+      apyReward: Number(apyData.farmingApy),
+      rewardTokens: [BLID],
     },
   ];
 
-  return [
-    ...pools,
-    ...stakingBlid,
-    ...farmingBlidUsdt,
-  ];
+  return [...pools, ...stakingBlid, ...farmingBlidUsdt];
 };
 
 module.exports = {

@@ -2,6 +2,7 @@ const binance = require('../perpetuals/binance');
 const bybit = require('../perpetuals/bybit');
 const dydx = require('../perpetuals/dydx');
 const okx = require('../perpetuals/okx');
+const synthetix = require('../perpetuals/synthetix');
 
 const { insertPerp } = require('../controllers/perpController');
 
@@ -16,6 +17,7 @@ const main = async () => {
       bybit.getPerpData(),
       dydx.getPerpData(),
       okx.getPerpData(),
+      synthetix.getPerpData()
     ])
   )
     .flat()
