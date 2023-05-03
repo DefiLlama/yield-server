@@ -1,7 +1,7 @@
 const utils = require('../utils');
 const { request, gql } = require('graphql-request');
 
-const API_URL: string = 'https://api.auragi.finance/api/v1/pairs';
+const API_URL = 'https://api.auragi.finance/api/v1/pairs';
 const SUBGRAPH_URL = 'https://api.thegraph.com/subgraphs/name/oxbill/auragi'
 
 const swapPairsQuery = (skip) => {
