@@ -66,7 +66,7 @@ async function getBaseApy(pt, pool) {
     const secondsToMaturity = maturity - timestamp;
     const apy = rate * secondsInYear / secondsToMaturity;
 
-    return apy;
+    return apy * 100;
 }
 
 const main = async () => {
