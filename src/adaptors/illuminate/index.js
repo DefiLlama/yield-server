@@ -6,10 +6,6 @@ const poolAbi = require('./abis/Pool.json');
 const erc5095 = require('./abis/ERC5095.json');
 const { secondsInYear } = require('date-fns');
 
-// get all create market events
-// get all set pool events
-// get pool apy based on sellBasePreview
-
 // get symbol of a principal token
 async function getSymbol(pt) {
     return (await sdk.api.abi.call({
