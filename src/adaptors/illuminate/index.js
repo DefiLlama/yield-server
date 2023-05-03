@@ -35,7 +35,7 @@ async function getTvl(pt, pool) {
         params: [one],
     })).output;
 
-    return totalSupply * fyTokenValue / one;
+    return (totalSupply * fyTokenValue / one) / one;
 }
 
 // get the base (fixed) apy of a pool
