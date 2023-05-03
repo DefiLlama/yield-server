@@ -2,7 +2,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const marketPlace = '0xcd1D02fDa51CD24123e857CE94e4356D5C073b3f';
-const pool = require('./abis/Pool.json');
+const poolAbi = require('./abis/Pool.json');
 const erc5095 = require('./abis/ERC5095.json');
 
 // get all create market events
@@ -11,63 +11,67 @@ const erc5095 = require('./abis/ERC5095.json');
 
 // get symbol of a principal token
 async function getSymbol(pt) {
-    return await sdk.api.abi.call({
+    return (await sdk.api.abi.call({
       target: pt,
-      abi: erc5095['symbol'],
+      abi: erc5095.find((i) => i.name === 'symbol'),
       chain: 'ethereum',
-      params: [],
-    }).output;
+    })).output;
   }
 
 // get the tvl of a pt
 async function getTvl(pt, pool) {
-    const decimals = await sdk.api.abi.call({
+    const decimals = (await sdk.api.abi.call({
         target: pt,
-        abi: erc5095['decimals'],
+        abi: erc5095.find((i) => i.name === 'decimals'),
         chain: 'ethereum',
-        params: [],
-    }).output;
+    })).output;
     const one = 10 ** decimals;
-    const totalSupply = await sdk.api.abi.call({
+    const totalSupply = (await sdk.api.abi.call({
         target: pt,
-        abi: erc5095['totalSupply'],
+        abi: erc5095.find((i) => i.name === 'totalSupply'),
         chain: 'ethereum',
-        params: [],
-    }).output;
-    const fyTokenValue = await sdk.api.abi.call({
+    })).output;
+    const fyTokenValue = (await sdk.api.abi.call({
         target: pool,
-        abi: pool['sellFYTokenPreview'],
+        abi: poolAbi.find((i) => i.name === 'sellFYTokenPreview'),
         chain: 'ethereum',
         params: [one],
-    }).output;
+    })).output;
 
     return totalSupply * fyTokenValue / one;
 }
 
 // get the base (fixed) apy of a pool
 async function getBaseApy(pt, pool) {
+    console.log('getting base APY');
     const decimals = (await sdk.api.abi.call({
         target: pt,
-        abi: erc5095['decimals'],
+        abi: erc5095.find((i) => i.name === 'decimals'),
         chain: 'ethereum',
-        params: [],
     })).output;
+    console.log('decimals', decimals);
+
     const one = 10 ** decimals;
+    console.log('one', one);
+
     const baseTokenValue = (await sdk.api.abi.coll({
         target: pool,
-        abi: pool['sellBasePreview'],
+        abi: poolAbi['sellBasePreview'],
         chain: 'ethereum',
         params: [one],
     })).output;
+
+    console.log('baseTokenValue', baseTokenValue);
 
     return (baseTokenValue - one) / one;
 }
 
 const main = async () => {
-    let data = await axios.get(
+    let data = (await axios.get(
         'https://illumigate-main.swivel.exchange/v1/pools'
-    );
+    ))['data'];
     data = await Promise.all(data.map(async p => {
+        console.log('\nprocessing: ', p);
         return {
             pool: p.address,
             chain: 'ethereum',
