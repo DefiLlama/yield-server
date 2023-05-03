@@ -29,6 +29,7 @@ const poolInfo = async (chain) => {
     '0xB03670c20F87f2169A7c4eBE35746007e9575901': { LP: 40.14, CA: 2.3 },
     '0xB8cf3Ed326bB0E51454361Fb37E9E8df6DC5C286': { LP: 0, CA: 0 },
     '0xB2A015c71c17bCAC6af36645DEad8c572bA08A08': { LP: 4.57, CA: 0 },
+    '0x79012c8d491DcF3A30Db20d1f449b14CAF01da6C': { LP: 6.41, CA: 0 },
   };
 
   const poolData = (

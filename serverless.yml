@@ -48,6 +48,7 @@ provider:
       }
     BUCKET_DATA: { Ref: BucketData }
     DATABASE_URL: ${file(./env.js):DATABASE_URL}
+    ZEROX_API: ${file(./env.js):ZEROX_API}
 
   httpApi:
     metrics: true
@@ -81,6 +82,7 @@ functions:
     environment:
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
       ALCHEMY_CONNECTION_ETHEREUM: ${file(./env.js):ALCHEMY_CONNECTION_ETHEREUM}
+      ALCHEMY_CONNECTION_POLYGON: ${file(./env.js):ALCHEMY_CONNECTION_POLYGON}
       ETHEREUM_RPC: ${file(./env.js):ETHEREUM_RPC}
       XDAI_RPC: ${file(./env.js):XDAI_RPC}
       CRONOS_RPC: ${file(./env.js):CRONOS_RPC}
@@ -95,7 +97,7 @@ functions:
   triggerEnrichment:
     handler: src/handlers/triggerEnrichment.handler
     description: Lambda which runs enrichment process
-    timeout: 300
+    timeout: 600
     events:
       # every hour at 16 past
       - schedule: cron(16 * * * ? *)
@@ -146,6 +148,14 @@ functions:
     events:
       # every new hour
       - schedule: cron(0 * * * ? *)
+
+  triggerMedianProject:
+    handler: src/handlers/triggerMedianProject.handler
+    description: Lambda which triggers daily median calculation for each project
+    timeout: 300
+    events:
+      # 30min prior midnight
+      - schedule: cron(30 23 * * ? *)
 
   # ---------- GET HANDLERS
   getPoolsEnriched:
@@ -251,14 +261,23 @@ functions:
           method: get
           path: /lsdRates
 
-  getLSDRatesX:
-    handler: src/handlers/getLSDRatesX.handler
+  getLSDRatesNew:
+    handler: src/handlers/getLSDRatesNew.handler
     description: Lambda for retrieving ETH LSD Rates
     timeout: 30
     events:
       - httpApi:
           method: get
-          path: /lsdRatesX
+          path: /lsdRatesNew
+
+  getMedianProject:
+    handler: src/handlers/getMedianProject.handler
+    description: Lambda for retrieving a projects median apy history
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /medianProject/{project}
 
 resources:
   Resources:
