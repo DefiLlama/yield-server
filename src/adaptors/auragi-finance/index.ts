@@ -47,7 +47,7 @@ const getApy = async () => {
   const alreadySeen = []
 
   for (const pool of poolsRes) {
-    apyDict[pool.address.toLowerCase()] = pool?.gauge?.apr
+    apyDict[pool.address.toLowerCase()] = pool?.apr
   }
 
   const pairs = await getPairs()
