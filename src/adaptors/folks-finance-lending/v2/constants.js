@@ -35,18 +35,7 @@ const pools = [
     assetId: 386195940,
     symbol: 'goETH',
   },
-  // wBTC
-  /* {
-    appId: 971373361,
-    assetId: 386192725,
-    symbol: 'wBTC',
-  }, */
-  // wETH
-  /* {
-    appId: 971373611,
-    assetId: 386195940,
-    symbol: 'wETH',
-  }, */
+
   // Opul
   {
     appId: 1044267181,
@@ -54,11 +43,23 @@ const pools = [
     symbol: 'OPUL',
   },
   // Gard
-/*   {
-    appId: 1044267181,
+  {
+    appId: 1060585819,
     assetId: 684649988,
     symbol: 'GARD',
-  }, */
+  },
+  // wBTC
+  {
+    appId: 1067289273,
+    assetId: 1058926737,
+    symbol: 'wBTC',
+  },
+  // wETH
+  {
+    appId: 1067289481,
+    assetId: 887406851,
+    symbol: 'wETH',
+  },
 ];
 
 const oracleAppId = 1040271396;
