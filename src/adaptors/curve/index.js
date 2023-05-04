@@ -206,9 +206,9 @@ const main = async () => {
     })
   ).body.coins;
 
-  const celoApy = (
-    await utils.getData('https://api.curve.fi/api/getFactoryAPYs-celo')
-  ).data.poolDetails;
+  // const celoApy = (
+  //   await utils.getData('https://api.curve.fi/api/getFactoryAPYs-celo')
+  // ).data.poolDetails;
 
   // create feeder closure to fill defillamaPooldata asynchroniously
   const defillamaPooldata = [];
@@ -258,7 +258,7 @@ const main = async () => {
           '0xFc1e8bf3E81383Ef07Be24c3FD146745719DE48D',
           '0x84C333e94AEA4a51a21F6cf0C7F528C50Dc7592C',
           '0xB755B949C126C04e0348DD881a5cF55d424742B2',
-          '0x7f90122BF0700F9E7e1F688fe926940E8839F353',
+          '0xa138341185a9D0429B0021A11FB717B225e13e1F',
         ].includes(address)
           ? pool?.gaugeCrvApy[0]
           : gauge && subgraph
@@ -268,7 +268,8 @@ const main = async () => {
         ? extraRewards.map((reward) => reward.apy).reduce((a, b) => a + b)
         : stETHPools.includes(address) ||
           address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' || // pool on moonbeam
-          address === '0xe9123CBC5d1EA65301D417193c40A72Ac8D53501' // lvusd
+          address === '0xe9123CBC5d1EA65301D417193c40A72Ac8D53501' || // lvusd
+          address === '0x056C6C5e684CeC248635eD86033378Cc444459B0' // eur pool gnosis
         ? pool.gaugeRewards[0].apy
         : 0;
 
@@ -281,6 +282,10 @@ const main = async () => {
         ? ['0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32'] // LDO
         : address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' // pool on moonbeam
         ? ['0xacc15dc74880c9944775448304b263d191c6077f'] // wglmr
+        : address === '0xe9123CBC5d1EA65301D417193c40A72Ac8D53501'
+        ? ['0x73C69d24ad28e2d43D03CBf35F79fE26EBDE1011']
+        : address === '0x056C6C5e684CeC248635eD86033378Cc444459B0'
+        ? ['0x6810e776880c02933d47db1b9fc05908e5386b96']
         : [];
       if (aprCrv) {
         rewardTokens.push('0xD533a949740bb3306d119CC777fa900bA034cd52'); // CRV
@@ -371,7 +376,13 @@ const main = async () => {
     console.error(error);
   }
 
-  return defillamaPooldata;
+  // correct this pools reward Apy
+  const x = '0x7f90122BF0700F9E7e1F688fe926940E8839F353-avalanche';
+  return defillamaPooldata.map((p) => ({
+    ...p,
+    apyReward: p.pool === x ? null : p.apyReward,
+    rewardTokens: p.pool === x ? [] : p.rewardTokens,
+  }));
 };
 
 module.exports = {

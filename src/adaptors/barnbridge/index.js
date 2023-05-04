@@ -31,8 +31,17 @@ const CHAINS = [
 const apy = async () => {
   const pools = await Promise.all(
     CHAINS.map(async (chain) => {
-      const pastAndActiveTerms = await getPastAndActiveTerms(chain.url);
-      const activeTerms = await getActiveTerms(chain.url);
+      const pastAndActiveTerms = (await getPastAndActiveTerms(chain.url)).map(
+        (i) => ({
+          ...i,
+          provider: i.provider.id,
+        })
+      );
+
+      const activeTerms = (await getActiveTerms(chain.url)).map((i) => ({
+        ...i,
+        provider: i.provider.id,
+      }));
 
       const tvlUsd = await totalValueLockedForTerms(
         chain,

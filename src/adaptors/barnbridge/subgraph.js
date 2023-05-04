@@ -23,7 +23,9 @@ exports.getActiveTerms = async (url) => {
         currentDepositedAmount
         liquidated
         txCount
-        provider
+        provider {
+          id
+        }
         network
         nextTerm {
           id
@@ -60,7 +62,9 @@ exports.getPastAndActiveTerms = async (url) => {
         currentDepositedAmount
         liquidated
         txCount
-        provider
+        provider {
+          id
+        }
         network
         nextTerm {
           id
