@@ -1,4 +1,10 @@
-const { getAppState, getParsedValueFromState } = require('../utils');
+const {
+  getAppState,
+  getParsedValueFromState,
+  calculateInterestYield,
+  interestRateToPercentage,
+  calculateVariableBorrowInterestYield,
+} = require('./utils');
 const { pools } = require('./constants');
 const { getCachedPrices } = require('./prices');
 const utils = require('../../utils');
@@ -36,10 +42,17 @@ async function retrievePoolInfo({ poolAppId, poolAssetId }) {
   const borrowsAmountUsd = variableBorrowAmountUsd + stableBorrowAmountUsd;
   const depositsAmountUsd = Number(interest[3]) * price;
 
+  const depositInterestYield = calculateInterestYield(interest[4]);
+  const variableBorrowInterestYield = calculateVariableBorrowInterestYield(
+    varBor[4]
+  );
+
   // combine
   return {
     depositsUsd: depositsAmountUsd,
     borrowsUsd: borrowsAmountUsd,
+    apyBase: interestRateToPercentage(depositInterestYield),
+    apyBaseBorrow: interestRateToPercentage(variableBorrowInterestYield),
   };
 }
 
@@ -51,24 +64,27 @@ async function getPoolsInfo(pool) {
   return poolInfo;
 }
 
-const getApy = () => 1;
-
 const poolsFunction = async () => {
   let poolArr = [];
   pools.forEach(async (pool) => {
-    const { depositsUsd, borrowsUsd } = await getPoolsInfo(pool);
-    const tvlUsd=depositsUsd -borrowsUsd
-    const data = {
+    const { depositsUsd, borrowsUsd, apyBase, apyBaseBorrow } =
+      await getPoolsInfo(pool);
+    const totalSupplyUsd = Number(depositsUsd.toFixed(2));
+    const totalBorrowUsd = Number(borrowsUsd.toFixed(2));
+    const tvlUsd = Number((depositsUsd - borrowsUsd).toFixed(2));
+
+    const dataSource = {
       pool: `${pool.appId}-algorand`,
       chain: utils.formatChain('algorand'),
       project: 'folks-finance-lending',
       symbol: utils.formatSymbol(pool.symbol),
       tvlUsd,
-      apy: getApy(pool.assetId),
-      totalSupplyUsd: depositsUsd,
-      totalBorrowUsd: borrowsUsd,
+      totalSupplyUsd,
+      totalBorrowUsd,
+      apyBase,
+      apyBaseBorrow,
     };
-    poolArr.push(data);
+    poolArr.push(dataSource);
   });
   return poolArr;
 };

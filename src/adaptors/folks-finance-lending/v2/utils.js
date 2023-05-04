@@ -1,4 +1,16 @@
-const { lookupApplications } = require('./helper/chain/algorand');
+const { lookupApplications } = require('../helper/chain/algorand');
+
+const SECONDS_IN_YEAR = BigInt(365 * 24 * 60 * 60);
+const HOURS_IN_YEAR = BigInt(365 * 24);
+
+const ONE_2_DP = BigInt(1e2);
+const ONE_4_DP = BigInt(1e4);
+const ONE_10_DP = BigInt(1e10);
+const ONE_14_DP = BigInt(1e14);
+const ONE_16_DP = BigInt(1e16);
+
+const UINT64 = BigInt(2) << BigInt(63);
+const UINT128 = BigInt(2) << BigInt(127);
 
 function fromIntToBytes8Hex(num) {
   return num.toString(16).padStart(16, '0');
@@ -51,9 +63,54 @@ function sqrt(value) {
   return newtonIteration(value, BigInt(1));
 }
 
+function mulScale(n1, n2, scale) {
+  return (n1 * n2) / scale;
+}
+
+function expBySquaring(x, n, scale) {
+  if (n === BigInt(0)) return scale;
+
+  let y = scale;
+  while (n > BigInt(1)) {
+    if (n % BigInt(2)) {
+      y = mulScale(x, y, scale);
+      n = (n - BigInt(1)) / BigInt(2);
+    } else {
+      n = n / BigInt(2);
+    }
+    x = mulScale(x, x, scale);
+  }
+  return mulScale(x, y, scale);
+}
+
+function calculateInterestYield(value) {
+  return (
+    expBySquaring(ONE_16_DP + value / HOURS_IN_YEAR, HOURS_IN_YEAR, ONE_16_DP) -
+    ONE_16_DP
+  );
+}
+
+function calculateVariableBorrowInterestYield(value) {
+  return (
+    expBySquaring(
+      ONE_16_DP + value / SECONDS_IN_YEAR,
+      SECONDS_IN_YEAR,
+      ONE_16_DP
+    ) - ONE_16_DP
+  );
+}
+
+function interestRateToPercentage(interestRate, decimals = 2) {
+  const percentage = Number(interestRate) / Number(ONE_14_DP);
+  return Number(percentage.toFixed(decimals));
+}
+
 module.exports = {
   fromIntToBytes8Hex,
   parseOracleValue,
   getParsedValueFromState,
   getAppState,
+  calculateInterestYield,
+  calculateVariableBorrowInterestYield,
+  interestRateToPercentage,
 };
