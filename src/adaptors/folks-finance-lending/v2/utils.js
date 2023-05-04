@@ -1,4 +1,5 @@
 const { lookupApplications } = require('../helper/chain/algorand');
+const { oracleDecimals } = require('./constants');
 
 const SECONDS_IN_YEAR = BigInt(365 * 24 * 60 * 60);
 const HOURS_IN_YEAR = BigInt(365 * 24);
@@ -12,8 +13,16 @@ const ONE_16_DP = BigInt(1e16);
 const UINT64 = BigInt(2) << BigInt(63);
 const UINT128 = BigInt(2) << BigInt(127);
 
+function maximum(n1, n2) {
+  return n1 > n2 ? n1 : n2;
+}
+
 function fromIntToBytes8Hex(num) {
   return num.toString(16).padStart(16, '0');
+}
+
+function fromIntToByteHex(num) {
+  return num.toString(16).padStart(2, '0');
 }
 
 function encodeToBase64(str, encoding = 'utf8') {
@@ -105,12 +114,59 @@ function interestRateToPercentage(interestRate, decimals = 2) {
   return Number(percentage.toFixed(decimals));
 }
 
+function calcDepositInterestIndex(dirt1, diit1, latestUpdate) {
+  const dt = BigInt(unixTime()) - latestUpdate;
+  return mulScale(diit1, ONE_16_DP + (dirt1 * dt) / SECONDS_IN_YEAR, ONE_16_DP);
+}
+
+function unixTime() {
+  return Math.floor(Date.now() / 1000);
+}
+
+function parseUint64s(base64Value) {
+  const value = Buffer.from(base64Value, 'base64').toString('hex');
+
+  // uint64s are 8 bytes each
+  const uint64s = [];
+  for (let i = 0; i < value.length; i += 16) {
+    uint64s.push(BigInt('0x' + value.slice(i, i + 16)));
+  }
+  return uint64s;
+}
+
+function calcWithdrawReturn(withdrawAmount, diit) {
+  return mulScale(withdrawAmount, diit, ONE_14_DP);
+}
+
+function transformPrice(assetPrice) {
+  return Number(assetPrice) / 10 ** oracleDecimals;
+}
+
+function getRewartInterestRate(
+  stakedAmountValue,
+  rewardRate,
+  rewardAssetPrice,
+  endTimestamp
+) {
+  return unixTime() < endTimestamp && stakedAmountValue !== BigInt(0)
+    ? (rewardRate * BigInt(1e6) * rewardAssetPrice * SECONDS_IN_YEAR) /
+        stakedAmountValue
+    : BigInt(0);
+}
+
 module.exports = {
+  maximum,
   fromIntToBytes8Hex,
+  fromIntToByteHex,
   parseOracleValue,
   getParsedValueFromState,
   getAppState,
   calculateInterestYield,
   calculateVariableBorrowInterestYield,
   interestRateToPercentage,
+  calcDepositInterestIndex,
+  parseUint64s,
+  calcWithdrawReturn,
+  transformPrice,
+  getRewartInterestRate,
 };

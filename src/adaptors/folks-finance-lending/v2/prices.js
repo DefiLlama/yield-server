@@ -83,7 +83,7 @@ async function getPrices() {
       )
     );
 
-    prices[assetId] = Number(assetPrice) / 10 ** oracleDecimals;
+    prices[assetId] =assetPrice;
   });
 
   return prices;
