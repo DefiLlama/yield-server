@@ -90,10 +90,7 @@ const apy = async () => {
           Number(pool.liabilityUSD) || 0;
 
       let apyReward =
-        (Number(aprData.womBaseApr) +
-          Number(aprData.avgBoostedApr) +
-          Number(aprData.totalBonusTokenApr)) *
-        100;
+        (Number(aprData.womBaseApr) + Number(aprData.totalBonusTokenApr)) * 100;
 
       return {
         pool: aprData.id,

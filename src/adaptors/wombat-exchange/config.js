@@ -1,12 +1,11 @@
 module.exports = {
-  // Uncomment after the subgraph has been synced
-  //   bsc: {
-  //     APR_ENDPOINT:
-  //       'https://api.thegraph.com/subgraphs/name/wombat-exchange/wombat-exchange-bsc',
-  //     BLOCK_ENDPOINT:
-  //       'https://api.thegraph.com/subgraphs/name/wombat-exchange/bnb-chain-block',
-  //     WOM_ADDRESS: '0xAD6742A35fB341A9Cc6ad674738Dd8da98b94Fb1',
-  //   },
+  bsc: {
+    APR_ENDPOINT:
+      'https://api.thegraph.com/subgraphs/name/wombat-exchange/wombat-exchange-bsc',
+    BLOCK_ENDPOINT:
+      'https://api.thegraph.com/subgraphs/name/wombat-exchange/bnb-chain-block',
+    WOM_ADDRESS: '0xAD6742A35fB341A9Cc6ad674738Dd8da98b94Fb1',
+  },
   arbitrum: {
     APR_ENDPOINT:
       'https://api.thegraph.com/subgraphs/name/wombat-exchange/wombat-exchange-arbone',
