@@ -332,7 +332,7 @@ const main = async () => {
       defillamaPooldata.push({
         pool: address + '-' + blockchainId,
         chain: utils.formatChain(blockchainId),
-        project: 'curve',
+        project: 'curve-dex',
         symbol: pool.coins.map((coin) => coin.symbol).join('-'),
         tvlUsd,
         apyBase,
