@@ -138,7 +138,7 @@ const main = async () => {
         ]
     }));
 
-    return data;
+    return data.flat();
 }
 
 module.exports = {
