@@ -51,38 +51,22 @@ async function getPoolsInfo(pool) {
   return poolInfo;
 }
 
-/* Get  tvl */
-async function tvl(pool) {
-  const { depositsUsd, borrowsUsd } = await getPoolsInfo(pool);
-  return depositsUsd - borrowsUsd;
-}
-
-/* Get  borrows */
-async function borrow(pool) {
-  const { borrowsUsd } = await getPoolsInfo(pool);
-  return borrowsUsd;
-}
-
-/* Get  deposit */
-async function deposit(pool) {
-  const { depositsUsd } = await getPoolsInfo(pool);
-  return depositsUsd;
-}
-
 const getApy = () => 1;
 
 const poolsFunction = async () => {
   let poolArr = [];
   pools.forEach(async (pool) => {
+    const { depositsUsd, borrowsUsd } = await getPoolsInfo(pool);
+    const tvlUsd=depositsUsd -borrowsUsd
     const data = {
       pool: `${pool.appId}-algorand`,
       chain: utils.formatChain('algorand'),
       project: 'folks-finance-lending',
       symbol: utils.formatSymbol(pool.symbol),
-      tvlUsd: await tvl(pool),
+      tvlUsd,
       apy: getApy(pool.assetId),
-      totalSupplyUsd: await deposit(pool),
-      totalBorrowUsd: await borrow(pool),
+      totalSupplyUsd: depositsUsd,
+      totalBorrowUsd: borrowsUsd,
     };
     poolArr.push(data);
   });
