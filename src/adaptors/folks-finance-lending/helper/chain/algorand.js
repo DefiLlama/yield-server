@@ -2,9 +2,7 @@
 
 const axios = require('axios');
 const { RateLimiter } = require('limiter');
-const coreAssets = require('./coreAsset.json');
 
-const geckoMapping = coreAssets.algorand ?? {};
 const axiosObj = axios.create({
   baseURL: 'https://mainnet-idx.algonode.cloud',
   timeout: 300000,
