@@ -8,6 +8,12 @@ const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 
 const WHYDRA = '0x6d9115a21863ce31b44cd231e4c4ccc87566222f';
+const ignoreIncentives = [
+  '0x3fd993e02095478ec7272d949f5c63dfece7eed8c884ff46035f301b37707754',
+  '0xa8235e34eba238ccf1cf952f853e1a095637be92c1f4fe4fee07240d2b8e545f',
+  '0xc87f5d3ed6c61582bc4b866202c0953730121615e3560d2c18539e6ba2babccd',
+  '0xff8b5ea09291191f6eca3ea3d827daa094cebc75734935656aa6cd932b3bc448',
+];
 
 const baseUrl = 'https://graph.hydradex.org/subgraphs/name/v3-subgraph';
 const blocksUrl =
@@ -24,6 +30,7 @@ const query = gql`
       totalValueLockedToken0
       totalValueLockedToken1
       totalValueLockedUSD
+      totalValueLockedETH
       volumeUSD
       feeTier
       token0Price
@@ -37,9 +44,6 @@ const query = gql`
         id
         decimals
       }
-    }
-    bundles {
-      ethPriceUSD
     }
   }
 `;
@@ -120,7 +124,6 @@ const topLvl = async (
     // pull data
     let queryC = query;
     let dataNow = await request(url, queryC.replace('<PLACEHOLDER>', block));
-    const bundles = dataNow.bundles;
     dataNow = dataNow.pools;
 
     // pull 24h offset data to calculate fees from swap volume
@@ -239,8 +242,6 @@ const topLvl = async (
       )
     ).incentives;
 
-    const hydraPrice = bundles?.[0]?.ethPriceUSD;
-    const ignoreIncentives = [];
     const incentivesReward = incentives.reduce((acc, cur) => {
       if (ignoreIncentives.includes(cur.id)) return acc;
 
@@ -266,7 +267,7 @@ const topLvl = async (
       const url = `https://hydradex.org/#/add/${token0}/${token1}/${feeTier}`;
 
       const apyReward =
-        ((incentivesReward[p.id] || 0) / p.totalValueLockedUSD) * 100;
+        ((incentivesReward[p.id] || 0) / p.totalValueLockedETH) * 100;
       return {
         pool: p.id,
         chain: utils.formatChain(chainString),
