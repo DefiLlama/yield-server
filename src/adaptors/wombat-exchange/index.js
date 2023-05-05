@@ -53,6 +53,7 @@ const aprQuery = gql`
 const oneDay = 86400;
 
 const apy = async () => {
+  apy_export = [];
   for (chain in config) {
     const timestampPrior = +(new Date() / 1000).toFixed(0) - oneDay;
 
@@ -92,7 +93,7 @@ const apy = async () => {
       let apyReward =
         (Number(aprData.womBaseApr) + Number(aprData.totalBonusTokenApr)) * 100;
 
-      return {
+      apy_export.push({
         pool: aprData.id,
         project: 'wombat-exchange',
         chain: chain,
@@ -102,11 +103,10 @@ const apy = async () => {
         apyBase,
         underlyingTokens: [pool.underlyingToken.id],
         rewardTokens: [config[chain]['WOM_ADDRESS']],
-      };
+      });
     });
-
-    return assets;
   }
+  return apy_export;
 };
 
 module.exports = {
