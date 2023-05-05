@@ -55,6 +55,30 @@ const pools = [
     symbol: 'OPUL',
     hasReward: false,
   },
+  // Gard
+  {
+    appId: 1060585819,
+    assetId: 684649988,
+    fAssetId: 1060587336,
+    symbol: 'GARD',
+    hasReward: false,
+  },
+  //WBTC
+  {
+    appId: 1067289273,
+    assetId: 1058926737,
+    fAssetId: 1067295154,
+    symbol: 'WBTC',
+    hasReward: false,
+  },
+  // WETH
+  {
+    appId: 1067289481,
+    assetId: 887406851,
+    fAssetId: 1067295558,
+    symbol: 'WETH',
+    hasReward: false,
+  },
 ];
 
 const oracleAppId = 1040271396;
