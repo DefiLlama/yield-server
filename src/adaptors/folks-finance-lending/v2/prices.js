@@ -1,16 +1,16 @@
-const { oracleAppId, oracleDecimals } = require("./constants");
+const { oracleAppId, oracleDecimals } = require('./constants');
 const {
   getAppState,
   getParsedValueFromState,
   fromIntToBytes8Hex,
   parseOracleValue,
-} = require("../utils");
+} = require('./utils');
 
-function decodeUint64(data, decodingMode = "safe") {
+function decodeUint64(data, decodingMode = 'safe') {
   if (
-    decodingMode !== "safe" &&
-    decodingMode !== "mixed" &&
-    decodingMode !== "bigint"
+    decodingMode !== 'safe' &&
+    decodingMode !== 'mixed' &&
+    decodingMode !== 'bigint'
   ) {
     throw new Error(`Unknown decodingMode option: ${decodingMode}`);
   }
@@ -30,7 +30,7 @@ function decodeUint64(data, decodingMode = "safe") {
   const num = buf.readBigUInt64BE();
   const isBig = num > Number.MAX_SAFE_INTEGER;
 
-  if (decodingMode === "safe") {
+  if (decodingMode === 'safe') {
     if (isBig) {
       throw new Error(
         `Integer exceeds maximum safe integer: ${num.toString()}. Try decoding with "mixed" or "safe" decodingMode.`
@@ -39,7 +39,7 @@ function decodeUint64(data, decodingMode = "safe") {
     return Number(num);
   }
 
-  if (decodingMode === "mixed" && !isBig) {
+  if (decodingMode === 'mixed' && !isBig) {
     return Number(num);
   }
 
@@ -63,27 +63,27 @@ async function getPrices() {
   const assets = oracleState
     .filter(({ key }) => {
       // remove non asset ids global state
-      key = Buffer.from(key, "base64").toString("utf8");
+      key = Buffer.from(key, 'base64').toString('utf8');
       return (
-        key !== "updater_addr" &&
-        key !== "admin" &&
-        key !== "tinyman_validator_app_id"
+        key !== 'updater_addr' &&
+        key !== 'admin' &&
+        key !== 'tinyman_validator_app_id'
       );
     })
     .map(({ key }) => {
       // convert key to asset id
-      return decodeUint64(Buffer.from(key, "base64"), "safe");
+      return decodeUint64(Buffer.from(key, 'base64'), 'safe');
     });
 
   // retrieve asset prices
   assets.forEach((assetId) => {
     const assetPrice = parseOracleValue(
       String(
-        getParsedValueFromState(oracleState, fromIntToBytes8Hex(assetId), "hex")
+        getParsedValueFromState(oracleState, fromIntToBytes8Hex(assetId), 'hex')
       )
     );
 
-    prices[assetId] = Number(assetPrice) / 10 ** oracleDecimals;
+    prices[assetId] =assetPrice;
   });
 
   return prices;

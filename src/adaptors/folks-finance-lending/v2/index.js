@@ -1,18 +1,21 @@
-const { getAppState, getParsedValueFromState } = require('../utils');
+const {
+  maximum,
+  getAppState,
+  getParsedValueFromState,
+  calculateInterestYield,
+  interestRateToPercentage,
+  calculateVariableBorrowInterestYield,
+  fromIntToByteHex,
+  calcDepositInterestIndex,
+  parseUint64s,
+  calcWithdrawReturn,
+  transformPrice,
+  getRewartInterestRate,
+} = require('./utils');
 const { pools } = require('./constants');
 const { getCachedPrices } = require('./prices');
-const utils = require('../../utils');
 
-function parseUint64s(base64Value) {
-  const value = Buffer.from(base64Value, 'base64').toString('hex');
-
-  // uint64s are 8 bytes each
-  const uint64s = [];
-  for (let i = 0; i < value.length; i += 16) {
-    uint64s.push(BigInt('0x' + value.slice(i, i + 16)));
-  }
-  return uint64s;
-}
+const REWARD_APP_ID = 1093729103;
 
 async function retrievePoolInfo({ poolAppId, poolAssetId }) {
   const state = await getAppState(poolAppId);
@@ -31,16 +34,119 @@ async function retrievePoolInfo({ poolAppId, poolAssetId }) {
   const stblBor = parseUint64s(String(getParsedValueFromState(state, 's')));
   const interest = parseUint64s(String(getParsedValueFromState(state, 'i')));
 
-  const variableBorrowAmountUsd = Number(varBor[3]) * price;
-  const stableBorrowAmountUsd = Number(stblBor[8]) * price;
+  const variableBorrowAmountUsd = Number(varBor[3]) * transformPrice(price);
+  const stableBorrowAmountUsd = Number(stblBor[8]) * transformPrice(price);
   const borrowsAmountUsd = variableBorrowAmountUsd + stableBorrowAmountUsd;
-  const depositsAmountUsd = Number(interest[3]) * price;
+
+  const depositsAmountUsd = Number(interest[3]) * transformPrice(price);
+
+  const depositInterestYield = calculateInterestYield(interest[4]);
+  const depositInterestRate = interest[4];
+
+  const depositInterestIndex = calcDepositInterestIndex(
+    interest[4],
+    interest[5],
+    interest[6]
+  );
+
+  const variableBorrowInterestYield = calculateVariableBorrowInterestYield(
+    varBor[4]
+  );
 
   // combine
   return {
     depositsUsd: depositsAmountUsd,
     borrowsUsd: borrowsAmountUsd,
+    depositInterestYield,
+    depositInterestRate,
+    depositInterestIndex,
+    variableBorrowInterestYield,
   };
+}
+
+async function getStakingProgram() {
+  const state = await getAppState(REWARD_APP_ID);
+
+  if (state === undefined) return;
+  const stakingPrograms = [];
+  for (let i = 0; i <= 5; i++) {
+    const prefix = 'S'.charCodeAt(0).toString(16);
+    const stakeBase64Value = String(
+      (0, getParsedValueFromState)(
+        state,
+        prefix + (0, fromIntToByteHex)(i),
+        'hex'
+      )
+    );
+    const stakeValue = Buffer.from(stakeBase64Value, 'base64').toString('hex');
+    for (let j = 0; j <= 4; j++) {
+      const basePos = j * 46;
+      const rewards = [];
+      stakingPrograms.push({
+        poolAppId: Number('0x' + stakeValue.slice(basePos, basePos + 12)),
+        totalStaked: BigInt(
+          '0x' + stakeValue.slice(basePos + 12, basePos + 28)
+        ),
+        minTotalStaked: BigInt(
+          '0x' + stakeValue.slice(basePos + 28, basePos + 44)
+        ),
+        stakeIndex: i * 5 + j,
+        numRewards: Number('0x' + stakeValue.slice(basePos + 44, basePos + 46)),
+        rewards,
+      });
+    }
+  }
+  for (let i = 0; i <= 22; i++) {
+    const prefix = 'R'.charCodeAt(0).toString(16);
+    const rewardBase64Value = String(
+      (0, getParsedValueFromState)(
+        state,
+        prefix + (0, fromIntToByteHex)(i),
+        'hex'
+      )
+    );
+    const rewardValue = Buffer.from(rewardBase64Value, 'base64').toString(
+      'hex'
+    );
+    for (let j = 0; j <= (i !== 22 ? 3 : 1); j++) {
+      const basePos = j * 60;
+      const stakeIndex = Number(BigInt(i * 4 + j) / BigInt(3));
+      const localRewardIndex = Number(BigInt(i * 4 + j) % BigInt(3));
+      const { totalStaked, minTotalStaked, rewards, numRewards } =
+        stakingPrograms[stakeIndex];
+      if (localRewardIndex >= numRewards) continue;
+      const ts = (0, maximum)(totalStaked, minTotalStaked);
+      const endTimestamp = BigInt(
+        '0x' + rewardValue.slice(basePos + 12, basePos + 20)
+      );
+      const lu = BigInt('0x' + rewardValue.slice(basePos + 20, basePos + 28));
+      const rewardRate = BigInt(
+        '0x' + rewardValue.slice(basePos + 28, basePos + 44)
+      );
+      const rpt = BigInt('0x' + rewardValue.slice(basePos + 44, basePos + 60));
+      const currTime = BigInt((0, Math.floor(Date.now() / 1000)));
+      const dt =
+        currTime <= endTimestamp
+          ? currTime - lu
+          : lu <= endTimestamp
+          ? endTimestamp - lu
+          : BigInt(0);
+      const rewardPerToken = rpt + (rewardRate * dt) / ts;
+
+      const rewardAssetId = Number(
+        '0x' + rewardValue.slice(basePos, basePos + 12)
+      ).toString();
+
+      rewards.push({
+        rewardAssetId,
+        endTimestamp,
+        rewardRate,
+        rewardPerToken,
+      });
+    }
+  }
+
+  return stakingPrograms.filter((program) => program.poolAppId !== 0);
 }
 
 async function getPoolsInfo(pool) {
@@ -51,44 +157,55 @@ async function getPoolsInfo(pool) {
   return poolInfo;
 }
 
-/* Get  tvl */
-async function tvl(pool) {
-  const { depositsUsd, borrowsUsd } = await getPoolsInfo(pool);
-  return depositsUsd - borrowsUsd;
+async function getDepositStakingProgramsInfo(
+  depositStakingInfo,
+  poolInfo,
+  pool
+) {
+  const rewardTokens = [];
+  let apyReward = 0;
+  const prices = await getCachedPrices();
+  const { poolAppId, totalStaked, minTotalStaked, rewards, stakeIndex } =
+    depositStakingInfo;
+
+  if (pool === undefined || poolInfo === undefined)
+    throw Error('Could not find pool ' + poolAppId);
+  const { assetId, fAssetId } = pool;
+  const { depositInterestIndex, depositInterestRate, depositInterestYield } =
+    poolInfo;
+
+  const assetPrice = prices[assetId];
+  if (assetPrice === undefined)
+    throw Error('Could not find asset price ' + assetId);
+
+  const fAssetTotalStakedAmount = maximum(totalStaked, minTotalStaked);
+  const assetTotalStakedAmount = calcWithdrawReturn(
+    fAssetTotalStakedAmount,
+    depositInterestIndex
+  );
+
+  rewards.forEach(
+    ({ rewardAssetId, endTimestamp, rewardRate, rewardPerToken }) => {
+      const rewardAssetPrice = prices[rewardAssetId];
+      if (rewardAssetPrice === undefined)
+        throw Error('Could not find asset price ' + rewardAssetId);
+
+      const stakedAmountValue = assetTotalStakedAmount * assetPrice;
+      const rewardInterestRate = getRewartInterestRate(
+        stakedAmountValue,
+        rewardRate,
+        rewardAssetPrice,
+        endTimestamp
+      );
+      rewardTokens.push(rewardAssetId.toString());
+      apyReward += interestRateToPercentage(rewardInterestRate);
+    }
+  );
+  return { apyReward, rewardTokens };
 }
-
-/* Get  borrows */
-async function borrow(pool) {
-  const { borrowsUsd } = await getPoolsInfo(pool);
-  return borrowsUsd;
-}
-
-/* Get  deposit */
-async function deposit(pool) {
-  const { depositsUsd } = await getPoolsInfo(pool);
-  return depositsUsd;
-}
-
-const getApy = () => 1;
-
-const poolsFunction = async () => {
-  let poolArr = [];
-  pools.forEach(async (pool) => {
-    const data = {
-      pool: `${pool.appId}-algorand`,
-      chain: utils.formatChain('algorand'),
-      project: 'folks-finance-lending',
-      symbol: utils.formatSymbol(pool.symbol),
-      tvlUsd: await tvl(pool),
-      apy: getApy(pool.assetId),
-      totalSupplyUsd: await deposit(pool),
-      totalBorrowUsd: await borrow(pool),
-    };
-    poolArr.push(data);
-  });
-  return poolArr;
-};
 
 module.exports = {
-  poolsFunction,
+  getStakingProgram,
+  getPoolsInfo,
+  getDepositStakingProgramsInfo,
 };
