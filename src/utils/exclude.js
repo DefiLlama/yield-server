@@ -59,6 +59,7 @@ const excludePools = [
   '0x015908fec4ac33782d7bcd7a6ae88ab0ade405f4', //drop-usdc pool
   '0x7578aa78d5c5f622800d9205e942b12d353432b7',
   '0x05d3d04f1aeb77d591a0581827b148ea634c0d1c',
+  '0xc1b228c22ca914069c7164e5489e8d79a9cbb922',
 ];
 
 const boundaries = {
