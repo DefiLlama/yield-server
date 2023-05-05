@@ -10,7 +10,7 @@ const {
   parseUint64s,
   calcWithdrawReturn,
   transformPrice,
-  getRewartInterestRate,
+  getRewardInterestRate,
 } = require('./utils');
 const { pools } = require('./constants');
 const { getCachedPrices } = require('./prices');
@@ -191,7 +191,7 @@ async function getDepositStakingProgramsInfo(
         throw Error('Could not find asset price ' + rewardAssetId);
 
       const stakedAmountValue = assetTotalStakedAmount * assetPrice;
-      const rewardInterestRate = getRewartInterestRate(
+      const rewardInterestRate = getRewardInterestRate(
         stakedAmountValue,
         rewardRate,
         rewardAssetPrice,

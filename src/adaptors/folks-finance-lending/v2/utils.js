@@ -142,7 +142,7 @@ function transformPrice(assetPrice) {
   return Number(assetPrice) / 10 ** oracleDecimals;
 }
 
-function getRewartInterestRate(
+function getRewardInterestRate(
   stakedAmountValue,
   rewardRate,
   rewardAssetPrice,
@@ -168,5 +168,5 @@ module.exports = {
   parseUint64s,
   calcWithdrawReturn,
   transformPrice,
-  getRewartInterestRate,
+  getRewardInterestRate,
 };
