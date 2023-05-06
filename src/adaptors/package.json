@@ -20,8 +20,6 @@
     "dotenv": "^10.0.0",
     "graphql": "^15.5.1",
     "graphql-request": "^3.5.0",
-    "hi-base32": "^0.5.1",
-    "js-sha512": "^0.8.0",
     "limiter": "^2.1.0",
     "lodash": "^4.17.21",
     "node-fetch": "^2.6.1",
