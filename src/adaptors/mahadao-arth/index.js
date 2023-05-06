@@ -16,6 +16,19 @@ const ABIS = {
     stateMutability: 'view',
     type: 'function',
   },
+  getEntireSystemDebt: {
+    inputs: [],
+    name: 'getEntireSystemDebt',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: 'entireSystemDebt',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
   getMCR: {
     inputs: [],
     name: 'MCR',
@@ -50,8 +63,8 @@ const troveManagerTVL = async () => {
 
   const lusdTotalSupply = (
     await sdk.api.abi.call({
-      target: LUSD_ADDRESS,
-      abi: 'erc20:totalSupply',
+      target: TROVE_MANAGER_ADDRESS,
+      abi: ABIS.getEntireSystemDebt,
       chain: 'ethereum',
     })
   ).output;
