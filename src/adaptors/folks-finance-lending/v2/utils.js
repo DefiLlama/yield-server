@@ -115,7 +115,7 @@ function interestRateToPercentage(interestRate, decimals = 2) {
 }
 
 function ratioToPercentage(ratio) {
-  const percentage = Number(ratio) / Number(ONE_2_DP);
+  const percentage = Number(ratio) / Number(ONE_4_DP);
   return Number(percentage.toFixed(2));
 }
 
