@@ -181,7 +181,7 @@ const apy = async () => {
         chain: utils.formatChain(chain),
         project: 'mahalend',
         symbol: pool.symbol,
-        tvlUsd: tvlUsd + totalBorrowUsd,
+        tvlUsd,
         apyBase: (pool.liquidityRate / 10 ** 27) * 100,
         apyReward:
           supplyRewardEnd * 1000 > new Date()
