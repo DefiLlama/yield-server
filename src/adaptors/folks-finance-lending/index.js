@@ -28,7 +28,7 @@ const poolsFunction = async () => {
     const tvlUsd = Number((depositsUsd - borrowsUsd).toFixed(2));
     const apyBase = interestRateToPercentage(depositInterestYield);
     const apyBaseBorrow = interestRateToPercentage(variableBorrowInterestYield);
-    const ltv = ratioToPercentage(poolsLoanInfo[pool.appId].collateralFactor);
+    const ltv = ratioToPercentage(poolsLoanInfo[pool.appId].collateralFactor)/100;
 
     let dataSource = {
       pool: `${pool.appId}-algorand`,
