@@ -74,6 +74,7 @@ const getApy = async () => {
       tvlUsd: Number(dataTvl.currentChainTvls['staking']),
       apy: calculateAPR(),
       underlyingTokens: [dataTvl.address],
+      poolMeta: `Lock IQ, Earn Hiiq`,
     },
   ];
 };
