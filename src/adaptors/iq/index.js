@@ -5,7 +5,7 @@ const IqAbi = require('./abi');
 const token = '0x1bf5457ecaa14ff63cc89efd560e251e814e16ba';
 
 const getApy = async () => {
-  const dataTvl = await utils.getData('https://api.llama.fi/protocol/braindao');
+  const dataTvl = await utils.getData('https://api.llama.fi/protocol/iq');
 
   const totalHiiq =
     (await sdk.api.erc20.totalSupply({ target: token })).output / 1e18;
