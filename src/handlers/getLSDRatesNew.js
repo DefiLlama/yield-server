@@ -82,6 +82,18 @@ const lsdTokens = [
     address: '0x5bBe36152d3CD3eB7183A82470b39b29EedF068B',
     peg: valueAccruing,
   },
+  {
+    name: 'Swell',
+    symbol: 'swETH',
+    address: '0xf951E335afb289353dc249e82926178EaC7DEd78',
+    peg: valueAccruing,
+  },
+  {
+    name: 'Binance staked ETH',
+    symbol: 'wBETH',
+    address: '0xa2E3356610840701BDf5611a53974510Ae27E2e1',
+    peg: valueAccruing,
+  },
 ];
 
 const priceUrl = 'https://api.0x.org/swap/v1/quote';
@@ -161,6 +173,24 @@ const getExpectedRates = async () => {
     type: 'function',
   };
 
+  const swETHAbi = {
+    inputs: [],
+    name: 'getRate',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
+  const wBETHAbi = {
+    inputs: [],
+    name: 'exchangeRate',
+    outputs: [
+      { internalType: 'uint256', name: '_exchangeRate', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
   // --- cbETH
   const cbETHRate = Number((await axios.get(cbETHRateUrl)).data.amount);
 
@@ -206,6 +236,26 @@ const getExpectedRates = async () => {
       })
     ).output / 1e18;
 
+  // --- swETH
+  const swETH =
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Swell').address,
+        chain: 'ethereum',
+        abi: swETHAbi,
+      })
+    ).output / 1e18;
+
+  const wBETH =
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Binance staked ETH')
+          .address,
+        chain: 'ethereum',
+        abi: wBETHAbi,
+      })
+    ).output / 1e18;
+
   return lsdTokens.map((lsd) => ({
     ...lsd,
     expectedRate:
@@ -219,6 +269,10 @@ const getExpectedRates = async () => {
         ? ankrETHRate
         : lsd.name === 'Frax Ether'
         ? sfrxETH
+        : lsd.name === 'Swell'
+        ? swETH
+        : lsd.name === 'Binance staked ETH'
+        ? wBETH
         : 1,
   }));
 };
