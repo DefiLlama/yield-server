@@ -69,7 +69,7 @@ const getApy = async () => {
     {
       pool: token,
       chain: utils.formatChain('ethereum'),
-      project: 'braindao',
+      project: 'iq',
       symbol: 'hiiq',
       tvlUsd: Number(dataTvl.currentChainTvls['staking']),
       apy: calculateAPR(),
