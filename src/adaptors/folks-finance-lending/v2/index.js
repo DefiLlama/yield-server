@@ -204,8 +204,60 @@ async function getDepositStakingProgramsInfo(
   return { apyReward, rewardTokens };
 }
 
+async function retrieveLoanInfo(loanAppId = 971388781) {
+  const state = await getAppState(loanAppId);
+  if (state === undefined) throw Error('Could not find Loan');
+
+  const paramsBase64Value = String(getParsedValueFromState(state, 'pa'));
+  const paramsValue = Buffer.from(paramsBase64Value, 'base64').toString('hex');
+  const canSwapCollateral = Boolean(BigInt('0x' + paramsValue.slice(96, 98)));
+
+  const pools = {};
+  for (let i = 0; i < 63; i++) {
+    const poolBase64Value = String(
+      getParsedValueFromState(state, fromIntToByteHex(i), 'hex')
+    );
+    const poolValue = Buffer.from(poolBase64Value, 'base64').toString('hex');
+
+    for (let j = 0; j < 3; j++) {
+      const basePos = j * 84;
+      const poolAppId = Number('0x' + poolValue.slice(basePos, basePos + 16));
+      // add pool
+      if (poolAppId > 0) {
+        pools[poolAppId] = {
+          poolAppId,
+          assetId: Number('0x' + poolValue.slice(basePos + 16, basePos + 32)),
+          collateralCap: BigInt(
+            '0x' + poolValue.slice(basePos + 32, basePos + 48)
+          ),
+          collateralUsed: BigInt(
+            '0x' + poolValue.slice(basePos + 48, basePos + 64)
+          ),
+          collateralFactor: BigInt(
+            '0x' + poolValue.slice(basePos + 64, basePos + 68)
+          ),
+          borrowFactor: BigInt(
+            '0x' + poolValue.slice(basePos + 68, basePos + 72)
+          ),
+          liquidationMax: BigInt(
+            '0x' + poolValue.slice(basePos + 72, basePos + 76)
+          ),
+          liquidationBonus: BigInt(
+            '0x' + poolValue.slice(basePos + 76, basePos + 80)
+          ),
+          liquidationFee: BigInt(
+            '0x' + poolValue.slice(basePos + 80, basePos + 84)
+          ),
+        };
+      }
+    }
+  }
+  return { canSwapCollateral, pools };
+}
+
 module.exports = {
   getStakingProgram,
   getPoolsInfo,
   getDepositStakingProgramsInfo,
+  retrieveLoanInfo,
 };

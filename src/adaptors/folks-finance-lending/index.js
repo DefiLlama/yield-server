@@ -3,8 +3,9 @@ const {
   getStakingProgram,
   getPoolsInfo,
   getDepositStakingProgramsInfo,
+  retrieveLoanInfo,
 } = require('./v2/index');
-const { interestRateToPercentage } = require('./v2/utils');
+const { interestRateToPercentage, ratioToPercentage } = require('./v2/utils');
 const utils = require('../utils');
 
 const { pools } = constants;
@@ -13,7 +14,7 @@ const poolsFunction = async () => {
   let poolArr = [];
 
   const depositsStakingInfo = await getStakingProgram();
-
+  const { pools: poolsLoanInfo } = await retrieveLoanInfo();
   pools.forEach(async (pool) => {
     const poolInfo = await getPoolsInfo(pool);
     const {
@@ -25,6 +26,11 @@ const poolsFunction = async () => {
     const totalSupplyUsd = Number(depositsUsd.toFixed(2));
     const totalBorrowUsd = Number(borrowsUsd.toFixed(2));
     const tvlUsd = Number((depositsUsd - borrowsUsd).toFixed(2));
+    const apyBase = interestRateToPercentage(depositInterestYield);
+    const apyBaseBorrow = interestRateToPercentage(variableBorrowInterestYield);
+    const ltv = ratioToPercentage(poolsLoanInfo[pool.appId].collateralFactor);
+
+    console.log(ltv);
 
     let dataSource = {
       pool: `${pool.appId}-algorand`,
@@ -34,8 +40,9 @@ const poolsFunction = async () => {
       tvlUsd,
       totalSupplyUsd,
       totalBorrowUsd,
-      apyBase: interestRateToPercentage(depositInterestYield),
-      apyBaseBorrow: interestRateToPercentage(variableBorrowInterestYield),
+      apyBase,
+      apyBaseBorrow,
+      ltv,
     };
 
     if (pool.hasReward) {

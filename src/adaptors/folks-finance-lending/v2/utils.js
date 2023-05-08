@@ -114,6 +114,11 @@ function interestRateToPercentage(interestRate, decimals = 2) {
   return Number(percentage.toFixed(decimals));
 }
 
+function ratioToPercentage(ratio) {
+  const percentage = Number(ratio) / Number(ONE_2_DP);
+  return Number(percentage.toFixed(2));
+}
+
 function calcDepositInterestIndex(dirt1, diit1, latestUpdate) {
   const dt = BigInt(unixTime()) - latestUpdate;
   return mulScale(diit1, ONE_16_DP + (dirt1 * dt) / SECONDS_IN_YEAR, ONE_16_DP);
@@ -169,4 +174,5 @@ module.exports = {
   calcWithdrawReturn,
   transformPrice,
   getRewardInterestRate,
+  ratioToPercentage,
 };
