@@ -111,7 +111,7 @@ const ethV3Pools = async () => {
       ltv: poolsReservesConfigurationData[i].ltv / 10000,
       borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
     };
-  });
+  }).filter((p) => utils.keepFinite(p));;
 };
 
 const apy = async () => {
@@ -148,4 +148,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy: apy,
+  url: 'https://app.sparkprotocol.io/markets/'
 };
