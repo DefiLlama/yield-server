@@ -38,14 +38,7 @@ const getApy = async () => {
             ),
           ],
           underlyingTokens: [v.tvl.info.native],
-          url: `https://api.apollo.farm/api/graph?query=query+MyQuery+%7B%0A++vaults%28label%3A+%22${encodeURIComponent(
-            v.label
-          )}%22%29+%7B%0A++++label%0A++++contract_address%0A++++apr_tvl%28limit%3A+1%29+%7B%0A++++++apr+%7B%0A++++++++aprs+%7B%0A++++++++++type%0A++++++++++value%0A++++++++%7D%0A++++++++fees+%7B%0A++++++++++type%0A++++++++++value%0A++++++++%7D%0A++++++%7D%0A++++++tvl+%7B%0A++++++++info+%7B%0A++++++++++type%0A++++++++++value%0A++++++++%7D%0A++++++++amount%0A++++++%7D%0A++++%7D%0A++%7D%0A++tokens%28network%3A+${chain[1].replaceAll(
-            '-',
-            '_'
-          )}%2C+label%3A+%22${encodeURIComponent(
-            vault_token.name
-          )}%22%29+%7B%0A++++label%0A++++asset+%7B%0A++++++type%0A++++++value%0A++++%7D%0A++++symbol%0A++++decimals%0A++++prices%28limit%3A+1%29+%7B%0A++++++price%0A++++%7D%0A++%7D%0A%7D`,
+          url: `https://apollo.farm`,
         };
       });
     })
