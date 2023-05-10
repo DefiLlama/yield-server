@@ -187,7 +187,6 @@ const campaignRewardAPY = (
           .div(campaign.totalStaked);
 
         apr = (parseFloat(formatEther(aprBN)) * sdexPrice) / pairPrice;
-
         break;
       }
     }
