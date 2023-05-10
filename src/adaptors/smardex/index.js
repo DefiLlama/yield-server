@@ -193,7 +193,7 @@ const campaignRewardAPY = (
     }
   }
 
-  return utils.aprToApy(apr, BLOCKS_PER_YEAR);
+  return apr;
 };
 
 const topLvl = async (
