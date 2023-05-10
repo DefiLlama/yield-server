@@ -17,7 +17,7 @@ const poolsFunction = async () => {
     symbol: utils.formatSymbol('FIL'),
     tvlUsd: tvlData.data.tvl,
     apy: Number(poolData.incomeRate),
-    poolMeta: 'Filecoin staking',
+    poolMeta: '360days lockup',
   };
 
   return [filPool];
