@@ -15,7 +15,7 @@ const poolsFunction = async () => {
 
   const depositsStakingInfo = await getStakingProgram();
   const { pools: poolsLoanInfo } = await retrieveLoanInfo();
-  pools.forEach(async (pool) => {
+  for (const pool of pools) {
     const poolInfo = await getPoolsInfo(pool);
     const {
       depositsUsd,
@@ -57,7 +57,7 @@ const poolsFunction = async () => {
     }
 
     poolArr.push(dataSource);
-  });
+  }
   return poolArr;
 };
 
