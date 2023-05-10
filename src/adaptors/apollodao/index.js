@@ -38,7 +38,8 @@ const getApy = async () => {
             ),
           ],
           underlyingTokens: [v.tvl.info.native],
-          url: `https://apollo.farm`,
+          poolMeta: '14days lockup',
+          url: 'https://apollo.farm',
         };
       });
     })
