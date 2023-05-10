@@ -16,7 +16,8 @@ const poolsFunction = async () => {
     project: 'filet-finance',
     symbol: utils.formatSymbol('FIL'),
     tvlUsd: tvlData.data.tvl,
-    apy: Number(poolData.incomeRate) / 100,
+    apy: Number(poolData.incomeRate),
+    poolMeta: 'Filecoin staking',
   };
 
   return [filPool];
