@@ -58,10 +58,9 @@ const getApy = async () => {
   };
 
   const calculateAPR = () => {
-    const amountLocked =
-      Number(dataTvl.currentChainTvls['staking']) / Number(dataTvl.tokenPrice);
+    const amountLocked = 1000000;
     const stakeReward = calculateStakeReward(totalHiiq, amountLocked, 4, 1);
-    const aprDividedByLockPeriod = (stakeReward / totalHiiq) * 100;
+    const aprDividedByLockPeriod = (stakeReward / amountLocked) * 100;
     return aprDividedByLockPeriod;
   };
 
@@ -74,7 +73,7 @@ const getApy = async () => {
       tvlUsd: Number(dataTvl.currentChainTvls['staking']),
       apy: calculateAPR(),
       underlyingTokens: [dataTvl.address],
-      poolMeta: `Lock IQ, Earn Hiiq`,
+      poolMeta: `Lock for 4 years to earn more IQ`,
     },
   ];
 };
