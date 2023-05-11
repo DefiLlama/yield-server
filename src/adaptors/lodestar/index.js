@@ -150,6 +150,12 @@ const main = async () => {
       .map((token) => `${CHAIN}:` + token)
   );
 
+  const lodePrices = await getPrices(
+    [
+      `${CHAIN}:${PROTOCOL_TOKEN.address}`
+    ]
+  );
+
   const pools = allMarkets.map((market, i) => {
     const token = underlyingTokens[i] || NATIVE_TOKEN.address;
     const symbol =
@@ -179,7 +185,7 @@ const main = async () => {
         (((rewards[i] / 10 ** PROTOCOL_TOKEN.decimals) *
           BLOCKS_PER_DAY *
           365 *
-          prices[PROTOCOL_TOKEN.address]) /
+          lodePrices[PROTOCOL_TOKEN.address]) /
           denom) *
         100
       );
@@ -212,15 +218,7 @@ const main = async () => {
     return poolReturned
   });
 
-  return pools.filter(
-    (p) =>
-      ![
-        '0x158079ee67fce2f58472a96584a73c7ab9ac95c1',
-        '0x7713dd9ca933848f6819f38b8352d9a15ea73f67',
-        '0xf5dce57282a584d2746faf1593d3121fcac444dc',
-        '0xc11b1268c1a384e55c48c2391d8d480264a3a7f4',
-      ].includes(p.pool)
-  );
+  return pools
 };
 
 module.exports = {
