@@ -2,7 +2,7 @@ const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
-const { comptrollerAbi, ercDelegator } = require('../lodestar/abi');
+const { comptrollerAbi, ercDelegator } = require('./abi');
 
 const COMPTROLLER_ADDRESS = '0x92a62f8c4750D7FbDf9ee1dB268D18169235117B';
 const CHAIN = 'arbitrum';
@@ -15,7 +15,7 @@ const TOTAL_BORROWS = 'totalBorrows';
 const GET_CHASH = 'getCash';
 const UNDERLYING = 'underlying';
 const BLOCKS_PER_DAY = 86400 / 12;
-const PROJECT_NAME = 'lodestar';
+const PROJECT_NAME = 'lodestar-finance';
 
 const NATIVE_TOKEN = {
   decimals: 18,
@@ -191,7 +191,8 @@ const main = async () => {
       );
     };
     const apyReward = calcRewardApy(extraRewards, totalSupplyUsd);
-    const apyRewardBorrow = calcRewardApy(extraRewardsBorrow, totalBorrowUsd);
+    const _apyRewardBorrow = calcRewardApy(extraRewardsBorrow, totalBorrowUsd);
+    const apyRewardBorrow =isNaN(_apyRewardBorrow) ? 0 : _apyRewardBorrow;
 
     let poolReturned = {
       pool: market.toLowerCase(),
