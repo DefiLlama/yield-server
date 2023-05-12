@@ -20,7 +20,7 @@ async function fetch() {
 const main = async () => {
   const data = await fetch();
 
-  return data.map((p) => {
+  return data.filter(p => p).map((p) => {
     // if - in symbol -> split, keep 1 in array, otherwise don't split
     let symbolSplit = p.symbol.split('-');
     symbolSplit = symbolSplit.length > 1 ? symbolSplit[1] : symbolSplit[0];
