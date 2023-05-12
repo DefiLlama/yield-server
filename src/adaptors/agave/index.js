@@ -142,9 +142,9 @@ const getApy = async () => {
         const apyBase = reserveData[i].currentLiquidityRate / 1e25;
         const apyBaseBorrow = reserveData[i].currentVariableBorrowRate / 1e25;
 
-        const apyReward = (incentivesAgTokenData[i])? (incentivesAgTokenData[i][1] * rewardTokenPrice * SECONDS_PER_YEAR) / (totalSupplyUsd * 10e18) : 0;
-        const apyRewardBorrow= (incentivesVariableDebtTokenData[i])? (incentivesVariableDebtTokenData[i][1] * SECONDS_PER_YEAR * rewardTokenPrice) / (totalBorrowUsd * 10e18) : 0;
-        
+        const apyReward = (incentivesAgTokenData[i] && totalSupplyUsd)? (incentivesAgTokenData[i][1] * rewardTokenPrice * SECONDS_PER_YEAR) / (totalSupplyUsd * 10e18) : 0;
+        const apyRewardBorrow= (incentivesVariableDebtTokenData[i] && totalBorrowUsd)? (incentivesVariableDebtTokenData[i][1] * SECONDS_PER_YEAR * rewardTokenPrice) / (totalBorrowUsd * 10e18) : 0;
+
         const ltv = config.ltv / 1e4;
         const borrowable = config.borrowingEnabled;
         const frozen = config.isFrozen;
