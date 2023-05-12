@@ -32,8 +32,8 @@ const getTVLInUsdByBasketDenomination = async (
   basketDenomination,
   tvl
 ) => {
-  // we won't do anything if the denomination is already in USD
   if (basketDenomination === '$') {
+    // case - the denomination is already in USD, we don't need to convert it
     return {
       ticker,
       tvlUsd: tvl ?? 0,
