@@ -5,7 +5,7 @@ const { BigNumber } = require("bignumber.js");
 const utils = require('../utils');
 
 const dummyWallet = Keypair.generate();
-const connection = new Connection("***REMOVED***", "confirmed");
+const connection = new Connection(process.env.RPC_URL, "confirmed");
 const MARGINFI_URL = "https://app.marginfi.com";
 
 async function main() {
