@@ -71,7 +71,7 @@ const getUrl = async () => {
     out[e.config_id] = e.url;
   }
 
-  return out;
+  return lambdaResponse(out);
 };
 
 // get unique pool values
