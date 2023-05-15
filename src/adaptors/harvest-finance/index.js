@@ -49,10 +49,11 @@ async function apy() {
   // lambda
   // const farmsResponse = (await superagent.get(farmsUrl)).body;
   // const poolsResponse = (await superagent.get(poolsUrl)).body;
+  // const statsResponse = (await superagent.get(statsUrl)).body;
   const data = await readFromS3('llama-apy-prod-data', 'harvest_api_data.json');
   const farmsResponse = data['vaults'];
   const poolsResponse = data['pools'];
-  const statsResponse = (await superagent.get(statsUrl)).body;
+  const statsResponse = data['stats'];
 
   let specialVaultIds = [
     'farm-grain',
