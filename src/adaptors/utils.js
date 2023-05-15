@@ -84,7 +84,8 @@ const getLatestBlockSubgraph = async (url) => {
   // );
   const blockGraph =
     url.includes('babydoge/faas') ||
-    url.includes('kybernetwork/kyberswap-elastic-cronos')
+    url.includes('kybernetwork/kyberswap-elastic-cronos') ||
+    url.includes('kybernetwork/kyberswap-elastic-polygon')
       ? await request(url, queryGraph)
       : await request(
           `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
@@ -213,6 +214,8 @@ exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
     pool['feeTier'] = 3000;
   } else if (version === 'stellaswap') {
     pool['feeTier'] = 2000;
+  } else if (version === 'zyberswap') {
+    pool['feeTier'] = 1500;
   }
 
   // calc prior volume on 24h offset

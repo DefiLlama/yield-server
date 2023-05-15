@@ -5,6 +5,20 @@ const { lambdaResponse } = require('../utils/lambda');
 
 const tableName = 'config';
 
+const getDistinctProjects = async () => {
+  const conn = await connect();
+
+  const query = `SELECT distinct project FROM $<table:name>`;
+
+  const response = await conn.query(query, { table: tableName });
+
+  if (!response) {
+    return new AppError(`Couldn't get ${tableName} data`, 404);
+  }
+
+  return response.map((i) => i.project);
+};
+
 // get config data per project
 const getConfigProject = async (project) => {
   const conn = await connect();
@@ -57,7 +71,7 @@ const getUrl = async () => {
     out[e.config_id] = e.url;
   }
 
-  return out;
+  return lambdaResponse(out);
 };
 
 // get unique pool values
@@ -152,5 +166,6 @@ module.exports = {
   getUrl,
   getDistinctID,
   getConfigPool,
+  getDistinctProjects,
   tableName,
 };

@@ -67,8 +67,9 @@ async function getPoolGmx(
   pInflationGmx,
   pPriceData
 ) {
+  const gmxPrice = pPriceData['coingecko:gmx'].price;
   const tvlGmx =
-    pPriceData.gmx.usd *
+    gmxPrice *
     (await getAdjustedAmount(
       pChain == 'arbitrum' ? arbitrumGmxAddress : avalacheGmxAddress,
       pChain,
@@ -77,13 +78,14 @@ async function getPoolGmx(
         ? [arbitrumInflationGmxTrackerAddress]
         : [avalancheInflationGmxTrackerAddress]
     ));
-  const tvsGmx = pStakedGmx * pPriceData.gmx.usd;
-  const tvsEsGmx = pStakedEsGmx * pPriceData.gmx.usd;
+
+  const tvsGmx = pStakedGmx * gmxPrice;
+  const tvsEsGmx = pStakedEsGmx * gmxPrice;
   const yearlyFeeGmx =
     pChain == 'arbitrum'
-      ? pFeeGmx * pPriceData.ethereum.usd
-      : pFeeGmx * pPriceData['avalanche-2'].usd;
-  const yearlyInflationGmx = pInflationGmx * pPriceData.gmx.usd;
+      ? pFeeGmx * pPriceData['coingecko:ethereum'].price
+      : pFeeGmx * pPriceData['coingecko:avalanche-2'].price;
+  const yearlyInflationGmx = pInflationGmx * gmxPrice;
   const apyFee = (yearlyFeeGmx / tvsGmx) * 100;
   const apyInflation = (yearlyInflationGmx / tvsEsGmx) * 100;
   const chainString = pChain === 'avax' ? 'avalanche' : pChain;
@@ -114,9 +116,9 @@ async function getPoolGlp(
 ) {
   const yearlyFeeGlp =
     pChain == 'arbitrum'
-      ? pFeeGlp * pPriceData.ethereum.usd
-      : pFeeGlp * pPriceData['avalanche-2'].usd;
-  const yearlyInflationGlp = pInflationGlp * pPriceData.gmx.usd;
+      ? pFeeGlp * pPriceData['coingecko:ethereum'].price
+      : pFeeGlp * pPriceData['coingecko:avalanche-2'].price;
+  const yearlyInflationGlp = pInflationGlp * pPriceData['coingecko:gmx'].price;
   const apyFee = (yearlyFeeGlp / pTvl) * 100;
   const apyInflation = (yearlyInflationGlp / pTvl) * 100;
   const chainString = pChain === 'avax' ? 'avalanche' : pChain;
@@ -125,7 +127,8 @@ async function getPoolGlp(
     pool: pInflationTrackerAddress,
     chain: utils.formatChain(chainString),
     project: 'gmx',
-    symbol: utils.formatSymbol('GLP'),
+    symbol: 'WBTC-ETH-USDC-DAI-FRAX-LINK-UNI-USDT',
+    poolMeta: 'GLP',
     tvlUsd: parseFloat(pTvl),
     apyBase: apyFee,
     apyReward: apyInflation,
@@ -146,8 +149,11 @@ async function getPoolGlp(
 const getPools = async () => {
   let pools = [];
 
-  const priceData = await utils.getData(
-    'https://api.coingecko.com/api/v3/simple/price?ids=gmx%2Cethereum%2Cavalanche-2&vs_currencies=usd'
+  const priceKeys = ['gmx', 'ethereum', 'avalanche-2']
+    .map((t) => `coingecko:${t}`)
+    .join(',');
+  const { coins: priceData } = await utils.getData(
+    `https://coins.llama.fi/prices/current/${priceKeys}`
   );
 
   const arbitrumStakedGmx = await getAdjustedAmount(

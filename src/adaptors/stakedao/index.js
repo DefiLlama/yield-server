@@ -82,7 +82,7 @@ const poolsFunction = async () => {
             }
             return acc;
           }, 0.0) * 100;
-        apyBase =         
+        apyBase =
           strat?.aprBreakdown?.reduce((acc, t) => {
             if (t.token.address === SDT_ADDRESS) {
               return acc;
@@ -91,9 +91,9 @@ const poolsFunction = async () => {
           }, 0.0) * 100;
 
         if (strat?.aprBreakdown[2]?.isBribe) {
-          apyBase += strat.aprBreakdown[2]?.minApr *100;
+          apyBase += strat.aprBreakdown[2]?.minApr * 100;
         }
-      } 
+      }
       // calcul for strategies APR
       else {
         apyReward =
@@ -112,34 +112,34 @@ const poolsFunction = async () => {
     symbol = Object.keys(symbolMapping).includes(symbol)
       ? symbolMapping[symbol]
       : symbol.includes('san')
-      ? symbol.replace('san', '').split('-')[0]
-      : symbol.replace('FRAXBP', '-crvFRAX');
+        ? symbol.replace('san', '').split('-')[0]
+        : symbol.replace('FRAXBP', '-crvFRAX');
 
 
     let underlyingTokens = [];
-    if(strat?.underlyingTokens?.length > 0) {
-    underlyingTokens =
-          strat?.underlyingTokens?.map((t) =>
-            t?.symbol === 'ETH'
-              ? '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
-              : t?.address
-          );
-    } else if(strat?.underlyingToken?.address) {
-    underlyingTokens = [strat?.underlyingToken?.address];
+    if (strat?.underlyingTokens?.length > 0) {
+      underlyingTokens =
+        strat?.underlyingTokens?.map((t) =>
+          t?.symbol === 'ETH'
+            ? '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+            : t?.address
+        );
+    } else if (strat?.underlyingToken?.address) {
+      underlyingTokens = [strat?.underlyingToken?.address];
     } else {
-    underlyingTokens = [];
+      underlyingTokens = [];
     }
     if (underlyingTokens.length === 0 || strat.key === 'bal') {
 
       underlyingTokens = [strat?.tokenReceipt?.address];
     }
-    const sdTknTknPool = ['factory-v2-109','factory-v2-101','factory-v2-239','b_80ldo_20weth_sdbal']
+    const sdTknTknPool = ['factory-v2-109', 'factory-v2-101', 'factory-v2-239', 'b_80ldo_20weth_sdbal']
     if (sdTknTknPool.includes(strat?.key) && symbol.includes('-')) {
       symbol = symbol.replaceAll('-', '')
     }
     return acc.concat([
       {
-        pool: strat.key,
+        pool: "sd-" + strat.key,
         chain: utils.formatChain('ethereum'),
         project: 'stakedao',
         symbol: utils.formatSymbol(symbol),
