@@ -76,7 +76,7 @@ async function calcLusdPoolApy(lusdPrice) {
         tvlUsd,
         underlyingTokens: [LUSD],
         apy,
-        poolMeta: 'Liquity Vault',
+        poolMeta: 'LUSD Vault',
         url: 'https://app.sandclock.org/'
     };
 
