@@ -18,6 +18,10 @@ const tokens = {
     address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
     lpAddress: '0xc9b09405959f63f72725828b5d449488b02be1ca',
   },
+  USDT: {
+    address: '0xdac17f958d2ee523a2206206994597c13d831ec7',
+    lpAddress: '0xc2fab88f215f62244d2e32c8a65e8f58da8415a5',
+  },
   WBTC: {
     address: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
     lpAddress: '0x59c1427c658e97a7d568541dac780b2e5c8affb4',
@@ -37,10 +41,6 @@ const tokens = {
   BAL: {
     address: '0xba100000625a3754423978a60c9317c58a424e3d',
     lpAddress: '0xfacd2ec4647df2cb758f684c2aaab56a93288f9e',
-  },
-  BOBA: {
-    address: '0x42bbfa2e77757c645eeaad1655e0911a7553efbc',
-    lpAddress: '0x9306b6f45263f8cb6a18eff127313d10d06fccb5',
   },
 };
 
