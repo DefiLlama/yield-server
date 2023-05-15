@@ -53,7 +53,7 @@ async function apy() {
   const data = await readFromS3('llama-apy-prod-data', 'harvest_api_data.json');
   const farmsResponse = data['vaults'];
   const poolsResponse = data['pools'];
-  const statsResponse = data['stats'];
+  const statsResponse = data['token-stats'];
 
   let specialVaultIds = [
     'farm-grain',
