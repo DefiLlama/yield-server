@@ -3,12 +3,12 @@ const superagent = require('superagent');
 const utils = require('../utils');
 const { readFromS3 } = require('../../utils/s3');
 // no longer needed, see note below
-const farmsUrl =
-  'https://api.harvest.finance/vaults?key=41e90ced-d559-4433-b390-af424fdc76d6';
-const poolsUrl =
-  'https://api.harvest.finance/pools?key=41e90ced-d559-4433-b390-af424fdc76d6';
-const statsUrl =
-  'https://api.harvest.finance/token-stats?key=41e90ced-d559-4433-b390-af424fdc76d6';
+// const farmsUrl =
+//   'https://api-old.harvest.finance/vaults?key=41e90ced-d559-4433-b390-af424fdc76d6';
+// const poolsUrl =
+//   'https://api-old.harvest.finance/pools?key=41e90ced-d559-4433-b390-af424fdc76d6';
+// const statsUrl =
+//   'https://api-old.harvest.finance/token-stats?key=41e90ced-d559-4433-b390-af424fdc76d6';
 const chains = {
   bsc: 'binance',
   eth: 'ethereum',
@@ -49,10 +49,11 @@ async function apy() {
   // lambda
   // const farmsResponse = (await superagent.get(farmsUrl)).body;
   // const poolsResponse = (await superagent.get(poolsUrl)).body;
+  // const statsResponse = (await superagent.get(statsUrl)).body;
   const data = await readFromS3('llama-apy-prod-data', 'harvest_api_data.json');
   const farmsResponse = data['vaults'];
   const poolsResponse = data['pools'];
-  const statsResponse = (await superagent.get(statsUrl)).body;
+  const statsResponse = data['token-stats'];
 
   let specialVaultIds = [
     'farm-grain',
