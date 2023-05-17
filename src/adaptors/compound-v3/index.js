@@ -28,6 +28,14 @@ const markets = [
     rewardToken: '0x8505b9d2254A7Ae468c0E9dd10Ccea3A837aef5c',
     chain: 'polygon',
   },
+  {
+    address: '0xA5EDBDD9646f8dFF606d7448e414884C7d905dCA',
+    symbol: 'cUSDCv3',
+    underlying: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
+    underlyingSymbol: 'USDC',
+    rewardToken: '0x354A6dA3fcde098F8389cad84b0182725c6C91dE',
+    chain: 'arbitrum',
+  },
 ];
 
 const main = async (pool) => {
