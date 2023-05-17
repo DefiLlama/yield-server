@@ -70,7 +70,7 @@ const boundaries = {
   // we only get pools for the UI with a maximum apy of 1million %
   apy: { lb: 0, ub: 1e6 },
   // reading from database returns only pools which is max 7 days old
-  age: 5,
+  age: 7,
 };
 
 module.exports = {
