@@ -339,7 +339,7 @@ const main = async () => {
       pool: market.toLowerCase(),
       chain: utils.formatChain(CHAIN),
       project: PROJECT_NAME,
-      symbol: 't' + symbol,
+      symbol: symbol,
       tvlUsd,
       apyBase,
       apyReward,
