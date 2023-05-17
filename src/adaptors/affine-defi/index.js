@@ -71,6 +71,7 @@ const getTVLInUsdByBasketDenomination = async (
 
 const getTVLFromChain = async (baskets, chainId) => {
   // we are going to find the address in the addressbook
+
   const latestBlock = await getLatestBlock(chainId);
   const abi = ABI.find((abi) => abi.name === 'detailedTVL');
 
@@ -95,16 +96,25 @@ const getTVLFromChain = async (baskets, chainId) => {
   return await Promise.all(TVLsInUSDPromises);
 };
 
-const getAPYFromChainByBasket = async (baskets, chainId, isSevenDay) => {
+const getAPYFromChainByBasket = async (
+  baskets,
+  chainId,
+  isSevenDay = false
+) => {
   const latestBlock = await getLatestBlock(chainId);
   const oneDayOldBlock = await api.util.lookupBlock(
     latestBlock.timestamp - SECONDS_IN_DAY,
-    SUPPORTED_CHAINS[chainId]
+    {
+      chain: SUPPORTED_CHAINS[chainId],
+    }
   );
   const sevenDayOldBlock = await api.util.lookupBlock(
     latestBlock.timestamp - SECONDS_IN_DAY * 7,
-    SUPPORTED_CHAINS[chainId]
+    {
+      chain: SUPPORTED_CHAINS[chainId],
+    }
   );
+
   const abi = ABI.find((abi) => abi.name === 'detailedPrice');
 
   const currentPrice = await api.abi.multiCall({
@@ -113,26 +123,28 @@ const getAPYFromChainByBasket = async (baskets, chainId, isSevenDay) => {
       target: basket.basketAddress,
     })),
     chain: SUPPORTED_CHAINS[chainId],
-    block: latestBlock.number,
+    block: latestBlock.block,
   });
-
   const oldPrice = await api.abi.multiCall({
     abi,
     calls: baskets.map((basket) => ({
       target: basket.basketAddress,
     })),
     chain: SUPPORTED_CHAINS[chainId],
-    block: isSevenDay ? sevenDayOldBlock.number : oneDayOldBlock.number,
+    block: isSevenDay ? sevenDayOldBlock.block : oneDayOldBlock.block,
   });
-
   let APYs = [];
-  currentPrice.output.forEach((price, index) => {
-    const apy =
-      (formatOutputToNumber(price.output) /
-        formatOutputToNumber(oldPrice.output[index].output) -
-        1) *
-      100;
+  const multiplyr = isSevenDay ? 36500 / 7 : 36500;
 
+  currentPrice.output.forEach((price, index) => {
+    let apy = 0;
+    if (oldPrice.output[index].output != null) {
+      apy =
+        (formatOutputToNumber(price.output) /
+          formatOutputToNumber(oldPrice.output[index].output) -
+          1) *
+        multiplyr;
+    }
     APYs.push({
       ticker: baskets[index].basketTicker,
       apy,
@@ -144,6 +156,8 @@ const getAPYFromChainByBasket = async (baskets, chainId, isSevenDay) => {
 
 const getAllBasketApyByChain = async (chainId) => {
   const baskets = await getBasketsByChainId(chainId); // we will get objects as a response
+  // filtering out the BtcEthVault vault due to no yield
+  delete baskets['BtcEthVault'];
   const basketsArr = Object.keys(baskets).map((key) => baskets[key]);
   const apys = await getAPYFromChainByBasket(basketsArr, chainId);
   const sevenDayAPYs = await getAPYFromChainByBasket(basketsArr, chainId, true);
