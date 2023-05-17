@@ -17,8 +17,8 @@ const AURA_API =
   'https://graph.aura.finance/subgraphs/name/aura/aura-mainnet-v2';
 const BAL_API =
   'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-v2';
-const SWAP_APR_API = 'https://aura-balancer-apr.onrender.com/aprs';
-const AURA_TVL_API = 'https://aura-metrics.onrender.com/tvl';
+const SWAP_APR_API = 'https://cache.aura.finance/aura/aprs-deprecated';
+const AURA_TVL_API = 'https://cache.aura.finance/aura/tvl-deprecated';
 
 const balBoolsQuery = gql`
   query Pools($address_in: [Bytes!] = "") {
