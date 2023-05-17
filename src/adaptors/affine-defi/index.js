@@ -1,10 +1,28 @@
+const { api } = require('@defillama/sdk');
 const axios = require('axios');
+const ABI = require('./abi.json');
 
 const API_URL = 'https://api.affinedefi.com';
 
 const SUPPORTED_CHAINS = {
   1: 'ethereum',
   137: 'polygon',
+};
+
+const SECONDS_IN_DAY = 86400;
+
+const getLatestBlock = async (chainId) => {
+  return await api.util.getLatestBlock(SUPPORTED_CHAINS[chainId]);
+};
+
+/**
+ * This will convert the output of the contract to a number
+ */
+const formatOutputToNumber = (output) => {
+  const number = Number(output.num);
+  const decimals = Number(output.decimals);
+
+  return number / 10 ** decimals;
 };
 
 const getBasketsByChainId = async (chainId) => {
@@ -14,23 +32,11 @@ const getBasketsByChainId = async (chainId) => {
   return data;
 };
 
-const getApyByBasketTicker = async (basketTicker) => {
-  const { data } = await axios.get(
-    `${API_URL}/v2/getBasketHistoricalData?basketTicker=${basketTicker}&period=oneMonth`
-  );
-
-  // we will return the 24h APY from the first element of the 'historicalData' array
-  if (data && data[basketTicker].historicalData.length > 0) {
-    return data[basketTicker].historicalData[0].yieldPcnt ?? 0;
-  }
-
-  return 0;
-};
-
 const getTVLInUsdByBasketDenomination = async (
   ticker,
   basketDenomination,
-  tvl
+  tvl,
+  chainId
 ) => {
   if (basketDenomination === '$') {
     // case - the denomination is already in USD, we don't need to convert it
@@ -40,13 +46,20 @@ const getTVLInUsdByBasketDenomination = async (
     };
   }
   const { data } = await axios.get(
-    `${API_URL}/v2/token/getTokenConversion?sourceToken=${basketDenomination}&quantity=${tvl}`
+    `https://coins.llama.fi/prices/current/coingecko:${SUPPORTED_CHAINS[chainId]}`
   );
 
-  if (data && data[basketDenomination]) {
+  if (
+    data &&
+    data.coins &&
+    data.coins[`coingecko:${SUPPORTED_CHAINS[chainId]}`] &&
+    data.coins[`coingecko:${SUPPORTED_CHAINS[chainId]}`].price
+  ) {
     return {
       ticker,
-      tvlUsd: data[basketDenomination],
+      tvlUsd:
+        tvl *
+        Number(data.coins[`coingecko:${SUPPORTED_CHAINS[chainId]}`].price),
     };
   }
 
@@ -56,36 +69,98 @@ const getTVLInUsdByBasketDenomination = async (
   };
 };
 
-const getAllBasketApyByChain = async (chainId) => {
-  const baskets = await getBasketsByChainId(chainId); // we will get objects as a response
-  const apyPromises = Object.keys(baskets).map((basketTicker) =>
-    getApyByBasketTicker(basketTicker)
-  );
+const getTVLFromChain = async (baskets, chainId) => {
+  // we are going to find the address in the addressbook
+  const latestBlock = await getLatestBlock(chainId);
+  const abi = ABI.find((abi) => abi.name === 'detailedTVL');
 
-  const apy = await Promise.all(apyPromises);
+  const value = await api.abi.multiCall({
+    abi,
+    calls: baskets.map((basket) => ({
+      target: basket.basketAddress,
+    })),
+    chain: SUPPORTED_CHAINS[chainId],
+    block: latestBlock.number,
+  });
 
-  // we will convert the tvl to USD
-  const tvlPromises = Object.keys(baskets).map((key) =>
+  const TVLsInUSDPromises = value.output.map((output, index) =>
     getTVLInUsdByBasketDenomination(
-      key,
-      baskets[key].denomination,
-      baskets[key].tvl
+      baskets[index].basketTicker,
+      baskets[index].basketDenomination,
+      formatOutputToNumber(output.output),
+      chainId
     )
   );
 
-  const tvls = await Promise.all(tvlPromises);
+  return await Promise.all(TVLsInUSDPromises);
+};
 
-  return Object.keys(baskets).map((key, index) => {
-    return {
-      pool: `${baskets[key].basketAddress}-${SUPPORTED_CHAINS[chainId]}`,
-      chain: SUPPORTED_CHAINS[chainId],
-      project: 'affine-defi',
-      symbol: key,
-      tvlUsd: tvls.find((tvl) => tvl.ticker === key).tvlUsd,
-      apy: apy[index],
-      url: `https://app.affinedefi.com/basket?id=${key}`,
-    };
+const getAPYFromChainByBasket = async (baskets, chainId, isSevenDay) => {
+  const latestBlock = await getLatestBlock(chainId);
+  const oneDayOldBlock = await api.util.lookupBlock(
+    latestBlock.timestamp - SECONDS_IN_DAY,
+    SUPPORTED_CHAINS[chainId]
+  );
+  const sevenDayOldBlock = await api.util.lookupBlock(
+    latestBlock.timestamp - SECONDS_IN_DAY * 7,
+    SUPPORTED_CHAINS[chainId]
+  );
+  const abi = ABI.find((abi) => abi.name === 'detailedPrice');
+
+  const currentPrice = await api.abi.multiCall({
+    abi,
+    calls: baskets.map((basket) => ({
+      target: basket.basketAddress,
+    })),
+    chain: SUPPORTED_CHAINS[chainId],
+    block: latestBlock.number,
   });
+
+  const oldPrice = await api.abi.multiCall({
+    abi,
+    calls: baskets.map((basket) => ({
+      target: basket.basketAddress,
+    })),
+    chain: SUPPORTED_CHAINS[chainId],
+    block: isSevenDay ? sevenDayOldBlock.number : oneDayOldBlock.number,
+  });
+
+  let APYs = [];
+  currentPrice.output.forEach((price, index) => {
+    const apy =
+      (formatOutputToNumber(price.output) /
+        formatOutputToNumber(oldPrice.output[index].output) -
+        1) *
+      100;
+
+    APYs.push({
+      ticker: baskets[index].basketTicker,
+      apy,
+    });
+  });
+
+  return APYs;
+};
+
+const getAllBasketApyByChain = async (chainId) => {
+  const baskets = await getBasketsByChainId(chainId); // we will get objects as a response
+  const basketsArr = Object.keys(baskets).map((key) => baskets[key]);
+  const apys = await getAPYFromChainByBasket(basketsArr, chainId);
+  const sevenDayAPYs = await getAPYFromChainByBasket(basketsArr, chainId, true);
+  const tvls = await getTVLFromChain(basketsArr, chainId);
+
+  return Object.keys(baskets).map((key, index) => ({
+    pool: `${baskets[key].basketAddress}-${SUPPORTED_CHAINS[chainId]}`,
+    chain: SUPPORTED_CHAINS[chainId],
+    project: 'affine-defi',
+    symbol:
+      baskets[key].denomination === '$' ? 'USDC' : baskets[key].denomination,
+    tvlUsd: tvls.find((tvl) => tvl.ticker === key).tvlUsd,
+    apy: apys.find((apy) => apy.ticker === key).apy,
+    apyBase: apys.find((apy) => apy.ticker === key).apy,
+    apyBase7d: sevenDayAPYs.find((apy) => apy.ticker === key).apy,
+    poolMeta: key,
+  }));
 };
 
 const main = async () => {
@@ -102,4 +177,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://app.affinedefi.com/',
 };
