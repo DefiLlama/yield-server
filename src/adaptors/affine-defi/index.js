@@ -87,7 +87,7 @@ const getTVLFromChain = async (baskets, chainId) => {
   const TVLsInUSDPromises = value.output.map((output, index) =>
     getTVLInUsdByBasketDenomination(
       baskets[index].basketTicker,
-      baskets[index].basketDenomination,
+      baskets[index].denomination,
       formatOutputToNumber(output.output),
       chainId
     )
@@ -170,7 +170,6 @@ const getAllBasketApyByChain = async (chainId) => {
     symbol:
       baskets[key].denomination === '$' ? 'USDC' : baskets[key].denomination,
     tvlUsd: tvls.find((tvl) => tvl.ticker === key).tvlUsd,
-    apy: apys.find((apy) => apy.ticker === key).apy,
     apyBase: apys.find((apy) => apy.ticker === key).apy,
     apyBase7d: sevenDayAPYs.find((apy) => apy.ticker === key).apy,
     poolMeta: key,
