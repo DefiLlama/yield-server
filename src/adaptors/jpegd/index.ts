@@ -1,0 +1,25 @@
+const utils = require('../utils');
+
+const poolsFunction = async () => {
+  const [apeApy, tvlData] = await Promise.all([
+    utils.getData('https://endpoints.jpegd.io/api/apy/ape'),
+    utils.getData('https://endpoints.jpegd.io/api/tvl'),
+  ]);
+
+  const apePool = {
+    pool: '0xD4b06218C545C047ac3ACc7cE49d124C172DB409',
+    chain: utils.formatChain('ethereum'),
+    project: 'jpegd',
+    symbol: utils.formatSymbol('APE'),
+    tvlUsd: Number(tvlData.tokenBalancesUsd.APE),
+    apy: apeApy,
+  };
+
+  return [apePool];
+};
+
+module.exports = {
+  timetravel: false,
+  apy: poolsFunction,
+  url: 'https://jpegd.io/ape-staking',
+};
