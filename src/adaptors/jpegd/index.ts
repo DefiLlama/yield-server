@@ -1,8 +1,9 @@
 const utils = require('../utils');
+const { getApecoinApy } = require('./apy');
 
 const poolsFunction = async () => {
   const [apeApy, tvlData] = await Promise.all([
-    utils.getData('https://endpoints.jpegd.io/api/apy/ape'),
+    getApecoinApy(),
     utils.getData('https://endpoints.jpegd.io/api/tvl'),
   ]);
 
