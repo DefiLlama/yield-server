@@ -36,6 +36,7 @@ const getPools = async () => {
     tvlUsd: taiKsmStats.data.tvl,
     apyBase: taiKsmApr['sa://0'] * 100,
     apyReward: taiKsmApr['TAI'] * 100,
+    rewardTokens: ['TAI'],
   };
 
   const threeUsd = {
@@ -45,6 +46,7 @@ const getPools = async () => {
     symbol: '3USD',
     tvlUsd: threeUsdStats.data.tvl,
     apyBase: threeUsdApr['sa://1'] * 100,
+    rewardTokens: ['TAI', 'sa://0', 'LKSM', 'KAR'],
     apyReward:
       (threeUsdApr['TAI'] +
         threeUsdApr['sa://0'] +
