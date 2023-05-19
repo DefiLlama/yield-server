@@ -150,7 +150,7 @@ const topLvl = async (
     const underlyingTokens = [p.token0.id, p.token1.id];
     const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
     const token1 = underlyingTokens === undefined ? '' : underlyingTokens[1];
-    const chain = chainString === 'ethereum' ? 'mainnet' : chainString;
+    const chain = chainString;
     const url = `https://arbidex.fi/add/${token0}/${token1}/`;
 
     const arxAllocPoint = poolInfo.find(
