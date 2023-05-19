@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 const masterchefAbi = require('./masterchef');
 const stakingPositionAbi = require('./stakingPosition');
 const factoryAbi = require('./factory');
+const lp = require('./lp');
 const lpAbi = require('./lp');
 const axios = require('axios');
 
@@ -103,7 +104,7 @@ const topLvl = async (chainString, timestamp, url) => {
     })
   ).output.map((o) => o.output);
 
-  const poolInfo = (
+  let poolInfo = (
     await sdk.api.abi.multiCall({
       calls: pools.map((i) => ({
         target: i,
@@ -112,6 +113,19 @@ const topLvl = async (chainString, timestamp, url) => {
       chain: chainString,
     })
   ).output.map((o) => o.output);
+
+  const lpTokens = poolInfo.map((p) => p.lpToken);
+  const totalSupply = (
+    await sdk.api.abi.multiCall({
+      calls: lpTokens.map((i) => ({
+        target: i,
+      })),
+      abi: lp.find((m) => m.name === 'totalSupply'),
+      chain: chainString,
+    })
+  ).output.map((o) => o.output);
+
+  poolInfo = poolInfo.map((p, i) => ({ ...p, totalSupply: totalSupply[i] }));
 
   const totalAllocPoint = (
     await sdk.api.abi.call({
@@ -179,12 +193,19 @@ const topLvl = async (chainString, timestamp, url) => {
 
   // build pool objects
   data = data.map((p) => {
-    const x = poolInfo.find(
+    const pi = poolInfo.find(
       (pi) => pi.lpToken.toLowerCase() === p.id?.toLowerCase()
-    )?.allocPoint;
+    );
+
+    const farmReserveRatio = pi?.lpSupplyWithMultiplier / pi?.totalSupply;
 
     const apyReward =
-      (((x / totalAllocPoint) * grailPerYearUsd) / p.totalValueLockedUSD) * 100;
+      (((pi?.allocPoint / totalAllocPoint) * grailPerYearUsd) /
+        (p.totalValueLockedUSD * farmReserveRatio)) *
+      100;
+
+    // rewards are 20% in liquid grail and 80% in non-transferable xgrail (which can be used to boost though)
+    // gonna report 20% grail only
 
     const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
     return {
@@ -195,7 +216,7 @@ const topLvl = async (chainString, timestamp, url) => {
       tvlUsd: p.totalValueLockedUSD,
       apyBase: p.apy1d,
       apyBase7d: p.apy7d,
-      apyReward,
+      apyReward: apyReward * 0.2,
       underlyingTokens: [p.token0.id, p.token1.id],
       rewardTokens: apyReward > 0 ? [GRAIL] : [],
       volumeUsd1d: p.volumeUSD1d,
