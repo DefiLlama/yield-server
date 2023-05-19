@@ -172,7 +172,7 @@ const getAllBasketApyByChain = async (chainId) => {
     tvlUsd: tvls.find((tvl) => tvl.ticker === key).tvlUsd,
     apyBase: apys.find((apy) => apy.ticker === key).apy,
     apyBase7d: sevenDayAPYs.find((apy) => apy.ticker === key).apy,
-    poolMeta: key,
+    poolMeta: baskets[key].basketName,
   }));
 };
 
