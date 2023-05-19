@@ -178,6 +178,7 @@ const topLvl = async (
       apyBase: p.apy1d,
       apyBase7d: p.apy7d,
       apyReward,
+      rewardTokens: apyReward > 0 ? [WETH, ARX] : [],
       underlyingTokens,
       url,
       volumeUsd1d: p.volumeUSD1d,
