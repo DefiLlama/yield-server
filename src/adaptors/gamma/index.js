@@ -8,25 +8,33 @@ const { print } = require('graphql');
 
 const EXCHANGES_API = {
   uniswapv3: '',
-  quickswap: 'quickswap/'
+  quickswap: 'quickswap/',
+  zyberswap: 'zyberswap/',
+  thena: 'thena/'
 };
 const EXCHANGES_CHAINS = {
-  uniswapv3: ["ethereum", "optimism", "polygon", "arbitrum", "celo"],
-  quickswap: ["polygon"]
+  uniswapv3: ["ethereum", "optimism", "polygon", "arbitrum", "celo", "bsc"],
+  quickswap: ["polygon", "polygon_zkevm"],
+  zyberswap: ["arbitrum"],
+  thena: ["bsc"]
 };
 const CHAINS_API = {
   ethereum: '',
   optimism: 'optimism/',
   polygon: 'polygon/',
+  polygon_zkevm: 'polygon-zkevm/',
   arbitrum: 'arbitrum/',
-  celo: 'celo/'
+  celo: 'celo/',
+  bsc: 'bsc/'
 };
 const CHAIN_IDS = {
   ethereum: 1,
   optimism: 10,
   polygon: 137,
+  polygon_zkevm: 1101,
   arbitrum: 42161,
-  celo: 42220
+  celo: 42220,
+  bsc: 56
 };
 const UNISWAP_FEE = {
   "100": "0.01%",
@@ -80,15 +88,19 @@ const blacklist = {
   ],
   optimism: [],
   polygon: [],
+  polygon_zkevm: [],
   arbitrum: [],
-  celo: []
+  celo: [],
+  bsc: []
 };
 const masterchef_blacklist = {
   ethereum: [],
   optimism: ["0x097264485014bad028890b6e03ad2dc72bd43bf2", "0x3c21bc5d9fdbb395feba595c5c8ee803fcee84cf"],
   polygon: ["0x5ca8b7eb3222e7ce6864e59807ddd1a3c3073826", "0x9c64060cac9a20a44dbf9eff47bd4de7d049877d"],
+  polygon_zkevm: [],
   arbitrum: [],
   celo: [],
+  bsc: []
 };
 const getUrl_allData = (chain, exchange) =>
   `https://wire2.gamma.xyz/${exchange}${chain}hypervisors/allData`;
@@ -265,7 +277,17 @@ const getApy = async () => {
     });
     return chainAprs;
   });
-  return pools.flat();
+
+  // pools on optimism which have wrong reward apy
+  const x = [
+    '0x431f6e577a431d9ee87a535fde2db830e352e33c',
+    '0xed17209ab7f9224e29cc9894fa14a011f37b6115',
+  ];
+  return pools.flat().map((i) => ({
+    ...i,
+    apyReward: x.includes(i.pool) ? null : i.apyReward,
+    rewardTokens: x.includes(i.pool) ? null : i.rewardTokens,
+  }));
 };
 
 module.exports = {

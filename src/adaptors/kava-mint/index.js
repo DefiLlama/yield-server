@@ -21,9 +21,9 @@ const getPrices = async (addresses) => {
 };
 
 const main = async () => {
-  const parametersUrl = 'https://api2.kava.io/cdp/parameters';
-  const dispoistedUrl = 'https://api2.kava.io/cdp/totalCollateral';
-  const principalUrl = 'https://api2.kava.io/cdp/totalPrincipal';
+  const parametersUrl = 'https://api2.kava.io/kava/cdp/v1beta1/params';
+  const dispoistedUrl = 'https://api2.kava.io/kava/cdp/v1beta1/totalCollateral';
+  const principalUrl = 'https://api2.kava.io/kava/cdp/v1beta1/totalPrincipal';
 
   const [parametersCall, dispoistedCall, principalCall] = (
     await Promise.all([
@@ -31,9 +31,9 @@ const main = async () => {
       axios.get(dispoistedUrl),
       axios.get(principalUrl),
     ])
-  ).map((e) => e.data.result);
+  ).map((e) => e.data);
 
-  const parameters = parametersCall.collateral_params.map((e) => {
+  const parameters = parametersCall.params.collateral_params.map((e) => {
     return {
       ...convertSymbol(e.denom),
       stability_fee: e.stability_fee,
@@ -43,7 +43,7 @@ const main = async () => {
     };
   });
 
-  const dispoisted = dispoistedCall.map((e) => {
+  const dispoisted = dispoistedCall.total_collateral.map((e) => {
     const info = convertSymbol(e.amount.denom);
     return {
       ...info,
@@ -52,7 +52,7 @@ const main = async () => {
     };
   });
 
-  const borrowed = principalCall.map((e) => {
+  const borrowed = principalCall.total_principal.map((e) => {
     const info = convertSymbol(e.collateral_type.split('-')[0]);
     return {
       ...info,

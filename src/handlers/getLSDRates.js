@@ -1,6 +1,10 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 const rebase =
   'Rebase Token: Staking rewards accrue as new tokens. Expected Peg = 1 : 1';
 const valueAccruing =
@@ -49,7 +53,7 @@ const lsdTokens = [
   },
   { name: 'StakeHound', address: '0xdfe66b14d37c77f4e9b180ceb433d1b164f0281d' },
   {
-    name: 'Bifrost Staking',
+    name: 'Bifrost Liquid Staking',
     address: '0xc3d088842dcf02c13699f936bb83dfbbc6f721ab',
     peg: rebase,
   },
@@ -94,9 +98,16 @@ const getMarketRates = async () => {
       `${oneInchUrl}?fromTokenAddress=${lsd.address}&toTokenAddress=${eth}&amount=${amount}`
   );
 
-  const marketRates = (await Promise.allSettled(urls.map((u) => axios.get(u))))
-    .map((p) => p.value?.data)
-    .filter(Boolean);
+  const marketRates = [];
+  for (const url of urls) {
+    try {
+      marketRates.push((await axios.get(url)).data);
+      // 1inch api 5requests/sec max
+      await sleep(500);
+    } catch (err) {
+      console.log(url, err.response.data);
+    }
+  }
 
   return marketRates;
 };

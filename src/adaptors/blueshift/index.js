@@ -5,7 +5,7 @@ const { AddressZero } = require('@ethersproject/constants');
 const { getChainTransform, getFixBalances } = require('../../helper/transform');
 
 const abi = require('./abi.json');
-const config = require("./config.json");
+const config = require('./config.json');
 
 const BLOCKS_PER_YEAR = 8e6;
 
@@ -16,25 +16,27 @@ const NUMBER_OF_PERIODS = DAYS_IN_YEAR;
 const ONE = (decimals) => BigNumber.from(10).pow(decimals);
 const TRANSFORM_TO_PERCENTS = (num) => num * 100;
 
-
 function formatBigNumber(num, decimals) {
   if (num.length > decimals) {
-    return num.slice(0, num.length - decimals) + '.' + num.slice(num.length - decimals)
+    return (
+      num.slice(0, num.length - decimals) +
+      '.' +
+      num.slice(num.length - decimals)
+    );
   } else {
-    return "0." + '0'.repeat(decimals - num.length) + num
+    return '0.' + '0'.repeat(decimals - num.length) + num;
   }
 }
 
 async function getFees(chain, portfolios) {
   const res = {};
 
-  const fees = (await utils.getData(
-    `${config.apiUrl[chain]}/portfolio/fee`,
-    {
+  const fees = (
+    await utils.getData(`${config.apiUrl[chain]}/portfolio/fee`, {
       portfolio: portfolios,
-      period: 30
-    }
-  )).fee;
+      period: 30,
+    })
+  ).fee;
 
   for (let i = 0; i < fees.length; ++i) {
     res[portfolios[i]] = fees[i];
@@ -44,24 +46,30 @@ async function getFees(chain, portfolios) {
 }
 
 async function getTokenVsUsdPrice(token) {
-  const bluesPrice = (await utils.getData(
-    `https://api.coingecko.com/api/v3/simple/price?ids=${token}&vs_currencies=usd`
-  ))[token].usd;
+  const priceKey = `coingecko:${token}`;
+  const { coins: bluesPrice } = await utils.getData(
+    `https://coins.llama.fi/prices/current/${priceKey}`
+  );
 
-  const [i, f] = bluesPrice.toString().split('.');
+  const [i, f] = bluesPrice[priceKey].price.toString().split('.');
 
   if (f === undefined) {
     return BigNumber.from(i + '0'.repeat(6));
   } else {
-    return BigNumber.from(i + f.slice(0, 6) + '0'.repeat(f.length < 6 ? 6 - f.length : 0));
+    return BigNumber.from(
+      i + f.slice(0, 6) + '0'.repeat(f.length < 6 ? 6 - f.length : 0)
+    );
   }
 }
 
 function apy(apr, aprWeights) {
   const apr1 = apr * Number(formatBigNumber(aprWeights[0], 4));
-  const apr2 = apr * (Number(formatBigNumber(aprWeights[1], 4)) + Number(formatBigNumber(aprWeights[2], 4)));
+  const apr2 =
+    apr *
+    (Number(formatBigNumber(aprWeights[1], 4)) +
+      Number(formatBigNumber(aprWeights[2], 4)));
 
-  const apy1 = (1 + apr1 / NUMBER_OF_PERIODS)**(NUMBER_OF_PERIODS);
+  const apy1 = (1 + apr1 / NUMBER_OF_PERIODS) ** NUMBER_OF_PERIODS;
 
   // console.log("weight1:", Number(formatBigNumber(aprWeights[0], 4)));
   // console.log("weight2:", Number(formatBigNumber(aprWeights[1], 4)));
@@ -70,80 +78,124 @@ function apy(apr, aprWeights) {
   // console.log("apr2:", apr2);
   // console.log("apy1:", apy1);
 
-  return apy1 + apr2 / apr1 * (apy1 - 1) - 1;
+  return apy1 + (apr2 / apr1) * (apy1 - 1) - 1;
 }
 
-async function farming(chain, aprWeights, rewardToken, BLUES_PRICE, portfolios) {
+async function farming(
+  chain,
+  aprWeights,
+  rewardToken,
+  BLUES_PRICE,
+  portfolios
+) {
   const res = [];
   const transform = await getChainTransform(chain);
   const fixBalances = await getFixBalances(chain);
 
+  const fees = await getFees(
+    chain,
+    portfolios.map((portfolio) => portfolio.contractAddress)
+  );
 
-  const fees = await getFees(chain, portfolios.map(portfolio => portfolio.contractAddress));
+  const farms = (
+    await sdk.api.abi.call({
+      abi: abi.BlueshiftMinter.getFarms,
+      chain: chain,
+      target: config.minter[chain],
+      params: [],
+    })
+  ).output;
 
-  const farms = (await sdk.api.abi.call({
-    abi: abi.BlueshiftMinter.getFarms,
-    chain: chain,
-    target: config.minter[chain],
-    params: [],
-  })).output;
-
-  const farmInfos = (await sdk.api.abi.call({
-    abi: abi.BlueshiftMinter.getStatusFarms,
-    chain: chain,
-    target: config.minter[chain],
-    params: [
-      AddressZero,
-      (await sdk.api.util.getLatestBlock(chain)).timestamp
-    ],
-  })).output;
+  const farmInfos = (
+    await sdk.api.abi.call({
+      abi: abi.BlueshiftMinter.getStatusFarms,
+      chain: chain,
+      target: config.minter[chain],
+      params: [
+        AddressZero,
+        (await sdk.api.util.getLatestBlock(chain)).timestamp,
+      ],
+    })
+  ).output;
 
   for (let farm of farms) {
-    const receivedToken = (await sdk.api.abi.call({
-      abi: abi.BlueshiftEarning.getToken,
-      chain: chain,
-      target: farm,
-      params: [],
-    })).output;
+    const receivedToken = (
+      await sdk.api.abi.call({
+        abi: abi.BlueshiftEarning.getToken,
+        chain: chain,
+        target: farm,
+        params: [],
+      })
+    ).output;
 
-    const portfolioInfo = portfolios.filter(portfolio => portfolio.lpTokenAddress === receivedToken)[0];
+    const portfolioInfo = portfolios.filter(
+      (portfolio) => portfolio.lpTokenAddress === receivedToken
+    )[0];
     if (portfolioInfo === undefined) {
       continue;
     }
 
-    const farmInfo = farmInfos.filter(farmInfo => farmInfo.farm === farm)[0];
+    const farmInfo = farmInfos.filter((farmInfo) => farmInfo.farm === farm)[0];
     if (farmInfo === undefined) {
       continue;
     }
 
-    const tokensAddresses = portfolioInfo.tokens.map(token => token.tokenAddress)
+    const tokensAddresses = portfolioInfo.tokens.map(
+      (token) => token.tokenAddress
+    );
 
-    const tokensSymbols = (await sdk.api.abi.multiCall({
-      abi: abi.ERC20.symbol,
-      chain: chain,
-      calls: tokensAddresses.map(tokenAddress => ({
-        target: tokenAddress,
-        params: []
-      })),
-      requery: true,
-    })).output.map(s => s.output);
+    const tokensSymbols = (
+      await sdk.api.abi.multiCall({
+        abi: abi.ERC20.symbol,
+        chain: chain,
+        calls: tokensAddresses.map((tokenAddress) => ({
+          target: tokenAddress,
+          params: [],
+        })),
+        requery: true,
+      })
+    ).output.map((s) => s.output);
 
-    const rewardedFee = Number(formatBigNumber(BigNumber.from(fees[portfolioInfo.contractAddress]).mul(MONTHS_IN_YEAR).toString(), 6));
-    const rewardedStake = Number(formatBigNumber(BigNumber.from(farmInfo.rewardPerBlock).mul(BLOCKS_PER_YEAR).mul(BLUES_PRICE).div(ONE(18)).toString(), 6));
+    const rewardedFee = Number(
+      formatBigNumber(
+        BigNumber.from(fees[portfolioInfo.contractAddress])
+          .mul(MONTHS_IN_YEAR)
+          .toString(),
+        6
+      )
+    );
+    const rewardedStake = Number(
+      formatBigNumber(
+        BigNumber.from(farmInfo.rewardPerBlock)
+          .mul(BLOCKS_PER_YEAR)
+          .mul(BLUES_PRICE)
+          .div(ONE(18))
+          .toString(),
+        6
+      )
+    );
 
     let tvl = farmInfo.accDeposited;
-    tvl = BigNumber.from(tvl).mul(BigNumber.from(portfolioInfo.lpTokenPrice)).div(ONE(18));
+    tvl = BigNumber.from(tvl)
+      .mul(BigNumber.from(portfolioInfo.lpTokenPrice))
+      .div(ONE(18));
 
     let balances = {};
     let tvlUsd = 0;
-      sdk.util.sumSingleBalance(balances, transform(portfolioInfo.baseTokenAddress), tvl.toString());
-      fixBalances(balances);
-      tvlUsd = (await sdk.util.computeTVL(balances, "now")).usdTvl;
+    sdk.util.sumSingleBalance(
+      balances,
+      transform(portfolioInfo.baseTokenAddress),
+      tvl.toString()
+    );
+    fixBalances(balances);
+    tvlUsd = (await sdk.util.computeTVL(balances, 'now')).usdTvl;
 
     const aprBase = rewardedFee / tvlUsd;
     const aprReward = rewardedStake / tvlUsd;
 
-    const apyBase = tokensAddresses.includes(rewardToken) ? apy(aprBase, aprWeights) : aprBase; 
+    const apyBase = tokensAddresses.includes(rewardToken)
+      ? apy(aprBase, aprWeights)
+      : aprBase;
     const apyReward = aprReward;
 
     // console.log(tokensSymbols);
@@ -163,42 +215,56 @@ async function farming(chain, aprWeights, rewardToken, BLUES_PRICE, portfolios) 
       rewardTokens: [rewardToken],
       underlyingTokens: tokensAddresses,
       url: `https://app.blueshift.fi/#/farming?network=${config.network[chain]}`,
-      poolMeta: portfolioInfo.name
+      poolMeta: portfolioInfo.name,
     });
   }
 
   return res;
 }
 
-async function staking(chain, aprWeights, rewardToken, BLUES_PRICE, portfolios) {
+async function staking(
+  chain,
+  aprWeights,
+  rewardToken,
+  BLUES_PRICE,
+  portfolios
+) {
   const res = [];
 
-  const stakings = (await sdk.api.abi.call({
-    abi: abi.BlueshiftMinter.getStakings,
-    chain: chain,
-    target: config.minter[chain],
-    params: [],
-  })).output;
+  const stakings = (
+    await sdk.api.abi.call({
+      abi: abi.BlueshiftMinter.getStakings,
+      chain: chain,
+      target: config.minter[chain],
+      params: [],
+    })
+  ).output;
 
-  const stakingInfos = (await sdk.api.abi.call({
-    abi: abi.BlueshiftMinter.getStatusStaking,
-    chain: chain,
-    target: config.minter[chain],
-    params: [
-      AddressZero,
-      (await sdk.api.util.getLatestBlock(chain)).timestamp
-    ],
-  })).output;
+  const stakingInfos = (
+    await sdk.api.abi.call({
+      abi: abi.BlueshiftMinter.getStatusStaking,
+      chain: chain,
+      target: config.minter[chain],
+      params: [
+        AddressZero,
+        (await sdk.api.util.getLatestBlock(chain)).timestamp,
+      ],
+    })
+  ).output;
 
   for (let staking of stakings) {
-    const receivedToken = (await sdk.api.abi.call({
-      abi: abi.BlueshiftEarning.getToken,
-      chain: chain,
-      target: staking,
-      params: [],
-    })).output;
+    const receivedToken = (
+      await sdk.api.abi.call({
+        abi: abi.BlueshiftEarning.getToken,
+        chain: chain,
+        target: staking,
+        params: [],
+      })
+    ).output;
 
-    const stakingInfo = stakingInfos.filter(stakingInfo => stakingInfo.farm === staking)[0];
+    const stakingInfo = stakingInfos.filter(
+      (stakingInfo) => stakingInfo.farm === staking
+    )[0];
     if (stakingInfo === undefined) {
       continue;
     }
@@ -206,8 +272,14 @@ async function staking(chain, aprWeights, rewardToken, BLUES_PRICE, portfolios) 
     let tvl = stakingInfo.accDeposited;
     const tvlUsd = BigNumber.from(tvl).mul(BLUES_PRICE).div(ONE(18)).toString();
 
-    const aprReward = BigNumber.from(stakingInfo.rewardPerBlock).mul(BLOCKS_PER_YEAR).mul(10000).div(tvl);
-    const apyReward = apy(Number(formatBigNumber(aprReward.toString(), 4)), aprWeights);
+    const aprReward = BigNumber.from(stakingInfo.rewardPerBlock)
+      .mul(BLOCKS_PER_YEAR)
+      .mul(10000)
+      .div(tvl);
+    const apyReward = apy(
+      Number(formatBigNumber(aprReward.toString(), 4)),
+      aprWeights
+    );
 
     // console.log("aprReward:", formatBigNumber(aprReward.toString(), 4));
     // console.log("apyReward:", apyReward.toString());
@@ -222,7 +294,7 @@ async function staking(chain, aprWeights, rewardToken, BLUES_PRICE, portfolios) 
       tvlUsd: Number(formatBigNumber(tvlUsd.toString(), 6)),
       rewardTokens: [rewardToken],
       underlyingTokens: [rewardToken],
-      url: `https://app.blueshift.fi/#/staking?network=${config.network[chain]}`
+      url: `https://app.blueshift.fi/#/staking?network=${config.network[chain]}`,
     });
   }
 
@@ -230,40 +302,61 @@ async function staking(chain, aprWeights, rewardToken, BLUES_PRICE, portfolios) 
 }
 
 async function poolsApy(chain) {
-  const BLUES_PRICE = await getTokenVsUsdPrice("blueshift");
+  const BLUES_PRICE = await getTokenVsUsdPrice('blueshift');
 
-  const portfolios = (await sdk.api.abi.call({
-    abi: abi.BlueshiftRegistry.getPortfolios,
-    chain: chain,
-    target: config.registry[chain],
-    params: [],
-  })).output;
+  const portfolios = (
+    await sdk.api.abi.call({
+      abi: abi.BlueshiftRegistry.getPortfolios,
+      chain: chain,
+      target: config.registry[chain],
+      params: [],
+    })
+  ).output;
 
-  const rewardToken = (await sdk.api.abi.call({
-    abi: abi.BlueshiftMinter.token,
-    chain: chain,
-    target: config.minter[chain],
-    params: [],
-  })).output;
+  const rewardToken = (
+    await sdk.api.abi.call({
+      abi: abi.BlueshiftMinter.token,
+      chain: chain,
+      target: config.minter[chain],
+      params: [],
+    })
+  ).output;
 
-  const aprWeights = (await sdk.api.abi.call({
-    abi: abi.BlueshiftMinter.getAprWeights,
-    chain: chain,
-    target: config.minter[chain],
-    params: [],
-  })).output;
+  const aprWeights = (
+    await sdk.api.abi.call({
+      abi: abi.BlueshiftMinter.getAprWeights,
+      chain: chain,
+      target: config.minter[chain],
+      params: [],
+    })
+  ).output;
 
-  const farmingPools = await farming(chain, aprWeights, rewardToken, BLUES_PRICE, portfolios);
-  const stakingPools = await staking(chain, aprWeights, rewardToken, BLUES_PRICE, portfolios);
+  const farmingPools = await farming(
+    chain,
+    aprWeights,
+    rewardToken,
+    BLUES_PRICE,
+    portfolios
+  );
+  const stakingPools = await staking(
+    chain,
+    aprWeights,
+    rewardToken,
+    BLUES_PRICE,
+    portfolios
+  );
 
   return [...farmingPools, ...stakingPools];
 }
 
 module.exports = {
   timetravel: false,
-  apy: async () => (await Promise.all([
-    "milkomeda",
-    "milkomeda_a1"
-  ].map(async chain => await poolsApy(chain))))
-  .reduce((a, b) => [...a, ...b])
+  apy: async () =>
+    (
+      await Promise.all(
+        ['milkomeda', 'milkomeda_a1'].map(
+          async (chain) => await poolsApy(chain)
+        )
+      )
+    ).reduce((a, b) => [...a, ...b]),
 };

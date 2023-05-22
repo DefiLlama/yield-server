@@ -48,6 +48,7 @@ provider:
       }
     BUCKET_DATA: { Ref: BucketData }
     DATABASE_URL: ${file(./env.js):DATABASE_URL}
+    ZEROX_API: ${file(./env.js):ZEROX_API}
 
   httpApi:
     metrics: true
@@ -81,11 +82,14 @@ functions:
     environment:
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
       ALCHEMY_CONNECTION_ETHEREUM: ${file(./env.js):ALCHEMY_CONNECTION_ETHEREUM}
+      ALCHEMY_CONNECTION_POLYGON: ${file(./env.js):ALCHEMY_CONNECTION_POLYGON}
+      ETHEREUM_RPC: ${file(./env.js):ETHEREUM_RPC}
       XDAI_RPC: ${file(./env.js):XDAI_RPC}
       CRONOS_RPC: ${file(./env.js):CRONOS_RPC}
       FANTOM_RPC: ${file(./env.js):FANTOM_RPC}
       OPTIMISM_RPC: ${file(./env.js):OPTIMISM_RPC}
       AVAX_RPC: ${file(./env.js):AVAX_RPC}
+      ARBITRUM_RPC: ${file(./env.js):ARBITRUM_RPC}
       TVL_SPIKE_WEBHOOK: ${file(./env.js):TVL_SPIKE_WEBHOOK}
       NEW_YIELDS_WEBHOOK: ${file(./env.js):NEW_YIELDS_WEBHOOK}
 
@@ -93,10 +97,10 @@ functions:
   triggerEnrichment:
     handler: src/handlers/triggerEnrichment.handler
     description: Lambda which runs enrichment process
-    timeout: 300
+    timeout: 600
     events:
-      # every hour at 20 past
-      - schedule: cron(20 * * * ? *)
+      # every hour at 16 past
+      - schedule: cron(16 * * * ? *)
 
   # --- stats update
   triggerStat:
@@ -144,6 +148,14 @@ functions:
     events:
       # every new hour
       - schedule: cron(0 * * * ? *)
+
+  triggerMedianProject:
+    handler: src/handlers/triggerMedianProject.handler
+    description: Lambda which triggers daily median calculation for each project
+    timeout: 300
+    events:
+      # 30min prior midnight
+      - schedule: cron(30 23 * * ? *)
 
   # ---------- GET HANDLERS
   getPoolsEnriched:
@@ -248,6 +260,24 @@ functions:
       - httpApi:
           method: get
           path: /lsdRates
+
+  getLSDRatesNew:
+    handler: src/handlers/getLSDRatesNew.handler
+    description: Lambda for retrieving ETH LSD Rates
+    timeout: 30
+    events:
+      - httpApi:
+          method: get
+          path: /lsdRatesNew
+
+  getMedianProject:
+    handler: src/handlers/getMedianProject.handler
+    description: Lambda for retrieving a projects median apy history
+    timeout: 20
+    events:
+      - httpApi:
+          method: get
+          path: /medianProject/{project}
 
 resources:
   Resources:

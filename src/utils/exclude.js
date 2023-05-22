@@ -10,6 +10,9 @@ const excludeAdaptors = [
   'friktion',
   'armor', // is now ease.org
   'lachain-yield-market',
+  'euler', // adapter is breaking since hack, need to fix,
+  'ratio-finance',
+  '0vix', // pausing cause of hack
 ];
 
 const excludePools = [
@@ -48,6 +51,15 @@ const excludePools = [
   '0x19D3364A399d251E894aC732651be8B0E4e85001', // ydai
   '0x09AA7178049Ba617119425A80faeee12dBe121de', // weth on klap
   '0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9', // old usdc vault on yearn
+  '0x152d62dccc2c7c7930c4483cc2a24fefd23c24c2-fantom',
+  '0x5427f192137405e6a4143d1c3321359bab2dbd87-fantom',
+  '0x7a5011bf1dad77a23ec35ce04dcc2ac7d29963c5',
+  '0x45859D71D4caFb93694eD43a5ecE05776Fc2465d-dot-dot-finance', // until fixed
+  '0xc3d088842dcf02c13699f936bb83dfbbc6f721ab', // bifrost veth v1
+  '0x015908fec4ac33782d7bcd7a6ae88ab0ade405f4', //drop-usdc pool
+  '0x7578aa78d5c5f622800d9205e942b12d353432b7',
+  '0x05d3d04f1aeb77d591a0581827b148ea634c0d1c',
+  '0xc1b228c22ca914069c7164e5489e8d79a9cbb922',
 ];
 
 const boundaries = {
@@ -58,7 +70,7 @@ const boundaries = {
   // we only get pools for the UI with a maximum apy of 1million %
   apy: { lb: 0, ub: 1e6 },
   // reading from database returns only pools which is max 7 days old
-  age: 5,
+  age: 7,
 };
 
 module.exports = {

@@ -216,6 +216,8 @@ exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
     pool['feeTier'] = 2000;
   } else if (version === 'zyberswap') {
     pool['feeTier'] = 1500;
+  } else if (version === 'arbidex') {
+    pool['feeTier'] = 500;
   }
 
   // calc prior volume on 24h offset
