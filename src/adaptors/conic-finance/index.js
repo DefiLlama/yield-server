@@ -121,14 +121,24 @@ const pool = async (address, apyData, poolData) => {
     blockNumber(),
     deployedAtBlock(address),
   ]);
+
+  const apr = poolApy(
+    weights_,
+    apyData,
+    poolData,
+    blockNumber_,
+    deployedAtBlock_,
+    exchangeRate_
+  );
+
   return {
     underlying: underlying_,
     symbol: symbol_,
     decimals: decimals_,
     totalUnderlying: bnToNum(totalUnderlying_, decimals_),
     price: price_,
-    baseApy: poolApy(weights_, apyData, poolData).base,
-    crvApy: poolApy(weights_, apyData, poolData).crv,
+    baseApy: apr.base,
+    crvApy: apr.crv,
   };
 };
 
