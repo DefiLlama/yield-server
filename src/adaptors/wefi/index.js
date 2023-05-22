@@ -13,7 +13,7 @@ const TOTAL_BORROWS = 'totalBorrows';
 const GET_CASH = 'getCash';
 const UNDERLYING = 'underlying';
 const BLOCKS_PER_DAY = 7200;
-const PROJECT_NAME = 'paxo-finance';
+const PROJECT_NAME = 'wefi';
 
 const NATIVE_TOKEN = {
   decimals: 18,
@@ -92,7 +92,7 @@ const main = async () => {
     })
   ).output.map((o) => o.output);
 
-  const isPaused = await getRewards(allMarkets, "mintGuardianPaused");
+  const isPaused = await getRewards(allMarkets, 'mintGuardianPaused');
 
   const supplyRewards = await multiCallMarkets(
     allMarkets,
@@ -173,7 +173,7 @@ const main = async () => {
       underlyingTokens: [token],
       rewardTokens: [apyReward ? PROTOCOL_TOKEN.address : null].filter(Boolean),
     };
-    if(isPaused[i] === false){
+    if (isPaused[i] === false) {
       poolReturned = {
         ...poolReturned,
         totalSupplyUsd,
@@ -181,19 +181,17 @@ const main = async () => {
         apyBaseBorrow,
         // apyRewardBorrow,
         ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
-      }
+      };
     }
-    return poolReturned
+    return poolReturned;
   });
 
   // supply yield only available for borrowMarket
-  return pools.filter(
-    (p) => p.totalBorrowUsd !== 0
-  );
+  return pools.filter((p) => p.totalBorrowUsd !== 0);
 };
 
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://www.beta.vaults.paxo.finance/',
+  url: 'https://www.beta.vaults.wefi.xyz/',
 };
