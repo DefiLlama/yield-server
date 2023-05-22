@@ -4,6 +4,7 @@ const urls = {
   polygon: 'https://api-polygon.vesper.finance/pools?stages=prod',
   ethereum: 'https://api.vesper.finance/pools?stages=prod',
   avalanche: 'https://api-avalanche.vesper.finance/pools?stages=prod',
+  optimism: 'https://api-optimism.vesper.finance/pools?stages=prod',
 };
 
 const underlyingTokenMapping = {
@@ -52,6 +53,7 @@ const main = async () => {
     apy('polygon'),
     apy('ethereum'),
     apy('avalanche'),
+    apy('optimism'),
   ]);
 
   return [...p, ...e, ...a];
