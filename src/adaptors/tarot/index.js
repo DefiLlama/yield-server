@@ -1,5 +1,5 @@
-/* 
-  used g1nt0ki's code as a base from DefiLlama-Adapters ./projects/tarot/index.js
+/*
+  used g1nt0ki's code as a base from DefiLlama-Adapters ./projects/tarot/index.ts
   General setup
   1. Loop through each factory in each chain under const config
   2. Get the lending pools which are the vaults that tarot lets you borrow/lend tokens with the liquidity pool of the tokens as collateral.
