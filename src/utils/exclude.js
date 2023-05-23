@@ -13,6 +13,7 @@ const excludeAdaptors = [
   'euler', // adapter is breaking since hack, need to fix,
   'ratio-finance',
   '0vix', // pausing cause of hack
+  'rehold', // apy values are fake
 ];
 
 const excludePools = [
