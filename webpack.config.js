@@ -20,7 +20,7 @@ module.exports = {
     extensions: ['.js', '.ts', '.json'],
     alias: {
       'bignumber.js$': 'bignumber.js/bignumber.js',
-      'node-fetch$': 'node-fetch/lib/index.ts',
+      'node-fetch$': 'node-fetch/lib/index.js',
     },
   },
 };
