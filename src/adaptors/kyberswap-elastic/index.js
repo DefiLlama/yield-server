@@ -57,12 +57,12 @@ const topLvl = async (chainString, url, timestamp) => {
       url,
     ]);
 
-    const [_, blockPrior7d] = await utils.getBlocks(
-      chainString,
-      timestamp,
-      [url],
-      604800
-    );
+    // const [_, blockPrior7d] = await utils.getBlocks(
+    //   chainString,
+    //   timestamp,
+    //   [url],
+    //   604800
+    // );
 
     let data = (await request(url, query.replace('<PLACEHOLDER>', block)))
       .pools;
@@ -71,9 +71,9 @@ const topLvl = async (chainString, url, timestamp) => {
       await request(url, queryPrior.replace('<PLACEHOLDER>', blockPrior))
     ).pools;
 
-    const dataPrior7d = (
-      await request(url, queryPrior.replace('<PLACEHOLDER>', blockPrior7d))
-    ).pools;
+    // const dataPrior7d = (
+    //   await request(url, queryPrior.replace('<PLACEHOLDER>', blockPrior7d))
+    // ).pools;
 
     data = data.map((p) => ({
       ...p,
@@ -83,7 +83,7 @@ const topLvl = async (chainString, url, timestamp) => {
     }));
     data = await utils.tvl(data, chainString);
 
-    data = data.map((p) => utils.apy(p, dataPrior, dataPrior7d));
+    data = data.map((p) => utils.apy(p, dataPrior, []));
 
     const farmData = (await axios.get(urlFarm.replace('<CHAIN>', chainString)))
       .data.data.farmPools;
@@ -107,13 +107,13 @@ const topLvl = async (chainString, url, timestamp) => {
         symbol,
         tvlUsd: p.totalValueLockedUSD,
         apyBase: p.apy1d,
-        apyBase7d: p.apy7d,
+        // apyBase7d: p.apy7d,
         apyReward,
         rewardTokens: apyReward > 0 ? farm.rewardTokens.map((r) => r.id) : [],
         underlyingTokens: [p.token0.id, p.token1.id],
         poolMeta: `${p.feeTier / 1e4}%`,
         volumeUsd1d: p.volumeUSD1d,
-        volumeUsd7d: p.volumeUSD7d,
+        // volumeUsd7d: p.volumeUSD7d,
       };
     });
   } catch (e) {
