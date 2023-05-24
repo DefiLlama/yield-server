@@ -14,9 +14,16 @@ const chainIds = {
   arbitrum: 42161,
 };
 
+async function getRateAngle(token) {
+  const prices = await utils.getData('https://api.angle.money/v1/prices/');
+  const price = prices.filter((p) => p.token == token)[0].rate;
+  return price;
+}
+
 // function getting all the data from the Angle API
 const main = async () => {
   var poolsData = [];
+
   for (const chain in chainIds) {
     const data = await utils.getData(
       'https://api.angle.money/v1/merkl?chainId=' + chainIds[chain]
@@ -47,11 +54,8 @@ const main = async () => {
         // TVL from the API
         const tvlUsd = data.pools[poolAddress].tvl;
 
-        /* Trying to fetch tvl on-chain: query balances of the pool and price of both tokens
-        remaining to-do: 
-          - generalize the fetching of amount balances and prices
-          - get the prices of tokens generalized, including agEUR one
-        */
+        // Trying to fetch tvl on-chain: query balances of the pool and price of both tokens
+        // remaining to-do: get the prices of tokens from the Angle API (especially agEUR)
 
         const amountUsdOnChain0 = (
           await sdk.api.abi.call({
@@ -70,12 +74,10 @@ const main = async () => {
           })
         ).output;
 
-        const priceToken0 = (
-          await utils.getPrices([underlyingTokens[0]], chain)
-        ).pricesByAddress[underlyingTokens[0].toLowerCase()];
-
-        const tvlUsdOnChain0 =
-          (amountUsdOnChain0 / 10 ** decimalsToken0) * priceToken0;
+        const priceToken0 =
+          (await utils.getPrices([underlyingTokens[0]], chain)).pricesByAddress[
+            underlyingTokens[0].toLowerCase()
+          ] ?? getRateAngle(data.pools[poolAddress].tokenSymbol0);
 
         const amountUsdOnChain1 = (
           await sdk.api.abi.call({
@@ -94,25 +96,14 @@ const main = async () => {
           })
         ).output;
 
-        const priceToken1 = (
-          await utils.getPrices([underlyingTokens[1]], chain)
-        ).pricesByAddress[underlyingTokens[1].toLowerCase()];
+        const priceToken1 =
+          (await utils.getPrices([underlyingTokens[1]], chain)).pricesByAddress[
+            underlyingTokens[1].toLowerCase()
+          ] ?? (await getRateAngle(data.pools[poolAddress].tokenSymbol1));
 
-        const tvlUsdOnChain1 =
+        const tvlUsdOnChain =
+          (amountUsdOnChain0 / 10 ** decimalsToken0) * priceToken0 +
           (amountUsdOnChain1 / 10 ** decimalsToken1) * priceToken1;
-
-        console.log(
-          data.pools[poolAddress].tokenSymbol0.toLowerCase(),
-          data.pools[poolAddress].tokenSymbol1.toLowerCase(),
-          amountUsdOnChain0,
-          amountUsdOnChain1,
-          decimalsToken0,
-          decimalsToken1,
-          priceToken0,
-          priceToken1,
-          tvlUsdOnChain0,
-          tvlUsdOnChain1
-        );
 
         const rewardToken = [];
         liveDistributionsData.forEach((element) => {
@@ -127,16 +118,17 @@ const main = async () => {
           symbol: symbol,
           tvlUsd: tvlUsd,
           apyReward: apyReward ?? 0,
-          rewardTokens: rewardToken,
+          rewardTokens: [...new Set(rewardToken)],
           underlyingTokens: underlyingTokens,
         };
         poolsData.push(poolData);
+        //console.log(poolsData);
       } else {
-        // do nothing
+        continue;
       }
     }
   }
-  //return poolsData;
+  return poolsData;
 };
 
 /*
