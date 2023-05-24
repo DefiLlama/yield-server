@@ -1,4 +1,4 @@
-/*
+/* 
   used g1nt0ki's code as a base from DefiLlama-Adapters ./projects/tarot/index.js
   General setup
   1. Loop through each factory in each chain under const config
