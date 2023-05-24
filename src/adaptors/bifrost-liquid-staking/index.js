@@ -1,63 +1,38 @@
 const sdk = require('@defillama/sdk');
-const axios = require('axios');
+const BigNumber = require("bignumber.js")
 const utils = require('../utils');
 
-const token = '0xc3d088842dcf02c13699f936bb83dfbbc6f721ab';
-const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+const veth = '0x4bc3263eb5bb2ef7ad9ab6fb68be80e43b43801f';
+const veth_1='0xc3d088842dcf02c13699f936bb83dfbbc6f721ab'
 
 const getApy = async () => {
-  const tvl =
-    (await sdk.api.erc20.totalSupply({ target: token })).output / 1e18;
-
-  const priceKey = `ethereum:${weth}`;
-  const ethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const contract_veth =  (await sdk.api.erc20.totalSupply({ target: veth })).output / 1e18;
+  const contract_veth1 =  (await sdk.api.erc20.totalSupply({ target: veth_1 })).output / 1e18;
+  const contract_veth1_null_address_balance =  (await sdk.api.erc20.balanceOf({ owner:'0x000000000000000000000000000000000000dEaD',target: veth_1, })).output / 1e18;
 
   const vToken = await utils.getData('https://api.bifrost.app/api/site');
 
-  const filUsd = (
-    await axios.get(
-      'https://api.coingecko.com/api/v3/simple/price?ids=filecoin&vs_currencies=usd'
-    )
-  ).data.filecoin.usd;
-
-  const dotUsd = (
-    await axios.get(
-      'https://api.coingecko.com/api/v3/simple/price?ids=polkadot&vs_currencies=usd'
-    )
-  ).data.polkadot.usd;
-
-  const ksmUsd = (
-    await axios.get(
-      'https://api.coingecko.com/api/v3/simple/price?ids=kusama&vs_currencies=usd'
-    )
-  ).data.kusama.usd;
-
-  const bncUsd = (
-    await axios.get(
-      'https://api.coingecko.com/api/v3/simple/price?ids=bifrost-native-coin&vs_currencies=usd'
-    )
-  ).data?.['bifrost-native-coin'].usd;
-
-  const glmrUsd = (
-    await axios.get(
-      'https://api.coingecko.com/api/v3/simple/price?ids=moonbeam&vs_currencies=usd'
-    )
-  ).data.moonbeam.usd;
-
-  const movrUsd = (
-    await axios.get(
-      'https://api.coingecko.com/api/v3/simple/price?ids=moonriver&vs_currencies=usd'
-    )
-  ).data.moonriver.usd;
+  const priceKeys = [
+    'ethereum',
+    'filecoin',
+    'polkadot',
+    'kusama',
+    'bifrost-native-coin',
+    'moonbeam',
+    'moonriver',
+  ]
+    .map((t) => `coingecko:${t}`)
+    .join(',');
+  const { coins: prices } = await utils.getData(
+    `https://coins.llama.fi/prices/current/${priceKeys}`
+  );
 
   const vDOT = {
     pool: 'polkadot-vdot',
     chain: 'Polkadot',
     project: 'bifrost-liquid-staking',
     symbol: 'vDOT',
-    tvlUsd: vToken.vDOT.tvm * dotUsd,
+    tvlUsd: vToken.vDOT.tvm * prices['coingecko:polkadot'].price,
     apyBase: Number(vToken.vDOT.apyBase),
     apyReward: Number(vToken.vDOT.apyReward),
     rewardTokens: ['DOT'],
@@ -68,7 +43,7 @@ const getApy = async () => {
     chain: 'Moonbeam',
     project: 'bifrost-liquid-staking',
     symbol: 'vGLMR',
-    tvlUsd: vToken.vGLMR.tvm * glmrUsd,
+    tvlUsd: vToken.vGLMR.tvm * prices['coingecko:moonbeam'].price,
     apyBase: Number(vToken.vGLMR.apyBase),
     apyReward: Number(vToken.vGLMR.apyReward),
     rewardTokens: ['GLMR'],
@@ -79,7 +54,7 @@ const getApy = async () => {
     chain: 'Filecoin',
     project: 'bifrost-liquid-staking',
     symbol: 'vFIL',
-    tvlUsd: vToken.vFIL.tvm * filUsd,
+    tvlUsd: vToken.vFIL.tvm * prices['coingecko:filecoin'].price,
     apyBase: Number(vToken.vFIL.apyBase),
     apyReward: Number(vToken.vFIL.apyReward),
     rewardTokens: ['FIL'],
@@ -90,7 +65,7 @@ const getApy = async () => {
     chain: 'Moonriver',
     project: 'bifrost-liquid-staking',
     symbol: 'vMOVR',
-    tvlUsd: vToken.vMOVR.tvm * movrUsd,
+    tvlUsd: vToken.vMOVR.tvm * prices['coingecko:moonriver'].price,
     apyBase: Number(vToken.vMOVR.apyBase),
     apyReward: Number(vToken.vMOVR.apyReward),
     rewardTokens: ['MOVR'],
@@ -101,7 +76,7 @@ const getApy = async () => {
     chain: 'Bifrost',
     project: 'bifrost-liquid-staking',
     symbol: 'vBNC',
-    tvlUsd: vToken.vBNC.tvm * bncUsd,
+    tvlUsd: vToken.vBNC.tvm * prices['coingecko:bifrost-native-coin'].price,
     apyBase: Number(vToken.vBNC.apyBase),
     apyReward: Number(vToken.vBNC.apyReward),
     rewardTokens: ['BNC'],
@@ -112,21 +87,21 @@ const getApy = async () => {
     chain: 'Kusama',
     project: 'bifrost-liquid-staking',
     symbol: 'vKSM',
-    tvlUsd: vToken.vKSM.tvm * ksmUsd,
+    tvlUsd: vToken.vKSM.tvm * prices['coingecko:kusama'].price,
     apyBase: Number(vToken.vKSM.apyBase),
     apyReward: Number(vToken.vKSM.apyReward),
     rewardTokens: ['KSM'],
   };
 
   const vETH = {
-    pool: token,
+    pool: veth,
     chain: 'ethereum',
     project: 'bifrost-liquid-staking',
     symbol: 'veth',
-    tvlUsd: tvl * ethPrice,
-    apyBase: vToken.vETH.stakingApy,
-    apyReward: Number(vToken.vETH.mevApy) + Number(vToken.vETH.gasFeeApy),
-    underlyingTokens: [weth],
+    tvlUsd: new BigNumber(contract_veth).plus(contract_veth1).minus(contract_veth1_null_address_balance).toNumber() * prices['coingecko:ethereum'].price,
+    apyBase: vToken.vETH2.apyBase,
+    apyReward:vToken.vETH2.apyReward,
+    underlyingTokens: [veth],
     rewardTokens: ['ETH'],
   };
 

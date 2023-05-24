@@ -2,16 +2,17 @@ const { gql, default: request } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
-// new subgraph for new rewarder see https://twitter.com/AuraFinance/status/1602809800475058176
 const AURA_API =
-  'https://graph.aura.finance/subgraphs/name/aura/aura-mainnet-v2';
+  'https://graph.aura.finance/subgraphs/name/aura/aura-mainnet-v2-1';
 const BAL_API =
   'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-v2';
-const AURA_TVL_API = 'https://aura-metrics.onrender.com/tvl';
-const SWAP_APR_API = 'https://aura-balancer-apr.onrender.com/aprs';
+const AURA_TVL_API = 'https://cache.aura.finance/aura/tvl-deprecated';
+const SWAP_APR_API = 'https://cache.aura.finance/aura/aprs-deprecated';
 
 const AURA_ADDRESS = '0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF'.toLowerCase();
 const BAL_ADDRESS = '0xba100000625a3754423978a60c9317c58a424e3D'.toLowerCase();
+const WSTETH_ADDRESS =
+  '0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0'.toLowerCase();
 
 const SECONDS_PER_YEAR = 60 * 60 * 24 * 365;
 
@@ -112,16 +113,21 @@ const main = async () => {
         prices[AURA_ADDRESS]
       : 0;
 
+    //make sure to account for stETH rewards on certain pools
+    const wstETHApy = swapApr.poolAprs.tokens.breakdown[WSTETH_ADDRESS] || 0;
+
+    const rewardTokens = [BAL_ADDRESS, AURA_ADDRESS];
+
     return {
       pool: pool.lpToken.id,
       project: 'aura',
       symbol: balData.tokens.map(({ symbol }) => symbol).join('-'),
       chain: utils.formatChain('ethereum'),
       tvlUsd,
-      apyBase: Number(swapApr.poolAprs.swap),
+      apyBase: Number(swapApr.poolAprs.swap) + wstETHApy,
       apyReward: apyBal + apyAura + auraExtraApy,
       underlyingTokens: balData.tokens.map(({ address }) => address),
-      rewardTokens: [BAL_ADDRESS, AURA_ADDRESS],
+      rewardTokens,
     };
   });
 

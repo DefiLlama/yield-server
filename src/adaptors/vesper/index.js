@@ -10,6 +10,7 @@ const underlyingTokenMapping = {
   eth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
   avax: '0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7',
   matic: '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
+  weth: '0x4200000000000000000000000000000000000006',
 };
 
 async function apy(chain) {

@@ -2,6 +2,7 @@ const binance = require('../perpetuals/binance');
 const bybit = require('../perpetuals/bybit');
 const dydx = require('../perpetuals/dydx');
 const okx = require('../perpetuals/okx');
+const synthetix = require('../perpetuals/synthetix');
 
 const { insertPerp } = require('../controllers/perpController');
 
@@ -11,13 +12,16 @@ module.exports.handler = async () => {
 
 const main = async () => {
   const perps = (
-    await Promise.all([
+    await Promise.allSettled([
       binance.getPerpData(),
       bybit.getPerpData(),
       dydx.getPerpData(),
       okx.getPerpData(),
+      synthetix.getPerpData(),
     ])
   )
+    .filter((c) => c.status === 'fulfilled')
+    .map((i) => i.value)
     .flat()
     .filter((m) => m.indexPrice !== null)
     .map((m) => ({
