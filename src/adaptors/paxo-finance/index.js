@@ -7,6 +7,8 @@ const { comptrollerAbi, ercDelegator } = require('./abi');
 const COMPTROLLER_ADDRESS = '0x1eDf64B621F17dc45c82a65E1312E8df988A94D3';
 const CHAIN = 'polygon';
 const GET_ALL_MARKETS = 'getAllMarkets';
+const REWARD_SPEED = 'compSupplySpeeds';
+const REWARD_SPEED_BORROW = 'compBorrowSpeeds';
 const SUPPLY_RATE = 'supplyRatePerBlock';
 const BORROW_RATE = 'borrowRatePerBlock';
 const TOTAL_BORROWS = 'totalBorrows';
@@ -19,6 +21,12 @@ const NATIVE_TOKEN = {
   decimals: 18,
   symbol: 'WMATIC',
   address: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270'.toLowerCase(),
+};
+
+const PROTOCOL_TOKEN = {
+  decimals: 18,
+  symbol: 'WEFI',
+  address: '0xfFA188493C15DfAf2C206c97D8633377847b6a52'.toLowerCase(),
 };
 
 const getPrices = async (addresses) => {
@@ -92,6 +100,8 @@ const main = async () => {
     })
   ).output.map((o) => o.output);
 
+  const extraRewards = await getRewards(allMarkets, REWARD_SPEED);
+  const extraRewardsBorrow = await getRewards(allMarkets, REWARD_SPEED_BORROW);
   const isPaused = await getRewards(allMarkets, "mintGuardianPaused");
 
   const supplyRewards = await multiCallMarkets(
@@ -160,7 +170,20 @@ const main = async () => {
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
     const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
 
-    const apyReward = 0;
+    const calcRewardApy = (rewards, denom) => {
+      if(denom === 0) return 0;
+      return (
+        (((rewards[i] / 10 ** PROTOCOL_TOKEN.decimals) *
+          BLOCKS_PER_DAY *
+          365 *
+          prices[PROTOCOL_TOKEN.address]) /
+          denom) *
+        100
+      );
+    };
+
+    const apyReward = calcRewardApy(extraRewards, totalSupplyUsd);
+    const apyRewardBorrow = calcRewardApy(extraRewardsBorrow, totalBorrowUsd);
 
     let poolReturned = {
       pool: market.toLowerCase(),
@@ -179,16 +202,15 @@ const main = async () => {
         totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow,
-        // apyRewardBorrow,
+        apyRewardBorrow,
         ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
       }
     }
     return poolReturned
   });
 
-  // supply yield only available for borrowMarket
   return pools.filter(
-    (p) => p.totalBorrowUsd !== 0
+    (p) => p.totalBorrowUsd !== 0 || p.apyReward !== 0
   );
 };
 
