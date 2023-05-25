@@ -46,6 +46,16 @@ async function apy() {
     });
     const tokens = tokensRes.output.map((o) => o.output);
 
+    const borrowablesRes = await sdk.api.abi.multiCall({
+      abi: dolomiteMarginAbi.find((i) => i.name === 'getMarketIsClosing'),
+      calls: range.map((i) => ({
+        target: dolomiteMargin,
+        params: i,
+      })),
+      chain: chain,
+    });
+    const borrowables = borrowablesRes.output.map((o) => !o.output);
+
     const totalParsRes = await sdk.api.abi.multiCall({
       abi: dolomiteMarginAbi.find((i) => i.name === 'getMarketTotalPar'),
       calls: range.map((i) => ({
@@ -132,11 +142,11 @@ async function apy() {
     const borrowUsds = borrowWeis.map((borrowWei, i) => borrowWei * prices[i] / 1e36);
 
     const secondsInYear = 31_536_000;
-    const borrowInterestRates = interestRates.map(interestRate => {
+    const borrowInterestRateApys = interestRates.map(interestRate => {
       const apr = Number(interestRate) * secondsInYear / 1e18;
-      return Math.pow(1 + (apr / 365), 365) - 1;
+      return (Math.pow(1 + (apr / 365), 365) - 1) * 100;
     });
-    const supplyInterestRates = borrowInterestRates.map((interestRate, i) => {
+    const supplyInterestRateApys = borrowInterestRateApys.map((interestRate, i) => {
       if (interestRate === 0) {
         return 0;
       } else {
@@ -150,17 +160,18 @@ async function apy() {
       chain: chain.charAt(0).toUpperCase() + chain.slice(1),
       project: 'dolomite',
       tvlUsd: supplyUsds[i] - borrowUsds[i],
-      apyBase: supplyInterestRates[i],
+      apyBase: supplyInterestRateApys[i],
       apyReward: 0,
       underlyingTokens: [tokens[i]],
       rewardTokens: [],
-      apyBaseBorrow: borrowInterestRates[i],
+      apyBaseBorrow: borrowInterestRateApys[i],
       apyRewardBorrow: 0,
       totalSupplyUsd: supplyUsds[i],
       totalBorrowUsd: borrowUsds[i],
       ltv: 1 / ((1 + marginRatio) + ((1 + marginRatio) * marginPremiums[i])),
       poolMeta: 'Dolomite Balance',
       url: `https://app.dolomite.io/stats/token/${tokens[i].toLowerCase()}`,
+      borrowable: borrowables[i],
     }))
   }, []);
 }
