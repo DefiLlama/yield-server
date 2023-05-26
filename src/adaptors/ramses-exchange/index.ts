@@ -15,17 +15,20 @@ interface Response {
 }
 
 const getApy = async () => {
-  const { data: poolsRes }: Response = await utils.getData(API_URL);
+  const { pairs, tokens }: Response = await utils.getData(API_URL);
 
-  const pools = poolsRes.map((pool) => {
+  const pools = pairs.map((pool) => {
+    const token0 = tokens.find(tk => tk.id === pool.token0)
+    const token1 = tokens.find(tk => tk.id === pool.token1)
+
     return {
-      pool: pool.address,
+      pool: pool.id,
       chain: utils.formatChain('arbitrum'),
       project: 'ramses-exchange',
-      symbol: `${pool.token0.symbol}-${pool.token1.symbol}`,
+      symbol: `${token0.symbol}-${token1.symbol}`,
       tvlUsd: pool.tvl,
-      apyReward: pool.apr,
-      underlyingTokens: [pool.token0.address, pool.token1.address],
+      apyReward: pool.lpApr,
+      underlyingTokens: [pool.token0, pool.token1],
       rewardTokens: [
         '0xaaa6c1e32c55a7bfa8066a6fae9b42650f262418', // RAM
       ],
