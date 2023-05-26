@@ -26,8 +26,8 @@ const getApy = async () => {
       chain: utils.formatChain('arbitrum'),
       project: 'ramses-exchange',
       symbol: `${token0.symbol}-${token1.symbol}`,
-      tvlUsd: pool.tvl,
-      apyReward: pool.lpApr,
+      tvlUsd: parseFloat(pool.tvl),
+      apyReward: parseFloat(pool.lpApr),
       underlyingTokens: [pool.token0, pool.token1],
       rewardTokens: [
         '0xaaa6c1e32c55a7bfa8066a6fae9b42650f262418', // RAM
