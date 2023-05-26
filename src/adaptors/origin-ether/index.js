@@ -1,17 +1,40 @@
+const { ethers, Contract, BigNumber } = require('ethers');
 const utils = require('../utils');
 
+const PROVIDER_URL = process.env.ALCHEMY_CONNECTION_ETHEREUM;
+
+const vaultABI = [
+  'function totalValue() view returns (uint256)',
+  'function priceUnitRedeem(address asset) view returns (uint256)',
+]
+
+const vaultAddress = '0x39254033945AA2E4809Cc2977E7087BEE48bd7Ab'
+
 const poolsFunction = async () => {
+  const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL);
+  const vault = new Contract(vaultAddress, vaultABI, provider);
+
   const apyData = await utils.getData(
     'https://analytics.ousd.com/api/v2/oeth/apr/trailing'
   );
-  const dataTvl = await utils.getData('https://api.llama.fi/tvl/origin-ether');
+  const totalValueEth = await vault.totalValue();
 
-  const oeth = {
+  const priceData = await utils.getData(
+    'https://coins.llama.fi/prices/current/coingecko:ethereum?searchWidth=4h'
+  );
+  const ethPrice = priceData.coins['coingecko:ethereum'].price
+
+  const tvlUsd = totalValueEth
+    .mul(ethers.utils.parseEther(ethPrice.toString()))
+    .div(BigNumber.from('10').pow(36 - 8))
+    .toNumber() / 10**8
+
+  const oethData = {
     pool: 'origin-ether',
     chain: 'Ethereum',
     project: 'origin-ether',
     symbol: 'OETH',
-    tvlUsd: dataTvl,
+    tvlUsd,
     apy: Number(apyData.apy),
     underlyingTokens: [
       '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH
@@ -21,7 +44,7 @@ const poolsFunction = async () => {
     ],
   };
 
-  return [oeth];
+  return [oethData];
 };
 
 module.exports = {
