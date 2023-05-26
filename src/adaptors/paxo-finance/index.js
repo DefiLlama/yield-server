@@ -14,7 +14,7 @@ const BORROW_RATE = 'borrowRatePerBlock';
 const TOTAL_BORROWS = 'totalBorrows';
 const GET_CASH = 'getCash';
 const UNDERLYING = 'underlying';
-const BLOCKS_PER_DAY = 7200;
+const BLOCKS_PER_DAY = 37565;
 const PROJECT_NAME = 'paxo-finance';
 
 const NATIVE_TOKEN = {
@@ -100,8 +100,8 @@ const main = async () => {
     })
   ).output.map((o) => o.output);
 
-  const extraRewards = await getRewards(allMarkets, REWARD_SPEED);
-  const extraRewardsBorrow = await getRewards(allMarkets, REWARD_SPEED_BORROW);
+  const rewardSpeed = await getRewards(allMarkets, REWARD_SPEED);
+  const rewardSpeedBorrow = await getRewards(allMarkets, REWARD_SPEED_BORROW);
   const isPaused = await getRewards(allMarkets, "mintGuardianPaused");
 
   const supplyRewards = await multiCallMarkets(
@@ -182,8 +182,8 @@ const main = async () => {
       );
     };
 
-    const apyReward = calcRewardApy(extraRewards, totalSupplyUsd);
-    const apyRewardBorrow = calcRewardApy(extraRewardsBorrow, totalBorrowUsd);
+    const apyReward = calcRewardApy(rewardSpeed, totalSupplyUsd);
+    const apyRewardBorrow = calcRewardApy(rewardSpeedBorrow, totalBorrowUsd);
 
     let poolReturned = {
       pool: market.toLowerCase(),
