@@ -253,7 +253,11 @@ const main = async (body) => {
       let il7d = ((2 * Math.sqrt(d)) / (1 + d) - 1) * 100;
 
       // for uni v3
-      if (body.adaptor === 'uniswap-v3' || body.adaptor === 'hydradex-v3') {
+      if (
+        body.adaptor === 'uniswap-v3' ||
+        body.adaptor === 'hydradex-v3' ||
+        body.adaptor === 'forge'
+      ) {
         const P = price1 / price0;
 
         // for stablecoin pools, we assume a +/- 0.1% range around current price
@@ -335,7 +339,7 @@ const main = async (body) => {
       poolMeta:
         p.poolMeta === undefined
           ? null
-          : ['uniswap-v3', 'hydradex-v3'].includes(p.project)
+          : ['uniswap-v3', 'hydradex-v3', 'forge'].includes(p.project)
           ? p.poolMeta?.split(',')[0]
           : p.poolMeta,
       il7d: p.il7d ? +p.il7d.toFixed(precision) : null,
