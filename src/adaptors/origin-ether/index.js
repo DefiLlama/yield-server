@@ -1,36 +1,42 @@
 const { ethers, Contract, BigNumber } = require('ethers');
+const sdk = require('@defillama/sdk3');
+
 const utils = require('../utils');
 
-const PROVIDER_URL = process.env.ALCHEMY_CONNECTION_ETHEREUM;
-
-const vaultABI = [
-  'function totalValue() view returns (uint256)',
-  'function priceUnitRedeem(address asset) view returns (uint256)',
-]
-
-const vaultAddress = '0x39254033945AA2E4809Cc2977E7087BEE48bd7Ab'
+const vaultABI = {
+  inputs: [],
+  name: 'totalValue',
+  outputs: [{ internalType: 'uint256', name: 'value', type: 'uint256' }],
+  stateMutability: 'view',
+  type: 'function',
+};
+const vaultAddress = '0x39254033945AA2E4809Cc2977E7087BEE48bd7Ab';
 
 const poolsFunction = async () => {
-  const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL);
-  const vault = new Contract(vaultAddress, vaultABI, provider);
-
   const apyData = await utils.getData(
     'https://analytics.ousd.com/api/v2/oeth/apr/trailing'
   );
-  const totalValueEth = await vault.totalValue();
+  const totalValueEth = (
+    await sdk.api.abi.call({
+      target: vaultAddress,
+      abi: vaultABI,
+    })
+  ).output;
 
   const priceData = await utils.getData(
     'https://coins.llama.fi/prices/current/coingecko:ethereum?searchWidth=4h'
   );
-  const ethPrice = priceData.coins['coingecko:ethereum'].price
+  const ethPrice = priceData.coins['coingecko:ethereum'].price;
 
-  const tvlUsd = totalValueEth
-    .mul(ethers.utils.parseEther(ethPrice.toString()))
-    .div(BigNumber.from('10').pow(36 - 8))
-    .toNumber() / 10**8
+  const tvlUsd =
+    BigNumber.from(totalValueEth)
+      .mul(ethers.utils.parseEther(ethPrice.toString()))
+      .div(BigNumber.from('10').pow(36 - 8))
+      .toNumber() /
+    10 ** 8;
 
   const oethData = {
-    pool: 'origin-ether',
+    pool: '0x856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc3',
     chain: 'Ethereum',
     project: 'origin-ether',
     symbol: 'OETH',
