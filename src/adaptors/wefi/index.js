@@ -15,7 +15,7 @@ const TOTAL_BORROWS = 'totalBorrows';
 const GET_CASH = 'getCash';
 const UNDERLYING = 'underlying';
 const BLOCKS_PER_DAY = 37565;
-const PROJECT_NAME = 'paxo-finance';
+const PROJECT_NAME = 'wefi';
 
 const NATIVE_TOKEN = {
   decimals: 18,
