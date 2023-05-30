@@ -15,9 +15,7 @@ const main = async () => {
 
   try {
     const sqs = new SQS();
-    const adaptors = adaptorList.filter(
-      (a) => !excludeAdaptors.includes(a)
-    );
+    const adaptors = adaptorList.filter((a) => !excludeAdaptors.includes(a));
 
     for (const adaptor of adaptors) {
       await sqs

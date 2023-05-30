@@ -4,7 +4,7 @@ const dydx = require('../perpetuals/dydx');
 const okx = require('../perpetuals/okx');
 const synthetix = require('../perpetuals/synthetix');
 
-const { insertPerp } = require('../api/controllers/perp');
+const { insertPerp } = require('./queries');
 
 module.exports.handler = async () => {
   await main();

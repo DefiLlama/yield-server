@@ -1,14 +1,12 @@
 const minify = require('pg-minify');
 
-const { pgp, connect } = require('../utils/dbConnection');
+const { connect } = require('../utils/dbConnection');
 
 module.exports.handler = async () => {
   await main();
 };
 
 const main = async () => {
-  const conn = await connect();
-
   const query = minify(
     `
 INSERT INTO
