@@ -13,6 +13,6 @@ if (process.env.NODE_ENV === 'development') {
 }
 app.use(helmet());
 
-app.use('/', [config, median, perp, yield]);
+app.use('/', [config, median, medianProject, perp, yield]);
 
 module.exports = app;
