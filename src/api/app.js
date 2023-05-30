@@ -3,6 +3,7 @@ const helmet = require('helmet');
 
 const config = require('./routes/config');
 const median = require('./routes/median');
+const medianProject = require('./routes/medianProject');
 const perp = require('./routes/perp');
 const yield = require('./routes/yield');
 
