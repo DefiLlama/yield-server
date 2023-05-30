@@ -1,10 +1,7 @@
 const minify = require('pg-minify');
 
-const { pgp, conn } = require('../utils/dbConnection');
+const { conn } = require('../utils/dbConnection');
 
-const tableName = 'median';
-
-// get full content from median table
 const getMedian = async () => {
   const query = minify(
     `
@@ -13,37 +10,49 @@ const getMedian = async () => {
         "uniquePools",
         "medianAPY"
     FROM
-        $<table:name>
+        median
     ORDER BY
         timestamp ASC
     `,
     { compress: true }
   );
 
-  const response = await conn.query(query, { table: tableName });
+  const response = await conn.query(query);
 
   if (!response) {
-    return new AppError(`Couldn't get ${tableName} data`, 404);
+    return new AppError(`Couldn't get data`, 404);
   }
 
   return response;
 };
 
-// insert
-const insertMedian = async (payload) => {
-  const columns = ['timestamp', 'uniquePools', 'medianAPY'];
-  const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
-  const query = pgp.helpers.insert(payload, cs);
-  const response = await conn.result(query);
+// get full content from median table
+const getMedianProject = async (project) => {
+  const query = minify(
+    `
+    SELECT
+        timestamp,
+        "medianAPY",
+        "uniquePools"
+    FROM
+        median_project
+    WHERE project = $<project>
+    ORDER BY
+        timestamp ASC
+    `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query, { project });
 
   if (!response) {
-    return new AppError(`Couldn't insert ${tableName} data`, 404);
+    return new AppError(`Couldn't get data`, 404);
   }
 
-  return response;
+  res.set(customHeader()).status(200).json({
+    status: 'success',
+    data: response,
+  });
 };
 
-module.exports = {
-  getMedian,
-  insertMedian,
-};
+module.exports = { getMedian, getMedianProject };

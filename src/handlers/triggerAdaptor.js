@@ -6,16 +6,13 @@ const utils = require('../adaptors/utils');
 const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
 const { sendMessage } = require('../utils/discordWebhook');
-const { connect } = require('../utils/dbConnection');
+const { conn } = require('../utils/dbConnection');
 const {
   getYieldProject,
-  buildInsertYieldQuery,
-} = require('../controllers/yieldController');
-const {
   getConfigProject,
-  buildInsertConfigQuery,
   getDistinctProjects,
-} = require('../controllers/configController');
+  insertConfigYieldTransaction,
+} = require('../handlers/queries');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -443,36 +440,4 @@ const main = async (body) => {
   // ---------- DB INSERT
   const response = await insertConfigYieldTransaction(dataDB);
   console.log(response);
-};
-
-// --------- transaction query
-const insertConfigYieldTransaction = async (payload) => {
-  const conn = await connect();
-
-  // build queries
-  const configQ = buildInsertConfigQuery(payload);
-  const yieldQ = buildInsertYieldQuery(payload);
-
-  return conn
-    .tx(async (t) => {
-      // sequence of queries:
-      // 1. config: insert/update
-      const q1 = await t.result(configQ);
-      // 2. yield: insert
-      const q2 = await t.result(yieldQ);
-
-      return [q1, q2];
-    })
-    .then((response) => {
-      // success, COMMIT was executed
-      return {
-        status: 'success',
-        data: response,
-      };
-    })
-    .catch((err) => {
-      // failure, ROLLBACK was executed
-      console.log(err);
-      return new AppError('ConfigYield Transaction failed, rolling back', 404);
-    });
 };

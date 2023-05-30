@@ -1,10 +1,8 @@
 const minify = require('pg-minify');
 
 const AppError = require('../utils/appError');
-const { pgp, conn } = require('../utils/dbConnection');
+const { conn } = require('../utils/dbConnection');
 const customHeader = require('../utils/customHeader');
-
-const tableName = 'perpetual';
 
 // get latest data for each unique perp
 const getPerp = async () => {
@@ -30,7 +28,7 @@ const getPerp = async () => {
             SELECT
                 DISTINCT ON (marketplace, market) *
             FROM
-                $<perpTable:name>
+                perpetual
             WHERE
                 timestamp >= NOW() - INTERVAL '$<age> HOUR'
             ORDER BY
@@ -58,7 +56,7 @@ const getPerp = async () => {
                             SELECT
                                 DISTINCT ON (marketplace, market, "fundingTimePrevious") *
                             FROM
-                                $<perpTable:name>
+                                perpetual
                             WHERE
                                 "fundingTimePrevious" IS NOT NULL
                                 AND timestamp >= NOW() - INTERVAL '$<ageWeeklyStats> DAY'
@@ -82,7 +80,7 @@ const getPerp = async () => {
                             SELECT
                                 DISTINCT ON (marketplace, market, "fundingTimePrevious") *
                             FROM
-                                $<perpTable:name>
+                                perpetual
                             WHERE
                                 "fundingTimePrevious" IS NOT NULL
                                 AND timestamp >= NOW() - INTERVAL '$<ageMonthlyStats> DAY'
@@ -103,14 +101,13 @@ const getPerp = async () => {
   );
 
   const response = await conn.query(query, {
-    perpTable: tableName,
     age: 3, // last 3 hours
     ageWeeklyStats: 7,
     ageMonthlyStats: 30,
   });
 
   if (!response) {
-    return new AppError(`Couldn't get ${tableName} data`, 404);
+    return new AppError(`Couldn't get data`, 404);
   }
 
   res.set(customHeader()).status(200).json({
@@ -119,32 +116,4 @@ const getPerp = async () => {
   });
 };
 
-// multi row
-const insertPerp = async (payload) => {
-  const columns = [
-    'timestamp',
-    'marketplace',
-    'market',
-    'baseAsset',
-    'fundingRate',
-    'fundingRatePrevious',
-    'fundingTimePrevious',
-    'openInterest',
-    'indexPrice',
-  ];
-  const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
-  const query = pgp.helpers.insert(payload, cs);
-
-  const response = await conn.result(query);
-
-  if (!response) {
-    return new AppError(`Couldn't insert ${tableName} data`, 404);
-  }
-
-  return response;
-};
-
-module.exports = {
-  getPerp,
-  insertPerp,
-};
+module.exports = { getPerp };
