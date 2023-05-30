@@ -104,11 +104,6 @@ const apiKey = {
   headers: { 'x-api-key': process.env.ZEROX_API },
 };
 
-module.exports.handler = async (event, context) => {
-  context.callbackWaitsForEmptyEventLoop = false;
-  return await getRates();
-};
-
 const getRates = async () => {
   const marketRates = await getMarketRates();
   const expectedRates = await getExpectedRates();
@@ -327,3 +322,5 @@ const getExpectedRates = async () => {
         : 1,
   }));
 };
+
+module.exports = getRates;

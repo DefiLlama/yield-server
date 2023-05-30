@@ -1,8 +1,8 @@
 const minify = require('pg-minify');
 const validator = require('validator');
 
-const { conn } = require('../utils/dbConnection');
-const customHeader = require('../utils/customHeader');
+const { conn } = require('../../utils/dbConnection');
+const customHeader = require('../../utils/customHeader');
 
 // get pool urls
 const getUrl = async (req, res) => {
@@ -56,7 +56,13 @@ const getDistinctID = async (req, res) => {
 
 // get config data of pool
 const getConfigPool = async (req, res) => {
-  const configIDs = req.params.configIDs;
+  const configID = req.params.configID;
+  const ids = configID.split(',');
+  const valid =
+    ids.map((id) => validator.isUUID(id)).reduce((a, b) => a + b, 0) ===
+    ids.length;
+  if (!valid) return { status: 'invalid uuid parameter' };
+
   const query = minify(
     `
     SELECT
@@ -70,7 +76,7 @@ const getConfigPool = async (req, res) => {
   );
 
   const response = await conn.query(query, {
-    configIDs: configIDs.split(','),
+    configIDs: ids,
   });
 
   if (!response) {

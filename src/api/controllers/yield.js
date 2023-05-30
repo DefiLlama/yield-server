@@ -1,11 +1,11 @@
 const minify = require('pg-minify');
 const validator = require('validator');
 
-const AppError = require('../utils/appError');
-const exclude = require('../utils/exclude');
-const { conn } = require('../utils/dbConnection');
-const customHeader = require('../utils/customHeader');
-const { yieldLendBorrowQuery } = require('../handlers/queries');
+const AppError = require('../../utils/appError');
+const exclude = require('../../utils/exclude');
+const { conn } = require('../../utils/dbConnection');
+const customHeader = require('../../utils/customHeader');
+const { yieldLendBorrowQuery } = require('../../handlers/queries');
 
 // get full history of given configID
 const getYieldHistory = async (req, res) => {

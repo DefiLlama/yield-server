@@ -1,8 +1,8 @@
 const minify = require('pg-minify');
 
-const AppError = require('../utils/appError');
-const { conn } = require('../utils/dbConnection');
-const customHeader = require('../utils/customHeader');
+const AppError = require('../../utils/appError');
+const { conn } = require('../../utils/dbConnection');
+const customHeader = require('../../utils/customHeader');
 
 // get latest data for each unique perp
 const getPerp = async () => {

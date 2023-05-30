@@ -1,6 +1,6 @@
 const minify = require('pg-minify');
 
-const { conn } = require('../utils/dbConnection');
+const { conn } = require('../../utils/dbConnection');
 
 const getMedian = async () => {
   const query = minify(

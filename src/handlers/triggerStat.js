@@ -1,6 +1,6 @@
 const { welfordUpdate } = require('../utils/welford');
-const { getYieldFiltered } = require('../controllers/yieldController');
-const { getStat, insertStat } = require('../controllers/statController');
+const { getYieldFiltered } = require('../api/controllers/yield');
+const { getStat, insertStat } = require('../api/controllers/statController');
 
 module.exports.handler = async (event, context) => {
   await main();
