@@ -1,13 +1,12 @@
 const minify = require('pg-minify');
+const validator = require('validator');
 
-const { pgp, connect } = require('../utils/dbConnection');
-const { lambdaResponse } = require('../utils/lambda');
+const { pgp, conn } = require('../utils/dbConnection');
+const customHeader = require('../utils/customHeader');
 
 const tableName = 'config';
 
 const getDistinctProjects = async () => {
-  const conn = await connect();
-
   const query = `SELECT distinct project FROM $<table:name>`;
 
   const response = await conn.query(query, { table: tableName });
@@ -21,8 +20,6 @@ const getDistinctProjects = async () => {
 
 // get config data per project
 const getConfigProject = async (project) => {
-  const conn = await connect();
-
   const query = minify(
     `
     SELECT
@@ -46,9 +43,7 @@ const getConfigProject = async (project) => {
 };
 
 // get pool urls
-const getUrl = async () => {
-  const conn = await connect();
-
+const getUrl = async (req, res) => {
   const query = minify(
     `
     SELECT
@@ -70,15 +65,12 @@ const getUrl = async () => {
   for (const e of response) {
     out[e.config_id] = e.url;
   }
-
-  return lambdaResponse(out);
+  res.set(customHeader()).status(200).json(out);
 };
 
 // get unique pool values
 // (used during adapter testing to check if a pool field is already in the DB)
 const getDistinctID = async () => {
-  const conn = await connect();
-
   const query = minify(
     `
     SELECT
@@ -101,9 +93,8 @@ const getDistinctID = async () => {
 };
 
 // get config data of pool
-const getConfigPool = async (configIDs) => {
-  const conn = await connect();
-
+const getConfigPool = async (req, res) => {
+  const configIDs = req.params.configIDs;
   const query = minify(
     `
     SELECT
@@ -125,7 +116,7 @@ const getConfigPool = async (configIDs) => {
     return new AppError(`Couldn't get ${tableName} data`, 404);
   }
 
-  return lambdaResponse({
+  res.set(customHeader()).status(200).json({
     status: 'success',
     data: response,
   });

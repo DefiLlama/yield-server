@@ -1,14 +1,13 @@
 const minify = require('pg-minify');
 
 const AppError = require('../utils/appError');
-const { pgp, connect } = require('../utils/dbConnection');
-const { lambdaResponse } = require('../utils/lambda');
+const { pgp, conn } = require('../utils/dbConnection');
+const customHeader = require('../utils/customHeader');
 
 const tableName = 'perpetual';
 
 // get latest data for each unique perp
 const getPerp = async () => {
-  const conn = await connect();
   const query = minify(
     `
     SELECT
@@ -114,7 +113,7 @@ const getPerp = async () => {
     return new AppError(`Couldn't get ${tableName} data`, 404);
   }
 
-  return lambdaResponse({
+  res.set(customHeader()).status(200).json({
     status: 'success',
     data: response,
   });
@@ -122,8 +121,6 @@ const getPerp = async () => {
 
 // multi row
 const insertPerp = async (payload) => {
-  const conn = await connect();
-
   const columns = [
     'timestamp',
     'marketplace',

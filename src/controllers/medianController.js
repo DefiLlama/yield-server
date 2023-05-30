@@ -1,13 +1,11 @@
 const minify = require('pg-minify');
 
-const { pgp, connect } = require('../utils/dbConnection');
+const { pgp, conn } = require('../utils/dbConnection');
 
 const tableName = 'median';
 
 // get full content from median table
 const getMedian = async () => {
-  const conn = await connect();
-
   const query = minify(
     `
     SELECT
@@ -33,8 +31,6 @@ const getMedian = async () => {
 
 // insert
 const insertMedian = async (payload) => {
-  const conn = await connect();
-
   const columns = ['timestamp', 'uniquePools', 'medianAPY'];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
   const query = pgp.helpers.insert(payload, cs);

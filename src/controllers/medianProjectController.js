@@ -1,14 +1,12 @@
 const minify = require('pg-minify');
 
-const { pgp, connect } = require('../utils/dbConnection');
-const { lambdaResponse } = require('../utils/lambda');
+const { pgp, conn } = require('../utils/dbConnection');
+const customHeader = require('../utils/customHeader');
 
 const tableName = 'median_project';
 
 // get full content from median table
 const getMedianProject = async (project) => {
-  const conn = await connect();
-
   const query = minify(
     `
     SELECT
@@ -30,7 +28,7 @@ const getMedianProject = async (project) => {
     return new AppError(`Couldn't get ${tableName} data`, 404);
   }
 
-  return lambdaResponse({
+  res.set(customHeader()).status(200).json({
     status: 'success',
     data: response,
   });

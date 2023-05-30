@@ -2,7 +2,7 @@ const minify = require('pg-minify');
 
 const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
-const { pgp, connect } = require('../utils/dbConnection');
+const { pgp, conn } = require('../utils/dbConnection');
 const { tableName: configTableName } = require('./configController');
 
 const tableName = 'yield';
@@ -11,8 +11,6 @@ const tableName = 'yield';
 // (have min 1 pool with tvl >= $1e4 and min 1 pool which has been
 // updated within the last 7days)
 const getStaleProjects = async () => {
-  const conn = await connect();
-
   const query = minify(
     `
     SELECT

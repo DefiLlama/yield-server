@@ -1,19 +1,18 @@
 const minify = require('pg-minify');
+const validator = require('validator');
 
 const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
-const { pgp, connect } = require('../utils/dbConnection');
+const { pgp, conn } = require('../utils/dbConnection');
 const {
   tableName: configTableName,
 } = require('../controllers/configController');
-const { lambdaResponse } = require('../utils/lambda');
+const customHeader = require('../utils/customHeader');
 
 const tableName = 'yield';
 
 // get last DB entry per unique pool (with exclusion; this is what we use in enrichment handler)
 const getYieldFiltered = async () => {
-  const conn = await connect();
-
   // -- get latest yield row per unique configID (a pool)
   // -- exclude if tvlUsd is < LB
   // -- exclude if pool age > 7days
@@ -78,8 +77,10 @@ const getYieldFiltered = async () => {
 };
 
 // get full history of given configID
-const getYieldHistory = async (configID) => {
-  const conn = await connect();
+const getYieldHistory = async (req, res) => {
+  const configID = req.params.configID;
+  if (!validator.isUUID(configID))
+    return res.status(400).json('invalid configID!');
 
   const query = minify(
     `
@@ -120,7 +121,7 @@ const getYieldHistory = async (configID) => {
     return new AppError(`Couldn't get ${tableName} history data`, 404);
   }
 
-  return lambdaResponse({
+  res.set(customHeader()).status(200).json({
     status: 'success',
     data: response,
   });
@@ -128,8 +129,6 @@ const getYieldHistory = async (configID) => {
 
 // get last DB entry per unique pool for a given project (used by adapter handler to check for TVL spikes)
 const getYieldProject = async (project) => {
-  const conn = await connect();
-
   // -- get latest yield row per unique configID (a pool) for a specific project
   // -- exclude if tvlUsd is < LB
   // -- exclude if pool age > 7days
@@ -177,8 +176,6 @@ const getYieldProject = async (project) => {
 
 // get apy offset value for project/day combo
 const getYieldOffset = async (project, offset) => {
-  const conn = await connect();
-
   const age = Number(offset);
   const daysMilliSeconds = age * 60 * 60 * 24 * 1000;
   const tOffset = Date.now() - daysMilliSeconds;
@@ -244,8 +241,6 @@ const getYieldOffset = async (project, offset) => {
 
 // get last DB entry per unique pool (lending/borrow fields only)
 const getYieldLendBorrow = async () => {
-  const conn = await connect();
-
   const query = minify(
     `
     SELECT
@@ -301,8 +296,10 @@ const getYieldLendBorrow = async () => {
 };
 
 // get full history of given configID
-const getYieldLendBorrowHistory = async (configID) => {
-  const conn = await connect();
+const getYieldLendBorrowHistory = async (req, res) => {
+  const configID = req.params.configID;
+  if (!validator.isUUID(configID))
+    return res.status(400).json('invalid configID!');
 
   const query = minify(
     `
@@ -344,7 +341,7 @@ const getYieldLendBorrowHistory = async (configID) => {
     return new AppError(`Couldn't get ${tableName} history data`, 404);
   }
 
-  return lambdaResponse({
+  res.set(customHeader()).status(200).json({
     status: 'success',
     data: response,
   });
@@ -352,8 +349,6 @@ const getYieldLendBorrowHistory = async (configID) => {
 
 // get 30day avg
 const getYieldAvg30d = async () => {
-  const conn = await connect();
-
   const query = minify(
     `
     SELECT

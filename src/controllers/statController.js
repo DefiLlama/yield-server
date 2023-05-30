@@ -1,13 +1,11 @@
 const minify = require('pg-minify');
 
-const { pgp, connect } = require('../utils/dbConnection');
+const { pgp, conn } = require('../utils/dbConnection');
 
 const tableName = 'stat';
 
 // get full content from stat table
 const getStat = async () => {
-  const conn = await connect();
-
   const query = minify(
     `
     SELECT
@@ -42,8 +40,6 @@ const getStat = async () => {
 
 // multi row insert (update on conflict)
 const insertStat = async (payload) => {
-  const conn = await connect();
-
   const columns = [
     'configID',
     'count',
