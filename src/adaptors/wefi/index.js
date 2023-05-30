@@ -100,8 +100,8 @@ const main = async () => {
     })
   ).output.map((o) => o.output);
 
-  const rewardSpeed = await getRewards(allMarkets, REWARD_SPEED);
-  const rewardSpeedBorrow = await getRewards(allMarkets, REWARD_SPEED_BORROW);
+  // const rewardSpeed = await getRewards(allMarkets, REWARD_SPEED);
+  // const rewardSpeedBorrow = await getRewards(allMarkets, REWARD_SPEED_BORROW);
   const isPaused = await getRewards(allMarkets, "mintGuardianPaused");
 
   const supplyRewards = await multiCallMarkets(
@@ -170,20 +170,20 @@ const main = async () => {
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
     const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
 
-    const calcRewardApy = (rewards, denom) => {
-      if(denom === 0) return 0;
-      return (
-        (((rewards[i] / 10 ** PROTOCOL_TOKEN.decimals) *
-          BLOCKS_PER_DAY *
-          365 *
-          prices[PROTOCOL_TOKEN.address]) /
-          denom) *
-        100
-      );
-    };
+    // const calcRewardApy = (rewards, denom) => {
+    //   if(denom === 0) return 0;
+    //   return (
+    //     (((rewards[i] / 10 ** PROTOCOL_TOKEN.decimals) *
+    //       BLOCKS_PER_DAY *
+    //       365 *
+    //       prices[PROTOCOL_TOKEN.address]) /
+    //       denom) *
+    //     100
+    //   );
+    // };
 
-    const apyReward = calcRewardApy(rewardSpeed, totalSupplyUsd);
-    const apyRewardBorrow = calcRewardApy(rewardSpeedBorrow, totalBorrowUsd);
+    // const apyReward = calcRewardApy(rewardSpeed, totalSupplyUsd);
+    // const apyRewardBorrow = calcRewardApy(rewardSpeedBorrow, totalBorrowUsd);
 
     let poolReturned = {
       pool: market.toLowerCase(),
@@ -192,9 +192,9 @@ const main = async () => {
       symbol,
       tvlUsd,
       apyBase,
-      apyReward,
+      // apyReward,
       underlyingTokens: [token],
-      rewardTokens: [apyReward ? PROTOCOL_TOKEN.address : null].filter(Boolean),
+      // rewardTokens: [apyReward ? PROTOCOL_TOKEN.address : null].filter(Boolean),
     };
     if(isPaused[i] === false){
       poolReturned = {
@@ -202,7 +202,7 @@ const main = async () => {
         totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow,
-        apyRewardBorrow,
+        // apyRewardBorrow,
         ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
       }
     }
@@ -210,7 +210,8 @@ const main = async () => {
   });
 
   return pools.filter(
-    (p) => p.totalBorrowUsd !== 0 || p.apyReward !== 0
+    // (p) => p.totalBorrowUsd !== 0 || p.apyReward !== 0
+    (p) => p.totalBorrowUsd !== 0
   );
 };
 
