@@ -28,7 +28,7 @@ const poolsFunction = async () => {
           project: 'bolide',
           symbol: token.name,
           tvlUsd: token.tvl,
-          apy: vault.apy,
+          apy: vault.baseApy,
         },
       );
     }
