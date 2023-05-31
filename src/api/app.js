@@ -6,6 +6,7 @@ const median = require('./routes/median');
 const medianProject = require('./routes/medianProject');
 const perp = require('./routes/perp');
 const yield = require('./routes/yield');
+const enriched = require('./routes/enriched');
 
 const app = express();
 if (process.env.NODE_ENV === 'development') {
@@ -13,6 +14,6 @@ if (process.env.NODE_ENV === 'development') {
 }
 app.use(helmet());
 
-app.use('/', [config, median, medianProject, perp, yield]);
+app.use('/', [config, median, medianProject, perp, yield, enriched]);
 
 module.exports = app;
