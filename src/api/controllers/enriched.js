@@ -1,7 +1,11 @@
 const validator = require('validator');
 
 const customHeader = require('../../utils/customHeader');
-const { buildPoolsEnriched } = require('../../handlers/queries');
+const {
+  buildPoolsEnriched,
+  buildPoolsEnrichedOld,
+  redirectResponse,
+} = require('../../handlers/queries');
 
 const getPoolEnriched = async (req, res) => {
   const configID = req.params.configID;
@@ -33,4 +37,14 @@ const getPoolsEnriched = async (req, res) => {
   });
 };
 
-module.exports = { getPoolEnriched, getPoolsEnriched };
+const getPoolsEnrichedOld = async (req, res) => {
+  const response = await buildPoolsEnrichedOld(undefined);
+
+  if (!response) {
+    return new AppError("Couldn't retrieve data", 404);
+  }
+
+  return redirectResponse(response);
+};
+
+module.exports = { getPoolEnriched, getPoolsEnriched, getPoolsEnrichedOld };
