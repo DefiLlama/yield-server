@@ -9,8 +9,8 @@ pgp.pg.types.setTypeParser(1700, parseFloat);
 
 const conn = pgp({
   connectionString: process.env.DATABASE_URL,
-  max: 10,
-  idleTimeoutMillis: 10000,
+  max: 5,
+  idleTimeoutMillis: 3000,
 });
 
 module.exports = { pgp, conn };
