@@ -29,7 +29,10 @@ async function apy() {
   const vaults = await Promise.all(
     vaultResponse.map(async (p) => {
       const chain = CONSTANT[p.chainId].name;
-      const chainString = utils.formatChain(chain);
+      const chainString =
+        chain === 'avax'
+          ? utils.formatChain('avalanche')
+          : utils.formatChain(chain);
 
       const readerAddress = (
         await sdk.api.abi.call({
@@ -48,7 +51,7 @@ async function apy() {
       ).output;
 
       return {
-        pool: `${p.address}-${chainString}`.toLowerCase(),
+        pool: `${p.address}-${chain}`.toLowerCase(),
         chain: chainString,
         project,
         symbol: utils.formatSymbol(p.symbol),
@@ -56,13 +59,16 @@ async function apy() {
         tvlUsd: Number(ethers.utils.formatUnits(equityValue)),
         apy: utils.aprToApy(Number(p.data.apr.totalApr * 100)),
       };
-    }),
+    })
   );
 
   const lendingPools = await Promise.all(
     lendingPoolResponse.map(async (p) => {
       const chain = CONSTANT[p.chainId].name;
-      const chainString = utils.formatChain(chain);
+      const chainString =
+        chain === 'avax'
+          ? utils.formatChain('avalanche')
+          : utils.formatChain(chain);
 
       const lendingAPR = (
         await sdk.api.abi.call({
@@ -92,7 +98,7 @@ async function apy() {
         await sdk.api.abi.call({
           target: CONSTANT[p.chainId].chainLinkOracle,
           abi: abi.CHAINLINK_ORACLE.find(
-            ({ name }) => name === 'consultIn18Decimals',
+            ({ name }) => name === 'consultIn18Decimals'
           ),
           params: p.baseToken.address,
           chain,
@@ -100,7 +106,7 @@ async function apy() {
       ).output;
 
       return {
-        pool: `${p.address}-${chainString}`.toLowerCase(),
+        pool: `${p.address}-${chain}`.toLowerCase(),
         chain: chainString,
         project,
         symbol: utils.formatSymbol(p.symbol),
@@ -109,7 +115,7 @@ async function apy() {
           Number(ethers.utils.formatUnits(assetPrice)),
         apy: utils.aprToApy(Number(ethers.utils.formatUnits(lendingAPR)) * 100),
       };
-    }),
+    })
   );
 
   return [...lendingPools, ...vaults];
