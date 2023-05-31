@@ -28,10 +28,14 @@ const main = async () => {
 
   await Promise.all(
     data.map((p) =>
-      utils.storeAPIResponse('defillama-datasets', `yield-api/${p.pool}`, {
-        status: 'success',
-        data: p.value,
-      })
+      utils.storeAPIResponse(
+        'defillama-datasets',
+        `yield-api/chartTest/${p.pool}`,
+        {
+          status: 'success',
+          data: p.value,
+        }
+      )
     )
   );
 };
