@@ -32,14 +32,11 @@ function lambdaResponseFixedCache(body, { statusCode = 200, cacheTime } = {}) {
 }
 
 const customHeader = (cacheTime) => {
-  return (
-    'headers',
-    {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Cache-Control': `max-age=${cacheTime}`,
-    }
-  );
+  return {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': `max-age=${cacheTime}`,
+  };
 };
 
 module.exports = {
