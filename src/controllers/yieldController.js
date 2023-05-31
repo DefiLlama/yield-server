@@ -6,7 +6,7 @@ const { pgp, connect } = require('../utils/dbConnection');
 const {
   tableName: configTableName,
 } = require('../controllers/configController');
-const { lambdaResponse } = require('../utils/lambda');
+const { lambdaResponse, lambdaResponseFixedCache } = require('../utils/lambda');
 
 const tableName = 'yield';
 
@@ -120,9 +120,11 @@ const getYieldHistory = async (configID) => {
     return new AppError(`Couldn't get ${tableName} history data`, 404);
   }
 
-  return lambdaResponse({
+  return lambdaResponseFixedCache({
     status: 'success',
     data: response,
+  }, {
+    cacheTime: 24*3600 // 24h
   });
 };
 

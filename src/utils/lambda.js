@@ -18,6 +18,19 @@ function lambdaResponse(body, { statusCode = 200, headers } = {}) {
   return response;
 }
 
+function lambdaResponseFixedCache(body, { statusCode = 200, cacheTime } = {}) { // cacheTime in seconds
+  return {
+    statusCode,
+    body: JSON.stringify(body),
+    headers: {
+      'Content-Type': 'application/json',
+      "Access-Control-Allow-Origin": "*",
+      "Cache-Control": `max-age=${cacheTime}`
+    },
+  };
+}
+
 module.exports = {
   lambdaResponse,
+  lambdaResponseFixedCache
 };
