@@ -163,7 +163,12 @@ const main = async (body) => {
   // change chain `Binance` -> `BSC`
   data = data.map((p) => ({
     ...p,
-    chain: p.chain === 'Binance' ? 'BSC' : p.chain,
+    chain:
+      p.chain === 'Binance'
+        ? 'BSC'
+        : p.chain === 'Avax'
+        ? 'Avalanche'
+        : p.chain,
   }));
   console.log(data.length);
 
