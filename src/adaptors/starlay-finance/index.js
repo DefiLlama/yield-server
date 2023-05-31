@@ -114,4 +114,5 @@ const getApy = async () => {
 
 module.exports = {
   apy: getApy,
+  url: 'https://starlay.finance/app/markets'
 };
