@@ -77,12 +77,8 @@ const getYieldFiltered = async () => {
   return response;
 };
 
-// get full history of given configID
-const getYieldHistory = async (configID) => {
-  const conn = await connect();
-
-  const query = minify(
-    `
+const yieldHistoryQuery = minify(
+  `
     SELECT
         timestamp,
         "tvlUsd",
@@ -108,10 +104,14 @@ const getYieldHistory = async (configID) => {
     ORDER BY
         timestamp ASC
   `,
-    { compress: true }
-  );
+  { compress: true }
+);
 
-  const response = await conn.query(query, {
+// get full history of given configID
+const getYieldHistory = async (configID) => {
+  const conn = await connect();
+
+  const response = await conn.query(yieldHistoryQuery, {
     configIDValue: configID,
     table: tableName,
   });
@@ -426,4 +426,5 @@ module.exports = {
   getYieldLendBorrowHistory,
   buildInsertYieldQuery,
   getYieldAvg30d,
+  yieldHistoryQuery,
 };
