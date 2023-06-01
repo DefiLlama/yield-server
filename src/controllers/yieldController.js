@@ -38,7 +38,8 @@ const getYieldFiltered = async () => {
         "apyBase7d",
         "volumeUsd1d",
         "volumeUsd7d",
-        "apyBaseInception"
+        "apyBaseInception",
+        url
     FROM
         (
             SELECT
