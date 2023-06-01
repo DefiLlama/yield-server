@@ -14,6 +14,11 @@ const excludeAdaptors = [
   'ratio-finance',
   '0vix', // pausing cause of hack
   'rehold', // apy values are fake
+  'deficurrent', // vaults deprecated
+  'dogium-farm', // seems to be dead
+  'zest-protocol', // tiny pools
+  'hedge', // seems to be dead, ui not working
+  'double-club', // seems to be dead
 ];
 
 const excludePools = [
