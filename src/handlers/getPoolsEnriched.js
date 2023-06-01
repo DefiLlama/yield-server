@@ -18,7 +18,7 @@ module.exports.handler = async (event) => {
 };
 
 const buildPoolsEnriched = async (queryString) => {
-  const columns = [
+  let columns = [
     'chain',
     'project',
     'symbol',
@@ -47,9 +47,9 @@ const buildPoolsEnriched = async (queryString) => {
     'volumeUsd1d',
     'volumeUsd7d',
     'apyBaseInception',
-  ]
-    .map((el) => `t."${el}"`)
-    .join(', ');
+  ];
+  columns = queryString !== undefined ? [...columns, 'url'] : columns;
+  columns = columns.map((el) => `t."${el}"`).join(', ');
 
   let query = `SELECT ${columns} FROM s3object[*][*] t`;
 
