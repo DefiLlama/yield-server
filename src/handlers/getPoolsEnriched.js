@@ -54,7 +54,7 @@ const buildPoolsEnriched = async (queryString) => {
   let query = `SELECT ${columns} FROM s3object[*][*] t`;
 
   if (queryString !== undefined) {
-    query = `${query} where t.${Object.keys(queryString)[0]}='${
+    query = `${query} where t."${Object.keys(queryString)[0]}"='${
       Object.values(queryString)[0]
     }'`;
   }
