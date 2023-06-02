@@ -60,7 +60,6 @@ const getDistinctID = async (req, res) => {
 
 // get config data of pool
 const getConfigPool = async (req, res) => {
-  console.log(req.params);
   const configID = req.params.configID;
   const ids = configID.split(',');
   const valid =
