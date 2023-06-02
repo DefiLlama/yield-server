@@ -217,15 +217,6 @@ functions:
           method: get
           path: /lendBorrow
 
-  getHistoryLendBorrow:
-    handler: src/handlers/getHistoryLendBorrow.handler
-    description: Lambda for retrieving chart data for a particular pool
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /chartLendBorrow/{configID}
-
   getConfigPool:
     handler: src/handlers/getConfigPool.handler
     description: Lambda for retrieving config data of configIDs
