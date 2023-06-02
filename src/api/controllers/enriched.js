@@ -3,6 +3,13 @@ const validator = require('validator');
 const AppError = require('../../utils/appError');
 const { customHeader } = require('../../utils/lambda');
 
+const AWS = require('aws-sdk');
+AWS.config.update({
+  accessKeyId: process.env.aws_access_key_id,
+  secretAccessKey: process.env.aws_secret_access_key,
+  region: process.env.region,
+});
+
 const { buildPoolsEnriched } = require('../../handlers/getPoolsEnriched');
 
 const getPoolEnriched = async (req, res) => {
