@@ -29,7 +29,7 @@ const graphURLBaseEndpoint = 'https://api.thegraph.com/subgraphs/name/steerproto
 const query = `
 {
     vaults(first: 1000, where: {totalLPTokensIssued_not: "0"}) {
-      annualFeeARR
+      weeklyFeeAPR
       beaconName
       feeTier
       id
@@ -79,7 +79,7 @@ supportedChains.forEach(async chainInfo => {
             project: 'steer-protocol', // protocol (using the slug again) // @todo confirm
             symbol: (vault.token0Symbol + '-' + vault.token1Symbol), // symbol of the tokens in pool, can be a single symbol if pool is single-sided or multiple symbols (eg: USDT-ETH) if it's an LP
             tvlUsd: poolTvl, // number representing current USD TVL in pool
-            apyBase: parseFloat(vault.annualFeeARR) / 100, // APY from pool fees/supplying in %
+            apyBase: parseFloat(vault.weeklyFeeAPR), // APY from pool fees/supplying in %
             underlyingTokens: [vault.token0, vault.token1], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
             poolMeta: vault.beaconName, 
             url: 'https://app.steer.finance/app/' + (vault.strategyToken.id) + '/vault/' + vault.id
