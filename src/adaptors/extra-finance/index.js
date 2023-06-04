@@ -3,6 +3,7 @@ const superagent = require('superagent');
 const BigNumber = require("bignumber.js");
 const utils = require('../utils');
 
+const project = 'extra-finance'
 const subgraphUrls = {
   optimism: `https://api.thegraph.com/subgraphs/name/extrafi/extrasubgraph`,
 };
@@ -26,7 +27,6 @@ function getLendPollApy(poolInfo) {
 }
 
 async function getPoolsData() {
-  const project = 'extra'
   const chain = 'optimism';
 
   const pools = [];
