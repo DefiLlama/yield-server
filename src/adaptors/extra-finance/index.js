@@ -1,37 +1,44 @@
 const { request } = require('graphql-request');
 const superagent = require('superagent');
 const BigNumber = require("bignumber.js");
+const { default: computeTVL } = require('@defillama/sdk/build/computeTVL');
+
 const utils = require('../utils');
+const { unwrapUniswapLPs } = require('../../helper/unwrapLPs');
+const {
+  getLendPoolTvl,
+  getLendPoolApy,
+  getAllVeloPoolInfo,
+} = require('./compute');
 
 const project = 'extra-finance'
 const subgraphUrls = {
   optimism: `https://api.thegraph.com/subgraphs/name/extrafi/extrasubgraph`,
 };
 
-function toDecimals(bn, decimals = 18) {
-  return new BigNumber(bn).div(new BigNumber(`1e+${decimals}`)).toNumber()
-}
-
-function getLendPoolTvl(poolInfo, tokenInfo) {
-  const { totalLiquidity, totalBorrows } = poolInfo
-  const remainAmount = toDecimals(new BigNumber(totalLiquidity).minus(new BigNumber(totalBorrows)), poolInfo.decimals);
-  return remainAmount * tokenInfo.price
-}
-
-function getLendPollApy(poolInfo) {
-  const { borrowingRate, totalLiquidity, totalBorrows } = poolInfo
-  const borrowingRateNum = toDecimals(borrowingRate)
-  const utilizationRate = new BigNumber(totalBorrows).dividedBy(new BigNumber(totalLiquidity)).toNumber() || 0
-  const apr = borrowingRateNum * utilizationRate
-  return utils.aprToApy(apr * 100)
-}
-
 async function getPoolsData() {
   const chain = 'optimism';
 
   const pools = [];
 
-  const lendingQuery = `{
+  const graphQuery = `{
+    vaults {
+      id
+      vaultId
+      blockNumber
+      blockTimestamp
+      pair
+      token0
+      token1
+      stable
+      paused
+      frozen
+      borrowingEnabled
+      maxLeverage
+      totalLp
+      debtPositionId0
+      debtPositionId1
+    },
     lendingReservePools {
       id
       reserveId
@@ -42,20 +49,39 @@ async function getPoolsData() {
       borrowingRate
     }
   }`;
-  const lendingQueryResult = await request(subgraphUrls[chain], lendingQuery);
+  const queryResult = await request(subgraphUrls[chain], graphQuery);
+  // console.log('queryResult :>> ', queryResult);
 
-  const addresses = lendingQueryResult.lendingReservePools.map(item => item.underlyingTokenAddress)
+  function getTokenAddresses() {
+    const lendingTokenAddresses = queryResult.lendingReservePools.map(item => item.underlyingTokenAddress)
+    const result = [...lendingTokenAddresses]
+    queryResult.vaults.forEach(item => {
+      if (!result.includes(item.token0)) {
+        result.push(token0)
+      }
+      if (!result.includes(item.token1)) {
+        result.push(token1)
+      }
+    })
+    return result
+  }
+  const tokenAddresses = getTokenAddresses()
+
   const prices = (
     await superagent.post('https://coins.llama.fi/prices').send({
       coins: chain
-        ? addresses.map((address) => `${chain}:${address}`)
-        : addresses,
+        ? tokenAddresses.map((address) => `${chain}:${address}`)
+        : tokenAddresses,
     })
   ).body.coins;
 
-  lendingQueryResult.lendingReservePools.forEach(poolInfo => {
-    const coinKey = `${chain}:${poolInfo.underlyingTokenAddress}`;
-    const tokenInfo = prices[coinKey]
+  function getTokenInfo(address) {
+    const coinKey = `${chain}:${address.toLowerCase()}`;
+    return prices[coinKey]
+  }
+
+  queryResult.lendingReservePools.forEach(poolInfo => {
+    const tokenInfo = getTokenInfo(poolInfo.underlyingTokenAddress)
 
     pools.push({
       pool: `${poolInfo.eTokenAddress}-${chain}`.toLowerCase(),
@@ -63,9 +89,27 @@ async function getPoolsData() {
       project,
       symbol: tokenInfo.symbol,
       underlyingTokens: [poolInfo.underlyingTokenAddress],
-      poolMeta: `${tokenInfo.symbol} lending pool`,
+      poolMeta: `Lending Pool`,
       tvlUsd: getLendPoolTvl(poolInfo, tokenInfo),
-      apyBase: getLendPollApy(poolInfo),
+      apyBase: getLendPoolApy(poolInfo),
+    })
+  })
+
+  const parsedFarmPoolsInfo = await getAllVeloPoolInfo(
+    queryResult.vaults.filter(item => !item.paused),
+    chain, prices, queryResult.lendingReservePools
+  )
+
+  parsedFarmPoolsInfo.forEach(async (poolInfo) => {
+    pools.push({
+      pool: `${poolInfo.pair}-${chain}`.toLowerCase(),
+      chain: utils.formatChain(chain),
+      project,
+      symbol: `${poolInfo.token0_symbol}-${poolInfo.token1_symbol}`,
+      underlyingTokens: [poolInfo.token0, poolInfo.token1],
+      poolMeta: `Leveraged Yield Farming`,
+      tvlUsd: poolInfo.tvlUsd,
+      apyBase: poolInfo.leveragedApy,
     })
   })
 
