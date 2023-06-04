@@ -36,6 +36,7 @@ async function getPoolsData() {
       id
       reserveId
       underlyingTokenAddress
+      eTokenAddress
       totalLiquidity
       totalBorrows
       borrowingRate
@@ -57,7 +58,7 @@ async function getPoolsData() {
     const tokenInfo = prices[coinKey]
 
     pools.push({
-      pool: `${poolInfo.underlyingTokenAddress}-${chain}`.toLowerCase(),
+      pool: `${poolInfo.eTokenAddress}-${chain}`.toLowerCase(),
       chain: utils.formatChain(chain),
       project,
       symbol: tokenInfo.symbol,
