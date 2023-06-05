@@ -28,6 +28,9 @@ const getApy = async (param) => {
   const { kaglaPools, kaglaCoins } = await getKaglaInfo();
   const rawMarketPrices = await getMarketPrices();
   const rewardPools = await getRewardPools(poolInfo);
+  const stashes = await getExtraRewardInfos(poolInfo);
+  const extraRewardTokens = await getExtraRewardTokenStaticDatas(stashes);
+  const muuuToken = await getMuuuToken();
 
   const kglPrice = rawMarketPrices[KGL_TOKEN];
   const muuuPrice = rawMarketPrices[MUUU_TOKEN];
@@ -56,6 +59,44 @@ const getApy = async (param) => {
       if (rewardPool == undefined) return null;
 
       const tvl = rewardPool.totalSupply.multipliedBy(lpTokenUSDPrice);
+      const rewardAmountPerYear =
+        rewardPool.rewardRate.multipliedBy(SECONDS_PER_YEAR);
+      const kglApr = rewardAmountPerYear.multipliedBy(kglPrice).dividedBy(tvl);
+      const muuuApr = calcurateMuuuEarned(rewardAmountPerYear, {
+        ...muuuToken,
+        totalSupply: muuuToken.totalSupply,
+      })
+        .multipliedBy(muuuPrice)
+        .dividedBy(tvl);
+      const extraRewardsPools =
+        stashes && extraRewardTokens && stashes[v.stash]
+          ? stashes[v.stash].map((val) => {
+              const _tokenPrice =
+                rawMarketPrices[val.rewardTokenAddress.toLowerCase()];
+              const _apr = _tokenPrice
+                ? val.rewardRate
+                    .multipliedBy(SECONDS_PER_YEAR)
+                    .multipliedBy(_tokenPrice)
+                    .dividedBy(tvl)
+                : null;
+              const _symbol = extraRewardTokens[val.rewardTokenAddress]
+                ? extraRewardTokens[val.rewardTokenAddress].symbol
+                : null;
+              return {
+                rewardPoolAddress: val.rewardPoolAddress,
+                rewardToken: {
+                  address: val.rewardTokenAddress,
+                  symbol: _symbol,
+                },
+                apr: _apr,
+              };
+            })
+          : [];
+      const extraRewardsApr = extraRewardsPools.reduce(
+        (previous, current) =>
+          current.apr ? previous.plus(current.apr) : previous,
+        BN_ZERO
+      );
 
       return {
         pool: v.token,
@@ -64,7 +105,10 @@ const getApy = async (param) => {
         symbol: poolCoins.map((coin) => coin.symbol).join('-'),
         tvlUsd: tvl.toNumber(),
         apyBase: convertAPR2APY(gauge.minAPR) * 100,
-        apyReward: convertAPR2APY(gauge.minAPR) * 100,
+        apyReward:
+          convertAPR2APY(
+            BigNumberJs.sum(muuuApr, kglApr, extraRewardsApr).toNumber()
+          ) * 100,
         underlyingTokens: kaglaPool.coins.map((coin) => coin.address),
         rewardTokens: [v.kglRewards],
       };
