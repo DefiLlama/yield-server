@@ -1,57 +1,69 @@
 const ethers = require('ethers');
 const axios = require('axios');
 const utils = require('../utils');
+const BigNumber = require('bignumber.js');
 
-// Import the Pair ABI
+
 const PAIR_ABI = require('./Pair');
-
 const KAVA_RPC_URL = 'https://evm.data.equilibre.kava.io';
-const COINGECKO_API = 'https://api.coingecko.com/api/v3/simple/price';
-const EQUILIBRE_COINGECKO_ID = 'equilibre';
 const EQUILIBRE_API_URL = 'https://api.equilibrefinance.com/api/v1/pairs';
+const LLAMA_API_URL = 'https://coins.llama.fi/prices/current/'
 
 const provider = new ethers.providers.JsonRpcProvider(KAVA_RPC_URL);
 
 const getApyEquilibre = async () => {
   try {
     const poolsRes = await utils.getData(EQUILIBRE_API_URL);
-
-    const token0PriceData = await axios.get(`${COINGECKO_API}?ids=${EQUILIBRE_COINGECKO_ID}&vs_currencies=usd`);
-    const token1PriceData = await axios.get(`${COINGECKO_API}?ids=${EQUILIBRE_COINGECKO_ID}&vs_currencies=usd`);
-    const token0Price = token0PriceData.data[EQUILIBRE_COINGECKO_ID].usd;
-    const token1Price = token1PriceData.data[EQUILIBRE_COINGECKO_ID].usd;
-    
     const pools = await Promise.all(poolsRes.data.map(async (pool) => {
       const pairContract = new ethers.Contract(pool.address, PAIR_ABI, provider);
 
       const token0Address = await pairContract.token0();
       const token1Address = await pairContract.token1();
 
-      const reserves = await pairContract.getReserves();
-      const reserve0 = reserves._reserve0;
-      const reserve1 = reserves._reserve1;
-     
-      const tvl = reserve0 * token0Price + reserve1 * token1Price;
+      const pairReserves = await pairContract.getReserves();
+      const reserve0 = pairReserves._reserve0;
+      const reserve1 = pairReserves._reserve1;
 
+      const tokens = await pairContract.tokens()
+
+      const token0llama = 'kava:'.concat(tokens[0])
+      const token1llama = 'kava:'.concat(tokens[1])
+
+      const token0PriceRes = await axios.get(`${LLAMA_API_URL}${token0llama}`);
+      const token1PriceRes = await axios.get(`${LLAMA_API_URL}${token1llama}`);
+
+      if (token0PriceRes.status !== 200 || token1PriceRes.status !== 200) {
+        throw new Error('Failed to fetch token price');
+      }
+
+      const token0Price = token0PriceRes.data;
+      const token1Price = token1PriceRes.data;
+
+      let tvl = 0
+      if(token0Price.coins && token0Price.coins[token0llama] && token0Price.coins[token0llama].price &&
+         token1Price.coins && token1Price.coins[token1llama] && token1Price.coins[token1llama].price) {
+        tvl = reserve0 * token0Price.coins[token0llama].price + reserve1 * token1Price.coins[token1llama].price;
+      }
+      
 
       const apy = {
         pool: pool.address,
         chain: utils.formatChain('kava'),
         project: 'equilibre',
         symbol: `${pool.token0.symbol}-${pool.token1.symbol}`,
-        tvlUsd: tvl,
+        tvlUsd: Number(tvl.toFixed(2)),
         apyReward: pool.apr,
         underlyingTokens: [token0Address, token1Address],
         rewardTokens: [pool.address], 
-      }
-
+      };
 
       return apy;
     }));
 
-    return pools
-
-  }  catch (error) {
+    return pools;
+  } catch (error) {
+    console.error(`Error in getApyEquilibre: ${error}`);
+    console.error(`Stack trace: ${error.stack}`);
     return null;
   }
 };
