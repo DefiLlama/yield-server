@@ -78,7 +78,6 @@ const getApy = async () => {
         project: 'kagla-finance',
         symbol: pool.name,
         tvlUsd: tvlUsd,
-        apyBase: apy,
         apyReward: apy,
         underlyingTokens: underlyingCoins.map((coin) => coin.address),
         rewardTokens: [lpAddress],
