@@ -71,14 +71,15 @@ const getApy = async () => {
         (totalSupply * virtualPrice * prices[assetType]) /
         (10 ** decimals) ** 2;
 
+      const apy = convertAPR2APY(gauge?.minAPR) * 100;
       return {
         pool: pool.address,
         chain: chain,
         project: 'kagla-finance',
         symbol: pool.name,
         tvlUsd: tvlUsd,
-        apyBase: convertAPR2APY(gauge?.minAPR),
-        apyReward: convertAPR2APY(gauge?.maxAPR),
+        apyBase: apy,
+        apyReward: apy,
         underlyingTokens: underlyingCoins.map((coin) => coin.address),
         rewardTokens: [lpAddress],
         url: `https://kagla.finance/app/pools/${pool.address}`,
