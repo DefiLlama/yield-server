@@ -25,9 +25,15 @@ const main = async () => {
   var poolsData = [];
 
   for (const chain in chainIds) {
-    const data = await utils.getData(
-      'https://api.angle.money/v1/merkl?chainId=' + chainIds[chain]
-    );
+    let data;
+    try {
+      data = await utils.getData(
+        'https://api.angle.money/v1/merkl?chainId=' + chainIds[chain]
+      );
+    } catch (err) {
+      console.log(`no data for chain id ${chain}`);
+      continue;
+    }
     const project = 'merkl';
 
     for (const pool in data.pools) {
@@ -128,7 +134,7 @@ const main = async () => {
       }
     }
   }
-  return poolsData;
+  return poolsData.filter((p) => utils.keepFinite(p));
 };
 
 /*
