@@ -332,7 +332,7 @@ const getCurratedPoolData = async (poolData, network) => {
     tvlUsd: Number(formatEther(tvl.toString())),
     apy: Number(apy),
     rewardTokens: rewardTokens.map(({ address }) => address),
-    uderlyingTokens: [token0, token1].map(({ address }) => address),
+    underlyingTokens: [token0, token1].map(({ address }) => address),
     url: `${constants.BASE_APP_URL}/pools/${
       network.toLowerCase() === 'ethereum' ? 'mainnet' : network.toLowerCase()
     }/${getAddress(pool.id)}`,
