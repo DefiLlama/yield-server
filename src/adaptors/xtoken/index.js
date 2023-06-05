@@ -323,7 +323,7 @@ const getCurratedPoolData = async (poolData, network) => {
   );
 
   return {
-    pool: getAddress(pool.id),
+    pool: `${getAddress(pool.id)}-${network}`,
     chain: utils.formatChain(network),
     project: 'xtoken',
     symbol: `${utils.formatSymbol(token0.symbol)}<>${utils.formatSymbol(
@@ -366,6 +366,8 @@ const getPools = async () => {
 
   return pools;
 };
+
+getPools().then((res) => console.log(res));
 
 module.exports = {
   timetravel: false,
