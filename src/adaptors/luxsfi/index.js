@@ -4,6 +4,8 @@ const BigNumber = require('bignumber.js');
 const ethers = require('ethers');
 const superagent = require('superagent');
 
+const utils = require('../utils')
+
 const strategies = {
   polygon: [
     '0x819f6fBD91D99420794Adefdb1604Bfc3182AC39',
@@ -150,7 +152,7 @@ const getPools = async () => {
     pools = pools.concat(chainPools);
   }
 
-  return pools;
+  return pools.filter(p => utils.keepFinite(p));
 };
 
 module.exports = {
