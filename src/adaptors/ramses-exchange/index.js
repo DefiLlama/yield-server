@@ -1,0 +1,124 @@
+const sdk = require('@defillama/sdk');
+const axios = require('axios');
+
+const utils = require('../utils');
+const abiPairFactory = require('./abiPairFactory.json');
+const abiPair = require('./abiPair.json');
+const abiGauge = require('./abiGauge.json');
+const abiVoter = require('./abiVoter.json');
+
+const pairFactory = '0xAAA20D08e59F6561f242b08513D36266C5A29415';
+const voter = '0xAAA2564DEb34763E3d05162ed3f5C2658691f499 ';
+const RAM = '0xaaa6c1e32c55a7bfa8066a6fae9b42650f262418';
+
+const getApy = async () => {
+  const allPairsLength = (
+    await sdk.api.abi.call({
+      target: pairFactory,
+      abi: abiPairFactory.find((m) => m.name === 'allPairsLength'),
+      chain: 'arbitrum',
+    })
+  ).output;
+
+  const allPairs = (
+    await sdk.api.abi.multiCall({
+      calls: [...Array(Number(allPairsLength)).keys()].map((i) => ({
+        target: pairFactory,
+        params: [i],
+      })),
+      abi: abiPairFactory.find((m) => m.name === 'allPairs'),
+      chain: 'arbitrum',
+    })
+  ).output.map((o) => o.output);
+
+  const metaData = (
+    await sdk.api.abi.multiCall({
+      calls: allPairs.map((i) => ({
+        target: i,
+      })),
+      abi: abiPair.find((m) => m.name === 'metadata'),
+      chain: 'arbitrum',
+    })
+  ).output.map((o) => o.output);
+
+  const symbols = (
+    await sdk.api.abi.multiCall({
+      calls: allPairs.map((i) => ({
+        target: i,
+      })),
+      abi: abiPair.find((m) => m.name === 'symbol'),
+      chain: 'arbitrum',
+    })
+  ).output.map((o) => o.output);
+
+  const gauges = (
+    await sdk.api.abi.multiCall({
+      calls: allPairs.map((i) => ({
+        target: voter,
+        params: [i],
+      })),
+      abi: abiVoter.find((m) => m.name === 'gauges'),
+      chain: 'arbitrum',
+    })
+  ).output.map((o) => o.output);
+
+  const rewardRate = (
+    await sdk.api.abi.multiCall({
+      calls: gauges.map((i) => ({
+        target: i,
+        params: [RAM],
+      })),
+      abi: abiGauge.find((m) => m.name === 'rewardRate'),
+      chain: 'arbitrum',
+    })
+  ).output.map((o) => o.output);
+
+  const tokens = [
+    ...new Set(
+      metaData
+        .map((m) => [m.t0, m.t1])
+        .flat()
+        .concat(RAM)
+    ),
+  ];
+  const priceKeys = tokens.map((i) => `arbitrum:${i}`).join(',');
+
+  const prices = (
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).data.coins;
+
+  const pools = allPairs.map((p, i) => {
+    const poolMeta = metaData[i];
+    const r0 = poolMeta.r0 / poolMeta.dec0;
+    const r1 = poolMeta.r1 / poolMeta.dec1;
+
+    const p0 = prices[`arbitrum:${poolMeta.t0}`]?.price;
+    const p1 = prices[`arbitrum:${poolMeta.t1}`]?.price;
+
+    const tvlUsd = r0 * p0 + r1 * p1;
+
+    const s = symbols[i];
+
+    const rewardPerSec =
+      (rewardRate[i] / 1e18) * prices[`arbitrum:${RAM}`]?.price;
+    const apyReward = ((rewardPerSec * 86400 * 365) / tvlUsd) * 100;
+
+    return {
+      pool: p,
+      chain: utils.formatChain('arbitrum'),
+      project: 'ramses-exchange',
+      symbol: utils.formatSymbol(s.split('-')[1]),
+      tvlUsd,
+      apyReward,
+      rewardTokens: apyReward ? [RAM] : [],
+    };
+  });
+
+  return pools.filter((p) => utils.keepFinite(p));
+};
+
+module.exports = {
+  timetravel: false,
+  apy: getApy,
+  url: 'https://app.ramses.exchange/liquidity',
+};
