@@ -109,7 +109,7 @@ async function getPoolsData() {
       underlyingTokens: [poolInfo.token0, poolInfo.token1],
       poolMeta: `Leveraged Yield Farming`,
       tvlUsd: poolInfo.tvlUsd,
-      apyBase: poolInfo.leveragedApy,
+      apyBase: poolInfo.baseApy,
     })
   })
 
