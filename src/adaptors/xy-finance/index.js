@@ -29,7 +29,7 @@ const main = async () => {
       const chainName = supportedChainName(chainId);
       const ypoolToken = ypoolTokenAddress(symbol, chainId);
       pools.push({
-        pool: `${ypoolToken}-${chainName}`.toLowerCase(),
+        pool: `ypool-${symbol}-${chainName}`.toLowerCase(),
         chain: chainName,
         project: 'xy-finance',
         symbol: symbol,
