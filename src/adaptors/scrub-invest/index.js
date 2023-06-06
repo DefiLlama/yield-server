@@ -53,12 +53,11 @@ const tokens = [
   },
 ];
 
-const getInfo = async (token) => {
+const getInfos = async () => {
   return (
     await sdk.api.abi.multiCall({
       chain: CHAIN,
       calls: Object.entries(vaults)
-        .filter((v) => v[0].includes(token))
         .map((vault) => ({
           target: vault[1],
           params: ['0x0000000000000000000000000000000000000000'],
@@ -91,7 +90,7 @@ const calcApy = async () => {
   const prices = await getPrices(
     tokens.map((token) => token.address).map((token) => `${CHAIN}:` + token)
   );
-  const infos = tokens.map(async (token) => await getInfo(token.name));
+  const infos = tokens.map(async (token) => await getInfos());
 
   const pools = tokens.map((token, i) => {
     const symbol = token.name;
