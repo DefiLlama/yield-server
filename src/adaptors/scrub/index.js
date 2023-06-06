@@ -102,6 +102,7 @@ const calcApy = async () => {
       price = symbol.toLowerCase().includes('usd') ? 1 : 0;
 
     const info = getInfo(symbol);
+    console.log(info);
     const tvlUsd = ((info[8] ?? 0) / 10 ** decimals) * price;
     const apyBase = (info[4] ?? 0) / 1e3;
 
