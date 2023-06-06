@@ -103,7 +103,7 @@ const calcApy = async () => {
     const info = infos[i];
     console.log(info);
     const tvlUsd = ((info.totalSupplied ?? 0) / 10 ** decimals) * price;
-    const apyBase = (info.lastAPR ?? 0) / 1e3;
+    const apyBase = (info.lastAPR ?? 0) / 1e4;
 
     return {
       pool: symbol,
