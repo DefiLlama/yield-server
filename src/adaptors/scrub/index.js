@@ -63,9 +63,10 @@ const getInfo = async (token) => {
           target: vault[1],
           params: ['0x0000000000000000000000000000000000000000'],
         })),
-      abi: windAndCheck.find(({ name }) => name === 'userInfo'),
+      abi: windAndCheck.find(({ name }) => name === 'getUserInfo'),
     })
   ).output.map(({ output }) => output);
+  
 };
 
 const getPrices = async (addresses) => {
