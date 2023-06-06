@@ -86,11 +86,11 @@ const getPrices = async (addresses) => {
   return pricesByAddress;
 };
 
-const prices = await getPrices(
-  tokens.map((token) => token.address).map((token) => `${CHAIN}:` + token)
-);
-
 const calcApy = async () => {
+  const prices = await getPrices(
+    tokens.map((token) => token.address).map((token) => `${CHAIN}:` + token)
+  );
+  
   const pools = tokens.map((token, i) => {
     const symbol = token.name;
     const tokenAddress = token.address;
