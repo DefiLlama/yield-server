@@ -49,17 +49,13 @@ async function apy() {
 
       const lp = `${p.tokens.map((t) => t.symbol).join('-')}`;
       const symbol = `${p.leverage}x ${p.strategy} ${lp}`;
-      const poolMeta =
-        p.yieldSource === 'Perpetual DEX'
-          ? p.protocol
-          : `${p.protocol} - ${lp}`;
 
       return {
         pool: `${p.address}-${chainString}`.toLowerCase(),
         chain: chainString,
         project,
         symbol,
-        poolMeta,
+        poolMeta: p.protocol,
         tvlUsd: Number(ethers.utils.formatUnits(equityValue)),
         apy: utils.aprToApy(Number(p.data.apr.totalApr * 100)),
       };
