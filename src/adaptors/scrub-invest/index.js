@@ -91,7 +91,7 @@ const calcApy = async () => {
     tokens.map((token) => token.address).map((token) => `${CHAIN}:` + token)
   );
   const infos = tokens.map(async (token) => await getInfos());
-
+  console.log(infos);
   const pools = tokens.map((token, i) => {
     const symbol = token.name;
     const tokenAddress = token.address;
