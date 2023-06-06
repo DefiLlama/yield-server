@@ -74,7 +74,7 @@ const getApy = async () => {
   ).output.map((o) => o.output);
 
   const derivedSupply = (
-    await sdk.api.abi.call({
+    await sdk.api.abi.multiCall({
       calls: gauges.map((i) => ({
         target: i,
       })),
@@ -84,14 +84,14 @@ const getApy = async () => {
   ).output.map((o) => o.output);
 
   const totalSupply = (
-      await sdk.api.abi.call({
-        calls: gauges.map((i) => ({
-          target: i,
-        })),
-        abi: abiGauge.find((m) => m.name === 'totalSupply'),
-        chain: 'arbitrum',
-      })
-    ).output.map((o) => o.output);
+    await sdk.api.abi.multiCall({
+      calls: gauges.map((i) => ({
+        target: i,
+      })),
+      abi: abiGauge.find((m) => m.name === 'totalSupply'),
+      chain: 'arbitrum',
+    })
+  ).output.map((o) => o.output);
 
   const tokens = [
     ...new Set(
@@ -119,12 +119,14 @@ const getApy = async () => {
 
     const s = symbols[i];
 
-    //const rewardPerSec =
-    //  (rewardRate[i] / 1e18) * prices[`arbitrum:${RAM}`]?.price;
-    //const apyReward = ((rewardPerSec * 86400 * 365) / tvlUsd) * 100;
-    const pairPrice =  tvlUSD * 1e18 / totalSupply
+    const pairPrice = (tvlUsd * 1e18) / totalSupply[i];
+    const totalRewardPerDay =
+      ((rewardRate[i] * 86400) / 1e18) * prices[`arbitrum:${RAM}`]?.price;
 
-    const apyReward = tvlUSD * 36500 / (derivedSupply * pairPrice / 1e18) / 2.5
+    const apyReward =
+      (totalRewardPerDay * 36500) /
+      ((derivedSupply[i] * pairPrice) / 1e18) /
+      2.5;
 
     return {
       pool: p,
