@@ -77,7 +77,7 @@ const getPrices = async (addresses) => {
   return pricesByAddress;
 };
 const convertAPR2APY = (apr) => {
-  return (apy = Math.pow(apr / 12 + 1, 12) - 1);
+  return (apy = Math.pow(apr / 365*48 + 1, 365*48) - 1);
 };
 
 const calcApy = async () => {
