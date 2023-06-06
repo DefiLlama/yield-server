@@ -354,7 +354,7 @@ module.exports = {
   apy: async () =>
     (
       await Promise.all(
-        ['milkomeda', 'milkomeda_a1', 'kava'].map(
+        ['milkomeda', 'milkomeda_a1'].map(
           async (chain) => await poolsApy(chain)
         )
       )

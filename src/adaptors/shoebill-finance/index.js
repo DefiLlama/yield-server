@@ -66,13 +66,13 @@ async function poolsFunction() {
       (e.overview.isCollateral
         ? lpPool?.find(
             (t) =>
-              t?.underlyingAddress.toLowerCase() ===
-              e.token.externalAddress.toLowerCase()
+              t?.underlyingAddress?.toLowerCase() ===
+              e.token.externalAddress?.toLowerCase()
           )?.realizedApy
         : singlePool?.find(
             (t) =>
-              t?.underlyingAddress.toLowerCase() ===
-              e.token.externalAddress.toLowerCase()
+              t?.underlyingAddress?.toLowerCase() ===
+              e.token.externalAddress?.toLowerCase()
           )?.realizedApy) || 0;
 
     const variableBorrowAPR = Number(e.overview.variableBorrowRate) / 1e27;
@@ -99,8 +99,8 @@ async function poolsFunction() {
     if (e.overview.isCollateral) {
       let info = lpPool?.find(
         (t) =>
-          t?.underlyingAddress.toLowerCase() ===
-          e.token.externalAddress.toLowerCase()
+          t?.underlyingAddress?.toLowerCase() ===
+          e.token.externalAddress?.toLowerCase()
       );
       toLendApr = info?.totalRate * info?.incentiveFeeRate || 0;
       totalDepositedCollateral += totalDepositInUSD;
@@ -108,7 +108,7 @@ async function poolsFunction() {
       totalDepositedLend += totalDepositInUSD;
     }
     return {
-      pool: `${e.token.externalAddress}-Klaytn`.toLowerCase(),
+      pool: `${e.token.externalAddress}-Klaytn`?.toLowerCase(),
       chain: 'Klaytn',
       project: 'shoebill-finance',
       symbol: e.token.externalSymbol,

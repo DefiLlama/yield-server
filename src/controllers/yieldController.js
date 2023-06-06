@@ -6,7 +6,7 @@ const { pgp, connect } = require('../utils/dbConnection');
 const {
   tableName: configTableName,
 } = require('../controllers/configController');
-const { lambdaResponse } = require('../utils/lambda');
+const { lambdaResponse, lambdaResponseFixedCache } = require('../utils/lambda');
 
 const tableName = 'yield';
 
@@ -38,7 +38,8 @@ const getYieldFiltered = async () => {
         "apyBase7d",
         "volumeUsd1d",
         "volumeUsd7d",
-        "apyBaseInception"
+        "apyBaseInception",
+        url
     FROM
         (
             SELECT
@@ -75,55 +76,6 @@ const getYieldFiltered = async () => {
   }
 
   return response;
-};
-
-// get full history of given configID
-const getYieldHistory = async (configID) => {
-  const conn = await connect();
-
-  const query = minify(
-    `
-    SELECT
-        timestamp,
-        "tvlUsd",
-        apy,
-        "apyBase",
-        "apyReward",
-        "il7d",
-        "apyBase7d"
-    FROM
-        $<table:name>
-    WHERE
-        timestamp IN (
-            SELECT
-                max(timestamp)
-            FROM
-                $<table:name>
-            WHERE
-                "configID" = $<configIDValue>
-            GROUP BY
-                (timestamp :: date)
-        )
-        AND "configID" = $<configIDValue>
-    ORDER BY
-        timestamp ASC
-  `,
-    { compress: true }
-  );
-
-  const response = await conn.query(query, {
-    configIDValue: configID,
-    table: tableName,
-  });
-
-  if (!response) {
-    return new AppError(`Couldn't get ${tableName} history data`, 404);
-  }
-
-  return lambdaResponse({
-    status: 'success',
-    data: response,
-  });
 };
 
 // get last DB entry per unique pool for a given project (used by adapter handler to check for TVL spikes)
@@ -419,7 +371,6 @@ const buildInsertYieldQuery = (payload) => {
 
 module.exports = {
   getYieldFiltered,
-  getYieldHistory,
   getYieldOffset,
   getYieldProject,
   getYieldLendBorrow,

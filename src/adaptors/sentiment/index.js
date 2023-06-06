@@ -40,6 +40,12 @@ const marketConfig = {
     decimals: 8,
     underlyingAddress: '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f',
   },
+  '0x37E6a0EcB9e8E5D90104590049a0A197E1363b67': {
+    name: 'LOHM',
+    symbol: 'OHM',
+    decimals: 18,
+    underlyingAddress: '0x6E6a3D8F1AfFAc703B1aEF1F43B8D2321bE40043',
+  },
 };
 
 function getSupplyAndBorrowRate(liquidity, borrows, borrowRatePerBlock) {

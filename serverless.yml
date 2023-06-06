@@ -13,7 +13,7 @@ provider:
   tracing:
     apiGateway: true
     lambda: true
-  memorySize: 512
+  memorySize: 1024
   iam:
     role:
       statements:
@@ -98,6 +98,7 @@ functions:
     handler: src/handlers/triggerEnrichment.handler
     description: Lambda which runs enrichment process
     timeout: 600
+    memorySize: 1024
     events:
       # every hour at 16 past
       - schedule: cron(16 * * * ? *)
@@ -179,15 +180,6 @@ functions:
       - httpApi:
           method: get
           path: /poolsOld
-
-  getChart:
-    handler: src/handlers/getChart.handler
-    description: Lambda for retrieving chart data for a particular pool
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /chart/{configID}
 
   getMedian:
     handler: src/handlers/getMedian.handler

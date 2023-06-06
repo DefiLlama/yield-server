@@ -191,6 +191,31 @@ const getExpectedRates = async () => {
     type: 'function',
   };
 
+  const hETHAbi = [
+    {
+      inputs: [],
+      name: 'lastExecLayerRewardsForFeeCalc',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
+    {
+      inputs: [
+        { internalType: 'uint256', name: 'amountETH', type: 'uint256' },
+        { internalType: 'bool', name: 'isContractCall', type: 'bool' },
+        {
+          internalType: 'uint256',
+          name: 'diffExecLayerRewardsForFeelCalc',
+          type: 'uint256',
+        },
+      ],
+      name: 'getAmountOfHETHforETH',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
+  ];
+
   // --- cbETH
   const cbETHRate = Number((await axios.get(cbETHRateUrl)).data.amount);
 
@@ -256,6 +281,30 @@ const getExpectedRates = async () => {
       })
     ).output / 1e18;
 
+  const hETHlastExecLayerRewardsForFeeCalc = (
+    await sdk.api.abi.call({
+      target: lsdTokens.find((lsd) => lsd.name === 'Hord').address,
+      chain: 'ethereum',
+      abi: hETHAbi[0],
+    })
+  ).output;
+
+  const hETH =
+    1 /
+    ((
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Hord').address,
+        chain: 'ethereum',
+        abi: hETHAbi[1],
+        params: [
+          BigInt(1e18),
+          false,
+          BigInt(hETHlastExecLayerRewardsForFeeCalc),
+        ],
+      })
+    ).output /
+      1e18);
+
   return lsdTokens.map((lsd) => ({
     ...lsd,
     expectedRate:
@@ -273,6 +322,8 @@ const getExpectedRates = async () => {
         ? swETH
         : lsd.name === 'Binance staked ETH'
         ? wBETH
+        : lsd.name === 'Hord'
+        ? hETH
         : 1,
   }));
 };

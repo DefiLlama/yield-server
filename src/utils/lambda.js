@@ -11,13 +11,36 @@ function lambdaResponse(body, { statusCode = 200, headers } = {}) {
     headers: {
       'Content-Type': 'application/json',
       Expires: date.toUTCString(),
-      "Access-Control-Allow-Origin": "*",
+      'Access-Control-Allow-Origin': '*',
       ...headers,
     },
   };
   return response;
 }
 
+function lambdaResponseFixedCache(body, { statusCode = 200, cacheTime } = {}) {
+  // cacheTime in seconds
+  return {
+    statusCode,
+    body: JSON.stringify(body),
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': `max-age=${cacheTime}`,
+    },
+  };
+}
+
+const customHeader = (cacheTime) => {
+  return {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': `max-age=${cacheTime}`,
+  };
+};
+
 module.exports = {
   lambdaResponse,
+  lambdaResponseFixedCache,
+  customHeader,
 };
