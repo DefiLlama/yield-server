@@ -63,7 +63,7 @@ const getInfo = async (token) => {
           target: vault,
           params: ['0x0000000000000000000000000000000000000000'],
         })),
-      abi: windAndCheck.userInfo,
+      abi: windAndCheck.find(({ name }) => name === 'userInfo'),
     })
   ).output.map(({ output }) => output);
 };
