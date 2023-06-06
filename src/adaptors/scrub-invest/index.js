@@ -102,8 +102,8 @@ const calcApy = async () => {
       price = symbol.toLowerCase().includes('usd') ? 1 : 0;
     const info = infos[i];
     console.log(info);
-    const tvlUsd = ((info[8] ?? 0) / 10 ** decimals) * price;
-    const apyBase = (info[4] ?? 0) / 1e3;
+    const tvlUsd = ((info.totalCollateral ?? 0) / 10 ** decimals) * price;
+    const apyBase = (info.lastAPR ?? 0) / 1e3;
 
     return {
       pool: symbol,
