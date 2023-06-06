@@ -47,11 +47,14 @@ async function apy() {
         })
       ).output;
 
+      const lp = `${p.tokens.map((t) => t.symbol).join('-')}`;
+      const symbol = `${p.leverage}x ${p.strategy} ${lp}`;
+
       return {
         pool: `${p.address}-${chainString}`.toLowerCase(),
         chain: chainString,
         project,
-        symbol: utils.formatSymbol(p.symbol),
+        symbol,
         poolMeta: p.protocol,
         tvlUsd: Number(ethers.utils.formatUnits(equityValue)),
         apy: utils.aprToApy(Number(p.data.apr.totalApr * 100)),
@@ -99,11 +102,21 @@ async function apy() {
         })
       ).output;
 
+      const lendingTo = p.name.split(' ')[2];
+
+      const symbol = p.baseToken.symbol;
+
+      const poolMeta =
+        p.lendingTo === 'Perpetual DEX'
+          ? p.protocol
+          : `${p.protocol} - ${lendingTo}`;
+
       return {
         pool: `${p.address}-${chainString}`.toLowerCase(),
         chain: chainString,
         project,
-        symbol: utils.formatSymbol(p.symbol),
+        symbol,
+        poolMeta,
         tvlUsd:
           Number(ethers.utils.formatUnits(totalValue, Number(assetDecimals))) *
           Number(ethers.utils.formatUnits(assetPrice)),
@@ -112,7 +125,7 @@ async function apy() {
     }),
   );
 
-  return [...lendingPools, ...vaults];
+  return [...vaults, ...lendingPools];
 }
 
 const main = async () => {
