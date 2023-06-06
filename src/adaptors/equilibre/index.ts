@@ -31,7 +31,7 @@ const getApyEquilibre = async () => {
 
       const token0PriceRes = await axios.get(`${LLAMA_API_URL}${token0llama}`);
       const token1PriceRes = await axios.get(`${LLAMA_API_URL}${token1llama}`);
-
+      
       if (token0PriceRes.status !== 200 || token1PriceRes.status !== 200) {
         throw new Error('Failed to fetch token price');
       }
@@ -39,19 +39,25 @@ const getApyEquilibre = async () => {
       const token0Price = token0PriceRes.data;
       const token1Price = token1PriceRes.data;
 
-      let tvl = 0
-      if(token0Price.coins && token0Price.coins[token0llama] && token0Price.coins[token0llama].price &&
-         token1Price.coins && token1Price.coins[token1llama] && token1Price.coins[token1llama].price) {
-        tvl = reserve0 * token0Price.coins[token0llama].price + reserve1 * token1Price.coins[token1llama].price;
+      let tvl = 0;
+
+      if (token0Price.coins && token0Price.coins[token0llama] && token0Price.coins[token0llama].price &&
+          token1Price.coins && token1Price.coins[token1llama] && token1Price.coins[token1llama].price &&
+          reserve0 && reserve1) {
+  
+        const token0PriceBigNumber = new BigNumber(token0Price.coins[token0llama].price);
+        const token1PriceBigNumber = new BigNumber(token1Price.coins[token1llama].price);
+          
+        tvl = reserve0 * token0PriceBigNumber + reserve1 * token1PriceBigNumber
+
       }
-      
 
       const apy = {
         pool: pool.address,
         chain: utils.formatChain('kava'),
         project: 'equilibre',
         symbol: `${pool.token0.symbol}-${pool.token1.symbol}`,
-        tvlUsd: Number(tvl.toFixed(2)),
+        tvlUsd: Number((Number(tvl/10 ** 18)).toFixed(2)),
         apyReward: pool.apr,
         underlyingTokens: [token0Address, token1Address],
         rewardTokens: [pool.address], 
