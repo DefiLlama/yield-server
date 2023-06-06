@@ -91,6 +91,7 @@ const calcApy = async () => {
   const prices = await getPrices(
     tokens.map((token) => token.address).map((token) => `${CHAIN}:` + token)
   );
+  const infos = tokens.map((token) => getInfo(token.name));
 
   const pools = tokens.map((token, i) => {
     const symbol = token.name;
@@ -100,8 +101,7 @@ const calcApy = async () => {
     let price = prices[tokenAddress.toLowerCase()];
     if (price === undefined)
       price = symbol.toLowerCase().includes('usd') ? 1 : 0;
-
-    const info = getInfo(symbol);
+    const info = infos[i];
     console.log(info);
     const tvlUsd = ((info[8] ?? 0) / 10 ** decimals) * price;
     const apyBase = (info[4] ?? 0) / 1e3;
