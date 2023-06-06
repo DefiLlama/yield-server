@@ -19,6 +19,8 @@ const ChainName = {
   ethereum: 'Ethereum',
 };
 
+const projectSlug = 'benddao-lending';
+
 async function apy() {
   const pools = await Promise.all(
     ['ethereum'].map(async (chain) => {
@@ -102,7 +104,7 @@ async function apy() {
                 return {
                   pool: `${reserve.bTokenAddress}-${chain}`,
                   chain: ChainName[chain],
-                  project: 'benddao',
+                  project: projectSlug,
                   symbol: reserve.symbol,
                   tvlUsd: availableLiquidityUsd.toNumber(),
                   apyBase: new BigNumber(reserve.liquidityRate)
@@ -173,7 +175,7 @@ async function apy() {
               return {
                 pool: `${AddressMap[chain].UniswapV2PairWETH}-${chain}`,
                 chain: ChainName[chain],
-                project: 'benddao',
+                project: projectSlug,
                 symbol: 'BEND-WETH',
                 tvlUsd: new BigNumber(
                   new BigNumber(wethBalance)
