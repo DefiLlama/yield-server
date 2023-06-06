@@ -23,6 +23,17 @@ const USDC_ADDRESSES = {
   polygon: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
 };
 
+const DELISTED_POOLS = {
+  arbitrum: [],
+  ethereum: [
+    '0x6148a1bd2be586e981115f9c0b16a09bbc271e2c',
+    '0xc5f0237a2a2bb9dc60da73491ad39a1afc4c8b63',
+    '0x7fc70abe76605d1ef1f7a5ddc5e2ad35a43a6949',
+  ],
+  optimism: ['0x6148a1bd2be586e981115f9c0b16a09bbc271e2c'],
+  polygon: [],
+};
+
 const NETWORK_IDS = {
   arbitrum: 42161,
   ethereum: 1,
@@ -41,4 +52,5 @@ module.exports = {
   NETWORK_IDS,
   BASE_APP_URL,
   COINS_PRICES_URL,
+  DELISTED_POOLS,
 };

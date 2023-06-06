@@ -8,6 +8,35 @@ const {
   constants: { AddressZero },
 } = require('ethers');
 
+const getTimeDurationStr = (secs) => {
+  if (secs < 60) {
+    return `${secs} seconds`;
+  }
+
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) {
+    return `${mins} minutes`;
+  }
+
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) {
+    return `${hours} hours`;
+  }
+
+  const days = Math.floor(hours / 24);
+  if (days === 1) {
+    return `${days} day`;
+  } else if (days < 7) {
+    return `${days} days`;
+  }
+
+  const weeks = Math.floor(days / 7);
+  if (weeks === 1) {
+    return `${weeks} week`;
+  }
+  return `${weeks} weeks`;
+};
+
 const bn = (amount) => {
   return ethers.BigNumber.from(amount);
 };
@@ -202,7 +231,7 @@ const calculateTVL = (token0Price, token1Price, poolBalances) => {
 const calculateAPY = (
   rewardAmounts,
   rewardProgramDuration,
-  tvl,
+  tvlUsd,
   rewardTokens,
   periodFinish
 ) => {
@@ -212,7 +241,7 @@ const calculateAPY = (
       rewardProgramDuration === '0' ||
       Number(periodFinish) * 1000 < Date.now() // sale ended
     ) {
-      return bn(0);
+      return 0;
     }
 
     let amountPerYearTotal = bn(0);
@@ -226,13 +255,16 @@ const calculateAPY = (
         .div(rewardProgramDuration);
       amountPerYearTotal = amountPerYearTotal.add(amountPerYear);
     }
+    const amoutPerYearTotalNum = Number(
+      formatEther(amountPerYearTotal.toString())
+    );
 
-    return tvl === '0'
-      ? amountPerYearTotal
-      : amountPerYearTotal.mul(100).div(tvl);
+    return tvlUsd === 0
+      ? amoutPerYearTotalNum
+      : (amoutPerYearTotalNum * 100) / tvlUsd;
   } catch (err) {
     console.error(`error calculating APY: ${err}`);
-    return bn(0);
+    return 0;
   }
 };
 
@@ -314,10 +346,12 @@ const getCurratedPoolData = async (poolData, network) => {
   }
 
   const { tvl } = calculateTVL(token0.price, token1.price, poolBalances);
+  const tvlUsd = Number(formatEther(tvl.toString()));
+
   const apy = calculateAPY(
     rewardAmounts,
     pool.rewardDuration,
-    tvl.toString(),
+    tvlUsd,
     rewardTokens,
     pool.periodFinish || '0'
   );
@@ -326,16 +360,19 @@ const getCurratedPoolData = async (poolData, network) => {
     pool: `${getAddress(pool.id)}-${network}`,
     chain: utils.formatChain(network),
     project: 'xtoken',
-    symbol: `${utils.formatSymbol(token0.symbol)}<>${utils.formatSymbol(
+    symbol: `${utils.formatSymbol(token0.symbol)}-${utils.formatSymbol(
       token1.symbol
     )}`,
-    tvlUsd: Number(formatEther(tvl.toString())),
-    apy: Number(apy),
+    tvlUsd: tvlUsd,
+    apyReward: apy,
     rewardTokens: rewardTokens.map(({ address }) => address),
     underlyingTokens: [token0, token1].map(({ address }) => address),
     url: `${constants.BASE_APP_URL}/pools/${
       network.toLowerCase() === 'ethereum' ? 'mainnet' : network.toLowerCase()
     }/${getAddress(pool.id)}`,
+    ...(Number(pool.vestingPeriod) === 0
+      ? {}
+      : { poolMeta: `${getTimeDurationStr(pool.vestingPeriod)} vesting` }),
   };
 };
 
@@ -357,8 +394,12 @@ const getPools = async () => {
   const pools = [];
   for (let networkIdx in poolsInfo) {
     const network = Object.keys(constants.SUBGRAPHS)[networkIdx];
+    const curatedPools = poolsInfo[networkIdx].filter(
+      (pool) =>
+        !constants.DELISTED_POOLS[network].includes(pool.id.toLowerCase())
+    );
 
-    for (let poolData of poolsInfo[networkIdx]) {
+    for (let poolData of curatedPools) {
       const poolCurratedData = await getCurratedPoolData(poolData, network);
       pools.push(poolCurratedData);
     }
@@ -366,8 +407,6 @@ const getPools = async () => {
 
   return pools;
 };
-
-getPools().then((res) => console.log(res));
 
 module.exports = {
   timetravel: false,

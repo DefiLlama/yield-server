@@ -21,6 +21,7 @@ const getPoolsQuery = `
           decimals
         }
         price
+        vestingPeriod
         rewardAmounts
         rewardDuration
         periodFinish
