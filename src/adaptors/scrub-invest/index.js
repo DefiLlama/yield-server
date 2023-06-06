@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const { windAndCheck } = require('./abi');
+const { convertAPR2APY } = require('../muuu-finance/functions');
 
 const CHAIN = 'kava';
 
@@ -75,6 +76,9 @@ const getPrices = async (addresses) => {
 
   return pricesByAddress;
 };
+const convertAPR2APY = (apr) => {
+  return (apy = Math.pow(apr / 12 + 1, 12) - 1);
+};
 
 const calcApy = async () => {
   const prices = await getPrices(
@@ -94,7 +98,7 @@ const calcApy = async () => {
     const info = infos[i];
     console.log(info);
     const tvlUsd = ((info.totalSupplied ?? 0) / 10 ** decimals) * price;
-    const apyBase = apr2apy(BigNumber.from((info.lastAPR ?? 0) / 1e4));
+    const apyBase = convertAPR2APY((info.lastAPR ?? 0) / 1e4);
 
     return {
       pool: vaultAddress,
