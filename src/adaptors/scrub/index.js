@@ -90,13 +90,13 @@ const calcApy = async () => {
   const prices = await getPrices(
     tokens.map((token) => token.address).map((token) => `${CHAIN}:` + token)
   );
-  
+
   const pools = tokens.map((token, i) => {
     const symbol = token.name;
     const tokenAddress = token.address;
 
     const decimals = token.decimals;
-    let price = prices[token.toLowerCase()];
+    let price = prices[tokenAddress.toLowerCase()];
     if (price === undefined)
       price = symbol.toLowerCase().includes('usd') ? 1 : 0;
 
