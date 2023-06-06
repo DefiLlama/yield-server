@@ -76,7 +76,7 @@ const getPrices = async (addresses) => {
   return pricesByAddress;
 };
 const convertAPR2APY = (apr) => {
-  return (apy = ((apr / (365 * 72) + 1) ** (365 * 72) - 1));
+  return (apy = ((apr / (365 * 72) + 1) ** (365 * 72) - 1) * 100);
 };
 
 const calcApy = async () => {
@@ -97,7 +97,7 @@ const calcApy = async () => {
     const info = infos[i];
     console.log(info);
     const tvlUsd = ((info.totalSupplied ?? 0) / 10 ** decimals) * price;
-    const apyBase = convertAPR2APY((info.lastAPR ?? 0) / 1e4);
+    const apyBase = convertAPR2APY((info.lastAPR ?? 0) / 1e6);
 
     return {
       pool: vaultAddress,
