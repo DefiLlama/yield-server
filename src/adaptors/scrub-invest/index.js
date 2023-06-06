@@ -18,36 +18,26 @@ const vaults = {
 const tokens = [
   {
     name: 'USDC',
-    symbol: '$',
-    image: '/usdc.png',
     decimals: 6,
     address: '0xfA9343C3897324496A05fC75abeD6bAC29f8A40f',
   },
   {
     name: 'USDT',
-    symbol: '$',
-    image: '/usdt.png',
     decimals: 6,
     address: '0xB44a9B6905aF7c801311e8F4E76932ee959c663C',
   },
   {
     name: 'DAI',
-    symbol: '$',
-    image: '/dai.png',
     decimals: 18,
     address: '0x765277eebeca2e31912c9946eae1021199b39c61',
   },
   {
     name: 'KAVA',
-    image: '/wkava.png',
-    symbol: 'K',
     decimals: 18,
     address: '0xc86c7C0eFbd6A49B35E8714C5f59D99De09A225b',
   },
   {
     name: 'WETH',
-    image: '/weth.png',
-    symbol: 'Ξ',
     decimals: 18,
     address: '0xE3F5a90F9cb311505cd691a46596599aA1A0AD7D',
   },
