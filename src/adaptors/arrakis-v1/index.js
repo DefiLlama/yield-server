@@ -93,9 +93,12 @@ const getApy = async () => {
     keys.push(tokens[key].map((t) => `${key}:${t}`));
   }
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: keys.flat(),
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${keys
+        .flat()
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pools = Object.keys(CHAINS).map((chain) => {

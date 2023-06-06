@@ -11,21 +11,30 @@ const MASTERCHEF_ADDRESS = '0x579BACCd9DdF3D9e652174c0714DBC0CD4700dF2';
 const BLOCK_TIME = 2;
 const SECOND_IN_YEAR = 86400 * 365;
 
-
 const mapTokenDogeChaintoBSC = {
-  '0x765277EebeCA2e31912C9946eAe1021199B39C61': '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', // USDC
-  '0xB7ddC6414bf4F5515b52D8BdD69973Ae205ff101': '0xba2ae424d960c26247dd6c32edc70b295c744c43', // WWDOGE
-  '0xE3F5a90F9cb311505cd691a46596599aA1A0AD7D': '0x55d398326f99059fF775485246999027B3197955', // usdt,
-  '0x332730a4F6E03D9C55829435f10360E13cfA41Ff': '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56', // busd,
-  '0xA649325Aa7C5093d12D6F98EB4378deAe68CE23F': '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', // bnb
+  '0x765277EebeCA2e31912C9946eAe1021199B39C61':
+    '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', // USDC
+  '0xB7ddC6414bf4F5515b52D8BdD69973Ae205ff101':
+    '0xba2ae424d960c26247dd6c32edc70b295c744c43', // WWDOGE
+  '0xE3F5a90F9cb311505cd691a46596599aA1A0AD7D':
+    '0x55d398326f99059fF775485246999027B3197955', // usdt,
+  '0x332730a4F6E03D9C55829435f10360E13cfA41Ff':
+    '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56', // busd,
+  '0xA649325Aa7C5093d12D6F98EB4378deAe68CE23F':
+    '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', // bnb
 };
 
 const mapTokenBSCtoDogeChain = {
-  '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d': '0x765277EebeCA2e31912C9946eAe1021199B39C61',
-  '0xba2ae424d960c26247dd6c32edc70b295c744c43': '0xB7ddC6414bf4F5515b52D8BdD69973Ae205ff101',
-  '0x55d398326f99059ff775485246999027b3197955': '0xE3F5a90F9cb311505cd691a46596599aA1A0AD7D',
-  '0xe9e7cea3dedca5984780bafc599bd69add087d56': '0x332730a4F6E03D9C55829435f10360E13cfA41Ff',
-  '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c': '0xA649325Aa7C5093d12D6F98EB4378deAe68CE23F',
+  '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d':
+    '0x765277EebeCA2e31912C9946eAe1021199B39C61',
+  '0xba2ae424d960c26247dd6c32edc70b295c744c43':
+    '0xB7ddC6414bf4F5515b52D8BdD69973Ae205ff101',
+  '0x55d398326f99059ff775485246999027b3197955':
+    '0xE3F5a90F9cb311505cd691a46596599aA1A0AD7D',
+  '0xe9e7cea3dedca5984780bafc599bd69add087d56':
+    '0x332730a4F6E03D9C55829435f10360E13cfA41Ff',
+  '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c':
+    '0xA649325Aa7C5093d12D6F98EB4378deAe68CE23F',
 };
 
 const EXCLUDE = [
@@ -37,14 +46,13 @@ const EXCLUDE = [
   '0xB44a9B6905aF7c801311e8F4E76932ee959c663C',
 ];
 
-
 const getPriceByReserves = async (lpAddress) => {
   const reserves = await sdk.api.abi.call({
     target: lpAddress,
     chain: 'dogechain',
     abi: lpABI.find((e) => e.name === 'getReserves'),
   });
-  return ((reserves.output[1] / reserves.output[0]));
+  return reserves.output[1] / reserves.output[0];
 };
 
 const getPairInfo = async (pair, tokenAddress) => {
@@ -57,35 +65,39 @@ const getPairInfo = async (pair, tokenAddress) => {
         })),
         chain: 'dogechain',
         requery: true,
-      }
+      })
     )
-  ));
+  );
   return {
     lpToken: pair.toLowerCase(),
-    pairName: tokenSymbol.output.map(e => e.output).join('-'),
+    pairName: tokenSymbol.output.map((e) => e.output).join('-'),
     token0: {
       address: tokenAddress[0],
       symbol: tokenSymbol.output[0].output,
-      decimals: tokenDecimals.output[0].output
+      decimals: tokenDecimals.output[0].output,
     },
     token1: {
       address: tokenAddress[1],
       symbol: tokenSymbol.output[1].output,
-      decimals: tokenDecimals.output[1].output
-    }
+      decimals: tokenDecimals.output[1].output,
+    },
   };
-}
+};
 
 const getPrices = async (addresses) => {
+  const coins = addresses
+    .map((address) => `bsc:${mapTokenDogeChaintoBSC[address]}`)
+    .join(',')
+    .toLowerCase();
+
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses.map((address) => `bsc:${mapTokenDogeChaintoBSC[address]}`),
-    })
+    await superagent.get(`https://coins.llama.fi/prices/current/${coins}`)
   ).body.coins;
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
       ...acc,
-      [mapTokenBSCtoDogeChain[address.split(':')[1]].toLowerCase()]: price.price,
+      [mapTokenBSCtoDogeChain[address.split(':')[1]].toLowerCase()]:
+        price.price,
     }),
     {}
   );
@@ -104,10 +116,7 @@ const calculateApy = (
   const dogiumPerYear = BigNumber(dogiumPerSecond)
     .times(SECOND_IN_YEAR)
     .times(poolWeight);
-  const apy = dogiumPerYear
-    .times(dogiumPrice)
-    .div(reserveUSD)
-    .times(100);
+  const apy = dogiumPerYear.times(dogiumPrice).div(reserveUSD).times(100);
   return apy.toNumber();
 };
 
@@ -163,11 +172,11 @@ const getApy = async () => {
   });
 
   const pools = poolsRes.output
-  .map(({ output }, i) => ({ ...output, i }))
-  .filter((e) => e.allocPoint !== '0')
-  .filter((k) => !EXCLUDE.includes(k.lpToken))
+    .map(({ output }, i) => ({ ...output, i }))
+    .filter((e) => e.allocPoint !== '0')
+    .filter((k) => !EXCLUDE.includes(k.lpToken));
 
-  const lpTokens = pools.map(({ lpToken }) => lpToken)
+  const lpTokens = pools.map(({ lpToken }) => lpToken);
   const [reservesRes, supplyRes, masterChefBalancesRes] = await Promise.all(
     ['getReserves', 'totalSupply', 'balanceOf'].map((method) =>
       sdk.api.abi.multiCall({
@@ -203,10 +212,14 @@ const getApy = async () => {
   const tokens0 = underlyingToken0.output.map((res) => res.output);
   const tokens1 = underlyingToken1.output.map((res) => res.output);
   const tokensPrices = await getPrices([...tokens0, ...tokens1]);
-  const pairInfos = await Promise.all(pools.map((_, index) => getPairInfo(lpTokens[index], [tokens0[index], tokens1[index]])));
+  const pairInfos = await Promise.all(
+    pools.map((_, index) =>
+      getPairInfo(lpTokens[index], [tokens0[index], tokens1[index]])
+    )
+  );
 
   const gogium = await getPriceByReserves(DogiumUSDCLP);
-  tokensPrices[DogiumToken.toLowerCase()] = gogium * 10**12;
+  tokensPrices[DogiumToken.toLowerCase()] = gogium * 10 ** 12;
 
   const res = pools.map((pool, i) => {
     const poolInfo = pool;

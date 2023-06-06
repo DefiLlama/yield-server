@@ -19,11 +19,9 @@ const tokenSupplyQuery = gql`
 `;
 
 const main = async () => {
-  const key = `arbitrum:${UMAMI_ADDRESS}`;
+  const key = `arbitrum:${UMAMI_ADDRESS}`.toLowerCase();
   const umamiPriceUSD = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: [key],
-    })
+    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
   ).body.coins[key].price;
 
   const data = await request(UMAMI_GRAPH_URL, tokenSupplyQuery);

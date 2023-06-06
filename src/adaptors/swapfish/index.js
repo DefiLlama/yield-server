@@ -46,14 +46,16 @@ const getPairInfo = async (pair, tokenAddress, chain) => {
 };
 
 const getPrices = async (addresses, chain) => {
-  const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses.map((address) => {
-        // FISH is bridgeable, take price from the main chain
-        const priceChain = address == FISH_TOKEN ? 'arbitrum' : chain;
-        return `${priceChain}:${address}`;
-      }),
+  const coins = addresses
+    .map((address) => {
+      // FISH is bridgeable, take price from the main chain
+      const priceChain = address == FISH_TOKEN ? 'arbitrum' : chain;
+      return `${priceChain}:${address}`;
     })
+    .join(',')
+    .toLowerCase();
+  const prices = (
+    await superagent.get(`https://coins.llama.fi/prices/current/${coins}`)
   ).body.coins;
 
   const pricesObj = Object.entries(prices).reduce(

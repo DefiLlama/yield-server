@@ -108,10 +108,9 @@ const main = async () => {
       }
     }
   }
+  const keys = vaultsAddresses.join(',').toLowerCase();
   const usdPrice = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: vaultsAddresses,
-    })
+    await superagent.get(`https://coins.llama.fi/prices/current/${keys}`)
   ).body.coins;
   const pools = [];
   for (let i = 0; i < filteredVaults.length; i++) {

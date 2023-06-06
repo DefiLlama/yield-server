@@ -31,9 +31,11 @@ const PROTOCOL_TOKEN = {
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
@@ -102,7 +104,7 @@ const main = async () => {
 
   const extraRewards = await getRewards(allMarkets, REWARD_SPEED);
   const extraRewardsBorrow = await getRewards(allMarkets, REWARD_SPEED_BORROW);
-  const isPaused = await getRewards(allMarkets, "mintGuardianPaused");
+  const isPaused = await getRewards(allMarkets, 'mintGuardianPaused');
 
   const supplyRewards = await multiCallMarkets(
     allMarkets,
@@ -150,11 +152,7 @@ const main = async () => {
       .map((token) => `${CHAIN}:` + token)
   );
 
-  const lodePrices = await getPrices(
-    [
-      `${CHAIN}:${PROTOCOL_TOKEN.address}`
-    ]
-  );
+  const lodePrices = await getPrices([`${CHAIN}:${PROTOCOL_TOKEN.address}`]);
 
   const pools = allMarkets.map((market, i) => {
     const token = underlyingTokens[i] || NATIVE_TOKEN.address;
@@ -192,7 +190,7 @@ const main = async () => {
     };
     const apyReward = calcRewardApy(extraRewards, totalSupplyUsd);
     const _apyRewardBorrow = calcRewardApy(extraRewardsBorrow, totalBorrowUsd);
-    const apyRewardBorrow =isNaN(_apyRewardBorrow) ? 0 : _apyRewardBorrow;
+    const apyRewardBorrow = isNaN(_apyRewardBorrow) ? 0 : _apyRewardBorrow;
 
     let poolReturned = {
       pool: market.toLowerCase(),
@@ -205,7 +203,7 @@ const main = async () => {
       underlyingTokens: [token],
       rewardTokens: [apyReward ? PROTOCOL_TOKEN.address : null].filter(Boolean),
     };
-    if(isPaused[i] === false){
+    if (isPaused[i] === false) {
       poolReturned = {
         ...poolReturned,
         // borrow fields
@@ -214,12 +212,12 @@ const main = async () => {
         apyBaseBorrow,
         apyRewardBorrow,
         ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
-      }
+      };
     }
-    return poolReturned
+    return poolReturned;
   });
 
-  return pools
+  return pools;
 };
 
 module.exports = {

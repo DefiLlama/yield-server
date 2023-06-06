@@ -200,10 +200,9 @@ const main = async () => {
   const priceCrv = getPriceCrv(Object.values(ethereumPools));
 
   // get wbtc and weth price which we use for reward APR in case totalSupply field = 0
+  const coins = Object.values(assetTypeMapping).join(',').toLowerCase();
   const underlyingPrices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: Object.values(assetTypeMapping),
-    })
+    await superagent.get(`https://coins.llama.fi/prices/current/${coins}`)
   ).body.coins;
 
   // const celoApy = (

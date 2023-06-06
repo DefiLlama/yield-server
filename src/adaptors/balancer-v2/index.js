@@ -198,11 +198,9 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
       ).output / 1e18;
 
     // get BAL price
-    const key = `${chainString}:${BAL}`;
+    const key = `${chainString}:${BAL}`.toLowerCase();
     price = (
-      await superagent.post('https://coins.llama.fi/prices').send({
-        coins: [key],
-      })
+      await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
     ).body.coins[key].price;
   }
 
@@ -271,11 +269,9 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
         }
 
         // get cg price of reward token
-        const key = `${chainString}:${add}`;
+        const key = `${chainString}:${add}`.toLowerCase();
         const price = (
-          await superagent.post('https://coins.llama.fi/prices').send({
-            coins: [key],
-          })
+          await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
         ).body.coins[key]?.price;
 
         // call reward data

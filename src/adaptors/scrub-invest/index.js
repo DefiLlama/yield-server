@@ -47,22 +47,22 @@ const getInfos = async () => {
   return await (
     await sdk.api.abi.multiCall({
       chain: CHAIN,
-      calls: Object.entries(vaults)
-        .map((vault) => ({
-          target: vault[1],
-          params: ['0x0000000000000000000000000000000000000000'],
-        })),
+      calls: Object.entries(vaults).map((vault) => ({
+        target: vault[1],
+        params: ['0x0000000000000000000000000000000000000000'],
+      })),
       abi: windAndCheck.find(({ name }) => name === 'getUserInfo'),
     })
   ).output.map(({ output }) => output);
-  
 };
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesByAddress = Object.entries(prices).reduce(

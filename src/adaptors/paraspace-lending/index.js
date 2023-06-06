@@ -18,11 +18,8 @@ const apy = async () => {
 
       const key = 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
       const ethPriceUSD = isEthereum(chain)
-        ? (
-            await superagent.post('https://coins.llama.fi/prices').send({
-              coins: [key],
-            })
-          ).body.coins[key].price
+        ? (await superagent.get(`https://coins.llama.fi/prices/current/${key}`))
+            .body.coins[key].price
         : 1;
       const marketReferenceCurrencyDecimal = isEthereum(chain) ? 18 : 8;
 

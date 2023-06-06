@@ -1,8 +1,8 @@
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const utils = require('../utils');
-const SORBETTIERE_ABI = require('./abis/Sorbettiere.json')
-const UNISWAP_V2_PAIR_ABI = require('./abis/UniswapV2Pair.json')
+const SORBETTIERE_ABI = require('./abis/Sorbettiere.json');
+const UNISWAP_V2_PAIR_ABI = require('./abis/UniswapV2Pair.json');
 
 const makeCall = async (targets, abi) => {
   return (
@@ -18,9 +18,11 @@ const SPELL_ADDRESS = '0x090185f2135308bad17527004364ebcc2d37e5f6';
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesObj = Object.entries(prices).reduce(

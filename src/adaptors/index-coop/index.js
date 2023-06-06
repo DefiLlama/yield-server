@@ -5,7 +5,7 @@ const superagent = require('superagent');
 const { getProvider } = require('@defillama/sdk/build/general');
 const utils = require('../utils');
 
-const dsEthIndex  = {
+const dsEthIndex = {
   address: '0x341c05c0E9b33C0E38d64de76516b2Ce970bB3BE',
   chain: 'Ethereum',
   symbol: 'dsETH',
@@ -34,8 +34,10 @@ const buildPool = async (index) => {
 };
 
 const getApy = async (indexSymbol) => {
-  const indexPath = indexSymbol.toLowerCase()
-  const res = await superagent.get(`https://api.indexcoop.com/${indexPath}/apy`);
+  const indexPath = indexSymbol.toLowerCase();
+  const res = await superagent.get(
+    `https://api.indexcoop.com/${indexPath}/apy`
+  );
   const json = JSON.parse(res.text);
   const apy = BigNumber(json.apy);
   return apy.div(1e18).toNumber();
@@ -45,9 +47,7 @@ const getPrice = async (index) => {
   const chain = utils.formatChain(index.chain);
   const key = `${chain}:${index.address}`.toLowerCase();
   const ethPriceUSD = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: [key],
-    })
+    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
   ).body.coins[key].price;
   return ethPriceUSD;
 };

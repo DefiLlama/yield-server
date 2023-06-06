@@ -141,10 +141,10 @@ const getApy = async () => {
     })
   ).output;
 
+  const coins = [`bsc:${HAY}`, `bsc:${WBNB}`].join(',').toLowerCase();
+
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: [`bsc:${HAY}`, `bsc:${WBNB}`],
-    })
+    await superagent.get(`https://coins.llama.fi/prices/current/${coins}`)
   ).body.coins;
 
   const baseRata = baseRataCall.duty;
@@ -175,7 +175,11 @@ const getApy = async () => {
       project: 'helio-protocol',
       symbol: 'HAY',
       chain: 'binance',
-      apy: new BigNumber(hayRate).times(SECONDS_PER_YEAR).div(hHayTotalSupply).times(100).toNumber(),
+      apy: new BigNumber(hayRate)
+        .times(SECONDS_PER_YEAR)
+        .div(hHayTotalSupply)
+        .times(100)
+        .toNumber(),
       tvlUsd:
         (Number(hHayTotalSupply) / 1e18) *
         prices[`bsc:${HAY.toLowerCase()}`].price,
