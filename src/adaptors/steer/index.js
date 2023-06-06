@@ -17,10 +17,10 @@ const supportedChains = [
         name: 'Optimism',
         subgraphEndpoint: 'steer-protocol-optimism'
     },
-    {
-        name: 'Binance',
-        subgraphEndpoint: 'steer-protocol-bsc'
-    }
+    // {
+    //     name: 'Binance',
+    //     subgraphEndpoint: 'steer-protocol-bsc'
+    // }
 ]
 
 const graphURLBaseEndpoint = 'https://api.thegraph.com/subgraphs/name/steerprotocol/'
@@ -76,7 +76,7 @@ supportedChains.forEach(async chainInfo => {
         return {
             pool: (vault.id + '-' + chainInfo.name).toLowerCase(),
             chain: chainInfo.name, // chain where the pool is (needs to match the `name` field in here https://api.llama.fi/chains)
-            project: 'steer-protocol', // protocol (using the slug again) // @todo confirm
+            project: 'steer-protocol', // protocol (using the slug again)
             symbol: (vault.token0Symbol + '-' + vault.token1Symbol), // symbol of the tokens in pool, can be a single symbol if pool is single-sided or multiple symbols (eg: USDT-ETH) if it's an LP
             tvlUsd: poolTvl, // number representing current USD TVL in pool
             apyBase: parseFloat(vault.weeklyFeeAPR), // APY from pool fees/supplying in %
