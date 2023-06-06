@@ -85,6 +85,7 @@ const calcApy = async () => {
   const pools = tokens.map((token, i) => {
     const symbol = token.name;
     const tokenAddress = token.address;
+    const vaultAddress = vaults[symbol];
 
     const decimals = token.decimals;
     let price = prices[tokenAddress.toLowerCase()];
@@ -96,7 +97,7 @@ const calcApy = async () => {
     const apyBase = (info.lastAPR ?? 0) / 1e4;
 
     return {
-      pool: symbol,
+      pool: vaultAddress,
       chain: CHAIN,
       project: PROJECT_NAME,
       symbol,
