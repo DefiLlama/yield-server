@@ -75,16 +75,20 @@ const getApy = async () => {
 
   const derivedSupply = (
     await sdk.api.abi.call({
-      target: pairFactory,
-      abi: abiPairFactory.find((m) => m.name === 'derivedSupply'),
+      calls: gauges.map((i) => ({
+        target: i
+      })),
+      abi: abiGauge.find((m) => m.name === 'derivedSupply'),
       chain: 'arbitrum',
     })
   ).output;
 
   const totalSupply = (
       await sdk.api.abi.call({
-        target: pairFactory,
-        abi: abiPairFactory.find((m) => m.name === 'totalSupply'),
+        calls: gauges.map((i) => ({
+          target: i
+        })),
+        abi: abiGauge.find((m) => m.name === 'totalSupply'),
         chain: 'arbitrum',
       })
     ).output;
