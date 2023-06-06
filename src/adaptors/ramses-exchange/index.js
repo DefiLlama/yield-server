@@ -81,7 +81,7 @@ const getApy = async () => {
       abi: abiGauge.find((m) => m.name === 'derivedSupply'),
       chain: 'arbitrum',
     })
-  ).output;
+  ).output.map((o) => o.output);
 
   const totalSupply = (
       await sdk.api.abi.call({
@@ -91,7 +91,7 @@ const getApy = async () => {
         abi: abiGauge.find((m) => m.name === 'totalSupply'),
         chain: 'arbitrum',
       })
-    ).output;
+    ).output.map((o) => o.output);
 
   const tokens = [
     ...new Set(
