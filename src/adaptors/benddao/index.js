@@ -24,15 +24,16 @@ async function apy() {
     ['ethereum'].map(async (chain) => {
       const [prices, { output: reserveList }] = await Promise.all([
         (async () => {
-          const ret = await superagent
-            .post('https://coins.llama.fi/prices')
-            .send({
-              coins: [
-                `${chain}:${AddressMap[chain].WETH}`,
-                `${chain}:${AddressMap[chain].Bend}`,
-              ],
-            });
+          const coins = [
+            `${chain}:${AddressMap[chain].WETH}`,
+            `${chain}:${AddressMap[chain].Bend}`,
+          ]
+            .join(',')
+            .toLowerCase();
 
+          const ret = await superagent.get(
+            `https://coins.llama.fi/prices/current/${coins}`
+          );
           return ret.body.coins;
         })(),
         sdk.api.abi.call({
