@@ -1,6 +1,6 @@
 const { request } = require('graphql-request');
 const superagent = require('superagent');
-const BigNumber = require("bignumber.js");
+const BigNumber = require('bignumber.js');
 const { default: computeTVL } = require('@defillama/sdk/build/computeTVL');
 
 const utils = require('../utils');
@@ -11,7 +11,7 @@ const {
   getAllVeloPoolInfo,
 } = require('./compute');
 
-const project = 'extra-finance'
+const project = 'extra-finance';
 const subgraphUrls = {
   optimism: `https://api.thegraph.com/subgraphs/name/extrafi/extrasubgraph`,
 };
@@ -53,35 +53,37 @@ async function getPoolsData() {
   // console.log('queryResult :>> ', queryResult);
 
   function getTokenAddresses() {
-    const lendingTokenAddresses = queryResult.lendingReservePools.map(item => item.underlyingTokenAddress)
-    const result = [...lendingTokenAddresses]
-    queryResult.vaults.forEach(item => {
+    const lendingTokenAddresses = queryResult.lendingReservePools.map(
+      (item) => item.underlyingTokenAddress
+    );
+    const result = [...lendingTokenAddresses];
+    queryResult.vaults.forEach((item) => {
       if (!result.includes(item.token0)) {
-        result.push(token0)
+        result.push(token0);
       }
       if (!result.includes(item.token1)) {
-        result.push(token1)
+        result.push(token1);
       }
-    })
-    return result
+    });
+    return result;
   }
-  const tokenAddresses = getTokenAddresses()
+  const tokenAddresses = getTokenAddresses();
+
+  const coins = chain
+    ? tokenAddresses.map((address) => `${chain}:${address}`)
+    : tokenAddresses;
 
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: chain
-        ? tokenAddresses.map((address) => `${chain}:${address}`)
-        : tokenAddresses,
-    })
+    await superagent.get(`https://coins.llama.fi/prices/current/${coins}`)
   ).body.coins;
 
   function getTokenInfo(address) {
     const coinKey = `${chain}:${address.toLowerCase()}`;
-    return prices[coinKey]
+    return prices[coinKey];
   }
 
-  queryResult.lendingReservePools.forEach(poolInfo => {
-    const tokenInfo = getTokenInfo(poolInfo.underlyingTokenAddress)
+  queryResult.lendingReservePools.forEach((poolInfo) => {
+    const tokenInfo = getTokenInfo(poolInfo.underlyingTokenAddress);
 
     pools.push({
       pool: `${poolInfo.eTokenAddress}-${chain}`.toLowerCase(),
@@ -92,13 +94,15 @@ async function getPoolsData() {
       poolMeta: `Lending Pool`,
       tvlUsd: getLendPoolTvl(poolInfo, tokenInfo),
       apyBase: getLendPoolApy(poolInfo),
-    })
-  })
+    });
+  });
 
   const parsedFarmPoolsInfo = await getAllVeloPoolInfo(
-    queryResult.vaults.filter(item => !item.paused),
-    chain, prices, queryResult.lendingReservePools
-  )
+    queryResult.vaults.filter((item) => !item.paused),
+    chain,
+    prices,
+    queryResult.lendingReservePools
+  );
 
   parsedFarmPoolsInfo.forEach(async (poolInfo) => {
     pools.push({
@@ -110,10 +114,10 @@ async function getPoolsData() {
       poolMeta: `Leveraged Yield Farming`,
       tvlUsd: poolInfo.tvlUsd,
       apyBase: poolInfo.baseApy,
-    })
-  })
+    });
+  });
 
-  return pools
+  return pools;
 }
 
 module.exports = {

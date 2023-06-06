@@ -78,9 +78,11 @@ const getApyReward = (
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const priceItems = Object.entries(prices).reduce(
@@ -114,7 +116,13 @@ const multiCallOutput = async (abi, calls, chain) => {
 const getApy = async (chain) => {
   const allPools = await utils.getData(
     `${poolApiEndpoint}?chainid=${
-      chain === 'fantom' ? '250' : chain === 'cronos' ? '25' : chain === 'arbitrum' ? '42161' : undefined
+      chain === 'fantom'
+        ? '250'
+        : chain === 'cronos'
+        ? '25'
+        : chain === 'arbitrum'
+        ? '42161'
+        : undefined
     }`
   );
 
@@ -272,7 +280,7 @@ const getApy = async (chain) => {
       singlePrice[singleToken[chain]],
       blocksPerYears[chain]
     );
-    
+
     return {
       pool: pool.address,
       chain: utils.formatChain(chain),
