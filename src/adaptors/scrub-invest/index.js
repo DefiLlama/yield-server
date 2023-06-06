@@ -3,7 +3,6 @@ const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const { windAndCheck } = require('./abi');
-const { convertAPR2APY } = require('../muuu-finance/functions');
 
 const CHAIN = 'kava';
 
