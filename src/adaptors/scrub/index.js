@@ -60,7 +60,7 @@ const getInfo = async (token) => {
       calls: Object.entries(vaults)
         .filter((v) => v[0].includes(token))
         .map((vault) => ({
-          target: vault,
+          target: vault[1],
           params: ['0x0000000000000000000000000000000000000000'],
         })),
       abi: windAndCheck.find(({ name }) => name === 'userInfo'),
