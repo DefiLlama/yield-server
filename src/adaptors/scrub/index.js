@@ -93,7 +93,7 @@ const prices = await getPrices(
 const calcApy = async () => {
   const pools = tokens.map((token, i) => {
     const symbol = token.name;
-    const token = token.address;
+    const tokenAddress = token.address;
 
     const decimals = token.decimals;
     let price = prices[token.toLowerCase()];
@@ -102,7 +102,7 @@ const calcApy = async () => {
 
     const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
 
-    const info = getInfo(token);
+    const info = getInfo(symbol);
     const tvlUsd = ((info[8] ?? 0) / 10 ** decimals) * price;
     const apyBase = (info[4] ?? 0) / 1e3;
 
@@ -113,8 +113,8 @@ const calcApy = async () => {
       symbol,
       tvlUsd,
       apyBase,
-      underlyingTokens: [token],
-      rewardTokens: [token],
+      underlyingTokens: [tokenAddress],
+      rewardTokens: [tokenAddress],
     };
   });
 
