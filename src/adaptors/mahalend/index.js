@@ -15,9 +15,11 @@ const chainUrlParam = {
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesBySymbol = Object.entries(prices).reduce(
