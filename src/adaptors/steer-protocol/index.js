@@ -85,7 +85,7 @@ supportedChains.forEach(async chainInfo => {
             url: 'https://app.steer.finance/app/' + (vault.strategyToken.id) + '/vault/' + vault.id
         }
     })
-    pools.push(chainPools)
+    pools.push(...chainPools)
 
 });
 return pools
