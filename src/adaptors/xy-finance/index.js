@@ -33,10 +33,10 @@ const main = async () => {
         chain: chainName,
         project: 'xy-finance',
         symbol: symbol,
-        apyBase: vaultInfo.dayAPY,
+        apyBase: Number(vaultInfo.dayAPY),
         rewardTokens: [ypoolToken],
         underlyingTokens: [ypoolToken],
-        tvlUsd: new BigNumber(vaultInfo.TVL) * tokenPrice,
+        tvlUsd: Number(vaultInfo.TVL) * tokenPrice,
       });
     }
   }
