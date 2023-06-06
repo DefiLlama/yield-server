@@ -54,7 +54,7 @@ const tokens = [
 ];
 
 const getInfos = async () => {
-  return (
+  return await (
     await sdk.api.abi.multiCall({
       chain: CHAIN,
       calls: Object.entries(vaults)
