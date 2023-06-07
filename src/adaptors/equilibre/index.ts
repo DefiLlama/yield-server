@@ -21,8 +21,12 @@ const getApyEquilibre = async () => {
       const token1Address = await pairContract.token1();
 
       const pairReserves = await pairContract.getReserves();
-      const reserve0 = pairReserves._reserve0;
-      const reserve1 = pairReserves._reserve1;
+      const decimals = await pairContract.decimals();
+      let reserve0 = pairReserves._reserve0;
+      let reserve1 = pairReserves._reserve1;      
+
+      reserve0 = reserve0 / (10**decimals)
+      reserve1 = reserve1 / (10**decimals)      
 
       const tokens = await pairContract.tokens()
 
@@ -44,11 +48,26 @@ const getApyEquilibre = async () => {
       if (token0Price.coins && token0Price.coins[token0llama] && token0Price.coins[token0llama].price &&
           token1Price.coins && token1Price.coins[token1llama] && token1Price.coins[token1llama].price &&
           reserve0 && reserve1) {
+
+        console.log('token0Price', token0Price.coins[token0llama].price)
+        console.log('token1Price', token1Price.coins[token1llama].price)
   
         const token0PriceBigNumber = new BigNumber(token0Price.coins[token0llama].price);
         const token1PriceBigNumber = new BigNumber(token1Price.coins[token1llama].price);
+
+        if(token0PriceBigNumber && token0PriceBigNumber !== 0){
+          tvl += reserve0 * token0PriceBigNumber.toNumber();
+        }
+
+        if(token1PriceBigNumber && token1PriceBigNumber !== 0){
+          tvl += reserve1 * token1PriceBigNumber.toNumber();
+        }
+
+        if(tvl != 0 && (token0PriceBigNumber.toNumber() || token1PriceBigNumber.toNumber() == 0))
+            tvl = Number(tvl) * 2
+
           
-        tvl = reserve0 * token0PriceBigNumber + reserve1 * token1PriceBigNumber
+        console.log('tvl', tvl)
 
       }
 
@@ -57,7 +76,7 @@ const getApyEquilibre = async () => {
         chain: utils.formatChain('kava'),
         project: 'equilibre',
         symbol: `${pool.token0.symbol}-${pool.token1.symbol}`,
-        tvlUsd: Number((Number(tvl/10 ** 18)).toFixed(2)),
+        tvlUsd: Number(tvl.toFixed(2)),
         apyReward: pool.apr,
         underlyingTokens: [token0Address, token1Address],
         rewardTokens: [pool.address], 
