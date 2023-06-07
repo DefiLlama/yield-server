@@ -354,9 +354,9 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
     const sushi = `${chainString}:${SUSHI[chainString].toLowerCase()}`;
     coins = [...coins, sushi];
     const tokensUsd = (
-      await superagent.post('https://coins.llama.fi/prices').send({
-        coins,
-      })
+      await superagent.get(
+        `https://coins.llama.fi/prices/current/${coins.join(',').toLowerCase()}`
+      )
     ).body.coins;
 
     // for mc1: calc sushi per year in usd
