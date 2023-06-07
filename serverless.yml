@@ -253,6 +253,15 @@ functions:
           method: get
           path: /lsdRates
 
+  getLSDRatesTest:
+    handler: src/handlers/getLSDRatesTest.handler
+    description: Lambda for retrieving ETH LSD Rates
+    timeout: 30
+    events:
+      - httpApi:
+          method: get
+          path: /lsdRatesTest
+
   getMedianProject:
     handler: src/handlers/getMedianProject.handler
     description: Lambda for retrieving a projects median apy history

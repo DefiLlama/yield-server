@@ -8,12 +8,19 @@ const getLsd = async () => {
   const query = minify(
     `
 SELECT
-    DISTINCT ON (address) *
+  DISTINCT ON (address)
+  name,
+  symbol,
+  address,
+  type,
+  "expectedRate",
+  "marketRate",
+  "ethPeg"
 FROM
-    lsd
+  lsd
 ORDER BY
-    address,
-    timestamp DESC
+  address,
+  timestamp DESC
     `,
     { compress: true }
   );
