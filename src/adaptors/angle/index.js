@@ -14,7 +14,7 @@ const CDP_URL = 'https://api.angle.money/v1/vaultManagers';
 const cdpNetworksSupport = {
   1: 'ethereum',
   137: 'polygon',
-  42161: 'arbitrum',
+  // 42161: 'arbitrum',
   10: 'optimism',
 };
 
