@@ -15,6 +15,8 @@ const { buildPoolsEnriched } = require('../../handlers/getPoolsEnriched');
 const getPoolEnriched = async (req, res) => {
   // querystring (though we only use it for pool values on /pool pages)
   // note: change to route param later -> /pools/:pool
+
+  console.log(req.query);
   const configID = req.query.pool;
   if (!configID || !validator.isUUID(configID))
     return res.status(400).json('invalid configID!');
