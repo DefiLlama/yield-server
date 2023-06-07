@@ -1,12 +1,23 @@
 const axios = require('axios');
-const BigNumber = require('bignumber.js');
+const ethers = require('ethers');
 const superagent = require('superagent');
 const {
   chainSupported,
   ethereumRefUnderlyingTokenAddress,
   supportedChainName,
-  ypoolTokenAddress,
+  YPoolInfo,
+  RPCEndpoint,
 } = require('./config');
+const { ContractABIs } = require('./abi');
+
+const NATIVE_TOKEN_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+
+const getTokenBalance = (provider, tokenAddress, ownerAddress, decimals) => {
+  const tokenContract = new ethers.Contract(tokenAddress, ContractABIs.miniERC20ABI, provider);
+  return tokenContract.balanceOf(ownerAddress).then((balance) => {
+    return balance / Math.pow(10, decimals);
+  });
+};
 
 const main = async () => {
   const { data: resp } = await axios.get('https://api.xy.finance/ypool/stats/eachVault');
@@ -26,17 +37,29 @@ const main = async () => {
       if (!chainSupported(chainId)) {
         continue;
       }
+
+      const ypoolInfo = YPoolInfo(symbol, chainId);
+
+      let ypoolLocked = 0;
+      let provider = new ethers.providers.JsonRpcProvider(RPCEndpoint(chainId));
+      if ( ypoolInfo.ypoolToken === NATIVE_TOKEN_ADDRESS ) {
+        await provider.getBalance(ypoolInfo.ypool).then((balance) => {
+          ypoolLocked = ethers.utils.formatEther(balance);
+        });
+      } else {
+        ypoolLocked = await getTokenBalance(provider, ypoolInfo.ypoolToken, ypoolInfo.ypool, ypoolInfo.decimals);
+      }
+
       const chainName = supportedChainName(chainId);
-      const ypoolToken = ypoolTokenAddress(symbol, chainId);
       pools.push({
-        pool: `ypool-${symbol}-${chainName}`.toLowerCase(),
+        pool: `ypool-${ypoolInfo.ypool}-${chainName}`.toLowerCase(),
         chain: chainName,
         project: 'xy-finance',
         symbol: symbol,
         apyBase: Number(vaultInfo.dayAPY),
-        rewardTokens: [ypoolToken],
-        underlyingTokens: [ypoolToken],
-        tvlUsd: Number(vaultInfo.TVL) * tokenPrice,
+        apyBase7d: Number(vaultInfo.weekAPY),
+        underlyingTokens: [ypoolInfo.ypoolToken],
+        tvlUsd: Number(ypoolLocked) * tokenPrice,
       });
     }
   }
