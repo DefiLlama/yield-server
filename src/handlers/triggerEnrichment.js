@@ -312,7 +312,46 @@ const main = async () => {
     await utils.writeToS3(bucket, keyPredictions, dataEnriched);
   }
 
-  // store /poolsEnriched (/pools) api response to s3 where we cache it
+  // we cp dataEnriched (but remove unecessary columns) to our public s3 bucket
+  // which is used as source for /pools
+  const poolsResponseColumns = [
+    'chain',
+    'project',
+    'symbol',
+    'tvlUsd',
+    'apyBase',
+    'apyReward',
+    'apy',
+    'rewardTokens',
+    'pool',
+    'apyPct1D',
+    'apyPct7D',
+    'apyPct30D',
+    'stablecoin',
+    'ilRisk',
+    'exposure',
+    'predictions',
+    'poolMeta',
+    'mu',
+    'sigma',
+    'count',
+    'outlier',
+    'underlyingTokens',
+    'il7d',
+    'apyBase7d',
+    'apyMean30d',
+    'volumeUsd1d',
+    'volumeUsd7d',
+    'apyBaseInception',
+  ];
+
+  const pools = dataEnriched.map((p) => {
+    const newPool = {};
+    poolsResponseColumns.forEach((col) => (newPool[col] = p[col]));
+    return newPool;
+  });
+  console.log(pools.length, pools[0]);
+
   await utils.storeAPIResponse('defillama-datasets', 'yield-api/pools', {
     status: 'success',
     data: await buildPoolsEnriched(undefined),
