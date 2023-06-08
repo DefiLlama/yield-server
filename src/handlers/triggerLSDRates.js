@@ -118,13 +118,14 @@ const getRates = async () => {
   const timestamp = new Date();
   const payload = expectedRates.map((p) => {
     const marketRate =
-      marketRates.find((mr) => mr.sellTokenAddress === p.address)?.buyAmount /
-      1e18;
+      marketRates.find(
+        (mr) => mr.sellTokenAddress.toLowerCase() === p.address.toLowerCase()
+      )?.buyAmount / 1e18;
     const ethPeg = (marketRate / p.expectedRate - 1) * 100;
 
     return {
       ...p,
-      marketRate: Number.isFinite(marketRate) ? ethPeg : null,
+      marketRate: Number.isFinite(marketRate) ? marketRate : null,
       ethPeg: Number.isFinite(ethPeg) ? ethPeg : null,
       timestamp,
     };
