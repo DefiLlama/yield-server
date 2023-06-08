@@ -8,7 +8,7 @@ const S3 = require('aws-sdk/clients/s3');
 const validator = require('validator');
 
 const AppError = require('../../utils/appError');
-const { customHeader } = require('../../utils/lambda');
+const { customHeader, customHeaderFixedCache } = require('../../utils/lambda');
 const poolsEnrichedColumns = require('../../utils/enrichedColumns');
 
 const readWithS3Select = async (params) => {
@@ -155,7 +155,7 @@ const getPoolsEnrichedOld = async (req, res) => {
     return new AppError("Couldn't retrieve data", 404);
   }
 
-  res.set(customHeader(3600)).status(200).json({
+  res.set(customHeaderFixedCache()).status(200).json({
     status: 'success',
     data: response,
   });
