@@ -6,7 +6,6 @@ const { pgp, connect } = require('../utils/dbConnection');
 const {
   tableName: configTableName,
 } = require('../controllers/configController');
-const { lambdaResponse, lambdaResponseFixedCache } = require('../utils/lambda');
 
 const tableName = 'yield';
 
@@ -252,56 +251,6 @@ const getYieldLendBorrow = async () => {
   return response;
 };
 
-// get full history of given configID
-const getYieldLendBorrowHistory = async (configID) => {
-  const conn = await connect();
-
-  const query = minify(
-    `
-    SELECT
-        timestamp,
-        "totalSupplyUsd",
-        "totalBorrowUsd",
-        "debtCeilingUsd",
-        "apyBase",
-        "apyReward",
-        "apyBaseBorrow",
-        "apyRewardBorrow"
-    FROM
-        $<table:name>
-    WHERE
-        timestamp IN (
-            SELECT
-                max(timestamp)
-            FROM
-                $<table:name>
-            WHERE
-                "configID" = $<configIDValue>
-            GROUP BY
-                (timestamp :: date)
-        )
-        AND "configID" = $<configIDValue>
-    ORDER BY
-        timestamp ASC
-  `,
-    { compress: true }
-  );
-
-  const response = await conn.query(query, {
-    configIDValue: configID,
-    table: tableName,
-  });
-
-  if (!response) {
-    return new AppError(`Couldn't get ${tableName} history data`, 404);
-  }
-
-  return lambdaResponse({
-    status: 'success',
-    data: response,
-  });
-};
-
 // get 30day avg
 const getYieldAvg30d = async () => {
   const conn = await connect();
@@ -374,7 +323,6 @@ module.exports = {
   getYieldOffset,
   getYieldProject,
   getYieldLendBorrow,
-  getYieldLendBorrowHistory,
   buildInsertYieldQuery,
   getYieldAvg30d,
 };

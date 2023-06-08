@@ -2,38 +2,6 @@ const minify = require('pg-minify');
 
 const { pgp, connect } = require('../utils/dbConnection');
 
-const getLsd = async () => {
-  const conn = await connect();
-
-  const query = minify(
-    `
-SELECT
-  DISTINCT ON (address)
-  name,
-  symbol,
-  address,
-  type,
-  "expectedRate",
-  "marketRate",
-  "ethPeg"
-FROM
-  lsd
-ORDER BY
-  address,
-  timestamp DESC
-    `,
-    { compress: true }
-  );
-
-  const response = await conn.query(query);
-
-  if (!response) {
-    return new AppError(`Couldn't get data`, 404);
-  }
-
-  return response;
-};
-
 const insertLsd = async (payload) => {
   const conn = await connect();
 
@@ -59,6 +27,5 @@ const insertLsd = async (payload) => {
 };
 
 module.exports = {
-  getLsd,
   insertLsd,
 };
