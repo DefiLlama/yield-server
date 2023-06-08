@@ -47,8 +47,9 @@ async function apy() {
         })
       ).output;
 
-      const lp = `${p.tokens.map((t) => t.symbol).join('-')}`;
-      const symbol = `${p.leverage}x ${p.strategy} ${lp}`;
+      const lp = `${p.tokens.map((t) => t.symbol).join('')}`;
+      const strategy = `${p.strategy[0]}`;
+      const symbol = `${p.leverage}${strategy}-${lp}`;
 
       return {
         pool: `${p.address}-${chainString}`.toLowerCase(),
