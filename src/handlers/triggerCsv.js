@@ -1,14 +1,17 @@
 const AWS = require('aws-sdk');
 const createCsvStringifier = require('csv-writer').createObjectCsvStringifier;
 
-const { buildPoolsEnriched } = require('./getPoolsEnriched');
+const utils = require('../utils/s3');
 
 module.exports.handler = async () => {
   await main();
 };
 
 const main = async () => {
-  let poolsEnriched = await buildPoolsEnriched(undefined);
+  const poolsEnriched = await utils.readFromS3(
+    'defillama-datasets',
+    'yield-api/pools'
+  );
 
   // parse nested prediction field into separate fields
   poolsEnriched = poolsEnriched.map((p) => ({

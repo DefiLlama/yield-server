@@ -10,6 +10,7 @@ const {
 } = require('../controllers/yieldController');
 const { getStat } = require('../controllers/statController');
 const { welfordUpdate } = require('../utils/welford');
+const poolsResponseColumns = require('../utils/enrichedColumns');
 
 module.exports.handler = async (event, context) => {
   await main();
@@ -313,36 +314,6 @@ const main = async () => {
 
   // we cp dataEnriched (but remove unecessary columns) to our public s3 bucket
   // which is used as source for /pools
-  const poolsResponseColumns = [
-    'chain',
-    'project',
-    'symbol',
-    'tvlUsd',
-    'apyBase',
-    'apyReward',
-    'apy',
-    'rewardTokens',
-    'pool',
-    'apyPct1D',
-    'apyPct7D',
-    'apyPct30D',
-    'stablecoin',
-    'ilRisk',
-    'exposure',
-    'predictions',
-    'poolMeta',
-    'mu',
-    'sigma',
-    'count',
-    'outlier',
-    'underlyingTokens',
-    'il7d',
-    'apyBase7d',
-    'apyMean30d',
-    'volumeUsd1d',
-    'volumeUsd7d',
-    'apyBaseInception',
-  ];
   const pools = dataEnriched.map((p) => {
     const newPool = {};
     poolsResponseColumns.forEach((col) => (newPool[col] = p[col]));
