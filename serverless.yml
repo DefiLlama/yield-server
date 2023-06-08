@@ -167,15 +167,6 @@ functions:
       - schedule: cron(0 * * * ? *)
 
   # ---------- GET HANDLERS
-  getPoolsEnriched:
-    handler: src/handlers/getPoolsEnriched.handler
-    description: Lambda for retrieving the latest enriched data for each unique pool
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /pools
-
   # includes old pool values
   getPoolsEnrichedOld:
     handler: src/handlers/getPoolsEnrichedOld.handler

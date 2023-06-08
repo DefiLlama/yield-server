@@ -11,7 +11,7 @@ const AppError = require('../../utils/appError');
 const { customHeader } = require('../../utils/lambda');
 const poolsEnrichedColumns = require('../../utils/enrichedColumns');
 
-const getDataUsingS3Select = async (params) => {
+const readWithS3Select = async (params) => {
   const s3 = new S3();
 
   return new Promise((resolve, reject) => {
@@ -104,7 +104,7 @@ const getPoolEnriched = async (req, res) => {
     },
   };
 
-  const response = await getDataUsingS3Select(params);
+  const response = await readWithS3Select(params);
 
   if (!response) {
     return new AppError("Couldn't retrieve data", 404);
@@ -116,4 +116,4 @@ const getPoolEnriched = async (req, res) => {
   });
 };
 
-module.exports = { getPoolEnriched };
+module.exports = { getPoolEnriched, readWithS3Select };
