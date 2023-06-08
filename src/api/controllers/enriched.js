@@ -116,4 +116,49 @@ const getPoolEnriched = async (req, res) => {
   });
 };
 
-module.exports = { getPoolEnriched, readWithS3Select };
+const getPoolsEnrichedOld = async (req, res) => {
+  const queryString = req.query;
+
+  // add pool_old (the pool field from the adpaters == address)
+  let columns = [...poolsEnrichedColumns, 'pool_old']
+    .map((el) => `t."${el}"`)
+    .join(', ');
+
+  let query = `SELECT ${columns} FROM s3object[*][*] t`;
+
+  if (Object.keys(queryString).length > 0) {
+    query = `${query} where t.${Object.keys(queryString)[0]}='${
+      Object.values(queryString)[0]
+    }'`;
+  }
+
+  const params = {
+    Bucket: 'llama-apy-prod-data',
+    Key: 'enriched/dataEnriched.json',
+    ExpressionType: 'SQL',
+    Expression: query,
+    InputSerialization: {
+      JSON: {
+        Type: 'DOCUMENT',
+      },
+    },
+    OutputSerialization: {
+      JSON: {
+        RecordDelimiter: ',',
+      },
+    },
+  };
+
+  const response = await readWithS3Select(params);
+
+  if (!response) {
+    return new AppError("Couldn't retrieve data", 404);
+  }
+
+  res.set(customHeader(3600)).status(200).json({
+    status: 'success',
+    data: response,
+  });
+};
+
+module.exports = { getPoolEnriched, getPoolsEnrichedOld, readWithS3Select };
