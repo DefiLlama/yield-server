@@ -9,7 +9,6 @@ const {
   getYieldLendBorrow,
 } = require('../controllers/yieldController');
 const { getStat } = require('../controllers/statController');
-const { buildPoolsEnriched } = require('./getPoolsEnriched');
 const { welfordUpdate } = require('../utils/welford');
 
 module.exports.handler = async (event, context) => {
@@ -344,17 +343,15 @@ const main = async () => {
     'volumeUsd7d',
     'apyBaseInception',
   ];
-
   const pools = dataEnriched.map((p) => {
     const newPool = {};
     poolsResponseColumns.forEach((col) => (newPool[col] = p[col]));
     return newPool;
   });
-  console.log(pools.length, pools[0]);
 
   await utils.storeAPIResponse('defillama-datasets', 'yield-api/pools', {
     status: 'success',
-    data: await buildPoolsEnriched(undefined),
+    data: pools,
   });
 
   // query db for lendBorrow and store to s3 as origin for cloudfront
