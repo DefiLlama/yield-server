@@ -89,7 +89,7 @@ async function getPoolsData() {
       pool: `${poolInfo.eTokenAddress}-${chain}`.toLowerCase(),
       chain: utils.formatChain(chain),
       project,
-      symbol: tokenInfo.symbol,
+      symbol: tokenInfo?.symbol,
       underlyingTokens: [poolInfo.underlyingTokenAddress],
       poolMeta: `Lending Pool`,
       tvlUsd: getLendPoolTvl(poolInfo, tokenInfo),
@@ -117,7 +117,7 @@ async function getPoolsData() {
     });
   });
 
-  return pools;
+  return pools.filter((p) => utils.keepFinite(p));
 }
 
 module.exports = {
