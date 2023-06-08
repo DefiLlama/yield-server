@@ -8,7 +8,7 @@ const S3 = require('aws-sdk/clients/s3');
 const validator = require('validator');
 
 const AppError = require('../../utils/appError');
-const { customHeader, customHeaderFixedCache } = require('../../utils/lambda');
+const { customHeader, customHeaderFixedCache } = require('../../utils/headers');
 const poolsEnrichedColumns = require('../../utils/enrichedColumns');
 
 const readWithS3Select = async (params) => {

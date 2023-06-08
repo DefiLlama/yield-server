@@ -3,7 +3,7 @@ const minify = require('pg-minify');
 
 const AppError = require('../../utils/appError');
 const { conn } = require('../db');
-const { customHeader } = require('../../utils/lambda');
+const { customHeader } = require('../../utils/headers');
 
 // get pool urls
 const getUrl = async (req, res) => {
