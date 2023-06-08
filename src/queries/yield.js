@@ -3,9 +3,7 @@ const minify = require('pg-minify');
 const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
 const { pgp, connect } = require('../utils/dbConnection');
-const {
-  tableName: configTableName,
-} = require('../controllers/configController');
+const { tableName: configTableName } = require('./config');
 
 const tableName = 'yield';
 

@@ -4,7 +4,7 @@ const ss = require('simple-statistics');
 
 const { confirm } = require('./confirm');
 const exclude = require('../src/utils/exclude');
-const { insertMedian } = require('../src/controllers/medianController');
+const { insertMedian } = require('../src/queries/median');
 
 (async () => {
   await confirm(
