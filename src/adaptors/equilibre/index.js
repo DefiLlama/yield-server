@@ -137,7 +137,7 @@ const getApy = async () => {
       (totalRewardPerDay * 36500) / ((derivedSupply[i] * pairPrice) / 1e18);
 
     return {
-      pool: p,
+      pool: p.toLowerCase(),
       chain: utils.formatChain('kava'),
       project: 'equilibre',
       symbol: utils.formatSymbol(s.split('-')[1]),
