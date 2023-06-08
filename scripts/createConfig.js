@@ -4,9 +4,7 @@ const superagent = require('superagent');
 
 const { confirm } = require('./confirm');
 const { connect } = require('../src/utils/dbConnection');
-const {
-  buildInsertConfigQuery,
-} = require('../src/controllers/configController');
+const { buildInsertConfigQuery } = require('../src/queries/config');
 
 (async () => {
   await confirm(

@@ -7,15 +7,12 @@ const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
 const { sendMessage } = require('../utils/discordWebhook');
 const { connect } = require('../utils/dbConnection');
-const {
-  getYieldProject,
-  buildInsertYieldQuery,
-} = require('../controllers/yieldController');
+const { getYieldProject, buildInsertYieldQuery } = require('../queries/yield');
 const {
   getConfigProject,
   buildInsertConfigQuery,
   getDistinctProjects,
-} = require('../controllers/configController');
+} = require('../queries/config');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;

@@ -1,7 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
-const { insertLsd } = require('../controllers/lsdController');
+const { insertLsd } = require('../queries/lsd');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;

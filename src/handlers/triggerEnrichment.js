@@ -7,8 +7,8 @@ const {
   getYieldOffset,
   getYieldAvg30d,
   getYieldLendBorrow,
-} = require('../controllers/yieldController');
-const { getStat } = require('../controllers/statController');
+} = require('../queries/yield');
+const { getStat } = require('../queries/stat');
 const { welfordUpdate } = require('../utils/welford');
 const poolsResponseColumns = require('../utils/enrichedColumns');
 
