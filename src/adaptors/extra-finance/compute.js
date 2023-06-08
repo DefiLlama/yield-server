@@ -13,7 +13,7 @@ function toDecimals(bn, decimals = 18) {
 exports.getLendPoolTvl = function(poolInfo, tokenInfo) {
   const { totalLiquidity, totalBorrows } = poolInfo
   const remainAmount = toDecimals(new BigNumber(totalLiquidity).minus(new BigNumber(totalBorrows)), poolInfo.decimals);
-  return remainAmount * tokenInfo.price
+  return remainAmount * tokenInfo?.price
 }
 
 exports.getLendPoolApy = function (poolInfo) {
@@ -54,12 +54,12 @@ exports.getAllVeloPoolInfo = async function(vaults, chain, prices, lendingPools)
       token1_symbol,
     } = poolInfo
     const floorMaxLeverage = Math.floor(maxLeverage / 100)
-    const reserve0usd = toDecimals(reserve0, token0_decimals) * getTokenInfo(token0).price
-    const reserve1usd = toDecimals(reserve1, token1_decimals) * getTokenInfo(token1).price
+    const reserve0usd = toDecimals(reserve0, token0_decimals) * getTokenInfo(token0)?.price
+    const reserve1usd = toDecimals(reserve1, token1_decimals) * getTokenInfo(token1)?.price
     const totalPoolTvlUsd = reserve0usd + reserve1usd
 
     function getPoolBaseApr() {
-      const emissionsPrice = getTokenInfo(emissions_token).price;
+      const emissionsPrice = getTokenInfo(emissions_token)?.price;
       const yearlyEmissionAmount = 365 * 24 * 3600 * toDecimals(emissions, emissions_token_decimals)
       const yearlyEmissionValue = emissionsPrice * yearlyEmissionAmount
       const apr = yearlyEmissionValue / totalPoolTvlUsd * 100
