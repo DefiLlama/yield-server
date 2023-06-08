@@ -1,7 +1,6 @@
 const S3 = require('aws-sdk/clients/s3');
 
 const AppError = require('../utils/appError');
-const { lambdaResponse } = require('../utils/lambda');
 const { readWithS3Select } = require('../api/controllers/enriched');
 const { storeAPIResponse, next21Minutedate } = require('../utils/s3');
 
