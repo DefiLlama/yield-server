@@ -19,6 +19,7 @@ const excludeAdaptors = [
   'zest-protocol', // tiny pools
   'hedge', // seems to be dead, ui not working
   'double-club', // seems to be dead
+  'yieldwolf', // dead
 ];
 
 const excludePools = [
