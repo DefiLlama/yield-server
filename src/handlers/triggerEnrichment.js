@@ -84,6 +84,7 @@ const main = async () => {
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
   if (!stablecoins.includes('fraxbp')) stablecoins.push('fraxbp');
+  if (!stablecoins.includes('usdr')) stablecoins.push('usdr');
 
   // get catgory data (we hardcode IL to true for options protocols)
   const config = (
