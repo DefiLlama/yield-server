@@ -7,15 +7,12 @@ const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
 const { sendMessage } = require('../utils/discordWebhook');
 const { connect } = require('../utils/dbConnection');
-const {
-  getYieldProject,
-  buildInsertYieldQuery,
-} = require('../controllers/yieldController');
+const { getYieldProject, buildInsertYieldQuery } = require('../queries/yield');
 const {
   getConfigProject,
   buildInsertConfigQuery,
   getDistinctProjects,
-} = require('../controllers/configController');
+} = require('../queries/config');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -163,7 +160,12 @@ const main = async (body) => {
   // change chain `Binance` -> `BSC`
   data = data.map((p) => ({
     ...p,
-    chain: p.chain === 'Binance' ? 'BSC' : p.chain,
+    chain:
+      p.chain === 'Binance'
+        ? 'BSC'
+        : p.chain === 'Avax'
+        ? 'Avalanche'
+        : p.chain,
   }));
   console.log(data.length);
 
@@ -253,7 +255,11 @@ const main = async (body) => {
       let il7d = ((2 * Math.sqrt(d)) / (1 + d) - 1) * 100;
 
       // for uni v3
-      if (body.adaptor === 'uniswap-v3' || body.adaptor === 'hydradex-v3') {
+      if (
+        body.adaptor === 'uniswap-v3' ||
+        body.adaptor === 'hydradex-v3' ||
+        body.adaptor === 'forge'
+      ) {
         const P = price1 / price0;
 
         // for stablecoin pools, we assume a +/- 0.1% range around current price
@@ -335,7 +341,7 @@ const main = async (body) => {
       poolMeta:
         p.poolMeta === undefined
           ? null
-          : ['uniswap-v3', 'hydradex-v3'].includes(p.project)
+          : ['uniswap-v3', 'hydradex-v3', 'forge'].includes(p.project)
           ? p.poolMeta?.split(',')[0]
           : p.poolMeta,
       il7d: p.il7d ? +p.il7d.toFixed(precision) : null,

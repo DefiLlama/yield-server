@@ -7,10 +7,10 @@ const {
   getYieldOffset,
   getYieldAvg30d,
   getYieldLendBorrow,
-} = require('../controllers/yieldController');
-const { getStat } = require('../controllers/statController');
-const { buildPoolsEnriched } = require('./getPoolsEnriched');
+} = require('../queries/yield');
+const { getStat } = require('../queries/stat');
 const { welfordUpdate } = require('../utils/welford');
+const poolsResponseColumns = require('../utils/enrichedColumns');
 
 module.exports.handler = async (event, context) => {
   await main();
@@ -312,10 +312,17 @@ const main = async () => {
     await utils.writeToS3(bucket, keyPredictions, dataEnriched);
   }
 
-  // store /poolsEnriched (/pools) api response to s3 where we cache it
+  // we cp dataEnriched (but remove unecessary columns) to our public s3 bucket
+  // which is used as source for /pools
+  const pools = dataEnriched.map((p) => {
+    const newPool = {};
+    poolsResponseColumns.forEach((col) => (newPool[col] = p[col]));
+    return newPool;
+  });
+
   await utils.storeAPIResponse('defillama-datasets', 'yield-api/pools', {
     status: 'success',
-    data: await buildPoolsEnriched(undefined),
+    data: pools,
   });
 
   // query db for lendBorrow and store to s3 as origin for cloudfront

@@ -1,8 +1,7 @@
 const S3 = require('aws-sdk/clients/s3');
 
 const AppError = require('../utils/appError');
-const { lambdaResponse } = require('../utils/lambda');
-const { getDataUsingS3Select } = require('./getPoolsEnriched');
+const { readWithS3Select } = require('../api/controllers/enriched');
 const { storeAPIResponse, next21Minutedate } = require('../utils/s3');
 
 // returns enriched pool data
@@ -76,7 +75,7 @@ const buildPoolsEnrichedOld = async (queryString) => {
     },
   };
 
-  const data = await getDataUsingS3Select(params);
+  const data = await readWithS3Select(params);
 
   return data;
 };
