@@ -14,6 +14,7 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'boba_avax') return 'Boba_Avax';
   if (chain && chain.toLowerCase() === 'boba_bnb') return 'Boba_Bnb';
   if (chain && chain.toLowerCase() === 'zksync_era') return 'zkSync Era';
+  if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
