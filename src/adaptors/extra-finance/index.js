@@ -50,17 +50,23 @@ async function getPoolsData() {
     }
   }`;
   const queryResult = await request(subgraphUrls[chain], graphQuery);
-  // console.log('queryResult :>> ', queryResult);
+
+  const filteredLendingPools = queryResult.lendingReservePools.filter(item => {
+    return new BigNumber(item.totalLiquidity).gt(0)
+  })
+  const filteredFarmingPools = queryResult.vaults.filter(item => {
+    return new BigNumber(item.totalLp).gt(0)
+  })
 
   function getTokenAddresses() {
-    const lendingTokenAddresses = queryResult.lendingReservePools.map(item => item.underlyingTokenAddress)
+    const lendingTokenAddresses = filteredLendingPools.map(item => item.underlyingTokenAddress)
     const result = [...lendingTokenAddresses]
-    queryResult.vaults.forEach(item => {
+    filteredFarmingPools.forEach(item => {
       if (!result.includes(item.token0)) {
-        result.push(token0)
+        result.push(item.token0)
       }
       if (!result.includes(item.token1)) {
-        result.push(token1)
+        result.push(item.token1)
       }
     })
     return result
@@ -77,10 +83,10 @@ async function getPoolsData() {
 
   function getTokenInfo(address) {
     const coinKey = `${chain}:${address.toLowerCase()}`;
-    return prices[coinKey]
+    return prices[coinKey] || {}
   }
 
-  queryResult.lendingReservePools.forEach(poolInfo => {
+  filteredLendingPools.forEach(poolInfo => {
     const tokenInfo = getTokenInfo(poolInfo.underlyingTokenAddress)
 
     pools.push({
@@ -96,7 +102,7 @@ async function getPoolsData() {
   })
 
   const parsedFarmPoolsInfo = await getAllVeloPoolInfo(
-    queryResult.vaults.filter(item => !item.paused),
+    filteredFarmingPools.filter(item => !item.paused),
     chain, prices, queryResult.lendingReservePools
   )
 
