@@ -252,7 +252,7 @@ const getApy = async () => {
       // create a unique pool name
       var pool_name = hypervisor_id;
       if (pools_processed.indexOf(pool_name) >= 0) {
-        pool_name = `${hypervisor_id}-${utils.formatChain(chain)}`
+        pool_name = `${hypervisor_id}-${chain === 'polygon_zkevm' ? 'Polygon_zkevm' : utils.formatChain(chain)}`
       };
       pools_processed.push(pool_name);
 
