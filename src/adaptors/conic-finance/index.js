@@ -97,6 +97,7 @@ const curvePoolId = (poolData, poolAddress) => {
   if (override) return override.convexId;
   const data = poolData.find((p) => p.address === poolAddress);
   if (!data) return null;
+  return data.id;
 };
 
 const poolApy = (
