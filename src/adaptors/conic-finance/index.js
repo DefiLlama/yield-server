@@ -1,3 +1,4 @@
+const utils = require('../utils');
 const controllerAbi = require('./abis/conic-controller-abi.json');
 const poolAbi = require('./abis/conic-pool-abi.json');
 const erc20Abi = require('./abis/conic-erc20-abi.json');
@@ -65,20 +66,17 @@ const exchangeRate = async (a) => contract(a, poolAbi).exchangeRate();
 const bnToNum = (bn, dec = 18) => Number(bn.toString()) / 10 ** dec;
 
 const priceCoin = async (coin) => {
-  const response_ = await fetch(`${PRICE_API}${coin}`);
-  const data_ = await response_.json();
+  const data_ = await utils.getData(`${PRICE_API}${coin}`);
   return data_.coins[`ethereum:${coin}`].price;
 };
 
 const curveApyData = async () => {
-  const respose_ = await fetch(CURVE_APY_API);
-  const data_ = await respose_.json();
+  const data_ = await utils.getData(CURVE_APY_API);
   return data_.apys;
 };
 
 const curvePoolData = async () => {
-  const response_ = await fetch(CURVE_POOL_API);
-  const data_ = await response_.json();
+  const data_ = await utils.getData(CURVE_POOL_API);
   return data_.data.poolData;
 };
 
