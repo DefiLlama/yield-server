@@ -3,7 +3,12 @@ const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
-const url = 'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/joe-v2';
+const chains = {
+  avalanche: 'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/joe-v2',
+  arbitrum:
+    'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/joe-v2-arbitrum',
+  bsc: 'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/joe-v2-bnb',
+};
 
 const query = gql`
   {
@@ -57,7 +62,10 @@ const topLvl = async (chainString, timestamp, url) => {
     await request(url, queryPrior.replace('<PLACEHOLDER>', blockPrior7d))
   ).lbpairs;
 
-  dataNow = await utils.tvl(dataNow, 'avax');
+  dataNow = await utils.tvl(
+    dataNow,
+    chainString === 'avalanche' ? 'avax' : chainString
+  );
   dataNow = dataNow.map((p) => ({ ...p, feeTier: p.feeTier * 10000 }));
 
   let data = dataNow.map((el) =>
@@ -83,8 +91,11 @@ const topLvl = async (chainString, timestamp, url) => {
 };
 
 const main = async (timestamp = null) => {
-  const data = await Promise.all([topLvl('avalanche', timestamp, url)]);
-  return data.flat().filter((p) => utils.keepFinite(p));
+  const pools = await Promise.all(
+    Object.keys(chains).map((chain) => topLvl(chain, timestamp, chains[chain]))
+  );
+
+  return pools.flat().filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
