@@ -1,15 +1,16 @@
+// documentation:
+// https://wiki.sovryn.com/en/technical-documents/amm/AMM-FAQ
+
+
 const utils = require('../utils');
 const pools = require('./address')
-
-
-
 
 
 const getApy = async () => {
   const dataPool = [];
   const amm_pools_data = await utils.getData(
     `https://amm-apy.sovryn.app/amm`
-  );
+  ); // see https://github.com/DistributedCollective/sovryn-amm-apy
   const data = await Promise.all(
     Object.keys(pools).map(async (k) => {
       var symbol = String(pools[k]);
@@ -24,8 +25,7 @@ const getApy = async () => {
         project: 'sovryn-dex',
         tvlUsd: tvlUsd,
         symbol: symbol,
-        apyBase: Number(apy.APY_pc),
-        apyReward: Number(apy.APY_rewards_pc),
+        apy: Number(apy.APY_pc),
         rewardTokens: ['0xefc78fc7d48b64958315949279ba181c2114abbd']
       });
 
@@ -37,9 +37,12 @@ const getApy = async () => {
 
 };
 
+
+
+
 const getTvlPool = async (pool_id) => {
   const tvlData = [];
-  const { tvlAmm } = await utils.getData('https://graph-wrapper.sovryn.app/cmc/tvl');
+  const { tvlAmm } = await utils.getData('https://graph-wrapper.sovryn.app/cmc/tvl'); //see https://github.com/DistributedCollective/Sovryn-graph-wrapper
   await Promise.all(Object.entries(tvlAmm).map(async (k) => {
     if (k[1].contract == pool_id) {
       tvlData.push(k[1].balanceUsd)
@@ -48,6 +51,7 @@ const getTvlPool = async (pool_id) => {
   const tvlPoolUsd = Number(tvlData[0]) + Number(tvlData[1]);
   return tvlPoolUsd
 }
+
 
 module.exports = {
   timetravel: false,
