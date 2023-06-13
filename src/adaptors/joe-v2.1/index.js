@@ -10,7 +10,7 @@ const apy = async () => {
 
       return pools.map((p) => {
         return {
-          pool: p.pairAddress,
+          pool: `${p.pairAddress}-${chain}`,
           chain: utils.formatChain(chain),
           project: 'joe-v2.1',
           symbol: p.name,
