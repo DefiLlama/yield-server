@@ -187,7 +187,7 @@ const poolsFunction = async () => {
     pool: '0x0081772FD29E4838372CbcCdD020f53954f5ECDE',
     chain: utils.formatChain('arbitrum'),
     project: 'vaultka',
-    symbol: 'GLP',
+    symbol: 'VODKA',
     tvlUsd: tvls.vodkaVault,
     poolMeta: 'VAULTKA_VODKA',
     underlyingTokens: ['0x2F546AD4eDD93B956C8999Be404cdCAFde3E89AE'],
@@ -198,11 +198,13 @@ const poolsFunction = async () => {
     pool: '0x6df0018b0449bB4468BfAE8507E13021a7aa0583',
     chain: utils.formatChain('arbitrum'),
     project: 'vaultka',
-    symbol: utils.formatSymbol('USDC'),
-    tvlUsd: tvls.waterVault - usdcBorrowed / 10e6,
+    symbol: 'WATER',
+    tvlUsd: tvls.waterVault - usdcBorrowed / 10e5,
     poolMeta: 'VAULTKA_WATER',
     underlyingTokens: ['0xff970a61a04b1ca14834a43f5de4533ebddb5cc8'],
     apy: waterApy,
+    totalSupplyUsd: tvls.waterVault,
+    totalBorrowUsd: usdcBorrowed / 10e5,
   };
 
   return [vodkaVault, waterVault];
