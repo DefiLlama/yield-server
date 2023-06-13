@@ -67,6 +67,14 @@ const getPrice = {
   type: 'function',
 };
 
+const getUSDCBorrowed = {
+  inputs: [],
+  name: 'getUsdcBorrowed',
+  outputs: [{ internalType: 'uint256', name: 'usdcAmount', type: 'uint256' }],
+  stateMutability: 'view',
+  type: 'function',
+};
+
 // waterEthRewardsSplitRate
 const getEthRewardsSplitRate = {
   inputs: [],
@@ -97,6 +105,13 @@ const poolsFunction = async () => {
       })
     )
   );
+  const usdcBorrowed = (
+    await sdk.api.abi.call({
+      abi: getUSDCBorrowed,
+      target: addresses.vodkaVault,
+      chain: 'arbitrum',
+    })
+  ).output;
 
   const ethPrice = (
     await sdk.api.abi.call({
@@ -184,7 +199,7 @@ const poolsFunction = async () => {
     chain: utils.formatChain('arbitrum'),
     project: 'vaultka',
     symbol: utils.formatSymbol('USDC'),
-    tvlUsd: tvls.waterVault,
+    tvlUsd: tvls.waterVault - usdcBorrowed / 10e6,
     poolMeta: 'VAULTKA_WATER',
     underlyingTokens: ['0xff970a61a04b1ca14834a43f5de4533ebddb5cc8'],
     apy: waterApy,
