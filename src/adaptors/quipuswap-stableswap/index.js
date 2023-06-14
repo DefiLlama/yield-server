@@ -1,6 +1,6 @@
 const { getFarms } = require('./helpers');
 
-const projectName = 'quipuswap';
+const projectName = 'quipuswap-stableswap';
 
 const poolsFunction = async () =>
   getFarms(
@@ -8,7 +8,7 @@ const poolsFunction = async () =>
     ({ item: pool }) =>
       pool.stakeStatus === 'ACTIVE' &&
       parseFloat(pool.tvlInUsd) > 10e3 &&
-      pool.rewardToken.metadata.name.toLowerCase().includes(projectName)
+      pool.rewardToken.metadata.name.toLowerCase().includes('quipuswap')
   );
 
 module.exports = {
