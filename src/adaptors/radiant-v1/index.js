@@ -108,7 +108,7 @@ const apyPool2 = async (pool2Info) => {
     tvlUsd: pool2Info.data.totalLpStakedUSD,
     apyReward: pool2Info.data.apr * 100,
     rewardTokens: [RDNT],
-    project: 'radiant',
+    project: 'radiant-v1',
     chain: 'Arbitrum',
   };
 };
@@ -131,7 +131,7 @@ const topLvl = async (chainString, url) => {
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
-      project: 'radiant',
+      project: 'radiant-v1',
       symbol: utils.formatSymbol(p.symbol),
       tvlUsd: p.tvlUsd,
       apyBase: p.depositApy,
