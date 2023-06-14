@@ -212,6 +212,7 @@ const main = async (pool) => {
       totalBorrowUsd,
       poolMeta: `${pool.underlyingSymbol}-pool`,
       borrowable: true,
+      ltv: 0,
     },
   ];
 };
