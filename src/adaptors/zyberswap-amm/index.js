@@ -126,7 +126,7 @@ const topLvl = async (chainString, timestamp, url) => {
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
-      project: 'zyberswap',
+      project: 'zyberswap-amm',
       symbol,
       tvlUsd: p.totalValueLockedUSD,
       apyBase: p.apy1d,
