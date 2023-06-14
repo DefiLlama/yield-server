@@ -226,7 +226,7 @@ const getYieldLendBorrow = async () => {
     WHERE
         pool NOT IN ($<excludePools:csv>)
         AND project NOT IN ($<excludeProjects:csv>)
-        AND ltv >= 0
+        AND ltv BETWEEN 0 AND 1
         AND "totalSupplyUsd" >= 0
         AND symbol not like '%RENBTC%'
   `,
