@@ -44,8 +44,8 @@ const poolsFunction = async () => {
             apyReward: parseFloat(poolApyData.apy),
             rewardTokens: [poolInfo.tokenAddress],
             underlyingTokens: [poolInfo.tokenAddress],
-            poolMeta: "Atomic lending pool"
-
+            poolMeta: "Atomic lending pool",
+            url: poolInfo.url
         })
     }
 
