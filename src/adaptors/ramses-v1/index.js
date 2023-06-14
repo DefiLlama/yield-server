@@ -131,7 +131,7 @@ const getApy = async () => {
     return {
       pool: p,
       chain: utils.formatChain('arbitrum'),
-      project: 'ramses-exchange',
+      project: 'ramses-v1',
       symbol: utils.formatSymbol(s.split('-')[1]),
       tvlUsd,
       apyReward,
