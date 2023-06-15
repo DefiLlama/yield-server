@@ -166,6 +166,14 @@ functions:
       # every new hour
       - schedule: cron(0 * * * ? *)
 
+  triggerProtocolNameChange:
+    handler: src/handlers/triggerProtocolNameChange.handler
+    description: Lambda which checks for protocol renames
+    timeout: 300
+    events:
+      # every hour 40min past
+      - schedule: cron(40 * * * ? *)
+
   # ---------- GET HANDLERS
   # includes old pool values
   getPoolsEnrichedOld:
