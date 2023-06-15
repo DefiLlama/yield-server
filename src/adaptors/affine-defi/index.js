@@ -154,8 +154,19 @@ const getAPYFromChainByBasket = async (
   return APYs;
 };
 
+const assetAbi = {
+  inputs: [],
+  name: 'asset',
+  outputs: [
+    { internalType: 'address', name: 'assetTokenAddress', type: 'address' },
+  ],
+  stateMutability: 'view',
+  type: 'function',
+};
+
 const getAllBasketApyByChain = async (chainId) => {
   const baskets = await getBasketsByChainId(chainId); // we will get objects as a response
+
   // filtering out the BtcEthVault vault due to no yield
   delete baskets['BtcEthVault'];
   const basketsArr = Object.keys(baskets).map((key) => baskets[key]);
@@ -163,17 +174,31 @@ const getAllBasketApyByChain = async (chainId) => {
   const sevenDayAPYs = await getAPYFromChainByBasket(basketsArr, chainId, true);
   const tvls = await getTVLFromChain(basketsArr, chainId);
 
-  return Object.keys(baskets).map((key, index) => ({
-    pool: `${baskets[key].basketAddress}-${SUPPORTED_CHAINS[chainId]}`,
-    chain: SUPPORTED_CHAINS[chainId],
-    project: 'affine-defi',
-    symbol:
-      baskets[key].denomination === '$' ? 'USDC' : baskets[key].denomination,
-    tvlUsd: tvls.find((tvl) => tvl.ticker === key).tvlUsd,
-    apyBase: apys.find((apy) => apy.ticker === key).apy,
-    apyBase7d: sevenDayAPYs.find((apy) => apy.ticker === key).apy,
-    poolMeta: baskets[key].basketName,
-  }));
+  const pools = await Promise.all(
+    Object.keys(baskets).map(async (key, index) => {
+      const { output: underlying } = await api.abi.call({
+        target: baskets[key].basketAddress,
+        chain: SUPPORTED_CHAINS[chainId],
+        abi: assetAbi,
+      });
+
+      return {
+        pool: `${baskets[key].basketAddress}-${SUPPORTED_CHAINS[chainId]}`,
+        chain: SUPPORTED_CHAINS[chainId],
+        project: 'affine-defi',
+        symbol:
+          baskets[key].denomination === '$'
+            ? 'USDC'
+            : baskets[key].denomination,
+        tvlUsd: tvls.find((tvl) => tvl.ticker === key).tvlUsd,
+        apyBase: apys.find((apy) => apy.ticker === key).apy,
+        apyBase7d: sevenDayAPYs.find((apy) => apy.ticker === key).apy,
+        poolMeta: baskets[key].basketName,
+        underlyingTokens: [underlying],
+      };
+    })
+  );
+  return pools.flat();
 };
 
 const main = async () => {
