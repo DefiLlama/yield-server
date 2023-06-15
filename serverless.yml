@@ -174,17 +174,6 @@ functions:
       # every hour 40min past
       - schedule: cron(40 * * * ? *)
 
-  # ---------- GET HANDLERS
-  # includes old pool values
-  getPoolsEnrichedOld:
-    handler: src/handlers/getPoolsEnrichedOld.handler
-    description: Lambda for retrieving the latest enriched data for each unique pool (includes old pool values)
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /poolsOld
-
 resources:
   Resources:
     # QUEUES
