@@ -17,6 +17,7 @@ async function apy(chain) {
     symbol: utils.formatSymbol(p.symbol),
     tvlUsd: Number(p.tvl),
     apy: Number(p.totalApy),
+    underlyingTokens: [p.baseToken.address],
   }));
 }
 
