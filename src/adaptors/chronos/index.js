@@ -133,6 +133,7 @@ const getApy = async () => {
       tvlUsd,
       apyReward,
       rewardTokens: apyReward ? [CHR] : [],
+      underlyingTokens: [poolMeta.t0, poolMeta.t1],
     };
   });
 
