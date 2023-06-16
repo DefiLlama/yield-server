@@ -1,5 +1,6 @@
 // documentation:
 // https://wiki.sovryn.com/en/technical-documents/amm/AMM-FAQ
+// https://wiki.sovryn.com/en/sovryn-dapp/lending
 
 const utils = require('../utils');
 const { tokensPool, tokensLending } = require('./address');
@@ -48,8 +49,7 @@ const getApy = async () => {
       var symbol = String(tokensLending[k]);
       var id = String(k.toLowerCase());
       var { tvlUsd, asset } = await getTvl(tvlLending, 0, id);
-      var asset_price = await getTokenPrice(token_prices, asset)
-      console.log(asset_price)
+      var asset_price = await getTokenPrice(token_prices, asset);
       var apyData = await utils.getData(`https://graph-wrapper.sovryn.app/lendingApy/` + id);//see https://github.com/DistributedCollective/Sovryn-graph-wrapper
       var apyDataArray = apyData[Object.keys(apyData)[0]];
       var apy = apyData[apyData.length - 1];
@@ -82,7 +82,7 @@ const getTokenPrice = async (object, asset) => {
       }
     })
   );
-  const priceUsd = Number(price[0])
+  const priceUsd = Number(price[0]);
   return priceUsd;
 
 
@@ -108,14 +108,14 @@ const getTvl = async (tvl, type, id) => {
       Object.entries(tvl).map(async (k) => {
         if (k[1].contract == id) {
           tvlData.push(k[1].balanceUsd);
-          assets.push(k[1].asset)
+          assets.push(k[1].asset);
 
         }
 
       })
     );
-    const tvlUsd = Number(tvlData[0])
-    const asset = (assets[0])
+    const tvlUsd = Number(tvlData[0]);
+    const asset = (assets[0]);
     return { tvlUsd, asset };
 
   }
