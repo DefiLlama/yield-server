@@ -25,21 +25,24 @@ async function apr() {
   const { data: prologueData } = await axios.get(
     `https://api.spicefi.xyz/v1/api/off-chain-vaults/${PROLUGUE_VAULT_ADDRESS}?env=prod`
   );
-  const apyPrologue = prologueData?.data?.okrs?.expected_return * 100;
+  const actualApyPrologue = prologueData?.data?.okrs?.actual_returns * 100;
+  const historicalApyPrologue = prologueData?.data?.okrs?.expected_return * 100;
 
   const totalAssetsLeverage = await leverageVault.methods.totalAssets().call();
   const tvlUsdLeverage = (totalAssetsLeverage / 10 ** 18) * (ethPrice / 10 ** 8);
   const { data: leverageData } = await axios.get(
     `https://api.spicefi.xyz/v1/api/off-chain-vaults/${LEVERAGE_VAULT_ADDRESS}?env=prod`
   );
-  const apyLeverage = leverageData?.data?.okrs?.expected_return * 100;
+  const actualApyLeverage = leverageData?.data?.okrs?.actual_returns * 100;
+  const historicalApyLeverage = leverageData?.data?.okrs?.expected_return * 100;
 
   const totalAssetsFlagship = await flagshipVault.methods.totalAssets().call();
   const tvlUsdFlagship = (totalAssetsFlagship / 10 ** 18) * (ethPrice / 10 ** 8);
   const { data: flagshipData } = await axios.get(
     `https://api.spicefi.xyz/v1/api/off-chain-vaults/${FLAGSHIP_VAULT_ADDRESS}?env=prod`
   );
-  const apyFlagship = flagshipData?.data?.okrs?.expected_return * 100;
+  const actualApyFlagship = flagshipData?.data?.okrs?.actual_returns * 100;
+  const historicalApyFlagship = flagshipData?.data?.okrs?.expected_return * 100;
 
   return [
     {
@@ -49,7 +52,7 @@ async function apr() {
       project: 'spice-finance',
       symbol: 'WETH',
       tvlUsd: tvlUsdPrologue,
-      apyBase: apyPrologue,
+      apyBase: Math.max(actualApyPrologue, historicalApyPrologue),
     },
     {
       pool: `Spice-Leverage-Vault`,
@@ -58,7 +61,7 @@ async function apr() {
       project: 'spice-finance',
       symbol: 'WETH',
       tvlUsd: tvlUsdLeverage,
-      apyBase: apyLeverage,
+      apyBase: Math.max(actualApyLeverage, historicalApyLeverage),
     },
     {
       pool: `Spice-Flagship-Vault`,
@@ -67,7 +70,7 @@ async function apr() {
       project: 'spice-finance',
       symbol: 'WETH',
       tvlUsd: tvlUsdFlagship,
-      apyBase: apyFlagship,
+      apyBase: Math.max(actualApyFlagship, historicalApyFlagship),
     },
   ];
 }
