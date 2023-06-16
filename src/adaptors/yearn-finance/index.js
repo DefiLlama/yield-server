@@ -17,6 +17,8 @@ const getApy = async () => {
       return data.map((p) => {
         if (p.details.retired || p.details.hideAlways) return {};
 
+        const underlying = p.token.underlyingTokensAddresses;
+
         return {
           pool: p.address,
           chain: utils.formatChain(chain[0]),
@@ -26,9 +28,7 @@ const getApy = async () => {
           apy: p.apy.net_apy * 100,
           url: `https://yearn.finance/vaults/${chains[chain[0]]}/${p.address}`,
           underlyingTokens:
-            p.token.underlyingTokensAddresses.length === 0
-              ? p.token.address
-              : p.token.underlyingTokensAddresses,
+            underlying.length === 0 ? [p.token.address] : underlying,
         };
       });
     })
