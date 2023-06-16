@@ -25,7 +25,7 @@ async function apr() {
   const { data: prologueData } = await axios.get(
     `https://api.spicefi.xyz/v1/api/off-chain-vaults/${PROLUGUE_VAULT_ADDRESS}?env=prod`
   );
-  const actualApyPrologue = prologueData?.data?.okrs?.actual_returns * 100;
+  const actualApyPrologue = prologueData?.data?.okrs?.actual_returns;
   const historicalApyPrologue = prologueData?.data?.okrs?.expected_return * 100;
 
   const totalAssetsLeverage = await leverageVault.methods.totalAssets().call();
@@ -33,7 +33,7 @@ async function apr() {
   const { data: leverageData } = await axios.get(
     `https://api.spicefi.xyz/v1/api/off-chain-vaults/${LEVERAGE_VAULT_ADDRESS}?env=prod`
   );
-  const actualApyLeverage = leverageData?.data?.okrs?.actual_returns * 100;
+  const actualApyLeverage = leverageData?.data?.okrs?.actual_returns;
   const historicalApyLeverage = leverageData?.data?.okrs?.expected_return * 100;
 
   const totalAssetsFlagship = await flagshipVault.methods.totalAssets().call();
@@ -41,7 +41,7 @@ async function apr() {
   const { data: flagshipData } = await axios.get(
     `https://api.spicefi.xyz/v1/api/off-chain-vaults/${FLAGSHIP_VAULT_ADDRESS}?env=prod`
   );
-  const actualApyFlagship = flagshipData?.data?.okrs?.actual_returns * 100;
+  const actualApyFlagship = flagshipData?.data?.okrs?.actual_returns;
   const historicalApyFlagship = flagshipData?.data?.okrs?.expected_return * 100;
 
   return [
