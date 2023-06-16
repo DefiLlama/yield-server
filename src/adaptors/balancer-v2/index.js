@@ -198,121 +198,121 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
       ).output / 1e18;
 
     // get BAL price
-    const key = `${chainString}:${BAL}`;
+    const key = `${chainString}:${BAL}`.toLowerCase();
     price = (
-      await superagent.post('https://coins.llama.fi/prices').send({
-        coins: [key],
-      })
+      await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
     ).body.coins[key].price;
   }
 
   // add LM rewards if available to each pool in data
   for (const pool of liquidityGauges) {
-    const x = data.find((el) => el.id === pool.poolId);
-    if (x === undefined) {
-      continue;
-    }
+    try {
+      const x = data.find((el) => el.id === pool.poolId);
+      if (x === undefined) {
+        continue;
+      }
 
-    const aprLMRewards = [];
-    const rewardTokens = [];
+      const aprLMRewards = [];
+      const rewardTokens = [];
 
-    if (chainString === 'ethereum') {
-      // get relative weight (of base BAL token rewards for a pool)
-      const relativeWeight =
-        (
-          await sdk.api.abi.call({
-            target: gaugeController,
-            abi: gaugeControllerEthereum.find(
-              (n) => n.name === 'gauge_relative_weight'
-            ),
-            params: [pool.id],
-            chain: 'ethereum',
-          })
-        ).output / 1e18;
-
-      // for base BAL rewards
-      if (relativeWeight !== 0) {
-        const workingSupply =
+      if (chainString === 'ethereum') {
+        // get relative weight (of base BAL token rewards for a pool)
+        const relativeWeight =
           (
             await sdk.api.abi.call({
-              target: pool.id,
-              abi: gaugeABI.find((n) => n.name === 'working_supply'),
+              target: gaugeController,
+              abi: gaugeControllerEthereum.find(
+                (n) => n.name === 'gauge_relative_weight'
+              ),
+              params: [pool.id],
               chain: 'ethereum',
             })
           ).output / 1e18;
 
-        // bpt == balancer pool token
-        const bptPrice = x.tvl / x.totalShares;
-        const balPayable = inflationRate * 7 * 86400 * relativeWeight;
-        const weeklyReward = (0.4 / (workingSupply + 0.4)) * balPayable;
-        const yearlyReward = weeklyReward * 52 * price;
-        const aprLM = (yearlyReward / bptPrice) * 100;
-        aprLMRewards.push(aprLM === Infinity ? 0 : aprLM);
-        rewardTokens.push(BAL);
-      }
-    }
+        // for base BAL rewards
+        if (relativeWeight !== 0) {
+          const workingSupply =
+            (
+              await sdk.api.abi.call({
+                target: pool.id,
+                abi: gaugeABI.find((n) => n.name === 'working_supply'),
+                chain: 'ethereum',
+              })
+            ).output / 1e18;
 
-    // first need to find the reward token
-    // (balancer UI loops up to 8times, will replicate the same logic)
-    const MAX_REWARD_TOKENS = 8;
-    for (let i = 0; i < MAX_REWARD_TOKENS; i++) {
-      // get token reward address
-      const add = (
-        await sdk.api.abi.call({
-          target: pool.id,
-          abi: gaugeABI.find((n) => n.name === 'reward_tokens'),
-          params: [i],
-          chain: chainString,
-        })
-      ).output.toLowerCase();
-      if (add === '0x0000000000000000000000000000000000000000') {
-        break;
+          // bpt == balancer pool token
+          const bptPrice = x.tvl / x.totalShares;
+          const balPayable = inflationRate * 7 * 86400 * relativeWeight;
+          const weeklyReward = (0.4 / (workingSupply + 0.4)) * balPayable;
+          const yearlyReward = weeklyReward * 52 * price;
+          const aprLM = (yearlyReward / bptPrice) * 100;
+          aprLMRewards.push(aprLM === Infinity ? 0 : aprLM);
+          rewardTokens.push(BAL);
+        }
       }
 
-      // get cg price of reward token
-      const key = `${chainString}:${add}`;
-      const price = (
-        await superagent.post('https://coins.llama.fi/prices').send({
-          coins: [key],
-        })
-      ).body.coins[key]?.price;
-
-      // call reward data
-      const { rate, period_finish } = (
-        await sdk.api.abi.call({
-          target: pool.id,
-          abi: gaugeABI.find((n) => n.name === 'reward_data'),
-          params: [add],
-          chain: chainString,
-        })
-      ).output;
-
-      if (period_finish * 1000 < new Date().getTime()) continue;
-      const inflationRate = rate / 1e18;
-      const tokenPayable = inflationRate * 7 * 86400;
-      const totalSupply =
-        (
+      // first need to find the reward token
+      // (balancer UI loops up to 8times, will replicate the same logic)
+      const MAX_REWARD_TOKENS = 8;
+      for (let i = 0; i < MAX_REWARD_TOKENS; i++) {
+        // get token reward address
+        const add = (
           await sdk.api.abi.call({
             target: pool.id,
-            abi: gaugeABI.find((n) => n.name === 'totalSupply'),
+            abi: gaugeABI.find((n) => n.name === 'reward_tokens'),
+            params: [i],
             chain: chainString,
           })
-        ).output / 1e18;
+        ).output.toLowerCase();
+        if (add === '0x0000000000000000000000000000000000000000') {
+          break;
+        }
 
-      const weeklyRewards = (1 / (totalSupply + 1)) * tokenPayable;
-      const yearlyRewards = weeklyRewards * 52 * price;
-      const bptPrice = x.tvl / x.totalShares;
-      const aprLM = (yearlyRewards / bptPrice) * 100;
+        // get cg price of reward token
+        const key = `${chainString}:${add}`.toLowerCase();
+        const price = (
+          await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
+        ).body.coins[key]?.price;
 
-      aprLMRewards.push(aprLM === Infinity ? null : aprLM);
-      rewardTokens.push(add);
+        // call reward data
+        const { rate, period_finish } = (
+          await sdk.api.abi.call({
+            target: pool.id,
+            abi: gaugeABI.find((n) => n.name === 'reward_data'),
+            params: [add],
+            chain: chainString,
+          })
+        ).output;
+
+        if (period_finish * 1000 < new Date().getTime()) continue;
+        const inflationRate = rate / 1e18;
+        const tokenPayable = inflationRate * 7 * 86400;
+        const totalSupply =
+          (
+            await sdk.api.abi.call({
+              target: pool.id,
+              abi: gaugeABI.find((n) => n.name === 'totalSupply'),
+              chain: chainString,
+            })
+          ).output / 1e18;
+
+        const weeklyRewards = (1 / (totalSupply + 1)) * tokenPayable;
+        const yearlyRewards = weeklyRewards * 52 * price;
+        const bptPrice = x.tvl / x.totalShares;
+        const aprLM = (yearlyRewards / bptPrice) * 100;
+
+        aprLMRewards.push(aprLM === Infinity ? null : aprLM);
+        rewardTokens.push(add);
+      }
+      // add up individual LM rewards
+      x.aprLM = aprLMRewards
+        .filter((i) => isFinite(i))
+        .reduce((a, b) => a + b, 0);
+
+      x.rewardTokens = rewardTokens;
+    } catch (err) {
+      console.log(err);
     }
-    // add up individual LM rewards
-    x.aprLM = aprLMRewards
-      .filter((i) => isFinite(i))
-      .reduce((a, b) => a + b, 0);
-
-    x.rewardTokens = rewardTokens;
   }
   return data;
 };
@@ -359,13 +359,26 @@ const topLvl = async (
     ),
   ];
 
-  const tokenPriceList = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: tokenList
-        .map((t) => `${chainString}:${t}`)
-        .concat(['solana:So11111111111111111111111111111111111111112']),
-    })
-  ).body.coins;
+  const maxSize = 50;
+  const pages = Math.ceil(tokenList.length / maxSize);
+  let pricesA = [];
+  let keys = '';
+  for (const p of [...Array(pages).keys()]) {
+    keys = tokenList
+      .slice(p * maxSize, maxSize * (p + 1))
+      .map((i) => `${chainString}:${i}`)
+      .join(',')
+      .replaceAll('/', '');
+    pricesA = [
+      ...pricesA,
+      (await superagent.get(`https://coins.llama.fi/prices/current/${keys}`))
+        .body.coins,
+    ];
+  }
+  let tokenPriceList = {};
+  for (const p of pricesA) {
+    tokenPriceList = { ...tokenPriceList, ...p };
+  }
 
   // calculate tvl
   let tvlInfo = dataNow.map((el) => tvl(el, tokenPriceList, chainString));

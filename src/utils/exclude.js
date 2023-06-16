@@ -12,6 +12,14 @@ const excludeAdaptors = [
   'lachain-yield-market',
   'euler', // adapter is breaking since hack, need to fix,
   'ratio-finance',
+  '0vix', // pausing cause of hack
+  'rehold', // apy values are fake
+  'deficurrent', // vaults deprecated
+  'dogium-farm', // seems to be dead
+  'zest-protocol', // tiny pools
+  'hedge', // seems to be dead, ui not working
+  'double-club', // seems to be dead
+  'yieldwolf', // dead
 ];
 
 const excludePools = [
@@ -54,6 +62,12 @@ const excludePools = [
   '0x5427f192137405e6a4143d1c3321359bab2dbd87-fantom',
   '0x7a5011bf1dad77a23ec35ce04dcc2ac7d29963c5',
   '0x45859D71D4caFb93694eD43a5ecE05776Fc2465d-dot-dot-finance', // until fixed
+  '0xc3d088842dcf02c13699f936bb83dfbbc6f721ab', // bifrost veth v1
+  '0x015908fec4ac33782d7bcd7a6ae88ab0ade405f4', //drop-usdc pool
+  '0x7578aa78d5c5f622800d9205e942b12d353432b7',
+  '0x05d3d04f1aeb77d591a0581827b148ea634c0d1c',
+  '0xc1b228c22ca914069c7164e5489e8d79a9cbb922',
+  '0xe50341e6f27a2514908f347e743119f3dfd84ad5',
 ];
 
 const boundaries = {
@@ -64,7 +78,7 @@ const boundaries = {
   // we only get pools for the UI with a maximum apy of 1million %
   apy: { lb: 0, ub: 1e6 },
   // reading from database returns only pools which is max 7 days old
-  age: 5,
+  age: 14,
 };
 
 module.exports = {

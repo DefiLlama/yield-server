@@ -16,6 +16,7 @@ const getApy = async () => {
 
       return data.map((p) => {
         if (p.details.retired || p.details.hideAlways) return {};
+
         return {
           pool: p.address,
           chain: utils.formatChain(chain[0]),
@@ -24,6 +25,10 @@ const getApy = async () => {
           tvlUsd: p.tvl.tvl_deposited,
           apy: p.apy.net_apy * 100,
           url: `https://yearn.finance/vaults/${chains[chain[0]]}/${p.address}`,
+          underlyingTokens:
+            p.token.underlyingTokensAddresses.length === 0
+              ? p.token.address
+              : p.token.underlyingTokensAddresses,
         };
       });
     })

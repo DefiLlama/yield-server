@@ -53,15 +53,12 @@ const main = async () => {
     })
   ).output;
 
+  const key = `ethereum:${LUSD_ADDRESS}`.toLowerCase();
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: [`ethereum:${LUSD_ADDRESS}`],
-    })
+    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
   ).body.coins;
 
-  const totalSupplyUsd =
-    (Number(lusdTotalSupply) / 1e18) *
-    prices[`ethereum:${LUSD_ADDRESS.toLowerCase()}`].price;
+  const totalSupplyUsd = (Number(lusdTotalSupply) / 1e18) * prices[key].price;
 
   return [
     {
@@ -76,6 +73,7 @@ const main = async () => {
       totalBorrowUsd: totalSupplyUsd,
       ltv: 1 / (mcr / 1e18),
       mintedCoin: 'LUSD',
+      underlyingTokens: ['0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'],
     },
   ];
 };
