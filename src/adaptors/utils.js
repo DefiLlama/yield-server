@@ -265,12 +265,15 @@ exports.keepFinite = (p) => {
 };
 
 exports.getPrices = async (addresses, chain) => {
+  const priceKeys = chain
+    ? addresses.map((address) => `${chain}:${address}`)
+    : addresses;
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: chain
-        ? addresses.map((address) => `${chain}:${address}`)
-        : addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${priceKeys
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
