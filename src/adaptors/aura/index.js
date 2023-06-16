@@ -13,6 +13,8 @@ const AURA_ADDRESS = '0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF'.toLowerCase();
 const BAL_ADDRESS = '0xba100000625a3754423978a60c9317c58a424e3D'.toLowerCase();
 const WSTETH_ADDRESS =
   '0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0'.toLowerCase();
+const SFRXETH_ADDRESS = '0xac3e018457b222d93114458476f3e3416abbe38f'.toLowerCase()
+const RETH_ADDRESS = '0xae78736cd615f374d3085123a210448e74fc6393'.toLowerCase()
 
 const SECONDS_PER_YEAR = 60 * 60 * 24 * 365;
 
@@ -113,8 +115,10 @@ const main = async () => {
         prices[AURA_ADDRESS]
       : 0;
 
-    //make sure to account for stETH rewards on certain pools
+    //make sure to account for stETH, sfrxETH and rETH rewards on certain pools
     const wstETHApy = swapApr.poolAprs.tokens.breakdown[WSTETH_ADDRESS] || 0;
+    const sfrxETHApy = swapApr.poolAprs.tokens.breakdown[SFRXETH_ADDRESS] || 0;
+    const rETHApy = swapApr.poolAprs.tokens.breakdown[RETH_ADDRESS] || 0;
 
     const rewardTokens = [BAL_ADDRESS, AURA_ADDRESS];
 
@@ -124,7 +128,7 @@ const main = async () => {
       symbol: balData.tokens.map(({ symbol }) => symbol).join('-'),
       chain: utils.formatChain('ethereum'),
       tvlUsd,
-      apyBase: Number(swapApr.poolAprs.swap) + wstETHApy,
+      apyBase: Number(swapApr.poolAprs.swap) + wstETHApy + sfrxETHApy + rETHApy,
       apyReward: apyBal + apyAura + auraExtraApy,
       underlyingTokens: balData.tokens.map(({ address }) => address),
       rewardTokens,
