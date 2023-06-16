@@ -2,7 +2,6 @@ const utils = require('../utils');
 
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
-const { format } = require('date-fns');
 const ethers = require('ethers');
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
@@ -162,6 +161,7 @@ const main = async () => {
         apyReward: 0,
         rewardTokens: [],
         underlyingTokens: underlyingTokens,
+        url: `https://register.app/#/overview?token=${rtoken.id}`,
       };
     })
   );
@@ -172,5 +172,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://register.app/#/',
 };
