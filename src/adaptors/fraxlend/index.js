@@ -291,6 +291,7 @@ const main = async () => {
         ltv: new BigNumber(maxLTVs[index])
           .dividedBy(new BigNumber(100000))
           .toNumber(),
+        underlyingTokens: [collateralContracts[index]],
       };
     })
     .filter((e) => e.tvlUsd);
