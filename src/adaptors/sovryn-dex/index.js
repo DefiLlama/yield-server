@@ -36,8 +36,8 @@ const getApy = async () => {
         project: 'sovryn-dex',
         tvlUsd: tvlUsd,
         symbol: symbol,
-        apyBase: Number(apy.APY_fees_pc),
-        apyReward: Number(apy.APY_rewards_pc),
+        apyBase: Number(apy.APY_rewards_pc),
+        apyReward: Number(apy.APY_fees_pc),
         url: 'https://alpha.sovryn.app/yield-farm',
         rewardTokens: ['0xefc78fc7d48b64958315949279ba181c2114abbd'],
       });
