@@ -53,7 +53,7 @@ async function getTvlInUsd(vault, vaultAssetToken, block) {
     return totalAsset.times(price).toNumber()
 }
 
-async function getApyInPercentage(vault, vaultAssetToken, vaultToken, blockNow, block24hrsAgo) { //ETH
+async function getApyInPercentage(vault, vaultAssetToken, vaultToken, blockNow, block24hrsAgo) {
     const assetTokenDecimal = await getDecimal(vaultAssetToken)
     const vaultTokenDecimals = await getDecimal(vaultToken)
 
@@ -61,13 +61,13 @@ async function getApyInPercentage(vault, vaultAssetToken, vaultToken, blockNow, 
     const todayAsset = todayAssetX10d.div(BN(10).pow(assetTokenDecimal))
     const todaySupplyX10d = await getTotalSupply(vaultToken, blockNow)
 
-    const todaySupply = todaySupplyX10d.div(BN(10).pow(vaultTokenDecimals));  // total supply of USDC
+    const todaySupply = todaySupplyX10d.div(BN(10).pow(vaultTokenDecimals));
     const todaySharePrice = todayAsset.div(todaySupply)
 
     const yesterdayAssetX10d = await getTotalAssets(vault, block24hrsAgo)
     const yesterdayAsset = yesterdayAssetX10d.div(BN(10).pow(assetTokenDecimal))
     const yesterdaySupplyX10d = await getTotalSupply(vaultToken, block24hrsAgo)
-    const yesterdaySupply = yesterdaySupplyX10d.div(BN(10).pow(vaultTokenDecimals));  // total supply of USDC
+    const yesterdaySupply = yesterdaySupplyX10d.div(BN(10).pow(vaultTokenDecimals));
     const yesterdaySharePrice = yesterdayAsset.div(yesterdaySupply)
 
     const apr = todaySharePrice.minus(yesterdaySharePrice).times(365)
