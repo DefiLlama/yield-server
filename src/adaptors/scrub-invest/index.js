@@ -30,93 +30,102 @@ const tokens = [
     name: 'USDC',
     decimals: 6,
     address: '0xfA9343C3897324496A05fC75abeD6bAC29f8A40f',
+    tokens: ["0xfA9343C3897324496A05fC75abeD6bAC29f8A40f"]
   },
   {
     name: 'USDT',
     decimals: 6,
     address: '0xB44a9B6905aF7c801311e8F4E76932ee959c663C',
+    tokens: ["0xB44a9B6905aF7c801311e8F4E76932ee959c663C"]
+
   },
   {
     name: 'DAI',
     decimals: 18,
     address: '0x765277eebeca2e31912c9946eae1021199b39c61',
+    tokens: ["0x765277eebeca2e31912c9946eae1021199b39c61"]
+
   },
   {
     name: 'KAVA',
     decimals: 18,
     address: '0xc86c7C0eFbd6A49B35E8714C5f59D99De09A225b',
+    tokens: ["0xc86c7C0eFbd6A49B35E8714C5f59D99De09A225b"]
+
   },
   {
     name: 'WETH',
     decimals: 18,
     address: '0xE3F5a90F9cb311505cd691a46596599aA1A0AD7D',
+    tokens: ["0xE3F5a90F9cb311505cd691a46596599aA1A0AD7D"]
+
   },
   {
     name: "BEAR/WBTC",
     decimals: 18,
     address: "0xeA848151ACB1508988e56Ee7689F004df2B15ced",
+    tokens: ["0x38481Fdc1aF61E6E72E0Ff46F069315A59779C65","0x818ec0A7Fe18Ff94269904fCED6AE3DaE6d6dC0b"]
   },
   {
     name: "TIGER/USDC",
-    
     decimals: 18,
     address: "0x7f8ed7d31795dc6f5fc5f6685b11419674361501",
-    
+    tokens: ["0x471F79616569343e8e84a66F342B7B433b958154","0xfA9343C3897324496A05fC75abeD6bAC29f8A40f"]
+
   },
   {
     name: "LION/USDC",
     decimals: 18,
     address: "0x09d6561b3795ae237e42f7adf3dc83742e10a2e8",
-   
+    tokens: ["0x990e157fC8a492c28F5B50022F000183131b9026","0xfA9343C3897324496A05fC75abeD6bAC29f8A40f"]
   },
   {
     name: "MARE/USDC",
-   
     decimals: 18,
     address: "0x0e1bc1939d977c676cd38cff4b7e411c32b6d3ce",
-   
+    tokens: ["0xd86C8d4279CCaFbec840c782BcC50D201f277419","0xfA9343C3897324496A05fC75abeD6bAC29f8A40f"]
+
   },
   {
     name: "VARA/USDC",
-  
     decimals: 18,
     address: "0x9bf1e3ee61cbe5c61e520c8beff45ed4d8212a9a",
-   
+    tokens: ["0xE1da44C0dA55B075aE8E2e4b6986AdC76Ac77d73","0xfA9343C3897324496A05fC75abeD6bAC29f8A40f"]
+
   },
   {
     name: "VARA/WKAVA",
-    
     decimals: 18,
     address: "0x7d8100072ba0e4da8dc6bd258859a5dc1a452e05",
-    
+    tokens: ["0xE1da44C0dA55B075aE8E2e4b6986AdC76Ac77d73","0xc86c7C0eFbd6A49B35E8714C5f59D99De09A225b"]
+
   },
   {
     name: "axlUSDC/USDC",
-   
     decimals: 18,
     address: "0x7a08708E06A118F2B22C9000A990155bdEdC31d1",
-   
+    tokens: ["0xfA9343C3897324496A05fC75abeD6bAC29f8A40f","0xfA9343C3897324496A05fC75abeD6bAC29f8A40f"]
   },
   {
     name: "WKAVA/WETH",
-   
     decimals: 18,
     address: "0xB593E0A2e93864fF5F75689dADE29f5F6DEc64EF",
+    tokens: ["0xc86c7C0eFbd6A49B35E8714C5f59D99De09A225b","0xE3F5a90F9cb311505cd691a46596599aA1A0AD7D"]
+
     
   },
   {
     name: "LION/DEXI",
-  
     decimals: 18,
     address: "0x7098c06cd97079742278F637D3EFE4Ce39e19A86",
-   
+    tokens: ["0x990e157fC8a492c28F5B50022F000183131b9026","0xD22a58f79e9481D1a88e00c343885A588b34b68B"]
+
   },
   {
     name: "TORE/WKAVA",
-   
     decimals: 18,
     address: "0x1ae83a1b9Ee963213d1e3Ff337F92930582d304f",
-    
+    tokens: ["0x8549724fcC84ee9ee6c7A676F1Ba2Cc2f43AAF5B","0xc86c7C0eFbd6A49B35E8714C5f59D99De09A225b"]
   },
 ];
 
@@ -165,6 +174,7 @@ const calcApy = async () => {
   const pools = tokens.map((token, i) => {
     const symbol = token.name;
     const tokenAddress = token.address;
+    const tokxens = token.tokens;
     const vaultAddress = vaults[symbol]?.toLowerCase();
 
     const decimals = token.decimals;
@@ -183,7 +193,7 @@ const calcApy = async () => {
       symbol,
       tvlUsd,
       apyBase,
-      underlyingTokens: [tokenAddress],
+      underlyingTokens:tokxens,
       rewardTokens: [tokenAddress],
     };
   });
