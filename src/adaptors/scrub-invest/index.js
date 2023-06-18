@@ -138,6 +138,7 @@ const tokens = [
     lp:true
   },
 ];
+const getOutput = ({ output }) => output.map(({ output }) => output);
 
 const unwrapLP = async (chain, lpTokens) => {
   const [tokens, getReserves, totalSupply] = await Promise.all(
