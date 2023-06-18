@@ -174,10 +174,11 @@ const unwrapLP = async (chain, lpTokens) => {
       chain,
     })
   ).output.map((decimal) => Math.pow(10, Number(decimal.output)));
+  console.log(tokens, getReserves, totalSupply, token0Decimals, token1Decimals)
 
   const token0Price = await getPrices([`${chain}:${token0}`]);
   const token1Price = await getPrices([`${chain}:${token1}`]);
-
+  console.log("Token Prices", token0Price, token1Price);
   const lpMarkets = lpTokens.map((lpToken) => {
     return { lpToken };
   });
@@ -193,7 +194,7 @@ const unwrapLP = async (chain, lpTokens) => {
 
   const lpPrices = {};
   lpMarkets.map((lp) => {
-    lpPrices[lp.lpToken.toLowerCase()] = { usd: lp.lpPrice };
+    lpPrices[lp.lpToken.toLowerCase()] = lp.lpPrice ;
   });
 
   return lpPrices;
