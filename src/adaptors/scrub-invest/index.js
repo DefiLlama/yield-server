@@ -154,7 +154,7 @@ const unwrapLP = async (chain, lpTokens) => {
 
   const token0Decimals = (
     await sdk.api.abi.multiCall({
-      abi: lpAbi.decimals,
+      abi: lpAbi.find(({ name }) => name === "decimals"),
       calls: token0.map((token) => ({
         target: token,
       })),
@@ -164,7 +164,7 @@ const unwrapLP = async (chain, lpTokens) => {
 
   const token1Decimals = (
     await sdk.api.abi.multiCall({
-      abi: lpAbi.decimals,
+      abi: lpAbi.find(({ name }) => name === "decimals"),
       calls: token1.map((token) => ({
         target: token,
       })),
