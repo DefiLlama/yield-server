@@ -143,7 +143,7 @@ const unwrapLP = async (chain, lpTokens) => {
   const [token0, token1, getReserves, totalSupply, symbol] = await Promise.all(
     ['token0', 'token1', 'getReserves', 'totalSupply', 'symbol'].map((method) =>
       sdk.api.abi.multiCall({
-        abi: lpAbi[method],
+        abi: lpAbi.find(({ name }) => name === method),
         calls: lpTokens.map((token) => ({
           target: token,
         })),
