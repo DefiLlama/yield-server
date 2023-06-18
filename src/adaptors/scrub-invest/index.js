@@ -239,9 +239,10 @@ const calcApy = async () => {
     ).map((token) => token.address).map((token) => `${CHAIN}:` + token)
   );
   const lpPrices = await unwrapLP(
+    CHAIN,
     tokens.filter(
       (token) => token.lp === true
-    ).map((token) => token.address).map((token) => `${CHAIN}:` + token)
+    ).map((token) => token.address)
   );
   const prices = {
     ...pricesTokens,
