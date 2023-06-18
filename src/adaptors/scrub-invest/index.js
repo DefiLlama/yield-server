@@ -152,9 +152,8 @@ const unwrapLP = async (chain, lpTokens) => {
       })
     )
   ).then((data) => data.map(getOutput));
-  const token0 = tokens.map((token) => token[0]);
-  const token1 = tokens.map((token) => token[1]);
-
+  const token0 = tokens.map((token) => `${chain}:${token(0)}`);
+  const token1 = tokens.map((token) => `${chain}:${token(1)}`);
   const token0Decimals = (
     await sdk.api.abi.multiCall({
       abi: ercAbi.find(({ name }) => name === "decimals"),
@@ -176,8 +175,8 @@ const unwrapLP = async (chain, lpTokens) => {
   ).output.map((decimal) => Math.pow(10, Number(decimal.output)));
   console.log("Infos",tokens,token0,token1, getReserves, totalSupply, token0Decimals, token1Decimals)
 
-  const token0Price = await getPrices([`${chain}:${token0}`]);
-  const token1Price = await getPrices([`${chain}:${token1}`]);
+  const token0Price = await getPrices(token0);
+  const token1Price = await getPrices(token1);
   console.log("Token Prices", token0Price, token1Price);
   const lpMarkets = lpTokens.map((lpToken) => {
     return { lpToken };
