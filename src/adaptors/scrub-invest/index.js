@@ -192,7 +192,7 @@ const unwrapLP = async (chain, lpTokens) => {
         (getReserves[i]._reserve1 / token1Decimals[i]) *
           token1Price[token1Addresses[i].toLowerCase()]) /
       (totalSupply[i] / 1e18);
-      console.log("LP Price Info", token.lpPrice, token0Decimals[i], token1Decimals[i], totalSupply[i], getReserves[i]._reserve0, getReserves[i]._reserve1, token0Price, token1Price)
+      console.log("LP Price Info", token.lpPrice, token0Decimals[i], token1Decimals[i], totalSupply[i], getReserves[i]._reserve0, getReserves[i]._reserve1, token0Price[token0Addresses[i].toLowerCase()], token1Price[token1Addresses[i].toLowerCase()])
   });
 
   const lpPrices = {};
