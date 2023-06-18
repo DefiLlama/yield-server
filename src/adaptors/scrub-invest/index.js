@@ -14,6 +14,16 @@ const vaults = {
   DAI: '0xB4Ba7ba722eacAE8f1e4c6213AF05b5E8B27dbdB',
   KAVA: '0xB9774bB2A18Af59Ec9bf86dCaeC07473A2D2F230',
   WETH: '0x3CcA2C0d433E00433082ba16e968CA11dA6Dc156',
+  "BEAR/WBTC": "0x4402Cf5433D57266563979654d20887AcE672393",
+  "TIGER/USDC": "0xa2355f35Ab85f1771FB1085a0e5b2599B8F47457",
+  "LION/USDC": "0x2c1C6aaB89272d07B7f78bFe93eefb6D2631Cf94",
+  "MARE/USDC": "0x070110b0cAd64833b1a6a9E86337A4e4eE786607",
+  "VARA/USDC": "0xE04539bD52618B7d197Be54B3e4D80732082906E",
+  "VARA/WKAVA": "0xEa892552BD31A20F42ceb3476D6A280c405883d0",
+  "LION/DEXI": "0xcf4673F714183C42DADc1B42DAC21BE09cfc3684",
+  "axlUSDC/USDC": "0xef7541FCa94988fA423bC418a854f7967f83a3E0",
+  "WKAVA/WETH": "0x43Ac7f627e41EBDa7515FEaCa425306AaB9cB602",
+  "TORE/WKAVA": "0x438c996F8c2ff18b9B7e01449443A8523b2B82E5",
 };
 const tokens = [
   {
@@ -40,6 +50,73 @@ const tokens = [
     name: 'WETH',
     decimals: 18,
     address: '0xE3F5a90F9cb311505cd691a46596599aA1A0AD7D',
+  },
+  {
+    name: "BEAR/WBTC",
+    decimals: 18,
+    address: "0xeA848151ACB1508988e56Ee7689F004df2B15ced",
+  },
+  {
+    name: "TIGER/USDC",
+    
+    decimals: 18,
+    address: "0x7f8ed7d31795dc6f5fc5f6685b11419674361501",
+    
+  },
+  {
+    name: "LION/USDC",
+    decimals: 18,
+    address: "0x09d6561b3795ae237e42f7adf3dc83742e10a2e8",
+   
+  },
+  {
+    name: "MARE/USDC",
+   
+    decimals: 18,
+    address: "0x0e1bc1939d977c676cd38cff4b7e411c32b6d3ce",
+   
+  },
+  {
+    name: "VARA/USDC",
+  
+    decimals: 18,
+    address: "0x9bf1e3ee61cbe5c61e520c8beff45ed4d8212a9a",
+   
+  },
+  {
+    name: "VARA/WKAVA",
+    
+    decimals: 18,
+    address: "0x7d8100072ba0e4da8dc6bd258859a5dc1a452e05",
+    
+  },
+  {
+    name: "axlUSDC/USDC",
+   
+    decimals: 18,
+    address: "0x7a08708E06A118F2B22C9000A990155bdEdC31d1",
+   
+  },
+  {
+    name: "WKAVA/WETH",
+   
+    decimals: 18,
+    address: "0xB593E0A2e93864fF5F75689dADE29f5F6DEc64EF",
+    
+  },
+  {
+    name: "LION/DEXI",
+  
+    decimals: 18,
+    address: "0x7098c06cd97079742278F637D3EFE4Ce39e19A86",
+   
+  },
+  {
+    name: "TORE/WKAVA",
+   
+    decimals: 18,
+    address: "0x1ae83a1b9Ee963213d1e3Ff337F92930582d304f",
+    
   },
 ];
 
