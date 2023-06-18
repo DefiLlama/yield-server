@@ -187,10 +187,10 @@ const unwrapLP = async (chain, lpTokens) => {
   lpMarkets.map((token, i) => {
     
     token.lpPrice =
-      ((getReserves[i]._reserve0 / token0Decimals[i]) *
-        token0Price[token0Addresses[i].toLowerCase()] +
-        (getReserves[i]._reserve1 / token1Decimals[i]) *
-          token1Price[token1Addresses[i].toLowerCase()]) /
+      (((getReserves[i]._reserve0 / token0Decimals[i]) *
+        token0Price[token0Addresses[i].toLowerCase()] )+
+       ( (getReserves[i]._reserve1 / token1Decimals[i]) *
+          token1Price[token1Addresses[i].toLowerCase()])) /
       (totalSupply[i] / 1e18);
       console.log("LP Price Info", token.lpPrice, token0Decimals[i], token1Decimals[i], totalSupply[i], getReserves[i]._reserve0, getReserves[i]._reserve1,token0Addresses[i].toLowerCase(),token1Addresses[i].toLowerCase(), token0Price[token0Addresses[i].toLowerCase()], token1Price[token1Addresses[i].toLowerCase()])
   });
