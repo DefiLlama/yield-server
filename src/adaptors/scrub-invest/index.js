@@ -224,7 +224,7 @@ const getInfos = async () => {
       chain: CHAIN,
       calls: Object.entries(vaults).map((vault) => ({
         target: vault[1],
-        params: ['0x0000000000000000000000000000000000000001'],
+        params: ['0x0000000000000000000000000000000000000000'],
       })),
       abi: windAndCheck.find(({ name }) => name === 'getUserInfo'),
     })
@@ -286,7 +286,7 @@ const calcApy = async () => {
    
     const info = infos[i];
     console.log(info);
-    const tvlUsd = ((token.lp?info.totalCollateral ?? 0 :info.totalSupplied ?? 0) / 10 ** decimals) * price;
+    const tvlUsd = ((token.lp?info.totalCollateral ?? 0 :info.totalSupplied ?? 0) / (10 ** decimals)) * price;
     const apyBase = convertAPR2APY((info.lastAPR ?? 0) / 1e6);
 
     return {
