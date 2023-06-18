@@ -152,8 +152,8 @@ const unwrapLP = async (chain, lpTokens) => {
       })
     )
   ).then((data) => data.map(getOutput));
-  const token0 = tokens.map((token) => `${chain}:${token(0)}`);
-  const token1 = tokens.map((token) => `${chain}:${token(1)}`);
+  const token0 = tokens.map((token) => `${chain}:${token[0]}`);
+  const token1 = tokens.map((token) => `${chain}:${token[1]}`);
   const token0Decimals = (
     await sdk.api.abi.multiCall({
       abi: ercAbi.find(({ name }) => name === "decimals"),
