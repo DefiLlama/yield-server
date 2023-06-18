@@ -251,6 +251,8 @@ const calcApy = async () => {
     ...pricesTokens,
     ...lpPrices,
   };
+  console.log("LP Prices", lpPrices)
+  console.log("Prices", prices)
   const infos = await getInfos();
   
   console.log(infos);
@@ -263,7 +265,7 @@ const calcApy = async () => {
     const decimals = token.decimals;
     let price = prices[tokenAddress.toLowerCase()];
     if (price === undefined)
-      price = symbol.toLowerCase().includes('usd') ? 1 : 0;
+      price = symbol.toLowerCase().includes('usd') && !token.lp ? 1 : 0;
    
     const info = infos[i];
     console.log(info);
