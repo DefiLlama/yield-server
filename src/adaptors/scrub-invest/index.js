@@ -229,8 +229,9 @@ const getPrices = async (addresses) => {
     }),
     {}
   );
-  if (pricesByAddress === undefined)
-  pricesByAddress = symbol.toLowerCase().includes('usd')
+  if (pricesByAddress === undefined) {
+  pricesByAddress = symbol.toLowerCase().includes('usd') ? 1 : 0;
+  }
   return pricesByAddress;
 };
 const convertAPR2APY = (apr) => {
