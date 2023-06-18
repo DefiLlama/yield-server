@@ -139,6 +139,63 @@ const tokens = [
   },
 ];
 
+const unwrapLP = async (chain, lpTokens) => {
+  const [token0, token1, getReserves, totalSupply, symbol] = await Promise.all(
+    ['token0', 'token1', 'getReserves', 'totalSupply', 'symbol'].map((method) =>
+      sdk.api.abi.multiCall({
+        abi: abi[method],
+        calls: lpTokens.map((token) => ({
+          target: token,
+        })),
+        chain,
+      })
+    )
+  ).then((data) => data.map(getOutput));
+
+  const token0Decimals = (
+    await sdk.api.abi.multiCall({
+      abi: abi.decimals,
+      calls: token0.map((token) => ({
+        target: token,
+      })),
+      chain,
+    })
+  ).output.map((decimal) => Math.pow(10, Number(decimal.output)));
+
+  const token1Decimals = (
+    await sdk.api.abi.multiCall({
+      abi: abi.decimals,
+      calls: token1.map((token) => ({
+        target: token,
+      })),
+      chain,
+    })
+  ).output.map((decimal) => Math.pow(10, Number(decimal.output)));
+
+  const token0Price = await getPrices(chain, token0);
+  const token1Price = await getPrices(chain, token1);
+
+  const lpMarkets = lpTokens.map((lpToken) => {
+    return { lpToken };
+  });
+
+  lpMarkets.map((token, i) => {
+    token.lpPrice =
+      ((getReserves[i]._reserve0 / token0Decimals[i]) *
+        token0Price[token0[i].toLowerCase()].usd +
+        (getReserves[i]._reserve1 / token1Decimals[i]) *
+          token1Price[token1[i].toLowerCase()].usd) /
+      (totalSupply[i] / 1e18);
+  });
+
+  const lpPrices = {};
+  lpMarkets.map((lp) => {
+    lpPrices[lp.lpToken.toLowerCase()] = { usd: lp.lpPrice };
+  });
+
+  return lpPrices;
+};
+
 const getInfos = async () => {
   return await (
     await sdk.api.abi.multiCall({
