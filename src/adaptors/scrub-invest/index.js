@@ -2,7 +2,7 @@ const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
-const { windAndCheck } = require('./abi');
+const { windAndCheck,lpAbi } = require('./abi');
 
 const CHAIN = 'kava';
 
