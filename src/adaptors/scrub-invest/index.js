@@ -229,7 +229,8 @@ const getPrices = async (addresses) => {
     }),
     {}
   );
-
+  if (pricesByAddress === undefined)
+  pricesByAddress = symbol.toLowerCase().includes('usd')
   return pricesByAddress;
 };
 const convertAPR2APY = (apr) => {
@@ -265,8 +266,6 @@ const calcApy = async () => {
 
     const decimals = token.decimals;
     let price = prices[tokenAddress.toLowerCase()];
-    if (price === undefined)
-      price = symbol.toLowerCase().includes('usd') && !token.lp ? 1 : 0;
    
     const info = infos[i];
     console.log(info);
