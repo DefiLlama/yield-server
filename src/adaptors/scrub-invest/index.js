@@ -225,7 +225,7 @@ const getPrices = async (addresses) => {
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
       ...acc,
-      [name.split(':')[1]]: price.price === undefined && symbol.toLowerCase().includes('usd') ? 1 : 0,
+      [name.split(':')[1]]: price.price === undefined ? 1 : 0,
     }),
     {}
   );
