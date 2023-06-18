@@ -228,7 +228,7 @@ const getPrices = async (addresses) => {
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
       ...acc,
-      [name.split(':')[1]]: price.price === undefined ? 1 : price.price,
+      [name.split(':')[1]]: price.price ?? 1,
     }),
     {}
   );
