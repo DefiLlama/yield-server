@@ -224,7 +224,7 @@ const getInfos = async () => {
       chain: CHAIN,
       calls: Object.entries(vaults).map((vault) => ({
         target: vault[1],
-        params: ['0x0000000000000000000000000000000000000000'],
+        params: ['0x0000000000000000000000000000000000000001'],
       })),
       abi: windAndCheck.find(({ name }) => name === 'getUserInfo'),
     })
