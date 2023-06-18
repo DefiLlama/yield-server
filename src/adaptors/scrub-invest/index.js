@@ -140,8 +140,8 @@ const tokens = [
 ];
 
 const unwrapLP = async (chain, lpTokens) => {
-  const [token0, token1, getReserves, totalSupply] = await Promise.all(
-    ['token0', 'token1', 'getReserves', 'totalSupply'].map((method) =>
+  const [tokens, getReserves, totalSupply] = await Promise.all(
+    ['tokens', 'getReserves', 'totalSupply'].map((method) =>
       sdk.api.abi.multiCall({
         abi: lpAbi.find(({ name }) => name === method),
         calls: lpTokens.map((token) => ({
@@ -151,6 +151,8 @@ const unwrapLP = async (chain, lpTokens) => {
       })
     )
   ).then((data) => data.map(getOutput));
+  const token0 = tokens.map((token) => token[0]);
+  const token1 = tokens.map((token) => token[1]);
 
   const token0Decimals = (
     await sdk.api.abi.multiCall({
