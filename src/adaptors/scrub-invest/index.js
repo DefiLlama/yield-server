@@ -286,7 +286,7 @@ const calcApy = async () => {
    
     const info = infos[i];
     console.log(info);
-    const tvlUsd = ((info.totalSupplied ?? 0) / 10 ** decimals) * price;
+    const tvlUsd = ((token.lp?info.totalCollateral ?? 0 :info.totalSupplied ?? 0) / 10 ** decimals) * price;
     const apyBase = convertAPR2APY((info.lastAPR ?? 0) / 1e6);
 
     return {
