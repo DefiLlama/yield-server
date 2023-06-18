@@ -2,7 +2,7 @@ const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
-const { windAndCheck,lpAbi } = require('./abi');
+const { windAndCheck,lpAbi,ercAbi } = require('./abi');
 
 const CHAIN = 'kava';
 
@@ -140,8 +140,8 @@ const tokens = [
 ];
 
 const unwrapLP = async (chain, lpTokens) => {
-  const [token0, token1, getReserves, totalSupply, symbol] = await Promise.all(
-    ['token0', 'token1', 'getReserves', 'totalSupply', 'symbol'].map((method) =>
+  const [token0, token1, getReserves, totalSupply] = await Promise.all(
+    ['token0', 'token1', 'getReserves', 'totalSupply'].map((method) =>
       sdk.api.abi.multiCall({
         abi: lpAbi.find(({ name }) => name === method),
         calls: lpTokens.map((token) => ({
@@ -154,7 +154,7 @@ const unwrapLP = async (chain, lpTokens) => {
 
   const token0Decimals = (
     await sdk.api.abi.multiCall({
-      abi: lpAbi.find(({ name }) => name === "decimals"),
+      abi: ercAbi.find(({ name }) => name === "decimals"),
       calls: token0.map((token) => ({
         target: token,
       })),
@@ -164,7 +164,7 @@ const unwrapLP = async (chain, lpTokens) => {
 
   const token1Decimals = (
     await sdk.api.abi.multiCall({
-      abi: lpAbi.find(({ name }) => name === "decimals"),
+      abi: ercAbi.find(({ name }) => name === "decimals"),
       calls: token1.map((token) => ({
         target: token,
       })),
@@ -172,8 +172,8 @@ const unwrapLP = async (chain, lpTokens) => {
     })
   ).output.map((decimal) => Math.pow(10, Number(decimal.output)));
 
-  const token0Price = await getPrices(chain, token0);
-  const token1Price = await getPrices(chain, token1);
+  const token0Price = await getPrices([`${chain}:${token0}`]);
+  const token1Price = await getPrices([`${chain}:${token1}`]);
 
   const lpMarkets = lpTokens.map((lpToken) => {
     return { lpToken };
