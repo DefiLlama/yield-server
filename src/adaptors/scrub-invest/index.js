@@ -174,7 +174,7 @@ const unwrapLP = async (chain, lpTokens) => {
       chain,
     })
   ).output.map((decimal) => Math.pow(10, Number(decimal.output)));
-  console.log(tokens, getReserves, totalSupply, token0Decimals, token1Decimals)
+  console.log("Infos",tokens,token0,token1, getReserves, totalSupply, token0Decimals, token1Decimals)
 
   const token0Price = await getPrices([`${chain}:${token0}`]);
   const token1Price = await getPrices([`${chain}:${token1}`]);
