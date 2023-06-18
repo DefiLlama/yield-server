@@ -152,12 +152,14 @@ const unwrapLP = async (chain, lpTokens) => {
       })
     )
   ).then((data) => data.map(getOutput));
+  const token0Addresses = tokens.map((token) => token[0]);
+  const token1Addresses = tokens.map((token) => token[1]);
   const token0 = tokens.map((token) => `${chain}:${token[0]}`);
   const token1 = tokens.map((token) => `${chain}:${token[1]}`);
   const token0Decimals = (
     await sdk.api.abi.multiCall({
       abi: ercAbi.find(({ name }) => name === "decimals"),
-      calls: token0.map((token) => ({
+      calls: token0Addresses.map((token) => ({
         target: token,
       })),
       chain,
@@ -167,7 +169,7 @@ const unwrapLP = async (chain, lpTokens) => {
   const token1Decimals = (
     await sdk.api.abi.multiCall({
       abi: ercAbi.find(({ name }) => name === "decimals"),
-      calls: token1.map((token) => ({
+      calls: token1Addresses.map((token) => ({
         target: token,
       })),
       chain,
