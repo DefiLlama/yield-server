@@ -292,7 +292,10 @@ const calcApy = async () => {
     const symbol = token.name;
     const tokenAddress = token.address;
     const tokxens = token.tokens;
-    const allVaults = [...vaults, ...vaultsLP];
+    const allVaults = {
+      ...vaults,
+      ...vaultsLP,
+    };
     const vaultAddress = allVaults[symbol]?.toLowerCase();
 
     const decimals = token.decimals;
