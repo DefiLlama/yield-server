@@ -170,6 +170,19 @@ const getAuraAPY = async (address, swapAprs, prices, auraSupply) => {
       })
     ).output;
 
+    const contractFee = (
+      await sdk.api.abi
+        .call({
+          target: address,
+          abi: vaultManager.find((n) => n.name === 'fee'),
+          chain: 'ethereum',
+        })
+        .catch(() => {
+          return { output: 0 }; //handle case of no fee
+        })
+    ).output;
+    const fee = contractFee / 1e4;
+
     const { pools } = await request(AURA_API, auraPoolsQuery, {
       id: +auraPool.pid,
     });
@@ -200,9 +213,14 @@ const getAuraAPY = async (address, swapAprs, prices, auraSupply) => {
     } = await utils.getData(AURA_TVL_API);
     const tvlUsd = auraTvl[pool.lpToken.id] || 0;
     const balPerYear = (balRewards.rewardRate / 1e18) * SECONDS_PER_YEAR;
-    const apyBal = (balPerYear / tvlUsd) * 100 * prices[BAL_ADDRESS] || 0;
+    const balFee = balPerYear * fee;
+    const apyBal =
+      ((balPerYear - balFee) / tvlUsd) * 100 * prices[BAL_ADDRESS] || 0;
     const auraPerYear = getAuraMintAmount(balPerYear, auraSupply);
-    const apyAura = (auraPerYear / tvlUsd) * 100 * prices[AURA_ADDRESS] || 0;
+    const auraFee = auraPerYear * fee;
+    console.log(auraPerYear, auraFee);
+    const apyAura =
+      ((auraPerYear - auraFee) / tvlUsd) * 100 * prices[AURA_ADDRESS] || 0;
     const auraExtraApy = auraExtraRewards
       ? (((auraExtraRewards.rewardRate / 1e18) * SECONDS_PER_YEAR) / tvlUsd) *
         100 *
@@ -224,6 +242,7 @@ const getAuraAPY = async (address, swapAprs, prices, auraSupply) => {
       rewardTokens,
     };
   } catch (e) {
+    console.log(e);
     return;
   }
 };
