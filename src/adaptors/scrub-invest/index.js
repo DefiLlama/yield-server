@@ -295,7 +295,7 @@ const calcApy = async () => {
     let price = prices[tokenAddress.toLowerCase()];
    
     const info = infos[i];
-    console.log(symbol,info);
+    console.log(symbol,info,price);
     const tvlUsd = ((token.lp?info.totalCollateral ?? 0 :info.totalSupplied ?? 0) / (10 ** decimals)) * price;
     const apyBase = convertAPR2APY((info.lastAPR ?? 0) / 1e6);
 
