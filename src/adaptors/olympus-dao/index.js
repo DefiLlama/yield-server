@@ -174,7 +174,7 @@ const getAuraAPY = async (address, swapAprs, prices, auraSupply) => {
       await sdk.api.abi
         .call({
           target: address,
-          abi: vaultManager.find((n) => n.name === 'fee'),
+          abi: vaultManager.find((n) => n.name === 'currentFee'),
           chain: 'ethereum',
         })
         .catch(() => {
@@ -218,7 +218,6 @@ const getAuraAPY = async (address, swapAprs, prices, auraSupply) => {
       ((balPerYear - balFee) / tvlUsd) * 100 * prices[BAL_ADDRESS] || 0;
     const auraPerYear = getAuraMintAmount(balPerYear, auraSupply);
     const auraFee = auraPerYear * fee;
-    console.log(auraPerYear, auraFee);
     const apyAura =
       ((auraPerYear - auraFee) / tvlUsd) * 100 * prices[AURA_ADDRESS] || 0;
     const auraExtraApy = auraExtraRewards
