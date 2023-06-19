@@ -20,6 +20,7 @@ const excludeAdaptors = [
   'hedge', // seems to be dead, ui not working
   'double-club', // seems to be dead
   'yieldwolf', // dead
+  'hubble-exchange', // no live pools
 ];
 
 const excludePools = [
