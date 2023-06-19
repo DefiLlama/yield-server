@@ -2,7 +2,7 @@ const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
-const { windAndCheck,lpAbi,ercAbi } = require('./abi');
+const { windAndCheck,compounders,lpAbi,ercAbi } = require('./abi');
 
 const CHAIN = 'kava';
 
@@ -14,16 +14,18 @@ const vaults = {
   DAI: '0xB4Ba7ba722eacAE8f1e4c6213AF05b5E8B27dbdB',
   KAVA: '0xB9774bB2A18Af59Ec9bf86dCaeC07473A2D2F230',
   WETH: '0x3CcA2C0d433E00433082ba16e968CA11dA6Dc156',
-  "BEAR/WBTC": "0x4402Cf5433D57266563979654d20887AcE672393",
-  "TIGER/USDC": "0xa2355f35Ab85f1771FB1085a0e5b2599B8F47457",
-  "LION/USDC": "0x2c1C6aaB89272d07B7f78bFe93eefb6D2631Cf94",
-  "MARE/USDC": "0x070110b0cAd64833b1a6a9E86337A4e4eE786607",
-  "VARA/USDC": "0xE04539bD52618B7d197Be54B3e4D80732082906E",
-  "VARA/WKAVA": "0xEa892552BD31A20F42ceb3476D6A280c405883d0",
-  "LION/DEXI": "0xcf4673F714183C42DADc1B42DAC21BE09cfc3684",
-  "axlUSDC/USDC": "0xef7541FCa94988fA423bC418a854f7967f83a3E0",
-  "WKAVA/WETH": "0x43Ac7f627e41EBDa7515FEaCa425306AaB9cB602",
-  "TORE/WKAVA": "0x438c996F8c2ff18b9B7e01449443A8523b2B82E5",
+};
+
+const vaultsLP = { "BEAR/WBTC": "0x4402Cf5433D57266563979654d20887AcE672393",
+"TIGER/USDC": "0xa2355f35Ab85f1771FB1085a0e5b2599B8F47457",
+"LION/USDC": "0x2c1C6aaB89272d07B7f78bFe93eefb6D2631Cf94",
+"MARE/USDC": "0x070110b0cAd64833b1a6a9E86337A4e4eE786607",
+"VARA/USDC": "0xE04539bD52618B7d197Be54B3e4D80732082906E",
+"VARA/WKAVA": "0xEa892552BD31A20F42ceb3476D6A280c405883d0",
+"LION/DEXI": "0xcf4673F714183C42DADc1B42DAC21BE09cfc3684",
+"axlUSDC/USDC": "0xef7541FCa94988fA423bC418a854f7967f83a3E0",
+"WKAVA/WETH": "0x43Ac7f627e41EBDa7515FEaCa425306AaB9cB602",
+"TORE/WKAVA": "0x438c996F8c2ff18b9B7e01449443A8523b2B82E5",
 };
 const tokens = [
   {
@@ -219,7 +221,7 @@ const unwrapLP = async (chain, lpTokens) => {
 };
 
 const getInfos = async () => {
-  return await (
+  const vaultInfo= await (
     await sdk.api.abi.multiCall({
       chain: CHAIN,
       calls: Object.entries(vaults).map((vault) => ({
@@ -229,6 +231,17 @@ const getInfos = async () => {
       abi: windAndCheck.find(({ name }) => name === 'getUserInfo'),
     })
   ).output.map(({ output }) => output);
+  const vaultsLpInfo= await (
+    await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      calls: Object.entries(vaultsLP).map((vault) => ({
+        target: vault[1],
+        params: ['0x0000000000000000000000000000000000000000'],
+      })),
+      abi: compounders.find(({ name }) => name === 'getUserInfo'),
+    })
+  ).output.map(({ output }) => output);
+  return [...vaultInfo, ...vaultsLpInfo];
 };
 
 const getPrices = async (addresses) => {
