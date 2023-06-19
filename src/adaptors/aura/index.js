@@ -73,10 +73,6 @@ const auraPoolsQuery = gql`
 `;
 
 const main = async () => {
-  const { pricesByAddress: prices } = await utils.getPrices(
-    [AURA_ADDRESS, BAL_ADDRESS],
-    'ethereum'
-  );
   const { pools: swapAprs } = await utils.getData(SWAP_APR_API);
   const auraSupply =
     (
@@ -105,6 +101,15 @@ const main = async () => {
       return !x;
     });
 
+  const priceKeys = [...ids, AURA_ADDRESS, BAL_ADDRESS]
+    .map((i) => `ethereum:${i}`)
+    .join(',')
+    .toLowerCase();
+
+  const prices = (
+    await utils.getData(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).coins;
+
   const { pools: balPools } = await request(BAL_API, balBoolsQuery, {
     address_in: pools.map(({ lpToken }) => lpToken.id),
   });
@@ -114,7 +119,10 @@ const main = async () => {
     if (!balData) return;
     const swapApr = swapAprs.find(({ id }) => id === balData.id);
     if (!swapApr?.poolAprs) return;
-    const tvlUsd = auraTvl[pool.lpToken.id] || 0;
+    // const tvlUsd = auraTvl[pool.lpToken.id] || 0;
+    const tvlUsd =
+      (Number(pool.gauge.balance) / 1e18) *
+        prices[`ethereum:${pool.lpToken.id.toLowerCase()}`]?.price || 0;
     const balRewards = pool.rewardData.find(
       ({ token }) => token.id === BAL_ADDRESS
     );
@@ -122,13 +130,17 @@ const main = async () => {
       ({ token }) => token.id === AURA_ADDRESS
     );
     const balPerYear = (balRewards.rewardRate / 1e18) * SECONDS_PER_YEAR;
-    const apyBal = (balPerYear / tvlUsd) * 100 * prices[BAL_ADDRESS] || 0;
+    const apyBal =
+      (balPerYear / tvlUsd) * 100 * prices[`ethereum:${BAL_ADDRESS}`].price ||
+      0;
     const auraPerYear = getAuraMintAmount(balPerYear, auraSupply);
-    const apyAura = (auraPerYear / tvlUsd) * 100 * prices[AURA_ADDRESS] || 0;
+    const apyAura =
+      (auraPerYear / tvlUsd) * 100 * prices[`ethereum:${AURA_ADDRESS}`].price ||
+      0;
     const auraExtraApy = auraExtraRewards
       ? (((auraExtraRewards.rewardRate / 1e18) * SECONDS_PER_YEAR) / tvlUsd) *
         100 *
-        prices[AURA_ADDRESS]
+        prices[`ethereum:${AURA_ADDRESS}`].price
       : 0;
 
     //make sure to account for stETH, sfrxETH and rETH rewards on certain pools
@@ -148,6 +160,7 @@ const main = async () => {
       apyReward: apyBal + apyAura + auraExtraApy,
       underlyingTokens: balData.tokens.map(({ address }) => address),
       rewardTokens,
+      url: `https://app.aura.finance/#/pool/${pool.id}`,
     };
   });
 
