@@ -155,75 +155,79 @@ const getAuraVaultTVL = async (vaultAddress, pairToken) => {
  * Boost the reward APY by 2 to account for single sided deposit.
  */
 const getAuraAPY = async (address, swapAprs, prices, auraSupply) => {
-  const auraPool = (
-    await sdk.api.abi.call({
-      target: address,
-      abi: vaultManager.find((n) => n.name === 'auraData'),
-      chain: 'ethereum',
-    })
-  ).output;
+  try {
+    const auraPool = (
+      await sdk.api.abi.call({
+        target: address,
+        abi: vaultManager.find((n) => n.name === 'auraData'),
+        chain: 'ethereum',
+      })
+    ).output;
 
-  const pairToken = (
-    await sdk.api.abi.call({
-      target: address,
-      abi: vaultManager.find((n) => n.name === 'pairToken'),
-      chain: 'ethereum',
-    })
-  ).output;
+    const pairToken = (
+      await sdk.api.abi.call({
+        target: address,
+        abi: vaultManager.find((n) => n.name === 'pairToken'),
+        chain: 'ethereum',
+      })
+    ).output;
 
-  const { pools } = await request(AURA_API, auraPoolsQuery, {
-    id: +auraPool.pid,
-  });
+    const { pools } = await request(AURA_API, auraPoolsQuery, {
+      id: +auraPool.pid,
+    });
 
-  const pool = pools[0];
+    const pool = pools[0];
 
-  const { pools: balPools } = await request(BAL_API, balBoolsQuery, {
-    address_in: [pool.lpToken.id],
-  });
+    const { pools: balPools } = await request(BAL_API, balBoolsQuery, {
+      address_in: [pool.lpToken.id],
+    });
 
-  const balPool = balPools[0];
-  if (!balPool) return;
+    const balPool = balPools[0];
+    if (!balPool) return;
 
-  const swapApr = swapAprs.find(({ id }) => id === balPool.id);
-  if (!swapApr?.poolAprs) return;
+    const swapApr = swapAprs.find(({ id }) => id === balPool.id);
+    if (!swapApr?.poolAprs) return;
 
-  const vaultTvlUsd = await getAuraVaultTVL(address, pairToken);
+    const vaultTvlUsd = await getAuraVaultTVL(address, pairToken);
 
-  const balRewards = pool.rewardData.find(
-    ({ token }) => token.id === BAL_ADDRESS
-  );
+    const balRewards = pool.rewardData.find(
+      ({ token }) => token.id === BAL_ADDRESS
+    );
 
-  const auraExtraRewards = pool.rewardData.find(
-    ({ token }) => token.id === AURA_ADDRESS
-  );
-  const {
-    balancer: { breakdown: auraTvl },
-  } = await utils.getData(AURA_TVL_API);
-  const tvlUsd = auraTvl[pool.lpToken.id] || 0;
-  const balPerYear = (balRewards.rewardRate / 1e18) * SECONDS_PER_YEAR;
-  const apyBal = (balPerYear / tvlUsd) * 100 * prices[BAL_ADDRESS] || 0;
-  const auraPerYear = getAuraMintAmount(balPerYear, auraSupply);
-  const apyAura = (auraPerYear / tvlUsd) * 100 * prices[AURA_ADDRESS] || 0;
-  const auraExtraApy = auraExtraRewards
-    ? (((auraExtraRewards.rewardRate / 1e18) * SECONDS_PER_YEAR) / tvlUsd) *
-      100 *
-      prices[AURA_ADDRESS]
-    : 0;
-  //make sure to account for stETH rewards on certain pools
-  const wstETHApy = swapApr.poolAprs.tokens.breakdown[WSTETH_ADDRESS] || 0;
+    const auraExtraRewards = pool.rewardData.find(
+      ({ token }) => token.id === AURA_ADDRESS
+    );
+    const {
+      balancer: { breakdown: auraTvl },
+    } = await utils.getData(AURA_TVL_API);
+    const tvlUsd = auraTvl[pool.lpToken.id] || 0;
+    const balPerYear = (balRewards.rewardRate / 1e18) * SECONDS_PER_YEAR;
+    const apyBal = (balPerYear / tvlUsd) * 100 * prices[BAL_ADDRESS] || 0;
+    const auraPerYear = getAuraMintAmount(balPerYear, auraSupply);
+    const apyAura = (auraPerYear / tvlUsd) * 100 * prices[AURA_ADDRESS] || 0;
+    const auraExtraApy = auraExtraRewards
+      ? (((auraExtraRewards.rewardRate / 1e18) * SECONDS_PER_YEAR) / tvlUsd) *
+        100 *
+        prices[AURA_ADDRESS]
+      : 0;
+    //make sure to account for stETH rewards on certain pools
+    const wstETHApy = swapApr.poolAprs.tokens.breakdown[WSTETH_ADDRESS] || 0;
 
-  const rewardTokens = [BAL_ADDRESS, AURA_ADDRESS];
+    const rewardTokens = [BAL_ADDRESS, AURA_ADDRESS];
 
-  return {
-    pool: address,
-    symbol: balPool.tokens.map(({ symbol }) => symbol).join('-'),
-    chain: utils.formatChain('ethereum'),
-    tvlUsd: vaultTvlUsd,
-    apyBase: Number(swapApr.poolAprs.swap) + wstETHApy * 2, //boosted
-    apyReward: (apyBal + apyAura + auraExtraApy) * 2, //boosted
-    underlyingTokens: balPool.tokens.map(({ address }) => address),
-    rewardTokens,
-  };
+    return {
+      pool: address,
+      symbol: balPool.tokens.map(({ symbol }) => symbol).join('-'),
+      chain: utils.formatChain('ethereum'),
+      tvlUsd: vaultTvlUsd,
+      apyBase: Number(swapApr.poolAprs.swap) + wstETHApy * 2, //boosted
+      apyReward: (apyBal + apyAura + auraExtraApy) * 2, //boosted
+      underlyingTokens: balPool.tokens.map(({ address }) => address),
+      rewardTokens,
+    };
+  } catch (e) {
+    return;
+  }
 };
 
 /**
@@ -248,16 +252,11 @@ const main = async () => {
   );
   const apyInfo = await Promise.all(
     addresses.map(async (address) => {
-      switch (address.toLowerCase()) {
-        case OHM_WSTETH_VAULT:
-          const info = await getAuraAPY(address, swapAprs, prices, auraSupply);
-          return { project: 'olympus-dao', ...info };
-        default:
-          return null;
-      }
+      const info = await getAuraAPY(address, swapAprs, prices, auraSupply);
+      return info ? { project: 'olympus-dao', ...info } : undefined;
     })
   );
-  return apyInfo;
+  return apyInfo.filter((info) => info);
 };
 
 module.exports = {
