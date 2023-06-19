@@ -17,7 +17,7 @@ function getErc20Contract(token) {
     );
 }
 
-async function getDecimal(token) {
+async function getDecimals(token) {
     const erc20 = getErc20Contract(token);
     const decimals = await erc20.methods.decimals().call()
     return BN(decimals)
@@ -45,7 +45,7 @@ async function getTotalSupply(token, block) {
 
 async function getTvlInUsd(vault, vaultAssetToken, block) {
     const totalAssetX10d = await getTotalAssets(vault, block)
-    const decimals = await getDecimal(vaultAssetToken)
+    const decimals = await getDecimals(vaultAssetToken)
     const price = (await utils.getPrices([vaultAssetToken], "optimism")).pricesByAddress[vaultAssetToken];
 
     const totalAsset = totalAssetX10d.div(BN(10).pow(decimals));
@@ -54,8 +54,8 @@ async function getTvlInUsd(vault, vaultAssetToken, block) {
 }
 
 async function getApyInPercentage(vault, vaultAssetToken, vaultToken, blockNow, block24hrsAgo) {
-    const assetTokenDecimal = await getDecimal(vaultAssetToken)
-    const vaultTokenDecimals = await getDecimal(vaultToken)
+    const assetTokenDecimal = await getDecimals(vaultAssetToken)
+    const vaultTokenDecimals = await getDecimals(vaultToken)
 
     const todayAssetX10d = await getTotalAssets(vault, blockNow)
     const todayAsset = todayAssetX10d.div(BN(10).pow(assetTokenDecimal))
