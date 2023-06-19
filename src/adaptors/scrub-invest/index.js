@@ -177,11 +177,9 @@ const unwrapLP = async (chain, lpTokens) => {
       chain,
     })
   ).output.map((decimal) => Math.pow(10, Number(decimal.output)));
-  console.log("Decimals",token0Decimals, token1Decimals);
 
   const token0Price = await getPrices(token0);
   const token1Price = await getPrices(token1);
-  console.log("Token Prices", token0Price, token1Price);
   const lpMarkets = lpTokens.map((lpToken) => {
     return { lpToken };
   });
@@ -283,11 +281,9 @@ const calcApy = async () => {
     ...pricesTokens,
     ...lpPrices,
   };
-  console.log("LP Prices", lpPrices)
-  console.log("Prices", prices)
+
   const infos = await getInfos();
   
-  console.log(infos);
   const pools = tokens.map((token, i) => {
     const symbol = token.name;
     const tokenAddress = token.address;
@@ -299,7 +295,7 @@ const calcApy = async () => {
     let price = prices[tokenAddress.toLowerCase()];
    
     const info = infos[i];
-    console.log(info);
+    console.log(symbol,info);
     const tvlUsd = ((token.lp?info.totalCollateral ?? 0 :info.totalSupplied ?? 0) / (10 ** decimals)) * price;
     const apyBase = convertAPR2APY((info.lastAPR ?? 0) / 1e6);
 
