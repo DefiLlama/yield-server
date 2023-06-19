@@ -5,8 +5,6 @@ const vaultManager = require('./abis/vaultManagerAbi.json');
 const utils = require('../utils');
 
 const OLYMPUS_LIQUIDITY_REGISTRY = '0x375E06C694B5E50aF8be8FB03495A612eA3e2275';
-const OHM_WSTETH_VAULT =
-  '0xafe729d57d2CC58978C2e01b4EC39C47FB7C4b23'.toLowerCase();
 const AURA_ADDRESS = '0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF'.toLowerCase();
 const BAL_ADDRESS = '0xba100000625a3754423978a60c9317c58a424e3D'.toLowerCase();
 const WSTETH_ADDRESS =
