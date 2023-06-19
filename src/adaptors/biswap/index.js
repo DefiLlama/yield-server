@@ -69,7 +69,7 @@ const apy = async () => {
   );
 
   const { pricesByAddress: tokensPrices } = await utils.getPrices(
-    [...tokens0, ...tokens1],
+    [...new Set([...tokens0, ...tokens1])],
     CHAIN
   );
 
