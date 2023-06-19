@@ -119,24 +119,35 @@ async function handleV2(pool, prices) {
   const asset = await v2.getHoldingPosition(cellarAddress);
   const assetPrice = prices.pricesByAddress[asset.toLowerCase()];
 
-  const apyReward = await getRewardApy(
-    stakingPools[cellarAddress],
-    prices.pricesBySymbol.somm,
-    assetPrice
-  );
   const apyBase = await v2.getApy(cellarAddress);
   const apyBase7d = await v2.getApy7d(cellarAddress);
 
   // getTvlUsd implementation hasn't changed since v1.5 (v0.8.16)
   const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset);
 
-  return {
+  const baseResult = {
     ...pool,
     tvlUsd,
     apyBase,
     apyBase7d,
-    apyReward,
     underlyingTokens,
+  };
+
+  // return pool without apyReward if stakingPool is not configured
+  const stakingPool = stakingPools[cellarAddress];
+  if (stakingPool == null) {
+    return baseResult;
+  }
+
+  const apyReward = await getRewardApy(
+    stakingPools[cellarAddress],
+    prices.pricesBySymbol.somm,
+    assetPrice
+  );
+
+  return {
+    ...baseResult,
+    apyReward,
     poolMeta:
       apyReward > 0 ? `${pool.poolMeta} - 3day Bonding Lock` : pool.poolMeta,
   };
