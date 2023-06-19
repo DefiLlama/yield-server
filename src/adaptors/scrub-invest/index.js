@@ -297,7 +297,7 @@ const calcApy = async () => {
     const info = infos[i];
     console.log("INFOS",symbol,token.lp?(info.userInfo.totalCollateral ?? 0 ):(info.totalSupplied ?? 0),price);
     const tvlUsd = ((token.lp?(info.userInfo.totalCollateral ?? 0 ):(info.totalSupplied ?? 0)) / (10 ** decimals)) * price;
-    const apyBase = convertAPR2APY((info.lastAPR ?? 0) / 1e6);
+    const apyBase = convertAPR2APY((token.lp?info.userInfo.lastAPR ?? 0 :info.lastAPR ?? 0) / 1e6);
 
     return {
       pool: vaultAddress,
