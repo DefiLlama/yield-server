@@ -13,8 +13,9 @@ const AURA_ADDRESS = '0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF'.toLowerCase();
 const BAL_ADDRESS = '0xba100000625a3754423978a60c9317c58a424e3D'.toLowerCase();
 const WSTETH_ADDRESS =
   '0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0'.toLowerCase();
-const SFRXETH_ADDRESS = '0xac3e018457b222d93114458476f3e3416abbe38f'.toLowerCase()
-const RETH_ADDRESS = '0xae78736cd615f374d3085123a210448e74fc6393'.toLowerCase()
+const SFRXETH_ADDRESS =
+  '0xac3e018457b222d93114458476f3e3416abbe38f'.toLowerCase();
+const RETH_ADDRESS = '0xae78736cd615f374d3085123a210448e74fc6393'.toLowerCase();
 
 const SECONDS_PER_YEAR = 60 * 60 * 24 * 365;
 
@@ -88,7 +89,22 @@ const main = async () => {
   const {
     balancer: { breakdown: auraTvl },
   } = await utils.getData(AURA_TVL_API);
-  const { pools } = await request(AURA_API, auraPoolsQuery);
+  const { pools: poolsIncludingDupes } = await request(
+    AURA_API,
+    auraPoolsQuery
+  );
+
+  // aura subgraph returns some pools more than once, removing those dupes here
+  const ids = new Set();
+  const pools = poolsIncludingDupes
+    .sort((a, b) => b.id - a.id)
+    .filter((p) => {
+      const lpTokenId = p.lpToken.id;
+      const x = ids.has(lpTokenId);
+      ids.add(lpTokenId);
+      return !x;
+    });
+
   const { pools: balPools } = await request(BAL_API, balBoolsQuery, {
     address_in: pools.map(({ lpToken }) => lpToken.id),
   });
@@ -135,18 +151,9 @@ const main = async () => {
     };
   });
 
-  res = res
+  return res
     .filter(Boolean)
-    .filter((p) => p.pool !== '0xe8cc7e765647625b95f59c15848379d10b9ab4af')
-    .sort((a, b) => a.apyReward - b.apyReward);
-
-  // subgraph returns some pools more than once, removing those dupes here
-  const uniquePools = new Set();
-  return res.filter((p) => {
-    const x = uniquePools.has(p.pool);
-    uniquePools.add(p.pool);
-    return !x;
-  });
+    .filter((p) => p.pool !== '0xe8cc7e765647625b95f59c15848379d10b9ab4af');
 };
 
 module.exports = {
