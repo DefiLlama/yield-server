@@ -194,6 +194,7 @@ const getPoolsBorrow = async (req, res) => {
         borrowable: p.borrowable,
         mintedCoin: p.mintedCoin,
         borrowFactor: p.borrowFactor,
+        rewardTokens: p.rewardTokens,
       };
     })
     .filter(Boolean)
