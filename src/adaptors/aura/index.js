@@ -156,7 +156,7 @@ const main = async () => {
       symbol: balData.tokens.map(({ symbol }) => symbol).join('-'),
       chain: utils.formatChain('ethereum'),
       tvlUsd,
-      apyBase: Number(swapApr.poolAprs.swap) + wstETHApy + sfrxETHApy + rETHApy,
+      apyBase: Number(swapApr.poolAprs.swap),
       apyReward: apyBal + apyAura + auraExtraApy,
       underlyingTokens: balData.tokens.map(({ address }) => address),
       rewardTokens,
