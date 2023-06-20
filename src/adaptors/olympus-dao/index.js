@@ -5,8 +5,6 @@ const vaultManager = require('./abis/vaultManagerAbi.json');
 const utils = require('../utils');
 
 const OLYMPUS_LIQUIDITY_REGISTRY = '0x375E06C694B5E50aF8be8FB03495A612eA3e2275';
-const OHM_WSTETH_VAULT =
-  '0xafe729d57d2CC58978C2e01b4EC39C47FB7C4b23'.toLowerCase();
 const AURA_ADDRESS = '0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF'.toLowerCase();
 const BAL_ADDRESS = '0xba100000625a3754423978a60c9317c58a424e3D'.toLowerCase();
 const WSTETH_ADDRESS =
@@ -155,75 +153,97 @@ const getAuraVaultTVL = async (vaultAddress, pairToken) => {
  * Boost the reward APY by 2 to account for single sided deposit.
  */
 const getAuraAPY = async (address, swapAprs, prices, auraSupply) => {
-  const auraPool = (
-    await sdk.api.abi.call({
-      target: address,
-      abi: vaultManager.find((n) => n.name === 'auraData'),
-      chain: 'ethereum',
-    })
-  ).output;
+  try {
+    const auraPool = (
+      await sdk.api.abi.call({
+        target: address,
+        abi: vaultManager.find((n) => n.name === 'auraData'),
+        chain: 'ethereum',
+      })
+    ).output;
 
-  const pairToken = (
-    await sdk.api.abi.call({
-      target: address,
-      abi: vaultManager.find((n) => n.name === 'pairToken'),
-      chain: 'ethereum',
-    })
-  ).output;
+    const pairToken = (
+      await sdk.api.abi.call({
+        target: address,
+        abi: vaultManager.find((n) => n.name === 'pairToken'),
+        chain: 'ethereum',
+      })
+    ).output;
 
-  const { pools } = await request(AURA_API, auraPoolsQuery, {
-    id: +auraPool.pid,
-  });
+    const contractFee = (
+      await sdk.api.abi
+        .call({
+          target: address,
+          abi: vaultManager.find((n) => n.name === 'currentFee'),
+          chain: 'ethereum',
+        })
+        .catch(() => {
+          return { output: 0 }; //handle case of no fee
+        })
+    ).output;
+    const fee = contractFee / 1e4;
 
-  const pool = pools[0];
+    const { pools } = await request(AURA_API, auraPoolsQuery, {
+      id: +auraPool.pid,
+    });
 
-  const { pools: balPools } = await request(BAL_API, balBoolsQuery, {
-    address_in: [pool.lpToken.id],
-  });
+    const pool = pools[0];
 
-  const balPool = balPools[0];
-  if (!balPool) return;
+    const { pools: balPools } = await request(BAL_API, balBoolsQuery, {
+      address_in: [pool.lpToken.id],
+    });
 
-  const swapApr = swapAprs.find(({ id }) => id === balPool.id);
-  if (!swapApr?.poolAprs) return;
+    const balPool = balPools[0];
+    if (!balPool) return;
 
-  const vaultTvlUsd = await getAuraVaultTVL(address, pairToken);
+    const swapApr = swapAprs.find(({ id }) => id === balPool.id);
+    if (!swapApr?.poolAprs) return;
 
-  const balRewards = pool.rewardData.find(
-    ({ token }) => token.id === BAL_ADDRESS
-  );
+    const vaultTvlUsd = await getAuraVaultTVL(address, pairToken);
 
-  const auraExtraRewards = pool.rewardData.find(
-    ({ token }) => token.id === AURA_ADDRESS
-  );
-  const {
-    balancer: { breakdown: auraTvl },
-  } = await utils.getData(AURA_TVL_API);
-  const tvlUsd = auraTvl[pool.lpToken.id] || 0;
-  const balPerYear = (balRewards.rewardRate / 1e18) * SECONDS_PER_YEAR;
-  const apyBal = (balPerYear / tvlUsd) * 100 * prices[BAL_ADDRESS] || 0;
-  const auraPerYear = getAuraMintAmount(balPerYear, auraSupply);
-  const apyAura = (auraPerYear / tvlUsd) * 100 * prices[AURA_ADDRESS] || 0;
-  const auraExtraApy = auraExtraRewards
-    ? (((auraExtraRewards.rewardRate / 1e18) * SECONDS_PER_YEAR) / tvlUsd) *
-      100 *
-      prices[AURA_ADDRESS]
-    : 0;
-  //make sure to account for stETH rewards on certain pools
-  const wstETHApy = swapApr.poolAprs.tokens.breakdown[WSTETH_ADDRESS] || 0;
+    const balRewards = pool.rewardData.find(
+      ({ token }) => token.id === BAL_ADDRESS
+    );
 
-  const rewardTokens = [BAL_ADDRESS, AURA_ADDRESS];
+    const auraExtraRewards = pool.rewardData.find(
+      ({ token }) => token.id === AURA_ADDRESS
+    );
+    const {
+      balancer: { breakdown: auraTvl },
+    } = await utils.getData(AURA_TVL_API);
+    const tvlUsd = auraTvl[pool.lpToken.id] || 0;
+    const balPerYear = (balRewards.rewardRate / 1e18) * SECONDS_PER_YEAR;
+    const balFee = balPerYear * fee;
+    const apyBal =
+      ((balPerYear - balFee) / tvlUsd) * 100 * prices[BAL_ADDRESS] || 0;
+    const auraPerYear = getAuraMintAmount(balPerYear, auraSupply);
+    const auraFee = auraPerYear * fee;
+    const apyAura =
+      ((auraPerYear - auraFee) / tvlUsd) * 100 * prices[AURA_ADDRESS] || 0;
+    const auraExtraApy = auraExtraRewards
+      ? (((auraExtraRewards.rewardRate / 1e18) * SECONDS_PER_YEAR) / tvlUsd) *
+        100 *
+        prices[AURA_ADDRESS]
+      : 0;
+    //make sure to account for stETH rewards on certain pools
+    const wstETHApy = swapApr.poolAprs.tokens.breakdown[WSTETH_ADDRESS] || 0;
 
-  return {
-    pool: address,
-    symbol: balPool.tokens.map(({ symbol }) => symbol).join('-'),
-    chain: utils.formatChain('ethereum'),
-    tvlUsd: vaultTvlUsd,
-    apyBase: Number(swapApr.poolAprs.swap) + wstETHApy * 2, //boosted
-    apyReward: (apyBal + apyAura + auraExtraApy) * 2, //boosted
-    underlyingTokens: balPool.tokens.map(({ address }) => address),
-    rewardTokens,
-  };
+    const rewardTokens = [BAL_ADDRESS, AURA_ADDRESS];
+
+    return {
+      pool: address,
+      symbol: balPool.tokens.map(({ symbol }) => symbol).join('-'),
+      chain: utils.formatChain('ethereum'),
+      tvlUsd: vaultTvlUsd,
+      apyBase: Number(swapApr.poolAprs.swap) + wstETHApy * 2, //boosted
+      apyReward: (apyBal + apyAura + auraExtraApy) * 2, //boosted
+      underlyingTokens: balPool.tokens.map(({ address }) => address),
+      rewardTokens,
+    };
+  } catch (e) {
+    console.log(e);
+    return;
+  }
 };
 
 /**
@@ -248,16 +268,11 @@ const main = async () => {
   );
   const apyInfo = await Promise.all(
     addresses.map(async (address) => {
-      switch (address.toLowerCase()) {
-        case OHM_WSTETH_VAULT:
-          const info = await getAuraAPY(address, swapAprs, prices, auraSupply);
-          return { project: 'olympus-dao', ...info };
-        default:
-          return null;
-      }
+      const info = await getAuraAPY(address, swapAprs, prices, auraSupply);
+      return info ? { project: 'olympus-dao', ...info } : undefined;
     })
   );
-  return apyInfo;
+  return apyInfo.filter((info) => info);
 };
 
 module.exports = {
