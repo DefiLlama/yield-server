@@ -182,6 +182,7 @@ const getPoolsBorrow = async (req, res) => {
   const poolsBorrow = lendBorrow
     .map((p) => {
       const poolSupplySide = pools.find((i) => i.pool === p.pool);
+      if (poolSupplySide === undefined) return null;
 
       return {
         ...poolSupplySide,
