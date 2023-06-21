@@ -140,7 +140,7 @@ async function getTokenPrices(pairInfo) {
     const pairs = (
       await axios.get(`https://api.dexscreener.com/latest/dex/tokens/${token}`)
     ).data.pairs;
-    if (!pairs?.length) return undefined;
+    if (!pairs.length) return undefined;
     const totalLiquidity = pairs
       .map((p) => p.liquidity.usd)
       .reduce((a, b) => a + b);
