@@ -53,7 +53,7 @@ async function getTvlInUsd(vault, vaultAssetToken, block) {
     return totalAsset.times(price).toNumber()
 }
 
-async function getApyInPercentage(vault, vaultAssetToken, vaultToken, blockNow, block24hrsAgo) {
+async function getApyInNDaysPercentage(vault, vaultAssetToken, vaultToken, blockNow, blockNDaysAgo, nDays) {
     const assetTokenDecimal = await getDecimals(vaultAssetToken)
     const vaultTokenDecimals = await getDecimals(vaultToken)
 
@@ -64,27 +64,28 @@ async function getApyInPercentage(vault, vaultAssetToken, vaultToken, blockNow, 
     const todaySupply = todaySupplyX10d.div(BN(10).pow(vaultTokenDecimals));
     const todaySharePrice = todayAsset.div(todaySupply)
 
-    const yesterdayAssetX10d = await getTotalAssets(vault, block24hrsAgo)
-    const yesterdayAsset = yesterdayAssetX10d.div(BN(10).pow(assetTokenDecimal))
-    const yesterdaySupplyX10d = await getTotalSupply(vaultToken, block24hrsAgo)
-    const yesterdaySupply = yesterdaySupplyX10d.div(BN(10).pow(vaultTokenDecimals));
-    const yesterdaySharePrice = yesterdayAsset.div(yesterdaySupply)
+    const nDaysAgoAssetX10d = await getTotalAssets(vault, blockNDaysAgo)
+    const nDaysAgoAsset = nDaysAgoAssetX10d.div(BN(10).pow(assetTokenDecimal))
+    const nDaysAgoSupplyX10d = await getTotalSupply(vaultToken, blockNDaysAgo)
+    const nDaysAgoSupply = nDaysAgoSupplyX10d.div(BN(10).pow(vaultTokenDecimals));
+    const nDaysAgoSharePrice = nDaysAgoAsset.div(nDaysAgoSupply)
 
-    const apr = todaySharePrice.minus(yesterdaySharePrice).times(365)
+    const apr = todaySharePrice.minus(nDaysAgoSharePrice).div(nDays).times(365)
 
     const aprInPercentage = apr.times(100);
     return utils.aprToApy(aprInPercentage.toNumber())
 }
 
-
 async function calculatePool(vault, vaultAssetToken, vaultToken) {
     const timestampNow = Math.floor(Date.now() / 1_000);
     const timestamp24hsAgo = timestampNow - 86_400;
-    const [block24hrsAgo, blockNow] = await getBlocksByTime([timestamp24hsAgo, timestampNow], "optimism");
+    const timestamp7daysAgo = timestampNow - 86_400*7
+    const [block7daysAgo, block24hrsAgo, blockNow] = await getBlocksByTime([timestamp7daysAgo, timestamp24hsAgo, timestampNow], "optimism");
 
     const tvlInUsd = await getTvlInUsd(vault, vaultAssetToken, blockNow)
-    const apyInPercentage = await getApyInPercentage(vault, vaultAssetToken, vaultToken, blockNow, block24hrsAgo)
-    return {tvlInUsd, apyInPercentage};
+    const apy1DayPercentage = await getApyInNDaysPercentage(vault, vaultAssetToken, vaultToken, blockNow, block24hrsAgo, 1)
+    const apy7DaysPercentage = await getApyInNDaysPercentage(vault, vaultAssetToken, vaultToken, blockNow, block7daysAgo, 7)
+    return {tvlInUsd, apy1DayPercentage, apy7DaysPercentage};
 }
 
 const poolsFunction = async () => {
@@ -92,7 +93,7 @@ const poolsFunction = async () => {
     const pools = []
 
     for (const {vault, vaultAsset, vaultToken, vaultBaseToken, vaultQuoteToken} of meta.vaults) {
-        const {tvlInUsd, apyInPercentage} = await calculatePool(vault, vaultAsset, vaultToken);
+        const {tvlInUsd, apy1DayPercentage, apy7DaysPercentage} = await calculatePool(vault, vaultAsset, vaultToken);
 
         const symbol = await getSymbol(vaultToken)
         pools.push({
@@ -101,7 +102,8 @@ const poolsFunction = async () => {
             project: "perpetual-protocol",
             symbol: symbol,
             tvlUsd: tvlInUsd,
-            apyBase: apyInPercentage,
+            apyBase: apy1DayPercentage,
+            apyBase7d: apy7DaysPercentage,
             underlyingTokens: [vaultBaseToken, vaultQuoteToken],
             url: "https://vaults.perp.com/"
         })
