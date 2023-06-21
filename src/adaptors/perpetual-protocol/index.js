@@ -102,8 +102,6 @@ const poolsFunction = async () => {
             symbol: symbol,
             tvlUsd: tvlInUsd,
             apyBase: apyInPercentage,
-            apyReward: null,
-            rewardTokens: null,
             underlyingTokens: [vaultBaseToken, vaultQuoteToken],
             url: "https://vaults.perp.com/"
         })
