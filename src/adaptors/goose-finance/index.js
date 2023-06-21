@@ -20,30 +20,32 @@ const getPairInfo = async (pair, tokenAddress) => {
         })),
         chain: 'bsc',
         requery: true,
-      }
+      })
     )
-  ));
+  );
   return {
     lpToken: pair.toLowerCase(),
-    pairName: tokenSymbol.output.map(e => e.output).join('-'),
+    pairName: tokenSymbol.output.map((e) => e.output).join('-'),
     token0: {
       address: tokenAddress[0],
       symbol: tokenSymbol.output[0].output,
-      decimals: tokenDecimals.output[0].output
+      decimals: tokenDecimals.output[0].output,
     },
     token1: {
       address: tokenAddress[1],
       symbol: tokenSymbol.output[1].output,
-      decimals: tokenDecimals.output[1].output
-    }
+      decimals: tokenDecimals.output[1].output,
+    },
   };
-}
+};
 
 const getPrices = async (addresses) => {
+  const coins = addresses
+    .map((address) => `bsc:${address}`)
+    .join(',')
+    .toLowerCase();
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses.map((address) => `bsc:${address}`),
-    })
+    await superagent.get(`https://coins.llama.fi/prices/current/${coins}`)
   ).body.coins;
 
   const pricesObj = Object.entries(prices).reduce(
@@ -121,10 +123,10 @@ const getApy = async () => {
   });
 
   const pools = poolsRes.output
-  .map(({ output }, i) => ({ ...output, i }))
-  .filter((e) => e.allocPoint !== '0')
-  .filter((k) => k.lpToken !== '0xB8157e2506238b06f2d1f3030593f3d620B90a16')
-  const lpTokens = pools.map(({ lpToken }) => lpToken)
+    .map(({ output }, i) => ({ ...output, i }))
+    .filter((e) => e.allocPoint !== '0')
+    .filter((k) => k.lpToken !== '0xB8157e2506238b06f2d1f3030593f3d620B90a16');
+  const lpTokens = pools.map(({ lpToken }) => lpToken);
 
   const [reservesRes, supplyRes, masterChefBalancesRes] = await Promise.all(
     ['getReserves', 'totalSupply', 'balanceOf'].map((method) =>
@@ -161,9 +163,13 @@ const getApy = async () => {
   const tokens0 = underlyingToken0.output.map((res) => res.output);
   const tokens1 = underlyingToken1.output.map((res) => res.output);
   const tokensPrices = await getPrices([...tokens0, ...tokens1]);
-  const pairInfos = await Promise.all(pools.map((_, index) => getPairInfo(lpTokens[index], [tokens0[index], tokens1[index]])));
+  const pairInfos = await Promise.all(
+    pools.map((_, index) =>
+      getPairInfo(lpTokens[index], [tokens0[index], tokens1[index]])
+    )
+  );
   const poolsApy = [];
-  for(const [i, pool] of pools.entries()) {
+  for (const [i, pool] of pools.entries()) {
     const pairInfo = pairInfos[i];
     const poolInfo = pool;
     const reserves = reservesData[i];
@@ -200,7 +206,6 @@ const getApy = async () => {
       rewardTokens: [EGG_TOKEN],
     });
   }
-
 
   return poolsApy;
 };

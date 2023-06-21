@@ -14,6 +14,7 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'boba_avax') return 'Boba_Avax';
   if (chain && chain.toLowerCase() === 'boba_bnb') return 'Boba_Bnb';
   if (chain && chain.toLowerCase() === 'zksync_era') return 'zkSync Era';
+  if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
@@ -264,12 +265,15 @@ exports.keepFinite = (p) => {
 };
 
 exports.getPrices = async (addresses, chain) => {
+  const priceKeys = chain
+    ? addresses.map((address) => `${chain}:${address}`)
+    : addresses;
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: chain
-        ? addresses.map((address) => `${chain}:${address}`)
-        : addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${priceKeys
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesByAddress = Object.entries(prices).reduce(

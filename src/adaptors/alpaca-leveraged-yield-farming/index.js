@@ -1,7 +1,16 @@
 const axios = require('axios');
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const project = 'alpaca-leveraged-yield-farming';
+
+const tokenAbi = {
+  inputs: [],
+  name: 'token',
+  outputs: [{ internalType: 'address', name: '', type: 'address' }],
+  stateMutability: 'view',
+  type: 'function',
+};
 
 async function apy(chain) {
   const response = (
@@ -16,14 +25,30 @@ async function apy(chain) {
 
   const chainString = utils.formatChain(chainMapping[chain]);
 
-  const fairLaunchStakingPools = filteredStakingPools.map((p) => ({
-    pool: `${p.stakingToken.address}-staking-${chainString}`.toLowerCase(),
-    chain: chainString,
-    project,
-    symbol: utils.formatSymbol(p.symbol.split(' ')[0]),
-    tvlUsd: Number(p.tvl),
-    apy: Number(p.apy),
-  }));
+  const fairLaunchStakingPools = await Promise.all(
+    filteredStakingPools.map(async (p) => {
+      let underlying;
+      if (chain === 'ftm') {
+        underlying = (
+          await sdk.api.abi.call({
+            target: p.stakingToken.address,
+            abi: tokenAbi,
+            chain: 'fantom',
+          })
+        ).output;
+      }
+
+      return {
+        pool: `${p.stakingToken.address}-staking-${chainString}`.toLowerCase(),
+        chain: chainString,
+        project,
+        symbol: utils.formatSymbol(p.symbol.split(' ')[0]),
+        tvlUsd: Number(p.tvl),
+        apy: Number(p.apy),
+        underlyingTokens: chain === 'ftm' ? [underlying] : [],
+      };
+    })
+  );
 
   const strategyPools = response.strategyPools.map((p) => ({
     pool: `${p.address}-${chainString}`.toLowerCase(),
@@ -33,6 +58,10 @@ async function apy(chain) {
     poolMeta: p.name,
     tvlUsd: Number(p.tvl),
     apy: Number(p.apy),
+    underlyingTokens: [
+      p.workingToken?.tokenA?.address,
+      p.workingToken?.tokenB?.address,
+    ].filter((i) => i !== undefined),
   }));
 
   const farmingPools = response.farmingPools.map((p) => ({
@@ -45,6 +74,10 @@ async function apy(chain) {
     apy: utils.aprToApy(
       (Number(p.farmRewardApr) + Number(p.tradingFeeApr)) / p.leverage
     ),
+    underlyingTokens: [
+      p.workingToken?.tokenA?.address,
+      p.workingToken?.tokenB?.address,
+    ].filter((i) => i !== undefined),
   }));
 
   const ausdPools = response.ausdPools.map((p) => ({

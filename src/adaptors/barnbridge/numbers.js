@@ -5,11 +5,9 @@ const { poolByProvider } = require('./SmartYield.js');
 const { underlyingBalance, totalUnRedeemed } = require('./IProvider.js');
 
 const getAssetUsdPrice = async (chain, asset) => {
-  const key = `${chain.name}:${asset}`;
+  const key = `${chain.name}:${asset}`.toLowerCase();
   const assetPriceUSD = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: [key],
-    })
+    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
   ).body.coins[key].price;
 
   return assetPriceUSD;

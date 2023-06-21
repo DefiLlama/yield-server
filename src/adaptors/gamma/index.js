@@ -188,17 +188,32 @@ const getApy = async () => {
     {}
   );
 
-  const keys = [];
+  let keys = [];
   for (const key of Object.keys(tokens)) {
     keys.push(tokens[key].map((t) => `${key}:${t}`));
   }
-  const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: keys.flat(),
-    })
-  ).body.coins;
+  keys = [...new Set(keys.flat())]
 
-
+  const maxSize = 50;
+  const pages = Math.ceil(keys.length / maxSize);
+  let pricesA = [];
+  let url = '';
+  for (const p of [...Array(pages).keys()]) {
+    url = keys
+      .slice(p * maxSize, maxSize * (p + 1))
+      .join(',')
+      .toLowerCase()
+    pricesA = [
+      ...pricesA,
+      (await superagent.get(`https://coins.llama.fi/prices/current/${url}`))
+        .body.coins,
+    ];
+  }
+  let prices = {};
+  for (const p of pricesA) {
+    prices = { ...prices, ...p };
+  }
+  
   const pools = Object.keys(hype_allData).map((chain) => {
 
     const chainAprs = Object.keys(hype_allData[chain]).filter((function (hypervisor_id) {
@@ -237,7 +252,7 @@ const getApy = async () => {
       // create a unique pool name
       var pool_name = hypervisor_id;
       if (pools_processed.indexOf(pool_name) >= 0) {
-        pool_name = `${hypervisor_id}-${utils.formatChain(chain)}`
+        pool_name = `${hypervisor_id}-${chain === 'polygon_zkevm' ? 'Polygon_zkevm' : utils.formatChain(chain)}`
       };
       pools_processed.push(pool_name);
 

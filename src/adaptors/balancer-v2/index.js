@@ -198,11 +198,9 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
       ).output / 1e18;
 
     // get BAL price
-    const key = `${chainString}:${BAL}`;
+    const key = `${chainString}:${BAL}`.toLowerCase();
     price = (
-      await superagent.post('https://coins.llama.fi/prices').send({
-        coins: [key],
-      })
+      await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
     ).body.coins[key].price;
   }
 
@@ -271,11 +269,9 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
         }
 
         // get cg price of reward token
-        const key = `${chainString}:${add}`;
+        const key = `${chainString}:${add}`.toLowerCase();
         const price = (
-          await superagent.post('https://coins.llama.fi/prices').send({
-            coins: [key],
-          })
+          await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
         ).body.coins[key]?.price;
 
         // call reward data
@@ -363,13 +359,26 @@ const topLvl = async (
     ),
   ];
 
-  const tokenPriceList = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: tokenList
-        .map((t) => `${chainString}:${t}`)
-        .concat(['solana:So11111111111111111111111111111111111111112']),
-    })
-  ).body.coins;
+  const maxSize = 50;
+  const pages = Math.ceil(tokenList.length / maxSize);
+  let pricesA = [];
+  let keys = '';
+  for (const p of [...Array(pages).keys()]) {
+    keys = tokenList
+      .slice(p * maxSize, maxSize * (p + 1))
+      .map((i) => `${chainString}:${i}`)
+      .join(',')
+      .replaceAll('/', '');
+    pricesA = [
+      ...pricesA,
+      (await superagent.get(`https://coins.llama.fi/prices/current/${keys}`))
+        .body.coins,
+    ];
+  }
+  let tokenPriceList = {};
+  for (const p of pricesA) {
+    tokenPriceList = { ...tokenPriceList, ...p };
+  }
 
   // calculate tvl
   let tvlInfo = dataNow.map((el) => tvl(el, tokenPriceList, chainString));

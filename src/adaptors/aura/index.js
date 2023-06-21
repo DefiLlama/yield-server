@@ -13,6 +13,9 @@ const AURA_ADDRESS = '0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF'.toLowerCase();
 const BAL_ADDRESS = '0xba100000625a3754423978a60c9317c58a424e3D'.toLowerCase();
 const WSTETH_ADDRESS =
   '0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0'.toLowerCase();
+const SFRXETH_ADDRESS =
+  '0xac3e018457b222d93114458476f3e3416abbe38f'.toLowerCase();
+const RETH_ADDRESS = '0xae78736cd615f374d3085123a210448e74fc6393'.toLowerCase();
 
 const SECONDS_PER_YEAR = 60 * 60 * 24 * 365;
 
@@ -70,10 +73,6 @@ const auraPoolsQuery = gql`
 `;
 
 const main = async () => {
-  const { pricesByAddress: prices } = await utils.getPrices(
-    [AURA_ADDRESS, BAL_ADDRESS],
-    'ethereum'
-  );
   const { pools: swapAprs } = await utils.getData(SWAP_APR_API);
   const auraSupply =
     (
@@ -86,7 +85,31 @@ const main = async () => {
   const {
     balancer: { breakdown: auraTvl },
   } = await utils.getData(AURA_TVL_API);
-  const { pools } = await request(AURA_API, auraPoolsQuery);
+  const { pools: poolsIncludingDupes } = await request(
+    AURA_API,
+    auraPoolsQuery
+  );
+
+  // aura subgraph returns some pools more than once, removing those dupes here
+  const ids = new Set();
+  const pools = poolsIncludingDupes
+    .sort((a, b) => b.id - a.id)
+    .filter((p) => {
+      const lpTokenId = p.lpToken.id;
+      const x = ids.has(lpTokenId);
+      ids.add(lpTokenId);
+      return !x;
+    });
+
+  const priceKeys = [...ids, AURA_ADDRESS, BAL_ADDRESS]
+    .map((i) => `ethereum:${i}`)
+    .join(',')
+    .toLowerCase();
+
+  const prices = (
+    await utils.getData(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).coins;
+
   const { pools: balPools } = await request(BAL_API, balBoolsQuery, {
     address_in: pools.map(({ lpToken }) => lpToken.id),
   });
@@ -96,7 +119,10 @@ const main = async () => {
     if (!balData) return;
     const swapApr = swapAprs.find(({ id }) => id === balData.id);
     if (!swapApr?.poolAprs) return;
-    const tvlUsd = auraTvl[pool.lpToken.id] || 0;
+    // const tvlUsd = auraTvl[pool.lpToken.id] || 0;
+    const tvlUsd =
+      (Number(pool.gauge.balance) / 1e18) *
+        prices[`ethereum:${pool.lpToken.id.toLowerCase()}`]?.price || 0;
     const balRewards = pool.rewardData.find(
       ({ token }) => token.id === BAL_ADDRESS
     );
@@ -104,17 +130,23 @@ const main = async () => {
       ({ token }) => token.id === AURA_ADDRESS
     );
     const balPerYear = (balRewards.rewardRate / 1e18) * SECONDS_PER_YEAR;
-    const apyBal = (balPerYear / tvlUsd) * 100 * prices[BAL_ADDRESS] || 0;
+    const apyBal =
+      (balPerYear / tvlUsd) * 100 * prices[`ethereum:${BAL_ADDRESS}`].price ||
+      0;
     const auraPerYear = getAuraMintAmount(balPerYear, auraSupply);
-    const apyAura = (auraPerYear / tvlUsd) * 100 * prices[AURA_ADDRESS] || 0;
+    const apyAura =
+      (auraPerYear / tvlUsd) * 100 * prices[`ethereum:${AURA_ADDRESS}`].price ||
+      0;
     const auraExtraApy = auraExtraRewards
       ? (((auraExtraRewards.rewardRate / 1e18) * SECONDS_PER_YEAR) / tvlUsd) *
         100 *
-        prices[AURA_ADDRESS]
+        prices[`ethereum:${AURA_ADDRESS}`].price
       : 0;
 
-    //make sure to account for stETH rewards on certain pools
+    //make sure to account for stETH, sfrxETH and rETH rewards on certain pools
     const wstETHApy = swapApr.poolAprs.tokens.breakdown[WSTETH_ADDRESS] || 0;
+    const sfrxETHApy = swapApr.poolAprs.tokens.breakdown[SFRXETH_ADDRESS] || 0;
+    const rETHApy = swapApr.poolAprs.tokens.breakdown[RETH_ADDRESS] || 0;
 
     const rewardTokens = [BAL_ADDRESS, AURA_ADDRESS];
 
@@ -124,25 +156,17 @@ const main = async () => {
       symbol: balData.tokens.map(({ symbol }) => symbol).join('-'),
       chain: utils.formatChain('ethereum'),
       tvlUsd,
-      apyBase: Number(swapApr.poolAprs.swap) + wstETHApy,
+      apyBase: Number(swapApr.poolAprs.swap),
       apyReward: apyBal + apyAura + auraExtraApy,
       underlyingTokens: balData.tokens.map(({ address }) => address),
       rewardTokens,
+      url: `https://app.aura.finance/#/pool/${pool.id}`,
     };
   });
 
-  res = res
+  return res
     .filter(Boolean)
-    .filter((p) => p.pool !== '0xe8cc7e765647625b95f59c15848379d10b9ab4af')
-    .sort((a, b) => a.apyReward - b.apyReward);
-
-  // subgraph returns some pools more than once, removing those dupes here
-  const uniquePools = new Set();
-  return res.filter((p) => {
-    const x = uniquePools.has(p.pool);
-    uniquePools.add(p.pool);
-    return !x;
-  });
+    .filter((p) => p.pool !== '0xe8cc7e765647625b95f59c15848379d10b9ab4af');
 };
 
 module.exports = {
