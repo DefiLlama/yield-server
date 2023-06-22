@@ -223,8 +223,8 @@ const topLvl = async (
         poolMeta: `${poolMeta}, stablePool=${p.stablecoin}`,
         symbol: p.symbol,
         tvlUsd: p.totalValueLockedUSD,
-        apyBase: p.apy1d,
-        apyBase7d: p.apy7d,
+        apyBase: p.apy1d * 0.9, // 10% reduction for protocol fees
+        apyBase7d: p.apy7d * 0.9, // 10% reduction for protocol fees
         underlyingTokens,
         url,
         volumeUsd1d: p.volumeUSD1d,
