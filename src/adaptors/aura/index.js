@@ -1,22 +1,31 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
-const { boosterABI, stakingABI, miningABI, virtualBalanceRewardPoolABI, stashTokenABI } = require("./abis")
+const {
+  boosterABI, 
+  stakingABI, 
+  miningABI, 
+  virtualBalanceRewardPoolABI, 
+  stashTokenABI, 
+  lpTokenABI, 
+  lpTokenABI2, 
+  vaultABI 
+} = require("./abis")
 const _ = require("lodash");
 const ethers = require('ethers');
 
 const AURA_BOOSTER = "0xA57b8d98dAE62B26Ec3bcC4a365338157060B234"
+const BALANCER_VAULT = "0xBA12222222228d8Ba445958a75a0704d566BF2C8"
+const AURA_REWARDS_CALCULATOR = "0x744Be650cea753de1e69BF6BAd3c98490A855f52"
+
 const AURA_ADDRESS = '0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF'.toLowerCase();
 const BAL_ADDRESS = '0xba100000625a3754423978a60c9317c58a424e3D'.toLowerCase();
 const LDO_ADDRESS = "0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32".toLowerCase()
 
-const AURA_REWARDS_CALCULATOR = "0x744Be650cea753de1e69BF6BAd3c98490A855f52"
 
 const SECONDS_PER_YEAR = 60 * 60 * 24 * 365;
 const chain = "ethereum"
 
 // TODO support ARB pools
-// TODO add underlying tokens
-// TODO add stake pool yields from stETH, rETH, cbETH
 const main = async () => {
   const [AURA_SUPPLY, BALANCER_SUPPLY] = (await sdk.api.abi.multiCall({
     abi: 'erc20:totalSupply',
@@ -94,15 +103,60 @@ const main = async () => {
     }))
   })).output.map(({ output }) => output)
 
+  const balancerPoolIds = (await sdk.api.abi.multiCall({
+    abi: lpTokenABI.filter(({ name }) => name === "getPoolId")[0],
+    calls: _.range(validPoolsLength).map(i => ({
+        target: lpTokens[i]
+    }))
+  })).output.map(({ output }) => output)
+
+  // Some of the pools do not have `getPoolId` so we use an alternative method to get the pool id
+  await Promise.all(_.range(validPoolsLength).map(async i => {
+    if (balancerPoolIds[i]) { return }
+    balancerPoolIds[i] = (await sdk.api.abi.call({ 
+      abi: lpTokenABI2.filter(({ name }) => name === "POOL_ID")[0], 
+      target: lpTokens[i], 
+      chain,
+    })).output;
+  }))
+
+
+  const balancerPoolTokenInfos = (await sdk.api.abi.multiCall({
+    abi: vaultABI.filter(({ name }) => name === "getPoolTokens")[0],
+    calls: _.range(validPoolsLength).map(i => ({
+        target: BALANCER_VAULT,
+        chain,
+        params: [balancerPoolIds[i]]
+    }))
+  })).output.map(({ output }) => output)
+
+  const underlyingTokens = _.range(validPoolsLength).map(i => balancerPoolTokenInfos[i].tokens.filter(token => token !== lpTokens[i]))
+
+  const uniqueTokens = Array.from(new Set(_.flatten(underlyingTokens))) 
+  const uniqueTokenSymbols = (await sdk.api.abi.multiCall({
+    abi: "erc20:symbol",
+    calls: uniqueTokens.map(target => ({
+        target,
+        chain,
+    }))
+  })).output.map(({ output }) => output)
+
+  const tokenToSymbolMap = uniqueTokens.reduce((obj, token, index) => {
+    obj[token] = uniqueTokenSymbols[index];
+    return obj;
+  }, {});
+
+
   const finalPools = await Promise.all(_.range(validPoolsLength).map(async i => {
     const data = {
       pool: lpTokens[i],
       chain: "Ethereum",
       project: "aura",
-      symbol: poolTVLs[i] > 0 ? tokenPrices[`${chain}:${lpTokens[i].toLowerCase()}`].symbol : "NA",
+      symbol: underlyingTokens[i].map(token => tokenToSymbolMap[token]).join("-"),
       tvlUsd: poolTVLs[i],
       apyBase: auraAPYs[i] + balAPYs[i],
       apyReward: 0,
+      underlyingTokens: underlyingTokens[i],
       rewardTokens: [ethers.utils.getAddress(AURA_ADDRESS), ethers.utils.getAddress(BAL_ADDRESS)],
       url: `https://app.aura.finance/#/1/pool/${validPoolIds[i]}`,
    }
