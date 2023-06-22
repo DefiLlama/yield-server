@@ -311,7 +311,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
 
       x.rewardTokens = rewardTokens;
     } catch (err) {
-      console.log(err);
+      console.log('failed for', pool.poolId);
     }
   }
   return data;
@@ -427,7 +427,7 @@ const main = async () => {
       })
     ).output / 1e18;
 
-  const data = await Promise.all([
+  const data = await Promise.allSettled([
     topLvl(
       'ethereum',
       urlEthereum,
@@ -460,7 +460,11 @@ const main = async () => {
     ),
   ]);
 
-  return data.flat().filter((p) => utils.keepFinite(p));
+  return data
+    .filter((i) => i.status === 'fulfilled')
+    .map((i) => i.value)
+    .flat()
+    .filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
