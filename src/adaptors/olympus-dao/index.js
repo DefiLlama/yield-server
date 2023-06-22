@@ -86,7 +86,7 @@ const getActiveVaults = async () => {
   ).output;
 
   /* we only care about the count, so we can fill an array with 0s and map over it */
-  const countArray = Array(activeVaultsCount).fill(0);
+  const countArray = Array.from({ length: activeVaultsCount }).fill(0);
 
   const addresses = await Promise.all(
     countArray.map(async (value, position) => {
