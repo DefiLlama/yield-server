@@ -208,7 +208,7 @@ const main = async () => {
    return data
   }))
 
-  return finalPools.filter(x => x.symbol !== "NA")
+  return finalPools
 };
 
 module.exports = {
