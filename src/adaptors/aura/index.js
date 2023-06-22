@@ -93,7 +93,6 @@ const main = async () => {
         target: stakingContracts[i]
     }))
   })).output.map(({ output }) => output)
-  console.log(extraRewardLengths)
 
   const finalPools = await Promise.all(_.range(validPoolsLength).map(async i => {
     const data = {
@@ -155,7 +154,7 @@ const main = async () => {
    return data
   }))
 
-  return finalPools
+  return finalPools.filter(x => x.symbol !== "NA")
 };
 
 module.exports = {
