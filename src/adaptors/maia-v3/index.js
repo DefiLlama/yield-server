@@ -3,7 +3,7 @@ const { request, gql } = require('graphql-request');
 const superagent = require('superagent');
 
 const utils = require('../utils');
-const { EstimatedFees } = require('./estimateFee.ts');
+const { EstimatedFees } = require('../uniswap-v3/estimateFee.ts');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 
@@ -246,11 +246,6 @@ const topTvl = async (
             incentive.endTime >= timestamp
         )
         .forEach((incentive) => {
-          console.log(
-            (incentive.reward /
-              10 ** rewardPrices[incentive.rewardToken].decimals) *
-              rewardPrices[incentive.rewardToken].price
-          );
           pool = rewardsApy(
             pool,
             incentive.rewardToken,
