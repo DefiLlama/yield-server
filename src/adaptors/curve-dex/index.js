@@ -378,11 +378,13 @@ const main = async () => {
 
   // correct this pools reward Apy
   const x = '0x7f90122BF0700F9E7e1F688fe926940E8839F353-avalanche';
-  return defillamaPooldata.map((p) => ({
-    ...p,
-    apyReward: p.pool === x ? null : p.apyReward,
-    rewardTokens: p.pool === x ? [] : p.rewardTokens,
-  }));
+  return defillamaPooldata
+    .map((p) => ({
+      ...p,
+      apyReward: p.pool === x ? null : p.apyReward,
+      rewardTokens: p.pool === x ? [] : p.rewardTokens,
+    }))
+    .filter((p) => p.apyReward < 100);
 };
 
 module.exports = {
