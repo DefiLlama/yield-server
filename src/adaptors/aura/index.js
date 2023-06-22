@@ -97,7 +97,7 @@ const main = async () => {
   const finalPools = await Promise.all(_.range(validPoolsLength).map(async i => {
     const data = {
       pool: lpTokens[i],
-      chain,
+      chain: "Ethereum",
       project: "aura",
       symbol: poolTVLs[i] > 0 ? tokenPrices[`${chain}:${lpTokens[i].toLowerCase()}`].symbol : "NA",
       tvlUsd: poolTVLs[i],
