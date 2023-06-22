@@ -246,6 +246,11 @@ const topTvl = async (
             incentive.endTime >= timestamp
         )
         .forEach((incentive) => {
+          console.log(
+            (incentive.reward /
+              10 ** rewardPrices[incentive.rewardToken].decimals) *
+              rewardPrices[incentive.rewardToken].price
+          );
           pool = rewardsApy(
             pool,
             incentive.rewardToken,

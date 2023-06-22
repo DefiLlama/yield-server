@@ -61,6 +61,7 @@
     "node-pg-migrate": "^6.2.2",
     "nodemon": "^2.0.22",
     "pg": "^8.8.0",
+    "pg-native": "^3.0.1",
     "prettier": "^2.2.1",
     "serverless": "^3.8.0",
     "serverless-prune-plugin": "^2.0.1",
