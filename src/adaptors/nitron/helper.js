@@ -165,13 +165,14 @@ module.exports.getRewardSchemes = async () => {
 };
 
 module.exports.getUSDValues = async (assets, denomToGeckoIdMap) => {
-  const query = assets
-    .map((a) => `coingecko:${denomToGeckoIdMap[a.denom]}`)
-    .join(',');
+  const priceKeys = [
+    ...new Set(assets.map((a) => `coingecko:${denomToGeckoIdMap[a.denom]}`)),
+  ].filter((i) => i !== undefined);
 
-  const priceKey = `coingecko:${query}`;
   const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
+    await axios.get(
+      `https://coins.llama.fi/prices/current/${priceKeys.join(',')}`
+    )
   ).data.coins;
 
   let result = {};

@@ -123,7 +123,7 @@ const apr = async () => {
       ltv: new BigNumber(asset.loan_to_value).shiftedBy(-2).toNumber() / 100,
     });
   }
-  return result;
+  return result.filter((p) => p.pool !== 'clpt/104');
 };
 
 module.exports = {
