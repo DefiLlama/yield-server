@@ -10,9 +10,6 @@ const { boundaries } = require('../../utils/exclude');
 const baseUrl = 'https://metis-graph.maiadao.io';
 const chains = {
   metis: `${baseUrl}/uniswap-v3`,
-  // polygon: `${baseUrl}/ianlapham/uniswap-v3-polygon`,
-  // arbitrum: `${baseUrl}/ianlapham/arbitrum-dev`,
-  // optimism: `${baseUrl}/ianlapham/optimism-post-regenesis`,
 };
 
 const query = gql`
