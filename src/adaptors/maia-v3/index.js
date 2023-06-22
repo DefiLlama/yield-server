@@ -7,9 +7,24 @@ const { EstimatedFees } = require('./estimateFee.ts');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 
+const rewardsUrl = 'https://metis-graph.maiadao.io/uni-v3-staker';
 const baseUrl = 'https://metis-graph.maiadao.io';
 const chains = {
   metis: `${baseUrl}/uniswap-v3`,
+};
+
+const decimalsErc20ABI = {
+  inputs: [],
+  name: 'decimals',
+  outputs: [
+    {
+      internalType: 'uint8',
+      name: '',
+      type: 'uint8',
+    },
+  ],
+  stateMutability: 'view',
+  type: 'function',
 };
 
 const query = gql`
@@ -36,18 +51,62 @@ const query = gql`
 
 const queryPrior = gql`
   {
-    pools( first: 1000 orderBy: totalValueLockedUSD orderDirection:desc block: {number: <PLACEHOLDER>}) {
+    pools( first: 1000 orderBy: totalValueLockedUSD orderDirection: desc block: {number: <PLACEHOLDER>}) {
       id 
       volumeUSD 
     }
   }
 `;
 
-const topLvl = async (
+const queryIncentives = gql`
+  {
+    incentives(last: 1000, orderBy: startTime, orderDirection: desc) {
+      pool
+      startTime
+      endTime
+      reward
+      rewardToken
+    }
+  }
+`;
+
+// calculating apy based pool's reward
+const rewardsApy = (pool, rewardToken, rewardUSD, durationInSeconds) => {
+  pool = { ...pool };
+
+  if (pool.rewardTokens) {
+    if (pool.rewardToken.indexOf(rewardToken) == -1) {
+      pool.rewardToken.push(rewardToken);
+    }
+    // annualise
+    pool.rewardUSD += (rewardUSD * 31536000) / durationInSeconds;
+    // calc apy
+    pool.apyReward += (pool.rewardUSD / pool.totalValueLockedUSD) * 100;
+  } else {
+    pool['rewardTokens'] = [rewardToken];
+    // annualise
+    pool['rewardUSD'] = (rewardUSD * 31536000) / durationInSeconds;
+    // calc apy
+    pool['apyReward'] = (pool.rewardUSD / pool.totalValueLockedUSD) * 100;
+  }
+
+  return pool;
+};
+
+function removeDuplicates(arr) {
+  var seen = {};
+  return arr.filter(function (item) {
+    return seen.hasOwnProperty(item) ? false : (seen[item] = true);
+  });
+}
+
+const topTvl = async (
   chainString,
   url,
+  stackingUrl,
   query,
   queryPrior,
+  queryIncentives,
   version,
   timestamp,
   stablecoins
@@ -63,6 +122,9 @@ const topLvl = async (
       [url],
       604800
     );
+
+    timestamp =
+      timestamp !== null ? Number(timestamp) : Math.floor(Date.now() / 1000);
 
     // pull data
     let queryC = query;
@@ -139,69 +201,115 @@ const topLvl = async (
 
     // calc apy (note: old way of using 24h fees * 365 / tvl. keeping this for now) and will store the
     // new apy calc as a separate field
-    // note re arbitrum: their subgraph is outdated (no tick data -> no uni v3 style apy calc)
     dataNow = dataNow.map((el) =>
       utils.apy(el, dataPrior, dataPrior7d, version)
     );
 
-    if (chainString !== 'arbitrum') {
-      dataNow = dataNow.map((p) => ({
-        ...p,
-        token1_in_token0: p.price1 / p.price0,
-      }));
+    dataNow = dataNow.map((p) => ({
+      ...p,
+      token1_in_token0: p.price1 / p.price0,
+    }));
 
-      // split up subgraph tick calls into n-batches
-      // (tick response can be in the thousands per pool)
-      const skip = 20;
-      let start = 0;
-      let stop = skip;
-      const pages = Math.floor(dataNow.length / skip);
+    // pull incentives data
+    let dataIncentives = await request(stackingUrl, queryIncentives);
+    dataIncentives = dataIncentives.incentives;
 
-      // tick range
-      const pct = 0.3;
-      const pctStablePool = 0.001;
+    const rewardTokens = removeDuplicates(
+      dataIncentives.map((incentive) => incentive.rewardToken)
+    );
 
-      // assume an investment of 1e5 USD
-      const investmentAmount = 1e5;
-      let X = [];
-      for (let i = 0; i <= pages; i++) {
-        console.log(i);
-        let promises = dataNow.slice(start, stop).map((p) => {
-          const delta = p.stablecoin ? pctStablePool : pct;
+    const rewardDecimals = await utils.makeMulticall(
+      decimalsErc20ABI,
+      rewardTokens,
+      chainString
+    );
 
-          const priceAssumption = p.stablecoin ? 1 : p.token1_in_token0;
+    let rewardPrices = (await utils.getPrices(rewardTokens, chainString))
+      .pricesByAddress;
 
-          return EstimatedFees(
-            p.id,
-            priceAssumption,
-            [
-              p.token1_in_token0 * (1 - delta),
-              p.token1_in_token0 * (1 + delta),
-            ],
-            p.price1,
-            p.price0,
-            investmentAmount,
-            p.token0.decimals,
-            p.token1.decimals,
-            p.feeTier,
-            url,
-            p.volumeUSD7d
+    rewardPrices = Object.entries(rewardPrices).reduce(
+      (acc, [address, price], i) => ({
+        ...acc,
+        [address]: { price: price, decimals: rewardDecimals[i] },
+      }),
+      {}
+    );
+
+    // calc apy (note: old way of using 24h fees * 365 / tvl. keeping this for now)
+    dataNow = dataNow.map((el) => {
+      let pool = el;
+      dataIncentives
+        .filter(
+          (incentive) =>
+            incentive.pool === el.id &&
+            incentive.startTime <= timestamp &&
+            incentive.endTime >= timestamp
+        )
+        .forEach((incentive) => {
+          console.log(
+            (incentive.reward /
+              10 ** rewardPrices[incentive.rewardToken].decimals) *
+              rewardPrices[incentive.rewardToken].price
+          );
+          pool = rewardsApy(
+            pool,
+            incentive.rewardToken,
+            (incentive.reward /
+              10 ** rewardPrices[incentive.rewardToken].decimals) *
+              rewardPrices[incentive.rewardToken].price,
+            incentive.endTime - incentive.startTime
           );
         });
-        X.push(await Promise.all(promises));
-        start += skip;
-        stop += skip;
-      }
-      const d = {};
-      X.flat().forEach((p) => {
-        d[p.poolAddress] = p.estimatedFee;
-      });
+      return pool;
+    });
 
-      dataNow = dataNow.map((p) => ({
-        ...p,
-        apy7d: ((d[p.id] * 52) / investmentAmount) * 100,
-      }));
+    // split up subgraph tick calls into n-batches
+    // (tick response can be in the thousands per pool)
+    const skip = 20;
+    let start = 0;
+    let stop = skip;
+    const pages = Math.floor(dataNow.length / skip);
+
+    // tick range
+    const pct = 0.3;
+    const pctStablePool = 0.001;
+
+    // assume an investment of 1e5 USD
+    const investmentAmount = 1e5;
+    let X = [];
+    for (let i = 0; i <= pages; i++) {
+      let promises = dataNow.slice(start, stop).map((p) => {
+        const delta = p.stablecoin ? pctStablePool : pct;
+
+        const priceAssumption = p.stablecoin ? 1 : p.token1_in_token0;
+
+        return EstimatedFees(
+          p.id,
+          priceAssumption,
+          [p.token1_in_token0 * (1 - delta), p.token1_in_token0 * (1 + delta)],
+          p.price1,
+          p.price0,
+          investmentAmount,
+          p.token0.decimals,
+          p.token1.decimals,
+          p.feeTier,
+          url,
+          p.volumeUSD7d
+        );
+      });
+      X.push(await Promise.all(promises));
+      start += skip;
+      stop += skip;
     }
+    const d = {};
+    X.flat().forEach((p) => {
+      d[p.poolAddress] = p.estimatedFee;
+    });
+
+    dataNow = dataNow.map((p) => ({
+      ...p,
+      apy7d: ((d[p.id] * 52) / investmentAmount) * 100,
+    }));
 
     return dataNow.map((p) => {
       const poolMeta = `${p.feeTier / 1e4}%`;
@@ -222,6 +330,8 @@ const topLvl = async (
         tvlUsd: p.totalValueLockedUSD,
         apyBase: p.apy1d * 0.9, // 10% reduction for protocol fees
         apyBase7d: p.apy7d * 0.9, // 10% reduction for protocol fees
+        apyReward: p.apyReward,
+        rewardTokens: p.rewardTokens,
         underlyingTokens,
         url,
         volumeUsd1d: p.volumeUSD1d,
@@ -246,7 +356,17 @@ const main = async (timestamp = null) => {
   const data = [];
   for (const [chain, url] of Object.entries(chains)) {
     data.push(
-      await topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins)
+      await topTvl(
+        chain,
+        url,
+        rewardsUrl,
+        query,
+        queryPrior,
+        queryIncentives,
+        'v3',
+        timestamp,
+        stablecoins
+      )
     );
   }
   return data.flat().filter((p) => utils.keepFinite(p));

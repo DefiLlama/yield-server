@@ -85,7 +85,7 @@ const getLatestBlockSubgraph = async (url) => {
   //   queryGraph.replace('<PLACEHOLDER>', url.split('name/')[1])
   // );
   const blockGraph =
-    url.includes('https://metis-graph.maiadao.io/uniswap-v3') ||
+    url.includes('metis-graph.maiadao.io') ||
     url.includes('babydoge/faas') ||
     url.includes('kybernetwork/kyberswap-elastic-cronos') ||
     url.includes('kybernetwork/kyberswap-elastic-matic') ||
