@@ -61,6 +61,7 @@ const query = gql`
         address
         balance
         symbol
+        weight
       }
     }
   }
@@ -81,7 +82,8 @@ const queryPrior = gql`
     tokens { 
       address 
       balance 
-      symbol 
+      symbol
+      weight
     } 
   }
 }
@@ -146,6 +148,7 @@ const tvl = (entry, tokenPriceList, chainString) => {
   };
   const symbols = [];
   const tokensList = [];
+  const emptyPrice = [];
   let price;
   for (const el of balanceDetails) {
     price = tokenPriceList[`${chainString}:${el.address.toLowerCase()}`]?.price;
@@ -170,8 +173,17 @@ const tvl = (entry, tokenPriceList, chainString) => {
       price =
         tokenPriceList[`polygon:${polygonBBTokenMapping[el.address]}`]?.price;
     }
+    if (price === undefined) {
+      emptyPrice.push(el);
+    }
     price = price ?? 0;
     d.tvl += Number(el.balance) * price;
+  }
+
+  if (entry.tokens.length === 2 && emptyPrice.length === 1) {
+    // use weight to correct tvl
+    const multiplier = 1 / (1 - Number(emptyPrice[0].weight));
+    d.tvl *= multiplier;
   }
 
   return d;
