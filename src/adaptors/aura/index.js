@@ -149,13 +149,12 @@ const main = async () => {
 
   const finalPools = await Promise.all(_.range(validPoolsLength).map(async i => {
     const data = {
-      pool: lpTokens[i],
+      pool: lpTokens[i].toLowerCase(),
       chain: "Ethereum",
       project: "aura",
       symbol: underlyingTokens[i].map(token => tokenToSymbolMap[token]).join("-"),
       tvlUsd: poolTVLs[i],
-      apyBase: auraAPYs[i] + balAPYs[i],
-      apyReward: 0,
+      apyReward: auraAPYs[i] + balAPYs[i],
       underlyingTokens: underlyingTokens[i],
       rewardTokens: [ethers.utils.getAddress(AURA_ADDRESS), ethers.utils.getAddress(BAL_ADDRESS)],
       url: `https://app.aura.finance/#/1/pool/${validPoolIds[i]}`,
