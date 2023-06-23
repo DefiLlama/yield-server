@@ -24,9 +24,13 @@ const LDO_ADDRESS = "0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32".toLowerCase()
 
 const SECONDS_PER_YEAR = 60 * 60 * 24 * 365;
 const chain = "ethereum"
+const SWAP_APR_API = 'https://cache.aura.finance/aura/aprs-deprecated';
+
 
 // TODO support ARB pools
 const main = async () => {
+  const { pools: swapAprs } = await utils.getData(SWAP_APR_API);
+
   const [AURA_SUPPLY, BALANCER_SUPPLY] = (await sdk.api.abi.multiCall({
     abi: 'erc20:totalSupply',
     calls: [{ target: AURA_ADDRESS }, { target: BAL_ADDRESS }]
@@ -203,6 +207,11 @@ const main = async () => {
       const rewardAPY = (rewardRatePerYear / (baseToken.toLowerCase() === AURA_ADDRESS ? AURA_SUPPLY : extraRewardTotalSupply)) * tokenPrices[`${chain}:${baseToken.toLowerCase()}`].price * 100
       data.rewardTokens.push(baseToken)
       data.apyReward += rewardAPY
+   }
+
+   const swapApr = swapAprs.find(({ id }) => id === balancerPoolIds[i]);
+   if (swapApr?.poolAprs) {
+    data.apyBase = Number(swapApr.poolAprs.swap)
    }
    return data
   }))
