@@ -14,6 +14,7 @@ const insertLsd = async (payload) => {
     { name: 'expectedRate', def: null },
     { name: 'marketRate', def: null },
     { name: 'ethPeg', def: null },
+    { name: 'fee', def: null },
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: 'lsd' });
   const query = pgp.helpers.insert(payload, cs);
