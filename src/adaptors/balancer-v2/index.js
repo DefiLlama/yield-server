@@ -137,8 +137,10 @@ const tvl = (entry, tokenPriceList, chainString) => {
         'B-MATICX-STABLE',
         'B-CSMATIC',
         'CBETH-WSTETH-BPT',
+        'ANKRETH/WSTETH',
       ].includes(t.symbol.toUpperCase().trim())
   );
+
   const d = {
     id: entry.id,
     symbol: balanceDetails.map((tok) => tok.symbol).join('-'),
