@@ -16,7 +16,8 @@ const getLsd = async (req, res) => {
     type,
     "expectedRate",
     "marketRate",
-    "ethPeg"
+    "ethPeg",
+    fee
   FROM
     lsd
   ORDER BY
