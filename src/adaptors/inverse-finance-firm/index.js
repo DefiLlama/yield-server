@@ -170,7 +170,7 @@ const main = async () => {
       poolMeta: 'Fixed Borrow Rate',
       url: 'https://inverse.finance/firm/' + symbol,
       apyBaseBorrow: currentFixedRate,
-      debtCeilingUsd,
+      debtCeilingUsd: debtCeilingUsd + totalBorrowUsd,
       totalSupplyUsd,
       totalBorrowUsd,
       borrowable: !allBorrowPaused[marketIndex].output,
