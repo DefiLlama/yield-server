@@ -38,7 +38,7 @@ const main = async () => {
 
   const poolsList = (
     await Promise.all(
-      ['factory', 'main', 'crypto', 'factory-crypto'].map((registry) =>
+      ['factory', 'main', 'crypto', 'factory-crypto', 'factory-crvusd'].map((registry) =>
         utils.getData(`https://api.curve.fi/api/getPools/ethereum/${registry}`)
       )
     )
