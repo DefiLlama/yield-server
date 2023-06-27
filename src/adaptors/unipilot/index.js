@@ -188,7 +188,7 @@ const getApy = async () => {
             }`,
             tvlUsd: tvlUSD || 0,
             url: `https://app.unipilot.io/add?vault=${vault.id}&chainId=${CHAIN_IDS[chain]}`,
-            underlyingTokens: [vault.token0.symbol, vault.token1.symbol],
+            underlyingTokens: [vault.token0.id, vault.token1.id],
             apyBase: Number(vaultsAprs[vault.id]?.avgAprWeekly.total) ?? 0,
           };
         });
