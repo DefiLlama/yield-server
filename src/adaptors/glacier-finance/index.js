@@ -81,7 +81,7 @@ const getApy = async () => {
         .concat(GLCR)
     ),
   ];
-  const priceKeys = tokens.map((i) => `avax:${i}`).join(',');
+  const priceKeys = tokens.map((i) => `avalanche:${i}`).join(',');
 
   const prices = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
@@ -92,15 +92,15 @@ const getApy = async () => {
     const r0 = poolMeta.r0 / poolMeta.dec0;
     const r1 = poolMeta.r1 / poolMeta.dec1;
 
-    const p0 = prices[`avax:${poolMeta.t0}`]?.price;
-    const p1 = prices[`avax:${poolMeta.t1}`]?.price;
+    const p0 = prices[`avalanche:${poolMeta.t0}`]?.price;
+    const p1 = prices[`avalanche:${poolMeta.t1}`]?.price;
 
     const tvlUsd = r0 * p0 + r1 * p1;
 
     const s = symbols[i];
 
     const rewardPerSec =
-      (rewardRate[i] / 1e18) * prices[`avax:${GLCR}`]?.price;
+      (rewardRate[i] / 1e18) * prices[`avalanche:${GLCR}`]?.price;
     const apyReward = ((rewardPerSec * 86400 * 365) / tvlUsd) * 100;
 
     return {
