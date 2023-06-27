@@ -243,27 +243,32 @@ const main = async () => {
         : blockchainId === 'celo'
         ? celoApy.find((i) => i.poolAddress === address)?.apy
         : 0;
-      const aprCrv =
-        (blockchainId === 'optimism' && pool?.gaugeCrvApy?.length > 0) ||
-        [
-          '0xa1F8A6807c402E4A15ef4EBa36528A3FED24E577',
-          '0x960ea3e3C7FB317332d990873d354E18d7645590',
-          '0x7f90122BF0700F9E7e1F688fe926940E8839F353',
-          '0x326290A1B0004eeE78fa6ED4F1d8f4b2523ab669',
-          '0x6a6283aB6e31C2AeC3fA08697A8F806b740660b2',
-          '0x13B876C26Ad6d21cb87AE459EaF6d7A1b788A113',
-          '0x66E335622ad7a6C9c72c98dbfCCE684996a20Ef9',
-          '0x3e3C6c7db23cdDEF80B694679aaF1bCd9517D0Ae',
-          '0xFc1e8bf3E81383Ef07Be24c3FD146745719DE48D',
-          '0x84C333e94AEA4a51a21F6cf0C7F528C50Dc7592C',
-          '0xB755B949C126C04e0348DD881a5cF55d424742B2',
-          '0xa138341185a9D0429B0021A11FB717B225e13e1F',
-          '0x9848482da3Ee3076165ce6497eDA906E66bB85C5',
-        ].includes(address)
-          ? pool?.gaugeCrvApy[0]
-          : gauge && subgraph
-          ? getPoolAPR(pool, subgraph, gauge, priceCrv, underlyingPrices)
-          : 0;
+      const aprCrv = gauge?.is_killed
+        ? 0
+        : pool?.gaugeCrvApy?.length > 0
+        ? pool?.gaugeCrvApy[0]
+        : 0;
+      // const aprCrv =
+      //   (blockchainId === 'optimism' && pool?.gaugeCrvApy?.length > 0) ||
+      //   [
+      //     '0xa1F8A6807c402E4A15ef4EBa36528A3FED24E577',
+      //     '0x960ea3e3C7FB317332d990873d354E18d7645590',
+      //     '0x7f90122BF0700F9E7e1F688fe926940E8839F353',
+      //     '0x326290A1B0004eeE78fa6ED4F1d8f4b2523ab669',
+      //     '0x6a6283aB6e31C2AeC3fA08697A8F806b740660b2',
+      //     '0x13B876C26Ad6d21cb87AE459EaF6d7A1b788A113',
+      //     '0x66E335622ad7a6C9c72c98dbfCCE684996a20Ef9',
+      //     '0x3e3C6c7db23cdDEF80B694679aaF1bCd9517D0Ae',
+      //     '0xFc1e8bf3E81383Ef07Be24c3FD146745719DE48D',
+      //     '0x84C333e94AEA4a51a21F6cf0C7F528C50Dc7592C',
+      //     '0xB755B949C126C04e0348DD881a5cF55d424742B2',
+      //     '0xa138341185a9D0429B0021A11FB717B225e13e1F',
+      //     '0x9848482da3Ee3076165ce6497eDA906E66bB85C5',
+      //   ].includes(address)
+      //     ? pool?.gaugeCrvApy[0]
+      //     : gauge && subgraph
+      //     ? getPoolAPR(pool, subgraph, gauge, priceCrv, underlyingPrices)
+      //     : 0;
       let aprExtra = extraRewards
         ? extraRewards.map((reward) => reward.apy).reduce((a, b) => a + b)
         : stETHPools.includes(address) ||
