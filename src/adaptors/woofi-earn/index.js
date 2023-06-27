@@ -12,13 +12,13 @@ const API_URLS = {
   optimism: `${API_URL}?network=optimism`,
 };
 
-const xWOOMapping = {
-  binance: '0x2AEab1a338bCB1758f71BD5aF40637cEE2085076',
-  avalanche: '0xcd1B9810872aeC66d450c761E93638FB9FE09DB0',
-  fantom: '0x2Fe5E5D341cFFa606a5d9DA1B6B646a381B0f7ec',
-  polygon: '0x9BCf8b0B62F220f3900e2dc42dEB85C3f79b405B',
-  arbitrum: '0x9321785D257b3f0eF7Ff75436a87141C683DC99d',
-  optimism: '0x871f2F2ff935FD1eD867842FF2a7bfD051A5E527', // No xWOO on Optimism, only WOO
+const rewardTokensMapping = {
+  binance: '0x4691937a7508860F876c9c0a2a617E7d9E945D4B', // WOO
+  avalanche: '0xaBC9547B534519fF73921b1FBA6E672b5f58D083', // WOO
+  fantom: '0x6626c47c00F1D87902fc13EECfaC3ed06D5E8D8a', // WOO
+  polygon: '0x1B815d120B3eF02039Ee11dC2d33DE7aA4a8C603', // WOO
+  arbitrum: '0x912CE59144191C1204E64559FE8253a0e49E6548', // ARB
+  optimism: '0x871f2F2ff935FD1eD867842FF2a7bfD051A5E527', // WOO
 };
 
 const main = async () => {
@@ -41,6 +41,10 @@ const main = async () => {
       }
 
       let decimals = info['decimals'];
+      let apyReward = info['woo_rewards_apr'];
+      if (chain === "arbitrum") {
+        apyReward = info['arb_rewards_apr'];
+      }
       results.push({
         pool: `${address}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
@@ -49,8 +53,8 @@ const main = async () => {
         poolMeta: `Supercharger${version}`,
         tvlUsd: parseFloat(BigNumber(info['tvl']).div(10 ** decimals)),
         apyBase: info['weighted_average_apr'],
-        apyReward: info['x_woo_rewards_apr'],
-        rewardTokens: [xWOOMapping[chain]],
+        apyReward: apyReward,
+        rewardTokens: [rewardTokensMapping[chain]],
       });
     }
   }
