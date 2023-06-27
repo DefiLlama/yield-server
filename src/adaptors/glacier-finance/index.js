@@ -114,6 +114,7 @@ const getApy = async () => {
       underlyingTokens: [poolMeta.t0, poolMeta.t1],
     };
   });
+  console.log(pools)
 
   return pools.filter((p) => utils.keepFinite(p));
 };
