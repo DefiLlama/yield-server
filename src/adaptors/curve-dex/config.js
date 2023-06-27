@@ -11,7 +11,7 @@ exports.BLOCKCHAINIDS = [
   // 'celo',
 ];
 // https://github.com/curvefi/curve-api/blob/main/endpoints.md#getpools
-REGISTRY_TYPES = ['main', 'crypto', 'factory', 'factory-crypto', 'optimism'];
+REGISTRY_TYPES = ['main', 'crypto', 'factory', 'factory-crypto', 'optimism', 'factory-crvusd', 'factory-tricrypto'];
 exports.BLOCKCHAINID_TO_REGISTRIES = {};
 exports.BLOCKCHAINIDS.forEach((blockchainId) => {
   switch (blockchainId) {
