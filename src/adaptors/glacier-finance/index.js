@@ -16,7 +16,7 @@ const getApy = async () => {
     await sdk.api.abi.call({
       target: pairFactory,
       abi: abiPairFactory.find((m) => m.name === 'allPairsLength'),
-      chain: 'avalanche',
+      chain: 'avax',
     })
   ).output;
 
@@ -27,7 +27,7 @@ const getApy = async () => {
         params: [i],
       })),
       abi: abiPairFactory.find((m) => m.name === 'allPairs'),
-      chain: 'avalanche',
+      chain: 'avax',
     })
   ).output.map((o) => o.output);
 
@@ -37,7 +37,7 @@ const getApy = async () => {
         target: i,
       })),
       abi: abiPair.find((m) => m.name === 'metadata'),
-      chain: 'avalanche',
+      chain: 'avax',
     })
   ).output.map((o) => o.output);
 
@@ -47,7 +47,7 @@ const getApy = async () => {
         target: i,
       })),
       abi: abiPair.find((m) => m.name === 'symbol'),
-      chain: 'avalanche',
+      chain: 'avax',
     })
   ).output.map((o) => o.output);
 
@@ -58,7 +58,7 @@ const getApy = async () => {
         params: [i],
       })),
       abi: abiVoter.find((m) => m.name === 'gauges'),
-      chain: 'avalanche',
+      chain: 'avax',
     })
   ).output.map((o) => o.output);
 
@@ -69,7 +69,7 @@ const getApy = async () => {
         params: [GLCR],
       })),
       abi: abiGauge.find((m) => m.name === 'rewardRate'),
-      chain: 'avalanche',
+      chain: 'avax',
     })
   ).output.map((o) => o.output);
 
@@ -81,7 +81,7 @@ const getApy = async () => {
         .concat(GLCR)
     ),
   ];
-  const priceKeys = tokens.map((i) => `avalanche:${i}`).join(',');
+  const priceKeys = tokens.map((i) => `avax:${i}`).join(',');
 
   const prices = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
@@ -92,20 +92,20 @@ const getApy = async () => {
     const r0 = poolMeta.r0 / poolMeta.dec0;
     const r1 = poolMeta.r1 / poolMeta.dec1;
 
-    const p0 = prices[`avalanche:${poolMeta.t0}`]?.price;
-    const p1 = prices[`avalanche:${poolMeta.t1}`]?.price;
+    const p0 = prices[`avax:${poolMeta.t0}`]?.price;
+    const p1 = prices[`avax:${poolMeta.t1}`]?.price;
 
     const tvlUsd = r0 * p0 + r1 * p1;
 
     const s = symbols[i];
 
     const rewardPerSec =
-      (rewardRate[i] / 1e18) * prices[`avalanche:${GLCR}`]?.price;
+      (rewardRate[i] / 1e18) * prices[`avax:${GLCR}`]?.price;
     const apyReward = ((rewardPerSec * 86400 * 365) / tvlUsd) * 100;
 
     return {
       pool: p,
-      chain: utils.formatChain('avalanche'),
+      chain: utils.formatChain('avax'),
       project: 'glacier-finance',
       symbol: utils.formatSymbol(s.split('-')[1]),
       tvlUsd,
