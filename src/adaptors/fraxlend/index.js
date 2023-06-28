@@ -248,9 +248,7 @@ const main = async () => {
       chain: 'ethereum',
       requery: false,
     })
-  ).output.map((x) => {
-    return x.input.target === MKR ? 'MKR' : x.output;
-  });
+  ).output.map((x) => (x.input.target === MKR ? 'MKR' : x.output));
 
   const decimalCollaterals = (
     await sdk.api.abi.multiCall({
