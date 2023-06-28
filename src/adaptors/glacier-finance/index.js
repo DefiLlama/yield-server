@@ -87,6 +87,8 @@ const getApy = async () => {
     await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
   ).data.coins;
 
+  console.log(prices)
+
   const pools = allPairs.map((p, i) => {
     const poolMeta = metaData[i];
     const r0 = poolMeta.r0 / poolMeta.dec0;
