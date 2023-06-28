@@ -92,12 +92,14 @@ const getApy = async () => {
     const poolMeta = metaData[i];
     const r0 = poolMeta.r0 / poolMeta.dec0;
     const r1 = poolMeta.r1 / poolMeta.dec1;
+    const re0 = r0 | 0
+    const re1 = r1 | 0
 
     const p0 = prices[`avalanche:${poolMeta.t0}`]?.price;
     const p1 = prices[`avalanche:${poolMeta.t1}`]?.price;
     const price0 = p0 | 0
-    const price1 = p1 | 1
-    const tvlUsd = r0 * price0 + r1 * price1;
+    const price1 = p1 | 0
+    const tvlUsd = re0 * price0 + re1 * price1;
 
    
 
