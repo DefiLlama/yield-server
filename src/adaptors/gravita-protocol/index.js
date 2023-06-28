@@ -7,7 +7,13 @@ const GRAI_ADDRESS = '0x15f74458aE0bFdAA1a96CA1aa779D715Cc1Eefe4';
 
 const ABIS = {
   getEntireSystemColl: {
-    inputs: [],
+    inputs: [
+      {
+        internalType: 'address',
+        name: '_asset',
+        type: 'address',
+      },
+    ],
     name: 'getEntireSystemColl',
     outputs: [
       {
@@ -20,8 +26,14 @@ const ABIS = {
     type: 'function',
   },
   getMCR: {
-    inputs: [],
-    name: 'MCR',
+    inputs: [
+      {
+        internalType: 'address',
+        name: '_collateral',
+        type: 'address',
+      },
+    ],
+    name: 'getMcr',
     outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
@@ -32,17 +44,22 @@ const main = async () => {
     await sdk.api.abi.call({
       target: VESSEL_MANAGER_ADDRESS,
       abi: ABIS.getEntireSystemColl,
+      params: ["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"],
       chain: 'ethereum',
     })
   ).output;
 
   const mcr = (
     await sdk.api.abi.call({
-      target: VESSEL_MANAGER_ADDRESS,
+      target: ADMIN_CONTRACT_ADDRESS,
       abi: ABIS.getMCR,
+      params: ["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"],
       chain: 'ethereum',
     })
   ).output;
+
+  console.log(`VesselManager.getEntireSystemColl() -> ${troveEthTvl}`)
+  console.log(`AdminContract.getMCR() -> ${mcr}`)
 
   const troveType = (await superagent.get(URL)).body;
 
