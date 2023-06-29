@@ -134,20 +134,29 @@ const main = async () => {
 
   const pools = await Promise.all(
     collaterals.map(async (collateral) => {
-      const [symbol, assetPrice,vesselAssetTvl, mintedGrai, mcr, borrowingFee] = await Promise.all([
+      const [
+        symbol,
+        assetPrice,
+        vesselAssetTvl,
+        mintedGrai,
+        mcr,
+        borrowingFee,
+      ] = await Promise.all([
         fetchAbiData(collateral, ABIS.getSymbol),
         fetchPrice(collateral),
         fetchAbiData(VESSEL_MANAGER_ADDRESS, ABIS.getEntireSystemColl, [
           collateral,
         ]),
         fetchAbiData(VESSEL_MANAGER_ADDRESS, ABIS.getEntireSystemDebt, [
-            collateral,
-          ]),
+          collateral,
+        ]),
         fetchAbiData(ADMIN_CONTRACT_ADDRESS, ABIS.getMCR, [collateral]),
-        fetchAbiData(ADMIN_CONTRACT_ADDRESS, ABIS.getBorrowingFee, [collateral]),
+        fetchAbiData(ADMIN_CONTRACT_ADDRESS, ABIS.getBorrowingFee, [
+          collateral,
+        ]),
       ]);
 
-    /*   
+      /*   
       console.log(`ERC20.getSymbol() -> ${symbol}`);
       console.log(`${symbol} ERC20.price() -> ${assetPrice}`);
       console.log(`${symbol} VesselManager.getEntireSystemColl() -> ${vesselAssetTvl}`);
@@ -155,8 +164,8 @@ const main = async () => {
       console.log(`${symbol} AdminContract.getMCR() -> ${mcr}`);
       console.log(`${symbol} AdminContract.getBorrowingFee() -> ${borrowingFee}`); */
 
-      const totalSupplyUsd = (vesselAssetTvl*assetPrice)/1e18
-      const totalBorrowUsd = (mintedGrai*graiPrice)/1e18
+      const totalSupplyUsd = (vesselAssetTvl * assetPrice) / 1e18;
+      const totalBorrowUsd = (mintedGrai * graiPrice) / 1e18;
       return {
         pool: VESSEL_MANAGER_ADDRESS,
         chain: 'ethereum',
@@ -164,13 +173,12 @@ const main = async () => {
         symbol: symbol,
         apy: 0,
         tvlUsd: totalSupplyUsd - totalBorrowUsd, // for lending protocols: tvlUsd = totalSupplyUsd - totalBorrowUsd
-        underlyingTokens: collateral,
+        underlyingTokens: [collateral],
         // optional lending protocol specific fields:
-        apyBaseBorrow: borrowingFee/1e16,
+        apyBaseBorrow: borrowingFee / 1e16,
         totalSupplyUsd: totalSupplyUsd,
         totalBorrowUsd: totalBorrowUsd,
         ltv: 1 / (mcr / 1e18), // btw [0, 1]
-
       };
     })
   );
