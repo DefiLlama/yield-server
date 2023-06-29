@@ -6,6 +6,25 @@ const GRAI_ADDRESS = '0x15f74458aE0bFdAA1a96CA1aa779D715Cc1Eefe4';
 // const URL = 'https://api.instadapp.io/defi/mainnet/liquity/trove-types';
 
 const ABIS = {
+  getBorrowingFee: {
+    inputs: [
+      {
+        internalType: 'address',
+        name: '_collateral',
+        type: 'address',
+      },
+    ],
+    name: 'getBorrowingFee',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
   getEntireSystemColl: {
     inputs: [
       {
@@ -25,6 +44,25 @@ const ABIS = {
     stateMutability: 'view',
     type: 'function',
   },
+  getEntireSystemDebt: {
+    inputs: [
+      {
+        internalType: 'address',
+        name: '_asset',
+        type: 'address',
+      },
+    ],
+    name: 'getEntireSystemDebt',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: 'entireSystemDebt',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
   getMCR: {
     inputs: [
       {
@@ -38,62 +76,107 @@ const ABIS = {
     stateMutability: 'view',
     type: 'function',
   },
+  getValidCollateral: {
+    inputs: [],
+    name: 'getValidCollateral',
+    outputs: [
+      {
+        internalType: 'address[]',
+        name: '',
+        type: 'address[]',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  getSymbol: {
+    inputs: [],
+    name: 'symbol',
+    outputs: [
+      {
+        internalType: 'string',
+        name: '',
+        type: 'string',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
 };
-const main = async () => {
-  const troveEthTvl = (
-    await sdk.api.abi.call({
-      target: VESSEL_MANAGER_ADDRESS,
-      abi: ABIS.getEntireSystemColl,
-      params: ["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"],
-      chain: 'ethereum',
-    })
-  ).output;
 
-  const mcr = (
-    await sdk.api.abi.call({
-      target: ADMIN_CONTRACT_ADDRESS,
-      abi: ABIS.getMCR,
-      params: ["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"],
-      chain: 'ethereum',
-    })
-  ).output;
+const fetchAbiData = async (target, abi, params = []) => {
+  const result = await sdk.api.abi.call({
+    target,
+    abi,
+    params,
+    chain: 'ethereum',
+  });
+  return result.output;
+};
 
-  console.log(`VesselManager.getEntireSystemColl() -> ${troveEthTvl}`)
-  console.log(`AdminContract.getMCR() -> ${mcr}`)
-
-  const troveType = (await superagent.get(URL)).body;
-
-  const graiTotalSupply = (
-    await sdk.api.abi.call({
-      target: GRAI_ADDRESS,
-      abi: 'erc20:totalSupply',
-      chain: 'ethereum',
-    })
-  ).output;
-
-  const key = `ethereum:${GRAI_ADDRESS}`.toLowerCase();
-  const prices = (
+async function fetchPrice(token) {
+  const key = `ethereum:${token}`.toLowerCase();
+  console.log(key);
+  const response = (
     await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
   ).body.coins;
+  return response[key].price;
+}
 
-  const totalSupplyUsd = (Number(graiTotalSupply) / 1e18) * prices[key].price;
+const main = async () => {
+  // Fetch an array of valid collaterals
+  const collaterals = await fetchAbiData(
+    ADMIN_CONTRACT_ADDRESS,
+    ABIS.getValidCollateral
+  );
+  console.log('\nCollaterals:\n', collaterals);
+  const graiPrice = await fetchPrice(GRAI_ADDRESS);
+  console.log(`GRAI price -> ${graiPrice}`);
 
-  return [
-    {
-      pool: VESSEL_MANAGER_ADDRESS,
-      project: 'gravita-protocol',
-      symbol: 'WETH',
-      chain: 'ethereum',
-      apy: 0,
-      tvlUsd: (Number(troveEthTvl) / 1e18) * Number(troveType.price),
-      apyBaseBorrow: Number(troveType.borrowFee) * 100,
-      totalSupplyUsd: (Number(troveEthTvl) / 1e18) * Number(troveType.price),
-      totalBorrowUsd: totalSupplyUsd,
-      ltv: 1 / (mcr / 1e18),
-      mintedCoin: 'GRAI',
-      underlyingTokens: ['0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'],
-    },
-  ];
+  const pools = await Promise.all(
+    collaterals.map(async (collateral) => {
+      const [symbol, assetPrice,vesselAssetTvl, mintedGrai, mcr, borrowingFee] = await Promise.all([
+        fetchAbiData(collateral, ABIS.getSymbol),
+        fetchPrice(collateral),
+        fetchAbiData(VESSEL_MANAGER_ADDRESS, ABIS.getEntireSystemColl, [
+          collateral,
+        ]),
+        fetchAbiData(VESSEL_MANAGER_ADDRESS, ABIS.getEntireSystemDebt, [
+            collateral,
+          ]),
+        fetchAbiData(ADMIN_CONTRACT_ADDRESS, ABIS.getMCR, [collateral]),
+        fetchAbiData(ADMIN_CONTRACT_ADDRESS, ABIS.getBorrowingFee, [collateral]),
+      ]);
+
+    /*   
+      console.log(`ERC20.getSymbol() -> ${symbol}`);
+      console.log(`${symbol} ERC20.price() -> ${assetPrice}`);
+      console.log(`${symbol} VesselManager.getEntireSystemColl() -> ${vesselAssetTvl}`);
+      console.log(`${symbol} VesselManager.getEntireSystemDebt() -> ${mintedGrai}`);
+      console.log(`${symbol} AdminContract.getMCR() -> ${mcr}`);
+      console.log(`${symbol} AdminContract.getBorrowingFee() -> ${borrowingFee}`); */
+
+      const totalSupplyUsd = (vesselAssetTvl*assetPrice)/1e18
+      const totalBorrowUsd = (mintedGrai*graiPrice)/1e18
+      return {
+        pool: VESSEL_MANAGER_ADDRESS,
+        chain: 'ethereum',
+        project: 'gravita-protocol',
+        symbol: symbol,
+        apy: 0,
+        tvlUsd: totalSupplyUsd - totalBorrowUsd, // for lending protocols: tvlUsd = totalSupplyUsd - totalBorrowUsd
+        underlyingTokens: collateral,
+        // optional lending protocol specific fields:
+        apyBaseBorrow: borrowingFee/1e16,
+        totalSupplyUsd: totalSupplyUsd,
+        totalBorrowUsd: totalBorrowUsd,
+        ltv: 1 / (mcr / 1e18), // btw [0, 1]
+
+      };
+    })
+  );
+
+  return pools;
 };
 
 module.exports = {
