@@ -116,7 +116,6 @@ const fetchAbiData = async (target, abi, params = []) => {
 
 async function fetchPrice(token) {
   const key = `ethereum:${token}`.toLowerCase();
-  console.log(key);
   const response = (
     await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
   ).body.coins;
@@ -129,9 +128,9 @@ const main = async () => {
     ADMIN_CONTRACT_ADDRESS,
     ABIS.getValidCollateral
   );
-  console.log('\nCollaterals:\n', collaterals);
   const graiPrice = await fetchPrice(GRAI_ADDRESS);
-  console.log(`GRAI price -> ${graiPrice}`);
+  // console.log('\nCollaterals:\n', collaterals);
+  // console.log(`GRAI price -> ${graiPrice}`);
 
   const pools = await Promise.all(
     collaterals.map(async (collateral) => {
