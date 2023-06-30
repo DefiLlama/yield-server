@@ -7,32 +7,52 @@ const poolDirectoryAbi = require('../midas-capital/abiPoolDirectory');
 const poolLensAbi = require('../midas-capital/abiPoolLens');
 const flywheelLensRouterAbi = require('../midas-capital/abiFlywheelLensRouter');
 
-const CHAINS = { bsc: 'bsc', polygon: 'polygon' };
-const CHAIN_NUMBER = { [CHAINS.bsc]: '56', [CHAINS.polygon]: '137' };
+const CHAINS = {
+  arbitrum: 'arbitrum',
+  bsc: 'bsc',
+  polygon: 'polygon',
+  fantom: 'fantom',
+};
+const CHAIN_NUMBER = {
+  [CHAINS.bsc]: '56',
+  [CHAINS.polygon]: '137',
+  [CHAINS.arbitrum]: '42161',
+  [CHAINS.fantom]: '250',
+};
 
 const POOL_DIRECTORY_ADDRESS = {
   [CHAINS.bsc]: '0x295d7347606F4bd810C8296bb8d75D657001fcf7',
   [CHAINS.polygon]: '0x9A161e68EC0d5364f4d09A6080920DAFF6FFf250',
+  [CHAINS.arbitrum]: '0x68e8f59eA33FbccA716f56f89F47e53C73d47830',
+  [CHAINS.fantom]: '0xE622c2967E2885ED04436075889C88696328aBE8',
 };
 
 const POOL_LENS_ADDRESS = {
   [CHAINS.bsc]: '0x47246c2e75409284b6409534d410245Ee48002c7',
   [CHAINS.polygon]: '0xa9b97cb26eA3a5f33Fa1b8D88C00962eA4501558',
+  [CHAINS.arbitrum]: '0x062CEc1fa0F54cccd513c5b8aa86cBead5d1e55d',
+  [CHAINS.fantom]: '0x79AAb023F3cdCf5a8314E88bfb9EE88ecd3e12e7',
 };
 
 const MIDAS_FLYWHEEL_LENS_ROUTER = {
   [CHAINS.bsc]: '0xb4c8353412633B779893Bb728435930b7d3610C8',
   [CHAINS.polygon]: '0xda359cB8c4732C7260CD72dD052CD053765f1Dcf',
+  [CHAINS.arbitrum]: '0xFe5aF5765A7cCD1538E4ee4B501BC7fe93ec8EBa',
+  [CHAINS.fantom]: '0xFe5aF5765A7cCD1538E4ee4B501BC7fe93ec8EBa',
 };
 
 const CG_KEY = {
   [CHAINS.bsc]: 'coingecko:binancecoin',
   [CHAINS.polygon]: 'coingecko:matic-network',
+  [CHAINS.arbitrum]: 'coingecko:ethereum',
+  [CHAINS.fantom]: 'coingecko:fantom',
 };
 
 const BLOCKS_PER_MIN = {
   [CHAINS.bsc]: 20,
   [CHAINS.polygon]: 26,
+  [CHAINS.arbitrum]: 4,
+  [CHAINS.fantom]: 60,
 };
 
 const GET_ACTIVE_POOLS = 'getActivePools';
@@ -91,14 +111,18 @@ const main = async () => {
         ).output;
 
         const marketRewards = (
-          await sdk.api.abi.call({
-            target: MIDAS_FLYWHEEL_LENS_ROUTER[chain],
-            chain: chain,
-            abi: flywheelLensRouterAbi.find(
-              ({ name }) => name === GET_MARKET_REWARDS_INFO
-            ),
-            params: [comptroller],
-          })
+          await sdk.api.abi
+            .call({
+              target: MIDAS_FLYWHEEL_LENS_ROUTER[chain],
+              chain: chain,
+              abi: flywheelLensRouterAbi.find(
+                ({ name }) => name === GET_MARKET_REWARDS_INFO
+              ),
+              params: [comptroller],
+            })
+            .catch((e) => {
+              return { output: [] };
+            })
         ).output;
 
         const adaptedMarketRewards = marketRewards
@@ -115,14 +139,16 @@ const main = async () => {
           .filter((marketReward) => marketReward.rewardsInfo.length > 0);
 
         const assets = (
-          await sdk.api.abi.call({
-            target: POOL_LENS_ADDRESS[chain],
-            chain: chain,
-            abi: poolLensAbi.find(
-              ({ name }) => name === GET_POOL_ASSETS_WITH_DATA
-            ),
-            params: [comptroller],
-          })
+          await sdk.api.abi
+            .call({
+              target: POOL_LENS_ADDRESS[chain],
+              chain: chain,
+              abi: poolLensAbi.find(
+                ({ name }) => name === GET_POOL_ASSETS_WITH_DATA
+              ),
+              params: [comptroller],
+            })
+            .catch((e) => {})
         ).output.map((obj) => {
           return Object.fromEntries(
             Object.entries(obj).filter(([k]) => isNaN(k))
@@ -201,13 +227,15 @@ const main = async () => {
           : [];
 
       if (market.rewardsFromContract) {
-        const flywheelsInPluginResponse = pluginRewards ? pluginRewards
-          .map((pluginReward) =>
-            'flywheel' in pluginReward
-              ? pluginReward.flywheel.toLowerCase()
-              : null
-          )
-          .filter((f) => !!f) : [];
+        const flywheelsInPluginResponse = pluginRewards
+          ? pluginRewards
+              .map((pluginReward) =>
+                'flywheel' in pluginReward
+                  ? pluginReward.flywheel.toLowerCase()
+                  : null
+              )
+              .filter((f) => !!f)
+          : [];
 
         for (const info of market.rewardsFromContract.rewardsInfo) {
           if (
