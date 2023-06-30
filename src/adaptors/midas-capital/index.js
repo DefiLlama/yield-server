@@ -5,7 +5,8 @@ const { ethers } = require('ethers');
 const utils = require('../utils');
 const poolDirectoryAbi = require('../midas-capital/abiPoolDirectory');
 const poolLensAbi = require('../midas-capital/abiPoolLens');
-const flywheelLensRouterAbi = require('../midas-capital/abiFlywheelLensRouter');
+const flywheelLensRouterAbiV1 = require('../midas-capital/abiFlywheelLensRouter');
+const flywheelLensRouterAbiV2 = require('../midas-capital/abiFlywheelLensRouterV2');
 
 const CHAINS = {
   arbitrum: 'arbitrum',
@@ -59,6 +60,7 @@ const GET_ACTIVE_POOLS = 'getActivePools';
 const POOLS = 'pools';
 const GET_POOL_ASSETS_WITH_DATA = 'getPoolAssetsWithData';
 const GET_MARKET_REWARDS_INFO = 'getMarketRewardsInfo';
+const GET_MARKET_REWARDS_INFO_ARBITRUM = 'getPoolMarketRewardsInfo';
 
 const PROJECT_NAME = 'midas-capital';
 const PROJECT_URL = 'https://development.midascapital.xyz';
@@ -109,6 +111,10 @@ const main = async () => {
             params: [Number(poolId)],
           })
         ).output;
+        const flywheelLensRouterAbi =
+          chain === 'arbitrum'
+            ? flywheelLensRouterAbiV2
+            : flywheelLensRouterAbiV1;
 
         const marketRewards = (
           await sdk.api.abi
@@ -116,7 +122,11 @@ const main = async () => {
               target: MIDAS_FLYWHEEL_LENS_ROUTER[chain],
               chain: chain,
               abi: flywheelLensRouterAbi.find(
-                ({ name }) => name === GET_MARKET_REWARDS_INFO
+                ({ name }) =>
+                  name ===
+                  (chain === 'arbitrum'
+                    ? GET_MARKET_REWARDS_INFO_ARBITRUM
+                    : GET_MARKET_REWARDS_INFO)
               ),
               params: [comptroller],
             })
