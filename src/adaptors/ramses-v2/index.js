@@ -245,6 +245,10 @@ const topLvl = async (
       }));
     }
 
+    const prices = (
+      await axios.get(`https://coins.llama.fi/prices/current/RAM`)
+    ).data.coins;
+
     return dataNow.map((p, i) => {
       const poolMeta = `${p.feeTier / 1e4}%`;
       const underlyingTokens = [p.token0.id, p.token1.id];
