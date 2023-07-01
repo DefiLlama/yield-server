@@ -246,8 +246,8 @@ const topLvl = async (
     }
 
     const prices = (
-      await axios.get(`https://coins.llama.fi/prices/current/RAM`)
-    ).data.coins;
+      await axios.get(`https://coins.llama.fi/prices/current/arbitrum:${RAM}`)
+      ).data.coins;
 
     return dataNow.map((p, i) => {
       const poolMeta = `${p.feeTier / 1e4}%`;
@@ -265,7 +265,7 @@ const topLvl = async (
         2.5;
 
       const feeTier = Number(poolMeta.replace('%', '')) * 10000;
-      const url = `https://app.uniswap.org/#/add/${token0}/${token1}/${feeTier}?chain=${chain}`;
+      const url = `https://cl.ramses.exchange/#/add/${token0}/${token1}/${feeTier}`;
 
       return {
         pool: p.id,

@@ -104,7 +104,7 @@ const getApy = async () => {
   const priceKeys = tokens.map((i) => `arbitrum:${i}`).join(',');
 
   const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/arbitrum:0xAAA6C1E32C55A7Bfa8066A6FAE9b42650F262418`)
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
   ).data.coins;
 
   const pools = allPairs.map((p, i) => {
