@@ -247,7 +247,7 @@ const topLvl = async (
 
     const prices = (
       await axios.get(`https://coins.llama.fi/prices/current/arbitrum:${RAM}`)
-      ).data.coins;
+    ).data.coins;
 
     return dataNow.map((p, i) => {
       const poolMeta = `${p.feeTier / 1e4}%`;
