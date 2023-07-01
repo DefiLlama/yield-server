@@ -15,16 +15,14 @@ const chains = {
   arbitrum: `${baseUrl}/ramsesexchange/concentrated-liquidity-graph`,
 };
 
-
 const superagent = require('superagent');
-
 const { EstimatedFees } = require('./estimateFee.ts');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 
 const query = gql`
   {
-    pools(first: 1000, orderBy: totalValueLockedUSD, orderDirection: desc block: {number: <PLACEHOLDER>}) {
+    pools(first: 1000, orderBy: totalValueLockedUSD, orderDirection: desc, block: {number: <PLACEHOLDER>}) {
       id
       totalValueLockedToken0
       totalValueLockedToken1
@@ -46,7 +44,7 @@ const query = gql`
 
 const queryPrior = gql`
   {
-    pools( first: 1000 orderBy: totalValueLockedUSD orderDirection:desc block: {number: <PLACEHOLDER>}) {
+    pools(first: 1000, orderBy: totalValueLockedUSD, orderDirection: desc, block: {number: <PLACEHOLDER>}) {
       id 
       volumeUSD 
     }
@@ -100,7 +98,39 @@ const topLvl = async (
       chain: chainString,
     });
 
-    dataNow = dataNow.map((p) => {
+    const gauges = (
+      await sdk.api.abi.multiCall({
+        calls: dataNow.map((i) => ({
+          target: voter,
+          params: [i.id],
+        })),
+        abi: abiVoter.find((m) => m.name === 'gauges'),
+        chain: 'arbitrum',
+      })
+    ).output.map((o) => o.output);
+
+    const rewardRate = (
+      await sdk.api.abi.multiCall({
+        calls: gauges.map((i) => ({
+          target: i,
+          params: [RAM],
+        })),
+        abi: abiGauge.find((m) => m.name === 'rewardRate'),
+        chain: 'arbitrum',
+      })
+    ).output.map((o) => o.output);
+
+    const totalSupply = (
+      await sdk.api.abi.multiCall({
+        calls: gauges.map((i) => ({
+          target: i,
+        })),
+        abi: abiGauge.find((m) => m.name === 'totalSupply'),
+        chain: 'arbitrum',
+      })
+    ).output.map((o) => o.output);
+
+    dataNow = dataNow.map((p, i) => {
       const x = tokenBalances.output.filter((i) => i.input.params[0] === p.id);
       return {
         ...p,
@@ -110,6 +140,7 @@ const topLvl = async (
         reserve1:
           x.find((i) => i.input.target === p.token1.id).output /
           `1e${p.token1.decimals}`,
+        totalSupply: totalSupply[i],
       };
     });
 
@@ -150,14 +181,15 @@ const topLvl = async (
     // calc apy (note: old way of using 24h fees * 365 / tvl. keeping this for now) and will store the
     // new apy calc as a separate field
     // note re arbitrum: their subgraph is outdated (no tick data -> no uni v3 style apy calc)
-    dataNow = dataNow.map((el) =>
-      utils.apy(el, dataPrior, dataPrior7d, version)
+    dataNow = dataNow.map((el, i) =>
+      utils.apy(el, dataPrior, dataPrior7d, version, i)
     );
 
     if (chainString !== 'arbitrum') {
-      dataNow = dataNow.map((p) => ({
+      dataNow = dataNow.map((p, i) => ({
         ...p,
         token1_in_token0: p.price1 / p.price0,
+        volumeUSD7d: dataPrior7d[i].volumeUSD,
       }));
 
       // split up subgraph tick calls into n-batches
@@ -213,12 +245,20 @@ const topLvl = async (
       }));
     }
 
-    return dataNow.map((p) => {
+    return dataNow.map((p, i) => {
       const poolMeta = `${p.feeTier / 1e4}%`;
       const underlyingTokens = [p.token0.id, p.token1.id];
       const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
       const token1 = underlyingTokens === undefined ? '' : underlyingTokens[1];
       const chain = chainString === 'ethereum' ? 'mainnet' : chainString;
+      const pairPrice = (p.totalValueLockedUSD * 1e18) / p.totalSupply;
+      const totalRewardPerDay =
+        ((rewardRate[i] * 86400) / 1e18) * prices[`arbitrum:${RAM}`]?.price;
+
+      const apyReward =
+        (totalRewardPerDay * 36500) /
+        ((p.totalSupply * pairPrice) / 1e18) /
+        2.5;
 
       const feeTier = Number(poolMeta.replace('%', '')) * 10000;
       const url = `https://app.uniswap.org/#/add/${token0}/${token1}/${feeTier}?chain=${chain}`;
@@ -226,12 +266,14 @@ const topLvl = async (
       return {
         pool: p.id,
         chain: utils.formatChain(chainString),
-        project: 'uniswap-v3',
+        project: 'ramses-v2',
         poolMeta: `${poolMeta}, stablePool=${p.stablecoin}`,
         symbol: p.symbol,
         tvlUsd: p.totalValueLockedUSD,
         apyBase: p.apy1d,
         apyBase7d: p.apy7d,
+        apyReward: p.reward,
+        rewardTokens: apyReward ? [RAM] : [],
         underlyingTokens,
         url,
         volumeUsd1d: p.volumeUSD1d,
