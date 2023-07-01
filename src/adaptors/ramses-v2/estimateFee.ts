@@ -1,11 +1,13 @@
-import bn from 'bignumber.js';
-import axios from 'axios';
+// forked from uniswap.fish chads (see https://github.com/chunza2542/uniswap.fish)
+
+const bn = require('bignumber.js');
+const axios = require('axios');
 
 interface Tick {
-  tickIdx: '',
-  liquidityNet: '',
-  price0: '',
-  price1: '',
+  tickIdx: string;
+  liquidityNet: string;
+  price0: string;
+  price1: string;
 }
 
 bn.config({ EXPONENTIAL_AT: 999999, DECIMAL_PLACES: 40 });
