@@ -101,7 +101,7 @@ const topLvl = async (
 
     const gauges = (
       await sdk.api.abi.multiCall({
-        calls: allPairs.map((i) => ({
+        calls: dataNow.map((i) => ({
           target: voter,
           params: [i],
         })),
@@ -112,7 +112,7 @@ const topLvl = async (
 
     const rewardRate = (
       await sdk.api.abi.multiCall({
-        calls: gauges.map((i) => ({
+        calls: dataNow.map((i) => ({
           target: i,
           params: [RAM],
         })),
@@ -123,7 +123,7 @@ const topLvl = async (
 
     const totalSupply = (
       await sdk.api.abi.multiCall({
-        calls: gauges.map((i) => ({
+        calls: dataNow.map((i) => ({
           target: i,
         })),
         abi: abiGauge.find((m) => m.name === 'totalSupply'),
