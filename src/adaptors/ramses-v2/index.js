@@ -17,7 +17,7 @@ const chains = {
 };
 
 const superagent = require('superagent');
-const { EstimatedFees } = require('./estimateFee.ts');
+const { EstimatedFees } = require('./estimateFee.js');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 
@@ -101,18 +101,19 @@ const topLvl = async (
 
     const gauges = (
       await sdk.api.abi.multiCall({
-        calls: dataNow.id.map((i) => ({
+        calls: dataNow.map((p) => ({
           target: voter,
-          params: [i],
+          params: [p.id],
         })),
         abi: abiVoter.find((m) => m.name === 'gauges'),
         chain: 'arbitrum',
       })
     ).output.map((o) => o.output);
+    console.log(gauges);
 
     const rewardRate = (
       await sdk.api.abi.multiCall({
-        calls: dataNow.id.map((i) => ({
+        calls: gauges.map((i) => ({
           target: i,
           params: [RAM],
         })),
@@ -120,26 +121,31 @@ const topLvl = async (
         chain: 'arbitrum',
       })
     ).output.map((o) => o.output);
+    console.log(rewardRate);
 
     const totalSupply = (
       await sdk.api.abi.multiCall({
-        calls: dataNow.id.map((i) => ({
-          target: i,
+        calls: dataNow.map((p) => ({
+          target: [p.id],
         })),
-        abi: abiGauge.find((m) => m.name === 'totalSupply'),
+        abi: abiPair.find((m) => m.name === 'liquidity'),
         chain: 'arbitrum',
       })
     ).output.map((o) => o.output);
+    console.log(totalSupply);
 
     dataNow = dataNow.map((p, i) => {
-      const x = tokenBalances.output.filter((i) => i.input.params[0] === p.id);
+      const x = tokenBalances.output.filter(
+        (item) => item.input.params[0] === p.id
+      );
+
       return {
         ...p,
         reserve0:
-          x.find((i) => i.input.target === p.token0.id).output /
+          x.find((item) => item.input.target === p.token0.id).output /
           `1e${p.token0.decimals}`,
         reserve1:
-          x.find((i) => i.input.target === p.token1.id).output /
+          x.find((item) => item.input.target === p.token1.id).output /
           `1e${p.token1.decimals}`,
         totalSupply: totalSupply[i],
         gauge: gauges[i],
@@ -259,8 +265,7 @@ const topLvl = async (
       const token1 = underlyingTokens === undefined ? '' : underlyingTokens[1];
       const chain = chainString === 'ethereum' ? 'mainnet' : chainString;
       const pairPrice = (p.totalValueLockedUSD * 1e18) / p.totalSupply;
-      const totalRewardPerDay =
-        ((p.rewardRate * 86400) / 1e18) * prices;
+      const totalRewardPerDay = ((p.rewardRate * 86400) / 1e18) * prices;
 
       const apyReward =
         (totalRewardPerDay * 36500) /
