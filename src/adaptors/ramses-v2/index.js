@@ -99,17 +99,18 @@ const topLvl = async (
       chain: chainString,
     });
 
-    const gauges = 
+    const gauges = (
       await sdk.api.abi.multiCall({
-        calls: dataNow.map((i) => ({
+        calls: allPairs.map((i) => ({
           target: voter,
-          params: [i.id],
+          params: [i],
         })),
         abi: abiVoter.find((m) => m.name === 'gauges'),
         chain: 'arbitrum',
-      });
+      })
+    ).output.map((o) => o.output);
 
-    const rewardRate =
+    const rewardRate = (
       await sdk.api.abi.multiCall({
         calls: gauges.map((i) => ({
           target: i,
@@ -117,16 +118,18 @@ const topLvl = async (
         })),
         abi: abiGauge.find((m) => m.name === 'rewardRate'),
         chain: 'arbitrum',
-      });
+      })
+    ).output.map((o) => o.output);
 
-    const totalSupply =
+    const totalSupply = (
       await sdk.api.abi.multiCall({
         calls: gauges.map((i) => ({
           target: i,
         })),
         abi: abiGauge.find((m) => m.name === 'totalSupply'),
         chain: 'arbitrum',
-      });
+      })
+    ).output.map((o) => o.output);
 
     dataNow = dataNow.map((p, i) => {
       const x = tokenBalances.output.filter((i) => i.input.params[0] === p.id);
