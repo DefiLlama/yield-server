@@ -17,7 +17,7 @@ const chains = {
 };
 
 const superagent = require('superagent');
-const { EstimatedFees } = require('./estimateFee.js');
+const { EstimatedFees } = require('./estimateFee.ts');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 
