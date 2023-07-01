@@ -257,7 +257,7 @@ const topLvl = async (
       const chain = chainString === 'ethereum' ? 'mainnet' : chainString;
       const pairPrice = (p.totalValueLockedUSD * 1e18) / p.totalSupply;
       const totalRewardPerDay =
-        ((rewardRate[i] * 86400) / 1e18) * prices[`arbitrum:${RAM}`]?.price;
+        ((rewardRate[i] * 86400) / 1e18) * prices;
 
       const apyReward =
         (totalRewardPerDay * 36500) /
