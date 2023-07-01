@@ -99,7 +99,7 @@ const topLvl = async (
       chain: chainString,
     });
 
-    const gauges = (
+    const gauges = 
       await sdk.api.abi.multiCall({
         calls: dataNow.map((i) => ({
           target: voter,
@@ -107,10 +107,9 @@ const topLvl = async (
         })),
         abi: abiVoter.find((m) => m.name === 'gauges'),
         chain: 'arbitrum',
-      })
-    ).output.map((o) => o.output);
+      });
 
-    const rewardRate = (
+    const rewardRate =
       await sdk.api.abi.multiCall({
         calls: gauges.map((i) => ({
           target: i,
@@ -118,18 +117,16 @@ const topLvl = async (
         })),
         abi: abiGauge.find((m) => m.name === 'rewardRate'),
         chain: 'arbitrum',
-      })
-    ).output.map((o) => o.output);
+      });
 
-    const totalSupply = (
+    const totalSupply =
       await sdk.api.abi.multiCall({
         calls: gauges.map((i) => ({
           target: i,
         })),
         abi: abiGauge.find((m) => m.name === 'totalSupply'),
         chain: 'arbitrum',
-      })
-    ).output.map((o) => o.output);
+      });
 
     dataNow = dataNow.map((p, i) => {
       const x = tokenBalances.output.filter((i) => i.input.params[0] === p.id);
@@ -258,7 +255,7 @@ const topLvl = async (
       const chain = chainString === 'ethereum' ? 'mainnet' : chainString;
       const pairPrice = (p.totalValueLockedUSD * 1e18) / p.totalSupply;
       const totalRewardPerDay =
-        ((rewardRate[i] * 86400) / 1e18) * prices;
+        ((p.rewardRate[i] * 86400) / 1e18) * prices;
 
       const apyReward =
         (totalRewardPerDay * 36500) /
@@ -277,7 +274,7 @@ const topLvl = async (
         tvlUsd: p.totalValueLockedUSD,
         apyBase: p.apy1d,
         apyBase7d: p.apy7d,
-        apyReward: p.reward,
+        apyReward: apyReward,
         rewardTokens: apyReward ? [RAM] : [],
         underlyingTokens,
         url,
