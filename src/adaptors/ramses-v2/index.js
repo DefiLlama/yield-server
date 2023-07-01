@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
+const axios = require('axios');
 
 const utils = require('../utils');
 const abiPairFactory = require('./abiPairFactory.json');
