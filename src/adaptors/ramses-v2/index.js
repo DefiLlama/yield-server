@@ -17,7 +17,7 @@ const chains = {
 };
 
 const superagent = require('superagent');
-const { EstimatedFees } = require('./estimateFee.ts');
+const { EstimatedFees } = require('./estimateFee.js');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 
@@ -142,6 +142,8 @@ const topLvl = async (
           x.find((i) => i.input.target === p.token1.id).output /
           `1e${p.token1.decimals}`,
         totalSupply: totalSupply[i],
+        gauge: gauges[i],
+        rewardRate: rewardRate[i],
       };
     });
 
@@ -258,7 +260,7 @@ const topLvl = async (
       const chain = chainString === 'ethereum' ? 'mainnet' : chainString;
       const pairPrice = (p.totalValueLockedUSD * 1e18) / p.totalSupply;
       const totalRewardPerDay =
-        ((p.rewardRate[i] * 86400) / 1e18) * prices;
+        ((p.rewardRate * 86400) / 1e18) * prices;
 
       const apyReward =
         (totalRewardPerDay * 36500) /
