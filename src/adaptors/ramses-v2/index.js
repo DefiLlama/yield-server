@@ -20,6 +20,7 @@ const superagent = require('superagent');
 const { EstimatedFees } = require('./estimateFee.ts');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
+const { getCdpTotalSupply } = require('../nitron/helper');
 
 const query = gql`
   {
@@ -126,9 +127,9 @@ const topLvl = async (
     const totalSupply = (
       await sdk.api.abi.multiCall({
         calls: dataNow.map((p) => ({
-          target: [p.id],
+          target: p.id,
         })),
-        abi: abiPair.find((m) => m.name === 'liquidity'),
+        abi: abiPair.find((m) => m.name === 'boostedLiquidity'),
         chain: 'arbitrum',
       })
     ).output.map((o) => o.output);
@@ -147,12 +148,13 @@ const topLvl = async (
         reserve1:
           x.find((item) => item.input.target === p.token1.id).output /
           `1e${p.token1.decimals}`,
-        totalSupply: totalSupply[i],
+        supply: totalSupply[i],
         gauge: gauges[i],
-        rewardRate: rewardRate[i],
+        reward: rewardRate[i],
       };
     });
 
+    console.log(dataNow);
     // pull 24h offset data to calculate fees from swap volume
     let queryPriorC = queryPrior;
     let dataPrior = await request(
@@ -254,8 +256,12 @@ const topLvl = async (
       }));
     }
 
+    const tokenReward = 'arbitrum:0xAAA6C1E32C55A7Bfa8066A6FAE9b42650F262418';
+
     const prices = (
-      await axios.get(`https://coins.llama.fi/prices/current/arbitrum:${RAM}`)
+      await axios.get(
+        `https://coins.llama.fi/prices/current/arbitrum:0xAAA6C1E32C55A7Bfa8066A6FAE9b42650F262418`
+      )
     ).data.coins;
 
     return dataNow.map((p, i) => {
@@ -264,13 +270,10 @@ const topLvl = async (
       const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
       const token1 = underlyingTokens === undefined ? '' : underlyingTokens[1];
       const chain = chainString === 'ethereum' ? 'mainnet' : chainString;
-      const pairPrice = (p.totalValueLockedUSD * 1e18) / p.totalSupply;
-      const totalRewardPerDay = ((p.rewardRate * 86400) / 1e18) * prices;
-
-      const apyReward =
-        (totalRewardPerDay * 36500) /
-        ((p.totalSupply * pairPrice) / 1e18) /
-        2.5;
+      const pairPrice = (p.totalValueLockedUSD * 1e18) / p.supply;
+      const totalRewardPerDay =
+        ((p.reward * 86400) / 1e18) * prices[tokenReward]?.price;
+      const apyReward = (totalRewardPerDay * 36500) / p.totalValueLockedUSD;
 
       const feeTier = Number(poolMeta.replace('%', '')) * 10000;
       const url = `https://cl.ramses.exchange/#/add/${token0}/${token1}/${feeTier}`;
@@ -282,8 +285,8 @@ const topLvl = async (
         poolMeta: `${poolMeta}, stablePool=${p.stablecoin}`,
         symbol: p.symbol,
         tvlUsd: p.totalValueLockedUSD,
-        apyBase: p.apy1d,
-        apyBase7d: p.apy7d,
+        apyBase: p.apy1d * 0.25,
+        apyBase7d: p.apy7d * 0.25,
         apyReward: apyReward,
         rewardTokens: apyReward ? [RAM] : [],
         underlyingTokens,
