@@ -110,7 +110,6 @@ const topLvl = async (
         chain: 'arbitrum',
       })
     ).output.map((o) => o.output);
-    console.log(gauges);
 
     const rewardRate = (
       await sdk.api.abi.multiCall({
@@ -122,7 +121,6 @@ const topLvl = async (
         chain: 'arbitrum',
       })
     ).output.map((o) => o.output);
-    console.log(rewardRate);
 
     const totalSupply = (
       await sdk.api.abi.multiCall({
@@ -133,7 +131,6 @@ const topLvl = async (
         chain: 'arbitrum',
       })
     ).output.map((o) => o.output);
-    console.log(totalSupply);
 
     dataNow = dataNow.map((p, i) => {
       const x = tokenBalances.output.filter(
@@ -154,7 +151,6 @@ const topLvl = async (
       };
     });
 
-    console.log(dataNow);
     // pull 24h offset data to calculate fees from swap volume
     let queryPriorC = queryPrior;
     let dataPrior = await request(
@@ -272,7 +268,7 @@ const topLvl = async (
       const chain = chainString === 'ethereum' ? 'mainnet' : chainString;
       const pairPrice = (p.totalValueLockedUSD * 1e18) / p.supply;
       const totalRewardPerDay =
-        ((p.reward * 86400) / 1e18) * prices[tokenReward]?.price;
+        ((p.reward * 86400 * 4) / 1e18) * prices[tokenReward]?.price;
       const apyReward = (totalRewardPerDay * 36500) / p.totalValueLockedUSD;
 
       const feeTier = Number(poolMeta.replace('%', '')) * 10000;
