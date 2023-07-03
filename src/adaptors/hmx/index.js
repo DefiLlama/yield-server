@@ -106,7 +106,7 @@ const apy = async () => {
   const plpStakingPool = {
     pool: `${addresses.PLP_STAKING}-polygon`,
     chain: 'Polygon',
-    project: 'perp88',
+    project: 'hmx',
     symbol: 'USDC-USDT-WBTC-ETH-MATIC',
     tvlUsd: tvl.toNumber(),
     apy: apr.toNumber(),
@@ -119,7 +119,7 @@ const apy = async () => {
       addresses.WETH,
     ],
     poolMeta: 'PLP Staking',
-    url: 'https://app.perp88.com/earn',
+    url: 'https://hmx.org/arbitrum/earn',
   };
 
   return [plpStakingPool];

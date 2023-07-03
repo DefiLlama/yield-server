@@ -96,6 +96,7 @@ const lsdTokens = [
     symbol: 'hETH',
     address: '0x5bBe36152d3CD3eB7183A82470b39b29EedF068B',
     type: a,
+    fee: 0.1,
   },
   {
     name: 'Swell',
