@@ -43,7 +43,7 @@ const marketConfig = {
   '0x37E6a0EcB9e8E5D90104590049a0A197E1363b67': {
     name: 'LOHM',
     symbol: 'OHM',
-    decimals: 18,
+    decimals: 9,
     underlyingAddress: '0x6E6a3D8F1AfFAc703B1aEF1F43B8D2321bE40043',
   },
 };
