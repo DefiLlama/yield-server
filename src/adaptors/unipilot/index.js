@@ -188,9 +188,9 @@ const getApy = async () => {
             }`,
             tvlUsd: tvlUSD || 0,
             url:
-              exchange === 'uniswapv3'
-                ? `https://app.unipilot.io/add?vault=${vault.id}&chainId=${CHAIN_IDS[chain]}`
-                : `https://quickswap.unipilot.io/add?vault=${vault.id}&chainId=${CHAIN_IDS[chain]}`,
+              exchange === 'quickswap'
+                ? `https://quickswap.unipilot.io/add?vault=${vault.id}&chainId=${CHAIN_IDS[chain]}`
+                : `https://app.unipilot.io/add?vault=${vault.id}&chainId=${CHAIN_IDS[chain]}`,
             underlyingTokens: [vault.token0.id, vault.token1.id],
             apyBase: Number(vaultsAprs[vault.id]?.avg24Hrs.total) ?? 0,
             apyBase7d: Number(vaultsAprs[vault.id]?.avgAprWeekly.total) ?? 0,
