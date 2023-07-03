@@ -4,16 +4,16 @@ const axios = require('axios');
 const utils = require('../utils');
 
 const EXCHANGES_CHAINS = {
+  quickswap: {
+    polygon: 'polygon',
+    polygon_zkevm: 'polygon_zkevm',
+    dogechain: 'dogechain',
+  },
   uniswapv3: {
     ethereum: 'ethereum',
     polygon: 'polygon',
     arbitrum: 'arbitrum',
     bsc: 'bsc',
-  },
-  quickswap: {
-    polygon: 'polygon',
-    polygon_zkevm: 'polygon_zkevm',
-    dogechain: 'dogechain',
   },
 };
 
@@ -102,10 +102,13 @@ const CHAIN_IDS = {
   dogechain: 2000,
 };
 
+const resultArray = [];
+
 const getStrategties = (strategyId) => {
   if (strategyId === '1') return 'Wide';
   else if (strategyId === '2') return 'Balanced';
   else if (strategyId === '3') return 'Narrow';
+  else return '';
 };
 
 const getApy = async () => {
@@ -198,12 +201,14 @@ const getApy = async () => {
         });
         return modifiedVaults;
       });
-      return pools.flat();
+      resultArray.push(...pools.flat());
     } catch (error) {
       console.log(error);
     }
   }
+  return resultArray;
 };
+
 module.exports = {
   timetravel: false,
   apy: getApy,
