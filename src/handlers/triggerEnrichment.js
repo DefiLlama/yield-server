@@ -485,9 +485,13 @@ const addPoolInfo = (el, stablecoins, config) => {
       ? 'no'
       : config[el.project]?.category === 'Options'
       ? 'yes'
-      : ['complifi', 'optyfi', 'arbor-finance', 'opyn-squeeth'].includes(
-          el.project
-        )
+      : [
+          'complifi',
+          'optyfi',
+          'arbor-finance',
+          'opyn-squeeth',
+          'gmd-protocol',
+        ].includes(el.project)
       ? 'yes'
       : ['mycelium-perpetual-swaps', 'gmx', 'rage-trade'].includes(
           el.project
