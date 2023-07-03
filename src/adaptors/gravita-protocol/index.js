@@ -167,7 +167,7 @@ const main = async () => {
       const totalSupplyUsd = (vesselAssetTvl * assetPrice) / 1e18;
       const totalBorrowUsd = (mintedGrai * graiPrice) / 1e18;
       return {
-        pool: VESSEL_MANAGER_ADDRESS,
+        pool: `Gravita-${symbol}-Vault`,
         chain: 'ethereum',
         project: 'gravita-protocol',
         symbol: symbol,
