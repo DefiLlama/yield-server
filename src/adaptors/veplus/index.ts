@@ -1,106 +1,147 @@
+const sdk = require('@defillama/sdk');
+const axios = require('axios');
+
 const utils = require('../utils');
+const abiPairFactory = require('./abiPairFactory.json');
+const abiPair = require('./abiPair.json');
+const abiGauge = require('./abiGauge.json');
+const abiVoter = require('./abiVoter.json');
 const { request, gql } = require('graphql-request');
 
-const API_URL = 'https://api.veplus.io/api/v1/pairs';
 const SUBGRAPH_URL = 'https://api.thegraph.com/subgraphs/name/jameveplus/veplus'
-const swapPairsQuery = (skip) => {
-  return gql`
-    query MyQuery {
-      pairs(first: 100, skip: ${skip}, where: {reserveUSD_gte: 1000}) {
-        reserve0
-        reserve1
-        token1 {
-          id
-          symbol
-        }
-        token0 {
-          id
-          symbol
-        }
-        reserveUSD
-        id
-      }
-    }
-  `
-}
 
-const getPairs = async () => {
-  let pairs = []
-  let index = 0
-  let res
-  do {
-    res = await request(SUBGRAPH_URL, swapPairsQuery(index), {})
-    if (res.pairs.length > 0) {
-      pairs = [...pairs, ...res.pairs]
+const pairFactory = '0x5Bcd9eE6C31dEf33334b255EE7A767B6EEDcBa4b';
+const voter = '0x792Ba5586E87005661C4e611b17e01De0de42599';
+const VEP = '0x1e32B79d8203AC691499fBFbB02c07A9C9850Dd7';
+const VEP_USDT_PAIR = '0xcb369dbd43de4a5f1d4341cf6621076a6ce668cd'
+
+const pairsQuery = gql`
+  query pairQuery {
+    pair(id: "0xcb369dbd43de4a5f1d4341cf6621076a6ce668cd") {
+      token1Price
     }
-    index += res.pairs.length
-  } while (res.pairs.length > 0)
-  return pairs
+  }
+`;
+
+const getVEPPrice = async () => {
+  const { pair } = await request(SUBGRAPH_URL, pairsQuery, {
+    pair: VEP_USDT_PAIR.toLowerCase(),
+  });
+  return pair.token1Price;
 };
 
 const getApy = async () => {
-  // APR is retrieved using our api, tvl pairs etc trough subgraph
-  const { data: poolsRes } = await utils.getData(API_URL)
+  const vep_price = await getVEPPrice();
 
-  const apyDict = {}
-  const alreadySeen = []
+  const allPairsLength = (
+    await sdk.api.abi.call({
+      target: pairFactory,
+      abi: abiPairFactory.find((m) => m.name === 'allPairsLength'),
+      chain: 'bsc',
+    })
+  ).output;
+  const allPairs = (
+    await sdk.api.abi.multiCall({
+      calls: [...Array(Number(allPairsLength)).keys()].map((i) => ({
+        target: pairFactory,
+        params: [i],
+      })),
+      abi: abiPairFactory.find((m) => m.name === 'allPairs'),
+      chain: 'bsc',
+    })
+  ).output.map((o) => o.output);
 
-  for (const pool of poolsRes) {
-    apyDict[pool.address.toLowerCase()] = pool?.apr
-  }
+  const metaData = (
+    await sdk.api.abi.multiCall({
+      calls: allPairs.map((i) => ({
+        target: i,
+      })),
+      abi: abiPair.find((m) => m.name === 'metadata'),
+      chain: 'bsc',
+    })
+  ).output.map((o) => o.output);
 
-  const pairs = await getPairs()
-  for (const pair of pairs) {
-    const token0Key = 'bsc:' + pair.token0.id.toLowerCase()
-    const token1Key = 'bsc:' + pair.token1.id.toLowerCase()
+  const symbols = (
+    await sdk.api.abi.multiCall({
+      calls: allPairs.map((i) => ({
+        target: i,
+      })),
+      abi: abiPair.find((m) => m.name === 'symbol'),
+      chain: 'bsc',
+    })
+  ).output.map((o) => o.output);
 
-    if (!alreadySeen.includes(token0Key)) {
-      alreadySeen.push(token0Key)
-    }
+  const gauges = (
+    await sdk.api.abi.multiCall({
+      calls: allPairs.map((i) => ({
+        target: voter,
+        params: [i],
+      })),
+      abi: abiVoter.find((m) => m.name === 'gauges'),
+      chain: 'bsc',
+    })
+  ).output.map((o) => o.output);
 
-    if (!alreadySeen.includes(token1Key)) {
-      alreadySeen.push(token1Key)
-    }
-  }
+  const rewardRate = (
+    await sdk.api.abi.multiCall({
+      calls: gauges.map((i) => ({
+        target: i,
+        params: VEP,
+      })),
+      abi: abiGauge.find((m) => m.name === 'rewardRate'),
+      chain: 'bsc',
+    })
+  ).output.map((o) => o.output);
 
-  // asking price to defillama chunking requests (currently running with 1 request could be lowered if needed)
-  let fullCoin = {}
-  const chunkSize = 60
-  for (let i = 0; i < alreadySeen.length; i += chunkSize) {
-    const chunk = alreadySeen.slice(i, i + chunkSize)
-    const { coins } = await utils.getData(`https://coins.llama.fi/prices/current/${chunk.join(',')}?searchWidth=4h`)
-    fullCoin = { ...fullCoin, ...coins }
-  }
+  const tokens = [
+    ...new Set(
+      metaData
+        .map((m) => [m.t0, m.t1])
+        .flat()
+        .concat(VEP)
+    ),
+  ];
+  const priceKeys = tokens.map((i) => `bsc:${i}`).join(',');
 
-  const pools = pairs.map((pair) => {
-    let tvl = 0
+  const prices = (
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).data.coins;
 
-    if (fullCoin['bsc:' + pair.token0.id.toLowerCase()] && fullCoin['bsc:' + pair.token1.id.toLowerCase()]) {
-      const token0ValueInReserve = parseFloat(pair.reserve0) * parseFloat(fullCoin['bsc:' + pair.token0.id.toLowerCase()].price)
-      const token1ValueInReserve = parseFloat(pair.reserve1) * parseFloat(fullCoin['bsc:' + pair.token1.id.toLowerCase()].price)
+  const pools = allPairs.map((p, i) => {
 
-      tvl = token0ValueInReserve + token1ValueInReserve
-    }
-    else {
-      // fallbacking to the one from api if defillama price are missing
-      tvl = parseFloat(pair.reserveUSD)
-    }
+    const poolMeta = metaData[i];
+
+    const r0 = poolMeta.r0 / poolMeta.dec0;
+    const r1 = poolMeta.r1 / poolMeta.dec1;
+
+    const p0 = prices[`bsc:${poolMeta.t0}`]?.price;
+    const p1 = prices[`bsc:${poolMeta.t1}`]?.price;
+
+    const tvlUsd = r0 * p0 + r1 * p1;
+
+    const s = symbols[i];
+
+    const totalRewardPerDay =
+      ((rewardRate[i] * 86400) / 1e18) * vep_price;
+
+    const apyReward =
+      (totalRewardPerDay * 36500) / tvlUsd;
+
     return {
-      pool: pair.id,
+      pool: p,
       chain: utils.formatChain('bsc'),
       project: 'veplus',
-      symbol: `${pair.token0.symbol}-${pair.token1.symbol}`,
-      tvlUsd: tvl,
-      apyReward: parseFloat(apyDict[pair.id.toLowerCase()]),
-      underlyingTokens: [pair.token0.id, pair.token1.id],
-      rewardTokens: [
-        '0x1e32B79d8203AC691499fBFbB02c07A9C9850Dd7', // VEP
-      ],
+      symbol: utils.formatSymbol(s.replace('/','-')),
+      tvlUsd,
+      apyReward,
+      rewardTokens: apyReward ? [VEP] : [],
+      underlyingTokens: [poolMeta.t0, poolMeta.t1],
     };
-  })
+  });
 
-  return pools;
+  return pools.filter((p) => utils.keepFinite(p));
 };
+
 
 module.exports = {
   timetravel: false,
