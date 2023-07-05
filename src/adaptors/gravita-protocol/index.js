@@ -76,6 +76,26 @@ const ABIS = {
     stateMutability: 'view',
     type: 'function',
   },
+  getMintCap: {
+    inputs: [
+      {
+        internalType: 'address',
+        name: '_collateral',
+        type: 'address',
+      },
+    ],
+    name: 'getMintCap',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+
   getValidCollateral: {
     inputs: [],
     name: 'getValidCollateral',
@@ -139,6 +159,7 @@ const main = async () => {
         assetPrice,
         vesselAssetTvl,
         mintedGrai,
+        mintCap,
         mcr,
         borrowingFee,
       ] = await Promise.all([
@@ -150,6 +171,7 @@ const main = async () => {
         fetchAbiData(VESSEL_MANAGER_ADDRESS, ABIS.getEntireSystemDebt, [
           collateral,
         ]),
+        fetchAbiData(ADMIN_CONTRACT_ADDRESS, ABIS.getMintCap, [collateral]),
         fetchAbiData(ADMIN_CONTRACT_ADDRESS, ABIS.getMCR, [collateral]),
         fetchAbiData(ADMIN_CONTRACT_ADDRESS, ABIS.getBorrowingFee, [
           collateral,
@@ -171,13 +193,15 @@ const main = async () => {
         chain: 'ethereum',
         project: 'gravita-protocol',
         symbol: symbol,
+        mintedCoin: 'GRAI',
         apy: 0,
-        tvlUsd: totalSupplyUsd - totalBorrowUsd, // for lending protocols: tvlUsd = totalSupplyUsd - totalBorrowUsd
+        tvlUsd: totalSupplyUsd,
         underlyingTokens: [collateral],
         // optional lending protocol specific fields:
         apyBaseBorrow: borrowingFee / 1e16,
         totalSupplyUsd: totalSupplyUsd,
         totalBorrowUsd: totalBorrowUsd,
+        debtCeilingUsd: (mintCap * graiPrice) / 1e18,
         ltv: 1 / (mcr / 1e18), // btw [0, 1]
       };
     })
