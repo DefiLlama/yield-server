@@ -12,6 +12,7 @@ const PAIR_DEPLOYERS = [
   '0x5d6e79bcf90140585ce88c7119b7e43caaa67044',
   '0x38488dE975B77dc1b0D4B8569f596f6FD6ca0B92',
   '0x7AB788d0483551428f2291232477F1818952998C',
+  '0xaa913C26dD7723Fcae9dBD2036d28171a56C6251',
 ];
 const MKR = '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2'; //Not a standard ERC20. symbol and name are base32 encoded
 const HELPER = {
@@ -291,7 +292,7 @@ const main = async () => {
         project: 'fraxlend',
         symbol: underlyingCollaterals[index],
         chain: 'ethereum',
-        apy: 0,
+        apyBase: apyRewardBorrow.toNumber(),
         tvlUsd: tvlUsd.toNumber(),
         // borrow fields
         apyBaseBorrow: apyBaseBorrow.toNumber(),
