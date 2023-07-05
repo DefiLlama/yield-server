@@ -30,11 +30,12 @@ const swapPairsQuery = gql`
 `;
 
 const swapPairQuery = gql`
-query pairQuery {
-  pair(id: "0xcb369dbd43de4a5f1d4341cf6621076a6ce668cd") {
-    token1Price
+  query pairQuery($id: String!) {
+    pair: swapPair(id: $id) {
+      token1Price
+    }
   }
-}`;
+`;
 
 const getSwapPairs = async () => {
   const { pairs } = await request(SUBGRAPH_URL, swapPairsQuery, {});
