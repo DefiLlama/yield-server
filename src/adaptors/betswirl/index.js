@@ -112,9 +112,6 @@ module.exports = {
           rewardToken.token.tokenAddress.toLowerCase()
         ),
         underlyingTokens: [pool.stakingToken.tokenAddress.toLowerCase()],
-        poolMeta: `Stake BETS earn ${pool.rewardTokens
-          .map((rewardToken) => rewardToken.token.symbol)
-          .join(',')}`,
         url: 'https://app.betswirl.com/staking?pool=BETS&c=' + pool.chainId,
       });
     }

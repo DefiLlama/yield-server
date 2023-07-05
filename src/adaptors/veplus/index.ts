@@ -6,20 +6,40 @@ const abiPairFactory = require('./abiPairFactory.json');
 const abiPair = require('./abiPair.json');
 const abiGauge = require('./abiGauge.json');
 const abiVoter = require('./abiVoter.json');
+const { request, gql } = require('graphql-request');
 
-const pairFactory = '0xaC7B7EaC8310170109301034b8FdB75eCa4CC491';
-const voter = '0x4199Cf7D3cd8F92BAFBB97fF66caE507888b01F9';
-const GLCR = '0x3712871408a829C5cd4e86DA1f4CE727eFCD28F6';
+const SUBGRAPH_URL = 'https://api.thegraph.com/subgraphs/name/jameveplus/veplus'
+
+const pairFactory = '0x5Bcd9eE6C31dEf33334b255EE7A767B6EEDcBa4b';
+const voter = '0x792Ba5586E87005661C4e611b17e01De0de42599';
+const VEP = '0x1e32B79d8203AC691499fBFbB02c07A9C9850Dd7';
+const VEP_USDT_PAIR = '0xcb369dbd43de4a5f1d4341cf6621076a6ce668cd'
+
+const pairsQuery = gql`
+  query pairQuery {
+    pair(id: "0xcb369dbd43de4a5f1d4341cf6621076a6ce668cd") {
+      token1Price
+    }
+  }
+`;
+
+const getVEPPrice = async () => {
+  const { pair } = await request(SUBGRAPH_URL, pairsQuery, {
+    pair: VEP_USDT_PAIR.toLowerCase(),
+  });
+  return pair.token1Price;
+};
 
 const getApy = async () => {
+  const vep_price = await getVEPPrice();
+
   const allPairsLength = (
     await sdk.api.abi.call({
       target: pairFactory,
       abi: abiPairFactory.find((m) => m.name === 'allPairsLength'),
-      chain: 'avax',
+      chain: 'bsc',
     })
   ).output;
-
   const allPairs = (
     await sdk.api.abi.multiCall({
       calls: [...Array(Number(allPairsLength)).keys()].map((i) => ({
@@ -27,7 +47,7 @@ const getApy = async () => {
         params: [i],
       })),
       abi: abiPairFactory.find((m) => m.name === 'allPairs'),
-      chain: 'avax',
+      chain: 'bsc',
     })
   ).output.map((o) => o.output);
 
@@ -37,7 +57,7 @@ const getApy = async () => {
         target: i,
       })),
       abi: abiPair.find((m) => m.name === 'metadata'),
-      chain: 'avax',
+      chain: 'bsc',
     })
   ).output.map((o) => o.output);
 
@@ -47,7 +67,7 @@ const getApy = async () => {
         target: i,
       })),
       abi: abiPair.find((m) => m.name === 'symbol'),
-      chain: 'avax',
+      chain: 'bsc',
     })
   ).output.map((o) => o.output);
 
@@ -58,7 +78,7 @@ const getApy = async () => {
         params: [i],
       })),
       abi: abiVoter.find((m) => m.name === 'gauges'),
-      chain: 'avax',
+      chain: 'bsc',
     })
   ).output.map((o) => o.output);
 
@@ -66,10 +86,10 @@ const getApy = async () => {
     await sdk.api.abi.multiCall({
       calls: gauges.map((i) => ({
         target: i,
-        params: [GLCR],
+        params: VEP,
       })),
       abi: abiGauge.find((m) => m.name === 'rewardRate'),
-      chain: 'avax',
+      chain: 'bsc',
     })
   ).output.map((o) => o.output);
 
@@ -78,48 +98,43 @@ const getApy = async () => {
       metaData
         .map((m) => [m.t0, m.t1])
         .flat()
-        .concat(GLCR)
+        .concat(VEP)
     ),
   ];
-  const priceKeys = tokens.map((i) => `avax:${i}`).join(',');
+  const priceKeys = tokens.map((i) => `bsc:${i}`).join(',');
 
   const prices = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
   ).data.coins;
 
   const pools = allPairs.map((p, i) => {
+
     const poolMeta = metaData[i];
 
     const r0 = poolMeta.r0 / poolMeta.dec0;
     const r1 = poolMeta.r1 / poolMeta.dec1;
-    const re0 = r0 || 0;
-    const re1 = r1 || 0;
 
-    const p0 = prices[`avax:${poolMeta.t0}`]?.price;
-    const p1 = prices[`avax:${poolMeta.t1}`]?.price;
+    const p0 = prices[`bsc:${poolMeta.t0}`]?.price;
+    const p1 = prices[`bsc:${poolMeta.t1}`]?.price;
 
-    const price0 = p0 || 0;
-    const price1 = p1 || 0;
-    const tvlUsd =
-      re0 === 0
-        ? re1 * price1 * 2
-        : re1 === 0
-        ? re0 * price0 * 2
-        : re0 * price0 + re1 * price1;
+    const tvlUsd = r0 * p0 + r1 * p1;
 
     const s = symbols[i];
 
-    const rewardPerSec = (rewardRate[i] / 1e18) * prices[`avax:${GLCR}`]?.price;
-    const apyReward = ((rewardPerSec * 86400 * 365) / tvlUsd) * 100;
+    const totalRewardPerDay =
+      ((rewardRate[i] * 86400) / 1e18) * vep_price;
+
+    const apyReward =
+      (totalRewardPerDay * 36500) / tvlUsd;
 
     return {
       pool: p,
-      chain: utils.formatChain('avax'),
-      project: 'glacier-finance',
-      symbol: utils.formatSymbol(s.split('-')[1]),
+      chain: utils.formatChain('bsc'),
+      project: 'veplus',
+      symbol: utils.formatSymbol(s.replace('/','-')),
       tvlUsd,
       apyReward,
-      rewardTokens: apyReward ? [GLCR] : [],
+      rewardTokens: apyReward ? [VEP] : [],
       underlyingTokens: [poolMeta.t0, poolMeta.t1],
     };
   });
@@ -127,8 +142,9 @@ const getApy = async () => {
   return pools.filter((p) => utils.keepFinite(p));
 };
 
+
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://glacier.exchange/liquidity',
+  url: 'https://app.veplus.io/pools',
 };
