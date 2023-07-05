@@ -9,7 +9,7 @@ const { masterChefABI, lpTokenABI } = require('./abis');
 const utils = require('../utils');
 const { TokenProvider } = require('@uniswap/smart-order-router');
 
-const RPC_URL = 'https://bsc-dataseed1.binance.org/';
+const RPC_URL = 'https://endpoints.omniatech.io/v1/bsc/mainnet/public';
 const API_URL = 'https://api.thegraph.com/subgraphs/name/biswapcom/exchange5';
 
 const MASTERCHEF_ADDRESS = '0xDbc1A13490deeF9c3C12b44FE77b503c1B061739';
@@ -119,6 +119,8 @@ const apy = async () => {
     const reserves = reservesData[i];
     const pairInfo = pairsInfo[pool.lpToken.toLowerCase()];
 
+    if (!pairInfo) return {};
+
     const supply = supplyData[i];
     const masterChefBalance = masterChefBalData[i];
 
@@ -126,8 +128,8 @@ const apy = async () => {
       .calculateReservesUSD(
         reserves,
         masterChefBalance / supply,
-        pairInfo.token0,
-        pairInfo.token1,
+        pairInfo?.token0,
+        pairInfo?.token1,
         tokensPrices
       )
       .toString();
@@ -136,8 +138,8 @@ const apy = async () => {
       .calculateReservesUSD(
         reserves,
         1,
-        pairInfo.token0,
-        pairInfo.token1,
+        pairInfo?.token0,
+        pairInfo?.token1,
         tokensPrices
       )
       .toString();
@@ -161,7 +163,7 @@ const apy = async () => {
     return {
       pool: pool.lpToken,
       chain: utils.formatChain('binance'),
-      project: 'biswap',
+      project: 'biswap-v2',
       symbol: pairInfo.name,
       tvlUsd: Number(masterChefReservesUsd),
       apyBase,
@@ -172,7 +174,7 @@ const apy = async () => {
     };
   });
 
-  return res;
+  return res.filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
