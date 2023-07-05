@@ -161,7 +161,7 @@ const apy = async () => {
     return {
       pool: pool.lpToken,
       chain: utils.formatChain('binance'),
-      project: 'biswap',
+      project: 'biswap-v2',
       symbol: pairInfo.name,
       tvlUsd: Number(masterChefReservesUsd),
       apyBase,
