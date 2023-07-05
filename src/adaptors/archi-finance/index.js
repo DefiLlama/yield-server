@@ -35,20 +35,36 @@ const apy = async () => {
 
 
     const stakingPools = resAPR.data.apr.map(pool => {
+
         if (pool.symbol == "WETH") {
             pool.tvlUsd = tvlweth
+            pool.apy = Number(pool.apy)
+            pool.apyBase = Number(pool.apyBase)
+            pool.apyReward = Number(pool.apyReward)
         }
         if (pool.symbol == "USDC") {
             pool.tvlUsd = tvlusdc
+            pool.apy = Number(pool.apy)
+            pool.apyBase = Number(pool.apyBase)
+            pool.apyReward = Number(pool.apyReward)
         }
         if (pool.symbol == "USDT") {
             pool.tvlUsd = tvlusdt
+            pool.apy = Number(pool.apy)
+            pool.apyBase = Number(pool.apyBase)
+            pool.apyReward = Number(pool.apyReward)
         }
         if (pool.symbol == "WBTC") {
             pool.tvlUsd = tvlwbtc
+            pool.apy = Number(pool.apy)
+            pool.apyBase = Number(pool.apyBase)
+            pool.apyReward = Number(pool.apyReward)
         }
         if (pool.symbol == "ARCHI") {
             pool.tvlUsd = tvlarchi
+            pool.apy = Number(pool.apy)
+            pool.apyBase = Number(pool.apyBase)
+            pool.apyReward = Number(pool.apyReward)
         }
 
         return pool
@@ -75,7 +91,6 @@ async function tvlWETH() {
 
     return tvl;
 }
-
 async function tvlUSDC() {
     const totalSupply = await sdk.api.abi.call({
         abi: 'erc20:totalSupply',
@@ -93,7 +108,6 @@ async function tvlUSDC() {
 
     return tvl;
 }
-
 async function tvlUSDT() {
     const totalSupply = await sdk.api.abi.call({
         abi: 'erc20:totalSupply',
