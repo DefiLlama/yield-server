@@ -1,6 +1,8 @@
 const sdk = require('@defillama/sdk');
+const { api2 } = require('@defillama/sdk3');
 const ethers = require('ethers');
 const utils = require('../utils');
+const axios = require('axios');
 
 const chainlinkEthUsd = '0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612';
 const rewardTracker = '0x4e971a87900b931fF39d1Aad67697F49835400b6';
@@ -105,6 +107,7 @@ const poolsFunction = async () => {
       })
     )
   );
+
   const usdcBorrowed = (
     await sdk.api.abi.call({
       abi: getUSDCBorrowed,
@@ -206,8 +209,183 @@ const poolsFunction = async () => {
     totalSupplyUsd: tvls.waterVault,
     totalBorrowUsd: usdcBorrowed / 10e5,
   };
+  //calculation of new pools
+  const newAddresses = {
+    whiskey: '0x6532eFCC1d617e094957247d188Ae6d54093718A',
+    whiskeyWater: '0xa100E02e861132C4703ae96D6868664f27Eaa431',
+    sake: '0x45BeC5Bb0EE87181A7Aa20402C66A6dC4A923758',
+    sakeWater: '0x6b367F9EB22B2E6074E9548689cddaF9224FC0Ab',
+  };
 
-  return [vodkaVault, waterVault];
+  const contractAbis = {
+    gainsBalance: 'function getGainsBalance() view returns (uint256)',
+    gTokenPrice: 'function gTokenPrice() view returns (uint256)',
+    wWaterBalance: 'function balanceOfDAI() public view returns (uint256)',
+    vlpBalance: 'function getVlpBalance() public view returns (uint256)',
+    stakedVlpBalance:
+      'function getStakedVlpBalance() public view returns (uint256)',
+    vlpPrice: 'function getVLPPrice() public view returns (uint256)',
+    waterUSDCBal: 'function balanceOfUSDC() public view returns (uint256)',
+    waterTotalAssets: 'function totalAssets() public view returns (uint256)',
+    feeSplit: 'function fixedFeeSplit() public view returns (uint256)',
+  };
+  //calculation of tvls
+  const whiskeyGainsBalance = await api2.abi.call({
+    abi: contractAbis.gainsBalance,
+    target: newAddresses.whiskey,
+    chain: 'arbitrum',
+  });
+
+  const whiskeyGTokenPrice = await api2.abi.call({
+    abi: contractAbis.gTokenPrice,
+    target: newAddresses.whiskey,
+    chain: 'arbitrum',
+  });
+
+  const whiskeyWaterDaiBal = await api2.abi.call({
+    abi: contractAbis.wWaterBalance,
+    target: newAddresses.whiskeyWater,
+    chain: 'arbitrum',
+  });
+
+  const sakeWaterUSDCBal = await api2.abi.call({
+    abi: contractAbis.waterUSDCBal,
+    target: newAddresses.sakeWater,
+    chain: 'arbitrum',
+  });
+
+  const vlpBal = await api2.abi.call({
+    abi: contractAbis.vlpBalance,
+    target: newAddresses.sake,
+    chain: 'arbitrum',
+  });
+
+  const StakedVLPBal = await api2.abi.call({
+    abi: contractAbis.stakedVlpBalance,
+    target: newAddresses.sake,
+    chain: 'arbitrum',
+  });
+
+  const sakeVLPPrice = await api2.abi.call({
+    abi: contractAbis.vlpPrice,
+    target: newAddresses.sake,
+    chain: 'arbitrum',
+  });
+
+  const WhiskeyWaterTotalAssets = await api2.abi.call({
+    abi: contractAbis.waterTotalAssets,
+    target: newAddresses.whiskeyWater,
+    chain: 'arbitrum',
+  });
+
+  const SakeWaterTotalAssets = await api2.abi.call({
+    abi: contractAbis.waterTotalAssets,
+    target: newAddresses.sakeWater,
+    chain: 'arbitrum',
+  });
+
+  const whiskeyFeeSplit = await api2.abi.call({
+    abi: contractAbis.feeSplit,
+    target: newAddresses.whiskey,
+    chain: 'arbitrum',
+  });
+
+  const getSakeFeeSplit = await api2.abi.call({
+    abi: contractAbis.feeSplit,
+    target: newAddresses.sake,
+    chain: 'arbitrum',
+  });
+
+  //calculation of Whiskey apys
+  const response = (await axios.get(`https://backend-arbitrum.gains.trade/apr`))
+    .data;
+
+  const gDAIApy = response.vaultApr;
+
+  const whiskeyOverWaterTvl =
+    (whiskeyGainsBalance * whiskeyGTokenPrice) / WhiskeyWaterTotalAssets;
+
+  const feeSplit = whiskeyFeeSplit / 100;
+
+  const whiskeyApy = gDAIApy * 3 * (1 - feeSplit);
+  const whiskeyWaterApy = (gDAIApy * feeSplit * whiskeyOverWaterTvl) / 10 ** 18;
+
+  //calculation of Sake apys
+  let vlpApr = 0;
+  async function fetchVLPApy() {
+    try {
+      const response = await axios.get(
+        'https://api.vela.exchange/graph/vlp-apr/42161'
+      );
+      const data = response.data;
+      vlpApr = data.VLP_APR;
+    } catch (error) {}
+  }
+  await fetchVLPApy();
+
+  const sakeTvl = ((vlpBal + StakedVLPBal) * sakeVLPPrice) / 1e18 / 1e5;
+
+  const sakeFeeSplit = getSakeFeeSplit / 100;
+
+  const sakeApr = vlpApr <= 0 ? 0 : vlpApr * 3 * (1 - sakeFeeSplit);
+
+  const sakeWaterApr =
+    vlpApr <= 0 ? 0 : vlpApr * sakeFeeSplit * (sakeTvl / SakeWaterTotalAssets);
+
+  //info of the pools
+
+  const whiskeyVault = {
+    pool: '0x6532eFCC1d617e094957247d188Ae6d54093718A',
+    chain: utils.formatChain('arbitrum'),
+    project: 'vaultka',
+    symbol: 'WHISKEY',
+    tvlUsd: (whiskeyGainsBalance * whiskeyGTokenPrice) / 1e36,
+    poolMeta: 'VAULTKA_WHISKEY',
+    apy: whiskeyApy,
+  };
+
+  const whiskeyWaterVault = {
+    pool: '0xa100E02e861132C4703ae96D6868664f27Eaa431',
+    chain: utils.formatChain('arbitrum'),
+    project: 'vaultka',
+    symbol: 'W-WATER',
+    tvlUsd: whiskeyWaterDaiBal / 1e18,
+    poolMeta: 'VAULTKA_W-WATER',
+    apy: whiskeyWaterApy,
+    totalSupplyUsd: WhiskeyWaterTotalAssets / 1e18,
+    totalBorrowUsd: (WhiskeyWaterTotalAssets - whiskeyWaterDaiBal) / 1e18,
+  };
+
+  const sakeVault = {
+    pool: '0x45BeC5Bb0EE87181A7Aa20402C66A6dC4A923758',
+    chain: utils.formatChain('arbitrum'),
+    project: 'vaultka',
+    symbol: 'SAKE',
+    tvlUsd: ((vlpBal + StakedVLPBal) * sakeVLPPrice) / 1e18 / 1e5,
+    poolMeta: 'VAULTKA_SAKE',
+    apy: sakeApr,
+  };
+
+  const sakeWaterVault = {
+    pool: '0x6b367F9EB22B2E6074E9548689cddaF9224FC0Ab',
+    chain: utils.formatChain('arbitrum'),
+    project: 'vaultka',
+    symbol: 'S-WATER',
+    tvlUsd: sakeWaterUSDCBal / 1e6,
+    poolMeta: 'VAULTKA_S-WATER',
+    apy: sakeWaterApr,
+    totalSupplyUsd: SakeWaterTotalAssets / 1e6,
+    totalBorrowUsd: (SakeWaterTotalAssets - sakeWaterUSDCBal) / 1e6,
+  };
+
+  return [
+    vodkaVault,
+    waterVault,
+    whiskeyVault,
+    whiskeyWaterVault,
+    sakeVault,
+    sakeWaterVault,
+  ];
 };
 
 module.exports = {
