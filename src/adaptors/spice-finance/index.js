@@ -9,6 +9,7 @@ const RPC_URL = 'https://rpc.ankr.com/eth';
 const PROLUGUE_VAULT_ADDRESS = '0x6110d61DD1133b0f845f1025d6678Cd22A11a2fe';
 const LEVERAGE_VAULT_ADDRESS = '0xd68871bd7D28572860b2E0Ee5c713b64445104F9';
 const FLAGSHIP_VAULT_ADDRESS = '0xAe11ae7CaD244dD1d321Ff2989543bCd8a6Db6DF';
+const BLUR_VAULT_ADDRESS = '0xfC287513E2DD58fbf952eB0ED05D511591a6215B';
 const ETHUSD_ORACLE_ADDRESS = '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419';
 
 const web3 = new Web3(RPC_URL);
@@ -17,6 +18,7 @@ async function apr() {
   const prologueVault = new web3.eth.Contract(vaultABI, PROLUGUE_VAULT_ADDRESS);
   const leverageVault = new web3.eth.Contract(vaultABI, LEVERAGE_VAULT_ADDRESS);
   const flagshipVault = new web3.eth.Contract(vaultABI, FLAGSHIP_VAULT_ADDRESS);
+  const blurVault = new web3.eth.Contract(vaultABI, BLUR_VAULT_ADDRESS);
   const oracle = new web3.eth.Contract(oracleABI, ETHUSD_ORACLE_ADDRESS);
 
   const ethPrice = await oracle.methods.latestAnswer().call();
@@ -46,6 +48,15 @@ async function apr() {
   );
   const actualApyFlagship = flagshipData?.data?.okrs?.actual_returns;
   const apyFlagship = flagshipData?.data?.okrs?.expected_return * 100;
+
+  const totalAssetsBlur = await blurVault.methods.totalAssets().call();
+  const tvlUsdBlur =
+    (totalAssetsBlur / 10 ** 18) * (ethPrice / 10 ** 8);
+  const { data: blurData } = await axios.get(
+    `https://api.spicefi.xyz/v2/api/vaults/${BLUR_VAULT_ADDRESS}`
+  );
+  const actualApyBlur = blurData?.data?.okrs?.actual_returns;
+  const apyBlur = blurData?.data?.okrs?.expected_return * 100;
 
   return [
     {
@@ -77,6 +88,16 @@ async function apr() {
       tvlUsd: tvlUsdFlagship,
       apyBase: apyFlagship,
       apyBaseInception: actualApyFlagship,
+    },
+    {
+      pool: `Spice-Blur-Vault`,
+      poolMeta: 'Blur Vault',
+      chain: 'Ethereum',
+      project: 'spice-finance',
+      symbol: 'WETH',
+      tvlUsd: tvlUsdBlur,
+      apyBase: apyBlur,
+      apyBaseInception: actualApyBlur,
     },
   ];
 }
