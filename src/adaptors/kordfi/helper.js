@@ -1,11 +1,7 @@
-const { add, multiply, divide, round, subtract } = require('js-big-decimal');
+const BigNumber = require('bignumber.js');
 const utils = require('../utils');
 
 const BAKING_REWARD_PERCENT = 5.5;
-const TENTHS_2 = 2;
-const TENTHS_4 = 4;
-const TENTHS_8 = 8;
-const TENTHS_6 = 6;
 const PERCENT_EXP = 10 ** 2;
 const TZBTC_EXP = 10 ** 8;
 const XTZ_EXP = 10 ** 6;
@@ -14,25 +10,21 @@ const tzbtcContractAddress = 'KT1WL6sHt8syFT2ts7NCmb5gPcS2tyfRxSyi';
 const xtzContractAddress = 'KT19qWdPBRtkWrsQnDvVfsqJgJB19keBhhMX';
 const chain = utils.formatChain('Tezos');
 
-const calcTotalSupply = (deposit, depositIndex, rate, EXP, TENTHS) => {
-  const totalSupply = parseFloat(
-    divide(multiply(deposit, depositIndex), EXP, TENTHS)
-  );
-
-  const totalSupplyUSD = parseFloat(
-    round(multiply(totalSupply, rate), TENTHS_2)
-  );
-
+const calcTotalSupply = (deposit, depositIndex, rate, EXP, tenth) => {
+  const totalSupply = new BigNumber(deposit)
+    .times(depositIndex)
+    .div(EXP)
+    .toFixed(tenth);
+  const totalSupplyUSD = new BigNumber(totalSupply).times(rate).toFixed(2);
   return { totalSupply, totalSupplyUSD };
 };
 
-const calcTotalBorrow = (grossCredit, grossCreditIndex, rate, EXP, TENTHS) => {
-  const totalBorrow = parseFloat(
-    divide(multiply(grossCredit, grossCreditIndex), EXP, TENTHS)
-  );
-  const totalBorrowUSD = parseFloat(
-    round(multiply(totalBorrow, rate), TENTHS_2)
-  );
+const calcTotalBorrow = (grossCredit, grossCreditIndex, rate, EXP, tenth) => {
+  const totalBorrow = new BigNumber(grossCredit)
+    .times(grossCreditIndex)
+    .div(EXP)
+    .toFixed(tenth);
+  const totalBorrowUSD = new BigNumber(totalBorrow).times(rate).toFixed(2);
   return { totalBorrow, totalBorrowUSD };
 };
 
@@ -40,9 +32,10 @@ const calcUtilization = (totalBorrow, totalSupply) => {
   const utilization =
     totalBorrow === 0
       ? 0
-      : parseFloat(
-          multiply(divide(totalBorrow, totalSupply, TENTHS_4), PERCENT_EXP)
-        );
+      : new BigNumber(totalBorrow)
+          .div(totalSupply)
+          .times(PERCENT_EXP)
+          .toFixed(4);
   if (utilization > 100) {
     return 100;
   }
@@ -50,18 +43,12 @@ const calcUtilization = (totalBorrow, totalSupply) => {
 };
 
 const calcXtzBakingRewards = (utilization) =>
-  parseFloat(
-    round(
-      multiply(
-        BAKING_REWARD_PERCENT,
-        subtract(1, divide(utilization, PERCENT_EXP, TENTHS_4))
-      ),
-      TENTHS_2
-    )
-  );
+  new BigNumber(BAKING_REWARD_PERCENT)
+    .times(1 - utilization / PERCENT_EXP)
+    .toFixed(4);
 
 const calcXtzRate = (bakingRewards, savingsRate) =>
-  parseFloat(round(add(bakingRewards, savingsRate), TENTHS_2));
+  new BigNumber(bakingRewards).plus(savingsRate).toFixed(2);
 
 function getTzbtcLendPool(data) {
   const { totalSupplyUSD } = calcTotalSupply(
@@ -69,7 +56,7 @@ function getTzbtcLendPool(data) {
     data['contractInfo'][0]['tzbtcDepositIndex'],
     data['externalInfo'][0]['tzbtcRate'],
     TZBTC_EXP,
-    TENTHS_8
+    8
   );
 
   const { totalBorrowUSD } = calcTotalBorrow(
@@ -77,15 +64,13 @@ function getTzbtcLendPool(data) {
     data['contractInfo'][0]['tzbtcGrossCreditIndex'],
     data['externalInfo'][0]['tzbtcRate'],
     TZBTC_EXP,
-    TENTHS_8
+    8
   );
 
-  const tvlUsd = parseFloat(
-    round(subtract(totalSupplyUSD, totalBorrowUSD), TENTHS_2)
-  );
-  const apyBase = parseFloat(
-    round(data['contractInfo'][0]['tzbtcDepositRate'], TENTHS_2)
-  );
+  const tvlUsd = new BigNumber(totalSupplyUSD).minus(totalBorrowUSD).toFixed(2);
+  const apyBase = new BigNumber(
+    data['contractInfo'][0]['tzbtcDepositRate']
+  ).toFixed(2);
 
   return {
     pool: `${tzbtcContractAddress}-${chain}`.toLowerCase(),
@@ -107,7 +92,7 @@ function getXtzLendPool(data) {
     data['contractInfo'][0]['xtzDepositIndex'],
     data['externalInfo'][0]['xtzRate'],
     XTZ_EXP,
-    TENTHS_6
+    6
   );
 
   const { totalBorrow, totalBorrowUSD } = calcTotalBorrow(
@@ -115,13 +100,10 @@ function getXtzLendPool(data) {
     data['contractInfo'][0]['xtzGrossCreditIndex'],
     data['externalInfo'][0]['xtzRate'],
     XTZ_EXP,
-    TENTHS_6
+    6
   );
 
-  const tvlUsd = parseFloat(
-    round(subtract(totalSupplyUSD, totalBorrowUSD), TENTHS_2)
-  );
-
+  const tvlUsd = new BigNumber(totalSupplyUSD).minus(totalBorrowUSD).toFixed(2);
   const utilization = calcUtilization(totalBorrow, totalSupply);
   const bakingRewards = calcXtzBakingRewards(utilization);
   const rate = calcXtzRate(
@@ -141,7 +123,6 @@ function getXtzLendPool(data) {
     totalBorrowUsd: totalBorrowUSD,
   };
 }
-
 
 module.exports = {
   getTzbtcLendPool,
