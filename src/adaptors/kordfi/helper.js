@@ -77,11 +77,11 @@ function getTzbtcLendPool(data) {
     chain: chain,
     project: 'kordfi',
     symbol: utils.formatSymbol('TZBTC'),
-    tvlUsd: tvlUsd,
+    tvlUsd: parseFloat(tvlUsd),
     url: 'https://kord.fi/lend',
-    apyBase: apyBase,
-    totalSupplyUsd: totalSupplyUSD,
-    totalBorrowUsd: totalBorrowUSD,
+    apyBase: parseFloat(apyBase),
+    totalSupplyUsd: parseFloat(totalSupplyUSD),
+    totalBorrowUsd: parseFloat(totalBorrowUSD),
     underlyingTokens: ['KT1PWx2mnDueood7fEmfbBDKx1D9BAnnXitn'],
   };
 }
@@ -116,11 +116,11 @@ function getXtzLendPool(data) {
     chain: chain,
     project: 'kordfi',
     symbol: utils.formatSymbol('XTZ'),
-    tvlUsd: tvlUsd,
+    tvlUsd: parseFloat(tvlUsd),
     url: 'https://kord.fi/lend',
-    apyBase: rate,
-    totalSupplyUsd: totalSupplyUSD,
-    totalBorrowUsd: totalBorrowUSD,
+    apyBase: parseFloat(rate),
+    totalSupplyUsd: parseFloat(totalSupplyUSD),
+    totalBorrowUsd: parseFloat(totalBorrowUSD),
   };
 }
 
