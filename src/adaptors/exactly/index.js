@@ -142,7 +142,7 @@ const apy = async () =>
                   chain,
                   block,
                 });
-                const fixedDebt = fixedBalances.reduce((total, { borrowed }) => total + Number(borrowed), 0);
+                const fixedDebt = fixedBalances.reduce((total, { borrowed }) => total + BigInt(borrowed), 0n);
                 const previewRepay = await api2.abi.call({
                   target: market,
                   abi: abis.previewRepay,
