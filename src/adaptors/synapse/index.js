@@ -225,7 +225,7 @@ const main = async () => {
 
             const {tvlUsd,underlyingTokens, allUnderlyingTokenSymbols} = await getTvl(chainKey, underlyingAssetsTreasury.poolAddress, underlyingAssetsTreasury.lpToken, underlyingAssetsTreasury.underlyingTokenCount, synPrice)
 
-            const apy = calcApy(1, tvlUsd, synapsePerSecond / (1 * 10 ** 18), totalAllocPoint, relevantInfo.allocPoint)
+            const apy = calcApy(synPrice, tvlUsd, synapsePerSecond / (1 * 10 ** 18), totalAllocPoint, relevantInfo.allocPoint)
 
             allPools.push({
                 pool: `${relevantInfo.lpToken}-${formatChain(chainKey)}`.toLowerCase(),
