@@ -9,7 +9,10 @@ const {
   BigBangABI,
 } = require('./abis');
 
+const project = 'single-finance';
+
 const poolApiEndpoint = 'https://api.singlefinance.io/api/vaults';
+const lyfPoolApiEndpoint = 'https://api.singlefinance.io/api/info/farms'
 
 const singleToken = {
   cronos: '0x0804702a4E749d39A35FDe73d1DF0B1f1D6b8347'.toLowerCase(),
@@ -37,6 +40,36 @@ const blocksPerYears = {
   fantom: blocksPerYear(1.2),
   arbitrum: blocksPerYear(0.25),
 };
+
+const chainMapping = {
+  cronos: {
+    id: 25
+  },
+  fantom: {
+    id: 250
+  },
+  arbitrum: {
+    id: 42161
+  }
+}
+
+const dexMapping = {
+  vvs: {
+    name: "VVS Finance"
+  },
+  mmf: {
+    name: "MMFinance"
+  },
+  spooky: {
+    name: "SpookySwap"
+  },
+  sushi: {
+    name: "SushiSwap"
+  },
+  camelot: {
+    name: "Camelot"
+  }
+}
 
 const availablePools = {
   cronos: ['CRO', 'USDC', 'VVS', 'MMF', 'USDT', 'VERSA', 'ARGO', 'bCRO', 'VNO'],
@@ -113,17 +146,10 @@ const multiCallOutput = async (abi, calls, chain) => {
   return res.output.map(({ output }) => output);
 };
 
-const getApy = async (chain) => {
+const getLendingApy = async (chain) => {
+  const chainId = chainMapping[chain]?.id
   const allPools = await utils.getData(
-    `${poolApiEndpoint}?chainid=${
-      chain === 'fantom'
-        ? '250'
-        : chain === 'cronos'
-        ? '25'
-        : chain === 'arbitrum'
-        ? '42161'
-        : undefined
-    }`
+    `${poolApiEndpoint}?chainid=${chainId}`
   );
 
   const pools = allPools.data.filter((pool) => {
@@ -284,7 +310,7 @@ const getApy = async (chain) => {
     return {
       pool: pool.address,
       chain: utils.formatChain(chain),
-      project: 'single-finance',
+      project,
       symbol: pool.token.symbol,
       tvlUsd: totalSupplyUsd - totalBorrowUsd,
       apyBaseBorrow: secondToYearlyInterestRate(interestRate[idx]) * 100,
@@ -300,15 +326,44 @@ const getApy = async (chain) => {
   return res;
 };
 
+const getLYFApy = async (chain, dex) => {
+  const chainId = chainMapping[chain]?.id
+  const allPools = (await utils.getData(
+    `${lyfPoolApiEndpoint}?dex=${dex}&chainid=${chainId}`
+  )).data.farms;
+
+  return allPools.map((raw) => ({
+    pool: `${raw.lpToken.address[chainId]}-farming-${chain}`,
+    chain: utils.formatChain(chain),
+    project,
+    symbol: `${raw.token0.symbol}-${raw.token1.symbol}`,
+    poolMeta: dexMapping[dex].name,
+    tvlUsd: raw.tvlInUSD,
+    apy: raw.bestOption.apy,
+    underlyingTokens: [
+      raw.token0.address[chainId],
+      raw.token1.address[chainId]
+    ]
+  }))
+}
+
 const apy = async () => {
-  const cronosPools = await getApy('cronos');
-  const fantomPools = await getApy('fantom');
-  const arbitrumPools = await getApy('arbitrum');
-  return [...cronosPools, ...fantomPools, ...arbitrumPools];
+  const cronosPools = await getLendingApy('cronos');
+  const fantomPools = await getLendingApy('fantom');
+  const arbitrumPools = await getLendingApy('arbitrum');
+  const cronosVvsPools = await getLYFApy('cronos', 'vvs');
+  const cronosMmfPools = await getLYFApy('cronos', 'mmf');
+  return [
+    ...cronosPools,
+    ...fantomPools,
+    ...arbitrumPools,
+    ...cronosVvsPools,
+    ...cronosMmfPools,
+  ];
 };
 
 module.exports = {
   timetravel: false,
   apy: apy,
-  url: 'https://app.singlefinance.io/lend',
+  url: 'https://app.singlefinance.io/',
 };
