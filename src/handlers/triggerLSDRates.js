@@ -110,7 +110,7 @@ const lsdTokens = [
     symbol: 'wBETH',
     address: '0xa2E3356610840701BDf5611a53974510Ae27E2e1',
     type: a,
-    fee: 0.05,
+    fee: 0.1,
   },
   // {
   //   name: 'Tranchess Ether',
