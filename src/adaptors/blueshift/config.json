@@ -10,9 +10,9 @@
     "kava": "https://kava.api.blueshift.fi/api"
   },
   "registry": {
-    "milkomeda": "0x83E384d119adA05195Caca26396B8f56fdDA1c91",
-    "milkomeda_a1": "0x93e9c79582cAd65627758bbdB067EAB1c79E005c",
-    "kava": "0xe46e53672B160a67faEdE644d4A339CDeC1f671c"
+    "milkomeda": "0xb42F2f37Dedf435F4916665d6B4c2cC643A17f14",
+    "milkomeda_a1": "0xa98C276d262Cc3Bf660189E2eBE74c4B8C18e50a",
+    "kava": "0x49399653f651A25924b3D8718276b5b4372577b1"
   },
   "minter": {
     "milkomeda": "0xdE6AB15d0786a0034B28Ed7e6B21ed95099CF48B",
