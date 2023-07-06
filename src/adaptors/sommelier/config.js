@@ -239,6 +239,8 @@ const v2Pools = [
     poolMeta: 'Fraximal',
     tvlUsd: 0,
     apyBase: 0,
+    apyReward: 0,
+    rewardTokens,
     underlyingTokens: [],
     url: 'https://app.sommelier.finance/strategies/Fraximal',
   },
