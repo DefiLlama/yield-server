@@ -108,15 +108,24 @@ const getApy = async () => {
   ).data.coins;
 
   const pools = allPairs.map((p, i) => {
-
     const poolMeta = metaData[i];
 
     const r0 = poolMeta.r0 / poolMeta.dec0;
     const r1 = poolMeta.r1 / poolMeta.dec1;
 
-    const p0 = prices[`bsc:${poolMeta.t0}`]?.price;
-    const p1 = prices[`bsc:${poolMeta.t1}`]?.price;
+    let p0, p1;
+    if(poolMeta.t0 == VEP){
+      p0 = vep_price;
+    }else{
+      p0 = prices[`bsc:${poolMeta.t0}`]?.price;
+    }
 
+    if(poolMeta.t1 == VEP){
+      p1 = vep_price;
+    }else{
+      p1 = prices[`bsc:${poolMeta.t1}`]?.price;
+    }
+    
     const tvlUsd = r0 * p0 + r1 * p1;
 
     const s = symbols[i];
