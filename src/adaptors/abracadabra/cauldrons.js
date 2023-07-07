@@ -344,7 +344,7 @@ const getNegativeInterestStrategyApy = (negativeInterestStrategies) => Promise.a
   )
 ).then(Object.fromEntries);
 
-const getBaseStartgateLpStrategyFees = (baseStargateLpStrategies) => Promise.all(
+const getBaseStargateLpStrategyFees = (baseStargateLpStrategies) => Promise.all(
   Object.entries(baseStargateLpStrategies).map(async ([chain, chainBaseStargateLpStrategies]) =>
     [
       chain,
@@ -455,7 +455,7 @@ const getApy = async () => {
       bentoboxesPromise
     ]).then(([collaterals, bentoboxes]) => getStrategies(collaterals, bentoboxes)),
     getNegativeInterestStrategyApy(NEGATIVE_INTEREST_STRATEGIES),
-    getBaseStartgateLpStrategyFees(BASE_STARGATE_LP_STRATEGIES),
+    getBaseStargateLpStrategyFees(BASE_STARGATE_LP_STRATEGIES),
     collateralsPromise.then(collaterals =>
       getDetailsFromCollaterals(collaterals, 'erc20:symbol')
     ),
@@ -468,7 +468,7 @@ const getApy = async () => {
           Object.values(chainCollaterals).map(collateral => `${chain}:${collateral}`)
         );
 
-      return utils.getPrices([`coingecko:${MIM_COINGECKO_ID}`, ...coins])
+      return utils.getPrices([`coingecko:${MIM_COINGECKO_ID}`, ...coins]);
     }),
     poolsApy()
   ]);
@@ -495,16 +495,13 @@ const getApy = async () => {
         const baseStargateLpStrategyFee = _.get(baseStargateLpStrategyFees, [chain, strategy]);
         if (negativeInterestStrategyApy !== undefined) {
           collateral.apyBase = targetPercentage / 100 * -negativeInterestStrategyApy;
-          console.log(collateral);
         } else if (baseStargateLpStrategyFee !== undefined && collateralApy !== undefined) {
           collateral.apyBase = collateralApy.apy * targetPercentage / 100 * baseStargateLpStrategyFee;
-          console.log(collateral);
         }
       } else {
         // No strategy to consider, so just use the apy from the pool if one exists.
         if (collateralApy) {
           collateral.apyBase = collateralApy.apy;
-          console.log(collateral);
         }
       }
 
@@ -522,4 +519,4 @@ const getApy = async () => {
 };
 
 
-module.exports = getApy
+module.exports = getApy;
