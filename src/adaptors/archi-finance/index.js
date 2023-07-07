@@ -4,33 +4,33 @@ const axios = require('axios');
 
 const STAKING_API = 'https://price.archi.finance/api/apr';
 const addresses = {
-    tokens: {
-        weth: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
-        usdc: "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
-        usdt: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
-        wbtc: "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
-        archi: "0x93D504070AB0eede5449C89C5eA0F5e34D8103f8",
+    tokens:{
+        weth:"0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+        usdc:"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
+        usdt:"0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+        wbtc:"0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
+        archi:"0x93D504070AB0eede5449C89C5eA0F5e34D8103f8",
     },
     reward: {
         // weth pool
-        weth: "0x9eBC025393d86f211A720b95650dff133b270684",
+        weth:"0x9eBC025393d86f211A720b95650dff133b270684",
         // usdt pool
-        usdt: "0xEca975BeEc3bC90C424FF101605ECBCef22b66eA",
+        usdt:"0xEca975BeEc3bC90C424FF101605ECBCef22b66eA",
         // usdc pool
-        usdc: "0x670c4391f6421e4cE64D108F810C56479ADFE4B3",
+        usdc:"0x670c4391f6421e4cE64D108F810C56479ADFE4B3",
         // wbtc pool
-        wbtc: "0x12e14fDc843Fb9c64B84Dfa6fB03350D6810d8e5",
+        wbtc:"0x12e14fDc843Fb9c64B84Dfa6fB03350D6810d8e5",
         //archi pool
-        archi: "0xf4c36D458e2D96497E5EEf7C3a01FcD727422f7b",
+        archi:"0xf4c36D458e2D96497E5EEf7C3a01FcD727422f7b",
     }
 }
 
 const apy = async () => {
-    const tvlweth = await tvlWETH();
-    const tvlusdc = await tvlUSDC();
-    const tvlusdt = await tvlUSDT();
-    const tvlwbtc = await tvlWBTC();
-    const tvlarchi = await tvlARCHI();
+    const  tvlweth  = await tvlWETH();
+    const  tvlusdc  = await tvlUSDC();
+    const  tvlusdt  = await tvlUSDT();
+    const  tvlwbtc  = await tvlWBTC();
+    const  tvlarchi  = await tvlARCHI();
     const resAPR = await utils.getData(STAKING_API);
 
 
@@ -38,37 +38,22 @@ const apy = async () => {
 
         if (pool.symbol == "WETH") {
             pool.tvlUsd = tvlweth
-            pool.apy = Number(pool.apy)
-            pool.apyBase = Number(pool.apyBase)
-            pool.apyReward = Number(pool.apyReward)
         }
         if (pool.symbol == "USDC") {
             pool.tvlUsd = tvlusdc
-            pool.apy = Number(pool.apy)
-            pool.apyBase = Number(pool.apyBase)
-            pool.apyReward = Number(pool.apyReward)
         }
         if (pool.symbol == "USDT") {
             pool.tvlUsd = tvlusdt
-            pool.apy = Number(pool.apy)
-            pool.apyBase = Number(pool.apyBase)
-            pool.apyReward = Number(pool.apyReward)
         }
         if (pool.symbol == "WBTC") {
             pool.tvlUsd = tvlwbtc
-            pool.apy = Number(pool.apy)
-            pool.apyBase = Number(pool.apyBase)
-            pool.apyReward = Number(pool.apyReward)
         }
         if (pool.symbol == "ARCHI") {
             pool.tvlUsd = tvlarchi
-            pool.apy = Number(pool.apy)
-            pool.apyBase = Number(pool.apyBase)
-            pool.apyReward = Number(pool.apyReward)
         }
 
         return pool
-    });
+        });
 
     return stakingPools;
 }
