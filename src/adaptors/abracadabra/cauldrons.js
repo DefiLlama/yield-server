@@ -1,11 +1,13 @@
 const { utils: { formatEther, formatUnits } } = require('ethers');
 const _ = require('lodash');
 const sdk = require('@defillama/sdk');
+const superagent = require('superagent');
 const utils = require('../utils');
 const MARKET_LENS_ABI = require('./abis/MarketLens.json');
 const CAULDRON_V2_ABI = require('./abis/CauldronV2.json');
 const BENTOBOX_V1_ABI = require('./abis/BentoBoxV1.json');
 const INTEREST_STRATEGY = require('./abis/InterestStrategy.json');
+const BASE_STARGATE_LP_STRATEGY = require('./abis/BaseStargateLPStrategy.json');
 
 const MIM_COINGECKO_ID = 'magic-internet-money';
 
@@ -79,7 +81,11 @@ const POOLS = {
       { version: 2, address: '0x0bf90b3b5cad7dfcf70de198c498b61b3ba35cff' }, // xSUSHI v2
       { version: 2, address: '0xebfde87310dc22404d918058faa4d56dc4e93f0a' }, // yvcrvIB
       { version: 2, address: '0x0bca8ebcb26502b013493bf8fe53aa2b1ed401c1' }, // yvstETH (deprecated)
-      { version: 2, address: '0x920d9bd936da4eafb5e25c6bdc9f6cb528953f9f' }, // yvWETH
+      {
+        version: 2,
+        address: '0x920d9bd936da4eafb5e25c6bdc9f6cb528953f9f',
+        collateralPoolId: 'acb09b67-8509-4e2a-adb4-4ce520084714'
+      }, // yvWETH
       { version: 2, address: '0x5db0ebf9feeecfd0ee82a4f27078dbce7b4cd1dc' }, // sSPELL
       { version: 2, address: '0xc319eea1e792577c319723b5e60a15da3857e7da' }, // sSPELL v2 (deprecated)
       { version: 2, address: '0x3410297d89dcdaf4072b805efc1ef701bb3dd9bf' }, // sSPELL v3
@@ -91,27 +97,48 @@ const POOLS = {
       { version: 2, address: '0x390db10e65b5ab920c19149c919d970ad9d18a41' }, // WETH
       { version: 2, address: '0x5ec47ee69bede0b6c2a2fc0d9d094df16c192498' }, // WBTC
       { version: 2, address: '0xf179fe36a36b32a4644587b8cdee7a23af98ed37' }, // yvCVXETH
-      { version: 2, address: '0x4eaed76c3a388f4a841e9c765560bbe7b3e4b3a0' }, // cvxTricrypto2
+      {
+        version: 2,
+        address: '0x4eaed76c3a388f4a841e9c765560bbe7b3e4b3a0',
+        collateralPoolId: 'ad3d7253-fb8f-402f-a6f8-821bc0a055cb'
+      }, // cvxTricrypto2
       { version: 2, address: '0x806e16ec797c69afa8590a55723ce4cc1b54050e' }, // cvx3Pool (deprecated)
       { version: 2, address: '0x6371efe5cd6e3d2d7c477935b7669401143b7985' }, // cvx3pool (deprecated)
-      { version: 2, address: '0x257101f20cb7243e2c7129773ed5dbbcef8b34e0' }, // cvx3pool
-      { version: 3, address: '0x7ce7d9ed62b9a6c5ace1c6ec9aeb115fa3064757' }, // yvDAI
+      {
+        version: 2,
+        address: '0x257101f20cb7243e2c7129773ed5dbbcef8b34e0',
+        collateralPoolId: '7394f1bc-840a-4ff0-9e87-5e0ef932943a'
+      }, // cvx3pool
+      {
+        version: 3,
+        address: '0x7ce7d9ed62b9a6c5ace1c6ec9aeb115fa3064757',
+        collateralPoolId: '7be3388a-0591-4281-a6f3-eff3217693fa'
+      }, // yvDAI
       {
         version: 3,
         address: '0x53375add9d2dfe19398ed65baaeffe622760a9a6',
         cauldronMeta: "Whitelisted"
       }, // yvstETH Concentrated (deprecated)
       { version: 3, address: '0xd31e19a0574dbf09310c3b06f3416661b4dc7324' }, // Stargate USDC
-      { version: 3, address: '0xc6b2b3fe7c3d7a6f823d9106e22e66660709001e' }, // Stargate USDT
+      {
+        version: 3,
+        address: '0xc6b2b3fe7c3d7a6f823d9106e22e66660709001e',
+        collateralPoolId: '07d379c9-2c9d-4abd-9b23-18c379f1ff5b'
+      }, // Stargate USDT
       { version: 3, address: '0x8227965a7f42956549afaec319f4e444aa438df5' }, // LUSD
       {
         version: 4,
         address: '0x1062eb452f8c7a94276437ec1f4aaca9b1495b72',
-        cauldronMeta: "Whitelisted"
+        cauldronMeta: "Whitelisted",
+        collateralPoolId: "07d379c9-2c9d-4abd-9b23-18c379f1ff5b"
       }, // Stargate USDT (POF)
       { version: 4, address: '0x207763511da879a900973a5e092382117c3c1588' }, // CRV
       { version: 4, address: '0x85f60d3ea4e86af43c9d4e9cc9095281fc25c405' }, // Migrated WBTC
-      { version: 4, address: '0x7259e152103756e1616a77ae982353c3751a6a90' }, // yvCrv3Crypto
+      {
+        version: 4,
+        address: '0x7259e152103756e1616a77ae982353c3751a6a90',
+        collateralPoolId: 'f827e130-1684-4829-b464-b5f99cf1d82b'
+      }, // yvCrv3Crypto
       { version: 4, address: '0x692887e8877c6dd31593cda44c382db5b289b684' }, // magicAPE
       { version: 4, address: '0x7d8df3e4d06b0e19960c19ee673c0823beb90815' }, // CRV V2
     ]
@@ -142,6 +169,13 @@ const NEGATIVE_INTEREST_STRATEGIES = {
   ]
 };
 
+const BASE_STARGATE_LP_STRATEGIES = {
+  ethereum: [
+    '0x86130Dac04869a8201c7077270C10f3AFaba1c82',
+    '0x8439Ac976aC597C71C0512D8a53697a39E8F9773'
+  ]
+}
+
 const getMarketLensDetailsForCauldrons = (chain, marketLensAddress, abiName, cauldrons) =>
   sdk.api.abi.multiCall({
     abi: MARKET_LENS_ABI.find(abi => abi.name == abiName),
@@ -158,6 +192,7 @@ const enrichMarketInfos = (cauldrons, marketInfos) => marketInfos.map((marketInf
   maximumCollateralRatio: cauldrons[i].maximumCollateralRatio,
   interestPerYear: cauldrons[i].interestPerYear,
   cauldronMeta: cauldrons[i].cauldronMeta,
+  collateralPoolId: cauldrons[i].collateralPoolId,
   ...marketInfo
 })).map(enrichedMarketInfo => _.omitBy(enrichedMarketInfo, _.isUndefined));
 
@@ -288,7 +323,7 @@ const getStrategies = (collaterals, bentoboxes) => Promise.all(
   })
 ).then(Object.fromEntries);
 
-const getInterestStrategyApy = (negativeInterestStrategies) => Promise.all(
+const getNegativeInterestStrategyApy = (negativeInterestStrategies) => Promise.all(
   Object.entries(negativeInterestStrategies).map(async ([chain, chainNegativeInterestStrategies]) =>
     [
       chain,
@@ -302,6 +337,27 @@ const getInterestStrategyApy = (negativeInterestStrategies) => Promise.all(
       }).then(call => Object.fromEntries(
         call.output.map((x, i) => [
           chainNegativeInterestStrategies[i].toLowerCase(),
+          x.output / 100
+        ]))
+      )
+    ]
+  )
+).then(Object.fromEntries);
+
+const getBaseStartgateLpStrategyFees = (baseStargateLpStrategies) => Promise.all(
+  Object.entries(baseStargateLpStrategies).map(async ([chain, chainBaseStargateLpStrategies]) =>
+    [
+      chain,
+      await sdk.api.abi.multiCall({
+        abi: BASE_STARGATE_LP_STRATEGY.find(abi => abi.name === 'feePercent'),
+        calls: chainBaseStargateLpStrategies.map(baseStargateLpStrategy => ({
+          target: baseStargateLpStrategy
+        })),
+        chain,
+        requery: true
+      }).then(call => Object.fromEntries(
+        call.output.map((x, i) => [
+          chainBaseStargateLpStrategies[i].toLowerCase(),
           x.output / 100
         ]))
       )
@@ -370,6 +426,12 @@ const marketInfoToPool = (chain, marketInfo, collateral, pricesObj) => {
   return pool;
 };
 
+const poolsApy = async () => (
+  await superagent.get(
+    'https://yields.llama.fi/pools'
+  )
+).body.data;
+
 const getApy = async () => {
   const collateralsPromise = getCauldronDetails(POOLS, 'collateral');
   const bentoboxesPromise = getCauldronDetails(POOLS, 'bentoBox');
@@ -379,9 +441,11 @@ const getApy = async () => {
     bentoboxes,
     strategies,
     negativeInterestStrategyApys,
+    baseStargateLpStrategyFees,
     symbols,
     decimals,
-    pricesObj
+    pricesObj,
+    apyObj
   ] = await Promise.all([
     getMarketInfos(POOLS),
     collateralsPromise,
@@ -390,7 +454,8 @@ const getApy = async () => {
       collateralsPromise,
       bentoboxesPromise
     ]).then(([collaterals, bentoboxes]) => getStrategies(collaterals, bentoboxes)),
-    getInterestStrategyApy(NEGATIVE_INTEREST_STRATEGIES),
+    getNegativeInterestStrategyApy(NEGATIVE_INTEREST_STRATEGIES),
+    getBaseStartgateLpStrategyFees(BASE_STARGATE_LP_STRATEGIES),
     collateralsPromise.then(collaterals =>
       getDetailsFromCollaterals(collaterals, 'erc20:symbol')
     ),
@@ -404,7 +469,8 @@ const getApy = async () => {
         );
 
       return utils.getPrices([`coingecko:${MIM_COINGECKO_ID}`, ...coins])
-    })
+    }),
+    poolsApy()
   ]);
 
   return Object.entries(marketInfos).flatMap(([chain, chainMarketInfos]) =>
@@ -419,12 +485,26 @@ const getApy = async () => {
 
       // Add negative strategy APY to collateral if there's one for the cauldron
       const strategyDetails = _.get(strategies, [chain, collateralAddress, bentobox]);
+      const collateralApy = (marketInfo.collateralPoolId !== undefined)
+        ? _.find(apyObj, { 'pool': marketInfo.collateralPoolId })
+        : undefined;
       if (strategyDetails !== undefined) {
         const strategy = strategyDetails.address.toLowerCase();
         const targetPercentage = strategyDetails.strategyData.targetPercentage;
         const negativeInterestStrategyApy = _.get(negativeInterestStrategyApys, [chain, strategy]);
+        const baseStargateLpStrategyFee = _.get(baseStargateLpStrategyFees, [chain, strategy]);
         if (negativeInterestStrategyApy !== undefined) {
           collateral.apyBase = targetPercentage / 100 * -negativeInterestStrategyApy;
+          console.log(collateral);
+        } else if (baseStargateLpStrategyFee !== undefined && collateralApy !== undefined) {
+          collateral.apyBase = collateralApy.apy * targetPercentage / 100 * baseStargateLpStrategyFee;
+          console.log(collateral);
+        }
+      } else {
+        // No strategy to consider, so just use the apy from the pool if one exists.
+        if (collateralApy) {
+          collateral.apyBase = collateralApy.apy;
+          console.log(collateral);
         }
       }
 
