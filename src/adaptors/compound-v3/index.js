@@ -3,20 +3,38 @@ const superagent = require('superagent');
 const abi = require('./abi.js');
 const sdk = require('@defillama/sdk');
 
-const rewardToken = '0xc00e94Cb662C3520282E6f5717214004A7f26888';
-
 const markets = [
   {
     address: '0xc3d688B66703497DAA19211EEdff47f25384cdc3',
     symbol: 'cUSDCv3',
     underlying: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
     underlyingSymbol: 'USDC',
+    rewardToken: '0xc00e94Cb662C3520282E6f5717214004A7f26888',
+    chain: 'ethereum',
   },
   {
     address: '0xA17581A9E3356d9A858b789D68B4d866e593aE94',
     symbol: 'cWETHv3',
     underlying: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
     underlyingSymbol: 'ETH',
+    rewardToken: '0xc00e94Cb662C3520282E6f5717214004A7f26888',
+    chain: 'ethereum',
+  },
+  {
+    address: '0xF25212E676D1F7F89Cd72fFEe66158f541246445',
+    symbol: 'cUSDCv3',
+    underlying: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
+    underlyingSymbol: 'USDC',
+    rewardToken: '0x8505b9d2254A7Ae468c0E9dd10Ccea3A837aef5c',
+    chain: 'polygon',
+  },
+  {
+    address: '0xA5EDBDD9646f8dFF606d7448e414884C7d905dCA',
+    symbol: 'cUSDCv3',
+    underlying: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
+    underlyingSymbol: 'USDC',
+    rewardToken: '0x354A6dA3fcde098F8389cad84b0182725c6C91dE',
+    chain: 'arbitrum',
   },
 ];
 
@@ -25,7 +43,7 @@ const main = async (pool) => {
     await sdk.api.abi.call({
       target: pool.address,
       abi: abi.find((i) => i.name === 'numAssets'),
-      chain: 'ethereum',
+      chain: pool.chain,
     })
   ).output;
 
@@ -36,7 +54,7 @@ const main = async (pool) => {
       target: pool.address,
       params: i,
     })),
-    chain: 'ethereum',
+    chain: pool.chain,
   });
   const assetInfo = assetInfoRes.output.map((o) => o.output);
   const tokens = assetInfo.map((a) => a.asset);
@@ -47,6 +65,7 @@ const main = async (pool) => {
     calls: tokens.map((t) => ({
       target: t,
     })),
+    chain: pool.chain,
   });
   const symbols = symbolsRes.output.map((o) => o.output);
 
@@ -57,15 +76,15 @@ const main = async (pool) => {
       target: pool.address,
       params: t,
     })),
-    chain: 'ethereum',
+    chain: pool.chain,
   });
   const totalsCollateral = totalsCollateralRes.output.map((o) => o.output);
 
   // get prices
   const priceKeys = [
-    `ethereum:${pool.underlying}`,
-    `ethereum:${rewardToken}`,
-    ...tokens.map((t) => `ethereum:${t}`),
+    `${pool.chain}:${pool.underlying}`,
+    `${pool.chain}:${pool.rewardToken}`,
+    ...tokens.map((t) => `${pool.chain}:${t}`),
   ].join(',');
   const prices = (
     await superagent.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
@@ -73,7 +92,7 @@ const main = async (pool) => {
 
   const collateralDecimalsRes = await sdk.api.abi.multiCall({
     abi: 'erc20:decimals',
-    chain: 'ethereum',
+    chain: pool.chain,
     calls: tokens.map((t) => ({ target: t })),
   });
   const collateralDecimals = collateralDecimalsRes.output.map((o) => o.output);
@@ -82,7 +101,7 @@ const main = async (pool) => {
   const collateralTotalSupplyUsd = tokens.map(
     (t, i) =>
       (Number(totalsCollateral[i].totalSupplyAsset) *
-        prices[`ethereum:${t}`].price) /
+        prices[`${pool.chain}:${t}`].price) /
       10 ** Number(collateralDecimals[i])
   );
 
@@ -91,7 +110,7 @@ const main = async (pool) => {
     await sdk.api.abi.call({
       target: pool.address,
       abi: abi.find((i) => i.name === 'getUtilization'),
-      chain: 'ethereum',
+      chain: pool.chain,
     })
   ).output;
 
@@ -124,7 +143,7 @@ const main = async (pool) => {
             method === 'getSupplyRate' || method === 'getBorrowRate'
               ? [utilization]
               : null,
-          chain: 'ethereum',
+          chain: pool.chain,
         })
       )
     )
@@ -136,7 +155,7 @@ const main = async (pool) => {
   const collateralOnlyPools = tokens.map((t, i) => ({
     pool: `${t}-${pool.symbol}`,
     symbol: symbols[i],
-    chain: 'Ethereum',
+    chain: pool.chain.charAt(0).toUpperCase() + pool.chain.slice(1),
     project: 'compound-v3',
     tvlUsd: collateralTotalSupplyUsd[i],
     apy: 0,
@@ -145,13 +164,14 @@ const main = async (pool) => {
     totalSupplyUsd: collateralTotalSupplyUsd[i],
     ltv: assetInfo[i].borrowCollateralFactor / 1e18,
     poolMeta: `${pool.underlyingSymbol}-pool`,
+    borrowable: false,
   }));
 
   // 2) usdc pool
   // --- calc apy's
   const secondsPerYear = 60 * 60 * 24 * 365;
-  const compPrice = prices[`ethereum:${rewardToken}`].price;
-  const usdcPrice = prices[`ethereum:${pool.underlying}`].price;
+  const compPrice = prices[`${pool.chain}:${pool.rewardToken}`].price;
+  const usdcPrice = prices[`${pool.chain}:${pool.underlying}`].price;
 
   // supply side
   const totalSupplyUsd = (totalSupply / 10 ** decimals) * usdcPrice;
@@ -178,18 +198,21 @@ const main = async (pool) => {
     {
       pool: pool.address,
       symbol: pool.underlyingSymbol,
-      chain: 'Ethereum',
+      chain: pool.chain.charAt(0).toUpperCase() + pool.chain.slice(1),
       project: 'compound-v3',
       tvlUsd: totalSupplyUsd - totalBorrowUsd,
       apyBase,
       apyReward,
       underlyingTokens: [pool.underlying],
-      rewardTokens: [rewardToken],
+      rewardTokens: [pool.rewardToken],
       // borrow fields
       apyBaseBorrow,
       apyRewardBorrow,
       totalSupplyUsd,
       totalBorrowUsd,
+      poolMeta: `${pool.underlyingSymbol}-pool`,
+      borrowable: true,
+      ltv: 0,
     },
   ];
 };

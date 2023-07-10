@@ -10,29 +10,45 @@ const EXCHANGES_API = {
   uniswapv3: '',
   quickswap: 'quickswap/',
   zyberswap: 'zyberswap/',
-  thena: 'thena/'
+  thena: 'thena/',
+  retro: 'retro/',
+  camelot: 'camelot/',
+  ramses: 'ramses/',
+  sushiswap: 'sushi/',
+  beamswap: 'beamswap/',
+  stellaswap: 'stellaswap/'
 };
 const EXCHANGES_CHAINS = {
   uniswapv3: ["ethereum", "optimism", "polygon", "arbitrum", "celo", "bsc"],
-  quickswap: ["polygon"],
+  quickswap: ["polygon", "polygon_zkevm"],
   zyberswap: ["arbitrum"],
-  thena: ["bsc"]
+  thena: ["bsc"],
+  retro: ["polygon"],
+  camelot: ["arbitrum"],
+  ramses: ["arbitrum"],
+  sushiswap: ["polygon", "arbitrum"],
+  beamswap: ["moonbeam"],
+  stellaswap: ["moonbeam"]
 };
 const CHAINS_API = {
   ethereum: '',
   optimism: 'optimism/',
   polygon: 'polygon/',
+  polygon_zkevm: 'polygon-zkevm/',
   arbitrum: 'arbitrum/',
   celo: 'celo/',
-  bsc: 'bsc/'
+  bsc: 'bsc/',
+  moonbeam: 'moonbeam/'
 };
 const CHAIN_IDS = {
   ethereum: 1,
   optimism: 10,
   polygon: 137,
+  polygon_zkevm: 1101,
   arbitrum: 42161,
   celo: 42220,
-  bsc: 56
+  bsc: 56,
+  moonbeam: 1284
 };
 const UNISWAP_FEE = {
   "100": "0.01%",
@@ -86,17 +102,21 @@ const blacklist = {
   ],
   optimism: [],
   polygon: [],
+  polygon_zkevm: [],
   arbitrum: [],
   celo: [],
-  bsc: []
+  bsc: [],
+  moonbeam: []
 };
 const masterchef_blacklist = {
   ethereum: [],
   optimism: ["0x097264485014bad028890b6e03ad2dc72bd43bf2", "0x3c21bc5d9fdbb395feba595c5c8ee803fcee84cf"],
   polygon: ["0x5ca8b7eb3222e7ce6864e59807ddd1a3c3073826", "0x9c64060cac9a20a44dbf9eff47bd4de7d049877d"],
+  polygon_zkevm: [],
   arbitrum: [],
   celo: [],
-  bsc: []
+  bsc: [],
+  moonbeam: []
 };
 const getUrl_allData = (chain, exchange) =>
   `https://wire2.gamma.xyz/${exchange}${chain}hypervisors/allData`;
@@ -184,17 +204,32 @@ const getApy = async () => {
     {}
   );
 
-  const keys = [];
+  let keys = [];
   for (const key of Object.keys(tokens)) {
     keys.push(tokens[key].map((t) => `${key}:${t}`));
   }
-  const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: keys.flat(),
-    })
-  ).body.coins;
+  keys = [...new Set(keys.flat())]
 
-
+  const maxSize = 50;
+  const pages = Math.ceil(keys.length / maxSize);
+  let pricesA = [];
+  let url = '';
+  for (const p of [...Array(pages).keys()]) {
+    url = keys
+      .slice(p * maxSize, maxSize * (p + 1))
+      .join(',')
+      .toLowerCase()
+    pricesA = [
+      ...pricesA,
+      (await superagent.get(`https://coins.llama.fi/prices/current/${url}`))
+        .body.coins,
+    ];
+  }
+  let prices = {};
+  for (const p of pricesA) {
+    prices = { ...prices, ...p };
+  }
+  
   const pools = Object.keys(hype_allData).map((chain) => {
 
     const chainAprs = Object.keys(hype_allData[chain]).filter((function (hypervisor_id) {
@@ -233,7 +268,7 @@ const getApy = async () => {
       // create a unique pool name
       var pool_name = hypervisor_id;
       if (pools_processed.indexOf(pool_name) >= 0) {
-        pool_name = `${hypervisor_id}-${utils.formatChain(chain)}`
+        pool_name = `${hypervisor_id}-${chain === 'polygon_zkevm' ? 'Polygon_zkevm' : utils.formatChain(chain)}`
       };
       pools_processed.push(pool_name);
 

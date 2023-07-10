@@ -8,8 +8,14 @@ const DAY = 24 * HOUR;
 const SECONDS_PER_YEAR = 365 * DAY;
 
 const FRAX = '0x853d955aCEf822Db058eb8505911ED77F175b99e';
+const PAIR_DEPLOYERS = [
+  '0x5d6e79bcf90140585ce88c7119b7e43caaa67044',
+  '0x38488dE975B77dc1b0D4B8569f596f6FD6ca0B92',
+  '0x7AB788d0483551428f2291232477F1818952998C',
+  '0xaa913C26dD7723Fcae9dBD2036d28171a56C6251',
+];
+const MKR = '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2'; //Not a standard ERC20. symbol and name are base32 encoded
 const HELPER = {
-  address: '0x5d6e79bcf90140585ce88c7119b7e43caaa67044',
   abis: {
     getAllPairAddresses: {
       inputs: [],
@@ -150,12 +156,19 @@ const VAULTS = {
 
 const main = async () => {
   const vaults = (
-    await sdk.api.abi.call({
-      target: HELPER.address,
-      abi: HELPER.abis.getAllPairAddresses,
-      chain: 'ethereum',
-    })
-  ).output;
+    await Promise.all(
+      PAIR_DEPLOYERS.map(
+        async (deployerAddress) =>
+          (
+            await sdk.api.abi.call({
+              target: deployerAddress,
+              abi: HELPER.abis.getAllPairAddresses,
+              chain: 'ethereum',
+            })
+          ).output
+      )
+    )
+  ).flat();
 
   const collateralContracts = (
     await sdk.api.abi.multiCall({
@@ -234,9 +247,9 @@ const main = async () => {
       })),
       abi: 'erc20:symbol',
       chain: 'ethereum',
-      requery: true,
+      requery: false,
     })
-  ).output.map((x) => x.output);
+  ).output.map((x) => (x.input.target === MKR ? 'MKR' : x.output));
 
   const decimalCollaterals = (
     await sdk.api.abi.multiCall({
@@ -279,7 +292,7 @@ const main = async () => {
         project: 'fraxlend',
         symbol: underlyingCollaterals[index],
         chain: 'ethereum',
-        apy: 0,
+        apyBase: apyRewardBorrow.toNumber(),
         tvlUsd: tvlUsd.toNumber(),
         // borrow fields
         apyBaseBorrow: apyBaseBorrow.toNumber(),
@@ -291,6 +304,7 @@ const main = async () => {
         ltv: new BigNumber(maxLTVs[index])
           .dividedBy(new BigNumber(100000))
           .toNumber(),
+        underlyingTokens: [collateralContracts[index]],
       };
     })
     .filter((e) => e.tvlUsd);

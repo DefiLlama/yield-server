@@ -93,9 +93,12 @@ const calculateReservesUSD = (
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses.map((address) => `fantom:${address}`),
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .map((address) => `fantom:${address}`)
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesObj = Object.entries(prices).reduce(

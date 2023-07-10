@@ -17,6 +17,7 @@ module.exports = {
   TVL_SPIKE_WEBHOOK: process.env.TVL_SPIKE_WEBHOOK,
   NEW_YIELDS_WEBHOOK: process.env.NEW_YIELDS_WEBHOOK,
   STALE_PROJECTS_WEBHOOK: process.env.STALE_PROJECTS_WEBHOOK,
+  ZEROX_API: process.env.ZEROX_API,
   // DB
   DATABASE_URL: process.env.DATABASE_URL,
 };

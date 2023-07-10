@@ -1,7 +1,7 @@
 const utils = require('../utils');
 const main = async () => {
   let data = await utils.getData(
-    'https://notional.finance/.netlify/functions/yields'
+    'https://classic.notional.finance/.netlify/functions/yields'
   );
   const project = 'notional';
   data = data.map((p) => {

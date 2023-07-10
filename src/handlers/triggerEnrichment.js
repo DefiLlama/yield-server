@@ -7,10 +7,10 @@ const {
   getYieldOffset,
   getYieldAvg30d,
   getYieldLendBorrow,
-} = require('../controllers/yieldController');
-const { getStat } = require('../controllers/statController');
-const { buildPoolsEnriched } = require('./getPoolsEnriched');
+} = require('../queries/yield');
+const { getStat } = require('../queries/stat');
 const { welfordUpdate } = require('../utils/welford');
+const poolsResponseColumns = require('../utils/enrichedColumns');
 
 module.exports.handler = async (event, context) => {
   await main();
@@ -80,10 +80,12 @@ const main = async () => {
   ).body.peggedAssets
     // removing any stable which a price 30% from 1usd
     .filter((s) => s.price >= 0.7)
-    .map((s) => s.symbol.toLowerCase());
+    .map((s) => s.symbol.toLowerCase())
+    .filter((s) => s !== 'r');
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
   if (!stablecoins.includes('fraxbp')) stablecoins.push('fraxbp');
+  if (!stablecoins.includes('usdr')) stablecoins.push('usdr');
 
   // get catgory data (we hardcode IL to true for options protocols)
   const config = (
@@ -286,6 +288,15 @@ const main = async () => {
     (p) => !(p.project === 'uniswap-v3' && p.chain === 'Optimism')
   );
 
+  // overwrite triggerAdapter apy calc for abracadabra (some of their vaults apply interest on collateral
+  // instead of borrowed mim) -> negative apyBase -> negative apy (we don't store negative apy values in db though
+  // nor do we use neg values on feature calc cause might break some things)
+  // hence the updated calc here to have correct nbs on UI
+  dataEnriched = dataEnriched.map((p) => ({
+    ...p,
+    apy: p.project === 'abracadabra' ? p.apyBase + p.apyReward : p.apy,
+  }));
+
   // ---------- save output to S3
   console.log('\nsaving data to S3');
   console.log('nb of pools', dataEnriched.length);
@@ -303,10 +314,17 @@ const main = async () => {
     await utils.writeToS3(bucket, keyPredictions, dataEnriched);
   }
 
-  // store /poolsEnriched (/pools) api response to s3 where we cache it
+  // we cp dataEnriched (but remove unecessary columns) to our public s3 bucket
+  // which is used as source for /pools
+  const pools = dataEnriched.map((p) => {
+    const newPool = {};
+    poolsResponseColumns.forEach((col) => (newPool[col] = p[col]));
+    return newPool;
+  });
+
   await utils.storeAPIResponse('defillama-datasets', 'yield-api/pools', {
     status: 'success',
-    data: await buildPoolsEnriched(undefined),
+    data: pools,
   });
 
   // query db for lendBorrow and store to s3 as origin for cloudfront
@@ -467,9 +485,13 @@ const addPoolInfo = (el, stablecoins, config) => {
       ? 'no'
       : config[el.project]?.category === 'Options'
       ? 'yes'
-      : ['complifi', 'optyfi', 'arbor-finance', 'opyn-squeeth'].includes(
-          el.project
-        )
+      : [
+          'complifi',
+          'optyfi',
+          'arbor-finance',
+          'opyn-squeeth',
+          'gmd-protocol',
+        ].includes(el.project)
       ? 'yes'
       : ['mycelium-perpetual-swaps', 'gmx', 'rage-trade'].includes(
           el.project

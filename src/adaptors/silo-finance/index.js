@@ -7,8 +7,10 @@ const utils = require('../utils');
 
 BigNumber.config({ EXPONENTIAL_AT: [-1e+9, 1e+9] });
 
-// 2.1.2
-const url = 'https://api.thegraph.com/subgraphs/id/QmRMtCkaYsizfmoavcE1ULwc2DkG1GZjXDHTwHjXAAH9sp';
+// 2.2.8
+const url = 'https://api.thegraph.com/subgraphs/id/QmZwDpzNPEdDFMmSghyBC6wZ3aAjJqFB2xrAsrcLCPwVQk';
+
+const fallbackBlacklist = ["0x6543ee07cf5dd7ad17aeecf22ba75860ef3bbaaa"];
 
 const pageSizeLimit = 100;
 
@@ -223,15 +225,13 @@ const main = async () => {
   // market data
   const data = await request(url, query);
 
-  const siloAddresses = data.markets.map(item => ethers.utils.getAddress(item.id));
+  const siloAddresses = data.markets.map(item => ethers.utils.getAddress(item.id)).filter((address) => fallbackBlacklist.indexOf(address.toLowerCase()) === -1);
 
   const siloAddressesToAssetBalances = await getSiloAddressesToAssetBalances(latestBlockNumber, siloAddresses);
 
   const markets = [];
 
   let tokenAddressToLastPriceUsd = {};
-
-  let tvlTotal = new BigNumber(0);
 
   for(let market of data.markets) {
 
@@ -246,58 +246,64 @@ const main = async () => {
       totalBorrowBalanceUSD,
     } = market;
 
-    let siloChecksumAddress = ethers.utils.getAddress(id);
-    let inputTokenChecksumAddress = ethers.utils.getAddress(inputToken.id);
-    
-    for(let outputTokenEntry of outputToken) {
-      let checksumAddress = ethers.utils.getAddress(outputTokenEntry.id);
-      if(!tokenAddressToLastPriceUsd[checksumAddress]) {
-        tokenAddressToLastPriceUsd[checksumAddress] = outputTokenEntry.lastPriceUSD ? outputTokenEntry.lastPriceUSD : 0;
+    if(fallbackBlacklist.indexOf(id.toLowerCase()) === -1) {
+
+      let siloChecksumAddress = ethers.utils.getAddress(id);
+      let inputTokenChecksumAddress = ethers.utils.getAddress(inputToken.id);
+      
+      for(let outputTokenEntry of outputToken) {
+        let checksumAddress = ethers.utils.getAddress(outputTokenEntry.id);
+        if(!tokenAddressToLastPriceUsd[checksumAddress]) {
+          tokenAddressToLastPriceUsd[checksumAddress] = outputTokenEntry.lastPriceUSD ? outputTokenEntry.lastPriceUSD : 0;
+        }
       }
+
+      if(!tokenAddressToLastPriceUsd[inputTokenChecksumAddress]) {
+        tokenAddressToLastPriceUsd[inputTokenChecksumAddress] = inputToken.lastPriceUSD ? inputToken.lastPriceUSD : 0;
+      }
+
+      let underlyingAssetAddresses = [];
+      let siloAssetBalances = siloAddressesToAssetBalances[siloChecksumAddress];
+
+      let tvlUsd = new BigNumber(0);
+      for(let siloAssetBalanceEntry of siloAssetBalances) {
+        if(siloAssetBalanceEntry.assetAddress === "0xd7C9F0e536dC865Ae858b0C0453Fe76D13c3bEAc"){
+          continue
+        }
+        underlyingAssetAddresses.push(siloAssetBalanceEntry.assetAddress);
+        let useAssetPrice = tokenAddressToLastPriceUsd[siloAssetBalanceEntry.assetAddress] ? tokenAddressToLastPriceUsd[siloAssetBalanceEntry.assetAddress] : 0;
+        tvlUsd = tvlUsd.plus(new BigNumber(siloAssetBalanceEntry.assetBalance).multipliedBy(tokenAddressToLastPriceUsd[siloAssetBalanceEntry.assetAddress]));
+      }
+
+      let inputTokenBorrowRateObject = rates.find(rate => (rate.token.id === inputToken.id) && (rate.side === 'BORROWER'));
+      let inputTokenSupplyRateObject = rates.find(rate => (rate.token.id === inputToken.id) && (rate.side === 'LENDER'));
+
+      let inputMarketAsset = marketAssets.filter((marketAsset) => marketAsset.asset.id === inputToken.id)?.[0];
+
+      let ltvInputToken = new BigNumber(inputMarketAsset?.maximumLTV).dividedBy(100).toNumber();
+
+      let totalBorrowUsdInputTokenRaw = new BigNumber(inputMarketAsset?.dToken.totalSupply).multipliedBy(inputMarketAsset?.dToken.derivativeConversion).decimalPlaces(0, 1).toString()
+      let totalBorrowUsdInputToken = new BigNumber(ethers.utils.formatUnits(totalBorrowUsdInputTokenRaw, inputMarketAsset?.asset?.decimals)).multipliedBy(inputMarketAsset?.asset?.lastPriceUSD).toString();
+
+      let totalSupplyUsdInputTokenRaw = new BigNumber(inputMarketAsset?.supply).minus(inputMarketAsset?.protectedSupply).toString();
+      let totalSupplyUsdInputToken = new BigNumber(ethers.utils.formatUnits(totalSupplyUsdInputTokenRaw, inputMarketAsset?.asset?.decimals)).multipliedBy(inputMarketAsset?.asset?.lastPriceUSD).toString();
+      
+      markets.push({
+        pool: `${market.id}-ethereum`,
+        chain: 'Ethereum',
+        project: 'silo-finance',
+        symbol: utils.formatSymbol(name),
+        tvlUsd: tvlUsd.toNumber(),
+        apyBase: Number(inputTokenSupplyRateObject.rate),
+        apyBaseBorrow: Number(inputTokenBorrowRateObject.rate),
+        url: `https://app.silo.finance/silo/${market.id}`,
+        underlyingTokens: underlyingAssetAddresses,
+        ltv: ltvInputToken,
+        totalBorrowUsd: totalBorrowUsdInputToken,
+        totalSupplyUsd: totalSupplyUsdInputToken,
+      })
+
     }
-
-    if(!tokenAddressToLastPriceUsd[inputTokenChecksumAddress]) {
-      tokenAddressToLastPriceUsd[inputTokenChecksumAddress] = inputToken.lastPriceUSD ? inputToken.lastPriceUSD : 0;
-    }
-
-    let underlyingAssetAddresses = [];
-    let siloAssetBalances = siloAddressesToAssetBalances[siloChecksumAddress];
-
-    let tvlUsd = new BigNumber(0);
-    for(let siloAssetBalanceEntry of siloAssetBalances) {
-      underlyingAssetAddresses.push(siloAssetBalanceEntry.assetAddress);
-      let useAssetPrice = tokenAddressToLastPriceUsd[siloAssetBalanceEntry.assetAddress] ? tokenAddressToLastPriceUsd[siloAssetBalanceEntry.assetAddress] : 0;
-      tvlUsd = tvlUsd.plus(new BigNumber(siloAssetBalanceEntry.assetBalance).multipliedBy(tokenAddressToLastPriceUsd[siloAssetBalanceEntry.assetAddress]));
-    }
-    tvlTotal = tvlTotal.plus(tvlUsd);
-
-    let inputTokenBorrowRateObject = rates.find(rate => (rate.token.id === inputToken.id) && (rate.side === 'BORROWER'));
-    let inputTokenSupplyRateObject = rates.find(rate => (rate.token.id === inputToken.id) && (rate.side === 'LENDER'));
-
-    let inputMarketAsset = marketAssets.filter((marketAsset) => marketAsset.asset.id === inputToken.id)?.[0];
-
-    let ltvInputToken = new BigNumber(inputMarketAsset?.maximumLTV).dividedBy(100).toNumber();
-
-    let totalBorrowUsdInputTokenRaw = new BigNumber(inputMarketAsset?.dToken.totalSupply).multipliedBy(inputMarketAsset?.dToken.derivativeConversion).decimalPlaces(0, 1).toString()
-    let totalBorrowUsdInputToken = new BigNumber(ethers.utils.formatUnits(totalBorrowUsdInputTokenRaw, inputMarketAsset?.asset?.decimals)).multipliedBy(inputMarketAsset?.asset?.lastPriceUSD).toString();
-
-    let totalSupplyUsdInputTokenRaw = new BigNumber(inputMarketAsset?.supply).minus(inputMarketAsset?.protectedSupply).toString();
-    let totalSupplyUsdInputToken = new BigNumber(ethers.utils.formatUnits(totalSupplyUsdInputTokenRaw, inputMarketAsset?.asset?.decimals)).multipliedBy(inputMarketAsset?.asset?.lastPriceUSD).toString();
-    
-    markets.push({
-      pool: `${market.id}-ethereum`,
-      chain: 'Ethereum',
-      project: 'silo-finance',
-      symbol: utils.formatSymbol(name),
-      tvlUsd: tvlUsd.toNumber(),
-      apyBase: Number(inputTokenSupplyRateObject.rate),
-      apyBaseBorrow: Number(inputTokenBorrowRateObject.rate),
-      url: `https://app.silo.finance/silo/${market.id}`,
-      underlyingTokens: underlyingAssetAddresses,
-      ltv: ltvInputToken,
-      totalBorrowUsd: totalBorrowUsdInputToken,
-      totalSupplyUsd: totalSupplyUsdInputToken,
-    })
   };
 
   return markets;
