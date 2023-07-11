@@ -233,8 +233,6 @@ const main = async () => {
 
   let tokenAddressToLastPriceUsd = {};
 
-  let tvlTotal = new BigNumber(0);
-
   for(let market of data.markets) {
 
     const {
@@ -269,11 +267,13 @@ const main = async () => {
 
       let tvlUsd = new BigNumber(0);
       for(let siloAssetBalanceEntry of siloAssetBalances) {
+        if(siloAssetBalanceEntry.assetAddress === "0xd7C9F0e536dC865Ae858b0C0453Fe76D13c3bEAc"){
+          continue
+        }
         underlyingAssetAddresses.push(siloAssetBalanceEntry.assetAddress);
         let useAssetPrice = tokenAddressToLastPriceUsd[siloAssetBalanceEntry.assetAddress] ? tokenAddressToLastPriceUsd[siloAssetBalanceEntry.assetAddress] : 0;
         tvlUsd = tvlUsd.plus(new BigNumber(siloAssetBalanceEntry.assetBalance).multipliedBy(tokenAddressToLastPriceUsd[siloAssetBalanceEntry.assetAddress]));
       }
-      tvlTotal = tvlTotal.plus(tvlUsd);
 
       let inputTokenBorrowRateObject = rates.find(rate => (rate.token.id === inputToken.id) && (rate.side === 'BORROWER'));
       let inputTokenSupplyRateObject = rates.find(rate => (rate.token.id === inputToken.id) && (rate.side === 'LENDER'));
