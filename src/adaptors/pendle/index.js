@@ -4,12 +4,16 @@ const { request, gql } = require('graphql-request');
 const api = 'https://api-v2.pendle.finance/core/graphql';
 const chains = {
   1: {
-    chainName: "ethereum",
-    PENDLE: "0x808507121b80c02388fad14726482e061b8da827",
+    chainName: 'ethereum',
+    PENDLE: '0x808507121b80c02388fad14726482e061b8da827',
   },
   42161: {
-    chainName: "arbitrum",
-    PENDLE: "0x0c880f6761f1af8d9aa9c466984b80dab9a8c9e8",
+    chainName: 'arbitrum',
+    PENDLE: '0x0c880f6761f1af8d9aa9c466984b80dab9a8c9e8',
+  },
+  56: {
+    chainName: 'bsc',
+    PENDLE: '0xb3ed0a426155b79b898849803e3b36552f7ed507',
   },
 };
 
