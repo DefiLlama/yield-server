@@ -152,16 +152,6 @@ const tokens = [
     ],
     lp: true,
   },
-  {
-    name: 'WKAVA/WETH',
-    decimals: 18,
-    address: '0xB593E0A2e93864fF5F75689dADE29f5F6DEc64EF',
-    tokens: [
-      '0xc86c7C0eFbd6A49B35E8714C5f59D99De09A225b',
-      '0xE3F5a90F9cb311505cd691a46596599aA1A0AD7D',
-    ],
-    lp: true,
-  },
 
   {
     name: 'LION/DEXI',
