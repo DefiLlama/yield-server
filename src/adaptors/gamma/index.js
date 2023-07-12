@@ -10,13 +10,25 @@ const EXCHANGES_API = {
   uniswapv3: '',
   quickswap: 'quickswap/',
   zyberswap: 'zyberswap/',
-  thena: 'thena/'
+  thena: 'thena/',
+  retro: 'retro/',
+  camelot: 'camelot/',
+  ramses: 'ramses/',
+  sushiswap: 'sushi/',
+  beamswap: 'beamswap/',
+  stellaswap: 'stellaswap/'
 };
 const EXCHANGES_CHAINS = {
   uniswapv3: ["ethereum", "optimism", "polygon", "arbitrum", "celo", "bsc"],
   quickswap: ["polygon", "polygon_zkevm"],
   zyberswap: ["arbitrum"],
-  thena: ["bsc"]
+  thena: ["bsc"],
+  retro: ["polygon"],
+  camelot: ["arbitrum"],
+  ramses: ["arbitrum"],
+  sushiswap: ["polygon", "arbitrum"],
+  beamswap: ["moonbeam"],
+  stellaswap: ["moonbeam"]
 };
 const CHAINS_API = {
   ethereum: '',
@@ -25,7 +37,8 @@ const CHAINS_API = {
   polygon_zkevm: 'polygon-zkevm/',
   arbitrum: 'arbitrum/',
   celo: 'celo/',
-  bsc: 'bsc/'
+  bsc: 'bsc/',
+  moonbeam: 'moonbeam/'
 };
 const CHAIN_IDS = {
   ethereum: 1,
@@ -34,7 +47,8 @@ const CHAIN_IDS = {
   polygon_zkevm: 1101,
   arbitrum: 42161,
   celo: 42220,
-  bsc: 56
+  bsc: 56,
+  moonbeam: 1284
 };
 const UNISWAP_FEE = {
   "100": "0.01%",
@@ -91,7 +105,8 @@ const blacklist = {
   polygon_zkevm: [],
   arbitrum: [],
   celo: [],
-  bsc: []
+  bsc: [],
+  moonbeam: []
 };
 const masterchef_blacklist = {
   ethereum: [],
@@ -100,7 +115,8 @@ const masterchef_blacklist = {
   polygon_zkevm: [],
   arbitrum: [],
   celo: [],
-  bsc: []
+  bsc: [],
+  moonbeam: []
 };
 const getUrl_allData = (chain, exchange) =>
   `https://wire2.gamma.xyz/${exchange}${chain}hypervisors/allData`;

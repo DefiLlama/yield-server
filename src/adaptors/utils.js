@@ -85,6 +85,7 @@ const getLatestBlockSubgraph = async (url) => {
   //   queryGraph.replace('<PLACEHOLDER>', url.split('name/')[1])
   // );
   const blockGraph =
+    url.includes('metis-graph.maiadao.io') ||
     url.includes('babydoge/faas') ||
     url.includes('kybernetwork/kyberswap-elastic-cronos') ||
     url.includes('kybernetwork/kyberswap-elastic-matic') ||
@@ -265,12 +266,15 @@ exports.keepFinite = (p) => {
 };
 
 exports.getPrices = async (addresses, chain) => {
+  const priceKeys = chain
+    ? addresses.map((address) => `${chain}:${address}`)
+    : addresses;
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: chain
-        ? addresses.map((address) => `${chain}:${address}`)
-        : addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${priceKeys
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesByAddress = Object.entries(prices).reduce(

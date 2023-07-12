@@ -81,6 +81,7 @@ const apyChain = async (chain) => {
         ? pool.rewardTokens
         : [chainDataMap[chain]['BASE_REWARD_TOKEN']],
       url: `https://app.tetu.io/vault/${pool.addr}`,
+      underlyingTokens: pool.assets,
     };
   });
   return result;

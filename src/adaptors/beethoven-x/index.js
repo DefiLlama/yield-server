@@ -37,6 +37,7 @@ const buildPool = (el, chainString) => {
     url: `https://${chainString === 'optimism' ? 'op.' : ''}beets.fi/pool/${
       el.id
     }`,
+    underlyingTokens: el.tokensList,
   };
 
   return newObj;
@@ -101,6 +102,7 @@ const main = async () => {
       apyBase,
       apyReward,
       url: `https://op.beets.fi/pool/${p.id}`,
+      underlyingTokens: p.allTokens.map((t) => t.address),
     };
   });
 

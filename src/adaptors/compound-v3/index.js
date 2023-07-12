@@ -164,6 +164,7 @@ const main = async (pool) => {
     totalSupplyUsd: collateralTotalSupplyUsd[i],
     ltv: assetInfo[i].borrowCollateralFactor / 1e18,
     poolMeta: `${pool.underlyingSymbol}-pool`,
+    borrowable: false,
   }));
 
   // 2) usdc pool
@@ -209,6 +210,9 @@ const main = async (pool) => {
       apyRewardBorrow,
       totalSupplyUsd,
       totalBorrowUsd,
+      poolMeta: `${pool.underlyingSymbol}-pool`,
+      borrowable: true,
+      ltv: 0,
     },
   ];
 };

@@ -61,6 +61,7 @@ const query = gql`
         address
         balance
         symbol
+        weight
       }
     }
   }
@@ -81,7 +82,8 @@ const queryPrior = gql`
     tokens { 
       address 
       balance 
-      symbol 
+      symbol
+      weight
     } 
   }
 }
@@ -135,8 +137,10 @@ const tvl = (entry, tokenPriceList, chainString) => {
         'B-MATICX-STABLE',
         'B-CSMATIC',
         'CBETH-WSTETH-BPT',
+        'ANKRETH/WSTETH',
       ].includes(t.symbol.toUpperCase().trim())
   );
+
   const d = {
     id: entry.id,
     symbol: balanceDetails.map((tok) => tok.symbol).join('-'),
@@ -146,6 +150,7 @@ const tvl = (entry, tokenPriceList, chainString) => {
   };
   const symbols = [];
   const tokensList = [];
+  const emptyPrice = [];
   let price;
   for (const el of balanceDetails) {
     price = tokenPriceList[`${chainString}:${el.address.toLowerCase()}`]?.price;
@@ -170,8 +175,17 @@ const tvl = (entry, tokenPriceList, chainString) => {
       price =
         tokenPriceList[`polygon:${polygonBBTokenMapping[el.address]}`]?.price;
     }
+    if (price === undefined) {
+      emptyPrice.push(el);
+    }
     price = price ?? 0;
     d.tvl += Number(el.balance) * price;
+  }
+
+  if (entry.tokens.length === 2 && emptyPrice.length === 1) {
+    // use weight to correct tvl
+    const multiplier = 1 / (1 - Number(emptyPrice[0].weight));
+    d.tvl *= multiplier;
   }
 
   return d;
@@ -311,7 +325,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
 
       x.rewardTokens = rewardTokens;
     } catch (err) {
-      console.log(err);
+      console.log('failed for', pool.poolId);
     }
   }
   return data;
@@ -427,7 +441,7 @@ const main = async () => {
       })
     ).output / 1e18;
 
-  const data = await Promise.all([
+  const data = await Promise.allSettled([
     topLvl(
       'ethereum',
       urlEthereum,
@@ -460,7 +474,11 @@ const main = async () => {
     ),
   ]);
 
-  return data.flat().filter((p) => utils.keepFinite(p));
+  return data
+    .filter((i) => i.status === 'fulfilled')
+    .map((i) => i.value)
+    .flat()
+    .filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

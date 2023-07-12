@@ -80,10 +80,12 @@ const main = async () => {
   ).body.peggedAssets
     // removing any stable which a price 30% from 1usd
     .filter((s) => s.price >= 0.7)
-    .map((s) => s.symbol.toLowerCase());
+    .map((s) => s.symbol.toLowerCase())
+    .filter((s) => s !== 'r');
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
   if (!stablecoins.includes('fraxbp')) stablecoins.push('fraxbp');
+  if (!stablecoins.includes('usdr')) stablecoins.push('usdr');
 
   // get catgory data (we hardcode IL to true for options protocols)
   const config = (
@@ -483,9 +485,13 @@ const addPoolInfo = (el, stablecoins, config) => {
       ? 'no'
       : config[el.project]?.category === 'Options'
       ? 'yes'
-      : ['complifi', 'optyfi', 'arbor-finance', 'opyn-squeeth'].includes(
-          el.project
-        )
+      : [
+          'complifi',
+          'optyfi',
+          'arbor-finance',
+          'opyn-squeeth',
+          'gmd-protocol',
+        ].includes(el.project)
       ? 'yes'
       : ['mycelium-perpetual-swaps', 'gmx', 'rage-trade'].includes(
           el.project

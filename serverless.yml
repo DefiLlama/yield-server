@@ -30,28 +30,9 @@ provider:
           Resource: '*'
 
   environment:
-    # for api handlers
-    APIG_URL:
-      {
-        'Fn::Join':
-          [
-            '',
-            [
-              'https://',
-              { Ref: 'HttpApi' },
-              '.execute-api.',
-              { Ref: 'AWS::Region' },
-              '.',
-              { Ref: 'AWS::URLSuffix' },
-            ],
-          ],
-      }
     BUCKET_DATA: { Ref: BucketData }
     DATABASE_URL: ${file(./env.js):DATABASE_URL}
     ZEROX_API: ${file(./env.js):ZEROX_API}
-
-  httpApi:
-    metrics: true
 
 functions:
   # ---------- TRIGGER HANDLERS
@@ -166,16 +147,13 @@ functions:
       # every new hour
       - schedule: cron(0 * * * ? *)
 
-  # ---------- GET HANDLERS
-  # includes old pool values
-  getPoolsEnrichedOld:
-    handler: src/handlers/getPoolsEnrichedOld.handler
-    description: Lambda for retrieving the latest enriched data for each unique pool (includes old pool values)
-    timeout: 20
+  triggerProtocolNameChange:
+    handler: src/handlers/triggerProtocolNameChange.handler
+    description: Lambda which checks for protocol renames
+    timeout: 300
     events:
-      - httpApi:
-          method: get
-          path: /poolsOld
+      # every hour 40min past
+      - schedule: cron(40 * * * ? *)
 
 resources:
   Resources:

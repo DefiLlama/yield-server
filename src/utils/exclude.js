@@ -20,6 +20,8 @@ const excludeAdaptors = [
   'hedge', // seems to be dead, ui not working
   'double-club', // seems to be dead
   'yieldwolf', // dead
+  'hubble-exchange', // no live pools
+  'yodeswap', // v1 deprecated
 ];
 
 const excludePools = [
@@ -78,7 +80,7 @@ const boundaries = {
   // we only get pools for the UI with a maximum apy of 1million %
   apy: { lb: 0, ub: 1e6 },
   // reading from database returns only pools which is max 7 days old
-  age: 14,
+  age: 7,
 };
 
 module.exports = {
