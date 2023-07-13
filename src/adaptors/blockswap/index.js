@@ -1,5 +1,7 @@
 const utils = require('../utils');
 
+const { getTotaldETHMinted } = require('./subgraph');
+
 const topLvl = async (chainString, url, token, address, underlying) => {
   let dataApy;
   let data;
@@ -11,16 +13,23 @@ const topLvl = async (chainString, url, token, address, underlying) => {
   }
   data.token = token;
   data.address = address;
+	
+  const [totaldETH] = await Promise.all([
+      getTotaldETHMinted()
+  ]);
 
   return {
-	pool: `${data.address}-${chainString}`.toLowerCase(),
+	pool: `${data.address}`.toLowerCase(),
     chain: utils.formatChain(chainString),
     project: 'blockswap',
     symbol: utils.formatSymbol(data.token),
+	tvlUsd: totaldETH,
     apyBase: Number(data.apr),
     underlyingTokens: [underlying],
   };
 };
+
+
 
 const main = async () => {
   const data = await Promise.all([
