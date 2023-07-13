@@ -1,10 +1,5 @@
 const sdk = require('@defillama/sdk');
-const { data } = require('../pepeteam-swaves/waves');
-const { pool } = require('../rocifi-v2/abi');
-const { chain } = require('../sommelier/config');
 const utils = require('../utils');
-const { da } = require('date-fns/locale');
-const address = require('../paraspace-lending/address');
 
 const networks = {
   1: 'ethereum',
@@ -59,7 +54,7 @@ const main = async () => {
         const tvlUsd = data.pools[poolAddress].tvl;
 
         // Trying to fetch tvl on-chain: query balances of the pool and price of both tokens
-        /*
+
         const amountUsdOnChain0 = (
           await sdk.api.abi.call({
             target: underlyingTokens[0],
@@ -107,7 +102,7 @@ const main = async () => {
         const tvlUsdOnChain =
           (amountUsdOnChain0 / 10 ** decimalsToken0) * priceToken0 +
           (amountUsdOnChain1 / 10 ** decimalsToken1) * priceToken1;
-*/
+
         const rewardToken = [];
         liveDistributionsData.forEach((element) => {
           rewardToken.push(element.token);
