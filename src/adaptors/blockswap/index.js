@@ -20,13 +20,11 @@ const topLvl = async (chainString, url, token, address, underlying) => {
   ]);
 
   console.log("Total dETH Stakehouse API response:");
-  console.log(totaldETH.stakeHouses);
-  console.log("Total dETH Stakehouse API response data:");
-  console.log(totaldETH.data);
+  console.log(totaldETH[0]);
    
   let total = 0;
 
-  totaldETH.stakeHouses.forEach((stakeHouse) => {
+  totaldETH[0].stakeHouses.forEach((stakeHouse) => {
     total += Number(stakeHouse.dETHMintedWithinHouse);
   });
 
