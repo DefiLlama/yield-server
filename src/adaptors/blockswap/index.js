@@ -23,7 +23,7 @@ const topLvl = async (chainString, url, token, address, underlying) => {
     chain: utils.formatChain(chainString),
     project: 'blockswap',
     symbol: utils.formatSymbol(data.token),
-	tvlUsd: totaldETH,
+	tvlUsd: totaldETH, //* underlying.price,
     apyBase: Number(data.apr),
     underlyingTokens: [underlying],
   };
