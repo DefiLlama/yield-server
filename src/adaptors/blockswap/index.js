@@ -1,6 +1,7 @@
 const utils = require('../utils');
 
 const { getTotaldETHMinted } = require('./subgraph');
+const { ethers } = require('ethers');
 
 const topLvl = async (chainString, url, token, address, underlying) => {
   let dataApy;
@@ -18,12 +19,23 @@ const topLvl = async (chainString, url, token, address, underlying) => {
       getTotaldETHMinted()
   ]);
 
+  console.log("Total dETH Stakehouse API response:");
+  console.log(totaldETH);
+   
+  let total = 0;
+
+  totaldETH.data.stakeHouses.forEach((stakeHouse) => {
+    total += Number(stakeHouse.dETHMintedWithinHouse);
+  });
+
+  const totalEthMinted = ethers.utils.formatEther(total);
+
   return {
 	pool: `${data.address}`.toLowerCase(),
     chain: utils.formatChain(chainString),
     project: 'blockswap',
     symbol: utils.formatSymbol(data.token),
-	tvlUsd: totaldETH, //* underlying.price,
+	tvlUsd: totalEthMinted, //* underlying.price,
     apyBase: Number(data.apr),
     underlyingTokens: [underlying],
   };
