@@ -53,7 +53,7 @@ const topLvl = async (chainString, url, token, address, underlying) => {
   return {
 	pool: `${data.address}`.toLowerCase(),
     chain: utils.formatChain(chainString),
-    project: 'blockswap',
+    project: 'stakehouse',
     symbol: utils.formatSymbol(data.token),
 	tvlUsd: totalEthMinted*ethUsd,
     apyBase: Number(data.apr),
