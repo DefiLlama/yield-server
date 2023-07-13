@@ -13,7 +13,8 @@ const totaldETHMinted = gql`
 
 const getTotaldETHMinted = async () => {
   const { totalDETHMintedAmt } = await request(SUBGRAPH_URL, totaldETHMinted, {});
-	
+  console.log("Total dETH Stakehouse API response:");
+  console.log(totalDETHMintedAmt);
    
   let total = 0;
 
