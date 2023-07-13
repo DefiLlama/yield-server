@@ -12,7 +12,7 @@ const totaldETHMinted = gql`
 
 const getTotaldETHMinted = async () => {
   const { totalDETHMintedAmt } = await request(SUBGRAPH_URL, totaldETHMinted, {});
-  return totalEthMinted;
+  return totalDETHMintedAmt;
 };
 
 module.exports = {
