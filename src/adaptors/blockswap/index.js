@@ -15,7 +15,7 @@ const topLvl = async (chainString, url, token, address, underlying) => {
   data.token = token;
   data.address = address;
 	
-  const [totaldETH] = await Promise.all([
+  let totaldETH = await Promise.all([
       getTotaldETHMinted()
   ]);
 
