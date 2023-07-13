@@ -120,7 +120,6 @@ const main = async () => {
             rewardTokens: [...new Set(rewardToken)],
             underlyingTokens: underlyingTokens,
           };
-          console.log(poolData);
           poolsData.push(poolData);
         }
       } catch {}
