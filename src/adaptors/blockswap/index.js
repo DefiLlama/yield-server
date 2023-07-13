@@ -22,10 +22,10 @@ const topLvl = async (chainString, url, token, address, underlying) => {
   console.log("Total dETH Stakehouse API response:");
   console.log(totaldETH[0]);
    
-  let total = 0;
+  let total = ethers.BigNumber.from(0);
 
   totaldETH[0].stakeHouses.forEach((stakeHouse) => {
-    total += Number(stakeHouse.dETHMintedWithinHouse);
+    total += ethers.BigNumber.from(stakeHouse.dETHMintedWithinHouse);
   });
 
   const totalEthMinted = ethers.utils.formatEther(total);
