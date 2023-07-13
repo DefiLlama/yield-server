@@ -18,9 +18,6 @@ const topLvl = async (chainString, url, token, address, underlying) => {
   let totaldETH = await Promise.all([
       getTotaldETHMinted()
   ]);
-
-  console.log("Total dETH Stakehouse API response:");
-  console.log(totaldETH[0]);
    
   let total = ethers.BigNumber.from(0);
 
@@ -30,12 +27,19 @@ const topLvl = async (chainString, url, token, address, underlying) => {
 
   const totalEthMinted = ethers.utils.formatEther(total);
 
+  console.log("Total dETH minted:");
+  console.log(totalEthMinted);
+  console.log("Underlying price:");
+  console.log(underlying.price);
+  console.log("Underlying price * dETH minted:");
+  console.log(totalEthMinted*underlying.price);
+
   return {
 	pool: `${data.address}`.toLowerCase(),
     chain: utils.formatChain(chainString),
     project: 'blockswap',
     symbol: utils.formatSymbol(data.token),
-	tvlUsd: totalEthMinted, //* underlying.price,
+	tvlUsd: totalEthMinted*underlying.price,
     apyBase: Number(data.apr),
     underlyingTokens: [underlying],
   };
