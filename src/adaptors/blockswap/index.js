@@ -1,5 +1,7 @@
 const utils = require('../utils');
 
+const axios = require('axios');
+
 const { getTotaldETHMinted } = require('./subgraph');
 const { ethers } = require('ethers');
 
@@ -22,24 +24,27 @@ const topLvl = async (chainString, url, token, address, underlying) => {
   let total = ethers.BigNumber.from(0);
 
   totaldETH[0].stakeHouses.forEach((stakeHouse) => {
-    total += ethers.BigNumber.from(stakeHouse.dETHMintedWithinHouse);
+    total.add(ethers.BigNumber.from(stakeHouse.dETHMintedWithinHouse));
   });
 
   const totalEthMinted = ethers.utils.formatEther(total);
+  const ethUSDPrice = (
+    await axios.get(`https://coins.llama.fi/prices/current/ethereum:0x0000000000000000000000000000000000000000`)
+  ).coins.ethereum.price;
 
   console.log("Total dETH minted:");
   console.log(totalEthMinted);
   console.log("Underlying price:");
-  console.log(underlying.price);
+  console.log(ethUSDPrice);
   console.log("Underlying price * dETH minted:");
-  console.log(totalEthMinted*underlying.price);
+  console.log(totalEthMinted*ethUSDPrice);
 
   return {
 	pool: `${data.address}`.toLowerCase(),
     chain: utils.formatChain(chainString),
     project: 'blockswap',
     symbol: utils.formatSymbol(data.token),
-	tvlUsd: totalEthMinted*underlying.price,
+	tvlUsd: totalEthMinted*ethUSDPrice,
     apyBase: Number(data.apr),
     underlyingTokens: [underlying],
   };
