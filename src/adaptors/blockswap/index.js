@@ -24,13 +24,13 @@ const topLvl = async (chainString, url, token, address, underlying) => {
   let total = ethers.BigNumber.from(0);
 
   totaldETH[0].stakeHouses.forEach((stakeHouse) => {
-    total.add(ethers.BigNumber.from(stakeHouse.dETHMintedWithinHouse));
+    total = total.add(ethers.BigNumber.from(stakeHouse.dETHMintedWithinHouse));
   });
 
   const totalEthMinted = ethers.utils.formatEther(total);
   const ethUSDPrice = (
     await axios.get(`https://coins.llama.fi/prices/current/ethereum:0x0000000000000000000000000000000000000000`)
-  );
+  ).data;
 
   console.log("Total dETH minted:");
   console.log(totalEthMinted);
@@ -38,9 +38,10 @@ const topLvl = async (chainString, url, token, address, underlying) => {
   console.log("ETH/USD price: ");
   console.log(ethUSDPrice);
   console.log(ethUSDPrice.coins);
-  console.log(ethUSDPrice.coins[0]);
-  console.log(ethUSDPrice.coins[0].ethereum.price);
-  console.log(ethUSDPrice.coins[0].ethereum[0]);
+  console.log(ethUSDPrice.coins.ethereum.price);
+  //console.log(ethUSDPrice.coins[0]);
+  //console.log(ethUSDPrice.coins[0].ethereum.price);
+  //console.log(ethUSDPrice.coins[0].ethereum[0]);
 
   console.log("Underlying price:");
   console.log(ethUSDPrice);
