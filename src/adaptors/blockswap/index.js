@@ -37,8 +37,10 @@ const topLvl = async (chainString, url, token, address, underlying) => {
 
   console.log("ETH/USD price: ");
   console.log(ethUSDPrice);
-  console.log(ethUSDPrice.coins);
-  console.log(ethUSDPrice.coins.ethereum.price);
+  //console.log(ethUSDPrice.coins);
+  ethUsd = ethUSDPrice.coins['ethereum:0x0000000000000000000000000000000000000000'].price;
+
+  console.log(ethUSDPrice.coins['ethereum:0x0000000000000000000000000000000000000000'].price);
   //console.log(ethUSDPrice.coins[0]);
   //console.log(ethUSDPrice.coins[0].ethereum.price);
   //console.log(ethUSDPrice.coins[0].ethereum[0]);
@@ -46,14 +48,14 @@ const topLvl = async (chainString, url, token, address, underlying) => {
   console.log("Underlying price:");
   console.log(ethUSDPrice);
   console.log("Underlying price * dETH minted:");
-  console.log(totalEthMinted*ethUSDPrice);
+  console.log(totalEthMinted*ethUsd);
 
   return {
 	pool: `${data.address}`.toLowerCase(),
     chain: utils.formatChain(chainString),
     project: 'blockswap',
     symbol: utils.formatSymbol(data.token),
-	tvlUsd: totalEthMinted*ethUSDPrice,
+	tvlUsd: totalEthMinted*ethUsd,
     apyBase: Number(data.apr),
     underlyingTokens: [underlying],
   };
