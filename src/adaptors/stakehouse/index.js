@@ -32,23 +32,7 @@ const topLvl = async (chainString, url, token, address, underlying) => {
     await axios.get(`https://coins.llama.fi/prices/current/ethereum:0x0000000000000000000000000000000000000000`)
   ).data;
 
-  console.log("Total dETH minted:");
-  console.log(totalEthMinted);
-
-  console.log("ETH/USD price: ");
-  console.log(ethUSDPrice);
-  //console.log(ethUSDPrice.coins);
   ethUsd = ethUSDPrice.coins['ethereum:0x0000000000000000000000000000000000000000'].price;
-
-  console.log(ethUSDPrice.coins['ethereum:0x0000000000000000000000000000000000000000'].price);
-  //console.log(ethUSDPrice.coins[0]);
-  //console.log(ethUSDPrice.coins[0].ethereum.price);
-  //console.log(ethUSDPrice.coins[0].ethereum[0]);
-
-  console.log("Underlying price:");
-  console.log(ethUSDPrice);
-  console.log("Underlying price * dETH minted:");
-  console.log(totalEthMinted*ethUsd);
 
   return {
 	pool: `${data.address}`.toLowerCase(),
@@ -60,8 +44,6 @@ const topLvl = async (chainString, url, token, address, underlying) => {
     underlyingTokens: [underlying],
   };
 };
-
-
 
 const main = async () => {
   const data = await Promise.all([
