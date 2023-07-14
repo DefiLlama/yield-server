@@ -128,37 +128,54 @@ const getApy = async () => {
         })
       ).output.map((o) => o.output);
 
-      //   const reserveConfigurationData = (
-      //     await sdk.api.abi.multiCall({
-      //       calls: addresses.reservesList.map((t) => ({
-      //         target: addresses.LendingPool,
-      //         params: t.underlying,
-      //       })),
-      //       chain: sdkChain,
-      //       abi: abiProtocolDataProvider.find(
-      //         (n) => n.name === 'getReserveConfigurationData'
-      //       ),
-      //     })
-      //   ).output.map((o) => o.output);
+      const poolConfig = (
+        await sdk.api.abi.multiCall({
+          abi: abiLendingPool.find((m) => m.name === 'getFlags'),
+          calls: addresses.reservesList.map((p) => ({
+            target: addresses.LendingPool,
+            params: [p.underlying],
+          })),
+          chain: sdkChain,
+        })
+      ).output.map((o) => o.output);
 
       return addresses.reservesList.map((t, i) => {
         const price = prices[`${sdkChain}:${t.underlying}`]?.price;
         const apyBase = supplyRate[i] / 1e25;
         const apyBaseBorrow = borrowRate[i] / 1e25;
+
+        const tvlUsd = (liquidity[i] / 10 ** t.decimals) * price;
+        const totalBorrowUsd = (totalBorrow[i] / 10 ** t.decimals) * price;
+        const totalSupplyUsd = tvlUsd + totalBorrowUsd;
+
+        const url = `https://app.pinjamlabs.com/reserve-overview?underlyingAddress=${t.underlying.toLowerCase()}`;
+        const borrowable = poolConfig[i].borrowEnabled;
+        const depositPaused = !poolConfig[i].depositEnabled;
         return {
-          apyBase,
-          apyBaseBorrow,
+          pool: `${t.pToken}-${chain}`.toLowerCase(),
+          symbol: t.symbol,
           project: 'pinjam-labs',
+          chain,
+          tvlUsd,
+          apyBase,
+          underlyingTokens: [t.underlying],
+          url,
+
+          totalSupplyUsd,
+          totalBorrowUsd,
+          apyBaseBorrow,
+          borrowable,
+          poolMeta: depositPaused ? 'frozen' : null,
         };
       });
     })
   );
 
-  return pools.flat().filter((p) => utils.keepFinite(p));
+  return pools.flat();
 };
 
 module.exports = {
-  //   timetravel: true,
+  timetravel: true,
   apy: getApy,
-  //   url: 'https://app.pinjamlabs.com',
+  url: 'https://app.pinjamlabs.com',
 };
