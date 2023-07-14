@@ -28,6 +28,9 @@ const vaultsLP = {
   'VARA/multiUSDC': '0xE04539bD52618B7d197Be54B3e4D80732082906E',
   'VARA/WKAVA': '0xEa892552BD31A20F42ceb3476D6A280c405883d0',
   'LION/DEXI': '0xcf4673F714183C42DADc1B42DAC21BE09cfc3684',
+  "USDt/WKAVA": "0x79eb3848B7B4630D1d883172f8e56B2e8fb18521",
+  "USDt/axlUSDC": "0x1C415Ce79D0A18A4aA835D3d9083d2aF4d7894FC",
+  "USDt/axlUSDT": "0xF35265f9713FD7ab6a27D387B2D02C1306FFB606",
 };
 const tokens = [
   {
@@ -152,7 +155,6 @@ const tokens = [
     ],
     lp: true,
   },
-
   {
     name: 'LION/DEXI',
     decimals: 18,
@@ -160,6 +162,38 @@ const tokens = [
     tokens: [
       '0x990e157fC8a492c28F5B50022F000183131b9026',
       '0xD22a58f79e9481D1a88e00c343885A588b34b68B',
+    ],
+    lp: true,
+  },
+  ,
+  {
+    name: 'USDt/WKAVA',
+
+    decimals: 18,
+    address: '0xBe87F2e81aa16238445651fAbf62Ae097498C200',
+    tokens: [
+      '0x919C1c267BC06a7039e03fcc2eF738525769109c',
+      '0xc86c7C0eFbd6A49B35E8714C5f59D99De09A225b',
+    ],
+    lp: true,
+  },
+  {
+    name: 'USDt/axlUSDC',
+    decimals: 18,
+    address: '0x4A18F16b6A4F695639B0d1390263Def2e91fc60f',
+    tokens: [
+      '0x919C1c267BC06a7039e03fcc2eF738525769109c',
+      '0xEB466342C4d449BC9f53A865D5Cb90586f405215',
+    ],
+    lp: true,
+  },
+  {
+    name: 'USDt/axlUSDT',
+    decimals: 18,
+    address: '0x6337e3a13CB76d93856E7403B7f98A37CB2bc7dF',
+    tokens: [
+      '0x919C1c267BC06a7039e03fcc2eF738525769109c',
+      '0x7f5373AE26c3E8FfC4c77b7255DF7eC1A9aF52a6',
     ],
     lp: true,
   },
