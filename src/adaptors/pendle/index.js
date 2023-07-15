@@ -83,7 +83,7 @@ function ptApys(pools) {
 }
 
 async function apy() {
-  const pools = (
+  let pools = (
     await Promise.all(
       Object.keys(chains).map((c) =>
         request(api, query(c)).then((r) => r.markets.results)
@@ -92,7 +92,19 @@ async function apy() {
   )
     .flat()
     .filter((p) => p.liquidity != null);
-  return [poolApys(pools), ptApys(pools)].flat();
+  pools = [poolApys(pools), ptApys(pools)]
+    .flat()
+    .sort((a, b) => b.tvlUsd - a.tvlUsd);
+
+  const unique = new Set();
+  const poolsFiltered = [];
+  for (const p of pools) {
+    if (unique.has(p.pool)) continue;
+    poolsFiltered.push(p);
+    unique.add(p.pool);
+  }
+
+  return poolsFiltered;
 }
 
 module.exports = {
