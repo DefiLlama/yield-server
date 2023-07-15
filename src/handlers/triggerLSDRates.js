@@ -126,7 +126,7 @@ const cbETHRateUrl =
   'https://api-public.sandbox.pro.coinbase.com/wrapped-assets/CBETH/conversion-rate';
 
 const apiKey = {
-  headers: { 'x-api-key': process.env.ZEROX_API },
+  headers: { '0x-api-key': process.env.ZEROX_API },
 };
 
 const getRates = async () => {
