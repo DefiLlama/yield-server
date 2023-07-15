@@ -202,7 +202,7 @@ const conicApy = async () => {
         pool: `conic-${pool_.symbol}-ethereum`.toLowerCase(),
         chain: 'Ethereum',
         project: 'conic-finance',
-        symbol: pool_.symbol,
+        symbol: pool_.symbol === 'WETH' ? 'ETH' : pool_.symbol,
         tvlUsd,
         rewardTokens: [CNC, CRV, CVX],
         underlyingTokens: [pool_.underlying],
