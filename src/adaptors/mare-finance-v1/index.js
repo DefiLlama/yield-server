@@ -18,7 +18,7 @@ const UNDERLYING = 'underlying';
 const SECONDS_PER_DAY = 86400;
 const BLOCKS_PER_DAY = SECONDS_PER_DAY;
 
-const PROJECT_NAME = 'mare-finance';
+const PROJECT_NAME = 'mare-finance-v1';
 
 const NATIVE_TOKEN = {
   decimals: 18,
