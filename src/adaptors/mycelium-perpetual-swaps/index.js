@@ -74,8 +74,8 @@ const getStakingApr = async (pPriceData) => {
     params: [arbitrumEsMyc],
   });
 
-  const ethUsdPrice = pPriceData.ethereum.usd;
-  const mycUsdPrice = pPriceData.mycelium.usd;
+  const ethUsdPrice = pPriceData['coingecko:ethereum'].price;
+  const mycUsdPrice = pPriceData['coingecko:mycelium'].price;
 
   const tokensPerIntervalBN = ethers.BigNumber.from(tokensPerInterval.output);
   const amountMycStakedBN = ethers.BigNumber.from(amountMycStaked.output);
@@ -111,8 +111,9 @@ const getPoolMlp = async (
   pInflationMlp,
   pPriceData
 ) => {
-  const yearlyFeeMlp = pFeeMlp * pPriceData.ethereum.usd;
-  const yearlyInflationMlp = pInflationMlp * pPriceData.mycelium.usd;
+  const yearlyFeeMlp = pFeeMlp * pPriceData['coingecko:ethereum'].price;
+  const yearlyInflationMlp =
+    pInflationMlp * pPriceData['coingecko:mycelium'].price;
   const apyFee = (yearlyFeeMlp / pTvl) * 100;
   const apyInflation = (yearlyInflationMlp / pTvl) * 100;
 
@@ -136,7 +137,7 @@ const getPoolMyc = async (pTvl, pApy, pStaking, pPriceData) => {
     chain: utils.formatChain(CHAIN_STRING),
     project: projectSlug,
     symbol: utils.formatSymbol('MYC'),
-    tvlUsd: pTvl * pPriceData.mycelium.usd,
+    tvlUsd: pTvl * pPriceData['coingecko:mycelium'].price,
     apyBase: pApy,
     rewardTokens: [arbitrumMyc],
     underlyingTokens: [arbitrumMyc],
@@ -147,8 +148,11 @@ const getPoolMyc = async (pTvl, pApy, pStaking, pPriceData) => {
 const getPools = async () => {
   const pools = [];
 
-  const priceData = await utils.getData(
-    'https://api.coingecko.com/api/v3/simple/price?ids=mycelium%2Cethereum&vs_currencies=usd'
+  const priceKeys = ['mycelium', 'ethereum']
+    .map((t) => `coingecko:${t}`)
+    .join(',');
+  const { coins: priceData } = await utils.getData(
+    `https://coins.llama.fi/prices/current/${priceKeys}`
   );
 
   const arbitrumFeeMlp = await getAdjustedAmount(

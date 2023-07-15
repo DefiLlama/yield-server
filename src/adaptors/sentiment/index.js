@@ -28,6 +28,24 @@ const marketConfig = {
     decimals: 18,
     underlyingAddress: '0x17FC002b466eEc40DaE837Fc4bE5c67993ddBd6F',
   },
+  '0x21202227Bc15276E40d53889Bc83E59c3CccC121': {
+    name: 'LARB',
+    symbol: 'ARB',
+    decimals: 18,
+    underlyingAddress: '0x912CE59144191C1204E64559FE8253a0e49E6548',
+  },
+  '0xe520C46d5Dab5bB80aF7Dc8b821f47deB4607DB2': {
+    name: 'LWBTC',
+    symbol: 'WBTC',
+    decimals: 8,
+    underlyingAddress: '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f',
+  },
+  '0x37E6a0EcB9e8E5D90104590049a0A197E1363b67': {
+    name: 'LOHM',
+    symbol: 'OHM',
+    decimals: 9,
+    underlyingAddress: '0x6E6a3D8F1AfFAc703B1aEF1F43B8D2321bE40043',
+  },
 };
 
 function getSupplyAndBorrowRate(liquidity, borrows, borrowRatePerBlock) {
@@ -103,7 +121,7 @@ const apy = async () => {
         .div(decimals)
         .times(BigNumber(prices[config.underlyingAddress.toLowerCase()]))
         .toNumber(),
-        ltv: 1
+      ltv: 1,
     });
   });
 

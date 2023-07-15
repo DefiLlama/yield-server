@@ -41,11 +41,11 @@ const CG_NAMES = {
 
 interface FerApyApiResponse {
   data: {
-    '3FER': { baseApr: number; ferroApr: number }
-    '2FER': { baseApr: number; ferroApr: number }
+    '3FER': { baseApr: number; ferroApr: number };
+    '2FER': { baseApr: number; ferroApr: number };
   };
 }
-type FerApyApiData = FerApyApiResponse['data']
+type FerApyApiData = FerApyApiResponse['data'];
 
 interface StakingRatio {
   barDailySnapshots: Array<{ ratio: number }>;
@@ -55,7 +55,7 @@ const getPoolApy = async (
   swapAddr: string,
   symbol: string,
   poolMeta: string,
-  tokenAddresses: Record<string, { address: string, decimals: number }>,
+  tokenAddresses: Record<string, { address: string; decimals: number }>,
   mappedPrices: Record<string, number>,
   apyApiData: FerApyApiData
 ) => {
@@ -91,14 +91,16 @@ const getPoolApy = async (
     ),
     rewardTokens: [FERRO_TOKEN],
   };
-}
+};
 
 const getApy = async () => {
   const { data }: FerApyApiResponse = await utils.getData(API_URL_3FER);
-  const prices = await utils.getData(
-    `https://api.coingecko.com/api/v3/simple/price?ids=${Object.keys(
-      CG_NAMES
-    ).join('%2C')}&vs_currencies=usd`
+
+  const priceKeys = Object.keys(CG_NAMES)
+    .map((t) => `coingecko:${t}`)
+    .join(',');
+  const { coins: prices } = await utils.getData(
+    `https://coins.llama.fi/prices/current/${priceKeys}`
   );
   const stakingRatio = await request<StakingRatio>(FERR_SUBGRAPH, stakingQuery);
   const stakingApy =
@@ -110,7 +112,7 @@ const getApy = async () => {
   const mappedPrices = Object.entries(prices).reduce(
     (acc, [name, price]: any) => ({
       ...acc,
-      [CG_NAMES[name]]: price.usd,
+      [CG_NAMES[name.replace('coingecko:', '')]]: price.price,
     }),
     {} as Record<string, number>
   );
@@ -141,7 +143,7 @@ const getApy = async () => {
     '3FER',
     TOKEN_3FER_ADDRESSES,
     mappedPrices,
-    data,
+    data
   );
 
   const stable2FerPool = await getPoolApy(
@@ -150,7 +152,7 @@ const getApy = async () => {
     '2FER',
     TOKEN_2FER_ADDRESSES,
     mappedPrices,
-    data,
+    data
   );
 
   return [stakePool, stable3FerPool, stable2FerPool];

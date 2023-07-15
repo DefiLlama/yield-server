@@ -84,7 +84,11 @@ function getPoolFeeApr(dayVolume, pool) {
 
 async function getV2SeedFarmsPools() {
   // get all seeds
-  const list_seeds = await getListSeedsInfo();
+  let list_seeds = await getListSeedsInfo();
+  list_seeds = list_seeds.filter(
+    (s) => !s.seed_id.includes('dclv2.ref-labs.nea')
+  );
+
   // get all farms
   const farmsPromiseList = [];
   const poolIds = new Set();

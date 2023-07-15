@@ -7,14 +7,12 @@ const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
 const { sendMessage } = require('../utils/discordWebhook');
 const { connect } = require('../utils/dbConnection');
-const {
-  getYieldProject,
-  buildInsertYieldQuery,
-} = require('../controllers/yieldController');
+const { getYieldProject, buildInsertYieldQuery } = require('../queries/yield');
 const {
   getConfigProject,
   buildInsertConfigQuery,
-} = require('../controllers/configController');
+  getDistinctProjects,
+} = require('../queries/config');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -117,7 +115,8 @@ const main = async (body) => {
     ...p,
     apy: p.apy < 0 ? 0 : p.apy,
     apyBase:
-      protocolConfig[body.adaptor]?.category === 'Options'
+      protocolConfig[body.adaptor]?.category === 'Options' ||
+      ['mellow-protocol', 'sommelier', 'abracadabra'].includes(body.adaptor)
         ? p.apyBase
         : p.apyBase < 0
         ? 0
@@ -161,7 +160,12 @@ const main = async (body) => {
   // change chain `Binance` -> `BSC`
   data = data.map((p) => ({
     ...p,
-    chain: p.chain === 'Binance' ? 'BSC' : p.chain,
+    chain:
+      p.chain === 'Binance'
+        ? 'BSC'
+        : p.chain === 'Avax'
+        ? 'Avalanche'
+        : p.chain,
   }));
   console.log(data.length);
 
@@ -251,7 +255,11 @@ const main = async (body) => {
       let il7d = ((2 * Math.sqrt(d)) / (1 + d) - 1) * 100;
 
       // for uni v3
-      if (body.adaptor === 'uniswap-v3') {
+      if (
+        body.adaptor === 'uniswap-v3' ||
+        body.adaptor === 'hydradex-v3' ||
+        body.adaptor === 'forge'
+      ) {
         const P = price1 / price0;
 
         // for stablecoin pools, we assume a +/- 0.1% range around current price
@@ -278,8 +286,6 @@ const main = async (body) => {
 
       return {
         ...p,
-        poolMeta:
-          p.project === 'uniswap-v3' ? p.poolMeta?.split(',')[0] : p.poolMeta,
         il7d,
       };
     });
@@ -332,7 +338,12 @@ const main = async (body) => {
           ? null
           : Math.round(p.debtCeilingUsd),
       mintedCoin: p.mintedCoin ? utils.formatSymbol(p.mintedCoin) : null,
-      poolMeta: p.poolMeta === undefined ? null : p.poolMeta,
+      poolMeta:
+        p.poolMeta === undefined
+          ? null
+          : ['uniswap-v3', 'hydradex-v3', 'forge'].includes(p.project)
+          ? p.poolMeta?.split(',')[0]
+          : p.poolMeta,
       il7d: p.il7d ? +p.il7d.toFixed(precision) : null,
       apyBase7d:
         p.apyBase7d !== null ? +p.apyBase7d.toFixed(precision) : p.apyBase7d,
@@ -421,8 +432,9 @@ const main = async (body) => {
   }
 
   // ---------- discord bot for newly added projects
+  const distinctProjects = await getDistinctProjects();
   if (
-    !dataInitial.length &&
+    !distinctProjects.includes(body.adaptor) &&
     dataDB.filter(({ tvlUsd }) => tvlUsd > exclude.boundaries.tvlUsdUI.lb)
       .length
   ) {

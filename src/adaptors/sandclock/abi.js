@@ -1,4 +1,4 @@
-const vaultABI = [
+const lusdVaultABI = [
     {
         "inputs": [],
         "name": "totalUnderlying",
@@ -40,39 +40,42 @@ const vaultABI = [
     }
 ];
 
-const curveABI = [
-    {
-        "stateMutability":"view",
-        "type":"function",
-        "name":"get_best_rate",
-        "inputs":[
-          {
-            "name":"_from",
-            "type":"address"
-          },
-          {
-            "name":"_to",
-            "type":"address"
-          },
-          {
-            "name":"_amount",
-            "type":"uint256"
-          }
-        ],
-        "outputs":[
-          {
-            "name":"",
-            "type":"address"
-          },
-          {
-            "name":"",
-            "type":"uint256"
-          }
-        ],
-    }
+const erc4626ABI = [
+  {
+      "inputs": [],
+      "name": "totalAssets",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "shares",
+          "type": "uint256"
+        }
+      ],
+      "name": "convertToAssets",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  }
 ];
 
 module.exports = {
-    vaultABI,
-    curveABI
+  lusdVaultABI,
+  erc4626ABI,
 };
