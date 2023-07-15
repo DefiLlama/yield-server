@@ -154,6 +154,8 @@ functions:
     events:
       # every hour 40min past
       - schedule: cron(40 * * * ? *)
+    environment:
+      STALE_PROJECTS_WEBHOOK: ${file(./env.js):STALE_PROJECTS_WEBHOOK}
 
 resources:
   Resources:
