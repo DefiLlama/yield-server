@@ -22,6 +22,8 @@ const excludeAdaptors = [
   'yieldwolf', // dead
   'hubble-exchange', // no live pools
   'yodeswap', // v1 deprecated
+  'optyfi', // dead
+  'rodeo', // exploited
 ];
 
 const excludePools = [
