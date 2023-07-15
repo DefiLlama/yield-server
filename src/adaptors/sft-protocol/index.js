@@ -37,7 +37,7 @@ const getApy = async () => {
     chain: sdkChain,
     tvlUsd,
     apy,
-    poolMeta: '12 month lock'
+    poolMeta: '6 month lock'
   }]
 }
  
