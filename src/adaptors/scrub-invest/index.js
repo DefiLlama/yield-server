@@ -9,8 +9,8 @@ const CHAIN = 'kava';
 const PROJECT_NAME = 'scrub-invest';
 
 const vaults = {
-  KAVA: '0xC05021F3b3601BF33aB59dc75577B85985ACaab7',
   USDt: '0x1504B9EDdD57Ed8252b3b3b407DdE27B72A80790',
+  KAVA: '0xC05021F3b3601BF33aB59dc75577B85985ACaab7',
 };
 
 const vaultsLP = {
@@ -292,7 +292,8 @@ const calcApy = async () => {
       'INFOS',
       symbol,
       token.lp ? info?.userInfo.totalCollateral ?? 0 : info.totalSupplied ?? 0,
-      price
+      price,
+      decimals
     );
     const tvlUsd =
       ((token.lp
