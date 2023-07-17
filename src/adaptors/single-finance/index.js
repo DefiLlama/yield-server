@@ -333,7 +333,7 @@ const getLYFApy = async (chain, dex) => {
   )).data.farms;
 
   return allPools.map((raw) => ({
-    pool: `${raw.lpToken.address[chainId]}-farming-${chain}`,
+    pool: `${raw.lpToken.address[chainId]}-${dex}-farming-${chain}`,
     chain: utils.formatChain(chain),
     project,
     symbol: `${raw.token0.symbol}-${raw.token1.symbol}`,
@@ -354,12 +354,18 @@ const apy = async () => {
   const arbitrumPools = await getLendingApy('arbitrum');
   const cronosVvsPools = await getLYFApy('cronos', 'vvs');
   const cronosMmfPools = await getLYFApy('cronos', 'mmf');
+  const fantomSpookyPools = await getLYFApy('fantom', 'spooky');
+  const arbitrumSushiPools = await getLYFApy('arbitrum', 'sushi');
+  const arbitrumCamelotPools = await getLYFApy('arbitrum', 'camelot');
   return [
     ...cronosPools,
     ...fantomPools,
     ...arbitrumPools,
     ...cronosVvsPools,
     ...cronosMmfPools,
+    ...fantomSpookyPools,
+    ...arbitrumSushiPools,
+    ...arbitrumCamelotPools,
   ];
 };
 
