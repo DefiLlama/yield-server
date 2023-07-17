@@ -4,6 +4,7 @@ const sdk = require('@defillama/sdk3');
 const abi = require('./abi.json');
 
 const apr = 'https://v3.svc.swellnetwork.io/swell.v3.StatsService/All';
+const apr7d = 'https://v3.svc.swellnetwork.io/api/tokens/sweth/apr';
 const swETH = '0xf951E335afb289353dc249e82926178EaC7DEd78';
 
 const apy = async () => {
@@ -31,6 +32,7 @@ const apy = async () => {
   const tvlUsd = totalSupply * rate * ethPrice;
 
   const apyBase = (await axios.post(apr, {})).data.stakingAprPercent;
+  const apyBase7d = (await axios.get(apr7d)).data;
 
   return [
     {
@@ -40,6 +42,7 @@ const apy = async () => {
       symbol: 'swETH',
       tvlUsd,
       apyBase: Number(apyBase),
+      apyBase7d,
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
     },
   ];
