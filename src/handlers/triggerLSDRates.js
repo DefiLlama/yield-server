@@ -120,13 +120,13 @@ const lsdTokens = [
     type: a,
     // fee: 0.1,
   },
-  // {
-  //   name: 'Stakehouse',
-  //   symbol: 'dETH',
-  //   address: '0x3d1e5cf16077f349e999d6b21a4f646e83cd90c5',
-  //   type: a,
-  //   fee: ,
-  // },
+  {
+    name: 'Stakehouse',
+    symbol: 'dETH',
+    address: '0x3d1e5cf16077f349e999d6b21a4f646e83cd90c5',
+    type: r,
+    fee: 0,
+  },
 ];
 
 const priceUrl = 'https://api.0x.org/swap/v1/quote';
