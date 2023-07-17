@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const apyV2 = require('./velodrome-v2');
 
 const API_URL: string = 'https://api.velodrome.finance/api/v1/pairs';
 
@@ -29,14 +30,16 @@ const getApy = async () => {
       rewardTokens: [
         '0x3c8B650257cFb5f272f799F5e2b4e65093a11a05', // velo
       ],
+      url: 'https://app.velodrome.finance/liquidity',
     };
   });
 
-  return pools;
+  const poolsV2 = await apyV2();
+
+  return pools.concat(poolsV2);
 };
 
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://app.velodrome.finance/liquidity',
 };
