@@ -114,7 +114,7 @@ async function apyLending(chain) {
   return response.lendingPools.map((p) => ({
     pool: `${p.ibToken.address}-${chainString}`.toLowerCase(),
     chain: chainString,
-    project: 'alpaca-lending',
+    project,
     symbol: utils.formatSymbol(p.symbol),
     tvlUsd: Number(p.tvl),
     apy: Number(p.totalApy),
