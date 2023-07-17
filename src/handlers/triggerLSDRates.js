@@ -112,12 +112,20 @@ const lsdTokens = [
     type: a,
     fee: 0.1,
   },
+  {
+    name: 'Tranchess Ether',
+    symbol: 'qETH',
+    // address: '0x93ef1Ea305D11A9b2a3EbB9bB4FCc34695292E7d', // qETH
+    address: '0xA6aeD7922366611953546014A3f9e93f058756a2', // QueenRateProvider
+    type: a,
+    // fee: 0.1,
+  },
   // {
-  //   name: 'Tranchess Ether',
-  //   symbol: 'qETH',
-  //   address: '0x93ef1Ea305D11A9b2a3EbB9bB4FCc34695292E7d',
+  //   name: 'Stakehouse',
+  //   symbol: 'dETH',
+  //   address: '0x3d1e5cf16077f349e999d6b21a4f646e83cd90c5',
   //   type: a,
-  //   fee: 0.1,
+  //   fee: ,
   // },
 ];
 
@@ -126,7 +134,7 @@ const cbETHRateUrl =
   'https://api-public.sandbox.pro.coinbase.com/wrapped-assets/CBETH/conversion-rate';
 
 const apiKey = {
-  headers: { 'x-api-key': process.env.ZEROX_API },
+  headers: { '0x-api-key': process.env.ZEROX_API },
 };
 
 const getRates = async () => {
@@ -249,6 +257,14 @@ const getExpectedRates = async () => {
     },
   ];
 
+  const qETHAbi = {
+    inputs: [],
+    name: 'getRate',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
   // --- cbETH
   const cbETHRate = Number((await axios.get(cbETHRateUrl)).data.amount);
 
@@ -338,6 +354,15 @@ const getExpectedRates = async () => {
     ).output /
       1e18);
 
+  const qETH =
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Tranchess Ether').address,
+        chain: 'ethereum',
+        abi: qETHAbi,
+      })
+    ).output / 1e18;
+
   return lsdTokens.map((lsd) => ({
     ...lsd,
     expectedRate:
@@ -357,6 +382,8 @@ const getExpectedRates = async () => {
         ? wBETH
         : lsd.name === 'Hord'
         ? hETH
+        : lsd.name === 'Tranchess Ether'
+        ? qETH
         : 1,
   }));
 };

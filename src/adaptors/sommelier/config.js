@@ -11,6 +11,7 @@ const realYieldUNI = '0x6a6af5393dc23d7e3db28d28ef422db7c40932b6';
 const realYieldSNX = '0xcbf2250f33c4161e18d4a2fa47464520af5216b5';
 const realYieldENS = '0x18ea937aba6053bc232d9ae2c42abe7a8a2be440';
 const fraximal = '0xdbe19d1c3f21b1bb250ca7bdae0687a97b5f77e6';
+const realYieldBtc = '0x0274a704a6d9129f90a62ddc6f6024b33ecdad36';
 
 // Rewards are paid out in EVM SOMM
 const rewardTokens = ['0xa670d7237398238de01267472c6f13e5b8010fd1'];
@@ -33,6 +34,7 @@ const stakingPools = {
     '0x7da7e27e4bcc6ec8bc06349e1cef6634f6df7c5c',
   [realYieldUsd]: '0x8510f22bd1932afb4753b6b3edf5db00c7e7a748',
   [realYieldEth]: '0x955a31153e6764fe892757ace79123ae996b0afb',
+  [realYieldBtc]: '0x1eff374fd9aa7266504144da861fff9bbd31828e',
   [defiStars]: '0x0349b3c56adb9e39b5d75fc1df52eee313dd80d1',
   [fraximal]: '0x290a42e913083edf5aefb241f8a12b306c19f8f9',
 };
@@ -243,6 +245,19 @@ const v2Pools = [
     rewardTokens,
     underlyingTokens: [],
     url: 'https://app.sommelier.finance/strategies/Fraximal',
+  },
+  {
+    pool: `${realYieldBtc}-ethereum`,
+    chain,
+    project,
+    symbol: 'WBTC',
+    poolMeta: 'RealYieldBTC',
+    tvlUsd: 0,
+    apyBase: 0,
+    apyReward: 0,
+    rewardTokens,
+    underlyingTokens: [],
+    url: 'https://app.sommelier.finance/strategies/Real-Yield-BTC',
   },
 ];
 

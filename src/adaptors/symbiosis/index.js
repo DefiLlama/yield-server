@@ -77,7 +77,7 @@ const main = async () => {
     data.push({
       pool: `symbiosis-finance-${stable}-${chain}`.toLowerCase(),
       chain: utils.formatChain(chain),
-      project: 'symbiosis-finance',
+      project: 'symbiosis',
       symbol,
       tvlUsd: tvl[stable],
       apyReward: apyData[id].apr,
