@@ -36,6 +36,16 @@ const apyV2 = async () => {
     .map((o) => o.output)
     .filter((p) => p !== sinkConverter);
 
+  const poolFees = (
+    await sdk.api.abi.multiCall({
+      calls: allPools.map((i) => ({
+        target: i,
+      })),
+      chain,
+      abi: abiPool.find((i) => i.name === 'poolFees'),
+    })
+  ).output.map((o) => o.output);
+
   const metadata = (
     await sdk.api.abi.multiCall({
       calls: allPools.map((i) => ({
@@ -45,6 +55,71 @@ const apyV2 = async () => {
       abi: abiPool.find((i) => i.name === 'metadata'),
     })
   ).output.map((o) => o.output);
+
+  const feeBalanceNow = await Promise.all(
+    poolFees.map((p, i) =>
+      sdk.api.abi.multiCall({
+        calls: [
+          { target: metadata[i].t0, params: poolFees[i] },
+          { target: metadata[i].t1, params: poolFees[i] },
+        ],
+        chain,
+        abi: 'erc20:balanceOf',
+      })
+    )
+  );
+
+  // poolFee balances from 24h ago
+  const now = new Date();
+  const timeNow = Math.round(Number(now) / 1000);
+  const timePrior = timeNow - 86400;
+  const [blockPrior] = await utils.getBlocksByTime([timePrior], chain);
+
+  const feeBalancePrior = await Promise.all(
+    poolFees.map((p, i) =>
+      sdk.api.abi.multiCall({
+        calls: [
+          { target: metadata[i].t0, params: poolFees[i] },
+          { target: metadata[i].t1, params: poolFees[i] },
+        ],
+        chain,
+        abi: 'erc20:balanceOf',
+        block: blockPrior,
+      })
+    )
+  );
+
+  // poolFee contract is emptied every thursday utc+0. if utc day === thursday
+  // then we pull poolFee data from wed just prior midnight -> and calculate 24h running fees
+  // 4 === thursday
+  let feeBalancePriorReset;
+  if (now.getUTCDay() === 4) {
+    let timePriorReset = now;
+    timePriorReset.setUTCDate(now.getUTCDate() - 1); // set to wed
+    timePriorReset.setUTCHours(23);
+    timePriorReset.setUTCMinutes(55);
+    timePriorReset.setUTCSeconds(0);
+    timePriorReset.setUTCMilliseconds(0);
+    timePriorReset = Math.round(timePriorReset / 1000);
+    const [blockPriorReset] = await utils.getBlocksByTime(
+      [timePriorReset],
+      chain
+    );
+
+    feeBalancePriorReset = await Promise.all(
+      poolFees.map((p, i) =>
+        sdk.api.abi.multiCall({
+          calls: [
+            { target: metadata[i].t0, params: poolFees[i] },
+            { target: metadata[i].t1, params: poolFees[i] },
+          ],
+          chain,
+          abi: 'erc20:balanceOf',
+          block: blockPriorReset,
+        })
+      )
+    );
+  }
 
   const feeStable = (
     await sdk.api.abi.multiCall({
@@ -98,33 +173,6 @@ const apyV2 = async () => {
     await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
   ).data.coins;
 
-  // for apyBase we sum up fees from `Fees` event
-  const topic_name =
-    'Fees(index_topic_1 address sender, uint256 amount0, uint256 amount1)';
-  const topic0 =
-    '0x112c256902bf554b6ed882d2936687aaeb4225e8cd5b51303c90ca6cf43a8602';
-
-  // get block now and offset
-  const timeNow = Math.round(Date.now() / 1000);
-  const timePrior = timeNow - 86400;
-  const [blockNow, blockPrior] = await utils.getBlocksByTime(
-    [timeNow, timePrior],
-    chain
-  );
-  const allLogs = await Promise.all(
-    allPools.map((p) =>
-      sdk.api.util.getLogs({
-        target: p,
-        topic: topic_name,
-        fromBlock: blockPrior,
-        toBlock: blockNow,
-        keys: [],
-        chain,
-        topics: [topic0],
-      })
-    )
-  );
-
   const pools = allPools.map((p, i) => {
     const meta = metadata[i];
     const r0 = meta.r0 / meta.dec0;
@@ -137,16 +185,21 @@ const apyV2 = async () => {
 
     const symbol = symbols[i].split('-')[1];
 
-    const feeUsd24h = allLogs[i].output.reduce((acc, e) => {
-      const eventData = e.data;
-      const amount0 = parseInt(eventData.slice(0, 66));
-      const amount1 = parseInt(`0x${eventData.slice(66, eventData.length)}`);
-      // note, better to ping historical endpoint
-      acc += (amount0 / meta.dec0) * p0 + (amount1 / meta.dec1) * p1;
-      return acc;
-    }, 0);
+    const now = feeBalanceNow[i].output.map((o) => o.output);
+    const prior = feeBalancePrior[i].output.map((o) => o.output);
 
-    const apyBase = ((feeUsd24h * 365) / tvlUsd) * 100;
+    let apyBase;
+    if (!feeBalancePriorReset) {
+      const t0FeeUsd = ((now[0] - prior[0]) / meta.dec0) * p0;
+      const t1FeeUsd = ((now[1] - prior[1]) / meta.dec1) * p1;
+      apyBase = (((t0FeeUsd + t1FeeUsd) * 365) / tvlUsd) * 100;
+    } else {
+      const priorReset = feeBalancePriorReset[i].output.map((o) => o.output);
+
+      const t0FeeUsd = ((priorReset[0] - prior[0] + now[0]) / meta.dec0) * p0;
+      const t1FeeUsd = ((priorReset[1] - prior[1] + now[1]) / meta.dec1) * p1;
+      apyBase = (((t0FeeUsd + t1FeeUsd) * 365) / tvlUsd) * 100;
+    }
 
     const apyReward =
       (((rewardRate[i] / 1e18) *
