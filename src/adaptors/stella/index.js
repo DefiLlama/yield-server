@@ -54,6 +54,12 @@ const apy = async () => {
       chain: 'arbitrum',
     });
 
+    const { output: totalDebts } = await sdk.api.abi.call({
+      target: pool.poolAddress,
+      abi: IBaseLendingPoolABI.find((m) => m.name === 'totalDebts'),
+      chain: 'arbitrum',
+    });
+
     const { output: decimals } = await sdk.api.erc20.decimals(
       pool.underlyingToken,
       'arbitrum'
@@ -71,6 +77,7 @@ const apy = async () => {
       priceData?.coins[`arbitrum:${pool.underlyingToken.toLowerCase()}`].price;
 
     const tvlUsd = new BigNumber(totalAssets)
+      .minus(totalDebts)
       .times(underlyingTokenPrice)
       .div(`1e${decimals}`);
 
@@ -86,9 +93,16 @@ const apy = async () => {
       project: 'stella',
       symbol: pool.poolName,
       tvlUsd: tvlUsd.toNumber(),
+      totalSupplyUsd: new BigNumber(totalAssets)
+        .times(underlyingTokenPrice)
+        .div(`1e${decimals}`)
+        .toNumber(),
+      totalBorrowUsd: new BigNumber(totalDebts)
+        .times(underlyingTokenPrice)
+        .div(`1e${decimals}`)
+        .toNumber(),
       apyBase: baseApy.times(100).toNumber(),
       underlyingTokens: [pool.underlyingToken],
-      poolMeta: `Lend ${pool.poolName} and earn shared yield`,
       url: `https://app.stellaxyz.io/lending/${pool.poolAddress}?action=deposit`,
     };
 
