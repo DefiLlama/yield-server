@@ -98,6 +98,33 @@ const apyV2 = async () => {
     await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
   ).data.coins;
 
+  // for apyBase we sum up fees from `Fees` event
+  const topic_name =
+    'Fees(index_topic_1 address sender, uint256 amount0, uint256 amount1)';
+  const topic0 =
+    '0x112c256902bf554b6ed882d2936687aaeb4225e8cd5b51303c90ca6cf43a8602';
+
+  // get block now and offset
+  const timeNow = Math.round(Date.now() / 1000);
+  const timePrior = timeNow - 86400;
+  const [blockNow, blockPrior] = await utils.getBlocksByTime(
+    [timeNow, timePrior],
+    chain
+  );
+  const allLogs = await Promise.all(
+    allPools.map((p) =>
+      sdk.api.util.getLogs({
+        target: p,
+        topic: topic_name,
+        fromBlock: blockPrior,
+        toBlock: blockNow,
+        keys: [],
+        chain,
+        topics: [topic0],
+      })
+    )
+  );
+
   const pools = allPools.map((p, i) => {
     const meta = metadata[i];
     const r0 = meta.r0 / meta.dec0;
@@ -109,6 +136,17 @@ const apyV2 = async () => {
     const tvlUsd = r0 * p0 + r1 * p1;
 
     const symbol = symbols[i].split('-')[1];
+
+    const feeUsd24h = allLogs[i].output.reduce((acc, e) => {
+      const eventData = e.data;
+      const amount0 = parseInt(eventData.slice(0, 66));
+      const amount1 = parseInt(`0x${eventData.slice(66, eventData.length)}`);
+      // note, better to ping historical endpoint
+      acc += (amount0 / meta.dec0) * p0 + (amount1 / meta.dec1) * p1;
+      return acc;
+    }, 0);
+
+    const apyBase = ((feeUsd24h * 365) / tvlUsd) * 100;
 
     const apyReward =
       (((rewardRate[i] / 1e18) *
@@ -134,6 +172,7 @@ const apyV2 = async () => {
       project: 'velodrome',
       symbol: utils.formatSymbol(symbol),
       tvlUsd,
+      apyBase,
       apyReward,
       rewardTokens: apyReward > 0 ? [velo] : [],
       poolMeta,
