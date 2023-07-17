@@ -339,7 +339,8 @@ const getLYFApy = async (chain, dex) => {
     symbol: `${raw.token0.symbol}-${raw.token1.symbol}`,
     poolMeta: dexMapping[dex].name,
     tvlUsd: raw.tvlInUSD,
-    apy: utils.aprToApy(raw.tradingFeeApr + raw.autoCompoundDexYieldPercent) + raw.manualHarvestDexYieldPercent,
+    apyBase: utils.aprToApy(raw.tradingFeeApr + raw.autoCompoundDexYieldPercent) + raw.manualHarvestDexYieldPercent,
+    apyReward: 0,
     underlyingTokens: [
       raw.token0.address[chainId],
       raw.token1.address[chainId]
