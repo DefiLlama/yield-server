@@ -4,22 +4,22 @@ const utils = require('../utils');
 const { request, gql } = require('graphql-request');
 const { apy: gmxApy } = require('../gmx/index.js');
 
-const USDC = '0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e';
-const BTCB = '0x152b9d0FdC40C096757F570A51E494bd4b943E50';
-const fsGLP = '0x9e295B5B976a184B14aD8cd72413aD846C299660';
+const USDC_TOKEN_ADDRESS = '0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e';
+const BTCB_TOKEN_ADDRESS = '0x152b9d0FdC40C096757F570A51E494bd4b943E50';
+const fsGLP_TOKEN_ADDRESS = '0x9e295B5B976a184B14aD8cd72413aD846C299660';
 
 const tokens = {
-  [USDC]: {
+  [USDC_TOKEN_ADDRESS]: {
     project: 'struct-finance',
     symbol: 'USDC',
     chain: utils.formatChain('avax'),
-    underlyingTokens: [fsGLP],
+    underlyingTokens: [fsGLP_TOKEN_ADDRESS],
   },
-  [BTCB]: {
+  [BTCB_TOKEN_ADDRESS]: {
     project: 'struct-finance',
     symbol: 'BTC.b',
     chain: utils.formatChain('avax'),
-    underlyingTokens: [fsGLP],
+    underlyingTokens: [fsGLP_TOKEN_ADDRESS],
   },
 };
 
@@ -117,15 +117,10 @@ async function getTrancheTokenInfo(tokenAddress, glpApy, tokenInfo) {
     tokenDeposits += juniorTranches.reduce(tabulateTokenDeposits, 0);
   }
 
-  let highestApr = 0;
-  let pool;
-  if (highestSeniorRate > highestJuniorRate) {
-    highestApr = highestSeniorRate;
-    pool = `${seniorTranches[0].product.id}-avax`.toLowerCase();
-  } else {
-    highestApr = highestJuniorRate;
-    pool = `${juniorTranches[0].product.id}-avax`.toLowerCase();
-  }
+  let highestApr =
+    highestSeniorRate > highestJuniorRate
+      ? highestSeniorRate
+      : highestJuniorRate;
 
   const highestAprHuman = highestApr / scalingFactor;
   const tokenDepositsHuman = tokenDeposits / 10 ** tokenInfo.decimals;
@@ -134,7 +129,7 @@ async function getTrancheTokenInfo(tokenAddress, glpApy, tokenInfo) {
   const tokenData = tokens[tokenAddress];
   Object.assign(tokenData, {
     apy: highestAprHuman,
-    pool: tokenAddress,
+    pool: `${tokenAddress}-avalanche`.toLowerCase(),
     tvlUsd,
   });
   return tokenData;
@@ -156,15 +151,15 @@ async function getTokenPrices() {
 }
 
 async function getTrancheTokenAprs() {
-    console.log("!!!!!!!!")
   const [, , , glpAvax] = await gmxApy();
-  console.log("file: index.js:160 ~ getTrancheTokenAprs ~ glpAvax:", glpAvax);
   const tokenPrices = await getTokenPrices();
   const glpApyBaseScaled = Math.floor(glpAvax.apyBase * scalingFactor);
-  const trancheTokenPromises = Object.entries(tokens).map(async ([tokenAddress, token]) => {
-    const tokenInfo = tokenPrices[`avax:${tokenAddress}`];
-    return getTrancheTokenInfo(tokenAddress, glpApyBaseScaled, tokenInfo);
-  });
+  const trancheTokenPromises = Object.entries(tokens).map(
+    async ([tokenAddress, token]) => {
+      const tokenInfo = tokenPrices[`avax:${tokenAddress}`];
+      return getTrancheTokenInfo(tokenAddress, glpApyBaseScaled, tokenInfo);
+    }
+  );
   const tokenAprs = await Promise.all(trancheTokenPromises);
   return tokenAprs;
 }
