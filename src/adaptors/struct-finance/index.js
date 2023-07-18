@@ -6,20 +6,20 @@ const { apy: gmxApy } = require('../gmx/index.js');
 
 const USDC_TOKEN_ADDRESS = '0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e';
 const BTCB_TOKEN_ADDRESS = '0x152b9d0FdC40C096757F570A51E494bd4b943E50';
-const fsGLP_TOKEN_ADDRESS = '0x9e295B5B976a184B14aD8cd72413aD846C299660';
+const FSGLP_TOKEN_ADDRESS = '0x9e295B5B976a184B14aD8cd72413aD846C299660';
 
 const tokens = {
   [USDC_TOKEN_ADDRESS]: {
     project: 'struct-finance',
     symbol: 'USDC',
     chain: utils.formatChain('avax'),
-    underlyingTokens: [fsGLP_TOKEN_ADDRESS],
+    underlyingTokens: [FSGLP_TOKEN_ADDRESS],
   },
   [BTCB_TOKEN_ADDRESS]: {
     project: 'struct-finance',
     symbol: 'BTC.b',
     chain: utils.formatChain('avax'),
-    underlyingTokens: [fsGLP_TOKEN_ADDRESS],
+    underlyingTokens: [FSGLP_TOKEN_ADDRESS],
   },
 };
 
