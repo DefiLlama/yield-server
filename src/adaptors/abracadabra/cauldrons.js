@@ -19,7 +19,11 @@ const POOLS = {
     cauldrons: [
       { version: 2, address: '0xc89958b03a55b5de2221acb25b58b89a000215e6' }, // wETH
       { version: 4, address: '0x5698135ca439f21a57bddbe8b582c62f090406d5' }, // GLP
-      { version: 4, address: '0x726413d7402ff180609d0ebc79506df8633701b1' }, // magicGLP
+      {
+        version: 4,
+        address: '0x726413d7402ff180609d0ebc79506df8633701b1',
+        collateralPoolId: 'a4bcffaa-3b75-436c-b6c2-7b1c3840d041'
+      }, // magicGLP
     ],
   },
   avax: {
