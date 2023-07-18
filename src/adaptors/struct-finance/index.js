@@ -1,5 +1,4 @@
 const axios = require('axios');
-const web3 = require('web3');
 const utils = require('../utils');
 const { request, gql } = require('graphql-request');
 const { apy: gmxApy } = require('../gmx/index.js');
