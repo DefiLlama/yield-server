@@ -7,6 +7,9 @@ const USDC_TOKEN_ADDRESS = '0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e';
 const BTCB_TOKEN_ADDRESS = '0x152b9d0FdC40C096757F570A51E494bd4b943E50';
 const FSGLP_TOKEN_ADDRESS = '0x9e295B5B976a184B14aD8cd72413aD846C299660';
 
+const structSubgraphUrl =
+  'https://subgraph.satsuma-prod.com/0598bbca8a6d/structfinance/struct-finance-factory/api';
+
 const tokens = {
   [USDC_TOKEN_ADDRESS]: {
     project: 'struct-finance',
@@ -87,7 +90,7 @@ const qGetHighestJuniorRateForOpenTrancheToken = gql`
 
 async function getTrancheTokenInfo(tokenAddress, glpApy, tokenInfo) {
   const { trancheCreateds: seniorTranches } = await request(
-    'https://subgraph.satsuma-prod.com/0598bbca8a6d/structfinance/struct-finance-factory/api',
+    structSubgraphUrl,
     qGetHighestSeniorRateForOpenTrancheToken,
     {
       tokenAddress,
@@ -95,7 +98,7 @@ async function getTrancheTokenInfo(tokenAddress, glpApy, tokenInfo) {
   );
 
   const { trancheCreateds: juniorTranches } = await request(
-    'https://subgraph.satsuma-prod.com/0598bbca8a6d/structfinance/struct-finance-factory/api',
+    structSubgraphUrl,
     qGetHighestJuniorRateForOpenTrancheToken,
     {
       tokenAddress,
@@ -166,5 +169,5 @@ async function getTrancheTokenAprs() {
 module.exports = {
   timetravel: false,
   apy: getTrancheTokenAprs,
-  url: 'https://app.struct.fi/markets',
+  url: 'https://app.struct.fi',
 };
