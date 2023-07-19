@@ -52,7 +52,7 @@ const query = `
 
 const getPools = async () => {
   const pools = [];
-  supportedChains.forEach(async (chainInfo) => {
+  for (const chainInfo of supportedChains) {
     const data = await request(
       graphURLBaseEndpoint + chainInfo.subgraphEndpoint,
       query
@@ -101,7 +101,7 @@ const getPools = async () => {
       };
     });
     pools.push(...chainPools);
-  });
+  }
   return pools;
 };
 
