@@ -111,6 +111,17 @@ const getApy = async () => {
         })
       ).output.map((o) => o.output);
 
+      const poolLiquidationConfig = (
+        await sdk.api.abi.multiCall({
+          abi: abiLendingPool.find((m) => m.name === 'getLiquidationConfig'),
+          calls: addresses.reservesList.map((p) => ({
+            target: addresses.LendingPool,
+            params: [p.underlying],
+          })),
+          chain: sdkChain,
+        })
+      ).output.map((o) => o.output);
+
       return addresses.reservesList.map((t, i) => {
         const price = prices[`${sdkChain}:${t.underlying}`]?.price;
         const apyBase = supplyRate[i] / 1e25;
@@ -123,6 +134,9 @@ const getApy = async () => {
         const url = `https://app.pinjamlabs.com/reserve-overview?underlyingAddress=${t.underlying.toLowerCase()}`;
         const borrowable = poolConfig[i].borrowEnabled;
         const depositPaused = !poolConfig[i].depositEnabled;
+        const liqConfig = poolLiquidationConfig[i];
+
+        const ltv = liqConfig.loanToValue / 1e4;
         return {
           pool: `${t.pToken}-${chain}`.toLowerCase(),
           symbol: t.symbol,
@@ -136,6 +150,7 @@ const getApy = async () => {
           totalSupplyUsd,
           totalBorrowUsd,
           apyBaseBorrow,
+          ltv,
           borrowable,
           poolMeta: depositPaused ? 'frozen' : null,
         };
