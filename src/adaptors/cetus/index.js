@@ -11,9 +11,9 @@ const getApy = async () => {
   let poolInfoObj = Object.fromEntries(poolInfo.map((item, key) => [item.address, item]))
   
   pools = pools.map((p) => {
-      const rewarder_apr_1 = Number(p.rewarder_apr[0].replace('%',''))*100
-      const rewarder_apr_2 = Number(p.rewarder_apr[1].replace('%',''))*100
-      const rewarder_apr_3 = Number(p.rewarder_apr[2].replace('%',''))*100
+      const rewarder_apr_1 = Number(p.rewarder_apr[0].replace('%',''))
+      const rewarder_apr_2 = Number(p.rewarder_apr[1].replace('%',''))
+      const rewarder_apr_3 = Number(p.rewarder_apr[2].replace('%',''))
       let apyReward =  rewarder_apr_1+rewarder_apr_2+rewarder_apr_3
 
       let rewarders = poolInfoObj[p.swap_account]?.object.rewarder_manager?.fields?.rewarders
@@ -28,7 +28,7 @@ const getApy = async () => {
       underlyingTokens: [p.token_a_address, p.token_b_address],
       rewardTokens,
       tvlUsd: Number(p.tvl_in_usd),
-      apyBase: Number(p?.apr_7day.replace('%',''))*100,
+      apyBase: Number(p?.apr_7day.replace('%','')),
       apyReward: apyReward > 0 ? apyReward : null,
       volumeUsd1d: p?.vol_in_usd_24h,
       volumeUsd7d: p?.vol_in_usd_7_day,
