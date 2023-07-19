@@ -30,6 +30,13 @@ const chains = {
         decimals: 18,
       },
       {
+        underlying: '0x7f5373ae26c3e8ffc4c77b7255df7ec1a9af52a6',
+        pToken: '0x0fc0e71DC8616D6664085aB98F7D29F71576b590',
+        vdToken: '0x9af9b432Df911c5d1293B63bcFED6a6E6b0B4dF2',
+        symbol: 'axlUsdt',
+        decimals: 6,
+      },
+      {
         underlying: '0x919c1c267bc06a7039e03fcc2ef738525769109c',
         pToken: '0xc662B16F391ade279956283F14835164f1d367fE',
         vdToken: '0xB36239deC6cc681C0c7a49241fA6d20c7c263229',
