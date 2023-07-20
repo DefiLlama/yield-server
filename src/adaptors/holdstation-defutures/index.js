@@ -36,7 +36,7 @@ const poolsFunction = async () => {
 
   const udscPool = {
     pool: '0xaf08a9d918f16332f22cf8dc9abe9d9e14ddcbc2-zksync_era',
-    chain: utils.formatSymbol('zksync_era'),
+    chain: 'zksync_era',
     project: 'holdstation-defutures',
     symbol: utils.formatSymbol('USDC'),
     tvlUsd: tvl, // number representing current USD TVL in pool
