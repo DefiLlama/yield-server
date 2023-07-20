@@ -10,7 +10,7 @@ const networks = {
 
 async function getRateAngle(token) {
   const prices = await utils.getData('https://api.angle.money/v1/prices/');
-  const price = prices.filter((p) => p.token == token)[0].rate;
+  const price = prices.filter((p) => p.token == token)[0]?.rate;
   return price;
 }
 
