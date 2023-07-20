@@ -88,5 +88,5 @@ const apy = async () => {
 module.exports = {
   apy,
   timetravel: false,
-  url: 'https://app.ashswap.io/pool/',
+  url: 'https://app.astroport.fi/pools/',
 };
