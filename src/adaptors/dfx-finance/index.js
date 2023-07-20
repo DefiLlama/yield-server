@@ -4,7 +4,6 @@ const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const { default: BigNumber } = require('bignumber.js');
 const Web3 = require('web3');
-const { JsonRpcProvider } = require('@ethersproject/providers');
 const { chains, gaugesUrl } = require('./config');
 const StakingABI = require('./abis/abiStakingRewardsMulti.json');
 
@@ -74,14 +73,7 @@ const getTokenPairsQuery = gql`
 `;
 
 //set up web3 providers
-const jsonRpcProvider_Poly = new JsonRpcProvider(
-  process.env.ALCHEMY_CONNECTION_POLYGON
-);
 const web3_Poly = new Web3(process.env.ALCHEMY_CONNECTION_POLYGON);
-
-const jsonRpcProvider_Arb = new JsonRpcProvider(
-  process.env.ALCHEMY_CONNECTION_ARBITRUM
-);
 const web3_Arb = new Web3(process.env.ALCHEMY_CONNECTION_ARBITRUM);
 
 //functional code starts here
