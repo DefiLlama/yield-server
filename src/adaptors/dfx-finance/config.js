@@ -2,7 +2,7 @@ const chains = {
   ethereum: {
     url: 'https://api.goldsky.com/api/public/project_clasdk93949ub0h10a9lf9pkq/subgraphs/dfx-v2/latest/gn',
     rewardToken: '0x888888435FDe8e7d4c54cAb67f206e4199454c60',
-    usesGuages: true,
+    usesGauges: true,
     stakingPools: [
       {
         name: 'dfx-cadc-usdc-v2',
@@ -56,7 +56,7 @@ const chains = {
   },
   polygon: {
     url: 'https://api.goldsky.com/api/public/project_clasdk93949ub0h10a9lf9pkq/subgraphs/dfx-v2-polygon/latest/gn',
-    usesGuages: false,
+    usesGauges: false,
     stakingPools: [
       {
         name: 'dfx-cadc-usdc-v2',
@@ -87,7 +87,7 @@ const chains = {
   },
   arbitrum: {
     url: 'https://api.goldsky.com/api/public/project_clasdk93949ub0h10a9lf9pkq/subgraphs/dfx-v2-arbi/latest/gn',
-    usesGuages: false,
+    usesGauges: false,
     stakingPools: [
       {
         name: 'dfx-cadc-usdc-v2',
