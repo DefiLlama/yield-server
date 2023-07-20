@@ -48,6 +48,10 @@ const poolsFunction = async () => {
     apyReward:
       (Number(nGlpAPY.vaults[0].esNeuApr) + Number(nGlpAPY.vaults[0].nGlpApr)) /
       1e18,
+    rewardTokens: [
+      '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
+      '0x22F4730e21e40Dc751c08826d93010A64185e53f',
+    ],
   };
 
   const nUSDCPool = {
@@ -59,8 +63,11 @@ const poolsFunction = async () => {
     apyReward: getAPY,
     apyBase: nusdcAPY.VaultApy.apy1d * 100,
     apyBase7d: nusdcAPY.VaultApy.apy7d * 100,
+    rewardTokens: [
+      '0x22F4730e21e40Dc751c08826d93010A64185e53f',
+      '0x3CAaE25Ee616f2C8E13C74dA0813402eae3F496b',
+    ],
   };
-  console.log(GlpPool, nUSDCPool);
 
   return [GlpPool, nUSDCPool];
 };
