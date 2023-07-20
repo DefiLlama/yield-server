@@ -26,7 +26,8 @@ const poolsFunction = async () => {
         filter: { vault: "0x2a958665bC9A1680135241133569C7014230Cb21" }
         sort: TIMESTAMP_DESC
       ) {
-        apy14d
+        apy1d
+        apy7d
       }
     }
   `;
@@ -44,7 +45,7 @@ const poolsFunction = async () => {
     project: 'neutra-finance',
     symbol: utils.formatSymbol('DAI'),
     tvlUsd: Number(tvl[1]),
-    apy:
+    apyReward:
       (Number(nGlpAPY.vaults[0].esNeuApr) + Number(nGlpAPY.vaults[0].nGlpApr)) /
       1e18,
   };
@@ -55,11 +56,16 @@ const poolsFunction = async () => {
     project: 'neutra-finance',
     symbol: utils.formatSymbol('USDC'),
     tvlUsd: Number(tvl[0]),
-    apy: nusdcAPY.VaultApy.apy14d * 100 + getAPY,
+    apyReward: getAPY,
+    apyBase: nusdcAPY.VaultApy.apy1d * 100,
+    apyBase7d: nusdcAPY.VaultApy.apy7d * 100,
   };
+  console.log(GlpPool, nUSDCPool);
 
   return [GlpPool, nUSDCPool];
 };
+
+poolsFunction();
 
 module.exports = {
   timetravel: false,
