@@ -1,4 +1,5 @@
 const { request } = require('graphql-request');
+const num = require('bignumber.js');
 
 const API_ENDPOINT = "https://multichain-api.astroport.fi/graphql";
 
@@ -40,26 +41,6 @@ const astroDenoms = {
   "neutron-1": "ibc/5751B8BCDA688FD0A8EC0B292EEF1CDEAB4B766B63EC632778B196D317C40C3A"
 }
 
-const getSymbol = (tokens) => {
-  let result = '';
-  for (const token of tokens) {
-    if (token != null) {
-      result += token.split('-')[0] + '-';
-    }
-  }
-  return result.slice(0, -1);
-};
-
-const getTokens = (tokens) => {
-  let result = [];
-  for (const token of tokens) {
-    if (token != null) {
-      result.push(token);
-    }
-  }
-  return result;
-};
-
 const getRewardTokens = (pool) => {
   const rewardTokens = [];
   if (pool?.protocolRewards?.apr > 0) {
@@ -85,7 +66,7 @@ const apy = async () => {
     const chain = chainIdToNames[pool.chainId];
     const astroRewards = pool?.astroRewards?.apr || 0;
     const protocolRewards = pool?.protocolRewards?.apr || 0;
-    const apyReward = (astroRewards + protocolRewards) * 100;
+    const apyReward = new num(astroRewards).plus(protocolRewards).times(100).dp(6).toNumber();
 
     return {
       pool: `${pool.poolAddress}-${chain}`.toLowerCase(),
