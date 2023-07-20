@@ -65,8 +65,6 @@ const poolsFunction = async () => {
   return [GlpPool, nUSDCPool];
 };
 
-poolsFunction();
-
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
