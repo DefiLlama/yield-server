@@ -108,26 +108,6 @@ const buildPool = (entry, chainString) => {
   return newPool;
 };
 
-const getPrices = async (addresses, chain) => {
-  const addy = addresses.map((address) => `${chain}:${address}`).join(',');
-
-  const prices = (
-    await superagent.get(
-      `https://coins.llama.fi/prices/current/${addy.toLowerCase()}`
-    )
-  ).body.coins;
-
-  const pricesObj = Object.entries(prices).reduce(
-    (acc, [address, price]) => ({
-      ...acc,
-      [address.split(':')[1].toLowerCase()]: price.price,
-    }),
-    {}
-  );
-
-  return pricesObj;
-};
-
 const calculateRewardsFromContracts = async (
   chainString,
   entry,
@@ -159,12 +139,15 @@ const calculateRewardsFromContracts = async (
     reward.token.toLowerCase()
   );
 
-  const prices = await getPrices(entry.rewardsTokens, chainString);
+  const { pricesByAddress } = await utils.getPrices(
+    entry.rewardsTokens,
+    chainString
+  );
 
   const rewardsAmountUSDForDuration = rewardsAvailable.reduce((acc, reward) => {
     return (
       acc +
-      prices[reward.token.toLowerCase()] *
+      pricesByAddress[reward.token.toLowerCase()] *
         new BigNumber(reward.amount).div(1e18)
     );
   }, 0);
@@ -192,11 +175,16 @@ const calculateRewardsFromGauges = async (
     reward.token.id.toLowerCase()
   );
 
-  const prices = await getPrices(entry.rewardsTokens, chainString);
+  const { pricesByAddress } = await utils.getPrices(
+    entry.rewardsTokens,
+    chainString
+  );
 
   const rewardsAmountUSDForWeek = gauge.rewardsAvailable.reduce(
     (acc, reward) => {
-      return acc + prices[reward.token.id.toLowerCase()] * reward.amount;
+      return (
+        acc + pricesByAddress[reward.token.id.toLowerCase()] * reward.amount
+      );
     },
     0
   );
