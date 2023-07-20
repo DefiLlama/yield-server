@@ -8,6 +8,8 @@ const abiLpToken = require('./abiLpToken.js');
 const abiStableSwap = require('./abiStableSwap.js');
 const pools = require('../concentrator/pools');
 
+const project = 'stellaswap-v2';
+
 const url = 'https://api.thegraph.com/subgraphs/name/stellaswap/stella-swap';
 const urlStable =
   'https://api.thegraph.com/subgraphs/name/stellaswap/stable-amm-2';
@@ -126,7 +128,7 @@ const apyBase = async (
     return {
       pool: p.id.toLowerCase(),
       chain: utils.formatChain(chainString),
-      project: 'stellaswap',
+      project,
       symbol,
       tvlUsd: p.totalValueLockedUSD,
       apyBase: p.apy1d,
@@ -190,7 +192,7 @@ const apyBase = async (
     return {
       pool: pool.lpToken.toLowerCase(),
       chain: utils.formatChain(chainString),
-      project: 'stellaswap',
+      project,
       symbol,
       tvlUsd,
       apyBase,
