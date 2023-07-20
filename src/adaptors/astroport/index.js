@@ -62,7 +62,7 @@ const apy = async () => {
   });
 
   const apy = results?.pools?.filter(pool => pool?.poolLiquidityUsd && pool?.poolLiquidityUsd > 10000).map((pool) => {
-    const apyBase = pool?.tradingFees?.apy ? pool?.tradingFees?.apy * 100 : 0;
+    const apyBase = pool?.tradingFees?.apy ? new num(pool?.tradingFees?.apy).times(100).dp(6).toNumber() : 0;
     const chain = chainIdToNames[pool.chainId];
     const astroRewards = pool?.astroRewards?.apr || 0;
     const protocolRewards = pool?.protocolRewards?.apr || 0;
