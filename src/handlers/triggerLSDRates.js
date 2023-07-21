@@ -104,7 +104,7 @@ const lsdTokens = [
     symbol: 'swETH',
     address: '0xf951E335afb289353dc249e82926178EaC7DEd78',
     type: a,
-    fee: 0,
+    fee: 0.1,
   },
   {
     name: 'Binance staked ETH',
