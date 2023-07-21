@@ -4,8 +4,11 @@ const axios = require('axios');
 const abiIBToken = require('./abiIBToken.json');
 const abiDebtToken = require('./abiDebtToken.json');
 const abiMoneyMarketReader = require('./abiMoneyMarketReader.json');
+const abiMiniFL = require('./abiMiniFL.json');
 
 const moneyMarketReader = '0x4913DEC75cC0e061Ba78ebbDb2584905760be4C6';
+const miniFL = '0x4579587AE043131999cE3d9C66199726972E3Fb7';
+const ALPACA = '0x8F0528cE5eF7B51152A59745bEfDD91D97091d2F';
 
 const markets = [
   {
@@ -126,11 +129,6 @@ const apy = async () => {
     })
   ).output.map((o) => o.output);
 
-  //   tier: '3',
-  //   collateralFactor: '0',
-  //   borrowingFactor: '8500',
-  //   maxCollateral: '0',
-  //   maxBorrow: '200000000000000000000000'
   const getMarketMetadata = (
     await sdk.api.abi.multiCall({
       calls: markets.map((m) => ({
@@ -141,19 +139,6 @@ const apy = async () => {
       chain: 'bsc',
     })
   ).output.map((o) => o.output);
-
-  // const getInterestRateModelConfig = (
-  //   await sdk.api.abi.multiCall({
-  //     calls: markets.map((m) => ({
-  //       target: moneyMarketReader,
-  //       params: [m.token],
-  //     })),
-  //     abi: abiMoneyMarketReader.find(
-  //       (m) => m.name === 'getInterestRateModelConfig'
-  //     ),
-  //     chain: 'bsc',
-  //   })
-  // ).output.map((o) => o.output);
 
   const decimals = (
     await sdk.api.abi.multiCall({
@@ -177,15 +162,29 @@ const apy = async () => {
   ).data.coins;
 
   const pools = markets.map((m, i) => {
+    const underlyingPrice = prices[`bsc:${m.token}`].price;
+
     const totalSupplyUsd =
-      (marketStats[i].ibTotalAsset / 10 ** decimals[i]) *
-      prices[`bsc:${m.token}`].price;
+      (marketStats[i].ibTotalAsset / 10 ** decimals[i]) * underlyingPrice;
 
     const totalBorrowUsd =
       (marketStats[i].globalDebtValue / 10 ** decimalsDebtToken[i]) *
-      prices[`bsc:${m.token}`].price;
+      underlyingPrice;
 
-    const apyBase = marketStats[i].pendingInterest;
+    const utilization = totalBorrowUsd / totalSupplyUsd;
+
+    const apyBaseBorrow =
+      (marketStats[i].interestRate / 1e18) * 60 * 60 * 24 * 365 * 100;
+    const apyBase = apyBaseBorrow * utilization * (1 - 0.18);
+
+    const ltv = getMarketMetadata[i].ibTokenConfig.collateralFactor / 1e4;
+    const borrowFactor =
+      getMarketMetadata[i].underlyingTokenConfig.borrowingFactor / 1e4;
+    const debtCeilingUsd =
+      (getMarketMetadata[i].underlyingTokenConfig.maxBorrow / 1e18) *
+      underlyingPrice;
+
+    const url = `https://app-v2.alpacafinance.org/market/${m.token}`;
 
     return {
       pool: m.ibToken,
@@ -194,8 +193,14 @@ const apy = async () => {
       project: 'alpaca-finance-2.0',
       tvlUsd: totalSupplyUsd - totalBorrowUsd,
       apyBase,
+
+      apyBaseBorrow,
       totalSupplyUsd,
       totalBorrowUsd,
+      debtCeilingUsd,
+      ltv,
+      borrowFactor,
+      url,
     };
   });
   return pools;
@@ -203,5 +208,4 @@ const apy = async () => {
 
 module.exports = {
   apy,
-  url: 'https://app-v2.alpacafinance.org/market',
 };
