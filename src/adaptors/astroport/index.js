@@ -25,6 +25,9 @@ const yieldQuery = `
         apr
         apy
       }
+      assets {
+        symbol
+      }
     }
   }
 `;
@@ -72,7 +75,7 @@ const apy = async () => {
       pool: `${pool.poolAddress}-${chain}`.toLowerCase(),
       project: 'astroport',
       chain,
-      symbol: `${pool.token0Address}-${pool.token1Address}`,
+      symbol: `${pool.assets[0].symbol}-${pool.assets[1].symbol}`,
       tvlUsd: pool.poolLiquidityUsd || 0,
       apyBase,
       apyReward,
