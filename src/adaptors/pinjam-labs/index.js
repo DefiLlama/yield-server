@@ -16,6 +16,13 @@ const chains = {
         decimals: 18,
       },
       {
+        underlying: '0x15932e26f5bd4923d46a2b205191c4b5d5f43fe3',
+        pToken: '0xa360C5B959499503e67B93EbD22Fc9879554b3b5',
+        vdToken: '0x57906bc7E616526937c54aBeEfac26a0B52C51F3',
+        symbol: 'atom',
+        decimals: 6,
+      },
+      {
         underlying: '0xeb466342c4d449bc9f53a865d5cb90586f405215',
         pToken: '0x5C91F5d2b7046A138c7D1775BfFEa68d5e95D68d',
         vdToken: '0xbB9D890D6511598ccC717D2C6C1266007dAa1D78',
@@ -134,9 +141,9 @@ const getApy = async () => {
         const apyBase = supplyRate[i] / 1e25;
         const apyBaseBorrow = borrowRate[i] / 1e25;
 
-        const tvlUsd = (liquidity[i] / 10 ** t.decimals) * price;
+        const totalSupplyUsd = (liquidity[i] / 10 ** t.decimals) * price;
         const totalBorrowUsd = (totalBorrow[i] / 10 ** t.decimals) * price;
-        const totalSupplyUsd = tvlUsd + totalBorrowUsd;
+        const tvlUsd = totalSupplyUsd - totalBorrowUsd;
 
         const url = `https://app.pinjamlabs.com/reserve-overview?underlyingAddress=${t.underlying.toLowerCase()}`;
         const borrowable = poolConfig[i].borrowEnabled;
