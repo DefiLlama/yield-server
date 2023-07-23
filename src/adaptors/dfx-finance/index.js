@@ -8,6 +8,7 @@ const { chains, gaugesUrl } = require('./config');
 const StakingABI = require('./abis/abiStakingRewardsMulti.json');
 
 const SECONDS_IN_YEAR = 3153600;
+const UNBOOSTED_REWARD_RATIO = 0.4;
 
 //set up queries
 const getBlockNumberQuery = gql`
@@ -172,10 +173,15 @@ const calculateRewardsFromGauges = async (
     chainString
   );
 
+  const gaugeProporationalWeight =
+    (UNBOOSTED_REWARD_RATIO * gauge.totalSupply) / gauge.workingSupply;
+
   const rewardsAmountUSDForWeek = gauge.rewardsAvailable.reduce(
     (acc, reward) => {
       return (
-        acc + pricesByAddress[reward.token.id.toLowerCase()] * reward.amount
+        acc +
+        pricesByAddress[reward.token.id.toLowerCase()] *
+          (reward.amount * gaugeProporationalWeight)
       );
     },
     0
