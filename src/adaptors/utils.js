@@ -91,7 +91,8 @@ const getLatestBlockSubgraph = async (url) => {
     url.includes('kybernetwork/kyberswap-elastic-matic') ||
     url.includes(
       'https://subgraph.satsuma-prod.com/09c9cf3574cc/orbital-apes/v3-subgraph/api'
-    )
+    ) ||
+    url.includes('api.goldsky.com')
       ? await request(url, queryGraph)
       : await request(
           `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
