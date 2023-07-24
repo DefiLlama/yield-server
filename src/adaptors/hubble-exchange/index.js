@@ -14,10 +14,12 @@ const main = async () => {
   const {
     data: { hour: makerApy },
   } = await axios.get(`${API_BASE}/maker/AVAX-PERP`);
-  const { data: prices } = await axios.post('https://coins.llama.fi/prices', {
-    coins: [`avax:${WAVAX}`],
-  });
-  const avaxPrice = prices.coins[`avax:${WAVAX}`].price;
+
+  const priceKey = `avax:${WAVAX}`;
+  const { data: prices } = await axios.get(
+    `https://coins.llama.fi/prices/current/${priceKey}`
+  );
+  const avaxPrice = prices.coins[priceKey].price;
   const TEN = BigNumber.from(10);
 
   const [vammHusdBalance, vammAvaxBalance] = await Promise.all([
