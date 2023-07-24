@@ -159,7 +159,7 @@ const getApy = async () => {
 
     pools.push({
       pool: vaults[i],
-      poolMetadata: names[i],
+      poolMeta: names[i],
       chain,
       project: 'y2k-v2',
       symbol: symbols[i],
