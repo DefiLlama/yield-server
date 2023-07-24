@@ -75,6 +75,18 @@ const queryPrior = gql`
   }
 `;
 
+const queryLastBlock = gql`
+  {
+    # Get latest indexed block and timestamp
+    _meta {
+      block {
+        number
+        timestamp
+      }
+    }
+  }
+`;
+
 const getFarmsWithRewards = async (
   chainString,
   STAKING_ADDRESS,
@@ -181,7 +193,6 @@ const campaignRewardAPY = (
   BLOCKS_PER_YEAR
 ) => {
   let apr = 0;
-
   if (
     sdexPrice &&
     campaign &&
@@ -241,6 +252,13 @@ const topLvl = async (
     [currentTimestamp, timestampPrior, timestampPrior7d],
     chainString
   );
+
+  const lastIndexedBlock = (await request(url, queryLastBlock))._meta.block;
+
+  if (block > lastIndexedBlock) {
+    // If the block is not indexed yet, we use the last indexed block
+    block = lastIndexedBlock;
+  }
 
   // pull data
   let queryC = query;
