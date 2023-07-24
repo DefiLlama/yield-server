@@ -61,7 +61,7 @@ const getApy = async () => {
   const poolLength = (
     await sdk.api.abi.call({
       target: vault_factory,
-      chain: chain,
+      chain,
       abi: abis.marketIndex,
     })
   ).output;
@@ -72,7 +72,7 @@ const getApy = async () => {
       target: vault_factory,
       params: i,
     })),
-    chain: chain,
+    chain,
   });
 
   const vaults = vaultRes.output
@@ -85,7 +85,7 @@ const getApy = async () => {
     calls: vaults.map((vault) => ({
       target: vault,
     })),
-    chain: chain,
+    chain,
   });
   const names = nameRes.output.map(({ output }) => output);
 
@@ -94,16 +94,25 @@ const getApy = async () => {
     calls: vaults.map((vault) => ({
       target: vault,
     })),
-    chain: chain,
+    chain,
   });
   const assets = assetRes.output.map(({ output }) => output);
+
+  const symbolsRes = await sdk.api.abi.multiCall({
+    abi: 'erc20:symbol',
+    calls: assets.map((t, i) => ({
+      target: t,
+    })),
+    chain,
+  });
+  const symbols = symbolsRes.output.map((o) => o.output);
 
   const epochLengthRes = await sdk.api.abi.multiCall({
     abi: ContractABIs.vaultABI.find(({ name }) => name === 'epochsLength'),
     calls: vaults.map((vault) => ({
       target: vault,
     })),
-    chain: chain,
+    chain,
   });
   const epochsLengths = epochLengthRes.output.map(({ output }) => output);
 
@@ -116,9 +125,9 @@ const getApy = async () => {
     abi: ContractABIs.vaultABI.find(({ name }) => name === 'epochs'),
     calls: epochIndexes.map((epochIndex, index) => ({
       target: vaults[index],
-      params: epochIndex
+      params: epochIndex,
     })),
-    chain: chain,
+    chain,
   });
   const epochIds = epochIdsRes.output.map(({ output }) => output);
 
@@ -128,7 +137,7 @@ const getApy = async () => {
       target: vault,
       params: epochIds[index],
     })),
-    chain: chain,
+    chain,
   });
   const claimTVLs = claimTVLRes.output.map(({ output }) => output);
 
@@ -138,7 +147,7 @@ const getApy = async () => {
       target: vault,
       params: epochIds[index],
     })),
-    chain: chain,
+    chain,
   });
   const finalTVLs = finalTVLRes.output.map(({ output }) => output);
 
@@ -165,7 +174,7 @@ const getApy = async () => {
         target: underlyings[i],
         params: vault,
       })),
-      chain: chain,
+      chain,
     });
     const balances = balanceRes.output.map(({ output }) => output);
     balances.forEach((value, index) => {
@@ -189,9 +198,10 @@ const getApy = async () => {
 
     pools.push({
       pool: vaults[i],
+      poolMetadata: names[i],
       chain,
       project: 'y2k-v1',
-      symbol: names[i],
+      symbol: symbols[i],
       apyBase: roi,
       underlyingTokens: [assets[i]],
       tvlUsd,

@@ -56,7 +56,7 @@ const getApy = async () => {
     calls: vaults.map((vault) => ({
       target: vault,
     })),
-    chain: chain,
+    chain,
   });
   const names = nameRes.output.map(({ output }) => output);
 
@@ -65,16 +65,25 @@ const getApy = async () => {
     calls: vaults.map((vault) => ({
       target: vault,
     })),
-    chain: chain,
+    chain,
   });
   const assets = assetRes.output.map(({ output }) => output);
+
+  const symbolsRes = await sdk.api.abi.multiCall({
+    abi: 'erc20:symbol',
+    calls: assets.map((t, i) => ({
+      target: t,
+    })),
+    chain,
+  });
+  const symbols = symbolsRes.output.map((o) => o.output);
 
   const getAllEpochsRes = await sdk.api.abi.multiCall({
     abi: ContractABIs.carouselABI.find(({ name }) => name === 'getAllEpochs'),
     calls: vaults.map((vault) => ({
       target: vault,
     })),
-    chain: chain,
+    chain,
   });
   const allEpochs = getAllEpochsRes.output.map(({ output }) => output);
 
@@ -89,7 +98,7 @@ const getApy = async () => {
       target: vault,
       params: epochIds[index],
     })),
-    chain: chain,
+    chain,
   });
   const claimTVLs = claimTVLRes.output.map(({ output }) => output);
 
@@ -99,7 +108,7 @@ const getApy = async () => {
       target: vault,
       params: epochIds[index],
     })),
-    chain: chain,
+    chain,
   });
   const finalTVLs = finalTVLRes.output.map(({ output }) => output);
 
@@ -126,7 +135,7 @@ const getApy = async () => {
         target: underlyings[i],
         params: vault,
       })),
-      chain: chain,
+      chain,
     });
     const balances = balanceRes.output.map(({ output }) => output);
     balances.forEach((value, index) => {
@@ -150,9 +159,10 @@ const getApy = async () => {
 
     pools.push({
       pool: vaults[i],
+      poolMetadata: names[i],
       chain,
       project: 'y2k-v2',
-      symbol: names[i],
+      symbol: symbols[i],
       apyBase: roi,
       underlyingTokens: [assets[i]],
       tvlUsd,
