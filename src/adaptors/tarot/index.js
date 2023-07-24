@@ -370,9 +370,9 @@ const getPrices = async (coinKeys) => {
     for (let i = 0; i < coinKeys.length; i += 100) {
       const {
         data: { coins },
-      } = await axios.post('https://coins.llama.fi/prices', {
-        coins: coinKeys.slice(i, i + 100),
-      });
+      } = await axios.get(
+        `https://coins.llama.fi/prices/current/${coinKeys.slice(i, i + 100)}`
+      );
       for (const key of Object.keys(coins)) {
         results[key] = coins[key];
       }
