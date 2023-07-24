@@ -15,11 +15,20 @@ const apy = async () => {
       strategy.strategy_info.yield_info['Default'].maxLeverage;
 
     const baseApy = strategy.strategy_info.yield_info['Default'].baseAPR;
-    let poolName = `${strategy.name} ${(
-      strategy.additional_info.feeBps / 10000
-    ).toLocaleString()}% (${
-      strategy.exchange.name
-    }) Lev Up to ${maxLeverage.toFixed(0)}x`;
+
+    const feeBps = strategy.additional_info.feeBps;
+    let poolName;
+    if (feeBps) {
+      poolName = `${strategy.name} ${(
+        strategy.additional_info.feeBps / 10000
+      ).toLocaleString()}% (${
+        strategy.exchange.name
+      }) Lev Up to ${maxLeverage.toFixed(0)}x`;
+    } else {
+      poolName = `${strategy.name} (${
+        strategy.exchange.name
+      }) Lev Up to ${maxLeverage.toFixed(0)}x`;
+    }
 
     result.push({
       pool: `${strategy.strategy_address}-arbitrum`,
