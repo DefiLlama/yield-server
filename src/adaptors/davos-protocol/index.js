@@ -176,12 +176,12 @@ const getApy = async () => {
         prices[`polygon:${WMATIC.toLowerCase()}`].price,
       totalBorrowUsd: totalSupplyUsd,
       ltv: 1 / Number(liquidationRatio.toNumber()),
-      mintedCoin: 'DAVOS',
+      mintedCoin: 'DUSD',
     },
     {
       pool: sDAVOS,
       project: 'davos-protocol',
-      symbol: 'DAVOS',
+      symbol: 'DUSD',
       chain: 'polygon',
       apy: new BigNumber(davosRate)
         .times(SECONDS_PER_YEAR)
