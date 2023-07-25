@@ -17,24 +17,25 @@ const apy = async () => {
     const baseApy = strategy.strategy_info.yield_info['Default'].baseAPR;
 
     const feeBps = strategy.additional_info.feeBps;
-    let poolName;
+    let poolMeta;
     if (feeBps) {
-      poolName = `${strategy.name} ${(
+      poolMeta = `${(
         strategy.additional_info.feeBps / 10000
       ).toLocaleString()}% (${
         strategy.exchange.name
       }) Lev Up to ${maxLeverage.toFixed(0)}x`;
     } else {
-      poolName = `${strategy.name} (${
-        strategy.exchange.name
-      }) Lev Up to ${maxLeverage.toFixed(0)}x`;
+      poolMeta = `(${strategy.exchange.name}) Lev Up to ${maxLeverage.toFixed(
+        0
+      )}x`;
     }
 
     result.push({
       pool: `${strategy.strategy_address}-arbitrum`,
       chain: utils.formatChain('arbitrum'),
       project: 'stella',
-      symbol: poolName,
+      symbol: strategy.name.split('/').join('-'),
+      poolMeta: poolMeta,
       tvlUsd: strategy.strategy_info.strategy_tvl,
       apyBase: baseApy * 100,
       underlyingTokens: strategy.underlying_tokens,
