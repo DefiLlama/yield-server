@@ -8,6 +8,8 @@ const {
 const utils = require('../utils');
 const { farmingRangeABI } = require('./abis');
 
+const API_KEY = process.env.SMARDEX_SUBGRAPH_API_KEY;
+
 const BASE_URL = 'https://smardex.io/liquidity';
 const DAYS_IN_YEAR = 365;
 const DAYS_IN_WEEK = 7;
@@ -77,15 +79,22 @@ const queryPrior = gql`
 
 const queryLastBlock = gql`
   {
-    # Get latest indexed block and timestamp
     _meta {
       block {
         number
-        timestamp
       }
     }
   }
 `;
+
+/**
+ * GraphQL request helper function that authenticates to Smardex subgraph gateway
+ */
+const gqlRequest = (url, query, variables = null) => {
+  return request(url, query, variables, {
+    'x-api-key': API_KEY,
+  });
+};
 
 const getFarmsWithRewards = async (
   chainString,
@@ -253,8 +262,8 @@ const topLvl = async (
     chainString
   );
 
-  const lastIndexedBlock = (await request(url, queryLastBlock))._meta.block;
-
+  const lastIndexedBlock = (await gqlRequest(url, queryLastBlock))._meta.block
+    .number;
   if (block > lastIndexedBlock) {
     // If the block is not indexed yet, we use the last indexed block
     block = lastIndexedBlock;
@@ -262,18 +271,17 @@ const topLvl = async (
 
   // pull data
   let queryC = query;
-  let dataNow = (await request(url, queryC.replace('<PLACEHOLDER>', block)))
+  let dataNow = (await gqlRequest(url, queryC.replace('<PLACEHOLDER>', block)))
     .pairs;
-
   // pull 24h offset data to calculate fees from swap volume
   let queryPriorC = queryPrior;
   const dataPrior = (
-    await request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior))
+    await gqlRequest(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior))
   ).pairs;
 
   // 7d offset
   const dataPrior7d = (
-    await request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
+    await gqlRequest(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
   ).pairs;
 
   // calculate tvl
@@ -333,6 +341,9 @@ const topLvl = async (
 };
 
 const main = async (timestamp = null) => {
+  if (API_KEY === undefined) {
+    throw new Error('Missing SMARDEX_SUBGRAPH_API_KEY environment variable');
+  }
   // Getting configuration keys as array of chains
   const chains = Object.keys(CONFIG);
 
