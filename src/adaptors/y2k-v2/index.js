@@ -16,7 +16,7 @@ const event_market_create =
 
 const contract_interface = new ethers.utils.Interface([event_market_create]);
 
-const ONE_YEAR_HOURS = 365 * 86400;
+const ONE_YEAR_HOURS = 365 * 24;
 const ONE_EPOCH_HOURS = 166;
 
 const getTokenBalance = (provider, tokenAddress, ownerAddress, decimals) => {
@@ -188,7 +188,7 @@ const getApy = async () => {
       chain,
       project: 'y2k-v2',
       symbol: symbols[i],
-      apyBase: apy,
+      apy: apy,
       underlyingTokens: [assets[i]],
       tvlUsd,
       url: 'https://app.y2k.finance/market',
