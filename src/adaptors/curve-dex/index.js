@@ -297,7 +297,7 @@ const main = async () => {
       }
 
       // separate reward tokens (eg OP on curve optimism), adding this to aprExtra if available
-      if (blockchainId === 'optimism') {
+      if (['optimism', 'kava'].includes(blockchainId)) {
         const x = factoryAprData.find(
           (x) => x.gauge?.toLowerCase() === pool.gaugeAddress?.toLowerCase()
         );
