@@ -116,40 +116,65 @@ const getApy = async () => {
   });
   const epochsLengths = epochLengthRes.output.map(({ output }) => output);
 
-  const epochIndexes = epochsLengths.map((epochsLength) => {
-    if (epochsLength < 2) return 0;
-    else return epochsLength - 2;
-  });
-
-  const epochIdsRes = await sdk.api.abi.multiCall({
+  const allEpochsRes = await sdk.api.abi.multiCall({
     abi: ContractABIs.vaultABI.find(({ name }) => name === 'epochs'),
-    calls: epochIndexes.map((epochIndex, index) => ({
-      target: vaults[index],
-      params: epochIndex,
-    })),
+    calls: epochsLengths
+      .map((epochLength, index) => {
+        return [...Array(Number(epochLength)).keys()].map((i) => ({
+          target: vaults[index],
+          params: i,
+        }));
+      })
+      .flat(),
     chain,
   });
-  const epochIds = epochIdsRes.output.map(({ output }) => output);
+  const allEpochs = {};
+  allEpochsRes.output.forEach(({ input, output }) => {
+    if (!allEpochs[input.target]) {
+      allEpochs[input.target] = [];
+    }
+    allEpochs[input.target].push(output);
+  });
 
   const claimTVLRes = await sdk.api.abi.multiCall({
     abi: ContractABIs.vaultABI.find(({ name }) => name === 'idClaimTVL'),
-    calls: vaults.map((vault, index) => ({
-      target: vault,
-      params: epochIds[index],
-    })),
+    calls: vaults
+      .map((vault, index) => {
+        return allEpochs[vault].map((epochId) => ({
+          target: vault,
+          params: epochId,
+        }));
+      })
+      .flat(),
     chain,
   });
-  const claimTVLs = claimTVLRes.output.map(({ output }) => output);
+  const claimTVLs = {};
+  claimTVLRes.output.forEach(({ input, output }) => {
+    if (!claimTVLs[input.target]) {
+      claimTVLs[input.target] = [];
+    }
+    claimTVLs[input.target].push(output);
+  });
 
   const finalTVLRes = await sdk.api.abi.multiCall({
     abi: ContractABIs.vaultABI.find(({ name }) => name === 'idFinalTVL'),
-    calls: vaults.map((vault, index) => ({
-      target: vault,
-      params: epochIds[index],
-    })),
+    calls: vaults
+      .map((vault, index) => {
+        return allEpochs[vault].map((epochId) => ({
+          target: vault,
+          params: epochId,
+        }));
+      })
+      .flat(),
     chain,
   });
-  const finalTVLs = finalTVLRes.output.map(({ output }) => output);
+  const finalTVLs = {};
+  finalTVLRes.output.forEach(({ input, output }) => {
+    if (!finalTVLs[input.target]) {
+      finalTVLs[input.target] = [];
+    }
+    finalTVLs[input.target].push(output);
+  });
 
   const underlyings = [...new Set(assets)];
   const prices = (
@@ -184,13 +209,19 @@ const getApy = async () => {
 
   var pools = [];
   for (let i = 0; i < vaults.length; i += 1) {
-    if (epochsLengths[i] < 2) {
-      continue;
+    let roiSum = 0;
+    let totalEpochs = 0;
+    for (let j = 0; j < claimTVLs[vaults[i]].length; j += 1) {
+      const finalTVL = Number(finalTVLs[vaults[i]][j]);
+      const claimTVL = Number(claimTVLs[vaults[i]][j]);
+      if (finalTVL == 0) {
+        continue;
+      }
+      const epochRoi = (claimTVL / finalTVL - 1) * 100;
+      roiSum += epochRoi;
+      totalEpochs += 1;
     }
-    const roi =
-      finalTVLs[i] == 0
-        ? 0
-        : (Number(claimTVLs[i]) / Number(finalTVLs[i]) - 1) * 100;
+    const roi = totalEpochs == 0 ? 0 : roiSum / totalEpochs;
 
     const tokenLocked = Number(tokenBalances[vaults[i]]) / Math.pow(10, 18);
     const tokenPrice = prices[assets[i].toLowerCase()];
