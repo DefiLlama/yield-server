@@ -20,7 +20,8 @@ const apy = async () => {
     let poolMeta;
     if (feeBps) {
       poolMeta = `${(
-        strategy.additional_info.feeBps / 10000
+        (strategy.additional_info.feeBps / 10000) *
+        100
       ).toLocaleString()}% (${
         strategy.exchange.name
       }) Lev Up to ${maxLeverage.toFixed(0)}x`;
