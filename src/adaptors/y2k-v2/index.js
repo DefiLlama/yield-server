@@ -16,6 +16,9 @@ const event_market_create =
 
 const contract_interface = new ethers.utils.Interface([event_market_create]);
 
+const ONE_YEAR_HOURS = 365 * 86400;
+const ONE_EPOCH_HOURS = 166;
+
 const getTokenBalance = (provider, tokenAddress, ownerAddress, decimals) => {
   const tokenContract = new ethers.Contract(
     tokenAddress,
@@ -173,6 +176,7 @@ const getApy = async () => {
       totalEpochs += 1;
     }
     const roi = totalEpochs == 0 ? 0 : roiSum / totalEpochs;
+    const apy = 100 * ((1 + roi / 100) ** (ONE_YEAR_HOURS / ONE_EPOCH_HOURS) - 1);
 
     const tokenLocked = Number(tokenBalances[vaults[i]]) / Math.pow(10, 18);
     const tokenPrice = prices[assets[i].toLowerCase()];
@@ -184,7 +188,7 @@ const getApy = async () => {
       chain,
       project: 'y2k-v2',
       symbol: symbols[i],
-      apyBase: roi,
+      apyBase: apy,
       underlyingTokens: [assets[i]],
       tvlUsd,
       url: 'https://app.y2k.finance/market',
