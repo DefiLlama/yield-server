@@ -14,7 +14,10 @@ const apy = async () => {
     const maxLeverage =
       strategy.strategy_info.yield_info['Default'].maxLeverage;
 
-    const baseApy = strategy.strategy_info.yield_info['Default'].baseAPR;
+    const baseApy =
+      strategy.strategy_info?.additional_data?.priceRangeInfos?.find(
+        (x) => x.priceRangeType === 'Wide'
+      )?.apr ?? 0;
 
     const feeBps = strategy.additional_info.feeBps;
     let poolMeta;
