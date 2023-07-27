@@ -35,13 +35,15 @@ const getUmamiGlpVaultsYield = async () => {
           `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`
         )
       ).body.coins[underlyingTokenPriceKey].price;
-
+      const liquidApy = +(vaultFromApi.liquidApr * 100).toFixed(2);
+      const timelockApy = +(vaultFromApi.boostedApr * 100).toFixed(2);
       vaults.push({
         pool: vault.address,
         tvlUsd: +(
           parseFloat(tvl / 10 ** vault.decimals) * underlyingTokenPrice
         ),
-        apy: +(vaultFromApi.liquidApr * 100).toFixed(2),
+        apy: liquidApy,
+        apyBase: liquidApy,
         symbol: vault.symbol,
         rewardTokens: [vault.underlyingAsset],
         underlyingTokens: [vault.underlyingAsset],
@@ -55,7 +57,8 @@ const getUmamiGlpVaultsYield = async () => {
           parseFloat(pps / 10 ** vault.decimals) *
           underlyingTokenPrice
         ),
-        apy: +(vaultFromApi.boostedApr * 100).toFixed(2),
+        apy: timelockApy,
+        apyBase: timelockApy,
         symbol: vault.timelockSymbol,
         rewardTokens: [vault.underlyingAsset],
         underlyingTokens: [vault.underlyingAsset],
