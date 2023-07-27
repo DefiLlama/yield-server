@@ -185,8 +185,8 @@ const apyV2 = async () => {
 
     const symbol = symbols[i].split('-')[1];
 
-    const now = feeBalanceNow[i].output.map((o) => o.output);
-    const prior = feeBalancePrior[i].output.map((o) => o.output);
+    const now = feeBalanceNow[i].output.map((o) => Number(o.output));
+    const prior = feeBalancePrior[i].output.map((o) => Number(o.output));
 
     let apyBase;
     if (!feeBalancePriorReset) {
@@ -194,7 +194,9 @@ const apyV2 = async () => {
       const t1FeeUsd = ((now[1] - prior[1]) / meta.dec1) * p1;
       apyBase = (((t0FeeUsd + t1FeeUsd) * 365) / tvlUsd) * 100;
     } else {
-      const priorReset = feeBalancePriorReset[i].output.map((o) => o.output);
+      const priorReset = feeBalancePriorReset[i].output.map((o) =>
+        Number(o.output)
+      );
 
       const t0FeeUsd = ((priorReset[0] - prior[0] + now[0]) / meta.dec0) * p0;
       const t1FeeUsd = ((priorReset[1] - prior[1] + now[1]) / meta.dec1) * p1;
