@@ -1,7 +1,8 @@
 const utils = require('../utils');
-const apyV2 = require('./velodrome-v2');
 
 const API_URL: string = 'https://api.velodrome.finance/api/v1/pairs';
+
+const project = 'velodrome-v1';
 
 interface Pool {
   address: string;
@@ -15,14 +16,14 @@ interface Response {
   data: Array<Pool>;
 }
 
-const getApy = async () => {
+const apy = async () => {
   const { data: poolsRes }: Response = await utils.getData(API_URL);
 
   const pools = poolsRes.map((pool) => {
     return {
       pool: pool.address,
       chain: utils.formatChain('optimism'),
-      project: 'velodrome',
+      project,
       symbol: `${pool.token0.symbol}-${pool.token1.symbol}`,
       tvlUsd: pool.tvl,
       apyReward: pool.apr,
@@ -34,12 +35,10 @@ const getApy = async () => {
     };
   });
 
-  const poolsV2 = await apyV2();
-
-  return pools.concat(poolsV2);
+  return pools;
 };
 
 module.exports = {
   timetravel: false,
-  apy: getApy,
+  apy,
 };
