@@ -17,11 +17,7 @@ const getUmamiGlpVaultsYield = async () => {
     UMAMI_ALL_VAULTS.map(async (vault) => {
       const vaultContract = new web3.eth.Contract(vaultAbi, vault.address);
 
-      const [tvl, pps, timelockBalance] = await Promise.all([
-        vaultContract.methods.tvl().call(),
-        vaultContract.methods.pps().call(),
-        vaultContract.methods.balanceOf(vault.timelockAddress).call(),
-      ]);
+      const tvl = await vaultContract.methods.tvl().call();
 
       const vaultFromApi = (
         await superagent.get(`${UMAMI_API_URL}/vaults/${vault.id}`)
@@ -35,29 +31,14 @@ const getUmamiGlpVaultsYield = async () => {
           `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`
         )
       ).body.coins[underlyingTokenPriceKey].price;
-      const liquidApy = +(vaultFromApi.liquidApr * 100).toFixed(2);
-      const timelockApy = +(vaultFromApi.boostedApr * 100).toFixed(2);
+
       vaults.push({
         pool: vault.address,
         tvlUsd: +(
           parseFloat(tvl / 10 ** vault.decimals) * underlyingTokenPrice
         ),
-        apyBase: liquidApy,
+        apyBase: +(vaultFromApi.liquidApr * 100).toFixed(2),
         symbol: vault.symbol,
-        rewardTokens: [vault.underlyingAsset],
-        underlyingTokens: [vault.underlyingAsset],
-        url: `https://umami.finance/vaults/${vault.id}`,
-      });
-
-      vaults.push({
-        pool: vault.timelockAddress,
-        tvlUsd: +(
-          parseFloat(timelockBalance / 10 ** vault.decimals) *
-          parseFloat(pps / 10 ** vault.decimals) *
-          underlyingTokenPrice
-        ),
-        apyBase: timelockApy,
-        symbol: vault.timelockSymbol,
         rewardTokens: [vault.underlyingAsset],
         underlyingTokens: [vault.underlyingAsset],
         url: `https://umami.finance/vaults/${vault.id}`,
