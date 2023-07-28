@@ -39,7 +39,6 @@ const main = async () => {
   const mUMAMI = {
     pool: mUMAMI_ADDRESS,
     tvlUsd: +(parseFloat(marinating) * umamiPriceUSD),
-    apy: +metrics[0].value,
     apyBase: +metrics[0].value,
     symbol: 'mUMAMI',
     rewardTokens: [wETH_ADDRESS],
@@ -50,7 +49,6 @@ const main = async () => {
   const cmUMAMI = {
     pool: cmUMAMI_ADDRESS,
     tvlUsd: +(parseFloat(compounding) * umamiPriceUSD),
-    apy: +metrics[1].value,
     apyBase: +metrics[1].value,
     symbol: 'cmUMAMI',
     rewardTokens: [UMAMI_ADDRESS],

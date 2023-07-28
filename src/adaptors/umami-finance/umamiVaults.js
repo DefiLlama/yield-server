@@ -42,7 +42,6 @@ const getUmamiGlpVaultsYield = async () => {
         tvlUsd: +(
           parseFloat(tvl / 10 ** vault.decimals) * underlyingTokenPrice
         ),
-        apy: liquidApy,
         apyBase: liquidApy,
         symbol: vault.symbol,
         rewardTokens: [vault.underlyingAsset],
@@ -57,7 +56,6 @@ const getUmamiGlpVaultsYield = async () => {
           parseFloat(pps / 10 ** vault.decimals) *
           underlyingTokenPrice
         ),
-        apy: timelockApy,
         apyBase: timelockApy,
         symbol: vault.timelockSymbol,
         rewardTokens: [vault.underlyingAsset],
