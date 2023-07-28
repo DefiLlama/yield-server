@@ -236,7 +236,7 @@ const apy = async () => {
       pairInfo.token1,
       tokensPrices
     )
-      .div(1e18)
+      ?.div(1e18)
       .toString();
 
     const lpReservesUsd = calculateReservesUSD(
@@ -246,7 +246,7 @@ const apy = async () => {
       pairInfo.token1,
       tokensPrices
     )
-      .div(1e18)
+      ?.div(1e18)
       .toString();
 
     const lpFees7D =
@@ -282,7 +282,7 @@ const apy = async () => {
     };
   });
 
-  return res;
+  return res.filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
