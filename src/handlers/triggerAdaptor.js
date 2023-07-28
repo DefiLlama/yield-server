@@ -7,14 +7,12 @@ const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
 const { sendMessage } = require('../utils/discordWebhook');
 const { connect } = require('../utils/dbConnection');
-const {
-  getYieldProject,
-  buildInsertYieldQuery,
-} = require('../controllers/yieldController');
+const { getYieldProject, buildInsertYieldQuery } = require('../queries/yield');
 const {
   getConfigProject,
   buildInsertConfigQuery,
-} = require('../controllers/configController');
+  getDistinctProjects,
+} = require('../queries/config');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -49,6 +47,11 @@ const main = async (body) => {
   console.log(body.adaptor);
   const project = require(`../adaptors/${body.adaptor}`);
   let data = await project.apy();
+  console.log(data[0]);
+
+  const protocolConfig = (
+    await superagent.get('https://api.llama.fi/config/yields?a=1')
+  ).body.protocols;
 
   // ---------- prepare prior insert
   // remove potential null/undefined objects in array
@@ -69,6 +72,9 @@ const main = async (body) => {
     apyBaseBorrow: strToNum(p.apyBaseBorrow),
     apyRewardBorrow: strToNum(p.apyRewardBorrow),
     apyBase7d: strToNum(p.apyBase7d),
+    apyRewardFake: strToNum(p.apyRewardFake),
+    apyRewardBorrowFake: strToNum(p.apyRewardBorrowFake),
+    apyBaseInception: strToNum(p.apyBaseInception),
   }));
 
   // filter tvl to be btw lb-ub
@@ -89,6 +95,13 @@ const main = async (body) => {
       ? p.apyRewardBorrow
       : null,
     apyBase7d: Number.isFinite(p.apyBase7d) ? p.apyBase7d : null,
+    apyRewardFake: Number.isFinite(p.apyRewardFake) ? p.apyRewardFake : null,
+    apyRewardBorrowFake: Number.isFinite(p.apyRewardBorrowFake)
+      ? p.apyRewardBorrowFake
+      : null,
+    apyBaseInception: Number.isFinite(p.apyBaseInception)
+      ? p.apyBaseInception
+      : null,
   }));
 
   // remove pools where all 3 apy related fields are null
@@ -97,14 +110,23 @@ const main = async (body) => {
   );
 
   // in case of negative apy values (cause of bug, or else we set those to 0)
+  // note: for options apyBase can be negative
   data = data.map((p) => ({
     ...p,
     apy: p.apy < 0 ? 0 : p.apy,
-    apyBase: p.apyBase < 0 ? 0 : p.apyBase,
+    apyBase:
+      protocolConfig[body.adaptor]?.category === 'Options' ||
+      ['mellow-protocol', 'sommelier', 'abracadabra'].includes(body.adaptor)
+        ? p.apyBase
+        : p.apyBase < 0
+        ? 0
+        : p.apyBase,
     apyReward: p.apyReward < 0 ? 0 : p.apyReward,
     apyBaseBorrow: p.apyBaseBorrow < 0 ? 0 : p.apyBaseBorrow,
     apyRewardBorrow: p.apyRewardBorrow < 0 ? 0 : p.apyRewardBorrow,
     apyBase7d: p.apyBase7d < 0 ? 0 : p.apyBase7d,
+    apyRewardFake: p.apyRewardFake < 0 ? 0 : p.apyRewardFake,
+    apyRewardBorrowFake: p.apyRewardBorrowFake < 0 ? 0 : p.apyRewardBorrowFake,
   }));
 
   // derive final total apy field
@@ -138,15 +160,17 @@ const main = async (body) => {
   // change chain `Binance` -> `BSC`
   data = data.map((p) => ({
     ...p,
-    chain: p.chain === 'Binance' ? 'BSC' : p.chain,
+    chain:
+      p.chain === 'Binance'
+        ? 'BSC'
+        : p.chain === 'Avax'
+        ? 'Avalanche'
+        : p.chain,
   }));
   console.log(data.length);
 
   // ---- add IL (only for dexes + pools with underlyingTokens array)
   // need the protocol response to check if adapter.body === 'Dexes' category
-  const protocolConfig = (
-    await superagent.get('https://api.llama.fi/config/yields?a=1')
-  ).body.protocols;
 
   // required conditions to calculate IL field
   if (
@@ -231,7 +255,11 @@ const main = async (body) => {
       let il7d = ((2 * Math.sqrt(d)) / (1 + d) - 1) * 100;
 
       // for uni v3
-      if (body.adaptor === 'uniswap-v3') {
+      if (
+        body.adaptor === 'uniswap-v3' ||
+        body.adaptor === 'hydradex-v3' ||
+        body.adaptor === 'forge'
+      ) {
         const P = price1 / price0;
 
         // for stablecoin pools, we assume a +/- 0.1% range around current price
@@ -258,8 +286,6 @@ const main = async (body) => {
 
       return {
         ...p,
-        poolMeta:
-          p.project === 'uniswap-v3' ? p.poolMeta?.split(',')[0] : p.poolMeta,
         il7d,
       };
     });
@@ -312,10 +338,28 @@ const main = async (body) => {
           ? null
           : Math.round(p.debtCeilingUsd),
       mintedCoin: p.mintedCoin ? utils.formatSymbol(p.mintedCoin) : null,
-      poolMeta: p.poolMeta === undefined ? null : p.poolMeta,
+      poolMeta:
+        p.poolMeta === undefined
+          ? null
+          : ['uniswap-v3', 'hydradex-v3', 'forge'].includes(p.project)
+          ? p.poolMeta?.split(',')[0]
+          : p.poolMeta,
       il7d: p.il7d ? +p.il7d.toFixed(precision) : null,
       apyBase7d:
         p.apyBase7d !== null ? +p.apyBase7d.toFixed(precision) : p.apyBase7d,
+      apyRewardFake:
+        p.apyRewardFake !== null
+          ? +p.apyRewardFake.toFixed(precision)
+          : p.apyRewardFake,
+      apyRewardBorrowFake:
+        p.apyRewardBorrowFake !== null
+          ? +p.apyRewardBorrowFake.toFixed(precision)
+          : p.apyRewardBorrowFake,
+      volumeUsd1d: p.volumeUsd1d ? +p.volumeUsd1d.toFixed(precision) : null,
+      volumeUsd7d: p.volumeUsd7d ? +p.volumeUsd7d.toFixed(precision) : null,
+      apyBaseInception: p.apyBaseInception
+        ? +p.apyBaseInception.toFixed(precision)
+        : null,
     };
   });
 
@@ -334,6 +378,7 @@ const main = async (body) => {
   const dataDB = [];
   const nHours = 5;
   const tvlDeltaMultiplier = 5;
+  const apyDeltaMultiplier = tvlDeltaMultiplier;
   const timedeltaLimit = 60 * 60 * nHours * 1000;
   const droppedPools = [];
   for (const p of data) {
@@ -344,9 +389,10 @@ const main = async (body) => {
     }
     // if existing pool, check conditions
     const timedelta = timestamp - x.timestamp;
-    // skip the update if tvl at t is ntimes larger than tvl at t-1 && timedelta condition is met
+    // skip the update if tvl or apy at t is ntimes larger than tvl at t-1 && timedelta condition is met
     if (
-      p.tvlUsd > x.tvlUsd * tvlDeltaMultiplier &&
+      (p.tvlUsd > x.tvlUsd * tvlDeltaMultiplier ||
+        p.apy > x.apy * apyDeltaMultiplier) &&
       timedelta < timedeltaLimit
     ) {
       console.log(`removing pool ${p.pool}`);
@@ -357,6 +403,9 @@ const main = async (body) => {
         tvlUsd: p.tvlUsd,
         tvlUsdDB: x.tvlUsd,
         tvlMultiplier: p.tvlUsd / x.tvlUsd,
+        apy: p.apy,
+        apyDB: x.apy,
+        apyMultiplier: p.apy / x.apy,
       });
       continue;
     }
@@ -374,13 +423,20 @@ const main = async (body) => {
     const filteredPools = droppedPools.filter((p) => p.tvlUsdDB >= 5e4);
     if (filteredPools.length) {
       const message = filteredPools
-        .map(
-          (p) =>
-            `configID: ${p.configID} Project: ${p.project} Symbol: ${
-              p.symbol
-            } TVL: from ${p.tvlUsdDB.toFixed()} to ${p.tvlUsd.toFixed()} (${p.tvlMultiplier.toFixed(
-              2
-            )}x increase)`
+        .map((p) =>
+          p.apyMultiplier >= apyDeltaMultiplier
+            ? `APY spike for configID: ${
+                p.configID
+              } from ${p.apyDB.toFixed()} to ${p.apy.toFixed()} (${p.apyMultiplier.toFixed(
+                2
+              )}x increase)
+          `
+            : `TVL spike for configID: ${
+                p.configID
+              } from ${p.tvlUsdDB.toFixed()} to ${p.tvlUsd.toFixed()} (${p.tvlMultiplier.toFixed(
+                2
+              )}x increase)
+            `
         )
         .join('\n');
       await sendMessage(message, process.env.TVL_SPIKE_WEBHOOK);
@@ -388,8 +444,9 @@ const main = async (body) => {
   }
 
   // ---------- discord bot for newly added projects
+  const distinctProjects = await getDistinctProjects();
   if (
-    !dataInitial.length &&
+    !distinctProjects.includes(body.adaptor) &&
     dataDB.filter(({ tvlUsd }) => tvlUsd > exclude.boundaries.tvlUsdUI.lb)
       .length
   ) {

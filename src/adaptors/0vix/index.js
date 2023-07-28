@@ -60,12 +60,12 @@ async function main() {
       symbol: OvixAPYs.symbol.slice(1),
       chain: 'polygon',
       apyBase: OvixAPYs.supplyAPY,
-      apyReward: preminedVixApr,
-      rewardTokens: ['0x108ADA79428ea427E6A2175D3AB678abA2947a4a'],
+      apyRewardFake: preminedVixApr,
+      // rewardTokens: ['0x108ADA79428ea427E6A2175D3AB678abA2947a4a'],
       tvlUsd: tvl.tvlUsd,
       // borrow fields
       apyBaseBorrow: OvixAPYs.borrowAPY,
-      apyRewardBorrow: preminedVixAprBorrow,
+      apyRewardBorrowFake: preminedVixAprBorrow,
       totalSupplyUsd: tvl.totalSupplyUsd,
       totalBorrowUsd: tvl.totalBorrowsUsd,
       ltv: parseInt(ltv.collateralFactorMantissa) / 1e18,
@@ -180,3 +180,5 @@ module.exports = {
   apy: main,
   url: 'https://app.0vix.com/',
 };
+
+// test2

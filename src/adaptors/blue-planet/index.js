@@ -95,13 +95,16 @@ const calculateReservesUSD = (
 };
 
 const getBaseTokensPrice = async () => {
-  const prices = await utils.getData(
-    'https://api.coingecko.com/api/v3/simple/price?ids=green-planet%2Cbinancecoin%2Cethereum&vs_currencies=usd'
+  const priceKeys = ['green-planet', 'ethereum', 'binancecoin']
+    .map((t) => `coingecko:${t}`)
+    .join(',');
+  const { coins: prices } = await utils.getData(
+    `https://coins.llama.fi/prices/current/${priceKeys}`
   );
 
-  const gammaPrice = prices['green-planet'].usd;
-  const ethPrice = prices.ethereum.usd;
-  const bnbPrice = prices.binancecoin.usd;
+  const gammaPrice = prices['coingecko:green-planet'].price;
+  const ethPrice = prices['coingecko:ethereum'].price;
+  const bnbPrice = prices['coingecko:binancecoin'].price;
 
   return { gammaPrice, ethPrice, bnbPrice };
 };

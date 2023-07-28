@@ -1,77 +1,57 @@
 const utils = require('../utils');
-const {
-    request,
-    gql,
-    GraphQLClient
-} = require('graphql-request');
-
-const client = new GraphQLClient('https://graphql.bitquery.io', {
-    headers: {
-      'X-API-KEY': 'BQYXycn5sT0mgVrAyf0FjAeMwfGeVEia'
-    }
-});
+const { fetchURL } = require('../../helper/utils');
 
 const STAKING_ADDRESS = 'TGrdCu9fu8csFmQptVE25fDzFmPU9epamH';
-const FREEZE_ADDRESS = 'TSTrx3UteLMBdeGe9Edwwi2hLeQCmLPZ5g';
+const REVENUE_ADDRESS = 'TWisShDfhZGXLy1s5uoWjyyucSKwfkohu7';
 
-async function getRevenue() {
-    const query = gql`
-  query {
-    tron {
-      transfers(
-        currency: {is: "TRX"}
-        receiver: {is: "${STAKING_ADDRESS}"}
-        success: true
-        external: true
-        date: {since: "${new Date(new Date()-604800*1000).toISOString()}", till: "${new Date().toISOString()}"}
-      ) {
-        amount
-        contractType(contractType: {is: Transfer})
-      }
+const getCurrentStake = async () => {
+  const postdata = {
+    "contract_address": "414b8a2c619bccb710206b3d11e28dce62d8d72a8b",
+    "owner_address": "4128fb7be6c95a27217e0e0bff42ca50cd9461cc9f",
+    "function_selector": "reservedTRX()",
+    "parameter": "",
+    "call_value": 0
+  };
+  const result = await utils.getData('https://api.trongrid.io/wallet/triggerconstantcontract', postdata);
+  return parseInt(result.constant_result[0], 16);
+};
+
+const getRevenueToday = async () => {
+  const startTimestamp = Date.now() - 86400000; // 24 hours ago
+  const url = `https://apilist.tronscan.org/api/transfer?sort=-timestamp&limit=20&start_timestamp=${startTimestamp}&token=_&address=${REVENUE_ADDRESS}`;
+  let totalRevenue = 0;
+  let startFrom = 0;
+  while (true) {
+    const { data } = await fetchURL(`${url}&start=${startFrom}`);
+    const transfers = data.data;
+    if (transfers.length === 0) {
+      break;
     }
+    totalRevenue += transfers.reduce((sum, transfer) => sum + transfer.amount, 0);
+    startFrom += 20; // start from next 20th element
   }
-  `;
-    const data = await client.request(query);
-    return (data.tron.transfers[0].amount * (10 ** 6));
-}
-
-async function getTrxBalance(address) {
-    const data = await utils.getData('https://apilist.tronscan.org/api/account?address=' + address);
-    return data.balance + (data.totalFrozen || 0)
-}
-
-async function getCurrentStake() {
-    let stakingBalance = await getTrxBalance(STAKING_ADDRESS);
-    let frozenBalance = await getTrxBalance(FREEZE_ADDRESS);
-    return stakingBalance + frozenBalance;
-}
-
-async function calcAPY(revenue, stake) {
-    return (revenue * 365 / 7 / stake) * 100;
-}
+  return totalRevenue;
+};
 
 const poolsFunction = async () => {
-    const revenue = await getRevenue();
-    const totalStake = await getCurrentStake();
-    const weeklyAPY = await calcAPY(revenue, totalStake);
-    const dataTvl = await utils.getData(
-        'https://api.llama.fi/tvl/strx-finance'
-    );
-
-    const StakingPool = {
-        pool: 'TGrdCu9fu8csFmQptVE25fDzFmPU9epamH',
-        chain: utils.formatChain('tron'),
-        project: 'strx-finance',
-        symbol: utils.formatSymbol('TRX'),
-        tvlUsd: dataTvl,
-        apyBase: Number(weeklyAPY)
-    };
-
-    return [StakingPool];
+  const [revenue, totalStake, dataTvl] = await Promise.all([
+    getRevenueToday(),
+    getCurrentStake(),
+    utils.getData('https://api.llama.fi/tvl/strx-finance')
+  ]);
+  const dailyAPY = ((revenue / totalStake) * 365) * 100;
+  return [{
+    pool: STAKING_ADDRESS,
+    chain: utils.formatChain('tron'),
+    project: 'strx-finance',
+    symbol: utils.formatSymbol('TRX'),
+    tvlUsd: dataTvl,
+    apyBase: dailyAPY > 0 ? Number(dailyAPY) : 0
+  }];
 };
 
 module.exports = {
-    timetravel: false,
-    apy: poolsFunction,
-    url: "https://app.strx.finance",
+  timetravel: false,
+  apy: poolsFunction,
+  url: "https://app.strx.finance",
 };

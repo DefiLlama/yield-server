@@ -1,7 +1,7 @@
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 
-const url = 'https://polygon.furadao.org/subgraphs/name/quickswap';
+const url = 'https://api.thegraph.com/subgraphs/name/sameepsi/quickswap06';
 
 const query = gql`
   {
@@ -45,6 +45,8 @@ const buildPool = (entry, chainString) => {
     apyBase: entry.apy1d,
     apyBase7d: entry.apy7d,
     underlyingTokens: [entry.token0.id, entry.token1.id],
+    volumeUsd1d: entry.volumeUSD1d,
+    volumeUsd7d: entry.volumeUSD7d,
   };
 
   return newObj;
@@ -95,7 +97,7 @@ const topLvl = async (chainString, timestamp, url, version) => {
 
 const main = async (timestamp = null) => {
   const data = await Promise.all([topLvl('polygon', timestamp, url, 'v2')]);
-  return data.flat();
+  return data.flat().filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

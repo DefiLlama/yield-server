@@ -31,9 +31,11 @@ const PROTOCOL_TOKEN = {
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
@@ -100,8 +102,20 @@ const main = async () => {
     })
   ).output.map((o) => o.output);
 
+  const borrowCaps = (
+    await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      abi: comptrollerAbi.find((n) => n.name === 'borrowCaps'),
+      calls: allMarkets.map((m) => ({
+        target: COMPTROLLER_ADDRESS,
+        params: [m],
+      })),
+    })
+  ).output.map((o) => o.output);
+
   const extraRewards = await getRewards(allMarkets, REWARD_SPEED);
   const extraRewardsBorrow = await getRewards(allMarkets, REWARD_SPEED_BORROW);
+  const isPaused = await getRewards(allMarkets, 'mintGuardianPaused');
 
   const supplyRewards = await multiCallMarkets(
     allMarkets,
@@ -186,7 +200,7 @@ const main = async () => {
     const apyReward = calcRewardApy(extraRewards, totalSupplyUsd);
     const apyRewardBorrow = calcRewardApy(extraRewardsBorrow, totalBorrowUsd);
 
-    return {
+    let poolReturned = {
       pool: market.toLowerCase(),
       chain: utils.formatChain(CHAIN),
       project: PROJECT_NAME,
@@ -196,13 +210,20 @@ const main = async () => {
       apyReward,
       underlyingTokens: [token],
       rewardTokens: [apyReward ? PROTOCOL_TOKEN.address : null].filter(Boolean),
-      // borrow fields
-      totalSupplyUsd,
-      totalBorrowUsd,
-      apyBaseBorrow,
-      apyRewardBorrow,
-      ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
     };
+    if (isPaused[i] === false) {
+      poolReturned = {
+        ...poolReturned,
+        // borrow fields
+        totalSupplyUsd,
+        totalBorrowUsd,
+        apyBaseBorrow,
+        apyRewardBorrow,
+        ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
+        debtCeilingUsd: (borrowCaps[i] / 1e18) * price,
+      };
+    }
+    return poolReturned;
   });
 
   return pools.filter(

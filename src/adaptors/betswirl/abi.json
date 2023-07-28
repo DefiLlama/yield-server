@@ -1,0 +1,128 @@
+[
+  {
+    "inputs": [],
+    "name": "getInfo",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "__totalSupply",
+        "type": "uint256"
+      },
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "tokenAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "internalType": "uint8",
+            "name": "decimals",
+            "type": "uint8"
+          }
+        ],
+        "internalType": "struct SingleStaking.Token",
+        "name": "_stakingToken",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "tokenAddress",
+                "type": "address"
+              },
+              {
+                "internalType": "string",
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "symbol",
+                "type": "string"
+              },
+              {
+                "internalType": "uint8",
+                "name": "decimals",
+                "type": "uint8"
+              }
+            ],
+            "internalType": "struct SingleStaking.Token",
+            "name": "token",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "rewardsDistributor",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "rewardsDuration",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "periodFinish",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "rewardRate",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "lastUpdateTime",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "rewardPerTokenStored",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct SingleStaking.Reward",
+            "name": "rewardData",
+            "type": "tuple"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastTimeRewardApplicable",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "rewardPerToken",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "rewardForDuration",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct SingleStaking.RewardToken[]",
+        "name": "_rewardTokens",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

@@ -1,127 +1,228 @@
-const differenceInWeeks = require('date-fns/differenceInWeeks');
-const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
+const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
-const abi = require('./abi');
-const comptrollerAbi = require('./comptrollerAbi.json');
+const comptrollerAbi = require('./comptrollerAbi');
+const ercDelegatorAbi = require('./ercDelegatorAbi');
+const auriLensAbi = require('./auriLensAbi');
 
-const url = 'https://api.aurigami.finance/apys';
+const UNITROLLER_ADDRESS = '0x817af6cfAF35BdC1A634d6cC94eE9e4c68369Aeb';
+const auriLens = '0xFfdFfBDB966Cb84B50e62d70105f2Dbf2e0A1e70';
+const CHAIN = 'aurora';
+const GET_ALL_MARKETS = 'getAllMarkets';
+const REWARD_SPEED = 'rewardSpeeds';
+const SUPPLY_RATE = 'supplyRatePerTimestamp';
+const BORROW_RATE = 'borrowRatePerTimestamp';
+const TOTAL_BORROWS = 'totalBorrows';
+const GET_CHASH = 'getCash';
+const UNDERLYING = 'underlying';
+const SECONDS_PER_DAY = 86400;
+const PROJECT_NAME = 'aurigami';
 
-const WETH = '0xC9BdeEd33CD01541e1eeD10f90519d2C06Fe3feB';
-const unitroller = '0x817af6cfAF35BdC1A634d6cC94eE9e4c68369Aeb';
+const NATIVE_TOKEN = {
+  decimals: 18,
+  symbol: 'WETH',
+  address: '0xC9BdeEd33CD01541e1eeD10f90519d2C06Fe3feB'.toLowerCase(),
+};
 
-const START_DATE = new Date(2022, 07, 12);
-const END_DATE = new Date(2023, 03, 5);
+const PROTOCOL_TOKEN = {
+  decimals: 18,
+  symbol: 'COMP',
+  address: '0x09C9D464b58d96837f8d8b6f4d9fE4aD408d3A4f'.toLowerCase(),
+};
 
-const START_ALLOC = 0.33;
-const NEXT_ALLOC = 0.66;
-
-const apy = async () => {
-  // PLY rewards unlock on a weekly basis by ~2pct
-  // https://docs.aurigami.finance/public/protocol/liquidity-mining
-  // we calc the rewardRatio to scale the values properly
-  const weeksToFullUnlock = differenceInWeeks(END_DATE, START_DATE);
-  const currentWeeeksToUnlock = differenceInWeeks(END_DATE, new Date());
-  let currentRewardRatio =
-    START_ALLOC +
-    (NEXT_ALLOC * (weeksToFullUnlock - currentWeeeksToUnlock)) /
-      weeksToFullUnlock;
-  if (currentRewardRatio > 1) {
-    currentRewardRatio = 0;
-  }
-
-  const data = await utils.getData(url);
-  const [underlyingRes, totalBorrowsRes, getCashRes] = await Promise.all(
-    ['underlying', 'totalBorrows', 'getCash'].map((method) =>
-      sdk.api.abi.multiCall({
-        abi: abi.find((n) => n.name === method),
-        chain: 'aurora',
-        calls: data.map((m) => ({ target: m.market, params: null })),
-      })
+const getPrices = async (addresses) => {
+  const prices = (
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .join(',')
+        .toLowerCase()}`
     )
+  ).body.coins;
+
+  const pricesByAddress = Object.entries(prices).reduce(
+    (acc, [name, price]) => ({
+      ...acc,
+      [name.split(':')[1]]: price.price,
+    }),
+    {}
   );
 
-  const underlyingData = underlyingRes.output.map((o) => o.output);
-  const totalBorrowsData = totalBorrowsRes.output.map((o) => o.output);
-  const cashData = getCashRes.output.map((o) => o.output);
+  return pricesByAddress;
+};
+
+const calculateApy = (ratePerTimestamps) => {
+  const blocksPerDay = SECONDS_PER_DAY;
+  const daysPerYear = 365;
+
+  return (
+    (Math.pow(ratePerTimestamps * blocksPerDay + 1, daysPerYear) - 1) * 100
+  );
+};
+
+const getRewards = async (markets, rewardMethod) => {
+  return (
+    await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      calls: markets.map((market, i) => ({
+        target: UNITROLLER_ADDRESS,
+        params: [i, market, false],
+      })),
+      abi: comptrollerAbi.find(({ name }) => name === rewardMethod),
+    })
+  ).output.map(({ output }) => output);
+};
+
+const multiCallMarkets = async (markets, method, abi) => {
+  return (
+    await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      calls: markets.map((market) => ({ target: market })),
+      abi: abi.find(({ name }) => name === method),
+    })
+  ).output.map(({ output }) => output);
+};
+
+const main = async () => {
+  const allMarketsRes = (
+    await sdk.api.abi.call({
+      target: UNITROLLER_ADDRESS,
+      chain: CHAIN,
+      abi: comptrollerAbi.find(({ name }) => name === GET_ALL_MARKETS),
+    })
+  ).output;
+  const allMarkets = Object.values(allMarketsRes);
 
   const markets = (
     await sdk.api.abi.multiCall({
-      chain: 'aurora',
+      chain: CHAIN,
       abi: comptrollerAbi.find((n) => n.name === 'markets'),
-      calls: data.map((m) => ({
-        target: unitroller,
-        params: [m.market],
+      calls: allMarkets.map((m) => ({
+        target: UNITROLLER_ADDRESS,
+        params: [m],
       })),
     })
   ).output.map((o) => o.output);
 
-  const gasTokenIndex = underlyingData.indexOf(null);
-  underlyingData[gasTokenIndex] = WETH;
+  const rewardSpeeds = (
+    await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      calls: allMarkets.map((market, i) => ({
+        target: auriLens,
+        params: [UNITROLLER_ADDRESS, market],
+      })),
+      abi: auriLensAbi.find(({ name }) => name === 'getRewardSpeeds'),
+    })
+  ).output.map((o) => o.output);
 
-  const decimalsRes = await sdk.api.abi.multiCall({
-    abi: 'erc20:decimals',
-    chain: 'aurora',
-    calls: underlyingData.map((u) => ({ target: u })),
-  });
-  const decimalsData = decimalsRes.output.map((o) => o.output);
-  decimalsData[gasTokenIndex] = '18';
+  const supplyRate = await multiCallMarkets(
+    allMarkets,
+    SUPPLY_RATE,
+    ercDelegatorAbi
+  );
 
-  const priceKeys = underlyingData.map((a) => `aurora:${a}`).join(',');
-  const prices = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).body.coins;
+  const borrowRate = await multiCallMarkets(
+    allMarkets,
+    BORROW_RATE,
+    ercDelegatorAbi
+  );
 
-  const pools = data.map((d, i) => {
-    const totalBorrowUsd =
-      (totalBorrowsData[i] / 10 ** decimalsData[i]) *
-      prices[`aurora:${underlyingData[i]}`]?.price;
-    const tvlUsd =
-      (cashData[i] / 10 ** decimalsData[i]) *
-      prices[`aurora:${underlyingData[i]}`]?.price;
-    const totalSupplyUsd = tvlUsd + totalBorrowUsd;
+  const marketsCash = await multiCallMarkets(
+    allMarkets,
+    GET_CHASH,
+    ercDelegatorAbi
+  );
+
+  const totalBorrows = await multiCallMarkets(
+    allMarkets,
+    TOTAL_BORROWS,
+    ercDelegatorAbi
+  );
+
+  const underlyingTokens = await multiCallMarkets(
+    allMarkets,
+    UNDERLYING,
+    ercDelegatorAbi
+  );
+
+  const underlyingSymbols = await multiCallMarkets(
+    underlyingTokens,
+    'symbol',
+    ercDelegatorAbi
+  );
+  const underlyingDecimals = await multiCallMarkets(
+    underlyingTokens,
+    'decimals',
+    ercDelegatorAbi
+  );
+
+  const prices = await getPrices(
+    underlyingTokens
+      .concat([NATIVE_TOKEN.address])
+      .map((token) => `${CHAIN}:` + token)
+  );
+
+  const pools = allMarkets.map((market, i) => {
+    const token = underlyingTokens[i] || NATIVE_TOKEN.address;
+    const symbol = underlyingSymbols[i] || NATIVE_TOKEN.symbol;
+
+    const decimals = Number(underlyingDecimals[i]) || NATIVE_TOKEN.decimals;
+    let price = prices[token.toLowerCase()];
+    if (price === undefined)
+      price = symbol.toLowerCase().includes('usd') ? 1 : 0;
+
+    const totalSupplyUsd =
+      ((Number(marketsCash[i]) + Number(totalBorrows[i])) / 10 ** decimals) *
+      price;
+    const tvlUsd = (marketsCash[i] / 10 ** decimals) * price;
+
+    const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
+
+    const apyBase = calculateApy(supplyRate[i] / 10 ** 18);
+    const apyBaseBorrow = calculateApy(borrowRate[i] / 10 ** 18);
+
+    const apyReward =
+      (((rewardSpeeds[i].plyRewardSupplySpeed / 10 ** PROTOCOL_TOKEN.decimals) *
+        SECONDS_PER_DAY *
+        365 *
+        prices[PROTOCOL_TOKEN.address]) /
+        totalSupplyUsd) *
+      100;
+
+    const apyRewardBorrow =
+      (((rewardSpeeds[i].plyRewardBorrowSpeed / 10 ** PROTOCOL_TOKEN.decimals) *
+        SECONDS_PER_DAY *
+        365 *
+        prices[PROTOCOL_TOKEN.address]) /
+        totalBorrowUsd) *
+      100;
 
     return {
-      pool: d.market,
-      chain: 'Aurora',
-      project: 'aurigami',
-      symbol: d.symbol,
-      tvlUsd: tvlUsd,
-      apyBase: isNaN(100 * d.deposit.apyBase) ? 0 : 100 * d.deposit.apyBase,
-      apyReward: isNaN(100 * d.deposit.apyReward)
-        ? null
-        : 100 * d.deposit.apyReward * currentRewardRatio,
-      rewardTokens: d.deposit.rewardTokens,
-      underlyingTokens: [underlyingData[i]],
+      pool: market.toLowerCase(),
+      chain: utils.formatChain(CHAIN),
+      project: PROJECT_NAME,
+      symbol,
+      tvlUsd,
+      apyBase,
+      apyReward,
+      underlyingTokens: [token],
+      rewardTokens: [apyReward ? PROTOCOL_TOKEN.address : null].filter(Boolean),
       // borrow fields
       totalSupplyUsd,
       totalBorrowUsd,
-      apyBaseBorrow:
-        d?.borrow === undefined
-          ? null
-          : isNaN(100 * d.borrow.apyBase)
-          ? null
-          : 100 * d.borrow.apyBase,
-      apyRewardBorrow:
-        d?.borrow === undefined
-          ? null
-          : isNaN(100 * d.borrow.apyReward)
-          ? null
-          : 100 * d.borrow.apyReward * currentRewardRatio,
+      apyBaseBorrow,
+      apyRewardBorrow: Number.isFinite(apyRewardBorrow)
+        ? apyRewardBorrow
+        : null,
       ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
     };
   });
 
-  return pools.map((p) => ({
-    ...p,
-    apyRewardBorrow:
-      p.apyRewardBorrow < 0 ? -1 * p.apyRewardBorrow : p.apyRewardBorrow,
-  }));
+  return pools;
 };
 
 module.exports = {
   timetravel: false,
-  apy,
+  apy: main,
   url: 'https://app.aurigami.finance/',
 };

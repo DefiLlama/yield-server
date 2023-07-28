@@ -19,13 +19,14 @@ const projectedAprTvlThr = 1e6;
 let extraRewardsPrices = {};
 
 const getCrvCvxPrice = async () => {
-  const url =
-    'https://api.coingecko.com/api/v3/simple/price?ids=convex-finance%2Ccurve-dao-token&vs_currencies=usd';
+  const tokens = [crvAddress, cvxAddress].map((t) => `ethereum:${t}`).join(',');
+
+  const url = `https://coins.llama.fi/prices/current/${tokens}`;
 
   const response = await superagent.get(url);
-  const data = response.body;
-  const crvPrice = data['curve-dao-token'].usd;
-  const cvxPrice = data['convex-finance'].usd;
+  const data = response.body.coins;
+  const crvPrice = data[`ethereum:${crvAddress}`].price;
+  const cvxPrice = data[`ethereum:${cvxAddress}`].price;
   return { crvPrice, cvxPrice };
 };
 
@@ -37,7 +38,7 @@ const main = async () => {
 
   const poolsList = (
     await Promise.all(
-      ['factory', 'main', 'crypto', 'factory-crypto'].map((registry) =>
+      ['factory', 'main', 'crypto', 'factory-crypto', 'factory-crvusd', 'factory-tricrypto'].map((registry) =>
         utils.getData(`https://api.curve.fi/api/getPools/ethereum/${registry}`)
       )
     )
@@ -45,9 +46,9 @@ const main = async () => {
     .map(({ data }) => data.poolData)
     .flat();
 
-  const {
-    data: { gauges },
-  } = await utils.getData('https://api.curve.fi/api/getGauges');
+  const { data: gauges } = await utils.getData(
+    'https://api.curve.fi/api/getAllGauges'
+  );
 
   const mappedGauges = Object.entries(gauges).reduce(
     (acc, [name, gauge]) => ({
@@ -84,7 +85,7 @@ const main = async () => {
     })
   ).output.map(({ output }) => output);
 
-  const enrichedPools = pools.map((pool) => ({
+  let enrichedPools = pools.map((pool) => ({
     ...pool,
     ...poolsList.find(
       ({ address, lpTokenAddress, gaugeAddress }) =>
@@ -93,6 +94,10 @@ const main = async () => {
         (gaugeAddress || '').toLowerCase() === pool.gauge.toLowerCase()
     ),
   }));
+  // remove dupes on lptoken
+  enrichedPools = enrichedPools.filter(
+    (v, i, a) => a.findIndex((v2) => v2.lptoken === v.lptoken) === i
+  );
 
   const [totalSupplyRes, decimalsRes] = await Promise.all(
     ['totalSupply', 'decimals'].map((method) =>
@@ -109,11 +114,19 @@ const main = async () => {
   const totalSupply = totalSupplyRes.output.map(({ output }) => output);
   const decimals = decimalsRes.output.map(({ output }) => output);
 
+  const z = [
+    '0x453D92C7d4263201C69aACfaf589Ed14202d83a4', // yCrv
+    '0x5b6C539b224014A09B3388e51CaAA8e354c959C8', // cbETH
+    '0x051d7e5609917Bd9b73f04BAc0DED8Dd46a74301', // wbtc-sBTC
+    '0x9848482da3Ee3076165ce6497eDA906E66bB85C5', // eth-peth
+  ];
   let withCvxTvl = enrichedPools
     .map((pool, i) => {
       const gauge = mappedGauges[pool.lptoken.toLowerCase()];
-      if (!gauge) return;
-      const virtualPrice = gauge.swap_data.virtual_price / 10 ** 18;
+      if (!gauge && !z.includes(pool.lptoken)) return;
+      const virtualPrice = z.includes(pool.lptoken)
+        ? pool.virtualPrice
+        : gauge.swap_data.virtual_price / 10 ** 18;
       if (!pool.coinsAddresses) return null;
       let v2PoolUsd;
       if (pool.totalSupply == 0) {
@@ -277,12 +290,13 @@ const main = async () => {
         ).output;
         if (!extraRewardsPrices[token.toLowerCase()]) {
           try {
-            const price = await utils.getData(
-              'https://api.coingecko.com/api/v3/coins/ethereum/contract/' +
-                token.toLowerCase()
-            );
+            const price = (
+              await utils.getData(
+                `https://coins.llama.fi/prices/current/ethereum:${token.toLowerCase()}`
+              )
+            ).coins;
             extraRewardsPrices[token.toLowerCase()] =
-              price.market_data.current_price.usd;
+              price[`ethereum:${token.toLowerCase()}`].price;
           } catch {
             extraRewardsPrices[token.toLowerCase()] = 0;
           }

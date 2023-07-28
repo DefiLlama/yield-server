@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
+const axios = require('axios');
 const abi = require('./abis.json');
 
 const contractsRegister = '0xA50d4E7D8946a7c90652339CDBd262c375d54D99';
@@ -28,6 +29,7 @@ const poolInfo = async (chain) => {
     '0xB03670c20F87f2169A7c4eBE35746007e9575901': { LP: 40.14, CA: 2.3 },
     '0xB8cf3Ed326bB0E51454361Fb37E9E8df6DC5C286': { LP: 0, CA: 0 },
     '0xB2A015c71c17bCAC6af36645DEad8c572bA08A08': { LP: 4.57, CA: 0 },
+    '0x79012c8d491DcF3A30Db20d1f449b14CAF01da6C': { LP: 6.41, CA: 0 },
   };
 
   const poolData = (
@@ -124,9 +126,10 @@ function calculateTvl(availableLiquidity, totalBorrowed, price, decimals) {
 const getApy = async () => {
   //https://gov.gearbox.fi/t/gip-22-gearbox-v2-liquidity-mining-programs/1550
   //"FDV is taken at a smol increase to the 200M$ FDV for strategic rounds"
-  const fdv = 200000000;
-  const totalGearSupply = 10000000000;
-  const gearPrice = fdv / totalGearSupply;
+  const priceKey = `ethereum:${gear}`;
+  const gearPrice = (
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
+  ).data.coins[priceKey]?.price ?? 0;
 
   const yieldPools = (await poolInfo('ethereum')).yieldPools;
 
@@ -153,12 +156,12 @@ const getApy = async () => {
     );
     const tvlUsd = totalSupplyUsd - totalBorrowUsd;
     const LpRewardApy = calculateApy(
-      pool.gearPerBlock.LP,
+      pool.gearPerBlock?.LP ?? 0,
       gearPrice,
       totalSupplyUsd
     );
     const CaRewardApy = calculateApy(
-      pool.gearPerBlock.CA,
+      pool.gearPerBlock?.CA,
       gearPrice,
       totalBorrowUsd
     );
@@ -222,5 +225,4 @@ function exportFormatter(
 module.exports = {
   timetravel: false,
   apy: getApy,
-  // url: 'https://app.gearbox.fi/pools/',
 };

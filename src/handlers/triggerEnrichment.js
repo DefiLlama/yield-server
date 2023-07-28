@@ -6,10 +6,11 @@ const {
   getYieldFiltered,
   getYieldOffset,
   getYieldAvg30d,
-} = require('../controllers/yieldController');
-const { getStat } = require('../controllers/statController');
-const { buildPoolsEnriched } = require('./getPoolsEnriched');
+  getYieldLendBorrow,
+} = require('../queries/yield');
+const { getStat } = require('../queries/stat');
 const { welfordUpdate } = require('../utils/welford');
+const poolsResponseColumns = require('../utils/enrichedColumns');
 
 module.exports.handler = async (event, context) => {
   await main();
@@ -76,9 +77,15 @@ const main = async () => {
     await superagent.get(
       'https://stablecoins.llama.fi/stablecoins?includePrices=true'
     )
-  ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
+  ).body.peggedAssets
+    // removing any stable which a price 30% from 1usd
+    .filter((s) => s.price >= 0.7)
+    .map((s) => s.symbol.toLowerCase())
+    .filter((s) => s !== 'r');
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
+  if (!stablecoins.includes('fraxbp')) stablecoins.push('fraxbp');
+  if (!stablecoins.includes('usdr')) stablecoins.push('usdr');
 
   // get catgory data (we hardcode IL to true for options protocols)
   const config = (
@@ -276,6 +283,20 @@ const main = async () => {
     .map((p) => ({ ...p, pool_old: p.pool, pool: p.configID }))
     .map(({ configID, ...p }) => p);
 
+  // temporarily remove OP pools on uniswap-v3 cause subgraph volume values are totally wrong
+  dataEnriched = dataEnriched.filter(
+    (p) => !(p.project === 'uniswap-v3' && p.chain === 'Optimism')
+  );
+
+  // overwrite triggerAdapter apy calc for abracadabra (some of their vaults apply interest on collateral
+  // instead of borrowed mim) -> negative apyBase -> negative apy (we don't store negative apy values in db though
+  // nor do we use neg values on feature calc cause might break some things)
+  // hence the updated calc here to have correct nbs on UI
+  dataEnriched = dataEnriched.map((p) => ({
+    ...p,
+    apy: p.project === 'abracadabra' ? p.apyBase + p.apyReward : p.apy,
+  }));
+
   // ---------- save output to S3
   console.log('\nsaving data to S3');
   console.log('nb of pools', dataEnriched.length);
@@ -293,11 +314,25 @@ const main = async () => {
     await utils.writeToS3(bucket, keyPredictions, dataEnriched);
   }
 
-  // store /poolsEnriched (/pools) api response to s3 where we cache it
+  // we cp dataEnriched (but remove unecessary columns) to our public s3 bucket
+  // which is used as source for /pools
+  const pools = dataEnriched.map((p) => {
+    const newPool = {};
+    poolsResponseColumns.forEach((col) => (newPool[col] = p[col]));
+    return newPool;
+  });
+
   await utils.storeAPIResponse('defillama-datasets', 'yield-api/pools', {
     status: 'success',
-    data: await buildPoolsEnriched(undefined),
+    data: pools,
   });
+
+  // query db for lendBorrow and store to s3 as origin for cloudfront
+  await utils.storeAPIResponse(
+    'defillama-datasets',
+    'yield-api/lendBorrow',
+    await getYieldLendBorrow()
+  );
 };
 
 ////// helper functions
@@ -332,11 +367,27 @@ const checkStablecoin = (el, stablecoins) => {
     stable = false;
   } else if (el.project === 'hermes-protocol' && symbolLC.includes('maia')) {
     stable = false;
+  } else if (el.project === 'sideshift' && symbolLC.includes('xai')) {
+    stable = false;
+  } else if (el.project === 'archimedes-finance' && symbolLC.includes('usd')) {
+    stable = true;
+  } else if (
+    el.project === 'aura' &&
+    [
+      '0xa13a9247ea42d743238089903570127dda72fe44',
+      '0x99c88ad7dc566616548adde8ed3effa730eb6c34',
+      '0xf3aeb3abba741f0eece8a1b1d2f11b85899951cb',
+    ].includes(el.pool)
+  ) {
+    stable = true;
   } else if (
     tokens.some((t) => t.includes('sushi')) ||
     tokens.some((t) => t.includes('dusk')) ||
     tokens.some((t) => t.includes('fpis')) ||
-    tokens.some((t) => t.includes('emaid'))
+    tokens.some((t) => t.includes('emaid')) ||
+    tokens.some((t) => t.includes('grail')) ||
+    tokens.some((t) => t.includes('oxai')) ||
+    tokens.some((t) => t.includes('crv'))
   ) {
     stable = false;
   } else if (tokens.length === 1) {
@@ -417,6 +468,8 @@ const checkExposure = (el) => {
     exposure = el.symbol.toLowerCase().includes('crv') ? 'multi' : exposure;
   } else if (el.project === 'dot-dot-finance') {
     exposure = 'multi';
+  } else if (el.project === 'synapse') {
+    exposure = 'multi';
   }
 
   return exposure;
@@ -428,9 +481,21 @@ const addPoolInfo = (el, stablecoins, config) => {
   // complifi has single token exposure only cause the protocol
   // will pay traders via deposited amounts
   el['ilRisk'] =
-    config[el.project]?.category === 'Options'
+    el.pool === '0x13C6Bed5Aa16823Aba5bBA691CAeC63788b19D9d' // jones-dao jusdc pool
+      ? 'no'
+      : config[el.project]?.category === 'Options'
       ? 'yes'
-      : ['complifi', 'optyfi'].includes(el.project)
+      : [
+          'complifi',
+          'optyfi',
+          'arbor-finance',
+          'opyn-squeeth',
+          'gmd-protocol',
+        ].includes(el.project)
+      ? 'yes'
+      : ['mycelium-perpetual-swaps', 'gmx', 'rage-trade'].includes(
+          el.project
+        ) && ['mlp', 'glp'].includes(el.symbol.toLowerCase())
       ? 'yes'
       : el.stablecoin && el.symbol.toLowerCase().includes('eur')
       ? checkIlRisk(el)

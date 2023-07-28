@@ -5,8 +5,16 @@ const serviceToUrl = {
   ftm: 'fantom',
   avax: 'avax',
   polygon: 'matic',
-  bnb: 'bnb'
-}
+  bnb: 'bnb',
+};
+
+const underlying = {
+  eth: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+  ftm: '0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83',
+  avax: '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7',
+  polygon: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
+  bnb: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
+};
 
 const buildObject = (entry, tokenString, chainString, serviceName) => {
   const payload = {
@@ -17,6 +25,7 @@ const buildObject = (entry, tokenString, chainString, serviceName) => {
     tvlUsd: Number(entry.totalStakedUsd),
     apy: Number(entry.apy),
     url: `https://www.ankr.com/staking/stake/${serviceToUrl[serviceName]}`,
+    underlyingTokens: [underlying[serviceName]],
   };
 
   return payload;
@@ -30,7 +39,12 @@ const fetch = async (serviceName, tokenString, chainString) => {
   );
 
   if (idx > -1) {
-    data = buildObject(data.services[idx], tokenString, chainString, serviceName);
+    data = buildObject(
+      data.services[idx],
+      tokenString,
+      chainString,
+      serviceName
+    );
   } else {
     data = {};
   }
@@ -40,11 +54,11 @@ const fetch = async (serviceName, tokenString, chainString) => {
 
 const main = async () => {
   const data = await Promise.all([
-    fetch('eth', 'aETHc', 'ethereum'),
-    fetch('bnb', 'aBNBc', 'binance'),
-    fetch('ftm', 'aFTMc', 'fantom'),
-    fetch('polygon', 'aMATICc', 'polygon'),
-    fetch('avax', 'aAVAXc', 'avalanche'),
+    fetch('eth', 'ankrETH', 'ethereum'),
+    fetch('bnb', 'ankrBNB', 'binance'),
+    fetch('ftm', 'ankrFTM', 'fantom'),
+    fetch('polygon', 'ankrMATIC', 'polygon'),
+    fetch('avax', 'ankrAVAX', 'avalanche'),
   ]);
   return data.flat();
 };

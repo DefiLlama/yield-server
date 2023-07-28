@@ -28,6 +28,8 @@ const poolsFunction = async () => {
     symbol: utils.formatSymbol(item.tokens),
     tvlUsd: item.tvl,
     apyBase: item.base * 100,
+    apyReward: item.reward * 100,
+    rewardTokens: item.rewardTokens || [],
     // borrow fields
     apyBaseBorrow: item.borrowAPY * 100,
     totalSupplyUsd: item.tvl,

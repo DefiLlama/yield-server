@@ -1,6 +1,4 @@
 const utils = require('../utils');
-const superagent = require('superagent');
-const { default: BigNumber } = require('bignumber.js');
 
 const networks = {
   1: 'Ethereum',
@@ -14,7 +12,7 @@ const CDP_URL = 'https://api.angle.money/v1/vaultManagers';
 const cdpNetworksSupport = {
   1: 'ethereum',
   137: 'polygon',
-  42161: 'arbitrum',
+  // 42161: 'arbitrum',
   10: 'optimism',
 };
 
@@ -47,7 +45,7 @@ const getPoolsData = async () => {
       tvlUsd: apyData[staking]?.tvl || 0,
       apyBase:
         apyData[staking]['apr']?.value ||
-        apyData[staking]['apr']?.details['ANGLE - Tight range (+- 1%)'] ||
+        apyData[staking]['apr']?.details['ANGLE'] ||
         0,
     };
     result.push(pool);
@@ -112,7 +110,7 @@ const cdpData = async () => {
 const main = async () => {
   const apy = await getPoolsData();
   const cdp = await cdpData();
-  return [...apy, ...cdp];
+  return [...apy, ...cdp].filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
