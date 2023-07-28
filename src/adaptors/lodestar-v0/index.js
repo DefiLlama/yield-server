@@ -15,7 +15,7 @@ const TOTAL_BORROWS = 'totalBorrows';
 const GET_CHASH = 'getCash';
 const UNDERLYING = 'underlying';
 const BLOCKS_PER_DAY = 86400 / 12;
-const PROJECT_NAME = 'lodestar-finance';
+const PROJECT_NAME = 'lodestar-v0';
 
 const NATIVE_TOKEN = {
   decimals: 18,
