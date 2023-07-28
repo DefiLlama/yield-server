@@ -238,7 +238,7 @@ const getApy = async () => {
       chain,
       project: 'y2k-v1',
       symbol: symbols[i],
-      apy: apy,
+      apyBase: apy,
       underlyingTokens: [assets[i]],
       tvlUsd,
       url: 'https://app.y2k.finance/market',
