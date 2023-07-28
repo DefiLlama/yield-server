@@ -1,6 +1,7 @@
-const arbitrum_query = `
+const arbitrum_query = {
+  query: `
   query {
-    v1Arb_Pools(
+    pools(
       first: 1000, where: {
         _lendBalance_gt: 0,
         _paused: false,
@@ -18,11 +19,13 @@ const arbitrum_query = `
       _borrowers
     }
   }
-`;
+`,
+};
 
-const ethereum_query = `
+const ethereum_query = {
+  query: `
   query {
-    v1Eth_Pools(
+    pools(
       first: 1000, where: {
         _lendBalance_gt: 0,
         _paused: false,
@@ -40,15 +43,18 @@ const ethereum_query = `
       _borrowers
     }
   }
-`;
+`,
+};
 
 exports.networkData = [
   {
     network: 'Ethereum',
     query: ethereum_query,
+    type: 'v1-Ethereum',
   },
   {
     network: 'Arbitrum',
     query: arbitrum_query,
+    type: 'v1-Arbitrum',
   },
 ];

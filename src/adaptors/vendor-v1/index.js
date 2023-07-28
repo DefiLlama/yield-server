@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const { symbol } = require('@defillama/sdk/build/erc20');
 const { request, gql } = require('graphql-request');
+const axios = require('axios');
 const { ethers } = require('ethers');
 const networkData = require('./network-data');
 const utils = require('../utils');
@@ -63,16 +64,19 @@ const getPoolTvl = async (
 const getPools = async () => {
   const pools = [];
   for (const networkConfig of networkData.networkData) {
-    const response = await request(ENTITY_URL, networkConfig.query);
+    const response = await axios.post(ENTITY_URL, {
+      query: networkConfig.query,
+      type: networkConfig.type,
+    });
     const network = networkConfig.network.toLowerCase();
-    for (const pool of Object.entries(response)[0][1]) {
+    for (const pool of Object.entries(response.data)[0][1]) {
       const { tokenSymbols, tokenDecimals } = await getPoolTokenInfo(
         [pool._lendToken, pool._colToken],
         network
       );
       const tvl = await getPoolTvl(
         pool.id,
-        {lendToken: pool._lendToken, colToken: pool._colToken},
+        { lendToken: pool._lendToken, colToken: pool._colToken },
         [tokenDecimals[0], tokenDecimals[1]],
         network
       );
@@ -82,7 +86,13 @@ const getPools = async () => {
         project: 'vendor-v1',
         symbol: `${tokenSymbols[1].output}-${tokenSymbols[0].output}`,
         tvlUsd: tvl,
-        apyBase: parseInt(pool._feeRate) / 10000,
+        apyBase:
+          pool._type == 1
+            ? ((31536000 /
+                (Number(pool._expiry) - new Date().getTime() / 1000)) *
+                pool._feeRate) /
+              10000
+            : pool._feeRate / 10000,
         underlyingTokens: [pool._lendToken, pool._colToken],
         poolMeta: 'V1 Pool',
       };
