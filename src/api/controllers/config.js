@@ -28,10 +28,7 @@ const getUrl = async (req, res) => {
   for (const e of response) {
     out[e.config_id] = e.url;
   }
-  res
-    .set(customHeader(24 * 3600))
-    .status(200)
-    .json(out);
+  res.set(customHeader(3600)).status(200).json(out);
 };
 
 // get unique pool values

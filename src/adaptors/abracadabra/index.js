@@ -1,7 +1,12 @@
 const cauldrons = require('./cauldrons');
 const farms = require('./farms');
+const magicGlp = require('./magic-glp');
 
-const getApy = async () => [...(await cauldrons()), ...(await farms())];
+const getApy = async () => [
+  ...(await cauldrons()),
+  ...(await farms()),
+  ...(await magicGlp()),
+];
 
 module.exports = {
   timetravel: false,

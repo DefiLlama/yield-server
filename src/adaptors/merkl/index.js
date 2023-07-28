@@ -1,22 +1,16 @@
 const sdk = require('@defillama/sdk');
-const { data } = require('../pepeteam-swaves/waves');
-const { pool } = require('../rocifi-v2/abi');
-const { chain } = require('../sommelier/config');
 const utils = require('../utils');
-const { da } = require('date-fns/locale');
-const { toString } = require('../aave-v2/abiLendingPool');
-const address = require('../paraspace-lending/address');
 
-const chainIds = {
-  ethereum: 1,
-  polygon: 137,
-  optimism: 10,
-  arbitrum: 42161,
+const networks = {
+  1: 'ethereum',
+  137: 'polygon',
+  10: 'optimism',
+  42161: 'arbitrum',
 };
 
 async function getRateAngle(token) {
   const prices = await utils.getData('https://api.angle.money/v1/prices/');
-  const price = prices.filter((p) => p.token == token)[0].rate;
+  const price = prices.filter((p) => p.token == token)[0]?.rate;
   return price;
 }
 
@@ -24,30 +18,29 @@ async function getRateAngle(token) {
 const main = async () => {
   var poolsData = [];
 
-  for (const chain in chainIds) {
-    let data;
-    try {
-      data = await utils.getData(
-        'https://api.angle.money/v1/merkl?chainId=' + chainIds[chain]
-      );
-    } catch (err) {
-      console.log(`no data for chain id ${chain}`);
-      continue;
-    }
-    const project = 'merkl';
+  let data;
+  try {
+    data = await utils.getData('https://api.angle.money/v1/merkl');
+  } catch (err) {
+    console.log('no data for Merk');
+  }
+  const project = 'merkl';
 
-    for (const pool in data.pools) {
-      const poolAddress = pool;
-      const distributionData = data.pools[poolAddress].distributionData; // array with distribution data
+  for (const pool in data.pools) {
+    const poolAddress = pool;
+    const chainId = data.pools[poolAddress].chainId;
+    const chain = networks[chainId];
+    const distributionData = data.pools[poolAddress].distributionData; // array with distribution data
 
-      // filter past distributions
-      let liveDistributionsData = distributionData.filter(
-        (element) => element.end * 1000 > Date.now()
-      );
+    // filter past distributions
+    let liveDistributionsData = distributionData.filter(
+      (element) => element.end * 1000 > Date.now()
+    );
 
-      // if at least one live distribution, find and load pool data
-      // else, do nothing and move to the next pool
-      if (liveDistributionsData.length > 0) {
+    // if at least one live distribution, find and load pool data
+    // else, do nothing and move to the next pool
+    if (liveDistributionsData.length > 0) {
+      try {
         const symbol =
           data.pools[poolAddress].tokenSymbol0 +
           '-' +
@@ -61,7 +54,6 @@ const main = async () => {
         const tvlUsd = data.pools[poolAddress].tvl;
 
         // Trying to fetch tvl on-chain: query balances of the pool and price of both tokens
-        // remaining to-do: get the prices of tokens from the Angle API (especially agEUR)
 
         const amountUsdOnChain0 = (
           await sdk.api.abi.call({
@@ -117,21 +109,23 @@ const main = async () => {
         });
         const apyReward = data.pools[poolAddress].meanAPR;
 
-        const poolData = {
-          pool: poolAddress,
-          chain: chain,
-          project: project,
-          symbol: symbol,
-          tvlUsd: tvlUsd,
-          apyReward: apyReward ?? 0,
-          rewardTokens: [...new Set(rewardToken)],
-          underlyingTokens: underlyingTokens,
-        };
-        poolsData.push(poolData);
-        //console.log(poolsData);
-      } else {
-        continue;
-      }
+        if (apyReward && apyReward > 0) {
+          const poolData = {
+            pool: poolAddress,
+            chain: chain,
+            project: project,
+            symbol: symbol,
+            tvlUsd: tvlUsd,
+            apyReward: apyReward,
+            rewardTokens: [...new Set(rewardToken)],
+            underlyingTokens: underlyingTokens,
+          };
+          poolsData.push(poolData);
+        }
+      } catch {}
+      //console.log(poolsData);
+    } else {
+      continue;
     }
   }
   return poolsData.filter((p) => utils.keepFinite(p));

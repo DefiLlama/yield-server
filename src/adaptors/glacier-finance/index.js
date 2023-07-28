@@ -87,26 +87,32 @@ const getApy = async () => {
     await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
   ).data.coins;
 
-
   const pools = allPairs.map((p, i) => {
     const poolMeta = metaData[i];
+
     const r0 = poolMeta.r0 / poolMeta.dec0;
     const r1 = poolMeta.r1 / poolMeta.dec1;
-    const re0 = r0 | 0
-    const re1 = r1 | 0
+    const re0 = r0 || 0;
+    const re1 = r1 || 0;
 
     const p0 = prices[`avax:${poolMeta.t0}`]?.price;
     const p1 = prices[`avax:${poolMeta.t1}`]?.price;
-    const price0 = p0 | 0
-    const price1 = p1 | 0
-    const tvlUsd = re0 * price0 + re1 * price1;
 
-   
+    const price0 = p0 || 0;
+    const price1 = p1 || 0;
+
+    const tvlUsd =
+      price0 === 0 && price1 === 0
+        ? 0
+        : price0 === 0
+        ? re1 * price1 * 2
+        : price1 === 0
+        ? re0 * price0 * 2
+        : re0 * price0 + re1 * price1;
 
     const s = symbols[i];
 
-    const rewardPerSec =
-      (rewardRate[i] / 1e18) * prices[`avax:${GLCR}`]?.price;
+    const rewardPerSec = (rewardRate[i] / 1e18) * prices[`avax:${GLCR}`]?.price;
     const apyReward = ((rewardPerSec * 86400 * 365) / tvlUsd) * 100;
 
     return {
@@ -120,7 +126,6 @@ const getApy = async () => {
       underlyingTokens: [poolMeta.t0, poolMeta.t1],
     };
   });
-
 
   return pools.filter((p) => utils.keepFinite(p));
 };

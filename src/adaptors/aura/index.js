@@ -202,12 +202,16 @@ const main = async () => {
         continue;
       }
 
-      const rewardRatePerYear = extraRewardRate * 86_400 * 365
-
-      const rewardAPY = (rewardRatePerYear / (baseToken.toLowerCase() === AURA_ADDRESS ? AURA_SUPPLY : extraRewardTotalSupply)) * tokenPrices[`${chain}:${baseToken.toLowerCase()}`].price * 100
-      data.rewardTokens.push(baseToken)
-      data.apyReward += rewardAPY
-   }
+      const rewardAPY =
+      (((extraRewardRate / 1e18) *
+        86400 *
+        365 *
+        tokenPrices[`${chain}:${baseToken.toLowerCase()}`].price) /
+        data.tvlUsd) *
+      100;
+    data.rewardTokens.push(baseToken);
+    data.apyReward += rewardAPY;
+  }
 
    const swapApr = swapAprs.find(({ id }) => id === balancerPoolIds[i]);
    if (swapApr?.poolAprs) {

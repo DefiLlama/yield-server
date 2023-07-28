@@ -79,7 +79,7 @@ const apyChain = async (chain) => {
     const fee = 0.12;
     const apy = mean(
       [1, 2, 3, 4].map((n) => {
-        const nWeekApy = getNWeekApy(perf, perf.length - n);
+        const nWeekApy = getNWeekApy(perf, perf.length - n - 1);
         return nWeekApy > 0 ? nWeekApy * (1 - fee) : nWeekApy;
       })
     );
@@ -124,7 +124,7 @@ const apy = async () => {
     chains.map(async (chain) => await apyChain(chain))
   );
 
-  return pools.flat().filter(({ apyBase }) => apyBase > 0);
+  return pools.flat();
 };
 
 module.exports = {

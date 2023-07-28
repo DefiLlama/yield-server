@@ -21,6 +21,11 @@ const excludeAdaptors = [
   'double-club', // seems to be dead
   'yieldwolf', // dead
   'hubble-exchange', // no live pools
+  'yodeswap', // v1 deprecated
+  'optyfi', // dead
+  'rodeo', // exploited
+  'fairfi', // seems dead
+  'mole', // needs to be reimplement
 ];
 
 const excludePools = [
