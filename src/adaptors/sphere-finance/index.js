@@ -44,9 +44,9 @@ const main = async () => {
             const underlyingTokens = (!!poolMeta && poolMeta.assets.length === 1 && poolMeta.tokenAddress) ? [poolMeta.tokenAddress] : undefined;
 
             data.push({
-                pool: `${poolId}-${networkMapping[chain]}`.toLowerCase(),
+                pool: `${pool}-${networkMapping[chain]}`.toLowerCase(),
                 chain: utils.formatChain(networkMapping[chain]),
-                project: 'sphere',
+                project: 'sphere-finance',
                 symbol:
                   poolMeta === undefined
                     ? 'SPHERE'
