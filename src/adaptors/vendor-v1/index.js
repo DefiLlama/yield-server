@@ -4,7 +4,6 @@ const { request, gql } = require('graphql-request');
 const { ethers } = require('ethers');
 const networkData = require('./network-data');
 const utils = require('../utils');
-const LendingPoolV2ABI = require('./LendingPoolV2ABI');
 
 const ENTITY_URL = process.env.VENDOR_FINANCE;
 
@@ -33,18 +32,20 @@ const getPoolTokenInfo = async (tokens, network) => {
 
 const getPoolTvl = async (
   poolAddr,
-  lendTokenAddr,
-  colTokenAddr,
+  tokens,
   [lendDecimals, colDecimals],
   network
 ) => {
-  // There are some cases where the lend balance of a pool is not stored in the pool itself,
-  // but rather an external lending pool (like AAVE). The reason for this is to utilize idle
-  // capital while the Vendor pool has yet to find a borrower. Due to this, a specific fc on
-  // lending pool must be called to obtain the lend balance.
   const lendBalance = await sdk.api.abi.call({
-    target: poolAddr,
-    abi: LendingPoolV2ABI.find((fragment) => fragment.name === 'lendBalance'),
+    target: tokens.lendToken,
+    abi: 'erc20:balanceOf',
+    params: poolAddr,
+    chain: network,
+  });
+  const colBalance = await sdk.api.abi.call({
+    target: tokens.colToken,
+    abi: 'erc20:balanceOf',
+    params: poolAddr,
     chain: network,
   });
   const formattedLendBal = ethers.utils.formatUnits(
@@ -53,7 +54,7 @@ const getPoolTvl = async (
   );
   const token = (
     await utils.getData(
-      `https://coins.llama.fi/prices/current/${network.toLowerCase()}:${lendTokenAddr.toLowerCase()}`
+      `https://coins.llama.fi/prices/current/${network.toLowerCase()}:${tokens.lendToken.toLowerCase()}`
     )
   ).coins;
   return Object.entries(token)[0][1].price * formattedLendBal;
@@ -66,25 +67,24 @@ const getPools = async () => {
     const network = networkConfig.network.toLowerCase();
     for (const pool of Object.entries(response)[0][1]) {
       const { tokenSymbols, tokenDecimals } = await getPoolTokenInfo(
-        [pool.lendToken, pool.colToken],
+        [pool._lendToken, pool._colToken],
         network
       );
       const tvl = await getPoolTvl(
         pool.id,
-        pool.lendToken,
-        pool.colToken,
+        {lendToken: pool._lendToken, colToken: pool._colToken},
         [tokenDecimals[0], tokenDecimals[1]],
         network
       );
       const poolObj = {
         pool: pool.id,
         chain: networkConfig.network,
-        project: 'vendor-v2',
+        project: 'vendor-v1',
         symbol: `${tokenSymbols[1].output}-${tokenSymbols[0].output}`,
         tvlUsd: tvl,
-        apy: parseInt(pool.startRate) / 10000,
-        underlyingTokens: [pool.lendToken, pool.colToken],
-        poolMeta: 'V2 Pool',
+        apy: parseInt(pool._feeRate) / 10000,
+        underlyingTokens: [pool._lendToken, pool._colToken],
+        poolMeta: 'V1 Pool',
       };
       pools.push(poolObj);
     }
@@ -95,5 +95,5 @@ const getPools = async () => {
 module.exports = {
   timetravel: false,
   apy: getPools,
-  url: 'https://vendor.finance/borrow',
+  url: 'https://v1.vendor.finance',
 };
