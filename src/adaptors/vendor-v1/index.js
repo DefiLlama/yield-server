@@ -82,7 +82,7 @@ const getPools = async () => {
         project: 'vendor-v1',
         symbol: `${tokenSymbols[1].output}-${tokenSymbols[0].output}`,
         tvlUsd: tvl,
-        apy: parseInt(pool._feeRate) / 10000,
+        apyBase: parseInt(pool._feeRate) / 10000,
         underlyingTokens: [pool._lendToken, pool._colToken],
         poolMeta: 'V1 Pool',
       };
