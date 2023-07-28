@@ -20,13 +20,15 @@ const poolsFunction = async () => {
     };
 
     const dataPools = await utils.getData(
-        'https://app.clearpool.finance/api/pools'
+        'https://clearpool.finance/api/pools'
     );
 
     let pools = [];
-    const allpools = Object.keys(dataPools).map((chainId) => {
-        dataPools[chainId].map((pool) => {
+
+    for (const chainId in dataPools) {
+        for (const pool of dataPools[chainId]) {
             const chainName = utils.formatChain(networks[chainId]);
+
             pools.push({
                 pool: `${pool.address}-${chainName}`.toLowerCase(),
                 chain: chainName,
@@ -39,8 +41,9 @@ const poolsFunction = async () => {
                 underlyingTokens: [underlyingTokens[chainId]], // Array of underlying token addresses from a pool, eg here USDC address on ethereum
                 poolMeta: `${pool.currencyName} (${pool.borrowerName})`, // A string value which can stand for any specific details of a pool position, market, fee tier, lock duration, specific strategy etc
             });
-        });
-    });
+        }
+    }
+    
 
     return pools;
 };
