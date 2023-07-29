@@ -491,6 +491,8 @@ const addPoolInfo = (el, stablecoins, config) => {
           'arbor-finance',
           'opyn-squeeth',
           'gmd-protocol',
+          'y2k-v1',
+          'y2k-v2',
         ].includes(el.project)
       ? 'yes'
       : ['mycelium-perpetual-swaps', 'gmx', 'rage-trade'].includes(
