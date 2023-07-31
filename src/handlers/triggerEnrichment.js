@@ -283,11 +283,6 @@ const main = async () => {
     .map((p) => ({ ...p, pool_old: p.pool, pool: p.configID }))
     .map(({ configID, ...p }) => p);
 
-  // temporarily remove OP pools on uniswap-v3 cause subgraph volume values are totally wrong
-  dataEnriched = dataEnriched.filter(
-    (p) => !(p.project === 'uniswap-v3' && p.chain === 'Optimism')
-  );
-
   // overwrite triggerAdapter apy calc for abracadabra (some of their vaults apply interest on collateral
   // instead of borrowed mim) -> negative apyBase -> negative apy (we don't store negative apy values in db though
   // nor do we use neg values on feature calc cause might break some things)
