@@ -43,7 +43,9 @@ async function apy() {
       pool: v.address,
       apyBase: Number(v.apr),
       symbol: v.tokenName,
-      poolMeta: v.strategy,
+      poolMeta: v.poolName.includes('Best')
+        ? v.poolName.split(' ').slice(1).join(' ')
+        : v.strategy,
       tvlUsd: Number(v.tvl),
       project: 'idle',
       chain: utils.formatChain(chains[chain]),
