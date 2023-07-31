@@ -86,7 +86,7 @@ const getPools = async () => {
         project: 'vendor-v1',
         symbol: `${tokenSymbols[1].output}-${tokenSymbols[0].output}`,
         tvlUsd: tvl,
-        apyBase:
+        apyBaseBorrow:
           pool._type == 1
             ? ((31536000 /
                 (Number(pool._expiry) - new Date().getTime() / 1000)) *
