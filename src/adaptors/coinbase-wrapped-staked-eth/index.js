@@ -39,17 +39,19 @@ const getApy = async () => {
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).data.coins[priceKey]?.price;
 
-  return [
-    {
-      pool: token,
-      chain: 'ethereum',
-      project: 'coinbase-wrapped-staked-eth',
-      symbol: 'cbeth',
-      tvlUsd: tvl * ethPrice,
-      apyBase: apr,
-      underlyingTokens: [weth],
-    },
-  ];
+  return [];
+
+  // return [
+  //   {
+  //     pool: token,
+  //     chain: 'ethereum',
+  //     project: 'coinbase-wrapped-staked-eth',
+  //     symbol: 'cbeth',
+  //     tvlUsd: tvl * ethPrice,
+  //     apyBase: apr,
+  //     underlyingTokens: [weth],
+  //   },
+  // ];
 };
 
 module.exports = {
