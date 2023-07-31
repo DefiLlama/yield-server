@@ -63,7 +63,7 @@ const main = async () => {
 
   // build pool objects
   data = data.poolStatuses
-    .filter((p) => p.state === 'Opened')
+    .filter((p) => p.state !== 'Closed')
     .map((el) => buildPool(el));
 
   return data;

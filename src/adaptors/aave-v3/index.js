@@ -16,13 +16,16 @@ const chainUrlParam = {
   fantom: 'proto_fantom_v3',
   harmony: 'proto_harmony_v3',
   optimism: 'proto_optimism_v3',
+  metis: 'proto_metis_v3',
 };
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesBySymbol = Object.entries(prices).reduce(
@@ -51,6 +54,8 @@ const API_URLS = {
   arbitrum: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-arbitrum',
   polygon: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-polygon',
   fantom: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-fantom',
+  metis:
+    'https://andromeda.thegraph.metis.io/subgraphs/name/aave/protocol-v3-metis',
 };
 
 const query = gql`
@@ -334,7 +339,10 @@ const apy = async () => {
 
   const ethPools = await ethV3Pools();
 
-  return pools.flat().concat(ethPools);
+  return pools
+    .flat()
+    .concat(ethPools)
+    .filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

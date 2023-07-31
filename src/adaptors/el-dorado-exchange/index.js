@@ -169,7 +169,8 @@ const getPools = async () => {
         apyBase: apr_eusd_elp * 100,
         apyReward: apr_ede_elp * 100,
         rewardTokens: [EUSD, AEDE],
-        poolMeta: "ELP-1"
+        poolMeta: "ELP-1",
+        underlyingTokens: vault_tokens_arbitrum_elp1
     })
 
     //======================================BSC CHAIN======================================
@@ -230,7 +231,8 @@ const getPools = async () => {
         apyBase: apr_eusd_elp_bsc * 100,
         apyReward: apr_ede_elp_bsc * 100,
         rewardTokens: [EUSD_BSC, AEDE_BSC],
-        poolMeta: "ELP1p"
+        poolMeta: "ELP1p",
+        underlyingTokens: vault_tokens_bsc_elp1
     })
 
 

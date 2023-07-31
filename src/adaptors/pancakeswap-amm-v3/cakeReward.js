@@ -2,6 +2,7 @@ const abiMcV3 = require('./masterchefv3.json');
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const bn = require('bignumber.js');
+const fetch = require('node-fetch');
 
 const MASTERCHEF_ADDRESS = '0x556B9306565093C855AEA9AE92A594704c2Cd59e';
 

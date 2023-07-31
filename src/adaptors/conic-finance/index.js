@@ -1,3 +1,4 @@
+const utils = require('../utils');
 const controllerAbi = require('./abis/conic-controller-abi.json');
 const poolAbi = require('./abis/conic-pool-abi.json');
 const erc20Abi = require('./abis/conic-erc20-abi.json');
@@ -17,6 +18,25 @@ const CNC = '0x9aE380F0272E2162340a5bB646c354271c0F5cFC';
 const PRICE_API = 'https://coins.llama.fi/prices/current/ethereum:';
 const CURVE_APY_API = 'https://www.convexfinance.com/api/curve-apys';
 const CURVE_POOL_API = 'https://api.curve.fi/api/getPools/ethereum/main';
+
+const CURVE_POOL_DATA = {
+  // USDC+crvUSD
+  '0x4DEcE678ceceb27446b35C672dC7d61F30bAD69E': {
+    convexId: 'factory-crvusd-0',
+  },
+  // USDT+crvUSD
+  '0x390f3595bCa2Df7d23783dFd126427CCeb997BF4': {
+    convexId: 'factory-crvusd-1',
+  },
+  // USDP+crvUSD
+  '0xCa978A0528116DDA3cbA9ACD3e68bc6191CA53D0': {
+    convexId: 'factory-crvusd-2',
+  },
+  // TUSD+crvUSD
+  '0x34D655069F4cAc1547E4C8cA284FfFF5ad4A8db0': {
+    convexId: 'factory-crvusd-3',
+  },
+};
 
 const blockNumber = async () => provider.getBlockNumber();
 
@@ -46,20 +66,17 @@ const exchangeRate = async (a) => contract(a, poolAbi).exchangeRate();
 const bnToNum = (bn, dec = 18) => Number(bn.toString()) / 10 ** dec;
 
 const priceCoin = async (coin) => {
-  const response_ = await fetch(`${PRICE_API}${coin}`);
-  const data_ = await response_.json();
+  const data_ = await utils.getData(`${PRICE_API}${coin}`);
   return data_.coins[`ethereum:${coin}`].price;
 };
 
 const curveApyData = async () => {
-  const respose_ = await fetch(CURVE_APY_API);
-  const data_ = await respose_.json();
+  const data_ = await utils.getData(CURVE_APY_API);
   return data_.apys;
 };
 
 const curvePoolData = async () => {
-  const response_ = await fetch(CURVE_POOL_API);
-  const data_ = await response_.json();
+  const data_ = await utils.getData(CURVE_POOL_API);
   return data_.data.poolData;
 };
 
@@ -68,7 +85,19 @@ const deployedAtBlock = async (poolAddress) => {
   const deposits = await poolContract.queryFilter(
     poolContract.filters.Deposit(null, null)
   );
+
+  // Handle edge cases when the pool is first deployed
+  if (deposits.length === 0) return 0;
+
   return deposits[0].blockNumber;
+};
+
+const curvePoolId = (poolData, poolAddress) => {
+  const override = CURVE_POOL_DATA[poolAddress];
+  if (override) return override.convexId;
+  const data = poolData.find((p) => p.address === poolAddress);
+  if (!data) return null;
+  return data.id;
 };
 
 const poolApy = (
@@ -80,18 +109,22 @@ const poolApy = (
   exchangeRate_
 ) => {
   const scale = BLOCKS_PER_YEAR / (blockNumber_ - deployedAtBlock_);
-  const positiveSlippageApr = (bnToNum(exchangeRate_) ** scale - 1) * 100;
+  let positiveSlippageApr = (bnToNum(exchangeRate_) ** scale - 1) * 100;
+
+  // Handle edge cases when the pool is first deployed
+  if (positiveSlippageApr < 0) positiveSlippageApr = 0;
+
   const base =
     weights_.reduce((total, weight) => {
-      const data = poolData.find((p) => p.address === weight.poolAddress);
-      if (!data) return total;
-      const apy = apyData[data.id];
+      const id = curvePoolId(poolData, weight.poolAddress);
+      if (!id) return total;
+      const apy = apyData[id];
       return apy.baseApy * bnToNum(weight.weight) + total;
     }, 0) + positiveSlippageApr;
   const crv = weights_.reduce((total, weight) => {
-    const data = poolData.find((p) => p.address === weight.poolAddress);
-    if (!data) return total;
-    const apy = apyData[data.id];
+    const id = curvePoolId(poolData, weight.poolAddress);
+    if (!id) return total;
+    const apy = apyData[id];
     return apy.crvApy * bnToNum(weight.weight) + total;
   }, 0);
   return {
@@ -169,7 +202,7 @@ const conicApy = async () => {
         pool: `conic-${pool_.symbol}-ethereum`.toLowerCase(),
         chain: 'Ethereum',
         project: 'conic-finance',
-        symbol: pool_.symbol,
+        symbol: pool_.symbol === 'WETH' ? 'ETH' : pool_.symbol,
         tvlUsd,
         rewardTokens: [CNC, CRV, CVX],
         underlyingTokens: [pool_.underlying],

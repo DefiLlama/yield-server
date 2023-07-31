@@ -131,7 +131,7 @@ const relevantPoolInfo = async (poolIndex, chain, LP_STAKING_ADDRESS) => {
     };
 }
 
-const getTvl = async (chain, underlyingAssetsTreasury, lpToken, underlyingTokenCount, synPrice) => {    
+const getTvl = async (chain, underlyingAssetsTreasury, lpToken, underlyingTokenCount) => {
     const allUnderlyingTokenAddresses = (
         // get all the tokens underlying the LP
         await sdk.api.abi.multiCall({
@@ -185,7 +185,7 @@ const getTvl = async (chain, underlyingAssetsTreasury, lpToken, underlyingTokenC
         tvl += value;
     }
 
-    return {tvlUsd: tvl * synPrice, underlyingTokens: allUnderlyingTokenAddresses, allUnderlyingTokenSymbols}
+    return {tvlUsd: tvl, underlyingTokens: allUnderlyingTokenAddresses, allUnderlyingTokenSymbols}
 }
 
 const main = async () => {
@@ -225,7 +225,7 @@ const main = async () => {
 
             const {tvlUsd,underlyingTokens, allUnderlyingTokenSymbols} = await getTvl(chainKey, underlyingAssetsTreasury.poolAddress, underlyingAssetsTreasury.lpToken, underlyingAssetsTreasury.underlyingTokenCount, synPrice)
 
-            const apy = calcApy(1, tvlUsd, synapsePerSecond / (1 * 10 ** 18), totalAllocPoint, relevantInfo.allocPoint)
+            const apy = calcApy(synPrice, tvlUsd, synapsePerSecond / (1 * 10 ** 18), totalAllocPoint, relevantInfo.allocPoint)
 
             allPools.push({
                 pool: `${relevantInfo.lpToken}-${formatChain(chainKey)}`.toLowerCase(),

@@ -2,7 +2,7 @@ const fs = require('fs');
 
 const { confirm } = require('./confirm');
 const { connect } = require('../src/utils/dbConnection');
-const { buildInsertYieldQuery } = require('../src/controllers/yieldController');
+const { buildInsertYieldQuery } = require('../src/queries/yield');
 
 (async () => {
   await confirm(

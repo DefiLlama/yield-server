@@ -14,6 +14,18 @@ const excludeAdaptors = [
   'ratio-finance',
   '0vix', // pausing cause of hack
   'rehold', // apy values are fake
+  'deficurrent', // vaults deprecated
+  'dogium-farm', // seems to be dead
+  'zest-protocol', // tiny pools
+  'hedge', // seems to be dead, ui not working
+  'double-club', // seems to be dead
+  'yieldwolf', // dead
+  'hubble-exchange', // no live pools
+  'yodeswap', // v1 deprecated
+  'optyfi', // dead
+  'rodeo', // exploited
+  'fairfi', // seems dead
+  'mole', // needs to be reimplement
 ];
 
 const excludePools = [
@@ -61,6 +73,8 @@ const excludePools = [
   '0x7578aa78d5c5f622800d9205e942b12d353432b7',
   '0x05d3d04f1aeb77d591a0581827b148ea634c0d1c',
   '0xc1b228c22ca914069c7164e5489e8d79a9cbb922',
+  '0xe50341e6f27a2514908f347e743119f3dfd84ad5',
+  '0xb59A93eAB4059C58d33b0c29fE4Fa3F3433997cc',
 ];
 
 const boundaries = {
