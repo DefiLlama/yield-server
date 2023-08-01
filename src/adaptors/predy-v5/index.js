@@ -1,7 +1,7 @@
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request')
 const { default: BigNumber } = require('bignumber.js')
-const { getAsset } = require('./queries')
+const { getAsset, getTotalSupply } = require('./queries')
 const { calculateInterestRate } = require('./helpers')
 
 const endpoint = 'https://api.thegraph.com/subgraphs/name/predy-dev/predy-fee-arbitrum'
@@ -170,7 +170,6 @@ const lendingApys = async () => {
         url: `https://v5app.predy.finance/trade/usdce/main/${pair.pairId}`,
       }]
     })
-      .flat()
   )
 };
 
@@ -202,7 +201,11 @@ const strategyApys = async () => {
       const apy = getApr(
         prices[0],
         prices[prices.length >= 7 ? 6 : prices.length - 1]
-      );
+      )
+
+      const totalSupply = await getTotalSupply(strategy.strategyTokenAddress)
+
+      const tvlUsd = (new BigNumber(totalSupply)).times(prices[0].closePrice).div(1e36).toNumber()
 
       return {
         pool: `${strategy.strategyTokenAddress}-arbitrum`,
@@ -211,6 +214,7 @@ const strategyApys = async () => {
         symbol: strategy.symbol,
         poolMeta: strategy.poolMeta,
         apyBase: apy,
+        tvlUsd,
         url: `https://v5app.predy.finance/trade/usdce/strategy/${strategy.id}`,
       }
     })
@@ -224,7 +228,7 @@ module.exports = {
     const lendingApyResults = await lendingApys()
     const strategyApyResults = await strategyApys()
 
-    return lendingApyResults.concat(strategyApyResults)
+    return lendingApyResults.flat().concat(strategyApyResults)
   },
   url: 'https://appv5.predy.finance',
 };

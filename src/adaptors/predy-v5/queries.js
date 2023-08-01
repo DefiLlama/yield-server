@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk')
-const { ControllerAbi } = require('./abi')
+const { ControllerAbi, ERC20Abi } = require('./abi')
 
 const getAsset = async (strategy, pairId, block = 'latest') => {
   const data = (
@@ -15,6 +15,22 @@ const getAsset = async (strategy, pairId, block = 'latest') => {
   return data;
 }
 
+const getTotalSupply = async (strategyToken, block = 'latest') => {
+  const data = (
+    await sdk.api.abi.call({
+      target: strategyToken,
+      abi: ERC20Abi.find((m) => m.name === 'totalSupply'),
+      params: [],
+      chain: 'arbitrum',
+      block: block,
+    })
+  ).output
+
+  return data;
+}
+
+
 module.exports = {
-  getAsset
+  getAsset,
+  getTotalSupply
 }
