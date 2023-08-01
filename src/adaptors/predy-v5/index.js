@@ -112,10 +112,12 @@ function getLendingSummary(
     ? ZERO
     : borrowInterest.times(borrow).div(supply)
 
+  const scaler = (new BigNumber(10)).pow(decimals)
+
   return {
-    supply: (supply.toNumber() / (10 ** decimals)) * price,
-    borrow: (borrow.toNumber() / (10 ** decimals)) * price,
-    apy: supplyInterest.toNumber() / (10 ** 16)
+    supply: supply.times(price).div(scaler).toNumber(),
+    borrow: borrow.times(price).div(scaler).toNumber(),
+    apy: supplyInterest.div((new BigNumber(10)).pow(16)).toNumber()
   }
 }
 
