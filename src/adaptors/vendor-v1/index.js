@@ -152,6 +152,7 @@ const getPools = async () => {
         project: 'vendor-v1',
         symbol: tokenSymbols[0].output,
         tvlUsd: availableLiquidity,
+        apyBase: 0,
         apyBaseBorrow:
           pool._type == 1
             ? ((31536000 /

@@ -173,6 +173,7 @@ const getPools = async () => {
         tvlUsd: availableLiquidity,
         totalBorrowUsd: totalBorrowedUsd,
         totalSupplyUsd: totalSuppliedUsd,
+        apyBase: 0,
         apyBaseBorrow:
           pool.feeType == 1
             ? ((31536000 /
