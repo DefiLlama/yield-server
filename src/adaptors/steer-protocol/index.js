@@ -51,133 +51,159 @@ var supportedChains = [
         name: 'Polygon',
         subgraphEndpoint: 'https://api.thegraph.com/subgraphs/name/steerprotocol/steer-protocol-polygon',
         chainId: 137,
-        merkl: true
+        merkl: true,
+        identifier: 'polygon'
     },
     {
         name: 'Arbitrum',
         subgraphEndpoint: 'https://api.thegraph.com/subgraphs/name/steerprotocol/steer-protocol-arbitrum',
         chainId: 42161,
-        merkl: true
+        merkl: true,
+        identifier: 'arbitrum'
     },
     {
         name: 'Optimism',
         subgraphEndpoint: 'https://api.thegraph.com/subgraphs/name/steerprotocol/steer-protocol-optimism',
         chainId: 10,
-        merkl: true
+        merkl: true,
+        identifier: 'optimism'
     },
     {
         name: 'Binance',
         subgraphEndpoint: 'https://api.thegraph.com/subgraphs/name/steerprotocol/steer-protocol-bsc',
         chainId: 56,
-        merkl: false
+        merkl: false,
+        identifier: 'bsc'
     },
     {
         name: 'Evmos',
         subgraphEndpoint: 'https://subgraph.satsuma-prod.com/769a117cc018/steer/steer-protocol-evmos/api',
         chainId: 9001,
-        merkl: false
+        merkl: false,
+        identifier: 'evmos'
     },
     {
         name: 'Avalanche',
         subgraphEndpoint: 'https://api.thegraph.com/subgraphs/name/rakeshbhatt10/avalance-test-subgraph',
         chainId: 43114,
-        merkl: false
+        merkl: false,
+        identifier: 'avax'
     },
     {
         name: 'Thundercore',
         subgraphEndpoint: 'http://52.77.49.1:8000/subgraphs/name/steerprotocol/steer-thundercore',
         chainId: 108,
-        merkl: false
+        merkl: false,
+        identifier: 'thundercore'
     }
 ];
 // Fetch active vaults and associated data @todo limited to 1000 per chain
 var query = "\n{\n    vaults(first: 1000, where: {totalLPTokensIssued_not: \"0\"}) {\n      weeklyFeeAPR\n      beaconName\n      feeTier\n      id\n      pool\n      token0\n      token0Symbol\n      token0Decimals\n      token1\n      token1Symbol\n      token1Decimals\n      totalLPTokensIssued\n      totalAmount1\n      totalAmount0\n      strategyToken {\n        id\n      }\n    }\n  }";
 var getPools = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var pools;
+    var pools, _loop_1, _i, supportedChains_1, chainInfo;
     return __generator(this, function (_a) {
-        pools = [];
-        supportedChains.forEach(function (chainInfo) { return __awaiter(void 0, void 0, void 0, function () {
-            var data, tokenList, coinRequest, response, tokenPrices, incentivizedPools, merklRequest, rewardInfo_1, chainPools;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, (0, graphql_request_1.request)(chainInfo.subgraphEndpoint, query)
-                        // get tokens
-                    ];
-                    case 1:
-                        data = _a.sent();
-                        tokenList = new Set();
-                        data.vaults.forEach(function (vaultInfo) {
-                            tokenList.add((chainInfo.name + ':' + vaultInfo.token0).toLowerCase());
-                            tokenList.add((chainInfo.name + ':' + vaultInfo.token1).toLowerCase());
-                        });
-                        coinRequest = "https://coins.llama.fi/prices/current/" + Array.from(tokenList).toString();
-                        return [4 /*yield*/, axios_1["default"].get(coinRequest)];
-                    case 2:
-                        response = (_a.sent());
-                        tokenPrices = response.data.coins;
-                        incentivizedPools = [];
-                        if (!chainInfo.merkl) return [3 /*break*/, 4];
-                        merklRequest = "https://api.angle.money/v1/merkl?chainId=" + chainInfo.chainId;
-                        console.log(merklRequest);
-                        return [4 /*yield*/, axios_1["default"].get(merklRequest)];
-                    case 3:
-                        rewardInfo_1 = _a.sent();
-                        Object.keys(rewardInfo_1.data.pools).forEach(function (key) {
-                            // token listed is most recent distribution, may change over time
-                            var pool = rewardInfo_1.data.pools[key];
-                            incentivizedPools.push({ pool: pool.pool, apr: pool.aprs['Average APR (rewards / pool TVL)'], token: pool.distributionData[pool.distributionData.length - 1].token });
-                        });
-                        _a.label = 4;
-                    case 4:
-                        chainPools = data.vaults.map(function (vault) { return __awaiter(void 0, void 0, void 0, function () {
-                            var totalUSD0, totalUSD1, poolTvl, rewardToken, rewardAPY, rewardPool, vaultApr, vaultSnapshots, snapshots, averageFeePerHoldingPerSecond;
-                            var _a, _b;
-                            return __generator(this, function (_c) {
-                                switch (_c.label) {
-                                    case 0:
-                                        totalUSD0 = Number(vault.totalAmount0) * ((_a = tokenPrices[chainInfo.name.toLowerCase() + ":" + vault.token0]) === null || _a === void 0 ? void 0 : _a.price) / (Math.pow(10, Number(vault.token0Decimals)));
-                                        totalUSD1 = Number(vault.totalAmount1) * ((_b = tokenPrices[chainInfo.name.toLowerCase() + ":" + vault.token1]) === null || _b === void 0 ? void 0 : _b.price) / (Math.pow(10, Number(vault.token1Decimals)));
-                                        poolTvl = totalUSD0 + totalUSD1;
-                                        rewardToken = null;
-                                        rewardAPY = 0;
-                                        rewardPool = incentivizedPools.filter(function (pool) { return pool.pool.toLowerCase() === vault.pool.toLowerCase(); });
-                                        if (rewardPool.length) {
-                                            rewardToken = rewardPool[0].token;
-                                            rewardAPY = rewardPool[0].apr;
+        switch (_a.label) {
+            case 0:
+                pools = [];
+                _loop_1 = function (chainInfo) {
+                    var data, tokenList, coinRequest, response, tokenPrices, incentivizedPools, merklRequest, rewardInfo_1, chainPools;
+                    return __generator(this, function (_b) {
+                        switch (_b.label) {
+                            case 0: return [4 /*yield*/, (0, graphql_request_1.request)(chainInfo.subgraphEndpoint, query)
+                                // get tokens
+                            ];
+                            case 1:
+                                data = _b.sent();
+                                tokenList = new Set();
+                                data.vaults.forEach(function (vaultInfo) {
+                                    tokenList.add((chainInfo.identifier + ':' + vaultInfo.token0).toLowerCase());
+                                    tokenList.add((chainInfo.identifier + ':' + vaultInfo.token1).toLowerCase());
+                                });
+                                coinRequest = "https://coins.llama.fi/prices/current/" + Array.from(tokenList).toString();
+                                return [4 /*yield*/, axios_1["default"].get(coinRequest)];
+                            case 2:
+                                response = (_b.sent());
+                                tokenPrices = response.data.coins;
+                                incentivizedPools = [];
+                                if (!chainInfo.merkl) return [3 /*break*/, 4];
+                                merklRequest = "https://api.angle.money/v1/merkl?chainId=" + chainInfo.chainId;
+                                return [4 /*yield*/, axios_1["default"].get(merklRequest)];
+                            case 3:
+                                rewardInfo_1 = _b.sent();
+                                Object.keys(rewardInfo_1.data.pools).forEach(function (key) {
+                                    // token listed is most recent distribution, may change over time
+                                    var pool = rewardInfo_1.data.pools[key];
+                                    incentivizedPools.push({ pool: pool.pool, apr: pool.aprs['Average APR (rewards / pool TVL)'], token: pool.distributionData[pool.distributionData.length - 1].token });
+                                });
+                                _b.label = 4;
+                            case 4: return [4 /*yield*/, Promise.all(data.vaults.map(function (vault) { return __awaiter(void 0, void 0, void 0, function () {
+                                    var totalUSD0, totalUSD1, poolTvl, rewardToken, rewardAPY, rewardPool, vaultApr, vaultSnapshots, snapshots, averageFeePerHoldingPerSecond;
+                                    var _a, _b;
+                                    return __generator(this, function (_c) {
+                                        switch (_c.label) {
+                                            case 0:
+                                                totalUSD0 = Number(vault.totalAmount0) * ((_a = tokenPrices[chainInfo.identifier.toLowerCase() + ":" + vault.token0]) === null || _a === void 0 ? void 0 : _a.price) / (Math.pow(10, Number(vault.token0Decimals)));
+                                                totalUSD1 = Number(vault.totalAmount1) * ((_b = tokenPrices[chainInfo.identifier.toLowerCase() + ":" + vault.token1]) === null || _b === void 0 ? void 0 : _b.price) / (Math.pow(10, Number(vault.token1Decimals)));
+                                                poolTvl = totalUSD0 + totalUSD1;
+                                                rewardToken = null;
+                                                rewardAPY = 0;
+                                                rewardPool = incentivizedPools.filter(function (pool) { return pool.pool.toLowerCase() === vault.pool.toLowerCase(); });
+                                                if (rewardPool.length) {
+                                                    if (rewardPool[0].token) {
+                                                        rewardToken = rewardPool[0].token;
+                                                        rewardAPY = rewardPool[0].apr;
+                                                    }
+                                                }
+                                                vaultApr = 0;
+                                                return [4 /*yield*/, (0, returnHelper_1.getSnapshotsFromSubgraph)(vault.id.toLowerCase(), chainInfo.subgraphEndpoint)
+                                                    // filter to last 7 days or two snapshots
+                                                ];
+                                            case 1:
+                                                vaultSnapshots = _c.sent();
+                                                snapshots = (0, returnHelper_1.filterSnapshotData)(vaultSnapshots, returnHelper_1.Period.Week);
+                                                if (snapshots.length !== 0) {
+                                                    averageFeePerHoldingPerSecond = (0, returnHelper_1.getAverageReturnPerSecondFromSnapshots)(snapshots);
+                                                    vaultApr = averageFeePerHoldingPerSecond * returnHelper_1.YEAR_IN_SECONDS;
+                                                }
+                                                return [2 /*return*/, {
+                                                        pool: (vault.id + '-' + chainInfo.name).toLowerCase(),
+                                                        chain: chainInfo.name,
+                                                        project: 'steer-protocol',
+                                                        symbol: (vault.token0Symbol + '-' + vault.token1Symbol),
+                                                        tvlUsd: poolTvl,
+                                                        apyBase: vaultApr,
+                                                        apyReward: rewardAPY,
+                                                        rewardTokens: rewardToken == null ? [] : [rewardToken],
+                                                        underlyingTokens: [vault.token0, vault.token1],
+                                                        poolMeta: vault.beaconName,
+                                                        url: "https://app.steer.finance/app/" + vault.strategyToken.id + "/vault/" + vault.id + "?engine=" + vault.beaconName + "&chainId=" + chainInfo.chainId
+                                                    }];
                                         }
-                                        vaultApr = 0;
-                                        return [4 /*yield*/, (0, returnHelper_1.getSnapshotsFromSubgraph)(vault.id.toLowerCase(), chainInfo.subgraphEndpoint)
-                                            // filter to last 7 days or two snapshots
-                                        ];
-                                    case 1:
-                                        vaultSnapshots = _c.sent();
-                                        snapshots = (0, returnHelper_1.filterSnapshotData)(vaultSnapshots, returnHelper_1.Period.Week);
-                                        if (snapshots.length !== 0) {
-                                            averageFeePerHoldingPerSecond = (0, returnHelper_1.getAverageReturnPerSecondFromSnapshots)(snapshots);
-                                            vaultApr = averageFeePerHoldingPerSecond * returnHelper_1.YEAR_IN_SECONDS;
-                                        }
-                                        return [2 /*return*/, {
-                                                pool: (vault.id + '-' + chainInfo.name).toLowerCase(),
-                                                chain: chainInfo.name,
-                                                project: 'steer-protocol',
-                                                symbol: (vault.token0Symbol + '-' + vault.token1Symbol),
-                                                tvlUsd: poolTvl,
-                                                apyBase: vaultApr,
-                                                apyReward: rewardAPY,
-                                                rewardTokens: [rewardToken],
-                                                underlyingTokens: [vault.token0, vault.token1],
-                                                poolMeta: vault.beaconName,
-                                                url: "https://app.steer.finance/app/" + vault.strategyToken.id + "/vault/" + vault.id + "?engine=" + vault.beaconName + "&chainId=" + chainInfo.chainId
-                                            }];
-                                }
-                            });
-                        }); });
-                        pools.push.apply(pools, (chainPools));
-                        return [2 /*return*/];
-                }
-            });
-        }); });
-        return [2 /*return*/, pools];
+                                    });
+                                }); }))];
+                            case 5:
+                                chainPools = _b.sent();
+                                pools.push.apply(pools, (chainPools));
+                                return [2 /*return*/];
+                        }
+                    });
+                };
+                _i = 0, supportedChains_1 = supportedChains;
+                _a.label = 1;
+            case 1:
+                if (!(_i < supportedChains_1.length)) return [3 /*break*/, 4];
+                chainInfo = supportedChains_1[_i];
+                return [5 /*yield**/, _loop_1(chainInfo)];
+            case 2:
+                _a.sent();
+                _a.label = 3;
+            case 3:
+                _i++;
+                return [3 /*break*/, 1];
+            case 4:
+                ;
+                return [2 /*return*/, pools];
+        }
     });
 }); };
 module.exports = {
