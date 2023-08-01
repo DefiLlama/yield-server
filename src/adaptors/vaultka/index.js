@@ -201,7 +201,7 @@ const poolsFunction = async () => {
     pool: '0x6df0018b0449bB4468BfAE8507E13021a7aa0583',
     chain: utils.formatChain('arbitrum'),
     project: 'vaultka',
-    symbol: 'WATER',
+    symbol: 'V-WATER',
     tvlUsd: tvls.waterVault - usdcBorrowed / 10e5,
     poolMeta: 'VAULTKA_WATER',
     underlyingTokens: ['0xff970a61a04b1ca14834a43f5de4533ebddb5cc8'],
@@ -330,7 +330,9 @@ const poolsFunction = async () => {
   const sakeApr = vlpApr <= 0 ? 0 : vlpApr * 3 * (1 - sakeFeeSplit);
 
   const sakeWaterApr =
-    vlpApr <= 0 ? 0 : vlpApr * sakeFeeSplit * (sakeTvl / SakeWaterTotalAssets);
+    vlpApr <= 0
+      ? 0
+      : vlpApr * sakeFeeSplit * (sakeTvl / (SakeWaterTotalAssets / 1e6));
 
   //info of the pools
 
