@@ -6,31 +6,37 @@ const { calculateInterestRate } = require('./helpers')
 const pairs = [{
   pairId: 1,
   symbol: 'WETH',
+  poolMeta: 'Lending Pool for WETH-USDC.e 0.05% LP position',
   tokenAddress: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
   decimals: 18
 }, {
   pairId: 2,
   symbol: 'ARB',
+  poolMeta: 'Lending Pool for ARB-USDC.e 0.3% LP position',
   tokenAddress: '0x912CE59144191C1204E64559FE8253a0e49E6548',
   decimals: 18
 }, {
   pairId: 3,
   symbol: 'WBTC',
+  poolMeta: 'Lending Pool for WBTC-USDC.e 0.05% LP position',
   tokenAddress: '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f',
   decimals: 8
 }, {
   pairId: 4,
   symbol: 'GYEN',
+  poolMeta: 'Lending Pool for GYEN-USDC.e 0.05% LP position',
   tokenAddress: '0x589d35656641d6aB57A545F08cf473eCD9B6D5F7',
   decimals: 6
 }, {
   pairId: 5,
   symbol: 'LUSD',
+  poolMeta: 'Lending Pool for LUSD-USDC.e 0.05% LP position',
   tokenAddress: '0x93b346b6BC2548dA6A1E7d98E9a421B42541425b',
   decimals: 18
 }, {
   pairId: 6,
   symbol: 'WETH',
+  poolMeta: 'Lending Pool for WETH-USDC.e 0.05% narrow range LP position',
   tokenAddress: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
   decimals: 18,
   isEx: true
@@ -89,13 +95,12 @@ const lendingApys = async () => {
       const stableSupplyToken = pairStatus.stablePool.supplyTokenAddress
       const underlyingSupplyToken = pairStatus.underlyingPool.supplyTokenAddress
 
-      const pairName = pair.symbol + '-USDC.e' + (pair.isEx ? '.ex' : '')
-
       return [{
         pool: `${stableSupplyToken}-arbitrum`,
         chain: 'Arbitrum',
         project: 'predy',
-        symbol: `USDC.e (${pairName})`,
+        symbol: 'USDC.e',
+        poolMeta: pair.poolMeta,
         tvlUsd: stableSummary.supply - stableSummary.borrow,
         totalSupplyUsd: stableSummary.supply,
         totalBorrowUsd: stableSummary.borrow,
@@ -105,7 +110,8 @@ const lendingApys = async () => {
         pool: `${underlyingSupplyToken}-arbitrum`,
         chain: 'Arbitrum',
         project: 'predy',
-        symbol: `${pair.symbol} (${pairName})`,
+        symbol: pair.symbol,
+        poolMeta: pair.poolMeta,
         tvlUsd: underlyingSummary.supply - underlyingSummary.borrow,
         totalSupplyUsd: underlyingSummary.supply,
         totalBorrowUsd: underlyingSummary.borrow,

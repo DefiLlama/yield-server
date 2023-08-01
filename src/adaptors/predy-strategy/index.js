@@ -26,22 +26,26 @@ const query = gql`
 const strategies = [
   {
     id: 1,
-    symbol: 'pstUSDC.e (WETH-USDC.e)',
+    symbol: 'USDC.e',
+    poolMeta: 'Gamma short strategy of WETH-USDC.e 0.05% pool',
     strategyTokenAddress: '0x5037Df4301489C96F17E3E2eBE55bFF909098043'
   },
   {
     id: 2,
-    symbol: 'pstUSDC.e (ARB-USDC.e)',
+    symbol: 'USDC.e',
+    poolMeta: 'Gamma short strategy of ARB-USDC.e 0.3% pool',
     strategyTokenAddress: '0xBd0a8a71283c92123A3cAE4E7Cb71D410973A9e1'
   },
   {
     id: 3,
-    symbol: 'pstUSDC.e (LUSD-USDC.e)',
+    symbol: 'USDC.e',
+    poolMeta: 'Gamma short strategy of LUSD-USDC.e 0.05% pool',
     strategyTokenAddress: '0xaA25788310eEf9E78e7D601EF727f19BE0944463'
   },
   {
     id: 4,
-    symbol: 'pstUSDC.e (WETH-USDC.e.ex)',
+    symbol: 'USDC.e',
+    poolMeta: 'Gamma short strategy of WETH-USDC.e 0.05% extra pool',
     strategyTokenAddress: '0xde2781A9eA08E75149EF5EdC9CF97d44F1c05a0c'
   }
 ]
@@ -81,6 +85,7 @@ const strategyApys = async () => {
         chain: 'Arbitrum',
         project: 'predy-strategy',
         symbol: strategy.symbol,
+        poolMeta: strategy.poolMeta,
         apyBase: apy,
         url: `https://v5app.predy.finance/trade/usdce/strategy/${strategy.id}`,
       }
