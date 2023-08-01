@@ -205,7 +205,7 @@ const strategyApys = async () => {
 
       const totalSupply = await getTotalSupply(strategy.strategyTokenAddress)
 
-      const tvlUsd = (new BigNumber(totalSupply)).times(prices[0].closePrice).div(1e36).toNumber()
+      const tvlUsd = (new BigNumber(totalSupply)).times(prices[0].closePrice).div(1e18).toNumber() / 1000000
 
       return {
         pool: `${strategy.strategyTokenAddress}-arbitrum`,
