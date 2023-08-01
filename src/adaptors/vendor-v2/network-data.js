@@ -17,7 +17,7 @@ const arbitrum_query = {
       expiry
       mintRatio
       lendBalance
-      borrowers
+      protocolFee
     }
   }
 `,
@@ -43,6 +43,7 @@ const ethereum_query = {
       mintRatio
       lendBalance
       borrowers
+      protocolFee
     }
   }
 `,
