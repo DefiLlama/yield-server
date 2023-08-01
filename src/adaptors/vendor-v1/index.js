@@ -8,6 +8,8 @@ const utils = require('../utils');
 const { FeesManagerABI } = require('./ContractABIs');
 
 const ENTITY_URL = process.env.VENDOR_FINANCE;
+const ARBITRUM_FEES_MANAGER = '0x34F429e82dA625aBa84e80B5c2a9fa471771B807';
+const ETHEREUM_FEES_MANAGER = '0xeCBFd6cF5Eebe9313D386A19a42a474a2998e56b';
 
 const getGenericTokenInfo = async (tokens, network) => {
   const tokenSymbols = (
@@ -37,14 +39,16 @@ const getAvailableLiquidity = async (
   lendDecimals,
   network
 ) => {
-  const lendBalance = await sdk.api.abi.call({
-    target: pool._lendToken,
-    abi: 'erc20:balanceOf',
-    params: pool.id,
-    chain: network,
-  });
+  const lendBalance = (
+    await sdk.api.abi.call({
+      target: pool._lendToken,
+      abi: 'erc20:balanceOf',
+      params: pool.id,
+      chain: network,
+    })
+  ).output;
   const formattedLendBal = ethers.utils.formatUnits(
-    lendBalance.output.toString(),
+    lendBalance,
     lendDecimals.output
   );
   return Object.entries(lendTokenInfo)[0][1].price * formattedLendBal;
@@ -61,6 +65,17 @@ const getTokenPriceInfo = async (network, tokenAddresses) => {
   return tokenData;
 };
 
+const getLoanToValue = (tokenInfo, pool) => {
+  // get token prices from tokenPrice context object
+  let lendPrice = Object.entries(tokenInfo[0])[0][1].price;
+  const colPrice = Object.entries(tokenInfo[1])[0][1].price;
+  // calculate LTV from lend and collateral prices
+  const mintRatio = ethers.utils.formatUnits(pool._mintRatio, 18);
+  const ltvLendValue = parseFloat(mintRatio) * lendPrice;
+  const ltvColValue = colPrice;
+  return ltvLendValue / ltvColValue;
+};
+
 const getSuppliedAndBorrowedUsd = async (
   pool,
   lendDecimals,
@@ -71,9 +86,7 @@ const getSuppliedAndBorrowedUsd = async (
   const lendFee = (
     await sdk.api.abi.call({
       target:
-        network === 'arbitrum'
-          ? '0x34F429e82dA625aBa84e80B5c2a9fa471771B807' // Arbitrum Position Tracker
-          : '0xeCBFd6cF5Eebe9313D386A19a42a474a2998e56b', // Ethereum Position Tracker
+        network === 'arbitrum' ? ARBITRUM_FEES_MANAGER : ETHEREUM_FEES_MANAGER,
       abi: FeesManagerABI.find(
         (fragment) => fragment.name === 'getCurrentRate'
       ),
@@ -128,13 +141,13 @@ const getPools = async () => {
         [pool._lendToken, pool._colToken],
         network
       );
-      const tokenInfo = await getTokenPriceInfo(network, [
+      const tokenPriceInfo = await getTokenPriceInfo(network, [
         pool._lendToken,
         pool._colToken,
       ]);
       const availableLiquidity = await getAvailableLiquidity(
         pool,
-        tokenInfo[0],
+        tokenPriceInfo[0],
         tokenDecimals[0],
         network
       );
@@ -144,14 +157,19 @@ const getPools = async () => {
           tokenDecimals[0],
           tokenDecimals[1],
           network,
-          tokenInfo[0]
+          tokenPriceInfo[0]
         );
+      const loanToValue = getLoanToValue(tokenPriceInfo, pool);
       const poolObj = {
         pool: pool.id,
         chain: networkConfig.network,
         project: 'vendor-v1',
+        ltv: loanToValue,
+        underlyingTokens: [pool._lendToken, pool._colToken],
         symbol: tokenSymbols[0].output,
         tvlUsd: availableLiquidity,
+        totalBorrowUsd: totalBorrowedUsd,
+        totalSupplyUsd: totalSuppliedUsd,
         apyBase: 0,
         apyBaseBorrow:
           pool._type == 1
@@ -160,7 +178,6 @@ const getPools = async () => {
                 pool._feeRate) /
               10000
             : pool._feeRate / 10000,
-        underlyingTokens: [pool._lendToken, pool._colToken],
         poolMeta: `Due ${new Date(pool._expiry * 1000)
           .toUTCString()
           .slice(5, -13)}, ${tokenSymbols[1].output} collateral`,

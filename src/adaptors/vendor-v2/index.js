@@ -9,6 +9,9 @@ const { LendingPoolV2ABI, FeesManagerABI } = require('./ContractABIs');
 
 const ENTITY_URL = process.env.VENDOR_FINANCE;
 
+const ARBITRUM_FEES_MANAGER = '0x6c58D106C613627Bd11A885fC15A1572a358AA27';
+const ETHEREUM_FEES_MANAGER = '0x0Cc43a4C570e7EED16c34Ce8540ae5dA037fDf0A';
+
 const getGenericTokenInfo = async (tokens, network) => {
   const tokenSymbols = (
     await sdk.api.abi.multiCall({
@@ -28,7 +31,13 @@ const getGenericTokenInfo = async (tokens, network) => {
       chain: network,
     })
   ).output;
-  return { tokenSymbols, tokenDecimals };
+  const tokensData = {
+    lendTokenSymbol: tokenSymbols[0].output,
+    colTokenSymbol: tokenSymbols[1].output,
+    lendTokenDecimals: tokenDecimals[0].output,
+    colTokenDecimals: tokenDecimals[1].output,
+  };
+  return tokensData;
 };
 
 const getAvailableLiquidity = async (
@@ -47,16 +56,16 @@ const getAvailableLiquidity = async (
     chain: network,
   });
   const formattedLendBal = ethers.utils.formatUnits(
-    lendBalance.output.toString(),
-    lendDecimals.output
+    lendBalance.output,
+    lendDecimals
   );
   return Object.entries(lendTokenInfo)[0][1].price * formattedLendBal;
 };
 
-const getTokenPriceInfo = async (network, tokenAddresses) => {
-  const tokenDataPromises = tokenAddresses.map((address) =>
+const getTokenPriceInfo = async (tokens, network) => {
+  const tokenDataPromises = tokens.map((token) =>
     utils.getData(
-      `https://coins.llama.fi/prices/current/${network.toLowerCase()}:${address.toLowerCase()}`
+      `https://coins.llama.fi/prices/current/${network.toLowerCase()}:${token.toLowerCase()}`
     )
   );
   const tokenDataArray = await Promise.all(tokenDataPromises);
@@ -64,10 +73,10 @@ const getTokenPriceInfo = async (network, tokenAddresses) => {
   return tokenData;
 };
 
-const getLoanToValue = (tokenInfo, pool, poolFee) => {
+const getLoanToValue = (lendTokenPriceObj, colTokenPriceObj, pool, poolFee) => {
   // get token prices from tokenPrice context object
-  let lendPrice = Object.entries(tokenInfo[0])[0][1].price;
-  const colPrice = Object.entries(tokenInfo[1])[0][1].price;
+  let lendPrice = Object.entries(lendTokenPriceObj)[0][1].price;
+  const colPrice = Object.entries(colTokenPriceObj)[0][1].price;
   const protocolFee = pool.protocolFee / 1000000;
   // calculate LTV from lend and collateral prices
   const mintRatio = ethers.utils.formatUnits(pool.mintRatio, 18);
@@ -76,22 +85,20 @@ const getLoanToValue = (tokenInfo, pool, poolFee) => {
   const totalFees =
     ltvLendValue / (1 - protocolFee - Number(poolFee) / 10000 / 100) -
     ltvLendValue;
-  return ((ltvLendValue - totalFees) / ltvColValue) * 100;
+  return (ltvLendValue - totalFees) / ltvColValue;
 };
 
 const getSuppliedAndBorrowedUsd = async (
   pool,
   lendDecimals,
   colDecimals,
-  network,
-  tokenPriceInfo
+  lendTokenPriceObj,
+  network
 ) => {
   const lendFee = (
     await sdk.api.abi.call({
       target:
-        network === 'arbitrum'
-          ? '0x6c58D106C613627Bd11A885fC15A1572a358AA27' // Arbitrum Position Tracker
-          : '0x0Cc43a4C570e7EED16c34Ce8540ae5dA037fDf0A', // Ethereum Position Tracker
+        network === 'arbitrum' ? ARBITRUM_FEES_MANAGER : ETHEREUM_FEES_MANAGER,
       abi: FeesManagerABI.find(
         (fragment) => fragment.name === 'getCurrentRate'
       ),
@@ -120,12 +127,12 @@ const getSuppliedAndBorrowedUsd = async (
   const poolFee = Number(lendFee) / 10000 / 100;
   const protocolFee = pool.protocolFee / 1000000;
   const totalBorrowedAdjusted = (totalBorrowed *= 1 - protocolFee - poolFee);
-  const lendTokenPrice = Object.entries(tokenPriceInfo)[0][1].price;
+  const lendTokenPrice = Object.entries(lendTokenPriceObj)[0][1].price;
   const totalBorrowedUsd = totalBorrowedAdjusted * lendTokenPrice;
   // Calculates the total supplied amount (available lend balance + total borrowed) in $USD
   const lendBalanceUsd =
     lendTokenPrice *
-    parseFloat(ethers.utils.formatUnits(lendBalance, lendDecimals.output));
+    parseFloat(ethers.utils.formatUnits(lendBalance, lendDecimals));
   const totalSuppliedUsd = lendBalanceUsd + totalBorrowed;
   return { totalBorrowedUsd, totalSuppliedUsd, lendFee };
 };
@@ -139,37 +146,44 @@ const getPools = async () => {
     });
     const network = networkConfig.network.toLowerCase();
     for (const pool of Object.entries(response.data)[0][1]) {
-      const { tokenSymbols, tokenDecimals } = await getGenericTokenInfo(
+      const {
+        lendTokenSymbol,
+        colTokenSymbol,
+        lendTokenDecimals,
+        colTokenDecimals,
+      } = await getGenericTokenInfo([pool.lendToken, pool.colToken], network);
+      const [lendTokenPriceInfo, colTokenPriceInfo] = await getTokenPriceInfo(
         [pool.lendToken, pool.colToken],
         network
       );
-      const tokenInfo = await getTokenPriceInfo(network, [
-        pool.lendToken,
-        pool.colToken,
-      ]);
       const availableLiquidity = await getAvailableLiquidity(
         pool.id,
-        tokenInfo[0],
-        tokenDecimals[0],
+        lendTokenPriceInfo,
+        lendTokenDecimals,
         network
       );
       if (availableLiquidity < 10000) continue;
       const { totalBorrowedUsd, totalSuppliedUsd, lendFee } =
         await getSuppliedAndBorrowedUsd(
           pool,
-          tokenDecimals[0],
-          tokenDecimals[1],
-          network,
-          tokenInfo[0]
+          lendTokenDecimals,
+          colTokenDecimals,
+          lendTokenPriceInfo,
+          network
         );
-      const loanToValue = getLoanToValue(tokenInfo, pool, lendFee);
+      const loanToValue = getLoanToValue(
+        lendTokenPriceInfo,
+        colTokenPriceInfo,
+        pool,
+        lendFee
+      );
       const poolObj = {
         pool: pool.id,
         chain: networkConfig.network,
         project: 'vendor-v2',
         ltv: loanToValue,
         underlyingTokens: [pool.lendToken, pool.colToken],
-        symbol: tokenSymbols[0].output,
+        symbol: lendTokenSymbol,
         tvlUsd: availableLiquidity,
         totalBorrowUsd: totalBorrowedUsd,
         totalSupplyUsd: totalSuppliedUsd,
@@ -183,7 +197,7 @@ const getPools = async () => {
             : pool.startRate / 10000,
         poolMeta: `Due ${new Date(pool.expiry * 1000)
           .toUTCString()
-          .slice(5, -13)}, ${tokenSymbols[1].output} collateral`,
+          .slice(5, -13)}, ${colTokenSymbol} collateral`,
       };
       pools.push(poolObj);
     }
