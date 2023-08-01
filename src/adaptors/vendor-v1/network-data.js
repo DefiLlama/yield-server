@@ -16,7 +16,7 @@ const arbitrum_query = {
       _expiry
       _mintRatio
       _lendBalance
-      _borrowers
+      _protocolFee
     }
   }
 `,
@@ -40,7 +40,7 @@ const ethereum_query = {
       _expiry
       _mintRatio
       _lendBalance
-      _borrowers
+      _protocolFee
     }
   }
 `,

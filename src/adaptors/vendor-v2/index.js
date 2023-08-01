@@ -7,9 +7,7 @@ const axios = require('axios');
 const utils = require('../utils');
 const { LendingPoolV2ABI, FeesManagerABI } = require('./ContractABIs');
 
-// const ENTITY_URL = process.env.VENDOR_FINANCE;
-const ENTITY_URL =
-  'https://us-central1-vendor-finace.cloudfunctions.net/getEntitiesFromSubgraph';
+const ENTITY_URL = process.env.VENDOR_FINANCE;
 
 const getPoolTokenInfo = async (tokens, network) => {
   const tokenSymbols = (
@@ -185,7 +183,7 @@ const getPools = async () => {
             : pool.startRate / 10000,
         poolMeta: `Due ${new Date(pool.expiry * 1000)
           .toUTCString()
-          .slice(5, -13)}, ${tokenSymbols[0].output} collateral`,
+          .slice(5, -13)}, ${tokenSymbols[1].output} collateral`,
       };
       pools.push(poolObj);
     }
