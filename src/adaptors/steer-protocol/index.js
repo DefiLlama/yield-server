@@ -149,7 +149,7 @@ var getPools = function () { return __awaiter(void 0, void 0, void 0, function (
                                                 rewardAPY = 0;
                                                 rewardPool = incentivizedPools.filter(function (pool) { return pool.pool.toLowerCase() === vault.pool.toLowerCase(); });
                                                 if (rewardPool.length) {
-                                                    if (rewardPool[0].token) {
+                                                    if (rewardPool[0].apr) {
                                                         rewardToken = rewardPool[0].token;
                                                         rewardAPY = rewardPool[0].apr;
                                                     }
@@ -172,7 +172,7 @@ var getPools = function () { return __awaiter(void 0, void 0, void 0, function (
                                                         symbol: (vault.token0Symbol + '-' + vault.token1Symbol),
                                                         tvlUsd: poolTvl,
                                                         apyBase: vaultApr,
-                                                        apyReward: rewardAPY,
+                                                        apyReward: rewardAPY !== null && rewardAPY !== void 0 ? rewardAPY : 0,
                                                         rewardTokens: rewardToken == null ? [] : [rewardToken],
                                                         underlyingTokens: [vault.token0, vault.token1],
                                                         poolMeta: vault.beaconName,

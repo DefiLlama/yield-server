@@ -132,7 +132,7 @@ for (const chainInfo of supportedChains) {
             // find reward token / apy if applicable
             const rewardPool = incentivizedPools.filter(pool => pool.pool.toLowerCase() === vault.pool.toLowerCase())
             if (rewardPool.length) {
-                if (rewardPool[0].token) {
+                if (rewardPool[0].apr) {
                     rewardToken = rewardPool[0].token
                     rewardAPY = rewardPool[0].apr
                 }
@@ -156,7 +156,7 @@ for (const chainInfo of supportedChains) {
                 symbol: (vault.token0Symbol + '-' + vault.token1Symbol), // symbol of the tokens in pool, can be a single symbol if pool is single-sided or multiple symbols (eg: USDT-ETH) if it's an LP
                 tvlUsd: poolTvl, // number representing current USD TVL in pool
                 apyBase: vaultApr, // APY from pool fees/supplying in %
-                apyReward: rewardAPY,
+                apyReward: rewardAPY ?? 0,
                 rewardTokens: rewardToken == null ? [] : [rewardToken],
                 underlyingTokens: [vault.token0, vault.token1], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
                 poolMeta: vault.beaconName,
