@@ -6,8 +6,11 @@ const { default: computeTVL } = require('@defillama/sdk/build/computeTVL');
 const utils = require('../utils');
 const { unwrapUniswapLPs } = require('../../helper/unwrapLPs');
 const {
+  getTokenInfo,
   getLendPoolTvl,
   getLendPoolApy,
+  formatLendingPoolwithRewards,
+  getLendPoolRewardInfo,
   getAllVeloPoolInfo,
 } = require('./compute');
 
@@ -43,10 +46,22 @@ async function getPoolsData() {
       id
       reserveId
       underlyingTokenAddress
+      stakingAddress
       eTokenAddress
       totalLiquidity
       totalBorrows
       borrowingRate
+    }
+    latestRewardsSets {
+      stakingAddress
+      rewardsToken
+      id
+      end
+      blockTimestamp
+      blockNumber
+      start
+      total
+      transactionHash
     }
   }`;
   const queryResult = await request(subgraphUrls[chain], graphQuery);
@@ -63,6 +78,12 @@ async function getPoolsData() {
       (item) => item.underlyingTokenAddress
     );
     const result = [...lendingTokenAddresses];
+    // add reward token
+    queryResult.latestRewardsSets.forEach(item => {
+      if (!result.includes(item.rewardsToken)) {
+        result.push(item.rewardsToken);
+      }
+    })
     queryResult.vaults.forEach((item) => {
       if (!result.includes(item.token0)) {
         result.push(item.token0);
@@ -83,26 +104,6 @@ async function getPoolsData() {
     await superagent.get(`https://coins.llama.fi/prices/current/${coins}`)
   ).body.coins;
 
-  function getTokenInfo(address) {
-    const coinKey = `${chain}:${address.toLowerCase()}`;
-    return prices[coinKey]|| {};
-  }
-
-  filteredLendingPools.forEach((poolInfo) => {
-    const tokenInfo = getTokenInfo(poolInfo.underlyingTokenAddress);
-
-    pools.push({
-      pool: `${poolInfo.eTokenAddress}-${chain}`.toLowerCase(),
-      chain: utils.formatChain(chain),
-      project,
-      symbol: tokenInfo?.symbol,
-      underlyingTokens: [poolInfo.underlyingTokenAddress],
-      poolMeta: `Lending Pool`,
-      tvlUsd: getLendPoolTvl(poolInfo, tokenInfo),
-      apyBase: getLendPoolApy(poolInfo),
-    });
-  });
-
   const parsedFarmPoolsInfo = await getAllVeloPoolInfo(
     filteredFarmingPools.filter((item) => !item.paused),
     chain,
@@ -120,6 +121,24 @@ async function getPoolsData() {
       poolMeta: `Leveraged Yield Farming`,
       tvlUsd: poolInfo.tvlUsd,
       apyBase: poolInfo.baseApy,
+    });
+  });
+
+  const formattedLendingPools = formatLendingPoolwithRewards(filteredLendingPools, queryResult.latestRewardsSets || [])
+  formattedLendingPools.forEach((poolInfo) => {
+    const tokenInfo = getTokenInfo(chain, poolInfo.underlyingTokenAddress, prices);
+    const rewardsInfo = getLendPoolRewardInfo(poolInfo, chain, prices)
+    pools.push({
+      pool: `${poolInfo.eTokenAddress}-${chain}`.toLowerCase(),
+      chain: utils.formatChain(chain),
+      project,
+      symbol: tokenInfo?.symbol,
+      underlyingTokens: [poolInfo.underlyingTokenAddress],
+      poolMeta: `Lending Pool`,
+      tvlUsd: getLendPoolTvl(poolInfo, tokenInfo),
+      apyBase: getLendPoolApy(poolInfo),
+      apyReward: rewardsInfo?.rewardApy || undefined,
+      rewardTokens: rewardsInfo?.rewardTokens,
     });
   });
 

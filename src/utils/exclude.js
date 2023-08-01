@@ -21,6 +21,13 @@ const excludeAdaptors = [
   'double-club', // seems to be dead
   'yieldwolf', // dead
   'hubble-exchange', // no live pools
+  'yodeswap', // v1 deprecated
+  'optyfi', // dead
+  'rodeo', // exploited
+  'fairfi', // seems dead
+  'mole', // needs to be reimplement
+  'y2k-v1',
+  'y2k-v2',
 ];
 
 const excludePools = [
@@ -69,6 +76,8 @@ const excludePools = [
   '0x05d3d04f1aeb77d591a0581827b148ea634c0d1c',
   '0xc1b228c22ca914069c7164e5489e8d79a9cbb922',
   '0xe50341e6f27a2514908f347e743119f3dfd84ad5',
+  '0xb59A93eAB4059C58d33b0c29fE4Fa3F3433997cc',
+  '0xB657B895B265C38c53FFF00166cF7F6A3C70587d',
 ];
 
 const boundaries = {

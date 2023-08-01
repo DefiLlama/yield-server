@@ -38,7 +38,14 @@ const main = async () => {
 
   const poolsList = (
     await Promise.all(
-      ['factory', 'main', 'crypto', 'factory-crypto', 'factory-crvusd', 'factory-tricrypto'].map((registry) =>
+      [
+        'factory',
+        'main',
+        'crypto',
+        'factory-crypto',
+        'factory-crvusd',
+        'factory-tricrypto',
+      ].map((registry) =>
         utils.getData(`https://api.curve.fi/api/getPools/ethereum/${registry}`)
       )
     )
@@ -403,7 +410,7 @@ const main = async () => {
     })
     .filter((pool) => !pool.symbol.toLowerCase().includes('ust'));
 
-  return res;
+  return res.filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

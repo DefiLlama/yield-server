@@ -100,7 +100,10 @@ const getApy = async () => {
         .concat(CHR)
     ),
   ];
-  const priceKeys = tokens.map((i) => `arbitrum:${i}`).join(',');
+  const priceKeys = tokens
+    .map((i) => `arbitrum:${i}`)
+    .concat('coingecko:usd-freedom')
+    .join(',');
 
   const prices = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
@@ -111,7 +114,10 @@ const getApy = async () => {
     const r0 = poolMeta.r0 / poolMeta.dec0;
     const r1 = poolMeta.r1 / poolMeta.dec1;
 
-    const p0 = prices[`arbitrum:${poolMeta.t0}`]?.price;
+    const p0 =
+      poolMeta.t0 === '0xae48b7C8e096896E32D53F10d0Bf89f82ec7b987'
+        ? prices['coingecko:usd-freedom']?.price
+        : prices[`arbitrum:${poolMeta.t0}`]?.price;
     const p1 = prices[`arbitrum:${poolMeta.t1}`]?.price;
 
     const tvlUsd = r0 * p0 + r1 * p1;
