@@ -26,8 +26,6 @@ const excludeAdaptors = [
   'rodeo', // exploited
   'fairfi', // seems dead
   'mole', // needs to be reimplement
-  'y2k-v1',
-  'y2k-v2',
 ];
 
 const excludePools = [
