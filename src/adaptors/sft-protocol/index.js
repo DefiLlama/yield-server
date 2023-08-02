@@ -22,7 +22,7 @@ async function getTotalLockedFIL() {
 
 const getApy = async () => {
 
-  const apyInfo = await utils.getData('https://api.sftproject.io/api/v1/public/farm/apy');
+  const apyInfo = await utils.getData('https://ww8.sftproject.io/api/c/api/v1/public/farm/apy?token=AIzaSyC_5Tj4ir8peMmxP6KPPiayXLcpL9kIwqc');
   const apy = apyInfo.data;
 
   const totalLockedFIL = await getTotalLockedFIL();
