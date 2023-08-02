@@ -13,13 +13,25 @@ const chainUrlParam = {
 };
 
 const getPrices = async (addresses) => {
-  const prices = (
+  const _prices = (
     await superagent.get(
       `https://coins.llama.fi/prices/current/${addresses
         .join(',')
         .toLowerCase()}`
     )
   ).body.coins;
+
+  const earlyZero = {
+    'era:0x9793eac2fecef55248efa039bec78e82ac01cb2f': {
+      decimals: 18,
+      symbol: 'earlyZERO',
+      price: 0.000003,
+      timestamp: Date.now(),
+      confidence: 0.99,
+    },
+  };
+
+  const prices = { ..._prices, ...earlyZero };
 
   const pricesBySymbol = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
@@ -41,12 +53,12 @@ const getPrices = async (addresses) => {
 };
 
 const API_URLS = {
-  era: 'https://api.studio.thegraph.com/query/49970/zerolend/v0.0.1',
+  era: 'https://api.studio.thegraph.com/query/49970/zerolend/version/latest',
 };
 
 const query = gql`
   query ReservesQuery {
-    reserves {
+    reserves(where: { name_not: "" }) {
       name
       borrowingEnabled
       aToken {
