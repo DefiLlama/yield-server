@@ -3,18 +3,19 @@ const axios = require('axios');
 
 const utils = require('../utils');
 
-const abiPoolFactory = require('./abiPoolFactory.json');
-const abiPool = require('./abiPool.json');
-const abiVoter = require('./abiVoter.json');
-const abiGauge = require('./abiGauge.json');
+const abiPoolFactory = require('../velodrome-v1/abiPoolFactory.json');
+const abiPool = require('../velodrome-v1/abiPool.json');
+const abiVoter = require('../velodrome-v1/abiVoter.json');
+const abiGauge = require('../velodrome-v1/abiGauge.json');
 
 const PoolFactory = '0xF1046053aa5682b4F9a81b5481394DA16BE5FF5a';
 const sinkConverter = '0x585Af0b397AC42dbeF7f18395426BF878634f18D';
 const Voter = '0x41C914ee0c7E1A5edCD0295623e6dC557B5aBf3C';
 const velo = '0x9560e827aF36c94D2Ac33a39bCE1Fe78631088Db';
 const chain = 'optimism';
+const project = 'velodrome-v2';
 
-const apyV2 = async () => {
+const apy = async () => {
   const allPoolsLength = (
     await sdk.api.abi.call({
       target: PoolFactory,
@@ -25,7 +26,7 @@ const apyV2 = async () => {
 
   const allPools = (
     await sdk.api.abi.multiCall({
-      calls: [...Array(211).keys()].map((i) => ({
+      calls: [...Array(Number(allPoolsLength)).keys()].map((i) => ({
         target: PoolFactory,
         params: [i],
       })),
@@ -181,12 +182,22 @@ const apyV2 = async () => {
     const p0 = prices[`optimism:${meta.t0}`]?.price;
     const p1 = prices[`optimism:${meta.t1}`]?.price;
 
-    const tvlUsd = r0 * p0 + r1 * p1;
+    const price0 = p0 || 0;
+    const price1 = p1 || 0;
+
+    const tvlUsd =
+      price0 === 0 && price1 === 0
+        ? 0
+        : price0 === 0
+        ? r1 * price1 * 2
+        : price1 === 0
+        ? r0 * price0 * 2
+        : r0 * price0 + r1 * price1;
 
     const symbol = symbols[i].split('-')[1];
 
-    const now = feeBalanceNow[i].output.map((o) => o.output);
-    const prior = feeBalancePrior[i].output.map((o) => o.output);
+    const now = feeBalanceNow[i].output.map((o) => Number(o.output));
+    const prior = feeBalancePrior[i].output.map((o) => Number(o.output));
 
     let apyBase;
     if (!feeBalancePriorReset) {
@@ -194,7 +205,9 @@ const apyV2 = async () => {
       const t1FeeUsd = ((now[1] - prior[1]) / meta.dec1) * p1;
       apyBase = (((t0FeeUsd + t1FeeUsd) * 365) / tvlUsd) * 100;
     } else {
-      const priorReset = feeBalancePriorReset[i].output.map((o) => o.output);
+      const priorReset = feeBalancePriorReset[i].output.map((o) =>
+        Number(o.output)
+      );
 
       const t0FeeUsd = ((priorReset[0] - prior[0] + now[0]) / meta.dec0) * p0;
       const t1FeeUsd = ((priorReset[1] - prior[1] + now[1]) / meta.dec1) * p1;
@@ -222,7 +235,7 @@ const apyV2 = async () => {
     return {
       pool: p,
       chain: 'Optimism',
-      project: 'velodrome',
+      project,
       symbol: utils.formatSymbol(symbol),
       tvlUsd,
       apyBase,
@@ -236,4 +249,7 @@ const apyV2 = async () => {
   return pools.filter((p) => utils.keepFinite(p));
 };
 
-module.exports = apyV2;
+module.exports = {
+  timetravel: false,
+  apy,
+};

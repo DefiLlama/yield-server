@@ -190,7 +190,7 @@ const apy = async () => {
 
       return {
         pool: `${pool.aToken.id}-${chain}`.toLowerCase(),
-        chain: utils.formatChain(chain),
+        chain: utils.formatChain('zksync_era'),
         project: 'zerolend',
         symbol: pool.symbol,
         tvlUsd,

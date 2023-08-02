@@ -100,10 +100,13 @@ const getApy = async () => {
 
     const price0 = p0 || 0;
     const price1 = p1 || 0;
+
     const tvlUsd =
-      re0 === 0
+      price0 === 0 && price1 === 0
+        ? 0
+        : price0 === 0
         ? re1 * price1 * 2
-        : re1 === 0
+        : price1 === 0
         ? re0 * price0 * 2
         : re0 * price0 + re1 * price1;
 

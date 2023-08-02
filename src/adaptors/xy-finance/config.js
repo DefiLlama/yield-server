@@ -231,7 +231,7 @@ const RPC_ENDPOINTS = {
   250: 'https://rpc.ankr.com/fantom',
   25: 'https://rpc.vvs.finance',
   42161: 'https://endpoints.omniatech.io/v1/arbitrum/one/public',
-  10: 'https://endpoints.omniatech.io/v1/op/mainnet/public',
+  10: 'https://optimism.api.onfinality.io/public',
   108: 'https://mainnet-rpc.thundercore.com',
   43114: 'https://rpc.ankr.com/avalanche',
   321: 'https://rpc-mainnet.kcc.network',
