@@ -25,7 +25,7 @@ const getPrices = async (addresses) => {
     'era:0x9793eac2fecef55248efa039bec78e82ac01cb2f': {
       decimals: 18,
       symbol: 'earlyZERO',
-      price: 0.00003,
+      price: 0.000003,
       timestamp: Date.now(),
       confidence: 0.99,
     },
