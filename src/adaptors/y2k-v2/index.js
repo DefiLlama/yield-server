@@ -163,20 +163,17 @@ const getApy = async () => {
 
   var pools = [];
   for (let i = 0; i < vaults.length; i += 1) {
-    let roiSum = 0;
-    let totalEpochs = 0;
-    for (let j = 0; j < claimTVLs[vaults[i]].length; j += 1) {
+    let lastRoi = 0;
+    for (let j = claimTVLs[vaults[i]].length - 1; j >= 0; j -= 1) {
       const finalTVL = Number(finalTVLs[vaults[i]][j]);
       const claimTVL = Number(claimTVLs[vaults[i]][j]);
       if (finalTVL == 0) {
         continue;
       }
-      const epochRoi = (claimTVL / finalTVL - 1) * 100;
-      roiSum += epochRoi;
-      totalEpochs += 1;
+      lastRoi = (claimTVL / finalTVL - 1) * 100;
+      break;
     }
-    const roi = totalEpochs == 0 ? 0 : roiSum / totalEpochs;
-    const apy = 100 * ((1 + roi / 100) ** (ONE_YEAR_HOURS / ONE_EPOCH_HOURS) - 1);
+    const apy = 100 * ((1 + lastRoi / 100) ** (ONE_YEAR_HOURS / ONE_EPOCH_HOURS) - 1);
 
     const tokenLocked = Number(tokenBalances[vaults[i]]) / Math.pow(10, 18);
     const tokenPrice = prices[assets[i].toLowerCase()];
@@ -189,6 +186,7 @@ const getApy = async () => {
       project: 'y2k-v2',
       symbol: symbols[i],
       apyBase: apy,
+      apyBase7d: apy,
       underlyingTokens: [assets[i]],
       tvlUsd,
       url: 'https://app.y2k.finance/market',
