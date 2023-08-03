@@ -6,6 +6,7 @@ const networkData = require('./network-data');
 const axios = require('axios');
 const utils = require('../utils');
 const { LendingPoolV2ABI, FeesManagerABI } = require('./ContractABIs');
+const { getUmamiVaultSharePrice } = require('./custom-prices/umami-vaults');
 
 const ENTITY_URL = process.env.VENDOR_FINANCE;
 
@@ -63,14 +64,39 @@ const getAvailableLiquidity = async (
 };
 
 const getTokenPriceInfo = async (tokens, network) => {
-  const tokenDataPromises = tokens.map((token) =>
-    utils.getData(
-      `https://coins.llama.fi/prices/current/${network.toLowerCase()}:${token.toLowerCase()}`
-    )
+  const umamiVaultAddresses = [
+    // glpUSDC
+    '0x727eD4eF04bB2a96Ec77e44C1a91dbB01B605e42',
+    // glpLINK
+    '0xe0A21a475f8DA0ee7FA5af8C1809D8AC5257607d',
+    // glpWETH
+    '0xbb84D79159D6bBE1DE148Dc82640CaA677e06126',
+    // glpWBTC
+    '0x6a89FaF99587a12E6bB0351F2fA9006c6Cd12257',
+    // glpUNI
+    '0x37c0705A65948EA5e0Ae1aDd13552BCaD7711A23',
+  ].map((address) => address.toLowerCase());
+  const umamiTokenAddresses = [];
+  const normalTokenDataPromises = [];
+  for (const token of tokens) {
+    if (umamiVaultAddresses.includes(token.toLowerCase())) {
+      const vaultPrice = await getUmamiVaultSharePrice(token, network);
+      umamiTokenAddresses.push(vaultPrice);
+    } else {
+      normalTokenDataPromises.push(
+        utils.getData(
+          `https://coins.llama.fi/prices/current/${network.toLowerCase()}:${token.toLowerCase()}`
+        )
+      );
+    }
+  }
+  const normalTokenDataArray = await Promise.all(normalTokenDataPromises);
+  const normalTokenData = normalTokenDataArray.map(
+    (tokenInfo) => tokenInfo.coins
   );
-  const tokenDataArray = await Promise.all(tokenDataPromises);
-  const tokenData = tokenDataArray.map((tokenInfo) => tokenInfo.coins);
-  return tokenData;
+  // Combine the normal tokens data with umami token addresses if present
+  const finalTokenData = [...normalTokenData, ...umamiTokenAddresses];
+  return finalTokenData;
 };
 
 const getLoanToValue = (lendTokenPriceObj, colTokenPriceObj, pool, poolFee) => {
@@ -123,7 +149,7 @@ const getSuppliedAndBorrowedUsd = async (
   // Calculated the total borrowed amount in $USD
   let totalBorrowed =
     parseFloat(pool.mintRatio / 10 ** 18) *
-    parseFloat(ethers.utils.formatUnits(colBalance, colDecimals.output));
+    parseFloat(ethers.utils.formatUnits(colBalance, colDecimals));
   const poolFee = Number(lendFee) / 10000 / 100;
   const protocolFee = pool.protocolFee / 1000000;
   const totalBorrowedAdjusted = (totalBorrowed *= 1 - protocolFee - poolFee);
@@ -132,7 +158,8 @@ const getSuppliedAndBorrowedUsd = async (
   // Calculates the total supplied amount (available lend balance + total borrowed) in $USD
   const lendBalanceUsd =
     lendTokenPrice *
-    parseFloat(ethers.utils.formatUnits(lendBalance, lendDecimals));
+    parseFloat(ethers.utils.formatUnits(lendBalance, lendDecimals)) *
+    (1 - protocolFee + poolFee);
   const totalSuppliedUsd = lendBalanceUsd + totalBorrowed;
   return { totalBorrowedUsd, totalSuppliedUsd, lendFee };
 };
