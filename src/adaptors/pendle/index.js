@@ -22,7 +22,7 @@ const chains = {
 
 const query = (chainId) => gql`
   {
-    markets(chainId: ${chainId}, limit: 20) {
+    markets(chainId: ${chainId}, limit: 100) {
       results {
         chainId
         aggregatedApy
