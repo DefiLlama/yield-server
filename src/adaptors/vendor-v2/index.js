@@ -162,7 +162,6 @@ const getPools = async () => {
         lendTokenDecimals,
         network
       );
-      if (availableLiquidity < 10000) continue;
       const { totalBorrowedUsd, totalSuppliedUsd, lendFee } =
         await getSuppliedAndBorrowedUsd(
           pool,
