@@ -15,6 +15,7 @@ const chains = {
   optimism: `${baseUrl}/ianlapham/optimism-post-regenesis`,
   celo: `${baseUrl}/jesse-sawa/uniswap-celo`,
   avax: `${baseUrl}/lynnshaoyu/uniswap-v3-avax`,
+  bsc: `${baseUrl}/ianlapham/uniswap-v3-bsc`,
 };
 
 const query = gql`
