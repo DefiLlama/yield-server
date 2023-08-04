@@ -1,3 +1,5 @@
+const sdk = require('@defillama/sdk');
+const axios = require('axios');
 const { ethers } = require('ethers');
 const { getProvider } = require('@defillama/sdk/build/general');
 const utils = require('../utils');
@@ -41,51 +43,19 @@ const rewardApr = (underlyingToken, stakingPool, rewardToken) => {
   return Number(apr);
 };
 
-const buildPool = (token, tokenPrices, liquidityPool, stakingPool) => {
-  const rewardTokenAddr = stakingPool.rewardToken;
-  const apyReward = rewardApr(
-    {
-      ...token,
-      price: tokenPrices[token.address].price,
-      exchangeRateCurrent: liquidityPool.exchangeRateCurrent,
-    },
-    stakingPool,
-    tokenPrices[rewardTokenAddr]
-  ).toFixed(6);
-
-  const poolData = {
-    pool: token.address,
-    chain: utils.formatChain('ethereum'), // All yield on Mainnet
-    project: 'across',
-    symbol: utils.formatSymbol(token.symbol),
-    tvlUsd:
-      (token.price * Number(liquidityPool.totalPoolSize)) /
-      10 ** token.decimals,
-    underlyingTokens: [token.address],
-    apyBase: Number(liquidityPool.estimatedApy) * 100,
-  };
-
-  if (apyReward > 0.0) {
-    poolData['rewardTokens'] = [rewardTokenAddr];
-    poolData['apyReward'] = apyReward;
-  }
-
-  return poolData;
-};
-
 const queryLiquidityPool = async (l1TokenAddr) => {
-  return await utils.getData(
-    `https://across.to/api/pools?token=${l1TokenAddr}`
-  );
+  return (await axios.get(`https://across.to/api/pools?token=${l1TokenAddr}`))
+    .data;
 };
 
 const queryLiquidityPools = async (l1TokenAddrs) => {
   const pools = await Promise.all(
     l1TokenAddrs.map((l1TokenAddr) => queryLiquidityPool(l1TokenAddr))
   );
+
   return Object.fromEntries(
-    pools.map((pool) => {
-      return [pool.l1Token.toLowerCase(), pool];
+    pools.map((pool, i) => {
+      return [l1TokenAddrs[i].toLowerCase(), pool];
     })
   );
 };
@@ -111,20 +81,6 @@ const queryStakingPools = async (provider, lpTokenAddrs) => {
   };
 };
 
-const l1TokenPrices = async (l1TokenAddrs) => {
-  const l1TokenQuery = l1TokenAddrs.map((addr) => `ethereum:${addr}`).join();
-  const data = await utils.getData(
-    `https://coins.llama.fi/prices/current/${l1TokenQuery}`
-  );
-
-  return Object.fromEntries(
-    l1TokenAddrs.map((addr) => {
-      const { decimals, price } = data.coins[`ethereum:${addr}`];
-      return [addr, { price, decimals }];
-    })
-  );
-};
-
 const main = async () => {
   const provider = getProvider('ethereum');
 
@@ -134,28 +90,58 @@ const main = async () => {
   const tokenAddrs = Object.values(tokens).map((token) => token.address);
   const lpTokenAddrs = Object.values(tokens).map((token) => token.lpAddress);
 
-  const [liquidityPools, stakingPools, tokenPrices] = await Promise.all([
+  const [totalSupplyRes, decimalsRes] = await Promise.all(
+    ['erc20:totalSupply', 'erc20:decimals'].map(
+      async (m) =>
+        await sdk.api.abi.multiCall({
+          calls: lpTokenAddrs.map((i) => ({ target: i })),
+          abi: m,
+        })
+    )
+  );
+  const totalSupply = totalSupplyRes.output.map((o) => o.output);
+  const decimals = decimalsRes.output.map((o) => o.output);
+
+  const keys = tokenAddrs.map((addr) => `ethereum:${addr}`).join();
+  const tokenPrices = (
+    await axios.get(`https://coins.llama.fi/prices/current/${keys}`)
+  ).data.coins;
+
+  const [liquidityPools, stakingPools] = await Promise.all([
     queryLiquidityPools(tokenAddrs),
     queryStakingPools(provider, lpTokenAddrs),
-    l1TokenPrices(tokenAddrs),
   ]);
 
-  return Object.entries(tokens).map(([symbol, token]) => {
-    const { address } = token;
-    return buildPool(
+  return Object.entries(tokens).map((token, i) => {
+    const underlying = token[1].address;
+    const rewardToken = stakingPools.rewardToken;
+
+    const underlyingPrice = tokenPrices[`ethereum:${underlying}`]?.price;
+
+    const tvlUsd = (underlyingPrice * totalSupply[i]) / 10 ** decimals[i];
+
+    const apyReward = rewardApr(
       {
-        address,
-        symbol,
-        decimals: tokenPrices[address].decimals,
-        price: tokenPrices[address].price,
+        ...token,
+        price: underlyingPrice,
+        exchangeRateCurrent: liquidityPools[underlying].exchangeRateCurrent,
+        decimals: decimals[i],
       },
-      tokenPrices,
-      liquidityPools[address],
-      {
-        rewardToken: stakingPools.rewardToken,
-        ...stakingPools.pools[token.lpAddress],
-      }
+      stakingPools.pools[lpTokenAddrs[i]],
+      tokenPrices[`ethereum:${rewardToken}`]
     );
+
+    return {
+      pool: underlying, // should be changed to lp token
+      chain: 'Ethereum',
+      project: 'across',
+      symbol: utils.formatSymbol(token[0]),
+      tvlUsd,
+      underlyingTokens: [underlying],
+      apyBase: Number(liquidityPools[underlying].estimatedApy) * 100,
+      apyReward: apyReward > 0 ? apyReward : 0,
+      rewardTokens: apyReward > 0 ? [rewardToken] : null,
+    };
   });
 };
 
