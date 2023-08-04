@@ -11,6 +11,8 @@ const pairFactory = '0xce9240869391928253ed9cc9bcb8cb98cb5b0722';
 const voter = '0xc72b5c6d2c33063e89a50b2f77c99193ae6cee6c';
 const CHR = '0x15b2fb8f08e4ac1ce019eadae02ee92aedf06851';
 
+const project = 'chronos-v1';
+
 const getApy = async () => {
   const allPairsLength = (
     await sdk.api.abi.call({
@@ -134,7 +136,7 @@ const getApy = async () => {
     return {
       pool: p,
       chain: utils.formatChain('arbitrum'),
-      project: 'chronos',
+      project,
       symbol: utils.formatSymbol(s.split('-')[1]),
       tvlUsd,
       apyReward,
