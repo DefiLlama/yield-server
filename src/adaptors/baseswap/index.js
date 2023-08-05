@@ -140,7 +140,7 @@ const topLvl = async (
   // calculate apy
   dataNow = dataNow.map((el) => utils.apy(el, dataPrior, dataPrior7d, version));
 
-  return dataNow.map((p) => {
+  dataNow = dataNow.map((p) => {
     const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
     const underlyingTokens = [p.token0.id, p.token1.id];
     const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
@@ -179,6 +179,11 @@ const topLvl = async (
       volumeUsd7d: p.volumeUSD7d,
     };
   });
+
+  // return only pools with apyReward > 0
+  dataNow = dataNow.filter((el) => el.apyReward > 0);
+
+  return dataNow;
 };
 
 const main = async (timestamp = null) => {
