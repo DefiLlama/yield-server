@@ -17,7 +17,9 @@ const getApy = async () => {
   const pools = [];
   for (const token of tokens) {
     const tokenPools = data.pools[token];
-    const chains = Object.keys(tokenPools).filter((c) => !['nova'].includes(c));
+    const chains = Object.keys(tokenPools).filter(
+      (c) => !['nova', 'base'].includes(c)
+    );
 
     for (chain of chains) {
       const config = coreConfig[token][chain];

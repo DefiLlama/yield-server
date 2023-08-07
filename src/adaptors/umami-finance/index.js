@@ -1,13 +1,16 @@
 const superagent = require('superagent');
 const axios = require('axios');
 const { request, gql } = require('graphql-request');
-
-const UMAMI_GRAPH_URL =
-  'https://api.thegraph.com/subgraphs/name/umamidao/protocol-metrics';
-const UMAMI_API_URL = 'https://api.umami.finance/api/v2';
-const UMAMI_ADDRESS = '0x1622bf67e6e5747b81866fe0b85178a93c7f86e3';
-const mUMAMI_ADDRESS = '0x2adabd6e8ce3e82f52d9998a7f64a90d294a92a4';
-const cmUMAMI_ADDRESS = '0x1922c36f3bc762ca300b4a46bb2102f84b1684ab';
+const {
+  UMAMI_ADDRESS,
+  mUMAMI_ADDRESS,
+  cmUMAMI_ADDRESS,
+  UMAMI_GRAPH_URL,
+  UMAMI_API_URL,
+  wETH_ADDRESS,
+} = require('./umamiConstants');
+const { getUmamiGlpVaultsYield } = require('./umamiVaults');
+const { WETH } = require('../unsheth/contract_addresses');
 
 const tokenSupplyQuery = gql`
   {
@@ -36,18 +39,26 @@ const main = async () => {
   const mUMAMI = {
     pool: mUMAMI_ADDRESS,
     tvlUsd: +(parseFloat(marinating) * umamiPriceUSD),
-    apy: +metrics[0].value,
-    symbol: 'UMAMI',
+    apyBase: +metrics[0].value,
+    symbol: 'mUMAMI',
+    rewardTokens: [wETH_ADDRESS],
+    underlyingTokens: [UMAMI_ADDRESS],
+    url: 'https://umami.finance/marinate',
   };
 
   const cmUMAMI = {
     pool: cmUMAMI_ADDRESS,
     tvlUsd: +(parseFloat(compounding) * umamiPriceUSD),
-    apy: +metrics[1].value,
-    symbol: 'mUMAMI',
+    apyBase: +metrics[1].value,
+    symbol: 'cmUMAMI',
+    rewardTokens: [UMAMI_ADDRESS],
+    underlyingTokens: [UMAMI_ADDRESS],
+    url: 'https://umami.finance/marinate',
   };
 
-  return [mUMAMI, cmUMAMI].map((strat) => ({
+  const vaults = await getUmamiGlpVaultsYield();
+
+  return [mUMAMI, cmUMAMI, ...vaults].map((strat) => ({
     ...strat,
     chain: 'Arbitrum',
     project: 'umami-finance',

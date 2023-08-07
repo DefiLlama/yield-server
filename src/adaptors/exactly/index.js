@@ -127,8 +127,7 @@ const apy = async () =>
                   chain,
                 });
                 /** @type number */
-                const rewardUsd = rewardsPrices[reward.toLowerCase()];
-
+                const rewardUSD = rewardsPrices[reward.toLowerCase()];
                 const firstMaturity = configStart - (configStart % INTERVAL) + INTERVAL;
                 const maxMaturity = timestampNow - (timestampNow % INTERVAL) + INTERVAL + maxFuturePools[i] * INTERVAL;
                 const rewardMaturities = Array.from(
@@ -155,7 +154,7 @@ const apy = async () =>
                     totalFloatingBorrowAssets[i] + fixedDebt > 0
                       ? (projectedBorrowIndex - borrowIndex) *
                         ((totalFloatingBorrowShares[i] + previewRepay) / baseUnit) *
-                        (rewardUsd / 1e18) *
+                        (rewardUSD / 1e18) *
                         (baseUnit / (((totalFloatingBorrowAssets[i] + fixedDebt) * usdUnitPrice) / 1e18)) *
                         (365 * 24)
                       : 0,
@@ -163,16 +162,15 @@ const apy = async () =>
                     totalAssets[i] > 0
                       ? (projectedDepositIndex - depositIndex) *
                         (totalSupply[i] / baseUnit) *
-                        (rewardUsd / 1e18) *
+                        (rewardUSD / 1e18) *
                         (baseUnit / ((totalAssets[i] * usdUnitPrice) / 1e18)) *
                         (365 * 24)
                       : 0,
                 };
               })
             );
-
-            aprReward = rates.reduce((min, { deposit }) => (deposit < min ? deposit : min), rates[0].deposit) / 1e16;
-            aprRewardBorrow = rates.reduce((min, { borrow }) => (borrow < min ? borrow : min), rates[0].borrow) / 1e16;
+            aprReward = rates.reduce((sum, { deposit }) => sum + deposit, 0) / 1e16;
+            aprRewardBorrow = rates.reduce((sum, { borrow }) => sum + borrow, 0) / 1e16;
           }
 
           /** @type {Pool} */

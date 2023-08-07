@@ -1,6 +1,6 @@
 const { request, gql } = require('graphql-request');
 
-const { getLpTokens } = require('./utils')
+const { getLpTokens } = require('./utils');
 const utils = require('../utils');
 
 const url =
@@ -73,8 +73,14 @@ const getLpFeesAndApr = (volumeUSD, volumeUSDWeek, liquidityUSD) => {
 
 const farmApy = (entry) => {
   entry = { ...entry };
-  const index = ZERO_FEE_PAIRS.findIndex((v) => v.toLocaleLowerCase() === entry.stakeToken.id.toLocaleLowerCase());
-  if (index > -1 || !entry.lpTokenInfo || entry.lpTokenInfo.reserveUSD === '0') {
+  const index = ZERO_FEE_PAIRS.findIndex(
+    (v) => v.toLocaleLowerCase() === entry.stakeToken.id.toLocaleLowerCase()
+  );
+  if (
+    index > -1 ||
+    !entry.lpTokenInfo ||
+    entry.lpTokenInfo.reserveUSD === '0'
+  ) {
     entry['apy'] = 0;
     return entry;
   }
@@ -105,8 +111,6 @@ const main = async (timestamp = null) => {
 
   // calculate APY
   const data = dataNow.map((el) => farmApy(el));
-  console.log('data', data)
-
   const pools = data.map((p) => {
     let symbol;
     let underlyingTokens;
@@ -131,7 +135,7 @@ const main = async (timestamp = null) => {
       apyReward: Number(p.APR) * 100,
       apyBase: Number(p.apy),
       underlyingTokens,
-      poolMeta: `Stake ${symbol}, Earn ${p.rewardToken.symbol}`
+      poolMeta: `Stake ${symbol}, Earn ${p.rewardToken.symbol}`,
     };
   });
 

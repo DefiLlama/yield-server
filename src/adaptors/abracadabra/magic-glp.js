@@ -223,7 +223,7 @@ const getApy = async () => {
         symbol: utils.formatSymbol('magicGLP'),
         tvlUsd:
           (magicGlpTotalAssets[chain] / 10 ** glp.decimals) * glpPrice[chain],
-        apy: magicGlpApy * 100,
+        apyBase: magicGlpApy * 100,
         underlyingTokens: [glp.address],
       };
     }

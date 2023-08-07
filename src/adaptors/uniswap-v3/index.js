@@ -13,6 +13,9 @@ const chains = {
   polygon: `${baseUrl}/ianlapham/uniswap-v3-polygon`,
   arbitrum: `${baseUrl}/ianlapham/arbitrum-dev`,
   optimism: `${baseUrl}/ianlapham/optimism-post-regenesis`,
+  celo: `${baseUrl}/jesse-sawa/uniswap-celo`,
+  avax: `${baseUrl}/lynnshaoyu/uniswap-v3-avax`,
+  bsc: `${baseUrl}/ianlapham/uniswap-v3-bsc`,
 };
 
 const query = gql`
@@ -105,6 +108,15 @@ const topLvl = async (
           `1e${p.token1.decimals}`,
       };
     });
+
+    // balance calls not working on the uni v3 avax contracts
+    if (chainString === 'avax') {
+      dataNow = dataNow.map((p) => ({
+        ...p,
+        reserve0: Number(p.totalValueLockedToken0),
+        reserve1: Number(p.totalValueLockedToken1),
+      }));
+    }
 
     // pull 24h offset data to calculate fees from swap volume
     let queryPriorC = queryPrior;
