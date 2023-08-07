@@ -184,12 +184,15 @@ const pools = async (addresses_) => {
 };
 
 const conicApy = async () => {
-  const addresses_ = await addresses();
+  const addresses_ = (await addresses()).filter(
+    (a) => a !== '0xb652710eab40B6Ed32D6c32053fC37eF234562c2'
+  );
   const [pools_, inflationRate_, cncPrice_] = await Promise.all([
     pools(addresses_),
     inflationRate(),
     priceCoin(CNC),
   ]);
+
   const cncUsdPerYear = bnToNum(inflationRate_) * cncPrice_ * 365 * 86400;
   const totalTvl = pools_.reduce((total, pool_) => {
     return total + pool_.totalUnderlying * pool_.price;
