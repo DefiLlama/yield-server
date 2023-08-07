@@ -4,15 +4,15 @@ const abi = require('./abis/abi.json');
 
 // Fantom
 const tokenAddressMPXFantom = '0x66eEd5FF1701E6ed8470DC391F05e27B1d0657eb';
-const mlpManagerAddressFantom = '0xA3Ea99f8aE06bA0d9A6Cf7618d06AEa4564340E9';
+const mlpManagerAddressFantom = '0x3A15Bac2D87C89F08147353fc9aE27080631b73d';
 
 const feeMpxTrackerAddressFantom = '0x2D5875ab0eFB999c1f49C798acb9eFbd1cfBF63c';
 const stakedMpxTrackerAddressFantom =
   '0xa4157E273D88ff16B3d8Df68894e1fd809DbC007';
 
-const feeMlpTrackerAddressFantom = '0xd3C5dEd5F1207c80473D39230E5b0eD11B39F905';
+const feeMlpTrackerAddressFantom = '0x0Af7E9F3396423C30a4dF4a79882d118ea89e2F2';
 const stakedMlpTrackerAddressFantom =
-  '0x49A97680938B4F1f73816d1B70C3Ab801FAd124B';
+  '0xB30A97548551Ac8b185685FC25bF3564cE6E716D';
 
 // BNB Chain
 const tokenAddressMPXBSC = '0x94C6B279b5df54b335aE51866d6E2A56BF5Ef9b7';
@@ -138,7 +138,7 @@ async function getPoolMLP(
     ],
     underlyingTokens: [
       pChain === 'fantom'
-        ? '0xd5c313DE2d33bf36014e6c659F13acE112B80a8E'
+        ? '0xF476F7F88E70470c976d9DF7c5C003dB1E1980Cb'
         : '0xbd1dCEc2103675C8F3953c34aE40Ed907E1DCAC2',
     ],
   };
