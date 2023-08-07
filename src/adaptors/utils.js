@@ -13,7 +13,12 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'milkomeda_a1') return 'Milkomeda A1';
   if (chain && chain.toLowerCase() === 'boba_avax') return 'Boba_Avax';
   if (chain && chain.toLowerCase() === 'boba_bnb') return 'Boba_Bnb';
-  if (chain && (chain.toLowerCase() === 'zksync_era' || chain.toLowerCase() === 'zksync era')) return 'zkSync Era';
+  if (
+    chain &&
+    (chain.toLowerCase() === 'zksync_era' ||
+      chain.toLowerCase() === 'zksync era')
+  )
+    return 'zkSync Era';
   if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
@@ -177,9 +182,13 @@ exports.tvl = async (dataNow, networkString) => {
   prices = prices.coins;
 
   // calc tvl
+  const precision = 5;
   for (const el of dataNowCopy) {
     let price0 = prices[`${networkString}:${el.token0.id}`]?.price;
     let price1 = prices[`${networkString}:${el.token1.id}`]?.price;
+
+    price0 = price0 !== undefined ? Number(price0.toFixed(precision)) : price0;
+    price1 = price1 !== undefined ? Number(price1.toFixed(precision)) : price1;
 
     if (price0 !== undefined && price1 !== undefined) {
       tvl = Number(el.reserve0) * price0 + Number(el.reserve1) * price1;
