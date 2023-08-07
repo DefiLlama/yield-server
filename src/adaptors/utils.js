@@ -1,4 +1,5 @@
 const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const { chunk } = require('lodash');
 const sdk = require('@defillama/sdk');
@@ -175,11 +176,26 @@ exports.tvl = async (dataNow, networkString) => {
   }
   let idsSet = [...new Set(ids.flat())];
 
-  // pull token prices
-  let prices = await this.getData('https://coins.llama.fi/prices', {
-    coins: idsSet,
-  });
-  prices = prices.coins;
+  // price endpoint seems to break with too many tokens, splitting it to max 50 per request
+  const maxSize = 50;
+  const pages = Math.ceil(idsSet.length / maxSize);
+  let pricesA = [];
+  let x = '';
+  for (const p of [...Array(pages).keys()]) {
+    x = idsSet
+      .slice(p * maxSize, maxSize * (p + 1))
+      .join(',')
+      .replaceAll('/', '');
+    pricesA = [
+      ...pricesA,
+      (await axios.get(`https://coins.llama.fi/prices/current/${x}`)).data
+        .coins,
+    ];
+  }
+  let prices = {};
+  for (const p of pricesA.flat()) {
+    prices = { ...prices, ...p };
+  }
 
   // calc tvl
   const precision = 5;
