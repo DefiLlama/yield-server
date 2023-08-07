@@ -14,16 +14,22 @@ const apy = async () => {
     const maxLeverage =
       strategy.strategy_info.yield_info['Default'].maxLeverage;
 
-    const baseApy =
-      strategy.strategy_info?.additional_data?.priceRangeInfos?.find(
-        (x) => x.priceRangeType === 'Wide'
-      )?.apr ?? 0;
+    let baseApy;
+    try {
+      baseApy =
+        strategy?.strategy_info?.additional_data?.priceRangeInfos?.find(
+          (x) => x.priceRangeType === 'Wide'
+        )?.apr ?? 0;
+    } catch (err) {
+      console.log(err);
+      continue;
+    }
 
-    const feeBps = strategy.additional_info.feeBps;
+    const feeBps = strategy?.additional_info.feeBps;
     let poolMeta;
     if (feeBps) {
       poolMeta = `${(
-        (strategy.additional_info.feeBps / 10000) *
+        (strategy?.additional_info.feeBps / 10000) *
         100
       ).toLocaleString()}% (${
         strategy.exchange.name
