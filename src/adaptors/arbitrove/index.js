@@ -76,8 +76,7 @@ const getApy = async () => {
   }
 
   const troveRewardPerYear =
-    (42900 * 365 * trovePrice * alpStakedAmount) / 1e18 / alpPrice;
-  const aprReward = (trovePrice * troveRewardPerYear * 1e18) / alpTotalSupply;
+    (42900 * 365 * trovePrice * 1e18) / alpStakedAmount / alpPrice;
   const alpTotalSupplyUsd = (alpTotalSupply / 1e18) * alpPrice;
 
   return [
@@ -87,7 +86,7 @@ const getApy = async () => {
       project: 'arbitrove',
       symbol: 'ALP',
       tvlUsd: tvl,
-      apyReward: aprReward,
+      apyReward: troveRewardPerYear * 100,
       totalSupplyUsd: alpTotalSupplyUsd,
       poolMeta: 'ALP',
       rewardTokens: [troveAddress],
