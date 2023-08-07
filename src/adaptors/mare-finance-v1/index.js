@@ -222,5 +222,5 @@ const lendingApy = async () => {
 module.exports = {
   timetravel: false,
   apy: lendingApy,
-  url: 'https://mare.finance/',
+  url: 'v1.mare.finance',
 };

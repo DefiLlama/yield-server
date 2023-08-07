@@ -35,7 +35,7 @@ const volumesQuery = gql`
 
 const aprQuery = gql`
   query Apr {
-    assets {
+    assets(where: { id_not: "0x0000000000000000000000000000000000000000" }) {
       id
       symbol
       liabilityUSD
