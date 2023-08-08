@@ -11,6 +11,7 @@ const getTvlPerLSD = async (ticker) => {
     query getDepositAmount($ticker:String!) {
       liquidStakingNetworks(where:{ticker:$ticker}){
         savETHPool
+        id
       }
       protectedDeposits(where:{liquidStakingNetwork_:{ticker:$ticker},validator_:{status_not:"BANNED"}}){
         totalDeposit
@@ -25,7 +26,9 @@ const getTvlPerLSD = async (ticker) => {
         }
       }
       nodeRunners(where:{liquidStakingNetworks_:{ticker:$ticker},validators_:{status_not:"BANNED"}}){
-        id
+        validators(where:{status_not:"BANNED"}){
+          id
+        }
       }
     }
   `
@@ -43,10 +46,17 @@ const getTvlPerLSD = async (ticker) => {
     for (let i=0; i<response.protectedDeposits.length; ++i) {
       tvl = tvl.add(ethers.BigNumber.from(response.protectedDeposits[i].totalDeposit));
     }
+    let feesAndMevtotalDeposit = ethers.BigNumber.from("0");
     for (let i=0; i<response.feesAndMevDeposits.length; ++i) {
       tvl = tvl.add(ethers.BigNumber.from(response.feesAndMevDeposits[i].totalDeposit));
+      feesAndMevtotalDeposit = feesAndMevtotalDeposit.add(ethers.BigNumber.from(response.feesAndMevDeposits[i].totalDeposit));
     }
-    const nodeOperatorDeposit = ethers.BigNumber.from("4000000000000000000").mul(response.nodeRunners.length);
+    let nodeOperatorDeposit = ethers.BigNumber.from("0");
+    for (let i=0; i<response.nodeRunners.length; ++i) {
+      for (let j=0; j<response.nodeRunners[i].validators.length; ++j) {
+        nodeOperatorDeposit = nodeOperatorDeposit.add(ethers.BigNumber.from("4000000000000000000"));
+      }
+    }
     tvl = tvl.add(nodeOperatorDeposit);
   }
 
