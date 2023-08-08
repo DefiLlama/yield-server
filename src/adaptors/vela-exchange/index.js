@@ -36,7 +36,6 @@ const poolsFunction = async () => {
     poolMeta: 'VLP',
     tvlUsd: (Number(totalSupply) / 1e18) * (Number(VLP_Price) / 1e6),
     apyBase: APR.VLP_APR,
-    rewardTokens: [BRIDGED_USDC_ADDRESS],
     underlyingTokens: [BRIDGED_USDC_ADDRESS]
   };
 
