@@ -1,0 +1,40 @@
+{
+  "totalSupply": {
+    "inputs": [],
+    "name": "totalSupply",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  "getTargets": {
+    "inputs": [],
+    "name": "getTargets",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "coin",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "weight",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct CoinWeight[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+}
