@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk4');
 const { request, gql } = require('graphql-request');
 const superagent = require('superagent');
 
@@ -16,6 +16,7 @@ const chains = {
   celo: `${baseUrl}/jesse-sawa/uniswap-celo`,
   avax: `${baseUrl}/lynnshaoyu/uniswap-v3-avax`,
   bsc: `${baseUrl}/ianlapham/uniswap-v3-bsc`,
+  base: 'https://api.studio.thegraph.com/query/48211/uniswap-v3-base/version/latest',
 };
 
 const query = gql`
