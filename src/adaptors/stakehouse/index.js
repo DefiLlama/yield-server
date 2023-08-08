@@ -13,19 +13,19 @@ const getTvlPerLSD = async (ticker) => {
         savETHPool
         id
       }
-      protectedDeposits(where:{liquidStakingNetwork_:{ticker:$ticker},validator_:{status_not:"BANNED"}}){
+      protectedDeposits(where:{liquidStakingNetwork_:{ticker:$ticker},validator_:{status_not_in:["BANNED","WITHDRAWN"]}}){
         totalDeposit
         liquidStakingNetwork{
           savETHPool
         }
       }
-      feesAndMevDeposits(where:{liquidStakingNetwork_:{ticker:$ticker},validator_:{status_not:"BANNED"}}){
+      feesAndMevDeposits(where:{liquidStakingNetwork_:{ticker:$ticker},validator_:{status_not_in:["BANNED","WITHDRAWN"]}}){
         totalDeposit
         liquidStakingNetwork{
           savETHPool
         }
       }
-      nodeRunners(where:{liquidStakingNetworks_:{ticker:$ticker},validators_:{status_not:"BANNED"}}){
+      nodeRunners(where:{liquidStakingNetworks_:{ticker:$ticker},validators_:{status_not_in:["BANNED","WITHDRAWN"]}}){
         validators(where:{status_not:"BANNED"}){
           id
         }
