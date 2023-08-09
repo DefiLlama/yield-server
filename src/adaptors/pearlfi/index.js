@@ -5,8 +5,8 @@ const utils = require('../utils');
 const abiPairFactory = require('./abis/PairFactory.json');
 const abiPairAPI = require('./abis/PairAPI.json');
 
-const PAIR_FACTORY_ADDRESS = '0xd541Bc203Cc2B85810d9b8E6a534eed1615528E2';
-const PAIR_API_ADDRESS = '0x867E95fADE0Dd1F1Fe62BA1B3DE6f9C8b6Da0214';
+const PAIR_FACTORY_ADDRESS = '0xEaF188cdd22fEEBCb345DCb529Aa18CA9FcB4FBd';
+const PAIR_API_ADDRESS = '0xa6E13F76632A5c6c007Da0Fc00e8659fCEB7Bb66';
 const PEARL_ADDRESS = '0x7238390d5f6F64e67c3211C343A410E2A3DEc142';
 const CHAIN_NAME = 'polygon';
 
