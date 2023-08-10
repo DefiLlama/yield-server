@@ -4,7 +4,6 @@ const { request, gql } = require('graphql-request');
 const { chunk } = require('lodash');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
-const reserve = require('./reserve');
 
 exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'xdai') return 'Gnosis';
@@ -128,7 +127,6 @@ exports.getBlocks = async (
       : Math.floor(Date.now() / 1000);
 
   const timestampPrior = timestamp - offset;
-
   let [block, blockPrior] = await this.getBlocksByTime(
     [timestamp, timestampPrior],
     chainString
@@ -167,24 +165,11 @@ exports.tvl = async (dataNow, networkString) => {
   // changing the string for avax so it matches the defillama price api
   networkString = networkString === 'avalanche' ? 'avax' : networkString;
   // make copy
-  const dataNowCopy = dataNow.map((el) => JSON.parse(JSON.stringify(el)));
-  const dataNowCopyMod = dataNow.map((el) => JSON.parse(JSON.stringify(el)));
-
-  dataNowCopyMod.forEach((pool) => {
-    if (pool.token0.id == '0x1dd2d631c92b1aCdFCDd51A0F7145A50130050C4') {
-      pool.token0.id = pool.token1.id;
-      pool.token0.symbol = pool.token1.symbol;
-      pool.reserve0 = pool.reserve1;
-    } else if (pool.token1.id == '0x1dd2d631c92b1aCdFCDd51A0F7145A50130050C4') {
-      pool.token1.id = pool.token0.id;
-      pool.token1.symbol = pool.token0.symbol;
-      pool.reserve1 = pool.reserve0;
-    }
-  });
+  const dataNowCopy = dataNow.map((el) => ({ ...el }));
 
   // extract unique token id's
   const ids = [];
-  for (const e of dataNowCopyMod) {
+  for (const e of dataNowCopy) {
     ids.push([
       `${networkString}:${e.token0.id}`,
       `${networkString}:${e.token1.id}`,
@@ -215,7 +200,7 @@ exports.tvl = async (dataNow, networkString) => {
 
   // calc tvl
   const precision = 5;
-  for (const [idx, el] of dataNowCopyMod.entries()) {
+  for (const el of dataNowCopy) {
     let price0 = prices[`${networkString}:${el.token0.id}`]?.price;
     let price1 = prices[`${networkString}:${el.token1.id}`]?.price;
 
@@ -232,9 +217,9 @@ exports.tvl = async (dataNow, networkString) => {
       tvl = 0;
     }
 
-    dataNowCopy[idx]['totalValueLockedUSD'] = tvl;
-    dataNowCopy[idx]['price0'] = price0;
-    dataNowCopy[idx]['price1'] = price1;
+    el['totalValueLockedUSD'] = tvl;
+    el['price0'] = price0;
+    el['price1'] = price1;
   }
 
   return dataNowCopy;
@@ -292,15 +277,6 @@ exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
   // calc apy
   pool['apy1d'] = (pool.feeUSDyear1d / pool.totalValueLockedUSD) * 100;
   pool['apy7d'] = (pool.feeUSDyear7d / pool.totalValueLockedUSD) * 100;
-
-  // console.log("pool['volumeUSDPrior1d']", pool['volumeUSDPrior1d']);
-  // console.log("pool['volumeUSDPrior7d']", pool['volumeUSDPrior7d']);
-  // console.log("pool['feeUSD1d']", pool['feeUSD1d']);
-  // console.log("pool['feeUSD7d']", pool['feeUSD7d']);
-  // console.log("pool['feeUSDyear1d']", pool['feeUSDyear1d']);
-  // console.log("pool['feeUSDyear7d']", pool['feeUSDyear7d']);
-  // console.log("pool['apy1d']", pool['apy1d']);
-  // console.log("pool['apy7d']", pool['apy7d']);
 
   return pool;
 };

@@ -251,8 +251,37 @@ const topLvl = async (
   // pull data 7d offest
   let dataPrior7d = await getPoolDetails(blockPrior7d, poolInfo, chainString);
 
+  const dataNowOriginal = dataNow.map((el) => JSON.parse(JSON.stringify(el)));
+  const dataNowCopy = dataNow.map((el) => JSON.parse(JSON.stringify(el)));
+  dataNowCopy.forEach((pool) => {
+    if (pool.token0.id == '0x1dd2d631c92b1aCdFCDd51A0F7145A50130050C4') {
+      pool.token0.id = pool.token1.id;
+      pool.token0.symbol = pool.token1.symbol;
+      pool.reserve0 = pool.reserve1;
+    } else if (pool.token1.id == '0x1dd2d631c92b1aCdFCDd51A0F7145A50130050C4') {
+      pool.token1.id = pool.token0.id;
+      pool.token1.symbol = pool.token0.symbol;
+      pool.reserve1 = pool.reserve0;
+    }
+  });
+
   // calculate tvl
-  dataNow = await utils.tvl(dataNow, chainString);
+  dataNow = await utils.tvl(dataNowCopy, chainString);
+
+  const dataNowUpdated = dataNowOriginal.map((obj1) => {
+    const obj2 = dataNow.find((obj2) => obj2.id === obj1.id);
+    if (obj2) {
+      return {
+        ...obj1,
+        totalValueLockedUSD: obj2.totalValueLockedUSD,
+        price0: obj2.price0,
+        price1: obj2.price1,
+      };
+    }
+    return obj1;
+  });
+
+  console.log('dataNowUpdated', dataNowUpdated);
 
   // console.log(
   //   'TVL',
