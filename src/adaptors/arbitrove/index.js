@@ -56,10 +56,10 @@ const getApy = async () => {
           ).price;
     } else {
       const { output: tokenBalance } = await sdk.api.abi.call({
-        target: coin,
-        abi: 'erc20:balanceOf',
+        target: alpAddress,
+        abi: abi['getAmountAcrossStrategies'],
         chain: chains['arbitrum'],
-        params: [alpAddress],
+        params: [coin],
       });
       const { output: decimals } = await sdk.api.abi.call({
         target: coin,
