@@ -109,10 +109,7 @@ function mergeToPoolData(vault: Vault, performance: Performance): Promise<Pool> 
         underlyingTokens: tokens,
         rewardTokens: [],
         poolMeta: vault.vaultMeta,
-        apyBaseBorrow: 0,
-        apyRewardBorrow: 0,
         totalSupplyUsd: 0,
-        totalBorrowUsd: 0,
         ltv: 0,
     }
     return pool;
