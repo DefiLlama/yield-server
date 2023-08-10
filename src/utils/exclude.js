@@ -26,7 +26,6 @@ const excludeAdaptors = [
   'rodeo', // exploited
   'fairfi', // seems dead
   'mole', // needs to be reimplement
-  'pearlfi',
 ];
 
 const excludePools = [
