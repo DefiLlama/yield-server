@@ -36,5 +36,16 @@
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  "getAmountAcrossStrategies": {
+    "inputs": [
+      { "internalType": "address", "name": "coin", "type": "address" }
+    ],
+    "name": "getAmountAcrossStrategies",
+    "outputs": [
+      { "internalType": "uint256", "name": "value", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   }
 }
