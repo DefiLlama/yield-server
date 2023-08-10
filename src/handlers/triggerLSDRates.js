@@ -128,6 +128,13 @@ const lsdTokens = [
     type: r,
     fee: 0,
   },
+  {
+    name: 'Stader',
+    symbol: 'ETHx',
+    address: '0xcf5EA1b38380f6aF39068375516Daf40Ed70D299',
+    type: a,
+    fee: 0.1,
+  },
 ];
 
 const priceUrl = 'https://api.0x.org/swap/v1/quote';
@@ -278,6 +285,14 @@ const getExpectedRates = async () => {
     type: 'function',
   };
 
+  const ETHxAbi = {
+    inputs: [],
+    name: 'getExchangeRate',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
   // --- cbETH
   const cbETHRate = Number((await axios.get(cbETHRateUrl)).data.amount);
 
@@ -387,6 +402,15 @@ const getExpectedRates = async () => {
       })
     ).output / 1e18;
 
+  const ETHx =
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Stader').address,
+        chain: 'ethereum',
+        abi: ETHxAbi,
+      })
+    ).output / 1e18;
+
   return lsdTokens.map((lsd) => ({
     ...lsd,
     expectedRate:
@@ -410,6 +434,8 @@ const getExpectedRates = async () => {
         ? qETH
         : lsd.name === 'Bifrost Liquid Staking'
         ? vETH
+        : lsd.name === 'Stader'
+        ? ETHx
         : 1,
   }));
 };
