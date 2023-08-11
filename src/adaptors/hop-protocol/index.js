@@ -1,5 +1,5 @@
 const axios = require('axios');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk4');
 const { default: BigNumber } = require('bignumber.js');
 
 const utils = require('../utils');
@@ -18,7 +18,7 @@ const getApy = async () => {
   for (const token of tokens) {
     const tokenPools = data.pools[token];
     const chains = Object.keys(tokenPools).filter(
-      (c) => !['nova', 'base'].includes(c)
+      (c) => !['nova'].includes(c)
     );
 
     for (chain of chains) {
