@@ -136,12 +136,13 @@ const getApy = async () => {
   // one gauge might have multiple reward tokens
   const rewardTokensAndRates = await Promise.all(
     // get all reward tokens for each gauge
-    rewardsListLengthForGauges.map(async (i) => {
+    rewardsListLengthForGauges.map(async (i, index) => {
+      const gauge = gauges[index];
       return (
         await sdk.api.abi.multiCall({
           abi: abiGauge.find((m) => m.name === 'rewards'),
           calls: [...Array(Number(i ?? 0)).keys()].map((j) => ({
-            target: gauges[i],
+            target: gauge,
             params: [j],
           })),
           chain,
@@ -228,6 +229,9 @@ const getApy = async () => {
     // tvlUsd is used here instead of stakedUsd
     const apyReward = ((totalRewardPerDay * 365) / tvlUsd) * 100;
 
+    const rewardTokens = rewardTokensAndRates[i].map(([token]) =>
+      token.toLowerCase()
+    );
     return {
       pool: p,
       chain: utils.formatChain(chain),
@@ -235,9 +239,7 @@ const getApy = async () => {
       symbol: utils.formatSymbol(s.split('-')[1]),
       tvlUsd,
       apyReward,
-      rewardTokens: apyReward
-        ? rewardTokensAndRates[i].map(([token]) => token)
-        : [],
+      rewardTokens: apyReward ? [...new Set(rewardTokens)] : [],
       underlyingTokens: [poolMeta.t0, poolMeta.t1],
     };
   });
