@@ -99,7 +99,8 @@ const getLatestBlockSubgraph = async (url) => {
       'https://subgraph.satsuma-prod.com/09c9cf3574cc/orbital-apes/v3-subgraph/api'
     ) ||
     url.includes('api.goldsky.com') ||
-    url.includes('48211/uniswap-v3-base')
+    url.includes('48211/uniswap-v3-base') ||
+    url.includes('horizondex/block')
       ? await request(url, queryGraph)
       : await request(
           `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
