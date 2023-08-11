@@ -125,7 +125,7 @@ async function getTrancheTokenInfo(tokenAddress, glpApy, tokenInfo) {
       : highestJuniorRate;
 
   const highestAprHuman = highestApr / scalingFactor;
-  const tokenDepositsHuman = tokenDeposits / 10 ** tokenInfo.decimals;
+  const tokenDepositsHuman = tokenDeposits / 10 ** 18;
   const tvlUsd = tokenDepositsHuman * tokenInfo.price;
 
   const tokenData = tokens[tokenAddress];
