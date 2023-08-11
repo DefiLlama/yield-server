@@ -1,7 +1,7 @@
 const axios = require('axios');
 const utils = require('../utils');
 const { request, gql } = require('graphql-request');
-const { apy: gmxApy } = require('../gmx/index.js');
+const { apy: gmxApy } = require('../gmx-v1/index.js');
 
 const USDC_TOKEN_ADDRESS = '0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e';
 const BTCB_TOKEN_ADDRESS = '0x152b9d0FdC40C096757F570A51E494bd4b943E50';
@@ -125,7 +125,7 @@ async function getTrancheTokenInfo(tokenAddress, glpApy, tokenInfo) {
       : highestJuniorRate;
 
   const highestAprHuman = highestApr / scalingFactor;
-  const tokenDepositsHuman = tokenDeposits / 10 ** tokenInfo.decimals;
+  const tokenDepositsHuman = tokenDeposits / 10 ** 18;
   const tvlUsd = tokenDepositsHuman * tokenInfo.price;
 
   const tokenData = tokens[tokenAddress];
