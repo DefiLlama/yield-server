@@ -59,7 +59,7 @@ const poolsFunction = async () => {
     project: 'vela-exchange',
     symbol: 'USDC',
     poolMeta: 'VLP',
-    tvlUsd: (Number(totalSupply) / 1e18) * (Number(current) / 1e6),
+    tvlUsd: (Number(totalSupply) / 1e18) * (Number(current) / 1e5),
     apyBase: APR,
     underlyingTokens: [BRIDGED_USDC_ADDRESS],
   };
