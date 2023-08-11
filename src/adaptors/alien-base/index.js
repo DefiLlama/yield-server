@@ -52,8 +52,7 @@ const getPoolDetails = async (block, poolInfo, chainString) => {
 
   // console.log(poolInfo);
   for (let i = 0; i < poolInfo.length; i++) {
-    // for (let i = 0; i < 3; i++) {
-    // console.log(`\nreserves for [${poolInfo[i].lpToken}]`);
+    // SKIP LP OF ALB STANDALONE
     if (poolInfo[i].lpToken != '0x1dd2d631c92b1aCdFCDd51A0F7145A50130050C4') {
       const token0Id = (
         await sdk.api.abi.call({
@@ -62,10 +61,10 @@ const getPoolDetails = async (block, poolInfo, chainString) => {
           chain: chainString,
         })
       ).output;
-      const token0Name = (
+      const token0Symbol = (
         await sdk.api.abi.call({
           target: token0Id,
-          abi: poolAbi.find((m) => m.name === 'name'),
+          abi: poolAbi.find((m) => m.name === 'symbol'),
           chain: chainString,
         })
       ).output;
@@ -83,10 +82,10 @@ const getPoolDetails = async (block, poolInfo, chainString) => {
           chain: chainString,
         })
       ).output;
-      const token1Name = (
+      const token1Symbol = (
         await sdk.api.abi.call({
           target: token1Id,
-          abi: poolAbi.find((m) => m.name === 'name'),
+          abi: poolAbi.find((m) => m.name === 'symbol'),
           chain: chainString,
         })
       ).output;
@@ -133,11 +132,11 @@ const getPoolDetails = async (block, poolInfo, chainString) => {
           totalSupply: totalSupply,
           volumeUSD: 0,
           token0: {
-            symbol: token0Name,
+            symbol: token0Symbol,
             id: token0Id,
           },
           token1: {
-            symbol: token1Name,
+            symbol: token1Symbol,
             id: token1Id,
           },
         });
@@ -149,11 +148,11 @@ const getPoolDetails = async (block, poolInfo, chainString) => {
           totalSupply: 0,
           volumeUSD: 0,
           token0: {
-            symbol: token0Name,
+            symbol: token0Symbol,
             id: token0Id,
           },
           token1: {
-            symbol: token1Name,
+            symbol: token1Symbol,
             id: token1Id,
           },
         });
@@ -253,6 +252,7 @@ const topLvl = async (
 
   const dataNowOriginal = dataNow.map((el) => JSON.parse(JSON.stringify(el)));
   const dataNowCopy = dataNow.map((el) => JSON.parse(JSON.stringify(el)));
+
   dataNowCopy.forEach((pool) => {
     if (pool.token0.id == '0x1dd2d631c92b1aCdFCDd51A0F7145A50130050C4') {
       pool.token0.id = pool.token1.id;
@@ -281,15 +281,10 @@ const topLvl = async (
     return obj1;
   });
 
-  console.log('dataNowUpdated', dataNowUpdated);
-
-  // console.log(
-  //   'TVL',
-  //   dataNow.reduce((sum, obj) => sum + obj.totalValueLockedUSD, 0)
-  // );
-
   // calculate apy
-  dataNow = dataNow.map((el) => utils.apy(el, dataPrior, dataPrior7d, version));
+  dataNow = dataNowUpdated.map((el) =>
+    utils.apy(el, dataPrior, dataPrior7d, version)
+  );
 
   dataNow = dataNow.map((p) => {
     const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
