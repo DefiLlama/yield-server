@@ -11,42 +11,6 @@ const WETH = '0x4200000000000000000000000000000000000006';
 
 const utils = require('../utils');
 
-const url = 'https://api.thegraph.com/subgraphs/name/harleen-m/alienswap';
-const query = gql`
-  {
-    pairs(first: 1000, orderBy: trackedReserveETH, orderDirection: desc block: {number: <PLACEHOLDER>}) {
-      id
-      reserve0
-      reserve1
-      totalSupply
-      volumeUSD
-      token0 {
-        symbol
-        id
-      }
-      token1 {
-        symbol
-        id
-      }
-    }
-  }
-`;
-const queryPrior = gql`
-  {
-    pairs (first: 1000 orderBy: trackedReserveETH orderDirection: desc block: {number: <PLACEHOLDER>}) {
-      id
-      volumeUSD
-    }
-  }
-`;
-const queryAlbPrice = gql`
-  {
-    token(id: "<PLACEHOLDER>") {
-      derivedETH
-    }
-  }
-`;
-
 const getPoolDetails = async (block, poolInfo, chainString) => {
   const poolDetails = [];
 
@@ -163,14 +127,7 @@ const getPoolDetails = async (block, poolInfo, chainString) => {
   return poolDetails;
 };
 
-const topLvl = async (
-  chainString,
-  url,
-  query,
-  queryPrior,
-  version,
-  timestamp
-) => {
+const topLvl = async (chainString, version, timestamp) => {
   const poolLength = (
     await sdk.api.abi.call({
       target: masterchef,
@@ -216,28 +173,18 @@ const topLvl = async (
     await axios.get(`https://coins.llama.fi/prices/current/${wethPriceKey}`)
   ).data.coins[wethPriceKey]?.price;
 
-  // let queryAlbPriceC = queryAlbPrice;
-  // let albPrice = await request(
-  //   url,
-  //   queryAlbPriceC.replace('<PLACEHOLDER>', ALB)
-  // );
-  // albPrice = albPrice.token.derivedETH * wethPrice;
   albPrice = (
     await axios.get(`https://api.dexscreener.com/latest/dex/tokens/${ALB}`)
   ).data.pairs[0]?.priceUsd;
 
   const albPerYearUsd = albPerSec * 86400 * 365 * albPrice;
 
-  const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
-    chainString,
-    timestamp,
-    [url],
-  ]);
+  const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, []);
 
   const [_, blockPrior7d] = await utils.getBlocks(
     chainString,
     timestamp,
-    [url],
+    [],
     604800
   );
 
@@ -319,7 +266,7 @@ const topLvl = async (
       project: 'alien-base',
       symbol,
       tvlUsd: p.totalValueLockedUSD,
-      apyBase: 0,
+      apyBase: apyReward || 0,
       apyBase7d: 0,
       apyReward,
       rewardTokens: apyReward > 0 ? [ALB] : [],
@@ -337,7 +284,7 @@ const topLvl = async (
 };
 
 const main = async (timestamp = Date.now() / 1000) => {
-  let data = await topLvl('base', url, query, queryPrior, 'v2', timestamp);
+  let data = await topLvl('base', 'v2', timestamp);
 
   return data.filter((p) => utils.keepFinite(p));
 };
