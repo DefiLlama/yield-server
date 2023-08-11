@@ -21,8 +21,10 @@ const FVM = '0x07BB65fAaC502d4996532F834A1B7ba5dC32Ff96';
 // we'll need to update this if more options are added as there's no way to get the list of options from the contracts
 const optionTokenToGovToken = {
   [oFVM.toLowerCase()]: FVM.toLowerCase(), // oFVM - fvm
-  ['0xC5d4E462b96cC73283EB452B15147c17Af413313'.toLowerCase()]: '0x2A5E4c77F791c0174a717B644A53fc21A29790Cd'.toLowerCase(), // oBLOTR - blotr
-  ['0x269557D887EaA9C1a756B2129740B3FC2821fD91'.toLowerCase()]: '0xE5a4c0af6F5f7Ab5d6C1D38254bCf4Cc26d688ed'.toLowerCase(), // oBAY - bay
+  ['0xC5d4E462b96cC73283EB452B15147c17Af413313'.toLowerCase()]:
+    '0x2A5E4c77F791c0174a717B644A53fc21A29790Cd'.toLowerCase(), // oBLOTR - blotr
+  ['0x269557D887EaA9C1a756B2129740B3FC2821fD91'.toLowerCase()]:
+    '0xE5a4c0af6F5f7Ab5d6C1D38254bCf4Cc26d688ed'.toLowerCase(), // oBAY - bay
 };
 
 const getApy = async () => {
@@ -55,9 +57,9 @@ const getApy = async () => {
     })
   ).output.map((o) => o.output);
 
-  const tokens = [
-    ...new Set(metaData.map((m) => [m.t0, m.t1]).flat()),
-  ].map((t) => t.toLowerCase());
+  const tokens = [...new Set(metaData.map((m) => [m.t0, m.t1]).flat())].map(
+    (t) => t.toLowerCase()
+  );
 
   const priceKeys = tokens.map((i) => `${chain}:${i}`).join(',');
 
@@ -150,7 +152,7 @@ const getApy = async () => {
     // get reward rate of each reward token
     return await Promise.all(
       rewardTokensForGauges.map(async (rewardTokensOfGauge, index) => {
-        return (
+        const rates = (
           await sdk.api.abi.multiCall({
             abi: abiGauge.find((m) => m.name === 'rewardRate'),
             calls: rewardTokensOfGauge.map((rewardToken) => ({
@@ -160,6 +162,25 @@ const getApy = async () => {
             chain,
           })
         ).output.map((o) => o.output);
+
+        const left = (
+          await sdk.api.abi.multiCall({
+            abi: abiGauge.find((m) => m.name === 'left'),
+            calls: rewardTokensOfGauge.map((rewardToken) => ({
+              target: gauges[index],
+              params: [rewardToken],
+            })),
+            chain,
+          })
+        ).output.map((o) => o.output);
+
+        return rates.map((rate, index) => {
+          // if left is 0, the reward rate will be 0
+          if (left[index] === '0') {
+            return '0';
+          }
+          return rate;
+        });
       })
     ).then((rewardRatesForGauges) => {
       return rewardRatesForGauges.map((rewardRatesOfGauge, index) => {
