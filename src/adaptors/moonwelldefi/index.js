@@ -44,7 +44,7 @@ const getApy = async () => {
       return {
         pool: pool.id.toLowerCase(),
         chain: utils.formatChain('moonbeam'),
-        project: 'moonwell-artemis',
+        project: 'moonwelldefi',
         symbol: pool.underlyingSymbol,
         tvlUsd,
         apyBase: Number(pool.supplyRate),
