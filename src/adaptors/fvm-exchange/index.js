@@ -241,6 +241,7 @@ const getApy = async () => {
       apyReward,
       rewardTokens: apyReward ? [...new Set(rewardTokens)] : [],
       underlyingTokens: [poolMeta.t0, poolMeta.t1],
+      url: `https://www.fvm.exchange/liquidity/${p}`
     };
   });
 
