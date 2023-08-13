@@ -258,7 +258,7 @@ const topLvl = async (chainString, version, timestamp) => {
         (p.totalValueLockedUSD * ratio)) *
       100;
 
-    const apyReward = albApyReward || 0;
+    const apyReward = albApyReward ? albApyReward * 0.85 : 0;
 
     return {
       pool: p.id,
