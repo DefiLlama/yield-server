@@ -229,9 +229,9 @@ const getApy = async () => {
     // tvlUsd is used here instead of stakedUsd
     const apyReward = ((totalRewardPerDay * 365) / tvlUsd) * 100;
 
-    const rewardTokens = rewardTokensAndRates[i].map(([token]) =>
-      token.toLowerCase()
-    );
+    const rewardTokens = rewardTokensAndRates[i]
+      .filter(([token, rate]) => rate !== '0')
+      .map(([token]) => token.toLowerCase());
     return {
       pool: p,
       chain: utils.formatChain(chain),
@@ -241,6 +241,7 @@ const getApy = async () => {
       apyReward,
       rewardTokens: apyReward ? [...new Set(rewardTokens)] : [],
       underlyingTokens: [poolMeta.t0, poolMeta.t1],
+      url: `https://www.fvm.exchange/liquidity/${p}`
     };
   });
 
