@@ -27,6 +27,7 @@ const excludeAdaptors = [
   'fairfi', // seems dead
   'mole', // needs to be reimplement
   'luxsfi',
+  'geist-finance',
 ];
 
 const excludePools = [
