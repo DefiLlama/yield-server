@@ -257,7 +257,7 @@ const topLvl = async (chainString, version, timestamp) => {
       (((albAllocPoint / albTotalAllocPoint) * albPerYearUsd) /
         (p.totalValueLockedUSD * ratio)) *
       100 *
-      0.85;
+      0.85; // deducted by fee as other aggeregator and app shows
 
     const apyReward = 0;
 
