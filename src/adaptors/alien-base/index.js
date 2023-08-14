@@ -253,12 +253,13 @@ const topLvl = async (chainString, version, timestamp) => {
       .toFixed(18);
     const ratio = totalDeposit / p.totalSupply || 1;
 
-    const albApyReward =
+    const albBaseApy =
       (((albAllocPoint / albTotalAllocPoint) * albPerYearUsd) /
         (p.totalValueLockedUSD * ratio)) *
-      100;
+      100 *
+      0.85;
 
-    const apyReward = albApyReward ? albApyReward * 0.85 : 0;
+    const apyReward = 0;
 
     return {
       pool: p.id,
@@ -266,7 +267,7 @@ const topLvl = async (chainString, version, timestamp) => {
       project: 'alien-base',
       symbol,
       tvlUsd: p.totalValueLockedUSD,
-      apyBase: apyReward || 0,
+      apyBase: albBaseApy || 0,
       apyBase7d: 0,
       apyReward,
       rewardTokens: apyReward > 0 ? [ALB] : [],
