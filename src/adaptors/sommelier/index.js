@@ -45,16 +45,27 @@ async function getHoldingPositions() {
 }
 
 async function main() {
+  // Grab all holding positions across all cellars
   const assets = await getHoldingPositions();
+
+  // List of holding position tokens and sommelier token
   const tokens = ['coingecko:sommelier', ...assets.map((a) => `ethereum:${a}`)];
+
+  // Fetch prices for all assets upfront
   const prices = await utils.getPrices(tokens);
   const sommPrice = prices.pricesBySymbol.somm;
 
   let promises = [];
+  // Calculate TVL, APRs (with rewards if applicable) for each cellar version
+  // V1
   promises = v0815Pools.map((pool) => handleV0815(pool, prices));
+
+  // V1.5
   promises = promises.concat(
     v0816Pools.map((pool) => handleV0816(pool, prices))
   );
+
+  // V2
   promises = promises.concat(v2Pools.map((pool) => handleV2(pool, prices)));
 
   const pools = await Promise.all(promises);

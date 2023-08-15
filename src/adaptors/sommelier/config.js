@@ -269,4 +269,5 @@ module.exports = {
   v0815Pools,
   v0816Pools,
   v2Pools,
+  realYieldEth,
 };
