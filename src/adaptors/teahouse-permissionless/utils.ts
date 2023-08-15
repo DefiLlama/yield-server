@@ -236,7 +236,7 @@ async function topLvl(_: number): Promise<Pool[]> {
     // step 1: get vault data
     const vaultType = 'permissionless'
     const vaults = await getVaultData(vaultType)
-    const interval = 24 * 60 * 60 * 14
+    const interval = 24 * 60 * 60
     updateRpcUrl(sdk, 'arbitrum', 42161, "https://rpc.ankr.com/arbitrum")
     const pools = []
 
@@ -245,17 +245,17 @@ async function topLvl(_: number): Promise<Pool[]> {
         vault = await addLiquidityData(vault, interval)
         const decimals = new bn(10).pow(vault.shareDecimals)
         //step 3: if TVL is 0, update the start time
-        if (!(vault.shareSupplyBefore?.gt(0))) {
-            const end = Math.floor(Date.now() / 1000)
-            const start = end - interval
-            const minInterval = 60 * 60 * 7
-            const check = async (x: number) => {
-                return await checkVaultSupply(vault, x)
-            }
-            const newStart = await searchInterval(start, end, minInterval, check)
-            if (newStart === -1) continue
-            vault = await updateBeforeLiquidityData(vault, newStart)
-        }
+        // if (!(vault.shareSupplyBefore?.gt(0))) {
+        //     const end = Math.floor(Date.now() / 1000)
+        //     const start = end - interval
+        //     const minInterval = 60 * 60 * 24
+        //     const check = async (x: number) => {
+        //         return await checkVaultSupply(vault, x)
+        //     }
+        //     const newStart = await searchInterval(start, end, minInterval, check)
+        //     if (newStart === -1) continue
+        //     vault = await updateBeforeLiquidityData(vault, newStart)
+        // }
         //step 4: calculate share token price
         const sharePrice = calculateSharePrice(vault.tvl, vault.shareSupply, decimals)
         const sharePriceBefore = calculateSharePrice(vault.tvlBefore, vault.shareSupplyBefore, decimals)
