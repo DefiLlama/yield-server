@@ -79,6 +79,7 @@ const topLvl = async (chainString, url, underlying) => {
   ethUsd = ethUSDPrice.coins['ethereum:0x0000000000000000000000000000000000000000'].price;
 
   let apyList = [], tvlUsd;
+  let totalApy = 0, noOfActiveLSDs = 0; totalTvl = 0;
   await Promise.allSettled(promiseArray).then(
     async (result) => {
       for (let i=0; i<result.length; ++i) {
@@ -95,21 +96,28 @@ const topLvl = async (chainString, url, underlying) => {
             apyBase: Number(Object.values(aprData)[i].APR),
             underlyingTokens: [underlying],
           })
-        }
-        else {
-          apyList.push({
-            pool: "",
-            chain: utils.formatChain(chainString),
-            project: 'stakehouse',
-            symbol: utils.formatSymbol(Object.values(aprData)[i].Ticker),
-            tvlUsd: ethers.BigNumber.from("0"),
-            apyBase: Number(Object.values(aprData)[i].APR),
-            underlyingTokens: [underlying],
-          })
+          
+          if (tvlUsd > 0) {
+            totalTvl += tvlUsd;
+            totalApy += Number(Object.values(aprData)[i].APR);
+            noOfActiveLSDs += 1;
+          }
         }
       }
     }
   )
+  
+  // The average APY for all LSDs
+  apyList.push({
+    pool: `0x3d1E5Cf16077F349e999d6b21A4f646e83Cd90c5-${chainString}`.toLowerCase(),
+    chain: utils.formatChain(chainString),
+    project: 'stakehouse',
+    symbol: "dETH",
+    tvlUsd: totalTvl,
+    apyBase: totalApy/noOfActiveLSDs,
+    underlyingTokens: [underlying],
+  })
+
   return apyList;
 };
 
