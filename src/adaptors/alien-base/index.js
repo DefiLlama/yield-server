@@ -278,9 +278,6 @@ const topLvl = async (chainString, version, timestamp) => {
     };
   });
 
-  // return only pools with apyReward > 0
-  dataNow = dataNow.filter((el) => el.apyReward > 0);
-
   return dataNow;
 };
 
