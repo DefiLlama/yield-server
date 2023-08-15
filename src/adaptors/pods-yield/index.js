@@ -33,7 +33,7 @@ const vaultApys = async () => {
   const apys = {};
 
   // calculate BASE APY
-  const thirtyDaysAgo = Math.floor(Date.now() / 1000) - 30 * 24 * 60 * 60;
+  const thirtyDaysAgo = Math.floor(Date.now() / 1000) - 29 * 24 * 60 * 60;
   const blockNumber30daysAgo = await getBlockNumberFromTimestamp(thirtyDaysAgo);
 
   const totalAssetsETHPhoria30daysAgo = await totalAssets(
