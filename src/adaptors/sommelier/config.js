@@ -275,6 +275,7 @@ const v2p5Pools = [
     apyReward: 0,
     rewardTokens,
     underlyingTokens: [],
+    // FIXME: Double check url on launch
     url: 'https://app.sommelier.finance/strategies/Turbo-SWETH',
   },
 ];
