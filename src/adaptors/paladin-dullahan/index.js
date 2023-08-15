@@ -15,7 +15,7 @@ const POD_MANAGER = '0xf3dEcC68c4FF828456696287B12e5AC0fa62fE56';
 const DISCOUNT_CALCULATOR_MODULE = '0x4C38Ec4D1D2068540DfC11DFa4de41F733DDF812';
 const RAY = ethers.BigNumber.from(10).pow(27);
 const WEI_UNIT = ethers.BigNumber.from(10).pow(18);
-const WEI_100 = ethers.BigNumber.from(10).pow(16);
+const RAY_UNDER = ethers.BigNumber.from(10).pow(25); // 27 - 2 (decimals)
 const FEE_TO_PERCENT = 1000;
 const BIG_PERC_TO_WEI = ethers.BigNumber.from(10).pow(14); // 18 - 4(LTV_PREC_DECIMAL)
 const LTV_PRECISION = 4;
@@ -73,7 +73,7 @@ const stakeBig = async () => {
   const stakeBig = stakeApyBig.mul(BIG_PERC_TO_WEI);
 
   return (
-    stakeBig.div(ethers.BigNumber.from('100000000000000')).toNumber() / 100
+    stakeBig.div(BIG_PERC_TO_WEI).toNumber() / 100
   );
 };
 
@@ -109,7 +109,7 @@ const bigReward = async () => {
       : ethers.BigNumber.from('0');
   const rewardPerc = rewardApy.mul(100);
 
-  return rewardPerc.div(WEI_100).toNumber() / 100;
+  return rewardPerc.div(RAY_UNDER).toNumber() / 100;
 };
 
 /////////////////////////// GHO Borrow Apy Computation ///////////////////////////
@@ -173,7 +173,7 @@ const maxApy = async () => {
   const baseApy = await minApy();
   const apyAfterDiscount = getGhoApyDiscounted(baseApy, discountRate);
   const apyMax = apyAfterDiscount.add(dullahanApr);
-  return apyMax.div(WEI_100).toNumber() / 100;
+  return apyMax.div(RAY_UNDER).toNumber() / 100;
 };
 
 /////////////////////////// Compute TVL ///////////////////////////
