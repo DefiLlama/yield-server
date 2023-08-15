@@ -217,7 +217,7 @@ function calculateAPY(price: bn, priceBefore: bn, interval: number): number {
 function convertToPool(vault: Vault): Promise<Pool> {
     const tokens = vault.underlyingTokens.map((el) => el.address)
     const pool = {
-        pool: vault.address,
+        pool: `${vault.address}-${vault.chain}`,
         chain: vault.chain,
         symbol: vault.name,
         url: vault.url,
