@@ -257,8 +257,8 @@ const topLvl = async (
       };
     });
   } catch (e) {
-    if (e.message.includes('Stale subgraph')) return [];
-    else throw e;
+    console.log(chainString, e);
+    return [];
   }
 };
 
