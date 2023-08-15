@@ -9,6 +9,7 @@ const {
   v0815Pools,
   v0816Pools,
   v2Pools,
+  v2p5Pools,
 } = require('./config');
 const v0815 = require('./v0-8-15');
 const v0816 = require('./v0-8-16');
@@ -67,6 +68,10 @@ async function main() {
 
   // V2
   promises = promises.concat(v2Pools.map((pool) => handleV2(pool, prices)));
+
+  // V2.5
+  // no change in implementation from v2 -> v2.5
+  promises = promises.concat(v2p5Pools.map((pool) => handleV2(pool, prices)));
 
   const pools = await Promise.all(promises);
 
