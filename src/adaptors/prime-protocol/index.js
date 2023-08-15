@@ -27,7 +27,7 @@ const projectSlug = 'prime-protocol';
 
 const primeSubgraphUrl = 'https://api.thegraph.com/subgraphs/name/prime-protocol/liquidity-incentives';
 
-const primeQuery = gql`{
+const primeRewardMarketsQuery = gql`{
     rewardAssets {
         id
         market {
@@ -43,6 +43,17 @@ const primeQuery = gql`{
             }
             chainId
         }
+    }
+}`;
+
+const primeAllMarketsQuery = gql`{
+    markets {
+        address
+        totalBorrows
+        totalBorrowsUSD
+        totalDeposits
+        totalDepositsUSD
+        chainId
     }
 }`;
 
@@ -108,7 +119,8 @@ const getTokenPrice = async (tokenAddress, network) => {
     return Number(data.coins[Object.keys(data.coins)[0]].price);
 }
 
-const getPool = async (
+const getRewardPool = async (
+    chain,
     network,
     market,
     reward
@@ -174,7 +186,7 @@ const getPool = async (
                 target: PRIME_CONTRACTS.MASTER_VIEW_v1_4_6.address,
             })),
             permitFailure: true,
-            chain: network
+            chain
         })
     ).output.map((o) => o.output)[0]);
 
@@ -191,7 +203,7 @@ const getPool = async (
                 target: PRIME_CONTRACTS.MASTER_VIEW_v1_10_3.address,
             })),
             permitFailure: true,
-            chain: network
+            chain
         })
     ).output.map((o) => {
         const [rate, factor] = o.output;
@@ -209,7 +221,7 @@ const getPool = async (
                 target: PRIME_CONTRACTS.IRM_ROUTER_v1_10_2.address,
             })),
             permitFailure: true,
-            chain: network
+            chain
         })
     ).output.map((o) => {
         const borrowInterestRatePerBlock = o.output;
@@ -226,7 +238,7 @@ const getPool = async (
             target: PRIME_CONTRACTS.MASTER_VIEW_v1_10_2.address,
         })),
         permitFailure: true,
-        chain: network
+        chain
     })).output.map((o) => o.output)[0][0]);
 
     ltv /= (10 ** FACTOR_DECIMALS);
@@ -243,7 +255,7 @@ const getPool = async (
         ) * Number(365) * 1e2;
 
     const totalSupplyUsd = Number(market.totalDepositsUSD);
-    const totalBorrowUsd = Number(market.totalBorrowsUSD);;
+    const totalBorrowUsd = Number(market.totalBorrowsUSD);
 
     return {
         pool: `${network.toUpperCase() ?? 'NETWORK_NOT_FOUND'}-${market.address ?? 'MARKET_NOT_FOUND'}-${reward.rewardAssetAddress ?? 'REWARD_ASSET_ADDRESS_NOT_FOUND'}`,
@@ -261,33 +273,198 @@ const getPool = async (
         ltv: ltv ?? 0,
         totalSupplyUsd: totalSupplyUsd ?? 0,
         totalBorrowUsd: totalBorrowUsd ?? 0,
-        // apyBaseInception?: number,
     };
 }
+
+const getPool = async (
+    chain,
+    network,
+    market
+) => {
+    const underlyingAddress = (
+        await sdk.api.abi.multiCall({
+            abi: PRIME_CONTRACTS.PTOKEN_v1_10_2.abi.underlying,
+            calls: [market.address].map((address) => ({
+                target: address,
+            })),
+            permitFailure: true,
+            chain: network,
+        })
+    ).output.map((o) => o.output)[0];
+
+    let symbol = (
+        await sdk.api.abi.multiCall({
+            abi: 'erc20:symbol',
+            calls: [underlyingAddress].map((token) => ({
+                target: token,
+            })),
+            permitFailure: true,
+            chain: network,
+        })
+    ).output.map((o) => o.output)[0];
+
+    if (underlyingAddress === ZERO_ADDRESS) symbol = NETWORK_TO_NETWORK_TOKEN_SYMBOL[network];
+
+    let underlyingDecimals = Number((
+        await sdk.api.abi.multiCall({
+            abi: 'erc20:decimals',
+            calls: [underlyingAddress].map((token) => ({
+                target: token,
+            })),
+            permitFailure: true,
+            chain: network,
+        })
+    ).output.map((o) => o.output));
+
+    if (!underlyingDecimals) underlyingDecimals = 18;
+
+    let tvlUsd = Number((
+        await sdk.api.abi.multiCall({
+            abi: PRIME_CONTRACTS.MASTER_VIEW_v1_4_6.abi.calculateAssetTVL,
+            calls: [market].map((m) => ({
+                params: [
+                    m.chainId,
+                    m.address
+                ],
+                target: PRIME_CONTRACTS.MASTER_VIEW_v1_4_6.address,
+            })),
+            permitFailure: true,
+            chain
+        })
+    ).output.map((o) => o.output)[0]);
+
+    tvlUsd *= (10 ** underlyingDecimals) / (10 ** 18);
+
+    const apyBase = Number((
+        await sdk.api.abi.multiCall({
+            abi: PRIME_CONTRACTS.MASTER_VIEW_v1_10_3.abi.supplierInterestRateWithoutTuple,
+            calls: [market].map((m) => ({
+                params: [
+                    m.chainId,
+                    m.address
+                ],
+                target: PRIME_CONTRACTS.MASTER_VIEW_v1_10_3.address,
+            })),
+            permitFailure: true,
+            chain
+        })
+    ).output.map((o) => {
+        const [rate, factor] = o.output;
+        return Number(rate) * 2336000 * 100 / (10 ** Number(factor));
+    }));
+
+    const apyBaseBorrow = Number((
+        await sdk.api.abi.multiCall({
+            abi: PRIME_CONTRACTS.IRM_ROUTER_v1_10_2.abi.borrowInterestRatePerBlock,
+            calls: [market].map((m) => ({
+                params: [
+                    m.address,
+                    m.chainId
+                ],
+                target: PRIME_CONTRACTS.IRM_ROUTER_v1_10_2.address,
+            })),
+            permitFailure: true,
+            chain
+        })
+    ).output.map((o) => {
+        const borrowInterestRatePerBlock = o.output;
+        return borrowInterestRatePerBlock * 2336000 * 100 / 1e18;
+    }));
+
+    let ltv = Number((await sdk.api.abi.multiCall({
+        abi: PRIME_CONTRACTS.MASTER_VIEW_v1_10_2.abi.getCollateralFactors,
+        calls: [market].map((m) => ({
+            params: [
+                [underlyingAddress],
+                [m.chainId]
+            ],
+            target: PRIME_CONTRACTS.MASTER_VIEW_v1_10_2.address,
+        })),
+        permitFailure: true,
+        chain
+    })).output.map((o) => o.output)[0][0]);
+
+    ltv /= (10 ** FACTOR_DECIMALS);
+
+    const totalSupplyUsd = Number(market.totalDepositsUSD ?? 0);
+    const totalBorrowUsd = Number(market.totalBorrowsUSD ?? 0);
+
+    return {
+        pool: `${network.toUpperCase() ?? 'NETWORK_NOT_FOUND'}-${market.address ?? 'MARKET_NOT_FOUND'}`,
+        chain: network ?? 'CHAIN_NOT_FOUND',
+        project: projectSlug ?? 'PROJECT_NOT_FOUND',
+        symbol: symbol ?? 'SYMBOL_NOT_FOUND',
+        tvlUsd: (totalSupplyUsd - totalBorrowUsd) ?? 0,
+        apyBase: apyBase ?? 0,
+        apyBaseBorrow: apyBaseBorrow ?? 0,
+        underlyingTokens: [underlyingAddress ?? 'UNDERLYING_TOKENS_NOT_FOUND'],
+        url: 'https://app.primeprotocol.xyz/',
+        ltv: ltv ?? 0,
+        totalSupplyUsd: totalSupplyUsd ?? 0,
+        totalBorrowUsd: totalBorrowUsd ?? 0,
+    };
+}
+
+const addRewardMarketPools = async (
+    pools,
+) => {
+    const primeRewardMarketsData = await request(
+        primeSubgraphUrl,
+        primeRewardMarketsQuery
+    );
+
+    for (let ra = 0; ra < primeRewardMarketsData.rewardAssets.length; ra++) {
+        const market = primeRewardMarketsData.rewardAssets[ra].market;
+
+        for (let r = 0; r < market.rewards.length; r++) {
+
+            console.log(`\nmarket(${market.address})-reward(${market.rewards[r].rewardAssetAddress})`);
+
+            pools.push(await getRewardPool(
+                'moonbeam',
+                CHAIN_ID_TO_NETWORK[market.chainId],
+                market,
+                market.rewards[r]
+            ));
+        }
+    }
+};
+
+const addAllMarketPools = async (
+    pools,
+) => {
+
+    const primeAllMarketsData = await request(
+        primeSubgraphUrl,
+        primeAllMarketsQuery
+    );
+
+    for (let m = 0; m < primeAllMarketsData.markets.length; m++) {
+        const market = primeAllMarketsData.markets[m];
+
+        console.log(`\nmarket(${market.address})`);
+
+        let marketAlreadyAdded = false;
+
+        pools.forEach(pool => {
+            if (pool.pool.split('-')[1] == market.address) marketAlreadyAdded = true;
+        });
+
+        if (marketAlreadyAdded) continue;
+
+        pools.push(await getPool(
+            'moonbeam',
+            CHAIN_ID_TO_NETWORK[market.chainId],
+            market
+        ));
+    }
+};
 
 const apy = async () => {
     const pools = [];
 
-    const primeData = await request(
-        primeSubgraphUrl,
-        primeQuery
-    );
-
-    for (let ra = 0; ra < primeData.rewardAssets.length; ra++) {
-        const market = primeData.rewardAssets[ra].market;
-
-        const network = CHAIN_ID_TO_NETWORK[market.chainId];
-
-        for (let r = 0; r < market.rewards.length; r++) {
-            const reward = market.rewards[r];
-
-            pools.push(await getPool(
-                network,
-                market,
-                reward
-            ));
-        }
-    }
+    await addRewardMarketPools(pools);
+    await addAllMarketPools(pools);
 
     return pools;
 };
