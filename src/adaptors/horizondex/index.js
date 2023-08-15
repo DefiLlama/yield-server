@@ -1,17 +1,19 @@
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
+const axios = require("axios");
 
-// todo: llama block api returning 502 for linea chain
 CHAINS_API = {
-    //linea: 'https://subgraph-mainnet.horizondex.io/subgraphs/name/horizondex/horizondex-mainnet-v2',
+    linea: 'https://subgraph-mainnet.horizondex.io/subgraphs/name/horizondex/horizondex-mainnet-v2',
     base: 'https://subgraph-base.horizondex.io/subgraphs/name/horizondex/horizondex-base'
 };
 
 BLOCKS_API = {
-    //linea: 'https://subgraph-mainnet.horizondex.io/subgraphs/name/horizondex/block',
+    linea: 'https://subgraph-mainnet.horizondex.io/subgraphs/name/horizondex/blocks',
     base: 'https://subgraph-base.horizondex.io/subgraphs/name/horizondex/blocks'
 }
+
+const farmsApi = 'https://api.horizondex.io/farms/<CHAIN>'
 
 const query = gql`
     {
@@ -63,11 +65,17 @@ const topLvl = async (chainString, url, timestamp) => {
         data = await utils.tvl(data, chainString);
 
         data = data.map((p) => utils.apy(p, dataPrior, []));
+        const farmData = (await axios.get(farmsApi.replace('<CHAIN>', chainString))).data;
 
         return data.map((p) => {
             const symbol = utils.formatSymbol(
                 `${p.token0.symbol}-${p.token1.symbol}`
             );
+            const farm = farmData
+                .filter((farmInfo) => farmInfo.pool_id.toLowerCase() === p.id.toLowerCase())
+                .sort((a, b) => b.pid - a.pid)[0];
+
+            const apyReward = farm?.apr
             return {
                 pool: p.id,
                 chain: utils.formatChain(chainString),
@@ -75,6 +83,8 @@ const topLvl = async (chainString, url, timestamp) => {
                 symbol,
                 tvlUsd: p.totalValueLockedUSD,
                 apyBase: p.apy1d,
+                apyReward: apyReward || 0,
+                rewardTokens: apyReward > 0 ? farm.reward_tokens.map((r) => r.address) : [],
                 underlyingTokens: [p.token0.id, p.token1.id],
                 poolMeta: `${p.feeTier / 1e4}%`,
                 volumeUsd1d: p.volumeUSD1d,
