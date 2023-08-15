@@ -4,18 +4,25 @@ const { request, gql } = require('graphql-request');
 const api = 'https://api-v2.pendle.finance/core/graphql';
 const chains = {
   1: {
-    chainName: "ethereum",
-    PENDLE: "0x808507121b80c02388fad14726482e061b8da827",
+    chainName: 'ethereum',
+    chainSlug: 'ethereum',
+    PENDLE: '0x808507121b80c02388fad14726482e061b8da827',
   },
   42161: {
-    chainName: "arbitrum",
-    PENDLE: "0x0c880f6761f1af8d9aa9c466984b80dab9a8c9e8",
+    chainName: 'arbitrum',
+    chainSlug: 'arbitrum',
+    PENDLE: '0x0c880f6761f1af8d9aa9c466984b80dab9a8c9e8',
+  },
+  56: {
+    chainName: 'bsc',
+    chainSlug: 'bnbchain',
+    PENDLE: '0xb3ed0a426155b79b898849803e3b36552f7ed507',
   },
 };
 
 const query = (chainId) => gql`
   {
-    markets(chainId: ${chainId}, limit: 20) {
+    markets(chainId: ${chainId}, limit: 100) {
       results {
         chainId
         aggregatedApy
@@ -54,7 +61,9 @@ function poolApys(pools) {
     rewardTokens: [chains[p.chainId].PENDLE],
     underlyingTokens: [p.pt.address, p.sy.address],
     poolMeta: `For LP | Maturity ${p.pt.symbol.split('-').at(-1)}`,
-    url: `https://app.pendle.finance/simple/pools/${p.address}`,
+    url: `https://app.pendle.finance/simple/pools/${p.address}?chain=${
+      chains[p.chainId].chainSlug
+    }`,
   }));
 }
 function ptApys(pools) {
@@ -67,21 +76,35 @@ function ptApys(pools) {
     apyBase: p.impliedApy * 100,
     underlyingTokens: [p.sy.underlyingAsset.address],
     poolMeta: `For buying ${p.pt.symbol}`,
-    url: `https://app.pendle.finance/simple/discounted-assets/${p.address}`,
+    url: `https://app.pendle.finance/simple/discounted-assets/${
+      p.address
+    }?chain=${chains[p.chainId].chainSlug}`,
   }));
 }
 
 async function apy() {
-  const pools = (
+  let pools = (
     await Promise.all(
       Object.keys(chains).map((c) =>
-        request(api, query(c)).then((r) => r.markets.results),
-      ),
+        request(api, query(c)).then((r) => r.markets.results)
+      )
     )
   )
     .flat()
     .filter((p) => p.liquidity != null);
-  return [poolApys(pools), ptApys(pools)].flat();
+  pools = [poolApys(pools), ptApys(pools)]
+    .flat()
+    .sort((a, b) => b.tvlUsd - a.tvlUsd);
+
+  const unique = new Set();
+  const poolsFiltered = [];
+  for (const p of pools) {
+    if (unique.has(p.pool)) continue;
+    poolsFiltered.push(p);
+    unique.add(p.pool);
+  }
+
+  return poolsFiltered;
 }
 
 module.exports = {
