@@ -240,6 +240,7 @@ const getApy = async () => {
     const rewardTokens = rewardTokensAndRates[i].map(([token]) =>
       token.toLowerCase()
     );
+    
     return {
       pool: p,
       chain: utils.formatChain(chain),
