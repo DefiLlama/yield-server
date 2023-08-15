@@ -228,8 +228,6 @@ function convertToPool(vault: Vault): Promise<Pool> {
         underlyingTokens: tokens,
         rewardTokens: [],
         poolMeta: vault.vaultMeta,
-        totalSupplyUsd: 0,
-        ltv: 0,
     }
     return pool;
 }
