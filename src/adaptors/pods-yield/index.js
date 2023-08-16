@@ -1,7 +1,12 @@
 const axios = require('axios');
 const { default: BigNumber } = require('bignumber.js');
 const { convertToAssets, totalAssets } = require('./queries');
+const { getProvider } = require('@defillama/sdk/build/general');
+const provider = getProvider('ethereum');
 
+// ****
+// HELPER FUNCTIONS
+// ****
 const getBlockNumberFromTimestamp = async (timestamp) => {
   const response = await axios.get(
     `https://coins.llama.fi/block/ethereum/${timestamp}`
@@ -29,34 +34,20 @@ const getAPY = async (
     .multipliedBy(versionFactor);
 };
 
+// ****
+// MAIN FUNCTION
+// ****
+
 const vaultApys = async () => {
   const apys = {};
 
-  // calculate BASE APY
-  const thirtyDaysAgo = Math.floor(Date.now() / 1000) - 29 * 24 * 60 * 60;
-  const blockNumber30daysAgo = await getBlockNumberFromTimestamp(thirtyDaysAgo);
+  const volatilityVaultAddress = '0x463f9ed5e11764eb9029762011a03643603ad879';
+  const fudVaultAddress = '0x287f941aB4B5AaDaD2F13F9363fcEC8Ee312a969';
+  const ethPhoriaAddress = '0x5fe4b38520e856921978715c8579d2d7a4d2274f';
 
-  const totalAssetsETHPhoria30daysAgo = await totalAssets(
-    '0x5fe4b38520e856921978715c8579d2d7a4d2274f',
-    blockNumber30daysAgo
-  );
-  const totalAssetsFudVault30daysAgo = await totalAssets(
-    '0x287f941aB4B5AaDaD2F13F9363fcEC8Ee312a969',
-    blockNumber30daysAgo
-  );
-  const totalAssetsSTETHvv30daysAgo = await totalAssets(
-    '0x463f9ed5e11764eb9029762011a03643603ad879',
-    blockNumber30daysAgo
-  );
-
-  // Inception APY
-  const totalAssetsETHPhoria = await totalAssets(
-    '0x5fe4b38520e856921978715c8579d2d7a4d2274f'
-  );
-  const totalAssetsFudVault =
-    (await totalAssets('0x287f941aB4B5AaDaD2F13F9363fcEC8Ee312a969')) / 1e6;
-  const totalAssetsSTETHvv =
-    (await totalAssets('0x463f9ed5e11764eb9029762011a03643603ad879')) / 1e18;
+  const totalAssetsETHPhoria = (await totalAssets(ethPhoriaAddress)) / 1e18;
+  const totalAssetsFudVault = (await totalAssets(fudVaultAddress)) / 1e6;
+  const totalAssetsSTETHvv = (await totalAssets(volatilityVaultAddress)) / 1e18;
 
   const lidoTokenPrice = await getTokenPrice(
     '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84'
@@ -64,36 +55,37 @@ const vaultApys = async () => {
 
   const lastYieldFromV1 = '1.0284808574603643';
   const firstYieldFromV2 = '1.011289282624759';
+
   const vaults = [
     {
-      address: '0x5fe4b38520e856921978715c8579d2d7a4d2274f',
+      address: ethPhoriaAddress,
       name: 'ETHPhoria',
       symbol: 'stETH',
       tvl: totalAssetsETHPhoria * lidoTokenPrice,
       underlyingTokens: ['0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84'],
-      initialPositionInception: '1000000000000000000',
-      initialPosition: new BigNumber(totalAssetsETHPhoria30daysAgo),
+      initialPosition: '1000000000000000000',
       decimals: 18,
+      deployBlock: 16901984,
     },
     {
-      address: '0x287f941aB4B5AaDaD2F13F9363fcEC8Ee312a969',
+      address: fudVaultAddress,
       name: 'FudVault',
       symbol: 'aEthUSDC',
       tvl: totalAssetsFudVault,
       underlyingTokens: ['0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c'],
-      initialPositionInception: '150000000000',
-      initialPosition: new BigNumber(totalAssetsFudVault30daysAgo),
+      initialPosition: '150000000000',
       decimals: 6,
+      deployBlock: 17118350,
     },
     {
-      address: '0x463f9ed5e11764eb9029762011a03643603ad879',
+      address: volatilityVaultAddress,
       name: 'Volatility Vault',
       symbol: 'stETHvv',
       tvl: totalAssetsSTETHvv * lidoTokenPrice,
       underlyingTokens: ['0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84'],
-      initialPositionInception: '638537294599340499',
-      initialPosition: new BigNumber(totalAssetsSTETHvv30daysAgo),
+      initialPosition: '638537294599340499',
       decimals: 18,
+      deployBlock: 15079795,
       versionFactor: new BigNumber(lastYieldFromV1).dividedBy(firstYieldFromV2),
     },
   ];
@@ -102,29 +94,54 @@ const vaultApys = async () => {
     vaults.map(async (vault) => {
       const strategy = vault.address;
 
-      const apy30Days = (
+      // calculate baseAPY - 1 day period
+      const yesterday = Math.floor(Date.now() / 1000) - 24 * 60 * 60;
+      const blockNumberYesterday = await getBlockNumberFromTimestamp(yesterday);
+      const positionYesterday = await totalAssets(
+        strategy,
+        blockNumberYesterday
+      );
+      const positionToday = await totalAssets(strategy, 'latest');
+
+      // console.log({
+      //   positionYesterday: positionYesterday.toString(),
+      //   positionToday: positionToday.toString(),
+      //   initialPosition: vault.initialPosition.toString(),
+      //   vault: vault.name,
+      // });
+
+      const apyBase = (
         await getAPY(
           strategy,
-          vault.initialPosition,
-          vault.versionFactor,
-          blockNumber30daysAgo
+          new BigNumber(positionToday).minus(positionYesterday),
+          vault.versionFactor
         )
       ).toNumber();
 
       const apyInception = (
         await getAPY(
           strategy,
-          vault.initialPositionInception,
+          new BigNumber(vault.initialPosition),
           vault.versionFactor
         )
       ).toNumber();
 
-      let finalApy = apy30Days;
       let finalApyInception = apyInception;
-      if (strategy === '0x287f941aB4B5AaDaD2F13F9363fcEC8Ee312a969') {
-        finalApy = apy30Days - 1.003328;
+      let finalApyBase = apyBase;
+      if (strategy === fudVaultAddress) {
         finalApyInception = apyInception - 1.003328;
+        finalApyBase = apyBase - 1.003328;
       }
+
+      const block = await provider.getBlock(vault.deployBlock);
+      const NUM_OF_DAYS_YEAR = 365;
+
+      const daysDiff = Date.now() / 1000 - block.timestamp;
+      const numOfDays = daysDiff / (24 * 60 * 60); // 1 day in seconds
+      const expoent = NUM_OF_DAYS_YEAR / numOfDays;
+
+      const projectedAPY = finalApyInception ** expoent - 1;
+      const apyBaseInception = projectedAPY * 100;
 
       return {
         pool: `${strategy}-ethereum`,
@@ -132,10 +149,10 @@ const vaultApys = async () => {
         project: 'pods-yield',
         symbol: vault.symbol,
         tvlUsd: vault.tvl,
-        apyBase: (finalApy - 1) * 100,
+        apyBase: finalApyBase - 1,
         underlyingTokens: vault.underlyingTokens,
         poolMeta: vault.name,
-        apyBaseInception: (finalApyInception - 1) * 100,
+        apyBaseInception,
       };
     })
   );
