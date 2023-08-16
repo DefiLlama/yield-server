@@ -5,6 +5,7 @@ const superagent = require('superagent');
 
 /////////////////////////// Constants ///////////////////////////
 
+const AAVE_DATA_PROVIDER = '0x7B4EB56E7CD4b454BA8ff71E4518426369a138a3';
 const STAKER_PROVIDER = '0x5E045cfb738F01bC73CEAFF783F4C16e8B14090b';
 const STAKING_CONTRACT = '0x990f58570b4C7b8b7ae3Bc28EFEB2724bE111545';
 const DULLAHAN_VAULT = '0x167c606be99DBf5A8aF61E1983E5B309e8FA2Ae7';
@@ -15,6 +16,7 @@ const POD_MANAGER = '0xf3dEcC68c4FF828456696287B12e5AC0fa62fE56';
 const DISCOUNT_CALCULATOR_MODULE = '0x4C38Ec4D1D2068540DfC11DFa4de41F733DDF812';
 const RAY = ethers.BigNumber.from(10).pow(27);
 const WEI_UNIT = ethers.BigNumber.from(10).pow(18);
+const WEI_UNDER = ethers.BigNumber.from(10).pow(16); // 18 - 2 (decimals)
 const RAY_UNDER = ethers.BigNumber.from(10).pow(25); // 27 - 2 (decimals)
 const FEE_TO_PERCENT = 1000;
 const BIG_PERC_TO_WEI = ethers.BigNumber.from(10).pow(14); // 18 - 4(LTV_PREC_DECIMAL)
@@ -26,8 +28,15 @@ const SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
 
 let ghoPrice = 0;
 let aavePrice = 0;
+let defillamaPools = [];
+let pods = [];
 
 /////////////////////////// Utils ///////////////////////////
+
+const getAaveApy = async (token) => {
+  return defillamaPools.find((pool) => pool.underlyingTokens.includes(token))
+    .apy;
+};
 
 function binomialApproximatedRayPow(base, exp) {
   if (exp.eq(0)) return RAY;
@@ -53,9 +62,44 @@ const getPrices = async (address) => {
   const token = `ethereum:${address.toLowerCase()}`;
   const prices = (
     await superagent.get(`https://coins.llama.fi/prices/current/${token}`)
-  ).body.coins[token].price;
+  ).body.coins[token];
 
-  return prices;
+  return {
+    price: prices.price,
+    symbol: prices.symbol,
+    decimals: prices.decimals,
+  };
+};
+
+const getDefiLLamaPools = async (project, chain) => {
+  const pools = (await superagent.get('https://yields.llama.fi/pools')).body
+    .data;
+  return pools.filter(
+    (pool) => pool.project === project && pool.chain === chain
+  );
+};
+
+const getPods = async () => {
+  const pods = (
+    await sdk.api.abi.call({
+      target: POD_MANAGER,
+      abi: abi['getAllPods'],
+      chain: 'ethereum',
+    })
+  ).output;
+
+  const podsData = (
+    await sdk.api.abi.multiCall({
+      calls: pods.map((p) => ({
+        target: POD_MANAGER,
+        params: p,
+      })),
+      abi: abi['pods'],
+      chain: 'ethereum',
+    })
+  ).output;
+
+  return podsData.map((p) => p.output);
 };
 
 /////////////////////////// Vault Apy Computation ///////////////////////////
@@ -72,9 +116,7 @@ const stakeBig = async () => {
   const stakeApyBig = ethers.BigNumber.from(assets.stkAaveData.stakeApy);
   const stakeBig = stakeApyBig.mul(BIG_PERC_TO_WEI);
 
-  return (
-    stakeBig.div(BIG_PERC_TO_WEI).toNumber() / 100
-  );
+  return stakeBig.div(BIG_PERC_TO_WEI).toNumber() / 100;
 };
 
 const bigReward = async () => {
@@ -178,36 +220,50 @@ const maxApy = async () => {
 
 /////////////////////////// Compute TVL ///////////////////////////
 
-const getBorrowTvl = async () => {
-  const pods = (
-    await sdk.api.abi.call({
-      target: POD_MANAGER,
-      abi: abi['getAllPods'],
-      chain: 'ethereum',
-    })
-  ).output;
+const getBorrowTvl = async (token) => {
+  let totalAmount = 0;
 
-  const podsData = (
-    await sdk.api.abi.multiCall({
-      calls: pods.map((p) => ({
-        target: POD_MANAGER,
-        params: p,
-      })),
-      abi: abi['pods'],
-      chain: 'ethereum',
-    })
-  ).output;
-
-  const totalAmount = podsData
-    .map((e) => e.output.rentedAmount)
-    .reduce((p, c) => {
-      return p + c, 0;
-    });
-
-  return ethers.BigNumber.from(totalAmount).div(WEI_UNIT).toNumber() * ghoPrice;
+  for (const pod of pods) {
+    if (pod.collateral !== token) continue;
+    totalAmount +=
+      (ethers.BigNumber.from(pod.rentedAmount).div(WEI_UNDER).toNumber() /
+        100) *
+      ghoPrice;
+  }
+  return totalAmount;
 };
 
-const getSuppliedTvl = async () => {
+const getSupplyTvl = async (token) => {
+  let totalAmount = 0;
+
+  for (const pod of pods) {
+    if (pod.collateral !== token) continue;
+    const tokenPrice = await getPrices(token);
+    const amount = (
+      await sdk.api.abi.call({
+        target: pod.podAddress,
+        abi: abi['podCollateralBalance'],
+        chain: 'ethereum',
+      })
+    ).output;
+    if (tokenPrice.decimals > 2) {
+      totalAmount +=
+        (ethers.BigNumber.from(amount)
+          .div(ethers.BigNumber.from(10).pow(tokenPrice.decimals - 2))
+          .toNumber() /
+          100) *
+        tokenPrice.price;
+    } else {
+      totalAmount +=
+        ethers.BigNumber.from(amount)
+          .div(ethers.BigNumber.from(10).pow(tokenPrice.decimals))
+          .toNumber() * tokenPrice.price;
+    }
+  }
+  return totalAmount;
+};
+
+const getTotalSuppliedTvl = async () => {
   const assets = (
     await sdk.api.abi.call({
       abi: abi['totalAssets'],
@@ -215,8 +271,6 @@ const getSuppliedTvl = async () => {
       target: DULLAHAN_VAULT,
     })
   ).output;
-
-  const aavePrice = await getPrices(AAVE);
 
   return ethers.BigNumber.from(assets).div(WEI_UNIT).toNumber() * aavePrice;
 };
@@ -249,34 +303,79 @@ const getDebtCeiling = async () => {
 
 /////////////////////////// Get the pool ///////////////////////////
 
+const getCollaterals = async () => {
+  const reserveTokens = (
+    await sdk.api.abi.call({
+      target: AAVE_DATA_PROVIDER,
+      abi: abi['getAllReservesTokens'],
+      chain: 'ethereum',
+    })
+  ).output;
+
+  const allowed = (
+    await sdk.api.abi.multiCall({
+      abi: abi['allowedCollaterals'],
+      calls: reserveTokens.map((t) => ({
+        target: POD_MANAGER,
+        params: t.tokenAddress,
+      })),
+      chain: 'ethereum',
+    })
+  ).output;
+
+  return reserveTokens.filter(
+    (e) => allowed.find((p) => p.input.params[0] == e.tokenAddress).output
+  );
+};
+
 const getApy = async () => {
-  ghoPrice = await getPrices(GHO);
-  aavePrice = await getPrices(AAVE);
+  ghoPrice = (await getPrices(GHO)).price;
+  aavePrice = (await getPrices(AAVE)).price;
+  defillamaPools = await getDefiLLamaPools('aave-v3', 'Ethereum');
+  pods = await getPods();
 
   const apyBaseBorrow = await maxApy();
-  const borrowedTvl = await getBorrowTvl();
-  const suppliedTvl = await getSuppliedTvl();
-  const apyBase = await stakeBig();
-  const apyReward = await bigReward();
+  const suppliedTvl = await getTotalSuppliedTvl();
+  const vaultApyBase = await stakeBig();
+  const vaultApyReward = await bigReward();
   const debtCeilingUsd = await getDebtCeiling();
 
-  const pool = {
+  const collaterals = await getCollaterals();
+
+  const pools = [];
+  for (const collateral of collaterals) {
+    const totalBorrowUsd = await getBorrowTvl(collateral.tokenAddress);
+    const totalSupplyUsd = await getSupplyTvl(collateral.tokenAddress);
+    const apyBase = await getAaveApy(collateral.tokenAddress);
+
+    const pool = {
+      pool: `${collateral.tokenAddress}-ethereum`,
+      project: 'paladin-dullahan',
+      chain: 'ethereum',
+      symbol: `d${collateral.symbol}`,
+      apyBase,
+      apyBaseBorrow,
+      totalSupplyUsd,
+      totalBorrowUsd,
+      tvlUsd: totalSupplyUsd,
+      mintedCoin: 'GHO',
+      debtCeilingUsd,
+    };
+    pools.push(pool);
+  }
+
+  const dstkAAVE = {
     pool: '0x167c606be99DBf5A8aF61E1983E5B309e8FA2Ae7-ethereum',
     project: 'paladin-dullahan',
     chain: 'ethereum',
     symbol: 'dstkAAVE',
-    apyBase,
-    apyReward,
-    apyBaseBorrow,
-    totalSupplyUsd: suppliedTvl,
-    totalBorrowUsd: borrowedTvl,
+    apyBase: vaultApyBase,
+    apyReward: vaultApyReward,
     tvlUsd: suppliedTvl,
-    mintedCoin: 'GHO',
-    ltv: 1.0,
-    debtCeilingUsd,
   };
+  pools.push(dstkAAVE);
 
-  return [pool];
+  return pools;
 };
 
 module.exports = {

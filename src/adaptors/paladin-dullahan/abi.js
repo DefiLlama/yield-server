@@ -1,4 +1,35 @@
 module.exports = {
+  podCollateralBalance: {
+    inputs: [],
+    name: 'podCollateralBalance',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  allowedCollaterals: {
+    inputs: [{ internalType: 'address', name: '', type: 'address' }],
+    name: 'allowedCollaterals',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  getAllReservesTokens: {
+    inputs: [],
+    name: 'getAllReservesTokens',
+    outputs: [
+      {
+        components: [
+          { internalType: 'string', name: 'symbol', type: 'string' },
+          { internalType: 'address', name: 'tokenAddress', type: 'address' },
+        ],
+        internalType: 'struct IPoolDataProvider.TokenData[]',
+        name: '',
+        type: 'tuple[]',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
   totalAvailable: {
     inputs: [],
     name: 'totalAvailable',
