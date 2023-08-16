@@ -103,13 +103,6 @@ const vaultApys = async () => {
       );
       const positionToday = await totalAssets(strategy, 'latest');
 
-      // console.log({
-      //   positionYesterday: positionYesterday.toString(),
-      //   positionToday: positionToday.toString(),
-      //   initialPosition: vault.initialPosition.toString(),
-      //   vault: vault.name,
-      // });
-
       const apyBase = (
         await getAPY(
           strategy,
