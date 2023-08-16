@@ -45,7 +45,7 @@ const getPoolsData = async () => {
       tvlUsd: apyData[staking]?.tvl || 0,
       apyBase:
         apyData[staking]['apr']?.value ||
-        apyData[staking]['apr']?.details['ANGLE'] ||
+        apyData[staking]['apr']?.details?.['ANGLE'] ||
         0,
     };
     result.push(pool);
