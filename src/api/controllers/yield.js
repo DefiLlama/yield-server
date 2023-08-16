@@ -3,7 +3,7 @@ const minify = require('pg-minify');
 
 const AppError = require('../../utils/appError');
 const { conn } = require('../db');
-const { customHeader } = require('../../utils/headers');
+const { customHeader, customHeaderFixedCache } = require('../../utils/headers');
 
 const getYieldHistory = async (req, res) => {
   const configID = req.params.pool;
@@ -53,6 +53,43 @@ const getYieldHistory = async (req, res) => {
       status: 'success',
       data: response,
     });
+};
+
+const getYieldHistoryHourly = async (req, res) => {
+  const configID = req.params.pool;
+  if (!validator.isUUID(configID))
+    return res.status(400).json('invalid configID!');
+
+  const query = minify(
+    `
+        SELECT
+            timestamp,
+            "tvlUsd",
+            apy,
+            "apyBase",
+            "apyReward",
+            "il7d",
+            "apyBase7d"
+        FROM
+            yield
+        WHERE
+            "configID" = $<configIDValue>
+        ORDER BY
+            timestamp ASC
+      `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query, { configIDValue: configID });
+
+  if (!response) {
+    return new AppError(`Couldn't get data`, 404);
+  }
+
+  res.set(customHeaderFixedCache()).status(200).json({
+    status: 'success',
+    data: response,
+  });
 };
 
 const getYieldLendBorrowHistory = async (req, res) => {
@@ -108,5 +145,6 @@ const getYieldLendBorrowHistory = async (req, res) => {
 
 module.exports = {
   getYieldHistory,
+  getYieldHistoryHourly,
   getYieldLendBorrowHistory,
 };
