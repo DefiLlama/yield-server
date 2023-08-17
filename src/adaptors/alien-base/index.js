@@ -121,6 +121,62 @@ const getPoolDetails = async (block, poolInfo, chainString) => {
           },
         });
       }
+    } else {
+      try {
+        const lpDecimals = (
+          await sdk.api.abi.call({
+            target: poolInfo[i].lpToken,
+            abi: poolAbi.find((m) => m.name === 'decimals'),
+            block: block,
+            chain: chainString,
+          })
+        ).output;
+
+        const totalSupply = (
+          await sdk.api.abi.call({
+            target: poolInfo[i].lpToken,
+            abi: poolAbi.find((m) => m.name === 'totalSupply'),
+            block: block,
+            chain: chainString,
+          })
+        ).output;
+
+        const tokenId = poolInfo[i].lpToken;
+        const tokenSymbol = 'ALB';
+        const tokenDecimals = 18;
+
+        poolDetails.push({
+          id: poolInfo[i].lpToken,
+          reserve0: 0,
+          reserve1: 0,
+          totalSupply: totalSupply,
+          volumeUSD: 0,
+          token0: {
+            symbol: tokenSymbol,
+            id: tokenId,
+          },
+          token1: {
+            symbol: tokenSymbol,
+            id: tokenId,
+          },
+        });
+      } catch (e) {
+        poolDetails.push({
+          id: poolInfo[i].lpToken,
+          reserve0: 0,
+          reserve1: 0,
+          totalSupply: 0,
+          volumeUSD: 0,
+          token0: {
+            symbol: token0Symbol,
+            id: token0Id,
+          },
+          token1: {
+            symbol: token1Symbol,
+            id: token1Id,
+          },
+        });
+      }
     }
   }
 
@@ -146,6 +202,7 @@ const topLvl = async (chainString, version, timestamp) => {
       chain: chainString,
     })
   ).output.map((o) => o.output);
+
   poolInfo = poolInfo.filter(
     (obj, index, self) =>
       index === self.findIndex((o) => o.lpToken === obj.lpToken)
@@ -216,17 +273,22 @@ const topLvl = async (chainString, version, timestamp) => {
   dataNow = await utils.tvl(dataNowCopy, chainString);
 
   const dataNowUpdated = dataNowOriginal.map((obj1) => {
+    const isAlbStake = obj1.id == ALB;
     const obj2 = dataNow.find((obj2) => obj2.id === obj1.id);
     if (obj2) {
       return {
         ...obj1,
-        totalValueLockedUSD: obj2.totalValueLockedUSD,
-        price0: obj2.price0,
-        price1: obj2.price1,
+        totalValueLockedUSD: isAlbStake
+          ? (poolInfo[0].totalLp / 1e18) * albPrice
+          : obj2.totalValueLockedUSD,
+        price0: isAlbStake ? albPrice : obj2.price0,
+        price1: isAlbStake ? albPrice : obj2.price1,
       };
     }
     return obj1;
   });
+
+  console.log('dataNowUpdated', dataNowUpdated);
 
   // calculate apy
   dataNow = dataNowUpdated.map((el) =>
@@ -234,16 +296,23 @@ const topLvl = async (chainString, version, timestamp) => {
   );
 
   dataNow = dataNow.map((p) => {
-    const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
-    const underlyingTokens = [p.token0.id, p.token1.id];
+    const isAlbStake = p.id == ALB;
+    const symbol = isAlbStake
+      ? p.token0.symbol
+      : utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
+    const underlyingTokens = [p.token0.id];
     const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
     const token1 = underlyingTokens === undefined ? '' : underlyingTokens[1];
     const chain = chainString;
-    const url = `https://app.alienbase.xyz/add/${token0}/${token1}`;
+    const url = isAlbStake
+      ? `https://app.alienbase.xyz/swap`
+      : `https://app.alienbase.xyz/add/${token0}/${token1}`;
 
     const albAllocPoint = poolInfo.find(
       (pid) => pid.lpToken.toLowerCase() === p.id?.toLowerCase()
     )?.allocPoint;
+
+    console.log(symbol, albAllocPoint);
 
     let totalDeposit = poolInfo.find(
       (pid) => pid.lpToken.toLowerCase() === p.id?.toLowerCase()
@@ -270,7 +339,7 @@ const topLvl = async (chainString, version, timestamp) => {
       apyBase: albBaseApy || 0,
       apyBase7d: 0,
       apyReward,
-      rewardTokens: apyReward > 0 ? [ALB] : [],
+      rewardTokens: apyReward > 0 || isAlbStake ? [ALB] : [],
       underlyingTokens,
       url,
       volumeUsd1d: p?.volumeUSD1d || 0,
