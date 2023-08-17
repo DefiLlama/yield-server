@@ -42,12 +42,10 @@ function sumValuesWithDifferentDecimals(
 }
 
 const getPools = async (pools) => {
-  const chain = 'optimism';
   const poolsList = [];
 
   await Promise.all(
     pools.map(async (pool) => {
-      // Pool Total Staked
       const totalStaked = await api2.abi.call({
         abi: 'uint256:totalStaked',
         target: pool.address,
@@ -87,7 +85,6 @@ const getPools = async (pools) => {
         chain: pool.chain,
       });
 
-      // LP Token Total Supply
       const lpTotalSupply = await api2.abi.call({
         abi: 'erc20:totalSupply',
         target: lpToken,
@@ -102,7 +99,6 @@ const getPools = async (pools) => {
         chain: pool.chain,
       });
 
-      // Balance of Pool on Gauge
       const lpBalance = (
         await sdk.api.abi.call({
           abi: 'erc20:balanceOf',
