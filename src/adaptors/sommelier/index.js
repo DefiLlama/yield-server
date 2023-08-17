@@ -57,6 +57,8 @@ async function getHoldingPositions() {
   return Array.from(deduped);
 }
 
+const { getShareValueAtBlock, getBlockByEpoch } = require('./v2');
+
 async function main() {
   // Grab all holding positions across all cellars
   const assets = await getHoldingPositions();
@@ -71,12 +73,12 @@ async function main() {
   let promises = [];
   // Calculate TVL, APRs (with rewards if applicable) for each cellar version
   // V1
-  promises = v0815Pools.map((pool) => handleV0815(pool, prices));
+  // promises = v0815Pools.map((pool) => handleV0815(pool, prices));
 
   // V1.5
-  promises = promises.concat(
-    v0816Pools.map((pool) => handleV0816(pool, prices))
-  );
+  // promises = promises.concat(
+  //   v0816Pools.map((pool) => handleV0816(pool, prices))
+  // );
 
   // V2
   promises = promises.concat(v2Pools.map((pool) => handleV2(pool, prices)));
@@ -160,7 +162,7 @@ async function handleV2plus(pool, prices, underlyingTokens) {
   const assetPrice = prices.pricesByAddress[asset.toLowerCase()];
 
   const apyBase = await v2.getApy(cellarAddress);
-  const apyBase7d = await v2.getApy7d(cellarAddress);
+  // const apyBase7d = await v2.getApy7d(cellarAddress);
 
   // getTvlUsd implementation hasn't changed since v1.5 (v0.8.16)
   const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset);
@@ -169,7 +171,7 @@ async function handleV2plus(pool, prices, underlyingTokens) {
     ...pool,
     tvlUsd,
     apyBase,
-    apyBase7d,
+    // apyBase7d,
     underlyingTokens,
   };
 

@@ -3,10 +3,15 @@ const sdk = require('@defillama/sdk');
 const queries = require('./queries');
 const cellarAbi = require('./cellar-v2.json');
 const { chain, realYieldEth } = require('./config');
+const { endOfYesterday, subDays } = require('date-fns');
+const utils = require('../utils');
 
 const call = sdk.api.abi.call;
 
 const abiAsset = cellarAbi.find((el) => el.name === 'asset');
+const abiDecimals = cellarAbi.find((el) => el.name === 'decimals');
+const abiConverToAssets = cellarAbi.find((el) => el.name === 'convertToAssets');
+
 const getPositionAssets = cellarAbi.find(
   (el) => el.name === 'getPositionAssets'
 );
@@ -14,73 +19,83 @@ const getPositionAssets = cellarAbi.find(
 const windowInHrs = 48; // 2 days
 const dayInSec = 60 * 60 * 24; // 1 day in seconds
 
-// Calculate daily APY given a start and end time in seconds since epoch
-// APY should only be calculated with data from a full day. To calculate today's
-// APY, use the complete data from the previous 2 days.
-async function calcApy(cellarAddress, startEpochSecs, endEpochSecs) {
-  // Returns hourData in desc order, current hour is index 0
-  const hrData = await queries.getHourData(
-    cellarAddress,
-    startEpochSecs,
-    endEpochSecs
+async function getBlockByEpoch(epochSecs) {
+  if (!Number.isInteger) {
+    throw new Error('getBlockByEpoch was not passed an integer');
+  }
+
+  const data = await utils.getData(
+    `https://coins.llama.fi/block/ethereum/${epochSecs}`
   );
 
-  // How many seconds have elapsed today
-  const remainder = endEpochSecs % dayInSec;
-  // Start of the 2nd day
-  const startOfEnd =
-    remainder === 0 ? endEpochSecs - dayInSec : endEpochSecs - remainder;
+  return data.height;
+}
 
-  // Bucket hr datas by date
-  const dayBefore = hrData.filter((data) => data.date >= startOfEnd);
-  const twoDaysBefore = hrData.filter((data) => data.date < startOfEnd);
+async function getShareValueAtBlock(cellarAddress, block) {
+  const decimals = (
+    await call({
+      target: cellarAddress,
+      abi: abiDecimals,
+      chain,
+    })
+  ).output;
 
-  // Sum hourly price of the last 2 days individually
-  let sumPrice = dayBefore.reduce((memo, data) => {
-    return memo.plus(data.shareValue);
-  }, new BigNumber(0));
+  const share = new BigNumber(10).pow(decimals);
 
-  let sumPrevPrice = twoDaysBefore.reduce((memo, data) => {
-    return memo.plus(data.shareValue);
-  }, new BigNumber(0));
+  const shareValue = (
+    await call({
+      target: cellarAddress,
+      abi: abiConverToAssets,
+      params: [share.toString()],
+      block,
+      chain,
+    })
+  ).output;
 
-  // Calculate yesterday's yield
-  const price = sumPrice.div(dayBefore.length);
-  const prevPrice = sumPrevPrice.div(twoDaysBefore.length);
-  const yieldRatio = price.minus(prevPrice).div(prevPrice);
+  return new BigNumber(shareValue);
+}
 
+async function calcApy(cellarAddress, startEpochSecs, endEpochSecs) {
+  const startBlock = await getBlockByEpoch(startEpochSecs);
+  const endBlock = await getBlockByEpoch(endEpochSecs);
+
+  const startValue = await getShareValueAtBlock(cellarAddress, startBlock);
+  const endValue = await getShareValueAtBlock(cellarAddress, endBlock);
+
+  const yieldRatio = endValue.minus(startValue).div(startValue);
   const result = yieldRatio.times(365).times(100).toNumber();
 
   return Number.isNaN(result) ? 0 : result;
 }
 
-// Use the change in avg daily price between the last 2 days to calculate an APR
-async function getApy(cellarAddress) {
-  const now = Math.floor(Date.now() / 1000);
-  const remainder = now % dayInSec;
-  const end = now - remainder - 1;
-  const start = end - dayInSec - dayInSec + 1;
-
-  return calcApy(cellarAddress, start, end);
+function utcToday() {
+  const dateString = new Date().toISOString().split('T')[0];
+  return new Date(`${dateString}T00:00:00.000Z`);
 }
 
-const windowInDays = 7;
+function utcEndOfYesterday() {
+  const today = utcToday();
+  return new Date(today.getTime() - 1000);
+}
+
+async function getApy(cellarAddress) {
+  const yesterday = utcEndOfYesterday();
+  const start = subDays(yesterday, 1);
+
+  const yesterdayEpoch = Math.floor(yesterday.getTime() / 1000);
+  const startEpoch = Math.floor(start.getTime() / 1000);
+
+  return calcApy(cellarAddress, startEpoch, yesterdayEpoch);
+}
 
 async function getApy7d(cellarAddress) {
-  // Returns dayData in desc order, today is index 0
-  const dayData = await queries.getDayData(cellarAddress, windowInDays);
+  const yesterday = utcEndOfYesterday();
+  const start = subDays(yesterday, 7);
 
-  // Need a minimum of 7 days to calculate yield
-  if (dayData.length < 7) {
-    return 0;
-  }
+  const yesterdayEpoch = Math.floor(yesterday.getTime() / 1000);
+  const startEpoch = Math.floor(start.getTime() / 1000);
 
-  const price = new BigNumber(dayData[0].shareValue); // Now price
-  const prevPrice = new BigNumber(dayData[dayData.length - 1].shareValue); // Comparison price
-  const yieldRatio = price.minus(prevPrice).div(prevPrice);
-
-  const result = yieldRatio.times(52).times(100).toNumber();
-  return Number.isNaN(result) ? 0 : result;
+  return calcApy(cellarAddress, startEpoch, yesterdayEpoch);
 }
 
 // Call getPositionAssets to get all the credit position's underlying assets
@@ -123,4 +138,6 @@ module.exports = {
   getApy7d,
   getHoldingPosition,
   getUnderlyingTokens,
+  getBlockByEpoch,
+  getShareValueAtBlock,
 };
