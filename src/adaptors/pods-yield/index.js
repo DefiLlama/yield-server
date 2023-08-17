@@ -142,7 +142,7 @@ const vaultApys = async () => {
         project: 'pods-yield',
         symbol: vault.symbol,
         tvlUsd: vault.tvl,
-        apyBase: finalApyBase - 1,
+        apyBase: (finalApyBase - 1) * 100,
         underlyingTokens: vault.underlyingTokens,
         poolMeta: vault.name,
         apyBaseInception,
