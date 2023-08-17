@@ -349,7 +349,7 @@ const getApy = async () => {
     const apyBase = await getAaveApy(collateral.tokenAddress);
 
     const pool = {
-      pool: `${collateral.tokenAddress}-ethereum`,
+      pool: `${DULLAHAN_VAULT}-${collateral.symbol}-ethereum`,
       project: 'paladin-dullahan',
       chain: 'ethereum',
       symbol: `d${collateral.symbol}`,
@@ -365,7 +365,7 @@ const getApy = async () => {
   }
 
   const dstkAAVE = {
-    pool: '0x167c606be99DBf5A8aF61E1983E5B309e8FA2Ae7-ethereum',
+    pool: `${DULLAHAN_VAULT}-ethereum`,
     project: 'paladin-dullahan',
     chain: 'ethereum',
     symbol: 'dstkAAVE',
