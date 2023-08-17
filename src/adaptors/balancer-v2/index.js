@@ -153,6 +153,7 @@ const tvl = (entry, tokenPriceList, chainString) => {
         'CBETH-WSTETH-BPT',
         'ANKRETH/WSTETH',
         'GHO/BB-A-USD',
+        'B-ETHX/BB-A-WETH',
       ].includes(t.symbol.toUpperCase().trim())
   );
 
