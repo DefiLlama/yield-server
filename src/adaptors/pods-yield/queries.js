@@ -15,13 +15,13 @@ const convertToAssets = async (strategy, position, block = 'latest') => {
   return data;
 };
 
-const totalAssets = async (strategy) => {
+const totalAssets = async (strategy, block = 'latest') => {
   const data = (
     await sdk.api.abi.call({
       target: strategy,
       abi: abi.find((m) => m.name === 'totalAssets'),
       chain: 'ethereum',
-      block: 'latest',
+      block,
     })
   ).output;
 
