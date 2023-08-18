@@ -83,6 +83,7 @@ const excludePools = [
   '0xC4C319E2D4d66CcA4464C0c2B32c9Bd23ebe784e-ethereum',
   '0xc897b98272AA23714464Ea2A0Bd5180f1B8C0025-ethereum',
   '0x9848482da3Ee3076165ce6497eDA906E66bB85C5-ethereum',
+  '0x4CF4f433e359a343648c480b2f3952FD64616a9a', // peth harvest
 ];
 
 const boundaries = {
