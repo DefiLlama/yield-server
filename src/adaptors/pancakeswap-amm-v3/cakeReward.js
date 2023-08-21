@@ -1,6 +1,7 @@
 const abiMcV3 = require('./masterchefv3.json');
+const abiMcV3PolygonZkevm = require('./masterchefv3PolygonZkevm.json');
 const utils = require('../utils');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk4');
 const bn = require('bignumber.js');
 const fetch = require('node-fetch');
 
@@ -10,12 +11,18 @@ const chainIds = {
   ethereum: {
     id: 1,
     mchef: '0x556B9306565093C855AEA9AE92A594704c2Cd59e',
+    abi: abiMcV3,
   },
-  bsc: { id: 56, mchef: '0x556B9306565093C855AEA9AE92A594704c2Cd59e' },
-  // polygon_zkevm: {
-  //   id: 1101,
-  //   mchef: '0xe9c7f3196ab8c09f6616365e8873daeb207c0391',
-  // },
+  bsc: {
+    id: 56,
+    mchef: '0x556B9306565093C855AEA9AE92A594704c2Cd59e',
+    abi: abiMcV3,
+  },
+  polygon_zkevm: {
+    id: 1101,
+    mchef: '0xe9c7f3196ab8c09f6616365e8873daeb207c0391',
+    abi: abiMcV3PolygonZkevm,
+  },
   // era: {
   //   id: 324,
   //   mchef: '0x4c615E78c5fCA1Ad31e4d66eb0D8688d84307463',
@@ -26,24 +33,25 @@ const getCakeAprs = async (chain) => {
   if (chainIds[chain] === undefined) return [];
 
   const masterChef = chainIds[chain].mchef;
+  const abi = chainIds[chain].abi;
 
   const poolLength = await sdk.api.abi
     .call({
-      abi: abiMcV3.find((m) => m.name === 'poolLength'),
+      abi: abi.find((m) => m.name === 'poolLength'),
       target: masterChef,
       chain,
     })
     .then((o) => o.output);
   const totalAllocPoint = await sdk.api.abi
     .call({
-      abi: abiMcV3.find((m) => m.name === 'totalAllocPoint'),
+      abi: abi.find((m) => m.name === 'totalAllocPoint'),
       target: masterChef,
       chain,
     })
     .then((o) => o.output);
   const latestPeriodCakePerSecond = await sdk.api.abi
     .call({
-      abi: abiMcV3.find((m) => m.name === 'latestPeriodCakePerSecond'),
+      abi: abi.find((m) => m.name === 'latestPeriodCakePerSecond'),
       target: masterChef,
       chain,
     })
@@ -66,7 +74,7 @@ const getCakeAprs = async (chain) => {
 
   const poolInfos = await sdk.api.abi
     .multiCall({
-      abi: abiMcV3.find((m) => m.name === 'poolInfo'),
+      abi: abi.find((m) => m.name === 'poolInfo'),
       calls: poolInfoCalls,
       chain,
     })
