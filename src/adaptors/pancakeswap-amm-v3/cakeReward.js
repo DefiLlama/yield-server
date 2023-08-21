@@ -1,5 +1,7 @@
 const abiMcV3 = require('./masterchefv3.json');
+const abiMcV3Arbitrum = require('./masterchefv3Arbitrum.json');
 const abiMcV3PolygonZkevm = require('./masterchefv3PolygonZkevm.json');
+
 const utils = require('../utils');
 const sdk = require('@defillama/sdk4');
 const bn = require('bignumber.js');
@@ -23,10 +25,16 @@ const chainIds = {
     mchef: '0xe9c7f3196ab8c09f6616365e8873daeb207c0391',
     abi: abiMcV3PolygonZkevm,
   },
-  // era: {
-  //   id: 324,
-  //   mchef: '0x4c615E78c5fCA1Ad31e4d66eb0D8688d84307463',
-  // },
+  arbitrum: {
+    id: 42161,
+    mchef: '0x5e09ACf80C0296740eC5d6F643005a4ef8DaA694',
+    abi: abiMcV3Arbitrum,
+  },
+  era: {
+    id: 324,
+    mchef: '0x4c615E78c5fCA1Ad31e4d66eb0D8688d84307463',
+    abi: abiMcV3Arbitrum,
+  },
 };
 
 const getCakeAprs = async (chain) => {
