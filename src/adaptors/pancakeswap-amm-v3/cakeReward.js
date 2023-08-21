@@ -4,38 +4,47 @@ const sdk = require('@defillama/sdk');
 const bn = require('bignumber.js');
 const fetch = require('node-fetch');
 
-const MASTERCHEF_ADDRESS = '0x556B9306565093C855AEA9AE92A594704c2Cd59e';
-
 const baseUrl = 'https://api.thegraph.com/subgraphs/name';
-const chains = {
-  ethereum: `${baseUrl}/pancakeswap/exchange-v3-eth`,
-  bsc: `${baseUrl}/pancakeswap/exchange-v3-bsc`,
-};
 
 const chainIds = {
-  ethereum: 1,
-  bsc: 56,
+  ethereum: {
+    id: 1,
+    mchef: '0x556B9306565093C855AEA9AE92A594704c2Cd59e',
+  },
+  bsc: { id: 56, mchef: '0x556B9306565093C855AEA9AE92A594704c2Cd59e' },
+  // polygon_zkevm: {
+  //   id: 1101,
+  //   mchef: '0xe9c7f3196ab8c09f6616365e8873daeb207c0391',
+  // },
+  // era: {
+  //   id: 324,
+  //   mchef: '0x4c615E78c5fCA1Ad31e4d66eb0D8688d84307463',
+  // },
 };
 
 const getCakeAprs = async (chain) => {
+  if (chainIds[chain] === undefined) return [];
+
+  const masterChef = chainIds[chain].mchef;
+
   const poolLength = await sdk.api.abi
     .call({
       abi: abiMcV3.find((m) => m.name === 'poolLength'),
-      target: MASTERCHEF_ADDRESS,
+      target: masterChef,
       chain,
     })
     .then((o) => o.output);
   const totalAllocPoint = await sdk.api.abi
     .call({
       abi: abiMcV3.find((m) => m.name === 'totalAllocPoint'),
-      target: MASTERCHEF_ADDRESS,
+      target: masterChef,
       chain,
     })
     .then((o) => o.output);
   const latestPeriodCakePerSecond = await sdk.api.abi
     .call({
       abi: abiMcV3.find((m) => m.name === 'latestPeriodCakePerSecond'),
-      target: MASTERCHEF_ADDRESS,
+      target: masterChef,
       chain,
     })
     .then((o) => o.output);
@@ -50,7 +59,7 @@ const getCakeAprs = async (chain) => {
     .filter((i) => i !== 0)
     .map((i) => {
       return {
-        target: MASTERCHEF_ADDRESS,
+        target: masterChef,
         params: i,
       };
     });
@@ -72,7 +81,7 @@ const getCakeAprs = async (chain) => {
   const allStakedTVL = await Promise.allSettled(
     poolInfos.map((p) => {
       return fetch(
-        `https://farms-api.pancakeswap.com/v3/${chainIds[chain]}/liquidity/${p.v3Pool}`
+        `https://farms-api.pancakeswap.com/v3/${chainIds[chain].id}/liquidity/${p.v3Pool}`
       )
         .then((r) => r.json())
         .catch((err) => {
