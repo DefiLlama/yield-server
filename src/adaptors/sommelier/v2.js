@@ -55,7 +55,12 @@ async function getShareValueAtBlock(cellarAddress, block) {
   return new BigNumber(shareValue);
 }
 
-async function calcApy(cellarAddress, startEpochSecs, endEpochSecs) {
+async function calcApy(
+  cellarAddress,
+  startEpochSecs,
+  endEpochSecs,
+  intervalDays
+) {
   const startBlock = await getBlockByEpoch(startEpochSecs);
   const endBlock = await getBlockByEpoch(endEpochSecs);
 
@@ -63,7 +68,10 @@ async function calcApy(cellarAddress, startEpochSecs, endEpochSecs) {
   const endValue = await getShareValueAtBlock(cellarAddress, endBlock);
 
   const yieldRatio = endValue.minus(startValue).div(startValue);
-  const result = yieldRatio.times(365).times(100).toNumber();
+  const result = yieldRatio
+    .times(365 / intervalDays)
+    .times(100)
+    .toNumber();
 
   return Number.isNaN(result) ? 0 : result;
 }
@@ -85,17 +93,20 @@ async function getApy(cellarAddress) {
   const yesterdayEpoch = Math.floor(yesterday.getTime() / 1000);
   const startEpoch = Math.floor(start.getTime() / 1000);
 
-  return calcApy(cellarAddress, startEpoch, yesterdayEpoch);
+  return calcApy(cellarAddress, startEpoch, yesterdayEpoch, 1);
 }
 
 async function getApy7d(cellarAddress) {
+  const interval = 7; // days
   const yesterday = utcEndOfYesterday();
-  const start = subDays(yesterday, 7);
+  const start = subDays(yesterday, interval);
+  console.log(yesterday.toISOString());
+  console.log(start.toISOString());
 
   const yesterdayEpoch = Math.floor(yesterday.getTime() / 1000);
   const startEpoch = Math.floor(start.getTime() / 1000);
 
-  return calcApy(cellarAddress, startEpoch, yesterdayEpoch);
+  return calcApy(cellarAddress, startEpoch, yesterdayEpoch, interval);
 }
 
 // Call getPositionAssets to get all the credit position's underlying assets
