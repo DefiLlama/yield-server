@@ -25,7 +25,7 @@ const getPrices = async (addresses) => {
     'era:0x9793eac2fecef55248efa039bec78e82ac01cb2f': {
       decimals: 18,
       symbol: 'earlyZERO',
-      price: 0.000003,
+      price: 0.00003,
       timestamp: Date.now(),
       confidence: 0.99,
     },
@@ -220,7 +220,6 @@ const apy = async () => {
     return chainPools;
   });
 
-  console.log(pools);
   return pools.flat().filter((p) => !!p.tvlUsd);
 };
 
