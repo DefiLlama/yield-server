@@ -98,7 +98,7 @@ var supportedChains = [
     }
 ];
 // Fetch active vaults and associated data @todo limited to 1000 per chain
-var query = "\n{\n    vaults(first: 1000, where: {totalLPTokensIssued_not: \"0\"}) {\n      weeklyFeeAPR\n      beaconName\n      feeTier\n      id\n      pool\n      token0\n      token0Symbol\n      token0Decimals\n      token1\n      token1Symbol\n      token1Decimals\n      totalLPTokensIssued\n      totalAmount1\n      totalAmount0\n      strategyToken {\n        id\n      }\n    }\n  }";
+var query = "\n{\n    vaults(first: 1000, where: {totalLPTokensIssued_not: \"0\", lastSnapshot_not: \"0\"}) {\n      weeklyFeeAPR\n      beaconName\n      feeTier\n      id\n      pool\n      token0\n      token0Symbol\n      token0Decimals\n      token1\n      token1Symbol\n      token1Decimals\n      totalLPTokensIssued\n      totalAmount1\n      totalAmount0\n      strategyToken {\n        id\n      }\n    }\n  }";
 var getPools = function () { return __awaiter(void 0, void 0, void 0, function () {
     var pools, _loop_1, _i, supportedChains_1, chainInfo;
     return __generator(this, function (_a) {
@@ -133,7 +133,11 @@ var getPools = function () { return __awaiter(void 0, void 0, void 0, function (
                                 Object.keys(rewardInfo_1.data.pools).forEach(function (key) {
                                     // token listed is most recent distribution, may change over time
                                     var pool = rewardInfo_1.data.pools[key];
-                                    incentivizedPools.push({ pool: pool.pool, apr: pool.aprs['Average APR (rewards / pool TVL)'], token: pool.distributionData[pool.distributionData.length - 1].token });
+                                    var steerAPRs = Object.keys(pool.aprs).filter(function (manager) { return manager.includes('Steer'); });
+                                    incentivizedPools.push(steerAPRs.map(function (manager) {
+                                        // get vault directly
+                                        return { id: manager.slice(6), apr: pool.aprs[manager], token: pool.distributionData[pool.distributionData.length - 1].token };
+                                    }));
                                 });
                                 _b.label = 4;
                             case 4: return [4 /*yield*/, Promise.all(data.vaults.map(function (vault) { return __awaiter(void 0, void 0, void 0, function () {
@@ -147,7 +151,7 @@ var getPools = function () { return __awaiter(void 0, void 0, void 0, function (
                                                 poolTvl = totalUSD0 + totalUSD1;
                                                 rewardToken = null;
                                                 rewardAPY = 0;
-                                                rewardPool = incentivizedPools.filter(function (pool) { return pool.pool.toLowerCase() === vault.pool.toLowerCase(); });
+                                                rewardPool = incentivizedPools.filter(function (pool) { return pool.id === vault.id.toLowerCase(); });
                                                 if (rewardPool.length) {
                                                     if (rewardPool[0].apr) {
                                                         rewardToken = rewardPool[0].token;

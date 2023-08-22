@@ -65,7 +65,7 @@ const supportedChains = [
 // Fetch active vaults and associated data @todo limited to 1000 per chain
 const query = `
 {
-    vaults(first: 1000, where: {totalLPTokensIssued_not: "0"}) {
+    vaults(first: 1000, where: {totalLPTokensIssued_not: "0", lastSnapshot_not: "0"}) {
       weeklyFeeAPR
       beaconName
       feeTier
@@ -114,11 +114,16 @@ for (const chainInfo of supportedChains) {
             const merklRequest = `https://api.angle.money/v1/merkl?chainId=${chainInfo.chainId}`
             const rewardInfo = await axios.get(merklRequest)
 
-
             Object.keys(rewardInfo.data.pools).forEach(function(key){
                 // token listed is most recent distribution, may change over time
                 const pool = rewardInfo.data.pools[key]
-                incentivizedPools.push( {pool: pool.pool, apr: pool.aprs['Average APR (rewards / pool TVL)'], token: pool.distributionData[pool.distributionData.length - 1].token} )
+
+                const steerAPRs = Object.keys(pool.aprs).filter((manager)=>manager.includes('Steer'))
+                incentivizedPools.push( steerAPRs.map((manager)=> {
+                    // get vault directly
+                    return {id: manager.slice(6), apr: pool.aprs[manager], token: pool.distributionData[pool.distributionData.length - 1].token} 
+                }))
+
             })
         }
 
@@ -130,7 +135,7 @@ for (const chainInfo of supportedChains) {
             let rewardToken = null
             let rewardAPY = 0
             // find reward token / apy if applicable
-            const rewardPool = incentivizedPools.filter(pool => pool.pool.toLowerCase() === vault.pool.toLowerCase())
+            const rewardPool = incentivizedPools.filter(pool => pool.id === vault.id.toLowerCase())
             if (rewardPool.length) {
                 if (rewardPool[0].apr) {
                     rewardToken = rewardPool[0].token
