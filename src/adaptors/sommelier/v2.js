@@ -99,9 +99,9 @@ async function getApy(cellarAddress) {
 async function getApy7d(cellarAddress) {
   const interval = 7; // days
   const yesterday = utcEndOfYesterday();
-  const start = subDays(yesterday, interval);
-  console.log(yesterday.toISOString());
-  console.log(start.toISOString());
+
+  // Subtract 6 days because we are including yesterday
+  const start = subDays(yesterday, interval - 1);
 
   const yesterdayEpoch = Math.floor(yesterday.getTime() / 1000);
   const startEpoch = Math.floor(start.getTime() / 1000);
