@@ -73,12 +73,12 @@ async function main() {
   let promises = [];
   // Calculate TVL, APRs (with rewards if applicable) for each cellar version
   // V1
-  // promises = v0815Pools.map((pool) => handleV0815(pool, prices));
+  promises = v0815Pools.map((pool) => handleV0815(pool, prices));
 
   // V1.5
-  // promises = promises.concat(
-  //   v0816Pools.map((pool) => handleV0816(pool, prices))
-  // );
+  promises = promises.concat(
+    v0816Pools.map((pool) => handleV0816(pool, prices))
+  );
 
   // V2
   promises = promises.concat(v2Pools.map((pool) => handleV2(pool, prices)));
