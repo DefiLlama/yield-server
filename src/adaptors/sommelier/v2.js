@@ -10,7 +10,9 @@ const call = sdk.api.abi.call;
 
 const abiAsset = cellarAbi.find((el) => el.name === 'asset');
 const abiDecimals = cellarAbi.find((el) => el.name === 'decimals');
-const abiConverToAssets = cellarAbi.find((el) => el.name === 'convertToAssets');
+const abiConvertToAssets = cellarAbi.find(
+  (el) => el.name === 'convertToAssets'
+);
 
 const getPositionAssets = cellarAbi.find(
   (el) => el.name === 'getPositionAssets'
@@ -45,7 +47,7 @@ async function getShareValueAtBlock(cellarAddress, block) {
   const shareValue = (
     await call({
       target: cellarAddress,
-      abi: abiConverToAssets,
+      abi: abiConvertToAssets,
       params: [share.toString()],
       block,
       chain,
