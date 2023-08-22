@@ -1,8 +1,8 @@
 const ETHEREUM_REF_POOL_UNDERLYINGS = {
   USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
   USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-  ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
-}
+  ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+};
 
 const SUPPORTED_CHAIN_NAMES = {
   1: 'Ethereum',
@@ -21,7 +21,7 @@ const SUPPORTED_CHAIN_NAMES = {
   // 1111: 'Wemix',
   324: 'zkSync Era',
   1101: 'Polygon zkEVM',
-}
+};
 
 const YPOOL_INFOS = {
   USDC: {
@@ -99,7 +99,7 @@ const YPOOL_INFOS = {
       ypool: '0x2641911948e0780e615A9465188D975Fa4A72f2c',
       ypoolToken: '0x22e89898A04eaf43379BeB70bf4E38b1faf8A31e',
       decimals: 6,
-    }
+    },
     // wemix
   },
   USDT: {
@@ -167,7 +167,7 @@ const YPOOL_INFOS = {
       ypool: '0xF526EFc174b512e66243Cb52524C1BE720144e8d',
       ypoolToken: '0x3795C36e7D12A8c252A20C5a7B455f7c57b60283',
       decimals: 6,
-    }
+    },
     // wemix
   },
   ETH: {
@@ -240,7 +240,7 @@ const RPC_ENDPOINTS = {
   8217: 'https://rpc.ankr.com/klaytn',
   // 1111: 'Wemix',
   324: 'https://mainnet.era.zksync.io',
-  1101: 'https://rpc.ankr.com/polygon_zkevm',
+  1101: 'https://zkevm-rpc.com',
 };
 
 exports.chainSupported = (chainId) => {

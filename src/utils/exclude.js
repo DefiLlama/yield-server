@@ -26,6 +26,8 @@ const excludeAdaptors = [
   'rodeo', // exploited
   'fairfi', // seems dead
   'mole', // needs to be reimplement
+  'luxsfi',
+  'geist-finance',
 ];
 
 const excludePools = [
@@ -76,6 +78,12 @@ const excludePools = [
   '0xe50341e6f27a2514908f347e743119f3dfd84ad5',
   '0xb59A93eAB4059C58d33b0c29fE4Fa3F3433997cc',
   '0xB657B895B265C38c53FFF00166cF7F6A3C70587d',
+  // curve exploit
+  '0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511-ethereum',
+  '0xC4C319E2D4d66CcA4464C0c2B32c9Bd23ebe784e-ethereum',
+  '0xc897b98272AA23714464Ea2A0Bd5180f1B8C0025-ethereum',
+  '0x9848482da3Ee3076165ce6497eDA906E66bB85C5-ethereum',
+  '0x4CF4f433e359a343648c480b2f3952FD64616a9a', // peth harvest
 ];
 
 const boundaries = {

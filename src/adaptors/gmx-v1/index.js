@@ -25,6 +25,7 @@ const avalancheInflationGlpTrackerAddress =
   '0x9e295B5B976a184B14aD8cd72413aD846C299660';
 
 const secondsPerYear = 31536000;
+const project = 'gmx-v1';
 
 async function getAdjustedAmount(pTarget, pChain, pAbi, pParams = []) {
   let decimals = await sdk.api.abi.call({
@@ -93,7 +94,7 @@ async function getPoolGmx(
   return {
     pool: pInflationTrackerAddress,
     chain: utils.formatChain(chainString),
-    project: 'gmx',
+    project,
     symbol: utils.formatSymbol('GMX'),
     tvlUsd: tvlGmx,
     apyBase: apyFee,
@@ -126,7 +127,7 @@ async function getPoolGlp(
   return {
     pool: pInflationTrackerAddress,
     chain: utils.formatChain(chainString),
-    project: 'gmx',
+    project,
     symbol: 'WBTC-ETH-USDC-DAI-FRAX-LINK-UNI-USDT',
     poolMeta: 'GLP',
     tvlUsd: parseFloat(pTvl),

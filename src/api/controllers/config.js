@@ -91,8 +91,34 @@ const getConfigPool = async (req, res) => {
     });
 };
 
+// for calc liq on main protocol dashboard
+const getAllPools = async (req, res) => {
+  const query = minify(
+    `
+    SELECT
+        config_id,
+        symbol,
+        project,
+        chain,
+        "underlyingTokens"
+    FROM
+        config
+    `,
+    { compress: true }
+  );
+
+  const response = await conn.query(query);
+
+  if (!response) {
+    return new AppError(`Couldn't get data`, 404);
+  }
+
+  res.set(customHeader(3600)).status(200).json(response);
+};
+
 module.exports = {
   getUrl,
   getDistinctID,
   getConfigPool,
+  getAllPools,
 };
