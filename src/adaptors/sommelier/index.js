@@ -162,7 +162,7 @@ async function handleV2plus(pool, prices, underlyingTokens) {
   const assetPrice = prices.pricesByAddress[asset.toLowerCase()];
 
   const apyBase = await v2.getApy(cellarAddress);
-  // const apyBase7d = await v2.getApy7d(cellarAddress);
+  const apyBase7d = await v2.getApy7d(cellarAddress);
 
   // getTvlUsd implementation hasn't changed since v1.5 (v0.8.16)
   const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset);
@@ -171,7 +171,7 @@ async function handleV2plus(pool, prices, underlyingTokens) {
     ...pool,
     tvlUsd,
     apyBase,
-    // apyBase7d,
+    apyBase7d,
     underlyingTokens,
   };
 
