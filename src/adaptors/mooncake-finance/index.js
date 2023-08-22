@@ -13,13 +13,25 @@ const chainUrlParam = {
 };
 
 const getPrices = async (addresses) => {
-  const prices = (
+  const _prices = (
     await superagent.get(
       `https://coins.llama.fi/prices/current/${addresses
         .join(',')
         .toLowerCase()}`
     )
   ).body.coins;
+
+  const eMCAKE = {
+    'base:0x4f8b9a7f80b3c3fbb00517086a55133073f90558': {
+      decimals: 18,
+      symbol: 'eMCAKE',
+      price: 0.0005,
+      timestamp: Date.now(),
+      confidence: 0.99,
+    },
+  };
+
+  const prices = { ..._prices, ...eMCAKE };
 
   const pricesBySymbol = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
@@ -105,7 +117,7 @@ const apy = async () => {
         })
       ).output.map(({ output }) => output);
     })
-  ).catch((e) => console.log('err', e));
+  );
 
   const underlyingBalances = await Promise.all(
     data.map(async ([chain, reserves]) =>
