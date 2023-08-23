@@ -84,7 +84,6 @@ async function main() {
   promises = promises.concat(v2Pools.map((pool) => handleV2(pool, prices)));
 
   // V2.5
-  // no change in implementation from v2 -> v2.5
   promises = promises.concat(v2p5Pools.map((pool) => handleV2p5(pool, prices)));
 
   const pools = await Promise.all(promises);
