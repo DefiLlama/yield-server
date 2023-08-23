@@ -38,7 +38,7 @@ const stakingPools = {
   [realYieldBtc]: '0x1eff374fd9aa7266504144da861fff9bbd31828e',
   [defiStars]: '0x0349b3c56adb9e39b5d75fc1df52eee313dd80d1',
   [fraximal]: '0x290a42e913083edf5aefb241f8a12b306c19f8f9',
-  [turbosweth]: '0x8930ad2b661a3192d4b88f8bd02870a1db035589',
+  [turbosweth]: '0x69374d81fdc42add0fe1dc655705e40b51b6681b',
 };
 
 // List of v0815 Cellars
