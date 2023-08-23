@@ -117,10 +117,27 @@ const apy = async () => {
   ).output.map((o) => o.output);
 
   const uniqueTokens = [...new Set(metadata.map((i) => [i.t0, i.t1]).flat())];
-  const priceKeys = uniqueTokens.map((t) => `optimism:${t}`).join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+
+  const maxSize = 50;
+  const pages = Math.ceil(uniqueTokens.length / maxSize);
+  let prices_ = [];
+  let x = '';
+  for (const p of [...Array(pages).keys()]) {
+    x = uniqueTokens
+      .slice(p * maxSize, maxSize * (p + 1))
+      .map((t) => `optimism:${t}`)
+      .join(',');
+    prices_ = [
+      ...prices_,
+      (await axios.get(`https://coins.llama.fi/prices/current/${x}`)).data
+        .coins,
+    ];
+  }
+  // flatten
+  let prices = {};
+  for (const p of prices_.flat()) {
+    prices = { ...prices, ...p };
+  }
 
   const pools = allPools.map((p, i) => {
     const meta = metadata[i];
