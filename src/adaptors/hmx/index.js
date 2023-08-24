@@ -57,26 +57,26 @@ const apy = async () => {
     sdk.api.abi.call({
       abi: abi.rewardRate,
       chain: 'arbitrum',
-      target: addresses.hmx.FEEDABLE_REWARDER_HLP_STAKING,
+      target: addresses.staking.hlp.FEEDABLE_REWARDER_HLP_STAKING,
       params: [],
     }),
     sdk.api.abi.call({
       abi: abi.rewardRate,
       chain: 'arbitrum',
-      target: addresses.hmx.FEEDABLE_REWARDER_HLP_STAKING_ESHMX,
+      target: addresses.staking.hlp.FEEDABLE_REWARDER_HLP_STAKING_ESHMX,
       params: [],
     }),
     sdk.api.abi.call({
       abi: abi.calculateTotalShareHLP,
       chain: 'arbitrum',
-      target: addresses.hmx.HLP_STAKING,
-      params: [addresses.hmx.FEEDABLE_REWARDER_HLP_STAKING],
+      target: addresses.staking.hlp.HLP_STAKING,
+      params: [addresses.staking.hlp.FEEDABLE_REWARDER_HLP_STAKING],
     }),
     sdk.api.abi.call({
       abi: abi.calculateTotalShareHLP,
       chain: 'arbitrum',
-      target: addresses.hmx.HLP_STAKING,
-      params: [addresses.hmx.FEEDABLE_REWARDER_HLP_STAKING_ESHMX],
+      target: addresses.staking.hlp.HLP_STAKING,
+      params: [addresses.staking.hlp.FEEDABLE_REWARDER_HLP_STAKING_ESHMX],
     }),
     sdk.api.abi.call({
       abi: abi.getAumE30,
@@ -118,7 +118,7 @@ const apy = async () => {
       abi: abi.balanceOf,
       chain: 'arbitrum',
       target: addresses.token.HLP,
-      params: [addresses.hmx.HLP_STAKING],
+      params: [addresses.staking.hlp.HLP_STAKING],
     }),
   ]);
   const { pricesBySymbol } = await getPrices([
@@ -206,7 +206,7 @@ const apy = async () => {
     .dividedBy(1e30);
 
   const hlpStakingPool = {
-    pool: `${addresses.hmx.HLP_STAKING}-arbitrum`,
+    pool: `${addresses.staking.hlp.HLP_STAKING}-arbitrum`,
     chain: 'Arbitrum',
     project: 'hmx',
     symbol: 'GLP-USDC',
