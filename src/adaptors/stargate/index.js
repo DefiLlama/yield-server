@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk4');
 const superagent = require('superagent');
 const utils = require('../utils');
 const abi = require("./abis.json");
@@ -20,6 +20,12 @@ const CONFIG = {
         LP_STAKING: '0x8731d54E9D02c286767d56ac03e8037C07e01e98',
         REWARD_TOKEN: '0x2F6F07CDcf3588944Bf4C42aC74ff24bF56e7590',
         LLAMA_NAME: 'Avalanche',
+    },
+    base: {        
+        LP_STAKING: '0x06Eb48763f117c7Be887296CDcdfad2E4092739C',
+        ETHER_TOKEN: '0x0000000000000000000000000000000000000000',
+        REWARD_TOKEN: '0xE3B53AF74a4BF62Ae5511055290838050bf764Df',
+        LLAMA_NAME: 'Base',
     },
     polygon: {
         LP_STAKING: '0x8731d54E9D02c286767d56ac03e8037C07e01e98',
@@ -49,6 +55,7 @@ const CHAIN_MAP = {
     fantom: 'ftm',
     polygon: 'matic',
     arbitrum: 'arbitrum',
+    base: 'base',
     optimism: 'optimism',
     ethereum: 'eth',
     bsc: 'bnb',
@@ -69,12 +76,10 @@ const pools = async (poolIndex, chain) => {
 
     let rewardPerBlock;
     // reward (STG) per block
-    if (chain !== 'optimism') {
+    if (!(['optimism','base'].includes(chain))) {
         const STGPerBlock = (await sdk.api.abi.call({ abi: abi.stargatePerBlock, target: CONFIG[chain].LP_STAKING, chain: chain })).output;
         rewardPerBlock = STGPerBlock;
-    }
-    // reward (OP) per block
-    if (chain == 'optimism') {
+    } else {
         const eTokenPerBlock = (await sdk.api.abi.call({ abi: abi.eTokenPerSecond, target: CONFIG[chain].LP_STAKING, chain: chain })).output;
         rewardPerBlock = eTokenPerBlock;
     }
@@ -128,22 +133,27 @@ function calcApy(chain, allocPoint, totalAllocPoint, reward, rewardPrice, reserv
     // blocks per year * reward * wieght * price
 
     // BLOCK_TIME is number of seconds for 1 block to settle
-    let BLOCK_TIME = 12;
-    if (chain == 'fantom') {
-        BLOCK_TIME = 1;
+    let BLOCK_TIME;
+    switch (chain) {
+        case 'fantom':
+        case 'optimism':
+        case 'base':
+            BLOCK_TIME = 1;
+            break;
+        case 'polygon':
+            BLOCK_TIME = 2.11;
+            break;
+        case 'avax':
+            BLOCK_TIME = 2.03;
+            break;
+        case 'bsc':
+            BLOCK_TIME = 3;
+            break;
+        default:
+            BLOCK_TIME = 12;
+            break;
     }
-    if (chain == 'optimism') {
-        BLOCK_TIME = 1;
-    }
-    if (chain == 'polygon') {
-        BLOCK_TIME = 2.11;
-    }
-    if (chain == 'avax') {
-        BLOCK_TIME = 2.03;
-    }
-    if (chain == 'bsc') {
-        BLOCK_TIME = 3;
-    }
+
     const SECONDS_PER_YEAR = 60 * 60 * 24 * 365;
     const BLOCKS_PER_YEAR = SECONDS_PER_YEAR / BLOCK_TIME;
 
@@ -165,8 +175,11 @@ const getApy = async (chain) => {
     let poolsApy = [];
 
     const poolLength = parseInt((await sdk.api.abi.call({ abi: abi.poolLength, target: CONFIG[chain].LP_STAKING, chain })).output);
-    const rewardPrice = (await getPrices(chain, [CONFIG[chain].REWARD_TOKEN]))[(CONFIG[chain].REWARD_TOKEN).toLowerCase()];
-
+    // use ETH pricing for STG since its most liquid, use OPT pricing for OP
+    const rewardPrice = chain == "optimism" ?  
+        (await getPrices(chain, [CONFIG[chain].REWARD_TOKEN]))[(CONFIG[chain].REWARD_TOKEN).toLowerCase()] 
+        : 
+        (await getPrices('ethereum', [CONFIG.ethereum.REWARD_TOKEN]))[(CONFIG.ethereum.REWARD_TOKEN).toLowerCase()];
     for (index = 0; index < poolLength; index++) {
         const pool = await pools(index, chain);
         const reserveUSD = await tvl(chain, pool.lpTokenSymbol, pool.underlyingLpToken, pool.reserve);
@@ -200,8 +213,9 @@ const main = async () => {
     const arbi = await getApy('arbitrum', CONFIG.arbitrum.LP_STAKING);
     const op = await getApy('optimism', CONFIG.optimism.LP_STAKING);
     const fantom = await getApy('fantom', CONFIG.fantom.LP_STAKING);
+    const base = await getApy('base', CONFIG.base.LP_STAKING);
+    poolsData.push(eth, bsc, avax, polygon, arbi, op, fantom, base);
 
-    poolsData.push(eth, bsc, avax, polygon, arbi, op, fantom);
     const exportData = poolsData.flat().filter((p) => utils.keepFinite(p));
 
     return exportData.map((p) => ({ ...p, symbol: p.symbol.replace('S*', '') }));

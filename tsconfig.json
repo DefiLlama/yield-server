@@ -12,7 +12,8 @@
     "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true,
     "allowJs": true,
-    "lib": ["ES2020.Promise", "ES6"]
+    "lib": ["ES2020.Promise", "ES6"],
+    "moduleDetection": "force"
   },
   "include": ["./src/**/*"]
 }

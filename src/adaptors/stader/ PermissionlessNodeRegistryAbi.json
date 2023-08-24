@@ -1,0 +1,1143 @@
+[
+  { "inputs": [], "stateMutability": "nonpayable", "type": "constructor" },
+  { "inputs": [], "name": "CallerNotManager", "type": "error" },
+  { "inputs": [], "name": "CallerNotOperator", "type": "error" },
+  { "inputs": [], "name": "CallerNotStaderContract", "type": "error" },
+  { "inputs": [], "name": "CooldownNotComplete", "type": "error" },
+  { "inputs": [], "name": "DuplicatePoolIDOrPoolNotAdded", "type": "error" },
+  { "inputs": [], "name": "InSufficientBalance", "type": "error" },
+  { "inputs": [], "name": "InvalidBondEthValue", "type": "error" },
+  { "inputs": [], "name": "InvalidKeyCount", "type": "error" },
+  { "inputs": [], "name": "InvalidStartAndEndIndex", "type": "error" },
+  { "inputs": [], "name": "MisMatchingInputKeysSize", "type": "error" },
+  { "inputs": [], "name": "NoChangeInState", "type": "error" },
+  { "inputs": [], "name": "NotEnoughSDCollateral", "type": "error" },
+  {
+    "inputs": [],
+    "name": "OperatorAlreadyOnBoardedInProtocol",
+    "type": "error"
+  },
+  { "inputs": [], "name": "OperatorIsDeactivate", "type": "error" },
+  { "inputs": [], "name": "OperatorNotOnBoarded", "type": "error" },
+  { "inputs": [], "name": "PageNumberIsZero", "type": "error" },
+  { "inputs": [], "name": "PubkeyAlreadyExist", "type": "error" },
+  { "inputs": [], "name": "TooManyVerifiedKeysReported", "type": "error" },
+  { "inputs": [], "name": "TooManyWithdrawnKeysReported", "type": "error" },
+  { "inputs": [], "name": "TransferFailed", "type": "error" },
+  { "inputs": [], "name": "UNEXPECTED_STATUS", "type": "error" },
+  { "inputs": [], "name": "ZeroAddress", "type": "error" },
+  { "inputs": [], "name": "maxKeyLimitReached", "type": "error" },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "nodeOperator",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "pubkey",
+        "type": "bytes"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "validatorId",
+        "type": "uint256"
+      }
+    ],
+    "name": "AddedValidatorKey",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "totalActiveValidatorCount",
+        "type": "uint256"
+      }
+    ],
+    "name": "DecreasedTotalActiveValidatorCount",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "totalActiveValidatorCount",
+        "type": "uint256"
+      }
+    ],
+    "name": "IncreasedTotalActiveValidatorCount",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "version",
+        "type": "uint8"
+      }
+    ],
+    "name": "Initialized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "nodeOperator",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "nodeRewardAddress",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "operatorId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "optInForSocializingPool",
+        "type": "bool"
+      }
+    ],
+    "name": "OnboardedOperator",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "Paused",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "role",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "previousAdminRole",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "newAdminRole",
+        "type": "bytes32"
+      }
+    ],
+    "name": "RoleAdminChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "role",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      }
+    ],
+    "name": "RoleGranted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "role",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      }
+    ],
+    "name": "RoleRevoked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "TransferredCollateralToPool",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "Unpaused",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "batchKeyDepositLimit",
+        "type": "uint256"
+      }
+    ],
+    "name": "UpdatedInputKeyCountLimit",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "maxNonTerminalKeyPerOperator",
+        "type": "uint64"
+      }
+    ],
+    "name": "UpdatedMaxNonTerminalKeyPerOperator",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "nextQueuedValidatorIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "UpdatedNextQueuedValidatorIndex",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "nodeOperator",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "operatorName",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "rewardAddress",
+        "type": "address"
+      }
+    ],
+    "name": "UpdatedOperatorDetails",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "operatorId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "optedForSocializingPool",
+        "type": "bool"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "block",
+        "type": "uint256"
+      }
+    ],
+    "name": "UpdatedSocializingPoolState",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "staderConfig",
+        "type": "address"
+      }
+    ],
+    "name": "UpdatedStaderConfig",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "validatorId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "depositBlock",
+        "type": "uint256"
+      }
+    ],
+    "name": "UpdatedValidatorDepositBlock",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "verifiedKeysBatchSize",
+        "type": "uint256"
+      }
+    ],
+    "name": "UpdatedVerifiedKeyBatchSize",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "withdrawnKeysBatchSize",
+        "type": "uint256"
+      }
+    ],
+    "name": "UpdatedWithdrawnKeyBatchSize",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "pubkey",
+        "type": "bytes"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "validatorId",
+        "type": "uint256"
+      }
+    ],
+    "name": "ValidatorMarkedAsFrontRunned",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "pubkey",
+        "type": "bytes"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "validatorId",
+        "type": "uint256"
+      }
+    ],
+    "name": "ValidatorMarkedReadyToDeposit",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "pubkey",
+        "type": "bytes"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "validatorId",
+        "type": "uint256"
+      }
+    ],
+    "name": "ValidatorStatusMarkedAsInvalidSignature",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "pubkey",
+        "type": "bytes"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "validatorId",
+        "type": "uint256"
+      }
+    ],
+    "name": "ValidatorWithdrawn",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "COLLATERAL_ETH",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "DEFAULT_ADMIN_ROLE",
+    "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "FRONT_RUN_PENALTY",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "POOL_ID",
+    "outputs": [{ "internalType": "uint8", "name": "", "type": "uint8" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes[]", "name": "_pubkey", "type": "bytes[]" },
+      {
+        "internalType": "bytes[]",
+        "name": "_preDepositSignature",
+        "type": "bytes[]"
+      },
+      {
+        "internalType": "bytes[]",
+        "name": "_depositSignature",
+        "type": "bytes[]"
+      }
+    ],
+    "name": "addValidatorKeys",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bool",
+        "name": "_optInForSocializingPool",
+        "type": "bool"
+      }
+    ],
+    "name": "changeSocializingPoolState",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "feeRecipientAddress",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_pageNumber", "type": "uint256" },
+      { "internalType": "uint256", "name": "_pageSize", "type": "uint256" }
+    ],
+    "name": "getAllActiveValidators",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "enum ValidatorStatus",
+            "name": "status",
+            "type": "uint8"
+          },
+          { "internalType": "bytes", "name": "pubkey", "type": "bytes" },
+          {
+            "internalType": "bytes",
+            "name": "preDepositSignature",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes",
+            "name": "depositSignature",
+            "type": "bytes"
+          },
+          {
+            "internalType": "address",
+            "name": "withdrawVaultAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "operatorId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "depositBlock",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "withdrawnBlock",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Validator[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_pageNumber", "type": "uint256" },
+      { "internalType": "uint256", "name": "_pageSize", "type": "uint256" }
+    ],
+    "name": "getAllNodeELVaultAddress",
+    "outputs": [
+      { "internalType": "address[]", "name": "", "type": "address[]" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getCollateralETH",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_operatorId", "type": "uint256" }
+    ],
+    "name": "getOperatorRewardAddress",
+    "outputs": [
+      { "internalType": "address payable", "name": "", "type": "address" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_operatorId", "type": "uint256" }
+    ],
+    "name": "getOperatorTotalKeys",
+    "outputs": [
+      { "internalType": "uint256", "name": "_totalKeys", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_nodeOperator", "type": "address" },
+      { "internalType": "uint256", "name": "_startIndex", "type": "uint256" },
+      { "internalType": "uint256", "name": "_endIndex", "type": "uint256" }
+    ],
+    "name": "getOperatorTotalNonTerminalKeys",
+    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "role", "type": "bytes32" }
+    ],
+    "name": "getRoleAdmin",
+    "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_operatorId", "type": "uint256" }
+    ],
+    "name": "getSocializingPoolStateChangeBlock",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getTotalActiveValidatorCount",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getTotalQueuedValidatorCount",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_operator", "type": "address" },
+      { "internalType": "uint256", "name": "_pageNumber", "type": "uint256" },
+      { "internalType": "uint256", "name": "_pageSize", "type": "uint256" }
+    ],
+    "name": "getValidatorsByOperator",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "enum ValidatorStatus",
+            "name": "status",
+            "type": "uint8"
+          },
+          { "internalType": "bytes", "name": "pubkey", "type": "bytes" },
+          {
+            "internalType": "bytes",
+            "name": "preDepositSignature",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes",
+            "name": "depositSignature",
+            "type": "bytes"
+          },
+          {
+            "internalType": "address",
+            "name": "withdrawVaultAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "operatorId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "depositBlock",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "withdrawnBlock",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Validator[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "role", "type": "bytes32" },
+      { "internalType": "address", "name": "account", "type": "address" }
+    ],
+    "name": "grantRole",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "role", "type": "bytes32" },
+      { "internalType": "address", "name": "account", "type": "address" }
+    ],
+    "name": "hasRole",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_count", "type": "uint256" }
+    ],
+    "name": "increaseTotalActiveValidatorCount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_admin", "type": "address" },
+      { "internalType": "address", "name": "_staderConfig", "type": "address" }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "inputKeyCountLimit",
+    "outputs": [{ "internalType": "uint16", "name": "", "type": "uint16" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_operAddr", "type": "address" }
+    ],
+    "name": "isExistingOperator",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bytes", "name": "_pubkey", "type": "bytes" }],
+    "name": "isExistingPubkey",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes[]",
+        "name": "_readyToDepositPubkey",
+        "type": "bytes[]"
+      },
+      {
+        "internalType": "bytes[]",
+        "name": "_frontRunPubkey",
+        "type": "bytes[]"
+      },
+      {
+        "internalType": "bytes[]",
+        "name": "_invalidSignaturePubkey",
+        "type": "bytes[]"
+      }
+    ],
+    "name": "markValidatorReadyToDeposit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "maxNonTerminalKeyPerOperator",
+    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "nextOperatorId",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "nextQueuedValidatorIndex",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "nextValidatorId",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "name": "nodeELRewardVaultByOperatorId",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bool",
+        "name": "_optInForSocializingPool",
+        "type": "bool"
+      },
+      { "internalType": "string", "name": "_operatorName", "type": "string" },
+      {
+        "internalType": "address payable",
+        "name": "_operatorRewardAddress",
+        "type": "address"
+      }
+    ],
+    "name": "onboardNodeOperator",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "feeRecipientAddress",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "name": "operatorIDByAddress",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "name": "operatorStructById",
+    "outputs": [
+      { "internalType": "bool", "name": "active", "type": "bool" },
+      {
+        "internalType": "bool",
+        "name": "optedForSocializingPool",
+        "type": "bool"
+      },
+      { "internalType": "string", "name": "operatorName", "type": "string" },
+      {
+        "internalType": "address payable",
+        "name": "operatorRewardAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "operatorAddress",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "pause",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "paused",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "name": "queuedValidators",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "role", "type": "bytes32" },
+      { "internalType": "address", "name": "account", "type": "address" }
+    ],
+    "name": "renounceRole",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "role", "type": "bytes32" },
+      { "internalType": "address", "name": "account", "type": "address" }
+    ],
+    "name": "revokeRole",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "name": "socializingPoolStateChangeBlock",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "staderConfig",
+    "outputs": [
+      {
+        "internalType": "contract IStaderConfig",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes4", "name": "interfaceId", "type": "bytes4" }
+    ],
+    "name": "supportsInterface",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalActiveValidatorCount",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_amount", "type": "uint256" }
+    ],
+    "name": "transferCollateralToPool",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "unpause",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_validatorId", "type": "uint256" }
+    ],
+    "name": "updateDepositStatusAndBlock",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint16",
+        "name": "_inputKeyCountLimit",
+        "type": "uint16"
+      }
+    ],
+    "name": "updateInputKeyCountLimit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "_maxNonTerminalKeyPerOperator",
+        "type": "uint64"
+      }
+    ],
+    "name": "updateMaxNonTerminalKeyPerOperator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_nextQueuedValidatorIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "updateNextQueuedValidatorIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "string", "name": "_operatorName", "type": "string" },
+      {
+        "internalType": "address payable",
+        "name": "_rewardAddress",
+        "type": "address"
+      }
+    ],
+    "name": "updateOperatorDetails",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_staderConfig", "type": "address" }
+    ],
+    "name": "updateStaderConfig",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_verifiedKeysBatchSize",
+        "type": "uint256"
+      }
+    ],
+    "name": "updateVerifiedKeysBatchSize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bytes", "name": "", "type": "bytes" }],
+    "name": "validatorIdByPubkey",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" },
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "name": "validatorIdsByOperatorId",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "validatorQueueSize",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "name": "validatorRegistry",
+    "outputs": [
+      {
+        "internalType": "enum ValidatorStatus",
+        "name": "status",
+        "type": "uint8"
+      },
+      { "internalType": "bytes", "name": "pubkey", "type": "bytes" },
+      {
+        "internalType": "bytes",
+        "name": "preDepositSignature",
+        "type": "bytes"
+      },
+      { "internalType": "bytes", "name": "depositSignature", "type": "bytes" },
+      {
+        "internalType": "address",
+        "name": "withdrawVaultAddress",
+        "type": "address"
+      },
+      { "internalType": "uint256", "name": "operatorId", "type": "uint256" },
+      { "internalType": "uint256", "name": "depositBlock", "type": "uint256" },
+      { "internalType": "uint256", "name": "withdrawnBlock", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "verifiedKeyBatchSize",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes[]", "name": "_pubkeys", "type": "bytes[]" }
+    ],
+    "name": "withdrawnValidators",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

@@ -9,6 +9,9 @@ const chain = 'arbitrum';
 const rpcEndpoint = 'https://endpoints.omniatech.io/v1/arbitrum/one/public';
 const vault_factory = '0x984e0eb8fb687afa53fc8b33e12e04967560e092';
 
+const ONE_YEAR_HOURS = 365 * 24;
+const ONE_EPOCH_HOURS = 24 * 7;
+
 const abis = {
   getVaults: {
     inputs: [
@@ -209,19 +212,17 @@ const getApy = async () => {
 
   var pools = [];
   for (let i = 0; i < vaults.length; i += 1) {
-    let roiSum = 0;
-    let totalEpochs = 0;
-    for (let j = 0; j < claimTVLs[vaults[i]].length; j += 1) {
+    let lastRoi = 0;
+    for (let j = claimTVLs[vaults[i]].length - 1; j >= 0; j -= 1) {
       const finalTVL = Number(finalTVLs[vaults[i]][j]);
       const claimTVL = Number(claimTVLs[vaults[i]][j]);
       if (finalTVL == 0) {
         continue;
       }
-      const epochRoi = (claimTVL / finalTVL - 1) * 100;
-      roiSum += epochRoi;
-      totalEpochs += 1;
+      lastRoi = (claimTVL / finalTVL - 1) * 100;
+      break;
     }
-    const roi = totalEpochs == 0 ? 0 : roiSum / totalEpochs;
+    const apy = 100 * ((1 + lastRoi / 100) ** (ONE_YEAR_HOURS / ONE_EPOCH_HOURS) - 1);
 
     const tokenLocked = Number(tokenBalances[vaults[i]]) / Math.pow(10, 18);
     const tokenPrice = prices[assets[i].toLowerCase()];
@@ -233,7 +234,8 @@ const getApy = async () => {
       chain,
       project: 'y2k-v1',
       symbol: symbols[i],
-      apyBase: roi,
+      apyBase: apy,
+      apyBase7d: apy,
       underlyingTokens: [assets[i]],
       tvlUsd,
       url: 'https://app.y2k.finance/market',

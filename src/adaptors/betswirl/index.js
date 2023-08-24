@@ -1,32 +1,40 @@
 const sdk = require('@defillama/sdk');
+const fetch = require('node-fetch');
 const utils = require('../utils');
 const ABI = require('./abi');
 const { default: BigNumber } = require('bignumber.js');
 
 const stakingContracts = [
   {
-    target: '0xeb5F6571861EAA6de9F827519B48eFe979d4d913',
+    target: '0x20Df34eBe5dCB1082297A18BA8d387B55fB975a0',
     chain: 'bsc',
     chainId: 56,
     chainName: 'Binance',
   },
   {
-    target: '0xa184468972c71209BC31a5eF39b7321d2A839225',
+    target: '0xA0D5F23dc9131597975afF96d293E5a7d0516665',
     chain: 'polygon',
     chainId: 137,
     chainName: 'Polygon',
   },
   {
-    target: '0x31EDcD915e695AdAF782c482b9816613b347AC8c',
+    target: '0x9913EffA744B72385E537E092710072D21f8BC98',
     chain: 'avax',
     chainId: 43114,
     chainName: 'Avalanche',
   },
   {
-    target: '0xD4BFB259D8785228e5D2c19115D5DB342E2eE064',
+    target: '0xA7Dd05a6CFC6e5238f04FD6E53D4eFa859B492e4',
     chain: 'arbitrum',
     chainId: 42161,
     chainName: 'Arbitrum',
+  },
+  {
+    target: '0xaeaF7948C38973908fFA97c92F3384595d057135',
+    chain: 'ethereum',
+    chainId: 1,
+    chainName: 'Ethereum',
+    is8020Staking: true
   },
 ];
 const getInfoABI = ABI.find(({ name }) => name === 'getInfo');
@@ -63,7 +71,7 @@ module.exports = {
         };
       })
     );
-    const { pricesBySymbol, pricesByAddress } = await utils.getPrices(
+    const { pricesByAddress } = await utils.getPrices(
       poolsData.reduce((addresses, poolData) => {
         addresses.push(
           `${poolData.chain}:${poolData.stakingToken.tokenAddress}`
@@ -78,11 +86,22 @@ module.exports = {
       }, [])
     );
 
+    // Fetch the 8020 Balancer LPs receipt token price
+    const balancer8020Stakings = poolsData.filter((poolData) => poolData.is8020Staking)
+    const prices = await Promise.all(
+      balancer8020Stakings
+        .map((balancer8020Staking) => fetch(`https://api.betswirl.com/api/price?pool=${balancer8020Staking.stakingToken.tokenAddress.toLowerCase()}&chainId=${balancer8020Staking.chainId}`)
+          .then((res) => res.json()))
+    )
+    balancer8020Stakings.forEach((balancer8020Staking, i) => {
+      pricesByAddress[balancer8020Staking.stakingToken.tokenAddress.toLowerCase()] = prices[i]
+    })
+
     for (const pool of poolsData) {
       const tvlUsd = fromWei(
         pool.totalSupply,
         pool.stakingToken.decimals
-      ).multipliedBy(pricesBySymbol.bets);
+      ).multipliedBy(pricesByAddress[pool.stakingToken.tokenAddress.toLowerCase()]);
       pools.push({
         pool: `${pool.target.toLowerCase()}-${pool.chain}`,
         chain: pool.chainName,
@@ -112,7 +131,7 @@ module.exports = {
           rewardToken.token.tokenAddress.toLowerCase()
         ),
         underlyingTokens: [pool.stakingToken.tokenAddress.toLowerCase()],
-        url: 'https://app.betswirl.com/staking?pool=BETS&c=' + pool.chainId,
+        url: `https://app.betswirl.com/staking?pool=${pool.target.toLowerCase()}&c=${pool.chainId}`,
       });
     }
     return pools;

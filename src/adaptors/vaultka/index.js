@@ -201,7 +201,7 @@ const poolsFunction = async () => {
     pool: '0x6df0018b0449bB4468BfAE8507E13021a7aa0583',
     chain: utils.formatChain('arbitrum'),
     project: 'vaultka',
-    symbol: 'WATER',
+    symbol: 'V-WATER',
     tvlUsd: tvls.waterVault - usdcBorrowed / 10e5,
     poolMeta: 'VAULTKA_WATER',
     underlyingTokens: ['0xff970a61a04b1ca14834a43f5de4533ebddb5cc8'],
@@ -215,6 +215,8 @@ const poolsFunction = async () => {
     whiskeyWater: '0xa100E02e861132C4703ae96D6868664f27Eaa431',
     sake: '0x45BeC5Bb0EE87181A7Aa20402C66A6dC4A923758',
     sakeWater: '0x6b367F9EB22B2E6074E9548689cddaF9224FC0Ab',
+    sakeV2: '0xc53A53552191BeE184557A15f114a87a757e5b6F',
+    sakeWaterV2: '0x806e8538FC05774Ea83d9428F778E423F6492475',
   };
 
   const contractAbis = {
@@ -266,6 +268,24 @@ const poolsFunction = async () => {
     chain: 'arbitrum',
   });
 
+  const sakeWaterUSDCBalV2 = await api2.abi.call({
+    abi: contractAbis.waterUSDCBal,
+    target: newAddresses.sakeWaterV2,
+    chain: 'arbitrum',
+  });
+
+  const vlpBalV2 = await api2.abi.call({
+    abi: contractAbis.vlpBalance,
+    target: newAddresses.sakeV2,
+    chain: 'arbitrum',
+  });
+
+  const StakedVLPBalV2 = await api2.abi.call({
+    abi: contractAbis.stakedVlpBalance,
+    target: newAddresses.sakeV2,
+    chain: 'arbitrum',
+  });
+
   const sakeVLPPrice = await api2.abi.call({
     abi: contractAbis.vlpPrice,
     target: newAddresses.sake,
@@ -291,6 +311,18 @@ const poolsFunction = async () => {
   });
 
   const getSakeFeeSplit = await api2.abi.call({
+    abi: contractAbis.feeSplit,
+    target: newAddresses.sake,
+    chain: 'arbitrum',
+  });
+
+  const SakeWaterTotalAssetsV2 = await api2.abi.call({
+    abi: contractAbis.waterTotalAssets,
+    target: newAddresses.sakeWaterV2,
+    chain: 'arbitrum',
+  });
+  //
+  const getSakeFeeSplitV2 = await api2.abi.call({
     abi: contractAbis.feeSplit,
     target: newAddresses.sake,
     chain: 'arbitrum',
@@ -330,7 +362,21 @@ const poolsFunction = async () => {
   const sakeApr = vlpApr <= 0 ? 0 : vlpApr * 3 * (1 - sakeFeeSplit);
 
   const sakeWaterApr =
-    vlpApr <= 0 ? 0 : vlpApr * sakeFeeSplit * (sakeTvl / SakeWaterTotalAssets);
+    vlpApr <= 0
+      ? 0
+      : vlpApr * sakeFeeSplit * (sakeTvl / (SakeWaterTotalAssets / 1e6));
+
+  //-----------------------------------------------------//
+  const sakeTvlV2 = ((vlpBalV2 + StakedVLPBalV2) * sakeVLPPrice) / 1e18 / 1e5;
+
+  const sakeFeeSplitV2 = getSakeFeeSplitV2 / 100;
+
+  const sakeAprV2 = vlpApr <= 0 ? 0 : vlpApr * 3 * (1 - sakeFeeSplitV2);
+
+  const sakeWaterAprV2 =
+    vlpApr <= 0
+      ? 0
+      : vlpApr * sakeFeeSplitV2 * (sakeTvlV2 / (SakeWaterTotalAssetsV2 / 1e7));
 
   //info of the pools
 
@@ -378,6 +424,28 @@ const poolsFunction = async () => {
     totalBorrowUsd: (SakeWaterTotalAssets - sakeWaterUSDCBal) / 1e6,
   };
 
+  const sakeVaultV2 = {
+    pool: '0xc53A53552191BeE184557A15f114a87a757e5b6F',
+    chain: utils.formatChain('arbitrum'),
+    project: 'vaultka',
+    symbol: 'SAKEV2',
+    tvlUsd: ((vlpBalV2 + StakedVLPBalV2) * sakeVLPPrice) / 1e18 / 1e5,
+    poolMeta: 'VAULTKA_SAKEV2',
+    apy: sakeApr,
+  };
+
+  const sakeWaterVaultV2 = {
+    pool: '0x806e8538FC05774Ea83d9428F778E423F6492475',
+    chain: utils.formatChain('arbitrum'),
+    project: 'vaultka',
+    symbol: 'S-WATERV2',
+    tvlUsd: sakeWaterUSDCBalV2 / 1e6,
+    poolMeta: 'VAULTKA_S-WATERV2',
+    apy: sakeWaterAprV2,
+    totalSupplyUsd: SakeWaterTotalAssetsV2 / 1e6,
+    totalBorrowUsd: (SakeWaterTotalAssetsV2 - sakeWaterUSDCBalV2) / 1e6,
+  };
+
   return [
     vodkaVault,
     waterVault,
@@ -385,6 +453,8 @@ const poolsFunction = async () => {
     whiskeyWaterVault,
     sakeVault,
     sakeWaterVault,
+    sakeVaultV2,
+    sakeWaterVaultV2,
   ];
 };
 
