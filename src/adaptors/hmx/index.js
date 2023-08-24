@@ -57,26 +57,26 @@ const apy = async () => {
     sdk.api.abi.call({
       abi: abi.rewardRate,
       chain: 'arbitrum',
-      target: addresses.FEEDABLE_REWARDER_HLP_REWARDER,
+      target: addresses.FEEDABLE_REWARDER_HLP_STAKING,
       params: [],
     }),
     sdk.api.abi.call({
       abi: abi.rewardRate,
       chain: 'arbitrum',
-      target: addresses.FEEDABLE_REWARDER_ESHMX_REWARDER,
+      target: addresses.FEEDABLE_REWARDER_HLP_STAKING_ESHMX,
       params: [],
     }),
     sdk.api.abi.call({
       abi: abi.calculateTotalShareHLP,
       chain: 'arbitrum',
       target: addresses.HLP_STAKING,
-      params: [addresses.FEEDABLE_REWARDER_HLP_REWARDER],
+      params: [addresses.FEEDABLE_REWARDER_HLP_STAKING],
     }),
     sdk.api.abi.call({
       abi: abi.calculateTotalShareHLP,
       chain: 'arbitrum',
       target: addresses.HLP_STAKING,
-      params: [addresses.FEEDABLE_REWARDER_ESHMX_REWARDER],
+      params: [addresses.FEEDABLE_REWARDER_HLP_STAKING_ESHMX],
     }),
     sdk.api.abi.call({
       abi: abi.getAumE30,
