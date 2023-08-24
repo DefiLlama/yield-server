@@ -10,7 +10,7 @@ const getApy = async () => {
   );
 
   const { alpData } = await utils.getData(
-    'https://nitrocartel.finance/api/alpData?chainId=42161'
+    'https://nitrocartel.finance/api/alpData?chainId=42161&trove=alp'
   );
 
   const stakingAddress = '0x9d4903f755fc12cded3012686c2064e98b84e6b7';
