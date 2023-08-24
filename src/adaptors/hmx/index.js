@@ -57,26 +57,26 @@ const apy = async () => {
     sdk.api.abi.call({
       abi: abi.rewardRate,
       chain: 'arbitrum',
-      target: addresses.FEEDABLE_REWARDER,
+      target: addresses.FEEDABLE_REWARDER_HLP_REWARDER,
       params: [],
     }),
     sdk.api.abi.call({
       abi: abi.rewardRate,
       chain: 'arbitrum',
-      target: addresses.FEEDABLE_REWARDER_ESHMX,
+      target: addresses.FEEDABLE_REWARDER_ESHMX_REWARDER,
       params: [],
     }),
     sdk.api.abi.call({
       abi: abi.calculateTotalShareHLP,
       chain: 'arbitrum',
       target: addresses.HLP_STAKING,
-      params: [addresses.FEEDABLE_REWARDER],
+      params: [addresses.FEEDABLE_REWARDER_HLP_REWARDER],
     }),
     sdk.api.abi.call({
       abi: abi.calculateTotalShareHLP,
       chain: 'arbitrum',
       target: addresses.HLP_STAKING,
-      params: [addresses.FEEDABLE_REWARDER_ESHMX],
+      params: [addresses.FEEDABLE_REWARDER_ESHMX_REWARDER],
     }),
     sdk.api.abi.call({
       abi: abi.getAumE30,
@@ -129,19 +129,19 @@ const apy = async () => {
   ]);
   const usdcApr = () => {
     // e18
-    const l1 = BigNumber(hlpRewardRate)
+    const usdcRewardPerYear = BigNumber(hlpRewardRate)
       .multipliedBy(secondsPerYear)
       .multipliedBy(BigNumber(10).exponentiatedBy(18 - 6));
     // e18
-    const l2 = l1.multipliedBy(BigNumber(pricesBySymbol.usdc));
+    const rewardInUsdPerYear = usdcRewardPerYear.multipliedBy(BigNumber(pricesBySymbol.usdc));
     // e30 / e18 = e12
-    const r1 = BigNumber(totalShareHlp)
+    const totalStakedHlpInUsd = BigNumber(totalShareHlp)
       .multipliedBy(
         BigNumber(hlpStakingAumE30).dividedBy(BigNumber(hlpTotalSupply))
       )
       .dividedBy(WeiPerEther);
     // e18 * e2 / e12 = e6 / e6 = 0
-    return l2.multipliedBy(100).dividedBy(r1).dividedBy(1e6);
+    return rewardInUsdPerYear.multipliedBy(100).dividedBy(totalStakedHlpInUsd).dividedBy(1e6);
   };
   const glpApr = () => {
     const totalPoolValue = BigNumber(
@@ -158,11 +158,11 @@ const apy = async () => {
       .multipliedBy(BigNumber(pricesBySymbol.weth))
       .dividedBy(WeiPerEther);
 
-    const glpReward = feeGlpTrackerAnnualRewardsUsd
+    const glpRewardApr = feeGlpTrackerAnnualRewardsUsd
       .multipliedBy(100)
       .dividedBy(totalSupplyUSD);
 
-    return glpReward
+    return glpRewardApr
       .multipliedBy(BigNumber(hlpLiqSGLP))
       .multipliedBy(pricesBySymbol.sglp)
       .dividedBy(WeiPerEther)
@@ -170,17 +170,17 @@ const apy = async () => {
   };
   const esHmxApr = () => {
     // e18
-    const l1 = BigNumber(esHmxRewardRate).multipliedBy(secondsPerYear);
+    const esHmxRewardPerYear = BigNumber(esHmxRewardRate).multipliedBy(secondsPerYear);
     // e18
-    const l2 = l1.multipliedBy(BigNumber(pricesBySymbol.hmx));
+    const rewardInUsdPerYear = esHmxRewardPerYear.multipliedBy(BigNumber(pricesBySymbol.hmx));
     // e30 / e18 = e12
-    const r1 = BigNumber(totalShareEsHmx)
+    const totalStakedHlpInUsd = BigNumber(totalShareEsHmx)
       .multipliedBy(
         BigNumber(hlpStakingAumE30).dividedBy(BigNumber(hlpTotalSupply))
       )
       .dividedBy(WeiPerEther);
     // e18 * e2 / e12 = e6 / e6 = 0
-    return l2.multipliedBy(100).dividedBy(r1).dividedBy(1e6);
+    return rewardInUsdPerYear.multipliedBy(100).dividedBy(totalStakedHlpInUsd).dividedBy(1e6);
   };
   const estimatedApy = () => {
     const totalApr = usdcApr().plus(glpApr()).plus(esHmxApr());
