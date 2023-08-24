@@ -57,8 +57,6 @@ async function getHoldingPositions() {
   return Array.from(deduped);
 }
 
-const { getShareValueAtBlock, getBlockByEpoch } = require('./v2');
-
 async function main() {
   // Grab all holding positions across all cellars
   const assets = await getHoldingPositions();
