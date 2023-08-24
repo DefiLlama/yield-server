@@ -209,7 +209,7 @@ const apy = async () => {
     pool: `${addresses.HLP_STAKING}-arbitrum`,
     chain: 'Arbitrum',
     project: 'hmx',
-    symbol: 'HLP',
+    symbol: 'GLP-USDC',
     tvlUsd: tvlUsd.toNumber(),
     apy: estimatedApy().toNumber(),
     rewardTokens: [addresses.USDC, addresses.ESHMX],
