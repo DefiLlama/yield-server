@@ -6,8 +6,10 @@ const BigNumber = require('bignumber.js');
 const utils = require('../utils');
 const abi = require('./abi');
 const addresses = require('./addresses.json');
+const { default: address } = require('../paraspace-lending/address');
 
 const secondsPerYear = 60 * 60 * 24 * 365;
+const WeiPerEther = BigNumber(1000000000000000000);
 
 const getPrices = async (addresses) => {
   const prices = (
@@ -38,91 +40,186 @@ const getPrices = async (addresses) => {
 };
 
 const apy = async () => {
-  // 1. Find reward value per year
-  // rewardValuePerYear = rewardRatePerSecond * secPerYear * usdcPrice
-  const rewardRatePerSecond = (
-    await sdk.api.abi.call({
-      abi: abi.rewardRate,
-      chain: 'polygon',
-      target: addresses.PROTOCOL_REVENUE_REWARDER,
-      params: [],
-    })
-  ).output;
-
-  const rewardRatePerSecondBn = BigNumber(rewardRatePerSecond).dividedBy(
-    BigNumber(10).exponentiatedBy(6)
-  );
-
-  const { pricesBySymbol } = await getPrices([`polygon:${addresses.USDC}`]);
-
-  const rewardValuePerSecond = rewardRatePerSecondBn.multipliedBy(
-    pricesBySymbol.usdc
-  );
-  const rewardValuePerYear = rewardValuePerSecond.multipliedBy(secondsPerYear);
-
-  // 2. Find tvl under plp staking
-  // tvl = aum * Plp.balanceOf(plpStaking) / plp.totalSupply()
+  //                                 ---------------- HLP ----------------
   const [
-    { output: aumE18 },
-    { output: plpAmountInStaking },
-    { output: plpTotalSupply },
+    { output: hlpRewardRate },
+    { output: esHmxRewardRate },
+    { output: totalShareHlp },
+    { output: totalShareEsHmx },
+    { output: hlpStakingAumE30 },
+    { output: hlpTotalSupply },
+    { output: glpTotalSupply },
+    { output: gmxReward },
+    { output: hlpLiqUSDC },
+    { output: hlpLiqSGLP },
+    { output: hlpBalanceInPool },
   ] = await Promise.all([
     sdk.api.abi.call({
-      abi: abi.getAumE18,
-      chain: 'polygon',
-      target: addresses.POOL_DIAMOND_CONTRACT,
-      params: [true],
+      abi: abi.rewardRate,
+      chain: 'arbitrum',
+      target: addresses.FEEDABLE_REWARDER,
+      params: [],
     }),
     sdk.api.abi.call({
-      abi: abi.balanceOf,
-      chain: 'polygon',
-      target: addresses.PLP,
-      params: [addresses.PLP_STAKING],
+      abi: abi.rewardRate,
+      chain: 'arbitrum',
+      target: addresses.FEEDABLE_REWARDER_ESHMX,
+      params: [],
+    }),
+    sdk.api.abi.call({
+      abi: abi.calculateTotalShareHLP,
+      chain: 'arbitrum',
+      target: addresses.HLP_STAKING,
+      params: [addresses.FEEDABLE_REWARDER],
+    }),
+    sdk.api.abi.call({
+      abi: abi.calculateTotalShareHLP,
+      chain: 'arbitrum',
+      target: addresses.HLP_STAKING,
+      params: [addresses.FEEDABLE_REWARDER_ESHMX],
+    }),
+    sdk.api.abi.call({
+      abi: abi.getAumE30,
+      chain: 'arbitrum',
+      target: addresses.CALCULATOR,
+      params: [false],
     }),
     sdk.api.abi.call({
       abi: abi.totalSupply,
-      chain: 'polygon',
-      target: addresses.PLP,
+      chain: 'arbitrum',
+      target: addresses.HLP,
       params: [],
     }),
+    sdk.api.abi.call({
+      abi: abi.totalSupply,
+      chain: 'arbitrum',
+      target: addresses.GLP,
+      params: [],
+    }),
+    sdk.api.abi.call({
+      abi: abi.tokensPerInterval,
+      chain: 'arbitrum',
+      target: addresses.GMX_REWARD_TRACKER,
+      params: [],
+    }),
+    sdk.api.abi.call({
+      abi: abi.hlpLiquidity,
+      chain: 'arbitrum',
+      target: addresses.VAULT_STORAGE,
+      params: [addresses.USDC],
+    }),
+    sdk.api.abi.call({
+      abi: abi.hlpLiquidity,
+      chain: 'arbitrum',
+      target: addresses.VAULT_STORAGE,
+      params: [addresses.GLP],
+    }),
+    sdk.api.abi.call({
+      abi: abi.balanceOf,
+      chain: 'arbitrum',
+      target: addresses.HLP,
+      params: [addresses.HLP_STAKING],
+    }),
   ]);
+  const { pricesBySymbol } = await getPrices([
+    `arbitrum:${addresses.WETH}`,
+    `arbitrum:${addresses.HMX}`,
+    `arbitrum:${addresses.USDC}`,
+    `arbitrum:${addresses.GLP}`,
+  ]);
+  const usdcApr = () => {
+    // e18
+    const l1 = BigNumber(hlpRewardRate)
+      .multipliedBy(secondsPerYear)
+      .multipliedBy(BigNumber(10).exponentiatedBy(18 - 6));
+    // e18
+    const l2 = l1.multipliedBy(BigNumber(pricesBySymbol.usdc));
+    // e30 / e18 = e12
+    const r1 = BigNumber(totalShareHlp)
+      .multipliedBy(
+        BigNumber(hlpStakingAumE30).dividedBy(BigNumber(hlpTotalSupply))
+      )
+      .dividedBy(WeiPerEther);
+    // e18 * e2 / e12 = e6 / e6 = 0
+    return l2.multipliedBy(100).dividedBy(r1).dividedBy(1e6);
+  };
+  const glpApr = () => {
+    const totalPoolValue = BigNumber(
+      BigNumber(hlpLiqSGLP).multipliedBy(pricesBySymbol.sglp)
+    ).plus(BigNumber(BigNumber(hlpLiqUSDC).multipliedBy(pricesBySymbol.usdc)));
+    const totalSupplyUSD = BigNumber(glpTotalSupply)
+      .multipliedBy(pricesBySymbol.sglp)
+      .dividedBy(WeiPerEther);
 
-  const aumBn = BigNumber(aumE18).dividedBy(BigNumber(10).exponentiatedBy(18));
-  const plpAmountInStakingBn = BigNumber(plpAmountInStaking).dividedBy(
-    BigNumber(10).exponentiatedBy(18)
-  );
-  const plpTotalSupplyBn = BigNumber(plpTotalSupply).dividedBy(
-    BigNumber(10).exponentiatedBy(18)
-  );
+    const feeGlpTrackerAnnualRewardsUsd = WeiPerEther.multipliedBy(
+      secondsPerYear
+    )
+      .multipliedBy(BigNumber(gmxReward))
+      .multipliedBy(BigNumber(pricesBySymbol.weth))
+      .dividedBy(WeiPerEther);
 
-  const tvl = aumBn
-    .multipliedBy(plpAmountInStakingBn)
-    .dividedBy(plpTotalSupplyBn);
+    const glpReward = feeGlpTrackerAnnualRewardsUsd
+      .multipliedBy(100)
+      .dividedBy(totalSupplyUSD);
 
-  // 3. Find apr = (rewardValuePerYear / tvl) * 100
-  const apr = rewardValuePerYear.multipliedBy(100).dividedBy(tvl);
+    return glpReward
+      .multipliedBy(BigNumber(hlpLiqSGLP))
+      .multipliedBy(pricesBySymbol.sglp)
+      .dividedBy(WeiPerEther)
+      .dividedBy(totalPoolValue);
+  };
+  const esHmxApr = () => {
+    // e18
+    const l1 = BigNumber(esHmxRewardRate).multipliedBy(secondsPerYear);
+    // e18
+    const l2 = l1.multipliedBy(BigNumber(pricesBySymbol.hmx));
+    // e30 / e18 = e12
+    const r1 = BigNumber(totalShareEsHmx)
+      .multipliedBy(
+        BigNumber(hlpStakingAumE30).dividedBy(BigNumber(hlpTotalSupply))
+      )
+      .dividedBy(WeiPerEther);
+    // e18 * e2 / e12 = e6 / e6 = 0
+    return l2.multipliedBy(100).dividedBy(r1).dividedBy(1e6);
+  };
+  const estimatedApy = () => {
+    const totalApr = usdcApr().plus(glpApr()).plus(esHmxApr());
+    const totalAprPercentage = totalApr.dividedBy(100);
+    const _apy = WeiPerEther.plus(
+      totalAprPercentage.multipliedBy(WeiPerEther).dividedBy(365)
+    ).dividedBy(WeiPerEther);
+    const apyPercentage = _apy.exponentiatedBy(365).minus(1).multipliedBy(100);
+    return apyPercentage;
+  };
+  const tvlUsd = BigNumber(hlpBalanceInPool)
+    .multipliedBy(
+      BigNumber(hlpStakingAumE30).dividedBy(BigNumber(hlpTotalSupply))
+    )
+    .dividedBy(1e30);
 
-  // 4. Compose the response
-  const plpStakingPool = {
-    pool: `${addresses.PLP_STAKING}-polygon`,
-    chain: 'Polygon',
+  const hlpStakingPool = {
+    pool: `${addresses.HLP_STAKING}-arbitrum`,
+    chain: 'Arbitrum',
     project: 'hmx',
-    symbol: 'USDC-USDT-WBTC-ETH-MATIC',
-    tvlUsd: tvl.toNumber(),
-    apy: apr.toNumber(),
-    rewardTokens: [addresses.USDC],
+    symbol: 'HLP',
+    tvlUsd: tvlUsd.toNumber(),
+    apy: estimatedApy().toNumber(),
+    rewardTokens: [addresses.USDC, addresses.ESHMX],
     underlyingTokens: [
+      addresses.WETH,
+      addresses.WBTC,
+      addresses.DAI,
       addresses.USDC,
       addresses.USDT,
-      addresses.WBTC,
-      addresses.WMATIC,
-      addresses.WETH,
+      addresses.ARB,
+      addresses.GLP,
     ],
-    poolMeta: 'PLP Staking',
+    poolMeta: 'HLP Staking',
     url: 'https://hmx.org/arbitrum/earn',
   };
+  console.log('Obj:', hlpStakingPool);
 
-  return [plpStakingPool];
+  return [hlpStakingPool];
 };
 
 module.exports = {
