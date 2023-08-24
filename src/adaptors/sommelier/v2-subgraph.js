@@ -3,7 +3,7 @@
 // Calculate daily APY given a start and end time in seconds since epoch
 // APY should only be calculated with data from a full day. To calculate today's
 // APY, use the complete data from the previous 2 days.
-async function calcApy2(cellarAddress, startEpochSecs, endEpochSecs) {
+async function calcApy(cellarAddress, startEpochSecs, endEpochSecs) {
   // Returns hourData in desc order, current hour is index 0
   const hrData = await queries.getHourData(
     cellarAddress,
@@ -41,7 +41,7 @@ async function calcApy2(cellarAddress, startEpochSecs, endEpochSecs) {
 }
 
 // Use the change in avg daily price between the last 2 days to calculate an APR
-async function getApy2(cellarAddress) {
+async function getApy(cellarAddress) {
   const now = Math.floor(Date.now() / 1000);
   const remainder = now % dayInSec;
   const end = now - remainder - 1;
@@ -52,7 +52,7 @@ async function getApy2(cellarAddress) {
 
 const windowInDays = 7;
 
-async function getApy7d2(cellarAddress) {
+async function getApy7d(cellarAddress) {
   // Returns dayData in desc order, today is index 0
   const dayData = await queries.getDayData(cellarAddress, windowInDays);
 
