@@ -8,6 +8,7 @@ const BigNumber = require('bignumber.js');
 const masterchef = '0x6fc0f134a1f20976377b259687b1c15a5d422b47';
 const BSWAP = '0x78a087d713be963bf307b18f2ff8122ef9a63ae9';
 const BSX = '0xd5046b976188eb40f6de40fb527f89c05b323385';
+const XBSX = '0xe4750593d1fc8e74b31549212899a72162f315fa';
 const WETH = '0x4200000000000000000000000000000000000006';
 
 const utils = require('../utils');
@@ -196,8 +197,8 @@ const topLvl = async (
     const apyReward = (bswapApyReward + bsxApyReward) || 0;
 
     let rewardTokens = [];
-    bswapApyReward > 0 && rewardTokens.push('BSWAP');
-    bsxApyReward > 0 && rewardTokens.push('BSX', 'XBSX');
+    bswapApyReward > 0 && rewardTokens.push(BSWAP);
+    bsxApyReward > 0 && rewardTokens.push(BSX, XBSX);
 
     return {
       pool: p.id,
