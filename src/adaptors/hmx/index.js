@@ -44,8 +44,8 @@ const apy = async () => {
   const [
     { output: hlpRewardRate },
     { output: esHmxRewardRate },
-    { output: totalShareHlp },
-    { output: totalShareEsHmx },
+    { output: hlpTotalShareUsdcRewarder },
+    { output: hlpTotalShareEsHmxRewarder },
     { output: hlpStakingAumE30 },
     { output: hlpTotalSupply },
     { output: glpTotalSupply },
@@ -127,21 +127,27 @@ const apy = async () => {
     `arbitrum:${addresses.USDC}`,
     `arbitrum:${addresses.GLP}`,
   ]);
+  const hlpPriceInE30 = BigNumber(hlpStakingAumE30).dividedBy(
+    BigNumber(hlpTotalSupply)
+  );
   const usdcApr = () => {
     // e18
     const usdcRewardPerYear = BigNumber(hlpRewardRate)
       .multipliedBy(secondsPerYear)
       .multipliedBy(BigNumber(10).exponentiatedBy(18 - 6));
     // e18
-    const rewardInUsdPerYear = usdcRewardPerYear.multipliedBy(BigNumber(pricesBySymbol.usdc));
+    const rewardInUsdPerYear = usdcRewardPerYear.multipliedBy(
+      BigNumber(pricesBySymbol.usdc)
+    );
     // e30 / e18 = e12
-    const totalStakedHlpInUsd = BigNumber(totalShareHlp)
-      .multipliedBy(
-        BigNumber(hlpStakingAumE30).dividedBy(BigNumber(hlpTotalSupply))
-      )
+    const totalStakedHlpInUsd = BigNumber(hlpTotalShareUsdcRewarder)
+      .multipliedBy(hlpPriceInE30)
       .dividedBy(WeiPerEther);
     // e18 * e2 / e12 = e6 / e6 = 0
-    return rewardInUsdPerYear.multipliedBy(100).dividedBy(totalStakedHlpInUsd).dividedBy(1e6);
+    return rewardInUsdPerYear
+      .multipliedBy(100)
+      .dividedBy(totalStakedHlpInUsd)
+      .dividedBy(1e6);
   };
   const glpApr = () => {
     const totalPoolValue = BigNumber(
@@ -170,17 +176,21 @@ const apy = async () => {
   };
   const esHmxApr = () => {
     // e18
-    const esHmxRewardPerYear = BigNumber(esHmxRewardRate).multipliedBy(secondsPerYear);
+    const esHmxRewardPerYear =
+      BigNumber(esHmxRewardRate).multipliedBy(secondsPerYear);
     // e18
-    const rewardInUsdPerYear = esHmxRewardPerYear.multipliedBy(BigNumber(pricesBySymbol.hmx));
+    const rewardInUsdPerYear = esHmxRewardPerYear.multipliedBy(
+      BigNumber(pricesBySymbol.hmx)
+    );
     // e30 / e18 = e12
-    const totalStakedHlpInUsd = BigNumber(totalShareEsHmx)
-      .multipliedBy(
-        BigNumber(hlpStakingAumE30).dividedBy(BigNumber(hlpTotalSupply))
-      )
+    const totalStakedHlpInUsd = BigNumber(hlpTotalShareEsHmxRewarder)
+      .multipliedBy(hlpPriceInE30)
       .dividedBy(WeiPerEther);
     // e18 * e2 / e12 = e6 / e6 = 0
-    return rewardInUsdPerYear.multipliedBy(100).dividedBy(totalStakedHlpInUsd).dividedBy(1e6);
+    return rewardInUsdPerYear
+      .multipliedBy(100)
+      .dividedBy(totalStakedHlpInUsd)
+      .dividedBy(1e6);
   };
   const estimatedApy = () => {
     const totalApr = usdcApr().plus(glpApr()).plus(esHmxApr());
@@ -192,9 +202,7 @@ const apy = async () => {
     return apyPercentage;
   };
   const tvlUsd = BigNumber(hlpBalanceInPool)
-    .multipliedBy(
-      BigNumber(hlpStakingAumE30).dividedBy(BigNumber(hlpTotalSupply))
-    )
+    .multipliedBy(hlpPriceInE30)
     .dividedBy(1e30);
 
   const hlpStakingPool = {
