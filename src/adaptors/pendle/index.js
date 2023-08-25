@@ -18,6 +18,11 @@ const chains = {
     chainSlug: 'bnbchain',
     PENDLE: '0xb3ed0a426155b79b898849803e3b36552f7ed507',
   },
+  10: {
+    chainName: 'optimism',
+    chainSlug: 'optimism',
+    PENDLE: '0xBC7B1Ff1c6989f006a1185318eD4E7b5796e66E1'
+  }
 };
 
 const query = (chainId) => gql`
