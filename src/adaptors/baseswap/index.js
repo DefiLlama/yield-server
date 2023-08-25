@@ -1,11 +1,14 @@
 const sdk = require('@defillama/sdk4');
 const { request, gql } = require('graphql-request');
 const masterchefAbi = require('./masterchef');
+const nftpoolAbi = require('./nftpool');
 const axios = require('axios');
 const BigNumber = require('bignumber.js');
 
-const masterchef = '0x2B0A43DCcBD7d42c18F6A83F86D1a19fA58d541A';
+const masterchef = '0x6fc0f134a1f20976377b259687b1c15a5d422b47';
 const BSWAP = '0x78a087d713be963bf307b18f2ff8122ef9a63ae9';
+const BSX = '0xd5046b976188eb40f6de40fb527f89c05b323385';
+const XBSX = '0xe4750593d1fc8e74b31549212899a72162f315fa';
 const WETH = '0x4200000000000000000000000000000000000006';
 
 const utils = require('../utils');
@@ -41,14 +44,6 @@ const queryPrior = gql`
   }
 `;
 
-const queryBswapPrice = gql`
-  {
-    token(id: "<PLACEHOLDER>") {
-      derivedETH
-    }
-  }
-`
-
 const topLvl = async (
   chainString,
   url,
@@ -57,56 +52,90 @@ const topLvl = async (
   version,
   timestamp
 ) => {
-  const poolLength = (
+  const activePoolsLength = (
     await sdk.api.abi.call({
       target: masterchef,
-      abi: masterchefAbi.find((m) => m.name === 'poolLength'),
+      abi: masterchefAbi.find((m) => m.name === 'activePoolsLength'),
       chain: chainString,
     })
   ).output;
 
-  const poolInfo = (
+  const activePoolAddressesByIndex = (
     await sdk.api.abi.multiCall({
-      calls: [...Array(Number(poolLength)).keys()].map((i) => ({
+      calls: [...Array(Number(activePoolsLength)).keys()].map((i) => ({
         target: masterchef,
         params: [i]
       })),
-      abi: masterchefAbi.find((m) => m.name === 'poolInfo'),
+      abi: masterchefAbi.find((m) => m.name === 'getActivePoolAddressByIndex'),
       chain: chainString,
     })
   ).output.map((o) => o.output);
 
-  const bswapTotalAllocPoint = (
+  // const poolInfos = (
+  //   await sdk.api.abi.multiCall({
+  //     calls: [...activePoolAddressesByIndex].map((i) => ({
+  //       target: masterchef,
+  //       params: [i]
+  //     })),
+  //     abi: masterchefAbi.find((m) => m.name === 'getPoolInfo'),
+  //     chain: chainString,
+  //   })
+  // ).output.map((o) => o.output);
+
+  const poolInfos = (
+    await sdk.api.abi.multiCall({
+      calls: [...activePoolAddressesByIndex].map((i) => ({
+        target: i
+      })),
+      abi: nftpoolAbi.find((m) => m.name === 'getPoolInfo'),
+      chain: chainString,
+    })
+  ).output.map((o) => o.output);
+
+  const bswapTotalAllocPoints = (
     await sdk.api.abi.call({
       target: masterchef,
-      abi: masterchefAbi.find((m) => m.name === 'totalAllocPoint'),
+      abi: masterchefAbi.find((m) => m.name === 'totalAllocPointsWETH'),
       chain: chainString,
     })
   ).output;
 
-  const bswapPerSec = (
+  const bsxTotalAllocPoints = (
     await sdk.api.abi.call({
       target: masterchef,
-      abi: masterchefAbi.find((m) => m.name === 'bswapPerSec'),
+      abi: masterchefAbi.find((m) => m.name === 'totalAllocPoints'),
       chain: chainString,
     })
-  ).output / 1e18;
+  ).output;
 
-  // const bswapPriceKey = `base:${BSWAP}`;
-  // const bswapPrice = (
-  //   await axios.get(`https://coins.llama.fi/prices/current/${bswapPriceKey}`)
-  // ).data.coins[bswapPriceKey]?.price;
+  const emissionRates = (
+    await sdk.api.abi.call({
+      target: masterchef,
+      abi: masterchefAbi.find((m) => m.name === 'emissionRates'),
+      chain: chainString,
+    })
+  ).output;
 
-  const wethPriceKey = `base:${WETH}`;
-  const wethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${wethPriceKey}`)
-  ).data.coins[wethPriceKey]?.price;
+  const bswapPerSec = emissionRates['wethRate'] / 1e18;
+  const bsxPerSec = emissionRates['mainRate'] / 1e18;
 
-  let queryBswapPriceC = queryBswapPrice;
-  let bswapPrice = await request(url, queryBswapPriceC.replace('<PLACEHOLDER>', BSWAP));
-  bswapPrice = bswapPrice.token.derivedETH * wethPrice;
+  const bswapPriceKey = `base:${BSWAP}`;
+  const bswapPrice = (
+    await axios.get(`https://coins.llama.fi/prices/current/${bswapPriceKey}`)
+  ).data.coins[bswapPriceKey]?.price;
+
+  const bsxPriceKey = `base:${BSX}`;
+  const bsxPrice = (
+    await axios.get(`https://coins.llama.fi/prices/current/${bsxPriceKey}`)
+  ).data.coins[bsxPriceKey]?.price;
+
+  // const wethPriceKey = `base:${WETH}`;
+  // const wethPrice = (
+  //   await axios.get(`https://coins.llama.fi/prices/current/${wethPriceKey}`)
+  // ).data.coins[wethPriceKey]?.price;
 
   const bswapPerYearUsd = bswapPerSec * 86400 * 365 * bswapPrice;
+  const bsxPerYearUsd = bsxPerSec * 86400 * 365 * bsxPrice;
 
   const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [url]);
 
@@ -148,20 +177,28 @@ const topLvl = async (
     const chain = chainString;
     const url = `https://baseswap.fi/add/${token0}/${token1}`;
 
-    const bswapAllocPoint = poolInfo.find(
+    const bswapAllocPoints = poolInfos.find(
       (pid) => pid.lpToken.toLowerCase() === p.id?.toLowerCase()
-    )?.allocPoint;
+    )?.allocPointsWETH;
 
-    let totalDeposit = poolInfo.find(
+    const bsxAllocPoints = poolInfos.find(
       (pid) => pid.lpToken.toLowerCase() === p.id?.toLowerCase()
-    )?.totalDeposit;
-    totalDeposit = (new BigNumber(totalDeposit)).dividedBy((new BigNumber(10)).pow(18)).toFixed(18);
-    const ratio = totalDeposit / p.totalSupply || 1;
+    )?.allocPoints;
 
-    const bswapApyReward =
-      (((bswapAllocPoint / bswapTotalAllocPoint) * bswapPerYearUsd) / (p.totalValueLockedUSD * ratio)) * 100;
+    let lpSupply = poolInfos.find(
+      (pid) => pid.lpToken.toLowerCase() === p.id?.toLowerCase()
+    )?.lpSupply;
+    lpSupply = lpSupply / 1e18;
+    const ratio = lpSupply / p.totalSupply || 1;
 
-    const apyReward = bswapApyReward || 0;
+    const bswapApyReward = (((bswapAllocPoints / bswapTotalAllocPoints) * bswapPerYearUsd) / (p.totalValueLockedUSD * ratio)) * 100;
+    const bsxApyReward = (((bsxAllocPoints / bsxTotalAllocPoints) * bsxPerYearUsd) / (p.totalValueLockedUSD * ratio)) * 100;
+
+    const apyReward = (bswapApyReward + bsxApyReward) || 0;
+
+    let rewardTokens = [];
+    bswapApyReward > 0 && rewardTokens.push(BSWAP);
+    bsxApyReward > 0 && rewardTokens.push(BSX, XBSX);
 
     return {
       pool: p.id,
@@ -169,10 +206,10 @@ const topLvl = async (
       project: 'baseswap',
       symbol,
       tvlUsd: p.totalValueLockedUSD,
-      apyBase: 0,
-      apyBase7d: 0,
+      apyBase: p.apy1d,
+      apyBase7d: p.apy7d,
       apyReward,
-      rewardTokens: apyReward > 0 ? [BSWAP] : [],
+      rewardTokens,
       underlyingTokens,
       url,
       volumeUsd1d: p.volumeUSD1d,
@@ -187,7 +224,7 @@ const topLvl = async (
 };
 
 const main = async (timestamp = null) => {
-  let data = await topLvl('base', url, query, queryPrior, 'v2', timestamp);
+  let data = await topLvl('base', url, query, queryPrior, 'baseswap', timestamp);
 
   return data.filter((p) => utils.keepFinite(p));
 };
