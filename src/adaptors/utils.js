@@ -251,6 +251,8 @@ exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
     pool['feeTier'] = 3000;
   } else if (version === 'stellaswap') {
     pool['feeTier'] = 2000;
+  } else if (version === 'baseswap') {
+    pool['feeTier'] = 1700;
   } else if (version === 'zyberswap') {
     pool['feeTier'] = 1500;
   } else if (version === 'arbidex') {
