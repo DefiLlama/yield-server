@@ -3,7 +3,7 @@ const utils = require('../utils');
 const chainMapping = {
   ETH: 'ethereum',
   BTC: 'bitcoin',
-  RUNE: 'thorchain',
+  THOR: 'thorchain',
   DASH: 'dash',
 };
 
