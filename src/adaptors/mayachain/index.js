@@ -5,7 +5,6 @@ const chainMapping = {
   BTC: 'bitcoin',
   RUNE: 'thorchain',
   DASH: 'dash',
-  KUJI: 'kujira',
 };
 
 const buildPool = (entry, cacaoPrice) => {
