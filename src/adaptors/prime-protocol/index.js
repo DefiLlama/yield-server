@@ -452,11 +452,16 @@ const addAllMarketPools = async (
 
         if (marketAlreadyAdded) continue;
 
-        pools.push(await getPool(
-            'moonbeam',
-            CHAIN_ID_TO_NETWORK[market.chainId],
-            market
-        ));
+        try {
+            pools.push(await getPool(
+                'moonbeam',
+                CHAIN_ID_TO_NETWORK[market.chainId],
+                market
+            ));
+        }
+        catch(err) {
+            console.log(market)
+        }
     }
 };
 
