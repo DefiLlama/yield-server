@@ -274,7 +274,7 @@ const apy = async () => {
       addresses.GLP,
     ],
     poolMeta: 'HLP Staking',
-    url: 'https://org/arbitrum/earn',
+    url: 'https://hmx.org/arbitrum/earn',
   };
   //                                 ---------------- HMX ----------------
   const usdcAprHmx = () => {
@@ -337,7 +337,7 @@ const apy = async () => {
     rewardTokens: [addresses.USDC, addresses.ESHMX, addresses.DRAGON_POINT],
     underlyingTokens: [addresses.ESHMX, addresses.HMX],
     poolMeta: 'HMX Staking',
-    url: 'https://org/arbitrum/earn',
+    url: 'https://hmx.org/arbitrum/earn',
   };
   //                                 ---------------- NFT ----------------
 
