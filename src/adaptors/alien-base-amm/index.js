@@ -336,7 +336,7 @@ const topLvl = async (chainString, version, timestamp) => {
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
-      project: 'alien-base',
+      project: 'alien-base-amm',
       symbol,
       tvlUsd: p.totalValueLockedUSD,
       apyBase: albBaseApy || 0,

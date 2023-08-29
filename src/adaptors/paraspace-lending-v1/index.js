@@ -59,7 +59,7 @@ const apy = async () => {
           return {
             pool: `${reserve.xTokenAddress}-${chain}`.toLowerCase(),
             chain: utils.formatChain(chain),
-            project: 'paraspace-lending',
+            project: 'paraspace-lending-v1',
             symbol: reserve.symbol,
             tvlUsd,
             apyBase: calculateAPY(reserve.liquidityRate).toNumber() * 100,
