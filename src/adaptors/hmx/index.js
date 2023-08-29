@@ -395,6 +395,14 @@ const apy = async () => {
       rewardValuePerSecond.multipliedBy(secondsPerYear);
     return rewardValuePerYear.multipliedBy(100).dividedBy(tvl());
   };
+  const apy = () => {
+    const aprPercentage = apr().dividedBy(100);
+    const _apy = WeiPerEther.plus(
+      aprPercentage.multipliedBy(WeiPerEther).dividedBy(365)
+    ).dividedBy(WeiPerEther);
+    const apyPercentage = _apy.exponentiatedBy(365).minus(1).multipliedBy(100);
+    return apyPercentage;
+  };
 
   const plpStakingPool = {
     pool: `${addresses.PLP_STAKING}-polygon`,
@@ -402,7 +410,7 @@ const apy = async () => {
     project: 'hmx',
     symbol: 'USDC-USDT-WBTC-ETH-MATIC',
     tvlUsd: tvl().toNumber(),
-    apy: apr().toNumber(),
+    apy: apy().toNumber(),
     rewardTokens: [addresses.USDC_POLYGON],
     underlyingTokens: [
       addresses.USDC_POLYGON,
@@ -412,7 +420,7 @@ const apy = async () => {
       addresses.WETH_POLYGON,
     ],
     poolMeta: 'PLP Staking',
-    url: 'https://hmx.org/arbitrum/earn',
+    url: 'https://legacy.hmx.org/polygon/earn',
   };
 
   return [hlpStakingPool, hmxStakingPool, plpStakingPool];
