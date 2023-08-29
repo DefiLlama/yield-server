@@ -1,18 +1,12 @@
-const ethers = require('ethers');
-
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const cvr = require('./caviar');
 
-const provider = new ethers.providers.StaticJsonRpcProvider(
-  'https://polygon-rpc.com'
-);
+const caviar = require('./abis/Caviar.json');
+const caviarStakingChef = require('./abis/CaviarStakingChef.json');
+const usdr = require('./abis/USDR.json');
 
-const USDR_ADDRESS = '0x40379a439D4F6795B6fc9aa5687dB461677A2dBa';
-const USDR = new ethers.Contract(
-  USDR_ADDRESS,
-  ['function totalSupply() view returns (uint256)'],
-  provider
-);
-
+const CHAIN_NAME = 'polygon';
 const TNGBL_ADDRESS = '0x49e6A20f1BBdfEeC2a8222E052000BbB14EE6007';
 
 const poolsFunction = async () => {
@@ -20,10 +14,16 @@ const poolsFunction = async () => {
     'http://usdr-api.us-east-1.elasticbeanstalk.com/usdr/apy'
   );
 
-  const totalSupply = await USDR.totalSupply();
+  const totalSupply = await sdk.api.abi
+    .call({
+      target: usdr.address,
+      abi: usdr.abi.find((m) => m.name === 'totalSupply'),
+      chain: CHAIN_NAME,
+    })
+    .then((result) => result.output);
 
   const usdrPool = {
-    pool: USDR_ADDRESS,
+    pool: usdr.address,
     chain: utils.formatChain('polygon'),
     project: 'tangible',
     symbol: utils.formatSymbol('USDR'),
@@ -31,14 +31,30 @@ const poolsFunction = async () => {
     apyBase: Number(apyData.usdr),
     apyReward: Number(apyData.tngbl),
     rewardTokens: [TNGBL_ADDRESS],
-    underlyingTokens: [USDR_ADDRESS],
+    underlyingTokens: [usdr.address],
+    url: 'https://www.tangible.store/realusd',
   };
 
-  return [usdrPool];
+  const [tvl, aprBase, aprReward] = await cvr.pool();
+
+  const caviarPool = {
+    pool: caviarStakingChef.address,
+    chain: utils.formatChain('polygon'),
+    project: 'tangible',
+    symbol: utils.formatSymbol('CVR'),
+    tvlUsd: Number(tvl),
+    apyBase: Number(utils.aprToApy(aprBase, 52)),
+    apyReward: Number(utils.aprToApy(aprReward, 52)),
+    rewardTokens: [usdr.address],
+    underlyingTokens: [caviar.address],
+    poolMeta: 'Caviar Staking Pool',
+    url: 'https://www.tangible.store/caviar',
+  };
+
+  return [usdrPool, caviarPool];
 };
 
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
-  url: 'https://www.tangible.store/usdr',
 };
