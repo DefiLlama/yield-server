@@ -46,6 +46,7 @@ const apy = async () => {
     { output: esHmxRewardRateHlpPool },
     { output: hmxRewardRateHmxPool },
     { output: esHmxRewardRateHmxPool },
+    { output: plpRewardRate },
     { output: dragonPointRewardRateHmxPool },
     { output: hlpTotalShareUsdcRewarder },
     { output: hlpTotalShareEsHmxRewarder },
@@ -60,6 +61,9 @@ const apy = async () => {
     { output: hlpLiqSGLP },
     { output: hlpBalanceInPool },
     { output: hmxBalanceInPool },
+    { output: aumE18 },
+    { output: plpAmountInStaking },
+    { output: plpTotalSupply },
   ] = await Promise.all([
     sdk.api.abi.call({
       abi: abi.rewardRate,
@@ -83,6 +87,12 @@ const apy = async () => {
       abi: abi.rewardRate,
       chain: 'arbitrum',
       target: addresses.FEEDABLE_REWARDER_HMX_STAKING_ESHMX,
+      params: [],
+    }),
+    sdk.api.abi.call({
+      abi: abi.rewardRate,
+      chain: 'polygon',
+      target: addresses.PROTOCOL_REVENUE_REWARDER,
       params: [],
     }),
     sdk.api.abi.call({
@@ -168,6 +178,24 @@ const apy = async () => {
       chain: 'arbitrum',
       target: addresses.HMX,
       params: [addresses.HMX_STAKING],
+    }),
+    sdk.api.abi.call({
+      abi: abi.getAumE18,
+      chain: 'polygon',
+      target: addresses.POOL_DIAMOND_CONTRACT,
+      params: [true],
+    }),
+    sdk.api.abi.call({
+      abi: abi.balanceOf,
+      chain: 'polygon',
+      target: addresses.PLP,
+      params: [addresses.PLP_STAKING],
+    }),
+    sdk.api.abi.call({
+      abi: abi.totalSupply,
+      chain: 'polygon',
+      target: addresses.PLP,
+      params: [],
     }),
   ]);
   const { pricesBySymbol } = await getPrices([
@@ -339,9 +367,55 @@ const apy = async () => {
     poolMeta: 'HMX Staking',
     url: 'https://hmx.org/arbitrum/earn',
   };
-  //                                 ---------------- NFT ----------------
+  //                                 ---------------- PLP ----------------
+  const { pricesBySymbol: polygonPricesBySymbol } = await getPrices([
+    `polygon:${addresses.USDC_POLYGON}`,
+  ]);
+  const tvl = () => {
+    const aumBn = BigNumber(aumE18).dividedBy(
+      BigNumber(10).exponentiatedBy(18)
+    );
+    const plpAmountInStakingBn = BigNumber(plpAmountInStaking).dividedBy(
+      BigNumber(10).exponentiatedBy(18)
+    );
+    const plpTotalSupplyBn = BigNumber(plpTotalSupply).dividedBy(
+      BigNumber(10).exponentiatedBy(18)
+    );
 
-  return [hlpStakingPool, hmxStakingPool];
+    return aumBn.multipliedBy(plpAmountInStakingBn).dividedBy(plpTotalSupplyBn);
+  };
+  const apr = () => {
+    const rewardRatePerSecondBn = BigNumber(plpRewardRate).dividedBy(
+      BigNumber(10).exponentiatedBy(6)
+    );
+    const rewardValuePerSecond = rewardRatePerSecondBn.multipliedBy(
+      polygonPricesBySymbol.usdc
+    );
+    const rewardValuePerYear =
+      rewardValuePerSecond.multipliedBy(secondsPerYear);
+    return rewardValuePerYear.multipliedBy(100).dividedBy(tvl());
+  };
+
+  const plpStakingPool = {
+    pool: `${addresses.PLP_STAKING}-polygon`,
+    chain: 'Polygon',
+    project: 'hmx',
+    symbol: 'USDC-USDT-WBTC-ETH-MATIC',
+    tvlUsd: tvl().toNumber(),
+    apy: apr().toNumber(),
+    rewardTokens: [addresses.USDC_POLYGON],
+    underlyingTokens: [
+      addresses.USDC_POLYGON,
+      addresses.USDT_POLYGON,
+      addresses.WBTC_POLYGON,
+      addresses.WMATIC_POLYGON,
+      addresses.WETH_POLYGON,
+    ],
+    poolMeta: 'PLP Staking',
+    url: 'https://hmx.org/arbitrum/earn',
+  };
+
+  return [hlpStakingPool, hmxStakingPool, plpStakingPool];
 };
 
 module.exports = {
