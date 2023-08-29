@@ -2,48 +2,58 @@ module.exports = [
   {
     "inputs": [
       {
+        "internalType": "contract IProtocolToken",
+        "name": "_mainToken",
+        "type": "address"
+      },
+      {
         "internalType": "address",
         "name": "_treasury",
         "type": "address"
       },
       {
-        "internalType": "contract BswapToken",
-        "name": "_bswap",
+        "internalType": "address",
+        "name": "_weth",
         "type": "address"
       },
       {
         "internalType": "uint256",
-        "name": "_rewardPerSec",
+        "name": "_wethPerSecond",
         "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_startTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "contract IYieldBooster",
+        "name": "_boost",
+        "type": "address"
       }
     ],
     "stateMutability": "nonpayable",
     "type": "constructor"
   },
   {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "pid",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "Deposit",
-    "type": "event"
+    "inputs": [],
+    "name": "InvalidStartTime",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "PoolAlreadyExists",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "PoolNotExists",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ZeroAddress",
+    "type": "error"
   },
   {
     "anonymous": false,
@@ -51,15 +61,28 @@ module.exports = [
       {
         "indexed": true,
         "internalType": "address",
-        "name": "user",
+        "name": "poolAddress",
         "type": "address"
       },
       {
-        "indexed": true,
+        "indexed": false,
         "internalType": "uint256",
-        "name": "pid",
+        "name": "amount",
         "type": "uint256"
       },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amountWETH",
+        "type": "uint256"
+      }
+    ],
+    "name": "ClaimRewards",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
       {
         "indexed": false,
         "internalType": "uint256",
@@ -67,7 +90,7 @@ module.exports = [
         "type": "uint256"
       }
     ],
-    "name": "EmergencyWithdraw",
+    "name": "Harvest",
     "type": "event"
   },
   {
@@ -95,14 +118,115 @@ module.exports = [
       {
         "indexed": true,
         "internalType": "address",
-        "name": "user",
+        "name": "poolAddress",
         "type": "address"
       },
       {
-        "indexed": true,
+        "indexed": false,
         "internalType": "uint256",
-        "name": "pid",
+        "name": "allocPoint",
         "type": "uint256"
+      }
+    ],
+    "name": "PoolAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "poolAddress",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "allocPoint",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "allocPointsWETH",
+        "type": "uint256"
+      }
+    ],
+    "name": "PoolSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "poolAddress",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "reserve",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "reserveWETH",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "lastRewardTime",
+        "type": "uint256"
+      }
+    ],
+    "name": "PoolUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "emergencyUnlock",
+        "type": "bool"
+      }
+    ],
+    "name": "SetEmergencyUnlock",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "previousYieldBooster",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "newYieldBooster",
+        "type": "address"
+      }
+    ],
+    "name": "SetYieldBooster",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
       },
       {
         "indexed": false,
@@ -111,12 +235,64 @@ module.exports = [
         "type": "uint256"
       }
     ],
-    "name": "Withdraw",
+    "name": "TokenWithdraw",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "treasury",
+        "type": "address"
+      }
+    ],
+    "name": "TreasuryUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "rate",
+        "type": "uint256"
+      }
+    ],
+    "name": "WethRateUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "weth",
+        "type": "address"
+      }
+    ],
+    "name": "WethUpdated",
     "type": "event"
   },
   {
     "inputs": [],
-    "name": "BONUS_MULTIPLIER",
+    "name": "WETH",
+    "outputs": [
+      {
+        "internalType": "contract IERC20",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "activePoolsLength",
     "outputs": [
       {
         "internalType": "uint256",
@@ -130,18 +306,23 @@ module.exports = [
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "_allocPoint",
-        "type": "uint256"
-      },
-      {
-        "internalType": "contract IBEP20",
-        "name": "_lpToken",
+        "internalType": "contract INFTPool",
+        "name": "nftPool",
         "type": "address"
       },
       {
+        "internalType": "uint256",
+        "name": "allocPoints",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "allocPointsWETH",
+        "type": "uint256"
+      },
+      {
         "internalType": "bool",
-        "name": "_withUpdate",
+        "name": "withUpdate",
         "type": "bool"
       }
     ],
@@ -151,11 +332,42 @@ module.exports = [
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "addUnlockOperator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
-    "name": "bswap",
+    "name": "claimRewards",
     "outputs": [
       {
-        "internalType": "contract BswapToken",
+        "internalType": "uint256",
+        "name": "rewardAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountWETH",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "dummyToken",
+    "outputs": [
+      {
+        "internalType": "contract IERC20",
         "name": "",
         "type": "address"
       }
@@ -165,11 +377,36 @@ module.exports = [
   },
   {
     "inputs": [],
-    "name": "bswapPerSec",
+    "name": "emergencyUnlock",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "emergencyWithdrawFromPool",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "emissionRates",
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "mainRate",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "wethRate",
         "type": "uint256"
       }
     ],
@@ -180,16 +417,97 @@ module.exports = [
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "_pid",
+        "name": "index",
+        "type": "uint256"
+      }
+    ],
+    "name": "getActivePoolAddressByIndex",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      }
+    ],
+    "name": "getPoolAddressByIndex",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_poolAddress",
+        "type": "address"
+      }
+    ],
+    "name": "getPoolInfo",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "poolAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "allocPoints",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "_amount",
+        "name": "allocPointsWETH",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "lastRewardTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "reserve",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "reserveWETH",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "poolEmissionRate",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "poolEmissionRateWETH",
         "type": "uint256"
       }
     ],
-    "name": "deposit",
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "harvest",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -197,30 +515,38 @@ module.exports = [
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "_pid",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
       }
     ],
-    "name": "emergencyWithdraw",
-    "outputs": [],
-    "stateMutability": "nonpayable",
+    "name": "isUnlockOperator",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [
+    "inputs": [],
+    "name": "mainChef",
+    "outputs": [
       {
-        "internalType": "uint256",
-        "name": "_from",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_to",
-        "type": "uint256"
+        "internalType": "contract IBaseswapMasterChef",
+        "name": "",
+        "type": "address"
       }
     ],
-    "name": "getMultiplier",
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "mainChefPoolId",
     "outputs": [
       {
         "internalType": "uint256",
@@ -252,62 +578,12 @@ module.exports = [
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_pid",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "_user",
-        "type": "address"
-      }
-    ],
-    "name": "pendingReward",
+    "inputs": [],
+    "name": "poolsLength",
     "outputs": [
       {
         "internalType": "uint256",
         "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "poolInfo",
-    "outputs": [
-      {
-        "internalType": "contract IBEP20",
-        "name": "lpToken",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "allocPoint",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "lastRewardTime",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "accPerShare",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "totalDeposit",
         "type": "uint256"
       }
     ],
@@ -316,15 +592,28 @@ module.exports = [
   },
   {
     "inputs": [],
-    "name": "poolLength",
+    "name": "protocolToken",
     "outputs": [
       {
-        "internalType": "uint256",
+        "internalType": "address",
         "name": "",
-        "type": "uint256"
+        "type": "address"
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "removeUnlockOperator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -335,33 +624,25 @@ module.exports = [
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "rewardsStarted",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "poolAddress",
+        "type": "address"
+      },
+      {
         "internalType": "uint256",
-        "name": "_pid",
+        "name": "allocPoints",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "_allocPoint",
+        "name": "allocPointsWETH",
         "type": "uint256"
       },
       {
         "internalType": "bool",
-        "name": "_withUpdate",
+        "name": "withUpdate",
         "type": "bool"
       }
     ],
@@ -373,12 +654,12 @@ module.exports = [
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "_startTime",
-        "type": "uint256"
+        "internalType": "bool",
+        "name": "emergencyUnlock_",
+        "type": "bool"
       }
     ],
-    "name": "setStartTime",
+    "name": "setEmergencyUnlock",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -387,11 +668,60 @@ module.exports = [
     "inputs": [
       {
         "internalType": "address",
-        "name": "_treasury",
+        "name": "_weth",
         "type": "address"
       }
     ],
-    "name": "setTreasury",
+    "name": "setWethReward",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "wethRate",
+        "type": "uint256"
+      }
+    ],
+    "name": "setWethRewardRate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract IYieldBooster",
+        "name": "yieldBooster_",
+        "type": "address"
+      }
+    ],
+    "name": "setYieldBooster",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract IERC20",
+        "name": "_dummyToken",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IBaseswapMasterChef",
+        "name": "_oldChef",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_poolId",
+        "type": "uint256"
+      }
+    ],
+    "name": "start",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -411,7 +741,7 @@ module.exports = [
   },
   {
     "inputs": [],
-    "name": "teamRewardPercent",
+    "name": "totalAllocPoints",
     "outputs": [
       {
         "internalType": "uint256",
@@ -424,7 +754,7 @@ module.exports = [
   },
   {
     "inputs": [],
-    "name": "totalAllocPoint",
+    "name": "totalAllocPointsWETH",
     "outputs": [
       {
         "internalType": "uint256",
@@ -464,22 +794,9 @@ module.exports = [
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "multiplierNumber",
-        "type": "uint256"
-      }
-    ],
-    "name": "updateMultiplier",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_pid",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "nftPool",
+        "type": "address"
       }
     ],
     "name": "updatePool",
@@ -490,39 +807,23 @@ module.exports = [
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "_rewardPerSec",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "_treasury",
+        "type": "address"
       }
     ],
-    "name": "updateRewardPerSecond",
+    "name": "updateTreasury",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "userInfo",
+    "inputs": [],
+    "name": "wethPerSecond",
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "rewardDebt",
+        "name": "",
         "type": "uint256"
       }
     ],
@@ -530,21 +831,49 @@ module.exports = [
     "type": "function"
   },
   {
-    "inputs": [
+    "inputs": [],
+    "name": "wethToken",
+    "outputs": [
       {
-        "internalType": "uint256",
-        "name": "_pid",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_amount",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       }
     ],
-    "name": "withdraw",
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "withdrawFromPool",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract IERC20",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "withdrawToken",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "yieldBooster",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   }
 ];

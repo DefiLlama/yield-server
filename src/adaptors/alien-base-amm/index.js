@@ -203,9 +203,12 @@ const topLvl = async (chainString, version, timestamp) => {
     })
   ).output.map((o) => o.output);
 
+  const exclude = ['0x840dCB7b4d3cEb906EfD00c8b5F5c5Dd61d7f8a6'];
+
   poolInfo = poolInfo.filter(
     (obj, index, self) =>
-      index === self.findIndex((o) => o.lpToken === obj.lpToken)
+      index === self.findIndex((o) => o.lpToken === obj.lpToken) &&
+      !exclude.includes(obj.lpToken)
   );
 
   const albTotalAllocPoint = (
@@ -333,7 +336,7 @@ const topLvl = async (chainString, version, timestamp) => {
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
-      project: 'alien-base',
+      project: 'alien-base-amm',
       symbol,
       tvlUsd: p.totalValueLockedUSD,
       apyBase: albBaseApy || 0,
