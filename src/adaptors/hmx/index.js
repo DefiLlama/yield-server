@@ -6,7 +6,7 @@ const BigNumber = require('bignumber.js');
 const utils = require('../utils');
 const abi = require('./abi');
 const addresses = require('./addresses.json');
-const { default: address } = require('../paraspace-lending/address');
+const { default: address } = require('../paraspace-lending-v1/address');
 
 const secondsPerYear = 60 * 60 * 24 * 365;
 const WeiPerEther = BigNumber(1000000000000000000);
