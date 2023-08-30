@@ -197,7 +197,9 @@ const conicApy = async () => {
   const totalTvl = pools_.reduce((total, pool_) => {
     return total + pool_.totalUnderlying * pool_.price;
   }, 0);
-  const cncApy = (cncUsdPerYear / totalTvl) * 100;
+  // CNC rewards are temporarily disabled
+  // const cncApy = (cncUsdPerYear / totalTvl) * 100;
+  const cncApy = 0;
   return Promise.all(
     pools_.map(async (pool_) => {
       const tvlUsd = pool_.totalUnderlying * pool_.price;
