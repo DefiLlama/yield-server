@@ -421,7 +421,9 @@ const main = async (body) => {
     console.log(`removed ${delta} sample(s) prior to insert`);
     // send discord message
     // we limit sending msg only if the pool's last tvlUsd value is >= $50k
-    const filteredPools = droppedPools.filter((p) => p.tvlUsdDB >= 5e4);
+    const filteredPools = droppedPools.filter(
+      (p) => p.tvlUsdDB >= 5e4 && p.apyDB >= 10
+    );
     if (filteredPools.length) {
       const message = filteredPools
         .map((p) =>
