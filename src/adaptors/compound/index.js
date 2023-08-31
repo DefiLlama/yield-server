@@ -102,6 +102,17 @@ const main = async () => {
     })
   ).output.map((o) => o.output);
 
+  const borrowCaps = (
+    await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      abi: comptrollerAbi.find((n) => n.name === 'borrowCaps'),
+      calls: allMarkets.map((m) => ({
+        target: COMPTROLLER_ADDRESS,
+        params: [m],
+      })),
+    })
+  ).output.map((o) => o.output);
+
   const extraRewards = await getRewards(allMarkets, REWARD_SPEED);
   const extraRewardsBorrow = await getRewards(allMarkets, REWARD_SPEED_BORROW);
   const isPaused = await getRewards(allMarkets, 'mintGuardianPaused');
@@ -209,6 +220,7 @@ const main = async () => {
         apyBaseBorrow,
         apyRewardBorrow,
         ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
+        debtCeilingUsd: (borrowCaps[i] / 1e18) * price,
       };
     }
     return poolReturned;

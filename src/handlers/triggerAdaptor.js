@@ -378,6 +378,7 @@ const main = async (body) => {
   const dataDB = [];
   const nHours = 5;
   const tvlDeltaMultiplier = 5;
+  const apyDeltaMultiplier = tvlDeltaMultiplier;
   const timedeltaLimit = 60 * 60 * nHours * 1000;
   const droppedPools = [];
   for (const p of data) {
@@ -388,9 +389,10 @@ const main = async (body) => {
     }
     // if existing pool, check conditions
     const timedelta = timestamp - x.timestamp;
-    // skip the update if tvl at t is ntimes larger than tvl at t-1 && timedelta condition is met
+    // skip the update if tvl or apy at t is ntimes larger than tvl at t-1 && timedelta condition is met
     if (
-      p.tvlUsd > x.tvlUsd * tvlDeltaMultiplier &&
+      (p.tvlUsd > x.tvlUsd * tvlDeltaMultiplier ||
+        p.apy > x.apy * apyDeltaMultiplier) &&
       timedelta < timedeltaLimit
     ) {
       console.log(`removing pool ${p.pool}`);
@@ -401,6 +403,9 @@ const main = async (body) => {
         tvlUsd: p.tvlUsd,
         tvlUsdDB: x.tvlUsd,
         tvlMultiplier: p.tvlUsd / x.tvlUsd,
+        apy: p.apy,
+        apyDB: x.apy,
+        apyMultiplier: p.apy / x.apy,
       });
       continue;
     }
@@ -418,13 +423,20 @@ const main = async (body) => {
     const filteredPools = droppedPools.filter((p) => p.tvlUsdDB >= 5e4);
     if (filteredPools.length) {
       const message = filteredPools
-        .map(
-          (p) =>
-            `configID: ${p.configID} Project: ${p.project} Symbol: ${
-              p.symbol
-            } TVL: from ${p.tvlUsdDB.toFixed()} to ${p.tvlUsd.toFixed()} (${p.tvlMultiplier.toFixed(
-              2
-            )}x increase)`
+        .map((p) =>
+          p.apyMultiplier >= apyDeltaMultiplier
+            ? `APY spike for configID: ${
+                p.configID
+              } from ${p.apyDB.toFixed()} to ${p.apy.toFixed()} (${p.apyMultiplier.toFixed(
+                2
+              )}x increase)
+          `
+            : `TVL spike for configID: ${
+                p.configID
+              } from ${p.tvlUsdDB.toFixed()} to ${p.tvlUsd.toFixed()} (${p.tvlMultiplier.toFixed(
+                2
+              )}x increase)
+            `
         )
         .join('\n');
       await sendMessage(message, process.env.TVL_SPIKE_WEBHOOK);

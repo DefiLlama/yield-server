@@ -102,9 +102,35 @@ const chainMapping = {
   ftm: 'fantom',
 };
 
+async function apyLending(chain) {
+  const response = (
+    await axios.get(
+      `https://alpaca-static-api.alpacafinance.org/${chain}/v1/landing/summary.json`
+    )
+  ).data.data;
+
+  const chainString = utils.formatChain(chainMapping[chain]);
+
+  return response.lendingPools.map((p) => ({
+    pool: `${p.ibToken.address}-${chainString}`.toLowerCase(),
+    chain: chainString,
+    project,
+    symbol: utils.formatSymbol(p.symbol),
+    tvlUsd: Number(p.tvl),
+    apy: Number(p.totalApy),
+    underlyingTokens: [p.baseToken.address],
+  }));
+}
+
 const main = async () => {
-  const [bsc, ftm] = await Promise.all([apy('bsc'), apy('ftm')]);
-  return [...bsc, ...ftm];
+  const [bsc, ftm, bscLending, ftmLending] = await Promise.all([
+    apy('bsc'),
+    apy('ftm'),
+    apyLending('bsc'),
+    apyLending('ftm'),
+  ]);
+
+  return [...bsc, ...ftm, ...bscLending, ...ftmLending];
 };
 
 module.exports = {
