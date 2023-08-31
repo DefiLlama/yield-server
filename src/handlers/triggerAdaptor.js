@@ -45,9 +45,6 @@ module.exports.handler = async (event, context) => {
 const main = async (body) => {
   // ---------- run adaptor
   console.log(body.adaptor);
-  // tmp disable insertion of balancer-v2
-  if (body.adaptor === 'balancer-v2') return;
-
   const project = require(`../adaptors/${body.adaptor}`);
   let data = await project.apy();
   console.log(data[0]);
