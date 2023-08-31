@@ -312,7 +312,7 @@ const apy = async () => {
     apyReward: esHmxAprHmx().toNumber(),
     rewardTokens: [addresses.USDC, addresses.ESHMX, addresses.DRAGON_POINT],
     underlyingTokens: [addresses.ESHMX, addresses.HMX],
-    poolMeta: 'HMX Staking - 1 year linest vest',
+    poolMeta: 'HMX Staking - esHMX reward is 1 year linear vested',
     url: 'https://hmx.org/arbitrum/earn',
   };
   //                                 ---------------- PLP ----------------
