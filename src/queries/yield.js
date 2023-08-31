@@ -88,6 +88,7 @@ const getYieldProject = async (project) => {
     SELECT
         DISTINCT ON ("configID") "configID",
         "tvlUsd",
+        apy,
         timestamp
     FROM
         $<yieldTable:name>
