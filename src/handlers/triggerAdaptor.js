@@ -43,6 +43,7 @@ module.exports.handler = async (event, context) => {
 
 // func for running adaptor, storing result to db
 const main = async (body) => {
+  if (body.adaptor === 'balancer-v2') return;
   // ---------- run adaptor
   console.log(body.adaptor);
   const project = require(`../adaptors/${body.adaptor}`);
@@ -176,7 +177,7 @@ const main = async (body) => {
   if (
     data[0]?.underlyingTokens?.length &&
     protocolConfig[body.adaptor]?.category === 'Dexes' &&
-    !['balancer', 'curve', 'clipper'].includes(body.adaptor) &&
+    !['balancer-v2', 'curve-dex', 'clipper'].includes(body.adaptor) &&
     !['elrond', 'near', 'hedera', 'carbon'].includes(
       data[0].chain.toLowerCase()
     )
