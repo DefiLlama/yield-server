@@ -71,10 +71,7 @@ const apy = async () => {
       chain,
       abi: abis.rewardRate,
     })
-  ).output.map((o) => {
-    const out = Number(o.output) || 0;
-    return Date.now() < 1693774800000 ? out || 6652800 : out;
-  });
+  ).output.map((o) => Number(o.output) || 0);
 
   const andreOraclePrice = (
     await sdk.api.abi.multiCall({
