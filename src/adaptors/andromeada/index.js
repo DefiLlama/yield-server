@@ -12,8 +12,6 @@ const andre = '0xFA7D088f6B1bbf7b1C8c3aC265Bb797264FD360B';
 const andreOracle = '0x8a346de1b1d920439a30B19b4DF07F5D24f6033D';
 const chain = 'base';
 const project = 'andromeada';
-const prelaunchRewardRate = 6652800;
-const launchTime = 1693774800000;
 
 const apy = async () => {
   const allPoolsLength = (
@@ -75,7 +73,7 @@ const apy = async () => {
     })
   ).output.map((o) => {
     const out = Number(o.output) || 0;
-    return Date.now() < launchTime ? out || prelaunchRewardRate : out;
+    return Date.now() < 1693774800000 ? out || 6652800 : out;
   });
 
   const andreOraclePrice = (
