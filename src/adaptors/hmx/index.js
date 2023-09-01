@@ -40,13 +40,11 @@ const apy = async () => {
   //                                 ---------------- HLP ----------------
   const [
     { output: hlpRewardRateHlpPool },
-    { output: esHmxRewardRateHlpPool },
     { output: hmxRewardRateHmxPool },
     { output: esHmxRewardRateHmxPool },
     { output: plpRewardRate },
     { output: dragonPointRewardRateHmxPool },
     { output: hlpTotalShareUsdcRewarder },
-    { output: hlpTotalShareEsHmxRewarder },
     { output: hmxTotalShareUsdcRewarder },
     { output: hmxTotalShareEsHmxRewarder },
     { output: hmxTotalShareDragonPointRewarder },
@@ -66,12 +64,6 @@ const apy = async () => {
       abi: abi.rewardRate,
       chain: 'arbitrum',
       target: addresses.FEEDABLE_REWARDER_HLP_STAKING,
-      params: [],
-    }),
-    sdk.api.abi.call({
-      abi: abi.rewardRate,
-      chain: 'arbitrum',
-      target: addresses.FEEDABLE_REWARDER_HLP_STAKING_ESHMX,
       params: [],
     }),
     sdk.api.abi.call({
@@ -103,12 +95,6 @@ const apy = async () => {
       chain: 'arbitrum',
       target: addresses.HLP_STAKING,
       params: [addresses.FEEDABLE_REWARDER_HLP_STAKING],
-    }),
-    sdk.api.abi.call({
-      abi: abi.calculateTotalShare,
-      chain: 'arbitrum',
-      target: addresses.HLP_STAKING,
-      params: [addresses.FEEDABLE_REWARDER_HLP_STAKING_ESHMX],
     }),
     sdk.api.abi.call({
       abi: abi.calculateTotalShare,
@@ -249,34 +235,7 @@ const apy = async () => {
       .dividedBy(WeiPerEther)
       .dividedBy(hlpStakingAumE30); // e30; 0
   };
-  const esHmxAprHlp = () => {
-    // e18
-    const esHmxRewardPerYear = BigNumber(esHmxRewardRateHlpPool).multipliedBy(
-      secondsPerYear
-    );
-    // e18
-    const rewardInUsdPerYear = esHmxRewardPerYear.multipliedBy(
-      BigNumber(pricesBySymbol.hmx)
-    );
-    // e30 / e18 = e12
-    const totalStakedHlpInUsd = BigNumber(hlpTotalShareEsHmxRewarder)
-      .multipliedBy(hlpPriceInE30)
-      .dividedBy(WeiPerEther);
-    // e18 * e2 / e12 = e6 / e6 = 0
-    return rewardInUsdPerYear
-      .multipliedBy(100)
-      .dividedBy(totalStakedHlpInUsd)
-      .dividedBy(1e6);
-  };
-  const estimatedApyHlp = () => {
-    const totalApr = usdcAprHlp().plus(glpAprHlp()).plus(esHmxAprHlp());
-    const totalAprPercentage = totalApr.dividedBy(100);
-    const _apy = WeiPerEther.plus(
-      totalAprPercentage.multipliedBy(WeiPerEther).dividedBy(365)
-    ).dividedBy(WeiPerEther);
-    const apyPercentage = _apy.exponentiatedBy(365).minus(1).multipliedBy(100);
-    return apyPercentage;
-  };
+  const totalApr = usdcAprHlp().plus(glpAprHlp());
   const tvlUsdHlp = BigNumber(hlpBalanceInPool)
     .multipliedBy(hlpPriceInE30)
     .dividedBy(1e30);
@@ -287,7 +246,7 @@ const apy = async () => {
     project: 'hmx',
     symbol: 'GLP-USDC',
     tvlUsd: tvlUsdHlp.toNumber(),
-    apy: estimatedApyHlp().toNumber(),
+    apyBase: totalApr.toNumber(),
     rewardTokens: [addresses.USDC, addresses.ESHMX],
     underlyingTokens: [
       addresses.WETH,
@@ -340,15 +299,6 @@ const apy = async () => {
       .dividedBy(totalStakedHmxInUsd)
       .dividedBy(WeiPerEther);
   };
-  const estimatedApyHmx = () => {
-    const totalApr = usdcAprHmx().plus(esHmxAprHmx());
-    const totalAprPercentage = totalApr.dividedBy(100);
-    const _apy = WeiPerEther.plus(
-      totalAprPercentage.multipliedBy(WeiPerEther).dividedBy(365)
-    ).dividedBy(WeiPerEther);
-    const apyPercentage = _apy.exponentiatedBy(365).minus(1).multipliedBy(100);
-    return apyPercentage;
-  };
   const tvlUsdHmx = BigNumber(hmxBalanceInPool)
     .multipliedBy(pricesBySymbol.hmx)
     .dividedBy(1e18);
@@ -358,10 +308,11 @@ const apy = async () => {
     project: 'hmx',
     symbol: 'HMX-esHMX',
     tvlUsd: tvlUsdHmx.toNumber(),
-    apy: estimatedApyHmx().toNumber(),
+    apyBase: usdcAprHmx().toNumber(),
+    apyReward: esHmxAprHmx().toNumber(),
     rewardTokens: [addresses.USDC, addresses.ESHMX, addresses.DRAGON_POINT],
     underlyingTokens: [addresses.ESHMX, addresses.HMX],
-    poolMeta: 'HMX Staking',
+    poolMeta: 'HMX Staking - esHMX reward is 1 year linear vested',
     url: 'https://hmx.org/arbitrum/earn',
   };
   //                                 ---------------- PLP ----------------
@@ -392,14 +343,6 @@ const apy = async () => {
       rewardValuePerSecond.multipliedBy(secondsPerYear);
     return rewardValuePerYear.multipliedBy(100).dividedBy(tvl());
   };
-  const apy = () => {
-    const aprPercentage = apr().dividedBy(100);
-    const _apy = WeiPerEther.plus(
-      aprPercentage.multipliedBy(WeiPerEther).dividedBy(365)
-    ).dividedBy(WeiPerEther);
-    const apyPercentage = _apy.exponentiatedBy(365).minus(1).multipliedBy(100);
-    return apyPercentage;
-  };
 
   const plpStakingPool = {
     pool: `${addresses.PLP_STAKING}-polygon`,
@@ -407,7 +350,7 @@ const apy = async () => {
     project: 'hmx',
     symbol: 'USDC-USDT-WBTC-ETH-MATIC',
     tvlUsd: tvl().toNumber(),
-    apy: apy().toNumber(),
+    apy: apr().toNumber(),
     rewardTokens: [addresses.USDC_POLYGON],
     underlyingTokens: [
       addresses.USDC_POLYGON,
