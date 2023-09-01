@@ -28,6 +28,7 @@ const excludeAdaptors = [
   'mole', // needs to be reimplement
   'luxsfi',
   'geist-finance',
+  'el-dorado-exchange', // hacked
 ];
 
 const excludePools = [
