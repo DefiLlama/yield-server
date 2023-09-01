@@ -1,28 +1,26 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk4');
 const axios = require('axios');
 
 const utils = require('../utils');
 
-const abiPoolFactory = require('../velodrome-v1/abiPoolFactory.json');
-const abiPool = require('../velodrome-v1/abiPool.json');
 const abiVoter = require('../velodrome-v1/abiVoter.json');
-const abiGauge = require('../velodrome-v1/abiGauge.json');
+const abis = require('./abis');
 
 const PoolFactory = '0xB9e611CaD79f350929C8E36cAbbe5D2Ce9502D51';
 const Voter = '0xf36B02Eb3fb999775a91d8b6Edb507798f52c887';
 const andre = '0xFA7D088f6B1bbf7b1C8c3aC265Bb797264FD360B';
-const andreOracle = '0xFA7D088f6B1bbf7b1C8c3aC265Bb797264FD360B';
+const andreOracle = '0x8a346de1b1d920439a30B19b4DF07F5D24f6033D';
 const chain = 'base';
 const project = 'andromeada';
 const prelaunchRewardRate = 6652800;
-const launchTime = 1693688400000;
+const launchTime = 1693774800000;
 
 const apy = async () => {
   const allPoolsLength = (
     await sdk.api.abi.call({
       target: PoolFactory,
       chain,
-      abi: abiPoolFactory.find((i) => i.name === 'allPoolsLength'),
+      abi: abis.allPairsLength,
     })
   ).output;
 
@@ -33,47 +31,31 @@ const apy = async () => {
         params: [i],
       })),
       chain,
-      abi: abiPoolFactory.find((i) => i.name === 'allPools'),
+      abi: abis.allPools,
     })
   ).output.map((o) => o.output);
 
-  const metadata = (
-    await sdk.api.abi.multiCall({
-      calls: allPools.map((i) => ({
-        target: i,
-      })),
-      chain,
-      abi: abiPool.find((i) => i.name === 'metadata'),
-    })
-  ).output.map((o) => o.output);
-
-  const feeStable = (
-    await sdk.api.abi.multiCall({
-      calls: allPools.map((i) => ({
-        target: PoolFactory,
-        params: [i, true],
-      })),
-      chain,
-      abi: abiPoolFactory.find((i) => i.name === 'getFee'),
-    })
-  ).output.map((o) => o.output);
-
-  const feeVolatile = (
-    await sdk.api.abi.multiCall({
-      calls: allPools.map((i) => ({
-        target: PoolFactory,
-        params: [i, false],
-      })),
-      chain,
-      abi: abiPoolFactory.find((i) => i.name === 'getFee'),
-    })
-  ).output.map((o) => o.output);
-
-  const symbols = (
+  const reserves = (
     await sdk.api.abi.multiCall({
       calls: allPools.map((i) => ({ target: i })),
       chain,
-      abi: 'erc20:symbol',
+      abi: abis.getReserves,
+    })
+  ).output.map((o) => o.output);
+
+  const token0s = (
+    await sdk.api.abi.multiCall({
+      calls: allPools.map((i) => ({ target: i })),
+      chain,
+      abi: abis.token0,
+    })
+  ).output.map((o) => o.output);
+
+  const token1s = (
+    await sdk.api.abi.multiCall({
+      calls: allPools.map((i) => ({ target: i })),
+      chain,
+      abi: abis.token1,
     })
   ).output.map((o) => o.output);
 
@@ -87,15 +69,24 @@ const apy = async () => {
 
   const rewardRate = (
     await sdk.api.abi.multiCall({
-      calls: gauges.map((i) => ({ target: i })),
+      calls: gauges.map((i) => ({ target: i, params: [andre] })),
       chain,
-      abi: abiGauge.find((i) => i.name === 'rewardRate'),
+      abi: abis.rewardRate,
     })
-  ).output.map((o) =>
-    Date.now() < launchTime ? o.output || prelaunchRewardRate : o.output
-  );
+  ).output.map((o) => {
+    const out = Number(o.output) || 0;
+    return Date.now() < launchTime ? out || prelaunchRewardRate : out;
+  });
 
-  const uniqueTokens = [...new Set(metadata.map((i) => [i.t0, i.t1]).flat())];
+  const andreOraclePrice = (
+    await sdk.api.abi.multiCall({
+      calls: [{ target: andreOracle }],
+      chain,
+      abi: abis.chainlinkLatestAnswer,
+    })
+  ).output.map((o) => o.output * 1e4);
+
+  const uniqueTokens = [...new Set([...token0s, ...token1s]).values()];
 
   const maxSize = 50;
   const pages = Math.ceil(uniqueTokens.length / maxSize);
@@ -120,18 +111,27 @@ const apy = async () => {
     prices = { ...prices, ...p };
   }
 
-  prices[`base:${andre}`] = { price: 1 };
+  prices[`base:${andre}`] = {
+    decimals: 18,
+    price: Number(andreOraclePrice[0]),
+  };
 
   const pools = allPools.map((p, i) => {
-    const meta = metadata[i];
-    const r0 = meta.r0 / meta.dec0;
-    const r1 = meta.r1 / meta.dec1;
+    const meta = reserves[i];
 
-    const p0 = prices[`base:${meta.t0}`]?.price;
-    const p1 = prices[`base:${meta.t1}`]?.price;
+    const t0 = token0s[i];
+    const t1 = token1s[i];
 
-    const price0 = p0 || 0;
-    const price1 = p1 || 0;
+    const p0 = prices[`base:${t0}`];
+    const p1 = prices[`base:${t1}`];
+
+    if (!p0 || !p1) return;
+
+    const r0 = meta._reserve0 / 10 ** p0.decimals;
+    const r1 = meta._reserve1 / 10 ** p1.decimals;
+
+    const price0 = p0.price || 0;
+    const price1 = p1.price || 0;
 
     const tvlUsd =
       price0 === 0 && price1 === 0
@@ -142,20 +142,12 @@ const apy = async () => {
         ? r0 * price0 * 2
         : r0 * price0 + r1 * price1;
 
-    const symbol = symbols[i].split('-')[1];
+    const symbol = `${p0.symbol}-${p1.symbol}`;
 
-    const apyReward =
-      (((rewardRate[i] / 1e18) * 86400 * 365 * prices[`base:${andre}`]?.price) /
-        tvlUsd) *
-      100;
+    const price = prices[`base:${andre}`]?.price;
+    const rewardUSD = (rewardRate[i] * 86400 * 365 * price) / 1e18;
 
-    const feeTier = meta.st
-      ? `${feeStable[i] / 100}`
-      : `${feeVolatile[i] / 100}`;
-
-    const poolMeta = meta.st
-      ? `stable - ${feeTier}%`
-      : `volatile - ${feeTier}%`;
+    const apyReward = (rewardUSD / tvlUsd) * 100;
 
     return {
       pool: p,
@@ -165,15 +157,16 @@ const apy = async () => {
       tvlUsd,
       apyReward,
       rewardTokens: apyReward > 0 ? [andre] : [],
-      poolMeta,
+      // poolMeta,
       url: `https://andromeada.com/liquidity`,
     };
   });
 
-  return pools.filter((p) => utils.keepFinite(p));
+  return pools.filter((p) => !!p).filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
   timetravel: false,
   apy,
+  url: `https://andromeada.com/liquidity`,
 };
