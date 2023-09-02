@@ -10,7 +10,25 @@ const excludeAdaptors = [
   'friktion',
   'armor', // is now ease.org
   'lachain-yield-market',
-  'euler', // adapter is breaking since hack, need to fix
+  'euler', // adapter is breaking since hack, need to fix,
+  'ratio-finance',
+  '0vix', // pausing cause of hack
+  'rehold', // apy values are fake
+  'deficurrent', // vaults deprecated
+  'dogium-farm', // seems to be dead
+  'zest-protocol', // tiny pools
+  'hedge', // seems to be dead, ui not working
+  'double-club', // seems to be dead
+  'yieldwolf', // dead
+  'hubble-exchange', // no live pools
+  'yodeswap', // v1 deprecated
+  'optyfi', // dead
+  'rodeo', // exploited
+  'fairfi', // seems dead
+  'mole', // needs to be reimplement
+  'luxsfi',
+  'geist-finance',
+  'el-dorado-exchange', // hacked
 ];
 
 const excludePools = [
@@ -52,6 +70,25 @@ const excludePools = [
   '0x152d62dccc2c7c7930c4483cc2a24fefd23c24c2-fantom',
   '0x5427f192137405e6a4143d1c3321359bab2dbd87-fantom',
   '0x7a5011bf1dad77a23ec35ce04dcc2ac7d29963c5',
+  '0x45859D71D4caFb93694eD43a5ecE05776Fc2465d-dot-dot-finance', // until fixed
+  '0xc3d088842dcf02c13699f936bb83dfbbc6f721ab', // bifrost veth v1
+  '0x015908fec4ac33782d7bcd7a6ae88ab0ade405f4', //drop-usdc pool
+  '0x7578aa78d5c5f622800d9205e942b12d353432b7',
+  '0x05d3d04f1aeb77d591a0581827b148ea634c0d1c',
+  '0xc1b228c22ca914069c7164e5489e8d79a9cbb922',
+  '0xe50341e6f27a2514908f347e743119f3dfd84ad5',
+  '0xb59A93eAB4059C58d33b0c29fE4Fa3F3433997cc',
+  '0xB657B895B265C38c53FFF00166cF7F6A3C70587d',
+  // curve exploit
+  '0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511-ethereum',
+  '0xC4C319E2D4d66CcA4464C0c2B32c9Bd23ebe784e-ethereum',
+  '0xc897b98272AA23714464Ea2A0Bd5180f1B8C0025-ethereum',
+  '0x9848482da3Ee3076165ce6497eDA906E66bB85C5-ethereum',
+  '0x4CF4f433e359a343648c480b2f3952FD64616a9a', // peth harvest
+  '0x7ba1D55606900c5028Fb3BB82Fa0c198e3b0580E',
+  '0x0DEA7dc835e2dB8E1fF8853577a5B8D5E5F55413',
+  '0xB3D81Fad8f5092903592249d30cdeBD681057153',
+  '0x80eF5eF7099C69bC9fcF952217240331F96bdF5F',
 ];
 
 const boundaries = {
@@ -62,7 +99,7 @@ const boundaries = {
   // we only get pools for the UI with a maximum apy of 1million %
   apy: { lb: 0, ub: 1e6 },
   // reading from database returns only pools which is max 7 days old
-  age: 5,
+  age: 7,
 };
 
 module.exports = {

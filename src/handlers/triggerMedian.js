@@ -1,7 +1,7 @@
 const ss = require('simple-statistics');
 
-const { getYieldFiltered } = require('../controllers/yieldController');
-const { insertMedian } = require('../controllers/medianController');
+const { getYieldFiltered } = require('../queries/yield');
+const { insertMedian } = require('../queries/median');
 
 module.exports.handler = async () => {
   await main();

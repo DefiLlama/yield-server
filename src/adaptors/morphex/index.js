@@ -2,18 +2,27 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const abi = require('./abis/abi.json');
 
-const tokenAddressMPX = '0x66eEd5FF1701E6ed8470DC391F05e27B1d0657eb';
-const mlpManagerAddress = '0xA3Ea99f8aE06bA0d9A6Cf7618d06AEa4564340E9';
+// Fantom
+const tokenAddressMPXFantom = '0x66eEd5FF1701E6ed8470DC391F05e27B1d0657eb';
+const mlpManagerAddressFantom = '0x3A15Bac2D87C89F08147353fc9aE27080631b73d';
 
-const feeMpxTrackerAddress =
-  '0x2D5875ab0eFB999c1f49C798acb9eFbd1cfBF63c';
-const stakedMpxTrackerAddress =
+const feeMpxTrackerAddressFantom = '0x2D5875ab0eFB999c1f49C798acb9eFbd1cfBF63c';
+const stakedMpxTrackerAddressFantom =
   '0xa4157E273D88ff16B3d8Df68894e1fd809DbC007';
 
-const feeMlpTrackerAddress =
-  '0xd3C5dEd5F1207c80473D39230E5b0eD11B39F905';
-const stakedMlpTrackerAddress =
-  '0x49A97680938B4F1f73816d1B70C3Ab801FAd124B';
+const feeMlpTrackerAddressFantom = '0x0Af7E9F3396423C30a4dF4a79882d118ea89e2F2';
+const stakedMlpTrackerAddressFantom =
+  '0xB30A97548551Ac8b185685FC25bF3564cE6E716D';
+
+// BNB Chain
+const tokenAddressMPXBSC = '0x94C6B279b5df54b335aE51866d6E2A56BF5Ef9b7';
+const mlpManagerAddressBSC = '0x749DA3a34A6E1b098F3BFaEd23DAD2b7D7846b9B';
+
+const feeMpxTrackerAddressBSC = '0xfAEdbA0E97D5DCD7A29fB6778D7e17b1be35c0b8';
+const stakedMpxTrackerAddressBSC = '0x13d2bBAE955c54Ab99F71Ff70833dE64482519B1';
+
+const feeMlpTrackerAddressBSC = '0x1Fc9aB3b7bEE66fC29167AB205777537898ff235';
+const stakedMlpTrackerAddressBSC = '0x4e0e48b787E308049d0CA6bfAA84D5c61c5a4A1e';
 
 const secondsPerYear = 31536000;
 
@@ -37,7 +46,7 @@ async function getAdjustedAmount(pTarget, pChain, pAbi, pParams = []) {
 
 async function getMlpTVL(pChain) {
   let tvl = await sdk.api.abi.call({
-    target: pChain == 'fantom' ? mlpManagerAddress : '',
+    target: pChain == 'fantom' ? mlpManagerAddressFantom : mlpManagerAddressBSC,
     abi: abi['getAumInUsdg'],
     chain: pChain,
     params: [false],
@@ -56,19 +65,24 @@ async function getPoolMPX(
   pPriceData
 ) {
   const tvlMpx =
-    pPriceData.mpx.usd *
+    pPriceData.mpx.price *
     (await getAdjustedAmount(
-      pChain == 'fantom' ? tokenAddressMPX : '',
+      pChain == 'fantom' ? tokenAddressMPXFantom : tokenAddressMPXBSC,
       pChain,
       'erc20:balanceOf',
-      pChain == 'fantom' ? [stakedMpxTrackerAddress] : []
+      pChain == 'fantom'
+        ? [stakedMpxTrackerAddressFantom]
+        : [stakedMpxTrackerAddressBSC]
     ));
 
-  const tvsMpx = pStakedMpx * pPriceData.mpx.usd;
-  const tvsEsMpx = pStakedEsMpx * pPriceData.mpx.usd;
+  const tvsMpx = pStakedMpx * pPriceData.mpx.price;
+  const tvsEsMpx = pStakedEsMpx * pPriceData.mpx.price;
 
-  const yearlyFeeMpx = pChain == 'fantom' ? pFeeMpx * pPriceData.fantom.usd : 0;
-  const yearlyInflationMpx = pInflationMpx * pPriceData.mpx.usd;
+  const yearlyFeeMpx =
+    pChain == 'fantom'
+      ? pFeeMpx * pPriceData.fantom.price
+      : pFeeMpx * pPriceData.bsc.price;
+  const yearlyInflationMpx = pInflationMpx * pPriceData.mpx.price;
 
   const apyFee = (yearlyFeeMpx / tvsMpx) * 100;
   const apyInflation = (yearlyInflationMpx / tvsEsMpx) * 100;
@@ -82,9 +96,9 @@ async function getPoolMPX(
     apyBase: apyFee,
     apyReward: apyInflation,
     rewardTokens:
-      pChain === 'fantom' ? [tokenAddressMPX] : [],
+      pChain === 'fantom' ? [tokenAddressMPXFantom] : [tokenAddressMPXBSC],
     underlyingTokens: [
-      pChain === 'fantom' ? tokenAddressMPX : '',
+      pChain === 'fantom' ? tokenAddressMPXFantom : tokenAddressMPXBSC,
     ],
   };
 }
@@ -98,8 +112,10 @@ async function getPoolMLP(
   pPriceData
 ) {
   const yearlyFeeMlp =
-    pChain == 'fantom' ? pFeeMlp * pPriceData.fantom.usd : 0;
-  const yearlyInflationMlp = pInflationMlp * pPriceData.mpx.usd;
+    pChain == 'fantom'
+      ? pFeeMlp * pPriceData.fantom.price
+      : pFeeMlp * pPriceData.bsc.price;
+  const yearlyInflationMlp = pInflationMlp * pPriceData.mpx.price;
   const apyFee = (yearlyFeeMlp / pTvl) * 100;
   const apyInflation = (yearlyInflationMlp / pTvl) * 100;
 
@@ -107,20 +123,23 @@ async function getPoolMLP(
     pool: pInflationTrackerAddress,
     chain: utils.formatChain(pChain),
     project: 'morphex',
-    symbol: utils.formatSymbol('MLP (FTM-BTC-ETH-USDC-USDT-DAI)'),
+    symbol:
+      pChain === 'fantom'
+        ? utils.formatSymbol('MLP (FTM-BTC-ETH-USDC-USDT-DAI)')
+        : utils.formatSymbol('MLP (BNB-BTC-ETH-XRP-ADA-USDT-USDC)'),
     tvlUsd: parseFloat(pTvl),
     apyBase: apyFee,
     apyReward: apyInflation,
     rewardTokens:
-      pChain === 'fantom' ? [tokenAddressMPX] : [],
+      pChain === 'fantom' ? [tokenAddressMPXFantom] : [tokenAddressMPXBSC],
 
     underlyingTokens: [
-      pChain === 'fantom' ? tokenAddressMPX : '',
+      pChain === 'fantom' ? tokenAddressMPXFantom : tokenAddressMPXBSC,
     ],
     underlyingTokens: [
       pChain === 'fantom'
-        ? '0xd5c313DE2d33bf36014e6c659F13acE112B80a8E'
-        : '',
+        ? '0xF476F7F88E70470c976d9DF7c5C003dB1E1980Cb'
+        : '0xbd1dCEc2103675C8F3953c34aE40Ed907E1DCAC2',
     ],
   };
 }
@@ -128,42 +147,44 @@ async function getPoolMLP(
 const getPools = async () => {
   let pools = [];
 
-  const ftmPriceDataRes = await utils.getData(
-    'https://api.coingecko.com/api/v3/simple/price?ids=fantom%2C&vs_currencies=usd'
-  );
-  const mpxPriceDataRes = await utils.getData(
-    'https://api.coingecko.com/api/v3/simple/price?ids=mpx%2C&vs_currencies=usd'
+  const priceKeys = ['fantom', 'binancecoin', 'mpx']
+    .map((t) => `coingecko:${t}`)
+    .join(',');
+  const { coins: prices } = await utils.getData(
+    `https://coins.llama.fi/prices/current/${priceKeys}`
   );
 
   const priceData = {
-    mpx: mpxPriceDataRes['mpx'],
-    fantom: ftmPriceDataRes['fantom'],
+    mpx: prices['coingecko:mpx'],
+    fantom: prices['coingecko:fantom'],
+    bsc: prices['coingecko:binancecoin'],
   };
 
+  // Fantom
   const fantomStakedMpx = await getAdjustedAmount(
-    feeMpxTrackerAddress,
+    feeMpxTrackerAddressFantom,
     'fantom',
     'erc20:totalSupply'
   );
   const fantomStakedEsMpx = await getAdjustedAmount(
-    stakedMpxTrackerAddress,
+    stakedMpxTrackerAddressFantom,
     'fantom',
     'erc20:totalSupply'
   );
   const fantomFeeMpx = await getAdjustedAmount(
-    feeMpxTrackerAddress,
+    feeMpxTrackerAddressFantom,
     'fantom',
     abi['tokensPerInterval']
   );
   const fantomInflationMpx = await getAdjustedAmount(
-    stakedMpxTrackerAddress,
+    stakedMpxTrackerAddressFantom,
     'fantom',
     abi['tokensPerInterval']
   );
   pools.push(
     await getPoolMPX(
       'fantom',
-      stakedMpxTrackerAddress,
+      stakedMpxTrackerAddressFantom,
       fantomStakedMpx,
       fantomStakedEsMpx,
       fantomFeeMpx,
@@ -173,12 +194,12 @@ const getPools = async () => {
   );
 
   const fantomFeeMlp = await getAdjustedAmount(
-    feeMlpTrackerAddress,
+    feeMlpTrackerAddressFantom,
     'fantom',
     abi['tokensPerInterval']
   );
   const fantomInflationMlp = await getAdjustedAmount(
-    stakedMlpTrackerAddress,
+    stakedMlpTrackerAddressFantom,
     'fantom',
     abi['tokensPerInterval']
   );
@@ -186,9 +207,63 @@ const getPools = async () => {
     await getPoolMLP(
       'fantom',
       await getMlpTVL('fantom'),
-      stakedMlpTrackerAddress,
+      stakedMlpTrackerAddressFantom,
       fantomFeeMlp,
       fantomInflationMlp,
+      priceData
+    )
+  );
+
+  // BSC
+  const bscStakedMpx = await getAdjustedAmount(
+    feeMpxTrackerAddressBSC,
+    'bsc',
+    'erc20:totalSupply'
+  );
+  const bscStakedEsMpx = await getAdjustedAmount(
+    stakedMpxTrackerAddressBSC,
+    'bsc',
+    'erc20:totalSupply'
+  );
+  const bscFeeMpx = await getAdjustedAmount(
+    feeMpxTrackerAddressBSC,
+    'bsc',
+    abi['tokensPerInterval']
+  );
+  const bscInflationMpx = await getAdjustedAmount(
+    stakedMpxTrackerAddressBSC,
+    'bsc',
+    abi['tokensPerInterval']
+  );
+  pools.push(
+    await getPoolMPX(
+      'bsc',
+      stakedMpxTrackerAddressBSC,
+      bscStakedMpx,
+      bscStakedEsMpx,
+      bscFeeMpx,
+      bscInflationMpx,
+      priceData
+    )
+  );
+
+  const bscFeeMlp = await getAdjustedAmount(
+    feeMlpTrackerAddressBSC,
+    'bsc',
+    abi['tokensPerInterval']
+  );
+  const bscInflationMlp = await getAdjustedAmount(
+    stakedMlpTrackerAddressBSC,
+    'bsc',
+    abi['tokensPerInterval']
+  );
+  pools.push(
+    await getPoolMLP(
+      'bsc',
+      await getMlpTVL('bsc'),
+      stakedMlpTrackerAddressBSC,
+      bscFeeMlp,
+      bscInflationMlp,
       priceData
     )
   );

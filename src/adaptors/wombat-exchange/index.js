@@ -1,14 +1,6 @@
 const { util } = require('@defillama/sdk');
 const { gql, request } = require('graphql-request');
-
-const BLOCK_API =
-  'https://api.thegraph.com/subgraphs/name/matthewlilley/bsc-blocks';
-
-const VOLUMES_API =
-  'https://api.thegraph.com/subgraphs/name/wombat-exchange/wombat-exchange';
-
-const APR_API =
-  'https://api.thegraph.com/subgraphs/name/corey-wombat/wombat-median-apr';
+const config = require('./config.js');
 
 const prevBlockQuery = gql`
   query Blocks($timestamp_lte: BigInt = "") {
@@ -26,26 +18,31 @@ const prevBlockQuery = gql`
 
 const volumesQuery = gql`
   query Volumes($block: Int = 0) {
-    tokensNow: tokens {
+    assetsNow: assets {
       id
       symbol
-      totalTradeVolume
+      totalSharedFeeUSD
       liabilityUSD
     }
-    tokens24hAgo: tokens(block: { number: $block }) {
+    assets24hAgo: assets(block: { number: $block }) {
       id
       symbol
-      totalTradeVolume
+      totalSharedFeeUSD
+      liabilityUSD
     }
   }
 `;
 
 const aprQuery = gql`
   query Apr {
-    assets {
+    assets(where: { id_not: "0x0000000000000000000000000000000000000000" }) {
       id
       symbol
-      medianBoostedAPR
+      liabilityUSD
+      totalSharedFeeUSD
+      womBaseApr
+      avgBoostedApr
+      totalBonusTokenApr
       underlyingToken {
         id
       }
@@ -53,49 +50,63 @@ const aprQuery = gql`
   }
 `;
 
-const FEE = 0.001;
-
 const oneDay = 86400;
 
 const apy = async () => {
-  const timestampPrior = +(new Date() / 1000).toFixed(0) - oneDay;
+  apy_export = [];
+  for (chain in config) {
+    const timestampPrior = +(new Date() / 1000).toFixed(0) - oneDay;
 
-  const blockPrior = (
-    await request(BLOCK_API, prevBlockQuery, {
-      timestamp_lte: timestampPrior,
-    })
-  ).blocks[0].number;
+    const blockPrior = (
+      await request(config[chain]['BLOCK_ENDPOINT'], prevBlockQuery, {
+        timestamp_lte: timestampPrior,
+      })
+    ).blocks[0].number;
 
-  const { tokensNow, tokens24hAgo } = await request(VOLUMES_API, volumesQuery, {
-    block: +blockPrior,
-  });
+    const { assetsNow, assets24hAgo } = await request(
+      config[chain]['APR_ENDPOINT'],
+      volumesQuery,
+      {
+        block: +blockPrior,
+      }
+    );
 
-  const { assets: aprs } = await request(APR_API, aprQuery);
+    const { assets: aprs } = await request(
+      config[chain]['APR_ENDPOINT'],
+      aprQuery
+    );
 
-  const pools = tokensNow.map((pool) => {
-    const aprData =
-      aprs.find((apr) => apr.underlyingToken.id === pool.id) || {};
+    const assets = aprs.map((pool) => {
+      const aprData = aprs.find((apr) => apr.id === pool.id) || {};
+      const feeNow = assetsNow.find((apr) => apr.id === pool.id) || {};
+      const fee24hAgo = assets24hAgo.find((apr) => apr.id === pool.id) || {};
 
-    let apyReward = Number(aprData.medianBoostedAPR);
-    apyReward = pool.symbol.toLowerCase().includes('bnb')
-      ? apyReward
-      : apyReward * 100;
+      // Projected baseApy estimated by feeUSD collected in 24h
+      let apyBase =
+        (((Number(feeNow.totalSharedFeeUSD) -
+          Number(fee24hAgo.totalSharedFeeUSD)) /
+          2) *
+          365 *
+          100) /
+          Number(pool.liabilityUSD) || 0;
 
-    return {
-      pool: aprData.id,
-      project: 'wombat-exchange',
-      chain: 'Binance',
-      tvlUsd: Number(pool.liabilityUSD) || 0,
-      symbol: pool.symbol,
-      apyReward,
-      underlyingTokens: [pool.id],
-      rewardTokens: [
-        '0xAD6742A35fB341A9Cc6ad674738Dd8da98b94Fb1', // WOM
-      ],
-    };
-  });
+      let apyReward =
+        (Number(aprData.womBaseApr) + Number(aprData.totalBonusTokenApr)) * 100;
 
-  return pools;
+      apy_export.push({
+        pool: aprData.id,
+        project: 'wombat-exchange',
+        chain: chain,
+        tvlUsd: Number(pool.liabilityUSD) || 0,
+        symbol: pool.symbol,
+        apyReward,
+        apyBase,
+        underlyingTokens: [pool.underlyingToken.id],
+        rewardTokens: [config[chain]['WOM_ADDRESS']],
+      });
+    });
+  }
+  return apy_export;
 };
 
 module.exports = {

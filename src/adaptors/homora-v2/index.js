@@ -516,7 +516,18 @@ async function apy(chainId) {
   ];
 }
 const main = async () => {
-  return [...(await apy(1)), ...(await apy(250)), ...(await apy(43114))];
+  const pools = [];
+  for (const chain of Object.keys(chains)) {
+    console.log(chains[chain]);
+    try {
+      const poolsChain = await apy(chain);
+      pools.push(poolsChain);
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  return pools.flat();
 };
 function getCoingeckoLock() {
   return new Promise((resolve) => {

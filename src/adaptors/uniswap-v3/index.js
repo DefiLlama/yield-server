@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk4');
 const { request, gql } = require('graphql-request');
 const superagent = require('superagent');
 
@@ -13,6 +13,10 @@ const chains = {
   polygon: `${baseUrl}/ianlapham/uniswap-v3-polygon`,
   arbitrum: `${baseUrl}/ianlapham/arbitrum-dev`,
   optimism: `${baseUrl}/ianlapham/optimism-post-regenesis`,
+  celo: `${baseUrl}/jesse-sawa/uniswap-celo`,
+  avax: `${baseUrl}/lynnshaoyu/uniswap-v3-avax`,
+  bsc: `${baseUrl}/ianlapham/uniswap-v3-bsc`,
+  base: 'https://api.studio.thegraph.com/query/48211/uniswap-v3-base/version/latest',
 };
 
 const query = gql`
@@ -75,6 +79,22 @@ const topLvl = async (
     // uni v3 subgraph reserves values are wrong!
     // instead of relying on subgraph values, gonna pull reserve data from contracts
     // new tvl calc
+    // let
+    if (chainString === 'base') {
+      const excludeTokens = [
+        '0xb50721bcf8d664c30412cfbc6cf7a15145234ad1',
+        '0x4d224452801aced8b2f0aebe155379bb5d594381',
+        '0x7ceb23fd6bc0add59e62ac25578270cff1b9f619',
+        '0x385eeac5cb85a38a9a07a70c73e0a3271cfb54a7',
+        '0x4701f80124f5ebf6846a43929b22a917bc30b2ca',
+        '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+      ];
+      dataNow = dataNow.filter(
+        (p) =>
+          !excludeTokens.some((i) => i === p.token0.id || i === p.token1.id)
+      );
+    }
+
     const balanceCalls = [];
     for (const pool of dataNow) {
       balanceCalls.push({
@@ -105,6 +125,15 @@ const topLvl = async (
           `1e${p.token1.decimals}`,
       };
     });
+
+    // balance calls not working on the uni v3 avax contracts
+    if (chainString === 'avax') {
+      dataNow = dataNow.map((p) => ({
+        ...p,
+        reserve0: Number(p.totalValueLockedToken0),
+        reserve1: Number(p.totalValueLockedToken1),
+      }));
+    }
 
     // pull 24h offset data to calculate fees from swap volume
     let queryPriorC = queryPrior;
@@ -232,8 +261,8 @@ const topLvl = async (
       };
     });
   } catch (e) {
-    if (e.message.includes('Stale subgraph')) return [];
-    else throw e;
+    console.log(chainString, e);
+    return [];
   }
 };
 
