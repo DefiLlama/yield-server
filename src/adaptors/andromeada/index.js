@@ -152,8 +152,7 @@ const apy = async () => {
       tvlUsd,
       apyReward,
       rewardTokens: apyReward > 0 ? [andre] : [],
-      // poolMeta,
-      url: `https://andromeada.com/liquidity`,
+      url: `https://andromeada.com/liquidity/manage?pair=${p}`,
     };
   });
 
