@@ -6,7 +6,7 @@ const utils = require('../utils');
 const { BigNumber } = require('ethers');
 const ethers = require('ethers');
 
-const PROJECT_NAME = 'myso';
+const PROJECT_NAME = 'myso-v1';
 const POOL_INFO_ABI = {
   inputs: [],
   name: 'getPoolInfo',
