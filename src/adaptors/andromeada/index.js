@@ -129,8 +129,6 @@ const apy = async () => {
     const price0 = p0.price || 0;
     const price1 = p1.price || 0;
 
-    console.log(r0 * price0, r1 * price1);
-
     const tvlUsd =
       price0 === 0 && price1 === 0
         ? 0
