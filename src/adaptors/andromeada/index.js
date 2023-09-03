@@ -79,7 +79,7 @@ const apy = async () => {
       chain,
       abi: abis.chainlinkLatestAnswer,
     })
-  ).output.map((o) => o.output * 1e4);
+  ).output.map((o) => o.output / 1e8);
 
   const uniqueTokens = [...new Set([...token0s, ...token1s]).values()];
 
@@ -108,6 +108,7 @@ const apy = async () => {
 
   prices[`base:${andre}`] = {
     decimals: 18,
+    symbol: 'ANDRE',
     price: Number(andreOraclePrice[0]),
   };
 
@@ -127,6 +128,8 @@ const apy = async () => {
 
     const price0 = p0.price || 0;
     const price1 = p1.price || 0;
+
+    console.log(r0 * price0, r1 * price1);
 
     const tvlUsd =
       price0 === 0 && price1 === 0
