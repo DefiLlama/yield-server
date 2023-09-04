@@ -173,6 +173,14 @@ const main = async (body) => {
   // need the protocol response to check if adapter.body === 'Dexes' category
 
   // required conditions to calculate IL field
+  const uniV3Forks = [
+    'uniswap-v3',
+    'hydradex-v3',
+    'forge',
+    'arbitrum-exchange-v3',
+    'maia-v3',
+    'ramses-v2',
+  ];
   if (
     data[0]?.underlyingTokens?.length &&
     protocolConfig[body.adaptor]?.category === 'Dexes' &&
@@ -225,14 +233,6 @@ const main = async (body) => {
     );
 
     // calc IL
-    const uniV3Forks = [
-      'uniswap-v3',
-      'hydradex-v3',
-      'forge',
-      'arbitrum-exchange-v3',
-      'maia-v3',
-      'ramses-v2',
-    ];
     data = data.map((p) => {
       if (p?.underlyingTokens === null || p?.underlyingTokens === undefined)
         return { ...p };
