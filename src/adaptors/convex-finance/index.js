@@ -133,7 +133,7 @@ const main = async () => {
       if (!gauge && !z.includes(pool.lptoken)) return;
       const virtualPrice = z.includes(pool.lptoken)
         ? pool.virtualPrice
-        : gauge.swap_data.virtual_price / 10 ** 18;
+        : gauge.swap_data?.virtual_price / 10 ** 18;
       if (!pool.coinsAddresses) return null;
       let v2PoolUsd;
       if (pool.totalSupply == 0) {

@@ -11,7 +11,7 @@ const getApy = async () => {
   const data = await Promise.all(
     Object.entries(chains).map(async (chain) => {
       const data = await utils.getData(
-        `https://ydaemon.yearn.finance/${chain[1]}/vaults/all`
+        `https://ydaemon.yearn.fi/${chain[1]}/vaults/all`
       );
 
       return data.map((p) => {
@@ -26,7 +26,7 @@ const getApy = async () => {
           symbol: utils.formatSymbol(p.token.display_symbol),
           tvlUsd: p.tvl.tvl_deposited,
           apy: p.apy.net_apy * 100,
-          url: `https://yearn.finance/vaults/${chains[chain[0]]}/${p.address}`,
+          url: `https://yearn.fi/vaults/${chains[chain[0]]}/${p.address}`,
           underlyingTokens:
             underlying.length === 0 ? [p.token.address] : underlying,
         };
