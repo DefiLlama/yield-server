@@ -436,7 +436,7 @@ const main = async (body) => {
                 p.configID
               } from ${p.apyDB.toFixed()} to ${p.apy.toFixed()} (${p.apyMultiplier.toFixed(
                 2
-              )}x increase)
+              )}x increase) [tvlUsd: ${p.tvlUsd.toFixed()}]
           `
             : `TVL spike for configID: ${
                 p.configID
