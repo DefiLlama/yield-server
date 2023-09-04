@@ -10,6 +10,7 @@ const gaugeABIGnosis = require('./abis/gauge_gnosis.json');
 const gaugeControllerEthereum = require('./abis/gauge_controller_ethereum.json');
 const protocolFeesCollectorABI = require('./abis/protocol_fees_collector.json');
 const { lte } = require('lodash');
+const { excludePools } = require('../../utils/exclude');
 
 // Subgraph URLs
 const urlBase = 'https://api.thegraph.com/subgraphs/name/balancer-labs';
@@ -512,7 +513,7 @@ const main = async () => {
     .filter((i) => i.status === 'fulfilled')
     .map((i) => i.value)
     .flat()
-    .filter((p) => utils.keepFinite(p));
+    .filter((p) => utils.keepFinite(p) && !excludePools.includes(p.pool));
 };
 
 module.exports = {

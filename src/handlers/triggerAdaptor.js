@@ -43,7 +43,6 @@ module.exports.handler = async (event, context) => {
 
 // func for running adaptor, storing result to db
 const main = async (body) => {
-  if (body.adaptor === 'balancer-v2') return;
   // ---------- run adaptor
   console.log(body.adaptor);
   const project = require(`../adaptors/${body.adaptor}`);
