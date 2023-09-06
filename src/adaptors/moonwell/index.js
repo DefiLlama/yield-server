@@ -99,15 +99,16 @@ const getApy = async () => {
         price = Number(_price)
       }
 
-      const tvlUsd =
+      const totalSupplyUsd =
         Number(pool.totalSupply) * Number(pool.exchangeRate) * price
       const totalBorrowUsd = Number(pool.totalBorrows) * price
+
       return {
         pool: pool.id.toLowerCase(),
         chain: utils.formatChain('moonbeam'),
         project: 'moonwell',
         symbol: pool.underlyingSymbol,
-        tvlUsd,
+        tvlUsd: totalSupplyUsd - totalBorrowUsd,
         apyBase: Number(pool.supplyRate),
         apyReward:
           Number(pool.supplyRewardNative) + Number(pool.supplyRewardProtocol),
@@ -122,7 +123,7 @@ const getApy = async () => {
           '0xacc15dc74880c9944775448304b263d191c6077f'
         ],
         // borrow fields
-        totalSupplyUsd: tvlUsd + totalBorrowUsd,
+        totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow: Number(pool.borrowRate),
         apyRewardBorrow:
@@ -149,7 +150,7 @@ const getApy = async () => {
         chain: utils.formatChain('base'),
         project: 'moonwell',
         symbol: pool.underlyingSymbol == 'WETH' ? 'ETH' : pool.underlyingSymbol,
-        tvlUsd: totalSupplyUsd + totalBorrowUsd,
+        tvlUsd: totalSupplyUsd - totalBorrowUsd,
         apyBase: Number(pool.supplyRate),
         apyReward: 0,
         underlyingTokens: [pool.underlyingAddress],
