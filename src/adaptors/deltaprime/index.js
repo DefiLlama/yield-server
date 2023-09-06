@@ -168,7 +168,7 @@ const getPoolsAPYs = async () => {
     apyReward: getRewardApyBasedOnTvl(usdcPoolTvl),
     underlyingTokens: [USDC_TOKEN_ADDRESS],
     rewardTokens: [USDC_TOKEN_ADDRESS],
-    poolMeta: 'USDC lending pool',
+    poolMeta: 'USDC lending pool on Avalanche',
   };
 
   const usdtPoolTvl = await getUsdtPoolTVL();
@@ -182,7 +182,7 @@ const getPoolsAPYs = async () => {
     apyReward: getRewardApyBasedOnTvl(usdtPoolTvl),
     underlyingTokens: [USDT_TOKEN_ADDRESS],
     rewardTokens: [USDT_TOKEN_ADDRESS],
-    poolMeta: 'USDt lending pool',
+    poolMeta: 'USDt lending pool on Avalanche',
   };
 
   const wavaxPoolTvl = await getWavaxPoolTVL();
@@ -196,7 +196,7 @@ const getPoolsAPYs = async () => {
     apyReward: getRewardApyBasedOnTvl(wavaxPoolTvl),
     underlyingTokens: [WAVAX_TOKEN_ADDRESS],
     rewardTokens: [WAVAX_TOKEN_ADDRESS],
-    poolMeta: 'WAVAX lending pool',
+    poolMeta: 'WAVAX lending pool on Avalanche',
   };
 
   const btcPoolTvl = await getBtcPoolTVL();
@@ -210,7 +210,7 @@ const getPoolsAPYs = async () => {
     apyReward: getRewardApyBasedOnTvl(btcPoolTvl),
     underlyingTokens: [BTC_TOKEN_ADDRESS],
     rewardTokens: [BTC_TOKEN_ADDRESS],
-    poolMeta: 'BTC.b lending pool',
+    poolMeta: 'BTC.b lending pool on Avalanche',
   };
 
   const ethPoolTvl = await getEthPoolTVL();
@@ -224,7 +224,7 @@ const getPoolsAPYs = async () => {
     apyReward: getRewardApyBasedOnTvl(ethPoolTvl),
     underlyingTokens: [ETH_TOKEN_ADDRESS],
     rewardTokens: [ETH_TOKEN_ADDRESS],
-    poolMeta: 'WETH.e lending pool',
+    poolMeta: 'WETH.e lending pool on Avalanche',
   };
 
   const ethPoolArbiTvl = await getEthPoolArbiTVL();
@@ -238,7 +238,7 @@ const getPoolsAPYs = async () => {
     apyReward: getRewardApyBasedOnTvl(ethPoolArbiTvl),
     underlyingTokens: [ETH_TOKEN_ARBI_ADDRESS],
     rewardTokens: [ETH_TOKEN_ARBI_ADDRESS],
-    poolMeta: 'WETH lending pool',
+    poolMeta: 'WETH lending pool on Arbitrum',
   };
 
   const usdcPoolArbiTvl = await getUsdcPoolArbiTVL();
@@ -252,7 +252,7 @@ const getPoolsAPYs = async () => {
     apyReward: getRewardApyBasedOnTvl(usdcPoolArbiTvl),
     underlyingTokens: [USDC_TOKEN_ARBI_ADDRESS],
     rewardTokens: [USDC_TOKEN_ARBI_ADDRESS],
-    poolMeta: 'USDC lending pool',
+    poolMeta: 'USDC lending pool on Arbitrum',
   };
 
   return [usdcPool, usdtPool, wavaxPool, btcPool, ethPool, ethPoolArbi, usdcPoolArbi];
