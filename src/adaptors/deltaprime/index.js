@@ -167,6 +167,7 @@ const getPoolsAPYs = async () => {
     apyBase: await getUsdcPoolDepositRate(),
     apyReward: getRewardApyBasedOnTvl(usdcPoolTvl),
     underlyingTokens: [USDC_TOKEN_ADDRESS],
+    rewardTokens: [USDC_TOKEN_ADDRESS],
     poolMeta: 'USDC lending pool',
   };
 
@@ -180,6 +181,7 @@ const getPoolsAPYs = async () => {
     apyBase: await getUsdtPoolDepositRate(),
     apyReward: getRewardApyBasedOnTvl(usdtPoolTvl),
     underlyingTokens: [USDT_TOKEN_ADDRESS],
+    rewardTokens: [USDT_TOKEN_ADDRESS],
     poolMeta: 'USDt lending pool',
   };
 
@@ -193,6 +195,7 @@ const getPoolsAPYs = async () => {
     apyBase: await getWavaxPoolDepositRate(),
     apyReward: getRewardApyBasedOnTvl(wavaxPoolTvl),
     underlyingTokens: [WAVAX_TOKEN_ADDRESS],
+    rewardTokens: [WAVAX_TOKEN_ADDRESS],
     poolMeta: 'WAVAX lending pool',
   };
 
@@ -206,6 +209,7 @@ const getPoolsAPYs = async () => {
     apyBase: await getBtcPoolDepositRate(),
     apyReward: getRewardApyBasedOnTvl(btcPoolTvl),
     underlyingTokens: [BTC_TOKEN_ADDRESS],
+    rewardTokens: [BTC_TOKEN_ADDRESS],
     poolMeta: 'BTC.b lending pool',
   };
 
@@ -219,6 +223,7 @@ const getPoolsAPYs = async () => {
     apyBase: await getEthPoolDepositRate(),
     apyReward: getRewardApyBasedOnTvl(ethPoolTvl),
     underlyingTokens: [ETH_TOKEN_ADDRESS],
+    rewardTokens: [ETH_TOKEN_ADDRESS],
     poolMeta: 'WETH.e lending pool',
   };
 
@@ -232,6 +237,7 @@ const getPoolsAPYs = async () => {
     apyBase: await getEthPoolArbiDepositRate(),
     apyReward: getRewardApyBasedOnTvl(ethPoolArbiTvl),
     underlyingTokens: [ETH_TOKEN_ARBI_ADDRESS],
+    rewardTokens: [ETH_TOKEN_ARBI_ADDRESS],
     poolMeta: 'WETH lending pool',
   };
 
@@ -245,6 +251,7 @@ const getPoolsAPYs = async () => {
     apyBase: await getUsdcPoolArbiDepositRate(),
     apyReward: getRewardApyBasedOnTvl(usdcPoolArbiTvl),
     underlyingTokens: [USDC_TOKEN_ARBI_ADDRESS],
+    rewardTokens: [USDC_TOKEN_ARBI_ADDRESS],
     poolMeta: 'USDC lending pool',
   };
 
