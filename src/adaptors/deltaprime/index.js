@@ -159,7 +159,7 @@ const getRewardApyBasedOnTvl = (poolUsdTvl) => {
 const getPoolsAPYs = async () => {
   const usdcPoolTvl = await getUsdcPoolTVL();
   const usdcPool = {
-    pool: `${USDC_TOKEN_ADDRESS}-avalanche`,
+    pool: `dp-${USDC_TOKEN_ADDRESS}-avalanche`,
     chain: utils.formatChain('avalanche'),
     project: 'deltaprime',
     symbol: utils.formatSymbol('USDC'),
@@ -173,7 +173,7 @@ const getPoolsAPYs = async () => {
 
   const usdtPoolTvl = await getUsdtPoolTVL();
   const usdtPool = {
-    pool: `${USDT_TOKEN_ADDRESS}-avalanche`,
+    pool: `dp-${USDT_TOKEN_ADDRESS}-avalanche`,
     chain: utils.formatChain('avalanche'),
     project: 'deltaprime',
     symbol: utils.formatSymbol('USDt'),
@@ -187,7 +187,7 @@ const getPoolsAPYs = async () => {
 
   const wavaxPoolTvl = await getWavaxPoolTVL();
   const wavaxPool = {
-    pool: `${WAVAX_TOKEN_ADDRESS}-avalanche`,
+    pool: `dp-${WAVAX_TOKEN_ADDRESS}-avalanche`,
     chain: utils.formatChain('avalanche'),
     project: 'deltaprime',
     symbol: utils.formatSymbol('WAVAX'),
@@ -201,7 +201,7 @@ const getPoolsAPYs = async () => {
 
   const btcPoolTvl = await getBtcPoolTVL();
   const btcPool = {
-    pool: `${BTC_TOKEN_ADDRESS}-avalanche`,
+    pool: `dp-${BTC_TOKEN_ADDRESS}-avalanche`,
     chain: utils.formatChain('avalanche'),
     project: 'deltaprime',
     symbol: utils.formatSymbol('BTC.b'),
@@ -215,7 +215,7 @@ const getPoolsAPYs = async () => {
 
   const ethPoolTvl = await getEthPoolTVL();
   const ethPool = {
-    pool: `${ETH_TOKEN_ADDRESS}-avalanche`,
+    pool: `dp-${ETH_TOKEN_ADDRESS}-avalanche`,
     chain: utils.formatChain('avalanche'),
     project: 'deltaprime',
     symbol: utils.formatSymbol('WETH.e'),
@@ -229,7 +229,7 @@ const getPoolsAPYs = async () => {
 
   const ethPoolArbiTvl = await getEthPoolArbiTVL();
   const ethPoolArbi = {
-    pool: `${ETH_TOKEN_ARBI_ADDRESS}-arbitrum`,
+    pool: `dp-${ETH_TOKEN_ARBI_ADDRESS}-arbitrum`,
     chain: utils.formatChain('arbitrum'),
     project: 'deltaprime',
     symbol: utils.formatSymbol('WETH'),
@@ -243,7 +243,7 @@ const getPoolsAPYs = async () => {
 
   const usdcPoolArbiTvl = await getUsdcPoolArbiTVL();
   const usdcPoolArbi = {
-    pool: `${USDC_TOKEN_ARBI_ADDRESS}-arbitrum`,
+    pool: `dp-${USDC_TOKEN_ARBI_ADDRESS}-arbitrum`,
     chain: utils.formatChain('arbitrum'),
     project: 'deltaprime',
     symbol: utils.formatSymbol('USDC'),
