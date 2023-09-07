@@ -153,7 +153,7 @@ async function convert(
     apyReward: rewardAPY,
     rewardTokens: [PREMIA_TOKEN_ADDRESS[chain]],
     tvlUsd: weiToNumber(netSizeInUsd),
-    project: 'premia',
+    project: 'premia-v2',
     symbol: underlying.symbol,
     apyBase: weiToNumber(annualPercentageReturn),
     apyBaseInception: weiToNumber(annualPercentageReturn),
