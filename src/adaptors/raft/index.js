@@ -26,7 +26,7 @@ async function apy() {
     },
   });
 
-  const apy = BigNumber(issuanceRate.output)
+  const apy = 100 * BigNumber(issuanceRate.output)
     .times(SECONDS_PER_YEAR)
     .div(1e18)
     .toNumber();
