@@ -109,7 +109,7 @@ const poolsFunction = async () => {
         })
     }
 
-    return pools
+    return pools.filter(p => utils.keepFinite(p))
 };
 
 module.exports = {
