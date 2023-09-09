@@ -15,6 +15,8 @@ const WETH = '0x4200000000000000000000000000000000000006';
 const USDBC = '0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca';
 const EDE = '0x0a074378461fb7ed3300ea638c6cc38246db4434';
 
+const project = 'baseswap-v2';
+
 const symbols = {
   [BSWAP]: 'BSWAP',
   [BSX]: 'BSX',
@@ -74,74 +76,91 @@ const topLvl = async (
   timestamp
 ) => {
   // single staking pools
-  stakers = staker_contracts.reduce((hash, elem) => { hash[elem] = {}; return hash }, {});
+  stakers = staker_contracts.reduce((hash, elem) => {
+    hash[elem] = {};
+    return hash;
+  }, {});
 
   const ssStakedTokens = (
     await sdk.api.abi.multiCall({
       calls: [...Object.keys(stakers)].map((i) => ({
-        target: i
+        target: i,
       })),
       abi: smartchefinitializableAbi.find((m) => m.name === 'stakedToken'),
       chain: chainString,
     })
   ).output.map((o) => [o.input.target, o.output.toLowerCase()]);
-  ssStakedTokens.forEach(e => stakers[e[0]]['stakedToken'] = e[1]);
+  ssStakedTokens.forEach((e) => (stakers[e[0]]['stakedToken'] = e[1]));
 
   const ssRewardTokens = (
     await sdk.api.abi.multiCall({
       calls: [...Object.keys(stakers)].map((i) => ({
-        target: i
+        target: i,
       })),
       abi: smartchefinitializableAbi.find((m) => m.name === 'rewardToken'),
       chain: chainString,
     })
   ).output.map((o) => [o.input.target, o.output.toLowerCase()]);
-  ssRewardTokens.forEach(e => stakers[e[0]]['rewardToken'] = e[1]);
+  ssRewardTokens.forEach((e) => (stakers[e[0]]['rewardToken'] = e[1]));
 
   const ssRewardsPerSecond = (
     await sdk.api.abi.multiCall({
       calls: [...Object.keys(stakers)].map((i) => ({
-        target: i
+        target: i,
       })),
       abi: smartchefinitializableAbi.find((m) => m.name === 'rewardPerSecond'),
       chain: chainString,
     })
   ).output.map((o) => [o.input.target, o.output.toLowerCase()]);
-  ssRewardsPerSecond.forEach(e => stakers[e[0]]['rewardPerSecond'] = e[1]);
+  ssRewardsPerSecond.forEach((e) => (stakers[e[0]]['rewardPerSecond'] = e[1]));
 
   const ssBalancesOf = (
     await sdk.api.abi.multiCall({
       calls: [...Object.keys(stakers)].map((i) => ({
         target: stakers[i].stakedToken,
-        params: [i]
+        params: [i],
       })),
       abi: anytokenAbi.find((m) => m.name === 'balanceOf'),
       chain: chainString,
     })
   ).output.map((o) => [o.input.params, o.output]);
-  ssBalancesOf.forEach(e => stakers[e[0]]['balanceOf'] = e[1]);
+  ssBalancesOf.forEach((e) => (stakers[e[0]]['balanceOf'] = e[1]));
 
   const ssStakedTokensDecimals = (
     await sdk.api.abi.multiCall({
-      calls: [...new Set(Object.values(stakers).map(e => e.stakedToken))].map((i) => ({
-        target: i,
-      })),
+      calls: [...new Set(Object.values(stakers).map((e) => e.stakedToken))].map(
+        (i) => ({
+          target: i,
+        })
+      ),
       abi: anytokenAbi.find((m) => m.name === 'decimals'),
       chain: chainString,
     })
-  ).output.reduce((hash, elem) => { hash[elem.input.target] = elem.output; return hash }, {});
-  Object.values(stakers).forEach(e => { e.stakedTokenDecimals = ssStakedTokensDecimals[e.stakedToken] });
+  ).output.reduce((hash, elem) => {
+    hash[elem.input.target] = elem.output;
+    return hash;
+  }, {});
+  Object.values(stakers).forEach((e) => {
+    e.stakedTokenDecimals = ssStakedTokensDecimals[e.stakedToken];
+  });
 
   const ssRewardTokensDecimals = (
     await sdk.api.abi.multiCall({
-      calls: [...new Set(Object.values(stakers).map(e => e.rewardToken))].map((i) => ({
-        target: i,
-      })),
+      calls: [...new Set(Object.values(stakers).map((e) => e.rewardToken))].map(
+        (i) => ({
+          target: i,
+        })
+      ),
       abi: anytokenAbi.find((m) => m.name === 'decimals'),
       chain: chainString,
     })
-  ).output.reduce((hash, elem) => { hash[elem.input.target] = elem.output; return hash }, {});
-  Object.values(stakers).forEach(e => { e.rewardTokenDecimals = ssRewardTokensDecimals[e.rewardToken] });
+  ).output.reduce((hash, elem) => {
+    hash[elem.input.target] = elem.output;
+    return hash;
+  }, {});
+  Object.values(stakers).forEach((e) => {
+    e.rewardTokenDecimals = ssRewardTokensDecimals[e.rewardToken];
+  });
 
   // lp farming
   const activePoolsLength = (
@@ -156,7 +175,7 @@ const topLvl = async (
     await sdk.api.abi.multiCall({
       calls: [...Array(Number(activePoolsLength)).keys()].map((i) => ({
         target: masterchef,
-        params: [i]
+        params: [i],
       })),
       abi: masterchefAbi.find((m) => m.name === 'getActivePoolAddressByIndex'),
       chain: chainString,
@@ -177,7 +196,7 @@ const topLvl = async (
   const poolInfos = (
     await sdk.api.abi.multiCall({
       calls: [...activePoolAddressesByIndex].map((i) => ({
-        target: i
+        target: i,
       })),
       abi: nftpoolAbi.find((m) => m.name === 'getPoolInfo'),
       chain: chainString,
@@ -248,7 +267,9 @@ const topLvl = async (
   const bswapPerYearUsd = bswapPerSec * 86400 * 365 * bswapPrice;
   const bsxPerYearUsd = bsxPerSec * 86400 * 365 * bsxPrice;
 
-  const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [url]);
+  const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
+    url,
+  ]);
 
   const [_, blockPrior7d] = await utils.getBlocks(
     chainString,
@@ -302,10 +323,16 @@ const topLvl = async (
     lpSupply = lpSupply / 1e18;
     const ratio = lpSupply / p.totalSupply || 1;
 
-    const bswapApyReward = (((bswapAllocPoints / bswapTotalAllocPoints) * bswapPerYearUsd) / (p.totalValueLockedUSD * ratio)) * 100;
-    const bsxApyReward = (((bsxAllocPoints / bsxTotalAllocPoints) * bsxPerYearUsd) / (p.totalValueLockedUSD * ratio)) * 100;
+    const bswapApyReward =
+      (((bswapAllocPoints / bswapTotalAllocPoints) * bswapPerYearUsd) /
+        (p.totalValueLockedUSD * ratio)) *
+      100;
+    const bsxApyReward =
+      (((bsxAllocPoints / bsxTotalAllocPoints) * bsxPerYearUsd) /
+        (p.totalValueLockedUSD * ratio)) *
+      100;
 
-    const apyReward = (bswapApyReward + bsxApyReward) || 0;
+    const apyReward = bswapApyReward + bsxApyReward || 0;
 
     let rewardTokens = [];
     bswapApyReward > 0 && rewardTokens.push(BSWAP);
@@ -314,7 +341,7 @@ const topLvl = async (
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
-      project: 'baseswap',
+      project,
       symbol,
       tvlUsd: p.totalValueLockedUSD,
       apyBase: p.apy1d,
@@ -332,13 +359,17 @@ const topLvl = async (
   dataNow = dataNow.filter((el) => el.apyReward > 0);
 
   Object.entries(stakers).forEach(([key, val]) => {
-    balanceUSD = val.balanceOf / Math.pow(10, val.stakedTokenDecimals) * prices[val.stakedToken];
-    rewardPerSecond = val.rewardPerSecond / Math.pow(10, val.rewardTokenDecimals);
-    rewardAPR = (rewardPerSecond * 86400 * 365 * prices[val.rewardToken]) / balanceUSD;
+    balanceUSD =
+      (val.balanceOf / Math.pow(10, val.stakedTokenDecimals)) *
+      prices[val.stakedToken];
+    rewardPerSecond =
+      val.rewardPerSecond / Math.pow(10, val.rewardTokenDecimals);
+    rewardAPR =
+      (rewardPerSecond * 86400 * 365 * prices[val.rewardToken]) / balanceUSD;
     dataNow.push({
       pool: key,
       chain: utils.formatChain(chainString),
-      project: 'baseswap',
+      project,
       symbol: symbols[val.stakedToken],
       tvlUsd: balanceUSD,
       apyBase: 0,
@@ -353,7 +384,14 @@ const topLvl = async (
 };
 
 const main = async (timestamp = null) => {
-  let data = await topLvl('base', url, query, queryPrior, 'baseswap', timestamp);
+  let data = await topLvl(
+    'base',
+    url,
+    query,
+    queryPrior,
+    'baseswap',
+    timestamp
+  );
 
   return data.filter((p) => utils.keepFinite(p));
 };
