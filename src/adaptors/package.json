@@ -7,6 +7,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@balancer-labs/sdk": "1.1.4-beta.17",
     "@defillama/sdk": "^2.3.126",
     "@defillama/sdk3": "npm:@defillama/sdk@^3.0.9",
     "@defillama/sdk4": "npm:@defillama/sdk@^4.0.43",
