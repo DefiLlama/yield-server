@@ -55,7 +55,7 @@ const getSubGraphData = async (blockchainId) => {
 };
 
 const getGaugesByChain = async () => {
-  const gaugeUri = '/getGauges';
+  const gaugeUri = '/getAllGauges';
   let gaugeResponse;
   try {
     gaugeResponse = await utils.getData(CRV_API_BASE_URL + gaugeUri);
@@ -70,9 +70,8 @@ const getGaugesByChain = async () => {
   const gaugesDataByChain = Object.fromEntries(
     BLOCKCHAINIDS.map((blockchainId) => [blockchainId, {}])
   );
-  for (const [gaugeName, gaugeDatum] of Object.entries(
-    gaugeResponse.data.gauges
-  )) {
+
+  for (const [gaugeName, gaugeDatum] of Object.entries(gaugeResponse.data)) {
     let match = null;
     for (const re of blockchainRegExps) {
       match = gaugeName.match(re);
@@ -297,7 +296,7 @@ const main = async () => {
       }
 
       // separate reward tokens (eg OP on curve optimism), adding this to aprExtra if available
-      if (blockchainId === 'optimism') {
+      if (['optimism', 'kava'].includes(blockchainId)) {
         const x = factoryAprData.find(
           (x) => x.gauge?.toLowerCase() === pool.gaugeAddress?.toLowerCase()
         );

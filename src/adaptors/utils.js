@@ -1,4 +1,5 @@
 const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const { chunk } = require('lodash');
 const sdk = require('@defillama/sdk');
@@ -13,7 +14,13 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'milkomeda_a1') return 'Milkomeda A1';
   if (chain && chain.toLowerCase() === 'boba_avax') return 'Boba_Avax';
   if (chain && chain.toLowerCase() === 'boba_bnb') return 'Boba_Bnb';
-  if (chain && chain.toLowerCase() === 'zksync_era') return 'zkSync Era';
+  if (
+    chain &&
+    (chain.toLowerCase() === 'zksync_era' ||
+      chain.toLowerCase() === 'zksync era' ||
+      chain.toLowerCase() === 'era')
+  )
+    return 'zkSync Era';
   if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
@@ -91,7 +98,12 @@ const getLatestBlockSubgraph = async (url) => {
     url.includes('kybernetwork/kyberswap-elastic-matic') ||
     url.includes(
       'https://subgraph.satsuma-prod.com/09c9cf3574cc/orbital-apes/v3-subgraph/api'
-    )
+    ) ||
+    url.includes('api.goldsky.com') ||
+    url.includes('48211/uniswap-v3-base') ||
+    url.includes('horizondex/block') ||
+    url.includes('exchange-v3-polygon-zkevm/version/latest') ||
+    url.includes('exchange-v3-zksync/version/latest')
       ? await request(url, queryGraph)
       : await request(
           `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
@@ -169,16 +181,35 @@ exports.tvl = async (dataNow, networkString) => {
   }
   let idsSet = [...new Set(ids.flat())];
 
-  // pull token prices
-  let prices = await this.getData('https://coins.llama.fi/prices', {
-    coins: idsSet,
-  });
-  prices = prices.coins;
+  // price endpoint seems to break with too many tokens, splitting it to max 50 per request
+  const maxSize = 50;
+  const pages = Math.ceil(idsSet.length / maxSize);
+  let pricesA = [];
+  let x = '';
+  for (const p of [...Array(pages).keys()]) {
+    x = idsSet
+      .slice(p * maxSize, maxSize * (p + 1))
+      .join(',')
+      .replaceAll('/', '');
+    pricesA = [
+      ...pricesA,
+      (await axios.get(`https://coins.llama.fi/prices/current/${x}`)).data
+        .coins,
+    ];
+  }
+  let prices = {};
+  for (const p of pricesA.flat()) {
+    prices = { ...prices, ...p };
+  }
 
   // calc tvl
+  const precision = 5;
   for (const el of dataNowCopy) {
     let price0 = prices[`${networkString}:${el.token0.id}`]?.price;
     let price1 = prices[`${networkString}:${el.token1.id}`]?.price;
+
+    price0 = price0 !== undefined ? Number(price0.toFixed(precision)) : price0;
+    price1 = price1 !== undefined ? Number(price1.toFixed(precision)) : price1;
 
     if (price0 !== undefined && price1 !== undefined) {
       tvl = Number(el.reserve0) * price0 + Number(el.reserve1) * price1;
@@ -220,6 +251,8 @@ exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
     pool['feeTier'] = 3000;
   } else if (version === 'stellaswap') {
     pool['feeTier'] = 2000;
+  } else if (version === 'baseswap') {
+    pool['feeTier'] = 1700;
   } else if (version === 'zyberswap') {
     pool['feeTier'] = 1500;
   } else if (version === 'arbidex') {

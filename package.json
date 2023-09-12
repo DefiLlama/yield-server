@@ -16,6 +16,7 @@
   "dependencies": {
     "@defillama/sdk": "^2.3.126",
     "@defillama/sdk3": "npm:@defillama/sdk@^3.0.55",
+    "@defillama/sdk4": "npm:@defillama/sdk@^4.0.43",
     "@types/jest": "^28.1.6",
     "@uniswap/sdk-core": "^3.0.1",
     "@uniswap/smart-order-router": "^2.8.0",

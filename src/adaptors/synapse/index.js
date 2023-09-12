@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk4');
 const abi = require("./abis.json");
 const { formatChain, getData } = require("../utils")
 const _ = require("lodash")
@@ -37,6 +37,16 @@ const config = {
             }
         ],
         formattedChainName: "Avalanche"
+    },
+    Base: {
+        SYN_TOKEN_ADDRESS: "0x432036208d2717394d2614d6697c46DF3Ed69540",
+        LP_STAKING_ADDRESS: "0xfFC2d603fde1F99ad94026c00B6204Bb9b8c36E9",
+        Pools: [
+            {
+                address: "0x6223bD82010E2fB69F329933De20897e7a4C225f", // nETH ETH (13m)
+                underlyingTokenCount: 2
+            }
+        ]
     },
     Ethereum: {
         SYN_TOKEN_ADDRESS: "0x0f2D719407FdBeFF09D87557AbB7232601FD9F29",
@@ -131,7 +141,7 @@ const relevantPoolInfo = async (poolIndex, chain, LP_STAKING_ADDRESS) => {
     };
 }
 
-const getTvl = async (chain, underlyingAssetsTreasury, lpToken, underlyingTokenCount, synPrice) => {    
+const getTvl = async (chain, underlyingAssetsTreasury, lpToken, underlyingTokenCount) => {
     const allUnderlyingTokenAddresses = (
         // get all the tokens underlying the LP
         await sdk.api.abi.multiCall({
@@ -185,11 +195,13 @@ const getTvl = async (chain, underlyingAssetsTreasury, lpToken, underlyingTokenC
         tvl += value;
     }
 
-    return {tvlUsd: tvl * synPrice, underlyingTokens: allUnderlyingTokenAddresses, allUnderlyingTokenSymbols}
+    return {tvlUsd: tvl, underlyingTokens: allUnderlyingTokenAddresses, allUnderlyingTokenSymbols}
 }
 
 const main = async () => {
     let allPools = []
+    const synPrice = Object.values(await getPrices("Ethereum", [config.Ethereum.SYN_TOKEN_ADDRESS]))[0]
+
     for (let x =0; x < chainNames.length; x++) {
         const chainKey = chainNames[x].toLowerCase()
         const configPerChain = config[chainNames[x]]
@@ -200,7 +212,6 @@ const main = async () => {
         const totalAllocPoint = (await sdk.api.abi.call({ abi: abi.totalAllocPoint, target: LP_STAKING_ADDRESS, chain: chainKey })).output;
         const synapsePerSecond = (await sdk.api.abi.call({ abi: abi.synapsePerSecond, target: LP_STAKING_ADDRESS, chain: chainKey })).output;
         const poolLength = parseInt((await sdk.api.abi.call({ abi: abi.poolLength, target: LP_STAKING_ADDRESS, chain: chainKey })).output)
-        const synPrice = Object.values(await getPrices(chainKey, [configPerChain.SYN_TOKEN_ADDRESS]))[0]
 
         const allLpTokens = (
             await sdk.api.abi.multiCall({
@@ -224,7 +235,6 @@ const main = async () => {
             if (!underlyingAssetsTreasury) { continue } 
 
             const {tvlUsd,underlyingTokens, allUnderlyingTokenSymbols} = await getTvl(chainKey, underlyingAssetsTreasury.poolAddress, underlyingAssetsTreasury.lpToken, underlyingAssetsTreasury.underlyingTokenCount, synPrice)
-
             const apy = calcApy(synPrice, tvlUsd, synapsePerSecond / (1 * 10 ** 18), totalAllocPoint, relevantInfo.allocPoint)
 
             allPools.push({

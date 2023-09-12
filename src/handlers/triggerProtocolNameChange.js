@@ -19,8 +19,10 @@ const main = async () => {
     }
   }
 
-  await sendMessage(
-    `Check /protocols slug for ${noMatch}`,
-    process.env.STALE_PROJECTS_WEBHOOK
-  );
+  if (noMatch.length) {
+    await sendMessage(
+      `Check /protocols slug for ${noMatch}`,
+      process.env.STALE_PROJECTS_WEBHOOK
+    );
+  }
 };

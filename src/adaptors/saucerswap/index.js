@@ -84,8 +84,8 @@ const main = async () => {
     const poolId = fiveDayPoolIds[i];
     const pool = fiveDAvgData[poolId];
     fiveDayVolLookup[poolId] = {
-      volume: pool.volume,
-      liquidity: pool.liquidity,
+      volume: pool?.volume,
+      liquidity: pool?.liquidity,
     };
   }
   let farmDataLookup = {};
@@ -119,8 +119,8 @@ const main = async () => {
       const poolSymbol = lpToken.symbol;
       //lp fee apr
       const fiveDayVolume = fiveDayVolLookup[poolId];
-      const volume = BigNumber(fiveDayVolume.volume);
-      const liquidity = BigNumber(fiveDayVolume.liquidity);
+      const volume = BigNumber(fiveDayVolume?.volume);
+      const liquidity = BigNumber(fiveDayVolume?.liquidity);
       const feeShare = volume.times(BigNumber(0.25)).div(BigNumber(100));
       const yearlyFee = feeShare.times(BigNumber(365));
       const lpAwardApr = yearlyFee.div(liquidity).times(BigNumber(100)); // in percentage
