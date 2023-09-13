@@ -21,20 +21,18 @@ const poolsFunction = async () => {
         poolAddress = `${vault.address}${token.name}`;
       }
 
-      pools.push(
-        {
-          pool: poolAddress,
-          chain: getChainNameById(vault.chainId),
-          project: 'bolide',
-          symbol: token.name,
-          tvlUsd: token.tvl,
-          apy: vault.baseApy,
-        },
-      );
+      pools.push({
+        pool: poolAddress,
+        chain: getChainNameById(vault.chainId),
+        project: 'bolide',
+        symbol: token.name,
+        tvlUsd: token.tvl,
+        apy: vault.baseApy,
+      });
     }
   }
 
-  return pools;
+  return pools.filter((p) => p.chain);
 };
 
 const getChainNameById = (chainId) => {
@@ -46,7 +44,7 @@ const getChainNameById = (chainId) => {
     case 137:
       return 'polygon';
   }
-}
+};
 
 module.exports = {
   timetravel: false,
