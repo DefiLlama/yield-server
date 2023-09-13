@@ -7,8 +7,7 @@ const { compact, isEmpty, last } = require('lodash');
 
 dayjs.extend(duration)
 
-const web3 = new Web3(process.env.ALCHEMY_CONNECTION_ARBITRUM);
-
+const RPC_URL = 'https://arb1.arbitrum.io/rpc'
 const APR_BASE_DAYS = 30
 const V1_VAULTS = [
   {
@@ -18,13 +17,14 @@ const V1_VAULTS = [
     showApy: true,
   }
 ]
+const web3 = new Web3(RPC_URL);
 
-const getAprFromActionEvents = async (address, yieldStart) => {
+const getAprFromActionEvents = async (address, yieldStart, block) => {
   const v1Contract = new web3.eth.Contract(v1VaultAbi, address);
 
   const events = await v1Contract.getPastEvents('Action', {
     filter: {actionType: [0]},
-    fromBlock: 0
+    fromBlock: block
   })
 
   const tokenValueList = await Promise.all(events.map(async (event) => {
@@ -69,8 +69,11 @@ const getApy = async () => {
     )
   )
 
+  const startTimestamp = dayjs().subtract(APR_BASE_DAYS + 5, 'days').unix()
+  const blocks = await utils.getBlocksByTime([startTimestamp], 'arbitrum')
+
   const res = await Promise.all(V1_VAULTS.map(async ({ name, address, yieldStart, showApy }, idx) => {
-    const apyBase = showApy ? await getAprFromActionEvents(address, yieldStart) : 0
+    const apyBase = showApy ? await getAprFromActionEvents(address, yieldStart, blocks[0]) : 0
     const pool = {
       pool: address,
       chain: utils.formatChain('arbitrum'),
