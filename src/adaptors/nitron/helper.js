@@ -175,13 +175,14 @@ module.exports.getUSDValues = async (assets, denomToGeckoIdMap) => {
     )
   ).data.coins;
 
+  const pricingsFromOracle = (await axios.get('https://api.carbon.network/carbon/pricing/v1/token_price')).data?.token_prices
+
   let result = {};
   assets.forEach((asset) => {
     const denomtInGeckoId = denomToGeckoIdMap[asset.denom];
-    if (denomtInGeckoId) {
-      const usd = prices[`coingecko:${denomtInGeckoId}`]?.price;
-      result[asset.denom] = { ...asset, usd };
-    }
+    let usd = prices[`coingecko:${denomtInGeckoId}`]?.price;
+    if (!usd) usd = Number(pricingsFromOracle.find((o) => o.denom === asset.denom)?.twap)
+    result[asset.denom] = { ...asset, usd };
   });
   return result;
 };
