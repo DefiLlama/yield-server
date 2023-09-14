@@ -135,7 +135,6 @@ const liqLitPool = async (chain, olitprice, liqprice) => {
 
   // Compute tvl
   let tvlUsd = 0;
-  let liqLitPrice = 0;
   const { output: veLitTotalSupply } = await sdk.api.erc20.totalSupply({
     target: veLit[chain],
   });
@@ -177,9 +176,6 @@ const liqLitPool = async (chain, olitprice, liqprice) => {
     })
   )?.output;
   pools.tokens.forEach((v, i) => {
-    liqLitPrice +=
-      (prices[`${chain}:${v}`].price * (pools.balances[i] / 1e18)) /
-      (lpSupply / 1e18);
     tvlUsd +=
       (pools.balances[i] / 1e18) *
       prices[`${chain}:${v}`].price *
@@ -227,7 +223,7 @@ const liqLitPool = async (chain, olitprice, liqprice) => {
   const olitUsd = olitAmount * olitprice;
   const liqUsd = liqAmount * liqprice;
 
-  const apyBase = ((balUsd + wethUsd) / liqLitPrice + olitUsd / tvlUsd) * 100;
+  const apyBase = (balUsd / tvlUsd  + wethUsd / tvlUsd + olitUsd / tvlUsd) * 100;
   const apyReward = (liqUsd / tvlUsd) * 100;
 
   return {
