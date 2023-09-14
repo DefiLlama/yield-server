@@ -234,7 +234,7 @@ const liqLitPool = async (chain, olitprice, liqprice) => {
     tvlUsd,
     apyBase,
     apyReward,
-    rewardTokens: [liq[chain]],
+    rewardTokens: [liq[chain], olit[chain]],
     underlyingTokens: [lit[chain], weth],
     url: `https://www.liquis.app/liqlit`,
   };
