@@ -223,8 +223,8 @@ const liqLitPool = async (chain, olitprice, liqprice) => {
   const olitUsd = olitAmount * olitprice;
   const liqUsd = liqAmount * liqprice;
 
-  const apyBase = (balUsd / tvlUsd  + wethUsd / tvlUsd + olitUsd / tvlUsd) * 100;
-  const apyReward = (liqUsd / tvlUsd) * 100;
+  const apyBase = (balUsd / tvlUsd  + wethUsd / tvlUsd) * 100;
+  const apyReward = (liqUsd / tvlUsd + olitUsd / tvlUsd) * 100;
 
   return {
     pool: liqLIT[chain],
