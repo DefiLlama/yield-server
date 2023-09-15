@@ -9,6 +9,10 @@ const zeroAddress = '0x0000000000000000000000000000000000000000';
 const weth = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
 const bal = '0xba100000625a3754423978a60c9317c58a424e3D';
 
+const rewardPool = {
+  ethereum: '0x7Ea6930a9487ce8d039f7cC89432435E6D5AcB23',
+};
+
 const lit80weth20 = {
   ethereum: '0x9232a548DD9E81BaC65500b5e0d918F8Ba93675C',
 };
@@ -135,14 +139,9 @@ const liqLitPool = async (chain, olitprice, liqprice) => {
 
   // Compute tvl
   let tvlUsd = 0;
-  const { output: veLitTotalSupply } = await sdk.api.erc20.totalSupply({
-    target: veLit[chain],
+  const { output: veBalance } = await sdk.api.erc20.totalSupply({
+    target: rewardPool[chain],
   });
-  const { output: veBalance } = await sdk.api.erc20.balanceOf({
-    target: veLit[chain],
-    owner: voterProxy[chain],
-  });
-  const liqRatio = veBalance / veLitTotalSupply;
   const balancerToken = lit80weth20[chain];
   const owner = veLit[chain];
   const lpSupply = (
@@ -155,7 +154,6 @@ const liqLitPool = async (chain, olitprice, liqprice) => {
       params: owner,
     })
   )?.output;
-  const ratio = lpTokens / lpSupply;
   const poolId = (
     await sdk.api.abi.call({
       abi: balancerTokenABI.find((n) => n.name == 'getPoolId'),
@@ -177,10 +175,9 @@ const liqLitPool = async (chain, olitprice, liqprice) => {
   )?.output;
   pools.tokens.forEach((v, i) => {
     tvlUsd +=
-      (pools.balances[i] / 1e18) *
-      prices[`${chain}:${v}`].price *
-      ratio *
-      liqRatio;
+      (pools.balances[i] / lpSupply) *
+      (veBalance / 1e18) *
+      prices[`${chain}:${v}`].price;
   });
 
   const balRate = (
@@ -223,7 +220,7 @@ const liqLitPool = async (chain, olitprice, liqprice) => {
   const olitUsd = olitAmount * olitprice;
   const liqUsd = liqAmount * liqprice;
 
-  const apyBase = (balUsd / tvlUsd  + wethUsd / tvlUsd) * 100;
+  const apyBase = (balUsd / tvlUsd + wethUsd / tvlUsd) * 100;
   const apyReward = (liqUsd / tvlUsd + olitUsd / tvlUsd) * 100;
 
   return {
