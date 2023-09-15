@@ -61,7 +61,25 @@ async function calcApy(
   const startBlock = await getBlockByEpoch(startEpochSecs);
   const endBlock = await getBlockByEpoch(endEpochSecs);
 
-  const startValue = await getShareValueAtBlock(cellarAddress, startBlock);
+  // APY 7 day may error out if share price oracle was not live for 7 days, so try catch here
+  // Note we dont do this in the daily APY because that should always work if we're live
+  // End Value should always work so only do this for start value
+
+  let startValue;
+  try {
+    startValue = await getShareValueAtBlock(cellarAddress, startBlock);
+  } catch (e) {
+    console.error(
+      'Unable to get start value for calcApy cellar: ',
+      cellarAddress,
+      'startBlock: ',
+      startBlock,
+      'intervalDays: ',
+      intervalDays,
+    );
+    return 0; // Return 0 for APY if we can't get start value
+  }
+
   const endValue = await getShareValueAtBlock(cellarAddress, endBlock);
 
   const yieldRatio = endValue.minus(startValue).div(startValue);

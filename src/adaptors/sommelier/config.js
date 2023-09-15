@@ -13,6 +13,7 @@ const realYieldENS = '0x18ea937aba6053bc232d9ae2c42abe7a8a2be440';
 const fraximal = '0xdbe19d1c3f21b1bb250ca7bdae0687a97b5f77e6';
 const realYieldBtc = '0x0274a704a6d9129f90a62ddc6f6024b33ecdad36';
 const turbosweth = '0xd33dad974b938744dac81fe00ac67cb5aa13958e';
+const turbogho = '0x0c190ded9be5f512bd72827bdad4003e9cc7975c';
 
 // Rewards are paid out in EVM SOMM
 const rewardTokens = ['0xa670d7237398238de01267472c6f13e5b8010fd1'];
@@ -39,6 +40,7 @@ const stakingPools = {
   [defiStars]: '0x0349b3c56adb9e39b5d75fc1df52eee313dd80d1',
   [fraximal]: '0x290a42e913083edf5aefb241f8a12b306c19f8f9',
   [turbosweth]: '0x69374d81fdc42add0fe1dc655705e40b51b6681b',
+  [turbogho]: '0x6e5bb558d6c33ca45dc9efe0746a3c80bc3e70e1',
 };
 
 // List of v0815 Cellars
@@ -276,6 +278,19 @@ const v2p5Pools = [
     rewardTokens,
     underlyingTokens: [],
     url: 'https://app.sommelier.finance/strategies/Turbo-SWETH',
+  },
+  {
+    pool: `${turbogho}-ethereum`,
+    chain,
+    project,
+    symbol: 'GHO-USDC-USDT-DAI-LUSD',
+    poolMeta: 'TurboGHO',
+    tvlUsd: 0,
+    apyBase: 0,
+    apyReward: 0,
+    rewardTokens,
+    underlyingTokens: [],
+    url: 'https://app.sommelier.finance/strategies/Turbo-GHO',
   },
 ];
 
