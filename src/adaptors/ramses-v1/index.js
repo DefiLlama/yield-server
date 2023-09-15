@@ -136,6 +136,7 @@ const getApy = async () => {
       tvlUsd,
       apyReward,
       rewardTokens: apyReward ? [RAM] : [],
+      underlyingTokens: [poolMeta.t0, poolMeta.t1],
     };
   });
 

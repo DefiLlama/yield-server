@@ -6,18 +6,22 @@ const utils = require('../utils');
 const gaugeABIEthereum = require('./abis/gauge_ethereum.json');
 const gaugeABIArbitrum = require('./abis/gauge_arbitrum.json');
 const gaugeABIPolygon = require('./abis/gauge_polygon.json');
+const gaugeABIGnosis = require('./abis/gauge_gnosis.json');
 const gaugeControllerEthereum = require('./abis/gauge_controller_ethereum.json');
 const protocolFeesCollectorABI = require('./abis/protocol_fees_collector.json');
 const { lte } = require('lodash');
+const { excludePools } = require('../../utils/exclude');
 
 // Subgraph URLs
 const urlBase = 'https://api.thegraph.com/subgraphs/name/balancer-labs';
 const urlEthereum = `${urlBase}/balancer-v2`;
 const urlPolygon = `${urlBase}/balancer-polygon-v2`;
+const urlGnosis = `${urlBase}/balancer-gnosis-chain-v2`;
 const urlArbitrum = `${urlBase}/balancer-arbitrum-v2`;
 
 const urlGaugesEthereum = `${urlBase}/balancer-gauges`;
 const urlGaugesPolygon = `${urlBase}/balancer-gauges-polygon`;
+const urlGaugesGnosis = `${urlBase}/balancer-gauges-gnosis-chain`;
 const urlGaugesArbitrum = `${urlBase}/balancer-gauges-arbitrum`;
 
 const protocolFeesCollector = '0xce88686553686DA562CE7Cea497CE749DA109f9F';
@@ -61,6 +65,7 @@ const query = gql`
         address
         balance
         symbol
+        weight
       }
     }
   }
@@ -81,7 +86,8 @@ const queryPrior = gql`
     tokens { 
       address 
       balance 
-      symbol 
+      symbol
+      weight
     } 
   }
 }
@@ -111,6 +117,17 @@ const polygonBBTokenMapping = {
     '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', // USDT
 };
 
+// for Balancer Agave Boosted StablePool on Gnosis there is no price data
+// Using underlying assets for price
+const gnosisBBTokenMapping = {
+  '0x41211bba6d37f5a74b22e667533f080c7c7f3f13':
+    '0xe91d153e0b41518a2ce8dd3d7944fa863463a97d', // wxDAI
+  '0xe7f88d7d4ef2eb18fcf9dd7216ba7da1c46f3dd6':
+    '0xddafbb505ad214d7b80b1f830fccc89b60fb7a83', // USDC
+  '0xd16f72b02da5f51231fde542a8b9e2777a478c88':
+    '0x4ecaba5870353805a9f068101a40e0f32ed605c6', // USDT
+};
+
 const correctMaker = (entry) => {
   entry = { ...entry };
   // for some reason the MKR symbol is not there, add this manually for
@@ -135,8 +152,13 @@ const tvl = (entry, tokenPriceList, chainString) => {
         'B-MATICX-STABLE',
         'B-CSMATIC',
         'CBETH-WSTETH-BPT',
+        'ANKRETH/WSTETH',
+        'GHO/BB-A-USD',
+        'B-ETHX/BB-A-WETH',
+        'ETHX-WETH-BPT',
       ].includes(t.symbol.toUpperCase().trim())
   );
+
   const d = {
     id: entry.id,
     symbol: balanceDetails.map((tok) => tok.symbol).join('-'),
@@ -146,6 +168,7 @@ const tvl = (entry, tokenPriceList, chainString) => {
   };
   const symbols = [];
   const tokensList = [];
+  const emptyPrice = [];
   let price;
   for (const el of balanceDetails) {
     price = tokenPriceList[`${chainString}:${el.address.toLowerCase()}`]?.price;
@@ -170,8 +193,24 @@ const tvl = (entry, tokenPriceList, chainString) => {
       price =
         tokenPriceList[`polygon:${polygonBBTokenMapping[el.address]}`]?.price;
     }
+    if (
+      chainString == 'xdai' &&
+      entry.id ===
+        '0xfedb19ec000d38d92af4b21436870f115db22725000000000000000000000010'
+    ) {
+      price = tokenPriceList[`xdai:${gnosisBBTokenMapping[el.address]}`]?.price;
+    }
+    if (price === undefined) {
+      emptyPrice.push(el);
+    }
     price = price ?? 0;
     d.tvl += Number(el.balance) * price;
+  }
+
+  if (entry.tokens.length === 2 && emptyPrice.length === 1) {
+    // use weight to correct tvl
+    const multiplier = 1 / (1 - Number(emptyPrice[0].weight));
+    d.tvl *= multiplier;
   }
 
   return d;
@@ -311,7 +350,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
 
       x.rewardTokens = rewardTokens;
     } catch (err) {
-      console.log(err);
+      console.log('failed for', pool.poolId);
     }
   }
   return data;
@@ -427,7 +466,7 @@ const main = async () => {
       })
     ).output / 1e18;
 
-  const data = await Promise.all([
+  const data = await Promise.allSettled([
     topLvl(
       'ethereum',
       urlEthereum,
@@ -458,9 +497,23 @@ const main = async () => {
       gaugeABIArbitrum,
       swapFeePercentage
     ),
+    topLvl(
+      'xdai',
+      urlGnosis,
+      query,
+      queryPrior,
+      urlGaugesGnosis,
+      queryGauge,
+      gaugeABIGnosis,
+      swapFeePercentage
+    ),
   ]);
 
-  return data.flat().filter((p) => utils.keepFinite(p));
+  return data
+    .filter((i) => i.status === 'fulfilled')
+    .map((i) => i.value)
+    .flat()
+    .filter((p) => utils.keepFinite(p) && !excludePools.includes(p.pool));
 };
 
 module.exports = {

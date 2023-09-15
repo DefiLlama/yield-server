@@ -173,10 +173,18 @@ const main = async (body) => {
   // need the protocol response to check if adapter.body === 'Dexes' category
 
   // required conditions to calculate IL field
+  const uniV3Forks = [
+    'uniswap-v3',
+    'hydradex-v3',
+    'forge',
+    'arbitrum-exchange-v3',
+    'maia-v3',
+    'ramses-v2',
+  ];
   if (
     data[0]?.underlyingTokens?.length &&
     protocolConfig[body.adaptor]?.category === 'Dexes' &&
-    !['balancer', 'curve', 'clipper'].includes(body.adaptor) &&
+    !['balancer-v2', 'curve-dex', 'clipper'].includes(body.adaptor) &&
     !['elrond', 'near', 'hedera', 'carbon'].includes(
       data[0].chain.toLowerCase()
     )
@@ -255,11 +263,7 @@ const main = async (body) => {
       let il7d = ((2 * Math.sqrt(d)) / (1 + d) - 1) * 100;
 
       // for uni v3
-      if (
-        body.adaptor === 'uniswap-v3' ||
-        body.adaptor === 'hydradex-v3' ||
-        body.adaptor === 'forge'
-      ) {
+      if (uniV3Forks.includes(body.adaptor)) {
         const P = price1 / price0;
 
         // for stablecoin pools, we assume a +/- 0.1% range around current price
@@ -341,7 +345,7 @@ const main = async (body) => {
       poolMeta:
         p.poolMeta === undefined
           ? null
-          : ['uniswap-v3', 'hydradex-v3', 'forge'].includes(p.project)
+          : uniV3Forks.includes(p.project)
           ? p.poolMeta?.split(',')[0]
           : p.poolMeta,
       il7d: p.il7d ? +p.il7d.toFixed(precision) : null,
@@ -378,6 +382,7 @@ const main = async (body) => {
   const dataDB = [];
   const nHours = 5;
   const tvlDeltaMultiplier = 5;
+  const apyDeltaMultiplier = tvlDeltaMultiplier;
   const timedeltaLimit = 60 * 60 * nHours * 1000;
   const droppedPools = [];
   for (const p of data) {
@@ -388,9 +393,10 @@ const main = async (body) => {
     }
     // if existing pool, check conditions
     const timedelta = timestamp - x.timestamp;
-    // skip the update if tvl at t is ntimes larger than tvl at t-1 && timedelta condition is met
+    // skip the update if tvl or apy at t is ntimes larger than tvl at t-1 && timedelta condition is met
     if (
-      p.tvlUsd > x.tvlUsd * tvlDeltaMultiplier &&
+      (p.tvlUsd > x.tvlUsd * tvlDeltaMultiplier ||
+        p.apy > x.apy * apyDeltaMultiplier) &&
       timedelta < timedeltaLimit
     ) {
       console.log(`removing pool ${p.pool}`);
@@ -401,6 +407,9 @@ const main = async (body) => {
         tvlUsd: p.tvlUsd,
         tvlUsdDB: x.tvlUsd,
         tvlMultiplier: p.tvlUsd / x.tvlUsd,
+        apy: p.apy,
+        apyDB: x.apy,
+        apyMultiplier: p.apy / x.apy,
       });
       continue;
     }
@@ -415,16 +424,25 @@ const main = async (body) => {
     console.log(`removed ${delta} sample(s) prior to insert`);
     // send discord message
     // we limit sending msg only if the pool's last tvlUsd value is >= $50k
-    const filteredPools = droppedPools.filter((p) => p.tvlUsdDB >= 5e4);
+    const filteredPools = droppedPools.filter(
+      (p) => p.tvlUsdDB >= 5e4 && p.apyDB >= 10
+    );
     if (filteredPools.length) {
       const message = filteredPools
-        .map(
-          (p) =>
-            `configID: ${p.configID} Project: ${p.project} Symbol: ${
-              p.symbol
-            } TVL: from ${p.tvlUsdDB.toFixed()} to ${p.tvlUsd.toFixed()} (${p.tvlMultiplier.toFixed(
-              2
-            )}x increase)`
+        .map((p) =>
+          p.apyMultiplier >= apyDeltaMultiplier
+            ? `APY spike for configID: ${
+                p.configID
+              } from ${p.apyDB.toFixed()} to ${p.apy.toFixed()} (${p.apyMultiplier.toFixed(
+                2
+              )}x increase) [tvlUsd: ${p.tvlUsd.toFixed()}]
+          `
+            : `TVL spike for configID: ${
+                p.configID
+              } from ${p.tvlUsdDB.toFixed()} to ${p.tvlUsd.toFixed()} (${p.tvlMultiplier.toFixed(
+                2
+              )}x increase)
+            `
         )
         .join('\n');
       await sendMessage(message, process.env.TVL_SPIKE_WEBHOOK);

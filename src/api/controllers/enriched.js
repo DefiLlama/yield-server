@@ -10,6 +10,7 @@ const validator = require('validator');
 const AppError = require('../../utils/appError');
 const { customHeader, customHeaderFixedCache } = require('../../utils/headers');
 const poolsEnrichedColumns = require('../../utils/enrichedColumns');
+const { readFromS3 } = require('../../utils/s3');
 
 const readWithS3Select = async (params) => {
   const s3 = new S3();
@@ -161,4 +162,49 @@ const getPoolsEnrichedOld = async (req, res) => {
   });
 };
 
-module.exports = { getPoolEnriched, getPoolsEnrichedOld, readWithS3Select };
+const getPoolsBorrow = async (req, res) => {
+  const data = await Promise.all(
+    ['pools', 'lendBorrow'].map((p) =>
+      readFromS3('defillama-datasets', `yield-api/${p}`)
+    )
+  );
+
+  if (!data) {
+    return new AppError("Couldn't retrieve data", 404);
+  }
+
+  // pools == supply side apy values
+  const pools = data[0].data;
+  // lendBorrow == borrow side apy values
+  const lendBorrow = data[1];
+
+  // join supply side fields (all enriched fields) onto borrow object
+  const poolsBorrow = lendBorrow
+    .map((p) => {
+      const poolSupplySide = pools.find((i) => i.pool === p.pool);
+      if (poolSupplySide === undefined) return null;
+
+      return {
+        ...poolSupplySide,
+        apyBaseBorrow: p.apyBaseBorrow,
+        apyRewardBorrow: p.apyRewardBorrow,
+        totalSupplyUsd: p.totalSupplyUsd,
+        totalBorrowUsd: p.totalBorrowUsd,
+        debtCeilingUsd: p.debtCeilingUsd,
+        ltv: p.ltv,
+        borrowable: p.borrowable,
+        mintedCoin: p.mintedCoin,
+        borrowFactor: p.borrowFactor,
+        rewardTokens: p.rewardTokens,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.totalSupplyUsd - a.totalSupplyUsd);
+
+  res.set(customHeaderFixedCache()).status(200).json({
+    status: 'success',
+    data: poolsBorrow,
+  });
+};
+
+module.exports = { getPoolEnriched, getPoolsEnrichedOld, getPoolsBorrow };

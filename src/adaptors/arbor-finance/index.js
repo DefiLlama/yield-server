@@ -68,6 +68,7 @@ const poolsFunction = async () => {
       tvlUsd: tvl,
       apy: ((1 / bondPrice) ** (1 / yearsUntilMaturity) - 1) * 100,
       poolMeta: bond.symbol,
+      underlyingTokens: [bond.collateralToken.id],
     };
   });
 

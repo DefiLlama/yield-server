@@ -82,6 +82,7 @@ const poolsFunction = async () => {
     tvlUsd: balanceAlpha1 / 1e6,
     apy: alpha1ApyData.averageApy * 100,
     poolMeta: '28 Days Lock-up',
+    underlyingTokens: ['0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E'],
   };
 
   const alpha2 = {
@@ -91,6 +92,7 @@ const poolsFunction = async () => {
     symbol: utils.formatSymbol('BTC.b'),
     tvlUsd: (balanceAlpha2 / 1e8) * btcbTokenPrice,
     apy: alpha2ApyData.last24hApy * 100,
+    underlyingTokens: ['0x50b7545627a5162F82A992c33b87aDc75187B218'],
   };
 
   return [alpha1, alpha2];
