@@ -51,7 +51,7 @@ const getAprFromActionEvents = async (address, yieldStart, block) => {
   if (tokenValues.length >= APR_BASE_DAYS) {
     const baseSnapshot = tokenValues[tokenValues.length - APR_BASE_DAYS]
     const gainValue = lastSnapshot.tokenValue - baseSnapshot.tokenValue
-    return gainValue / baseSnapshot.tokenValue * (yearDays / APR_BASE_DAYS)
+    return (gainValue / baseSnapshot.tokenValue) * 100 * (yearDays / APR_BASE_DAYS)
   } else {
     const period = dayjs.duration(lastSnapshotTime - yieldStart, 'milliseconds').asDays()
     return lastSnapshot.tokenValue * (yearDays / period)
