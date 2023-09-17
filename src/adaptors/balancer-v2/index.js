@@ -10,6 +10,7 @@ const gaugeABIGnosis = require('./abis/gauge_gnosis.json');
 const gaugeControllerEthereum = require('./abis/gauge_controller_ethereum.json');
 const protocolFeesCollectorABI = require('./abis/protocol_fees_collector.json');
 const { lte } = require('lodash');
+const { excludePools } = require('../../utils/exclude');
 
 // Subgraph URLs
 const urlBase = 'https://api.thegraph.com/subgraphs/name/balancer-labs';
@@ -152,6 +153,9 @@ const tvl = (entry, tokenPriceList, chainString) => {
         'B-CSMATIC',
         'CBETH-WSTETH-BPT',
         'ANKRETH/WSTETH',
+        'GHO/BB-A-USD',
+        'B-ETHX/BB-A-WETH',
+        'ETHX-WETH-BPT',
       ].includes(t.symbol.toUpperCase().trim())
   );
 
@@ -194,8 +198,7 @@ const tvl = (entry, tokenPriceList, chainString) => {
       entry.id ===
         '0xfedb19ec000d38d92af4b21436870f115db22725000000000000000000000010'
     ) {
-      price =
-        tokenPriceList[`xdai:${gnosisBBTokenMapping[el.address]}`]?.price;
+      price = tokenPriceList[`xdai:${gnosisBBTokenMapping[el.address]}`]?.price;
     }
     if (price === undefined) {
       emptyPrice.push(el);
@@ -510,7 +513,7 @@ const main = async () => {
     .filter((i) => i.status === 'fulfilled')
     .map((i) => i.value)
     .flat()
-    .filter((p) => utils.keepFinite(p));
+    .filter((p) => utils.keepFinite(p) && !excludePools.includes(p.pool));
 };
 
 module.exports = {

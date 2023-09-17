@@ -158,7 +158,7 @@ const lendingApys = async () => {
         totalSupplyUsd: stableSummary.supply,
         totalBorrowUsd: stableSummary.borrow,
         apyBase: stableSummary.apy,
-        url: `https://v5app.predy.finance/trade/usdce/lending/${pair.pairId}`,
+        url: `https://v5app.predy.finance/arbitrum/trade/usdce/lending/${pair.pairId}`,
       }, {
         pool: `${underlyingSupplyToken}-arbitrum`,
         chain: 'Arbitrum',
@@ -169,7 +169,7 @@ const lendingApys = async () => {
         totalSupplyUsd: underlyingSummary.supply,
         totalBorrowUsd: underlyingSummary.borrow,
         apyBase: underlyingSummary.apy,
-        url: `https://v5app.predy.finance/trade/usdce/lending/${pair.pairId}`,
+        url: `https://v5app.predy.finance/arbitrum/trade/usdce/lending/${pair.pairId}`,
       }]
     })
   )
@@ -217,7 +217,7 @@ const strategyApys = async () => {
         poolMeta: strategy.poolMeta,
         apyBase: apy,
         tvlUsd,
-        url: `https://v5app.predy.finance/trade/usdce/strategy/${strategy.id}`,
+        url: `https://v5app.predy.finance/arbitrum/trade/usdce/strategy/${strategy.id}`,
       }
     })
   )

@@ -46,7 +46,7 @@ async function getTotalSupply(token, block) {
 async function getTvlInUsd(vault, vaultAssetToken, block) {
     const totalAssetX10d = await getTotalAssets(vault, block)
     const decimals = await getDecimals(vaultAssetToken)
-    const price = (await utils.getPrices([vaultAssetToken], "optimism")).pricesByAddress[vaultAssetToken];
+    const price = (await utils.getPrices([vaultAssetToken.toLowerCase()], "optimism")).pricesByAddress[vaultAssetToken.toLowerCase()];
 
     const totalAsset = totalAssetX10d.div(BN(10).pow(decimals));
 
@@ -109,7 +109,7 @@ const poolsFunction = async () => {
         })
     }
 
-    return pools
+    return pools.filter(p => utils.keepFinite(p))
 };
 
 module.exports = {
