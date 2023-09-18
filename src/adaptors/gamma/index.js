@@ -56,7 +56,7 @@ const CHAINS_API = {
   mantle: 'mantle/',
   base: 'base/',
   linea: 'linea/',
-  rollux: 'rollux/
+  rollux: 'rollux/'
 };
 const CHAIN_IDS = {
   ethereum: 1,
