@@ -30,6 +30,9 @@ const excludeAdaptors = [
   'geist-finance',
   'el-dorado-exchange', // hacked
   'sturdy', // hacked
+  // removing cause a) curve pool is redundant cause we already have that on curve adapter
+  // and the rebonding strategy is targeting a max apy
+  'lusd-chickenbonds',
 ];
 
 const excludePools = [
