@@ -20,7 +20,8 @@ const EXCHANGES_API = {
   spiritswap: 'spiritswap/',
   fusionx: 'fusionx/',
   synthswap: 'synthswap/',
-  lynex: 'lynex/'
+  lynex: 'lynex/',
+  pegasys: 'pegasys/'
 };
 const EXCHANGES_CHAINS = {
   uniswapv3: ["ethereum", "optimism", "polygon", "arbitrum", "celo", "bsc"],
@@ -31,14 +32,15 @@ const EXCHANGES_CHAINS = {
   ascent: ["polygon"],
   camelot: ["arbitrum"],
   ramses: ["arbitrum"],
-  sushiswap: ["polygon", "arbitrum"],
+  sushiswap: ["polygon", "arbitrum", "base"],
   beamswap: ["moonbeam"],
   stellaswap: ["moonbeam"],
   glacier: ["avalanche"],
   spiritswap: ["fantom"],
   fusionx: ["mantle"],
   synthswap: ["base"],
-  lynex: ["linea"]
+  lynex: ["linea"],
+  pegasys: ["rollux"]
 };
 const CHAINS_API = {
   ethereum: '',
@@ -53,7 +55,8 @@ const CHAINS_API = {
   fantom: 'fantom/',
   mantle: 'mantle/',
   base: 'base/',
-  linea: 'linea/'
+  linea: 'linea/',
+  rollux: 'rollux/'
 };
 const CHAIN_IDS = {
   ethereum: 1,
@@ -68,7 +71,8 @@ const CHAIN_IDS = {
   fantom: 250,
   mantle: 5000,
   base: 8453,
-  linea: 59144
+  linea: 59144,
+  rollux: 570
 };
 const UNISWAP_FEE = {
   "100": "0.01%",
@@ -131,7 +135,8 @@ const blacklist = {
   fantom: [],
   mantle: [],
   base: [],
-  linea: []
+  linea: [],
+  rollux: []
 };
 const masterchef_blacklist = {
   ethereum: [],
@@ -146,7 +151,8 @@ const masterchef_blacklist = {
   fantom: [],
   mantle: [],
   base: [],
-  linea: []
+  linea: [],
+  rollux: []
 };
 const getUrl_allData = (chain, exchange) =>
   `https://wire2.gamma.xyz/${exchange}${chain}hypervisors/allData`;
