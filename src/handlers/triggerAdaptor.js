@@ -43,7 +43,6 @@ module.exports.handler = async (event, context) => {
 
 // func for running adaptor, storing result to db
 const main = async (body) => {
-  if (body.adaptor === 'balancer-v2') return;
   // ---------- run adaptor
   console.log(body.adaptor);
   const project = require(`../adaptors/${body.adaptor}`);
@@ -174,6 +173,14 @@ const main = async (body) => {
   // need the protocol response to check if adapter.body === 'Dexes' category
 
   // required conditions to calculate IL field
+  const uniV3Forks = [
+    'uniswap-v3',
+    'hydradex-v3',
+    'forge',
+    'arbitrum-exchange-v3',
+    'maia-v3',
+    'ramses-v2',
+  ];
   if (
     data[0]?.underlyingTokens?.length &&
     protocolConfig[body.adaptor]?.category === 'Dexes' &&
@@ -226,14 +233,6 @@ const main = async (body) => {
     );
 
     // calc IL
-    const uniV3Forks = [
-      'uniswap-v3',
-      'hydradex-v3',
-      'forge',
-      'arbitrum-exchange-v3',
-      'maia-v3',
-      'ramses-v2',
-    ];
     data = data.map((p) => {
       if (p?.underlyingTokens === null || p?.underlyingTokens === undefined)
         return { ...p };
@@ -436,7 +435,7 @@ const main = async (body) => {
                 p.configID
               } from ${p.apyDB.toFixed()} to ${p.apy.toFixed()} (${p.apyMultiplier.toFixed(
                 2
-              )}x increase)
+              )}x increase) [tvlUsd: ${p.tvlUsd.toFixed()}]
           `
             : `TVL spike for configID: ${
                 p.configID

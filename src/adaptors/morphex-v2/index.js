@@ -2,6 +2,8 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const abi = require('./abis/abi.json');
 
+const project = 'morphex-v2';
+
 // Fantom
 const tokenAddressMPXFantom = '0x66eEd5FF1701E6ed8470DC391F05e27B1d0657eb';
 const mlpManagerAddressFantom = '0x3A15Bac2D87C89F08147353fc9aE27080631b73d';
@@ -90,7 +92,7 @@ async function getPoolMPX(
   return {
     pool: pInflationTrackerAddress,
     chain: utils.formatChain(pChain),
-    project: 'morphex',
+    project,
     symbol: utils.formatSymbol('MPX'),
     tvlUsd: tvlMpx,
     apyBase: apyFee,
@@ -122,7 +124,7 @@ async function getPoolMLP(
   return {
     pool: pInflationTrackerAddress,
     chain: utils.formatChain(pChain),
-    project: 'morphex',
+    project,
     symbol:
       pChain === 'fantom'
         ? utils.formatSymbol('MLP (FTM-BTC-ETH-USDC-USDT-DAI)')

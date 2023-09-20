@@ -1,4 +1,3 @@
-const { bech32 } = require('bech32');
 const { request, gql } = require('graphql-request');
 
 const apy = async () => {
