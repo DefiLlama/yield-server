@@ -185,7 +185,7 @@ export type SnapshotLike = {
 export function getTotalValueInToken1(_token0Amount: string, _token1Amount: string, _sqrtPriceX96: string): number {
     const token0Amount = BigNumber.from(_token0Amount)
     const token1Amount = BigNumber.from(_token1Amount)
-    const sqrtPriceX96 = BigNumber.from(_sqrtPriceX96)
+    const sqrtPriceX96 = BigNumber.from(Number(_sqrtPriceX96).toLocaleString('fullwide', {useGrouping:false}))
 
     const sqrtPrice = sqrtPriceX96.pow(2);
     const price = sqrtPrice.mul(PRECISION).div(X192);
@@ -210,8 +210,8 @@ export function getAverageReturnPerSecondFromSnapshots(snapshots: SnapshotLike[]
         const startingHoldings = getTotalValueInToken1(snapshots[i-1].totalAmount0,snapshots[i-1].totalAmount1,snapshots[i].sqrtPriceX96)
         // change in fees with current prices
         const netFees = getTotalValueInToken1(
-        (Number(snapshots[i].fees0) - Number(snapshots[i-1].fees0)).toString(),
-        (Number(snapshots[i].fees1) - Number(snapshots[i-1].fees1)).toString(),
+        (Number(snapshots[i].fees0) - Number(snapshots[i-1].fees0)).toLocaleString('fullwide', {useGrouping:false}),
+        (Number(snapshots[i].fees1) - Number(snapshots[i-1].fees1)).toLocaleString('fullwide', {useGrouping:false}),
         snapshots[i].sqrtPriceX96);
         const duration = Number(snapshots[i].timestamp) - Number(snapshots[i-1].timestamp)
 

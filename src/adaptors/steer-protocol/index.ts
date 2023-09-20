@@ -2,12 +2,15 @@ import { getSnapshotsFromSubgraph, filterSnapshotData, Period, getAverageReturnP
 
 // const { gql, request } = require('graphql-request');
 import {request} from 'graphql-request'
+import {api} from '@defillama/sdk'
 // const sdk = require('@defillama/sdk');
 // const utils = require('../utils');
 // import {superagent} from 'superagent'
 // const superagent = require('superagent');
 // const { HttpRequest } = require('aws-sdk');
 import axios from 'axios';
+const abi = require('./abi.json')
+import { Chain } from "@defillama/sdk/build/general";
 
 // add chain deployments and subgraph endpoints here
 const supportedChains = [
@@ -90,10 +93,16 @@ const query = `
 const getPools = async () => {
 const pools = []
 
+const stakingRewards = await axios.get('https://9i52h964s3.execute-api.us-east-1.amazonaws.com/dev/staking-pools')
+
 for (const chainInfo of supportedChains) {
+        // filter to this chains staking pools
+        const localStakePools = stakingRewards.data.pools.filter((pool) => pool.chainID === chainInfo.chainId)
+        const stakeRewardTokens = localStakePools.map((pool) => (chainInfo.identifier + ':' + pool.rewardToken).toLowerCase())
         const data = await request(chainInfo.subgraphEndpoint, query)
         // get tokens
-        const tokenList = new Set()
+        const tokenList = new Set(stakeRewardTokens)
+        // this chain's pool's tokens
         data.vaults.forEach(vaultInfo => {
             tokenList.add((chainInfo.identifier + ':' + vaultInfo.token0).toLowerCase())
             tokenList.add((chainInfo.identifier + ':' + vaultInfo.token1).toLowerCase())
@@ -110,6 +119,7 @@ for (const chainInfo of supportedChains) {
         // ).body.coins;
 
         const incentivizedPools = []
+        // get merkl rewards
         if (chainInfo.merkl) {
             const merklRequest = `https://api.angle.money/v1/merkl?chainId=${chainInfo.chainId}`
             const rewardInfo = await axios.get(merklRequest)
@@ -135,12 +145,69 @@ for (const chainInfo of supportedChains) {
             let rewardToken = null
             let rewardAPY = 0
             // find reward token / apy if applicable
-            const rewardPool = incentivizedPools.filter(pool => pool.id === vault.id.toLowerCase())
-            if (rewardPool.length) {
-                if (rewardPool[0].apr) {
+            const rewardPool = incentivizedPools.find(pool => pool.id === vault.id.toLowerCase())
+            if (rewardPool) {
+                if (rewardPool.apr) {
                     rewardToken = rewardPool[0].token
                     rewardAPY = rewardPool[0].apr
                 }
+            }
+
+            // get stake rewards
+            let stakeRewardToken = null
+            let percentageOfVaultStaked = 0
+            let stakeRewardsUSD = 0
+            let durationMultiplier = 0
+            const stakePool = localStakePools.find(pool => pool.stakingToken.toLowerCase() === vault.id.toLowerCase())
+            if (stakePool){
+                // here we will need staked total supply vs vault total supply, rewards for duration
+                const amountStaked = (
+                    await api.abi.call({
+                        target: stakePool,
+                        abi: 'erc20:totalSupply',
+                        chain: chainInfo.identifier as Chain,
+                    })
+                ).output
+                const amountVault = (
+                    await api.abi.call({
+                        target: vault.id,
+                        abi: 'erc20:totalSupply',
+                        chain: chainInfo.identifier as Chain,
+                    })
+                ).output
+                const amountRewardToken = (
+                    await api.abi.call({
+                        target: stakePool,
+                        abi: abi['getRewardForDuration'],
+                        chain: chainInfo.identifier as Chain,
+                    })
+                ).output
+                stakeRewardToken = (
+                    await api.abi.call({
+                        target: stakePool,
+                        abi: abi['rewardToken'],
+                        chain: chainInfo.identifier as Chain,
+                    })
+                ).output
+                const duration = (
+                    await api.abi.call({
+                        target: stakePool,
+                        abi: abi['duration'],
+                        chain: chainInfo.identifier as Chain,
+                    })
+                ).output
+                const rewardDecimals = (
+                    await api.abi.call({
+                        target: stakeRewardToken,
+                        abi: 'erc20:decimals',
+                        chain: chainInfo.identifier as Chain,
+                    })
+                ).output
+                percentageOfVaultStaked = (amountStaked / amountVault)
+                percentageOfVaultStaked = percentageOfVaultStaked > 1 ? 0 : percentageOfVaultStaked
+                const totalRewardsUSD = tokenPrices[`${chainInfo.identifier.toLowerCase()}:${stakeRewardToken}`]?.price / (10 ** Number(rewardDecimals))
+                stakeRewardsUSD = amountRewardToken * totalRewardsUSD
+                durationMultiplier = 31536000/ duration
             }
 
             // calculate apr
@@ -154,21 +221,36 @@ for (const chainInfo of supportedChains) {
                 vaultApr = averageFeePerHoldingPerSecond * YEAR_IN_SECONDS
             }
 
-            return {
-                pool: (vault.id + '-' + chainInfo.name).toLowerCase(),
-                chain: chainInfo.name, // chain where the pool is (needs to match the `name` field in here https://api.llama.fi/chains)
-                project: 'steer-protocol', // protocol (using the slug again)
-                symbol: (vault.token0Symbol + '-' + vault.token1Symbol), // symbol of the tokens in pool, can be a single symbol if pool is single-sided or multiple symbols (eg: USDT-ETH) if it's an LP
-                tvlUsd: poolTvl, // number representing current USD TVL in pool
-                apyBase: vaultApr, // APY from pool fees/supplying in %
-                apyReward: rewardAPY ?? 0,
-                rewardTokens: rewardToken == null ? [] : [rewardToken],
-                underlyingTokens: [vault.token0, vault.token1], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
-                poolMeta: vault.beaconName,
-                url: `https://app.steer.finance/app/${vault.strategyToken.id}/vault/${vault.id}?engine=${vault.beaconName}&chainId=${chainInfo.chainId}`
+            if (Number.isFinite(poolTvl)) {
+                let stakingAPY = 0
+                if (stakePool) {
+                    const stakeTVL = poolTvl * percentageOfVaultStaked
+                    stakingAPY = (stakeRewardsUSD / stakeTVL) * durationMultiplier
+                }
+                const rewardTokens = [rewardToken, stakeRewardToken]
+
+                return {
+                    pool: (vault.id + '-' + chainInfo.name).toLowerCase(),
+                    chain: chainInfo.name, // chain where the pool is (needs to match the `name` field in here https://api.llama.fi/chains)
+                    project: 'steer-protocol', // protocol (using the slug again)
+                    symbol: (vault.token0Symbol + '-' + vault.token1Symbol), // symbol of the tokens in pool, can be a single symbol if pool is single-sided or multiple symbols (eg: USDT-ETH) if it's an LP
+                    tvlUsd: poolTvl, // number representing current USD TVL in pool
+                    apyBase: vaultApr, // APY from pool fees/supplying in %
+                    apyReward: (rewardAPY ?? 0) + stakingAPY,
+                    rewardTokens: rewardTokens.filter(token => token !== null),
+                    underlyingTokens: [vault.token0, vault.token1], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
+                    poolMeta: vault.beaconName,
+                    url: `https://app.steer.finance/app/${vault.strategyToken.id}/vault/${vault.id}?engine=${vault.beaconName}&chainId=${chainInfo.chainId}`
+                }
             }
+            else {
+                // if we have blownout ticks skip pool
+                return null
+            }
+
+            
         }))
-        pools.push(...(chainPools))
+        pools.push(...(chainPools.filter((element) => element !== null)))
 
     };
     return pools

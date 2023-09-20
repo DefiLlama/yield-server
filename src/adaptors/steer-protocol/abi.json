@@ -1,0 +1,48 @@
+{
+
+        "getRewardForDuration": {
+            "constant": true,
+            "inputs": [],
+            "name": "getRewardForDuration",
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        },
+        "rewardToken": {
+            "constant": true,
+            "inputs": [],
+            "name": "rewardsToken",
+            "outputs": [
+                {
+                    "internalType": "contract IERC20",
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        },
+        "duration": {
+            "constant": true,
+            "inputs": [],
+            "name": "rewardsDuration",
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        }
+    }
