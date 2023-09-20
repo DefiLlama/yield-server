@@ -8,6 +8,7 @@ const usdr = require('./abis/USDR.json');
 
 const CHAIN_NAME = 'polygon';
 const TNGBL_ADDRESS = '0x49e6A20f1BBdfEeC2a8222E052000BbB14EE6007';
+const project = 'tangible-rwa';
 
 const poolsFunction = async () => {
   const apyData = await utils.getData(
@@ -25,7 +26,7 @@ const poolsFunction = async () => {
   const usdrPool = {
     pool: usdr.address,
     chain: utils.formatChain('polygon'),
-    project: 'tangible',
+    project,
     symbol: utils.formatSymbol('USDR'),
     tvlUsd: Number(totalSupply) / 1e9,
     apyBase: Number(apyData.usdr),
@@ -40,7 +41,7 @@ const poolsFunction = async () => {
   const caviarPool = {
     pool: caviarStakingChef.address,
     chain: utils.formatChain('polygon'),
-    project: 'tangible',
+    project,
     symbol: utils.formatSymbol('CVR'),
     tvlUsd: Number(tvl),
     apyBase: Number(utils.aprToApy(aprBase, 52)),
