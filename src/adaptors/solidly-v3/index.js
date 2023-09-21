@@ -33,16 +33,24 @@ const ZERO = ethers.BigNumber.from(0);
 // - Balances of pools (range inferred from swap events and use total liquidity indexed by tick then added)
 
 function pool_input(pool, x) {
+  let price = Math.abs(
+    ethers.FixedNumber.from(x.amount1.toString())
+      .divUnsafe(ethers.FixedNumber.from(x.amount0.toString()))
+      .toUnsafeFloat()
+  );
   if (x.amount0 > ZERO) {
-    return { token: pool.token0.id.toLowerCase(), input: x.amount0 };
+    return { token: pool.token0.id.toLowerCase(), input: x.amount0, price };
   } else {
-    return { token: pool.token1.id.toLowerCase(), input: x.amount1 };
+    return { token: pool.token1.id.toLowerCase(), input: x.amount1, price };
   }
 }
 
 const main = async (timestamp = null) => {
-  const block_start = await block_24h_ago();
-  let { pools, touched_tokens } = await fetch_pools();
+  if (timestamp == null) {
+    timestamp = Math.floor(Date.now() / 1000.0);
+  }
+  const block_start = await block_24h_ago(timestamp);
+  let { pools, touched_tokens } = await fetch_pools(timestamp);
   let prices = await fetch_prices(touched_tokens);
   pools = pools
     .map((x) => {
@@ -74,33 +82,19 @@ const main = async (timestamp = null) => {
           provider,
           block_start
         );
-        let price_assumption = pool.t1.price / pool.t0.price;
-        // +- 30%
-        let delta = 0.3;
-        pool.active_liq_fraction = await EstimateActiveLiq(
-          pool.id,
-          price_assumption,
-          [price_assumption * (1 - delta), price_assumption * (1 + delta)],
-          pool.t1.price,
-          pool.t0.price,
-          pool.tvl,
-          pool.t0.decimals,
-          pool.t1.decimals,
-          get_graph_url()
-        );
-        // console.log('ACTIVE LIQ', pool.active_liq_fraction);
-        // throw '';
         let current_fee = begin_fee;
         let fee_per_token = {};
 
         fee_per_token[pool.token0.id.toLowerCase()] = ZERO;
         fee_per_token[pool.token1.id.toLowerCase()] = ZERO;
 
+        let touched_prices = [];
         for (let s of state_changes) {
           // console.log(s);
           if (s.event == 'Swap') {
             // have to take fee from the positive amount
             let pool_in = pool_input(pool, s.args);
+            touched_prices.push(pool_in.price);
             let swap_fee = pool_in.input
               .mul(current_fee)
               .div(ethers.BigNumber.from(1_000_000));
@@ -113,6 +107,29 @@ const main = async (timestamp = null) => {
             current_fee = ethers.BigNumber.from(s.args.feeNew);
           }
         }
+
+        let delta = 0.3;
+        // get the more accurate delta using the prices from the swaps
+        if (touched_prices.length > 2) {
+          let min = Math.min(...touched_prices);
+          let max = Math.max(...touched_prices);
+          delta = min / max;
+          // console.log('NEW DELTA', pool.id, delta);
+        }
+        let price_assumption = pool.t1.price / pool.t0.price;
+        pool.active_liq_fraction = await EstimateActiveLiq(
+          pool.id,
+          price_assumption,
+          [price_assumption * (1 - delta), price_assumption * (1 + delta)],
+          pool.t1.price,
+          pool.t0.price,
+          pool.tvl,
+          pool.t0.decimals,
+          pool.t1.decimals,
+          get_graph_url()
+        );
+        // console.log('ACTIVE LIQ', pool.id, delta, pool.active_liq_fraction);
+
         // reduce token fees to total fees in window
         let total_fee_usd = 0.0;
         for (let [k, v] of Object.entries(fee_per_token)) {

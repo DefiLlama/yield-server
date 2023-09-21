@@ -73,8 +73,8 @@ module.exports.pool_state_changes = async (pool_id, provider, block_start) => {
   };
 };
 
-module.exports.block_24h_ago = async () => {
-  const end_24h = Math.floor(Date.now() / 1000.0);
+module.exports.block_24h_ago = async (now) => {
+  const end_24h = now;
   const start_24h = end_24h - 3600 * 24;
   return (await axios.get(`https://coins.llama.fi/block/ethereum/${start_24h}`))
     .data.height;
@@ -96,8 +96,8 @@ module.exports.bn_to_float = bn_to_float;
 module.exports.get_solid = () => SOLID;
 
 // fetch all pools avb up to timestamp from subgraph
-module.exports.fetch_pools = async () => {
-  const end_24h = Math.floor(Date.now() / 1000.0);
+module.exports.fetch_pools = async (now) => {
+  const end_24h = now;
   let week = 3600 * 24 * 7;
   const one_week_before = end_24h - week;
   const in_one_week = end_24h + week;
