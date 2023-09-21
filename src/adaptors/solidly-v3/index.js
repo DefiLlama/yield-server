@@ -105,7 +105,8 @@ const main = async (timestamp = null) => {
         pool.rewardTokens = [];
         pool.apyReward = 0.0;
         if (pool.tvl != 0) {
-          pool.apyBase = (total_fee_usd / pool.tvl) * 365 * 100;
+          // 20% goes to protocol
+          pool.apyBase = ((total_fee_usd / pool.tvl) * 365 * 100) * 0.8;
           pool.apySolid = (pool.solid_per_year_usd / pool.tvl) * 100;
           if (pool.apySolid != 0.0) {
             pool.apyReward = pool.apySolid;
