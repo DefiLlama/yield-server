@@ -17,7 +17,7 @@ const API_URL = 'https://api.studio.thegraph.com/query/49271/zkswap/0.0.9';
 
 const SECOND_PER_YEAR = 60 * 60 * 24 * 365;
 const WEEKS_PER_YEAR = 52;
-const FEE_RATE = 0.0006;
+const FEE_RATE = 0.0004;
 const CHAIN = 'era';
 
 
