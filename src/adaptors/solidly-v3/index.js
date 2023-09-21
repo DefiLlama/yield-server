@@ -4,9 +4,12 @@ const {
   fetch_prices,
   block_24h_ago,
   pool_state_changes,
+  get_solid,
 } = require('./queries.ts');
 const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
+
+const ZERO = ethers.BigNumber.from(0);
 
 // - All pools (subgraph) [X]
 // - Solid Emissions per pool (subgraph) [X]
@@ -25,14 +28,22 @@ const ethers = require('ethers');
 //
 // - Balances of pools (range inferred from swap events and use total liquidity indexed by tick then added)
 
-const ZERO = ethers.BigNumber.from(0);
-
 function pool_input(pool, x) {
   if (x.amount0 > ZERO) {
     return { token: pool.token0.id.toLowerCase(), input: x.amount0 };
   } else {
     return { token: pool.token1.id.toLowerCase(), input: x.amount1 };
   }
+}
+
+// wow js what a concept
+function bn_to_float(v, decimals) {
+  v = ethers.FixedNumber.from(v.toString());
+  return v
+    .divUnsafe(
+      ethers.FixedNumber.from(ethers.BigNumber.from(10.0).pow(decimals))
+    )
+    .toUnsafeFloat();
 }
 
 const main = async (timestamp = null) => {
@@ -57,7 +68,6 @@ const main = async (timestamp = null) => {
     })
     .flat();
   // console.log('pools lenght', pools.length);
-  // console.log(pools);
 
   const provider = new ethers.providers.JsonRpcProvider(
     process.env.ALCHEMY_CONNECTION_ETHEREUM
@@ -99,43 +109,42 @@ const main = async (timestamp = null) => {
       // reduce token fees to total fees in window
       let total_fee_usd = 0.0;
       for (let [k, v] of Object.entries(fee_per_token)) {
-        // wow js what a concept
-        v = ethers.FixedNumber.from(v.toString());
-        let fee_usd =
-          v
-            .divUnsafe(
-              ethers.FixedNumber.from(
-                ethers.BigNumber.from(10.0).pow(pool[k].decimals)
-              )
-            )
-            .toUnsafeFloat() * pool[k].price;
+        let fee_usd = bn_to_float(v, pool[k].decimals) * pool[k].price;
         total_fee_usd += fee_usd;
       }
+      pool.solid_per_year_usd =
+        bn_to_float(pool.solid_per_year, 18) * prices[get_solid()].price;
+      // console.log('pool ', pool);
       // console.log('total fees USD', pool.id, total_fee_usd);
       // console.log("fee per token",pool.id, fee_per_token);
       // console.log('tick to liq', pool.id, max_liq_on_tick.toString());
       // console.log('STATE CHANGES', pool.id, state_changes.length);
       // console.log('BEGIN FEE', pool.id, begin_fee);
       if (pool.tvl != 0) {
-        pool.apyBase = (total_fee_usd / pool.tvl) * 365 * 100
-      } else {
-        pool.apyBase = 0.0
-      } 
-      pool.symbol = `${pool.t0.symbol}-${pool.t1.symbol}`
+        pool.apyBase = (total_fee_usd / pool.tvl) * 365 * 100;
+        pool.apySolid = (pool.solid_per_year_usd / pool.tvl) * 100;
+        if (pool.apySolid != 0.0) {
+          pool.apyReward = pool.apyBase + pool.apySolid;
+          pool.rewardTokens = [get_solid()];
+        }
+      }
+      pool.symbol = `${pool.t0.symbol}-${pool.t1.symbol}`;
       // console.log(pool)
       return {
         pool: pool.id,
-        chain: "ethereum",
+        chain: 'ethereum',
         project: 'solidly-v3',
         symbol: pool.symbol,
         tvlUsd: pool.tvl,
         apyBase: pool.apyBase,
-        // apyReward?: number;
+        apyReward: pool.apyReward,
+        rewardTokens: pool.rewardTokens,
         url: `https://solidly.com/liquidity/manage/${pool.id}/`,
         underlyingTokens: [pool.token0.id, pool.token1.id],
       };
     })
   );
+  // throw '';
 
   return data.flat().filter((p) => utils.keepFinite(p));
 };

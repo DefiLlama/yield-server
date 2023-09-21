@@ -3,6 +3,8 @@ const axios = require('axios');
 const ethers = require('ethers');
 const ABI = require('./abi');
 
+const ZERO = ethers.BigNumber.from(0);
+
 const GRAPH = 'https://api.thegraph.com/subgraphs/name/solidlylabs/solidly-v3';
 const GET_POOLS = gql`
   {
@@ -76,9 +78,16 @@ module.exports.block_24h_ago = async () => {
     .data.height;
 };
 
+const SOLID = '0x777172d858dc1599914a1c4c6c9fc48c99a60990'.toLowerCase();
+
+module.exports.get_solid = () => SOLID;
+
 // fetch all pools avb up to timestamp from subgraph
 module.exports.fetch_pools = async () => {
   const end_24h = Math.floor(Date.now() / 1000.0);
+  let week = 3600 * 24 * 7;
+  const one_week_before = end_24h - week;
+  const in_one_week = end_24h + week;
   // const start_24h = end_24h - (3600 * 24);
   // console.log("start_24h end_24h", start_24h, end_24h);
   let holder = '<TIMESTAMP_NOW>';
@@ -87,8 +96,27 @@ module.exports.fetch_pools = async () => {
     GET_POOLS.replace(holder, end_24h).replace(holder, end_24h)
   );
   let touched_tokens = res.pools.flatMap((x) => [x.token0.id, x.token1.id]);
+  // add SOLID due to solid emissions
+  touched_tokens = [...touched_tokens, SOLID];
   return {
-    pools: res.pools,
+    pools: res.pools.map((x) => {
+      let latest = x.lpSolidEmissions
+        .map((x) => {
+          x.period = parseInt(x.period);
+          x.amount = ethers.BigNumber.from(x.amount);
+          return x;
+        })
+        .filter((x) => x.period > one_week_before && x.period < in_one_week)
+        .reduce(
+          (max, current) => (current.period > max.period ? current : max),
+          { period: 0, amount: ZERO }
+        );
+      // console.log('EMISSIONS', latest);
+      x.solid_per_year = latest.amount.mul(ethers.BigNumber.from(52));
+      // console.log('ALL', x.lpSolidEmissions);
+
+      return x;
+    }),
     touched_tokens,
   };
 };
