@@ -41,9 +41,9 @@ module.exports.pool_state_changes = async (pool_id, provider, block_start) => {
   const begin_fee = (
     await contract.functions.slot0({ blockTag: block_start })
   )[2];
-  const begin_liq = (
-    await contract.functions.liquidity({ blockTag: block_start })
-  )[0];
+  // const begin_liq = (
+  //   await contract.functions.liquidity({ blockTag: block_start })
+  // )[0];
   // console.log("begin liq", begin_liq);
   const swaps = await contract.queryFilter(
     contract.filters.Swap(),
@@ -66,7 +66,7 @@ module.exports.pool_state_changes = async (pool_id, provider, block_start) => {
   });
   return {
     begin_fee,
-    begin_liq,
+    // begin_liq,
     state_changes,
   };
 };
@@ -80,6 +80,17 @@ module.exports.block_24h_ago = async () => {
 
 const SOLID = '0x777172d858dc1599914a1c4c6c9fc48c99a60990'.toLowerCase();
 
+// wow js what a concept
+function bn_to_float(v, decimals) {
+  v = ethers.FixedNumber.from(v.toString());
+  return v
+    .divUnsafe(
+      ethers.FixedNumber.from(ethers.BigNumber.from(10.0).pow(decimals))
+    )
+    .toUnsafeFloat();
+}
+
+module.exports.bn_to_float = bn_to_float;
 module.exports.get_solid = () => SOLID;
 
 // fetch all pools avb up to timestamp from subgraph
@@ -100,6 +111,7 @@ module.exports.fetch_pools = async () => {
   touched_tokens = [...touched_tokens, SOLID];
   return {
     pools: res.pools.map((x) => {
+      // SOLID EMISSIONS
       let latest = x.lpSolidEmissions
         .map((x) => {
           x.period = parseInt(x.period);
@@ -111,9 +123,36 @@ module.exports.fetch_pools = async () => {
           (max, current) => (current.period > max.period ? current : max),
           { period: 0, amount: ZERO }
         );
-      // console.log('EMISSIONS', latest);
       x.solid_per_year = latest.amount.mul(ethers.BigNumber.from(52));
-      // console.log('ALL', x.lpSolidEmissions);
+
+      let now = end_24h; // for test: - 3600 * 24;
+      latest = x.lpTokenIncentives
+        .map((x) => {
+          x.periodStart = parseInt(x.periodStart);
+          x.periodEnd = parseInt(x.periodEnd);
+          x.amount = ethers.BigNumber.from(x.amount);
+          return x;
+        })
+        .filter((x) => x.periodStart < x.periodEnd)
+        // start is smaller than now, end is bigger than now
+        .filter((x) => x.periodStart < now && x.periodEnd > now);
+
+      x.emissions_per_year = [];
+      if (latest.length > 0) {
+        for (let emission of latest) {
+          // so that its available in prices
+          touched_tokens.push(emission.token);
+          x.emissions_per_year.push({
+            ...emission,
+            // there is an edgecase here if emissions are for longer than year and token has little decimals
+            per_year: emission.amount
+              .mul(ethers.BigNumber.from(3600 * 24 * 365))
+              .div(
+                ethers.BigNumber.from(emission.periodEnd - emission.periodStart)
+              ),
+          });
+        }
+      }
 
       return x;
     }),
