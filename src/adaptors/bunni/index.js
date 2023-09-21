@@ -319,7 +319,7 @@ const topLvl = async (chainString, url, query, queryPrior, timestamp) => {
             ((b.pool.totalFeesToken1 - prior.totalFeesToken1) /
               Math.pow(10, token1Decimals)) *
             token1Price;
-          const fee = (fee0 + fee1) * 365;
+          const fee = Math.min(fee0, fee1) * 365;
           baseApr =
             ((fee * parseInt(b.liquidity)) / parseInt(b.pool.liquidity) / tvl) *
             (1 - protocolFee) *
