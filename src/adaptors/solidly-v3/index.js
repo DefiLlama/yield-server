@@ -6,7 +6,10 @@ const {
   pool_state_changes,
   get_solid,
   bn_to_float,
+  getPoolTicks,
+  get_graph_url,
 } = require('./queries.ts');
+const { EstimateActiveLiq } = require('./estimateActiveLiq.ts');
 const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
 
@@ -21,7 +24,7 @@ const ZERO = ethers.BigNumber.from(0);
 //    - get fee of the pool at start of the period [X]
 //    - get total fee for each token for period (accounted for pool fee changes) [X]
 //    - get start liq of the pool for tvl [X]
-//    - get how much token the active liq is worth [ ] -> can't without ticks in subgraph,
+//    - get how much token the active liq is worth [X] -> Use uniswap v3 adapter code
 //          then active liq range can be inferred from swaps
 //    - price the token liq and fee liq [X]
 //    - get active token emissions [X]
@@ -71,6 +74,22 @@ const main = async (timestamp = null) => {
           provider,
           block_start
         );
+        let price_assumption = pool.t1.price / pool.t0.price;
+        // +- 30%
+        let delta = 0.3;
+        pool.active_liq_fraction = await EstimateActiveLiq(
+          pool.id,
+          price_assumption,
+          [price_assumption * (1 - delta), price_assumption * (1 + delta)],
+          pool.t1.price,
+          pool.t0.price,
+          pool.tvl,
+          pool.t0.decimals,
+          pool.t1.decimals,
+          get_graph_url()
+        );
+        // console.log('ACTIVE LIQ', pool.active_liq_fraction);
+        // throw '';
         let current_fee = begin_fee;
         let fee_per_token = {};
 
@@ -105,9 +124,12 @@ const main = async (timestamp = null) => {
         pool.rewardTokens = [];
         pool.apyReward = 0.0;
         if (pool.tvl != 0) {
+          // the active tvl adjustment for apy
+          // to undo just don't multiply by `active_liq_fraction`
+          pool.active_tvl = pool.tvl * pool.active_liq_fraction;
           // 20% goes to protocol
-          pool.apyBase = ((total_fee_usd / pool.tvl) * 365 * 100) * 0.8;
-          pool.apySolid = (pool.solid_per_year_usd / pool.tvl) * 100;
+          pool.apyBase = (total_fee_usd / pool.active_tvl) * 365 * 100 * 0.8;
+          pool.apySolid = (pool.solid_per_year_usd / pool.active_tvl) * 100;
           if (pool.apySolid != 0.0) {
             pool.apyReward = pool.apySolid;
             pool.rewardTokens.push(get_solid());
@@ -119,7 +141,7 @@ const main = async (timestamp = null) => {
               let per_year_usd =
                 bn_to_float(emission.per_year, token_obj.decimals) *
                 token_obj.price;
-              pool.apyEmissions += (per_year_usd / pool.tvl) * 100;
+              pool.apyEmissions += (per_year_usd / pool.active_tvl) * 100;
               pool.rewardTokens.push(emission.token);
               pool.apyReward += pool.apyEmissions;
             }
@@ -144,6 +166,9 @@ const main = async (timestamp = null) => {
       underlyingTokens: [pool.token0.id, pool.token1.id],
     };
   });
+  // console.log(data);
+
+  // throw '';
   // console.log(data);
   return data.flat().filter((p) => utils.keepFinite(p));
 };

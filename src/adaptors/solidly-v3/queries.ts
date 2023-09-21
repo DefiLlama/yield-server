@@ -6,6 +6,8 @@ const ABI = require('./abi');
 const ZERO = ethers.BigNumber.from(0);
 
 const GRAPH = 'https://api.thegraph.com/subgraphs/name/solidlylabs/solidly-v3';
+module.exports.get_graph_url = () => GRAPH;
+
 const GET_POOLS = gql`
   {
     pools(where: { sqrtPrice_gt: "0", liquidity_gt: "0" }) {
@@ -125,6 +127,7 @@ module.exports.fetch_pools = async () => {
         );
       x.solid_per_year = latest.amount.mul(ethers.BigNumber.from(52));
 
+      // TOKEN EMISSIONS = BRIBES
       let now = end_24h; // for test: - 3600 * 24;
       latest = x.lpTokenIncentives
         .map((x) => {
