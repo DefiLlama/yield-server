@@ -62,6 +62,13 @@ const supportedChains = [
         chainId: 108,
         merkl: false,
         identifier: 'thundercore'
+    },
+    {
+        name: 'Kava',
+        subgraphEndpoint: 'https://subgraph.steer.finance/kava/subgraphs/name/steerprotocol/steer-kava-evm',
+        chainId: 2222,
+        merkle: false,
+        identifier: 'kava'
     }
 ]
 
@@ -97,7 +104,8 @@ const stakingRewards = await axios.get('https://9i52h964s3.execute-api.us-east-1
 
 for (const chainInfo of supportedChains) {
         // filter to this chains staking pools
-        const localStakePools = stakingRewards.data.pools.filter((pool) => pool.chainID === chainInfo.chainId)
+        const localStakePools = stakingRewards.data.pools.filter((pool) => pool.chainId === chainInfo.chainId)
+        
         const stakeRewardTokens = localStakePools.map((pool) => (chainInfo.identifier + ':' + pool.rewardToken).toLowerCase())
         const data = await request(chainInfo.subgraphEndpoint, query)
         // get tokens
@@ -133,7 +141,6 @@ for (const chainInfo of supportedChains) {
                     // get vault directly
                     return {id: manager.slice(6), apr: pool.aprs[manager], token: pool.distributionData[pool.distributionData.length - 1].token} 
                 }))
-
             })
         }
 
@@ -146,6 +153,7 @@ for (const chainInfo of supportedChains) {
             let rewardAPY = 0
             // find reward token / apy if applicable
             const rewardPool = incentivizedPools.find(pool => pool.id === vault.id.toLowerCase())
+
             if (rewardPool) {
                 if (rewardPool.apr) {
                     rewardToken = rewardPool[0].token
@@ -158,8 +166,9 @@ for (const chainInfo of supportedChains) {
             let percentageOfVaultStaked = 0
             let stakeRewardsUSD = 0
             let durationMultiplier = 0
-            const stakePool = localStakePools.find(pool => pool.stakingToken.toLowerCase() === vault.id.toLowerCase())
-            if (stakePool){
+            const stakePools = localStakePools.find(pool => pool.stakingToken.toLowerCase() === vault.id.toLowerCase())
+            if (stakePools){
+                const stakePool = stakePools.stakingPool
                 // here we will need staked total supply vs vault total supply, rewards for duration
                 const amountStaked = (
                     await api.abi.call({
@@ -175,13 +184,16 @@ for (const chainInfo of supportedChains) {
                         chain: chainInfo.identifier as Chain,
                     })
                 ).output
-                const amountRewardToken = (
+                let amountRewardToken = 0
+                try {
+                    amountRewardToken = (
                     await api.abi.call({
                         target: stakePool,
                         abi: abi['getRewardForDuration'],
                         chain: chainInfo.identifier as Chain,
                     })
                 ).output
+                } catch {}
                 stakeRewardToken = (
                     await api.abi.call({
                         target: stakePool,
@@ -189,13 +201,16 @@ for (const chainInfo of supportedChains) {
                         chain: chainInfo.identifier as Chain,
                     })
                 ).output
-                const duration = (
+                let duration = 31536000 // default to year in failure
+                try {
+                duration = (
                     await api.abi.call({
                         target: stakePool,
                         abi: abi['duration'],
                         chain: chainInfo.identifier as Chain,
                     })
                 ).output
+                } catch {}
                 const rewardDecimals = (
                     await api.abi.call({
                         target: stakeRewardToken,
@@ -205,10 +220,14 @@ for (const chainInfo of supportedChains) {
                 ).output
                 percentageOfVaultStaked = (amountStaked / amountVault)
                 percentageOfVaultStaked = percentageOfVaultStaked > 1 ? 0 : percentageOfVaultStaked
-                const totalRewardsUSD = tokenPrices[`${chainInfo.identifier.toLowerCase()}:${stakeRewardToken}`]?.price / (10 ** Number(rewardDecimals))
+                const rewardPrice = tokenPrices[`${chainInfo.identifier.toLowerCase()}:${stakeRewardToken}`]?.price
+                if (rewardPrice){
+                const totalRewardsUSD =  rewardPrice / (10 ** Number(rewardDecimals))
                 stakeRewardsUSD = amountRewardToken * totalRewardsUSD
                 durationMultiplier = 31536000/ duration
+                }
             }
+
 
             // calculate apr
             let vaultApr = 0;
@@ -223,11 +242,12 @@ for (const chainInfo of supportedChains) {
 
             if (Number.isFinite(poolTvl)) {
                 let stakingAPY = 0
-                if (stakePool) {
+                if (stakePools) {
                     const stakeTVL = poolTvl * percentageOfVaultStaked
                     stakingAPY = (stakeRewardsUSD / stakeTVL) * durationMultiplier
                 }
                 const rewardTokens = [rewardToken, stakeRewardToken]
+                const merklAPY = rewardAPY ?? 0
 
                 return {
                     pool: (vault.id + '-' + chainInfo.name).toLowerCase(),
@@ -236,7 +256,7 @@ for (const chainInfo of supportedChains) {
                     symbol: (vault.token0Symbol + '-' + vault.token1Symbol), // symbol of the tokens in pool, can be a single symbol if pool is single-sided or multiple symbols (eg: USDT-ETH) if it's an LP
                     tvlUsd: poolTvl, // number representing current USD TVL in pool
                     apyBase: vaultApr, // APY from pool fees/supplying in %
-                    apyReward: (rewardAPY ?? 0) + stakingAPY,
+                    apyReward: merklAPY + stakingAPY,
                     rewardTokens: rewardTokens.filter(token => token !== null),
                     underlyingTokens: [vault.token0, vault.token1], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
                     poolMeta: vault.beaconName,
