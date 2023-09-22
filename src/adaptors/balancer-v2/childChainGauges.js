@@ -1,0 +1,54 @@
+const { request, gql } = require('graphql-request');
+const { capitalizeFirstLetter } = require('../utils');
+
+const urlBase = 'https://api.thegraph.com/subgraphs/name/balancer-labs';
+const urlGaugesEthereum = `${urlBase}/balancer-gauges`;
+
+const chainToEnum = {
+  arbitrum: 0,
+  xdai: 1,
+  polygon: 2,
+  optimism: 3,
+  avalanche: 4,
+  polygonZkEvm: 5,
+  base: 6,
+};
+
+const queryChildGauge = gql`
+  query ($chain: String!) {
+    rootGauges(where: { chain: $chain }) {
+      chain
+      id
+      recipient
+      relativeWeightCap
+    }
+  }
+`;
+
+/**
+ * @param chain chainString
+ * @returns array of: {chain, id (root gauge address on ethereum), recipient (gauge on child chain), relativeWeightCap}
+ */
+const getChildChainRootGauge = async (chain) => {
+  chain = capitalizeFirstLetter(chain);
+
+  const variables = { chain };
+  const { rootGauges } = await request(
+    urlGaugesEthereum,
+    queryChildGauge,
+    variables
+  );
+
+  return rootGauges;
+};
+
+const emissionRate = () => {
+  const INITIAL_RATE = 145000;
+  const START_EPOCH_TIME = 1648465251;
+  const RATE_REDUCTION_TIME = 365 * 86400;
+  const RATE_REDUCTION_COEFFICIENT = 2 ** (1 / 4);
+};
+
+module.exports = {
+  getChildChainRootGauge,
+};
