@@ -1,12 +1,13 @@
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk4');
 
 const utils = require('../utils');
 const gaugeABIEthereum = require('./abis/gauge_ethereum.json');
 const gaugeABIArbitrum = require('./abis/gauge_arbitrum.json');
 const gaugeABIPolygon = require('./abis/gauge_polygon.json');
 const gaugeABIGnosis = require('./abis/gauge_gnosis.json');
+const gaugeABIBase = require('./abis/gauge_base.json');
 const gaugeControllerEthereum = require('./abis/gauge_controller_ethereum.json');
 const protocolFeesCollectorABI = require('./abis/protocol_fees_collector.json');
 const { lte } = require('lodash');
@@ -18,11 +19,13 @@ const urlEthereum = `${urlBase}/balancer-v2`;
 const urlPolygon = `${urlBase}/balancer-polygon-v2`;
 const urlGnosis = `${urlBase}/balancer-gnosis-chain-v2`;
 const urlArbitrum = `${urlBase}/balancer-arbitrum-v2`;
+const urlBaseChain = `https://api.studio.thegraph.com/query/24660/balancer-base-v2/version/latest`;
 
 const urlGaugesEthereum = `${urlBase}/balancer-gauges`;
 const urlGaugesPolygon = `${urlBase}/balancer-gauges-polygon`;
 const urlGaugesGnosis = `${urlBase}/balancer-gauges-gnosis-chain`;
 const urlGaugesArbitrum = `${urlBase}/balancer-gauges-arbitrum`;
+const urlGaugesBase = `https://api.studio.thegraph.com/query/24660/balancer-gauges-base/version/latest`;
 
 const protocolFeesCollector = '0xce88686553686DA562CE7Cea497CE749DA109f9F';
 const gaugeController = '0xC128468b7Ce63eA702C1f104D55A2566b13D3ABD';
@@ -505,6 +508,16 @@ const main = async () => {
       urlGaugesGnosis,
       queryGauge,
       gaugeABIGnosis,
+      swapFeePercentage
+    ),
+    topLvl(
+      'base',
+      urlBaseChain,
+      query,
+      queryPrior,
+      urlGaugesBase,
+      queryGauge,
+      gaugeABIBase,
       swapFeePercentage
     ),
   ]);
