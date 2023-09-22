@@ -45,6 +45,10 @@ function pool_input(pool, x) {
   }
 }
 
+const provider = new ethers.providers.JsonRpcProvider(
+  process.env.ALCHEMY_CONNECTION_ETHEREUM
+);
+
 const main = async (timestamp = null) => {
   if (timestamp == null) {
     timestamp = Math.floor(Date.now() / 1000.0);
@@ -71,9 +75,6 @@ const main = async (timestamp = null) => {
     .flat();
   // console.log('pools lenght', pools.length);
 
-  const provider = new ethers.providers.JsonRpcProvider(
-    process.env.ALCHEMY_CONNECTION_ETHEREUM
-  );
   let data = (
     await Promise.all(
       pools.map(async (pool) => {
