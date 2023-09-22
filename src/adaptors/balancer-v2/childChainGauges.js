@@ -4,15 +4,16 @@ const { capitalizeFirstLetter } = require('../utils');
 const urlBase = 'https://api.thegraph.com/subgraphs/name/balancer-labs';
 const urlGaugesEthereum = `${urlBase}/balancer-gauges`;
 
-const chainToEnum = {
-  arbitrum: 0,
-  xdai: 1,
-  polygon: 2,
-  optimism: 3,
-  avalanche: 4,
-  polygonZkEvm: 5,
-  base: 6,
-};
+// For reference - this is how chains are stored in the gauges subgraph
+// const chainToEnum = {
+//   arbitrum: 0,
+//   xdai: 1,
+//   polygon: 2,
+//   optimism: 3,
+//   avalanche: 4,
+//   polygonZkEvm: 5,
+//   base: 6,
+// };
 
 const queryChildGauge = gql`
   query ($chain: String!) {
@@ -40,13 +41,6 @@ const getChildChainRootGauge = async (chain) => {
   );
 
   return rootGauges;
-};
-
-const emissionRate = () => {
-  const INITIAL_RATE = 145000;
-  const START_EPOCH_TIME = 1648465251;
-  const RATE_REDUCTION_TIME = 365 * 86400;
-  const RATE_REDUCTION_COEFFICIENT = 2 ** (1 / 4);
 };
 
 module.exports = {
