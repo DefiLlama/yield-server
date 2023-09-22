@@ -254,7 +254,7 @@ const main = async () => {
           const pool = {
             pool: pairInfo.id,
             chain: utils.formatChain('cronos'),
-            project: 'vvs-finance',
+            project: 'vvs-standard',
             symbol: pairInfo.name,
             tvlUsd: Number(reserveUSD),
             apyBase,

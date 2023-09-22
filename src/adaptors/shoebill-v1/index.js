@@ -110,7 +110,7 @@ async function poolsFunction() {
     return {
       pool: `${e.token.externalAddress}-Klaytn`?.toLowerCase(),
       chain: 'Klaytn',
-      project: 'shoebill-finance',
+      project: 'shoebill-v1',
       symbol: e.token.externalSymbol,
       tvlUsd:
         Number(e.overview.availableLiquidity.mul(e.oraclePrice)) /

@@ -224,7 +224,7 @@ function exportFormatter(
   return {
     pool: pool.toLowerCase(),
     chain,
-    project: 'venus',
+    project: 'venus-core-pool',
     symbol,
     tvlUsd,
     apyBase,
