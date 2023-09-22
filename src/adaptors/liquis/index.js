@@ -641,7 +641,7 @@ const topLvl = async (chainString, url, timestamp) => {
                     abi: viewHelperABI.find(
                       (n) => n.name === 'convertLitToLiq'
                     ),
-                    params: [userAnnualReward.toFixed(0)],
+                    params: [(userAnnualReward * 0.75).toFixed(0)],
                     chain: chainString,
                   })
                 )?.output;
