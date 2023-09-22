@@ -147,7 +147,7 @@ const main = async (timestamp = null) => {
           pool.active_tvl = pool.tvl * pool.active_liq_fraction;
           // 20% goes to protocol
           pool.apyBase = (total_fee_usd / pool.active_tvl) * 365 * 100 * 0.8;
-          pool.apySolid = (pool.solid_per_year_usd / pool.active_tvl) * 100;
+          pool.apySolid = (pool.solid_per_year_usd / pool.tvl) * 100;
           if (pool.apySolid != 0.0) {
             pool.apyReward = pool.apySolid;
             pool.rewardTokens.push(get_solid());
@@ -159,7 +159,7 @@ const main = async (timestamp = null) => {
               let per_year_usd =
                 bn_to_float(emission.per_year, token_obj.decimals) *
                 token_obj.price;
-              pool.apyEmissions += (per_year_usd / pool.active_tvl) * 100;
+              pool.apyEmissions += (per_year_usd / pool.tvl) * 100;
               pool.rewardTokens.push(emission.token);
               pool.apyReward += pool.apyEmissions;
             }
