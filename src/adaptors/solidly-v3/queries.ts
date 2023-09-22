@@ -38,7 +38,11 @@ const GET_POOLS = gql`
   }
 `;
 
-module.exports.pool_state_changes = async (pool_id, provider, block_start) => {
+module.exports.pool_state_changes = async (pool_id, block_start) => {
+  let provider = new ethers.providers.JsonRpcProvider(
+    process.env.ALCHEMY_CONNECTION_ETHEREUM,
+    1
+  );
   const contract = new ethers.Contract(pool_id, ABI, provider);
   const begin_fee = (
     await contract.functions.slot0({ blockTag: block_start })

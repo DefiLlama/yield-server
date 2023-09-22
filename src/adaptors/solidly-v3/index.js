@@ -45,10 +45,6 @@ function pool_input(pool, x) {
   }
 }
 
-const provider = new ethers.providers.JsonRpcProvider(
-  process.env.ALCHEMY_CONNECTION_ETHEREUM
-);
-
 const main = async (timestamp = null) => {
   if (timestamp == null) {
     timestamp = Math.floor(Date.now() / 1000.0);
@@ -80,7 +76,6 @@ const main = async (timestamp = null) => {
       pools.map(async (pool) => {
         let { begin_fee, state_changes, begin_liq } = await pool_state_changes(
           pool.id,
-          provider,
           block_start
         );
         let current_fee = begin_fee;
