@@ -106,12 +106,12 @@ const main = async (timestamp = null) => {
 
         let delta = 0.3;
         // get the more accurate delta using the prices from the swaps
-        if (touched_prices.length > 2) {
-          let min = Math.min(...touched_prices);
-          let max = Math.max(...touched_prices);
-          delta = min / max;
-          // console.log('NEW DELTA', pool.id, delta);
-        }
+        // if (touched_prices.length > 2) {
+        //   let min = Math.min(...touched_prices);
+        //   let max = Math.max(...touched_prices);
+        //   delta = min / max;
+        //   // console.log('NEW DELTA', pool.id, delta);
+        // }
         let price_assumption = pool.t1.price / pool.t0.price;
         pool.active_liq_fraction = await EstimateActiveLiq(
           pool.id,
