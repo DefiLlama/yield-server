@@ -8,10 +8,12 @@ const gaugeABIArbitrum = require('./abis/gauge_arbitrum.json');
 const gaugeABIPolygon = require('./abis/gauge_polygon.json');
 const gaugeABIGnosis = require('./abis/gauge_gnosis.json');
 const gaugeABIBase = require('./abis/gauge_base.json');
+const balTokenAdminABI = require('./abis/balancer_token_admin.json');
 const gaugeControllerEthereum = require('./abis/gauge_controller_ethereum.json');
 const protocolFeesCollectorABI = require('./abis/protocol_fees_collector.json');
 const { lte } = require('lodash');
 const { excludePools } = require('../../utils/exclude');
+const { getChildChainRootGauge } = require('./childChainGauges.js');
 
 // Subgraph URLs
 const urlBase = 'https://api.thegraph.com/subgraphs/name/balancer-labs';
@@ -29,6 +31,7 @@ const urlGaugesBase = `https://api.studio.thegraph.com/query/24660/balancer-gaug
 
 const protocolFeesCollector = '0xce88686553686DA562CE7Cea497CE749DA109f9F';
 const gaugeController = '0xC128468b7Ce63eA702C1f104D55A2566b13D3ABD';
+const balancerTokenAdmin = '0xf302f9F50958c5593770FDf4d4812309fF77414f';
 
 const BAL = '0xba100000625a3754423978a60c9317c58a424e3d';
 
@@ -226,25 +229,29 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
   // get liquidity gauges for each pool
   const { liquidityGauges } = await request(urlLM, queryLM);
 
-  // get BAL inflation rate (constant among gauge contract ids)
-  let inflationRate;
-  let price;
-  if (chainString === 'ethereum') {
-    inflationRate =
-      (
-        await sdk.api.abi.call({
-          target: liquidityGauges[0].id,
-          abi: gaugeABI.find((n) => n.name === 'inflation_rate'),
-          chain: chainString,
-        })
-      ).output / 1e18;
-
-    // get BAL price
-    const key = `${chainString}:${BAL}`.toLowerCase();
-    price = (
-      await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-    ).body.coins[key].price;
+  let childChainRootGauges;
+  if (chainString != 'ethereum') {
+    childChainRootGauges = await getChildChainRootGauge(chainString);
   }
+
+  // Global source of truth for the inflation rate. All mainnet gauges use the BalancerTokenAdmin contract to update their locally stored inflation rate during checkpoints.
+  const inflationRate =
+    (
+      await sdk.api.abi.call({
+        target: balancerTokenAdmin,
+        abi: balTokenAdminABI.find((n) => n.name === 'getInflationRate'),
+        chain: 'ethereum',
+      })
+    ).output / 1e18;
+
+  // Price is used for additional non-BAL reward tokens
+  let price;
+
+  // get BAL price
+  const balKey = `ethereum:${BAL}`.toLowerCase();
+  const balPrice = (
+    await superagent.get(`https://coins.llama.fi/prices/current/${balKey}`)
+  ).body.coins[balKey].price;
 
   // add LM rewards if available to each pool in data
   for (const pool of liquidityGauges) {
@@ -257,40 +264,52 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
       const aprLMRewards = [];
       const rewardTokens = [];
 
-      if (chainString === 'ethereum') {
-        // get relative weight (of base BAL token rewards for a pool)
-        const relativeWeight =
+      // pool.id returned for mainnet will be the correct gauge address required for the gauge_relative_weight call
+      let relativeWeightParams = pool.id;
+
+      // pool.id returned for child chains is the child chain gauge, so we must replace this with it's mainnet root chain gauge that gauge_relative_weight expects.
+      if (chainString != 'ethereum') {
+        const poolGaugeOnEthereum = childChainRootGauges.find(
+          (gauge) => gauge.recipient == pool.id
+        );
+
+        if (poolGaugeOnEthereum) {
+          relativeWeightParams = poolGaugeOnEthereum.id;
+        }
+      }
+
+      // get relative weight (of base BAL token rewards for a pool)
+      const relativeWeight =
+        (
+          await sdk.api.abi.call({
+            target: gaugeController,
+            abi: gaugeControllerEthereum.find(
+              (n) => n.name === 'gauge_relative_weight'
+            ),
+            params: [relativeWeightParams],
+            chain: 'ethereum',
+          })
+        ).output / 1e18;
+
+      // for base BAL rewards
+      if (relativeWeight !== 0) {
+        const workingSupply =
           (
             await sdk.api.abi.call({
-              target: gaugeController,
-              abi: gaugeControllerEthereum.find(
-                (n) => n.name === 'gauge_relative_weight'
-              ),
-              params: [pool.id],
-              chain: 'ethereum',
+              target: pool.id,
+              abi: gaugeABI.find((n) => n.name === 'working_supply'),
+              chain: chainString,
             })
           ).output / 1e18;
 
-        // for base BAL rewards
-        if (relativeWeight !== 0) {
-          const workingSupply =
-            (
-              await sdk.api.abi.call({
-                target: pool.id,
-                abi: gaugeABI.find((n) => n.name === 'working_supply'),
-                chain: 'ethereum',
-              })
-            ).output / 1e18;
-
-          // bpt == balancer pool token
-          const bptPrice = x.tvl / x.totalShares;
-          const balPayable = inflationRate * 7 * 86400 * relativeWeight;
-          const weeklyReward = (0.4 / (workingSupply + 0.4)) * balPayable;
-          const yearlyReward = weeklyReward * 52 * price;
-          const aprLM = (yearlyReward / bptPrice) * 100;
-          aprLMRewards.push(aprLM === Infinity ? 0 : aprLM);
-          rewardTokens.push(BAL);
-        }
+        // bpt == balancer pool token
+        const bptPrice = x.tvl / x.totalShares;
+        const balPayable = inflationRate * 7 * 86400 * relativeWeight;
+        const weeklyReward = (0.4 / (workingSupply + 0.4)) * balPayable;
+        const yearlyReward = weeklyReward * 52 * balPrice;
+        const aprLM = (yearlyReward / bptPrice) * 100;
+        aprLMRewards.push(aprLM === Infinity ? 0 : aprLM);
+        rewardTokens.push(BAL);
       }
 
       // first need to find the reward token
