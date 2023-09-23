@@ -420,3 +420,9 @@ const makeMulticall = async (abi, addresses, chain, params = null) => {
 };
 
 exports.makeMulticall = makeMulticall;
+
+const capitalizeFirstLetter = (str) => {
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
+
+exports.capitalizeFirstLetter = capitalizeFirstLetter;
