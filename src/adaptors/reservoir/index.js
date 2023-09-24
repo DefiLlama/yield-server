@@ -20,10 +20,7 @@ const graphQuery = gql`
 `;
 
 const getApy = async () => {
-
     const { PairSnapshots } = await request(GRAPHQL_URL, graphQuery);
-
-    console.log(PairSnapshots);
 
     return PairSnapshots.map((snapshot) => ({
         pool: snapshot.pair.address,
