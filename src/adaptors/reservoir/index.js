@@ -28,7 +28,7 @@ const getApy = async () => {
         project: 'reservoir',
         symbol: snapshot.pair.token0Symbol + '-' + snapshot.pair.token1Symbol,
         tvlUsd: snapshot.pair.tvlUSD,
-        apyBase: snapshot.swapApr + snapshot.managedApr,
+        apyBase: snapshot.swapApr + snapshot.managedApy,
         apyReward: 0,
         rewardTokens: [], // we do not have incentive tokens at this point
         underlyingTokens: [snapshot.pair.token0, snapshot.pair.token1],
