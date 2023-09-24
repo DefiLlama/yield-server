@@ -9,6 +9,7 @@ const graphQuery = gql`
             managedApy
             pair {
                 address
+                curveId
                 token0
                 token1
                 token0Symbol
@@ -22,18 +23,23 @@ const graphQuery = gql`
 const getApy = async () => {
     const { PairSnapshots } = await request(GRAPHQL_URL, graphQuery);
 
-    return PairSnapshots.map((snapshot) => ({
-        pool: snapshot.pair.address,
-        chain: 'Avalanche',
-        project: 'reservoir',
-        symbol: snapshot.pair.token0Symbol + '-' + snapshot.pair.token1Symbol,
-        tvlUsd: snapshot.pair.tvlUSD,
-        apyBase: snapshot.swapApr + snapshot.managedApy,
-        apyReward: 0,
-        rewardTokens: [], // we do not have incentive tokens at this point
-        underlyingTokens: [snapshot.pair.token0, snapshot.pair.token1],
-        poolMeta: '' + 'Stable ' + 'Pair'
-    }))
+    return PairSnapshots.map((snapshot) => {
+        const symbols = snapshot.pair.token0Symbol + '-' + snapshot.pair.token1Symbol
+        const poolType = snapshot.pair.curveId === 0 ? 'Constant Product' : 'Stable'
+        const meta = symbols + ' ' + poolType + ' Pair'
+        return {
+            pool: snapshot.pair.address,
+            chain: 'Avalanche',
+            project: 'reservoir',
+            symbol: symbols,
+            tvlUsd: snapshot.pair.tvlUSD,
+            apyBase: (snapshot.swapApr + snapshot.managedApy) * 100, // to convert into percentage form
+            apyReward: 0,
+            rewardTokens: [], // we do not have incentive tokens at this point
+            underlyingTokens: [snapshot.pair.token0, snapshot.pair.token1],
+            poolMeta: meta
+        }
+    })
 }
 
 module.exports = {
