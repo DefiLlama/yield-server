@@ -14,15 +14,26 @@ const apy = async () => {
     const maxLeverage =
       strategy.strategy_info.yield_info['Default'].maxLeverage;
 
-    let baseApy;
-    try {
-      baseApy =
-        strategy?.strategy_info?.additional_data?.priceRangeInfos?.find(
-          (x) => x.priceRangeType === 'Wide'
-        )?.apr ?? 0;
-    } catch (err) {
-      console.log(err);
-      continue;
+    let baseApy = 0;
+
+    if (strategy.exchange.name === 'Trader Joe V2') {
+      try {
+        baseApy =
+          strategy?.strategy_info?.additional_data?.priceRangeInfos['Uniform'][
+            'Wide'
+          ]?.apr ?? 0;
+      } catch (err) {
+        console.log(err);
+      }
+    } else {
+      try {
+        baseApy =
+          strategy?.strategy_info?.additional_data?.priceRangeInfos?.find(
+            (x) => x.priceRangeType === 'Wide'
+          )?.apr ?? 0;
+      } catch (err) {
+        console.log(err);
+      }
     }
 
     const feeBps = strategy?.additional_info.feeBps;

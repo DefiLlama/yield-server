@@ -34,7 +34,7 @@ const topLvl = async (chainString, url, token, address, underlying) => {
 };
 
 const main = async () => {
-  const data = await Promise.all([
+  const data = await Promise.allSettled([
     topLvl(
       'ethereum',
       'https://stake.lido.fi/api',
@@ -58,7 +58,7 @@ const main = async () => {
     ),
   ]);
 
-  return data.flat();
+  return data.filter((p) => p.status === 'fulfilled').map((p) => p.value);
 };
 
 module.exports = {

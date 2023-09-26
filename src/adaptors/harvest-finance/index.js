@@ -3,17 +3,17 @@ const superagent = require('superagent');
 const utils = require('../utils');
 const { readFromS3 } = require('../../utils/s3');
 // no longer needed, see note below
-// const farmsUrl =
-//   'https://api-old.harvest.finance/vaults?key=41e90ced-d559-4433-b390-af424fdc76d6';
-// const poolsUrl =
-//   'https://api-old.harvest.finance/pools?key=41e90ced-d559-4433-b390-af424fdc76d6';
-// const statsUrl =
-//   'https://api-old.harvest.finance/token-stats?key=41e90ced-d559-4433-b390-af424fdc76d6';
+const farmsUrl =
+  'https://api.harvest.finance/vaults?key=41e90ced-d559-4433-b390-af424fdc76d6';
+const poolsUrl =
+  'https://api.harvest.finance/pools?key=41e90ced-d559-4433-b390-af424fdc76d6';
+const statsUrl =
+  'https://api.harvest.finance/token-stats?key=41e90ced-d559-4433-b390-af424fdc76d6';
 const chains = {
-  bsc: 'binance',
   eth: 'ethereum',
   matic: 'polygon',
   arbitrum: 'arbitrum',
+  base: 'base',
 };
 
 function aggregateBaseApys(farm, poolsResponse) {
@@ -47,22 +47,17 @@ async function apy() {
   // instead, we use a python lambda which bypasses cloudflare
   // and stores the output to s3 (i tried node js packages, none of them worked; the repo to the
   // lambda
-  // const farmsResponse = (await superagent.get(farmsUrl)).body;
-  // const poolsResponse = (await superagent.get(poolsUrl)).body;
-  // const statsResponse = (await superagent.get(statsUrl)).body;
-  const data = await readFromS3('llama-apy-prod-data', 'harvest_api_data.json');
-  const farmsResponse = data['vaults'];
-  const poolsResponse = data['pools'];
-  const statsResponse = data['token-stats'];
+  const farmsResponse = (await superagent.get(farmsUrl)).body;
+  const poolsResponse = (await superagent.get(poolsUrl)).body;
+  const statsResponse = (await superagent.get(statsUrl)).body;
+  // const data = await readFromS3('llama-apy-prod-data', 'harvest_api_data.json');
+  // const farmsResponse = data['vaults'];
+  // const poolsResponse = data['pools'];
+  // const statsResponse = data['token-stats'];
 
-  let specialVaultIds = [
-    'farm-grain',
-    'farm-weth',
-  ];
+  let specialVaultIds = ['farm-grain', 'farm-weth'];
   specialVaults = specialVaultIds.map((vaultId) => {
-    const selectedPools = poolsResponse['eth'].filter(
-      (p) => p.id == vaultId
-    );
+    const selectedPools = poolsResponse['eth'].filter((p) => p.id == vaultId);
     if (selectedPools.length == 0) return null;
     const pool = selectedPools[0];
     const rewardApy = pool.rewardAPY.reduce((a, b) => Number(a) + Number(b), 0);
@@ -72,13 +67,15 @@ async function apy() {
       chain: 'Ethereum',
       project: 'harvest-finance',
       symbol: utils.formatSymbol(vaultId).replace(/[{()}]/g, ''),
-      tvlUsd: vaultId === 'farm-weth' ? Number(pool.lpTokenData.liquidity) : Number(pool.totalValueLocked),
+      tvlUsd:
+        vaultId === 'farm-weth'
+          ? Number(pool.lpTokenData.liquidity)
+          : Number(pool.totalValueLocked),
       apyBase: pool.tradingApy,
       apyReward: Number(rewardApy) > 0 ? Number(rewardApy) : null,
       rewardTokens: Number(rewardApy) > 0 ? pool.rewardTokens : null,
     };
-
-  })
+  });
   // for binance inactive !== true
   for (let chain of Object.keys(chains)) {
     const activeFarms = Object.values(farmsResponse[chain]).filter(
@@ -88,16 +85,21 @@ async function apy() {
       const selectedPools = poolsResponse[chain].filter(
         (p) => p.contractAddress == v.rewardPool
       );
-      let rewardTokens
+      let rewardTokens;
       if (selectedPools.length == 0) {
-        rewardTokens = null
+        rewardTokens = null;
       } else {
         const pool = selectedPools[0];
-        rewardTokens = pool.rewardTokens && aggregateRewardApys(v, poolsResponse[chain]) != null ? pool.rewardTokens.flat() : null;
+        rewardTokens =
+          pool.rewardTokens &&
+          aggregateRewardApys(v, poolsResponse[chain]) != null
+            ? pool.rewardTokens.flat()
+            : null;
       }
 
-      let apyBase, tvlUsd
-      if (v.vaultAddress === '0x1571eD0bed4D987fe2b498DdBaE7DFA19519F651') {  //It's special vault for iFarm
+      let apyBase, tvlUsd;
+      if (v.vaultAddress === '0x1571eD0bed4D987fe2b498DdBaE7DFA19519F651') {
+        //It's special vault for iFarm
         apyBase = Number(statsResponse.historicalAverageProfitSharingAPY);
         const iFarmPools = poolsResponse['eth'].filter(
           (p) => p.id == 'profit-sharing-farm'
@@ -111,11 +113,11 @@ async function apy() {
         pool: v.vaultAddress,
         chain: utils.formatChain(chains[chain]),
         project: 'harvest-finance',
-        symbol: utils.formatSymbol(v.displayName).replace(/[{()}]/g, ''),
+        symbol: v.tokenNames.join('-'),
         tvlUsd,
         apyBase,
         apyReward: aggregateRewardApys(v, poolsResponse[chain]),
-        rewardTokens
+        rewardTokens,
       };
     });
 
