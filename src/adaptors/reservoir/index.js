@@ -26,7 +26,6 @@ const getApy = async () => {
     return PairSnapshots.map((snapshot) => {
         const symbols = snapshot.pair.token0Symbol + '-' + snapshot.pair.token1Symbol
         const poolType = snapshot.pair.curveId === 0 ? 'Constant Product' : 'Stable'
-        const meta = symbols + ' ' + poolType + ' Pair'
         return {
             pool: snapshot.pair.address,
             chain: 'Avalanche',
@@ -37,7 +36,7 @@ const getApy = async () => {
             apyReward: 0,
             rewardTokens: [], // we do not have incentive tokens at this point
             underlyingTokens: [snapshot.pair.token0, snapshot.pair.token1],
-            poolMeta: meta
+            poolMeta: poolType
         }
     })
 }
