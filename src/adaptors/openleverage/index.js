@@ -90,8 +90,8 @@ async function bsc_tvl() {
             chain: utils.formatChain("Binance"),
             project: 'openleverage',
             symbol: utils.formatSymbol(poolDetails.name),
-            tvlUsd: new BigNumber(poolBalance).multipliedBy(new BigNumber(tokenPriceInUsdt)).dividedBy(new BigNumber(10).pow(poolDetails.decimal)).toNumber(),
-            apy: new BigNumber(poolAPYPerBlock).multipliedBy(new BigNumber(block_of_year["bsc"])).dividedBy(new BigNumber(10).pow(poolDetails.decimal)).toNumber(),
+            tvlUsd: new BigNumber(poolBalance).multipliedBy(new BigNumber(tokenPriceInUsdt)).dividedBy(new BigNumber(10).pow(poolDetails.tokenDecimal)).toNumber(),
+            apy: new BigNumber(poolAPYPerBlock).multipliedBy(new BigNumber(block_of_year["bsc"])).dividedBy(new BigNumber(10).pow(poolDetails.poolDecimal)).toNumber(),
             url: `https://bnb.openleverage.finance/app/pool/${pool}`
         };
         console.log(poolValues)
@@ -125,18 +125,22 @@ async function getPoolList(chain) {
 
         const token0Symbol = await getSymbol(market.token0, chain);
         const token1Symbol = await getSymbol(market.token1, chain);
+        const pool0Decimal = await getDecimals(market.token0, chain, LPool.decimals);
+        const pool1Decimal = await getDecimals(market.token1, chain, LPool.decimals);
         let poolInfo = {}
         poolInfo["name"] = `${token0Symbol}`
         poolInfo["token"] = market.token0
         poolInfo["symbol"] = token0Symbol
-        poolInfo["decimal"] = token0Decimal
+        poolInfo["tokenDecimal"] = token0Decimal
+        poolInfo["poolDecimal"] = pool0Decimal
         pools[market.pool0] = poolInfo
 
         poolInfo = {}
         poolInfo["name"] = `${token1Symbol}`
         poolInfo["token"] = market.token1
         poolInfo["symbol"] = token1Symbol
-        poolInfo["decimal"] = token1Decimal
+        poolInfo["tokenDecimal"] = token1Decimal
+        poolInfo["poolDecimal"] = pool1Decimal
         pools[market.pool1] = poolInfo
 
     }
