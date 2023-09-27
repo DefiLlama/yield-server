@@ -4,6 +4,7 @@ const LPool = require("./abis/LPool.json");
 const OplContract = require("./abis/OplContract.json");
 const axios = require("axios");
 const utils = require('../utils');
+const { default: BigNumber } = require('bignumber.js');
 
 openleve_address = {
     "eth": '0x03bf707deb2808f711bb0086fc17c5cafa6e8aaf',
@@ -62,7 +63,6 @@ async function bsc_tvl() {
     const balances = {}
     for (const pool of Object.keys(poolInfo)) {
         const poolDetails = poolInfo[pool]
-        console.log(poolDetails)
         const poolBalance = (
             await sdk.api.abi.call({
                 abi: erc20.balanceOf,
@@ -78,7 +78,6 @@ async function bsc_tvl() {
                 chain: 'bsc'
             })
         ).output;
-        console.log(pool, poolBalance, poolAPYPerBlock * block_of_year["bsc"])
 
         let tokenPriceInUsdt = 0;
         try {
@@ -86,14 +85,13 @@ async function bsc_tvl() {
         } catch (e) {
             // console.error(e)
         }
-        console.log(poolDetails.token, tokenPriceInUsdt)
         const poolValues = {
             pool: `${pool}-BNB`.toLowerCase(),
             chain: utils.formatChain("Binance"),
             project: 'openleverage',
             symbol: utils.formatSymbol(poolDetails.name),
-            tvlUsd: poolBalance * tokenPriceInUsdt / Math.pow(10, poolDetails.decimal),
-            apy: poolAPYPerBlock * block_of_year["bsc"] / Math.pow(10, poolDetails.decimal) * 100,
+            tvlUsd: new BigNumber(poolBalance).multipliedBy(new BigNumber(tokenPriceInUsdt)).dividedBy(new BigNumber(10).pow(poolDetails.decimal)).toNumber(),
+            apy: new BigNumber(poolAPYPerBlock).multipliedBy(new BigNumber(block_of_year["bsc"])).dividedBy(new BigNumber(10).pow(poolDetails.decimal)).toNumber(),
             url: `https://bnb.openleverage.finance/app/pool/${pool}`
         };
         console.log(poolValues)
@@ -128,14 +126,14 @@ async function getPoolList(chain) {
         const token0Symbol = await getSymbol(market.token0, chain);
         const token1Symbol = await getSymbol(market.token1, chain);
         let poolInfo = {}
-        poolInfo["name"] = `${token0Symbol}-${token1Symbol} lending`
+        poolInfo["name"] = `${token0Symbol}`
         poolInfo["token"] = market.token0
         poolInfo["symbol"] = token0Symbol
         poolInfo["decimal"] = token0Decimal
         pools[market.pool0] = poolInfo
 
         poolInfo = {}
-        poolInfo["name"] = `${token1Symbol}-${token0Symbol}`
+        poolInfo["name"] = `${token1Symbol}`
         poolInfo["token"] = market.token1
         poolInfo["symbol"] = token1Symbol
         poolInfo["decimal"] = token1Decimal
