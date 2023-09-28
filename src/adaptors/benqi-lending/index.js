@@ -29,9 +29,11 @@ const SECONDS_PER_DAY = 86400;
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
@@ -50,11 +52,13 @@ const calculateApy = (ratePerTimestamps) => {
   const daysPerYear = 365;
 
   return (
-    (Math.pow(ratePerTimestamps * secondsPerDay + 1, daysPerYear) - 1) * 100
+    (Math.pow((ratePerTimestamps / 1e18) * secondsPerDay + 1, daysPerYear) -
+      1) *
+    100
   );
 };
 
-const getRewards = async (rewardType, markets) => {
+const getRewards = async (rewardType, markets, isBorrow = false) => {
   return (
     await sdk.api.abi.multiCall({
       chain: 'avax',
@@ -62,7 +66,9 @@ const getRewards = async (rewardType, markets) => {
         target: COMPTROLLER_ADDRESS,
         params: [rewardType, market],
       })),
-      abi: comptrollerAbi.find(({ name }) => name === 'supplyRewardSpeeds'),
+      abi: comptrollerAbi.find(
+        ({ name }) => name === `${isBorrow ? 'borrow' : 'supply'}RewardSpeeds`
+      ),
     })
   ).output.map(({ output }) => output);
 };
@@ -88,13 +94,38 @@ const getApy = async () => {
 
   const allMarkets = Object.values(allMarketsRes);
 
+  const marketsInfo = (
+    await sdk.api.abi.multiCall({
+      chain: 'avax',
+      calls: allMarkets.map((market) => ({
+        target: COMPTROLLER_ADDRESS,
+        params: market,
+      })),
+      abi: comptrollerAbi.find(({ name }) => name === 'markets'),
+    })
+  ).output.map(({ output }) => output);
+
   const qiRewards = await getRewards(REWARD_TYPES.QI, allMarkets);
   const avaxRewards = await getRewards(REWARD_TYPES.AVAX, allMarkets);
-  const supplyRewards = await multiCallMarkets(
+
+  const qiBorrowRewards = await getRewards(REWARD_TYPES.QI, allMarkets, true);
+  const avaxBorrowRewards = await getRewards(
+    REWARD_TYPES.AVAX,
+    allMarkets,
+    true
+  );
+  const supplyRatePerTimestamp = await multiCallMarkets(
     allMarkets,
     'supplyRatePerTimestamp',
     qiErc
   );
+
+  const borrowRatePerTimestamp = await multiCallMarkets(
+    allMarkets,
+    'borrowRatePerTimestamp',
+    qiErc
+  );
+
   const marketsCash = await multiCallMarkets(allMarkets, 'getCash', qiErc);
   const totalBorrows = await multiCallMarkets(
     allMarkets,
@@ -128,10 +159,14 @@ const getApy = async () => {
     const totalSupplyUsd =
       ((Number(marketsCash[i]) + Number(totalBorrows[i])) / 10 ** decimals) *
       prices[token.toLowerCase()];
+
+    const totalBorrowUsd =
+      (Number(totalBorrows[i]) / 10 ** decimals) * prices[token.toLowerCase()];
     const tvlUsd =
       (marketsCash[i] / 10 ** decimals) * prices[token.toLowerCase()];
 
-    const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
+    const apyBase = calculateApy(supplyRatePerTimestamp[i]);
+    const apyBaseBorrow = calculateApy(borrowRatePerTimestamp[i]);
 
     const qiApy =
       (((qiRewards[i] / 10 ** QI.decimals) *
@@ -148,6 +183,23 @@ const getApy = async () => {
         totalSupplyUsd) *
       100;
 
+    const qiBorrowApy =
+      (((qiBorrowRewards[i] / 10 ** QI.decimals) *
+        SECONDS_PER_DAY *
+        365 *
+        prices[QI.address]) /
+        totalBorrowUsd) *
+      100;
+    const avaxBorrowApy =
+      (((avaxBorrowRewards[i] / 10 ** AVAX.decimals) *
+        SECONDS_PER_DAY *
+        365 *
+        prices[AVAX.address]) /
+        totalBorrowUsd) *
+      100;
+
+    const apyRewardBorrow = qiBorrowApy + avaxBorrowApy;
+
     return {
       pool: market,
       chain: utils.formatChain('avalanche'),
@@ -161,6 +213,11 @@ const getApy = async () => {
         qiApy ? QI.address : null,
         avaxApy ? AVAX.address : null,
       ].filter(Boolean),
+      totalSupplyUsd,
+      totalBorrowUsd,
+      apyBaseBorrow,
+      apyRewardBorrow: Number.isFinite(apyRewardBorrow) ? apyRewardBorrow : 0,
+      ltv: marketsInfo[i].collateralFactorMantissa / 10 ** 18,
     };
   });
 

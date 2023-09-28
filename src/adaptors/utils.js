@@ -1,4 +1,5 @@
 const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const { chunk } = require('lodash');
 const sdk = require('@defillama/sdk');
@@ -9,6 +10,18 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'kcc') return 'KCC';
   if (chain && chain.toLowerCase() === 'okexchain') return 'OKExChain';
   if (chain && chain.toLowerCase() === 'bsc') return 'Binance';
+  if (chain && chain.toLowerCase() === 'milkomeda') return 'Milkomeda C1';
+  if (chain && chain.toLowerCase() === 'milkomeda_a1') return 'Milkomeda A1';
+  if (chain && chain.toLowerCase() === 'boba_avax') return 'Boba_Avax';
+  if (chain && chain.toLowerCase() === 'boba_bnb') return 'Boba_Bnb';
+  if (
+    chain &&
+    (chain.toLowerCase() === 'zksync_era' ||
+      chain.toLowerCase() === 'zksync era' ||
+      chain.toLowerCase() === 'era')
+  )
+    return 'zkSync Era';
+  if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
@@ -18,8 +31,16 @@ const getFormatter = (symbol) => {
 };
 
 // replace / with - and trim potential whitespace
-exports.formatSymbol = (symbol) =>
-  symbol.replace(getFormatter(symbol), '-').replace(/\s/g, '').trim();
+// set mimatic to mai, uppercase all symbols
+exports.formatSymbol = (symbol) => {
+  return symbol
+    .replace(getFormatter(symbol), '-')
+    .replace(/\s/g, '')
+    .trim()
+    .toLowerCase()
+    .replaceAll('mimatic', 'mai')
+    .toUpperCase();
+};
 
 exports.getData = async (url, query = null) => {
   if (query !== null) {
@@ -70,10 +91,25 @@ const getLatestBlockSubgraph = async (url) => {
   //   'https://api.thegraph.com/index-node/graphql',
   //   queryGraph.replace('<PLACEHOLDER>', url.split('name/')[1])
   // );
-  const blockGraph = await request(
-    `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
-    queryGraph
-  );
+  const blockGraph =
+    url.includes('metis-graph.maiadao.io') ||
+    url.includes('babydoge/faas') ||
+    url.includes('kybernetwork/kyberswap-elastic-cronos') ||
+    url.includes('kybernetwork/kyberswap-elastic-matic') ||
+    url.includes(
+      'https://subgraph.satsuma-prod.com/09c9cf3574cc/orbital-apes/v3-subgraph/api'
+    ) ||
+    url.includes('api.goldsky.com') ||
+    url.includes('48211/uniswap-v3-base') ||
+    url.includes('horizondex/block') ||
+    url.includes('exchange-v3-polygon-zkevm/version/latest') ||
+    url.includes('exchange-v3-zksync/version/latest') ||
+    url.includes('balancer-base-v2/version/latest')
+      ? await request(url, queryGraph)
+      : await request(
+          `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
+          queryGraph
+        );
 
   // return Number(
   //   blockGraph.indexingStatusForCurrentVersion.chains[0].latestBlock.number
@@ -84,13 +120,17 @@ const getLatestBlockSubgraph = async (url) => {
 // func which queries subgraphs for their latest block nb and compares it against
 // the latest block from https://coins.llama.fi/block/, if within a certain bound -> ok, otherwise
 // will break as data is stale
-exports.getBlocks = async (chainString, tsTimeTravel, urlArray) => {
+exports.getBlocks = async (
+  chainString,
+  tsTimeTravel,
+  urlArray,
+  offset = 86400
+) => {
   const timestamp =
     tsTimeTravel !== null
       ? Number(tsTimeTravel)
       : Math.floor(Date.now() / 1000);
 
-  const offset = 86400;
   const timestampPrior = timestamp - offset;
   let [block, blockPrior] = await this.getBlocksByTime(
     [timestamp, timestampPrior],
@@ -112,7 +152,8 @@ exports.getBlocks = async (chainString, tsTimeTravel, urlArray) => {
     blockDelta = Math.abs(block - blockGraph);
 
     // check delta (keeping this large for now)
-    const thr = chainString === 'ethereum' ? 300 : 3000;
+    const thr =
+      chainString === 'ethereum' ? 300 : chainString === 'cronos' ? 6000 : 3000;
     if (blockDelta > thr) {
       console.log(`block: ${block}, blockGraph: ${blockGraph}`);
       throw new Error(`Stale subgraph of ${blockDelta} blocks!`);
@@ -141,16 +182,35 @@ exports.tvl = async (dataNow, networkString) => {
   }
   let idsSet = [...new Set(ids.flat())];
 
-  // pull token prices
-  let prices = await this.getData('https://coins.llama.fi/prices', {
-    coins: idsSet,
-  });
-  prices = prices.coins;
+  // price endpoint seems to break with too many tokens, splitting it to max 50 per request
+  const maxSize = 50;
+  const pages = Math.ceil(idsSet.length / maxSize);
+  let pricesA = [];
+  let x = '';
+  for (const p of [...Array(pages).keys()]) {
+    x = idsSet
+      .slice(p * maxSize, maxSize * (p + 1))
+      .join(',')
+      .replaceAll('/', '');
+    pricesA = [
+      ...pricesA,
+      (await axios.get(`https://coins.llama.fi/prices/current/${x}`)).data
+        .coins,
+    ];
+  }
+  let prices = {};
+  for (const p of pricesA.flat()) {
+    prices = { ...prices, ...p };
+  }
 
   // calc tvl
+  const precision = 5;
   for (const el of dataNowCopy) {
     let price0 = prices[`${networkString}:${el.token0.id}`]?.price;
     let price1 = prices[`${networkString}:${el.token1.id}`]?.price;
+
+    price0 = price0 !== undefined ? Number(price0.toFixed(precision)) : price0;
+    price1 = price1 !== undefined ? Number(price1.toFixed(precision)) : price1;
 
     if (price0 !== undefined && price1 !== undefined) {
       tvl = Number(el.reserve0) * price0 + Number(el.reserve1) * price1;
@@ -163,6 +223,8 @@ exports.tvl = async (dataNow, networkString) => {
     }
 
     el['totalValueLockedUSD'] = tvl;
+    el['price0'] = price0;
+    el['price1'] = price1;
   }
 
   return dataNowCopy;
@@ -173,34 +235,57 @@ exports.aprToApy = (apr, compoundFrequency = 365) => {
     ((1 + (apr * 0.01) / compoundFrequency) ** compoundFrequency - 1) * 100
   );
 };
+
+exports.apyToApr = (apy, compoundFrequency = 365) => {
+  return (
+    (((apy / 100 + 1) ** (1 / compoundFrequency) - 1) * compoundFrequency) /
+    0.01
+  );
+};
+
 // calculating apy based on subgraph data
-exports.apy = (entry, dataPrior, version) => {
-  entry = { ...entry };
+exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
+  pool = { ...pool };
 
   // uni v2 forks set feeTier to constant
   if (version === 'v2') {
-    entry['feeTier'] = 3000;
+    pool['feeTier'] = 3000;
+  } else if (version === 'stellaswap') {
+    pool['feeTier'] = 2000;
+  } else if (version === 'baseswap') {
+    pool['feeTier'] = 1700;
+  } else if (version === 'zyberswap') {
+    pool['feeTier'] = 1500;
+  } else if (version === 'arbidex') {
+    pool['feeTier'] = 500;
   }
 
   // calc prior volume on 24h offset
-  entry['volumeUSDPrior'] = dataPrior.find(
-    (el) => el.id === entry.id
+  pool['volumeUSDPrior1d'] = dataPrior1d.find(
+    (el) => el.id === pool.id
+  )?.volumeUSD;
+
+  pool['volumeUSDPrior7d'] = dataPrior7d.find(
+    (el) => el.id === pool.id
   )?.volumeUSD;
 
   // calc 24h volume
-  entry['volumeUSD24h'] =
-    Number(entry.volumeUSD) - Number(entry.volumeUSDPrior);
+  pool['volumeUSD1d'] = Number(pool.volumeUSD) - Number(pool.volumeUSDPrior1d);
+  pool['volumeUSD7d'] = Number(pool.volumeUSD) - Number(pool.volumeUSDPrior7d);
 
   // calc fees
-  entry['feeUSD24h'] = (entry.volumeUSD24h * Number(entry.feeTier)) / 1e6;
+  pool['feeUSD1d'] = (pool.volumeUSD1d * Number(pool.feeTier)) / 1e6;
+  pool['feeUSD7d'] = (pool.volumeUSD7d * Number(pool.feeTier)) / 1e6;
 
   // annualise
-  entry['feeUSD365days'] = entry.feeUSD24h * 365;
+  pool['feeUSDyear1d'] = pool.feeUSD1d * 365;
+  pool['feeUSDyear7d'] = pool.feeUSD7d * 52;
 
   // calc apy
-  entry['apy'] = (entry.feeUSD365days / entry.totalValueLockedUSD) * 100;
+  pool['apy1d'] = (pool.feeUSDyear1d / pool.totalValueLockedUSD) * 100;
+  pool['apy7d'] = (pool.feeUSDyear7d / pool.totalValueLockedUSD) * 100;
 
-  return entry;
+  return pool;
 };
 
 exports.keepFinite = (p) => {
@@ -215,12 +300,15 @@ exports.keepFinite = (p) => {
 };
 
 exports.getPrices = async (addresses, chain) => {
+  const priceKeys = chain
+    ? addresses.map((address) => `${chain}:${address}`)
+    : addresses;
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: chain
-        ? addresses.map((address) => `${chain}:${address}`)
-        : addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${priceKeys
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
@@ -332,3 +420,9 @@ const makeMulticall = async (abi, addresses, chain, params = null) => {
 };
 
 exports.makeMulticall = makeMulticall;
+
+const capitalizeFirstLetter = (str) => {
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
+
+exports.capitalizeFirstLetter = capitalizeFirstLetter;

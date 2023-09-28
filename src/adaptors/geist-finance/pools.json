@@ -1,38 +1,38 @@
 [
   {
-    "address": "0x07E6332dD090D287d3489245038daF987955DCFB",
-    "symbol": "gDAI"
+    "interestBearing": "0x07E6332dD090D287d3489245038daF987955DCFB",
+    "underlyingAsset": "0x8D11eC38a3EB5E956B052f67Da8Bdc9bef8Abf3E"
   },
   {
-    "address": "0x25c130B2624CF12A4Ea30143eF50c5D68cEFA22f",
-    "symbol": "gETH"
+    "interestBearing": "0x25c130B2624CF12A4Ea30143eF50c5D68cEFA22f",
+    "underlyingAsset": "0x74b23882a30290451A17c44f4F05243b6b58C76d"
   },
   {
-    "address": "0x39B3bd37208CBaDE74D0fcBDBb12D606295b430a",
-    "symbol": "gFTM"
+    "interestBearing": "0x39B3bd37208CBaDE74D0fcBDBb12D606295b430a",
+    "underlyingAsset": "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"
   },
   {
-    "address": "0x38aCa5484B8603373Acc6961Ecd57a6a594510A3",
-    "symbol": "gWBTC"
+    "interestBearing": "0x38aCa5484B8603373Acc6961Ecd57a6a594510A3",
+    "underlyingAsset": "0x321162Cd933E2Be498Cd2267a90534A804051b11"
   },
   {
-    "address": "0x940F41F0ec9ba1A34CF001cc03347ac092F5F6B5",
-    "symbol": "gfUSDT"
+    "interestBearing": "0x940F41F0ec9ba1A34CF001cc03347ac092F5F6B5",
+    "underlyingAsset": "0x049d68029688eAbF473097a2fC38ef61633A3C7A"
   },
   {
-    "address": "0xe578C856933D8e1082740bf7661e379Aa2A30b26",
-    "symbol": "gUSDC"
+    "interestBearing": "0xe578C856933D8e1082740bf7661e379Aa2A30b26",
+    "underlyingAsset": "0x04068DA6C83AFCFA0e13ba15A6696662335D5B75"
   },
   {
-    "address": "0x690754A168B022331cAA2467207c61919b3F8A98",
-    "symbol": "gCRV"
+    "interestBearing": "0x690754A168B022331cAA2467207c61919b3F8A98",
+    "underlyingAsset": "0x1E4F97b9f9F913c46F1632781732927B9019C68b"
   },
   {
-    "address": "0xc664Fc7b8487a3E10824Cda768c1d239F2403bBe",
-    "symbol": "gMIM"
+    "interestBearing": "0xc664Fc7b8487a3E10824Cda768c1d239F2403bBe",
+    "underlyingAsset": "0x82f0B8B456c1A451378467398982d4834b6829c1"
   },
   {
-    "address": "0xBeCF29265B0cc8D33fA24446599955C7bcF7F73B",
-    "symbol": "gLINK"
+    "interestBearing": "0xBeCF29265B0cc8D33fA24446599955C7bcF7F73B",
+    "underlyingAsset": "0xb3654dc3D10Ea7645f8319668E8F54d2574FBdC8"
   }
 ]

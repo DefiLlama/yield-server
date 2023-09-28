@@ -47,6 +47,10 @@ const getApy = async () => {
       apyReward: rewards[market.jtokenAddress]['USDDNEW'] * 100,
       rewardTokens: ['TPYmHEhy5n8TCEfYGqW2rPxsghSfzghPDn'],
       underlyingTokens: [market.collateralAddress],
+      apyBaseBorrow: market.borrowedAPY * 100,
+      totalSupplyUsd: Number(market.depositedUSD),
+      totalBorrowUsd: Number(market.borrowedUSD),
+      ltv: market.collateralFactor,
     };
   });
 

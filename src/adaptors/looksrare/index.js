@@ -20,22 +20,24 @@ const poolInfo = async (chain) => {
     const rewardPerBlock = (await sdk.api.abi.call({ abi: abi.currentRewardPerBlock, target: feeSharing, chain: chain, })).output;
     const rewardToken = (await sdk.api.abi.call({ abi: abi.rewardToken, target: feeSharing, chain: chain, })).output;
     // looks balance staked in compounder pool
-    const calculateSharesValueInLooks = (await sdk.api.abi.call({ abi: abi.calculateSharesValueInLOOKS, target: feeSharing, chain: chain, params: aggregator })).output;
+    const aggregatorSharesValueInLooks = (await sdk.api.abi.call({ abi: abi.calculateSharesValueInLOOKS, target: feeSharing, chain: chain, params: aggregator })).output;
     const rewardTokens = [rewardToken, looksrare];
     // looks reward per block
     const rewardPerBlockForStaking = (await sdk.api.abi.call({ abi: abi.rewardPerBlockForStaking, target: distributor, chain: chain, })).output;
     const totalAmountStaked = (await sdk.api.abi.call({ abi: abi.totalAmountStaked, target: distributor, chain: chain, })).output;
-
-    const compounderReserve = calculateSharesValueInLooks / 1e18;
+    const thresholdAmount = (await sdk.api.abi.call({ abi: abi.thresholdAmount, target: aggregator, chain: chain, })).output;
+    const compounderReserve = aggregatorSharesValueInLooks / 1e18;
     const standardReserve = (totalAmountStaked / 1e18) - compounderReserve;
 
     return {
         rewardTokens,
-        calculateSharesValueInLooks,
+        aggregatorSharesValueInLooks,
         rewardPerBlock,
         rewardPerBlockForStaking,
         compounderReserve,
         standardReserve,
+        totalAmountStaked,
+        thresholdAmount,
     };
 }
 
@@ -44,28 +46,46 @@ function calculateTvl(reserve, price) {
     return tvl;
 }
 
-function calculateApy(reward, price, tvl) {
+function calculateApr(reward, price, tvl) {
     // yearlyReward = reward X price X blocks
     // tvl = poolBalance X price
     // apy = yearlyReward / tvl
     const BLOCK_TIME = 12;
     const BLOCKS = 365 * 24 * 60 * 60 / BLOCK_TIME;
     const yearlyReward = (reward / 1e18) * price * BLOCKS;
-    const apy = (yearlyReward / tvl) * 100;
+    const apr = (yearlyReward / tvl) * 100;
+    return apr;
+}
 
+function dailyWethCompounds(aggregatorSharesValueInLooks, totalAmountStaked, rewardPerBlock, thresholdAmount) {
+    // daily estimated compounds = weth rewards emitted per day to aggregator contract divided by the threshold amount
+    // threshold amount (in rewardToken) to trigger a sale on uniswap v3
+    const BLOCK_TIME = 12;
+    const BLOCKS = 24 * 60 * 60 / BLOCK_TIME;
+    const aggregatorWethRewardsShare = aggregatorSharesValueInLooks / totalAmountStaked;
+    const aggregatorWethRewardPerDay = (rewardPerBlock / 1e18) * aggregatorWethRewardsShare * BLOCKS;
+    const dailyCompounds = aggregatorWethRewardPerDay / (thresholdAmount / 1e18);
+
+    return dailyCompounds;
+}
+
+function calculateApy(wethApr, dailyCompounds) {
+    // ((1 + r/n )^n) – 1
+    const apr = wethApr / 100;
+    const apy = (((1 + apr / dailyCompounds) ** dailyCompounds) - 1) * 100;
     return apy;
 }
 
-function compounderApy(wethApy, looksApy) {
-    const compounderApy = ((1 + (wethApy / 100)) * (1 + (looksApy / 100)) - 1) * 100;
+function compounderApy(wethApy, looksApr) {
+    // apy = (1 + WETH apy) * (1 + LOOKS apr) - 1
+    const compounderApy = ((1 + (wethApy / 100)) * (1 + (looksApr / 100)) - 1) * 100;
     return compounderApy;
 }
 
 const getPrices = async (chain, addresses) => {
+    const uri = `${addresses.map((address) => `${chain}:${address}`)}`;
     const prices = (
-        await superagent.post('https://coins.llama.fi/prices').send({
-            coins: addresses.map((address) => `${chain}:${address}`),
-        })
+        await superagent.get('https://coins.llama.fi/prices/current/' + uri)
     ).body.coins;
 
     const pricesObj = Object.entries(prices).reduce(
@@ -95,20 +115,22 @@ function exportFormatter(poolId, chain, tvlUsd, apyBase, apyReward, rewardTokens
 }
 
 const getApy = async () => {
-    let poolsApy = [];
+    let pools = [];
     const chain = 'Ethereum';
 
     const pool = await poolInfo(chain.toLowerCase());
     const prices = await getPrices(chain.toLowerCase(), pool.rewardTokens);
     const standardTvl = calculateTvl(pool.standardReserve, prices[looksrare.toLowerCase()]);
     const compounderTvl = calculateTvl(pool.compounderReserve, prices[looksrare.toLowerCase()]);
-    const wethApy = calculateApy(pool.rewardPerBlock, prices[weth.toLowerCase()], standardTvl + compounderTvl);
-    const looksApy = calculateApy(pool.rewardPerBlockForStaking, prices[looksrare.toLowerCase()], standardTvl + compounderTvl);
+    const dailyCompounds = dailyWethCompounds(pool.aggregatorSharesValueInLooks, pool.totalAmountStaked, pool.rewardPerBlock, pool.thresholdAmount);
+    const wethApr = calculateApr(pool.rewardPerBlock, prices[weth.toLowerCase()], standardTvl + compounderTvl);
+    const wethApy = calculateApy(wethApr, dailyCompounds);
+    const looksApr = calculateApr(pool.rewardPerBlockForStaking, prices[looksrare.toLowerCase()], standardTvl + compounderTvl);
 
-    poolsApy.push(exportFormatter(distributor, chain, standardTvl, wethApy, looksApy, [pool.rewardTokens[1]], 'Standard Staking'));
-    poolsApy.push(exportFormatter(aggregator, chain, compounderTvl, compounderApy(wethApy, looksApy), null, [pool.rewardTokens[1]], 'LOOKS Compounder'));
+    pools.push(exportFormatter(distributor, chain, standardTvl, wethApr, looksApr, pool.rewardTokens, 'Standard Staking'));
+    pools.push(exportFormatter(aggregator, chain, compounderTvl, compounderApy(wethApy, looksApr), null, [pool.rewardTokens[1]], 'LOOKS Compounder'));
 
-    return poolsApy;
+    return pools;
 }
 
 

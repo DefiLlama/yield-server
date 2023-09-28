@@ -26,7 +26,8 @@ const connect = async () => {
       // from the connection pool and destroyed.
       // overriding default of 30sec to 60sec to decrease nb of potential reconnects of 1 lambda
       // running multiple adapters
-      idleTimeoutMillis: 60000,
+      idleTimeoutMillis: 30000,
+      max: 5,
     });
   }
   return conn;

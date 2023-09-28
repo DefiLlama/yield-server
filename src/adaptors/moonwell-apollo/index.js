@@ -9,7 +9,9 @@ const CHAIN = 'moonriver';
 const PRICING_CHAIN = 'moonriver:';
 const GET_ALL_MARKETS = 'getAllMarkets';
 const REWARD_SPEED = 'supplyRewardSpeeds';
+const REWARD_SPEED_BORROW = 'borrowRewardSpeeds';
 const SUPPLY_RATE = 'supplyRatePerTimestamp';
+const BORROW_RATE = 'borrowRatePerTimestamp';
 const TOTAL_BORROWS = 'totalBorrows';
 const GET_CHASH = 'getCash';
 const UNDERLYING = 'underlying';
@@ -45,11 +47,12 @@ const REWARD_TYPES = {
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
-
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
       ...acc,
@@ -70,7 +73,7 @@ const calculateApy = (ratePerTimestamps) => {
   );
 };
 
-const getRewards = async (markets, rewardType) => {
+const getRewards = async (markets, rewardType, rewardSpeedMethod) => {
   return (
     await sdk.api.abi.multiCall({
       chain: CHAIN,
@@ -78,7 +81,7 @@ const getRewards = async (markets, rewardType) => {
         target: COMPTROLLER_ADDRESS,
         params: [rewardType, market],
       })),
-      abi: comptrollerAbi.find(({ name }) => name === REWARD_SPEED),
+      abi: comptrollerAbi.find(({ name }) => name === rewardSpeedMethod),
     })
   ).output.map(({ output }) => output);
 };
@@ -104,15 +107,50 @@ const getApy = async () => {
 
   const allMarkets = Object.values(allMarketsRes);
 
+  const markets = (
+    await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      abi: comptrollerAbi.find((n) => n.name === 'markets'),
+      calls: allMarkets.map((m) => ({
+        target: COMPTROLLER_ADDRESS,
+        params: [m],
+      })),
+    })
+  ).output.map((o) => o.output);
+
+  // supply side
   const protocolRewards = await getRewards(
     allMarkets,
-    REWARD_TYPES.PROTOCOL_TOKEN
+    REWARD_TYPES.PROTOCOL_TOKEN,
+    REWARD_SPEED
   );
-  const nativeRewards = await getRewards(allMarkets, REWARD_TYPES.NATIVE_TOKEN);
+  const nativeRewards = await getRewards(
+    allMarkets,
+    REWARD_TYPES.NATIVE_TOKEN,
+    REWARD_SPEED
+  );
+
+  // borrow side
+  const protocolRewardsBorrow = await getRewards(
+    allMarkets,
+    REWARD_TYPES.PROTOCOL_TOKEN,
+    REWARD_SPEED_BORROW
+  );
+  const nativeRewardsBorrow = await getRewards(
+    allMarkets,
+    REWARD_TYPES.NATIVE_TOKEN,
+    REWARD_SPEED_BORROW
+  );
 
   const supplyRewards = await multiCallMarkets(
     allMarkets,
     SUPPLY_RATE,
+    ercDelegator
+  );
+
+  const borrowRewards = await multiCallMarkets(
+    allMarkets,
+    BORROW_RATE,
     ercDelegator
   );
 
@@ -166,7 +204,10 @@ const getApy = async () => {
       price;
     const tvlUsd = (marketsCash[i] / 10 ** decimals) * price;
 
+    const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
+
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
+    const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
 
     const apyReward =
       (((protocolRewards[i] / 10 ** PROTOCOL_TOKEN.decimals) *
@@ -184,6 +225,22 @@ const getApy = async () => {
         totalSupplyUsd) *
       100;
 
+    const apyRewardBorrow =
+      (((protocolRewardsBorrow[i] / 10 ** PROTOCOL_TOKEN.decimals) *
+        BLOCKS_PER_DAY *
+        365 *
+        prices[PROTOCOL_TOKEN.address]) /
+        totalBorrowUsd) *
+      100;
+
+    const apyNativeRewardBorrow =
+      (((nativeRewardsBorrow[i] / 10 ** NATIVE_TOKEN.decimals) *
+        BLOCKS_PER_DAY *
+        365 *
+        prices[NATIVE_TOKEN.address]) /
+        totalBorrowUsd) *
+      100;
+
     return {
       pool: market,
       chain: utils.formatChain(CHAIN),
@@ -197,6 +254,12 @@ const getApy = async () => {
         apyReward ? PROTOCOL_TOKEN.address : null,
         apyNativeReward ? NATIVE_TOKEN.address : null,
       ].filter(Boolean),
+      // borrow fields
+      totalSupplyUsd,
+      totalBorrowUsd,
+      apyBaseBorrow,
+      apyRewardBorrow: apyRewardBorrow + apyNativeRewardBorrow,
+      ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
     };
   });
 

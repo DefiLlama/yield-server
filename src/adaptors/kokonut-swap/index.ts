@@ -31,6 +31,7 @@ const apy = async () => {
       rewardTokens: [
         '0xcd670d77f3dcab82d43dff9bd2c4b87339fb3560', // KOKOS
       ],
+      url: `https://kokonutswap.finance/pools/${pool.address}`,
     };
   });
 
@@ -40,5 +41,4 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy: apy,
-  url: 'https://kokonutswap.finance/pools',
 };

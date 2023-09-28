@@ -43,6 +43,15 @@ const apy = async () => {
               Number(pool.totalSupplyDollar)) *
             100,
           rewardTokens: ['0xDb0f18081b505A7DE20B18ac41856BCB4Ba86A1a'],
+          // borrow fields
+          totalSupplyUsd: Number(pool.totalSupplyDollar),
+          totalBorrowUsd: Number(pool.totalValidBorrowDollar),
+          apyBaseBorrow: Number(pool.borrowApy) * 100,
+          apyRewardBorrow:
+            (Number(pool.annualBorrowWingDistributedDollar) /
+              Number(pool.totalValidBorrowDollar)) *
+            100,
+          ltv: Number(pool.collateralFactor),
         };
       });
   });

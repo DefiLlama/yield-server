@@ -1,7 +1,7 @@
 const utils = require('../utils');
 const main = async () => {
   let data = await utils.getData(
-    'https://notional.finance/.netlify/functions/yields'
+    'https://classic.notional.finance/.netlify/functions/yields'
   );
   const project = 'notional';
   data = data.map((p) => {
@@ -11,6 +11,7 @@ const main = async () => {
       pool: `${p.symbol.replace(/\s/g, '-')}-${project}`,
       symbol: name[0],
       poolMeta: name.length > 1 ? name.slice(1).join(' ') : null,
+      url: `https://www.notional.finance/lend/${name}`,
     };
   });
 
@@ -20,5 +21,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://notional.finance',
 };

@@ -1,5 +1,5 @@
 const utils = require('../utils');
-const Web3 = require('web3');
+const sdk = require('@defillama/sdk');
 
 const sherlockV2ABI = require('./sherlockV2abi.json');
 
@@ -8,27 +8,25 @@ const SherlockV2Contract = '0x0865a889183039689034dA55c1Fd12aF5083eabF';
 const apy = async () => {
   // Fetch APY
   const apyData = await utils.getData(
-    'https://mainnet.indexer.sherlock.xyz/staking'
+    'https://mainnet-indexer.sherlock.xyz/staking'
   );
 
-  const web3 = new Web3(process.env.INFURA_CONNECTION);
-
-  // Fetch V2 pool TVL
-  const sherlockContract = new web3.eth.Contract(
-    sherlockV2ABI.abi,
-    SherlockV2Contract
-  );
-  const v2TVL = web3.utils.toBN(
-    await sherlockContract.methods.totalTokenBalanceStakers().call()
-  );
+  const v2TVL = (
+    await sdk.api.abi.call({
+      target: SherlockV2Contract,
+      abi: sherlockV2ABI.abi.find((m) => m.name === 'totalTokenBalanceStakers'),
+      chain: 'ethereum',
+    })
+  ).output;
 
   const usdcPool = {
     pool: 'sherlock-v2-usdc',
     chain: utils.formatChain('ethereum'),
     project: 'sherlock',
     symbol: utils.formatSymbol('USDC'),
-    tvlUsd: v2TVL.toNumber() / 1e6,
+    tvlUsd: v2TVL / 1e6,
     apy: apyData.usdc_apy,
+    underlyingTokens: ['0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'],
   };
 
   return [usdcPool];

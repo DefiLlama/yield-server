@@ -103,24 +103,42 @@ const queryMc = gql`
   }
 `;
 
-const topLvl = async (chainString, urlExchange, urlRewards) => {
+const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
   try {
     const [block, blockPrior] = await utils.getBlocks(chainString, null, [
       urlExchange,
       urlRewards,
     ]);
 
-    // calc base apy
-    let dataNow = await request(
-      urlExchange,
-      query.replace('<PLACEHOLDER>', block)
+    const [_, blockPrior7d] = await utils.getBlocks(
+      chainString,
+      null,
+      [urlExchange, urlRewards],
+      604800
     );
+
+    // calc base apy
+    let data = (
+      await request(urlExchange, query.replace('<PLACEHOLDER>', block))
+    ).pairs;
     let queryPriorC = queryPrior;
     queryPriorC = queryPriorC.replace('<PLACEHOLDER>', blockPrior);
-    const dataPrior = await request(urlExchange, queryPriorC);
+    const dataPrior = (await request(urlExchange, queryPriorC)).pairs;
 
-    dataNow = await utils.tvl(dataNow.pairs, chainString);
-    let data = dataNow.map((p) => utils.apy(p, dataPrior.pairs, 'v2'));
+    // 7d offset
+    const dataPrior7d = (
+      await request(
+        urlExchange,
+        queryPrior.replace('<PLACEHOLDER>', blockPrior7d)
+      )
+    ).pairs;
+
+    data = await utils.tvl(data, chainString);
+    data = data.map((p) => utils.apy(p, dataPrior, dataPrior7d, 'v2'));
+    data = data.map((p) => ({
+      ...p,
+      totalValueLockedUSDlp: p.totalValueLockedUSD,
+    }));
 
     if (chainString === 'avalanche') {
       return data.map((p) => ({
@@ -128,9 +146,13 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
         chain: utils.formatChain(chainString),
         project: 'sushiswap',
         symbol: utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`),
-        tvlUsd: p.totalValueLockedUSD,
-        apyBase: Number(p.apy),
+        tvlUsd: p.totalValueLockedUSDlp,
+        apyBase: Number(p.apy1d),
+        apyBase7d: Number(p.apy7d),
         underlyingTokens: [p.token0.id, p.token1.id],
+        volumeUsd1d: p.volumeUSD1d,
+        volumeUsd7d: p.volumeUSD7d,
+        url: `https://www.sushi.com/earn/${chainId}:${p.id}`,
       }));
     }
 
@@ -332,9 +354,9 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
     const sushi = `${chainString}:${SUSHI[chainString].toLowerCase()}`;
     coins = [...coins, sushi];
     const tokensUsd = (
-      await superagent.post('https://coins.llama.fi/prices').send({
-        coins,
-      })
+      await superagent.get(
+        `https://coins.llama.fi/prices/current/${coins.join(',').toLowerCase()}`
+      )
     ).body.coins;
 
     // for mc1: calc sushi per year in usd
@@ -403,11 +425,15 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
         chain: utils.formatChain(chainString),
         project: 'sushiswap',
         symbol: utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`),
-        tvlUsd: p.totalValueLockedUSD,
-        apyBase: Number(p.apy),
+        tvlUsd: p.totalValueLockedUSDlp,
+        apyBase: Number(p.apy1d),
+        apyBase7d: Number(p.apy7d),
         apyReward,
         rewardTokens,
         underlyingTokens: [p.token0.id, p.token1.id],
+        volumeUsd1d: p.volumeUSD1d,
+        volumeUsd7d: p.volumeUSD7d,
+        url: `https://www.sushi.com/earn/${chainId}:${p.id}`,
       };
     });
 
@@ -420,10 +446,10 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
 
 const main = async () => {
   let data = await Promise.all([
-    topLvl('ethereum', urlEthereum, urlMc2),
-    topLvl('arbitrum', urlArbitrum, urlMcArbitrum),
-    topLvl('polygon', urlPolygon, urlMcPolygon),
-    topLvl('avalanche', urlAvalanche, null),
+    topLvl('ethereum', urlEthereum, urlMc2, 1),
+    topLvl('arbitrum', urlArbitrum, urlMcArbitrum, 42161),
+    topLvl('polygon', urlPolygon, urlMcPolygon, 137),
+    topLvl('avalanche', urlAvalanche, null, 43114),
   ]);
 
   return data.flat().filter((p) => utils.keepFinite(p));
@@ -432,5 +458,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.sushi.com/trident/pools?chainId=1',
 };

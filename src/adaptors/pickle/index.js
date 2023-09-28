@@ -1,6 +1,8 @@
 const axios = require('axios');
 const utils = require('../utils');
-const pfcore = 'https://api.pickle.finance/prod/protocol/pfcore/';
+// const pfcore = 'https://api.pickle.finance/prod/protocol/pfcore/';
+const pfcore =
+  'https://f8wgg18t1h.execute-api.us-west-1.amazonaws.com/prod/protocol/pfcore';
 
 async function apy() {
   const response = (await axios.get(pfcore))?.data.assets;

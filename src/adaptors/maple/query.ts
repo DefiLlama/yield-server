@@ -19,7 +19,6 @@ module.exports = {
       allowedLPs
       allowedSLs
       balance
-      contractAddress
       currentLoaned
       defaultsTotal
       delegateFee

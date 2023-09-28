@@ -1,0 +1,29 @@
+{
+  "rewardRate": {
+    "inputs": [],
+    "name": "rewardRate",
+    "outputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  "totalDepositsWithBoost": {
+    "inputs": [],
+    "name": "totalDepositsWithBoost",
+    "outputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  "endTimestamp": {
+    "inputs": [],
+    "name": "endTimestamp",
+    "outputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+}

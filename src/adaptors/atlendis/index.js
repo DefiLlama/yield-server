@@ -2,7 +2,7 @@ const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
-const baseUrl = 'https://api.thegraph.com/subgraphs/name/atlendis';
+const baseUrl = 'https://atlendis.herokuapp.com/graphql';
 const urlPolygon = `${baseUrl}/atlendis-hosted-service-polygon`;
 
 const query = gql`
@@ -50,7 +50,8 @@ const buildPool = (entry) => {
     symbol: symbolSplit[1],
     poolMeta: `${symbolSplit[0]} ${symbolSplit[2]}`,
     tvlUsd: entry.tvl,
-    apy: entry.apy,
+    apyBase: entry.apy,
+    url: `https://app.atlendis.io/pools/${entry.pool.id}/deposit`,
   };
 
   return newObj;
@@ -58,10 +59,12 @@ const buildPool = (entry) => {
 
 const main = async () => {
   // pull data
-  data = await request(urlPolygon, query);
+  let data = await request(urlPolygon, query);
 
   // build pool objects
-  data = data.poolStatuses.map((el) => buildPool(el));
+  data = data.poolStatuses
+    .filter((p) => p.state !== 'Closed')
+    .map((el) => buildPool(el));
 
   return data;
 };
@@ -69,5 +72,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.atlendis.io/',
 };

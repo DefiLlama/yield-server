@@ -11,6 +11,7 @@ const main = async () => {
       symbol: utils.formatSymbol('svXAI'),
       tvlUsd: Number(stats.totalValueLocked),
       apy: Number(stats.latestAnnualPercentageYield),
+      underlyingTokens: ['0x35e78b3982e87ecfd5b3f3265b601c046cdbe232'],
     },
   ];
 };

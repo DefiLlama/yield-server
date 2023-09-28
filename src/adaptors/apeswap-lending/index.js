@@ -9,7 +9,9 @@ const REWARD_DISTRIBUTOR = '0x5CB93C0AdE6B7F2760Ec4389833B0cCcb5e4efDa';
 const CHAIN = 'bsc';
 const GET_ALL_MARKETS = 'getAllMarkets';
 const SUPPLY_RATE = 'supplyRatePerBlock';
+const BORROW_RATE = 'borrowRatePerBlock';
 const REWARD_SPEEDS = 'compSupplySpeeds';
+const BORROW_SPEEDS = 'compBorrowSpeeds';
 const TOTAL_BORROWS = 'totalBorrows';
 const GET_CHASH = 'getCash';
 const UNDERLYING = 'underlying';
@@ -30,7 +32,7 @@ const PROTOCOL_TOKEN = {
   address: '0x603c7f932ed1fc6575303d8fb018fdcbb0f39a95'.toLowerCase(),
 };
 
-const getRewards = async (markets) => {
+const getRewards = async (markets, isBorrow) => {
   return (
     await sdk.api.abi.multiCall({
       chain: CHAIN,
@@ -38,16 +40,20 @@ const getRewards = async (markets) => {
         target: REWARD_DISTRIBUTOR,
         params: [market],
       })),
-      abi: distributorAbi.find(({ name }) => name === REWARD_SPEEDS),
+      abi: distributorAbi.find(
+        ({ name }) => name === (isBorrow ? BORROW_SPEEDS : REWARD_SPEEDS)
+      ),
     })
   ).output.map(({ output }) => output);
 };
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
@@ -91,13 +97,31 @@ const lendingApy = async () => {
 
   const allMarkets = Object.values(allMarketsRes);
 
+  const marketsInfo = (
+    await sdk.api.abi.multiCall({
+      chain: 'bsc',
+      calls: allMarkets.map((market) => ({
+        target: COMPTROLLER_ADDRESS,
+        params: market,
+      })),
+      abi: comptrollerAbi.find(({ name }) => name === 'markets'),
+    })
+  ).output.map(({ output }) => output);
+
   const supplyRewards = await multiCallMarkets(
     allMarkets,
     SUPPLY_RATE,
     ercDelegator
   );
 
+  const borrowRewards = await multiCallMarkets(
+    allMarkets,
+    BORROW_RATE,
+    ercDelegator
+  );
+
   const distributeRewards = await getRewards(allMarkets);
+  const distributeBorrowRewards = await getRewards(allMarkets, true);
 
   const marketsCash = await multiCallMarkets(
     allMarkets,
@@ -149,7 +173,10 @@ const lendingApy = async () => {
       price;
     const tvlUsd = (marketsCash[i] / 10 ** decimals) * price;
 
+    const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
+
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
+    const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
 
     const apyReward =
       (((((distributeRewards[i] / 10 ** PROTOCOL_TOKEN.decimals) *
@@ -158,6 +185,15 @@ const lendingApy = async () => {
         365 *
         prices[PROTOCOL_TOKEN.address]) /
         totalSupplyUsd) *
+      100;
+
+    const apyRewardBorrow =
+      (((((distributeBorrowRewards[i] / 10 ** PROTOCOL_TOKEN.decimals) *
+        SECONDS_PER_DAY) /
+        3) *
+        365 *
+        prices[PROTOCOL_TOKEN.address]) /
+        totalBorrowUsd) *
       100;
 
     return {
@@ -172,6 +208,11 @@ const lendingApy = async () => {
       rewardTokens: [apyReward > 0 ? PROTOCOL_TOKEN.address : null].filter(
         Boolean
       ),
+      totalSupplyUsd,
+      totalBorrowUsd,
+      apyBaseBorrow,
+      apyRewardBorrow,
+      ltv: marketsInfo[i].collateralFactorMantissa / 10 ** 18,
     };
   });
 

@@ -1,0 +1,28 @@
+{
+    "getTrackedAssets":{
+        "inputs": [],
+        "name": "getTrackedAssets",
+        "outputs": [
+          {
+            "internalType": "address[]",
+            "name": "_assets",
+            "type": "address[]"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      "totalAssets":{
+        "inputs": [],
+        "name": "totalAssets",
+        "outputs": [
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      }
+    }
