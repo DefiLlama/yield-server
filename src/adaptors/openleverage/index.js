@@ -4,7 +4,7 @@ const LPool = require("./abis/LPool.json");
 const OplContract = require("./abis/OplContract.json");
 const axios = require("axios");
 const utils = require('../utils');
-const { default: BigNumber } = require('bignumber.js');
+const {default: BigNumber} = require('bignumber.js');
 
 openleve_address = {
     "eth": '0x03bf707deb2808f711bb0086fc17c5cafa6e8aaf',
@@ -36,10 +36,6 @@ block_of_year = {
     "arb": 2628000
 }
 
-subgraph_endpoint = {
-    "eth": 'https://api.thegraph.com/subgraphs/name/openleveragedev/openleverage',
-    "bsc": 'https://api.thegraph.com/subgraphs/name/openleveragedev/openleverage-bsc'
-}
 
 async function getTokenPriceInUsdt(chain, tokenAddr) {
     const tokenPrice = (
@@ -73,7 +69,7 @@ async function getSymbol(addr, chain) {
     return decimals;
 }
 
-async function aaa() {
+const main = async () => {
     const result = []
     for (const chain of Object.keys(openleve_address)) {
         const poolInfo = await getPoolList(chain);
@@ -85,6 +81,13 @@ async function aaa() {
                     target: poolDetails.token,
                     chain: coins_llama_name[chain],
                     params: pool
+                })
+            ).output;
+            const totalBorrow = (
+                await sdk.api.abi.call({
+                    abi: LPool.totalBorrows,
+                    target: pool,
+                    chain: coins_llama_name[chain]
                 })
             ).output;
             const poolAPYPerBlock = (
@@ -101,13 +104,14 @@ async function aaa() {
             } catch (e) {
                 // console.error(e)
             }
+
             const poolValues = {
                 pool: `${pool}-${llama_chain_name[chain]}`.toLowerCase(),
                 chain: utils.formatChain(llama_chain_name[chain]),
                 project: 'openleverage',
                 symbol: utils.formatSymbol(poolDetails.name),
-                tvlUsd: new BigNumber(poolBalance).multipliedBy(new BigNumber(tokenPriceInUsdt)).dividedBy(new BigNumber(10).pow(poolDetails.tokenDecimal)).toNumber(),
-                apyBase: new BigNumber(poolAPYPerBlock).multipliedBy(new BigNumber(block_of_year["bsc"])).dividedBy(new BigNumber(10).pow(16)).toNumber(), // in % format
+                tvlUsd: (new BigNumber(poolBalance).plus(new BigNumber(totalBorrow))).multipliedBy(new BigNumber(tokenPriceInUsdt)).dividedBy(new BigNumber(10).pow(poolDetails.tokenDecimal)).toNumber(),
+                apyBase: new BigNumber(poolAPYPerBlock).multipliedBy(new BigNumber(block_of_year[chain])).dividedBy(new BigNumber(10).pow(16)).toNumber(), // in % format
                 url: `https://${opl_chain_name[chain]}.openleverage.finance/app/pool/${pool}`
             };
             console.log(poolValues)
@@ -129,14 +133,13 @@ async function getPoolList(chain) {
     ).output;
 
     let pools = {}
-    // for (var i = 0; i < numPairs; i++) {
-    for (var i = 0; i < 1; i++) {
+    for (var i = 0; i < numPairs; i++) {
         const market = (
             await sdk.api.abi.call({
                 abi: OplContract.markets,
                 target: openleve_address[chain],
                 chain: coins_llama_name[chain],
-                params: i 
+                params: i
             })
         ).output;
         const token0Decimal = await getDecimals(market.token0, chain, erc20.decimals);
@@ -163,11 +166,10 @@ async function getPoolList(chain) {
 
 }
 
-aaa()
-// module.exports = {
-//     timetravel: false,
-//     apy: main, // Main function, returns pools
-//     url: 'https://openleverage.finance/',
-// };
+module.exports = {
+    timetravel: false,
+    apy: main, // Main function, returns pools
+    url: 'https://openleverage.finance/',
+};
 
 
