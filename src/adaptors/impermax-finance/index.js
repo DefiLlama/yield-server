@@ -5,8 +5,8 @@ const { tryUntilSucceed } = require('../../helper/utils');
 const abi = require('./abi');
 const SECONDS_IN_YEAR = BigNumber(365).times(24).times(3600);
 const protocolSlug = 'impermax-finance';
-const sdk = require('@defillama/sdk');
-const { getProvider } = require('@defillama/sdk/build/general');
+const sdk = require('@defillama/sdk4');
+const { getProvider } = require('@defillama/sdk4/build/general');
 const { da } = require('date-fns/locale');
 const { pool } = require('../rocifi-v2/abi');
 
@@ -44,6 +44,11 @@ const config = {
   canto: {
     factories: [
       '0x9708E0B216a88D38d469B255cE78c1369ad898e6',
+    ]
+  },
+  era: {
+    factories: [
+      '0x6ce1a2C079871e4d4b91Ff29E7D2acbD42b46E36',
     ]
   },
   fantom: {
@@ -89,6 +94,7 @@ const blackListedPools = {
     '0x6ed3bc66dfcc5ac05daec840a75836da935fac97', // IMX-WETH
   ],
   canto: [],
+  era: [],
   fantom: [
     '0x877a330af63094d88792b9ca28ac36c71673eb1c', // IMX-FTM
     '0xb97b6ed451480fe6466a558e9c54eaac32e6c696', // OXD-FTM
@@ -205,6 +211,17 @@ const factoryToProtocolMapping = {
       '0x1c813cDd6dAecE2CB83C52F0798504e42816E9C5'.toLowerCase(),
     ],
   },
+  'era': {
+    'Velocore': [
+      '0x36BbDb0DEA4Aa211Dd76dF0a3201c89FD530851b'.toLowerCase(),
+    ],
+    'VeSync': [
+      '0xCF3CAD85885254CBD445d6511c502Da095863f11'.toLowerCase(),
+    ],
+    'DraculaFi': [
+      '0x589a63C2242c8E60cdACF6802AB04a721bA6049d'.toLowerCase(),
+    ],
+  },
   'fantom': {
     'Solidex': [
       '0x8610Dc1912a55761a713D827a1a1ad131bE8f579'.toLowerCase(),
@@ -301,6 +318,7 @@ const getAllLendingPools = async (factory, chain, block) => {
     })
   );
   let lendingPoolAddresses = lendingPoolsResults.map((i) => i.output);
+  // let lendingPoolAddresses = ['0xE4702e545F4bF51FD383d00F01Bc284Ec9B8aa64', '0x06D3AE1Cfe7D3D27B8b9f541E2d76e5f33778923'];
 
   // remove blacklisted pools
   lendingPoolAddresses = lendingPoolAddresses.filter(
@@ -426,31 +444,34 @@ const getUnderlyingLiquidityPoolAddresses = async (
       abi: abi.symbol,
       chain,
       block,
+      requery: true,
     })
   );
-
   const lendingPoolSymbols = lendingPoolSymbolsResults.map((i) => i.output);
 
   // get underlying LP related info
   let lpAddressesCalls = [];
   let lpAddressesCallsIndex = [];
   for (let index = 0; index < lendingPoolAddresses.length; index++) {
-    // slightly different logic for ethereum lending pools where underlying liquidity pool is the same as the impermax's lending pool
-    // if (lendingPoolSymbols[index] === 'UNI-V2') {
       lpAddressesCalls.push({ target: lendingPoolAddresses[index] });
       lpAddressesCallsIndex.push(index);
-    // }
   }
-  const { output: underlyingLpAddressesResults } = await tryUntilSucceed(() =>
-    sdk.api.abi.multiCall({
-      abi: abi.underlying,
-      calls: lendingPoolAddressesTargetCalls,
-      chain,
-      block,
-    })
-  );
-  let underlyingLpAddresses = underlyingLpAddressesResults.map((i) => i.output);
-  // for slp and spLP use same lendingpool as underlying
+
+  let underlyingLpAddresses = lendingPoolAddresses;
+
+  if (chain !== 'ethereum') {
+    const { output: underlyingLpAddressesResults } = await tryUntilSucceed(() =>
+      sdk.api.abi.multiCall({
+        abi: abi.underlying,
+        calls: lpAddressesCalls,
+        chain,
+        block,
+        permitFailure: true,
+      }),
+    );
+    underlyingLpAddresses = underlyingLpAddressesResults.map((i) => i.output);
+  }
+
   if (lpAddressesCalls.length > 0) {
     for (let x = 0; x < lpAddressesCalls.length; x++) {
       underlyingLpAddresses[lpAddressesCallsIndex[x]] =
@@ -467,6 +488,7 @@ const getUnderlyingLiquidityPoolAddresses = async (
         abi: abi.symbol,
         chain,
         block,
+        requery: true,
       })
     );
   const underlyingLiquidityPoolSymbols =
@@ -510,6 +532,7 @@ const buildPoolMetadata = async (
       abi: abi.factory,
       chain,
       block,
+      requery: true,
     })
   );
   const lendingPoolFactoriesNoDuplicates = lendingPoolFactory.map((i) => i.output);
@@ -817,6 +840,7 @@ const main = async () => {
               params: null,
             })),
             chain: chain,
+            requery: true,
           })
       )
     );
