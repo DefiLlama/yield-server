@@ -1,83 +1,148 @@
+const sdk = require('@defillama/sdk');
+const axios = require('axios');
+const { ethers } = require('ethers');
+const { getProvider } = require('@defillama/sdk/build/general');
 const utils = require('../utils');
-const superagent = require('superagent');
+const { SECONDS_PER_YEAR, contracts, tokens } = require('./constants');
 
-const buildPool = (
-  tokenAddress,
-  tokenSymbol,
-  acrossApiPoolDataForToken,
-  wethPriceData,
-  decimals
-) => {
+const fixedPoint = ethers.utils.parseUnits('1');
+
+const rewardApr = (underlyingToken, stakingPool, rewardToken) => {
+  const { enabled, baseEmissionRate, cumulativeStaked } = stakingPool;
+
+  if (!enabled) return 0.0;
+
+  // Avoid divide by zero later on.
+  if (cumulativeStaked.eq(0)) return Number.MAX_VALUE;
+
+  const underlyingTokenPrice = ethers.utils.parseUnits(
+    underlyingToken.price.toString()
+  );
+  const rewardTokenPrice = ethers.utils.parseUnits(
+    rewardToken.price.toString()
+  );
+
+  // Normalise to 18 decimals and convert LP token => underlying token.
+  const cumulativeStakedUsd = cumulativeStaked
+    .mul(ethers.utils.parseUnits('1', 18 - underlyingToken.decimals).toString())
+    .mul(underlyingToken.exchangeRateCurrent)
+    .div(fixedPoint)
+    .mul(underlyingTokenPrice)
+    .div(fixedPoint);
+
+  const rewardsPerYearUsd = baseEmissionRate
+    .mul(ethers.utils.parseUnits('1', 18 - rewardToken.decimals).toString())
+    .mul(SECONDS_PER_YEAR.toString())
+    .mul(rewardTokenPrice)
+    .div(fixedPoint);
+
+  const apr = ethers.utils.formatUnits(
+    rewardsPerYearUsd.mul('100').mul(fixedPoint).div(cumulativeStakedUsd)
+  );
+
+  return Number(apr);
+};
+
+const queryLiquidityPool = async (l1TokenAddr) => {
+  return (await axios.get(`https://across.to/api/pools?token=${l1TokenAddr}`))
+    .data;
+};
+
+const queryLiquidityPools = async (l1TokenAddrs) => {
+  const pools = await Promise.all(
+    l1TokenAddrs.map((l1TokenAddr) => queryLiquidityPool(l1TokenAddr))
+  );
+
+  return Object.fromEntries(
+    pools.map((pool, i) => {
+      return [l1TokenAddrs[i].toLowerCase(), pool];
+    })
+  );
+};
+
+const queryStakingPools = async (provider, lpTokenAddrs) => {
+  const { address, abi } = contracts.AcceleratedDistributor;
+  const adContract = new ethers.Contract(address, abi, provider);
+  await adContract.connect();
+
+  const rewardToken = (await adContract.rewardToken()).toLowerCase();
+  const pools = Object.fromEntries(
+    await Promise.all(
+      Object.values(lpTokenAddrs).map(async (lpTokenAddr) => {
+        const pool = await adContract.stakingTokens(lpTokenAddr);
+        return [lpTokenAddr, pool];
+      })
+    )
+  );
+
   return {
-    pool: tokenAddress,
-    chain: utils.formatChain('ethereum'), // All yield on Mainnet
-    project: 'across',
-    symbol: utils.formatSymbol(tokenSymbol),
-    tvlUsd:
-      (wethPriceData.body.coins[`ethereum:${tokenAddress}`].price *
-        Number(acrossApiPoolDataForToken.totalPoolSize)) /
-      10 ** decimals,
-    apyBase: Number(acrossApiPoolDataForToken.estimatedApy) * 100,
-    underlyingTokens: [tokenAddress],
+    rewardToken: rewardToken,
+    pools: pools,
   };
 };
 
-const topLvl = async (token) => {
-  let data = await utils.getData(`https://across.to/api/pools?token=${token}`);
-  return data;
-};
-
 const main = async () => {
-  const [weth, usdc, wbtc, dai, wethPrice, usdcPrice, wbtcPrice, daiPrice] =
-    await Promise.all([
-      topLvl('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'),
-      topLvl('0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'),
-      topLvl('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'),
-      topLvl('0x6b175474e89094c44da98b954eedeac495271d0f'),
-      superagent.post('https://coins.llama.fi/prices').send({
-        coins: ['ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'],
-      }),
-      superagent.post('https://coins.llama.fi/prices').send({
-        coins: ['ethereum:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'],
-      }),
-      superagent.post('https://coins.llama.fi/prices').send({
-        coins: ['ethereum:0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'],
-      }),
-      superagent.post('https://coins.llama.fi/prices').send({
-        coins: ['ethereum:0x6b175474e89094c44da98b954eedeac495271d0f'],
-      }),
-    ]);
+  const provider = getProvider('ethereum');
 
-  return [
-    buildPool(
-      '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
-      'WETH',
-      weth,
-      wethPrice,
-      18
-    ),
-    buildPool(
-      '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-      'USDC',
-      usdc,
-      usdcPrice,
-      6
-    ),
-    buildPool(
-      '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
-      'WBTC',
-      wbtc,
-      wbtcPrice,
-      8
-    ),
-    buildPool(
-      '0x6b175474e89094c44da98b954eedeac495271d0f',
-      'DAI',
-      dai,
-      daiPrice,
-      18
-    ),
-  ];
+  // Note lpTokenAddrs is included in the Across API /pools response. These
+  // LP token addresses are however hardcoded in constants so that the staking
+  // pool lookups can occur in parallel with all other external lookups.
+  const tokenAddrs = Object.values(tokens).map((token) => token.address);
+  const lpTokenAddrs = Object.values(tokens).map((token) => token.lpAddress);
+
+  const [totalSupplyRes, decimalsRes] = await Promise.all(
+    ['erc20:totalSupply', 'erc20:decimals'].map(
+      async (m) =>
+        await sdk.api.abi.multiCall({
+          calls: lpTokenAddrs.map((i) => ({ target: i })),
+          abi: m,
+        })
+    )
+  );
+  const totalSupply = totalSupplyRes.output.map((o) => o.output);
+  const decimals = decimalsRes.output.map((o) => o.output);
+
+  const keys = tokenAddrs.map((addr) => `ethereum:${addr}`).join();
+  const tokenPrices = (
+    await axios.get(`https://coins.llama.fi/prices/current/${keys}`)
+  ).data.coins;
+
+  const [liquidityPools, stakingPools] = await Promise.all([
+    queryLiquidityPools(tokenAddrs),
+    queryStakingPools(provider, lpTokenAddrs),
+  ]);
+
+  return Object.entries(tokens).map((token, i) => {
+    const underlying = token[1].address;
+    const rewardToken = stakingPools.rewardToken;
+
+    const underlyingPrice = tokenPrices[`ethereum:${underlying}`]?.price;
+
+    const tvlUsd = (underlyingPrice * totalSupply[i]) / 10 ** decimals[i];
+
+    const apyReward = rewardApr(
+      {
+        ...token,
+        price: underlyingPrice,
+        exchangeRateCurrent: liquidityPools[underlying].exchangeRateCurrent,
+        decimals: decimals[i],
+      },
+      stakingPools.pools[lpTokenAddrs[i]],
+      tokenPrices[`ethereum:${rewardToken}`]
+    );
+
+    return {
+      pool: underlying, // should be changed to lp token
+      chain: 'Ethereum',
+      project: 'across',
+      symbol: utils.formatSymbol(token[0]),
+      tvlUsd,
+      underlyingTokens: [underlying],
+      apyBase: Number(liquidityPools[underlying].estimatedApy) * 100,
+      apyReward: apyReward > 0 ? apyReward : 0,
+      rewardTokens: apyReward > 0 ? [rewardToken] : null,
+    };
+  });
 };
 
 module.exports = {

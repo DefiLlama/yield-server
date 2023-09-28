@@ -1,50 +1,56 @@
 const utils = require('../utils');
 
-const baseUrl = 'https://api.yearn.finance/v1/chains';
-
-const urls = {
-  ethereum: `${baseUrl}/1/vaults/all`,
-  fantom: `${baseUrl}/250/vaults/all`,
-  arbitrum: `${baseUrl}/42161/vaults/all`,
+const chains = {
+  ethereum: 1,
+  fantom: 250,
+  arbitrum: 42161,
+  optimism: 10,
+  base: 8453,
 };
 
-const buildPool = (entry, chainString) => {
-  const newObj = {
-    pool: entry.address,
-    chain: utils.formatChain(chainString),
-    project: 'yearn-finance',
-    symbol: utils.formatSymbol(entry.symbol),
-    tvlUsd: entry.tvl.tvl,
-    apy: entry.apy.net_apy * 100,
-  };
-  return newObj;
-};
+const getApy = async () => {
+  const data = await Promise.all(
+    Object.entries(chains).map(async (chain) => {
+      const data = await utils.getData(
+        `https://ydaemon.yearn.fi/${chain[1]}/vaults/all`
+      );
 
-const topLvl = async (chainString) => {
-  // pull data
-  let data = await utils.getData(urls[chainString]);
+      return data.map((p) => {
+        if (p.details.retired || p.details.hideAlways) return {};
 
-  // filter to v2 only
-  data = data.filter((el) => el.type === 'v2');
+        const underlying = p.token.underlyingTokensAddresses;
 
-  // build pool objects
-  data = data.map((el) => buildPool(el, chainString));
+        // OP incentives via yvToken staking
+        const apyReward = p.apy?.staking_rewards_apr * 100;
 
-  return data;
-};
+        return {
+          pool: p.address,
+          chain: utils.formatChain(chain[0]),
+          project: 'yearn-finance',
+          symbol: utils.formatSymbol(p.token.display_symbol),
+          tvlUsd: p.tvl.tvl_deposited,
+          apy: p.apy.net_apy * 100,
+          apyReward,
+          rewardTokens:
+            apyReward > 0 ? ['0x4200000000000000000000000000000000000042'] : [],
+          url: `https://yearn.fi/vaults/${chains[chain[0]]}/${p.address}`,
+          underlyingTokens:
+            underlying.length === 0 ? [p.token.address] : underlying,
+        };
+      });
+    })
+  );
 
-const main = async () => {
-  const data = await Promise.all([
-    topLvl('ethereum'),
-    topLvl('fantom'),
-    topLvl('arbitrum'),
-  ]);
-
-  return data.flat();
+  return (
+    data
+      .flat()
+      .filter((p) => utils.keepFinite(p))
+      // old usdc vault
+      .filter((p) => p.pool !== '0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9')
+  );
 };
 
 module.exports = {
   timetravel: false,
-  apy: main,
-  url: 'https://yearn.finance/vaults',
+  apy: getApy,
 };

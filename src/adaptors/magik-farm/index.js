@@ -166,14 +166,14 @@ const apy = async (dataLpPrices, dataTokenPrices, dataApy, networkMapping) => {
             project: protocolSlug,
             symbol: utils.formatSymbol(poolToken),
             tvlUsd: (balance / Math.pow(10, tokenDecimals)) * price,
-            apy: !isNaN(poolApy.totalApy) ? poolApy.totalApy * 100 : null,
+            apy: !isNaN(poolApy?.totalApy) ? poolApy.totalApy * 100 : null,
           };
           data.push(poolData);
         }
       }
     }
   }
-  return data;
+  return data.filter((p) => utils.keepFinite(p));
 };
 
 const main = async () => {

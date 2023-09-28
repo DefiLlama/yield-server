@@ -1,0 +1,313 @@
+module.exports = [
+  {
+    inputs: [
+      {
+        internalType: 'contract IMasterPlatypusV4',
+        name: '_MP',
+        type: 'address',
+      },
+      { internalType: 'contract IERC20', name: '_lpToken', type: 'address' },
+      { internalType: 'uint40', name: '_startTimestamp', type: 'uint40' },
+      { internalType: 'uint16', name: '_dilutingRepartition', type: 'uint16' },
+      {
+        internalType: 'contract IERC20',
+        name: '_rewardToken',
+        type: 'address',
+      },
+      { internalType: 'uint96', name: '_tokenPerSec', type: 'uint96' },
+    ],
+    stateMutability: 'nonpayable',
+    type: 'constructor',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: 'address',
+        name: 'rewardToken',
+        type: 'address',
+      },
+      { indexed: true, internalType: 'address', name: 'user', type: 'address' },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'amount',
+        type: 'uint256',
+      },
+    ],
+    name: 'OnReward',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: 'address',
+        name: 'previousOwner',
+        type: 'address',
+      },
+      {
+        indexed: true,
+        internalType: 'address',
+        name: 'newOwner',
+        type: 'address',
+      },
+    ],
+    name: 'OwnershipTransferred',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: 'address',
+        name: 'rewardToken',
+        type: 'address',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'oldRate',
+        type: 'uint256',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'newRate',
+        type: 'uint256',
+      },
+    ],
+    name: 'RewardRateUpdated',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: 'address', name: 'user', type: 'address' },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'dilutingRepartition',
+        type: 'uint256',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'nonDilutingRepartition',
+        type: 'uint256',
+      },
+    ],
+    name: 'UpdateEmissionRepartition',
+    type: 'event',
+  },
+  {
+    inputs: [],
+    name: 'MP',
+    outputs: [
+      { internalType: 'contract IMasterPlatypusV4', name: '', type: 'address' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'contract IERC20',
+        name: '_rewardToken',
+        type: 'address',
+      },
+      { internalType: 'uint96', name: '_tokenPerSec', type: 'uint96' },
+    ],
+    name: 'addRewardToken',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'balances',
+    outputs: [
+      { internalType: 'uint256[]', name: 'balances_', type: 'uint256[]' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'dilutingRepartition',
+    outputs: [{ internalType: 'uint16', name: '', type: 'uint16' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'token', type: 'address' }],
+    name: 'emergencyTokenWithdraw',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'emergencyWithdraw',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'lastRewardTimestamp',
+    outputs: [{ internalType: 'uint40', name: '', type: 'uint40' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'lpToken',
+    outputs: [{ internalType: 'contract IERC20', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: '_user', type: 'address' },
+      { internalType: 'uint256', name: '_lpAmount', type: 'uint256' },
+      { internalType: 'uint256', name: '_newLpAmount', type: 'uint256' },
+      { internalType: 'uint256', name: '_factor', type: 'uint256' },
+      { internalType: 'uint256', name: '_newFactor', type: 'uint256' },
+    ],
+    name: 'onPtpReward',
+    outputs: [
+      { internalType: 'uint256[]', name: 'rewards', type: 'uint256[]' },
+    ],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: '_user', type: 'address' },
+      { internalType: 'uint256', name: '_lpAmount', type: 'uint256' },
+      { internalType: 'uint256', name: '_factor', type: 'uint256' },
+      { internalType: 'uint256', name: '_newFactor', type: 'uint256' },
+    ],
+    name: 'onUpdateFactor',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'operator',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'owner',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: '_user', type: 'address' },
+      { internalType: 'uint256', name: '_lpAmount', type: 'uint256' },
+      { internalType: 'uint256', name: '_factor', type: 'uint256' },
+    ],
+    name: 'pendingTokens',
+    outputs: [
+      { internalType: 'uint256[]', name: 'rewards', type: 'uint256[]' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    name: 'poolInfo',
+    outputs: [
+      { internalType: 'contract IERC20', name: 'rewardToken', type: 'address' },
+      { internalType: 'uint96', name: 'tokenPerSec', type: 'uint96' },
+      { internalType: 'uint128', name: 'accTokenPerShare', type: 'uint128' },
+      {
+        internalType: 'uint128',
+        name: 'accTokenPerFactorShare',
+        type: 'uint128',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'poolLength',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'renounceOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'rewardTokens',
+    outputs: [
+      { internalType: 'contract IERC20[]', name: 'tokens', type: 'address[]' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '_operator', type: 'address' }],
+    name: 'setOperator',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'uint256', name: '_tokenId', type: 'uint256' },
+      { internalType: 'uint96', name: '_tokenPerSec', type: 'uint96' },
+    ],
+    name: 'setRewardRate',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'newOwner', type: 'address' }],
+    name: 'transferOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'uint16', name: '_dilutingRepartition', type: 'uint16' },
+    ],
+    name: 'updateEmissionRepartition',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'uint256', name: '', type: 'uint256' },
+      { internalType: 'address', name: '', type: 'address' },
+    ],
+    name: 'userInfo',
+    outputs: [
+      { internalType: 'uint128', name: 'rewardDebt', type: 'uint128' },
+      { internalType: 'uint128', name: 'claimable', type: 'uint128' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  { stateMutability: 'payable', type: 'receive' },
+];

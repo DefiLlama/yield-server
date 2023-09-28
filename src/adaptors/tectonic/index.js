@@ -7,8 +7,11 @@ const { comptrollerAbi, ercDelegator } = require('./abi');
 const COMPTROLLER_ADDRESS = '0xb3831584acb95ED9cCb0C11f677B5AD01DeaeEc0';
 const CHAIN = 'cronos';
 const GET_ALL_MARKETS = 'getAllMarkets';
-const REWARD_SPEED = 'tonicSpeeds';
+// const REWARD_SPEED = 'tonicSpeeds';
+const REWARD_SPEED = 'tonicSupplySpeeds';
+const REWARD_SPEED_BORROW = 'tonicBorrowSpeeds';
 const SUPPLY_RATE = 'supplyRatePerBlock';
+const BORROW_RATE = 'borrowRatePerBlock';
 const TOTAL_BORROWS = 'totalBorrows';
 const GET_CHASH = 'getCash';
 const UNDERLYING = 'underlying';
@@ -29,11 +32,12 @@ const PROTOCOL_TOKEN = {
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
-
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
       ...acc,
@@ -54,7 +58,7 @@ const calculateApy = (ratePerTimestamps) => {
   );
 };
 
-const getRewards = async (markets) => {
+const getRewards = async (markets, rewardMethod) => {
   return (
     await sdk.api.abi.multiCall({
       chain: CHAIN,
@@ -62,7 +66,7 @@ const getRewards = async (markets) => {
         target: COMPTROLLER_ADDRESS,
         params: [market],
       })),
-      abi: comptrollerAbi.find(({ name }) => name === REWARD_SPEED),
+      abi: comptrollerAbi.find(({ name }) => name === rewardMethod),
     })
   ).output.map(({ output }) => output);
 };
@@ -88,11 +92,29 @@ const getApy = async () => {
 
   const allMarkets = Object.values(allMarketsRes);
 
-  const extraRewards = await getRewards(allMarkets);
+  const markets = (
+    await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      abi: comptrollerAbi.find((n) => n.name === 'markets'),
+      calls: allMarkets.map((m) => ({
+        target: COMPTROLLER_ADDRESS,
+        params: [m],
+      })),
+    })
+  ).output.map((o) => o.output);
+
+  const extraRewards = await getRewards(allMarkets, REWARD_SPEED);
+  const extraRewardsBorrow = await getRewards(allMarkets, REWARD_SPEED_BORROW);
 
   const supplyRewards = await multiCallMarkets(
     allMarkets,
     SUPPLY_RATE,
+    ercDelegator
+  );
+
+  const borrowRewards = await multiCallMarkets(
+    allMarkets,
+    BORROW_RATE,
     ercDelegator
   );
 
@@ -143,15 +165,23 @@ const getApy = async () => {
       price;
     const tvlUsd = (marketsCash[i] / 10 ** decimals) * price;
 
-    const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
+    const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
 
-    const apyReward =
-      (((extraRewards[i] / 10 ** PROTOCOL_TOKEN.decimals) *
-        BLOCKS_PER_DAY *
-        365 *
-        prices[PROTOCOL_TOKEN.address]) /
-        totalSupplyUsd) *
-      100;
+    const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
+    const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
+
+    const calcRewardApy = (rewards, denom) => {
+      return (
+        (((rewards[i] / 10 ** PROTOCOL_TOKEN.decimals) *
+          BLOCKS_PER_DAY *
+          365 *
+          prices[PROTOCOL_TOKEN.address]) /
+          denom) *
+        100
+      );
+    };
+    const apyReward = calcRewardApy(extraRewards, totalSupplyUsd);
+    const apyRewardBorrow = calcRewardApy(extraRewardsBorrow, totalBorrowUsd);
 
     return {
       pool: market,
@@ -160,9 +190,16 @@ const getApy = async () => {
       symbol,
       tvlUsd,
       apyBase,
-      apyReward: apyReward,
+      apyReward,
       underlyingTokens: [token],
       rewardTokens: [apyReward ? PROTOCOL_TOKEN.address : null].filter(Boolean),
+      url: `https://app.tectonic.finance/markets/${symbol.toLowerCase()}`,
+      // borrow fields
+      totalSupplyUsd,
+      totalBorrowUsd,
+      apyBaseBorrow,
+      apyRewardBorrow,
+      ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
     };
   });
 
@@ -172,5 +209,4 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://app.tectonic.finance/markets/',
 };

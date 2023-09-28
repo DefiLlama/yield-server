@@ -7,14 +7,12 @@ const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
 const { sendMessage } = require('../utils/discordWebhook');
 const { connect } = require('../utils/dbConnection');
-const {
-  getYieldProject,
-  buildInsertYieldQuery,
-} = require('../controllers/yieldController');
+const { getYieldProject, buildInsertYieldQuery } = require('../queries/yield');
 const {
   getConfigProject,
   buildInsertConfigQuery,
-} = require('../controllers/configController');
+  getDistinctProjects,
+} = require('../queries/config');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -49,6 +47,11 @@ const main = async (body) => {
   console.log(body.adaptor);
   const project = require(`../adaptors/${body.adaptor}`);
   let data = await project.apy();
+  console.log(data[0]);
+
+  const protocolConfig = (
+    await superagent.get('https://api.llama.fi/config/yields?a=1')
+  ).body.protocols;
 
   // ---------- prepare prior insert
   // remove potential null/undefined objects in array
@@ -60,12 +63,18 @@ const main = async (body) => {
   // number to string. so in order for the below filters to work proplerly we need to guarantee that the
   // datatypes are correct (on db insert, mongoose checks field types against the schema and the bulk insert
   // will fail if a pools field types doesnt match)
+  const strToNum = (val) => (typeof val === 'string' ? Number(val) : val);
   data = data.map((p) => ({
     ...p,
-    apy: typeof p.apy === 'string' ? Number(p.apy) : p.apy,
-    apyBase: typeof p.apyBase === 'string' ? Number(p.apyBase) : p.apyBase,
-    apyReward:
-      typeof p.apyReward === 'string' ? Number(p.apyReward) : p.apyReward,
+    apy: strToNum(p.apy),
+    apyBase: strToNum(p.apyBase),
+    apyReward: strToNum(p.apyReward),
+    apyBaseBorrow: strToNum(p.apyBaseBorrow),
+    apyRewardBorrow: strToNum(p.apyRewardBorrow),
+    apyBase7d: strToNum(p.apyBase7d),
+    apyRewardFake: strToNum(p.apyRewardFake),
+    apyRewardBorrowFake: strToNum(p.apyRewardBorrowFake),
+    apyBaseInception: strToNum(p.apyBaseInception),
   }));
 
   // filter tvl to be btw lb-ub
@@ -81,6 +90,18 @@ const main = async (body) => {
     apy: Number.isFinite(p.apy) ? p.apy : null,
     apyBase: Number.isFinite(p.apyBase) ? p.apyBase : null,
     apyReward: Number.isFinite(p.apyReward) ? p.apyReward : null,
+    apyBaseBorrow: Number.isFinite(p.apyBaseBorrow) ? p.apyBaseBorrow : null,
+    apyRewardBorrow: Number.isFinite(p.apyRewardBorrow)
+      ? p.apyRewardBorrow
+      : null,
+    apyBase7d: Number.isFinite(p.apyBase7d) ? p.apyBase7d : null,
+    apyRewardFake: Number.isFinite(p.apyRewardFake) ? p.apyRewardFake : null,
+    apyRewardBorrowFake: Number.isFinite(p.apyRewardBorrowFake)
+      ? p.apyRewardBorrowFake
+      : null,
+    apyBaseInception: Number.isFinite(p.apyBaseInception)
+      ? p.apyBaseInception
+      : null,
   }));
 
   // remove pools where all 3 apy related fields are null
@@ -89,12 +110,23 @@ const main = async (body) => {
   );
 
   // in case of negative apy values (cause of bug, or else we set those to 0)
+  // note: for options apyBase can be negative
   data = data.map((p) => ({
     ...p,
     apy: p.apy < 0 ? 0 : p.apy,
-    apyBase: p.apyBase < 0 ? 0 : p.apyBase,
-    // this shouldn't be lower than 0 lol, but leaving it here anyways in case of bug in adapter
+    apyBase:
+      protocolConfig[body.adaptor]?.category === 'Options' ||
+      ['mellow-protocol', 'sommelier', 'abracadabra'].includes(body.adaptor)
+        ? p.apyBase
+        : p.apyBase < 0
+        ? 0
+        : p.apyBase,
     apyReward: p.apyReward < 0 ? 0 : p.apyReward,
+    apyBaseBorrow: p.apyBaseBorrow < 0 ? 0 : p.apyBaseBorrow,
+    apyRewardBorrow: p.apyRewardBorrow < 0 ? 0 : p.apyRewardBorrow,
+    apyBase7d: p.apyBase7d < 0 ? 0 : p.apyBase7d,
+    apyRewardFake: p.apyRewardFake < 0 ? 0 : p.apyRewardFake,
+    apyRewardBorrowFake: p.apyRewardBorrowFake < 0 ? 0 : p.apyRewardBorrowFake,
   }));
 
   // derive final total apy field
@@ -123,6 +155,146 @@ const main = async (body) => {
   // remove exclusion pools
   data = data.filter((p) => !exclude.excludePools.includes(p.pool));
 
+  // format chain symbol
+  data = data.map((p) => ({ ...p, chain: utils.formatChain(p.chain) }));
+  // change chain `Binance` -> `BSC`
+  data = data.map((p) => ({
+    ...p,
+    chain:
+      p.chain === 'Binance'
+        ? 'BSC'
+        : p.chain === 'Avax'
+        ? 'Avalanche'
+        : p.chain,
+  }));
+  console.log(data.length);
+
+  // ---- add IL (only for dexes + pools with underlyingTokens array)
+  // need the protocol response to check if adapter.body === 'Dexes' category
+
+  // required conditions to calculate IL field
+  const uniV3Forks = [
+    'uniswap-v3',
+    'hydradex-v3',
+    'forge',
+    'arbitrum-exchange-v3',
+    'maia-v3',
+    'ramses-v2',
+  ];
+  if (
+    data[0]?.underlyingTokens?.length &&
+    protocolConfig[body.adaptor]?.category === 'Dexes' &&
+    !['balancer-v2', 'curve-dex', 'clipper'].includes(body.adaptor) &&
+    !['elrond', 'near', 'hedera', 'carbon'].includes(
+      data[0].chain.toLowerCase()
+    )
+  ) {
+    // extract all unique underlyingTokens
+    const uniqueToken = [
+      ...new Set(
+        data
+          .map((p) => p.underlyingTokens?.map((t) => `${p.chain}:${t}`))
+          .flat()
+      ),
+    ].filter(Boolean);
+
+    // prices now
+    const priceUrl = 'https://coins.llama.fi/prices';
+    const prices = (
+      await utils.getData(priceUrl, {
+        coins: uniqueToken,
+      })
+    ).coins;
+
+    const timestamp7daysAgo = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
+    // price endpoint seems to break with too many tokens, splitting it to max 150 per request
+    const maxSize = 150;
+    const pages = Math.ceil(uniqueToken.length / maxSize);
+    let prices7d_ = [];
+    let x = '';
+    for (const p of [...Array(pages).keys()]) {
+      x = uniqueToken.slice(p * maxSize, maxSize * (p + 1)).join(',');
+      prices7d_ = [
+        ...prices7d_,
+        (
+          await superagent.get(
+            `https://coins.llama.fi/prices/historical/${timestamp7daysAgo}/${x}`
+          )
+        ).body.coins,
+      ];
+    }
+    // flatten
+    let prices7d = {};
+    for (const p of prices7d_.flat()) {
+      prices7d = { ...prices7d, ...p };
+    }
+    prices7d = Object.fromEntries(
+      Object.entries(prices7d).map(([k, v]) => [k.toLowerCase(), v])
+    );
+
+    // calc IL
+    data = data.map((p) => {
+      if (p?.underlyingTokens === null || p?.underlyingTokens === undefined)
+        return { ...p };
+      // extract prices
+      const token0 = `${p.chain}:${p.underlyingTokens[0]}`.toLowerCase();
+      const token1 = `${p.chain}:${p.underlyingTokens[1]}`.toLowerCase();
+
+      // now
+      const price0 = prices[token0]?.price;
+      const price1 = prices[token1]?.price;
+
+      // 7 days ago
+      const price0_7d = prices7d[token0]?.price;
+      const price1_7d = prices7d[token1]?.price;
+
+      // relative price changes
+      const pctChangeX = (price0 - price0_7d) / price0_7d;
+      const pctChangeY = (price1 - price1_7d) / price1_7d;
+
+      // return in case of missing/weird prices
+      if (!Number.isFinite(pctChangeX) || !Number.isFinite(pctChangeY))
+        return { ...p };
+
+      // d paramter (P1 / P0)
+      const d = (1 + pctChangeX) / (1 + pctChangeY);
+
+      // IL(d)
+      let il7d = ((2 * Math.sqrt(d)) / (1 + d) - 1) * 100;
+
+      // for uni v3
+      if (uniV3Forks.includes(body.adaptor)) {
+        const P = price1 / price0;
+
+        // for stablecoin pools, we assume a +/- 0.1% range around current price
+        // for non-stablecoin pools -> +/- 30%
+        const pct = 0.3;
+        const pctStablePool = 0.001;
+        const delta = p.poolMeta.includes('stablePool=true')
+          ? pctStablePool
+          : pct;
+
+        const [p_lb, p_ub] = [P * (1 - delta), P * (1 + delta)];
+
+        // https://medium.com/auditless/impermanent-loss-in-uniswap-v3-6c7161d3b445
+        // ilv3 = ilv2 * factor
+        const factor =
+          1 / (1 - (Math.sqrt(p_lb / P) + d * Math.sqrt(P / p_ub)) / (1 + d));
+
+        // scale IL by factor
+        il7d *= factor;
+        // if the factor is too large, it may result in IL values >100% which don't make sense
+        // -> clip to max -100% IL
+        il7d = il7d < 0 ? Math.max(il7d, -100) : il7d;
+      }
+
+      return {
+        ...p,
+        il7d,
+      };
+    });
+  }
+
   // for PK, FK, read data from config table
   const config = await getConfigProject(body.adaptor);
   const mapping = {};
@@ -141,7 +313,6 @@ const main = async (body) => {
       ...p,
       config_id: id, // config PK field
       configID: id, // yield FK field referencing config_id in config
-      chain: utils.formatChain(p.chain), // format chain and symbol in case it was skipped in adapter
       symbol: utils.formatSymbol(p.symbol),
       tvlUsd: Math.round(p.tvlUsd), // round tvlUsd to integer and apy fields to n-dec
       apy: +p.apy.toFixed(precision), // round apy fields
@@ -150,14 +321,51 @@ const main = async (body) => {
         p.apyReward !== null ? +p.apyReward.toFixed(precision) : p.apyReward,
       url: p.url ?? project.url,
       timestamp,
+      apyBaseBorrow:
+        p.apyBaseBorrow !== null
+          ? +p.apyBaseBorrow.toFixed(precision)
+          : p.apyBaseBorrow,
+      apyRewardBorrow:
+        p.apyRewardBorrow !== null
+          ? +p.apyRewardBorrow.toFixed(precision)
+          : p.apyRewardBorrow,
+      totalSupplyUsd:
+        p.totalSupplyUsd === undefined || p.totalSupplyUsd === null
+          ? null
+          : Math.round(p.totalSupplyUsd),
+      totalBorrowUsd:
+        p.totalBorrowUsd === undefined || p.totalBorrowUsd === null
+          ? null
+          : Math.round(p.totalBorrowUsd),
+      debtCeilingUsd:
+        p.debtCeilingUsd === undefined || p.debtCeilingUsd === null
+          ? null
+          : Math.round(p.debtCeilingUsd),
+      mintedCoin: p.mintedCoin ? utils.formatSymbol(p.mintedCoin) : null,
+      poolMeta:
+        p.poolMeta === undefined
+          ? null
+          : uniV3Forks.includes(p.project)
+          ? p.poolMeta?.split(',')[0]
+          : p.poolMeta,
+      il7d: p.il7d ? +p.il7d.toFixed(precision) : null,
+      apyBase7d:
+        p.apyBase7d !== null ? +p.apyBase7d.toFixed(precision) : p.apyBase7d,
+      apyRewardFake:
+        p.apyRewardFake !== null
+          ? +p.apyRewardFake.toFixed(precision)
+          : p.apyRewardFake,
+      apyRewardBorrowFake:
+        p.apyRewardBorrowFake !== null
+          ? +p.apyRewardBorrowFake.toFixed(precision)
+          : p.apyRewardBorrowFake,
+      volumeUsd1d: p.volumeUsd1d ? +p.volumeUsd1d.toFixed(precision) : null,
+      volumeUsd7d: p.volumeUsd7d ? +p.volumeUsd7d.toFixed(precision) : null,
+      apyBaseInception: p.apyBaseInception
+        ? +p.apyBaseInception.toFixed(precision)
+        : null,
     };
   });
-
-  // change chain `Binance` -> `BSC`
-  data = data.map((p) => ({
-    ...p,
-    chain: p.chain === 'Binance' ? 'BSC' : p.chain,
-  }));
 
   // ---------- tvl spike check
   // prior insert, we run a tvl check to make sure
@@ -174,6 +382,7 @@ const main = async (body) => {
   const dataDB = [];
   const nHours = 5;
   const tvlDeltaMultiplier = 5;
+  const apyDeltaMultiplier = tvlDeltaMultiplier;
   const timedeltaLimit = 60 * 60 * nHours * 1000;
   const droppedPools = [];
   for (const p of data) {
@@ -184,9 +393,10 @@ const main = async (body) => {
     }
     // if existing pool, check conditions
     const timedelta = timestamp - x.timestamp;
-    // skip the update if tvl at t is ntimes larger than tvl at t-1 && timedelta condition is met
+    // skip the update if tvl or apy at t is ntimes larger than tvl at t-1 && timedelta condition is met
     if (
-      p.tvlUsd > x.tvlUsd * tvlDeltaMultiplier &&
+      (p.tvlUsd > x.tvlUsd * tvlDeltaMultiplier ||
+        p.apy > x.apy * apyDeltaMultiplier) &&
       timedelta < timedeltaLimit
     ) {
       console.log(`removing pool ${p.pool}`);
@@ -197,6 +407,9 @@ const main = async (body) => {
         tvlUsd: p.tvlUsd,
         tvlUsdDB: x.tvlUsd,
         tvlMultiplier: p.tvlUsd / x.tvlUsd,
+        apy: p.apy,
+        apyDB: x.apy,
+        apyMultiplier: p.apy / x.apy,
       });
       continue;
     }
@@ -211,16 +424,25 @@ const main = async (body) => {
     console.log(`removed ${delta} sample(s) prior to insert`);
     // send discord message
     // we limit sending msg only if the pool's last tvlUsd value is >= $50k
-    const filteredPools = droppedPools.filter((p) => p.tvlUsdDB >= 5e4);
+    const filteredPools = droppedPools.filter(
+      (p) => p.tvlUsdDB >= 5e4 && p.apyDB >= 10
+    );
     if (filteredPools.length) {
       const message = filteredPools
-        .map(
-          (p) =>
-            `configID: ${p.configID} Project: ${p.project} Symbol: ${
-              p.symbol
-            } TVL: from ${p.tvlUsdDB.toFixed()} to ${p.tvlUsd.toFixed()} (${p.tvlMultiplier.toFixed(
-              2
-            )}x increase)`
+        .map((p) =>
+          p.apyMultiplier >= apyDeltaMultiplier
+            ? `APY spike for configID: ${
+                p.configID
+              } from ${p.apyDB.toFixed()} to ${p.apy.toFixed()} (${p.apyMultiplier.toFixed(
+                2
+              )}x increase) [tvlUsd: ${p.tvlUsd.toFixed()}]
+          `
+            : `TVL spike for configID: ${
+                p.configID
+              } from ${p.tvlUsdDB.toFixed()} to ${p.tvlUsd.toFixed()} (${p.tvlMultiplier.toFixed(
+                2
+              )}x increase)
+            `
         )
         .join('\n');
       await sendMessage(message, process.env.TVL_SPIKE_WEBHOOK);
@@ -228,8 +450,9 @@ const main = async (body) => {
   }
 
   // ---------- discord bot for newly added projects
+  const distinctProjects = await getDistinctProjects();
   if (
-    !dataInitial.length &&
+    !distinctProjects.includes(body.adaptor) &&
     dataDB.filter(({ tvlUsd }) => tvlUsd > exclude.boundaries.tvlUsdUI.lb)
       .length
   ) {

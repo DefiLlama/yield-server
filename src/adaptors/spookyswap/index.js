@@ -9,7 +9,7 @@ const { masterChefABI, lpTokenABI } = require('./abis');
 const utils = require('../utils');
 
 const RPC_URL = 'https://rpc.ankr.com/fantom';
-const API_URL = 'https://api.fura.org/subgraphs/name/spookyswap';
+const API_URL = 'https://api.thegraph.com/subgraphs/name/eerieeight/spookyswap';
 
 const MASTERCHEF_ADDRESS = '0x18b4f774fdC7BF685daeeF66c2990b1dDd9ea6aD';
 const BOO_TOKEN = '0x841FAD6EAe12c286d1Fd18d1d525DFfA75C7EFFE'.toLowerCase();
@@ -25,15 +25,16 @@ const web3 = new Web3(RPC_URL);
 const pairQuery = gql`
   query pairQuery($id_in: [ID!]) {
     pairs(where: { id_in: $id_in }) {
-      name
       id
       token0 {
         decimals
         id
+        symbol
       }
       token1 {
         decimals
         id
+        symbol
       }
     }
   }
@@ -92,9 +93,12 @@ const calculateReservesUSD = (
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses.map((address) => `fantom:${address}`),
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .map((address) => `fantom:${address}`)
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesObj = Object.entries(prices).reduce(
@@ -232,7 +236,7 @@ const apy = async () => {
       pairInfo.token1,
       tokensPrices
     )
-      .div(1e18)
+      ?.div(1e18)
       .toString();
 
     const lpReservesUsd = calculateReservesUSD(
@@ -242,7 +246,7 @@ const apy = async () => {
       pairInfo.token1,
       tokensPrices
     )
-      .div(1e18)
+      ?.div(1e18)
       .toString();
 
     const lpFees7D =
@@ -265,8 +269,12 @@ const apy = async () => {
       pool: lpTokens[i],
       chain: utils.formatChain('fantom'),
       project: 'spookyswap',
-      symbol: pairInfo.name,
-      tvlUsd: Number(masterChefReservesUsd),
+      symbol: `${pairInfo.token0.symbol}-${pairInfo.token1.symbol}`,
+      tvlUsd:
+        lpTokens[i].toLowerCase() ===
+        '0xaf918ef5b9f33231764a5557881e6d3e5277d456'
+          ? Number(lpReservesUsd)
+          : Number(masterChefReservesUsd),
       apyBase,
       apyReward,
       underlyingTokens: [tokens0[i], tokens1[i]],
@@ -274,7 +282,7 @@ const apy = async () => {
     };
   });
 
-  return res;
+  return res.filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

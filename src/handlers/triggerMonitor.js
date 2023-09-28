@@ -1,4 +1,4 @@
-const { getStaleProjects } = require('../controllers/monitorController');
+const { getStaleProjects } = require('../queries/monitor');
 const { sendMessage } = require('../utils/discordWebhook');
 
 module.exports.handler = async () => {
