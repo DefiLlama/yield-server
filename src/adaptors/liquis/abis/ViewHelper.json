@@ -1,0 +1,647 @@
+[
+  {
+    "inputs": [],
+    "name": "balancerVault",
+    "outputs": [
+      {
+        "internalType": "contract IBalancerVault",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_amount", "type": "uint256" }
+    ],
+    "name": "convertLitToLiq",
+    "outputs": [
+      { "internalType": "uint256", "name": "amount", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_cvxCrvRewards", "type": "address" }
+    ],
+    "name": "getCvxCrvRewards",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "uint256", "name": "pid", "type": "uint256" },
+          { "internalType": "address", "name": "lptoken", "type": "address" },
+          { "internalType": "address", "name": "token", "type": "address" },
+          { "internalType": "address", "name": "gauge", "type": "address" },
+          {
+            "internalType": "address",
+            "name": "crvRewards",
+            "type": "address"
+          },
+          { "internalType": "address", "name": "stash", "type": "address" },
+          { "internalType": "bool", "name": "shutdown", "type": "bool" },
+          {
+            "internalType": "address",
+            "name": "rewardToken",
+            "type": "address"
+          },
+          { "internalType": "address", "name": "uniV3Pool", "type": "address" },
+          {
+            "internalType": "address[]",
+            "name": "poolTokens",
+            "type": "address[]"
+          },
+          { "internalType": "int24[]", "name": "ticks", "type": "int24[]" },
+          {
+            "internalType": "uint256",
+            "name": "totalSupply",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "periodFinish",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "lastUpdateTime",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "rewardRate",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "rewardPerTokenStored",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "queuedRewards",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct LiquisViewHelpers.RewardsData",
+            "name": "rewardsData",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              { "internalType": "address", "name": "addr", "type": "address" },
+              {
+                "internalType": "address",
+                "name": "rewardsToken",
+                "type": "address"
+              },
+              {
+                "components": [
+                  {
+                    "internalType": "uint256",
+                    "name": "periodFinish",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "lastUpdateTime",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "rewardRate",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "rewardPerTokenStored",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "queuedRewards",
+                    "type": "uint256"
+                  }
+                ],
+                "internalType": "struct LiquisViewHelpers.RewardsData",
+                "name": "rewardsData",
+                "type": "tuple"
+              }
+            ],
+            "internalType": "struct LiquisViewHelpers.ExtraRewards[]",
+            "name": "extraRewards",
+            "type": "tuple[]"
+          }
+        ],
+        "internalType": "struct LiquisViewHelpers.Pool",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "pool", "type": "uint256" },
+      { "internalType": "address", "name": "booster", "type": "address" },
+      { "internalType": "address", "name": "token", "type": "address" }
+    ],
+    "name": "getEarmarkingReward",
+    "outputs": [
+      { "internalType": "uint256", "name": "pending", "type": "uint256" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_locker", "type": "address" }
+    ],
+    "name": "getLocker",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "uint256", "name": "epoch", "type": "uint256" },
+          {
+            "internalType": "uint256",
+            "name": "totalSupply",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lockedSupply",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "periodFinish",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "lastUpdateTime",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "rewardRate",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "rewardPerTokenStored",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "queuedRewards",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct LiquisViewHelpers.RewardsData",
+            "name": "rewardsData",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct LiquisViewHelpers.Locker",
+        "name": "locker",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_locker", "type": "address" },
+      { "internalType": "address", "name": "_account", "type": "address" }
+    ],
+    "name": "getLockerAccount",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "address", "name": "addr", "type": "address" },
+          { "internalType": "uint256", "name": "total", "type": "uint256" },
+          {
+            "internalType": "uint256",
+            "name": "unlockable",
+            "type": "uint256"
+          },
+          { "internalType": "uint256", "name": "locked", "type": "uint256" },
+          {
+            "internalType": "uint256",
+            "name": "nextUnlockIndex",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint128",
+            "name": "rewardPerTokenPaid",
+            "type": "uint128"
+          },
+          { "internalType": "uint128", "name": "rewards", "type": "uint128" },
+          { "internalType": "address", "name": "delegate", "type": "address" },
+          { "internalType": "uint256", "name": "votes", "type": "uint256" },
+          {
+            "components": [
+              {
+                "internalType": "uint112",
+                "name": "amount",
+                "type": "uint112"
+              },
+              {
+                "internalType": "uint32",
+                "name": "unlockTime",
+                "type": "uint32"
+              }
+            ],
+            "internalType": "struct LiqLocker.LockedBalance[]",
+            "name": "lockData",
+            "type": "tuple[]"
+          },
+          {
+            "components": [
+              { "internalType": "address", "name": "token", "type": "address" },
+              { "internalType": "uint256", "name": "amount", "type": "uint256" }
+            ],
+            "internalType": "struct LiqLocker.EarnedData[]",
+            "name": "claimableRewards",
+            "type": "tuple[]"
+          }
+        ],
+        "internalType": "struct LiquisViewHelpers.LockerAccount",
+        "name": "lockerAccount",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256[]", "name": "pools", "type": "uint256[]" },
+      { "internalType": "address", "name": "booster", "type": "address" },
+      { "internalType": "address", "name": "token", "type": "address" }
+    ],
+    "name": "getMultipleEarmarkingRewards",
+    "outputs": [
+      { "internalType": "uint256[]", "name": "pendings", "type": "uint256[]" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          { "internalType": "address", "name": "lptoken", "type": "address" },
+          { "internalType": "address", "name": "token", "type": "address" },
+          { "internalType": "address", "name": "gauge", "type": "address" },
+          {
+            "internalType": "address",
+            "name": "crvRewards",
+            "type": "address"
+          },
+          { "internalType": "address", "name": "stash", "type": "address" },
+          { "internalType": "bool", "name": "shutdown", "type": "bool" }
+        ],
+        "internalType": "struct IBooster.PoolInfo",
+        "name": "poolInfo",
+        "type": "tuple"
+      },
+      { "internalType": "uint256", "name": "_pid", "type": "uint256" }
+    ],
+    "name": "getPool",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "uint256", "name": "pid", "type": "uint256" },
+          { "internalType": "address", "name": "lptoken", "type": "address" },
+          { "internalType": "address", "name": "token", "type": "address" },
+          { "internalType": "address", "name": "gauge", "type": "address" },
+          {
+            "internalType": "address",
+            "name": "crvRewards",
+            "type": "address"
+          },
+          { "internalType": "address", "name": "stash", "type": "address" },
+          { "internalType": "bool", "name": "shutdown", "type": "bool" },
+          {
+            "internalType": "address",
+            "name": "rewardToken",
+            "type": "address"
+          },
+          { "internalType": "address", "name": "uniV3Pool", "type": "address" },
+          {
+            "internalType": "address[]",
+            "name": "poolTokens",
+            "type": "address[]"
+          },
+          { "internalType": "int24[]", "name": "ticks", "type": "int24[]" },
+          {
+            "internalType": "uint256",
+            "name": "totalSupply",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "periodFinish",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "lastUpdateTime",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "rewardRate",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "rewardPerTokenStored",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "queuedRewards",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct LiquisViewHelpers.RewardsData",
+            "name": "rewardsData",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              { "internalType": "address", "name": "addr", "type": "address" },
+              {
+                "internalType": "address",
+                "name": "rewardsToken",
+                "type": "address"
+              },
+              {
+                "components": [
+                  {
+                    "internalType": "uint256",
+                    "name": "periodFinish",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "lastUpdateTime",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "rewardRate",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "rewardPerTokenStored",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "queuedRewards",
+                    "type": "uint256"
+                  }
+                ],
+                "internalType": "struct LiquisViewHelpers.RewardsData",
+                "name": "rewardsData",
+                "type": "tuple"
+              }
+            ],
+            "internalType": "struct LiquisViewHelpers.ExtraRewards[]",
+            "name": "extraRewards",
+            "type": "tuple[]"
+          }
+        ],
+        "internalType": "struct LiquisViewHelpers.Pool",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_rewardPool", "type": "address" },
+      { "internalType": "uint256", "name": "_pid", "type": "uint256" },
+      { "internalType": "address", "name": "_account", "type": "address" }
+    ],
+    "name": "getPoolBalances",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "uint256", "name": "pid", "type": "uint256" },
+          { "internalType": "uint256", "name": "earned", "type": "uint256" },
+          {
+            "internalType": "uint256[]",
+            "name": "extraRewardsEarned",
+            "type": "uint256[]"
+          },
+          { "internalType": "uint256", "name": "staked", "type": "uint256" }
+        ],
+        "internalType": "struct LiquisViewHelpers.PoolBalances",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_booster", "type": "address" }
+    ],
+    "name": "getPools",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "uint256", "name": "pid", "type": "uint256" },
+          { "internalType": "address", "name": "lptoken", "type": "address" },
+          { "internalType": "address", "name": "token", "type": "address" },
+          { "internalType": "address", "name": "gauge", "type": "address" },
+          {
+            "internalType": "address",
+            "name": "crvRewards",
+            "type": "address"
+          },
+          { "internalType": "address", "name": "stash", "type": "address" },
+          { "internalType": "bool", "name": "shutdown", "type": "bool" },
+          {
+            "internalType": "address",
+            "name": "rewardToken",
+            "type": "address"
+          },
+          { "internalType": "address", "name": "uniV3Pool", "type": "address" },
+          {
+            "internalType": "address[]",
+            "name": "poolTokens",
+            "type": "address[]"
+          },
+          { "internalType": "int24[]", "name": "ticks", "type": "int24[]" },
+          {
+            "internalType": "uint256",
+            "name": "totalSupply",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "periodFinish",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "lastUpdateTime",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "rewardRate",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "rewardPerTokenStored",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "queuedRewards",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct LiquisViewHelpers.RewardsData",
+            "name": "rewardsData",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              { "internalType": "address", "name": "addr", "type": "address" },
+              {
+                "internalType": "address",
+                "name": "rewardsToken",
+                "type": "address"
+              },
+              {
+                "components": [
+                  {
+                    "internalType": "uint256",
+                    "name": "periodFinish",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "lastUpdateTime",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "rewardRate",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "rewardPerTokenStored",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "queuedRewards",
+                    "type": "uint256"
+                  }
+                ],
+                "internalType": "struct LiquisViewHelpers.RewardsData",
+                "name": "rewardsData",
+                "type": "tuple"
+              }
+            ],
+            "internalType": "struct LiquisViewHelpers.ExtraRewards[]",
+            "name": "extraRewards",
+            "type": "tuple[]"
+          }
+        ],
+        "internalType": "struct LiquisViewHelpers.Pool[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_booster", "type": "address" },
+      { "internalType": "address", "name": "_account", "type": "address" }
+    ],
+    "name": "getPoolsBalances",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "uint256", "name": "pid", "type": "uint256" },
+          { "internalType": "uint256", "name": "earned", "type": "uint256" },
+          {
+            "internalType": "uint256[]",
+            "name": "extraRewardsEarned",
+            "type": "uint256[]"
+          },
+          { "internalType": "uint256", "name": "staked", "type": "uint256" }
+        ],
+        "internalType": "struct LiquisViewHelpers.PoolBalances[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address[]", "name": "_addresses", "type": "address[]" }
+    ],
+    "name": "getTokens",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "address", "name": "addr", "type": "address" },
+          { "internalType": "uint8", "name": "decimals", "type": "uint8" },
+          { "internalType": "string", "name": "symbol", "type": "string" },
+          { "internalType": "string", "name": "name", "type": "string" }
+        ],
+        "internalType": "struct LiquisViewHelpers.Token[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "liq",
+    "outputs": [
+      {
+        "internalType": "contract IERC20Detailed",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
