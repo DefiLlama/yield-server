@@ -51,18 +51,5 @@
     ],
     "stateMutability": "view",
     "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address[]",
-        "name": "_delegates",
-        "type": "address[]"
-      }
-    ],
-    "name": "removeDelegatesFromCooldownWhiteList",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
   }
 ]
