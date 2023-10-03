@@ -231,7 +231,7 @@ const liqLitPool = async (chain, olitprice, liqprice) => {
     tvlUsd,
     apyBase,
     apyReward,
-    rewardTokens: [liq[chain], olit[chain]],
+    rewardTokens: [liq[chain], lit[chain]],
     underlyingTokens: [lit[chain], weth],
     url: `https://www.liquis.app/liqlit`,
   };
@@ -650,7 +650,7 @@ const topLvl = async (chainString, url, timestamp) => {
                 rewardApr =
                   (userAnnualRewardUSD / userSupplyUsd) * 100 * 0.75 +
                   (userAnnualLiqRewardUSD / userSupplyUsd) * 100;
-                rewardTokens = [olit[chainString], liq[chainString]];
+                rewardTokens = [lit[chainString], liq[chainString]];
               }
             }
           }
