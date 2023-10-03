@@ -1,50 +1,55 @@
 const utils = require('../utils');
 
-const baseUrl = 'https://yzo0r3ahok.execute-api.us-east-1.amazonaws.com/dev/api';
-const ftmUrl = baseUrl+'/crypts';
-const optUrl = baseUrl+'/optimism/crypts';
+const baseUrl = 'https://2ch9hbg8hh.execute-api.us-east-1.amazonaws.com/dev/api';
+const ftmUrl = baseUrl+'/vaults/0xfa';
+const optUrl = baseUrl+'/vaults/0xa';
+const arbUrl = baseUrl+'/vaults/0xa4b1';
 
 const networkMapping = {
   10: 'optimism',
   250: 'fantom',
+  42161: 'arbitrum',
 };
 
 const main = async () => {
 
-  const [ftmCrypts, optCrypts] = await Promise.all(
-    [ftmUrl, optUrl].map((u) => utils.getData(u))
+  const [ftmVaults, optVaults, arbVaults] = await Promise.all(
+    [ftmUrl, optUrl, arbUrl].map((u) => utils.getData(u))
   );
 
-  const cryptsMapping = {
-    10: optCrypts.data,
-    250: ftmCrypts.data,
+  const vaultsMapping = {
+    10: optVaults.data,
+    250: ftmVaults.data,
+    42161: arbVaults.data,
   };
 
   let data = [];
   for (const chain of Object.keys(networkMapping)) {
-    let poolData = cryptsMapping[chain];
-    for (const pool of poolData) {
-      const cryptObj = pool.cryptContent;
-      const vaultId = cryptObj.vault.address;
-      let symbol = cryptObj.tokens[0].name;
-      let underlyingTokens = [cryptObj.tokens[0].address];
-      for (let i=1; i<cryptObj.tokens.length; i++) {
-        symbol = symbol + '-' + cryptObj.tokens[i].name;
-        underlyingTokens.push(cryptObj.tokens[i].address);
+    let poolData = vaultsMapping[chain];
+    Object.values(poolData).forEach((pool) => {
+      const vaultId = pool.address;
+      let symbol = pool.tokens.lpToken.symbol;
+      let underlyingTokens = [];
+      if (pool.tokens.underlyingTokens.length !== 0) {
+        underlyingTokens = pool.tokens.underlyingTokens.map((tokenObj) => {
+          return tokenObj.address;
+        })
+      } else {
+        underlyingTokens.push(pool.tokens.lpToken.address);
       }
       
-      if (pool.analytics.yields.year !== 0 && !cryptObj.dead) {
+      if (pool.yields.apy != 0) {
         data.push({
           pool: `${vaultId}-${networkMapping[chain]}`.toLowerCase(),
           chain: utils.formatChain(networkMapping[chain]),
           project: 'reaper-farm',
           symbol: symbol,
-          tvlUsd: pool.analytics.tvl,
-          apy: pool.analytics.yields.year*100,
+          tvlUsd: pool.tvl.tvl,
+          apy: pool.yields.apy*100,
           underlyingTokens: underlyingTokens,
         });
       }
-    }
+    })
   }
   return data.filter(
     (p) =>
