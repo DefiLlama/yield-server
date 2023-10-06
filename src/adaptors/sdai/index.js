@@ -48,7 +48,7 @@ async function getTVL() {
     );
     // convert into USD
     let tvlUSD = (tvl * wxDAIPrice['wrapped-xdai'].usd) / 1e18;
-    return tvlUSD;
+    return Math.round(tvlUSD*1e6)/1e6;
   } catch (e) {
     console.log(e);
   }
