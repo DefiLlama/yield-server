@@ -56,7 +56,7 @@ async function getTVL() {
 async function sDAIPool() {
   await init();
   const sDAIPoolData = {
-    pool: chains.xdai.interestreceiver,
+    pool: chains.xdai.sDAI,
     chain: utils.formatChain('xdai'),
     project: 'sdai',
     symbol: 'sDAI',
