@@ -33,7 +33,7 @@ async function getApy() {
     // call vaultAPY() from bridge interest receiver contract
     let vaultAPY = await bridgeInterestReceiver.methods.vaultAPY().call();
     // remain 8 decimals
-    return Math.round(web3.utils.fromWei(vaultAPY) * 1e8) / 1e8;
+    return (Math.round(web3.utils.fromWei(vaultAPY) * 1e8) / 1e8)*100;
   } catch (e) {
     console.log(e);
   }
