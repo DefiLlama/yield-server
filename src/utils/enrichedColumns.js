@@ -16,6 +16,7 @@ const poolsResponseColumns = [
   'exposure',
   'predictions',
   'poolMeta',
+  'rewardMeta',
   'mu',
   'sigma',
   'count',

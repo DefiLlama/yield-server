@@ -41,6 +41,7 @@ interface Pool {
   rewardTokens?: Array<string>;
   underlyingTokens?: Array<string>;
   poolMeta?: string;
+  rewardMeta?: string;
   url?: string;
   // optional lending protocol specific fields:
   apyBaseBorrow?: number;
@@ -63,6 +64,7 @@ interface Pool {
     rewardTokens: ['0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
     underlyingTokens: ['0xdAC17F958D2ee523a2206206994597C13D831ec7'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
     poolMeta: "V3 market", // A string value which can stand for any specific details of a pool position, market, fee tier, lock duration, specific strategy etc
+    rewardMeta: "Reward tokens are escrow tokens and need to be vested for a period of 1 year to receive 1:1 emission" // A string value which you can describe if there are any specific details pertaining to the reward tokens like if they're escrowed and need to be vested. (you can omit this field if a pool doesn't have rewards)"
   };
 ```
 

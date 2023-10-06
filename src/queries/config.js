@@ -56,6 +56,7 @@ const buildInsertConfigQuery = (payload) => {
     // optional fields are marked and provided with a default value
     // otherwise the `result` method will fail
     { name: 'poolMeta', def: null },
+    { name: 'rewardMeta', def: null },
     { name: 'underlyingTokens', def: null },
     { name: 'rewardTokens', def: null },
     'url',

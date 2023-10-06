@@ -21,6 +21,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'underlyingTokens',
       'rewardTokens',
       'poolMeta',
+      'rewardMeta',
       'url',
       'apyBaseBorrow',
       'apyRewardBorrow',

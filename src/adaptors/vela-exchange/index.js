@@ -126,8 +126,8 @@ const poolsFunction = async () => {
       underlyingTokens: [BRIDGED_USDC_ADDRESS[chain]],
       rewardTokens: [VELA_ADDRESS[chain]],
       apyReward: VELA_APR,
-      poolMeta:
-        'Reward tokens are issued after staking VLP and rewards are in $esVela. Users can deposit $esVELA into the vesting contract in order to claim the same amount of $VELA. This is unlocked continuously throughout a one year (365 days) linear vesting period.',
+      poolMeta: 'VLP',
+      rewardMeta: 'Reward tokens are issued after staking VLP and rewards are in $esVela. Users can deposit $esVELA into the vesting contract in order to claim the same amount of $VELA. This is unlocked continuously throughout a one year (365 days) linear vesting period.'
     };
 
     pools.push(VLPPool);

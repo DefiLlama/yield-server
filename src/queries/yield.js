@@ -25,6 +25,7 @@ const getYieldFiltered = async () => {
         chain,
         symbol,
         "poolMeta",
+        "rewardMeta",
         "underlyingTokens",
         "rewardTokens",
         "tvlUsd",
