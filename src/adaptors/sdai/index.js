@@ -11,7 +11,6 @@ const chains = {
 };
 
 async function getApy() {
-  try {
     const vaultAPY = (
       await sdk.api.abi.call({
         chain: 'xdai',
@@ -20,12 +19,8 @@ async function getApy() {
       })
     ).output;
     return vaultAPY / 1e16;
-  } catch (e) {
-    console.log(e);
-  }
 }
 async function getTVL() {
-  try {
     // wxDAI balance of sDAI vault
     const tvl = (
       await sdk.api.abi.call({
@@ -39,9 +34,6 @@ async function getTVL() {
     const wxDAIPrice = await utils.getPrices([chains.xdai.wxDAI], 'xdai');
     const tvlUSD = (tvl * wxDAIPrice.pricesBySymbol.wxdai) / 1e18;
     return tvlUSD;
-  } catch (e) {
-    console.log(e);
-  }
 }
 async function sDAIPool() {
   const sDAIPoolData = {
