@@ -902,7 +902,7 @@ const main = async () => {
             chain: chain,
             project: protocolSlug,
             symbol: utils.formatSymbol(borrowable.tokenSymbol),
-            tvlUsd: totalTvl.toNumber(),
+            availableLiquidity: totalTvl.toNumber(),
             apyBase: supplyRateAPY.times(BigNumber(100)).toNumber(),
             underlyingTokens: [borrowable.token0, borrowable.token1],
           };
