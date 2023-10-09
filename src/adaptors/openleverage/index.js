@@ -47,6 +47,12 @@ async function getTokenPriceInUsdt(chain, tokenAddr) {
 }
 
 
+async function getPoolInfo(chain) {
+    const poolInfo = await axios.get(`https://${opl_chain_name[chain]}.openleverage.finance/api/info/pools/interest`)
+    return poolInfo
+}
+
+
 async function getDecimals(addr, chain, abi) {
     const decimals = (
         await sdk.api.abi.call({
@@ -72,7 +78,7 @@ async function getSymbol(addr, chain) {
 const main = async () => {
     const result = []
     for (const chain of Object.keys(openleve_address)) {
-        const poolInfo = await getPoolList(chain);
+        const poolInfo = await getPoolListByUrl(chain);
         for (const pool of Object.keys(poolInfo)) {
             const poolDetails = poolInfo[pool]
             const poolBalance = (
@@ -123,7 +129,26 @@ const main = async () => {
 }
 
 
-async function getPoolList(chain) {
+async function getPoolListByUrl(chain) {
+    const poolList = (await getPoolInfo(chain)).data
+    let pools = {}
+    for (let i=0; i< poolList.length; i++ ){
+        if (poolList[i].tvl > 8000){
+            const token0Decimal = await getDecimals(poolList[i].token0Address, chain, erc20.decimals);
+            const token0Symbol = await getSymbol(poolList[i].token0Address, chain);
+            let poolInfo = {}
+            poolInfo["name"] = poolList[i].poolName
+            poolInfo["token"] = poolList[i].token0Address
+            poolInfo["symbol"] = token0Symbol
+            poolInfo["tokenDecimal"] = token0Decimal
+            pools[poolList[i].poolAddress] = poolInfo
+            console.log(`Pool ${poolList[i].poolName}(${poolList[i].poolAddress}) on Chain ${chain} TVL > 8000`)
+        }
+    }
+    return pools;
+}
+
+async function getPoolListByContract(chain) {
     const numPairs = (
         await sdk.api.abi.call({
             abi: OplContract.numPairs,
