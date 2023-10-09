@@ -133,7 +133,7 @@ async function getPoolListByUrl(chain) {
     const poolList = (await getPoolInfo(chain)).data
     let pools = {}
     for (let i=0; i< poolList.length; i++ ){
-        if (poolList[i].tvl > 1000){
+        if (poolList[i].tvl > 8000){
             const token0Decimal = await getDecimals(poolList[i].token0Address, chain, erc20.decimals);
             const token0Symbol = await getSymbol(poolList[i].token0Address, chain);
             let poolInfo = {}
@@ -142,7 +142,7 @@ async function getPoolListByUrl(chain) {
             poolInfo["symbol"] = token0Symbol
             poolInfo["tokenDecimal"] = token0Decimal
             pools[poolList[i].poolAddress] = poolInfo
-            console.log(`Pool ${poolList[i].poolName}(${poolList[i].poolAddress}) on Chain ${chain} TVL > 1000`)
+            console.log(`Pool ${poolList[i].poolName}(${poolList[i].poolAddress}) on Chain ${chain} TVL > 8000`)
         }
     }
     return pools;
