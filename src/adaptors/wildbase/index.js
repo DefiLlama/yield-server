@@ -203,7 +203,7 @@ const topLvl = async (chainString, version, timestamp) => {
     })
   ).output.map((o) => o.output);
 
-  const exclude = ['0x840dCB7b4d3cEb906EfD00c8b5F5c5Dd61d7f8a6'];
+  const exclude = ['0x4200000000000000000000000000000000000006', '0x79474223AEdD0339780baCcE75aBDa0BE84dcBF9'];
 
   poolInfo = poolInfo.filter(
     (obj, index, self) =>
@@ -308,8 +308,8 @@ const topLvl = async (chainString, version, timestamp) => {
     const token1 = underlyingTokens === undefined ? '' : underlyingTokens[1];
     const chain = chainString;
     const url = isWILDxStake
-      ? `https://app.alienbase.xyz/swap`
-      : `https://app.alienbase.xyz/add/${token0}/${token1}`;
+      ? `https://pancakeswap.finance/swap`
+      : `https://pancakeswap.finance/add/${token0}/${token1}`;
 
     const WILDxAllocPoint = poolInfo.find(
       (pid) => pid.lpToken.toLowerCase() === p.id?.toLowerCase()
@@ -328,15 +328,14 @@ const topLvl = async (chainString, version, timestamp) => {
     const WILDxBaseApy =
       (((WILDxAllocPoint / WILDxTotalAllocPoint) * WILDxPerYearUsd) /
         (p.totalValueLockedUSD * ratio)) *
-      100 *
-      0.85; // deducted by fee as other aggeregator and app shows
+      100; // deducted by fee as other aggeregator and app shows
 
     const apyReward = 0;
 
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
-      project: 'alien-base-amm',
+      project: 'wildbase',
       symbol,
       tvlUsd: p.totalValueLockedUSD,
       apyBase: WILDxBaseApy || 0,
@@ -354,7 +353,7 @@ const topLvl = async (chainString, version, timestamp) => {
 };
 
 const main = async (timestamp = Date.now() / 1000) => {
-  let data = await topLvl('base', 'v2', timestamp);
+  let data = await topLvl('base', 'v3', timestamp);
 
   return data.filter((p) => utils.keepFinite(p));
 };
