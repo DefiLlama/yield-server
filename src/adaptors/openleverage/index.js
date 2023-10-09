@@ -138,11 +138,11 @@ async function getPoolListByUrl(chain) {
             const token0Symbol = await getSymbol(poolList[i].token0Address, chain);
             let poolInfo = {}
             poolInfo["name"] = poolList[i].poolName
-            poolInfo["token"] = poolList[i].token0Name
+            poolInfo["token"] = poolList[i].token0Address
             poolInfo["symbol"] = token0Symbol
             poolInfo["tokenDecimal"] = token0Decimal
             pools[poolList[i].poolAddress] = poolInfo
-            console.log(`Pool ${poolList[i].poolAddress} TVL > 1000`)
+            console.log(`Pool ${poolList[i].poolName}(${poolList[i].poolAddress}) on Chain ${chain} TVL > 1000`)
         }
     }
     return pools;
