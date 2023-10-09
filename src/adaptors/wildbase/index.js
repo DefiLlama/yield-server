@@ -183,7 +183,7 @@ const getPoolDetails = async (block, poolInfo, chainString) => {
   return poolDetails;
 };
 
-const topLvl = async (chainString, version, timestamp) => {
+const topLv = async (chainString, version, timestamp) => {
   const poolLength = (
     await sdk.api.abi.call({
       target: masterchef,
@@ -211,6 +211,7 @@ const topLvl = async (chainString, version, timestamp) => {
       !exclude.includes(obj.lpToken)
   );
 
+
   const WILDxTotalAllocPoint = (
     await sdk.api.abi.call({
       target: masterchef,
@@ -218,12 +219,11 @@ const topLvl = async (chainString, version, timestamp) => {
       chain: chainString,
     })
   ).output;
-
   const WILDxPerSec =
     (
       await sdk.api.abi.call({
         target: masterchef,
-        abi: masterchefAbi.find((m) => m.name === '_wildxPerBlock'),
+        abi: masterchefAbi.find((m) => m.name === 'wildxPerBlock'),
         chain: chainString,
       })
     ).output / 1e18;
@@ -353,7 +353,7 @@ const topLvl = async (chainString, version, timestamp) => {
 };
 
 const main = async (timestamp = Date.now() / 1000) => {
-  let data = await topLvl('base', 'v3', timestamp);
+  let data = await topLv('base', 'v3', timestamp);
 
   return data.filter((p) => utils.keepFinite(p));
 };
