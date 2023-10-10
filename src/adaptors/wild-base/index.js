@@ -335,7 +335,7 @@ const topLv = async (chainString, version, timestamp) => {
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
-      project: 'wildbase',
+      project: 'wild-base',
       symbol,
       tvlUsd: p.totalValueLockedUSD,
       apyBase: WILDxBaseApy || 0,
