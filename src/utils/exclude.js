@@ -390,6 +390,7 @@ const excludePools = [
   '0x4c36a9a52ca3baf1069e3531d57d96c171a66a230002000000000000000001e9',
   '0x3035917be42af437cbdd774be26b9ec90a2bd677000200000000000000000543',
   '0xc963ef7d977ECb0Ab71d835C4cb1Bf737f28d010', // rdnt-weth sushi pool in radiant v1 adapter, redundant
+  '0x7007535de9f864f0c15fe6fa288ce3feb842f72c'
 ];
 
 const boundaries = {
