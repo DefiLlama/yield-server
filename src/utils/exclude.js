@@ -33,6 +33,7 @@ const excludeAdaptors = [
   // removing cause a) curve pool is redundant cause we already have that on curve adapter
   // and the rebonding strategy is targeting a max apy
   'lusd-chickenbonds',
+  'eternal-finance'
 ];
 
 const excludePools = [
