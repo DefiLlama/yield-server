@@ -15,8 +15,15 @@ const apy = async () => {
           utilization
           borrowApy
           borrowLqDistributionApy
-          supplyLqDistributionApy
+          supplyMarketParticipationAPR
           maxLoanToValue
+        }
+        info {
+          scripts {
+            batchFinal {
+              hash
+            }
+          }
         }
         price {
           price
@@ -24,27 +31,30 @@ const apy = async () => {
         decimals
       }
     }
+    adaStakingAPY
   }
   `
+  const data = await request(endpoint, query)
+  const markets = data.Page.market;
+  const adaStakingAPY = data.adaStakingAPY; // ada liquid staking
 
-  const markets = (await request(endpoint, query)).Page.market;
-
-  const getPool = (tokenName, address) => {
+  const getPool = (tokenName) => {
     const market = markets.filter((market) => market.asset.name === tokenName)[0];
 
     return {
-      pool: address, // market batch final
+      // FIXME(Kylix, 20th Sep 2023): Construct Shelley address from hex scripthash
+      pool: market.info.scripts.batchFinal.hash.value0, // market batch final hash
       chain: "Cardano",
       project: "liqwid",
       symbol: market.asset.name,
       tvlUsd: market.state.totalSupply / Math.pow(10, market.decimals) * market.price.price,
-      apyBase: Number(market.state.supplyApy),
-      apyReward: Number(market.state.supplyLqDistributionApy),
+      apyBase: (tokenName == "ADA" ? adaStakingAPY : 0 + Number(market.state.supplyApy)) * 100,
+      apyReward: Number(market.state.supplyMarketParticipationAPR) * 100,
       rewardTokens: [tokenName, "LQ"],
       underlyingTokens: [tokenName],
       // lending protocol fields
-      apyBaseBorrow: Number(market.state.borrowApy),
-      apyRewardBorrow: Number(market.state.borrowLqDistributionApy),
+      apyBaseBorrow: Number(market.state.borrowApy) * 100,
+      apyRewardBorrow: Number(market.state.borrowLqDistributionApy) * 100,
       totalSupplyUsd: market.state.totalSupply / (1 - market.state.utilization) / Math.pow(10, market.decimals) * market.price.price,
       totalBorrowUsd: market.state.totalSupply / (1 - market.state.utilization) / Math.pow(10, market.decimals) * market.state.utilization * market.price.price,
       ltv: Number(market.state.maxLoanToValue)
@@ -52,11 +62,12 @@ const apy = async () => {
   };
 
   return [
-    getPool("ADA", "addr1wyf3xpvwjd82wtnax8tw8u5k6r5yfh0sza76k7c3y3pgpjcye7ar2"),
-    getPool("DJED", "addr1wx5sg32ljez3t25jjr9yg0h7j0lg6e2vr67z9v2k9tc8cwgtw4pw3"),
-    getPool("SHEN", "addr1w89fy5nrmfx9n0m8tu7vfpwgj3t4el5m9dg2uhp6xc9x9ng8f88h2"),
-    getPool("iUSD", "addr1wyr3h4l5khs9n65sua35vl84tyt8kgwg9mcukhlrf7m6negqfmr8f"),
-    getPool("USDC", "addr1wxx955evvve0shn2jfm4pcff4w54fmkxatfqnntj6z845vsk0nq0d")
+    getPool("ADA"),
+    getPool("DJED"),
+    getPool("SHEN"),
+    getPool("iUSD"),
+    getPool("USDC"),
+    getPool("USDT")
   ];
 };
 

@@ -1,0 +1,41 @@
+{
+  "extraRewardState": {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "extraRewardState",
+    "outputs": [
+      {
+        "internalType": "uint128",
+        "name": "rate",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint32",
+        "name": "periodLength",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint48",
+        "name": "lastUpdate",
+        "type": "uint48"
+      },
+      {
+        "internalType": "uint48",
+        "name": "finishAt",
+        "type": "uint48"
+      },
+      {
+        "internalType": "uint256",
+        "name": "queued",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+}
