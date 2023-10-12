@@ -36,6 +36,12 @@ block_of_year = {
     "arb": 2628000
 }
 
+oleAddr = {
+    "eth": "0x92cfbec26c206c90aee3b7c66a9ae673754fab7e",
+    "bsc": "0xa865197a84e780957422237b5d152772654341f3",
+    "arb": "0xd4d026322c88c2d49942a75dff920fcfbc5614c1"
+}
+
 
 async function getTokenPriceInUsdt(chain, tokenAddr) {
     const tokenPrice = (
@@ -118,7 +124,10 @@ const main = async () => {
                 symbol: utils.formatSymbol(poolDetails.name),
                 tvlUsd: (new BigNumber(poolBalance).plus(new BigNumber(totalBorrow))).multipliedBy(new BigNumber(tokenPriceInUsdt)).dividedBy(new BigNumber(10).pow(poolDetails.tokenDecimal)).toNumber(),
                 apyBase: new BigNumber(poolAPYPerBlock).multipliedBy(new BigNumber(block_of_year[chain])).dividedBy(new BigNumber(10).pow(16)).toNumber(), // in % format
-                url: `https://${opl_chain_name[chain]}.openleverage.finance/app/pool/${pool}`
+                url: `https://${opl_chain_name[chain]}.openleverage.finance/app/pool/${pool}`,
+                apyReward: poolDetails.lendOleRewardApy * 100,
+                rewardTokens: [poolDetails.token, oleAddr[chain]],
+                underlyingTokens: [poolDetails.token]
             };
             console.log(poolValues)
             result.push(poolValues)
@@ -141,6 +150,7 @@ async function getPoolListByUrl(chain) {
             poolInfo["token"] = poolList[i].token0Address
             poolInfo["symbol"] = token0Symbol
             poolInfo["tokenDecimal"] = token0Decimal
+            poolInfo["lendOleRewardApy"] = poolList[i].lendOleRewardApy
             pools[poolList[i].poolAddress] = poolInfo
             console.log(`Pool ${poolList[i].poolName}(${poolList[i].poolAddress}) on Chain ${chain} TVL > 8000`)
         }
