@@ -1,6 +1,6 @@
 const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
-const { liquidityMiningAbi } = require('./abi');
+const { liquidityMiningV2Abi } = require('./abiV2');
 
 const LP_STATS_URL = 'https://api.ipor.io/monitor/liquiditypool-statistics';
 const COIN_PRICES_URL = 'https://coins.llama.fi/prices/current';
@@ -30,17 +30,16 @@ const apy = async () => {
   const globalStats = new Map(
     (
       await sdk.api.abi.multiCall({
-        abi: liquidityMiningAbi.find(
+        abi: liquidityMiningV2Abi.find(
           ({ name }) => name === 'getGlobalIndicators'
         ),
-        calls: lpTokenAddresses.map((lpTokenAddress) => ({
+        calls: [{
           target: LM_ADDRESS,
-          params: lpTokenAddress,
-        })),
+          params: [lpTokenAddresses],
+        }],
       })
-    ).output.map((stats) => [stats.input.params[0].toLowerCase(), stats.output])
-  );
-
+    ).output.flatMap((response) => response.output.map((stats) => [stats.lpToken.toLowerCase(), stats.indicators])
+  ));
   const pools = [];
 
   for (const asset of assets) {
@@ -62,28 +61,54 @@ const apy = async () => {
     const liquidityMiningGlobalStats = globalStats.get(
       asset.ipTokenAssetAddress.toLowerCase()
     );
-    const apyReward =
-      (((liquidityMiningGlobalStats.rewardsPerBlock /
-        1e8 /
-        (liquidityMiningGlobalStats.aggregatedPowerUp / 1e18)) *
-        0.4 * //base powerup
-        BLOCKS_PER_YEAR *
-        iporTokenUsdPrice) /
-        lpTokenPrice /
-        2) * //50% early withdraw fee
-      100; //percentage
+    if (asset.asset === 'stETH') {
+      const apyReward =
+        (((liquidityMiningGlobalStats.rewardsPerBlock /
+          1e8 /
+          (liquidityMiningGlobalStats.aggregatedPowerUp / 1e18)) *
+          0.2 * //base powerup
+          BLOCKS_PER_YEAR *
+          iporTokenUsdPrice) /
+          lpTokenPrice /
+          coinPrice /
+          2) * //50% early withdraw fee
+        100; //percentage
 
-    pools.push({
-      pool: asset.assetAddress + '-ethereum',
-      chain: 'Ethereum',
-      project: 'ipor',
-      symbol: asset.asset,
-      tvlUsd: lpBalance * coinPrice,
-      apyBase: Number(lpApr),
-      apyReward: Number(apyReward),
-      underlyingTokens: [asset.assetAddress],
-      rewardTokens: [IPOR_TOKEN],
-    });
+      pools.push({
+        pool: asset.ipTokenAssetAddress + '-ethereum',
+        chain: 'Ethereum',
+        project: 'ipor',
+        symbol: asset.asset,
+        tvlUsd: lpBalance * coinPrice,
+        apyBase: Number(lpApr),
+        apyReward: Number(apyReward),
+        underlyingTokens: [asset.assetAddress],
+        rewardTokens: [IPOR_TOKEN],
+      });
+    } else {
+      const apyReward =
+        (((liquidityMiningGlobalStats.rewardsPerBlock /
+          1e8 /
+          (liquidityMiningGlobalStats.aggregatedPowerUp / 1e18)) *
+          0.2 * //base powerup
+          BLOCKS_PER_YEAR *
+          iporTokenUsdPrice) /
+          lpTokenPrice /
+          2) * //50% early withdraw fee
+        100; //percentage
+
+      pools.push({
+        pool: asset.assetAddress + '-ethereum',
+        chain: 'Ethereum',
+        project: 'ipor',
+        symbol: asset.asset,
+        tvlUsd: lpBalance * coinPrice,
+        apyBase: Number(lpApr),
+        apyReward: Number(apyReward),
+        underlyingTokens: [asset.assetAddress],
+        rewardTokens: [IPOR_TOKEN],
+      });
+    }
   }
 
   return pools;
