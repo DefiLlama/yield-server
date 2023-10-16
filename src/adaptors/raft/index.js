@@ -4,7 +4,7 @@ const utils = require('../utils');
 const rSavingsRateAbi = require('./abis/RSavingsRate.json');
 
 const RR = {
-  ethereum: '0x2ba26baE6dF1153e29813d7f926143f9c94402f3',
+  ethereum: '0xd2c0c4A6296D416C5Eb6Ae41d17aC4Db4bDD5296',
   base: '0xA5b3FEe253f9DE67201dC8572Bd2CbB4a81c1bEc',
 };
 const HOUR = 60 * 60;
