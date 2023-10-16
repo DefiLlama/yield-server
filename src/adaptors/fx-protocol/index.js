@@ -35,12 +35,13 @@ const getTvlAndApy = async () => {
         abi: reBalanceAbi.extraRewardState,
       })
     ).output;
-    const stETHRate = (
+    const _stETHRate = (
       await sdk.api.abi.call({
         target: wstETH,
         abi: CommonAbi.tokensPerStEth,
       })
     ).output;
+    const stETHRate = cBN(1e18).div(_stETHRate).toFixed(4);
     const { _baseNav, _fNav, _xNav } = getCurrentNav;
     _tvl = cBN(rebalancesData).div(1e18).times(_fNav).div(1e18).toFixed(0);
 
@@ -56,7 +57,6 @@ const getTvlAndApy = async () => {
         .multipliedBy(_baseNav)
         .div(1e18)
         .multipliedBy(stETHRate)
-        .div(1e18)
         .div(_tvl)
         .times(100);
       _apy = apyWei.multipliedBy(1.04).toFixed(2);
