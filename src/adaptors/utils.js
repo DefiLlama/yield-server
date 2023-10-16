@@ -426,3 +426,10 @@ const capitalizeFirstLetter = (str) => {
 };
 
 exports.capitalizeFirstLetter = capitalizeFirstLetter;
+
+exports.removeDuplicates = (pools) => {
+  const seen = {};
+  return pools.filter((i) => {
+    return seen.hasOwnProperty(i.pool) ? false : (seen[i.pool] = true);
+  });
+};
