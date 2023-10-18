@@ -10,7 +10,7 @@ const getApy = async () => {
   );
 
   const { alpData } = await utils.getData(
-    'https://nitrocartel.finance/api/alpData?chainId=42161'
+    'https://nitrocartel.finance/api/alpData?chainId=42161&trove=alp'
   );
 
   const stakingAddress = '0x9d4903f755fc12cded3012686c2064e98b84e6b7';
@@ -56,10 +56,10 @@ const getApy = async () => {
           ).price;
     } else {
       const { output: tokenBalance } = await sdk.api.abi.call({
-        target: coin,
-        abi: 'erc20:balanceOf',
+        target: alpAddress,
+        abi: abi['getAmountAcrossStrategies'],
         chain: chains['arbitrum'],
-        params: [alpAddress],
+        params: [coin],
       });
       const { output: decimals } = await sdk.api.abi.call({
         target: coin,

@@ -178,7 +178,7 @@ const main = async () => {
     };
   });
 
-  return pools.filter((p) => utils.keepFinite(p));
+  return utils.removeDuplicates(pools.filter((p) => utils.keepFinite(p)));
 };
 
 module.exports = {

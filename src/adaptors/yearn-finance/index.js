@@ -5,19 +5,23 @@ const chains = {
   fantom: 250,
   arbitrum: 42161,
   optimism: 10,
+  base: 8453,
 };
 
 const getApy = async () => {
   const data = await Promise.all(
     Object.entries(chains).map(async (chain) => {
       const data = await utils.getData(
-        `https://ydaemon.yearn.finance/${chain[1]}/vaults/all`
+        `https://ydaemon.yearn.fi/${chain[1]}/vaults/all`
       );
 
       return data.map((p) => {
         if (p.details.retired || p.details.hideAlways) return {};
 
         const underlying = p.token.underlyingTokensAddresses;
+
+        // OP incentives via yvToken staking
+        const apyReward = p.apy?.staking_rewards_apr * 100;
 
         return {
           pool: p.address,
@@ -26,7 +30,10 @@ const getApy = async () => {
           symbol: utils.formatSymbol(p.token.display_symbol),
           tvlUsd: p.tvl.tvl_deposited,
           apy: p.apy.net_apy * 100,
-          url: `https://yearn.finance/vaults/${chains[chain[0]]}/${p.address}`,
+          apyReward,
+          rewardTokens:
+            apyReward > 0 ? ['0x4200000000000000000000000000000000000042'] : [],
+          url: `https://yearn.fi/vaults/${chains[chain[0]]}/${p.address}`,
           underlyingTokens:
             underlying.length === 0 ? [p.token.address] : underlying,
         };
