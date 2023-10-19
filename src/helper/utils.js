@@ -19,6 +19,19 @@ async function tryUntilSucceed(promiseFn, maxTries = MAX_PROMISE_RETRY) {
   }
 }
 
+function sliceIntoChunks(arr, chunkSize = 100) {
+  const res = [];
+  for (let i = 0; i < arr.length; i += chunkSize) {
+    const chunk = arr.slice(i, i + chunkSize);
+    res.push(chunk);
+  }
+  return res;
+}
+
+async function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 module.exports = {
   fetchURL,
   tryUntilSucceed,
