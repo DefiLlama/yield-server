@@ -13,15 +13,12 @@ const aptosCoinName = 'coingecko:aptos';
 
 async function main() {
     //calculate apy
-    let currentRewardRate = await axios.post(`${NODE_URL}/view`, {
-      function: `${AMNIS_RESOURCE_ACCOUNT}::router::current_reward_rate`,
-      type_arguments: [],
-      arguments: []
-  })
-    currentRewardRate = currentRewardRate.data
-    const effectiveRewardRate = Number(currentRewardRate[0])
-    const rewardRateDenominator = Number(currentRewardRate[1])
-    const apy = (Math.pow(1 + effectiveRewardRate / rewardRateDenominator, 24 / 2 * 365) - 1) * 100;
+    const { data: { rewards_rate, rewards_rate_denominator } } = await utils.getData(`${NODE_URL}/accounts/0x1/resource/0x1::staking_config::StakingConfig`)
+    const amStakedData = await utils.getData(`${NODE_URL}/view`, {"function": `${AMNIS_RESOURCE_ACCOUNT}::stapt_token::total_amapt_staked`,"type_arguments": [],"arguments": []})
+    const amStaked = amStakedData[0]
+    const amTotalSupplyData = await utils.getData(`${NODE_URL}/view`, {"function": `${AMNIS_RESOURCE_ACCOUNT}::amapt_token::total_supply`,"type_arguments": [],"arguments": []})
+    const amTotalSupply = amTotalSupplyData[0]
+    const apy = (Math.pow(1 + rewards_rate * amTotalSupply / amStaked / rewards_rate_denominator, 12 * 365) - 1) * 100;
 
     //calculate tvlUsd
     let tvlUsd = 0
