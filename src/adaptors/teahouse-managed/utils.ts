@@ -33,8 +33,9 @@ function mappingVaultData(vault: any): Vault {
         symbol: "Unknown",
         decimals: 18
     }
+    const strategy = vault.name || ""
     const name = vault.name || ""
-    const vaultMeta =  ""
+    const vaultMeta =  strategy
     const url = generateVaultURL(chain, address)
     const data = {
         address, chain, name, vaultMeta,  asset0, url,
@@ -174,7 +175,7 @@ function convertToPool(vault: Vault): Pool {
     return {
         pool: `${vault.address}-${vault.chain}`,
         chain: vault.chain,
-        symbol: vault.name,
+        symbol: vault.asset0.symbol,
         url: vault.url,
         project: 'teahouse-managed',
         tvlUsd: vault.tvlUsd,
