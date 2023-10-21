@@ -108,7 +108,7 @@ const getLatestBlockSubgraph = async (url) => {
       ? await request(url, queryGraph)
       : url.includes('aperture/uniswap-v3')
       ? await request(
-          'https://d2vin613o4opvi.cloudfront.net/subgraphs/name/aperture/manta-pacific-blocks',
+          'https://api.goldsky.com/api/public/project_clnz7akg41cv72ntv0uhyd3ai/subgraphs/aperture/manta-pacific-blocks/gn',
           queryGraph
         )
       : await request(
