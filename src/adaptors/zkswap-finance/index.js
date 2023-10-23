@@ -5,19 +5,19 @@ const { request, gql, batchRequests } = require('graphql-request');
 const superagent = require('superagent');
 const { chunk } = require('lodash');
 
-const { zfFarmABI, zfTokenABI, erc20ABI } = require('./abis');
+const { zfFarmABI, zfTokenABI, erc20ABI, zfFactory } = require('./abis');
 const utils = require('../utils');
 const { TokenProvider } = require('@uniswap/smart-order-router');
 
 const ZFFarm = '0x9f9d043fb77a194b4216784eb5985c471b979d67';
 const ZFToken = '0x31c2c031fdc9d33e974f327ab0d9883eae06ca4a';
+const ZFFactory = '0x3a76e377ed58c8731f9df3a36155942438744ce3'
 
 const RPC_URL = 'https://mainnet.era.zksync.io';
 const API_URL = 'https://api.studio.thegraph.com/query/49271/zkswap/0.0.9';
 
 const SECOND_PER_YEAR = 60 * 60 * 24 * 365;
 const WEEKS_PER_YEAR = 52;
-const FEE_RATE = 0.0004;
 const CHAIN = 'era';
 
 
@@ -30,6 +30,23 @@ const apy = async () => {
   const poolsCount = await zfFarm.methods.poolLength().call();
   const totalAllocPoint = await zfFarm.methods.totalAllocPoint().call();
   const zfPerSecond = (await zfFarm.methods.zfPerSecond().call()) / 1e18;
+
+  const protocolFeeRes = await sdk.api.abi.call({
+    abi: zfFactory.find(abi => abi.name === 'protocolFeeFactor'),
+    target: ZFFactory,
+    chain: CHAIN,
+  })
+
+  const feeRes = await sdk.api.abi.call({
+    abi: zfFactory.find(abi => abi.name === 'swapFee'),
+    target: ZFFactory,
+    chain: CHAIN,
+  })
+
+  const fee = feeRes.output
+  const protocolFee = protocolFeeRes.output
+
+  const feeRate = fee*(1-1/protocolFee)/10000
 
   const poolsRes = await sdk.api.abi.multiCall({
     abi: zfFarmABI.filter(({ name }) => name === 'poolInfo')[0],
@@ -81,7 +98,6 @@ const apy = async () => {
   const pairsInfo = await utils.uniswap.getPairsInfo(lpTokens, API_URL);
   const lpChunks = chunk(lpTokens, 10);
 
-
   const pairVolumes = await Promise.all(
     lpChunks.map((lpsChunk) =>
       request(
@@ -91,20 +107,19 @@ const apy = async () => {
       ${lpsChunk
             .slice(0, 10)
             .map(
-              (token, i) => `token_${token.toLowerCase()}:pairDayDatas(
-        orderBy: date
-        orderDirection: desc
-        first: 7
-        where: { pairAddress: "${token.toLowerCase()}" }
-      ) {
-        dailyVolumeUSD
-      }`).join('\n')}
-    }
-  `
+              (token, i) =>
+                `token_${token.toLowerCase()}:pairHourDatas(
+                    orderBy: hourStartUnix
+                    orderDirection: desc
+                    first: 24
+                    where: {pair_: {id: "${token.toLowerCase()}"}}) 
+                    {
+                        hourlyVolumeUSD
+                    }`
+            ).join('\n')}}`
       )
     )
   );
-
 
   const volumesMap = pairVolumes.flat().reduce(
     (acc, curChunk) => ({
@@ -112,7 +127,9 @@ const apy = async () => {
       ...Object.entries(curChunk).reduce((innerAcc, [key, val]) => ({
         ...innerAcc,
         [key.split('_')[1]]: val,
-      })),
+      }),
+        {}
+      ),
     }),
     {}
   );
@@ -127,7 +144,7 @@ const apy = async () => {
   const nonLpTvl = tvl / 1e18
   const nonLpRes = nonLpPoolList.map((pool, i) => {
     const poolInfo = pool;
-    const poolWeight = poolInfo.allocPoint/totalAllocPoint
+    const poolWeight = poolInfo.allocPoint / totalAllocPoint
     const totalRewardPricePerYear = tokensPrices[ZFToken] * poolWeight * zfPerSecond * SECOND_PER_YEAR
     const totalStakingTokenInPool = tokensPrices[ZFToken] * nonLpTvl
     const apyReward = (totalRewardPricePerYear / totalStakingTokenInPool) * 100
@@ -175,12 +192,13 @@ const apy = async () => {
       )
       .toString();
 
-    const lpFees7D =
+    const lpFees24h =
       (volumesMap[pool.lpToken.toLowerCase()] || []).reduce(
-        (acc, { dailyVolumeUSD }) => acc + Number(dailyVolumeUSD),
+        (acc, { hourlyVolumeUSD }) => acc + Number(hourlyVolumeUSD),
         0
-      ) * FEE_RATE;
-    const apyBase = ((lpFees7D * WEEKS_PER_YEAR) / lpReservesUsd) * 100;
+      ) * feeRate;
+
+    const apyBase = ((lpFees24h * 365) / lpReservesUsd) * 100;
 
     const apyReward = utils.uniswap.calculateApy(
       poolInfo,
