@@ -1,4 +1,46 @@
 {
+    "allPools": {
+        "inputs": [],
+        "name": "allPools",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "address",
+                        "name": "pool",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "lpToken",
+                        "type": "address"
+                    },
+                    {
+                        "components": [
+                            {
+                                "internalType": "bool",
+                                "name": "isWeth",
+                                "type": "bool"
+                            },
+                            {
+                                "internalType": "address",
+                                "name": "token",
+                                "type": "address"
+                            }
+                        ],
+                        "internalType": "struct PoolToken[]",
+                        "name": "tokens",
+                        "type": "tuple[]"
+                    }
+                ],
+                "internalType": "struct Pool[]",
+                "name": "pools",
+                "type": "tuple[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
     "balanceOf": {
         "inputs": [
             {
