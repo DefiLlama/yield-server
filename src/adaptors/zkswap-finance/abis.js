@@ -1,5 +1,5 @@
 module.exports = {
-    zfFarmABI: [
+  zfFarmABI: [
     {
       anonymous: false,
       inputs: [
@@ -1330,5 +1330,33 @@ module.exports = {
       type: 'function',
     },
   ],
-  }
-  
+  zfFactory: [
+    {
+      inputs: [],
+      name: "protocolFeeFactor",
+      outputs: [
+        {
+          internalType: "uint8",
+          name: "",
+          type: "uint8"
+        }
+      ],
+      stateMutability: "view",
+      type: "function"
+    },
+    {
+      inputs: [],
+      name: "swapFee",
+      outputs: [
+        {
+          internalType: "uint16",
+          name: "",
+          type: "uint16"
+        }
+      ],
+      stateMutability: "view",
+      type: "function"
+    }
+  ]
+
+}
