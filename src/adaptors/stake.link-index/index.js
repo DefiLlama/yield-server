@@ -1,6 +1,6 @@
 const utils = require('../utils');
 
-const API_URL = 'https://api.stake.link/v1/metrics/staking';
+const API_URL = 'https://stake.link/v1/metrics/staking';
 const CHAIN_NAME = 'Ethereum';
 
 const pools = [

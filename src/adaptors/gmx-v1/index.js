@@ -135,10 +135,6 @@ async function getPoolGlp(
     apyReward: apyInflation,
     rewardTokens:
       chainString === 'arbitrum' ? [arbitrumGmxAddress] : [avalacheGmxAddress],
-
-    underlyingTokens: [
-      chainString === 'arbitrum' ? arbitrumGmxAddress : avalacheGmxAddress,
-    ],
     underlyingTokens: [
       chainString === 'arbitrum'
         ? '0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258'
