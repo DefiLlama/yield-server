@@ -11,7 +11,7 @@ const main = async() => {
   const data = await utils.getData('https://data-distributor.1inch.io/resolversMetrics');
   const result = Object.values(data)[0].map((pool) => {
     return {
-      pool: `${pool.pool}-${pool.chain}`.toLowerCase(),
+      pool: `1INCH-${pool.resolver_address}-${pool.chain}`.toLowerCase(),
       chain: utils.formatChain(pool.chain),
       project: "1inch-network",
       symbol: `1INCH (${pool.pool})`,
