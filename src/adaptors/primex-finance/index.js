@@ -1,7 +1,7 @@
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const { abi } = require('./abi');
-const { APYREWARD_BY_SYMBOL, CHAIN_IDS, DEAD_ADDRESS, ROLES, SECONDS_PER_YEAR, APY_BASE_MINING, config } = require('./utils')
+const { APYREWARD_BY_SYMBOL, CHAIN_IDS, DEAD_ADDRESS, ROLES, SECONDS_PER_YEAR, APY_REWARD_BONUS, config } = require('./utils')
 
 const getPoolUrl = (address, chain) => `https://app.primex.finance/#/bucket-details/${address}?network=${CHAIN_IDS[chain]}`
 
@@ -38,13 +38,13 @@ const formatPool = async (bucket, config, EPMXPrice) => {
   const isMiningPhase = !miningParams.isBucketLaunched && miningParams.deadlineTimestamp * 1000 > Date.now()
 
   const apyBaseCalculated = (Math.pow(1 + (lar / 10 ** 27) / SECONDS_PER_YEAR, SECONDS_PER_YEAR) - 1) * 100
-  const apyBase = isMiningPhase ? APY_BASE_MINING : apyBaseCalculated
+  const apyBase = isMiningPhase ? 0 : apyBaseCalculated
 
   const apyBaseBorrowCalculated = (Math.pow(1 + (bar / 10 ** 27) / SECONDS_PER_YEAR, SECONDS_PER_YEAR) - 1) * 100
   const apyBaseBorrow = isMiningPhase ? 0 : apyBaseBorrowCalculated
 
   const apyRewardCalculated = rewardPerTokenLender * 10 ** asset.decimals / 10 ** 18 * SECONDS_PER_YEAR * EPMXPrice / assetPrice / 10 ** 18 * 100;
-  const apyReward = isMiningPhase ? APYREWARD_BY_SYMBOL[symbol] : apyRewardCalculated
+  const apyReward = isMiningPhase ? APYREWARD_BY_SYMBOL[symbol] + APY_REWARD_BONUS : apyRewardCalculated
 
   const apyRewardBorrowCalculated = rewardPerTokenTrader * 10 ** asset.decimals / 10 ** 18 * SECONDS_PER_YEAR * EPMXPrice / assetPrice / 10 ** 18 * 100;
   const apyRewardBorrow = isMiningPhase ? 0 : apyRewardBorrowCalculated
