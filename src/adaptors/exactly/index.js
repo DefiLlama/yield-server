@@ -127,7 +127,7 @@ const apy = async () =>
                   chain,
                 });
                 /** @type number */
-                const rewardUSD = rewardsPrices[reward.toLowerCase()];
+                const rewardUSD = rewardsPrices[reward.toLowerCase()] ?? 0;
                 const firstMaturity = configStart - (configStart % INTERVAL) + INTERVAL;
                 const maxMaturity = timestampNow - (timestampNow % INTERVAL) + INTERVAL + maxFuturePools[i] * INTERVAL;
                 const rewardMaturities = Array.from(
