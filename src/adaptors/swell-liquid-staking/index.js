@@ -37,7 +37,7 @@ const apy = async () => {
   return [
     {
       pool: swETH,
-      project: 'swell',
+      project: 'swell-liquid-staking',
       chain: 'Ethereum',
       symbol: 'swETH',
       tvlUsd,
