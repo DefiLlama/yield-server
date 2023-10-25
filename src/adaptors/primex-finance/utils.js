@@ -18,7 +18,7 @@ const APYREWARD_BY_SYMBOL = {
   ['WMATIC']: 21,
 }
 
-const APY_BASE_MINING = 7;
+const APY_REWARD_BONUS = 7;
 
 const config = [
   {
@@ -35,4 +35,4 @@ const config = [
 
 const getPoolUrl = (address, chain) => `https://app.primex.finance/#/bucket-details/${address}?network=${CHAIN_IDS[chain]}`
 
-module.exports = { DEAD_ADDRESS, SECONDS_PER_YEAR, ROLES, CHAIN_IDS, APYREWARD_BY_SYMBOL, APY_BASE_MINING, config }
+module.exports = { DEAD_ADDRESS, SECONDS_PER_YEAR, ROLES, CHAIN_IDS, APYREWARD_BY_SYMBOL, APY_REWARD_BONUS, config }
