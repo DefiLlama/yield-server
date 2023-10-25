@@ -7,14 +7,11 @@ const urlPolygon = `${baseUrl}/atlendis-hosted-service-polygon`;
 
 const query = gql`
   {
-    poolStatuses {
+    v1PoolStatuses {
       state
       pool {
         id
         identifier
-        parameters {
-          underlyingToken
-        }
       }
       normalizedAvailableAmount
       normalizedBorrowedAmount
@@ -62,7 +59,7 @@ const main = async () => {
   let data = await request(urlPolygon, query);
 
   // build pool objects
-  data = data.poolStatuses
+  data = data.v1PoolStatuses
     .filter((p) => p.state !== 'Closed')
     .map((el) => buildPool(el));
 
