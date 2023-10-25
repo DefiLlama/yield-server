@@ -7,7 +7,7 @@ const ROLES = {
 }
 
 const CHAIN_IDS = {
-  polygon: 137,
+  Polygon: 137,
 };
 
 const APYREWARD_BY_SYMBOL = {
@@ -22,7 +22,7 @@ const APY_BASE_MINING = 7;
 
 const config = [
   {
-    chain: 'polygon',
+    chain: 'Polygon',
     lensAddress: '0xA37a23C5Eb527985caae2a710a0F0De7C49ACb9d',
     bucketsFactory: '0x7E6915D307F434E4171cCee90e180f5021c60089',
     positionManager: '0x02bcaA4633E466d151b34112608f60A82a4F6035',

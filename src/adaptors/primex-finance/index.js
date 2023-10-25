@@ -15,7 +15,7 @@ const formatPool = async (bucket, config, EPMXPrice) => {
         sdk.api.abi.call({
           abi: abi.activityRewardDistributorBuckets,
           target: activityRewardDistributor,
-          chain,
+          chain: chain.toLowerCase(),
           params: [bucketAddress, r]
         })
         )
@@ -25,12 +25,12 @@ const formatPool = async (bucket, config, EPMXPrice) => {
   const symbol = asset.symbol
   const underlyingTokens = [asset.tokenAddress]
 
-  const priceKeys = underlyingTokens.map((t) => `${chain}:${t}`).join(',')
+  const priceKeys = underlyingTokens.map((t) => `${chain.toLowerCase()}:${t}`).join(',')
   const prices = (
     await superagent.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
   ).body.coins;
 
-  const assetPrice = prices[`${chain}:${asset.tokenAddress}`]
+  const assetPrice = prices[`${chain.toLowerCase()}:${asset.tokenAddress}`]
   const totalSupplyUsd = (supply / 10 ** assetPrice.decimals) * assetPrice.price
   const totalBorrowUsd = (demand / 10 ** assetPrice.decimals) * assetPrice.price
   const tvlUsd = totalSupplyUsd - totalBorrowUsd
@@ -50,7 +50,7 @@ const formatPool = async (bucket, config, EPMXPrice) => {
   const apyRewardBorrow = isMiningPhase ? 0 : apyRewardBorrowCalculated
 
   return {
-    pool: bucketAddress,
+    pool: `${bucketAddress}-${chain}`.toLowerCase(),
     chain,
     project: 'primex-finance',
     symbol,
@@ -74,14 +74,14 @@ const getPools = async (config) => {
     await sdk.api.abi.call({
       abi: abi.getAllBucketsFactory,
       target: lensAddress,
-      chain,
+      chain: chain.toLowerCase(),
       params: [bucketsFactory, DEAD_ADDRESS, positionManager, false]
     })).output
 
   const EPMXPrice = (await sdk.api.abi.call({
     abi: abi.getChainlinkLatestRoundData,
     target: lensAddress,
-    chain,
+    chain: chain.toLowerCase(),
     params: [[EPMXPriceFeed]]
   })).output[0].answer / 10 ** EPMXPriceFeedDecimals
 
