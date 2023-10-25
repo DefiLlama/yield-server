@@ -230,9 +230,9 @@ const getApy = async () => {
         token_info = mrd_prices[_emissionToken]
       }
 
-      let price = token_info.price
-      let decimals = token_info.decimals
-      let symbol = token_info.symbol
+      let price = token_info?.price
+      let decimals = token_info?.decimals
+      let symbol = token_info?.symbol
 
       //only active
       if (_endTime > NOW) {
