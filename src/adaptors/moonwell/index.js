@@ -227,7 +227,7 @@ const getApy = async () => {
         //WELL base -> WELL moonbeam
         token_info = mrd_prices['0x511ab53f793683763e5a8829738301368a2411e3']
       } else {
-        token_info = mrd_prices[_emissionToken]
+        token_info = mrd_prices[_emissionToken.toLowerCase()]
       }
 
       let price = token_info?.price
