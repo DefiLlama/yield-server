@@ -33,7 +33,8 @@ async function main() {
           project: 'amnis-finance',
           symbol: utils.formatSymbol('amApt'),
           tvlUsd: tvlUsd,
-          apy: apy,
+          apyBase: apy,
+          apy: apy
         },
       ];
 }
