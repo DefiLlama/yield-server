@@ -42,6 +42,10 @@ const tokens = {
     address: '0xba100000625a3754423978a60c9317c58a424e3d',
     lpAddress: '0xfacd2ec4647df2cb758f684c2aaab56a93288f9e',
   },
+  SNX: {
+    address: '0xc011a73ee8576fb46f5e1c5751ca3b9fe0af2a6f',
+    lpAddress: '0xe480f5a42e263ac0352d0c9c6e75c4a612ee52a7',
+  },
   POOL: {
     address: '0x0cec1a9154ff802e7934fc916ed7ca50bde6844e',
     lpAddress: '0xc3f35d90ebce372ded12029b72b22a23a2f637fd',
