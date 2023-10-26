@@ -54,7 +54,7 @@ const getATokenData = async () => {
       apy: parseFloat(asdCRV.apy),
     },
     {
-      pool: `${aladdinSdCRV}-concentrator`,
+      pool: `${aladdinCVX}-concentrator`,
       chain: utils.formatChain('ethereum'),
       project: 'concentrator',
       symbol: 'aCVX',
