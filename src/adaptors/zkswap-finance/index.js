@@ -222,7 +222,7 @@ const apy = async () => {
     pool: ZF_GOV,
     chain: CHAIN,
     project: 'zkswap-finance',
-    symbol: 'DAO STAKING ZF Token',
+    symbol: 'ZF',
     tvlUsd: govTvl,
     apyBase: unstakedAPY,
     apyReward: govFarmAPY,
