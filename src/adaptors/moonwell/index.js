@@ -136,10 +136,7 @@ const getApy = async () => {
   let base_res = await request(BASE_API_URL, base_query)
   let baseResults = base_res.markets
     .map(pool => {
-      let price =
-        pool.underlyingSymbol.toLowerCase() === 'usdc'
-          ? 1
-          : Number(pool.underlyingPriceUSD)
+      let price = Number(pool.underlyingPriceUSD)
 
       const totalSupplyUsd =
         Number(pool.totalSupply) * Number(pool.exchangeRate) * price
@@ -227,7 +224,7 @@ const getApy = async () => {
         //WELL base -> WELL moonbeam
         token_info = mrd_prices['0x511ab53f793683763e5a8829738301368a2411e3']
       } else {
-        token_info = mrd_prices[_emissionToken]
+        token_info = mrd_prices[_emissionToken.toLowerCase()]
       }
 
       let price = token_info.price
