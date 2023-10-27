@@ -12,15 +12,19 @@ const main = async () => {
     'https://data-distributor.1inch.io/resolversMetrics'
   );
   const result = Object.values(data)[0].map((pool) => {
+    const apyReward = Number(pool.apyBase);
+
     return {
       pool: `1INCH-${pool.resolver_address}-${pool.chain}`.toLowerCase(),
       chain: utils.formatChain(pool.chain),
       project: '1inch-network',
-      symbol: `1INCH (${pool.pool})`,
+      symbol: '1INCH',
+      poolMeta: pool.pool,
       tvlUsd: Number(pool.tvlUsd),
-      apyBase: Number(pool.apyBase),
+      apyReward,
       url: `https://app.1inch.io/#/1/earn/delegate/${pool.resolver_address}`,
-      rewardTokens: [ADDRESSES[pool.chain.toLowerCase()]['1INCH']],
+      rewardTokens:
+        apyReward > 0 ? [ADDRESSES[pool.chain.toLowerCase()]['1INCH']] : [],
       underlyingTokens: [
         ADDRESSES[pool.chain.toLowerCase()]['1INCH'],
         ADDRESSES[pool.chain.toLowerCase()]['dst1INCH'],
