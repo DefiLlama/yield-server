@@ -27,7 +27,8 @@ const getApy = async () => {
         };
       });
     })
-    .flat();
+    .flat()
+    .filter((i) => i.chain);
 };
 
 module.exports = {
