@@ -55,6 +55,8 @@ const poolsMap = {
   'ad3d7253-fb8f-402f-a6f8-821bc0a055cb': 'stkcvxcrv3crypto',
   '7394f1bc-840a-4ff0-9e87-5e0ef932943a': 'stkcvx3crv',
   'c04005c9-7e34-41a6-91c4-295834ed8ac0': 'stkcvxeusd3crv-f',
+  'fa4d7ee4-0001-4133-9e8d-cf7d5d194a91': 'fusdc-vault',
+  '325ad2d6-70b1-48d7-a557-c2c99a036f87': 'mrp-ausdc',
 };
 
 const rtokenTvl = (rtoken) =>
