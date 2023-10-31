@@ -4,7 +4,7 @@ const stakingPool = "0xE86D3dBd8233F1BFA22679cB57FaB3428E9654f7";
 const sdkChain = 'filecoin'
 
 async function getTotalLockedFIL() {
-  const result = await utils.getData('https://api.sftproject.io/api/v1/public/dashboard/info');
+  const result = await utils.getData('https://ww8.sftproject.io/api/c/api/v1/public/dashboard/info');
   let totalLocked = 0;
   if (result.data.combined !== null) {
     for (let node of result.data.combined) {
@@ -22,7 +22,7 @@ async function getTotalLockedFIL() {
 
 const getApy = async () => {
 
-  const apyInfo = await utils.getData('https://api.sftproject.io/api/v1/public/farm/apy');
+  const apyInfo = await utils.getData('https://ww8.sftproject.io/api/c/api/v1/public/farm/apy?token=AIzaSyC_5Tj4ir8peMmxP6KPPiayXLcpL9kIwqc');
   const apy = apyInfo.data;
 
   const totalLockedFIL = await getTotalLockedFIL();
@@ -37,7 +37,7 @@ const getApy = async () => {
     chain: sdkChain,
     tvlUsd,
     apy,
-    poolMeta: '12 month lock'
+    poolMeta: '6 month lock'
   }]
 }
  

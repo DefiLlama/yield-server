@@ -4,9 +4,7 @@ const superagent = require('superagent');
 
 const { confirm } = require('./confirm');
 const { connect } = require('../src/utils/dbConnection');
-const {
-  buildInsertConfigQuery,
-} = require('../src/controllers/configController');
+const { buildInsertConfigQuery } = require('../src/queries/config');
 
 (async () => {
   await confirm(
@@ -16,11 +14,7 @@ const {
   );
 
   const uuids = JSON.parse(fs.readFileSync('./created_uuids.json'));
-  const urls = (
-    await superagent.get(
-      'https://1rwmj4tky9.execute-api.eu-central-1.amazonaws.com/urls'
-    )
-  ).body;
+  const urls = (await superagent.get('https://yields.llama.fi/url')).body;
   let data = JSON.parse(fs.readFileSync('./yield_snapshot_last.json'));
 
   data = data.map((p) => ({

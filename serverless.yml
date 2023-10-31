@@ -13,7 +13,7 @@ provider:
   tracing:
     apiGateway: true
     lambda: true
-  memorySize: 512
+  memorySize: 1024
   iam:
     role:
       statements:
@@ -30,28 +30,9 @@ provider:
           Resource: '*'
 
   environment:
-    # for api handlers
-    APIG_URL:
-      {
-        'Fn::Join':
-          [
-            '',
-            [
-              'https://',
-              { Ref: 'HttpApi' },
-              '.execute-api.',
-              { Ref: 'AWS::Region' },
-              '.',
-              { Ref: 'AWS::URLSuffix' },
-            ],
-          ],
-      }
     BUCKET_DATA: { Ref: BucketData }
     DATABASE_URL: ${file(./env.js):DATABASE_URL}
     ZEROX_API: ${file(./env.js):ZEROX_API}
-
-  httpApi:
-    metrics: true
 
 functions:
   # ---------- TRIGGER HANDLERS
@@ -92,12 +73,15 @@ functions:
       ARBITRUM_RPC: ${file(./env.js):ARBITRUM_RPC}
       TVL_SPIKE_WEBHOOK: ${file(./env.js):TVL_SPIKE_WEBHOOK}
       NEW_YIELDS_WEBHOOK: ${file(./env.js):NEW_YIELDS_WEBHOOK}
+      SMARDEX_SUBGRAPH_API_KEY: ${file(./env.js):SMARDEX_SUBGRAPH_API_KEY}
+      VENDOR_FINANCE: ${file(./env.js):VENDOR_FINANCE}
 
   # --- data enrichment
   triggerEnrichment:
     handler: src/handlers/triggerEnrichment.handler
     description: Lambda which runs enrichment process
     timeout: 600
+    memorySize: 1024
     events:
       # every hour at 16 past
       - schedule: cron(16 * * * ? *)
@@ -157,127 +141,23 @@ functions:
       # 30min prior midnight
       - schedule: cron(30 23 * * ? *)
 
-  # ---------- GET HANDLERS
-  getPoolsEnriched:
-    handler: src/handlers/getPoolsEnriched.handler
-    description: Lambda for retrieving the latest enriched data for each unique pool
-    timeout: 20
+  triggerLSDRates:
+    handler: src/handlers/triggerLSDRates.handler
+    description: Lambda which triggers lsd market rate and expected rate
+    timeout: 300
     events:
-      - httpApi:
-          method: get
-          path: /poolsEnriched
-      - httpApi:
-          method: get
-          path: /pools
+      # every new hour
+      - schedule: cron(0 * * * ? *)
 
-  # includes old pool values
-  getPoolsEnrichedOld:
-    handler: src/handlers/getPoolsEnrichedOld.handler
-    description: Lambda for retrieving the latest enriched data for each unique pool (includes old pool values)
-    timeout: 20
+  triggerProtocolNameChange:
+    handler: src/handlers/triggerProtocolNameChange.handler
+    description: Lambda which checks for protocol renames
+    timeout: 300
     events:
-      - httpApi:
-          method: get
-          path: /poolsOld
-
-  getChart:
-    handler: src/handlers/getChart.handler
-    description: Lambda for retrieving chart data for a particular pool
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /chart/{configID}
-
-  getMedian:
-    handler: src/handlers/getMedian.handler
-    description: Lambda for retrieving daily median apy's
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /median
-
-  getUrl:
-    handler: src/handlers/getUrl.handler
-    description: Lambda for retrieving project url's
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /url
-
-  getDistinctID:
-    handler: src/handlers/getDistinctID.handler
-    description: Lambda for retrieving unique pool id's
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /distinctID
-
-  getLendBorrow:
-    handler: src/handlers/getLendBorrow.handler
-    description: Lambda for retrieving lending + borrow data
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /lendBorrow
-
-  getHistoryLendBorrow:
-    handler: src/handlers/getHistoryLendBorrow.handler
-    description: Lambda for retrieving chart data for a particular pool
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /chartLendBorrow/{configID}
-
-  getConfigPool:
-    handler: src/handlers/getConfigPool.handler
-    description: Lambda for retrieving config data of configIDs
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /configPool/{configID}
-
-  getPerp:
-    handler: src/handlers/getPerp.handler
-    description: Lambda for retrieving latest perp data
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /perps
-
-  getLSDRates:
-    handler: src/handlers/getLSDRates.handler
-    description: Lambda for retrieving ETH LSD Rates
-    timeout: 30
-    events:
-      - httpApi:
-          method: get
-          path: /lsdRates
-
-  getLSDRatesNew:
-    handler: src/handlers/getLSDRatesNew.handler
-    description: Lambda for retrieving ETH LSD Rates
-    timeout: 30
-    events:
-      - httpApi:
-          method: get
-          path: /lsdRatesNew
-
-  getMedianProject:
-    handler: src/handlers/getMedianProject.handler
-    description: Lambda for retrieving a projects median apy history
-    timeout: 20
-    events:
-      - httpApi:
-          method: get
-          path: /medianProject/{project}
+      # every hour 40min past
+      - schedule: cron(40 * * * ? *)
+    environment:
+      STALE_PROJECTS_WEBHOOK: ${file(./env.js):STALE_PROJECTS_WEBHOOK}
 
 resources:
   Resources:

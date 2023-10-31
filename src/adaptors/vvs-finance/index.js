@@ -228,8 +228,8 @@ const main = async () => {
             pairInfo.token1.decimals,
             baseTokensPrices
           )
-            .div(1e18)
-            .toString();
+            ?.div(1e18)
+            ?.toString();
 
           const lpFees7D =
             volumeInfo.reduce(
@@ -274,7 +274,7 @@ const main = async () => {
   );
 
   // // rmv null elements
-  return pools.filter(Boolean);
+  return pools.filter(Boolean).filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

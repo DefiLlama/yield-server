@@ -13,7 +13,7 @@ CHAINS_API = {
   ethereum: `${url}-mainnet`,
   arbitrum: `${url}-arbitrum-one`,
   polygon:
-    'https://polygon-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-elastic-polygon',
+    'https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic-matic',
   avalanche: `${url}-avalanche`,
   bsc: `${url}-bsc`,
   fantom: `${url}-fantom`,

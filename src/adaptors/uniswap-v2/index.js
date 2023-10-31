@@ -3,7 +3,7 @@ const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
-const url = 'https://api.thegraph.com/subgraphs/name/ianlapham/uniswapv2';
+const url = 'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v2-dev';
 
 const query = gql`
   {

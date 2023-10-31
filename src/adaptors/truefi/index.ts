@@ -106,15 +106,14 @@ const buildPoolAdapter = async (
 };
 
 const apy = async () => {
+  const coins = [
+    ...POOL_INFOS.map(({ tokenAddress }) => tokenAddress).map(getAddressKey),
+    getAddressKey(TRU_ADDRESS),
+  ]
+    .join(',')
+    .toLowerCase();
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: [
-        ...POOL_INFOS.map(({ tokenAddress }) => tokenAddress).map(
-          getAddressKey
-        ),
-        getAddressKey(TRU_ADDRESS),
-      ],
-    })
+    await superagent.get(`https://coins.llama.fi/prices/current/${coins}`)
   ).body.coins;
 
   const truPrice = prices[getAddressKey(TRU_ADDRESS)].price;

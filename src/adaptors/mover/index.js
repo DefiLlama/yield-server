@@ -21,9 +21,7 @@ const savings = async () => {
   // get asset price in usd
   const key = 'ethereum:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
   const usdcInUSDEth = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: [key],
-    })
+    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
   ).body.coins[key].price;
 
   let tvl = new BigNumber(
@@ -62,11 +60,9 @@ const savingsPlus = async () => {
   const chain = 'polygon';
 
   // get asset price in usd
-  const key = `polygon:${USDCinPolygon}`;
+  const key = `polygon:${USDCinPolygon}`.toLowerCase();
   const usdcInUSDPolygon = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: [key],
-    })
+    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
   ).body.coins[key].price;
 
   let tvl = new BigNumber(

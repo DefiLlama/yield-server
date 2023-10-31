@@ -38,3 +38,5 @@ jobs:
           NEW_YIELDS_WEBHOOK: ${{ secrets.NEW_YIELDS_WEBHOOK }}
           STALE_PROJECTS_WEBHOOK: ${{ secrets.STALE_PROJECTS_WEBHOOK }}
           ZEROX_API: ${{ secrets.ZEROX_API }}
+          SMARDEX_SUBGRAPH_API_KEY: ${{ secrets.SMARDEX_SUBGRAPH_API_KEY }}
+          VENDOR_FINANCE: ${{ secrets.VENDOR_FINANCE }}
