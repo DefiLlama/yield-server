@@ -128,7 +128,7 @@ const main = async () => {
                 apyReward: poolDetails.lendOleRewardApy * 100,
                 rewardTokens: [poolDetails.token, oleAddr[chain]],
                 underlyingTokens: [poolDetails.token],
-                poolMeta: `${utils.formatSymbol(poolDetails.name).split("->")[0]} Pool, that deposits token ${utils.formatSymbol(poolDetails.name).split("->")[0]}, and borrows token ${utils.formatSymbol(poolDetails.name).split("->")[0]} to use on ${utils.formatSymbol(poolDetails.name)} market.`
+                poolMeta: `${utils.formatSymbol(poolDetails.name)} Market`
             };
             console.log(poolValues)
             result.push(poolValues)
