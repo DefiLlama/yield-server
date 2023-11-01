@@ -121,13 +121,14 @@ const main = async () => {
                 pool: `${pool}-${llama_chain_name[chain]}`.toLowerCase(),
                 chain: utils.formatChain(llama_chain_name[chain]),
                 project: 'openleverage',
-                symbol: utils.formatSymbol(poolDetails.name),
+                symbol: utils.formatSymbol(poolDetails.name).split("->")[0],
                 tvlUsd: (new BigNumber(poolBalance)).multipliedBy(new BigNumber(tokenPriceInUsdt)).dividedBy(new BigNumber(10).pow(poolDetails.tokenDecimal)).toNumber(),
                 apyBase: new BigNumber(poolAPYPerBlock).multipliedBy(new BigNumber(block_of_year[chain])).dividedBy(new BigNumber(10).pow(16)).toNumber(), // in % format
                 url: `https://${opl_chain_name[chain]}.openleverage.finance/app/pool/${pool}`,
                 apyReward: poolDetails.lendOleRewardApy * 100,
                 rewardTokens: [poolDetails.token, oleAddr[chain]],
-                underlyingTokens: [poolDetails.token]
+                underlyingTokens: [poolDetails.token],
+                poolMeta: `${utils.formatSymbol(poolDetails.name).split("->")[0]} Pool, that deposits token ${utils.formatSymbol(poolDetails.name).split("->")[0]}, and borrows token ${utils.formatSymbol(poolDetails.name).split("->")[0]} to use on ${utils.formatSymbol(poolDetails.name)} market.`
             };
             console.log(poolValues)
             result.push(poolValues)
