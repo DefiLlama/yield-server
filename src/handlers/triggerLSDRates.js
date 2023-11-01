@@ -135,6 +135,14 @@ const lsdTokens = [
     type: a,
     fee: 0.1,
   },
+  {
+    name: 'NodeDAO',
+    symbol: 'nETH',
+    // address: '0xC6572019548dfeBA782bA5a2093C836626C7789A',
+    address: '0x8103151E2377e78C04a3d2564e20542680ed3096',
+    type: a,
+    fee: 0.1,
+  },
 ];
 
 const priceUrl = 'https://api.0x.org/swap/v1/quote';
@@ -293,6 +301,14 @@ const getExpectedRates = async () => {
     type: 'function',
   };
 
+  const nETHAbi = {
+    inputs: [],
+    name: 'getExchangeRate',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
   // --- cbETH
   const cbETHRate = Number((await axios.get(cbETHRateUrl)).data.amount);
 
@@ -411,6 +427,15 @@ const getExpectedRates = async () => {
       })
     ).output / 1e18;
 
+  const nETH =
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'NodeDAO').address,
+        chain: 'ethereum',
+        abi: nETHAbi,
+      })
+    ).output / 1e18;
+
   return lsdTokens.map((lsd) => ({
     ...lsd,
     expectedRate:
@@ -436,6 +461,8 @@ const getExpectedRates = async () => {
         ? vETH
         : lsd.name === 'Stader'
         ? ETHx
+        : lsd.name === 'NodeDao'
+        ? nETH
         : 1,
   }));
 };
