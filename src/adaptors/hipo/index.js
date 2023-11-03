@@ -58,7 +58,7 @@ module.exports = {
     const duration = 2 * (nextRoundSince - currentRoundSince);
     const year = 365 * 24 * 60 * 60;
     const compoundingFrequency = year / duration;
-    const apy =
+    const apyBase =
       (Math.pow(
         Number(lastRecovered) / Number(lastStaked) || 1,
         compoundingFrequency
@@ -73,7 +73,7 @@ module.exports = {
         project: 'hipo',
         symbol: utils.formatSymbol('hTON'),
         tvlUsd,
-        apy,
+        apyBase,
       },
     ];
   },
