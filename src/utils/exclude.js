@@ -33,7 +33,9 @@ const excludeAdaptors = [
   // removing cause a) curve pool is redundant cause we already have that on curve adapter
   // and the rebonding strategy is targeting a max apy
   'lusd-chickenbonds',
-  'eternal-finance'
+  'eternal-finance',
+  'wild-base', // empty
+  'vendor-v1', // empty
 ];
 
 const excludePools = [
@@ -391,7 +393,7 @@ const excludePools = [
   '0x3035917be42af437cbdd774be26b9ec90a2bd677000200000000000000000543',
   '0xc963ef7d977ECb0Ab71d835C4cb1Bf737f28d010', // rdnt-weth sushi pool in radiant v1 adapter, redundant
   '0x7007535de9f864f0c15fe6fa288ce3feb842f72c',
-  '0xbefaba1c380d8b0a53bc604d8b809684775e74f8'
+  '0xbefaba1c380d8b0a53bc604d8b809684775e74f8',
 ];
 
 const boundaries = {
