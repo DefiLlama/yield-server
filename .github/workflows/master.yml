@@ -34,6 +34,7 @@ jobs:
           OPTIMISM_RPC: ${{ secrets.OPTIMISM_RPC }}
           AVAX_RPC: ${{ secrets.AVAX_RPC }}
           ARBITRUM_RPC: ${{ secrets.ARBITRUM_RPC }}
+          BASE_RPC: ${{ secrets.BASE_RPC }}
           TVL_SPIKE_WEBHOOK: ${{ secrets.TVL_SPIKE_WEBHOOK }}
           NEW_YIELDS_WEBHOOK: ${{ secrets.NEW_YIELDS_WEBHOOK }}
           STALE_PROJECTS_WEBHOOK: ${{ secrets.STALE_PROJECTS_WEBHOOK }}
