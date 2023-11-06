@@ -17,7 +17,13 @@ const getPoolDetails = async (block, poolInfo, chainString) => {
   // console.log(poolInfo);
   for (let i = 0; i < poolInfo.length; i++) {
     // SKIP LP OF ALB STANDALONE
-    if (poolInfo[i].lpToken != '0x1dd2d631c92b1aCdFCDd51A0F7145A50130050C4') {
+    if (
+      ![
+        '0x1dd2d631c92b1aCdFCDd51A0F7145A50130050C4',
+        '0x840dCB7b4d3cEb906EfD00c8b5F5c5Dd61d7f8a6',
+        '0xfA52C8902519e4Da95C3C520039C676d5bD4d9a2'
+      ].includes(poolInfo[i].lpToken)
+    ) {
       const token0Id = (
         await sdk.api.abi.call({
           target: poolInfo[i].lpToken,
