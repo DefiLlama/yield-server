@@ -1,7 +1,7 @@
 const superagent = require('superagent');
 
 const abi = require('./abi.js');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk4');
 
 const markets = [
   {
@@ -35,6 +35,30 @@ const markets = [
     underlyingSymbol: 'USDC',
     rewardToken: '0x354A6dA3fcde098F8389cad84b0182725c6C91dE',
     chain: 'arbitrum',
+  },
+  {
+    address: '0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf',
+    symbol: 'cUSDCv3-native',
+    underlying: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    underlyingSymbol: 'USDC',
+    rewardToken: '0x354A6dA3fcde098F8389cad84b0182725c6C91dE',
+    chain: 'arbitrum',
+  },
+  {
+    address: '0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf',
+    symbol: 'cUSDbCv3',
+    underlying: '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
+    underlyingSymbol: 'USDC',
+    rewardToken: '0x9e1028F5F1D5eDE59748FFceE5532509976840E0',
+    chain: 'base',
+  },
+  {
+    address: '0x46e6b214b524310239732D51387075E0e70970bf',
+    symbol: 'cWETHv3',
+    underlying: '0x4200000000000000000000000000000000000006',
+    underlyingSymbol: 'WETH',
+    rewardToken: '0x9e1028F5F1D5eDE59748FFceE5532509976840E0',
+    chain: 'base',
   },
 ];
 
@@ -196,7 +220,7 @@ const main = async (pool) => {
   return [
     ...collateralOnlyPools,
     {
-      pool: pool.address,
+      pool: pool.address === "0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf"?`${pool.address}-${pool.chain}`:pool.address, // Fix for duplicated pool id
       symbol: pool.underlyingSymbol,
       chain: pool.chain.charAt(0).toUpperCase() + pool.chain.slice(1),
       project: 'compound-v3',

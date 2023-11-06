@@ -70,7 +70,10 @@ const main = async () => {
 
       if (!poolId) continue;
 
-      const underlyingTokens = (!!poolMeta && poolMeta.assets.length === 1 && poolMeta.tokenAddress) ? [poolMeta.tokenAddress] : undefined;
+      const underlyingTokens =
+        !!poolMeta && poolMeta.assets.length === 1 && poolMeta.tokenAddress
+          ? [poolMeta.tokenAddress]
+          : undefined;
 
       data.push({
         pool: `${poolId}-${networkMapping[chain]}`.toLowerCase(),
@@ -89,7 +92,7 @@ const main = async () => {
     }
   }
 
-  return data;
+  return utils.removeDuplicates(data);
 };
 
 module.exports = {

@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk4');
 const { request, gql } = require('graphql-request');
 const {
   utils: { formatEther },
@@ -43,6 +43,12 @@ const CONFIG = {
     SDEX_TOKEN_ADDRESS: '0xFdc66A08B0d0Dc44c17bbd471B88f49F50CdD20F',
     FARMING_RANGE_ADDRESS: '0xb891Aeb2130805171796644a2af76Fc7Ff25a0b9',
     TIME_BETWEEN_BLOCK: 3,
+  },
+  base: {
+    ENDPOINT: `${ENDPOINT_BASE}/base`,
+    SDEX_TOKEN_ADDRESS: '0xFd4330b0312fdEEC6d4225075b82E00493FF2e3f',
+    FARMING_RANGE_ADDRESS: '0xa5D378c05192E3f1F365D6298921879C4D51c5a3',
+    TIME_BETWEEN_BLOCK: 2,
   },
 };
 

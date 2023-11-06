@@ -488,6 +488,7 @@ const addPoolInfo = (el, stablecoins, config) => {
           'gmd-protocol',
           'y2k-v1',
           'y2k-v2',
+          'o3-swap',
         ].includes(el.project)
       ? 'yes'
       : ['mycelium-perpetual-swaps', 'gmx', 'rage-trade'].includes(
