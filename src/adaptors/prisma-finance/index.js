@@ -70,6 +70,13 @@ const apy = async () => {
     })
   ).output.map((i) => i.output);
 
+  const interestRate = (
+    await sdk.api.abi.multiCall({
+      calls: troveManagers.map((i) => ({ target: i })),
+      abi: troveManagerAbi.find((i) => i.name === 'interestRate'),
+    })
+  ).output.map((i) => i.output);
+
   const keys = [...collateralTokens, prisma]
     .map((i) => `ethereum:${i}`)
     .join(',');
@@ -81,6 +88,9 @@ const apy = async () => {
     const priceDetails = prices[`ethereum:${collateralTokens[i]}`];
     const tvlUsd =
       (balanceOf[i] * priceDetails.price) / 10 ** priceDetails.decimals;
+
+    const apyBaseBorrow = ((interestRate[i] * 86400 * 365) / 1e27) * 100;
+
     const apyRewardBorrow =
       (((rewardRate[i] / 1e18) *
         86400 *
@@ -97,13 +107,15 @@ const apy = async () => {
       tvlUsd,
       apy: 0,
       mintedCoin: 'mkUsd',
-      apyBaseBorrow: 0,
+      apyBaseBorrow,
       apyRewardBorrow,
       totalSupplyUsd: tvlUsd,
       totalBorrowUsd: systemDebt[i] / 1e18,
       debtCeilingUsd: maxSystemDebt[i] / 1e18,
       ltv: 1 / Number(MCR[i] / 1e18),
       url: `https://app.prismafinance.com/vaults/select/${t}`,
+      rewardTokens: apyRewardBorrow > 0 ? [prisma] : [],
+      underlyingTokens: [collateralTokens[i]],
     };
   });
 };
