@@ -365,7 +365,7 @@ const poolsFunction = async () => {
 
   let vodkaUtilizationRate = await api2.abi.call({
     abi: contractAbis.vodkaUtilizationRate,
-    target: newAddresses.vodka1,
+    target: newAddresses.vodkaV1_Water,
     chain: 'arbitrum',
   });
 
