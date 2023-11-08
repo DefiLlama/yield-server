@@ -21,7 +21,7 @@ const getApy = async () => {
         const underlying = p.token.underlyingTokensAddresses;
 
         // OP incentives via yvToken staking
-        const apyReward = p.apy?.staking_rewards_apr * 100;
+        const apyReward = p.apy?.staking_rewards_apr * 100 ?? 0;
 
         return {
           pool: p.address,
@@ -29,7 +29,7 @@ const getApy = async () => {
           project: 'yearn-finance',
           symbol: utils.formatSymbol(p.token.display_symbol),
           tvlUsd: p.tvl.tvl_deposited,
-          apy: p.apy.net_apy * 100,
+          apyBase: p.apy.net_apy * 100,
           apyReward,
           rewardTokens:
             apyReward > 0 ? ['0x4200000000000000000000000000000000000042'] : [],

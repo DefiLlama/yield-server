@@ -106,6 +106,11 @@ const getLatestBlockSubgraph = async (url) => {
     url.includes('exchange-v3-zksync/version/latest') ||
     url.includes('balancer-base-v2/version/latest')
       ? await request(url, queryGraph)
+      : url.includes('aperture/uniswap-v3')
+      ? await request(
+          'https://api.goldsky.com/api/public/project_clnz7akg41cv72ntv0uhyd3ai/subgraphs/aperture/manta-pacific-blocks/gn',
+          queryGraph
+        )
       : await request(
           `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
           queryGraph
@@ -426,3 +431,10 @@ const capitalizeFirstLetter = (str) => {
 };
 
 exports.capitalizeFirstLetter = capitalizeFirstLetter;
+
+exports.removeDuplicates = (pools) => {
+  const seen = {};
+  return pools.filter((i) => {
+    return seen.hasOwnProperty(i.pool) ? false : (seen[i.pool] = true);
+  });
+};

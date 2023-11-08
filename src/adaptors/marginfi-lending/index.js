@@ -1,4 +1,3 @@
-const utils = require('../utils');
 const fetch = require('node-fetch');
 
 const MARGINFI_URL = 'https://app.marginfi.com';
@@ -7,8 +6,8 @@ const SNAPSHOT_URL =
 
 async function main() {
   const snapshotResponse = await fetch(SNAPSHOT_URL);
-  const snapshot = snapshotResponse.json();
-  return snapshot;
+  const snapshot = await snapshotResponse.json();
+  return snapshot.map((p) => ({ ...p, project: 'marginfi-lending' }));
 }
 
 module.exports = {

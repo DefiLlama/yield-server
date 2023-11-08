@@ -97,7 +97,7 @@ const topLvl = async (chainString, timestamp, url, version) => {
 
 const main = async (timestamp = null) => {
   const data = await Promise.all([topLvl('polygon', timestamp, url, 'v2')]);
-  return data.flat().filter((p) => utils.keepFinite(p));
+  return data.flat().filter((p) => utils.keepFinite(p) && p.tvlUsd < 5e6);
 };
 
 module.exports = {
