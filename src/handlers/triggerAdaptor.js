@@ -184,7 +184,9 @@ const main = async (body) => {
   if (
     data[0]?.underlyingTokens?.length &&
     protocolConfig[body.adaptor]?.category === 'Dexes' &&
-    !['balancer-v2', 'curve-dex', 'clipper'].includes(body.adaptor) &&
+    !['balancer-v2', 'curve-dex', 'clipper', 'astroport'].includes(
+      body.adaptor
+    ) &&
     !['elrond', 'near', 'hedera', 'carbon'].includes(
       data[0].chain.toLowerCase()
     )
