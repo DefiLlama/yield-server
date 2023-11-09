@@ -272,9 +272,9 @@ const getEarnAPY = async (block, blockPrior, blockPrior7d, hydtPrice) => {
             symbol,
             url,
             tvlUsd: tvlTotal,
-            apyBase: apyTotal || 0,
+            apyBase: 0,
             apyBase7d: 0,
-            apyReward: 0,
+            apyReward: apyTotal || 0,
             rewardTokens,
             underlyingTokens,
             volumeUsd1d: volumeUsd1dTotal,
@@ -341,7 +341,7 @@ const getFarmAPY = async (block, blockPrior, blockPrior7d, hydtPrice) => {
         const ratio = totalDeposit / totalSupply || 1;
         const tvlUsd = p.totalValueLockedUSD * ratio;
 
-        const baseAPY = (
+        const rewardAPY = (
             ((p.allocPoint / totalAllocPoint) * hygtPerYearUSD) /
             tvlUsd
         ) * 100;
@@ -353,9 +353,9 @@ const getFarmAPY = async (block, blockPrior, blockPrior7d, hydtPrice) => {
             symbol,
             url,
             tvlUsd,
-            apyBase: baseAPY || 0,
+            apyBase: 0,
             apyBase7d: 0,
-            apyReward: 0,
+            apyReward: rewardAPY || 0,
             rewardTokens,
             underlyingTokens,
             volumeUsd1d: p?.volumeUSD1d || 0,
