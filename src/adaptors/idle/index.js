@@ -27,9 +27,13 @@ const getApy = async () => {
         if (v.borrowerName){
           protocolName += ` ${v.borrowerName}`
         }
+        const apyReward = v.apyReward || Number(0);
+        const rewardTokens = v.rewardTokens || [];
         return {
           pool: v.address,
           apyBase: Number(v.apr),
+          apyReward,
+          rewardTokens,
           symbol: v.tokenName,
           poolMeta: v.poolName.includes('Best')
             ? v.poolName.split(' ').slice(1).join(' ')
