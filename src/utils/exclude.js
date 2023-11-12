@@ -36,6 +36,7 @@ const excludeAdaptors = [
   'eternal-finance',
   'wild-base', // empty
   'vendor-v1', // empty
+  'uncx-network-v2',
 ];
 
 const excludePools = [
