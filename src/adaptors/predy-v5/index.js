@@ -179,14 +179,14 @@ const lendingApys = async () => {
 function getApr(latest, start) {
   const latestPrice = new BigNumber(latest.closePrice)
   const startPrice = new BigNumber(start.closePrice)
-  const apr = latestPrice.times(1000000).div(startPrice).minus(1000000)
+  const apr = latestPrice.times(1000000).div(startPrice).toNumber() - 1000000
   const span = Number(latest.closeTimestamp) - Number(start.closeTimestamp)
 
   if (span === 0) {
     return 0
   }
 
-  return (apr.toNumber() / 10000) * (60 * 60 * 24 * 365) / span
+  return (apr / 10000) * (60 * 60 * 24 * 365) / span
 }
 
 

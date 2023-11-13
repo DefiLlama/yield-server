@@ -1,16 +1,14 @@
 const utils = require('../utils');
 const superagent = require('superagent');
 
-const AUTH_TOKEN_ENCODED =
-  'ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR2xsYm5SSlpDSTZJa0Z3Y0RZaUxDSnBZWFFpT2pFMk56QXlNemMxTWpkOS5rbnNtekVOSm40Yk5Ea0ZCM3h2eWZyaDBwVlFLTHY0NW9JanJQNHdRTU5N';
-
-const mainnetPoolsUrl = 'https://api.idle.finance/pools';
-// const polygonPoolsUrl = 'https://api-polygon.idle.finance/pools';
-
 const chains = {
-  eth: 'ethereum',
-  // matic: 'polygon',
+  ethereum: 'https://api.idle.finance/pools',
+  polygon: 'https://api-polygon.idle.finance/pools',
+  optimism: 'https://api-optimism.idle.finance/pools',
+  polygon_zkevm: 'https://api-zkevm.idle.finance/pools',
 };
+
+const AUTH_TOKEN_ENCODED = 'ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR2xsYm5SSlpDSTZJa0Z3Y0RZaUxDSnBZWFFpT2pFMk56QXlNemMxTWpkOS5rbnNtekVOSm40Yk5Ea0ZCM3h2eWZyaDBwVlFLTHY0NW9JanJQNHdRTU5N';
 
 async function getDataWithAuth(url, token) {
   const data = await superagent
@@ -19,51 +17,44 @@ async function getDataWithAuth(url, token) {
   return data?.body;
 }
 
-async function apy() {
+const getApy = async () => {
   const AUTH_TOKEN_DECODED = atob(AUTH_TOKEN_ENCODED);
-  const mainnetPoolsResponse = await getDataWithAuth(
-    mainnetPoolsUrl,
-    AUTH_TOKEN_DECODED
+  const data = await Promise.all(
+    Object.entries(chains).map(async (chain) => {
+      const data = await getDataWithAuth(chain[1], AUTH_TOKEN_DECODED);
+      return data.map((v) => {
+        let protocolName = v.protocolName;
+        if (v.borrowerName){
+          protocolName += ` ${v.borrowerName}`
+        }
+        const apyReward = v.apyReward || Number(0);
+        const rewardTokens = v.rewardTokens || [];
+        return {
+          pool: v.address,
+          apyBase: Number(v.apr),
+          apyReward,
+          rewardTokens,
+          symbol: v.tokenName,
+          poolMeta: v.poolName.includes('Best')
+            ? v.poolName.split(' ').slice(1).join(' ')
+            : `${protocolName} ${v.strategy}`,
+          tvlUsd: Number(v.tvl),
+          project: 'idle',
+          chain: utils.formatChain(chain[0]),
+          underlyingTokens: [v.underlyingAddress],
+        }
+      });
+    })
   );
 
-  // console.log('mainnetPoolsResponse', mainnetPoolsResponse)
-  // const polygonPoolsResponse = await utils.getData(polygonPoolsUrl);
-
-  const poolsResponse = {
-    // matic: polygonPoolsResponse,
-    eth: mainnetPoolsResponse,
-  };
-
-  let allVaults = [];
-
-  for (let chain of Object.keys(chains)) {
-    const chainPools = Object.values(poolsResponse[chain]);
-
-    const pools = chainPools.map((v) => ({
-      pool: v.address,
-      apyBase: Number(v.apr),
-      symbol: v.tokenName,
-      poolMeta: v.poolName.includes('Best')
-        ? v.poolName.split(' ').slice(1).join(' ')
-        : v.strategy,
-      tvlUsd: Number(v.tvl),
-      project: 'idle',
-      chain: utils.formatChain(chains[chain]),
-      underlyingTokens: [v.underlyingAddress],
-    }));
-
-    allVaults = [...allVaults, ...pools];
-  }
-
-  return allVaults;
-}
-
-const main = async () => {
-  return await apy();
+  return (
+    data
+      .flat()
+  );
 };
 
 module.exports = {
-  apy: main,
   timetravel: false,
-  url: 'https://app.idle.finance/#/best',
+  apy: getApy,
+  url: 'https://app.idle.finance/'
 };

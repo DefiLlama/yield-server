@@ -68,7 +68,6 @@ const marketFeesQuery = (marketAddress, tokenAddress) => `
             _${marketAddress}_${tokenAddress}: collectedMarketFeesInfos(
                where: {
                     marketAddress: "${marketAddress.toLowerCase()}",
-                    tokenAddress: "${tokenAddress.toLowerCase()}",
                     period: "1h",
                     timestampGroup_gte: ${nowInSecods - 3600 * 24 * 7}
                 },
@@ -79,7 +78,6 @@ const marketFeesQuery = (marketAddress, tokenAddress) => `
                 id
                 period
                 marketAddress
-                tokenAddress
                 feeUsdForPool
                 cummulativeFeeUsdForPool
                 timestampGroup
@@ -193,6 +191,27 @@ const getMarkets = async (chain) => {
     })
   );
 
+  // bonus apr (ARB)
+  let rewards;
+  let priceARB;
+  const ARB = '0x912ce59144191c1204e64559fe8253a0e49e6548';
+  const priceKey = `arbitrum:${ARB}`;
+  const bonusAPR = await utils.getData(
+    'https://arbitrum-api.gmxinfra2.io/incentives/stip?'
+  );
+  if (bonusAPR?.lp?.isActive) {
+    // weekly rewards
+    const weeklyRewards = bonusAPR.lp.rewardsPerMarket;
+    rewards = Object.keys(weeklyRewards).reduce((acc, k) => {
+      acc[k.toLowerCase()] = weeklyRewards[k];
+      return acc;
+    }, {});
+
+    priceARB = await utils.getData(
+      `https://coins.llama.fi/prices/current/${priceKey}`
+    );
+  }
+
   const marketTokensAPRData = marketInfos.map((market, i) => {
     const marketAddress = market.id;
     const marketToken = market.marketToken.toLowerCase();
@@ -222,15 +241,28 @@ const getMarkets = async (chain) => {
       const shortSymbol =
         tickers[market.shortToken.toLowerCase()]?.data?.tokenSymbol;
 
+      const tvlUsd = parseFloat(marketData.tvl);
+
+      let apyReward;
+      if (rewards) {
+        const rewardPerYear =
+          (rewards[marketAddress.toLowerCase()] / 1e18) *
+          52 *
+          priceARB.coins[priceKey].price;
+
+        apyReward = (rewardPerYear / tvlUsd) * 100;
+      }
+
       return {
         pool: marketAddress,
         chain: utils.formatChain(chain === 'avax' ? 'avalanche' : chain),
         project: 'gmx-v2',
         symbol: `${longSymbol}-${shortSymbol}`,
-        tvlUsd: parseFloat(marketData.tvl),
+        tvlUsd,
         apyBase: apr.toString() / 100,
-        apyReward: 0,
+        apyReward,
         underlyingTokens: [market.longToken, market.shortToken],
+        rewardTokens: apyReward > 0 ? [ARB] : [],
       };
     } else {
       return;
