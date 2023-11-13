@@ -37,6 +37,7 @@ const excludeAdaptors = [
   'wild-base', // empty
   'vendor-v1', // empty
   'uncx-network-v2',
+  'rocifi-v2',
 ];
 
 const excludePools = [
