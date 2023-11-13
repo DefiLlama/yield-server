@@ -5,9 +5,9 @@ const sdk = require('@defillama/sdk');
 const { gql, default: request } = require('graphql-request');
 const fetch = require('node-fetch');
 const { ethers } = require('ethers');
+const { sub } = require('date-fns');
 
 const { default: BigNumber } = require('bignumber.js');
-const BASIS_POINTS_DIVISOR = 10000;
 
 const SUBGRAPH_URL = {
   arbitrum:
@@ -62,27 +62,36 @@ const marketsQuery = gql`
     }
   }
 `;
-const nowInSecods = Math.floor(Date.now() / 1000);
 
-const marketFeesQuery = (marketAddress, tokenAddress) => `
-            _${marketAddress}_${tokenAddress}: collectedMarketFeesInfos(
-               where: {
+const marketFeesQuery = (marketAddress) => {
+  return `
+                _${marketAddress}_lte_start_of_period_: collectedMarketFeesInfos(
+                    orderBy:timestampGroup
+                    orderDirection:desc
+                    where: {
+                      marketAddress: "${marketAddress.toLowerCase()}",
+                      period: "1h",
+                      timestampGroup_lte: ${Math.floor(
+                        sub(new Date(), { days: 7 }).valueOf() / 1000
+                      )}
+                    },
+                    first: 1
+                ) {
+                    cumulativeFeeUsdPerPoolValue
+                }
+                _${marketAddress}_recent: collectedMarketFeesInfos(
+                  orderBy: timestampGroup
+                  orderDirection: desc
+                  where: {
                     marketAddress: "${marketAddress.toLowerCase()}",
-                    period: "1h",
-                    timestampGroup_gte: ${nowInSecods - 3600 * 24 * 7}
-                },
-                orderBy: timestampGroup,
-                orderDirection: desc,
-                first: 1000
-            ) {
-                id
-                period
-                marketAddress
-                feeUsdForPool
-                cummulativeFeeUsdForPool
-                timestampGroup
-            }
-        `;
+                    period: "1h"
+                  },
+                  first: 1
+              ) {
+                  cumulativeFeeUsdPerPoolValue
+              }
+            `;
+};
 
 function bigNumberify(n) {
   try {
@@ -100,14 +109,10 @@ function expandDecimals(n, decimals) {
 const getMarkets = async (chain) => {
   const { marketInfos } = await request(SUBGRAPH_URL[chain], marketsQuery);
 
-  const queryBody = marketInfos.reduce((acc, market) => {
-    const { longToken, shortToken, id } = market;
-
-    acc += marketFeesQuery(id, longToken);
-    acc += marketFeesQuery(id, shortToken);
-
-    return acc;
-  }, '');
+  const queryBody = marketInfos.reduce(
+    (acc, market) => acc + marketFeesQuery(market.id),
+    ''
+  );
 
   const res = await request(
     SUBGRAPH_URL[chain],
@@ -216,25 +221,21 @@ const getMarkets = async (chain) => {
     const marketAddress = market.id;
     const marketToken = market.marketToken.toLowerCase();
     const marketData = marketResults[marketToken];
+    const lteStartOfPeriodFees = res[`_${marketAddress}_lte_start_of_period_`];
+    const recentFees = res[`_${marketAddress}_recent`];
 
-    const feeItems = [
-      ...res[`_${marketAddress}_${market.longToken}`],
-      ...res[`_${marketAddress}_${market.shortToken}`],
-    ];
+    const poolValue1 =
+      bigNumberify(lteStartOfPeriodFees[0].cumulativeFeeUsdPerPoolValue) ??
+      BigNumber.from(0);
+    const poolValue2 = bigNumberify(recentFees[0].cumulativeFeeUsdPerPoolValue);
 
-    const feesUsdForPeriod = feeItems.reduce((acc, rawCollectedFees) => {
-      return acc.plus(bigNumberify(rawCollectedFees.feeUsdForPool));
-    }, BigNumber(0));
+    if (poolValue2) {
+      const incomePercentageForPeriod = poolValue2.minus(poolValue1);
 
-    if (Number(marketData.totalSupply) > 0) {
-      const feesPerMarketToken = feesUsdForPeriod
-        .times(expandDecimals(1, 18))
-        .div(marketData.totalSupply);
-      const weeksInYear = 52;
-      const apr = feesPerMarketToken
-        .times(BASIS_POINTS_DIVISOR)
-        .times(weeksInYear)
-        .div(marketData.minPrice);
+      const yearMultiplier = Math.floor(365 / 7);
+      const apr = incomePercentageForPeriod
+        .times(yearMultiplier)
+        .div(expandDecimals(1, 26));
 
       const longSymbol =
         tickers[market.longToken.toLowerCase()]?.data?.tokenSymbol;
