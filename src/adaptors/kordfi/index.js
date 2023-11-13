@@ -1,6 +1,6 @@
 const { request, gql } = require('graphql-request');
 const { getTzbtcLendPool, getXtzLendPool } = require('./helper');
-const graphUrl = 'https://back-mainnet.kord.fi/v1/graphql';
+const graphUrl = 'https://back-llb-beta.kord.fi/v1/graphql';
 
 const DataQuery = gql`
   query DataQuery {
