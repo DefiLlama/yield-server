@@ -15,30 +15,49 @@ const getApy = async () => {
         `https://rest.cosmos.directory/kujira/cosmwasm/wasm/v1/contract/${contract.address}/smart/eyJzdGF0dXMiOnt9fQ==`
       );
       const { deposited, borrowed, rate } = data;
-      const apy = parseFloat(rate) * 100;
+      const borrowApy = parseFloat(rate) * 100;
+      const utilization = Number(borrowed) / Number(deposited);
+      const available = Number(deposited) - Number(borrowed);
+      const lendApy = utilization * borrowApy;
 
       if ('live' in contract.config.oracle) {
         const { exchange_rate } = await utils.getData(
           `https://rest.cosmos.directory/kujira/oracle/denoms/${contract.config.oracle.live}/exchange_rate`
         );
+        const totalSupplyUsd =
+          (Number(deposited) * exchange_rate) / 10 ** contract.config.decimals;
+        const totalBorrowUsd =
+          (Number(borrowed) * exchange_rate) / 10 ** contract.config.decimals;
+
         return {
           pool: contract.address,
           chain: utils.formatChain('kujira'),
           project,
           symbol: utils.formatSymbol(contract.config.oracle.live),
-          tvlUsd:
-            (Number(deposited) * exchange_rate) /
-            10 ** contract.config.decimals,
-          apy,
+          tvlUsd: (available * exchange_rate) / 10 ** contract.config.decimals,
+          apy: lendApy,
+          apyBaseBorrow: borrowApy,
+          apyRewardBorrow: 0,
+          totalSupplyUsd,
+          totalBorrowUsd,
         };
       } else {
+        const totalSupplyUsd =
+          Number(deposited) / 10 ** contract.config.decimals;
+        const totalBorrowUsd =
+          Number(borrowed) / 10 ** contract.config.decimals;
+
         return {
           pool: contract.address,
           chain: utils.formatChain('kujira'),
           project,
           symbol: utils.formatSymbol('USK'),
-          tvlUsd: Number(deposited) / 10 ** contract.config.decimals,
-          apy,
+          tvlUsd: available / 10 ** contract.config.decimals,
+          apy: lendApy,
+          apyBaseBorrow: borrowApy,
+          apyRewardBorrow: 0,
+          totalSupplyUsd,
+          totalBorrowUsd,
         };
       }
     })
