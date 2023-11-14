@@ -9,7 +9,7 @@ const getApy = async () => {
   );
   const contracts = await res.json();
   const vaultContracts = contracts['kaiyo-1'].ghostVault;
-  return await Promise.all(
+  const data = await Promise.all(
     vaultContracts.map(async (contract) => {
       const { data } = await utils.getData(
         `https://rest.cosmos.directory/kujira/cosmwasm/wasm/v1/contract/${contract.address}/smart/eyJzdGF0dXMiOnt9fQ==`
@@ -18,7 +18,7 @@ const getApy = async () => {
       const borrowApy = parseFloat(rate) * 100;
       const utilization = Number(borrowed) / Number(deposited);
       const available = Number(deposited) - Number(borrowed);
-      const lendApy = utilization * borrowApy;
+      const lendApy = utilization ? utilization * borrowApy : borrowApy;
 
       if ('live' in contract.config.oracle) {
         const { exchange_rate } = await utils.getData(
