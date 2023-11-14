@@ -9,7 +9,7 @@ const getApy = async () => {
   );
   const contracts = await res.json();
   const vaultContracts = contracts['kaiyo-1'].ghostVault;
-  const data = await Promise.all(
+  return await Promise.all(
     vaultContracts.map(async (contract) => {
       const { data } = await utils.getData(
         `https://rest.cosmos.directory/kujira/cosmwasm/wasm/v1/contract/${contract.address}/smart/eyJzdGF0dXMiOnt9fQ==`
