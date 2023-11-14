@@ -1,6 +1,7 @@
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 
+const APIArbitrum = 'https://data-dev.notional.finance/arbitrum/yields'
 const v3subgraphArbitrum = 'https://api.studio.thegraph.com/query/33671/notional-finance-arb-history/version/latest'
 const query = gql`
 query GetYieldsData {
@@ -133,8 +134,27 @@ const main = async () => {
     })
   })
 
+  const apiResults = await utils.getData(APIArbitrum)
+
+  const vaults = apiResults.filter((r) => r.token.tokenType === 'VaultShare' && !!r['leveraged'])
+    .map((v) => {
+      // TODO: sum up all vaults with this TVL and then select the max APY
+    return {
+        pool: `${v.token.id}-arbitrum`,
+        chain: 'Arbitrum',
+        project,
+        // NOTE: this is pretty ugly
+        symbol: v.token.symbol,
+        underlyingTokens: [ v.token.underlying ],
+        poolMeta: 'Leveraged Vault',
+        url: `https://arbitrum.notional.finance/vaults/${v.token.vaultAddress}`,
+        tvlUsd: Number(tvlUnderlying),
+        apyBase: Number(f.current.lastImpliedRate) / 1e9,
+    }
+  })
+
   // TODO: need to add vaults...
-  return nTokens.concat(primeCash).concat(fCash);
+  // return nTokens.concat(primeCash).concat(fCash);
 };
 
 module.exports = {
