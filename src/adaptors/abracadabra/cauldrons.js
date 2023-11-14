@@ -10,6 +10,7 @@ const CAULDRON_V2_ABI = require('./abis/CauldronV2.json');
 const BENTOBOX_V1_ABI = require('./abis/BentoBoxV1.json');
 const INTEREST_STRATEGY = require('./abis/InterestStrategy.json');
 const BASE_STARGATE_LP_STRATEGY = require('./abis/BaseStargateLPStrategy.json');
+const FEE_COLLECTABLE_STRATEGY = require('./abis/FeeCollectable.json');
 
 const MIM_COINGECKO_ID = 'magic-internet-money';
 
@@ -166,6 +167,17 @@ const POOLS = {
       { version: 3, address: '0x68f498c230015254aff0e1eb6f85da558dff2362' },
     ],
   },
+  kava: {
+    marketLensAddress: '0x2d50927A6E87E517946591A137b765fAba018E70',
+    cauldrons: [
+      { version: 4, address: '0x3CFf6F628Ebc88e167640966E67314Cf6466E6A8' }, // MIM/USDT Curve LP
+      {
+        version: 4,
+        address: '0x895731a0C3836a5534561268F15EBA377218651D',
+        collateralPoolId: '246ee0b2-434e-44dd-90a7-a728deaf1597',
+      }, // Stargate USDT
+    ]
+  },
 };
 
 const NEGATIVE_INTEREST_STRATEGIES = {
@@ -181,6 +193,12 @@ const BASE_STARGATE_LP_STRATEGIES = {
     '0x8439Ac976aC597C71C0512D8a53697a39E8F9773',
   ],
 };
+
+const FEE_COLLECTABLE_STRATEGIES = {
+  kava: [
+    '0x30D525cbB79D2baaE7637eA748631a6360Ce7c16'
+  ]
+}
 
 const getMarketLensDetailsForCauldrons = (
   chain,
@@ -453,6 +471,37 @@ const getBaseStargateLpStrategyFees = (baseStargateLpStrategies) =>
     )
   ).then(Object.fromEntries);
 
+const getFeeCollectableStrategyFees = (feeCollectableStrategies) =>
+  Promise.all(
+    Object.entries(feeCollectableStrategies).map(
+      async ([chain, chainFeeCollectableStrategies]) => [
+        chain,
+        await sdk.api.abi
+          .multiCall({
+            abi: FEE_COLLECTABLE_STRATEGY.find(
+              ({ name }) => name === 'feeBips'
+            ),
+            calls: chainFeeCollectableStrategies.map(
+              (feeCollectableStrategy) => ({
+                target: feeCollectableStrategy,
+              })
+            ),
+            chain,
+            requery: true,
+          })
+          .then((call) =>
+            Object.fromEntries(
+              call.output.map((x, i) => [
+                chainFeeCollectableStrategies[i].toLowerCase(),
+                x.output / 10000,
+              ])
+            )
+          ),
+      ]
+    )
+  ).then(Object.fromEntries);
+
+
 const getDetailsFromCollaterals = (collaterals, abi) =>
   Promise.all(
     Object.entries(collaterals).map(async ([chain, chainCollaterals]) => {
@@ -539,7 +588,7 @@ const getApy = async () => {
     bentoboxes,
     strategies,
     negativeInterestStrategyApys,
-    baseStargateLpStrategyFees,
+    strategyFees,
     symbols,
     decimals,
     pricesObj,
@@ -552,7 +601,10 @@ const getApy = async () => {
       ([collaterals, bentoboxes]) => getStrategies(collaterals, bentoboxes)
     ),
     getNegativeInterestStrategyApy(NEGATIVE_INTEREST_STRATEGIES),
-    getBaseStargateLpStrategyFees(BASE_STARGATE_LP_STRATEGIES),
+    Promise.all([
+      getBaseStargateLpStrategyFees(BASE_STARGATE_LP_STRATEGIES),
+      getFeeCollectableStrategyFees(FEE_COLLECTABLE_STRATEGIES),
+    ]).then((strategyFeesArr) => _.merge({}, ...strategyFeesArr)),
     collateralsPromise.then((collaterals) =>
       getDetailsFromCollaterals(collaterals, 'erc20:symbol')
     ),
@@ -601,7 +653,7 @@ const getApy = async () => {
           negativeInterestStrategyApys,
           [chain, strategy]
         );
-        const baseStargateLpStrategyFee = _.get(baseStargateLpStrategyFees, [
+        const strategyFee = _.get(strategyFees, [
           chain,
           strategy,
         ]);
@@ -609,12 +661,12 @@ const getApy = async () => {
           collateral.apyBase =
             (targetPercentage / 100) * -negativeInterestStrategyApy;
         } else if (
-          baseStargateLpStrategyFee !== undefined &&
+          strategyFee !== undefined &&
           collateralApy !== undefined
         ) {
           collateral.apyBase =
             ((collateralApy.apy * targetPercentage) / 100) *
-            baseStargateLpStrategyFee;
+            (1 - strategyFee);
         }
       } else {
         // No strategy to consider, so just use the apy from the pool if one exists.
