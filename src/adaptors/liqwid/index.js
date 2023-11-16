@@ -67,7 +67,11 @@ const apy = async () => {
     getPool("SHEN"),
     getPool("iUSD"),
     getPool("USDC"),
-    getPool("USDT")
+    getPool("USDT"),
+    getPool("DAI"),
+    getPool("AGIX"),
+    getPool("WMT"),
+    getPool("MIN")
   ];
 };
 
