@@ -44,9 +44,13 @@ const ETH_TOKEN_ADDRESS = '0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab';
 // Arbitrum
 const USDC_POOL_TUP_ARBI_CONTRACT = '0x8FE3842e0B7472a57f2A2D56cF6bCe08517A1De0';
 const ETH_POOL_TUP_ARBI_CONTRACT = '0x0BeBEB5679115f143772CfD97359BBcc393d46b3';
+const ARB_POOL_TUP_ARBI_CONTRACT = '0x2B8C610F3fC6F883817637d15514293565C3d08A';
+const BTC_POOL_TUP_ARBI_CONTRACT = '0x5CdE36c23f0909960BA4D6E8713257C6191f8C35';
 
 const USDC_TOKEN_ARBI_ADDRESS = '0xaf88d065e77c8cc2239327c5edb3a432268e5831';
 const ETH_TOKEN_ARBI_ADDRESS = '0x82af49447d8a07e3bd95bd0d56f35241523fbab1';
+const ARB_TOKEN_ARBI_ADDRESS = '0x912CE59144191C1204E64559FE8253a0e49E6548';
+const BTC_TOKEN_ARBI_ADDRESS = '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f';
 
 const getPoolTVL = async (poolAddress, chain = 'avax') => {
   return (await sdk.api.abi.call({
@@ -101,6 +105,14 @@ const getEthPoolArbiDepositRate = async () => {
   return await getPoolDepositRate(ETH_POOL_TUP_ARBI_CONTRACT, 'arbitrum') / 1e16;
 }
 
+const getArbPoolArbiDepositRate = async () => {
+  return await getPoolDepositRate(ARB_POOL_TUP_ARBI_CONTRACT, 'arbitrum') / 1e16;
+}
+
+const getBtcPoolArbiDepositRate = async () => {
+  return await getPoolDepositRate(BTC_POOL_TUP_ARBI_CONTRACT, 'arbitrum') / 1e16;
+}
+
 const getBtcPoolTVL = async() => {
   const supply = await getPoolTVL(BTC_POOL_TUP_CONTRACT);
 
@@ -120,6 +132,20 @@ const getEthPoolArbiTVL = async() => {
 
   const price = await getTokenPrice(ETH_TOKEN_ARBI_ADDRESS, 'arbitrum');
   return supply * price / 1e18;
+}
+
+const getArbPoolArbiTVL = async() => {
+  const supply = await getPoolTVL(ARB_POOL_TUP_ARBI_CONTRACT, 'arbitrum');
+
+  const price = await getTokenPrice(ARB_TOKEN_ARBI_ADDRESS, 'arbitrum');
+  return supply * price / 1e18;
+}
+
+const getBtcPoolArbiTVL = async() => {
+  const supply = await getPoolTVL(BTC_POOL_TUP_ARBI_CONTRACT, 'arbitrum');
+
+  const price = await getTokenPrice(BTC_TOKEN_ARBI_ADDRESS, 'arbitrum');
+  return supply * price / 1e8;
 }
 
 const getUsdcPoolArbiTVL = async() => {
@@ -148,14 +174,6 @@ const getUsdtPoolTVL = async() => {
   return supply * price / 1e6;
 }
 
-const getRewardApyBasedOnTvl = (poolUsdTvl) => {
-  if(poolUsdTvl >= 4_000_000){
-    return 0;
-  }  else {
-    return 10 * (1 - poolUsdTvl / 4_000_000);
-  }
-}
-
 const getPoolsAPYs = async () => {
   const usdcPoolTvl = await getUsdcPoolTVL();
   const usdcPool = {
@@ -165,7 +183,6 @@ const getPoolsAPYs = async () => {
     symbol: utils.formatSymbol('USDC'),
     tvlUsd: usdcPoolTvl,
     apyBase: await getUsdcPoolDepositRate(),
-    apyReward: getRewardApyBasedOnTvl(usdcPoolTvl),
     underlyingTokens: [USDC_TOKEN_ADDRESS],
     rewardTokens: [USDC_TOKEN_ADDRESS],
     poolMeta: 'USDC lending pool on Avalanche',
@@ -179,7 +196,6 @@ const getPoolsAPYs = async () => {
     symbol: utils.formatSymbol('USDt'),
     tvlUsd: usdtPoolTvl,
     apyBase: await getUsdtPoolDepositRate(),
-    apyReward: getRewardApyBasedOnTvl(usdtPoolTvl),
     underlyingTokens: [USDT_TOKEN_ADDRESS],
     rewardTokens: [USDT_TOKEN_ADDRESS],
     poolMeta: 'USDt lending pool on Avalanche',
@@ -193,7 +209,6 @@ const getPoolsAPYs = async () => {
     symbol: utils.formatSymbol('WAVAX'),
     tvlUsd: wavaxPoolTvl,
     apyBase: await getWavaxPoolDepositRate(),
-    apyReward: getRewardApyBasedOnTvl(wavaxPoolTvl),
     underlyingTokens: [WAVAX_TOKEN_ADDRESS],
     rewardTokens: [WAVAX_TOKEN_ADDRESS],
     poolMeta: 'WAVAX lending pool on Avalanche',
@@ -207,7 +222,6 @@ const getPoolsAPYs = async () => {
     symbol: utils.formatSymbol('BTC.b'),
     tvlUsd: btcPoolTvl,
     apyBase: await getBtcPoolDepositRate(),
-    apyReward: getRewardApyBasedOnTvl(btcPoolTvl),
     underlyingTokens: [BTC_TOKEN_ADDRESS],
     rewardTokens: [BTC_TOKEN_ADDRESS],
     poolMeta: 'BTC.b lending pool on Avalanche',
@@ -221,7 +235,6 @@ const getPoolsAPYs = async () => {
     symbol: utils.formatSymbol('WETH.e'),
     tvlUsd: ethPoolTvl,
     apyBase: await getEthPoolDepositRate(),
-    apyReward: getRewardApyBasedOnTvl(ethPoolTvl),
     underlyingTokens: [ETH_TOKEN_ADDRESS],
     rewardTokens: [ETH_TOKEN_ADDRESS],
     poolMeta: 'WETH.e lending pool on Avalanche',
@@ -235,7 +248,6 @@ const getPoolsAPYs = async () => {
     symbol: utils.formatSymbol('WETH'),
     tvlUsd: ethPoolArbiTvl,
     apyBase: await getEthPoolArbiDepositRate(),
-    apyReward: getRewardApyBasedOnTvl(ethPoolArbiTvl),
     underlyingTokens: [ETH_TOKEN_ARBI_ADDRESS],
     rewardTokens: [ETH_TOKEN_ARBI_ADDRESS],
     poolMeta: 'WETH lending pool on Arbitrum',
@@ -249,13 +261,38 @@ const getPoolsAPYs = async () => {
     symbol: utils.formatSymbol('USDC'),
     tvlUsd: usdcPoolArbiTvl,
     apyBase: await getUsdcPoolArbiDepositRate(),
-    apyReward: getRewardApyBasedOnTvl(usdcPoolArbiTvl),
     underlyingTokens: [USDC_TOKEN_ARBI_ADDRESS],
     rewardTokens: [USDC_TOKEN_ARBI_ADDRESS],
     poolMeta: 'USDC lending pool on Arbitrum',
   };
 
-  return [usdcPool, usdtPool, wavaxPool, btcPool, ethPool, ethPoolArbi, usdcPoolArbi];
+  const arbPoolArbiTvl = await getArbPoolArbiTVL();
+  const arbPoolArbi = {
+    pool: `dp-${ARB_TOKEN_ARBI_ADDRESS}-arbitrum`,
+    chain: utils.formatChain('arbitrum'),
+    project: 'deltaprime',
+    symbol: utils.formatSymbol('ARB'),
+    tvlUsd: arbPoolArbiTvl,
+    apyBase: await getArbPoolArbiDepositRate(),
+    underlyingTokens: [ARB_TOKEN_ARBI_ADDRESS],
+    rewardTokens: [ARB_TOKEN_ARBI_ADDRESS],
+    poolMeta: 'ARB lending pool on Arbitrum',
+  };
+
+  const btcPoolArbiTvl = await getBtcPoolArbiTVL();
+  const btcPoolArbi = {
+    pool: `dp-${BTC_TOKEN_ARBI_ADDRESS}-arbitrum`,
+    chain: utils.formatChain('arbitrum'),
+    project: 'deltaprime',
+    symbol: utils.formatSymbol('WBTC'),
+    tvlUsd: btcPoolArbiTvl,
+    apyBase: await getBtcPoolArbiDepositRate(),
+    underlyingTokens: [BTC_TOKEN_ARBI_ADDRESS],
+    rewardTokens: [BTC_TOKEN_ARBI_ADDRESS],
+    poolMeta: 'WBTC lending pool on Arbitrum',
+  };
+
+  return [usdcPool, usdtPool, wavaxPool, btcPool, ethPool, ethPoolArbi, usdcPoolArbi, arbPoolArbi, btcPoolArbi];
 };
 
 module.exports = {
