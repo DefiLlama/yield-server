@@ -29,9 +29,7 @@ const latestAnswer = {
   stateMutability: 'view',
   type: 'function',
 };
-
 //reward tracker
-
 const totalSupply = {
   inputs: [],
   name: 'totalSupply',
@@ -190,9 +188,9 @@ const poolsFunction = async () => {
     pool: '0x0081772FD29E4838372CbcCdD020f53954f5ECDE',
     chain: utils.formatChain('arbitrum'),
     project: 'vaultka',
-    symbol: 'VODKA',
+    symbol: 'DN-VODKA',
     tvlUsd: tvls.vodkaVault,
-    poolMeta: 'VAULTKA_VODKA',
+    poolMeta: 'Delta Neutral GLP Vault',
     underlyingTokens: ['0x2F546AD4eDD93B956C8999Be404cdCAFde3E89AE'],
     apy: vodkaApy,
   };
@@ -203,7 +201,7 @@ const poolsFunction = async () => {
     project: 'vaultka',
     symbol: 'V-WATER',
     tvlUsd: tvls.waterVault - usdcBorrowed / 10e5,
-    poolMeta: 'VAULTKA_WATER',
+    poolMeta: 'Diluted Vodka Lending Vault',
     underlyingTokens: ['0xff970a61a04b1ca14834a43f5de4533ebddb5cc8'],
     apy: waterApy,
     totalSupplyUsd: tvls.waterVault,
@@ -217,6 +215,9 @@ const poolsFunction = async () => {
     sakeWater: '0x6b367F9EB22B2E6074E9548689cddaF9224FC0Ab',
     sakeV2: '0xc53A53552191BeE184557A15f114a87a757e5b6F',
     sakeWaterV2: '0x806e8538FC05774Ea83d9428F778E423F6492475',
+    vodkaV1_Water: '0xC99C6427cB0B824207606dC2745A512C6b066E7C',
+    vodka1: '0x88D7500aF99f11fF52E9f185C7aAFBdF9acabD93',
+    fsGlp: '0x1aDDD80E6039594eE970E5872D247bf0414C8903',
   };
 
   const contractAbis = {
@@ -227,9 +228,13 @@ const poolsFunction = async () => {
     stakedVlpBalance:
       'function getStakedVlpBalance() public view returns (uint256)',
     vlpPrice: 'function getVLPPrice() public view returns (uint256)',
+    glpPrice: 'function getGLPPrice(bool) public view returns (uint256)',
     waterUSDCBal: 'function balanceOfUSDC() public view returns (uint256)',
     waterTotalAssets: 'function totalAssets() public view returns (uint256)',
     feeSplit: 'function fixedFeeSplit() public view returns (uint256)',
+    balanceOf: 'function balanceOf(address) view returns (uint256)',
+    vodkaUtilizationRate:
+      'function getUtilizationRate() view returns (uint256)',
   };
   //calculation of tvls
   const whiskeyGainsBalance = await api2.abi.call({
@@ -328,6 +333,60 @@ const poolsFunction = async () => {
     chain: 'arbitrum',
   });
 
+  //calculate vodka leverage and water vault
+
+  const vodkaWaterUSDCBal = await api2.abi.call({
+    abi: contractAbis.waterUSDCBal,
+    target: newAddresses.vodkaV1_Water,
+    chain: 'arbitrum',
+  });
+
+  const vodkaGLPBalV1 = await api2.abi.call({
+    abi: contractAbis.balanceOf,
+    target: newAddresses.fsGlp,
+    chain: 'arbitrum',
+    params: [newAddresses.vodka1],
+  });
+
+  const vodkaGLPPrice = await api2.abi.call({
+    abi: contractAbis.glpPrice,
+    target: newAddresses.vodka1,
+    params: [true],
+    chain: 'arbitrum',
+  });
+
+  const vodkaTvl = (vodkaGLPBalV1 * vodkaGLPPrice) / 1e36;
+
+  const vodkaWaterTotalAssets = await api2.abi.call({
+    abi: contractAbis.waterTotalAssets,
+    target: newAddresses.vodkaV1_Water,
+    chain: 'arbitrum',
+  });
+
+  let vodkaUtilizationRate = await api2.abi.call({
+    abi: contractAbis.vodkaUtilizationRate,
+    target: newAddresses.vodkaV1_Water,
+    chain: 'arbitrum',
+  });
+
+  vodkaUtilizationRate = Number(ethers.utils.formatUnits(vodkaUtilizationRate));
+
+  const vodkaFeeSplit =
+    (vodkaUtilizationRate <= 0.9
+      ? 30
+      : vodkaUtilizationRate >= 0.95
+      ? 70
+      : Math.round(30 + (vodkaUtilizationRate - 0.9) * 800)) / 100;
+
+  console.log('vodkaFeeSplit', vodkaFeeSplit);
+  console.log('glpApr', glpApr);
+
+  const vodkaApr = glpApr <= 0 ? 0 : glpApr * 5 * (1 - vodkaFeeSplit);
+  const vodkaWaterApr =
+    glpApr <= 0
+      ? 0
+      : (vodkaTvl * glpApr * vodkaFeeSplit) / (vodkaWaterTotalAssets / 1e6);
+
   //calculation of Whiskey apys
   const response = (await axios.get(`https://backend-arbitrum.gains.trade/apr`))
     .data;
@@ -380,13 +439,35 @@ const poolsFunction = async () => {
 
   //info of the pools
 
+  const vodkaLeverageVault = {
+    pool: '0x88D7500aF99f11fF52E9f185C7aAFBdF9acabD93',
+    chain: utils.formatChain('arbitrum'),
+    project: 'vaultka',
+    symbol: 'VODKA-V1',
+    tvlUsd: vodkaTvl,
+    poolMeta: 'GLP Leverage Vault',
+    apy: vodkaApr,
+  };
+
+  const vodkaWaterVault = {
+    pool: '0xC99C6427cB0B824207606dC2745A512C6b066E7C',
+    chain: utils.formatChain('arbitrum'),
+    project: 'vaultka',
+    symbol: 'V1-WATER',
+    tvlUsd: vodkaWaterUSDCBal / 1e6,
+    poolMeta: 'Vodka Lending Vault',
+    apy: vodkaWaterApr,
+    totalSupplyUsd: vodkaWaterTotalAssets / 1e6,
+    totalBorrowUsd: (vodkaWaterTotalAssets - vodkaWaterUSDCBal) / 1e6,
+  };
+
   const whiskeyVault = {
     pool: '0x6532eFCC1d617e094957247d188Ae6d54093718A',
     chain: utils.formatChain('arbitrum'),
     project: 'vaultka',
     symbol: 'WHISKEY',
     tvlUsd: (whiskeyGainsBalance * whiskeyGTokenPrice) / 1e36,
-    poolMeta: 'VAULTKA_WHISKEY',
+    poolMeta: 'GDAI Leverage Vault',
     apy: whiskeyApy,
   };
 
@@ -396,7 +477,7 @@ const poolsFunction = async () => {
     project: 'vaultka',
     symbol: 'W-WATER',
     tvlUsd: whiskeyWaterDaiBal / 1e18,
-    poolMeta: 'VAULTKA_W-WATER',
+    poolMeta: 'Whiskey Lending Vault',
     apy: whiskeyWaterApy,
     totalSupplyUsd: WhiskeyWaterTotalAssets / 1e18,
     totalBorrowUsd: (WhiskeyWaterTotalAssets - whiskeyWaterDaiBal) / 1e18,
@@ -408,7 +489,7 @@ const poolsFunction = async () => {
     project: 'vaultka',
     symbol: 'SAKE',
     tvlUsd: ((vlpBal + StakedVLPBal) * sakeVLPPrice) / 1e18 / 1e5,
-    poolMeta: 'VAULTKA_SAKE',
+    poolMeta: 'VLP Leverage Vault',
     apy: sakeApr,
   };
 
@@ -418,7 +499,7 @@ const poolsFunction = async () => {
     project: 'vaultka',
     symbol: 'S-WATER',
     tvlUsd: sakeWaterUSDCBal / 1e6,
-    poolMeta: 'VAULTKA_S-WATER',
+    poolMeta: 'Sake Lending Vault',
     apy: sakeWaterApr,
     totalSupplyUsd: SakeWaterTotalAssets / 1e6,
     totalBorrowUsd: (SakeWaterTotalAssets - sakeWaterUSDCBal) / 1e6,
@@ -428,9 +509,9 @@ const poolsFunction = async () => {
     pool: '0xc53A53552191BeE184557A15f114a87a757e5b6F',
     chain: utils.formatChain('arbitrum'),
     project: 'vaultka',
-    symbol: 'SAKEV2',
+    symbol: 'SAKE-V2',
     tvlUsd: ((vlpBalV2 + StakedVLPBalV2) * sakeVLPPrice) / 1e18 / 1e5,
-    poolMeta: 'VAULTKA_SAKEV2',
+    poolMeta: 'VLP Leverage Vault V2',
     apy: sakeApr,
   };
 
@@ -438,9 +519,9 @@ const poolsFunction = async () => {
     pool: '0x806e8538FC05774Ea83d9428F778E423F6492475',
     chain: utils.formatChain('arbitrum'),
     project: 'vaultka',
-    symbol: 'S-WATERV2',
+    symbol: 'S2-WATER',
     tvlUsd: sakeWaterUSDCBalV2 / 1e6,
-    poolMeta: 'VAULTKA_S-WATERV2',
+    poolMeta: 'SakeV2 Lending Vault',
     apy: sakeWaterAprV2,
     totalSupplyUsd: SakeWaterTotalAssetsV2 / 1e6,
     totalBorrowUsd: (SakeWaterTotalAssetsV2 - sakeWaterUSDCBalV2) / 1e6,
@@ -455,6 +536,8 @@ const poolsFunction = async () => {
     sakeWaterVault,
     sakeVaultV2,
     sakeWaterVaultV2,
+    vodkaLeverageVault,
+    vodkaWaterVault,
   ];
 };
 

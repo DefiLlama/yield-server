@@ -76,7 +76,7 @@ exports.getAllVeloPoolInfo = async function(vaults, chain, prices, lendingPools)
   function getToken(address) {
     return getTokenInfo(chain, address, prices)
   }
-  const veloPoolsInfo = await getAllVeloPools()
+  const veloPoolsInfo = await getAllVeloPools(chain)
   
   // get extra price
   const extraToken = {
@@ -133,9 +133,10 @@ exports.getAllVeloPoolInfo = async function(vaults, chain, prices, lendingPools)
       price: token1price,
     } = getToken(token1)
 
-    const poolKey = `${stable ? 's' : 'v'}AMMV2-${token0_symbol}/${token1_symbol}`
-    // const poolInfo = veloPoolsInfo.find(veloPool => veloPool.lp.toLowerCase() === item.pair.toLowerCase())
-    const poolInfo = veloPoolsInfo.find(veloPool => veloPool.symbol.toLowerCase() === poolKey.toLowerCase())
+    const poolInfo = veloPoolsInfo.find(veloPool => veloPool.stable === stable &&
+      veloPool.token1.toLowerCase() === token1.toLowerCase() &&
+      veloPool.token0.toLowerCase() === token0.toLowerCase()
+    )
     if (!poolInfo) {
       continue
     }
@@ -152,7 +153,7 @@ exports.getAllVeloPoolInfo = async function(vaults, chain, prices, lendingPools)
       price: emissionsPrice,
     } = getToken(emissions_token)
 
-    const floorMaxLeverage = Math.floor(maxLeverage / 100)
+    // const floorMaxLeverage = Math.floor(maxLeverage / 100)
     const reserve0usd = toDecimals(reserve0, token0_decimals) * token0price
     const reserve1usd = toDecimals(reserve1, token1_decimals) * token1price
     const totalPoolTvlUsd = reserve0usd + reserve1usd
