@@ -3,7 +3,7 @@ const utils = require('../utils');
 const superagent = require('superagent');
 const { default: BigNumber } = require('bignumber.js');
 
-const APIArbitrum = 'https://data-dev.notional.finance/arbitrum/yields'
+const API = (chain) => `https://data-dev.notional.finance/${chain}/yields`
 const NOTE_Mainnet = '0xCFEAead4947f0705A14ec42aC3D44129E1Ef3eD5'
 
 const SUBGRAPHS = {
@@ -162,16 +162,17 @@ const getPools = async (chain) => {
     })
   }))
 
-  // const apiResults = await utils.getData(APIArbitrum)
-
+  // TODO: add vaults in the future
+  // TODO: add leveraged liquidity in the future
+  // const apiResults = await utils.getData(API(chain))
   // const vaults = apiResults.filter((r) => r.token.tokenType === 'VaultShare' && !!r['leveraged'])
   //   .map((v) => {
   //     // TODO: sum up all vaults with this TVL and then select the max APY
   //   return {
-  //       pool: `${v.token.id}-arbitrum`,
-  //       chain: 'Arbitrum',
+  //       pool: `${v.token.id}-${chain}`,
+  //       chain,
   //       project,
-  //       // NOTE: this is pretty ugly
+  //       // NOTE: this is pretty ugly, need better metadata
   //       symbol: v.token.symbol,
   //       underlyingTokens: [ v.token.underlying ],
   //       poolMeta: 'Leveraged Vault',
@@ -181,7 +182,6 @@ const getPools = async (chain) => {
   //   }
   // })
 
-  // TODO: need to add vaults...
   return nTokens.concat(primeCash).concat(fCash);
 };
 
