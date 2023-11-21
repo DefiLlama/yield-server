@@ -55,7 +55,7 @@ const blocksPerDay = secondsPerDay / secondsPerBlock;
 
 const query = gql`
   {
-    pairs(first: 1000, orderBy: trackedReserveETH, orderDirection: desc block: {number: <PLACEHOLDER>}) {
+    pairs(first: 1000, orderBy: reserveETH, orderDirection: desc block: {number: <PLACEHOLDER>}) {
       id
       reserve0
       reserve1
@@ -74,7 +74,7 @@ const query = gql`
 
 const queryPrior = gql`
   {
-    pairs (first: 1000 orderBy: trackedReserveETH orderDirection: desc block: {number: <PLACEHOLDER>}) { 
+    pairs (first: 1000 orderBy: reserveETH orderDirection: desc block: {number: <PLACEHOLDER>}) {
       id 
       volumeUSD 
     }
