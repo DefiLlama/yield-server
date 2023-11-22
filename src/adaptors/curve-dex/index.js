@@ -208,6 +208,10 @@ const main = async () => {
   //   await utils.getData('https://api.curve.fi/api/getFactoryAPYs-celo')
   // ).data.poolDetails;
 
+  const baseApy = (
+    await utils.getData('https://api.curve.fi/api/getFactoryAPYs-base')
+  ).data.poolDetails;
+
   // create feeder closure to fill defillamaPooldata asynchroniously
   const defillamaPooldata = [];
   const feedLlama = async (poolData, blockchainId) => {
@@ -219,7 +223,7 @@ const main = async () => {
     ] = poolData;
 
     let factoryAprData;
-    if (['optimism', 'celo', 'kava'].includes(blockchainId)) {
+    if (['optimism', 'celo', 'kava', 'base'].includes(blockchainId)) {
       factoryAprData = (
         await utils.getData(
           `https://api.curve.fi/api/getFactoGauges/${blockchainId}`
@@ -241,7 +245,10 @@ const main = async () => {
         ? parseFloat(subgraph.latestDailyApy)
         : blockchainId === 'celo'
         ? celoApy.find((i) => i.poolAddress === address)?.apy
+        : blockchainId === 'base'
+        ? baseApy.find((i) => i.poolAddress === address)?.apy
         : 0;
+
       const aprCrv = gauge?.is_killed
         ? 0
         : pool?.gaugeCrvApy?.length > 0
@@ -345,7 +352,6 @@ const main = async () => {
           ['0xBaaa1F5DbA42C3389bDbc2c9D2dE134F5cD0Dc89'].includes(address)
             ? null
             : [
-                '0x061b87122Ed14b9526A813209C8a59a633257bAb',
                 '0x9F2fE3500B1a7E285FDc337acacE94c480e00130',
                 '0x29A3d66B30Bc4AD674A4FDAF27578B64f6afbFe7',
               ].includes(address)

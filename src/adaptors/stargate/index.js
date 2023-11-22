@@ -3,7 +3,7 @@ const superagent = require('superagent');
 const utils = require('../utils');
 const abi = require('./abis.json');
 
-//optimism uses (OP) token for rewards all else use (STG) token
+//optimism uses (OP) token for rewards and kava uses (WKAVA), all else use (STG) token
 const CONFIG = {
   ethereum: {
     LP_STAKING: '0xB0D502E938ed5f4df2E681fE6E419ff29631d62b',
@@ -49,6 +49,11 @@ const CONFIG = {
     REWARD_TOKEN: '0x2F6F07CDcf3588944Bf4C42aC74ff24bF56e7590',
     LLAMA_NAME: 'Fantom',
   },
+  kava: {
+    LP_STAKING: '0x35F78Adf283Fe87732AbC9747d9f6630dF33276C',
+    REWARD_TOKEN: '0xc86c7c0efbd6a49b35e8714c5f59d99de09a225b',
+    LLAMA_NAME: 'Kava',
+  },
 };
 
 const CHAIN_MAP = {
@@ -60,6 +65,7 @@ const CHAIN_MAP = {
   ethereum: 'eth',
   bsc: 'bnb',
   avax: 'avax',
+  kava: 'kava',
 };
 
 const pools = async (poolIndex, chain) => {
@@ -103,7 +109,7 @@ const pools = async (poolIndex, chain) => {
 
   let rewardPerBlock;
   // reward (STG) per block
-  if (!['optimism', 'base'].includes(chain)) {
+  if (!['optimism', 'base', 'kava'].includes(chain)) {
     const STGPerBlock = (
       await sdk.api.abi.call({
         abi: abi.stargatePerBlock,
@@ -177,9 +183,10 @@ const calcApy = async (
   // BLOCK_TIME is number of seconds for 1 block to settle
   let BLOCK_TIME;
   switch (chain) {
-    // these two have dynamic block times, but reward = rewardPerSecond (so can just use BLOCK_TIME =1)
+    // these have dynamic block times, but reward = rewardPerSecond (so can just use BLOCK_TIME =1)
     case 'optimism':
     case 'base':
+    case 'kava':
       BLOCK_TIME = 1;
       break;
     // the others have rewardPerBlock
@@ -245,9 +252,9 @@ const getApy = async (chain) => {
       })
     ).output
   );
-  // use ETH pricing for STG since its most liquid, use OPT pricing for OP
+  // use ETH pricing for STG since its most liquid, use OPT pricing for OP, and kava price for WKAVA
   const rewardPrice =
-    chain == 'optimism'
+    chain == 'optimism' || chain == 'kava'
       ? (await getPrices(chain, [CONFIG[chain].REWARD_TOKEN]))[
           CONFIG[chain].REWARD_TOKEN.toLowerCase()
         ]
