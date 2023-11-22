@@ -109,7 +109,8 @@ const poolsFunction = async () => {
       apyBase: Number(pool.apy / 100) - Number(marketContract.defautFeeRate),
       apyReward: rewardApy,
       rewardTokens,
-      url: `https://app.solv.finance/earn/open-fund/detail/${pool.id}`
+      url: `https://app.solv.finance/earn/open-fund/detail/${pool.id}`,
+      poolMeta: pool.productInfo.name,
     })
   }
 
