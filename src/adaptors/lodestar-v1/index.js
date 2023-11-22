@@ -237,7 +237,7 @@ const main = async () => {
       apyBase,
       apyReward,
       underlyingTokens: [token],
-      rewardTokens: [apyReward ? (ARB_TOKEN.address, PROTOCOL_TOKEN.address) : null].filter(Boolean),
+      rewardTokens: [ARB_TOKEN.address, PROTOCOL_TOKEN.address],
     };
     if (isPaused[i] === false) {
       poolReturned = {
