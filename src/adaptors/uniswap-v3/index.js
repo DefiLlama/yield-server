@@ -9,13 +9,13 @@ const { boundaries } = require('../../utils/exclude');
 
 const baseUrl = 'https://api.thegraph.com/subgraphs/name';
 const chains = {
-  ethereum: `${baseUrl}/uniswap/uniswap-v3`,
-  polygon: `${baseUrl}/ianlapham/uniswap-v3-polygon`,
-  arbitrum: `${baseUrl}/ianlapham/arbitrum-dev`,
-  optimism: `${baseUrl}/ianlapham/optimism-post-regenesis`,
-  celo: `${baseUrl}/jesse-sawa/uniswap-celo`,
-  avax: `${baseUrl}/lynnshaoyu/uniswap-v3-avax`,
-  bsc: `${baseUrl}/ianlapham/uniswap-v3-bsc`,
+  // ethereum: `${baseUrl}/uniswap/uniswap-v3`,
+  // polygon: `${baseUrl}/ianlapham/uniswap-v3-polygon`,
+  // arbitrum: `${baseUrl}/ianlapham/arbitrum-dev`,
+  // optimism: `${baseUrl}/ianlapham/optimism-post-regenesis`,
+  // celo: `${baseUrl}/jesse-sawa/uniswap-celo`,
+  // avax: `${baseUrl}/lynnshaoyu/uniswap-v3-avax`,
+  // bsc: `${baseUrl}/ianlapham/uniswap-v3-bsc`,
   base: 'https://api.studio.thegraph.com/query/48211/uniswap-v3-base/version/latest',
 };
 
@@ -111,6 +111,7 @@ const topLvl = async (
       abi: 'erc20:balanceOf',
       calls: balanceCalls,
       chain: chainString,
+      permitFailure: true,
     });
 
     dataNow = dataNow.map((p) => {
