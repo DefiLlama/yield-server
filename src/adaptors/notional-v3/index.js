@@ -7,7 +7,7 @@ const API = (chain) => `https://data-dev.notional.finance/${chain}/yields`
 const NOTE_Mainnet = '0xCFEAead4947f0705A14ec42aC3D44129E1Ef3eD5'
 
 const SUBGRAPHS = {
-  arbitrum: 'https://api.studio.thegraph.com/query/33671/notional-finance-v3-arbitrum/version/latest'
+  arbitrum: 'https://api.studio.thegraph.com/query/36749/notional-v3-arbitrum/version/latest'
 };
 
 
@@ -101,8 +101,8 @@ const getPools = async (chain) => {
       poolMeta: 'Liquidity Token',
       url: `https://arbitrum.notional.finance/liquidity-variable/${n.underlying.symbol}`,
       tvlUsd,
-      apyBase: (Number(nTokenBlendedRate) + Number(nTokenFeeRate)) / 1e9,
-      apyReward: (Number(nTokenIncentiveRate) * NOTEPriceInUnderlying) / 1e9
+      apyBase: (Number(nTokenBlendedRate) + Number(nTokenFeeRate)) * 100 / 1e9,
+      apyReward: (Number(nTokenIncentiveRate) * NOTEPriceInUnderlying) * 100 / 1e9
     }
   }))
 
@@ -125,8 +125,8 @@ const getPools = async (chain) => {
       poolMeta: 'Variable Lend',
       url: `https://arbitrum.notional.finance/lend-variable/${p.underlying.symbol}`,
       tvlUsd,
-      apyBase: Number(p.current.supplyInterestRate) / 1e9,
-      apyBaseBorrow: Number(p.current.debtInterestRate) / 1e9,
+      apyBase: Number(p.current.supplyInterestRate) * 100 / 1e9,
+      apyBaseBorrow: Number(p.current.debtInterestRate) * 100 / 1e9,
       totalSupplyUsd,
       totalBorrowUsd,
     }
@@ -149,13 +149,13 @@ const getPools = async (chain) => {
         pool: `${f.fCash.id}-${chain}`,
         chain,
         project,
-        symbol: `f${f.underlying.symbol} Maturing On ${date}`,
+        symbol: `f${f.underlying.symbol}`,
         underlyingTokens: [ f.underlying.id ],
-        poolMeta: 'Fixed Lend',
+        poolMeta: `Fixed Lend Maturing On ${date}`,
         url: `https://arbitrum.notional.finance/lend-fixed/${f.underlying.symbol}`,
         tvlUsd,
-        apyBase: Number(f.current.lastImpliedRate) / 1e9,
-        apyBaseBorrow: Number(f.current.lastImpliedRate) / 1e9,
+        apyBase: Number(f.current.lastImpliedRate) * 100 / 1e9,
+        apyBaseBorrow: Number(f.current.lastImpliedRate) * 100 / 1e9,
         totalSupplyUsd,
         totalBorrowUsd
       }
