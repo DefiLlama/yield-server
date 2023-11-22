@@ -9,6 +9,7 @@ exports.BLOCKCHAINIDS = [
   'xdai',
   'moonbeam',
   'kava',
+  'base',
   // 'celo',
 ];
 // https://github.com/curvefi/curve-api/blob/main/endpoints.md#getpools
