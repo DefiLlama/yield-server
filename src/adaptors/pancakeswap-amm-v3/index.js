@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk4');
 const { request, gql } = require('graphql-request');
 const superagent = require('superagent');
 
@@ -12,6 +12,10 @@ const baseUrl = 'https://api.thegraph.com/subgraphs/name';
 const chains = {
   ethereum: `${baseUrl}/pancakeswap/exchange-v3-eth`,
   bsc: `${baseUrl}/pancakeswap/exchange-v3-bsc`,
+  polygon_zkevm:
+    'https://api.studio.thegraph.com/query/45376/exchange-v3-polygon-zkevm/version/latest',
+  era: 'https://api.studio.thegraph.com/query/45376/exchange-v3-zksync/version/latest',
+  arbitrum: `${baseUrl}/pancakeswap/exchange-v3-arb`,
 };
 
 const CAKE = {
@@ -97,6 +101,7 @@ const topLvl = async (
       abi: 'erc20:balanceOf',
       calls: balanceCalls,
       chain: chainString,
+      permitFailure: true,
     });
 
     dataNow = dataNow.map((p) => {
@@ -269,7 +274,9 @@ const main = async (timestamp = null) => {
         return {
           ...p,
           apyReward: cakeAPRsByChain[p.chain][p.pool],
-          rewardTokens: [CAKE[p.chain]],
+          rewardTokens: [
+            CAKE[p.chain] ?? '0x152649eA73beAb28c5b49B26eb48f7EAD6d4c898',
+          ],
         };
       }
       return p;

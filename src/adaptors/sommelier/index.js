@@ -9,10 +9,12 @@ const {
   v0815Pools,
   v0816Pools,
   v2Pools,
+  v2p5Pools,
 } = require('./config');
 const v0815 = require('./v0-8-15');
 const v0816 = require('./v0-8-16');
 const v2 = require('./v2');
+const v2p5 = require('./v2p5');
 const stakingAbi = require('./staking-v0-8-15.json');
 
 const call = sdk.api.abi.call;
@@ -41,21 +43,46 @@ async function getHoldingPositions() {
     v2Pools.map((pool) => v2.getHoldingPosition(getCellarAddress(pool)))
   );
 
-  return [...v1Assets, ...v15Assets, ...v2Assets];
+  const v2p5Assets = await Promise.all(
+    v2p5Pools.map((pool) => v2p5.getHoldingPosition(getCellarAddress(pool)))
+  );
+
+  const deduped = new Set([
+    ...v1Assets,
+    ...v15Assets,
+    ...v2Assets,
+    ...v2p5Assets,
+  ]);
+
+  return Array.from(deduped);
 }
 
 async function main() {
+  // Grab all holding positions across all cellars
   const assets = await getHoldingPositions();
+
+  // List of holding position tokens and sommelier token
   const tokens = ['coingecko:sommelier', ...assets.map((a) => `ethereum:${a}`)];
+
+  // Fetch prices for all assets upfront
   const prices = await utils.getPrices(tokens);
   const sommPrice = prices.pricesBySymbol.somm;
 
   let promises = [];
+  // Calculate TVL, APRs (with rewards if applicable) for each cellar version
+  // V1
   promises = v0815Pools.map((pool) => handleV0815(pool, prices));
+
+  // V1.5
   promises = promises.concat(
     v0816Pools.map((pool) => handleV0816(pool, prices))
   );
+
+  // V2
   promises = promises.concat(v2Pools.map((pool) => handleV2(pool, prices)));
+
+  // V2.5
+  promises = promises.concat(v2p5Pools.map((pool) => handleV2p5(pool, prices)));
 
   const pools = await Promise.all(promises);
 
@@ -114,29 +141,53 @@ async function handleV0816(pool, prices) {
 
 async function handleV2(pool, prices) {
   const cellarAddress = pool.pool.split('-')[0];
-
   const underlyingTokens = await v2.getUnderlyingTokens(cellarAddress);
+
+  return handleV2plus(pool, prices, underlyingTokens);
+}
+
+async function handleV2p5(pool, prices) {
+  const cellarAddress = pool.pool.split('-')[0];
+  const underlyingTokens = await v2p5.getUnderlyingTokens(cellarAddress);
+
+  return handleV2plus(pool, prices, underlyingTokens);
+}
+
+async function handleV2plus(pool, prices, underlyingTokens) {
+  const cellarAddress = pool.pool.split('-')[0];
+
   const asset = await v2.getHoldingPosition(cellarAddress);
   const assetPrice = prices.pricesByAddress[asset.toLowerCase()];
 
-  const apyReward = await getRewardApy(
-    stakingPools[cellarAddress],
-    prices.pricesBySymbol.somm,
-    assetPrice
-  );
   const apyBase = await v2.getApy(cellarAddress);
   const apyBase7d = await v2.getApy7d(cellarAddress);
 
   // getTvlUsd implementation hasn't changed since v1.5 (v0.8.16)
   const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset);
 
-  return {
+  const baseResult = {
     ...pool,
     tvlUsd,
     apyBase,
     apyBase7d,
-    apyReward,
     underlyingTokens,
+  };
+
+  // return pool without apyReward if stakingPool is not configured
+  const stakingPool = stakingPools[cellarAddress];
+  if (stakingPool == null) {
+    return baseResult;
+  }
+
+  const apyReward = await getRewardApy(
+    stakingPools[cellarAddress],
+    prices.pricesBySymbol.somm,
+    assetPrice
+  );
+
+  return {
+    ...baseResult,
+    apyReward,
     poolMeta:
       apyReward > 0 ? `${pool.poolMeta} - 3day Bonding Lock` : pool.poolMeta,
   };

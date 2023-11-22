@@ -42,13 +42,13 @@ const sdk = require('@defillama/sdk');
 const { getChainTransform } = require('../../helper/transform');
 const { getProvider } = require('@defillama/sdk/build/general');
 const config = {
-  fantom: {
-    factories: [
-      '0x35C052bBf8338b06351782A565aa9AaD173432eA', // Tarot Classic
-      '0xF6D943c8904195d0f69Ba03D97c0BAF5bbdCd01B', // Tarot Requiem
-      '0xbF76F858b42bb9B196A87E43235C2f0058CF7322', // Tarot Carcosa
-    ],
-  },
+  // fantom: {
+  //   factories: [
+  //     '0x35C052bBf8338b06351782A565aa9AaD173432eA', // Tarot Classic
+  //     '0xF6D943c8904195d0f69Ba03D97c0BAF5bbdCd01B', // Tarot Requiem
+  //     '0xbF76F858b42bb9B196A87E43235C2f0058CF7322', // Tarot Carcosa
+  //   ],
+  // },
   optimism: {
     factories: [
       '0x1D90fDAc4DD30c3ba38d53f52A884F6e75d0989e', // Tarot Opaline
@@ -370,9 +370,9 @@ const getPrices = async (coinKeys) => {
     for (let i = 0; i < coinKeys.length; i += 100) {
       const {
         data: { coins },
-      } = await axios.post('https://coins.llama.fi/prices', {
-        coins: coinKeys.slice(i, i + 100),
-      });
+      } = await axios.get(
+        `https://coins.llama.fi/prices/current/${coinKeys.slice(i, i + 100)}`
+      );
       for (const key of Object.keys(coins)) {
         results[key] = coins[key];
       }

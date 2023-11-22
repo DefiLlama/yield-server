@@ -50,10 +50,12 @@ const getPairInfo = async (pairs) => {
 };
 
 const getPrices = async (addresses) => {
+  const coins = addresses
+    .map((address) => `polygon:${address}`)
+    .join(',')
+    .toLowerCase();
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses.map((address) => `polygon:${address}`),
-    })
+    await superagent.get(`https://coins.llama.fi/prices/current/${coins}`)
   ).body.coins;
 
   const pricesObj = Object.entries(prices).reduce(

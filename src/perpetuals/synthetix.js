@@ -55,6 +55,7 @@ exports.getPerpData = async () => {
     .map((m) => m.value);
     const res = [];
     fundingRates.forEach((rate) => {
+        if (!rate.fundingRateUpdates) return {}
         let current = rate.fundingRateUpdates[0];
         let previous = rate.fundingRateUpdates[1];
         const token = markets.find((m) => current.market.id === m.address);
@@ -63,8 +64,8 @@ exports.getPerpData = async () => {
                 marketplace: `Synthetix`,
                 market: `${token.asset}-USD`,
                 baseAsset: token.asset,
-                fundingRate: Number(current.fundingRate) / 1e18,
-                fundingRatePrevious: Number(previous.fundingRate) / 1e18,
+                fundingRate: Number(current.fundingRate) / 1e18 / 3,
+                fundingRatePrevious: Number(previous.fundingRate) / 1e18 / 3,
                 fundingTimePrevious: Number(previous.timestamp),
                 openInterest: Number(token.openInterest * token.price),
                 indexPrice: Number(token.price),

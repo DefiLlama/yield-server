@@ -18,7 +18,7 @@ const getCats = async () => {
     let tdl = await cdpContract.totalDebt();
     tdl = ethers.utils.formatEther(tdl);
 
-    const lidoStethApr = (await axios.get("https://stake.lido.fi/api/steth-apr"))["data"];
+    const lidoStethApr = (await axios.get("https://stake.lido.fi/api/sma-steth-apr"))["data"];
     const userPoints = 1 - 0;
     const totalPoints = (tvl + 1) - tdl;
     let totalProtocolYieldCollateral = (tvl + 1) * (lidoStethApr / 100);

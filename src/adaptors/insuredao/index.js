@@ -270,7 +270,7 @@ async function getPoolUniLp(
     pInflationRate * secondsPerYear * pGauge_relative_weight;
 
   const yearlyInflationInsure =
-    yearlyInflationRate * pPriceData['coingecko:insuredao'].price;
+    yearlyInflationRate * pPriceData['coingecko:insuredao']?.price;
 
   const apyInflation = parseFloat(
     BigNumber(yearlyInflationInsure).div(pTvl).times(100)
@@ -304,7 +304,7 @@ async function getVlInsurePoolLp(
     pInflationRate * secondsPerYear * pGauge_relative_weight;
 
   const yearlyInflationInsure =
-    yearlyInflationRate * pPriceData['coingecko:insuredao'].price;
+    yearlyInflationRate * pPriceData['coingecko:insuredao']?.price;
 
   const apyInflation = (yearlyInflationInsure / pTvl) * 100;
 
@@ -408,7 +408,7 @@ const getPools = async () => {
       })
     ).output *
     10 ** -18 *
-    priceData.coins['coingecko:insuredao'].price;
+    priceData.coins['coingecko:insuredao']?.price;
 
   const gauge_relative_weight_data_vlinsure = await gauge_relative_weight(
     gageAddressVlINSURE
@@ -471,7 +471,7 @@ const getPools = async () => {
     );
   }
 
-  return pools;
+  return pools.filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

@@ -1,10 +1,15 @@
 const sdk = require('@defillama/sdk');
+const BigNumber = require("bignumber.js")
 const utils = require('../utils');
 
 const veth = '0x4bc3263eb5bb2ef7ad9ab6fb68be80e43b43801f';
+const veth_1='0xc3d088842dcf02c13699f936bb83dfbbc6f721ab'
 
 const getApy = async () => {
-  const tvl =  (await sdk.api.erc20.totalSupply({ target: veth })).output / 1e18;
+  const contract_veth =  (await sdk.api.erc20.totalSupply({ target: veth })).output / 1e18;
+  const contract_veth1 =  (await sdk.api.erc20.totalSupply({ target: veth_1 })).output / 1e18;
+  const contract_veth1_null_address_balance =  (await sdk.api.erc20.balanceOf({ owner:'0x000000000000000000000000000000000000dEaD',target: veth_1, })).output / 1e18;
+
   const vToken = await utils.getData('https://api.bifrost.app/api/site');
 
   const priceKeys = [
@@ -93,7 +98,7 @@ const getApy = async () => {
     chain: 'ethereum',
     project: 'bifrost-liquid-staking',
     symbol: 'veth',
-    tvlUsd: tvl * prices['coingecko:ethereum'].price,
+    tvlUsd: new BigNumber(contract_veth).plus(contract_veth1).minus(contract_veth1_null_address_balance).toNumber() * prices['coingecko:ethereum'].price,
     apyBase: vToken.vETH2.apyBase,
     apyReward:vToken.vETH2.apyReward,
     underlyingTokens: [veth],
