@@ -223,7 +223,14 @@ const main = async () => {
       return ((arbPrices[ARB_TOKEN.address] * 50892 * 52) / denom) * 100;
     };
 
-    const arbApyReward = calcRewardApyForArb(totalTvlUsd)
+    // Define the cut-off date (February 15th, 2024) for the ARB stip rewards
+    const cutOffDate = new Date('2024-02-15');
+    const currentDate = new Date();
+
+    let arbApyReward = 0;
+    if (currentDate <= cutOffDate) {
+      arbApyReward = calcRewardApyForArb(totalTvlUsd);
+    }
 
     // Computed total (LODE + ARB rewards)
     const apyReward = baseApyReward + arbApyReward;
@@ -237,7 +244,7 @@ const main = async () => {
       apyBase,
       apyReward,
       underlyingTokens: [token],
-      rewardTokens: [ARB_TOKEN.address, PROTOCOL_TOKEN.address],
+      rewardTokens: arbApyReward > 0 ? [ARB_TOKEN.address, PROTOCOL_TOKEN.address] : [PROTOCOL_TOKEN.address],
     };
     if (isPaused[i] === false) {
       poolReturned = {
