@@ -38,7 +38,8 @@ const excludeAdaptors = [
   'vendor-v1', // empty
   'uncx-network-v2',
   'rocifi-v2',
-  'steadefi', // hacked
+  'steadefi', // hacked,
+  'bank-of-chain',
 ];
 
 const excludePools = [
