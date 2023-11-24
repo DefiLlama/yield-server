@@ -81,11 +81,27 @@ const getApy = async () => {
         .concat(EQUAL)
     ),
   ];
-  const priceKeys = tokens.map((i) => `fantom:${i}`).join(',');
 
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const maxSize = 50;
+  const pages = Math.ceil(tokens.length / maxSize);
+  let pricesA = [];
+  let keys = '';
+  for (const p of [...Array(pages).keys()]) {
+    keys = tokens
+      .slice(p * maxSize, maxSize * (p + 1))
+      .map((i) => `fantom:${i}`)
+      .join(',')
+      .replaceAll('/', '');
+    pricesA = [
+      ...pricesA,
+      (await axios.get(`https://coins.llama.fi/prices/current/${keys}`)).data
+        .coins,
+    ];
+  }
+  let prices = {};
+  for (const p of pricesA) {
+    prices = { ...prices, ...p };
+  }
 
   const pools = allPairs.map((p, i) => {
     const poolMeta = metaData[i];
