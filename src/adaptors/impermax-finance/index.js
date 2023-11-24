@@ -593,9 +593,9 @@ async function getTokenPrices(tokens, chain, allCoins) {
 
     const totalLiquidity = pairs
       .map((p) => p.liquidity.usd)
-      .reduce((a, b) => a + b);
+      .reduce((a, b) => a + b, 0);
     return (
-      pairs.map((p) => p.priceUsd * p.liquidity.usd).reduce((a, b) => a + b) /
+      pairs.map((p) => p.priceUsd * p.liquidity.usd).reduce((a, b) => a + b, 0) /
       totalLiquidity
     );
   }
