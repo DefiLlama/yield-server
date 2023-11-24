@@ -29,6 +29,12 @@ const PROTOCOL_TOKEN = {
   address: '0xF19547f9ED24aA66b03c3a552D181Ae334FBb8DB'.toLowerCase(),
 };
 
+const ARB_TOKEN = {
+  decimals: 18,
+  symbol: 'ARB',
+  address: '0x912CE59144191C1204E64559FE8253a0e49E6548'.toLowerCase(),
+}
+
 const getPrices = async (addresses) => {
   const prices = (
     await superagent.get(
@@ -153,13 +159,14 @@ const main = async () => {
   );
 
   const lodePrices = await getPrices([`${CHAIN}:${PROTOCOL_TOKEN.address}`]);
+  const arbPrices = await getPrices([`${CHAIN}:${ARB_TOKEN.address}`]);
 
   const pools = allMarkets.map((market, i) => {
     const token = underlyingTokens[i] || NATIVE_TOKEN.address;
     const symbol =
       // for maker
       underlyingTokens[i]?.toLowerCase() ===
-      '0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2'
+        '0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2'
         ? 'MKR'
         : underlyingSymbols[i] || NATIVE_TOKEN.symbol;
 
@@ -188,9 +195,45 @@ const main = async () => {
         100
       );
     };
-    const apyReward = calcRewardApy(extraRewards, totalSupplyUsd);
+
+    const baseApyReward = calcRewardApy(extraRewards, totalSupplyUsd);
     const _apyRewardBorrow = calcRewardApy(extraRewardsBorrow, totalBorrowUsd);
     const apyRewardBorrow = isNaN(_apyRewardBorrow) ? 0 : _apyRewardBorrow;
+
+    // Need to math off the total TVL for ARB and supply and borrow rewards are distributed evenly
+    let totalTvlUsd = 0;
+
+    // Calculate total TVL (sum of supply and borrow for all markets)
+    allMarkets.forEach((market, i) => {
+      const decimals = Number(underlyingDecimals[i]) || NATIVE_TOKEN.decimals;
+      let price = prices[underlyingTokens[i]?.toLowerCase() || NATIVE_TOKEN.address.toLowerCase()];
+      if (price === undefined)
+        price = underlyingSymbols[i]?.toLowerCase().includes('usd') ? 1 : 0;
+
+      const totalSupplyUsd =
+        ((Number(marketsCash[i]) + Number(totalBorrows[i])) / 10 ** decimals) *
+        price;
+      const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
+
+      totalTvlUsd += totalSupplyUsd + totalBorrowUsd;
+    });
+
+    // Calculate ARB APY reward based on total TVL
+    const calcRewardApyForArb = (denom) => {
+      return ((arbPrices[ARB_TOKEN.address] * 50892 * 52) / denom) * 100;
+    };
+
+    // Define the cut-off date (February 15th, 2024) for the ARB stip rewards
+    const cutOffDate = new Date('2024-02-15');
+    const currentDate = new Date();
+
+    let arbApyReward = 0;
+    if (currentDate <= cutOffDate) {
+      arbApyReward = calcRewardApyForArb(totalTvlUsd);
+    }
+
+    // Computed total (LODE + ARB rewards)
+    const apyReward = baseApyReward + arbApyReward;
 
     let poolReturned = {
       pool: market.toLowerCase(),
@@ -201,7 +244,7 @@ const main = async () => {
       apyBase,
       apyReward,
       underlyingTokens: [token],
-      rewardTokens: [apyReward ? PROTOCOL_TOKEN.address : null].filter(Boolean),
+      rewardTokens: arbApyReward > 0 ? [ARB_TOKEN.address, PROTOCOL_TOKEN.address] : [PROTOCOL_TOKEN.address],
     };
     if (isPaused[i] === false) {
       poolReturned = {
