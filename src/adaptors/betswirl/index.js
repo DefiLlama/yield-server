@@ -29,13 +29,6 @@ const stakingContracts = [
     chainId: 42161,
     chainName: 'Arbitrum',
   },
-  {
-    target: '0xaeaF7948C38973908fFA97c92F3384595d057135',
-    chain: 'ethereum',
-    chainId: 1,
-    chainName: 'Ethereum',
-    is8020Staking: true
-  },
 ];
 const getInfoABI = ABI.find(({ name }) => name === 'getInfo');
 
@@ -87,21 +80,31 @@ module.exports = {
     );
 
     // Fetch the 8020 Balancer LPs receipt token price
-    const balancer8020Stakings = poolsData.filter((poolData) => poolData.is8020Staking)
+    const balancer8020Stakings = poolsData.filter(
+      (poolData) => poolData.is8020Staking
+    );
     const prices = await Promise.all(
-      balancer8020Stakings
-        .map((balancer8020Staking) => fetch(`https://api.betswirl.com/api/price?pool=${balancer8020Staking.stakingToken.tokenAddress.toLowerCase()}&chainId=${balancer8020Staking.chainId}`)
-          .then((res) => res.json()))
-    )
+      balancer8020Stakings.map((balancer8020Staking) =>
+        fetch(
+          `https://api.betswirl.com/api/price?pool=${balancer8020Staking.stakingToken.tokenAddress.toLowerCase()}&chainId=${
+            balancer8020Staking.chainId
+          }`
+        ).then((res) => res.json())
+      )
+    );
     balancer8020Stakings.forEach((balancer8020Staking, i) => {
-      pricesByAddress[balancer8020Staking.stakingToken.tokenAddress.toLowerCase()] = prices[i]
-    })
+      pricesByAddress[
+        balancer8020Staking.stakingToken.tokenAddress.toLowerCase()
+      ] = prices[i];
+    });
 
     for (const pool of poolsData) {
       const tvlUsd = fromWei(
         pool.totalSupply,
         pool.stakingToken.decimals
-      ).multipliedBy(pricesByAddress[pool.stakingToken.tokenAddress.toLowerCase()]);
+      ).multipliedBy(
+        pricesByAddress[pool.stakingToken.tokenAddress.toLowerCase()]
+      );
       pools.push({
         pool: `${pool.target.toLowerCase()}-${pool.chain}`,
         chain: pool.chainName,
@@ -131,7 +134,9 @@ module.exports = {
           rewardToken.token.tokenAddress.toLowerCase()
         ),
         underlyingTokens: [pool.stakingToken.tokenAddress.toLowerCase()],
-        url: `https://app.betswirl.com/staking?pool=${pool.target.toLowerCase()}&c=${pool.chainId}`,
+        url: `https://app.betswirl.com/staking?pool=${pool.target.toLowerCase()}&c=${
+          pool.chainId
+        }`,
       });
     }
     return pools;
