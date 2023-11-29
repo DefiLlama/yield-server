@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk3');
 const utils = require('../../utils');
-const { makeReadable } = require('../shared');
+const { makeReadable } = require('./utils');
 
 /*//////////////////////////////////////////////////////////////////////////////
                                Mux Reward Router                                                 
