@@ -125,7 +125,7 @@ const lsdTokens = [
     name: 'Stakehouse',
     symbol: 'dETH',
     address: '0x3d1e5cf16077f349e999d6b21a4f646e83cd90c5',
-    type: r,
+    type: a,
     fee: 0,
   },
   {
