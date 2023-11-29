@@ -11,12 +11,12 @@ const vaults = [
     symbol: 'muxpMAC',
     underlyingToken: '0x7CbaF5a14D953fF896E5B3312031515c858737C8',
   },
-  // {
-  //   poolAddress: '0x3DAe492145e0631D341617bAA81a4c72C2CD4b99',
-  //   strategy: 'TraderJoeStrategy',
-  //   symbol: 'factJAC',
-  //   underlyingToken: '0x371c7ec6D8039ff7933a2AA28EB827Ffe1F52f07',
-  // },
+  {
+    poolAddress: '0x3DAe492145e0631D341617bAA81a4c72C2CD4b99',
+    strategy: 'TraderJoeStrategy',
+    symbol: 'factJAC',
+    underlyingToken: '0x371c7ec6D8039ff7933a2AA28EB827Ffe1F52f07',
+  },
   // {
   //   poolAddress: '0xF45A9E3f2F5984BaB983C9f245204DE23aE3b1A1',
   //   strategy: 'SiloStrategy',

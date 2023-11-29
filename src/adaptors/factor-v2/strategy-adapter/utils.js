@@ -1,3 +1,5 @@
+const { default: axios } = require('axios');
+
 async function getAprFromDefillamaPool(apyFunction, poolId) {
     const pools = await apyFunction();
     const pool = pools.filter(
@@ -15,4 +17,26 @@ function makeReadable(val, dec = 18) {
     return parseInt(val) / 10 ** dec;
 }
 
-module.exports = {makeReadable, getAprFromDefillamaPool };
+async function getCoinDataFromDefillamaAPI(chain, tokenAddress) {
+    const coinId = `${chain}:${tokenAddress}`;
+    const response = await axios.get(
+        'https://coins.llama.fi/prices/current/' + coinId
+    );
+    const coinData = response.data.coins[coinId];
+
+    // { decimals, symbol, price, timestamp, confidence }
+    return coinData;
+}
+
+function getCurrentTimestamp() {
+    const timestamp = Math.floor(Date.now() / 1000);
+    return timestamp;
+  }
+
+
+module.exports = {
+    makeReadable,
+    getAprFromDefillamaPool,
+    getCoinDataFromDefillamaAPI,
+    getCurrentTimestamp
+};

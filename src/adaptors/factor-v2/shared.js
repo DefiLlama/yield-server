@@ -8,6 +8,7 @@ const {
     getLodestarApr,
     getLodestarTokenPriceInUSD,
     getPendleApr,
+    getSJoeApr,
 } = require('./strategy-adapter');
 
 async function getApr(poolAddress, underlyingTokenAddress, strategy) {
@@ -27,6 +28,9 @@ async function getApr(poolAddress, underlyingTokenAddress, strategy) {
             break;
         case 'PendleStrategy':
             apr = await getPendleApr(underlyingTokenAddress);
+            break;
+        case 'TraderJoeStrategy':
+            apr = await getSJoeApr(underlyingTokenAddress);
             break;
         default:
             apr = 0;

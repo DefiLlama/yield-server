@@ -4,4 +4,5 @@ module.exports = {
   ...require('./glp-adapter'),
   ...require('./vela-adapter'),
   ...require('./pendle-adapter'),
+  ...require('./sjoe-adapter'),
 };
