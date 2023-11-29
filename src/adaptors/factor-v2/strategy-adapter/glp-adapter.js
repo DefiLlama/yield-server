@@ -1,5 +1,5 @@
 const { apy } = require('../../gmx-v1');
-const { getAprFromDefillamaPool } = require('../shared');
+const { getAprFromDefillamaPool } = require('./utils');
 
 /*//////////////////////////////////////////////////////////////////////////////
                                      GLP APR                                             
