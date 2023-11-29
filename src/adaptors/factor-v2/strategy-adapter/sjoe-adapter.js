@@ -52,7 +52,7 @@ async function getTVLFromSource(underlyingTokenAddress) {
 async function getSJoeApr(underlyingTokenAddress) {
     const monthlyReward = await getMonthlyReward();
     const sJoeTVL = await getTVLFromSource(underlyingTokenAddress);
-    const apr = (monthlyReward * 12) / sJoeTVL;
+    const apr = (monthlyReward * 12) / sJoeTVL * 100;
     return apr;
 }
 
