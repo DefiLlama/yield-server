@@ -17,18 +17,18 @@ const vaults = [
     symbol: 'factJAC',
     underlyingToken: '0x371c7ec6D8039ff7933a2AA28EB827Ffe1F52f07',
   },
-  // {
-  //   poolAddress: '0xF45A9E3f2F5984BaB983C9f245204DE23aE3b1A1',
-  //   strategy: 'SiloStrategy',
-  //   symbol: 'siloSUAC',
-  //   underlyingToken: '0x55ADE3B74abef55bF379FF6Ae61CB77a405Eb4A8',
-  // },
-  // {
-  //   poolAddress: '0xdfD0a93a22CAE02C81CCe29A6A6362Bec2D2C282',
-  //   strategy: 'SiloStrategy',
-  //   symbol: 'siloSGAC',
-  //   underlyingToken: '0x96E1301bd2536A3C56EBff8335FD892dD9bD02dC',
-  // },
+  {
+    poolAddress: '0xF45A9E3f2F5984BaB983C9f245204DE23aE3b1A1',
+    strategy: 'SiloStrategy',
+    symbol: 'siloSUAC',
+    underlyingToken: '0x55ADE3B74abef55bF379FF6Ae61CB77a405Eb4A8',
+  },
+  {
+    poolAddress: '0xdfD0a93a22CAE02C81CCe29A6A6362Bec2D2C282',
+    strategy: 'SiloStrategy',
+    symbol: 'siloSGAC',
+    underlyingToken: '0x96E1301bd2536A3C56EBff8335FD892dD9bD02dC',
+  },
   {
     poolAddress: '0xE990f7269E7BdDa64b947C81D69aed92a68cEBC6',
     strategy: 'PendleStrategy',

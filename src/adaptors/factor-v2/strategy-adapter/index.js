@@ -5,4 +5,5 @@ module.exports = {
   ...require('./vela-adapter'),
   ...require('./pendle-adapter'),
   ...require('./sjoe-adapter'),
+  ...require('./silo-adapter'),
 };
