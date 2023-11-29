@@ -71,12 +71,12 @@ const vaults = [
   //   symbol: 'pereBCA',
   //   underlyingToken: '0x5A572B5fBBC43387B5eF8de2C4728A4108ef24a6',
   // },
-  {
-    poolAddress: '0xc994bC98251E043D4681Af980b1E487CfC88193a',
-    strategy: 'RedactedStrategy',
-    symbol: 'redaPMY',
-    underlyingToken: '0x9A592B4539E22EeB8B2A3Df679d572C7712Ef999',
-  },
+  // {
+  //   poolAddress: '0xc994bC98251E043D4681Af980b1E487CfC88193a',
+  //   strategy: 'RedactedStrategy',
+  //   symbol: 'redaPMY',
+  //   underlyingToken: '0x9A592B4539E22EeB8B2A3Df679d572C7712Ef999',
+  // },
   {
     poolAddress: '0xfc0D36C2781F26377da6b72Ab448F5b2a71e7D14',
     strategy: 'PenpieStrategy',
