@@ -8,7 +8,7 @@ const EXCHANGES_API = {
   uniswapv3: '',
   quickswap: 'quickswap/',
   zyberswap: 'zyberswap/',
-  // thena: 'thena/',
+  thena: 'thena/',
   retro: 'retro/',
   ascent: 'ascent/',
   camelot: 'camelot/',
@@ -27,7 +27,7 @@ const EXCHANGES_CHAINS = {
   uniswapv3: ["ethereum", "optimism", "polygon", "arbitrum", "celo", "bsc"],
   quickswap: ["polygon", "polygon_zkevm"],
   zyberswap: ["arbitrum"],
-  // thena: ["bsc"],
+  thena: ["bsc"],
   retro: ["polygon"],
   ascent: ["polygon"],
   camelot: ["arbitrum"],
@@ -354,7 +354,7 @@ const getApy = async () => {
     ...i,
     apyReward: x.includes(i.pool) ? null : i.apyReward,
     rewardTokens: x.includes(i.pool) ? null : i.rewardTokens,
-  }));
+  })).filter(p => p.chain != 'Binance');
 };
 
 module.exports = {

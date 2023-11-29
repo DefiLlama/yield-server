@@ -289,7 +289,7 @@ const getApy = async () => {
     ...i,
     apyReward: x.includes(i.pool) ? null : i.apyReward,
     rewardTokens: x.includes(i.pool) ? null : i.rewardTokens,
-  }));
+  })).filter(i => i.chain === 'Binance');
 };
 
 module.exports = {
