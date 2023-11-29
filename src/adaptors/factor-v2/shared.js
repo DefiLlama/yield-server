@@ -10,7 +10,12 @@ const {
     getPendleApr,
     getSJoeApr,
     getSiloApr,
+    getTenderApr,
+    getOliveApr,
+    getPxGMXApr,
+    getPenpieApr
 } = require('./strategy-adapter');
+const { getCoinDataFromDefillamaAPI } = require('./strategy-adapter/utils');
 
 async function getApr(poolAddress, underlyingTokenAddress, strategy) {
     let apr = 0;
@@ -27,6 +32,9 @@ async function getApr(poolAddress, underlyingTokenAddress, strategy) {
         case 'LodestarStrategy':
             apr = await getLodestarApr(underlyingTokenAddress);
             break;
+        case 'PenpieStrategy':
+            apr = await getPenpieApr(underlyingTokenAddress);
+            break;
         case 'PendleStrategy':
             apr = await getPendleApr(underlyingTokenAddress);
             break;
@@ -36,11 +44,18 @@ async function getApr(poolAddress, underlyingTokenAddress, strategy) {
         case 'SiloStrategy':
             apr = await getSiloApr(underlyingTokenAddress);
             break;
+        case 'TenderStrategy':
+            apr = await getTenderApr(underlyingTokenAddress);
+            break;
+        case 'OliveStrategy':
+            apr = await getOliveApr();
+            break;
+        case 'RedactedStrategy':
+            apr = await getPxGMXApr();
+            break;
         default:
             apr = 0;
     }
-
-    console.log({strategy, apr})
 
     const harvestCountPerDay = 3;
     const apyBase = utils.aprToApy(apr, harvestCountPerDay * 365);
@@ -55,6 +70,9 @@ async function getTvl(poolAddress, underlyingTokenAddress, strategy) {
         underlyingTokenPrice = await getLodestarTokenPriceInUSD(
             underlyingTokenAddress
         );
+    } else if (strategy == "RedactedStrategy") {
+        const gmxCoin = await getCoinDataFromDefillamaAPI('arbitrum','0xfc5a1a6eb076a2c7ad06ed22c90d7e710e35ad0a') 
+        underlyingTokenPrice = gmxCoin.price;
     } else {
         underlyingTokenPrice = (
             await utils.getPrices([underlyingTokenAddress], 'arbitrum')
