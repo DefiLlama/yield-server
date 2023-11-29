@@ -1,8 +1,14 @@
 const sdk = require('@defillama/sdk3');
 const utils = require('../utils');
-const { getMuxLpApr } = require('./mux-adapter');
-const { getGlpApr } = require('./glp-adapter');
-const { getVlpApr } = require('./vela-adapter');
+
+const {
+  getMuxLpApr,
+  getGlpApr,
+  getVlpApr,
+  getLodestarApr,
+  getLodestarTokenPriceInUSD,
+  getPendleApr,
+} = require('./strategy-adapter');
 
 // TODO: add more vaults incrementaly along with the strategy adapter
 const vaults = [
@@ -31,29 +37,23 @@ const vaults = [
   //   underlyingToken: '0x55ADE3B74abef55bF379FF6Ae61CB77a405Eb4A8',
   // },
   // {
-  //   poolAddress: '0xdEa0521671A86922B69D4fe851A5Adf47f29d412',
-  //   strategy: 'LodestarStrategy',
-  //   symbol: 'lodePAC',
-  //   underlyingToken: '0x7b571111dAFf9428f7563582242eD29E5949970e',
-  // },
-  // {
   //   poolAddress: '0xdfD0a93a22CAE02C81CCe29A6A6362Bec2D2C282',
   //   strategy: 'SiloStrategy',
   //   symbol: 'siloSGAC',
   //   underlyingToken: '0x96E1301bd2536A3C56EBff8335FD892dD9bD02dC',
   // },
-  // {
-  //   poolAddress: '0xE990f7269E7BdDa64b947C81D69aed92a68cEBC6',
-  //   strategy: 'PendleStrategy',
-  //   symbol: 'factWAC',
-  //   underlyingToken: '0x08a152834de126d2ef83D612ff36e4523FD0017F',
-  // },
-  // {
-  //   poolAddress: '0xEb6c9C35f2BBeeDd4CECc717a869584f85C17d67',
-  //   strategy: 'PendleStrategy',
-  //   symbol: 'factRAC',
-  //   underlyingToken: '0x14FbC760eFaF36781cB0eb3Cb255aD976117B9Bd',
-  // },
+  {
+    poolAddress: '0xE990f7269E7BdDa64b947C81D69aed92a68cEBC6',
+    strategy: 'PendleStrategy',
+    symbol: 'factWAC',
+    underlyingToken: '0x08a152834de126d2ef83D612ff36e4523FD0017F',
+  },
+  {
+    poolAddress: '0xEb6c9C35f2BBeeDd4CECc717a869584f85C17d67',
+    strategy: 'PendleStrategy',
+    symbol: 'factRAC',
+    underlyingToken: '0x14FbC760eFaF36781cB0eb3Cb255aD976117B9Bd',
+  },
   {
     poolAddress: '0xe4a286bCA6026CccC7D240914c34219D074F4020',
     strategy: 'VelaStrategy',
@@ -66,12 +66,12 @@ const vaults = [
   //   symbol: 'olivPPO',
   //   underlyingToken: '0x5402B5F40310bDED796c7D0F3FF6683f5C0cFfdf',
   // },
-  // {
-  //   poolAddress: '0x9Ae93cb28F8A5e6D31B9F9887d57604B31DcC42E',
-  //   strategy: 'LodestarStrategy',
-  //   symbol: 'lodePAC',
-  //   underlyingToken: '0x1ca530f02DD0487cef4943c674342c5aEa08922F',
-  // },
+  {
+    poolAddress: '0x9Ae93cb28F8A5e6D31B9F9887d57604B31DcC42E',
+    strategy: 'LodestarStrategy',
+    symbol: 'lodePAC',
+    underlyingToken: '0x1ca530f02DD0487cef4943c674342c5aEa08922F',
+  },
   // {
   //   poolAddress: '0x18dFCCb8EAc64Da10DCc5cbf677314c0125B6C4B',
   //   strategy: 'TenderStrategy',
@@ -120,7 +120,16 @@ async function getApr(poolAddress, underlyingTokenAddress, strategy) {
     case 'VelaStrategy':
       apr = await getVlpApr();
       break;
+    case 'LodestarStrategy':
+      apr = await getLodestarApr(underlyingTokenAddress);
+      break;
+    case 'PendleStrategy':
+      apr = await getPendleApr(underlyingTokenAddress);
+      break;
+    default:
+      apr = 0;
   }
+
   const harvestCountPerDay = 3;
   const apyBase = utils.aprToApy(apr, harvestCountPerDay * 365);
 
@@ -132,17 +141,33 @@ async function getApr(poolAddress, underlyingTokenAddress, strategy) {
 //////////////////////////////////////////////////////////////////////////////*/
 
 async function getTvl(poolAddress, underlyingTokenAddress, strategy) {
-  const underlyingTokenPrice = (
-    await utils.getPrices([underlyingTokenAddress], 'arbitrum')
-  ).pricesByAddress[underlyingTokenAddress.toLowerCase()];
+  let underlyingTokenPrice = 0;
 
-  const { output: assetBalance } = await sdk.api.abi.call({
-    target: poolAddress,
-    abi: 'uint256:assetBalance',
-    chain: 'arbitrum',
-  });
+  if (strategy == 'LodestarStrategy') {
+    underlyingTokenPrice = await getLodestarTokenPriceInUSD(
+      underlyingTokenAddress
+    );
+  } else {
+    underlyingTokenPrice = (
+      await utils.getPrices([underlyingTokenAddress], 'arbitrum')
+    ).pricesByAddress[underlyingTokenAddress.toLowerCase()];
+  }
 
-  const tvlUsd = (assetBalance / 1e18) * underlyingTokenPrice;
+  const [{ output: assetBalance }, { output: assetDecimals }] =
+    await Promise.all([
+      sdk.api.abi.call({
+        target: poolAddress,
+        abi: 'uint256:assetBalance',
+        chain: 'arbitrum',
+      }),
+      sdk.api.abi.call({
+        target: underlyingTokenAddress,
+        abi: 'erc20:decimals',
+        chain: 'arbitrum',
+      }),
+    ]);
+
+  const tvlUsd = (assetBalance / 10 ** assetDecimals) * underlyingTokenPrice;
 
   return tvlUsd;
 }
