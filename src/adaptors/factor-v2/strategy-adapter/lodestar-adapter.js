@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk3');
 const utils = require('../../utils');
-const { makeReadable } = require('../shared');
+const { makeReadable } = require('./utils');
 
 async function getSupplyRatePerBlock(assetAddress) {
   const { output } = await sdk.api.abi.call({
