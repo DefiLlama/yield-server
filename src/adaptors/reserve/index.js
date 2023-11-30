@@ -4,14 +4,22 @@ const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 const ethers = require('ethers');
 const { default: BigNumber } = require('bignumber.js');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk4');
 
 const { facadeAbi, rtokenAbi } = require('./abi');
 
-const CHAIN = 'ethereum';
-const FACADE_ADDRESS = '0xad0BFAEE863B1102e9fD4e6330A02B08d885C715';
-const graphEndpoint =
-  'https://api.thegraph.com/subgraphs/name/lcamargof/reserve-test';
+const chains = [
+  {
+    chainName: 'base',
+    facade: '0xe1aa15DA8b993c6312BAeD91E0b470AE405F91BF',
+    graph: 'https://graph-base.register.app/subgraphs/name/lcamargof/reserve',
+  },
+  {
+    chainName: 'ethereum',
+    facade: '0xad0BFAEE863B1102e9fD4e6330A02B08d885C715',
+    graph: 'https://api.thegraph.com/subgraphs/name/lcamargof/reserve-test',
+  },
+];
 
 const rtokenQuery = gql`
   {
@@ -57,12 +65,17 @@ const poolsMap = {
   'c04005c9-7e34-41a6-91c4-295834ed8ac0': 'stkcvxeusd3crv-f',
   'fa4d7ee4-0001-4133-9e8d-cf7d5d194a91': 'fusdc-vault',
   '325ad2d6-70b1-48d7-a557-c2c99a036f87': 'mrp-ausdc',
+  // Base
+  'df65c4f4-e33a-481c-bac8-0c2252867c93': 'wcusdcv3',
+  '9d09b0be-f6c2-463a-ad2c-4552b3e12bd9': 'wsgusdbc',
+  '0f45d730-b279-4629-8e11-ccb5cc3038b4': 'cbeth',
 };
 
 const rtokenTvl = (rtoken) =>
   (rtoken.token?.totalSupply / 1e18) * rtoken.token?.lastPriceUSD || 0;
 
-const main = async () => {
+const apyChain = async (chainProps) => {
+  const { chainName, facade, graph } = chainProps;
   const poolsData = (await utils.getData('https://yields.llama.fi/pools'))
     ?.data;
 
@@ -77,7 +90,8 @@ const main = async () => {
       }
     }
   }
-  const { rtokens } = await request(graphEndpoint, rtokenQuery);
+
+  const { rtokens } = await request(graph, rtokenQuery);
 
   const filteredRtokens = rtokens.filter(
     (rtoken) => rtoken && rtokenTvl(rtoken) > 10_000
@@ -87,6 +101,7 @@ const main = async () => {
 
   const { output: mainAddresses } = await sdk.api.abi.multiCall({
     abi: rtokenAbi.find(({ name }) => name === 'main'),
+    chain: chainName,
     calls: rtokenAddresses.map((rtokenAddress) => ({
       target: rtokenAddress,
       params: [],
@@ -94,6 +109,7 @@ const main = async () => {
   });
 
   const { output: distributorAddresses } = await sdk.api.abi.multiCall({
+    chain: chainName,
     abi: rtokenAbi.find(({ name }) => name === 'distributor'),
     calls: mainAddresses.map(({ output: mainAddress }) => ({
       target: mainAddress,
@@ -102,6 +118,7 @@ const main = async () => {
   });
 
   const { output: distributions } = await sdk.api.abi.multiCall({
+    chain: chainName,
     abi: rtokenAbi.find(({ name }) => name === 'distribution'),
     calls: distributorAddresses.map(({ output: distributorAddress }) => ({
       target: distributorAddress,
@@ -110,9 +127,10 @@ const main = async () => {
   });
 
   const { output: basketBreakdowns } = await sdk.api.abi.multiCall({
+    chain: chainName,
     abi: facadeAbi.find(({ name }) => name === 'basketBreakdown'),
     calls: rtokenAddresses.map((rtokenAddress) => ({
-      target: FACADE_ADDRESS,
+      target: facade,
       params: [rtokenAddress],
     })),
   });
@@ -122,6 +140,7 @@ const main = async () => {
       if (!rtoken) return null;
 
       const { output: symbols } = await sdk.api.abi.multiCall({
+        chain: chainName,
         abi: 'erc20:symbol',
         calls: basketBreakdowns[i].output.erc20s.map((erc20) => ({
           target: erc20,
@@ -153,7 +172,7 @@ const main = async () => {
 
       return {
         pool: rtoken.id,
-        chain: CHAIN,
+        chain: chainName,
         project: 'reserve',
         symbol: rtoken.token?.symbol,
         tvlUsd: rtokenTvl(rtoken),
@@ -171,7 +190,15 @@ const main = async () => {
   return reservePools;
 };
 
+const apy = async () => {
+  const pools = await Promise.all(
+    chains.map(async (chainProps) => await apyChain(chainProps))
+  );
+
+  return pools.flat();
+};
+
 module.exports = {
   timetravel: false,
-  apy: main,
+  apy,
 };
