@@ -1,4 +1,5 @@
 const cauldrons = require('./cauldrons');
+const multiRewardFarms = require('./multi-reward-farms');
 const farms = require('./farms');
 const magicGlp = require('./magic-glp');
 
@@ -6,6 +7,7 @@ const getApy = async () => [
   ...(await cauldrons()),
   ...(await farms()),
   ...(await magicGlp()),
+  ...(await multiRewardFarms()),
 ];
 
 module.exports = {
