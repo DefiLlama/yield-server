@@ -43,11 +43,13 @@ const formatPool = async (bucket, config, EPMXPrice) => {
   const apyBaseBorrowCalculated = (Math.pow(1 + (bar / 10 ** 27) / SECONDS_PER_YEAR, SECONDS_PER_YEAR) - 1) * 100
   const apyBaseBorrow = isMiningPhase ? 0 : apyBaseBorrowCalculated
 
-  const apyRewardCalculated = (rewardPerTokenLender * 10 ** asset.decimals / 10 ** 18 * SECONDS_PER_YEAR * EPMXPrice / assetPrice.price / 10 ** 18) * 100;
-  const apyReward = isMiningPhase ? apyRewardBySymbol[symbol] + APY_REWARD_BONUS : apyRewardCalculated
+  // const apyRewardCalculated = (rewardPerTokenLender * 10 ** asset.decimals / 10 ** 18 * SECONDS_PER_YEAR * EPMXPrice / assetPrice.price / 10 ** 18) * 100;
+  // const apyReward = isMiningPhase ? apyRewardBySymbol[symbol] + APY_REWARD_BONUS : apyRewardCalculated
+  const apyReward = isMiningPhase ? APY_REWARD_BONUS : 0
 
-  const apyRewardBorrowCalculated = (rewardPerTokenTrader * 10 ** asset.decimals / 10 ** 18 * SECONDS_PER_YEAR * EPMXPrice / assetPrice.price / 10 ** 18) * 100;
-  const apyRewardBorrow = isMiningPhase ? 0 : apyRewardBorrowCalculated
+  // const apyRewardBorrowCalculated = (rewardPerTokenTrader * 10 ** asset.decimals / 10 ** 18 * SECONDS_PER_YEAR * EPMXPrice / assetPrice.price / 10 ** 18) * 100;
+  // const apyRewardBorrow = isMiningPhase ? 0 : apyRewardBorrowCalculated
+  const apyRewardBorrow = 0
 
   return {
     pool: `${bucketAddress}-${chain}`.toLowerCase(),
