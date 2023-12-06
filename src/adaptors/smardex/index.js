@@ -123,7 +123,7 @@ const getFarmsWithRewards = async (
       abi: farmingRangeABI.find(({ name }) => name === 'campaignInfo'),
       chain: chainString,
       calls: [...Array.from(Array(parseInt(campaignInfoLen, 10)).keys())]
-        .slice(1)
+        .slice(STAKING_ADDRESS ? 1 : 0)
         .map((campaignId) => ({
           target: FARMING_RANGE_ADDRESS,
           params: [campaignId],
@@ -134,7 +134,7 @@ const getFarmsWithRewards = async (
       abi: farmingRangeABI.find(({ name }) => name === 'rewardInfoLen'),
       chain: chainString,
       calls: [...Array.from(Array(parseInt(campaignInfoLen, 10)).keys())]
-        .slice(1)
+        .slice(STAKING_ADDRESS ? 1 : 0)
         .map((campaignId) => ({
           target: FARMING_RANGE_ADDRESS,
           params: [campaignId],
