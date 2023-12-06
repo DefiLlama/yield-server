@@ -125,7 +125,7 @@ const lsdTokens = [
     name: 'Stakehouse',
     symbol: 'dETH',
     address: '0x3d1e5cf16077f349e999d6b21a4f646e83cd90c5',
-    type: r,
+    type: a,
     fee: 0,
   },
   {
@@ -181,9 +181,10 @@ const getMarketRates = async () => {
   const amount = 1e18;
   const urls = lsdTokens
     .filter((i) => i.name !== 'StakeHound') // useless data
-    .map(
-      (lsd) =>
-        `${priceUrl}?sellToken=${lsd.address}&buyToken=${eth}&sellAmount=${amount}`
+    .map((lsd) =>
+      lsd.name === 'Stader'
+        ? `${priceUrl}?sellToken=0xA35b1B31Ce002FBF2058D22F30f95D405200A15b&buyToken=${eth}&sellAmount=${amount}`
+        : `${priceUrl}?sellToken=${lsd.address}&buyToken=${eth}&sellAmount=${amount}`
     );
 
   const marketRates = [];
