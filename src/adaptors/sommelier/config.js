@@ -18,6 +18,7 @@ const ethgrowth = '0x6c51041a91c91c86f3f08a72cb4d3f67f1208897';
 const turbosteth = '0xfd6db5011b171b05e1ea3b92f9eacaeeb055e971';
 const turbosomm = '0x5195222f69c5821f8095ec565e71e18ab6a2298f';
 const turboeeth = '0x9a7b4980C6F0FCaa50CD5f288Ad7038f434c692e';
+const turbostethstethDeposit = '0xc7372Ab5dd315606dB799246E8aA112405abAeFf';
 
 // Rewards are paid out in EVM SOMM
 const rewardTokens = ['0xa670d7237398238de01267472c6f13e5b8010fd1'];
@@ -49,6 +50,7 @@ const stakingPools = {
   // TODO: If we add staking pool for turbo steth, add it here
   // TODO: If we add staking pool for turbo somm, add it here
   [turboeeth]: '0x596c3f05ba9c6c356527e47989b3ed26e2b3449d',
+  // TODO: If we add staking pool for turbo steth (steth deposit), add it here
 };
 
 // List of v0815 Cellars
@@ -351,6 +353,19 @@ const v2p5Pools = [
     rewardTokens,
     underlyingTokens: [],
     url: 'https://app.sommelier.finance/strategies/Turbo-eETH',
+  },
+  {
+    pool: `${turbostethstethDeposit}-ethereum`,
+    chain,
+    project,
+    symbol: 'STETH-WSTETH-WETH',
+    poolMeta: 'TurboSTETH(stETHDeposit)',
+    tvlUsd: 0,
+    apyBase: 0,
+    apyReward: 0,
+    rewardTokens,
+    underlyingTokens: [],
+    url: 'https://app.sommelier.finance/strategies/Turbo-STETH-(steth-deposit)',
   },
 ];
 
