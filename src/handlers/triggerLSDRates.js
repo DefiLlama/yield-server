@@ -81,8 +81,8 @@ const lsdTokens = [
   {
     name: 'Bifrost Liquid Staking',
     symbol: 'vETH',
-    // address: '0x4Bc3263Eb5bb2Ef7Ad9aB6FB68be80E43b43801F', // vETH
-    address: '0x74bAA141B18D5D1eeF1591abf37167FbeCE23B72', // Staking Liquidity Protocol Contract
+    address: '0x4Bc3263Eb5bb2Ef7Ad9aB6FB68be80E43b43801F', // vETH
+    addressExchangeRate: '0x74bAA141B18D5D1eeF1591abf37167FbeCE23B72', // Staking Liquidity Protocol Contract
     type: a,
   },
   {
@@ -116,8 +116,8 @@ const lsdTokens = [
   {
     name: 'Tranchess Ether',
     symbol: 'qETH',
-    // address: '0x93ef1Ea305D11A9b2a3EbB9bB4FCc34695292E7d', // qETH
-    address: '0xA6aeD7922366611953546014A3f9e93f058756a2', // QueenRateProvider
+    address: '0x93ef1Ea305D11A9b2a3EbB9bB4FCc34695292E7d', // qETH
+    addressExchangeRate: '0xA6aeD7922366611953546014A3f9e93f058756a2', // QueenRateProvider
     type: a,
     // fee: 0.1,
   },
@@ -131,15 +131,16 @@ const lsdTokens = [
   {
     name: 'Stader',
     symbol: 'ETHx',
-    address: '0xcf5EA1b38380f6aF39068375516Daf40Ed70D299',
+    address: '0xA35b1B31Ce002FBF2058D22F30f95D405200A15b',
+    addressExchangeRate: '0xcf5EA1b38380f6aF39068375516Daf40Ed70D299',
     type: a,
     fee: 0.1,
   },
   {
     name: 'NodeDAO',
     symbol: 'nETH',
-    // address: '0xC6572019548dfeBA782bA5a2093C836626C7789A',
-    address: '0x8103151E2377e78C04a3d2564e20542680ed3096',
+    address: '0xC6572019548dfeBA782bA5a2093C836626C7789A',
+    addressExchangeRate: '0x8103151E2377e78C04a3d2564e20542680ed3096',
     type: a,
     fee: 0.1,
   },
@@ -181,10 +182,9 @@ const getMarketRates = async () => {
   const amount = 1e18;
   const urls = lsdTokens
     .filter((i) => i.name !== 'StakeHound') // useless data
-    .map((lsd) =>
-      lsd.name === 'Stader'
-        ? `${priceUrl}?sellToken=0xA35b1B31Ce002FBF2058D22F30f95D405200A15b&buyToken=${eth}&sellAmount=${amount}`
-        : `${priceUrl}?sellToken=${lsd.address}&buyToken=${eth}&sellAmount=${amount}`
+    .map(
+      (lsd) =>
+        `${priceUrl}?sellToken=${lsd.address}&buyToken=${eth}&sellAmount=${amount}`
     );
 
   const marketRates = [];
@@ -402,7 +402,8 @@ const getExpectedRates = async () => {
   const qETH =
     (
       await sdk.api.abi.call({
-        target: lsdTokens.find((lsd) => lsd.name === 'Tranchess Ether').address,
+        target: lsdTokens.find((lsd) => lsd.name === 'Tranchess Ether')
+          .addressExchangeRate,
         chain: 'ethereum',
         abi: qETHAbi,
       })
@@ -412,7 +413,7 @@ const getExpectedRates = async () => {
     (
       await sdk.api.abi.call({
         target: lsdTokens.find((lsd) => lsd.name === 'Bifrost Liquid Staking')
-          .address,
+          .addressExchangeRate,
         chain: 'ethereum',
         abi: vETHAbi,
         params: [BigInt(1e18)],
@@ -422,7 +423,8 @@ const getExpectedRates = async () => {
   const ETHx =
     (
       await sdk.api.abi.call({
-        target: lsdTokens.find((lsd) => lsd.name === 'Stader').address,
+        target: lsdTokens.find((lsd) => lsd.name === 'Stader')
+          .addressExchangeRate,
         chain: 'ethereum',
         abi: ETHxAbi,
       })
@@ -431,7 +433,8 @@ const getExpectedRates = async () => {
   const nETH =
     (
       await sdk.api.abi.call({
-        target: lsdTokens.find((lsd) => lsd.name === 'NodeDAO').address,
+        target: lsdTokens.find((lsd) => lsd.name === 'NodeDAO')
+          .addressExchangeRate,
         chain: 'ethereum',
         abi: nETHAbi,
       })
@@ -462,7 +465,7 @@ const getExpectedRates = async () => {
         ? vETH
         : lsd.name === 'Stader'
         ? ETHx
-        : lsd.name === 'NodeDao'
+        : lsd.name === 'NodeDAO'
         ? nETH
         : 1,
   }));
