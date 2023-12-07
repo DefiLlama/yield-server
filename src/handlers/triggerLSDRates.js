@@ -144,6 +144,14 @@ const lsdTokens = [
     type: a,
     fee: 0.1,
   },
+  {
+    name: 'Bedrock uniETH',
+    symbol: 'uniETH',
+    address: '0xF1376bceF0f78459C0Ed0ba5ddce976F1ddF51F4',
+    addressExchangeRate: '0x4beFa2aA9c305238AA3E0b5D17eB20C045269E9d',
+    type: a,
+    // fee: 0.1,
+  },
 ];
 
 const priceUrl = 'https://api.0x.org/swap/v1/quote';
@@ -310,6 +318,14 @@ const getExpectedRates = async () => {
     type: 'function',
   };
 
+  const uniETHAbi = {
+    inputs: [],
+    name: 'exchangeRatio',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
   // --- cbETH
   const cbETHRate = Number((await axios.get(cbETHRateUrl)).data.amount);
 
@@ -440,6 +456,16 @@ const getExpectedRates = async () => {
       })
     ).output / 1e18;
 
+  const uniETH =
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Bedrock uniETH')
+          .addressExchangeRate,
+        chain: 'ethereum',
+        abi: uniETHAbi,
+      })
+    ).output / 1e18;
+
   return lsdTokens.map((lsd) => ({
     ...lsd,
     expectedRate:
@@ -467,6 +493,8 @@ const getExpectedRates = async () => {
         ? ETHx
         : lsd.name === 'NodeDAO'
         ? nETH
+        : lsd.name === 'Bedrock uniETH'
+        ? uniETH
         : 1,
   }));
 };
