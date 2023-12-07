@@ -40,6 +40,7 @@ const excludeAdaptors = [
   'rocifi-v2',
   'steadefi', // hacked,
   'bank-of-chain',
+  'zunami-protocol', // hacked
 ];
 
 const excludePools = [
