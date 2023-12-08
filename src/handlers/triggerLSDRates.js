@@ -150,7 +150,7 @@ const lsdTokens = [
     address: '0xF1376bceF0f78459C0Ed0ba5ddce976F1ddF51F4',
     addressExchangeRate: '0x4beFa2aA9c305238AA3E0b5D17eB20C045269E9d',
     type: a,
-    // fee: 0.1,
+    fee: 0.1,
   },
 ];
 
