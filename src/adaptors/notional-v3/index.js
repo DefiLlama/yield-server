@@ -229,10 +229,9 @@ const getPools = async (chain) => {
         pool: `${vaultAddress}-${chain}`,
         chain,
         project,
-        // NOTE: this is pretty ugly, need better metadata
-        symbol: `SingleSidedLP:Convex:[FRAX]/USDC.e`,
+        symbol: highestYield.vaultName,
         underlyingTokens: [ highestYield.underlying.id ],
-        poolMeta: 'Leveraged Vault (SingleSidedLP)',
+        poolMeta: 'Leveraged Vault',
         url: `https://arbitrum.notional.finance/vaults/${vaultAddress}`,
         tvlUsd,
         apyBase: highestYield.totalAPY
