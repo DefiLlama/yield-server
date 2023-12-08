@@ -41,6 +41,7 @@ const excludeAdaptors = [
   'steadefi', // hacked,
   'bank-of-chain',
   'zunami-protocol', // hacked
+  'myso-v1',
 ];
 
 const excludePools = [
