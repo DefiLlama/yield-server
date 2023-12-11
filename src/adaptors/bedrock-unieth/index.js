@@ -8,26 +8,16 @@ const UNIETH_CONTRACT_ADDRESS = '0xF1376bceF0f78459C0Ed0ba5ddce976F1ddF51F4';
 /**
  * tvlUsd = CurrentReserve / ExchangeRatio * uniETHPrice
  */
-async function useTvlUsd() {
+async function useTvlUsd(totalSupply) {
   const priceKey = `ethereum:${UNIETH_CONTRACT_ADDRESS}`;
   const uniETHPrice = (await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)).data.coins[priceKey]?.price;
-
-  // CurrentReserve / ExchangeRatio * uniETHPrice
-  const data = await useE2LSServerLatestQuarterly();
-  const exchangeRatios = data?.data.data ?? [];
-  const lastItem = exchangeRatios.at(-1);
-  const currentReserve = ethers.utils.parseUnits(lastItem.currentReserve, 'wei');
-  const exchangeRatio = ethers.utils.parseUnits(lastItem.exchangeRatio, 'wei');
-  const tvlUsd = currentReserve.mul(ethers.utils.parseEther(String(uniETHPrice))).div(exchangeRatio);
-  return tvlUsd;
+  return totalSupply.mul(ethers.utils.parseEther(String(uniETHPrice)));
 }
 async function useE2LSServerLatestQuarterly() {
   const url = 'https://app.bedrock.technology/unieth/api/v1/e2ls/latest/quarterly';
   return axios.get(url);
 }
-async function useE2LSServerLatestQuarterlyDailyEarnExchangeRatios() {
-  const data = await useE2LSServerLatestQuarterly();
-  const exchangeRatios = data?.data.data ?? [];
+async function useE2LSServerLatestQuarterlyDailyEarnExchangeRatios(exchangeRatios) {
   const result = [];
   for (let i = 0; i <= exchangeRatios.length - 1; i++) {
     const prevItem = exchangeRatios[i - 1];
@@ -49,18 +39,15 @@ async function useE2LSServerLatestQuarterlyDailyEarnExchangeRatios() {
   }
   return result;
 }
-/**
- * @param {number} limit 
- */
-async function useE2LSServerDailyEarnExchangeRatios(limit) {
-  const exchangeRatios = await useE2LSServerLatestQuarterlyDailyEarnExchangeRatios();
-  const lastItem = exchangeRatios.at(-1);
+async function useE2LSServerDailyEarnExchangeRatios(exchangeRatios, limit) {
+  const dailyEarnExchangeRatios = await useE2LSServerLatestQuarterlyDailyEarnExchangeRatios(exchangeRatios);
+  const lastItem = dailyEarnExchangeRatios.at(-1);
   if (lastItem) {
     const firstCreatedAt = subDays(
       startOfDay(parseISO(lastItem.createdAt)),
       limit
     );
-    return exchangeRatios.filter(val =>
+    return dailyEarnExchangeRatios.filter(val =>
       isBefore(firstCreatedAt, startOfDay(parseISO(val.createdAt)))
     );
   }
@@ -88,19 +75,20 @@ function useE2LSServerReturn(
     .mul(ethers.constants.WeiPerEther)
     .div(initialExchangeRatio);
 }
-
-async function useE2LSServerAPY(
+/**
+ * 年化收益率
+ * @param {number} limit 时间周期（天）
+ */
+async function useE2LSServerAPY(exchangeRatios,
   limit
 ) {
-  const exchangeRatios = await useE2LSServerDailyEarnExchangeRatios(limit);
-  const returnAsBigNumber = useE2LSServerReturn(exchangeRatios);
-
-  if (exchangeRatios.length <= 2) {
+  const limitExchangeRatios = await useE2LSServerDailyEarnExchangeRatios(exchangeRatios, limit);
+  const returnAsBigNumber = useE2LSServerReturn(limitExchangeRatios);
+  if (limitExchangeRatios.length <= 2) {
     return ethers.constants.Zero;
   }
-  // const pDays = exchangeRatios.length - 1;
-  const firstItem = exchangeRatios.at(0);
-  const lastItem = exchangeRatios.at(-1);
+  const firstItem = limitExchangeRatios.at(0);
+  const lastItem = limitExchangeRatios.at(-1);
   const pDays = differenceInDays(
     startOfDay(parseISO(lastItem.createdAt)),
     startOfDay(parseISO(firstItem.createdAt))
@@ -116,8 +104,14 @@ async function useE2LSServerAPY(
 }
 
 const getApy = async () => {
-  const apyAsBigNumber30 = await useE2LSServerAPY(30);
-  const tvlUsd = await useTvlUsd();
+  const data = await useE2LSServerLatestQuarterly();
+  const exchangeRatios = data?.data.data ?? [];
+  const lastItem = exchangeRatios.at(-1);
+  const currentReserve = ethers.utils.parseUnits(lastItem.currentReserve, 'wei');
+  const exchangeRatio = ethers.utils.parseUnits(lastItem.exchangeRatio, 'wei');
+  const totalSupply = currentReserve.div(exchangeRatio);
+  const tvlUsd = await useTvlUsd(totalSupply);
+  const apyAsBigNumber30 = await useE2LSServerAPY(exchangeRatios, 30);
   return [
     {
       pool: UNIETH_CONTRACT_ADDRESS,
