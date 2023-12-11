@@ -86,7 +86,7 @@ const buildPool = (entry, chainString) => {
   const newPool = {
     pool: entry.id,
     chain: utils.formatChain(chainString),
-    project: 'dfx-finance',
+    project: 'dfx-v2',
     symbol,
     tvlUsd: entry.totalValueLockedUSD,
     rewardTokens: entry.rewardsTokens,
