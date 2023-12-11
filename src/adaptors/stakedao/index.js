@@ -1,7 +1,7 @@
 const utils = require('../utils');
 
-const LOCKERS_ENDPOINT = 'https://lockers.stakedao.org/api/lockers/cache';
-const STRATEGIES_ENDPOINT = 'https://lockers.stakedao.org/api/strategies/cache';
+const LOCKERS_ENDPOINT = 'https://classic.stakedao.org/api/lockers/cache';
+const STRATEGIES_ENDPOINT = 'https://classic.stakedao.org/api/strategies/cache';
 const SDT_ADDRESS = '0x73968b9a57c6e53d41345fd57a6e6ae27d6cdb2f';
 
 const symbolMapping = {
@@ -30,7 +30,7 @@ const poolsFunction = async () => {
     utils.getData(`${STRATEGIES_ENDPOINT}/curve`),
     utils.getData(`${STRATEGIES_ENDPOINT}/balancer`),
     utils.getData(`${STRATEGIES_ENDPOINT}/fraxv2`),
-    utils.getData(`${LOCKERS_ENDPOINT}`)
+    utils.getData(`${LOCKERS_ENDPOINT}`),
   ]);
   const angleStrategies = resp[0];
   const curveStrategies = resp[1];
@@ -74,7 +74,11 @@ const poolsFunction = async () => {
       apyReward = apyAngle + apySDT;
     } else {
       // calcul for lockers APR
-      if (strat?.aprBreakdown[2]?.isBribe || strat.key === 'apw' || strat.key === 'bpt') {
+      if (
+        strat?.aprBreakdown[2]?.isBribe ||
+        strat.key === 'apw' ||
+        strat.key === 'bpt'
+      ) {
         apyReward =
           strat?.aprBreakdown?.reduce((acc, t) => {
             if (t.token.address === SDT_ADDRESS) {
@@ -112,34 +116,36 @@ const poolsFunction = async () => {
     symbol = Object.keys(symbolMapping).includes(symbol)
       ? symbolMapping[symbol]
       : symbol.includes('san')
-        ? symbol.replace('san', '').split('-')[0]
-        : symbol.replace('FRAXBP', '-crvFRAX');
-
+      ? symbol.replace('san', '').split('-')[0]
+      : symbol.replace('FRAXBP', '-crvFRAX');
 
     let underlyingTokens = [];
     if (strat?.underlyingTokens?.length > 0) {
-      underlyingTokens =
-        strat?.underlyingTokens?.map((t) =>
-          t?.symbol === 'ETH'
-            ? '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
-            : t?.address
-        );
+      underlyingTokens = strat?.underlyingTokens?.map((t) =>
+        t?.symbol === 'ETH'
+          ? '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+          : t?.address
+      );
     } else if (strat?.underlyingToken?.address) {
       underlyingTokens = [strat?.underlyingToken?.address];
     } else {
       underlyingTokens = [];
     }
     if (underlyingTokens.length === 0 || strat.key === 'bal') {
-
       underlyingTokens = [strat?.tokenReceipt?.address];
     }
-    const sdTknTknPool = ['factory-v2-109', 'factory-v2-101', 'factory-v2-239', 'b_80ldo_20weth_sdbal']
+    const sdTknTknPool = [
+      'factory-v2-109',
+      'factory-v2-101',
+      'factory-v2-239',
+      'b_80ldo_20weth_sdbal',
+    ];
     if (sdTknTknPool.includes(strat?.key) && symbol.includes('-')) {
-      symbol = symbol.replaceAll('-', '')
+      symbol = symbol.replaceAll('-', '');
     }
     return acc.concat([
       {
-        pool: "sd-" + strat.key,
+        pool: 'sd-' + strat.key,
         chain: utils.formatChain('ethereum'),
         project: 'stakedao',
         symbol: utils.formatSymbol(symbol),
@@ -153,7 +159,7 @@ const poolsFunction = async () => {
     ]);
   }, []);
 
-  return strats;
+  return strats.filter((i) => utils.keepFinite(i));
 };
 
 module.exports = {

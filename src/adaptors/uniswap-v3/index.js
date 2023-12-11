@@ -111,6 +111,7 @@ const topLvl = async (
       abi: 'erc20:balanceOf',
       calls: balanceCalls,
       chain: chainString,
+      permitFailure: true,
     });
 
     dataNow = dataNow.map((p) => {
