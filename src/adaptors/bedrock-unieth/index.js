@@ -119,7 +119,7 @@ const getApy = async () => {
       project: 'bedrock-unieth',
       symbol: 'uniETH',
       tvlUsd: Number(ethers.utils.formatEther(tvlUsd)),
-      apyBase: Number(ethers.utils.formatEther(apyAsBigNumber30)),
+      apyBase: 100 * Number(ethers.utils.formatEther(apyAsBigNumber30)),
       underlyingTokens: [weth],
     }
   ];
