@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk4');
 
 const abiFactory = require('./abiFactory.json');
 const abiControllers = require('./abiControllers.json');
+const abiPolicies = require('./abiPolicies.json');
 
 const factory = '0xC9332fdCB1C491Dcc683bAe86Fe3cb70360738BC';
 const crvUsd = '0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E';
@@ -41,6 +42,24 @@ const apy = async () => {
         target: i,
       })),
       abi: abiControllers.find((m) => m.name === 'collateral_token'),
+    })
+  ).output.map((o) => o.output);
+
+  const monetaryPolicies = (
+    await sdk.api.abi.multiCall({
+      calls: controllers.map((i) => ({
+        target: i,
+      })),
+      abi: abiControllers.find((m) => m.name === 'monetary_policy'),
+    })
+  ).output.map((o) => o.output);
+
+  const rates = (
+    await sdk.api.abi.multiCall({
+      calls: monetaryPolicies.map((i) => ({
+        target: i,
+      })),
+      abi: abiPolicies.find((m) => m.name === 'rate'),
     })
   ).output.map((o) => o.output);
 
@@ -90,6 +109,10 @@ const apy = async () => {
     const tvlUsd = totalSupplyUsd;
     const debtCeilingUsd = debtCeiling[i] / 1e18;
 
+    // https://docs.curve.fi/crvUSD/monetarypolicy/#interest-rates
+    const apyBaseBorrow =
+      ((1 + rates[i] / 1e18) ** (365 * 24 * 60 * 60) - 1) * 100;
+
     return {
       pool: amms[i],
       symbol,
@@ -100,7 +123,7 @@ const apy = async () => {
       totalBorrowUsd,
       debtCeilingUsd,
       apyBase: 0,
-      apyBaseBorrow: 0,
+      apyBaseBorrow,
       underlyingTokens: [collateralTokens[i]],
       mintedCoin: 'crvusd',
     };
