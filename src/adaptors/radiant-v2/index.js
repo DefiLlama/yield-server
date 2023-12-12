@@ -141,7 +141,6 @@ const getApy = async () => {
           chain,
         })
       ).output.map((o) => o.output);
-      // console.log('chain:', chain, 'rewardsPerSecond', rewardsPerSecond, 'totalAllocPoint', totalAllocPoint);
 
       // Reference price of RDNT on Arbitrum since its where it is the most liquid.
       const pricesArray = reservesList.map((t) => `${chain}:${t}`).concat(`arbitrum:${RDNT}`);
@@ -156,8 +155,6 @@ const getApy = async () => {
         365 *
         prices[`arbitrum:${RDNT}`]?.price;
       
-      // console.log('rewardPerYear', rewardPerYear);
-
       return reservesList.map((t, i) => {
         const config = reserveConfigurationData[i];
         if (!config.isActive) return null;
@@ -166,26 +163,22 @@ const getApy = async () => {
 
         const tvlUsd = (liquidity[i] / 10 ** decimals[i]) * price;
         const totalBorrowUsd = (totalBorrow[i] / 10 ** decimals[i]) * price;
-        // TODO
-        // const eligibleTotalBorrowUsd = 
+        const eligibleBorrowUsd = (poolInfoDebt[i].totalSupply / 10 ** decimals[i]) * price;
         const totalSupplyUsd = tvlUsd + totalBorrowUsd;
-        // TODO
-        // const eligibleSupplyUsd = 
+        const eligibleSupplyUsd = (poolInfoInterest[i].totalSupply / 10 ** decimals[i]) * price;
 
         const apyBase = reserveData[i].currentLiquidityRate / 1e25;
         const apyBaseBorrow = reserveData[i].currentVariableBorrowRate / 1e25;
 
-        // TODO replace with `eligibleSupplyUsd`
         const apyReward =
           (((poolInfoInterest[i].allocPoint / totalAllocPoint) *
             rewardPerYear) /
-            totalSupplyUsd) *
+            eligibleSupplyUsd) *
           100;
 
-        // TODO replace with `eligibleBorrowUsd`
         const apyRewardBorrow =
           (((poolInfoDebt[i].allocPoint / totalAllocPoint) * rewardPerYear) /
-            totalBorrowUsd) *
+          eligibleBorrowUsd) *
           100;
 
         const ltv = config.ltv / 1e4;
