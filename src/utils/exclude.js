@@ -42,6 +42,7 @@ const excludeAdaptors = [
   'bank-of-chain',
   'zunami-protocol', // hacked
   'myso-v1',
+  'midas-capital',
 ];
 
 const excludePools = [
