@@ -1,0 +1,159 @@
+[
+  {
+    "name": "SetAdmin",
+    "inputs": [{ "name": "admin", "type": "address", "indexed": false }],
+    "anonymous": false,
+    "type": "event"
+  },
+  {
+    "name": "AddPegKeeper",
+    "inputs": [{ "name": "peg_keeper", "type": "address", "indexed": true }],
+    "anonymous": false,
+    "type": "event"
+  },
+  {
+    "name": "RemovePegKeeper",
+    "inputs": [{ "name": "peg_keeper", "type": "address", "indexed": true }],
+    "anonymous": false,
+    "type": "event"
+  },
+  {
+    "name": "SetRate",
+    "inputs": [{ "name": "rate", "type": "uint256", "indexed": false }],
+    "anonymous": false,
+    "type": "event"
+  },
+  {
+    "name": "SetSigma",
+    "inputs": [{ "name": "sigma", "type": "uint256", "indexed": false }],
+    "anonymous": false,
+    "type": "event"
+  },
+  {
+    "name": "SetTargetDebtFraction",
+    "inputs": [
+      { "name": "target_debt_fraction", "type": "uint256", "indexed": false }
+    ],
+    "anonymous": false,
+    "type": "event"
+  },
+  {
+    "stateMutability": "nonpayable",
+    "type": "constructor",
+    "inputs": [
+      { "name": "admin", "type": "address" },
+      { "name": "price_oracle", "type": "address" },
+      { "name": "controller_factory", "type": "address" },
+      { "name": "peg_keepers", "type": "address[5]" },
+      { "name": "rate", "type": "uint256" },
+      { "name": "sigma", "type": "uint256" },
+      { "name": "target_debt_fraction", "type": "uint256" }
+    ],
+    "outputs": []
+  },
+  {
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "name": "set_admin",
+    "inputs": [{ "name": "admin", "type": "address" }],
+    "outputs": []
+  },
+  {
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "name": "add_peg_keeper",
+    "inputs": [{ "name": "pk", "type": "address" }],
+    "outputs": []
+  },
+  {
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "name": "remove_peg_keeper",
+    "inputs": [{ "name": "pk", "type": "address" }],
+    "outputs": []
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "rate",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "name": "rate_write",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "name": "set_rate",
+    "inputs": [{ "name": "rate", "type": "uint256" }],
+    "outputs": []
+  },
+  {
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "name": "set_sigma",
+    "inputs": [{ "name": "sigma", "type": "uint256" }],
+    "outputs": []
+  },
+  {
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "name": "set_target_debt_fraction",
+    "inputs": [{ "name": "target_debt_fraction", "type": "uint256" }],
+    "outputs": []
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "admin",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "rate0",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "sigma",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "int256" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "target_debt_fraction",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "peg_keepers",
+    "inputs": [{ "name": "arg0", "type": "uint256" }],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "PRICE_ORACLE",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "CONTROLLER_FACTORY",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }]
+  }
+]
