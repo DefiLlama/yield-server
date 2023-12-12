@@ -354,7 +354,7 @@ const getApy = async () => {
     ...i,
     apyReward: x.includes(i.pool) ? null : i.apyReward,
     rewardTokens: x.includes(i.pool) ? null : i.rewardTokens,
-  }));
+  })).filter(p => p.chain != 'Binance');
 };
 
 module.exports = {
