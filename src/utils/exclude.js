@@ -43,6 +43,7 @@ const excludeAdaptors = [
   'zunami-protocol', // hacked
   'myso-v1',
   'civfund',
+  'midas-capital',
 ];
 
 const excludePools = [
