@@ -63,6 +63,22 @@ const apy = async () => {
     })
   ).output.map((o) => o.output);
 
+  const maxBorrowable = (
+    await sdk.api.abi.multiCall({
+      calls: controllers.map((i) => ({
+        target: i,
+        params: [
+          // wbtc
+          i === '0x4e59541306910aD6dC1daC0AC9dFB29bD9F15c67'
+            ? 100000000n
+            : 1000000000000000000n,
+          4,
+        ],
+      })),
+      abi: abiControllers.find((m) => m.name === 'max_borrowable'),
+    })
+  ).output.map((o) => o.output);
+
   const collateralBalance = (
     await sdk.api.abi.multiCall({
       calls: collateralTokens.map((t, i) => ({
@@ -92,10 +108,12 @@ const apy = async () => {
     })
   ).output.map((o) => o.output);
 
-  const coins = collateralTokens.map((t) => `ethereum:${t}`);
+  const coins = [...collateralTokens, crvUsd].map((t) => `ethereum:${t}`);
   const prices = (
     await axios.get(`https://coins.llama.fi/prices/current/${coins}`)
   ).data.coins;
+
+  const crvUsdPrice = prices[`ethereum:${crvUsd}`].price;
 
   const pools = collateralTokens.map((t, i) => {
     const token = prices[`ethereum:${t}`];
@@ -113,6 +131,8 @@ const apy = async () => {
     const apyBaseBorrow =
       ((1 + rates[i] / 1e18) ** (365 * 24 * 60 * 60) - 1) * 100;
 
+    const ltv = ((maxBorrowable[i] / 1e18) * crvUsdPrice) / price;
+
     return {
       pool: amms[i],
       symbol,
@@ -126,6 +146,7 @@ const apy = async () => {
       apyBaseBorrow,
       underlyingTokens: [collateralTokens[i]],
       mintedCoin: 'crvusd',
+      ltv,
     };
   });
 
