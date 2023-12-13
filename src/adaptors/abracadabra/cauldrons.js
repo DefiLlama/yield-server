@@ -49,6 +49,12 @@ const POOLS = {
         collateralPoolId: 'f3fa942f-1867-4028-95ff-4eb76816cd07',
         symbol: "ARB-USDC",
       }, // gmARB
+      {
+        version: 4,
+        address: '0x66805F6e719d7e67D46e8b2501C1237980996C6a',
+        collateralPoolId: 'dffb3514-d667-4f2f-8df3-f716ebe09c93',
+        symbol: "LINK-USDC",
+      }, // gmLINK
     ],
   },
   avax: {
