@@ -44,6 +44,7 @@ const excludeAdaptors = [
   'myso-v1',
   'civfund',
   'midas-capital',
+  'pearlfi', // tmp
 ];
 
 const excludePools = [
