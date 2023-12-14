@@ -42,6 +42,9 @@ const excludeAdaptors = [
   'bank-of-chain',
   'zunami-protocol', // hacked
   'myso-v1',
+  'civfund',
+  'midas-capital',
+  'pearlfi', // tmp
 ];
 
 const excludePools = [
@@ -400,6 +403,7 @@ const excludePools = [
   '0xc963ef7d977ECb0Ab71d835C4cb1Bf737f28d010', // rdnt-weth sushi pool in radiant v1 adapter, redundant
   '0x7007535de9f864f0c15fe6fa288ce3feb842f72c',
   '0xbefaba1c380d8b0a53bc604d8b809684775e74f8',
+  '0x4b4b425586fa9b5cf0d06baf5ba9eb9e9b936e66-avalanche',
 ];
 
 const boundaries = {
