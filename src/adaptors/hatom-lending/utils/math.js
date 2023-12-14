@@ -1,18 +1,6 @@
 const BigNumber = require('bignumber.js');
 
-const calcRewardTokenAPY = (
-   distributedDollarAmountPerDay,
-   totalInUSD
-) => {
-   if (totalInUSD === '0') {
-      return '0';
-   }
-   return new BigNumber(distributedDollarAmountPerDay)
-      .dividedBy(totalInUSD)
-      .multipliedBy(36500)
-};
-
-const calcTotalBoosterAPY = ({
+const calcRewardsAPY = ({
    speed,
    hTokenExchangeRate,
    totalCollateral,
@@ -97,27 +85,8 @@ const calcLiquidStakingExchangeRate = (cashReserve, totalShares) => {
       .toFixed(0, BigNumber.ROUND_DOWN);
 };
 
-const calcDistributedRewardsPerDayInUsd = (supplySpeed, borrowSpeed, priceInUsd, rewardsDecimal) => {
-   const speed = BigNumber.max(supplySpeed, borrowSpeed).toString();
-
-   const speedPerDay = new BigNumber(speed)
-      .multipliedBy(3600 * 24)
-      .toString()
-
-   const distributedDollarAmountPerDay = new BigNumber(1)
-      .multipliedBy(speedPerDay)
-      .dividedBy(`1e18`)
-      .dividedBy(`1e${rewardsDecimal}`)
-      .multipliedBy(priceInUsd)
-      .toString();
-
-   return distributedDollarAmountPerDay;
-}
-
 module.exports = {
-   calcRewardTokenAPY,
-   calcTotalBoosterAPY,
+   calcRewardsAPY,
    calcLiquidStakingExchangeRate,
    calcSimulateExchangeRate,
-   calcDistributedRewardsPerDayInUsd
 };

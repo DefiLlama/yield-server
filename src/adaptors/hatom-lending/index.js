@@ -1,7 +1,7 @@
 const BigNumber = require('bignumber.js');
 const utils = require('../utils');
-const { calcRewardTokenAPY, calcTotalBoosterAPY, calcDistributedRewardsPerDayInUsd } = require('./utils/math.js');
-const { getMoneyMarkets, getTokenPrices, getExchangeRates, getRewardsBatches, getBoostedRewards } = require('./utils/data.js');
+const { calcRewardsAPY } = require('./utils/math.js');
+const { getMoneyMarkets, getTokenPrices, getExchangeRates, getRewardsBatches, getBoostedRewards, getBoostedColateralMap } = require('./utils/data.js');
 
 const MARKETS = [
    { symbol: "USDC", address: "erd1qqqqqqqqqqqqqpgqkrgsvct7hfx7ru30mfzk3uy6pxzxn6jj78ss84aldu" },
@@ -18,7 +18,7 @@ const apy = async () => {
       getBoostedRewards()
    ]);
    const exchangeRates = getExchangeRates(mm)
-
+   const totalBoostedCollateral = await getBoostedColateralMap(mm)
 
    return MARKETS.map(({ symbol }) => {
       const currentMM = mm[symbol]
@@ -27,17 +27,7 @@ const apy = async () => {
       const currentRewards = rewards[symbol]
       const currentBoostedRewards = boostedRewards[symbol]
 
-      const totalColateralUSD = new BigNumber(currentMM.totalColateral).multipliedBy(currentPrice).dividedBy(`1e${currentMM.decimals}`)
-      const totalSupplyUSD = new BigNumber(currentMM.cash).multipliedBy(currentPrice).dividedBy(`1e${currentMM.decimals}`)
-      const totalBorrowUSD = new BigNumber(currentMM.borrows).multipliedBy(currentPrice).dividedBy(`1e${currentMM.decimals}`)
-
-      //El speed aca no deberia ser el speed del reward batch? 
-      const distributedRewardsPerDay = calcDistributedRewardsPerDayInUsd(currentMM.supplyRatePerSecond, currentMM.borrowRatePerSecond, currentPrice, currentRewards.rewardsToken.decimals)
-
-      //Estos valores estan mal
-      // const rewardsAPY = calcRewardTokenAPY(distributedRewardsPerDay, totalColateralUSD.toString())
-
-      const rewardsAPY = calcTotalBoosterAPY({
+      const rewardsAPY = calcRewardsAPY({
          speed: currentRewards.speed,
          hTokenExchangeRate: currentExchangeRate,
          totalCollateral: currentMM.totalColateral.toString(),
@@ -47,20 +37,17 @@ const apy = async () => {
          marketDecimals: currentMM.decimals
       })
 
-      const boosterAPY = calcTotalBoosterAPY({
+      const boosterAPY = calcRewardsAPY({
          speed: currentBoostedRewards.speed,
          hTokenExchangeRate: currentExchangeRate,
-         totalCollateral: currentMM.totalColateral.toString(),
+         totalCollateral: totalBoostedCollateral[symbol],
          marketPrice: currentPrice,
          rewardsToken: currentBoostedRewards.rewardsToken,
          rewardsTokenPrice: prices[currentBoostedRewards.rewardsToken.symbol],
          marketDecimals: currentMM.decimals
       })
 
-      console.log('rewards apy', rewardsAPY.toString());
-      console.log('booster apy', boosterAPY.toString());
-
-      const tvlUsd = totalSupplyUSD.toNumber()
+      const tvlUsd = new BigNumber(currentMM.cash).multipliedBy(currentPrice).dividedBy(`1e${currentMM.decimals}`).toNumber()
       const apyBase = mm[symbol].supplyAPY
       const apyReward = new BigNumber(boosterAPY).plus(rewardsAPY).toNumber()
       return {
