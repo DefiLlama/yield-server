@@ -104,7 +104,7 @@ const apy = async (timestamp = null) => {
       return {
         pool: p.liquidityPool.id,
         chain: utils.formatChain('optimism'),
-        project: 'lyra',
+        project: 'lyra-v1',
         symbol: 'sUSD',
         poolMeta: `${p.name}-Vault`,
         apyBase: return30d * MONTHS_IN_YEAR * 100,
