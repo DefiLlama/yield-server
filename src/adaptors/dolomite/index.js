@@ -20,7 +20,9 @@ const REWARD_TOKENS_TO_AMOUNTS_PER_WEEK = {
   [WBTC_MARKET_ID]: 22_500,
   [ARB_MARKET_ID]: 6_300,
   [USDC_MARKET_ID]: 36_000,
-}
+};
+
+const rewardEndTimestamp = 1708041600; // Fri Feb 16 2024 00:00:00 GMT+0000
 
 async function apy() {
   return Object.keys(DOLOMITE_MARGIN_ADDRESS_MAP).reduce(async (memo, chain) => {
@@ -159,7 +161,7 @@ async function apy() {
 
     const rewardApys = range.map(i => {
       const rewardPerWeek = REWARD_TOKENS_TO_AMOUNTS_PER_WEEK[i];
-      if (!rewardPerWeek) {
+      if (!rewardPerWeek || Math.floor(Date.now() / 1000) > rewardEndTimestamp) {
         return 0;
       }
 
