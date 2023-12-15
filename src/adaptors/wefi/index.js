@@ -7,12 +7,14 @@ const { comptrollerAbi, ercDelegator } = require('./abi');
 const COMPTROLLER_ADDRESS = '0x1eDf64B621F17dc45c82a65E1312E8df988A94D3';
 const CHAIN = 'polygon';
 const GET_ALL_MARKETS = 'getAllMarkets';
+const REWARD_SPEED = 'compSupplySpeeds';
+const REWARD_SPEED_BORROW = 'compBorrowSpeeds';
 const SUPPLY_RATE = 'supplyRatePerBlock';
 const BORROW_RATE = 'borrowRatePerBlock';
 const TOTAL_BORROWS = 'totalBorrows';
 const GET_CASH = 'getCash';
 const UNDERLYING = 'underlying';
-const BLOCKS_PER_DAY = 7200;
+const BLOCKS_PER_DAY = 37565;
 const PROJECT_NAME = 'wefi';
 
 const NATIVE_TOKEN = {
@@ -21,11 +23,19 @@ const NATIVE_TOKEN = {
   address: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270'.toLowerCase(),
 };
 
+const PROTOCOL_TOKEN = {
+  decimals: 18,
+  symbol: 'WEFI',
+  address: '0xfFA188493C15DfAf2C206c97D8633377847b6a52'.toLowerCase(),
+};
+
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
@@ -92,6 +102,8 @@ const main = async () => {
     })
   ).output.map((o) => o.output);
 
+  // const rewardSpeed = await getRewards(allMarkets, REWARD_SPEED);
+  // const rewardSpeedBorrow = await getRewards(allMarkets, REWARD_SPEED_BORROW);
   const isPaused = await getRewards(allMarkets, 'mintGuardianPaused');
 
   const supplyRewards = await multiCallMarkets(
@@ -160,7 +172,20 @@ const main = async () => {
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
     const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
 
-    const apyReward = 0;
+    // const calcRewardApy = (rewards, denom) => {
+    //   if(denom === 0) return 0;
+    //   return (
+    //     (((rewards[i] / 10 ** PROTOCOL_TOKEN.decimals) *
+    //       BLOCKS_PER_DAY *
+    //       365 *
+    //       prices[PROTOCOL_TOKEN.address]) /
+    //       denom) *
+    //     100
+    //   );
+    // };
+
+    // const apyReward = calcRewardApy(rewardSpeed, totalSupplyUsd);
+    // const apyRewardBorrow = calcRewardApy(rewardSpeedBorrow, totalBorrowUsd);
 
     let poolReturned = {
       pool: market.toLowerCase(),
@@ -169,9 +194,9 @@ const main = async () => {
       symbol,
       tvlUsd,
       apyBase,
-      apyReward,
+      // apyReward,
       underlyingTokens: [token],
-      rewardTokens: [apyReward ? PROTOCOL_TOKEN.address : null].filter(Boolean),
+      // rewardTokens: [apyReward ? PROTOCOL_TOKEN.address : null].filter(Boolean),
     };
     if (isPaused[i] === false) {
       poolReturned = {
@@ -186,12 +211,14 @@ const main = async () => {
     return poolReturned;
   });
 
-  // supply yield only available for borrowMarket
-  return pools.filter((p) => p.totalBorrowUsd !== 0);
+  return pools.filter(
+    // (p) => p.totalBorrowUsd !== 0 || p.apyReward !== 0
+    (p) => p.totalBorrowUsd !== 0
+  );
 };
 
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://www.beta.vaults.wefi.xyz/',
+  url: 'https://www.beta.vaults.paxo.finance/',
 };

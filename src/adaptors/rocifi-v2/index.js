@@ -70,9 +70,12 @@ const getApy = async (pool) => {
 
 const getPricesByAddresses = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses.map((address) => `${chain}:${address}`),
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .map((address) => `${chain}:${address}`)
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   return Object.entries(prices).reduce(

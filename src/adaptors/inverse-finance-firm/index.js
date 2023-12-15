@@ -170,7 +170,7 @@ const main = async () => {
       poolMeta: 'Fixed Borrow Rate',
       url: 'https://inverse.finance/firm/' + symbol,
       apyBaseBorrow: currentFixedRate,
-      debtCeilingUsd,
+      debtCeilingUsd: debtCeilingUsd + totalBorrowUsd,
       totalSupplyUsd,
       totalBorrowUsd,
       borrowable: !allBorrowPaused[marketIndex].output,
@@ -178,7 +178,7 @@ const main = async () => {
     };
   });
 
-  return pools.filter((p) => utils.keepFinite(p));
+  return utils.removeDuplicates(pools.filter((p) => utils.keepFinite(p)));
 };
 
 module.exports = {

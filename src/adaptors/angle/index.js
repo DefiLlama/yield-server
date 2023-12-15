@@ -1,6 +1,4 @@
 const utils = require('../utils');
-const superagent = require('superagent');
-const { default: BigNumber } = require('bignumber.js');
 
 const networks = {
   1: 'Ethereum',
@@ -47,7 +45,7 @@ const getPoolsData = async () => {
       tvlUsd: apyData[staking]?.tvl || 0,
       apyBase:
         apyData[staking]['apr']?.value ||
-        apyData[staking]['apr']?.details['ANGLE - Tight range (+- 1%)'] ||
+        apyData[staking]['apr']?.details?.['ANGLE'] ||
         0,
     };
     result.push(pool);
@@ -118,5 +116,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.angle.money/#/earn',
+  url: 'https://app.angle.money/earn',
 };

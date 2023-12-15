@@ -11,8 +11,6 @@ const CONFLUX_BLOCK_TIME = 1;
 const BLOCKS_PER_YEAR = Math.floor((60 / CONFLUX_BLOCK_TIME) * 60 * 24 * 365);
 
 const getPairInfo = async (pair, tokenAddress) => {
-
-
   const tokenDecimals0 = await sdk.api.abi.call({
     abi: 'erc20:decimals',
     target: tokenAddress[0],
@@ -27,9 +25,7 @@ const getPairInfo = async (pair, tokenAddress) => {
     requery: true,
   });
 
-
-  const tokenDecimals = [tokenDecimals0.output, tokenDecimals1.output]
-
+  const tokenDecimals = [tokenDecimals0.output, tokenDecimals1.output];
 
   const tokenSymbol0 = await sdk.api.abi.call({
     abi: 'erc20:symbol',
@@ -45,9 +41,7 @@ const getPairInfo = async (pair, tokenAddress) => {
     requery: true,
   });
 
-
-  const tokenSymbol = [tokenSymbol0.output, tokenSymbol1.output]
-
+  const tokenSymbol = [tokenSymbol0.output, tokenSymbol1.output];
 
   return {
     lpToken: pair.toLowerCase(),
@@ -55,21 +49,23 @@ const getPairInfo = async (pair, tokenAddress) => {
     token0: {
       address: tokenAddress[0],
       symbol: tokenSymbol[0],
-      decimals: tokenDecimals[0]
+      decimals: tokenDecimals[0],
     },
     token1: {
       address: tokenAddress[1],
       symbol: tokenSymbol[1],
-      decimals: tokenDecimals[1]
-    }
+      decimals: tokenDecimals[1],
+    },
   };
-}
+};
 
 const getPrices = async (addresses) => {
+  const coins = addresses
+    .map((address) => `conflux:${address}`)
+    .join(',')
+    .toLowerCase();
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses.map((address) => `conflux:${address}`),
-    })
+    await superagent.get(`https://coins.llama.fi/prices/current/${coins}`)
   ).body.coins;
 
   const pricesObj = Object.entries(prices).reduce(
@@ -134,7 +130,8 @@ const getApy = async () => {
     chain: 'conflux',
     abi: masterChefABI.find((e) => e.name === 'rewardsPerSecond'),
   });
-  const normalizedNUTPerBlock = NUTPerSecond.output / 1e18 * CONFLUX_BLOCK_TIME;
+  const normalizedNUTPerBlock =
+    (NUTPerSecond.output / 1e18) * CONFLUX_BLOCK_TIME;
 
   const poolsRes0 = await sdk.api.abi.call({
     abi: masterChefABI.filter(({ name }) => name === 'poolInfo')[0],
@@ -160,13 +157,14 @@ const getApy = async () => {
     requery: true,
   });
 
+  const poolsRes = [poolsRes0.output, poolsRes1.output, poolsRes2.output];
 
-  const poolsRes = [poolsRes0.output, poolsRes1.output, poolsRes2.output]
-
-
-  const pools = poolsRes
-  const lpTokens = ['0xd9d5748cb36a81fe58f91844f4a0412502fd3105','0x949b78ef2c8d6979098e195b08f27ff99cb20448','0x2899e1bec55e7dda574e80e8ef55f17b79df2f1d']
-
+  const pools = poolsRes;
+  const lpTokens = [
+    '0xd9d5748cb36a81fe58f91844f4a0412502fd3105',
+    '0x949b78ef2c8d6979098e195b08f27ff99cb20448',
+    '0x2899e1bec55e7dda574e80e8ef55f17b79df2f1d',
+  ];
 
   const masterChefBalancesRes0 = await sdk.api.abi.call({
     abi: lpABI.filter(({ name }) => name === 'balanceOf')[0],
@@ -190,9 +188,11 @@ const getApy = async () => {
     requery: true,
   });
 
-  const masterChefBalancesRes = [masterChefBalancesRes0.output, masterChefBalancesRes1.output, masterChefBalancesRes2.output]
-
-
+  const masterChefBalancesRes = [
+    masterChefBalancesRes0.output,
+    masterChefBalancesRes1.output,
+    masterChefBalancesRes2.output,
+  ];
 
   const supplyRes0 = await sdk.api.abi.call({
     abi: lpABI.filter(({ name }) => name === 'totalSupply')[0],
@@ -213,9 +213,7 @@ const getApy = async () => {
     requery: true,
   });
 
-  const supplyRes = [supplyRes0.output, supplyRes1.output, supplyRes2.output]
-
-
+  const supplyRes = [supplyRes0.output, supplyRes1.output, supplyRes2.output];
 
   const reservesRes0 = await sdk.api.abi.call({
     abi: lpABI.filter(({ name }) => name === 'getReserves')[0],
@@ -236,9 +234,11 @@ const getApy = async () => {
     requery: true,
   });
 
-  const reservesRes = [reservesRes0.output, reservesRes1.output, reservesRes2.output]
-
-
+  const reservesRes = [
+    reservesRes0.output,
+    reservesRes1.output,
+    reservesRes2.output,
+  ];
 
   const underlyingToken00 = await sdk.api.abi.call({
     abi: lpABI.filter(({ name }) => name === 'token0')[0],
@@ -259,8 +259,11 @@ const getApy = async () => {
     requery: true,
   });
 
-  const underlyingToken0 = [underlyingToken00.output, underlyingToken01.output, underlyingToken02.output]
-
+  const underlyingToken0 = [
+    underlyingToken00.output,
+    underlyingToken01.output,
+    underlyingToken02.output,
+  ];
 
   const underlyingToken10 = await sdk.api.abi.call({
     abi: lpABI.filter(({ name }) => name === 'token1')[0],
@@ -281,8 +284,11 @@ const getApy = async () => {
     requery: true,
   });
 
-  const underlyingToken1 = [underlyingToken10.output, underlyingToken11.output, underlyingToken12.output]
-
+  const underlyingToken1 = [
+    underlyingToken10.output,
+    underlyingToken11.output,
+    underlyingToken12.output,
+  ];
 
   const reservesData = reservesRes;
   const supplyData = supplyRes;
@@ -290,9 +296,13 @@ const getApy = async () => {
   const tokens0 = underlyingToken0;
   const tokens1 = underlyingToken1;
   const tokensPrices = await getPrices([...tokens0, ...tokens1]);
-  const pairInfos = await Promise.all(pools.map((_, index) => getPairInfo(lpTokens[index], [tokens0[index], tokens1[index]])));
+  const pairInfos = await Promise.all(
+    pools.map((_, index) =>
+      getPairInfo(lpTokens[index], [tokens0[index], tokens1[index]])
+    )
+  );
   const poolsApy = [];
-  for(const [i, pool] of pools.entries()) {
+  for (const [i, pool] of pools.entries()) {
     const pairInfo = pairInfos[i];
     const poolInfo = pool;
     const reserves = reservesData[i];
@@ -329,7 +339,6 @@ const getApy = async () => {
       rewardTokens: [NUT_TOKEN],
     });
   }
-
 
   return poolsApy;
 };

@@ -1,4 +1,4 @@
-const { getFarms } = require('../quipuswap/helpers');
+const { getFarms } = require('../quipuswap-stableswap/helpers');
 
 const projectName = 'kolibri';
 

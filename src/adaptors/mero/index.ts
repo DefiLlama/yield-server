@@ -56,11 +56,8 @@ const getMeroApys = async (): Promise<Apy[]> => {
 
 const getEthPriceUsd = async (): Promise<number> => {
   const key = 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
-  return (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: [key],
-    })
-  ).body.coins[key].price;
+  return (await superagent.get(`https://coins.llama.fi/prices/current/${key}`))
+    .body.coins[key].price;
 };
 
 const getPools = async (): Promise<MeroPool[]> => {

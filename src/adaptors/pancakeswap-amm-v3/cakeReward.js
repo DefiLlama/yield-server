@@ -1,40 +1,66 @@
 const abiMcV3 = require('./masterchefv3.json');
-const utils = require('../utils');
-const sdk = require('@defillama/sdk');
-const bn = require('bignumber.js');
+const abiMcV3Arbitrum = require('./masterchefv3Arbitrum.json');
+const abiMcV3PolygonZkevm = require('./masterchefv3PolygonZkevm.json');
 
-const MASTERCHEF_ADDRESS = '0x556B9306565093C855AEA9AE92A594704c2Cd59e';
+const utils = require('../utils');
+const sdk = require('@defillama/sdk4');
+const bn = require('bignumber.js');
+const fetch = require('node-fetch');
 
 const baseUrl = 'https://api.thegraph.com/subgraphs/name';
-const chains = {
-  ethereum: `${baseUrl}/pancakeswap/exchange-v3-eth`,
-  bsc: `${baseUrl}/pancakeswap/exchange-v3-bsc`,
-};
 
 const chainIds = {
-  ethereum: 1,
-  bsc: 56,
+  ethereum: {
+    id: 1,
+    mchef: '0x556B9306565093C855AEA9AE92A594704c2Cd59e',
+    abi: abiMcV3,
+  },
+  bsc: {
+    id: 56,
+    mchef: '0x556B9306565093C855AEA9AE92A594704c2Cd59e',
+    abi: abiMcV3,
+  },
+  polygon_zkevm: {
+    id: 1101,
+    mchef: '0xe9c7f3196ab8c09f6616365e8873daeb207c0391',
+    abi: abiMcV3PolygonZkevm,
+  },
+  arbitrum: {
+    id: 42161,
+    mchef: '0x5e09ACf80C0296740eC5d6F643005a4ef8DaA694',
+    abi: abiMcV3Arbitrum,
+  },
+  era: {
+    id: 324,
+    mchef: '0x4c615E78c5fCA1Ad31e4d66eb0D8688d84307463',
+    abi: abiMcV3Arbitrum,
+  },
 };
 
 const getCakeAprs = async (chain) => {
+  if (chainIds[chain] === undefined) return [];
+
+  const masterChef = chainIds[chain].mchef;
+  const abi = chainIds[chain].abi;
+
   const poolLength = await sdk.api.abi
     .call({
-      abi: abiMcV3.find((m) => m.name === 'poolLength'),
-      target: MASTERCHEF_ADDRESS,
+      abi: abi.find((m) => m.name === 'poolLength'),
+      target: masterChef,
       chain,
     })
     .then((o) => o.output);
   const totalAllocPoint = await sdk.api.abi
     .call({
-      abi: abiMcV3.find((m) => m.name === 'totalAllocPoint'),
-      target: MASTERCHEF_ADDRESS,
+      abi: abi.find((m) => m.name === 'totalAllocPoint'),
+      target: masterChef,
       chain,
     })
     .then((o) => o.output);
   const latestPeriodCakePerSecond = await sdk.api.abi
     .call({
-      abi: abiMcV3.find((m) => m.name === 'latestPeriodCakePerSecond'),
-      target: MASTERCHEF_ADDRESS,
+      abi: abi.find((m) => m.name === 'latestPeriodCakePerSecond'),
+      target: masterChef,
       chain,
     })
     .then((o) => o.output);
@@ -49,14 +75,14 @@ const getCakeAprs = async (chain) => {
     .filter((i) => i !== 0)
     .map((i) => {
       return {
-        target: MASTERCHEF_ADDRESS,
+        target: masterChef,
         params: i,
       };
     });
 
   const poolInfos = await sdk.api.abi
     .multiCall({
-      abi: abiMcV3.find((m) => m.name === 'poolInfo'),
+      abi: abi.find((m) => m.name === 'poolInfo'),
       calls: poolInfoCalls,
       chain,
     })
@@ -71,7 +97,7 @@ const getCakeAprs = async (chain) => {
   const allStakedTVL = await Promise.allSettled(
     poolInfos.map((p) => {
       return fetch(
-        `https://farms-api.pancakeswap.com/v3/${chainIds[chain]}/liquidity/${p.v3Pool}`
+        `https://farms-api.pancakeswap.com/v3/${chainIds[chain].id}/liquidity/${p.v3Pool}`
       )
         .then((r) => r.json())
         .catch((err) => {
