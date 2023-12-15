@@ -31,32 +31,42 @@ async function apy() {
       const chain = CONSTANT[p.chainId].name;
       const chainString = utils.formatChain(chain);
 
-      const readerAddress = (
-        await sdk.api.abi.call({
-          target: p.address,
-          abi: abi.VAULT.find(({ name }) => name === 'reader'),
-          chain,
-        })
-      ).output;
+      let equityValue;
+      try {
+        const readerAddress = (
+          await sdk.api.abi.call({
+            target: p.address,
+            abi: abi.VAULT.find(({ name }) => name === 'reader'),
+            chain,
+          })
+        ).output;
 
-      const equityValue = (
-        await sdk.api.abi.call({
-          target: readerAddress,
-          abi: abi.VAULT_READER.find(({ name }) => name === 'equityValue'),
-          chain,
-        })
-      ).output;
+        equityValue = (
+          await sdk.api.abi.call({
+            target: readerAddress,
+            abi: abi.VAULT_READER.find(({ name }) => name === 'equityValue'),
+            chain,
+          })
+        ).output;
+      } catch (err) {
+        console.log(p.address, chain);
+        return {};
+      }
+
+      const lp = `${p.tokens.map((t) => t.symbol).join('')}`;
+      const strategy = `${p.strategy[0]}`;
+      const symbol = `${p.leverage}${strategy}-${lp}`;
 
       return {
         pool: `${p.address}-${chainString}`.toLowerCase(),
         chain: chainString,
         project,
-        symbol: utils.formatSymbol(p.symbol),
+        symbol,
         poolMeta: p.protocol,
         tvlUsd: Number(ethers.utils.formatUnits(equityValue)),
         apy: utils.aprToApy(Number(p.data.apr.totalApr * 100)),
       };
-    }),
+    })
   );
 
   const lendingPools = await Promise.all(
@@ -64,55 +74,71 @@ async function apy() {
       const chain = CONSTANT[p.chainId].name;
       const chainString = utils.formatChain(chain);
 
-      const lendingAPR = (
-        await sdk.api.abi.call({
-          target: p.address,
-          abi: abi.LENDING_POOL.find(({ name }) => name === 'lendingAPR'),
-          chain,
-        })
-      ).output;
+      let lendingAPR, totalValue, assetDecimals, assetPrice;
+      try {
+        lendingAPR = (
+          await sdk.api.abi.call({
+            target: p.address,
+            abi: abi.LENDING_POOL.find(({ name }) => name === 'lendingAPR'),
+            chain,
+          })
+        ).output;
 
-      const totalValue = (
-        await sdk.api.abi.call({
-          target: p.address,
-          abi: abi.LENDING_POOL.find(({ name }) => name === 'totalValue'),
-          chain,
-        })
-      ).output;
+        totalValue = (
+          await sdk.api.abi.call({
+            target: p.address,
+            abi: abi.LENDING_POOL.find(({ name }) => name === 'totalValue'),
+            chain,
+          })
+        ).output;
 
-      const assetDecimals = (
-        await sdk.api.abi.call({
-          target: p.address,
-          abi: abi.LENDING_POOL.find(({ name }) => name === 'assetDecimals'),
-          chain,
-        })
-      ).output;
+        assetDecimals = (
+          await sdk.api.abi.call({
+            target: p.address,
+            abi: abi.LENDING_POOL.find(({ name }) => name === 'assetDecimals'),
+            chain,
+          })
+        ).output;
 
-      const assetPrice = (
-        await sdk.api.abi.call({
-          target: CONSTANT[p.chainId].chainLinkOracle,
-          abi: abi.CHAINLINK_ORACLE.find(
-            ({ name }) => name === 'consultIn18Decimals',
-          ),
-          params: p.baseToken.address,
-          chain,
-        })
-      ).output;
+        assetPrice = (
+          await sdk.api.abi.call({
+            target: CONSTANT[p.chainId].chainLinkOracle,
+            abi: abi.CHAINLINK_ORACLE.find(
+              ({ name }) => name === 'consultIn18Decimals'
+            ),
+            params: p.baseToken.address,
+            chain,
+          })
+        ).output;
+      } catch (err) {
+        console.log(p.address, chain);
+        return {};
+      }
+
+      const lendingTo = p.name.split(' ')[2];
+
+      const symbol = p.baseToken.symbol;
+
+      const poolMeta =
+        p.lendingTo === 'Perpetual DEX'
+          ? p.protocol
+          : `${p.protocol} - ${lendingTo}`;
 
       return {
         pool: `${p.address}-${chainString}`.toLowerCase(),
         chain: chainString,
         project,
-        symbol: utils.formatSymbol(p.symbol),
+        symbol,
+        poolMeta,
         tvlUsd:
           Number(ethers.utils.formatUnits(totalValue, Number(assetDecimals))) *
           Number(ethers.utils.formatUnits(assetPrice)),
         apy: utils.aprToApy(Number(ethers.utils.formatUnits(lendingAPR)) * 100),
       };
-    }),
+    })
   );
 
-  return [...lendingPools, ...vaults];
+  return [...vaults, ...lendingPools].filter((p) => p.pool);
 }
 
 const main = async () => {

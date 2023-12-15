@@ -1,0 +1,75 @@
+{
+  "numPairs": {
+    "inputs": [],
+    "name": "numPairs",
+    "outputs": [
+      {
+        "internalType": "uint16",
+        "name": "",
+        "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  "markets": {
+    "inputs": [
+      { "internalType": "uint16", "name": "", "type": "uint16" }
+    ],
+    "name": "markets",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "pool0",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "pool1",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "token0",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "token1",
+        "type": "address"
+      },
+      {
+        "internalType": "uint16",
+        "name": "marginLimit",
+        "type": "uint16"
+      },
+      {
+        "internalType": "uint16",
+        "name": "feesRate",
+        "type": "uint16"
+      },
+      {
+        "internalType": "uint16",
+        "name": "priceDiffientRatio",
+        "type": "uint16"
+      },
+      {
+        "internalType": "address",
+        "name": "priceUpdater",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "pool0Insurance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "pool1Insurance",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+}

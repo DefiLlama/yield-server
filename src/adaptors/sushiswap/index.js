@@ -55,7 +55,7 @@ const blocksPerDay = secondsPerDay / secondsPerBlock;
 
 const query = gql`
   {
-    pairs(first: 1000, orderBy: trackedReserveETH, orderDirection: desc block: {number: <PLACEHOLDER>}) {
+    pairs(first: 1000, orderBy: reserveETH, orderDirection: desc block: {number: <PLACEHOLDER>}) {
       id
       reserve0
       reserve1
@@ -74,7 +74,7 @@ const query = gql`
 
 const queryPrior = gql`
   {
-    pairs (first: 1000 orderBy: trackedReserveETH orderDirection: desc block: {number: <PLACEHOLDER>}) { 
+    pairs (first: 1000 orderBy: reserveETH orderDirection: desc block: {number: <PLACEHOLDER>}) {
       id 
       volumeUSD 
     }
@@ -354,9 +354,9 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
     const sushi = `${chainString}:${SUSHI[chainString].toLowerCase()}`;
     coins = [...coins, sushi];
     const tokensUsd = (
-      await superagent.post('https://coins.llama.fi/prices').send({
-        coins,
-      })
+      await superagent.get(
+        `https://coins.llama.fi/prices/current/${coins.join(',').toLowerCase()}`
+      )
     ).body.coins;
 
     // for mc1: calc sushi per year in usd
