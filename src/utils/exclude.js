@@ -404,6 +404,7 @@ const excludePools = [
   '0x7007535de9f864f0c15fe6fa288ce3feb842f72c',
   '0xbefaba1c380d8b0a53bc604d8b809684775e74f8',
   '0x4b4b425586fa9b5cf0d06baf5ba9eb9e9b936e66-avalanche',
+  '0x295d1119c1183dc64feeb4bdc3f06f652525013d-avalanche',
 ];
 
 const boundaries = {
