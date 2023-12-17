@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const axios = require('axios');
 const abi = require('./abis.json');
+const utils = require('../utils');
 
 const contractsRegister = '0xA50d4E7D8946a7c90652339CDBd262c375d54D99';
 const dataCompressor = '0x0050b1ABD1DD2D9b01ce954E663ff3DbCa9193B1';
@@ -69,20 +70,20 @@ const poolInfo = async (chain) => {
     Math.pow(10, Number(decimal))
   );
 
-  const underlyingTokens = poolData.map((pool) => pool.output.underlyingToken);
+  const underlyingTokens = poolData.map((pool) => pool.output?.underlyingToken);
 
   const price = await getPrices('ethereum', underlyingTokens);
 
   yieldPools.map((pool, i) => {
     pool.gearPerBlock = gearPerBlock[pool.pool];
-    pool.availableLiquidity = poolData[i].output.availableLiquidity;
-    pool.totalBorrowed = poolData[i].output.totalBorrowed;
-    pool.depositAPY_RAY = poolData[i].output.depositAPY_RAY;
-    pool.borrowAPY_RAY = poolData[i].output.borrowAPY_RAY;
+    pool.availableLiquidity = poolData[i].output?.availableLiquidity;
+    pool.totalBorrowed = poolData[i].output?.totalBorrowed;
+    pool.depositAPY_RAY = poolData[i].output?.depositAPY_RAY;
+    pool.borrowAPY_RAY = poolData[i].output?.borrowAPY_RAY;
     pool.underlyingToken = underlyingTokens[i];
-    pool.withdrawFee = poolData[i].output.withdrawFee;
+    pool.withdrawFee = poolData[i].output?.withdrawFee;
     pool.symbol = symbol[i];
-    pool.price = price[underlyingTokens[i].toLowerCase()];
+    pool.price = price[underlyingTokens[i]?.toLowerCase()];
     pool.decimals = dTokenDecimals[i];
   });
 
@@ -127,9 +128,9 @@ const getApy = async () => {
   //https://gov.gearbox.fi/t/gip-22-gearbox-v2-liquidity-mining-programs/1550
   //"FDV is taken at a smol increase to the 200M$ FDV for strategic rounds"
   const priceKey = `ethereum:${gear}`;
-  const gearPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price ?? 0;
+  const gearPrice =
+    (await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)).data
+      .coins[priceKey]?.price ?? 0;
 
   const yieldPools = (await poolInfo('ethereum')).yieldPools;
 
@@ -184,7 +185,7 @@ const getApy = async () => {
     ));
   });
 
-  return pools;
+  return pools.filter((i) => utils.keepFinite(i));
 };
 
 function exportFormatter(
