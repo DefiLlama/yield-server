@@ -152,6 +152,14 @@ const lsdTokens = [
     type: a,
     fee: 0.1,
   },
+  {
+    name: 'Mantle Staked ETH',
+    symbol: 'mETH',
+    address: '0xd5F7838F5C461fefF7FE49ea5ebaF7728bB0ADfa',
+    addressExchangeRate: '0xe3cBd06D7dadB3F4e6557bAb7EdD924CD1489E8f',
+    type: a,
+    fee: 0.1,
+  },
 ];
 
 const priceUrl = 'https://api.0x.org/swap/v1/quote';
@@ -326,6 +334,14 @@ const getExpectedRates = async () => {
     type: 'function',
   };
 
+  const mETHAbi = {
+    inputs: [{ internalType: 'uint256', name: 'mETHAmount', type: 'uint256' }],
+    name: 'mETHToETH',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
   // --- cbETH
   const cbETHRate = Number((await axios.get(cbETHRateUrl)).data.amount);
 
@@ -466,6 +482,17 @@ const getExpectedRates = async () => {
       })
     ).output / 1e18;
 
+  const mETH =
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Mantle Staked ETH')
+          .addressExchangeRate,
+        chain: 'ethereum',
+        abi: mETHAbi,
+        params: [1000000000000000000n],
+      })
+    ).output / 1e18;
+
   return lsdTokens.map((lsd) => ({
     ...lsd,
     expectedRate:
@@ -495,6 +522,8 @@ const getExpectedRates = async () => {
         ? nETH
         : lsd.name === 'Bedrock uniETH'
         ? uniETH
+        : lsd.name === 'Mantle Staked ETH'
+        ? mETH
         : 1,
   }));
 };
