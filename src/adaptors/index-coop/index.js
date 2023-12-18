@@ -71,9 +71,11 @@ const getTvlUsd = async (index) => {
 };
 
 const main = async () => {
-  const dsEth = await buildPool(dsEthIndex);
-  const icEth = await buildPool(icEthIndex);
-  return [dsEth, icEth].filter((i) => Boolean(i));
+  // const dsEth = await buildPool(dsEthIndex);
+  // const icEth = await buildPool(icEthIndex);
+  // return [dsEth, icEth].filter((i) => Boolean(i));
+  const icETH = await buildPool(icEthIndex);
+  return [icETH];
 };
 
 module.exports = {
