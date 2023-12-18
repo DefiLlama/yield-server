@@ -6,6 +6,24 @@ const DOLOMITE_MARGIN_ADDRESS_MAP = {
   arbitrum: '0x6Bd780E7fDf01D77e4d475c821f1e7AE05409072',
 }
 
+const ARB = '0x912CE59144191C1204E64559FE8253a0e49E6548';
+
+const WETH_MARKET_ID = 0;
+const LINK_MARKET_ID = 3;
+const WBTC_MARKET_ID = 4;
+const ARB_MARKET_ID = 7;
+const USDC_MARKET_ID = 17;
+
+const REWARD_TOKENS_TO_AMOUNTS_PER_WEEK = {
+  [WETH_MARKET_ID]: 22_500,
+  [LINK_MARKET_ID]: 2_700,
+  [WBTC_MARKET_ID]: 22_500,
+  [ARB_MARKET_ID]: 6_300,
+  [USDC_MARKET_ID]: 36_000,
+};
+
+const rewardEndTimestamp = 1708041600; // Fri Feb 16 2024 00:00:00 GMT+0000
+
 async function apy() {
   return Object.keys(DOLOMITE_MARGIN_ADDRESS_MAP).reduce(async (memo, chain) => {
     const dolomiteMargin = DOLOMITE_MARGIN_ADDRESS_MAP[chain];
@@ -141,6 +159,16 @@ async function apy() {
     const supplyUsds = supplyWeis.map((supplyWei, i) => supplyWei * prices[i] / 1e36);
     const borrowUsds = borrowWeis.map((borrowWei, i) => borrowWei * prices[i] / 1e36);
 
+    const rewardApys = range.map(i => {
+      const rewardPerWeek = REWARD_TOKENS_TO_AMOUNTS_PER_WEEK[i];
+      if (!rewardPerWeek || Math.floor(Date.now() / 1000) > rewardEndTimestamp) {
+        return 0;
+      }
+
+      const rewardUsdValuePerYear = rewardPerWeek * prices[ARB_MARKET_ID] / 7 * 365 / 1e18;
+      return rewardUsdValuePerYear / supplyUsds[i] * 100;
+    });
+
     const secondsInYear = 31_536_000;
     const borrowInterestRateApys = interestRates.map(interestRate => {
       const apr = Number(interestRate) * secondsInYear / 1e18;
@@ -161,9 +189,9 @@ async function apy() {
       project: 'dolomite',
       tvlUsd: supplyUsds[i] - borrowUsds[i],
       apyBase: supplyInterestRateApys[i],
-      apyReward: 0,
+      apyReward: rewardApys[i],
       underlyingTokens: [tokens[i]],
-      rewardTokens: [],
+      rewardTokens: [ARB],
       apyBaseBorrow: borrowInterestRateApys[i],
       apyRewardBorrow: 0,
       totalSupplyUsd: supplyUsds[i],
