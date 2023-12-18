@@ -100,7 +100,7 @@ const lsdTokens = [
     fee: 0.1,
   },
   {
-    name: 'Swell',
+    name: 'Swell Liquid Staking',
     symbol: 'swETH',
     address: '0xf951E335afb289353dc249e82926178EaC7DEd78',
     type: a,
@@ -391,7 +391,8 @@ const getExpectedRates = async () => {
   const swETH =
     (
       await sdk.api.abi.call({
-        target: lsdTokens.find((lsd) => lsd.name === 'Swell').address,
+        target: lsdTokens.find((lsd) => lsd.name === 'Swell Liquid Staking')
+          .address,
         chain: 'ethereum',
         abi: swETHAbi,
       })
@@ -506,7 +507,7 @@ const getExpectedRates = async () => {
         ? ankrETHRate
         : lsd.name === 'Frax Ether'
         ? sfrxETH
-        : lsd.name === 'Swell'
+        : lsd.name === 'Swell Liquid Staking'
         ? swETH
         : lsd.name === 'Binance staked ETH'
         ? wBETH
