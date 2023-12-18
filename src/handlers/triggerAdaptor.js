@@ -315,8 +315,8 @@ const main = async (body) => {
       ...p,
       config_id: id, // config PK field
       configID: id, // yield FK field referencing config_id in config
-      symbol: ['USDC+', 'ETH+'].includes(symbol)
-        ? symbol
+      symbol: ['USDC+', 'ETH+'].includes(p.symbol)
+        ? p.symbol
         : utils.formatSymbol(p.symbol),
       tvlUsd: Math.round(p.tvlUsd), // round tvlUsd to integer and apy fields to n-dec
       apy: +p.apy.toFixed(precision), // round apy fields
