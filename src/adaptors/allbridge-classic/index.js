@@ -19,7 +19,7 @@ const getApy = async () => {
       return pools[chain].tokens.map((t) => {
         return {
           chain: chainMapping[chain],
-          project: 'allbridge',
+          project: 'allbridge-classic',
           pool: t.poolAddress,
           symbol: t.symbol,
           apyBase: Number(t.apr),
