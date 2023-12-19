@@ -11,21 +11,18 @@ const MARKETS = [
 ]
 
 const apy = async () => {
-   const [mm, prices, rewards, boostedRewards] = await Promise.all([
+   const [mm, prices, rewards] = await Promise.all([
       getMoneyMarkets(),
       getTokenPrices(),
       getRewardsBatches(),
-      getBoostedRewards()
    ]);
    const exchangeRates = getExchangeRates(mm)
-   const totalBoostedCollateral = await getBoostedColateralMap(mm)
 
    return MARKETS.map(({ symbol }) => {
       const currentMM = mm[symbol]
       const currentPrice = prices[symbol]
       const currentExchangeRate = exchangeRates[symbol]
       const currentRewards = rewards[symbol]
-      const currentBoostedRewards = boostedRewards[symbol]
 
       const rewardsAPY = calcRewardsAPY({
          speed: currentRewards.speed,
@@ -37,19 +34,9 @@ const apy = async () => {
          marketDecimals: currentMM.decimals
       })
 
-      const boosterAPY = calcRewardsAPY({
-         speed: currentBoostedRewards.speed,
-         hTokenExchangeRate: currentExchangeRate,
-         totalCollateral: totalBoostedCollateral[symbol],
-         marketPrice: currentPrice,
-         rewardsToken: currentBoostedRewards.rewardsToken,
-         rewardsTokenPrice: prices[currentBoostedRewards.rewardsToken.symbol],
-         marketDecimals: currentMM.decimals
-      })
-
       const tvlUsd = new BigNumber(currentMM.cash).multipliedBy(currentPrice).dividedBy(`1e${currentMM.decimals}`).toNumber()
       const apyBase = mm[symbol].supplyAPY
-      const apyReward = new BigNumber(boosterAPY).plus(rewardsAPY).toNumber()
+      const apyReward = new BigNumber(rewardsAPY).toNumber()
       return {
          pool: symbol,
          chain: 'MultiversX',
