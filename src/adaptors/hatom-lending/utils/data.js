@@ -1,14 +1,11 @@
 const BigNumber = require('bignumber.js');
-const mvx = require('@multiversx/sdk-core');
 const { default: axios } = require('axios');
 const { request } = require('graphql-request');
 
-const { queryPrices, queryMoneyMarkets, queryBoostedRewards, queryRewards } = require('./queries')
+const { queryPrices, queryMoneyMarkets, queryRewards } = require('./queries')
 const { calcLiquidStakingExchangeRate, calcSimulateExchangeRate } = require('./math');
 
 const API_URL = 'https://mainnet-api.hatom.com/graphql';
-const MULTIVERSX_API_URL = 'https://api.multiversx.com/query';
-const BOOSTER_CONTRACT_ADDRESS = 'erd1qqqqqqqqqqqqqpgqw4dsh8j9xafw45uwr2f6a48ajvcqey8s78sstvn7xd'
 
 async function getMoneyMarkets() {
   const response = await request(API_URL, queryMoneyMarkets, {});
@@ -166,58 +163,9 @@ async function getRewardsBatches() {
   }, {})
 }
 
-async function getBoostedRewards() {
-  const response = await request(API_URL, queryBoostedRewards, {});
-  return response.queryBoostedRewardsBatchState.reduce((prev, batch) => {
-    const symbol = batch.marketBooster.moneyMarket.underlying.symbol;
-    const value = {
-      speed: batch.speed,
-      totalAmount: batch.totalAmount,
-      rewardsToken: batch.rewardsToken,
-    }
-    return {
-      ...prev,
-      [symbol]: value,
-    };
-  })
-}
-
-async function getTotalBoostedCollateral(moneyMarketAddress) {
-  const hexAddress = mvx.Address.fromBech32(moneyMarketAddress).hex()
-  const response = await axios.post(MULTIVERSX_API_URL, {
-    args: [hexAddress],
-    funcName: "getStoredTotalCollateralTokens",
-    scAddress: BOOSTER_CONTRACT_ADDRESS
-  })
-  const base64 = response.data.returnData.at(0)
-  const hex = Buffer.from(base64, 'base64').toString('hex')
-  const totalCollateral = new BigNumber(hex, 16).toString()
-  return totalCollateral
-}
-
-async function getBoostedColateralMap(moneyMarkets) {
-  const promises = Object.keys(moneyMarkets).map(async (symbol) => {
-    const totalCollateral = await getTotalBoostedCollateral(moneyMarkets[symbol].address)
-    return {
-      [symbol]: totalCollateral
-    }
-  })
-  return Promise.all(promises).then((values) => {
-    return values.reduce((prev, value) => {
-      return {
-        ...prev,
-        ...value
-      }
-    }, {})
-  })
-
-}
-
 module.exports = {
   getMoneyMarkets,
   getTokenPrices,
   getExchangeRates,
   getRewardsBatches,
-  getBoostedRewards,
-  getBoostedColateralMap
 }

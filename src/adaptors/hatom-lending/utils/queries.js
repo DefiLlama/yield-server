@@ -71,28 +71,8 @@ query QueryRewards {
 		}
 	}
 }`
-
-const queryBoostedRewards = `
-query QueryBoostedRewards{
-  queryBoostedRewardsBatchState{
-    marketBooster{
-      moneyMarket{
-        underlying{
-          symbol
-        }
-      }
-    }
-    totalAmount
-    rewardsToken{
-      symbol
-      decimals
-    }
-    speed
-  }
-}`
 module.exports = {
   queryPrices,
   queryMoneyMarkets,
-  queryBoostedRewards,
   queryRewards
 };
