@@ -51,6 +51,24 @@ const config = [
       ['USDC.E']: 39.5,
     }
   },
+  {
+    chain: 'Ethereum',
+    lensAddress: '0xBF7259d41af428642140C88a10db6921a383FCC1',
+    bucketsFactory: '0x7dE8607157124c894Ba9F18dd6138B5E8AAd5890',
+    positionManager: '0x99d63fEA4b3Ef6ca77941df3C5740dAd1586f0B8',
+    activityRewardDistributor: '0xA622b8DfC3B5Ec283CEefd37768F5B3b3E316730',
+    EPMX: "0xA533f744B179F2431f5395978e391107DC76e103",
+    EPMXPriceFeed: "0xF146a76F3Aa82D4cEa3eaB44932b7eE75737E11a",
+    EPMXPriceFeedDecimals: 8,
+    apyRewardBySymbol: {
+      ['WETH']: 24,
+      ['WBTC']: 2.4,
+      ['USDC']: 44.4,
+      ['USDT']: 43.2,
+      ['MATIC']: 21.6,
+      ['DAI']: 39.6,
+    }
+  },
 ]
 
 const getPoolUrl = (address, chain) => `https://app.primex.finance/#/bucket-details/${address}?network=${CHAIN_IDS[chain]}`;
