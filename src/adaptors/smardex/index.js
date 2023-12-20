@@ -206,7 +206,7 @@ const campaignRewardAPY = (
   currentBlockNumber,
   sdexPrice,
   BLOCKS_PER_YEAR,
-  STAKING_ADDRESS,
+  STAKING_ADDRESS
 ) => {
   let apr = 0;
   if (
@@ -228,7 +228,9 @@ const campaignRewardAPY = (
 
       if (currentBlockNumber < reward.endBlock) {
         const aprBN = reward.rewardPerBlock
-          .mul(parseInt(campaign.id, 10) === 0 && STAKING_ADDRESS ? 1 : WeiPerEther)
+          .mul(
+            parseInt(campaign.id, 10) === 0 && STAKING_ADDRESS ? 1 : WeiPerEther
+          )
           .mul(BLOCKS_PER_YEAR)
           .mul(100)
           .div(campaign.totalStaked);
@@ -327,7 +329,7 @@ const topLvl = async (
       block,
       sdexPrice,
       BLOCKS_PER_YEAR,
-      STAKING_ADDRESS,
+      STAKING_ADDRESS
     );
 
     return {
@@ -356,7 +358,7 @@ const main = async (timestamp = null) => {
   const chains = Object.keys(CONFIG);
 
   // Fetching data for each chain in parallel
-  const resultData = await Promise.all(
+  const resultData = await Promise.allSettled(
     chains.map(async (chain) => {
       const data = await topLvl(
         chain,
@@ -371,7 +373,11 @@ const main = async (timestamp = null) => {
     })
   );
 
-  return resultData.flat().filter(utils.keepFinite);
+  return resultData
+    .filter((i) => i.status === 'fulfilled')
+    .map((i) => i.value)
+    .flat()
+    .filter(utils.keepFinite);
 };
 
 module.exports = {
