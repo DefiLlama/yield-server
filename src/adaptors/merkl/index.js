@@ -131,8 +131,6 @@ const main = async () => {
         continue;
       }
     }
-    console.log(poolsData);
-    process.exit();
     return poolsData.filter((p) => utils.keepFinite(p));
   }
 };
