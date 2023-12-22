@@ -89,7 +89,7 @@ const getApy = async () => {
   for (const p of [...Array(pages).keys()]) {
     keys = tokens
       .slice(p * maxSize, maxSize * (p + 1))
-      .map((i) => `fantom:${i}`)
+      .map((i) => `base:${i}`)
       .join(',')
       .replaceAll('/', '');
     pricesA = [
@@ -108,15 +108,15 @@ const getApy = async () => {
     const r0 = poolMeta.r0 / poolMeta.dec0;
     const r1 = poolMeta.r1 / poolMeta.dec1;
 
-    const p0 = prices[`fantom:${poolMeta.t0}`]?.price;
-    const p1 = prices[`fantom:${poolMeta.t1}`]?.price;
+    const p0 = prices[`base:${poolMeta.t0}`]?.price;
+    const p1 = prices[`base:${poolMeta.t1}`]?.price;
 
     const tvlUsd = r0 * p0 + r1 * p1;
 
     const s = symbols[i];
 
     const rewardPerSec =
-      (rewardRate[i] / 1e18) * prices[`fantom:${SCALE}`]?.price;
+      (rewardRate[i] / 1e18) * prices[`base:${SCALE}`]?.price;
     const apyReward = ((rewardPerSec * 86400 * 365) / tvlUsd) * 100;
 
     return {
