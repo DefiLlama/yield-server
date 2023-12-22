@@ -41,7 +41,7 @@ const getApy = async () => {
 
     // gauge pairs apr/apy
     gaugePairs = gaugePairs.map((pair, index) => {
-      const rewardRate = gaugesRewardRates[index].toString();
+      const rewardRate = gaugesRewardRates[index]?.toString();
       const aprReward = _calculateGaugeAPR(
         pair.reserveUSD,
         rewardRate,
@@ -82,7 +82,8 @@ const getApy = async () => {
         underlyingTokens: [token0.address, token1.address],
         rewardTokens: [ARC_ADDRESS],
         url: `https://archly.fi/liquidity/${address}`,
-      }));
+      }))
+      .filter((i) => utils.keepFinite(i));
   } catch (error) {
     console.error('error@getApy', error);
     return [];
