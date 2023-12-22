@@ -7,9 +7,9 @@ const abiPair = require('./abiPair.json');
 const abiGauge = require('./abiGauge.json');
 const abiVoter = require('./abiVoter.json');
 
-const pairFactory = '0xed8db60acc29e14bc867a497d94ca6e3ceb5ec04';
-const voter = '0x46abb88ae1f2a35ea559925d99fdc5441b592687';
-const SCALE = '0x54016a4848a38f257b6e96331f7404073fd9c32c';
+const pairFactory = '0xEd8db60aCc29e14bC867a497D94ca6e3CeB5eC04';
+const voter = '0x46ABb88Ae1F2a35eA559925D99Fdc5441b592687';
+const SCALE = '0x54016a4848a38f257B6E96331F7404073Fd9c32C';
 
 const getApy = async () => {
   const allPairsLength = (
