@@ -42,10 +42,10 @@ const lsdTokens = [
   },
   {
     name: 'StakeWise',
-    symbol: 'sETH2',
-    address: '0xfe2e637202056d30016725477c5da089ab0a043a',
-    type: r,
-    fee: 0.1,
+    symbol: 'osETH',
+    address: '0xf1C9acDc66974dFB6dEcB12aA385b9cD01190E38',
+    type: a,
+    fee: 0.05,
   },
   {
     name: 'Ankr',
