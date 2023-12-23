@@ -20,7 +20,7 @@ const getApy = async () => {
     const currentBlock = (await sdk.api.util.getLatestBlock(chain));
     const toBlock = currentBlock.number
     const timestampWeekAgo = currentBlock.timestamp - secondsInWeek
-    const [fromBlock] = await utils.getBlocksByTime([timestampWeekAgo], 'ethereum')
+    const [fromBlock] = await utils.getBlocksByTime([timestampWeekAgo], chain)
 
     const logs = (await sdk.api.util.getLogs({
         target: osTokenCtrlAddress,
@@ -29,7 +29,7 @@ const getApy = async () => {
         fromBlock: fromBlock,
         keys: [],
         topics: [topic],
-        chain: 'ethereum'
+        chain
     })).output
 
     // get last 14 events (1-week average)
@@ -48,14 +48,14 @@ const getApy = async () => {
     const tvl = (await sdk.api.erc20.totalSupply({target: osTokenAddress})).output / 1e18;
 
     // fetch ETH price
-    const priceKey = `ethereum:${weth}`;
+    const priceKey = `${chain}:${weth}`;
     const ethPrice = (
         await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
     ).data.coins[priceKey]?.price;
 
     return [{
         pool: osTokenAddress,
-        chain: 'ethereum',
+        chain,
         project: 'stakewise',
         symbol: 'osETH',
         tvlUsd: (tvl) * ethPrice,
