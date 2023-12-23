@@ -5,11 +5,12 @@ const axios = require('axios');
 const utils = require("../utils");
 
 const secondsInYear = 31536000
-const secondsInMonth = 30 * 60 * 60 * 24
+const secondsInWeek = 7 * 60 * 60 * 24
 const maxPercent = 10000 // 100.00 %
 const wad = 1e18
 
 const osTokenAddress = '0xf1C9acDc66974dFB6dEcB12aA385b9cD01190E38';
+const osTokenCtrlAddress = '0x2A261e60FB14586B474C208b1B7AC6D0f5000306';
 const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const topic = '0x575b153fd68e97b63239f63ca929196a4e398b8157c14ddb6bfc54dad71071cb'
 const chain = 'ethereum'
@@ -18,11 +19,11 @@ const osTokenCtrlInterface = new ethers.utils.Interface(['event AvgRewardPerSeco
 const getApy = async () => {
     const currentBlock = (await sdk.api.util.getLatestBlock(chain));
     const toBlock = currentBlock.number
-    const timestampMonthAgo = currentBlock.timestamp - secondsInMonth
-    const [fromBlock] = await utils.getBlocksByTime([timestampMonthAgo], 'ethereum')
+    const timestampWeekAgo = currentBlock.timestamp - secondsInWeek
+    const [fromBlock] = await utils.getBlocksByTime([timestampWeekAgo], 'ethereum')
 
     const logs = (await sdk.api.util.getLogs({
-        target: osTokenAddress,
+        target: osTokenCtrlAddress,
         topic: '',
         toBlock: toBlock,
         fromBlock: fromBlock,
