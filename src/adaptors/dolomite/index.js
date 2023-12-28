@@ -145,7 +145,10 @@ async function apy() {
     const names = namesRes.output.map((o) => o.output);
 
     for (let i = 0; i < names.length; i++) {
-      if (names[i] === 'Dolomite: Fee + Staked GLP' || names[i].includes('Dolomite Isolation:')) {
+      if (names[i] === 'Dolomite Isolation: Arbitrum' || names[i] === 'GMX') {
+        tokens[i] = undefined;
+        symbols[i] = undefined;
+      } else if (names[i] === 'Dolomite: Fee + Staked GLP' || names[i].includes('Dolomite Isolation:')) {
         const underlyingToken = await sdk.api.abi.call({
           abi: isolationModeAbi.find((i) => i.name === 'UNDERLYING_TOKEN'),
           target: tokens[i],
@@ -184,25 +187,30 @@ async function apy() {
       }
     });
 
-    return range.map(i => ({
-      pool: `${tokens[i]}-${chain}`.toLowerCase(),
-      symbol: symbols[i],
-      chain: chain.charAt(0).toUpperCase() + chain.slice(1),
-      project: 'dolomite',
-      tvlUsd: supplyUsds[i] - borrowUsds[i],
-      apyBase: supplyInterestRateApys[i],
-      apyReward: rewardApys[i],
-      underlyingTokens: [tokens[i]],
-      rewardTokens: [ARB],
-      apyBaseBorrow: borrowInterestRateApys[i],
-      apyRewardBorrow: 0,
-      totalSupplyUsd: supplyUsds[i],
-      totalBorrowUsd: borrowUsds[i],
-      ltv: 1 / ((1 + marginRatio) + ((1 + marginRatio) * marginPremiums[i])),
-      poolMeta: 'Dolomite Balance',
-      url: `https://app.dolomite.io/stats/token/${tokens[i].toLowerCase()}`,
-      borrowable: borrowables[i],
-    }))
+    return range.reduce((acc, i) => {
+      if (tokens[i]) {
+        acc.push({
+          pool: `${tokens[i]}-${chain}`.toLowerCase(),
+          symbol: symbols[i],
+          chain: chain.charAt(0).toUpperCase() + chain.slice(1),
+          project: 'dolomite',
+          tvlUsd: supplyUsds[i] - borrowUsds[i],
+          apyBase: supplyInterestRateApys[i],
+          apyReward: rewardApys[i],
+          underlyingTokens: [tokens[i]],
+          rewardTokens: [ARB],
+          apyBaseBorrow: borrowInterestRateApys[i],
+          apyRewardBorrow: 0,
+          totalSupplyUsd: supplyUsds[i],
+          totalBorrowUsd: borrowUsds[i],
+          ltv: 1 / ((1 + marginRatio) + ((1 + marginRatio) * marginPremiums[i])),
+          poolMeta: 'Dolomite Balance',
+          url: `https://app.dolomite.io/stats/token/${tokens[i].toLowerCase()}`,
+          borrowable: borrowables[i],
+        })
+      }
+      return acc
+    }, [])
   }, []);
 }
 
