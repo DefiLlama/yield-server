@@ -21,6 +21,7 @@ REGISTRY_TYPES = [
   'optimism',
   'factory-crvusd',
   'factory-tricrypto',
+  'factory-stable-ng',
 ];
 exports.BLOCKCHAINID_TO_REGISTRIES = {};
 exports.BLOCKCHAINIDS.forEach((blockchainId) => {
