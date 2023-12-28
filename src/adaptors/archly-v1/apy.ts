@@ -14,10 +14,7 @@ const ARC_ADDRESS = '0xa84df7afbcbcc1106834a5fed9453bd1219b1fb5';
 
 const getApy = async () => {
   try {
-    const [arcPrice, pairs] = await Promise.all([
-      getArcPrice(),
-      getPairs(),
-    ]);
+    const [arcPrice, pairs] = await Promise.all([getArcPrice(), getPairs()]);
     let gaugePairs = [];
     let nonGaugePairs = [];
     const multicalls = [];
@@ -44,14 +41,18 @@ const getApy = async () => {
 
     // gauge pairs apr/apy
     gaugePairs = gaugePairs.map((pair, index) => {
-      const rewardRate = gaugesRewardRates[index].toString();
-      const aprReward = _calculateGaugeAPR(pair.reserveUSD, rewardRate, arcPrice);
+      const rewardRate = gaugesRewardRates[index]?.toString();
+      const aprReward = _calculateGaugeAPR(
+        pair.reserveUSD,
+        rewardRate,
+        arcPrice
+      );
       const aprFee = _calculateSwapFeeAPR(
         pair.volumeUSD,
         pair.reserveUSD,
         pair.stable
       );
-      
+
       pair.apyBase = Number(aprFee);
       pair.apyReward = Number(aprReward);
       return pair;
@@ -63,7 +64,7 @@ const getApy = async () => {
         pair.reserveUSD,
         pair.stable
       );
-      
+
       pair.apyBase = Number(aprFee);
       pair.apyReward = Number(0);
       return pair;
@@ -74,14 +75,15 @@ const getApy = async () => {
       .map(({ address, token0, token1, reserveUSD, apyReward }) => ({
         pool: address,
         chain: utils.formatChain('telos'),
-        project: 'archly-finance',
+        project: 'archly-v1',
         symbol: `${token0.symbol}-${token1.symbol}`.toUpperCase(),
         tvlUsd: Number(reserveUSD),
         apyReward: apyReward,
         underlyingTokens: [token0.address, token1.address],
         rewardTokens: [ARC_ADDRESS],
         url: `https://archly.fi/liquidity/${address}`,
-      }));
+      }))
+      .filter((i) => utils.keepFinite(i));
   } catch (error) {
     console.error('error@getApy', error);
     return [];
@@ -102,11 +104,7 @@ const _uniquePairs = (pairs) => {
     });
 };
 
-const _calculateSwapFeeAPR = (
-  volumeUSD,
-  reserveUSD,
-  stable
-) => {
+const _calculateSwapFeeAPR = (volumeUSD, reserveUSD, stable) => {
   const feeShare = new BN(volumeUSD)
     .times(stable ? STABLE_FEE_PERCENTAGE : VARIABLE_FEE_PERCENTAGE)
     .div(100);
@@ -116,11 +114,7 @@ const _calculateSwapFeeAPR = (
   return feeAPR;
 };
 
-const _calculateGaugeAPR = (
-  reserveUSD,
-  rewardRate,
-  arcPrice
-) => {
+const _calculateGaugeAPR = (reserveUSD, rewardRate, arcPrice) => {
   const gaugeAPR = new BN(rewardRate)
     .div(1e18)
     .times(3600 * 24 * 365)

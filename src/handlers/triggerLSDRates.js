@@ -42,10 +42,10 @@ const lsdTokens = [
   },
   {
     name: 'StakeWise',
-    symbol: 'sETH2',
-    address: '0xfe2e637202056d30016725477c5da089ab0a043a',
-    type: r,
-    fee: 0.1,
+    symbol: 'osETH',
+    address: '0xf1C9acDc66974dFB6dEcB12aA385b9cD01190E38',
+    type: a,
+    fee: 0.05,
   },
   {
     name: 'Ankr',
@@ -100,7 +100,7 @@ const lsdTokens = [
     fee: 0.1,
   },
   {
-    name: 'Swell',
+    name: 'Swell Liquid Staking',
     symbol: 'swETH',
     address: '0xf951E335afb289353dc249e82926178EaC7DEd78',
     type: a,
@@ -149,6 +149,14 @@ const lsdTokens = [
     symbol: 'uniETH',
     address: '0xF1376bceF0f78459C0Ed0ba5ddce976F1ddF51F4',
     addressExchangeRate: '0x4beFa2aA9c305238AA3E0b5D17eB20C045269E9d',
+    type: a,
+    fee: 0.1,
+  },
+  {
+    name: 'Mantle Staked ETH',
+    symbol: 'mETH',
+    address: '0xd5F7838F5C461fefF7FE49ea5ebaF7728bB0ADfa',
+    addressExchangeRate: '0xe3cBd06D7dadB3F4e6557bAb7EdD924CD1489E8f',
     type: a,
     fee: 0.1,
   },
@@ -326,6 +334,14 @@ const getExpectedRates = async () => {
     type: 'function',
   };
 
+  const mETHAbi = {
+    inputs: [{ internalType: 'uint256', name: 'mETHAmount', type: 'uint256' }],
+    name: 'mETHToETH',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
   // --- cbETH
   const cbETHRate = Number((await axios.get(cbETHRateUrl)).data.amount);
 
@@ -375,7 +391,8 @@ const getExpectedRates = async () => {
   const swETH =
     (
       await sdk.api.abi.call({
-        target: lsdTokens.find((lsd) => lsd.name === 'Swell').address,
+        target: lsdTokens.find((lsd) => lsd.name === 'Swell Liquid Staking')
+          .address,
         chain: 'ethereum',
         abi: swETHAbi,
       })
@@ -466,6 +483,17 @@ const getExpectedRates = async () => {
       })
     ).output / 1e18;
 
+  const mETH =
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Mantle Staked ETH')
+          .addressExchangeRate,
+        chain: 'ethereum',
+        abi: mETHAbi,
+        params: [1000000000000000000n],
+      })
+    ).output / 1e18;
+
   return lsdTokens.map((lsd) => ({
     ...lsd,
     expectedRate:
@@ -479,7 +507,7 @@ const getExpectedRates = async () => {
         ? ankrETHRate
         : lsd.name === 'Frax Ether'
         ? sfrxETH
-        : lsd.name === 'Swell'
+        : lsd.name === 'Swell Liquid Staking'
         ? swETH
         : lsd.name === 'Binance staked ETH'
         ? wBETH
@@ -495,6 +523,8 @@ const getExpectedRates = async () => {
         ? nETH
         : lsd.name === 'Bedrock uniETH'
         ? uniETH
+        : lsd.name === 'Mantle Staked ETH'
+        ? mETH
         : 1,
   }));
 };

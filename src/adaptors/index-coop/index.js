@@ -20,17 +20,21 @@ const icEthIndex = {
 const SetTokenABI = ['function totalSupply() external view returns (uint256)'];
 
 const buildPool = async (index) => {
-  const apy = await getApy(index.symbol);
-  const tvlUsd = await getTvlUsd(index);
-  const chain = utils.formatChain(index.chain);
-  return {
-    pool: `${index.address}-${chain}`.toLowerCase(),
-    chain,
-    project: 'index-coop',
-    symbol: index.symbol,
-    tvlUsd,
-    apy,
-  };
+  try {
+    const apy = await getApy(index.symbol);
+    const tvlUsd = await getTvlUsd(index);
+    const chain = utils.formatChain(index.chain);
+    return {
+      pool: `${index.address}-${chain}`.toLowerCase(),
+      chain,
+      project: 'index-coop',
+      symbol: index.symbol,
+      tvlUsd,
+      apy,
+    };
+  } catch (err) {
+    console.log(err);
+  }
 };
 
 const getApy = async (indexSymbol) => {
@@ -67,9 +71,11 @@ const getTvlUsd = async (index) => {
 };
 
 const main = async () => {
-  const dsEth = await buildPool(dsEthIndex);
-  const icEth = await buildPool(icEthIndex);
-  return [dsEth, icEth];
+  // const dsEth = await buildPool(dsEthIndex);
+  // const icEth = await buildPool(icEthIndex);
+  // return [dsEth, icEth].filter((i) => Boolean(i));
+  const icETH = await buildPool(icEthIndex);
+  return [icETH];
 };
 
 module.exports = {
