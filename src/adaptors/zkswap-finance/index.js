@@ -5,7 +5,7 @@ const { request, gql, batchRequests } = require('graphql-request');
 const superagent = require('superagent');
 const { chunk } = require('lodash');
 
-const { zfFarmABI, zfTokenABI, erc20ABI, zfFactory, zfGOVAbi } = require('./abis');
+const { zfFarmABI, zfTokenABI, erc20ABI, zfFactory, zfGOVAbi, zfLpABI } = require('./abis');
 const utils = require('../utils');
 const { TokenProvider } = require('@uniswap/smart-order-router');
 const { SECONDS_PER_YEAR } = require('../across/constants');
@@ -45,16 +45,7 @@ const apy = async () => {
     chain: CHAIN,
   })
 
-  const feeRes = await sdk.api.abi.call({
-    abi: zfFactory.find(abi => abi.name === 'swapFee'),
-    target: ZFFactory,
-    chain: CHAIN,
-  })
-
-  const fee = feeRes.output
-  const protocolFee = protocolFeeRes.output
-
-  const feeRate = fee * (1 - 1 / protocolFee) / 10000
+  const protocolFee = protocolFeeRes.output  
 
   const poolsRes = await sdk.api.abi.multiCall({
     abi: zfFarmABI.filter(({ name }) => name === 'poolInfo')[0],
@@ -70,6 +61,20 @@ const apy = async () => {
     .filter(({ i }) => !nonLpPools.includes(i));
 
   const lpTokens = pools.map(({ lpToken }) => lpToken);
+
+  const lpTokensSwapFeeCall = await sdk.api.abi.multiCall({
+    abi: zfLpABI.filter(({ name }) => name === 'getSwapFee')[0],
+    calls: lpTokens.map((lpAddress) => ({
+      target: lpAddress
+    })),
+    chain: CHAIN,
+    requery: true,
+  });
+
+  const lpTokensSwapFee = lpTokensSwapFeeCall.output.reduce((lpSwapFeeObj, item, index, arr,) => {
+    lpSwapFeeObj[lpTokens[index]?.toLowerCase()] = item?.output
+    return lpSwapFeeObj
+  }, {})
 
   const nonLpPoolList = poolsRes.output
     .map(({ output }, i) => ({ ...output, i }))
@@ -261,6 +266,9 @@ const apy = async () => {
       )
       .toString();
 
+    const fee = lpTokensSwapFee[pool.lpToken.toLowerCase()]
+    const feeRate = fee * (1 - 1 / protocolFee) / 10000
+    
     const lpFees24h =
       (volumesMap[pool.lpToken.toLowerCase()] || []).reduce(
         (acc, { hourlyVolumeUSD }) => acc + Number(hourlyVolumeUSD),
