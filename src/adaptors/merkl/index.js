@@ -6,6 +6,8 @@ const networks = {
   137: 'polygon',
   10: 'optimism',
   42161: 'arbitrum',
+  1101: 'polygonzkevm',
+  8453: 'base',
 };
 
 async function getRateAngle(token) {
@@ -22,12 +24,13 @@ const main = async () => {
   try {
     data = await utils.getData('https://api.angle.money/v2/merkl');
   } catch (err) {
-    console.log('no data for Merk');
+    console.log('no data for Merkl');
   }
 
   const project = 'merkl';
 
   for (const chainId of Object.keys(data)) {
+    console.log(chainId);
     const pools = data[chainId].pools;
     for (const pool in pools) {
       const poolAddress = pool;
@@ -57,7 +60,7 @@ const main = async () => {
           const tvlUsd = pools[poolAddress].tvl;
 
           // Trying to fetch tvl on-chain: query balances of the pool and price of both tokens
-
+          /*¨
           const amountUsdOnChain0 = (
             await sdk.api.abi.call({
               target: underlyingTokens[0],
@@ -105,6 +108,7 @@ const main = async () => {
           const tvlUsdOnChain =
             (amountUsdOnChain0 / 10 ** decimalsToken0) * priceToken0 +
             (amountUsdOnChain1 / 10 ** decimalsToken1) * priceToken1;
+            */
 
           const rewardToken = [];
           liveDistributionsData.forEach((element) => {
@@ -112,7 +116,7 @@ const main = async () => {
           });
           const apyReward = pools[poolAddress].meanAPR;
 
-          if (apyReward && apyReward > 0) {
+          if (apyReward && apyReward > 0 && tvlUsd && tvlUsd > 0 && chain) {
             const poolData = {
               pool: poolAddress,
               chain: chain,
@@ -126,13 +130,12 @@ const main = async () => {
             poolsData.push(poolData);
           }
         } catch {}
-        //console.log(poolsData);
       } else {
         continue;
       }
     }
-    return poolsData.filter((p) => utils.keepFinite(p));
   }
+  return poolsData.filter((p) => utils.keepFinite(p));
 };
 
 /*
