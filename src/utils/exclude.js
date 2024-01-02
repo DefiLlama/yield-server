@@ -46,6 +46,7 @@ const excludeAdaptors = [
   'midas-capital',
   'pearlfi', // tmp
   'foodcourt',
+  'yield-protocol',
 ];
 
 const excludePools = [
