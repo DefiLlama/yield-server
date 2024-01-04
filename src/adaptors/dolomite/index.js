@@ -16,15 +16,15 @@ const USDC_MARKET_ID = 17;
 const GMX_MARKET_ID = 30;
 
 const REWARD_TOKENS_TO_AMOUNTS_PER_WEEK = {
-  [WETH_MARKET_ID]: 17_325,
-  [LINK_MARKET_ID]: 2_080,
-  [WBTC_MARKET_ID]: 17_325,
-  [ARB_MARKET_ID]: 4_850,
-  [USDC_MARKET_ID]: 27_720,
-  [GMX_MARKET_ID]: 2_700,
+  [WETH_MARKET_ID]: 12_993.75,
+  [LINK_MARKET_ID]: 1_500,
+  [WBTC_MARKET_ID]: 12_993.75,
+  [ARB_MARKET_ID]: 3_637.5,
+  [USDC_MARKET_ID]: 20_790,
+  [GMX_MARKET_ID]: 2_025,
 };
 
-const rewardEndTimestamp = 1708041600; // Fri Feb 16 2024 00:00:00 GMT+0000
+const rewardEndTimestamp = 1711670400; // Fri Mar 29 2024 00:00:00 GMT+0000
 
 async function apy() {
   return Object.keys(DOLOMITE_MARGIN_ADDRESS_MAP).reduce(async (memo, chain) => {
