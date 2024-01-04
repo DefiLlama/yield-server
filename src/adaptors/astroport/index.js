@@ -1,36 +1,5 @@
-const { request } = require('graphql-request');
+const axios = require('axios');
 const num = require('bignumber.js');
-
-const API_ENDPOINT = 'https://multichain-api.astroport.fi/graphql';
-
-const yieldQuery = `
-  query Pools($chains: [String]!, $limit: Int, $sortField: PoolSortFields, $sortDirection: SortDirections) {
-    pools(chains: $chains, limit: $limit, sortField: $sortField, sortDirection: $sortDirection) {
-      chainId
-      poolAddress
-      poolLiquidityUsd
-      poolType
-      tradingFees {
-        apr
-        apy
-      }
-      token0Address
-      token1Address
-      rewardTokenSymbol
-      protocolRewards {
-        apr
-        apy
-      }
-      astroRewards {
-        apr
-        apy
-      }
-      assets {
-        symbol
-      }
-    }
-  }
-`;
 
 const chainIdToNames = {
   'phoenix-1': 'Terra2',
@@ -62,14 +31,13 @@ const getRewardTokens = (pool) => {
 };
 
 const apy = async () => {
-  let results = await request(API_ENDPOINT, yieldQuery, {
-    chains: ['phoenix-1', 'injective-1', 'neutron-1', 'pacific-1'],
-    limit: 100,
-    sortField: 'TVL',
-    sortDirection: 'DESC',
-  });
+  let results = (
+    await axios.get(
+      'https://app.astroport.fi/api/trpc/pools.getAll?input=%7B%22json%22%3A%7B%22chainId%22%3A%5B%22neutron-1%22%5D%7D%7D'
+    )
+  ).data.result.data.json;
 
-  const apy = results?.pools
+  const apy = results
     ?.filter((pool) => pool?.poolLiquidityUsd && pool?.poolLiquidityUsd > 10000)
     .map((pool) => {
       const apyBase = pool?.tradingFees?.apy
@@ -92,7 +60,7 @@ const apy = async () => {
         tvlUsd: pool.poolLiquidityUsd || 0,
         apyBase,
         apyReward,
-        rewardTokens: getRewardTokens(pool),
+        rewardTokens: getRewardTokens(pool) ?? null,
         underlyingTokens: [pool.token0Address, pool.token1Address],
         url: `https://app.astroport.fi/pools/${pool.poolAddress}/provide`,
       };
