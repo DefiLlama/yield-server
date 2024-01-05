@@ -92,7 +92,7 @@ const getData = async ({ chainId, address }) => {
     poolInfoResponse,
   ] = await Promise.all(calls);
 
-  const tvl = tvlResponse.output;
+  const tvl = Number(tvlResponse.output) / 1e6;
 
   const { data } = await axios.get(
     `${BASE_URL}/utils/get-interport-token-info`
