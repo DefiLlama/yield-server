@@ -44,7 +44,6 @@ const getAPY = async () => {
 const getData = async ({ chainId, address }) => {
   const calls = [];
 
-  const { data } = await axios.get(`${BASE_URL}/utils/get-interport-token-info`);
   const symbol = await sdk.api.abi.multiCall({
     target: address,
     abi: 'erc20:symbol',
@@ -81,6 +80,7 @@ const getData = async ({ chainId, address }) => {
 
   const tvl = tvlResponse.output;
 
+  const { data } = await axios.get(`${BASE_URL}/utils/get-interport-token-info`);
   const itpPrice = data.price;
   const itpPerSecond = itpPerSecondResponse.output / 1e18;
   const itpPerYear = itpPerSecond * 60 * 60 * 24 * 365;
