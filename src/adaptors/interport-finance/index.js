@@ -11,7 +11,7 @@ const STABLECOIN_URL = 'https://app.interport.fi/stablecoin-pools';
 
 const CHAINS = {
   1: 'Ethereum',
-  250: 'Fantom Opera',
+  250: 'Fantom',
 };
 
 const ITP_ADDRESS = '0x2b1D36f5B61AdDAf7DA7ebbd11B35FD8cfb0DE31';
@@ -22,10 +22,10 @@ const STABLECOIN_FARM_TYPE_LIST = {
   250: {
     '0xb6AB8EeFAE1a2c22Ca6338E143cb7dE544800c6e': 0,
   },
-  // 1: {
-  //   '0xEc8DDCb498b44C35EFaD7e5e43E0Caf6D16A66E8': 0,
-  //   '0x5b45B414c6CD2a3341bE70Ba22BE786b0124003F': 1,
-  // },
+  1: {
+    '0xEc8DDCb498b44C35EFaD7e5e43E0Caf6D16A66E8': 0,
+    '0x5b45B414c6CD2a3341bE70Ba22BE786b0124003F': 1,
+  },
 };
 
 const getAPY = async () => {
@@ -43,10 +43,12 @@ const getAPY = async () => {
 
 const getData = async ({ chainId, address }) => {
   const calls = [];
+  const chain = CHAINS[chainId].toLowerCase();
 
   const symbol = await sdk.api.abi.call({
     target: address,
     abi: erc20Abi.find(({ name }) => name === 'symbol'),
+    chain,
   });
 
   calls.push(
@@ -54,6 +56,7 @@ const getData = async ({ chainId, address }) => {
       target: address,
       abi: abi.find(({ name }) => name === 'balanceOf'),
       params: [STABLE_ADDRESS],
+      chain,
     })
   );
 
@@ -61,6 +64,7 @@ const getData = async ({ chainId, address }) => {
     sdk.api.abi.call({
       target: STABLE_ADDRESS,
       abi: stableAbi.find(({ name }) => name === 'rewardTokenPerSecond'),
+      chain,
     })
   );
 
@@ -68,6 +72,7 @@ const getData = async ({ chainId, address }) => {
     sdk.api.abi.call({
       target: STABLE_ADDRESS,
       abi: stableAbi.find(({ name }) => name === 'totalAllocationPoint'),
+      chain,
     })
   );
 
@@ -76,10 +81,9 @@ const getData = async ({ chainId, address }) => {
       target: STABLE_ADDRESS,
       abi: stableAbi.find(({ name }) => name === 'poolInfo'),
       params: [STABLECOIN_FARM_TYPE_LIST[chainId][address]],
+      chain,
     })
   );
-
-  console.log(1);
 
   const [
     tvlResponse,
