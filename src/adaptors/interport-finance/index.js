@@ -17,11 +17,11 @@ const STABLE_ADDRESS = '0x29d44c17f4f83b3c77ae2eac4bc1468a496e3196';
 const PROJECT_NAME = 'interport-finance';
 
 const STABLECOIN_FARM_TYPE_LIST = {
-  [SupportedChains.ETHEREUM]: {
+  1: {
     '0xEc8DDCb498b44C35EFaD7e5e43E0Caf6D16A66E8': 0,
     '0x5b45B414c6CD2a3341bE70Ba22BE786b0124003F': 1,
   },
-  [SupportedChains.FANTOM]: {
+  250: {
     '0xb6AB8EeFAE1a2c22Ca6338E143cb7dE544800c6e': 0,
   },
 };
@@ -44,6 +44,7 @@ const getAPY = async () => {
 const getData = async ({ chainId, address }) => {
   const calls = [];
 
+  const { data } = await axios.get(`${BASE_URL}/utils/get-interport-token-info`);
   const symbol = await sdk.api.abi.multiCall({
     target: address,
     abi: 'erc20:symbol',
@@ -80,7 +81,6 @@ const getData = async ({ chainId, address }) => {
 
   const tvl = tvlResponse.output;
 
-  const { data } = await axios.get(`${BASE_URL}/utils/get-interport-token-info`);
   const itpPrice = data.price;
   const itpPerSecond = itpPerSecondResponse.output / 1e18;
   const itpPerYear = itpPerSecond * 60 * 60 * 24 * 365;
