@@ -1,8 +1,8 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
-const abi = require('./abis/abi');
-const stableAbi = require('./abis/stable.abi');
+const abi = require('./abis/abi.json');
+const stableAbi = require('./abis/stable.abi.json');
 
 const BASE_URL = 'https://api.interport.fi';
 const STABLECOIN_URL = 'https://app.interport.fi/stablecoin-pools';
