@@ -30,7 +30,7 @@ const getAPY = async () => {
   const promises = Object.keys(STABLECOIN_FARM_TYPE_LIST).map((chainId) => {
     return Object.keys(STABLECOIN_FARM_TYPE_LIST[chainId]).map(
       (address) => {
-        return this.getData({
+        return getData({
           chainId: Number(chainId),
           address,
         });
