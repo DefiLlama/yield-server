@@ -18,17 +18,8 @@ const buildPool = (entry, chainString, version) => {
     poolMeta: version,
     symbol: entry.name.toUpperCase(),
     tvlUsd: parseFloat(BigNumber(entry.totalTokenValue).div(10 ** 18)),
-    apy: entry.apy
-      ? parseFloat(
-          BigNumber(entry.apy)
-            .div(10 ** 18)
-            .times(100)
-        )
-      : parseFloat(
-          BigNumber(entry.apr)
-            .div(10 ** 18)
-            .times(100)
-        ),
+    apyBase: entry.swapApr ? parseFloat(BigNumber(entry.swapApr).div(10 ** 18).times(100)) : 0,
+    apyReward: entry.lpRewardApr ? parseFloat(BigNumber(entry.lpRewardApr).div(10 ** 18).times(100)) : 0,
   };
 
   return newObj;
