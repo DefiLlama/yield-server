@@ -1,0 +1,110 @@
+[
+  { "type": "constructor", "stateMutability": "nonpayable", "inputs": [] },
+  {
+    "type": "event",
+    "name": "OwnershipTransferred",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "previousOwner",
+        "internalType": "address",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "newOwner",
+        "internalType": "address",
+        "indexed": true
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "uint256", "name": "", "internalType": "uint256" }],
+    "name": "getBorrowRate",
+    "inputs": [
+      { "type": "uint256", "name": "cash", "internalType": "uint256" },
+      { "type": "uint256", "name": "borrows", "internalType": "uint256" },
+      { "type": "uint256", "name": "reserves", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "uint256", "name": "", "internalType": "uint256" }],
+    "name": "getSupplyRate",
+    "inputs": [
+      { "type": "uint256", "name": "cash", "internalType": "uint256" },
+      { "type": "uint256", "name": "borrows", "internalType": "uint256" },
+      { "type": "uint256", "name": "reserves", "internalType": "uint256" },
+      { "type": "uint256", "name": "reserveFactor", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "initialize",
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_baseRatePerYear",
+        "internalType": "uint256"
+      },
+      {
+        "type": "uint256",
+        "name": "_slopePerYearFirst",
+        "internalType": "uint256"
+      },
+      {
+        "type": "uint256",
+        "name": "_slopePerYearSecond",
+        "internalType": "uint256"
+      },
+      { "type": "uint256", "name": "_optimal", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "bool", "name": "", "internalType": "bool" }],
+    "name": "initialized",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "address", "name": "", "internalType": "address" }],
+    "name": "owner",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "renounceOwnership",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "transferOwnership",
+    "inputs": [
+      { "type": "address", "name": "newOwner", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "pure",
+    "outputs": [{ "type": "uint256", "name": "", "internalType": "uint256" }],
+    "name": "utilizationRate",
+    "inputs": [
+      { "type": "uint256", "name": "cash", "internalType": "uint256" },
+      { "type": "uint256", "name": "borrows", "internalType": "uint256" },
+      { "type": "uint256", "name": "reserves", "internalType": "uint256" }
+    ]
+  }
+]
