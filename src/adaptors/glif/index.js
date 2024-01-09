@@ -3,7 +3,7 @@ const utils = require('../utils');
 
 const fetchApy = async () => {
   const { data: apyData } = await axios.get(
-    'https://pools-metrics.vercel.app/api/v0/apy'
+    'https://events.glif.link/pool/apy'
   );
 
   const { data: metricsData } = await axios.get(
