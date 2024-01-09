@@ -2,7 +2,7 @@ const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
-const { comptrollerAbi, ercDelegator } = require('../compound/abi');
+const { comptrollerAbi, ercDelegator } = require('./abi');
 
 const COMPTROLLER_ADDRESS = '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B';
 const CHAIN = 'ethereum';
@@ -15,7 +15,7 @@ const TOTAL_BORROWS = 'totalBorrows';
 const GET_CHASH = 'getCash';
 const UNDERLYING = 'underlying';
 const BLOCKS_PER_DAY = 86400 / 12;
-const PROJECT_NAME = 'compound';
+const PROJECT_NAME = 'compound-v2';
 
 const NATIVE_TOKEN = {
   decimals: 18,
