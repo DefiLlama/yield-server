@@ -47,6 +47,9 @@ const excludeAdaptors = [
   'pearlfi', // tmp
   'foodcourt',
   'yield-protocol',
+  'autofarm',
+  'complifi',
+  'illuminate',
 ];
 
 const excludePools = [
