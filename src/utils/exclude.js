@@ -53,6 +53,7 @@ const excludeAdaptors = [
   'klap',
   'polylend',
   'tempus-finance',
+  'kolibri',
 ];
 
 const excludePools = [
