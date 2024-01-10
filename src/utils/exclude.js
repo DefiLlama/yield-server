@@ -50,6 +50,9 @@ const excludeAdaptors = [
   'autofarm',
   'complifi',
   'illuminate',
+  'klap',
+  'polylend',
+  'tempus-finance',
 ];
 
 const excludePools = [
