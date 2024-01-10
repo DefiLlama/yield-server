@@ -55,6 +55,13 @@ const excludeAdaptors = [
   'tempus-finance',
   'kolibri',
   'vires-finance',
+  'nftx',
+  'mahadao-arth',
+  'xy-finance',
+  'quoll',
+  'omnidex-lend',
+  'maple',
+  'ease.org',
 ];
 
 const excludePools = [
