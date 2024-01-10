@@ -11,6 +11,8 @@ const chain = {
   25: 'cronos',
   324: 'zksync_era',
   5000: 'mantle',
+  169: 'manta',
+  534352: 'scroll',
 };
 
 const getApy = async () => {
