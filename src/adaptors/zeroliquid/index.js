@@ -1,5 +1,6 @@
 const utils = require('../utils');
 const { ethers } = require('ethers');
+const fetch = require('node-fetch');
 
 const liquidity_endpoint = 'https://api.thegraph.com/subgraphs/name/zackzeroliquid/zeroliquid-liquidity-mining'
 const pricing_endpoint = 'https://api.thegraph.com/subgraphs/name/zackzeroliquid/zeroliquid'
