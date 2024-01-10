@@ -54,6 +54,7 @@ const excludeAdaptors = [
   'polylend',
   'tempus-finance',
   'kolibri',
+  'vires-finance',
 ];
 
 const excludePools = [
