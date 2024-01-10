@@ -23,7 +23,7 @@ const fetchApy = async () => {
     pool: '0x43dAe5624445e7679D16a63211c5ff368681500c-filecoin',
     chain: utils.formatChain('filecoin'),
     project: 'glif',
-    symbol: utils.formatSymbol('FIL'),
+    symbol: utils.formatSymbol('GFIL'),
     tvlUsd: tvlFIL * filPrice,
     apy: Number(apyData.apy),
     poolMeta: 'Overcollateralized Filecoin staking pool',
