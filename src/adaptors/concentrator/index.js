@@ -7,122 +7,62 @@ const AladdinConvexVaultABI = require('./abis/AladdinConvexVault.json');
 const AladdinCRVABI = require('./abis/AladdinCRV.json');
 const curvePools = require('./pools.js');
 
-const ALADDIN_API_BASE_URL = 'https://api.aladdin.club/'
+const ALADDIN_API_BASE_URL = 'https://api.aladdin.club/';
 
-const concentratorVault = '0xc8fF37F7d057dF1BB9Ad681b53Fa4726f268E0e8';
-const concentratorNewVault = '0x3Cf54F3A1969be9916DAD548f3C084331C4450b5';
 const concentratorAcrv = '0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884';
-
-function createIncrementArray(length) {
-  const arr = [];
-  for (let i = 0; i < length; i++) arr.push(i);
-  return arr;
-}
+const aladdinSdCRV = '0x43E54C2E7b3e294De3A155785F52AB49d87B9922';
+const aladdinCVX = '0xb0903Ab70a7467eE5756074b31ac88aEBb8fB777';
 
 const getAllPools = async () => {
-  let vaultsInfo = await utils.getData(`${ALADDIN_API_BASE_URL}api/getVaultsTvl`);
-  let pools = []
+  let vaultsInfo = await utils.getData(
+    `${ALADDIN_API_BASE_URL}api1/concentrator_pool_tvl_apy`
+  );
+  let pools = [];
   if (vaultsInfo.data) {
-    const { newVault: newVaultData, oldVault: oldVaultData, aFXSVault: aFXSVaultData, afrxETHVault: afrxETHVaultData } = vaultsInfo.data
-    for (let key in newVaultData) {
-      let _address = key;
-      let _tvl = parseInt(newVaultData[_address].tvl) + parseInt(oldVaultData[_address]?.tvl || 0) + parseInt(aFXSVaultData[_address]?.tvl || 0) + parseInt(afrxETHVaultData[_address]?.tvl || 0);
-      let _apy = Math.max(newVaultData[_address].apy.proApy, newVaultData[_address].apy.cureentApy)
-      const _data = {
-        tvl: _tvl,
-        apy: _apy,
-        symbol: newVaultData[_address].symbol,
-        lpToken: _address
-      }
-      pools.push(_data)
-    }
+    vaultsInfo.data.map((item) => {
+      pools.push({
+        tvl: item.tvl,
+        apy: item.apy.proApy,
+        symbol: item.lpName,
+        lpToken: item.address,
+      });
+    });
   }
   return pools;
 };
 
-const getAcrvInfo = async () => {
-  let crvPrice = await utils.getData(
-    'https://api.aladdin.club/api/coingecko/price?ids=convex-crv&vs_currencies=usd'
+const getATokenData = async () => {
+  let aTokenData = await utils.getData(
+    `${ALADDIN_API_BASE_URL}api1/concentrator_aToken_tvl_apy`
   );
-  crvPrice = crvPrice.data['convex-crv'].usd;
-  const acrvTotalUnderlying = (
-    await sdk.api.abi.call({
-      target: concentratorAcrv,
-      abi: AladdinCRVABI.totalUnderlying,
-      params: [],
-    })
-  ).output;
-
-  const acrvTotalSupply = (
-    await sdk.api.abi.call({
-      target: concentratorAcrv,
-      abi: AladdinCRVABI.totalSupply,
-      params: [],
-    })
-  ).output;
-
-  const rate =
-    acrvTotalSupply * 1
-      ? BigNumber(acrvTotalUnderlying).div(acrvTotalSupply)
-      : 1;
-  const cvxcrvBalance = BigNumber(acrvTotalUnderlying)
-    .multipliedBy(rate)
-    .times(crvPrice)
-    .div(10 ** 18)
-    .toString(10);
-
-  const acrvPrice = BigNumber(crvPrice).times(rate);
-  return {
-    cvxcrvBalance,
-    acrvPrice,
-    rate,
-  };
-};
-
-const getAcrvPoolData = async () => {
-  let dataApy = await utils.getData(
-    `https://api.aladdin.club/api/convex`
-  );
-  const acrvInfo = await getAcrvInfo()
-  const convexApy = getConvexInfo('CRV', dataApy)?.apy?.project || 0;
-
-  const apy = BigNumber(parseFloat(convexApy))
-    .dividedBy(100)
-    .dividedBy(365)
-    .plus(1)
-    .pow(365)
-    .minus(1)
-    .shiftedBy(2);
-
-  const newObj = {
-    pool: `${concentratorAcrv}-concentrator`,
-    chain: utils.formatChain('ethereum'),
-    project: 'concentrator',
-    symbol: 'aCRV',
-    tvlUsd: parseInt(acrvInfo.cvxcrvBalance, 10),
-    apy: parseFloat(apy.toString(10)),
-  };
+  const { aCRV, asdCRV, aladdinCVX } = aTokenData.data;
+  const newObj = [
+    {
+      pool: `${concentratorAcrv}-concentrator`,
+      chain: utils.formatChain('ethereum'),
+      project: 'concentrator',
+      symbol: 'aCRV',
+      tvlUsd: parseInt(aCRV.tvl, 10),
+      apy: parseFloat(aCRV.apy),
+    },
+    {
+      pool: `${aladdinSdCRV}-concentrator`,
+      chain: utils.formatChain('ethereum'),
+      project: 'concentrator',
+      symbol: 'asdCRV',
+      tvlUsd: parseInt(asdCRV.tvl, 10),
+      apy: parseFloat(asdCRV.apy),
+    },
+    {
+      pool: `${aladdinCVX}-concentrator`,
+      chain: utils.formatChain('ethereum'),
+      project: 'concentrator',
+      symbol: 'aCVX',
+      tvlUsd: parseInt(aladdinCVX.tvl, 10),
+      apy: parseFloat(aladdinCVX.apy),
+    },
+  ];
   return newObj;
-};
-const getConvexInfo = (tokenName, dataApy) => {
-  let data = dataApy;
-  try {
-    const info =
-      data.find(
-        (item) =>
-          item.name.toLocaleLowerCase() === tokenName.toLocaleLowerCase() ||
-          item.name === tokenName
-      ) || converWebsiteInfo.find((item) => item.name === tokenName);
-
-    if (BigNumber(parseFloat(info.apy.current)).isNaN()) {
-      return converWebsiteInfo.find(
-        (item) => item.name === tokenName.toLocaleLowerCase()
-      );
-    }
-    return info;
-  } catch (error) {
-    return null;
-  }
 };
 
 const buildPool = (entry, chainString) => {
@@ -139,9 +79,9 @@ const buildPool = (entry, chainString) => {
 
 const main = async () => {
   const dataInfo = await getAllPools();
-  const acrvData = await getAcrvPoolData();
-  const data = dataInfo.map((el) => buildPool(el, 'ethereum'));
-  data.push(acrvData);
+  const aTokenData = await getATokenData();
+  let data = dataInfo.map((el) => buildPool(el, 'ethereum'));
+  data = data.concat(aTokenData);
   return data.filter((p) => utils.keepFinite(p));
 };
 

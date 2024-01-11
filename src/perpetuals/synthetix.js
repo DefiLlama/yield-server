@@ -55,6 +55,7 @@ exports.getPerpData = async () => {
     .map((m) => m.value);
     const res = [];
     fundingRates.forEach((rate) => {
+        if (!rate.fundingRateUpdates) return {}
         let current = rate.fundingRateUpdates[0];
         let previous = rate.fundingRateUpdates[1];
         const token = markets.find((m) => current.market.id === m.address);

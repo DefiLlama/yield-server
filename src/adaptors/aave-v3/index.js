@@ -7,6 +7,7 @@ const { aTokenAbi } = require('./abi');
 const poolAbi = require('./poolAbi');
 
 const SECONDS_PER_YEAR = 31536000;
+const GHO = '0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f';
 
 const chainUrlParam = {
   ethereum: 'proto_mainnet_v3',
@@ -16,13 +17,16 @@ const chainUrlParam = {
   fantom: 'proto_fantom_v3',
   harmony: 'proto_harmony_v3',
   optimism: 'proto_optimism_v3',
+  metis: 'proto_metis_v3',
 };
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesBySymbol = Object.entries(prices).reduce(
@@ -51,6 +55,8 @@ const API_URLS = {
   arbitrum: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-arbitrum',
   polygon: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-polygon',
   fantom: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-fantom',
+  metis:
+    'https://andromeda.thegraph.metis.io/subgraphs/name/aave/protocol-v3-metis',
 };
 
 const query = gql`
@@ -163,22 +169,37 @@ const ethV3Pools = async () => {
 
   const priceKeys = reserveTokens
     .map((t) => `ethereum:${t.tokenAddress}`)
+    .concat(`ethereum:${GHO}`)
     .join(',');
   const pricesEthereum = (
     await superagent.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
   ).body.coins;
+
+  const ghoSupply =
+    (
+      await sdk.api.abi.call({
+        target: GHO,
+        abi: 'erc20:totalSupply',
+      })
+    ).output / 1e18;
 
   return reserveTokens.map((pool, i) => {
     const p = poolsReserveData[i];
     const price = pricesEthereum[`ethereum:${pool.tokenAddress}`]?.price;
 
     const supply = totalSupplyEthereum[i];
-    const totalSupplyUsd =
-      (supply / 10 ** underlyingDecimalsEthereum[i]) * price;
+    let totalSupplyUsd = (supply / 10 ** underlyingDecimalsEthereum[i]) * price;
 
     const currentSupply = underlyingBalancesEthereum[i];
-    const tvlUsd =
-      (currentSupply / 10 ** underlyingDecimalsEthereum[i]) * price;
+    let tvlUsd = (currentSupply / 10 ** underlyingDecimalsEthereum[i]) * price;
+
+    if (pool.symbol === 'GHO') {
+      tvlUsd = 0;
+      totalSupplyUsd = tvlUsd;
+      totalBorrowUsd = ghoSupply * pricesEthereum[`ethereum:${GHO}`]?.price;
+    } else {
+      totalBorrowUsd = totalSupplyUsd - tvlUsd;
+    }
 
     return {
       pool: `${aTokens[i].tokenAddress}-ethereum`.toLowerCase(),
@@ -189,7 +210,8 @@ const ethV3Pools = async () => {
       apyBase: (p.liquidityRate / 10 ** 27) * 100,
       underlyingTokens: [pool.tokenAddress],
       totalSupplyUsd,
-      totalBorrowUsd: totalSupplyUsd - tvlUsd,
+      totalBorrowUsd,
+      debtCeilingUsd: pool.symbol === 'GHO' ? 1e8 : null,
       apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
       ltv: poolsReservesConfigurationData[i].ltv / 10000,
       url: `https://app.aave.com/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=proto_mainnet_v3`,
@@ -334,7 +356,10 @@ const apy = async () => {
 
   const ethPools = await ethV3Pools();
 
-  return pools.flat().concat(ethPools);
+  return pools
+    .flat()
+    .concat(ethPools)
+    .filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

@@ -18,10 +18,10 @@ const UNDERLYING = 'underlying';
 const BLOCKS_PER_DAY = 86400 / 12;
 const PROJECT_NAME = 'tender-finance';
 
-
 async function getGlpApy() {
   const arbitrumGmxAddress = '0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a';
-  const arbitrumGlpManagerAddress = '0x321F653eED006AD1C29D174e17d96351BDe22649';
+  const arbitrumGlpManagerAddress =
+    '0x321F653eED006AD1C29D174e17d96351BDe22649';
   const arbitrumFeeGmxTrackerAddress =
     '0xd2D1162512F927a7e282Ef43a362659E4F2a728F';
   const arbitrumInflationGmxTrackerAddress =
@@ -71,8 +71,9 @@ async function getGlpApy() {
     pInflationGlp,
     pPriceData
   ) {
-    const yearlyFeeGlp = pFeeGlp * pPriceData['coingecko:ethereum'].price
-    const yearlyInflationGlp = pInflationGlp * pPriceData['coingecko:gmx'].price;
+    const yearlyFeeGlp = pFeeGlp * pPriceData['coingecko:ethereum'].price;
+    const yearlyInflationGlp =
+      pInflationGlp * pPriceData['coingecko:gmx'].price;
     const apyFee = (yearlyFeeGlp / pTvl) * 100;
     const apyInflation = (yearlyInflationGlp / pTvl) * 100;
     const chainString = pChain === 'avax' ? 'avalanche' : pChain;
@@ -90,9 +91,7 @@ async function getGlpApy() {
     'arbitrum',
     gmxAbi['tokensPerInterval']
   );
-  const priceKeys = ['gmx', 'ethereum' ]
-    .map((t) => `coingecko:${t}`)
-    .join(',');
+  const priceKeys = ['gmx', 'ethereum'].map((t) => `coingecko:${t}`).join(',');
   const { coins: priceData } = await utils.getData(
     `https://coins.llama.fi/prices/current/${priceKeys}`
   );
@@ -103,7 +102,7 @@ async function getGlpApy() {
     arbitrumFeeGlp,
     arbitrumInflationGlp,
     priceData
-  )
+  );
 }
 
 const NATIVE_TOKEN = {
@@ -139,9 +138,9 @@ const GMD_TOKENS = {
     underlying: '0x147FF11D9B9Ae284c271B2fAaE7068f4CA9BB619',
   },
   gmdUSDT: {
-    underlying: '0x34101Fe647ba02238256b5C5A58AeAa2e532A049'
-  }
-}
+    underlying: '0x34101Fe647ba02238256b5C5A58AeAa2e532A049',
+  },
+};
 
 const getGmdInfo = async () => {
   return (
@@ -157,9 +156,11 @@ const getGmdInfo = async () => {
 };
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
@@ -227,7 +228,7 @@ const main = async () => {
 
   const extraRewards = await getRewards(allMarkets, REWARD_SPEED);
   const extraRewardsBorrow = await getRewards(allMarkets, REWARD_SPEED_BORROW);
-  const isPaused = await getRewards(allMarkets, "mintGuardianPaused");
+  const isPaused = await getRewards(allMarkets, 'mintGuardianPaused');
 
   const supplyRewards = await multiCallMarkets(
     allMarkets,
@@ -276,27 +277,21 @@ const main = async () => {
   const gmdInfo = Object.fromEntries(await getGmdInfo(GMD_IDS));
   const glpApy = await getGlpApy();
 
-  const tenderPrices = await getPrices(
-    [
-      `${CHAIN}:${PROTOCOL_TOKEN.address}`,
-    ]
-  );
+  const tenderPrices = await getPrices([`${CHAIN}:${PROTOCOL_TOKEN.address}`]);
   tenderPrices[PROTOCOL_ESTOKEN.address] = tenderPrices[PROTOCOL_TOKEN.address];
 
   const handleApyUnderlying = (market, symbol, supplyRewards) => {
     const aprToApy = (interest, frequency) =>
-      ((1 + interest / 100 / frequency) ** frequency - 1) * 100
+      ((1 + interest / 100 / frequency) ** frequency - 1) * 100;
 
     if (symbol == 'fsGLP') {
       return glpApy;
-    }
-
-    else if(GMD_TOKENS[symbol]) {
+    } else if (GMD_TOKENS[symbol]) {
       const apr = gmdInfo[GMD_TOKENS[symbol].underlying].APR;
-      return aprToApy(apr / 100, 365).toPrecision(4)
+      return aprToApy(apr / 100, 365).toPrecision(4);
     }
-    return calculateApy(supplyRewards/10 ** 18);
-  }
+    return calculateApy(supplyRewards / 10 ** 18);
+  };
 
   const pools = allMarkets.map((market, i) => {
     const token = underlyingTokens[i] || NATIVE_TOKEN.address;
@@ -307,9 +302,11 @@ const main = async () => {
     if (price === undefined)
       price = symbol.toLowerCase().includes('usd')
         ? 1
-        : symbol == 'gmdBTC' 
-          ? prices['0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f'.toLowerCase()]
-          : symbol == 'gmdETH' ? prices[NATIVE_TOKEN.address.toLowerCase()] : 0
+        : symbol == 'gmdBTC'
+        ? prices['0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f'.toLowerCase()]
+        : symbol == 'gmdETH'
+        ? prices[NATIVE_TOKEN.address.toLowerCase()]
+        : 0;
 
     const totalSupplyUsd =
       ((Number(marketsCash[i]) + Number(totalBorrows[i])) / 10 ** decimals) *
@@ -333,7 +330,7 @@ const main = async () => {
     };
     const apyReward = calcRewardApy(extraRewards, totalSupplyUsd);
     const _apyRewardBorrow = calcRewardApy(extraRewardsBorrow, totalBorrowUsd);
-    const apyRewardBorrow =isNaN(_apyRewardBorrow) ? 0 : _apyRewardBorrow;
+    const apyRewardBorrow = isNaN(_apyRewardBorrow) ? 0 : _apyRewardBorrow;
 
     let poolReturned = {
       pool: market.toLowerCase(),
@@ -344,16 +341,18 @@ const main = async () => {
       apyBase,
       apyReward,
       underlyingTokens: [token],
-      rewardTokens: [apyReward ? PROTOCOL_ESTOKEN.address : null].filter(Boolean),
+      rewardTokens: [apyReward ? PROTOCOL_ESTOKEN.address : null].filter(
+        Boolean
+      ),
       totalSupplyUsd,
       ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
       totalBorrowUsd,
       apyBaseBorrow,
-      apyRewardBorrow
+      apyRewardBorrow,
     };
-    return poolReturned
+    return poolReturned;
   });
-  return pools
+  return pools;
 };
 
 module.exports = {

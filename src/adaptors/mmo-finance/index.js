@@ -71,13 +71,12 @@ const getApy = async (block) => {
   });
 
   // pull token prices
+  const key = `ethereum:${ETHAddr}`.toLowerCase();
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: [`ethereum:${ETHAddr}`],
-    })
+    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
   ).body.coins;
 
-  const ETHPrice = Number(prices[`ethereum:${ETHAddr}`].price);
+  const ETHPrice = Number(prices[key].price);
 
   return [
     {

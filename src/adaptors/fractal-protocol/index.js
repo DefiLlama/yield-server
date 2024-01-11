@@ -23,7 +23,7 @@ const FRACTAL_VAULT_CONTRACT = '0x3EAa4b3e8967c02cE1304C1EB35e8C5409838DFC';
 const fractalMetrics = async () => {
   //fetch apr from api
   const data = await utils.getData(
-    'https://api.fractalprotocol.org/api/vault/historical-apr'
+    'https://api.fractalprotocol.org/vault/ethereum/historical-apr'
   );
   const apyData = data.slice(-1)[0].apr;
 

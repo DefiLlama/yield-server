@@ -19,6 +19,7 @@ const query = gql`
         supplyPoolRate
         eth
         ltv
+        isBorrowingEnabled
       }
       p2pData {
         p2pSupplyIndex
@@ -132,6 +133,7 @@ const apy = async () => {
       totalSupplyUsd: totalSupplyUsd,
       totalBorrowUsd,
       ltv: marketFromGraph.reserveData.ltv / 1e4,
+      borrowable: marketFromGraph.reserveData.isBorrowingEnabled,
     };
   });
 };

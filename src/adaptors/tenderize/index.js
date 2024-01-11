@@ -51,7 +51,7 @@ const topLvl = async (endpoint, chain, apyResponse) => {
 };
 
 const main = async () => {
-  const resp = await fetch('https://www.tenderize.me/api/apy', {
+  const resp = await fetch('https://v1.tenderize.me/api/apy', {
     headers: {
       accept: '*/*',
       'cache-control': 'no-cache',
