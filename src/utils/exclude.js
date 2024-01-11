@@ -62,6 +62,7 @@ const excludeAdaptors = [
   'omnidex-lend',
   'maple',
   'ease.org',
+  'kyberswap-elastic',
 ];
 
 const excludePools = [
