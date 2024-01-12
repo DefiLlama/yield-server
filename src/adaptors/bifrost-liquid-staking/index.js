@@ -20,6 +20,7 @@ const getApy = async () => {
     'bifrost-native-coin',
     'moonbeam',
     'moonriver',
+    'astar'
   ]
     .map((t) => `coingecko:${t}`)
     .join(',');
@@ -58,6 +59,17 @@ const getApy = async () => {
     apyBase: Number(vToken.vFIL.apyBase),
     apyReward: Number(vToken.vFIL.apyReward),
     rewardTokens: ['FIL'],
+  };
+
+  const vASTR = {
+    pool: 'astar-vstr',
+    chain: 'Astar',
+    project: 'bifrost-liquid-staking',
+    symbol: 'vASTR',
+    tvlUsd: vToken.vASTR.tvm * prices['coingecko:astar'].price,
+    apyBase: Number(vToken.vASTR.apyBase),
+    apyReward: Number(vToken.vASTR.apyReward),
+    rewardTokens: ['ASTR'],
   };
 
   const vMOVR = {
@@ -105,7 +117,7 @@ const getApy = async () => {
     rewardTokens: ['ETH'],
   };
 
-  return [vETH, vDOT, vGLMR, vMOVR, vKSM, vBNC, vFIL];
+  return [vETH, vDOT, vGLMR, vMOVR, vKSM, vBNC, vFIL, vASTR];
 };
 
 module.exports = {
