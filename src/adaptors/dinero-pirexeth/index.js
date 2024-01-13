@@ -8,9 +8,7 @@ const getApy = async () => {
   const tvl =
     (await sdk.api.erc20.totalSupply({ target: token })).output / 1e18;
 
-  const apyData = (
-    await axios.get('https://dineroismoney.com/api/apr')
-  ).data;
+  const apyData = (await axios.get('https://dineroismoney.com/api/apr')).data;
   const priceKey = `ethereum:${weth}`;
   const ethPrice = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
@@ -20,10 +18,10 @@ const getApy = async () => {
     {
       pool: token,
       chain: 'ethereum',
-      project: 'dinero',
+      project: 'dinero-pirexeth',
       symbol: 'apxeth',
       tvlUsd: tvl * ethPrice,
-      apyBase: apyData.apxEth,
+      apyBase: Number(apyData.apxEth),
       underlyingTokens: [weth],
     },
   ];
