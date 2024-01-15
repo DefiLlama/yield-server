@@ -6,7 +6,6 @@ const { insertLsd } = require('../queries/lsd');
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
   const payload = await getRates();
-  console.log(payload);
   const response = await insertLsd(payload);
   console.log(response);
 };
