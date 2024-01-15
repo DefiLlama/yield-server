@@ -2,7 +2,6 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const lockerABI = require('./aura-locker-abi.json');
-const minichefABI = require('./mini-chef-abi.json');
 
 const aura = '0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF';
 const auraLocker = '0x3Fa73f1E5d8A792C80F426fc8F84FBF7Ce9bBCAC';
@@ -14,7 +13,6 @@ const usdc = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8';
 const uvrt = '0xa485a0bc44988B95245D5F20497CCaFF58a73E99';
 const uvrtTracker = '0xEB23C7e19DB72F9a728fD64E1CAA459E457cfaca';
 const arbitrum = '0x912CE59144191C1204E64559FE8253a0e49E6548';
-const minichef = '0x0aEfaD19aA454bCc1B1Dd86e18A7d58D0a6FAC38';
 
 const SECONDS_PER_YEAR = 31556952;
 // 0.97% see https://docs.jonesdao.io/jones-dao/features/incentives
