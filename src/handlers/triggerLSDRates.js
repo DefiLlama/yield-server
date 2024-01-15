@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk4');
 const axios = require('axios');
 
 const { insertLsd } = require('../queries/lsd');
@@ -194,13 +194,12 @@ const getRates = async () => {
 };
 
 const getMarketRates = async () => {
-  const eth = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
   const amount = 1e18;
   const urls = lsdTokens
     .filter((i) => i.name !== 'StakeHound') // useless data
     .map(
       (lsd) =>
-        `${priceUrl}?sellToken=${lsd.address}&buyToken=${eth}&sellAmount=${amount}`
+        `${priceUrl}?sellToken=${lsd.address}&buyToken=eth&sellAmount=${amount}`
     );
 
   const marketRates = [];
