@@ -111,6 +111,7 @@ const topLvl = async (
       abi: 'erc20:balanceOf',
       calls: balanceCalls,
       chain: chainString,
+      permitFailure: true,
     });
 
     dataNow = dataNow.map((p) => {
@@ -245,12 +246,21 @@ const topLvl = async (
       const feeTier = Number(poolMeta.replace('%', '')) * 10000;
       const url = `https://app.uniswap.org/#/add/${token0}/${token1}/${feeTier}?chain=${chain}`;
 
+      let symbol = p.symbol;
+      if (
+        chainString === 'arbitrum' &&
+        underlyingTokens
+          .map((t) => t.toLowerCase())
+          .includes('0xff970a61a04b1ca14834a43f5de4533ebddb5cc8')
+      ) {
+        symbol = p.symbol.replace('USDC', 'USDC.e');
+      }
       return {
         pool: p.id,
         chain: utils.formatChain(chainString),
         project: 'uniswap-v3',
         poolMeta: `${poolMeta}, stablePool=${p.stablecoin}`,
-        symbol: p.symbol,
+        symbol,
         tvlUsd: p.totalValueLockedUSD,
         apyBase: p.apy1d,
         apyBase7d: p.apy7d,

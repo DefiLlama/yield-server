@@ -23,6 +23,7 @@ const networkMapping = {
   1284: 'moonbeam',
   42262: 'oasis',
   1313161554: 'aurora',
+  8453: 'base',
 };
 
 // hardcode bifi token addresses per chain
@@ -44,6 +45,7 @@ const bifiMapping = {
   1284: '0x595c8481c48894771CE8FaDE54ac6Bf59093F9E8',
   42262: '0x65e66a61D0a8F1e686C2D6083ad611a10D84D97A',
   1313161554: '0x218c3c3D49d0E7B37aff0D8bB079de36Ae61A4c0',
+  8453: '0xb4aa172f1Cf73cCC41290A8477F72CFB2ded46dd',
 };
 
 const main = async () => {
@@ -70,7 +72,10 @@ const main = async () => {
 
       if (!poolId) continue;
 
-      const underlyingTokens = (!!poolMeta && poolMeta.assets.length === 1 && poolMeta.tokenAddress) ? [poolMeta.tokenAddress] : undefined;
+      const underlyingTokens =
+        !!poolMeta && poolMeta.assets.length === 1 && poolMeta.tokenAddress
+          ? [poolMeta.tokenAddress]
+          : undefined;
 
       data.push({
         pool: `${poolId}-${networkMapping[chain]}`.toLowerCase(),
@@ -89,7 +94,7 @@ const main = async () => {
     }
   }
 
-  return data;
+  return utils.removeDuplicates(data);
 };
 
 module.exports = {

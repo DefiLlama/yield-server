@@ -26,7 +26,7 @@ const getPools = async (blockchainId) => {
     } catch (error) {
       continue;
     }
-    if (response?.success) {
+    if (response?.success && response?.data?.poolData?.length) {
       const poolsByAddressForRegistry = Object.fromEntries(
         response.data.poolData.map((pool) => [pool.address, pool])
       );
@@ -208,6 +208,10 @@ const main = async () => {
   //   await utils.getData('https://api.curve.fi/api/getFactoryAPYs-celo')
   // ).data.poolDetails;
 
+  const baseApy = (
+    await utils.getData('https://api.curve.fi/api/getFactoryAPYs-base')
+  ).data.poolDetails;
+
   // create feeder closure to fill defillamaPooldata asynchroniously
   const defillamaPooldata = [];
   const feedLlama = async (poolData, blockchainId) => {
@@ -219,7 +223,7 @@ const main = async () => {
     ] = poolData;
 
     let factoryAprData;
-    if (['optimism', 'celo', 'kava'].includes(blockchainId)) {
+    if (['optimism', 'celo', 'kava', 'base'].includes(blockchainId)) {
       factoryAprData = (
         await utils.getData(
           `https://api.curve.fi/api/getFactoGauges/${blockchainId}`
@@ -235,13 +239,18 @@ const main = async () => {
       const subgraph = addressToPoolSubgraph[address];
       const gauge = addressToGauge[blockchainId][pool.gaugeAddress];
       // one gauge can have multiple (different) extra rewards
-      const extraRewards = gaugeAddressToExtraRewards[pool.gaugeAddress];
+      const extraRewards = gaugeAddressToExtraRewards
+        ? gaugeAddressToExtraRewards[pool.gaugeAddress]
+        : null;
 
       const apyBase = subgraph
         ? parseFloat(subgraph.latestDailyApy)
         : blockchainId === 'celo'
         ? celoApy.find((i) => i.poolAddress === address)?.apy
+        : blockchainId === 'base'
+        ? baseApy.find((i) => i.poolAddress === address)?.apy
         : 0;
+
       const aprCrv = gauge?.is_killed
         ? 0
         : pool?.gaugeCrvApy?.length > 0
@@ -274,7 +283,7 @@ const main = async () => {
           address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' || // pool on moonbeam
           address === '0xe9123CBC5d1EA65301D417193c40A72Ac8D53501' || // lvusd
           address === '0x056C6C5e684CeC248635eD86033378Cc444459B0' // eur pool gnosis
-        ? pool.gaugeRewards[0].apy
+        ? pool.gaugeRewards[0]?.apy
         : 0;
 
       // tokens are listed using their contract addresses
@@ -345,7 +354,6 @@ const main = async () => {
           ['0xBaaa1F5DbA42C3389bDbc2c9D2dE134F5cD0Dc89'].includes(address)
             ? null
             : [
-                '0x061b87122Ed14b9526A813209C8a59a633257bAb',
                 '0x9F2fE3500B1a7E285FDc337acacE94c480e00130',
                 '0x29A3d66B30Bc4AD674A4FDAF27578B64f6afbFe7',
               ].includes(address)
