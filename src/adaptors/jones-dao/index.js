@@ -92,7 +92,7 @@ async function pools() {
     tvlUsd: jAuraTvl,
     apyBase: jauraApyRes.jauraApy * (1 - JGLP_RETENTION),
     apyBaseInception: jauraApyRes.jauraApyInception,
-    rewardApy: stipFarms[2].apr,
+    apyReward: stipFarms[2].apr,
   };
 
   const jUsdcPool = {
@@ -105,7 +105,7 @@ async function pools() {
     apyBase: jusdcApy.week * (1 - JUSDC_RETENTION),
     apyBaseInception: jusdcApy.full,
     poolMeta: '1day lock',
-    rewardApy: stipFarms[1].apr,
+    apyReward: stipFarms[1].apr,
   };
 
   const jGlpPool = {
@@ -117,7 +117,7 @@ async function pools() {
     tvlUsd: jglpTvl,
     apyBase: jglpApy.week * (1 - JGLP_RETENTION),
     apyBaseInception: jglpApy.full,
-    rewardApy: stipFarms[0].apr,
+    apyReward: stipFarms[0].apr,
   };
 
   return [jUsdcPool, jGlpPool, jAuraPool];
