@@ -52,6 +52,7 @@ const lsdTokens = [
     symbol: 'ANKRETH',
     address: '0xe95a203b1a91a908f9b9ce46459d101078c2c3cb',
     type: a,
+    fee: 0.1,
   },
   {
     name: 'Frax Ether',
