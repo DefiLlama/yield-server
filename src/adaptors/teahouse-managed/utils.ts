@@ -70,6 +70,7 @@ async function addTVLData(vaults: Vault[]): Promise<Vault[]> {
     return newVaults
 }
 
+
 async function addTvlData(chain:string,vaults:Vault[]): Promise<Vault[]> {
     const newVaults = []
     const vaultAddr=vaults.map((el)=>el.address)
