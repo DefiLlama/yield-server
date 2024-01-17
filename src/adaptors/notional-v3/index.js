@@ -19,7 +19,8 @@ query GetYieldsData {
         nTokenToUnderlyingExchangeRate,
         nTokenBlendedInterestRate,
         nTokenFeeRate,
-        nTokenIncentiveRate
+        nTokenIncentiveRate,
+        nTokenSecondaryIncentiveRate
       ],
     }, first: 1000) {
       base { id }
@@ -34,6 +35,7 @@ query GetYieldsData {
       id
       symbol
       totalSupply
+      currencyId
       underlying {id symbol decimals}
     }
   	activeMarkets {
@@ -59,6 +61,10 @@ query GetYieldsData {
           totalfCashDebtOutstandingPresentValue
         }
       }
+    }
+    incentives {
+      id
+      currentSecondaryReward { id }
     }
   }
 `
@@ -91,6 +97,8 @@ const getPools = async (chain) => {
     const nTokenExRate = oracles.find(({ oracleType }) => oracleType === 'nTokenToUnderlyingExchangeRate').latestRate
     const nTokenBlendedRate = oracles.find(({ oracleType }) => oracleType === 'nTokenBlendedInterestRate').latestRate
     const nTokenFeeRate = oracles.find(({ oracleType }) => oracleType === 'nTokenFeeRate').latestRate
+
+    // NOTE incentive rate
     const nTokenIncentiveRate = oracles.find(({ oracleType }) => oracleType === 'nTokenIncentiveRate').latestRate
     const underlyingDecimals = BigInt(10) ** BigInt(n.underlying.decimals)
     const tvlUnderlying = (BigInt(n.totalSupply) * BigInt(nTokenExRate)) / BigInt(1e9)
@@ -98,18 +106,33 @@ const getPools = async (chain) => {
     const tvlUsd = Number(tvlUnderlying) / 1e8 * underlyingPrice
     const NOTEPriceInUnderlying = NOTEPriceUSD / underlyingPrice
 
+    let apyReward = (Number(nTokenIncentiveRate) * NOTEPriceInUnderlying) * 100 / 1e9;
+
+    const secondaryIncentiveToken = results['incentives'].find((i) => i.id === `${n.currencyId}`)
+    const nTokenSecondaryIncentiveRate = oracles.find(({ oracleType }) => oracleType === 'nTokenSecondaryIncentiveRate').latestRate
+    const rewardTokens = [ NOTE ]
+
+    if (secondaryIncentiveToken.currentSecondaryReward !== null && nTokenSecondaryIncentiveRate) {
+      const token = secondaryIncentiveToken.currentSecondaryReward.id
+      rewardTokens.push(token)
+      const rewardPriceUSD = await getUSDPrice(chain, token)
+      const PriceInUnderlying = rewardPriceUSD / underlyingPrice
+      const apySecondary = (Number(nTokenSecondaryIncentiveRate) * PriceInUnderlying) * 100 / 1e17
+      apyReward = apyReward + apySecondary
+    }
+
     return {
       pool: `${n.id}-${chain}`,
       chain,
       project,
       symbol: n.symbol,
-      rewardTokens: [ NOTE ],
+      rewardTokens,
       underlyingTokens: [ n.underlying.id ],
       poolMeta: 'Liquidity Token',
       url: `https://arbitrum.notional.finance/liquidity-variable/${n.underlying.symbol}`,
       tvlUsd,
       apyBase: (Number(nTokenBlendedRate) + Number(nTokenFeeRate)) * 100 / 1e9,
-      apyReward: (Number(nTokenIncentiveRate) * NOTEPriceInUnderlying) * 100 / 1e9
+      apyReward,
     }
   }))
 
