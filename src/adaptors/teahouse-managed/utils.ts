@@ -187,7 +187,14 @@ function convertToPool(vault: Vault): Pool {
     };
 }
 
+function updateRpcUrl(sdk: any, chain: string, chainId: number, rpcUrl: string) {
+    const provider = new ethers.providers.StaticJsonRpcProvider(
+        rpcUrl, {name: chain, chainId: chainId})
+    sdk.api.config.setProvider(chain, provider);
+}
+
 async function topLvl(_: number): Promise<Pool[]> {
+    updateRpcUrl(sdk, 'ethereum', 1, "https://ethereum.publicnode.com")
     // step 1: get managed vault data
     let vaults=await getManagedVaultData()
     console.log(`vaults: ${vaults.length}`)
