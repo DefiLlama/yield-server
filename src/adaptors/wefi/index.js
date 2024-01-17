@@ -227,7 +227,7 @@ const main = async (pool) => {
     const apyRewardBorrow = calcRewardApy(rewardSpeedBorrow, totalBorrowUsd, pool);
 
     let poolReturned = {
-      pool: market.toLowerCase(),
+      pool: pool.chain + ":" + market.toLowerCase(),
       chain: utils.formatChain(pool.chain),
       project: PROJECT_NAME,
       symbol,
