@@ -28,12 +28,7 @@ const poolsFunction = async () => {
   );
   const ethPrice = priceData.coins['coingecko:ethereum'].price;
 
-  const tvlUsd =
-    BigNumber.from(totalValueEth)
-      .mul(ethers.utils.parseEther(ethPrice.toString()))
-      .div(BigNumber.from('10').pow(36 - 8))
-      .toNumber() /
-    10 ** 8;
+  const tvlUsd = (totalValueEth / 1e18) * ethPrice;
 
   const oethData = {
     pool: '0x856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc3',
