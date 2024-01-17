@@ -32,7 +32,7 @@ const markets = [
   {
     chain: "linea",
     comptrollerAddress: "0x301C76e7b60e9824E32991B8F29e1c4a03B4F65b",
-    blocksPerDay: 7200,
+    blocksPerDay: 14400,
     nativeToken: {
       decimals: 18,
       symbol: 'WETH',
@@ -191,6 +191,10 @@ const main = async (pool) => {
       .map((token) => `${pool.chain}:` + token)
   );
 
+  if(pool.chain === "linea"){
+    const wefiPrice = await getPrices(['polygon:0xfFA188493C15DfAf2C206c97D8633377847b6a52']);
+    prices["0x60892e742d91d16be2cb0ffe847e85445989e30b"] = wefiPrice["0xffa188493c15dfaf2c206c97d8633377847b6a52"]
+  }
   const pools = allMarkets.map((market, i) => {
     const token = underlyingTokens[i] || pool.nativeToken.address;
     const symbol = underlyingSymbols[i] || pool.nativeToken.symbol;
@@ -223,7 +227,7 @@ const main = async (pool) => {
     const apyRewardBorrow = calcRewardApy(rewardSpeedBorrow, totalBorrowUsd, pool);
 
     let poolReturned = {
-      pool: market.toLowerCase(),
+      pool: pool.chain + ":" + market.toLowerCase(),
       chain: utils.formatChain(pool.chain),
       project: PROJECT_NAME,
       symbol,
