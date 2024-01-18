@@ -2,7 +2,7 @@ const axios = require('axios');
 const utils = require('../utils');
 
 const FARM_FEE = 0.04;
-const apiBase = 'https://francium.io/'
+const apiBase = 'https://preview.francium.io/'
 
 function getFarmPoolAPY(target) {
   function aprToApy(apr, n = 365) {
