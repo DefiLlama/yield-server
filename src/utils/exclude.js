@@ -63,6 +63,8 @@ const excludeAdaptors = [
   'maple',
   'ease.org',
   'kyberswap-elastic',
+  'penrose',
+  'unknown',
 ];
 
 const excludePools = [
