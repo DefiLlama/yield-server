@@ -39,7 +39,7 @@ module.exports = async function () {
   global.uniquePoolIdentifiersDB = new Set(
     (
       await axios.get(
-        'https://1rwmj4tky9.execute-api.eu-central-1.amazonaws.com/distinctID'
+        'https://yields.llama.fi/distinctID'
       )
     ).data
       .filter((p) => p.project !== global.apy[0].project)
