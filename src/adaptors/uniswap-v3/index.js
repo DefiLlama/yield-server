@@ -79,17 +79,21 @@ const topLvl = async (
     // uni v3 subgraph reserves values are wrong!
     // instead of relying on subgraph values, gonna pull reserve data from contracts
     // new tvl calc
-    const excludeTokens = [
-      '0xb50721bcf8d664c30412cfbc6cf7a15145234ad1',
-      '0x4d224452801aced8b2f0aebe155379bb5d594381',
-      '0x7ceb23fd6bc0add59e62ac25578270cff1b9f619',
-      '0x385eeac5cb85a38a9a07a70c73e0a3271cfb54a7',
-      '0x4701f80124f5ebf6846a43929b22a917bc30b2ca',
-      '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-    ];
-    dataNow = dataNow.filter(
-      (p) => !excludeTokens.some((i) => i === p.token0.id || i === p.token1.id)
-    );
+    // let
+    if (chainString === 'base') {
+      const excludeTokens = [
+        '0xb50721bcf8d664c30412cfbc6cf7a15145234ad1',
+        '0x4d224452801aced8b2f0aebe155379bb5d594381',
+        '0x7ceb23fd6bc0add59e62ac25578270cff1b9f619',
+        '0x385eeac5cb85a38a9a07a70c73e0a3271cfb54a7',
+        '0x4701f80124f5ebf6846a43929b22a917bc30b2ca',
+        '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+      ];
+      dataNow = dataNow.filter(
+        (p) =>
+          !excludeTokens.some((i) => i === p.token0.id || i === p.token1.id)
+      );
+    }
 
     const balanceCalls = [];
     for (const pool of dataNow) {
@@ -107,6 +111,7 @@ const topLvl = async (
       abi: 'erc20:balanceOf',
       calls: balanceCalls,
       chain: chainString,
+      permitFailure: true,
     });
 
     dataNow = dataNow.map((p) => {
@@ -241,12 +246,21 @@ const topLvl = async (
       const feeTier = Number(poolMeta.replace('%', '')) * 10000;
       const url = `https://app.uniswap.org/#/add/${token0}/${token1}/${feeTier}?chain=${chain}`;
 
+      let symbol = p.symbol;
+      if (
+        chainString === 'arbitrum' &&
+        underlyingTokens
+          .map((t) => t.toLowerCase())
+          .includes('0xff970a61a04b1ca14834a43f5de4533ebddb5cc8')
+      ) {
+        symbol = p.symbol.replace('USDC', 'USDC.e');
+      }
       return {
         pool: p.id,
         chain: utils.formatChain(chainString),
         project: 'uniswap-v3',
         poolMeta: `${poolMeta}, stablePool=${p.stablecoin}`,
-        symbol: p.symbol,
+        symbol,
         tvlUsd: p.totalValueLockedUSD,
         apyBase: p.apy1d,
         apyBase7d: p.apy7d,
@@ -257,8 +271,8 @@ const topLvl = async (
       };
     });
   } catch (e) {
-    if (e.message.includes('Stale subgraph')) return [];
-    else throw e;
+    console.log(chainString, e);
+    return [];
   }
 };
 

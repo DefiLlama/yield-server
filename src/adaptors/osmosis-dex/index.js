@@ -18,7 +18,9 @@ const getApy = async () => {
 
     const tvlUsd = x.liquidity;
 
-    const symbol = `${tvl[0].symbol}-${tvl[1].symbol}`;
+    const symbol = `${tvl[0]?.symbol}-${tvl[1]?.symbol}`;
+
+    if (symbol.includes(undefined)) return null;
 
     const p = `${pool}-${symbol}-14day`;
     if (uniquePools.has(p)) return [];
@@ -51,13 +53,13 @@ const getApy = async () => {
       apyBase: aprBase,
       apyBase7d: aprBase7d,
       apyReward,
-      rewardTokens: aprs?.map((a) => a.symbol) ?? [],
+      rewardTokens: aprs?.map((a) => a?.symbol) ?? [],
       volumeUsd1d: x.volume_24h,
       volumeUsd7d: x.volume_7d,
     };
   });
 
-  return data.filter((p) => utils.keepFinite(p));
+  return data.filter((p) => p && utils.keepFinite(p));
 };
 
 module.exports = {

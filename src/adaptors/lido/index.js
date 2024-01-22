@@ -8,8 +8,8 @@ const topLvl = async (chainString, url, token, address, underlying) => {
 
   if (chainString === 'ethereum') {
     dataTvl = await utils.getData(`${url}/short-lido-stats`);
-    dataApy = await utils.getData(`${url}/sma-steth-apr`);
-    dataTvl.apr = dataApy;
+    dataApy = await utils.getData(`https://eth-api.lido.fi/v1/protocol/steth/apr/last`);
+    dataTvl.apr = dataApy.data.apr;
     data = { ...dataTvl };
   } else {
     data = await utils.getData(url);
@@ -58,7 +58,7 @@ const main = async () => {
     ),
   ]);
 
-  return data.flat();
+  return data;
 };
 
 module.exports = {

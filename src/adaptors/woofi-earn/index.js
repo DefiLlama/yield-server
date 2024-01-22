@@ -10,6 +10,7 @@ const API_URLS = {
   polygon: `${API_URL}?network=polygon`,
   arbitrum: `${API_URL}?network=arbitrum`,
   optimism: `${API_URL}?network=optimism`,
+  era: `${API_URL}?network=zksync`,
 };
 
 const rewardTokensMapping = {
@@ -45,6 +46,12 @@ const main = async () => {
       if (chain === "arbitrum") {
         apyReward = info['arb_rewards_apr'];
       }
+      let rewardTokens;
+      if (chain === "era") {
+        rewardTokens = [];
+      } else {
+        rewardTokens = [rewardTokensMapping[chain]];
+      }
       results.push({
         pool: `${address}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
@@ -54,7 +61,7 @@ const main = async () => {
         tvlUsd: parseFloat(BigNumber(info['tvl']).div(10 ** decimals)),
         apyBase: info['weighted_average_apr'],
         apyReward: apyReward,
-        rewardTokens: [rewardTokensMapping[chain]],
+        rewardTokens: rewardTokens,
       });
     }
   }
@@ -65,5 +72,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://fi.woo.org/earn/',
+  url: 'https://fi.woo.org/swap/earn',
 };

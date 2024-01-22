@@ -123,13 +123,15 @@ const topLvl = async (chainString, url, timestamp) => {
 };
 
 const main = async (timestamp = null) => {
-  const data = await Promise.all(
+  const data = await Promise.allSettled(
     Object.entries(CHAINS_API).map(([chain, url]) =>
       topLvl(chain, url, timestamp)
     )
   );
 
   return data
+    .filter((i) => i.status === 'fulfilled')
+    .map((i) => i.value)
     .flat()
     .filter(
       (p) =>

@@ -17,7 +17,8 @@ exports.formatChain = (chain) => {
   if (
     chain &&
     (chain.toLowerCase() === 'zksync_era' ||
-      chain.toLowerCase() === 'zksync era')
+      chain.toLowerCase() === 'zksync era' ||
+      chain.toLowerCase() === 'era')
   )
     return 'zkSync Era';
   if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
@@ -100,8 +101,16 @@ const getLatestBlockSubgraph = async (url) => {
     ) ||
     url.includes('api.goldsky.com') ||
     url.includes('48211/uniswap-v3-base') ||
-    url.includes('horizondex/block')
+    url.includes('horizondex/block') ||
+    url.includes('exchange-v3-polygon-zkevm/version/latest') ||
+    url.includes('exchange-v3-zksync/version/latest') ||
+    url.includes('balancer-base-v2/version/latest')
       ? await request(url, queryGraph)
+      : url.includes('aperture/uniswap-v3')
+      ? await request(
+          'https://api.goldsky.com/api/public/project_clnz7akg41cv72ntv0uhyd3ai/subgraphs/aperture/manta-pacific-blocks/gn',
+          queryGraph
+        )
       : await request(
           `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
           queryGraph
@@ -248,6 +257,8 @@ exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
     pool['feeTier'] = 3000;
   } else if (version === 'stellaswap') {
     pool['feeTier'] = 2000;
+  } else if (version === 'baseswap') {
+    pool['feeTier'] = 1700;
   } else if (version === 'zyberswap') {
     pool['feeTier'] = 1500;
   } else if (version === 'arbidex') {
@@ -414,3 +425,16 @@ const makeMulticall = async (abi, addresses, chain, params = null) => {
 };
 
 exports.makeMulticall = makeMulticall;
+
+const capitalizeFirstLetter = (str) => {
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
+
+exports.capitalizeFirstLetter = capitalizeFirstLetter;
+
+exports.removeDuplicates = (pools) => {
+  const seen = {};
+  return pools.filter((i) => {
+    return seen.hasOwnProperty(i.pool) ? false : (seen[i.pool] = true);
+  });
+};
