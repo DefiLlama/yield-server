@@ -163,13 +163,9 @@ const lsdTokens = [
   },
 ];
 
-const priceUrl = 'https://api.0x.org/swap/v1/quote';
+const priceUrl = 'https://aggregator-api.kyberswap.com/ethereum/api/v1/routes';
 const cbETHRateUrl =
   'https://api-public.sandbox.pro.coinbase.com/wrapped-assets/CBETH/conversion-rate';
-
-const apiKey = {
-  headers: { '0x-api-key': process.env.ZEROX_API },
-};
 
 const getRates = async () => {
   const marketRates = await getMarketRates();
@@ -200,13 +196,13 @@ const getMarketRates = async () => {
     .filter((i) => i.name !== 'StakeHound') // useless data
     .map(
       (lsd) =>
-        `${priceUrl}?sellToken=${lsd.address}&buyToken=eth&sellAmount=${amount}`
+        `${priceUrl}?tokenIn=${lsd.address}&tokenOut=0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE&amountIn=${amount}`
     );
 
   const marketRates = [];
   for (const url of urls) {
     try {
-      marketRates.push((await axios.get(url, apiKey)).data);
+      marketRates.push((await axios.get(url)).data.data.routeSummary);
       await sleep(500);
     } catch (err) {
       console.log(url, err.response.data);
@@ -214,10 +210,10 @@ const getMarketRates = async () => {
   }
 
   return marketRates.map((m) => ({
-    buyTokenAddress: m.buyTokenAddress,
-    sellTokenAddress: m.sellTokenAddress,
-    buyAmount: m.buyAmount,
-    sellAmount: m.sellAmount,
+    buyTokenAddress: m.tokenOut,
+    sellTokenAddress: m.tokenIn,
+    buyAmount: m.amountOut,
+    sellAmount: m.amountIn,
   }));
 };
 
