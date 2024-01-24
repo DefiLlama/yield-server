@@ -425,7 +425,11 @@ const excludePools = [
   '0xbefaba1c380d8b0a53bc604d8b809684775e74f8',
   '0x4b4b425586fa9b5cf0d06baf5ba9eb9e9b936e66-avalanche',
   '0x295d1119c1183dc64feeb4bdc3f06f652525013d-avalanche',
-  '0x1e85ec4ff94f161131322b0045295de222c5df8b-avalanche',
+  '0x4c46ea0265efb51f90d405fb27bac92ff1beb274-avalanche',
+  '0x6b23732232f836d0918b11ebc03c21ad8759cb10-avalanche',
+  '0x3bf4885237f857b9668d2c44fa9ccd37b9c988e7-avalanche',
+  '0x0304a6dc4231c963c13df6c8b033ded30597ef4b-avalanche',
+  '0xe24563774dd4050e28e3c63567b2918495367626-avalanche',
 ];
 
 const boundaries = {
