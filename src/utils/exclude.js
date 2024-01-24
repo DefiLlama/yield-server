@@ -65,6 +65,7 @@ const excludeAdaptors = [
   'kyberswap-elastic',
   'penrose',
   'unknown',
+  'mooncake-finance',
 ];
 
 const excludePools = [
