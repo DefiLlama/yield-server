@@ -356,7 +356,10 @@ const apy = async () => {
     return chainPools;
   });
 
-  const ethPools = await ethV3Pools();
+  // This results in a call exception
+  const ethPools = await ethV3Pools().catch((err) => {
+    return [];
+  });
 
   return pools
     .flat()
