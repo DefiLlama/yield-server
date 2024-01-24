@@ -112,116 +112,12 @@ async function getPoolsDaoFees(chain) {
   return result;
 }
 
-async function getPoolsV1Data(chain) {
-  const pools = (
-    await sdk.api.abi.call({
-      target: DATA_COMPRESSOR_210,
-      chain,
-      abi: abi.getPoolsV1List,
-    })
-  ).output;
-
-  //LM REWARDS Adjustment N.1
-  // usdc:31.01/dai:22.83/eth:40.14/wstETH:0/btc:4.57
-  //Credit Account LM REWARDS
-  // usdc:1.66/dai:1.66/eth:2.30/wstETH:0/btc:0
-  // https://gov.gearbox.fi/t/gip-30-lm-adjustment-1/1875
-  const gearPerBlock = {
-    '0x86130bDD69143D8a4E5fc50bf4323D48049E98E4': { LP: 0, CA: 0 },
-    '0x24946bCbBd028D5ABb62ad9B635EB1b1a67AF668': { LP: 0, CA: 0 },
-    '0xB03670c20F87f2169A7c4eBE35746007e9575901': { LP: 0, CA: 0 },
-    '0xB8cf3Ed326bB0E51454361Fb37E9E8df6DC5C286': { LP: 0, CA: 0 },
-    '0xB2A015c71c17bCAC6af36645DEad8c572bA08A08': { LP: 0, CA: 0 },
-    '0x79012c8d491DcF3A30Db20d1f449b14CAF01da6C': { LP: 0, CA: 0 },
-  };
-
-  const decimals = await sdk.api.abi
-    .multiCall({
-      abi: abi.decimals,
-      calls: pools.map((p) => ({
-        target: p.dieselToken,
-      })),
-      chain,
-    })
-    .then(getMulticallOutput);
-
-  return pools.map((pool, i) => ({
-    pool: pool.addr,
-    gearPerBlock: gearPerBlock[pool.addr],
-    availableLiquidity: pool.availableLiquidity,
-    totalBorrowed: pool.totalBorrowed,
-    supplyRate: pool.supplyRate,
-    baseInterestRate: pool.baseInterestRate,
-    underlying: pool.underlying,
-    withdrawFee: pool.withdrawFee,
-    symbol: pool.symbol,
-    decimals: Math.pow(10, Number(decimals[i])),
-  }));
-}
-
-function calculateApy(rate, price = 1, tvl = 1) {
-  // supply rate per block * number of blocks per year
-  const safeTvl = tvl === 0 ? 1 : tvl;
-  const apy = ((rate * YEARLY_BLOCKS * price) / safeTvl) * 100;
-  return apy;
-}
-
 function calculateTvl(availableLiquidity, totalBorrowed, price, decimals) {
   // ( availableLiquidity + totalBorrowed ) * underlying price = total pool balance in USD
   const tvl =
     ((parseFloat(availableLiquidity) + parseFloat(totalBorrowed)) / decimals) *
     price;
   return tvl;
-}
-
-function getApyV1(v1PoolsData, underlyings, gearPrice, daoFees) {
-  return v1PoolsData.map((pool) => {
-    const underlyingPrice = underlyings[pool.underlying.toLowerCase()].price;
-    const daoFee = daoFees[pool.pool.toLowerCase()] ?? 0;
-    const totalSupplyUsd = calculateTvl(
-      pool.availableLiquidity,
-      pool.totalBorrowed,
-      underlyingPrice,
-      pool.decimals
-    );
-    const totalBorrowUsd = calculateTvl(
-      0,
-      pool.totalBorrowed,
-      underlyingPrice,
-      pool.decimals
-    );
-    const tvlUsd = totalSupplyUsd - totalBorrowUsd;
-    const LpRewardApy = calculateApy(
-      pool.gearPerBlock?.LP ?? 0,
-      gearPrice,
-      totalSupplyUsd
-    );
-    const CaRewardApy = calculateApy(
-      pool.gearPerBlock?.CA,
-      gearPrice,
-      totalBorrowUsd
-    );
-
-    return {
-      pool: pool.pool,
-      chain: 'Ethereum',
-      project: 'gearbox',
-      symbol: underlyings[pool.underlying.toLowerCase()].symbol,
-      tvlUsd: tvlUsd,
-      apyBase: (pool.supplyRate / 1e27) * 100,
-      apyReward: LpRewardApy,
-      underlyingTokens: [pool.underlying],
-      rewardTokens: [GEAR_TOKEN],
-      url: `https://v2.gearbox.fi/pools/${pool.pool}`,
-      // daoFee here is taken from last cm connected to this pool. in theory, it can be different for different CMs
-      // in practice, it's 25% for v3 cms and 50% for v2 cms
-      apyBaseBorrow: ((daoFee + 10000) * (pool.baseInterestRate / 1e27)) / 100,
-      apyRewardBorrow: 0,
-      totalSupplyUsd,
-      totalBorrowUsd,
-      ltv: 0, // this is currently just for the isolated earn page
-    };
-  });
 }
 
 async function getPoolsV3Data(chain) {
@@ -380,18 +276,10 @@ async function getApy() {
       .coins[priceKey]?.price ?? 0;
 
   const daoFees = await getPoolsDaoFees('ethereum');
-  const [v1PoolsData, v3PoolsData] = await Promise.all([
-    getPoolsV1Data('ethereum'),
-    getPoolsV3Data('ethereum'),
-  ]);
-  const underlyings = await getUnderlyingTokensInfo('ethereum', [
-    ...v1PoolsData,
-    ...v3PoolsData,
-  ]);
-  const pools = [
-    ...getApyV1(v1PoolsData, underlyings, gearPrice, daoFees),
-    ...getApyV3(v3PoolsData, underlyings, gearPrice, daoFees),
-  ];
+  const v3PoolsData = await getPoolsV3Data('ethereum');
+
+  const underlyings = await getUnderlyingTokensInfo('ethereum', v3PoolsData);
+  const pools = getApyV3(v3PoolsData, underlyings, gearPrice, daoFees);
   return pools.filter((i) => utils.keepFinite(i));
 }
 
