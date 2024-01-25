@@ -111,7 +111,7 @@ const allLendingTokens = async () => {
             
             const decimalsOfLendingToken = await callContractMethod(web3, underlyingTokenAddy, [{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"}], 'decimals');
             // From the lending token, get balance owned by our contract. 
-            const balanceOfLendingToken = await callContractMethod(web3, underlyingTokenAddy, [{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}], 'balanceOf', [lendingTokenPoolAddy]);
+            const balanceOfLendingToken = await callContractMethod(web3, underlyingTokenAddy, [{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}], 'balanceOf', [lendingTokenPoolAddy]) / 10 ** decimalsOfLendingToken;
 
             // Get conversion factor to USD.
             let priceUSDRes = await getPrices(chain, [underlyingTokenAddy]); 
@@ -121,7 +121,7 @@ const allLendingTokens = async () => {
             let balanceOwnedUSD = balanceOfLendingToken * priceUSD;
             
             // Get total borrow of this lending token
-            const totalBorrow = await callContractMethod(web3, lendingTokenPoolAddy, abiLendingPools, 'totalBorrows');
+            const totalBorrow = await callContractMethod(web3, lendingTokenPoolAddy, abiLendingPools, 'totalBorrows') / 10 ** decimalsOfLendingToken;
             
             // Calc the USD-equivalent.
             let totalBorrowUSD = totalBorrow * priceUSD;
