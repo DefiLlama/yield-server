@@ -93,6 +93,10 @@ const allLendingTokens = async () => {
         for (let i = 0; i < lendingTokensCount; i++) {
             const underlyingTokenAddy = (await callContractMethod(web3, chainSpecificProtocolContractAddy, abiProtocol, 'lendingTokens', [i])).toLowerCase();
             const lendingTokenPoolAddy = (await callContractMethod(web3, chainSpecificProtocolContractAddy, abiProtocol, 'lendingTokenInfo', [underlyingTokenAddy])).bLendingToken.toLowerCase();
+
+            // Pause for half a second to avoid rate limiting
+            await new Promise(r => setTimeout(r, 500));
+
             // Handle MKR symbol - it's a special case because the token has non-standard symbol content.
             if (underlyingTokenAddy.toLowerCase() === "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2") {
                 underlyingTokenSymbol = "MKR";
@@ -100,6 +104,10 @@ const allLendingTokens = async () => {
                 underlyingTokenSymbol = await callContractMethod(web3, underlyingTokenAddy, [{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"}], 'symbol');
             }
             const supplyRatePerBlock = await callContractMethod(web3, lendingTokenPoolAddy, abiLendingPools, 'supplyRatePerBlock');
+ 
+            // Pause for half a second to avoid rate limiting
+            await new Promise(r => setTimeout(r, 500));
+
             const borrowRatePerBlock = await callContractMethod(web3, lendingTokenPoolAddy, abiLendingPools, 'borrowRatePerBlock');
 
             const lenderAPY = await getAPY(supplyRatePerBlock, blocksPerDay);
@@ -120,6 +128,9 @@ const allLendingTokens = async () => {
             // Calc the USD-equivalent.   
             let balanceOwnedUSD = balanceOfLendingToken * priceUSD;
             
+            // Pause for half a second to avoid rate limiting
+            await new Promise(r => setTimeout(r, 500));
+
             // Get total borrow of this lending token
             const totalBorrow = await callContractMethod(web3, lendingTokenPoolAddy, abiLendingPools, 'totalBorrows') / 10 ** decimalsOfLendingToken;
             
