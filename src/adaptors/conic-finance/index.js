@@ -9,7 +9,7 @@ const provider = getProvider('ethereum');
 
 const BLOCKS_PER_YEAR = 2580032;
 
-const CONTROLLER = '0x013A3Da6591d3427F164862793ab4e388F9B587e';
+const CONTROLLER = '0x2790EC478f150a98F5D96755601a26403DF57EaE';
 const INFLATION_MANAGER = '0xf4A364d6B513158dC880d0e8DA6Ae65B9688FD7B';
 const CRV = '0xD533a949740bb3306d119CC777fa900bA034cd52';
 const CVX = '0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B';
@@ -197,9 +197,7 @@ const conicApy = async () => {
   const totalTvl = pools_.reduce((total, pool_) => {
     return total + pool_.totalUnderlying * pool_.price;
   }, 0);
-  // CNC rewards are temporarily disabled
-  // const cncApy = (cncUsdPerYear / totalTvl) * 100;
-  const cncApy = 0;
+  const cncApy = (cncUsdPerYear / totalTvl) * 100;
   return Promise.all(
     pools_.map(async (pool_) => {
       const tvlUsd = pool_.totalUnderlying * pool_.price;
