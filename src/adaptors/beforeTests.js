@@ -37,11 +37,7 @@ module.exports = async function () {
   ];
 
   global.uniquePoolIdentifiersDB = new Set(
-    (
-      await axios.get(
-        'https://yields.llama.fi/distinctID'
-      )
-    ).data
+    (await axios.get('https://yields.llama.fi/distinctID')).data
       .filter((p) => p.project !== global.apy[0].project)
       .map((p) => p.pool)
   );

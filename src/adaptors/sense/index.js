@@ -79,9 +79,12 @@ const toISODate = (timestamp) =>
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses.map((address) => `ethereum:${address}`),
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .map((address) => `ethereum:${address}`)
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesObj = Object.entries(prices).reduce(
@@ -271,7 +274,7 @@ const main = async () => {
     poolMeta: `Maturing ${toISODate(pool.series.maturity)}`,
   }));
 
-  return [...pts, ...spacePools];
+  return [...pts, ...spacePools].filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

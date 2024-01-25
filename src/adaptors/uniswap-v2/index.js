@@ -3,7 +3,7 @@ const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
-const url = 'https://api.thegraph.com/subgraphs/name/ianlapham/uniswapv2';
+const url = 'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v2-dev';
 
 const query = gql`
   {
@@ -93,6 +93,8 @@ const topLvl = async (
       apyBase7d: p.apy7d,
       underlyingTokens,
       url,
+      volumeUsd1d: p.volumeUSD1d,
+      volumeUsd7d: p.volumeUSD7d,
     };
   });
 };

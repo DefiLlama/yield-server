@@ -206,7 +206,7 @@ const main = async () => {
         apy: 0,
         tvlUsd: tvlUsd.toNumber(),
         // borrow fields
-        apyBaseBorrow: Number(iRs[index]),
+        apyBaseBorrow: Number(iRs[index] / 100), // interest free except the pools on manhattan finance
         // apyRewardBorrow, // ignoring this cause its only available within a specific range of collateral factor
         totalSupplyUsd: tvlUsd.toNumber(),
         totalBorrowUsd: totalBorrowUsd.toNumber(),

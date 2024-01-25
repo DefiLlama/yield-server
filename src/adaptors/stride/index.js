@@ -9,8 +9,11 @@ const main = async () => {
   const data = await utils.getData('https://app.stride.zone/api/pool-gauges');
 
   const pools = [];
-
+  let uniqueIds = [];
   for (const entry of data) {
+    if (!entry.poolId) continue;
+    if (uniqueIds.includes(entry.poolId)) continue;
+    uniqueIds.push(entry.poolId);
     const symbol = getPoolSymbol(entry);
 
     pools.push({

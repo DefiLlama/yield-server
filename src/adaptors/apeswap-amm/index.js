@@ -13,7 +13,7 @@ const { request, gql, batchRequests } = require('graphql-request');
 const { CHAINS } = require('./config');
 
 const WEEKS_PER_YEAR = 52;
-const SECONDS_PER_YEAR = new BigNumber(31536000)
+const SECONDS_PER_YEAR = new BigNumber(31536000);
 
 const pairQuery = gql`
   query pairQuery($id_in: [ID!]) {
@@ -49,11 +49,13 @@ const getPairInfo = async (pairs, apiUrl) => {
 };
 
 const getPrices = async (addresses, chain) => {
+  const addy = addresses.map((address) => `${chain}:${address}`).join(',');
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses.map((address) => `${chain}:${address}`),
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addy.toLowerCase()}`
+    )
   ).body.coins;
+
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
       ...acc,
@@ -68,15 +70,13 @@ const getPrices = async (addresses, chain) => {
 const calculateApy = (
   poolInfo,
   totalAllocPoint,
-  bananaPerBlock,
+  bananaPerSecond,
   bananaPrice,
   reserveUSD,
-  blocksYear,
   chain
 ) => {
   const poolWeight = poolInfo.allocPoint / totalAllocPoint.output;
-  const totalBBananaPerBlock = chain === 'bsc' ? bananaPerBlock : bananaPerBlock * 2;
-  const bananaPerYear = blocksYear * totalBBananaPerBlock;
+  const bananaPerYear = bananaPerSecond * SECONDS_PER_YEAR;
   return ((poolWeight * bananaPerYear * bananaPrice) / reserveUSD) * 100;
 };
 
@@ -116,14 +116,18 @@ const apy = async (chain) => {
     chain,
     abi: masterChefABI.find((e) => e.name === CHAINS[chain].callsName.alloc),
   });
-  const bananaPerBlock = await sdk.api.abi.call({
+  const bananaPerSecond = await sdk.api.abi.call({
     target: masterchef,
     chain,
-    abi: masterChefABI.find((e) => e.name === CHAINS[chain].callsName.bananaPerBlock),
+    abi: masterChefABI.find(
+      (e) => e.name === CHAINS[chain].callsName.bananaPerSecond
+    ),
   });
-  const normalizedbananaPerBlock = bananaPerBlock.output / 1e18;
+  const normalizedbananaPerBlock = bananaPerSecond.output / 1e18;
   const poolsRes = await sdk.api.abi.multiCall({
-    abi: masterChefABI.filter(({ name }) => name === CHAINS[chain].callsName.poolInfo)[0],
+    abi: masterChefABI.filter(
+      ({ name }) => name === CHAINS[chain].callsName.poolInfo
+    )[0],
     calls: [...Array(Number(poolLength.output)).keys()].map((i) => ({
       target: masterchef,
       params: i,
@@ -131,20 +135,31 @@ const apy = async (chain) => {
     chain,
     requery: true,
   });
-  const filterLpTokenAbi = masterChefABI.filter(({ name }) => name === 'lpToken')[0];
-  const lpTokensAddress = filterLpTokenAbi ? await sdk.api.abi.multiCall({
-    abi: masterChefABI.filter(({ name }) => name === 'lpToken')[0],
-    calls: [...Array(Number(poolLength.output)).keys()].map((i) => ({
-      target: masterchef,
-      params: i,
-    })),
-    chain,
-    requery: true,
-  }) : [];
+  const filterLpTokenAbi = masterChefABI.filter(
+    ({ name }) => name === 'lpToken'
+  )[0];
+  const lpTokensAddress = filterLpTokenAbi
+    ? await sdk.api.abi.multiCall({
+        abi: masterChefABI.filter(({ name }) => name === 'lpToken')[0],
+        calls: [...Array(Number(poolLength.output)).keys()].map((i) => ({
+          target: masterchef,
+          params: i,
+        })),
+        chain,
+        requery: true,
+      })
+    : [];
   const pools = poolsRes.output
-    .map(({ output }, i) => ({ ...output, ...{ lpToken: output.lpToken ?? lpTokensAddress.output[i].output }, i }))
+    .map(({ output }, i) => ({
+      ...output,
+      ...{
+        lpToken:
+          output[CHAINS[chain].lpToken] ?? lpTokensAddress.output[i].output,
+      },
+      i,
+    }))
     .filter((e) => e.allocPoint !== '0')
-    .filter((e) => !CHAINS[chain].exclude.includes(e.lpToken));
+    .filter((e) => !CHAINS[chain].exclude.includes(e[CHAINS[chain].lpToken]));
   const lpTokens = pools.map(({ lpToken }) => lpToken);
   const [reservesRes, supplyRes, masterChefBalancesRes] = await Promise.all(
     ['getReserves', 'totalSupply', 'balanceOf'].map((method) =>
@@ -220,6 +235,7 @@ const apy = async (chain) => {
     const poolInfo = pool;
     const reserves = reservesData[i];
     const pairInfo = pairsInfo[pool.lpToken.toLowerCase()];
+    if (!pairInfo) return null;
     const supply = supplyData[i];
     const masterChefBalance = masterChefBalData[i];
     const masterChefReservesUsd = calculateReservesUSD(
@@ -231,7 +247,7 @@ const apy = async (chain) => {
     )
       .div(1e18)
       .toString();
-    
+
     const lpReservesUsd = calculateReservesUSD(
       reserves,
       1,
@@ -254,7 +270,6 @@ const apy = async (chain) => {
       normalizedbananaPerBlock,
       tokensPrices[banana.toLowerCase()],
       masterChefReservesUsd,
-      CHAINS[chain].block.year,
       chain
     );
 
@@ -267,7 +282,7 @@ const apy = async (chain) => {
       apyBase,
       apyReward,
       underlyingTokens: [tokens0[i], tokens1[i]],
-      rewardTokens: [banana]
+      rewardTokens: [banana],
     };
   });
 
@@ -276,7 +291,7 @@ const apy = async (chain) => {
 const fetchPrices = async (tokens, chain) => {
   const tokenDecimals = await sdk.api.abi.multiCall({
     abi: erc20ABI.filter(({ name }) => name === 'decimals')[0],
-    calls: tokens.map(({address}) => ({
+    calls: tokens.map(({ address }) => ({
       target: address,
     })),
     chain,
@@ -286,98 +301,133 @@ const fetchPrices = async (tokens, chain) => {
     tokens.map((token, i) => {
       const method = token.isLp ? 'getLPPrice' : 'getPrice';
       return sdk.api.abi.multiCall({
-      abi: apePriceABI.filter(({ name }) => name === method)[0],
-      calls: [
-        {
-          target: CHAINS[chain].apePriceGetterAddress,
-          params: [token.address, tokenDecimals.output[i].output]
-        }
-      ],
-      chain,
-      requery: true,
-    })
+        abi: apePriceABI.filter(({ name }) => name === method)[0],
+        calls: [
+          {
+            target: CHAINS[chain].apePriceGetterAddress,
+            params: [token.address, tokenDecimals.output[i].output],
+          },
+        ],
+        chain,
+        requery: true,
+      });
     })
   );
   const mappedTokenPrices = tokenPrices.map((prices, i) => {
-    const displayBalance = new BigNumber(prices.output[0].output).dividedBy(new BigNumber(10).pow(tokenDecimals.output[i].output))
+    const displayBalance = new BigNumber(prices.output[0].output).dividedBy(
+      new BigNumber(10).pow(tokenDecimals.output[i].output)
+    );
     return {
       address: tokens[i].address,
       price: displayBalance.toNumber(),
-    }
-  })
+    };
+  });
 
-  return mappedTokenPrices
-}
+  return mappedTokenPrices;
+};
 
-const getAprAndStakedUsd = async (
-  farm,
-  tokenPrices,
-  chain
-) => {
+const getAprAndStakedUsd = async (farm, tokenPrices, chain) => {
   const totalStakedCall = await sdk.api.abi.multiCall({
     abi: jungleFarmsABI.filter(({ name }) => name === 'totalStaked')[0],
-    calls: [{
-      target: farm.contractAddress[40]
-    }],
+    calls: [
+      {
+        target: farm.contractAddress[40],
+      },
+    ],
     chain,
     requery: true,
   });
-  const totalStaked = totalStakedCall.output[0].output / 1e18
+  const totalStaked = totalStakedCall.output[0].output / 1e18;
   const rewardsPerSecond = farm.rewardsPerSecond;
-   
+
   const rewardToken = tokenPrices
-    ? tokenPrices.find((token) => farm?.rewardToken && token?.address.toLowerCase() === farm?.rewardToken.address[40].toLowerCase())
-    : farm.rewardToken
+    ? tokenPrices.find(
+        (token) =>
+          farm?.rewardToken &&
+          token?.address.toLowerCase() ===
+            farm?.rewardToken.address[40].toLowerCase()
+      )
+    : farm.rewardToken;
   const stakingToken = tokenPrices
-    ? tokenPrices.find((token) => token?.address.toLowerCase() === farm?.stakingToken.address[40].toLowerCase())
-    : farm.stakingToken
-    
+    ? tokenPrices.find(
+        (token) =>
+          token?.address.toLowerCase() ===
+          farm?.stakingToken.address[40].toLowerCase()
+      )
+    : farm.stakingToken;
+
   const stakingTokenPrice = stakingToken?.price;
   const rewardTokenPrice = rewardToken?.price;
   const totalStakedUsd = totalStaked * stakingTokenPrice;
-  const totalRewardPricePerYear = new BigNumber(rewardTokenPrice).times(+rewardsPerSecond).times(SECONDS_PER_YEAR)
-  const totalStakingTokenInPool = new BigNumber(stakingTokenPrice).times(totalStaked)
-  const apr = totalRewardPricePerYear.div(totalStakingTokenInPool).times(100)
-  return { rewardToken: rewardToken.address, apr: apr.isNaN() || !apr.isFinite() ? null : apr.toNumber(), totalStakedUsd};
-}
+  const totalRewardPricePerYear = new BigNumber(rewardTokenPrice)
+    .times(+rewardsPerSecond)
+    .times(SECONDS_PER_YEAR);
+  const totalStakingTokenInPool = new BigNumber(stakingTokenPrice).times(
+    totalStaked
+  );
+  const apr = totalRewardPricePerYear.div(totalStakingTokenInPool).times(100);
+  return {
+    rewardToken: rewardToken.address,
+    apr: apr.isNaN() || !apr.isFinite() ? null : apr.toNumber(),
+    totalStakedUsd,
+  };
+};
 const apyTelos = async (chain) => {
   const farmsUrl = CHAINS[chain].farmsUrl;
-  const farmsList = (
-    await axios.get(farmsUrl)
-  ).data;
+  const farmsList = (await axios.get(farmsUrl)).data;
   const farmsTlos = farmsList.filter(({ network }) => network === 40);
   const priceList = [];
   farmsTlos.map(async (farm) => {
     const tokens0 = farm.lpTokens.token.address[40];
     const tokens1 = farm.lpTokens.quoteToken.address[40];
     const lpToken = farm.stakingToken.address[40];
-    priceList.push(fetchPrices([{address: tokens0}, {address: tokens1}, {address: lpToken, isLp: true}], chain));
+    priceList.push(
+      fetchPrices(
+        [
+          { address: tokens0 },
+          { address: tokens1 },
+          { address: lpToken, isLp: true },
+        ],
+        chain
+      )
+    );
   });
   const prices = await Promise.all(priceList);
-  const data = await Promise.all(farmsTlos.map(async (farm) => {
-    const tokens0 = farm.lpTokens.token.address[40];
-    const tokens1 = farm.lpTokens.quoteToken.address[40];
-    const lpToken = farm.stakingToken.address[40];
-    const { apr, totalStakedUsd, rewardToken } = await getAprAndStakedUsd(farm, prices.flat(), chain);
-    return {
-      pool: lpToken,
-      chain: utils.formatChain(chain),
-      project: 'apeswap-amm',
-      symbol: `${farm.lpTokens.token.symbol}-${farm.lpTokens.quoteToken.symbol}`,
-      tvlUsd: Number(totalStakedUsd),
-      apyReward: apr,
-      underlyingTokens: [tokens0, tokens1],
-      rewardTokens: [rewardToken]
-    };
-  }));
+  const data = await Promise.all(
+    farmsTlos.map(async (farm) => {
+      const tokens0 = farm.lpTokens.token.address[40];
+      const tokens1 = farm.lpTokens.quoteToken.address[40];
+      const lpToken = farm.stakingToken.address[40];
+      const { apr, totalStakedUsd, rewardToken } = await getAprAndStakedUsd(
+        farm,
+        prices.flat(),
+        chain
+      );
+      return {
+        pool: lpToken,
+        chain: utils.formatChain(chain),
+        project: 'apeswap-amm',
+        symbol: `${farm.lpTokens.token.symbol}-${farm.lpTokens.quoteToken.symbol}`,
+        tvlUsd: Number(totalStakedUsd),
+        apyReward: apr,
+        underlyingTokens: [tokens0, tokens1],
+        rewardTokens: [rewardToken],
+      };
+    })
+  );
   return data;
-}
+};
 const main = async () => {
   const data = await Promise.all(
-    Object.keys(CHAINS).map((chain) => chain !== 'telos' ? apy(chain) : apyTelos(chain)),
+    Object.keys(CHAINS).map((chain) =>
+      chain !== 'telos' ? apy(chain) : apyTelos(chain)
+    )
   );
-  return data.flat();
-}
+  return data
+    .flat()
+    .filter(Boolean)
+    .filter((p) => utils.keepFinite(p));
+};
 module.exports = {
   timetravel: false,
   apy: main,

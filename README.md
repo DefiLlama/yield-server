@@ -14,6 +14,17 @@
 
 The data must be fetched from on-chain calls or from subgraphs. Centralised api calls are only accepted if there is no other way of obtaining that data (eg off-chain gauge weights).
 
+### APY Methodology
+
+Our goal is to display minimum attainable yield values for all listed projects:
+
+- Omit any pre-mined rewards
+- Use unboosted (lower bound) apy values
+- If rewards are slashed when exiting a pool early, then set the apy value to that lower bound.
+- Omit any yield which requires an additional token aside from the LP token (eg veCRV to boost reward yields)
+- Omit any locked rewards
+- Fee based APY values should be calculated over a 24h window
+
 ### Adaptors
 
 An adaptor is just a javascript (or typescript) file that exports an async function that returns an array of objects that represent pools of a protocol. The pools follow the following schema (all values are just examples):
@@ -24,7 +35,7 @@ interface Pool {
   chain: string;
   project: string;
   symbol: string;
-  tvlUsd: number;
+  tvlUsd: number; // for lending protocols: tvlUsd = totalSupplyUsd - totalBorrowUsd
   apyBase?: number;
   apyReward?: number;
   rewardTokens?: Array<string>;
@@ -36,7 +47,7 @@ interface Pool {
   apyRewardBorrow?: number;
   totalSupplyUsd?: number;
   totalBorrowUsd?: number;
-  ltv?: number;
+  ltv?: number; // btw [0, 1]
 }
 ```
 
@@ -72,6 +83,10 @@ DefiLlama only displays pools with >10k TVL, so pools with less TVL than that wi
 > I'm getting errors when running `npm install`
 
 Just remove the packages `pg-promise`, `pg` and `pg-native` from package.json and then install again, make sure to avoid commiting these changes tho!
+
+> Why is X pool missing from https://defillama.com/yields/stablecoins ?
+
+That page has stricter filters than other pages, only pools with >1M TVL and on audited protocols are included there.
 
 #### Adapter module structure
 

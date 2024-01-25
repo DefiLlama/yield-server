@@ -55,6 +55,8 @@ const buildPool = (entry, chainString) => {
     rewardTokens: apyJoe > 0 ? [JOE_TOKEN] : [],
     underlyingTokens: [entry.token0.id, entry.token1.id],
     apyBase7d: entry.apy7d,
+    volumeUsd1d: entry.volumeUSD1d,
+    volumeUsd7d: entry.volumeUSD7d,
   };
 
   return newObj;
@@ -133,10 +135,8 @@ const topLvl = async (chainString, timestamp, url) => {
   // get joe price
   const key = 'avax:0x6e84a6216ea6dacc71ee8e6b0a5b7322eebc0fdd';
   const joeUsd = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: [key],
-    })
-  ).body.coins[key].price;
+    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
+  ).body.coins;
 
   const dataLM = {};
   for (const p of poolInfo) {

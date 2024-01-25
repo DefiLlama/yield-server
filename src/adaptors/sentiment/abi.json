@@ -1,0 +1,119 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "contract Registry",
+        "name": "_registry",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract LToken",
+        "name": "lToken",
+        "type": "address"
+      }
+    ],
+    "name": "getLToken",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "lToken",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "liquidity",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "borrows",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "borrowRate",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "shareValue",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalSupply",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxSupply",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct ILTokenDataProvider.LTokenObject",
+        "name": "lTokenObject",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getLTokens",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "lToken",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "liquidity",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "borrows",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "borrowRate",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "shareValue",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalSupply",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxSupply",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct ILTokenDataProvider.LTokenObject[]",
+        "name": "lTokens",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

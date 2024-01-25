@@ -1,70 +1,44 @@
-const { request } = require('graphql-request');
+const axios = require('axios');
 
 const utils = require('../utils');
-const { query } = require('./query');
 
-const API_URL = 'https://api.maple.finance/v1/graphql';
+const API_URL = 'https://api.maple.finance/v2/graphql';
 
-interface Pool {
-  poolName: string;
-  liquidityAsset: {
-    price: number;
-    symbol: string;
-    decimals: number;
-    address: string;
-  };
-  liquidity: string;
-  lendingApy: string;
-  farmingApy: string;
-  poolDelegate: { companyName: string };
-  poolPositions: Array<PoolPositions>;
-}
-
-interface Pools {
-  results: { list: Array<Pool> };
-}
-
-interface PoolPositions {
-  id: string;
-}
+const query = {
+  operationName: 'getLendData',
+  variables: {},
+  query:
+    'query getLendData {\n  poolV2S(where: {activated: true}) {\n    ...PoolV2Overview\n    __typename\n  }\n  maple(id: "1") {\n    ...MapleOverview\n    __typename\n  }\n}\n\nfragment PoolV2Overview on PoolV2 {\n  assets\n apyData {\n    id\n    monthlyApyAfterFees\n    __typename\n  }\n  asset {\n    decimals\n    id\n    price\n    symbol\n    __typename\n  }\n  delegateManagementFeeRate\n  id\n  name\n  openToPublic\n  poolMeta {\n    ...PoolMetaV2\n    __typename\n  }\n  platformManagementFeeRate\n  principalOut\n  totalLoanOriginations\n  __typename\n}\n\nfragment PoolMetaV2 on PoolMetadata {\n  overview\n  poolDelegate {\n    aboutBusiness\n    totalAssetsUnderManagement\n    companyName\n    companySize\n    deckFileUrl\n    deckFileName\n    linkedIn\n    name\n    profileUrl\n    twitter\n    videoUrl\n    website\n    __typename\n  }\n  poolName\n  reportFileName\n  reportFileUrl\n  strategy\n  underwritingBullets\n  __typename\n}\n\nfragment MapleOverview on Maple {\n  id\n  totalActiveLoans\n  totalInterestEarned\n  totalInterestEarnedV2\n  totalLoanOriginations\n  __typename\n}',
+};
 
 const apy = async () => {
-  const {
-    results: { list: data },
-  }: Pools = await request(API_URL, query, {
-    filter: { skip: 0, limit: 100 },
-  });
+  const pools = (await axios.post(API_URL, query)).data.data.poolV2S;
 
-  const pools = data.map((pool) => {
-    // exclude permissioned pools
-    if (pool.poolName.toLowerCase().includes('permissioned')) return {};
+  return pools
+    .map((pool) => {
+      // exclude permissioned pools
+      if (!pool.openToPublic) return {};
 
-    const tokenPrice = pool.liquidityAsset.price / 1e8;
+      const tokenPrice = pool.asset.price / 1e8;
 
-    return {
-      pool: pool.poolPositions[0]?.id.split('-')[1],
-      chain: utils.formatChain('ethereum'),
-      project: 'maple',
-      symbol: pool.liquidityAsset.symbol,
-      poolMeta: pool.poolDelegate.companyName,
-      tvlUsd:
-        (Number(pool.liquidity) * tokenPrice) /
-        10 ** pool.liquidityAsset.decimals,
-      apyBase: Number(pool.lendingApy) / 100,
-      apyReward: Number(pool.farmingApy) / 100,
-      underlyingTokens: [pool.liquidityAsset.address],
-      rewardTokens: [
-        '0x33349b282065b0284d756f0577fb39c158f935e6', //MAPLE
-      ],
-      // borrow fields
-      ltv: 0, // permissioned
-    };
-  });
-  return pools.filter((p) => p.pool);
+      return {
+        pool: pool.apyData.id,
+        chain: utils.formatChain('ethereum'),
+        project: 'maple',
+        symbol: pool.asset.symbol,
+        poolMeta: pool.name,
+        tvlUsd: (Number(pool.assets) * tokenPrice) / 10 ** pool.asset.decimals,
+        apyBase: Number(pool.apyData.monthlyApyAfterFees) / 1e28,
+        underlyingTokens: [pool.asset.id],
+        // borrow fields
+        ltv: 0, // permissioned
+      };
+    })
+    .filter((p) => p.pool);
 };
 
 module.exports = {
   timetravel: false,
-  apy: apy,
+  apy,
   url: 'https://app.maple.finance/#/earn',
 };

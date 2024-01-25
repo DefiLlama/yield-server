@@ -5,7 +5,7 @@ const ChainId = {
   FANTOM: 'fantom',
   // AVALANCHE: 'avax', // not found v2
   // ARBITRUM: 'arbitrum', // not found v2
-  OPTIMISM: 'optimism',
+  // OPTIMISM: 'optimism',
   // MOONRIVER: 'moonriver', // not found v2
   // MOONBEAM: 'moonbeam', // apyBaseBorrow is weird
   // HARMONY: 'harmony', // not found v2

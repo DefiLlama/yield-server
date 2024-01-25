@@ -6,6 +6,7 @@ const urlTvl = `${url}/tvl`;
 const urlMeta = `${url}/vaults`;
 
 const networkMapping = {
+  1: 'ethereum',
   10: 'optimism',
   43114: 'avalanche',
   1666600000: 'harmony',
@@ -22,10 +23,12 @@ const networkMapping = {
   1284: 'moonbeam',
   42262: 'oasis',
   1313161554: 'aurora',
+  8453: 'base',
 };
 
 // hardcode bifi token addresses per chain
 const bifiMapping = {
+  1: '0x5870700f1272a1AdbB87C3140bD770880a95e55D',
   10: '0x4E720DD3Ac5CFe1e1fbDE4935f386Bb1C66F4642',
   43114: '0xd6070ae98b8069de6B494332d1A1a81B6179D960',
   1666600000: '0x6ab6d61428fde76768d7b45d8bfeec19c6ef91a8',
@@ -42,6 +45,7 @@ const bifiMapping = {
   1284: '0x595c8481c48894771CE8FaDE54ac6Bf59093F9E8',
   42262: '0x65e66a61D0a8F1e686C2D6083ad611a10D84D97A',
   1313161554: '0x218c3c3D49d0E7B37aff0D8bB079de36Ae61A4c0',
+  8453: '0xb4aa172f1Cf73cCC41290A8477F72CFB2ded46dd',
 };
 
 const main = async () => {
@@ -68,6 +72,11 @@ const main = async () => {
 
       if (!poolId) continue;
 
+      const underlyingTokens =
+        !!poolMeta && poolMeta.assets.length === 1 && poolMeta.tokenAddress
+          ? [poolMeta.tokenAddress]
+          : undefined;
+
       data.push({
         pool: `${poolId}-${networkMapping[chain]}`.toLowerCase(),
         chain: utils.formatChain(networkMapping[chain]),
@@ -80,11 +89,12 @@ const main = async () => {
         apy: isActive ? apy[pool] * 100 : 0,
         poolMeta:
           platformId === undefined ? null : utils.formatChain(platformId),
+        underlyingTokens,
       });
     }
   }
 
-  return data;
+  return utils.removeDuplicates(data);
 };
 
 module.exports = {
