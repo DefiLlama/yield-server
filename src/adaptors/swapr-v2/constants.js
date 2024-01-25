@@ -1,5 +1,5 @@
 exports.constants = {
-    PROJECT_NAME: "swapr",
+    PROJECT_NAME: "swapr-v2",
     XDAI_CHAIN: "xdai",
     ARBITRUM_CHAIN: "arbitrum",
     KPI_ENDPOINT: "https://api.thegraph.com/subgraphs/name/luzzif/carrot-xdai",
