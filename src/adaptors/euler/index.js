@@ -122,7 +122,9 @@ const main = async () => {
       const apyBase = interestRates[i]?.supplyAPY / interestRateDecimals;
       const apyBaseBorrow = interestRates[i]?.borrowAPY / interestRateDecimals;
 
-      const ltv = underlyingToAssetConfig[i]?.collateralFactor / 4e9;
+      const borrowFactor = underlyingToAssetConfig[i]?.borrowFactor / 4e9;
+      const ltv =
+        (underlyingToAssetConfig[i]?.collateralFactor / 4e9) * borrowFactor;
 
       const eulDist = gaugeData.tokens[m] / 1e18;
       const apyRewardBorrow =
@@ -145,7 +147,7 @@ const main = async () => {
         rewardTokens: [EULER],
         ltv: Number.isFinite(ltv) ? ltv : null,
         url: `https://app.euler.finance/market/${m}`,
-        borrowFactor: underlyingToAssetConfig[i]?.borrowFactor / 4e9,
+        borrowFactor,
       };
     })
     .filter((p) => utils.keepFinite(p));
