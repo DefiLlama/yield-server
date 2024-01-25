@@ -142,7 +142,7 @@ async function apy() {
 
         return {
           pool: debtToken.toLowerCase(),
-          project: 'nostra-mainnet',
+          project: 'nostra-money-market',
           symbol: name,
           chain: 'Starknet',
           apyBase: lendingApy,
