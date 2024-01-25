@@ -14,6 +14,7 @@ module.exports = {
   OPTIMISM_RPC: process.env.OPTIMISM_RPC,
   AVAX_RPC: process.env.AVAX_RPC,
   ARBITRUM_RPC: process.env.ARBITRUM_RPC,
+  BASE_RPC: process.env.BASE_RPC,
   TVL_SPIKE_WEBHOOK: process.env.TVL_SPIKE_WEBHOOK,
   NEW_YIELDS_WEBHOOK: process.env.NEW_YIELDS_WEBHOOK,
   STALE_PROJECTS_WEBHOOK: process.env.STALE_PROJECTS_WEBHOOK,

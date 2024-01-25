@@ -1,4 +1,5 @@
 const { request } = require('graphql-request');
+const { removeDuplicates } = require('../utils');
 
 const API_URL = 'https://api-v2.ashswap.io/graphql';
 
@@ -14,7 +15,7 @@ const YieldQuery = `
     }
   }
 }
-`
+`;
 
 const getSymbol = (tokens) => {
   let result = '';
@@ -50,11 +51,11 @@ const apy = async () => {
       apyBase: pool.apyBase,
       apyReward: pool.apyReward,
       rewardTokens: ['ASH-a642d1'],
-      underlyingTokens: getTokens(pool.tokens)
+      underlyingTokens: getTokens(pool.tokens),
     });
   }
 
-  return pools;
+  return removeDuplicates(pools);
 };
 
 module.exports = {

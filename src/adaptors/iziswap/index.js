@@ -10,6 +10,9 @@ const chain = {
   1313161554: 'aurora',
   25: 'cronos',
   324: 'zksync_era',
+  5000: 'mantle',
+  169: 'manta',
+  534352: 'scroll',
 };
 
 const getApy = async () => {
