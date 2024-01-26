@@ -66,6 +66,10 @@ const excludeAdaptors = [
   'penrose',
   'unknown',
   'mooncake-finance',
+  'hydradex-v2',
+  'apollodao',
+  'liqee',
+  'earnmos',
 ];
 
 const excludePools = [
