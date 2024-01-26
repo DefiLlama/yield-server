@@ -70,6 +70,10 @@ const excludeAdaptors = [
   'apollodao',
   'liqee',
   'earnmos',
+  'magik-farm',
+  'reservoir',
+  'swapfish',
+  'rage-trade',
 ];
 
 const excludePools = [
