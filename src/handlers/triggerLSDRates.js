@@ -168,6 +168,13 @@ const lsdTokens = [
     type: a,
     fee: 0.1,
   },
+  {
+    name: 'Liquid Collective',
+    symbol: 'lsETH',
+    address: '0x8c1bed5b9a0928467c9b1341da1d7bd5e10b6549',
+    type: a,
+    fee: 0.1,
+  },
 ];
 
 const priceUrl = 'https://aggregator-api.kyberswap.com/ethereum/api/v1/routes';
@@ -345,6 +352,20 @@ const getExpectedRates = async () => {
     type: 'function',
   };
 
+  const lsETHAbi = {
+    inputs: [
+      {
+        internalType: 'uint256',
+        name: '_underlyingAssetAmount',
+        type: 'uint256',
+      },
+    ],
+    name: 'sharesFromUnderlyingBalance',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
   // --- cbETH
   const cbETHRate = Number((await axios.get(cbETHRateUrl)).data.amount);
 
@@ -497,6 +518,18 @@ const getExpectedRates = async () => {
       })
     ).output / 1e18;
 
+  const lsETH =
+    10000 /
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Liquid Collective')
+          .address,
+        chain: 'ethereum',
+        abi: lsETHAbi,
+        params: [10000],
+      })
+    ).output;
+
   return lsdTokens.map((lsd) => ({
     ...lsd,
     expectedRate:
@@ -528,6 +561,8 @@ const getExpectedRates = async () => {
         ? uniETH
         : lsd.name === 'Mantle Staked ETH'
         ? mETH
+        : lsd.name === 'Liquid Collective'
+        ? lsETH
         : 1,
   }));
 };
