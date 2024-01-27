@@ -14,16 +14,24 @@ const main = async () => {
     };
   });
 
+  const collaterals = {};
+  market.data.collaterals.forEach((collateral) => {
+    collaterals[collateral.coinType] = collateral;
+  });
+
   const arr = [];
   market.data.pools.forEach((pool) => {
+    const supplyUsd = parseFloat(pool.supplyCoin) * parseFloat(pool.coinPrice);
+    const collateralUsd = parseFloat(collaterals[pool.coinType].depositCoin) * parseFloat(collaterals[pool.coinType].coinPrice);
+    const borrowUsd = parseFloat(pool.borrowCoin) * parseFloat(pool.coinPrice);
     arr.push({
       chain: 'Sui',
       project: 'scallop-lend',
       pool: pool.coinType,
       symbol: pool.symbol,
-      tvlUsd: parseFloat(pool.supplyCoin) * parseFloat(pool.coinPrice) - parseFloat(pool.borrowCoin) * parseFloat(pool.coinPrice),
-      apyBase: parseFloat(pool.supplyApy),
-      apyReward: supplyRewards[pool.coinType] ? parseFloat(supplyRewards[pool.coinType].rewardApr) : null,
+      tvlUsd: supplyUsd + collateralUsd - borrowUsd,
+      apyBase: parseFloat(pool.supplyApy * 100),
+      apyReward: supplyRewards[pool.coinType] ? parseFloat(supplyRewards[pool.coinType].rewardApr * 100) : null,
       rewardTokens: supplyRewards[pool.coinType] ? [supplyRewards[pool.coinType].rewardCoinType] : [],
     });
   });
