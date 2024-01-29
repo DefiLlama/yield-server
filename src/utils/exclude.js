@@ -74,6 +74,8 @@ const excludeAdaptors = [
   'reservoir',
   'swapfish',
   'rage-trade',
+  'ottopia',
+  'velodrome-v1',
 ];
 
 const excludePools = [
