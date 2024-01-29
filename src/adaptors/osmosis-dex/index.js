@@ -44,13 +44,11 @@ const getApy = async () => {
     const apyReward = aprSuperfluid > 0 ? aprSuperfluid : aprReward;
 
     return {
-      pool: p,
-      // pool: `osmosis-${poolId}`,
+      pool: `osmosis-${poolId}`,
       chain: 'Osmosis',
       project: 'osmosis-dex',
       symbol: utils.formatSymbol(symbol),
-      poolMeta: poolId,
-      // poolMeta: `${tvl[0].fees}`,
+      poolMeta: `${tvl[0].fees}`,
       tvlUsd: x.liquidity,
       apyBase: aprBase,
       apyBase7d: aprBase7d,
