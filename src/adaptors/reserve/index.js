@@ -28,7 +28,6 @@ const rtokenQuery = gql`
       cumulativeUniqueUsers
       targetUnits
       rsrStaked
-      rsrPriceUSD
       token {
         name
         symbol

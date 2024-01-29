@@ -26,7 +26,7 @@ const getPools = async (blockchainId) => {
     } catch (error) {
       continue;
     }
-    if (response?.success) {
+    if (response?.success && response?.data?.poolData?.length) {
       const poolsByAddressForRegistry = Object.fromEntries(
         response.data.poolData.map((pool) => [pool.address, pool])
       );
@@ -239,7 +239,9 @@ const main = async () => {
       const subgraph = addressToPoolSubgraph[address];
       const gauge = addressToGauge[blockchainId][pool.gaugeAddress];
       // one gauge can have multiple (different) extra rewards
-      const extraRewards = gaugeAddressToExtraRewards[pool.gaugeAddress];
+      const extraRewards = gaugeAddressToExtraRewards
+        ? gaugeAddressToExtraRewards[pool.gaugeAddress]
+        : null;
 
       const apyBase = subgraph
         ? parseFloat(subgraph.latestDailyApy)
@@ -281,7 +283,7 @@ const main = async () => {
           address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' || // pool on moonbeam
           address === '0xe9123CBC5d1EA65301D417193c40A72Ac8D53501' || // lvusd
           address === '0x056C6C5e684CeC248635eD86033378Cc444459B0' // eur pool gnosis
-        ? pool.gaugeRewards[0].apy
+        ? pool.gaugeRewards[0]?.apy
         : 0;
 
       // tokens are listed using their contract addresses

@@ -4,7 +4,7 @@ const utils = require('../utils');
 const apy = async () => {
   const pools = await Promise.all(
     ['avalanche', 'arbitrum', 'binance'].map(async (chain) => {
-      const apiUrl = `https://barn.traderjoexyz.com/v1/pools/${chain}?filterBy=1d&orderBy=volume&pageNum=1&pageSize=25&status=main`;
+      const apiUrl = `https://barn.traderjoexyz.com/v1/pools/${chain}?filterBy=1d&orderBy=volume&pageNum=1&pageSize=100&status=main`;
 
       const pools = (await axios.get(apiUrl)).data;
 
@@ -23,7 +23,7 @@ const apy = async () => {
     })
   );
 
-  return pools.flat();
+  return pools.flat().filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

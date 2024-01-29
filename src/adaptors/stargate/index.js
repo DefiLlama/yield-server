@@ -301,7 +301,11 @@ const main = async () => {
   const pools = [];
   for (const chain of Object.keys(CONFIG)) {
     console.log(chain);
-    pools.push(await getApy(chain, CONFIG[chain].LP_STAKING));
+    try {
+      pools.push(await getApy(chain, CONFIG[chain].LP_STAKING));
+    } catch (err) {
+      console.log(`${chain} failed`);
+    }
   }
 
   return pools
