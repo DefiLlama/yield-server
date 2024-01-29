@@ -55,6 +55,8 @@ const POOLS = {
         collateralPoolId: 'dffb3514-d667-4f2f-8df3-f716ebe09c93',
         symbol: "LINK-USDC",
       }, // gmLINK
+      { version: 4, address: '0x49De724D7125641F56312EBBcbf48Ef107c8FA57' }, // WBTC
+      { version: 4, address: '0x780db9770dDc236fd659A39430A8a7cC07D0C320' }, // WETHV2
     ],
   },
   avax: {
