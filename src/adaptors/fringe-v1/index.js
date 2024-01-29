@@ -169,7 +169,7 @@ const allLendingTokens = async () => {
             lendingTokens.push({
                 pool: lendingTokenPoolAddy,
                 chain: chainSpecific.chain,
-                project: 'fringe',
+                project: 'fringe-v1',
                 symbol: underlyingTokenSymbol,
                 tvlUsd: Number(balanceOwnedUSD),
                 apyBase: Number(lenderAPY),
