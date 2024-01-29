@@ -22,10 +22,6 @@ const getApy = async () => {
 
     if (symbol.includes(undefined)) return null;
 
-    const p = `${pool}-${symbol}-14day`;
-    if (uniquePools.has(p)) return [];
-    uniquePools.add(p);
-
     // base apr
     const feeTier = x.fees.replace('%', '') / 100;
     const fees24h = x.volume_24h * feeTier;
