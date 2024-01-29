@@ -149,6 +149,8 @@ functions:
     events:
       # every new hour
       - schedule: cron(0 * * * ? *)
+    environment:
+      ETHEREUM_RPC: ${file(./env.js):ETHEREUM_RPC}
 
   triggerProtocolNameChange:
     handler: src/handlers/triggerProtocolNameChange.handler

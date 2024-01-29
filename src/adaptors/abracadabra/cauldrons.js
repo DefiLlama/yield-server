@@ -49,6 +49,14 @@ const POOLS = {
         collateralPoolId: 'f3fa942f-1867-4028-95ff-4eb76816cd07',
         symbol: "ARB-USDC",
       }, // gmARB
+      {
+        version: 4,
+        address: '0x66805F6e719d7e67D46e8b2501C1237980996C6a',
+        collateralPoolId: 'dffb3514-d667-4f2f-8df3-f716ebe09c93',
+        symbol: "LINK-USDC",
+      }, // gmLINK
+      { version: 4, address: '0x49De724D7125641F56312EBBcbf48Ef107c8FA57' }, // WBTC
+      { version: 4, address: '0x780db9770dDc236fd659A39430A8a7cC07D0C320' }, // WETHV2
     ],
   },
   avax: {
@@ -219,9 +227,26 @@ const BASE_STARGATE_LP_STRATEGIES = {
 };
 
 const FEE_COLLECTABLE_STRATEGIES = {
+  arbitrum: [
+    '0x39c54bd10261d42ee1838d5fc71dd307dcb39001',
+    '0xb4fc7be1fc0a6d7b6d5d509c622f56d719cd1373',
+    '0xf53a003e863ba83424048d729460fba056c06b80',
+    '0x25ac30195f5b7653ddd7eb93cae6ff5d924cdaf4',
+    '0x9f026f9edc92150076bb8a0ac44c14a8412c1639',
+  ],
   kava: [
-    '0x30D525cbB79D2baaE7637eA748631a6360Ce7c16'
-  ]
+    '0x30d525cbb79d2baae7637ea748631a6360ce7c16',
+  ],
+}
+
+const STRATEGY_CONFIGURATIONS = {
+  arbitrum: {
+    '0x39c54bd10261d42ee1838d5fc71dd307dcb39001': { ignoreTargetPercentage: true }, // All rewards will be yielded regardless of targetPercentage
+    '0xb4fc7be1fc0a6d7b6d5d509c622f56d719cd1373': { ignoreTargetPercentage: true }, // All rewards will be yielded regardless of targetPercentage
+    '0xf53a003e863ba83424048d729460fba056c06b80': { ignoreTargetPercentage: true }, // All rewards will be yielded regardless of targetPercentage
+    '0x25ac30195f5b7653ddd7eb93cae6ff5d924cdaf4': { ignoreTargetPercentage: true }, // All rewards will be yielded regardless of targetPercentage
+    '0x9f026f9edc92150076bb8a0ac44c14a8412c1639': { ignoreTargetPercentage: true }, // All rewards will be yielded regardless of targetPercentage
+  }
 }
 
 const getMarketLensDetailsForCauldrons = (
@@ -673,7 +698,12 @@ const getApy = async () => {
       }
       if (strategyDetails !== undefined) {
         const strategy = strategyDetails.address.toLowerCase();
-        const targetPercentage = strategyDetails.strategyData.targetPercentage;
+        const strategyConfiguration = _.get(
+          STRATEGY_CONFIGURATIONS,
+          [chain, strategy]
+        );
+        const ignoreTargetPercentage = strategyConfiguration?.ignoreTargetPercentage === true;
+        const targetPercentage = ignoreTargetPercentage ? 100 : strategyDetails.strategyData.targetPercentage;
         const negativeInterestStrategyApy = _.get(
           negativeInterestStrategyApys,
           [chain, strategy]
