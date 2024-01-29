@@ -45,10 +45,12 @@ const getApy = async () => {
 
     return {
       pool: p,
+      // pool: `osmosis-${poolId}`,
       chain: 'Osmosis',
       project: 'osmosis-dex',
       symbol: utils.formatSymbol(symbol),
-      poolMeta: '14day',
+      poolMeta: poolId,
+      // poolMeta: `${tvl[0].fees}`,
       tvlUsd: x.liquidity,
       apyBase: aprBase,
       apyBase7d: aprBase7d,
