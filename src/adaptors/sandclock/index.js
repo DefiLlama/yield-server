@@ -35,13 +35,13 @@ const apy = async () => {
 
     const prices = await getPrices([LUSD, USDC, WETH, LQTY]);
 
-    // const amber = await calcErc4626PoolApy(LUSD, 'LUSD', 'Amber', AMBER, prices, true);
+    const amber = await calcErc4626PoolApy(LUSD, 'LUSD', 'Amber', AMBER, prices, true);
 
     const opal = await calcErc4626PoolApy(USDC, 'USDC', 'Opal', OPAL, prices, false);
 
     const emerald = await calcErc4626PoolApy(WETH, 'WETH', 'Emerald', EMERALD, prices, false);
 
-    return [opal, emerald];
+    return [amber, opal, emerald];
 }
 
 async function calcErc4626PoolApy(asset, symbol, poolMeta, vault, prices, liquity) {
