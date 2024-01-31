@@ -56,11 +56,11 @@ async function calcErc4626PoolApy(asset, symbol, poolMeta, vault, prices, liquit
       tvlUsd = tvlUsd.plus(lqtyUsd);
     }
 
-    const days = 7;
+    const days = 30;
     let totalAssetsNow = new BigNumber((await contract.totalAssets()).toString());
     if (liquity) {
       totalAssetsNow = totalAssetsNow.multipliedBy(price);  
-      await calcLqtyAssetNow(vault, prices); 
+      const lqtyTotalUsd = await calcLqtyAssetNow(vault, prices); 
       totalAssetsNow = totalAssetsNow.plus(lqtyTotalUsd);
     }
     const totalSharesNow =new BigNumber((await contract.totalSupply()).toString());
@@ -71,7 +71,7 @@ async function calcErc4626PoolApy(asset, symbol, poolMeta, vault, prices, liquit
     let totalAssetsBefore = new BigNumber((await contract.totalAssets({ blockTag: -BLOCKS_PER_DAY * days })).toString());
     if (liquity) {
       totalAssetsBefore = totalAssetsBefore.multipliedBy(price);
-      await calcLqtyAssetBefore(vault, days, prices);  
+      const lqtyTotalUsd = await calcLqtyAssetBefore(vault, days, prices);  
       totalAssetsBefore = totalAssetsBefore.plus(lqtyTotalUsd);
     }
     const totalSharesBefore =new BigNumber((await contract.totalSupply({ blockTag: -BLOCKS_PER_DAY * days })).toString());
@@ -139,6 +139,7 @@ async function calcLqtyAssetNow(vault, prices) {
     const lqtyGain = await stabilityPoolContract.getDepositorLQTYGain(vault);
     lqtyTotal = lqtyTotal.add(lqtyGain);
     lqtyTotalUsd = new BigNumber(lqtyTotal.toString()).multipliedBy(prices[LQTY.toLowerCase()]);
+    return lqtyTotalUsd;
 }
 
 async function calcLqtyAssetBefore(vault, days, prices) {
@@ -148,6 +149,7 @@ async function calcLqtyAssetBefore(vault, days, prices) {
     const lqtyGain = await stabilityPoolContract.getDepositorLQTYGain(vault, { blockTag: -BLOCKS_PER_DAY * days });
     lqtyTotal = lqtyTotal.add(lqtyGain);
     lqtyTotalUsd = new BigNumber(lqtyTotal.toString()).multipliedBy(prices[LQTY.toLowerCase()]);
+    return lqtyTotalUsd;
 }
 
 module.exports = {
