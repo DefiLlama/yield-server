@@ -10,6 +10,7 @@ const CAULDRON_V2_ABI = require('./abis/CauldronV2.json');
 const BENTOBOX_V1_ABI = require('./abis/BentoBoxV1.json');
 const INTEREST_STRATEGY = require('./abis/InterestStrategy.json');
 const BASE_STARGATE_LP_STRATEGY = require('./abis/BaseStargateLPStrategy.json');
+const FEE_COLLECTABLE_STRATEGY = require('./abis/FeeCollectable.json');
 
 const MIM_COINGECKO_ID = 'magic-internet-money';
 
@@ -24,6 +25,38 @@ const POOLS = {
         address: '0x726413d7402ff180609d0ebc79506df8633701b1',
         collateralPoolId: 'a4bcffaa-3b75-436c-b6c2-7b1c3840d041'
       }, // magicGLP
+      {
+        version: 4,
+        address: '0x7962acfcfc2ccebc810045391d60040f635404fb',
+        collateralPoolId: '906b233c-8478-4b94-94e5-2d77e6c7c9e5',
+        symbol: "SOL-USDC",
+      }, // gmSOL
+      {
+        version: 4,
+        address: '0x2b02bBeAb8eCAb792d3F4DDA7a76f63Aa21934FA',
+        collateralPoolId: '61b4c35c-97f6-4c05-a5ff-aeb4426adf5b',
+        symbol: "ETH-USDC",
+      }, // gmETH
+      {
+        version: 4,
+        address: '0xD7659D913430945600dfe875434B6d80646d552A',
+        collateralPoolId: '5b8c0691-b9ff-4d82-97e4-19a1247e6dbf',
+        symbol: "WBTC.B-USDC",
+      }, // gmBTC
+      {
+        version: 4,
+        address: '0x4F9737E994da9811B8830775Fd73E2F1C8e40741',
+        collateralPoolId: 'f3fa942f-1867-4028-95ff-4eb76816cd07',
+        symbol: "ARB-USDC",
+      }, // gmARB
+      {
+        version: 4,
+        address: '0x66805F6e719d7e67D46e8b2501C1237980996C6a',
+        collateralPoolId: 'dffb3514-d667-4f2f-8df3-f716ebe09c93',
+        symbol: "LINK-USDC",
+      }, // gmLINK
+      { version: 4, address: '0x49De724D7125641F56312EBBcbf48Ef107c8FA57' }, // WBTC
+      { version: 4, address: '0x780db9770dDc236fd659A39430A8a7cC07D0C320' }, // WETHV2
     ],
   },
   avax: {
@@ -166,6 +199,17 @@ const POOLS = {
       { version: 3, address: '0x68f498c230015254aff0e1eb6f85da558dff2362' },
     ],
   },
+  kava: {
+    marketLensAddress: '0x2d50927A6E87E517946591A137b765fAba018E70',
+    cauldrons: [
+      { version: 4, address: '0x3CFf6F628Ebc88e167640966E67314Cf6466E6A8' }, // MIM/USDT Curve LP
+      {
+        version: 4,
+        address: '0x895731a0C3836a5534561268F15EBA377218651D',
+        collateralPoolId: '246ee0b2-434e-44dd-90a7-a728deaf1597',
+      }, // Stargate USDT
+    ]
+  },
 };
 
 const NEGATIVE_INTEREST_STRATEGIES = {
@@ -181,6 +225,29 @@ const BASE_STARGATE_LP_STRATEGIES = {
     '0x8439Ac976aC597C71C0512D8a53697a39E8F9773',
   ],
 };
+
+const FEE_COLLECTABLE_STRATEGIES = {
+  arbitrum: [
+    '0x39c54bd10261d42ee1838d5fc71dd307dcb39001',
+    '0xb4fc7be1fc0a6d7b6d5d509c622f56d719cd1373',
+    '0xf53a003e863ba83424048d729460fba056c06b80',
+    '0x25ac30195f5b7653ddd7eb93cae6ff5d924cdaf4',
+    '0x9f026f9edc92150076bb8a0ac44c14a8412c1639',
+  ],
+  kava: [
+    '0x30d525cbb79d2baae7637ea748631a6360ce7c16',
+  ],
+}
+
+const STRATEGY_CONFIGURATIONS = {
+  arbitrum: {
+    '0x39c54bd10261d42ee1838d5fc71dd307dcb39001': { ignoreTargetPercentage: true }, // All rewards will be yielded regardless of targetPercentage
+    '0xb4fc7be1fc0a6d7b6d5d509c622f56d719cd1373': { ignoreTargetPercentage: true }, // All rewards will be yielded regardless of targetPercentage
+    '0xf53a003e863ba83424048d729460fba056c06b80': { ignoreTargetPercentage: true }, // All rewards will be yielded regardless of targetPercentage
+    '0x25ac30195f5b7653ddd7eb93cae6ff5d924cdaf4': { ignoreTargetPercentage: true }, // All rewards will be yielded regardless of targetPercentage
+    '0x9f026f9edc92150076bb8a0ac44c14a8412c1639': { ignoreTargetPercentage: true }, // All rewards will be yielded regardless of targetPercentage
+  }
+}
 
 const getMarketLensDetailsForCauldrons = (
   chain,
@@ -203,11 +270,7 @@ const getMarketLensDetailsForCauldrons = (
 const enrichMarketInfos = (cauldrons, marketInfos) =>
   marketInfos
     .map((marketInfo, i) => ({
-      cauldron: cauldrons[i].address,
-      maximumCollateralRatio: cauldrons[i].maximumCollateralRatio,
-      interestPerYear: cauldrons[i].interestPerYear,
-      cauldronMeta: cauldrons[i].cauldronMeta,
-      collateralPoolId: cauldrons[i].collateralPoolId,
+      ...cauldrons[i],
       ...marketInfo,
     }))
     .map((enrichedMarketInfo) => _.omitBy(enrichedMarketInfo, _.isUndefined));
@@ -453,6 +516,37 @@ const getBaseStargateLpStrategyFees = (baseStargateLpStrategies) =>
     )
   ).then(Object.fromEntries);
 
+const getFeeCollectableStrategyFees = (feeCollectableStrategies) =>
+  Promise.all(
+    Object.entries(feeCollectableStrategies).map(
+      async ([chain, chainFeeCollectableStrategies]) => [
+        chain,
+        await sdk.api.abi
+          .multiCall({
+            abi: FEE_COLLECTABLE_STRATEGY.find(
+              ({ name }) => name === 'feeBips'
+            ),
+            calls: chainFeeCollectableStrategies.map(
+              (feeCollectableStrategy) => ({
+                target: feeCollectableStrategy,
+              })
+            ),
+            chain,
+            requery: true,
+          })
+          .then((call) =>
+            Object.fromEntries(
+              call.output.map((x, i) => [
+                chainFeeCollectableStrategies[i].toLowerCase(),
+                x.output / 10000,
+              ])
+            )
+          ),
+      ]
+    )
+  ).then(Object.fromEntries);
+
+
 const getDetailsFromCollaterals = (collaterals, abi) =>
   Promise.all(
     Object.entries(collaterals).map(async ([chain, chainCollaterals]) => {
@@ -502,9 +596,9 @@ const marketInfoToPool = (chain, marketInfo, collateral, pricesObj) => {
   const ltv = marketInfo.maximumCollateralRatio / 10000;
 
   const pool = {
-    pool: `${marketInfo.cauldron}-${chain}`,
+    pool: `${marketInfo.address}-${chain}`,
     chain: utils.formatChain(chain),
-    symbol: utils.formatSymbol(collateral.symbol),
+    symbol: marketInfo.symbol ?? utils.formatSymbol(collateral.symbol),
     tvlUsd: totalSupplyUsd,
     apyBaseBorrow,
     totalSupplyUsd,
@@ -539,7 +633,7 @@ const getApy = async () => {
     bentoboxes,
     strategies,
     negativeInterestStrategyApys,
-    baseStargateLpStrategyFees,
+    strategyFees,
     symbols,
     decimals,
     pricesObj,
@@ -552,7 +646,10 @@ const getApy = async () => {
       ([collaterals, bentoboxes]) => getStrategies(collaterals, bentoboxes)
     ),
     getNegativeInterestStrategyApy(NEGATIVE_INTEREST_STRATEGIES),
-    getBaseStargateLpStrategyFees(BASE_STARGATE_LP_STRATEGIES),
+    Promise.all([
+      getBaseStargateLpStrategyFees(BASE_STARGATE_LP_STRATEGIES),
+      getFeeCollectableStrategyFees(FEE_COLLECTABLE_STRATEGIES),
+    ]).then((strategyFeesArr) => _.merge({}, ...strategyFeesArr)),
     collateralsPromise.then((collaterals) =>
       getDetailsFromCollaterals(collaterals, 'erc20:symbol')
     ),
@@ -575,13 +672,13 @@ const getApy = async () => {
   return Object.entries(marketInfos).flatMap(([chain, chainMarketInfos]) =>
     chainMarketInfos.map((marketInfo) => {
       const collateralAddress =
-        collaterals[chain][marketInfo.cauldron.toLowerCase()].toLowerCase();
+        collaterals[chain][marketInfo.address.toLowerCase()].toLowerCase();
       const bentobox =
-        bentoboxes[chain][marketInfo.cauldron.toLowerCase()].toLowerCase();
+        bentoboxes[chain][marketInfo.address.toLowerCase()].toLowerCase();
       const collateral = {
         address: collateralAddress,
-        symbol: symbols[chain][marketInfo.cauldron.toLowerCase()],
-        decimals: decimals[chain][marketInfo.cauldron.toLowerCase()],
+        symbol: symbols[chain][marketInfo.address.toLowerCase()],
+        decimals: decimals[chain][marketInfo.address.toLowerCase()],
       };
 
       // Add negative strategy APY to collateral if there's one for the cauldron
@@ -594,33 +691,41 @@ const getApy = async () => {
         marketInfo.collateralPoolId !== undefined
           ? _.find(apyObj, { pool: marketInfo.collateralPoolId })
           : undefined;
+      if (collateralApy !== undefined) {
+        collateral.apyBase = collateralApy.apyBase;
+      } else {
+        collateral.apyBase = 0;
+      }
       if (strategyDetails !== undefined) {
         const strategy = strategyDetails.address.toLowerCase();
-        const targetPercentage = strategyDetails.strategyData.targetPercentage;
+        const strategyConfiguration = _.get(
+          STRATEGY_CONFIGURATIONS,
+          [chain, strategy]
+        );
+        const ignoreTargetPercentage = strategyConfiguration?.ignoreTargetPercentage === true;
+        const targetPercentage = ignoreTargetPercentage ? 100 : strategyDetails.strategyData.targetPercentage;
         const negativeInterestStrategyApy = _.get(
           negativeInterestStrategyApys,
           [chain, strategy]
         );
-        const baseStargateLpStrategyFee = _.get(baseStargateLpStrategyFees, [
+        const strategyFee = _.get(strategyFees, [
           chain,
           strategy,
         ]);
         if (negativeInterestStrategyApy !== undefined) {
-          collateral.apyBase =
+          collateral.apyBase +=
             (targetPercentage / 100) * -negativeInterestStrategyApy;
         } else if (
-          baseStargateLpStrategyFee !== undefined &&
+          strategyFee !== undefined &&
           collateralApy !== undefined
         ) {
-          collateral.apyBase =
-            ((collateralApy.apy * targetPercentage) / 100) *
-            baseStargateLpStrategyFee;
+          collateral.apyBase +=
+            ((collateralApy.apyReward * targetPercentage) / 100) *
+            (1 - strategyFee);
         }
-      } else {
-        // No strategy to consider, so just use the apy from the pool if one exists.
-        if (collateralApy) {
-          collateral.apyBase = collateralApy.apy;
-        }
+      }
+      if (collateral.apyBase === 0) {
+        collateral.apyBase = undefined;
       }
 
       return {

@@ -36,6 +36,46 @@ const excludeAdaptors = [
   'eternal-finance',
   'wild-base', // empty
   'vendor-v1', // empty
+  'uncx-network-v2',
+  'rocifi-v2',
+  'steadefi', // hacked,
+  'bank-of-chain',
+  'zunami-protocol', // hacked
+  'myso-v1',
+  'civfund',
+  'midas-capital',
+  'pearlfi', // tmp
+  'foodcourt',
+  'yield-protocol',
+  'autofarm',
+  'complifi',
+  'illuminate',
+  'klap',
+  'polylend',
+  'tempus-finance',
+  'kolibri',
+  'vires-finance',
+  'nftx',
+  'mahadao-arth',
+  'xy-finance',
+  'quoll',
+  'omnidex-lend',
+  'maple',
+  'ease.org',
+  'kyberswap-elastic',
+  'penrose',
+  'unknown',
+  'mooncake-finance',
+  'hydradex-v2',
+  'apollodao',
+  'liqee',
+  'earnmos',
+  'magik-farm',
+  'reservoir',
+  'swapfish',
+  'rage-trade',
+  'ottopia',
+  'velodrome-v1',
 ];
 
 const excludePools = [
@@ -394,11 +434,18 @@ const excludePools = [
   '0xc963ef7d977ECb0Ab71d835C4cb1Bf737f28d010', // rdnt-weth sushi pool in radiant v1 adapter, redundant
   '0x7007535de9f864f0c15fe6fa288ce3feb842f72c',
   '0xbefaba1c380d8b0a53bc604d8b809684775e74f8',
+  '0x4b4b425586fa9b5cf0d06baf5ba9eb9e9b936e66-avalanche',
+  '0x295d1119c1183dc64feeb4bdc3f06f652525013d-avalanche',
+  '0x4c46ea0265efb51f90d405fb27bac92ff1beb274-avalanche',
+  '0x6b23732232f836d0918b11ebc03c21ad8759cb10-avalanche',
+  '0x3bf4885237f857b9668d2c44fa9ccd37b9c988e7-avalanche',
+  '0x0304a6dc4231c963c13df6c8b033ded30597ef4b-avalanche',
+  '0xe24563774dd4050e28e3c63567b2918495367626-avalanche',
 ];
 
 const boundaries = {
   // we only insert pools into the db with a tvlUsd of minimum $1k
-  tvlUsdDB: { lb: 1e3, ub: 2e10 },
+  tvlUsdDB: { lb: 1e3, ub: 5e10 },
   // we only get pools for the UI with a tvlUsd of minimum $10k and max ($20 billion)
   tvlUsdUI: { lb: 1e4, ub: 2e10 },
   // we only get pools for the UI with a maximum apy of 1million %

@@ -2234,6 +2234,21 @@ module.exports = {
       "stateMutability": "view",
       "type": "function"
     }
+  ],
+  zfLpABI: [
+    {
+      inputs: [],
+      name: "getSwapFee",
+      outputs: [
+        {
+          internalType: "uint16",
+          name: "",
+          type: "uint16"
+        }
+      ],
+      stateMutability: "view",
+      type: "function"
+    },
   ]
 
 }
