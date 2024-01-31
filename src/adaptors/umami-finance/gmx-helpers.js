@@ -110,17 +110,7 @@ function expandDecimals(n, decimals) {
 }
 
 const getGmTokensPrices = async (marketsWithInfos, tickers) => {
-  const queryBody = marketsWithInfos.reduce(
-    (acc, market) => acc + marketFeesQuery(market.id),
-    ''
-  );
-  const marketInfosQueryResponse = await request(
-    SUBGRAPH_URL['arbitrum'],
-    gql`query M {
-        ${queryBody}
-      }`
-  );
-  const marketResults = {};
+  const gmTokensPrices = {};
 
   await Promise.all(
     marketsWithInfos.map(async (market) => {
@@ -149,20 +139,19 @@ const getGmTokensPrices = async (marketsWithInfos, tickers) => {
         })
       ).output;
 
-      marketResults[market.marketToken.toLowerCase()] = {
+      gmTokensPrices[market.marketToken.toLowerCase()] = {
         gmTokenPrice: max[0] / 1e30,
       };
-      return marketInfosQueryResponse;
     })
   );
-  return marketResults;
+  return gmTokensPrices;
 };
 
 const getGmMarketsForUmami = async () => {
   const chain = 'arbitrum';
   const { marketInfos } = await request(SUBGRAPH_URL[chain], marketsQuery);
 
-  const queryBody = marketInfos.reduce(
+  const feesQuery = marketInfos.reduce(
     (acc, market) => acc + marketFeesQuery(market.id),
     ''
   );
@@ -170,7 +159,7 @@ const getGmMarketsForUmami = async () => {
   const feesQueryResponse = await request(
     SUBGRAPH_URL[chain],
     gql`query M {
-      ${queryBody}
+      ${feesQuery}
     }`
   );
 
