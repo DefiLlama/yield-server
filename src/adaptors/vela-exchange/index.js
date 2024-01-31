@@ -25,16 +25,11 @@ const TOKEN_FARM_ADDRESS = {
 };
 
 const RPC = {
-  ['arbitrum']: 'https://arbitrum.llamarpc.com',
+  ['arbitrum']: 'https://arbitrum-one.public.blastapi.io',
   ['base']: 'https://mainnet.base.org',
 };
 
 const chains = ['arbitrum', 'base'];
-
-const VAULT_START_TIME = {
-  ['arbitrum']: new Date(Date.UTC(2023, 5, 26, 4, 38)).getTime(),
-  ['base']: new Date(Date.UTC(2023, 8, 5, 15, 0)).getTime(),
-};
 
 const poolsFunction = async () => {
   const pools = [];
@@ -42,6 +37,17 @@ const poolsFunction = async () => {
 
   for (let i = 0; i < chains.length; i++) {
     const chain = chains[i];
+    // 28 days
+    let distance = await axios(
+      `https://coins.llama.fi/block/${chain}/${Math.floor(
+        new Date(new Date(Date.now() - 24192e5)).getTime() / 1000
+      )}`
+    );
+
+    sdk.api.config.setProvider(
+      `${chain}`,
+      new ethers.providers.JsonRpcProvider(`${RPC[chain]}`)
+    );
 
     const velaPrice = (
       await utils.getPrices(
@@ -49,11 +55,6 @@ const poolsFunction = async () => {
         'arbitrum'
       )
     ).pricesBySymbol.vela;
-
-    sdk.api.config.setProvider(
-      `${chain}`,
-      new ethers.providers.JsonRpcProvider(`${RPC[chain]}`)
-    );
 
     const current = ethers.utils.formatUnits(
       (
@@ -74,33 +75,24 @@ const poolsFunction = async () => {
       })
     ).output;
 
-    const diff = current - 1;
-    const now = new Date();
-    const dayDiff = Math.floor(
-      (new Date(
-        Date.UTC(
-          now.getUTCFullYear(),
-          now.getUTCMonth(),
-          now.getUTCDate(),
-          now.getUTCHours(),
-          now.getUTCMinutes()
-        )
-      ).getTime() -
-        VAULT_START_TIME[chain]) /
-        (24 * 60 * 60 * 1000)
-    );
-    /// APR Calculations ///
-    const APR = 365 * (diff / 1 / dayDiff) * 100;
+    const historical = ethers.utils.formatUnits((
+      await sdk.api.abi.call({
+        target: VAULT_ADDRESS,
+        abi: VaultABI.filter(({ name }) => name === 'getVLPPrice')[0],
+        chain: `${chain}`,
+        block: distance.data.height,
+      })
+    ).output, 5);
 
     const rewardsPerSecond = (await sdk.api.abi.call({
-          target: TOKEN_FARM_ADDRESS[chain],
-          abi: TokenFarmABI.filter(
-            ({ name }) => name === 'poolRewardsPerSec'
-          )[0],
-          chain: `${chain}`,
-          params: [0],
-        })
-      ).output
+      target: TOKEN_FARM_ADDRESS[chain],
+      abi: TokenFarmABI.filter(
+        ({ name }) => name === 'poolRewardsPerSec'
+      )[0],
+      chain: `${chain}`,
+      params: [0],
+    })
+  ).output
 
     const poolTotal = ethers.utils.formatEther(
       (
@@ -112,6 +104,18 @@ const poolsFunction = async () => {
         })
       ).output
     );
+
+    const diff = current - historical;
+    const APR = 365 * (diff / historical / 28) * 100;
+
+    if (poolTotal > 0) {
+      VELA_APR =
+        ((rewardsPerSecond * secondsPerYear * velaPrice) /
+          (poolTotal * current)) *
+        100;
+    } else {
+      VELA_APR = 0;
+    }
 
     let rewardTokens = [VELA_ADDRESS[chain]]
     let apyReward =
