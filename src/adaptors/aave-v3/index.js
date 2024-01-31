@@ -18,6 +18,7 @@ const chainUrlParam = {
   harmony: 'proto_harmony_v3',
   optimism: 'proto_optimism_v3',
   metis: 'proto_metis_v3',
+  xdai: 'proto_gnosis_v3',
 };
 
 const getPrices = async (addresses) => {
@@ -57,6 +58,7 @@ const API_URLS = {
   fantom: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-fantom',
   metis:
     'https://andromeda.thegraph.metis.io/subgraphs/name/aave/protocol-v3-metis',
+  xdai: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-gnosis',
 };
 
 const query = gql`

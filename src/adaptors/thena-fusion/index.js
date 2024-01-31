@@ -265,7 +265,7 @@ const getApy = async () => {
         }
 
         return {
-          pool: pool_name,
+          pool: `${pool_name}-Binance`,
           chain: utils.formatChain(chain),
           project: 'thena-fusion',
           symbol: `${symbol_name}`,

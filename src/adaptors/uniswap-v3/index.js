@@ -292,7 +292,13 @@ const main = async (timestamp = null) => {
       await topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins)
     );
   }
-  return data.flat().filter((p) => utils.keepFinite(p));
+  return data
+    .flat()
+    .filter(
+      (p) =>
+        utils.keepFinite(p) &&
+        p.pool !== '0x0c6d9d0f82ed2e0b86c4d3e9a9febf95415d1b76'
+    );
 };
 
 module.exports = {

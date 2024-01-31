@@ -3,7 +3,7 @@ const utils = require('../utils');
 
 const fetchApy = async () => {
   const { data: apyData } = await axios.get(
-    'https://pools-metrics.vercel.app/api/v0/apy'
+    'https://events.glif.link/pool/apy'
   );
 
   const { data: metricsData } = await axios.get(
@@ -23,10 +23,10 @@ const fetchApy = async () => {
     pool: '0x43dAe5624445e7679D16a63211c5ff368681500c-filecoin',
     chain: utils.formatChain('filecoin'),
     project: 'glif',
-    symbol: utils.formatSymbol('FIL'),
+    symbol: utils.formatSymbol('IFIL'),
     tvlUsd: tvlFIL * filPrice,
     apy: Number(apyData.apy),
-    poolMeta: 'Overcollateralized Filecoin staking pool',
+    poolMeta: 'GLIF',
   };
 
   return [filPool];

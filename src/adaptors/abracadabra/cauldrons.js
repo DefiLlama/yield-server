@@ -25,6 +25,38 @@ const POOLS = {
         address: '0x726413d7402ff180609d0ebc79506df8633701b1',
         collateralPoolId: 'a4bcffaa-3b75-436c-b6c2-7b1c3840d041'
       }, // magicGLP
+      {
+        version: 4,
+        address: '0x7962acfcfc2ccebc810045391d60040f635404fb',
+        collateralPoolId: '906b233c-8478-4b94-94e5-2d77e6c7c9e5',
+        symbol: "SOL-USDC",
+      }, // gmSOL
+      {
+        version: 4,
+        address: '0x2b02bBeAb8eCAb792d3F4DDA7a76f63Aa21934FA',
+        collateralPoolId: '61b4c35c-97f6-4c05-a5ff-aeb4426adf5b',
+        symbol: "ETH-USDC",
+      }, // gmETH
+      {
+        version: 4,
+        address: '0xD7659D913430945600dfe875434B6d80646d552A',
+        collateralPoolId: '5b8c0691-b9ff-4d82-97e4-19a1247e6dbf',
+        symbol: "WBTC.B-USDC",
+      }, // gmBTC
+      {
+        version: 4,
+        address: '0x4F9737E994da9811B8830775Fd73E2F1C8e40741',
+        collateralPoolId: 'f3fa942f-1867-4028-95ff-4eb76816cd07',
+        symbol: "ARB-USDC",
+      }, // gmARB
+      {
+        version: 4,
+        address: '0x66805F6e719d7e67D46e8b2501C1237980996C6a',
+        collateralPoolId: 'dffb3514-d667-4f2f-8df3-f716ebe09c93',
+        symbol: "LINK-USDC",
+      }, // gmLINK
+      { version: 4, address: '0x49De724D7125641F56312EBBcbf48Ef107c8FA57' }, // WBTC
+      { version: 4, address: '0x780db9770dDc236fd659A39430A8a7cC07D0C320' }, // WETHV2
     ],
   },
   avax: {
@@ -195,9 +227,26 @@ const BASE_STARGATE_LP_STRATEGIES = {
 };
 
 const FEE_COLLECTABLE_STRATEGIES = {
+  arbitrum: [
+    '0x39c54bd10261d42ee1838d5fc71dd307dcb39001',
+    '0xb4fc7be1fc0a6d7b6d5d509c622f56d719cd1373',
+    '0xf53a003e863ba83424048d729460fba056c06b80',
+    '0x25ac30195f5b7653ddd7eb93cae6ff5d924cdaf4',
+    '0x9f026f9edc92150076bb8a0ac44c14a8412c1639',
+  ],
   kava: [
-    '0x30D525cbB79D2baaE7637eA748631a6360Ce7c16'
-  ]
+    '0x30d525cbb79d2baae7637ea748631a6360ce7c16',
+  ],
+}
+
+const STRATEGY_CONFIGURATIONS = {
+  arbitrum: {
+    '0x39c54bd10261d42ee1838d5fc71dd307dcb39001': { ignoreTargetPercentage: true }, // All rewards will be yielded regardless of targetPercentage
+    '0xb4fc7be1fc0a6d7b6d5d509c622f56d719cd1373': { ignoreTargetPercentage: true }, // All rewards will be yielded regardless of targetPercentage
+    '0xf53a003e863ba83424048d729460fba056c06b80': { ignoreTargetPercentage: true }, // All rewards will be yielded regardless of targetPercentage
+    '0x25ac30195f5b7653ddd7eb93cae6ff5d924cdaf4': { ignoreTargetPercentage: true }, // All rewards will be yielded regardless of targetPercentage
+    '0x9f026f9edc92150076bb8a0ac44c14a8412c1639': { ignoreTargetPercentage: true }, // All rewards will be yielded regardless of targetPercentage
+  }
 }
 
 const getMarketLensDetailsForCauldrons = (
@@ -221,11 +270,7 @@ const getMarketLensDetailsForCauldrons = (
 const enrichMarketInfos = (cauldrons, marketInfos) =>
   marketInfos
     .map((marketInfo, i) => ({
-      cauldron: cauldrons[i].address,
-      maximumCollateralRatio: cauldrons[i].maximumCollateralRatio,
-      interestPerYear: cauldrons[i].interestPerYear,
-      cauldronMeta: cauldrons[i].cauldronMeta,
-      collateralPoolId: cauldrons[i].collateralPoolId,
+      ...cauldrons[i],
       ...marketInfo,
     }))
     .map((enrichedMarketInfo) => _.omitBy(enrichedMarketInfo, _.isUndefined));
@@ -551,9 +596,9 @@ const marketInfoToPool = (chain, marketInfo, collateral, pricesObj) => {
   const ltv = marketInfo.maximumCollateralRatio / 10000;
 
   const pool = {
-    pool: `${marketInfo.cauldron}-${chain}`,
+    pool: `${marketInfo.address}-${chain}`,
     chain: utils.formatChain(chain),
-    symbol: utils.formatSymbol(collateral.symbol),
+    symbol: marketInfo.symbol ?? utils.formatSymbol(collateral.symbol),
     tvlUsd: totalSupplyUsd,
     apyBaseBorrow,
     totalSupplyUsd,
@@ -627,13 +672,13 @@ const getApy = async () => {
   return Object.entries(marketInfos).flatMap(([chain, chainMarketInfos]) =>
     chainMarketInfos.map((marketInfo) => {
       const collateralAddress =
-        collaterals[chain][marketInfo.cauldron.toLowerCase()].toLowerCase();
+        collaterals[chain][marketInfo.address.toLowerCase()].toLowerCase();
       const bentobox =
-        bentoboxes[chain][marketInfo.cauldron.toLowerCase()].toLowerCase();
+        bentoboxes[chain][marketInfo.address.toLowerCase()].toLowerCase();
       const collateral = {
         address: collateralAddress,
-        symbol: symbols[chain][marketInfo.cauldron.toLowerCase()],
-        decimals: decimals[chain][marketInfo.cauldron.toLowerCase()],
+        symbol: symbols[chain][marketInfo.address.toLowerCase()],
+        decimals: decimals[chain][marketInfo.address.toLowerCase()],
       };
 
       // Add negative strategy APY to collateral if there's one for the cauldron
@@ -646,9 +691,19 @@ const getApy = async () => {
         marketInfo.collateralPoolId !== undefined
           ? _.find(apyObj, { pool: marketInfo.collateralPoolId })
           : undefined;
+      if (collateralApy !== undefined) {
+        collateral.apyBase = collateralApy.apyBase;
+      } else {
+        collateral.apyBase = 0;
+      }
       if (strategyDetails !== undefined) {
         const strategy = strategyDetails.address.toLowerCase();
-        const targetPercentage = strategyDetails.strategyData.targetPercentage;
+        const strategyConfiguration = _.get(
+          STRATEGY_CONFIGURATIONS,
+          [chain, strategy]
+        );
+        const ignoreTargetPercentage = strategyConfiguration?.ignoreTargetPercentage === true;
+        const targetPercentage = ignoreTargetPercentage ? 100 : strategyDetails.strategyData.targetPercentage;
         const negativeInterestStrategyApy = _.get(
           negativeInterestStrategyApys,
           [chain, strategy]
@@ -658,21 +713,19 @@ const getApy = async () => {
           strategy,
         ]);
         if (negativeInterestStrategyApy !== undefined) {
-          collateral.apyBase =
+          collateral.apyBase +=
             (targetPercentage / 100) * -negativeInterestStrategyApy;
         } else if (
           strategyFee !== undefined &&
           collateralApy !== undefined
         ) {
-          collateral.apyBase =
-            ((collateralApy.apy * targetPercentage) / 100) *
+          collateral.apyBase +=
+            ((collateralApy.apyReward * targetPercentage) / 100) *
             (1 - strategyFee);
         }
-      } else {
-        // No strategy to consider, so just use the apy from the pool if one exists.
-        if (collateralApy) {
-          collateral.apyBase = collateralApy.apy;
-        }
+      }
+      if (collateral.apyBase === 0) {
+        collateral.apyBase = undefined;
       }
 
       return {

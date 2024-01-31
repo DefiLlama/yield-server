@@ -19,7 +19,8 @@ query GetYieldsData {
         nTokenToUnderlyingExchangeRate,
         nTokenBlendedInterestRate,
         nTokenFeeRate,
-        nTokenIncentiveRate
+        nTokenIncentiveRate,
+        nTokenSecondaryIncentiveRate
       ],
     }, first: 1000) {
       base { id }
@@ -34,6 +35,7 @@ query GetYieldsData {
       id
       symbol
       totalSupply
+      currencyId
       underlying {id symbol decimals}
     }
   	activeMarkets {
@@ -60,6 +62,10 @@ query GetYieldsData {
         }
       }
     }
+    incentives {
+      id
+      currentSecondaryReward { id }
+    }
   }
 `
 
@@ -73,6 +79,13 @@ async function getUSDPrice(chain, address) {
   return price ? price.price : 0;
 }
 
+const defaultLeverageRatio = 3.5
+
+function unique(arr) {
+  return arr.filter((el, index, source) => source.indexOf(el) === index);
+}
+
+
 const getPools = async (chain) => {
   let results = await request(SUBGRAPHS[chain], query);
   const project = 'notional-v3';
@@ -84,6 +97,8 @@ const getPools = async (chain) => {
     const nTokenExRate = oracles.find(({ oracleType }) => oracleType === 'nTokenToUnderlyingExchangeRate').latestRate
     const nTokenBlendedRate = oracles.find(({ oracleType }) => oracleType === 'nTokenBlendedInterestRate').latestRate
     const nTokenFeeRate = oracles.find(({ oracleType }) => oracleType === 'nTokenFeeRate').latestRate
+
+    // NOTE incentive rate
     const nTokenIncentiveRate = oracles.find(({ oracleType }) => oracleType === 'nTokenIncentiveRate').latestRate
     const underlyingDecimals = BigInt(10) ** BigInt(n.underlying.decimals)
     const tvlUnderlying = (BigInt(n.totalSupply) * BigInt(nTokenExRate)) / BigInt(1e9)
@@ -91,25 +106,40 @@ const getPools = async (chain) => {
     const tvlUsd = Number(tvlUnderlying) / 1e8 * underlyingPrice
     const NOTEPriceInUnderlying = NOTEPriceUSD / underlyingPrice
 
+    let apyReward = (Number(nTokenIncentiveRate) * NOTEPriceInUnderlying) * 100 / 1e9;
+
+    const secondaryIncentiveToken = results['incentives'].find((i) => i.id === `${n.currencyId}`)
+    const nTokenSecondaryIncentiveRate = oracles.find(({ oracleType }) => oracleType === 'nTokenSecondaryIncentiveRate').latestRate
+    const rewardTokens = [ NOTE ]
+
+    if (secondaryIncentiveToken.currentSecondaryReward !== null && nTokenSecondaryIncentiveRate) {
+      const token = secondaryIncentiveToken.currentSecondaryReward.id
+      rewardTokens.push(token)
+      const rewardPriceUSD = await getUSDPrice(chain, token)
+      const PriceInUnderlying = rewardPriceUSD / underlyingPrice
+      const apySecondary = (Number(nTokenSecondaryIncentiveRate) * PriceInUnderlying) * 100 / 1e17
+      apyReward = apyReward + apySecondary
+    }
+
     return {
       pool: `${n.id}-${chain}`,
       chain,
       project,
       symbol: n.symbol,
-      rewardTokens: [ NOTE ],
+      rewardTokens,
       underlyingTokens: [ n.underlying.id ],
       poolMeta: 'Liquidity Token',
       url: `https://arbitrum.notional.finance/liquidity-variable/${n.underlying.symbol}`,
       tvlUsd,
       apyBase: (Number(nTokenBlendedRate) + Number(nTokenFeeRate)) * 100 / 1e9,
-      apyReward: (Number(nTokenIncentiveRate) * NOTEPriceInUnderlying) * 100 / 1e9
+      apyReward,
     }
   }))
 
   const primeCash = await Promise.all(results['activeMarkets'].map(async ({ pCashMarket: p }) => {
     const underlyingDecimals = BigNumber(10).pow(p.underlying.decimals)
     const totalSupplyUnderlying = BigNumber(p.current.totalPrimeCashInUnderlying).div(underlyingDecimals)
-    const totalDebtUnderlying = BigNumber(p.current.totalPrimeDebtInUnderlying).div(underlyingDecimals)
+    const totalDebtUnderlying = BigNumber(p.current.totalPrimeDebtInUnderlying || 0).div(underlyingDecimals)
     const tvlUnderlying = totalSupplyUnderlying.minus(totalDebtUnderlying);
     const underlyingPrice = await getUSDPrice('arbitrum', p.underlying.id)
     const tvlUsd = tvlUnderlying.times(underlyingPrice).toNumber()
@@ -162,27 +192,80 @@ const getPools = async (chain) => {
     })
   }))
 
-  // TODO: add vaults in the future
-  // TODO: add leveraged liquidity in the future
-  // const apiResults = await utils.getData(API(chain))
-  // const vaults = apiResults.filter((r) => r.token.tokenType === 'VaultShare' && !!r['leveraged'])
-  //   .map((v) => {
-  //     // TODO: sum up all vaults with this TVL and then select the max APY
-  //   return {
-  //       pool: `${v.token.id}-${chain}`,
-  //       chain,
-  //       project,
-  //       // NOTE: this is pretty ugly, need better metadata
-  //       symbol: v.token.symbol,
-  //       underlyingTokens: [ v.token.underlying ],
-  //       poolMeta: 'Leveraged Vault',
-  //       url: `https://arbitrum.notional.finance/vaults/${v.token.vaultAddress}`,
-  //       tvlUsd: Number(tvlUnderlying),
-  //       apyBase: Number(f.current.lastImpliedRate) / 1e9,
-  //   }
-  // })
+  const leveragedLiquidity = nTokens.map((n) => {
+    const lowestBorrow = primeCash.concat(fCash)
+      .filter(({ underlyingTokens }) => underlyingTokens[0] === n.underlyingTokens[0])
+      .reduce((l, b) => {
+        if (!l || (l && b.apyBaseBorrow < l.apyBaseBorrow)) return b
+        else return l
+      })
+    const apyBase = n.apyBase + ((n.apyBase - lowestBorrow.apyBaseBorrow) * defaultLeverageRatio)
+    // Borrow rates are applied to the apyBase only
+    const apyReward = n.apyReward + n.apyReward * defaultLeverageRatio
+    const underlyingSymbol = results['nTokens'].find((d) => d.symbol == n.symbol)?.underlying.symbol
 
-  return nTokens.concat(primeCash).concat(fCash);
+    return {
+      pool: `${n.pool}-leveraged`,
+      chain: n.chain,
+      project: n.project,
+      symbol: n.symbol,
+      rewardTokens: n.rewardTokens,
+      underlyingTokens: n.underlyingTokens,
+      poolMeta: 'Leveraged Liquidity Token',
+      url: `https://arbitrum.notional.finance/liquidity-leveraged/CreateLeveragedNToken/${underlyingSymbol}`,
+      tvlUsd: n.tvlUsd,
+      // "base" apy is the total leveraged apy minus the reward apy
+      apyBase,
+      apyReward
+    }
+  })
+
+  // NOTE: internal API results are only used for vaults, which often have off-chain custom
+  // calculations to get the current APY
+  const apiResults = await utils.getData(API(chain))
+  const vaultAddresses = unique(apiResults
+    .filter((r) => r.token.tokenType === 'VaultShare' && !!r['leveraged'])
+    .map((r) => r.token.vaultAddress)
+  )
+
+  const allVaultMaturities = apiResults.filter((r) => r.token.tokenType === 'VaultShare' && !!r['leveraged'])
+  const vaults = await Promise.all(vaultAddresses.map(async (vaultAddress) => {
+    const maturities = apiResults
+      .filter((r) => r.token.vaultAddress === vaultAddress && !!r['leveraged'])
+    const tvlUnderlying = maturities.reduce(
+      (tvl, m) => tvl.plus(new BigNumber(m.tvl.hex)),
+      new BigNumber(0)
+    )
+    const highestYield = maturities
+      .reduce((h, m) => {
+        if (!h || (h && h.totalAPY < m.totalAPY)) return m
+        else return h
+      })
+
+    const underlyingPrice = await getUSDPrice('arbitrum', highestYield.underlying.id)
+    const tvlUsd = tvlUnderlying
+      .div(new BigNumber(10).pow(highestYield.underlying.decimals))
+      .times(underlyingPrice)
+      .toNumber()
+
+    return {
+        pool: `${vaultAddress}-${chain}`,
+        chain,
+        project,
+        symbol: highestYield.vaultName,
+        underlyingTokens: [ highestYield.underlying.id ],
+        poolMeta: 'Leveraged Vault',
+        url: `https://arbitrum.notional.finance/vaults/${vaultAddress}`,
+        tvlUsd,
+        apyBase: highestYield.totalAPY
+    }
+  }))
+
+  return nTokens
+    .concat(primeCash)
+    .concat(fCash)
+    .concat(leveragedLiquidity)
+    .concat(vaults)
 };
 
 const main = async () => {

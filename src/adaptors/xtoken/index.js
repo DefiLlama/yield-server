@@ -122,7 +122,9 @@ const getTokenPrice = async (token, network) => {
   }
 
   // use 1inch price as backup
-  return getTokenPriceFrom1inch(token.address, token.decimals, network);
+  if (token.address & token.decimals) {
+    return getTokenPriceFrom1inch(token.address, token.decimals, network);
+  }
 };
 
 const getLPTokensDetails = async (token0, token1, poolPrice, network) => {

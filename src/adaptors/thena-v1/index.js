@@ -1,3 +1,5 @@
+const axios = require('axios');
+
 const utils = require('../utils');
 const { request, gql } = require('graphql-request');
 
@@ -42,12 +44,12 @@ const getPairs = async () => {
 
 const getApy = async () => {
   // APR is retrieved using our api, tvl pairs etc trough subgraph
-  const { data: poolsRes } = await utils.getData(API_URL);
+  const poolsRes = (await axios.get(API_URL)).data.data;
 
   const apyDict = {};
   const alreadySeen = [];
 
-  const v1Pools = poolsRes.filter((pool) => !pool.isGamma)
+  const v1Pools = poolsRes.filter((pool) => !pool.isGamma);
 
   for (const pool of poolsRes) {
     apyDict[pool.address.toLowerCase()] = pool.gauge.apr;
