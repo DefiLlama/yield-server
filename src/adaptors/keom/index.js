@@ -55,7 +55,7 @@ async function main() {
     for (let market of markets) {
       const APYS = await getAPY(market, provider);
       const tvl = await getErc20Balances(market, chains[name].oracle, provider);
-      const ltv = await unitrollerContract.markets(market);
+      const ltv = await comptroller.markets(market);
 
       const marketData = {
         pool: market,
