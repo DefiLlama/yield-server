@@ -7,6 +7,7 @@ const keomABI = [
   'function totalSupply() view returns (uint256)',
   'function totalBorrows() external view returns(uint)',
   'function symbol() external view returns (string)',
+  'function underlying() external view returns (address)',
 ];
 
 const erc20ABI = [
