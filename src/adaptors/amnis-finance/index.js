@@ -31,9 +31,10 @@ async function main() {
           pool: `${AMNIS_RESOURCE_ACCOUNT}-amnis-finance`,
           chain: utils.formatChain('aptos'),
           project: 'amnis-finance',
-          symbol: utils.formatSymbol('amApt'),
+          symbol: utils.formatSymbol('apt'),
           tvlUsd: tvlUsd,
           apy: apy,
+          apyBase: apy,
         },
       ];
 }
