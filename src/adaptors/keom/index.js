@@ -66,7 +66,7 @@ async function main() {
 
       const marketData = {
         pool: market,
-        project: 'KEOM',
+        project: 'keom',
         symbol: APYS.symbol.slice(1),
         chain: chain,
         apyBase: APYS.supplyAPY,
