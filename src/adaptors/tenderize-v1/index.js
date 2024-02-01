@@ -38,7 +38,7 @@ const topLvl = async (endpoint, chain, apyResponse) => {
     pools.push({
       pool: `tenderize-${config.tenderToken}`,
       chain: utils.formatChain(chain),
-      project: 'tenderize',
+      project: 'tenderize-v1',
       symbol: tokens.find((v) => v.address === config.tenderToken).symbol,
       tvlUsd: Number.parseFloat(
         tenderizers.find((v) => v.id === config.id).TVL
