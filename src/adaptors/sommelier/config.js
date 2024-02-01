@@ -369,6 +369,10 @@ const v2p5Pools = [
     underlyingTokens: [],
     url: 'https://app.sommelier.finance/strategies/Turbo-STETH-(steth-deposit)',
   },
+];
+
+// Minor version upgrade post v2p5, these require manually setting the underlying tokens
+const v2p6Pools = [
   {
     pool: `${morphomaximiser}-ethereum`,
     chain,
@@ -379,7 +383,11 @@ const v2p5Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [
+      '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+      '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84',
+      '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0',
+    ],
     url: 'https://app.sommelier.finance/strategies/Morpho-ETH/manage',
   },
 ];
@@ -393,5 +401,6 @@ module.exports = {
   v0816Pools,
   v2Pools,
   v2p5Pools,
+  v2p6Pools,
   realYieldEth,
 };
