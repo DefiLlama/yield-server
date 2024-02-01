@@ -54,7 +54,7 @@ async function main() {
 
     for (let market of markets) {
       const APYS = await getAPY(market, provider);
-      const tvl = await getErc20Balances(market, provider);
+      const tvl = await getErc20Balances(market, chains[name].oracle, provider);
       const ltv = await unitrollerContract.markets(market);
 
       const marketData = {
@@ -102,7 +102,7 @@ function calculateAPY(rate) {
   return (b - 1) * 100;
 }
 
-async function getErc20Balances(strategy, provider) {
+async function getErc20Balances(strategy, oracleAddress, provider) {
   // retrieve the asset contract
   const oTokenContract = new ethers.Contract(strategy, keomABI, provider);
 
@@ -126,7 +126,7 @@ async function getErc20Balances(strategy, provider) {
   );
 
   // retrieve the oracle contract
-  const oracle = new ethers.Contract(oracleContract, oracleABI, provider);
+  const oracle = new ethers.Contract(oracleAddress, oracleABI, provider);
 
   // get the decimals for the underlying token
   const underlyingDecimals = parseInt(await underlyingTokenAddress.decimals());
