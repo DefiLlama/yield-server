@@ -61,7 +61,7 @@ async function main() {
         pool: market,
         project: 'KEOM',
         symbol: APYS.symbol.slice(1),
-        chain: name,
+        chain: chain,
         apyBase: APYS.supplyAPY,
         tvlUsd: tvl.tvlUsd,
         // borrow fields
