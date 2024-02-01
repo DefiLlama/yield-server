@@ -55,7 +55,8 @@ const UMAMI_GLP_VAULTS = [
 const GM_USDC = '0x959f3807f0aa7921e18c78b00b2819ba91e52fef';
 const GM_WETH = '0x4bca8d73561aaeee2d3a584b9f4665310de1dd69';
 
-const ARB_MASTER_CHEF = '0x2f218232fba22a746f8e2fe62ab99306ac969a99';
+const ARB_MASTER_CHEF = '0x52f6159dcae4ce617a3d50aeb7fab617526d9d8f';
+const GMI_AGGREGATE_VAULT = '0x0ca62954b46afee430d645da493c6c783448c4ed';
 
 // This vault holds the GMX GM tokens for the GM vaults
 const GMI_VAULT = '0x9d2f33af8610f1b53dd6fce593f76a2b4b402176';

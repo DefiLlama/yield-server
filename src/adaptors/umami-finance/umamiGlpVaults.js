@@ -2,9 +2,9 @@ const superagent = require('superagent');
 const Web3 = require('web3');
 
 const { UMAMI_GLP_VAULTS, UMAMI_API_URL } = require('./umamiConstants.js');
-const { GLP_VAULT_ABI } = require('./abis/glpVault.js');
+const { GLP_ASSET_VAULT_ABI } = require('./abis/glpAssetVault.js');
 
-const RPC_URL = 'https://arb-mainnet-public.unifra.io';
+const RPC_URL = 'https://rpc.ankr.com/arbitrum';
 
 const web3 = new Web3(RPC_URL);
 
@@ -12,7 +12,10 @@ const getUmamiGlpVaultsYield = async () => {
   const vaults = [];
   await Promise.all(
     UMAMI_GLP_VAULTS.map(async (vault) => {
-      const vaultContract = new web3.eth.Contract(GLP_VAULT_ABI, vault.address);
+      const vaultContract = new web3.eth.Contract(
+        GLP_ASSET_VAULT_ABI,
+        vault.address
+      );
       const underlyingTokenPriceKey =
         `arbitrum:${vault.underlyingAsset}`.toLowerCase();
 

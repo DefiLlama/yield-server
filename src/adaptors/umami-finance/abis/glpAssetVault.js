@@ -1,4 +1,4 @@
-const GLP_VAULT_ABI = [
+const GLP_ASSET_VAULT_ABI = [
   {
     inputs: [
       {
@@ -931,5 +931,5 @@ const GLP_VAULT_ABI = [
 ];
 
 module.exports = {
-  GLP_VAULT_ABI,
+  GLP_ASSET_VAULT_ABI,
 };

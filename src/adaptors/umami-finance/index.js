@@ -56,21 +56,12 @@ const main = async () => {
     url: 'https://umami.finance/marinate',
   };
 
-  const [
-    // glpVaults,
-    gmVaults,
-  ] = await Promise.all([
-    // getUmamiGlpVaultsYield(),
+  const [glpVaults, gmVaults] = await Promise.all([
+    getUmamiGlpVaultsYield(),
     getUmamiGmVaultsYield(),
   ]);
-  console.log(glpVaults);
 
-  return [
-    mUMAMI,
-    cmUMAMI,
-    // ...glpVaults,
-    ...gmVaults,
-  ].map((strat) => ({
+  return [mUMAMI, cmUMAMI, ...glpVaults, ...gmVaults].map((strat) => ({
     ...strat,
     chain: 'Arbitrum',
     project: 'umami-finance',

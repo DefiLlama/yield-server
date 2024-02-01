@@ -5,9 +5,7 @@ const { ethers } = require('ethers');
 const { sub } = require('date-fns');
 const { default: BigNumber } = require('bignumber.js');
 
-const { GM_USDC, GM_WETH } = require('./umamiConstants.js');
 const { ABI: GmxDataStoreAbi } = require('./abis/gmxDataStore.js');
-const utils = require('../utils.js');
 
 const SUBGRAPH_URL = {
   arbitrum:

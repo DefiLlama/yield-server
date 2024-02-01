@@ -1,4 +1,4 @@
-const ABI = [
+const GMI_VAULT_ABI = [
   {
     type: 'constructor',
     inputs: [
@@ -1020,4 +1020,4 @@ const ABI = [
   { type: 'error', name: 'UnknownHandlerContract', inputs: [] },
 ];
 
-module.exports = { ABI };
+module.exports = { GMI_VAULT_ABI };
