@@ -1,6 +1,7 @@
 const superagent = require('superagent');
 const Web3 = require('web3');
 const ethers = require('ethers');
+const sdk = require('@defillama/sdk');
 
 const {
   UMAMI_GM_VAULTS,
@@ -114,12 +115,10 @@ const getUmamiGmVaultsYield = async () => {
       return (gmMarketApr || 0) * gmMarketWeight;
     });
 
-    const vaultApr = gmMarketsAprs.reduce((acc, apr) => acc + apr, 0);
-
     const underlyingTokenPriceKey =
       `arbitrum:${vault.underlyingAsset}`.toLowerCase();
 
-    const [tvlRaw, underlyingTokenPriceObj, arbIncentivesApr] =
+    const [tvlRaw, underlyingTokenPriceObj, arbIncentivesApr, bufferRaw] =
       await Promise.all([
         aggregateVaultContract.methods
           .getVaultTVL(vault.address.toLowerCase(), false)
@@ -128,11 +127,22 @@ const getUmamiGmVaultsYield = async () => {
           `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`
         ),
         getIncentivesAprForVault(vault),
+        sdk.api.erc20.balanceOf({
+          target: vault.underlyingAsset.toLowerCase(),
+          owner: GMI_AGGREGATE_VAULT,
+          chain: 'arbitrum',
+        }),
       ]);
 
     const underlyingTokenPrice =
       underlyingTokenPriceObj.body.coins[underlyingTokenPriceKey].price;
     const tvl = tvlRaw / 10 ** vault.decimals;
+    console.log('bufferRaw', bufferRaw);
+    const buffer = bufferRaw.output / 10 ** vault.decimals;
+
+    const bufferWeight = buffer / tvl;
+    let vaultApr = gmMarketsAprs.reduce((acc, apr) => acc + apr, 0);
+    vaultApr = vaultApr * (1 - bufferWeight);
 
     gmVaults.push({
       pool: vault.address,
