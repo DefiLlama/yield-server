@@ -137,7 +137,7 @@ const getUmamiGmVaultsYield = async () => {
     const underlyingTokenPrice =
       underlyingTokenPriceObj.body.coins[underlyingTokenPriceKey].price;
     const tvl = tvlRaw / 10 ** vault.decimals;
-    console.log('bufferRaw', bufferRaw);
+
     const buffer = bufferRaw.output / 10 ** vault.decimals;
 
     const bufferWeight = buffer / tvl;
@@ -147,9 +147,9 @@ const getUmamiGmVaultsYield = async () => {
     gmVaults.push({
       pool: vault.address,
       tvlUsd: +(tvl * underlyingTokenPrice),
-      apyBase: vaultApr,
-      apy: vaultApr,
-      apyReward: arbIncentivesApr,
+      apyBase: +vaultApr.toFixed(2),
+      apy: +vaultApr.toFixed(2),
+      apyReward: +arbIncentivesApr.toFixed(2),
       symbol: vault.symbol,
       rewardTokens: [vault.underlyingAsset, ARB_ADDRESS],
       underlyingTokens: [vault.underlyingAsset],
