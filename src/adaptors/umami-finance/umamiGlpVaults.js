@@ -24,12 +24,12 @@ const getUmamiGlpVaultsYield = async () => {
           vaultContract.methods.tvl().call(),
           superagent.get(`${UMAMI_API_URL}/vaults/${vault.id}`),
           superagent.get(
-            `https://coins.llama.fi/prices/current/${vault.underlyingTokenPriceKey}`
+            `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`
           ),
         ]);
       const tvl = tvlRaw / 10 ** vault.decimals;
       const vaultFromApi = vaultFromApiObj.body;
-      console.log(vault.id, underlyingTokenPriceKey);
+
       const underlyingTokenPrice =
         underlyingTokenPriceObj.body.coins[underlyingTokenPriceKey].price;
 

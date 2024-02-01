@@ -1,5 +1,6 @@
 const superagent = require('superagent');
 const Web3 = require('web3');
+const ethers = require('ethers');
 
 const {
   UMAMI_GM_VAULTS,
@@ -55,7 +56,7 @@ const getIncentivesAprForVault = async (vault) => {
     masterchefContract.methods.arbPerSec().call(),
     vaultContract.methods.balanceOf(ARB_MASTER_CHEF).call(),
     aggregateVaultContract.methods
-      .getVaultPPS(vault.address.toLowerCase(), true, true)
+      .getVaultPPS(vault.address.toLowerCase(), true, false)
       .call(),
     superagent.get(
       `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`
@@ -69,14 +70,15 @@ const getIncentivesAprForVault = async (vault) => {
 
   const arbPerSec = arbPerSecRaw / 10 ** 18;
   const vaultPps = vaultPpsRaw / 10 ** vault.decimals;
-  const assetsStakedTvl =
-    (stakedBalanceRaw.output / 10 ** vault.decimals) * vaultPps;
+  const assetsStakedTvl = Number(
+    ethers.utils.formatUnits(stakedBalanceRaw, vault.decimals) * vaultPps
+  );
 
   const emissionsPerYearInUsd =
     (arbPerSec * 60 * 60 * 24 * 365 * arbTokenPrice) / 2;
   const emissionsPerYearInTokens = emissionsPerYearInUsd / underlyingTokenPrice;
 
-  const apr = emissionsPerYearInTokens / assetsStakedTvl;
+  const apr = (emissionsPerYearInTokens / assetsStakedTvl) * 100;
 
   return isNaN(apr) ? 0 : apr;
 };
@@ -120,7 +122,7 @@ const getUmamiGmVaultsYield = async () => {
     const [tvlRaw, underlyingTokenPriceObj, arbIncentivesApr] =
       await Promise.all([
         aggregateVaultContract.methods
-          .getVaultTVL(vault.address.toLowerCase(), true)
+          .getVaultTVL(vault.address.toLowerCase(), false)
           .call(),
         superagent.get(
           `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`

@@ -104,4 +104,5 @@ module.exports = {
   GM_WETH,
   ARB_MASTER_CHEF,
   ARB_ADDRESS,
+  GMI_AGGREGATE_VAULT,
 };
