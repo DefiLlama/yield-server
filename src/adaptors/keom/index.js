@@ -53,6 +53,7 @@ async function main() {
     const markets = await comptroller.getAllMarkets();
 
     for (let market of markets) {
+      if(market === "0x95B847BD54d151231f1c82Bf2EECbe5c211bD9bC") continue;
       const APYS = await getAPY(market, provider);
       const tvl = await getErc20Balances(market, chains[name].oracle, provider);
       const ltv = await comptroller.markets(market);
