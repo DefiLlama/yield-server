@@ -1,10 +1,7 @@
-const { default: BigNumber } = require('bignumber.js');
-
 const utils = require('../utils');
 
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';
 const COINS_LLAMA_PRICE_URL = 'https://coins.llama.fi/prices/current/';
-const axios = require('axios');
 
 const coins = [
     ["usdc", "0x5e156f1207d0ebfa19a9eeff00d62a282278fb8719f4fab3a586a0a2c0fffbea::coin::T"],
@@ -23,11 +20,7 @@ async function main() {
     const reserveStats = res['data']['stats']
     const reserveStatsMap = new Map(reserveStats.map(({ key, value }) => [key, value]));
 
-    return [
-        await calculateRewardApy(coins[0], reserveStatsMap, aptPrice),
-        await calculateRewardApy(coins[1], reserveStatsMap, aptPrice),
-        await calculateRewardApy(coins[2], reserveStatsMap, aptPrice)
-      ];
+    return await Promise.all(coins.map(async (coin) => await calculateRewardApy(coin, reserveStatsMap, aptPrice)));
 }
 
 async function calculateRewardApy(coin, reserveStatsMap, aptPrice) {
