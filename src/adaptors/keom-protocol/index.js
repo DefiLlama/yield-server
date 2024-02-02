@@ -58,7 +58,9 @@ async function main() {
 
     const markets = await comptroller.getAllMarkets();
 
+    console.log(name, markets.length);
     for (let market of markets) {
+      console.log(market);
       if (market === '0x95B847BD54d151231f1c82Bf2EECbe5c211bD9bC') continue;
       const APYS = await getAPY(market, provider);
       const tvl = await getErc20Balances(
@@ -70,7 +72,7 @@ async function main() {
       const ltv = await comptroller.markets(market);
 
       const marketData = {
-        pool: market,
+        pool: `${market}-${chain}`,
         project: 'keom-protocol',
         symbol: APYS.symbol.slice(1),
         chain: chain,
@@ -207,7 +209,7 @@ function convertTvlUSD(
     10 ** (36 - underlyingDecimals);
 
   let totalBorrowsUsd =
-    (totalBorrows * oracleUnderlyingPrice) / 10 ** (28 + underlyingDecimals);
+    (totalBorrows * oracleUnderlyingPrice) / 10 ** (18 + underlyingDecimals);
 
   if (apiPrice) {
     totalSupplyUsd =
