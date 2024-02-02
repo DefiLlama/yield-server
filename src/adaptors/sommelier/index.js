@@ -10,11 +10,13 @@ const {
   v0816Pools,
   v2Pools,
   v2p5Pools,
+  v2p6Pools,
 } = require('./config');
 const v0815 = require('./v0-8-15');
 const v0816 = require('./v0-8-16');
 const v2 = require('./v2');
 const v2p5 = require('./v2p5');
+const v2p6 = require('./v2p6');
 const stakingAbi = require('./staking-v0-8-15.json');
 
 const call = sdk.api.abi.call;
@@ -47,11 +49,16 @@ async function getHoldingPositions() {
     v2p5Pools.map((pool) => v2p5.getHoldingPosition(getCellarAddress(pool)))
   );
 
+  const v2p6Assets = await Promise.all(
+    v2p6Pools.map((pool) => v2p6.getHoldingPosition(getCellarAddress(pool)))
+  );
+
   const deduped = new Set([
     ...v1Assets,
     ...v15Assets,
     ...v2Assets,
     ...v2p5Assets,
+    ...v2p6Assets,
   ]);
 
   return Array.from(deduped);
@@ -83,6 +90,9 @@ async function main() {
 
   // V2.5
   promises = promises.concat(v2p5Pools.map((pool) => handleV2p5(pool, prices)));
+
+  // V2.6
+  promises = promises.concat(v2p6Pools.map((pool) => handleV2p6(pool, prices)));
 
   const pools = await Promise.all(promises);
 
@@ -149,6 +159,13 @@ async function handleV2(pool, prices) {
 async function handleV2p5(pool, prices) {
   const cellarAddress = pool.pool.split('-')[0];
   const underlyingTokens = await v2p5.getUnderlyingTokens(cellarAddress);
+
+  return handleV2plus(pool, prices, underlyingTokens);
+}
+
+async function handleV2p6(pool, prices) {
+  const cellarAddress = pool.pool.split('-')[0];
+  const underlyingTokens = await v2p6.getUnderlyingTokens(cellarAddress);
 
   return handleV2plus(pool, prices, underlyingTokens);
 }
