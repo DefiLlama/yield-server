@@ -45,6 +45,7 @@ const getSubGraphData = async (blockchainId) => {
     return {};
   }
   if (response?.success) {
+    if (!response.data?.poolList?.length) return {};
     const poolSubgraphsByAddress = Object.fromEntries(
       response.data.poolList.map((pool) => [pool.address, pool])
     );
