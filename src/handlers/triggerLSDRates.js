@@ -175,6 +175,13 @@ const lsdTokens = [
     type: a,
     fee: 0.1,
   },
+  {
+    name: 'MEV Protocol',
+    symbol: 'mevETH',
+    address: '0x24Ae2dA0f361AA4BE46b48EB19C91e02c5e4f27E',
+    type: a,
+    fee: 0.1,
+  },
 ];
 
 const priceUrl = 'https://aggregator-api.kyberswap.com/ethereum/api/v1/routes';
@@ -366,6 +373,17 @@ const getExpectedRates = async () => {
     type: 'function',
   };
 
+  const mevETHAbi = {
+    inputs: [],
+    name: 'fraction',
+    outputs: [
+      { internalType: 'uint128', name: 'elastic', type: 'uint128' },
+      { internalType: 'uint128', name: 'base', type: 'uint128' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
   // --- cbETH
   const cbETHRate = Number((await axios.get(cbETHRateUrl)).data.amount);
 
@@ -530,6 +548,15 @@ const getExpectedRates = async () => {
       })
     ).output;
 
+  const mevETHRes = (
+    await sdk.api.abi.call({
+      target: lsdTokens.find((lsd) => lsd.name === 'MEV Protocol').address,
+      chain: 'ethereum',
+      abi: mevETHAbi,
+    })
+  ).output;
+  const mevETH = mevETHRes[0] / mevETHRes[1];
+
   return lsdTokens.map((lsd) => ({
     ...lsd,
     expectedRate:
@@ -563,6 +590,8 @@ const getExpectedRates = async () => {
         ? mETH
         : lsd.name === 'Liquid Collective'
         ? lsETH
+        : lsd.name === 'MEV Protocol'
+        ? mevETH
         : 1,
   }));
 };
