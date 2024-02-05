@@ -73,8 +73,8 @@ function calcTvlUSD(data, decimals, price) {
     return (data['total_borrowed'] + data['total_cash_available'] + data['reserve_amount']) * price / (10 ** decimals)
 }
 
-function calcAptRewardApy(rewardPerDay, price, tvlInUsd) {
-    return rewardPerDay * 365 * price / tvlInUsd * 100
+function calcAptRewardApy(rewardPerDay, aptPrice, tvlInUsd) {
+    return rewardPerDay * 365 * aptPrice / tvlInUsd * 100
 }
 
 module.exports = {
