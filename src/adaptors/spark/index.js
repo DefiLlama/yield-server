@@ -14,7 +14,7 @@ const sparkChains = ['ethereum', 'gnosis'];
  */
 const protocolDataProviderAddress = {
   ethereum: '0xFc21d6d146E6086B8359705C8b28512a983db0cb',
-  gnosis: '0xA98DaCB3fC964A6A0d2ce3B77294241585EAbA6d',
+  gnosis: '0x2a002054A06546bB5a264D57A81347e23Af91D18',
 };
 
 /**
@@ -116,7 +116,7 @@ async function fetchV3Pools(chain) {
         (currentSupply / 10 ** underlyingDecimalsEthereum[i]) * price;
 
       return {
-        pool: `${aTokens[i].tokenAddress}-ethereum`.toLowerCase(),
+        pool: `${aTokens[i].tokenAddress}-${chain}`.toLowerCase(),
         // Captialize the first letter of the chain
         chain: chain === 'xdai' ? 'Gnosis' : 'Ethereum',
         project: 'spark',
@@ -166,8 +166,8 @@ const apy = async () => {
   const ethereumDaiPool = v3Pools.find(
     (p) => p.symbol === 'DAI' && p.chain === 'Ethereum'
   );
-  daiPool.totalSupplyUsd = Number(ilk.line) / 1e45;
-  daiPool.tvlUsd = daiPool.totalSupplyUsd - daiPool.totalBorrowUsd;
+  ethereumDaiPool.totalSupplyUsd = Number(ilk.line) / 1e45;
+  ethereumDaiPool.tvlUsd = ethereumDaiPool.totalSupplyUsd - ethereumDaiPool.totalBorrowUsd;
 
   return v3Pools;
 };
