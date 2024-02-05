@@ -42,19 +42,19 @@ async function calculateRewardApy(coin, reserveStatsMap, aptPrice) {
         "function": "0x9770fa9c725cbd97eb50b2be5f7416efdfd1f1554beb0750d4dae4c64e860da3::reserve::reserve_farm_coin", 
         "arguments": []
       });
-    const tvlUsd = calcTvlUSD(reserveStat, coinDecimal, coinPrice);
+    const [netTvl, tvlwithBorrow] = calcTvlUSD(reserveStat, coinDecimal, coinPrice);
     const interestApy = calcInterestApy(reserveStat);
     const res = {
         pool: `aries-markets-${coinSymbol}`,
         chain: utils.formatChain('aptos'),
         project: 'aries-markets',
         symbol: utils.formatSymbol(coinSymbol),
-        tvlUsd: tvlUsd,
+        tvlUsd: netTvl,
         apyBase: interestApy,
     }
 
     if (remainingReward > 0) {
-        const rewardApy = calcAptRewardApy(rewardPerDay / 1e8, aptPrice, tvlUsd);
+        const rewardApy = calcAptRewardApy(rewardPerDay / 1e8, aptPrice, tvlwithBorrow);
         res['apyReward'] = rewardApy;
         res['rewardTokens'] = [APT_ADDR];
     }
@@ -76,11 +76,13 @@ function calcInterestApy(data) {
 }
 
 function calcTvlUSD(data, decimals, price) {
-    return (data['total_borrowed'] + data['total_cash_available'] + data['reserve_amount']) * price / (10 ** decimals)
+    const netTvl = (data['total_cash_available'] + data['reserve_amount']) * price / (10 ** decimals);
+    const tvlwithBorrow = data['total_borrowed'] * price / (10 ** decimals) + netTvl;
+    return [netTvl, tvlwithBorrow]
 }
 
-function calcAptRewardApy(rewardPerDay, aptPrice, tvlInUsd) {
-    return rewardPerDay * 365 * aptPrice / tvlInUsd * 100
+function calcAptRewardApy(rewardPerDay, aptPrice, tvlWithBorrow) {
+    return rewardPerDay * 365 * aptPrice / tvlWithBorrow * 100
 }
 
 module.exports = {
