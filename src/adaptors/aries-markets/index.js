@@ -10,6 +10,7 @@ const coins = [
     ["zweth", "coingecko:ethereum", 6, "0xf22bede237a07e121b56d91a491eb7bcdfd1f5907926a9e58338f964a01b17fa::asset::WETH"],
     ["stApt", "coingecko:amnis-staked-aptos-coin", 6, "0x111ae3e5bc816a5e63c2da97d0aa3886519e0cd5e4b046659fa35796bd11542a::stapt_token::StakedApt"],
     ["cake", "coingecko:pancakeswap-token", 8, "0x159df6b7689437016108a019fd5bef736bac692b6d4a1f10c941f6fbb9a74ca6::oft::CakeOFT"],
+    ["apt", "coingecko:aptos", 8, "0x1::aptos_coin::AptosCoin"],
 ]
 
 const FARMING_TYPE = "0x9770fa9c725cbd97eb50b2be5f7416efdfd1f1554beb0750d4dae4c64e860da3::reserve_config::DepositFarming";
@@ -43,17 +44,22 @@ async function calculateRewardApy(coin, reserveStatsMap, aptPrice) {
       });
     const tvlUsd = calcTvlUSD(reserveStat, coinDecimal, coinPrice);
     const interestApy = calcInterestApy(reserveStat);
-    const rewardApy = calcAptRewardApy(rewardPerDay / 1e8, aptPrice, tvlUsd);
-    return {
+    const res = {
         pool: `aries-markets-${coinSymbol}`,
         chain: utils.formatChain('aptos'),
         project: 'aries-markets',
         symbol: utils.formatSymbol(coinSymbol),
         tvlUsd: tvlUsd,
         apyBase: interestApy,
-        apyReward: remainingReward > 0 ? rewardApy: 0,
-        rewardTokens: [APT_ADDR]
     }
+
+    if (remainingReward > 0) {
+        const rewardApy = calcAptRewardApy(rewardPerDay / 1e8, aptPrice, tvlUsd);
+        res['apyReward'] = rewardApy;
+        res['rewardTokens'] = [APT_ADDR];
+    }
+
+    return res;
 }
 
 function calcInterestApy(data) {
