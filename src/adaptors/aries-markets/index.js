@@ -42,7 +42,7 @@ async function calculateRewardApy(coin, reserveStatsMap, aptPrice) {
         "function": "0x9770fa9c725cbd97eb50b2be5f7416efdfd1f1554beb0750d4dae4c64e860da3::reserve::reserve_farm_coin", 
         "arguments": []
       });
-    const [netTvl, tvlwithBorrow] = calcTvlUSD(reserveStat, coinDecimal, coinPrice);
+    const [netTvl, tvlWithBorrow] = calcTvlUSD(reserveStat, coinDecimal, coinPrice);
     const interestApy = calcInterestApy(reserveStat);
     const res = {
         pool: `aries-markets-${coinSymbol}`,
@@ -54,7 +54,7 @@ async function calculateRewardApy(coin, reserveStatsMap, aptPrice) {
     }
 
     if (remainingReward > 0) {
-        const rewardApy = calcAptRewardApy(rewardPerDay / 1e8, aptPrice, tvlwithBorrow);
+        const rewardApy = calcAptRewardApy(rewardPerDay / 1e8, aptPrice, tvlWithBorrow);
         res['apyReward'] = rewardApy;
         res['rewardTokens'] = [APT_ADDR];
     }
