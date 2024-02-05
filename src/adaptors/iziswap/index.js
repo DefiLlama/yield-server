@@ -26,7 +26,9 @@ const getApy = async () => {
 
     return {
       pool: poolInfo.pool_address.toLowerCase(),
-      chain: utils.formatChain(chain[poolInfo.chain_id]),
+      chain: chain[poolInfo.chain_id]
+        ? utils.formatChain(chain[poolInfo.chain_id])
+        : null,
       project: 'iziswap',
       symbol: `${poolInfo.tokenX_symbol}-${poolInfo.tokenY_symbol}`,
       tvlUsd: poolInfo.tvl,
@@ -36,7 +38,7 @@ const getApy = async () => {
     };
   });
 
-  return pools;
+  return pools.filter((i) => i.chain);
 };
 
 module.exports = {
