@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk4')
+const sdk = require('@defillama/sdk4');
 const axios = require('axios');
 
 const token = '0x04C154b66CB340F3Ae24111CC767e0184Ed00Cc6';
@@ -18,7 +18,7 @@ const getApy = async () => {
     {
       pool: token,
       chain: 'ethereum',
-      project: 'dinero-pirexeth',
+      project: 'dinero-(pirex-eth)',
       symbol: 'apxeth',
       tvlUsd: tvl * ethPrice,
       apyBase: Number(apyData.apxEth),
