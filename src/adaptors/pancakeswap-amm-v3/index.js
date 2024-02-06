@@ -4,24 +4,25 @@ const superagent = require('superagent');
 
 const utils = require('../utils');
 const { EstimatedFees } = require('./estimateFee');
-const { getCakeAprs } = require('./cakeReward');
+const { getCakeAprs, CAKE } = require('./cakeReward');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 
 const baseUrl = 'https://api.thegraph.com/subgraphs/name';
 const chains = {
   ethereum: `${baseUrl}/pancakeswap/exchange-v3-eth`,
-  bsc: `${baseUrl}/pancakeswap/exchange-v3-bsc`,
+  // temp disable bsc
+  // bsc: `${baseUrl}/pancakeswap/exchange-v3-bsc`,
   polygon_zkevm:
     'https://api.studio.thegraph.com/query/45376/exchange-v3-polygon-zkevm/version/latest',
   era: 'https://api.studio.thegraph.com/query/45376/exchange-v3-zksync/version/latest',
   arbitrum: `${baseUrl}/pancakeswap/exchange-v3-arb`,
 };
 
-const CAKE = {
-  [utils.formatChain('ethereum')]: '0x152649eA73beAb28c5b49B26eb48f7EAD6d4c898',
-  [utils.formatChain('bsc')]: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
-};
+const cakeByFormatChain = Object.keys(chains).reduce((acc, chain) => {
+  acc[utils.formatChain(chain)] = CAKE[chain];
+  return acc;
+}, {});
 
 const query = gql`
   {
@@ -81,39 +82,11 @@ const topLvl = async (
     let dataNow = await request(url, queryC.replace('<PLACEHOLDER>', block));
     dataNow = dataNow.pools;
 
-    // uni v3 subgraph reserves values are wrong!
-    // instead of relying on subgraph values, gonna pull reserve data from contracts
-    // new tvl calc
-    // Note: pancake subgraph reserves tvl is fixed, but since there's still minor differences, keep this code for now
-    const balanceCalls = [];
-    for (const pool of dataNow) {
-      balanceCalls.push({
-        target: pool.token0.id,
-        params: pool.id,
-      });
-      balanceCalls.push({
-        target: pool.token1.id,
-        params: pool.id,
-      });
-    }
-
-    const tokenBalances = await sdk.api.abi.multiCall({
-      abi: 'erc20:balanceOf',
-      calls: balanceCalls,
-      chain: chainString,
-      permitFailure: true,
-    });
-
     dataNow = dataNow.map((p) => {
-      const x = tokenBalances.output.filter((i) => i.input.params[0] === p.id);
       return {
         ...p,
-        reserve0:
-          x.find((i) => i.input.target === p.token0.id).output /
-          `1e${p.token0.decimals}`,
-        reserve1:
-          x.find((i) => i.input.target === p.token1.id).output /
-          `1e${p.token1.decimals}`,
+        reserve0: p.totalValueLockedToken0,
+        reserve1: p.totalValueLockedToken1,
       };
     });
 
@@ -275,7 +248,8 @@ const main = async (timestamp = null) => {
           ...p,
           apyReward: cakeAPRsByChain[p.chain][p.pool],
           rewardTokens: [
-            CAKE[p.chain] ?? '0x152649eA73beAb28c5b49B26eb48f7EAD6d4c898',
+            cakeByFormatChain[p.chain] ??
+              '0x152649eA73beAb28c5b49B26eb48f7EAD6d4c898',
           ],
         };
       }
