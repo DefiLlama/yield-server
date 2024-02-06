@@ -4,7 +4,7 @@ const superagent = require('superagent');
 
 const utils = require('../utils');
 const { EstimatedFees } = require('./estimateFee');
-const { getCakeAprs, CAKE } = require('./cakeReward');
+const { getCakeAprs, CAKE, chainIds } = require('./cakeReward');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 
@@ -17,6 +17,9 @@ const chains = {
     'https://api.studio.thegraph.com/query/45376/exchange-v3-polygon-zkevm/version/latest',
   era: 'https://api.studio.thegraph.com/query/45376/exchange-v3-zksync/version/latest',
   arbitrum: `${baseUrl}/pancakeswap/exchange-v3-arb`,
+  op_bnb: 'https://proxy-worker-dev.pancake-swap.workers.dev/opbnb-exchange-v3',
+  linea:
+    'https://graph-query.linea.build/subgraphs/name/pancakeswap/exchange-v3-linea',
 };
 
 const cakeByFormatChain = Object.keys(chains).reduce((acc, chain) => {
@@ -190,10 +193,11 @@ const topLvl = async (
       const underlyingTokens = [p.token0.id, p.token1.id];
       const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
       const token1 = underlyingTokens === undefined ? '' : underlyingTokens[1];
-      const chain = chainString === 'ethereum' ? 'eth' : chainString;
+
+      const chainId = chainIds[chainString].id;
 
       const feeTier = Number(poolMeta.replace('%', '')) * 10000;
-      const url = `https://pancakeswap.finance/add/${token0}/${token1}/${feeTier}?chain=${chain}`;
+      const url = `https://pancakeswap.finance/add/${token0}/${token1}/${feeTier}?chainId=${chainId}`;
 
       return {
         pool: p.id,

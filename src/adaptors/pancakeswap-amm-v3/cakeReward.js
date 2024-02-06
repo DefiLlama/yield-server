@@ -234,4 +234,5 @@ const getBaseTokensPrice = async (allTokens, chain) => {
 module.exports = {
   getCakeAprs,
   CAKE,
+  chainIds,
 };
