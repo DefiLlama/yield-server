@@ -57,7 +57,7 @@ const getIncentivesAprForVault = async (vault) => {
     masterchefContract.methods.arbPerSec().call(),
     vaultContract.methods.balanceOf(ARB_MASTER_CHEF).call(),
     aggregateVaultContract.methods
-      .getVaultPPS(vault.address.toLowerCase(), true, false)
+      .getVaultPPS(vault.address.toLowerCase(), true, true)
       .call(),
     superagent.get(
       `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`
@@ -121,7 +121,7 @@ const getUmamiGmVaultsYield = async () => {
     const [tvlRaw, underlyingTokenPriceObj, arbIncentivesApr, bufferRaw] =
       await Promise.all([
         aggregateVaultContract.methods
-          .getVaultTVL(vault.address.toLowerCase(), false)
+          .getVaultTVL(vault.address.toLowerCase(), true)
           .call(),
         superagent.get(
           `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`
