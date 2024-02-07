@@ -12,7 +12,8 @@ const chains = [
   {
     chainName: 'base',
     facade: '0xe1aa15DA8b993c6312BAeD91E0b470AE405F91BF',
-    graph: 'https://graph-base.register.app/subgraphs/name/lcamargof/reserve',
+    graph:
+      'https://subgraph.satsuma-prod.com/327d6f1d3de6/reserve/reserve-base/api',
   },
   {
     chainName: 'ethereum',
