@@ -130,7 +130,7 @@ async function getApyData() {
     chain: utils.formatChain('ethereum'),
     project: 'asymetrix-protocol',
     symbol: utils.formatSymbol('stETH'),
-    tvlUsd: await utils.getData('https://api.llama.fi/tvl/asymetrix-protocol/'),
+    tvlUsd: await utils.getData('https://api.llama.fi/tvl/asymetrix-protocol'),
     apyReward: await getApy(),
     rewardTokens: [asxContract.options.address], // [ASX]
     underlyingTokens: ['0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84'], // [stETH]

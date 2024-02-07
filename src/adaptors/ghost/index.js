@@ -1,3 +1,5 @@
+const fetch = require('node-fetch');
+
 const utils = require('../utils');
 
 const uniquePools = new Set();

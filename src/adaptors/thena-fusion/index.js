@@ -265,7 +265,7 @@ const getApy = async () => {
         }
 
         return {
-          pool: pool_name,
+          pool: `${pool_name}-Binance`,
           chain: utils.formatChain(chain),
           project: 'thena-fusion',
           symbol: `${symbol_name}`,
@@ -289,7 +289,7 @@ const getApy = async () => {
     ...i,
     apyReward: x.includes(i.pool) ? null : i.apyReward,
     rewardTokens: x.includes(i.pool) ? null : i.rewardTokens,
-  }));
+  })).filter(i => i.chain === 'Binance');
 };
 
 module.exports = {
