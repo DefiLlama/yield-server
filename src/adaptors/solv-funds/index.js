@@ -12,12 +12,6 @@ const chain = {
   5000: 'mantle',
 };
 
-const rewardTokenAddress = {
-  5000: {
-    KTC: "0x779f4e5fb773e17bc8e809f4ef1abb140861159a"
-  }
-}
-
 const poolsQuery = gql`
   query Pools {
     pools(filter:{
@@ -65,13 +59,13 @@ const poolsFunction = async () => {
     await axios.get(`https://coins.llama.fi/prices/current/${pricesArray}`)
   ).data.coins;
 
-  const filterOutPoolId = (
+  const poolConfiguration = (
     await axios.get(`https://raw.githubusercontent.com/solv-finance-dev/slov-protocol-defillama/main/pools.json`)
-  ).data.filterOut;
+  ).data;
 
   let ustPool = [];
   for (const pool of pools.poolsInfo) {
-    if (filterOutPoolId.indexOf(pool.poolOrderInfo.poolId) !== -1) {
+    if (poolConfiguration.filterOut.indexOf(pool.poolOrderInfo.poolId) !== -1) {
       continue
     }
 
@@ -90,8 +84,10 @@ const poolsFunction = async () => {
     let rewardApy = 0;
     let rewardTokens = [];
     JSON.parse(pool.additionalRewards).map(function (item, index) {
-      rewardTokens.push(rewardTokenAddress[pool.productInfo.chainId][item.symbol])
-      rewardApy += item.apy / 100;
+      if (poolConfiguration.rewardTokenAddress[pool.productInfo.chainId][item.symbol]) {
+        rewardTokens.push(poolConfiguration.rewardTokenAddress[pool.productInfo.chainId][item.symbol])
+        rewardApy += item.apy / 100;
+      }
     })
 
     ustPool.push({
