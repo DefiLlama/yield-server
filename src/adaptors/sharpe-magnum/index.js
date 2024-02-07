@@ -5,6 +5,7 @@ const {abi} = require("./ABI")
 const {vaultAbi} = require("./vaultAbi")
 const sdk = require('@defillama/sdk');
 const { ChainId, Token, Fetcher } = require('@defillama/sdk');
+const fetch = require('node-fetch');
 
 async function fetchSmaApr() {
   const url = 'https://eth-api.lido.fi/v1/protocol/steth/apr/sma';
