@@ -162,7 +162,7 @@ const lsdTokens = [
     fee: 0.1,
   },
   {
-    name: 'Dinero-PirexETH',
+    name: 'Dinero (Pirex ETH)',
     symbol: 'APXETH',
     address: '0x04c154b66cb340f3ae24111cc767e0184ed00cc6',
     type: a,
