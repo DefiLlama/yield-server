@@ -76,6 +76,7 @@ const excludeAdaptors = [
   'rage-trade',
   'ottopia',
   'velodrome-v1',
+  'brinc-finance',
 ];
 
 const excludePools = [

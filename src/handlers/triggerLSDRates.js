@@ -162,7 +162,7 @@ const lsdTokens = [
     fee: 0.1,
   },
   {
-    name: 'Dinero-PirexETH',
+    name: 'Dinero (Pirex ETH)',
     symbol: 'APXETH',
     address: '0x04c154b66cb340f3ae24111cc767e0184ed00cc6',
     type: a,
@@ -172,6 +172,20 @@ const lsdTokens = [
     name: 'Liquid Collective',
     symbol: 'lsETH',
     address: '0x8c1bed5b9a0928467c9b1341da1d7bd5e10b6549',
+    type: a,
+    fee: 0.1,
+  },
+  {
+    name: 'MEV Protocol',
+    symbol: 'mevETH',
+    address: '0x24Ae2dA0f361AA4BE46b48EB19C91e02c5e4f27E',
+    type: a,
+    fee: 0.1,
+  },
+  {
+    name: 'Meta Pool ETH',
+    symbol: 'mpETH',
+    address: '0x48AFbBd342F64EF8a9Ab1C143719b63C2AD81710',
     type: a,
     fee: 0.1,
   },
@@ -366,6 +380,25 @@ const getExpectedRates = async () => {
     type: 'function',
   };
 
+  const mevETHAbi = {
+    inputs: [],
+    name: 'fraction',
+    outputs: [
+      { internalType: 'uint128', name: 'elastic', type: 'uint128' },
+      { internalType: 'uint128', name: 'base', type: 'uint128' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
+  const mpETHAbi = {
+    inputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }],
+    name: 'convertToAssets',
+    outputs: [{ internalType: 'uint256', name: 'assets', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
   // --- cbETH
   const cbETHRate = Number((await axios.get(cbETHRateUrl)).data.amount);
 
@@ -530,6 +563,25 @@ const getExpectedRates = async () => {
       })
     ).output;
 
+  const mevETHRes = (
+    await sdk.api.abi.call({
+      target: lsdTokens.find((lsd) => lsd.name === 'MEV Protocol').address,
+      chain: 'ethereum',
+      abi: mevETHAbi,
+    })
+  ).output;
+  const mevETH = mevETHRes[0] / mevETHRes[1];
+
+  const mpETH =
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Meta Pool ETH').address,
+        chain: 'ethereum',
+        params: [1000000000000000000n],
+        abi: mpETHAbi,
+      })
+    ).output / 1e18;
+
   return lsdTokens.map((lsd) => ({
     ...lsd,
     expectedRate:
@@ -563,6 +615,10 @@ const getExpectedRates = async () => {
         ? mETH
         : lsd.name === 'Liquid Collective'
         ? lsETH
+        : lsd.name === 'MEV Protocol'
+        ? mevETH
+        : lsd.name === 'Meta Pool ETH'
+        ? mpETH
         : 1,
   }));
 };

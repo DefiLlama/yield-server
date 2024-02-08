@@ -102,6 +102,8 @@ const getLatestBlockSubgraph = async (url) => {
     url.includes('api.goldsky.com') ||
     url.includes('48211/uniswap-v3-base') ||
     url.includes('horizondex/block') ||
+    url.includes('pancake-swap.workers.dev') ||
+    url.includes('pancakeswap/exchange-v3-linea') ||
     url.includes('exchange-v3-polygon-zkevm/version/latest') ||
     url.includes('exchange-v3-zksync/version/latest') ||
     url.includes('balancer-base-v2/version/latest')
