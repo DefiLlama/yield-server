@@ -182,6 +182,13 @@ const lsdTokens = [
     type: a,
     fee: 0.1,
   },
+  {
+    name: 'Meta Pool ETH',
+    symbol: 'mpETH',
+    address: '0x48AFbBd342F64EF8a9Ab1C143719b63C2AD81710',
+    type: a,
+    fee: 0.1,
+  },
 ];
 
 const priceUrl = 'https://aggregator-api.kyberswap.com/ethereum/api/v1/routes';
@@ -384,6 +391,14 @@ const getExpectedRates = async () => {
     type: 'function',
   };
 
+  const mpETHAbi = {
+    inputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }],
+    name: 'convertToAssets',
+    outputs: [{ internalType: 'uint256', name: 'assets', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
   // --- cbETH
   const cbETHRate = Number((await axios.get(cbETHRateUrl)).data.amount);
 
@@ -557,6 +572,16 @@ const getExpectedRates = async () => {
   ).output;
   const mevETH = mevETHRes[0] / mevETHRes[1];
 
+  const mpETH =
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Meta Pool ETH').address,
+        chain: 'ethereum',
+        params: [1000000000000000000n],
+        abi: mpETHAbi,
+      })
+    ).output / 1e18;
+
   return lsdTokens.map((lsd) => ({
     ...lsd,
     expectedRate:
@@ -592,6 +617,8 @@ const getExpectedRates = async () => {
         ? lsETH
         : lsd.name === 'MEV Protocol'
         ? mevETH
+        : lsd.name === 'Meta Pool ETH'
+        ? mpETH
         : 1,
   }));
 };
