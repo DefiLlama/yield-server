@@ -22,6 +22,7 @@ const turbostethstethDeposit = '0xc7372Ab5dd315606dB799246E8aA112405abAeFf';
 const morphomaximiser = '0xcf4B531b4Cde95BD35d71926e09B2b54c564F5b6';
 const turbodiveth = '0x6c1edce139291Af5b84fB1e496c9747F83E876c9';
 const turboethx = '0x19B8D8FC682fC56FbB42653F68c7d48Dd3fe597E';
+const turboeethv2 = '0xdAdC82e26b3739750E036dFd9dEfd3eD459b877A';
 
 // Rewards are paid out in EVM SOMM
 const rewardTokens = ['0xa670d7237398238de01267472c6f13e5b8010fd1'];
@@ -57,6 +58,7 @@ const stakingPools = {
   [morphomaximiser]: '0xe468c1156d4b3399e4Aa1080c58fFBc6119722F9',
   // TODO: If we add staking pool for turbo diveth, add it here
   [turboethx]: '0x88EDf544b5d4Ba6A11D40375e4bAEf3f1Ec5aF11',
+  // TODO: If we add staking pool for turbo eethv2, add it here
 };
 
 // List of v0815 Cellars
@@ -427,6 +429,19 @@ const v2p6Pools = [
       '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0',
     ],
     url: 'https://app.sommelier.finance/strategies/Turbo-ETHx/manage',
+  },
+  {
+    pool: `${turboeethv2}-ethereum`,
+    chain,
+    project,
+    symbol: 'WETH-EETH-WEETH',
+    poolMeta: 'TurboEETHv2',
+    tvlUsd: 0,
+    apyBase: 0,
+    apyReward: 0,
+    rewardTokens,
+    underlyingTokens: [],
+    url: 'https://app.sommelier.finance/strategies/Turbo-eETHV2/manage',
   },
 ];
 
