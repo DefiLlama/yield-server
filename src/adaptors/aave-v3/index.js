@@ -223,16 +223,17 @@ const ethV3Pools = async () => {
 };
 
 const apy = async () => {
-  let data = await Promise.all(
+  let data = await Promise.allSettled(
     Object.entries(API_URLS).map(async ([chain, url]) => [
       chain,
       (await request(url, query)).reserves,
     ])
   );
-  data = data.map(([chain, reserves]) => [
-    chain,
-    reserves.filter((p) => !p.isFrozen),
-  ]);
+
+  data = data
+    .filter((i) => i.status === 'fulfilled')
+    .map((i) => i.value)
+    .map(([chain, reserves]) => [chain, reserves.filter((p) => !p.isFrozen)]);
 
   const totalSupply = await Promise.all(
     data.map(async ([chain, reserves]) =>
