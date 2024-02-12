@@ -3,7 +3,7 @@ const axios = require('axios');
 const abi = require('./abi.js');
 const PermissionlessNodeRegistryAbi = require('./ PermissionlessNodeRegistryAbi.json');
 
-const abiBsc = require('./abiBsc');
+// const abiBsc = require('./abiBsc');
 const abiPolygon = require('./abiPolygon');
 
 const token = '0xa35b1b31ce002fbf2058d22f30f95d405200a15b';
