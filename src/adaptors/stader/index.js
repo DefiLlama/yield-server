@@ -139,8 +139,8 @@ const getApy = async () => {
       project: 'stader',
       symbol: 'maticx',
       tvlUsd: tvlPolygon * maticxPrice,
-      apyBasePolygon,
-      apyBase7dPolygon,
+      apyBase: apyBasePolygon,
+      apyBase7d: apyBase7dPolygon,
       underlyingTokens: ['0x0000000000000000000000000000000000001010'],
     },
   ];
