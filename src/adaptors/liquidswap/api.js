@@ -34,7 +34,11 @@ async function fetchFarmPoolData(
     )
   );
 
-  return response;
+  return {
+    rewardPerSecond: BigInt(response.data.reward_per_sec),
+    stakeCoins: BigInt(response.data.stake_coins.value),
+    totalBoosted: BigInt(response.data.total_boosted),
+  };
 }
 
 module.exports = { fetchPoolTotalMintedLP, fetchFarmPoolData };
