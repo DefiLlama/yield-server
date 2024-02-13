@@ -21,7 +21,10 @@ const APT_AMNIS_STAPT_FARM = {
   coinX: APTOS_TOKEN,
   coinY: AMNIS_ST_APT,
   curve: UNCORRELATED_CURVE,
-  reward: APTOS_TOKEN,
+  rewardTokenInfo: {
+    type: APTOS_TOKEN,
+    decimals: 8,
+  },
   resourceAccount: RESOURCES_ACCOUNT_0_5,
 };
 
@@ -30,11 +33,16 @@ const USDC_AMNIS_STAPT_FARM = {
   coinX: LZ_USDC,
   coinY: AMNIS_ST_APT,
   curve: UNCORRELATED_CURVE,
-  reward: APTOS_TOKEN,
+  rewardTokenInfo: {
+    type: APTOS_TOKEN,
+    decimals: 8,
+  },
   resourceAccount: APTOS_TOKEN,
 };
 
 const FARMS = [APT_AMNIS_STAPT_FARM, USDC_AMNIS_STAPT_FARM];
+
+const WEEK_SEC = 7 * 24 * 60 * 60;
 
 module.exports = {
   LP_DECIMALS,
@@ -45,4 +53,5 @@ module.exports = {
   FARMS,
   USDC_AMNIS_STAPT_FARM,
   APT_AMNIS_STAPT_FARM,
+  WEEK_SEC,
 };
