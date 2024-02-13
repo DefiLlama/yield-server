@@ -1,4 +1,10 @@
-const { FARMS, NODE_URL, LP_STAKING_ACCOUNT } = require('./constants');
+const {
+  FARMS,
+  NODE_URL,
+  LP_STAKING_ACCOUNT,
+  LP_DECIMALS,
+  WEEK_SEC,
+} = require('./constants');
 const { BigNumber } = require('bignumber.js');
 
 function getFarmResourceUrl(
@@ -57,9 +63,28 @@ function decimalsMultiplier(decimals) {
   return BigNumber(10).exponentiatedBy(BigNumber(decimals).absoluteValue());
 }
 
+function calcRewardPerWeekPerOneLp(farmData, rewardToken) {
+  const decimalsReward = decimalsMultiplier(rewardToken.decimals).toNumber();
+
+  const decimalsLP = decimalsMultiplier(LP_DECIMALS).toNumber();
+  const numerator = BigNumber(farmData.rewardPerSecond).multipliedBy(WEEK_SEC);
+  const denominator = BigNumber(farmData.stakeCoins)
+    .plus(farmData.totalBoosted)
+    .plus(decimalsLP);
+
+  const estimation = BigNumber(numerator).dividedBy(denominator);
+  const normalizer = BigNumber(decimalsLP).dividedBy(decimalsReward);
+  const rewardPerWeekOnLp = estimation
+    .multipliedBy(normalizer)
+    .multipliedBy(decimalsReward);
+
+  return rewardPerWeekOnLp.toNumber();
+}
+
 module.exports = {
-  getFarmResourceUrl,
   getPoolTotalLPUrl,
-  calcOutputBurnLiquidity,
+  getFarmResourceUrl,
   decimalsMultiplier,
+  calcOutputBurnLiquidity,
+  calcRewardPerWeekPerOneLp,
 };
