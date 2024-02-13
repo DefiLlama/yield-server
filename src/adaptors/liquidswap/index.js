@@ -1,11 +1,18 @@
 const utils = require('../utils');
 const { BigNumber } = require('bignumber.js');
-const { FARMS, NODE_URL } = require('./constants');
+const {
+  FARMS,
+  NODE_URL,
+  APT_AMNIS_STAPT_FARM,
+  LP_DECIMALS,
+  WEEK_SEC,
+} = require('./constants');
 const {
   getPoolTotalLPUrl,
-  calcOutputBurnLiquidity,
   getFarmResourceUrl,
   decimalsMultiplier,
+  calcOutputBurnLiquidity,
+  calcRewardPerWeekPerOneLp,
 } = require('./utils');
 const { fetchPoolTotalMintedLP, fetchFarmPoolData } = require('./api');
 
@@ -14,17 +21,25 @@ async function fecthFarmPoolData() {}
 function calculateRewardPerWeek() {}
 
 async function main() {
-  // const decimalsReward = decimalsMultiplier(
-  //   farmPool.rewardCoin.decimals,
-  // ).toNumber();
+  const decimalsReward = decimalsMultiplier(
+    APT_AMNIS_STAPT_FARM.rewardTokenInfo.decimals
+  ).toNumber();
 
-  // const decimalsLP = decimalsMultiplier(LP_DECIMALS).toNumber();
-  // const numerator = farmPool.rewardPerSecond * WEEK_SEC;
-  // const denominator =
-  //   farmPool.stakeCoins + farmPool.totalBoosted + decimalsLP;
-  // const estimation = numerator / denominator;
-  // const normalizer = decimalsLP / decimalsReward;
-  // farmPool.rewardPerWeekOnLp = estimation * normalizer * decimalsReward;
+  const farmData = await fetchFarmPoolData(
+    APT_AMNIS_STAPT_FARM.deployedAddress,
+    APT_AMNIS_STAPT_FARM.coinX,
+    APT_AMNIS_STAPT_FARM.coinY,
+    APT_AMNIS_STAPT_FARM.curve,
+    APT_AMNIS_STAPT_FARM.rewardTokenInfo.type,
+    APT_AMNIS_STAPT_FARM.resourceAccount
+  );
+
+  const rewardPerWeekPerOneLP = calcRewardPerWeekPerOneLp(
+    farmData,
+    APT_AMNIS_STAPT_FARM.rewardTokenInfo
+  );
+
+  // ----
 
   const testDec = decimalsMultiplier(6).toNumber();
 
@@ -41,13 +56,12 @@ async function main() {
   console.log('testBurnLiq', testBurnLiq);
   console.log('testPriceReq', testPriceReq);
 
-  console.log('farmPool url', farmPoolUrl);
   const apyData = await fetchFarmPoolData(
     APT_AMNIS_STAPT_FARM.deployedAddress,
     APT_AMNIS_STAPT_FARM.coinX,
     APT_AMNIS_STAPT_FARM.coinY,
     APT_AMNIS_STAPT_FARM.curve,
-    APT_AMNIS_STAPT_FARM.reward,
+    APT_AMNIS_STAPT_FARM.rewardTokenInfo.type,
     APT_AMNIS_STAPT_FARM.resourceAccount
   );
 
