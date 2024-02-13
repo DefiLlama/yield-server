@@ -22,12 +22,14 @@ const urlPolygon = `${urlBase}/balancer-polygon-v2`;
 const urlGnosis = `${urlBase}/balancer-gnosis-chain-v2`;
 const urlArbitrum = `${urlBase}/balancer-arbitrum-v2`;
 const urlBaseChain = `https://api.studio.thegraph.com/query/24660/balancer-base-v2/version/latest`;
+const urlAvalanche = `${urlBase}/balancer-avalanche-v2`;
 
 const urlGaugesEthereum = `${urlBase}/balancer-gauges`;
 const urlGaugesPolygon = `${urlBase}/balancer-gauges-polygon`;
 const urlGaugesGnosis = `${urlBase}/balancer-gauges-gnosis-chain`;
 const urlGaugesArbitrum = `${urlBase}/balancer-gauges-arbitrum`;
 const urlGaugesBase = `https://api.studio.thegraph.com/query/24660/balancer-gauges-base/version/latest`;
+const urlGaugesAvalanche = `${urlBase}/balancer-gauges-avalanche`;
 
 const protocolFeesCollector = '0xce88686553686DA562CE7Cea497CE749DA109f9F';
 const gaugeController = '0xC128468b7Ce63eA702C1f104D55A2566b13D3ABD';
@@ -162,6 +164,9 @@ const tvl = (entry, tokenPriceList, chainString) => {
         'GHO/BB-A-USD',
         'B-ETHX/BB-A-WETH',
         'ETHX-WETH-BPT',
+        'SAVAX-WAVAX-BPT',
+        'GGAVAX-WAVAX-BPT',
+        'YYAVAX-WAVAX-BPT',
       ].includes(t.symbol.toUpperCase().trim())
   );
 
@@ -231,7 +236,9 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
 
   let childChainRootGauges;
   if (chainString != 'ethereum') {
-    childChainRootGauges = await getChildChainRootGauge(chainString);
+    childChainRootGauges = await getChildChainRootGauge(
+      chainString === 'avax' ? 'avalanche' : chainString
+    );
   }
 
   // Global source of truth for the inflation rate. All mainnet gauges use the BalancerTokenAdmin contract to update their locally stored inflation rate during checkpoints.
@@ -537,6 +544,16 @@ const main = async () => {
       urlGaugesBase,
       queryGauge,
       gaugeABIBase,
+      swapFeePercentage
+    ),
+    topLvl(
+      'avax',
+      urlAvalanche,
+      query,
+      queryPrior,
+      urlGaugesAvalanche,
+      queryGauge,
+      gaugeABIArbitrum,
       swapFeePercentage
     ),
   ]);
