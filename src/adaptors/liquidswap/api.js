@@ -1,18 +1,16 @@
 const utils = require('../utils');
-const { getPoolTotalLPUrl, getFarmResourceUrl } = require('./utils');
+const {
+  getPoolTotalLPUrl,
+  getFarmResourceUrl,
+  getPoolResourceUrl,
+} = require('./utils');
 
-async function fetchPoolTotalMintedLP(
-  deployedAddress,
-  coinX,
-  coinY,
-  curve,
-  resourceAccount
-) {
+async function fetchPoolTotalMintedLP(coinX, coinY, curve, resourceAccount) {
   const response = await utils.getData(
-    getPoolTotalLPUrl(deployedAddress, coinX, coinY, curve, resourceAccount)
+    getPoolTotalLPUrl(coinX, coinY, curve, resourceAccount)
   );
 
-  return response;
+  return BigInt(response.data.supply.vec[0].integer.vec[0].value);
 }
 
 async function fetchFarmPoolData(
@@ -41,4 +39,25 @@ async function fetchFarmPoolData(
   };
 }
 
-module.exports = { fetchPoolTotalMintedLP, fetchFarmPoolData };
+async function fetchLiquidityPoolData(
+  coinX,
+  coinY,
+  curve,
+  resourceAccount,
+  moduleAccount
+) {
+  const response = await utils.getData(
+    getPoolResourceUrl(coinX, coinY, curve, resourceAccount, moduleAccount)
+  );
+
+  return {
+    coinXReserves: BigInt(response.data.coin_x_reserve.value),
+    coinYReserves: BigInt(response.data.coin_y_reserve.value),
+  };
+}
+
+module.exports = {
+  fetchFarmPoolData,
+  fetchLiquidityPoolData,
+  fetchPoolTotalMintedLP,
+};
