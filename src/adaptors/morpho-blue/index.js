@@ -320,7 +320,7 @@ async function blueMarkets() {
 }
 
 // note that for this section, the use of bigint and scale_factor (WAD) was necessary to avoid rounding errors in the apy calculation.
-async function metamorphoAPY(resultsOriginal) {
+async function metaMorphoAPY(resultsOriginal) {
   try {
     const metaMorphoDataResponse = await fetchGraphData(
       gqlQueries.metaMorphoData,
@@ -407,14 +407,14 @@ async function metamorphoAPY(resultsOriginal) {
       };
     });
   } catch (error) {
-    console.error('Error in metamorphoAPY:', error);
+    console.error('Error in metaMorphoAPY:', error);
     return [];
   }
 }
 
 async function apy() {
   const resultsOriginal = await blueMarkets();
-  const resultsMetamorpho = await metamorphoAPY(resultsOriginal);
+  const resultsMetamorpho = await metaMorphoAPY(resultsOriginal);
   return Object.values(resultsOriginal).concat(resultsMetamorpho);
 }
 
