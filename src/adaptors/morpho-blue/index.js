@@ -2,6 +2,8 @@ const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 const superagent = require('superagent');
 
+const WAD = BigInt(1e18);
+
 const tokens = {
   SWISE: {
     decimals: 18,
@@ -207,20 +209,6 @@ async function blueMarkets() {
           hasWstETHReward: false,
           hasMorphoReward: false,
         };
-
-        // Check and set flags for each reward token presence
-        marketRewards.rewardsRates.forEach(({ rewardProgram }) => {
-          const rewardTokenAddress = rewardProgram.rewardToken.toLowerCase();
-          if (rewardTokenAddress === tokens.SWISE.address.toLowerCase())
-            rewardTokenStates.hasSWISEReward = true;
-          if (rewardTokenAddress === tokens.USDC.address.toLowerCase())
-            rewardTokenStates.hasUSDCReward = true;
-          if (rewardTokenAddress === tokens.wstETH.address.toLowerCase())
-            rewardTokenStates.hasWstETHReward = true;
-          if (rewardTokenAddress === tokens.MORPHO.address.toLowerCase())
-            rewardTokenStates.hasMorphoReward = true;
-        });
-
         // Calculate APYs for supply, borrow, and collateral based on rewards
         let supplyRewardsApy = 0;
         let borrowRewardsApy = 0;
@@ -234,6 +222,16 @@ async function blueMarkets() {
             rewardProgram,
           } = reward;
           const rewardTokenAddress = rewardProgram.rewardToken.toLowerCase();
+          // Check and set flags for reward token presence
+          if (rewardTokenAddress === tokens.SWISE.address.toLowerCase())
+            rewardTokenStates.hasSWISEReward = true;
+          if (rewardTokenAddress === tokens.USDC.address.toLowerCase())
+            rewardTokenStates.hasUSDCReward = true;
+          if (rewardTokenAddress === tokens.wstETH.address.toLowerCase())
+            rewardTokenStates.hasWstETHReward = true;
+          if (rewardTokenAddress === tokens.MORPHO.address.toLowerCase())
+            rewardTokenStates.hasMorphoReward = true;
+
           const rewardTokenPriceUSD = prices[rewardTokenAddress] || 0;
           const rewardTokenDecimals = tokenDecimals[rewardTokenAddress];
 
@@ -338,12 +336,10 @@ async function metamorphoAPY(resultsOriginal) {
       {}
     );
 
-    const WAD = BigInt(1e18); // Define a scale factor for fixed-point arithmetic
-
     return vaultData.map((vault) => {
       let totalMarketSupply = BigInt(0);
       let rewardTokenSet = new Set();
-      const vaultTotalAssets = BigInt(vault.lastTotalAssets);
+      const vaultTotalAssets = BigInt(vault.lastTotalAssets) * WAD;
 
       vault.withdrawQueue.forEach(({ market }) => {
         const marketInfo = marketDataMap[market.id];
