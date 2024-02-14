@@ -19,7 +19,7 @@ const UNCORRELATED_CURVE =
   '0x163df34fccbf003ce219d3f1d9e70d140b60622cb9dd47599c25fb2f797ba6e::curves::Uncorrelated';
 const APTOS_COINGECKO_ID = 'aptos';
 const AMNIS_ST_APT_COINGECKO_ID = 'amnis-staked-aptos-coin';
-const LZ_USDC_COINGECKO_ID = 'bridged-usd-coin-layerzero';
+const LZ_USDC_COINGECKO_ID = 'usd-coin';
 
 const APT_AMNIS_STAPT_FARM = {
   deployedAddress: DEPLOYED_POOL_ADDRESS,
@@ -45,7 +45,7 @@ const APT_AMNIS_STAPT_FARM = {
 
 const USDC_AMNIS_STAPT_FARM = {
   deployedAddress: DEPLOYED_POOL_ADDRESS,
-  coinY: {
+  coinX: {
     type: LZ_USDC,
     decimals: 6,
     coinGeckoId: LZ_USDC_COINGECKO_ID,
@@ -59,6 +59,7 @@ const USDC_AMNIS_STAPT_FARM = {
   rewardTokenInfo: {
     type: APTOS_TOKEN,
     decimals: 8,
+    coinGeckoId: APTOS_COINGECKO_ID,
   },
   resourceAccount: RESOURCES_ACCOUNT_0_5,
   moduleAccount: MODULE_ACCOUNT_0_5,
