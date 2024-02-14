@@ -21,24 +21,17 @@ function getFarmResourceUrl(
 // https://aptos-mainnet.pontem.network/v1/accounts/0x61d2c22a6cb7831bee0f48363b0eec92369357aece0d1142062f7d5d85c7bef8/resource/0x163df34fccbf003ce219d3f1d9e70d140b60622cb9dd47599c25fb2f797ba6e::liquidity_pool::LiquidityPool<0x7fd500c11216f0fe3095d0c4b8aa4d64a4e2e04f83758462f2b127255643615::thl_coin::THL,0x1::aptos_coin::AptosCoin,0x163df34fccbf003ce219d3f1d9e70d140b60622cb9dd47599c25fb2f797ba6e::curves::Stable>
 
 function getPoolResourceUrl(
-  deploymentAddress,
   coinXType,
   coinYType,
   curveType,
-  rewardType,
-  resourceAccount
+  resourceAccount,
+  moduleAccount
 ) {
-  return `${NODE_URL}/accounts/${deploymentAddress}/resource/${LP_STAKING_ACCOUNT}::stake::StakePool<${resourceAccount}::lp_coin::LP<${coinXType},${coinYType},${curveType}>,${rewardType}>`;
+  return `${NODE_URL}/accounts/${resourceAccount}/resource/${moduleAccount}::liquidity_pool::LiquidityPool<${coinXType},${coinYType},${curveType}>`;
 }
 
 //https://aptos-mainnet.pontem.network/v1/accounts/0x61d2c22a6cb7831bee0f48363b0eec92369357aece0d1142062f7d5d85c7bef8/resource/0x1::coin::CoinInfo<0x61d2c22a6cb7831bee0f48363b0eec92369357aece0d1142062f7d5d85c7bef8::lp_coin::LP<0x1::aptos_coin::AptosCoin,0x111ae3e5bc816a5e63c2da97d0aa3886519e0cd5e4b046659fa35796bd11542a::stapt_token::StakedApt,0x163df34fccbf003ce219d3f1d9e70d140b60622cb9dd47599c25fb2f797ba6e::curves::Uncorrelated>>
-function getPoolTotalLPUrl(
-  deploymentAddress,
-  coinXType,
-  coinYType,
-  curveType,
-  resourceAccount
-) {
+function getPoolTotalLPUrl(coinXType, coinYType, curveType, resourceAccount) {
   return `${NODE_URL}/accounts/${resourceAccount}/resource/0x1::coin::CoinInfo<${resourceAccount}::lp_coin::LP<${coinXType},${coinYType},${curveType}>>`;
 }
 
@@ -54,9 +47,17 @@ function calcOutputBurnLiquidity({ xReserve, yReserve, lpSupply, toBurn }) {
   }
 
   return {
-    x: xReturn.toNumber(),
-    y: yReturn.toNumber(),
+    x: Math.trunc(xReturn.toNumber()),
+    y: Math.trunc(yReturn.toNumber()),
   };
+}
+
+function getAmountWithDecimal(amount, decimal) {
+  if (amount === undefined) return;
+
+  return +BigNumber(amount)
+    .dividedBy(decimalsMultiplier(decimal))
+    .toFixed(decimal);
 }
 
 function decimalsMultiplier(decimals) {
@@ -81,10 +82,18 @@ function calcRewardPerWeekPerOneLp(farmData, rewardToken) {
   return rewardPerWeekOnLp.toNumber();
 }
 
+function getUSDEquivalent(coinAmount, usdRate) {
+  if (!coinAmount || !usdRate) return 0;
+  return BigNumber(coinAmount).multipliedBy(BigNumber(usdRate)).toNumber();
+}
+
 module.exports = {
+  getUSDEquivalent,
   getPoolTotalLPUrl,
-  getFarmResourceUrl,
   decimalsMultiplier,
+  getFarmResourceUrl,
+  getPoolResourceUrl,
+  getAmountWithDecimal,
   calcOutputBurnLiquidity,
   calcRewardPerWeekPerOneLp,
 };
