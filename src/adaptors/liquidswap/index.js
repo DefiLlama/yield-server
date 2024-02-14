@@ -8,13 +8,19 @@ const {
   WEEK_SEC,
 } = require('./constants');
 const {
+  getUSDEquivalent,
   getPoolTotalLPUrl,
-  getFarmResourceUrl,
   decimalsMultiplier,
+  getFarmResourceUrl,
+  getAmountWithDecimal,
   calcOutputBurnLiquidity,
   calcRewardPerWeekPerOneLp,
 } = require('./utils');
-const { fetchPoolTotalMintedLP, fetchFarmPoolData } = require('./api');
+const {
+  fetchPoolTotalMintedLP,
+  fetchFarmPoolData,
+  fetchLiquidityPoolData,
+} = require('./api');
 
 async function fecthFarmPoolData() {}
 
@@ -27,8 +33,8 @@ async function main() {
 
   const farmData = await fetchFarmPoolData(
     APT_AMNIS_STAPT_FARM.deployedAddress,
-    APT_AMNIS_STAPT_FARM.coinX,
-    APT_AMNIS_STAPT_FARM.coinY,
+    APT_AMNIS_STAPT_FARM.coinX.type,
+    APT_AMNIS_STAPT_FARM.coinY.type,
     APT_AMNIS_STAPT_FARM.curve,
     APT_AMNIS_STAPT_FARM.rewardTokenInfo.type,
     APT_AMNIS_STAPT_FARM.resourceAccount
@@ -39,42 +45,74 @@ async function main() {
     APT_AMNIS_STAPT_FARM.rewardTokenInfo
   );
 
-  // ----
+  const liquidityPoolData = await fetchLiquidityPoolData(
+    APT_AMNIS_STAPT_FARM.coinX.type,
+    APT_AMNIS_STAPT_FARM.coinY.type,
+    APT_AMNIS_STAPT_FARM.curve,
+    APT_AMNIS_STAPT_FARM.resourceAccount,
+    APT_AMNIS_STAPT_FARM.moduleAccount
+  );
 
-  const testDec = decimalsMultiplier(6).toNumber();
+  const liquidityPoolTotalMintedLP = await fetchPoolTotalMintedLP(
+    APT_AMNIS_STAPT_FARM.coinX.type,
+    APT_AMNIS_STAPT_FARM.coinY.type,
+    APT_AMNIS_STAPT_FARM.curve,
+    APT_AMNIS_STAPT_FARM.resourceAccount
+  );
 
-  const testBurnLiq = calcOutputBurnLiquidity({
-    xReserve: 100000,
-    yReserve: 100000,
-    lpSupply: 10000000,
-    toBurn: 10000,
+  const poolTokensPrices = await utils.getPrices([
+    `coingecko:${APT_AMNIS_STAPT_FARM.rewardTokenInfo.coinGeckoId}`,
+    `coingecko:${APT_AMNIS_STAPT_FARM.coinX.coinGeckoId}`,
+    `coingecko:${APT_AMNIS_STAPT_FARM.coinY.coinGeckoId}`,
+  ]);
+
+  const rewardTokenPriceValue =
+    poolTokensPrices.pricesByAddress[
+      APT_AMNIS_STAPT_FARM.rewardTokenInfo.coinGeckoId
+    ];
+
+  const rewardPerWeekHumanReadable = getAmountWithDecimal(
+    rewardPerWeekPerOneLP,
+    APT_AMNIS_STAPT_FARM.rewardTokenInfo.decimals
+  );
+
+  const rewardPerWeekInUSD = getUSDEquivalent(
+    rewardPerWeekHumanReadable,
+    rewardTokenPriceValue
+  );
+
+  const oneLPHumanReadableValue = decimalsMultiplier(LP_DECIMALS).toNumber();
+
+  const afterBurnOneLpValue = calcOutputBurnLiquidity({
+    xReserve: liquidityPoolData.coinXReserves,
+    yReserve: liquidityPoolData.coinYReserves,
+    lpSupply: liquidityPoolTotalMintedLP,
+    toBurn: oneLPHumanReadableValue,
   });
 
-  const testPriceReq = await utils.getPrices([`coingecko:aptos`]);
-
-  console.log('testDec', testDec);
-  console.log('testBurnLiq', testBurnLiq);
-  console.log('testPriceReq', testPriceReq);
-
-  const apyData = await fetchFarmPoolData(
-    APT_AMNIS_STAPT_FARM.deployedAddress,
-    APT_AMNIS_STAPT_FARM.coinX,
-    APT_AMNIS_STAPT_FARM.coinY,
-    APT_AMNIS_STAPT_FARM.curve,
-    APT_AMNIS_STAPT_FARM.rewardTokenInfo.type,
-    APT_AMNIS_STAPT_FARM.resourceAccount
+  const oneLpXRateHumanReadable = getAmountWithDecimal(
+    afterBurnOneLpValue.x,
+    APT_AMNIS_STAPT_FARM.coinX.decimals
   );
 
-  const apyData1 = await fetchPoolTotalMintedLP(
-    APT_AMNIS_STAPT_FARM.deployedAddress,
-    APT_AMNIS_STAPT_FARM.coinX,
-    APT_AMNIS_STAPT_FARM.coinY,
-    APT_AMNIS_STAPT_FARM.curve,
-    APT_AMNIS_STAPT_FARM.resourceAccount
+  const oneLpYRateHumanReadable = getAmountWithDecimal(
+    afterBurnOneLpValue.y,
+    APT_AMNIS_STAPT_FARM.coinY.decimals
   );
 
-  console.log('apyData', apyData);
-  console.log('apyData1', apyData1);
+  const oneLpXRateInUSD = getUSDEquivalent(
+    oneLpXRateHumanReadable,
+    poolTokensPrices.pricesByAddress[APT_AMNIS_STAPT_FARM.coinX.coinGeckoId]
+  );
+
+  const oneLpYRateInUSD = getUSDEquivalent(
+    oneLpYRateHumanReadable,
+    poolTokensPrices.pricesByAddress[APT_AMNIS_STAPT_FARM.coinY.coinGeckoId]
+  );
+
+  const oneLpInUSD = oneLpXRateInUSD + oneLpYRateInUSD;
+
+  const APR = ((rewardPerWeekInUSD / oneLpInUSD) * 100 * 365) / 7;
 }
 
 main();
