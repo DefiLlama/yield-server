@@ -2,7 +2,7 @@
 
 ## How to list a new protocol
 
-1. Make sure you are listed on defillama's TVL page (see https://github.com/DefiLlama/DefiLlama-Adapters)
+1. Make sure you are listed on DefiLlama's TVL page (see https://github.com/DefiLlama/DefiLlama-Adapters)
 2. Fork this repository
 3. Create a new folder within [src/adaptors/](src/adaptors/) with your protocol name (use your project `slug` from `https://api.llama.fi/protocols`)
 4. Write an adaptor for your protocol (tutorial below)
