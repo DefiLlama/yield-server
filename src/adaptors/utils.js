@@ -216,9 +216,6 @@ exports.tvl = async (dataNow, networkString) => {
     let price0 = prices[`${networkString}:${el.token0.id}`]?.price;
     let price1 = prices[`${networkString}:${el.token1.id}`]?.price;
 
-    price0 = price0 !== undefined ? Number(price0.toFixed(precision)) : price0;
-    price1 = price1 !== undefined ? Number(price1.toFixed(precision)) : price1;
-
     if (price0 !== undefined && price1 !== undefined) {
       tvl = Number(el.reserve0) * price0 + Number(el.reserve1) * price1;
     } else if (price0 !== undefined && price1 === undefined) {
