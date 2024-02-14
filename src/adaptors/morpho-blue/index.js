@@ -2,7 +2,6 @@ const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 const superagent = require('superagent');
 
-// Token constants
 const tokens = {
   SWISE: {
     decimals: 18,
@@ -33,7 +32,6 @@ const tokenDecimals = Object.fromEntries(
   ])
 );
 
-const SECONDS_PER_YEAR = 3600 * 24 * 365;
 const subgraphUrls = {
   morphoBlue:
     'https://api.thegraph.com/subgraphs/name/morpho-association/morpho-blue',
@@ -94,6 +92,38 @@ const gqlQueries = {
       }
     }
   `,
+  metaMorphoData: gql`
+    query GetMetaMorphoData {
+      metaMorphos(first: 1000, orderBy: lastTotalAssets, orderDirection: desc) {
+        id
+        name
+        symbol
+        decimals
+        asset {
+          id
+        }
+        fee
+        feeRecipient {
+          id
+        }
+        lastTotalAssets
+        asset {
+          id
+        }
+        withdrawQueue {
+          market {
+            id
+            totalSupply
+            borrowedToken {
+              id
+              decimals
+              lastPriceUSD
+            }
+          }
+        }
+      }
+    }
+  `,
 };
 
 async function fetchPrices(addresses) {
@@ -125,11 +155,11 @@ function calculateReward(
   tokenDecimals,
   totalAssets,
   assetPriceUSD,
-  assetDecimal
+  assetDecimals
 ) {
   if (ratePerYear > 0 && priceTokenUSD && tokenDecimals !== undefined) {
     const numerator = (ratePerYear * priceTokenUSD) / 10 ** tokenDecimals;
-    const denom = (totalAssets * assetPriceUSD) / 10 ** assetDecimal;
+    const denom = (totalAssets * assetPriceUSD) / 10 ** assetDecimals;
     return denom > 0 ? numerator / denom : 0;
   }
   return 0;
@@ -144,7 +174,7 @@ async function fetchGraphData(query, url) {
   }
 }
 
-async function apy() {
+async function blueMarkets() {
   try {
     const marketDataResponse = await fetchGraphData(
       gqlQueries.yieldsData,
@@ -168,122 +198,228 @@ async function apy() {
       return acc;
     }, {});
 
-    return marketData.map((market) => {
-      const marketRewards = rewardsDataMap[market.id] || { rewardsRates: [] };
-      const rewardTokenStates = {
-        hasSWISEReward: false,
-        hasUSDCReward: false,
-        hasWstETHReward: false,
-        hasMorphoReward: false,
-      };
+    return Object.fromEntries(
+      marketData.map((market) => {
+        const marketRewards = rewardsDataMap[market.id] || { rewardsRates: [] };
+        const rewardTokenStates = {
+          hasSWISEReward: false,
+          hasUSDCReward: false,
+          hasWstETHReward: false,
+          hasMorphoReward: false,
+        };
 
-      // Check and set flags for each reward token presence
-      marketRewards.rewardsRates.forEach(({ rewardProgram }) => {
-        const rewardTokenAddress = rewardProgram.rewardToken.toLowerCase();
-        if (rewardTokenAddress === tokens.SWISE.address.toLowerCase())
-          rewardTokenStates.hasSWISEReward = true;
-        if (rewardTokenAddress === tokens.USDC.address.toLowerCase())
-          rewardTokenStates.hasUSDCReward = true;
-        if (rewardTokenAddress === tokens.wstETH.address.toLowerCase())
-          rewardTokenStates.hasWstETHReward = true;
-        if (rewardTokenAddress === tokens.MORPHO.address.toLowerCase())
-          rewardTokenStates.hasMorphoReward = true;
-      });
+        // Check and set flags for each reward token presence
+        marketRewards.rewardsRates.forEach(({ rewardProgram }) => {
+          const rewardTokenAddress = rewardProgram.rewardToken.toLowerCase();
+          if (rewardTokenAddress === tokens.SWISE.address.toLowerCase())
+            rewardTokenStates.hasSWISEReward = true;
+          if (rewardTokenAddress === tokens.USDC.address.toLowerCase())
+            rewardTokenStates.hasUSDCReward = true;
+          if (rewardTokenAddress === tokens.wstETH.address.toLowerCase())
+            rewardTokenStates.hasWstETHReward = true;
+          if (rewardTokenAddress === tokens.MORPHO.address.toLowerCase())
+            rewardTokenStates.hasMorphoReward = true;
+        });
 
-      // Calculate APYs for supply, borrow, and collateral based on rewards
-      let supplyRewardsApy = 0;
-      let borrowRewardsApy = 0;
-      let collateralRewardsApy = 0;
+        // Calculate APYs for supply, borrow, and collateral based on rewards
+        let supplyRewardsApy = 0;
+        let borrowRewardsApy = 0;
+        let collateralRewardsApy = 0;
 
-      marketRewards.rewardsRates.forEach((reward) => {
-        const {
-          supplyRatePerYear,
-          borrowRatePerYear,
-          collateralRatePerYear,
-          rewardProgram,
-        } = reward;
-        const rewardTokenAddress = rewardProgram.rewardToken.toLowerCase();
-        const rewardTokenPriceUSD = prices[rewardTokenAddress] || 0;
-        const rewardTokenDecimals = tokenDecimals[rewardTokenAddress];
-
-        supplyRewardsApy +=
-          calculateReward(
+        marketRewards.rewardsRates.forEach((reward) => {
+          const {
             supplyRatePerYear,
-            rewardTokenPriceUSD,
-            rewardTokenDecimals,
-            market.totalSupply,
-            market.borrowedToken.lastPriceUSD,
-            market.borrowedToken.decimals
-          ) * 100;
-
-        borrowRewardsApy +=
-          calculateReward(
             borrowRatePerYear,
-            rewardTokenPriceUSD,
-            rewardTokenDecimals,
-            market.totalBorrow,
-            market.borrowedToken.lastPriceUSD,
-            market.borrowedToken.decimals
-          ) * 100;
-
-        collateralRewardsApy +=
-          calculateReward(
             collateralRatePerYear,
-            rewardTokenPriceUSD,
-            rewardTokenDecimals,
-            market.totalCollateral,
-            market.inputToken.lastPriceUSD,
-            market.inputToken.decimals
-          ) * 100;
+            rewardProgram,
+          } = reward;
+          const rewardTokenAddress = rewardProgram.rewardToken.toLowerCase();
+          const rewardTokenPriceUSD = prices[rewardTokenAddress] || 0;
+          const rewardTokenDecimals = tokenDecimals[rewardTokenAddress];
+
+          supplyRewardsApy +=
+            calculateReward(
+              supplyRatePerYear,
+              rewardTokenPriceUSD,
+              rewardTokenDecimals,
+              market.totalSupply,
+              market.borrowedToken.lastPriceUSD,
+              market.borrowedToken.decimals
+            ) * 100;
+
+          borrowRewardsApy +=
+            calculateReward(
+              borrowRatePerYear,
+              rewardTokenPriceUSD,
+              rewardTokenDecimals,
+              market.totalBorrow,
+              market.borrowedToken.lastPriceUSD,
+              market.borrowedToken.decimals
+            ) * 100;
+
+          collateralRewardsApy +=
+            calculateReward(
+              collateralRatePerYear,
+              rewardTokenPriceUSD,
+              rewardTokenDecimals,
+              market.totalCollateral,
+              market.inputToken.lastPriceUSD,
+              market.inputToken.decimals
+            ) * 100;
+        });
+
+        // Construct reward tokens array based on flags
+        const rewardTokens = [
+          rewardTokenStates.hasMorphoReward ? tokens.MORPHO.address : null,
+          rewardTokenStates.hasWstETHReward ? tokens.wstETH.address : null,
+          rewardTokenStates.hasUSDCReward ? tokens.USDC.address : null,
+          rewardTokenStates.hasSWISEReward ? tokens.SWISE.address : null,
+        ].filter(Boolean);
+
+        // Calculate total TVL, supply, and borrow in USD
+        const totalSupplyUsd =
+          (market.totalSupply * market.borrowedToken.lastPriceUSD) /
+            10 ** market.borrowedToken.decimals +
+          (market.totalCollateral * market.inputToken.lastPriceUSD) /
+            10 ** market.inputToken.decimals;
+        const totalBorrowUsd =
+          (market.totalBorrow * market.borrowedToken.lastPriceUSD) /
+          10 ** market.borrowedToken.decimals;
+        const totalTVL = totalSupplyUsd - totalBorrowUsd;
+
+        // Return structured APY data for each market
+        return [
+          market.id,
+          {
+            pool: `morpho-blue-${market.id}`,
+            chain: 'ethereum',
+            project: 'morpho-blue',
+            symbol: utils.formatSymbol(market.borrowedToken.symbol),
+            apyBase:
+              rateToApy(
+                market.rates.find((rate) => rate.side === 'LENDER')?.rate || 0
+              ) * 100,
+            apyReward: supplyRewardsApy,
+            rewardTokens,
+            tvlUsd: totalTVL,
+            underlyingTokens: [market.borrowedToken.id],
+            apyBaseBorrow:
+              rateToApy(
+                market.rates.find((rate) => rate.side === 'BORROWER')?.rate || 0
+              ) * 100,
+            apyRewardBorrow: borrowRewardsApy + collateralRewardsApy,
+            totalSupplyUsd,
+            totalBorrowUsd,
+            ltv: market.lltv / 1e18,
+          },
+        ];
+      })
+    );
+  } catch (error) {
+    console.error('Error in blueMarkets:', error);
+    return [];
+  }
+}
+
+// note that for this section, the use of bigint and scale_factor (WAD) was necessary to avoid rounding errors in the apy calculation.
+async function metamorphoAPY(resultsOriginal) {
+  try {
+    const metaMorphoDataResponse = await fetchGraphData(
+      gqlQueries.metaMorphoData,
+      subgraphUrls.morphoBlue
+    );
+    const vaultData = metaMorphoDataResponse?.metaMorphos || [];
+
+    const marketDataMap = Object.entries(resultsOriginal).reduce(
+      (acc, [marketId, marketInfo]) => {
+        acc[marketId] = marketInfo;
+        return acc;
+      },
+      {}
+    );
+
+    const WAD = BigInt(1e18); // Define a scale factor for fixed-point arithmetic
+
+    return vaultData.map((vault) => {
+      let totalMarketSupply = BigInt(0);
+      let rewardTokenSet = new Set();
+      const vaultTotalAssets = BigInt(vault.lastTotalAssets);
+
+      vault.withdrawQueue.forEach(({ market }) => {
+        const marketInfo = marketDataMap[market.id];
+        if (marketInfo) {
+          totalMarketSupply += BigInt(market.totalSupply) * WAD;
+        }
       });
 
-      // Construct reward tokens array based on flags
-      const rewardTokens = [
-        rewardTokenStates.hasMorphoReward ? tokens.MORPHO.address : null,
-        rewardTokenStates.hasWstETHReward ? tokens.wstETH.address : null,
-        rewardTokenStates.hasUSDCReward ? tokens.USDC.address : null,
-        rewardTokenStates.hasSWISEReward ? tokens.SWISE.address : null,
-      ].filter(Boolean);
+      let weightedApyBase = BigInt(0);
+      let weightedApyRewards = BigInt(0);
 
-      // Calculate total TVL, supply, and borrow in USD
-      const totalSupplyUsd =
-        (market.totalSupply * market.borrowedToken.lastPriceUSD) /
-          10 ** market.borrowedToken.decimals +
-        (market.totalCollateral * market.inputToken.lastPriceUSD) /
-          10 ** market.inputToken.decimals;
-      const totalBorrowUsd =
-        (market.totalBorrow * market.borrowedToken.lastPriceUSD) /
-        10 ** market.borrowedToken.decimals;
-      const totalTVL = totalSupplyUsd - totalBorrowUsd;
+      // Calculate weighted APYs for the vault
+      vault.withdrawQueue.forEach(({ market }) => {
+        const marketInfo = marketDataMap[market.id];
+        if (marketInfo) {
+          marketInfo.rewardTokens.forEach((token) => rewardTokenSet.add(token));
+          const marketSupply = BigInt(market.totalSupply) * WAD;
+          const weight = (marketSupply * WAD) / (totalMarketSupply + 1n);
 
-      // Return structured APY data for each market
+          weightedApyBase +=
+            (weight * BigInt(Math.round(marketInfo.apyBase * 1e18))) / WAD;
+          weightedApyRewards +=
+            (weight * BigInt(Math.round(marketInfo.apyReward * 1e18))) / WAD;
+        }
+      });
+
+      const finalApyBase = (Number(weightedApyBase) / Number(WAD)).toFixed(6);
+      const finalApyRewards = (
+        Number(weightedApyRewards) / Number(WAD)
+      ).toFixed(6);
+
+      let underlyingToken =
+        vault.withdrawQueue.length > 0
+          ? vault.withdrawQueue[0].market.borrowedToken.id
+          : undefined;
+
+      let underlyingTokenDecimal =
+        vault.withdrawQueue.length > 0
+          ? vault.withdrawQueue[0].market.borrowedToken.decimals
+          : undefined;
+      let lastPriceUSD =
+        vault.withdrawQueue.length > 0
+          ? vault.withdrawQueue[0].market.borrowedToken.lastPriceUSD
+          : undefined;
+
+      const totalSupplyUSD =
+        (parseFloat(vaultTotalAssets.toString()) * lastPriceUSD) /
+        10 ** underlyingTokenDecimal;
+
       return {
-        pool: `morpho-blue-${market.id}`,
+        pool: `morpho-blue-${vault.id}`,
         chain: 'ethereum',
         project: 'morpho-blue',
-        symbol: utils.formatSymbol(market.borrowedToken.symbol),
-        apyBase:
-          rateToApy(
-            market.rates.find((rate) => rate.side === 'LENDER')?.rate || 0
-          ) * 100,
-        apyReward: supplyRewardsApy,
-        rewardTokens,
-        tvlUsd: totalTVL,
-        underlyingTokens: [market.borrowedToken.id],
-        apyBaseBorrow:
-          rateToApy(
-            market.rates.find((rate) => rate.side === 'BORROWER')?.rate || 0
-          ) * 100,
-        apyRewardBorrow: borrowRewardsApy + collateralRewardsApy,
-        totalSupplyUsd,
-        totalBorrowUsd,
-        ltv: market.lltv / 1e18,
+        symbol: utils.formatSymbol(vault.symbol),
+        apyBase: parseFloat(finalApyBase),
+        apyReward: parseFloat(finalApyRewards),
+        rewardTokens: Array.from(rewardTokenSet),
+        tvlUsd: Number.isFinite(totalSupplyUSD) ? totalSupplyUSD : 0,
+        underlyingTokens: underlyingToken ? [underlyingToken] : [],
+        apyBaseBorrow: 0,
+        apyRewardBorrow: 0,
+        totalSupplyUsd: Number.isFinite(totalSupplyUSD) ? totalSupplyUSD : 0,
+        totalBorrowUsd: 0,
+        ltv: 0,
       };
     });
   } catch (error) {
-    console.error('Error in calculateApy:', error);
+    console.error('Error in metamorphoAPY:', error);
     return [];
   }
+}
+
+async function apy() {
+  const resultsOriginal = await blueMarkets();
+  const resultsMetamorpho = await metamorphoAPY(resultsOriginal);
+  return Object.values(resultsOriginal).concat(resultsMetamorpho);
 }
 
 module.exports = {
