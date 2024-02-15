@@ -283,8 +283,9 @@ const main = async () => {
         : stETHPools.includes(address) ||
           address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' || // pool on moonbeam
           address === '0xe9123CBC5d1EA65301D417193c40A72Ac8D53501' || // lvusd
-          address === '0x056C6C5e684CeC248635eD86033378Cc444459B0' // eur pool gnosis
-        ? pool.gaugeRewards[0]?.apy
+          address === '0x056C6C5e684CeC248635eD86033378Cc444459B0' || // eur pool gnosis
+          pool.gaugeRewards?.length
+        ? pool.gaugeRewards.slice(-1)[0]?.apy
         : 0;
 
       // tokens are listed using their contract addresses
@@ -300,6 +301,8 @@ const main = async () => {
         ? ['0x73C69d24ad28e2d43D03CBf35F79fE26EBDE1011']
         : address === '0x056C6C5e684CeC248635eD86033378Cc444459B0'
         ? ['0x6810e776880c02933d47db1b9fc05908e5386b96']
+        : pool.gaugeRewards?.length
+        ? [pool.gaugeRewards.slice(-1)[0]?.tokenAddress]
         : [];
       if (aprCrv) {
         rewardTokens.push('0xD533a949740bb3306d119CC777fa900bA034cd52'); // CRV
@@ -360,7 +363,9 @@ const main = async () => {
               ].includes(address)
             ? aprExtra
             : aprCrv + aprExtra,
-        rewardTokens: rewardTokens.flat(),
+        rewardTokens: rewardTokens
+          .flat()
+          .filter((i) => i !== '0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32'),
         underlyingTokens,
         url: `https://curve.fi/#/${blockchainId}/pools`,
       });
