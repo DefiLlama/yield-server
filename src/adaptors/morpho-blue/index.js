@@ -358,7 +358,7 @@ async function metaMorphoAPY(resultsOriginal) {
     return vaultData.map((vault) => {
       let totalMarketSupply = BigInt(0);
       let rewardTokenSet = new Set();
-      const vaultTotalAssets = BigInt(vault.lastTotalAssets) * WAD;
+      const vaultTotalAssets = BigInt(vault.lastTotalAssets);
 
       vault.withdrawQueue.forEach(({ market }) => {
         const marketInfo = marketDataMap[market.id];
@@ -396,16 +396,17 @@ async function metaMorphoAPY(resultsOriginal) {
       let underlyingToken;
       let underlyingTokenDecimal;
       let lastPriceUSD;
+      let totalSupplyUSD = 0;
+
       if (vault.withdrawQueue.length > 0) {
         underlyingToken = vault.withdrawQueue[0].market.borrowedToken.id;
         underlyingTokenDecimal =
           vault.withdrawQueue[0].market.borrowedToken.decimals;
         lastPriceUSD = vault.withdrawQueue[0].market.borrowedToken.lastPriceUSD;
+        totalSupplyUSD =
+          (parseFloat(vaultTotalAssets.toString()) * lastPriceUSD) /
+          10 ** underlyingTokenDecimal;
       }
-
-      const totalSupplyUSD =
-        (parseFloat(vaultTotalAssets.toString()) * lastPriceUSD) /
-        10 ** underlyingTokenDecimal;
 
       return {
         pool: `morpho-blue-${vault.id}`,
