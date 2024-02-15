@@ -19,10 +19,12 @@ const readWithS3Select = async (params) => {
     s3.selectObjectContent(params, (err, data) => {
       if (err) {
         reject(err);
+        return;
       }
 
       if (!data) {
         reject('Empty data object');
+        return;
       }
 
       // This will be an array of bytes of data, to be converted
