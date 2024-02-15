@@ -1,12 +1,6 @@
-const utils = require('../utils');
 const { BigNumber } = require('bignumber.js');
-const {
-  FARMS,
-  NODE_URL,
-  APT_AMNIS_STAPT_FARM: farmPool,
-  LP_DECIMALS,
-  WEEK_SEC,
-} = require('./constants');
+const utils = require('../utils');
+const { FARMS, NODE_URL, LP_DECIMALS, WEEK_SEC } = require('./constants');
 const {
   getUSDEquivalent,
   getPoolTotalLPUrl,
@@ -17,12 +11,13 @@ const {
   calcRewardPerWeekPerOneLp,
 } = require('./utils');
 const {
-  fetchPoolTotalMintedLP,
   fetchFarmPoolData,
   fetchLiquidityPoolData,
+  fetchPoolTotalMintedLP,
 } = require('./api');
 
 async function getAPRandTVL(farmPool) {
+  // calc ARP
   const decimalsReward = decimalsMultiplier(
     farmPool.rewardTokenInfo.decimals
   ).toNumber();
@@ -49,7 +44,7 @@ async function getAPRandTVL(farmPool) {
     farmPool.moduleAccount
   );
 
-  const liquidityPoolTotalMintedLP = await fetchPoolTotalMintedLP(
+  const liquidityPoolTotalMintedLPValue = await fetchPoolTotalMintedLP(
     farmPool.coinX.type,
     farmPool.coinY.type,
     farmPool.curve,
@@ -80,27 +75,27 @@ async function getAPRandTVL(farmPool) {
   const afterBurnOneLpValue = calcOutputBurnLiquidity({
     xReserve: liquidityPoolData.coinXReserves,
     yReserve: liquidityPoolData.coinYReserves,
-    lpSupply: liquidityPoolTotalMintedLP,
+    lpSupply: liquidityPoolTotalMintedLPValue,
     toBurn: oneLPHumanReadableValue,
   });
 
-  const oneLpXRateHumanReadable = getAmountWithDecimal(
+  const oneLpXRateHumanReadableAPR = getAmountWithDecimal(
     afterBurnOneLpValue.x,
     farmPool.coinX.decimals
   );
 
-  const oneLpYRateHumanReadable = getAmountWithDecimal(
+  const oneLpYRateHumanReadableAPR = getAmountWithDecimal(
     afterBurnOneLpValue.y,
     farmPool.coinY.decimals
   );
 
   const oneLpXRateInUSD = getUSDEquivalent(
-    oneLpXRateHumanReadable,
+    oneLpXRateHumanReadableAPR,
     poolTokensPrices.pricesByAddress[farmPool.coinX.coinGeckoId]
   );
 
   const oneLpYRateInUSD = getUSDEquivalent(
-    oneLpYRateHumanReadable,
+    oneLpYRateHumanReadableAPR,
     poolTokensPrices.pricesByAddress[farmPool.coinY.coinGeckoId]
   );
 
@@ -108,22 +103,21 @@ async function getAPRandTVL(farmPool) {
 
   const APR = ((rewardPerWeekInUSD / oneLpInUSD) * 100 * 365) / 7;
 
-  // calc tvl
-
-  const afterBurn = calcOutputBurnLiquidity({
+  // calc TVL
+  const TVLCalculationData = calcOutputBurnLiquidity({
     xReserve: liquidityPoolData.coinXReserves,
     yReserve: liquidityPoolData.coinYReserves,
-    lpSupply: liquidityPoolTotalMintedLP,
+    lpSupply: liquidityPoolTotalMintedLPValue,
     toBurn: farmData.stakeCoins,
   });
 
   const oneLpXRateHumanReadableTVL = getAmountWithDecimal(
-    afterBurn.x,
+    TVLCalculationData.x,
     farmPool.coinX.decimals
   );
 
   const oneLpYRateHumanReadableTVL = getAmountWithDecimal(
-    afterBurn.y,
+    TVLCalculationData.y,
     farmPool.coinY.decimals
   );
 
@@ -146,15 +140,27 @@ async function getAPRandTVL(farmPool) {
 }
 
 async function main() {
-  for (let farmPool of FARMS) {
-    const data = getAPRandTVL(farmPool);
-  }
-}
+  const pools = [];
 
-main();
+  for (let farmPool of FARMS) {
+    const farmPoolInfo = await getAPRandTVL(farmPool);
+    const { deployedAddress, coinX, coinY, curve } = farmPool;
+
+    pools.push({
+      pool: `${deployedAddress}-${coinX.type}-${coinY.type}-${curve}`,
+      chain: utils.formatChain('aptos'),
+      project: 'liquidswap',
+      symbol: `${coinX.symbol}-${coinY.symbol}`,
+      tvlUsd: farmPoolInfo.tvl,
+      apy: farmPoolInfo.apr,
+    });
+  }
+
+  return pools;
+}
 
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.thala.fi/pools',
+  url: 'https://farms.liquidswap.com/#/stakes',
 };
