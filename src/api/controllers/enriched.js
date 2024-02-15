@@ -108,16 +108,15 @@ const getPoolEnriched = async (req, res) => {
     },
   };
 
-  const response = await readWithS3Select(params);
-
-  if (!response) {
+  try{
+    const response = await readWithS3Select(params);
+    res.set(customHeader(3600)).status(200).json({
+      status: 'success',
+      data: response,
+    });
+  } catch(e){
     return new AppError("Couldn't retrieve data", 404);
   }
-
-  res.set(customHeader(3600)).status(200).json({
-    status: 'success',
-    data: response,
-  });
 };
 
 const getPoolsEnrichedOld = async (req, res) => {
