@@ -97,6 +97,42 @@ const query = gql`
   }
 `;
 
+const queryMetis = gql`
+  query ReservesQuery {
+    reserves(first: 25) {
+      name
+      borrowingEnabled
+      aToken {
+        id
+        rewards(first: 1) {
+          id
+          emissionsPerSecond
+          rewardToken
+          rewardTokenDecimals
+          rewardTokenSymbol
+          distributionEnd
+        }
+        underlyingAssetAddress
+        underlyingAssetDecimals
+      }
+      vToken {
+        rewards(first: 1) {
+          emissionsPerSecond
+          rewardToken
+          rewardTokenDecimals
+          rewardTokenSymbol
+          distributionEnd
+        }
+      }
+      symbol
+      liquidityRate
+      variableBorrowRate
+      baseLTVasCollateral
+      isFrozen
+    }
+  }
+`;
+
 const ethV3Pools = async () => {
   const AaveProtocolDataProviderV3Mainnet =
     '0x7B4EB56E7CD4b454BA8ff71E4518426369a138a3';
@@ -226,9 +262,10 @@ const apy = async () => {
   let data = await Promise.all(
     Object.entries(API_URLS).map(async ([chain, url]) => [
       chain,
-      (await request(url, query)).reserves,
+      (await request(url, chain === 'metis' ? queryMetis : query)).reserves,
     ])
   );
+
   data = data.map(([chain, reserves]) => [
     chain,
     reserves.filter((p) => !p.isFrozen),

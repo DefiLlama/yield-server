@@ -396,6 +396,8 @@ const main = async () => {
           // for CVX staking only need crvApr (which is actually cvxCRV reward)
           pool.lptoken === cvxAddress
             ? pool.crvApr
+            : pool.lptoken === '0xfffAE954601cFF1195a8E20342db7EE66d56436B'
+            ? null
             : pool.crvApr + pool.apr + pool.extrApr,
         underlyingTokens: pool.coins.map(({ address }) => address),
         rewardTokens:

@@ -17,6 +17,7 @@ const getPoolDetails = async (block, poolInfo, chainString) => {
   // console.log(poolInfo);
   for (let i = 0; i < poolInfo.length; i++) {
     // SKIP LP OF ALB STANDALONE
+    console.log(poolInfo[i].lpToken);
     if (
       ![
         '0x1dd2d631c92b1aCdFCDd51A0F7145A50130050C4',
@@ -34,6 +35,7 @@ const getPoolDetails = async (block, poolInfo, chainString) => {
         '0x9D309C52abb61655610eCaE04624b81Ab1f2aEd7',
         '0xcdEF05048602aA758fCa3E33B964397f904b87a9',
         '0xfA52C8902519e4Da95C3C520039C676d5bD4d9a2',
+        '0x6e00F103616dc8e8973920a3588b853Ce4ef011C',
       ].includes(poolInfo[i].lpToken)
     ) {
       const token0Id = (
@@ -140,10 +142,13 @@ const getPoolDetails = async (block, poolInfo, chainString) => {
         });
       }
     } else {
+      const tokenId = poolInfo[i].lpToken;
+      const tokenSymbol = 'ALB';
+      const tokenDecimals = 18;
       try {
         const lpDecimals = (
           await sdk.api.abi.call({
-            target: poolInfo[i].lpToken,
+            target: tokenId,
             abi: poolAbi.find((m) => m.name === 'decimals'),
             block: block,
             chain: chainString,
@@ -152,19 +157,15 @@ const getPoolDetails = async (block, poolInfo, chainString) => {
 
         const totalSupply = (
           await sdk.api.abi.call({
-            target: poolInfo[i].lpToken,
+            target: tokenId,
             abi: poolAbi.find((m) => m.name === 'totalSupply'),
             block: block,
             chain: chainString,
           })
         ).output;
 
-        const tokenId = poolInfo[i].lpToken;
-        const tokenSymbol = 'ALB';
-        const tokenDecimals = 18;
-
         poolDetails.push({
-          id: poolInfo[i].lpToken,
+          id: tokenId,
           reserve0: 0,
           reserve1: 0,
           totalSupply: totalSupply,
@@ -180,18 +181,18 @@ const getPoolDetails = async (block, poolInfo, chainString) => {
         });
       } catch (e) {
         poolDetails.push({
-          id: poolInfo[i].lpToken,
+          id: tokenId,
           reserve0: 0,
           reserve1: 0,
           totalSupply: 0,
           volumeUSD: 0,
           token0: {
-            symbol: token0Symbol,
-            id: token0Id,
+            symbol: tokenSymbol,
+            id: tokenId,
           },
           token1: {
-            symbol: token1Symbol,
-            id: token1Id,
+            symbol: tokenSymbol,
+            id: tokenId,
           },
         });
       }
