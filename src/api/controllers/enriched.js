@@ -41,7 +41,8 @@ const readWithS3Select = async (params) => {
         }
       })
         .on('error', (err) => {
-          reject(err);
+          console.log("s3 read error", err)
+          //reject(err);
         })
         .on('end', () => {
           // Convert the array of bytes into a buffer, and then
