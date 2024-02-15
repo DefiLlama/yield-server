@@ -2,8 +2,6 @@ const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 const superagent = require('superagent');
 
-const WAD = BigInt(1e18);
-
 const tokens = {
   SWISE: {
     decimals: 18,
@@ -126,6 +124,27 @@ const gqlQueries = {
       }
     }
   `,
+};
+
+const WAD = BigInt(1e18);
+
+const wadDivUp = (x, other) => {
+  return mulDivUp(x, WAD, other);
+};
+
+const mulDivUp = (x, y, scale) => {
+  if (x === 0n || y === 0n) return 0n;
+
+  return (x * y + scale - 1n) / scale;
+};
+
+const wadMulDown = (x, other) => {
+  return mulDivDown(x, other, WAD);
+};
+
+const mulDivDown = (x, y, scale) => {
+  if (x === 0n || y === 0n) return 0n;
+  return (x * y) / scale;
 };
 
 async function fetchPrices(addresses) {
@@ -357,12 +376,15 @@ async function metaMorphoAPY(resultsOriginal) {
         if (marketInfo) {
           marketInfo.rewardTokens.forEach((token) => rewardTokenSet.add(token));
           const marketSupply = BigInt(market.totalSupply) * WAD;
-          const weight = (marketSupply * WAD) / (totalMarketSupply + 1n);
-
-          weightedApyBase +=
-            (weight * BigInt(Math.round(marketInfo.apyBase * 1e18))) / WAD;
-          weightedApyRewards +=
-            (weight * BigInt(Math.round(marketInfo.apyReward * 1e18))) / WAD;
+          const weight = wadDivUp(marketSupply, totalMarketSupply);
+          weightedApyBase += wadMulDown(
+            weight,
+            BigInt(Math.round(marketInfo.apyBase * 1e18))
+          );
+          weightedApyRewards += wadMulDown(
+            weight,
+            BigInt(Math.round(marketInfo.apyReward * 1e18))
+          );
         }
       });
 
@@ -371,19 +393,15 @@ async function metaMorphoAPY(resultsOriginal) {
         Number(weightedApyRewards) / Number(WAD)
       ).toFixed(6);
 
-      let underlyingToken =
-        vault.withdrawQueue.length > 0
-          ? vault.withdrawQueue[0].market.borrowedToken.id
-          : undefined;
-
-      let underlyingTokenDecimal =
-        vault.withdrawQueue.length > 0
-          ? vault.withdrawQueue[0].market.borrowedToken.decimals
-          : undefined;
-      let lastPriceUSD =
-        vault.withdrawQueue.length > 0
-          ? vault.withdrawQueue[0].market.borrowedToken.lastPriceUSD
-          : undefined;
+      let underlyingToken;
+      let underlyingTokenDecimal;
+      let lastPriceUSD;
+      if (vault.withdrawQueue.length > 0) {
+        underlyingToken = vault.withdrawQueue[0].market.borrowedToken.id;
+        underlyingTokenDecimal =
+          vault.withdrawQueue[0].market.borrowedToken.decimals;
+        lastPriceUSD = vault.withdrawQueue[0].market.borrowedToken.lastPriceUSD;
+      }
 
       const totalSupplyUSD =
         (parseFloat(vaultTotalAssets.toString()) * lastPriceUSD) /
