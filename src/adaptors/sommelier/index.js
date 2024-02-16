@@ -3,7 +3,6 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const {
-  chain,
   rewardTokens,
   stakingPools,
   v0815Pools,
@@ -118,7 +117,8 @@ async function handleV0815(pool, prices) {
   const apyReward = await getRewardApy(
     stakingPools[cellarAddress],
     prices.pricesBySymbol.somm,
-    assetPrice
+    assetPrice,
+    cellarChain
   );
 
   return {
@@ -143,7 +143,8 @@ async function handleV0816(pool, prices) {
   const apyReward = await getRewardApy(
     stakingPools[cellarAddress],
     prices.pricesBySymbol.somm,
-    assetPrice
+    assetPrice,
+    cellarChain
   );
 
   return {
@@ -189,8 +190,8 @@ async function handleV2plus(pool, prices, underlyingTokens) {
   const asset = await v2.getHoldingPosition(cellarAddress, cellarChain);
   const assetPrice = prices.pricesByAddress[asset.toLowerCase()];
 
-  const apyBase = await v2.getApy(cellarAddress);
-  const apyBase7d = await v2.getApy7d(cellarAddress);
+  const apyBase = await v2.getApy(cellarAddress, cellarChain);
+  const apyBase7d = await v2.getApy7d(cellarAddress, cellarChain);
 
   // getTvlUsd implementation hasn't changed since v1.5 (v0.8.16)
   const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset, cellarChain);
@@ -212,7 +213,8 @@ async function handleV2plus(pool, prices, underlyingTokens) {
   const apyReward = await getRewardApy(
     stakingPools[cellarAddress],
     prices.pricesBySymbol.somm,
-    assetPrice
+    assetPrice,
+    cellarChain
   );
 
   return {
@@ -224,12 +226,12 @@ async function handleV2plus(pool, prices, underlyingTokens) {
 }
 
 // Calculates Staking APY for v0815 staking contract currently used by all pools
-async function getRewardApy(stakingPool, sommPrice, assetPrice) {
+async function getRewardApy(stakingPool, sommPrice, assetPrice, cellarChain) {
   const rewardRateResult = (
     await call({
       target: stakingPool,
       abi: stakingAbi.rewardRate,
-      chain,
+      chain: cellarChain,
     })
   ).output;
   const rewardRate = new BigNumber(rewardRateResult).div(1e6);
@@ -238,7 +240,7 @@ async function getRewardApy(stakingPool, sommPrice, assetPrice) {
     await call({
       target: stakingPool,
       abi: stakingAbi.totalDepositsWithBoost,
-      chain,
+      chain: cellarChain,
     })
   ).output;
   let totalDepositsWithBoost = new BigNumber(totalDepositWithBoostResult).div(
@@ -251,7 +253,7 @@ async function getRewardApy(stakingPool, sommPrice, assetPrice) {
     await call({
       target: stakingPool,
       abi: stakingAbi.endTimestamp,
-      chain,
+      chain: cellarChain,
     })
   ).output;
   const endTimestamp = parseInt(endTimestampResult, 10) * 1000;
