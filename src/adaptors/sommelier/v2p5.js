@@ -9,12 +9,12 @@ const abiViewPositionBalances = cellarAbi.find(
   (el) => el.name === 'viewPositionBalances'
 );
 
-async function getUnderlyingTokens(cellarAddress) {
+async function getUnderlyingTokens(cellarAddress, cellarChain) {
   const result = (
     await call({
       target: cellarAddress,
       abi: abiViewPositionBalances,
-      chain,
+      chain: cellarChain,
     })
   ).output;
 

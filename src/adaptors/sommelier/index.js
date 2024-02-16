@@ -32,7 +32,7 @@ async function getHoldingPositions() {
   const v1Assets = await Promise.all(
     v0815Pools.map((pool) =>
       v0815
-        .getUnderlyingTokens(getCellarAddress(pool))
+        .getUnderlyingTokens(getCellarAddress(pool), pool.pool.split('-')[1])
         .then((tokens) => tokens[0])
     )
   );
@@ -101,8 +101,12 @@ async function main() {
 
 async function handleV0815(pool, prices) {
   const cellarAddress = pool.pool.split('-')[0];
+  const cellarChain = pool.pool.split('-')[1];
 
-  const underlyingTokens = await v0815.getUnderlyingTokens(cellarAddress);
+  const underlyingTokens = await v0815.getUnderlyingTokens(
+    cellarAddress,
+    cellarChain
+  );
   const asset = underlyingTokens[0]; // v0815 Cellar only holds one asset
   const tvlUsd = await v0815.getTvlUsd(cellarAddress, asset);
   const apyBase = await v0815.getApy(cellarAddress);
@@ -126,8 +130,8 @@ async function handleV0815(pool, prices) {
 
 async function handleV0816(pool, prices) {
   const cellarAddress = pool.pool.split('-')[0];
-
-  const underlyingTokens = await v0816.getUnderlyingTokens(cellarAddress);
+  const cellarChain = pool.pool.split('-')[1]; 
+  const underlyingTokens = await v0816.getUnderlyingTokens(cellarAddress, cellarChain);
   const asset = await v0816.getHoldingPosition(cellarAddress);
   const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset);
   const apyBase = await v0816.getApy(cellarAddress);
@@ -151,21 +155,25 @@ async function handleV0816(pool, prices) {
 
 async function handleV2(pool, prices) {
   const cellarAddress = pool.pool.split('-')[0];
-  const underlyingTokens = await v2.getUnderlyingTokens(cellarAddress);
+  const cellarChain = pool.pool.split('-')[1]; 
+  const underlyingTokens = await v2.getUnderlyingTokens(cellarAddress, cellarChain);
 
   return handleV2plus(pool, prices, underlyingTokens);
 }
 
 async function handleV2p5(pool, prices) {
   const cellarAddress = pool.pool.split('-')[0];
-  const underlyingTokens = await v2p5.getUnderlyingTokens(cellarAddress);
+  const cellarChain = pool.pool.split('-')[1]; 
+  const underlyingTokens = await v2p5.getUnderlyingTokens(cellarAddress, cellarChain);
 
   return handleV2plus(pool, prices, underlyingTokens);
 }
 
 async function handleV2p6(pool, prices) {
   const cellarAddress = pool.pool.split('-')[0];
-  const underlyingTokens = await v2p6.getUnderlyingTokens(cellarAddress);
+  const cellarChain = pool.pool.split('-')[1]; 
+
+  const underlyingTokens = await v2p6.getUnderlyingTokens(cellarAddress, cellarChain);
 
   return handleV2plus(pool, prices, underlyingTokens);
 }

@@ -14,12 +14,12 @@ const getPositionAssets = cellarAbi.find(
 );
 
 // Call getPositionAssets to get all the credit position's underlying assets
-async function getUnderlyingTokens(cellarAddress) {
+async function getUnderlyingTokens(cellarAddress, cellarChain) {
   const assets = (
     await call({
       target: cellarAddress,
       abi: getPositionAssets,
-      chain,
+      chain: cellarChain,
     })
   ).output;
 

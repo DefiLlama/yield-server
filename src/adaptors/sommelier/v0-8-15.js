@@ -7,12 +7,12 @@ const { getApy } = require('./apy');
 
 const call = sdk.api.abi.call;
 
-async function getUnderlyingTokens(cellarAddress) {
+async function getUnderlyingTokens(cellarAddress, cellarChain) {
   const asset = (
     await call({
       target: cellarAddress,
       abi: cellarAbi.asset,
-      chain,
+      chain: cellarChain,
     })
   ).output;
 

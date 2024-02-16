@@ -1,4 +1,3 @@
-const chain = 'ethereum';
 const project = 'sommelier';
 
 // Addresses
@@ -65,7 +64,7 @@ const stakingPools = {
 const v0815Pools = [
   {
     pool: '0x7bad5df5e11151dc5ee1a648800057c5c934c0d5-ethereum',
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'USDC',
     poolMeta: 'aave2-CLR-S',
@@ -82,7 +81,7 @@ const v0815Pools = [
 const v0816Pools = [
   {
     pool: '0x6b7f87279982d919bbf85182ddeab179b366d8f2-ethereum',
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'ETH-BTC',
     poolMeta: 'ETHBTCTrend',
@@ -95,7 +94,7 @@ const v0816Pools = [
   },
   {
     pool: '0x6e2dac3b9e9adc0cbbae2d0b9fd81952a8d33872-ethereum',
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'ETH-BTC',
     poolMeta: 'ETHBTCMom',
@@ -108,7 +107,7 @@ const v0816Pools = [
   },
   {
     pool: '0x3f07a84ecdf494310d397d24c1c78b041d2fa622-ethereum',
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'ETH',
     poolMeta: 'SteadyETH',
@@ -121,7 +120,7 @@ const v0816Pools = [
   },
   {
     pool: '0x4986fd36b6b16f49b43282ee2e24c5cf90ed166d-ethereum',
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'BTC',
     poolMeta: 'SteadyBTC',
@@ -134,7 +133,7 @@ const v0816Pools = [
   },
   {
     pool: '0x6f069f711281618467dae7873541ecc082761b33-ethereum',
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'UNI',
     poolMeta: 'SteadyUNI',
@@ -147,7 +146,7 @@ const v0816Pools = [
   },
   {
     pool: '0x05641a27c82799aaf22b436f20a3110410f29652-ethereum',
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'MATIC',
     poolMeta: 'SteadyMATIC',
@@ -163,7 +162,7 @@ const v0816Pools = [
 const v2Pools = [
   {
     pool: `${defiStars}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'USDC-CRV-AAVE-COMP-MKR-LDO',
     poolMeta: 'DeFiStars',
@@ -176,7 +175,7 @@ const v2Pools = [
   },
   {
     pool: `${realYieldUsd}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'USDC-USDT-DAI',
     poolMeta: 'RealYieldUSD',
@@ -189,7 +188,7 @@ const v2Pools = [
   },
   {
     pool: `${realYieldEth}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'WETH-stETH-cbETH-rETH',
     poolMeta: 'RealYieldETH',
@@ -202,7 +201,7 @@ const v2Pools = [
   },
   {
     pool: `${realYieldLINK}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'LINK-WETH-YieldETH',
     poolMeta: 'RealYieldLINK',
@@ -213,7 +212,7 @@ const v2Pools = [
   },
   {
     pool: `${realYield1INCH}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: '1INCH-WETH-YieldETH',
     poolMeta: 'RealYield1INCH',
@@ -224,7 +223,7 @@ const v2Pools = [
   },
   {
     pool: `${realYieldUNI}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'UNI-WETH-YieldETH',
     poolMeta: 'RealYield1UNI',
@@ -235,7 +234,7 @@ const v2Pools = [
   },
   {
     pool: `${realYieldSNX}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'SNX-WETH-YieldETH',
     poolMeta: 'RealYieldSNX',
@@ -246,7 +245,7 @@ const v2Pools = [
   },
   {
     pool: `${realYieldENS}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'ENS-WETH-YieldETH',
     poolMeta: 'RealYieldENS',
@@ -257,7 +256,7 @@ const v2Pools = [
   },
   {
     pool: `${fraximal}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'FRAX',
     poolMeta: 'Fraximal',
@@ -270,7 +269,7 @@ const v2Pools = [
   },
   {
     pool: `${realYieldBtc}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'WBTC',
     poolMeta: 'RealYieldBTC',
@@ -286,7 +285,7 @@ const v2Pools = [
 const v2p5Pools = [
   {
     pool: `${turbosweth}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'WETH-SWETH',
     poolMeta: 'TurboSWETH',
@@ -299,7 +298,7 @@ const v2p5Pools = [
   },
   {
     pool: `${turbogho}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'GHO-USDC-USDT-DAI-LUSD',
     poolMeta: 'TurboGHO',
@@ -312,7 +311,7 @@ const v2p5Pools = [
   },
   {
     pool: `${turbosteth}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'WETH-STETH-WSTETH',
     poolMeta: 'TurboSTETH',
@@ -325,7 +324,7 @@ const v2p5Pools = [
   },
   {
     pool: `${ethgrowth}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'USDC-YieldUSD-YieldETH',
     poolMeta: 'ETH Trend Growth',
@@ -338,7 +337,7 @@ const v2p5Pools = [
   },
   {
     pool: `${turbosomm}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'SOMM-WETH',
     poolMeta: 'TurboSOMM',
@@ -351,7 +350,7 @@ const v2p5Pools = [
   },
   {
     pool: `${turboeeth}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'WETH-EETH',
     poolMeta: 'TurboEETH',
@@ -364,7 +363,7 @@ const v2p5Pools = [
   },
   {
     pool: `${turbostethstethDeposit}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'STETH-WSTETH-WETH',
     poolMeta: 'TurboSTETH(stETHDeposit)',
@@ -381,7 +380,7 @@ const v2p5Pools = [
 const v2p6Pools = [
   {
     pool: `${morphomaximiser}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'WETH-STETH-WSTETH',
     poolMeta: 'MorphoMaximiser',
@@ -398,7 +397,7 @@ const v2p6Pools = [
   },
   {
     pool: `${turbodiveth}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'RETH_BPT-WETH-RETH',
     poolMeta: 'TurboDivETH',
@@ -415,7 +414,7 @@ const v2p6Pools = [
   },
   {
     pool: `${turboethx}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'ETHx-WETH-wstETH',
     poolMeta: 'TurboETHx',
@@ -432,7 +431,7 @@ const v2p6Pools = [
   },
   {
     pool: `${turboeethv2}-ethereum`,
-    chain,
+    chain:'ethereum',
     project,
     symbol: 'WETH-EETH-WEETH',
     poolMeta: 'TurboEETHv2',
@@ -446,7 +445,6 @@ const v2p6Pools = [
 ];
 
 module.exports = {
-  chain,
   project,
   rewardTokens,
   stakingPools,
