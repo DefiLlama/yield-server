@@ -329,6 +329,7 @@ const main = async () => {
       // am3CRV
       const am3CRV = '0xE7a24EF0C5e95Ffb0f6684b813A78F2a3AD7D171';
       const x = pool.coins.find((c) => c.address === am3CRV && c.usdPrice > 2);
+
       let tvlUsd;
       if (x) {
         tvlUsd = pool.coins
@@ -405,7 +406,7 @@ const main = async () => {
       apyReward: correct.includes(p.pool) ? null : p.apyReward,
       rewardTokens: correct.includes(p.pool) ? [] : p.rewardTokens,
     }))
-    .filter((p) => p.apyReward < 100);
+    .filter((p) => p.apyReward < 300);
 };
 
 module.exports = {
