@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk');
-const { chain, v2p6Pools } = require('./config');
+const { v2p6Pools } = require('./config');
 const v2 = require('./v2');
 
 const call = sdk.api.abi.call;

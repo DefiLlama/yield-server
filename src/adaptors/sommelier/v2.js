@@ -27,12 +27,12 @@ async function getUnderlyingTokens(cellarAddress, cellarChain) {
   return [...new Set(assets)];
 }
 
-async function getHoldingPosition(cellarAddress) {
+async function getHoldingPosition(cellarAddress, cellarChain) {
   const asset = (
     await call({
       target: cellarAddress,
       abi: abiAsset,
-      chain,
+      chain: cellarChain,
     })
   ).output;
 

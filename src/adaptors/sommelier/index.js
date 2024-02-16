@@ -27,30 +27,34 @@ function getCellarAddress(pool) {
   return pool.pool.split('-')[0];
 }
 
+function getCellarChain(pool) {
+  return pool.pool.split('-')[1];
+}
+
 // Get a list of all Cellar holding positions
 async function getHoldingPositions() {
   const v1Assets = await Promise.all(
     v0815Pools.map((pool) =>
       v0815
-        .getUnderlyingTokens(getCellarAddress(pool), pool.pool.split('-')[1])
+        .getUnderlyingTokens(getCellarAddress(pool), getCellarChain(pool))
         .then((tokens) => tokens[0])
     )
   );
 
   const v15Assets = await Promise.all(
-    v0816Pools.map((pool) => v0816.getHoldingPosition(getCellarAddress(pool)))
+    v0816Pools.map((pool) => v0816.getHoldingPosition(getCellarAddress(pool), getCellarChain(pool)))
   );
 
   const v2Assets = await Promise.all(
-    v2Pools.map((pool) => v2.getHoldingPosition(getCellarAddress(pool)))
+    v2Pools.map((pool) => v2.getHoldingPosition(getCellarAddress(pool), getCellarChain(pool)))
   );
 
   const v2p5Assets = await Promise.all(
-    v2p5Pools.map((pool) => v2p5.getHoldingPosition(getCellarAddress(pool)))
+    v2p5Pools.map((pool) => v2p5.getHoldingPosition(getCellarAddress(pool), getCellarChain(pool)))
   );
 
   const v2p6Assets = await Promise.all(
-    v2p6Pools.map((pool) => v2p6.getHoldingPosition(getCellarAddress(pool)))
+    v2p6Pools.map((pool) => v2p6.getHoldingPosition(getCellarAddress(pool), getCellarChain(pool)))
   );
 
   const deduped = new Set([
@@ -132,7 +136,7 @@ async function handleV0816(pool, prices) {
   const cellarAddress = pool.pool.split('-')[0];
   const cellarChain = pool.pool.split('-')[1]; 
   const underlyingTokens = await v0816.getUnderlyingTokens(cellarAddress, cellarChain);
-  const asset = await v0816.getHoldingPosition(cellarAddress);
+  const asset = await v0816.getHoldingPosition(cellarAddress, cellarChain);
   const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset, cellarChain);
   const apyBase = await v0816.getApy(cellarAddress);
   const assetPrice = prices.pricesByAddress[asset.toLowerCase()];
@@ -182,7 +186,7 @@ async function handleV2plus(pool, prices, underlyingTokens) {
   const cellarAddress = pool.pool.split('-')[0];
   const cellarChain = pool.pool.split('-')[1];
 
-  const asset = await v2.getHoldingPosition(cellarAddress);
+  const asset = await v2.getHoldingPosition(cellarAddress, cellarChain);
   const assetPrice = prices.pricesByAddress[asset.toLowerCase()];
 
   const apyBase = await v2.getApy(cellarAddress);
