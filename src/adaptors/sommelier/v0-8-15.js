@@ -19,13 +19,13 @@ async function getUnderlyingTokens(cellarAddress, cellarChain) {
   return [asset];
 }
 
-async function getTvlUsd(cellarAddress, assetAddress) {
+async function getTvlUsd(cellarAddress, assetAddress, cellarChain) {
   // Total balance of asset held by the Cellar
   const totalAssets = (
     await call({
       target: cellarAddress,
       abi: cellarAbi.totalAssets,
-      chain,
+      chain: cellarChain,
     })
   ).output;
 
@@ -34,11 +34,11 @@ async function getTvlUsd(cellarAddress, assetAddress) {
     await call({
       target: assetAddress,
       abi: 'erc20:decimals',
-      chain,
+      chain: cellarChain,
     })
   ).output;
 
-  const prices = (await utils.getPrices([assetAddress], chain)).pricesByAddress;
+  const prices = (await utils.getPrices([assetAddress], cellarChain)).pricesByAddress;
   const price = prices[assetAddress.toLowerCase()];
 
   const total = new BigNumber(totalAssets);

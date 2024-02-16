@@ -1,3 +1,4 @@
+const chain = 'ethereum';
 const project = 'sommelier';
 
 // Addresses

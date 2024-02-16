@@ -32,13 +32,13 @@ async function getHoldingPosition(cellarAddress) {
   return asset;
 }
 
-async function getTvlUsd(cellarAddress, assetAddress) {
+async function getTvlUsd(cellarAddress, assetAddress, cellarChain) {
   // Represents the value of the Cellar's postitions denominated in the holding asset
   const totalAssets = (
     await call({
       target: cellarAddress,
       abi: cellarAbi.totalAssets,
-      chain,
+      chain: cellarChain,
     })
   ).output;
 
@@ -46,11 +46,11 @@ async function getTvlUsd(cellarAddress, assetAddress) {
     await call({
       target: assetAddress,
       abi: 'erc20:decimals',
-      chain,
+      chain: cellarChain,
     })
   ).output;
 
-  const prices = (await utils.getPrices([assetAddress], chain)).pricesByAddress;
+  const prices = (await utils.getPrices([assetAddress], cellarChain)).pricesByAddress;
   const price = prices[assetAddress.toLowerCase()];
 
   const total = new BigNumber(totalAssets);

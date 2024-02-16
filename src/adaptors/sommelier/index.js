@@ -108,7 +108,7 @@ async function handleV0815(pool, prices) {
     cellarChain
   );
   const asset = underlyingTokens[0]; // v0815 Cellar only holds one asset
-  const tvlUsd = await v0815.getTvlUsd(cellarAddress, asset);
+  const tvlUsd = await v0815.getTvlUsd(cellarAddress, asset, cellarChain);
   const apyBase = await v0815.getApy(cellarAddress);
   const assetPrice = prices.pricesByAddress[asset.toLowerCase()];
   const apyReward = await getRewardApy(
@@ -133,7 +133,7 @@ async function handleV0816(pool, prices) {
   const cellarChain = pool.pool.split('-')[1]; 
   const underlyingTokens = await v0816.getUnderlyingTokens(cellarAddress, cellarChain);
   const asset = await v0816.getHoldingPosition(cellarAddress);
-  const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset);
+  const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset, cellarChain);
   const apyBase = await v0816.getApy(cellarAddress);
   const assetPrice = prices.pricesByAddress[asset.toLowerCase()];
   const apyReward = await getRewardApy(
@@ -180,6 +180,7 @@ async function handleV2p6(pool, prices) {
 
 async function handleV2plus(pool, prices, underlyingTokens) {
   const cellarAddress = pool.pool.split('-')[0];
+  const cellarChain = pool.pool.split('-')[1];
 
   const asset = await v2.getHoldingPosition(cellarAddress);
   const assetPrice = prices.pricesByAddress[asset.toLowerCase()];
@@ -188,7 +189,7 @@ async function handleV2plus(pool, prices, underlyingTokens) {
   const apyBase7d = await v2.getApy7d(cellarAddress);
 
   // getTvlUsd implementation hasn't changed since v1.5 (v0.8.16)
-  const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset);
+  const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset, cellarChain);
 
   const baseResult = {
     ...pool,
