@@ -144,10 +144,10 @@ async function main() {
 
   for (let farmPool of FARMS) {
     const farmPoolInfo = await getAPRandTVL(farmPool);
-    const { deployedAddress, coinX, coinY, curve } = farmPool;
+    const { deployedAddress, coinX, coinY, curve, uniqueFarmKey } = farmPool;
 
     pools.push({
-      pool: `${deployedAddress}-${coinX.type}-${coinY.type}-${curve}`,
+      pool: uniqueFarmKey,
       chain: utils.formatChain('aptos'),
       project: 'liquidswap',
       symbol: `${coinX.symbol}-${coinY.symbol}`,

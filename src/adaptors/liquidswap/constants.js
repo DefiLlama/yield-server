@@ -44,6 +44,7 @@ const APT_AMNIS_STAPT_FARM = {
   },
   resourceAccount: RESOURCES_ACCOUNT_0_5,
   moduleAccount: MODULE_ACCOUNT_0_5,
+  uniqueFarmKey: `${DEPLOYED_POOL_ADDRESS}-APT-stAPT-UNCORRELATED`
 };
 
 const USDC_AMNIS_STAPT_FARM = {
@@ -69,6 +70,7 @@ const USDC_AMNIS_STAPT_FARM = {
   },
   resourceAccount: RESOURCES_ACCOUNT_0_5,
   moduleAccount: MODULE_ACCOUNT_0_5,
+  uniqueFarmKey: `${DEPLOYED_POOL_ADDRESS}-zUSDC-stAPT-UNCORRELATED`
 };
 
 const FARMS = [APT_AMNIS_STAPT_FARM, USDC_AMNIS_STAPT_FARM];
