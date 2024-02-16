@@ -34,7 +34,7 @@ const main = async () => {
       const distributionData = pools[poolAddress].distributionData; // array with distribution data
       const protocolName = pools[poolAddress].ammName;
 
-      if(protocolName !== 'Blueprint'){
+      if(protocolName !== 'BluePrint'){
         return;
       }
       
