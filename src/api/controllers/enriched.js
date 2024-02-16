@@ -24,26 +24,35 @@ const getPoolEnriched = async (req, res) => {
   let columns = poolsEnrichedColumns;
   columns = queryString !== undefined ? [...columns, 'url'] : columns;
 
-  const data = await readFromS3('llama-apy-prod-data', 'enriched/dataEnriched.json')
-  res.set(customHeader(3600)).status(200).json({
-    status: 'success',
-    data: data.filter(t=>t.pool == configID),
-  });
+  const data = await readFromS3(
+    'llama-apy-prod-data',
+    'enriched/dataEnriched.json'
+  );
+  res
+    .set(customHeader(3600))
+    .status(200)
+    .json({
+      status: 'success',
+      data: data.filter((t) => t.pool == configID),
+    });
 };
 
 const getPoolsEnrichedOld = async (req, res) => {
   const queryString = req.query;
 
   // add pool_old (the pool field from the adpaters == address)
-  let columns = [...poolsEnrichedColumns, 'pool_old']
+  let columns = [...poolsEnrichedColumns, 'pool_old'];
 
-  let data = await readFromS3('llama-apy-prod-data', 'enriched/dataEnriched.json')
+  let data = await readFromS3(
+    'llama-apy-prod-data',
+    'enriched/dataEnriched.json'
+  );
   if (Object.keys(queryString).length > 0) {
-    data.filter(pool=>{
-      const key = Object.keys(queryString)[0]
-      const val = queryString[key]
-      return pool[key] === val
-    })
+    data = data.filter((pool) => {
+      const key = Object.keys(queryString)[0];
+      const val = queryString[key];
+      return pool[key] === val;
+    });
   }
 
   res.set(customHeaderFixedCache()).status(200).json({
