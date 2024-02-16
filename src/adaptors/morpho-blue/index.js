@@ -316,15 +316,15 @@ async function blueMarkets() {
               rateToApy(
                 market.rates.find((rate) => rate.side === 'LENDER')?.rate || 0
               ) * 100,
-            apyReward: supplyRewardsApy,
-            rewardTokens,
+            // apyReward: supplyRewardsApy,
+            // rewardTokens,
             tvlUsd: totalTVL,
             underlyingTokens: [market.borrowedToken.id],
             apyBaseBorrow:
               rateToApy(
                 market.rates.find((rate) => rate.side === 'BORROWER')?.rate || 0
               ) * 100,
-            apyRewardBorrow: borrowRewardsApy + collateralRewardsApy,
+            // apyRewardBorrow: borrowRewardsApy + collateralRewardsApy,
             totalSupplyUsd,
             totalBorrowUsd,
             ltv: market.lltv / 1e18,
@@ -414,8 +414,8 @@ async function metaMorphoAPY(resultsOriginal) {
         project: 'morpho-blue',
         symbol: utils.formatSymbol(vault.symbol),
         apyBase: parseFloat(finalApyBase),
-        apyReward: parseFloat(finalApyRewards),
-        rewardTokens: Array.from(rewardTokenSet),
+        // apyReward: parseFloat(finalApyRewards),
+        // rewardTokens: Array.from(rewardTokenSet),
         tvlUsd: Number.isFinite(totalSupplyUSD) ? totalSupplyUSD : 0,
         underlyingTokens: underlyingToken ? [underlyingToken] : [],
         apyBaseBorrow: 0,
