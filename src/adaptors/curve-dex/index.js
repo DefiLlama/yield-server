@@ -400,13 +400,11 @@ const main = async () => {
     '0x7f90122BF0700F9E7e1F688fe926940E8839F353-avalanche',
     '0x0f9cb53Ebe405d49A0bbdBD291A65Ff571bC83e1-ethereum',
   ];
-  return defillamaPooldata
-    .map((p) => ({
-      ...p,
-      apyReward: correct.includes(p.pool) ? null : p.apyReward,
-      rewardTokens: correct.includes(p.pool) ? [] : p.rewardTokens,
-    }))
-    .filter((p) => p.apyReward < 300);
+  return defillamaPooldata.map((p) => ({
+    ...p,
+    apyReward: correct.includes(p.pool) ? null : p.apyReward,
+    rewardTokens: correct.includes(p.pool) ? [] : p.rewardTokens,
+  }));
 };
 
 module.exports = {
