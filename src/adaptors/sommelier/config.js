@@ -31,6 +31,7 @@ const realYieldEth_arbitrum = '0xC47bB288178Ea40bF520a91826a3DEE9e0DbFA4C';
 // Rewards on ethereum are paid out in EVM SOMM
 const ethRewardTokens = ['0xa670d7237398238de01267472c6f13e5b8010fd1'];
 
+
 // Rewards on arbitrum are paid out in axlSOMM
 const arbitrumRewardTokens = ['0x4e914bbDCDE0f455A8aC9d59d3bF739c46287Ed2'];
 

@@ -283,8 +283,9 @@ const main = async () => {
         : stETHPools.includes(address) ||
           address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' || // pool on moonbeam
           address === '0xe9123CBC5d1EA65301D417193c40A72Ac8D53501' || // lvusd
-          address === '0x056C6C5e684CeC248635eD86033378Cc444459B0' // eur pool gnosis
-        ? pool.gaugeRewards[0]?.apy
+          address === '0x056C6C5e684CeC248635eD86033378Cc444459B0' || // eur pool gnosis
+          pool.gaugeRewards?.length
+        ? pool.gaugeRewards.slice(-1)[0]?.apy
         : 0;
 
       // tokens are listed using their contract addresses
@@ -300,6 +301,8 @@ const main = async () => {
         ? ['0x73C69d24ad28e2d43D03CBf35F79fE26EBDE1011']
         : address === '0x056C6C5e684CeC248635eD86033378Cc444459B0'
         ? ['0x6810e776880c02933d47db1b9fc05908e5386b96']
+        : pool.gaugeRewards?.length
+        ? [pool.gaugeRewards.slice(-1)[0]?.tokenAddress]
         : [];
       if (aprCrv) {
         rewardTokens.push('0xD533a949740bb3306d119CC777fa900bA034cd52'); // CRV
@@ -326,6 +329,7 @@ const main = async () => {
       // am3CRV
       const am3CRV = '0xE7a24EF0C5e95Ffb0f6684b813A78F2a3AD7D171';
       const x = pool.coins.find((c) => c.address === am3CRV && c.usdPrice > 2);
+
       let tvlUsd;
       if (x) {
         tvlUsd = pool.coins
@@ -360,7 +364,9 @@ const main = async () => {
               ].includes(address)
             ? aprExtra
             : aprCrv + aprExtra,
-        rewardTokens: rewardTokens.flat(),
+        rewardTokens: rewardTokens
+          .flat()
+          .filter((i) => i !== '0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32'),
         underlyingTokens,
         url: `https://curve.fi/#/${blockchainId}/pools`,
       });
@@ -394,13 +400,11 @@ const main = async () => {
     '0x7f90122BF0700F9E7e1F688fe926940E8839F353-avalanche',
     '0x0f9cb53Ebe405d49A0bbdBD291A65Ff571bC83e1-ethereum',
   ];
-  return defillamaPooldata
-    .map((p) => ({
-      ...p,
-      apyReward: correct.includes(p.pool) ? null : p.apyReward,
-      rewardTokens: correct.includes(p.pool) ? [] : p.rewardTokens,
-    }))
-    .filter((p) => p.apyReward < 100);
+  return defillamaPooldata.map((p) => ({
+    ...p,
+    apyReward: correct.includes(p.pool) ? null : p.apyReward,
+    rewardTokens: correct.includes(p.pool) ? [] : p.rewardTokens,
+  }));
 };
 
 module.exports = {
