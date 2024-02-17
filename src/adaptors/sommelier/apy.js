@@ -15,13 +15,13 @@ const getPositionAssets = cellarAbi.find(
   (el) => el.name === 'getPositionAssets'
 );
 
-async function getBlockByEpoch(epochSecs) {
+async function getBlockByEpoch(epochSecs, cellarChain) {
   if (!Number.isInteger) {
     throw new Error('getBlockByEpoch was not passed an integer');
   }
 
   const data = await utils.getData(
-    `https://coins.llama.fi/block/ethereum/${epochSecs}`
+    `https://coins.llama.fi/block/${cellarChain}/${epochSecs}`
   );
 
   return data.height;
@@ -58,8 +58,8 @@ async function calcApy(
   intervalDays,
   cellarChain
 ) {
-  const startBlock = await getBlockByEpoch(startEpochSecs);
-  const endBlock = await getBlockByEpoch(endEpochSecs);
+  const startBlock = await getBlockByEpoch(startEpochSecs, cellarChain);
+  const endBlock = await getBlockByEpoch(endEpochSecs, cellarChain);
 
   // APY 7 day may error out if share price oracle was not live for 7 days, so try catch here
   // Note we dont do this in the daily APY because that should always work if we're live

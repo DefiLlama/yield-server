@@ -3,7 +3,6 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const {
-  rewardTokens,
   stakingPools,
   v0815Pools,
   v0816Pools,
@@ -72,7 +71,11 @@ async function main() {
   const assets = await getHoldingPositions();
 
   // List of holding position tokens and sommelier token
-  const tokens = ['coingecko:sommelier', ...assets.map((a) => `ethereum:${a}`)];
+  // ! Remember to add mapping for each chain 
+  const tokens = [
+    'coingecko:sommelier',
+    ...assets.flatMap((a) => [`ethereum:${a}`, `arbitrum:${a}`]),
+  ];
 
   // Fetch prices for all assets upfront
   const prices = await utils.getPrices(tokens);
@@ -112,10 +115,10 @@ async function handleV0815(pool, prices) {
   );
   const asset = underlyingTokens[0]; // v0815 Cellar only holds one asset
   const tvlUsd = await v0815.getTvlUsd(cellarAddress, asset, cellarChain);
-  const apyBase = await v0815.getApy(cellarAddress);
+  const apyBase = await v0815.getApy(cellarAddress, cellarChain);
   const assetPrice = prices.pricesByAddress[asset.toLowerCase()];
   const apyReward = await getRewardApy(
-    stakingPools[cellarAddress],
+    stakingPools[cellarChain][cellarAddress],
     prices.pricesBySymbol.somm,
     assetPrice,
     cellarChain
@@ -138,10 +141,10 @@ async function handleV0816(pool, prices) {
   const underlyingTokens = await v0816.getUnderlyingTokens(cellarAddress, cellarChain);
   const asset = await v0816.getHoldingPosition(cellarAddress, cellarChain);
   const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset, cellarChain);
-  const apyBase = await v0816.getApy(cellarAddress);
+  const apyBase = await v0816.getApy(cellarAddress, cellarChain);
   const assetPrice = prices.pricesByAddress[asset.toLowerCase()];
   const apyReward = await getRewardApy(
-    stakingPools[cellarAddress],
+    stakingPools[cellarChain][cellarAddress],
     prices.pricesBySymbol.somm,
     assetPrice,
     cellarChain
@@ -205,13 +208,13 @@ async function handleV2plus(pool, prices, underlyingTokens) {
   };
 
   // return pool without apyReward if stakingPool is not configured
-  const stakingPool = stakingPools[cellarAddress];
+  const stakingPool = stakingPools[cellarChain][cellarAddress];
   if (stakingPool == null) {
     return baseResult;
   }
 
   const apyReward = await getRewardApy(
-    stakingPools[cellarAddress],
+    stakingPools[cellarChain][cellarAddress],
     prices.pricesBySymbol.somm,
     assetPrice,
     cellarChain
