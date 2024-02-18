@@ -3,8 +3,6 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const {
-  chain,
-  rewardTokens,
   stakingPools,
   v0815Pools,
   v0816Pools,
@@ -27,30 +25,34 @@ function getCellarAddress(pool) {
   return pool.pool.split('-')[0];
 }
 
+function getCellarChain(pool) {
+  return pool.pool.split('-')[1];
+}
+
 // Get a list of all Cellar holding positions
 async function getHoldingPositions() {
   const v1Assets = await Promise.all(
     v0815Pools.map((pool) =>
       v0815
-        .getUnderlyingTokens(getCellarAddress(pool))
+        .getUnderlyingTokens(getCellarAddress(pool), getCellarChain(pool))
         .then((tokens) => tokens[0])
     )
   );
 
   const v15Assets = await Promise.all(
-    v0816Pools.map((pool) => v0816.getHoldingPosition(getCellarAddress(pool)))
+    v0816Pools.map((pool) => v0816.getHoldingPosition(getCellarAddress(pool), getCellarChain(pool)))
   );
 
   const v2Assets = await Promise.all(
-    v2Pools.map((pool) => v2.getHoldingPosition(getCellarAddress(pool)))
+    v2Pools.map((pool) => v2.getHoldingPosition(getCellarAddress(pool), getCellarChain(pool)))
   );
 
   const v2p5Assets = await Promise.all(
-    v2p5Pools.map((pool) => v2p5.getHoldingPosition(getCellarAddress(pool)))
+    v2p5Pools.map((pool) => v2p5.getHoldingPosition(getCellarAddress(pool), getCellarChain(pool)))
   );
 
   const v2p6Assets = await Promise.all(
-    v2p6Pools.map((pool) => v2p6.getHoldingPosition(getCellarAddress(pool)))
+    v2p6Pools.map((pool) => v2p6.getHoldingPosition(getCellarAddress(pool), getCellarChain(pool)))
   );
 
   const deduped = new Set([
@@ -69,7 +71,11 @@ async function main() {
   const assets = await getHoldingPositions();
 
   // List of holding position tokens and sommelier token
-  const tokens = ['coingecko:sommelier', ...assets.map((a) => `ethereum:${a}`)];
+  // ! Remember to add mapping for each chain 
+  const tokens = [
+    'coingecko:sommelier',
+    ...assets.flatMap((a) => [`ethereum:${a}`, `arbitrum:${a}`]),
+  ];
 
   // Fetch prices for all assets upfront
   const prices = await utils.getPrices(tokens);
@@ -101,16 +107,21 @@ async function main() {
 
 async function handleV0815(pool, prices) {
   const cellarAddress = pool.pool.split('-')[0];
+  const cellarChain = pool.pool.split('-')[1];
 
-  const underlyingTokens = await v0815.getUnderlyingTokens(cellarAddress);
+  const underlyingTokens = await v0815.getUnderlyingTokens(
+    cellarAddress,
+    cellarChain
+  );
   const asset = underlyingTokens[0]; // v0815 Cellar only holds one asset
-  const tvlUsd = await v0815.getTvlUsd(cellarAddress, asset);
-  const apyBase = await v0815.getApy(cellarAddress);
+  const tvlUsd = await v0815.getTvlUsd(cellarAddress, asset, cellarChain);
+  const apyBase = await v0815.getApy(cellarAddress, cellarChain);
   const assetPrice = prices.pricesByAddress[asset.toLowerCase()];
   const apyReward = await getRewardApy(
-    stakingPools[cellarAddress],
+    stakingPools[cellarChain][cellarAddress],
     prices.pricesBySymbol.somm,
-    assetPrice
+    assetPrice,
+    cellarChain
   );
 
   return {
@@ -126,16 +137,17 @@ async function handleV0815(pool, prices) {
 
 async function handleV0816(pool, prices) {
   const cellarAddress = pool.pool.split('-')[0];
-
-  const underlyingTokens = await v0816.getUnderlyingTokens(cellarAddress);
-  const asset = await v0816.getHoldingPosition(cellarAddress);
-  const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset);
-  const apyBase = await v0816.getApy(cellarAddress);
+  const cellarChain = pool.pool.split('-')[1]; 
+  const underlyingTokens = await v0816.getUnderlyingTokens(cellarAddress, cellarChain);
+  const asset = await v0816.getHoldingPosition(cellarAddress, cellarChain);
+  const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset, cellarChain);
+  const apyBase = await v0816.getApy(cellarAddress, cellarChain);
   const assetPrice = prices.pricesByAddress[asset.toLowerCase()];
   const apyReward = await getRewardApy(
-    stakingPools[cellarAddress],
+    stakingPools[cellarChain][cellarAddress],
     prices.pricesBySymbol.somm,
-    assetPrice
+    assetPrice,
+    cellarChain
   );
 
   return {
@@ -151,36 +163,41 @@ async function handleV0816(pool, prices) {
 
 async function handleV2(pool, prices) {
   const cellarAddress = pool.pool.split('-')[0];
-  const underlyingTokens = await v2.getUnderlyingTokens(cellarAddress);
+  const cellarChain = pool.pool.split('-')[1]; 
+  const underlyingTokens = await v2.getUnderlyingTokens(cellarAddress, cellarChain);
 
   return handleV2plus(pool, prices, underlyingTokens);
 }
 
 async function handleV2p5(pool, prices) {
   const cellarAddress = pool.pool.split('-')[0];
-  const underlyingTokens = await v2p5.getUnderlyingTokens(cellarAddress);
+  const cellarChain = pool.pool.split('-')[1]; 
+  const underlyingTokens = await v2p5.getUnderlyingTokens(cellarAddress, cellarChain);
 
   return handleV2plus(pool, prices, underlyingTokens);
 }
 
 async function handleV2p6(pool, prices) {
   const cellarAddress = pool.pool.split('-')[0];
-  const underlyingTokens = await v2p6.getUnderlyingTokens(cellarAddress);
+  const cellarChain = pool.pool.split('-')[1]; 
+
+  const underlyingTokens = await v2p6.getUnderlyingTokens(cellarAddress, cellarChain);
 
   return handleV2plus(pool, prices, underlyingTokens);
 }
 
 async function handleV2plus(pool, prices, underlyingTokens) {
   const cellarAddress = pool.pool.split('-')[0];
+  const cellarChain = pool.pool.split('-')[1];
 
-  const asset = await v2.getHoldingPosition(cellarAddress);
+  const asset = await v2.getHoldingPosition(cellarAddress, cellarChain);
   const assetPrice = prices.pricesByAddress[asset.toLowerCase()];
 
-  const apyBase = await v2.getApy(cellarAddress);
-  const apyBase7d = await v2.getApy7d(cellarAddress);
+  const apyBase = await v2.getApy(cellarAddress, cellarChain);
+  const apyBase7d = await v2.getApy7d(cellarAddress, cellarChain);
 
   // getTvlUsd implementation hasn't changed since v1.5 (v0.8.16)
-  const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset);
+  const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset, cellarChain);
 
   const baseResult = {
     ...pool,
@@ -191,15 +208,16 @@ async function handleV2plus(pool, prices, underlyingTokens) {
   };
 
   // return pool without apyReward if stakingPool is not configured
-  const stakingPool = stakingPools[cellarAddress];
+  const stakingPool = stakingPools[cellarChain][cellarAddress];
   if (stakingPool == null) {
     return baseResult;
   }
 
   const apyReward = await getRewardApy(
-    stakingPools[cellarAddress],
+    stakingPools[cellarChain][cellarAddress],
     prices.pricesBySymbol.somm,
-    assetPrice
+    assetPrice,
+    cellarChain
   );
 
   return {
@@ -211,12 +229,12 @@ async function handleV2plus(pool, prices, underlyingTokens) {
 }
 
 // Calculates Staking APY for v0815 staking contract currently used by all pools
-async function getRewardApy(stakingPool, sommPrice, assetPrice) {
+async function getRewardApy(stakingPool, sommPrice, assetPrice, cellarChain) {
   const rewardRateResult = (
     await call({
       target: stakingPool,
       abi: stakingAbi.rewardRate,
-      chain,
+      chain: cellarChain,
     })
   ).output;
   const rewardRate = new BigNumber(rewardRateResult).div(1e6);
@@ -225,7 +243,7 @@ async function getRewardApy(stakingPool, sommPrice, assetPrice) {
     await call({
       target: stakingPool,
       abi: stakingAbi.totalDepositsWithBoost,
-      chain,
+      chain: cellarChain,
     })
   ).output;
   let totalDepositsWithBoost = new BigNumber(totalDepositWithBoostResult).div(
@@ -238,7 +256,7 @@ async function getRewardApy(stakingPool, sommPrice, assetPrice) {
     await call({
       target: stakingPool,
       abi: stakingAbi.endTimestamp,
-      chain,
+      chain: cellarChain,
     })
   ).output;
   const endTimestamp = parseInt(endTimestampResult, 10) * 1000;
