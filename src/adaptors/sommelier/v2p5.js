@@ -1,5 +1,4 @@
 const sdk = require('@defillama/sdk');
-const { chain } = require('./config');
 const cellarAbi = require('./cellar-v2p5.json');
 const v2 = require('./v2');
 
@@ -9,12 +8,12 @@ const abiViewPositionBalances = cellarAbi.find(
   (el) => el.name === 'viewPositionBalances'
 );
 
-async function getUnderlyingTokens(cellarAddress) {
+async function getUnderlyingTokens(cellarAddress, cellarChain) {
   const result = (
     await call({
       target: cellarAddress,
       abi: abiViewPositionBalances,
-      chain,
+      chain: cellarChain,
     })
   ).output;
 
