@@ -21,12 +21,6 @@ const calculateApy = (ratesPerBlock) => {
   );
 };
 
-function calculateTvl(cash, borrows, price, decimals) {
-  const tvl =
-    ((parseFloat(cash) + parseFloat(borrows)) / 10 ** decimals) * price;
-  return tvl;
-}
-
 const getPrices = async (addresses) => {
   const queires = addresses.map((address) => 'ethereum:' + address).join(',');
   const prices = (
@@ -57,6 +51,18 @@ const apy = async () => {
   });
   totalBorrows = totalBorrows.output.map((o) => o.output);
 
+  let totalSupplies = await sdk.api.abi.multiCall({
+    calls: markets,
+    abi: ctoken.find((m) => m.name === 'totalSupply'),
+  });
+  totalSupplies = totalSupplies.output.map((o) => o.output);
+
+  let exchangeRates = await sdk.api.abi.multiCall({
+    calls: markets,
+    abi: ctoken.find((m) => m.name === 'exchangeRateStored'),
+  });
+  exchangeRates = exchangeRates.output.map((o) => o.output);
+
   const underlying_addresses = [
     '0xdAC17F958D2ee523a2206206994597C13D831ec7', // USDT
     '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC
@@ -69,16 +75,24 @@ const apy = async () => {
       chain: 'ethereum',
       project: 'cream-lending',
       symbol: 'USDT',
-      tvlUsd: calculateTvl(cashes[0], totalBorrows[0], prices[0], 6),
+      tvlUsd: (parseFloat(cashes[0]) / 10 ** 6) * prices[0],
       apyBase: calculateApy(supplyRates[0]),
+      totalSupplyUsd:
+        (parseFloat(totalSupplies[0] * exchangeRates[0]) / 10 ** 24) *
+        prices[0],
+      totalBorrowUsd: (parseFloat(totalBorrows[0]) / 10 ** 6) * prices[0],
     },
     {
       pool: CR_USDC.toLowerCase(),
       chain: 'ethereum',
       project: 'cream-lending',
       symbol: 'USDC',
-      tvlUsd: calculateTvl(cashes[1], totalBorrows[1], prices[1], 6),
+      tvlUsd: (parseFloat(cashes[1]) / 10 ** 6) * prices[1],
       apyBase: calculateApy(supplyRates[1]),
+      totalSupplyUsd:
+        (parseFloat(totalSupplies[1] * exchangeRates[1]) / 10 ** 24) *
+        prices[1],
+      totalBorrowUsd: (parseFloat(totalBorrows[1]) / 10 ** 6) * prices[1],
     },
   ];
 };
