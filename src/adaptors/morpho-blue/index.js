@@ -314,9 +314,7 @@ async function blueMarkets() {
             chain: 'ethereum',
             project: 'morpho-blue',
             symbol: utils.formatSymbol(
-              `${market.inputToken.symbol}-${market.borrowedToken.symbol}(${
-                ltv * 100
-              }%)`
+              `${market.inputToken.symbol}-${market.borrowedToken.symbol}`
             ),
             apyBase:
               rateToApy(
@@ -334,6 +332,7 @@ async function blueMarkets() {
             totalSupplyUsd,
             totalBorrowUsd,
             ltv,
+            poolMeta: `${ltv * 100}%`,
           },
         ];
       })
