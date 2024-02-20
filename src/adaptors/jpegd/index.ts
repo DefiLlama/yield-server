@@ -15,7 +15,7 @@ const poolsFunction = async () => {
     symbol: utils.formatSymbol('APE'),
     rewardTokens: [APE],
     underlyingTokens: [APE],
-    tvlUsd: Number(tvlData.tokenBalancesUsd.APE),
+    tvlUsd: Number(tvlData.tokenBalancesUsd.ape),
     apy: apeApy,
   };
 
