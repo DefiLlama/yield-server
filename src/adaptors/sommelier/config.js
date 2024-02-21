@@ -27,6 +27,7 @@ const turboeethv2 = '0xdAdC82e26b3739750E036dFd9dEfd3eD459b877A';
 
 // Arbitrum addresses
 const realYieldEth_arbitrum = '0xC47bB288178Ea40bF520a91826a3DEE9e0DbFA4C';
+const realYieldUsd_arbitrum = '0x392B1E6905bb8449d26af701Cdea6Ff47bF6e5A8';
 
 // Rewards on ethereum are paid out in EVM SOMM
 const ethRewardTokens = ['0xa670d7237398238de01267472c6f13e5b8010fd1'];
@@ -71,6 +72,10 @@ const stakingPools = {
   },
   arbitrum: {
     [realYieldEth_arbitrum]: '0xd700D39be88fB6b54311f95cCA949C3f6835e236',
+    [realYieldUsd_arbitrum]: '0x623987D3CC0d504782bc99BBAc7965fe54917D7D',
+
+    
+
   },
 };
 
@@ -468,6 +473,19 @@ const v2p6Pools = [
     rewardTokens: arbitrumRewardTokens,
     underlyingTokens: [],
     url: 'https://app.sommelier.finance/strategies/real-yield-eth-arb',
+  },
+  {
+    pool: `${realYieldUsd_arbitrum}-arbitrum`,
+    chain: 'arbitrum',
+    project,
+    symbol: 'USDC-USDC.e-USDT-DAI',
+    poolMeta: 'RealYieldUSD',
+    tvlUsd: 0,
+    apyBase: 0,
+    apyReward: 0,
+    rewardTokens: arbitrumRewardTokens,
+    underlyingTokens: ["0xaf88d065e77c8cC2239327C5EDb3A432268e5831","0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8","0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9","0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1"],
+    url: 'https://app.sommelier.finance/strategies/real-yield-usd-arb',
   },
 ];
 
