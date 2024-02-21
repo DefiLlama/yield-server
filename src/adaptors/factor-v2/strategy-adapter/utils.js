@@ -31,12 +31,20 @@ async function getCoinDataFromDefillamaAPI(chain, tokenAddress) {
 function getCurrentTimestamp() {
     const timestamp = Math.floor(Date.now() / 1000);
     return timestamp;
-  }
+}
 
+async function getDefiLLamaPools(poolId) {
+    const response = await axios.get('https://yields.llama.fi/pools');
+    const pools = response.data.data;
+    return pools.find(
+        (pools) => pools.pool.toLowerCase() == poolId.toLowerCase()
+    );
+}
 
 module.exports = {
     makeReadable,
     getAprFromDefillamaPool,
     getCoinDataFromDefillamaAPI,
-    getCurrentTimestamp
+    getDefiLLamaPools,
+    getCurrentTimestamp,
 };
