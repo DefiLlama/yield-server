@@ -77,6 +77,7 @@ const excludeAdaptors = [
   'ottopia',
   'velodrome-v1',
   'brinc-finance',
+  'nuls-pocm',
 ];
 
 const excludePools = [
