@@ -1,17 +1,16 @@
-const { apy } = require('../../gmx-v1');
-const { getAprFromDefillamaPool } = require('./utils');
+const { getDefiLLamaPools } = require('./utils');
 
 /*//////////////////////////////////////////////////////////////////////////////
                                      GLP APR                                             
 //////////////////////////////////////////////////////////////////////////////*/
 
 async function getGlpApr() {
-  const apr = await getAprFromDefillamaPool(
-    apy,
-    '0x1aDDD80E6039594eE970E5872D247bf0414C8903'
-  );
+    const pool = await getDefiLLamaPools(
+        '825688c0-c694-4a6b-8497-177e425b7348'
+    );
+    const apr = pool.apyBase + pool.apyReward;
 
-  return apr;
+    return apr;
 }
 
 module.exports = { getGlpApr };
