@@ -52,6 +52,7 @@ const apy = async () => {
       chain: 'Ethereum',
       tvlUsd,
       apyBase,
+      poolMeta: '7 days unstaking',
     },
   ];
 };
