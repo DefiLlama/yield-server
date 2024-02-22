@@ -1,23 +1,14 @@
-const { apy } = require('../../vela-exchange');
-const { getAprFromDefillamaPool } = require('./utils');
-const { default: axios } = require('axios');
+const { getDefiLLamaPools } = require('./utils');
 
 /*//////////////////////////////////////////////////////////////////////////////
                                      VLP APR                                             
 //////////////////////////////////////////////////////////////////////////////*/
 
 async function getVlpApr() {
-    // ERROR in VLP Adapter !!
-
-    // const apr = await getAprFromDefillamaPool(
-    //   apy,
-    //   '0xc4abade3a15064f9e3596943c699032748b13352-arbitrum'
-    // );
-
-    const response = await axios.get(
-        'https://api.vela.exchange/graph/vlp-apr/42161'
+    const pool = await getDefiLLamaPools(
+        'ddafe2fb-757a-45dd-87b5-a2c42dc9e093'
     );
-    const apr = response.data.TOTAL_APR;
+    const apr = pool.apyBase + pool.apyReward;
 
     return apr;
 }
