@@ -41,8 +41,9 @@ const apy = async () => {
     })
   ).output.sort((a, b) => b.blockNumber - a.blockNumber);
   const rewardsReceived = parseInt(logs[0].data) / 1e18;
-
   const tvlUsd = totalSupply * price;
+  const aprBase = (rewardsReceived / tvlUsd) * 52 * 100;
+  const apyBase = utils.aprToApy(aprBase, 52);
   return [
     {
       pool: sUSDe,
@@ -50,7 +51,7 @@ const apy = async () => {
       project: 'ethena',
       chain: 'Ethereum',
       tvlUsd,
-      apyBase: (rewardsReceived / tvlUsd) * 52 * 100,
+      apyBase,
     },
   ];
 };
