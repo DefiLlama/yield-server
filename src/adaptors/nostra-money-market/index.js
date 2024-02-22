@@ -80,6 +80,48 @@ const markets = [
     debtToken:
       '0x024e9b0d6bc79e111e6872bb1ada2a874c25712cf08dfc5bcf0de008a7cca55f',
   },
+  {
+    name: 'wstETH',
+    address:
+      '0x042b8f0484674ca266ac5d08e4ac6a3fe65bd3129795def2dca5c34ecc5f96d2',
+    decimals: 6,
+    supplyTokens: [
+      '0x00ca44c79a77bcb186f8cdd1a0cd222cc258bebc3bec29a0a020ba20fdca40e9',
+      '0x009377fdde350e01e0397820ea83ed3b4f05df30bfb8cf8055d62cafa1b2106a',
+      '0x07e2c010c0b381f347926d5a203da0335ef17aefee75a89292ef2b0f94924864',
+      '0x05eb6de9c7461b3270d029f00046c8a10d27d4f4a4c931a4ea9769c72ef4edbb',
+    ],
+    debtToken:
+      '0x0348cc417fc877a7868a66510e8e0d0f3f351f5e6b0886a86b652fcb30a3d1fb',
+  },
+  {
+    name: 'LORDS',
+    address:
+      '0x0124aeb495b947201f5fac96fd1138e326ad86195b98df6dec9009158a533b49',
+    decimals: 6,
+    supplyTokens: [
+      '0x0507eb06dd372cb5885d3aaf18b980c41cd3cd4691cfd3a820339a6c0cec2674',
+      '0x0739760bce37f89b6c1e6b1198bb8dc7166b8cf21509032894f912c9d5de9cbd',
+      '0x000d294e16a8d24c32eed65ea63757adde543d72bad4af3927f4c7c8969ff43d',
+      '0x02530a305dd3d92aad5cf97e373a3d07577f6c859337fb0444b9e851ee4a2dd4',
+    ],
+    debtToken:
+      '0x035778d24792bbebcf7651146896df5f787641af9e2a3db06480a637fbc9fff8',
+  },
+  {
+    name: 'STRK',
+    address:
+      '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d',
+    decimals: 6,
+    supplyTokens: [
+      '0x026c5994c2462770bbf940552c5824fb0e0920e2a8a5ce1180042da1b3e489db',
+      '0x07c2e1e733f28daa23e78be3a4f6c724c0ab06af65f6a95b5e0545215f1abc1b',
+      '0x07c535ddb7bf3d3cb7c033bd1a4c3aac02927a4832da795606c0f3dbbc6efd17',
+      '0x040f5a6b7a6d3c472c12ca31ae6250b462c6d35bbdae17bd52f6c6ca065e30cf',
+    ],
+    debtToken:
+      '0x001258eae3eae5002125bebf062d611a772e8aea3a1879b64a19f363ebd00947',
+  },
 ];
 
 async function getTokenPrice(token) {
