@@ -189,6 +189,13 @@ const lsdTokens = [
     type: a,
     fee: 0.1,
   },
+  {
+    name: 'Crypto.com Staked ETH',
+    symbol: 'CDCETH',
+    address: '0x7a7c9db510aB29A2FC362a4c34260BEcB5cE3446',
+    type: a,
+    fee: 0.1,
+  },
 ];
 
 const priceUrl = 'https://aggregator-api.kyberswap.com/ethereum/api/v1/routes';
@@ -399,6 +406,16 @@ const getExpectedRates = async () => {
     type: 'function',
   };
 
+  const CDCETHAbi = {
+    inputs: [],
+    name: 'exchangeRate',
+    outputs: [
+      { internalType: 'uint256', name: '_exchangeRate', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
   // --- cbETH
   const cbETHRate = Number((await axios.get(cbETHRateUrl)).data.amount);
 
@@ -582,6 +599,16 @@ const getExpectedRates = async () => {
       })
     ).output / 1e18;
 
+  const CDCETH =
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Crypto.com Staked ETH')
+          .address,
+        chain: 'cronos',
+        abi: CDCETHAbi,
+      })
+    ).output / 1e18;
+
   return lsdTokens.map((lsd) => ({
     ...lsd,
     expectedRate:
@@ -619,6 +646,8 @@ const getExpectedRates = async () => {
         ? mevETH
         : lsd.name === 'Meta Pool ETH'
         ? mpETH
+        : lsd.name === 'Crypto.com Staked ETH'
+        ? CDCETH
         : 1,
   }));
 };
