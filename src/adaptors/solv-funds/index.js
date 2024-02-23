@@ -84,8 +84,8 @@ const poolsFunction = async () => {
     let rewardApy = 0;
     let rewardTokens = [];
     JSON.parse(pool.additionalRewards).map(function (item, index) {
-      if (poolConfiguration.rewardTokenAddress[pool.productInfo.chainId][item.symbol]) {
-        rewardTokens.push(poolConfiguration.rewardTokenAddress[pool.productInfo.chainId][item.symbol])
+      if (poolConfiguration.rewardTokenAddress[pool.productInfo.chainId]?.[item.symbol]) {
+        rewardTokens.push(poolConfiguration.rewardTokenAddress[pool.productInfo.chainId]?.[item.symbol])
         rewardApy += item.apy / 100;
       }
     })
