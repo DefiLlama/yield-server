@@ -47,7 +47,7 @@ const getYieldHistory = async (req, res) => {
   }
 
   res
-    .set(customHeader(3600))
+    .set(customHeader(24 * 3600))
     .status(200)
     .json({
       status: 'success',
@@ -135,7 +135,7 @@ const getYieldLendBorrowHistory = async (req, res) => {
   }
 
   res
-    .set(customHeader(3600))
+    .set(customHeader(24 * 3600))
     .status(200)
     .json({
       status: 'success',
