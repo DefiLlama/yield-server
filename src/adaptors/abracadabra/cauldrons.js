@@ -115,7 +115,6 @@ const POOLS = {
       { version: 2, address: '0xc1879bf24917ebe531fbaa20b0d05da027b592ce' }, // AGLD
       { version: 2, address: '0x7b7473a76d6ae86ce19f7352a1e89f6c9dc39020' }, // ALCX
       { version: 2, address: '0x05500e2ee779329698df35760bedcaac046e7c27' }, // FTM
-      { version: 2, address: '0x003d5a75d284824af736df51933be522de9eed0f' }, // wsOHM
       { version: 2, address: '0x98a84eff6e008c5ed0289655ccdca899bcb6b99f' }, // xSUSHI v3
       { version: 2, address: '0x0bf90b3b5cad7dfcf70de198c498b61b3ba35cff' }, // xSUSHI v2
       { version: 2, address: '0xebfde87310dc22404d918058faa4d56dc4e93f0a' }, // yvcrvIB
