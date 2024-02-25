@@ -5,17 +5,28 @@ const utils = require('../utils');
 const PoolViewerABI = require('./abi.json');
 
 function supplyApy(snapshot, poolInfo) {
-  const totalLiquidityBefore = Number(etherUtils.formatUnits(snapshot.totalLiquidity), 18);
-  const totalLiquidityAfter = Number(etherUtils.formatUnits(BigNumber.from(poolInfo.BORROWED_INVARIANT).add(BigNumber.from(poolInfo.LP_INVARIANT))), 18);
+  const avgDecimals = (Number(poolInfo.decimals[0]) + Number(poolInfo.decimals[1])) / 2;
+  const totalLiquidityBefore = Number(etherUtils.formatUnits(snapshot.totalLiquidity, avgDecimals));
+  const totalLiquidityAfter = Number(etherUtils.formatUnits(BigNumber.from(poolInfo.BORROWED_INVARIANT).add(BigNumber.from(poolInfo.LP_INVARIANT)), avgDecimals));
   const liquidityGrowth = totalLiquidityAfter / totalLiquidityBefore;
-  const totalSupplyBefore = Number(etherUtils.formatUnits(snapshot.totalSupply), 18);
-  const totalSupplyAfter = Number(etherUtils.formatUnits(poolInfo.totalSupply), 18);
+  const totalSupplyBefore = Number(etherUtils.formatUnits(snapshot.totalSupply, 18));
+  const totalSupplyAfter = Number(etherUtils.formatUnits(poolInfo.totalSupply, 18));
   const supplyGrowth = totalSupplyAfter / totalSupplyBefore;
   const supplyYield = liquidityGrowth / supplyGrowth - 1.0;
   const timeDiff = (new Date()).getTime() / 1000 - Number(snapshot.timestamp);
   const secondsOfDay = 24 * 60 * 60;
 
-  return supplyYield * (secondsOfDay / timeDiff) * 100;
+  return supplyYield * (secondsOfDay / timeDiff) * 365 * 100;
+}
+
+function formatSymbols(symbols, addresses) {
+  if(addresses[0] == "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8") {
+    symbols[0] = "USDC.e";
+  }
+  if(addresses[1] == "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8") {
+    symbols[1] = "USDC.e";
+  }
+  return symbols.join("-");
 }
 
 async function apy() {
@@ -54,7 +65,7 @@ async function apy() {
     pool,
     chain: utils.formatChain('arbitrum'),
     project: 'gammaswap',
-    symbol: latestPoolsData[i].output.symbols.join('-'),
+    symbol: formatSymbols(latestPoolsData[i].output.symbols,latestPoolsData[i].output.tokens),
     tvlUsd: Number(gammaPoolTracers[i].lastDailyData.pool.tvlUSD),
     apyBase: supplyApy(gammaPoolTracers[i].lastDailyData, latestPoolsData[i].output),
     underlyingTokens: latestPoolsData[i].output.tokens,
