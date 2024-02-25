@@ -69,6 +69,7 @@ async function apy() {
     tvlUsd: Number(gammaPoolTracers[i].lastDailyData.pool.tvlUSD),
     apyBase: supplyApy(gammaPoolTracers[i].lastDailyData, latestPoolsData[i].output),
     underlyingTokens: latestPoolsData[i].output.tokens,
+    url: `https://app.gammaswap.com/earn/${pool}`
   }));
 }
 
