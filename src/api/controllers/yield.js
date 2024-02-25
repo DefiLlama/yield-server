@@ -9,7 +9,7 @@ const cache = {}
 
 async function getFromCache(prefix, configID, generate){
   const cacheKey = prefix+"/"+configID
-  if(cache[cacheKey] === undefined || cache[cacheKey].lastUpdate < (Date.now() - 10*60*1e3)){
+  if(cache[cacheKey] === undefined || cache[cacheKey].lastUpdate < (Date.now() - 2*60*60*1e3)){
     const data = await generate()
     if(!data){
       return data
