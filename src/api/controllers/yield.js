@@ -8,7 +8,7 @@ const { customHeader, customHeaderFixedCache } = require('../../utils/headers');
 const cache = {}
 
 async function getFromCache(prefix, configID, generate){
-  const cacheKey = prefix+"/"+configId
+  const cacheKey = prefix+"/"+configID
   if(cache[cacheKey] === undefined || cache[cacheKey].lastUpdate < (Date.now() - 10*60*1e3)){
     const data = await generate()
     if(!data){
