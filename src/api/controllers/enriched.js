@@ -12,6 +12,26 @@ const { customHeader, customHeaderFixedCache } = require('../../utils/headers');
 const poolsEnrichedColumns = require('../../utils/enrichedColumns');
 const { readFromS3 } = require('../../utils/s3');
 
+let poolsEnriched = {
+  lastUpdate: Date.now(),
+  data: null
+}
+
+async function getPoolsEnrichedData(){
+  if(poolsEnriched.lastUpdate < (Date.now() - 10*60*1e3) || poolsEnriched.data === null){
+    // this leads to race conditions but thats fine
+    const data = await readFromS3(
+      'llama-apy-prod-data',
+      'enriched/dataEnriched.json'
+    );
+    poolsEnriched = {
+      lastUpdate: Date.now(),
+      data
+    }
+  }
+  return poolsEnriched.data
+}
+
 const getPoolEnriched = async (req, res) => {
   // querystring (though we only use it for pool values on /pool pages)
   // note: change to route param later -> /pools/:pool
@@ -24,10 +44,7 @@ const getPoolEnriched = async (req, res) => {
   let columns = poolsEnrichedColumns;
   columns = queryString !== undefined ? [...columns, 'url'] : columns;
 
-  const data = await readFromS3(
-    'llama-apy-prod-data',
-    'enriched/dataEnriched.json'
-  );
+  const data = await getPoolsEnrichedData()
   res
     .set(customHeader(3600))
     .status(200)
@@ -43,10 +60,7 @@ const getPoolsEnrichedOld = async (req, res) => {
   // add pool_old (the pool field from the adpaters == address)
   let columns = [...poolsEnrichedColumns, 'pool_old'];
 
-  let data = await readFromS3(
-    'llama-apy-prod-data',
-    'enriched/dataEnriched.json'
-  );
+  let data = await getPoolsEnrichedData()
   if (Object.keys(queryString).length > 0) {
     data = data.filter((pool) => {
       const key = Object.keys(queryString)[0];
