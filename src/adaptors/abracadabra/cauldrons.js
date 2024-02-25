@@ -172,12 +172,6 @@ const POOLS = {
       }, // Stargate USDT (POF)
       { version: 4, address: '0x207763511da879a900973a5e092382117c3c1588' }, // CRV
       { version: 4, address: '0x85f60d3ea4e86af43c9d4e9cc9095281fc25c405' }, // Migrated WBTC
-      {
-        version: 4,
-        address: '0x7259e152103756e1616a77ae982353c3751a6a90',
-        collateralPoolId: 'f827e130-1684-4829-b464-b5f99cf1d82b',
-      }, // yvCrv3Crypto
-      { version: 4, address: '0x692887e8877c6dd31593cda44c382db5b289b684' }, // magicAPE
       { version: 4, address: '0x7d8df3e4d06b0e19960c19ee673c0823beb90815' }, // CRV V2
     ],
   },
