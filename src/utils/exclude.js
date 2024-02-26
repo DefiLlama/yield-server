@@ -80,6 +80,7 @@ const excludeAdaptors = [
   'nuls-pocm',
   'unipilot',
   'deri-protocol',
+  'frakt',
 ];
 
 const excludePools = [
