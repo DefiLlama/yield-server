@@ -15,8 +15,16 @@ function supplyApy(snapshot, poolInfo) {
   const supplyYield = liquidityGrowth / supplyGrowth - 1.0;
   const timeDiff = (new Date()).getTime() / 1000 - Number(snapshot.timestamp);
   const secondsOfDay = 24 * 60 * 60;
-
   return supplyYield * (secondsOfDay / timeDiff) * 365 * 100;
+}
+
+function borrowApy(snapshot, poolInfo) {
+  const accFeeIndex1DayAgoNum = Number(etherUtils.formatUnits(snapshot.accFeeIndex, 18));
+  const accFeeIndexNum = Number(etherUtils.formatUnits(poolInfo.accFeeIndex, 18))
+  const borrowYield = ((accFeeIndexNum / accFeeIndex1DayAgoNum) - 1.0);
+  const timeDiff = (new Date()).getTime() / 1000 - Number(snapshot.timestamp);
+  const secondsOfDay = 24 * 60 * 60;
+  return borrowYield * (secondsOfDay / timeDiff) * 365 * 100;
 }
 
 function formatSymbols(symbols, addresses) {
@@ -42,6 +50,7 @@ async function apy() {
           }
           totalLiquidity
           totalSupply
+          accFeeIndex
           timestamp
         }
       }
@@ -68,8 +77,9 @@ async function apy() {
     symbol: formatSymbols(latestPoolsData[i].output.symbols,latestPoolsData[i].output.tokens),
     tvlUsd: Number(gammaPoolTracers[i].lastDailyData.pool.tvlUSD),
     apyBase: supplyApy(gammaPoolTracers[i].lastDailyData, latestPoolsData[i].output),
+    apyBaseBorrow: borrowApy(gammaPoolTracers[i].lastDailyData, latestPoolsData[i].output),
     underlyingTokens: latestPoolsData[i].output.tokens,
-    url: `https://app.gammaswap.com/earn/${pool}`
+    url: `https://app.gammaswap.com/earn/${pool}`,
   }));
 }
 
