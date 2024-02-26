@@ -17,8 +17,8 @@ app.use(require('morgan')('dev'));
 app.use(helmet());
 
 async function redisCache (req, res, next) {
-  const lastCacheUpdate = await redis.get("lastUpdate#"+req.url) ?? 0
-  if(Number(lastCacheUpdate) < (Date.now() - 3600e3)){
+  const lastCacheUpdate = await redis.get("lastUpdate#"+req.url)
+  if(lastCacheUpdate !== null && Number(lastCacheUpdate) < (Date.now() - 3600e3)){
     const cacheObject = await redis.get("data#"+req.url)
     res.set(customHeader(24 * 3600))
     .status(200)
