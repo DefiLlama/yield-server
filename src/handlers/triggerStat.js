@@ -1,5 +1,6 @@
 const { welfordUpdate } = require('../utils/welford');
 const { getStat, insertStat } = require('../queries/stat');
+const utils = require('../utils/s3');
 
 module.exports.handler = async (event, context) => {
   await main();
