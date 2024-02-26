@@ -1,6 +1,5 @@
 const ss = require('simple-statistics');
 
-const { getYieldFiltered } = require('../queries/yield');
 const { insertMedian } = require('../queries/median');
 const utils = require('../utils/s3');
 
