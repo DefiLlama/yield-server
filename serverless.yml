@@ -91,7 +91,7 @@ functions:
   triggerStat:
     handler: src/handlers/triggerStat.handler
     description: Lambda which updates the stat table
-    timeout: 300
+    timeout: 600
     events:
       # 30min prior midnight
       - schedule: cron(30 23 * * ? *)
@@ -100,7 +100,7 @@ functions:
   triggerMedian:
     handler: src/handlers/triggerMedian.handler
     description: Lambda which inserts latest value into the median table
-    timeout: 300
+    timeout: 600
     events:
       # 30min prior midnight
       - schedule: cron(30 23 * * ? *)
