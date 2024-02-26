@@ -81,7 +81,7 @@ functions:
   triggerEnrichment:
     handler: src/handlers/triggerEnrichment.handler
     description: Lambda which runs enrichment process
-    timeout: 600
+    timeout: 900
     memorySize: 1024
     events:
       # every hour at 16 past
