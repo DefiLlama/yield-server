@@ -17,22 +17,20 @@ app.use(require('morgan')('dev'));
 app.use(helmet());
 
 async function redisCache (req, res, next) {
-  const cacheObject = await redis.get(req.url)
-  if(cacheObject){
+  const lastCacheUpdate = await redis.hget(req.url, "lastUpdate") ?? 0
+  if(Number(lastCacheUpdate) < (Date.now() - 3600e3)){
+    const cacheObject = await redis.hget(req.url, "data")
     res.set(customHeader(24 * 3600))
     .status(200)
     .send(cacheObject);
   } else {
     res._apicache = {
         url: req.url,
-        write: res.write,
-        writeHead: res.writeHead,
-        end: res.end,
-        cacheable: true,
-        content: undefined,
+        end: res.end
     }
     res.end = function(content, encoding) {
-        redis.set(res._apicache.url, content.toString())
+        redis.hset(res._apicache.url, "data", content.toString())
+        redis.hset(res._apicache.url, "lastUpdate", Date.now())
         return res._apicache.end.apply(this, arguments)
     }
     next()
