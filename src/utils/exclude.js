@@ -79,6 +79,7 @@ const excludeAdaptors = [
   'brinc-finance',
   'nuls-pocm',
   'unipilot',
+  'deri-protocol',
 ];
 
 const excludePools = [
