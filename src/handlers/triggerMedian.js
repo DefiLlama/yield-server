@@ -8,9 +8,9 @@ module.exports.handler = async () => {
 };
 
 const main = async () => {
-  let pools = await utils
-    .readFromS3('llama-apy-prod-data', 'enriched/dataEnriched.json')
-    .map((i) => ({ ...i, timestamp: new Date(i.timestamp) }));
+  let pools = (
+    await utils.readFromS3('llama-apy-prod-data', 'enriched/dataEnriched.json')
+  ).map((i) => ({ ...i, timestamp: new Date(i.timestamp) }));
 
   // include only pools which we have updated on that day,
   // otherwise median calc for that day would include values from yst up to 7days ago

@@ -10,9 +10,9 @@ module.exports.handler = async (event, context) => {
 // so i want to keep things consistent (even though it shouldnt be a big difference, at least
 // for the majority of pools)
 const main = async () => {
-  let data = await utils
-    .readFromS3('llama-apy-prod-data', 'enriched/dataEnriched.json')
-    .map((i) => ({ ...i, configID: i.pool, timestamp: new Date(i.timestamp) }));
+  let data = (
+    await utils.readFromS3('llama-apy-prod-data', 'enriched/dataEnriched.json')
+  ).map((i) => ({ ...i, configID: i.pool, timestamp: new Date(i.timestamp) }));
   const T = 365;
   // transform raw apy to return field (required for geometric mean)
   data = data.map((p) => ({
