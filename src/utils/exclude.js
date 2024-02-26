@@ -78,6 +78,7 @@ const excludeAdaptors = [
   'velodrome-v1',
   'brinc-finance',
   'nuls-pocm',
+  'unipilot',
 ];
 
 const excludePools = [
