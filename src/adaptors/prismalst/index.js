@@ -102,7 +102,7 @@ const apy = async () => {
     return {
       pool: t,
       chain: 'ethereum',
-      project: 'prisma-finance',
+      project: 'prismalst',
       symbol: priceDetails.symbol,
       tvlUsd,
       apy: 0,
