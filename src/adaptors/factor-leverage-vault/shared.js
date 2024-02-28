@@ -1,71 +1,35 @@
-const { request, gql } = require('graphql-request');
+const axios = require('axios');
 
-function getAdapterByMarket(market) {
-    if (market === 'aaveV3') {
-        return require('./aaveV3');
-    } else {
-        return {
-            calculateTVLPerPairinUSD: () => 0,
-        }
-    }
-}
+async function getCoinPriceMap(tokenAddress) {
+    const chain = 'arbitrum';
 
-async function getTvl(poolAddress, assetAddress, debtAddress) {
-    const subgraphUrl =
-        'https://api.thegraph.com/subgraphs/name/dimasriat/factor-leverage-vault';
-
-    const vaultAddressLowercase = poolAddress.toLowerCase();
-    const assetAddressLowercase = assetAddress.toLowerCase();
-    const debtAddressLowercase = debtAddress.toLowerCase();
-
-    const queries = gql`
-        query LeveragePairState(
-            $vaultAddress: ID!
-            $assetAddress: String
-            $debtAddress: String
-        ) {
-            factorLeverageVault(id: $vaultAddress) {
-                id
-                name
-                symbol
-                pairState(
-                    where: {
-                        assetTokenAddress: $assetAddress
-                        debtTokenAddress: $debtAddress
-                    }
-                ) {
-                    assetTokenAddress
-                    debtTokenAddress
-                    assetBalanceRaw
-                    debtBalanceRaw
-                    leverageVault {
-                        id
-                    }
-                }
-            }
-        }
-    `;
-
-    const result = await request(subgraphUrl, queries, {
-        vaultAddress: vaultAddressLowercase,
-        assetAddress: assetAddressLowercase,
-        debtAddress: debtAddressLowercase,
+    const coinParams = tokenAddress.map((address) => {
+        return `${chain}:${address}`;
     });
 
-    const { symbol, pairState } = result.factorLeverageVault;
+    const ids = coinParams.join(',');
+    const response = await axios.get(
+        `https://coins.llama.fi/prices/current/${ids}`
+    );
 
-    const adapter = getAdapterByMarket(symbol);
+    const coinMap = {};
+    for (const id of Object.keys(response.data.coins)) {
+        const coinAddress = id.split(':')[1];
+        coinMap[coinAddress] = response.data.coins[id];
+    }
 
-    const tvlPerPair = await adapter.calculateTVLPerPairinUSD(pairState);
+    Object.keys(coinMap).forEach((key) => {
+        const findIndex = tokenAddress
+            .map((item) => item.toLowerCase())
+            .indexOf(key);
+        if (findIndex != -1) {
+            coinMap[tokenAddress[findIndex]] = coinMap[key];
+        }
+    });
 
-    const pairTvl =
-        tvlPerPair[assetAddressLowercase]?.[debtAddressLowercase] ??
-        0;
-
-    return pairTvl;
+    return coinMap;
 }
 
-
 module.exports = {
-    getTvl,
+    getCoinPriceMap,
 };

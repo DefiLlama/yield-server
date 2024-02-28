@@ -1,37 +1,127 @@
-const { getTvl } = require('./shared');
+const { request, gql } = require('graphql-request');
+const { getCoinPriceMap } = require('./shared');
 const vaults = require('./vaults');
 
+async function getPairTvlMap(vaults) {
+    const leverageSubgraphUrl =
+        'https://api.thegraph.com/subgraphs/name/dimasriat/factor-leverage-vault';
+
+    const leverageSubgraphQuery = gql`
+        {
+            leverageVaultPairStates {
+                id
+                assetBalanceRaw
+                assetTokenAddress
+                debtBalanceRaw
+                debtTokenAddress
+            }
+        }
+    `;
+
+    const { leverageVaultPairStates } = await request(
+        leverageSubgraphUrl,
+        leverageSubgraphQuery
+    );
+
+    const tokenAddresses = new Set(
+        leverageVaultPairStates.flatMap((pair) => [
+            pair.assetTokenAddress.toLowerCase(),
+            pair.debtTokenAddress.toLowerCase(),
+        ])
+    );
+    const coinPriceMap = await getCoinPriceMap([...tokenAddresses]);
+
+    const tvlMap = {};
+
+    leverageVaultPairStates.forEach((pair) => {
+        const assetAddress = pair.assetTokenAddress.toLowerCase();
+        const debtAddress = pair.debtTokenAddress.toLowerCase();
+        const assetAmount = Number(pair.assetBalanceRaw);
+        const debtAmount = Number(pair.debtBalanceRaw);
+
+        const assetAmountFmt = assetAmount / 10 ** 18;
+        const debtAmountFmt = debtAmount / 10 ** 18;
+
+        const assetAmountUsd =
+            assetAmountFmt * coinPriceMap[assetAddress].price;
+        const debtAmountUsd = debtAmountFmt * coinPriceMap[debtAddress].price;
+        const netValueUsd = assetAmountUsd - debtAmountUsd;
+
+        const mapId = `${assetAddress}-${debtAddress}`.toLowerCase();
+        tvlMap[mapId] = netValueUsd;
+    });
+
+    vaults.forEach((vault) => {
+        const mapId = `${vault.assetAddress}-${vault.debtAddress}`.toLowerCase();
+        if (tvlMap[mapId] === undefined) {
+            tvlMap[mapId] = 0;
+        }
+    });
+
+    return tvlMap;
+}
+
+function createPoolData({
+    protocol,
+    market,
+    assetAddress,
+    assetSymbol,
+    debtAddress,
+    debtSymbol,
+    vaultAddress,
+    tvlUsd,
+    apyBase,
+}) {
+    const project = 'factor-leverage-vault';
+    const chain = 'arbitrum';
+    const pool = `${protocol}-${market}-${chain}`.toLowerCase();
+    const url = `https://app.factor.fi/studio/vault-leveraged/${protocol}/${market}/open-pair?asset=${assetAddress}&debt=${debtAddress}&vault=${vaultAddress}`;
+    const symbol = `${protocol} ${assetSymbol}/${debtSymbol}`;
+    const underlyingTokens = [assetAddress, debtAddress];
+    return {
+        pool,
+        chain,
+        project,
+        symbol,
+        tvlUsd,
+        apyBase,
+        underlyingTokens,
+        url,
+    };
+}
+
 async function getLeverageVaultAPY() {
+    const tvlMap = await getPairTvlMap(vaults);
     const poolData = await Promise.all(
         vaults.map(async (vault, index) => {
-            const project = 'factor-leverage-vault';
-            const chain = 'arbitrum';
-            const pool = `${vault.protocol}-${vault.market}-${index}-${chain}`.toLowerCase();
-            const url = `https://app.factor.fi/studio/vault-leveraged/${vault.protocol}/${vault.market}/open-pair?asset=${vault.assetAddress}&debt=${vault.debtAddress}&vault=${vault.pool}`;
-            const symbol = `${vault.protocol} ${vault.assetSymbol}/${vault.debtSymbol}`;
-            const underlyingTokens = [vault.assetAddress, vault.debtAddress];
-
             // const [tvlUsd, apyBase] = await Promise.all([
             //     getTvl(vault.poolAddress, vault.underlyingToken, vault.strategy),
             //     getApr(vault.poolAddress, vault.underlyingToken, vault.strategy),
             // ]);
 
-            // const [tvlUsd, apyBase] = [0, 0];
-            const tvlUsd = await getTvl(vault.pool, vault.assetAddress, vault.debtAddress);
+            // const tvlUsd = await getTvl(
+            //     vault.pool,
+            //     vault.assetAddress,
+            //     vault.debtAddress
+            // );
+
+            const tvlUsd =
+                tvlMap[
+                    `${vault.assetAddress}-${vault.debtAddress}`.toLowerCase()
+                ] ?? 0;
             const apyBase = 0;
 
-            const data = {
-                pool,
-                chain,
-                project,
-                symbol,
+            return createPoolData({
+                protocol: vault.protocol,
+                market: vault.market,
+                assetAddress: vault.assetAddress,
+                assetSymbol: vault.assetSymbol,
+                debtAddress: vault.debtAddress,
+                debtSymbol: vault.debtSymbol,
+                vaultAddress: vault.pool,
                 tvlUsd,
                 apyBase,
-                underlyingTokens,
-                url,
-            };
-
-            return data;
+            });
         })
     );
 
@@ -42,4 +132,3 @@ module.exports = {
     timetravel: false,
     apy: getLeverageVaultAPY,
 };
-
