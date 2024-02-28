@@ -75,9 +75,10 @@ const poolsFunction = async () => {
     } else {
       // calcul for lockers APR
       if (
-        strat?.aprBreakdown[2]?.isBribe ||
-        strat.key === 'apw' ||
-        strat.key === 'bpt'
+        strat?.aprBreakdown?.length === 3 &&
+        (strat?.aprBreakdown[2]?.isBribe ||
+          strat.key === 'apw' ||
+          strat.key === 'bpt')
       ) {
         apyReward =
           strat?.aprBreakdown?.reduce((acc, t) => {
@@ -111,7 +112,7 @@ const poolsFunction = async () => {
       }
     }
 
-    let symbol = strat.name.replace('/', '-').split(' ');
+    let symbol = strat.name?.replace('/', '-').split(' ') ?? ['placeholder'];
     symbol = symbol.length > 2 ? symbol[1] : symbol[0];
     symbol = Object.keys(symbolMapping).includes(symbol)
       ? symbolMapping[symbol]
@@ -148,8 +149,9 @@ const poolsFunction = async () => {
         pool: 'sd-' + strat.key,
         chain: utils.formatChain('ethereum'),
         project: 'stakedao',
-        symbol: utils.formatSymbol(symbol),
-        poolMeta: utils.formatChain(strat.protocol),
+        symbol: symbol ? utils.formatSymbol(symbol) : null,
+        symbol,
+        poolMeta: strat.protocol ? utils.formatChain(strat.protocol) : null,
         tvlUsd: strat.tvlUSD,
         apyReward,
         apyBase,
