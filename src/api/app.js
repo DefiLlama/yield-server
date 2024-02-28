@@ -20,7 +20,7 @@ async function redisCache (req, res, next) {
   const lastCacheUpdate = await redis.get("lastUpdate#"+req.url)
   if(lastCacheUpdate !== null && Number(lastCacheUpdate) > (Date.now() - 3600e3)){
     const cacheObject = await redis.get("data#"+req.url)
-    res.set(customHeader(24 * 3600))
+    res.set(customHeader(1800))
     .status(200)
     .send(cacheObject);
   } else {
