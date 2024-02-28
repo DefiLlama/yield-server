@@ -1,5 +1,22 @@
 const axios = require('axios');
 
+function makeReadable(val, dec = 18) {
+    return parseInt(val) / 10 ** dec;
+}
+
+function getCurrentTimestamp() {
+    const timestamp = Math.floor(Date.now() / 1000);
+    return timestamp;
+}
+
+async function getDefiLLamaPools(poolId) {
+    const response = await axios.get('https://yields.llama.fi/pools');
+    const pools = response.data.data;
+    return pools.find(
+        (pools) => pools.pool.toLowerCase() == poolId.toLowerCase()
+    );
+}
+
 async function getCoinPriceMap(tokenAddress) {
     const chain = 'arbitrum';
 
@@ -32,4 +49,7 @@ async function getCoinPriceMap(tokenAddress) {
 
 module.exports = {
     getCoinPriceMap,
+    makeReadable,
+    getDefiLLamaPools,
+    getCurrentTimestamp,
 };

@@ -94,21 +94,11 @@ async function getLeverageVaultAPY() {
     const tvlMap = await getPairTvlMap(vaults);
     const poolData = await Promise.all(
         vaults.map(async (vault, index) => {
-            // const [tvlUsd, apyBase] = await Promise.all([
-            //     getTvl(vault.poolAddress, vault.underlyingToken, vault.strategy),
-            //     getApr(vault.poolAddress, vault.underlyingToken, vault.strategy),
-            // ]);
-
-            // const tvlUsd = await getTvl(
-            //     vault.pool,
-            //     vault.assetAddress,
-            //     vault.debtAddress
-            // );
-
             const tvlUsd =
                 tvlMap[
                     `${vault.assetAddress}-${vault.debtAddress}`.toLowerCase()
                 ] ?? 0;
+
             const apyBase = 0;
 
             return createPoolData({

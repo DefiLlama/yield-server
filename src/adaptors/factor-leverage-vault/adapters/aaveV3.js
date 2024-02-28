@@ -1,6 +1,5 @@
 const sdk = require('@defillama/sdk3');
-const utils = require('../../utils');
-const { makeReadable, getCoinPriceMap } = require('./utils');
+const { makeReadable, getCoinPriceMap } = require('../utils');
 
 const poolAddress = '0x794a61358d6845594f94dc1db02a252b5b4814ad';
 const poolAbis = [
