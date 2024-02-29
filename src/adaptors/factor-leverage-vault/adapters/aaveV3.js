@@ -22,6 +22,7 @@ class AaveV3LeverageVaultHelper {
         }
         const supplyApy = this._assetRateMap[assetAddress.toLowerCase()];
         const borrowApy = this._debtRateMap[debtAddress.toLowerCase()];
+        const ltv = this._ltvMap[assetAddress.toLowerCase()];
         const apyBase = ltv * supplyApy - borrowApy;
         return apyBase;
     }

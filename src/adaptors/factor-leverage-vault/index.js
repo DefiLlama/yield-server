@@ -1,15 +1,25 @@
 const { request, gql } = require('graphql-request');
 const { getCoinPriceMap } = require('./shared');
 const vaults = require('./vaults');
-const { AaveV3LeverageVaultHelper, DummyLeverageVaultHelper } = require('./adapters');
+const {
+    AaveV3LeverageVaultHelper,
+    DummyLeverageVaultHelper,
+    CompoundV3LeverageVaultHelper,
+} = require('./adapters');
 
 class FactorLeverageVaultHelper {
     constructor(vaults) {
         this._vaults = vaults;
         this._pairTvlMap = undefined;
         this._initialized = false;
-        this._protocolAdapterMap = {
-            aaveV3: new AaveV3LeverageVaultHelper(vaults),
+        this._marketAdapterMap = {
+            facAAVEv3: new AaveV3LeverageVaultHelper(vaults),
+            facCompound: new CompoundV3LeverageVaultHelper(
+                '0xA5EDBDD9646f8dFF606d7448e414884C7d905dCA'
+            ),
+            facCompoundNative: new CompoundV3LeverageVaultHelper(
+                '0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf'
+            ),
             dummy: new DummyLeverageVaultHelper(vaults),
         };
     }
@@ -17,7 +27,7 @@ class FactorLeverageVaultHelper {
     async initialize() {
         await Promise.all([
             this._initializeTvlPairMap(),
-            ...Object.values(this._protocolAdapterMap).map((adapter) =>
+            ...Object.values(this._marketAdapterMap).map((adapter) =>
                 adapter.initialize()
             ),
         ]);
@@ -103,11 +113,11 @@ class FactorLeverageVaultHelper {
         this._pairTvlMap = tvlMap;
     }
 
-    _getAdapterByProtocol(protocol) {
-        const adapter = this._protocolAdapterMap[protocol];
+    _getAdapterByMarket(market) {
+        const adapter = this._marketAdapterMap[market];
         if (!adapter) {
             // throw new Error(`No adapter found for protocol ${protocol}`);
-            return this._protocolAdapterMap['dummy'];
+            return this._marketAdapterMap['dummy'];
         }
         return adapter;
     }
@@ -123,7 +133,7 @@ class FactorLeverageVaultHelper {
     }) {
         const project = 'factor-leverage-vault';
         const chain = 'arbitrum';
-        const pool = `${protocol}-${market}-${chain}`.toLowerCase();
+        const pool = `${market}-${assetAddress}-${debtAddress}-${chain}`.toLowerCase();
         const url = `https://app.factor.fi/studio/vault-leveraged/${protocol}/${market}/open-pair?asset=${assetAddress}&debt=${debtAddress}&vault=${vaultAddress}`;
         const symbol = `${protocol} ${assetSymbol}/${debtSymbol}`;
         const underlyingTokens = [assetAddress, debtAddress];
@@ -131,7 +141,7 @@ class FactorLeverageVaultHelper {
         const tvlUsd = this._getPairTvlUsd(assetAddress, debtAddress);
 
         const apyBase = this._getPairApyBase(
-            protocol,
+            market,
             assetAddress,
             debtAddress
         );
@@ -157,8 +167,8 @@ class FactorLeverageVaultHelper {
         return this._pairTvlMap[mapId] ?? 0;
     }
 
-    _getPairApyBase(protocol, assetAddress, debtAddress) {
-        const adapter = this._getAdapterByProtocol(protocol);
+    _getPairApyBase(market, assetAddress, debtAddress) {
+        const adapter = this._getAdapterByMarket(market);
         if (!adapter) {
             // throw new Error(`No adapter found for protocol ${protocol}`);
             return 0;
