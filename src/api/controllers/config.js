@@ -3,7 +3,6 @@ const minify = require('pg-minify');
 
 const AppError = require('../../utils/appError');
 const { conn } = require('../db');
-const { customHeader } = require('../../utils/headers');
 
 // get pool urls
 const getUrl = async (req, res) => {
@@ -28,7 +27,7 @@ const getUrl = async (req, res) => {
   for (const e of response) {
     out[e.config_id] = e.url;
   }
-  res.set(customHeader(3600)).status(200).json(out);
+  res.status(200).json(out);
 };
 
 // get unique pool values
@@ -52,7 +51,7 @@ const getDistinctID = async (req, res) => {
     return new AppError(`Couldn't get data`, 404);
   }
 
-  res.set(customHeader(3600)).status(200).json(response);
+  res.status(200).json(response);
 };
 
 // get config data of pool
@@ -83,7 +82,6 @@ const getConfigPool = async (req, res) => {
   }
 
   res
-    .set(customHeader(24 * 3600))
     .status(200)
     .json({
       status: 'success',
@@ -113,7 +111,7 @@ const getAllPools = async (req, res) => {
     return new AppError(`Couldn't get data`, 404);
   }
 
-  res.set(customHeader(3600)).status(200).json(response);
+  res.status(200).json(response);
 };
 
 module.exports = {

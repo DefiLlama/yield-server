@@ -6,7 +6,7 @@ const customHeader = (cacheTime) => {
   };
 };
 
-const customHeaderFixedCache = () => {
+const getCacheDates = () => {
   const date = new Date();
   date.setMinutes(22);
   if (date < new Date()) {
@@ -14,13 +14,21 @@ const customHeaderFixedCache = () => {
     date.setHours(date.getHours() + 1);
   }
   return {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    Expires: date.toUTCString(),
+    nextCacheDate: date,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      Expires: date.toUTCString(),
+    }
   };
+};
+
+const customHeaderFixedCache = () => {
+  return getCacheDates().headers
 };
 
 module.exports = {
   customHeader,
   customHeaderFixedCache,
+  getCacheDates
 };
