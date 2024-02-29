@@ -1,116 +1,67 @@
 const sdk = require('@defillama/sdk3');
-const { makeReadable, getCoinPriceMap } = require('../utils');
+const { makeReadable, getCoinPriceMap } = require('../../utils');
+const { request, gql } = require('graphql-request');
 
-const poolAddress = '0x794a61358d6845594f94dc1db02a252b5b4814ad';
-const poolAbis = [
-    'uint256:getReserveNormalizedIncome',
-    'uint256:getReserveNormalizedIncome',
-];
-
-async function getAssetRatesMap(addresses) {
-    const ratePromises = addresses.map(async (address) => {
-        const { output } = await sdk.api.abi.call({
-            target: poolAddress,
-            abi: poolAbis[0],
-            params: [address],
-            chain: 'arbitrum',
-        });
-        return output;
-    });
-    const ratesMap = rates.reduce((acc, rate, index) => {
-        acc[addresses[index]] = makeReadable(rate, 27);
-        return acc;
-    }, {});
-
-    return ratesMap;
-}
-
-async function getDebtRatesMap(addresses) {
-    const ratePromises = addresses.map(async (address) => {
-        const { output } = await sdk.api.abi.call({
-            target: poolAddress,
-            abi: poolAbis[1],
-            params: [address],
-            chain: 'arbitrum',
-        });
-        return output;
-    });
-    const ratesMap = rates.reduce((acc, rate, index) => {
-        acc[addresses[index]] = makeReadable(rate, 27);
-        return acc;
-    }, {});
-
-    return ratesMap;
-}
-
-function setPairTvl(pairTvl, assetTokenAddress, debtTokenAddress, balance) {
-    pairTvl = {
-        ...pairTvl,
-        [assetTokenAddress]: {
-            ...pairTvl[assetTokenAddress],
-            [debtTokenAddress]: balance,
-        },
-    };
-    return pairTvl;
-}
-
-async function calculatePairTvlUsd(pairStates) {
-    const assetAddresses = [];
-    const debtAddresses = [];
-
-    for (let i = 0; i < pairStates.length; i++) {
-        const { assetTokenAddress, debtTokenAddress } = pairStates[i];
-        assetAddresses.push(assetTokenAddress);
-        debtAddresses.push(debtTokenAddress);
-    }
-    const underlyingAssetAddresses = [
-        ...new Set([...assetAddresses, ...debtAddresses]),
-    ];
-
-    const [assetRateMap, debtRateMap, priceMap] = await Promise.all([
-        getAssetRatesMap(assetAddresses),
-        getDebtRatesMap(debtAddresses),
-        getCoinPriceMap(underlyingAssetAddresses, this.chainId),
-    ]);
-
-    let pairTvl = {};
-
-    for (let i = 0; i < pairStates.length; i++) {
-        const {
-            assetTokenAddress,
-            debtTokenAddress,
-            assetBalanceRaw,
-            debtBalanceRaw,
-        } = pairStates[i];
-
-        const assetRate = assetRateMap[assetTokenAddress];
-        const debtRate = debtRateMap[debtTokenAddress];
-
-        const assetBalance =
-            makeReadable(parseInt(assetBalanceRaw) * parseInt(assetRate), 27) /
-            10 ** priceMap[assetTokenAddress].decimals;
-        const debtBalance =
-            makeReadable(parseInt(debtBalanceRaw) * parseInt(debtRate), 27) /
-            10 ** priceMap[debtTokenAddress].decimals;
-
-        const assetBalanceInUsd =
-            assetBalance * priceMap[assetTokenAddress].price;
-
-        const debtBalanceInUsd = debtBalance * priceMap[debtTokenAddress].price;
-
-        const netBalanceInUsd = assetBalanceInUsd + debtBalanceInUsd;
-
-        pairTvl = setPairTvl(
-            pairTvl,
-            assetTokenAddress,
-            debtTokenAddress,
-            netBalanceInUsd.toFixed(2)
-        );
+class AaveV3LeverageVaultHelper {
+    constructor(vaults) {
+        this._vaults = vaults;
+        this._initialized = false;
+        this._assetRateMap = {};
+        this._debtRateMap = {};
+        this._ltvMap = {};
     }
 
-    return pairTvl;
+    async initialize() {
+        await Promise.all([this._initializeRates()]);
+        this._initialized = true;
+    }
+
+    getApyBase(assetAddress, debtAddress) {
+        if (!this._initialized) {
+            throw new Error('Rates not initialized');
+        }
+        const supplyApy = this._assetRateMap[assetAddress.toLowerCase()];
+        const borrowApy = this._debtRateMap[debtAddress.toLowerCase()];
+        const apyBase = ltv * supplyApy - borrowApy;
+        return apyBase;
+    }
+
+    // ================== Private Methods ================== //
+
+    async _initializeRates() {
+        const url =
+            'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-arbitrum';
+        const query = gql`
+            query ReservesQuery {
+                reserves {
+                    borrowingEnabled
+                    name
+                    symbol
+                    aToken {
+                        id
+                        underlyingAssetAddress
+                    }
+                    liquidityRate
+                    variableBorrowRate
+                    baseLTVasCollateral
+                }
+            }
+        `;
+        const { reserves } = await request(url, query);
+
+        reserves.forEach((reserve) => {
+            const tokenAddress =
+                reserve.aToken.underlyingAssetAddress.toLowerCase();
+            const assetRate = Number(reserve.liquidityRate) / 10 ** 27;
+            const debtRate = Number(reserve.variableBorrowRate) / 10 ** 27;
+
+            this._assetRateMap[tokenAddress] = assetRate;
+            this._debtRateMap[tokenAddress] = debtRate;
+            this._ltvMap[tokenAddress] = reserve.baseLTVasCollateral / 10 ** 2;
+        });
+    }
 }
 
 module.exports = {
-    calculatePairTvlUsd,
+    AaveV3LeverageVaultHelper,
 };
