@@ -27,20 +27,13 @@ async function redisCache (req, res, next) {
   } else {
     res._apicache = {
         url: req.url,
-        end: res.end,
-        status: res.status,
-        set: res.set,
-        storedStatus
-    }
-    res.status = (status) => {
-      res._apicache.storedStatus = status
-      res._apicache.status(status)
+        end: res.end
     }
     res.end = function(content, encoding) {
-      if(res._apicache.storedStatus === 200){
+      if(res.statusCode === 200){
         redis.set("data#" + res._apicache.url, content.toString())
         redis.set("lastUpdate#" + res._apicache.url, Date.now())
-        res._apicache.set(headers)
+        res.set(headers)
       }
       return res._apicache.end.apply(this, arguments)
     }
