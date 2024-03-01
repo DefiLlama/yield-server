@@ -107,6 +107,10 @@ class FactorLeverageVaultHelper {
             {
                 leverageVaultPairStates {
                     id
+
+                    leverageVault {
+                        id
+                    }
                     assetBalanceRaw
                     assetTokenAddress
                     debtBalanceRaw
@@ -131,6 +135,7 @@ class FactorLeverageVaultHelper {
         const tvlMap = {};
 
         leverageVaultPairStates.forEach((pair) => {
+            const vaultAddress = pair.leverageVault.id.toLowerCase();
             const assetAddress = pair.assetTokenAddress.toLowerCase();
             const debtAddress = pair.debtTokenAddress.toLowerCase();
             const assetAmount = Number(pair.assetBalanceRaw);
@@ -145,13 +150,14 @@ class FactorLeverageVaultHelper {
                 debtAmountFmt * coinPriceMap[debtAddress].price;
             const netValueUsd = assetAmountUsd - debtAmountUsd;
 
-            const mapId = `${assetAddress}-${debtAddress}`.toLowerCase();
+            const mapId =
+                `${vaultAddress}-${assetAddress}-${debtAddress}`.toLowerCase();
             tvlMap[mapId] = netValueUsd;
         });
 
         vaults.forEach((vault) => {
             const mapId =
-                `${vault.assetAddress}-${vault.debtAddress}`.toLowerCase();
+                `${vault.pool}-${vault.assetAddress}-${vault.debtAddress}`.toLowerCase();
             if (tvlMap[mapId] === undefined) {
                 tvlMap[mapId] = 0;
             }
@@ -185,7 +191,11 @@ class FactorLeverageVaultHelper {
         const symbol = `${protocol} ${assetSymbol}/${debtSymbol}`;
         const underlyingTokens = [assetAddress, debtAddress];
 
-        const tvlUsd = this._getPairTvlUsd(assetAddress, debtAddress);
+        const tvlUsd = this._getPairTvlUsd(
+            vaultAddress,
+            assetAddress,
+            debtAddress
+        );
 
         const apyBase = this._getPairApyBase(market, assetAddress, debtAddress);
 
@@ -201,12 +211,13 @@ class FactorLeverageVaultHelper {
         };
     }
 
-    _getPairTvlUsd(assetAddress, debtAddress) {
+    _getPairTvlUsd(vaultAddress, assetAddress, debtAddress) {
         if (!this._initialized) {
             throw new Error('Tvl pair map not initialized');
         }
 
-        const mapId = `${assetAddress}-${debtAddress}`.toLowerCase();
+        const mapId =
+            `${vaultAddress}-${assetAddress}-${debtAddress}`.toLowerCase();
         return this._pairTvlMap[mapId] ?? 0;
     }
 
