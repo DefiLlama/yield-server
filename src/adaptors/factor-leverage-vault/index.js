@@ -6,6 +6,7 @@ const {
     DummyLeverageVaultHelper,
     CompoundV3LeverageVaultHelper,
     LodestarLeverageVaultHelper,
+    SiloLeverageVaultHelper,
 } = require('./adapters');
 
 class FactorLeverageVaultHelper {
@@ -47,6 +48,26 @@ class FactorLeverageVaultHelper {
                     // lgmx
                     '0x79B6c5e1A7C0aD507E1dB81eC7cF269062BAb4Eb',
                 ]
+            ),
+            facSiloWSTETH: new SiloLeverageVaultHelper(
+                '0xA8897b4552c075e884BDB8e7b704eB10DB29BF0D',
+                '0x8658047e48CC09161f4152c79155Dac1d710Ff0a',
+                '0x07b94eb6aad663c4eaf083fbb52928ff9a15be47'
+            ),
+            facSiloARB: new SiloLeverageVaultHelper(
+                '0x0696E6808EE11a5750733a3d821F9bB847E584FB',
+                '0x8658047e48CC09161f4152c79155Dac1d710Ff0a',
+                '0x07b94eb6aad663c4eaf083fbb52928ff9a15be47'
+            ),
+            facSiloRETH: new SiloLeverageVaultHelper(
+                '0x170A90981843461295a6CE0e0a631eE440222E29',
+                '0x8658047e48CC09161f4152c79155Dac1d710Ff0a',
+                '0x07b94eb6aad663c4eaf083fbb52928ff9a15be47'
+            ),
+            facSiloGMX: new SiloLeverageVaultHelper(
+                '0xDe998E5EeF06dD09fF467086610B175F179A66A0',
+                '0x8658047e48CC09161f4152c79155Dac1d710Ff0a',
+                '0x07b94eb6aad663c4eaf083fbb52928ff9a15be47'
             ),
             dummy: new DummyLeverageVaultHelper(vaults),
         };
