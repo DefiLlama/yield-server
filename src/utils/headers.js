@@ -13,7 +13,6 @@ const getCacheDates = () => {
     // we are past the :22 mark, roll over to next hour
     date.setHours(date.getHours() + 1);
   }
-  date.setHours(date.getHours() + 2);
   return {
     nextCacheDate: date,
     headers: {
