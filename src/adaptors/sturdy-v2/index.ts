@@ -11,6 +11,7 @@ const query = gql`
   query SturdyV2Aggregators {
     aggregators(first: 1000) {
       address
+      name
       totalAssets
       asset {
         id
@@ -23,6 +24,7 @@ const query = gql`
 
 type V2AggregatorSubgraphData = {
   address: `0x${string}`;
+  name: string;
   totalAssets: string;
   asset: {
     id: `0x${string}`;
@@ -52,7 +54,7 @@ const aggregators = async () => {
   const prices = (await utils.getPrices(coins)).pricesByAddress;
 
   return aggregators.map((a, index) => {
-    const { address, totalAssets, asset } = a;
+    const { address, name, totalAssets, asset } = a;
 
     const tvl = new BigNumber(totalAssets)
       .dividedBy(BIG_10.pow(asset.decimals))
@@ -76,6 +78,7 @@ const aggregators = async () => {
       rewardTokens,
       url: `https://v2.sturdy.finance/aggregators/ethereum/${address}`,
       underlyingTokens: [a.asset.id],
+      poolMeta: name, // aggregator name
     };
   });
 };
