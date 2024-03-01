@@ -29,28 +29,20 @@ async function getLPStakingInfo() {
     .getPoolInfo(LP_REWARD_ADDRESS, DEPLOYER_ADDRESS)
     .call();
 
-  console.log(poolInfo);
-
   var lpPrice = await helper.methods.getBlnyanLpPrice().call();
 
   var tokenValue =
     (Number(lpPrice.wethBalance) * Number(lpPrice.wethValue) +
       Number(lpPrice.blnyanBalance) * Number(lpPrice.blnyanValue)) /
     Number(lpPrice.supply);
-  console.log('tokenValue', tokenValue);
 
   poolValueEth =
     Number(web3.utils.fromWei(poolInfo._staked)) * Number(tokenValue);
   ethYearly = YEAR * Number(poolInfo._rewardRate);
-  console.log(poolInfo._rewardRate);
-  console.log(ethYearly);
-  console.log(poolValueEth);
 
   apr = ethYearly / poolValueEth;
 
   poolValueEth = Math.floor(poolValueEth).toString();
-  console.log(poolValueEth);
-
   usd = await helper.methods.getTokenPriceUSDC(poolValueEth).call();
 
   usd = Number(usd) / 1e18;
@@ -84,8 +76,6 @@ const getblNyanStakingInfo = async () => {
 
   asEth = (Number(poolValue) * Number(blNYANPrice)) / 1e18;
   asEth = Math.floor(asEth).toString();
-
-  console.log(asEth);
 
   usd = await helper.methods.getTokenPriceUSDC(asEth.toString()).call();
 
