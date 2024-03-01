@@ -3,8 +3,7 @@ const { makeReadable, getCoinPriceMap } = require('../../utils');
 const { request, gql } = require('graphql-request');
 
 class AaveV3LeverageVaultHelper {
-    constructor(vaults) {
-        this._vaults = vaults;
+    constructor() {
         this._initialized = false;
         this._assetRateMap = {};
         this._debtRateMap = {};

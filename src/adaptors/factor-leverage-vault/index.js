@@ -3,7 +3,6 @@ const { getCoinPriceMap } = require('./shared');
 const vaults = require('./vaults');
 const {
     AaveV3LeverageVaultHelper,
-    DummyLeverageVaultHelper,
     CompoundV3LeverageVaultHelper,
     LodestarLeverageVaultHelper,
     SiloLeverageVaultHelper,
@@ -69,7 +68,6 @@ class FactorLeverageVaultHelper {
                 '0x8658047e48CC09161f4152c79155Dac1d710Ff0a',
                 '0x07b94eb6aad663c4eaf083fbb52928ff9a15be47'
             ),
-            dummy: new DummyLeverageVaultHelper(vaults),
         };
     }
 
@@ -165,8 +163,7 @@ class FactorLeverageVaultHelper {
     _getAdapterByMarket(market) {
         const adapter = this._marketAdapterMap[market];
         if (!adapter) {
-            // throw new Error(`No adapter found for protocol ${protocol}`);
-            return this._marketAdapterMap['dummy'];
+            throw new Error(`No adapter found for protocol ${protocol}`);
         }
         return adapter;
     }
