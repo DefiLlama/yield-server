@@ -7,12 +7,18 @@ const {
     LodestarLeverageVaultHelper,
     SiloLeverageVaultHelper,
 } = require('./adapters');
+const { ScaleRewardVaultHelper } = require('./rewards/scale');
 
 class FactorLeverageVaultHelper {
     constructor(vaults) {
         this._vaults = vaults;
         this._pairTvlMap = undefined;
         this._initialized = false;
+        this._scaleRewardVaultHelper = new ScaleRewardVaultHelper(
+            "0xAC0f45D2305a165ced8E73e4eE4542A108d43e54",
+            "0x6dd963c510c2d2f09d5eddb48ede45fed063eb36",
+            vaults.map((vault) => vault.stakedPool).filter((pool) => pool),
+        );
         this._marketAdapterMap = {
             facAAVEv3: new AaveV3LeverageVaultHelper(),
             facCompound: new CompoundV3LeverageVaultHelper(
@@ -77,6 +83,7 @@ class FactorLeverageVaultHelper {
             ...Object.values(this._marketAdapterMap).map((adapter) =>
                 adapter.initialize()
             ),
+            this._scaleRewardVaultHelper.initialize(),
         ]);
         this._initialized = true;
     }
@@ -91,6 +98,7 @@ class FactorLeverageVaultHelper {
                 debtAddress: vault.debtAddress,
                 debtSymbol: vault.debtSymbol,
                 vaultAddress: vault.pool,
+                stakedVaultAddress: vault.stakedVaultAddress,
             });
         });
 
@@ -107,7 +115,6 @@ class FactorLeverageVaultHelper {
             {
                 leverageVaultPairStates {
                     id
-
                     leverageVault {
                         id
                     }
@@ -179,6 +186,7 @@ class FactorLeverageVaultHelper {
         debtAddress,
         debtSymbol,
         vaultAddress,
+        stakedVaultAddress,
     }) {
         const project = 'factor-leverage-vault';
         const chain = 'arbitrum';
@@ -195,6 +203,7 @@ class FactorLeverageVaultHelper {
         );
 
         const apyBase = this._getPairApyBase(market, assetAddress, debtAddress);
+        const apyReward = stakedVaultAddress ? this._getPairApyReward(stakedVaultAddress, tvlUsd) : 0;
 
         return {
             pool,
@@ -203,6 +212,7 @@ class FactorLeverageVaultHelper {
             symbol,
             tvlUsd,
             apyBase,
+            apyReward,
             underlyingTokens,
             url,
         };
@@ -225,6 +235,18 @@ class FactorLeverageVaultHelper {
             return 0;
         }
         return adapter.getApyBase(assetAddress, debtAddress);
+    }
+
+    _getPairApyReward(vaultAddress, tvlUsd) {
+        if (!this._initialized) {
+            throw new Error('Tvl pair map not initialized');
+        }
+
+        const apyReward = this._scaleRewardVaultHelper.getApyReward(
+            vaultAddress,
+            tvlUsd
+        );
+
     }
 }
 
