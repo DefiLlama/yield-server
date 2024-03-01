@@ -1,6 +1,6 @@
 const { request, gql } = require('graphql-request');
 const { getCoinPriceMap } = require('./shared');
-const vaults = require('./vaults');
+const vaults = require('./pairs');
 const {
     AaveV3LeverageVaultHelper,
     CompoundV3LeverageVaultHelper,
@@ -14,7 +14,7 @@ class FactorLeverageVaultHelper {
         this._pairTvlMap = undefined;
         this._initialized = false;
         this._marketAdapterMap = {
-            facAAVEv3: new AaveV3LeverageVaultHelper(vaults),
+            facAAVEv3: new AaveV3LeverageVaultHelper(),
             facCompound: new CompoundV3LeverageVaultHelper(
                 '0xA5EDBDD9646f8dFF606d7448e414884C7d905dCA'
             ),
@@ -168,9 +168,6 @@ class FactorLeverageVaultHelper {
 
     _getAdapterByMarket(market) {
         const adapter = this._marketAdapterMap[market];
-        if (!adapter) {
-            throw new Error(`No adapter found for protocol ${protocol}`);
-        }
         return adapter;
     }
 
