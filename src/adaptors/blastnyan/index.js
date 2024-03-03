@@ -55,7 +55,7 @@ async function getLPStakingInfo() {
     symbol: "blNYAN-WETH",
     tvlUsd: Number(usd),
     apyBase: Number(0),
-    apyReward: Number(apr),
+    apyReward: Number(apr) * 100,
     underlyingTokens: [TOKEN_ADDRESS, WETH_ADDRESS],
     rewardTokens: [WETH_ADDRESS],
     poolMeta: "BlastNYAN Earning Pool: Stake LP to EARN TAXED WETH"
@@ -91,7 +91,7 @@ const getblNyanStakingInfo = async () => {
     symbol: "blNYAN",
     tvlUsd: Number(usd),
     apyBase: Number(0),
-    apyReward: Number(apr),
+    apyReward: Number(apr) * 100,
     underlyingTokens: [TOKEN_ADDRESS],
     rewardTokens: [TOKEN_ADDRESS],
     poolMeta: "BlastNYAN Single Asset Staking Farm"
