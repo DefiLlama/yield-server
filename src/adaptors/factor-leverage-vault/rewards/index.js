@@ -1,3 +1,4 @@
-import { ScaleRewardVaultHelper } from "./scale";
+const { ScaleRewardVaultHelper } = require('./scale');
+const { BoostRewardVaultHelper } = require('./boost');
 
-module.exports = { ScaleRewardVaultHelper }
+module.exports = { ScaleRewardVaultHelper, BoostRewardVaultHelper }

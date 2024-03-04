@@ -42,6 +42,7 @@ class ScaleRewardVaultHelper {
             await sdk.api.abi.call({
                 target: this._scaleAddress,
                 abi: 'function fctrPerSec() public view returns (uint128)',
+                chain: 'arbitrum',
             })
         ).output;
         // this._toatlFctrPerSec = 100;
@@ -60,9 +61,6 @@ class ScaleRewardVaultHelper {
             acc[stakedVaultAddress.toLowerCase()] = call.output;
             return acc;
         }, {});
-
-        console.log(this._vaultWeightsMap);
-        console.log({currentWTime});
     }
 
     async _initializeRewardTokenPriceUsd() {

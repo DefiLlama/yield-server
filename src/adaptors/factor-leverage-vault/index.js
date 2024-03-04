@@ -7,7 +7,7 @@ const {
     LodestarLeverageVaultHelper,
     SiloLeverageVaultHelper,
 } = require('./adapters');
-const { ScaleRewardVaultHelper } = require('./rewards/scale');
+const { ScaleRewardVaultHelper, BoostRewardVaultHelper } = require('./rewards');
 
 class FactorLeverageVaultHelper {
     constructor(vaults) {
@@ -15,9 +15,13 @@ class FactorLeverageVaultHelper {
         this._pairTvlMap = undefined;
         this._initialized = false;
         this._scaleRewardVaultHelper = new ScaleRewardVaultHelper(
-            "0xAC0f45D2305a165ced8E73e4eE4542A108d43e54",
-            "0x6dd963c510c2d2f09d5eddb48ede45fed063eb36",
-            vaults.map((vault) => vault.stakedPool).filter((pool) => pool),
+            '0xAC0f45D2305a165ced8E73e4eE4542A108d43e54',
+            '0x6dd963c510c2d2f09d5eddb48ede45fed063eb36',
+            vaults.map((vault) => vault.stakedPool).filter((pool) => pool)
+        );
+        this._boostRewardVaultHelper = new BoostRewardVaultHelper(
+            '0x5E9a35b1AC21B314149E44f3959F3B6fB3db5924',
+            vaults.map((vault) => vault.stakedPool).filter((pool) => pool)
         );
         this._marketAdapterMap = {
             facAAVEv3: new AaveV3LeverageVaultHelper(),
@@ -84,6 +88,7 @@ class FactorLeverageVaultHelper {
                 adapter.initialize()
             ),
             this._scaleRewardVaultHelper.initialize(),
+            this._boostRewardVaultHelper.initialize(),
         ]);
         this._initialized = true;
     }
@@ -98,7 +103,7 @@ class FactorLeverageVaultHelper {
                 debtAddress: vault.debtAddress,
                 debtSymbol: vault.debtSymbol,
                 vaultAddress: vault.pool,
-                stakedVaultAddress: vault.stakedVaultAddress,
+                stakedVaultAddress: vault.stakedPool,
             });
         });
 
@@ -203,7 +208,9 @@ class FactorLeverageVaultHelper {
         );
 
         const apyBase = this._getPairApyBase(market, assetAddress, debtAddress);
-        const apyReward = stakedVaultAddress ? this._getPairApyReward(stakedVaultAddress, tvlUsd) : 0;
+        const apyReward = stakedVaultAddress
+            ? this._getPairApyReward(stakedVaultAddress, tvlUsd)
+            : 0;
 
         return {
             pool,
@@ -242,11 +249,19 @@ class FactorLeverageVaultHelper {
             throw new Error('Tvl pair map not initialized');
         }
 
-        const apyReward = this._scaleRewardVaultHelper.getApyReward(
+        // const apyVote = this._scaleRewardVaultHelper.getApyReward(
+        //     vaultAddress,
+        //     tvlUsd
+        // );
+
+        const apyBoost = this._boostRewardVaultHelper.getApyReward(
             vaultAddress,
             tvlUsd
         );
 
+        const apyReward = apyBoost;
+
+        return apyReward;
     }
 }
 
