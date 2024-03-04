@@ -44,4 +44,12 @@ app.use(redisCache)
 
 app.use('/', [yieldRoutes, config, median, perp, enriched, lsd]);
 
+function errorHandler (err, req, res, next) {
+  console.log(err)
+  res.status(500)
+  res.render('error', { error: err })
+}
+
+app.use(errorHandler)
+
 module.exports = app;
