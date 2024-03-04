@@ -151,6 +151,7 @@ const apy = async () => {
         365 *
         prices[`${chain}:${SEAM}`].price;
 
+      // escrowed seam with linear unlock (removing these!)
       const apyReward = (rewardsPerYearUsdSupply / totalSupplyUsd) * 100;
       const apyRewardBorrow = (rewardsPerYearUsdBorrow / totalBorrowUsd) * 100;
 
@@ -161,13 +162,13 @@ const apy = async () => {
         symbol: pool.symbol,
         tvlUsd,
         apyBase: (p.liquidityRate / 10 ** 27) * 100,
-        apyReward,
+        // apyReward,
         underlyingTokens: [pool.tokenAddress],
         totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
-        apyRewardBorrow,
-        rewardTokens: [SEAM],
+        // apyRewardBorrow,
+        // rewardTokens: [SEAM],
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
         url: `https://app.seamlessprotocol.com/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=proto_base_v3`,
