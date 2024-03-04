@@ -182,7 +182,7 @@ async function calculateRewardApy(poolAddress, aptPrice, cellPrice) {
     const reserve0Value = (new BigNumber(reserve0)).div((new BigNumber(10)).pow(decimals0)).toNumber() * price0
     const reserve1Value = (new BigNumber(reserve1)).div((new BigNumber(10)).pow(decimals1)).toNumber() * price1
     const total = reserve0Value + reserve1Value;
-    let apyBase = calcAptRewardApy(rewardPerDay,cellPrice,total,)
+    let apyReward = calcAptRewardApy(rewardPerDay,cellPrice,total,)
 
 
     const res = {
@@ -191,8 +191,8 @@ async function calculateRewardApy(poolAddress, aptPrice, cellPrice) {
         project: 'cellana-finance',
         symbol: utils.formatSymbol(coinSymbol),
         tvlUsd: total,
-        apyBase: apyBase,
-        apyReward: apyBase,
+        apyBase: 0,
+        apyReward: apyReward,
         rewardTokens : [CELL_fungible_asset_address]
     }
     return res;
