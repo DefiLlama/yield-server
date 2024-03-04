@@ -4,7 +4,6 @@ const BigNumber = require("bignumber.js");
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';
 const COINS_LLAMA_PRICE_URL = 'https://coins.llama.fi/prices/current/';
 
-const FARMING_TYPE = "0x9770fa9c725cbd97eb50b2be5f7416efdfd1f1554beb0750d4dae4c64e860da3::reserve_config::DepositFarming";
 const APT_ADDR = "0x1::aptos_coin::AptosCoin";
 const APT_PRICE_ID = 'coingecko:aptos';
 const CELL_fungible_asset_address = '0x2ebb2ccac5e027a87fa0e2e5f656a3a4238d6a48d93ec9b610d570fc0aa0df12'
