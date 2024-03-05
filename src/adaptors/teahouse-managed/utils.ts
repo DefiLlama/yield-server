@@ -81,6 +81,7 @@ async function addTvlData(chain:string,vaults:Vault[]): Promise<Vault[]> {
         const newVault= vaults[j]
         const tvl=tvls[j]
         const assetPrice=prices[assetAddr[j].toLowerCase()]
+        if (!assetPrice) throw new Error(`Can't find price for ${newVault.asset0.symbol}`)
         const tvlUsd= tvl
             .multipliedBy(assetPrice)
             .dividedBy(new bn(10).pow(newVault.asset0.decimals)).toNumber()

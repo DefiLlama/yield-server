@@ -188,6 +188,7 @@ async function addLiquidityData(vault: Vault, interval: number): Promise<Vault> 
     const prices = (await utils.getPrices([token.address], chain)).pricesByAddress
     const tokenKey = token.address.toLowerCase()
     const tokenDecimals = new bn(10).pow(token.decimals)
+    if (prices[tokenKey] === undefined || prices[tokenKey]=== 0) throw new Error(`Can't find price for ${token.symbol}`)
     const tvlUsd = new bn(tvl || 0).multipliedBy(prices[tokenKey]).div(tokenDecimals)
     const rewardApy = await getRewardTokenApy(chain,rewardTokens,tvlUsd)
     vault.tvlUsd = tvlUsd
