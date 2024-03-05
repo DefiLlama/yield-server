@@ -1,13 +1,11 @@
 const validator = require('validator');
-const minify = require('pg-minify');
 
 const AppError = require('../../utils/appError');
 const { conn } = require('../db');
 
 // get latest data for each unique perp
 const getPerp = async (req, res) => {
-  const query = minify(
-    `
+  const query = `
     SELECT
         perp_id,
         "timestamp",
@@ -96,9 +94,7 @@ const getPerp = async (req, res) => {
                 AND weeklyStats.market = monthlyStats.market
         ) AS stats ON stats.marketplace = main.marketplace
         AND stats.market = main.market
-    `,
-    { compress: true }
-  );
+    `;
 
   const response = await conn.query(query, {
     age: 3, // last 3 hours

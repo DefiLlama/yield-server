@@ -1,5 +1,4 @@
 const validator = require('validator');
-const minify = require('pg-minify');
 
 const AppError = require('../../utils/appError');
 const { conn } = require('../db');
@@ -9,9 +8,7 @@ const getYieldHistory = async (req, res) => {
   if (!validator.isUUID(configID))
     return res.status(400).json('invalid configID!');
 
-  
-    const query = minify(
-      `
+  const query = `
           SELECT
               timestamp,
               "tvlUsd",
@@ -36,9 +33,7 @@ const getYieldHistory = async (req, res) => {
               AND "configID" = $<configIDValue>
           ORDER BY
               timestamp ASC
-        `,
-      { compress: true }
-    );
+        `;
 
   const response = await conn.query(query, { configIDValue: configID });
 
@@ -46,12 +41,10 @@ const getYieldHistory = async (req, res) => {
     return new AppError(`Couldn't get data`, 404);
   }
 
-  res
-    .status(200)
-    .json({
-      status: 'success',
-      data: response,
-    });
+  res.status(200).json({
+    status: 'success',
+    data: response,
+  });
 };
 
 const getYieldHistoryHourly = async (req, res) => {
@@ -59,8 +52,7 @@ const getYieldHistoryHourly = async (req, res) => {
   if (!validator.isUUID(configID))
     return res.status(400).json('invalid configID!');
 
-    const query = minify(
-      `
+  const query = `
           SELECT
               timestamp,
               "tvlUsd",
@@ -75,11 +67,8 @@ const getYieldHistoryHourly = async (req, res) => {
               "configID" = $<configIDValue>
           ORDER BY
               timestamp ASC
-        `,
-      { compress: true }
-    );
-
-    const response =  await conn.query(query, { configIDValue: configID });
+        `;
+  const response = await conn.query(query, { configIDValue: configID });
 
   if (!response) {
     return new AppError(`Couldn't get data`, 404);
@@ -96,8 +85,7 @@ const getYieldLendBorrowHistory = async (req, res) => {
   if (!validator.isUUID(configID))
     return res.status(400).json('invalid configID!');
 
-    const query = minify(
-      `
+  const query = `
       SELECT
           timestamp,
           "totalSupplyUsd",
@@ -123,22 +111,17 @@ const getYieldLendBorrowHistory = async (req, res) => {
           AND "configID" = $<configIDValue>
       ORDER BY
           timestamp ASC
-    `,
-      { compress: true }
-    );
-
-    const response =  await conn.query(query, { configIDValue: configID });
+    `;
+  const response = await conn.query(query, { configIDValue: configID });
 
   if (!response) {
     return new AppError(`Couldn't get data`, 404);
   }
 
-  res
-    .status(200)
-    .json({
-      status: 'success',
-      data: response,
-    });
+  res.status(200).json({
+    status: 'success',
+    data: response,
+  });
 };
 
 module.exports = {

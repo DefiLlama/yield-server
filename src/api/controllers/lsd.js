@@ -5,8 +5,7 @@ const AppError = require('../../utils/appError');
 const { conn } = require('../db');
 
 const getLsd = async (req, res) => {
-  const query = minify(
-    `
+  const query = `
   SELECT
     DISTINCT ON (address)
     name,
@@ -22,10 +21,7 @@ const getLsd = async (req, res) => {
   ORDER BY
     address,
     timestamp DESC
-      `,
-    { compress: true }
-  );
-
+      `;
   const response = await conn.query(query);
 
   if (!response) {
