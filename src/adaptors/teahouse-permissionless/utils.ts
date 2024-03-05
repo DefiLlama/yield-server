@@ -117,6 +117,7 @@ async function makeCall(abi: any, address: string, chain: string, params = null,
         // })),
         chain, block
     });
+
     // let outputByArray = []
     // let outputByAddress = {}
     // for (let i = 0; i < data.output.length; i++) {
