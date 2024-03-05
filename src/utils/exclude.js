@@ -81,6 +81,7 @@ const excludeAdaptors = [
   'unipilot',
   'deri-protocol',
   'frakt',
+  'goledo',
 ];
 
 const excludePools = [
