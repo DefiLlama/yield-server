@@ -83,8 +83,33 @@ const getYieldProject = async (project) => {
   // -- exclude if tvlUsd is < LB
   // -- exclude if pool age > 7days
   // -- join config data
-  const query = minify(
-    `
+  // const query = minify(
+  //   `
+  //   SELECT
+  //       DISTINCT ON ("configID") "configID",
+  //       "tvlUsd",
+  //       apy,
+  //       timestamp
+  //   FROM
+  //       $<yieldTable:name>
+  //   WHERE
+  //       "configID" IN (
+  //           SELECT
+  //               DISTINCT (config_id)
+  //           FROM
+  //               $<configTable:name>
+  //           WHERE
+  //               "project" = $<project>
+  //       )
+  //       AND "tvlUsd" >= $<tvlLB>
+  //       AND timestamp >= NOW() - INTERVAL '$<age> DAY'
+  //   ORDER BY
+  //       "configID",
+  //       timestamp DESC
+  //   `,
+  //   { compress: true }
+  // );
+  const query = `
     SELECT
         DISTINCT ON ("configID") "configID",
         "tvlUsd",
@@ -106,9 +131,7 @@ const getYieldProject = async (project) => {
     ORDER BY
         "configID",
         timestamp DESC
-    `,
-    { compress: true }
-  );
+    `;
 
   const response = await conn.query(query, {
     tvlLB: exclude.boundaries.tvlUsdUI.lb,
