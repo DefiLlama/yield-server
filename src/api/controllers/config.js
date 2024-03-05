@@ -1,21 +1,17 @@
 const validator = require('validator');
-const minify = require('pg-minify');
 
 const AppError = require('../../utils/appError');
 const { conn } = require('../db');
 
 // get pool urls
 const getUrl = async (req, res) => {
-  const query = minify(
-    `
+  const query = `
     SELECT
         config_id,
         url
     FROM
         config
-    `,
-    { compress: true }
-  );
+    `;
 
   const response = await conn.query(query);
 
@@ -33,18 +29,14 @@ const getUrl = async (req, res) => {
 // get unique pool values
 // (used during adapter testing to check if a pool field is already in the DB)
 const getDistinctID = async (req, res) => {
-  const query = minify(
-    `
+  const query = `
     SELECT
         DISTINCT(pool),
         config_id,
         project
     FROM
         config
-    `,
-    { compress: true }
-  );
-
+    `;
   const response = await conn.query(query);
 
   if (!response) {
@@ -63,36 +55,29 @@ const getConfigPool = async (req, res) => {
     ids.length;
   if (!valid) return { status: 'invalid uuid parameter' };
 
-  const query = minify(
-    `
+  const query = `
     SELECT
       *
     FROM
         config
     WHERE
         config_id IN ($<configIDs:csv>)
-    `,
-    { compress: true }
-  );
-
+    `;
   const response = await conn.query(query, { configIDs: ids });
 
   if (!response) {
     return new AppError(`Couldn't get data`, 404);
   }
 
-  res
-    .status(200)
-    .json({
-      status: 'success',
-      data: response,
-    });
+  res.status(200).json({
+    status: 'success',
+    data: response,
+  });
 };
 
 // for calc liq on main protocol dashboard
 const getAllPools = async (req, res) => {
-  const query = minify(
-    `
+  const query = `
     SELECT
         config_id,
         symbol,
@@ -101,9 +86,7 @@ const getAllPools = async (req, res) => {
         "underlyingTokens"
     FROM
         config
-    `,
-    { compress: true }
-  );
+    `;
 
   const response = await conn.query(query);
 

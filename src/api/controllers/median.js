@@ -1,11 +1,8 @@
-const minify = require('pg-minify');
-
 const AppError = require('../../utils/appError');
 const { conn } = require('../db');
 
 const getMedian = async (req, res) => {
-  const query = minify(
-    `
+  const query = `
     SELECT
         timestamp,
         "uniquePools",
@@ -14,9 +11,7 @@ const getMedian = async (req, res) => {
         median
     ORDER BY
         timestamp ASC
-    `,
-    { compress: true }
-  );
+    `;
 
   const response = await conn.query(query);
 
@@ -29,8 +24,7 @@ const getMedian = async (req, res) => {
 
 const getMedianProject = async (req, res) => {
   const project = req.params.project;
-  const query = minify(
-    `
+  const query = `
     SELECT
         timestamp,
         "medianAPY",
@@ -41,10 +35,7 @@ const getMedianProject = async (req, res) => {
         project = $<project>
     ORDER BY
         timestamp ASC
-    `,
-    { compress: true }
-  );
-
+    `;
   const response = await conn.query(query, { project });
 
   if (!response) {
