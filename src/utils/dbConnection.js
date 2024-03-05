@@ -33,6 +33,21 @@ const connect = async () => {
   return conn;
 };
 
+// SIGTERM Handler
+// from https://github.com/aws-samples/graceful-shutdown-with-aws-lambda
+process.on('SIGTERM', async () => {
+  console.info('[runtime] SIGTERM received');
+
+  console.info('[runtime] cleaning up');
+  if(conn !== null){
+    let realConn = await conn
+    await realConn.$pool.end()
+  }
+  
+  console.info('[runtime] exiting');
+  process.exit(0)
+});
+
 module.exports = {
   pgp,
   connect,
