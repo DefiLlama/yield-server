@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk3');
+const sdk = require('@defillama/sdk5');
 const utils = require('../../utils');
 const { makeReadable } = require('./utils');
 
