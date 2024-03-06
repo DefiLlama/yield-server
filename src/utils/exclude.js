@@ -82,7 +82,6 @@ const excludeAdaptors = [
   'deri-protocol',
   'frakt',
   'goledo',
-  'gyroscope-protocol',
 ];
 
 const excludePools = [
