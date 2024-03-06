@@ -36,6 +36,21 @@ const config = {
     SYN_TOKEN_ADDRESS: '0xf8F9efC0db77d8881500bb06FF5D6ABc3070E695',
     LP_STAKING_ADDRESS: '0x7875Af1a6878bdA1C129a4e2356A3fD040418Be5',
   },
+  Blast: {
+    ROUTER: '0x7E7A0e201FD38d3ADAA9523Da6C109a07118C96a',
+    SYN_TOKEN_ADDRESS: '0x9592f08387134e218327E6E8423400eb845EdE0E',
+    LP_STAKING_ADDRESS: '0x3100dC8464A8523306c3C5034de24a8927d6E590',
+  },
+  Bsc: {
+    ROUTER: '0x7E7A0e201FD38d3ADAA9523Da6C109a07118C96a',
+    SYN_TOKEN_ADDRESS: '0xa4080f1778e69467e905b8d6f72f6e441f9e9484',
+    LP_STAKING_ADDRESS: '0x8F5BBB2BB8c2Ee94639E55d5F41de9b4839C1280',
+  },
+  Metis: {
+    ROUTER: '0x7E7A0e201FD38d3ADAA9523Da6C109a07118C96a',
+    SYN_TOKEN_ADDRESS: '0x67C10C397dD0Ba417329543c1a40eb48AAa7cd00',
+    LP_STAKING_ADDRESS: '0xaB0D8Fc46249DaAcd5cB36c5F0bC4f0DAF34EBf5',
+  },
 };
 
 const chainNames = Object.keys(config);
@@ -110,16 +125,16 @@ const getTvl = async (
   underlyingTokenCount
 ) => {
   const allUnderlyingTokenAddresses = // get all the tokens underlying the LP
-  (
-    await sdk.api.abi.multiCall({
-      calls: _.map(_.range(0, underlyingTokenCount), (index) => ({
-        target: underlyingAssetsTreasury,
-        params: [index],
-      })),
-      abi: abi.getToken,
-      chain: chain,
-    })
-  ).output.map(({ output }) => output);
+    (
+      await sdk.api.abi.multiCall({
+        calls: _.map(_.range(0, underlyingTokenCount), (index) => ({
+          target: underlyingAssetsTreasury,
+          params: [index],
+        })),
+        abi: abi.getToken,
+        chain: chain,
+      })
+    ).output.map(({ output }) => output);
 
   const tokenPrices = await getPrices(chain, allUnderlyingTokenAddresses);
 
