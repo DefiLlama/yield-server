@@ -4,7 +4,7 @@ const sdk = require('@defillama/sdk');
 const abi = require('./abis/abi.json');
 const erc20Abi = require('./abis/erc20.abi.json');
 const stableAbi = require('./abis/stable.abi.json');
-const { getProvider } = require('@defillama/sdk4');
+const { getProvider } = require('@defillama/sdk5');
 
 const BASE_URL = 'https://api.interport.fi';
 const STABLECOIN_URL = 'https://app.interport.fi/stablecoin-pools';

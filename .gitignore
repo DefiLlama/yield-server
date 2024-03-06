@@ -15,3 +15,9 @@ Untitled.ipynb
 yarn-error.log
 test.sql
 yarn.lock
+
+
+src/adaptors/maverick-protocol/
+src/adaptors/metavault-v3/
+src/adaptors/muuu-finance/navi-lending/
+src/adaptors/syncswap/

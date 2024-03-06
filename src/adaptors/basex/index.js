@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk5');
 const { request, gql } = require('graphql-request');
 const superagent = require('superagent');
 
@@ -171,10 +171,7 @@ const topLvl = async (
         return EstimatedFees(
           p.id,
           priceAssumption,
-          [
-            p.token1_in_token0 * (1 - delta),
-            p.token1_in_token0 * (1 + delta),
-          ],
+          [p.token1_in_token0 * (1 - delta), p.token1_in_token0 * (1 + delta)],
           p.price1,
           p.price0,
           investmentAmount,
@@ -236,7 +233,15 @@ const main = async (timestamp = null) => {
     )
   ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
 
-  let data = await topLvl('base', url, query, queryPrior, 'v3', timestamp, stablecoins);
+  let data = await topLvl(
+    'base',
+    url,
+    query,
+    queryPrior,
+    'v3',
+    timestamp,
+    stablecoins
+  );
   return data.filter((p) => utils.keepFinite(p));
 };
 

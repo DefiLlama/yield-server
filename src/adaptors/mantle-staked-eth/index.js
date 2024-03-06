@@ -1,5 +1,5 @@
 const axios = require('axios');
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk5');
 
 const stakingAbi = require('./stakingAbi.json');
 
