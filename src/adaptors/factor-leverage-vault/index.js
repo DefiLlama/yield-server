@@ -265,8 +265,6 @@ class FactorLeverageVaultHelper {
             tvlUsd
         );
 
-        console.log({ vaultAddress, tvlUsd, apyVote, apyBoost });
-
         const apyReward = apyVote + apyBoost;
 
         return apyReward;

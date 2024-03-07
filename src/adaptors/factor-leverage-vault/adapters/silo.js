@@ -2,6 +2,47 @@ const sdk = require('@defillama/sdk');
 const { makeReadable, getCoinPriceMap } = require('../../utils');
 const { request, gql } = require('graphql-request');
 
+const getAssetsABI = {
+    inputs: [],
+    name: 'getAssets',
+    outputs: [{ internalType: 'address[]', name: 'assets', type: 'address[]' }],
+    stateMutability: 'view',
+    type: 'function',
+};
+
+const depositAPYABI = {
+    inputs: [
+        { internalType: 'contract ISilo', name: '_silo', type: 'address' },
+        { internalType: 'address', name: '_asset', type: 'address' },
+    ],
+    name: 'depositAPY',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+};
+
+const borrowAPYABI = {
+    inputs: [
+        { internalType: 'contract ISilo', name: '_silo', type: 'address' },
+        { internalType: 'address', name: '_asset', type: 'address' },
+    ],
+    name: 'borrowAPY',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+};
+
+const getMaximumLTVABI = {
+    inputs: [
+        { internalType: 'address', name: '_silo', type: 'address' },
+        { internalType: 'address', name: '_asset', type: 'address' },
+    ],
+    name: 'getMaximumLTV',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+};
+
 class SiloLeverageVaultHelper {
     constructor(siloContractAddress, siloRepositoryAddress, siloLensAddress) {
         this._initialized = false;
@@ -32,31 +73,37 @@ class SiloLeverageVaultHelper {
         const assets = (
             await sdk.api.abi.call({
                 target: this.siloContractAddress,
-                abi: "function getAssets() public view returns (address[] assets)",
+                abi: getAssetsABI,
                 chain: 'arbitrum',
             })
         ).output;
 
-        const _multicallHelper = (target, abi) => sdk.api.abi.multiCall({
-            chain: 'arbitrum',
-            calls: assets.map((asset) => ({
-                target,
-                params: [this.siloContractAddress, asset],
-            })),
-            abi,
-        });
+        const _multicallHelper = (target, abi) =>
+            sdk.api.abi.multiCall({
+                chain: 'arbitrum',
+                calls: assets.map((asset) => ({
+                    target,
+                    params: [this.siloContractAddress, asset],
+                })),
+                abi,
+            });
 
         const [ltvs, supplyApys, borrowApys] = await Promise.all([
-            _multicallHelper(this.siloRepositoryAddress, "function getMaximumLTV(address _silo, address _asset) external view returns (uint256)"),
-            _multicallHelper(this.siloLensAddress, "function depositAPY(address _silo, address _asset) external view returns (uint256)"),
-            _multicallHelper(this.siloLensAddress, "function borrowAPY(address _silo, address _asset) external view returns (uint256)"),
+            _multicallHelper(
+                this.siloRepositoryAddress,
+                getMaximumLTVABI
+            ),
+            _multicallHelper(this.siloLensAddress, depositAPYABI),
+            _multicallHelper(this.siloLensAddress, borrowAPYABI),
         ]);
 
-
         assets.forEach((asset, index) => {
-            this._ltvMap[asset.toLowerCase()] = parseInt(ltvs.output[index].output) / 10 ** 18;
-            this._assetRateMap[asset.toLowerCase()] = parseInt(supplyApys.output[index].output) / 10 ** 18;
-            this._debtRateMap[asset.toLowerCase()] = parseInt(borrowApys.output[index].output) / 10 ** 18;
+            this._ltvMap[asset.toLowerCase()] =
+                parseInt(ltvs.output[index].output) / 10 ** 18;
+            this._assetRateMap[asset.toLowerCase()] =
+                parseInt(supplyApys.output[index].output) / 10 ** 18;
+            this._debtRateMap[asset.toLowerCase()] =
+                parseInt(borrowApys.output[index].output) / 10 ** 18;
         });
     }
 }

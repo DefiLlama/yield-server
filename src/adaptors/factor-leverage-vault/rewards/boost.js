@@ -2,6 +2,52 @@ const sdk = require('@defillama/sdk');
 const { makeReadable, getCoinPriceMap } = require('../shared');
 const { request, gql } = require('graphql-request');
 
+const getAllRewardTokensABI = {
+    inputs: [{ internalType: 'address', name: '_vault', type: 'address' }],
+    name: 'getAllRewardTokens',
+    outputs: [{ internalType: 'address[]', name: '', type: 'address[]' }],
+    stateMutability: 'view',
+    type: 'function',
+};
+
+const rewardDataABI = {
+    inputs: [
+        { internalType: 'address', name: '_rewardsToken', type: 'address' },
+    ],
+    name: 'rewardData',
+    outputs: [
+        {
+            components: [
+                {
+                    internalType: 'uint256',
+                    name: 'periodFinish',
+                    type: 'uint256',
+                },
+                {
+                    internalType: 'uint256',
+                    name: 'rewardRate',
+                    type: 'uint256',
+                },
+                {
+                    internalType: 'uint256',
+                    name: 'lastUpdateTime',
+                    type: 'uint256',
+                },
+                {
+                    internalType: 'uint256',
+                    name: 'rewardPerTokenStored',
+                    type: 'uint256',
+                },
+            ],
+            internalType: 'struct FactorBoostReward.Reward',
+            name: '',
+            type: 'tuple',
+        },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+};
+
 class BoostRewardVaultHelper {
     constructor(boostControllerAddress, stakedVaultAddresses) {
         this._initialized = false;
@@ -33,7 +79,7 @@ class BoostRewardVaultHelper {
                     target: this._boostControllerAddress,
                     params: [stakedVaultAddress],
                 })),
-                abi: 'function getAllRewardTokens(address) external view returns (address[])',
+                abi: getAllRewardTokensABI,
                 chain: 'arbitrum',
             })
         ).output;
@@ -61,7 +107,7 @@ class BoostRewardVaultHelper {
         const rewardDataCalls = (
             await sdk.api.abi.multiCall({
                 calls: calls,
-                abi: 'function rewardData(address) public view returns ((uint256,uint256,uint256,uint256))',
+                abi: rewardDataABI,
                 chain: 'arbitrum',
             })
         ).output.map((call, index) => call.output);
@@ -132,7 +178,6 @@ class BoostRewardVaultHelper {
             },
             0
         );
-
 
         const tvlUsdNormalized = tvlUsd > 0 ? tvlUsd : 1;
         const apyReward = (totalRewardUsdPerYear / tvlUsdNormalized) * 100;

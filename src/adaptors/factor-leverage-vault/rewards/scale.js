@@ -2,6 +2,25 @@ const sdk = require('@defillama/sdk');
 const { makeReadable, getCoinPriceMap } = require('../shared');
 const { request, gql } = require('graphql-request');
 
+const getVaultTotalVoteAtABI = {
+    inputs: [
+        { internalType: 'address', name: 'vault', type: 'address' },
+        { internalType: 'uint128', name: 'wTime', type: 'uint128' },
+    ],
+    name: 'getVaultTotalVoteAt',
+    outputs: [{ internalType: 'uint128', name: '', type: 'uint128' }],
+    stateMutability: 'view',
+    type: 'function',
+};
+
+const fctrPerSecABI = {
+    inputs: [],
+    name: 'fctrPerSec',
+    outputs: [{ internalType: 'uint128', name: '', type: 'uint128' }],
+    stateMutability: 'view',
+    type: 'function',
+};
+
 class ScaleRewardVaultHelper {
     constructor(scaleAddress, rewardTokenAddress, stakedVaultAddresses) {
         this._initialized = false;
@@ -36,12 +55,17 @@ class ScaleRewardVaultHelper {
 
         const secondsInYear = 86400 * 365;
 
-        const voteWeight = this._vaultWeightsMap[stakedVaultAddress.toLowerCase()] / totalVaultWeights;
+        const voteWeight =
+            this._vaultWeightsMap[stakedVaultAddress.toLowerCase()] /
+            totalVaultWeights;
         const rewardAmountPerSec = this._totalFctrPerSec * voteWeight;
-        const rewardAmountPerSecUsd = (rewardAmountPerSec * rewardTokenPriceUsd) / 10 ** rewardTokenDecimals;
+        const rewardAmountPerSecUsd =
+            (rewardAmountPerSec * rewardTokenPriceUsd) /
+            10 ** rewardTokenDecimals;
 
         const tvlUsdNormalized = tvlUsd > 0 ? tvlUsd : 1;
-        const apyReward = rewardAmountPerSecUsd * secondsInYear * 100 / tvlUsdNormalized;
+        const apyReward =
+            (rewardAmountPerSecUsd * secondsInYear * 100) / tvlUsdNormalized;
 
         return apyReward;
     }
@@ -50,7 +74,7 @@ class ScaleRewardVaultHelper {
         this._totalFctrPerSec = (
             await sdk.api.abi.call({
                 target: this._scaleAddress,
-                abi: 'function fctrPerSec() public view returns (uint128)',
+                abi: fctrPerSecABI,
                 chain: 'arbitrum',
             })
         ).output;
@@ -62,7 +86,7 @@ class ScaleRewardVaultHelper {
                     target: this._scaleAddress,
                     params: [stakedVaultAddress, currentWTime],
                 })),
-                abi: 'function getVaultTotalVoteAt(address vault, uint128 wTime) external view returns (uint128)',
+                abi: getVaultTotalVoteAtABI,
                 chain: 'arbitrum',
             })
         ).output.reduce((acc, call, index) => {
