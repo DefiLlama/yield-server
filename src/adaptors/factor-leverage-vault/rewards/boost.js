@@ -156,7 +156,7 @@ class BoostRewardVaultHelper {
         const rewardTokensRates =
             this._rewardTokenRateMap[stakedVaultAddress.toLowerCase()];
 
-        const rewardTokens = Object.keys(rewardTokensRates);
+        const rewardTokens = [...new Set(Object.keys(rewardTokensRates))];
 
         const totalRewardUsdPerYear = rewardTokens.reduce(
             (acc, rewardToken) => {
@@ -182,7 +182,7 @@ class BoostRewardVaultHelper {
         const tvlUsdNormalized = tvlUsd > 0 ? tvlUsd : 1;
         const apyReward = (totalRewardUsdPerYear / tvlUsdNormalized) * 100;
 
-        return apyReward;
+        return { apyReward, rewardTokens };
     }
 }
 

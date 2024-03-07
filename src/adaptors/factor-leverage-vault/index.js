@@ -208,7 +208,7 @@ class FactorLeverageVaultHelper {
         );
 
         const apyBase = this._getPairApyBase(market, assetAddress, debtAddress);
-        const apyReward = stakedVaultAddress
+        const { apyReward, rewardTokens } = stakedVaultAddress
             ? this._getPairApyReward(stakedVaultAddress, tvlUsd)
             : 0;
 
@@ -221,6 +221,7 @@ class FactorLeverageVaultHelper {
             apyBase,
             apyReward,
             underlyingTokens,
+            rewardTokens,
             url,
         };
     }
@@ -255,19 +256,18 @@ class FactorLeverageVaultHelper {
             throw new Error('Tvl pair map not initialized');
         }
 
-        const apyVote = this._scaleRewardVaultHelper.getApyReward(
-            vaultAddress,
-            tvlUsd
-        );
+        const { apyReward: apyVote, rewardTokens: scaleRewardTokens } =
+            this._scaleRewardVaultHelper.getApyReward(vaultAddress, tvlUsd);
 
-        const apyBoost = this._boostRewardVaultHelper.getApyReward(
-            vaultAddress,
-            tvlUsd
-        );
+        const { apyReward: apyBoost, rewardTokens: boostRewardTokens } =
+            this._boostRewardVaultHelper.getApyReward(vaultAddress, tvlUsd);
 
         const apyReward = apyVote + apyBoost;
+        const rewardTokens = [
+            ...new Set([...scaleRewardTokens, ...boostRewardTokens]),
+        ];
 
-        return apyReward;
+        return { apyReward, rewardTokens };
     }
 }
 

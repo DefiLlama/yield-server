@@ -67,7 +67,7 @@ class ScaleRewardVaultHelper {
         const apyReward =
             (rewardAmountPerSecUsd * secondsInYear * 100) / tvlUsdNormalized;
 
-        return apyReward;
+        return {apyReward, rewardTokens: [this._rewardTokenAddress]};
     }
 
     async _initializeVaultWeights() {
