@@ -232,7 +232,13 @@ class FactorLeverageVaultHelper {
 
         const mapId =
             `${vaultAddress}-${assetAddress}-${debtAddress}`.toLowerCase();
-        return this._pairTvlMap[mapId] ?? 0;
+
+        const tvlUsd = this._pairTvlMap[mapId];
+        if (tvlUsd === undefined || tvlUsd === null || tvlUsd < 0) {
+            return 0;
+        }
+
+        return tvlUsd;
     }
 
     _getPairApyBase(market, assetAddress, debtAddress) {

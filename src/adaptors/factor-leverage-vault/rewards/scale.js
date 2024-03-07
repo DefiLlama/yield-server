@@ -26,7 +26,6 @@ class ScaleRewardVaultHelper {
             throw new Error('Vault helper not initialized');
         }
 
-        // TODO(dims): fix this to be a correct number
         const totalVaultWeights = Object.values(this._vaultWeightsMap).reduce(
             (acc, weight) => acc + parseInt(weight),
             0
@@ -35,12 +34,12 @@ class ScaleRewardVaultHelper {
         const rewardTokenPriceUsd = this._rewardTokenPriceUsd.price;
         const rewardTokenDecimals = this._rewardTokenPriceUsd.decimals;
 
-        const secondsInYear = 31536000;
+        const secondsInYear = 86400 * 365;
 
-        const rewardAmountPerSec = this._totalFctrPerSec * this._vaultWeightsMap[stakedVaultAddress.toLowerCase()] / totalVaultWeights;
+        const voteWeight = this._vaultWeightsMap[stakedVaultAddress.toLowerCase()] / totalVaultWeights;
+        const rewardAmountPerSec = this._totalFctrPerSec * voteWeight;
         const rewardAmountPerSecUsd = (rewardAmountPerSec * rewardTokenPriceUsd) / 10 ** rewardTokenDecimals;
-        const rewardAmountPerYearUsd = rewardAmountPerSecUsd * secondsInYear;
-        const apyReward = (rewardAmountPerYearUsd / tvlUsd) * 100;
+        const apyReward = tvlUsd > 0 ? rewardAmountPerSecUsd * secondsInYear * 100 / tvlUsd : 0;
 
         return apyReward;
     }
