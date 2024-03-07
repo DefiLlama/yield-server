@@ -24,7 +24,6 @@ async function getCoinDataFromDefillamaAPI(chain, tokenAddress) {
     );
     const coinData = response.data.coins[coinId];
 
-    // { decimals, symbol, price, timestamp, confidence }
     return coinData;
 }
 
