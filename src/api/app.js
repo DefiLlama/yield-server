@@ -52,4 +52,9 @@ function errorHandler (err, req, res, next) {
 
 app.use(errorHandler)
 
+process.on('uncaughtException', (err) => {
+  console.error('uncaughtException:', err.message);
+  process.exit(1);
+});
+
 module.exports = app;
