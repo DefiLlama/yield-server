@@ -26,13 +26,21 @@ class ScaleRewardVaultHelper {
             throw new Error('Vault helper not initialized');
         }
 
+        // TODO(dims): fix this to be a correct number
+        const totalVaultWeights = Object.values(this._vaultWeightsMap).reduce(
+            (acc, weight) => acc + parseInt(weight),
+            0
+        );
+
+        const rewardTokenPriceUsd = this._rewardTokenPriceUsd.price;
+        const rewardTokenDecimals = this._rewardTokenPriceUsd.decimals;
+
         const secondsInYear = 31536000;
-        const apyReward =
-            (this._totalFctrPerSec *
-                this._vaultWeightsMap[stakedVaultAddress.toLowerCase()] *
-                secondsInYear *
-                this._rewardTokenPriceUsd) /
-            tvlUsd;
+
+        const rewardAmountPerSec = this._totalFctrPerSec * this._vaultWeightsMap[stakedVaultAddress.toLowerCase()] / totalVaultWeights;
+        const rewardAmountPerSecUsd = (rewardAmountPerSec * rewardTokenPriceUsd) / 10 ** rewardTokenDecimals;
+        const rewardAmountPerYearUsd = rewardAmountPerSecUsd * secondsInYear;
+        const apyReward = (rewardAmountPerYearUsd / tvlUsd) * 100;
 
         return apyReward;
     }
@@ -45,7 +53,6 @@ class ScaleRewardVaultHelper {
                 chain: 'arbitrum',
             })
         ).output;
-        // this._toatlFctrPerSec = 100;
 
         const currentWTime = this._getCurrentWTime();
         this._vaultWeightsMap = (
@@ -55,6 +62,7 @@ class ScaleRewardVaultHelper {
                     params: [stakedVaultAddress, currentWTime],
                 })),
                 abi: 'function getVaultTotalVoteAt(address vault, uint128 wTime) external view returns (uint128)',
+                chain: 'arbitrum',
             })
         ).output.reduce((acc, call, index) => {
             const stakedVaultAddress = this._stakedVaultAddresses[index];
@@ -66,6 +74,7 @@ class ScaleRewardVaultHelper {
     async _initializeRewardTokenPriceUsd() {
         const coinPriceMap = await getCoinPriceMap([this._rewardTokenAddress]);
         const rewardTokenPriceUsd = coinPriceMap[this._rewardTokenAddress];
+        this._rewardTokenPriceUsd = rewardTokenPriceUsd;
         return rewardTokenPriceUsd;
     }
 

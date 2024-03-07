@@ -249,17 +249,19 @@ class FactorLeverageVaultHelper {
             throw new Error('Tvl pair map not initialized');
         }
 
-        // const apyVote = this._scaleRewardVaultHelper.getApyReward(
-        //     vaultAddress,
-        //     tvlUsd
-        // );
+        const apyVote = this._scaleRewardVaultHelper.getApyReward(
+            vaultAddress,
+            tvlUsd
+        );
 
         const apyBoost = this._boostRewardVaultHelper.getApyReward(
             vaultAddress,
             tvlUsd
         );
 
-        const apyReward = apyBoost;
+        console.log({ vaultAddress, tvlUsd, apyVote, apyBoost });
+
+        const apyReward = apyVote + apyBoost;
 
         return apyReward;
     }
