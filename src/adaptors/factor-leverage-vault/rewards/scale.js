@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk3');
+const sdk = require('@defillama/sdk');
 const { makeReadable, getCoinPriceMap } = require('../shared');
 const { request, gql } = require('graphql-request');
 
