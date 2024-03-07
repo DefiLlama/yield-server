@@ -209,5 +209,5 @@ function calcAptRewardApy(rewardPerDay, rewardPrice, tvl) {
 module.exports = {
     timetravel: false,
     apy: main,
-    url: 'https://app.ariesmarkets.xyz',
+    url: 'https://app.cellana.finance',
 };
