@@ -13,6 +13,7 @@ const apy = async () => {
       tvlUsd: d.tvlUsd,
       apyBase: d.apyBase,
       apyReward: d.apyReward,
+      rewardTokens: d.rewardTokens,
     };
   });
 };
