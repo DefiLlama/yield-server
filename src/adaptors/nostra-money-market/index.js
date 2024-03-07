@@ -84,7 +84,7 @@ const markets = [
     name: 'wstETH',
     address:
       '0x042b8f0484674ca266ac5d08e4ac6a3fe65bd3129795def2dca5c34ecc5f96d2',
-    decimals: 6,
+    decimals: 18,
     supplyTokens: [
       '0x00ca44c79a77bcb186f8cdd1a0cd222cc258bebc3bec29a0a020ba20fdca40e9',
       '0x009377fdde350e01e0397820ea83ed3b4f05df30bfb8cf8055d62cafa1b2106a',
@@ -98,7 +98,7 @@ const markets = [
     name: 'LORDS',
     address:
       '0x0124aeb495b947201f5fac96fd1138e326ad86195b98df6dec9009158a533b49',
-    decimals: 6,
+    decimals: 18,
     supplyTokens: [
       '0x0507eb06dd372cb5885d3aaf18b980c41cd3cd4691cfd3a820339a6c0cec2674',
       '0x0739760bce37f89b6c1e6b1198bb8dc7166b8cf21509032894f912c9d5de9cbd',
@@ -112,7 +112,7 @@ const markets = [
     name: 'STRK',
     address:
       '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d',
-    decimals: 6,
+    decimals: 18,
     supplyTokens: [
       '0x026c5994c2462770bbf940552c5824fb0e0920e2a8a5ce1180042da1b3e489db',
       '0x07c2e1e733f28daa23e78be3a4f6c724c0ab06af65f6a95b5e0545215f1abc1b',
