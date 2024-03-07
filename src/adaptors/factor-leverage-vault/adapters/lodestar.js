@@ -2,9 +2,112 @@ const sdk = require('@defillama/sdk');
 const { makeReadable, getCoinPriceMap } = require('../../utils');
 const { request, gql } = require('graphql-request');
 
-const lodestarLensAbi = [
-    'function cTokenMetadataAll(address[] cTokens) external returns ((address cToken, uint exchangeRateCurrent, uint supplyRatePerBlock, uint borrowRatePerBlock, uint reserveFactorMantissa, uint totalBorrows, uint totalReserves, uint totalSupply, uint totalCash, bool isListed, uint collateralFactorMantissa, address underlyingAssetAddress, uint cTokenDecimals, uint underlyingDecimals, uint compSupplySpeed, uint compBorrowSpeed, uint borrowCap)[])',
-];
+const cTokenMetadataAllABI = {
+    inputs: [
+        {
+            internalType: 'contract CToken[]',
+            name: 'cTokens',
+            type: 'address[]',
+        },
+    ],
+    name: 'cTokenMetadataAll',
+    outputs: [
+        {
+            components: [
+                {
+                    internalType: 'address',
+                    name: 'cToken',
+                    type: 'address',
+                },
+                {
+                    internalType: 'uint256',
+                    name: 'exchangeRateCurrent',
+                    type: 'uint256',
+                },
+                {
+                    internalType: 'uint256',
+                    name: 'supplyRatePerBlock',
+                    type: 'uint256',
+                },
+                {
+                    internalType: 'uint256',
+                    name: 'borrowRatePerBlock',
+                    type: 'uint256',
+                },
+                {
+                    internalType: 'uint256',
+                    name: 'reserveFactorMantissa',
+                    type: 'uint256',
+                },
+                {
+                    internalType: 'uint256',
+                    name: 'totalBorrows',
+                    type: 'uint256',
+                },
+                {
+                    internalType: 'uint256',
+                    name: 'totalReserves',
+                    type: 'uint256',
+                },
+                {
+                    internalType: 'uint256',
+                    name: 'totalSupply',
+                    type: 'uint256',
+                },
+                {
+                    internalType: 'uint256',
+                    name: 'totalCash',
+                    type: 'uint256',
+                },
+                {
+                    internalType: 'bool',
+                    name: 'isListed',
+                    type: 'bool',
+                },
+                {
+                    internalType: 'uint256',
+                    name: 'collateralFactorMantissa',
+                    type: 'uint256',
+                },
+                {
+                    internalType: 'address',
+                    name: 'underlyingAssetAddress',
+                    type: 'address',
+                },
+                {
+                    internalType: 'uint256',
+                    name: 'cTokenDecimals',
+                    type: 'uint256',
+                },
+                {
+                    internalType: 'uint256',
+                    name: 'underlyingDecimals',
+                    type: 'uint256',
+                },
+                {
+                    internalType: 'uint256',
+                    name: 'compSupplySpeed',
+                    type: 'uint256',
+                },
+                {
+                    internalType: 'uint256',
+                    name: 'compBorrowSpeed',
+                    type: 'uint256',
+                },
+                {
+                    internalType: 'uint256',
+                    name: 'borrowCap',
+                    type: 'uint256',
+                },
+            ],
+            internalType: 'struct CompoundLens.CTokenMetadata[]',
+            name: '',
+            type: 'tuple[]',
+        },
+    ],
+    stateMutability: 'nonpayable',
+    type: 'function',
+};
 
 class LodestarLeverageVaultHelper {
     constructor(lensAddress, lTokenAddresses) {
@@ -49,7 +152,7 @@ class LodestarLeverageVaultHelper {
         const tokenMetadatas = (
             await sdk.api.abi.call({
                 target: this.lensAddress,
-                abi: lodestarLensAbi[0],
+                abi: cTokenMetadataAllABI,
                 params: [this.lTokenAddresses],
                 chain: 'arbitrum',
             })
