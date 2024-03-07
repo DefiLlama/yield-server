@@ -39,7 +39,9 @@ class ScaleRewardVaultHelper {
         const voteWeight = this._vaultWeightsMap[stakedVaultAddress.toLowerCase()] / totalVaultWeights;
         const rewardAmountPerSec = this._totalFctrPerSec * voteWeight;
         const rewardAmountPerSecUsd = (rewardAmountPerSec * rewardTokenPriceUsd) / 10 ** rewardTokenDecimals;
-        const apyReward = tvlUsd > 0 ? rewardAmountPerSecUsd * secondsInYear * 100 / tvlUsd : 0;
+
+        const tvlUsdNormalized = tvlUsd > 0 ? tvlUsd : 1;
+        const apyReward = rewardAmountPerSecUsd * secondsInYear * 100 / tvlUsdNormalized;
 
         return apyReward;
     }

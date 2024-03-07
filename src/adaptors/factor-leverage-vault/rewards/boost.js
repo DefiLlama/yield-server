@@ -133,7 +133,9 @@ class BoostRewardVaultHelper {
             0
         );
 
-        const apyReward = (totalRewardUsdPerYear / tvlUsd) * 100;
+
+        const tvlUsdNormalized = tvlUsd > 0 ? tvlUsd : 1;
+        const apyReward = (totalRewardUsdPerYear / tvlUsdNormalized) * 100;
 
         return apyReward;
     }
