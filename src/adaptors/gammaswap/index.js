@@ -3,6 +3,9 @@ const { gql, request } = require('graphql-request');
 const { BigNumber, utils: etherUtils } = require('ethers');
 const utils = require('../utils');
 const PoolViewerABI = require('./abi.json');
+const IGammaPoolABI = require('./IGammaPool.json');
+const {Address} = require("@defillama/sdk/build/types");
+const {Chain} = require("@defillama/sdk/build/general");
 
 function supplyApy(snapshot, poolInfo) {
   const avgDecimals = (Number(poolInfo.decimals[0]) + Number(poolInfo.decimals[1])) / 2;
@@ -38,7 +41,13 @@ function formatSymbols(symbols, addresses) {
 }
 
 async function apy() {
-  const poolViewer = '0xcf2b6bc8c0e0a1292db7f0ae89410670796350c8';
+  const poolAddr = '0x63c531ffed7e17f8adca4ed490837838f6fa1b66';
+  const { output: poolViewer }  = await sdk.api.abi.call( {
+    target: poolAddr,
+    abi: IGammaPoolABI[0],
+    chain: 'arbitrum'
+  });
+
   const endpoint = 'https://api.thegraph.com/subgraphs/name/gammaswap/gammaswap-v1-arbitrum';
   const query = gql`
     {
