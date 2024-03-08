@@ -115,7 +115,6 @@ const POOLS = {
       { version: 2, address: '0xc1879bf24917ebe531fbaa20b0d05da027b592ce' }, // AGLD
       { version: 2, address: '0x7b7473a76d6ae86ce19f7352a1e89f6c9dc39020' }, // ALCX
       { version: 2, address: '0x05500e2ee779329698df35760bedcaac046e7c27' }, // FTM
-      { version: 2, address: '0x003d5a75d284824af736df51933be522de9eed0f' }, // wsOHM
       { version: 2, address: '0x98a84eff6e008c5ed0289655ccdca899bcb6b99f' }, // xSUSHI v3
       { version: 2, address: '0x0bf90b3b5cad7dfcf70de198c498b61b3ba35cff' }, // xSUSHI v2
       { version: 2, address: '0xebfde87310dc22404d918058faa4d56dc4e93f0a' }, // yvcrvIB
@@ -173,12 +172,6 @@ const POOLS = {
       }, // Stargate USDT (POF)
       { version: 4, address: '0x207763511da879a900973a5e092382117c3c1588' }, // CRV
       { version: 4, address: '0x85f60d3ea4e86af43c9d4e9cc9095281fc25c405' }, // Migrated WBTC
-      {
-        version: 4,
-        address: '0x7259e152103756e1616a77ae982353c3751a6a90',
-        collateralPoolId: 'f827e130-1684-4829-b464-b5f99cf1d82b',
-      }, // yvCrv3Crypto
-      { version: 4, address: '0x692887e8877c6dd31593cda44c382db5b289b684' }, // magicAPE
       { version: 4, address: '0x7d8df3e4d06b0e19960c19ee673c0823beb90815' }, // CRV V2
     ],
   },

@@ -1,5 +1,5 @@
 const axios = require('axios');
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk5');
 
 const factoryAbi = require('./factoryAbi.json');
 const troveManagerAbi = require('./troveManagerAbi.json');
@@ -102,7 +102,7 @@ const apy = async () => {
     return {
       pool: t,
       chain: 'ethereum',
-      project: 'prisma-finance',
+      project: 'prismalst',
       symbol: priceDetails.symbol,
       tvlUsd,
       apy: 0,
