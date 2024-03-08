@@ -4,8 +4,6 @@ const { BigNumber, utils: etherUtils } = require('ethers');
 const utils = require('../utils');
 const PoolViewerABI = require('./abi.json');
 const IGammaPoolABI = require('./IGammaPool.json');
-const {Address} = require("@defillama/sdk/build/types");
-const {Chain} = require("@defillama/sdk/build/general");
 
 function supplyApy(snapshot, poolInfo) {
   const avgDecimals = (Number(poolInfo.decimals[0]) + Number(poolInfo.decimals[1])) / 2;
@@ -23,7 +21,7 @@ function supplyApy(snapshot, poolInfo) {
 
 function borrowApy(snapshot, poolInfo) {
   const accFeeIndex1DayAgoNum = Number(etherUtils.formatUnits(snapshot.accFeeIndex, 18));
-  const accFeeIndexNum = Number(etherUtils.formatUnits(poolInfo.accFeeIndex, 18))
+  const accFeeIndexNum = Number(etherUtils.formatUnits(poolInfo.accFeeIndex, 18));
   const borrowYield = ((accFeeIndexNum / accFeeIndex1DayAgoNum) - 1.0);
   const timeDiff = (new Date()).getTime() / 1000 - Number(snapshot.timestamp);
   const secondsOfDay = 24 * 60 * 60;
