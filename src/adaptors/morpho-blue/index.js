@@ -53,6 +53,7 @@ const gqlQueries = {
         }
         inputToken {
           id
+          symbol
           lastPriceUSD
           decimals
         }
@@ -303,6 +304,7 @@ async function blueMarkets() {
           (market.totalBorrow * market.borrowedToken.lastPriceUSD) /
           10 ** market.borrowedToken.decimals;
         const totalTVL = totalSupplyUsd - totalBorrowUsd;
+        const ltv = market.lltv / 1e18;
 
         // Return structured APY data for each market
         return [
@@ -311,7 +313,9 @@ async function blueMarkets() {
             pool: `morpho-blue-${market.id}`,
             chain: 'ethereum',
             project: 'morpho-blue',
-            symbol: utils.formatSymbol(market.borrowedToken.symbol),
+            symbol: utils.formatSymbol(
+              `${market.inputToken.symbol}-${market.borrowedToken.symbol}`
+            ),
             apyBase:
               rateToApy(
                 market.rates.find((rate) => rate.side === 'LENDER')?.rate || 0
@@ -327,7 +331,8 @@ async function blueMarkets() {
             apyRewardBorrow: borrowRewardsApy + collateralRewardsApy,
             totalSupplyUsd,
             totalBorrowUsd,
-            ltv: market.lltv / 1e18,
+            ltv,
+            poolMeta: `${ltv * 100}%`,
           },
         ];
       })

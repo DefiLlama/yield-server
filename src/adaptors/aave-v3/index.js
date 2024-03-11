@@ -1,6 +1,6 @@
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 
 const utils = require('../utils');
 const { aTokenAbi } = require('./abi');
@@ -14,6 +14,7 @@ const chainUrlParam = {
   polygon: 'proto_polygon_v3',
   avalanche: 'proto_avalanche_v3',
   arbitrum: 'proto_arbitrum_v3',
+  base: 'proto_base_v3',
   fantom: 'proto_fantom_v3',
   harmony: 'proto_harmony_v3',
   optimism: 'proto_optimism_v3',
@@ -54,6 +55,7 @@ const API_URLS = {
   avalanche:
     'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-avalanche',
   arbitrum: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-arbitrum',
+  base: 'https://api.goldsky.com/api/public/project_clk74pd7lueg738tw9sjh79d6/subgraphs/aave-v3-base/1.0.0/gn',
   polygon: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-polygon',
   fantom: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-fantom',
   metis:

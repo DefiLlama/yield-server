@@ -106,7 +106,8 @@ const getLatestBlockSubgraph = async (url) => {
     url.includes('pancakeswap/exchange-v3-linea') ||
     url.includes('exchange-v3-polygon-zkevm/version/latest') ||
     url.includes('exchange-v3-zksync/version/latest') ||
-    url.includes('balancer-base-v2/version/latest')
+    url.includes('balancer-base-v2/version/latest') ||
+    url.includes('horizondex')
       ? await request(url, queryGraph)
       : url.includes('aperture/uniswap-v3')
       ? await request(
