@@ -90,7 +90,7 @@ const getApy = async () => {
     });
 
     pools.push({
-      pool: `${meta.adopted}-${meta.chain}`,
+      pool: `${meta.local}-${meta.chain}`,
       chain: utils.formatChain(meta.chain),
       project: 'connext',
       symbol: meta.poolName,
