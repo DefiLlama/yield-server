@@ -77,15 +77,9 @@ const getApy = async () => {
     },
   ];
   for (const meta of poolsMeta) {
-    const yieldStats = await axios.post(`${api}/getYieldStatsForDays`, {
+    const yieldStats = await axios.post(`${api}/getYieldData`, {
       domainId: meta.domain,
       tokenAddress: meta.adopted,
-      unixTimestamp: Date.now() - 24 * 60 * 60 * 1000,
-      days: 1,
-    });
-    const yieldData = await axios.post(`${api}/calculateYield`, {
-      feesEarned: yieldStats.data.totalFeesFormatted,
-      principal: yieldStats.data.totalLiquidityFormatted,
       days: 1,
     });
 
@@ -94,11 +88,11 @@ const getApy = async () => {
       chain: utils.formatChain(meta.chain),
       project: 'connext',
       symbol: meta.poolName,
-      apyBase: yieldData.data.apy * 100,
+      apyBase: yieldStats.data.apy * 100,
       apyReward: 0,
       rewardTokens: [],
       underlyingTokens: [meta.adopted, meta.local],
-      tvlUsd: yieldStats.data.totalLiquidityFormatted * ethPrice,
+      tvlUsd: yieldStats.data.liquidity * ethPrice,
       url: meta.url,
     });
   }
