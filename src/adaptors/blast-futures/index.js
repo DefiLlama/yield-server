@@ -3,21 +3,21 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk5');
 
 const CHAIN = 'blast';
-const TOKEN = 'USDB';
+const USDB = '0x4300000000000000000000000000000000000003';
 const API_URL = 'https://api.bfx.trade/vaults';
 
 const getApy = async () => {
   let pools = [];
 
   const response = await axios.get(API_URL, {
-    headers: { 'eid': 'bfx' },
+    headers: { eid: 'bfx' },
   });
   pools = response.data.result;
 
   const tvl = (
     await sdk.api.abi.call({
       abi: 'erc20:balanceOf',
-      target: '0x4300000000000000000000000000000000000003',
+      target: USDB,
       params: '0x3Ba925fdeAe6B46d0BB4d424D829982Cb2F7309e',
       chain: 'blast',
     })
@@ -29,11 +29,11 @@ const getApy = async () => {
     chain: utils.formatChain(CHAIN),
     project: 'blast-futures',
     pool: 'Dynamic AMM LP',
-    symbol: TOKEN,
+    symbol: 'USDB',
     tvlUsd: tvlValue * Number(p.share_price),
     apyBase: Number(p.apy) * 100,
     apyReward: Number('0.15') * 100,
-    rewardTokens: [TOKEN],
+    rewardTokens: [USDB],
     poolMeta: `Dynamic Market Maker`,
     url: `https://bfx.trade/vaults/platformOverview?vault_wallet=0x2688c2bb0eeea0cd10de520699090a36469d788a`,
   }));
