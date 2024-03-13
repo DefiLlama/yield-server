@@ -12,6 +12,7 @@ const getApy = async () => {
     symbol: item.token.symbol,
     tvlUsd: Number(item.vaultTVLInAsset) * item.token.price,
     apy: Number(item.apy.apyWithoutFee),
+    underlyingTokens: [item.tokenAddress],
   }));
 
   return pools;

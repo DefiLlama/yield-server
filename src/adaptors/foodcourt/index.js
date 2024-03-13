@@ -15,17 +15,21 @@ const BLOCKS_PER_YEAR = Math.floor((60 / BLOCK_TIME) * 60 * 24 * 365);
 const SECOND_IN_YEAR = 86400 * 365;
 
 const mapTokenREItoBSC = {
-  '0xf8aB4aaf70cef3F3659d3F466E35Dc7ea10d4A5d': '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c', // BNB
-  '0xDD2bb4e845Bd97580020d8F9F58Ec95Bf549c3D9': '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56', // BUSD
+  '0xf8aB4aaf70cef3F3659d3F466E35Dc7ea10d4A5d':
+    '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c', // BNB
+  '0xDD2bb4e845Bd97580020d8F9F58Ec95Bf549c3D9':
+    '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56', // BUSD
 };
 
 const mapTokenBSCtoREI = {
-  '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c': '0xf8aB4aaf70cef3F3659d3F466E35Dc7ea10d4A5d',
-  '0xe9e7cea3dedca5984780bafc599bd69add087d56': '0xDD2bb4e845Bd97580020d8F9F58Ec95Bf549c3D9',
+  '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c':
+    '0xf8aB4aaf70cef3F3659d3F466E35Dc7ea10d4A5d',
+  '0xe9e7cea3dedca5984780bafc599bd69add087d56':
+    '0xDD2bb4e845Bd97580020d8F9F58Ec95Bf549c3D9',
 };
 
 const getPriceFromReservesRateBNBBsc = (reserves, bnbPrice) => {
-  return ((reserves[1] / reserves[0])) * bnbPrice;
+  return (reserves[1] / reserves[0]) * bnbPrice;
 };
 
 const getPairInfo = async (pair, tokenAddress) => {
@@ -38,30 +42,32 @@ const getPairInfo = async (pair, tokenAddress) => {
         })),
         chain: 'reichain',
         requery: true,
-      }
+      })
     )
-  ));
+  );
   return {
     lpToken: pair.toLowerCase(),
-    pairName: tokenSymbol.output.map(e => e.output).join('-'),
+    pairName: tokenSymbol.output.map((e) => e.output).join('-'),
     token0: {
       address: tokenAddress[0],
       symbol: tokenSymbol.output[0].output,
-      decimals: tokenDecimals.output[0].output
+      decimals: tokenDecimals.output[0].output,
     },
     token1: {
       address: tokenAddress[1],
       symbol: tokenSymbol.output[1].output,
-      decimals: tokenDecimals.output[1].output
-    }
+      decimals: tokenDecimals.output[1].output,
+    },
   };
-}
+};
 
 const getPrices = async (addresses) => {
+  const coins = addresses
+    .map((address) => `bsc:${mapTokenREItoBSC[address]}`)
+    .join(',')
+    .toLowerCase();
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses.map((address) => `bsc:${mapTokenREItoBSC[address]}`),
-    })
+    await superagent.get(`https://coins.llama.fi/prices/current/${coins}`)
   ).body.coins;
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -85,10 +91,7 @@ const calculateApy = (
   const couponPerYear = BigNumber(couponPerSecond)
     .times(SECOND_IN_YEAR)
     .times(poolWeight);
-  const apy = couponPerYear
-    .times(couponPrice)
-    .div(reserveUSD)
-    .times(100);
+  const apy = couponPerYear.times(couponPrice).div(reserveUSD).times(100);
   return apy.toNumber();
 };
 
@@ -144,11 +147,11 @@ const getApy = async () => {
   });
 
   const pools = poolsRes.output
-  .map(({ output }, i) => ({ ...output, i }))
-  .filter((e) => e.allocPoint !== '0')
-  .filter(e => e.lpToken !== '0xbC09220a8e461880DBE5517ecF53bC1b12cAa05D');
+    .map(({ output }, i) => ({ ...output, i }))
+    .filter((e) => e.allocPoint !== '0')
+    .filter((e) => e.lpToken !== '0xbC09220a8e461880DBE5517ecF53bC1b12cAa05D');
 
-  const lpTokens = pools.map(({ lpToken }) => lpToken)
+  const lpTokens = pools.map(({ lpToken }) => lpToken);
   const [reservesRes, supplyRes, masterChefBalancesRes] = await Promise.all(
     ['getReserves', 'totalSupply', 'balanceOf'].map((method) =>
       sdk.api.abi.multiCall({
@@ -184,13 +187,23 @@ const getApy = async () => {
   const tokens0 = underlyingToken0.output.map((res) => res.output);
   const tokens1 = underlyingToken1.output.map((res) => res.output);
   const tokensPrices = await getPrices([...tokens0, ...tokens1]);
-  const reiPrice = await getPriceFromReservesRateBNBBsc(reservesData[2], tokensPrices[BNB_REI_ADDRESS.toLowerCase()]);
-  const couponPrice = await getPriceFromReservesRateBNBBsc(reservesData[2], reiPrice);
+  const reiPrice = await getPriceFromReservesRateBNBBsc(
+    reservesData[2],
+    tokensPrices[BNB_REI_ADDRESS.toLowerCase()]
+  );
+  const couponPrice = await getPriceFromReservesRateBNBBsc(
+    reservesData[2],
+    reiPrice
+  );
   tokensPrices[REI_TOKEN.toLowerCase()] = reiPrice;
   tokensPrices[COUPON_TOKEN.toLowerCase()] = couponPrice / 10;
-  const pairInfos = await Promise.all(pools.map((_, index) => getPairInfo(lpTokens[index], [tokens0[index], tokens1[index]])));
+  const pairInfos = await Promise.all(
+    pools.map((_, index) =>
+      getPairInfo(lpTokens[index], [tokens0[index], tokens1[index]])
+    )
+  );
   const poolsApy = [];
-  for(const [i, pool] of pools.entries()) {
+  for (const [i, pool] of pools.entries()) {
     const pairInfo = pairInfos[i];
     const poolInfo = pool;
     const reserves = reservesData[i];
@@ -227,7 +240,6 @@ const getApy = async () => {
       rewardTokens: [COUPON_TOKEN],
     });
   }
-
 
   return poolsApy;
 };

@@ -1,5 +1,5 @@
 const { request, gql } = require('graphql-request');
-const sdk = require('@defillama/sdk3');
+const sdk = require('@defillama/sdk5');
 const axios = require('axios');
 
 const utils = require('../utils');
@@ -22,6 +22,7 @@ const apy = async () => {
       target: gaugeController,
       abi: gaugeControllerAbi.find((m) => m.name === 'n_gauges'),
       chain: 'ethereum',
+      permitFailure: true,
     })
   ).output;
 
@@ -34,6 +35,7 @@ const apy = async () => {
       })),
       abi: gaugeControllerAbi.find((m) => m.name === 'gauges'),
       chain: 'ethereum',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -45,6 +47,7 @@ const apy = async () => {
       })),
       abi: gaugeControllerAbi.find((m) => m.name === 'gauge_relative_weight'),
       chain: 'ethereum',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -53,6 +56,7 @@ const apy = async () => {
       target: gaugeMinter,
       abi: gaugeMinterAbi.find((m) => m.name === 'rate'),
       chain: 'ethereum',
+      permitFailure: true,
     })
   ).output;
 
@@ -63,6 +67,7 @@ const apy = async () => {
       })),
       abi: gaugeAbi.find((m) => m.name === 'lp_token'),
       chain: 'ethereum',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -73,6 +78,7 @@ const apy = async () => {
       })),
       abi: 'erc20:totalSupply',
       chain: 'ethereum',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -84,6 +90,7 @@ const apy = async () => {
       })),
       abi: 'erc20:balanceOf',
       chain: 'ethereum',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -148,6 +155,7 @@ const apy = async () => {
           })),
           chain: 'ethereum',
           abi: abi.find((m) => m.name === 'getToken'),
+          permitFailure: true,
         })
       ).output.map((o) => o.output);
 
@@ -159,6 +167,7 @@ const apy = async () => {
           })),
           chain: 'ethereum',
           abi: abi.find((m) => m.name === 'getTokenBalance'),
+          permitFailure: true,
         })
       ).output.map((o) => o.output);
 

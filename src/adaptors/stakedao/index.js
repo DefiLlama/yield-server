@@ -1,8 +1,7 @@
 const utils = require('../utils');
 
-const LOCKERS_ENDPOINT = 'https://lockers.stakedao.org/api/lockers/cache';
-const STRATEGIES_ENDPOINT = 'https://lockers.stakedao.org/api/strategies/cache';
-const OPTIONS_ENDPOINT = 'https://app.stakedao.org/api/defillama';
+const LOCKERS_ENDPOINT = 'https://classic.stakedao.org/api/lockers/cache';
+const STRATEGIES_ENDPOINT = 'https://classic.stakedao.org/api/strategies/cache';
 const SDT_ADDRESS = '0x73968b9a57c6e53d41345fd57a6e6ae27d6cdb2f';
 
 const symbolMapping = {
@@ -32,14 +31,12 @@ const poolsFunction = async () => {
     utils.getData(`${STRATEGIES_ENDPOINT}/balancer`),
     utils.getData(`${STRATEGIES_ENDPOINT}/fraxv2`),
     utils.getData(`${LOCKERS_ENDPOINT}`),
-    utils.getData(`${OPTIONS_ENDPOINT}`)
   ]);
   const angleStrategies = resp[0];
   const curveStrategies = resp[1];
   const balancerStrategies = resp[2];
   const fraxv2Strategies = resp[3];
   const lockers = resp[4];
-  const optionsData = resp[5].data; 
 
   const allStrats = angleStrategies
     .concat(curveStrategies)
@@ -77,7 +74,12 @@ const poolsFunction = async () => {
       apyReward = apyAngle + apySDT;
     } else {
       // calcul for lockers APR
-      if (strat?.aprBreakdown[2]?.isBribe || strat.key === 'apw' || strat.key === 'bpt') {
+      if (
+        strat?.aprBreakdown?.length === 3 &&
+        (strat?.aprBreakdown[2]?.isBribe ||
+          strat.key === 'apw' ||
+          strat.key === 'bpt')
+      ) {
         apyReward =
           strat?.aprBreakdown?.reduce((acc, t) => {
             if (t.token.address === SDT_ADDRESS) {
@@ -85,7 +87,7 @@ const poolsFunction = async () => {
             }
             return acc;
           }, 0.0) * 100;
-        apyBase =         
+        apyBase =
           strat?.aprBreakdown?.reduce((acc, t) => {
             if (t.token.address === SDT_ADDRESS) {
               return acc;
@@ -94,9 +96,9 @@ const poolsFunction = async () => {
           }, 0.0) * 100;
 
         if (strat?.aprBreakdown[2]?.isBribe) {
-          apyBase += strat.aprBreakdown[2]?.minApr *100;
+          apyReward += strat.aprBreakdown[2]?.minApr * 100;
         }
-      } 
+      }
       // calcul for strategies APR
       else {
         apyReward =
@@ -110,7 +112,7 @@ const poolsFunction = async () => {
       }
     }
 
-    let symbol = strat.name.replace('/', '-').split(' ');
+    let symbol = strat.name?.replace('/', '-').split(' ') ?? ['placeholder'];
     symbol = symbol.length > 2 ? symbol[1] : symbol[0];
     symbol = Object.keys(symbolMapping).includes(symbol)
       ? symbolMapping[symbol]
@@ -118,35 +120,38 @@ const poolsFunction = async () => {
       ? symbol.replace('san', '').split('-')[0]
       : symbol.replace('FRAXBP', '-crvFRAX');
 
-
     let underlyingTokens = [];
-    if(strat?.underlyingTokens?.length > 0) {
-    underlyingTokens =
-          strat?.underlyingTokens?.map((t) =>
-            t?.symbol === 'ETH'
-              ? '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
-              : t?.address
-          );
-    } else if(strat?.underlyingToken?.address) {
-    underlyingTokens = [strat?.underlyingToken?.address];
+    if (strat?.underlyingTokens?.length > 0) {
+      underlyingTokens = strat?.underlyingTokens?.map((t) =>
+        t?.symbol === 'ETH'
+          ? '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+          : t?.address
+      );
+    } else if (strat?.underlyingToken?.address) {
+      underlyingTokens = [strat?.underlyingToken?.address];
     } else {
-    underlyingTokens = [];
+      underlyingTokens = [];
     }
     if (underlyingTokens.length === 0 || strat.key === 'bal') {
-
       underlyingTokens = [strat?.tokenReceipt?.address];
     }
-    const sdTknTknPool = ['factory-v2-109','factory-v2-101','factory-v2-239','b_80ldo_20weth_sdbal']
+    const sdTknTknPool = [
+      'factory-v2-109',
+      'factory-v2-101',
+      'factory-v2-239',
+      'b_80ldo_20weth_sdbal',
+    ];
     if (sdTknTknPool.includes(strat?.key) && symbol.includes('-')) {
-      symbol = symbol.replaceAll('-', '')
+      symbol = symbol.replaceAll('-', '');
     }
     return acc.concat([
       {
-        pool: strat.key,
+        pool: 'sd-' + strat.key,
         chain: utils.formatChain('ethereum'),
         project: 'stakedao',
-        symbol: utils.formatSymbol(symbol),
-        poolMeta: utils.formatChain(strat.protocol),
+        symbol: symbol ? utils.formatSymbol(symbol) : null,
+        symbol,
+        poolMeta: strat.protocol ? utils.formatChain(strat.protocol) : null,
         tvlUsd: strat.tvlUSD,
         apyReward,
         apyBase,
@@ -156,24 +161,7 @@ const poolsFunction = async () => {
     ]);
   }, []);
 
-  const options = optionsData.map((option) => {
-    const rewardTokens = option.underlyingTokens.map((token) => token.address || '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE')
-    return {    
-    pool: option.key,
-    chain: utils.formatChain('ethereum'),
-    project: 'stakedao',
-    symbol: utils.formatSymbol(option.symbol),
-    poolMeta: utils.formatChain('Opyn'),
-    tvlUsd: parseFloat(option.tvlUSD),
-    apyReward: 0,
-    apyBase: option.apy,
-    rewardTokens,
-    underlyingTokens: rewardTokens
-  }
-  })
-
-
-  return strats.concat(options);
+  return strats.filter((i) => utils.keepFinite(i));
 };
 
 module.exports = {

@@ -7,14 +7,12 @@ const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
 const { sendMessage } = require('../utils/discordWebhook');
 const { connect } = require('../utils/dbConnection');
-const {
-  getYieldProject,
-  buildInsertYieldQuery,
-} = require('../controllers/yieldController');
+const { getYieldProject, buildInsertYieldQuery } = require('../queries/yield');
 const {
   getConfigProject,
   buildInsertConfigQuery,
-} = require('../controllers/configController');
+  getDistinctProjects,
+} = require('../queries/config');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -118,7 +116,7 @@ const main = async (body) => {
     apy: p.apy < 0 ? 0 : p.apy,
     apyBase:
       protocolConfig[body.adaptor]?.category === 'Options' ||
-      ['mellow-protocol', 'sommelier'].includes(body.adaptor)
+      ['mellow-protocol', 'sommelier', 'abracadabra'].includes(body.adaptor)
         ? p.apyBase
         : p.apyBase < 0
         ? 0
@@ -162,7 +160,12 @@ const main = async (body) => {
   // change chain `Binance` -> `BSC`
   data = data.map((p) => ({
     ...p,
-    chain: p.chain === 'Binance' ? 'BSC' : p.chain,
+    chain:
+      p.chain === 'Binance'
+        ? 'BSC'
+        : p.chain === 'Avax'
+        ? 'Avalanche'
+        : p.chain,
   }));
   console.log(data.length);
 
@@ -170,10 +173,20 @@ const main = async (body) => {
   // need the protocol response to check if adapter.body === 'Dexes' category
 
   // required conditions to calculate IL field
+  const uniV3Forks = [
+    'uniswap-v3',
+    'hydradex-v3',
+    'forge',
+    'arbitrum-exchange-v3',
+    'maia-v3',
+    'ramses-v2',
+  ];
   if (
     data[0]?.underlyingTokens?.length &&
     protocolConfig[body.adaptor]?.category === 'Dexes' &&
-    !['balancer', 'curve', 'clipper'].includes(body.adaptor) &&
+    !['balancer-v2', 'curve-dex', 'clipper', 'astroport'].includes(
+      body.adaptor
+    ) &&
     !['elrond', 'near', 'hedera', 'carbon'].includes(
       data[0].chain.toLowerCase()
     )
@@ -252,7 +265,7 @@ const main = async (body) => {
       let il7d = ((2 * Math.sqrt(d)) / (1 + d) - 1) * 100;
 
       // for uni v3
-      if (body.adaptor === 'uniswap-v3') {
+      if (uniV3Forks.includes(body.adaptor)) {
         const P = price1 / price0;
 
         // for stablecoin pools, we assume a +/- 0.1% range around current price
@@ -279,8 +292,6 @@ const main = async (body) => {
 
       return {
         ...p,
-        poolMeta:
-          p.project === 'uniswap-v3' ? p.poolMeta?.split(',')[0] : p.poolMeta,
         il7d,
       };
     });
@@ -304,7 +315,9 @@ const main = async (body) => {
       ...p,
       config_id: id, // config PK field
       configID: id, // yield FK field referencing config_id in config
-      symbol: utils.formatSymbol(p.symbol),
+      symbol: ['USDC+', 'ETH+'].some((i) => p.symbol.includes(i))
+        ? p.symbol
+        : utils.formatSymbol(p.symbol),
       tvlUsd: Math.round(p.tvlUsd), // round tvlUsd to integer and apy fields to n-dec
       apy: +p.apy.toFixed(precision), // round apy fields
       apyBase: p.apyBase !== null ? +p.apyBase.toFixed(precision) : p.apyBase,
@@ -333,7 +346,12 @@ const main = async (body) => {
           ? null
           : Math.round(p.debtCeilingUsd),
       mintedCoin: p.mintedCoin ? utils.formatSymbol(p.mintedCoin) : null,
-      poolMeta: p.poolMeta === undefined ? null : p.poolMeta,
+      poolMeta:
+        p.poolMeta === undefined
+          ? null
+          : uniV3Forks.includes(p.project)
+          ? p.poolMeta?.split(',')[0]
+          : p.poolMeta,
       il7d: p.il7d ? +p.il7d.toFixed(precision) : null,
       apyBase7d:
         p.apyBase7d !== null ? +p.apyBase7d.toFixed(precision) : p.apyBase7d,
@@ -368,6 +386,7 @@ const main = async (body) => {
   const dataDB = [];
   const nHours = 5;
   const tvlDeltaMultiplier = 5;
+  const apyDeltaMultiplier = tvlDeltaMultiplier;
   const timedeltaLimit = 60 * 60 * nHours * 1000;
   const droppedPools = [];
   for (const p of data) {
@@ -378,9 +397,10 @@ const main = async (body) => {
     }
     // if existing pool, check conditions
     const timedelta = timestamp - x.timestamp;
-    // skip the update if tvl at t is ntimes larger than tvl at t-1 && timedelta condition is met
+    // skip the update if tvl or apy at t is ntimes larger than tvl at t-1 && timedelta condition is met
     if (
-      p.tvlUsd > x.tvlUsd * tvlDeltaMultiplier &&
+      (p.tvlUsd > x.tvlUsd * tvlDeltaMultiplier ||
+        p.apy > x.apy * apyDeltaMultiplier) &&
       timedelta < timedeltaLimit
     ) {
       console.log(`removing pool ${p.pool}`);
@@ -391,6 +411,9 @@ const main = async (body) => {
         tvlUsd: p.tvlUsd,
         tvlUsdDB: x.tvlUsd,
         tvlMultiplier: p.tvlUsd / x.tvlUsd,
+        apy: p.apy,
+        apyDB: x.apy,
+        apyMultiplier: p.apy / x.apy,
       });
       continue;
     }
@@ -405,16 +428,25 @@ const main = async (body) => {
     console.log(`removed ${delta} sample(s) prior to insert`);
     // send discord message
     // we limit sending msg only if the pool's last tvlUsd value is >= $50k
-    const filteredPools = droppedPools.filter((p) => p.tvlUsdDB >= 5e4);
+    const filteredPools = droppedPools.filter(
+      (p) => p.tvlUsdDB >= 5e4 && p.apyDB >= 10
+    );
     if (filteredPools.length) {
       const message = filteredPools
-        .map(
-          (p) =>
-            `configID: ${p.configID} Project: ${p.project} Symbol: ${
-              p.symbol
-            } TVL: from ${p.tvlUsdDB.toFixed()} to ${p.tvlUsd.toFixed()} (${p.tvlMultiplier.toFixed(
-              2
-            )}x increase)`
+        .map((p) =>
+          p.apyMultiplier >= apyDeltaMultiplier
+            ? `APY spike for configID: ${
+                p.configID
+              } from ${p.apyDB.toFixed()} to ${p.apy.toFixed()} (${p.apyMultiplier.toFixed(
+                2
+              )}x increase) [tvlUsd: ${p.tvlUsd.toFixed()}]
+          `
+            : `TVL spike for configID: ${
+                p.configID
+              } from ${p.tvlUsdDB.toFixed()} to ${p.tvlUsd.toFixed()} (${p.tvlMultiplier.toFixed(
+                2
+              )}x increase)
+            `
         )
         .join('\n');
       await sendMessage(message, process.env.TVL_SPIKE_WEBHOOK);
@@ -422,8 +454,9 @@ const main = async (body) => {
   }
 
   // ---------- discord bot for newly added projects
+  const distinctProjects = await getDistinctProjects();
   if (
-    !dataInitial.length &&
+    !distinctProjects.includes(body.adaptor) &&
     dataDB.filter(({ tvlUsd }) => tvlUsd > exclude.boundaries.tvlUsdUI.lb)
       .length
   ) {

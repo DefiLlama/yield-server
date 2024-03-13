@@ -1,56 +1,43 @@
 const { default: BigNumber } = require('bignumber.js');
-const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
-const queries = require('./queries');
 const cellarAbi = require('./cellar-v0-8-16.json');
-const { chain } = require('./config');
+const { getApy } = require('./apy');
 
 const call = sdk.api.abi.call;
 
-// Use the change in price over 30 days to extrapolate an APR
-async function getApy(cellarAddress) {
-  const dayData = await queries.getDayData(cellarAddress, 30);
-
-  const price = new BigNumber(dayData[0].shareValue);
-  const prevPrice = new BigNumber(dayData[dayData.length - 1].shareValue);
-  const yieldRatio = price.minus(prevPrice).div(prevPrice);
-
-  return yieldRatio.times(12).times(100).toNumber();
-}
-
 // Call getPositions() to get a list of assets held by the Cellar
-async function getUnderlyingTokens(cellarAddress) {
+async function getUnderlyingTokens(cellarAddress, cellarChain) {
   const assets = (
     await call({
       target: cellarAddress,
       abi: cellarAbi.getPositions,
-      chain,
+      chain: cellarChain,
     })
   ).output;
 
   return assets;
 }
 
-async function getHoldingPosition(cellarAddress) {
+async function getHoldingPosition(cellarAddress, cellarChain) {
   const asset = (
     await call({
       target: cellarAddress,
       abi: cellarAbi.holdingPosition,
-      chain,
+      chain: cellarChain,
     })
   ).output;
 
   return asset;
 }
 
-async function getTvlUsd(cellarAddress, assetAddress) {
+async function getTvlUsd(cellarAddress, assetAddress, cellarChain) {
   // Represents the value of the Cellar's postitions denominated in the holding asset
   const totalAssets = (
     await call({
       target: cellarAddress,
       abi: cellarAbi.totalAssets,
-      chain,
+      chain: cellarChain,
     })
   ).output;
 
@@ -58,11 +45,11 @@ async function getTvlUsd(cellarAddress, assetAddress) {
     await call({
       target: assetAddress,
       abi: 'erc20:decimals',
-      chain,
+      chain: cellarChain,
     })
   ).output;
 
-  const prices = (await utils.getPrices([assetAddress], chain)).pricesByAddress;
+  const prices = (await utils.getPrices([assetAddress], cellarChain)).pricesByAddress;
   const price = prices[assetAddress.toLowerCase()];
 
   const total = new BigNumber(totalAssets);

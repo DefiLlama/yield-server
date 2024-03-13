@@ -8,7 +8,7 @@ const RAY_PRECISION = 27;
 const RAY = new BigNumber(10).pow(RAY_PRECISION);
 
 const WMATIC = '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270';
-const ANKRMATIC = `0x0E9b89007eEE9c958c0EDA24eF70723C2C93dD58`
+const ANKRMATIC = `0x0E9b89007eEE9c958c0EDA24eF70723C2C93dD58`;
 const ceaaMATICcAddress = '0xa6aE8F29e0031340eA5dBE11c2DA4466cDe34464';
 const DAVOSJoin = '0x8FCD9542a6Ee0F05f470230da5B8cB41033da6Df';
 const DAVOS = '0xEC38621e72D86775a89C7422746de1f52bbA5320';
@@ -136,15 +136,20 @@ const getApy = async () => {
     await sdk.api.abi.call({
       target: ceaaMATICcAddress,
       abi: 'erc20:balanceOf',
-      params: ["0x29Ded4C99690968562f2D067968aA72b7d46A65D"],
+      params: ['0x29Ded4C99690968562f2D067968aA72b7d46A65D'],
       chain: 'polygon',
     })
   ).output;
 
+  const coins = [
+    `polygon:${DAVOS}`,
+    `polygon:${WMATIC}`,
+    `polygon:${ANKRMATIC}`,
+  ]
+    .join(',')
+    .toLowerCase();
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: [`polygon:${DAVOS}`, `polygon:${WMATIC}`, `polygon:${ANKRMATIC}`],
-    })
+    await superagent.get(`https://coins.llama.fi/prices/current/${coins}`)
   ).body.coins;
 
   const baseRata = baseRataCall.duty;
@@ -152,7 +157,8 @@ const getApy = async () => {
   BigNumber.config({ POW_PRECISION: 100 });
   const stabilityFee = normalizRate.pow(SECONDS_PER_YEAR).minus(1);
   const totalSupplyUsd =
-    (Number(davosTotalSupply) / 1e18) * prices[`polygon:${DAVOS.toLowerCase()}`].price;
+    (Number(davosTotalSupply) / 1e18) *
+    prices[`polygon:${DAVOS.toLowerCase()}`].price;
   const liquidationRatio = new BigNumber(spot.mat).div(1e27);
   return [
     {
@@ -162,20 +168,26 @@ const getApy = async () => {
       chain: 'polygon',
       apy: 0,
       tvlUsd:
-        (Number(collateral) / 1e18) * prices[`polygon:${WMATIC.toLowerCase()}`].price,
+        (Number(collateral) / 1e18) *
+        prices[`polygon:${WMATIC.toLowerCase()}`].price,
       apyBaseBorrow: stabilityFee.toNumber() * 100,
       totalSupplyUsd:
-        (Number(collateral) / 1e18) * prices[`polygon:${WMATIC.toLowerCase()}`].price,
+        (Number(collateral) / 1e18) *
+        prices[`polygon:${WMATIC.toLowerCase()}`].price,
       totalBorrowUsd: totalSupplyUsd,
       ltv: 1 / Number(liquidationRatio.toNumber()),
-      mintedCoin: 'DAVOS',
+      mintedCoin: 'DUSD',
     },
     {
       pool: sDAVOS,
       project: 'davos-protocol',
-      symbol: 'DAVOS',
+      symbol: 'DUSD',
       chain: 'polygon',
-      apy: new BigNumber(davosRate).times(SECONDS_PER_YEAR).div(dMATICTotalSupply).times(100).toNumber(),
+      apy: new BigNumber(davosRate)
+        .times(SECONDS_PER_YEAR)
+        .div(dMATICTotalSupply)
+        .times(100)
+        .toNumber(),
       tvlUsd:
         (Number(dMATICTotalSupply) / 1e18) *
         prices[`polygon:${DAVOS.toLowerCase()}`].price,

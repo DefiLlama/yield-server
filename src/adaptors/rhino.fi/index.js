@@ -117,7 +117,7 @@ const getApy = async () => {
         tvlUsd,
         apyBase,
         symbol: token,
-        url: `${APP_URL}/invest/${token}`
+        url: `${APP_URL}/invest/${token}?utm_source=defillama&utm_medium=listing&utm_campaign=external`
       })
     })
 }
@@ -125,5 +125,5 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: `${APP_URL}/invest`,
+  url: `${APP_URL}/invest?utm_source=defillama&utm_medium=listing&utm_campaign=external`,
 };

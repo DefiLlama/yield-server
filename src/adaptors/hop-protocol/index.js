@@ -1,5 +1,5 @@
 const axios = require('axios');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { default: BigNumber } = require('bignumber.js');
 
 const utils = require('../utils');
@@ -24,8 +24,13 @@ const getApy = async () => {
       const poolAddress = config?.l2SaddleSwap;
       const tokenAddress = config?.l2CanonicalToken;
       const hopTokenAddress = config?.l2HopBridgeToken;
-      const adaptedChain = chain === 'gnosis' ? 'xdai' : chain;
-      console.log(token, chain);
+
+      const adaptedChain =
+        chain === 'gnosis'
+          ? 'xdai'
+          : chain === 'polygonzk'
+          ? 'polygon_zkevm'
+          : chain;
 
       const tokenBalance = (
         await sdk.api.abi.call({
