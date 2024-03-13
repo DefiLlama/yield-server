@@ -82,6 +82,7 @@ const excludeAdaptors = [
   'deri-protocol',
   'frakt',
   'goledo',
+  'archly-v1',
 ];
 
 const excludePools = [
