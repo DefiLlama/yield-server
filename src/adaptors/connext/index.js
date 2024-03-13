@@ -75,12 +75,20 @@ const getApy = async () => {
       domain: '1650553709',
       url: 'https://bridge.connext.network/pool/ETH-on-base',
     },
+    {
+      poolName: 'WETH-nextWETH',
+      adopted: '0x4200000000000000000000000000000000000006',
+      local: '0x609aEfb9FB2Ee8f2FDAd5dc48efb8fA4EE0e80fB',
+      chain: 'mode',
+      domain: '1836016741',
+      url: 'https://bridge.connext.network/pool/ETH-on-mode',
+    },
   ];
   for (const meta of poolsMeta) {
     const yieldStats = await axios.post(`${api}/getYieldData`, {
       domainId: meta.domain,
       tokenAddress: meta.adopted,
-      days: 1,
+      days: 7,
     });
 
     pools.push({
