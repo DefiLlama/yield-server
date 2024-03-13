@@ -14,6 +14,32 @@ async function getResources(account) {
     const res = await utils.getData(url)
     return res
 }
+let cellPrice;
+let aptPrice;
+async function view(payload) {
+
+    try {
+        const data = (await utils.getData(`https://fullnode.mainnet.aptoslabs.com/v1/view`, payload)) || []
+        return data
+    } catch (e) {
+        console.log(e)
+        return null;
+    }
+}
+async function getPoolsAddress() {
+    const payload = {
+        function: `${RESOURCE_CONTRACT}::liquidity_pool::all_pool_addresses`,
+        type_arguments: [],
+        arguments: [],
+    };
+    try {
+        const data = (await utils.getData(`https://fullnode.mainnet.aptoslabs.com/v1/view`, payload)) || []
+        return data[0]
+    } catch (e) {
+        console.log(e)
+        return null;
+    }
+}
 async function getWrapper(address) {
     const payload = {
         function: `${RESOURCE_CONTRACT}::coin_wrapper::get_original`,
@@ -29,19 +55,105 @@ async function getWrapper(address) {
     }
 }
 async function getTokenPrice(tokenAddr) {
+    if (tokenAddr == CELL_fungible_asset_address) return  [await getCELLPrice(aptPrice),'CELL','8']
+    if (tokenAddr.indexOf(":") < 0) {
+        tokenAddr = await getWrapper(tokenAddr)
+    }
     const price = (await utils.getData(`${COINS_LLAMA_PRICE_URL}aptos:${tokenAddr}`))
     // console.log(tokenAddr, price)
     return [price?.coins["aptos:" + tokenAddr]?.price, price?.coins["aptos:" + tokenAddr]?.symbol,
     price?.coins["aptos:" + tokenAddr]?.decimals
     ]
 }
+async function getEpoch() {
+    const payload = {
+        function: `${RESOURCE_CONTRACT}::epoch::now`,
+        type_arguments: [],
+        arguments: [],
+    };
+    const data = await view(payload);
+    return data[0];
+};
 async function main() {
     const aptRes = await utils.getData(`${COINS_LLAMA_PRICE_URL}${APT_PRICE_ID}`)
-    const aptPrice = aptRes['coins'][APT_PRICE_ID]['price']
-    const cellPrice = await getCELLPrice(aptPrice)
-    let poolResource = await getResources("0x4bf51972879e3b95c4781a5cdcb9e1ee24ef483e7d22f2d903626f126df62bd1");
-    const poolsAddresses = poolResource.find(i => i.type.includes('::liquidity_pool::LiquidityPoolConfigs'))?.data.all_pools?.inline_vec
-    return Promise.all(poolsAddresses.map(async ({ inner }) => await calculateRewardApy(inner, aptPrice, cellPrice)));
+     aptPrice = aptRes['coins'][APT_PRICE_ID]['price']
+     cellPrice = await getCELLPrice(aptPrice)
+    // let poolResource = await getResources("0x4bf51972879e3b95c4781a5cdcb9e1ee24ef483e7d22f2d903626f126df62bd1");
+    // const poolsAddresses = poolResource.find(i => i.type.includes('::liquidity_pool::LiquidityPoolConfigs'))?.data.all_pools?.inline_vec
+    let poolsAddresses = await getPoolsAddress()
+
+    let res = [];
+    const pools = await Promise.all(poolsAddresses.map(async ({ inner }) => {
+        let rs = await calculateRewardApy(inner, aptPrice, cellPrice);
+        res.push(rs[0])
+        res.push(rs[1])
+    }));
+    // let voteRewards = await Promise.all(poolsAddresses.map(async ({ inner }) => await caculatorVoteApr(inner, aptPrice, cellPrice)));
+
+    return [...res];
+
+}
+async function getCurrentVotes   (poolAddress ) {
+    try {
+        const payload = {
+            function: `${RESOURCE_CONTRACT}::vote_manager::current_votes`,
+            type_arguments: [],
+            arguments: [poolAddress],
+        };
+        const data = await view(payload);
+        return data[0];
+    } catch (e) {
+        return 0;
+    }
+};
+async function caculatorVoteApr(poolAddress, aptPrice, cellPrice,symbol) {
+    let epoch = await getEpoch()
+    let feesAddress = await getFeesAddress(poolAddress)
+    let bribeAddress = await getBribeAddress(poolAddress)
+    let feeReward = await fetchRewards(feesAddress, epoch)
+    let bribeReward = await fetchRewards(bribeAddress, epoch)
+    let votes = await getCurrentVotes(poolAddress)//total STAKED CELL 
+    // console.log({ epoch, feesAddress, bribeAddress,votes })
+    //tbv is  fees protocol per week for reward
+    let tbv = 0;
+    if (feeReward && feeReward.data) {
+        //calculator quote rewards
+        for (const result of feeReward.data) {
+            let price = 0
+            if (result.key.inner == CELL_fungible_asset_address) price = cellPrice
+            else price = (await getTokenPrice(result.key.inner))[0]
+            // console.log(result.key.inner,{ price })
+            const quoteReward = (result.value / 10 ** 8) * price;
+            tbv += quoteReward;
+        }
+    }
+    if (bribeReward && bribeReward.data) {
+        for (const result of bribeReward.data) {
+            let price = 0
+            if (result.key.inner == CELL_fungible_asset_address) price = cellPrice
+            else price = (await getTokenPrice(result.key.inner))[0]
+
+            const quoteReward = (result.value / 10 ** 8) * price;
+            tbv += quoteReward;
+        }
+    }
+    let tvlUSD = (votes / 10 ** 8) * cellPrice;
+    //
+    let apr =
+        ((tbv * 52) / tvlUSD) * 100;
+    
+    const res = {
+        pool: `cellana-finance-${utils.formatSymbol("CELL")}(${symbol})`,
+        chain: utils.formatChain('aptos'),
+        project: 'cellana-finance',
+        symbol: utils.formatSymbol("CELL")+`(${symbol})`,
+        tvlUsd: tvlUSD,
+        apyBase: 0,
+        apyReward: apr,
+        rewardTokens: [CELL_fungible_asset_address]
+    }
+    return res;
+
 
 }
 async function getReserve(lpAddress) {
@@ -64,7 +176,7 @@ async function getReserve(lpAddress) {
 
 }
 
-async function getCELLPrice(aptosPrice) {
+async function getCELLPrice(aptPrice) {
     const balances = {}
     const data = await getResources('0x4bf51972879e3b95c4781a5cdcb9e1ee24ef483e7d22f2d903626f126df62bd1')
     const poolsAddresses = data.find(i => i.type.includes('::liquidity_pool::LiquidityPoolConfigs'))?.data.all_pools?.inline_vec
@@ -82,26 +194,19 @@ async function getCELLPrice(aptosPrice) {
             //caculator CELL price
             if (token_2_address == APT_fungible_asset_address) {
                 const apt_balance = fungibleAssetTokenStore_2?.balance;
-                const cell_price = (new BigNumber(apt_balance)).div(new BigNumber(cell_balance)).toNumber() * aptosPrice
-                return cell_price
-
+                const cellPrice = (new BigNumber(apt_balance)).div(new BigNumber(cell_balance)).toNumber() * aptPrice
+                return cellPrice
             }
 
         } else if (token_2_address == CELL_fungible_asset_address) {
             const cell_balance = fungibleAssetTokenStore_2?.balance;
             if (token_1_address == APT_fungible_asset_address) {
                 const apt_balance = fungibleAssetTokenStore_1?.balance;
-                const cell_price = (new BigNumber(apt_balance)).div(new BigNumber(cell_balance)).toNumber() * aptosPrice
-                return cell_price
-
+                const cellPrice = (new BigNumber(apt_balance)).div(new BigNumber(cell_balance)).toNumber() * aptPrice
+                return cellPrice
             }
-
         }
-
-
     }
-
-
 }
 
 async function getGaugeAddress(poolAddress) {
@@ -127,7 +232,6 @@ async function getRewardsPool(gaugeAddress) {
             arguments: [gaugeAddress],
         };
         const data = (await utils.getData(`https://fullnode.mainnet.aptoslabs.com/v1/view`, payload)) || []
-
         return data[0]?.inner;
     } catch (e) {
 
@@ -136,6 +240,35 @@ async function getRewardsPool(gaugeAddress) {
     }
 
 };
+getFeesAddress = async (poolAddress) => {
+    try {
+        const payload = {
+            function: `${RESOURCE_CONTRACT}::vote_manager::fees_pool`,
+            type_arguments: [],
+            arguments: [poolAddress],
+        };
+        const data = await view(payload);
+        return data[0].inner
+    } catch (e) {
+        console.log('getFeesAddress error: ' + e);
+        return null;
+    }
+};
+getBribeAddress = async (poolAddress) => {
+    try {
+        const payload = {
+            function: `${RESOURCE_CONTRACT}::vote_manager::incentive_pool`,
+            type_arguments: [],
+            arguments: [poolAddress],
+        };
+        const data = await view(payload);
+        return data[0].inner;
+    } catch (e) {
+        console.log('getBribeAddress error: ' + e);
+        return null;
+    }
+};
+
 async function getRewardRate(poolAddress) {
     try {
         const payload = {
@@ -158,7 +291,7 @@ async function calculateRewardApy(poolAddress, aptPrice, cellPrice) {
     let gauge = await getGaugeAddress(poolAddress)
     let rewardPoolAddress = await getRewardsPool(gauge)
     let rewardperSecond = await getRewardRate(rewardPoolAddress)
-    let rewardPerDay = (new BigNumber(rewardperSecond)).div((new BigNumber(10)).pow(8)).toNumber() * 24*60*60
+    let rewardPerDay = (new BigNumber(rewardperSecond)).div((new BigNumber(10)).pow(8)).toNumber() * 24 * 60 * 60
     let { reserve0, reserve1, reserve0Address, reserve1Address } = await getReserve(poolAddress)
     let price0, price1, coinSymbol0, coinSymbol1, decimals1, decimals0;
     if (reserve0Address == CELL_fungible_asset_address) {
@@ -177,15 +310,15 @@ async function calculateRewardApy(poolAddress, aptPrice, cellPrice) {
         [price0, coinSymbol0, decimals0] = await getTokenPrice(reserve0Address);
         [price1, coinSymbol1, decimals1] = await getTokenPrice(reserve1Address)
     }
-
+    // console.log({coinSymbol0,coinSymbol1})
     const coinSymbol = `${coinSymbol0}-${coinSymbol1}`
     const reserve0Value = (new BigNumber(reserve0)).div((new BigNumber(10)).pow(decimals0)).toNumber() * price0
     const reserve1Value = (new BigNumber(reserve1)).div((new BigNumber(10)).pow(decimals1)).toNumber() * price1
     const total = reserve0Value + reserve1Value;
-    let apyReward = calcAptRewardApy(rewardPerDay,cellPrice,total,)
+    let apyReward = calcAptRewardApy(rewardPerDay, cellPrice, total,)
 
 
-    const res = {
+    const lpPool = {
         pool: `cellana-finance-${utils.formatSymbol(coinSymbol)}`,
         chain: utils.formatChain('aptos'),
         project: 'cellana-finance',
@@ -193,18 +326,34 @@ async function calculateRewardApy(poolAddress, aptPrice, cellPrice) {
         tvlUsd: total,
         apyBase: 0,
         apyReward: apyReward,
-        rewardTokens : [CELL_fungible_asset_address]
+        rewardTokens: [CELL_fungible_asset_address]
     }
-    return res;
+    let votesPool = await caculatorVoteApr(poolAddress, aptPrice, cellPrice, utils.formatSymbol(coinSymbol))
+    const rs = [lpPool,votesPool]
+    return rs;
 }
-
-
-
-
-
 function calcAptRewardApy(rewardPerDay, rewardPrice, tvl) {
-    return (rewardPerDay * 365 * rewardPrice / tvl )* 100
+    return (rewardPerDay * 365 * rewardPrice / tvl) * 100
 }
+//vote reward
+fetchRewards = async (
+    address,
+    epoch,
+) => {
+    try {
+        const payload = {
+            function: `${RESOURCE_CONTRACT}::rewards_pool::total_rewards`,
+            type_arguments: [],
+            arguments: [address, epoch + ''],
+        };
+        const data = await view(payload);
+        return data[0]
+    } catch (e) {
+        console.log(e);
+        return null;
+    }
+}
+
 
 module.exports = {
     timetravel: false,
