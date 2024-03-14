@@ -9,9 +9,8 @@ const interestRateModel =
   '0x59a943ca214c10234b9a3b61c558ac20c005127d183b86a99a8f3c60a08b4ff';
 const oracle =
   '0x07b05e8dc9c770b72befcf09599132093cf9e57becb2d1b3e89514e1f9bdf0ab';
-const markets = [
-  {
-    name: 'WBTC',
+const markets = {
+  WBTC: {
     address:
       '0x03fe2b97c1fd336e750087d68b9b867997fd64a2661ff3ca5a7c771641e8e7ac',
     decimals: 8,
@@ -24,8 +23,7 @@ const markets = [
     debtToken:
       '0x0491480f21299223b9ce770f23a2c383437f9fbf57abc2ac952e9af8cdb12c97',
   },
-  {
-    name: 'ETH',
+  ETH: {
     address:
       '0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7',
     decimals: 18,
@@ -38,8 +36,7 @@ const markets = [
     debtToken:
       '0x00ba3037d968790ac486f70acaa9a1cab10cf5843bb85c986624b4d0e5a82e74',
   },
-  {
-    name: 'USDC',
+  USDC: {
     address:
       '0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8',
     decimals: 6,
@@ -52,8 +49,7 @@ const markets = [
     debtToken:
       '0x063d69ae657bd2f40337c39bf35a870ac27ddf91e6623c2f52529db4c1619a51',
   },
-  {
-    name: 'DAI',
+  DAI: {
     address:
       '0x00da114221cb83fa859dbdb4c44beeaa0bb37c7537ad5ae66fe5e0efd20e6eb3',
     decimals: 18,
@@ -66,8 +62,7 @@ const markets = [
     debtToken:
       '0x066037c083c33330a8460a65e4748ceec275bbf5f28aa71b686cbc0010e12597',
   },
-  {
-    name: 'USDT',
+  USDT: {
     address:
       '0x068f5c6a61780768455de69077e07e89787839bf8166decfbf92b645209c0fb8',
     decimals: 6,
@@ -80,8 +75,7 @@ const markets = [
     debtToken:
       '0x024e9b0d6bc79e111e6872bb1ada2a874c25712cf08dfc5bcf0de008a7cca55f',
   },
-  {
-    name: 'wstETH',
+  wstETH: {
     address:
       '0x042b8f0484674ca266ac5d08e4ac6a3fe65bd3129795def2dca5c34ecc5f96d2',
     decimals: 18,
@@ -94,8 +88,7 @@ const markets = [
     debtToken:
       '0x0348cc417fc877a7868a66510e8e0d0f3f351f5e6b0886a86b652fcb30a3d1fb',
   },
-  {
-    name: 'LORDS',
+  LORDS: {
     address:
       '0x0124aeb495b947201f5fac96fd1138e326ad86195b98df6dec9009158a533b49',
     decimals: 18,
@@ -108,8 +101,7 @@ const markets = [
     debtToken:
       '0x035778d24792bbebcf7651146896df5f787641af9e2a3db06480a637fbc9fff8',
   },
-  {
-    name: 'STRK',
+  STRK: {
     address:
       '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d',
     decimals: 18,
@@ -122,10 +114,27 @@ const markets = [
     debtToken:
       '0x001258eae3eae5002125bebf062d611a772e8aea3a1879b64a19f363ebd00947',
   },
-];
+  nstSTRK: {
+    address:
+      '0x04619e9ce4109590219c5263787050726be63382148538f3f936c22aa87d2fc2',
+    decimals: 18,
+    supplyTokens: [
+      '0x078a40c85846e3303bf7982289ca7def68297d4b609d5f588208ac553cff3a18',
+      '0x067a34ff63ec38d0ccb2817c6d3f01e8b0c4792c77845feb43571092dcf5ebb5',
+      '0x04b11c750ae92c13fdcbe514f9c47ba6f8266c81014501baa8346d3b8ba55342',
+      '0x0142af5b6c97f02cac9c91be1ea9895d855c5842825cb2180673796e54d73dc5',
+    ],
+    debtToken:
+      '0x0292be6baee291a148006db984f200dbdb34b12fb2136c70bfe88649c12d934b',
+  },
+};
+const starknetFoundationIncentivesEndpoint =
+  'https://kx58j6x5me.execute-api.us-east-1.amazonaws.com/starknet/fetchFile?file=qa_lending_strk_grant.json';
 
 async function getTokenPrice(token) {
-  const networkTokenPair = `starknet:${token}`;
+  const underlyingToken =
+    token === markets.nstSTRK.address ? markets.STRK.address : token;
+  const networkTokenPair = `starknet:${underlyingToken}`;
   return (
     await axios.get(`https://coins.llama.fi/prices/current/${networkTokenPair}`)
   ).data.coins[networkTokenPair].price;
@@ -153,6 +162,11 @@ async function getApys(debtToken) {
   ];
 }
 
+async function getStarknetFoundationIncentives() {
+  const { data } = await axios.get(starknetFoundationIncentivesEndpoint);
+  return data['Nostra'];
+}
+
 async function getSupply(tokens) {
   const supplies = await Promise.all(
     tokens.map(
@@ -172,15 +186,18 @@ async function getSupply(tokens) {
 }
 
 async function apy() {
+  const incentives = await getStarknetFoundationIncentives();
+
   return Promise.all(
-    markets.map(
-      async ({ name, address, decimals, supplyTokens, debtToken }) => {
+    Object.entries(markets).map(
+      async ([name, { address, decimals, supplyTokens, debtToken }]) => {
         const price = await getTokenPrice(address);
         const totalSupply = await getSupply(supplyTokens);
         const totalBorrow = await getSupply([debtToken]);
         const totalSupplyUsd = (totalSupply * price) / 10 ** decimals;
         const totalBorrowUsd = (totalBorrow * price) / 10 ** decimals;
         const [lendingApy, borrowApy] = await getApys(debtToken);
+        const tokenIncentive = incentives[name];
 
         return {
           pool: debtToken.toLowerCase(),
@@ -188,6 +205,11 @@ async function apy() {
           symbol: name,
           chain: 'Starknet',
           apyBase: lendingApy,
+          apyReward: tokenIncentive
+            ? 100 *
+              tokenIncentive[tokenIncentive.length - 1]['strk_grant_apr_nrs']
+            : 0,
+          rewardTokens: tokenIncentive ? [markets.STRK.address] : [],
           tvlUsd: totalSupplyUsd - totalBorrowUsd,
           underlyingTokens: [address],
           apyBaseBorrow: borrowApy,
