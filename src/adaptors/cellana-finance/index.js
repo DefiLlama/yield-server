@@ -55,12 +55,15 @@ async function getWrapper(address) {
     }
 }
 async function getTokenPrice(tokenAddr) {
-    if (tokenAddr == CELL_fungible_asset_address) return  [await getCELLPrice(aptPrice),'CELL','8']
+    if (tokenAddr == CELL_fungible_asset_address) return [await getCELLPrice(aptPrice), 'CELL', '8']
     if (tokenAddr.indexOf(":") < 0) {
         tokenAddr = await getWrapper(tokenAddr)
     }
     const price = (await utils.getData(`${COINS_LLAMA_PRICE_URL}aptos:${tokenAddr}`))
-    // console.log(tokenAddr, price)
+    if (!price || !price.coins || !price.coins["aptos:" + tokenAddr]?.symbol) {
+        let name = tokenAddr.split('::');
+        return [null,name[2],null]
+    }
     return [price?.coins["aptos:" + tokenAddr]?.price, price?.coins["aptos:" + tokenAddr]?.symbol,
     price?.coins["aptos:" + tokenAddr]?.decimals
     ]
@@ -86,9 +89,8 @@ async function main() {
     const pools = await Promise.all(poolsAddresses.map(async ({ inner }) => {
         let rs = await calculateRewardApy(inner, aptPrice, cellPrice);
         res.push(rs[0])
-        res.push(rs[1])
+        // res.push(rs[1])
     }));
-    // let voteRewards = await Promise.all(poolsAddresses.map(async ({ inner }) => await caculatorVoteApr(inner, aptPrice, cellPrice)));
 
     return [...res];
 
@@ -106,56 +108,6 @@ async function getCurrentVotes   (poolAddress ) {
         return 0;
     }
 };
-async function caculatorVoteApr(poolAddress, aptPrice, cellPrice,symbol) {
-    let epoch = await getEpoch()
-    let feesAddress = await getFeesAddress(poolAddress)
-    let bribeAddress = await getBribeAddress(poolAddress)
-    let feeReward = await fetchRewards(feesAddress, epoch)
-    let bribeReward = await fetchRewards(bribeAddress, epoch)
-    let votes = await getCurrentVotes(poolAddress)//total STAKED CELL 
-    // console.log({ epoch, feesAddress, bribeAddress,votes })
-    //tbv is  fees protocol per week for reward
-    let tbv = 0;
-    if (feeReward && feeReward.data) {
-        //calculator quote rewards
-        for (const result of feeReward.data) {
-            let price = 0
-            if (result.key.inner == CELL_fungible_asset_address) price = cellPrice
-            else price = (await getTokenPrice(result.key.inner))[0]
-            // console.log(result.key.inner,{ price })
-            const quoteReward = (result.value / 10 ** 8) * price;
-            tbv += quoteReward;
-        }
-    }
-    if (bribeReward && bribeReward.data) {
-        for (const result of bribeReward.data) {
-            let price = 0
-            if (result.key.inner == CELL_fungible_asset_address) price = cellPrice
-            else price = (await getTokenPrice(result.key.inner))[0]
-
-            const quoteReward = (result.value / 10 ** 8) * price;
-            tbv += quoteReward;
-        }
-    }
-    let tvlUSD = (votes / 10 ** 8) * cellPrice;
-    //
-    let apr =
-        ((tbv * 52) / tvlUSD) * 100;
-    
-    const res = {
-        pool: `cellana-finance-${utils.formatSymbol("CELL")}(${symbol})`,
-        chain: utils.formatChain('aptos'),
-        project: 'cellana-finance',
-        symbol: utils.formatSymbol("CELL")+`(${symbol})`,
-        tvlUsd: tvlUSD,
-        apyBase: 0,
-        apyReward: apr,
-        rewardTokens: [CELL_fungible_asset_address]
-    }
-    return res;
-
-
-}
 async function getReserve(lpAddress) {
 
     const fungibleAssetPoolStore = (await getResources(lpAddress)).find(i => i.type.includes('liquidity_pool::LiquidityPool'))?.data
@@ -310,10 +262,11 @@ async function calculateRewardApy(poolAddress, aptPrice, cellPrice) {
         [price0, coinSymbol0, decimals0] = await getTokenPrice(reserve0Address);
         [price1, coinSymbol1, decimals1] = await getTokenPrice(reserve1Address)
     }
-    // console.log({coinSymbol0,coinSymbol1})
     const coinSymbol = `${coinSymbol0}-${coinSymbol1}`
-    const reserve0Value = (new BigNumber(reserve0)).div((new BigNumber(10)).pow(decimals0)).toNumber() * price0
-    const reserve1Value = (new BigNumber(reserve1)).div((new BigNumber(10)).pow(decimals1)).toNumber() * price1
+    let reserve0Value = (new BigNumber(reserve0)).div((new BigNumber(10)).pow(decimals0)).toNumber() * price0
+    let reserve1Value = (new BigNumber(reserve1)).div((new BigNumber(10)).pow(decimals1)).toNumber() * price1
+    if (!reserve0Value) reserve0Value = reserve1Value
+    if (!reserve1Value) reserve1Value = reserve0Value
     const total = reserve0Value + reserve1Value;
     let apyReward = calcAptRewardApy(rewardPerDay, cellPrice, total,)
 
@@ -328,8 +281,7 @@ async function calculateRewardApy(poolAddress, aptPrice, cellPrice) {
         apyReward: apyReward,
         rewardTokens: [CELL_fungible_asset_address]
     }
-    let votesPool = await caculatorVoteApr(poolAddress, aptPrice, cellPrice, utils.formatSymbol(coinSymbol))
-    const rs = [lpPool,votesPool]
+    const rs = [lpPool]
     return rs;
 }
 function calcAptRewardApy(rewardPerDay, rewardPrice, tvl) {
