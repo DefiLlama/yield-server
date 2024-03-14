@@ -46,6 +46,7 @@ const apy = async () => {
     const tvlUsd = (marketStatus.totalCash / 10 ** decimals) * price;
     const apyBase = calculateApy(marketStatus.supplyRate);
     const underlyingTokens = [marketStatus.market];
+    const apyBaseBorrow = calculateApy(marketStatus.borrowRate);
     const totalSupplyUsd = (marketStatus.totalSupply / 10 ** decimals) * price;
     const totalBorrowUsd = (marketStatus.totalBorrow / 10 ** decimals) * price;
     const ltv = marketMetadata.collateralFactor / 10 ** 4;
@@ -58,6 +59,7 @@ const apy = async () => {
       tvlUsd,
       apyBase,
       underlyingTokens,
+      apyBaseBorrow,
       totalSupplyUsd,
       totalBorrowUsd,
       ltv,
