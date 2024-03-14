@@ -10,8 +10,8 @@ const { boundaries } = require('../../utils/exclude');
 const baseUrl = 'https://api.thegraph.com/subgraphs/name';
 const chains = {
   ethereum: `${baseUrl}/uniswap/uniswap-v3`,
-  polygon: `${baseUrl}/ianlapham/uniswap-v3-polygon`,
-  arbitrum: `${baseUrl}/ianlapham/arbitrum-dev`,
+  polygon: `https://gateway-arbitrum.network.thegraph.com/api/a265c39f5a123ab2d40b25dc352adc22/subgraphs/id/3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm`,
+  arbitrum: `https://api.thegraph.com/subgraphs/id/QmZ5uwhnwsJXAQGYEF8qKPQ85iVhYAcVZcZAPfrF7ZNb9z`,
   optimism: `${baseUrl}/ianlapham/optimism-post-regenesis`,
   celo: `${baseUrl}/jesse-sawa/uniswap-celo`,
   avax: `${baseUrl}/lynnshaoyu/uniswap-v3-avax`,
