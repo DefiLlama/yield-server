@@ -83,6 +83,7 @@ const excludeAdaptors = [
   'frakt',
   'goledo',
   'archly-v1',
+  'polytrade',
 ];
 
 const excludePools = [
