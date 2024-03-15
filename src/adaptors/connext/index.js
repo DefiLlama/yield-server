@@ -224,7 +224,8 @@ const URL_FORMATTED_CHAINS = {
 
 const constructPoolUrl = (poolName, chain) => {
   const symbol = POOL_TOKEN_SYMBOLS[poolName].toUpperCase();
-  return `https://bridge.connext.network/pool/${symbol}-on-${URL_FORMATTED_CHAINS[chain]}`;
+  const urlFormattedChain = URL_FORMATTED_CHAINS[chain];
+  return `https://bridge.connext.network/pool/${symbol}-on-${urlFormattedChain}`;
 }
 
 const getApy = async () => {
