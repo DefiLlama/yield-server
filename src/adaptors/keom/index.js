@@ -66,8 +66,8 @@ async function main() {
       const ltv = await comptroller.markets(market);
 
       const marketData = {
-        pool: market,
-        project: 'keom',
+        pool: `${market}-${chain}`,
+        project: 'keom-protocol',
         symbol: APYS.symbol.slice(1) === "Native" ? "ETH" : APYS.symbol.slice(1),
         chain: chain,
         apyBase: APYS.supplyAPY,
