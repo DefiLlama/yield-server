@@ -7,10 +7,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@balancer-labs/sdk": "1.1.4-beta.17",
+    "@balancer-labs/sdk": "^1.1.5",
     "@defillama/sdk": "^2.3.126",
-    "@defillama/sdk3": "npm:@defillama/sdk@^3.0.9",
-    "@defillama/sdk4": "npm:@defillama/sdk@^4.0.43",
+    "@defillama/sdk5": "npm:@defillama/sdk@^5.0.37",
     "@types/jest": "^28.1.6",
     "@uniswap/sdk-core": "^3.0.1",
     "@uniswap/smart-order-router": "^2.8.0",

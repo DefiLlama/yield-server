@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk5');
 const axios = require('axios');
 
 const utils = require('../utils');
@@ -12,8 +12,7 @@ const voter = '0x46ABb88Ae1F2a35eA559925D99Fdc5441b592687';
 const SCALE = '0x54016a4848a38f257B6E96331F7404073Fd9c32C';
 
 const getApy = async () => {
-
-//We are looking for the pools that have gauge rewards, NOT the raw trade fee rewards
+  //We are looking for the pools that have gauge rewards, NOT the raw trade fee rewards
   const allPairsLength = (
     await sdk.api.abi.call({
       target: voter,
@@ -22,7 +21,7 @@ const getApy = async () => {
     })
   ).output;
 
-  console.log("allPairsLength",allPairsLength);
+  console.log('allPairsLength', allPairsLength);
 
   const allPairs = (
     await sdk.api.abi.multiCall({

@@ -1,7 +1,7 @@
 const superagent = require('superagent');
 
 const abi = require('./abi.js');
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk5');
 
 const markets = [
   {
@@ -220,7 +220,10 @@ const main = async (pool) => {
   return [
     ...collateralOnlyPools,
     {
-      pool: pool.address === "0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf"?`${pool.address}-${pool.chain}`:pool.address, // Fix for duplicated pool id
+      pool:
+        pool.address === '0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf'
+          ? `${pool.address}-${pool.chain}`
+          : pool.address, // Fix for duplicated pool id
       symbol: pool.underlyingSymbol,
       chain: pool.chain.charAt(0).toUpperCase() + pool.chain.slice(1),
       project: 'compound-v3',
