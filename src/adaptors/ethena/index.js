@@ -50,7 +50,7 @@ const apy = async () => {
       target: '0x9D39A5DE30e57443BfF2A8307A4256c8797A3497',
       topic: '',
       toBlock,
-      fromBlock,
+      fromBlock: 19026137,
       keys: [],
       topics: [topic],
       chain: 'ethereum',
@@ -66,10 +66,14 @@ const apy = async () => {
 
   // extract the week
   logs = logs.map((i) => ({ ...i, week: getWeekNb(i.timestamp) }));
-
-  // sum up all received rewards within the latest week
-  const maxWeek = Math.max(...logs.map((i) => i.week));
-  const rewardsReceived = logs.filter((i) => i.week === maxWeek);
+  // note: ethena changed the frequeny of rewards being send to the contract
+  // from weekly to every ~8h breaking the current calculation here.
+  // for now i'll default to using the previous weeks rewards (as these are complete).
+  // once enough
+  const previousWeek = [...new Set(logs.map((i) => i.week))].sort(
+    (a, b) => b - a
+  )[1];
+  const rewardsReceived = logs.filter((i) => i.week === previousWeek);
   const rewardsReceivedSum = rewardsReceived.reduce(
     (acc, i) => acc + parseInt(i.data / 1e18),
     0
