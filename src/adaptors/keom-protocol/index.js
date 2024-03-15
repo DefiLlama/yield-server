@@ -8,8 +8,9 @@ const {
 } = require('./Abis');
 const { PROVIDERS } = require('./Provider');
 const sdk = require('@defillama/sdk');
-const BigNumber = require('bignumber.js');
 const axios = require('axios');
+const decimals = ethers.utils.parseEther("1");
+const BN = ethers.BigNumber.from;
 
 const chains = {
   polygon: {
@@ -33,7 +34,7 @@ const chains = {
     wnative: '0x0Dc808adcE2099A9F62AA87D9670745AbA741746',
   },
   isolated_manta_stone: {
-    comptroller: '0x19621d19B40C978A479bd35aFB3740F90B7b0fE4',
+    comptroller: '0xBAc1e5A0B14490Dd0b32fE769eb5637183D8655d',
     oracle: '0xfD01946C35C98D71A355B8FF18d9E1697b2dd2Ea',
     wnative: '0x0Dc808adcE2099A9F62AA87D9670745AbA741746',
   },
@@ -74,7 +75,7 @@ async function main() {
       const marketData = {
         pool: `${market}-${chain}`,
         project: 'keom-protocol',
-        symbol: APYS.symbol.slice(1),
+        symbol: APYS.symbol.slice(1) === "Native" ? "ETH" : APYS.symbol.slice(1),
         chain: chain,
         apyBase: APYS.supplyAPY,
         tvlUsd: tvl.tvlUsd,
@@ -136,41 +137,38 @@ async function getErc20Balances(strategy, oracleAddress, provider, chain) {
   let native = false;
   let _address = '';
   try {
-    _address = await oTokenContract.underlying();
-    const _token = new ethers.Contract(_address, erc20ABI, provider);
+     _address = await oTokenContract.underlying()
+    const _token = new ethers.Contract(
+      _address,
+      erc20ABI,
+      provider
+    );
     underlyingDecimals = await _token.decimals();
   } catch (error) {
     native = true;
   }
 
+
   // retrieve the oracle contract
   const oracle = new ethers.Contract(oracleAddress, oracleABI, provider);
 
   // get the underlying price of the asset from the oracle
-  let oracleUnderlyingPrice = 0;
-  let apiPrice = false;
+  let oracleUnderlyingPrice = BN("0");
+  let apiPrice = 0;
   try {
-    const price = Number(await oracle.getUnderlyingPrice(strategy));
-    oracleUnderlyingPrice = price;
+    const price =  await oracle.getUnderlyingPrice(strategy)
+    oracleUnderlyingPrice = price
   } catch (error) {
-    apiPrice = true;
-    if (native) {
+    if(native) {
       const prices = (
-        await axios.get(
-          `https://coins.llama.fi/prices/current/${chain}:${chains[chain].wnative} `
-        )
+        await axios.get(`https://coins.llama.fi/prices/current/${chain}:${chains[chain].wnative} `)
       ).data.coins;
-
-      oracleUnderlyingPrice = Number(
-        prices[`${chain}:${chains[chain].wnative}`]?.price
-      );
+      apiPrice = prices[`${chain}:${chains[chain].wnative}`]?.price;
     } else {
       const prices = (
-        await axios.get(
-          `https://coins.llama.fi/prices/current/${chain}:${_address} `
-        )
+        await axios.get(`https://coins.llama.fi/prices/current/${chain}:${_address} `)
       ).data.coins;
-      oracleUnderlyingPrice = Number(prices[`${chain}:${_address}`]?.price);
+      apiPrice = prices[`${chain}:${_address}`]?.price;
     }
   }
 
@@ -203,22 +201,20 @@ function convertTvlUSD(
   oracleUnderlyingPrice,
   apiPrice
 ) {
-  let totalSupplyUsd =
-    (((totalSupply * exchangeRateStored) / 10 ** (18 + underlyingDecimals)) *
-      oracleUnderlyingPrice) /
-    10 ** (36 - underlyingDecimals);
+  let totalSupplyUsd = 0;
+  let totalBorrowsUsd = 0;
 
-  let totalBorrowsUsd =
-    (totalBorrows * oracleUnderlyingPrice) / 10 ** (18 + underlyingDecimals);
-
-  if (apiPrice) {
-    totalSupplyUsd =
-      ((totalSupply * exchangeRateStored) / 10 ** (18 + underlyingDecimals)) *
-      oracleUnderlyingPrice;
-    totalBorrowsUsd =
-      (totalBorrows / 10 ** underlyingDecimals) * oracleUnderlyingPrice;
+  if(!oracleUnderlyingPrice.isZero()) {
+    let supplyUSD = exchangeRateStored.mul(oracleUnderlyingPrice).div(decimals).mul(totalSupply).div(decimals);
+    let borrowUSD = totalBorrows.mul(oracleUnderlyingPrice).div(decimals);
+    totalSupplyUsd = Number(ethers.utils.formatEther(supplyUSD));
+    totalBorrowsUsd = Number(ethers.utils.formatEther(borrowUSD));
+  } else {
+    let supplyUSD = ethers.utils.formatUnits(exchangeRateStored.mul(totalSupply).div(decimals), underlyingDecimals);
+    let borrowUSD = ethers.utils.formatUnits(totalBorrows, underlyingDecimals);
+    totalSupplyUsd = Number(supplyUSD) * apiPrice;
+    totalBorrowsUsd = Number(borrowUSD) * apiPrice;
   }
-
   const tvlUsd = totalSupplyUsd - totalBorrowsUsd;
 
   return { totalSupplyUsd, totalBorrowsUsd, tvlUsd };
