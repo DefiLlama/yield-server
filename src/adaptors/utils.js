@@ -102,9 +102,24 @@ const getLatestBlockSubgraph = async (url) => {
     url.includes('api.goldsky.com') ||
     url.includes('48211/uniswap-v3-base') ||
     url.includes('horizondex/block') ||
+    url.includes('pancake-swap.workers.dev') ||
+    url.includes('pancakeswap/exchange-v3-linea') ||
     url.includes('exchange-v3-polygon-zkevm/version/latest') ||
-    url.includes('exchange-v3-zksync/version/latest')
+    url.includes('exchange-v3-zksync/version/latest') ||
+    url.includes('balancer-base-v2/version/latest') ||
+    url.includes('horizondex') ||
+    url.includes(
+      'https://api.thegraph.com/subgraphs/id/QmZ5uwhnwsJXAQGYEF8qKPQ85iVhYAcVZcZAPfrF7ZNb9z'
+    ) ||
+    url.includes(
+      'https://gateway-arbitrum.network.thegraph.com/api/a265c39f5a123ab2d40b25dc352adc22/subgraphs/id/3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm'
+    )
       ? await request(url, queryGraph)
+      : url.includes('aperture/uniswap-v3')
+      ? await request(
+          'https://api.goldsky.com/api/public/project_clnz7akg41cv72ntv0uhyd3ai/subgraphs/aperture/manta-pacific-blocks/gn',
+          queryGraph
+        )
       : await request(
           `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
           queryGraph
@@ -207,9 +222,6 @@ exports.tvl = async (dataNow, networkString) => {
   for (const el of dataNowCopy) {
     let price0 = prices[`${networkString}:${el.token0.id}`]?.price;
     let price1 = prices[`${networkString}:${el.token1.id}`]?.price;
-
-    price0 = price0 !== undefined ? Number(price0.toFixed(precision)) : price0;
-    price1 = price1 !== undefined ? Number(price1.toFixed(precision)) : price1;
 
     if (price0 !== undefined && price1 !== undefined) {
       tvl = Number(el.reserve0) * price0 + Number(el.reserve1) * price1;
@@ -419,3 +431,16 @@ const makeMulticall = async (abi, addresses, chain, params = null) => {
 };
 
 exports.makeMulticall = makeMulticall;
+
+const capitalizeFirstLetter = (str) => {
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
+
+exports.capitalizeFirstLetter = capitalizeFirstLetter;
+
+exports.removeDuplicates = (pools) => {
+  const seen = {};
+  return pools.filter((i) => {
+    return seen.hasOwnProperty(i.pool) ? false : (seen[i.pool] = true);
+  });
+};

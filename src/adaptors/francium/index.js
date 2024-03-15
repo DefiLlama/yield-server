@@ -2,7 +2,7 @@ const axios = require('axios');
 const utils = require('../utils');
 
 const FARM_FEE = 0.04;
-const apiBase = 'https://francium.io/'
+const apiBase = 'https://francium-data.s3-us-west-2.amazonaws.com/'
 
 function getFarmPoolAPY(target) {
   function aprToApy(apr, n = 365) {
@@ -16,20 +16,20 @@ function getFarmPoolAPY(target) {
 
 async function getPoolsData() {
   const [{data: farmPoolData}, {data: lendPoolData}] = await Promise.all([
-    axios.get(apiBase + 'api/pools/latest'),
-    axios.get(apiBase + 'api/lend/latest'),
+    axios.get(apiBase + 'pools/latest.json'),
+    axios.get(apiBase + 'lend/latest.json'),
   ])
 
-  if ( !farmPoolData.data || !lendPoolData.data ) {
-    console.log({farmPoolData, lendPoolData});
+  if ( !farmPoolData || !lendPoolData ) {
+    // console.log({farmPoolData, lendPoolData});
     throw new Error('Unexpected response from frcPoolsData');
     return
   }
 
   const pools = [];
 
-  const latestFarmPools = farmPoolData.data.filter(item => item.poolId)
-  const latestLendPools = lendPoolData.data.filter(item => item.poolId)
+  const latestFarmPools = farmPoolData.filter(item => item.poolId)
+  const latestLendPools = lendPoolData.filter(item => item.poolId)
 
   latestFarmPools.forEach(item => {
     pools.push({

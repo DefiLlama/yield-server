@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk5');
 const { request, gql } = require('graphql-request');
 const superagent = require('superagent');
 
@@ -10,8 +10,8 @@ const { boundaries } = require('../../utils/exclude');
 const baseUrl = 'https://api.thegraph.com/subgraphs/name';
 const chains = {
   ethereum: `${baseUrl}/uniswap/uniswap-v3`,
-  polygon: `${baseUrl}/ianlapham/uniswap-v3-polygon`,
-  arbitrum: `${baseUrl}/ianlapham/arbitrum-dev`,
+  polygon: `https://gateway-arbitrum.network.thegraph.com/api/a265c39f5a123ab2d40b25dc352adc22/subgraphs/id/3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm`,
+  arbitrum: `https://api.thegraph.com/subgraphs/id/QmZ5uwhnwsJXAQGYEF8qKPQ85iVhYAcVZcZAPfrF7ZNb9z`,
   optimism: `${baseUrl}/ianlapham/optimism-post-regenesis`,
   celo: `${baseUrl}/jesse-sawa/uniswap-celo`,
   avax: `${baseUrl}/lynnshaoyu/uniswap-v3-avax`,
@@ -111,6 +111,7 @@ const topLvl = async (
       abi: 'erc20:balanceOf',
       calls: balanceCalls,
       chain: chainString,
+      permitFailure: true,
     });
 
     dataNow = dataNow.map((p) => {
@@ -245,12 +246,21 @@ const topLvl = async (
       const feeTier = Number(poolMeta.replace('%', '')) * 10000;
       const url = `https://app.uniswap.org/#/add/${token0}/${token1}/${feeTier}?chain=${chain}`;
 
+      let symbol = p.symbol;
+      if (
+        chainString === 'arbitrum' &&
+        underlyingTokens
+          .map((t) => t.toLowerCase())
+          .includes('0xff970a61a04b1ca14834a43f5de4533ebddb5cc8')
+      ) {
+        symbol = p.symbol.replace('USDC', 'USDC.e');
+      }
       return {
         pool: p.id,
         chain: utils.formatChain(chainString),
         project: 'uniswap-v3',
         poolMeta: `${poolMeta}, stablePool=${p.stablecoin}`,
-        symbol: p.symbol,
+        symbol,
         tvlUsd: p.totalValueLockedUSD,
         apyBase: p.apy1d,
         apyBase7d: p.apy7d,
@@ -282,7 +292,13 @@ const main = async (timestamp = null) => {
       await topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins)
     );
   }
-  return data.flat().filter((p) => utils.keepFinite(p));
+  return data
+    .flat()
+    .filter(
+      (p) =>
+        utils.keepFinite(p) &&
+        p.pool !== '0x0c6d9d0f82ed2e0b86c4d3e9a9febf95415d1b76'
+    );
 };
 
 module.exports = {

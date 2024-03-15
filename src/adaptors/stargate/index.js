@@ -1,9 +1,9 @@
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk5');
 const superagent = require('superagent');
 const utils = require('../utils');
 const abi = require('./abis.json');
 
-//optimism uses (OP) token for rewards all else use (STG) token
+//optimism uses (OP) token for rewards and kava uses (WKAVA), all else use (STG) token
 const CONFIG = {
   ethereum: {
     LP_STAKING: '0xB0D502E938ed5f4df2E681fE6E419ff29631d62b',
@@ -49,6 +49,23 @@ const CONFIG = {
     REWARD_TOKEN: '0x2F6F07CDcf3588944Bf4C42aC74ff24bF56e7590',
     LLAMA_NAME: 'Fantom',
   },
+  kava: {
+    LP_STAKING: '0x35F78Adf283Fe87732AbC9747d9f6630dF33276C',
+    REWARD_TOKEN: '0xc86c7c0efbd6a49b35e8714c5f59d99de09a225b',
+    LLAMA_NAME: 'Kava',
+  },
+  linea: {
+    LP_STAKING: '0x4a364f8c717cAAD9A442737Eb7b8A55cc6cf18D8',
+    ETHER_TOKEN: '0x0000000000000000000000000000000000000000',
+    REWARD_TOKEN: '0x808d7c71ad2ba3FA531b068a2417C63106BC0949',
+    LLAMA_NAME: 'Linea',
+  },
+  mantle: {
+    LP_STAKING: '0x352d8275AAE3e0c2404d9f68f6cEE084B5bEB3DD',
+    ETHER_TOKEN: '0x0000000000000000000000000000000000000000',
+    REWARD_TOKEN: '0x8731d54E9D02c286767d56ac03e8037C07e01e98',
+    LLAMA_NAME: 'Mantle',
+  },
 };
 
 const CHAIN_MAP = {
@@ -60,6 +77,9 @@ const CHAIN_MAP = {
   ethereum: 'eth',
   bsc: 'bnb',
   avax: 'avax',
+  kava: 'kava',
+  linea: 'linea',
+  mantle: 'mantle',
 };
 
 const pools = async (poolIndex, chain) => {
@@ -103,7 +123,7 @@ const pools = async (poolIndex, chain) => {
 
   let rewardPerBlock;
   // reward (STG) per block
-  if (!['optimism', 'base'].includes(chain)) {
+  if (!['optimism', 'base', 'kava', 'linea', 'mantle'].includes(chain)) {
     const STGPerBlock = (
       await sdk.api.abi.call({
         abi: abi.stargatePerBlock,
@@ -177,9 +197,12 @@ const calcApy = async (
   // BLOCK_TIME is number of seconds for 1 block to settle
   let BLOCK_TIME;
   switch (chain) {
-    // these two have dynamic block times, but reward = rewardPerSecond (so can just use BLOCK_TIME =1)
+    // these have dynamic block times, but reward = rewardPerSecond (so can just use BLOCK_TIME =1)
     case 'optimism':
     case 'base':
+    case 'kava':
+    case 'linea':
+    case 'mantle':
       BLOCK_TIME = 1;
       break;
     // the others have rewardPerBlock
@@ -245,15 +268,14 @@ const getApy = async (chain) => {
       })
     ).output
   );
-  // use ETH pricing for STG since its most liquid, use OPT pricing for OP
-  const rewardPrice =
-    chain == 'optimism'
-      ? (await getPrices(chain, [CONFIG[chain].REWARD_TOKEN]))[
-          CONFIG[chain].REWARD_TOKEN.toLowerCase()
-        ]
-      : (await getPrices('ethereum', [CONFIG.ethereum.REWARD_TOKEN]))[
-          CONFIG.ethereum.REWARD_TOKEN.toLowerCase()
-        ];
+  // use ETH pricing for STG since its most liquid, use OPT pricing for OP, and kava price for WKAVA
+  const rewardPrice = ['optimism', 'kava', 'linea'].includes(chain)
+    ? (await getPrices(chain, [CONFIG[chain].REWARD_TOKEN]))[
+        CONFIG[chain].REWARD_TOKEN.toLowerCase()
+      ]
+    : (await getPrices('ethereum', [CONFIG.ethereum.REWARD_TOKEN]))[
+        CONFIG.ethereum.REWARD_TOKEN.toLowerCase()
+      ];
   for (index = 0; index < poolLength; index++) {
     const pool = await pools(index, chain);
     const reserveUSD = await tvl(
@@ -294,7 +316,11 @@ const main = async () => {
   const pools = [];
   for (const chain of Object.keys(CONFIG)) {
     console.log(chain);
-    pools.push(await getApy(chain, CONFIG[chain].LP_STAKING));
+    try {
+      pools.push(await getApy(chain, CONFIG[chain].LP_STAKING));
+    } catch (err) {
+      console.log(`${chain} failed`);
+    }
   }
 
   return pools
