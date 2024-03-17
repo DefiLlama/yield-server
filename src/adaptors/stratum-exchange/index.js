@@ -121,6 +121,20 @@ const getApy = async () => {
         mpReserves[mpTokenPermutation[i].multipoolIndex][mpTokenPermutation[i].tokenIndex] = balance;
     });
 
+    const mpUnderlyingTokenAddr = [...new Set(mpPooledTokens.flat())];
+    const mpUnderlyingTokenAddrToSymbol = {};
+    (
+        await sdk.api.abi.multiCall({
+            calls: mpUnderlyingTokenAddr.map(tokenAddr => ({
+                target: tokenAddr
+            })),
+            abi: abiPair.find((m) => m.name === 'symbol'),
+            chain,
+        })
+    ).output.map((o) => o.output).forEach((symbol, i) => {
+        mpUnderlyingTokenAddrToSymbol[mpUnderlyingTokenAddr[i]] = symbol;
+    });
+
 
     // 
     // Common (Pairs & Multipools)
@@ -304,11 +318,13 @@ const getApy = async () => {
                 tvlUsd / poolGaugeStakingRatio[poolIndex] * 100)
             : Number.POSITIVE_INFINITY;
 
+        const customSymbol = mpPooledTokens[i].map(tokenAddr => mpUnderlyingTokenAddrToSymbol[tokenAddr]).join('-');
+
         let pool = {
             pool: multipool,
             chain: utils.formatChain(chain),
             project: 'stratum-exchange',
-            symbol: utils.formatSymbol(poolSymbol[poolIndex]),
+            symbol: utils.formatSymbol(customSymbol),
             tvlUsd,
             apyReward,
             rewardTokens: apyReward ? [STRAT] : [],
