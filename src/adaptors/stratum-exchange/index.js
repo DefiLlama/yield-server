@@ -9,15 +9,16 @@ const abiPair = require('./abiPair.json');
 const abiGauge = require('./abiGauge.json');
 const abiVoter = require('./abiVoter.json');
 const abiMultipoolSwap = require('./abiMultipoolSwap.json');
-const abiMultipoolLPToken = require('./abiMultipoolLPToken.json');
 
 const pairFactory = '0x061FFE84B0F9E1669A6bf24548E5390DBf1e03b2';
 const voter = '0xd14884b51Ff6cDa4F6f92f0fe7ac198C6c63BC7a';
 const STRAT = '0x5a093a9c4f440c6b105F0AF7f7C4f1fBE45567f9';
 
+const DEBUG = false;
+
 const getApy = async () => {
     let chain = 'mantle';
-    const allPoolsLength = (
+    const poolsLength = (
         await sdk.api.abi.call({
             target: pairFactory,
             abi: abiPairFactory.find((m) => m.name === 'allPairsLength'),
@@ -25,9 +26,9 @@ const getApy = async () => {
         })
     ).output;
 
-    const allPools = (
+    const pools = (
         await sdk.api.abi.multiCall({
-            calls: [...Array(Number(allPoolsLength)).keys()].map((i) => ({
+            calls: [...Array(Number(poolsLength)).keys()].map((i) => ({
                 target: pairFactory,
                 params: [i],
             })),
@@ -36,9 +37,9 @@ const getApy = async () => {
         })
     ).output.map((o) => o.output);
 
-    const isMultipool = (
+    const poolIsMultipool = (
         await sdk.api.abi.multiCall({
-            calls: allPools.map((p) => ({
+            calls: pools.map((p) => ({
                 target: pairFactory,
                 params: [p],
             })),
@@ -47,9 +48,9 @@ const getApy = async () => {
         })
     ).output.map((o) => o.output);
 
-    const fee = (
+    const poolFee = (
         await sdk.api.abi.multiCall({
-            calls: allPools.map((p) => ({
+            calls: pools.map((p) => ({
                 target: pairFactory,
                 params: [p],
             })),
@@ -57,31 +58,19 @@ const getApy = async () => {
             chain,
         })
     ).output.map((o) => o.output);
-    const pool2fee = {};
-    allPools.forEach((pool, i) => pool2fee[pool] = fee[i]);
 
     // 
     // Pairs
     //
 
-    const allPairs = allPools.filter((_, i) => !isMultipool[i]);
+    const pairs = pools.filter((_, i) => !poolIsMultipool[i]);
 
-    const metaDataOfPairs = (
+    const pairMetaData = (
         await sdk.api.abi.multiCall({
-            calls: allPairs.map((pair) => ({
+            calls: pairs.map((pair) => ({
                 target: pair,
             })),
             abi: abiPair.find((m) => m.name === 'metadata'),
-            chain,
-        })
-    ).output.map((o) => o.output);
-
-    const symbolsOfPairs = (
-        await sdk.api.abi.multiCall({
-            calls: allPairs.map((pair) => ({
-                target: pair,
-            })),
-            abi: abiPair.find((m) => m.name === 'symbol'),
             chain,
         })
     ).output.map((o) => o.output);
@@ -91,11 +80,11 @@ const getApy = async () => {
     // Multipools
     //
 
-    const allMultipools = allPools.filter((_, i) => isMultipool[i]);
+    const multipools = pools.filter((_, i) => poolIsMultipool[i]);
 
-    const lpTokenOfMultipools = (
+    const mpLpToken = (
         await sdk.api.abi.multiCall({
-            calls: allMultipools.map((multipool) => ({
+            calls: multipools.map((multipool) => ({
                 target: multipool,
             })),
             abi: abiMultipoolSwap.find((m) => m.name === 'swapStorage'),
@@ -103,19 +92,9 @@ const getApy = async () => {
         })
     ).output.map((o) => o.output[6]); // lpToken
 
-    const symbolsOfMultipools = (
+    const mpPooledTokens = (
         await sdk.api.abi.multiCall({
-            calls: lpTokenOfMultipools.map((lpToken) => ({
-                target: lpToken,
-            })),
-            abi: abiMultipoolLPToken.find((m) => m.name === 'symbol'),
-            chain,
-        })
-    ).output.map((o) => o.output);
-
-    const pooledTokensOfMultipools = (
-        await sdk.api.abi.multiCall({
-            calls: allMultipools.map((multipool) => ({
+            calls: multipools.map((multipool) => ({
                 target: multipool,
             })),
             abi: abiMultipoolSwap.find((m) => m.name === 'getTokensArray'),
@@ -123,24 +102,23 @@ const getApy = async () => {
         })
     ).output.map((o) => o.output);
 
-    const multipoolTokenPermutations = pooledTokensOfMultipools.map((tokenArr, i) =>
-        tokenArr.map((_, j) => {
-            return {multipoolIndex: i, tokenIndex: j}
-        })
+    const mpTokenPermutation = mpPooledTokens.map((tokenArr, i) =>
+        tokenArr.map((_, j) =>
+            ({multipoolIndex: i, tokenIndex: j})
+        )
     ).flat();
-    const multipoolBalancesFlat = (
+    const mpReserves = mpPooledTokens.map(tokenAddr => tokenAddr.map(_ => 0));
+    (
         await sdk.api.abi.multiCall({
-            calls: multipoolTokenPermutations.map(permutation => ({
-                target: allMultipools[permutation.multipoolIndex],
+            calls: mpTokenPermutation.map(permutation => ({
+                target: multipools[permutation.multipoolIndex],
                 params: [permutation.tokenIndex]
             })),
             abi: abiMultipoolSwap.find((m) => m.name === 'getTokenBalance'),
             chain,
         })
-    ).output.map((o) => o.output);
-    const multipoolBalances = pooledTokensOfMultipools.map(tokenAddr => tokenAddr.map(_ => 0));
-    multipoolBalancesFlat.forEach((balance, i) => {
-        multipoolBalances[multipoolTokenPermutations[i].multipoolIndex][multipoolTokenPermutations[i].tokenIndex] = balance;
+    ).output.map((o) => o.output).forEach((balance, i) => {
+        mpReserves[mpTokenPermutation[i].multipoolIndex][mpTokenPermutation[i].tokenIndex] = balance;
     });
 
 
@@ -148,21 +126,56 @@ const getApy = async () => {
     // Common (Pairs & Multipools)
     //
 
-    const gauges = (
+    const poolLpToken = pools.map((pool, i) => !poolIsMultipool[i] ? pool : mpLpToken[multipools.indexOf(pool)]);
+
+    const poolSymbol = (
         await sdk.api.abi.multiCall({
-            calls: allPools.map((i) => ({
+            calls: poolLpToken.map(lpToken => ({
+                target: lpToken,
+            })),
+            abi: abiPair.find((m) => m.name === 'symbol'),
+            chain,
+        })
+    ).output.map((o) => o.output);
+
+    const poolLpTotalSupply = (
+        await sdk.api.abi.multiCall({
+            calls: poolLpToken.map(lpToken => ({
+                target: lpToken,
+            })),
+            abi: abiPair.find((m) => m.name === 'totalSupply'),
+            chain,
+        })
+    ).output.map((o) => o.output);
+
+    const poolGauge = (
+        await sdk.api.abi.multiCall({
+            calls: poolLpToken.map(lpToken => ({
                 target: voter,
-                params: [i],
+                params: [lpToken],
             })),
             abi: abiVoter.find((m) => m.name === 'gauges'),
             chain,
         })
     ).output.map((o) => o.output);
 
-    const rewardRate = (
+    const poolLpInGaugeBalance = (
         await sdk.api.abi.multiCall({
-            calls: gauges.map((i) => ({
-                target: i,
+            calls: poolGauge.map((gauge, i) => ({
+                target: poolLpToken[i],
+                params: [gauge],
+            })),
+            abi: abiPair.find((m) => m.name === 'balanceOf'),
+            chain,
+        })
+    ).output.map((o) => o.output);
+
+    const poolGaugeStakingRatio = poolLpInGaugeBalance.map((balance, i) => balance / poolLpTotalSupply[i]);
+
+    const poolRewardRate = (
+        await sdk.api.abi.multiCall({
+            calls: poolGauge.map(gauge => ({
+                target: gauge,
                 params: [STRAT],
             })),
             abi: abiGauge.find((m) => m.name === 'rewardRate'),
@@ -170,36 +183,28 @@ const getApy = async () => {
             permitFailure: true,
         })
     ).output.map((o) => o.output);
-    const pool2rewardRate = {};
-    allPools.forEach((pool, i) => pool2rewardRate[pool] = rewardRate[i]);
 
     const tokens = [
         ...new Set(
-            metaDataOfPairs
+            pairMetaData
                 .map((m) => [m.t0, m.t1]).flat()
-                .concat(pooledTokensOfMultipools.flat())
+                .concat(mpPooledTokens.flat())
                 .concat(STRAT)
         ),
     ];
 
-    const decimals = (
+    const decimalsOf = {};
+    (
         await sdk.api.abi.multiCall({
             calls: tokens.map(token => ({
                 target: token,
             })),
-            abi: {
-                "inputs": [], "name": "decimals",
-                "outputs": [{"internalType": "uint8", "name": "", "type": "uint8"}],
-                "stateMutability": "view", "type": "function"
-            },
+            abi: abiPair.find((m) => m.name === 'decimals'),
             chain,
             permitFailure: true,
         })
-    ).output.map((o) => o.output);
-
-    const token2decimals = {};
-    tokens.forEach((token, i) => {
-        token2decimals[token] = decimals[i];
+    ).output.map((o) => o.output).forEach((decimal, i) => {
+        decimalsOf[tokens[i]] = decimal;
     });
 
     const maxSize = 50;
@@ -228,8 +233,13 @@ const getApy = async () => {
     // Generate resulting SDK Pool objects
     //
 
-    const poolDescriptorsOfPairs = allPairs.map((pair, i) => {
-        const pairMeta = metaDataOfPairs[i];
+    const rewardTokenPriceUsd = prices[`mantle:${STRAT}`]?.price;
+
+    const poolDescriptorsOfPairs = pairs.map((pair, i) => {
+
+        const poolIndex = pools.indexOf(pair);
+
+        const pairMeta = pairMetaData[i];
         const r0 = pairMeta.r0 / pairMeta.dec0;
         const r1 = pairMeta.r1 / pairMeta.dec1;
 
@@ -238,49 +248,93 @@ const getApy = async () => {
 
         const tvlUsd = r0 * p0 + r1 * p1;
 
-        const apyReward =
-            (((pool2rewardRate[pair] / 1e18) * 86400 * 365 * prices[`mantle:${STRAT}`]?.price) /
-                tvlUsd) * 100;
+        const rewardRate = poolRewardRate[poolIndex]; // STRAT per second
+        const apyReward = poolGaugeStakingRatio[poolIndex] > 0 && tvlUsd > 0
+            ? (rewardRate / 1e18 * 86400 * 365 * rewardTokenPriceUsd
+                / tvlUsd / poolGaugeStakingRatio[poolIndex] * 100)
+            : Number.POSITIVE_INFINITY;
 
-        return {
+        let pool = {
             pool: pair,
             chain: utils.formatChain(chain),
             project: 'stratum-exchange',
-            symbol: utils.formatSymbol(symbolsOfPairs[i].split('-')[1]),
+            symbol: utils.formatSymbol(poolSymbol[poolIndex].split('-')[1]),
             tvlUsd,
             apyReward,
             rewardTokens: apyReward ? [STRAT] : [],
             underlyingTokens: [pairMeta.t0, pairMeta.t1],
             poolMeta: pairMeta.st
-                ? `sAMM: stable V2 pair ${pool2fee[pair] / 100}%`
-                : `vAMM: volatile V2 pair ${pool2fee[pair] / 100}%`,
+                ? `sAMM: stable V2 pair ${poolFee[poolIndex] / 100}%`
+                : `vAMM: volatile V2 pair ${poolFee[poolIndex] / 100}%`,
             url: `https://app.stratumexchange.com/liquidity/${pair}`,
         };
+        if (DEBUG) {
+            pool = {
+                ...pool,
+                type: pairMeta.st ? 'sAMM' : 'vAMM',
+                gauge: poolGauge[poolIndex],
+                gaugeStakingRatio: poolGaugeStakingRatio[poolIndex],
+                locked0_USD: r0 * p0,
+                locked1_USD: r1 * p1,
+                rewardTokenPriceUsd,
+                rewardRate,
+                rewardRatePerSec: rewardRate / 1e18,
+                rewardRatePerYear: rewardRate / 1e18 * 86400 * 365,
+                rewardPerYearUsd: rewardRate / 1e18 * 86400 * 365 * rewardTokenPriceUsd,
+                rewardPerYearUsdToTvlRatioPercent: rewardRate / 1e18 * 86400 * 365 * rewardTokenPriceUsd / tvlUsd * 100,
+                rewardPerYearUsdToStakedTvlRatioPercent: rewardRate / 1e18 * 86400 * 365 * rewardTokenPriceUsd / tvlUsd / poolGaugeStakingRatio[poolIndex] * 100,
+            };
+        }
+        return pool;
     });
 
-    const poolDescriptorsOfMultipools = allMultipools.map((multipool, i) => {
+    const poolDescriptorsOfMultipools = multipools.map((multipool, i) => {
+
+        const poolIndex = pools.indexOf(multipool);
+
         let tvlUsd = 0;
-        pooledTokensOfMultipools[i].forEach((tokenAddr, j) =>
-            tvlUsd += (multipoolBalances[i][j] / (10 ** token2decimals[tokenAddr]))
-            * prices[`mantle:${tokenAddr}`]?.price
+        mpPooledTokens[i].forEach((tokenAddr, j) =>
+            tvlUsd += (mpReserves[i][j] / (10 ** decimalsOf[tokenAddr]))
+                * prices[`mantle:${tokenAddr}`]?.price
         );
 
-        const apyReward =
-            (((pool2rewardRate[multipool] / 1e18) * 86400 * 365 * prices[`mantle:${STRAT}`]?.price) /
-                tvlUsd) * 100;
+        const rewardRate = poolRewardRate[poolIndex]; // STRAT per second
+        const apyReward = poolGaugeStakingRatio[poolIndex] > 0 && tvlUsd > 0
+            ? (rewardRate / 1e18 * 86400 * 365 * rewardTokenPriceUsd /
+                tvlUsd / poolGaugeStakingRatio[poolIndex] * 100)
+            : Number.POSITIVE_INFINITY;
 
-        return {
+        let pool = {
             pool: multipool,
             chain: utils.formatChain(chain),
             project: 'stratum-exchange',
-            symbol: utils.formatSymbol(symbolsOfMultipools[i]),
+            symbol: utils.formatSymbol(poolSymbol[poolIndex]),
             tvlUsd,
             apyReward,
             rewardTokens: apyReward ? [STRAT] : [],
-            underlyingTokens: pooledTokensOfMultipools[i],
-            poolMeta: `multipool (curve style) ${pool2fee[multipool] / 100}%`,
+            underlyingTokens: mpPooledTokens[i],
+            poolMeta: `multipool (curve style) ${poolFee[poolIndex] / 100}%`,
             url: `https://app.stratumexchange.com/liquidity/${multipool}`,
         };
+        if (DEBUG) {
+            pool = {
+                ...pool,
+                type: 'multipool',
+                lpToken: mpLpToken[i],
+                tokens: mpPooledTokens[i],
+                reserves: mpReserves[i],
+                gauge: poolGauge[poolIndex],
+                gaugeStakingRatio: poolGaugeStakingRatio[poolIndex],
+                rewardTokenPriceUsd,
+                rewardRate,
+                rewardRatePerSec: rewardRate / 1e18,
+                rewardRatePerYear: rewardRate / 1e18 * 86400 * 365,
+                rewardPerYearUsd: rewardRate / 1e18 * 86400 * 365 * rewardTokenPriceUsd,
+                rewardPerYearUsdToTvlRatioPercent: rewardRate / 1e18 * 86400 * 365 * rewardTokenPriceUsd / tvlUsd * 100,
+                rewardPerYearUsdToStakedTvlRatioPercent: rewardRate / 1e18 * 86400 * 365 * rewardTokenPriceUsd / tvlUsd / poolGaugeStakingRatio[poolIndex] * 100,
+            };
+        }
+        return pool;
     });
 
     return [...poolDescriptorsOfPairs, ...poolDescriptorsOfMultipools]
