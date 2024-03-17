@@ -170,6 +170,8 @@ const getApy = async () => {
             permitFailure: true,
         })
     ).output.map((o) => o.output);
+    const pool2rewardRate = {};
+    allPools.forEach((pool, i) => pool2rewardRate[pool] = rewardRate[i]);
 
     const tokens = [
         ...new Set(
@@ -226,7 +228,7 @@ const getApy = async () => {
     // Generate resulting SDK Pool objects
     //
 
-    const poolDescriptorsOfPairs = allPairs.map((p, i) => {
+    const poolDescriptorsOfPairs = allPairs.map((pair, i) => {
         const pairMeta = metaDataOfPairs[i];
         const r0 = pairMeta.r0 / pairMeta.dec0;
         const r1 = pairMeta.r1 / pairMeta.dec1;
@@ -237,11 +239,11 @@ const getApy = async () => {
         const tvlUsd = r0 * p0 + r1 * p1;
 
         const apyReward =
-            (((rewardRate[i] / 1e18) * 86400 * 365 * prices[`mantle:${STRAT}`]?.price) /
+            (((pool2rewardRate[pair] / 1e18) * 86400 * 365 * prices[`mantle:${STRAT}`]?.price) /
                 tvlUsd) * 100;
 
         return {
-            pool: p,
+            pool: pair,
             chain: utils.formatChain(chain),
             project: 'stratum-exchange',
             symbol: utils.formatSymbol(symbolsOfPairs[i].split('-')[1]),
@@ -250,13 +252,13 @@ const getApy = async () => {
             rewardTokens: apyReward ? [STRAT] : [],
             underlyingTokens: [pairMeta.t0, pairMeta.t1],
             poolMeta: pairMeta.st
-                ? `sAMM: stable V2 pair ${pool2fee[p] / 100}%`
-                : `vAMM: volatile V2 pair ${pool2fee[p] / 100}%`,
-            url: `https://app.stratumexchange.com/liquidity/${p.split('-')[0]}`,
+                ? `sAMM: stable V2 pair ${pool2fee[pair] / 100}%`
+                : `vAMM: volatile V2 pair ${pool2fee[pair] / 100}%`,
+            url: `https://app.stratumexchange.com/liquidity/${pair}`,
         };
     });
 
-    const poolDescriptorsOfMultipools = allMultipools.map((p, i) => {
+    const poolDescriptorsOfMultipools = allMultipools.map((multipool, i) => {
         let tvlUsd = 0;
         pooledTokensOfMultipools[i].forEach((tokenAddr, j) =>
             tvlUsd += (multipoolBalances[i][j] / (10 ** token2decimals[tokenAddr]))
@@ -264,11 +266,11 @@ const getApy = async () => {
         );
 
         const apyReward =
-            (((rewardRate[i] / 1e18) * 86400 * 365 * prices[`mantle:${STRAT}`]?.price) /
+            (((pool2rewardRate[multipool] / 1e18) * 86400 * 365 * prices[`mantle:${STRAT}`]?.price) /
                 tvlUsd) * 100;
 
         return {
-            pool: p,
+            pool: multipool,
             chain: utils.formatChain(chain),
             project: 'stratum-exchange',
             symbol: utils.formatSymbol(symbolsOfMultipools[i]),
@@ -276,8 +278,8 @@ const getApy = async () => {
             apyReward,
             rewardTokens: apyReward ? [STRAT] : [],
             underlyingTokens: pooledTokensOfMultipools[i],
-            poolMeta: `multipool (curve style) ${pool2fee[p] / 100}%`,
-            url: `https://app.stratumexchange.com/liquidity/${p.split('-')[0]}`,
+            poolMeta: `multipool (curve style) ${pool2fee[multipool] / 100}%`,
+            url: `https://app.stratumexchange.com/liquidity/${multipool}`,
         };
     });
 
