@@ -163,6 +163,7 @@ const getApy = async () => {
         await sdk.api.abi.multiCall({
             calls: gauges.map((i) => ({
                 target: i,
+                params: [STRAT],
             })),
             abi: abiGauge.find((m) => m.name === 'rewardRate'),
             chain,
