@@ -257,8 +257,9 @@ const getApy = async () => {
     });
 
     const poolDescriptorsOfMultipools = allMultipools.map((p, i) => {
-        const tvlUsd = pooledTokensOfMultipools[i].sum((tokenAddr, j) =>
-            (multipoolBalances[i][j] / (10 ** token2decimals[tokenAddr]))
+        let tvlUsd = 0;
+        pooledTokensOfMultipools[i].forEach((tokenAddr, j) =>
+            tvlUsd += (multipoolBalances[i][j] / (10 ** token2decimals[tokenAddr]))
             * prices[`mantle:${tokenAddr}`]?.price
         );
 
