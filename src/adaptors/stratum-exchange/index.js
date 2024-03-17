@@ -123,34 +123,25 @@ const getApy = async () => {
         })
     ).output.map((o) => o.output);
 
-    // const multipoolTokenPermutations = pooledTokensOfMultipools.map((tokenArr, i) =>
-    //     tokenArr.map((_, j) => {
-    //         return {multipoolIndex: i, tokenIndex: j}
-    //     })
-    // ).flat();
-    // const multipoolBalancesFlat = (
-    //     await sdk.api.abi.multiCall({
-    //         calls: multipoolTokenPermutations.map(permutation => ({
-    //             target: allMultipools[permutation.multipoolIndex],
-    //             params: [permutation.tokenIndex]
-    //         })),
-    //         abi: abiMultipoolSwap.find((m) => m.name === 'getTokenBalance'),
-    //         chain,
-    //     })
-    // ).output.map((o) => o.output);
-    // const multipoolBalances = pooledTokensOfMultipools.map(tokenAddr => tokenAddr.map(_ => 0));
-    // multipoolBalancesFlat.forEach((balance, i) => {
-    //     multipoolBalances[multipoolTokenPermutations[i].multipoolIndex][multipoolTokenPermutations[i].tokenIndex] = balance;
-    // });
-    const multipoolBalances = (
+    const multipoolTokenPermutations = pooledTokensOfMultipools.map((tokenArr, i) =>
+        tokenArr.map((_, j) => {
+            return {multipoolIndex: i, tokenIndex: j}
+        })
+    ).flat();
+    const multipoolBalancesFlat = (
         await sdk.api.abi.multiCall({
-            calls: allMultipools.map(multipool => ({
-                target: multipool
+            calls: multipoolTokenPermutations.map(permutation => ({
+                target: allMultipools[permutation.multipoolIndex],
+                params: [permutation.tokenIndex]
             })),
-            abi: abiMultipoolSwap.find((m) => m.name === 'getBalances'),
+            abi: abiMultipoolSwap.find((m) => m.name === 'getTokenBalance'),
             chain,
         })
     ).output.map((o) => o.output);
+    const multipoolBalances = pooledTokensOfMultipools.map(tokenAddr => tokenAddr.map(_ => 0));
+    multipoolBalancesFlat.forEach((balance, i) => {
+        multipoolBalances[multipoolTokenPermutations[i].multipoolIndex][multipoolTokenPermutations[i].tokenIndex] = balance;
+    });
 
 
     // 
