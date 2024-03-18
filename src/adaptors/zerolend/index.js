@@ -10,8 +10,8 @@ const SECONDS_PER_YEAR = 31536000;
 
 const chainUrlParam = {
   linea: 'proto_linea_v3',
-  ethereum_lrt: 'proto_mainnet_lrt_v3',
-  zksync_era: 'proto_zksync_era_v3',
+  ethereum: 'proto_mainnet_lrt_v3',
+  era: 'proto_zksync_era_v3',
 };
 
 const oraclePriceABI = {
@@ -271,7 +271,6 @@ const apy = async () => {
     return chainPools;
   });
 
-  // console.log(pools);
   return pools.flat().filter((p) => !!p.tvlUsd);
 };
 
