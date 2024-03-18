@@ -5,6 +5,7 @@ const {
   erc20ABI,
   oracleABI,
   preminingABI,
+  rewardsManagerABI
 } = require('./Abis');
 const { PROVIDERS } = require('./Provider');
 const sdk = require('@defillama/sdk');
@@ -17,26 +18,31 @@ const chains = {
     comptroller: '0x5B7136CFFd40Eee5B882678a5D02AA25A48d669F',
     oracle: '0x17feC0DD2c6BC438Fd65a1d2c53319BEA130BEFb',
     wnative: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
+    rewardManager: ""
   },
   polygon_zkevm: {
     comptroller: '0x6EA32f626e3A5c41547235ebBdf861526e11f482',
     oracle: '0x483aDB7c100F1E19369a7a33c80709cfdd124c4e',
     wnative: '0x4F9A0e7FD2Bf6067db6994CF12E4495Df938E6e9',
+    rewardManager: ""
   },
   manta: {
     comptroller: '0x91e9e99AC7C39d5c057F83ef44136dFB1e7adD7d',
     oracle: '0xfD01946C35C98D71A355B8FF18d9E1697b2dd2Ea',
     wnative: '0x0Dc808adcE2099A9F62AA87D9670745AbA741746',
+    rewardManager: "0xfcA6fa66a83Cf0D5DB05d882e5A04dfbe9Eea214"
   },
   isolated_manta_wusdm: {
     comptroller: '0x014991ec771aD943A487784cED965Af214FD253C',
     oracle: '0xfD01946C35C98D71A355B8FF18d9E1697b2dd2Ea',
     wnative: '0x0Dc808adcE2099A9F62AA87D9670745AbA741746',
+    rewardManager: "0xC51b8519D183ff75a23873EAACfA20E7D1191EC9"
   },
   isolated_manta_stone: {
     comptroller: '0xBAc1e5A0B14490Dd0b32fE769eb5637183D8655d',
     oracle: '0xfD01946C35C98D71A355B8FF18d9E1697b2dd2Ea',
     wnative: '0x0Dc808adcE2099A9F62AA87D9670745AbA741746',
+    rewardManager: "0xf6681028D895921ddb5eD625282C7121D92E36F7"
   },
 };
 
@@ -72,15 +78,27 @@ async function main() {
       );
       const ltv = await comptroller.markets(market);
 
+      const [rewardTokens, supplyAPY, borrowAPY] = await getRewardAPY(
+        chain,
+        chains[name].rewardManager,
+        market,
+        tvl.totalSupplyUsd,
+        tvl.totalBorrowsUsd,
+        provider
+      );
+
       const marketData = {
         pool: `${market}-${chain}`,
         project: 'keom-protocol',
         symbol: APYS.symbol.slice(1) === "Native" ? "ETH" : APYS.symbol.slice(1),
         chain: chain,
         apyBase: APYS.supplyAPY,
+        apyReward: supplyAPY,
         tvlUsd: tvl.tvlUsd,
         // borrow fields
         apyBaseBorrow: APYS.borrowAPY,
+        apyRewardBorrow: borrowAPY,
+        rewardTokens: supplyAPY > 0 || borrowAPY > 0 ? rewardTokens : [],
         totalSupplyUsd: tvl.totalSupplyUsd,
         totalBorrowUsd: tvl.totalBorrowsUsd,
         ltv: parseInt(ltv.collateralFactorMantissa) / 1e18,
@@ -90,6 +108,55 @@ async function main() {
     }
   }
   return data;
+}
+
+async function getRewardAPY(chain, rewardManager, strategy, tvlSupplyUsd, tvlBorrowUsd, provider) {
+  if(rewardManager === "") {
+    return [ethers.constants.AddressZero, 0, 0]
+  }
+  const rm = new ethers.Contract(rewardManager, rewardsManagerABI, provider);
+  const arr = await rm.getRewardTokensForMarket(strategy);
+  const rewards = arr.filter((addr) => addr !== ethers.constants.AddressZero);
+  if(rewards.length === 0) {
+    return [ethers.constants.AddressZero, 0, 0]
+  }
+  let apySupplyMultipliers = []
+  let apyBorrowMultipliers = []
+  for(const reward of rewards) {
+    const prices = (
+      await axios.get(`https://coins.llama.fi/prices/current/${chain}:${reward} `)
+      ).data.coins;
+      
+    const tokenPriceInUSD = prices[`${chain}:${reward}`]?.price;
+      
+    const [supplySpeed, borrowSpeed] = await rm.getMarketRewardSpeeds(reward, strategy);
+    const totalSupplyRewardsInUsdForAYear = supplySpeed * 60 * 60 * 24 * 365 * tokenPriceInUSD;
+    const supplyAPY = ((totalSupplyRewardsInUsdForAYear / tvlSupplyUsd) * 100) / 10 ** 18;
+
+    if(supplyAPY > 0) {
+      let multiplier = 1 + (Number(supplyAPY.toFixed(2)) / 100);
+      apySupplyMultipliers.push(multiplier);
+    }
+      
+    const totalBorrowRewardsInUsdForAYear = borrowSpeed * 60 * 60 * 24 * 365 * tokenPriceInUSD;
+    
+    const borrowAPY = ((totalBorrowRewardsInUsdForAYear / tvlSupplyUsd) * 100) / 10 ** 18;
+
+    if(borrowAPY > 0) {
+      let multiplier = 1 + (Number(supplyAPY.toFixed(2)) / 100);
+      apySupplyMultipliers.push(multiplier);
+    }
+  }
+
+  const supplyAPY = apySupplyMultipliers.length > 0
+    ? ((apySupplyMultipliers.reduce((a, b) => a * b)) - 1) * 100
+    : 0;
+
+  const borrowAPY = apyBorrowMultipliers.length > 0
+    ? ((apySupplyMultipliers.reduce((a, b) => a * b)) - 1) * 100
+    : 0;
+
+  return [rewards, supplyAPY, borrowAPY]
 }
 
 async function getAPY(strategy, provider) {
