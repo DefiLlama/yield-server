@@ -39,19 +39,22 @@ const main = async () => {
   const poolsList = (
     await Promise.all(
       [
-        'factory',
         'main',
         'crypto',
+        'factory',
         'factory-crypto',
+        'optimism',
         'factory-crvusd',
         'factory-tricrypto',
+        'factory-stable-ng',
       ].map((registry) =>
         utils.getData(`https://api.curve.fi/api/getPools/ethereum/${registry}`)
       )
     )
   )
     .map(({ data }) => data.poolData)
-    .flat();
+    .flat()
+    .filter((i) => i?.address !== undefined);
 
   const { data: gauges } = await utils.getData(
     'https://api.curve.fi/api/getAllGauges'
