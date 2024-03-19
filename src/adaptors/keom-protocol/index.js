@@ -283,6 +283,7 @@ function convertTvlUSD(
     totalSupplyUsd = Number(ethers.utils.formatEther(supplyUSD));
     totalBorrowsUsd = Number(ethers.utils.formatEther(borrowUSD));
   } else {
+    apiPrice = apiPrice === undefined ? 0 : apiPrice;
     let supplyUSD = ethers.utils.formatUnits(exchangeRateStored.mul(totalSupply).div(decimals), underlyingDecimals);
     let borrowUSD = ethers.utils.formatUnits(totalBorrows, underlyingDecimals);
     totalSupplyUsd = Number(supplyUSD) * apiPrice;
