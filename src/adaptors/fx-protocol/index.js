@@ -73,19 +73,74 @@ const getTvlAndApy = async () => {
   }
 };
 
-const getPoolData = async () => {
-  let poolData = await getTvlAndApy();
-  const { address: rebalancePool, tvl, apy } = poolData;
+const getRebalancePoolData = async () => {
+  let RebalancePoolData = await utils.getData(
+    `${ALADDIN_API_BASE_URL}api1/fx_rebalance_tvl_apy`
+  );
+  const {
+    fETH_StabilityPool_wstETH,
+    fETH_StabilityPool_xETH,
+    fxUSD_StabilityPool_wstETH,
+    fxUSD_StabilityPool_xstETH,
+    fxUSD_StabilityPool_sfrxETH,
+    fxUSD_StabilityPool_xfrxETH,
+  } = RebalancePoolData.data;
   const newObj = [
     {
-      pool: `${rebalancePool}-f(x)`,
+      pool: `${fETH_StabilityPool_wstETH.rebalancePoolAddress}-f(x)`,
       chain: utils.formatChain('ethereum'),
       project: 'fx-protocol',
-      symbol: 'fETH',
-      tvlUsd: parseInt(tvl, 10),
-      apy: parseFloat(apy),
+      symbol: 'fETH-stabilityPool-wstETH',
+      tvlUsd: parseInt(fETH_StabilityPool_wstETH.tvl, 10),
+      apy: parseFloat(fETH_StabilityPool_wstETH.apy),
+    },
+    {
+      pool: `${fETH_StabilityPool_xETH.rebalancePoolAddress}-f(x)`,
+      chain: utils.formatChain('ethereum'),
+      project: 'fx-protocol',
+      symbol: 'fETH-stabilityPool-xETH',
+      tvlUsd: parseInt(fETH_StabilityPool_xETH.tvl, 10),
+      apy: parseFloat(fETH_StabilityPool_xETH.apy),
+    },
+    {
+      pool: `${fxUSD_StabilityPool_wstETH.rebalancePoolAddress}-f(x)`,
+      chain: utils.formatChain('ethereum'),
+      project: 'fx-protocol',
+      symbol: 'fxUSD-stabilityPool-wstETH',
+      tvlUsd: parseInt(fxUSD_StabilityPool_wstETH.tvl, 10),
+      apy: parseFloat(fxUSD_StabilityPool_wstETH.apy),
+    },
+    {
+      pool: `${fxUSD_StabilityPool_xstETH.rebalancePoolAddress}-f(x)`,
+      chain: utils.formatChain('ethereum'),
+      project: 'fx-protocol',
+      symbol: 'fxUSD-stabilityPool-xstETH',
+      tvlUsd: parseInt(fxUSD_StabilityPool_xstETH.tvl, 10),
+      apy: parseFloat(fxUSD_StabilityPool_xstETH.apy),
+    },
+    {
+      pool: `${fxUSD_StabilityPool_sfrxETH.rebalancePoolAddress}-f(x)`,
+      chain: utils.formatChain('ethereum'),
+      project: 'fx-protocol',
+      symbol: 'fxUSD-stabilityPool-sfrxETH',
+      tvlUsd: parseInt(fxUSD_StabilityPool_sfrxETH.tvl, 10),
+      apy: parseFloat(fxUSD_StabilityPool_sfrxETH.apy),
+    },
+    {
+      pool: `${fxUSD_StabilityPool_xfrxETH.rebalancePoolAddress}-f(x)`,
+      chain: utils.formatChain('ethereum'),
+      project: 'fx-protocol',
+      symbol: 'fxUSD-stabilityPool-xfrxETH',
+      tvlUsd: parseInt(fxUSD_StabilityPool_xfrxETH.tvl, 10),
+      apy: parseFloat(fxUSD_StabilityPool_xfrxETH.apy),
     },
   ];
+  return newObj;
+};
+
+const getPoolData = async () => {
+  const RebalancePoolData = await getRebalancePoolData();
+  const newObj = RebalancePoolData;
   return newObj;
 };
 
