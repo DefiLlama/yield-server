@@ -124,7 +124,7 @@ const apy = async () => {
         100; //percentage
 
       pools.push({
-        pool: asset.assetAddress + '-ethereum',
+        pool: asset.ipTokenAssetAddress + '-ethereum',
         chain: 'Ethereum',
         project: 'ipor',
         symbol: asset.asset,
@@ -176,7 +176,7 @@ const apy = async () => {
         apyBase: Number(lpApr),
         apyReward: Number(apyReward),
         underlyingTokens: [asset.assetAddress],
-        rewardTokens: [IPOR_TOKEN_ARBITRUM],
+        rewardTokens: [IPOR_TOKEN_ETHEREUM],
       });
   }
 
