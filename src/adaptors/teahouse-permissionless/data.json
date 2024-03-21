@@ -10,16 +10,16 @@
         "address": "0xd74f5255d557944cf7dd0e45ff521520002d5748",
         "symbol": "USDs",
         "decimals": 18,
-        "tvl": "1171200315051802504733",
-        "shareTokenApr": 63602
+        "tvl": "1084981437757120917342",
+        "shareTokenApr": 63309
       },
       {
         "name": "token1",
         "address": "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
         "symbol": "USDC.e",
         "decimals": 6,
-        "tvl": "1173606372",
-        "shareTokenApr": 66371
+        "tvl": "1084425347",
+        "shareTokenApr": 64104
       }
     ],
     "url": "https://vault.teahouse.finance/arbitrum/0x1546B2aE60a2aDe3F8F1a9276c198e8f52212c05",
@@ -38,16 +38,16 @@
         "address": "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
         "symbol": "WBTC",
         "decimals": 8,
-        "tvl": "118973994",
-        "shareTokenApr": -236192
+        "tvl": "110636232",
+        "shareTokenApr": -325144
       },
       {
         "name": "token1",
         "address": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
         "symbol": "WETH",
         "decimals": 18,
-        "tvl": "20981591633338679316",
-        "shareTokenApr": -8739
+        "tvl": "20977680599531586016",
+        "shareTokenApr": -11134
       }
     ],
     "url": "https://vault.teahouse.finance/arbitrum/0x433821D0653548482Fa22479721db15fbcf303a3",
@@ -66,16 +66,16 @@
         "address": "0x5979D7b546E38E414F7E9822514be443A4800529",
         "symbol": "wstETH",
         "decimals": 18,
-        "tvl": "66361762570823551324",
-        "shareTokenApr": 48019
+        "tvl": "66575661564722704071",
+        "shareTokenApr": 42384
       },
       {
         "name": "token1",
         "address": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
         "symbol": "WETH",
         "decimals": 18,
-        "tvl": "76852250423235416280",
-        "shareTokenApr": 85074
+        "tvl": "77184427694013108159",
+        "shareTokenApr": 78410
       }
     ],
     "url": "https://vault.teahouse.finance/arbitrum/0x99c2901d2883F8D295A989544f118e31eC21823e",
@@ -94,16 +94,16 @@
         "address": "0x5979D7b546E38E414F7E9822514be443A4800529",
         "symbol": "wstETH",
         "decimals": 18,
-        "tvl": "8897261648767841842",
-        "shareTokenApr": 73584
+        "tvl": "4803345660013693127",
+        "shareTokenApr": 70321
       },
       {
         "name": "token1",
         "address": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
         "symbol": "WETH",
         "decimals": 18,
-        "tvl": "10301383897521686232",
-        "shareTokenApr": 113156
+        "tvl": "5567258664276965392",
+        "shareTokenApr": 109770
       }
     ],
     "url": "https://vault.teahouse.finance/arbitrum/0xB38e48B8Bc33CD65551BdaC8d954801D56625eeC",
@@ -122,19 +122,47 @@
         "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
         "symbol": "USDC",
         "decimals": 6,
-        "tvl": "257135583840",
-        "shareTokenApr": 65431
+        "tvl": "327318029414",
+        "shareTokenApr": 68895
       },
       {
         "name": "token1",
         "address": "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
         "symbol": "USDC.e",
         "decimals": 6,
-        "tvl": "257116453354",
-        "shareTokenApr": 65215
+        "tvl": "327313350275",
+        "shareTokenApr": 68765
       }
     ],
     "url": "https://vault.teahouse.finance/arbitrum/0xB9Fe0EC178163a66f2BAf8eD97E057964cCaE876",
+    "isAsset0Main": true,
+    "shareDecimals": "18",
+    "rewardTokens": []
+  },
+  {
+    "address": "0xf9b099f8EebCC675B63E4f0a4657c10F246af77A",
+    "chain": "arbitrum",
+    "name": "Beta+ Long Strategy",
+    "vaultMeta": "TRUE",
+    "underlyingTokens": [
+      {
+        "name": "token0",
+        "address": "",
+        "symbol": "",
+        "decimals": 0,
+        "tvl": "37973064819063577157953",
+        "shareTokenApr": -5906552
+      },
+      {
+        "name": "token1",
+        "address": "",
+        "symbol": "",
+        "decimals": 0,
+        "tvl": "0",
+        "shareTokenApr": 0
+      }
+    ],
+    "url": "https://vault.teahouse.finance/arbitrum/0xf9b099f8EebCC675B63E4f0a4657c10F246af77A",
     "isAsset0Main": true,
     "shareDecimals": "18",
     "rewardTokens": []
@@ -150,16 +178,16 @@
         "address": "0x66a2A913e447d6b4BF33EFbec43aAeF87890FBbc",
         "symbol": "USDC",
         "decimals": 6,
-        "tvl": "151211551801",
-        "shareTokenApr": -30090
+        "tvl": "151284830256",
+        "shareTokenApr": -736752
       },
       {
         "name": "token1",
         "address": "0xa18bf3994c0cc6e3b63ac420308e5383f53120d7",
         "symbol": "BOBA",
         "decimals": 18,
-        "tvl": "386982783246078397971107",
-        "shareTokenApr": -1612660
+        "tvl": "285522041133473242468558",
+        "shareTokenApr": -1814507
       }
     ],
     "url": "https://vault.teahouse.finance/boba/0x07811284e36fDc45f65cd56FC7c6929855d6A0cc",
@@ -192,16 +220,16 @@
         "address": "0x66a2A913e447d6b4BF33EFbec43aAeF87890FBbc",
         "symbol": "USDC",
         "decimals": 6,
-        "tvl": "202645796804",
-        "shareTokenApr": -16336
+        "tvl": "394141290889",
+        "shareTokenApr": -32083
       },
       {
         "name": "token1",
         "address": "0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000",
         "symbol": "WETH",
         "decimals": 18,
-        "tvl": "54726702564651441056",
-        "shareTokenApr": -1037110
+        "tvl": "114618244180339936706",
+        "shareTokenApr": -874756
       }
     ],
     "url": "https://vault.teahouse.finance/boba/0x216d3e7520B09605B7c4243b59aD02Cc6E052F52",
@@ -234,16 +262,16 @@
         "address": "0xdc0486f8bf31df57a952bcd3c1d3e166e3d9ec8b",
         "symbol": "WBTC",
         "decimals": 8,
-        "tvl": "720807894",
-        "shareTokenApr": -149470
+        "tvl": "702358778",
+        "shareTokenApr": -363379
       },
       {
         "name": "token1",
         "address": "0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000",
         "symbol": "WETH",
         "decimals": 18,
-        "tvl": "125468752993052486543",
-        "shareTokenApr": 16534
+        "tvl": "140575148527223560426",
+        "shareTokenApr": 14427
       }
     ],
     "url": "https://vault.teahouse.finance/boba/0xB67A8Af68207cceEaD014b6ceFA3Fc40BfBBBD0e",
@@ -266,6 +294,90 @@
     ]
   },
   {
+    "address": "0x07811284e36fDc45f65cd56FC7c6929855d6A0cc",
+    "chain": "mantle",
+    "name": "USDC-WMNT 1%",
+    "vaultMeta": "1%",
+    "underlyingTokens": [
+      {
+        "name": "token0",
+        "address": "0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9",
+        "symbol": "USDC",
+        "decimals": 6,
+        "tvl": "909052700",
+        "shareTokenApr": -8833721
+      },
+      {
+        "name": "token1",
+        "address": "0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8",
+        "symbol": "WMNT",
+        "decimals": 18,
+        "tvl": "1100388201478726238444",
+        "shareTokenApr": 878619
+      }
+    ],
+    "url": "https://vault.teahouse.finance/mantle/0x07811284e36fDc45f65cd56FC7c6929855d6A0cc",
+    "isAsset0Main": true,
+    "shareDecimals": "18",
+    "rewardTokens": []
+  },
+  {
+    "address": "0x160d2E89bCe037559561d378021df9A93E2a70eC",
+    "chain": "mantle",
+    "name": "USDC-WETH 0.25%",
+    "vaultMeta": "0.25%",
+    "underlyingTokens": [
+      {
+        "name": "token0",
+        "address": "0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9",
+        "symbol": "USDC",
+        "decimals": 6,
+        "tvl": "935314449",
+        "shareTokenApr": -6855509
+      },
+      {
+        "name": "token1",
+        "address": "0xdEAddEaDdeadDEadDEADDEAddEADDEAddead1111",
+        "symbol": "WETH",
+        "decimals": 18,
+        "tvl": "271791365312294038",
+        "shareTokenApr": 153622
+      }
+    ],
+    "url": "https://vault.teahouse.finance/mantle/0x160d2E89bCe037559561d378021df9A93E2a70eC",
+    "isAsset0Main": true,
+    "shareDecimals": "18",
+    "rewardTokens": []
+  },
+  {
+    "address": "0x84Bb4EE4a01237673968e8A3fB05E5E6E8690153",
+    "chain": "mantle",
+    "name": "mETH-WETH 0.01%",
+    "vaultMeta": "0.01%",
+    "underlyingTokens": [
+      {
+        "name": "token0",
+        "address": "0xcDA86A272531e8640cD7F1a92c01839911B90bb0",
+        "symbol": "METH",
+        "decimals": 6,
+        "tvl": "117949983143777329",
+        "shareTokenApr": -403
+      },
+      {
+        "name": "token1",
+        "address": "0xdEAddEaDdeadDEadDEADDEAddEADDEAddead1111",
+        "symbol": "WETH",
+        "decimals": 18,
+        "tvl": "120630683778045494",
+        "shareTokenApr": -35418
+      }
+    ],
+    "url": "https://vault.teahouse.finance/mantle/0x84Bb4EE4a01237673968e8A3fB05E5E6E8690153",
+    "isAsset0Main": false,
+    "shareDecimals": "18",
+    "rewardTokens": []
+  },
+  {
     "address": "0x878aD0bD8DB80A8C6Cc650EdEEd4B9941b571c5F",
     "chain": "mantle",
     "name": "USDC-USDT 0.01%",
@@ -276,20 +388,48 @@
         "address": "0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9",
         "symbol": "USDC",
         "decimals": 6,
-        "tvl": "34030784019",
-        "shareTokenApr": 16341
+        "tvl": "30482517479",
+        "shareTokenApr": 11386
       },
       {
         "name": "token1",
         "address": "0x201EBa5CC46D216Ce6DC03F6a759e8E766e956aE",
         "symbol": "USDT",
         "decimals": 6,
-        "tvl": "34013359470",
-        "shareTokenApr": 14411
+        "tvl": "30486836582",
+        "shareTokenApr": 13717
       }
     ],
     "url": "https://vault.teahouse.finance/mantle/0x878aD0bD8DB80A8C6Cc650EdEEd4B9941b571c5F",
     "isAsset0Main": true,
+    "shareDecimals": "18",
+    "rewardTokens": []
+  },
+  {
+    "address": "0xF31900132dFf544Cfe536e76C38a357FF08183D9",
+    "chain": "mantle",
+    "name": "WMNT-mETH 1%",
+    "vaultMeta": "0.01",
+    "underlyingTokens": [
+      {
+        "name": "token0",
+        "address": "0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8",
+        "symbol": "WMNT",
+        "decimals": 18,
+        "tvl": "29261548008907426062",
+        "shareTokenApr": 7480065
+      },
+      {
+        "name": "token1",
+        "address": "0xcDA86A272531e8640cD7F1a92c01839911B90bb0",
+        "symbol": "METH",
+        "decimals": 18,
+        "tvl": "6792300884964048",
+        "shareTokenApr": 4018059
+      }
+    ],
+    "url": "https://vault.teahouse.finance/mantle/0xF31900132dFf544Cfe536e76C38a357FF08183D9",
+    "isAsset0Main": false,
     "shareDecimals": "18",
     "rewardTokens": []
   },
@@ -304,16 +444,16 @@
         "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
         "symbol": "USDC",
         "decimals": 6,
-        "tvl": "168518365240",
-        "shareTokenApr": 111750
+        "tvl": "140121176206",
+        "shareTokenApr": 113669
       },
       {
         "name": "token1",
         "address": "0x7f5c764cbc14f9669b88837ca1490cca17c31607",
         "symbol": "USDC.e",
         "decimals": 6,
-        "tvl": "168548289037",
-        "shareTokenApr": 111604
+        "tvl": "140118779967",
+        "shareTokenApr": 113443
       }
     ],
     "url": "https://vault.teahouse.finance/optimism/0x199044E2799cf9099B1d84B29A09f8ff23D00391",
@@ -332,16 +472,16 @@
         "address": "0x7f5c764cbc14f9669b88837ca1490cca17c31607",
         "symbol": "USDC.e",
         "decimals": 6,
-        "tvl": "20253791635",
-        "shareTokenApr": 16359
+        "tvl": "17526820138",
+        "shareTokenApr": 15798
       },
       {
         "name": "token1",
         "address": "0x8c6f28f2f1a3c87f0f938b96d27520d9751ec8d9",
         "symbol": "sUSD",
         "decimals": 18,
-        "tvl": "20271831023514689415089",
-        "shareTokenApr": 12161
+        "tvl": "17600282200460192821005",
+        "shareTokenApr": 19147
       }
     ],
     "url": "https://vault.teahouse.finance/optimism/0xF31900132dFf544Cfe536e76C38a357FF08183D9",
@@ -360,16 +500,16 @@
         "address": "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
         "symbol": "USDC.e",
         "decimals": 6,
-        "tvl": "7468574611",
-        "shareTokenApr": 50078
+        "tvl": "5752691995",
+        "shareTokenApr": 46513
       },
       {
         "name": "token1",
         "address": "0xE0B52e49357Fd4DAf2c15e02058DCE6BC0057db4",
         "symbol": "agEUR",
         "decimals": 18,
-        "tvl": "6867465452242839351424",
-        "shareTokenApr": 66631
+        "tvl": "5329538212855090579326",
+        "shareTokenApr": 67800
       }
     ],
     "url": "https://vault.teahouse.finance/polygon/0x1546B2aE60a2aDe3F8F1a9276c198e8f52212c05",
