@@ -11,7 +11,6 @@ const COIN_PRICES_URL = 'https://coins.llama.fi/prices/current';
 const LM_ADDRESS_ETHEREUM = '0xCC3Fc4C9Ba7f8b8aA433Bc586D390A70560FF366';
 const LM_ADDRESS_ARBITRUM = '0xdE645aB0560E5A413820234d9DDED5f4a55Ff6dd';
 const IPOR_TOKEN_ETHEREUM = '0x1e4746dc744503b53b4a082cb3607b169a289090';
-const IPOR_TOKEN_ARBITRUM = '0x34229B3f16fBCDfA8d8d9d17C0852F9496f4C7BB';
 
 const BLOCKS_PER_YEAR = (365 * 24 * 3600) / 12;
 
@@ -28,7 +27,6 @@ const apy = async () => {
   );
 
   coinKeys.push('ethereum:' + IPOR_TOKEN_ETHEREUM);
-  coinKeys.push('arbitrum:' + IPOR_TOKEN_ARBITRUM);
   coinKeys.push(...coinKeysArbitrum);
 
   const coinPrices = (
