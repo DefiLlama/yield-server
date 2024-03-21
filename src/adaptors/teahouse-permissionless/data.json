@@ -140,34 +140,6 @@
     "rewardTokens": []
   },
   {
-    "address": "0xf9b099f8EebCC675B63E4f0a4657c10F246af77A",
-    "chain": "arbitrum",
-    "name": "Beta+ Long Strategy",
-    "vaultMeta": "TRUE",
-    "underlyingTokens": [
-      {
-        "name": "token0",
-        "address": "",
-        "symbol": "",
-        "decimals": 0,
-        "tvl": "37973064819063577157953",
-        "shareTokenApr": -5906552
-      },
-      {
-        "name": "token1",
-        "address": "",
-        "symbol": "",
-        "decimals": 0,
-        "tvl": "0",
-        "shareTokenApr": 0
-      }
-    ],
-    "url": "https://vault.teahouse.finance/arbitrum/0xf9b099f8EebCC675B63E4f0a4657c10F246af77A",
-    "isAsset0Main": true,
-    "shareDecimals": "18",
-    "rewardTokens": []
-  },
-  {
     "address": "0x07811284e36fDc45f65cd56FC7c6929855d6A0cc",
     "chain": "boba",
     "name": "USDC-BOBA 0.05%",
