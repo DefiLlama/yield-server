@@ -44,6 +44,12 @@ const chains = {
     wnative: '0x0Dc808adcE2099A9F62AA87D9670745AbA741746',
     rewardManager: "0xf6681028D895921ddb5eD625282C7121D92E36F7"
   },
+  astrzk: {
+    comptroller: '0xcD906c5f632daFCBD23d574f85294B32E7986fD9',
+    oracle: '0x5798beC729579c65A496fc18577d627E6aB5e2F2',
+    wnative: '0x79D7c05352a900bE30992D525f946eA939f6FA3E',
+    rewardManager: ""
+  }
 };
 
 async function main() {
@@ -164,7 +170,7 @@ async function getAPY(strategy, provider) {
 
   // get the symbol
   const symbol = await contract.symbol();
-
+  console.log(symbol);
   // retrieve the supply rate per timestamp for the main0vixContract
   const supplyRatePerTimestamp = await contract.supplyRatePerTimestamp();
 
@@ -277,6 +283,7 @@ function convertTvlUSD(
     totalSupplyUsd = Number(ethers.utils.formatEther(supplyUSD));
     totalBorrowsUsd = Number(ethers.utils.formatEther(borrowUSD));
   } else {
+    apiPrice = apiPrice === undefined ? 0 : apiPrice;
     let supplyUSD = ethers.utils.formatUnits(exchangeRateStored.mul(totalSupply).div(decimals), underlyingDecimals);
     let borrowUSD = ethers.utils.formatUnits(totalBorrows, underlyingDecimals);
     totalSupplyUsd = Number(supplyUSD) * apiPrice;
