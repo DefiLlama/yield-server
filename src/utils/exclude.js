@@ -84,6 +84,10 @@ const excludeAdaptors = [
   'goledo',
   'archly-v1',
   'polytrade',
+  '3xcalibur',
+  'onering-v2',
+  'wise-lending',
+  'nudes',
 ];
 
 const excludePools = [
