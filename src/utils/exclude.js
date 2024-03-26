@@ -88,6 +88,7 @@ const excludeAdaptors = [
   'onering-v2',
   'wise-lending',
   'nudes',
+  'pickle',
 ];
 
 const excludePools = [
