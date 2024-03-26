@@ -6,7 +6,7 @@ const getPoolsData = async () => {
   
   return data.pools.map((pool) => {
     return {
-      pool: pool.returnContractAddress,
+      pool: `${pool.returnContractAddress}-${pool.networkName.toLowerCase()}`,
       chain: pool.networkName,
       project: 'return-finance',
       symbol: pool.poolPair,
