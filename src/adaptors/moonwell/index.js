@@ -1,5 +1,5 @@
 const utils = require('../utils')
-const sdk = require('@defillama/sdk4')
+const sdk = require('@defillama/sdk5')
 const { request, gql, batchRequests } = require('graphql-request')
 const { MRD_ABI, VIEWS_ABI } = require('./abi')
 const axios = require('axios')
