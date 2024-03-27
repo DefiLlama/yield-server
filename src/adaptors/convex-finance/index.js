@@ -60,6 +60,12 @@ const main = async () => {
     'https://api.curve.fi/api/getAllGauges'
   );
 
+  Object.keys(gauges).forEach((key) => {
+    if (gauges[key].swap_token === undefined) {
+      delete gauges[key];
+    }
+  });
+
   const mappedGauges = Object.entries(gauges).reduce(
     (acc, [name, gauge]) => ({
       ...acc,
