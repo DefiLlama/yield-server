@@ -72,14 +72,29 @@ const getRebalancePoolData = async () => {
   return newObj;
 };
 
-const getPoolData = async () => {
-  const RebalancePoolData = await getRebalancePoolData();
-  const newObj = RebalancePoolData;
+const getGaugePoolData = async () => {
+  let RebalancePoolData = await utils.getData(
+    `${ALADDIN_API_BASE_URL}api1/fx_gauge_tvl_apy`
+  );
+  const newObj = RebalancePoolData.data.map((data) => {
+    const { gauge, name, tvl, apy } = data;
+    return {
+      pool: `${gauge}-f(x)`,
+      chain: utils.formatChain('ethereum'),
+      project: 'fx-protocol',
+      symbol: utils.formatSymbol(name),
+      tvlUsd: parseInt(tvl, 10),
+      apy: parseFloat(apy),
+    };
+  });
+
   return newObj;
 };
 
 const main = async () => {
-  const data = await getPoolData();
+  const rebalancedata = await getRebalancePoolData();
+  const gaugeData = await getGaugePoolData();
+  const data = [].concat(rebalancedata).concat(gaugeData);
   return data.filter((p) => utils.keepFinite(p));
 };
 
