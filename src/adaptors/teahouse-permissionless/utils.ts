@@ -274,6 +274,7 @@ async function topLvl(_: number): Promise<Pool[]> {
     // step 1: get vault data
     // const vaultType = 'permissionless'
     // const vaults = await getVaultData(vaultType)
+    // console.log(JSON.stringify(vaults))
     const vaults = getVaultData2()
     const interval = 24 * 60 * 60
     updateRpcUrl(sdk, 'arbitrum', 42161, "https://rpc.ankr.com/arbitrum")
