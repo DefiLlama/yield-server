@@ -17,7 +17,7 @@ const getApy = async () => {
             symbol: pool.name.replace(' / ', '-'),
             tvlUsd: Number(pool.liquidity),
             apyBase: Number(pool.day.liquidityApy),
-            apyReward: Number(pool.current.swopApr.max),
+            apyReward: Number(pool.current.swopApr.min),
             rewardTokens: [SWOP_TOKEN_ID],
             underlyingTokens: pool.assets.map(a => a.id),
             url: `${BASE_POOL_URL}${pool.id}`
