@@ -38,7 +38,7 @@ const getUmamiGlpVaultsYield = async () => {
         tvlUsd: +(tvl * underlyingTokenPrice),
         apyBase: +(vaultFromApi.liquidApr * 100).toFixed(2),
         symbol: vault.symbol,
-        rewardTokens: [vault.underlyingAsset],
+        rewardTokens: [],
         underlyingTokens: [vault.underlyingAsset],
         url: `https://umami.finance/vaults/${vault.id}`,
       });
