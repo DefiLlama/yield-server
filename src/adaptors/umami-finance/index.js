@@ -10,6 +10,7 @@ const {
   wETH_ADDRESS,
 } = require('./umamiConstants.js');
 const { getUmamiGlpVaultsYield } = require('./umamiGlpVaults.js');
+const { getUmamiGmSynthsVaultsYield } = require('./umamiGmSynthVaults.js');
 const { getUmamiGmVaultsYield } = require('./umamiGmVaults.js');
 
 const tokenSupplyQuery = gql`
@@ -56,16 +57,19 @@ const main = async () => {
     url: 'https://umami.finance/marinate',
   };
 
-  const [glpVaults, gmVaults] = await Promise.all([
+  const [glpVaults, synthGmVaults, gmVaults] = await Promise.all([
     getUmamiGlpVaultsYield(),
+    getUmamiGmSynthsVaultsYield(),
     getUmamiGmVaultsYield(),
   ]);
 
-  return [mUMAMI, cmUMAMI, ...glpVaults, ...gmVaults].map((strat) => ({
-    ...strat,
-    chain: 'Arbitrum',
-    project: 'umami-finance',
-  }));
+  return [mUMAMI, cmUMAMI, ...glpVaults, ...synthGmVaults, ...gmVaults].map(
+    (strat) => ({
+      ...strat,
+      chain: 'Arbitrum',
+      project: 'umami-finance',
+    })
+  );
 };
 
 module.exports = {
