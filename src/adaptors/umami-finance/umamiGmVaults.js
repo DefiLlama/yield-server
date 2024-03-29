@@ -84,19 +84,16 @@ const getIncentivesAprForVault = async (vault) => {
 
   const arbPerSec = arbPerSecRaw / 10 ** 18;
   const vaultPps = vaultPpsRaw / 10 ** vault.decimals;
-  const stakedBalance = stakedBalanceRaw / 10 ** vault.decimals;
+  const assetsStakedTvl =
+    parseFloat(ethers.utils.formatUnits(stakedBalanceRaw, vault.decimals)) *
+    vaultPps;
 
-  const poolAllocPoint = poolInfos[1];
+  const emissionsPerYearInUsd = arbPerSec * 60 * 60 * 24 * 365 * arbTokenPrice;
+  const emissionsPerYearInTokens = emissionsPerYearInUsd / underlyingTokenPrice;
 
-  const assetsStakedTvl = stakedBalance * vaultPps;
+  const apr = (emissionsPerYearInTokens / assetsStakedTvl) * 100;
 
-  const arbPerSecondForVault = arbPerSec * (poolAllocPoint / totalAllocPoint);
-
-  const emissions = arbPerSecondForVault * 60 * 60 * 24 * 365;
-
-  const apr = emissions / assetsStakedTvl;
-
-  return apr;
+  return isNaN(apr) ? 0 : apr;
 };
 
 const getUmamiGmVaultsYield = async () => {
