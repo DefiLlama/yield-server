@@ -57,7 +57,7 @@ const getIncentivesAprForVault = async (vault) => {
     .call();
 
   const [
-    totalAllocPointRaw,
+    totalAllocPoint,
     arbPerSecRaw,
     poolInfos,
     stakedBalanceRaw,
@@ -86,14 +86,13 @@ const getIncentivesAprForVault = async (vault) => {
   const vaultPps = vaultPpsRaw / 10 ** vault.decimals;
   const stakedBalance = stakedBalanceRaw / 10 ** vault.decimals;
 
-  const totalAllocPoint = totalAllocPointRaw;
   const poolAllocPoint = poolInfos[1];
 
   const assetsStakedTvl = stakedBalance * vaultPps;
 
-  const arbPerSecondForVault = (arbPerSec * poolAllocPoint) / totalAllocPoint;
+  const arbPerSecondForVault = arbPerSec * (poolAllocPoint / totalAllocPoint);
 
-  const emissions = arbPerSec * 60 * 60 * 24 * 365;
+  const emissions = arbPerSecondForVault * 60 * 60 * 24 * 365;
 
   const apr = emissions / assetsStakedTvl;
 
