@@ -70,6 +70,12 @@ const getData = async ({ chainId, address }) => {
     chain,
   });
 
+  const decimals = await sdk.api.abi.call({
+    target: address,
+    abi: erc20Abi.find(({ name }) => name === 'decimals'),
+    chain,
+  });
+
   calls.push(
     sdk.api.abi.call({
       target: address,
@@ -111,7 +117,7 @@ const getData = async ({ chainId, address }) => {
     poolInfoResponse,
   ] = await Promise.all(calls);
 
-  const tvl = Number(tvlResponse.output) / 1e6;
+  const tvl = Number(tvlResponse.output) / decimals.output;
 
   const { data } = await axios.get(
     `${BASE_URL}/utils/get-interport-token-info`
@@ -129,7 +135,7 @@ const getData = async ({ chainId, address }) => {
     allocationPoint,
   } = poolInfoResponse.output;
 
-  const totalInUSD = Number(stakingTokenTotalAmount / 1e6);
+  const totalInUSD = Number(stakingTokenTotalAmount / decimals.output);
   const totalUSDPerPeriod =
     ((itpPerYear * itpPrice) / totalAllocationPoint) * Number(allocationPoint);
 
