@@ -30,26 +30,28 @@ const fetchData = async (chainId) => {
         Origin: 'https://app.nayms.com',
       });
 
-    return data.map(
-      ({
-        id,
-        participationTokenSymbol,
-        paidInCapital,
-        targetRoiMin,
-        assetToken,
-        businessTypes,
-        cellStatus,
-      }) => ({
-        pool: id,
-        chain: chainNames[chainId] ?? 'Unknown Chain',
-        project: 'nayms',
-        symbol: participationTokenSymbol,
-        tvlUsd: paidInCapital,
-        apy: targetRoiMin,
-        underlyingTokens: [assetToken.address],
-        poolMeta: `${formatString(businessTypes)} (Status: ${cellStatus})`,
-      })
-    );
+    return data
+      .filter(({ cellStatus }) => cellStatus !== 'CLOSED')
+      .map(
+        ({
+          id,
+          participationTokenSymbol,
+          paidInCapital,
+          targetRoiMin,
+          assetToken,
+          businessTypes,
+          cellStatus,
+        }) => ({
+          pool: id,
+          chain: chainNames[chainId] ?? 'Unknown Chain',
+          project: 'nayms',
+          symbol: assetToken.symbol,
+          tvlUsd: paidInCapital,
+          apy: targetRoiMin,
+          underlyingTokens: [assetToken.address],
+          poolMeta: `${participationTokenSymbol}, ${formatString(businessTypes)} (Status: ${cellStatus})`,
+        })
+      );
   } catch ({ status, response }) {
     throw new Error(
       `Network response was not ok: ${status} - ${
