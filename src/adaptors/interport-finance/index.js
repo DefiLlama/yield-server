@@ -18,6 +18,7 @@ const CHAINS = {
   2525: 'inEVM',
 };
 
+const ITP_ADDRESS = '0x2b1D36f5B61AdDAf7DA7ebbd11B35FD8cfb0DE31';
 const STABLE_ADDRESS = '0x29d44c17f4f83b3c77ae2eac4bc1468a496e3196';
 const PROJECT_NAME = 'interport-finance';
 
