@@ -12,9 +12,12 @@ const STABLECOIN_URL = 'https://app.interport.fi/stablecoin-pools';
 const CHAINS = {
   1: 'Ethereum',
   250: 'Fantom',
+  81457: 'Blast',
+  59144: 'Linea',
+  169: 'Manta',
+  2525: 'inEVM',
 };
 
-const ITP_ADDRESS = '0x2b1D36f5B61AdDAf7DA7ebbd11B35FD8cfb0DE31';
 const STABLE_ADDRESS = '0x29d44c17f4f83b3c77ae2eac4bc1468a496e3196';
 const PROJECT_NAME = 'interport-finance';
 
@@ -23,6 +26,21 @@ const STABLECOIN_FARM_TYPE_LIST = {
     '0xb6AB8EeFAE1a2c22Ca6338E143cb7dE544800c6e': 0,
   },
   1: {
+    '0xEc8DDCb498b44C35EFaD7e5e43E0Caf6D16A66E8': 0,
+    '0x5b45B414c6CD2a3341bE70Ba22BE786b0124003F': 1,
+  },
+  81457: {
+    '0x5b45B414c6CD2a3341bE70Ba22BE786b0124003F': 0,
+  },
+  59144: {
+    '0xEc8DDCb498b44C35EFaD7e5e43E0Caf6D16A66E8': 0,
+    '0x5b45B414c6CD2a3341bE70Ba22BE786b0124003F': 1,
+  },
+  169: {
+    '0xEc8DDCb498b44C35EFaD7e5e43E0Caf6D16A66E8': 0,
+    '0x5b45B414c6CD2a3341bE70Ba22BE786b0124003F': 1,
+  },
+  2525: {
     '0xEc8DDCb498b44C35EFaD7e5e43E0Caf6D16A66E8': 0,
     '0x5b45B414c6CD2a3341bE70Ba22BE786b0124003F': 1,
   },
