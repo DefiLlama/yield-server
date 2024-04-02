@@ -120,7 +120,7 @@ const getApy = async () => {
         apyBase: vault.snapshots[0]
           ? Number(vault.snapshots[0].apr)
           : Number(vault.apr.averageApr),
-        url: `https://beta.arrakis.finance/vaults/${CHAIN_IDS[chain]}/${vault.id}`,
+        url: `https://app.arrakis.fi/vaults/${vault.id}`,
         underlyingTokens: [vault.token0.address, vault.token1.address],
       };
     });
