@@ -4,9 +4,9 @@ const { calculateAPY } = require('./utils');
 const BigNumber = require('bignumber.js');
 const utils = require('../utils');
 
-const chains = ['ethereum', 'arbitrum'];
-const UI_POOL_DATA_PROVIDERS = { "ethereum": '0x6Ab39f4e9F494733893Ca90212558e55C7196012', "arbitrum": '0x775f2616557824bbcf2ea619cA2BacaBd930F2BD' };
-const ADDRESSES_PROVIDERS = { "ethereum": '0x16085E000eAC286aa503326cBcEe4564268a7F8f', "arbitrum": '0x66d2eaD9cbE6754985a9Be7B829502228Ef8b49B' };
+const chains = ['ethereum', 'arbitrum', 'polygon'];
+const UI_POOL_DATA_PROVIDERS = { "ethereum": '0x6Ab39f4e9F494733893Ca90212558e55C7196012', "arbitrum": '0x775f2616557824bbcf2ea619cA2BacaBd930F2BD', 'polygon': '0x2464dA5c26651cdceD9f6afa9afdc79B5f6413AD'};
+const ADDRESSES_PROVIDERS = { "ethereum": '0x16085E000eAC286aa503326cBcEe4564268a7F8f', "arbitrum": '0x66d2eaD9cbE6754985a9Be7B829502228Ef8b49B', 'polygon': '0x488402D92f32eEdA5cf61521ADf7f8e8f1DcaC20'};
 
 async function apy() {
     const pools = await Promise.all(
