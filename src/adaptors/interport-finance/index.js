@@ -1,5 +1,5 @@
 const axios = require('axios');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 
 const abi = require('./abis/abi.json');
 const erc20Abi = require('./abis/erc20.abi.json');
