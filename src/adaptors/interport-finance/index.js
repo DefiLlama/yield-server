@@ -47,6 +47,10 @@ const STABLECOIN_FARM_TYPE_LIST = {
   },
 };
 
+const formatNumber = (n, decimals) => {
+  return n / 10 ** decimals;
+};
+
 const getAPY = async () => {
   const promises = Object.keys(STABLECOIN_FARM_TYPE_LIST).map((chainId) => {
     return Object.keys(STABLECOIN_FARM_TYPE_LIST[chainId]).map((address) => {
@@ -117,7 +121,7 @@ const getData = async ({ chainId, address }) => {
     poolInfoResponse,
   ] = await Promise.all(calls);
 
-  const tvl = Number(tvlResponse.output) / decimals.output;
+  const tvl = formatNumber(tvlResponse.output, decimals.output);
 
   const { data } = await axios.get(
     `${BASE_URL}/utils/get-interport-token-info`
@@ -135,7 +139,7 @@ const getData = async ({ chainId, address }) => {
     allocationPoint,
   } = poolInfoResponse.output;
 
-  const totalInUSD = Number(stakingTokenTotalAmount / decimals.output);
+  const totalInUSD = formatNumber(stakingTokenTotalAmount, decimals.output);
   const totalUSDPerPeriod =
     ((itpPerYear * itpPrice) / totalAllocationPoint) * Number(allocationPoint);
 
