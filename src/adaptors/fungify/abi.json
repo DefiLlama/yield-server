@@ -112,6 +112,9 @@
       "type": "function"
     },
   "balanceOf": "function balanceOf(address) view returns (uint256)",
+  "totalSupply": "function totalSupply() view returns (uint256)",
+  "exchangeRateStored": "function exchangeRateStored() view returns (uint256)",
+  "underlying": "function underlying() view returns (address)",
   "symbol": "function symbol() view returns (string)",
   "interestMarket": "function interestMarket() view returns (address)",
   "interestRateModel": "function interestRateModel() view returns (address)",
