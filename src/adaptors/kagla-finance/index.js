@@ -43,9 +43,9 @@ const getAssetPrice = async () => {
 
   return {
     0: 1,
-    5: prices[assets.ASTR].price,
-    6: prices[assets.KGL].price,
-    7: prices[assets.LAY].price,
+    5: prices[assets.ASTR]?.price,
+    6: prices[assets.KGL]?.price,
+    7: prices[assets.LAY]?.price,
   };
 };
 
@@ -84,7 +84,8 @@ const getApy = async () => {
         url: `https://kagla.finance/app/pools/${pool.address}`,
       };
     })
-    .sort((pool) => pool.tvlUsd > 0);
+    .sort((pool) => pool.tvlUsd > 0)
+    .filter((i) => utils.keepFinite(i));
 };
 
 module.exports = {
