@@ -148,7 +148,7 @@ const getData = async ({ chainId, address }) => {
   return {
     chain: CHAINS[chainId],
     project: PROJECT_NAME,
-    pool: address,
+    pool: `${chainId}-${address}`,
     symbol: symbol.output.replace('i', ''),
     apyBase: Number(apr),
     tvlUsd: Number(tvl),
