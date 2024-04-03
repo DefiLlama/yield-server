@@ -94,7 +94,7 @@ const topLvl = async (
   var farmRewards = {}
 
   for(let i in farms){
-    farmRewards[farms[i].pair.toLowerCase()] = {apy: farms[i].apy * farms[i].ampBoost, payout: farms[i].payoutToken}
+    farmRewards[farms[i].pair.toLowerCase()] = {apy: farms[i].apy, payout: farms[i].payoutToken}
   }
 
   const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
