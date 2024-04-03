@@ -55,6 +55,8 @@ const POOLS = {
         collateralPoolId: 'dffb3514-d667-4f2f-8df3-f716ebe09c93',
         symbol: "LINK-USDC",
       }, // gmLINK
+      { version: 4, address: '0x49De724D7125641F56312EBBcbf48Ef107c8FA57' }, // WBTC
+      { version: 4, address: '0x780db9770dDc236fd659A39430A8a7cC07D0C320' }, // WETHV2
     ],
   },
   avax: {
@@ -88,18 +90,6 @@ const POOLS = {
       }, // xSUSHI (deprecated)
       {
         version: 1,
-        address: '0x6cbafee1fab76ca5b5e144c43b3b50d42b7c8c8f',
-        interestPerYear: 80,
-        maximumCollateralRatio: 9000,
-      }, // yvUSDC (deprecated)
-      {
-        version: 1,
-        address: '0x551a7cff4de931f32893c928bbc3d25bf1fc5147',
-        interestPerYear: 80,
-        maximumCollateralRatio: 9000,
-      }, // yvUSDT (deprecated)
-      {
-        version: 1,
         address: '0x6ff9061bb8f97d948942cef376d98b51fa38b91f',
         interestPerYear: 150,
         maximumCollateralRatio: 7500,
@@ -113,19 +103,11 @@ const POOLS = {
       { version: 2, address: '0xc1879bf24917ebe531fbaa20b0d05da027b592ce' }, // AGLD
       { version: 2, address: '0x7b7473a76d6ae86ce19f7352a1e89f6c9dc39020' }, // ALCX
       { version: 2, address: '0x05500e2ee779329698df35760bedcaac046e7c27' }, // FTM
-      { version: 2, address: '0x003d5a75d284824af736df51933be522de9eed0f' }, // wsOHM
       { version: 2, address: '0x98a84eff6e008c5ed0289655ccdca899bcb6b99f' }, // xSUSHI v3
       { version: 2, address: '0x0bf90b3b5cad7dfcf70de198c498b61b3ba35cff' }, // xSUSHI v2
-      { version: 2, address: '0xebfde87310dc22404d918058faa4d56dc4e93f0a' }, // yvcrvIB
       { version: 2, address: '0x0bca8ebcb26502b013493bf8fe53aa2b1ed401c1' }, // yvstETH (deprecated)
-      {
-        version: 2,
-        address: '0x920d9bd936da4eafb5e25c6bdc9f6cb528953f9f',
-        collateralPoolId: 'acb09b67-8509-4e2a-adb4-4ce520084714',
-      }, // yvWETH
       { version: 2, address: '0x5db0ebf9feeecfd0ee82a4f27078dbce7b4cd1dc' }, // sSPELL
       { version: 2, address: '0xc319eea1e792577c319723b5e60a15da3857e7da' }, // sSPELL v2 (deprecated)
-      { version: 2, address: '0x3410297d89dcdaf4072b805efc1ef701bb3dd9bf' }, // sSPELL v3
       { version: 2, address: '0x252dcf1b621cc53bc22c256255d2be5c8c32eae4' }, // SHIB
       { version: 2, address: '0x9617b633ef905860d919b88e1d9d9a6191795341' }, // FTT
       { version: 2, address: '0xcfc571f3203756319c231d3bc643cee807e74636' }, // SPELL (DegenBox)
@@ -134,18 +116,7 @@ const POOLS = {
       { version: 2, address: '0x390db10e65b5ab920c19149c919d970ad9d18a41' }, // WETH
       { version: 2, address: '0x5ec47ee69bede0b6c2a2fc0d9d094df16c192498' }, // WBTC
       { version: 2, address: '0xf179fe36a36b32a4644587b8cdee7a23af98ed37' }, // yvCVXETH
-      {
-        version: 2,
-        address: '0x4eaed76c3a388f4a841e9c765560bbe7b3e4b3a0',
-        collateralPoolId: 'ad3d7253-fb8f-402f-a6f8-821bc0a055cb',
-      }, // cvxTricrypto2
-      { version: 2, address: '0x806e16ec797c69afa8590a55723ce4cc1b54050e' }, // cvx3Pool (deprecated)
       { version: 2, address: '0x6371efe5cd6e3d2d7c477935b7669401143b7985' }, // cvx3pool (deprecated)
-      {
-        version: 2,
-        address: '0x257101f20cb7243e2c7129773ed5dbbcef8b34e0',
-        collateralPoolId: '7394f1bc-840a-4ff0-9e87-5e0ef932943a',
-      }, // cvx3pool
       {
         version: 3,
         address: '0x7ce7d9ed62b9a6c5ace1c6ec9aeb115fa3064757',
@@ -171,13 +142,33 @@ const POOLS = {
       }, // Stargate USDT (POF)
       { version: 4, address: '0x207763511da879a900973a5e092382117c3c1588' }, // CRV
       { version: 4, address: '0x85f60d3ea4e86af43c9d4e9cc9095281fc25c405' }, // Migrated WBTC
+      { version: 4, address: '0x7d8df3e4d06b0e19960c19ee673c0823beb90815' }, // CRV V2
       {
         version: 4,
-        address: '0x7259e152103756e1616a77ae982353c3751a6a90',
-        collateralPoolId: 'f827e130-1684-4829-b464-b5f99cf1d82b',
-      }, // yvCrv3Crypto
-      { version: 4, address: '0x692887e8877c6dd31593cda44c382db5b289b684' }, // magicAPE
-      { version: 4, address: '0x7d8df3e4d06b0e19960c19ee673c0823beb90815' }, // CRV V2
+        address: '0x289424add4a1a503870eb475fd8bf1d586b134ed',
+        collateralPoolId: '7394f1bc-840a-4ff0-9e87-5e0ef932943a',
+      }, // cvx3pool
+      { version: 4, address: '0xc6d3b82f9774db8f92095b5e4352a8bb8b0dc20d' }, // sSPELL v3
+      {
+        version: 4,
+        address: '0x46f54d434063e5f1a2b2cc6d9aaa657b1b9ff82c',
+        collateralPoolId: 'ad3d7253-fb8f-402f-a6f8-821bc0a055cb',
+      }, // cvxTricrypto2
+      {
+        version: 4,
+        address: '0x40d95c4b34127cf43438a963e7c066156c5b87a3',
+      }, // yvUSDT (deprecated)
+      {
+        version: 4,
+        address: '0x6bcd99d6009ac1666b58cb68fb4a50385945cda2',
+      }, // yvUSDC (deprecated)
+      { version: 4, address: '0x289424add4a1a503870eb475fd8bf1d586b134ed' }, // cvx3Pool (deprecated)
+      {
+        version: 4,
+        address: '0xed510639e1b07c9145cd570f8dd0ca885f760e09',
+        collateralPoolId: 'acb09b67-8509-4e2a-adb4-4ce520084714',
+      }, // yvWETH
+      { version: 4, address: '0xce450a23378859fb5157f4c4cccaf48faa30865b' }, // yvcrvIB
     ],
   },
   fantom: {

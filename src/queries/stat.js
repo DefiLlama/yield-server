@@ -1,5 +1,3 @@
-const minify = require('pg-minify');
-
 const { pgp, connect } = require('../utils/dbConnection');
 
 const tableName = 'stat';
@@ -8,8 +6,7 @@ const tableName = 'stat';
 const getStat = async () => {
   const conn = await connect();
 
-  const query = minify(
-    `
+  const query = `
     SELECT
         "configID",
         count,
@@ -20,10 +17,7 @@ const getStat = async () => {
         "productDR"
     FROM
         $<table:name>
-    `,
-    { compress: true }
-  );
-
+    `;
   const response = await conn.query(query, { table: tableName });
 
   if (!response) {

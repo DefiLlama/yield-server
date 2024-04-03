@@ -9,10 +9,7 @@ const pgp = require('pg-promise')({
 pgp.pg.types.setTypeParser(20, parseInt);
 pgp.pg.types.setTypeParser(1700, parseFloat);
 
-const minify = require('pg-minify');
-
-const query = minify(
-  `
+const query = `
 INSERT INTO
 median_project (timestamp, project, "medianAPY", "uniquePools")
 WITH daily_data AS (
@@ -34,9 +31,7 @@ SELECT
 FROM daily_data
 GROUP BY timestamp
 ORDER BY timestamp;
-  `,
-  { compress: true }
-);
+  `;
 
 (async () => {
   const projects = fs

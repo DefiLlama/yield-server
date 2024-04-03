@@ -22,10 +22,6 @@ const getApy = async () => {
 
     if (symbol.includes(undefined)) return null;
 
-    const p = `${pool}-${symbol}-14day`;
-    if (uniquePools.has(p)) return [];
-    uniquePools.add(p);
-
     // base apr
     const feeTier = x.fees.replace('%', '') / 100;
     const fees24h = x.volume_24h * feeTier;
@@ -44,11 +40,11 @@ const getApy = async () => {
     const apyReward = aprSuperfluid > 0 ? aprSuperfluid : aprReward;
 
     return {
-      pool: p,
+      pool: `osmosis-${poolId}`,
       chain: 'Osmosis',
       project: 'osmosis-dex',
       symbol: utils.formatSymbol(symbol),
-      poolMeta: '14day',
+      poolMeta: `${tvl[0].fees}`,
       tvlUsd: x.liquidity,
       apyBase: aprBase,
       apyBase7d: aprBase7d,

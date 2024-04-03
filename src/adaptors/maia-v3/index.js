@@ -158,10 +158,10 @@ const topTvl = async (
         ...p,
         reserve0:
           x.find((i) => i.input.target === p.token0.id).output /
-          `1e${p.token0.decimals}`,
+          `1e${p.token0?.decimals}`,
         reserve1:
           x.find((i) => i.input.target === p.token1.id).output /
-          `1e${p.token1.decimals}`,
+          `1e${p.token1?.decimals}`,
       };
     });
 
@@ -250,8 +250,8 @@ const topTvl = async (
             pool,
             incentive.rewardToken,
             (incentive.reward /
-              10 ** rewardPrices[incentive.rewardToken].decimals) *
-              rewardPrices[incentive.rewardToken].price,
+              10 ** rewardPrices[incentive.rewardToken]?.decimals) *
+              rewardPrices[incentive.rewardToken]?.price,
             incentive.endTime - incentive.startTime
           );
         });
@@ -285,8 +285,8 @@ const topTvl = async (
           p.price1,
           p.price0,
           investmentAmount,
-          p.token0.decimals,
-          p.token1.decimals,
+          p.token0?.decimals,
+          p.token1?.decimals,
           p.feeTier,
           url,
           p.volumeUSD7d

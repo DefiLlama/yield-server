@@ -1,5 +1,5 @@
 const axios = require('axios');
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk5');
 
 const abiCore = require('./abiCore.json');
 const abiLABDistributor = require('./abiLABDistributor.json');
@@ -11,20 +11,45 @@ const CORE = '0xB7A23Fc0b066051dE58B922dC1a08f33DF748bbf';
 const LABDistributor = '0x67c10B7b8eEFe92EB4DfdEeedd94263632E483b0';
 const LAB = '0x20a512dbdc0d006f46e6ca11329034eb3d18c997';
 const PriceCalculator = '0x38f4384B457F81A4895c93a7503c255eFd0746d2';
-const CHAIN = 'manta';
 
-const apy = async () => {
+const CHAINS = {
+  manta: {
+    CORE: '0xB7A23Fc0b066051dE58B922dC1a08f33DF748bbf',
+    LABDistributor: '0x67c10B7b8eEFe92EB4DfdEeedd94263632E483b0',
+    LAB: '0x20a512dbdc0d006f46e6ca11329034eb3d18c997',
+    PriceCalculator: '0x38f4384B457F81A4895c93a7503c255eFd0746d2',
+  },
+  linea: {
+    CORE: '0x009a0b7C38B542208936F1179151CD08E2943833',
+    LABDistributor: '0x5D06067f86946620C326713b846DdC8B97470957',
+    LAB: '0xB97F21D1f2508fF5c73E7B5AF02847640B1ff75d',
+    PriceCalculator: '0x4F5F443fEC450fD64Dce57CCacE8f5ad10b4028f',
+  },
+  scroll: {
+    CORE: '0xEC53c830f4444a8A56455c6836b5D2aA794289Aa',
+    LABDistributor: '0xF1F897601A525F57c5EA751a1F3ec5f9ADAc0321',
+    LAB: '0x2A00647F45047f05BDed961Eb8ECABc42780e604',
+    PriceCalculator: '0x760bd7Fc100F217678D1b521404D2E93Db7Bec5F',
+  },
+};
+
+const apy = async (chain) => {
+  const CORE = CHAINS[chain].CORE;
+  const LABDistributor = CHAINS[chain].LABDistributor;
+  const LAB = CHAINS[chain].LAB;
+  const PriceCalculator = CHAINS[chain].PriceCalculator;
+
   const allMarkets = (
     await sdk.api.abi.call({
       target: CORE,
-      chain: CHAIN,
+      chain,
       abi: abiCore.find(({ name }) => name === 'allMarkets'),
     })
   ).output;
 
   const marketInfoOf = (
     await sdk.api.abi.multiCall({
-      chain: CHAIN,
+      chain,
       abi: abiCore.find((n) => n.name === 'marketInfoOf'),
       calls: allMarkets.map((m) => ({
         target: CORE,
@@ -35,7 +60,7 @@ const apy = async () => {
 
   const totalSupply = (
     await sdk.api.abi.multiCall({
-      chain: CHAIN,
+      chain,
       abi: abiLToken.find((n) => n.name === 'totalSupply'),
       calls: allMarkets.map((m) => ({
         target: m,
@@ -45,7 +70,7 @@ const apy = async () => {
 
   const totalBorrow = (
     await sdk.api.abi.multiCall({
-      chain: CHAIN,
+      chain,
       abi: abiLToken.find((n) => n.name === 'totalBorrow'),
       calls: allMarkets.map((m) => ({
         target: m,
@@ -55,7 +80,7 @@ const apy = async () => {
 
   const totalReserve = (
     await sdk.api.abi.multiCall({
-      chain: CHAIN,
+      chain,
       abi: abiLToken.find((n) => n.name === 'totalReserve'),
       calls: allMarkets.map((m) => ({
         target: m,
@@ -65,7 +90,7 @@ const apy = async () => {
 
   const rateModel = (
     await sdk.api.abi.multiCall({
-      chain: CHAIN,
+      chain,
       abi: abiLToken.find((n) => n.name === 'rateModel'),
       calls: allMarkets.map((m) => ({
         target: m,
@@ -75,7 +100,7 @@ const apy = async () => {
 
   const reserveFactor = (
     await sdk.api.abi.multiCall({
-      chain: CHAIN,
+      chain,
       abi: abiLToken.find((n) => n.name === 'reserveFactor'),
       calls: allMarkets.map((m) => ({
         target: m,
@@ -85,7 +110,7 @@ const apy = async () => {
 
   const cash = (
     await sdk.api.abi.multiCall({
-      chain: CHAIN,
+      chain,
       abi: abiLToken.find((n) => n.name === 'getCash'),
       calls: allMarkets.map((m) => ({
         target: m,
@@ -95,7 +120,7 @@ const apy = async () => {
 
   const borrowRate = (
     await sdk.api.abi.multiCall({
-      chain: CHAIN,
+      chain,
       abi: abiRateModelSlope.find((n) => n.name === 'getBorrowRate'),
       calls: rateModel.map((m, i) => ({
         target: m,
@@ -106,7 +131,7 @@ const apy = async () => {
 
   const supplyRate = (
     await sdk.api.abi.multiCall({
-      chain: CHAIN,
+      chain,
       abi: abiRateModelSlope.find((n) => n.name === 'getSupplyRate'),
       calls: rateModel.map((m, i) => ({
         target: m,
@@ -117,7 +142,7 @@ const apy = async () => {
 
   const distributions = (
     await sdk.api.abi.multiCall({
-      chain: CHAIN,
+      chain,
       abi: abiLABDistributor.find((n) => n.name === 'distributions'),
       calls: allMarkets.map((m) => ({
         target: LABDistributor,
@@ -128,7 +153,7 @@ const apy = async () => {
 
   const underlying = (
     await sdk.api.abi.multiCall({
-      chain: CHAIN,
+      chain,
       abi: abiLToken.find((n) => n.name === 'underlying'),
       calls: allMarkets.map((m) => ({
         target: m,
@@ -138,7 +163,7 @@ const apy = async () => {
 
   const symbol = (
     await sdk.api.abi.multiCall({
-      chain: CHAIN,
+      chain,
       abi: 'erc20:symbol',
       calls: underlying.map((m) => ({
         target: m,
@@ -149,7 +174,7 @@ const apy = async () => {
 
   const decimals = (
     await sdk.api.abi.multiCall({
-      chain: CHAIN,
+      chain,
       abi: 'erc20:decimals',
       calls: underlying.map((m) => ({
         target: m,
@@ -158,7 +183,7 @@ const apy = async () => {
     })
   ).output.map((o) => o.output);
 
-  const priceKeys = underlying.map((t) => `${CHAIN}:${t}`).join(',');
+  const priceKeys = underlying.map((t) => `${chain}:${t}`).join(',');
   const prices = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
   ).data.coins;
@@ -168,12 +193,12 @@ const apy = async () => {
       target: PriceCalculator,
       abi: abiPriceCalculator.find((m) => m.name === 'priceOf'),
       params: [LAB],
-      chain: CHAIN,
+      chain,
     })
   ).output;
 
   return allMarkets.map((p, i) => {
-    const price = prices[`${CHAIN}:${underlying[i]}`]?.price;
+    const price = prices[`${chain}:${underlying[i]}`]?.price;
     const decimal = decimals[i] ?? 18;
 
     const totalSupplyUsd = (totalSupply[i] / 10 ** decimal) * price;
@@ -203,7 +228,7 @@ const apy = async () => {
 
     return {
       pool: p,
-      chain: CHAIN,
+      chain,
       project: 'layerbank',
       symbol: symbol[i] ?? 'ETH',
       tvlUsd,
@@ -220,7 +245,14 @@ const apy = async () => {
   });
 };
 
+const main = async () => {
+  const pools = await Promise.all(
+    Object.keys(CHAINS).map((chain) => apy(chain))
+  );
+  return pools.flat();
+};
+
 module.exports = {
-  apy,
+  apy: main,
   url: 'https://manta.layerbank.finance/bank',
 };

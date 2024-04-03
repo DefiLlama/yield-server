@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk5');
 const axios = require('axios');
 
 const { insertLsd } = require('../queries/lsd');
@@ -162,9 +162,37 @@ const lsdTokens = [
     fee: 0.1,
   },
   {
-    name: 'Dinero-PirexETH',
+    name: 'Dinero (Pirex ETH)',
     symbol: 'APXETH',
     address: '0x04c154b66cb340f3ae24111cc767e0184ed00cc6',
+    type: a,
+    fee: 0.1,
+  },
+  {
+    name: 'Liquid Collective',
+    symbol: 'lsETH',
+    address: '0x8c1bed5b9a0928467c9b1341da1d7bd5e10b6549',
+    type: a,
+    fee: 0.1,
+  },
+  {
+    name: 'MEV Protocol',
+    symbol: 'mevETH',
+    address: '0x24Ae2dA0f361AA4BE46b48EB19C91e02c5e4f27E',
+    type: a,
+    fee: 0.1,
+  },
+  {
+    name: 'Meta Pool ETH',
+    symbol: 'mpETH',
+    address: '0x48AFbBd342F64EF8a9Ab1C143719b63C2AD81710',
+    type: a,
+    fee: 0.1,
+  },
+  {
+    name: 'Crypto.com Staked ETH',
+    symbol: 'CDCETH',
+    address: '0x7a7c9db510aB29A2FC362a4c34260BEcB5cE3446',
     type: a,
     fee: 0.1,
   },
@@ -345,6 +373,49 @@ const getExpectedRates = async () => {
     type: 'function',
   };
 
+  const lsETHAbi = {
+    inputs: [
+      {
+        internalType: 'uint256',
+        name: '_underlyingAssetAmount',
+        type: 'uint256',
+      },
+    ],
+    name: 'sharesFromUnderlyingBalance',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
+  const mevETHAbi = {
+    inputs: [],
+    name: 'fraction',
+    outputs: [
+      { internalType: 'uint128', name: 'elastic', type: 'uint128' },
+      { internalType: 'uint128', name: 'base', type: 'uint128' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
+  const mpETHAbi = {
+    inputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }],
+    name: 'convertToAssets',
+    outputs: [{ internalType: 'uint256', name: 'assets', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
+  const CDCETHAbi = {
+    inputs: [],
+    name: 'exchangeRate',
+    outputs: [
+      { internalType: 'uint256', name: '_exchangeRate', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
   // --- cbETH
   const cbETHRate = Number((await axios.get(cbETHRateUrl)).data.amount);
 
@@ -497,6 +568,47 @@ const getExpectedRates = async () => {
       })
     ).output / 1e18;
 
+  const lsETH =
+    10000 /
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Liquid Collective')
+          .address,
+        chain: 'ethereum',
+        abi: lsETHAbi,
+        params: [10000],
+      })
+    ).output;
+
+  const mevETHRes = (
+    await sdk.api.abi.call({
+      target: lsdTokens.find((lsd) => lsd.name === 'MEV Protocol').address,
+      chain: 'ethereum',
+      abi: mevETHAbi,
+    })
+  ).output;
+  const mevETH = mevETHRes[0] / mevETHRes[1];
+
+  const mpETH =
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Meta Pool ETH').address,
+        chain: 'ethereum',
+        params: [1000000000000000000n],
+        abi: mpETHAbi,
+      })
+    ).output / 1e18;
+
+  const CDCETH =
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Crypto.com Staked ETH')
+          .address,
+        chain: 'cronos',
+        abi: CDCETHAbi,
+      })
+    ).output / 1e18;
+
   return lsdTokens.map((lsd) => ({
     ...lsd,
     expectedRate:
@@ -528,6 +640,14 @@ const getExpectedRates = async () => {
         ? uniETH
         : lsd.name === 'Mantle Staked ETH'
         ? mETH
+        : lsd.name === 'Liquid Collective'
+        ? lsETH
+        : lsd.name === 'MEV Protocol'
+        ? mevETH
+        : lsd.name === 'Meta Pool ETH'
+        ? mpETH
+        : lsd.name === 'Crypto.com Staked ETH'
+        ? CDCETH
         : 1,
   }));
 };
