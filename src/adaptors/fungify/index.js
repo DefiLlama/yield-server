@@ -7,6 +7,7 @@ const COMPTROLLER = "0xf9c70750bF615dE83fE7FF62D30C7faACD8f8Ba0";
 const LENS = "0x2C4A503Bce0805C357D961e45b55BEEE073188E7";
 const PRICE_ORACLE = "0x9b960808875000AC17dfAE13B72BBDF69DF6e7A7";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+const SCALE = 1e18
 
 // Fetch all Markets from comptroller
 async function getAllMarkets() {
@@ -85,16 +86,6 @@ async function getBlocksPerYear(interestRateModel) {
   return blocksPerYear
 }
 
-// async function getDecimalForUnderlyingAsset(underlyingAsset) {
-//   const decimals = (await sdk.api.abi.call({
-//     target: underlyingAsset,
-//     params: [],
-//     abi: ABI['decimals'],
-//     chain: CHAIN
-//   })).output;
-//   return decimals
-// }
-
 async function getUnderlyingPrice(cTokenAddress) {
   const underlyingPrice = (await sdk.api.abi.call({
     target: PRICE_ORACLE,
@@ -112,34 +103,31 @@ async function poolStruct(poolIdentifier, chain, symbol, tvl, apy, rewardTokens,
     chain: chain, // chain where the pool is (needs to match the `name` field in here https://api.llama.fi/chains)
     project: "fungify", // protocol (using the slug again)
     symbol: symbol, // symbol of the tokens in pool, can be a single symbol if pool is single-sided or multiple symbols (eg: USDT-ETH) if it's an LP
-    tvlUsd: tvl, // number representing current USD TVL in pool
+    tvlUsd: tvl, // number representing current USD market size in pool
     apyBase: apy, // APY from pool fees/supplying in %
     rewardTokens: rewardTokens, /// Array of reward token addresses (you can omit this field if a pool doesn't have rewards) // Array<string>;
     underlyingTokens: underlyingTokens, // Array of underlying token addresses from a pool, eg here USDT address on ethereum // Array<string>;
-    url: "https://app.fungify.it/pools",
-    ltv: ltv
+    url: "https://app.fungify.it/pools", // URL for app
+    ltv: ltv // Collateral Factor
   }
 }
 
 // Fetches the apy for all markets
 async function poolsAPY() {
-  console.log('Starting...')
 
   const provider = sdk.getProvider(CHAIN);
-  console.log('Provider ChainId:', provider.chainId)
   const markets = await getAllMarkets();
-  console.log('# Markets:', markets.length)
   const cTokenMetadatas = await getCtokenMetadata(markets);
-  const usdcInterestMarket = await getInterestMarket();
+  const interestMarket = await getInterestMarket();
   let pools = [];
 
-  // Iterates through each market's metadata aggregating the TVL
+  // Iterates through each market's metadata calculating the APY
   for(const cTokenMetaData of cTokenMetadatas) {
 
     const cTokenAddress = cTokenMetaData.cToken;
     const underlyingAsset = cTokenMetaData.underlyingAssetAddress;
     const marketType = cTokenMetaData.marketType;
-    const ltv = cTokenMetaData.collateralFactorMantissa / 1e18;
+    const ltv = cTokenMetaData.collateralFactorMantissa / SCALE;
 
     const supplyRatePerBlock = cTokenMetaData.supplyRatePerBlock;
     const interestRateModel = await getInterestRateModel(cTokenAddress);
@@ -148,8 +136,7 @@ async function poolsAPY() {
     
     let poolIdentifier = `${cTokenAddress}-${CHAIN}`.toLowerCase();
     let symbol = await getSymbol(cTokenAddress);
-    let apy = supplyRatePerBlock * blocksPerYear / 1e18;
-    // if (apy == 0) continue; // Skips 0 apy markets? Skips the no borrow markets but also skips regular markets that have no borrowers
+    let apy = supplyRatePerBlock * blocksPerYear / SCALE;
 
     let tvl = 0;
     let underlyingBalance = 0;
@@ -162,14 +149,14 @@ async function poolsAPY() {
       } else {
         underlyingBalance = await getBalance(underlyingAsset, cTokenAddress);
       }
-      tvl = underlyingBalance * underlyingPrice / 1e18 / 1e18
+      tvl = underlyingBalance * underlyingPrice / SCALE / SCALE
       rewardTokens = [underlyingAsset];
 
     // Erc721 Market
     } else if (marketType == 2) {
       underlyingBalance = await getBalance(underlyingAsset, cTokenAddress);
-      tvl = underlyingBalance * underlyingPrice / 1e18
-      rewardTokens = [usdcInterestMarket];
+      tvl = underlyingBalance * underlyingPrice / SCALE
+      rewardTokens = [interestMarket];
     }
 
     console.log(symbol, "APY:", apy, "LTV:", ltv, "TVL:", tvl)
@@ -189,24 +176,3 @@ module.exports = {
   apy: poolsAPY,
   url: 'https://app.fungify.it/pools',
 };
-
-// From utils.ts (used as reference, ? fields are optional)
-// export interface PoolType {
-//   pool: string;
-//   chain: string;
-//   project: string;
-//   symbol: string;
-//   tvlUsd: number;
-//   apyBase?: number;
-//   apyReward?: number;
-//   rewardTokens?: Array<string>;
-//   underlyingTokens?: Array<string>;
-//   poolMeta?: string;
-//   url?: string;
-//   apyBaseBorrow?: number;
-//   apyRewardBorrow?: number;
-//   totalSupplyUsd?: number;
-//   totalBorrowUsd?: number;
-//   ltv?: number;
-//   apyBaseInception?: number;
-// }
