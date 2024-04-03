@@ -15,7 +15,7 @@ const CHAINS = {
   81457: 'Blast',
   59144: 'Linea',
   169: 'Manta',
-  2525: 'inEVM',
+  // 2525: 'inEVM',
 };
 
 const ITP_ADDRESS = '0x2b1D36f5B61AdDAf7DA7ebbd11B35FD8cfb0DE31';
