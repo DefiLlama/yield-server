@@ -4,7 +4,7 @@ const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 const ethers = require('ethers');
 const { default: BigNumber } = require('bignumber.js');
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk5');
 
 const { facadeAbi, rtokenAbi } = require('./abi');
 

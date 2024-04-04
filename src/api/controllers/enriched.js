@@ -8,7 +8,6 @@ const S3 = require('aws-sdk/clients/s3');
 const validator = require('validator');
 
 const AppError = require('../../utils/appError');
-const { customHeader, customHeaderFixedCache } = require('../../utils/headers');
 const poolsEnrichedColumns = require('../../utils/enrichedColumns');
 const { readFromS3 } = require('../../utils/s3');
 
@@ -46,7 +45,6 @@ const getPoolEnriched = async (req, res) => {
 
   const data = await getPoolsEnrichedData()
   res
-    .set(customHeader(3600))
     .status(200)
     .json({
       status: 'success',
@@ -69,7 +67,7 @@ const getPoolsEnrichedOld = async (req, res) => {
     });
   }
 
-  res.set(customHeaderFixedCache()).status(200).json({
+  res.status(200).json({
     status: 'success',
     data,
   });
@@ -114,7 +112,7 @@ const getPoolsBorrow = async (req, res) => {
     .filter(Boolean)
     .sort((a, b) => b.totalSupplyUsd - a.totalSupplyUsd);
 
-  res.set(customHeaderFixedCache()).status(200).json({
+  res.status(200).json({
     status: 'success',
     data: poolsBorrow,
   });

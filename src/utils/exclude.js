@@ -81,6 +81,14 @@ const excludeAdaptors = [
   'unipilot',
   'deri-protocol',
   'frakt',
+  'goledo',
+  'archly-v1',
+  'polytrade',
+  '3xcalibur',
+  'onering-v2',
+  'wise-lending',
+  'nudes',
+  'pickle',
 ];
 
 const excludePools = [
@@ -447,6 +455,7 @@ const excludePools = [
   '0x0304a6dc4231c963c13df6c8b033ded30597ef4b-avalanche',
   '0xe24563774dd4050e28e3c63567b2918495367626-avalanche',
   '0x42c02c24caaf42a27dd95c790073a4ea3118ea48',
+  '0x4aE5CE819e7D678b07E8D0f483d351E2c8e8B8D3',
 ];
 
 const boundaries = {

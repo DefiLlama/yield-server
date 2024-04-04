@@ -1,12 +1,8 @@
-const minify = require('pg-minify');
-
 const AppError = require('../../utils/appError');
 const { conn } = require('../db');
-const { customHeader } = require('../../utils/headers');
 
 const getMedian = async (req, res) => {
-  const query = minify(
-    `
+  const query = `
     SELECT
         timestamp,
         "uniquePools",
@@ -15,9 +11,7 @@ const getMedian = async (req, res) => {
         median
     ORDER BY
         timestamp ASC
-    `,
-    { compress: true }
-  );
+    `;
 
   const response = await conn.query(query);
 
@@ -25,13 +19,12 @@ const getMedian = async (req, res) => {
     return new AppError(`Couldn't get data`, 404);
   }
 
-  res.set(customHeader(3600)).status(200).json(response);
+  res.status(200).json(response);
 };
 
 const getMedianProject = async (req, res) => {
   const project = req.params.project;
-  const query = minify(
-    `
+  const query = `
     SELECT
         timestamp,
         "medianAPY",
@@ -42,17 +35,14 @@ const getMedianProject = async (req, res) => {
         project = $<project>
     ORDER BY
         timestamp ASC
-    `,
-    { compress: true }
-  );
-
+    `;
   const response = await conn.query(query, { project });
 
   if (!response) {
     return new AppError(`Couldn't get data`, 404);
   }
 
-  res.set(customHeader(3600)).status(200).json({
+  res.status(200).json({
     status: 'success',
     data: response,
   });
