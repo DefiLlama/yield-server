@@ -190,31 +190,36 @@ const lendingPoolsApy = async () => {
           pricesBySymbol[pool.symbol]);
       const { rewards } = pool.aToken;
 
-      const rewardPerYear = rewards.reduce(
-        (acc, rew) =>
-          acc +
-          (rew.emissionsPerSecond / 10 ** rew.rewardTokenDecimals) *
-            SECONDS_PER_YEAR *
-            (pricesByAddress[rew.rewardToken] ||
-              pricesBySymbol[rew.rewardTokenSymbol]),
-        0
-      );
+      const now = Math.floor(Date.now() / 1000);
+
+      const rewardPerYear = rewards
+        .filter(({ distributionEnd }) => distributionEnd > now)
+        .reduce(
+          (acc, rew) =>
+            acc +
+            (Number(rew.emissionsPerSecond) / 10 ** rew.rewardTokenDecimals) *
+              SECONDS_PER_YEAR *
+              (pricesByAddress[rew.rewardToken] ||
+                pricesBySymbol[rew.rewardTokenSymbol] ||
+                0),
+          0
+        );
 
       const { rewards: rewardsBorrow } = pool.vToken;
-      const rewardPerYearBorrow = rewardsBorrow.reduce(
-        (acc, rew) =>
-          acc +
-          (rew.emissionsPerSecond / 10 ** rew.rewardTokenDecimals) *
-            SECONDS_PER_YEAR *
-            (pricesByAddress[rew.rewardToken] ||
-              pricesBySymbol[rew.rewardTokenSymbol]),
-        0
-      );
+      const rewardPerYearBorrow = rewardsBorrow
+        .filter(({ distributionEnd }) => distributionEnd > now)
+        .reduce(
+          (acc, rew) =>
+            acc +
+            (Number(rew.emissionsPerSecond) / 10 ** rew.rewardTokenDecimals) *
+              SECONDS_PER_YEAR *
+              (pricesByAddress[rew.rewardToken] ||
+                pricesBySymbol[rew.rewardTokenSymbol] ||
+                0),
+          0
+        );
       let totalBorrowUsd = totalSupplyUsd - tvlUsd;
       totalBorrowUsd = totalBorrowUsd < 0 ? 0 : totalBorrowUsd;
-
-      const supplyRewardEnd = pool.aToken.rewards[0]?.distributionEnd;
-      const borrowRewardEnd = pool.vToken.rewards[0]?.distributionEnd;
 
       return {
         pool: `${pool.aToken.id}-${chain}`.toLowerCase(),
@@ -223,22 +228,19 @@ const lendingPoolsApy = async () => {
         symbol: pool.symbol,
         tvlUsd,
         apyBase: (pool.liquidityRate / 10 ** 27) * 100,
-        apyReward:
-          supplyRewardEnd * 1000 > new Date()
-            ? (rewardPerYear / totalSupplyUsd) * 100
-            : null,
-        rewardTokens:
-          supplyRewardEnd * 1000 > new Date()
-            ? rewards.map((rew) => rew.rewardToken)
-            : null,
+        apyReward: !!rewardPerYear
+          ? (rewardPerYear / totalSupplyUsd) * 100
+          : null,
+        rewardTokens: rewards
+          .filter(({ distributionEnd }) => distributionEnd > now)
+          .map((rew) => rew.rewardToken),
         underlyingTokens: [pool.aToken.underlyingAssetAddress],
         totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow: Number(pool.variableBorrowRate) / 1e25,
-        apyRewardBorrow:
-          borrowRewardEnd * 1000 > new Date()
-            ? (rewardPerYearBorrow / totalBorrowUsd) * 100
-            : null,
+        apyRewardBorrow: !!rewardPerYearBorrow
+          ? (rewardPerYearBorrow / totalBorrowUsd) * 100
+          : null,
         ltv: Number(pool.baseLTVasCollateral) / 10000,
         url: `https://legacy.seamlessprotocol.com/reserve-overview/?underlyingAsset=${pool.aToken.underlyingAssetAddress}&marketName=${chainUrlParam[chain]}`,
         borrowable: pool.borrowingEnabled,
@@ -359,6 +361,8 @@ const ilmApys = async () => {
 
 const apy = async () => {
   const apys = await Promise.all([lendingPoolsApy(), ilmApys()]);
+
+  console.log('apys: ', apys);
 
   return apys.flat().filter((p) => utils.keepFinite(p));
 };
