@@ -1,0 +1,1292 @@
+[
+  { "type": "constructor", "inputs": [], "stateMutability": "nonpayable" },
+  {
+    "type": "function",
+    "name": "DEFAULT_ADMIN_ROLE",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "LoopStrategy_init",
+    "inputs": [
+      { "name": "_erc20name", "type": "string", "internalType": "string" },
+      { "name": "_erc20symbol", "type": "string", "internalType": "string" },
+      {
+        "name": "_initialAdmin",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_strategyAssets",
+        "type": "tuple",
+        "internalType": "struct StrategyAssets",
+        "components": [
+          {
+            "name": "underlying",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "collateral",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "debt",
+            "type": "address",
+            "internalType": "contract IERC20"
+          }
+        ]
+      },
+      {
+        "name": "_collateralRatioTargets",
+        "type": "tuple",
+        "internalType": "struct CollateralRatio",
+        "components": [
+          { "name": "target", "type": "uint256", "internalType": "uint256" },
+          {
+            "name": "minForRebalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxForRebalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minForWithdrawRebalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxForDepositRebalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "_poolAddressProvider",
+        "type": "address",
+        "internalType": "contract IPoolAddressesProvider"
+      },
+      {
+        "name": "_oracle",
+        "type": "address",
+        "internalType": "contract IPriceOracleGetter"
+      },
+      {
+        "name": "_swapper",
+        "type": "address",
+        "internalType": "contract ISwapper"
+      },
+      {
+        "name": "_ratioMargin",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      { "name": "_maxIterations", "type": "uint16", "internalType": "uint16" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "MANAGER_ROLE",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "PAUSER_ROLE",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "UPGRADER_ROLE",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "UPGRADE_INTERFACE_VERSION",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "string", "internalType": "string" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "allowance",
+    "inputs": [
+      { "name": "owner", "type": "address", "internalType": "address" },
+      { "name": "spender", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "approve",
+    "inputs": [
+      { "name": "spender", "type": "address", "internalType": "address" },
+      { "name": "value", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "asset",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "balanceOf",
+    "inputs": [
+      { "name": "account", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "collateralUSD",
+    "inputs": [],
+    "outputs": [
+      { "name": "amount", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "convertToAssets",
+    "inputs": [
+      { "name": "shares", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "convertToShares",
+    "inputs": [
+      { "name": "assets", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "currentCollateralRatio",
+    "inputs": [],
+    "outputs": [
+      { "name": "ratio", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "debtUSD",
+    "inputs": [],
+    "outputs": [
+      { "name": "amount", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "decimals",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint8", "internalType": "uint8" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "deposit",
+    "inputs": [
+      { "name": "assets", "type": "uint256", "internalType": "uint256" },
+      { "name": "receiver", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [
+      { "name": "shares", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "deposit",
+    "inputs": [
+      { "name": "assets", "type": "uint256", "internalType": "uint256" },
+      { "name": "receiver", "type": "address", "internalType": "address" },
+      {
+        "name": "minSharesReceived",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      { "name": "shares", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "equity",
+    "inputs": [],
+    "outputs": [
+      { "name": "amount", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "equityUSD",
+    "inputs": [],
+    "outputs": [
+      { "name": "amount", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getAssets",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "assets",
+        "type": "tuple",
+        "internalType": "struct StrategyAssets",
+        "components": [
+          {
+            "name": "underlying",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "collateral",
+            "type": "address",
+            "internalType": "contract IERC20"
+          },
+          {
+            "name": "debt",
+            "type": "address",
+            "internalType": "contract IERC20"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getCollateralRatioTargets",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "ratio",
+        "type": "tuple",
+        "internalType": "struct CollateralRatio",
+        "components": [
+          { "name": "target", "type": "uint256", "internalType": "uint256" },
+          {
+            "name": "minForRebalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxForRebalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minForWithdrawRebalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxForDepositRebalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getLendingPool",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "pool",
+        "type": "tuple",
+        "internalType": "struct LendingPool",
+        "components": [
+          {
+            "name": "pool",
+            "type": "address",
+            "internalType": "contract IPool"
+          },
+          {
+            "name": "interestRateMode",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "sTokenCollateral",
+            "type": "address",
+            "internalType": "contract IAToken"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getMaxIterations",
+    "inputs": [],
+    "outputs": [
+      { "name": "iterations", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getOracle",
+    "inputs": [],
+    "outputs": [
+      { "name": "oracle", "type": "address", "internalType": "address" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPoolAddressProvider",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "poolAddressProvider",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getRatioMargin",
+    "inputs": [],
+    "outputs": [
+      { "name": "marginUSD", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getRoleAdmin",
+    "inputs": [
+      { "name": "role", "type": "bytes32", "internalType": "bytes32" }
+    ],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getSwapper",
+    "inputs": [],
+    "outputs": [
+      { "name": "swapper", "type": "address", "internalType": "address" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "grantRole",
+    "inputs": [
+      { "name": "role", "type": "bytes32", "internalType": "bytes32" },
+      { "name": "account", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "hasRole",
+    "inputs": [
+      { "name": "role", "type": "bytes32", "internalType": "bytes32" },
+      { "name": "account", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "maxDeposit",
+    "inputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "maxMint",
+    "inputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "maxRedeem",
+    "inputs": [
+      { "name": "owner", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "maxWithdraw",
+    "inputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "mint",
+    "inputs": [
+      { "name": "", "type": "uint256", "internalType": "uint256" },
+      { "name": "", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "name",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "string", "internalType": "string" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pause",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "paused",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "previewDeposit",
+    "inputs": [
+      { "name": "assets", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "previewMint",
+    "inputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "previewRedeem",
+    "inputs": [
+      { "name": "shares", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "previewWithdraw",
+    "inputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "proxiableUUID",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "rebalance",
+    "inputs": [],
+    "outputs": [
+      { "name": "ratio", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "rebalanceNeeded",
+    "inputs": [],
+    "outputs": [
+      { "name": "shouldRebalance", "type": "bool", "internalType": "bool" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "redeem",
+    "inputs": [
+      { "name": "shares", "type": "uint256", "internalType": "uint256" },
+      { "name": "receiver", "type": "address", "internalType": "address" },
+      { "name": "owner", "type": "address", "internalType": "address" },
+      {
+        "name": "minUnderlyingAsset",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      { "name": "assets", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "redeem",
+    "inputs": [
+      { "name": "shares", "type": "uint256", "internalType": "uint256" },
+      { "name": "receiver", "type": "address", "internalType": "address" },
+      { "name": "owner", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "renounceRole",
+    "inputs": [
+      { "name": "role", "type": "bytes32", "internalType": "bytes32" },
+      {
+        "name": "callerConfirmation",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "revokeRole",
+    "inputs": [
+      { "name": "role", "type": "bytes32", "internalType": "bytes32" },
+      { "name": "account", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setAssetsCap",
+    "inputs": [
+      { "name": "assetsCap", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setCollateralRatioTargets",
+    "inputs": [
+      {
+        "name": "targets",
+        "type": "tuple",
+        "internalType": "struct CollateralRatio",
+        "components": [
+          { "name": "target", "type": "uint256", "internalType": "uint256" },
+          {
+            "name": "minForRebalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxForRebalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minForWithdrawRebalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxForDepositRebalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setInterestRateMode",
+    "inputs": [
+      {
+        "name": "_interestRateMode",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setMaxIterations",
+    "inputs": [
+      { "name": "iterations", "type": "uint16", "internalType": "uint16" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setRatioMargin",
+    "inputs": [
+      { "name": "marginUSD", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setSwapper",
+    "inputs": [
+      { "name": "swapper", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "supportsInterface",
+    "inputs": [
+      { "name": "interfaceId", "type": "bytes4", "internalType": "bytes4" }
+    ],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "symbol",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "string", "internalType": "string" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "totalAssets",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "totalSupply",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "transfer",
+    "inputs": [
+      { "name": "to", "type": "address", "internalType": "address" },
+      { "name": "value", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "transferFrom",
+    "inputs": [
+      { "name": "from", "type": "address", "internalType": "address" },
+      { "name": "to", "type": "address", "internalType": "address" },
+      { "name": "value", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "unpause",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "upgradeToAndCall",
+    "inputs": [
+      {
+        "name": "newImplementation",
+        "type": "address",
+        "internalType": "address"
+      },
+      { "name": "data", "type": "bytes", "internalType": "bytes" }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "withdraw",
+    "inputs": [
+      { "name": "", "type": "uint256", "internalType": "uint256" },
+      { "name": "", "type": "address", "internalType": "address" },
+      { "name": "", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "Approval",
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "spender",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "value",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "AssetsCapSet",
+    "inputs": [
+      {
+        "name": "assetsCap",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CollateralRatioTargetsSet",
+    "inputs": [
+      {
+        "name": "targets",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct CollateralRatio",
+        "components": [
+          { "name": "target", "type": "uint256", "internalType": "uint256" },
+          {
+            "name": "minForRebalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxForRebalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minForWithdrawRebalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxForDepositRebalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Deposit",
+    "inputs": [
+      {
+        "name": "sender",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "assets",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "shares",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Initialized",
+    "inputs": [
+      {
+        "name": "version",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MaxIterationsSet",
+    "inputs": [
+      {
+        "name": "iterations",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Paused",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RatioMarginSet",
+    "inputs": [
+      {
+        "name": "margin",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RoleAdminChanged",
+    "inputs": [
+      {
+        "name": "role",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "previousAdminRole",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "newAdminRole",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RoleGranted",
+    "inputs": [
+      {
+        "name": "role",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "sender",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RoleRevoked",
+    "inputs": [
+      {
+        "name": "role",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "sender",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SwapperSet",
+    "inputs": [
+      {
+        "name": "swapper",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Transfer",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "value",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "USDMarginSet",
+    "inputs": [
+      {
+        "name": "margin",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Unpaused",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Upgraded",
+    "inputs": [
+      {
+        "name": "implementation",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Withdraw",
+    "inputs": [
+      {
+        "name": "sender",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "assets",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "shares",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  { "type": "error", "name": "AccessControlBadConfirmation", "inputs": [] },
+  {
+    "type": "error",
+    "name": "AccessControlUnauthorizedAccount",
+    "inputs": [
+      { "name": "account", "type": "address", "internalType": "address" },
+      { "name": "neededRole", "type": "bytes32", "internalType": "bytes32" }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "AddressEmptyCode",
+    "inputs": [
+      { "name": "target", "type": "address", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "AddressInsufficientBalance",
+    "inputs": [
+      { "name": "account", "type": "address", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ERC1967InvalidImplementation",
+    "inputs": [
+      {
+        "name": "implementation",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  { "type": "error", "name": "ERC1967NonPayable", "inputs": [] },
+  {
+    "type": "error",
+    "name": "ERC20InsufficientAllowance",
+    "inputs": [
+      { "name": "spender", "type": "address", "internalType": "address" },
+      { "name": "allowance", "type": "uint256", "internalType": "uint256" },
+      { "name": "needed", "type": "uint256", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ERC20InsufficientBalance",
+    "inputs": [
+      { "name": "sender", "type": "address", "internalType": "address" },
+      { "name": "balance", "type": "uint256", "internalType": "uint256" },
+      { "name": "needed", "type": "uint256", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ERC20InvalidApprover",
+    "inputs": [
+      { "name": "approver", "type": "address", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ERC20InvalidReceiver",
+    "inputs": [
+      { "name": "receiver", "type": "address", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ERC20InvalidSender",
+    "inputs": [
+      { "name": "sender", "type": "address", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ERC20InvalidSpender",
+    "inputs": [
+      { "name": "spender", "type": "address", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ERC4626ExceededMaxDeposit",
+    "inputs": [
+      { "name": "receiver", "type": "address", "internalType": "address" },
+      { "name": "assets", "type": "uint256", "internalType": "uint256" },
+      { "name": "max", "type": "uint256", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ERC4626ExceededMaxMint",
+    "inputs": [
+      { "name": "receiver", "type": "address", "internalType": "address" },
+      { "name": "shares", "type": "uint256", "internalType": "uint256" },
+      { "name": "max", "type": "uint256", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ERC4626ExceededMaxRedeem",
+    "inputs": [
+      { "name": "owner", "type": "address", "internalType": "address" },
+      { "name": "shares", "type": "uint256", "internalType": "uint256" },
+      { "name": "max", "type": "uint256", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ERC4626ExceededMaxWithdraw",
+    "inputs": [
+      { "name": "owner", "type": "address", "internalType": "address" },
+      { "name": "assets", "type": "uint256", "internalType": "uint256" },
+      { "name": "max", "type": "uint256", "internalType": "uint256" }
+    ]
+  },
+  { "type": "error", "name": "EnforcedPause", "inputs": [] },
+  { "type": "error", "name": "ExpectedPause", "inputs": [] },
+  { "type": "error", "name": "FailedInnerCall", "inputs": [] },
+  { "type": "error", "name": "InvalidCollateralRatioTargets", "inputs": [] },
+  { "type": "error", "name": "InvalidInitialization", "inputs": [] },
+  { "type": "error", "name": "MarginOutsideRange", "inputs": [] },
+  { "type": "error", "name": "MathOverflowedMulDiv", "inputs": [] },
+  { "type": "error", "name": "MintDisabled", "inputs": [] },
+  { "type": "error", "name": "NotInitializing", "inputs": [] },
+  { "type": "error", "name": "RebalanceNotNeeded", "inputs": [] },
+  { "type": "error", "name": "RedeemerNotOwner", "inputs": [] },
+  {
+    "type": "error",
+    "name": "SafeERC20FailedOperation",
+    "inputs": [
+      { "name": "token", "type": "address", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "SharesReceivedBelowMinimum",
+    "inputs": [
+      {
+        "name": "sharesReceived",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "minSharesReceived",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  { "type": "error", "name": "UUPSUnauthorizedCallContext", "inputs": [] },
+  {
+    "type": "error",
+    "name": "UUPSUnsupportedProxiableUUID",
+    "inputs": [{ "name": "slot", "type": "bytes32", "internalType": "bytes32" }]
+  },
+  {
+    "type": "error",
+    "name": "UnderlyingReceivedBelowMinimum",
+    "inputs": [
+      {
+        "name": "underlyingReceived",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "minUnderlyingReceived",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  { "type": "error", "name": "WithdrawDisabled", "inputs": [] }
+]
