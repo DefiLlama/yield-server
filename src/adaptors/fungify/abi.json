@@ -1,5 +1,5 @@
 {
-  "getAllMarkets": "address[]:getAllMarkets",
+  "getAllMarkets": "function getAllMarkets() view returns (address[])",
   "cTokenMetadataAll": {
       "inputs": [
         {
