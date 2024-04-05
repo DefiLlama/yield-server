@@ -149,7 +149,6 @@ async function poolStruct(poolIdentifier, chain, symbol, tvl, apy, rewardTokens,
 // Fetches the apy for all markets
 async function poolsAPY() {
 
-  const provider = sdk.getProvider(CHAIN);
   const markets = await getAllMarkets();
   const cTokenMetadatas = await getCtokenMetadata(markets);
   const interestMarket = await getInterestMarket();
