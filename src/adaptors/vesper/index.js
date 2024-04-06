@@ -4,12 +4,14 @@ const urls = {
   polygon: 'https://api-polygon.vesper.finance/pools?stages=prod',
   ethereum: 'https://api.vesper.finance/pools?stages=prod',
   avalanche: 'https://api-avalanche.vesper.finance/pools?stages=prod',
+  optimism: 'https://api-optimism.vesper.finance/pools?stages=prod',
 };
 
 const underlyingTokenMapping = {
   eth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
   avax: '0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7',
   matic: '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
+  weth: '0x4200000000000000000000000000000000000006',
 };
 
 async function apy(chain) {
@@ -48,13 +50,9 @@ async function apy(chain) {
 }
 
 const main = async () => {
-  const [p, e, a] = await Promise.all([
-    apy('polygon'),
-    apy('ethereum'),
-    apy('avalanche'),
-  ]);
-
-  return [...p, ...e, ...a];
+  return (
+    await Promise.all(Object.keys(urls).map((chain) => apy(chain)))
+  ).flat();
 };
 
 module.exports = {

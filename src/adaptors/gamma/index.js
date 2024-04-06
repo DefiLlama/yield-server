@@ -4,29 +4,100 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { print } = require('graphql');
 
-
-
 const EXCHANGES_API = {
   uniswapv3: '',
-  quickswap: 'quickswap/'
+  quickswap: 'quickswap/',
+  zyberswap: 'zyberswap/',
+  thena: 'thena/',
+  camelot: 'camelot/',
+  retro: 'retro/',
+  stellaswap: 'stellaswap/',
+  beamswap: 'beamswap/',
+  spiritswap: 'spiritswap/',
+  sushiswap: 'sushi/',
+  ramses: 'ramses/',
+  fusionx: 'fusionx/',
+  synthswap: 'synthswap/',
+  lynex: 'lynex/',
+  pegasys: 'pegasys/',
+  basex: 'basex/',
+  pancakeswap: 'pancakeswap/',
+  hercules: 'hercules/',
+  baseswap: 'baseswap/',
+  swapbased: 'swapbased/',
+  pharaoh: 'pharaoh/',
+  swapr: 'swapr/',
+  thick: 'thick/',
+  cleopatra: 'cleopatra/',
 };
 const EXCHANGES_CHAINS = {
-  uniswapv3: ["ethereum", "optimism", "polygon", "arbitrum", "celo"],
-  quickswap: ["polygon"]
+  uniswapv3: ["ethereum", "optimism", "polygon", "arbitrum", "celo", "bsc", "moonbeam"],
+  quickswap: ["polygon", "polygon_zkevm", "manta"],
+  zyberswap: ["arbitrum"],
+  thena: ["bsc"],
+  camelot: ["arbitrum"],
+  retro: ["polygon"],
+  stellaswap: ["moonbeam"],
+  beamswap: ["moonbeam"],
+  spiritswap: ["fantom"],
+  sushiswap: ["polygon", "arbitrum", "base"],
+  ramses: ["arbitrum"],
+  fusionx: ["mantle"],
+  synthswap: ["base"],
+  lynex: ["linea"],
+  pegasys: ["rollux"],
+  basex: ["base"],
+  pancakeswap: ["ethereum", "arbitrum", "bsc", "base", "op_bnb"],
+  aperture: ["manta"],
+  hercules: ["metis"],
+  baseswap: ["base"],
+  swapbased: ["base"],
+  pharaoh: ["avalanche"],
+  swapr: ["gnosis"],
+  thick: ["base"],
+  cleopatra: ["mantle"],
 };
 const CHAINS_API = {
   ethereum: '',
-  optimism: 'optimism/',
   polygon: 'polygon/',
+  polygon_zkevm: 'polygon-zkevm/',
+  optimism: 'optimism/',
   arbitrum: 'arbitrum/',
-  celo: 'celo/'
+  celo: 'celo/',
+  bsc: 'bsc/',
+  moonbeam: 'moonbeam/',
+  avax: 'avalanche/',
+  fantom: 'fantom/',
+  mantle: 'mantle/',
+  rollux: 'rollux/',
+  linea: 'linea/',
+  base: 'base/',
+  kava: 'kava/',
+  op_bnb: 'opbnb/',
+  manta: 'manta/',
+  metis: 'manta/',
+  xdai: 'gnosis/',
 };
 const CHAIN_IDS = {
   ethereum: 1,
-  optimism: 10,
   polygon: 137,
+  polygon_zkevm: 1101,
+  optimism: 10,
   arbitrum: 42161,
-  celo: 42220
+  celo: 42220,
+  bsc: 56,
+  moonbeam: 1284,
+  avax: 43114,
+  fantom: 250,
+  mantle: 5000,
+  rollux: 570,
+  linea: 59144,
+  base: 8453,
+  kava: 2222,
+  op_bnb: 204,
+  manta: 169,
+  metis: 1088,
+  xdai: 100,
 };
 const UNISWAP_FEE = {
   "100": "0.01%",
@@ -36,7 +107,6 @@ const UNISWAP_FEE = {
   "10000": "1%",
   "0": ""
 }
-
 var pools_processed = []; // unique pools name
 // v1 pools (read only) and private hypervisors ( non retail)
 const blacklist = {
@@ -78,17 +148,45 @@ const blacklist = {
     "0xe14dbb7d054ff1ff5c0cd6adac9f8f26bc7b8945",
     "0xa625ea468a4c70f13f9a756ffac3d0d250a5c276",
   ],
-  optimism: [],
   polygon: [],
+  polygon_zkevm: [],
+  optimism: [],
   arbitrum: [],
-  celo: []
+  celo: [],
+  bsc: [],
+  moonbeam: [],
+  avax: [],
+  fantom: [],
+  mantle: [],
+  rollux: [],
+  linea: [],
+  base: [],
+  kava: [],
+  op_bnb: [],
+  manta: [],
+  metis: [],
+  xdai: [],
 };
 const masterchef_blacklist = {
   ethereum: [],
-  optimism: ["0x097264485014bad028890b6e03ad2dc72bd43bf2", "0x3c21bc5d9fdbb395feba595c5c8ee803fcee84cf"],
   polygon: ["0x5ca8b7eb3222e7ce6864e59807ddd1a3c3073826", "0x9c64060cac9a20a44dbf9eff47bd4de7d049877d"],
+  polygon_zkevm: [],
+  optimism: ["0x097264485014bad028890b6e03ad2dc72bd43bf2", "0x3c21bc5d9fdbb395feba595c5c8ee803fcee84cf"],
   arbitrum: [],
   celo: [],
+  bsc: [],
+  moonbeam: [],
+  avax: [],
+  fantom: [],
+  mantle: [],
+  rollux: [],
+  linea: [],
+  base: [],
+  kava: [],
+  op_bnb: [],
+  manta: [],
+  metis: [],
+  xdai: [],
 };
 const getUrl_allData = (chain, exchange) =>
   `https://wire2.gamma.xyz/${exchange}${chain}hypervisors/allData`;
@@ -176,17 +274,32 @@ const getApy = async () => {
     {}
   );
 
-  const keys = [];
+  let keys = [];
   for (const key of Object.keys(tokens)) {
     keys.push(tokens[key].map((t) => `${key}:${t}`));
   }
-  const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: keys.flat(),
-    })
-  ).body.coins;
+  keys = [...new Set(keys.flat())]
 
-
+  const maxSize = 50;
+  const pages = Math.ceil(keys.length / maxSize);
+  let pricesA = [];
+  let url = '';
+  for (const p of [...Array(pages).keys()]) {
+    url = keys
+      .slice(p * maxSize, maxSize * (p + 1))
+      .join(',')
+      .toLowerCase()
+    pricesA = [
+      ...pricesA,
+      (await superagent.get(`https://coins.llama.fi/prices/current/${url}`))
+        .body.coins,
+    ];
+  }
+  let prices = {};
+  for (const p of pricesA) {
+    prices = { ...prices, ...p };
+  }
+  
   const pools = Object.keys(hype_allData).map((chain) => {
 
     const chainAprs = Object.keys(hype_allData[chain]).filter((function (hypervisor_id) {
@@ -225,7 +338,7 @@ const getApy = async () => {
       // create a unique pool name
       var pool_name = hypervisor_id;
       if (pools_processed.indexOf(pool_name) >= 0) {
-        pool_name = `${hypervisor_id}-${utils.formatChain(chain)}`
+        pool_name = `${hypervisor_id}-${chain === 'polygon_zkevm' ? 'Polygon_zkevm' : utils.formatChain(chain)}`
       };
       pools_processed.push(pool_name);
 
@@ -265,7 +378,17 @@ const getApy = async () => {
     });
     return chainAprs;
   });
-  return pools.flat();
+
+  // pools on optimism which have wrong reward apy
+  const x = [
+    '0x431f6e577a431d9ee87a535fde2db830e352e33c',
+    '0xed17209ab7f9224e29cc9894fa14a011f37b6115',
+  ];
+  return pools.flat().map((i) => ({
+    ...i,
+    apyReward: x.includes(i.pool) ? null : i.apyReward,
+    rewardTokens: x.includes(i.pool) ? null : i.rewardTokens,
+  })).filter(p => p.chain != 'Binance');
 };
 
 module.exports = {

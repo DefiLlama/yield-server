@@ -2,9 +2,7 @@ const fs = require('fs');
 
 const { confirm } = require('./confirm');
 const { pgp, connect } = require('../src/utils/dbConnection');
-const {
-  tableName: configTableName,
-} = require('../src/controllers/configController');
+const { tableName: configTableName } = require('../src/queries/config');
 
 (async () => {
   await confirm(

@@ -19,13 +19,14 @@ const projectedAprTvlThr = 1e6;
 let extraRewardsPrices = {};
 
 const getCrvCvxPrice = async () => {
-  const url =
-    'https://api.coingecko.com/api/v3/simple/price?ids=convex-finance%2Ccurve-dao-token&vs_currencies=usd';
+  const tokens = [crvAddress, cvxAddress].map((t) => `ethereum:${t}`).join(',');
+
+  const url = `https://coins.llama.fi/prices/current/${tokens}`;
 
   const response = await superagent.get(url);
-  const data = response.body;
-  const crvPrice = data['curve-dao-token'].usd;
-  const cvxPrice = data['convex-finance'].usd;
+  const data = response.body.coins;
+  const crvPrice = data[`ethereum:${crvAddress}`].price;
+  const cvxPrice = data[`ethereum:${cvxAddress}`].price;
   return { crvPrice, cvxPrice };
 };
 
@@ -37,17 +38,33 @@ const main = async () => {
 
   const poolsList = (
     await Promise.all(
-      ['factory', 'main', 'crypto', 'factory-crypto'].map((registry) =>
+      [
+        'main',
+        'crypto',
+        'factory',
+        'factory-crypto',
+        'optimism',
+        'factory-crvusd',
+        'factory-tricrypto',
+        'factory-stable-ng',
+      ].map((registry) =>
         utils.getData(`https://api.curve.fi/api/getPools/ethereum/${registry}`)
       )
     )
   )
     .map(({ data }) => data.poolData)
-    .flat();
+    .flat()
+    .filter((i) => i?.address !== undefined);
 
-  const {
-    data: { gauges },
-  } = await utils.getData('https://api.curve.fi/api/getGauges');
+  const { data: gauges } = await utils.getData(
+    'https://api.curve.fi/api/getAllGauges'
+  );
+
+  Object.keys(gauges).forEach((key) => {
+    if (gauges[key].swap_token === undefined) {
+      delete gauges[key];
+    }
+  });
 
   const mappedGauges = Object.entries(gauges).reduce(
     (acc, [name, gauge]) => ({
@@ -125,7 +142,7 @@ const main = async () => {
       if (!gauge && !z.includes(pool.lptoken)) return;
       const virtualPrice = z.includes(pool.lptoken)
         ? pool.virtualPrice
-        : gauge.swap_data.virtual_price / 10 ** 18;
+        : gauge.swap_data?.virtual_price / 10 ** 18;
       if (!pool.coinsAddresses) return null;
       let v2PoolUsd;
       if (pool.totalSupply == 0) {
@@ -289,12 +306,13 @@ const main = async () => {
         ).output;
         if (!extraRewardsPrices[token.toLowerCase()]) {
           try {
-            const price = await utils.getData(
-              'https://api.coingecko.com/api/v3/coins/ethereum/contract/' +
-                token.toLowerCase()
-            );
+            const price = (
+              await utils.getData(
+                `https://coins.llama.fi/prices/current/ethereum:${token.toLowerCase()}`
+              )
+            ).coins;
             extraRewardsPrices[token.toLowerCase()] =
-              price.market_data.current_price.usd;
+              price[`ethereum:${token.toLowerCase()}`].price;
           } catch {
             extraRewardsPrices[token.toLowerCase()] = 0;
           }
@@ -387,6 +405,8 @@ const main = async () => {
           // for CVX staking only need crvApr (which is actually cvxCRV reward)
           pool.lptoken === cvxAddress
             ? pool.crvApr
+            : pool.lptoken === '0xfffAE954601cFF1195a8E20342db7EE66d56436B'
+            ? null
             : pool.crvApr + pool.apr + pool.extrApr,
         underlyingTokens: pool.coins.map(({ address }) => address),
         rewardTokens:
@@ -401,7 +421,7 @@ const main = async () => {
     })
     .filter((pool) => !pool.symbol.toLowerCase().includes('ust'));
 
-  return res;
+  return res.filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

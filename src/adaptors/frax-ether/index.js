@@ -21,7 +21,7 @@ const getApy = async () => {
       pool: token,
       chain: 'ethereum',
       project: 'frax-ether',
-      symbol: 'frxeth',
+      symbol: 'sfrxeth',
       tvlUsd: tvl * ethPrice,
       apyBase: apyData.sfrxethApr,
       underlyingTokens: [weth],

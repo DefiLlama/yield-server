@@ -5,7 +5,7 @@ const superagent = require('superagent');
 const abiProtocolDataProvider = require('./abiProtocolDataProvider');
 
 const utils = require('../utils');
-const address = require('../paraspace/address');
+const address = require('../paraspace-lending-v1/address');
 
 const rewardToken = '0xD102cE6A4dB07D247fcc28F366A623Df0938CA9E';
 

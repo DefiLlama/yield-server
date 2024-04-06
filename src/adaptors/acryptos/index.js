@@ -14,6 +14,8 @@ const chainMapping = {
   1284: 'moonbeam',
   1285: 'moonriver',
   2222: 'kava',
+  7700: 'canto',
+  8453: 'base',
   42161: 'arbitrum',
   43114: 'avalanche',
   1666600000: 'harmony',
