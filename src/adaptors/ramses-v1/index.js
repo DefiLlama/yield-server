@@ -125,8 +125,7 @@ const getApy = async () => {
 
     const apyReward =
       (totalRewardPerDay * 36500) /
-      ((derivedSupply[i] * pairPrice) / 1e18) /
-      2.5;
+      ((derivedSupply[i] * pairPrice) / 1e18);
 
     return {
       pool: p,
