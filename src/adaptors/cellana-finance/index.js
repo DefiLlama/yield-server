@@ -92,7 +92,7 @@ async function main() {
         // res.push(rs[1])
     }));
 
-    return [...res];
+    return utils.removeDuplicates([...res]);
 
 }
 async function getCurrentVotes   (poolAddress ) {
