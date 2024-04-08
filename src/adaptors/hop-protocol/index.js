@@ -24,6 +24,7 @@ const getApy = async () => {
       const poolAddress = config?.l2SaddleSwap;
       const tokenAddress = config?.l2CanonicalToken;
       const hopTokenAddress = config?.l2HopBridgeToken;
+      if (!tokenAddress || !poolAddress) continue;
 
       const adaptedChain =
         chain === 'gnosis'

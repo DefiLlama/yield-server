@@ -25,6 +25,13 @@ const oracleABI = [
   'function borrowBalanceStored(address account) view returns (uint256)',
 ];
 
+const rewardsManagerABI = [
+  "function getMarketRewardSpeeds(address rewardToken, address market) view returns (uint256 supplySpeed, uint256 borrowSpeed)",
+  "function getRewardTokensForMarket(address market) view  returns (address[] memory)",
+  "function getRewardedMarkets(IKToken[] calldata markets, address rewardToken) view returns (bool[])",
+  "function getAllRewardsTokens() external view returns (address[])"
+]
+
 
 
 module.exports = {
@@ -32,4 +39,5 @@ module.exports = {
   erc20ABI,
   unitrollerABI,
   oracleABI,
+  rewardsManagerABI
 };

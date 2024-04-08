@@ -82,6 +82,13 @@ const excludeAdaptors = [
   'deri-protocol',
   'frakt',
   'goledo',
+  'archly-v1',
+  'polytrade',
+  '3xcalibur',
+  'onering-v2',
+  'wise-lending',
+  'nudes',
+  'pickle',
 ];
 
 const excludePools = [

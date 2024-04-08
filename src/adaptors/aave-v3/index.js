@@ -261,12 +261,13 @@ const ethV3Pools = async () => {
 };
 
 const apy = async () => {
-  let data = await Promise.all(
+  let data = await Promise.allSettled(
     Object.entries(API_URLS).map(async ([chain, url]) => [
       chain,
       (await request(url, chain === 'metis' ? queryMetis : query)).reserves,
     ])
   );
+  data = data.filter((i) => i.status === 'fulfilled').map((i) => i.value);
 
   data = data.map(([chain, reserves]) => [
     chain,

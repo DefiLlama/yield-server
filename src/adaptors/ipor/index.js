@@ -11,7 +11,6 @@ const COIN_PRICES_URL = 'https://coins.llama.fi/prices/current';
 const LM_ADDRESS_ETHEREUM = '0xCC3Fc4C9Ba7f8b8aA433Bc586D390A70560FF366';
 const LM_ADDRESS_ARBITRUM = '0xdE645aB0560E5A413820234d9DDED5f4a55Ff6dd';
 const IPOR_TOKEN_ETHEREUM = '0x1e4746dc744503b53b4a082cb3607b169a289090';
-const IPOR_TOKEN_ARBITRUM = '0x34229B3f16fBCDfA8d8d9d17C0852F9496f4C7BB';
 
 const BLOCKS_PER_YEAR = (365 * 24 * 3600) / 12;
 
@@ -28,7 +27,6 @@ const apy = async () => {
   );
 
   coinKeys.push('ethereum:' + IPOR_TOKEN_ETHEREUM);
-  coinKeys.push('arbitrum:' + IPOR_TOKEN_ARBITRUM);
   coinKeys.push(...coinKeysArbitrum);
 
   const coinPrices = (
@@ -111,7 +109,6 @@ const apy = async () => {
     const liquidityMiningGlobalStats = globalStatsEthereum.get(
       asset.ipTokenAssetAddress.toLowerCase()
     );
-    if (asset.asset === 'stETH') {
       const apyReward =
         (((liquidityMiningGlobalStats.rewardsPerBlock /
           1e8 /
@@ -135,30 +132,6 @@ const apy = async () => {
         underlyingTokens: [asset.assetAddress],
         rewardTokens: [IPOR_TOKEN_ETHEREUM],
       });
-    } else {
-      const apyReward =
-        (((liquidityMiningGlobalStats.rewardsPerBlock /
-          1e8 /
-          (liquidityMiningGlobalStats.aggregatedPowerUp / 1e18)) *
-          0.2 * //base powerup
-          BLOCKS_PER_YEAR *
-          iporTokenUsdPrice) /
-          lpTokenPrice /
-          2) * //50% early withdraw fee
-        100; //percentage
-
-      pools.push({
-        pool: asset.assetAddress + '-ethereum',
-        chain: 'Ethereum',
-        project: 'ipor',
-        symbol: asset.asset,
-        tvlUsd: lpBalance * coinPrice,
-        apyBase: Number(lpApr),
-        apyReward: Number(apyReward),
-        underlyingTokens: [asset.assetAddress],
-        rewardTokens: [IPOR_TOKEN_ETHEREUM],
-      });
-    }
   }
 
   for (const asset of assetsArbitrum) {
@@ -180,7 +153,6 @@ const apy = async () => {
     const liquidityMiningGlobalStats = globalStatsArbitrum.get(
       asset.ipTokenAssetAddress.toLowerCase()
     );
-    if (asset.asset === 'wstETH') {
       const apyReward =
         (((liquidityMiningGlobalStats.rewardsPerBlock /
           1e8 /
@@ -202,9 +174,8 @@ const apy = async () => {
         apyBase: Number(lpApr),
         apyReward: Number(apyReward),
         underlyingTokens: [asset.assetAddress],
-        rewardTokens: [IPOR_TOKEN_ARBITRUM],
+        rewardTokens: [IPOR_TOKEN_ETHEREUM],
       });
-    }
   }
 
   return pools;
