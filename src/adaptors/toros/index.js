@@ -13,10 +13,6 @@ const YIELD_PRODUCTS_QUERY = gql`
     yieldProducts {
       address
     }
-    apyForTorosFunds {
-      fundAddress
-      monthly
-    }
   }
 `;
 
@@ -39,6 +35,10 @@ const POOL_DATA_QUERY = gql`
       }
       symbol
       totalValue
+      apy {
+        monthly
+        weekly
+      }
     }
   }
 `;
@@ -47,6 +47,12 @@ const formatValue = (value) => new BN(value).shiftedBy(-18).toNumber();
 
 const getDaysSincePoolCreation = (blockTime) =>
   Math.round((Date.now() / 1000 - +blockTime) / 86400);
+
+const chooseApy = (apy, blockTime, metrics) => {
+  if (!apy) return calcApy(blockTime, metrics);
+
+  return apy.weekly;
+};
 
 // Fallback APY calculation simply based on pool's past performance
 const calcApy = (blockTime, metrics) => {
@@ -65,16 +71,12 @@ const calcApy = (blockTime, metrics) => {
 const fetchTorosYieldProducts = async () => {
   try {
     const response = await request(DHEDGE_API_URL, YIELD_PRODUCTS_QUERY);
-    const apyData = response.apyForTorosFunds;
     const products = await Promise.all(
       response.yieldProducts.map(async ({ address }) => {
         const { fund } = await request(DHEDGE_API_URL, POOL_DATA_QUERY, {
           address,
         });
-        const poolApyData = apyData.find(
-          ({ fundAddress }) => fundAddress === fund.address
-        );
-        return { ...fund, apy: poolApyData?.monthly };
+        return fund;
       })
     );
     return products;
@@ -120,7 +122,7 @@ const listTorosYieldProducts = async () => {
         project: 'toros',
         symbol,
         tvlUsd: formatValue(totalValue),
-        apy: apy ?? calcApy(blockTime, performanceMetrics),
+        apy: chooseApy(apy, blockTime, performanceMetrics),
         rewardTokens:
           rewardIncentivisedPool && rewardData?.rewardToken
             ? [rewardData.rewardToken]
@@ -128,7 +130,7 @@ const listTorosYieldProducts = async () => {
         underlyingTokens: fundComposition
           .filter(({ amount }) => amount !== '0')
           .map(({ tokenAddress }) => tokenAddress),
-        url: `https://toros.finance/pool/${address}`,
+        url: `https://toros.finance/vault/${address}`,
       };
     }
   );
