@@ -3,7 +3,7 @@ const utils = require('../utils');
 const url = 'https://api.beefy.finance';
 const urlApy = `${url}/apy`;
 const urlTvl = `${url}/tvl`;
-const urlMeta = `${url}/vaults`;
+const urlMeta = `${url}/harvestable-vaults`;
 
 const networkMapping = {
   1: 'ethereum',
