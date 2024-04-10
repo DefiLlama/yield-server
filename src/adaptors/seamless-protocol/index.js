@@ -20,7 +20,7 @@ const chainUrlParam = {
 const ILMs = [
   {
     address: '0x258730e23cF2f25887Cb962d32Bd10b878ea8a4e',
-    compoundingPeriods: 360,
+    compoundingPeriods: 1,
   },
 ];
 
@@ -293,12 +293,14 @@ const getLpPrices = async (blockNumber, assets, decimals) => {
 
 const ilmApys = async () => {
   const latestBlock = await sdk.api.util.getLatestBlock(chain);
-  const prevBlock = await sdk.api.util.lookupBlock(
+  const prevBlock1Day = await sdk.api.util.lookupBlock(
     latestBlock.timestamp - SECONDS_PER_DAY,
     { chain }
   );
-
-  const timeWindow = latestBlock.timestamp - prevBlock.timestamp;
+  const prevBlock7Day = await sdk.api.util.lookupBlock(
+    latestBlock.timestamp - (7 * SECONDS_PER_DAY),
+    { chain }
+  );
 
   const assets = (
     await sdk.api.abi.multiCall({
@@ -337,7 +339,8 @@ const ilmApys = async () => {
     assets,
     decimals
   );
-  const prevBlockPrices = await getLpPrices(prevBlock.number, assets, decimals);
+  const prevBlock1DayPrices = await getLpPrices(prevBlock1Day.number, assets, decimals);
+  const prevBlock7DayPrices = await getLpPrices(prevBlock7Day.number, assets, decimals);
 
   const pools = ILMs.map(({ address, compoundingPeriods }, i) => {
     return {
@@ -348,8 +351,14 @@ const ilmApys = async () => {
       tvlUsd: Number(ethers.utils.formatUnits(tvlsUSD[i], USD_DECIMALS)),
       apyBase: calculateApy(
         latestBlockPrices[i],
-        prevBlockPrices[i],
-        timeWindow,
+        prevBlock1DayPrices[i],
+        latestBlock.timestamp - prevBlock1Day.timestamp,
+        compoundingPeriods
+      ),
+      apyBase7d: calculateApy(
+        latestBlockPrices[i],
+        prevBlock7DayPrices[i],
+        latestBlock.timestamp - prevBlock7Day.timestamp,
         compoundingPeriods
       ),
       underlyingTokens: [assets[i].underlying || assets[i].collateral],
