@@ -172,7 +172,7 @@ const lendingApy = async (chain) => {
     chain
   );
 
-  const SONNE = CHAINS[chain].SONNE;
+  const SONNE = CHAINS.optimism.SONNE;
 
   const prices = await getPrices(
     underlyingTokens
