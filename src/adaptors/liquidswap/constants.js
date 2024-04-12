@@ -1,6 +1,4 @@
 const LP_DECIMALS = 6;
-const DEPLOYED_POOL_ADDRESS =
-  '0x2835e9b12c3da7aad249f63f3bd3cc38b561e6c20f7881972686e2b8cc0023b7';
 const LP_STAKING_ACCOUNT =
   '0xb247ddeee87e848315caf9a33b8e4c71ac53db888cb88143d62d2370cca0ead2';
 
@@ -22,7 +20,7 @@ const AMNIS_ST_APT_COINGECKO_ID = 'amnis-staked-aptos-coin';
 const LZ_USDC_COINGECKO_ID = 'usd-coin';
 
 const APT_AMNIS_STAPT_FARM = {
-  deployedAddress: DEPLOYED_POOL_ADDRESS,
+  deployedAddress: '0xe5d1cbab351261717d7b44787596033c691e4dd80cc3dede9a8682a6ec52214f',
   coinX: {
     type: APTOS_TOKEN,
     decimals: 8,
@@ -44,11 +42,11 @@ const APT_AMNIS_STAPT_FARM = {
   },
   resourceAccount: RESOURCES_ACCOUNT_0_5,
   moduleAccount: MODULE_ACCOUNT_0_5,
-  uniqueFarmKey: `${DEPLOYED_POOL_ADDRESS}-APT-amStApt-UNCORRELATED`
+  uniqueFarmKey: '0xe5d1cbab351261717d7b44787596033c691e4dd80cc3dede9a8682a6ec52214f-APT-amStApt-UNCORRELATED'
 };
 
 const USDC_AMNIS_STAPT_FARM = {
-  deployedAddress: DEPLOYED_POOL_ADDRESS,
+  deployedAddress: '0x07abf560d050c0249a610f9b78513dd8253b85dd14b9e7bedb86f8c6bb96cf64',
   coinX: {
     type: LZ_USDC,
     decimals: 6,
@@ -70,7 +68,7 @@ const USDC_AMNIS_STAPT_FARM = {
   },
   resourceAccount: RESOURCES_ACCOUNT_0_5,
   moduleAccount: MODULE_ACCOUNT_0_5,
-  uniqueFarmKey: `${DEPLOYED_POOL_ADDRESS}-zUSDC-amStApt-UNCORRELATED`
+  uniqueFarmKey: '0x07abf560d050c0249a610f9b78513dd8253b85dd14b9e7bedb86f8c6bb96cf64-zUSDC-amStApt-UNCORRELATED'
 };
 
 const FARMS = [APT_AMNIS_STAPT_FARM, USDC_AMNIS_STAPT_FARM];
@@ -79,7 +77,6 @@ const WEEK_SEC = 7 * 24 * 60 * 60;
 
 module.exports = {
   LP_DECIMALS,
-  DEPLOYED_POOL_ADDRESS,
   LP_STAKING_ACCOUNT,
   RESOURCES_ACCOUNT_0_5,
   NODE_URL,
