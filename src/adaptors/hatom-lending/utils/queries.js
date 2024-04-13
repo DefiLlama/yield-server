@@ -64,7 +64,7 @@ query QueryRewards {
 			underlying{
 				symbol
 			}
-		}	
+    }
 		rewardsToken{
 			symbol
 			decimals

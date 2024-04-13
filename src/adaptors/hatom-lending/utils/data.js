@@ -2,10 +2,11 @@ const BigNumber = require('bignumber.js');
 const { default: axios } = require('axios');
 const { request } = require('graphql-request');
 
-const { queryPrices, queryMoneyMarkets, queryRewards } = require('./queries')
+const { queryPrices, queryMoneyMarkets, queryRewards } = require('./queries');
 const { calcLiquidStakingExchangeRate, calcSimulateExchangeRate } = require('./math');
 
 const API_URL = 'https://mainnet-api.hatom.com/graphql';
+const WAD = '1000000000000000000';
 
 async function getMoneyMarkets() {
   const response = await request(API_URL, queryMoneyMarkets, {});
@@ -56,7 +57,7 @@ async function getTokenPrices() {
       if (tokenItem.symbol == 'EGLD') {
         dailyPriceInEgld = '1';
       } else if (tokenItem.symbol == 'SEGLD') {
-        dailyPriceInEgld = new BigNumber(1).multipliedBy(liquidStakingExchangeRate).dividedBy(BigNumber.WAD).toString();
+        dailyPriceInEgld = new BigNumber(1).multipliedBy(liquidStakingExchangeRate).dividedBy(WAD);
       } else {
         dailyPriceInEgld = priceEgld;
       }
