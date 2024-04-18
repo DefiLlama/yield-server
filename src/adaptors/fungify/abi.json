@@ -119,5 +119,8 @@
   "interestMarket": "function interestMarket() view returns (address)",
   "interestRateModel": "function interestRateModel() view returns (address)",
   "blocksPerYear": "function blocksPerYear() view returns (uint256)",
-  "getUnderlyingPrice": "function getUnderlyingPrice(address) view returns (uint256)"
+  "getUnderlyingPrice": "function getUnderlyingPrice(address) view returns (uint256)",
+  "getCash": "function getCash() view returns (uint256)",
+  "totalReserves": "function totalReserves() view returns (uint256)",
+  "totalBorrows": "function totalBorrows() view returns (uint256)"
 }

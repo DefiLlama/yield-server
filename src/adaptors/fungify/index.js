@@ -42,15 +42,37 @@ async function getBalance(assetAddress, subjectAddress) {
   return underlyingBalance
 }
 
-// Fetches the total supply of a cToken
-async function getTotalSupply(cTokenAddress) {
-  const totalSupply = (await sdk.api.abi.call({
+// Fetches the cash of a cToken
+async function getTotalCash(cTokenAddress) {
+  const totalCash = (await sdk.api.abi.call({
     target: cTokenAddress,
     params: [],
-    abi: ABI["totalSupply"],
+    abi: ABI["getCash"],
     chain: CHAIN
   })).output;
-  return totalSupply
+  return totalCash
+}
+
+// Fetches the total reserves of a cToken
+async function getTotalReserves(cTokenAddress) {
+  const totalReserves = (await sdk.api.abi.call({
+    target: cTokenAddress,
+    params: [],
+    abi: ABI["totalReserves"],
+    chain: CHAIN
+  })).output;
+  return totalReserves
+}
+
+// Fetches the total borrows of a cToken
+async function getTotalBorrows(cTokenAddress) {
+  const totalBorrows = (await sdk.api.abi.call({
+    target: cTokenAddress,
+    params: [],
+    abi: ABI["totalBorrows"],
+    chain: CHAIN
+  })).output;
+  return totalBorrows
 }
 
 // Fetches the cToken to underlying exchange rate of the asset
@@ -63,6 +85,7 @@ async function getExchangeRate(cTokenAddress) {
   })).output;
   return exchangeRate
 }
+
 
 // Gets the underlying asset of a cToken
 async function getUnderlyingAsset(cTokenAddress) {
@@ -130,15 +153,16 @@ async function getUnderlyingPrice(cTokenAddress) {
 }
 
 // Creates a pool dictionary of the proper format
-async function poolStruct(poolIdentifier, chain, symbol, tvl, apy, rewardTokens, underlyingTokens, apyBorrow, ltv) {
+async function poolStruct(poolIdentifier, chain, symbol, tvlUsd, totalBorrowsUsd, totalSuppliesUsd, apy, underlyingTokens, apyBorrow, ltv) {
   return {
     pool: poolIdentifier, // unique identifier for the pool in the form of: `${ReceivedTokenAddress}-${chain}`.toLowerCase()
     chain: chain, // chain where the pool is (needs to match the `name` field in here https://api.llama.fi/chains)
     project: "fungify", // protocol (using the slug again)
     symbol: symbol, // symbol of the tokens in pool, can be a single symbol if pool is single-sided or multiple symbols (eg: USDT-ETH) if it's an LP
-    tvlUsd: tvl, // number representing current USD market size in pool
+    tvlUsd: tvlUsd, // number representing current USD free liquidity in pool
+    totalBorrowUsd: totalBorrowsUsd, // number representing current USD borrows in pool
+    totalSupplyUsd: totalSuppliesUsd, // number representing current USD supplies in pool
     apyBase: apy, // APY from pool fees/supplying in %
-    rewardTokens: rewardTokens, /// Array of reward token addresses (you can omit this field if a pool doesn't have rewards) // Array<string>;
     underlyingTokens: underlyingTokens, // Array of underlying token addresses from a pool, eg here USDT address on ethereum // Array<string>;
     url: "https://app.fungify.it/pools", // URL for app
     apyBaseBorrow: apyBorrow, // Borrow APR
@@ -169,35 +193,22 @@ async function poolsAPY() {
     const supplyRatePerBlock = cTokenMetaData.supplyRatePerBlock;
     const borrowRatePerBlock = cTokenMetaData.borrowRatePerBlock;
     const blocksPerYear = await getBlocksPerYear(interestRateModel);
-    const apy = supplyRatePerBlock * blocksPerYear / SCALE;
-    const apyBorrow = borrowRatePerBlock * blocksPerYear / SCALE;
+    const apy = supplyRatePerBlock * blocksPerYear / SCALE * 100;
+    const apyBorrow = borrowRatePerBlock * blocksPerYear / SCALE * 100;
 
     const ltv = cTokenMetaData.collateralFactorMantissa / SCALE;
     const underlyingPrice = await getUnderlyingPrice(cTokenAddress)
     const poolIdentifier = `${cTokenAddress}-${CHAIN}`.toLowerCase();
 
-    const totalSupply = await getTotalSupply(cTokenAddress);
-    const exchangeRate = await getExchangeRate(cTokenAddress);
-    const underlyingSupplied = totalSupply * exchangeRate / SCALE
-    const tvl = underlyingSupplied * underlyingPrice / SCALE / SCALE
+    const totalCash = Number(await getTotalCash(cTokenAddress));
+    const totalBorrows = Number(await getTotalBorrows(cTokenAddress));
+    const totalReserves = Number(await getTotalReserves(cTokenAddress));
     
-    let rewardTokens = [];
+    const tvlUsd = (totalCash - totalReserves) * underlyingPrice / SCALE / SCALE;
+    const totalBorrowsUsd = totalBorrows * underlyingPrice / SCALE / SCALE;
+    const totalSuppliesUsd = (totalCash + totalBorrows - totalReserves) * underlyingPrice / SCALE / SCALE;
 
-    // Erc20 Market and Erc20InterestMarket
-    if (marketType == 1 || marketType == 3) {
-      if (underlyingAsset == ZERO_ADDRESS) { // Native Token
-        rewardTokens = [CHAIN]
-        underlyingAsset = CHAIN
-      } else {
-        rewardTokens = [underlyingAsset];
-      }
-
-    // Erc721 Market
-    } else if (marketType == 2) {
-      rewardTokens = [interestToken];
-    }
-    
-    let poolInfo = await poolStruct(poolIdentifier, CHAIN, symbol, tvl, apy, rewardTokens, [underlyingAsset], apyBorrow, ltv);
+    let poolInfo = await poolStruct(poolIdentifier, CHAIN, symbol, tvlUsd, totalBorrowsUsd, totalSuppliesUsd, apy, [underlyingAsset], apyBorrow, ltv);
     pools.push(poolInfo);
   }
   return pools;
