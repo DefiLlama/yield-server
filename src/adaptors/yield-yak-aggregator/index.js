@@ -73,10 +73,17 @@ const main = async () => {
             (farm.totalDeposits / farm.lpToken.supply);
         }
       } else {
-        const tokenSymbol = farm.depositToken.address.toLowerCase();
-        const tokenName = farm.name.toLowerCase();
-        const tokenPrice =
-          pricesByAddress[tokenSymbol] || pricesBySymbol[tokenName];
+        let tokenPrice = 0;
+
+        if (farm.platform == 'wombat') {
+          const tokenSymbol = farm.depositToken.underlying[0].toLowerCase();
+          tokenPrice = pricesByAddress[tokenSymbol];
+        } else {
+          const tokenSymbol = farm.depositToken.address.toLowerCase();
+          const tokenName = farm.name.toLowerCase();
+          tokenPrice =
+            pricesByAddress[tokenSymbol] || pricesBySymbol[tokenName];
+        }
 
         if (farm.depositToken.stablecoin) tvlUsd = Number(farm.totalDeposits);
         else if (tokenPrice) tvlUsd = tokenPrice * Number(farm.totalDeposits);
