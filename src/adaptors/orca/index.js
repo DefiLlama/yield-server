@@ -32,5 +32,5 @@ const getApy = async () => {
 
 module.exports = {
   apy: getApy,
-  url: 'https://www.orca.so/pools',
+  url: 'https://v1.orca.so/liquidity',
 };

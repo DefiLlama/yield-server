@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk3');
+const sdk = require('@defillama/sdk5');
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
 const config = require('./config');

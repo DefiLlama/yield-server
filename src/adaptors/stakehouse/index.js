@@ -99,8 +99,10 @@ const topLvl = async (chainString, url, underlying) => {
           
           if (tvlUsd > 0) {
             totalTvl += tvlUsd;
-            totalApy += Number(Object.values(aprData)[i].APR);
-            noOfActiveLSDs += 1;
+            if (Number(Object.values(aprData)[i].APR) > 0) {
+              totalApy += Number(Object.values(aprData)[i].APR);
+              noOfActiveLSDs += 1;
+            }
           }
         }
       }

@@ -43,7 +43,12 @@ const usdcPool = async () => {
     tvlUsd: usdcBalance / 1e6,
     apyBase7d: apy7d.rate,
     apyBase: apyBase.rate,
+
+    // https://github.com/DefiLlama/yield-server/pull/1146#issuecomment-1895398250
+    apyReward: parseFloat(apyBase.esHoldRate) * 0.5,
+    
     underlyingTokens: [usdc],
+    rewardTokens: [esHold],
   };
 };
 
@@ -72,6 +77,10 @@ const holdPool = async () => {
     tvlUsd: (balance / 1e18) * coin.price,
     apyBase7d: apy7d.baseRate,
     apyBase: apyBase.baseRate,
+
+    // https://github.com/DefiLlama/yield-server/pull/1146#issuecomment-1895398250
+    apyReward: apyBase.esHoldRate * 0.5,
+    
     underlyingTokens: [hold],
     rewardTokens: [esHold],
   };
