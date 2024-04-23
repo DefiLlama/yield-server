@@ -219,7 +219,7 @@ const getApy = async () => {
       return {
         pool: `${magicGlpAddress}-magicglp-${chain}`,
         chain: utils.formatChain(chain),
-        project: 'abracadabra',
+        project: 'abracadabra-spell',
         symbol: utils.formatSymbol('magicGLP'),
         tvlUsd:
           (magicGlpTotalAssets[chain] / 10 ** glp.decimals) * glpPrice[chain],
