@@ -74,7 +74,7 @@ const getApy = async () => {
       return {
         pool: `${address}-${chain}`,
         chain: utils.formatChain(chain),
-        project: 'abracadabra',
+        project: 'abracadabra-spell',
         tvlUsd: Number(tvlUsdChainFarms[address.toLowerCase()]),
         symbol: symbol ?? utils.formatSymbol(symbols[stakingToken.toLowerCase()].output),
         apyBase: stakingTokenYieldPool.apyBase,

@@ -31,12 +31,19 @@ const turboezeth = '0x27500de405a3212d57177a789e30bb88b0adbec5';
 const realYieldEth_arbitrum = '0xC47bB288178Ea40bF520a91826a3DEE9e0DbFA4C';
 const realYieldUsd_arbitrum = '0x392B1E6905bb8449d26af701Cdea6Ff47bF6e5A8';
 
+// Optimism addresses
+const realYieldEth_optimism = "0xC47bB288178Ea40bF520a91826a3DEE9e0DbFA4C"
+
 // Rewards on ethereum are paid out in EVM SOMM
 const ethRewardTokens = ['0xa670d7237398238de01267472c6f13e5b8010fd1'];
 
 
 // Rewards on arbitrum are paid out in axlSOMM
 const arbitrumRewardTokens = ['0x4e914bbDCDE0f455A8aC9d59d3bF739c46287Ed2'];
+
+
+// Rewards on optimism are paid out in axlSOMM
+const optimismRewardTokens = ['0x4e914bbDCDE0f455A8aC9d59d3bF739c46287Ed2'];
 
 // Map of Cellars -> Staking Pool
 const stakingPools = {
@@ -80,6 +87,9 @@ const stakingPools = {
 
     
 
+  },
+  optimism: {
+    [realYieldEth_optimism]: '0xd700D39be88fB6b54311f95cCA949C3f6835e236',
   },
 };
 
@@ -516,6 +526,19 @@ const v2p6Pools = [
     rewardTokens: ethRewardTokens,
     underlyingTokens: [],
     url: 'https://app.sommelier.finance/strategies/Turbo-ezETH/manage',
+  },
+  {
+    pool: `${realYieldEth_optimism}-optimism`,
+    chain: 'optimism',
+    project,
+    symbol: 'WETH-wstETH-cbETH-rETH',
+    poolMeta: 'RealYieldETH',
+    tvlUsd: 0,
+    apyBase: 0,
+    apyReward: 0,
+    rewardTokens: optimismRewardTokens,
+    underlyingTokens: [],
+    url: 'https://app.sommelier.finance/strategies/real-yield-eth-opt/manage',
   },
 ];
 
