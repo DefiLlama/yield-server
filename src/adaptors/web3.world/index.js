@@ -28,7 +28,7 @@ const getFarmingPoolStats = async () => {
 };
 
 const calcApy = (fee7d, tvl) => {
-  const apy = BigNumber(fee7d).div(7).div(tvl);
+  const apy = BigNumber(fee7d).div(7).times(365).div(tvl).div(365).plus(1).pow(365).minus(1);
   if (apy.isNaN()) return 0
   return apy.times(100).toNumber()
 }
@@ -58,7 +58,7 @@ const fetch = async () => {
       tvlUsd: Number(pool.tvl),
       rewardTokens: pool.rewardTokens.map(({ tokenRoot }) => tokenRoot),
       underlyingTokens: pool.poolTokens.map(({ tokenRoot }) => tokenRoot),
-      apy: BigNumber(pool.minApr).div(365).toNumber(),
+      apy: Number(pool.minApr),
       url: "https://web3.world/farming/" + pool.address
     })
   })
