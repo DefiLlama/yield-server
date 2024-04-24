@@ -27,7 +27,7 @@ const getApy = async () => {
 
   return pools.map((p) => ({
     chain: utils.formatChain(CHAIN),
-    project: 'blast-futures',
+    project: 'bfx-(blast-futures)',
     pool: 'Dynamic AMM LP',
     symbol: 'USDB',
     tvlUsd: tvlValue * Number(p.share_price),
