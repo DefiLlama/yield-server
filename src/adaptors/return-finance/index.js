@@ -1,4 +1,5 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
+const utils = require('../utils');
 
 const abiAAVEPolygon = require('./abiAAVEPolygon.json');
 const abiAAVEAvalanche = require('./abiAAVEAvalanche.json');
@@ -13,13 +14,26 @@ const getPoolData = async ({ contract, abi, chain }) => {
     chain,
   });
 
+  const poolsData = await utils.getData(
+    'https://api.return.finance//api/our-pools'
+  );
+
+  const currentPool = poolsData.pools.find((pool) => {
+    const incomingChainParam = chain === 'avax' ? 'avalanche' : chain;
+
+    return (
+      pool.networkName.toLowerCase() === incomingChainParam &&
+      pool.returnContractAddress === contract
+    );
+  });
+
   return {
     pool: `${contract}-${chain}`,
     chain,
     project: 'return-finance',
     symbol: 'USDC',
     tvlUsd: tvlUsd / 1000000,
-    apyBase: 10, // to be replaced with dynamic data
+    apyBase: currentPool?.apy,
   };
 };
 
