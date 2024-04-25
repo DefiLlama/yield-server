@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const { gql, request } = require('graphql-request');
 const { BigNumber, utils: etherUtils } = require('ethers');
 const utils = require('../utils');
@@ -28,47 +28,25 @@ function borrowApy(snapshot, poolInfo) {
   return borrowYield * (secondsOfDay / timeDiff) * 365 * 100;
 }
 
-function formatSymbols(chainName, symbols, addresses) {
-  if(chainName == "arbitrum") {
-    if(addresses[0] == "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8") {
-      symbols[0] = "USDC.e";
-    }
-    if(addresses[1] == "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8") {
-      symbols[1] = "USDC.e";
-    }
+function formatSymbols(symbols, addresses) {
+  if(addresses[0] == "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8") {
+    symbols[0] = "USDC.e";
+  }
+  if(addresses[1] == "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8") {
+    symbols[1] = "USDC.e";
   }
   return symbols.join("-");
 }
 
 async function apy() {
-  const chainInfo = [
-    {
-      chainName: "arbitrum",
-      endpoint: "https://api.thegraph.com/subgraphs/name/gammaswap/gammaswap-v1-arbitrum",
-      refPoolAddr: "0x63c531ffed7e17f8adca4ed490837838f6fa1b66",
-    },
-    {
-      chainName: "base",
-      endpoint: "https://api.studio.thegraph.com/query/49518/gammaswap-v1-base/version/latest",
-      refPoolAddr: "0xcd4257699b48d4791e77116d0e6a3bd48ad9567f",
-    }
-  ]
-
-  let pools = [];
-  for(let i = 0; i < chainInfo.length; i++) {
-    const _pools = await apyPerChain(chainInfo[i].chainName, chainInfo[i].refPoolAddr, chainInfo[i].endpoint)
-    pools = pools.concat(_pools);
-  }
-  return pools;
-}
-
-async function apyPerChain(chainName, refPoolAddr, endpoint) {
+  const poolAddr = '0x63c531ffed7e17f8adca4ed490837838f6fa1b66';
   const { output: poolViewer }  = await sdk.api.abi.call( {
-    target: refPoolAddr,
+    target: poolAddr,
     abi: IGammaPoolABI[0],
-    chain: chainName
+    chain: 'arbitrum'
   });
 
+  const endpoint = 'https://api.thegraph.com/subgraphs/name/gammaswap/gammaswap-v1-arbitrum';
   const query = gql`
     {
       gammaPoolTracers {
@@ -95,31 +73,19 @@ async function apyPerChain(chainName, refPoolAddr, endpoint) {
       target: poolViewer,
       params: pool
     })),
-    chain: chainName,
+    chain: 'arbitrum',
     permitFailure: true,
   });
 
-  let _latestPoolsData = latestPoolsData.filter(function(pool) {
-    return (Number(pool.output.decimals[0]) + Number(pool.output.decimals[1])) % 2 == 0;
-  });
-
-  const _pools = pools.filter(function(pool, i) {
-    return (Number(latestPoolsData[i].output.decimals[0]) + Number(latestPoolsData[i].output.decimals[1])) % 2 == 0;
-  });
-
-  const _gammaPoolTracers = gammaPoolTracers.filter(function(tracer, i) {
-    return (Number(latestPoolsData[i].output.decimals[0]) + Number(latestPoolsData[i].output.decimals[1])) % 2 == 0;
-  });
-
-  return _pools.map((pool, i) => ({
+  return pools.map((pool, i) => ({
     pool,
-    chain: utils.formatChain(chainName),
-    project: "gammaswap",
-    symbol: formatSymbols(chainName, _latestPoolsData[i].output.symbols,_latestPoolsData[i].output.tokens),
-    tvlUsd: Number(_gammaPoolTracers[i].lastDailyData.pool.tvlUSD),
-    apyBase: supplyApy(_gammaPoolTracers[i].lastDailyData, _latestPoolsData[i].output),
-    apyBaseBorrow: borrowApy(_gammaPoolTracers[i].lastDailyData, _latestPoolsData[i].output),
-    underlyingTokens: _latestPoolsData[i].output.tokens,
+    chain: utils.formatChain('arbitrum'),
+    project: 'gammaswap',
+    symbol: formatSymbols(latestPoolsData[i].output.symbols,latestPoolsData[i].output.tokens),
+    tvlUsd: Number(gammaPoolTracers[i].lastDailyData.pool.tvlUSD),
+    apyBase: supplyApy(gammaPoolTracers[i].lastDailyData, latestPoolsData[i].output),
+    apyBaseBorrow: borrowApy(gammaPoolTracers[i].lastDailyData, latestPoolsData[i].output),
+    underlyingTokens: latestPoolsData[i].output.tokens,
     url: `https://app.gammaswap.com/earn/${pool}`,
   }));
 }

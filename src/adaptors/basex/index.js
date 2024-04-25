@@ -7,7 +7,7 @@ const { EstimatedFees } = require('./estimateFee');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 
-const url = 'https://api.thegraph.com/subgraphs/name/baseswapfi/v3-base';
+const url = 'https://api.thegraph.com/subgraphs/name/harleen-m/basex';
 
 const query = gql`
   {

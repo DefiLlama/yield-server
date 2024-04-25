@@ -222,15 +222,7 @@ const topLvl = async (chainString, version, timestamp) => {
     })
   ).output.map((o) => o.output);
 
-  const exclude = [
-    '0x840dCB7b4d3cEb906EfD00c8b5F5c5Dd61d7f8a6',
-    '0xF0E06891752787D86E4bcD0b2a13e7c8D86F0C05',
-    '0x2605b28c551a115643F7DF29e9e3CCf73eb3a4e7',
-    '0x1D1b0249a849bB354c63E9a746e127A234fc826c',
-    '0xCfB7c2fdC791cC43aAa386592b0804eeDb58bbF9',
-    '0xA2B162c1F17ADDC5b148678468a5eC8Ea164C88b',
-    '0x6C7D50d7c6Bf175Ff1E91160297906845a936842',
-  ];
+  const exclude = ['0x840dCB7b4d3cEb906EfD00c8b5F5c5Dd61d7f8a6'];
 
   poolInfo = poolInfo.filter(
     (obj, index, self) =>

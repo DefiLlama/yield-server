@@ -47,7 +47,6 @@ const main = async () => {
         'factory-crvusd',
         'factory-tricrypto',
         'factory-stable-ng',
-        'factory-twocrypto',
       ].map((registry) =>
         utils.getData(`https://api.curve.fi/api/getPools/ethereum/${registry}`)
       )

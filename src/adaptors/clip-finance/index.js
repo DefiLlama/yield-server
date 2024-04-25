@@ -29,7 +29,7 @@ const config = {
 };
 
 const getUrl = (chain, from) =>
-  `https://stats-kixqx.ondigitalocean.app/daily-apy?from=${from}&chain=${chain}`;
+  `https://stats-kixqx.ondigitalocean.app/apy?from=${from}&chain=${chain}`;
 
 const pairsToObj = (pairs) =>
   pairs.reduce((acc, [el1, el2]) => ({ ...acc, [el1]: el2 }), {});

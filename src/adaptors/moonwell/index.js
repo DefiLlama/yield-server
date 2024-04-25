@@ -193,7 +193,6 @@ const getApy = async () => {
       } = marketWithRewards
 
       let token_info = moonbeam_prices[_emissionToken.toLowerCase()]
-      if (!token_info) continue
       let price = token_info.price
       let decimals = token_info.decimals
       let symbol = token_info.symbol
@@ -338,8 +337,6 @@ const getApy = async () => {
         token_info = mrd_prices[_emissionToken.toLowerCase()]
       }
 
-      if (!token_info) continue
-      
       let price = token_info.price
       let decimals = token_info.decimals
       let symbol = token_info.symbol

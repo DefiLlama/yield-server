@@ -240,7 +240,7 @@ const getApy = async () => {
       return {
         pool: `${pool.stakingToken}-abracadabra`,
         chain: utils.formatChain(chain),
-        project: 'abracadabra-spell',
+        project: 'abracadabra',
         tvlUsd,
         symbol,
         apyReward,

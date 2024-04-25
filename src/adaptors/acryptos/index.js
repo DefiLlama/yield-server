@@ -18,7 +18,6 @@ const chainMapping = {
   8453: 'base',
   42161: 'arbitrum',
   43114: 'avalanche',
-  59144: 'linea',
   1666600000: 'harmony',
 };
 
@@ -75,5 +74,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.acryptos.com/',
+  url: 'https://app-v2.acryptos.com/#/BSC/vaults/all',
 };

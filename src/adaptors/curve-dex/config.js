@@ -20,7 +20,6 @@ REGISTRY_TYPES = [
   'factory-crypto',
   'optimism',
   'factory-crvusd',
-  'factory-twocrypto',
   'factory-tricrypto',
   'factory-stable-ng',
 ];

@@ -127,25 +127,14 @@ const markets = {
     debtToken:
       '0x0292be6baee291a148006db984f200dbdb34b12fb2136c70bfe88649c12d934b',
   },
-  UNO: {
-    address:
-      '0x0719b5092403233201aa822ce928bd4b551d0cdb071a724edd7dc5e5f57b7f34',
-    decimals: 18,
-    supplyTokens: [
-      '0x1325caf7c91ee415b8df721fb952fa88486a0fc250063eafddd5d3c67867ce7',
-      '0x2a3a9d7bcecc6d3121e3b6180b73c7e8f4c5f81c35a90c8dd457a70a842b723',
-      '0x6757ef9960c5bc711d1ba7f7a3bff44a45ba9e28f2ac0cc63ee957e6cada8ea',
-      '0x7d717fb27c9856ea10068d864465a2a8f9f669f4f78013967de06149c09b9af',
-    ],
-    debtToken:
-      '0x4b036839a8769c04144cc47415c64b083a2b26e4a7daa53c07f6042a0d35792',
-  },
 };
 const starknetFoundationIncentivesEndpoint =
   'https://kx58j6x5me.execute-api.us-east-1.amazonaws.com/starknet/fetchFile?file=qa_lending_strk_grant.json';
 
 async function getTokenPrice(token) {
-  const networkTokenPair = `starknet:${token}`;
+  const underlyingToken =
+    token === markets.nstSTRK.address ? markets.STRK.address : token;
+  const networkTokenPair = `starknet:${underlyingToken}`;
   return (
     await axios.get(`https://coins.llama.fi/prices/current/${networkTokenPair}`)
   ).data.coins[networkTokenPair].price;
