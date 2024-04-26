@@ -137,7 +137,7 @@ const getApy = async () => {
     return {
       pool: p,
       chain: utils.formatChain('base'),
-      project: 'aerodrome',
+      project: 'aerodrome-v1',
       symbol: utils.formatSymbol(s.split('-')[1]),
       tvlUsd,
       apyReward,
