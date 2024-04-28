@@ -39,7 +39,7 @@ const apy = async () => {
 		const divider = BigNumber(totalStakedInPool).multipliedBy(price).dividedBy(10 ** TOKENS_DECIMALS).toString();
 		const apy = poolRewardPerYearInUSD.dividedBy(divider).toNumber();
 
-		const tvlUsd = BigNumber(totalStakedInPool).dividedBy(10 ** TOKENS_DECIMALS).toNumber()
+		const tvlUsd = BigNumber(totalStakedInPool).multipliedBy(price).dividedBy(10 ** TOKENS_DECIMALS).toNumber()
 		
 		const symbol = await getSymbol(poolContractAddress);
 
