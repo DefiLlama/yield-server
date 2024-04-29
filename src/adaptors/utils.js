@@ -96,6 +96,7 @@ const getLatestBlockSubgraph = async (url) => {
     url.includes('babydoge/faas') ||
     url.includes('kybernetwork/kyberswap-elastic-cronos') ||
     url.includes('kybernetwork/kyberswap-elastic-matic') ||
+    url.includes('metisapi.0xgraph.xyz/subgraphs/name') ||
     url.includes(
       'https://subgraph.satsuma-prod.com/09c9cf3574cc/orbital-apes/v3-subgraph/api'
     ) ||
