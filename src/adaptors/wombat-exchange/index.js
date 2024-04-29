@@ -244,80 +244,97 @@ async function getWAVAXPrice() {
 
 
 async function calculateAPYWithVolumeBasedFees(poolAssets, rewardData, volumeBasedFees, ggAVAXPrice, WAVAXPrice) {
-    const apy_export = []; 
+  const apy_export = [];
 
-    try {
-        const ggPriceValue = parseFloat(ggAVAXPrice?.pricesBySymbol?.ggp) || 0;
-        const wavaxPriceValue = parseFloat(WAVAXPrice?.pricesBySymbol?.wom) || 0;
+  try {
+      const ggPriceValue = parseFloat(ggAVAXPrice?.pricesBySymbol?.ggp) || 0;
+      const wavaxPriceValue = parseFloat(WAVAXPrice?.pricesBySymbol?.wom) || 0;
 
-        const tvl = await calculateTVL(poolAssets);
-        
-        poolAssets.forEach((asset, index) => {
-            const tvlForToken = tvl[asset.symbol];
-            const volumeBasedFeeChange = volumeBasedFees[index] ? parseFloat(volumeBasedFees[index].feeChange) : 0;
-        
-            const dailyEmissionsValue = rewardData.reduce((acc, data) => {
-                const tokenPrice = data.rewardTokenAddress.toLowerCase() === '0x69260b9483f9871ca57f81a90d91e2f96c2cd11d' ? ggPriceValue : wavaxPriceValue;
-                return acc + (parseFloat(data.dailyTokensDistributed) * tokenPrice);
-            }, 0);
-        
-            const annualEmissionsValue = dailyEmissionsValue * 365;
-            const apyReward = annualEmissionsValue / tvlForToken * 100;
-            const apyBase = ((1 + volumeBasedFeeChange / tvlForToken) ** 365 - 1) * 100;
-        
-            apy_export.push({
-                pool: asset.id,
-                project: 'wombat-exchange',  // Ensure this is correct
-                chain: 'avax',
-                tvlUsd: tvlForToken,
-                symbol: asset.symbol,
-                apyReward: Number(apyReward.toFixed(2)),  // Store as a number
-                apyBase: Number(apyBase.toFixed(2)),      // Store as a number
-                rewardTokens: rewardData.map(data => data.rewardTokenAddress) // Ensure this field exists
-            });
-        });
+      poolAssets.forEach((asset) => {
+          const feeData = volumeBasedFees.find(fee => fee.id === asset.id);
+          if (!feeData) {
+              console.error(`No volume-based fee data found for asset with ID ${asset.id}`);
+              return;
+          }
 
-        return apy_export;  
-        
-    } catch (error) {
-        console.error('Error calculating APY with volume-based fees:', error);
-        return [];
-    }
+          const tvlForToken = parseFloat(asset.liabilityUSD);
+          const volumeBasedFeeChange = parseFloat(feeData.feeChange);
+
+          console.log(`Calculating for ${asset.symbol}: TVL=${tvlForToken}, FeeChange=${volumeBasedFeeChange}`);
+
+          const dailyEmissionsValue = rewardData.reduce((acc, data) => {
+              const tokenPrice = data.rewardTokenAddress.toLowerCase() === '0x69260b9483f9871ca57f81a90d91e2f96c2cd11d' ? ggPriceValue : wavaxPriceValue;
+              return acc + (parseFloat(data.dailyTokensDistributed) * tokenPrice);
+          }, 0);
+
+          const annualEmissionsValue = dailyEmissionsValue * 365;
+          const apyReward = annualEmissionsValue / tvlForToken * 100;
+
+          // More aggressive scaling for apyBase
+          const dailyFeeImpact = (volumeBasedFeeChange / tvlForToken) * 10000; // Scaling the fee change
+          const dailyBaseAPY = (1 + dailyFeeImpact / 100);
+          const apyBase = ((dailyBaseAPY ** 365) - 1) * 100;
+
+          console.log(`APY Results for ${asset.symbol}: APY Reward=${apyReward.toFixed(2)}, APY Base=${apyBase.toFixed(2)}`);
+
+          apy_export.push({
+              pool: asset.id,
+              project: 'wombat-exchange',
+              chain: 'avax',
+              tvlUsd: tvlForToken,
+              symbol: asset.symbol,
+              apyReward: Number(apyReward.toFixed(2)),
+              apyBase: Number(apyBase.toFixed(2)),
+              rewardTokens: rewardData.map(data => data.rewardTokenAddress)
+          });
+      });
+
+      return apy_export;
+  } catch (error) {
+      console.error('Error calculating APY with volume-based fees:', error);
+      return [];
+  }
 }
 
 async function GGP() {
   try {
+      // Fetch all necessary data
       const poolAssets = await fetchPoolData();
-      if (!poolAssets.length) {
-          console.error('No pool assets fetched.');
-          return [];
-      }
-
-      // Fetch reward data for both rewarders concurrently
-      const [rewardDataAVAX, rewardDataGgAVAX] = await Promise.all([
-          fetchRewardData(AVAXRewarder),
-          fetchRewardData(ggAVAXRewarder)
-      ]);
-
       const volumeBasedFees = await fetchVolumeBasedFees();
-      if (!volumeBasedFees.length) {
-          console.error('No volume-based fees fetched.');
-          return [];
+      const ggAVAXPrice = await getGgAVAXPrice();
+      const WAVAXPrice = await getWAVAXPrice();
+
+      if (!poolAssets.length || !volumeBasedFees.length) {
+          console.error('No pool assets or volume-based fees fetched.');
+          return { AVAXRewarder: [], ggAVAXRewarder: [] };
       }
 
-      const ggAVAXPrice = await getGgAVAXPrice();
-      const WAVAXPrice = await getWAVAXPrice();   
+      // Fetch reward data for both rewarders
+      const rewardDataAVAX = await fetchRewardData(AVAXRewarder);
+      const rewardDataGgAVAX = await fetchRewardData(ggAVAXRewarder);
 
-      // Calculate APY for AVAXRewarder
-      const apyResultsAVAX = await calculateAPYWithVolumeBasedFees(poolAssets, rewardDataAVAX, volumeBasedFees, ggAVAXPrice, WAVAXPrice, 'AVAXRewarder');
+      // Filter for specific pools
+      const lpWAVAX = poolAssets.find(asset => asset.symbol === 'LP-WAVAX');
+      const lpGgAVAX = poolAssets.find(asset => asset.symbol === 'LP-ggAVAX');
 
-      // Calculate APY for ggAVAXRewarder
-      const apyResultsGgAVAX = await calculateAPYWithVolumeBasedFees(poolAssets, rewardDataGgAVAX, volumeBasedFees, ggAVAXPrice, WAVAXPrice, 'ggAVAXRewarder');
+      // Filter corresponding volume-based fees
+      const feeWAVAX = volumeBasedFees.find(fee => fee.id === lpWAVAX.id);
+      const feeGgAVAX = volumeBasedFees.find(fee => fee.id === lpGgAVAX.id);
+
+      // Ensure pool and fee data exists before calculating APY
+      const apyResultsAVAX = lpWAVAX && feeWAVAX ? await calculateAPYWithVolumeBasedFees([lpWAVAX], rewardDataAVAX, [feeWAVAX], ggAVAXPrice, WAVAXPrice) : [];
+      const apyResultsGgAVAX = lpGgAVAX && feeGgAVAX ? await calculateAPYWithVolumeBasedFees([lpGgAVAX], rewardDataGgAVAX, [feeGgAVAX], ggAVAXPrice, WAVAXPrice) : [];
 
       console.log('APY Results from AVAXRewarder:', apyResultsAVAX);
       console.log('APY Results from ggAVAXRewarder:', apyResultsGgAVAX);
-      
-      return { AVAXRewarder: apyResultsAVAX, ggAVAXRewarder: apyResultsGgAVAX };
+
+      const allResults = [
+        ...apyResultsAVAX.map(item => ({ ...item })),
+        ...apyResultsGgAVAX.map(item => ({ ...item }))
+      ];
+
+      console.log('all APY results:', allResults);
+      return allResults
 
   } catch (error) {
       console.error('Unhandled error:', error);
@@ -326,10 +343,9 @@ async function GGP() {
 }
 
 
-GGP();
 
 
-/*const oneDay = 86400;
+const oneDay = 86400;
 
 const apy = async () => {
   apy_export = [];
@@ -399,4 +415,3 @@ module.exports = {
   timetravel: false,
   url: 'https://app.wombat.exchange/pool',
 };
-*/
