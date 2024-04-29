@@ -5,7 +5,7 @@ const lineAbi = require("../abi/lineAbi");
 
 const { LINE_CONTRACT_ADDRESS, CHAIN } = require("../config");
 
-module.exports = async function currentLinePrice() {
+module.exports = async function getCurrentLinePrice() {
     return (
         await sdk.api.abi.call({
             target: LINE_CONTRACT_ADDRESS,
