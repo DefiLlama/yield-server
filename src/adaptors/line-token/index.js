@@ -16,8 +16,8 @@ const COMMON_DATA = {
 
 const apy = async () => {
 	const pools = await getAllPools();
-	const linePrice = await getCurrentLinePrice();
-	const collateralTokenPrice = await fetchPriceFromCoingecko(COLLATERAL_TOKEN_CONTRACT_ADDRESS);
+	const linePriceInCollateralToken = await getCurrentLinePrice();
+	const collateralTokenPriceInUSD = await fetchPriceFromCoingecko(COLLATERAL_TOKEN_CONTRACT_ADDRESS);
 	const totalDebt = await getTotalDebt();
 	const interestRate = await getInterestRate();
 
@@ -30,16 +30,16 @@ const apy = async () => {
 
 		const poolRewardPerYear = totalRewardPerYear.multipliedBy(reward_share10000).multipliedBy("1e-4");
 
-		const lpTokenPrice = await getPoolTokenPrice(poolContractAddress, BigNumber(linePrice).dividedBy(10 ** TOKENS_DECIMALS).toString());
+		const stakedTokenPriceInUSD = await getPoolTokenPrice(poolContractAddress, BigNumber(linePriceInCollateralToken).dividedBy(10 ** TOKENS_DECIMALS).toString());
 
-		if (collateralTokenPrice === "0" || lpTokenPrice === "0") continue;
+		if (collateralTokenPriceInUSD === "0" || stakedTokenPriceInUSD === "0") continue;
 
-		const poolRewardPerYearInUSD = poolRewardPerYear.multipliedBy(collateralTokenPrice).multipliedBy(linePrice).dividedBy(10 ** TOKENS_DECIMALS);
+		const poolRewardPerYearInUSD = poolRewardPerYear.multipliedBy(collateralTokenPriceInUSD).multipliedBy(linePriceInCollateralToken).dividedBy(10 ** TOKENS_DECIMALS);
 
-		const divider = BigNumber(totalStakedInPool).multipliedBy(lpTokenPrice).dividedBy(10 ** TOKENS_DECIMALS).toString();
+		const divider = BigNumber(totalStakedInPool).multipliedBy(stakedTokenPriceInUSD).dividedBy(10 ** TOKENS_DECIMALS).toString();
 		const apy = poolRewardPerYearInUSD.dividedBy(divider).toNumber();
 
-		const tvlUsd = BigNumber(totalStakedInPool).multipliedBy(lpTokenPrice).dividedBy(10 ** TOKENS_DECIMALS).toNumber()
+		const tvlUsd = BigNumber(totalStakedInPool).multipliedBy(stakedTokenPriceInUSD).dividedBy(10 ** TOKENS_DECIMALS).toNumber()
 		
 		const symbol = await getSymbol(poolContractAddress);
 
