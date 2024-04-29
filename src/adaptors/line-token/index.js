@@ -4,7 +4,7 @@ const BigNumber = require('bignumber.js');
 const utils = require('../utils');
 
 const { LINE_CONTRACT_ADDRESS, CHAIN, PROJECT, COLLATERAL_TOKEN_CONTRACT_ADDRESS } = require('./config');
-const { getCurrentLinePrice, getAllPools, getTotalDebt, getInterestRate, getPoolTokenPrice, fetchPrice, getSymbol } = require('./utils');
+const { getCurrentLinePrice, getAllPools, getTotalDebt, getInterestRate, getPoolTokenPrice, fetchPriceFromCoingecko, getSymbol } = require('./utils');
 
 const TOKENS_DECIMALS = 18;
 
@@ -17,7 +17,7 @@ const COMMON_DATA = {
 const apy = async () => {
 	const pools = await getAllPools();
 	const linePrice = await getCurrentLinePrice();
-	const collateralTokenPrice = await fetchPrice(COLLATERAL_TOKEN_CONTRACT_ADDRESS);
+	const collateralTokenPrice = await fetchPriceFromCoingecko(COLLATERAL_TOKEN_CONTRACT_ADDRESS);
 	const totalDebt = await getTotalDebt();
 	const interestRate = await getInterestRate();
 
