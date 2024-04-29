@@ -4,8 +4,7 @@ const axios = require('axios');
 
 const utils = require('../utils');
 
-const url =
-  'https://api.thegraph.com/subgraphs/name/camelotlabs/camelot-amm-v3';
+const url ='https://metisapi.0xgraph.xyz/subgraphs/name/cryptoalgebra/analytics';
 
 const query = gql`
   {
@@ -64,7 +63,6 @@ const topLvl = async (chainString, timestamp, url) => {
     await request(url, queryPrior.replace('<PLACEHOLDER>', blockPrior7d))
   ).pools;
 
-  // subgraph resever values are completely wrong
   const balanceCalls = [];
   for (const pool of data) {
     balanceCalls.push({
@@ -110,7 +108,7 @@ const topLvl = async (chainString, timestamp, url) => {
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
-      project: 'camelot-v3',
+      project: 'hercules-v3',
       symbol,
       tvlUsd: p.totalValueLockedUSD,
       apyBase: p.apy1d,
@@ -118,7 +116,7 @@ const topLvl = async (chainString, timestamp, url) => {
       underlyingTokens: [p.token0.id, p.token1.id],
       volumeUsd1d: p.volumeUSD1d,
       volumeUsd7d: p.volumeUSD7d,
-      url: `https://app.camelot.exchange/pools/${p.id}`,
+      url: `https://app.hercules.exchange/pools/${p.id}`,
     };
   });
 
@@ -126,7 +124,8 @@ const topLvl = async (chainString, timestamp, url) => {
 };
 
 const main = async (timestamp = null) => {
-  const data = await Promise.all([topLvl('arbitrum', timestamp, url)]);
+  console.log(timestamp);
+  const data = await Promise.all([topLvl('metis', timestamp, url)]);
   return data.flat().filter((p) => utils.keepFinite(p));
 };
 

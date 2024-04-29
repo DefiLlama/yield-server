@@ -719,7 +719,7 @@ const getApy = async () => {
 
       return {
         ...marketInfoToPool(chain, marketInfo, collateral, pricesObj),
-        project: 'abracadabra',
+        project: 'abracadabra-spell',
       };
     })
   );
