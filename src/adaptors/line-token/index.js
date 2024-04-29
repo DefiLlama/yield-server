@@ -16,7 +16,7 @@ const COMMON_DATA = {
 
 const apy = async () => {
 	const pools = await getAllPools();
-	const currentLinePrice = await getCurrentPrice();
+	const linePrice = await getCurrentPrice();
 	const collateralTokenPrice = await fetchPrice(COLLATERAL_TOKEN_CONTRACT_ADDRESS);
 	const totalDebt = await getTotalDebt();
 	const interestRate = await getInterestRate();
@@ -30,16 +30,16 @@ const apy = async () => {
 
 		const poolRewardPerYear = totalRewardPerYear.multipliedBy(reward_share10000).multipliedBy("1e-4");
 
-		const price = await getPoolTokenPrice(poolContractAddress, BigNumber(currentLinePrice).dividedBy(10 ** TOKENS_DECIMALS).toString());
+		const lpTokenPrice = await getPoolTokenPrice(poolContractAddress, BigNumber(linePrice).dividedBy(10 ** TOKENS_DECIMALS).toString());
 
-		if (collateralTokenPrice === "0" || price === "0") continue;
+		if (collateralTokenPrice === "0" || lpTokenPrice === "0") continue;
 
-		const poolRewardPerYearInUSD = poolRewardPerYear.multipliedBy(collateralTokenPrice).multipliedBy(currentLinePrice).dividedBy(10 ** TOKENS_DECIMALS);
+		const poolRewardPerYearInUSD = poolRewardPerYear.multipliedBy(collateralTokenPrice).multipliedBy(linePrice).dividedBy(10 ** TOKENS_DECIMALS);
 
-		const divider = BigNumber(totalStakedInPool).multipliedBy(price).dividedBy(10 ** TOKENS_DECIMALS).toString();
+		const divider = BigNumber(totalStakedInPool).multipliedBy(lpTokenPrice).dividedBy(10 ** TOKENS_DECIMALS).toString();
 		const apy = poolRewardPerYearInUSD.dividedBy(divider).toNumber();
 
-		const tvlUsd = BigNumber(totalStakedInPool).multipliedBy(price).dividedBy(10 ** TOKENS_DECIMALS).toNumber()
+		const tvlUsd = BigNumber(totalStakedInPool).multipliedBy(lpTokenPrice).dividedBy(10 ** TOKENS_DECIMALS).toNumber()
 		
 		const symbol = await getSymbol(poolContractAddress);
 
