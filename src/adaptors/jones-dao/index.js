@@ -93,7 +93,7 @@ async function pools() {
   };
 
   const jUsdcPool = {
-    pool: `${jusdcUnderlyingVault}-arbitrum`.toLowerCase(), // TODO update
+    pool: `${jusdcUnderlyingVault}-arbitrum-jones-dao`.toLowerCase(), // TODO update
     chain: 'Arbitrum',
     project: 'jones-dao',
     symbol: 'jUSDC',
