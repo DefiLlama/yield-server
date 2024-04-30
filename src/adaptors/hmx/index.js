@@ -4,6 +4,7 @@ const BigNumber = require('bignumber.js');
 
 const abi = require('./abi');
 const addresses = require('./addresses.json');
+const utils = require('../utils');
 
 const secondsPerYear = 60 * 60 * 24 * 365;
 const WeiPerEther = BigNumber(1000000000000000000);
@@ -37,6 +38,40 @@ const getPrices = async (addresses) => {
 };
 
 const apy = async () => {
+  console.log(' --------------- HMX -------------- ');
+  const url = 'http://127.0.0.1:8080/internal/v1/apr-pools';
+  const response = await utils.getData(url);
+
+  const { aprPools } = response.data;
+
+  const hlpApr = aprPools.find((p) => p.key === 'hlp_staking');
+  const hlpAprBase = hlpApr.Info.reduce((acc, apr) => {
+    if (apr.rewardToken === 'usdc') {
+      acc += apr.apr;
+    }
+    return acc;
+  }, 0);
+  const hlpAprReward = hlpApr.Info.reduce((acc, apr) => {
+    if (apr.rewardToken !== 'usdc') {
+      acc += apr.apr;
+    }
+    return acc;
+  }, 0);
+
+  const hmxApr = aprPools.find((p) => p.key === 'hmx_staking');
+  const hmxAprBase = hmxApr.Info.reduce((acc, apr) => {
+    if (apr.rewardToken === 'usdc') {
+      acc += apr.apr;
+    }
+    return acc;
+  }, 0);
+  const hmxAprReward = hmxApr.Info.reduce((acc, apr) => {
+    if (apr.rewardToken !== 'usdc') {
+      acc += apr.apr;
+    }
+    return acc;
+  }, 0);
+
   //                                 ---------------- HLP ----------------
   const [
     { output: hlpRewardRateHlpPool },
@@ -246,7 +281,8 @@ const apy = async () => {
     project: 'hmx',
     symbol: 'GLP-USDC',
     tvlUsd: tvlUsdHlp.toNumber(),
-    apyBase: totalApr.toNumber(),
+    apyBase: BigNumber(hlpAprBase).dividedBy(1e18).toNumber(),
+    apyReward: BigNumber(hlpAprReward).dividedBy(1e18).toNumber(),
     rewardTokens: [addresses.USDC, addresses.ESHMX],
     underlyingTokens: [
       addresses.WETH,
@@ -261,44 +297,7 @@ const apy = async () => {
     url: 'https://hmx.org/arbitrum/earn',
   };
   //                                 ---------------- HMX ----------------
-  const usdcAprHmx = () => {
-    // e18
-    const usdcRewardPerYear = BigNumber(hmxRewardRateHmxPool)
-      .multipliedBy(secondsPerYear)
-      .multipliedBy(BigNumber(10).exponentiatedBy(18 - 6));
-    // e18
-    const rewardInUsdPerYear = usdcRewardPerYear.multipliedBy(
-      BigNumber(pricesBySymbol.usdc)
-    );
-    // e30 / e18 = e12
-    const totalStakedHmxInUsd = BigNumber(hmxTotalShareUsdcRewarder)
-      .multipliedBy(pricesBySymbol.hmx)
-      .dividedBy(WeiPerEther);
-    // e18 * e2 = e20 / e12 = e18 / e18 = 0
-    return rewardInUsdPerYear
-      .multipliedBy(100)
-      .dividedBy(totalStakedHmxInUsd)
-      .dividedBy(WeiPerEther);
-  };
-  const esHmxAprHmx = () => {
-    // e18
-    const esHmxRewardPerYear = BigNumber(esHmxRewardRateHmxPool).multipliedBy(
-      secondsPerYear
-    );
-    // e18
-    const rewardInUsdPerYear = esHmxRewardPerYear.multipliedBy(
-      BigNumber(pricesBySymbol.hmx)
-    );
-    // e30 / e18 = e12
-    const totalStakedHmxInUsd = BigNumber(hmxTotalShareEsHmxRewarder)
-      .multipliedBy(pricesBySymbol.hmx)
-      .dividedBy(WeiPerEther);
-    // e18 * e2 = e20 / e12 = e18 / e18 = 0
-    return rewardInUsdPerYear
-      .multipliedBy(100)
-      .dividedBy(totalStakedHmxInUsd)
-      .dividedBy(WeiPerEther);
-  };
+
   const tvlUsdHmx = BigNumber(hmxBalanceInPool)
     .multipliedBy(pricesBySymbol.hmx)
     .dividedBy(1e18);
@@ -308,8 +307,8 @@ const apy = async () => {
     project: 'hmx',
     symbol: 'HMX-esHMX',
     tvlUsd: tvlUsdHmx.toNumber(),
-    apyBase: usdcAprHmx().toNumber(),
-    apyReward: esHmxAprHmx().toNumber(),
+    apyBase: BigNumber(hmxAprBase).dividedBy(1e18).toNumber(),
+    apyReward: BigNumber(hmxAprReward).dividedBy(1e18).toNumber(),
     rewardTokens: [addresses.USDC, addresses.ESHMX, addresses.DRAGON_POINT],
     underlyingTokens: [addresses.ESHMX, addresses.HMX],
     poolMeta: 'HMX Staking - esHMX reward is 1 year linear vested',
