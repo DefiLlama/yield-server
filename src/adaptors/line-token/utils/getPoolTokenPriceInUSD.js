@@ -7,6 +7,7 @@ const LineAbi = require('../abi/lineAbi');
 const equilibrePairAbi = require('../abi/equilibrePairAbi');
 const { getData } = require('../../utils');
 const fetchPriceFromCoingecko = require('./fetchPriceFromCoingecko');
+const getDecimals = require('./getDecimals');
 
 module.exports = async function getPoolTokenPriceInUSD(tokenAddress, lineTokenPriceInUSD) {
 
@@ -29,13 +30,21 @@ module.exports = async function getPoolTokenPriceInUSD(tokenAddress, lineTokenPr
             chain: CHAIN,
         }).then(data => data.output)
 
-        const [totalSupply, reserves] = await Promise.all([totalSupplyGetter, reservesGetter]);
+        const [totalSupplyInSmall, reserves, poolTokenDecimals, token0Decimals] = await Promise.all([
+            totalSupplyGetter,
+            reservesGetter,
+            getDecimals(tokenAddress),
+            getDecimals(tokens[0])
+        ]);
 
         const price0 = tokens[0] !== LINE_CONTRACT_ADDRESS ? await fetchPriceFromCoingecko(tokens[0]) : lineTokenPriceInUSD;
-        let lpPriceInUSD = "0";
+        let lpPriceInUSD = 0;
 
-        if (totalSupply) {
-            lpPriceInUSD = BigNumber(reserves[0]).multipliedBy(2).multipliedBy(price0).dividedBy(totalSupply).toString();
+        if (totalSupplyInSmall) {
+            const reserve0 = BigNumber(reserves[0]).dividedBy(token0Decimals).toNumber();
+            const totalSupply = BigNumber(totalSupplyInSmall).dividedBy(poolTokenDecimals).toNumber();
+
+            lpPriceInUSD = (reserve0 * 2 * price0) / totalSupply;
         }
 
         return lpPriceInUSD;
