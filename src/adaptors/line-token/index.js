@@ -18,17 +18,18 @@ const apy = async () => {
 	const collateralTokenPriceInUSD = await fetchPriceFromCoingecko(COLLATERAL_TOKEN_CONTRACT_ADDRESS);
 	const lineTokenPriceInUSD = BigNumber(linePriceInCollateralToken).multipliedBy(collateralTokenPriceInUSD).dividedBy(10 ** 18).toNumber();
 	const collateralDecimals = await getDecimals(COLLATERAL_TOKEN_CONTRACT_ADDRESS);
+	const lineDecimals = await getDecimals(LINE_CONTRACT_ADDRESS);
 
 	const totalDebt = await getTotalDebt();
 	const interestRate = await getInterestRate();
 
-	const totalRewardPerYear = BigNumber(interestRate).multipliedBy(totalDebt).dividedBy("10000").dividedBy(10 ** collateralDecimals).toNumber();
+	const totalRewardPerYear = BigNumber(interestRate).multipliedBy(totalDebt).dividedBy("10000").dividedBy(10 ** lineDecimals).toNumber();
 
 	const results = [];
 
 	for (const pool of pools) {
 		const { reward_share10000, total_staked_in_pool, poolContractAddress } = pool;
-		const poolTokenDecimals = await getDecimals(poolContractAddress).catch(() => 18);
+		const poolTokenDecimals = await getDecimals(poolContractAddress);
 
 		const totalStakedInPool = BigNumber(total_staked_in_pool).dividedBy(10 ** poolTokenDecimals).toNumber();
 
