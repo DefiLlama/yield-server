@@ -161,7 +161,7 @@ async function getPoolsFor(chain) {
       return {
         pool: `${lender.address}-${chain}`.toLowerCase(),
         chain,
-        project: 'aloe-capital',
+        project: 'aloe',
         symbol: symbol.toUpperCase(),
         tvlUsd: tvl * price,
         apyBase: apyBaseLend * 100,
@@ -177,9 +177,9 @@ async function getPoolsFor(chain) {
 }
 
 async function apy() {
-  return (await Promise.all(
-    Object.keys(config).map((chain) => getPoolsFor(chain))
-  )).flat();
+  return (
+    await Promise.all(Object.keys(config).map((chain) => getPoolsFor(chain)))
+  ).flat();
 }
 
 module.exports = {
