@@ -4,9 +4,7 @@ const BigNumber = require('bignumber.js');
 const utils = require('../utils');
 
 const { LINE_CONTRACT_ADDRESS, CHAIN, PROJECT, COLLATERAL_TOKEN_CONTRACT_ADDRESS } = require('./config');
-const { getCurrentLinePrice, getAllPools, getTotalDebt, getInterestRate, getPoolTokenPrice, fetchPriceFromCoingecko, getSymbol } = require('./utils');
-
-const TOKENS_DECIMALS = 18;
+const { getCurrentLinePrice, getAllPools, getTotalDebt, getInterestRate, getPoolTokenPriceInUSD, fetchPriceFromCoingecko, getSymbol, getDecimals } = require('./utils');
 
 const COMMON_DATA = {
 	chain: CHAIN,
@@ -18,29 +16,33 @@ const apy = async () => {
 	const pools = await getAllPools();
 	const linePriceInCollateralToken = await getCurrentLinePrice();
 	const collateralTokenPriceInUSD = await fetchPriceFromCoingecko(COLLATERAL_TOKEN_CONTRACT_ADDRESS);
+	const lineTokenPriceInUSD = BigNumber(linePriceInCollateralToken).multipliedBy(collateralTokenPriceInUSD).dividedBy(10 ** 18).toNumber();
+	const collateralDecimals = await getDecimals(COLLATERAL_TOKEN_CONTRACT_ADDRESS);
+
 	const totalDebt = await getTotalDebt();
 	const interestRate = await getInterestRate();
 
-	const totalRewardPerYear = BigNumber(interestRate).multipliedBy(totalDebt).dividedBy("10000").dividedBy(10 ** TOKENS_DECIMALS);
+	const totalRewardPerYear = BigNumber(interestRate).multipliedBy(totalDebt).dividedBy("10000").dividedBy(10 ** collateralDecimals).toNumber();
 
 	const results = [];
 
 	for (const pool of pools) {
-		const { reward_share10000, last_total_reward, total_pool_reward_per_token, total_staked_in_pool: totalStakedInPool, poolContractAddress } = pool;
+		const { reward_share10000, total_staked_in_pool, poolContractAddress } = pool;
+		const poolTokenDecimals = await getDecimals(poolContractAddress).catch(() => 18);
 
-		const poolRewardPerYear = totalRewardPerYear.multipliedBy(reward_share10000).multipliedBy("1e-4");
+		const totalStakedInPool = BigNumber(total_staked_in_pool).dividedBy(10 ** poolTokenDecimals).toNumber();
 
-		const stakedTokenPriceInUSD = await getPoolTokenPrice(poolContractAddress, BigNumber(linePriceInCollateralToken).dividedBy(10 ** TOKENS_DECIMALS).toString());
+		const poolRewardPerYear = totalRewardPerYear * (reward_share10000 / 1e4);
 
-		if (collateralTokenPriceInUSD === "0" || stakedTokenPriceInUSD === "0") continue;
+		const stakedTokenPriceInUSD = await getPoolTokenPriceInUSD(poolContractAddress, lineTokenPriceInUSD);
 
-		const poolRewardPerYearInUSD = poolRewardPerYear.multipliedBy(collateralTokenPriceInUSD).multipliedBy(linePriceInCollateralToken).dividedBy(10 ** TOKENS_DECIMALS);
+		if (!Number(collateralTokenPriceInUSD) || !Number(stakedTokenPriceInUSD)) continue;
 
-		const divider = BigNumber(totalStakedInPool).multipliedBy(stakedTokenPriceInUSD).dividedBy(10 ** TOKENS_DECIMALS).toString();
-		const apy = poolRewardPerYearInUSD.dividedBy(divider).toNumber();
+		const poolRewardPerYearInUSD = poolRewardPerYear * lineTokenPriceInUSD;
 
-		const tvlUsd = BigNumber(totalStakedInPool).multipliedBy(stakedTokenPriceInUSD).dividedBy(10 ** TOKENS_DECIMALS).toNumber()
-		
+		const apy = poolRewardPerYearInUSD / (totalStakedInPool * stakedTokenPriceInUSD)
+
+		const tvlUsd = totalStakedInPool * stakedTokenPriceInUSD;
 		const symbol = await getSymbol(poolContractAddress);
 
 		results.push({

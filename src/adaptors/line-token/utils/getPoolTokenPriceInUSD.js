@@ -8,7 +8,7 @@ const equilibrePairAbi = require('../abi/equilibrePairAbi');
 const { getData } = require('../../utils');
 const fetchPriceFromCoingecko = require('./fetchPriceFromCoingecko');
 
-module.exports = async function getPoolTokenPrice(tokenAddress, lineTokenPrice) {
+module.exports = async function getPoolTokenPriceInUSD(tokenAddress, lineTokenPriceInUSD) {
 
     const tokens = await sdk.api.abi.call({
         target: tokenAddress,
@@ -16,7 +16,7 @@ module.exports = async function getPoolTokenPrice(tokenAddress, lineTokenPrice) 
         chain: CHAIN,
     }).then((res) => res.output).catch(() => false);
 
-    if (tokens) { // it's a quilibre pool
+    if (tokens) { // it's a equilibre pool
         const totalSupplyGetter = sdk.api.abi.call({
             target: tokenAddress,
             abi: equilibrePairAbi.find((m) => m.name === 'totalSupply'),
@@ -31,7 +31,7 @@ module.exports = async function getPoolTokenPrice(tokenAddress, lineTokenPrice) 
 
         const [totalSupply, reserves] = await Promise.all([totalSupplyGetter, reservesGetter]);
 
-        const price0 = tokens[0] !== LINE_CONTRACT_ADDRESS ? await fetchPriceFromCoingecko(tokens[0]) : lineTokenPrice;
+        const price0 = tokens[0] !== LINE_CONTRACT_ADDRESS ? await fetchPriceFromCoingecko(tokens[0]) : lineTokenPriceInUSD;
         let lpPriceInUSD = "0";
 
         if (totalSupply) {
@@ -41,7 +41,7 @@ module.exports = async function getPoolTokenPrice(tokenAddress, lineTokenPrice) 
         return lpPriceInUSD;
     } else { // it's a token
         if (tokenAddress === LINE_CONTRACT_ADDRESS) {
-            return String(lineTokenPrice);
+            return String(lineTokenPriceInUSD);
         } else {
             return await fetchPriceFromCoingecko(tokenAddress).then(price => String(price)).catch(() => 0);
         }
