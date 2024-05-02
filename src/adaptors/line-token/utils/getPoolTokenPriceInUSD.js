@@ -30,7 +30,7 @@ module.exports = async function getPoolTokenPriceInUSD(tokenAddress, lineTokenPr
             chain: CHAIN,
         }).then(data => data.output)
 
-        const [totalSupplyInSmall, reserves, poolTokenDecimals, token0Decimals] = await Promise.all([
+        const [totalSupplyInPennies, reserves, poolTokenDecimals, token0Decimals] = await Promise.all([
             totalSupplyGetter,
             reservesGetter,
             getDecimals(tokenAddress),
@@ -40,9 +40,9 @@ module.exports = async function getPoolTokenPriceInUSD(tokenAddress, lineTokenPr
         const price0 = tokens[0] !== LINE_CONTRACT_ADDRESS ? await fetchPriceFromCoingecko(tokens[0]) : lineTokenPriceInUSD;
         let lpPriceInUSD = 0;
 
-        if (totalSupplyInSmall) {
-            const reserve0 = BigNumber(reserves[0]).dividedBy(token0Decimals).toNumber();
-            const totalSupply = BigNumber(totalSupplyInSmall).dividedBy(poolTokenDecimals).toNumber();
+        if (totalSupplyInPennies) {
+            const reserve0 = BigNumber(reserves[0]).dividedBy(10 ** token0Decimals).toNumber();
+            const totalSupply = BigNumber(totalSupplyInPennies).dividedBy(10 ** poolTokenDecimals).toNumber();
 
             lpPriceInUSD = (reserve0 * 2 * price0) / totalSupply;
         }
