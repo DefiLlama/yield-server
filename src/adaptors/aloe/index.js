@@ -11,6 +11,12 @@ const config = {
   optimism: { fromBlock: 113464669 },
   base: { fromBlock: 7869252 },
   arbitrum: { fromBlock: 159919891 },
+  linea: {
+    factory: '0x00000000333288eBA83426245D144B966Fd7e82E',
+    volatilityOracle: '0x00000000570385b76719a95Fdf27B9c7fB5Ff299',
+    lenderLens: '0xFc39498Edd3E18d5296E6584847f2580ad0e770B',
+    fromBlock: 3982456,
+  },
 };
 
 const ALOE_II_MAX_LEVERAGE = 1 / 200;
