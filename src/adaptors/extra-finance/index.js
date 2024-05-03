@@ -147,7 +147,11 @@ async function getPoolsData() {
   }
 
   for (const chain of Object.keys(subgraphUrls)) {
-    await getPoolsByChain(chain)
+    try {
+      await getPoolsByChain(chain);
+    } catch (err) {
+      console.log(err);
+    }
   }
 
   return pools.filter((p) => utils.keepFinite(p));
