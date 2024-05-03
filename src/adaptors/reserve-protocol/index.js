@@ -173,7 +173,7 @@ const apyChain = async (chainProps) => {
       return {
         pool: rtoken.id,
         chain: chainName,
-        project: 'reserve',
+        project: 'reserve-protocol',
         symbol: rtoken.token?.symbol,
         tvlUsd: rtokenTvl(rtoken),
         apyBase:
