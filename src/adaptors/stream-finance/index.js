@@ -32,6 +32,21 @@ const vaults = {
   }
 }
 
+const mapToUnderlying = (vault) => {
+  if (vault === "LEVUSDC") {
+    return "USDC";
+  }
+  if (vault === "HODLWBTC") {
+    return "wBTC";
+  }
+  if (vault === "HODLWETH") {
+    return "wETH";
+  }
+}
+
+
+
+
 const getTokenPrice = async (priceKey, amount, decimals) => {
   const price = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
@@ -95,9 +110,10 @@ const main = async () => {
         pool: `${vaults[entry][chain]}-${chain}`,
         chain: utils.formatChain(chain),
         project: 'stream-finance',
-        symbol: utils.formatSymbol(entry),
+        symbol: mapToUnderlying(utils.formatSymbol(entry)),
         tvlUsd: await getTokenPrice(`${chain}:${vaultParams[1]}`, Number((await getVaultState(vaults[entry][chain], chain))[1]), vaultParams[0]),
         apy: await getAPY(vaults[entry][chain], chain),
+        poolMeta: utils.formatSymbol(entry)
       });
     }
    
