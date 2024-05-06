@@ -52,9 +52,7 @@ const marketApy = async () => {
       (usdExchangeRate.output / 1e8);
     const ltv = debt.output / 1e45 / (totalSupply.output / 1e18);
     const borrowRateYearly = (borrowRate.output.borrowRate / 1e27) ** 31536000;
-    console.log('Borrow Rate Yearly: ', borrowRateYearly);
     const marketApy = (borrowRateYearly - 1) * ltv * 100;
-    console.log('Market APY: ', marketApy);
 
     const pool = {
       pool: market.ionPool,
