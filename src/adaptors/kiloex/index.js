@@ -46,7 +46,7 @@ const getApy = async () => {
       let results = []
       results.push({
         chain,
-        project: 'KiloEx',
+        project: 'kiloex',
         pool: y.USDT,
         symbol: 'USDT',
         tvlUsd: balance,
@@ -73,11 +73,11 @@ const getApy = async () => {
 
         results.push({
           chain,
-          project: 'KiloEx',
+          project: 'kiloex',
           pool: y.STONE,
           symbol: 'STONE',
           tvlUsd: stoneBalance * price,
-          apyBase: stoneApy,
+          apyBase: Number(stoneApy),
           underlyingTokens: [y.STONE],
         });
       }
