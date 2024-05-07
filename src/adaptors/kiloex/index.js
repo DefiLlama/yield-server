@@ -50,7 +50,7 @@ const getApy = async () => {
         pool: y.USDT,
         symbol: 'USDT',
         tvlUsd: balance,
-        apyBase: apr.apy,
+        apyBase: apr.apy * 100,
         underlyingTokens: [y.USDT],
       });
       if (chain === 'manta') {
@@ -77,7 +77,7 @@ const getApy = async () => {
           pool: y.STONE,
           symbol: 'STONE',
           tvlUsd: stoneBalance * price,
-          apyBase: Number(stoneApy),
+          apyBase: Number(stoneApy) * 100,
           underlyingTokens: [y.STONE],
         });
       }
