@@ -190,6 +190,7 @@ const stkGho = async () => {
     symbol: 'GHO',
     tvlUsd: stkghoSupply * ghoPrice,
     apy: stkghoApy,
+    url: 'https://app.aave.com/staking',
   };
 
   return pool;
@@ -458,15 +459,13 @@ const apy = async () => {
 
   const ethPools = await ethV3Pools();
 
-  // const stkghoPool = await stkGho();
+  const stkghoPool = await stkGho();
 
-  return (
-    pools
-      .flat()
-      .concat(ethPools)
-      // .concat([stkghoPool])
-      .filter((p) => utils.keepFinite(p))
-  );
+  return pools
+    .flat()
+    .concat(ethPools)
+    .concat([stkghoPool])
+    .filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
