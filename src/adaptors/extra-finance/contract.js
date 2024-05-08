@@ -3,8 +3,8 @@ const { ethers, Contract, BigNumber } = require('ethers');
 const pairsSugarContractAbi = require("./abis/veloPairsSugarV2.json");
 
 const veloPairAddress = {
-  optimism: '0x3b21531Bd00289f10C7D8B64b9389095f521A4d3',
-  base: '0x2073D8035bB2b0F2e85aAF5a8732C6f397F9ff9b'
+  optimism: '0xF6F6955756Db870258C31B49cB51860b77b53194',
+  base: '0xC301856B4262E49E9239ec8a2d0c754d5ae317c0'
 }
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000"
 
@@ -26,11 +26,9 @@ exports.getAllVeloPools = async function (chain) {
   const simpleRpcProvider = new ethers.providers.JsonRpcProvider(rpcUrl);
   const veloPairContract = new Contract(veloPairAddress[chain], pairsSugarContractAbi, simpleRpcProvider)
   const [poolInfoList1, poolInfoList2] = await Promise.all([
-    veloPairContract.all(300, 0, ADDRESS_ZERO),
-    veloPairContract.all(370, 300, ADDRESS_ZERO),
+    veloPairContract.all(300, 0),
+    veloPairContract.all(370, 300),
   ])
   const poolInfoList = poolInfoList1.concat(poolInfoList2)
   return poolInfoList
-  // const res = await veloPairContract.all(10000, 0, ADDRESS_ZERO)
-  // return res
 }
