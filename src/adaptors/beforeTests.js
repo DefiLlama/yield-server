@@ -14,20 +14,23 @@ module.exports = async function () {
     process.exit(1);
   }
 
-  const cwd = process.cwd();
-  const passedFile = cwd.includes('src/adaptors')
-    ? path.resolve(cwd, adapter)
-    : path.resolve(cwd, `./src/adaptors/${adapter}`);
-  const module = require(passedFile);
+  // Construct the absolute path to the adapter module
+  const adapterPath = path.resolve(__dirname, adapter);
 
+  // Require the adapter module
+  const adapterModule = require(adapterPath);
+
+  // Set global variables
   global.adapter = adapter;
-  global.apy = (await module.apy(timestamp)).sort(
+  global.apy = (await adapterModule.apy(timestamp)).sort(
     (a, b) => b.tvlUsd - a.tvlUsd
   );
-  global.poolsUrl = module.url;
+  global.poolsUrl = adapterModule.url;
 
+  // Write the APY data to a JSON file
   fs.writeFileSync(`./${adapter}_test_output.json`, JSON.stringify(global.apy));
 
+  // Fetch data from external APIs and store in global variables
   global.protocolsSlug = [
     ...new Set(
       (await axios.get('https://api.llama.fi/protocols')).data.map(
