@@ -91,6 +91,7 @@ const excludeAdaptors = [
   'pickle',
   'mycelium-perpetual-swaps',
   'lyra-v1',
+  'reflexer',
 ];
 
 const excludePools = [
