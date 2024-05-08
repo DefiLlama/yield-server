@@ -89,6 +89,8 @@ const excludeAdaptors = [
   'wise-lending',
   'nudes',
   'pickle',
+  'mycelium-perpetual-swaps',
+  'lyra-v1',
 ];
 
 const excludePools = [
