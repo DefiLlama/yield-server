@@ -23,7 +23,7 @@ async function apy() {
       project: "indigo",
       symbol: pool.asset,
       apyBase: apyBase || 0,
-      apyReward: apyReward || 0,
+      apyReward: (apyBase || 0) + (apyReward || 0),
       rewardTokens: ['ADA', 'INDY'],
       underlyingTokens: [pool.asset],
       tvlUsd: Number(tvlUsd),
@@ -74,7 +74,7 @@ async function fetchAdaPriceToUsd() {
 async function calculateTvlUsd(assetAnalytics, adaPriceUsd) {
   if (!assetAnalytics) return 0;
 
-  return assetAnalytics.marketCap * adaPriceUsd;
+  return assetAnalytics.totalValueLocked * adaPriceUsd;
 }
 
 module.exports = {
