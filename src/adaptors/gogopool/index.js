@@ -40,9 +40,9 @@ const topLvl = async () => {
     
     return {
         pool: 'ggAVAX',
-        chain: utils.formatChain('avalanche'),
+        chain: 'Avalanche',
         project: 'gogopool',
-        symbol: '',
+        symbol: 'GGP',
         tvlUsd: tvlUsd,
         apyBase: apyBase,
         apyReward: 0,
@@ -67,5 +67,5 @@ main().then(data => {
 module.exports = {
     timetravel: false,
     apy: main,
-    url: 'https://api.gogopool.com/metrics',
+    url: 'https://www.gogopool.com',
   };
