@@ -84,6 +84,14 @@ const excludeAdaptors = [
   'goledo',
   'archly-v1',
   'polytrade',
+  '3xcalibur',
+  'onering-v2',
+  'wise-lending',
+  'nudes',
+  'pickle',
+  'mycelium-perpetual-swaps',
+  'lyra-v1',
+  'reflexer',
 ];
 
 const excludePools = [
@@ -451,6 +459,8 @@ const excludePools = [
   '0xe24563774dd4050e28e3c63567b2918495367626-avalanche',
   '0x42c02c24caaf42a27dd95c790073a4ea3118ea48',
   '0x4aE5CE819e7D678b07E8D0f483d351E2c8e8B8D3',
+  '0x5b4ef67c63d091083ec4d30cfc4ac685ef051046-xdai',
+  '0x659110d07923e2c3fcb9d3c9e66b0a1605e7ce71-astar',
 ];
 
 const boundaries = {

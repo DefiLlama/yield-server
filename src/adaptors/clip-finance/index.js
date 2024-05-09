@@ -7,6 +7,7 @@ const sdk = require('@defillama/sdk5');
 const CHAINS = {
   bsc: 'bsc',
   linea: 'linea',
+  base : 'base'
 };
 
 const config = {
@@ -26,10 +27,18 @@ const config = {
       '0xA219439258ca9da29E9Cc4cE5596924745e12B93',
     ],
   },
+  [CHAINS.base]: {
+    vaultAddress: '0x03A074D130144FcE6883F7EA3884C0a783d85Fb3',
+    symbol: 'USDbC-USDС',
+    underlyingTokens: [
+      '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
+      '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    ],
+  }
 };
 
 const getUrl = (chain, from) =>
-  `https://stats-kixqx.ondigitalocean.app/apy?from=${from}&chain=${chain}`;
+  `https://stats-kixqx.ondigitalocean.app/daily-apy?from=${from}&chain=${chain}`;
 
 const pairsToObj = (pairs) =>
   pairs.reduce((acc, [el1, el2]) => ({ ...acc, [el1]: el2 }), {});
@@ -46,7 +55,7 @@ const getApy = async () => {
         );
 
         let apy = 0;
-        if (apyResponse.data.status === 'apy_calculated') {
+        if (apyResponse.data.status === 'multistrategy_vault_apy_calculated') {
           apy = Number(apyResponse.data.data.apy);
         }
 
