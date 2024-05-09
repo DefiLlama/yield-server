@@ -132,6 +132,9 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
 
   test('Check project field is constant in all pools and if folder name and project field in pool objects matches the information in /protocols slug', () => {
     expect(new Set(apy.map((p) => p.project)).size).toBe(1);
+    console.log('Expected adapter name:', adapter);
+    console.log('Project field from the first pool:', apy[0].project);
+    console.log('Is project name in protocols slug?', protocols.includes(apy[0].project));
     expect(
       protocolsSlug.includes(apy[0].project) && apy[0].project === adapter
     ).toBe(true);
