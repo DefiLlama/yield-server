@@ -9,7 +9,7 @@ async function apy() {
     const adaRewardsKey = `sp_${pool.asset}_ada`;
     const indyRewardsKey = `sp_${pool.asset}_indy`;
 
-    const [apyBase, apyReward] = await Promise.all([
+    const [adaApy, indyApy] = await Promise.all([
       fetchApr(adaRewardsKey),
       fetchApr(indyRewardsKey)
     ]);
@@ -22,8 +22,7 @@ async function apy() {
       chain: "Cardano",
       project: "indigo",
       symbol: pool.asset,
-      apyBase: apyBase || 0,
-      apyReward: (apyBase || 0) + (apyReward || 0),
+      apyReward: (adaApy || 0) + (indyApy || 0),
       rewardTokens: ['ADA', 'INDY'],
       underlyingTokens: [pool.asset],
       tvlUsd: Number(tvlUsd),
