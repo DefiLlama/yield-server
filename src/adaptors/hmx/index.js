@@ -38,9 +38,16 @@ const getPrices = async (addresses) => {
 };
 
 const apy = async () => {
-  //                                 ---------------- Arbitrum ----------------
   const arbUrl = 'https://arbitrum-gapi.hmx.org/internal/v1/apr-pools';
-  const arbResponse = await utils.getData(arbUrl);
+  const blastUrl = 'https://blast-gapi.hmx.org/internal/v1/apr-pools';
+
+  const [arbResponse, blastResponse, { pricesBySymbol }] = await Promise.all([
+    utils.getData(arbUrl),
+    utils.getData(blastUrl),
+    getPrices([`arbitrum:${addresses.HMX}`]),
+  ]);
+
+  //                                 ---------------- Arbitrum ----------------
 
   const { aprPools: arbAprPools } = arbResponse.data;
 
@@ -73,9 +80,6 @@ const apy = async () => {
   }, 0);
 
   //                                 ---------------- Blast ----------------
-  const blastUrl = 'https://blast-gapi.hmx.org/internal/v1/apr-pools';
-  const blastResponse = await utils.getData(blastUrl);
-
   const { aprPools: blastAprPools } = blastResponse.data;
 
   const blastHlpApr = blastAprPools.find((p) => p.key === 'hlp_staking');
@@ -144,12 +148,6 @@ const apy = async () => {
       params: [addresses.HMX_STAKING],
     }),
   ]);
-  const { pricesBySymbol } = await getPrices([
-    `arbitrum:${addresses.WETH}`,
-    `arbitrum:${addresses.HMX}`,
-    `arbitrum:${addresses.USDC}`,
-    `arbitrum:${addresses.GLP}`,
-  ]);
 
   //                                 ---------------- HLP ----------------
   const hlpPriceInE30Arb = BigNumber(hlpStakingAumE30Arb).dividedBy(
@@ -208,7 +206,7 @@ const apy = async () => {
     tvlUsd: tvlUsdHmx.toNumber(),
     apyBase: BigNumber(arbHmxAprBase).dividedBy(1e18).toNumber(),
     apyReward: BigNumber(arbHmxAprReward).dividedBy(1e18).toNumber(),
-    rewardTokens: [addresses.USDC, addresses.ESHMX, addresses.DRAGON_POINT],
+    rewardTokens: [addresses.USDC, addresses.ESHMX],
     underlyingTokens: [addresses.ESHMX, addresses.HMX],
     poolMeta: 'HMX Staking - esHMX reward is 1 year linear vested',
     url: 'https://hmx.org/arbitrum/earn',
