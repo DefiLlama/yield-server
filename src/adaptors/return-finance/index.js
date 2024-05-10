@@ -68,7 +68,13 @@ const getApy = async () => {
     chain: 'ethereum',
   });
 
-  return [aavePolygon, aaveAvalanche, compoundV3Base, makerDao, convexFinance];
+  return [
+    aavePolygon,
+    aaveAvalanche,
+    compoundV3Base,
+    makerDao,
+    convexFinance,
+  ].filter((i) => utils.keepFinite(i));
 };
 
 module.exports = {
