@@ -6,8 +6,10 @@ const abi = require('./abi');
 const addresses = require('./addresses.json');
 const utils = require('../utils');
 
-const secondsPerYear = 60 * 60 * 24 * 365;
 const WeiPerEther = BigNumber(1000000000000000000);
+
+const arbUrl = 'https://arbitrum-gapi.hmx.org/internal/v1/apr-pools';
+const blastUrl = 'https://blast-gapi.hmx.org/internal/v1/apr-pools';
 
 const getPrices = async (addresses) => {
   const prices = (
@@ -38,65 +40,10 @@ const getPrices = async (addresses) => {
 };
 
 const apy = async () => {
-  const arbUrl = 'https://arbitrum-gapi.hmx.org/internal/v1/apr-pools';
-  const blastUrl = 'https://blast-gapi.hmx.org/internal/v1/apr-pools';
-
-  const [arbResponse, blastResponse, { pricesBySymbol }] = await Promise.all([
-    utils.getData(arbUrl),
-    utils.getData(blastUrl),
-    getPrices([`arbitrum:${addresses.HMX}`]),
-  ]);
-
-  //                                 ---------------- Arbitrum ----------------
-
-  const { aprPools: arbAprPools } = arbResponse.data;
-
-  const arbHlpApr = arbAprPools.find((p) => p.key === 'hlp_staking');
-  const arbHlpAprBase = arbHlpApr.Info.reduce((acc, apr) => {
-    if (apr.rewardToken === 'usdc') {
-      acc += apr.apr;
-    }
-    return acc;
-  }, 0);
-  const arbHlpAprReward = arbHlpApr.Info.reduce((acc, apr) => {
-    if (apr.rewardToken !== 'usdc') {
-      acc += apr.apr;
-    }
-    return acc;
-  }, 0);
-
-  const arbHmxApr = arbAprPools.find((p) => p.key === 'hmx_staking');
-  const arbHmxAprBase = arbHmxApr.Info.reduce((acc, apr) => {
-    if (apr.rewardToken === 'usdc') {
-      acc += apr.apr;
-    }
-    return acc;
-  }, 0);
-  const arbHmxAprReward = arbHmxApr.Info.reduce((acc, apr) => {
-    if (apr.rewardToken !== 'usdc') {
-      acc += apr.apr;
-    }
-    return acc;
-  }, 0);
-
-  //                                 ---------------- Blast ----------------
-  const { aprPools: blastAprPools } = blastResponse.data;
-
-  const blastHlpApr = blastAprPools.find((p) => p.key === 'hlp_staking');
-  const blastHlpAprBase = blastHlpApr.Info.reduce((acc, apr) => {
-    if (apr.rewardToken === 'usdc') {
-      acc += apr.apr;
-    }
-    return acc;
-  }, 0);
-  const blastHlpAprReward = blastHlpApr.Info.reduce((acc, apr) => {
-    if (apr.rewardToken !== 'usdc') {
-      acc += apr.apr;
-    }
-    return acc;
-  }, 0);
-
   const [
+    arbResponse,
+    blastResponse,
+    { pricesBySymbol },
     { output: hlpStakingAumE30Arb },
     { output: hlpTotalSupplyArb },
     { output: hlpBalanceInPoolArb },
@@ -105,6 +52,9 @@ const apy = async () => {
     { output: hlpBalanceInPoolBlast },
     { output: hmxBalanceInPool },
   ] = await Promise.all([
+    utils.getData(arbUrl),
+    utils.getData(blastUrl),
+    getPrices([`arbitrum:${addresses.HMX}`]),
     sdk.api.abi.call({
       abi: abi.getAumE30,
       chain: 'arbitrum',
@@ -149,6 +99,93 @@ const apy = async () => {
     }),
   ]);
 
+  //                                 ---------------- Arbitrum ----------------
+  const { aprPools: arbAprPools } = arbResponse.data;
+
+  const arbHlpApr = arbAprPools.find((p) => p.key === 'hlp_staking');
+  const arbHlpAprBase = () => {
+    if (!arbHlpApr || !arbHlpApr.Info) return BigNumber(0);
+
+    const _arbHlpAprBase = arbHlpApr.Info.reduce((acc, apr) => {
+      if (apr.rewardToken == 'usdc') {
+        acc += apr.apr;
+      }
+      return acc;
+    }, 0);
+
+    return BigNumber(_arbHlpAprBase).dividedBy(WeiPerEther);
+  };
+
+  const arbHlpAprReward = () => {
+    if (!arbHlpApr || !arbHlpApr.Info) return BigNumber(0);
+
+    const _arbHlpAprReward = arbHlpApr.Info.reduce((acc, apr) => {
+      if (apr.rewardToken != 'usdc') {
+        acc += apr.apr;
+      }
+      return acc;
+    }, 0);
+
+    return BigNumber(_arbHlpAprReward).dividedBy(WeiPerEther);
+  };
+
+  const arbHmxApr = arbAprPools.find((p) => p.key === 'hmx_staking');
+  const arbHmxAprBase = () => {
+    if (!arbHmxApr || !arbHmxApr.Info) return BigNumber(0);
+
+    const _arbHmxAprBase = arbHmxApr.Info.reduce((acc, apr) => {
+      if (apr.rewardToken == 'usdc') {
+        acc += apr.apr;
+      }
+      return acc;
+    }, 0);
+
+    return BigNumber(_arbHmxAprBase).dividedBy(WeiPerEther);
+  };
+
+  const arbHmxAprReward = () => {
+    if (!arbHmxApr || !arbHmxApr.Info) return BigNumber(0);
+
+    const _arbHmxAprReward = arbHmxApr.Info.reduce((acc, apr) => {
+      if (apr.rewardToken != 'usdc') {
+        acc += apr.apr;
+      }
+      return acc;
+    }, 0);
+
+    return BigNumber(_arbHmxAprReward).dividedBy(WeiPerEther);
+  };
+
+  // //                                 ---------------- Blast ----------------
+  const { aprPools: blastAprPools } = blastResponse.data;
+
+  const blastHlpApr = blastAprPools.find((p) => p.key === 'hlp_staking');
+  const blastHlpAprBase = () => {
+    if (!blastHlpApr || !blastHlpApr.Info) return BigNumber(0);
+
+    const _blastHlpAprBase = blastHlpApr.Info.reduce((acc, apr) => {
+      if (apr.rewardName == 'HLP Staking Protocol Revenue') {
+        acc += apr.apr;
+      }
+      return acc;
+    }, 0);
+
+    return BigNumber(_blastHlpAprBase).dividedBy(WeiPerEther);
+  };
+
+  const blastHlpAprReward = () => {
+    if (!blastHlpApr || !blastHlpApr.Info) return BigNumber(0);
+
+    const _blastHlpAprReward = blastHlpApr.Info.reduce((acc, apr) => {
+      if (apr.rewardName != 'HLP Staking Protocol Revenue') {
+        acc += apr.apr;
+      }
+      return acc;
+    }, 0);
+
+    return BigNumber(_blastHlpAprReward).dividedBy(WeiPerEther);
+  };
+
   //                                 ---------------- HLP ----------------
   const hlpPriceInE30Arb = BigNumber(hlpStakingAumE30Arb).dividedBy(
     BigNumber(hlpTotalSupplyArb)
@@ -172,8 +209,8 @@ const apy = async () => {
     project: 'hmx',
     symbol: 'ETH-BTC-USDC',
     tvlUsd: tvlUsdHlpArb.toNumber(),
-    apyBase: BigNumber(arbHlpAprBase).dividedBy(1e18).toNumber(),
-    apyReward: BigNumber(arbHlpAprReward).dividedBy(1e18).toNumber(),
+    apyBase: arbHlpAprBase().toNumber(),
+    apyReward: arbHlpAprReward().toNumber(),
     rewardTokens: [addresses.USDC, addresses.ESHMX],
     underlyingTokens: [addresses.WETH, addresses.WBTC, addresses.USDC],
     poolMeta: 'HLP Staking',
@@ -186,26 +223,26 @@ const apy = async () => {
     project: 'hmx',
     symbol: 'ETH-USDB',
     tvlUsd: tvlUsdHlpBlast.toNumber(),
-    apyBase: BigNumber(arbHlpAprBase).dividedBy(1e18).toNumber(),
-    apyReward: BigNumber(arbHlpAprReward).dividedBy(1e18).toNumber(),
+    apyBase: blastHlpAprBase().toNumber(),
+    apyReward: blastHlpAprReward().toNumber(),
     rewardTokens: [addresses.USDB_BLAST, addresses.ESHMX_BLAST],
     underlyingTokens: [addresses.WETH_BLAST, addresses.USDB_BLAST],
-    poolMeta: 'HLP Staking',
+    poolMeta: 'HLP Staking blast',
     url: 'https://hmx.org/blast/earn',
   };
 
-  //                                 ---------------- HMX ----------------
+  // //                                 ---------------- HMX ----------------
   const tvlUsdHmx = BigNumber(hmxBalanceInPool)
     .multipliedBy(pricesBySymbol.hmx)
-    .dividedBy(1e18);
+    .dividedBy(WeiPerEther);
   const hmxStakingPool = {
     pool: `${addresses.HMX_STAKING}-arbitrum`,
     chain: 'Arbitrum',
     project: 'hmx',
     symbol: 'HMX-esHMX',
     tvlUsd: tvlUsdHmx.toNumber(),
-    apyBase: BigNumber(arbHmxAprBase).dividedBy(1e18).toNumber(),
-    apyReward: BigNumber(arbHmxAprReward).dividedBy(1e18).toNumber(),
+    apyBase: arbHmxAprBase().toNumber(),
+    apyReward: arbHmxAprReward().toNumber(),
     rewardTokens: [addresses.USDC, addresses.ESHMX],
     underlyingTokens: [addresses.ESHMX, addresses.HMX],
     poolMeta: 'HMX Staking - esHMX reward is 1 year linear vested',
