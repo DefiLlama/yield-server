@@ -8,8 +8,8 @@ const utils = require('../utils');
 
 const WeiPerEther = BigNumber(1000000000000000000);
 
-const arbUrl = 'https://arbitrum-gapi.hmx.org/internal/v1/apr-pools';
-const blastUrl = 'https://blast-gapi.hmx.org/internal/v1/apr-pools';
+const arbUrl = 'https://arbitrum-gapi.hmx.org/v1/apr-pools';
+const blastUrl = 'https://blast-gapi.hmx.org/v1/apr-pools';
 
 const getPrices = async (addresses) => {
   const prices = (
