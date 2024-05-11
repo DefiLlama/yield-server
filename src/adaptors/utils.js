@@ -96,17 +96,26 @@ const getLatestBlockSubgraph = async (url) => {
     url.includes('babydoge/faas') ||
     url.includes('kybernetwork/kyberswap-elastic-cronos') ||
     url.includes('kybernetwork/kyberswap-elastic-matic') ||
+    url.includes('metisapi.0xgraph.xyz/subgraphs/name') ||
     url.includes(
       'https://subgraph.satsuma-prod.com/09c9cf3574cc/orbital-apes/v3-subgraph/api'
     ) ||
     url.includes('api.goldsky.com') ||
+    url.includes('api.studio.thegraph.com') ||
     url.includes('48211/uniswap-v3-base') ||
     url.includes('horizondex/block') ||
     url.includes('pancake-swap.workers.dev') ||
     url.includes('pancakeswap/exchange-v3-linea') ||
     url.includes('exchange-v3-polygon-zkevm/version/latest') ||
     url.includes('exchange-v3-zksync/version/latest') ||
-    url.includes('balancer-base-v2/version/latest')
+    url.includes('balancer-base-v2/version/latest') ||
+    url.includes('horizondex') ||
+    url.includes(
+      'https://api.thegraph.com/subgraphs/id/QmZ5uwhnwsJXAQGYEF8qKPQ85iVhYAcVZcZAPfrF7ZNb9z'
+    ) ||
+    url.includes(
+      'https://gateway-arbitrum.network.thegraph.com/api/a265c39f5a123ab2d40b25dc352adc22/subgraphs/id/3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm'
+    )
       ? await request(url, queryGraph)
       : url.includes('aperture/uniswap-v3')
       ? await request(

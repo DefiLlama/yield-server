@@ -1,5 +1,3 @@
-const minify = require('pg-minify');
-
 const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
 const { pgp, connect } = require('../utils/dbConnection');
@@ -15,8 +13,7 @@ const getYieldFiltered = async () => {
   // -- exclude if tvlUsd is < LB
   // -- exclude if pool age > 7days
   // -- join config data
-  const query = minify(
-    `
+  const query = `
     SELECT
         "configID",
         pool,
@@ -55,9 +52,7 @@ const getYieldFiltered = async () => {
         pool NOT IN ($<excludePools:csv>)
         AND project NOT IN ($<excludeProjects:csv>)
         AND symbol not like '%RENBTC%'
-  `,
-    { compress: true }
-  );
+  `;
 
   const response = await conn.query(query, {
     tvlLB: exclude.boundaries.tvlUsdUI.lb,
@@ -83,8 +78,7 @@ const getYieldProject = async (project) => {
   // -- exclude if tvlUsd is < LB
   // -- exclude if pool age > 7days
   // -- join config data
-  const query = minify(
-    `
+  const query = `
     SELECT
         DISTINCT ON ("configID") "configID",
         "tvlUsd",
@@ -106,9 +100,7 @@ const getYieldProject = async (project) => {
     ORDER BY
         "configID",
         timestamp DESC
-    `,
-    { compress: true }
-  );
+    `;
 
   const response = await conn.query(query, {
     tvlLB: exclude.boundaries.tvlUsdUI.lb,
@@ -143,8 +135,7 @@ const getYieldOffset = async (project, offset) => {
 
   // -- retrieve the historical offset data for a every unique pool given an offset day (1d/7d/30d)
   // -- to calculate pct changes. allow some buffer (+/- 3hs) in case of missing data (via tsLB and tsUB)
-  const query = minify(
-    `
+  const query = `
     SELECT
         DISTINCT ON ("configID") "configID",
         apy
@@ -172,9 +163,7 @@ const getYieldOffset = async (project, offset) => {
     ORDER BY
         "configID",
         abs_delta ASC
-    `,
-    { compress: true }
-  );
+    `;
 
   const response = await conn.query(query, {
     project,
@@ -196,8 +185,7 @@ const getYieldOffset = async (project, offset) => {
 const getYieldLendBorrow = async () => {
   const conn = await connect();
 
-  const query = minify(
-    `
+  const query = `
     SELECT
         "configID" as pool,
         "apyBaseBorrow",
@@ -230,9 +218,7 @@ const getYieldLendBorrow = async () => {
         AND ltv BETWEEN 0 AND 1
         AND "totalSupplyUsd" >= 0
         AND symbol not like '%RENBTC%'
-  `,
-    { compress: true }
-  );
+  `;
 
   const response = await conn.query(query, {
     tvlLB: exclude.boundaries.tvlUsdUI.lb,
@@ -254,8 +240,7 @@ const getYieldLendBorrow = async () => {
 const getYieldAvg30d = async () => {
   const conn = await connect();
 
-  const query = minify(
-    `
+  const query = `
     SELECT
         "configID",
         round(avg(apy), 5) as "avgApy30d"
@@ -265,9 +250,7 @@ const getYieldAvg30d = async () => {
         timestamp >= NOW() - INTERVAL '$<age> DAY'
     GROUP BY
         "configID"
-  `,
-    { compress: true }
-  );
+  `;
 
   const response = await conn.query(query, {
     age: 30,

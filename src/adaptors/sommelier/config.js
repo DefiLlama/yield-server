@@ -24,10 +24,15 @@ const morphomaximiser = '0xcf4B531b4Cde95BD35d71926e09B2b54c564F5b6';
 const turbodiveth = '0x6c1edce139291Af5b84fB1e496c9747F83E876c9';
 const turboethx = '0x19B8D8FC682fC56FbB42653F68c7d48Dd3fe597E';
 const turboeethv2 = '0xdAdC82e26b3739750E036dFd9dEfd3eD459b877A';
+const turborseth = '0x1dffb366b5c5A37A12af2C127F31e8e0ED86BDbe';
+const turboezeth = '0x27500de405a3212d57177a789e30bb88b0adbec5';
 
 // Arbitrum addresses
 const realYieldEth_arbitrum = '0xC47bB288178Ea40bF520a91826a3DEE9e0DbFA4C';
 const realYieldUsd_arbitrum = '0x392B1E6905bb8449d26af701Cdea6Ff47bF6e5A8';
+
+// Optimism addresses
+const realYieldEth_optimism = "0xC47bB288178Ea40bF520a91826a3DEE9e0DbFA4C"
 
 // Rewards on ethereum are paid out in EVM SOMM
 const ethRewardTokens = ['0xa670d7237398238de01267472c6f13e5b8010fd1'];
@@ -35,6 +40,10 @@ const ethRewardTokens = ['0xa670d7237398238de01267472c6f13e5b8010fd1'];
 
 // Rewards on arbitrum are paid out in axlSOMM
 const arbitrumRewardTokens = ['0x4e914bbDCDE0f455A8aC9d59d3bF739c46287Ed2'];
+
+
+// Rewards on optimism are paid out in axlSOMM
+const optimismRewardTokens = ['0x4e914bbDCDE0f455A8aC9d59d3bF739c46287Ed2'];
 
 // Map of Cellars -> Staking Pool
 const stakingPools = {
@@ -69,6 +78,8 @@ const stakingPools = {
     // TODO: If we add staking pool for turbo diveth, add it here
     [turboethx]: '0x88EDf544b5d4Ba6A11D40375e4bAEf3f1Ec5aF11',
     // TODO: If we add staking pool for turbo eethv2, add it here
+    [turborseth]: '0xC6b423E3D25e6B36ab60Fa2c91FF344877F8Ead2',
+    [turboezeth]: '0x4705F50b9c6CdffC6528ba6B3754106eE820997E',
   },
   arbitrum: {
     [realYieldEth_arbitrum]: '0xd700D39be88fB6b54311f95cCA949C3f6835e236',
@@ -76,6 +87,9 @@ const stakingPools = {
 
     
 
+  },
+  optimism: {
+    [realYieldEth_optimism]: '0xd700D39be88fB6b54311f95cCA949C3f6835e236',
   },
 };
 
@@ -354,19 +368,19 @@ const v2p5Pools = [
     underlyingTokens: [],
     url: 'https://app.sommelier.finance/strategies/ETH-Trend-Growth',
   },
-  {
-    pool: `${turbosomm}-ethereum`,
-    chain: 'ethereum',
-    project,
-    symbol: 'SOMM-WETH',
-    poolMeta: 'TurboSOMM',
-    tvlUsd: 0,
-    apyBase: 0,
-    apyReward: 0,
-    rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
-    url: 'https://app.sommelier.finance/strategies/Turbo-SOMM',
-  },
+  // {
+  //   pool: `${turbosomm}-ethereum`,
+  //   chain: 'ethereum',
+  //   project,
+  //   symbol: 'SOMM-WETH',
+  //   poolMeta: 'TurboSOMM',
+  //   tvlUsd: 0,
+  //   apyBase: 0,
+  //   apyReward: 0,
+  //   rewardTokens: ethRewardTokens,
+  //   underlyingTokens: [],
+  //   url: 'https://app.sommelier.finance/strategies/Turbo-SOMM',
+  // },
   {
     pool: `${turboeeth}-ethereum`,
     chain: 'ethereum',
@@ -486,6 +500,45 @@ const v2p6Pools = [
     rewardTokens: arbitrumRewardTokens,
     underlyingTokens: ["0xaf88d065e77c8cC2239327C5EDb3A432268e5831","0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8","0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9","0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1"],
     url: 'https://app.sommelier.finance/strategies/real-yield-usd-arb',
+  },
+  {
+    pool: `${turborseth}-ethereum`,
+    chain: 'ethereum',
+    project,
+    symbol: 'WETH-RSETH',
+    poolMeta: 'TurborsETH',
+    tvlUsd: 0,
+    apyBase: 0,
+    apyReward: 0,
+    rewardTokens: ethRewardTokens,
+    underlyingTokens: [],
+    url: 'https://app.sommelier.finance/strategies/Turbo-rsETH/manage',
+  },
+  {
+    pool: `${turboezeth}-ethereum`,
+    chain: 'ethereum',
+    project,
+    symbol: 'WETH-EZETH',
+    poolMeta: 'TurboezETH',
+    tvlUsd: 0,
+    apyBase: 0,
+    apyReward: 0,
+    rewardTokens: ethRewardTokens,
+    underlyingTokens: [],
+    url: 'https://app.sommelier.finance/strategies/Turbo-ezETH/manage',
+  },
+  {
+    pool: `${realYieldEth_optimism}-optimism`,
+    chain: 'optimism',
+    project,
+    symbol: 'WETH-wstETH-cbETH-rETH',
+    poolMeta: 'RealYieldETH',
+    tvlUsd: 0,
+    apyBase: 0,
+    apyReward: 0,
+    rewardTokens: optimismRewardTokens,
+    underlyingTokens: [],
+    url: 'https://app.sommelier.finance/strategies/real-yield-eth-opt/manage',
   },
 ];
 

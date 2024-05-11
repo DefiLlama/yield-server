@@ -1,10 +1,15 @@
 const utils = require('../utils')
-const sdk = require('@defillama/sdk4')
+const sdk = require('@defillama/sdk5')
 const { request, gql, batchRequests } = require('graphql-request')
-const { MRD_ABI } = require('./abi')
+const { MRD_ABI, VIEWS_ABI } = require('./abi')
 const axios = require('axios')
 
 const MRD_CONTRACT = '0xe9005b078701e2A0948D2EaC43010D35870Ad9d2'
+const MOONBEAM_VIEWS_CONTRACT = '0xe76C8B8706faC85a8Fbdcac3C42e3E7823c73994'
+
+const SECONDS_PER_DAY = 86400
+const DAYS_PER_YEAR = 365
+const NOW = new Date().getTime() / 1000
 
 const getPrices = async addresses => {
   const prices = (
@@ -43,6 +48,19 @@ const multicallMRD = async markets => {
   ).output.map(({ output }) => output)
 }
 
+const multicallViews = async () => {
+  return (
+    await sdk.api.abi.multiCall({
+      chain: 'moonbeam',
+      calls: [{
+        target: MOONBEAM_VIEWS_CONTRACT,
+        params: []
+      }],
+      abi: VIEWS_ABI.find(({ name }) => name === 'getAllMarketsInfo')
+    })
+  ).output.map(({ output }) => output)
+}
+
 const API_URL =
   'https://api.thegraph.com/subgraphs/name/moonwell-fi/moonwell-moonbeam'
 const query = gql`
@@ -58,10 +76,6 @@ const query = gql`
       exchangeRate
       underlyingAddress
       collateralFactor
-      supplyRewardNative
-      supplyRewardProtocol
-      borrowRewardNative
-      borrowRewardProtocol
     }
   }
 `
@@ -110,11 +124,10 @@ const getApy = async () => {
         symbol: pool.underlyingSymbol,
         tvlUsd: totalSupplyUsd - totalBorrowUsd,
         apyBase: Number(pool.supplyRate),
-        apyReward:
-          Number(pool.supplyRewardNative) + Number(pool.supplyRewardProtocol),
+        apyReward: 0,
         underlyingTokens: [
           pool.underlyingAddress ===
-          '0x0000000000000000000000000000000000000000'
+            '0x0000000000000000000000000000000000000000'
             ? '0xAcc15dC74880C9944775448304B263D191c6077F'
             : pool.underlyingAddress
         ],
@@ -126,20 +139,119 @@ const getApy = async () => {
         totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow: Number(pool.borrowRate),
-        apyRewardBorrow:
-          Number(pool.borrowRewardNative) + Number(pool.borrowRewardProtocol),
-        ltv: Number(pool.collateralFactor)
+        apyRewardBorrow: 0,
+        ltv: Number(pool.collateralFactor),
+        incentives: [] //helper
       }
     })
     .filter(e => e.ltv)
 
+  const moonbeam_markets = await multicallViews()
+  let moonbeam_incentives = {}
+  if (moonbeam_markets && moonbeam_markets.length == 1) {
+    const moonbeam_markets_data = moonbeam_markets[0]
+    for (const _market of moonbeam_markets_data) {
+      const _incentives = _market[17] // incentives      
+      moonbeam_incentives[_market[0].toLowerCase()] = _incentives.map((i) => {
+        return {
+          rewardToken: i[0].toLowerCase(),
+          supplyIncentivesPerSec: i[1],
+          borrowIncentivesPerSec: i[2],
+        }
+      })
+    }
+  }
+
+  const moonbeam_prices_id = Object.values(moonbeam_incentives).flat().reduce((prev, curr) => {
+    let _emissionToken = curr.rewardToken;
+    let lookup
+    if (
+      _emissionToken.toLowerCase() ==
+      '0xff8adec2221f9f4d8dfbafa6b9a297d17603493d'
+    ) {
+      //WELL base -> WELL moonbeam
+      lookup = `moonbeam:0x511ab53f793683763e5a8829738301368a2411e3`
+    } else {
+      lookup = `moonbeam:${_emissionToken}`
+    }
+    return {
+      ...prev,
+      [_emissionToken]: lookup
+    }
+  }, {})
+
+  const moonbeam_prices = await getPrices(Object.values(moonbeam_prices_id))
+
+  for (let market of moonbeamResults) {
+    let marketRewards = moonbeam_incentives[market.pool]
+
+    for (let marketWithRewards of marketRewards) {
+      const {
+        rewardToken: _emissionToken,
+        supplyIncentivesPerSec: _supplyEmissionsPerSec,
+        borrowIncentivesPerSec: _borrowEmissionsPerSec
+      } = marketWithRewards
+
+      let token_info = moonbeam_prices[_emissionToken.toLowerCase()]
+
+      if (!token_info) continue
+      let price = token_info.price
+      let decimals = token_info.decimals
+      let symbol = token_info.symbol
+
+      const supplyRewardsPerDay =
+        (_supplyEmissionsPerSec / Math.pow(-10, decimals)) * SECONDS_PER_DAY
+
+      const supplyRewardsPerDayUSD = supplyRewardsPerDay * price
+
+      const borrowRewardsPerDay =
+        (_borrowEmissionsPerSec / Math.pow(-10, decimals)) * SECONDS_PER_DAY
+
+      const borrowRewardsPerDayUSD = borrowRewardsPerDay * price
+
+      market.incentives.push({
+        address: _emissionToken,
+        supplyRewardsAPR:
+          market.totalSupplyUsd > 0
+            ? (supplyRewardsPerDayUSD / market.totalSupplyUsd) *
+            DAYS_PER_YEAR *
+            100
+            : 0,
+        borrowRewardsAPR:
+          market.totalBorrowUsd > 0
+            ? (borrowRewardsPerDayUSD / market.totalBorrowUsd) *
+            DAYS_PER_YEAR *
+            100
+            : 0
+      })
+    }
+  }
+
+  for (let market of moonbeamResults) {
+    const supplyIncentivesAPR = market.incentives.reduce(
+      (prev, curr) => prev + curr.supplyRewardsAPR,
+      0
+    )
+
+    const borrowIncentivesAPR = market.incentives.reduce(
+      (prev, curr) => prev + curr.borrowRewardsAPR,
+      0
+    )
+
+    market.rewardTokens = market.incentives.map(r => r.address)
+    market.apyReward = supplyIncentivesAPR
+    market.apyRewardBorrow = parseFloat(
+      Math.abs(borrowIncentivesAPR).toFixed(6)
+    )
+
+    delete market.incentives
+  }
+
+
   let base_res = await request(BASE_API_URL, base_query)
   let baseResults = base_res.markets
     .map(pool => {
-      let price =
-        pool.underlyingSymbol.toLowerCase() === 'usdc'
-          ? 1
-          : Number(pool.underlyingPriceUSD)
+      let price = Number(pool.underlyingPriceUSD)
 
       const totalSupplyUsd =
         Number(pool.totalSupply) * Number(pool.exchangeRate) * price
@@ -199,9 +311,6 @@ const getApy = async () => {
 
   const mrd_prices = await getPrices(Object.values(prices_id))
 
-  const SECONDS_PER_DAY = 86400
-  const DAYS_PER_YEAR = 365
-  const NOW = new Date().getTime() / 1000
 
   let marketIdx = 0
   for (let market of baseResults) {
@@ -230,9 +339,11 @@ const getApy = async () => {
         token_info = mrd_prices[_emissionToken.toLowerCase()]
       }
 
-      let price = token_info?.price
-      let decimals = token_info?.decimals
-      let symbol = token_info?.symbol
+      if (!token_info) continue
+
+      let price = token_info.price
+      let decimals = token_info.decimals
+      let symbol = token_info.symbol
 
       //only active
       if (_endTime > NOW) {
@@ -251,14 +362,14 @@ const getApy = async () => {
           supplyRewardsAPR:
             market.totalSupplyUsd > 0
               ? (supplyRewardsPerDayUSD / market.totalSupplyUsd) *
-                DAYS_PER_YEAR *
-                100
+              DAYS_PER_YEAR *
+              100
               : 0,
           borrowRewardsAPR:
             market.totalBorrowUsd > 0
               ? (borrowRewardsPerDayUSD / market.totalBorrowUsd) *
-                DAYS_PER_YEAR *
-                100
+              DAYS_PER_YEAR *
+              100
               : 0
         })
       }

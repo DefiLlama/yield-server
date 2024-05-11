@@ -1,5 +1,3 @@
-const minify = require('pg-minify');
-
 const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
 const { pgp, connect } = require('../utils/dbConnection');
@@ -8,8 +6,7 @@ const { pgp, connect } = require('../utils/dbConnection');
 const getStaleProjects = async () => {
   const conn = await connect();
 
-  const query = minify(
-    `
+  const query = `
 WITH base AS (
     SELECT
         *
@@ -32,9 +29,7 @@ HAVING
     AND max(updated_at) <= NOW() - INTERVAL '$<minStaleHours> HOURS'
 ORDER BY
     max(updated_at) ASC
-    `,
-    { compress: true }
-  );
+    `;
 
   const response = await conn.query(query, {
     age: exclude.boundaries.age,

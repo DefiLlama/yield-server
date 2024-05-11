@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk');
-const { api2 } = require('@defillama/sdk3');
+const { api2 } = require('@defillama/sdk5');
 const axios = require('axios');
 const { ethers } = require('ethers');
 

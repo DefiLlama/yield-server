@@ -1,5 +1,3 @@
-const minify = require('pg-minify');
-
 const { pgp, connect } = require('../utils/dbConnection');
 
 const tableName = 'config';
@@ -22,8 +20,7 @@ const getDistinctProjects = async () => {
 const getConfigProject = async (project) => {
   const conn = await connect();
 
-  const query = minify(
-    `
+  const query = `
     SELECT
         config_id,
         pool
@@ -31,9 +28,7 @@ const getConfigProject = async (project) => {
         $<table:name>
     WHERE
         project = $<project>
-    `,
-    { compress: true }
-  );
+    `;
 
   const response = await conn.query(query, { table: tableName, project });
 
