@@ -110,7 +110,7 @@ const main = async () => {
       project: 'orby-network',
       symbol: 'CDCETH',
       chain: 'cronos',
-      apyBase: Number(conversionRate) - 1,
+      apyBase: Number(conversionRate),
       apyReward: 0,
       tvlUsd:
         (Number(troveEthTvl) / 1e18) * Number(global.currentSystemState.price),
