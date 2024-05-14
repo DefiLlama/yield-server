@@ -1,6 +1,8 @@
 const { default: request, gql } = require('graphql-request');
 const axios = require('axios');
 
+const utils = require('../utils');
+
 const chain = {
   1: 'ethereum',
   56: 'bsc',
@@ -14,32 +16,34 @@ const chain = {
 
 const poolsQuery = gql`
   query Pools {
-    pools(filter:{
-      poolStatus: "Active",
-      auditStatus: "Approved",
-      isUnlisted: false,
-      saleStatus: ["Upcoming","Fundraising","Active"]
-    }){
+    pools(
+      filter: {
+        poolStatus: "Active"
+        auditStatus: "Approved"
+        isUnlisted: false
+        saleStatus: ["Upcoming", "Fundraising", "Active"]
+      }
+    ) {
       poolsInfo {
         id
-        productInfo{
+        productInfo {
           name
           chainId
-          contractInfo{
+          contractInfo {
             contractAddress
           }
         }
-        currencyInfo{
+        currencyInfo {
           symbol
           currencyAddress
           decimals
         }
         issuerInfo {
-          accountInfo{
+          accountInfo {
             username
           }
         }
-        poolOrderInfo{
+        poolOrderInfo {
           poolId
         }
         aum
@@ -50,23 +54,29 @@ const poolsQuery = gql`
   }
 `;
 
-const headers = { 'Authorization': 'solv' }
+const headers = { Authorization: 'solv' };
 
 const poolsFunction = async () => {
-  const pools = (await request("https://sft-api.com/graphql", poolsQuery, null, headers)).pools;
-  const pricesArray = pools.poolsInfo.map((t) => `${chain[t.productInfo.chainId]}:${t.currencyInfo.currencyAddress}`);
+  const pools = (
+    await request('https://sft-api.com/graphql', poolsQuery, null, headers)
+  ).pools;
+  const pricesArray = pools.poolsInfo.map(
+    (t) => `${chain[t.productInfo.chainId]}:${t.currencyInfo.currencyAddress}`
+  );
   const prices = (
     await axios.get(`https://coins.llama.fi/prices/current/${pricesArray}`)
   ).data.coins;
 
   const poolConfiguration = (
-    await axios.get(`https://raw.githubusercontent.com/solv-finance-dev/slov-protocol-defillama/main/pools.json`)
+    await axios.get(
+      `https://raw.githubusercontent.com/solv-finance-dev/slov-protocol-defillama/main/pools.json`
+    )
   ).data;
 
   let ustPool = [];
   for (const pool of pools.poolsInfo) {
     if (poolConfiguration.filterOut.indexOf(pool.poolOrderInfo.poolId) !== -1) {
-      continue
+      continue;
     }
 
     const marketContractQuery = gql`
@@ -79,33 +89,57 @@ const poolsFunction = async () => {
       }
     `;
 
-    const marketContract = (await request("https://sft-api.com/graphql", marketContractQuery, null, headers)).marketContract;
+    const marketContract = (
+      await request(
+        'https://sft-api.com/graphql',
+        marketContractQuery,
+        null,
+        headers
+      )
+    ).marketContract;
 
     let rewardApy = 0;
     let rewardTokens = [];
     JSON.parse(pool.additionalRewards).map(function (item, index) {
-      if (poolConfiguration.rewardTokenAddress[pool.productInfo.chainId]?.[item.symbol]) {
-        rewardTokens.push(poolConfiguration.rewardTokenAddress[pool.productInfo.chainId]?.[item.symbol])
+      if (
+        poolConfiguration.rewardTokenAddress[pool.productInfo.chainId]?.[
+          item.symbol
+        ]
+      ) {
+        rewardTokens.push(
+          poolConfiguration.rewardTokenAddress[pool.productInfo.chainId]?.[
+            item.symbol
+          ]
+        );
         rewardApy += item.apy / 100;
       }
-    })
+    });
 
     ustPool.push({
-      pool: `${pool.poolOrderInfo.poolId.toLowerCase()}-${chain[pool.productInfo.chainId]}`,
+      pool: `${pool.poolOrderInfo.poolId.toLowerCase()}-${
+        chain[pool.productInfo.chainId]
+      }`,
       chain: chain[pool.productInfo.chainId],
       project: `solv-funds`,
       symbol: pool.currencyInfo.symbol,
       underlyingTokens: [pool.currencyInfo.currencyAddress],
-      tvlUsd: Number(pool.aum * prices[`${chain[pool.productInfo.chainId]}:${pool.currencyInfo.currencyAddress}`].price),
+      tvlUsd: Number(
+        pool.aum *
+          prices[
+            `${chain[pool.productInfo.chainId]}:${
+              pool.currencyInfo.currencyAddress
+            }`
+          ]?.price
+      ),
       apyBase: Number(pool.apy / 100) - Number(marketContract.defautFeeRate),
       apyReward: rewardApy,
       rewardTokens,
       url: `https://app.solv.finance/earn/open-fund/detail/${pool.id}`,
       poolMeta: pool.productInfo.name,
-    })
+    });
   }
 
-  return ustPool;
+  return ustPool.filter((i) => utils.keepFinite(i));
 };
 
 module.exports = {

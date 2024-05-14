@@ -1,0 +1,126 @@
+{
+  "getAllMarkets": "function getAllMarkets() view returns (address[])",
+  "cTokenMetadataAll": {
+      "inputs": [
+        {
+          "internalType": "contract CToken[]",
+          "name": "cTokens",
+          "type": "address[]"
+        }
+      ],
+      "name": "cTokenMetadataAll",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "cToken",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "exchangeRateCurrent",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "supplyRatePerBlock",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "borrowRatePerBlock",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "reserveFactorMantissa",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "totalBorrows",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "totalReserves",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "totalSupply",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "totalCash",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "isListed",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "collateralFactorMantissa",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "underlyingAssetAddress",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "cTokenDecimals",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "underlyingDecimals",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "compSupplySpeed",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "compBorrowSpeed",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "borrowCap",
+              "type": "uint256"
+            },
+            {
+              "internalType": "enum CTokenStorage.MarketType",
+              "name": "marketType",
+              "type": "uint8"
+            }
+          ],
+          "internalType": "struct CompoundLens.CTokenMetadata[]",
+          "name": "",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+  "balanceOf": "function balanceOf(address) view returns (uint256)",
+  "totalSupply": "function totalSupply() view returns (uint256)",
+  "exchangeRateStored": "function exchangeRateStored() view returns (uint256)",
+  "underlying": "function underlying() view returns (address)",
+  "symbol": "function symbol() view returns (string)",
+  "interestMarket": "function interestMarket() view returns (address)",
+  "interestRateModel": "function interestRateModel() view returns (address)",
+  "blocksPerYear": "function blocksPerYear() view returns (uint256)",
+  "getUnderlyingPrice": "function getUnderlyingPrice(address) view returns (uint256)",
+  "getCash": "function getCash() view returns (uint256)",
+  "totalReserves": "function totalReserves() view returns (uint256)",
+  "totalBorrows": "function totalBorrows() view returns (uint256)"
+}
