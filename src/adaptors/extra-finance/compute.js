@@ -81,7 +81,7 @@ exports.getAllVeloPoolInfo = async function(vaults, chain, prices, lendingPools)
   for(let index = 0; index < vaults.length; index++) {
     const item = vaults[index]
     const {
-      stable,
+      pair,
       token0,
       token1,
       maxLeverage,
@@ -98,7 +98,7 @@ exports.getAllVeloPoolInfo = async function(vaults, chain, prices, lendingPools)
       price: token1price,
     } = getToken(token1)
 
-    const poolInfo = veloPoolsInfo.find(veloPool => veloPool.stable === stable &&
+    const poolInfo = veloPoolsInfo.find(veloPool => veloPool.lp.toLowerCase() === pair.toLowerCase() &&
       veloPool.token1.toLowerCase() === token1.toLowerCase() &&
       veloPool.token0.toLowerCase() === token0.toLowerCase()
     )
@@ -108,7 +108,7 @@ exports.getAllVeloPoolInfo = async function(vaults, chain, prices, lendingPools)
     const {
       reserve0,
       reserve1,
-      total_supply,
+      liquidity,
       symbol,
       emissions,
       emissions_token,
@@ -151,7 +151,7 @@ exports.getAllVeloPoolInfo = async function(vaults, chain, prices, lendingPools)
       token1_symbol,
       reserve0usd,
       reserve1usd,
-      tvlUsd: toDecimals(totalLp) / toDecimals(total_supply) * totalPoolTvlUsd,
+      tvlUsd: toDecimals(totalLp) / toDecimals(liquidity) * totalPoolTvlUsd,
       baseApy: utils.aprToApy(baseApr),
       // leveragedApy,
     })
