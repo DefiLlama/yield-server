@@ -26,8 +26,9 @@ exports.getAllVeloPools = async function (chain) {
   const simpleRpcProvider = new ethers.providers.JsonRpcProvider(rpcUrl);
   const veloPairContract = new Contract(veloPairAddress[chain], pairsSugarContractAbi, simpleRpcProvider)
   const [poolInfoList1, poolInfoList2] = await Promise.all([
-    veloPairContract.all(300, 0),
-    veloPairContract.all(370, 300),
+    veloPairContract.all(400, 0),
+    veloPairContract.all(400, 400),
+    veloPairContract.all(200, 800),
   ])
   const poolInfoList = poolInfoList1.concat(poolInfoList2)
   return poolInfoList

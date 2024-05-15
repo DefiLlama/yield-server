@@ -77,41 +77,6 @@ exports.getAllVeloPoolInfo = async function(vaults, chain, prices, lendingPools)
     return getTokenInfo(chain, address, prices)
   }
   const veloPoolsInfo = await getAllVeloPools(chain)
-  
-  // get extra price
-  const extraToken = {
-    symbol: 'EXTRA',
-    address: '0x2dAD3a13ef0C6366220f989157009e501e7938F8',
-    decimals: 18,
-  }
-  const veloUsdcPair = veloPoolsInfo.find(veloPool => {
-    const {
-      reserve0,
-      reserve1,
-      token0,
-      token1,
-      total_supply,
-      stable,
-      symbol,
-      emissions,
-      emissions_token,
-    } = veloPool
-    const {
-      decimals: token1_decimals,
-      symbol: token1_symbol,
-      price: token1price,
-    } = getToken(token1)
-    if (!stable && token0 === extraToken.address && token1_symbol?.toLowerCase() === 'usdc') {
-      const coinKey = `${chain}:${token0.toLowerCase()}`;
-      const poolToken0Amount = toDecimals(reserve0, extraToken.decimals)
-      const poolToken1Amount = toDecimals(reserve1, token1_decimals)
-      const price = poolToken0Amount > 0 ? poolToken1Amount / poolToken0Amount : 0
-      prices[coinKey] = {
-        ...extraToken,
-        price,
-      }
-    }
-  })
 
   for(let index = 0; index < vaults.length; index++) {
     const item = vaults[index]
@@ -193,18 +158,3 @@ exports.getAllVeloPoolInfo = async function(vaults, chain, prices, lendingPools)
   }
   return parsedPoolsInfo
 }
-
-// function getFarmApy({
-//   equity0 = 1,
-//   leverage = 1,
-//   baseApr = 0,
-//   borrowApr = 0,
-// }) {
-//   const position0 = equity0 * leverage
-//   const position1 = position0 + position0 * utils.aprToApy(baseApr)
-//   const debt0 = equity0 * (leverage - 1)
-//   const debt1 = debt0 + debt0 * utils.aprToApy(borrowApr)
-//   const equity1 = position1 - debt1
-
-//   return equity1 / equity0 - 1
-// }
