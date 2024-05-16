@@ -140,6 +140,7 @@ const getUmamiGmVaultsYield = async () => {
       apyBase: +vaultApr.toFixed(2),
       apy: +vaultApr.toFixed(2),
       symbol: vault.symbol,
+      rewardTokens: [],
       underlyingTokens: [vault.underlyingAsset],
       url: `https://umami.finance/vaults/gm/${vault.id}`,
     });
