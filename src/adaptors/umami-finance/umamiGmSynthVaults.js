@@ -118,21 +118,19 @@ const getUmamiGmSynthsVaultsYield = async () => {
     const underlyingTokenPriceKey =
       `arbitrum:${vault.underlyingAsset}`.toLowerCase();
 
-    const [tvlRaw, underlyingTokenPriceObj, arbIncentivesApr, bufferRaw] =
-      await Promise.all([
-        aggregateVaultContract.methods
-          .getVaultTVL(vault.address.toLowerCase(), false)
-          .call(),
-        superagent.get(
-          `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`
-        ),
-        getIncentivesAprForVault(vault),
-        sdk.api.erc20.balanceOf({
-          target: vault.underlyingAsset.toLowerCase(),
-          owner: GMI_AGGREGATE_VAULT,
-          chain: 'arbitrum',
-        }),
-      ]);
+    const [tvlRaw, underlyingTokenPriceObj, bufferRaw] = await Promise.all([
+      aggregateVaultContract.methods
+        .getVaultTVL(vault.address.toLowerCase(), false)
+        .call(),
+      superagent.get(
+        `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`
+      ),
+      sdk.api.erc20.balanceOf({
+        target: vault.underlyingAsset.toLowerCase(),
+        owner: GMI_AGGREGATE_VAULT,
+        chain: 'arbitrum',
+      }),
+    ]);
 
     const underlyingTokenPrice =
       underlyingTokenPriceObj.body.coins[underlyingTokenPriceKey].price;
@@ -149,9 +147,7 @@ const getUmamiGmSynthsVaultsYield = async () => {
       tvlUsd: +(tvl * underlyingTokenPrice),
       apyBase: +vaultApr.toFixed(2),
       apy: +vaultApr.toFixed(2),
-      apyReward: +arbIncentivesApr.toFixed(2),
       symbol: vault.symbol,
-      rewardTokens: [ARB_ADDRESS],
       underlyingTokens: [vault.underlyingAsset],
       url: `https://umami.finance/vaults/gm/${vault.id}`,
     });
