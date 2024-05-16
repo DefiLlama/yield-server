@@ -3,7 +3,7 @@ const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk5');
 
 const utils = require('../utils');
-const { aTokenAbi } = require('./abi');
+const { aTokenAbi, aaveStakedTokenDataProviderAbi } = require('./abi');
 const poolAbi = require('./poolAbi');
 
 const SECONDS_PER_YEAR = 31536000;
@@ -135,6 +135,67 @@ const queryMetis = gql`
   }
 `;
 
+const stkGho = async () => {
+  const convertStakedTokenApy = (rawApy) => {
+    const rawApyStringified = rawApy.toString();
+    const lastTwoDigits = rawApyStringified.slice(-2);
+    const remainingDigits = rawApyStringified.slice(0, -2);
+    const result = `${remainingDigits}.${lastTwoDigits}`;
+    return Number(result);
+  };
+
+  const STKGHO = '0x1a88Df1cFe15Af22B3c4c783D4e6F7F9e0C1885d';
+  const stkGhoTokenOracle = '0x3f12643d3f6f874d39c2a4c9f2cd6f2dbac877fc';
+  const aaveStakedTokenDataProviderAddress =
+    '0xb12e82DF057BF16ecFa89D7D089dc7E5C1Dc057B';
+
+  const stkghoData = (
+    await sdk.api.abi.call({
+      target: aaveStakedTokenDataProviderAddress,
+      abi: aaveStakedTokenDataProviderAbi.find(
+        (m) => m.name === 'getStakedAssetData'
+      ),
+      params: [STKGHO, stkGhoTokenOracle],
+      chain: 'ethereum',
+    })
+  ).output;
+
+  const stkghoNativeApyRaw = stkghoData[6]; // 6th index of the tuple is the APY
+  const stkghoNativeApy = convertStakedTokenApy(stkghoNativeApyRaw);
+
+  const stkghoMeritApy = (
+    await superagent.get('https://apps.aavechan.com/api/merit/aprs')
+  ).body.currentAPR.actionsAPR.stkgho;
+
+  const stkghoApy = stkghoNativeApy + stkghoMeritApy;
+
+  const stkghoSupply =
+    (
+      await sdk.api.abi.call({
+        target: STKGHO,
+        abi: 'erc20:totalSupply',
+      })
+    ).output / 1e18;
+
+  const ghoPrice = (
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/ethereum:${GHO}`
+    )
+  ).body.coins[`ethereum:${GHO}`].price;
+
+  const pool = {
+    pool: `${STKGHO}-ethereum`.toLowerCase(),
+    chain: 'Ethereum',
+    project: 'aave-v3',
+    symbol: 'GHO',
+    tvlUsd: stkghoSupply * ghoPrice,
+    apy: stkghoApy,
+    url: 'https://app.aave.com/staking',
+  };
+
+  return pool;
+};
+
 const ethV3Pools = async () => {
   const AaveProtocolDataProviderV3Mainnet =
     '0x7B4EB56E7CD4b454BA8ff71E4518426369a138a3';
@@ -261,12 +322,13 @@ const ethV3Pools = async () => {
 };
 
 const apy = async () => {
-  let data = await Promise.all(
+  let data = await Promise.allSettled(
     Object.entries(API_URLS).map(async ([chain, url]) => [
       chain,
       (await request(url, chain === 'metis' ? queryMetis : query)).reserves,
     ])
   );
+  data = data.filter((i) => i.status === 'fulfilled').map((i) => i.value);
 
   data = data.map(([chain, reserves]) => [
     chain,
@@ -397,9 +459,12 @@ const apy = async () => {
 
   const ethPools = await ethV3Pools();
 
+  const stkghoPool = await stkGho();
+
   return pools
     .flat()
     .concat(ethPools)
+    .concat([stkghoPool])
     .filter((p) => utils.keepFinite(p));
 };
 
