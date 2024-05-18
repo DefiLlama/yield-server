@@ -196,7 +196,7 @@ function computePairInfo(pairInfo, prices, tknPrice) {
  * Formats a pair info object into a pool object.
  */
 function formatPool(p) {
-  const apyReward = (Math.pow(1 + p.apr / 36500, 365) - 1) * 100; // daily compounding
+  const apyReward =p.apr; // NOT daily compounding, APR NOT APY
   return {
     pool: p.pair_address,
     chain: utils.formatChain('Scroll'),
