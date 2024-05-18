@@ -1,10 +1,5 @@
 [
   {
-    "inputs": [],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
     "anonymous": false,
     "inputs": [
       {
@@ -150,6 +145,11 @@
             "type": "uint256"
           },
           {
+            "internalType": "uint256",
+            "name": "pairFee",
+            "type": "uint256"
+          },
+          {
             "internalType": "bool",
             "name": "stable",
             "type": "bool"
@@ -228,6 +228,11 @@
             "internalType": "address",
             "name": "bribe",
             "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "weight",
+            "type": "uint256"
           },
           {
             "internalType": "uint256",
@@ -316,6 +321,11 @@
             "type": "uint256"
           },
           {
+            "internalType": "uint256",
+            "name": "pairFee",
+            "type": "uint256"
+          },
+          {
             "internalType": "bool",
             "name": "stable",
             "type": "bool"
@@ -394,6 +404,11 @@
             "internalType": "address",
             "name": "bribe",
             "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "weight",
+            "type": "uint256"
           },
           {
             "internalType": "uint256",

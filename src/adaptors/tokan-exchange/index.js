@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const axios = require('axios');
 
 const utils = require('../utils');
@@ -60,6 +60,7 @@ async function getPairInfo(allPairs) {
     'symbol',
     'name',
     'decimals',
+    'pairFee',
     'stable',
     'total_supply',
     // token pair info
@@ -78,6 +79,7 @@ async function getPairInfo(allPairs) {
     'gauge_total_supply',
     'fee',
     'bribe',
+    'weight',
     'emissions',
     'emissions_token',
     'emissions_token_decimals',
@@ -139,7 +141,7 @@ async function getTokenPrices(pairInfo) {
   async function getPriceFromGeckoTerminal(token) {
     const price = (
       await axios.get(`https://api.geckoterminal.com/api/v2/networks/scroll/tokens/${token}`)
-    ).data.attributes.price_usd
+    ).data.data.attributes.price_usd
     return price
   }
 
