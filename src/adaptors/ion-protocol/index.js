@@ -3,7 +3,7 @@ const sdk = require('@defillama/sdk5');
 
 const ionAbi = {
   usd: 'int256:latestAnswer',
-  debt: 'uint256:debt',
+  debt: 'function debt(address pool) external view returns (uint256)',
   lenderExchangeRate: 'uint256:stEthPerToken',
   totalSupply: 'uint256:totalSupply',
   marketBorrowRate:
@@ -17,8 +17,9 @@ const marketApy = async () => {
   let pools = [];
   for (let market of markets) {
     const debt = await sdk.api.abi.call({
-      target: market.ionPool,
+      target: market.ionLens,
       abi: ionAbi.debt,
+      params: market.ionPool,
       chain: 'ethereum',
     });
     const totalSupply = await sdk.api.abi.call({
@@ -59,7 +60,7 @@ const marketApy = async () => {
       chain: 'ethereum',
       project: 'ion-protocol',
       symbol: market.collateralAssetName + '-' + market.lenderAssetName,
-      tvlUsd: totalSupplyUsd - totalBorrowUsd,
+      tvlUsd: totalSupplyUsd,
       apyBase: marketApy,
       underlyingTokens: [market.lenderAssetAddress],
       totalSupplyUsd: totalSupplyUsd,
