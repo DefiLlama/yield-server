@@ -2,7 +2,7 @@ const utils = require('../utils');
 const axios = require('axios');
 const { ethers } = require('ethers');
 
-const provider = new ethers.JsonRpcProvider('https://api.avax.network/ext/bc/C/rpc');
+const provider = new ethers.providers.JsonRpcProvider('https://api.avax.network/ext/bc/C/rpc');
 const GGAVAX_CONTRACT = '0xA25EaF2906FA1a3a13EdAc9B9657108Af7B703e3';
 
 const totalAssetsAbi = [{
@@ -21,7 +21,7 @@ async function fetchTotalAssets() {
     try {
         const contract = new ethers.Contract(GGAVAX_CONTRACT, totalAssetsAbi, provider);
         const totalAssets = await contract.totalAssets();
-        return ethers.formatUnits(totalAssets, 18);
+        return ethers.utils.formatUnits(totalAssets, 18);
         
     } catch (error) {
         console.error('Error in fetching total assets:', error);
