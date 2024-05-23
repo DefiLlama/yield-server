@@ -49,7 +49,7 @@ const poolsFunction = async () => {
       const apr = aprData.find(aprItem => aprItem.chain === CHAINS[chain]);
       pools.push({
         pool: pool.address,
-        chain: pool.chainName,
+        chain: chain,
         project: 'azuro',
         symbol: utils.formatSymbol(pool.asset),
         tvlUsd: Number(pool.tvl),
