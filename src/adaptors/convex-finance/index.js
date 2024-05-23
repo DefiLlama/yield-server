@@ -47,6 +47,7 @@ const main = async () => {
         'factory-crvusd',
         'factory-tricrypto',
         'factory-stable-ng',
+        'factory-twocrypto',
       ].map((registry) =>
         utils.getData(`https://api.curve.fi/api/getPools/ethereum/${registry}`)
       )
@@ -59,6 +60,12 @@ const main = async () => {
   const { data: gauges } = await utils.getData(
     'https://api.curve.fi/api/getAllGauges'
   );
+
+  Object.keys(gauges).forEach((key) => {
+    if (gauges[key].swap_token === undefined) {
+      delete gauges[key];
+    }
+  });
 
   const mappedGauges = Object.entries(gauges).reduce(
     (acc, [name, gauge]) => ({
