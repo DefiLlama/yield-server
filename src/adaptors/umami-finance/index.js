@@ -9,67 +9,20 @@ const {
   UMAMI_API_URL,
   wETH_ADDRESS,
 } = require('./umamiConstants.js');
-const { getUmamiGlpVaultsYield } = require('./umamiGlpVaults.js');
 const { getUmamiGmSynthsVaultsYield } = require('./umamiGmSynthVaults.js');
 const { getUmamiGmVaultsYield } = require('./umamiGmVaults.js');
 
-const tokenSupplyQuery = gql`
-  {
-    supplyBreakdowns(first: 1, orderBy: block, orderDirection: desc) {
-      marinating
-      compounding
-    }
-  }
-`;
-
 const main = async () => {
-  const key = `arbitrum:${UMAMI_ADDRESS}`.toLowerCase();
-  const umamiPriceUSD = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).body.coins[key].price;
-
-  const data = await request(UMAMI_GRAPH_URL, tokenSupplyQuery);
-  const { marinating, compounding } = data.supplyBreakdowns[0];
-
-  const {
-    data: { metrics },
-  } = await axios.get(
-    `${UMAMI_API_URL}/staking/metrics/current?keys=apr&keys=apy`
-  );
-
-  const mUMAMI = {
-    pool: mUMAMI_ADDRESS,
-    tvlUsd: +(parseFloat(marinating) * umamiPriceUSD),
-    apyBase: +metrics[0].value,
-    symbol: 'mUMAMI',
-    rewardTokens: [wETH_ADDRESS],
-    underlyingTokens: [UMAMI_ADDRESS],
-    url: 'https://umami.finance/marinate',
-  };
-
-  const cmUMAMI = {
-    pool: cmUMAMI_ADDRESS,
-    tvlUsd: +(parseFloat(compounding) * umamiPriceUSD),
-    apyBase: +metrics[1].value,
-    symbol: 'cmUMAMI',
-    rewardTokens: [UMAMI_ADDRESS],
-    underlyingTokens: [UMAMI_ADDRESS],
-    url: 'https://umami.finance/marinate',
-  };
-
-  const [glpVaults, synthGmVaults, gmVaults] = await Promise.all([
-    getUmamiGlpVaultsYield(),
+  const [synthGmVaults, gmVaults] = await Promise.all([
     getUmamiGmSynthsVaultsYield(),
     getUmamiGmVaultsYield(),
   ]);
 
-  return [mUMAMI, cmUMAMI, ...glpVaults, ...synthGmVaults, ...gmVaults].map(
-    (strat) => ({
-      ...strat,
-      chain: 'Arbitrum',
-      project: 'umami-finance',
-    })
-  );
+  return [...synthGmVaults, ...gmVaults].map((strat) => ({
+    ...strat,
+    chain: 'Arbitrum',
+    project: 'umami-finance',
+  }));
 };
 
 module.exports = {
