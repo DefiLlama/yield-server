@@ -15,6 +15,7 @@ const aprUrl = "https://api.azuro.org/apr";
 const query = gql`
   {
     liquidityPoolContracts {
+      apr
       address
       asset
       chainId
@@ -52,7 +53,7 @@ const poolsFunction = async () => {
         project: 'azuro',
         symbol: utils.formatSymbol(pool.asset),
         tvlUsd: Number(pool.tvl),
-        apyBase: apr ? apr.apr : null,
+        apyBase: apr ? apr.apr : pool.apr,
       });
     });
   }
