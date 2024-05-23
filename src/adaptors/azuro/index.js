@@ -53,7 +53,7 @@ const poolsFunction = async () => {
         project: 'azuro',
         symbol: utils.formatSymbol(pool.asset),
         tvlUsd: Number(pool.tvl),
-        apyBase: apr ? apr.apr : pool.apr,
+        apyBase: apr ? Number(apr.apr) : Number(pool.apr),
       });
     });
   }
