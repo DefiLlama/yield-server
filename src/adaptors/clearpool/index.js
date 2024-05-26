@@ -50,7 +50,7 @@ const poolsFunction = async () => {
     });
   }
   
-  return pools
+  return pools.map(i => ({...i, pool: i.pool.replace('-mainnet', '-ethereum')}))
 
 };
 
