@@ -64,7 +64,7 @@ const fetchData = async () => {
 const topLvl = async () => {
     const { apyBase, tvlUsd } = await fetchData();
     return {
-        pool: 'ggAVAX',
+        pool: '0xA25EaF2906FA1a3a13EdAc9B9657108Af7B703e3',
         chain: 'Avalanche',
         project: 'gogopool',
         symbol: 'GGP',
@@ -72,7 +72,7 @@ const topLvl = async () => {
         apyBase: apyBase,
         apyReward: 0,
         rewardTokens: [],
-        underlyingTokens: ['wavax']
+        underlyingTokens: ['0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7']
     };
 };
 
@@ -80,11 +80,7 @@ const main = async () => {
     return [await topLvl()];
 };
 
-main().then(data => {
-    console.log("Data:", JSON.stringify(data, null, 2));  // Pretty print the data
-}).catch(error => {
-    console.error("Error occurred:", error);
-});
+
 
 
 module.exports = {
