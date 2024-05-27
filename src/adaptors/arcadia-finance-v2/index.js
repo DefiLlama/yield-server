@@ -1,5 +1,6 @@
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
+const { poolABI } = require('./abi');
 
 const getApy = async () => {
   const wethPool = '0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2';
@@ -15,20 +16,20 @@ const getApy = async () => {
   const usdcPrice =
     coinPrices['coins']['base:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913']
       .price;
-
+    
   const totalDebtWeth = await sdk.api.abi.call({
     target: wethPool,
-    abi: 'function totalAssets() external view returns (uint256)',
+    abi: poolABI.filter(({ name }) => name === 'totalAssets')[0],
     chain: 'base',
   });
   const totalLiquidityWeth = await sdk.api.abi.call({
     target: wethPool,
-    abi: 'function totalLiquidity() external view returns (uint256 totalLiquidity_)',
+    abi: poolABI.filter(({ name }) => name === 'totalLiquidity')[0],
     chain: 'base',
   });
   const interestRateWeth = await sdk.api.abi.call({
     target: wethPool,
-    abi: 'function interestRate() external view returns (uint80 interestRate_)',
+    abi: poolABI.filter(({ name }) => name === 'interestRate')[0],
     chain: 'base',
   });
   const apyWeth =
@@ -38,17 +39,17 @@ const getApy = async () => {
 
   const totalDebtUsdc = await sdk.api.abi.call({
     target: usdcPool,
-    abi: 'function totalAssets() external view returns (uint256)',
+    abi: poolABI.filter(({ name }) => name === 'totalAssets')[0],
     chain: 'base',
   });
   const totalLiquidityUsdc = await sdk.api.abi.call({
     target: usdcPool,
-    abi: 'function totalLiquidity() external view returns (uint256 totalLiquidity_)',
+    abi: poolABI.filter(({ name }) => name === 'totalLiquidity')[0],
     chain: 'base',
   });
   const interestRateUsdc = await sdk.api.abi.call({
     target: usdcPool,
-    abi: 'function interestRate() external view returns (uint80 interestRate_)',
+    abi: poolABI.filter(({ name }) => name === 'interestRate')[0],
     chain: 'base',
   });
   const apyUsdc =
