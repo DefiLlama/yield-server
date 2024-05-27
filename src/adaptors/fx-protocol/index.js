@@ -12,7 +12,7 @@ const getRebalancePoolData = async () => {
     `${ALADDIN_API_BASE_URL}api1/fx_rebalance_tvl_apy`
   );
   const newObj = Object.keys(RebalancePoolData.data).map((item) => {
-    const { name, rebalancePoolAddress, apy, tvl } =
+    const { name, underlyingTokens, rebalancePoolAddress, apy, tvl } =
       RebalancePoolData.data[item];
     return {
       pool: `${rebalancePoolAddress}-f(x)`,
@@ -21,6 +21,7 @@ const getRebalancePoolData = async () => {
       symbol: utils.formatSymbol(name),
       tvlUsd: parseInt(tvl, 10),
       apy: parseFloat(apy),
+      underlyingTokens: underlyingTokens,
     };
   });
   return newObj;
