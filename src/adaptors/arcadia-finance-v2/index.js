@@ -33,9 +33,9 @@ const getApy = async () => {
     chain: 'base',
   });
   const apyWeth =
-    (totalDebtWeth * interestRateWeth) / totalLiquidityWeth / 1e18;
-  const tvlUsdWeth = ((totalLiquidityWeth - totalDebtWeth) * wethPrice) / 1e18;
-  const totalSupplyUsdWeth = (totalLiquidityWeth * wethPrice) / 1e18;
+    (totalDebtWeth.output * interestRateWeth.output) / totalLiquidityWeth.output / 1e18;
+  const tvlUsdWeth = ((totalLiquidityWeth.output - totalDebtWeth.output) * wethPrice) / 1e18;
+  const totalSupplyUsdWeth = (totalLiquidityWeth.output * wethPrice) / 1e18;
 
   const totalDebtUsdc = await sdk.api.abi.call({
     target: usdcPool,
@@ -53,9 +53,9 @@ const getApy = async () => {
     chain: 'base',
   });
   const apyUsdc =
-    (totalDebtWeth * interestRateWeth) / totalLiquidityWeth / 1e18;
-  const tvlUsdUsdc = ((totalLiquidityUsdc - totalDebtUsdc) * usdcPrice) / 1e18;
-  const totalSupplyUsdUsdc = (totalLiquidityUsdc * usdcPrice) / 1e18;
+    (totalDebtUsdc.output * interestRateUsdc.output) / totalLiquidityUsdc.output / 1e18;
+  const tvlUsdUsdc = ((totalLiquidityUsdc.output - totalDebtUsdc.output) * usdcPrice) / 1e6;
+  const totalSupplyUsdUsdc = (totalLiquidityUsdc.output * usdcPrice) / 1e6;
 
   return [
     {
