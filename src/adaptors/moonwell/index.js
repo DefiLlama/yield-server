@@ -6,6 +6,7 @@ const axios = require('axios')
 
 const MRD_CONTRACT = '0xe9005b078701e2A0948D2EaC43010D35870Ad9d2'
 const MOONBEAM_VIEWS_CONTRACT = '0xe76C8B8706faC85a8Fbdcac3C42e3E7823c73994'
+const BASE_VIEWS_CONTRACT = '0x821Ff3a967b39bcbE8A018a9b1563EAf878bad39'
 
 const SECONDS_PER_DAY = 86400
 const DAYS_PER_YEAR = 365
@@ -48,12 +49,12 @@ const multicallMRD = async markets => {
   ).output.map(({ output }) => output)
 }
 
-const multicallViews = async () => {
+const multicallViews = async (network) => {
   return (
     await sdk.api.abi.multiCall({
-      chain: 'moonbeam',
+      chain: network,
       calls: [{
-        target: MOONBEAM_VIEWS_CONTRACT,
+        target: network == 'moonbeam' ? MOONBEAM_VIEWS_CONTRACT : BASE_VIEWS_CONTRACT,
         params: []
       }],
       abi: VIEWS_ABI.find(({ name }) => name === 'getAllMarketsInfo')
@@ -62,91 +63,103 @@ const multicallViews = async () => {
 }
 
 const API_URL =
-  'https://api.thegraph.com/subgraphs/name/moonwell-fi/moonwell-moonbeam'
+  'https://ponder.moonwell.fi/'
+
 const query = gql`
   {
-    markets {
-      id
-      borrowRate
-      supplyRate
-      totalBorrows
-      totalSupply
-      underlyingSymbol
-      underlyingPriceUSD
-      exchangeRate
-      underlyingAddress
-      collateralFactor
+    markets(limit:1000) {
+      items {
+        id,
+        address,
+        chainId,
+        collateralFactor
+        interestRateModelAddress
+        priceFeedAddress
+        reserveFactor
+        underlyingTokenAddress
+      }
+    }
+  	tokens(limit:1000) {
+      items {
+        id
+        address
+        chainId
+        symbol
+        decimals
+      }
     }
   }
 `
 
-const BASE_API_URL =
-  'https://subgraph.satsuma-prod.com/dd48bfe50148/moonwell/base/api'
-const base_query = gql`
-  {
-    markets {
-      id
-      borrowRate
-      supplyRate
-      totalBorrows
-      totalSupply
-      underlyingSymbol
-      underlyingPriceUSD
-      exchangeRate
-      underlyingAddress
-      collateralFactor
-    }
-  }
-`
 const getApy = async () => {
-  const res = await request(API_URL, query)
-  const moonbeamResults = res.markets
-    .map(pool => {
-      let price =
-        pool.underlyingSymbol.toLowerCase() === 'usdc'
-          ? 1
-          : Number(pool.underlyingPriceUSD)
-      if (price === 0 && pool.underlyingSymbol.toLowerCase() === 'weth') {
-        const _price = res.markets.find(
-          e => e.id === '0xaaa20c5a584a9fecdfedd71e46da7858b774a9ce'
-        ).underlyingPriceUSD
-        price = Number(_price)
-      }
 
-      const totalSupplyUsd =
-        Number(pool.totalSupply) * Number(pool.exchangeRate) * price
-      const totalBorrowUsd = Number(pool.totalBorrows) * price
+  const ponder_markets_res = await request(API_URL, query)
 
-      return {
-        pool: pool.id.toLowerCase(),
-        chain: utils.formatChain('moonbeam'),
-        project: 'moonwell',
-        symbol: pool.underlyingSymbol,
-        tvlUsd: totalSupplyUsd - totalBorrowUsd,
-        apyBase: Number(pool.supplyRate),
-        apyReward: 0,
-        underlyingTokens: [
-          pool.underlyingAddress ===
-            '0x0000000000000000000000000000000000000000'
-            ? '0xAcc15dC74880C9944775448304B263D191c6077F'
-            : pool.underlyingAddress
-        ],
-        rewardTokens: [
-          '0x511ab53f793683763e5a8829738301368a2411e3',
-          '0xacc15dc74880c9944775448304b263d191c6077f'
-        ],
-        // borrow fields
-        totalSupplyUsd,
-        totalBorrowUsd,
-        apyBaseBorrow: Number(pool.borrowRate),
-        apyRewardBorrow: 0,
-        ltv: Number(pool.collateralFactor),
-        incentives: [] //helper
-      }
-    })
-    .filter(e => e.ltv)
+  const ponder_markets = ponder_markets_res.markets.items;
+  const ponder_tokens = ponder_markets_res.tokens.items;
 
-  const moonbeam_markets = await multicallViews()
+  const moonbeam_markets = await multicallViews('moonbeam')
+  let moonbeamResults
+
+  if (moonbeam_markets && moonbeam_markets.length == 1) {
+    const moonbeam_markets_data = moonbeam_markets[0]
+
+    moonbeamResults = moonbeam_markets_data
+      .filter(pool => pool.isListed)
+      .map(pool => {
+
+        const { market, collateralFactor, underlyingPrice, totalSupply, totalBorrows, exchangeRate, borrowRate, supplyRate } = pool;
+
+        const market_info = ponder_markets.find(r => r.address.toLowerCase() == market.toLowerCase() && r.chainId == 1284)
+        const token_info = ponder_tokens.find(r => r.address.toLowerCase() == market_info.underlyingTokenAddress.toLowerCase() && r.chainId == 1284)
+
+        const totalSupplyScaled = Number(totalSupply) / Math.pow(10, 8)
+        const totalBorrowsScaled = Number(totalBorrows) / Math.pow(10, token_info.decimals)
+        const exchangeRateScaled = Number(exchangeRate) / Math.pow(10, token_info.decimals + 10)
+        const underlyingPriceScaled = Number(underlyingPrice) / Math.pow(10, 36 - token_info.decimals)
+
+        const totalSupplyUsd =
+          Number(totalSupplyScaled) * Number(exchangeRateScaled) * underlyingPriceScaled
+        const totalBorrowUsd = Number(totalBorrowsScaled) * underlyingPriceScaled
+
+        const supplyRateScaled = Number(supplyRate) / Math.pow(10, 18)
+        const borrowRateScaled = Number(borrowRate) / Math.pow(10, 18)
+        const collateralFactorScaled = Number(collateralFactor) / Math.pow(10, 18)
+
+        const supplyApy = ((((supplyRateScaled * SECONDS_PER_DAY) + 1) ** DAYS_PER_YEAR) - 1) * 100
+        const borrowApy = ((((borrowRateScaled * SECONDS_PER_DAY) + 1) ** DAYS_PER_YEAR) - 1) * 100
+
+        return {
+          pool: market.toLowerCase(),
+          chain: utils.formatChain('moonbeam'),
+          project: 'moonwell',
+          symbol: token_info.symbol,
+          tvlUsd: totalSupplyUsd - totalBorrowUsd,
+          apyBase: supplyApy,
+          apyReward: 0,
+          underlyingTokens: [
+            market_info.underlyingTokenAddress.toLowerCase() ===
+              '0x0000000000000000000000000000000000000000'
+              ? '0xAcc15dC74880C9944775448304B263D191c6077F'.toLowerCase()
+              : market_info.underlyingTokenAddress.toLowerCase()
+          ],
+          rewardTokens: [
+            '0x511ab53f793683763e5a8829738301368a2411e3',
+            '0xacc15dc74880c9944775448304b263d191c6077f'
+          ],
+          // borrow fields
+          totalSupplyUsd,
+          totalBorrowUsd,
+          apyBaseBorrow: borrowApy,
+          apyRewardBorrow: 0,
+          ltv: collateralFactorScaled,
+          incentives: [] //helper
+        }
+      })
+      .filter(e => e.ltv)
+
+  }
+
   let moonbeam_incentives = {}
   if (moonbeam_markets && moonbeam_markets.length == 1) {
     const moonbeam_markets_data = moonbeam_markets[0]
@@ -247,38 +260,60 @@ const getApy = async () => {
     delete market.incentives
   }
 
+  const base_markets = await multicallViews('base')
+  let baseResults
 
-  let base_res = await request(BASE_API_URL, base_query)
-  let baseResults = base_res.markets
-    .map(pool => {
-      let price = Number(pool.underlyingPriceUSD)
+  if (base_markets && base_markets.length == 1) {
+    const base_markets_data = base_markets[0]
 
-      const totalSupplyUsd =
-        Number(pool.totalSupply) * Number(pool.exchangeRate) * price
+    baseResults = base_markets_data
+      .filter(pool => pool.isListed)
+      .map(pool => {
 
-      const totalBorrowUsd = Number(pool.totalBorrows) * price
-      return {
-        pool: pool.id.toLowerCase(),
-        chain: utils.formatChain('base'),
-        project: 'moonwell',
-        symbol: pool.underlyingSymbol == 'WETH' ? 'ETH' : pool.underlyingSymbol,
-        tvlUsd: totalSupplyUsd - totalBorrowUsd,
-        apyBase: Number(pool.supplyRate),
-        apyReward: 0,
-        underlyingTokens: [pool.underlyingAddress],
-        rewardTokens: [],
-        // borrow fields
-        totalSupplyUsd,
-        totalBorrowUsd,
-        apyBaseBorrow: Number(pool.borrowRate),
-        apyRewardBorrow: 0,
-        ltv: Number(pool.collateralFactor),
-        incentives: [] //helper
-      }
-    })
-    .filter(e => e.ltv)
+        const { market, collateralFactor, underlyingPrice, totalSupply, totalBorrows, exchangeRate, borrowRate, supplyRate } = pool;
 
-  const mrd_markets = await multicallMRD(base_res.markets.map(r => r.id))
+        const market_info = ponder_markets.find(r => r.address.toLowerCase() == market.toLowerCase() && r.chainId == 8453)
+        const token_info = ponder_tokens.find(r => r.address.toLowerCase() == market_info.underlyingTokenAddress.toLowerCase() && r.chainId == 8453)
+
+        const totalSupplyScaled = Number(totalSupply) / Math.pow(10, 8)
+        const totalBorrowsScaled = Number(totalBorrows) / Math.pow(10, token_info.decimals)
+        const exchangeRateScaled = Number(exchangeRate) / Math.pow(10, token_info.decimals + 10)
+        const underlyingPriceScaled = Number(underlyingPrice) / Math.pow(10, 36 - token_info.decimals)
+
+        const totalSupplyUsd =
+          Number(totalSupplyScaled) * Number(exchangeRateScaled) * underlyingPriceScaled
+        const totalBorrowUsd = Number(totalBorrowsScaled) * underlyingPriceScaled
+
+        const supplyRateScaled = Number(supplyRate) / Math.pow(10, 18)
+        const borrowRateScaled = Number(borrowRate) / Math.pow(10, 18)
+        const collateralFactorScaled = Number(collateralFactor) / Math.pow(10, 18)
+
+        const supplyApy = ((((supplyRateScaled * SECONDS_PER_DAY) + 1) ** DAYS_PER_YEAR) - 1) * 100
+        const borrowApy = ((((borrowRateScaled * SECONDS_PER_DAY) + 1) ** DAYS_PER_YEAR) - 1) * 100
+
+        return {
+          pool: market.toLowerCase(),
+          chain: utils.formatChain('base'),
+          project: 'moonwell',
+          symbol: token_info.symbol == 'WETH' ? 'ETH' : token_info.symbol,
+          tvlUsd: totalSupplyUsd - totalBorrowUsd,
+          apyBase: supplyApy,
+          apyReward: 0,
+          underlyingTokens: [token_info.address],
+          rewardTokens: [],
+          // borrow fields
+          totalSupplyUsd,
+          totalBorrowUsd,
+          apyBaseBorrow: borrowApy,
+          apyRewardBorrow: 0,
+          ltv: Number(collateralFactorScaled),
+          incentives: [] //helper
+        }
+      })
+      .filter(e => e.ltv)
+  }
+
+  const mrd_markets = await multicallMRD(baseResults.map(r => r.pool))
 
   const prices_id = mrd_markets.flat().reduce((prev, curr) => {
     const [

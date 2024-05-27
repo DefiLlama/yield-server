@@ -34,17 +34,44 @@ const stabilityPoolContract = new ethers.Contract(LIQUITY_STABILITY_POOL, stabil
 const LQTY_DECIMALS = new BigNumber(1e18.toString());
 
 const apy = async () => {
+  const prices = await getPrices([LUSD, USDC, WETH, LQTY]);
 
-    const prices = await getPrices([LUSD, USDC, WETH, LQTY]);
+  let amber, opal, emerald;
 
-    const amber = await calcErc4626PoolApy(LUSD, 'LUSD', 'Amber', AMBER, prices, true);
+  try {
+    amber = await calcErc4626PoolApy(
+      LUSD,
+      'LUSD',
+      'Amber',
+      AMBER,
+      prices,
+      true
+    );
+  } catch (err) {
+    console.log(err);
+  }
 
-    const opal = await calcErc4626PoolApy(USDC, 'USDC', 'Opal', OPAL, prices, false);
+  try {
+    opal = await calcErc4626PoolApy(USDC, 'USDC', 'Opal', OPAL, prices, false);
+  } catch (err) {
+    console.log(err);
+  }
 
-    const emerald = await calcErc4626PoolApy(WETH, 'WETH', 'Emerald', EMERALD, prices, false);
+  try {
+    emerald = await calcErc4626PoolApy(
+      WETH,
+      'WETH',
+      'Emerald',
+      EMERALD,
+      prices,
+      false
+    );
+  } catch (err) {
+    console.log(err);
+  }
 
-    return [amber, opal, emerald];
-}
+  return [amber, opal, emerald].filter((i) => i !== undefined);
+};
 
 async function calcErc4626PoolApy(asset, symbol, poolMeta, vault, prices, liquity) {
     const contract = new ethers.Contract(vault, erc4626ABI, provider);

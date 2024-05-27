@@ -67,7 +67,7 @@ const topLvl = async () => {
         pool: '0xA25EaF2906FA1a3a13EdAc9B9657108Af7B703e3',
         chain: 'Avalanche',
         project: 'gogopool',
-        symbol: 'ggAVAX',
+        symbol: 'ggAVAX',  // Ensure this is the correct symbol
         tvlUsd: tvlUsd,
         apyBase: apyBase,
         apyReward: 0,
@@ -75,7 +75,6 @@ const topLvl = async () => {
         underlyingTokens: ['0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7']
     };
 };
-
 
 const main = async () => {
     return [await topLvl()];

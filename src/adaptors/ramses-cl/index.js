@@ -17,7 +17,7 @@ const chains = {
 };
 
 const superagent = require('superagent');
-const { EstimatedFees } = require('./estimateFee.ts');
+const { EstimatedFees } = require('./estimateFee');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 const { getCdpTotalSupply } = require('../nitron/helper');
@@ -277,7 +277,7 @@ const topLvl = async (
       return {
         pool: p.id,
         chain: utils.formatChain(chainString),
-        project: 'ramses-v2',
+        project: 'ramses-cl',
         poolMeta: `${poolMeta}, stablePool=${p.stablecoin}`,
         symbol: p.symbol,
         tvlUsd: p.totalValueLockedUSD,
