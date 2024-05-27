@@ -71,7 +71,7 @@ const aggregators = async () => {
       underlyingTokens: [asset],
       poolMeta: name, // aggregator name
     };
-  }).filter((a) => a.tvlUsd > 0);
+  }).filter((a) => a.tvlUsd > 0).map(i => ({...i, pool: i.pool.toLowerCase()}));
 };
 
 module.exports = {
