@@ -2,6 +2,8 @@ const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 const superagent = require('superagent');
 
+const MORPHO_TOKEN_ADDRESS = '0x9994E35Db50125E0DF82e4c2dde62496CE330999';
+
 const subgraphUrls = {
   morphoBlue: 'https://blue-api.morpho.org/graphql',
 };
@@ -131,9 +133,9 @@ async function fetchBlueMarkets() {
           }
 
           const lltv = market.lltv / 1e18;
-          const rewardTokens = market.state.rewards.map(
-            (reward) => reward.asset.address
-          );
+          const rewardTokens = market.state.rewards
+            .map((reward) => reward.asset.address)
+            .filter((address) => address !== MORPHO_TOKEN_ADDRESS);
           const apyReward =
             (market.state.netSupplyApy || 0) - (market.state.supplyApy || 0);
           const apyRewardBorrow =
