@@ -61,7 +61,7 @@ const getApy = async () => {
     {
       pool: wethPool,
       chain: utils.formatChain('base'),
-      project: 'arcadia-finance-v2',
+      project: 'arcadia-v2',
       symbol: 'wETH',
       tvlUsd: tvlUsdWeth,
       apyBase: apyWeth * 100,
@@ -73,7 +73,7 @@ const getApy = async () => {
     {
       pool: usdcPool,
       chain: utils.formatChain('base'),
-      project: 'arcadia-finance-v2',
+      project: 'arcadia-v2',
       symbol: 'USDC',
       tvlUsd: tvlUsdUsdc,
       apyBase: apyUsdc * 100,
