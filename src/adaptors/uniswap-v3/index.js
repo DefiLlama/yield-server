@@ -297,7 +297,10 @@ const main = async (timestamp = null) => {
     .filter(
       (p) =>
         utils.keepFinite(p) &&
-        p.pool !== '0x0c6d9d0f82ed2e0b86c4d3e9a9febf95415d1b76'
+        ![
+          '0x0c6d9d0f82ed2e0b86c4d3e9a9febf95415d1b76',
+          '0xc809d13e9ea08f296d3b32d4c69d46ff90f73fd8',
+        ].includes(p.pool)
     );
 };
 
