@@ -156,9 +156,7 @@ async function getTokenPrices(pairInfo) {
   }
 
   async function getPrice(token) {
-    return (
-      getPriceFromCoinGecko(token) ?? (await getPriceFromGeckoTerminal(token))
-    );
+    return getPriceFromCoinGecko(token)
   }
 
   const pricePromises = tokenAddresses.map((t) =>
