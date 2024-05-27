@@ -67,7 +67,7 @@ const topLvl = async () => {
         pool: '0xA25EaF2906FA1a3a13EdAc9B9657108Af7B703e3',
         chain: 'Avalanche',
         project: 'gogopool',
-        symbol: 'GGP',
+        symbol: 'ggAVAX',
         tvlUsd: tvlUsd,
         apyBase: apyBase,
         apyReward: 0,
