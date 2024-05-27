@@ -1,5 +1,5 @@
 const utils = require('../utils');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { poolABI } = require('./abi');
 
 const getApy = async () => {
@@ -60,7 +60,7 @@ const getApy = async () => {
   return [
     {
       pool: wethPool,
-      chain: utils.formatChain(chains['base']),
+      chain: utils.formatChain('base'),
       project: 'arcadia-finance-v2',
       symbol: 'wETH',
       tvlUsd: tvlUsdWeth,
@@ -72,7 +72,7 @@ const getApy = async () => {
     },
     {
       pool: usdcPool,
-      chain: utils.formatChain(chains['base']),
+      chain: utils.formatChain('base'),
       project: 'arcadia-finance-v2',
       symbol: 'USDC',
       tvlUsd: tvlUsdUsdc,
