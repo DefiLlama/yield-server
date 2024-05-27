@@ -9,12 +9,13 @@ const axios = require('axios');
 
 //const web3 = new Web3(RPC_URL);
 const RPC_URL = 'https://mainnet.zksync.io/';
-const GRAPH = 'https://api.goldsky.com/api/public/project_clmtie4nnezuh2nw6hhjg6mo7/subgraphs/mute_switch/v0.0.7/gn'
-const BLOCK_GRAPH = 'https://api.studio.thegraph.com/query/12332/blocks---zksync-era/version/latest'
-const AMPS = 'https://raw.githubusercontent.com/muteio/farms/main/index.json'
+const GRAPH =
+  'https://api.goldsky.com/api/public/project_clmtie4nnezuh2nw6hhjg6mo7/subgraphs/mute_switch/v0.0.7/gn';
+const BLOCK_GRAPH =
+  'https://api.studio.thegraph.com/query/12332/blocks---zksync-era/version/latest';
+const AMPS = 'https://raw.githubusercontent.com/muteio/farms/main/index.json';
 
 const FACTORY = '0x40be1cBa6C5B47cDF9da7f963B6F761F4C60627D';
-
 
 const query = gql`
   {
@@ -67,8 +68,8 @@ const apy = (pool, dataPrior1d, dataPrior7d) => {
   pool['volumeUSD7d'] = Number(pool.volumeUSD) - Number(pool.volumeUSDPrior7d);
 
   // calc fees
-  pool['feeUSD1d'] = (pool.volumeUSD1d * Number(pool.feeTier)) / 10000
-  pool['feeUSD7d'] = (pool.volumeUSD7d * Number(pool.feeTier)) / 10000
+  pool['feeUSD1d'] = (pool.volumeUSD1d * Number(pool.feeTier)) / 10000;
+  pool['feeUSD7d'] = (pool.volumeUSD7d * Number(pool.feeTier)) / 10000;
 
   // annualise
   pool['feeUSDyear1d'] = pool.feeUSD1d * 365;
@@ -89,12 +90,14 @@ const topLvl = async (
   queryPrior,
   timestamp
 ) => {
+  const farms = (await axios.get(AMPS)).data;
+  var farmRewards = {};
 
-  const farms = (await axios.get(AMPS)).data
-  var farmRewards = {}
-
-  for(let i in farms){
-    farmRewards[farms[i].pair.toLowerCase()] = {apy: farms[i].apy, payout: farms[i].payoutToken}
+  for (let i in farms) {
+    farmRewards[farms[i].pair.toLowerCase()] = {
+      apy: farms[i].apy,
+      payout: farms[i].payoutToken,
+    };
   }
 
   const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
@@ -138,13 +141,17 @@ const topLvl = async (
     const token1 = underlyingTokens === undefined ? '' : underlyingTokens[1];
     const url = `https://dapp.koi.finance/pool/${token0}/${token1}/${p.stable}`;
 
-    const apyReward = farmRewards[p.id.toLowerCase()] ? farmRewards[p.id.toLowerCase()].apy / 100 : 0
-    const rewardTokens = farmRewards[p.id.toLowerCase()] ? [...underlyingTokens, farmRewards[p.id.toLowerCase()].payout]  : underlyingTokens
+    const apyReward = farmRewards[p.id.toLowerCase()]
+      ? farmRewards[p.id.toLowerCase()].apy / 100
+      : 0;
+    const rewardTokens = farmRewards[p.id.toLowerCase()]
+      ? [...underlyingTokens, farmRewards[p.id.toLowerCase()].payout]
+      : underlyingTokens;
 
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
-      project: 'koi-finance',
+      project: 'koi-finance-amm',
       symbol,
       tvlUsd: p.totalValueLockedUSD,
       apyBase: p.apy1d,
@@ -160,7 +167,14 @@ const topLvl = async (
 };
 
 const main = async (timestamp = null) => {
-  let data = await topLvl('era', GRAPH, BLOCK_GRAPH, query, queryPrior, timestamp);
+  let data = await topLvl(
+    'era',
+    GRAPH,
+    BLOCK_GRAPH,
+    query,
+    queryPrior,
+    timestamp
+  );
 
   return data.filter((p) => utils.keepFinite(p));
 };
