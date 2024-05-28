@@ -60,7 +60,7 @@ const marketApy = async () => {
       chain: 'ethereum',
       project: 'ion-protocol',
       symbol: market.collateralAssetName + '-' + market.lenderAssetName,
-      tvlUsd: totalSupplyUsd,
+      tvlUsd: totalSupplyUsd - totalBorrowUsd,
       apyBase: marketApy,
       underlyingTokens: [market.lenderAssetAddress],
       totalSupplyUsd: totalSupplyUsd,
