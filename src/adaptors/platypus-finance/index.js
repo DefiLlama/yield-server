@@ -176,7 +176,7 @@ const apy = async () => {
           86400 *
           365 *
           rewardBasePartition *
-          priceData.price;
+          priceData?.price;
         apyRewardExtra = (extraPerYearUsd / tvlUsd) * 100;
         if (apyRewardExtra > 0) rewardTokens.push(extraRewardToken);
       }
@@ -204,7 +204,8 @@ const apy = async () => {
         p.tvlUsd > 0 &&
         p.poolMeta !== 'UST Pool' &&
         p.pool !==
-          '0x66357dcace80431aee0a7507e2e361b7e2402370-0x130966628846bfd36ff31a822705796e8cb8c18d' // MIM in main pool not available
+          '0x66357dcace80431aee0a7507e2e361b7e2402370-0x130966628846bfd36ff31a822705796e8cb8c18d' && // MIM in main pool not available
+        p.apyReward >= 0
     );
 };
 
