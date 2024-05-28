@@ -46,10 +46,10 @@ const getCollfactors = async () => {
   const wethFactors = extractCollateralFactor(collFactorsWeth.output);
   const usdcFactors = extractCollateralFactor(collFactorsUsdc.output);
 
-  const minWethFactor = Math.min(...wethFactors);
-  const minUsdcFactor = Math.min(...usdcFactors);
+  const maxWethFactor = Math.max(...wethFactors);
+  const maxUsdcFactor = Math.max(...usdcFactors);
 
-  return { minWethFactor, minUsdcFactor };
+  return { maxWethFactor, maxUsdcFactor };
 };
 
 const getApy = async () => {
@@ -106,7 +106,7 @@ const getApy = async () => {
   const totalBorrowUsdUsdc = (totalDebtUsdc.output * usdcPrice) / 1e6;
   const borrowApyUsdc = (interestRateUsdc.output * 100) / 1e18; //interestRateUsdc is in 18 decimals, times 100 for pct
 
-  const minCollFactors = await getCollfactors();
+  const maxCollFactors = await getCollfactors();
 
   return [
     {
@@ -119,7 +119,7 @@ const getApy = async () => {
       totalSupplyUsd: totalSupplyUsdWeth,
       totalBorrowUsd: totalBorrowUsdWeth,
       apyBaseBorrow: borrowApyWeth,
-      ltv: minCollFactors.minWethFactor / 10_000, // 4 decimal precision
+      ltv: maxCollFactors.maxWethFactor / 10_000, // 4 decimal precision
       poolMeta: 'Arcadia V2 WETH Pool',
       underlyingTokens: ['0x4200000000000000000000000000000000000006'], // WETH
       url: 'https://arcadia.finance/pool/8453/0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2',
@@ -134,7 +134,7 @@ const getApy = async () => {
       totalSupplyUsd: totalSupplyUsdUsdc,
       totalBorrowUsd: totalBorrowUsdUsdc,
       apyBaseBorrow: borrowApyUsdc,
-      ltv: minCollFactors.minUsdcFactor / 10_000, // 4 decimal precision
+      ltv: maxCollFactors.maxUsdcFactor / 10_000, // 4 decimal precision
       poolMeta: 'Arcadia V2 USDC Pool',
       underlyingTokens: ['0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'], // USDC
       url: 'https://arcadia.finance/pool/8453/0x3ec4a293Fb906DD2Cd440c20dECB250DeF141dF1',
