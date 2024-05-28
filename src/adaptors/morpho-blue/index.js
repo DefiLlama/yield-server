@@ -267,7 +267,13 @@ async function apy() {
   const metaMorphoAPYData = Object.values(
     await fetchMetaMorphoAPY(blueMarketsData)
   );
-  return metaMorphoAPYData.concat(blueMarketsData);
+  return metaMorphoAPYData.concat(blueMarketsData).map((i) => ({
+    ...i,
+    apyBase: i.apyBase * 100,
+    apyBaseBorrow: i.apyBaseBorrow * 100,
+    apyReward: i.apyReward * 100,
+    apyRewardBorrow: i.apyRewardBorrow * 100,
+  }));
 }
 
 module.exports = {
