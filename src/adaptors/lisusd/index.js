@@ -157,7 +157,7 @@ const getApy = async () => {
   return [
     {
       pool: ceaBNBcAddress,
-      project: 'helio-protocol',
+      project: 'lisusd',
       symbol: 'BNB',
       chain: 'binance',
       apy: 0,
@@ -172,7 +172,7 @@ const getApy = async () => {
     },
     {
       pool: hHAY,
-      project: 'helio-protocol',
+      project: 'lisusd',
       symbol: 'HAY',
       chain: 'binance',
       apy: new BigNumber(hayRate)
