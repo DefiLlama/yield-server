@@ -35,36 +35,47 @@ exports.getLendPoolRewardInfo = function(pool, chain, prices) {
   const token = getTokenInfo(chain, pool.underlyingTokenAddress, prices)
   const amount = toDecimals(pool.totalLiquidity, token.decimals)
   const value = amount * token.price
-  if (pool.isRewardActive) {
-    const rewardTokenInfo = getTokenInfo(chain, pool.rewardToken, prices)
-    const rewardAmount = toDecimals(new BigNumber(pool.totalRewards || '0'), rewardTokenInfo?.decimals)
+  if (!pool.rewards?.length) {
+    return {
+      rewardTokens: [],
+    }
+  }
+  const rewardApys = pool.rewards.map(rewardItem => {
+    const rewardTokenInfo = getTokenInfo(chain, rewardItem.rewardToken, prices)
+    const rewardAmount = toDecimals(new BigNumber(rewardItem.totalRewards || '0'), rewardTokenInfo?.decimals)
     const rewardValue = rewardAmount * rewardTokenInfo?.price
 
-    const yearTimes = (365 * 24 * 3600 * 1000) / pool.rewardDuration
+    const yearTimes = (365 * 24 * 3600 * 1000) / rewardItem.rewardDuration
 
     const yearlyValue = yearTimes * rewardValue
 
     const rewardApr = yearlyValue / value
     const rewardApy = utils.aprToApy(rewardApr * 100)
-    // console.log('getLendPoolRewardInfo: >>', {yearlyValue, rewardTokenInfo, rewardApr, rewardApy, rewardAmount, rewardValue, value, pool})
-    return {
-      rewardApy,
-      rewardTokens: [pool.rewardToken],
-    }
+    return rewardApy
+  })
+
+  return {
+    rewardTokens: pool.rewards.map(item => item.rewardToken),
+    rewardApy: rewardApys.reduce((cur, item) => cur + item, 0)
   }
 }
 
 exports.formatLendingPoolwithRewards = function(lendingPools, rewardsList) {
   return lendingPools.map((i) => {
-    const targetReward = rewardsList.find(rewardsItem => i.stakingAddress?.toLowerCase() === rewardsItem.stakingAddress?.toLowerCase())
-    if (targetReward) {
+    const targetRewards = rewardsList.filter(rewardsItem => i.stakingAddress?.toLowerCase() === rewardsItem.stakingAddress?.toLowerCase())
+    if (targetRewards.length) {
+      const rewards = targetRewards.map((rewardItem) => {
+        return {
+          rewardToken: rewardItem.rewardsToken,
+          totalRewards: rewardItem.total,
+          rewardDuration: Number(rewardItem.end) * 1000 - Number(rewardItem.start) * 1000,
+          isRewardActive: Date.now() <= Number(rewardItem.end) * 1000 && Date.now() >= Number(rewardItem.start) * 1000,
+        }
+      }).filter(rewardItem => rewardItem.isRewardActive);
+
       return {
         ...i,
-        rewardToken: targetReward.rewardsToken,
-        totalRewards: targetReward.total,
-        rewardDuration: Number(targetReward.end) * 1000 - Number(targetReward.start) * 1000,
-        isRewardActive:
-          Date.now() <= Number(targetReward.end) * 1000 && Date.now() >= Number(targetReward.start) * 1000,
+        rewards,
       }
     }
     return i
