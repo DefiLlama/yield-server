@@ -116,7 +116,7 @@ async function getPoolsData() {
 
     parsedFarmPoolsInfo.forEach(async (poolInfo) => {
       pools.push({
-        pool: `${poolInfo.pair}-${chain}`.toLowerCase(),
+        pool: `${poolInfo.pair}-${chain}-${poolInfo.vaultId}`.toLowerCase(),
         chain: utils.formatChain(chain),
         project,
         symbol: `${poolInfo.token0_symbol}-${poolInfo.token1_symbol}`,
@@ -132,7 +132,7 @@ async function getPoolsData() {
       const tokenInfo = getTokenInfo(chain, poolInfo.underlyingTokenAddress, prices);
       const rewardsInfo = getLendPoolRewardInfo(poolInfo, chain, prices)
       pools.push({
-        pool: `${poolInfo.eTokenAddress}-${chain}`.toLowerCase(),
+        pool: `${poolInfo.eTokenAddress}-${chain}-${poolInfo.reserveId}`.toLowerCase(),
         chain: utils.formatChain(chain),
         project,
         symbol: tokenInfo?.symbol,
