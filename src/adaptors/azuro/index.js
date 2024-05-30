@@ -56,7 +56,7 @@ const poolsFunction = async () => {
         symbol: utils.formatSymbol(pool.asset),
         tvlUsd: Number(pool.tvl),
         apyBase: apr ? Number(apr.aprDayAgo) : Number(pool.apr),
-        poolMeta: 'There is a lockup period of 7 days after liquidity is deposited.'
+        poolMeta: '7 day lockup',
       });
     });
   }
