@@ -14,11 +14,16 @@ const getRebalancePoolData = async () => {
   const newObj = Object.keys(RebalancePoolData.data).map((item) => {
     const { name, underlyingTokens, rebalancePoolAddress, apy, tvl } =
       RebalancePoolData.data[item];
+
+    const n = name.split('_');
+    const symbol = n[0];
+    const poolMeta = n.slice(1).join(' ');
     return {
       pool: `${rebalancePoolAddress}-f(x)`,
       chain: utils.formatChain('ethereum'),
       project: 'fx-protocol',
-      symbol: utils.formatSymbol(name),
+      symbol,
+      poolMeta,
       tvlUsd: parseInt(tvl, 10),
       apy: parseFloat(apy),
       underlyingTokens: underlyingTokens,
