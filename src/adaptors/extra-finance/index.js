@@ -115,8 +115,13 @@ async function getPoolsData() {
     );
 
     parsedFarmPoolsInfo.forEach(async (poolInfo) => {
+      const pool = `${poolInfo.pair}-${chain}`.toLowerCase()
+      const existPool = pools.find(item => item.pool === pool)
+      if (existPool && existPool.tvlUsd > poolInfo.tvlUsd) {
+        return
+      }
       pools.push({
-        pool: `${poolInfo.pair}-${chain}`.toLowerCase(),
+        pool,
         chain: utils.formatChain(chain),
         project,
         symbol: `${poolInfo.token0_symbol}-${poolInfo.token1_symbol}`,
