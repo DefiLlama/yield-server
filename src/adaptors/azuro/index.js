@@ -14,7 +14,9 @@ const aprUrl = "https://api.azuro.org/apr";
 
 const query = gql`
   {
-    liquidityPoolContracts {
+    liquidityPoolContracts(
+      where: {address_not_in: ["0x2a838ab9b037db117576db8d0dcc3b686748ef7c", "0xac004b512c33d029cf23abf04513f1f380b3fd0a"]}
+    ) {
       apr
       address
       asset
@@ -54,6 +56,7 @@ const poolsFunction = async () => {
         symbol: utils.formatSymbol(pool.asset),
         tvlUsd: Number(pool.tvl),
         apyBase: apr ? Number(apr.aprDayAgo) : Number(pool.apr),
+        poolMeta: 'There is a lockup period of 7 days after liquidity is deposited.'
       });
     });
   }
