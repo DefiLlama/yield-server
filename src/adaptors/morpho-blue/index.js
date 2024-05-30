@@ -144,11 +144,9 @@ async function fetchBlueMarkets() {
             pool: `morpho-blue-${market.uniqueKey}`,
             chain: 'ethereum',
             project: 'morpho-blue',
-            symbol: utils.formatSymbol(
-              `${market.collateralAsset?.symbol || 'idle-market'}-${
-                market.loanAsset.symbol
-              }`
-            ),
+            symbol: `${market.collateralAsset?.symbol || 'idle-market'}-${
+              market.loanAsset.symbol
+            }`,
             apyBase: market.state.supplyApy || 0,
             apyReward,
             rewardTokens,
@@ -235,7 +233,7 @@ async function fetchMetaMorphoAPY(blueMarketsData) {
             pool: `morpho-blue-${vault.address}`,
             chain: 'ethereum',
             project: 'morpho-blue',
-            symbol: utils.formatSymbol(`${vault.symbol}`),
+            symbol: vault.symbol,
             apyBase: vault.state.apy || 0,
             apyReward,
             rewardTokens,
