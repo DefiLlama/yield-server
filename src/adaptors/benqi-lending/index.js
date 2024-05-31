@@ -1,7 +1,7 @@
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 const Web3 = require('web3');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const utils = require('../utils');
 
 const { comptrollerAbi, qiAvax, qiErc } = require('./abi');
@@ -69,6 +69,7 @@ const getRewards = async (rewardType, markets, isBorrow = false) => {
       abi: comptrollerAbi.find(
         ({ name }) => name === `${isBorrow ? 'borrow' : 'supply'}RewardSpeeds`
       ),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -79,6 +80,7 @@ const multiCallMarkets = async (markets, method, abi) => {
       chain: 'avax',
       calls: markets.map((market) => ({ target: market })),
       abi: abi.find(({ name }) => name === method),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -89,6 +91,7 @@ const getApy = async () => {
       target: COMPTROLLER_ADDRESS,
       chain: 'avax',
       abi: comptrollerAbi.find(({ name }) => name === 'getAllMarkets'),
+      permitFailure: true,
     })
   ).output;
 
@@ -102,6 +105,7 @@ const getApy = async () => {
         params: market,
       })),
       abi: comptrollerAbi.find(({ name }) => name === 'markets'),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 

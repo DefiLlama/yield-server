@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const utils = require('../utils');
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
@@ -220,7 +220,8 @@ const topLvl = async (chainString, url, query, queryPrior, timestamp) => {
           calls: gauges.map((gauge) => ({ target: gauge })),
           chain: chainString,
         }),
-        chainString == 'ethereum' && gauges.length &&
+      chainString == 'ethereum' &&
+        gauges.length &&
         sdk.api.abi.multiCall({
           abi: gaugeABI.find((n) => n.name === 'getCappedRelativeWeight'),
           calls: gauges.map((gauge) => ({
@@ -236,7 +237,8 @@ const topLvl = async (chainString, url, query, queryPrior, timestamp) => {
           calls: gauges.map((gauge) => ({ params: [gauge] })),
           chain: 'ethereum',
         }),
-      chainString != 'ethereum' && gauges.length &&
+      chainString != 'ethereum' &&
+        gauges.length &&
         sdk.api.abi.multiCall({
           abi: childGaugeABI.find((n) => n.name === 'inflation_rate'),
           calls: gauges.map((gauge) => ({
@@ -249,7 +251,8 @@ const topLvl = async (chainString, url, query, queryPrior, timestamp) => {
 
     // fetch token prices
     let keys = tokens.map((token) => `${chainString}:${token}`).join(',');
-    if (chainString != 'ethereum') keys = keys.concat(`,ethereum:${lit['ethereum']}`);
+    if (chainString != 'ethereum')
+      keys = keys.concat(`,ethereum:${lit['ethereum']}`);
     const prices = (
       await superagent.get(`https://coins.llama.fi/prices/current/${keys}`)
     ).body.coins;
@@ -354,8 +357,9 @@ const topLvl = async (chainString, url, query, queryPrior, timestamp) => {
         // we only care about gauges that have been whitelisted and have not been killed
         if (exists && !killed) {
           const relativeWeight = gaugesRelativeWeight
-            ? gaugesRelativeWeight.find((g) => g.input.target == b.gauge?.address)
-              .output / 1e18
+            ? gaugesRelativeWeight.find(
+                (g) => g.input.target == b.gauge?.address
+              ).output / 1e18
             : 0;
           const tokenlessProduction = gaugesTokenlessProduction.find(
             (g) => g.input.target == b.gauge?.address
@@ -364,10 +368,13 @@ const topLvl = async (chainString, url, query, queryPrior, timestamp) => {
             gaugesWorkingSupply.find((g) => g.input.target == b.gauge?.address)
               ?.output / 1e18;
 
-          const gaugeInflationRate = gaugesInflationRate && 
+          const gaugeInflationRate =
+            gaugesInflationRate &&
             gaugesInflationRate.find((g) => g.input.target == b.gauge?.address)
               ?.output / 1e18;
-          const relativeInflation = gaugeInflationRate ? gaugeInflationRate : inflationRate * relativeWeight;
+          const relativeInflation = gaugeInflationRate
+            ? gaugeInflationRate
+            : inflationRate * relativeWeight;
 
           // we only care about gauges that receive rewards (ie those that receive votes)
           if (relativeInflation > 0) {

@@ -1,5 +1,5 @@
 const superagent = require('superagent');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 require('dotenv').config({ path: './config.env' });
 
 const utils = require('../utils');

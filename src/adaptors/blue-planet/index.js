@@ -1,6 +1,6 @@
 const Web3 = require('web3');
 const { default: BigNumber } = require('bignumber.js');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { request, gql } = require('graphql-request');
 
 const { gammaFarmAbi, lpTokenABI, gammaReservoirAbi } = require('./abis');
@@ -138,6 +138,7 @@ const main = async () => {
           params: i,
         })),
         chain: 'bsc',
+        permitFailure: true,
       })
     )
   );
@@ -152,6 +153,7 @@ const main = async () => {
           params: method === 'balanceOf' ? [poolInfo.strat] : null,
         })),
         chain: 'bsc',
+        permitFailure: true,
       })
     )
   );

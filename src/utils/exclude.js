@@ -95,6 +95,7 @@ const excludeAdaptors = [
   'robo-vault',
   'neutra-finance',
   'insuredao',
+  'barnbridge',
 ];
 
 const excludePools = [

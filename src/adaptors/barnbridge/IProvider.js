@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 
 const IProvider = require('./abis/IProvider.js');
 

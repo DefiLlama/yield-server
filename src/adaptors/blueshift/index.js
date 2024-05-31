@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const utils = require('../utils');
 const { BigNumber } = require('ethers');
 const { AddressZero } = require('@ethersproject/constants');
@@ -143,7 +143,8 @@ async function farming(
       continue;
     }
 
-    const tokensAddresses = portfolios.tokens[indexOfPortfolioWithReceivedToken].tokenAddress;
+    const tokensAddresses =
+      portfolios.tokens[indexOfPortfolioWithReceivedToken].tokenAddress;
 
     const tokensSymbols = (
       await sdk.api.abi.multiCall({
@@ -159,7 +160,9 @@ async function farming(
 
     const rewardedFee = Number(
       formatBigNumber(
-        BigNumber.from(fees[portfolios.contractAddress[indexOfPortfolioWithReceivedToken]])
+        BigNumber.from(
+          fees[portfolios.contractAddress[indexOfPortfolioWithReceivedToken]]
+        )
           .mul(MONTHS_IN_YEAR)
           .toString(),
         6
@@ -178,7 +181,11 @@ async function farming(
 
     let tvl = farmInfo.accDeposited;
     tvl = BigNumber.from(tvl)
-      .mul(BigNumber.from(portfolios.lpTokenPrice[indexOfPortfolioWithReceivedToken]))
+      .mul(
+        BigNumber.from(
+          portfolios.lpTokenPrice[indexOfPortfolioWithReceivedToken]
+        )
+      )
       .div(ONE(18));
 
     let balances = {};
@@ -223,12 +230,7 @@ async function farming(
   return res;
 }
 
-async function staking(
-  chain,
-  aprWeights,
-  rewardToken,
-  BLUES_PRICE
-) {
+async function staking(chain, aprWeights, rewardToken, BLUES_PRICE) {
   const res = [];
 
   const stakings = (
