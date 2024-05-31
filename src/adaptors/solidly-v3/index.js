@@ -10,7 +10,7 @@ const {
   get_graph_url,
 } = require('./queries.ts');
 const { EstimateActiveLiq } = require('./estimateActiveLiq.ts');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const ethers = require('ethers');
 
 const ZERO = ethers.BigNumber.from(0);

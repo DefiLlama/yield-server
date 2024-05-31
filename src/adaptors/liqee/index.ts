@@ -1,6 +1,6 @@
 const utils = require('../utils');
 const abi = require('./abi.json');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 
 const API_URL = 'https://app.liqee.io/pos/markets?network=mainnet';
 

@@ -1,11 +1,13 @@
 const axios = require('axios');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { warStakerABI } = require('./abi/WarStaker');
 
 const WAR_STAKER_ADDRESS = '0xA86c53AF3aadF20bE5d7a8136ACfdbC4B074758A';
 
 const getLlamaPrice = async (tokenAddress) => {
-  const res = await axios.get(`https://coins.llama.fi/prices/current/ethereum:${tokenAddress}`);
+  const res = await axios.get(
+    `https://coins.llama.fi/prices/current/ethereum:${tokenAddress}`
+  );
   return res.data.coins[`ethereum:${tokenAddress}`].price;
 };
 
@@ -16,10 +18,7 @@ const getCoingeckoPrice = async (tokenAddress) => {
   return res.data[tokenAddress].usd;
 };
 
-const getTotalPricePerToken = async (
-  tokenAmount,
-  tokenAddress
-) => {
+const getTotalPricePerToken = async (tokenAmount, tokenAddress) => {
   tokenAddress = tokenAddress.toLowerCase();
   const tokenPrice = await getLlamaPrice(tokenAddress).catch(() =>
     getCoingeckoPrice(tokenAddress).catch(() => 0)
@@ -34,7 +33,7 @@ const fetchRewardStates = async (tokenAddress) => {
     params: tokenAddress,
   });
   return res.output;
-}
+};
 
 module.exports = {
   getTotalPricePerToken,

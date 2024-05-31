@@ -1,6 +1,6 @@
 const ethers = require('ethers');
 const { default: BigNumber } = require('bignumber.js');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const superagent = require('superagent');
 
 const HOUR = 60 * 60;

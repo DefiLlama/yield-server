@@ -1,5 +1,5 @@
 const superagent = require('superagent');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 
 const utils = require('../utils');
 const { comptrollerAbi, ercDelegator } = require('./abi');
@@ -33,7 +33,7 @@ const ARB_TOKEN = {
   decimals: 18,
   symbol: 'ARB',
   address: '0x912CE59144191C1204E64559FE8253a0e49E6548'.toLowerCase(),
-}
+};
 
 const getPrices = async (addresses) => {
   const prices = (
@@ -166,7 +166,7 @@ const main = async () => {
     const symbol =
       // for maker
       underlyingTokens[i]?.toLowerCase() ===
-        '0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2'
+      '0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2'
         ? 'MKR'
         : underlyingSymbols[i] || NATIVE_TOKEN.symbol;
 
@@ -206,7 +206,11 @@ const main = async () => {
     // Calculate total TVL (sum of supply and borrow for all markets)
     allMarkets.forEach((market, i) => {
       const decimals = Number(underlyingDecimals[i]) || NATIVE_TOKEN.decimals;
-      let price = prices[underlyingTokens[i]?.toLowerCase() || NATIVE_TOKEN.address.toLowerCase()];
+      let price =
+        prices[
+          underlyingTokens[i]?.toLowerCase() ||
+            NATIVE_TOKEN.address.toLowerCase()
+        ];
       if (price === undefined)
         price = underlyingSymbols[i]?.toLowerCase().includes('usd') ? 1 : 0;
 
@@ -244,7 +248,10 @@ const main = async () => {
       apyBase,
       apyReward,
       underlyingTokens: [token],
-      rewardTokens: arbApyReward > 0 ? [ARB_TOKEN.address, PROTOCOL_TOKEN.address] : [PROTOCOL_TOKEN.address],
+      rewardTokens:
+        arbApyReward > 0
+          ? [ARB_TOKEN.address, PROTOCOL_TOKEN.address]
+          : [PROTOCOL_TOKEN.address],
     };
     if (isPaused[i] === false) {
       poolReturned = {

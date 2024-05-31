@@ -1,5 +1,5 @@
 const utils = require('../utils');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const axios = require('axios');
 
 const staking = '0xe742FCE58484FF7be7835D95E350c23CE55A7E12';

@@ -1,7 +1,7 @@
 const axios = require('axios');
 const ethers = require('ethers');
 const superagent = require('superagent');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const utils = require('../utils');
 const { ContractABIs } = require('./abi');
 
@@ -222,7 +222,8 @@ const getApy = async () => {
       lastRoi = (claimTVL / finalTVL - 1) * 100;
       break;
     }
-    const apy = 100 * ((1 + lastRoi / 100) ** (ONE_YEAR_HOURS / ONE_EPOCH_HOURS) - 1);
+    const apy =
+      100 * ((1 + lastRoi / 100) ** (ONE_YEAR_HOURS / ONE_EPOCH_HOURS) - 1);
 
     const tokenLocked = Number(tokenBalances[vaults[i]]) / Math.pow(10, 18);
     const tokenPrice = prices[assets[i].toLowerCase()];

@@ -1,10 +1,11 @@
 const { request, gql } = require('graphql-request');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const axios = require('axios');
 
 const utils = require('../utils');
 
-const url ='https://metisapi.0xgraph.xyz/subgraphs/name/cryptoalgebra/analytics';
+const url =
+  'https://metisapi.0xgraph.xyz/subgraphs/name/cryptoalgebra/analytics';
 
 const query = gql`
   {

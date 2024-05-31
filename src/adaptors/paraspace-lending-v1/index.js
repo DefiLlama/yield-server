@@ -1,7 +1,7 @@
 const superagent = require('superagent');
 const utils = require('../utils');
 const BigNumber = require('bignumber.js');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const address = require('./address');
 const abi = require('./abi');
 const { calculateAPY } = require('./utils');

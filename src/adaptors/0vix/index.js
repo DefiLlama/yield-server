@@ -7,7 +7,7 @@ const {
   preminingABI,
 } = require('./Abis');
 const { PROVIDER } = require('./Provider');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const BigNumber = require('bignumber.js');
 
 const unitroller = '0x8849f1a0cB6b5D6076aB150546EddEe193754F1C';

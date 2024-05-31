@@ -1,5 +1,5 @@
 const { default: BigNumber } = require('bignumber.js');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const utils = require('../utils');
 
 const {
@@ -40,19 +40,27 @@ async function getHoldingPositions() {
   );
 
   const v15Assets = await Promise.all(
-    v0816Pools.map((pool) => v0816.getHoldingPosition(getCellarAddress(pool), getCellarChain(pool)))
+    v0816Pools.map((pool) =>
+      v0816.getHoldingPosition(getCellarAddress(pool), getCellarChain(pool))
+    )
   );
 
   const v2Assets = await Promise.all(
-    v2Pools.map((pool) => v2.getHoldingPosition(getCellarAddress(pool), getCellarChain(pool)))
+    v2Pools.map((pool) =>
+      v2.getHoldingPosition(getCellarAddress(pool), getCellarChain(pool))
+    )
   );
 
   const v2p5Assets = await Promise.all(
-    v2p5Pools.map((pool) => v2p5.getHoldingPosition(getCellarAddress(pool), getCellarChain(pool)))
+    v2p5Pools.map((pool) =>
+      v2p5.getHoldingPosition(getCellarAddress(pool), getCellarChain(pool))
+    )
   );
 
   const v2p6Assets = await Promise.all(
-    v2p6Pools.map((pool) => v2p6.getHoldingPosition(getCellarAddress(pool), getCellarChain(pool)))
+    v2p6Pools.map((pool) =>
+      v2p6.getHoldingPosition(getCellarAddress(pool), getCellarChain(pool))
+    )
   );
 
   const deduped = new Set([
@@ -71,7 +79,7 @@ async function main() {
   const assets = await getHoldingPositions();
 
   // List of holding position tokens and sommelier token
-  // ! Remember to add mapping for each chain 
+  // ! Remember to add mapping for each chain
   const tokens = [
     'coingecko:sommelier',
     ...assets.flatMap((a) => [`ethereum:${a}`, `arbitrum:${a}`]),
@@ -137,8 +145,11 @@ async function handleV0815(pool, prices) {
 
 async function handleV0816(pool, prices) {
   const cellarAddress = pool.pool.split('-')[0];
-  const cellarChain = pool.pool.split('-')[1]; 
-  const underlyingTokens = await v0816.getUnderlyingTokens(cellarAddress, cellarChain);
+  const cellarChain = pool.pool.split('-')[1];
+  const underlyingTokens = await v0816.getUnderlyingTokens(
+    cellarAddress,
+    cellarChain
+  );
   const asset = await v0816.getHoldingPosition(cellarAddress, cellarChain);
   const tvlUsd = await v0816.getTvlUsd(cellarAddress, asset, cellarChain);
   const apyBase = await v0816.getApy(cellarAddress, cellarChain);
@@ -163,25 +174,34 @@ async function handleV0816(pool, prices) {
 
 async function handleV2(pool, prices) {
   const cellarAddress = pool.pool.split('-')[0];
-  const cellarChain = pool.pool.split('-')[1]; 
-  const underlyingTokens = await v2.getUnderlyingTokens(cellarAddress, cellarChain);
+  const cellarChain = pool.pool.split('-')[1];
+  const underlyingTokens = await v2.getUnderlyingTokens(
+    cellarAddress,
+    cellarChain
+  );
 
   return handleV2plus(pool, prices, underlyingTokens);
 }
 
 async function handleV2p5(pool, prices) {
   const cellarAddress = pool.pool.split('-')[0];
-  const cellarChain = pool.pool.split('-')[1]; 
-  const underlyingTokens = await v2p5.getUnderlyingTokens(cellarAddress, cellarChain);
+  const cellarChain = pool.pool.split('-')[1];
+  const underlyingTokens = await v2p5.getUnderlyingTokens(
+    cellarAddress,
+    cellarChain
+  );
 
   return handleV2plus(pool, prices, underlyingTokens);
 }
 
 async function handleV2p6(pool, prices) {
   const cellarAddress = pool.pool.split('-')[0];
-  const cellarChain = pool.pool.split('-')[1]; 
+  const cellarChain = pool.pool.split('-')[1];
 
-  const underlyingTokens = await v2p6.getUnderlyingTokens(cellarAddress, cellarChain);
+  const underlyingTokens = await v2p6.getUnderlyingTokens(
+    cellarAddress,
+    cellarChain
+  );
 
   return handleV2plus(pool, prices, underlyingTokens);
 }

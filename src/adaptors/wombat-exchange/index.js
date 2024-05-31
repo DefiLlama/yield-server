@@ -1,4 +1,4 @@
-const { util } = require('@defillama/sdk');
+const { util } = require('@defillama/sdk5');
 const { gql, request } = require('graphql-request');
 const config = require('./config.js');
 

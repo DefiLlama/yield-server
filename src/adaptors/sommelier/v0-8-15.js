@@ -1,5 +1,5 @@
 const { default: BigNumber } = require('bignumber.js');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const utils = require('../utils');
 const cellarAbi = require('./cellar-v0-8-15.json');
 const { getApy } = require('./apy');
@@ -37,7 +37,8 @@ async function getTvlUsd(cellarAddress, assetAddress, cellarChain) {
     })
   ).output;
 
-  const prices = (await utils.getPrices([assetAddress], cellarChain)).pricesByAddress;
+  const prices = (await utils.getPrices([assetAddress], cellarChain))
+    .pricesByAddress;
   const price = prices[assetAddress.toLowerCase()];
 
   const total = new BigNumber(totalAssets);

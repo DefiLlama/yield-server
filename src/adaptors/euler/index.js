@@ -1,7 +1,7 @@
 const WebSocket = require('ws');
 const { request, gql } = require('graphql-request');
 const superagent = require('superagent');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const ethers = require('ethers');
 
 const EulerToolsClient = require('./EulerToolsClient');

@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { v2p6Pools } = require('./config');
 const v2 = require('./v2');
 
@@ -6,7 +6,11 @@ const call = sdk.api.abi.call;
 
 async function getUnderlyingTokens(cellarAddress, cellarChain) {
   // Find vault in v2p6Pools
-  const vault = v2p6Pools.find((pool) => pool.pool.split('-')[0].toLowerCase() === cellarAddress.toLowerCase() && pool.pool.split('-')[1].toLowerCase() === cellarChain.toLowerCase());
+  const vault = v2p6Pools.find(
+    (pool) =>
+      pool.pool.split('-')[0].toLowerCase() === cellarAddress.toLowerCase() &&
+      pool.pool.split('-')[1].toLowerCase() === cellarChain.toLowerCase()
+  );
 
   // Return the deduped underlying tokens
   return [...new Set(vault.underlyingTokens)];

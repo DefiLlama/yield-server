@@ -1,5 +1,5 @@
 const utils = require('../utils');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { default: BigNumber } = require('bignumber.js');
 const abi = require('./abi.json');
 

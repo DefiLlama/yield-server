@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { symbol } = require('@defillama/sdk/build/erc20');
 const { request, gql } = require('graphql-request');
 const axios = require('axios');

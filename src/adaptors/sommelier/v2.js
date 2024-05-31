@@ -1,5 +1,5 @@
 const { default: BigNumber } = require('bignumber.js');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const queries = require('./queries');
 const cellarAbi = require('./cellar-v2.json');
 const utils = require('../utils');

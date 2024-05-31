@@ -1,4 +1,4 @@
-const { api } = require('@defillama/sdk');
+const { api } = require('@defillama/sdk5');
 const axios = require('axios');
 const ABI = require('./abi.json');
 

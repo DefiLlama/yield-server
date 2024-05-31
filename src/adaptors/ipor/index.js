@@ -1,5 +1,5 @@
 const superagent = require('superagent');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { liquidityMiningV2Abi } = require('./abiV2');
 
 const LP_STATS_ETHEREUM_URL =
@@ -109,29 +109,29 @@ const apy = async () => {
     const liquidityMiningGlobalStats = globalStatsEthereum.get(
       asset.ipTokenAssetAddress.toLowerCase()
     );
-      const apyReward =
-        (((liquidityMiningGlobalStats.rewardsPerBlock /
-          1e8 /
-          (liquidityMiningGlobalStats.aggregatedPowerUp / 1e18)) *
-          0.2 * //base powerup
-          BLOCKS_PER_YEAR *
-          iporTokenUsdPrice) /
-          lpTokenPrice /
-          coinPrice /
-          2) * //50% early withdraw fee
-        100; //percentage
+    const apyReward =
+      (((liquidityMiningGlobalStats.rewardsPerBlock /
+        1e8 /
+        (liquidityMiningGlobalStats.aggregatedPowerUp / 1e18)) *
+        0.2 * //base powerup
+        BLOCKS_PER_YEAR *
+        iporTokenUsdPrice) /
+        lpTokenPrice /
+        coinPrice /
+        2) * //50% early withdraw fee
+      100; //percentage
 
-      pools.push({
-        pool: asset.ipTokenAssetAddress + '-ethereum',
-        chain: 'Ethereum',
-        project: 'ipor',
-        symbol: asset.asset,
-        tvlUsd: lpBalance * coinPrice,
-        apyBase: Number(lpApr),
-        apyReward: Number(apyReward),
-        underlyingTokens: [asset.assetAddress],
-        rewardTokens: [IPOR_TOKEN_ETHEREUM],
-      });
+    pools.push({
+      pool: asset.ipTokenAssetAddress + '-ethereum',
+      chain: 'Ethereum',
+      project: 'ipor',
+      symbol: asset.asset,
+      tvlUsd: lpBalance * coinPrice,
+      apyBase: Number(lpApr),
+      apyReward: Number(apyReward),
+      underlyingTokens: [asset.assetAddress],
+      rewardTokens: [IPOR_TOKEN_ETHEREUM],
+    });
   }
 
   for (const asset of assetsArbitrum) {
@@ -153,29 +153,29 @@ const apy = async () => {
     const liquidityMiningGlobalStats = globalStatsArbitrum.get(
       asset.ipTokenAssetAddress.toLowerCase()
     );
-      const apyReward =
-        (((liquidityMiningGlobalStats.rewardsPerBlock /
-          1e8 /
-          (liquidityMiningGlobalStats.aggregatedPowerUp / 1e18)) *
-          0.2 * //base powerup
-          BLOCKS_PER_YEAR *
-          iporTokenUsdPrice) /
-          lpTokenPrice /
-          coinPrice /
-          2) * //50% early withdraw fee
-        100; //percentage
+    const apyReward =
+      (((liquidityMiningGlobalStats.rewardsPerBlock /
+        1e8 /
+        (liquidityMiningGlobalStats.aggregatedPowerUp / 1e18)) *
+        0.2 * //base powerup
+        BLOCKS_PER_YEAR *
+        iporTokenUsdPrice) /
+        lpTokenPrice /
+        coinPrice /
+        2) * //50% early withdraw fee
+      100; //percentage
 
-      pools.push({
-        pool: asset.ipTokenAssetAddress + '-arbitrum',
-        chain: 'Arbitrum',
-        project: 'ipor',
-        symbol: asset.asset,
-        tvlUsd: lpBalance * coinPrice,
-        apyBase: Number(lpApr),
-        apyReward: Number(apyReward),
-        underlyingTokens: [asset.assetAddress],
-        rewardTokens: [IPOR_TOKEN_ETHEREUM],
-      });
+    pools.push({
+      pool: asset.ipTokenAssetAddress + '-arbitrum',
+      chain: 'Arbitrum',
+      project: 'ipor',
+      symbol: asset.asset,
+      tvlUsd: lpBalance * coinPrice,
+      apyBase: Number(lpApr),
+      apyReward: Number(apyReward),
+      underlyingTokens: [asset.assetAddress],
+      rewardTokens: [IPOR_TOKEN_ETHEREUM],
+    });
   }
 
   return pools;

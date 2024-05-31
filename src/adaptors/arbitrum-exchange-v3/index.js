@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { request, gql } = require('graphql-request');
 const superagent = require('superagent');
 
@@ -70,7 +70,7 @@ const topLvl = async (
       await sdk.api.abi.multiCall({
         calls: [...Array(Number(poolLength)).keys()].map((i) => ({
           target: masterchef,
-          params: [i]
+          params: [i],
         })),
         abi: masterchefAbi.find((m) => m.name === 'poolInfo'),
         chain: chainString,
@@ -109,21 +109,23 @@ const topLvl = async (
       })
     ).output;
 
-    const arxPerSec = (
-      await sdk.api.abi.call({
-        target: masterchef,
-        abi: masterchefAbi.find((m) => m.name === 'arxPerSec'),
-        chain: chainString,
-      })
-    ).output / 1e18;
+    const arxPerSec =
+      (
+        await sdk.api.abi.call({
+          target: masterchef,
+          abi: masterchefAbi.find((m) => m.name === 'arxPerSec'),
+          chain: chainString,
+        })
+      ).output / 1e18;
 
-    const wethPerSec = (
-      await sdk.api.abi.call({
-        target: masterchef,
-        abi: masterchefAbi.find((m) => m.name === 'WETHPerSec'),
-        chain: chainString,
-      })
-    ).output / 1e18;
+    const wethPerSec =
+      (
+        await sdk.api.abi.call({
+          target: masterchef,
+          abi: masterchefAbi.find((m) => m.name === 'WETHPerSec'),
+          chain: chainString,
+        })
+      ).output / 1e18;
 
     const arxPriceKey = `arbitrum:${ARX}`;
     const arxPrice = (
@@ -247,10 +249,14 @@ const topLvl = async (
       )?.WETHAllocPoint;
 
       const arxApyReward =
-        (((arxAllocPoint / arxTotalAllocPoint) * arxPerYearUsd) / p.totalValueLockedUSD) * 100;
+        (((arxAllocPoint / arxTotalAllocPoint) * arxPerYearUsd) /
+          p.totalValueLockedUSD) *
+        100;
 
       const wethApyReward =
-        (((wethAllocPoint / wethTotalAllocPoint) * wethPerYearUsd) / p.totalValueLockedUSD) * 100;
+        (((wethAllocPoint / wethTotalAllocPoint) * wethPerYearUsd) /
+          p.totalValueLockedUSD) *
+        100;
 
       const apyReward = arxApyReward + wethApyReward;
 
@@ -284,7 +290,15 @@ const main = async (timestamp = null) => {
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
 
-  const data = await topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins)
+  const data = await topLvl(
+    chain,
+    url,
+    query,
+    queryPrior,
+    'v3',
+    timestamp,
+    stablecoins
+  );
   return data.filter((p) => utils.keepFinite(p));
 };
 

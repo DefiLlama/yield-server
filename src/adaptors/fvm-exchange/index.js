@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const axios = require('axios');
 
 const utils = require('../utils');
@@ -241,7 +241,7 @@ const getApy = async () => {
       apyReward,
       rewardTokens: apyReward ? [...new Set(rewardTokens)] : [],
       underlyingTokens: [poolMeta.t0, poolMeta.t1],
-      url: `https://www.fvm.exchange/liquidity/${p}`
+      url: `https://www.fvm.exchange/liquidity/${p}`,
     };
   });
 

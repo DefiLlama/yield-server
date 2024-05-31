@@ -1,5 +1,5 @@
 const superagent = require('superagent');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const gmdAbi = require('./abis/gmd.json');
 const { comptrollerAbi, ercDelegator } = require('./abis/tender');
 const utils = require('../utils');

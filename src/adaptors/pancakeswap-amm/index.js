@@ -1,6 +1,6 @@
 const Web3 = require('web3');
 const { default: BigNumber } = require('bignumber.js');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 
 const { masterChefABI, lpTokenABI } = require('./abis');
 const utils = require('../utils');

@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const superagent = require('superagent');
 const VESSEL_MANAGER_ADDRESS = '0xdB5DAcB1DFbe16326C3656a88017f0cB4ece0977';
 const ADMIN_CONTRACT_ADDRESS = '0xf7Cc67326F9A1D057c1e4b110eF6c680B13a1f53';

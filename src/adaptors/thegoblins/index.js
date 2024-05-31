@@ -1,5 +1,5 @@
 const utils = require('../utils');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const superagent = require('superagent');
 
 const bankAbi = {
@@ -28,7 +28,7 @@ const poolsFunction = async () => {
     'https://api.thegoblins.finance/aggregator/performance'
   );
 
-  const key = 'arbitrum:0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'
+  const key = 'arbitrum:0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8';
   const price = (
     await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
   ).body.coins[key].price;

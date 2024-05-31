@@ -1,5 +1,5 @@
 const BN = require('bignumber.js');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const utils = require('../utils');
 const DualV1 = require('./abis/v1/Dual.json');
 const DualV2 = require('./abis/v2/Dual.json');
@@ -74,7 +74,8 @@ const CHAINS = {
 
 const SLUG = 'rehold';
 
-const POOL_META = 'Calculated as: 24h yield * 365. APY is fixed, and extendable with no limits after the staking period ends';
+const POOL_META =
+  'Calculated as: 24h yield * 365. APY is fixed, and extendable with no limits after the staking period ends';
 
 function _map(array) {
   return array.reduce((acc, item) => {
@@ -140,7 +141,10 @@ async function _apy(chain) {
       tokens[quoteToken] = apr;
     }
 
-    if (!pairs[`${baseToken}-${quoteToken}`] || pairs[`${baseToken}-${quoteToken}`] < apr) {
+    if (
+      !pairs[`${baseToken}-${quoteToken}`] ||
+      pairs[`${baseToken}-${quoteToken}`] < apr
+    ) {
       pairs[`${baseToken}-${quoteToken}`] = apr;
     }
   });

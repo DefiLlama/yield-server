@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const axios = require('axios');
 const VAMM_ABI_JSON = require('./vamm.abi.json');
 const { BigNumber } = require('ethers');

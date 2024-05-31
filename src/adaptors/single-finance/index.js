@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const utils = require('../utils');
 const superagent = require('superagent');
 
@@ -12,7 +12,7 @@ const {
 const project = 'single-finance';
 
 const poolApiEndpoint = 'https://api.singlefinance.io/api/vaults';
-const lyfPoolApiEndpoint = 'https://api.singlefinance.io/api/info/farms'
+const lyfPoolApiEndpoint = 'https://api.singlefinance.io/api/info/farms';
 
 const singleToken = {
   cronos: '0x0804702a4E749d39A35FDe73d1DF0B1f1D6b8347'.toLowerCase(),
@@ -43,33 +43,33 @@ const blocksPerYears = {
 
 const chainMapping = {
   cronos: {
-    id: 25
+    id: 25,
   },
   fantom: {
-    id: 250
+    id: 250,
   },
   arbitrum: {
-    id: 42161
-  }
-}
+    id: 42161,
+  },
+};
 
 const dexMapping = {
   vvs: {
-    name: "VVS Finance"
+    name: 'VVS Finance',
   },
   mmf: {
-    name: "MMFinance"
+    name: 'MMFinance',
   },
   spooky: {
-    name: "SpookySwap"
+    name: 'SpookySwap',
   },
   sushi: {
-    name: "SushiSwap"
+    name: 'SushiSwap',
   },
   camelot: {
-    name: "Camelot"
-  }
-}
+    name: 'Camelot',
+  },
+};
 
 const availablePools = {
   cronos: ['CRO', 'USDC', 'VVS', 'MMF', 'USDT', 'VERSA', 'ARGO', 'bCRO', 'VNO'],
@@ -147,10 +147,8 @@ const multiCallOutput = async (abi, calls, chain) => {
 };
 
 const getLendingApy = async (chain) => {
-  const chainId = chainMapping[chain]?.id
-  const allPools = await utils.getData(
-    `${poolApiEndpoint}?chainid=${chainId}`
-  );
+  const chainId = chainMapping[chain]?.id;
+  const allPools = await utils.getData(`${poolApiEndpoint}?chainid=${chainId}`);
 
   const pools = allPools.data.filter((pool) => {
     const symbol = pool.token.symbol;
@@ -327,10 +325,10 @@ const getLendingApy = async (chain) => {
 };
 
 const getLYFApy = async (chain, dex) => {
-  const chainId = chainMapping[chain]?.id
-  const allPools = (await utils.getData(
-    `${lyfPoolApiEndpoint}?dex=${dex}&chainid=${chainId}`
-  )).data.farms;
+  const chainId = chainMapping[chain]?.id;
+  const allPools = (
+    await utils.getData(`${lyfPoolApiEndpoint}?dex=${dex}&chainid=${chainId}`)
+  ).data.farms;
 
   return allPools.map((raw) => ({
     pool: `${raw.lpToken.address[chainId]}-${dex}-farming-${chain}`,
@@ -339,14 +337,20 @@ const getLYFApy = async (chain, dex) => {
     symbol: `${raw.token0.symbol}-${raw.token1.symbol}`,
     poolMeta: dexMapping[dex].name,
     tvlUsd: raw.tvlInUSD,
-    apyBase: utils.aprToApy((raw.tradingFeeApr + raw.autoCompoundDexYieldPercent) * (1 - raw.perfFee) * 100 ) + raw.manualHarvestDexYieldPercent * (1 - raw.perfFee) * 100,
+    apyBase:
+      utils.aprToApy(
+        (raw.tradingFeeApr + raw.autoCompoundDexYieldPercent) *
+          (1 - raw.perfFee) *
+          100
+      ) +
+      raw.manualHarvestDexYieldPercent * (1 - raw.perfFee) * 100,
     apyReward: 0,
     underlyingTokens: [
       raw.token0.address[chainId],
-      raw.token1.address[chainId]
-    ]
-  }))
-}
+      raw.token1.address[chainId],
+    ],
+  }));
+};
 
 const apy = async () => {
   const cronosPools = await getLendingApy('cronos');

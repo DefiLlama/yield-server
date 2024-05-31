@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const API_APY_URL = (chainId) =>
   `https://api.killswitch.finance/ksw2/apy?chain=${chainId}`;
 const API_TVL_URL = 'https://api.killswitch.finance/ksw/tvl';

@@ -1,44 +1,58 @@
 const utils = require('../utils');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 
 const poolsFunction = async () => {
-
-  const wbtc = "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599";
-  const wsteth = "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0";
+  const wbtc = '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599';
+  const wsteth = '0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0';
   const prices = (await utils.getPrices([wsteth, wbtc], 'ethereum'))
     .pricesByAddress;
   const usdcVaultAddress = '0x3b022EdECD65b63288704a6fa33A8B9185b5096b';
   const wstethVaultAddress = '0x2791EB5807D69Fe10C02eED6B4DC12baC0701744';
   const wbtcVaultAddress = '0xC4A324fDF8a2495776B4d6cA46599B5a52f96489';
 
-  const ERC4626TotalAssets =
-    {
-      "inputs": [],
-      "name": "totalAssets",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    };
+  const ERC4626TotalAssets = {
+    inputs: [],
+    name: 'totalAssets',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  };
   const wstethAprData = await utils.getData(
     'https://app.amphor.io/api/apr?vault=wstethVault'
   );
-  const wstethApy = ((1 + Number(JSON.stringify(wstethAprData.wstethVault.strategyNetAPR))/2600) ** (26) - 1) * 100;
+  const wstethApy =
+    ((1 +
+      Number(JSON.stringify(wstethAprData.wstethVault.strategyNetAPR)) /
+        2600) **
+      26 -
+      1) *
+    100;
 
   const usdcAprData = await utils.getData(
     'https://app.amphor.io/api/apr?vault=usdcVault'
   );
-  const usdcApy = ((1 + Number(JSON.stringify(usdcAprData.usdcVault.strategyNetAPR))/2600) ** (26) - 1) * 100;
+  const usdcApy =
+    ((1 +
+      Number(JSON.stringify(usdcAprData.usdcVault.strategyNetAPR)) / 2600) **
+      26 -
+      1) *
+    100;
 
   const wbtcAprData = await utils.getData(
     'https://app.amphor.io/api/apr?vault=wbtcVault'
   );
-  const wbtcApy = ((1 + Number(JSON.stringify(wbtcAprData.wbtcVault.strategyNetAPR))/2600) ** (26) - 1) * 100;
+  const wbtcApy =
+    ((1 +
+      Number(JSON.stringify(wbtcAprData.wbtcVault.strategyNetAPR)) / 2600) **
+      26 -
+      1) *
+    100;
 
   const usdcTotalAsset = await sdk.api.abi.call({
     abi: ERC4626TotalAssets,
@@ -61,7 +75,7 @@ const poolsFunction = async () => {
     chain: 'ethereum',
     project: 'amphor',
     symbol: utils.formatSymbol('USDC'),
-    tvlUsd: Number(usdcTotalAsset.output)/1e6,
+    tvlUsd: Number(usdcTotalAsset.output) / 1e6,
     apy: usdcApy,
   };
 
@@ -70,7 +84,8 @@ const poolsFunction = async () => {
     chain: 'ethereum',
     project: 'amphor',
     symbol: utils.formatSymbol('WSTETH'),
-    tvlUsd: (Number(wstethTotalAsset.output)/1e18) * prices[wsteth.toLowerCase()],
+    tvlUsd:
+      (Number(wstethTotalAsset.output) / 1e18) * prices[wsteth.toLowerCase()],
     apy: wstethApy,
   };
 
@@ -79,7 +94,7 @@ const poolsFunction = async () => {
     chain: 'ethereum',
     project: 'amphor',
     symbol: utils.formatSymbol('WBTC'),
-    tvlUsd: (Number(wbtcTotalAsset.output)/1e8) * prices[wbtc.toLowerCase()],
+    tvlUsd: (Number(wbtcTotalAsset.output) / 1e8) * prices[wbtc.toLowerCase()],
     apy: wbtcApy,
   };
 

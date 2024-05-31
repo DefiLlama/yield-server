@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const fetch = require('node-fetch');
 const utils = require('../utils');
 const ABI = require('./abi');
