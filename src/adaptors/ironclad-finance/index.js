@@ -1,6 +1,6 @@
 const ethers = require('ethers');
 const { JsonRpcProvider } = require('ethers');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const axios = require('axios');
 const abiLendingPool = require('./abiLendingPool');
 const abiProtocolDataProvider = require('./abiProtocolDataProvider');

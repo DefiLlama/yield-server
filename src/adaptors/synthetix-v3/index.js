@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 
 const USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const SNX = '0x22e6966B799c4D5B13BE962E1D117b56327FDa66';

@@ -1,5 +1,5 @@
 const axios = require('axios');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { formatChain, keepFinite } = require('../utils.js');
 
 const vaultAbi = require('./vaultAbi.json');

@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const farmABI = require('./farmABI');
 const earnABI = require('./earnABI');
 const pairABI = require('./pairABI');

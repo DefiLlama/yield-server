@@ -9,7 +9,7 @@
  **
  **/
 
-var sdk = require('@defillama/sdk');
+var sdk = require('@defillama/sdk5');
 var utils = require('../utils');
 const fetch = require('node-fetch');
 

@@ -3,7 +3,7 @@ const abiMcV3Arbitrum = require('./masterchefv3Arbitrum.json');
 const abiMcV3PolygonZkevm = require('./masterchefv3PolygonZkevm.json');
 
 const utils = require('../utils');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const bn = require('bignumber.js');
 const fetch = require('node-fetch');
 
