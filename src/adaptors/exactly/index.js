@@ -1,4 +1,4 @@
-const { api2 } = require("@defillama/sdk");
+const { api2 } = require("@defillama/sdk5");
 const { AddressZero } = require("@ethersproject/constants");
 const { aprToApy, getBlocksByTime, getPrices } = require("../utils");
 

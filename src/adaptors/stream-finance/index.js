@@ -1,6 +1,6 @@
 const utils = require('../utils');
 const axios = require('axios');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const vaultABI = require('./abiVault.json');
 
 const eth_USDC = "0xf3b466F09ef476E311Ce275407Cfb09a8D8De3a7"

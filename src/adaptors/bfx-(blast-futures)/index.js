@@ -1,6 +1,6 @@
 const utils = require('../utils');
 const axios = require('axios');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 
 const CHAIN = 'blast';
 const USDB = '0x4300000000000000000000000000000000000003';
