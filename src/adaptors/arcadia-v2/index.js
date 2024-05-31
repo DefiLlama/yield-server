@@ -1,5 +1,5 @@
 const utils = require('../utils');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const { poolABI } = require('./abi');
 
 const assets = {
@@ -79,8 +79,12 @@ const getApy = async () => {
     abi: poolABI.filter(({ name }) => name === 'interestRate')[0],
     chain: 'base',
   });
-  const apyWeth = (totalDebtWeth.output * interestRateWeth.output) / totalLiquidityWeth.output / 1e18;
-  const tvlUsdWeth = ((totalLiquidityWeth.output - totalDebtWeth.output) * wethPrice) / 1e18;
+  const apyWeth =
+    (totalDebtWeth.output * interestRateWeth.output) /
+    totalLiquidityWeth.output /
+    1e18;
+  const tvlUsdWeth =
+    ((totalLiquidityWeth.output - totalDebtWeth.output) * wethPrice) / 1e18;
   const totalSupplyUsdWeth = (totalLiquidityWeth.output * wethPrice) / 1e18;
   const totalBorrowUsdWeth = (totalDebtWeth.output * wethPrice) / 1e18;
   const borrowApyWeth = (interestRateWeth.output * 100) / 1e18; //interestRateWeth is in 18 decimals, times 100 for pct
@@ -100,8 +104,12 @@ const getApy = async () => {
     abi: poolABI.filter(({ name }) => name === 'interestRate')[0],
     chain: 'base',
   });
-  const apyUsdc = (totalDebtUsdc.output * interestRateUsdc.output) / totalLiquidityUsdc.output / 1e18;
-  const tvlUsdUsdc = ((totalLiquidityUsdc.output - totalDebtUsdc.output) * usdcPrice) / 1e6;
+  const apyUsdc =
+    (totalDebtUsdc.output * interestRateUsdc.output) /
+    totalLiquidityUsdc.output /
+    1e18;
+  const tvlUsdUsdc =
+    ((totalLiquidityUsdc.output - totalDebtUsdc.output) * usdcPrice) / 1e6;
   const totalSupplyUsdUsdc = (totalLiquidityUsdc.output * usdcPrice) / 1e6;
   const totalBorrowUsdUsdc = (totalDebtUsdc.output * usdcPrice) / 1e6;
   const borrowApyUsdc = (interestRateUsdc.output * 100) / 1e18; //interestRateUsdc is in 18 decimals, times 100 for pct

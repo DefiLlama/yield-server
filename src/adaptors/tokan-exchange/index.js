@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const utils = require('../utils');
@@ -122,9 +122,7 @@ async function getTokenPrices(pairInfo) {
     await axios.get(
       'https://api.coingecko.com/api/v3/coins/list?include_platform=true'
     )
-  ).data.filter(
-    (coin) => coin && coin.platforms && coin.platforms['scroll']
-  );
+  ).data.filter((coin) => coin && coin.platforms && coin.platforms['scroll']);
 
   const tokenAddresses = tokens.map((a) => a.toLowerCase());
   const coins = allCoins.filter((coin) =>
@@ -140,15 +138,16 @@ async function getTokenPrices(pairInfo) {
 
   async function getPriceFromGeckoTerminal(token) {
     const price = (
-      await axios.get(`https://api.geckoterminal.com/api/v2/networks/scroll/tokens/${token}`)
-    ).data.data.attributes.price_usd
-    return price
+      await axios.get(
+        `https://api.geckoterminal.com/api/v2/networks/scroll/tokens/${token}`
+      )
+    ).data.data.attributes.price_usd;
+    return price;
   }
 
   function getPriceFromCoinGecko(token) {
     const id = allCoins.find(
-      (coin) =>
-        coin.platforms['scroll'].toLowerCase() === token.toLowerCase()
+      (coin) => coin.platforms['scroll'].toLowerCase() === token.toLowerCase()
     )?.id;
     if (id === undefined) return undefined;
     const marketData = markets.find((m) => m.id === id);
@@ -156,7 +155,7 @@ async function getTokenPrices(pairInfo) {
   }
 
   async function getPrice(token) {
-    return getPriceFromCoinGecko(token)
+    return getPriceFromCoinGecko(token);
   }
 
   const pricePromises = tokenAddresses.map((t) =>
@@ -194,7 +193,7 @@ function computePairInfo(pairInfo, prices, tknPrice) {
  * Formats a pair info object into a pool object.
  */
 function formatPool(p) {
-  const apyReward =p.apr; // NOT daily compounding, APR NOT APY
+  const apyReward = p.apr; // NOT daily compounding, APR NOT APY
   return {
     pool: p.pair_address,
     chain: utils.formatChain('Scroll'),

@@ -1,5 +1,5 @@
 const axios = require('axios');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 
@@ -8,21 +8,22 @@ const chains = {
     USDT: '0x9e5aac1ba1a2e6aed6b32689dfcf62a509ca96f3',
     decimals: 18,
     kUSDT: '0xA2E2F3726DF754C1848C8fd1CbeA6aAFF84FC5B2',
-    apyEndpoint: 'https://opapi.kiloex.io/common/queryKiloNewVaultApyHistory'
+    apyEndpoint: 'https://opapi.kiloex.io/common/queryKiloNewVaultApyHistory',
   },
   manta: {
     USDT: '0xf417F5A458eC102B90352F697D6e2Ac3A3d2851f',
     decimals: 6,
     kUSDT: '0xA2E2F3726DF754C1848C8fd1CbeA6aAFF84FC5B2',
-    apyEndpoint: 'https://mantaapi.kiloex.io/common/queryKiloNewVaultApyHistory',
-    STONE: '0xEc901DA9c68E90798BbBb74c11406A32A70652C3'
+    apyEndpoint:
+      'https://mantaapi.kiloex.io/common/queryKiloNewVaultApyHistory',
+    STONE: '0xEc901DA9c68E90798BbBb74c11406A32A70652C3',
   },
   bsc: {
     USDT: '0x55d398326f99059fF775485246999027B3197955',
     decimals: 18,
     kUSDT: '0x1c3f35F7883fc4Ea8C4BCA1507144DC6087ad0fb',
-    apyEndpoint: 'https://api.kiloex.io/common/queryKiloNewVaultApyHistory'
-  }
+    apyEndpoint: 'https://api.kiloex.io/common/queryKiloNewVaultApyHistory',
+  },
 };
 
 const getApy = async () => {
@@ -40,10 +41,10 @@ const getApy = async () => {
             params: [y.kUSDT],
             chain,
           })
-        ).output / 10**y.decimals;
+        ).output /
+        10 ** y.decimals;
 
-
-      let results = []
+      let results = [];
       results.push({
         chain,
         project: 'kiloex',
@@ -69,7 +70,9 @@ const getApy = async () => {
           await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
         ).data.coins[priceKey].price;
 
-        const stoneApy = (await axios.get('https://mantaapi.kiloex.io/sidevault/info')).data.data.apy;
+        const stoneApy = (
+          await axios.get('https://mantaapi.kiloex.io/sidevault/info')
+        ).data.data.apy;
 
         results.push({
           chain,

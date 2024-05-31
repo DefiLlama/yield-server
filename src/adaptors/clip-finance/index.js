@@ -2,12 +2,12 @@ const axios = require('axios');
 const ethers = require('ethers');
 const utils = require('../utils');
 
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 
 const CHAINS = {
   bsc: 'bsc',
   linea: 'linea',
-  base : 'base'
+  base: 'base',
 };
 
 const config = {
@@ -34,7 +34,7 @@ const config = {
       '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
       '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
     ],
-  }
+  },
 };
 
 const getUrl = (chain, from) =>

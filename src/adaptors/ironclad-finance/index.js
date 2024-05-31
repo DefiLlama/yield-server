@@ -1,6 +1,6 @@
 const ethers = require('ethers');
 const { JsonRpcProvider } = require('ethers');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const abiLendingPool = require('./abiLendingPool');
 const abiProtocolDataProvider = require('./abiProtocolDataProvider');
@@ -107,7 +107,7 @@ const getApy = async () => {
         const ltv = config.ltv / 1e4;
         const borrowable = config.borrowingEnabled;
         const frozen = config.isFrozen;
-        const poolSymbol = symbols[i].toLowerCase()
+        const poolSymbol = symbols[i].toLowerCase();
         const url = `https://app.ironclad.finance/markets/${poolSymbol}`;
 
         return {

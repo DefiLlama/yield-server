@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
@@ -298,7 +298,7 @@ const ilmApys = async () => {
     { chain }
   );
   const prevBlock7Day = await sdk.api.util.lookupBlock(
-    latestBlock.timestamp - (7 * SECONDS_PER_DAY),
+    latestBlock.timestamp - 7 * SECONDS_PER_DAY,
     { chain }
   );
 
@@ -339,8 +339,16 @@ const ilmApys = async () => {
     assets,
     decimals
   );
-  const prevBlock1DayPrices = await getLpPrices(prevBlock1Day.number, assets, decimals);
-  const prevBlock7DayPrices = await getLpPrices(prevBlock7Day.number, assets, decimals);
+  const prevBlock1DayPrices = await getLpPrices(
+    prevBlock1Day.number,
+    assets,
+    decimals
+  );
+  const prevBlock7DayPrices = await getLpPrices(
+    prevBlock7Day.number,
+    assets,
+    decimals
+  );
 
   const pools = ILMs.map(({ address, compoundingPeriods }, i) => {
     return {

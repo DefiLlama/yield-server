@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const { BigNumber } = require('bignumber.js');
 const { DataProviderAbi } = require('./abi');
 const utils = require('../utils');
@@ -19,9 +19,9 @@ const aggregators = async () => {
   // const subgraphData = await request(sturdy_v2_subgraph, query);
   // const aggregators = subgraphData.aggregators as V2AggregatorSubgraphData[];
 
-  const aggregators = (await Promise.all(
-    Object.keys(config)
-      .map(async (chain) => {
+  const aggregators = (
+    await Promise.all(
+      Object.keys(config).map(async (chain) => {
         const chainAggregators = (
           await sdk.api.abi.call({
             target: config[chain],
@@ -37,41 +37,53 @@ const aggregators = async () => {
           };
         });
       })
-  )).flat();
+    )
+  ).flat();
 
   // fetch token prices
   const assetContracts = aggregators.map((a) => a.asset);
   const coins = aggregators.map((a) => `${a.chainName}:${a.asset}`);
   const prices = (await utils.getPrices(coins)).pricesByAddress;
 
-  return aggregators.map((a, index) => {
-    const { chainName, deployedAt: address, name, totalAssets, asset, assetDecimals, assetSymbol } = a;
+  return aggregators
+    .map((a, index) => {
+      const {
+        chainName,
+        deployedAt: address,
+        name,
+        totalAssets,
+        asset,
+        assetDecimals,
+        assetSymbol,
+      } = a;
 
-    const tvl = new BigNumber(totalAssets)
-      .dividedBy(BIG_10.pow(assetDecimals))
-      .times(prices[assetContracts[index].toLowerCase()]);
+      const tvl = new BigNumber(totalAssets)
+        .dividedBy(BIG_10.pow(assetDecimals))
+        .times(prices[assetContracts[index].toLowerCase()]);
 
-    const apy = apiData.find(
-      (e) => e.address.toLowerCase() === address.toLowerCase()
-    );
-    const apyBase = apy?.baseAPY * 100 || 0;
-    const apyReward = apy?.rewardsAPY * 100 || 0;
-    const rewardTokens = apy?.rewardTokens || [];
+      const apy = apiData.find(
+        (e) => e.address.toLowerCase() === address.toLowerCase()
+      );
+      const apyBase = apy?.baseAPY * 100 || 0;
+      const apyReward = apy?.rewardsAPY * 100 || 0;
+      const rewardTokens = apy?.rewardTokens || [];
 
-    return {
-      pool: address,
-      chain: chainName,
-      project: 'sturdy-v2',
-      symbol: utils.formatSymbol(assetSymbol),
-      tvlUsd: tvl.toNumber(),
-      apyBase,
-      apyReward,
-      rewardTokens,
-      url: `https://v2.sturdy.finance/aggregators/${chainName}/${address}`,
-      underlyingTokens: [asset],
-      poolMeta: name, // aggregator name
-    };
-  }).filter((a) => a.tvlUsd > 0).map(i => ({...i, pool: i.pool.toLowerCase()}));
+      return {
+        pool: address,
+        chain: chainName,
+        project: 'sturdy-v2',
+        symbol: utils.formatSymbol(assetSymbol),
+        tvlUsd: tvl.toNumber(),
+        apyBase,
+        apyReward,
+        rewardTokens,
+        url: `https://v2.sturdy.finance/aggregators/${chainName}/${address}`,
+        underlyingTokens: [asset],
+        poolMeta: name, // aggregator name
+      };
+    })
+    .filter((a) => a.tvlUsd > 0)
+    .map((i) => ({ ...i, pool: i.pool.toLowerCase() }));
 };
 
 module.exports = {

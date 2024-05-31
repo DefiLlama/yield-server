@@ -1,6 +1,6 @@
 const ethers = require('ethers');
 const abi = require('./abi');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 
 /////////////////////////// Constants ///////////////////////////
