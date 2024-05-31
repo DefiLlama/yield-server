@@ -1,7 +1,7 @@
 const helperUtils = require("../../helper/utils");
 
 const { ethers } = require('ethers');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const utils = require('../utils');
 const abi_rewardrouter_arb = require('./abis/RwardRouter_arb.json');
 const abi_Elp_arb = require('./abis/Elp_arb.json');

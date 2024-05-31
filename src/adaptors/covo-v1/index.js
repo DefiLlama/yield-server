@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const utils = require('../utils');
 const abi = require('./abis/abi.json');
 const { request, gql } = require('graphql-request');

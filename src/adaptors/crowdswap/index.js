@@ -1,6 +1,6 @@
 const utils = require('../utils');
 const data = require('./farms');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const superagent = require('superagent');
 const BigNumber = require('bignumber.js');
 
