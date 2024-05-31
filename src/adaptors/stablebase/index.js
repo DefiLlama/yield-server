@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const Web3 = require('web3');
 const superagent = require('superagent');
 const { masterChefABI, lpABI } = require('./abis');
