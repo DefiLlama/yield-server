@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const axios = require('axios');
 
 const utils = require('../utils');
@@ -113,6 +113,7 @@ const apy = async () => {
       calls: gauges.map((i) => ({ target: i })),
       chain,
       abi: abiGauge.find((i) => i.name === 'rewardRate'),
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
