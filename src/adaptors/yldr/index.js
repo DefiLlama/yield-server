@@ -1,5 +1,5 @@
 const { abi } = require('./abi');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { calculateAPY } = require('./utils');
 const BigNumber = require('bignumber.js');
 const utils = require('../utils');
