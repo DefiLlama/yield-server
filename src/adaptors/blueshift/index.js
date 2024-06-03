@@ -196,7 +196,8 @@ async function farming(
       tvl.toString()
     );
     fixBalances(balances);
-    tvlUsd = (await sdk.util.computeTVL(balances, 'now')).usdTvl;
+    // tvlUsd = (await sdk.util.computeTVL(balances, 'now')).usdTvl;
+    tvlUsd = 0;
 
     const aprBase = rewardedFee / tvlUsd;
     const aprReward = rewardedStake / tvlUsd;
@@ -347,7 +348,7 @@ async function poolsApy(chain) {
     BLUES_PRICE
   );
 
-  return [...farmingPools, ...stakingPools];
+  return [...farmingPools, ...stakingPools].filter((i) => utils.keepFinite(i));
 }
 
 module.exports = {
