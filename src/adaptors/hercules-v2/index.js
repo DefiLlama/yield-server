@@ -1,5 +1,5 @@
 const { request, gql } = require('graphql-request');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const masterchefAbi = require('./masterchef');
 const stakingPositionAbi = require('./stakingPosition');
 const factoryAbi = require('./factory');
@@ -13,7 +13,8 @@ const TORCH = '0xbB1676046C36BCd2F6fD08d8f60672c7087d9aDF';
 
 const utils = require('../utils');
 
-const url = 'https://metisapi.0xgraph.xyz/subgraphs/name/amm-subgraph-andromeda/';
+const url =
+  'https://metisapi.0xgraph.xyz/subgraphs/name/amm-subgraph-andromeda/';
 
 const query = gql`
   {

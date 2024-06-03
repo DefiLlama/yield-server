@@ -96,6 +96,11 @@ const excludeAdaptors = [
   'neutra-finance',
   'insuredao',
   'barnbridge',
+  'homora-v2',
+  'jelly',
+  'mahalend',
+  'mixswap-finance',
+  'muuu-finance',
 ];
 
 const excludePools = [

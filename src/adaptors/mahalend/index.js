@@ -1,6 +1,6 @@
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 
 const utils = require('../utils');
 const { aTokenAbi } = require('../aave-v3/abi');
@@ -209,7 +209,6 @@ const apy = async () => {
 
     return chainPools;
   });
-
   return pools.flat().filter((p) => !!p.tvlUsd);
 };
 

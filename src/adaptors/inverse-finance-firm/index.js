@@ -1,6 +1,6 @@
 const ethers = require('ethers');
 const ethersProviders = require('@ethersproject/providers');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const superagent = require('superagent');
 const BigNumber = require('bignumber.js');
 const utils = require('../utils');

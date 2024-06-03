@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const BigNumber = require('bignumber.js');
 const utils = require('../utils');
 const _ = require("lodash");
@@ -286,7 +286,7 @@ async function apy() {
     }
   }
 
-  return poolAprList;
+  return poolAprList.filter(i => utils.keepFinite(i))
 }
 
 module.exports = {

@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const superagent = require('superagent');
 const utils = require('../utils');
 abi = require("./abis.json");

@@ -1,6 +1,5 @@
 const axios = require('axios');
-const { getProvider } = require('@defillama/sdk/build/general');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const ethers = require('ethers');
 const utils = require('../utils');
 
