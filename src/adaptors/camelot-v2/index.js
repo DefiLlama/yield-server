@@ -1,5 +1,5 @@
 const { request, gql } = require('graphql-request');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const masterchefAbi = require('./masterchef');
 const stakingPositionAbi = require('./stakingPosition');
 const factoryAbi = require('./factory');

@@ -1,6 +1,6 @@
 const utils = require('../utils');
 const { default: BigNumber } = require('bignumber.js');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const marketDataABI = require('./abi');
 
 const marketConfig = {

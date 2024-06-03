@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 
 const pearlPair = require('./abis/Pair.json');

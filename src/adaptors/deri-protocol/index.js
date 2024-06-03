@@ -1,6 +1,6 @@
 const utils = require('../utils');
 const abi = require('./abi.js');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 
 const pools = [
   {

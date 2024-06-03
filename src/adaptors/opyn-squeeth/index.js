@@ -1,5 +1,5 @@
 const { request, gql } = require('graphql-request');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const utils = require('../utils');
 const { zenBullAbi, eulerSimpleLens } = require('./abi');

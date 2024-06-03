@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const cellarAbi = require('./cellar-v2p5.json');
 const v2 = require('./v2');
 

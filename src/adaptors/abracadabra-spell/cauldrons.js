@@ -2,7 +2,7 @@ const {
   utils: { formatEther, formatUnits },
 } = require('ethers');
 const _ = require('lodash');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const utils = require('../utils');
 const MARKET_LENS_ABI = require('./abis/MarketLens.json');

@@ -1,5 +1,5 @@
 const { default: BigNumber } = require('bignumber.js');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const cellarAbi = require('./cellar-v2.json');
 const { endOfYesterday, subDays } = require('date-fns');
 const utils = require('../utils');

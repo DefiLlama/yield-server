@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const marketPlace = '0xcd1D02fDa51CD24123e857CE94e4356D5C073b3f';

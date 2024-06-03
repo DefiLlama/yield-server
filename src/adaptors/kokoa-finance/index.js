@@ -1,6 +1,6 @@
 const utils = require('../utils');
 const ethers = require('ethers');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 
 const LP_Mapping = {
   '0x029e2A1B2bb91B66bd25027E1C211E5628dbcb93': 'oETH-oUSDT',

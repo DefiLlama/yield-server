@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 
 const oracleAbi = require('../abi/oracleAbi');
 const lineAbi = require('../abi/lineAbi');

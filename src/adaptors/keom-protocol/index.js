@@ -8,7 +8,7 @@ const {
   rewardsManagerABI,
 } = require('./Abis');
 const { PROVIDERS } = require('./Provider');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const decimals = ethers.utils.parseEther('1');
 const BN = ethers.BigNumber.from;

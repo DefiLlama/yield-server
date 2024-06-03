@@ -1,5 +1,5 @@
 const superagent = require('superagent');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const { liquidityMiningV2Abi } = require('./abiV2');
 
 const LP_STATS_ETHEREUM_URL =
