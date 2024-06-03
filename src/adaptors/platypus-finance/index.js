@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const axios = require('axios');
 const { gql, request } = require('graphql-request');
 
@@ -44,6 +44,7 @@ const apy = async () => {
       })),
       abi: abiMasterPlatypusV4.find((m) => m.name === 'poolInfo'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -54,6 +55,7 @@ const apy = async () => {
       target: Voter,
       abi: abiVoter.find((m) => m.name === 'ptpPerSec'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output;
 
@@ -62,6 +64,7 @@ const apy = async () => {
       target: Voter,
       abi: abiVoter.find((m) => m.name === 'totalWeight'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output;
 
@@ -70,6 +73,7 @@ const apy = async () => {
       calls: lpTokens.map((lpToken) => ({ target: Voter, params: [lpToken] })),
       abi: abiVoter.find((m) => m.name === 'weights'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -78,6 +82,7 @@ const apy = async () => {
       target: MasterPlatypusV4,
       abi: abiMasterPlatypusV4.find((m) => m.name === 'dilutingRepartition'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output;
 
@@ -86,6 +91,7 @@ const apy = async () => {
       calls: lpTokens.map((lpToken) => ({ target: lpToken })),
       abi: abiLP.find((m) => m.name === 'underlyingToken'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -96,6 +102,7 @@ const apy = async () => {
       })),
       abi: 'erc20:symbol',
       chain: 'avax',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -106,6 +113,7 @@ const apy = async () => {
       })),
       abi: abiLP.find((m) => m.name === 'totalSupply'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -116,6 +124,7 @@ const apy = async () => {
       })),
       abi: abiLP.find((m) => m.name === 'decimals'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -127,6 +136,7 @@ const apy = async () => {
       })),
       abi: abiBoostedMultiRewarder.find((m) => m.name === 'poolInfo'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 

@@ -1,6 +1,6 @@
 const utils = require('../utils');
 const BigNumber = require('bignumber.js');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { default: axios } = require('axios');
 const {
   getTotalCdpSharesUSD,

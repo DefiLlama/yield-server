@@ -1,6 +1,6 @@
 // Copied from aave v3
 const superagent = require('superagent');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 
 const utils = require('../utils');
 const { aTokenAbi } = require('../aave-v3/abi');
@@ -167,7 +167,8 @@ const apy = async () => {
     (p) => p.symbol === 'DAI' && p.chain === 'Ethereum'
   );
   ethereumDaiPool.totalSupplyUsd = Number(ilk.line) / 1e45;
-  ethereumDaiPool.tvlUsd = ethereumDaiPool.totalSupplyUsd - ethereumDaiPool.totalBorrowUsd;
+  ethereumDaiPool.tvlUsd =
+    ethereumDaiPool.totalSupplyUsd - ethereumDaiPool.totalBorrowUsd;
 
   return v3Pools;
 };

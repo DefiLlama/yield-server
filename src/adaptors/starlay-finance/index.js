@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const axios = require('axios');
 const utils = require('../utils');
 const abi = require('./abi.json');
@@ -114,5 +114,5 @@ const getApy = async () => {
 
 module.exports = {
   apy: getApy,
-  url: 'https://starlay.finance/app/markets'
+  url: 'https://starlay.finance/app/markets',
 };

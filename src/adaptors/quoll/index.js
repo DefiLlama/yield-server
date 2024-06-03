@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const {BigNumber, FixedFormat, FixedNumber} = require('@ethersproject/bignumber');
 const utils = require('../utils');
 const abi = require('./abi.json');

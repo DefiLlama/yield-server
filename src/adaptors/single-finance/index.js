@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const utils = require('../utils');
 const superagent = require('superagent');
 
@@ -366,7 +366,7 @@ const apy = async () => {
     ...fantomSpookyPools,
     ...arbitrumSushiPools,
     ...arbitrumCamelotPools,
-  ];
+  ].filter(i => utils.keepFinite(i));
 };
 
 module.exports = {

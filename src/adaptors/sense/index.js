@@ -4,7 +4,7 @@ const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 const { format } = require('date-fns');
 const { default: BigNumber } = require('bignumber.js');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 
 const graphEndpoint =
   'https://api.thegraph.com/subgraphs/name/sense-finance/sense-v1';

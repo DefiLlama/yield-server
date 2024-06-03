@@ -101,6 +101,12 @@ const excludeAdaptors = [
   'mahalend',
   'mixswap-finance',
   'muuu-finance',
+  'orbitalswap',
+  'securo-finance',
+  'sharpe-magnum',
+  'stella',
+  'teahouse-managed',
+  'thegoblins',
 ];
 
 const excludePools = [

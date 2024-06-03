@@ -2,7 +2,7 @@ const superagent = require('superagent');
 
 const utils = require('../utils');
 const pools = require('./pools.json');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const abi = require('./abi.json');
 const abiDataProvider = require('./abiDataProvider.json');
 

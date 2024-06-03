@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { request, gql } = require('graphql-request');
 const axios = require('axios');
 
@@ -98,6 +98,7 @@ const topLvl = async (
       abi: 'erc20:balanceOf',
       calls: balanceCalls,
       chain: chainString,
+      permitFailure: true,
     });
 
     const gauges = (
@@ -108,6 +109,7 @@ const topLvl = async (
         })),
         abi: abiVoter.find((m) => m.name === 'gauges'),
         chain: 'arbitrum',
+        permitFailure: true,
       })
     ).output.map((o) => o.output);
 
@@ -119,6 +121,7 @@ const topLvl = async (
         })),
         abi: abiGauge.find((m) => m.name === 'rewardRate'),
         chain: 'arbitrum',
+        permitFailure: true,
       })
     ).output.map((o) => o.output);
 
@@ -129,6 +132,7 @@ const topLvl = async (
         })),
         abi: abiPair.find((m) => m.name === 'boostedLiquidity'),
         chain: 'arbitrum',
+        permitFailure: true,
       })
     ).output.map((o) => o.output);
 

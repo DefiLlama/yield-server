@@ -3,8 +3,7 @@ const axios = require('axios');
 const ethers = require('ethers');
 const {abi} = require("./ABI")
 const {vaultAbi} = require("./vaultAbi")
-const sdk = require('@defillama/sdk');
-const { ChainId, Token, Fetcher } = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const fetch = require('node-fetch');
 
 async function fetchSmaApr() {

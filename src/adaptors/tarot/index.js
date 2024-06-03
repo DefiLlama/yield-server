@@ -38,7 +38,7 @@ const { tryUntilSucceed } = require('../../helper/utils');
 const abi = require('./abi');
 const SECONDS_IN_YEAR = BigNumber(365).times(24).times(3600);
 const protocolSlug = 'tarot';
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { getChainTransform } = require('../../helper/transform');
 const { getProvider } = require('@defillama/sdk/build/general');
 const config = {
@@ -81,6 +81,7 @@ const getAllLendingPools = async (factory, chain, block) => {
       chain,
       block,
       requery: true,
+      permitFailure: true,
     })
   );
   // get all of the lending pools from the factory contract
@@ -95,6 +96,7 @@ const getAllLendingPools = async (factory, chain, block) => {
       chain,
       block,
       requery: true,
+      permitFailure: true,
     })
   );
   const lendingPoolAddresses = lendingPoolsResults.map((i) => i.output);
@@ -112,6 +114,7 @@ const getAllLendingPools = async (factory, chain, block) => {
       chain,
       block,
       requery: true,
+      permitFailure: true,
     })
   );
   const lendingPoolsDetails = getLendingPools.map((i) => i.output);
@@ -123,6 +126,7 @@ const getAllLendingPools = async (factory, chain, block) => {
       chain,
       block,
       requery: true,
+      permitFailure: true,
     })
   );
   const token0s = token0sResults.map((i) => i.output);
@@ -133,6 +137,7 @@ const getAllLendingPools = async (factory, chain, block) => {
       chain,
       block,
       requery: true,
+      permitFailure: true,
     })
   );
   const token1s = token1sResults.map((i) => i.output);
@@ -144,6 +149,7 @@ const getAllLendingPools = async (factory, chain, block) => {
       chain,
       block,
       requery: true,
+      permitFailure: true,
     })
   );
   const lendingPoolDecimals = lendingPoolDecimalsResults.map((i) => i.output);
@@ -154,6 +160,7 @@ const getAllLendingPools = async (factory, chain, block) => {
       abi: abi.getReserves,
       chain,
       block,
+      permitFailure: true,
     })
   );
   const lendingPoolReserves = getReservesResults.map((i) => {

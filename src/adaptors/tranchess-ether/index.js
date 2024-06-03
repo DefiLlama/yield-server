@@ -1,5 +1,5 @@
 const utils = require('../utils');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const abi = require('./abi.json');
 
 const ethFund = '0x69c53679EC1C06f3275b64C428e8Cd069a2d3966'; // ETH V2 Fund (ETH mainnet)

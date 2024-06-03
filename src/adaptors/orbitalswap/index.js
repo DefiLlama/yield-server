@@ -1,5 +1,5 @@
 const utils = require('../utils');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { default: BigNumber } = require('bignumber.js');
 const superagent = require('superagent');
 const masterChefABI = require('./abis/masterchef.json');
@@ -236,7 +236,7 @@ const getApy = async () => {
     });
   }
 
-  return poolsApy;
+  return poolsApy.filter((i) => utils.keepFinite(i));
 };
 
 module.exports = {

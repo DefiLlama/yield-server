@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const superagent = require('superagent');
 const { abi } = require('./abi');
 const { CHAIN_IDS, DEAD_ADDRESS, ROLES, SECONDS_PER_YEAR, APY_REWARD_BONUS, config, addressEq, getPoolUrl } = require('./utils')

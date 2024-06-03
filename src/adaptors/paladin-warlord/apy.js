@@ -1,6 +1,6 @@
 const axios = require('axios');
 const ethers = require('ethers');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { warLockerAbi } = require('./abi/WarLocker');
 const { warRedeemerAbi } = require('./abi/WarRedeemer');
 const { getTotalPricePerToken, fetchRewardStates } = require('./utils');

@@ -1,5 +1,5 @@
 const utils = require('../utils');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 
 const { token0, token1, name } = require('./abi');
 
@@ -13,6 +13,7 @@ const makeCall = async (targets, abi) => {
       abi,
       calls: targets.map((target) => ({ target })),
       chain: 'aurora',
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };

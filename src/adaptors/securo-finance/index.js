@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const abiLci = require('./abiLci.json');
 
 const config = {

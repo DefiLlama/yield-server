@@ -1,5 +1,5 @@
 const { gql, request } = require('graphql-request');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const utils = require('../utils');
 const superagent = require('superagent');
 
@@ -102,7 +102,7 @@ const getPools = async () => {
     });
     pools.push(...chainPools);
   }
-  return pools;
+  return pools.filter((i) => utils.keepFinite(i));
 };
 
 module.exports = {

@@ -1,5 +1,5 @@
 const { default: BigNumber } = require('bignumber.js');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const BIG_10 = new BigNumber(10);
 
 const utils = require('../utils');

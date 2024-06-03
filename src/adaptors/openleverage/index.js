@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const erc20 = require("./abis/erc20.json");
 const LPool = require("./abis/LPool.json");
 const OplContract = require("./abis/OplContract.json");

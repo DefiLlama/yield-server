@@ -1,5 +1,5 @@
 const { gql, default: request } = require('graphql-request');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const liquidityRegistry = require('./abis/liquidityRegistryAbi.json');
 const vaultManager = require('./abis/vaultManagerAbi.json');
 const utils = require('../utils');

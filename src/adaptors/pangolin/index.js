@@ -1,5 +1,5 @@
 const { request, gql } = require('graphql-request');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const axios = require('axios');
 
 const utils = require('../utils');
