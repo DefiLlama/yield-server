@@ -1,5 +1,5 @@
 const utils = require('../utils');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 
 const ALPHA1_V1_CONTRACT = '0xdE4133f0CFA1a61Ba94EC64b6fEde4acC1fE929E';

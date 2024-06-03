@@ -1,5 +1,5 @@
 const utils = require('../utils');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const factoryAbi = require('./abis/factory.json');
 const pairAbi = require('./abis/pair.json');
 const tokenAbi = require('./abis/token.json');

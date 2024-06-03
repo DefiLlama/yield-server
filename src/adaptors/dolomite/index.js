@@ -1,6 +1,6 @@
 const dolomiteMarginAbi = require('./dolomite-margin-abi.js');
 const isolationModeAbi = require('./isolation-mode-token-abi.js');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 
 const DOLOMITE_MARGIN_ADDRESS_MAP = {
   arbitrum: '0x6Bd780E7fDf01D77e4d475c821f1e7AE05409072',

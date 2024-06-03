@@ -1,6 +1,6 @@
 const { default: BigNumber } = require('bignumber.js');
 const superagent = require('superagent');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const HOUR = 60 * 60;
 const DAY = 24 * HOUR;
 const SECONDS_PER_YEAR = 365 * DAY;

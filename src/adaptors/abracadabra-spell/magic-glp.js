@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const ERC4626 = require('./abis/ERC4626.json');

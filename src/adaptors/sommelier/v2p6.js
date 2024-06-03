@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const { v2p6Pools } = require('./config');
 const v2 = require('./v2');
 

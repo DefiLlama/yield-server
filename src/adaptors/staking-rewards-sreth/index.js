@@ -1,6 +1,6 @@
 const { BigNumber, constants, utils } = require('ethers');
 const { request, gql } = require('graphql-request');
-const { api } = require("@defillama/sdk5");
+const { api } = require("@defillama/sdk");
 
 // endpoints
 const subgraphUrl = "https://api.studio.thegraph.com/query/41372/spool-v2_mainnet/version/latest";

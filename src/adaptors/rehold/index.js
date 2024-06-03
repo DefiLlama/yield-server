@@ -1,5 +1,5 @@
 const BN = require('bignumber.js');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const DualV1 = require('./abis/v1/Dual.json');
 const DualV2 = require('./abis/v2/Dual.json');

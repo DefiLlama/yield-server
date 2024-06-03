@@ -11,7 +11,7 @@ const { default: BigNumber } = require('bignumber.js');
 const savingsPoolABI = require('./abis/savings_pool_abi.json');
 const savingsPlusPoolAbi = require('./abis/savings_plus_pool_abi.json');
 
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 
 const projectName = 'mover';
 

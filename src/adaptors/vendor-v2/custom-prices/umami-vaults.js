@@ -1,6 +1,6 @@
 const axios = require('axios');
 const { ethers } = require('ethers');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 
 exports.getUmamiVaultSharePrice = async (vaultAddress, network) => {
   const symbol = (

@@ -1,5 +1,5 @@
 const superagent = require('superagent');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const BigNumber = require('bignumber.js');
 
 const abi = require('./abi');

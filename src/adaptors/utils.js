@@ -2,7 +2,7 @@ const superagent = require('superagent');
 const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const { chunk } = require('lodash');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 
 exports.formatChain = (chain) => {

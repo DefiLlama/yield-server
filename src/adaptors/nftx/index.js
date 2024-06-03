@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { request, gql } = require('graphql-request');
 const uniswapV2PairAbi = require('./abis/UniswapV2Pair.json');

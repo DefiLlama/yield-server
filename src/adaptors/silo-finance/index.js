@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const BigNumber = require('bignumber.js');
 const ethers = require('ethers');

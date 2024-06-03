@@ -2,7 +2,7 @@ const axios = require('axios');
 const ethers = require('ethers');
 const utils = require('../utils');
 
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 
 const CHAINS = {
   bsc: 'bsc',

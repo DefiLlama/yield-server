@@ -1,5 +1,5 @@
 const { ContractAddresses, crvBaseApyUrl } = require('./address');
-const { api } = require('@defillama/sdk5');
+const { api } = require('@defillama/sdk');
 const { ContractAbis } = require('./abi');
 const {
   TokenPriceAcquireMethode,

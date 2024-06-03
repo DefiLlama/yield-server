@@ -2,7 +2,7 @@ const {
   utils: { formatUnits, formatEther },
 } = require('ethers');
 const ContractAbi = require('./abi');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const {
   PREMIA_MINING_CONTRACT_ADDRESS,
   PREMIA_TOKEN_ADDRESS,

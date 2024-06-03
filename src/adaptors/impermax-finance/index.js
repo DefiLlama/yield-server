@@ -5,8 +5,8 @@ const { tryUntilSucceed } = require('../../helper/utils');
 const abi = require('./abi');
 const SECONDS_IN_YEAR = BigNumber(365).times(24).times(3600);
 const protocolSlug = 'impermax-finance';
-const sdk = require('@defillama/sdk5');
-const { getProvider } = require('@defillama/sdk5/build/general');
+const sdk = require('@defillama/sdk');
+const { getProvider } = require('@defillama/sdk/build/general');
 const { da } = require('date-fns/locale');
 const { pool } = require('../rocifi-v2/abi');
 

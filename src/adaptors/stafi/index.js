@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const token = '0x9559aaa82d9649c7a7b220e7c461d2e74c9a3593';

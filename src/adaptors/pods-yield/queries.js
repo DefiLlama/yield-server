@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const abi = require('./abi.json');
 
 const convertToAssets = async (strategy, position, block = 'latest') => {

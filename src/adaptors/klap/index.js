@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 
 const abiLendingPool = require('./abiLendingPool.json');

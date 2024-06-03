@@ -1,6 +1,6 @@
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const abi_masterchef = require('./abi_masterchef');

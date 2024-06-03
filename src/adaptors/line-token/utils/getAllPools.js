@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 
 const lineAbi = require('../abi/lineAbi');
 const { LINE_CONTRACT_ADDRESS, CHAIN } = require('../config');

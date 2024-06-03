@@ -1,6 +1,6 @@
 const axios = require('axios');
 const { utils: { formatUnits }, BigNumber } = require('ethers');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const MULTI_REWARDS_STAKING = require('./abis/MultiRewardsStaking.json');
 const SECONDS_PER_YEAR = 31536000;

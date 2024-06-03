@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const { gql, default: request } = require('graphql-request');
 const fetch = require('node-fetch');
 const { ethers } = require('ethers');

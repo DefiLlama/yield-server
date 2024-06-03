@@ -1,6 +1,6 @@
 const utils = require('../utils');
 const Web3 = require('web3');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 require('dotenv').config({ path: './config.env' });
 const bribePotAbi = require('./bribePotAbi.json');

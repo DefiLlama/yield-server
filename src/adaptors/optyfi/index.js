@@ -1,6 +1,6 @@
 const superagent = require('superagent');
 const axios = require('axios');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const { default: BigNumber } = require('bignumber.js');

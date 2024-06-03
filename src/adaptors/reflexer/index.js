@@ -1,5 +1,5 @@
 const { default: BigNumber } = require('bignumber.js');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { request, gql } = require('graphql-request');
 

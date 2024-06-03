@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 const TROVE_MANAGER_ADDRESS = '0x7A47cF15a1fCbAd09c66077d1D021430eed7AC65';

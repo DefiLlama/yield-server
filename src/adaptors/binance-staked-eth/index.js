@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const wbeth = '0xa2E3356610840701BDf5611a53974510Ae27E2e1';

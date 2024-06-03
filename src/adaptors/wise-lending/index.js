@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const { ethers } = require('ethers');
 const Web3 = require('web3');
 const wiseLendingABI = require('./abi/wiseLendingABI.json');
