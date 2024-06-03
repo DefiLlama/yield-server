@@ -1,5 +1,5 @@
 const superagent = require('superagent');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const abi = require('./abi.js');
 
 const main = async () => {
