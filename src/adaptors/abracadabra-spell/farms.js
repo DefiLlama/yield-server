@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const superagent = require('superagent');
 const utils = require('../utils');
 const SORBETTIERE_ABI = require('./abis/Sorbettiere.json');
@@ -10,6 +10,7 @@ const makeCall = async (targets, abi) => {
       abi,
       calls: targets.map((target) => ({ target })),
       chain: 'aurora',
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -60,6 +61,7 @@ const getApy = async () => {
             target: POOLS[chain].pool,
             abi: SORBETTIERE_ABI.find(({ name }) => name === 'icePerSecond'),
             chain,
+            permitFailure: true,
           })
         ).output
     )
@@ -73,6 +75,7 @@ const getApy = async () => {
             target: POOLS[chain].pool,
             abi: SORBETTIERE_ABI.find(({ name }) => name === 'poolLength'),
             chain,
+            permitFailure: true,
           })
         ).output
     )
@@ -86,9 +89,9 @@ const getApy = async () => {
             params: idx,
             target: POOLS[chain].pool,
           })),
-
           abi: SORBETTIERE_ABI.find(({ name }) => name === 'poolInfo'),
           chain,
+          permitFailure: true,
         })
       ).output.map(({ output }) => output)
     )
@@ -103,6 +106,7 @@ const getApy = async () => {
           })),
           abi: 'erc20:totalSupply',
           chain,
+          permitFailure: true,
         })
       ).output.map(({ output }) => output)
     )
@@ -117,6 +121,7 @@ const getApy = async () => {
           })),
           abi: 'erc20:symbol',
           chain,
+          permitFailure: true,
         })
       ).output.map(({ output }) => output)
     )
@@ -131,6 +136,7 @@ const getApy = async () => {
           })),
           abi: UNISWAP_V2_PAIR_ABI.find(({ name }) => name === 'token0'),
           chain,
+          permitFailure: true,
         })
       ).output.map(({ output }) => output)
     )
@@ -144,6 +150,7 @@ const getApy = async () => {
           })),
           abi: UNISWAP_V2_PAIR_ABI.find(({ name }) => name === 'token1'),
           chain,
+          permitFailure: true,
         })
       ).output.map(({ output }) => output)
     )
@@ -158,6 +165,7 @@ const getApy = async () => {
           })),
           abi: 'erc20:symbol',
           chain,
+          permitFailure: true,
         })
       ).output.map(({ output }) => output)
     )
@@ -171,6 +179,7 @@ const getApy = async () => {
           })),
           abi: 'erc20:symbol',
           chain,
+          permitFailure: true,
         })
       ).output.map(({ output }) => output)
     )
@@ -185,6 +194,7 @@ const getApy = async () => {
           })),
           abi: UNISWAP_V2_PAIR_ABI.find(({ name }) => name === 'getReserves'),
           chain,
+          permitFailure: true,
         })
       ).output.map(({ output }) => output)
     )

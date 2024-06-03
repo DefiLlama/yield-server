@@ -1,4 +1,3 @@
-const { util } = require('@defillama/sdk');
 const { gql, request } = require('graphql-request');
 const config = require('./config.js');
 

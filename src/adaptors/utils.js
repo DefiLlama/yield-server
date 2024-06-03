@@ -2,7 +2,7 @@ const superagent = require('superagent');
 const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const { chunk } = require('lodash');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { default: BigNumber } = require('bignumber.js');
 
 exports.formatChain = (chain) => {
@@ -425,6 +425,7 @@ const makeMulticall = async (abi, addresses, chain, params = null) => {
       params,
     })),
     chain,
+    permitFailure: true,
   });
 
   const res = data.output.map(({ output }) => output);

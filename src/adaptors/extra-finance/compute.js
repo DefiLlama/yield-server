@@ -3,7 +3,6 @@ const superagent = require('superagent');
 const BigNumber = require("bignumber.js");
 const { default: computeTVL } = require('@defillama/sdk/build/computeTVL');
 const utils = require('../utils');
-const { unwrapUniswapLPs } = require('../../helper/unwrapLPs');
 const { getAllVeloPools } = require('./contract')
 
 function toDecimals(bn, decimals = 18) {

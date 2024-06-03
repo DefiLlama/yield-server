@@ -1,7 +1,7 @@
 const superagent = require('superagent');
 const Web3 = require('web3');
 const ethers = require('ethers');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 
 const {
   UMAMI_SYNTH_GM_VAULTS,

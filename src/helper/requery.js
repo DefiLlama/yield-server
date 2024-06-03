@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 
 async function requery(resultsRaw, chain, block, abi) {
     const results = resultsRaw.output;

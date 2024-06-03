@@ -1,6 +1,6 @@
 const Web3 = require('web3');
 const { default: BigNumber } = require('bignumber.js');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { request, gql } = require('graphql-request');
 
 const { masterChefABI, lpTokenABI } = require('./abis');
@@ -178,6 +178,7 @@ const main = async () => {
     })),
     chain: 'cronos',
     requery: true,
+    permitFailure: true,
   });
 
   const nonLpPools = [0, 23];
@@ -198,6 +199,7 @@ const main = async () => {
           params: method === 'balanceOf' ? [MASTERCHEF_ADDRESS] : null,
         })),
         chain: 'cronos',
+        permitFailure: true,
         ...(method !== 'getReserves' ? { requery: true } : {}),
       })
     )

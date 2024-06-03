@@ -1,7 +1,7 @@
 const axios = require('axios');
 const utils = require('../utils');
 const BigNumber = require('bignumber.js');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { ethABI, polygonABI } = require('./abis');
 const API_URL = 'https://api.zcx.com/private/apr/current';
 const ZCX = '0xc52c326331e9ce41f04484d3b5e5648158028804';

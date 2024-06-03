@@ -107,6 +107,12 @@ const excludeAdaptors = [
   'stella',
   'teahouse-managed',
   'thegoblins',
+  'unlockd',
+  'valas-finance',
+  'veplus',
+  'whaleswap',
+  'y2k-v2',
+  'zest-protocol',
 ];
 
 const excludePools = [

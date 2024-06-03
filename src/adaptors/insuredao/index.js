@@ -10,7 +10,6 @@ const {
   sumTokens,
   sumTokensAndLPs,
   unwrapCrv,
-  unwrapUniswapLPs,
   genericUnwrapCvx,
 } = require('../../helper/unwrapLPs');
 
