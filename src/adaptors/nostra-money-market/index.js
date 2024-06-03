@@ -142,7 +142,7 @@ const markets = {
   },
 };
 const starknetFoundationIncentivesEndpoint =
-  'https://kx58j6x5me.execute-api.us-east-1.amazonaws.com/starknet/fetchFile?file=qa_lending_strk_grant.json';
+  'https://kx58j6x5me.execute-api.us-east-1.amazonaws.com/starknet/fetchFile?file=prod-api/lending/lending_strk_grant.json';
 
 async function getTokenPrice(token) {
   const networkTokenPair = `starknet:${token}`;
@@ -216,10 +216,11 @@ async function apy() {
           symbol: name,
           chain: 'Starknet',
           apyBase: lendingApy,
-          apyReward: tokenIncentive
-            ? 100 *
-              tokenIncentive[tokenIncentive.length - 1]['strk_grant_apr_nrs']
-            : 0,
+          apyReward:
+            tokenIncentive && tokenIncentive.length > 0
+              ? 100 *
+                tokenIncentive[tokenIncentive.length - 1]['strk_grant_apr_nrs']
+              : 0,
           rewardTokens: tokenIncentive ? [markets.STRK.address] : [],
           tvlUsd: totalSupplyUsd - totalBorrowUsd,
           underlyingTokens: [address],
