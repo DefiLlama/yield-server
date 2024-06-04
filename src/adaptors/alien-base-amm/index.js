@@ -14,7 +14,6 @@ const utils = require('../utils');
 const getPoolDetails = async (block, poolInfo, chainString) => {
   const poolDetails = [];
 
-  // console.log(poolInfo);
   for (let i = 0; i < poolInfo.length; i++) {
     // SKIP LP OF ALB STANDALONE
     console.log(poolInfo[i].lpToken);
@@ -36,6 +35,11 @@ const getPoolDetails = async (block, poolInfo, chainString) => {
         '0xcdEF05048602aA758fCa3E33B964397f904b87a9',
         '0xfA52C8902519e4Da95C3C520039C676d5bD4d9a2',
         '0x6e00F103616dc8e8973920a3588b853Ce4ef011C',
+        '0x8fC786FdA48A24C9EcDbf6409F9709Aa8a62d1Af',
+        '0x67979Dcc55e01d799C3FbA8198f9B39E6f42Da33',
+        '0x22584e946e51e41D8A0002111b1bd9d5d8406cE9',
+        '0xBC33B469Fd0292B2e2B6FC037bdF27617263e91E',
+        '0x7bFA42A4331aC8901c68390aA72a2e29f25A47d0',
       ].includes(poolInfo[i].lpToken)
     ) {
       const token0Id = (
