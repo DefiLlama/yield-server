@@ -542,6 +542,7 @@ async function getTokensData(chain, pools) {
   return result;
 }
 function calcApyV3(info, supply, rewardPrice) {
+  if (!info) return 0;
   const now = BigInt(Math.floor(Date.now() / 1e3));
   if (info.finished <= now) {
     return 0;
