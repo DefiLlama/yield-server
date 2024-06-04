@@ -116,6 +116,7 @@ const excludeAdaptors = [
   'pembrock-finance',
   'yieldlend',
   'iron-bank',
+  'swapr-v2',
 ];
 
 const excludePools = [
