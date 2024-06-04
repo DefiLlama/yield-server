@@ -111,7 +111,7 @@ async function getApy(pool, info, prices) {
   return apy;
 }
 
-async function gePoolsInfo() {
+async function getPoolsInfo() {
   const poolsInfo = {};
   for (const pool of Object.values(pools)) {
     const poolAddress = pool.address;
