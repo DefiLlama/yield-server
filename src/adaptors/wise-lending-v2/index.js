@@ -103,7 +103,7 @@ const getTokenData = async (chain, token, address, wiseSecurity, wiseLending) =>
     const totalBorrowUsd = totalBorrow * usdPrice.price;
 
     return {
-      pool: `${address[token]}-${chain}`,
+      pool: `${address[token]}-${projectSlug}-${chain}`,
       chain: ChainName[chain],
       project: projectSlug,
       symbol: usdPrice.symbol,
