@@ -113,6 +113,9 @@ const excludeAdaptors = [
   'whaleswap',
   'y2k-v2',
   'zest-protocol',
+  'pembrock-finance',
+  'yieldlend',
+  'iron-bank',
 ];
 
 const excludePools = [
