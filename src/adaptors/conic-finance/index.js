@@ -6,6 +6,7 @@ const inflationManagerAbi = require('./abis/conic-inflation-manager-abi.json');
 const { getProvider } = require('@defillama/sdk/build/general');
 const { Contract, BigNumber } = require('ethers');
 const provider = getProvider('ethereum');
+const sdk = require('@defillama/sdk');
 
 const BLOCKS_PER_YEAR = 2580032;
 
@@ -40,28 +41,9 @@ const CURVE_POOL_DATA = {
 
 const blockNumber = async () => provider.getBlockNumber();
 
-const contract = (a, abi) => new Contract(a, abi, provider);
-
-const addresses = async () => contract(CONTROLLER, controllerAbi).listPools();
-
-const inflationRate = async () => {
-  return contract(
-    INFLATION_MANAGER,
-    inflationManagerAbi
-  ).currentInflationRate();
-};
-
 const symbol = async (a) => contract(a, erc20Abi).symbol();
 
 const decimals = async (a) => contract(a, erc20Abi).decimals();
-
-const underlying = async (a) => contract(a, poolAbi).underlying();
-
-const totalUnderlying = async (a) => contract(a, poolAbi).totalUnderlying();
-
-const weights = async (a) => contract(a, poolAbi).getWeights();
-
-const exchangeRate = async (a) => contract(a, poolAbi).exchangeRate();
 
 const bnToNum = (bn, dec = 18) => Number(bn.toString()) / 10 ** dec;
 
@@ -184,12 +166,80 @@ const pools = async (addresses_) => {
 };
 
 const conicApy = async () => {
-  const addresses_ = await addresses();
-  const [pools_, inflationRate_, cncPrice_] = await Promise.all([
-    pools(addresses_),
-    inflationRate(),
-    priceCoin(CNC),
-  ]);
+  const addresses_ = (
+    await sdk.api.abi.call({
+      target: CONTROLLER,
+      abi: controllerAbi.find((m) => m.name === 'listPools'),
+    })
+  ).output;
+
+  const inflationRate_ = (
+    await sdk.api.abi.call({
+      target: INFLATION_MANAGER,
+      abi: inflationManagerAbi.find((m) => m.name === 'currentInflationRate'),
+    })
+  ).output;
+
+  const underlying = (
+    await sdk.api.abi.multiCall({
+      calls: addresses_.map((i) => ({
+        target: i,
+      })),
+      abi: poolAbi.find((m) => m.name === 'underlying'),
+    })
+  ).output.map((o) => o.output);
+
+  const priceKeys = underlying.map((i) => `ethereum:${i}`).join(',');
+  const prices = (await utils.getData(`${PRICE_API}${priceKeys}`)).coins;
+
+  const symbols = (
+    await sdk.api.abi.multiCall({
+      calls: underlying.map((i) => ({
+        target: i,
+      })),
+      abi: 'erc20:symbol',
+    })
+  ).output.map((o) => o.output);
+
+  const decimals = (
+    await sdk.api.abi.multiCall({
+      calls: underlying.map((i) => ({
+        target: i,
+      })),
+      abi: 'erc20:decimals',
+    })
+  ).output.map((o) => o.output);
+
+  const totalUnderlying = (
+    await sdk.api.abi.multiCall({
+      calls: addresses_.map((i) => ({
+        target: i,
+      })),
+      abi: poolAbi.find((m) => m.name === 'totalUnderlying'),
+    })
+  ).output.map((o) => o.output);
+
+  const weights = (
+    await sdk.api.abi.multiCall({
+      calls: addresses_.map((i) => ({
+        target: i,
+      })),
+      abi: poolAbi.find((m) => m.name === 'getWeights'),
+    })
+  ).output.map((o) => o.output);
+
+  const exchangeRate = (
+    await sdk.api.abi.multiCall({
+      calls: addresses_.map((i) => ({
+        target: i,
+      })),
+      abi: poolAbi.find((m) => m.name === 'exchangeRate'),
+    })
+  ).output.map((o) => o.output);
+
+  const blockNumber = (await sdk.util.blocks.getBlock('ethereum')).block;
+
+  const cncPrice_ = await priceCoin(CNC);
 
   const cncUsdPerYear = bnToNum(inflationRate_) * cncPrice_ * 365 * 86400;
   const totalTvl = pools_.reduce((total, pool_) => {
