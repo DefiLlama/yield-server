@@ -227,7 +227,7 @@ async function apy() {
           apyBaseBorrow: borrowApy,
           totalSupplyUsd,
           totalBorrowUsd,
-          url: `https://app.nostra.finance/asset/${name}`,
+          url: `https://app.nostra.finance/lend-borrow/${name}/deposit`,
         };
       }
     )
