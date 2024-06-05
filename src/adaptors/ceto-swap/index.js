@@ -191,7 +191,7 @@ async function getPoolsInfo() {
   for (const pool of Object.values(pools)) {
     const poolAddress = pool.address;
     const info = poolsInfo[poolAddress.toLowerCase()];
-    const [symbol0, symbol1] = await Promise.all([
+    const [{ output: symbol0 }, { output: symbol1 }] = await Promise.all([
       sdk.api.abi.call({
         target: info.token0,
         chain: 'manta',
@@ -212,7 +212,7 @@ async function getPoolsInfo() {
     const tvl0BN = price0.times(token0ReservesBN);
     const tvl1BN = price0.times(token0ReservesBN);
     const tvlUsd = tvl0BN.plus(tvl1BN).toNumber();
-    tvl[pool] = {
+    tvl[poolAddress] = {
       pool: poolAddress,
       chain: utils.formatChain('manta'),
       project: PROJECT_SLUG,
@@ -224,7 +224,7 @@ async function getPoolsInfo() {
   const res = [];
   for (const pool of Object.values(pools)) {
     const poolAddress = pool.address;
-    const currentTvl = tvl[pool];
+    const currentTvl = tvl[poolAddress];
     const info = poolsInfo[poolAddress.toLowerCase()];
     const apy = await getApy(pool, info, prices);
     res.push({
