@@ -1,4 +1,4 @@
-const { gql, request} = require('./graphql-request');
+const { gql, request} = require('graphql-request');
 const { avax } = require('./config.js');
 const { ethers } = require('ethers');
 const { getPrices } = require('../utils');
