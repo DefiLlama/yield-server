@@ -154,7 +154,7 @@ async function calculateTVL(poolAssets) {
     return tvl;
 }
 
-const provider = new ethers.JsonRpcProvider(avax.rpcUrl);
+const provider = new ethers.providers.JsonRpcProvider(avax.rpcUrl);
 
 const rewarderABI = [
     {
