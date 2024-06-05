@@ -113,7 +113,8 @@ const poolsFunction = async () => {
         const tokens = await sdk.api.abi.multiCall({
             calls: calls,
             abi: rootVault.find(({ name }) => name === 'vaultTokens'),
-            chain: name
+            chain: name,
+            permitFailure: true
         });
 
         tokens.output.forEach(tokensI => {
@@ -137,24 +138,28 @@ const poolsFunction = async () => {
             abi: 'erc20:decimals',
             calls: Array.from(allTokens.values()).map((token) => ({ target: token })), 
             chain: name,
+            permitFailure: true
         });
 
         const symbols = await sdk.api.abi.multiCall({
             abi: 'erc20:symbol',
             calls: Array.from(allTokens.values()).map((token) => ({ target: token })), 
             chain: name,
+            permitFailure: true
         });
 
         const tvls = await sdk.api.abi.multiCall({
             calls: calls,
             abi: rootVault.find(({ name }) => name === 'tvl'),
-            chain: name
+            chain: name,
+            permitFailure: true
         });
 
         const supplys = await sdk.api.abi.multiCall({
             calls: calls,
             abi: rootVault.find(({ name }) => name === 'totalSupply'),
-            chain: name
+            chain: name,
+            permitFailure: true
         });
 
         let decimalsKTV = {};
@@ -195,14 +200,16 @@ const poolsFunction = async () => {
                 calls: calls,
                 abi: rootVault.find(({ name }) => name === 'tvl'),
                 chain: name,
-                block: blockStart
+                block: blockStart,
+                permitFailure: true
             });
 
             let oldSupply = await sdk.api.abi.multiCall({
                 calls: calls,
                 abi: rootVault.find(({ name }) => name === 'totalSupply'),
                 chain: name,
-                block: blockStart
+                block: blockStart,
+                permitFailure: true
             });
 
             while (!oldTvls.output[0].success) {
@@ -210,7 +217,8 @@ const poolsFunction = async () => {
                     calls: calls,
                     abi: rootVault.find(({ name }) => name === 'tvl'),
                     chain: name,
-                    block: blockStart
+                    block: blockStart,
+                    permitFailure: true
                 });
             }
 
@@ -219,7 +227,8 @@ const poolsFunction = async () => {
                     calls: calls,
                     abi: rootVault.find(({ name }) => name === 'totalSupply'),
                     chain: name,
-                    block: blockStart
+                    block: blockStart,
+                    permitFailure: true
                 });
             }
 
@@ -243,7 +252,8 @@ const poolsFunction = async () => {
                 const finish = await sdk.api.abi.multiCall({
                     calls: calls,
                     abi: farm.find(({ name }) => name === 'periodFinish'),
-                    chain: name
+                    chain: name,
+                    permitFailure: true
                 });
 
                 if (finish.output[0].output > currentTimestamp) {
@@ -251,19 +261,22 @@ const poolsFunction = async () => {
                     const currentReward = await sdk.api.abi.multiCall({
                         calls: calls,
                         abi: farm.find(({ name }) => name === 'getRewardForDuration'),
-                        chain: name
+                        chain: name,
+                        permitFailure: true
                     });
 
                     const currentDuration = await sdk.api.abi.multiCall({
                         calls: calls,
                         abi: farm.find(({ name }) => name === 'rewardsDuration'),
-                        chain: name
+                        chain: name,
+                        permitFailure: true
                     });
 
                     rewardToken = await sdk.api.abi.multiCall({
                         calls: calls,
                         abi: farm.find(({ name }) => name === 'rewardsToken'),
-                        chain: name
+                        chain: name,
+                        permitFailure: true
                     });
 
                     rewardToken = rewardToken.output[0].output
