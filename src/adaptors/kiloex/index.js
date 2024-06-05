@@ -22,6 +22,12 @@ const chains = {
     decimals: 18,
     kUSDT: '0x1c3f35F7883fc4Ea8C4BCA1507144DC6087ad0fb',
     apyEndpoint: 'https://api.kiloex.io/common/queryKiloNewVaultApyHistory'
+  },
+  taiko: {
+    USDT: '0x07d83526730c7438048D55A4fc0b850e2aaB6f0b',
+    decimals: 6,
+    kUSDT: '0x735D00A9368164B9dcB2e008d5Cd15b367649aD5',
+    apyEndpoint: 'https://taikoapi.kiloex.io/common/queryKiloNewVaultApyHistory'
   }
 };
 
@@ -48,7 +54,7 @@ const getApy = async () => {
         chain,
         project: 'kiloex',
         pool: y.USDT,
-        symbol: 'USDT',
+        symbol: chain === 'taiko' ? 'USDC' : 'USDT',
         tvlUsd: balance,
         apyBase: apr.apy * 100,
         underlyingTokens: [y.USDT],
