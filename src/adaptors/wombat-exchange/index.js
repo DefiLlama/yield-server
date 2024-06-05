@@ -1,5 +1,7 @@
+const { util } = require('@defillama/sdk');
 const { gql, request } = require('graphql-request');
 const config = require('./config.js');
+const { GGP } = require('./GGP.js');
 
 const prevBlockQuery = gql`
   query Blocks($timestamp_lte: BigInt = "") {
@@ -48,6 +50,8 @@ const aprQuery = gql`
     }
   }
 `;
+
+
 
 const oneDay = 86400;
 
@@ -105,6 +109,8 @@ const apy = async () => {
       });
     });
   }
+  const ggpResult = await GGP();
+  apy_export = apy_export.concat(ggpResult);
 
   // remove dupes on lptoken
   return apy_export.filter(
