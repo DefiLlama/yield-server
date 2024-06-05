@@ -8,7 +8,7 @@
   "license": "ISC",
   "dependencies": {
     "@balancer-labs/sdk": "^1.1.5",
-    "@defillama/sdk": "^5.0.60",
+    "@defillama/sdk": "^5.0.61",
     "@types/jest": "^28.1.6",
     "@uniswap/sdk-core": "^3.0.1",
     "@uniswap/smart-order-router": "^2.8.0",
