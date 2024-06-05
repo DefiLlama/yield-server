@@ -1,10 +1,10 @@
-const Web3 = require('web3');
 const LPAbi = require('./abi/LP.json');
 const ERC20Abi = require('./abi/ERC20.json');
 const MasterChefAbi = require('./abi/MasterChef.json');
 const ERC20MasterChefAbi = require('./abi/ERC20MasterChef.json');
 const utils = require('../utils');
 const BigNumber = require('bignumber.js');
+const sdk = require('@defillama/sdk');
 
 const pools = {
   usdex_plus_usdc: {
@@ -50,8 +50,6 @@ const PROJECT_SLUG = 'ceto-swap'
 const MASTERCHEF_ADDRESS = '0x78343ABFC1381D4358161c2f73Fc0990CCD5cbE0';
 const BLOCKS_PER_YEAR = 31536000;
 
-const web3 = new Web3('https://pacific-rpc.manta.network/http');
-
 function setPrices(prices, info) {
   const tokenPrice0 = prices[info.token0.toLowerCase()]
   const tokenPrice1 = info.token1.toLowerCase() === TOKEN.USDC ? 1 : prices[info.token1.toLowerCase()]
@@ -69,18 +67,34 @@ function setPrices(prices, info) {
 }
 
 async function getLpTotalAmount(pool, quoteToken) {
-  const contractErc20MasterChef = new web3.eth.Contract(ERC20MasterChefAbi, quoteToken);
-  const contractLp = new web3.eth.Contract(ERC20MasterChefAbi, pool.address);
   const [
-    quoteTokenBlanceLP,
-    lpTokenBalanceMC,
-    lpTotalSupply,
-    quoteTokenDecimals
+    { output: quoteTokenBlanceLP },
+    { output: lpTokenBalanceMC },
+    { output: lpTotalSupply },
+    { output: quoteTokenDecimals }
   ] = await Promise.all([
-    contractErc20MasterChef.methods.balanceOf(pool.address).call(),
-    contractLp.methods.balanceOf(MASTERCHEF_ADDRESS).call(),
-    contractLp.methods.totalSupply().call(),
-    contractErc20MasterChef.methods.decimals().call(),
+    sdk.api.abi.call({
+      target: quoteToken,
+      chain: 'manta',
+      abi: ERC20MasterChefAbi[0],
+      params: [pool.address]
+    }),
+    sdk.api.abi.call({
+      target: pool.address,
+      chain: 'manta',
+      abi: ERC20MasterChefAbi[0],
+      params: [MASTERCHEF_ADDRESS]
+    }),
+    sdk.api.abi.call({
+      target: pool.address,
+      chain: 'manta',
+      abi: ERC20MasterChefAbi[2],
+    }),
+    sdk.api.abi.call({
+      target: quoteToken,
+      chain: 'manta',
+      abi: ERC20MasterChefAbi[1],
+    }),
   ]);
   const lpTokenRatio = new BigNumber(lpTokenBalanceMC).div(lpTotalSupply);
   const lpTotal = new BigNumber(quoteTokenBlanceLP)
@@ -91,11 +105,27 @@ async function getLpTotalAmount(pool, quoteToken) {
 }
 
 async function getApy(pool, info, prices) {
-  const contractMasterChef = new web3.eth.Contract(MasterChefAbi, MASTERCHEF_ADDRESS);
-  const [poolInfo, totalAllocPoint, sharesPerSecond] = await Promise.all([
-    contractMasterChef.methods.poolInfo(pool.pid).call(),
-    contractMasterChef.methods.totalAllocPoint().call(),
-    contractMasterChef.methods.sharesPerSecond().call(),
+  const [
+    { output: poolInfo },
+    { output: totalAllocPoint },
+    { output: sharesPerSecond }
+  ] = await Promise.all([
+    sdk.api.abi.call({
+      target: MASTERCHEF_ADDRESS,
+      chain: 'manta',
+      abi: MasterChefAbi[0],
+      params: [pool.pid]
+    }),
+    sdk.api.abi.call({
+      target: MASTERCHEF_ADDRESS,
+      chain: 'manta',
+      abi: MasterChefAbi[1],
+    }),
+    sdk.api.abi.call({
+      target: MASTERCHEF_ADDRESS,
+      chain: 'manta',
+      abi: MasterChefAbi[2],
+    }),
   ])
   const allocPoint = new BigNumber(poolInfo[1].toString());
   const poolWeight = allocPoint.div(new BigNumber(totalAllocPoint));
@@ -115,13 +145,38 @@ async function getPoolsInfo() {
   const poolsInfo = {};
   for (const pool of Object.values(pools)) {
     const poolAddress = pool.address;
-    const contract = new web3.eth.Contract(LPAbi, poolAddress);
-    const [totalSupply, reserves, token0, token1, decimals] = await Promise.all([
-      contract.methods.totalSupply().call(),
-      contract.methods.getReserves().call(),
-      contract.methods.token0().call(),
-      contract.methods.token1().call(),
-      contract.methods.decimals().call(),
+    const [
+      { output: totalSupply },
+      { output: reserves },
+      { output: token0 },
+      { output: token1 },
+      { output: decimals }
+    ] = await Promise.all([
+      sdk.api.abi.call({
+        target: poolAddress,
+        chain: 'manta',
+        abi: LPAbi[0],
+      }),
+      sdk.api.abi.call({
+        target: poolAddress,
+        chain: 'manta',
+        abi: LPAbi[1],
+      }),
+      sdk.api.abi.call({
+        target: poolAddress,
+        chain: 'manta',
+        abi: LPAbi[2],
+      }),
+      sdk.api.abi.call({
+        target: poolAddress,
+        chain: 'manta',
+        abi: LPAbi[3],
+      }),
+      sdk.api.abi.call({
+        target: poolAddress,
+        chain: 'manta',
+        abi: LPAbi[4],
+      }),
     ])
     poolsInfo[poolAddress.toLowerCase()] = {
       totalSupply,
@@ -136,11 +191,17 @@ async function getPoolsInfo() {
   for (const pool of Object.values(pools)) {
     const poolAddress = pool.address;
     const info = poolsInfo[poolAddress.toLowerCase()];
-    const contract0 = new web3.eth.Contract(ERC20Abi, info.token0);
-    const contract1 = new web3.eth.Contract(ERC20Abi, info.token1);
     const [symbol0, symbol1] = await Promise.all([
-      contract0.methods.symbol().call(),
-      contract1.methods.symbol().call(),
+      sdk.api.abi.call({
+        target: info.token0,
+        chain: 'manta',
+        abi: ERC20Abi[0],
+      }),
+      sdk.api.abi.call({
+        target: info.token1,
+        chain: 'manta',
+        abi: ERC20Abi[0],
+      })
     ])
     const symbol = `${symbol0}/${symbol1}`;
     setPrices(prices, info);
