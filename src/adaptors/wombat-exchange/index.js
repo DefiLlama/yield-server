@@ -11,7 +11,7 @@ const prevBlockQuery = gql`
     blocks(
       first: 1
       orderBy: timestamp
-      orderDirection: desca
+      orderDirection: desc
       where: { timestamp_lte: $timestamp_lte }
     ) {
       number
