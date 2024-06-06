@@ -194,8 +194,6 @@ async function apy() {
   return Promise.all(promises)
 }
 
-apy();
-
 module.exports = {
   apy,
   url: 'https://app.hashstack.finance',
