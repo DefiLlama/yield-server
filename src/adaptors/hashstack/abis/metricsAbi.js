@@ -76,7 +76,7 @@ const metrics = [
       {
         name: 'token_address',
         offset: 22,
-        type: 'felt',
+        type: 'address',
       },
     ],
     name: 'Market_Info',
@@ -90,4 +90,5 @@ metrics.forEach((i) => (metricsAbi[i.name] = i));
 
 module.exports = {
   metricsAbi,
+  metrics
 };
