@@ -34,6 +34,7 @@ const networkMapping = {
   5000: 'mantle',
   7700: 'canto',
   8453: 'base',
+  34443: "mode",
   42161: 'arbitrum',
   42220: 'celo',
   42262: 'oasis',
