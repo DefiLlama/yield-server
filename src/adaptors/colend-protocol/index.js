@@ -5,7 +5,7 @@ const utils = require('../utils');
 const { aTokenAbi } = require('../aave-v3/abi');
 const poolAbi = require('../aave-v3/poolAbi');
 
-const chain = 'CORE';
+const chain = 'core';
 // PoolDataProvider
 const target = '0x567AF83d912C85c7a66d093e41D92676fA9076E3';
 
