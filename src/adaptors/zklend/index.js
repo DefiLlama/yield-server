@@ -10,6 +10,7 @@ const market =
   '0x4c0a5193d58f74fbace4b74dcf65481e734ed1714121bdc571da345540efa05';
 const REWARD_API = `https://app.zklend.com/api/pools`;
 const STRK = `0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d`;
+const ZEND = `0x00585c32b625999e6e5e78645ff8df7a9001cf5cf3eb6b80ccdd16cb64bd3a34`;
 
 const assets = [
   {
@@ -54,6 +55,11 @@ const assets = [
       '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d',
     decimals: 18,
   },
+  {
+    name: 'ZEND',
+    address: `0x00585c32b625999e6e5e78645ff8df7a9001cf5cf3eb6b80ccdd16cb64bd3a34`,
+    decimals: 18,
+  }
 ];
 
 const getTokenPrice = async (token) => {
@@ -165,8 +171,12 @@ const apy = async () => {
     if (name.toUpperCase() in tokenSymbolToRewardApyPercent) {
       rewardInfo = {
         apyReward: tokenSymbolToRewardApyPercent[name.toUpperCase()],
-        rewardTokens: [STRK],
       };
+      if (name === 'ZEND') {
+        rewardInfo.rewardTokens = [ZEND];
+      } else {
+        rewardInfo.rewardTokens = [STRK];
+      }
     }
 
     return {
