@@ -2,9 +2,6 @@ const utils = require('../utils');
 
 const API_URL = 'https://mainnet-api.ekubo.org';
 
-const STRK_TOKEN_ADDRESS =
-  '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d';
-
 function getPrice({
   t,
   pricesUSDC,
@@ -45,6 +42,8 @@ async function apy() {
     utils.getData(`${API_URL}/price/STRK/USDC?period=21600`),
     utils.getData(`${API_URL}/price/ETH/USDC?period=21600`),
   ]);
+
+  const strkToken = tokens.find((t) => t.symbol === 'STRK');
 
   return pairData.topPairs
     .map((p) => {
@@ -100,7 +99,7 @@ async function apy() {
         chain: 'Starknet',
         project: 'ekubo',
         symbol: `${token0.symbol}-${token1.symbol}`,
-        rewardTokens: [STRK_TOKEN_ADDRESS],
+        rewardTokens: apyReward ? [strkToken.l2_token_address] : [],
         underlyingTokens: [token0.l2_token_address, token1.l2_token_address],
         tvlUsd,
         apyBase,
