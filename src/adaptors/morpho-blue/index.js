@@ -149,10 +149,14 @@ async function fetchBlueMarkets(chainId) {
           const rewardTokens = market.state.rewards
             .map((reward) => reward.asset.address)
             .filter((address) => address !== MORPHO_TOKEN_ADDRESS);
-          const apyReward =
-            (market.state.netSupplyApy || 0) - (market.state.supplyApy || 0);
-          const apyRewardBorrow =
-            (market.state.netBorrowApy || 0) - (market.state.borrowApy || 0);
+          const apyReward = Math.max(
+            0,
+            (market.state.netSupplyApy || 0) - (market.state.supplyApy || 0)
+          );
+          const apyRewardBorrow = Math.max(
+            0,
+            (market.state.netBorrowApy || 0) - (market.state.borrowApy || 0)
+          );
           const pool = {
             pool: `morpho-blue-${market.uniqueKey}`,
             chain: chainId === 1 ? 'ethereum' : 'base',
