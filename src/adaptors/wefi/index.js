@@ -1,5 +1,5 @@
 const superagent = require('superagent');
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { comptrollerAbi, ercDelegator } = require('./abi');
 
@@ -15,8 +15,8 @@ const PROJECT_NAME = 'wefi';
 
 const markets = [
   {
-    chain: "xdc",
-    comptrollerAddress: "0x301C76e7b60e9824E32991B8F29e1c4a03B4F65b",
+    chain: 'xdc',
+    comptrollerAddress: '0x301C76e7b60e9824E32991B8F29e1c4a03B4F65b',
     blocksPerDay: 43200,
     nativeToken: {
       decimals: 18,
@@ -27,11 +27,11 @@ const markets = [
       decimals: 18,
       symbol: 'XDC',
       address: '0x49d3f7543335cf38Fa10889CCFF10207e22110B5'.toLowerCase(),
-    }
+    },
   },
   {
-    chain: "linea",
-    comptrollerAddress: "0x301C76e7b60e9824E32991B8F29e1c4a03B4F65b",
+    chain: 'linea',
+    comptrollerAddress: '0x301C76e7b60e9824E32991B8F29e1c4a03B4F65b',
     blocksPerDay: 14400,
     nativeToken: {
       decimals: 18,
@@ -42,11 +42,11 @@ const markets = [
       decimals: 18,
       symbol: 'WEFI',
       address: '0x60892e742d91d16Be2cB0ffE847e85445989e30B'.toLowerCase(),
-    }
+    },
   },
   {
-    chain: "polygon",
-    comptrollerAddress: "0x1eDf64B621F17dc45c82a65E1312E8df988A94D3",
+    chain: 'polygon',
+    comptrollerAddress: '0x1eDf64B621F17dc45c82a65E1312E8df988A94D3',
     blocksPerDay: 37565,
     nativeToken: {
       decimals: 18,
@@ -57,9 +57,9 @@ const markets = [
       decimals: 18,
       symbol: 'WEFI',
       address: '0xfFA188493C15DfAf2C206c97D8633377847b6a52'.toLowerCase(),
-    }
-  }
-]
+    },
+  },
+];
 
 const getPrices = async (addresses) => {
   const prices = (
@@ -135,7 +135,11 @@ const main = async (pool) => {
   ).output.map((o) => o.output);
 
   const rewardSpeed = await getRewards(allMarkets, REWARD_SPEED, pool);
-  const rewardSpeedBorrow = await getRewards(allMarkets, REWARD_SPEED_BORROW, pool);
+  const rewardSpeedBorrow = await getRewards(
+    allMarkets,
+    REWARD_SPEED_BORROW,
+    pool
+  );
   const isPaused = await getRewards(allMarkets, 'mintGuardianPaused', pool);
   const supplyRewards = await multiCallMarkets(
     allMarkets,
@@ -191,9 +195,12 @@ const main = async (pool) => {
       .map((token) => `${pool.chain}:` + token)
   );
 
-  if(pool.chain === "linea"){
-    const wefiPrice = await getPrices(['polygon:0xfFA188493C15DfAf2C206c97D8633377847b6a52']);
-    prices["0x60892e742d91d16be2cb0ffe847e85445989e30b"] = wefiPrice["0xffa188493c15dfaf2c206c97d8633377847b6a52"]
+  if (pool.chain === 'linea') {
+    const wefiPrice = await getPrices([
+      'polygon:0xfFA188493C15DfAf2C206c97D8633377847b6a52',
+    ]);
+    prices['0x60892e742d91d16be2cb0ffe847e85445989e30b'] =
+      wefiPrice['0xffa188493c15dfaf2c206c97d8633377847b6a52'];
   }
   const pools = allMarkets.map((market, i) => {
     const token = underlyingTokens[i] || pool.nativeToken.address;
@@ -212,7 +219,7 @@ const main = async (pool) => {
     const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18, pool);
 
     const calcRewardApy = (rewards, denom, pool) => {
-      if(denom === 0) return 0;
+      if (denom === 0) return 0;
       return (
         (((rewards[i] / 10 ** pool.protocolToken.decimals) *
           pool.blocksPerDay *
@@ -224,7 +231,11 @@ const main = async (pool) => {
     };
 
     const apyReward = calcRewardApy(rewardSpeed, totalSupplyUsd, pool);
-    const apyRewardBorrow = calcRewardApy(rewardSpeedBorrow, totalBorrowUsd, pool);
+    const apyRewardBorrow = calcRewardApy(
+      rewardSpeedBorrow,
+      totalBorrowUsd,
+      pool
+    );
 
     let poolReturned = {
       pool: `${market.toLowerCase()}-${pool.chain}`,
@@ -233,9 +244,12 @@ const main = async (pool) => {
       symbol,
       tvlUsd,
       apyBase,
-      apyReward: pool.chain === "polygon" ? 0 : apyReward,
+      apyReward: pool.chain === 'polygon' ? 0 : apyReward,
       underlyingTokens: [token],
-      rewardTokens: pool.chain !== "polygon" ? [apyReward ? pool.protocolToken.address : null].filter(Boolean) : [],
+      rewardTokens:
+        pool.chain !== 'polygon'
+          ? [apyReward ? pool.protocolToken.address : null].filter(Boolean)
+          : [],
     };
     if (isPaused[i] === false) {
       poolReturned = {
@@ -243,16 +257,14 @@ const main = async (pool) => {
         totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow,
-        apyRewardBorrow: pool.chain === "polygon" ? 0 : apyRewardBorrow,
+        apyRewardBorrow: pool.chain === 'polygon' ? 0 : apyRewardBorrow,
         ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
       };
     }
     return poolReturned;
   });
 
-  return pools.filter(
-    (p) => p.totalBorrowUsd !== 0 || p.apyReward !== 0
-  );
+  return pools.filter((p) => p.totalBorrowUsd !== 0 || p.apyReward !== 0);
 };
 
 const apy = async () => {

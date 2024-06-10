@@ -1,7 +1,7 @@
 const superagent = require('superagent');
 
 const abi = require('./abi.js');
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk');
 
 const markets = [
   {
@@ -48,7 +48,7 @@ const markets = [
     address: '0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf',
     symbol: 'cUSDbCv3',
     underlying: '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
-    underlyingSymbol: 'USDC',
+    underlyingSymbol: 'USDbC',
     rewardToken: '0x9e1028F5F1D5eDE59748FFceE5532509976840E0',
     chain: 'base',
   },
@@ -57,6 +57,14 @@ const markets = [
     symbol: 'cWETHv3',
     underlying: '0x4200000000000000000000000000000000000006',
     underlyingSymbol: 'WETH',
+    rewardToken: '0x9e1028F5F1D5eDE59748FFceE5532509976840E0',
+    chain: 'base',
+  },
+  {
+    address: '0xb125E6687d4313864e53df431d5425969c15Eb2F',
+    symbol: 'cUSDCv3',
+    underlying: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
+    underlyingSymbol: 'USDC',
     rewardToken: '0x9e1028F5F1D5eDE59748FFceE5532509976840E0',
     chain: 'base',
   },
@@ -220,7 +228,10 @@ const main = async (pool) => {
   return [
     ...collateralOnlyPools,
     {
-      pool: pool.address === "0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf"?`${pool.address}-${pool.chain}`:pool.address, // Fix for duplicated pool id
+      pool:
+        pool.address === '0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf'
+          ? `${pool.address}-${pool.chain}`
+          : pool.address, // Fix for duplicated pool id
       symbol: pool.underlyingSymbol,
       chain: pool.chain.charAt(0).toUpperCase() + pool.chain.slice(1),
       project: 'compound-v3',

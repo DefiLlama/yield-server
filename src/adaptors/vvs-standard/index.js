@@ -178,6 +178,7 @@ const main = async () => {
     })),
     chain: 'cronos',
     requery: true,
+    permitFailure: true,
   });
 
   const nonLpPools = [0, 23];
@@ -198,6 +199,7 @@ const main = async () => {
           params: method === 'balanceOf' ? [MASTERCHEF_ADDRESS] : null,
         })),
         chain: 'cronos',
+        permitFailure: true,
         ...(method !== 'getReserves' ? { requery: true } : {}),
       })
     )

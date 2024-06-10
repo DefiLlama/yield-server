@@ -1,7 +1,6 @@
 const utils = require('../utils');
 const { request, gql } = require('graphql-request');
 const dayjs = require('dayjs');
-const { util, api } = require('@defillama/sdk');
 
 const graphQuery = () => gql`
   {

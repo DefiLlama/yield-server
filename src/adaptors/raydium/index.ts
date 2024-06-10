@@ -1,5 +1,4 @@
 const utils = require('../utils');
-const sdk = require('@defillama/sdk');
 
 const API_URL = 'https://api.raydium.io/v2/main/pairs';
 

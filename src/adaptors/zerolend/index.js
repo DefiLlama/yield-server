@@ -1,6 +1,6 @@
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
-const sdk = require('@defillama/sdk3');
+const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const { aTokenAbi } = require('../aave-v3/abi');
@@ -9,7 +9,29 @@ const poolAbi = require('../aave-v3/poolAbi');
 const SECONDS_PER_YEAR = 31536000;
 
 const chainUrlParam = {
-  zksync_era: 'proto_zksync_era_v3',
+  linea: 'proto_linea_v3',
+  ethereum: 'proto_mainnet_lrt_v3',
+  era: 'proto_zksync_era_v3',
+};
+
+const oraclePriceABI = {
+  inputs: [
+    {
+      internalType: 'address',
+      name: 'asset',
+      type: 'address',
+    },
+  ],
+  name: 'getAssetPrice',
+  outputs: [
+    {
+      internalType: 'uint256',
+      name: '',
+      type: 'uint256',
+    },
+  ],
+  stateMutability: 'view',
+  type: 'function',
 };
 
 const getPrices = async (addresses) => {
@@ -21,11 +43,34 @@ const getPrices = async (addresses) => {
     )
   ).body.coins;
 
+  const zeroPrice = (
+    await sdk.api.abi.call({
+      target: '0x1cc993f2C8b6FbC43a9bafd2A44398E739733385',
+      abi: oraclePriceABI,
+      params: ['0x3db28e471fa398bf2527135a1c559665941ee7a3'],
+      chain: 'ethereum',
+    })
+  ).output;
+
   const earlyZero = {
     'era:0x9793eac2fecef55248efa039bec78e82ac01cb2f': {
       decimals: 18,
       symbol: 'earlyZERO',
-      price: 0.000003,
+      price: Number(zeroPrice) / 1e8,
+      timestamp: Date.now(),
+      confidence: 0.99,
+    },
+    'linea:0x40a59a3f3b16d9e74c811d24d8b7969664cfe180': {
+      decimals: 18,
+      symbol: 'earlyZERO',
+      price: Number(zeroPrice) / 1e8,
+      timestamp: Date.now(),
+      confidence: 0.99,
+    },
+    'ethereum:0x3db28e471fa398bf2527135a1c559665941ee7a3': {
+      decimals: 18,
+      symbol: 'earlyZERO',
+      price: Number(zeroPrice) / 1e8,
       timestamp: Date.now(),
       confidence: 0.99,
     },
@@ -53,6 +98,10 @@ const getPrices = async (addresses) => {
 };
 
 const API_URLS = {
+  ethereum:
+    'https://api.studio.thegraph.com/query/65585/zerolend-ethereum-lrt-market/version/latest',
+  linea:
+    'https://api.studio.thegraph.com/query/65585/zerolend-linea-market/version/latest',
   era: 'https://api.studio.thegraph.com/query/49970/zerolend/version/latest',
 };
 
@@ -168,7 +217,8 @@ const apy = async () => {
           (rew.emissionsPerSecond / 10 ** rew.rewardTokenDecimals) *
             SECONDS_PER_YEAR *
             (pricesByAddress[rew.rewardToken] ||
-              pricesBySymbol[rew.rewardTokenSymbol]),
+              pricesBySymbol[rew.rewardTokenSymbol] ||
+              0),
         0
       );
 
@@ -179,7 +229,8 @@ const apy = async () => {
           (rew.emissionsPerSecond / 10 ** rew.rewardTokenDecimals) *
             SECONDS_PER_YEAR *
             (pricesByAddress[rew.rewardToken] ||
-              pricesBySymbol[rew.rewardTokenSymbol]),
+              pricesBySymbol[rew.rewardTokenSymbol] ||
+              0),
         0
       );
       let totalBorrowUsd = totalSupplyUsd - tvlUsd;
@@ -190,7 +241,7 @@ const apy = async () => {
 
       return {
         pool: `${pool.aToken.id}-${chain}`.toLowerCase(),
-        chain: utils.formatChain('zksync_era'),
+        chain: utils.formatChain(chain),
         project: 'zerolend',
         symbol: pool.symbol,
         tvlUsd,
@@ -220,11 +271,7 @@ const apy = async () => {
     return chainPools;
   });
 
-  console.log(pools);
   return pools.flat().filter((p) => !!p.tvlUsd);
 };
 
-module.exports = {
-  timetravel: false,
-  apy: apy,
-};
+module.exports = { timetravel: false, apy };

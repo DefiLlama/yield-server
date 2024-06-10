@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk3');
+const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const BigNumber = require('bignumber.js');
 

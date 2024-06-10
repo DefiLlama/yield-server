@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk');
 
 module.exports.makeMulticall = async ({ abi, calls, chain }) => {
   const data = await sdk.api.abi.multiCall({

@@ -69,6 +69,7 @@ const getRewards = async (markets, rewardMethod) => {
         params: [i, market, false],
       })),
       abi: comptrollerAbi.find(({ name }) => name === rewardMethod),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -79,6 +80,7 @@ const multiCallMarkets = async (markets, method, abi) => {
       chain: CHAIN,
       calls: markets.map((market) => ({ target: market })),
       abi: abi.find(({ name }) => name === method),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -89,6 +91,7 @@ const main = async () => {
       target: UNITROLLER_ADDRESS,
       chain: CHAIN,
       abi: comptrollerAbi.find(({ name }) => name === GET_ALL_MARKETS),
+      permitFailure: true,
     })
   ).output;
   const allMarkets = Object.values(allMarketsRes);
@@ -101,6 +104,7 @@ const main = async () => {
         target: UNITROLLER_ADDRESS,
         params: [m],
       })),
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -112,6 +116,7 @@ const main = async () => {
         params: [UNITROLLER_ADDRESS, market],
       })),
       abi: auriLensAbi.find(({ name }) => name === 'getRewardSpeeds'),
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 

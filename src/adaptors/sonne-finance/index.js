@@ -4,9 +4,19 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { comptrollerAbi, ercDelegator, distributorAbi } = require('./abi');
 
-const COMPTROLLER_ADDRESS = '0x60CF091cD3f50420d50fD7f707414d0DF4751C58';
-const REWARD_DISTRIBUTOR = '0x60CF091cD3f50420d50fD7f707414d0DF4751C58';
-const CHAIN = 'optimism';
+const CHAINS = {
+  optimism: {
+    COMPTROLLER_ADDRESS: '0x60CF091cD3f50420d50fD7f707414d0DF4751C58',
+    REWARD_DISTRIBUTOR: '0x60CF091cD3f50420d50fD7f707414d0DF4751C58',
+    SONNE: '0x1db2466d9f5e10d7090e7152b68d62703a2245f0',
+  },
+  base: {
+    COMPTROLLER_ADDRESS: '0x1DB2466d9F5e10D7090E7152B68d62703a2245F0',
+    REWARD_DISTRIBUTOR: '0x1DB2466d9F5e10D7090E7152B68d62703a2245F0',
+    SONNE: '0x22a2488fE295047Ba13BD8cCCdBC8361DBD8cf7c',
+  },
+};
+
 const GET_ALL_MARKETS = 'getAllMarkets';
 const SUPPLY_RATE = 'supplyRatePerBlock';
 const BORROW_RATE = 'borrowRatePerBlock';
@@ -26,23 +36,18 @@ const NATIVE_TOKEN = {
   address: '0x4200000000000000000000000000000000000006'.toLowerCase(),
 };
 
-const PROTOCOL_TOKEN = {
-  decimals: 18,
-  symbol: 'SONNE',
-  address: '0x1db2466d9f5e10d7090e7152b68d62703a2245f0'.toLowerCase(),
-};
-
-const getRewards = async (markets, isBorrow) => {
+const getRewards = async (markets, isBorrow, chain) => {
   return (
     await sdk.api.abi.multiCall({
-      chain: CHAIN,
+      chain,
       calls: markets.map((market) => ({
-        target: REWARD_DISTRIBUTOR,
+        target: CHAINS[chain].REWARD_DISTRIBUTOR,
         params: [market],
       })),
       abi: distributorAbi.find(
         ({ name }) => name === (isBorrow ? BORROW_SPEEDS : REWARD_SPEEDS)
       ),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -76,88 +81,104 @@ const calculateApy = (ratePerTimestamps) => {
   );
 };
 
-const multiCallMarkets = async (markets, method, abi) => {
+const multiCallMarkets = async (markets, method, abi, chain) => {
   return (
     await sdk.api.abi.multiCall({
-      chain: CHAIN,
+      chain,
       calls: markets.map((market) => ({ target: market })),
       abi: abi.find(({ name }) => name === method),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
 
-const lendingApy = async () => {
+const lendingApy = async (chain) => {
+  const COMPTROLLER_ADDRESS = CHAINS[chain].COMPTROLLER_ADDRESS;
+
   const allMarketsRes = (
     await sdk.api.abi.call({
       target: COMPTROLLER_ADDRESS,
-      chain: CHAIN,
+      chain,
       abi: comptrollerAbi.find(({ name }) => name === GET_ALL_MARKETS),
+      permitFailure: true,
     })
   ).output;
 
   const allMarkets = Object.values(allMarketsRes);
 
+  if (!allMarkets.length) return [];
+
   const marketsInfo = (
     await sdk.api.abi.multiCall({
-      chain: CHAIN,
+      chain,
       calls: allMarkets.map((market) => ({
         target: COMPTROLLER_ADDRESS,
         params: market,
       })),
       abi: comptrollerAbi.find(({ name }) => name === 'markets'),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 
   const supplyRewards = await multiCallMarkets(
     allMarkets,
     SUPPLY_RATE,
-    ercDelegator
+    ercDelegator,
+    chain
   );
 
   const borrowRewards = await multiCallMarkets(
     allMarkets,
     BORROW_RATE,
-    ercDelegator
+    ercDelegator,
+    chain
   );
 
-  const distributeRewards = await getRewards(allMarkets);
-  const distributeBorrowRewards = await getRewards(allMarkets, true);
+  const distributeRewards = await getRewards(allMarkets, false, chain);
+  const distributeBorrowRewards = await getRewards(allMarkets, true, chain);
 
   const marketsCash = await multiCallMarkets(
     allMarkets,
     GET_CHASH,
-    ercDelegator
+    ercDelegator,
+    chain
   );
 
   const totalBorrows = await multiCallMarkets(
     allMarkets,
     TOTAL_BORROWS,
-    ercDelegator
+    ercDelegator,
+    chain
   );
 
   const underlyingTokens = await multiCallMarkets(
     allMarkets,
     UNDERLYING,
-    ercDelegator
+    ercDelegator,
+    chain
   );
 
   const underlyingSymbols = await multiCallMarkets(
     underlyingTokens,
     'symbol',
-    ercDelegator
+    ercDelegator,
+    chain
   );
 
   const underlyingDecimals = await multiCallMarkets(
     underlyingTokens,
     'decimals',
-    ercDelegator
+    ercDelegator,
+    chain
   );
+
+  const SONNE = CHAINS.optimism.SONNE;
 
   const prices = await getPrices(
     underlyingTokens
       .concat([NATIVE_TOKEN.address])
-      .concat([PROTOCOL_TOKEN.address])
-      .map((token) => `${CHAIN}:` + token)
+      .concat([SONNE])
+      .map((token) => `${chain}:` + token)
   );
 
   const pools = allMarkets.map((market, i) => {
@@ -180,33 +201,31 @@ const lendingApy = async () => {
     const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
 
     const apyReward =
-      (((distributeRewards[i] / 10 ** PROTOCOL_TOKEN.decimals) *
+      (((distributeRewards[i] / 10 ** 18) *
         SECONDS_PER_DAY *
         365 *
-        prices[PROTOCOL_TOKEN.address]) /
+        prices[SONNE]) /
         totalSupplyUsd) *
       100;
 
     const apyRewardBorrow =
-      (((distributeBorrowRewards[i] / 10 ** PROTOCOL_TOKEN.decimals) *
+      (((distributeBorrowRewards[i] / 10 ** 18) *
         SECONDS_PER_DAY *
         365 *
-        prices[PROTOCOL_TOKEN.address]) /
+        prices[SONNE]) /
         totalBorrowUsd) *
       100;
 
     return {
       pool: market,
-      chain: CHAIN,
+      chain,
       project: PROJECT_NAME,
       symbol,
       tvlUsd,
       apyBase,
       apyReward,
       underlyingTokens: [token],
-      rewardTokens: [apyReward > 0 ? PROTOCOL_TOKEN.address : null].filter(
-        Boolean
-      ),
+      rewardTokens: [apyReward > 0 ? SONNE : null].filter(Boolean),
       totalSupplyUsd,
       totalBorrowUsd,
       apyBaseBorrow,
@@ -218,8 +237,15 @@ const lendingApy = async () => {
   return pools;
 };
 
+const apy = async () => {
+  const pools = await Promise.all(
+    Object.keys(CHAINS).map((chain) => lendingApy(chain))
+  );
+  return pools.flat();
+};
+
 module.exports = {
   timetravel: false,
-  apy: lendingApy,
+  apy,
   url: 'https://sonne.finance/',
 };

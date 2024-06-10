@@ -16,6 +16,18 @@ const assetTypeMapping = {
 
 const THREE_CRV_ADDRESS = '0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490';
 
+const crv = {
+  ethereum: '0xD533a949740bb3306d119CC777fa900bA034cd52',
+  arbitrum: '0x11cDb42B0EB46D95f990BeDD4695A6e3fA034978',
+  optimism: '0x0994206dfE8De6Ec6920FF4D779B0d950605Fb53',
+  polygon: '0x172370d5Cd63279eFa6d502DAB29171933a610AF',
+  avax: '0x249848BeCA43aC405b8102Ec90Dd5F22CA513c06',
+  gnosis: '0x712b3d230F3C1c19db860d80619288b1F0BDd0Bd',
+  kava: '0x965f84D915a9eFa2dD81b653e3AE736555d945f4',
+  fantom: '0x1E4F97b9f9F913c46F1632781732927B9019C68b',
+  base: '0x8Ee73c484A26e0A5df2Ee2a4960B789967dd0415',
+};
+
 const getPools = async (blockchainId) => {
   const poolsByAddress = {};
   for (const registry of BLOCKCHAINID_TO_REGISTRIES[blockchainId]) {
@@ -45,6 +57,7 @@ const getSubGraphData = async (blockchainId) => {
     return {};
   }
   if (response?.success) {
+    if (!response.data?.poolList?.length) return {};
     const poolSubgraphsByAddress = Object.fromEntries(
       response.data.poolList.map((pool) => [pool.address, pool])
     );
@@ -282,8 +295,9 @@ const main = async () => {
         : stETHPools.includes(address) ||
           address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' || // pool on moonbeam
           address === '0xe9123CBC5d1EA65301D417193c40A72Ac8D53501' || // lvusd
-          address === '0x056C6C5e684CeC248635eD86033378Cc444459B0' // eur pool gnosis
-        ? pool.gaugeRewards[0]?.apy
+          address === '0x056C6C5e684CeC248635eD86033378Cc444459B0' || // eur pool gnosis
+          pool.gaugeRewards?.length
+        ? pool.gaugeRewards.slice(-1)[0]?.apy
         : 0;
 
       // tokens are listed using their contract addresses
@@ -299,9 +313,14 @@ const main = async () => {
         ? ['0x73C69d24ad28e2d43D03CBf35F79fE26EBDE1011']
         : address === '0x056C6C5e684CeC248635eD86033378Cc444459B0'
         ? ['0x6810e776880c02933d47db1b9fc05908e5386b96']
+        : pool.gaugeRewards?.length
+        ? [pool.gaugeRewards.slice(-1)[0]?.tokenAddress]
         : [];
       if (aprCrv) {
-        rewardTokens.push('0xD533a949740bb3306d119CC777fa900bA034cd52'); // CRV
+        rewardTokens.push(
+          crv[blockchainId === 'avalanche' ? 'avax' : blockchainId] ||
+            '0xD533a949740bb3306d119CC777fa900bA034cd52'
+        ); // CRV
       }
 
       // separate reward tokens (eg OP on curve optimism), adding this to aprExtra if available
@@ -325,6 +344,7 @@ const main = async () => {
       // am3CRV
       const am3CRV = '0xE7a24EF0C5e95Ffb0f6684b813A78F2a3AD7D171';
       const x = pool.coins.find((c) => c.address === am3CRV && c.usdPrice > 2);
+
       let tvlUsd;
       if (x) {
         tvlUsd = pool.coins
@@ -359,7 +379,9 @@ const main = async () => {
               ].includes(address)
             ? aprExtra
             : aprCrv + aprExtra,
-        rewardTokens: rewardTokens.flat(),
+        rewardTokens: rewardTokens
+          .flat()
+          .filter((i) => i !== '0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32'),
         underlyingTokens,
         url: `https://curve.fi/#/${blockchainId}/pools`,
       });
@@ -393,13 +415,11 @@ const main = async () => {
     '0x7f90122BF0700F9E7e1F688fe926940E8839F353-avalanche',
     '0x0f9cb53Ebe405d49A0bbdBD291A65Ff571bC83e1-ethereum',
   ];
-  return defillamaPooldata
-    .map((p) => ({
-      ...p,
-      apyReward: correct.includes(p.pool) ? null : p.apyReward,
-      rewardTokens: correct.includes(p.pool) ? [] : p.rewardTokens,
-    }))
-    .filter((p) => p.apyReward < 100);
+  return defillamaPooldata.map((p) => ({
+    ...p,
+    apyReward: correct.includes(p.pool) ? null : p.apyReward,
+    rewardTokens: correct.includes(p.pool) ? [] : p.rewardTokens,
+  }));
 };
 
 module.exports = {

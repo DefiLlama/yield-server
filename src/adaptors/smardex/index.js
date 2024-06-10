@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const {
   utils: { formatEther },

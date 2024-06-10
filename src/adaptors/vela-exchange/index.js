@@ -92,15 +92,14 @@ const poolsFunction = async () => {
     /// APR Calculations ///
     const APR = 365 * (diff / 1 / dayDiff) * 100;
 
-    const rewardsPerSecond = (await sdk.api.abi.call({
-          target: TOKEN_FARM_ADDRESS[chain],
-          abi: TokenFarmABI.filter(
-            ({ name }) => name === 'poolRewardsPerSec'
-          )[0],
-          chain: `${chain}`,
-          params: [0],
-        })
-      ).output
+    const rewardsPerSecond = (
+      await sdk.api.abi.call({
+        target: TOKEN_FARM_ADDRESS[chain],
+        abi: TokenFarmABI.filter(({ name }) => name === 'poolRewardsPerSec')[0],
+        chain: `${chain}`,
+        params: [0],
+      })
+    ).output;
 
     const poolTotal = ethers.utils.formatEther(
       (
@@ -113,20 +112,24 @@ const poolsFunction = async () => {
       ).output
     );
 
-    let rewardTokens = [VELA_ADDRESS[chain]]
+    let rewardTokens = [VELA_ADDRESS[chain]];
     let apyReward =
-      ((ethers.utils.formatEther(rewardsPerSecond.rewardsPerSec[0]) * secondsPerYear * velaPrice) /
+      ((ethers.utils.formatEther(rewardsPerSecond.rewardsPerSec[0]) *
+        secondsPerYear *
+        velaPrice) /
         (poolTotal * current)) *
       100;
 
     for (let i = 1; i < rewardsPerSecond.addresses.length; i++) {
-      rewardTokens.push(rewardsPerSecond.addresses[i])
+      rewardTokens.push(rewardsPerSecond.addresses[i]);
       const price = (
         await utils.getPrices([rewardsPerSecond.addresses[i]], chain)
-      ).pricesByAddress
+      ).pricesByAddress;
 
       apyReward +=
-        ((ethers.utils.formatEther(rewardsPerSecond.rewardsPerSec[i]) * secondsPerYear * Object.values(price)[0]) /
+        ((ethers.utils.formatEther(rewardsPerSecond.rewardsPerSec[i]) *
+          secondsPerYear *
+          Object.values(price)[0]) /
           (poolTotal * current)) *
         100;
     }
@@ -137,7 +140,7 @@ const poolsFunction = async () => {
       project: 'vela-exchange',
       symbol: 'USDC',
       poolMeta: 'VLP',
-      tvlUsd: (Number(totalSupply) / 1e18) * (Number(current)),
+      tvlUsd: (Number(totalSupply) / 1e18) * Number(current),
       apyBase: APR,
       underlyingTokens: [BRIDGED_USDC_ADDRESS[chain]],
       rewardTokens,

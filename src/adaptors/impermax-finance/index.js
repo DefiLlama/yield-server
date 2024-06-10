@@ -5,16 +5,14 @@ const { tryUntilSucceed } = require('../../helper/utils');
 const abi = require('./abi');
 const SECONDS_IN_YEAR = BigNumber(365).times(24).times(3600);
 const protocolSlug = 'impermax-finance';
-const sdk = require('@defillama/sdk4');
-const { getProvider } = require('@defillama/sdk4/build/general');
+const sdk = require('@defillama/sdk');
+const { getProvider } = require('@defillama/sdk/build/general');
 const { da } = require('date-fns/locale');
 const { pool } = require('../rocifi-v2/abi');
 
 const config = {
   ethereum: {
-    factories: [
-      '0x8C3736e2FE63cc2cD89Ee228D9dBcAb6CE5B767B'
-    ],
+    factories: ['0x8C3736e2FE63cc2cD89Ee228D9dBcAb6CE5B767B'],
   },
   polygon: {
     factories: [
@@ -27,35 +25,29 @@ const config = {
     factories: [
       '0x8C3736e2FE63cc2cD89Ee228D9dBcAb6CE5B767B',
       '0x97bc7fefb84a4654d4d3938751b5fe401e8771c2',
-    ]
+    ],
   },
   avax: {
     factories: [
       '0x8C3736e2FE63cc2cD89Ee228D9dBcAb6CE5B767B',
       '0x9708e0b216a88d38d469b255ce78c1369ad898e6',
       '0xc7f24fd6329738320883ba429C6C8133e6492739',
-    ]
+    ],
   },
   moonriver: {
-    factories: [
-      '0x8C3736e2FE63cc2cD89Ee228D9dBcAb6CE5B767B',
-    ]
+    factories: ['0x8C3736e2FE63cc2cD89Ee228D9dBcAb6CE5B767B'],
   },
   canto: {
-    factories: [
-      '0x9708E0B216a88D38d469B255cE78c1369ad898e6',
-    ]
+    factories: ['0x9708E0B216a88D38d469B255cE78c1369ad898e6'],
   },
   era: {
-    factories: [
-      '0x6ce1a2C079871e4d4b91Ff29E7D2acbD42b46E36',
-    ]
+    factories: ['0x6ce1a2C079871e4d4b91Ff29E7D2acbD42b46E36'],
   },
   fantom: {
     factories: [
-      '0x60aE5F446AE1575534A5F234D6EC743215624556',
+      // '0x60aE5F446AE1575534A5F234D6EC743215624556',
       '0x9b4ae930255CB8695a9F525dA414F80C4C7a945B',
-    ]
+    ],
   },
 };
 
@@ -113,13 +105,11 @@ const coinGeckoChainMapping = {
 };
 
 const factoryToProtocolMapping = {
-  'ethereum': {
-    'Uniswap': [
-      '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f'.toLowerCase(),
-    ],
+  ethereum: {
+    Uniswap: ['0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f'.toLowerCase()],
   },
-  'polygon': {
-    'QuickSwap': [
+  polygon: {
+    QuickSwap: [
       '0x5671B249391cA5E6a8FE28CEb1e85Dc41c12Ba7D'.toLowerCase(),
       '0xF47B652cDE9b30D6aDd0b13027Bb7AD2F7AF04f4'.toLowerCase(),
       '0xdB76318C5C5151A4578e2Aafa11a2A2e0B03A4E5'.toLowerCase(),
@@ -129,101 +119,71 @@ const factoryToProtocolMapping = {
       '0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32'.toLowerCase(),
       '0xc4505cc6125d61e2a352ce5cf2129f2fb19259a8'.toLowerCase(),
     ],
-    'ApeSwap': [
-      '0xCf083Be4164828f00cAE704EC15a36D711491284'.toLowerCase(),
-    ],
-    'Tetu': [
-      '0x8E45622663Bb01dc285B4F51Eb8F9FE4fa7b5899'.toLowerCase(),
-    ],
-    'Satin': [
-      '0xCaF3Fb1b03F1D71A110167327f5106bE82beE209'.toLowerCase(),
-    ],
-    'Pearl': [
+    ApeSwap: ['0xCf083Be4164828f00cAE704EC15a36D711491284'.toLowerCase()],
+    Tetu: ['0x8E45622663Bb01dc285B4F51Eb8F9FE4fa7b5899'.toLowerCase()],
+    Satin: ['0xCaF3Fb1b03F1D71A110167327f5106bE82beE209'.toLowerCase()],
+    Pearl: [
       '0xB07C75e3DB03Eb69F047b92274019912014Ba78e'.toLowerCase(),
       '0x1A645bfb46b00bb2dCE6a1A517D7dE2999155fe4'.toLowerCase(),
       '0xCD9277EE36594fd8bDbE0dfCF0aFD60403e632B5'.toLowerCase(),
     ],
-    'Sushi': [
+    Sushi: [
       '0xcb30A66e72Ed90D1b34f78fc0655895FC28bB6CF'.toLowerCase(),
       '0xc35DADB65012eC5796536bD9864eD8773aBc74C4'.toLowerCase(),
       '0x3fDB0c33A86249ed689e497219acE3B80aFf5C0D'.toLowerCase(),
     ],
   },
-  'arbitrum': {
-    'Swapr': [
+  arbitrum: {
+    Swapr: [
       '0x5643C3aCEC0D4970a385fb9Cc1555bec1d912bb8'.toLowerCase(),
       '0x4AE8915A8D11178154248C692e31710191053466'.toLowerCase(),
     ],
-    'SolidLizard': [
-      '0x30d7ef0d94b43BFa4Ff5935DBC608D7fc0116BB7'.toLowerCase(),
-    ],
-    'Ramses': [
-      '0x78a2251F1AAEaA8Fc1EaFcC379663cCa3F894708'.toLowerCase(),
-    ],
-    'Auragi': [
-      '0x268bb0220aB61Abd9BD42C5Db49470bb3E6B0b2F'.toLowerCase(),
-    ],
-    'Solunea': [
-      '0xf540E9C05ea1b54e310644Fc48E491d365bf86ba'.toLowerCase(),
-    ],
-    'Chronos': [
-      '0x111eEEb6bfAb9e8d0E87E45DB15031d89846e5d7'.toLowerCase(),
-    ],
-    'Sushi': [
+    SolidLizard: ['0x30d7ef0d94b43BFa4Ff5935DBC608D7fc0116BB7'.toLowerCase()],
+    Ramses: ['0x78a2251F1AAEaA8Fc1EaFcC379663cCa3F894708'.toLowerCase()],
+    Auragi: ['0x268bb0220aB61Abd9BD42C5Db49470bb3E6B0b2F'.toLowerCase()],
+    Solunea: ['0xf540E9C05ea1b54e310644Fc48E491d365bf86ba'.toLowerCase()],
+    Chronos: ['0x111eEEb6bfAb9e8d0E87E45DB15031d89846e5d7'.toLowerCase()],
+    Sushi: [
       '0x270250F59C1ffA06C9e3234D528858Ff59aFCE68'.toLowerCase(),
       '0xc35DADB65012eC5796536bD9864eD8773aBc74C4'.toLowerCase(),
       '0x3fDB0c33A86249ed689e497219acE3B80aFf5C0D'.toLowerCase(),
     ],
   },
-  'avax': {
-    'Pangolin': [
+  avax: {
+    Pangolin: [
       '0xBB92270716C8c424849F17cCc12F4F24AD4064D6'.toLowerCase(),
       '0xC596f6455054D8cdDE627096bE671e377791E295'.toLowerCase(),
       '0x0aD3E5Ff1A410610Ca2eAbfEcF703c9460766Fd3'.toLowerCase(),
       '0xca45c0b54a59C63c15b8CF436512E8Fec78d0f49'.toLowerCase(),
     ],
-    'TraderJoe': [
+    TraderJoe: [
       '0x16ED59ffbfbe62ebA9a69a304D38901F86461282'.toLowerCase(),
       '0x58Fde5bdB2C6Bd828Bc41c12a68189C7cd93dCE2'.toLowerCase(),
       '0x87da8bab9FbD09593F2368DC2F6fac3F80C2A845'.toLowerCase(),
       '0xad587138E72fc2Bc29dA99471ce4d995425d8f0a'.toLowerCase(),
       '0xbC1Bb900e34aDbb99957672361433c6ad62a0cAC'.toLowerCase(),
     ],
-    'Thorus': [
-      '0x9141B3d02443a84793794f661Ae1e6607A03A201'.toLowerCase(),
-    ],
-    'Flair': [
-      '0x462bCeBb3743E5c0B126985D82782025bdeD23ca'.toLowerCase(),
-    ],
-    'Glacier': [
-      '0x7EB705bC12f488af3310d8166D3C577ACDBC619c'.toLowerCase(),
-    ],
+    Thorus: ['0x9141B3d02443a84793794f661Ae1e6607A03A201'.toLowerCase()],
+    Flair: ['0x462bCeBb3743E5c0B126985D82782025bdeD23ca'.toLowerCase()],
+    Glacier: ['0x7EB705bC12f488af3310d8166D3C577ACDBC619c'.toLowerCase()],
   },
-  'moonriver': {
-    'Solarbeam': [
+  moonriver: {
+    Solarbeam: [
       '0xBB92270716C8c424849F17cCc12F4F24AD4064D6'.toLowerCase(),
       '0x95887654d8646C26fAb33F344576E2E74b211256'.toLowerCase(),
       '0x23bdECdB7073D5f899708f33FCaFff787b81e287'.toLowerCase(),
     ],
   },
-  'canto': {
-    'Velocimeter': [
-      '0x1c813cDd6dAecE2CB83C52F0798504e42816E9C5'.toLowerCase(),
-    ],
+  canto: {
+    Velocimeter: ['0x1c813cDd6dAecE2CB83C52F0798504e42816E9C5'.toLowerCase()],
   },
-  'era': {
-    'Velocore': [
-      '0x36BbDb0DEA4Aa211Dd76dF0a3201c89FD530851b'.toLowerCase(),
-    ],
-    'VeSync': [
-      '0xCF3CAD85885254CBD445d6511c502Da095863f11'.toLowerCase(),
-    ],
-    'DraculaFi': [
-      '0x589a63C2242c8E60cdACF6802AB04a721bA6049d'.toLowerCase(),
-    ],
+  era: {
+    Velocore: ['0x36BbDb0DEA4Aa211Dd76dF0a3201c89FD530851b'.toLowerCase()],
+    VeSync: ['0xCF3CAD85885254CBD445d6511c502Da095863f11'.toLowerCase()],
+    DraculaFi: ['0x589a63C2242c8E60cdACF6802AB04a721bA6049d'.toLowerCase()],
   },
-  'fantom': {
-    'Solidex': [
+  fantom: {
+    Solidex: [
       '0x8610Dc1912a55761a713D827a1a1ad131bE8f579'.toLowerCase(),
       '0xF14f98E6F34C12Bd74fcEAC1668aF749fc269cFf'.toLowerCase(),
       '0x9B1434a02Ee86302d463bB6B365EbdFAc56e067A'.toLowerCase(),
@@ -261,14 +221,32 @@ const getAllLendingPoolsForChain = async (chain, block) => {
     } = await getAllLendingPools(factory, chain, block);
 
     // add the data to the arrays
-    allLendingPoolAddresses = [...allLendingPoolAddresses, ...lendingPoolAddresses];
-    allLendingPoolAddressesParamsCalls = [...allLendingPoolAddressesParamsCalls, ...lendingPoolAddressesParamsCalls];
-    allLendingPoolAddressesTargetCalls = [...allLendingPoolAddressesTargetCalls, ...lendingPoolAddressesTargetCalls];
-    allLendingPoolsDetails = [...allLendingPoolsDetails, ...lendingPoolsDetails];
+    allLendingPoolAddresses = [
+      ...allLendingPoolAddresses,
+      ...lendingPoolAddresses,
+    ];
+    allLendingPoolAddressesParamsCalls = [
+      ...allLendingPoolAddressesParamsCalls,
+      ...lendingPoolAddressesParamsCalls,
+    ];
+    allLendingPoolAddressesTargetCalls = [
+      ...allLendingPoolAddressesTargetCalls,
+      ...lendingPoolAddressesTargetCalls,
+    ];
+    allLendingPoolsDetails = [
+      ...allLendingPoolsDetails,
+      ...lendingPoolsDetails,
+    ];
     allToken0s = [...allToken0s, ...token0s];
     allToken1s = [...allToken1s, ...token1s];
-    allLendingPoolDecimals = [...allLendingPoolDecimals, ...lendingPoolDecimals];
-    allLendingPoolReserves = [...allLendingPoolReserves, ...lendingPoolReserves];
+    allLendingPoolDecimals = [
+      ...allLendingPoolDecimals,
+      ...lendingPoolDecimals,
+    ];
+    allLendingPoolReserves = [
+      ...allLendingPoolReserves,
+      ...lendingPoolReserves,
+    ];
   }
 
   const lendingPoolAddresses = allLendingPoolAddresses;
@@ -290,7 +268,7 @@ const getAllLendingPoolsForChain = async (chain, block) => {
     lendingPoolDecimals: allLendingPoolDecimals,
     lendingPoolReserves: allLendingPoolReserves,
   };
-}
+};
 
 const getAllLendingPools = async (factory, chain, block) => {
   const { output: allLendingPoolsLength } = await tryUntilSucceed(() =>
@@ -357,7 +335,7 @@ const getAllLendingPools = async (factory, chain, block) => {
   );
   lendingPoolsDetails = lendingPoolsDetails.filter(
     (i, index) => lendingPoolsDetails[index].initialized
-  )
+  );
 
   // get tokens 0 and 1 of all lending pools
   const { output: token0sResults } = await tryUntilSucceed(() =>
@@ -391,7 +369,12 @@ const getAllLendingPools = async (factory, chain, block) => {
     })
   );
   const lendingPoolDecimals = lendingPoolDecimalsResults.map((i) => i.output);
-  const lendingPoolReserves = await getBorrowableTokensReserves(lendingPoolAddressesTargetCalls, chain, block, lendingPoolsDetails);
+  const lendingPoolReserves = await getBorrowableTokensReserves(
+    lendingPoolAddressesTargetCalls,
+    chain,
+    block,
+    lendingPoolsDetails
+  );
 
   return {
     lendingPoolAddresses,
@@ -405,7 +388,12 @@ const getAllLendingPools = async (factory, chain, block) => {
   };
 };
 
-const getBorrowableTokensReserves = async (lendingPoolAddressesTargetCalls, chain, block, lendingPoolsDetails) => {
+const getBorrowableTokensReserves = async (
+  lendingPoolAddressesTargetCalls,
+  chain,
+  block,
+  lendingPoolsDetails
+) => {
   let lendingPoolReserves = [];
 
   const callTargets = [];
@@ -426,11 +414,14 @@ const getBorrowableTokensReserves = async (lendingPoolAddressesTargetCalls, chai
   );
 
   for (let i = 0; i < getReservesResults.length; i += 2) {
-    lendingPoolReserves.push([getReservesResults[i].output, getReservesResults[i + 1].output]);
+    lendingPoolReserves.push([
+      getReservesResults[i].output,
+      getReservesResults[i + 1].output,
+    ]);
   }
 
   return lendingPoolReserves;
-}
+};
 
 const getUnderlyingLiquidityPoolAddresses = async (
   lendingPoolAddresses,
@@ -453,8 +444,8 @@ const getUnderlyingLiquidityPoolAddresses = async (
   let lpAddressesCalls = [];
   let lpAddressesCallsIndex = [];
   for (let index = 0; index < lendingPoolAddresses.length; index++) {
-      lpAddressesCalls.push({ target: lendingPoolAddresses[index] });
-      lpAddressesCallsIndex.push(index);
+    lpAddressesCalls.push({ target: lendingPoolAddresses[index] });
+    lpAddressesCallsIndex.push(index);
   }
 
   let underlyingLpAddresses = lendingPoolAddresses;
@@ -467,7 +458,7 @@ const getUnderlyingLiquidityPoolAddresses = async (
         chain,
         block,
         permitFailure: true,
-      }),
+      })
     );
     underlyingLpAddresses = underlyingLpAddressesResults.map((i) => i.output);
   }
@@ -505,25 +496,22 @@ const removeDuplicatesFromArray = (arr) => {
 };
 
 const checkIfTokenKeyExists = (fetchedData, key) => {
-  return (
-    fetchedData[key]
-  );
+  return fetchedData[key];
 };
 
-const buildPoolMetadata = async (
-  poolData,
-  tokenDetailsDict,
-  chain,
-  block,
-) => {
-  const underlyingLiquidityPoolSymbols = poolData.map((i) => i.underlyingLiquidityPoolSymbol);
+const buildPoolMetadata = async (poolData, tokenDetailsDict, chain, block) => {
+  const underlyingLiquidityPoolSymbols = poolData.map(
+    (i) => i.underlyingLiquidityPoolSymbol
+  );
   let lendingPoolAddresses = poolData.map((i) => i.lendingPoolAddress);
   const token0Symbols = poolData.map((i) => tokenDetailsDict[i.token0].symbol);
   const token1Symbols = poolData.map((i) => tokenDetailsDict[i.token1].symbol);
   const tokenSymbols = poolData.map((i) => i.tokenSymbol);
-  
+
   // picking every other record
-  const lendingPoolAddressesNoDuplicates = lendingPoolAddresses.filter((_, i) => i % 2 === 0);
+  const lendingPoolAddressesNoDuplicates = lendingPoolAddresses.filter(
+    (_, i) => i % 2 === 0
+  );
 
   // use the factory to determine the pool name
   const { output: lendingPoolFactory } = await tryUntilSucceed(() =>
@@ -535,7 +523,9 @@ const buildPoolMetadata = async (
       requery: true,
     })
   );
-  const lendingPoolFactoriesNoDuplicates = lendingPoolFactory.map((i) => i.output);
+  const lendingPoolFactoriesNoDuplicates = lendingPoolFactory.map(
+    (i) => i.output
+  );
 
   // augment the factories to match the number of pools so that factories are valid for 2 entries in the lending pool addresses
   const lendingPoolFactories = [];
@@ -548,7 +538,9 @@ const buildPoolMetadata = async (
   let formatedPoolMeta = lendingPoolFactories.map((i, fIndex) => {
     const poolId = `${lendingPoolAddresses[fIndex]}-${tokenSymbols[fIndex]}-${chain}`;
     let poolMeta;
-    for (const [key, value] of Object.entries(factoryToProtocolMapping[chain])) {
+    for (const [key, value] of Object.entries(
+      factoryToProtocolMapping[chain]
+    )) {
       if (i !== undefined && value.includes(i.toLowerCase())) {
         poolMeta = `${key} ${token0Symbols[fIndex]}/${token1Symbols[fIndex]}`;
       }
@@ -567,12 +559,15 @@ const buildPoolMetadata = async (
 
 async function getTokenPrices(tokens, chain, allCoins) {
   const chainCoins = allCoins.data.filter(
-    (coin) => coin && coin.platforms && coin.platforms[coinGeckoChainMapping[chain]]
+    (coin) =>
+      coin && coin.platforms && coin.platforms[coinGeckoChainMapping[chain]]
   );
-  
+
   const tokenAddresses = tokens.map((a) => a.toLowerCase());
   const coins = chainCoins.filter((coin) =>
-    tokenAddresses.includes(coin.platforms[coinGeckoChainMapping[chain]].toLowerCase())
+    tokenAddresses.includes(
+      coin.platforms[coinGeckoChainMapping[chain]].toLowerCase()
+    )
   );
 
   const markets = (
@@ -595,15 +590,17 @@ async function getTokenPrices(tokens, chain, allCoins) {
       .map((p) => p.liquidity.usd)
       .reduce((a, b) => a + b, 0);
     return (
-      pairs.map((p) => p.priceUsd * p.liquidity.usd).reduce((a, b) => a + b, 0) /
-      totalLiquidity
+      pairs
+        .map((p) => p.priceUsd * p.liquidity.usd)
+        .reduce((a, b) => a + b, 0) / totalLiquidity
     );
   }
 
   function getPriceFromCoinGecko(token) {
     const id = chainCoins.find(
       (coin) =>
-        coin.platforms[coinGeckoChainMapping[chain]].toLowerCase() === token.toLowerCase()
+        coin.platforms[coinGeckoChainMapping[chain]].toLowerCase() ===
+        token.toLowerCase()
     )?.id;
     if (id === undefined) return undefined;
     const marketData = markets.find((m) => m.id === id);
@@ -714,16 +711,14 @@ const calculateApy = (
 const main = async () => {
   let data = [];
 
-  allCoins = (
-    await axios.get(
-      'https://api.coingecko.com/api/v3/coins/list?include_platform=true'
-    )
+  allCoins = await axios.get(
+    'https://api.coingecko.com/api/v3/coins/list?include_platform=true'
   );
 
   for (const chain of Object.keys(config)) {
     let collaterals = [];
     let borrowables = [];
-    
+
     const provider = getProvider(chain);
     const block = await provider.getBlockNumber();
 
@@ -772,8 +767,7 @@ const main = async () => {
         if (reserves === null) {
           return null;
         }
-        const underlyingLiquidityPoolSymbol =
-          underlyingLiquidityPoolSymbols[i];
+        const underlyingLiquidityPoolSymbol = underlyingLiquidityPoolSymbols[i];
         // check if the lending pool has a name
         if (underlyingLiquidityPoolSymbol === null) {
           return null;
@@ -859,7 +853,7 @@ const main = async () => {
       allBorrowables,
       tokenDetailsDict,
       chain,
-      block,
+      block
     );
 
     // calculate the tvl and yields for each borrowables
@@ -888,7 +882,12 @@ const main = async () => {
             return null;
           }
 
-          if (!checkIfTokenKeyExists(fetchedPrices, borrowable.underlyingTokenAddress.toLowerCase())) {
+          if (
+            !checkIfTokenKeyExists(
+              fetchedPrices,
+              borrowable.underlyingTokenAddress.toLowerCase()
+            )
+          ) {
             return null;
           }
           // tvl calculations
@@ -921,16 +920,13 @@ const main = async () => {
           return data !== null;
         }),
     ];
-
   }
 
   // remove potential dupliates based on pool ID
-  data = data.filter(
-    (v, i, a) => a.findIndex((t) => t.pool === v.pool) === i
-  );
+  data = data.filter((v, i, a) => a.findIndex((t) => t.pool === v.pool) === i);
 
   return data;
-}
+};
 
 module.exports = {
   timetravel: false,

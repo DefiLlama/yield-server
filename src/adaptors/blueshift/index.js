@@ -143,7 +143,8 @@ async function farming(
       continue;
     }
 
-    const tokensAddresses = portfolios.tokens[indexOfPortfolioWithReceivedToken].tokenAddress;
+    const tokensAddresses =
+      portfolios.tokens[indexOfPortfolioWithReceivedToken].tokenAddress;
 
     const tokensSymbols = (
       await sdk.api.abi.multiCall({
@@ -159,7 +160,9 @@ async function farming(
 
     const rewardedFee = Number(
       formatBigNumber(
-        BigNumber.from(fees[portfolios.contractAddress[indexOfPortfolioWithReceivedToken]])
+        BigNumber.from(
+          fees[portfolios.contractAddress[indexOfPortfolioWithReceivedToken]]
+        )
           .mul(MONTHS_IN_YEAR)
           .toString(),
         6
@@ -178,7 +181,11 @@ async function farming(
 
     let tvl = farmInfo.accDeposited;
     tvl = BigNumber.from(tvl)
-      .mul(BigNumber.from(portfolios.lpTokenPrice[indexOfPortfolioWithReceivedToken]))
+      .mul(
+        BigNumber.from(
+          portfolios.lpTokenPrice[indexOfPortfolioWithReceivedToken]
+        )
+      )
       .div(ONE(18));
 
     let balances = {};
@@ -189,7 +196,8 @@ async function farming(
       tvl.toString()
     );
     fixBalances(balances);
-    tvlUsd = (await sdk.util.computeTVL(balances, 'now')).usdTvl;
+    // tvlUsd = (await sdk.util.computeTVL(balances, 'now')).usdTvl;
+    tvlUsd = 0;
 
     const aprBase = rewardedFee / tvlUsd;
     const aprReward = rewardedStake / tvlUsd;
@@ -223,12 +231,7 @@ async function farming(
   return res;
 }
 
-async function staking(
-  chain,
-  aprWeights,
-  rewardToken,
-  BLUES_PRICE
-) {
+async function staking(chain, aprWeights, rewardToken, BLUES_PRICE) {
   const res = [];
 
   const stakings = (
@@ -345,7 +348,7 @@ async function poolsApy(chain) {
     BLUES_PRICE
   );
 
-  return [...farmingPools, ...stakingPools];
+  return [...farmingPools, ...stakingPools].filter((i) => utils.keepFinite(i));
 }
 
 module.exports = {

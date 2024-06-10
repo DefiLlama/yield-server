@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk');
-const { api2 } = require('@defillama/sdk3');
+const { api2 } = require('@defillama/sdk');
 const ethers = require('ethers');
 const utils = require('../utils');
 const axios = require('axios');
@@ -538,7 +538,7 @@ const poolsFunction = async () => {
     sakeWaterVaultV2,
     vodkaLeverageVault,
     vodkaWaterVault,
-  ];
+  ].filter((i) => utils.keepFinite(i));
 };
 
 module.exports = {

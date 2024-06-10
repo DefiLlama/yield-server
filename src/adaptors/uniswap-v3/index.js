@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const superagent = require('superagent');
 
@@ -10,8 +10,8 @@ const { boundaries } = require('../../utils/exclude');
 const baseUrl = 'https://api.thegraph.com/subgraphs/name';
 const chains = {
   ethereum: `${baseUrl}/uniswap/uniswap-v3`,
-  polygon: `${baseUrl}/ianlapham/uniswap-v3-polygon`,
-  arbitrum: `${baseUrl}/ianlapham/arbitrum-dev`,
+  polygon: `https://gateway-arbitrum.network.thegraph.com/api/a265c39f5a123ab2d40b25dc352adc22/subgraphs/id/3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm`,
+  arbitrum: `https://api.thegraph.com/subgraphs/id/QmZ5uwhnwsJXAQGYEF8qKPQ85iVhYAcVZcZAPfrF7ZNb9z`,
   optimism: `${baseUrl}/ianlapham/optimism-post-regenesis`,
   celo: `${baseUrl}/jesse-sawa/uniswap-celo`,
   avax: `${baseUrl}/lynnshaoyu/uniswap-v3-avax`,
@@ -297,7 +297,10 @@ const main = async (timestamp = null) => {
     .filter(
       (p) =>
         utils.keepFinite(p) &&
-        p.pool !== '0x0c6d9d0f82ed2e0b86c4d3e9a9febf95415d1b76'
+        ![
+          '0x0c6d9d0f82ed2e0b86c4d3e9a9febf95415d1b76',
+          '0xc809d13e9ea08f296d3b32d4c69d46ff90f73fd8',
+        ].includes(p.pool)
     );
 };
 

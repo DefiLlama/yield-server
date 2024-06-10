@@ -8,6 +8,9 @@ const SCALE = BigNumber('1000000000000000000000000000');
 const e = 2.7182818284590452353602874713527;
 const market =
   '0x4c0a5193d58f74fbace4b74dcf65481e734ed1714121bdc571da345540efa05';
+const REWARD_API = `https://app.zklend.com/api/pools`;
+const STRK = `0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d`;
+const ZEND = `0x00585c32b625999e6e5e78645ff8df7a9001cf5cf3eb6b80ccdd16cb64bd3a34`;
 
 const assets = [
   {
@@ -46,6 +49,17 @@ const assets = [
       '0x042b8f0484674ca266ac5d08e4ac6a3fe65bd3129795def2dca5c34ecc5f96d2',
     decimals: 18,
   },
+  {
+    name: 'STRK',
+    address:
+      '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d',
+    decimals: 18,
+  },
+  {
+    name: 'ZEND',
+    address: `0x00585c32b625999e6e5e78645ff8df7a9001cf5cf3eb6b80ccdd16cb64bd3a34`,
+    decimals: 18,
+  }
 ];
 
 const getTokenPrice = async (token) => {
@@ -55,7 +69,51 @@ const getTokenPrice = async (token) => {
   ).data.coins[networkTokenPair].price;
 };
 
+const getRewardApys = async () => {
+  const { data } = await axios.get(REWARD_API);
+  const tokenSymbolToRewardApyPercent = {};
+
+  if (!data) {
+    return {};
+  }
+
+  if (!Array.isArray(data)) {
+    return {};
+  }
+
+  for (pool of data) {
+    // (0 < reward_apy < 1)
+    const reward_apy = pool.lending_apy.reward_apy;
+    const symbol = pool.token.symbol;
+
+    if (reward_apy === null || reward_apy === undefined) {
+      continue;
+    }
+
+    if (symbol === null || symbol === undefined) {
+      continue;
+    }
+
+    if (typeof reward_apy !== 'number') {
+      continue;
+    }
+
+    if (typeof symbol !== 'string') {
+      continue;
+    }
+
+    const upperSymbol = symbol.toUpperCase();
+
+    // Convert to percent
+    tokenSymbolToRewardApyPercent[upperSymbol] = reward_apy * 100;
+  }
+
+  return tokenSymbolToRewardApyPercent;
+};
+
 const apy = async () => {
+  const tokenSymbolToRewardApyPercent = await getRewardApys();
+
   const promises = assets.map(async ({ name, address, decimals }) => {
     const [priceUsd, marketTokenBalanceBn, totalDebtBn, reserveData] =
       await Promise.all([
@@ -109,6 +167,18 @@ const apy = async () => {
 
     const zTokenAddress = `0x${reserveData.z_token_address.toString(16)}`;
 
+    let rewardInfo = {};
+    if (name.toUpperCase() in tokenSymbolToRewardApyPercent) {
+      rewardInfo = {
+        apyReward: tokenSymbolToRewardApyPercent[name.toUpperCase()],
+      };
+      if (name === 'ZEND') {
+        rewardInfo.rewardTokens = [ZEND];
+      } else {
+        rewardInfo.rewardTokens = [STRK];
+      }
+    }
+
     return {
       pool: `${zTokenAddress}-starknet`.toLowerCase(),
       chain: 'Starknet',
@@ -121,6 +191,7 @@ const apy = async () => {
       totalSupplyUsd: marketTokenBalanceUsd.plus(totalDebtUsd).toNumber(),
       totalBorrowUsd: totalDebtUsd.toNumber(),
       url: `https://app.zklend.com/asset/${name}`,
+      ...rewardInfo,
     };
   });
 

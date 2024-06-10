@@ -1,5 +1,5 @@
 const { ethers, Contract, BigNumber } = require('ethers');
-const sdk = require('@defillama/sdk3');
+const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 

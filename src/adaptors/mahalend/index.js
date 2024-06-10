@@ -209,7 +209,6 @@ const apy = async () => {
 
     return chainPools;
   });
-
   return pools.flat().filter((p) => !!p.tvlUsd);
 };
 

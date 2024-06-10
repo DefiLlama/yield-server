@@ -182,6 +182,7 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
               target: CHEF[chainString].mc2,
               abi: minichefV2.find(({ name }) => name === method),
               chain: chainString,
+              permitFailure: true,
             })
           )
         )
@@ -197,6 +198,7 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
             })),
             abi: minichefV2.find(({ name }) => name === method),
             chain: chainString,
+            permitFailure: true,
           })
         )
       );
@@ -212,6 +214,7 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
               target: rewarderMC2[i],
             })),
             chain: chainString,
+            permitFailure: true,
           })
         )
       );
@@ -232,6 +235,7 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
               target: CHEF[chainString].mc1,
               abi: masterchefABI.find(({ name }) => name === method),
               chain: chainString,
+              permitFailure: true,
             })
           )
         )
@@ -245,6 +249,7 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
           params: i,
         })),
         chain: chainString,
+        permitFailure: true,
       });
       poolsInfoMC1 = poolsInfoMC1.output.map((res) => res.output);
 
@@ -256,6 +261,7 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
               target: CHEF[chainString].mc2,
               abi: masterchefV2ABI.find(({ name }) => name === method),
               chain: chainString,
+              permitFailure: true,
             })
           )
         )
@@ -271,6 +277,7 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
               params: i,
             })),
             chain: chainString,
+            permitFailure: true,
           })
         )
       );
@@ -299,6 +306,7 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
             })),
             abi: lpTokenABI.find(({ name }) => name === method),
             chain: chainString,
+            permitFailure: true,
           })
         )
       );
@@ -307,10 +315,10 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
 
       const reserveRatios = {};
       lpTokens.forEach((lp, i) => {
-        reserveRatios[lp.toLowerCase()] = masterChefBalData[i] / supplyData[i];
+        reserveRatios[lp?.toLowerCase()] = masterChefBalData[i] / supplyData[i];
       });
       for (const p of data) {
-        const rr = reserveRatios[p.id.toLowerCase()];
+        const rr = reserveRatios[p.id?.toLowerCase()];
         if (rr === undefined) continue;
         p['totalValueLockedUSD'] *= rr;
       }
@@ -326,23 +334,23 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
       ).pools;
       for (const p of poolsInfoMC2) {
         const x = poolsRewardMC2.find(
-          (x) => x.pair.toLowerCase() === p.lpToken.toLowerCase()
+          (x) => x.pair?.toLowerCase() === p.lpToken?.toLowerCase()
         );
         const rewarder = x?.rewarder;
         p['rewardPerSecond'] =
           // ALCX reward token returns tokenPerBlock but subgraph doesn't distinguish
           // see: (https://etherscan.io/address/0x7519C93fC5073E15d89131fD38118D73A72370F8#readContract)
-          p.lpToken.toLowerCase() ===
+          p.lpToken?.toLowerCase() ===
           '0xc3f279090a47e80990fe3a9c30d24cb117ef91a8'
             ? Number(rewarder?.rewardPerSecond / secondsPerBlock)
             : // CVX rewards are 0
-            p.lpToken.toLowerCase() ===
+            p.lpToken?.toLowerCase() ===
               '0x05767d9ef41dc40689678ffca0608878fb3de906'
             ? 0
             : Number(rewarder?.rewardPerSecond);
         p['rewardToken'] =
           rewarder !== undefined
-            ? rewarder.rewardToken.toLowerCase()
+            ? rewarder.rewardToken?.toLowerCase()
             : rewarder;
       }
     }
@@ -351,7 +359,7 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
     let coins = [
       ...new Set(poolsInfoMC2.map((p) => p.rewardToken).filter((p) => p)),
     ].map((t) => `${chainString}:${t}`);
-    const sushi = `${chainString}:${SUSHI[chainString].toLowerCase()}`;
+    const sushi = `${chainString}:${SUSHI[chainString]?.toLowerCase()}`;
     coins = [...coins, sushi];
     const tokensUsd = (
       await superagent.get(
@@ -398,7 +406,7 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
 
     data = data.map((p) => {
       const lm = dataLM.find(
-        (x) => x.lpToken.toLowerCase() === p.id.toLowerCase()
+        (x) => x.lpToken?.toLowerCase() === p.id?.toLowerCase()
       );
 
       let apySushi =
