@@ -118,6 +118,8 @@ const excludeAdaptors = [
   'iron-bank',
   'swapr-v2',
   'agave',
+  'blueshift',
+  'index-coop',
 ];
 
 const excludePools = [
