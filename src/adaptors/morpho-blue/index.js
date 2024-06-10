@@ -195,7 +195,8 @@ async function fetchMetaMorphoAPY(blueMarketsData, chainId) {
   try {
     const vaultsDataResponse = await fetchGraphData(
       gqlQueries.metaMorphoVaults,
-      subgraphUrls.morphoBlue
+      subgraphUrls.morphoBlue,
+      chainId
     );
 
     const vaultData = vaultsDataResponse?.vaults.items || [];
