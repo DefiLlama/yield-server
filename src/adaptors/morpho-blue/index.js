@@ -10,8 +10,13 @@ const subgraphUrls = {
 
 const gqlQueries = {
   marketsData: gql`
-    query GetYieldsData {
-      markets(first: 800, orderBy: SupplyAssetsUsd, orderDirection: Desc) {
+    query GetYieldsData($chainId: Int!) {
+      markets(
+        first: 800
+        orderBy: SupplyAssetsUsd
+        orderDirection: Desc
+        where: { chainId_in: [$chainId] }
+      ) {
         items {
           uniqueKey
           lltv
@@ -49,8 +54,13 @@ const gqlQueries = {
     }
   `,
   metaMorphoVaults: gql`
-    query {
-      vaults(first: 100, orderBy: TotalAssetsUsd, orderDirection: Desc) {
+    query GetVaultsData($chainId: Int!) {
+      vaults(
+        first: 100
+        orderBy: TotalAssetsUsd
+        orderDirection: Desc
+        where: { chainId_in: [$chainId] }
+      ) {
         items {
           chain {
             id
@@ -81,9 +91,11 @@ const gqlQueries = {
   `,
 };
 
-async function fetchGraphData(query, url) {
+async function fetchGraphData(query, url, chainId) {
   try {
-    return await request(url, query);
+    return await request(url, query, {
+      chainId: chainId,
+    });
   } catch (error) {
     console.error('Error fetching graph data:', error);
     return {};
@@ -115,11 +127,12 @@ function validatePool(pool) {
   return requiredFields.every((field) => pool[field] !== undefined);
 }
 
-async function fetchBlueMarkets() {
+async function fetchBlueMarkets(chainId) {
   try {
     const marketDataResponse = await fetchGraphData(
       gqlQueries.marketsData,
-      subgraphUrls.morphoBlue
+      subgraphUrls.morphoBlue,
+      chainId
     );
 
     const marketData = marketDataResponse?.markets.items || [];
@@ -142,7 +155,7 @@ async function fetchBlueMarkets() {
             (market.state.netBorrowApy || 0) - (market.state.borrowApy || 0);
           const pool = {
             pool: `morpho-blue-${market.uniqueKey}`,
-            chain: 'ethereum',
+            chain: chainId === 1 ? 'ethereum' : 'base',
             project: 'morpho-blue',
             symbol: `${market.collateralAsset?.symbol || 'idle-market'}-${
               market.loanAsset.symbol
@@ -178,7 +191,7 @@ async function fetchBlueMarkets() {
   }
 }
 
-async function fetchMetaMorphoAPY(blueMarketsData) {
+async function fetchMetaMorphoAPY(blueMarketsData, chainId) {
   try {
     const vaultsDataResponse = await fetchGraphData(
       gqlQueries.metaMorphoVaults,
@@ -231,7 +244,7 @@ async function fetchMetaMorphoAPY(blueMarketsData) {
 
           const pool = {
             pool: `morpho-blue-${vault.address}`,
-            chain: 'ethereum',
+            chain: chainId === 1 ? 'ethereum' : 'base',
             project: 'morpho-blue',
             symbol: vault.symbol,
             apyBase: vault.state.apy || 0,
@@ -261,17 +274,27 @@ async function fetchMetaMorphoAPY(blueMarketsData) {
 }
 
 async function apy() {
-  const blueMarketsData = Object.values(await fetchBlueMarkets());
-  const metaMorphoAPYData = Object.values(
-    await fetchMetaMorphoAPY(blueMarketsData)
-  );
-  return metaMorphoAPYData.concat(blueMarketsData).map((i) => ({
-    ...i,
-    apyBase: i.apyBase * 100,
-    apyBaseBorrow: i.apyBaseBorrow * 100,
-    apyReward: i.apyReward * 100,
-    apyRewardBorrow: i.apyRewardBorrow * 100,
-  }));
+  const chainIds = [1, 8453];
+  let finalResult = [];
+
+  for (const chainId of chainIds) {
+    const blueMarketsData = Object.values(await fetchBlueMarkets(chainId));
+    const metaMorphoAPYData = Object.values(
+      await fetchMetaMorphoAPY(blueMarketsData, chainId)
+    );
+
+    const combinedData = metaMorphoAPYData.concat(blueMarketsData).map((i) => ({
+      ...i,
+      apyBase: i.apyBase * 100,
+      apyBaseBorrow: i.apyBaseBorrow * 100,
+      apyReward: i.apyReward * 100,
+      apyRewardBorrow: i.apyRewardBorrow * 100,
+    }));
+
+    finalResult = finalResult.concat(combinedData);
+  }
+
+  return finalResult;
 }
 
 module.exports = {
