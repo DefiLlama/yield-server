@@ -1,10 +1,8 @@
 const { request } = require('graphql-request');
 const superagent = require('superagent');
 const BigNumber = require('bignumber.js');
-const { default: computeTVL } = require('@defillama/sdk/build/computeTVL');
 
 const utils = require('../utils');
-const { unwrapUniswapLPs } = require('../../helper/unwrapLPs');
 const {
   getTokenInfo,
   getLendPoolTvl,
@@ -18,8 +16,8 @@ const project = 'extra-finance';
 
 const chains = ['optimism', 'base']
 const subgraphUrls = {
-  optimism: `https://api.thegraph.com/subgraphs/name/extrafi/extrasubgraph`,
-  base: `https://api.thegraph.com/subgraphs/name/extrafi/extrafionbase`,
+  optimism: 'https://gateway-arbitrum.network.thegraph.com/api/a4998f968b8ad324eb3e47ed20c00220/subgraphs/id/3Htp5TKs6BHCcwAYRCoBD6R4X62ThLRv2JiBBikyYze',
+  base: 'https://api.studio.thegraph.com/query/46015/extrafionbase/version/latest',
 };
 
 async function getPoolsData() {
@@ -115,8 +113,13 @@ async function getPoolsData() {
     );
 
     parsedFarmPoolsInfo.forEach(async (poolInfo) => {
+      const pool = `${poolInfo.pair}-${chain}`.toLowerCase()
+      const existPool = pools.find(item => item.pool === pool)
+      if (existPool && existPool.tvlUsd > poolInfo.tvlUsd) {
+        return
+      }
       pools.push({
-        pool: `${poolInfo.pair}-${chain}`.toLowerCase(),
+        pool,
         chain: utils.formatChain(chain),
         project,
         symbol: `${poolInfo.token0_symbol}-${poolInfo.token1_symbol}`,
@@ -147,7 +150,11 @@ async function getPoolsData() {
   }
 
   for (const chain of Object.keys(subgraphUrls)) {
-    await getPoolsByChain(chain)
+    try {
+      await getPoolsByChain(chain);
+    } catch (err) {
+      console.log(err);
+    }
   }
 
   return pools.filter((p) => utils.keepFinite(p));

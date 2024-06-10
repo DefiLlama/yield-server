@@ -138,6 +138,7 @@ const main = async () => {
           params: i,
         })),
         chain: 'bsc',
+        permitFailure: true,
       })
     )
   );
@@ -152,6 +153,7 @@ const main = async () => {
           params: method === 'balanceOf' ? [poolInfo.strat] : null,
         })),
         chain: 'bsc',
+        permitFailure: true,
       })
     )
   );

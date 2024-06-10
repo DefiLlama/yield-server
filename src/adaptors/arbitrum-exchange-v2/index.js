@@ -59,7 +59,7 @@ const topLvl = async (
     await sdk.api.abi.multiCall({
       calls: [...Array(Number(poolLength)).keys()].map((i) => ({
         target: masterchef,
-        params: [i]
+        params: [i],
       })),
       abi: masterchefAbi.find((m) => m.name === 'poolInfo'),
       chain: chainString,
@@ -82,21 +82,23 @@ const topLvl = async (
     })
   ).output;
 
-  const arxPerSec = (
-    await sdk.api.abi.call({
-      target: masterchef,
-      abi: masterchefAbi.find((m) => m.name === 'arxPerSec'),
-      chain: chainString,
-    })
-  ).output / 1e18;
+  const arxPerSec =
+    (
+      await sdk.api.abi.call({
+        target: masterchef,
+        abi: masterchefAbi.find((m) => m.name === 'arxPerSec'),
+        chain: chainString,
+      })
+    ).output / 1e18;
 
-  const wethPerSec = (
-    await sdk.api.abi.call({
-      target: masterchef,
-      abi: masterchefAbi.find((m) => m.name === 'WETHPerSec'),
-      chain: chainString,
-    })
-  ).output / 1e18;
+  const wethPerSec =
+    (
+      await sdk.api.abi.call({
+        target: masterchef,
+        abi: masterchefAbi.find((m) => m.name === 'WETHPerSec'),
+        chain: chainString,
+      })
+    ).output / 1e18;
 
   const arxPriceKey = `arbitrum:${ARX}`;
   const arxPrice = (
@@ -162,10 +164,14 @@ const topLvl = async (
     )?.WETHAllocPoint;
 
     const arxApyReward =
-      (((arxAllocPoint / arxTotalAllocPoint) * arxPerYearUsd) / p.totalValueLockedUSD) * 100;
+      (((arxAllocPoint / arxTotalAllocPoint) * arxPerYearUsd) /
+        p.totalValueLockedUSD) *
+      100;
 
     const wethApyReward =
-      (((wethAllocPoint / wethTotalAllocPoint) * wethPerYearUsd) / p.totalValueLockedUSD) * 100;
+      (((wethAllocPoint / wethTotalAllocPoint) * wethPerYearUsd) /
+        p.totalValueLockedUSD) *
+      100;
 
     const apyReward = arxApyReward + wethApyReward;
 
@@ -188,7 +194,14 @@ const topLvl = async (
 };
 
 const main = async (timestamp = null) => {
-  let data = await topLvl('arbitrum', url, query, queryPrior, 'arbidex', timestamp);
+  let data = await topLvl(
+    'arbitrum',
+    url,
+    query,
+    queryPrior,
+    'arbidex',
+    timestamp
+  );
 
   return data.filter((p) => utils.keepFinite(p));
 };

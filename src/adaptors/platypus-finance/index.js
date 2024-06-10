@@ -44,6 +44,7 @@ const apy = async () => {
       })),
       abi: abiMasterPlatypusV4.find((m) => m.name === 'poolInfo'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -54,6 +55,7 @@ const apy = async () => {
       target: Voter,
       abi: abiVoter.find((m) => m.name === 'ptpPerSec'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output;
 
@@ -62,6 +64,7 @@ const apy = async () => {
       target: Voter,
       abi: abiVoter.find((m) => m.name === 'totalWeight'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output;
 
@@ -70,6 +73,7 @@ const apy = async () => {
       calls: lpTokens.map((lpToken) => ({ target: Voter, params: [lpToken] })),
       abi: abiVoter.find((m) => m.name === 'weights'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -78,6 +82,7 @@ const apy = async () => {
       target: MasterPlatypusV4,
       abi: abiMasterPlatypusV4.find((m) => m.name === 'dilutingRepartition'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output;
 
@@ -86,6 +91,7 @@ const apy = async () => {
       calls: lpTokens.map((lpToken) => ({ target: lpToken })),
       abi: abiLP.find((m) => m.name === 'underlyingToken'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -96,6 +102,7 @@ const apy = async () => {
       })),
       abi: 'erc20:symbol',
       chain: 'avax',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -106,6 +113,7 @@ const apy = async () => {
       })),
       abi: abiLP.find((m) => m.name === 'totalSupply'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -116,6 +124,7 @@ const apy = async () => {
       })),
       abi: abiLP.find((m) => m.name === 'decimals'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -127,6 +136,7 @@ const apy = async () => {
       })),
       abi: abiBoostedMultiRewarder.find((m) => m.name === 'poolInfo'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -176,7 +186,7 @@ const apy = async () => {
           86400 *
           365 *
           rewardBasePartition *
-          priceData.price;
+          priceData?.price;
         apyRewardExtra = (extraPerYearUsd / tvlUsd) * 100;
         if (apyRewardExtra > 0) rewardTokens.push(extraRewardToken);
       }
@@ -204,7 +214,8 @@ const apy = async () => {
         p.tvlUsd > 0 &&
         p.poolMeta !== 'UST Pool' &&
         p.pool !==
-          '0x66357dcace80431aee0a7507e2e361b7e2402370-0x130966628846bfd36ff31a822705796e8cb8c18d' // MIM in main pool not available
+          '0x66357dcace80431aee0a7507e2e361b7e2402370-0x130966628846bfd36ff31a822705796e8cb8c18d' && // MIM in main pool not available
+        p.apyReward >= 0
     );
 };
 

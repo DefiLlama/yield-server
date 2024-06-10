@@ -105,6 +105,7 @@ const main = async () => {
           params: i,
         })),
         chain: 'bsc',
+        permitFailure: true,
       })
     )
   );
@@ -124,6 +125,7 @@ const main = async () => {
               params: method === 'balanceOf' ? [MASTERCHEF_ADDRESS] : null,
             })),
             chain: 'bsc',
+            permitFailure: true,
           })
       )
     );
@@ -140,6 +142,7 @@ const main = async () => {
       abi: 'erc20:symbol',
       calls: token0.map((t) => ({ target: t })),
       chain: 'bsc',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -148,6 +151,7 @@ const main = async () => {
       abi: 'erc20:symbol',
       calls: token1.map((t) => ({ target: t })),
       chain: 'bsc',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -157,6 +161,7 @@ const main = async () => {
       abi: 'erc20:decimals',
       calls: token0.map((t) => ({ target: t })),
       chain: 'bsc',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
   const decimals1 = (
@@ -164,6 +169,7 @@ const main = async () => {
       abi: 'erc20:decimals',
       calls: token1.map((t) => ({ target: t })),
       chain: 'bsc',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 

@@ -1,5 +1,4 @@
 const axios = require('axios');
-const { symbol } = require('@defillama/sdk/build/erc20');
 const { ethers } = require('ethers');
 const sdk = require('@defillama/sdk');
 

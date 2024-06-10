@@ -29,6 +29,7 @@ const poolInfo = async (chain) => {
           params: pool.pool,
         })),
         chain,
+        permitFailure: true,
       })
     )
   ).then((data) => data.map(getOutput));
@@ -58,6 +59,7 @@ const poolInfo = async (chain) => {
           target: address.pool,
         })),
         chain,
+        permitFailure: true,
       })
     )
   ).then((data) => data.map(getOutput));
@@ -73,6 +75,7 @@ const poolInfo = async (chain) => {
           target: token,
         })),
         chain,
+        permitFailure: true,
       })
     )
   ).then((data) => data.map(getOutput));
@@ -129,6 +132,7 @@ const unwrapLP = async (chain, lpTokens) => {
           target: token,
         })),
         chain,
+        permitFailure: true,
       })
     )
   ).then((data) => data.map(getOutput));
@@ -140,6 +144,7 @@ const unwrapLP = async (chain, lpTokens) => {
         target: token,
       })),
       chain,
+      permitFailure: true,
     })
   ).output.map((decimal) => Math.pow(10, Number(decimal.output)));
 
@@ -150,6 +155,7 @@ const unwrapLP = async (chain, lpTokens) => {
         target: token,
       })),
       chain,
+      permitFailure: true,
     })
   ).output.map((decimal) => Math.pow(10, Number(decimal.output)));
 

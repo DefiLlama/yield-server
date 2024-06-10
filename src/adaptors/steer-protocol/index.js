@@ -102,7 +102,7 @@ const getPools = async () => {
     });
     pools.push(...chainPools);
   }
-  return pools;
+  return pools.filter((i) => utils.keepFinite(i));
 };
 
 module.exports = {
