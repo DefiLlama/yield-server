@@ -292,7 +292,7 @@ const poolsFunction = async () => {
                 const pool = {
                     pool: vaults[i],
                     chain: utils.formatChain(name),
-                    project: 'mellow-protocol',
+                    project: 'mellow-yield',
                     tvlUsd: tvlUsd,
                     symbol: symbol,
                     apy: apy,
@@ -307,7 +307,7 @@ const poolsFunction = async () => {
                 const pool = {
                     pool: vaults[i],
                     chain: utils.formatChain(name),
-                    project: 'mellow-protocol',
+                    project: 'mellow-yield',
                     tvlUsd: tvlUsd,
                     symbol: symbol,
                     apyBase: apy,
