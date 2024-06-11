@@ -169,7 +169,7 @@ async function apy() {
         target:
           market,
         params: [token?.address],
-        allAbi: [metricsAbi?.Market_Info],
+        allAbi: [],
       });
       const borrow_rate=BigNumber(res?.borrow_rate.toString()).div(100).toNumber();
       const supply_rate=BigNumber(res?.supply_rate.toString()).div(100).toNumber()
