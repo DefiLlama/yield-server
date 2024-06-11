@@ -66,17 +66,6 @@ exports.getBlocksByTime = async (timestamps, chainString) => {
 };
 
 const getLatestBlockSubgraph = async (url) => {
-  // const queryGraph = gql`
-  //   {
-  //     indexingStatusForCurrentVersion(subgraphName: "<PLACEHOLDER>") {
-  //       chains {
-  //         latestBlock {
-  //           number
-  //         }
-  //       }
-  //     }
-  //   }
-  // `;
   const queryGraph = gql`
     {
       _meta {
@@ -87,11 +76,8 @@ const getLatestBlockSubgraph = async (url) => {
     }
   `;
 
-  // const blockGraph = await request(
-  //   'https://api.thegraph.com/index-node/graphql',
-  //   queryGraph.replace('<PLACEHOLDER>', url.split('name/')[1])
-  // );
   const blockGraph =
+    url.includes('https://gateway-arbitrum.network.thegraph.com/api') ||
     url.includes('metis-graph.maiadao.io') ||
     url.includes('babydoge/faas') ||
     url.includes('kybernetwork/kyberswap-elastic-cronos') ||
@@ -112,9 +98,6 @@ const getLatestBlockSubgraph = async (url) => {
     url.includes('horizondex') ||
     url.includes(
       'https://api.thegraph.com/subgraphs/id/QmZ5uwhnwsJXAQGYEF8qKPQ85iVhYAcVZcZAPfrF7ZNb9z'
-    ) ||
-    url.includes(
-      'https://gateway-arbitrum.network.thegraph.com/api/a265c39f5a123ab2d40b25dc352adc22/subgraphs/id/3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm'
     )
       ? await request(url, queryGraph)
       : url.includes('aperture/uniswap-v3')

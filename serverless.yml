@@ -77,6 +77,7 @@ functions:
       NEW_YIELDS_WEBHOOK: ${file(./env.js):NEW_YIELDS_WEBHOOK}
       SMARDEX_SUBGRAPH_API_KEY: ${file(./env.js):SMARDEX_SUBGRAPH_API_KEY}
       VENDOR_FINANCE: ${file(./env.js):VENDOR_FINANCE}
+      GRAPH_PROTOCOL: ${file(./env.js):GRAPH_PROTOCOL}
 
   # --- data enrichment
   triggerEnrichment:
