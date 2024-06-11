@@ -25,10 +25,10 @@ const tokenAddresses = {
     WETH: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
   },
   arbitrum: {
-    WETH: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
+    WETH: '0xe50fA9b3c56FfB159cB0FCA61F5c9D750e8128c8',
     USDC: "0x724dc807b04555b71ed48a6896b6F41593b8C637",
     USDT: "0x6ab707Aca953eDAeFBc4fD23bA73294241490620",
-    DAI: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+    DAI: "0x82E64f49Ed5EC1bC6e43DAD4FC8Af9bb3A2312EE",
     wstETH: "0x5979D7b546E38E414F7E9822514be443A4800529",
   }
 };
@@ -106,7 +106,8 @@ const getTokenData = async (chain, token, address, wiseSecurity, wiseLending) =>
       pool: `${address[token]}-${projectSlug}-${chain}`,
       chain: ChainName[chain],
       project: projectSlug,
-      symbol: usdPrice.symbol,
+      symbol: token,
+      poolMeta: usdPrice.symbol,
       tvlUsd,
       apyBase: lendingRate,
       // apyReward: lendingRate,
