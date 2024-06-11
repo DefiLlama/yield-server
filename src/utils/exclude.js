@@ -120,6 +120,12 @@ const excludeAdaptors = [
   'agave',
   'blueshift',
   'index-coop',
+  'gyroscope-protocol',
+  'blue-planet',
+  'archimedes-finance',
+  'koi-finance-amm',
+  'kagla-finance',
+  'plenty',
 ];
 
 const excludePools = [

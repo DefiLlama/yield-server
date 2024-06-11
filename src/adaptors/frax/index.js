@@ -4,7 +4,7 @@ const utils = require('../utils');
 
 const { farmAbi, pairAbi } = require('./abi');
 const { vstFraxStaking } = require('./vstFraxStaking');
-const { getERC4626Info } = require('../helpers/erc4626');
+const { getERC4626Info } = require('../../helper/erc4626');
 
 const FRAXSWAP_POOLS_URL = 'https://api.frax.finance/v2/fraxswap/pools';
 const STAKING_URL = 'https://api.frax.finance/v1/pools';
