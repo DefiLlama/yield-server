@@ -180,12 +180,12 @@ async function apy() {
       return{
         pool:`${token?.dToken.toLowerCase()}`,
         chain:'Starknet',
-        project:'Hashstack',
+        project:'hashstack',
         symbol:token?.name,
         tvlUsd:totalSupplyUsd.toNumber(),
         apyBase:supply_rate,
         apyBaseBorrow:borrow_rate,
-        underlyingTokens:token?.address,
+        underlyingTokens:[token?.address],
         totalSupplyUsd:totalSupplyUsd.toNumber(),
         totalBorrowUsd:totalBorrowUsd.toNumber(),
         url:`https://app.hashstack.finance/market`
