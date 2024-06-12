@@ -16,20 +16,21 @@ const { excludePools } = require('../../utils/exclude');
 const { getChildChainRootGauge } = require('./childChainGauges.js');
 
 // Subgraph URLs
-const urlBase = 'https://api.thegraph.com/subgraphs/name/balancer-labs';
-const urlEthereum = `${urlBase}/balancer-v2`;
-const urlPolygon = `${urlBase}/balancer-polygon-v2`;
-const urlGnosis = `${urlBase}/balancer-gnosis-chain-v2`;
-const urlArbitrum = `${urlBase}/balancer-arbitrum-v2`;
-const urlBaseChain = `https://api.studio.thegraph.com/query/24660/balancer-base-v2/version/latest`;
-const urlAvalanche = `${urlBase}/balancer-avalanche-v2`;
 
-const urlGaugesEthereum = `${urlBase}/balancer-gauges`;
-const urlGaugesPolygon = `${urlBase}/balancer-gauges-polygon`;
-const urlGaugesGnosis = `${urlBase}/balancer-gauges-gnosis-chain`;
-const urlGaugesArbitrum = `${urlBase}/balancer-gauges-arbitrum`;
+const urlBase = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id`;
+const urlEthereum = `${urlBase}/C4ayEZP2yTXRAB8vSaTrgN4m9anTe9Mdm2ViyiAuV9TV`;
+const urlPolygon = `${urlBase}/H9oPAbXnobBRq1cB3HDmbZ1E8MWQyJYQjT1QDJMrdbNp`;
+const urlGnosis = `${urlBase}/balancer-gnosis-chain-v2`;
+const urlArbitrum = `${urlBase}/4AQ6YqEyZapJmuFCqhFXfh24qYUykkKeCboL4vpoYQqv`;
+const urlBaseChain = `https://api.studio.thegraph.com/query/24660/balancer-base-v2/version/latest`;
+const urlAvalanche = `${urlBase}/7asfmtQA1KYu6CP7YVm5kv4bGxVyfAHEiptt2HMFgkHu`;
+
+const urlGaugesEthereum = `${urlBase}/4sESujoqmztX6pbichs4wZ1XXyYrkooMuHA8sKkYxpTn`;
+const urlGaugesPolygon = `${urlBase}/AkD2HEjNoupFb1y3fERdhmFC1UbKvQUBwsu5fREAEcJd`;
+const urlGaugesGnosis = `${urlBase}/4nTERBBaGRc1PgLcGvtvvqupSFu7y8Ee2xKZFNM5aw56`;
+const urlGaugesArbitrum = `${urlBase}/Bb1hVjJZ52kL23chZyyGWJKrGEg3S6euuNa1YA6XRU4J`;
 const urlGaugesBase = `https://api.studio.thegraph.com/query/24660/balancer-gauges-base/version/latest`;
-const urlGaugesAvalanche = `${urlBase}/balancer-gauges-avalanche`;
+const urlGaugesAvalanche = `${urlBase}/BZ2DkZkaQKdBqDTRdur8kHM95ZFVt4fBudKmnvobiyN`;
 
 const protocolFeesCollector = '0xce88686553686DA562CE7Cea497CE749DA109f9F';
 const gaugeController = '0xC128468b7Ce63eA702C1f104D55A2566b13D3ABD';

@@ -2,10 +2,8 @@ const { GraphQLClient, gql } = require('graphql-request');
 const utils = require('../utils');
 const fetch = require('node-fetch');
 
-const ethereumEndpoint =
-  'https://api.thegraph.com/subgraphs/name/tenderize/tenderize-ethereum';
-const arbitrumEndpoint =
-  'https://api.thegraph.com/subgraphs/name/tenderize/tenderize-arbitrum';
+const ethereumEndpoint = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/G4tmH3LNcPYUzuXx1Lqv7egUzyQpagNWn8MCpwMtEVFF`;
+const arbitrumEndpoint = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/BKHH9dfKgGR4KmrkpvN8r8JMHEmtYqFgdiUe9C6VZk9K`;
 
 const query = gql`
   {

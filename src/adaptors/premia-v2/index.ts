@@ -34,12 +34,10 @@ const getPoolsQuery = gql`
 `;
 
 const chainToSubgraph = {
-  ethereum: 'https://api.thegraph.com/subgraphs/name/premiafinance/premiav2',
-  arbitrum:
-    'https://api.thegraph.com/subgraphs/name/premiafinance/premia-arbitrum',
-  fantom: 'https://api.thegraph.com/subgraphs/name/premiafinance/premia-fantom',
-  optimism:
-    'https://api.thegraph.com/subgraphs/name/premiafinance/premia-optimism',
+  ethereum: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/CqWfkgRsJRrQ5vWq9tkEr68F5nvbAg63ati5SVJQLjK8`,
+  arbitrum: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/3o6rxHKuXZdy8jFifV99gMUe8FaVUL8w8bDTNdc4zyYg`,
+  fantom: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/5ahtXN7DVTwnPuDhWqgJWvEeAEP3JD7h2kD1Kpe67VuW`,
+  optimism: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/8wMexS8BB1cXWYu2V8cPHURGXSRGDBhshnU9nTiSkXQ7`,
 };
 
 interface PoolType {

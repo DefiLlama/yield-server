@@ -19,8 +19,8 @@ exports.getUmamiVaultSharePrice = async (vaultAddress, network) => {
       })
     ).output
   );
-  const umamiGraphUrl =
-    'https://api.thegraph.com/subgraphs/name/umamidao/glp-vaults';
+  const umamiGraphUrl = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/EoXjimvYjR9KR5f33r3j3jAvD6PfJ9cVSarQ84Lg7SLb`;
+
   // execute price per share query
   const response = await axios.post(umamiGraphUrl, {
     query: `{

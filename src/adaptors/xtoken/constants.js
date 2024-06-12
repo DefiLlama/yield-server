@@ -6,14 +6,10 @@ const NETWORKS = {
 };
 
 const SUBGRAPHS = {
-  ethereum:
-    'https://api.thegraph.com/subgraphs/name/xtokenmarket/terminal-mainnet',
-  arbitrum:
-    'https://api.thegraph.com/subgraphs/name/xtokenmarket/terminal-arbitrum',
-  optimism:
-    'https://api.thegraph.com/subgraphs/name/xtokenmarket/terminal-optimism',
-  polygon:
-    'https://api.thegraph.com/subgraphs/name/xtokenmarket/terminal-polygon',
+  ethereum: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/AhQcCNvtM3YEoCBPQFYfPzxwY6Rk2nFqydr4276zki2c`,
+  arbitrum: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/HQFMggtEW3AfDLp8GCPYaaZi91K1SgH9BjnGDxUDptt5`,
+  optimism: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/DxV73USPBdBXunZFi1UEkBqL6pNA33rt7JYs5hgGbyEc`,
+  polygon: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/9ckmB5VjYouBNxWFWrDsXpNqsNF9jdDewnba8Yx5a9e2`,
 };
 
 const USDC_ADDRESSES = {

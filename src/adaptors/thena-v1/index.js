@@ -4,8 +4,8 @@ const utils = require('../utils');
 const { request, gql } = require('graphql-request');
 
 const API_URL = 'https://api.thena.fi/api/v1/fusions';
-const SUBGRAPH_URL =
-  'https://api.thegraph.com/subgraphs/name/thenaursa/thena-v1';
+
+const SUBGRAPH_URL = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/FKEt2N5VmSdEYcz7fYLPvvnyEUkReQ7rvmXzs6tiKCz1`;
 
 const swapPairsQuery = (skip) => {
   return gql`

@@ -120,6 +120,18 @@ const excludeAdaptors = [
   'agave',
   'blueshift',
   'index-coop',
+  'gyroscope-protocol',
+  'blue-planet',
+  'archimedes-finance',
+  'koi-finance-amm',
+  'kagla-finance',
+  'plenty',
+  'platypus-finance',
+  'stakedao', // completely broken api
+  'biswap-v2',
+  'burrow',
+  'raydium',
+  'ref-finance',
 ];
 
 const excludePools = [

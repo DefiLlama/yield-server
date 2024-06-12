@@ -13,7 +13,7 @@ const GRAIL = '0x3d9907f9a368ad0a51be60f7da3b97cf940982d8';
 
 const utils = require('../utils');
 
-const url = 'https://api.thegraph.com/subgraphs/name/camelotlabs/camelot-amm-2';
+const url = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/CnzVKhPQizzxSpysSveSLt1XZqkBRSprFtFJv3RaBQPv`;
 
 const query = gql`
   {

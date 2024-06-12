@@ -1,8 +1,7 @@
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 
-const subgraphURL =
-  'https://api.thegraph.com/subgraphs/name/nonamefits/zipswap';
+const subgraphURL = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/5tAUjmnM9iE4aADZwKhk3fobY8fMFbb1VMsrSKvo4kFr`;
 
 const getCurrentDate = gql`
   {
