@@ -77,7 +77,7 @@ function getRewardApy(chainName, poolId, stakingPoolData) {
 function getRewardTokens(chainName, poolId, stakingPoolData) {
   if(chainName == "arbitrum") {
     if(stakingPoolData && stakingPoolData[poolId]) {
-      return ["0x912ce59144191c1204e64559fe8253a0e49e6548"];
+      return ["0xA159463aB4B3aF3865bC9DC0FD28d943f2C048Ce"];
     }
   }
   return [];
@@ -255,7 +255,7 @@ async function apyPerChain(chainName, refPoolAddr, endpoint) {
     rewardTokens: getRewardTokens(chainName, pool, stakingPoolData),
     apyReward: getRewardApy(chainName, pool, stakingPoolData), // APY from pool LM rewards in %
     underlyingTokens: _latestPoolsData[i].output.tokens,
-    url: `https://app.gammaswap.com/earn/${pool}`,
+    url: `https://app.gammaswap.com/earn/${chainName}/${pool}`,
   }));
 }
 
