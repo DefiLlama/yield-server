@@ -3,7 +3,7 @@ const utils = require('../utils');
 const { GraphQLClient, gql } = require('graphql-request');
 
 async function tvl(timestamp) {
-  let endpoint = 'https://api.thegraph.com/subgraphs/name/otterclam/otterclam';
+  let endpoint = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/CejrrsnSQAxHJBpkgiBrLHQZ7h2MkK9QArM8bJvN9GuQ`
   let graphQLClient = new GraphQLClient(endpoint);
   let query = gql`
     query apy($start: BigInt!, $end: BigInt!) {

@@ -8,7 +8,7 @@ const {
 const abi = require('./abi');
 
 const GRAPH_URL =
-  'https://api.thegraph.com/subgraphs/name/rocifi/rocifi-matic-lending-v2';
+  `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/42Yjxm8KTaBKfnzycNEhizZxd8jDfgnH9F5kWkzBikAq`
 
 const chain = 'polygon';
 

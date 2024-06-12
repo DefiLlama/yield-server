@@ -9,7 +9,7 @@ const USDC_ADDRESS = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
 const SENIOR_POOL_ADDRESS = '0x8481a6EbAf5c7DABc3F7e09e44A89531fd31F822';
 
 const API_URL =
-  'https://api.thegraph.com/subgraphs/name/goldfinch-eng/goldfinch-v2';
+  `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/G9N1RFta3jbpPNmeGxSJoMVBZUJeG1jiSxUfYG29UQHj`
 
 const apyQuery = gql`
   query {

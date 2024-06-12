@@ -43,7 +43,7 @@ const getPrices = async (addresses) => {
 
 const API_URLS = {
   arbitrum:
-    'https://api.thegraph.com/subgraphs/name/mahalend/protocol-v3-arbitrum',
+    `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/FPS9fdGYvwyCkFzUqmF5YYYqNKT88K5V5fjnmTNPjd9t`,
   ethereum: 'https://api.thegraph.com/subgraphs/name/mahalend/mahalend-mainnet',
 };
 

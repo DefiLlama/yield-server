@@ -7,13 +7,13 @@ const NETWORKS = {
 
 const SUBGRAPHS = {
   ethereum:
-    'https://api.thegraph.com/subgraphs/name/xtokenmarket/terminal-mainnet',
+    `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/AhQcCNvtM3YEoCBPQFYfPzxwY6Rk2nFqydr4276zki2c`,
   arbitrum:
-    'https://api.thegraph.com/subgraphs/name/xtokenmarket/terminal-arbitrum',
+    `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/HQFMggtEW3AfDLp8GCPYaaZi91K1SgH9BjnGDxUDptt5`,
   optimism:
-    'https://api.thegraph.com/subgraphs/name/xtokenmarket/terminal-optimism',
+    `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/DxV73USPBdBXunZFi1UEkBqL6pNA33rt7JYs5hgGbyEc`,
   polygon:
-    'https://api.thegraph.com/subgraphs/name/xtokenmarket/terminal-polygon',
+    `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/9ckmB5VjYouBNxWFWrDsXpNqsNF9jdDewnba8Yx5a9e2`,
 };
 
 const USDC_ADDRESSES = {

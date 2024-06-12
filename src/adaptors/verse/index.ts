@@ -2,7 +2,7 @@ const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
-const url = 'https://api.thegraph.com/subgraphs/name/arnkthr/ethv1';
+const url = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/CvSasxLYUvFbYyi7VXGhXL6PNgkZPoVDo2bo66ftEA2V`;
 
 const query = gql`
     {

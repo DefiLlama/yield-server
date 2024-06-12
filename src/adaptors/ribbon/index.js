@@ -4,8 +4,8 @@ const utils = require('../utils');
 
 const API = {
   Avalanche:
-    'https://api.thegraph.com/subgraphs/name/ribbon-finance/ribbon-avax',
-  Ethereum: 'https://api.thegraph.com/subgraphs/name/ribbon-finance/ribbon-v2',
+    `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/AmJzFkqot9NjxPCRLK8yXopYt3rtS736ZEX2zEFg7Tz2`,
+  Ethereum: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/3GhHcRwF6yH7WXGcJJvac9B5MHPuoXhS9uxc49TPqLf6`,
 };
 
 const getNWeekApy = (perf, weekN) => {

@@ -6,7 +6,7 @@ exports.CHAINS = {
         masterchef: '0x71354AC3c695dfB1d3f595AfA5D4364e9e06339B',
         feeRate: 0.0005,
         // apiUrl: 'https://bnb.apeswapgraphs.com/subgraphs/name/ape-swap/apeswap-subgraph',
-        apiUrl: 'https://api.thegraph.com/subgraphs/name/apeswapfinance/bsc-dex',
+        apiUrl: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/GH4Zt29mCApHwMfavNFw5ZdQDH3owc2Wq8DdU4hGPXYe`,
         callsName: {
             length: 'poolLength',
             alloc: 'totalAllocPoint',
@@ -29,7 +29,7 @@ exports.CHAINS = {
         banana: '0x5d47baba0d66083c52009271faf3f50dcc01023c',
         masterchef: '0x54aff400858Dcac39797a81894D9920f16972D1D',
         feeRate: 0.0005,
-        apiUrl: 'https://api.thegraph.com/subgraphs/name/apeswapfinance/dex-polygon',
+        apiUrl: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/32BWziYZT6en9rVM9L3sDonnjHGtKvfsiJyMDv3T7Dx1`,
         callsName: {
             length: 'poolLength',
             alloc: 'totalAllocPoint',

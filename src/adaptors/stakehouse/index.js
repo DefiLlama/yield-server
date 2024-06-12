@@ -34,7 +34,7 @@ const getTvlPerLSD = async (ticker) => {
   `
   
   const response = await request(
-    "https://api.thegraph.com/subgraphs/name/stakehouse-dev/lsd",
+    `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/8hFX42Mcd6JMXLz7gnP5zenpoWkr6bye89n1zCWKBXoz`,
     query,
     {
       ticker: ticker
