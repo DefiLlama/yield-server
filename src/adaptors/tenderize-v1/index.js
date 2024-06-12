@@ -3,9 +3,9 @@ const utils = require('../utils');
 const fetch = require('node-fetch');
 
 const ethereumEndpoint =
-  'https://api.thegraph.com/subgraphs/name/tenderize/tenderize-ethereum';
+  `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/G4tmH3LNcPYUzuXx1Lqv7egUzyQpagNWn8MCpwMtEVFF`;
 const arbitrumEndpoint =
-  'https://api.thegraph.com/subgraphs/name/tenderize/tenderize-arbitrum';
+  `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/BKHH9dfKgGR4KmrkpvN8r8JMHEmtYqFgdiUe9C6VZk9K`;
 
 const query = gql`
   {

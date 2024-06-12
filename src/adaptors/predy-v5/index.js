@@ -4,7 +4,7 @@ const { default: BigNumber } = require('bignumber.js')
 const { getAsset, getTotalSupply } = require('./queries')
 const { calculateInterestRate } = require('./helpers')
 
-const endpoint = 'https://api.thegraph.com/subgraphs/name/predy-dev/predy-fee-arbitrum'
+const endpoint = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/6pme7wuvRUDGjuV3zRcgyo6QdKcsHp87tSXZcS1U2QHb`
 
 const query = gql`
   query ($address: String, $strategyId: Int) {

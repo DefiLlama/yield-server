@@ -15,7 +15,7 @@ const chains = {
     LendingPool: '0x5E15d5E33d318dCEd84Bfe3F4EACe07909bE6d9c',
     ProtocolDataProvider: '0xE6729389DEa76D47b5BcB0bA5c080821c3B51329',
     IncentivesController: '0xfa255f5104f129b78f477e9a6d050a02f31a5d86',
-    reward_subgraph: 'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-gnosis-chain-v2',
+    reward_subgraph: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/EJezH1Cp31QkKPaBDerhVPRWsKVZLrDfzjrLqpmv6cGg`
   }
 };
 

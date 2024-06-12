@@ -3,7 +3,7 @@ const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 
 const url =
-  'https://api.thegraph.com/subgraphs/name/dystopia-exchange/dystopia-v2';
+  `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/89e9ZAHs7mJvpckEaSmpTtRXUsYcc1mesE7Czp1Hrqxa`
 
 const query = gql`
   {

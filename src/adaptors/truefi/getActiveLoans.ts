@@ -1,7 +1,7 @@
 const BigNumber = require('bignumber.js')
 const { gql, request } = require('graphql-request');
 
-const SUBGRAPH_URL = 'https://api.thegraph.com/subgraphs/name/mikemccready/truefi-legacy'
+const SUBGRAPH_URL = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/8dmnAhKpSrBvcCMyy1Fr7RjRsmoM2Gpw9bg2KXsS7Vps`
 const LOAN_FACTORY_2_START_BLOCK = 12467595
 
 interface Loan {

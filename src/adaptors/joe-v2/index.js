@@ -6,8 +6,8 @@ const utils = require('../utils');
 const chains = {
   avalanche: 'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/joe-v2',
   arbitrum:
-    'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/joe-v2-arbitrum',
-  bsc: 'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/joe-v2-bnb',
+    `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/9RoEdAwZiP651miLbKLYQczjckg7HxmyoKXWYXBDYsJc`,
+  bsc: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/9ANwfoCsnDa2fREYqEpGxWcTQHsmBDeTkdSDXGYAspN7`,
 };
 
 const query = gql`

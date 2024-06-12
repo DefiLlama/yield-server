@@ -28,7 +28,7 @@ const graphQuery = () => gql`
 `;
 
 const graphUrl =
-  'https://api.thegraph.com/subgraphs/name/alwaysbegrowing/arbor-v1';
+  `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/9MKTb9g59rBG1CNUTrriA6tDdSR8neruGJCP6FjD7SSo`;
 
 const defiUrl = 'https://coins.llama.fi/prices/current/';
 

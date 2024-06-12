@@ -6,7 +6,7 @@ const utils = require('../utils');
 const { comptrollerABI } = require('./abi');
 
 const FTM_RPC = 'https://rpc.ankr.com/fantom/';
-const API_URL = 'https://api.thegraph.com/subgraphs/name/0xc30/scream';
+const API_URL = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/5HSMXwr8MjGvXgsur1xJdx9FV47qkaUxttYSsnZ2G3F4`
 const COMPTROLLER_ADDRESS = '0x3d3094Aec3b63C744b9fe56397D36bE568faEBdF';
 
 const BLOCK_TIME = 1;

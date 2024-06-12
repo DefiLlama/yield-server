@@ -2,8 +2,8 @@ const utils = require('../utils');
 const { ethers } = require('ethers');
 const fetch = require('node-fetch');
 
-const liquidity_endpoint = 'https://api.thegraph.com/subgraphs/name/zackzeroliquid/zeroliquid-liquidity-mining'
-const pricing_endpoint = 'https://api.thegraph.com/subgraphs/name/zackzeroliquid/zeroliquid'
+const liquidity_endpoint = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/BgVpYLQVGwb2RRPcW66aLBtmv48w9NwGxhypBMRNDi34`
+const pricing_endpoint = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/39DkzkpLtF3xJTWgpZwnSKPqqnHbErYhHTVh7RCZ6SMN`
 const zETH = "0x776280f68ad33c4d49e6846507b7dbaf7811c89f";
 const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 

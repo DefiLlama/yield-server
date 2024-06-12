@@ -7,7 +7,7 @@ const { EstimatedFees } = require('./estimateFee');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 
-const url = 'https://api.thegraph.com/subgraphs/name/baseswapfi/v3-base';
+const url = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/39pzQzH5r3vmovd9fTs7rVDVFCj1xJye3dTMNHcSkSfL`;
 
 const query = gql`
   {
