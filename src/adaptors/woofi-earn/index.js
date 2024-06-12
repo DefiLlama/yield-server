@@ -48,7 +48,7 @@ const main = async () => {
         apyReward = info['arb_rewards_apr'];
       }
       let rewardTokens;
-      if (chain === "era") {
+      if (chain === "era" || chain === "base") {
         rewardTokens = [];
       } else {
         rewardTokens = [rewardTokensMapping[chain]];
