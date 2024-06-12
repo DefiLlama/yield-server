@@ -126,6 +126,7 @@ const excludeAdaptors = [
   'koi-finance-amm',
   'kagla-finance',
   'plenty',
+  'platypus-finance',
 ];
 
 const excludePools = [
