@@ -136,6 +136,8 @@ functions:
     events:
       # every new hour
       - schedule: cron(0 * * * ? *)
+    environment:
+      GRAPH_PROTOCOL: ${file(./env.js):GRAPH_PROTOCOL}
 
   triggerMedianProject:
     handler: src/handlers/triggerMedianProject.handler
