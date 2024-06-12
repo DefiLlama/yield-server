@@ -163,7 +163,7 @@ async function apyPerChain(chainName, refPoolAddr, endpoint) {
   const esToken = stakingInfo.escrowToken;
 
   const stakingPoolData = {}; // identify by pool
-  if(etherUtils.isAddress(stakingRouter) && etherUtils.isAddress(esToken) && stakingPoolIds.length > 0) {
+  if(false && etherUtils.isAddress(stakingRouter) && etherUtils.isAddress(esToken) && stakingPoolIds.length > 0) {
     const latestPoolDataMap = {}
     for(let i = 0; i < latestPoolsData.length; i++) {
       latestPoolDataMap[latestPoolsData[i].input.params[0]] = latestPoolsData[i].output
@@ -252,8 +252,8 @@ async function apyPerChain(chainName, refPoolAddr, endpoint) {
     tvlUsd: Number(_gammaPoolTracers[i].lastDailyData.pool.tvlUSD),
     apyBase: supplyApy(_gammaPoolTracers[i].lastDailyData, _latestPoolsData[i].output),
     apyBaseBorrow: borrowApy(_gammaPoolTracers[i].lastDailyData, _latestPoolsData[i].output),
-    rewardTokens: getRewardTokens(chainName, pool, stakingPoolData),
-    apyReward: getRewardApy(chainName, pool, stakingPoolData), // APY from pool LM rewards in %
+    //rewardTokens: getRewardTokens(chainName, pool, stakingPoolData),
+    //apyReward: getRewardApy(chainName, pool, stakingPoolData), // APY from pool LM rewards in %
     underlyingTokens: _latestPoolsData[i].output.tokens,
     url: `https://app.gammaswap.com/earn/${chainName}/${pool}`,
   }));
