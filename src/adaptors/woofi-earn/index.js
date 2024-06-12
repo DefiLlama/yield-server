@@ -11,6 +11,7 @@ const API_URLS = {
   arbitrum: `${API_URL}?network=arbitrum`,
   optimism: `${API_URL}?network=optimism`,
   era: `${API_URL}?network=zksync`,
+  base: `${API_URL}?network=base`,
 };
 
 const rewardTokensMapping = {
