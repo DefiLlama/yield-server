@@ -117,6 +117,21 @@ const excludeAdaptors = [
   'yieldlend',
   'iron-bank',
   'swapr-v2',
+  'agave',
+  'blueshift',
+  'index-coop',
+  'gyroscope-protocol',
+  'blue-planet',
+  'archimedes-finance',
+  'koi-finance-amm',
+  'kagla-finance',
+  'plenty',
+  'platypus-finance',
+  'stakedao', // completely broken api
+  'biswap-v2',
+  'burrow',
+  'raydium',
+  'ref-finance',
 ];
 
 const excludePools = [
@@ -487,6 +502,7 @@ const excludePools = [
   '0x5b4ef67c63d091083ec4d30cfc4ac685ef051046-xdai',
   '0x659110d07923e2c3fcb9d3c9e66b0a1605e7ce71-astar',
   '0xf13eb90f923ff0c424c4a7e917cace304b7386a0a6bafe1caa81efdc7973ae89',
+  '0x6b175474e89094c44da98b954eedeac495271d0f-smartcredit',
 ];
 
 const boundaries = {

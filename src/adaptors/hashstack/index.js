@@ -169,7 +169,7 @@ async function apy() {
         target:
           market,
         params: [token?.address],
-        allAbi: [metricsAbi?.Market_Info],
+        allAbi: [],
       });
       const borrow_rate=BigNumber(res?.borrow_rate.toString()).div(100).toNumber();
       const supply_rate=BigNumber(res?.supply_rate.toString()).div(100).toNumber()
@@ -180,12 +180,12 @@ async function apy() {
       return{
         pool:`${token?.dToken.toLowerCase()}`,
         chain:'Starknet',
-        project:'Hashstack',
+        project:'hashstack',
         symbol:token?.name,
         tvlUsd:totalSupplyUsd.toNumber(),
         apyBase:supply_rate,
         apyBaseBorrow:borrow_rate,
-        underlyingTokens:token?.address,
+        underlyingTokens:[token?.address],
         totalSupplyUsd:totalSupplyUsd.toNumber(),
         totalBorrowUsd:totalBorrowUsd.toNumber(),
         url:`https://app.hashstack.finance/market`

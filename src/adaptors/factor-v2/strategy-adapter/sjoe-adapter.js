@@ -23,7 +23,7 @@ async function getMonthlyReward() {
     dateAfter: thirtyDaysAgo,
   };
   const { dayDatas } = await request(
-    'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/fee-collector-arbitrum',
+    `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/AuX5GL2oSPVcgHUbBow5SU3yoxWFNFdmGLvEX9nb1gUb`,
     query,
     variables
   );

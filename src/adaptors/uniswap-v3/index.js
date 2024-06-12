@@ -7,15 +7,15 @@ const { EstimatedFees } = require('./estimateFee.ts');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 
-const baseUrl = 'https://api.thegraph.com/subgraphs/name';
+const baseUrl = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id`;
 const chains = {
-  ethereum: `${baseUrl}/uniswap/uniswap-v3`,
-  polygon: `https://gateway-arbitrum.network.thegraph.com/api/a265c39f5a123ab2d40b25dc352adc22/subgraphs/id/3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm`,
-  arbitrum: `https://api.thegraph.com/subgraphs/id/QmZ5uwhnwsJXAQGYEF8qKPQ85iVhYAcVZcZAPfrF7ZNb9z`,
-  optimism: `${baseUrl}/ianlapham/optimism-post-regenesis`,
-  celo: `${baseUrl}/jesse-sawa/uniswap-celo`,
-  avax: `${baseUrl}/lynnshaoyu/uniswap-v3-avax`,
-  bsc: `${baseUrl}/ianlapham/uniswap-v3-bsc`,
+  ethereum: `${baseUrl}/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`,
+  polygon: `${baseUrl}/3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm`,
+  arbitrum: `${baseUrl}/FbCGRftH4a3yZugY7TnbYgPJVEv2LvMT6oF1fxPe9aJM`,
+  optimism: `${baseUrl}/7SVwgBfXoWmiK6x1NF1VEo1szkeWLniqWN1oYsX3UMb5`,
+  celo: `${baseUrl}/5GMxLtvwbfKxyCpSgHvS8FbeofS2ry9K76NL9RCzPNm2`,
+  avax: `${baseUrl}/GVH9h9KZ9CqheUEL93qMbq7QwgoBu32QXQDPR6bev4Eo`,
+  bsc: `${baseUrl}/GcKPSgHoY42xNYVAkSPDhXSzi6aJDRQSKqBSXezL47gV`,
   base: 'https://api.studio.thegraph.com/query/48211/uniswap-v3-base/version/latest',
 };
 
