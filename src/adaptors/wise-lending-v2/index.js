@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const { ethers } = require('ethers');
 const wiseLendingABI = require('./abi/wiseLendingABI.json');
 const wiseSecurityABI = require('./abi/wiseSecurityABI.json');
+const AaveHubABI = require('./abi/AaveHubABI.json');
 const superagent = require('superagent');
 
 const ChainName = {
@@ -17,6 +18,10 @@ const contracts = {
   wiseSecurity: {
     ethereum: "0x8EB1B69fB74C6019C16f43ae93F0fAD7CCB9A59d",
     arbitrum: "0x67dae107eCF474F0D5B7d8aD45490608a5AdbE2A"
+  },
+  aaveHub: {
+    ethereum: "0x5b2E35d9dEB2962D05A5C7E91939169656DCd1Cd",
+    arbitrum: "0x4A56DCd67E66102E6a877dE8BF2E903Df5E18978"
   }
 };
 
@@ -30,12 +35,25 @@ const tokenAddresses = {
     USDT: "0x6ab707Aca953eDAeFBc4fD23bA73294241490620",
     DAI: "0x82E64f49Ed5EC1bC6e43DAD4FC8Af9bb3A2312EE",
     wstETH: "0x5979D7b546E38E414F7E9822514be443A4800529",
+  },
+  underlying: {
+    WETH: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+    USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+    USDT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+    DAI: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+    wstETH: "0x5979D7b546E38E414F7E9822514be443A4800529",
   }
 };
 
 const projectSlug = 'wise-lending-v2';
 
-const getTokenData = async (chain, token, address, wiseSecurity, wiseLending) => {
+const getTokenData = async (chain, token, addresses, contract) => {
+  const address = addresses[chain];
+  const underlying = addresses.underlying;
+  const wiseSecurity = contracts.wiseSecurity[chain];
+  const wiseLending = contracts.wiseLending[chain];
+  const aaveHub = contracts.aaveHub[chain];
+
   try {
 
     if (chain === "ethereum") {
@@ -54,10 +72,10 @@ const getTokenData = async (chain, token, address, wiseSecurity, wiseLending) =>
     ).body.coins[tokenAddress];
 
     const lendingData = await sdk.api.abi.call({
-      target: wiseSecurity,
-      abi: wiseSecurityABI.find((m) => m.name === 'getLendingRate'),
+      target: aaveHub,
+      abi: AaveHubABI.find((m) => m.name === 'getLendingRate'),
       chain,
-      params: [address[token]],
+      params: [underlying[token]],
     });
 
     const lendingRate = lendingData.output / 1e16;
@@ -134,7 +152,12 @@ async function apy() {
             Promise.all(
               tokens.map(async (token) => {
 
-                return getTokenData(chain, token, tokenAddresses[chain], contracts.wiseSecurity[chain], contracts.wiseLending[chain]);
+                return getTokenData(
+                  chain,
+                  token,
+                  tokenAddresses,
+                  contracts
+                );
               })
             ),
           ]
