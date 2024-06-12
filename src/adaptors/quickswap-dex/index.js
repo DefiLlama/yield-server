@@ -1,7 +1,8 @@
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 
-const url = 'https://api.thegraph.com/subgraphs/name/sameepsi/quickswap06';
+const baseUrl = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id`;
+const url = `${baseUrl}/FnbpmBoXSidpFCghB5oxEb7XBUyGsSmyyXs9p8t3esvF`;
 
 const query = gql`
   {
@@ -53,8 +54,7 @@ const buildPool = (entry, chainString) => {
 };
 
 const topLvl = async (chainString, timestamp, url, version) => {
-  const sushiPolygon =
-    'https://api.thegraph.com/subgraphs/name/sushiswap/matic-exchange';
+  const sushiPolygon = `${baseUrl}/8NiXkxLRT3R22vpwLB4DXttpEf3X1LrKhe4T1tQ3jjbP`;
   const [block, blockPrior] = await utils.getBlocks(
     chainString,
     timestamp,

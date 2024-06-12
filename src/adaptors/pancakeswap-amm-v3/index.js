@@ -8,15 +8,15 @@ const { getCakeAprs, CAKE, chainIds } = require('./cakeReward');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 
-const baseUrl = 'https://api.thegraph.com/subgraphs/name';
+const baseUrl = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id`;
 const chains = {
-  ethereum: `${baseUrl}/pancakeswap/exchange-v3-eth`,
+  ethereum: `${baseUrl}/CJYGNhb7RvnhfBDjqpRnD3oxgyhibzc7fkAMa38YV3oS`,
   // temp disable bsc
-  // bsc: `${baseUrl}/pancakeswap/exchange-v3-bsc`,
+  // bsc: `${baseUrl}/Hv1GncLY5docZoGtXjo4kwbTvxm3MAhVZqBZE4sUT9eZ`,
   polygon_zkevm:
     'https://api.studio.thegraph.com/query/45376/exchange-v3-polygon-zkevm/version/latest',
   era: 'https://api.studio.thegraph.com/query/45376/exchange-v3-zksync/version/latest',
-  arbitrum: `${baseUrl}/pancakeswap/exchange-v3-arb`,
+  arbitrum: `${baseUrl}/251MHFNN1rwjErXD2efWMpNS73SANZN8Ua192zw6iXve`,
   op_bnb: 'https://proxy-worker-dev.pancake-swap.workers.dev/opbnb-exchange-v3',
   linea:
     'https://graph-query.linea.build/subgraphs/name/pancakeswap/exchange-v3-linea',
