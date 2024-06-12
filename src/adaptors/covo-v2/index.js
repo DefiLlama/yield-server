@@ -4,7 +4,7 @@ const abi = require('./abis/abi.json');
 const { request, gql } = require('graphql-request');
 const BigNumber = require('bignumber.js');
 
-const baseUrl = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/FLWnk6nG7NDSTJWEh7UE2FBiYpUT6sspurmLzacNkGYr`
+const baseUrl = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/FLWnk6nG7NDSTJWEh7UE2FBiYpUT6sspurmLzacNkGYr`;
 
 const covoaddress = '0x681D3e1b54B3E1a338feB5B076cebf53a697d51F';
 const stakingstore = '0x8aBeAA1578024B85084A09Ca2fa46f0a0dfE9c0F';

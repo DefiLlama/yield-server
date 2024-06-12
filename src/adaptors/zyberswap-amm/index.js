@@ -8,8 +8,7 @@ const ZYB = '0x3B475F6f2f41853706afc9Fa6a6b8C5dF1a2724c';
 
 const utils = require('../utils');
 
-const url =
-  `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/3g83GYhbyHtjy581vpTmN1AP9cB9MjWMh5TiuNpvTU4R`;
+const url = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/3g83GYhbyHtjy581vpTmN1AP9cB9MjWMh5TiuNpvTU4R`;
 
 const query = gql`
   {

@@ -10,7 +10,7 @@ const utils = require('../utils');
 const { TokenProvider } = require('@uniswap/smart-order-router');
 
 const RPC_URL = 'https://endpoints.omniatech.io/v1/bsc/mainnet/public';
-const API_URL = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/2D9rXpMTvAgofWngsyRE17jKr5ywrU4W3Eaa71579qkd`;
+const API_URL = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/2D9rXpMTvAgofWngsyRE17jKr5ywrU4W3Eaa71579qkd`;
 
 const MASTERCHEF_ADDRESS = '0xDbc1A13490deeF9c3C12b44FE77b503c1B061739';
 const BSW_TOKEN = '0x965f527d9159dce6288a2219db51fc6eef120dd1';

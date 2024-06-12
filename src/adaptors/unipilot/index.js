@@ -21,15 +21,13 @@ const GRAPH_URLS = {
   uniswapv3: {
     ethereum:
       'https://api.thegraph.com/subgraphs/name/unipilotvoirstudio/unipilot-v2-stats',
-    polygon:
-      `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/5wUArtUmdKBipfXaD9Rwg3ZDWUTPRBTBJSDHvyhc7AHb`,
+    polygon: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/5wUArtUmdKBipfXaD9Rwg3ZDWUTPRBTBJSDHvyhc7AHb`,
     arbitrum:
       'https://api.thegraph.com/subgraphs/name/hamzabhatti125/unipilot-stats-arbitrum',
     bsc: 'https://api.thegraph.com/subgraphs/name/hamzabhatti125/unipilot-stats-bnb',
   },
   quickswap: {
-    polygon:
-      `https://gateway-arbitrum.network.thegraph.com/api/${process.env.TRADERJOE}/subgraphs/id/GXc2d1wMCbyKq2F2qRo8zcCad6tXsmXubEA5F8jGKBTG`,
+    polygon: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/GXc2d1wMCbyKq2F2qRo8zcCad6tXsmXubEA5F8jGKBTG`,
     polygon_zkevm:
       'https://api.studio.thegraph.com/query/19956/unipilot-stats-polygonzkevm/v0.0.1',
     dogechain:
