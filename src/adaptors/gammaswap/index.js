@@ -54,6 +54,11 @@ async function apy() {
       chainName: "base",
       endpoint: "https://api.goldsky.com/api/public/project_clut9lukx80ry01xb5ngf1zmj/subgraphs/gammaswap-v1-base/prod/gn",
       refPoolAddr: "0xcd4257699b48d4791e77116d0e6a3bd48ad9567f",
+    },
+    {
+      chainName: "ethereum",
+      endpoint: "https://api.goldsky.com/api/public/project_clut9lukx80ry01xb5ngf1zmj/subgraphs/gammaswap-v1-mainnet/prod/gn",
+      refPoolAddr: "0xc70150188142fbfcbb90db05bffc31bccded3da5",
     }
   ]
 
@@ -63,6 +68,13 @@ async function apy() {
     pools = pools.concat(_pools);
   }
   return pools;
+}
+
+function formatChainName(chainName) {
+  if(chainName == "ethereum") {
+    return "mainnet";
+  }
+  return chainName;
 }
 
 function getRewardApy(chainName, poolId, stakingPoolData) {
@@ -255,7 +267,7 @@ async function apyPerChain(chainName, refPoolAddr, endpoint) {
     //rewardTokens: getRewardTokens(chainName, pool, stakingPoolData),
     //apyReward: getRewardApy(chainName, pool, stakingPoolData), // APY from pool LM rewards in %
     underlyingTokens: _latestPoolsData[i].output.tokens,
-    url: `https://app.gammaswap.com/earn/${chainName}/${pool}`,
+    url: `https://app.gammaswap.com/earn/${formatChainName(chainName)}/${pool}`,
   }));
 }
 
