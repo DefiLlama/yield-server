@@ -1,3 +1,4 @@
+const sdk = require("@defillama/sdk");
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const { gql, request } = require('graphql-request');
@@ -13,7 +14,7 @@ const PTP = '0x22d4002028f537599be9f666d1c4fa138522f9c8';
 
 // only used to get poolMeta names
 const POOLS_URL =
-  'https://api.thegraph.com/subgraphs/name/platypus-finance/platypus-dashboard-staging';
+  sdk.graph.modifyEndpoint('B916PBxF7iMxK9PVyDQwGi66aZvUQTWQS8vsKAF9jQQc');
 
 const poolsQuery = gql`
   query MyQuery {

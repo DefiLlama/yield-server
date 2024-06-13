@@ -1,3 +1,4 @@
+import * as sdk from "@defillama/sdk";
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
@@ -8,7 +9,7 @@ const abiGauge = require('./abiGauge.json');
 const abiVoter = require('./abiVoter.json');
 const { request, gql } = require('graphql-request');
 
-const SUBGRAPH_URL = 'https://api.thegraph.com/subgraphs/name/jameveplus/veplus'
+const SUBGRAPH_URL = sdk.graph.modifyEndpoint('FEYBMUkep7BKAoxP9mX9ZF733SvnTbNMWE9tgtNTw83g')
 
 const pairFactory = '0x5Bcd9eE6C31dEf33334b255EE7A767B6EEDcBa4b';
 const voter = '0x792Ba5586E87005661C4e611b17e01De0de42599';

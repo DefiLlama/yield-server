@@ -1,3 +1,4 @@
+const sdk = require("@defillama/sdk");
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const masterchefAbi = require('./masterchef');
@@ -37,7 +38,7 @@ const staker_contracts = [
 const utils = require('../utils');
 
 const url = sdk.graph.modifyEndpoint(
-  'https://gateway-arbitrum.network.thegraph.com/api/[api-key]/subgraphs/id/BWHCfpXMHFDx3u4E14hEwv4ST7SUyN89FKJ2RjzWKgA9'
+  sdk.graph.modifyEndpoint('BWHCfpXMHFDx3u4E14hEwv4ST7SUyN89FKJ2RjzWKgA9')
 );
 
 const query = gql`

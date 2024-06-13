@@ -1,3 +1,4 @@
+const sdk = require("@defillama/sdk");
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
@@ -13,7 +14,7 @@ const WEEKS_PER_YEAR = 52;
 const FEE_RATE = 0.0017;
 
 const SUBGRAPH_URL =
-  'https://api.thegraph.com/subgraphs/name/polymmfinance/exchang';
+  sdk.graph.modifyEndpoint('HTJcrXUUtrVFKyNHZH99ywRx3TQm5ChSFVbn3oBiqGq6');
 const { request, gql, batchRequests } = require('graphql-request');
 const { chunk } = require('lodash');
 const pairQuery = gql`

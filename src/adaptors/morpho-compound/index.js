@@ -1,10 +1,11 @@
+const sdk = require("@defillama/sdk");
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
 const subgraphMorphoCompound = sdk.graph.modifyEndpoint(
-  'https://gateway-arbitrum.network.thegraph.com/api/[api-key]/subgraphs/id/R7SWGbEtAH11a4PXdtLPiVgWtyKWBkExnST1FVaaFQ8'
+  sdk.graph.modifyEndpoint('R7SWGbEtAH11a4PXdtLPiVgWtyKWBkExnST1FVaaFQ8')
 );
 
 const BLOCKS_PER_DAY = 7200;
