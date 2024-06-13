@@ -197,7 +197,8 @@ const topLvl = async (
       utils.apy(el, dataPrior, dataPrior7d, version, i)
     );
 
-    if (chainString !== 'arbitrum') {
+    const enableV3Apy = false;
+    if (enableV3Apy && chainString !== 'arbitrum') {
       dataNow = dataNow.map((p, i) => ({
         ...p,
         token1_in_token0: p.price1 / p.price0,
