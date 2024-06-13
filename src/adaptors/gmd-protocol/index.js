@@ -6,7 +6,6 @@ const ERC20ABI = require('./abis/ERC20ABI.json');
 const GMDStakingABI = require('./abis/GMDStakingABI.json');
 const IUniswapV3Pool = require('./abis/IUniswapV3Pool.json');
 const getTokenContract = require('./utils/contracts');
-const Pool = require('@uniswap/v3-sdk/');
 const ethers = require('ethers');
 const {
   BTC_ADDR,
