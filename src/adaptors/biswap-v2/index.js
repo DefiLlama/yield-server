@@ -7,7 +7,6 @@ const { chunk } = require('lodash');
 
 const { masterChefABI, lpTokenABI } = require('./abis');
 const utils = require('../utils');
-const { TokenProvider } = require('@uniswap/smart-order-router');
 
 const RPC_URL = 'https://endpoints.omniatech.io/v1/bsc/mainnet/public';
 const API_URL = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/2D9rXpMTvAgofWngsyRE17jKr5ywrU4W3Eaa71579qkd`;

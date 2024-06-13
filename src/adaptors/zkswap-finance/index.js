@@ -14,7 +14,6 @@ const {
   zfLpABI,
 } = require('./abis');
 const utils = require('../utils');
-const { TokenProvider } = require('@uniswap/smart-order-router');
 const { SECONDS_PER_YEAR } = require('../across/constants');
 
 const ZFFarm = '0x9f9d043fb77a194b4216784eb5985c471b979d67';
