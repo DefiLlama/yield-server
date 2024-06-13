@@ -1,9 +1,10 @@
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { ethers } = require('ethers');
 const fetch = require('node-fetch');
 
-const liquidity_endpoint = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/BgVpYLQVGwb2RRPcW66aLBtmv48w9NwGxhypBMRNDi34`;
-const pricing_endpoint = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/39DkzkpLtF3xJTWgpZwnSKPqqnHbErYhHTVh7RCZ6SMN`;
+const liquidity_endpoint = sdk.graph.modifyEndpoint('BgVpYLQVGwb2RRPcW66aLBtmv48w9NwGxhypBMRNDi34');
+const pricing_endpoint = sdk.graph.modifyEndpoint('39DkzkpLtF3xJTWgpZwnSKPqqnHbErYhHTVh7RCZ6SMN');
 const zETH = '0x776280f68ad33c4d49e6846507b7dbaf7811c89f';
 const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 

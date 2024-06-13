@@ -1,3 +1,4 @@
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const { formatChain, formatSymbol } = require('../utils');
 const superagent = require('superagent');
@@ -22,7 +23,7 @@ const getBlendedSharesTokenAPY = async (
 ) => {
   if (chain !== 'ethereum') return 0;
 
-  const EULER_SUPGRAPH_ENDPOINT = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/EQBXhrF4ppZy9cBYnhPdrMCRaVas6seNpqviih5VRGmU`;
+  const EULER_SUPGRAPH_ENDPOINT = sdk.graph.modifyEndpoint('EQBXhrF4ppZy9cBYnhPdrMCRaVas6seNpqviih5VRGmU');
 
   const query = `
   query ($address: Bytes!) {

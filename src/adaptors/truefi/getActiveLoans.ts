@@ -1,7 +1,8 @@
+const sdk = require('@defillama/sdk');
 const BigNumber = require('bignumber.js');
 const { gql, request } = require('graphql-request');
 
-const SUBGRAPH_URL = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/8dmnAhKpSrBvcCMyy1Fr7RjRsmoM2Gpw9bg2KXsS7Vps`;
+const SUBGRAPH_URL = sdk.graph.modifyEndpoint('8dmnAhKpSrBvcCMyy1Fr7RjRsmoM2Gpw9bg2KXsS7Vps');
 const LOAN_FACTORY_2_START_BLOCK = 12467595;
 
 interface Loan {

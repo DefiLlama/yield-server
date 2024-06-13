@@ -1,3 +1,4 @@
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { request, gql } = require('graphql-request');
 const dayjs = require('dayjs');
@@ -27,7 +28,7 @@ const graphQuery = () => gql`
   }
 `;
 
-const graphUrl = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/9MKTb9g59rBG1CNUTrriA6tDdSR8neruGJCP6FjD7SSo`;
+const graphUrl = sdk.graph.modifyEndpoint('9MKTb9g59rBG1CNUTrriA6tDdSR8neruGJCP6FjD7SSo');
 
 const defiUrl = 'https://coins.llama.fi/prices/current/';
 

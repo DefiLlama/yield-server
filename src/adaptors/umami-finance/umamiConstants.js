@@ -1,6 +1,7 @@
+const sdk = require('@defillama/sdk');
 // -- Project
 
-const UMAMI_GRAPH_URL = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/6FvNM4mR8wFWB5C3vMsxFRHzbbVEZCLSLfeQNgzzHmw1`;
+const UMAMI_GRAPH_URL = sdk.graph.modifyEndpoint('6FvNM4mR8wFWB5C3vMsxFRHzbbVEZCLSLfeQNgzzHmw1');
 const UMAMI_API_URL = 'https://api.umami.finance/api/v2';
 
 const UMAMI_ADDRESS = '0x1622bf67e6e5747b81866fe0b85178a93c7f86e3';

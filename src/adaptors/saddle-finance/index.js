@@ -13,7 +13,7 @@ const gaugeMinter = '0x358fE82370a1B9aDaE2E3ad69D6cF9e503c96018';
 
 const sdl = '0xf1dc500fde233a4055e25e5bbf516372bc4f6871';
 
-const subgraph = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/79UL5SaLLsbXqC8Ks6v3fwWHR1FRs636FFRHn55o5SWq`;
+const subgraph = sdk.graph.modifyEndpoint('79UL5SaLLsbXqC8Ks6v3fwWHR1FRs636FFRHn55o5SWq');
 
 const apy = async () => {
   const n_gauges = (
