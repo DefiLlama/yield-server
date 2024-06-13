@@ -2,17 +2,26 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const RebaseManager = require('./abis/RebaseManager.json');
+const PointsVault = require('./abis/PointsBoostingVault.json');
 const arcUSD = require('./abis/arcUSD.json');
 const USTB = require('./abis/USTB.json');
 
 const CHAIN_NAME = 'real';
 
 const poolsFunction = async () => {
-
   const totalSupply = await sdk.api.abi
     .call({
       target: arcUSD.address,
       abi: arcUSD.abi.find((m) => m.name === 'totalSupply'),
+      chain: CHAIN_NAME,
+    })
+    .then((result) => result.output);
+
+    const amountStaked = await sdk.api.abi
+    .call({
+      target: arcUSD.address,
+      abi: arcUSD.abi.find((m) => m.name === 'balanceOf'),
+      params: [PointsVault.address],
       chain: CHAIN_NAME,
     })
     .then((result) => result.output);
@@ -26,7 +35,9 @@ const poolsFunction = async () => {
     })
     .then((result) => result.output);
 
-  //const apy = (1 + (apr/365))^(365)-1;
+  const apy = (Math.pow(1 + (apr/1e18) / 36500, 365) - 1) * 100;
+  const ratio = (totalSupply-amountStaked)/totalSupply;
+  const apy_given_staked = (apy/ratio)*1e2;
 
   const arcUSDPool = {
     pool: arcUSD.address,
@@ -34,14 +45,14 @@ const poolsFunction = async () => {
     project: 'tangible-arcana',
     symbol: utils.formatSymbol('arcUSD'),
     tvlUsd: Number(totalSupply) / 1e18,
-    apyBase: apr,
+    apyBase: apy_given_staked,
     apyReward: 0,
     rewardTokens: [arcUSD.address],
     underlyingTokens: [USTB.address],
     url: 'https://arcana.finance',
   };
 
-  return arcUSDPool;
+  return [arcUSDPool]
 };
 
 module.exports = {
