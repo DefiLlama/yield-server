@@ -1,4 +1,3 @@
-const sdk = require("@defillama/sdk");
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
@@ -6,8 +5,12 @@ const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 
 const chains = {
-  avalanche: sdk.graph.modifyEndpoint('6KD9JYCg2qa3TxNK3tLdhj5zuZTABoLLNcnUZXKG9vuH'),
-  arbitrum: sdk.graph.modifyEndpoint('9RoEdAwZiP651miLbKLYQczjckg7HxmyoKXWYXBDYsJc'),
+  avalanche: sdk.graph.modifyEndpoint(
+    '6KD9JYCg2qa3TxNK3tLdhj5zuZTABoLLNcnUZXKG9vuH'
+  ),
+  arbitrum: sdk.graph.modifyEndpoint(
+    '9RoEdAwZiP651miLbKLYQczjckg7HxmyoKXWYXBDYsJc'
+  ),
   bsc: sdk.graph.modifyEndpoint('9ANwfoCsnDa2fREYqEpGxWcTQHsmBDeTkdSDXGYAspN7'),
 };
 

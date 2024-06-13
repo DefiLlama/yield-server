@@ -1,4 +1,3 @@
-const sdk = require("@defillama/sdk");
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const masterchefAbi = require('./masterchef');
