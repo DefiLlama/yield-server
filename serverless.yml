@@ -79,7 +79,6 @@ functions:
       SMARDEX_SUBGRAPH_API_KEY: ${file(./env.js):SMARDEX_SUBGRAPH_API_KEY}
       VENDOR_FINANCE: ${file(./env.js):VENDOR_FINANCE}
       TRADERJOE: ${file(./env.js):TRADERJOE}
-      GRAPH_API_KEY: ${file(./env.js):GRAPH_API_KEY}
 
   # --- data enrichment
   triggerEnrichment:
@@ -137,8 +136,6 @@ functions:
     events:
       # every new hour
       - schedule: cron(0 * * * ? *)
-    environment:
-      GRAPH_API_KEY: ${file(./env.js):GRAPH_API_KEY}
 
   triggerMedianProject:
     handler: src/handlers/triggerMedianProject.handler
