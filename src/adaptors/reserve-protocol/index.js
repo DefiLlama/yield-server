@@ -18,7 +18,9 @@ const chains = [
   {
     chainName: 'ethereum',
     facade: '0xad0BFAEE863B1102e9fD4e6330A02B08d885C715',
-    graph: 'https://api.thegraph.com/subgraphs/name/lcamargof/reserve-test',
+    graph: sdk.graph.modifyEndpoint(
+      '67uGcSjxdptxeX66UamL2a5YAj192QyyL1qcmZMUHEH2'
+    ),
   },
 ];
 

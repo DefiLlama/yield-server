@@ -11,9 +11,10 @@ const abiVoter = require('./abiVoter.json');
 const pairFactory = '0xAAA20D08e59F6561f242b08513D36266C5A29415';
 const voter = '0xAAA2564DEb34763E3d05162ed3f5C2658691f499';
 const RAM = '0xAAA6C1E32C55A7Bfa8066A6FAE9b42650F262418';
-const baseUrl = 'https://api.thegraph.com/subgraphs/name';
 const chains = {
-  arbitrum: `${baseUrl}/ramsesexchange/concentrated-liquidity-graph`,
+  arbitrum: sdk.graph.modifyEndpoint(
+    'G2tXDm6mgqBMuC7hq9GRVeTv5SRBAVnPFGcpGBab2cea'
+  ),
 };
 
 const superagent = require('superagent');

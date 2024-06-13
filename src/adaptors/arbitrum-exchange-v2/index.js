@@ -9,7 +9,9 @@ const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 
 const utils = require('../utils');
 
-const url = 'https://api.thegraph.com/subgraphs/name/hekman-eth/arbidex ';
+const url = sdk.graph.modifyEndpoint(
+  'https://gateway-arbitrum.network.thegraph.com/api/[api-key]/subgraphs/id/DsZsQrDp7VswGGm6PburYZ91AM3E9vwH45nwLCj3kXHA'
+);
 
 const query = gql`
   {
