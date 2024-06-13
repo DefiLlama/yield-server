@@ -1,8 +1,9 @@
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
-const url = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/CvSasxLYUvFbYyi7VXGhXL6PNgkZPoVDo2bo66ftEA2V`;
+const url = sdk.graph.modifyEndpoint('CvSasxLYUvFbYyi7VXGhXL6PNgkZPoVDo2bo66ftEA2V');
 
 const query = gql`
     {

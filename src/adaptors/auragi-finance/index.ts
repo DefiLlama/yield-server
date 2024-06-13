@@ -1,8 +1,9 @@
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { request, gql } = require('graphql-request');
 
 const API_URL = 'https://api.auragi.finance/api/v1/pairs';
-const SUBGRAPH_URL = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/DtNQcRXx82k4azEb5QvUjRbmXSNLTUsUePzPY6PtryEc`;
+const SUBGRAPH_URL = sdk.graph.modifyEndpoint('DtNQcRXx82k4azEb5QvUjRbmXSNLTUsUePzPY6PtryEc');
 
 const swapPairsQuery = (skip) => {
   return gql`

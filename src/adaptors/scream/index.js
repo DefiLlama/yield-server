@@ -1,3 +1,4 @@
+const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 const Web3 = require('web3');
@@ -6,7 +7,7 @@ const utils = require('../utils');
 const { comptrollerABI } = require('./abi');
 
 const FTM_RPC = 'https://rpc.ankr.com/fantom/';
-const API_URL = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/5HSMXwr8MjGvXgsur1xJdx9FV47qkaUxttYSsnZ2G3F4`;
+const API_URL = sdk.graph.modifyEndpoint('5HSMXwr8MjGvXgsur1xJdx9FV47qkaUxttYSsnZ2G3F4');
 const COMPTROLLER_ADDRESS = '0x3d3094Aec3b63C744b9fe56397D36bE568faEBdF';
 
 const BLOCK_TIME = 1;

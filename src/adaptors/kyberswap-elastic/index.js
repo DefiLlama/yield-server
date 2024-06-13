@@ -1,3 +1,4 @@
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const axios = require('axios');
 
@@ -12,7 +13,7 @@ const urlFarm =
 CHAINS_API = {
   ethereum: `${url}-mainnet`,
   arbitrum: `${url}-arbitrum-one`,
-  polygon: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/8g4tJKCJ7eMAHjzZNeRWz9BkYG5U7vDNjdanSXfDXGXT`,
+  polygon: sdk.graph.modifyEndpoint('8g4tJKCJ7eMAHjzZNeRWz9BkYG5U7vDNjdanSXfDXGXT'),
   avalanche: `${url}-avalanche`,
   bsc: `${url}-bsc`,
   fantom: `${url}-fantom`,

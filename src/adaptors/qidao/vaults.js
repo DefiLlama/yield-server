@@ -1,3 +1,4 @@
+const sdk = require('@defillama/sdk');
 // ref https://github.com/royalaid/qidao-sdk/blob/main/src/vaultInfo.ts
 
 const ChainId = {
@@ -936,7 +937,7 @@ const vaults = {
     },
     {
       chainId: ChainId.MATIC,
-      subgraph: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/4TAKynX2eqkih6Cob4pBBCxtkgUtBR6QgvsSwA8y9joQ`,
+      subgraph: sdk.graph.modifyEndpoint('4TAKynX2eqkih6Cob4pBBCxtkgUtBR6QgvsSwA8y9joQ'),
       vaultAddress: '0x98B5F32dd9670191568b661a3e847Ed764943875',
       token: Token.deserializer(
         ChainId.MATIC,
@@ -950,7 +951,7 @@ const vaults = {
     },
     {
       chainId: ChainId.MATIC,
-      subgraph: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/2n8LDgHqDMamjXvchFyTgU7o3YndcWVBLcTUFUx7C8Xp`,
+      subgraph: sdk.graph.modifyEndpoint('2n8LDgHqDMamjXvchFyTgU7o3YndcWVBLcTUFUx7C8Xp'),
       vaultAddress: '0x37131aEDd3da288467B6EBe9A77C523A700E6Ca1',
       token: Token.deserializer(
         ChainId.MATIC,
@@ -964,7 +965,7 @@ const vaults = {
     },
     {
       chainId: ChainId.MATIC,
-      subgraph: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/8Yihy9U8n4KnMPn2G4iiWfUycDhKZMhyCQn5urMWsWVi`,
+      subgraph: sdk.graph.modifyEndpoint('8Yihy9U8n4KnMPn2G4iiWfUycDhKZMhyCQn5urMWsWVi'),
       vaultAddress: CAMWBTC_VAULT_ADDRESS,
       token: Token.deserializer(
         ChainId.MATIC,
@@ -1012,7 +1013,7 @@ const vaults = {
     },
     {
       chainId: ChainId.MATIC,
-      subgraph: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/79gzKS8x9REyvAsqgQfgpuD4xX8mpr5HzysJiUF628iE`,
+      subgraph: sdk.graph.modifyEndpoint('79gzKS8x9REyvAsqgQfgpuD4xX8mpr5HzysJiUF628iE'),
       vaultAddress: '0x701A1824e5574B0b6b1c8dA808B184a7AB7A2867',
       token: Token.deserializer(
         ChainId.MATIC,
@@ -1026,7 +1027,7 @@ const vaults = {
     },
     {
       chainId: ChainId.MATIC,
-      subgraph: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/8VyL256uLZpZSMSPxYVqQcYckhvHQqqP1jKP2dZYWhnj`,
+      subgraph: sdk.graph.modifyEndpoint('8VyL256uLZpZSMSPxYVqQcYckhvHQqqP1jKP2dZYWhnj'),
       vaultAddress: '0x649Aa6E6b6194250C077DF4fB37c23EE6c098513',
       token: Token.deserializer(
         ChainId.MATIC,
@@ -1040,7 +1041,7 @@ const vaults = {
     },
     {
       chainId: ChainId.MATIC,
-      subgraph: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/EWE671kZdZnHoQ7dNzaKr4ZcYe67APDYZ1jBrptnB9km`,
+      subgraph: sdk.graph.modifyEndpoint('EWE671kZdZnHoQ7dNzaKr4ZcYe67APDYZ1jBrptnB9km'),
       vaultAddress: '0xF086dEdf6a89e7B16145b03a6CB0C0a9979F1433',
       token: Token.deserializer(
         ChainId.MATIC,

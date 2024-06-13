@@ -1,10 +1,11 @@
+const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 const { default: BigNumber } = require('bignumber.js');
 const { getAsset, getTotalSupply } = require('./queries');
 const { calculateInterestRate } = require('./helpers');
 
-const endpoint = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/6pme7wuvRUDGjuV3zRcgyo6QdKcsHp87tSXZcS1U2QHb`;
+const endpoint = sdk.graph.modifyEndpoint('6pme7wuvRUDGjuV3zRcgyo6QdKcsHp87tSXZcS1U2QHb');
 
 const query = gql`
   query ($address: String, $strategyId: Int) {

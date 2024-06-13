@@ -7,7 +7,7 @@ const {
 } = require('ethers');
 const abi = require('./abi');
 
-const GRAPH_URL = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/42Yjxm8KTaBKfnzycNEhizZxd8jDfgnH9F5kWkzBikAq`;
+const GRAPH_URL = sdk.graph.modifyEndpoint('42Yjxm8KTaBKfnzycNEhizZxd8jDfgnH9F5kWkzBikAq');
 
 const chain = 'polygon';
 

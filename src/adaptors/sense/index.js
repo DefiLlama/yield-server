@@ -6,7 +6,7 @@ const { format } = require('date-fns');
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 
-const graphEndpoint = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/GiBzr9juc4hMmyj6KstUnoaacux4wB5jsdgCV38W3Zwt`;
+const graphEndpoint = sdk.graph.modifyEndpoint('GiBzr9juc4hMmyj6KstUnoaacux4wB5jsdgCV38W3Zwt');
 
 const query = gql`
   {

@@ -1,3 +1,4 @@
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const axios = require('axios');
@@ -48,7 +49,7 @@ const getTvlPerLSD = async (ticker) => {
   `;
 
   const response = await request(
-    `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/8hFX42Mcd6JMXLz7gnP5zenpoWkr6bye89n1zCWKBXoz`,
+    sdk.graph.modifyEndpoint('8hFX42Mcd6JMXLz7gnP5zenpoWkr6bye89n1zCWKBXoz'),
     query,
     {
       ticker: ticker,

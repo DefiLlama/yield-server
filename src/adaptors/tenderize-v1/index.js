@@ -1,9 +1,10 @@
+const sdk = require('@defillama/sdk');
 const { GraphQLClient, gql } = require('graphql-request');
 const utils = require('../utils');
 const fetch = require('node-fetch');
 
-const ethereumEndpoint = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/G4tmH3LNcPYUzuXx1Lqv7egUzyQpagNWn8MCpwMtEVFF`;
-const arbitrumEndpoint = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/BKHH9dfKgGR4KmrkpvN8r8JMHEmtYqFgdiUe9C6VZk9K`;
+const ethereumEndpoint = sdk.graph.modifyEndpoint('G4tmH3LNcPYUzuXx1Lqv7egUzyQpagNWn8MCpwMtEVFF');
+const arbitrumEndpoint = sdk.graph.modifyEndpoint('BKHH9dfKgGR4KmrkpvN8r8JMHEmtYqFgdiUe9C6VZk9K');
 
 const query = gql`
   {

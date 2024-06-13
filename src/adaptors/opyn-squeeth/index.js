@@ -6,7 +6,7 @@ const { zenBullAbi, eulerSimpleLens } = require('./abi');
 
 const poolsFunction = async () => {
   const API_URLS = {
-    ethereum: `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/9VC95zuTxcMhXxU25qQkEK2akFzE3eEPiBZGXjGbGcbA`,
+    ethereum: sdk.graph.modifyEndpoint('9VC95zuTxcMhXxU25qQkEK2akFzE3eEPiBZGXjGbGcbA'),
   };
   const currentTimestamp = new Date().getTime() / 1000;
   const startTimestamp = currentTimestamp - 60 * 60 * 24 * 7;

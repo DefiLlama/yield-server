@@ -1,9 +1,10 @@
+const sdk = require('@defillama/sdk');
 const retry = require('async-retry');
 const utils = require('../utils');
 const { GraphQLClient, gql } = require('graphql-request');
 
 async function tvl(timestamp) {
-  let endpoint = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/CejrrsnSQAxHJBpkgiBrLHQZ7h2MkK9QArM8bJvN9GuQ`;
+  let endpoint = sdk.graph.modifyEndpoint('CejrrsnSQAxHJBpkgiBrLHQZ7h2MkK9QArM8bJvN9GuQ');
   let graphQLClient = new GraphQLClient(endpoint);
   let query = gql`
     query apy($start: BigInt!, $end: BigInt!) {

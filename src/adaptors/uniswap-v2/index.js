@@ -3,7 +3,7 @@ const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
-const url = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/FEtpnfQ1aqF8um2YktEkfzFD11ZKrfurvBLPeQzv9JB1`;
+const url = sdk.graph.modifyEndpoint('FEtpnfQ1aqF8um2YktEkfzFD11ZKrfurvBLPeQzv9JB1');
 
 const query = gql`
   {
