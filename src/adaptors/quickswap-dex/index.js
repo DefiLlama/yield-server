@@ -1,8 +1,13 @@
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 
-const baseUrl = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id`;
-const url = `${baseUrl}/FnbpmBoXSidpFCghB5oxEb7XBUyGsSmyyXs9p8t3esvF`;
+const url = sdk.graph.modifyEndpoint(
+  'FnbpmBoXSidpFCghB5oxEb7XBUyGsSmyyXs9p8t3esvF'
+);
+const sushiPolygon = sdk.graph.modifyEndpoint(
+  '8NiXkxLRT3R22vpwLB4DXttpEf3X1LrKhe4T1tQ3jjbP'
+);
 
 const query = gql`
   {
@@ -54,7 +59,6 @@ const buildPool = (entry, chainString) => {
 };
 
 const topLvl = async (chainString, timestamp, url, version) => {
-  const sushiPolygon = `${baseUrl}/8NiXkxLRT3R22vpwLB4DXttpEf3X1LrKhe4T1tQ3jjbP`;
   const [block, blockPrior] = await utils.getBlocks(
     chainString,
     timestamp,

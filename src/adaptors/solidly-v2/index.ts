@@ -5,7 +5,7 @@ const { request, gql } = require('graphql-request');
 const API_URL: string = 'https://api-mainnet.solidly.com/api/v1/pairs';
 
 const SUBGRAPH_URL = sdk.graph.modifyEndpoint(
-  'https://gateway-arbitrum.network.thegraph.com/api/[api-key]/subgraphs/id/4GX8RE9TzEWormbkayeGj4NQmmhYE46izVVUvXv8WPDh'
+  sdk.graph.modifyEndpoint('4GX8RE9TzEWormbkayeGj4NQmmhYE46izVVUvXv8WPDh')
 );
 
 const swapPairsQuery = gql`

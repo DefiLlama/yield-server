@@ -7,15 +7,26 @@ const { EstimatedFees } = require('./estimateFee.ts');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 
-const baseUrl = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id`;
 const chains = {
-  ethereum: `${baseUrl}/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`,
-  polygon: `${baseUrl}/3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm`,
-  arbitrum: `${baseUrl}/FbCGRftH4a3yZugY7TnbYgPJVEv2LvMT6oF1fxPe9aJM`,
-  optimism: `${baseUrl}/7SVwgBfXoWmiK6x1NF1VEo1szkeWLniqWN1oYsX3UMb5`,
-  celo: `${baseUrl}/5GMxLtvwbfKxyCpSgHvS8FbeofS2ry9K76NL9RCzPNm2`,
-  avax: `${baseUrl}/GVH9h9KZ9CqheUEL93qMbq7QwgoBu32QXQDPR6bev4Eo`,
-  bsc: `${baseUrl}/GcKPSgHoY42xNYVAkSPDhXSzi6aJDRQSKqBSXezL47gV`,
+  ethereum: sdk.graph.modifyEndpoint(
+    '5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV'
+  ),
+  polygon: sdk.graph.modifyEndpoint(
+    '3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm'
+  ),
+  arbitrum: sdk.graph.modifyEndpoint(
+    'FbCGRftH4a3yZugY7TnbYgPJVEv2LvMT6oF1fxPe9aJM'
+  ),
+  optimism: sdk.graph.modifyEndpoint(
+    '7SVwgBfXoWmiK6x1NF1VEo1szkeWLniqWN1oYsX3UMb5'
+  ),
+  celo: sdk.graph.modifyEndpoint(
+    '5GMxLtvwbfKxyCpSgHvS8FbeofS2ry9K76NL9RCzPNm2'
+  ),
+  avax: sdk.graph.modifyEndpoint(
+    'GVH9h9KZ9CqheUEL93qMbq7QwgoBu32QXQDPR6bev4Eo'
+  ),
+  bsc: sdk.graph.modifyEndpoint('GcKPSgHoY42xNYVAkSPDhXSzi6aJDRQSKqBSXezL47gV'),
   base: 'https://api.studio.thegraph.com/query/48211/uniswap-v3-base/version/latest',
 };
 
