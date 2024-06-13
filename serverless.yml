@@ -33,6 +33,7 @@ provider:
     BUCKET_DATA: { Ref: BucketData }
     DATABASE_URL: ${file(./env.js):DATABASE_URL}
     ZEROX_API: ${file(./env.js):ZEROX_API}
+    GRAPH_API_KEY: ${file(./env.js):GRAPH_API_KEY}
 
 functions:
   # ---------- TRIGGER HANDLERS
@@ -78,7 +79,6 @@ functions:
       SMARDEX_SUBGRAPH_API_KEY: ${file(./env.js):SMARDEX_SUBGRAPH_API_KEY}
       VENDOR_FINANCE: ${file(./env.js):VENDOR_FINANCE}
       TRADERJOE: ${file(./env.js):TRADERJOE}
-      GRAPH_API_KEY: ${file(./env.js):GRAPH_API_KEY}
 
   # --- data enrichment
   triggerEnrichment:
