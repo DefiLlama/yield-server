@@ -119,7 +119,8 @@ const apy = async () => {
 
   const poolsCount = await masterChef.methods.poolLength().call();
   const totalAllocPoint = await masterChef.methods.totalAllocPoint().call();
-  const bswPerBlock = (await masterChef.methods.booPerSecond().call()) / 1e18;
+  const bswPerBlock =
+    (await masterChef.methods.booPerSecond().call()) / BigInt(1e18);
 
   const poolsRes = await sdk.api.abi.multiCall({
     abi: masterChefABI.filter(({ name }) => name === 'poolInfo')[0],
