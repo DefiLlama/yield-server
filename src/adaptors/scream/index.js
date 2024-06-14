@@ -47,7 +47,7 @@ const getRewardTokenApr = async (marketsData) => {
   const rewardsPerBlock = await Promise.all(
     marketsData.map(async (market) => ({
       market: market.id,
-      reward: await comptroller.methods.compSpeeds(market.id).call(),
+      reward: Number(await comptroller.methods.compSpeeds(market.id).call()),
       totalBorrowUSD:
         Number(market.totalBorrows) * Number(market.underlyingPriceUSD),
       totalSupplyUSD:

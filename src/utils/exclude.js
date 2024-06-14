@@ -134,6 +134,7 @@ const excludeAdaptors = [
   'ref-finance',
   'shoebill-v1',
   'auragi-finance',
+  'notional-v2',
 ];
 
 const excludePools = [
