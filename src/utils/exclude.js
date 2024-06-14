@@ -132,6 +132,7 @@ const excludeAdaptors = [
   'burrow',
   'raydium',
   'ref-finance',
+  'shoebill-v1',
 ];
 
 const excludePools = [
