@@ -5,7 +5,6 @@
 //   unwrapUniswapLPs,
 //   genericUnwrapCrv,
 // } = require('../../helper/unwrapLPs');
-// const { getChainTransform } = require('../../helper/transform');
 // const { default: computeTVL } = require('@defillama/sdk/build/computeTVL');
 // const chains = {
 //   1: 'Ethereum',
@@ -127,7 +126,7 @@
 //   return `${token0Symbol}-${token1Symbol}`;
 // }
 // async function chefTvls(poolInfos, poolInfos2, lpTokens, apys, chainId) {
-//   const transform = await getChainTransform(chains[chainId].toLowerCase());
+//   const transform = (addr) => `${chain}:${addr}`
 
 //   const balance = (
 //     await sdk.api.abi.multiCall({
@@ -261,7 +260,7 @@
 //   return token0Symbols.map((t, i) => `${t.output}-${token1Symbols[i].output}`);
 // }
 // async function erc20Tvls(apys, tokens, chainId) {
-//   const transform = await getChainTransform(chains[chainId].toLowerCase());
+//   const transform = (addr) => `${chain}:${addr}`;
 
 //   const balance = (
 //     await sdk.api.abi.multiCall({
@@ -445,7 +444,7 @@
 //     })
 //   ).output;
 
-//   const transform = await getChainTransform(chains[chainId].toLowerCase());
+//   const transform = (addr) => `${chain}:${addr}`;
 //   let pools = [];
 //   for (let i = 0; i < Object.keys(apys).length; i++) {
 //     let symbol;
