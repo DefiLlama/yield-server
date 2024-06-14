@@ -42,7 +42,7 @@ const apy = async () => {
   const zfGOV = new web3.eth.Contract(zfGOVAbi, ZF_GOV);
 
   const poolsCount = await zfFarm.methods.poolLength().call();
-  const totalAllocPoint = await zfFarm.methods.totalAllocPoint().call();
+  const totalAllocPoint = Number(await zfFarm.methods.totalAllocPoint().call());
   const zfPerSecond = Number(await zfFarm.methods.zfPerSecond().call()) / 1e18;
 
   const protocolFeeRes = await sdk.api.abi.call({
