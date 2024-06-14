@@ -1,10 +1,11 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { request, gql } = require('graphql-request');
 const uniswapV2PairAbi = require('./abis/UniswapV2Pair.json');
 const erc20Abi = require('./abis/ERC20.json');
 
-const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+const WETH = ADDRESSES.ethereum.WETH;
 const NFTX_LP_STAKING = '0x688c3E4658B5367da06fd629E41879beaB538E37';
 const NFTX_VAULTS_SUBGRAPH =
   'https://graph-proxy.nftx.xyz/gateway/api/f0149ced5dcb5d0f0fc2b6270039fc57/subgraphs/id/4gZf3atMXjYDh4g48Zr83NFX3rkvZED86VqMNhgEXgLc';

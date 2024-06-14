@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 const abi = require('./abi.js');
@@ -5,7 +6,7 @@ const abi = require('./abi.js');
 const main = async () => {
   const gammatrollerAddress = '0x1e0c9d09f9995b95ec4175aaa18b49f49f6165a3';
   const rewardAddress = '0xb3cb6d2f8f2fde203a022201c81a96c167607f15';
-  const key = 'bsc:0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c';
+  const key = 'bsc:' + ADDRESSES.bsc.WBNB;
   const gammakey = 'bsc:0xb3cb6d2f8f2fde203a022201c81a96c167607f15';
 
   const bnbPriceUSD = (

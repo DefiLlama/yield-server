@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const axios = require('axios');
 const utils = require('../utils');
 
@@ -19,7 +20,7 @@ async function apy() {
     symbol: 'USDC',
     tvlUsd: tvl,
     apyBase: credixApy * 100,
-    underlyingTokens: ['EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'],
+    underlyingTokens: [ADDRESSES.solana.USDC],
     // borrow fields
     ltv: 0, // permissioned
   };

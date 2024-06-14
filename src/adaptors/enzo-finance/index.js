@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const ethers = require('ethers');
 const cEthABI = require('./ceth.json');
 const cERC20ABI = require('./cerc20.json');
@@ -33,7 +34,7 @@ const markets = [
     pool: '0xAb7f136BBb18808F0C981D0307D3360cA92AD171',
     decimals: 18,
     symbol: 'ETH',
-    underlyingToken: '0xEf63d4E178b3180BeEc9B0E143e0f37F4c93f4C2',
+    underlyingToken: ADDRESSES.btr.ETH,
   },
 ];
 

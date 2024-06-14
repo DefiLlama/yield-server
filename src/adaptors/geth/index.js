@@ -1,8 +1,9 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const token = '0x3802c218221390025bceabbad5d8c59f40eb74b8';
-const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+const weth = ADDRESSES.ethereum.WETH;
 
 const getApy = async () => {
   const tvl =

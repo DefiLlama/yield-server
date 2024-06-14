@@ -1,3 +1,4 @@
+const ADDRESSES = require('../../../assets.json')
 const auroraPools = [
   {
     id: 'carbon-carbon-near',

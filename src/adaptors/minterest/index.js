@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 
@@ -20,7 +21,7 @@ const PROJECT_NAME = 'minterest';
 const NATIVE_TOKEN = {
   decimals: 18,
   symbol: 'WETH',
-  address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'.toLowerCase(),
+  address: ADDRESSES.ethereum.WETH.toLowerCase(),
 };
 
 const PROTOCOL_TOKEN = {
@@ -170,7 +171,7 @@ const main = async () => {
     const symbol =
       // for maker
       underlyingTokens[i]?.toLowerCase() ===
-      '0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2'
+      ADDRESSES.ethereum.MKR
         ? 'MKR'
         : underlyingSymbols[i] || NATIVE_TOKEN.symbol;
 

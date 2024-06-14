@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 
@@ -6,7 +7,7 @@ const utils = require('../utils');
 const subgraphMorphoAave = sdk.graph.modifyEndpoint('FKVL7B5yEHvz1GKB9hFpwp64YLN5KXS27aWpQLngyECx');
 
 const SECONDS_PER_YEAR = 3600 * 24 * 365;
-const usdcToken = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
+const usdcToken = ADDRESSES.ethereum.USDC;
 const query = gql`
   query GetYieldsData {
     markets(first: 128) {

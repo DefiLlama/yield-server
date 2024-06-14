@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
@@ -8,7 +9,7 @@ const ETH_APY_URL =
   'https://service-pr02-sg.bankofchain.io/apy/vault_apy?chainId=1&duration=monthly&offset=0&limit=1&tokenType=ETHi';
 const USD_VAULT_ADDRESS = '0x30D120f80D60E7b58CA9fFaf1aaB1815f000B7c3';
 const ETH_VAULT_ADDRESS = '0x8f0Cb368C63fbEDF7a90E43fE50F7eb8B9411746';
-const ethAddress = '0x0000000000000000000000000000000000000000';
+const ethAddress = ADDRESSES.null;
 
 const usd_apy = async () => {
   const { content } = await utils.getData(USD_APY_URL);
@@ -48,7 +49,7 @@ const eth_apy = async () => {
     chain: 'ethereum',
     target: ETH_VAULT_ADDRESS,
   });
-  const key = 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+  const key = 'ethereum:' + ADDRESSES.ethereum.WETH;
   const ethPriceUSD = (
     await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
   ).body.coins[key].price;

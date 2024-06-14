@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 
@@ -20,7 +21,7 @@ const PROJECT_NAME = 'lodestar-v0';
 const NATIVE_TOKEN = {
   decimals: 18,
   symbol: 'WETH',
-  address: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'.toLowerCase(),
+  address: ADDRESSES.arbitrum.WETH.toLowerCase(),
 };
 
 const PROTOCOL_TOKEN = {
@@ -161,7 +162,7 @@ const main = async () => {
     const symbol =
       // for maker
       underlyingTokens[i]?.toLowerCase() ===
-      '0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2'
+      ADDRESSES.ethereum.MKR
         ? 'MKR'
         : underlyingSymbols[i] || NATIVE_TOKEN.symbol;
 

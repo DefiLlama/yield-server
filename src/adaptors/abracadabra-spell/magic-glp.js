@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
@@ -19,8 +20,8 @@ const MAGIC_GLP_POOLS = {
     glpManagerAddress: '0x3963ffc9dff443c2a94f21b129d429891e32ec18',
     harvestorAddress: '0xc99a4863173ef52ccb7ea05440da0e37ba39c139',
     glpRewardTrackerAddresses: [
-      '0x4e971a87900b931ff39d1aad67697f49835400b6',
-      '0x1addd80e6039594ee970e5872d247bf0414c8903',
+      ADDRESSES.arbitrum.fGLP,
+      ADDRESSES.arbitrum.fsGLP,
     ],
   },
   avax: {

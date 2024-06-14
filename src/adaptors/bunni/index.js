@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const superagent = require('superagent');
@@ -5,7 +6,7 @@ const { request, gql } = require('graphql-request');
 
 const hub = '0xb5087f95643a9a4069471a28d32c569d9bd57fe4';
 const lens = '0xb73f303472c4fd4ff3b9f59ce0f9b13e47fbfd19';
-const zeroAddress = '0x0000000000000000000000000000000000000000';
+const zeroAddress = ADDRESSES.null;
 
 const admin = {
   ethereum: '0x4cc39af0d46b0f66fd33778c6629a696bdc310a0',

@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const superagent = require('superagent');
 const { default: BigNumber } = require('bignumber.js');
 
@@ -10,14 +11,14 @@ const {
 } = require('./config');
 
 const assetTypeMapping = {
-  btc: 'ethereum:0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
-  eth: 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+  btc: 'ethereum:' + ADDRESSES.ethereum.WBTC,
+  eth: 'ethereum:' + ADDRESSES.ethereum.WETH,
 };
 
 const THREE_CRV_ADDRESS = '0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490';
 
 const crv = {
-  ethereum: '0xD533a949740bb3306d119CC777fa900bA034cd52',
+  ethereum: ADDRESSES.ethereum.CRV,
   arbitrum: '0x11cDb42B0EB46D95f990BeDD4695A6e3fA034978',
   optimism: '0x0994206dfE8De6Ec6920FF4D779B0d950605Fb53',
   polygon: '0x172370d5Cd63279eFa6d502DAB29171933a610AF',
@@ -187,7 +188,7 @@ const getPoolAPR = (pool, subgraph, gauge, crvPrice, underlyingPrices) => {
 const getPriceCrv = (pools) => {
   //parse through pool coins and return price of crv dao token
   for (const coin of pools.map((pool) => pool.coins).flat()) {
-    if (coin.address === '0xD533a949740bb3306d119CC777fa900bA034cd52') {
+    if (coin.address === ADDRESSES.ethereum.CRV) {
       return coin.usdPrice;
     }
   }
@@ -306,20 +307,20 @@ const main = async () => {
       const rewardTokens = extraRewards
         ? extraRewards.map((reward) => reward.tokenAddress)
         : stETHPools.includes(address)
-        ? ['0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32'] // LDO
+        ? [ADDRESSES.ethereum.LIDO] // LDO
         : address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' // pool on moonbeam
         ? ['0xacc15dc74880c9944775448304b263d191c6077f'] // wglmr
         : address === '0xe9123CBC5d1EA65301D417193c40A72Ac8D53501'
         ? ['0x73C69d24ad28e2d43D03CBf35F79fE26EBDE1011']
         : address === '0x056C6C5e684CeC248635eD86033378Cc444459B0'
-        ? ['0x6810e776880c02933d47db1b9fc05908e5386b96']
+        ? [ADDRESSES.ethereum.GNO]
         : pool.gaugeRewards?.length
         ? [pool.gaugeRewards.slice(-1)[0]?.tokenAddress]
         : [];
       if (aprCrv) {
         rewardTokens.push(
           crv[blockchainId === 'avalanche' ? 'avax' : blockchainId] ||
-            '0xD533a949740bb3306d119CC777fa900bA034cd52'
+            ADDRESSES.ethereum.CRV
         ); // CRV
       }
 
@@ -381,7 +382,7 @@ const main = async () => {
             : aprCrv + aprExtra,
         rewardTokens: rewardTokens
           .flat()
-          .filter((i) => i !== '0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32'),
+          .filter((i) => i !== ADDRESSES.ethereum.LIDO),
         underlyingTokens,
         url: `https://curve.fi/#/${blockchainId}/pools`,
       });

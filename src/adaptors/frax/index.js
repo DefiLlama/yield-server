@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
@@ -32,7 +33,7 @@ const apy = async (timestamp) => {
     project: 'frax',
     symbol: `sFRAX`,
     tvlUsd: sfrax.tvl / 1e18,
-    underlyingTokens: ['0x853d955acef822db058eb8505911ed77f175b99e'],
+    underlyingTokens: [ADDRESSES.ethereum.FRAX],
   };
   const { pools: fxswapData } = await utils.getData(FRAXSWAP_POOLS_URL);
   const stakingData = await utils

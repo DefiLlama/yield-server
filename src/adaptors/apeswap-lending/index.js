@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 
@@ -23,7 +24,7 @@ const PROJECT_NAME = 'apeswap-lending';
 const NATIVE_TOKEN = {
   decimals: 18,
   symbol: 'BNB',
-  address: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'.toLowerCase(),
+  address: ADDRESSES.bsc.WBNB.toLowerCase(),
 };
 
 const PROTOCOL_TOKEN = {

@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 
 const poolsFunction = async () => {
@@ -12,7 +13,7 @@ const poolsFunction = async () => {
     symbol: 'ATT',
     tvlUsd: Number(dataTvl.currentChainTvls['Ethereum']),
     apyBase: 4,
-    underlyingTokens: ['0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'],
+    underlyingTokens: [ADDRESSES.ethereum.USDC],
     poolMeta: "Frigg Token Pool",
   };
 

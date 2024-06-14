@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const { ctoken } = require('./abi');
@@ -64,8 +65,8 @@ const apy = async () => {
   exchangeRates = exchangeRates.output.map((o) => o.output);
 
   const underlying_addresses = [
-    '0xdAC17F958D2ee523a2206206994597C13D831ec7', // USDT
-    '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC
+    ADDRESSES.ethereum.USDT, // USDT
+    ADDRESSES.ethereum.USDC, // USDC
   ];
   const prices = await getPrices(underlying_addresses);
 

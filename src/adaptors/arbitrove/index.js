@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const abi = require('./abi/abi.json');
@@ -17,7 +18,7 @@ const getApy = async () => {
   const troveAddress = '0x982239D38Af50B0168dA33346d85Fb12929c4c07';
   const alpAddress = '0xb49B6A3Fd1F4bB510Ef776de7A88A9e65904478A';
   const feeOracleAddress = '0x013B8efb8531fd08e47e41f53D633c249D3D73Cf';
-  const nullAddress = '0x0000000000000000000000000000000000000000';
+  const nullAddress = ADDRESSES.null;
   const alpPrice = priceData['coingecko:arbitrove-alp'].price;
   const trovePrice = priceData['coingecko:nitro-cartel'].price;
 

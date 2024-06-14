@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const uniswapV3FactoryAbi = require('./abi/UniswapV3Factory.json');
 const stakePrizePoolAbi = require('./abi/StakePrizePool.json');
 const uniswapV3PoolAbi = require('./abi/UniswapV3Pool.json');
@@ -22,8 +23,8 @@ let web3;
 const UNISWAP_V3_FACTORY_ADDRESS = '0x1F98431c8aD98523631AE4a59f267346ea31F984';
 const STAKE_PRIZE_POOL_ADDRESS = '0x82D24dD5041A3Eb942ccA68B319F1fDa9EB0c604';
 const TICKET_ADDRESS = '0xd1c88b7Cc2F9B3A23d1CB537d53A818cef5E5E32';
-const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
-const USDC_ADDRESS = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
+const WETH_ADDRESS = ADDRESSES.ethereum.WETH;
+const USDC_ADDRESS = ADDRESSES.ethereum.USDC;
 const ASX_ADDRESS = '0x67d85A291fcDC862A78812a3C26d55e28FFB2701';
 
 async function init() {
@@ -141,7 +142,7 @@ async function getApyData() {
     tvlUsd: await utils.getData('https://api.llama.fi/tvl/asymetrix-protocol'),
     apyReward: await getApy(),
     rewardTokens: [asxContract.options.address], // [ASX]
-    underlyingTokens: ['0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84'], // [stETH]
+    underlyingTokens: [ADDRESSES.ethereum.STETH], // [stETH]
     url: 'https://app.asymetrix.io/',
   };
 

@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 // const sdk = require('@defillama/sdk');
 // const superagent = require('superagent');
 // const { default: BigNumber } = require('bignumber.js');
@@ -14,7 +15,7 @@
 // } = require('../../helper/unwrapLPs');
 
 // const insureTokenContract = '0xd83AE04c9eD29d6D3E6Bf720C71bc7BeB424393E';
-// const usdcTokenContract = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+// const usdcTokenContract = ADDRESSES.ethereum.USDC;
 // const gaugeController = '0x297ea2afcE594149Cd31a9b11AdBAe82fa1Ddd04';
 
 // const uni = '0x1b459aec393d604ae6468ae3f7d7422efa2af1ca';

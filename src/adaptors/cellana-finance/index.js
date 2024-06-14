@@ -1,10 +1,11 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 const BigNumber = require("bignumber.js");
 //https://coins.llama.fi/prices/current/aptos:0x1::aptos_coin::AptosCoin
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';
 const COINS_LLAMA_PRICE_URL = 'https://coins.llama.fi/prices/current/';
 
-const APT_ADDR = "0x1::aptos_coin::AptosCoin";
+const APT_ADDR = ADDRESSES.aptos.APT;
 const APT_PRICE_ID = 'coingecko:aptos';
 const CELL_fungible_asset_address = '0x2ebb2ccac5e027a87fa0e2e5f656a3a4238d6a48d93ec9b610d570fc0aa0df12'
 const APT_fungible_asset_address = '0xedc2704f2cef417a06d1756a04a16a9fa6faaed13af469be9cdfcac5a21a8e2e'

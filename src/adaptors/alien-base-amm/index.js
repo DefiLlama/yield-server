@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const masterchefAbi = require('./masterchef');
@@ -7,7 +8,7 @@ const BigNumber = require('bignumber.js');
 
 const masterchef = '0x52eaecac2402633d98b95213d0b473e069d86590';
 const ALB = '0x1dd2d631c92b1aCdFCDd51A0F7145A50130050C4';
-const WETH = '0x4200000000000000000000000000000000000006';
+const WETH = ADDRESSES.optimism.WETH_1;
 
 const utils = require('../utils');
 

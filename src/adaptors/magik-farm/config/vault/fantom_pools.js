@@ -1,3 +1,4 @@
+const ADDRESSES = require('../../../assets.json')
 const fantomPools = [
   {
     id: 'lif3-tomb',

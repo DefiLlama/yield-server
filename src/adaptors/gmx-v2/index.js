@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const { ABI } = require('./abi');
 const utils = require('../utils');
 
@@ -32,8 +33,8 @@ const TICKERS_URL = {
 };
 
 const WETH = {
-  arbitrum: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'.toLowerCase(),
-  avax: '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7'.toLowerCase(),
+  arbitrum: ADDRESSES.arbitrum.WETH.toLowerCase(),
+  avax: ADDRESSES.avax.WAVAX.toLowerCase(),
 };
 
 function hashData(dataTypes, dataValues) {
@@ -199,7 +200,7 @@ const getMarkets = async (chain) => {
   // bonus apr (ARB)
   let rewards;
   let priceARB;
-  const ARB = '0x912ce59144191c1204e64559fe8253a0e49e6548';
+  const ARB = ADDRESSES.arbitrum.ARB;
   const priceKey = `arbitrum:${ARB}`;
   const bonusAPR = await utils.getData(
     'https://arbitrum-api.gmxinfra2.io/incentives/stip?'

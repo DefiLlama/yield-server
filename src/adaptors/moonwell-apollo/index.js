@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 
@@ -31,9 +32,9 @@ const PROTOCOL_TOKEN = {
 };
 
 const ETH_TOKENS = {
-  WETH: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
-  FRAX: '0x853d955acef822db058eb8505911ed77f175b99e',
-  WBTC: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
+  WETH: ADDRESSES.ethereum.WETH,
+  FRAX: ADDRESSES.ethereum.FRAX,
+  WBTC: ADDRESSES.ethereum.WBTC,
 };
 
 const ETH_TOKENS_LIST = Object.values(ETH_TOKENS).map(

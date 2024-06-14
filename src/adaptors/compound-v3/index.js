@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const superagent = require('superagent');
 
 const abi = require('./abi.js');
@@ -7,7 +8,7 @@ const markets = [
   {
     address: '0xc3d688B66703497DAA19211EEdff47f25384cdc3',
     symbol: 'cUSDCv3',
-    underlying: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+    underlying: ADDRESSES.ethereum.USDC,
     underlyingSymbol: 'USDC',
     rewardToken: '0xc00e94Cb662C3520282E6f5717214004A7f26888',
     chain: 'ethereum',
@@ -15,7 +16,7 @@ const markets = [
   {
     address: '0xA17581A9E3356d9A858b789D68B4d866e593aE94',
     symbol: 'cWETHv3',
-    underlying: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    underlying: ADDRESSES.ethereum.WETH,
     underlyingSymbol: 'ETH',
     rewardToken: '0xc00e94Cb662C3520282E6f5717214004A7f26888',
     chain: 'ethereum',
@@ -23,7 +24,7 @@ const markets = [
   {
     address: '0xF25212E676D1F7F89Cd72fFEe66158f541246445',
     symbol: 'cUSDCv3',
-    underlying: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
+    underlying: ADDRESSES.polygon.USDC,
     underlyingSymbol: 'USDC',
     rewardToken: '0x8505b9d2254A7Ae468c0E9dd10Ccea3A837aef5c',
     chain: 'polygon',
@@ -31,7 +32,7 @@ const markets = [
   {
     address: '0xA5EDBDD9646f8dFF606d7448e414884C7d905dCA',
     symbol: 'cUSDCv3',
-    underlying: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
+    underlying: ADDRESSES.arbitrum.USDC,
     underlyingSymbol: 'USDC',
     rewardToken: '0x354A6dA3fcde098F8389cad84b0182725c6C91dE',
     chain: 'arbitrum',
@@ -39,7 +40,7 @@ const markets = [
   {
     address: '0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf',
     symbol: 'cUSDCv3-native',
-    underlying: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    underlying: ADDRESSES.arbitrum.USDC_CIRCLE,
     underlyingSymbol: 'USDC',
     rewardToken: '0x354A6dA3fcde098F8389cad84b0182725c6C91dE',
     chain: 'arbitrum',
@@ -47,7 +48,7 @@ const markets = [
   {
     address: '0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf',
     symbol: 'cUSDbCv3',
-    underlying: '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
+    underlying: ADDRESSES.base.USDbC,
     underlyingSymbol: 'USDbC',
     rewardToken: '0x9e1028F5F1D5eDE59748FFceE5532509976840E0',
     chain: 'base',
@@ -55,7 +56,7 @@ const markets = [
   {
     address: '0x46e6b214b524310239732D51387075E0e70970bf',
     symbol: 'cWETHv3',
-    underlying: '0x4200000000000000000000000000000000000006',
+    underlying: ADDRESSES.optimism.WETH_1,
     underlyingSymbol: 'WETH',
     rewardToken: '0x9e1028F5F1D5eDE59748FFceE5532509976840E0',
     chain: 'base',
@@ -63,7 +64,7 @@ const markets = [
   {
     address: '0xb125E6687d4313864e53df431d5425969c15Eb2F',
     symbol: 'cUSDCv3',
-    underlying: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
+    underlying: ADDRESSES.base.USDC,
     underlyingSymbol: 'USDC',
     rewardToken: '0x9e1028F5F1D5eDE59748FFceE5532509976840E0',
     chain: 'base',

@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 
@@ -23,7 +24,7 @@ const PROJECT_NAME = 'mare-finance-v1';
 const NATIVE_TOKEN = {
   decimals: 18,
   symbol: 'WKAVA',
-  address: '0xc86c7C0eFbd6A49B35E8714C5f59D99De09A225b'.toLowerCase(),
+  address: ADDRESSES.kava.WKAVA.toLowerCase(),
 };
 
 const PROTOCOL_TOKEN = {

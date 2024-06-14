@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 const BIG_10 = new BigNumber('10');
@@ -7,14 +8,14 @@ const HOUR = 60 * 60;
 const DAY = 24 * HOUR;
 const SECONDS_PER_YEAR = 365 * DAY;
 
-const FRAX = '0x853d955aCEf822Db058eb8505911ED77F175b99e';
+const FRAX = ADDRESSES.ethereum.FRAX;
 const PAIR_DEPLOYERS = [
   '0x5d6e79bcf90140585ce88c7119b7e43caaa67044',
   '0x38488dE975B77dc1b0D4B8569f596f6FD6ca0B92',
   '0x7AB788d0483551428f2291232477F1818952998C',
   '0xaa913C26dD7723Fcae9dBD2036d28171a56C6251',
 ];
-const MKR = '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2'; //Not a standard ERC20. symbol and name are base32 encoded
+const MKR = ADDRESSES.ethereum.MKR; //Not a standard ERC20. symbol and name are base32 encoded
 const HELPER = {
   abis: {
     getAllPairAddresses: {

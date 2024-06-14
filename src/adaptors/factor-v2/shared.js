@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
@@ -73,7 +74,7 @@ async function getTvl(poolAddress, underlyingTokenAddress, strategy) {
   } else if (strategy == 'RedactedStrategy') {
     const gmxCoin = await getCoinDataFromDefillamaAPI(
       'arbitrum',
-      '0xfc5a1a6eb076a2c7ad06ed22c90d7e710e35ad0a'
+      ADDRESSES.arbitrum.GMX
     );
     underlyingTokenPrice = gmxCoin.price;
   } else {

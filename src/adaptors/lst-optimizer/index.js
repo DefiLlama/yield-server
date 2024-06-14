@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
@@ -31,8 +32,8 @@ const topLvl = async (chainString, underlying) => {
     const dETHVaultAddress = "0x4c7aF9BdDac5bD3bee9cd2Aa2FeEeeE7610f5a6B";
     const bsnFarmingAddress = "0x5CeCfAf8f8c2983A3336adbe836aF39192a72895";
 
-    const wstETHTokenAddress = "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0";
-    const rETHTokenAddress = "0xae78736Cd615f374D3085123A210448E74Fc6393";
+    const wstETHTokenAddress = ADDRESSES.ethereum.WSTETH;
+    const rETHTokenAddress = ADDRESSES.ethereum.RETH;
     const dETHTokenAddress = "0x3d1E5Cf16077F349e999d6b21A4f646e83Cd90c5";
     const savETHTokenAddress = "0x00ee7ea7ca2b5cc47908f0cad1f296efbde1402e";
     const gETHTokenAddress = "0xe550adfbcadaa86dfe05d0c67c2e6f27accf5cf1";
@@ -91,7 +92,7 @@ const topLvl = async (chainString, underlying) => {
         await axios.get(`https://coins.llama.fi/prices/current/ethereum:0x0000000000000000000000000000000000000000`)
     ).data;
     
-    ethUsd = ethUSDPrice.coins['ethereum:0x0000000000000000000000000000000000000000'].price;
+    ethUsd = ethUSDPrice.coins['ethereum:' + ADDRESSES.null].price;
 
     return [{
         pool: `${kETHStrategyAddress}-${chainString}`.toLowerCase(),
@@ -107,7 +108,7 @@ const topLvl = async (chainString, underlying) => {
 const main = async () => {
   const data = await topLvl (
     'ethereum',
-    '0x0000000000000000000000000000000000000000'
+    ADDRESSES.null
   )
 
   return data.flat();

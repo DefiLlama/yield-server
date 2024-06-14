@@ -1,10 +1,11 @@
+const ADDRESSES = require('../assets.json')
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const abi = require('./abi.json');
 
 const token = '0x8c1bed5b9a0928467c9b1341da1d7bd5e10b6549';
-const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+const weth = ADDRESSES.ethereum.WETH;
 
 const apy = async () => {
   const timestamp1dayAgo = Math.floor(Date.now() / 1000) - 86400;

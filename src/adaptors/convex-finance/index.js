@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 require('dotenv').config({ path: './config.env' });
@@ -7,8 +8,8 @@ const abi = require('./abi.json');
 const baseRewardPoolAbi = require('./baseRewardPoolAbi.json');
 const virtualBalanceRewardPoolAbi = require('./virtualBalanceRewardPoolAbi.json');
 
-const crvAddress = '0xD533a949740bb3306d119CC777fa900bA034cd52';
-const cvxAddress = '0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B';
+const crvAddress = ADDRESSES.ethereum.CRV;
+const cvxAddress = ADDRESSES.ethereum.CVX;
 const convexBoosterAddress = '0xF403C135812408BFbE8713b5A23a04b3D48AAE31';
 
 const cliffSize = 100000; // * 1e18; //new cliff every 100,000 tokens
@@ -166,7 +167,7 @@ const main = async () => {
       return {
         ...pool,
         coinsAddresses: pool.coinsAddresses.filter(
-          (address) => address !== '0x0000000000000000000000000000000000000000'
+          (address) => address !== ADDRESSES.null
         ),
         cvxTvl: v2PoolUsd
           ? v2PoolUsd
@@ -181,7 +182,7 @@ const main = async () => {
 
   // --- add cvxCRV & CVX staking pools
   const cvxCRVRewards = '0x3Fe65692bfCD0e6CF84cB1E7d24108E434A7587e';
-  const cvxCRV = '0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7';
+  const cvxCRV = ADDRESSES.ethereum.cvxCRV;
   const cvxRewards = '0xCF50b810E57Ac33B91dCF525C6ddd9881B139332';
   const stakingTvl = await Promise.all(
     [cvxCRVRewards, cvxRewards].map(
@@ -414,8 +415,8 @@ const main = async () => {
           pool.lptoken === cvxAddress
             ? [cvxCRV]
             : [
-                '0xd533a949740bb3306d119cc777fa900ba034cd52', // crv
-                '0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b', // cvx
+                ADDRESSES.ethereum.CRV, // crv
+                ADDRESSES.ethereum.CVX, // cvx
                 ...pool.extraTokens,
               ],
       };

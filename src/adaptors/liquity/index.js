@@ -1,7 +1,8 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const TROVE_MANAGER_ADDRESS = '0xA39739EF8b0231DbFA0DcdA07d7e29faAbCf4bb2';
-const LUSD_ADDRESS = '0x5f98805A4E8be255a32880FDeC7F6728C6568bA0';
+const LUSD_ADDRESS = ADDRESSES.ethereum.LUSD;
 const URL = 'https://api.instadapp.io/defi/mainnet/liquity/trove-types';
 
 const ABIS = {
@@ -73,7 +74,7 @@ const main = async () => {
       totalBorrowUsd: totalSupplyUsd,
       ltv: 1 / (mcr / 1e18),
       mintedCoin: 'LUSD',
-      underlyingTokens: ['0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'],
+      underlyingTokens: [ADDRESSES.ethereum.WETH],
     },
   ];
 };

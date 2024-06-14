@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 
@@ -20,7 +21,7 @@ const PROJECT_NAME = 'flux-finance';
 const NATIVE_TOKEN = {
   decimals: 18,
   symbol: 'WETH',
-  address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'.toLowerCase(),
+  address: ADDRESSES.ethereum.WETH.toLowerCase(),
 };
 
 const getPrices = async (addresses) => {

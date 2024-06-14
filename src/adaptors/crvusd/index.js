@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
@@ -6,7 +7,7 @@ const abiControllers = require('./abiControllers.json');
 const abiPolicies = require('./abiPolicies.json');
 
 const factory = '0xC9332fdCB1C491Dcc683bAe86Fe3cb70360738BC';
-const crvUsd = '0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E';
+const crvUsd = ADDRESSES.ethereum.CRVUSD;
 
 const apy = async () => {
   const nCollaterals = (

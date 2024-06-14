@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const ADContractAbi = require('./abi/AcceleratingDistributor.json');
 
 const SECONDS_PER_YEAR = 31557600; // 365.25 days per year
@@ -11,23 +12,23 @@ const contracts = {
 
 const tokens = {
   WETH: {
-    address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    address: ADDRESSES.ethereum.WETH,
     lpAddress: '0x28f77208728b0a45cab24c4868334581fe86f95b',
   },
   USDC: {
-    address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+    address: ADDRESSES.ethereum.USDC,
     lpAddress: '0xc9b09405959f63f72725828b5d449488b02be1ca',
   },
   USDT: {
-    address: '0xdac17f958d2ee523a2206206994597c13d831ec7',
+    address: ADDRESSES.ethereum.USDT,
     lpAddress: '0xc2fab88f215f62244d2e32c8a65e8f58da8415a5',
   },
   WBTC: {
-    address: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
+    address: ADDRESSES.ethereum.WBTC,
     lpAddress: '0x59c1427c658e97a7d568541dac780b2e5c8affb4',
   },
   DAI: {
-    address: '0x6b175474e89094c44da98b954eedeac495271d0f',
+    address: ADDRESSES.ethereum.DAI,
     lpAddress: '0x4fabacac8c41466117d6a38f46d08ddd4948a0cb',
   },
   ACX: {
@@ -43,7 +44,7 @@ const tokens = {
     lpAddress: '0xfacd2ec4647df2cb758f684c2aaab56a93288f9e',
   },
   SNX: {
-    address: '0xc011a73ee8576fb46f5e1c5751ca3b9fe0af2a6f',
+    address: ADDRESSES.ethereum.SNX,
     lpAddress: '0xe480f5a42e263ac0352d0c9c6e75c4a612ee52a7',
   },
   POOL: {

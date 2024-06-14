@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
@@ -5,26 +6,26 @@ const utils = require('../utils');
 
 const chains = {
   op_bnb: {
-    USDT: '0x9e5aac1ba1a2e6aed6b32689dfcf62a509ca96f3',
+    USDT: ADDRESSES.op_bnb.USDT,
     decimals: 18,
     kUSDT: '0xA2E2F3726DF754C1848C8fd1CbeA6aAFF84FC5B2',
     apyEndpoint: 'https://opapi.kiloex.io/common/queryKiloNewVaultApyHistory'
   },
   manta: {
-    USDT: '0xf417F5A458eC102B90352F697D6e2Ac3A3d2851f',
+    USDT: ADDRESSES.manta.USDT,
     decimals: 6,
     kUSDT: '0xA2E2F3726DF754C1848C8fd1CbeA6aAFF84FC5B2',
     apyEndpoint: 'https://mantaapi.kiloex.io/common/queryKiloNewVaultApyHistory',
     STONE: '0xEc901DA9c68E90798BbBb74c11406A32A70652C3'
   },
   bsc: {
-    USDT: '0x55d398326f99059fF775485246999027B3197955',
+    USDT: ADDRESSES.bsc.USDT,
     decimals: 18,
     kUSDT: '0x1c3f35F7883fc4Ea8C4BCA1507144DC6087ad0fb',
     apyEndpoint: 'https://api.kiloex.io/common/queryKiloNewVaultApyHistory'
   },
   taiko: {
-    USDT: '0x07d83526730c7438048D55A4fc0b850e2aaB6f0b',
+    USDT: ADDRESSES.taiko.USDC,
     decimals: 6,
     kUSDT: '0x735D00A9368164B9dcB2e008d5Cd15b367649aD5',
     apyEndpoint: 'https://taikoapi.kiloex.io/common/queryKiloNewVaultApyHistory'

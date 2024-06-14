@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const { default: BigNumber } = require('bignumber.js');
 
 const utils = require('../utils');
@@ -10,9 +11,9 @@ const COINS_LLAMA_PRICE_URL = 'https://coins.llama.fi/prices/current/';
 const DECIMALS = 1e8;
 
 const aptosCoinName = 'coingecko:aptos';
-const aptCoinName = '0x1::aptos_coin::AptosCoin';
+const aptCoinName = ADDRESSES.aptos.APT;
 const aniCoinName = `${DEPLOYER_ADDRESS}::AnimeCoin::ANI`;
-const zusdcCoinName = '0xf22bede237a07e121b56d91a491eb7bcdfd1f5907926a9e58338f964a01b17fa::asset::USDC';
+const zusdcCoinName = ADDRESSES.aptos.USDC_2;
 
 async function getPricePerLPCoin(coinX, coinY, ledgerVersion) {
   const [lp, lpCoinInfo] = await Promise.all([

@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const API_APY_URL = (chainId) =>
   `https://api.killswitch.finance/ksw2/apy?chain=${chainId}`;
@@ -37,12 +38,12 @@ const maprewardTokens = {
     SMOY: 'bsc:0xBdb44DF0A914c290DFD84c1eaf5899d285717fdc',
   },
   kcc: {
-    MJT: 'kcc:0x2ca48b4eea5a731c2b54e7c3944dbdb87c0cfb6f',
+    MJT: 'kcc:' + ADDRESSES.kcc.MJT,
   },
   aurora: {
     BRL: 'aurora:0x12c87331f086c3C926248f964f8702C0842Fd77F',
     TRI: 'aurora:0xfa94348467f64d5a457f75f8bc40495d33c65abb',
-    NEAR: 'aurora:0xc42c30ac6cc15fac9bd938618bcaa1a1fae8501d',
+    NEAR: 'aurora:' + ADDRESSES.aurora.NEAR,
     WANNA: 'aurora:0x7faa64faf54750a2e3ee621166635feaf406ab22',
   },
 };

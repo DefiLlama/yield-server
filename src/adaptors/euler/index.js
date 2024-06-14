@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const WebSocket = require('ws');
 const { request, gql } = require('graphql-request');
 const superagent = require('superagent');
@@ -14,7 +15,7 @@ const abiEulerSimpleLens = require('./abiEulerSimpleLens');
 const url = sdk.graph.modifyEndpoint('EQBXhrF4ppZy9cBYnhPdrMCRaVas6seNpqviih5VRGmU');
 const EULERSCAN_ENDPOINT = 'wss://escan-mainnet.euler.finance';
 const EULER = '0xd9fcd98c322942075a5c3860693e9f4f03aae07b';
-const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+const WETH = ADDRESSES.ethereum.WETH;
 const rewardsDistribution = '0xA9839D52E964d0ed0d6D546c27D2248Fac610c43';
 const EulerSimpleLens = '0x5077B7642abF198b4a5b7C4BdCE4f03016C7089C';
 

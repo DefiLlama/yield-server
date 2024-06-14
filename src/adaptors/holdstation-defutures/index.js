@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 const ethers = require('ethers');
 const axios = require('axios');
@@ -13,7 +14,7 @@ const erc20Abi = [
 ];
 
 const vault = '0xaf08a9d918f16332F22cf8Dc9ABE9D9E14DdcbC2';
-const usdc = '0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4';
+const usdc = ADDRESSES.era.USDC;
 
 const holdStaking = '0x7cF68AA037c67B6dae9814745345FFa9FC7075b1';
 const hold = '0xed4040fD47629e7c8FBB7DA76bb50B3e7695F0f2';

@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 module.exports = [
     {
         chain: "bsc",
@@ -5,7 +6,7 @@ module.exports = [
             MasterMagpieAddress: "0xa3B615667CBd33cfc69843Bf11Fbb2A1D926BD46",
             MagpieReaderAddress: "0x0E7EB5fb8d4e1e9C872ebF7072383cf97434D2e2",
             VlMGPAddress: "0x9B69b06272980FA6BAd9D88680a71e3c3BeB32c6",
-            MWOMSVAddress: "0x0000000000000000000000000000000000000000",
+            MWOMSVAddress: ADDRESSES.null,
             MGPAddress: "0xD06716E1Ff2E492Cc5034c2E81805562dd3b45fa",
             WOMAddress: "0xAD6742A35fB341A9Cc6ad674738Dd8da98b94Fb1",
             MWOMAddress: "0x027a9d301FB747cd972CFB29A63f3BDA551DFc5c",

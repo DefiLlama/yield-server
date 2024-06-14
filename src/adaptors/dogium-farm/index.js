@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
@@ -12,38 +13,38 @@ const BLOCK_TIME = 2;
 const SECOND_IN_YEAR = 86400 * 365;
 
 const mapTokenDogeChaintoBSC = {
-  '0x765277EebeCA2e31912C9946eAe1021199B39C61':
-    '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', // USDC
-  '0xB7ddC6414bf4F5515b52D8BdD69973Ae205ff101':
+  [ADDRESSES.shiden.ETH]:
+    ADDRESSES.bsc.USDC, // USDC
+  [ADDRESSES.dogechain.WWDOGE]:
     '0xba2ae424d960c26247dd6c32edc70b295c744c43', // WWDOGE
-  '0xE3F5a90F9cb311505cd691a46596599aA1A0AD7D':
-    '0x55d398326f99059fF775485246999027B3197955', // usdt,
-  '0x332730a4F6E03D9C55829435f10360E13cfA41Ff':
-    '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56', // busd,
+  [ADDRESSES.moonriver.USDC]:
+    ADDRESSES.bsc.USDT, // usdt,
+  [ADDRESSES.dogechain.BUSD]:
+    ADDRESSES.bsc.BUSD, // busd,
   '0xA649325Aa7C5093d12D6F98EB4378deAe68CE23F':
-    '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', // bnb
+    ADDRESSES.bsc.WBNB, // bnb
 };
 
 const mapTokenBSCtoDogeChain = {
-  '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d':
-    '0x765277EebeCA2e31912C9946eAe1021199B39C61',
+  [ADDRESSES.bsc.USDC]:
+    ADDRESSES.shiden.ETH,
   '0xba2ae424d960c26247dd6c32edc70b295c744c43':
-    '0xB7ddC6414bf4F5515b52D8BdD69973Ae205ff101',
-  '0x55d398326f99059ff775485246999027b3197955':
-    '0xE3F5a90F9cb311505cd691a46596599aA1A0AD7D',
-  '0xe9e7cea3dedca5984780bafc599bd69add087d56':
-    '0x332730a4F6E03D9C55829435f10360E13cfA41Ff',
-  '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c':
+    ADDRESSES.dogechain.WWDOGE,
+  [ADDRESSES.bsc.USDT]:
+    ADDRESSES.moonriver.USDC,
+  [ADDRESSES.bsc.BUSD]:
+    ADDRESSES.dogechain.BUSD,
+  [ADDRESSES.bsc.WBNB]:
     '0xA649325Aa7C5093d12D6F98EB4378deAe68CE23F',
 };
 
 const EXCLUDE = [
   '0x55BD2a3904C09547c3A5899704f1207eE61878Be',
-  '0xB7ddC6414bf4F5515b52D8BdD69973Ae205ff101',
-  '0xE3F5a90F9cb311505cd691a46596599aA1A0AD7D',
-  '0x765277EebeCA2e31912C9946eAe1021199B39C61',
-  '0x7B4328c127B85369D9f82ca0503B000D09CF9180',
-  '0xB44a9B6905aF7c801311e8F4E76932ee959c663C',
+  ADDRESSES.dogechain.WWDOGE,
+  ADDRESSES.moonriver.USDC,
+  ADDRESSES.shiden.ETH,
+  ADDRESSES.dogechain.DC,
+  ADDRESSES.moonriver.USDT,
 ];
 
 const getPriceByReserves = async (lpAddress) => {

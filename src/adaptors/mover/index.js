@@ -1,10 +1,11 @@
+const ADDRESSES = require('../assets.json')
 const superagent = require('superagent');
 
 const utils = require('../utils');
 
 const savingsPool = '0xAF985437DCA19DEFf89e61F83Cd526b272523719';
 const savingsPlusPolygonPool = '0x77D5333d97A092cA01A783468E53E550C379dc3C';
-const USDCinPolygon = '0x2791bca1f2de4661ed88a30c99a7a9449aa84174';
+const USDCinPolygon = ADDRESSES.polygon.USDC;
 
 const { default: BigNumber } = require('bignumber.js');
 
@@ -19,7 +20,7 @@ const savings = async () => {
   const chain = 'ethereum';
 
   // get asset price in usd
-  const key = 'ethereum:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
+  const key = 'ethereum:' + ADDRESSES.ethereum.USDC;
   const usdcInUSDEth = (
     await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
   ).body.coins[key].price;

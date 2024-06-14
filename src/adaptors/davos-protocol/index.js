@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const { default: BigNumber } = require('bignumber.js');
 const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
@@ -7,7 +8,7 @@ const SECONDS_PER_YEAR = 365 * DAY;
 const RAY_PRECISION = 27;
 const RAY = new BigNumber(10).pow(RAY_PRECISION);
 
-const WMATIC = '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270';
+const WMATIC = ADDRESSES.polygon.WMATIC_2;
 const ANKRMATIC = `0x0E9b89007eEE9c958c0EDA24eF70723C2C93dD58`;
 const ceaaMATICcAddress = '0xa6aE8F29e0031340eA5dBE11c2DA4466cDe34464';
 const DAVOSJoin = '0x8FCD9542a6Ee0F05f470230da5B8cB41033da6Df';

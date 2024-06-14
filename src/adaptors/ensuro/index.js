@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const { getProvider } = require('@defillama/sdk/build/general');
 const ethers = require('ethers');
@@ -5,7 +6,7 @@ const axios = require('axios');
 
 const addressBook = {
   polygon: {
-    usdc: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+    usdc: ADDRESSES.polygon.USDC,
     eTokens: [
       // eTokens
       {name: "eToken Junior Koala", address: "0x8d2Ee82c4172B2138B06b8037d769cBfAf9C0274", symbol: "eUSDJrKo"},

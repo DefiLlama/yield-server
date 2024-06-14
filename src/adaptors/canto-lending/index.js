@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const abi = require('./abis.json');
@@ -5,7 +6,7 @@ const abi = require('./abis.json');
 const utils = require('../utils');
 
 const unitroller = '0x5E23dC409Fc2F832f83CEc191E245A191a4bCc5C';
-const WCANTO = '0x826551890Dc65655a0Aceca109aB11AbDbD7a07B';
+const WCANTO = ADDRESSES.canto.WCANTO;
 
 const getOutput = ({ output }) => output.map(({ output }) => output);
 

@@ -1,10 +1,11 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const BigNumber = require('bignumber.js');
 
 const AddressMap = {
   ethereum: {
-    WETH: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+    WETH: ADDRESSES.ethereum.WETH,
     UiPoolDataProvider: '0x5250cCE48E43AB930e45Cc8E71C87Ca4B51244cf',
     LendPoolAddressProvider: '0x24451F47CaF13B24f4b5034e1dF6c0E401ec0e46',
     Bend: '0x0d02755a5700414B26FF040e1dE35D337DF56218',

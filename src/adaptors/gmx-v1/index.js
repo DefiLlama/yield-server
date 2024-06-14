@@ -1,17 +1,18 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const abi = require('./abis/abi.json');
 
-const arbitrumGmxAddress = '0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a';
+const arbitrumGmxAddress = ADDRESSES.arbitrum.GMX;
 const arbitrumGlpManagerAddress = '0x321F653eED006AD1C29D174e17d96351BDe22649';
 const arbitrumFeeGmxTrackerAddress =
   '0xd2D1162512F927a7e282Ef43a362659E4F2a728F';
 const arbitrumInflationGmxTrackerAddress =
   '0x908C4D94D34924765f1eDc22A1DD098397c59dD4';
 const arbitrumFeeGlpTrackerAddress =
-  '0x4e971a87900b931fF39d1Aad67697F49835400b6';
+  ADDRESSES.arbitrum.fGLP;
 const arbitrumInflationGlpTrackerAddress =
-  '0x1aDDD80E6039594eE970E5872D247bf0414C8903';
+  ADDRESSES.arbitrum.fsGLP;
 
 const avalacheGmxAddress = '0x62edc0692BD897D2295872a9FFCac5425011c661';
 const avalancheGlpManagerAddress = '0xe1ae4d4b06A5Fe1fc288f6B4CD72f9F8323B107F';

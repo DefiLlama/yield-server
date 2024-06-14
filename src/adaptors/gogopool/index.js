@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 const axios = require('axios');
 const { ethers } = require('ethers');
@@ -72,7 +73,7 @@ const topLvl = async () => {
         apyBase: apyBase,
         apyReward: 0,
         rewardTokens: [],
-        underlyingTokens: ['0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7']
+        underlyingTokens: [ADDRESSES.avax.WAVAX]
     };
 };
 

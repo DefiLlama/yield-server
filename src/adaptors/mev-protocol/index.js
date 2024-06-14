@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
@@ -47,7 +48,7 @@ const apy = async () => {
       tvlUsd,
       apyBase,
       apyBase7d: apyBase,
-      underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+      underlyingTokens: [ADDRESSES.null],
     },
   ];
 };

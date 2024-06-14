@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const {
   formatChain,
   formatSymbol,
@@ -108,8 +109,7 @@ const main = async () => {
           if (address) {
             tokenAddresses.push(
               address === 'native'
-                ? '0x0000000000000000000000000000000000000000'
-                : address
+                ? [ADDRESSES.null]: address
             );
           }
           if (symbol) {

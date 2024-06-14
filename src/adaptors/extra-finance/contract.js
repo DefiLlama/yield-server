@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const { getProvider } = require('@defillama/sdk/build/general');
 const { ethers, Contract, BigNumber } = require('ethers');
 const pairsSugarContractAbi = require("./abis/veloPairsSugarV2.json");
@@ -7,7 +8,7 @@ const veloPairAddress = {
   optimism: '0xF6F6955756Db870258C31B49cB51860b77b53194',
   base: '0xC301856B4262E49E9239ec8a2d0c754d5ae317c0'
 }
-const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000"
+const ADDRESS_ZERO = ADDRESSES.null
 
 const rpcUrlMap = {
   optimism: 'https://opt-mainnet.g.alchemy.com/v2/oEk9gsFsYITNlTL4guXm5BmhcRZ24NfA',

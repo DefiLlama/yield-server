@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const masterchefAbi = require('./masterchef');
@@ -11,8 +12,8 @@ const masterchef = '0x6fc0f134a1f20976377b259687b1c15a5d422b47';
 const BSWAP = '0x78a087d713be963bf307b18f2ff8122ef9a63ae9';
 const BSX = '0xd5046b976188eb40f6de40fb527f89c05b323385';
 const XBSX = '0xe4750593d1fc8e74b31549212899a72162f315fa';
-const WETH = '0x4200000000000000000000000000000000000006';
-const USDBC = '0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca';
+const WETH = ADDRESSES.optimism.WETH_1;
+const USDBC = ADDRESSES.base.USDbC;
 const EDE = '0x0a074378461fb7ed3300ea638c6cc38246db4434';
 
 const project = 'baseswap-v2';

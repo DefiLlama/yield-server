@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
@@ -66,7 +67,7 @@ const poolsFunction = async () => {
     'https://api.hedgefarm.finance/alpha2/performance'
   );
 
-  const btcbKey = 'avax:0x152b9d0fdc40c096757f570a51e494bd4b943e50';
+  const btcbKey = 'avax:' + ADDRESSES.avax.BTC_b;
   const btcbTokenPrice = (
     await superagent.get(`https://coins.llama.fi/prices/current/${btcbKey}`)
   ).body.coins[btcbKey].price;
@@ -82,7 +83,7 @@ const poolsFunction = async () => {
     tvlUsd: balanceAlpha1 / 1e6,
     apy: alpha1ApyData.averageApy * 100,
     poolMeta: '28 Days Lock-up',
-    underlyingTokens: ['0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E'],
+    underlyingTokens: [ADDRESSES.avax.USDC],
   };
 
   const alpha2 = {
@@ -92,7 +93,7 @@ const poolsFunction = async () => {
     symbol: utils.formatSymbol('BTC.b'),
     tvlUsd: (balanceAlpha2 / 1e8) * btcbTokenPrice,
     apy: alpha2ApyData.last24hApy * 100,
-    underlyingTokens: ['0x50b7545627a5162F82A992c33b87aDc75187B218'],
+    underlyingTokens: [ADDRESSES.avax.WBTC_e],
   };
 
   return [alpha1, alpha2];

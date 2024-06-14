@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 const { gql, default: request } = require('graphql-request');
 const { getTvl } = require('./contract');
@@ -49,7 +50,7 @@ const poolsFunction = async () => {
       (Number(nGlpAPY.vaults[0].esNeuApr) + Number(nGlpAPY.vaults[0].nGlpApr)) /
       1e18,
     rewardTokens: [
-      '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
+      ADDRESSES.optimism.DAI,
       '0x22F4730e21e40Dc751c08826d93010A64185e53f',
     ],
   };

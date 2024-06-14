@@ -1,3 +1,4 @@
+const ADDRESSES = require('../../assets.json')
 const sdk = require('@defillama/sdk');
 const utils = require('../../utils');
 const { makeReadable } = require('./utils');
@@ -63,7 +64,7 @@ async function getTokenPrices() {
   const tokenAddresses = [
     '0x7CbaF5a14D953fF896E5B3312031515c858737C8', // MuxLP
     '0x4e352cf164e64adcbad318c3a1e222e9eba4ce42', // MCB
-    '0x82af49447d8a07e3bd95bd0d56f35241523fbab1', // WETH
+    ADDRESSES.arbitrum.WETH, // WETH
   ];
 
   const tokenPrices = await utils.getPrices(tokenAddresses, 'arbitrum');

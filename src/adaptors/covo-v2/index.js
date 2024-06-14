@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const abi = require('./abis/abi.json');
@@ -11,7 +12,7 @@ const stakingstore = '0x8aBeAA1578024B85084A09Ca2fa46f0a0dfE9c0F';
 const poolstore = '0x4c3028bdddbf20D2482f34b7E4151337eAAE45B5';
 const covorewardsdistributor = '0x5E0Ca4ED0c910c81315D180F334406140C99295C';
 
-const usdcaddress = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174';
+const usdcaddress = ADDRESSES.polygon.USDC;
 
 const polygonusdcstakingtracker = '0xED29cB1b164dd7EA1c5065E79a15dA31EC34327B';
 
@@ -25,7 +26,7 @@ async function getAdjustedAmountusdc(pTarget, pChain, pAbi, pParams = []) {
     target: pTarget,
     abi: pAbi,
     chain: pChain,
-    params: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
+    params: ADDRESSES.polygon.USDC,
   });
   return supply.output;
 }

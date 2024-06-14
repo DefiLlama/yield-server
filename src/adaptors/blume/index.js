@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 
@@ -20,7 +21,7 @@ const PROJECT_NAME = 'blume';
 const NATIVE_TOKEN = {
   decimals: 18,
   symbol: 'WETH',
-  address: '0x4300000000000000000000000000000000000004'.toLowerCase(),
+  address: ADDRESSES.blast.WETH.toLowerCase(),
 };
 
 const getPrices = async (addresses) => {
