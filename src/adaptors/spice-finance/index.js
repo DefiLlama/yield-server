@@ -1,4 +1,4 @@
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 const axios = require('axios');
 const utils = require('../utils');
 
@@ -50,8 +50,7 @@ async function apr() {
   const apyFlagship = flagshipData?.data?.okrs?.expected_return * 100;
 
   const totalAssetsBlur = await blurVault.methods.totalAssets().call();
-  const tvlUsdBlur =
-    (totalAssetsBlur / 10 ** 18) * (ethPrice / 10 ** 8);
+  const tvlUsdBlur = (totalAssetsBlur / 10 ** 18) * (ethPrice / 10 ** 8);
   const { data: blurData } = await axios.get(
     `https://api.spicefi.xyz/v2/api/vaults/${BLUR_VAULT_ADDRESS}`
   );

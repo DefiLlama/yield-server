@@ -1,5 +1,5 @@
 const superagent = require('superagent');
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 const ethers = require('ethers');
 const sdk = require('@defillama/sdk');
 

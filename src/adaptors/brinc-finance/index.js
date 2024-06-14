@@ -11,7 +11,7 @@
 // const StakingABI = require('./staking_abi.json');
 // const BrcABI = require('./brc_abi.json');
 // const utils = require('../utils');
-// const Web3 = require('web3');
+// const {Web3} = require('web3');
 // const jsonRpcProvider = new JsonRpcProvider(
 //   process.env.ALCHEMY_CONNECTION_ARBITRUM
 // );

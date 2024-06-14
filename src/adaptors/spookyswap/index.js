@@ -1,4 +1,4 @@
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 const { request, gql, batchRequests } = require('graphql-request');
@@ -9,7 +9,9 @@ const { masterChefABI, lpTokenABI } = require('./abis');
 const utils = require('../utils');
 
 const RPC_URL = 'https://rpc.ankr.com/fantom';
-const API_URL = sdk.graph.modifyEndpoint('HyhMfT7gehNHMBmFiExqeg3pDtop9UikjvBPfAXT3b21');
+const API_URL = sdk.graph.modifyEndpoint(
+  'HyhMfT7gehNHMBmFiExqeg3pDtop9UikjvBPfAXT3b21'
+);
 
 const MASTERCHEF_ADDRESS = '0x18b4f774fdC7BF685daeeF66c2990b1dDd9ea6aD';
 const BOO_TOKEN = '0x841FAD6EAe12c286d1Fd18d1d525DFfA75C7EFFE'.toLowerCase();

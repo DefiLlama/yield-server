@@ -1,5 +1,5 @@
 const utils = require('../utils');
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 
 const { default: BigNumber } = require('bignumber.js');
 const superagent = require('superagent');
@@ -15,9 +15,7 @@ const WETH_ADDRESS = '0x4300000000000000000000000000000000000004';
 const DEPLOYER_ADDRESS = '0x32754478de813A42C9eD6e3e8d00d66c6009b40f';
 const YEAR = 365 * 60 * 60 * 24;
 
-const web3 = new Web3(
-  new Web3.providers.HttpProvider('https://rpc.blast.io')
-);
+const web3 = new Web3(new Web3.providers.HttpProvider('https://rpc.blast.io'));
 
 function getHelper() {
   return new web3.eth.Contract(viewHelperABI, HELPER_ADDRESS);
@@ -50,15 +48,15 @@ async function getLPStakingInfo() {
 
   data = {
     pool: LP_TOKEN_ADDRESS,
-    chain: utils.formatChain("blast"),
-    project: "blastnyan",
-    symbol: "blNYAN-WETH",
+    chain: utils.formatChain('blast'),
+    project: 'blastnyan',
+    symbol: 'blNYAN-WETH',
     tvlUsd: Number(usd),
     apyBase: Number(0),
     apyReward: Number(apr) * 100,
     underlyingTokens: [TOKEN_ADDRESS, WETH_ADDRESS],
     rewardTokens: [WETH_ADDRESS],
-    poolMeta: "BlastNYAN Earning Pool: Stake LP to EARN TAXED WETH"
+    poolMeta: 'BlastNYAN Earning Pool: Stake LP to EARN TAXED WETH',
   };
 
   return data;
@@ -86,15 +84,15 @@ const getblNyanStakingInfo = async () => {
 
   data = {
     pool: TOKEN_ADDRESS,
-    chain: utils.formatChain("blast"),
-    project: "blastnyan",
-    symbol: "blNYAN",
+    chain: utils.formatChain('blast'),
+    project: 'blastnyan',
+    symbol: 'blNYAN',
     tvlUsd: Number(usd),
     apyBase: Number(0),
     apyReward: Number(apr) * 100,
     underlyingTokens: [TOKEN_ADDRESS],
     rewardTokens: [TOKEN_ADDRESS],
-    poolMeta: "BlastNYAN Single Asset Staking Farm"
+    poolMeta: 'BlastNYAN Single Asset Staking Farm',
   };
 
   return data;
