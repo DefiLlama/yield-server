@@ -2,7 +2,6 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { BigNumber } = require('ethers');
 const { AddressZero } = require('@ethersproject/constants');
-const { getChainTransform, getFixBalances } = require('../../helper/transform');
 
 const abi = require('./abi.json');
 const config = require('./config.json');
@@ -89,8 +88,8 @@ async function farming(
   portfolios
 ) {
   const res = [];
-  const transform = await getChainTransform(chain);
-  const fixBalances = await getFixBalances(chain);
+  const transform = (addr) => `${chain}:${addr}`;
+  const fixBalances = i => i
 
   const fees = await getFees(chain, portfolios.contractAddress);
 
