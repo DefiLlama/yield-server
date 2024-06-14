@@ -43,7 +43,7 @@ const apy = async () => {
 
   const poolsCount = await zfFarm.methods.poolLength().call();
   const totalAllocPoint = await zfFarm.methods.totalAllocPoint().call();
-  const zfPerSecond = (await zfFarm.methods.zfPerSecond().call()) / 1e18;
+  const zfPerSecond = Number(await zfFarm.methods.zfPerSecond().call()) / 1e18;
 
   const protocolFeeRes = await sdk.api.abi.call({
     abi: zfFactory.find((abi) => abi.name === 'protocolFeeFactor'),
