@@ -60,7 +60,9 @@ async function getTokenPriceInWeth(tokenContract) {
   const wethDecimals = await wethContract.methods.decimals().call();
 
   const oneTokenInWeth =
-    1 / ((1.0001 ** Math.abs(tick) * 10 ** wethDecimals) / 10 ** tokenDecimals);
+    1 /
+    ((1.0001 ** Number(tick) * 10 ** Number(wethDecimals)) /
+      10 ** Number(tokenDecimals));
 
   return oneTokenInWeth;
 }
@@ -80,7 +82,9 @@ async function getTokenPriceInUsdc(tokenContract) {
   const usdcDecimals = await usdcContract.methods.decimals().call();
 
   const oneTokenInUsdc =
-    1 / ((1.0001 ** Math.abs(tick) * 10 ** usdcDecimals) / 10 ** tokenDecimals);
+    1 /
+    ((1.0001 ** Number(tick) * 10 ** Number(usdcDecimals)) /
+      10 ** Number(tokenDecimals));
 
   return oneTokenInUsdc;
 }

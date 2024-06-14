@@ -96,7 +96,8 @@ const getUmamiGmSynthsVaultsYield = async () => {
     const gmMarketsValues = await Promise.all(
       vault.underlyingGmMarkets.map((gmMarket, _index) => {
         const gmTokenPrice = gmMarketsInfos[_index].gmTokenPrice;
-        const balanceValue = gmMarketsBalancesInGmi[_index] * gmTokenPrice;
+        const balanceValue =
+          Number(gmMarketsBalancesInGmi[_index]) * gmTokenPrice;
         if (balanceValue) {
           return balanceValue;
         }
@@ -134,7 +135,7 @@ const getUmamiGmSynthsVaultsYield = async () => {
 
     const underlyingTokenPrice =
       underlyingTokenPriceObj.body.coins[underlyingTokenPriceKey].price;
-    const tvl = tvlRaw / 10 ** vault.decimals;
+    const tvl = Number(tvlRaw) / 10 ** vault.decimals;
 
     const buffer = bufferRaw.output / 10 ** vault.decimals;
 

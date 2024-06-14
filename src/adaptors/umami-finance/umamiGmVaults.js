@@ -127,7 +127,7 @@ const getUmamiGmVaultsYield = async () => {
 
     const underlyingTokenPrice =
       underlyingTokenPriceObj.body.coins[underlyingTokenPriceKey].price;
-    const tvl = tvlRaw / 10 ** vault.decimals;
+    const tvl = Number(tvlRaw) / 10 ** vault.decimals;
 
     const buffer = bufferRaw.output / 10 ** vault.decimals;
 
