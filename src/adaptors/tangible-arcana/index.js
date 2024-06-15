@@ -35,7 +35,7 @@ const poolsFunction = async () => {
     })
     .then((result) => result.output);
 
-  const apy = (Math.pow(1 + (apr/1e18) / 36500, 365) - 1) * 100;
+  const apy = (Math.pow(1 + (apr/1e18) / 365, 365) - 1);
   const ratio = (totalSupply-amountStaked)/totalSupply;
   const apy_given_staked = (apy/ratio)*1e2;
 
