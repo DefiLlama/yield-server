@@ -3,7 +3,11 @@ const { mean } = require('lodash');
 const utils = require('../utils');
 
 const SUBGRAPH_URL =
-  'https://api.goldsky.com/api/public/project_clvvvr5shxt6301t7b2zn04ii/subgraphs/3jane/1.3.0/gn';
+  'https://api.goldsky.com/api/public/project_clvvvr5shxt6301t7b2zn04ii/subgraphs/3jane/1.4.2/gn';
+
+function apyToApr(interest, frequency) {
+  return ((1 + interest / 100) ** (1 / frequency) - 1) * frequency * 100;
+}
 
 const getNWeekApy = (perf, weekN) => {
   return (
@@ -47,6 +51,26 @@ const VaultsQuery = gql`
   }
 `;
 
+const PremiumsQuery = gql`
+  query PerfQuery {
+    vaultOptionTrades(first: 1, orderBy: timestamp, orderDirection: desc) {
+      premium
+      vault {
+        totalBalance
+      }
+    }
+  }
+`;
+
+const simplyApy = async () => {
+  const { vaultOptionTrades } = await request(SUBGRAPH_URL, PremiumsQuery);
+  const lastTrade = vaultOptionTrades[0];
+  const totalPremiums = lastTrade.premium;
+  const totalBalance = lastTrade.vault.totalBalance;
+  const ret = Number(totalPremiums) / Number(totalBalance);
+  return apyToApr(ret, 52);
+};
+
 const apyChain = async () => {
   const { vaults } = await request(SUBGRAPH_URL, VaultsQuery);
   const vaultPerfs = await Promise.all(
@@ -63,7 +87,9 @@ const apyChain = async () => {
     'ethereum'
   );
 
-  const pools = vaults.map((vault, i) => {
+  const res = await simplyApy();
+
+  const pools = vaults.map(async (vault, i) => {
     const perf = vaultPerfs[i];
 
     const fee = 0.12;
@@ -88,6 +114,7 @@ const apyChain = async () => {
     symbol = symbol.includes('yvUSDC') ? 'USDC' : symbol;
 
     return {
+      res,
       pool: vault.id,
       project: '3jane',
       chain: 'Ethereum',
@@ -108,7 +135,7 @@ const apyChain = async () => {
 };
 
 const apy = async () => {
-  return await apyChain('Ethereum');
+  return await apyChain();
 };
 
 module.exports = {
