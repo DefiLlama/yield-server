@@ -118,9 +118,12 @@ const apy = async () => {
   const masterChef = new web3.eth.Contract(masterChefABI, MASTERCHEF_ADDRESS);
 
   const poolsCount = await masterChef.methods.poolLength().call();
-  const totalAllocPoint = await masterChef.methods.totalAllocPoint().call();
-  const bswPerBlock =
-    (await masterChef.methods.booPerSecond().call()) / BigInt(1e18);
+  const totalAllocPoint = Number(
+    await masterChef.methods.totalAllocPoint().call()
+  );
+  const bswPerBlock = Number(
+    (await masterChef.methods.booPerSecond().call()) / BigInt(1e18)
+  );
 
   const poolsRes = await sdk.api.abi.multiCall({
     abi: masterChefABI.filter(({ name }) => name === 'poolInfo')[0],
