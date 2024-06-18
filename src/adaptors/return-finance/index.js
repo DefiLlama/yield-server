@@ -82,7 +82,7 @@ const getApy = async () => {
     makerDao,
     convexFinance,
     benqi,
-  ];
+  ].filter((i) => utils.keepFinite(i));
 };
 
 module.exports = {
