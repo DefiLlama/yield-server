@@ -1,20 +1,17 @@
 const superagent = require('superagent');
 const { Web3 } = require('web3');
-const ethers = require('ethers');
 const sdk = require('@defillama/sdk');
 
 const {
   UMAMI_SYNTH_GM_VAULTS,
-  ARB_MASTER_CHEF,
   ARB_ADDRESS,
   GMI_VAULT,
   GMI_AGGREGATE_VAULT,
 } = require('./umamiConstants.js');
-const { getGmMarketsForUmami } = require('./gmx-helpers.js');
-const { ARB_MASTER_CHEF_ABI } = require('./abis/arbMasterchef.js');
 const { GMI_VAULT_ABI } = require('./abis/gmiVault.js');
 const { GMI_AGGREGATE_VAULT_ABI } = require('./abis/gmiAggregateVault.js');
-const { GM_ASSET_VAULT_ABI } = require('./abis/gmAssetVault.js');
+const { getGmMarketsForUmami } = require('./gmx-helpers.js');
+const { getIncentivesAprForVault } = require('./umamiIncentivesHelper.js');
 
 const RPC_URL = 'https://rpc.ankr.com/arbitrum';
 
@@ -24,10 +21,6 @@ const aggregateVaultContract = new web3.eth.Contract(
   GMI_AGGREGATE_VAULT_ABI,
   GMI_AGGREGATE_VAULT
 );
-const masterchefContract = new web3.eth.Contract(
-  ARB_MASTER_CHEF_ABI,
-  ARB_MASTER_CHEF
-);
 const gmiContract = new web3.eth.Contract(GMI_VAULT_ABI, GMI_VAULT);
 
 // returns the balances of GMX GM tokens held in the GMI vault on behalf of the GM vaults (llamao)
@@ -35,53 +28,6 @@ const getGmiGmMarketsBalances = async () => {
   const balances = await gmiContract.methods.balances().call();
 
   return balances;
-};
-
-// ARB incentives through Masterchef
-const getIncentivesAprForVault = async (vault) => {
-  const vaultContract = new web3.eth.Contract(
-    GM_ASSET_VAULT_ABI,
-    vault.address
-  );
-  const underlyingTokenPriceKey =
-    `arbitrum:${vault.underlyingAsset}`.toLowerCase();
-  const arbTokenPriceKey = `arbitrum:${ARB_ADDRESS}`.toLowerCase();
-
-  const [
-    arbPerSecRaw,
-    stakedBalanceRaw,
-    vaultPpsRaw,
-    underlyingTokenPriceObj,
-    arbTokenPriceObj,
-  ] = await Promise.all([
-    masterchefContract.methods.arbPerSec().call(),
-    vaultContract.methods.balanceOf(ARB_MASTER_CHEF).call(),
-    aggregateVaultContract.methods
-      .getVaultPPS(vault.address.toLowerCase(), true, false)
-      .call(),
-    superagent.get(
-      `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`
-    ),
-    superagent.get(`https://coins.llama.fi/prices/current/${arbTokenPriceKey}`),
-  ]);
-
-  const underlyingTokenPrice =
-    underlyingTokenPriceObj.body.coins[underlyingTokenPriceKey].price;
-  const arbTokenPrice = arbTokenPriceObj.body.coins[arbTokenPriceKey].price;
-
-  const arbPerSec = arbPerSecRaw / 10 ** 18;
-  const vaultPps = vaultPpsRaw / 10 ** vault.decimals;
-  const assetsStakedTvl = Number(
-    ethers.utils.formatUnits(stakedBalanceRaw, vault.decimals) * vaultPps
-  );
-
-  const emissionsPerYearInUsd =
-    (arbPerSec * 60 * 60 * 24 * 365 * arbTokenPrice) / 2;
-  const emissionsPerYearInTokens = emissionsPerYearInUsd / underlyingTokenPrice;
-
-  const apr = (emissionsPerYearInTokens / assetsStakedTvl) * 100;
-
-  return isNaN(apr) ? 0 : apr;
 };
 
 const getUmamiGmSynthsVaultsYield = async () => {
@@ -119,19 +65,21 @@ const getUmamiGmSynthsVaultsYield = async () => {
     const underlyingTokenPriceKey =
       `arbitrum:${vault.underlyingAsset}`.toLowerCase();
 
-    const [tvlRaw, underlyingTokenPriceObj, bufferRaw] = await Promise.all([
-      aggregateVaultContract.methods
-        .getVaultTVL(vault.address.toLowerCase(), false)
-        .call(),
-      superagent.get(
-        `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`
-      ),
-      sdk.api.erc20.balanceOf({
-        target: vault.underlyingAsset.toLowerCase(),
-        owner: GMI_AGGREGATE_VAULT,
-        chain: 'arbitrum',
-      }),
-    ]);
+    const [tvlRaw, underlyingTokenPriceObj, vaultIncentivesApr, bufferRaw] =
+      await Promise.all([
+        aggregateVaultContract.methods
+          .getVaultTVL(vault.address.toLowerCase(), false)
+          .call(),
+        superagent.get(
+          `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`
+        ),
+        getIncentivesAprForVault(vault),
+        sdk.api.erc20.balanceOf({
+          target: vault.underlyingAsset.toLowerCase(),
+          owner: GMI_AGGREGATE_VAULT,
+          chain: 'arbitrum',
+        }),
+      ]);
 
     const underlyingTokenPrice =
       underlyingTokenPriceObj.body.coins[underlyingTokenPriceKey].price;
@@ -147,6 +95,8 @@ const getUmamiGmSynthsVaultsYield = async () => {
       pool: vault.address,
       tvlUsd: +(tvl * underlyingTokenPrice),
       apyBase: +vaultApr.toFixed(2),
+      apyReward: +vaultIncentivesApr.toFixed(2),
+      rewardTokens: [ARB_ADDRESS],
       symbol: vault.symbol,
       underlyingTokens: [vault.underlyingAsset],
       url: `https://umami.finance/vaults/gm/${vault.id}`,
