@@ -8,7 +8,7 @@ const abiProtocolDataProvider = require('./abiProtocolDataProvider');
 const utils = require('../utils');
 
 const chains = {
-  mode: {
+  fraxtal: {
     LendingPool: '0xc1c5312BCAA6cb2ada949553AF75802fe48d5228',
     ProtocolDataProvider: '0xE767cD4871C5749e59451CAEbc3f1062EaF40958',
     url: 'fraxtal',
@@ -108,12 +108,12 @@ const getApy = async () => {
         const borrowable = config.borrowingEnabled;
         const frozen = config.isFrozen;
         const poolSymbol = symbols[i].toLowerCase()
-        const url = `https://app.ironclad.finance/markets/${poolSymbol}`;
+        const url = `https://glyph.fi/markets/${poolSymbol}`;
 
         return {
           pool: `${reserveData[i].aTokenAddress}-${chain}`.toLowerCase(),
           symbol: symbols[i],
-          project: 'ironclad-finance',
+          project: 'glyph',
           chain,
           tvlUsd,
           apyBase,
