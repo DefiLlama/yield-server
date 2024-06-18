@@ -27,7 +27,7 @@ const getPoolData = async ({ contract, abi, chain }) => {
       pool.returnContractAddress === contract
     );
   });
-  console.log(currentPool)
+  
   return {
     pool: `${contract}-${chain}`,
     chain,
