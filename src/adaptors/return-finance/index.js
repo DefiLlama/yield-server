@@ -6,6 +6,7 @@ const abiAAVEAvalanche = require('./abiAAVEAvalanche.json');
 const abiCompoundV3Base = require('./abiCompoundV3Base.json');
 const abiMakerDAO = require('./abiMakerDAO.json');
 const abiConvex = require('./abiConvex.json');
+const abiBenqi = require('./abiBenqiAvalanche.json');
 
 const getPoolData = async ({ contract, abi, chain }) => {
   const { output: tvlUsd } = await sdk.api.abi.call({
@@ -26,7 +27,7 @@ const getPoolData = async ({ contract, abi, chain }) => {
       pool.returnContractAddress === contract
     );
   });
-
+  console.log(currentPool)
   return {
     pool: `${contract}-${chain}`,
     chain,
@@ -68,7 +69,20 @@ const getApy = async () => {
     chain: 'ethereum',
   });
 
-  return [aavePolygon, aaveAvalanche, compoundV3Base, makerDao, convexFinance];
+  const benqi = await getPoolData({
+    contract: '0xB86e10A24172155aE20B524e6e8E17a244c4d3aE',
+    abi: abiBenqi,
+    chain: 'avax',
+  });
+
+  return [
+    aavePolygon,
+    aaveAvalanche,
+    compoundV3Base,
+    makerDao,
+    convexFinance,
+    benqi,
+  ];
 };
 
 module.exports = {
