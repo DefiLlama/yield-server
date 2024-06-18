@@ -1,7 +1,7 @@
-const { gql, request } = require('graphql-request');
+const { request } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
-const superagent = require('superagent');
+const axios = require('axios');
 
 // add chain deployments and subgraph endpoints here
 const supportedChains = [
@@ -23,14 +23,7 @@ const supportedChains = [
       'GgW1EwNARL3dyo3acQ3VhraQQ66MHT7QnYuGcQc5geDG'
     ),
   },
-  // {
-  //     name: 'Binance',
-  //     subgraphEndpoint: 'steer-protocol-bsc'
-  // }
 ];
-
-const graphURLBaseEndpoint =
-  'https://api.thegraph.com/subgraphs/name/steerprotocol/';
 
 // Fetch active vaults and associated data @todo limited to 1000 per chain
 const query = `
@@ -69,10 +62,8 @@ const getPools = async () => {
 
     // get prices
     const tokenPrices = (
-      await superagent.get(
-        `https://coins.llama.fi/prices/current/${[...tokenList]}`
-      )
-    ).body.coins;
+      await axios.get(`https://coins.llama.fi/prices/current/${[...tokenList]}`)
+    ).data.coins;
 
     const chainPools = data.vaults.map((vault) => {
       // calculate tvl

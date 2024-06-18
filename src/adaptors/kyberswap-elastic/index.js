@@ -4,9 +4,6 @@ const axios = require('axios');
 
 const utils = require('../utils');
 
-const url =
-  'https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic';
-
 const urlFarm =
   'https://pool-farm.kyberswap.com/<CHAIN>/api/v1/elastic/farm-pools?page=1&perPage=10000';
 
@@ -14,8 +11,6 @@ CHAINS_API = {
   ethereum: sdk.graph.modifyEndpoint(
     '4U9PxDR4asVvfXyoVy18fhuj6NHnQhLzZkjZ5Bmuc5xk'
   ),
-  'https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic-arbitrum-one':
-    sdk.graph.modifyEndpoint('C36tj8jSpEHxcNbjM3z7ayUZHVjrk4HRqnpGMFuRgXs6'),
   arbitrum: sdk.graph.modifyEndpoint(
     'C36tj8jSpEHxcNbjM3z7ayUZHVjrk4HRqnpGMFuRgXs6'
   ),

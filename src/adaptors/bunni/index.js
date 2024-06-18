@@ -50,8 +50,6 @@ const childGaugeABI = require('./abis/ChildGauge.json');
 const controllerABI = require('./abis/GaugeController.json');
 const oracleABI = require('./abis/OptionsOracle.json');
 
-const baseUrl = 'https://api.thegraph.com/subgraphs/name/bunniapp';
-
 const chains = {
   ethereum: sdk.graph.modifyEndpoint(
     'HH4HFj4rFnm5qnkb8MbEdP2V5eD9rZnLJE921YQAs7AV'
@@ -59,8 +57,6 @@ const chains = {
   polygon: sdk.graph.modifyEndpoint(
     '7WkeneDon7GY3CdcZW3rsPi4pRfDthwe1nWGKX21dRgC'
   ),
-  arbitrum: `${baseUrl}/bunni-arbitrum`,
-  optimism: `${baseUrl}/bunni-optimism`,
 };
 
 const query = gql`

@@ -95,10 +95,7 @@ const getLatestBlockSubgraph = async (url) => {
     url.includes('exchange-v3-polygon-zkevm/version/latest') ||
     url.includes('exchange-v3-zksync/version/latest') ||
     url.includes('balancer-base-v2/version/latest') ||
-    url.includes('horizondex') ||
-    url.includes(
-      'https://api.thegraph.com/subgraphs/id/QmZ5uwhnwsJXAQGYEF8qKPQ85iVhYAcVZcZAPfrF7ZNb9z'
-    )
+    url.includes('horizondex')
       ? await request(url, queryGraph)
       : url.includes('aperture/uniswap-v3')
       ? await request(
