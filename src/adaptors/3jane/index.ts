@@ -97,7 +97,7 @@ const poolsFunction = async () => {
       chain: 'Ethereum',
       symbol,
       tvlUsd: price * (vault.totalBalance / 10 ** vault.underlyingDecimals),
-      apy: apyBase,
+      apy: apyBase * 100,
       underlyingTokens: [vault.underlyingAsset],
       poolMeta: vault.name.includes('Put') ? 'Put-Selling' : 'Covered-Call',
     };
