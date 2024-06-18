@@ -1,15 +1,9 @@
 const { ethers } = require('ethers');
-const { getProvider } = require('@defillama/sdk/build/general');
-const { erc4626ABI, scUSDCv2ABI, erc20ABI, stabilityPoolABI, wstethABI, priceConverterABI } = require('./abi');
+const sdk = require('@defillama/sdk');
+const abi = require('./abi');
 const BigNumber = require('bignumber.js'); // support decimal points
 const superagent = require('superagent');
 
-// const LIQUITY_VAULT = '0x91a6194f1278f6cf25ae51b604029075695a74e5'; // deprecated
-// const YEARN_VAULT = '0x4FE4BF4166744BcBc13C19d959722Ed4540d3f6a'; // deprecated
-// const WETH_VAULT = '0x1Fc623b96c8024067142Ec9c15D669E5c99c5e9D'; // never in frontend or facing user
-// const USDC_VAULT = '0x1038Ff057b7092f17807358c6f68b42661d15caB'; // never in frontend or facing user
-// const JADE = '0x00C567D2b1E23782d388c8f58E64937CA11CeCf1'; // not enough tvl for yield server
-// const AMETHYST = '0x8c0792Bfee67c80f0E7D4A2c5808edBC9af85e6F'; // not enough tvl for yield server
 const AMBER = '0xdb369eEB33fcfDCd1557E354dDeE7d6cF3146A11';
 const EMERALD = '0x4c406C068106375724275Cbff028770C544a1333';
 const OPAL = '0x096697720056886b905D0DEB0f06AfFB8e4665E5';
@@ -22,200 +16,264 @@ const WSTETH = '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0';
 
 const QUARTZ = '0xbA8A621b4a54e61C442F5Ec623687e2a942225ef';
 
-const LIQUITY_STABILITY_POOL = '0x66017D22b0f8556afDd19FC67041899Eb65a21bb';
+const STABILITY_POOL = '0x66017D22b0f8556afDd19FC67041899Eb65a21bb';
 const PRICE_CONVERTER = '0xD76B0Ff4A487CaFE4E19ed15B73f12f6A92095Ca';
 
 const chain = 'ethereum';
-const provider = getProvider(chain);
-const BLOCKS_PER_DAY = 7160;
 
-const lqtyContract = new ethers.Contract(LQTY, erc20ABI, provider);
-const stabilityPoolContract = new ethers.Contract(LIQUITY_STABILITY_POOL, stabilityPoolABI, provider);
-const LQTY_DECIMALS = new BigNumber(1e18.toString());
+const DECIMALS = new BigNumber((1e18).toString());
+const USDC_DECIMALS = new BigNumber(1e6).toString();
 
-const apy = async () => {
+const COINS = [LUSD, USDC, WETH, LQTY];
 
-    const prices = await getPrices([LUSD, USDC, WETH, LQTY]);
-
-    const amber = await calcErc4626PoolApy(LUSD, 'LUSD', 'Amber', AMBER, prices, true);
-
-    const opal = await calcErc4626PoolApy(USDC, 'USDC', 'Opal', OPAL, prices, false);
-
-    const emerald = await calcErc4626PoolApy(WETH, 'WETH', 'Emerald', EMERALD, prices, false);
-
-    return [amber, opal, emerald];
-}
-
-async function calcErc4626PoolApy(asset, symbol, poolMeta, vault, prices, liquity) {
-    const contract = new ethers.Contract(vault, erc4626ABI, provider);
-
-    const decimals = asset == USDC ? new BigNumber(1e6.toString()) : new BigNumber(1e18.toString());
-    const price = prices[asset.toLowerCase()];
-    const lqtyPrice = prices[LQTY.toLowerCase()];
-    const tvl = await contract.totalAssets();
-    let tvlUsd = new BigNumber(tvl.toString()).multipliedBy(price).div(decimals);
-    
-    if (liquity) {
-      let lqtyUsd = await calcLqtyUsd(lqtyPrice);
-      tvlUsd = tvlUsd.plus(lqtyUsd);
-    }
-
-    const days = 7;
-    let totalAssetsNow = new BigNumber((await totalAssets(vault)).toString());
-    if (liquity) {
-      totalAssetsNow = totalAssetsNow.multipliedBy(price);  
-      const lqtyTotalUsd = await calcLqtyAsset(lqtyPrice); 
-      totalAssetsNow = totalAssetsNow.plus(lqtyTotalUsd);
-    }
-    const totalSharesNow =new BigNumber((await contract.totalSupply()).toString());
-    const sharePriceNow = totalSharesNow.isZero()? 
-        new BigNumber(0) :
-        totalAssetsNow.div(totalSharesNow);
-    
-    let totalAssetsYesterday = new BigNumber((await totalAssets(vault, { blockTag: -BLOCKS_PER_DAY })).toString());
-    let totalAssetsBefore = new BigNumber((await totalAssets(vault, { blockTag: -BLOCKS_PER_DAY * days })).toString());
-
-    if (liquity) {
-      totalAssetsYesterday = totalAssetsYesterday.multipliedBy(price);
-      const lqtyTotalUsdYesterday = await calcLqtyAsset(lqtyPrice, { blockTag: -BLOCKS_PER_DAY });  
-      totalAssetsYesterday = totalAssetsYesterday.plus(lqtyTotalUsdYesterday);
-
-      totalAssetsBefore = totalAssetsBefore.multipliedBy(price);
-      const lqtyTotalUsdBefore = await calcLqtyAsset(lqtyPrice, { blockTag: -BLOCKS_PER_DAY * days });  
-      totalAssetsBefore = totalAssetsBefore.plus(lqtyTotalUsdBefore);
-    }
-
-    const totalSharesYesterday = new BigNumber((await contract.totalSupply({ blockTag: -BLOCKS_PER_DAY })).toString());
-    const sharePriceYesterday = totalSharesYesterday.isZero()? 
-        new BigNumber(0) :
-        totalAssetsYesterday.div(totalSharesYesterday);
-    const apyBase = sharePriceYesterday.isZero() ? 
-        0 :
-        sharePriceNow.minus(sharePriceYesterday).multipliedBy(365).div(sharePriceYesterday).multipliedBy(100).toNumber();
-
-    const totalSharesBefore = new BigNumber((await contract.totalSupply({ blockTag: -BLOCKS_PER_DAY * days })).toString());
-    const sharePriceBefore = totalSharesBefore.isZero()? 
-        new BigNumber(0) :
-        totalAssetsBefore.div(totalSharesBefore);
-    // const compound = Math.floor(365 / days);
-    // const apy = n.div(d).pow(compound).minus(1).times(100).toNumber();
-    const apyBase7d = sharePriceBefore.isZero() ? 
-        0 :
-        sharePriceNow.minus(sharePriceBefore).multipliedBy(365).div(days).div(sharePriceBefore).multipliedBy(100).toNumber();
-
-    const apyReward = 15; // QUARTZ will be airdropped to depositors to Amber, Opal and Emerald vaults    
-    const erc4626Pool = {
-        pool: `${vault}-${chain}`,
-        chain,
-        project: 'sandclock',
-        symbol,
-        tvlUsd: tvlUsd.toNumber(),
-        underlyingTokens: [asset],
-        rewardTokens: [QUARTZ],
-        apyBase,
-        apyBase7d,
-        apyReward,
-        poolMeta,
-        url: 'https://app.sandclock.org/'
-    };
-
-    return erc4626Pool;
-}
-
-const getPrices = async (addresses) => {
-    const uri = `${addresses.map((address) => `${chain}:${address}`)}`;
-    const prices = (
-        await superagent.get('https://coins.llama.fi/prices/current/' + uri)
-    ).body.coins;
-
-    const pricesByAddresses = Object.entries(prices).reduce(
-        (acc, [address, price]) => ({
-            ...acc,
-            [address.split(':')[1].toLowerCase()]: price.price,
-        }),
-        {}
-    );
-
-    return pricesByAddresses;
+const vaultMeta = {
+  // it has to be string literal keys
+  '0xdb369eEB33fcfDCd1557E354dDeE7d6cF3146A11': {
+    asset: LUSD,
+    symbol: 'LUSD',
+    name: 'Amber',
+  },
+  '0x096697720056886b905D0DEB0f06AfFB8e4665E5': {
+    asset: USDC,
+    symbol: 'USDC',
+    name: 'Opal',
+  },
+  '0x4c406C068106375724275Cbff028770C544a1333': {
+    asset: WETH,
+    symbol: 'WETH',
+    name: 'Emerald',
+  },
 };
 
-const totalAssets = async(vault, options) => {
-    const args = options?.blockTag ? { blockTag: options.blockTag } : {};
-    if (vault == EMERALD) { // scWETHv2
-        return await totalEmeraldAssets(args);
-    } else if (vault == OPAL) { // scUSDCv2
-        return await totalOpalAssets(args)
-    } 
-    const vaultContract = new ethers.Contract(vault, erc4626ABI, provider);
-    return new BigNumber((await vaultContract.totalAssets(args)).toString());
+const apy = async () => {
+  const prices = await getPrices(COINS);
+
+  return await Promise.all(
+    [AMBER, OPAL, EMERALD].map((vault) => calcErc4626PoolApy(vault, prices))
+  );
+};
+
+async function getPrices(addresses) {
+  const coins = getCoinsURI(addresses);
+  const url = `https://coins.llama.fi/prices/current/${coins}`;
+  return await fetchPrices(url);
 }
 
-const totalEmeraldAssets = async(args) => {
-    const vaultContract = new ethers.Contract(EMERALD, erc4626ABI, provider);
-    const wstethContract = new ethers.Contract(WSTETH, wstethABI, provider);
-    const totalCollateral = await wstethContract.getStETHByWstETH(
-        await vaultContract.totalCollateral(args),
-        args
+async function getPricesDaysBefore(addresses, days) {
+  const coins = getCoinsURI(addresses);
+  const timestamp = getTimestampDaysBefore(days);
+  const url = `https://coins.llama.fi/prices/historical/${timestamp}/${coins}`;
+  return await fetchPrices(url);
+}
+
+async function fetchPrices(url) {
+  const prices = (await superagent.get(url)).body.coins;
+
+  const pricesByAddresses = Object.entries(prices).reduce(
+    (acc, [address, price]) => ({
+      ...acc,
+      [address.split(':')[1].toLowerCase()]: price.price,
+    }),
+    {}
+  );
+
+  return pricesByAddresses;
+}
+
+function getCoinsURI(addresses) {
+  return `${addresses.map((address) => `${chain}:${address}`)}`;
+}
+
+async function getBlockNumberDaysBefore(days) {
+  const daysBefore = getTimestampDaysBefore(days);
+  return await getBlockNumber(daysBefore);
+}
+
+function getTimestampDaysBefore(days) {
+  return Math.floor(Date.now() / 1000) - 24 * 60 * 60 * days;
+}
+
+async function getBlockNumber(timestamp) {
+  const response = await superagent.get(
+    `https://coins.llama.fi/block/ethereum/${timestamp}`
+  );
+  return response.body.height;
+}
+
+async function calcErc4626PoolApy(vault, prices) {
+  const tvlUsd = await calcTvl(vault, prices);
+
+  const sharePriceNow = await calcSharePrice(vault, prices);
+
+  const sharePriceYesterday = await calcSharePrice(vault, prices, 1);
+  const apyBase = calcApy(sharePriceNow, sharePriceYesterday, 1);
+
+  const sharePriceWeekBefore = await calcSharePrice(vault, prices, 7);
+  const apyBase7d = calcApy(sharePriceNow, sharePriceWeekBefore, 7);
+
+  return {
+    pool: `${vault}-${chain}`,
+    chain,
+    project: 'sandclock',
+    symbol: vaultMeta[vault].symbol,
+    tvlUsd,
+    underlyingTokens: [vaultMeta[vault].asset],
+    rewardTokens: [QUARTZ],
+    apyBase,
+    apyBase7d,
+    apyReward: 15, // QUARTZ will be airdropped to depositors of Amber, Opal and Emerald vaults
+    poolMeta: vaultMeta[vault].name,
+    url: 'https://app.sandclock.org/',
+  };
+}
+
+async function calcTvl(vault, prices) {
+  const asset = vaultMeta[vault].asset;
+  const price = prices[asset.toLowerCase()];
+  const assets = await totalAssets(vault);
+  const decimals = asset == USDC ? USDC_DECIMALS : DECIMALS;
+  let tvlUsd = assets.multipliedBy(price).div(decimals);
+  if (vault === AMBER) {
+    const lqtyPrice = prices[LQTY.toLowerCase()];
+    const lqtyUsd = await calcLqtyUsd(lqtyPrice);
+    tvlUsd = tvlUsd.plus(lqtyUsd);
+  }
+  return tvlUsd.toNumber();
+}
+
+async function calcLqtyUsd(price, block = 'latest') {
+  const lqtyBalance = new BigNumber(await balanceOf(LQTY, AMBER, block));
+  const lqtyGain = await callAbi(STABILITY_POOL, abi.lqtyGain, AMBER, block);
+  return lqtyBalance.plus(lqtyGain).multipliedBy(price).div(DECIMALS);
+}
+
+async function calcSharePrice(vault, prices, days = 0) {
+  let assetPrices = prices;
+  let block = 'latest';
+  if (days > 0) {
+    assetPrices = await getPricesDaysBefore(COINS, days);
+    block = await getBlockNumberDaysBefore(days);
+  }
+  const assets = await calcAssets(vault, assetPrices, block);
+  const shares = await getShares(vault, block);
+  const sharePrice = getSharePrice(assets, shares);
+  return sharePrice;
+}
+
+async function calcAssets(vault, prices, block = 'latest') {
+  let assets = await totalAssets(vault, block);
+  if (vault === AMBER) {
+    const asset = vaultMeta[vault].asset;
+    const lusdPrice = prices[asset.toLowerCase()];
+    const lqtyPrice = prices[LQTY.toLowerCase()];
+    const lqtyAsset = await calcLqtyAsset(lqtyPrice, lusdPrice, block);
+    assets = assets.plus(lqtyAsset);
+  }
+  return assets;
+}
+
+const totalAssets = async (vault, block = 'latest') => {
+  if (vault == EMERALD) {
+    // convert ethers.BigNumber to BigNumber to support decimal points
+    return new BigNumber((await totalEmeraldAssets(block)).toString());
+  } else if (vault == OPAL) {
+    // convert ethers.BigNumber to BigNumber to support decimal points
+    return new BigNumber((await totalOpalAssets(block)).toString());
+  }
+  return new BigNumber(await callAbi(vault, abi.totalAssets, null, block));
+};
+
+const totalEmeraldAssets = async (block = 'latest') => {
+  const wstEth = await totalCollateral(EMERALD, block);
+  const stEthCollateral = await callAbi(WSTETH, abi.getStETH, wstEth, block);
+  const wethDebt = await totalDebt(EMERALD, block);
+  const float = ethers.BigNumber.from(await balanceOf(WETH, EMERALD, block));
+  return float.add(stEthCollateral).sub(wethDebt);
+};
+
+const totalOpalAssets = async (block = 'latest') => {
+  const collateral = ethers.BigNumber.from(await totalCollateral(OPAL, block));
+  const usdcBalance = await callAbi(OPAL, abi.usdcBalance, null, block);
+  const wethDebt = await totalDebt(OPAL, block);
+  const sharesInvested = await balanceOf(EMERALD, OPAL, block);
+  const emeraldAssets = await totalEmeraldAssets(block);
+  const emeraldShares = await totalSupply(EMERALD, block);
+  const wethInvested = emeraldAssets.mul(sharesInvested).div(emeraldShares);
+  let total = collateral.add(usdcBalance);
+
+  if (wethInvested.gt(wethDebt)) {
+    const wethProfit = wethInvested.sub(wethDebt);
+    const usdcProfit = ethers.BigNumber.from(
+      await ethToUsdc(wethProfit, block)
     );
-    const totalDebt = await vaultContract.totalDebt(args);
-    const wethContract = new ethers.Contract(WETH, erc20ABI, provider);
-    const float = await wethContract.balanceOf(EMERALD, args);
-    return new BigNumber(float.add(totalCollateral).sub(totalDebt).toString());
+    const slippage = await callAbi(OPAL, abi.slippage, null, block);
+    const profit = usdcProfit.mul(slippage).div((1e18).toString());
+    total = total.add(profit);
+  } else if (wethInvested.lt(wethDebt)) {
+    const wethLoss = ethers.BigNumber.from(wethDebt).sub(wethInvested);
+    const usdcLoss = await ethToUsdc(wethLoss, block);
+    total = total.sub(usdcLoss);
+  }
+
+  return total;
+};
+
+const ethToUsdc = async (wethValue, block = 'latest') => {
+  return await callAbi(
+    PRICE_CONVERTER,
+    abi.ethToUsdc,
+    wethValue.toString(),
+    block
+  );
+};
+
+async function calcLqtyAsset(lqtyPrice, lusdPrice, block = 'latest') {
+  const lqtyBalance = new BigNumber(await balanceOf(LQTY, AMBER, block));
+  const lqtyGain = await callAbi(STABILITY_POOL, abi.lqtyGain, AMBER, block);
+  return lqtyBalance.plus(lqtyGain).multipliedBy(lqtyPrice).div(lusdPrice);
 }
 
-const totalOpalAssets = async (args) => {
-    const vaultContract = new ethers.Contract(OPAL, scUSDCv2ABI, provider);
-    const usdcBalance = new BigNumber((await vaultContract.usdcBalance(args)).toString());
-    const totalCollateral = new BigNumber((await vaultContract.totalCollateral(args)).toString());
-    // in WETH
-    const totalDebt = new BigNumber((await vaultContract.totalDebt(args)).toString());
-    
-    const emeraldContract = new ethers.Contract(EMERALD, erc20ABI, provider);
-    const sharesInvested = new BigNumber((await emeraldContract.balanceOf(OPAL, args)).toString());
-    const emeraldAssets = new BigNumber((await totalEmeraldAssets(args)).toString());
-    const emeraldShares = new BigNumber((await emeraldContract.totalSupply(args)).toString());
-    const wethInvested = new BigNumber(emeraldAssets.multipliedBy(sharesInvested).dividedBy(emeraldShares).toFixed(0));
-
-    let total = usdcBalance.plus(totalCollateral);
-
-    const priceConverter = new ethers.Contract(PRICE_CONVERTER, priceConverterABI, provider);
-
-    if (wethInvested.gt(totalDebt)) { // in profit
-        const profitInWETH = wethInvested.minus(totalDebt);
-        const slippageTolerance = new BigNumber((await vaultContract.slippageTolerance(args)).toString());
-        const profitInUsdcNoSlippage = new BigNumber((await priceConverter.ethToUsdc(profitInWETH.toString(), args)).toString());
-        const profitInUsdc = profitInUsdcNoSlippage.multipliedBy(slippageTolerance).dividedBy(new BigNumber(1e18.toString()));
-        total = total.plus(profitInUsdc);
-    } else {
-        const lossInWETH = totalDebt.minus(wethInvested);
-        const lossInUsdc = new BigNumber((await priceConverter.ethToUsdc(lossInWETH)).toString());
-        total = total.minus(lossInUsdc);
-    }
-
-    return total;
+function calcApy(sharePriceNow, sharePriceBefore, daysBetween) {
+  return sharePriceBefore.isZero()
+    ? 0
+    : sharePriceNow
+        .minus(sharePriceBefore)
+        .multipliedBy(36500)
+        .div(daysBetween)
+        .div(sharePriceBefore)
+        .toNumber();
 }
 
-const calcLqtyAsset = async (price, options) => {
-    const args = options?.blockTag ? { blockTag: options.blockTag } : {};
+const totalCollateral = async (vault, block = 'latest') => {
+  return await callAbi(vault, abi.totalCollateral, null, block);
+};
 
-    let lqtyTotal = ethers.BigNumber.from(0);
+const totalDebt = async (vault, block = 'latest') => {
+  return await callAbi(vault, abi.totalDebt, null, block);
+};
 
-    const lqtyBalance = await lqtyContract.balanceOf(AMBER, args);
-    lqtyTotal = lqtyTotal.add(lqtyBalance);
+const balanceOf = async (token, address, block = 'latest') => {
+  return await callAbi(token, abi.balanceOf, address, block);
+};
 
-    const lqtyGain = await stabilityPoolContract.getDepositorLQTYGain(AMBER, args);
-    lqtyTotal = lqtyTotal.add(lqtyGain);
+const totalSupply = async (token, block = 'latest') => {
+  return await callAbi(token, abi.totalSupply, null, block);
+};
 
-    lqtyTotalUsd = new BigNumber(lqtyTotal.toString()).multipliedBy(price);
-    return lqtyTotalUsd;
+async function getShares(vault, block = 'latest') {
+  return new BigNumber(await totalSupply(vault, block));
 }
 
-const calcLqtyUsd = async (price) => {
-    return (await calcLqtyAsset(price)).div(LQTY_DECIMALS);
+async function getSharePrice(assets, shares) {
+  return shares.isZero() ? new BigNumber(0) : assets.div(shares);
+}
+
+async function callAbi(target, abi, params, block = 'latest') {
+  return (await sdk.api.abi.call({ target, abi, params, block, chain })).output;
 }
 
 module.exports = {
-    timetravel: true,
-    apy,
-    url: 'https://sandclock.org',
+  timetravel: true,
+  apy,
+  url: 'https://sandclock.org',
 };

@@ -1,4 +1,6 @@
 const sdk = require('@defillama/sdk');
+const fetch = require('node-fetch')
+
 const utils = require('../utils');
 const getPoolDepositRateAbi = {
   "inputs": [],
@@ -46,11 +48,13 @@ const USDC_POOL_TUP_ARBI_CONTRACT = '0x8FE3842e0B7472a57f2A2D56cF6bCe08517A1De0'
 const ETH_POOL_TUP_ARBI_CONTRACT = '0x0BeBEB5679115f143772CfD97359BBcc393d46b3';
 const ARB_POOL_TUP_ARBI_CONTRACT = '0x2B8C610F3fC6F883817637d15514293565C3d08A';
 const BTC_POOL_TUP_ARBI_CONTRACT = '0x5CdE36c23f0909960BA4D6E8713257C6191f8C35';
+const DAI_POOL_TUP_ARBI_CONTRACT = '0xd5E8f691756c3d7b86FD8A89A06497D38D362540';
 
 const USDC_TOKEN_ARBI_ADDRESS = '0xaf88d065e77c8cc2239327c5edb3a432268e5831';
 const ETH_TOKEN_ARBI_ADDRESS = '0x82af49447d8a07e3bd95bd0d56f35241523fbab1';
 const ARB_TOKEN_ARBI_ADDRESS = '0x912CE59144191C1204E64559FE8253a0e49E6548';
 const BTC_TOKEN_ARBI_ADDRESS = '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f';
+const DAI_TOKEN_ARBI_ADDRESS = '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1';
 
 const getPoolTVL = async (poolAddress, chain = 'avax') => {
   return (await sdk.api.abi.call({
@@ -113,6 +117,10 @@ const getBtcPoolArbiDepositRate = async () => {
   return await getPoolDepositRate(BTC_POOL_TUP_ARBI_CONTRACT, 'arbitrum') / 1e16;
 }
 
+const getDaiPoolArbiDepositRate = async () => {
+  return await getPoolDepositRate(DAI_POOL_TUP_ARBI_CONTRACT, 'arbitrum') / 1e16;
+}
+
 const getBtcPoolTVL = async() => {
   const supply = await getPoolTVL(BTC_POOL_TUP_CONTRACT);
 
@@ -148,6 +156,14 @@ const getBtcPoolArbiTVL = async() => {
   return supply * price / 1e8;
 }
 
+
+const getDaiPoolArbiTVL = async() => {
+  const supply = await getPoolTVL(DAI_POOL_TUP_ARBI_CONTRACT, 'arbitrum');
+
+  const price = await getTokenPrice(DAI_TOKEN_ARBI_ADDRESS, 'arbitrum');
+  return supply * price / 1e18;
+}
+
 const getUsdcPoolArbiTVL = async() => {
   const supply = await getPoolTVL(USDC_POOL_TUP_ARBI_CONTRACT, 'arbitrum');
 
@@ -175,6 +191,9 @@ const getUsdtPoolTVL = async() => {
 }
 
 const getPoolsAPYs = async () => {
+  let rewardAPRs = await fetch('https://2t8c1g5jra.execute-api.us-east-1.amazonaws.com/ltip-pool-boost-apy');
+  rewardAPRs = await rewardAPRs.json();
+
   const usdcPoolTvl = await getUsdcPoolTVL();
   const usdcPool = {
     pool: `dp-${USDC_TOKEN_ADDRESS}-avalanche`,
@@ -185,7 +204,6 @@ const getPoolsAPYs = async () => {
     apyBase: await getUsdcPoolDepositRate(),
     underlyingTokens: [USDC_TOKEN_ADDRESS],
     rewardTokens: [USDC_TOKEN_ADDRESS],
-    poolMeta: 'USDC lending pool on Avalanche',
   };
 
   const usdtPoolTvl = await getUsdtPoolTVL();
@@ -198,7 +216,6 @@ const getPoolsAPYs = async () => {
     apyBase: await getUsdtPoolDepositRate(),
     underlyingTokens: [USDT_TOKEN_ADDRESS],
     rewardTokens: [USDT_TOKEN_ADDRESS],
-    poolMeta: 'USDt lending pool on Avalanche',
   };
 
   const wavaxPoolTvl = await getWavaxPoolTVL();
@@ -211,7 +228,6 @@ const getPoolsAPYs = async () => {
     apyBase: await getWavaxPoolDepositRate(),
     underlyingTokens: [WAVAX_TOKEN_ADDRESS],
     rewardTokens: [WAVAX_TOKEN_ADDRESS],
-    poolMeta: 'WAVAX lending pool on Avalanche',
   };
 
   const btcPoolTvl = await getBtcPoolTVL();
@@ -224,7 +240,6 @@ const getPoolsAPYs = async () => {
     apyBase: await getBtcPoolDepositRate(),
     underlyingTokens: [BTC_TOKEN_ADDRESS],
     rewardTokens: [BTC_TOKEN_ADDRESS],
-    poolMeta: 'BTC.b lending pool on Avalanche',
   };
 
   const ethPoolTvl = await getEthPoolTVL();
@@ -237,7 +252,6 @@ const getPoolsAPYs = async () => {
     apyBase: await getEthPoolDepositRate(),
     underlyingTokens: [ETH_TOKEN_ADDRESS],
     rewardTokens: [ETH_TOKEN_ADDRESS],
-    poolMeta: 'WETH.e lending pool on Avalanche',
   };
 
   const ethPoolArbiTvl = await getEthPoolArbiTVL();
@@ -248,9 +262,9 @@ const getPoolsAPYs = async () => {
     symbol: utils.formatSymbol('WETH'),
     tvlUsd: ethPoolArbiTvl,
     apyBase: await getEthPoolArbiDepositRate(),
+    apyReward: rewardAPRs["ETH"]*100,
     underlyingTokens: [ETH_TOKEN_ARBI_ADDRESS],
-    rewardTokens: [ETH_TOKEN_ARBI_ADDRESS],
-    poolMeta: 'WETH lending pool on Arbitrum',
+    rewardTokens: [ETH_TOKEN_ARBI_ADDRESS, ARB_TOKEN_ARBI_ADDRESS],
   };
 
   const usdcPoolArbiTvl = await getUsdcPoolArbiTVL();
@@ -261,9 +275,9 @@ const getPoolsAPYs = async () => {
     symbol: utils.formatSymbol('USDC'),
     tvlUsd: usdcPoolArbiTvl,
     apyBase: await getUsdcPoolArbiDepositRate(),
+    apyReward: rewardAPRs["USDC"]*100,
     underlyingTokens: [USDC_TOKEN_ARBI_ADDRESS],
-    rewardTokens: [USDC_TOKEN_ARBI_ADDRESS],
-    poolMeta: 'USDC lending pool on Arbitrum',
+    rewardTokens: [USDC_TOKEN_ARBI_ADDRESS, ARB_TOKEN_ARBI_ADDRESS],
   };
 
   const arbPoolArbiTvl = await getArbPoolArbiTVL();
@@ -274,9 +288,9 @@ const getPoolsAPYs = async () => {
     symbol: utils.formatSymbol('ARB'),
     tvlUsd: arbPoolArbiTvl,
     apyBase: await getArbPoolArbiDepositRate(),
+    apyReward: rewardAPRs["ARB"]*100,
     underlyingTokens: [ARB_TOKEN_ARBI_ADDRESS],
-    rewardTokens: [ARB_TOKEN_ARBI_ADDRESS],
-    poolMeta: 'ARB lending pool on Arbitrum',
+    rewardTokens: [ARB_TOKEN_ARBI_ADDRESS, ARB_TOKEN_ARBI_ADDRESS],
   };
 
   const btcPoolArbiTvl = await getBtcPoolArbiTVL();
@@ -287,12 +301,28 @@ const getPoolsAPYs = async () => {
     symbol: utils.formatSymbol('WBTC'),
     tvlUsd: btcPoolArbiTvl,
     apyBase: await getBtcPoolArbiDepositRate(),
+    apyReward: rewardAPRs["BTC"]*100,
     underlyingTokens: [BTC_TOKEN_ARBI_ADDRESS],
-    rewardTokens: [BTC_TOKEN_ARBI_ADDRESS],
-    poolMeta: 'WBTC lending pool on Arbitrum',
+    rewardTokens: [BTC_TOKEN_ARBI_ADDRESS, ARB_TOKEN_ARBI_ADDRESS],
   };
 
-  return [usdcPool, usdtPool, wavaxPool, btcPool, ethPool, ethPoolArbi, usdcPoolArbi, arbPoolArbi, btcPoolArbi];
+  const daiPoolArbiTvl = await getDaiPoolArbiTVL();
+  const daiPoolArbi = {
+    pool: `dp-${DAI_TOKEN_ARBI_ADDRESS}-arbitrum`,
+    chain: utils.formatChain('arbitrum'),
+    project: 'deltaprime',
+    symbol: utils.formatSymbol('DAI'),
+    tvlUsd: daiPoolArbiTvl,
+    apyBase: await getDaiPoolArbiDepositRate(),
+    apyReward: rewardAPRs["DAI"]*100,
+    underlyingTokens: [DAI_TOKEN_ARBI_ADDRESS],
+    rewardTokens: [DAI_TOKEN_ARBI_ADDRESS, ARB_TOKEN_ARBI_ADDRESS],
+  };
+
+
+
+
+  return [usdcPool, usdtPool, wavaxPool, btcPool, ethPool, ethPoolArbi, usdcPoolArbi, arbPoolArbi, btcPoolArbi, daiPoolArbi];
 };
 
 module.exports = {

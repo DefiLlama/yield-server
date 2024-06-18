@@ -1,5 +1,5 @@
 const axios = require('axios');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 
 const abi = require('./abi.json');
 const mevETH = '0x24Ae2dA0f361AA4BE46b48EB19C91e02c5e4f27E';

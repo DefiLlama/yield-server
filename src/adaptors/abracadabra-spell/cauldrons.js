@@ -253,6 +253,7 @@ const getMarketLensDetailsForCauldrons = (
       })),
       chain,
       requery: true,
+      permitFailure: true
     })
     .then((call) => call.output.map((x) => x.output));
 
@@ -285,6 +286,7 @@ const getApyV1Cauldrons = async (chain, marketLensAddress, cauldrons) => {
         })),
         chain,
         requery: true,
+        permitFailure: true
       })
       .then((call) => call.output.map((x) => x.output.elastic)),
     getMarketLensDetailsForCauldrons(
@@ -366,6 +368,7 @@ const getCauldronDetails = (pools, abiName) =>
           })),
           chain,
           requery: true,
+          permitFailure: true
         })
         .then((call) =>
           Object.fromEntries(
@@ -405,6 +408,7 @@ const getStrategies = (collaterals, bentoboxes) =>
             ),
             chain,
             requery: true,
+            permitFailure: true
           })
           .then((call) => call.output.map((x) => x.output)),
         sdk.api.abi
@@ -418,6 +422,7 @@ const getStrategies = (collaterals, bentoboxes) =>
             ),
             chain,
             requery: true,
+            permitFailure: true
           })
           .then((call) => call.output.map((x) => x.output)),
       ]);
@@ -462,6 +467,7 @@ const getNegativeInterestStrategyApy = (negativeInterestStrategies) =>
             ),
             chain,
             requery: true,
+            permitFailure: true
           })
           .then((call) =>
             Object.fromEntries(
@@ -492,6 +498,7 @@ const getBaseStargateLpStrategyFees = (baseStargateLpStrategies) =>
             ),
             chain,
             requery: true,
+            permitFailure: true
           })
           .then((call) =>
             Object.fromEntries(
@@ -522,6 +529,7 @@ const getFeeCollectableStrategyFees = (feeCollectableStrategies) =>
             ),
             chain,
             requery: true,
+            permitFailure: true
           })
           .then((call) =>
             Object.fromEntries(
@@ -551,6 +559,7 @@ const getDetailsFromCollaterals = (collaterals, abi) =>
             })),
             chain,
             requery: true,
+            permitFailure: true
           })
           .then((call) =>
             Object.fromEntries(
