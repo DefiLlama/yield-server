@@ -52,8 +52,13 @@ const VaultsQuery = gql`
 `;
 
 const PremiumsQuery = gql`
-  query PerfQuery {
-    vaultOptionTrades(first: 1, orderBy: timestamp, orderDirection: desc) {
+  query PremiumsQuery($id: ID = "") {
+    vaultOptionTrades(
+      first: 4
+      orderBy: timestamp
+      orderDirection: desc
+      where: { vault_: { id: $id } }
+    ) {
       premium
       vault {
         totalBalance
@@ -62,51 +67,24 @@ const PremiumsQuery = gql`
   }
 `;
 
-const simplyApy = async () => {
-  const { vaultOptionTrades } = await request(SUBGRAPH_URL, PremiumsQuery);
-  const lastTrade = vaultOptionTrades[0];
-  const totalPremiums = lastTrade.premium;
-  const totalBalance = lastTrade.vault.totalBalance;
-  const ret = Number(totalPremiums) / Number(totalBalance);
-  return apyToApr(ret, 52);
-};
-
-const apyChain = async () => {
+const poolsFunction = async () => {
   const { vaults } = await request(SUBGRAPH_URL, VaultsQuery);
-  const vaultPerfs = await Promise.all(
-    vaults.map(
-      async (vault) =>
-        (
-          await request(SUBGRAPH_URL, PerfQuery, { id: vault.id })
-        ).vaultPerformanceUpdates
-    )
-  );
 
   const { pricesByAddress: prices } = await utils.getPrices(
     vaults.map(({ underlyingAsset }) => underlyingAsset),
     'ethereum'
   );
 
-  const res = await simplyApy();
-
-  const pools = vaults.map(async (vault, i) => {
-    const perf = vaultPerfs[i];
-
-    const fee = 0.12;
-    const apy = mean(
-      [1, 2, 3, 4].map((n) => {
-        const nWeekApy = getNWeekApy(perf, perf.length - n - 1);
-        return nWeekApy > 0 ? nWeekApy * (1 - fee) : nWeekApy;
-      })
+  const pools = vaults.map(async (vault) => {
+    const { vaultOptionTrades } = await request(SUBGRAPH_URL, PremiumsQuery, {
+      id: vault.id,
+    });
+    const avgWeeklyRet = mean(
+      vaultOptionTrades.map(
+        (trade) => Number(trade.premium) / Number(trade.vault.totalBalance)
+      )
     );
-
-    // for 7d IL we use the current weeks performance, if positive -> no IL, otherwise use that
-    // value as the IL
-    const weekN = perf.length - 1;
-    const weeklyPerf =
-      (perf[weekN]?.pricePerShare - perf[weekN - 1]?.pricePerShare) /
-      perf[weekN - 1]?.pricePerShare;
-    const il7d = weeklyPerf > 0 ? null : weeklyPerf;
+    const apyBase = avgWeeklyRet * 52;
 
     const price = prices[vault.underlyingAsset];
 
@@ -114,32 +92,21 @@ const apyChain = async () => {
     symbol = symbol.includes('yvUSDC') ? 'USDC' : symbol;
 
     return {
-      res,
       pool: vault.id,
-      project: '3jane',
       chain: 'Ethereum',
+      project: '3jane',
       symbol,
       tvlUsd: price * (vault.totalBalance / 10 ** vault.underlyingDecimals),
-      apyBase: apy,
-      underlyingTokens: [vault.underlyingAsset],
+      apy: apyBase,
       poolMeta: vault.name.includes('Put') ? 'Put-Selling' : 'Covered-Call',
-      il7d,
-      apyBaseInception:
-        ((perf[perf.length - 1]?.pricePerShare - perf[0]?.pricePerShare) /
-          perf[0]?.pricePerShare) *
-        100,
     };
   });
 
   return pools;
 };
 
-const apy = async () => {
-  return await apyChain();
-};
-
 module.exports = {
   timetravel: false,
-  apy,
+  apy: poolsFunction,
   url: 'https://app.3jane.xyz/',
 };
