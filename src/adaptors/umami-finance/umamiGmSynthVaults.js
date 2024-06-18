@@ -10,7 +10,7 @@ const {
 } = require('./umamiConstants.js');
 const { GMI_VAULT_ABI } = require('./abis/gmiVault.js');
 const { GMI_AGGREGATE_VAULT_ABI } = require('./abis/gmiAggregateVault.js');
-const { getGmMarketsForUmami } = require('./gmx-helpers.js');
+const { getGmMarketsForUmami } = require('./gmxHelpers.js');
 const { getIncentivesAprForVault } = require('./umamiIncentivesHelper.js');
 
 const RPC_URL = 'https://rpc.ankr.com/arbitrum';

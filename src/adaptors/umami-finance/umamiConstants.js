@@ -1,14 +1,5 @@
-const sdk = require('@defillama/sdk');
 // -- Project
 
-const UMAMI_GRAPH_URL = sdk.graph.modifyEndpoint(
-  '6FvNM4mR8wFWB5C3vMsxFRHzbbVEZCLSLfeQNgzzHmw1'
-);
-const UMAMI_API_URL = 'https://api.umami.finance/api/v2';
-
-const UMAMI_ADDRESS = '0x1622bf67e6e5747b81866fe0b85178a93c7f86e3';
-const mUMAMI_ADDRESS = '0x2adabd6e8ce3e82f52d9998a7f64a90d294a92a4';
-const cmUMAMI_ADDRESS = '0x1922c36f3bc762ca300b4a46bb2102f84b1684ab';
 const wETH_ADDRESS = '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1';
 const ARB_ADDRESS = '0x912ce59144191c1204e64559fe8253a0e49e6548';
 
@@ -93,11 +84,6 @@ const UMAMI_GM_VAULTS = [
 
 module.exports = {
   wETH_ADDRESS,
-  UMAMI_GRAPH_URL,
-  UMAMI_API_URL,
-  UMAMI_ADDRESS,
-  mUMAMI_ADDRESS,
-  cmUMAMI_ADDRESS,
   UMAMI_SYNTH_GM_VAULTS,
   UMAMI_GM_VAULTS,
   GMI_VAULT,
