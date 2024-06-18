@@ -1,4 +1,3 @@
-const sdk = require('@defillama/sdk');
 const { getActiveTerms, getPastAndActiveTerms } = require('./subgraph.js');
 
 const {
@@ -12,19 +11,19 @@ const CHAINS = [
   {
     id: 1,
     name: 'ethereum',
-    url: sdk.graph.modifyEndpoint('37rapC8GX3YmFpv1y8BWmu5xvHPLTRvn3uxQHd6CEmJ7'),
+    url: 'https://api.thegraph.com/subgraphs/name/barnbridge/sy-mainnet',
     address: '0xc67cb09d08521cD1dE6BAAC46824261eb1dB8800',
   },
   {
     id: 42161,
     name: 'arbitrum',
-    url: sdk.graph.modifyEndpoint('CCYS6JgDCPHdMphsnHSrosEkbmmBhb69gwKLqRaxuCwK'),
+    url: 'https://api.thegraph.com/subgraphs/name/barnbridge/sy-arbitrum',
     address: '0xf878a060D4d51704B14e8f68B51185bF5DbFE3A1',
   },
   {
     id: 10,
     name: 'optimism',
-    url: sdk.graph.modifyEndpoint('Fu6e7h47iJ2V4FdsPbogouXVSdDhmBET4gtKPNSZU7tM'),
+    url: 'https://api.thegraph.com/subgraphs/name/barnbridge/sy-optimism',
     address: '0x45c158E0ee76c76E525BaB941991268249e95331',
   },
 ];

@@ -1,4 +1,5 @@
 const sdk = require('@defillama/sdk');
+const { api2 } = require('@defillama/sdk5');
 const axios = require('axios');
 const { ethers } = require('ethers');
 
@@ -45,14 +46,14 @@ const getPools = async (pools) => {
 
   await Promise.all(
     pools.map(async (pool) => {
-      const totalStaked = await sdk.api2.abi.call({
+      const totalStaked = await api2.abi.call({
         abi: 'uint256:totalStaked',
         target: pool.address,
         chain: pool.chain,
       });
       const ts = Number(ethers.utils.formatEther(totalStaked));
 
-      const rewardsPerSecond = await sdk.api2.abi.call({
+      const rewardsPerSecond = await api2.abi.call({
         abi: 'uint256:REWARDS_PER_SECOND',
         target: pool.address,
         chain: pool.chain,
@@ -60,31 +61,31 @@ const getPools = async (pools) => {
       const rewardsPerDay =
         Number(ethers.utils.formatEther(rewardsPerSecond)) * 86400;
 
-      const rewardsToken = await sdk.api2.abi.call({
+      const rewardsToken = await api2.abi.call({
         abi: 'address:REWARDS_TOKEN',
         target: pool.address,
         chain: pool.chain,
       });
 
-      const lpToken = await sdk.api2.abi.call({
+      const lpToken = await api2.abi.call({
         abi: 'address:LP_TOKEN',
         target: pool.address,
         chain: pool.chain,
       });
 
-      const lpToken0 = await sdk.api2.abi.call({
+      const lpToken0 = await api2.abi.call({
         abi: 'address:token0',
         target: lpToken,
         chain: pool.chain,
       });
 
-      const lpToken1 = await sdk.api2.abi.call({
+      const lpToken1 = await api2.abi.call({
         abi: 'address:token1',
         target: lpToken,
         chain: pool.chain,
       });
 
-      const lpTotalSupply = await sdk.api2.abi.call({
+      const lpTotalSupply = await api2.abi.call({
         abi: 'erc20:totalSupply',
         target: lpToken,
         chain: pool.chain,
@@ -92,7 +93,7 @@ const getPools = async (pools) => {
 
       const lpTs = Number(ethers.utils.formatEther(lpTotalSupply));
 
-      const gauge = await sdk.api2.abi.call({
+      const gauge = await api2.abi.call({
         abi: 'address:GAUGE',
         target: pool.address,
         chain: pool.chain,

@@ -416,8 +416,7 @@ const checkIlRisk = (el) => {
     symbol.includes('ammuni') ||
     symbol.includes('ammbpt') ||
     symbol.includes('tricrypto') ||
-    symbol.includes('3crypto') ||
-    (symbol.includes('crvusd') && symbol.includes('eth'))
+    symbol.includes('3crypto')
   ) {
     ilRisk = 'yes';
   } else if (tokens.length === 1) {

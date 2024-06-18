@@ -11,7 +11,6 @@ const API_URLS = {
   arbitrum: `${API_URL}?network=arbitrum`,
   optimism: `${API_URL}?network=optimism`,
   era: `${API_URL}?network=zksync`,
-  base: `${API_URL}?network=base`,
 };
 
 const rewardTokensMapping = {
@@ -48,7 +47,7 @@ const main = async () => {
         apyReward = info['arb_rewards_apr'];
       }
       let rewardTokens;
-      if (chain === "era" || chain === "base") {
+      if (chain === "era") {
         rewardTokens = [];
       } else {
         rewardTokens = [rewardTokensMapping[chain]];

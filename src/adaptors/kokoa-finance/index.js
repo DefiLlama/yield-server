@@ -42,7 +42,6 @@ const cdpDataFunction = async () => {
       }),
       chain: 'klaytn',
       requery: false,
-      permitFailure: true,
     })
   ).output.map((e) => e.output);
   return data

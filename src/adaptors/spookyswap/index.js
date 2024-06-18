@@ -1,22 +1,59 @@
+const Web3 = require('web3');
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
-const { request, gql } = require('graphql-request');
-const axios = require('axios');
+const { request, gql, batchRequests } = require('graphql-request');
+const superagent = require('superagent');
+const { chunk } = require('lodash');
 
 const { masterChefABI, lpTokenABI } = require('./abis');
 const utils = require('../utils');
 
-const API_URL = sdk.graph.modifyEndpoint(
-  'HyhMfT7gehNHMBmFiExqeg3pDtop9UikjvBPfAXT3b21'
-);
+const RPC_URL = 'https://rpc.ankr.com/fantom';
+const API_URL = 'https://api.thegraph.com/subgraphs/name/eerieeight/spookyswap';
 
 const MASTERCHEF_ADDRESS = '0x18b4f774fdC7BF685daeeF66c2990b1dDd9ea6aD';
 const BOO_TOKEN = '0x841FAD6EAe12c286d1Fd18d1d525DFfA75C7EFFE'.toLowerCase();
 
 const FTM_BLOCK_TIME = 1;
 const BLOCKS_PER_YEAR = Math.floor((60 / FTM_BLOCK_TIME) * 60 * 24 * 365);
+const BLOCKS_PER_DAY = Math.floor((60 / FTM_BLOCK_TIME) * 60 * 24);
 const WEEKS_PER_YEAR = 52;
 const FEE_RATE = 0.0017;
+
+const web3 = new Web3(RPC_URL);
+
+const pairQuery = gql`
+  query pairQuery($id_in: [ID!]) {
+    pairs(where: { id_in: $id_in }) {
+      id
+      token0 {
+        decimals
+        id
+        symbol
+      }
+      token1 {
+        decimals
+        id
+        symbol
+      }
+    }
+  }
+`;
+
+const getPairInfo = async (pairs) => {
+  const pairInfo = await Promise.all(
+    chunk(pairs, 7).map((tokens) =>
+      request(API_URL, pairQuery, {
+        id_in: tokens.map((pair) => pair.toLowerCase()),
+      })
+    )
+  );
+
+  return pairInfo
+    .map(({ pairs }) => pairs)
+    .flat()
+    .reduce((acc, pair) => ({ ...acc, [pair.id.toLowerCase()]: pair }), {});
+};
 
 const calculateApy = (
   poolInfo,
@@ -36,19 +73,19 @@ const calculateReservesUSD = (
   reservesRatio,
   token0,
   token1,
-  decimals0,
-  decimals1,
   tokenPrices
 ) => {
-  const token0Price = tokenPrices[token0.toLowerCase()];
-  const token1Price = tokenPrices[token1.toLowerCase()];
+  const { decimals: token0Decimals, id: token0Address } = token0;
+  const { decimals: token1Decimals, id: token1Address } = token1;
+  const token0Price = tokenPrices[token0Address.toLowerCase()];
+  const token1Price = tokenPrices[token1Address.toLowerCase()];
 
   const reserve0 = new BigNumber(reserves._reserve0)
     .times(reservesRatio)
-    .times(10 ** (18 - decimals0));
+    .times(10 ** (18 - token0Decimals));
   const reserve1 = new BigNumber(reserves._reserve1)
     .times(reservesRatio)
-    .times(10 ** (18 - decimals1));
+    .times(10 ** (18 - token1Decimals));
 
   if (token0Price) return reserve0.times(token0Price).times(2);
   if (token1Price) return reserve1.times(token1Price).times(2);
@@ -56,13 +93,13 @@ const calculateReservesUSD = (
 
 const getPrices = async (addresses) => {
   const prices = (
-    await axios.get(
+    await superagent.get(
       `https://coins.llama.fi/prices/current/${addresses
         .map((address) => `fantom:${address}`)
         .join(',')
         .toLowerCase()}`
     )
-  ).data.coins;
+  ).body.coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -76,30 +113,11 @@ const getPrices = async (addresses) => {
 };
 
 const apy = async () => {
-  const poolsCount = (
-    await sdk.api.abi.call({
-      target: MASTERCHEF_ADDRESS,
-      abi: masterChefABI.find((m) => m.name === 'poolLength'),
-      chain: 'fantom',
-    })
-  ).output;
+  const masterChef = new web3.eth.Contract(masterChefABI, MASTERCHEF_ADDRESS);
 
-  const totalAllocPoint = (
-    await sdk.api.abi.call({
-      target: MASTERCHEF_ADDRESS,
-      abi: masterChefABI.find((m) => m.name === 'totalAllocPoint'),
-      chain: 'fantom',
-    })
-  ).output;
-
-  const bswPerBlock =
-    (
-      await sdk.api.abi.call({
-        target: MASTERCHEF_ADDRESS,
-        abi: masterChefABI.find((m) => m.name === 'booPerSecond'),
-        chain: 'fantom',
-      })
-    ).output / 1e18;
+  const poolsCount = await masterChef.methods.poolLength().call();
+  const totalAllocPoint = await masterChef.methods.totalAllocPoint().call();
+  const bswPerBlock = (await masterChef.methods.booPerSecond().call()) / 1e18;
 
   const poolsRes = await sdk.api.abi.multiCall({
     abi: masterChefABI.filter(({ name }) => name === 'poolInfo')[0],
@@ -157,41 +175,20 @@ const apy = async () => {
   const tokens0 = underlyingToken0.output.map((res) => res.output);
   const tokens1 = underlyingToken1.output.map((res) => res.output);
 
-  const symbols0 = (
-    await sdk.api.abi.multiCall({
-      calls: tokens0.map((i) => ({ target: i })),
-      chain: 'fantom',
-      abi: 'erc20:symbol',
-    })
-  ).output.map((o) => o.output);
-  const symbols1 = (
-    await sdk.api.abi.multiCall({
-      calls: tokens1.map((i) => ({ target: i })),
-      chain: 'fantom',
-      abi: 'erc20:symbol',
-    })
-  ).output.map((o) => o.output);
-
-  const decimals0 = (
-    await sdk.api.abi.multiCall({
-      calls: tokens0.map((i) => ({ target: i })),
-      chain: 'fantom',
-      abi: 'erc20:decimals',
-    })
-  ).output.map((o) => o.output);
-  const decimals1 = (
-    await sdk.api.abi.multiCall({
-      calls: tokens1.map((i) => ({ target: i })),
-      chain: 'fantom',
-      abi: 'erc20:decimals',
-    })
-  ).output.map((o) => o.output);
-
   const tokensPrices = await getPrices([...tokens0, ...tokens1]);
 
-  const queries = gql`
+  const pairsInfo = await getPairInfo(lpTokens);
+
+  const lpChunks = chunk(lpTokens, 10);
+
+  const pairVolumes = await Promise.all(
+    lpChunks.map((lpsChunk) =>
+      request(
+        API_URL,
+        gql`
     query volumesQuery {
-      ${lpTokens
+      ${lpsChunk
+        .slice(0, 10)
         .map(
           (token, i) => `token_${token.toLowerCase()}:pairDayDatas(
         orderBy: date
@@ -205,13 +202,29 @@ const apy = async () => {
         .join('\n')}
       
     }
-  `;
+  `
+      )
+    )
+  );
 
-  const volumesMap = await request(API_URL, queries);
+  const volumesMap = pairVolumes.flat().reduce(
+    (acc, curChunk) => ({
+      ...acc,
+      ...Object.entries(curChunk).reduce(
+        (innerAcc, [key, val]) => ({
+          ...innerAcc,
+          [key.split('_')[1]]: val,
+        }),
+        {}
+      ),
+    }),
+    {}
+  );
 
   const res = pools.map((pool, i) => {
     const poolInfo = pool;
     const reserves = reservesData[i];
+    const pairInfo = pairsInfo[lpTokens[i].toLowerCase()];
 
     const supply = supplyData[i];
     const masterChefBalance = masterChefBalData[i];
@@ -219,10 +232,8 @@ const apy = async () => {
     const masterChefReservesUsd = calculateReservesUSD(
       reserves,
       masterChefBalance / supply,
-      tokens0[i],
-      tokens1[i],
-      decimals0[i],
-      decimals1[i],
+      pairInfo.token0,
+      pairInfo.token1,
       tokensPrices
     )
       ?.div(1e18)
@@ -231,17 +242,15 @@ const apy = async () => {
     const lpReservesUsd = calculateReservesUSD(
       reserves,
       1,
-      tokens0[i],
-      tokens1[i],
-      decimals0[i],
-      decimals1[i],
+      pairInfo.token0,
+      pairInfo.token1,
       tokensPrices
     )
       ?.div(1e18)
       .toString();
 
     const lpFees7D =
-      (volumesMap[`token_${lpTokens[i].toLowerCase()}`] || []).reduce(
+      (volumesMap[lpTokens[i].toLowerCase()] || []).reduce(
         (acc, { dailyVolumeUSD }) => acc + Number(dailyVolumeUSD),
         0
       ) * FEE_RATE;
@@ -260,9 +269,9 @@ const apy = async () => {
       pool: lpTokens[i],
       chain: utils.formatChain('fantom'),
       project: 'spookyswap',
-      symbol: `${symbols0[i]}-${symbols1[i]}`,
+      symbol: `${pairInfo.token0.symbol}-${pairInfo.token1.symbol}`,
       tvlUsd:
-        lpTokens[i]?.toLowerCase() ===
+        lpTokens[i].toLowerCase() ===
         '0xaf918ef5b9f33231764a5557881e6d3e5277d456'
           ? Number(lpReservesUsd)
           : Number(masterChefReservesUsd),
@@ -277,6 +286,7 @@ const apy = async () => {
 };
 
 module.exports = {
-  apy,
+  timetravel: false,
+  apy: apy,
   url: 'https://spooky.fi/#/farms',
 };

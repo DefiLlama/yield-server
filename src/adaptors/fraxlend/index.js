@@ -248,7 +248,6 @@ const main = async () => {
       abi: 'erc20:symbol',
       chain: 'ethereum',
       requery: false,
-      permitFailure: true,
     })
   ).output.map((x) => (x.input.target === MKR ? 'MKR' : x.output));
 

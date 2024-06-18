@@ -50,7 +50,6 @@ const getApy = async () => {
       })),
       abi: abiPair.find((m) => m.name === 'symbol'),
       chain: 'arbitrum',
-      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -62,7 +61,6 @@ const getApy = async () => {
       })),
       abi: abiVoter.find((m) => m.name === 'gauges'),
       chain: 'arbitrum',
-      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -73,7 +71,6 @@ const getApy = async () => {
       })),
       abi: abiGauge.find((m) => m.name === 'rewardRate'),
       chain: 'arbitrum',
-      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -84,7 +81,6 @@ const getApy = async () => {
       })),
       abi: abiGauge.find((m) => m.name === 'totalWeight'),
       chain: 'arbitrum',
-      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -95,7 +91,6 @@ const getApy = async () => {
       })),
       abi: abiGauge.find((m) => m.name === 'totalSupply'),
       chain: 'arbitrum',
-      permitFailure: true,
     })
   ).output.map((o) => o.output);
 

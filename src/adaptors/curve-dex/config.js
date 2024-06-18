@@ -28,7 +28,6 @@ exports.BLOCKCHAINID_TO_REGISTRIES = {};
 exports.BLOCKCHAINIDS.forEach((blockchainId) => {
   switch (blockchainId) {
     case 'ethereum':
-    case 'arbitrum':
       blockchainRegistries = REGISTRY_TYPES;
       break;
     case 'xdai':

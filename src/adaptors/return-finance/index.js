@@ -90,4 +90,3 @@ module.exports = {
   apy: getApy,
   url: 'https://return.finance',
 };
-

@@ -1,5 +1,5 @@
 const axios = require('axios');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 
 const factoryAbi = require('./factoryAbi.json');
 const troveManagerAbi = require('./troveManagerAbi.json');

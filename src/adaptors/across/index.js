@@ -1,7 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const { ethers } = require('ethers');
-
+const { getProvider } = require('@defillama/sdk/build/general');
 const utils = require('../utils');
 const { SECONDS_PER_YEAR, contracts, tokens } = require('./constants');
 
@@ -12,6 +12,9 @@ const rewardApr = (underlyingToken, stakingPool, rewardToken) => {
 
   if (!enabled) return 0.0;
 
+  // Avoid divide by zero later on.
+  if (cumulativeStaked.eq(0)) return Number.MAX_VALUE;
+
   const underlyingTokenPrice = ethers.utils.parseUnits(
     underlyingToken.price.toString()
   );
@@ -20,16 +23,14 @@ const rewardApr = (underlyingToken, stakingPool, rewardToken) => {
   );
 
   // Normalise to 18 decimals and convert LP token => underlying token.
-  const cumulativeStakedUsd = ethers.utils
-    .parseUnits(cumulativeStaked)
+  const cumulativeStakedUsd = cumulativeStaked
     .mul(ethers.utils.parseUnits('1', 18 - underlyingToken.decimals).toString())
     .mul(underlyingToken.exchangeRateCurrent)
     .div(fixedPoint)
     .mul(underlyingTokenPrice)
     .div(fixedPoint);
 
-  const rewardsPerYearUsd = ethers.utils
-    .parseUnits(baseEmissionRate)
+  const rewardsPerYearUsd = baseEmissionRate
     .mul(ethers.utils.parseUnits('1', 18 - rewardToken.decimals).toString())
     .mul(SECONDS_PER_YEAR.toString())
     .mul(rewardTokenPrice)
@@ -59,7 +60,30 @@ const queryLiquidityPools = async (l1TokenAddrs) => {
   );
 };
 
-const apy = async () => {
+const queryStakingPools = async (provider, lpTokenAddrs) => {
+  const { address, abi } = contracts.AcceleratedDistributor;
+  const adContract = new ethers.Contract(address, abi, provider);
+  await adContract.connect();
+
+  const rewardToken = (await adContract.rewardToken()).toLowerCase();
+  const pools = Object.fromEntries(
+    await Promise.all(
+      Object.values(lpTokenAddrs).map(async (lpTokenAddr) => {
+        const pool = await adContract.stakingTokens(lpTokenAddr);
+        return [lpTokenAddr, pool];
+      })
+    )
+  );
+
+  return {
+    rewardToken: rewardToken,
+    pools: pools,
+  };
+};
+
+const main = async () => {
+  const provider = getProvider('ethereum');
+
   // Note lpTokenAddrs is included in the Across API /pools response. These
   // LP token addresses are however hardcoded in constants so that the staking
   // pool lookups can occur in parallel with all other external lookups.
@@ -83,25 +107,14 @@ const apy = async () => {
     await axios.get(`https://coins.llama.fi/prices/current/${keys}`)
   ).data.coins;
 
-  const liquidityPools = await queryLiquidityPools(tokenAddrs);
-
-  const { address, abi } = contracts.AcceleratedDistributor;
-  const rewardToken = (
-    await sdk.api.abi.call({
-      target: address,
-      abi: abi.find((m) => m.name === 'rewardToken'),
-    })
-  ).output.toLowerCase();
-
-  const stakingTokens = (
-    await sdk.api.abi.multiCall({
-      calls: lpTokenAddrs.map((i) => ({ target: address, params: i })),
-      abi: abi.find((m) => m.name === 'stakingTokens'),
-    })
-  ).output.map((o, i) => o.output);
+  const [liquidityPools, stakingPools] = await Promise.all([
+    queryLiquidityPools(tokenAddrs),
+    queryStakingPools(provider, lpTokenAddrs),
+  ]);
 
   return Object.entries(tokens).map((token, i) => {
     const underlying = token[1].address;
+    const rewardToken = stakingPools.rewardToken;
 
     const underlyingPrice = tokenPrices[`ethereum:${underlying}`]?.price;
 
@@ -114,7 +127,7 @@ const apy = async () => {
         exchangeRateCurrent: liquidityPools[underlying].exchangeRateCurrent,
         decimals: decimals[i],
       },
-      stakingTokens[i],
+      stakingPools.pools[lpTokenAddrs[i]],
       tokenPrices[`ethereum:${rewardToken}`]
     );
 
@@ -134,6 +147,6 @@ const apy = async () => {
 
 module.exports = {
   timetravel: false,
-  apy,
+  apy: main,
   url: 'https://across.to/pool',
 };

@@ -45,7 +45,7 @@ const fetch = async () => {
       symbol: pool.meta.currencies.join('-'),
       tvlUsd: Number(pool.tvl),
       underlyingTokens: pool.meta.currencyAddresses,
-      apyBase: calcApy(pool.fee7d, pool.tvl),
+      apy: calcApy(pool.fee7d, pool.tvl),
       url: "https://web3.world/pools/" + pool.meta.poolAddress
     })
   })
@@ -58,7 +58,7 @@ const fetch = async () => {
       tvlUsd: Number(pool.tvl),
       rewardTokens: pool.rewardTokens.map(({ tokenRoot }) => tokenRoot),
       underlyingTokens: pool.poolTokens.map(({ tokenRoot }) => tokenRoot),
-      apyBase: Number(pool.minApr),
+      apy: Number(pool.minApr),
       url: "https://web3.world/farming/" + pool.address
     })
   })

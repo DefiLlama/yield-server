@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { request, gql } = require('graphql-request');
 const superagent = require('superagent');
 
@@ -141,8 +141,7 @@ const topLvl = async (
       utils.apy(el, dataPrior, dataPrior7d, version)
     );
 
-    const enableV3Apy = false;
-    if (enableV3Apy) {
+    if (chainString !== 'arbitrum') {
       dataNow = dataNow.map((p) => ({
         ...p,
         token1_in_token0: p.price1 / p.price0,

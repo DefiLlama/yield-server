@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { request, gql } = require('graphql-request');
 const { getCoinDataFromDefillamaAPI, getCurrentTimestamp } = require('./utils');
 
@@ -23,7 +23,7 @@ async function getMonthlyReward() {
     dateAfter: thirtyDaysAgo,
   };
   const { dayDatas } = await request(
-    sdk.graph.modifyEndpoint('AuX5GL2oSPVcgHUbBow5SU3yoxWFNFdmGLvEX9nb1gUb'),
+    'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/fee-collector-arbitrum',
     query,
     variables
   );

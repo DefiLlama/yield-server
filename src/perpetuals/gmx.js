@@ -1,4 +1,3 @@
-const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const { request, gql } = require('graphql-request');
 
@@ -7,12 +6,12 @@ const api = 'https://api.gmx.io';
 const chains = {
   arbitrum: {
     api: 'https://api.gmx.io',
-    subgraph: sdk.graph.modifyEndpoint('E15amJKR3s5Wsaa4GeVhHcCzoo7jSu1Kk8SNqY4XXH9i'),
+    subgraph: 'https://api.thegraph.com/subgraphs/name/gmx-io/gmx-stats',
   },
   avalanche: {
     api: 'https://gmx-avax-server.uc.r.appspot.com',
     subgraph:
-      sdk.graph.modifyEndpoint('9VZwoVRkrXVpbcaprAgFRkLnA3q682wx9JbBnFpLFYqy'),
+      'https://api.thegraph.com/subgraphs/name/gmx-io/gmx-avalanche-stats',
   },
 };
 

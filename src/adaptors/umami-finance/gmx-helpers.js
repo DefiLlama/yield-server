@@ -47,7 +47,6 @@ const underlyingGmMarkets = [
   '0x0ccb4faa6f1f1b30911619f1184082ab4e25813c', // XRP/USD
   '0x6853ea96ff216fab11d2d930ce3c508556a4bdc4', // DOGE/USD
   '0xd9535bb5f58a1a75032416f2dfe7880c30575a41', // LTC/USD
-  '0x47c031236e19d024b42f8ae6780e44a573170703', // WBTC/USD
 ];
 
 const marketsQuery = gql`

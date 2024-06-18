@@ -1,4 +1,5 @@
 const sdk = require('@defillama/sdk');
+const { totalSupply } = require('@defillama/sdk/build/erc20');
 const axios = require('axios');
 const zlib = require('zlib');
 const utils = require('../utils');

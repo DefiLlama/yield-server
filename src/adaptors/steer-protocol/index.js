@@ -7,21 +7,15 @@ const superagent = require('superagent');
 const supportedChains = [
   {
     name: 'Polygon',
-    subgraphEndpoint: sdk.graph.modifyEndpoint(
-      'uQxLz6EarmJcr2ymRRmTnrRPi8cCqas4XcPQb71HBvw'
-    ),
+    subgraphEndpoint: 'steer-protocol-polygon',
   },
   {
     name: 'Arbitrum',
-    subgraphEndpoint: sdk.graph.modifyEndpoint(
-      'HVC4Br5yprs3iK6wF8YVJXy4QZWBNXTCFp8LPe3UpcD4'
-    ),
+    subgraphEndpoint: 'steer-protocol-arbitrum',
   },
   {
     name: 'Optimism',
-    subgraphEndpoint: sdk.graph.modifyEndpoint(
-      'GgW1EwNARL3dyo3acQ3VhraQQ66MHT7QnYuGcQc5geDG'
-    ),
+    subgraphEndpoint: 'steer-protocol-optimism',
   },
   // {
   //     name: 'Binance',
@@ -59,7 +53,10 @@ const query = `
 const getPools = async () => {
   const pools = [];
   for (const chainInfo of supportedChains) {
-    const data = await request(chainInfo.subgraphEndpoint, query);
+    const data = await request(
+      graphURLBaseEndpoint + chainInfo.subgraphEndpoint,
+      query
+    );
     // get tokens
     const tokenList = new Set();
     data.vaults.forEach((vaultInfo) => {
@@ -105,7 +102,7 @@ const getPools = async () => {
     });
     pools.push(...chainPools);
   }
-  return pools.filter((i) => utils.keepFinite(i));
+  return pools;
 };
 
 module.exports = {

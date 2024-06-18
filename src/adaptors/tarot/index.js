@@ -39,6 +39,7 @@ const abi = require('./abi');
 const SECONDS_IN_YEAR = BigNumber(365).times(24).times(3600);
 const protocolSlug = 'tarot';
 const sdk = require('@defillama/sdk');
+const { getChainTransform } = require('../../helper/transform');
 const { getProvider } = require('@defillama/sdk/build/general');
 const config = {
   // fantom: {
@@ -80,7 +81,6 @@ const getAllLendingPools = async (factory, chain, block) => {
       chain,
       block,
       requery: true,
-      permitFailure: true,
     })
   );
   // get all of the lending pools from the factory contract
@@ -95,7 +95,6 @@ const getAllLendingPools = async (factory, chain, block) => {
       chain,
       block,
       requery: true,
-      permitFailure: true,
     })
   );
   const lendingPoolAddresses = lendingPoolsResults.map((i) => i.output);
@@ -113,7 +112,6 @@ const getAllLendingPools = async (factory, chain, block) => {
       chain,
       block,
       requery: true,
-      permitFailure: true,
     })
   );
   const lendingPoolsDetails = getLendingPools.map((i) => i.output);
@@ -125,7 +123,6 @@ const getAllLendingPools = async (factory, chain, block) => {
       chain,
       block,
       requery: true,
-      permitFailure: true,
     })
   );
   const token0s = token0sResults.map((i) => i.output);
@@ -136,7 +133,6 @@ const getAllLendingPools = async (factory, chain, block) => {
       chain,
       block,
       requery: true,
-      permitFailure: true,
     })
   );
   const token1s = token1sResults.map((i) => i.output);
@@ -148,7 +144,6 @@ const getAllLendingPools = async (factory, chain, block) => {
       chain,
       block,
       requery: true,
-      permitFailure: true,
     })
   );
   const lendingPoolDecimals = lendingPoolDecimalsResults.map((i) => i.output);
@@ -159,7 +154,6 @@ const getAllLendingPools = async (factory, chain, block) => {
       abi: abi.getReserves,
       chain,
       block,
-      permitFailure: true,
     })
   );
   const lendingPoolReserves = getReservesResults.map((i) => {
@@ -477,7 +471,7 @@ const main = async () => {
   let data = [];
   for (const chain of Object.keys(config)) {
     const { factories } = config[chain];
-    const transform = (addr) => `${chain}:${addr}`
+    const transform = await getChainTransform(chain);
     let collaterals = [];
     let borrowables = [];
     const provider = getProvider(chain);

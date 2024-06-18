@@ -1,4 +1,3 @@
-const sdk = require('@defillama/sdk');
 const { gql, request } = require('graphql-request');
 const axios = require('axios');
 const ethers = require('ethers');
@@ -6,7 +5,7 @@ const ABI = require('./abi');
 
 const ZERO = ethers.BigNumber.from(0);
 
-const GRAPH = sdk.graph.modifyEndpoint('7StqFFqbxi3jcN5C9YxhRiTxQM8HA8XEHopsynqqxw3t');
+const GRAPH = 'https://api.thegraph.com/subgraphs/name/solidlylabs/solidly-v3';
 module.exports.get_graph_url = () => GRAPH;
 
 const GET_POOLS = gql`

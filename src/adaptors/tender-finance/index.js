@@ -37,14 +37,12 @@ async function getGlpApy() {
       target: pTarget,
       abi: 'erc20:decimals',
       chain: pChain,
-      permitFailure: true,
     });
     let supply = await sdk.api.abi.call({
       target: pTarget,
       abi: pgmxAbi,
       chain: pChain,
       params: pParams,
-      permitFailure: true,
     });
 
     return pgmxAbi == gmxAbi['tokensPerInterval']
@@ -60,7 +58,6 @@ async function getGlpApy() {
       abi: gmxAbi['getAumInUsdg'],
       chain: pChain,
       params: [false],
-      permitFailure: true,
     });
 
     return tvl.output * 10 ** -18;
@@ -154,7 +151,6 @@ const getGmdInfo = async () => {
         params: [id],
       })),
       abi: gmdAbi['poolInfo'],
-      permitFailure: true,
     })
   ).output.map(({ output }) => [output.GDlptoken, output]);
 };
@@ -205,7 +201,6 @@ const multiCallMarkets = async (markets, method, abi) => {
       chain: CHAIN,
       calls: markets.map((market) => ({ target: market })),
       abi: abi.find(({ name }) => name === method),
-      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -357,7 +352,7 @@ const main = async () => {
     };
     return poolReturned;
   });
-  return pools.filter((i) => utils.keepFinite(i));
+  return pools;
 };
 
 module.exports = {

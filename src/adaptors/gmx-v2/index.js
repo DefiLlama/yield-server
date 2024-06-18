@@ -263,7 +263,7 @@ const getMarkets = async (chain) => {
         symbol: `${longSymbol}-${shortSymbol}`,
         tvlUsd,
         apyBase: apr.toString() / 100,
-        apyReward: apyReward ?? null,
+        apyReward,
         underlyingTokens: [market.longToken, market.shortToken],
         rewardTokens: apyReward > 0 ? [ARB] : [],
       };
@@ -272,7 +272,9 @@ const getMarkets = async (chain) => {
     }
   });
 
-  return marketTokensAPRData.filter(Boolean).filter((i) => utils.keepFinite(i));
+  console.log(marketTokensAPRData);
+
+  return marketTokensAPRData.filter(Boolean);
 };
 
 const apy = async () => {

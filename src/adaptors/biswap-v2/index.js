@@ -1,4 +1,4 @@
-const { Web3 } = require('web3');
+const Web3 = require('web3');
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 const { request, gql, batchRequests } = require('graphql-request');
@@ -7,11 +7,10 @@ const { chunk } = require('lodash');
 
 const { masterChefABI, lpTokenABI } = require('./abis');
 const utils = require('../utils');
+const { TokenProvider } = require('@uniswap/smart-order-router');
 
 const RPC_URL = 'https://endpoints.omniatech.io/v1/bsc/mainnet/public';
-const API_URL = sdk.graph.modifyEndpoint(
-  '2D9rXpMTvAgofWngsyRE17jKr5ywrU4W3Eaa71579qkd'
-);
+const API_URL = 'https://api.thegraph.com/subgraphs/name/biswapcom/exchange5';
 
 const MASTERCHEF_ADDRESS = '0xDbc1A13490deeF9c3C12b44FE77b503c1B061739';
 const BSW_TOKEN = '0x965f527d9159dce6288a2219db51fc6eef120dd1';

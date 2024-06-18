@@ -22,8 +22,6 @@ module.exports = {
   ZEROX_API: process.env.ZEROX_API,
   SMARDEX_SUBGRAPH_API_KEY: process.env.SMARDEX_SUBGRAPH_API_KEY,
   VENDOR_FINANCE: process.env.VENDOR_FINANCE,
-  TRADERJOE: process.env.TRADERJOE,
-  GRAPH_API_KEY: process.env.GRAPH_API_KEY,
   // DB
   DATABASE_URL: process.env.DATABASE_URL,
 };

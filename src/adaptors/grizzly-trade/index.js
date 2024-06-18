@@ -600,6 +600,8 @@ async function apy() {
       };
     });
 
+  console.log(res);
+
   return res;
 }
 

@@ -42,7 +42,8 @@ const getPrices = async (addresses) => {
 };
 
 const API_URLS = {
-  arbitrum: sdk.graph.modifyEndpoint('FPS9fdGYvwyCkFzUqmF5YYYqNKT88K5V5fjnmTNPjd9t'),
+  arbitrum:
+    'https://api.thegraph.com/subgraphs/name/mahalend/protocol-v3-arbitrum',
   ethereum: 'https://api.thegraph.com/subgraphs/name/mahalend/mahalend-mainnet',
 };
 
@@ -208,6 +209,7 @@ const apy = async () => {
 
     return chainPools;
   });
+
   return pools.flat().filter((p) => !!p.tvlUsd);
 };
 

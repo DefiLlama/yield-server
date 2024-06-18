@@ -1,6 +1,6 @@
-const { Web3 } = require('web3');
+const Web3 = require('web3');
 const { default: BigNumber } = require('bignumber.js');
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { request, gql, batchRequests } = require('graphql-request');
 const superagent = require('superagent');
 const { chunk } = require('lodash');
@@ -14,6 +14,7 @@ const {
   zfLpABI,
 } = require('./abis');
 const utils = require('../utils');
+const { TokenProvider } = require('@uniswap/smart-order-router');
 const { SECONDS_PER_YEAR } = require('../across/constants');
 
 const ZFFarm = '0x9f9d043fb77a194b4216784eb5985c471b979d67';
@@ -42,8 +43,8 @@ const apy = async () => {
   const zfGOV = new web3.eth.Contract(zfGOVAbi, ZF_GOV);
 
   const poolsCount = await zfFarm.methods.poolLength().call();
-  const totalAllocPoint = Number(await zfFarm.methods.totalAllocPoint().call());
-  const zfPerSecond = Number(await zfFarm.methods.zfPerSecond().call()) / 1e18;
+  const totalAllocPoint = await zfFarm.methods.totalAllocPoint().call();
+  const zfPerSecond = (await zfFarm.methods.zfPerSecond().call()) / 1e18;
 
   const protocolFeeRes = await sdk.api.abi.call({
     abi: zfFactory.find((abi) => abi.name === 'protocolFeeFactor'),

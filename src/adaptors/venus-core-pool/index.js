@@ -14,7 +14,6 @@ const poolInfo = async (chain) => {
     target: unitroller,
     chain,
     abi: abiUnitroller.find((m) => m.name === 'getAllMarkets'),
-    permitFailure: true,
   });
 
   // filter out unsupported vcan pool
@@ -37,7 +36,6 @@ const poolInfo = async (chain) => {
           params: pool.pool,
         })),
         chain,
-        permitFailure: true,
       })
     )
   ).then((data) => data.map(getOutput));
@@ -68,7 +66,6 @@ const poolInfo = async (chain) => {
           target: pool.pool,
         })),
         chain,
-        permitFailure: true,
       })
     )
   ).then((data) => data.map(getOutput));
@@ -85,7 +82,6 @@ const poolInfo = async (chain) => {
         target: token,
       })),
       chain,
-      permitFailure: true,
     })
   ).output.map((decimal) => Math.pow(10, Number(decimal.output)));
 
@@ -155,7 +151,6 @@ const getApy = async () => {
       abi: 'erc20:symbol',
       calls: yieldMarkets.map((p) => ({ target: p.underlyingToken })),
       chain: 'bsc',
-      permitFailure: true,
     })
   ).output.map((o) => o.output);
 

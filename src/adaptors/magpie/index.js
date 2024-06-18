@@ -286,7 +286,7 @@ async function apy() {
     }
   }
 
-  return poolAprList.filter(i => utils.keepFinite(i))
+  return poolAprList;
 }
 
 module.exports = {

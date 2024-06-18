@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk5');
 const { request, gql } = require('graphql-request');
 const axios = require('axios');
 const utils = require('../utils');
@@ -25,9 +25,8 @@ const utils = require('../utils');
 
 const projectSlug = 'prime-protocol';
 
-const primeSubgraphUrl = sdk.graph.modifyEndpoint(
-  '6LrvPGTZeMZfEQh4p9DvDBBv4G8cjhLs4v3mdiUycERp'
-);
+const primeSubgraphUrl =
+  'https://api.thegraph.com/subgraphs/name/prime-protocol/liquidity-incentives';
 
 const primeRewardMarketsQuery = gql`
   {

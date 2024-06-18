@@ -1,7 +1,6 @@
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const abi = require('./abis.json');
-const utils = require('../utils')
 
 const unitroller = '0x4F96AB61520a6636331a48A11eaFBA8FB51f74e4';
 const bdAMM = '0xfa372fF1547fa1a283B5112a4685F1358CE5574d';
@@ -188,7 +187,7 @@ const getApy = async () => {
     return readyToExport;
   });
 
-  return yieldPools.filter(i => utils.keepFinite(i));
+  return yieldPools;
 };
 
 function exportFormatter(

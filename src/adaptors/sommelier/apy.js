@@ -67,11 +67,7 @@ async function calcApy(
 
   let startValue;
   try {
-    startValue = await getShareValueAtBlock(
-      cellarAddress,
-      startBlock,
-      cellarChain
-    );
+    startValue = await getShareValueAtBlock(cellarAddress, startBlock, cellarChain);
   } catch (e) {
     console.error(
       'Unable to get start value for calcApy cellar: ',
@@ -79,16 +75,12 @@ async function calcApy(
       'startBlock: ',
       startBlock,
       'intervalDays: ',
-      intervalDays
+      intervalDays,
     );
     return 0; // Return 0 for APY if we can't get start value
   }
 
-  const endValue = await getShareValueAtBlock(
-    cellarAddress,
-    endBlock,
-    cellarChain
-  );
+  const endValue = await getShareValueAtBlock(cellarAddress, endBlock, cellarChain);
 
   const yieldRatio = endValue.minus(startValue).div(startValue);
   const result = yieldRatio
@@ -129,13 +121,7 @@ async function getApy7d(cellarAddress, cellarChain) {
   const yesterdayEpoch = Math.floor(yesterday.getTime() / 1000);
   const startEpoch = Math.floor(start.getTime() / 1000);
 
-  return calcApy(
-    cellarAddress,
-    startEpoch,
-    yesterdayEpoch,
-    interval,
-    cellarChain
-  );
+  return calcApy(cellarAddress, startEpoch, yesterdayEpoch, interval, cellarChain);
 }
 
 module.exports = {

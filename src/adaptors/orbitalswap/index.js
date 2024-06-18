@@ -236,7 +236,7 @@ const getApy = async () => {
     });
   }
 
-  return poolsApy.filter((i) => utils.keepFinite(i));
+  return poolsApy;
 };
 
 module.exports = {

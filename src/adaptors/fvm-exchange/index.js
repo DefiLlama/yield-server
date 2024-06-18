@@ -109,7 +109,6 @@ const getApy = async () => {
       })),
       abi: abiPair.find((m) => m.name === 'symbol'),
       chain,
-      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -121,7 +120,6 @@ const getApy = async () => {
       })),
       abi: abiVoter.find((m) => m.name === 'gauges'),
       chain,
-      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -132,7 +130,6 @@ const getApy = async () => {
         target: i,
       })),
       chain,
-      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -149,7 +146,6 @@ const getApy = async () => {
             params: [j],
           })),
           chain,
-          permitFailure: true,
         })
       ).output.map((o) => o.output);
     })
@@ -165,7 +161,6 @@ const getApy = async () => {
               params: [rewardToken],
             })),
             chain,
-            permitFailure: true,
           })
         ).output.map((o) => o.output);
 
@@ -246,7 +241,7 @@ const getApy = async () => {
       apyReward,
       rewardTokens: apyReward ? [...new Set(rewardTokens)] : [],
       underlyingTokens: [poolMeta.t0, poolMeta.t1],
-      url: `https://www.fvm.exchange/liquidity/${p}`,
+      url: `https://www.fvm.exchange/liquidity/${p}`
     };
   });
 

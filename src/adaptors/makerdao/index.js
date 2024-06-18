@@ -354,7 +354,6 @@ const main = async () => {
       }),
       chain: 'ethereum',
       requery: false,
-      permitFailure: true,
     })
   ).output.map((e) => e.output);
 

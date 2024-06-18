@@ -41,7 +41,6 @@ const apyChain = async (chain) => {
       params: vault,
     })),
     chain: chain,
-    permitFailure: true,
   });
 
   const vaultInfo = vaultInfoCall.output
@@ -58,7 +57,6 @@ const apyChain = async (chain) => {
           })),
           abi: 'erc20:symbol',
           chain: chain,
-          permitFailure: true,
         })
       ).output.map(({ output }) => output)
     )

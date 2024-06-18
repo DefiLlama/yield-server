@@ -42,5 +42,3 @@ jobs:
           ZEROX_API: ${{ secrets.ZEROX_API }}
           SMARDEX_SUBGRAPH_API_KEY: ${{ secrets.SMARDEX_SUBGRAPH_API_KEY }}
           VENDOR_FINANCE: ${{ secrets.VENDOR_FINANCE }}
-          TRADERJOE: ${{ secrets.TRADERJOE }}
-          GRAPH_API_KEY: ${{ secrets.GRAPH_API_KEY }}
