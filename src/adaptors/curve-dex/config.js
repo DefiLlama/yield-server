@@ -10,6 +10,7 @@ exports.BLOCKCHAINIDS = [
   'moonbeam',
   'kava',
   'base',
+  'fraxtal',
   // 'celo',
 ];
 // https://github.com/curvefi/curve-api/blob/main/endpoints.md#getpools
@@ -29,6 +30,7 @@ exports.BLOCKCHAINIDS.forEach((blockchainId) => {
   switch (blockchainId) {
     case 'ethereum':
     case 'arbitrum':
+    case 'fraxtal':
       blockchainRegistries = REGISTRY_TYPES;
       break;
     case 'xdai':
