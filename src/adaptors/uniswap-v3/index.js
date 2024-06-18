@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const superagent = require('superagent');
 
@@ -7,15 +7,26 @@ const { EstimatedFees } = require('./estimateFee.ts');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 
-const baseUrl = 'https://api.thegraph.com/subgraphs/name';
 const chains = {
-  ethereum: `${baseUrl}/uniswap/uniswap-v3`,
-  polygon: `https://gateway-arbitrum.network.thegraph.com/api/a265c39f5a123ab2d40b25dc352adc22/subgraphs/id/3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm`,
-  arbitrum: `https://api.thegraph.com/subgraphs/id/QmZ5uwhnwsJXAQGYEF8qKPQ85iVhYAcVZcZAPfrF7ZNb9z`,
-  optimism: `${baseUrl}/ianlapham/optimism-post-regenesis`,
-  celo: `${baseUrl}/jesse-sawa/uniswap-celo`,
-  avax: `${baseUrl}/lynnshaoyu/uniswap-v3-avax`,
-  bsc: `${baseUrl}/ianlapham/uniswap-v3-bsc`,
+  ethereum: sdk.graph.modifyEndpoint(
+    '5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV'
+  ),
+  polygon: sdk.graph.modifyEndpoint(
+    '3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm'
+  ),
+  arbitrum: sdk.graph.modifyEndpoint(
+    'FbCGRftH4a3yZugY7TnbYgPJVEv2LvMT6oF1fxPe9aJM'
+  ),
+  optimism: sdk.graph.modifyEndpoint(
+    '7SVwgBfXoWmiK6x1NF1VEo1szkeWLniqWN1oYsX3UMb5'
+  ),
+  celo: sdk.graph.modifyEndpoint(
+    '5GMxLtvwbfKxyCpSgHvS8FbeofS2ry9K76NL9RCzPNm2'
+  ),
+  avax: sdk.graph.modifyEndpoint(
+    'GVH9h9KZ9CqheUEL93qMbq7QwgoBu32QXQDPR6bev4Eo'
+  ),
+  bsc: sdk.graph.modifyEndpoint('GcKPSgHoY42xNYVAkSPDhXSzi6aJDRQSKqBSXezL47gV'),
   base: 'https://api.studio.thegraph.com/query/48211/uniswap-v3-base/version/latest',
 };
 
@@ -177,7 +188,8 @@ const topLvl = async (
       utils.apy(el, dataPrior, dataPrior7d, version)
     );
 
-    if (chainString !== 'arbitrum') {
+    const enableV3Apy = false;
+    if (enableV3Apy && chainString !== 'arbitrum') {
       dataNow = dataNow.map((p) => ({
         ...p,
         token1_in_token0: p.price1 / p.price0,
@@ -297,7 +309,10 @@ const main = async (timestamp = null) => {
     .filter(
       (p) =>
         utils.keepFinite(p) &&
-        p.pool !== '0x0c6d9d0f82ed2e0b86c4d3e9a9febf95415d1b76'
+        ![
+          '0x0c6d9d0f82ed2e0b86c4d3e9a9febf95415d1b76',
+          '0xc809d13e9ea08f296d3b32d4c69d46ff90f73fd8',
+        ].includes(p.pool)
     );
 };
 

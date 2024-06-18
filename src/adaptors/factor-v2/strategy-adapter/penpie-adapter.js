@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const { getAprFromDefillamaPool, makeReadable } = require('./utils');
 const utils = require('../../utils');
 const { default: axios } = require('axios');

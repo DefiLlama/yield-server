@@ -1,7 +1,7 @@
 const superagent = require('superagent');
 
 const abi = require('./abi.js');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 
 const markets = [
   {

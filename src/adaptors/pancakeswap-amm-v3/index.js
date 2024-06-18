@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const superagent = require('superagent');
 
@@ -8,15 +8,18 @@ const { getCakeAprs, CAKE, chainIds } = require('./cakeReward');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 
-const baseUrl = 'https://api.thegraph.com/subgraphs/name';
 const chains = {
-  ethereum: `${baseUrl}/pancakeswap/exchange-v3-eth`,
+  ethereum: sdk.graph.modifyEndpoint(
+    'CJYGNhb7RvnhfBDjqpRnD3oxgyhibzc7fkAMa38YV3oS'
+  ),
   // temp disable bsc
-  // bsc: `${baseUrl}/pancakeswap/exchange-v3-bsc`,
+  // bsc: sdk.graph.modifyEndpoint('Hv1GncLY5docZoGtXjo4kwbTvxm3MAhVZqBZE4sUT9eZ'),
   polygon_zkevm:
     'https://api.studio.thegraph.com/query/45376/exchange-v3-polygon-zkevm/version/latest',
   era: 'https://api.studio.thegraph.com/query/45376/exchange-v3-zksync/version/latest',
-  arbitrum: `${baseUrl}/pancakeswap/exchange-v3-arb`,
+  arbitrum: sdk.graph.modifyEndpoint(
+    '251MHFNN1rwjErXD2efWMpNS73SANZN8Ua192zw6iXve'
+  ),
   op_bnb: 'https://proxy-worker-dev.pancake-swap.workers.dev/opbnb-exchange-v3',
   linea:
     'https://graph-query.linea.build/subgraphs/name/pancakeswap/exchange-v3-linea',
@@ -133,60 +136,66 @@ const topLvl = async (
       utils.apy(el, dataPrior, dataPrior7d, version)
     );
 
-    dataNow = dataNow.map((p) => ({
-      ...p,
-      token1_in_token0: p.price1 / p.price0,
-    }));
+    const enableV3Apy = false;
+    if (enableV3Apy) {
+      dataNow = dataNow.map((p) => ({
+        ...p,
+        token1_in_token0: p.price1 / p.price0,
+      }));
 
-    // split up subgraph tick calls into n-batches
-    // (tick response can be in the thousands per pool)
-    const skip = 20;
-    let start = 0;
-    let stop = skip;
-    const pages = Math.floor(dataNow.length / skip);
+      // split up subgraph tick calls into n-batches
+      // (tick response can be in the thousands per pool)
+      const skip = 20;
+      let start = 0;
+      let stop = skip;
+      const pages = Math.floor(dataNow.length / skip);
 
-    // tick range
-    const pct = 0.3;
-    const pctStablePool = 0.001;
+      // tick range
+      const pct = 0.3;
+      const pctStablePool = 0.001;
 
-    // assume an investment of 1e5 USD
-    const investmentAmount = 1e5;
-    let X = [];
-    for (let i = 0; i <= pages; i++) {
-      console.log(i);
-      let promises = dataNow.slice(start, stop).map((p) => {
-        const delta = p.stablecoin ? pctStablePool : pct;
+      // assume an investment of 1e5 USD
+      const investmentAmount = 1e5;
+      let X = [];
+      for (let i = 0; i <= pages; i++) {
+        console.log(i);
+        let promises = dataNow.slice(start, stop).map((p) => {
+          const delta = p.stablecoin ? pctStablePool : pct;
 
-        const priceAssumption = p.stablecoin ? 1 : p.token1_in_token0;
+          const priceAssumption = p.stablecoin ? 1 : p.token1_in_token0;
 
-        return EstimatedFees(
-          p.id,
-          priceAssumption,
-          [p.token1_in_token0 * (1 - delta), p.token1_in_token0 * (1 + delta)],
-          p.price1,
-          p.price0,
-          investmentAmount,
-          p.token0.decimals,
-          p.token1.decimals,
-          p.feeTier,
-          url,
-          p.volumeUSD7d,
-          p.feeProtocol
-        );
+          return EstimatedFees(
+            p.id,
+            priceAssumption,
+            [
+              p.token1_in_token0 * (1 - delta),
+              p.token1_in_token0 * (1 + delta),
+            ],
+            p.price1,
+            p.price0,
+            investmentAmount,
+            p.token0.decimals,
+            p.token1.decimals,
+            p.feeTier,
+            url,
+            p.volumeUSD7d,
+            p.feeProtocol
+          );
+        });
+        X.push(await Promise.all(promises));
+        start += skip;
+        stop += skip;
+      }
+      const d = {};
+      X.flat().forEach((p) => {
+        d[p.poolAddress] = p.estimatedFee;
       });
-      X.push(await Promise.all(promises));
-      start += skip;
-      stop += skip;
-    }
-    const d = {};
-    X.flat().forEach((p) => {
-      d[p.poolAddress] = p.estimatedFee;
-    });
 
-    dataNow = dataNow.map((p) => ({
-      ...p,
-      apy7d: ((d[p.id] * 52) / investmentAmount) * 100,
-    }));
+      dataNow = dataNow.map((p) => ({
+        ...p,
+        apy7d: ((d[p.id] * 52) / investmentAmount) * 100,
+      }));
+    }
 
     return dataNow.map((p) => {
       const poolMeta = `${p.feeTier / 1e4}%`;

@@ -5,10 +5,10 @@ const ethers = require('ethers');
 const superagent = require('superagent');
 
 const facades = {
-  polygon: "0x0708542D895C2559001Fa9e4Bc49C3343735e6e2",
-  arbitrum: "0xE75254f298a5145438595Aa9d6D4327fCD14418D",
-  bsc: "0xD187937762c6fd4d7a58C71fD810CbfE22E64a84",
-  optimism: "0x285cAee14514f30bB178FB56c985e43A47d68E75",
+  polygon: '0x0708542D895C2559001Fa9e4Bc49C3343735e6e2',
+  arbitrum: '0xE75254f298a5145438595Aa9d6D4327fCD14418D',
+  bsc: '0xD187937762c6fd4d7a58C71fD810CbfE22E64a84',
+  optimism: '0x285cAee14514f30bB178FB56c985e43A47d68E75',
 };
 
 function ethersBNToBN(bn, decimals) {

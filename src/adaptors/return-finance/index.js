@@ -27,7 +27,7 @@ const getPoolData = async ({ contract, abi, chain }) => {
       pool.returnContractAddress === contract
     );
   });
-  
+
   return {
     pool: `${contract}-${chain}`,
     chain,
@@ -82,7 +82,7 @@ const getApy = async () => {
     makerDao,
     convexFinance,
     benqi,
-  ].filter((i) => utils.keepFinite(i));;
+  ].filter((i) => utils.keepFinite(i));
 };
 
 module.exports = {
@@ -90,3 +90,4 @@ module.exports = {
   apy: getApy,
   url: 'https://return.finance',
 };
+

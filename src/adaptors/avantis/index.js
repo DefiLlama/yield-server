@@ -1,5 +1,5 @@
 const utils = require('../utils');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const abiVaultManager = require('./abiVaultManager');
 
 const ADDRESSES = {

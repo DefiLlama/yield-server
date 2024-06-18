@@ -10,9 +10,8 @@ const pools = require('../concentrator/pools');
 
 const project = 'stellaswap-v2';
 
-const url = 'https://api.thegraph.com/subgraphs/name/stellaswap/stella-swap';
-const urlStable =
-  'https://api.thegraph.com/subgraphs/name/stellaswap/stable-amm-2';
+const url = sdk.graph.modifyEndpoint('HgSAfZvHEDbAVuZciPUYEqFzhAUnjJWmyix5C1R2tmTp');
+const urlStable = sdk.graph.modifyEndpoint('bqFx2yiB2VBH8LAJMGZ37Zj3NtBrY7gArFFciLaA3nE');
 const masterchef = '0xF3a5454496E26ac57da879bf3285Fa85DEBF0388';
 const STELLA = '0x0e358838ce72d5e61e0018a2ffac4bec5f4c88d2';
 const STELLA_DEC = 18;

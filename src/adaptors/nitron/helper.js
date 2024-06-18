@@ -1,7 +1,6 @@
 const BigNumber = require('bignumber.js');
 const { default: axios } = require('axios');
 const dayjs = require('dayjs');
-const moment = require('moment');
 
 const BN_ZERO = new BigNumber(0);
 const BN_ONE = new BigNumber(1);
@@ -31,9 +30,11 @@ function getProjectedRewardsOwed(rewardScheme, tokenPrices) {
 const getRewardMap = async (rewardSchemes, tokenPrices) => {
   const schemesArr = Object.values(rewardSchemes);
   const activeSchemes = schemesArr.filter((rewardScheme) => {
-    const start = moment.utc(rewardScheme.start_time).unix();
-    const end = moment.utc(rewardScheme.end_time).unix();
-    const now = moment.utc().unix();
+    const start = Math.floor(
+      new Date(rewardScheme.start_time).getTime() / 1000
+    );
+    const end = Math.floor(new Date(rewardScheme.end_time).getTime() / 1000);
+    const now = Math.floor(Date.now() / 1000);
     return now >= start && now < end;
   });
   const rewardsUSDMap = {};
@@ -175,13 +176,18 @@ module.exports.getUSDValues = async (assets, denomToGeckoIdMap) => {
     )
   ).data.coins;
 
-  const pricingsFromOracle = (await axios.get('https://api.carbon.network/carbon/pricing/v1/token_price')).data?.token_prices
+  const pricingsFromOracle = (
+    await axios.get('https://api.carbon.network/carbon/pricing/v1/token_price')
+  ).data?.token_prices;
 
   let result = {};
   assets.forEach((asset) => {
     const denomtInGeckoId = denomToGeckoIdMap[asset.denom];
     let usd = prices[`coingecko:${denomtInGeckoId}`]?.price;
-    if (!usd) usd = Number(pricingsFromOracle.find((o) => o.denom === asset.denom)?.twap)
+    if (!usd)
+      usd = Number(
+        pricingsFromOracle.find((o) => o.denom === asset.denom)?.twap
+      );
     result[asset.denom] = { ...asset, usd };
   });
   return result;

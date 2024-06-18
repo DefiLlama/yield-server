@@ -86,9 +86,10 @@ const balancerTokenABI = require('./abis/BalancerToken.json');
 const vaultABI = require('./abis/Vault.json');
 const { default: bunni } = require('../bunni');
 
-const baseUrl = 'https://api.thegraph.com/subgraphs/name/bunniapp';
 const chains = {
-  ethereum: `${baseUrl}/bunni-mainnet`,
+  ethereum: sdk.graph.modifyEndpoint(
+    'HH4HFj4rFnm5qnkb8MbEdP2V5eD9rZnLJE921YQAs7AV'
+  ),
 };
 
 const query = gql`
@@ -134,8 +135,8 @@ const liqLitPool = async (chain, olitprice, liqprice) => {
   const prices = (
     await superagent.get(`https://coins.llama.fi/prices/current/${keys}`)
   ).body.coins;
-  const balPrice = prices[`${chain}:${bal}`].price;
-  const wethPrice = prices[`${chain}:${weth}`].price;
+  const balPrice = prices[`${chain}:${bal}`]?.price;
+  const wethPrice = prices[`${chain}:${weth}`]?.price;
 
   // Compute tvl
   let tvlUsd = 0;
@@ -177,7 +178,7 @@ const liqLitPool = async (chain, olitprice, liqprice) => {
     tvlUsd +=
       (pools.balances[i] / lpSupply) *
       (veBalance / 1e18) *
-      prices[`${chain}:${v}`].price;
+      prices[`${chain}:${v}`]?.price;
   });
 
   const balRate = (
@@ -469,13 +470,13 @@ const topLvl = async (chainString, url, timestamp) => {
     let optionPrice = 0;
     if (lit[chainString]) {
       const litPrice = prices[`${chainString}:${lit[chainString]}`]
-        ? prices[`${chainString}:${lit[chainString]}`].price
+        ? prices[`${chainString}:${lit[chainString]}`]?.price
         : 0;
       optionPrice = litPrice * multiplier;
     }
 
     const liqPrice = prices[`${chainString}:${liq[chainString]}`]
-      ? prices[`${chainString}:${liq[chainString]}`].price
+      ? prices[`${chainString}:${liq[chainString]}`]?.price
       : 0;
 
     let poolData = [];
@@ -503,7 +504,7 @@ const topLvl = async (chainString, url, timestamp) => {
           (d) => d.input.target == b.poolTokens[0]
         ).output;
         const token0Price = prices[`${chainString}:${b.poolTokens[0]}`]
-          ? prices[`${chainString}:${b.poolTokens[0]}`].price
+          ? prices[`${chainString}:${b.poolTokens[0]}`]?.price
           : 0;
         const token0Redeem = share.amount0 / Math.pow(10, token0Decimals);
         const token0Reserve = reserve.reserve0 / Math.pow(10, token0Decimals);
@@ -516,7 +517,7 @@ const topLvl = async (chainString, url, timestamp) => {
           (d) => d.input.target == b.poolTokens[1]
         ).output;
         const token1Price = prices[`${chainString}:${b.poolTokens[1]}`]
-          ? prices[`${chainString}:${b.poolTokens[1]}`].price
+          ? prices[`${chainString}:${b.poolTokens[1]}`]?.price
           : 0;
         const token1Redeem = share.amount1 / Math.pow(10, token1Decimals);
         const token1Reserve = reserve.reserve1 / Math.pow(10, token1Decimals);
