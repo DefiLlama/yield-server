@@ -93,16 +93,17 @@ const poolsFunction = async () => {
 
     return {
       pool: vault.id,
-      chain: 'Ethereum',
       project: '3jane',
+      chain: 'Ethereum',
       symbol,
       tvlUsd: price * (vault.totalBalance / 10 ** vault.underlyingDecimals),
       apy: apyBase,
+      underlyingTokens: [vault.underlyingAsset],
       poolMeta: vault.name.includes('Put') ? 'Put-Selling' : 'Covered-Call',
     };
   });
 
-  return pools;
+  return await Promise.all(pools);
 };
 
 module.exports = {
