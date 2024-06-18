@@ -65,7 +65,7 @@ const getUmamiGmSynthsVaultsYield = async () => {
     const underlyingTokenPriceKey =
       `arbitrum:${vault.underlyingAsset}`.toLowerCase();
 
-    const [tvlRaw, underlyingTokenPriceObj, vaultIncentivesApr, bufferRaw] =
+    const [tvlRaw, underlyingTokenPriceObj, bufferRaw, vaultIncentivesApr] =
       await Promise.all([
         aggregateVaultContract.methods
           .getVaultTVL(vault.address.toLowerCase(), false)
@@ -73,12 +73,12 @@ const getUmamiGmSynthsVaultsYield = async () => {
         superagent.get(
           `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`
         ),
-        getIncentivesAprForVault(vault),
         sdk.api.erc20.balanceOf({
           target: vault.underlyingAsset.toLowerCase(),
           owner: GMI_AGGREGATE_VAULT,
           chain: 'arbitrum',
         }),
+        getIncentivesAprForVault(vault),
       ]);
 
     const underlyingTokenPrice =
