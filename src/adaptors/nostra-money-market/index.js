@@ -4,6 +4,7 @@ const { call } = require('../../helper/starknet');
 const { assetTokenAbi } = require('./abis/AssetToken');
 const { interestRateModelAbi } = require('./abis/InterestRateModel');
 const { default: BigNumber } = require('bignumber.js');
+const utils = require('../utils');
 
 const interestRateModel =
   '0x59a943ca214c10234b9a3b61c558ac20c005127d183b86a99a8f3c60a08b4ff';
@@ -148,7 +149,7 @@ async function getTokenPrice(token) {
   const networkTokenPair = `starknet:${token}`;
   return (
     await axios.get(`https://coins.llama.fi/prices/current/${networkTokenPair}`)
-  ).data.coins[networkTokenPair].price;
+  ).data.coins[networkTokenPair]?.price;
 }
 
 async function getApys(debtToken) {
@@ -199,7 +200,7 @@ async function getSupply(tokens) {
 async function apy() {
   const incentives = await getStarknetFoundationIncentives();
 
-  return Promise.all(
+  const pools = await Promise.all(
     Object.entries(markets).map(
       async ([name, { address, decimals, supplyTokens, debtToken }]) => {
         const price = await getTokenPrice(address);
@@ -232,6 +233,7 @@ async function apy() {
       }
     )
   );
+  return pools.filter((i) => utils.keepFinite(i));
 }
 
 module.exports = {
