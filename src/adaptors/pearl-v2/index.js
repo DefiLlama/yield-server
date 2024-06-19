@@ -246,14 +246,13 @@ async function computePairInfo(pairInfo, prices, pearlPrice) {
  * Formats a pair info object into a pool object.
  */
 function formatPool(p) {
-  const apyReward = (Math.pow(1 + p.apr / 36500, 365) - 1) * 100; // daily compounding
   return {
     pool: p.pair_address,
     chain: utils.formatChain('real'),
     project: 'pearl-v2',
     symbol: utils.formatSymbol(p.symbol.split('-')[1]),
     tvlUsd: p.pairTvlUsd,
-    apyReward,
+    apyReward: p.apr,
     rewardTokens: p.apr ? [PEARL_ADDRESS] : [],
     underlyingTokens: [p.token0, p.token1],
   };
