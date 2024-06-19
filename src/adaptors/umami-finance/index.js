@@ -1,14 +1,3 @@
-const superagent = require('superagent');
-const axios = require('axios');
-const { request, gql } = require('graphql-request');
-const {
-  UMAMI_ADDRESS,
-  mUMAMI_ADDRESS,
-  cmUMAMI_ADDRESS,
-  UMAMI_GRAPH_URL,
-  UMAMI_API_URL,
-  wETH_ADDRESS,
-} = require('./umamiConstants.js');
 const { getUmamiGmSynthsVaultsYield } = require('./umamiGmSynthVaults.js');
 const { getUmamiGmVaultsYield } = require('./umamiGmVaults.js');
 
