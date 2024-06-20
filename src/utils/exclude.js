@@ -40,7 +40,6 @@ const excludeAdaptors = [
   'rocifi-v2',
   'steadefi', // hacked,
   'bank-of-chain',
-  'zunami-protocol', // hacked
   'myso-v1',
   'civfund',
   'midas-capital',
