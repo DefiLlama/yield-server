@@ -1,5 +1,5 @@
 const utils = require('../utils')
-const { forEach, _ } = require('lodash')
+const _ = require('lodash')
 
 // Osmosis Noble USDC Protocol Contracts (OSMOSIS-OSMOSIS-USDC_NOBLE) pirin-1
 const osmosisNobleOracleAddr = 'nolus1vjlaegqa7ssm2ygf2nnew6smsj8ref9cmurerc7pzwxqjre2wzpqyez4w6'
@@ -34,9 +34,10 @@ const queryContract = async function (contract, data) {
 
 const getApy = async () => {
   let result = []
-  contracts.forEach(async (c) => {
-    let lppTickerData = await queryContract(c.lpp, { "lpn": [] })
-    let oracleData = await queryContract(c.oracle, { "currencies": {} })
+  for (let i = 0; i < contracts.length; i++) {
+    const c = contracts[i];
+    let lppTickerData = await queryContract(c.lpp, { 'lpn': [] })
+    let oracleData = await queryContract(c.oracle, { 'currencies': {} })
     let currencyData = _.find(oracleData.data, (n) => n.ticker == lppTickerData.data)
     let lppBalanceData = await queryContract(c.lpp, { 'lpp_balance': [] })
     let dailyMaxLSInterest = await utils.getData(`${etlAddress}/${dailyMaxInterestEp}/${c.lpp}`)
@@ -60,7 +61,7 @@ const getApy = async () => {
       pool: c.lpp,
       chain: 'Nolus',
       project: 'nolus-protocol',
-      symbol: "USDC",
+      symbol: 'USDC',
       tvlUsd: Number(lppBalanceData.data.balance.amount) / Math.pow(10, currencyData.decimal_digits),
       apyBase: apy,
       // apyReward: null, TODO: add NLS rewards
@@ -68,9 +69,8 @@ const getApy = async () => {
       // rewardTokens: ['0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'], TODO: add NLS rewards
       poolMeta: `${utils.formatSymbol(lppTickerData.data)} pool`,
     })
-  })
+  }
 
-  console.log(result)
   return result
 }
 
@@ -79,3 +79,5 @@ module.exports = {
   apy: getApy,
   url: 'https://app.nolus.io/earn',
 }
+
+// cd src/adaptors && npm run test --adapter=nolus-protocol
