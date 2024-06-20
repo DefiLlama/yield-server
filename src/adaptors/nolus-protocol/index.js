@@ -70,6 +70,7 @@ const getApy = async () => {
     })
   })
 
+  console.log(result)
   return result
 }
 
