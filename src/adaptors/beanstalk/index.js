@@ -92,7 +92,7 @@ async function getPoolsForChain(chain, timestamp) {
         symbol: `${tokens[0].name}-${tokens[1].name}`,
         tvlUsd: parseInt(pool.liquidityUSD),
         apyBase: 0,
-        apyReward: Math.round(apy.data.yields[720][pool.id].bean * 10000) / 10000,
+        apyReward: Math.round(apy.data.yields[720][pool.id].bean * 10000) / 100,
         rewardTokens: [bean.id],
         underlyingTokens: tokens.map(p => p.id.toLowerCase()),
         poolMeta: 'Beanstalk Silo'
