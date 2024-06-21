@@ -67,7 +67,7 @@ const getApy = async () => {
       // apyReward: null, TODO: add NLS rewards
       underlyingTokens: [currencyData.bank_symbol, currencyData.dex_symbol], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
       // rewardTokens: ['0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'], TODO: add NLS rewards
-      poolMeta: `${utils.formatSymbol(lppTickerData.data)} pool`,
+      poolMeta: lppTickerData.data.substr('USDC_'.length),
     })
   }
 
