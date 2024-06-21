@@ -141,6 +141,19 @@ const markets = {
     debtToken:
       '0x4b036839a8769c04144cc47415c64b083a2b26e4a7daa53c07f6042a0d35792',
   },
+  NSTR: {
+    address:
+      '0x00c530f2c0aa4c16a0806365b0898499fba372e5df7a7172dc6fe9ba777e8007',
+    decimals: 18,
+    supplyTokens: [
+      '0x2b674ffda238279de5550d6f996bf717228d316555f07a77ef0a082d925b782',
+      '0x6f8ad459c712873993e9ffb9013a469248343c3d361e4d91a8cac6f98575834',
+      '0x2589fc11f60f21af6a1dda3aeb7a44305c552928af122f2834d1c3b1a7aa626',
+      '0x46ab56ec0c6a6d42384251c97e9331aa75eb693e05ed8823e2df4de5713e9a4',
+    ],
+    debtToken:
+      '0x3e0576565c1b51fcac3b402eb002447f21e97abb5da7011c0a2e0b465136814',
+  },
 };
 const starknetFoundationIncentivesEndpoint =
   'https://kx58j6x5me.execute-api.us-east-1.amazonaws.com/starknet/fetchFile?file=prod-api/lending/lending_strk_grant.json';
