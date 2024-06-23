@@ -1,9 +1,10 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const BigNumberJs = require('bignumber.js');
 const ABI = require('./abi.json');
 const utils = require('../utils');
 
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+const ZERO_ADDRESS = ADDRESSES.null;
 
 const REGISTRY_ADDRESS = '0xda820e20a89928e43794645b9a9770057d65738b';
 const BOOSTER_ADDRESS = '0x6d12e3de6dacdba2779c4947c0f718e13b78cff4';

@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const {
@@ -25,7 +26,7 @@ const ChainConfig = {
     auraRewardsCalculator: '0x744Be650cea753de1e69BF6BAd3c98490A855f52',
     auraAddress: RewardAssetConfig.auraAddress,
     balAddress: RewardAssetConfig.balAddress,
-    ldoAddress: '0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32',
+    ldoAddress: ADDRESSES.ethereum.LIDO,
   },
   arbitrum: {
     booster: '0x98Ef32edd24e2c92525E59afc4475C1242a30184',
@@ -34,7 +35,7 @@ const ChainConfig = {
     auraAddress: '0x1509706a6c66CA549ff0cB464de88231DDBe213B',
     balAddress: '0xFE8B128bA8C78aabC59d4c64cEE7fF28e9379921',
     ldoAddress: '0x13Ad51ed4F1B7e9Dc168d8a00cB3f4dDD85EfA60',
-    chainTokens: ['0x912ce59144191c1204e64559fe8253a0e49e6548'], // ARB
+    chainTokens: [ADDRESSES.arbitrum.ARB], // ARB
   },
   optimism: {
     booster: '0x98Ef32edd24e2c92525E59afc4475C1242a30184',
@@ -44,7 +45,7 @@ const ChainConfig = {
     balAddress: '0xFE8B128bA8C78aabC59d4c64cEE7fF28e9379921',
     ldoAddress: '0xFdb794692724153d1488CcdBE0C56c252596735F',
     chainTokens: [
-      '0x4200000000000000000000000000000000000042',
+      ADDRESSES.optimism.OP,
       '0x39FdE572a18448F8139b7788099F0a0740f51205',
     ], // OP, OATH
   },
@@ -55,7 +56,7 @@ const ChainConfig = {
     auraAddress: '0x1509706a6c66CA549ff0cB464de88231DDBe213B',
     balAddress: '0x7eF541E2a22058048904fE5744f9c7E4C57AF717',
     ldoAddress: '0x96e334926454CD4B7b4efb8a8fcb650a738aD244',
-    chainTokens: ['0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb'], // GNO
+    chainTokens: [ADDRESSES.xdai.GNO], // GNO
   },
 };
 

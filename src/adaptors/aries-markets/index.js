@@ -1,17 +1,18 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';
 const COINS_LLAMA_PRICE_URL = 'https://coins.llama.fi/prices/current/';
 
 const FARMING_TYPE = "0x9770fa9c725cbd97eb50b2be5f7416efdfd1f1554beb0750d4dae4c64e860da3::reserve_config::DepositFarming";
-const APT_ADDR = "0x1::aptos_coin::AptosCoin";
+const APT_ADDR = ADDRESSES.aptos.APT;
 const APT_PRICE_ID = 'coingecko:aptos';
 
 const SUPPORTED_COINS = [
-    ["usdc", "coingecko:usd-coin", 6, "0x5e156f1207d0ebfa19a9eeff00d62a282278fb8719f4fab3a586a0a2c0fffbea::coin::T"],
-    ["zusdc", "coingecko:usd-coin", 6, "0xf22bede237a07e121b56d91a491eb7bcdfd1f5907926a9e58338f964a01b17fa::asset::USDC"],
-    ["zusdt", "coingecko:tether", 6, "0xf22bede237a07e121b56d91a491eb7bcdfd1f5907926a9e58338f964a01b17fa::asset::USDT"],
-    ["zweth", "coingecko:ethereum", 6, "0xf22bede237a07e121b56d91a491eb7bcdfd1f5907926a9e58338f964a01b17fa::asset::WETH"],
+    ["usdc", "coingecko:usd-coin", 6, ADDRESSES.aptos.USDC],
+    ["zusdc", "coingecko:usd-coin", 6, ADDRESSES.aptos.USDC_2],
+    ["zusdt", "coingecko:tether", 6, ADDRESSES.aptos.USDT_2],
+    ["zweth", "coingecko:ethereum", 6, ADDRESSES.aptos.WETH],
     ["stApt", "coingecko:amnis-staked-aptos-coin", 8, "0x111ae3e5bc816a5e63c2da97d0aa3886519e0cd5e4b046659fa35796bd11542a::stapt_token::StakedApt"],
     ["cake", "coingecko:pancakeswap-token", 8, "0x159df6b7689437016108a019fd5bef736bac692b6d4a1f10c941f6fbb9a74ca6::oft::CakeOFT"],
     ["apt", APT_PRICE_ID, 8, APT_ADDR],

@@ -1,10 +1,11 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 
 const poolsFunction = async () => {
 
-  const wbtc = "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599";
-  const wsteth = "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0";
+  const wbtc = ADDRESSES.ethereum.WBTC;
+  const wsteth = ADDRESSES.ethereum.WSTETH;
   const prices = (await utils.getPrices([wsteth, wbtc], 'ethereum'))
     .pricesByAddress;
   const usdcVaultAddress = '0x3b022EdECD65b63288704a6fa33A8B9185b5096b';

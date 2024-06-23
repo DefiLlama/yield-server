@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const masterchefAbi = require('./masterchef');
@@ -5,7 +6,7 @@ const axios = require('axios');
 
 const masterchef = '0xd2bcFd6b84E778D2DE5Bb6A167EcBBef5D053A06';
 const ARX = '0xD5954c3084a1cCd70B4dA011E67760B8e78aeE84';
-const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+const WETH = ADDRESSES.ethereum.WETH;
 
 const utils = require('../utils');
 

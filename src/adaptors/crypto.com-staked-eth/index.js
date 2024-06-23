@@ -1,7 +1,8 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
-const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+const weth = ADDRESSES.ethereum.WETH;
 
 const cdceth = {
   ethereum: '0xfe18aE03741a5b84e39C295Ac9C856eD7991C38e',

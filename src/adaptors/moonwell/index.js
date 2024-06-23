@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils')
 const sdk = require('@defillama/sdk')
 const { request, gql, batchRequests } = require('graphql-request')
@@ -139,7 +140,7 @@ const getApy = async () => {
           apyReward: 0,
           underlyingTokens: [
             market_info.underlyingTokenAddress.toLowerCase() ===
-              '0x0000000000000000000000000000000000000000'
+              ADDRESSES.null
               ? '0xAcc15dC74880C9944775448304B263D191c6077F'.toLowerCase()
               : market_info.underlyingTokenAddress.toLowerCase()
           ],

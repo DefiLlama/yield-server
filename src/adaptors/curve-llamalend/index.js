@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 
 const getLendingPoolData = async () => {
@@ -35,7 +36,7 @@ const getGaugesData = async () => {
         if (gauge.lendingVaultAddress) {
           gaugesByAddress[gauge.lendingVaultAddress.toLowerCase()] = {
             crvApy: gauge.gaugeCrvApy ? gauge.gaugeCrvApy[0] : null,
-            rewardTokens: gauge.gaugeCrvApy ? ['0xD533a949740bb3306d119CC777fa900bA034cd52'] : null
+            rewardTokens: gauge.gaugeCrvApy ? [ADDRESSES.ethereum.CRV] : null
           };
         }
       });

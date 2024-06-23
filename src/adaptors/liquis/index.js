@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const superagent = require('superagent');
@@ -5,8 +6,8 @@ const { request, gql } = require('graphql-request');
 
 const hub = '0xb5087f95643a9a4069471a28d32c569d9bd57fe4';
 const lens = '0xb73f303472c4fd4ff3b9f59ce0f9b13e47fbfd19';
-const zeroAddress = '0x0000000000000000000000000000000000000000';
-const weth = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+const zeroAddress = ADDRESSES.null;
+const weth = ADDRESSES.ethereum.WETH;
 const bal = '0xba100000625a3754423978a60c9317c58a424e3D';
 
 const rewardPool = {

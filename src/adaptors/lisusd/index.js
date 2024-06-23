@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const { default: BigNumber } = require('bignumber.js');
 const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
@@ -7,8 +8,8 @@ const SECONDS_PER_YEAR = 365 * DAY;
 const RAY_PRECISION = 27;
 const RAY = new BigNumber(10).pow(RAY_PRECISION);
 
-const WBNB = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c';
-const BUSD = '0xe9e7cea3dedca5984780bafc599bd69add087d56';
+const WBNB = ADDRESSES.bsc.WBNB;
+const BUSD = ADDRESSES.bsc.BUSD;
 const ceaBNBcAddress = '0x563282106A5B0538f8673c787B3A16D3Cc1DbF1a';
 const BNBJoin = '0xfA14F330711A2774eC438856BBCf2c9013c2a6a4';
 const HAY = '0x0782b6d8c4551B9760e74c0545a9bCD90bdc41E5';

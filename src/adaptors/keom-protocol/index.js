@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const { ethers } = require('ethers');
 const {
   keomABI,
@@ -17,31 +18,31 @@ const chains = {
   polygon: {
     comptroller: '0x5B7136CFFd40Eee5B882678a5D02AA25A48d669F',
     oracle: '0x17feC0DD2c6BC438Fd65a1d2c53319BEA130BEFb',
-    wnative: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
+    wnative: ADDRESSES.polygon.WMATIC_2,
     rewardManager: '',
   },
   polygon_zkevm: {
     comptroller: '0x6EA32f626e3A5c41547235ebBdf861526e11f482',
     oracle: '0x483aDB7c100F1E19369a7a33c80709cfdd124c4e',
-    wnative: '0x4F9A0e7FD2Bf6067db6994CF12E4495Df938E6e9',
+    wnative: ADDRESSES.polygon_zkevm.WETH,
     rewardManager: '',
   },
   manta: {
     comptroller: '0x91e9e99AC7C39d5c057F83ef44136dFB1e7adD7d',
     oracle: '0xfD01946C35C98D71A355B8FF18d9E1697b2dd2Ea',
-    wnative: '0x0Dc808adcE2099A9F62AA87D9670745AbA741746',
+    wnative: ADDRESSES.manta.WETH,
     rewardManager: '0xfcA6fa66a83Cf0D5DB05d882e5A04dfbe9Eea214',
   },
   isolated_manta_wusdm: {
     comptroller: '0x014991ec771aD943A487784cED965Af214FD253C',
     oracle: '0xfD01946C35C98D71A355B8FF18d9E1697b2dd2Ea',
-    wnative: '0x0Dc808adcE2099A9F62AA87D9670745AbA741746',
+    wnative: ADDRESSES.manta.WETH,
     rewardManager: '0xC51b8519D183ff75a23873EAACfA20E7D1191EC9',
   },
   isolated_manta_stone: {
     comptroller: '0xBAc1e5A0B14490Dd0b32fE769eb5637183D8655d',
     oracle: '0xfD01946C35C98D71A355B8FF18d9E1697b2dd2Ea',
-    wnative: '0x0Dc808adcE2099A9F62AA87D9670745AbA741746',
+    wnative: ADDRESSES.manta.WETH,
     rewardManager: '0xf6681028D895921ddb5eD625282C7121D92E36F7',
   },
   astrzk: {

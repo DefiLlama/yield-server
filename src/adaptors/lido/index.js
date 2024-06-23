@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 
 const topLvl = async (chainString, url, token, address, underlying) => {
@@ -36,15 +37,15 @@ const main = async () => {
       'ethereum',
       'https://stake.lido.fi/api',
       'stETH',
-      '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84',
-      '0x0000000000000000000000000000000000000000'
+      ADDRESSES.ethereum.STETH,
+      ADDRESSES.null
     ),
     topLvl(
       'polygon',
       'https://polygon.lido.fi/api/stats',
       'stMATIC',
       '0x9ee91F9f426fA633d227f7a9b000E28b9dfd8599',
-      '0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0'
+      ADDRESSES.ethereum.MATIC
     ),
   ]);
 

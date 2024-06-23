@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const BigNumber = require('bignumber.js');
 const utils = require('../utils');
@@ -6,7 +7,7 @@ const _ = require("lodash");
 const MagpieReaderABI = require('./abis/MagpieReader.json');
 const config = require("./config");
 
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+const ZERO_ADDRESS = ADDRESSES.null;
 
 function formatEther(value, unit = 18) {
   const result = BigNumber(value).div(BigNumber(10).pow(BigNumber(unit)));

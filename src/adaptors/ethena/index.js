@@ -1,9 +1,10 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
 
-const USDe = '0x4c9edd5852cd905f086c759e8383e09bff1e68b3';
-const sUSDe = '0x9D39A5DE30e57443BfF2A8307A4256c8797A3497';
+const USDe = ADDRESSES.ethereum.USDe;
+const sUSDe = ADDRESSES.ethereum.sUSDe;
 
 const apy = async () => {
   const totalSupply =
@@ -27,7 +28,7 @@ const apy = async () => {
     '0xbb28dd7cd6be6f61828ea9158a04c5182c716a946a6d2f31f4864edb87471aa6';
   const logs = (
     await sdk.api.util.getLogs({
-      target: '0x9D39A5DE30e57443BfF2A8307A4256c8797A3497',
+      target: ADDRESSES.ethereum.sUSDe,
       topic: '',
       toBlock,
       fromBlock: 19026137,

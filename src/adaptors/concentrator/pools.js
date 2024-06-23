@@ -1,22 +1,23 @@
+const ADDRESSES = require('../assets.json')
 const coins = {
-  eth: ['0x0000000000000000000000000000000000000000', 'ethereum'],
-  usdc: ['0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', 'usd-coin'],
-  usdt: ['0xdAC17F958D2ee523a2206206994597C13D831ec7', 'usd-coin'],
-  dai: ['0x6b175474e89094c44da98b954eedeac495271d0f', 'dai'],
-  wbtc: ['0x2260fac5e5542a773aa44fbcfedf7c193bc2c599', 'bitcoin'],
-  steth: ['0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84', 'staked-ether'],
+  eth: [ADDRESSES.null, 'ethereum'],
+  usdc: [ADDRESSES.ethereum.USDC, 'usd-coin'],
+  usdt: [ADDRESSES.ethereum.USDT, 'usd-coin'],
+  dai: [ADDRESSES.ethereum.DAI, 'dai'],
+  wbtc: [ADDRESSES.ethereum.WBTC, 'bitcoin'],
+  steth: [ADDRESSES.ethereum.STETH, 'staked-ether'],
   renBTC: ['0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D', 'renbtc'],
 
-  crv: ['0xD533a949740bb3306d119CC777fa900bA034cd52', 'curve-dao-token'],
-  cvxcrv: ['0x62b9c7356a2dc64a1969e19c23e4f579f9810aa7', 'convex-crv'],
+  crv: [ADDRESSES.ethereum.CRV, 'curve-dao-token'],
+  cvxcrv: [ADDRESSES.ethereum.cvxCRV, 'convex-crv'],
 
-  frax: ['0x853d955aCEf822Db058eb8505911ED77F175b99e', 'frax'],
-  cvx: ['0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B', 'convex-finance'],
+  frax: [ADDRESSES.ethereum.FRAX, 'frax'],
+  cvx: [ADDRESSES.ethereum.CVX, 'convex-finance'],
   fxs: ['0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0', 'frax-share'],
   crv3pool: ['0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490', 'lp-3pool-curve'],
 
-  reth: ['0xae78736cd615f374d3085123a210448e74fc6393', 'rocket-pool-eth'],
-  wstETH: ['0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0', 'wrapped-steth'],
+  reth: [ADDRESSES.ethereum.RETH, 'rocket-pool-eth'],
+  wstETH: [ADDRESSES.ethereum.WSTETH, 'wrapped-steth'],
   'UST(Wormhole)': [
     '0xa693B19d2931d498c5B318dF961919BB4aee87a5',
     'terrausd-wormhole',

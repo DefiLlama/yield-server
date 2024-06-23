@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const VAMM_ABI_JSON = require('./vamm.abi.json');
@@ -8,7 +9,7 @@ const HIF = '0x870850A72490379f60A4924Ca64BcA89a6D53a9d';
 const HUSD = '0x5c6FC0AaF35A55E7a43Fff45575380bCEdb5Cbc2';
 const AVAX_VAMM = '0x269Cd1827fCa5c4d3c7748C45708806c026052FE';
 const CHAIN = 'avax';
-const WAVAX = '0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7';
+const WAVAX = ADDRESSES.avax.WAVAX;
 
 const main = async () => {
   const {

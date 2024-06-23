@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const abiVaultManager = require('./abiVaultManager');
@@ -7,7 +8,7 @@ const ADDRESSES = {
     AvantisJuniorTranche: '0x944766f715b51967E56aFdE5f0Aa76cEaCc9E7f9',
     AvantisSeniorTranche: '0x83084cB182162473d6FEFfCd3Aa48BA55a7B66F7',
     AvantisVaultManager: '0xe9fB8C70aF1b99F2Baaa07Aa926FCf3d237348DD',
-    USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    USDC: ADDRESSES.base.USDC,
   },
 };
 

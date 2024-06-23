@@ -1,9 +1,10 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const CHAIN = 'blast';
-const USDB = '0x4300000000000000000000000000000000000003';
+const USDB = ADDRESSES.blast.USDB;
 const API_URL = 'https://api.bfx.trade/vaults';
 
 const getApy = async () => {

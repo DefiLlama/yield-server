@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const axios = require('axios');
 const { uint256 } = require('starknet');
 const { call } = require('../../helper/starknet');
@@ -22,11 +23,11 @@ const TOKENS = [
     rToken: '0x1320a9910e78afc18be65e4080b51ecc0ee5c0a8b6cc7ef4e685e02b50e57ef',
     dToken: '0x2614c784267d2026042ab98588f90efbffaade8982567e93530db4ed41201cf',
     address:
-      '0x03fe2b97c1fd336e750087d68b9b867997fd64a2661ff3ca5a7c771641e8e7ac',
+      ADDRESSES.starknet.WBTC,
     CEXSymbol: 'BTCUSDT',
     pontis_key: '18669995996566340',
     mockPrice: 20000,
-    ethereumAddress: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
+    ethereumAddress: ADDRESSES.ethereum.WBTC,
     NETWORK_TOKEN_ADDRESS:
       '0x3fe2b97c1fd336e750087d68b9b867997fd64a2661ff3ca5a7c771641e8e7ac',
     base_apr: '400',
@@ -45,11 +46,11 @@ const TOKENS = [
     rToken: '0x436d8d078de345c11493bd91512eae60cd2713e05bcaa0bb9f0cba90358c6e',
     dToken: '0x1ef7f9f8bf01678dc6d27e2c26fb7e8eac3812a24752e6a1d6a49d153bec9f3',
     address:
-      '0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7',
+      ADDRESSES.starknet.ETH,
     CEXSymbol: 'ETHUSDT',
     pontis_key: '19514442401534788',
     mockPrice: 2000,
-    ethereumAddress: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+    ethereumAddress: ADDRESSES.ethereum.WETH,
     NETWORK_TOKEN_ADDRESS:
       '0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7',
     base_apr: '200',
@@ -68,11 +69,11 @@ const TOKENS = [
     rToken: '0x5fa6cc6185eab4b0264a4134e2d4e74be11205351c7c91196cb27d5d97f8d21',
     dToken: '0x12b8185e237dd0340340faeb3351dbe53f8a42f5a9bf974ddf90ced56e301c7',
     address:
-      '0x068f5c6a61780768455de69077e07e89787839bf8166decfbf92b645209c0fb8',
+      ADDRESSES.starknet.USDT,
     CEXSymbol: null,
     pontis_key: '6148333044652921668',
     mockPrice: 1,
-    ethereumAddress: '0xdac17f958d2ee523a2206206994597c13d831ec7',
+    ethereumAddress: ADDRESSES.ethereum.USDT,
     NETWORK_TOKEN_ADDRESS:
       '0x68f5c6a61780768455de69077e07e89787839bf8166decfbf92b645209c0fb8',
     base_apr: '200',
@@ -91,11 +92,11 @@ const TOKENS = [
     rToken: '0x3bcecd40212e9b91d92bbe25bb3643ad93f0d230d93237c675f46fac5187e8c',
     dToken: '0x21d8d8519f5464ec63c6b9a80a5229c5ddeed57ecded4c8a9dfc34e31b49990',
     address:
-      '0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8',
+      ADDRESSES.starknet.USDC,
     CEXSymbol: 'USDCUSDT',
     pontis_key: '6148332971638477636',
     mockPrice: 1,
-    ethereumAddress: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+    ethereumAddress: ADDRESSES.ethereum.USDC,
     NETWORK_TOKEN_ADDRESS:
       '0x53c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8',
     base_apr: '200',
@@ -118,7 +119,7 @@ const TOKENS = [
   //   CEXSymbol: 'USDTDAI',
   //   pontis_key: '19212080998863684',
   //   mockPrice: 1,
-  //   ethereumAddress: '0x6b175474e89094c44da98b954eedeac495271d0f',
+  //   ethereumAddress: ADDRESSES.ethereum.DAI,
   //   NETWORK_TOKEN_ADDRESS:
   //     '0xda114221cb83fa859dbdb4c44beeaa0bb37c7537ad5ae66fe5e0efd20e6eb3',
   //   base_apr: '300',
@@ -137,13 +138,13 @@ const TOKENS = [
     rToken: '0x7514ee6fa12f300ce293c60d60ecce0704314defdb137301dae78a7e5abbdd7',
     dToken: '0x1bdbaaa456c7d6bbba9ff740af3cfcd40bec0e85cd5cefc3fbb05a552fd14df',
     address:
-      '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d',
+      ADDRESSES.starknet.STRK,
     CEXSymbol: 'STRKUSDT',
     pontis_key: '6004514686061859652',
     mockPrice: 2,
     ethereumAddress: '0xCa14007Eff0dB1f8135f4C25B34De49AB0d42766',
     NETWORK_TOKEN_ADDRESS:
-      '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d',
+      ADDRESSES.starknet.STRK,
     base_apr: '200',
     apr_at_optimal_ur: '1500',
     optimal_ur: '5000',

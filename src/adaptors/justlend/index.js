@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 
 const API_URL = 'https://labc.ablesdxd.link/justlend/yieldInfos';
@@ -45,7 +46,7 @@ const getApy = async () => {
         ((Number(market.earnUSDPerDay) * 365) / Number(market.depositedUSD)) *
         100,
       apyReward: rewards[market.jtokenAddress]['USDDNEW'] * 100,
-      rewardTokens: ['TPYmHEhy5n8TCEfYGqW2rPxsghSfzghPDn'],
+      rewardTokens: [ADDRESSES.tron.USDD],
       underlyingTokens: [market.collateralAddress],
       apyBaseBorrow: market.borrowedAPY * 100,
       totalSupplyUsd: Number(market.depositedUSD),

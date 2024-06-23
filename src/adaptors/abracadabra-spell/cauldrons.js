@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const {
   utils: { formatEther, formatUnits },
 } = require('ethers');
@@ -435,7 +436,7 @@ const getStrategies = (collaterals, bentoboxes) =>
       ).filter(
         ([_, strategy, strategyData]) =>
           // Ignore empty strategies and disabled strategies
-          strategy !== '0x0000000000000000000000000000000000000000' &&
+          strategy !== ADDRESSES.null &&
           strategyData.targetPercentage != 0
       );
       const resultObject = _.zipObjectDeep(

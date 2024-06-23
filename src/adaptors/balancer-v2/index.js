@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
@@ -137,22 +138,22 @@ const bbTokenMapping = {
 // Using underlying assets for price
 const polygonBBTokenMapping = {
   '0x178e029173417b1f9c8bc16dcec6f697bc323746':
-    '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063', // DAI
+    ADDRESSES.polygon.DAI, // DAI
   '0xf93579002dbe8046c43fefe86ec78b1112247bb8':
-    '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', // USDC
+    ADDRESSES.polygon.USDC, // USDC
   '0xff4ce5aaab5a627bf82f4a571ab1ce94aa365ea6':
-    '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', // USDT
+    ADDRESSES.polygon.USDT, // USDT
 };
 
 // for Balancer Agave Boosted StablePool on Gnosis there is no price data
 // Using underlying assets for price
 const gnosisBBTokenMapping = {
   '0x41211bba6d37f5a74b22e667533f080c7c7f3f13':
-    '0xe91d153e0b41518a2ce8dd3d7944fa863463a97d', // wxDAI
+    ADDRESSES.xdai.WXDAI, // wxDAI
   '0xe7f88d7d4ef2eb18fcf9dd7216ba7da1c46f3dd6':
-    '0xddafbb505ad214d7b80b1f830fccc89b60fb7a83', // USDC
+    ADDRESSES.xdai.USDC, // USDC
   '0xd16f72b02da5f51231fde542a8b9e2777a478c88':
-    '0x4ecaba5870353805a9f068101a40e0f32ed605c6', // USDT
+    ADDRESSES.xdai.USDT, // USDT
 };
 
 const correctMaker = (entry) => {
@@ -160,7 +161,7 @@ const correctMaker = (entry) => {
   // for some reason the MKR symbol is not there, add this manually for
   // token address 0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2 = makerdao
   for (const x of entry.tokens) {
-    if (x.address === '0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2') {
+    if (x.address === ADDRESSES.ethereum.MKR) {
       x.symbol = 'MKR';
     }
   }
@@ -207,7 +208,7 @@ const tvl = (entry, tokenPriceList, chainString) => {
       '0x7dff46370e9ea5f0bad3c4e29711ad50062ea7a4'.toLowerCase()
     )
       price =
-        tokenPriceList['solana:So11111111111111111111111111111111111111112']
+        tokenPriceList['solana:' + ADDRESSES.solana.SOL]
           ?.price;
     if (
       entry.id ===
@@ -351,7 +352,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
             chain: chainString,
           })
         ).output.toLowerCase();
-        if (add === '0x0000000000000000000000000000000000000000') {
+        if (add === ADDRESSES.null) {
           break;
         }
 

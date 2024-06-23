@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
@@ -8,23 +9,23 @@ const lpABI = require('./abis/lp.json');
 const COUPON_TOKEN = '0xbC09220a8e461880DBE5517ecF53bC1b12cAa05D';
 const REI_TOKEN = '0x7539595ebdA66096e8913a24Cc3C8c0ba1Ec79a0';
 const MASTERCHEF_ADDRESS = '0x7aaA2A556578541067BFE93EE05B962Ee57E21CB';
-const BNB_REI_ADDRESS = '0xf8aB4aaf70cef3F3659d3F466E35Dc7ea10d4A5d';
+const BNB_REI_ADDRESS = ADDRESSES.reichain.BNB;
 const BLOCK_TIME = 3;
 const BLOCKS_PER_YEAR = Math.floor((60 / BLOCK_TIME) * 60 * 24 * 365);
 const SECOND_IN_YEAR = 86400 * 365;
 
 const mapTokenREItoBSC = {
-  '0xf8aB4aaf70cef3F3659d3F466E35Dc7ea10d4A5d':
-    '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c', // BNB
-  '0xDD2bb4e845Bd97580020d8F9F58Ec95Bf549c3D9':
-    '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56', // BUSD
+  [ADDRESSES.reichain.BNB]:
+    ADDRESSES.bsc.WBNB, // BNB
+  [ADDRESSES.reichain.kBUSD]:
+    ADDRESSES.bsc.BUSD, // BUSD
 };
 
 const mapTokenBSCtoREI = {
-  '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c':
-    '0xf8aB4aaf70cef3F3659d3F466E35Dc7ea10d4A5d',
-  '0xe9e7cea3dedca5984780bafc599bd69add087d56':
-    '0xDD2bb4e845Bd97580020d8F9F58Ec95Bf549c3D9',
+  [ADDRESSES.bsc.WBNB]:
+    ADDRESSES.reichain.BNB,
+  [ADDRESSES.bsc.BUSD]:
+    ADDRESSES.reichain.kBUSD,
 };
 
 const getPriceFromReservesRateBNBBsc = (reserves, bnbPrice) => {

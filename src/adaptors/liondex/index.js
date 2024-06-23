@@ -1,12 +1,13 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const abi = require('./abis/abi.json');
 
 const LP = '0x03229fb11e3D7E8Aca8C758DBD0EA737950d6CD0';
 const LION = '0x8ebb85d53e6955e557b7c53acde1d42fd68561ec';
-const WETH = '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1';
-const WBTC = '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f';
-const USDC = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8';
+const WETH = ADDRESSES.arbitrum.WETH;
+const WBTC = ADDRESSES.arbitrum.WBTC;
+const USDC = ADDRESSES.arbitrum.USDC;
 
 const vault = "0x8eF99304eb88Af9BDe85d58a35339Cb0e2a557B6";
 const pool = "0x154E2b1dBE9F493fF7938E5d686366138ddCE017";
@@ -35,7 +36,7 @@ async function getAPY(pid, lpPrice, lionPrice, ethPrice) {
             target: pool, 
             abi: abi['getUserApr'], 
             chain: 'arbitrum', 
-            params: [pid, lpPrice, lionPrice, ethPrice, "0x0000000000000000000000000000000000000000"]
+            params: [pid, lpPrice, lionPrice, ethPrice, ADDRESSES.null]
         });
 }
 

@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
@@ -5,7 +6,7 @@ const stakingAbi = require('./stakingAbi.json');
 
 const mETH = '0xd5F7838F5C461fefF7FE49ea5ebaF7728bB0ADfa';
 const stakingContract = '0xe3cBd06D7dadB3F4e6557bAb7EdD924CD1489E8f';
-const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+const weth = ADDRESSES.ethereum.WETH;
 const amount = 1000000000000000000n;
 
 const apy = async () => {

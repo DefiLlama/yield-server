@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const { gql, request } = require('graphql-request');
 const { BigNumber, utils: etherUtils } = require('ethers');
@@ -33,10 +34,10 @@ function borrowApy(snapshot, poolInfo) {
 
 function formatSymbols(chainName, symbols, addresses) {
   if(chainName == "arbitrum") {
-    if(addresses[0] == "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8") {
+    if(addresses[0] == ADDRESSES.arbitrum.USDC) {
       symbols[0] = "USDC.e";
     }
-    if(addresses[1] == "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8") {
+    if(addresses[1] == ADDRESSES.arbitrum.USDC) {
       symbols[1] = "USDC.e";
     }
   }
@@ -100,7 +101,7 @@ function getStakingInfo(chainName) {
     return {
       stakingRouter: "0x9b91328f04ed1183548bD6bDad24Da40311E077C",
       escrowToken: "0xa159463ab4b3af3865bc9dc0fd28d943f2c048ce",
-      rewardToken: "0x912ce59144191c1204e64559fe8253a0e49e6548"
+      rewardToken: ADDRESSES.arbitrum.ARB
     }
   }
   return {};

@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const helperUtils = require("../../helper/utils");
 
 const { ethers } = require('ethers');
@@ -15,18 +16,18 @@ const elp1_arbitrum = "0xec08b5a75473fd581be6628d4e2ed08b49078df0"
 const elpManangere_arbitrum_elp1 = "0x26aa71be9ccd794a4c9043be026c68496b45aa73"
 const vault_arbitrum_elp1 = "0xfc36be177868b05f966e57bfc01617501b1f6926"
 const vault_tokens_arbitrum_elp1 = [
-    "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8", //USDC
-    "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f", //WBTC
-    "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", //WETH
-    "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9", //USDT
-    "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1", //DAI
+    ADDRESSES.arbitrum.USDC, //USDC
+    ADDRESSES.arbitrum.WBTC, //WBTC
+    ADDRESSES.arbitrum.WETH, //WETH
+    ADDRESSES.arbitrum.USDT, //USDT
+    ADDRESSES.optimism.DAI, //DAI
 ]
 const token_map_arbirtrum_elp1 = {
-    "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": "USDCUSDT",
-    "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f": "BTCUSDT",
-    "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": "ETHUSDT",
-    "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9": "USDTUSDT",
-    "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1": "DAIUSDT"
+    [ADDRESSES.arbitrum.USDC]: "USDCUSDT",
+    [ADDRESSES.arbitrum.WBTC]: "BTCUSDT",
+    [ADDRESSES.arbitrum.WETH]: "ETHUSDT",
+    [ADDRESSES.arbitrum.USDT]: "USDTUSDT",
+    [ADDRESSES.optimism.DAI]: "DAIUSDT"
 }
 
 //------------------------------BSC CHAIN---------------------------------------
@@ -37,16 +38,16 @@ const reward_router_bsc_elp1 = "0x2108397905F6d3A9b277c545948C6d6E1Ca22D06"
 const elpManangere_bsc_elp1 = "0xFaF4bc3791B7B2133564155482abd190d971f055"
 const vault_bsc_elp1 = "0xF1D7e3f06aF6EE68E22baFd37E6a67b1757c35a9"
 const vault_tokens_bsc_elp1 = [
-    "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c", //WBNB
-    "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c", //WBTC
-    "0x2170ed0880ac9a755fd29b2688956bd959f933f8", //WETH
-    "0x55d398326f99059ff775485246999027b3197955", //USDT
+    ADDRESSES.bsc.WBNB, //WBNB
+    ADDRESSES.bsc.BTCB, //WBTC
+    ADDRESSES.bsc.ETH, //WETH
+    ADDRESSES.bsc.USDT, //USDT
 ]
 const token_map_bsc_elp1 = {
-    "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c": "BNBUSDT",
-    "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c": "BTCUSDT",
-    "0x2170ed0880ac9a755fd29b2688956bd959f933f8": "ETHUSDT",
-    "0x55d398326f99059ff775485246999027b3197955": "USDTUSDT",
+    [ADDRESSES.bsc.WBNB]: "BNBUSDT",
+    [ADDRESSES.bsc.BTCB]: "BTCUSDT",
+    [ADDRESSES.bsc.ETH]: "ETHUSDT",
+    [ADDRESSES.bsc.USDT]: "USDTUSDT",
 }
 
 

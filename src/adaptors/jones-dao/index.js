@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
@@ -6,12 +7,12 @@ const lockerABI = require('./aura-locker-abi.json');
 const aura = '0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF';
 const auraLocker = '0x3Fa73f1E5d8A792C80F426fc8F84FBF7Ce9bBCAC';
 const auraStrategy = '0x7629fc134e5a7feBEf6340438D96881C8D121f2c';
-const glp = '0x1aDDD80E6039594eE970E5872D247bf0414C8903';
+const glp = ADDRESSES.arbitrum.fsGLP;
 const glpTracker = '0x13C6Bed5Aa16823Aba5bBA691CAeC63788b19D9d';
 const glpStrategy = '0x64ECc55a4F5D61ead9B966bcB59D777593afBd6f';
-const bridgedUsdc = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8';
-const usdc = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831';
-const arbitrum = '0x912CE59144191C1204E64559FE8253a0e49E6548';
+const bridgedUsdc = ADDRESSES.arbitrum.USDC;
+const usdc = ADDRESSES.arbitrum.USDC_CIRCLE;
+const arbitrum = ADDRESSES.arbitrum.ARB;
 const jusdcUnderlyingVault = '0xB0BDE111812EAC913b392D80D51966eC977bE3A2';
 
 const SECONDS_PER_YEAR = 31556952;

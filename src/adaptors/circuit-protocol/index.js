@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 
 const url = 'https://api.circuit.farm';
@@ -10,7 +11,7 @@ const networkMapping = {
 }
 
 const crctMapping = {
-    5000: '0x0000000000000000000000000000000000000000'
+    5000: ADDRESSES.null
 }
 
 

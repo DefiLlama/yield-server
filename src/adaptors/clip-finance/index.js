@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const axios = require('axios');
 const ethers = require('ethers');
 const utils = require('../utils');
@@ -15,24 +16,24 @@ const config = {
     vaultAddress: '0x03A074D130144FcE6883F7EA3884C0a783d85Fb3',
     symbol: 'USDT-USDC',
     underlyingTokens: [
-      '0x55d398326f99059fF775485246999027B3197955',
-      '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
+      ADDRESSES.bsc.USDT,
+      ADDRESSES.bsc.USDC,
     ],
   },
   [CHAINS.linea]: {
     vaultAddress: '0x03A074D130144FcE6883F7EA3884C0a783d85Fb3',
     symbol: 'USDC.e-USDT',
     underlyingTokens: [
-      '0x176211869cA2b568f2A7D4EE941E073a821EE1ff',
-      '0xA219439258ca9da29E9Cc4cE5596924745e12B93',
+      ADDRESSES.linea.USDC,
+      ADDRESSES.linea.USDT,
     ],
   },
   [CHAINS.base]: {
     vaultAddress: '0x03A074D130144FcE6883F7EA3884C0a783d85Fb3',
     symbol: 'USDbC-USDС',
     underlyingTokens: [
-      '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
-      '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+      ADDRESSES.base.USDbC,
+      ADDRESSES.base.USDC,
     ],
   }
 };

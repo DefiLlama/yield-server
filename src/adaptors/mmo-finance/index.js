@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const mEtherABI = require('./MEtherInterfaceFull.json');
 const superagent = require('superagent');
@@ -8,7 +9,7 @@ const mEtherAddresses = {
   Pudgy: '0x3bca3a1e6a573ca87cddf10eb49bb508a8188cb6',
 };
 
-const ETHAddr = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+const ETHAddr = ADDRESSES.ethereum.WETH;
 
 const getApy = async (block) => {
   const thisFungibleMTokenABI = mEtherABI.find(

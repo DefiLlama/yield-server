@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 
 const poolsFunction = async () => {
@@ -34,21 +35,21 @@ const poolsFunction = async () => {
         newPool.tvlUsd =
           Number(apyData.data[coin].availableLiquidity) *
           coinprices['coingecko:celo'].price;
-        newPool.pool = '0x7D00cd74FF385c955EA3d79e47BF06bD7386387D';
+        newPool.pool = ADDRESSES.celo.mCELO;
         newPool.symbol = utils.formatSymbol('Celo');
         break;
       case 'cUSD':
         newPool.tvlUsd =
           Number(apyData.data[coin].availableLiquidity) *
           coinprices['coingecko:celo-dollar'].price;
-        newPool.pool = '0x918146359264C492BD6934071c6Bd31C854EDBc3';
+        newPool.pool = ADDRESSES.celo.mcUSD;
         newPool.symbol = utils.formatSymbol('cUSD');
         break;
       case 'cEUR':
         newPool.tvlUsd =
           Number(apyData.data[coin].availableLiquidity) *
           coinprices['coingecko:celo-euro'].price;
-        newPool.pool = '0xE273Ad7ee11dCfAA87383aD5977EE1504aC07568';
+        newPool.pool = ADDRESSES.celo.mCEUR;
         newPool.symbol = utils.formatSymbol('cEUR');
         break;
       case 'cREAL':

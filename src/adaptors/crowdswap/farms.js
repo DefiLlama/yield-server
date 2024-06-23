@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 exports.Farms = {
     polygon: [
       {
@@ -8,7 +9,7 @@ exports.Farms = {
         assets: 'MATIC/CROWD',
         tokenB:{
           chainId: 137,
-          address: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
+          address: ADDRESSES.polygon.WMATIC_2,
           name: 'Wrapped Matic',
           symbol: 'WMATIC',
           decimals: 18,
@@ -30,7 +31,7 @@ exports.Farms = {
         assets: 'USDT/CROWD',
         tokenB:{
           chainId: 137,
-          address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+          address: ADDRESSES.polygon.USDT,
           name: 'USDT-Tether USD (PoS)',
           symbol: 'USDT',
           decimals: 6,
@@ -52,7 +53,7 @@ exports.Farms = {
         assets: 'USDC/CROWD',
         tokenB: {
           chainId: 137,
-          address: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
+          address: ADDRESSES.polygon.USDC,
           name: 'USDC-USD Coin',
           symbol: 'USDC',
           decimals: 6,
@@ -74,7 +75,7 @@ exports.Farms = {
         assets: 'USDC/EDAT',
         tokenB: {
           chainId: 137,
-          address: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
+          address: ADDRESSES.polygon.USDC,
           name: 'USDC-USD Coin',
           symbol: 'USDC',
           decimals: 6,
@@ -96,7 +97,7 @@ exports.Farms = {
         assets: 'MATIC/USDC',
         tokenB: {
           chainId: 137,
-          address: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
+          address: ADDRESSES.polygon.WMATIC_2,
           name: 'Wrapped Matic',
           symbol: 'WMATIC',
           decimals: 18,

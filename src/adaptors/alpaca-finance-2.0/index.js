@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
@@ -14,7 +15,7 @@ const markets = [
   {
     name: 'WBNB',
     tier: 'COLLATERAL',
-    token: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
+    token: ADDRESSES.bsc.WBNB,
     ibToken: '0x2928623eFF453Fb8C9BC744041637a4D2D5Fc56b',
     debtToken: '0x855894fe37CFaeE188A1acCc5dd4b38d504F09E9',
     interestModel: '0xe44bDd3f0b69f2c294A0250825BCF31eE3af4314',
@@ -22,7 +23,7 @@ const markets = [
   {
     name: 'USDC',
     tier: 'COLLATERAL',
-    token: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
+    token: ADDRESSES.bsc.USDC,
     ibToken: '0x547593f6aFa897bb05828FBb8D587Ca31D9fF519',
     debtToken: '0x049C15F84850FC0d76eFe3b0940a44fC3edD6e2E',
     interestModel: '0x4132392C57B9D2DE1BA393A03f23Fcb880Bf8EE1',
@@ -30,7 +31,7 @@ const markets = [
   {
     name: 'USDT',
     tier: 'COLLATERAL',
-    token: '0x55d398326f99059fF775485246999027B3197955',
+    token: ADDRESSES.bsc.USDT,
     ibToken: '0x90476BFEF61F190b54a439E2E98f8E43Fb9b4a45',
     debtToken: '0xd9D0a0B8B9dc0f845797B678F00c6d7FAD577B56',
     interestModel: '0x4132392C57B9D2DE1BA393A03f23Fcb880Bf8EE1',
@@ -38,7 +39,7 @@ const markets = [
   {
     name: 'BUSD',
     tier: 'COLLATERAL',
-    token: '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56',
+    token: ADDRESSES.bsc.BUSD,
     ibToken: '0x3f38BA29AcC107E6F0b059a17c9bAb0598d0f249',
     debtToken: '0x7ffbcda33cD2F7812f9Da4c1189E745379F95B79',
     interestModel: '0x4132392C57B9D2DE1BA393A03f23Fcb880Bf8EE1',
@@ -46,7 +47,7 @@ const markets = [
   {
     name: 'BTCB',
     tier: 'COLLATERAL',
-    token: '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c',
+    token: ADDRESSES.bsc.BTCB,
     ibToken: '0x6C9Cb3739d6B390A4BAcc4D5F0a2629cF5c383B3',
     debtToken: '0x457a325E5c63aE73F684d9477826e07F56da749B',
     interestModel: '0x89c53B34b5E6A1D0b2922941749e9Ee05ce58b42',
@@ -54,7 +55,7 @@ const markets = [
   {
     name: 'ETH',
     tier: 'COLLATERAL',
-    token: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8',
+    token: ADDRESSES.bsc.ETH,
     ibToken: '0x0A4FE32De91bE99a3EFAC80F6576976293B95369',
     debtToken: '0x57496afdB38A0da228046c93695778c757075dEa',
     interestModel: '0x89c53B34b5E6A1D0b2922941749e9Ee05ce58b42',

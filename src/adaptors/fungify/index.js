@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const ABI = require('./abi.json');
@@ -6,7 +7,7 @@ const CHAIN = 'ethereum';
 const COMPTROLLER = '0xf9c70750bF615dE83fE7FF62D30C7faACD8f8Ba0';
 const LENS = '0x2C4A503Bce0805C357D961e45b55BEEE073188E7';
 const PRICE_ORACLE = '0x9b960808875000AC17dfAE13B72BBDF69DF6e7A7';
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+const ZERO_ADDRESS = ADDRESSES.null;
 const SCALE = 1e18;
 
 // Fetch all Markets from comptroller

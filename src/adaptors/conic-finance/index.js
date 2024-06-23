@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
@@ -9,8 +10,8 @@ const BLOCKS_PER_YEAR = 2580032;
 
 const CONTROLLER = '0x2790EC478f150a98F5D96755601a26403DF57EaE';
 const INFLATION_MANAGER = '0x05F494E6554fab539873dcF92A4D2F6930105B16';
-const CRV = '0xD533a949740bb3306d119CC777fa900bA034cd52';
-const CVX = '0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B';
+const CRV = ADDRESSES.ethereum.CRV;
+const CVX = ADDRESSES.ethereum.CVX;
 const CNC = '0x9aE380F0272E2162340a5bB646c354271c0F5cFC';
 
 const PRICE_API = 'https://coins.llama.fi/prices/current';

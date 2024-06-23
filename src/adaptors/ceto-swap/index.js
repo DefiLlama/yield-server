@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const LPAbi = require('./abi/LP.json');
 const ERC20Abi = require('./abi/ERC20.json');
 const MasterChefAbi = require('./abi/MasterChef.json');
@@ -42,7 +43,7 @@ const pools = {
 }
 
 const TOKEN = {
-  USDC: '0xb73603c5d87fa094b7314c74ace2e64d165016fb',
+  USDC: ADDRESSES.manta.USDC,
   CETO: '0x3af03e8c993900f0ea6b84217071e1d4cc783982'
 }
 

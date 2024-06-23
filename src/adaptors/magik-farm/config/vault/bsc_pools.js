@@ -1,3 +1,4 @@
+const ADDRESSES = require('../../../assets.json')
 const bscPools = [
   {
     id: 'orb-orb-magik',

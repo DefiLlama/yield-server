@@ -1,13 +1,14 @@
+const ADDRESSES = require('../assets.json')
 exports.crvBaseApyUrl = 'http://stats.curve.fi/raw-stats/apys.json';
 
 exports.ContractAddresses = {
   // curr vault support tokens
-  usdtTokenAddress: '0xdac17f958d2ee523a2206206994597c13d831ec7',
-  usdcTokenAddress: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+  usdtTokenAddress: ADDRESSES.ethereum.USDT,
+  usdcTokenAddress: ADDRESSES.ethereum.USDC,
   arpaTokenAddress: '0xba50933c268f567bdc86e1ac131be072c6b0b71a',
-  wbtcTokenAddress: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
-  daiTokenAddress: '0x6b175474e89094c44da98b954eedeac495271d0f',
-  busdTokenAddress: '0x4fabb145d64652a948d72533023f6e7a623c7c53',
+  wbtcTokenAddress: ADDRESSES.ethereum.WBTC,
+  daiTokenAddress: ADDRESSES.ethereum.DAI,
+  busdTokenAddress: ADDRESSES.ethereum.BUSD,
   hbtcTokenAddress: '0x0316EB71485b0Ab14103307bf65a021042c6d380',
 
   // vault contracts
@@ -27,8 +28,8 @@ exports.ContractAddresses = {
 
   // token contracts
   bellaTokenAddress: '0xa91ac63d040deb1b7a5e4d4134ad23eb0ba07e14',
-  wethTokenAddress: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
-  crvTokenAddress: '0xD533a949740bb3306d119CC777fa900bA034cd52',
+  wethTokenAddress: ADDRESSES.ethereum.WETH,
+  crvTokenAddress: ADDRESSES.ethereum.CRV,
 
   // uni pool address
   usdcUsdtPoolAddress: '0x3041cbd36888becc7bbcbc0045e3b1f144466f5f',

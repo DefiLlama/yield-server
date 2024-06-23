@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
@@ -40,7 +41,7 @@ const VAULT_CONTRACTS = {
         address: "0xd8d07A8ab4F6a1cC4cF86b3cB11b78A7C1e701ad",
         underlyingTokens: [
           "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490", // 3CRV
-          "0x0a5E677a6A24b2F1A2Bf4F3bFfC443231d2fDEc8", // USX
+          ADDRESSES.ethereum.USX, // USX
         ],
         vMUSX: "0x53BF3c82f62B152800E0152DB743451849F1aFF9",
         rewardTokens: ["0x431ad2ff6a9C365805eBaD47Ee021148d6f7DBe0"],
@@ -73,7 +74,7 @@ const STAKING_CONTRACTS = {
         symbol: "USX-BUSD",
         address: "0x8d61b71958dD9Df6eAA670c0476CcE7e25e98707",
         underlyingTokens: [
-          "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56", // BUSD
+          ADDRESSES.bsc.BUSD, // BUSD
           "0xB5102CeE1528Ce2C760893034A4603663495fD72", // USX
         ],
       },
@@ -86,7 +87,7 @@ const STAKING_CONTRACTS = {
         symbol: "USX-USDC",
         address: "0x2Ca5B28B9F348f652b46210C75F528ee094b15cf",
         underlyingTokens: [
-          "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8", // USDC
+          ADDRESSES.arbitrum.USDC, // USDC
           "0x641441c631e2F909700d2f41FD87F0aA6A6b4EDb", // USX
         ],
       },

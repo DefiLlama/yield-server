@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const LP_DECIMALS = 6;
 const LP_STAKING_ACCOUNT =
   '0xb247ddeee87e848315caf9a33b8e4c71ac53db888cb88143d62d2370cca0ead2';
@@ -8,11 +9,11 @@ const MODULE_ACCOUNT_0_5 =
   '0x163df34fccbf003ce219d3f1d9e70d140b60622cb9dd47599c25fb2f797ba6e';
 
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';
-const APTOS_TOKEN = '0x1::aptos_coin::AptosCoin';
+const APTOS_TOKEN = ADDRESSES.aptos.APT;
 const AMNIS_ST_APT =
   '0x111ae3e5bc816a5e63c2da97d0aa3886519e0cd5e4b046659fa35796bd11542a::stapt_token::StakedApt';
 const LZ_USDC =
-  '0xf22bede237a07e121b56d91a491eb7bcdfd1f5907926a9e58338f964a01b17fa::asset::USDC';
+  ADDRESSES.aptos.USDC_2;
 const UNCORRELATED_CURVE =
   '0x163df34fccbf003ce219d3f1d9e70d140b60622cb9dd47599c25fb2f797ba6e::curves::Uncorrelated';
 const APTOS_COINGECKO_ID = 'aptos';

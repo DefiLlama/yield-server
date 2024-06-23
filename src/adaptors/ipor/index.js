@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 const { liquidityMiningV2Abi } = require('./abiV2');
@@ -14,8 +15,8 @@ const LM_ADDRESS_ETHEREUM = '0xCC3Fc4C9Ba7f8b8aA433Bc586D390A70560FF366';
 const LM_ADDRESS_ARBITRUM = '0xdE645aB0560E5A413820234d9DDED5f4a55Ff6dd';
 const IPOR_TOKEN_ETHEREUM = '0x1e4746dc744503b53b4a082cb3607b169a289090';
 const IPOR_TOKEN_ARBITRUM = '0x34229b3f16fbcdfa8d8d9d17c0852f9496f4c7bb';
-const ARB_TOKEN_ARBITRUM = '0x912ce59144191c1204e64559fe8253a0e49e6548';
-const WSTETH_TOKEN_ARBITRUM = '0x5979d7b546e38e414f7e9822514be443a4800529';
+const ARB_TOKEN_ARBITRUM = ADDRESSES.arbitrum.ARB;
+const WSTETH_TOKEN_ARBITRUM = ADDRESSES.arbitrum.WSTETH;
 
 const BLOCKS_PER_YEAR = (365 * 24 * 3600) / 12;
 

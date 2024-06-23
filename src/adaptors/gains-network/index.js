@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
@@ -11,17 +12,17 @@ const chains = {
       {
         symbol: 'DAI',
         pool: '0x91993f2101cc758D0dEB7279d41e880F7dEFe827',
-        underlying: '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063',
+        underlying: ADDRESSES.polygon.DAI,
       },
       {
         symbol: 'WETH',
         pool: '0x1544E1fF1a6f6Bdbfb901622C12bb352a43464Fb',
-        underlying: '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619',
+        underlying: ADDRESSES.polygon.WETH_1,
       },
       {
         symbol: 'USDC',
         pool: '0x29019Fe2e72E8d4D2118E8D0318BeF389ffe2C81',
-        underlying: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
+        underlying: ADDRESSES.polygon.USDC_CIRCLE,
       },
     ],
   },
@@ -32,17 +33,17 @@ const chains = {
       {
         symbol: 'DAI',
         pool: '0xd85E038593d7A098614721EaE955EC2022B9B91B',
-        underlying: '0xda10009cbd5d07dd0cecc66161fc93d7c9000da1',
+        underlying: ADDRESSES.optimism.DAI,
       },
       {
         symbol: 'WETH',
         pool: '0x5977A9682D7AF81D347CFc338c61692163a2784C',
-        underlying: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+        underlying: ADDRESSES.arbitrum.WETH,
       },
       {
         symbol: 'USDC',
         pool: '0xd3443ee1e91aF28e5FB858Fbd0D72A63bA8046E0',
-        underlying: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        underlying: ADDRESSES.arbitrum.USDC_CIRCLE,
       },
     ],
   },

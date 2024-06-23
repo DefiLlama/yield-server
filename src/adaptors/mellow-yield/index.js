@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
@@ -75,7 +76,7 @@ const poolsFunction = async () => {
     rewardMap['0x6A2Dd3B817F0364e7603e781dDA9c62f62c440E1'] = '0x0fd566cda6d6a3ae1760e1eebd22ee400cc79655';
     rewardMap['0x8E024f875f6fDdf1471582bed8504F46CB64487E'] = '0x6955ab1adefa2e48f449b88183a2774a186b7e61';
 
-    const ldo = '0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32';
+    const ldo = ADDRESSES.ethereum.LIDO;
 
     let pools = [];
   

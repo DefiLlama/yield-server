@@ -1,13 +1,14 @@
+const ADDRESSES = require('../assets.json')
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const { poolABI } = require('./abi');
 
 const assets = {
-  USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-  wETH: '0x4200000000000000000000000000000000000006',
-  DAI: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb',
+  USDC: ADDRESSES.base.USDC,
+  wETH: ADDRESSES.optimism.WETH_1,
+  DAI: ADDRESSES.base.DAI,
   cbETH: '0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22',
-  USDbC: '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
+  USDbC: ADDRESSES.base.USDbC,
   wstETH: '0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452',
 };
 
@@ -58,10 +59,10 @@ const getApy = async () => {
   );
 
   const wethPrice =
-    coinPrices['coins']['base:0x4200000000000000000000000000000000000006']
+    coinPrices['coins']['base:' + ADDRESSES.optimism.WETH_1]
       .price;
   const usdcPrice =
-    coinPrices['coins']['base:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913']
+    coinPrices['coins']['base:' + ADDRESSES.base.USDC]
       .price;
 
   const totalDebtWeth = await sdk.api.abi.call({
@@ -121,7 +122,7 @@ const getApy = async () => {
       apyBaseBorrow: borrowApyWeth,
       ltv: maxCollFactors.maxWethFactor / 10_000, // 4 decimal precision
       poolMeta: 'Arcadia V2 WETH Pool',
-      underlyingTokens: ['0x4200000000000000000000000000000000000006'], // WETH
+      underlyingTokens: [ADDRESSES.optimism.WETH_1], // WETH
       url: 'https://arcadia.finance/pool/8453/0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2',
     },
     {
@@ -136,7 +137,7 @@ const getApy = async () => {
       apyBaseBorrow: borrowApyUsdc,
       ltv: maxCollFactors.maxUsdcFactor / 10_000, // 4 decimal precision
       poolMeta: 'Arcadia V2 USDC Pool',
-      underlyingTokens: ['0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'], // USDC
+      underlyingTokens: [ADDRESSES.base.USDC], // USDC
       url: 'https://arcadia.finance/pool/8453/0x3ec4a293Fb906DD2Cd440c20dECB250DeF141dF1',
     },
   ];

@@ -1,3 +1,4 @@
+const ADDRESSES = require('../assets.json')
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const utils = require('../utils');
@@ -5,7 +6,7 @@ abi = require("./abis.json");
 
 
 const looksrare = '0xf4d2888d29D722226FafA5d9B24F9164c092421E';
-const weth = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+const weth = ADDRESSES.ethereum.WETH;
 
 //contract for current reward per block (in WETH)
 const feeSharing = '0xBcD7254A1D759EFA08eC7c3291B2E85c5dCC12ce';
