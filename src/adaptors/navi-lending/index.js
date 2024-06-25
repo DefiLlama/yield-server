@@ -12,7 +12,7 @@ const poolsFunction = async () => {
     const borrowUsd = parseFloat(pool.total_borrow) * parseFloat(pool.tokenPrice);
     arr.push({
       chain: 'Sui',
-      project: 'naviprotocol-lend',
+      project: 'navi-lending',
       pool: pool.pool,
       symbol: pool.symbol,
       tvlUsd: supplyUsd - borrowUsd,
@@ -22,7 +22,6 @@ const poolsFunction = async () => {
       totalSupplyUsd: supplyUsd,
       totalBorrowUsd: borrowUsd,
       apyBaseBorrow: parseFloat(pool.base_borrow_rate),
-      apyBorrowReward: pool.boosted_borrow_rate ? parseFloat(pool.boosted_borrow_rate) : null,
     });
   });
 
@@ -35,4 +34,4 @@ module.exports = {
   url: 'https://app.naviprotocol.io/',
 };
 
-// poolsFunction().then(res => console.log(res));
+//poolsFunction().then(res => console.log(res));
