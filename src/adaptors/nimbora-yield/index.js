@@ -21,7 +21,7 @@ async function apy() {
     const underlyingToken =  parseAddress(strategy.underlying);
     const underlyingTokenSymbol =  strategy.underlyingSymbol
     const tokenManager = parseAddress(strategy.tokenManager);
-    const pool = (underlyingToken + '-starknet').toLowerCase();
+    const pool = (tokenManager + '-starknet').toLowerCase();
     const apyBase = +strategy.aprBreakdown.base;
     const apyReward = +strategy.aprBreakdown.boost + +strategy.aprBreakdown.incentives
     const tvlUsd = +strategy.tvl
