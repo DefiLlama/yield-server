@@ -109,5 +109,5 @@ const poolsFunction = async () => {
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
-  url: 'https://app.3jane.xyz/',
+  url: 'https://app.3jane.xyz/vault/eeth-x-c',
 };
