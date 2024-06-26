@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
-const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 
 const hub = '0xb5087f95643a9a4069471a28d32c569d9bd57fe4';
@@ -255,8 +255,8 @@ const topLvl = async (chainString, url, query, queryPrior, timestamp) => {
     if (chainString != 'ethereum')
       keys = keys.concat(`,ethereum:${lit['ethereum']}`);
     const prices = (
-      await superagent.get(`https://coins.llama.fi/prices/current/${keys}`)
-    ).body.coins;
+      await axios.get(`https://coins.llama.fi/prices/current/${keys}`)
+    ).data.coins;
 
     // calculate the price of oLIT
     let optionPrice = 0;
