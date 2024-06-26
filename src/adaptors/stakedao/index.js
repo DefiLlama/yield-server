@@ -40,7 +40,7 @@ const poolsFunction = async () => {
     
     return acc.concat([
       {
-        pool: 'sd-' + strat.key,
+        pool: `sd-${strat.key}-${CHAINS[strat.chainId]}`,
         chain: utils.formatChain(CHAINS[strat.chainId]),
         project: 'stakedao',
         symbol: symbol ? utils.formatSymbol(symbol) : null,
