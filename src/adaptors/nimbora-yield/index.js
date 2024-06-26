@@ -36,6 +36,7 @@ async function apy() {
         tvlUsd,
         underlyingTokens: [underlyingToken],
         url: 'https://app.nimbora.io/',
+        poolMeta: strategy.symbol,
       };
     })
   } catch (error) {
