@@ -5,7 +5,7 @@ const axios = require('axios');
 const strk ='0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d';
 const slup = 'nimbora-yield';
 const chain = 'Starknet'
-const api = 'https://backend.nimbora.io/yield-dex/strategies'
+const api = 'https://stats.nimbora.io/yield-dex/strategies'
 
 async function apy() {
   const config = {
