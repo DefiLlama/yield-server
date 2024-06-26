@@ -10,7 +10,7 @@ const urlFarmingSubgraph = 'https://api.studio.thegraph.com/proxy/78672/pulsar-f
 
 const queryPools = gql`
   {
-    pools(first: 1000, orderBy: totalValueLockedUSD, orderDirection: desc) {
+    pools(first: 100, orderBy: totalValueLockedUSD, orderDirection: desc) {
       id  
       volumeUSD
       token0 {
@@ -39,7 +39,7 @@ const queryPools = gql`
 
 const queryPrior = gql`
   {
-    pools(first: 1000, orderBy: totalValueLockedUSD, orderDirection: desc) {
+    pools(first: 100, orderBy: totalValueLockedUSD, orderDirection: desc) {
       id
       volumeUSD
       feesToken0
@@ -81,7 +81,7 @@ const fetchWithRetry = async (url, query, retries = 3) => {
       if (attempt === retries) {
         throw error;
       }
-      await new Promise(res => setTimeout(res, 1000 * attempt)); // Exponential backoff
+      // await new Promise(res => setTimeout(res, 4000 * attempt)); // Exponential backoff
     }
   }
 };
@@ -110,7 +110,7 @@ const getPositionsOfPool = async (poolId) => {
   while (true) {
     const queryString = gql`
     query {
-      positions(first: 1000, skip: ${i * 1000}, where: { liquidity_gt: 0, pool: "${poolId}" }) {
+      positions(first: 50, skip: ${i * 1000}, where: { liquidity_gt: 0, pool: "${poolId}" }) {
         id
         owner
         tickLower {
@@ -247,7 +247,6 @@ const updateEternalFarmsApr = async () => {
     const token1 = (await getTokenInfoByAddress(farming.bonusRewardToken))[0];
     let totalNativeAmount = 0.0;
     const positions = await getPositionsById(tokenIds);
-
     for (const position of positions) {
       const { amount0, amount1 } = getAmounts(
         new BigNumber(position.liquidity),
@@ -302,10 +301,9 @@ const topLvl = async (chainString, timestamp, url) => {
   const startBlock = 2649799;
 
   const prevBlockNumber = await getPreviousBlockNumber(aprDelta, blockDelta, startBlock);
-
   const queryPoolsPrior = gql`
   {
-    pools(block: { number: ${prevBlockNumber} }, first: 1000, orderBy: id) {
+    pools(block: { number: ${prevBlockNumber} }, first: 100, orderBy: id) {
       feesToken0
       feesToken1
       id
@@ -324,9 +322,7 @@ const topLvl = async (chainString, timestamp, url) => {
   }`;
   const responsePrior = await fetchWithRetry(urlConliqSubgraph, queryPoolsPrior);
   const dataPrior = responsePrior.pools;
-
   let data = (await fetchWithRetry(url, queryPools)).pools;
-
   const balanceCalls = [];
   for (const pool of data) {
     balanceCalls.push({
@@ -369,7 +365,6 @@ const topLvl = async (chainString, timestamp, url) => {
 
     poolsFees[pool.id] = feesIn24Hours;
     poolsCurrentTvl[pool.id] = new BigNumber(0);
-
     const positionsJson = await getPositionsOfPool(pool.id);
     for (const position of positionsJson) {
       const currentTick = new BigNumber(pool.tick);
@@ -411,7 +406,6 @@ const topLvl = async (chainString, timestamp, url) => {
 
   // Filter out pools with invalid or missing fields
   data = data.filter(p => p.pool && p.chain && p.project && p.symbol && p.underlyingTokens.length && p.url);
-  
   return data;
 };
 
