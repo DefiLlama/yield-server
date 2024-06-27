@@ -35,6 +35,13 @@ const originFarms = [
     stakingToken: '0x0e75ca30b075aa0df8c360e30cd0ed26ed62432a',
     connector: '0xa7fbbdf114f1f2218825a500515b6bf7d49c1b2c',
     rewardToken: '0x4117ec0a779448872d3820f37ba2060ae0b7c34b',
+  },
+  {
+    symbol: 'USDEX+/USDC',
+    origin: '0x74337fb8381ce8c323110cef2e041d0f2220a2ce',
+    stakingToken: '0x24129a6c5b700435cc0d1bd3500796f3fb9ebd49',
+    connector: '0xc5a0676cc593f7b4a5253510bae3bad475f2c441',
+    rewardToken: '0x4117ec0a779448872d3820f37ba2060ae0b7c34b',
   }
 ]
 
@@ -64,12 +71,15 @@ async function getDexSwapPrices() {
   const totalPriceToGdexPairBN = gdexWithoutDecimalsBN.times(usdexPriceUsd);
   const priceGdexBN = usdexPair1PlusWithoutDecimalsBN.div(totalPriceToGdexPairBN);
 
-  const totalSupplyBN = new BigNumber(lpInfo1.totalSupply).div(10 ** 18);
-  const priceLpGdexUsdex = usdexPair1PlusWithoutDecimalsBN.times(usdexPriceUsd).plus(priceGdexBN.times(gdexWithoutDecimalsBN)).div(totalSupplyBN).toString();
+  const totalSupply0BN = new BigNumber(lpInfo1.totalSupply).div(10 ** 18);
+  const totalSupply1BN = new BigNumber(lpInfo1.totalSupply).div(10 ** 18);
+  const priceLpGdexUsdex = usdexPair1PlusWithoutDecimalsBN.times(usdexPriceUsd).plus(priceGdexBN.times(gdexWithoutDecimalsBN)).div(totalSupply1BN).toString();
+  const priceLpUsdcUsdexBN = usdcWithoutDecimalsBN.plus(usdexPair0PlusWithoutDecimalsBN.times(usdexPriceUsd));
   return {
     [TOKENS.GDEX]: priceGdexBN.toString(),
     [TOKENS.USDEX]: usdexPriceUsd,
     [pairsDexswap[1].address]: priceLpGdexUsdex,
+    stablePairTvl:  priceLpUsdcUsdexBN.toNumber() 
   }
 
 }
@@ -79,25 +89,43 @@ async function getGdexFarmsApy() {
   const res = [];
   for (const origin of originFarms) {
     const { output: balance } = await sdk.api.abi.call({ chain: 'arbitrum', abi: 'erc20:balanceOf', target: origin.stakingToken, params: origin.origin });
-    const tvlUsd = new BigNumber(balance).div(10 ** 18).times(prices[origin.stakingToken]).toNumber();
+    const isStable = origin.stakingToken === pairsDexswap[0].address;
+    let tvlUsd;
+    if (isStable) {
+      tvlUsd = prices.stablePairTvl;
+    } else {
+      tvlUsd = new BigNumber(balance).div(10 ** 18).times(prices[origin.stakingToken]).toNumber();
+    }
     const { output: sharePerTimeUnit } = await sdk.api.abi.call({
       target: origin.connector,
       chain: 'arbitrum',
       abi: FARM[0],
       params: [origin.rewardToken],
     });
-    const rewardsPerSecondUsdBN = new BigNumber(sharePerTimeUnit).div(10 ** 18).times(prices[origin.rewardToken]).times(100);
+    const rewardsPerSecondUsdBN = new BigNumber(isStable ? new BigNumber(sharePerTimeUnit).div(0.1) : sharePerTimeUnit).div(10 ** 18).times(prices[origin.rewardToken]).times(100);
     const rewardPerYearUsdBN = rewardsPerSecondUsdBN.times(SECONDS_IN_YEAR);
     const apy = rewardPerYearUsdBN.div(tvlUsd).toNumber();
-    res.push({
-      pool: origin.origin,
-      chain: utils.formatChain('arbitrum'),
-      project: PROJECT_SLUG,
-      symbol: origin.symbol,
-      tvlUsd,
-      apy,
-      url: 'https://www.dexfinance.com/',
-    })
+    if (isStable) {
+      res.push({
+        pool: pairsDexswap[0].address,
+        chain: utils.formatChain('arbitrum'),
+        project: PROJECT_SLUG,
+        symbol: pairsDexswap[0].name,
+        tvlUsd,
+        apy,
+        url: 'https://www.dexfinance.com/',
+      })
+    } else {
+      res.push({
+        pool: origin.origin,
+        chain: utils.formatChain('arbitrum'),
+        project: PROJECT_SLUG,
+        symbol: origin.symbol,
+        tvlUsd,
+        apy,
+        url: 'https://www.dexfinance.com/',
+      })
+    }
   }
   return res;
 }
