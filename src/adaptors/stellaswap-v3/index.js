@@ -10,7 +10,7 @@ const urlFarmingSubgraph = 'https://api.studio.thegraph.com/proxy/78672/pulsar-f
 
 const queryPools = gql`
   {
-    pools(first: 100, orderBy: totalValueLockedUSD, orderDirection: desc) {
+    pools(first: 50, orderBy: totalValueLockedUSD, orderDirection: desc) {
       id  
       volumeUSD
       token0 {
@@ -35,11 +35,11 @@ const queryPools = gql`
       liquidity
     }
   }
-`;
+  `;
 
 const queryPrior = gql`
   {
-    pools(first: 100, orderBy: totalValueLockedUSD, orderDirection: desc) {
+    pools(first: 50, orderBy: totalValueLockedUSD, orderDirection: desc) {
       id
       volumeUSD
       feesToken0
@@ -55,6 +55,7 @@ const tickToSqrtPrice = (tick) => {
 };
 
 const getAmounts = (liquidity, tickLower, tickUpper, currentTick) => {
+  liquidity = new BigNumber(liquidity); // Ensure liquidity is a BigNumber
   const currentPrice = tickToSqrtPrice(currentTick);
   const lowerPrice = tickToSqrtPrice(tickLower);
   const upperPrice = tickToSqrtPrice(tickUpper);
@@ -72,6 +73,7 @@ const getAmounts = (liquidity, tickLower, tickUpper, currentTick) => {
   return { amount0, amount1 };
 };
 
+
 const fetchWithRetry = async (url, query, retries = 3) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -81,7 +83,7 @@ const fetchWithRetry = async (url, query, retries = 3) => {
       if (attempt === retries) {
         throw error;
       }
-      // await new Promise(res => setTimeout(res, 4000 * attempt)); // Exponential backoff
+      // await new Promise(res => setTimeout(res, 1000 * attempt)); // Exponential backoff
     }
   }
 };
@@ -179,7 +181,7 @@ const getPositionsInEternalFarming = async (farmingId) => {
   let i = 0;
   while (true) {
     const queryString = `{
-      deposits(where:{eternalFarming:"${farmingId}"}, first:1000, skip:${i * 1000}){
+      deposits(where:{eternalFarming:"${farmingId}"}, first:50, skip:${i * 1000}){
         id
       }
     }`;
@@ -193,13 +195,14 @@ const getPositionsInEternalFarming = async (farmingId) => {
   return result;
 };
 
+
 const getPositionsById = async (tokenIds) => {
   tokenIds = tokenIds.map((tokenId) => tokenId.id);
   const result = [];
   let i = 0;
   while (true) {
     const queryString = `{
-      positions(where:{id_in:${JSON.stringify(tokenIds)}}, first:1000, skip:${i * 1000}){
+      positions(where:{id_in:${JSON.stringify(tokenIds)}}, first:50, skip:${i * 1000}){
         id
         liquidity
         tickLower{
@@ -247,6 +250,7 @@ const updateEternalFarmsApr = async () => {
     const token1 = (await getTokenInfoByAddress(farming.bonusRewardToken))[0];
     let totalNativeAmount = 0.0;
     const positions = await getPositionsById(tokenIds);
+
     for (const position of positions) {
       const { amount0, amount1 } = getAmounts(
         new BigNumber(position.liquidity),
@@ -295,15 +299,19 @@ const updateEternalFarmsApr = async () => {
   return eternalObj;
 };
 
+const aprDelta = 259200;
+const blockDelta = 60;
+const startBlock = 2649799;
+
+
 const topLvl = async (chainString, timestamp, url) => {
-  const aprDelta = 259200;
-  const blockDelta = 60;
-  const startBlock = 2649799;
+
 
   const prevBlockNumber = await getPreviousBlockNumber(aprDelta, blockDelta, startBlock);
+
   const queryPoolsPrior = gql`
   {
-    pools(block: { number: ${prevBlockNumber} }, first: 100, orderBy: id) {
+    pools(block: { number: ${prevBlockNumber} }, first: 50, orderBy: id) {
       feesToken0
       feesToken1
       id
@@ -322,7 +330,9 @@ const topLvl = async (chainString, timestamp, url) => {
   }`;
   const responsePrior = await fetchWithRetry(urlConliqSubgraph, queryPoolsPrior);
   const dataPrior = responsePrior.pools;
+
   let data = (await fetchWithRetry(url, queryPools)).pools;
+
   const balanceCalls = [];
   for (const pool of data) {
     balanceCalls.push({
@@ -365,6 +375,7 @@ const topLvl = async (chainString, timestamp, url) => {
 
     poolsFees[pool.id] = feesIn24Hours;
     poolsCurrentTvl[pool.id] = new BigNumber(0);
+
     const positionsJson = await getPositionsOfPool(pool.id);
     for (const position of positionsJson) {
       const currentTick = new BigNumber(pool.tick);
@@ -380,32 +391,164 @@ const topLvl = async (chainString, timestamp, url) => {
     }
   }
 
+  let poolsAPRObj = {};
+
+  const getCurrentPoolsInfo = async () => {
+    const prevBlockNumber = await getPreviousBlockNumber(aprDelta, blockDelta, startBlock);
+    const queryString = `
+    {
+      pools(block: {number: ${prevBlockNumber}}, first: 50, orderBy: id) {
+        feesToken0
+        feesToken1
+        id
+        token0 {
+          name
+        }
+        token1 {
+          name
+        }
+        token0Price
+        tick
+        liquidity
+      }
+    }
+    `;
+    const previousPools = await fetchWithRetry(urlConliqSubgraph, queryString);
+    const poolsJsonPrevious = {};
+    for (const pool of previousPools.pools) {
+      poolsJsonPrevious[pool.id] = { feesToken0: pool.feesToken0, feesToken1: pool.feesToken1 };
+    }
+
+    const queryStringNew = `{
+      pools(first: 50, orderBy: id) {
+        feesToken0
+        feesToken1
+        id
+        token0 {
+          name
+          symbol
+          decimals
+        }
+        token1 {
+          name
+          symbol
+          decimals
+        }
+        token0Price
+        tick
+        liquidity
+      }
+    }`;
+    const pools = await fetchWithRetry(urlConliqSubgraph, queryStringNew);
+
+    const poolsJson = [];
+    for (const pool of pools.pools) {
+      poolsJson.push({ ...pool });
+    }
+
+    for (let i = 0; i < poolsJson.length; i += 1) {
+      try {
+        poolsJson[i].feesToken0 = (+poolsJson[i].feesToken0) - (+poolsJsonPrevious[poolsJson[i].id].feesToken0);
+        poolsJson[i].feesToken1 = (+poolsJson[i].feesToken1) - (+poolsJsonPrevious[poolsJson[i].id].feesToken1);
+      } catch (error) {
+        poolsJson[i].feesToken0 = (+poolsJson[i].feesToken0);
+        poolsJson[i].feesToken1 = (+poolsJson[i].feesToken1);
+      }
+    }
+    return poolsJson;
+  }
+
+
+  const updatePoolsApr = async (data, dataPrior) => {
+    console.log('Updating Pools APR');
+    const poolsJson = await getCurrentPoolsInfo();
+    const poolsTick = {};
+    const poolsCurrentTvl = {};
+    const poolsFees = {};
+  
+    for (const pool of poolsJson) {
+      poolsTick[pool.id] = (+pool.tick);
+      poolsCurrentTvl[pool.id] = 0;
+      if (poolsFees[pool.id] === undefined) {
+        poolsFees[pool.id] = (+pool.feesToken0);
+      } else {
+        poolsFees[pool.id] += (+pool.feesToken0);
+      }
+      poolsFees[pool.id] += pool.feesToken1 * (+pool.token0Price);
+  
+      const positionsJson = await getPositionsOfPool(pool.id);
+      for (const position of positionsJson) {
+        const currentTick = poolsTick[position.pool.id];
+        if (((+position.tickLower.tickIdx) < currentTick) && (currentTick < (+position.tickUpper.tickIdx))) {
+          let { amount0, amount1 } = getAmounts(
+            (+position.liquidity),
+            (+position.tickLower.tickIdx),
+            (+position.tickUpper.tickIdx),
+            currentTick,
+          );
+          amount0 /= (10 ** (+position.token0.decimals));
+          amount1 /= (10 ** (+position.token1.decimals));
+          poolsCurrentTvl[position.pool.id] += amount0;
+          poolsCurrentTvl[position.pool.id] += amount1 * (+position.pool.token0Price);
+        }
+      }
+    }
+  
+    const poolsAPR = {};
+    for (const pool of poolsJson) {
+      if (poolsCurrentTvl[pool.id] !== 0) {
+        poolsAPR[pool.id] = (((poolsFees[pool.id] * 365).toFixed(2) / (poolsCurrentTvl[pool.id])) * 100);
+      } else {
+        poolsAPR[pool.id] = 0;
+      }
+    }
+    poolsAPR.updatedAt = (Date.now() / 1000).toFixed(0);
+    return poolsAPR;
+  }
+
+
+  const poolsBaseApr = await updatePoolsApr(data, dataPrior);
   const eternalAPRObj = await updateEternalFarmsApr();
+
+  // await updatePoolsApr(data, dataPrior);
+
+
   const poolsAPR = {};
+  const poolsRewardTokens = {}; // Add this to store reward tokens for each pool
+
   for (const pool of data) {
     const aprDataForPool = eternalAPRObj.farmPools[pool.id];
     const apr = aprDataForPool ? new BigNumber(aprDataForPool.lastApr) : new BigNumber(0);
     poolsAPR[pool.id] = apr;
+  
+    const rewardTokens = apr.isNaN() || apr.eq(0) ? [] : [pool.token0.id, pool.token1.id];
+    poolsRewardTokens[pool.id] = rewardTokens; // Store reward tokens for each pool
   }
 
   data = data.map((p) => {
-    const apr = poolsAPR[p.id];
-    const apy = (Math.pow(1 + apr.dividedBy(365).toNumber(), 365) - 1) * 100;
+  const apr = poolsAPR[p.id];
+  const baseAPR = poolsBaseApr[p.id] !== undefined ? poolsBaseApr[p.id] : 0; // Set to 0 if undefined
+  const rewardTokens = poolsRewardTokens[p.id]; // Retrieve reward tokens for each pool
 
-    return {
-      pool: p.id,
-      chain: utils.formatChain(chainString),
-      project: 'stellaswap-v3',
-      symbol: `${p.token0.symbol}-${p.token1.symbol}`,
-      tvlUsd: parseFloat(p.totalValueLockedUSD),
-      apyBase: apr.isNaN() ? 0 : apr.toNumber(),
-      underlyingTokens: [p.token0.id, p.token1.id],
-      url: `https://app.stellaswap.com/pulsar/add/${p.token0.id}/${p.token1.id}`,
-    };
-  });
+  return {
+    pool: p.id,
+    chain: utils.formatChain(chainString),
+    project: 'stellaswap-v3',
+    symbol: `${p.token0.symbol}-${p.token1.symbol}`,
+    tvlUsd: parseFloat(p.totalValueLockedUSD),
+    apyBase: baseAPR,
+    apyReward: apr.isNaN() ? 0 : apr.toNumber(),
+    rewardTokens: rewardTokens, // Include rewardTokens in the return object
+    underlyingTokens: [p.token0.id, p.token1.id],
+    url: `https://app.stellaswap.com/pulsar/add/${p.token0.id}/${p.token1.id}`,
+  };
+});
+
+
 
   // Filter out pools with invalid or missing fields
   data = data.filter(p => p.pool && p.chain && p.project && p.symbol && p.underlyingTokens.length && p.url);
+
   return data;
 };
 
