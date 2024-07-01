@@ -85,7 +85,7 @@ async function main() {
   const sAVAXTVL = (totalwsAVAX / wsAVAXPrice) * sAVAXPrice;
   const rPoolTVL = rPoolSupply * aUSDPrice;
   const protocolAPR = (sAVAXTVL / rPoolTVL) * APR;
-  const rPoolAPR = protocolAPR * 0.9;
+  const rPoolAPR = protocolAPR * 0.9 * 100;
 
   return [
     {
@@ -102,4 +102,5 @@ async function main() {
 
 module.exports = {
   apy: main,
+  url: 'https://app.stablejack.xyz/rebalancepool',
 };
