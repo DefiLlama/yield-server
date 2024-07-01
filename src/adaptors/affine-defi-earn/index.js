@@ -185,7 +185,7 @@ const getAllBasketApyByChain = async (chainId) => {
       return {
         pool: `${baskets[key].basketAddress}-${SUPPORTED_CHAINS[chainId]}`,
         chain: SUPPORTED_CHAINS[chainId],
-        project: 'affine-defi',
+        project: 'affine-defi-earn',
         symbol:
           baskets[key].denomination === '$'
             ? 'USDC'
