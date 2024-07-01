@@ -121,17 +121,23 @@ const poolsFunction = async () => {
       100;
 
     for (let i = 1; i < rewardsPerSecond.addresses.length; i++) {
-      rewardTokens.push(rewardsPerSecond.addresses[i]);
-      const price = (
-        await utils.getPrices([rewardsPerSecond.addresses[i]], chain)
-      ).pricesByAddress;
+      if (
+        parseFloat(
+          ethers.utils.formatEther(rewardsPerSecond.rewardsPerSec[i])
+        ) > 0
+      ) {
+        rewardTokens.push(rewardsPerSecond.addresses[i]);
+        const price = (
+          await utils.getPrices([rewardsPerSecond.addresses[i]], chain)
+        ).pricesByAddress;
 
-      apyReward +=
-        ((ethers.utils.formatEther(rewardsPerSecond.rewardsPerSec[i]) *
-          secondsPerYear *
-          Object.values(price)[0]) /
-          (poolTotal * current)) *
-        100;
+        apyReward +=
+          ((ethers.utils.formatEther(rewardsPerSecond.rewardsPerSec[i]) *
+            secondsPerYear *
+            Object.values(price)[0]) /
+            (poolTotal * current)) *
+          100;
+      }
     }
 
     const VLPPool = {
