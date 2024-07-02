@@ -35,7 +35,7 @@ const getATokenData = async () => {
   let aTokenData = await utils.getData(
     `${ALADDIN_API_BASE_URL}api1/concentrator_aToken_tvl_apy`
   );
-  const { aCRV, asdCRV, aladdinCVX } = aTokenData.data;
+  const { aCRV, asdCRV, aladdinCVX, arUSD } = aTokenData.data;
   const newObj = [
     {
       pool: `${concentratorAcrv}-concentrator`,
@@ -60,6 +60,14 @@ const getATokenData = async () => {
       symbol: 'aCVX',
       tvlUsd: parseInt(aladdinCVX.tvl, 10),
       apy: parseFloat(aladdinCVX.apy),
+    },
+    {
+      pool: `${arUSD}-concentrator`,
+      chain: utils.formatChain('ethereum'),
+      project: 'concentrator',
+      symbol: 'arUSD',
+      tvlUsd: parseInt(arUSD.tvl, 10),
+      apy: parseFloat(arUSD.apy),
     },
   ];
   return newObj;
