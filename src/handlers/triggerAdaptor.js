@@ -174,14 +174,10 @@ const main = async (body) => {
   // need the protocol response to check if adapter.body === 'Dexes' category
 
   // required conditions to calculate IL field
-  const uniV3Forks = [
-    'uniswap-v3',
-    'hydradex-v3',
-    'forge',
-    'arbitrum-exchange-v3',
-    'maia-v3',
-    'ramses-v2',
-  ];
+  const isUniV3Fork = data.filter((i) =>
+    i.poolMeta?.includes('stablePool=')
+  ).length;
+
   if (
     data[0]?.underlyingTokens?.length &&
     protocolConfig[body.adaptor]?.category === 'Dexes' &&
@@ -266,7 +262,7 @@ const main = async (body) => {
       let il7d = ((2 * Math.sqrt(d)) / (1 + d) - 1) * 100;
 
       // for uni v3
-      if (uniV3Forks.includes(body.adaptor)) {
+      if (isUniV3Fork) {
         const P = price1 / price0;
 
         // for stablecoin pools, we assume a +/- 0.1% range around current price
@@ -350,7 +346,7 @@ const main = async (body) => {
       poolMeta:
         p.poolMeta === undefined
           ? null
-          : uniV3Forks.includes(p.project)
+          : p.poolMeta?.includes('stablePool=')
           ? p.poolMeta?.split(',')[0]
           : p.poolMeta,
       il7d: p.il7d ? +p.il7d.toFixed(precision) : null,
