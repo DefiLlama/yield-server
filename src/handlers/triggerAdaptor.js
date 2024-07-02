@@ -77,11 +77,12 @@ const main = async (body) => {
     apyBaseInception: strToNum(p.apyBaseInception),
   }));
 
-  // filter tvl to be btw lb-ub
+  // filter tvl to be btw lb-ub (except GHO borrow pool on aave-v3 (has a constant tvlUsd of 0 cause can't be used as collateral))
   data = data.filter(
     (p) =>
-      p.tvlUsd >= exclude.boundaries.tvlUsdDB.lb &&
-      p.tvlUsd <= exclude.boundaries.tvlUsdDB.ub
+      (p.tvlUsd >= exclude.boundaries.tvlUsdDB.lb &&
+        p.tvlUsd <= exclude.boundaries.tvlUsdDB.ub) ||
+      (p.project === 'aave-v3' && p.symbol === 'GHO')
   );
 
   // nullify NaN, undefined or Infinity apy values
