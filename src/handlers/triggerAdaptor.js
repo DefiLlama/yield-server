@@ -181,7 +181,7 @@ const main = async (body) => {
   if (
     data[0]?.underlyingTokens?.length &&
     protocolConfig[body.adaptor]?.category === 'Dexes' &&
-    !['balancer-v2', 'curve-dex', 'clipper', 'astroport'].includes(
+    !['balancer-v2', 'curve-dex', 'clipper', 'astroport', 'cetus'].includes(
       body.adaptor
     ) &&
     !['elrond', 'near', 'hedera', 'carbon'].includes(
