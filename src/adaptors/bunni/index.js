@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
-const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 
 const hub = '0xb5087f95643a9a4069471a28d32c569d9bd57fe4';
@@ -50,12 +50,13 @@ const childGaugeABI = require('./abis/ChildGauge.json');
 const controllerABI = require('./abis/GaugeController.json');
 const oracleABI = require('./abis/OptionsOracle.json');
 
-const baseUrl = 'https://api.thegraph.com/subgraphs/name/bunniapp';
 const chains = {
-  ethereum: `${baseUrl}/bunni-mainnet`,
-  polygon: `${baseUrl}/bunni-polygon`,
-  arbitrum: `${baseUrl}/bunni-arbitrum`,
-  optimism: `${baseUrl}/bunni-optimism`,
+  ethereum: sdk.graph.modifyEndpoint(
+    'HH4HFj4rFnm5qnkb8MbEdP2V5eD9rZnLJE921YQAs7AV'
+  ),
+  polygon: sdk.graph.modifyEndpoint(
+    '7WkeneDon7GY3CdcZW3rsPi4pRfDthwe1nWGKX21dRgC'
+  ),
 };
 
 const query = gql`
@@ -254,8 +255,8 @@ const topLvl = async (chainString, url, query, queryPrior, timestamp) => {
     if (chainString != 'ethereum')
       keys = keys.concat(`,ethereum:${lit['ethereum']}`);
     const prices = (
-      await superagent.get(`https://coins.llama.fi/prices/current/${keys}`)
-    ).body.coins;
+      await axios.get(`https://coins.llama.fi/prices/current/${keys}`)
+    ).data.coins;
 
     // calculate the price of oLIT
     let optionPrice = 0;

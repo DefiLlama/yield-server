@@ -1,3 +1,4 @@
+const sdk = require('@defillama/sdk');
 const BigNumber = require('bignumber.js');
 const { request, gql } = require('graphql-request');
 const axios = require('axios');
@@ -8,8 +9,7 @@ const GFI_ADDRESS = '0xdab396cCF3d84Cf2D07C4454e10C8A6F5b008D2b';
 const USDC_ADDRESS = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
 const SENIOR_POOL_ADDRESS = '0x8481a6EbAf5c7DABc3F7e09e44A89531fd31F822';
 
-const API_URL =
-  'https://api.thegraph.com/subgraphs/name/goldfinch-eng/goldfinch-v2';
+const API_URL = sdk.graph.modifyEndpoint('G9N1RFta3jbpPNmeGxSJoMVBZUJeG1jiSxUfYG29UQHj');
 
 const apyQuery = gql`
   query {

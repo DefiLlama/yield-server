@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const { ethers } = require('ethers');
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 const wiseLendingABI = require('./abi/wiseLendingABI.json');
 const wiseSecurityABI = require('./abi/wiseSecurityABI.json');
 const erc20ABI = require('./abi/erc20ABI.json');

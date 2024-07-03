@@ -40,7 +40,6 @@ const excludeAdaptors = [
   'rocifi-v2',
   'steadefi', // hacked,
   'bank-of-chain',
-  'zunami-protocol', // hacked
   'myso-v1',
   'civfund',
   'midas-capital',
@@ -132,6 +131,10 @@ const excludeAdaptors = [
   'burrow',
   'raydium',
   'ref-finance',
+  'shoebill-v1',
+  'auragi-finance',
+  'notional-v2',
+  'stablebase',
 ];
 
 const excludePools = [
@@ -503,6 +506,7 @@ const excludePools = [
   '0x659110d07923e2c3fcb9d3c9e66b0a1605e7ce71-astar',
   '0xf13eb90f923ff0c424c4a7e917cace304b7386a0a6bafe1caa81efdc7973ae89',
   '0x6b175474e89094c44da98b954eedeac495271d0f-smartcredit',
+  'CuFuHe8bMES93pM2iD9SrFWyR9GkTfrKdHdP9FMbXwtg',
 ];
 
 const boundaries = {

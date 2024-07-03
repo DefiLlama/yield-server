@@ -1,7 +1,8 @@
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const { capitalizeFirstLetter } = require('../utils');
 
-const urlGaugesEthereum = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/4sESujoqmztX6pbichs4wZ1XXyYrkooMuHA8sKkYxpTn`;
+const urlGaugesEthereum = sdk.graph.modifyEndpoint('4sESujoqmztX6pbichs4wZ1XXyYrkooMuHA8sKkYxpTn');
 
 // For reference - this is how chains are stored in the gauges subgraph
 // const chainToEnum = {
