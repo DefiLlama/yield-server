@@ -18,9 +18,8 @@ const chains = [
   {
     chainName: 'ethereum',
     facade: '0xad0BFAEE863B1102e9fD4e6330A02B08d885C715',
-    graph: sdk.graph.modifyEndpoint(
-      '67uGcSjxdptxeX66UamL2a5YAj192QyyL1qcmZMUHEH2'
-    ),
+    graph:
+      'https://subgraph.satsuma-prod.com/327d6f1d3de6/reserve/reserve-mainnet/api',
   },
 ];
 
