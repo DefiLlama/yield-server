@@ -160,7 +160,14 @@ const getTokenPrice = async (token) => {
 
 const market= '0x548f38cb45720a101a1ec2edfaf608b47d2b39d137d0d3134087315f1b5f4a5'
 
+async function getStarknetFoundationIncentives() {
+  const { data } = await axios.get(starknetFoundationIncentivesEndpoint);
+  return data['Hashstack'];
+}
+
 async function apy() {
+  const incentives = await getStarknetFoundationIncentives();
+  const strkPrice=await getTokenPrice('0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d')
   const promises = 
     TOKENS.map(async (token, i) => {
       const priceInUsd = await getTokenPrice(token?.address);
@@ -177,6 +184,7 @@ async function apy() {
       const totalSupply=BigNumber(res?.total_supply.toString()).div(BigNumber(`1e${token.decimals}`))
       const totalSupplyUsd=totalSupply.times(priceInUsd);
       const totalBorrowUsd=totalDebt.times(priceInUsd);
+      const tokenIncentive = incentives[token.name];
       return{
         pool:`${token?.dToken.toLowerCase()}`,
         chain:'Starknet',
@@ -184,6 +192,13 @@ async function apy() {
         symbol:token?.name,
         tvlUsd:totalSupplyUsd.toNumber(),
         apyBase:supply_rate,
+        apyReward:
+            tokenIncentive && tokenIncentive.length > 0
+              ? 365 *
+              100  *
+                tokenIncentive[tokenIncentive.length - 1]['allocation']*0.7*strkPrice/ tokenIncentive[tokenIncentive.length - 1]['supply_usd']
+              : 0,
+              rewardTokens:tokenIncentive ? ['0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d']:[],
         apyBaseBorrow:borrow_rate,
         underlyingTokens:[token?.address],
         totalSupplyUsd:totalSupplyUsd.toNumber(),
