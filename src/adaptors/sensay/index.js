@@ -10,9 +10,9 @@ const poolsFunction = async () => {
   const pools = info.pools;
 
   let poolData = []
-  for (const pool of pools) {
+  for (const [index, pool] of pools.entries()) {
     poolData.push({
-      pool: '0x382c70620e42c2EF2b303b97bad1d9439Bf48ef9-ethereum',
+      pool: `${index}-0x382c70620e42c2EF2b303b97bad1d9439Bf48ef9-ethereum`,
       chain: utils.formatChain('ethereum'),
       project: 'sensay',
       symbol: 'SNSY',
