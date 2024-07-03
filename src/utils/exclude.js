@@ -507,6 +507,7 @@ const excludePools = [
   '0xf13eb90f923ff0c424c4a7e917cace304b7386a0a6bafe1caa81efdc7973ae89',
   '0x6b175474e89094c44da98b954eedeac495271d0f-smartcredit',
   'CuFuHe8bMES93pM2iD9SrFWyR9GkTfrKdHdP9FMbXwtg',
+  '0x2487ef2b79f4dce0ef7c6f0da6fb805dca050c06',
 ];
 
 const boundaries = {
