@@ -1,10 +1,9 @@
 const sdk = require('@defillama/sdk');
 const { getPrices, getBlocksByTime } = require('../utils');
-const ethers = require('ethers');
+const { utils } = require('ethers');
 
 // TODO There should be a cleaner way to get the 30 days ago using their 'getLatestBlock' function
 // TODO Add timetravel support
-// Simplify ethers import
 
 const LOCKER_ADDRESS = '0xc068c3261522c97ff719dc97c98c63a1356fef0f';
 const TLX_ADDRESS = '0xd9cc3d70e730503e7f28c1b407389198c4b75fa2';
@@ -63,7 +62,7 @@ const apy = async (timestamp: number | null = null) => {
   const totalPrepared = await getView(STAKER_ADDRESS, 'totalPrepared');
   const startBlock = currentBlock - SAMPLE_PERIOD_BLOCKS;
   const event = 'event DonatedRewards(address indexed account, uint256 amount)';
-  const iface = new ethers.utils.Interface([event]);
+  const iface = new utils.Interface([event]);
   const events = (
     await sdk.api.util.getLogs({
       target: STAKER_ADDRESS,
