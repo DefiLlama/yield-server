@@ -4,7 +4,6 @@ const ethers = require('ethers');
 
 // TODO There should be a cleaner way to get the 30 days ago using their 'getLatestBlock' function
 // TODO Add timetravel support
-// TODO Clean up
 // Simplify ethers import
 
 const LOCKER_ADDRESS = '0xc068c3261522c97ff719dc97c98c63a1356fef0f';
@@ -37,45 +36,32 @@ const getBlock = async (timestamp: number | null): Promise<number> => {
   }
 };
 
+const getView = async (address: string, name: string): Promise<number> => {
+  const abi = `function ${name}() view returns (uint256)`;
+  const { output } = await sdk.api.abi.call({
+    chain: CHAIN,
+    abi,
+    target: address,
+  });
+  return output / 1e18;
+};
+
 const apy = async (timestamp: number | null = null) => {
   // General
   const tlxPrice = await getTlxPrice();
   const currentBlock = await getBlock(timestamp);
 
   // Locker
-  const { output: totalRewardsBn } = await sdk.api.abi.call({
-    chain: CHAIN,
-    abi: 'function totalRewards() view returns (uint256)',
-    target: LOCKER_ADDRESS,
-  });
-  const totalRewards = totalRewardsBn / 1e18;
-  const { output: totalLockedBn } = await sdk.api.abi.call({
-    chain: CHAIN,
-    abi: 'function totalStaked() view returns (uint256)',
-    target: LOCKER_ADDRESS,
-  });
-  const totalLocked = totalLockedBn / 1e18;
+  const rewards = await getView(LOCKER_ADDRESS, 'totalRewards');
+  const totalLocked = await getView(LOCKER_ADDRESS, 'totalStaked');
   const timePassed = new Date().getTime() - LOCKER_LAUNCH_DATE.getTime();
   const percentComplete = Math.min(timePassed / LOCK_DURATION, 1);
-  const lockerApr =
-    (totalRewards / totalLocked) * 2 * (1 - percentComplete) * 100;
+  const lockerApr = (rewards / totalLocked) * 2 * (1 - percentComplete) * 100;
 
   // Staker
-  const { output: totalStakedBn } = await sdk.api.abi.call({
-    chain: CHAIN,
-    abi: 'function totalStaked() view returns (uint256)',
-    target: STAKER_ADDRESS,
-  });
-  const totalStaked = totalStakedBn / 1e18;
-  const { output: totalPreparedBn } = await sdk.api.abi.call({
-    chain: CHAIN,
-    abi: 'function totalPrepared() view returns (uint256)',
-    target: STAKER_ADDRESS,
-  });
-  const totalPrepared = totalPreparedBn / 1e18;
-
+  const totalStaked = await getView(STAKER_ADDRESS, 'totalStaked');
+  const totalPrepared = await getView(STAKER_ADDRESS, 'totalPrepared');
   const startBlock = currentBlock - SAMPLE_PERIOD_BLOCKS;
-
   const event = 'event DonatedRewards(address indexed account, uint256 amount)';
   const iface = new ethers.utils.Interface([event]);
   const events = (
@@ -93,12 +79,10 @@ const apy = async (timestamp: number | null = null) => {
   const firstEventBlock = events[0].blockNumber;
   const annualMultiplier = BLOCKS_PER_YEAR / (currentBlock - firstEventBlock);
   const start = eventArgs[0].amount.sub(eventArgs[0].amount);
-  const totalBn = eventArgs.reduce((acc, event) => {
-    if (!event.amount) {
-      return acc;
-    }
-    return acc.add(event.amount);
-  }, start);
+  const totalBn = eventArgs.reduce(
+    (acc, event) => acc.add(event.amount),
+    start
+  );
   const total = totalBn / 1e18;
   const annualStakerEarnings = total * annualMultiplier;
   const totalActive = totalStaked - totalPrepared;
