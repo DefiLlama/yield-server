@@ -6,7 +6,13 @@ const SAVAX_ADDRESS = '0x2b2C81e08f1Af8835a78Bb2A90AE924ACE0eA4bE';
 const AVAX_ADDRESS = '0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7';
 
 const abi = {
-  totalPooledAvax: {"inputs":[],"name":"totalPooledAvax","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  totalPooledAvax: {
+    inputs: [],
+    name: 'totalPooledAvax',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 };
 
 const getAvaxPrice = async () => {
@@ -26,12 +32,14 @@ const fetchTotalPooledAvax = async () => {
 };
 
 const fetchStakingApr = async () => {
-  const aprResponse = await superagent.get('https://api.benqi.fi/liquidstaking/apr');
+  const aprResponse = await superagent.get(
+    'https://api.benqi.fi/liquidstaking/apr'
+  );
   return Number(aprResponse.body.apr);
 };
 
 const convertAprToApy = (apr) => {
-  return (Math.pow(1 + (apr / 26), 26) - 1);
+  return Math.pow(1 + apr / 26, 26) - 1;
 };
 
 const calculateTvl = (totalPooledAvax, avaxPrice) => {
@@ -49,15 +57,18 @@ const main = async () => {
     const tvlUsd = calculateTvl(totalPooledAvax, avaxPrice);
     const apy = convertAprToApy(stakingApr);
 
-    return [{
-      pool: SAVAX_ADDRESS,
-      chain: utils.formatChain('avalanche'),
-      project: 'benqi-staked-avax',
-      symbol: 'sAVAX',
-      tvlUsd,
-      apyBase: apy,
-      underlyingTokens: [AVAX_ADDRESS],
-    }];
+    return [
+      {
+        pool: SAVAX_ADDRESS,
+        chain: utils.formatChain('avalanche'),
+        project: 'benqi-staked-avax',
+        symbol: 'sAVAX',
+        tvlUsd,
+        apyBase: apy * 100,
+        underlyingTokens: [AVAX_ADDRESS],
+        poolMeta: 'Unstaking Cooldown: 15days',
+      },
+    ];
   } catch (error) {
     console.error('Error fetching data:', error.message);
     throw new Error(`Failed to fetch data: ${error.message}`);
