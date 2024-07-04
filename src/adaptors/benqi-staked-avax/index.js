@@ -30,6 +30,10 @@ const fetchStakingApr = async () => {
   return Number(aprResponse.body.apr);
 };
 
+const convertAprToApy = (apr) => {
+  return (Math.pow(1 + (apr / 26), 26) - 1);
+};
+
 const calculateTvl = (totalPooledAvax, avaxPrice) => {
   return (totalPooledAvax / 1e18) * avaxPrice;
 };
@@ -43,6 +47,7 @@ const main = async () => {
     ]);
 
     const tvlUsd = calculateTvl(totalPooledAvax, avaxPrice);
+    const apy = convertAprToApy(stakingApr);
 
     return [{
       pool: SAVAX_ADDRESS,
@@ -50,7 +55,7 @@ const main = async () => {
       project: 'benqi-staked-avax',
       symbol: 'sAVAX',
       tvlUsd,
-      apyBase: stakingApr,
+      apyBase: apy,
       underlyingTokens: [AVAX_ADDRESS],
     }];
   } catch (error) {
