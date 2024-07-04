@@ -2,9 +2,6 @@ const sdk = require('@defillama/sdk');
 const { getPrices, getBlocksByTime } = require('../utils');
 const { utils } = require('ethers');
 
-// TODO There should be a cleaner way to get the 30 days ago using their 'getLatestBlock' function
-// TODO Add timetravel support
-
 const LOCKER_ADDRESS = '0xc068c3261522c97ff719dc97c98c63a1356fef0f';
 const TLX_ADDRESS = '0xd9cc3d70e730503e7f28c1b407389198c4b75fa2';
 const STAKER_ADDRESS = '0xc30877315f3b621a8f7bcda27819ec29429f3817';
@@ -20,9 +17,17 @@ const SAMPLE_PERIOD_SECONDS = SAMPLE_PERIOD_DAYS * SECONDS_IN_A_DAY;
 const SAMPLE_PERIOD_BLOCKS = SAMPLE_PERIOD_SECONDS / SECONDS_PER_BLOCK;
 const BLOCKS_PER_YEAR = (365 * SECONDS_IN_A_DAY) / SECONDS_PER_BLOCK;
 
-const getTlxPrice = async (): Promise<number> => {
-  const reponse = await getPrices([TLX_ADDRESS], CHAIN);
-  return reponse.pricesBySymbol.tlx;
+const getTlxPrice = async (timestamp: number | null): Promise<number> => {
+  if (!timestamp) {
+    const reponse = await getPrices([TLX_ADDRESS], CHAIN);
+    return reponse.pricesBySymbol.tlx;
+  } else {
+    const id = `${CHAIN}:${TLX_ADDRESS}`;
+    const url = `https://coins.llama.fi/prices/historical/${timestamp}/${id}`;
+    const res = await fetch(url);
+    const data: any = await res.json();
+    return data.coins[id].price;
+  }
 };
 
 const getBlock = async (timestamp: number | null): Promise<number> => {
@@ -47,7 +52,7 @@ const getView = async (address: string, name: string): Promise<number> => {
 
 const apy = async (timestamp: number | null = null) => {
   // General
-  const tlxPrice = await getTlxPrice();
+  const tlxPrice = await getTlxPrice(timestamp);
   const currentBlock = await getBlock(timestamp);
 
   // Locker
