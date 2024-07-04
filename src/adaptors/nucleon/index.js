@@ -157,13 +157,31 @@ const getApy = async () => {
     requery: true,
   });
 
-  const poolsRes = [poolsRes0.output, poolsRes1.output, poolsRes2.output];
+  const poolsRes3 = await sdk.api.abi.call({
+    abi: masterChefABI.filter(({ name }) => name === 'poolInfo')[0],
+    target: MASTERCHEF_ADDRESS,
+    params: 3,
+    chain: 'conflux',
+    requery: true,
+  });
+
+  const poolsRes4 = await sdk.api.abi.call({
+    abi: masterChefABI.filter(({ name }) => name === 'poolInfo')[0],
+    target: MASTERCHEF_ADDRESS,
+    params: 4,
+    chain: 'conflux',
+    requery: true,
+  });
+
+  const poolsRes = [poolsRes0.output, poolsRes1.output, poolsRes2.output, poolsRes3.output, poolsRes4.output];
 
   const pools = poolsRes;
   const lpTokens = [
     '0xd9d5748cb36a81fe58f91844f4a0412502fd3105',
     '0x949b78ef2c8d6979098e195b08f27ff99cb20448',
     '0x2899e1bec55e7dda574e80e8ef55f17b79df2f1d',
+    '0xbeebccc7420fff17d1108ec12bbce1adc15c6b6c',
+    '0x413039955c96b7fc4e4aa61786de577c3d5c126b',
   ];
 
   const masterChefBalancesRes0 = await sdk.api.abi.call({
@@ -187,11 +205,28 @@ const getApy = async () => {
     params: MASTERCHEF_ADDRESS,
     requery: true,
   });
+  const masterChefBalancesRes3 = await sdk.api.abi.call({
+    abi: lpABI.filter(({ name }) => name === 'balanceOf')[0],
+    target: '0xbeebccc7420fff17d1108ec12bbce1adc15c6b6c',
+    chain: 'conflux',
+    params: MASTERCHEF_ADDRESS,
+    requery: true,
+  });
+  const masterChefBalancesRes4 = await sdk.api.abi.call({
+    abi: lpABI.filter(({ name }) => name === 'balanceOf')[0],
+    target: '0x413039955c96b7fc4e4aa61786de577c3d5c126b',
+    chain: 'conflux',
+    params: MASTERCHEF_ADDRESS,
+    requery: true,
+  });
+
 
   const masterChefBalancesRes = [
     masterChefBalancesRes0.output,
     masterChefBalancesRes1.output,
     masterChefBalancesRes2.output,
+    masterChefBalancesRes3.output,
+    masterChefBalancesRes4.output,
   ];
 
   const supplyRes0 = await sdk.api.abi.call({
@@ -212,8 +247,20 @@ const getApy = async () => {
     chain: 'conflux',
     requery: true,
   });
+  const supplyRes3 = await sdk.api.abi.call({
+    abi: lpABI.filter(({ name }) => name === 'totalSupply')[0],
+    target: '0xbeebccc7420fff17d1108ec12bbce1adc15c6b6c',
+    chain: 'conflux',
+    requery: true,
+  });
+  const supplyRes4 = await sdk.api.abi.call({
+    abi: lpABI.filter(({ name }) => name === 'totalSupply')[0],
+    target: '0x413039955c96b7fc4e4aa61786de577c3d5c126b',
+    chain: 'conflux',
+    requery: true,
+  });
 
-  const supplyRes = [supplyRes0.output, supplyRes1.output, supplyRes2.output];
+  const supplyRes = [supplyRes0.output, supplyRes1.output, supplyRes2.output, supplyRes3.output, supplyRes4.output];
 
   const reservesRes0 = await sdk.api.abi.call({
     abi: lpABI.filter(({ name }) => name === 'getReserves')[0],
@@ -233,11 +280,24 @@ const getApy = async () => {
     chain: 'conflux',
     requery: true,
   });
-
+  const reservesRes3 = await sdk.api.abi.call({
+    abi: lpABI.filter(({ name }) => name === 'getReserves')[0],
+    target: '0xbeebccc7420fff17d1108ec12bbce1adc15c6b6c',
+    chain: 'conflux',
+    requery: true,
+  });
+  const reservesRes4 = await sdk.api.abi.call({
+    abi: lpABI.filter(({ name }) => name === 'getReserves')[0],
+    target: '0x413039955c96b7fc4e4aa61786de577c3d5c126b',
+    chain: 'conflux',
+    requery: true,
+  });
   const reservesRes = [
     reservesRes0.output,
     reservesRes1.output,
     reservesRes2.output,
+    reservesRes3.output,
+    reservesRes4.output,
   ];
 
   const underlyingToken00 = await sdk.api.abi.call({
@@ -258,11 +318,25 @@ const getApy = async () => {
     chain: 'conflux',
     requery: true,
   });
+  const underlyingToken03 = await sdk.api.abi.call({
+    abi: lpABI.filter(({ name }) => name === 'token0')[0],
+    target: '0xbeebccc7420fff17d1108ec12bbce1adc15c6b6c',
+    chain: 'conflux',
+    requery: true,
+  });
+  const underlyingToken04 = await sdk.api.abi.call({
+    abi: lpABI.filter(({ name }) => name === 'token0')[0],
+    target: '0x413039955c96b7fc4e4aa61786de577c3d5c126b',
+    chain: 'conflux',
+    requery: true,
+  });
 
   const underlyingToken0 = [
     underlyingToken00.output,
     underlyingToken01.output,
     underlyingToken02.output,
+    underlyingToken03.output,
+    underlyingToken04.output,
   ];
 
   const underlyingToken10 = await sdk.api.abi.call({
@@ -283,11 +357,25 @@ const getApy = async () => {
     chain: 'conflux',
     requery: true,
   });
+  const underlyingToken13 = await sdk.api.abi.call({
+    abi: lpABI.filter(({ name }) => name === 'token1')[0],
+    target: '0xbeebccc7420fff17d1108ec12bbce1adc15c6b6c',
+    chain: 'conflux',
+    requery: true,
+  });
+  const underlyingToken14 = await sdk.api.abi.call({
+    abi: lpABI.filter(({ name }) => name === 'token1')[0],
+    target: '0x413039955c96b7fc4e4aa61786de577c3d5c126b',
+    chain: 'conflux',
+    requery: true,
+  });
 
   const underlyingToken1 = [
     underlyingToken10.output,
     underlyingToken11.output,
     underlyingToken12.output,
+    underlyingToken13.output,
+    underlyingToken14.output,
   ];
 
   const reservesData = reservesRes;
