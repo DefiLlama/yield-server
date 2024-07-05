@@ -35,6 +35,7 @@ const query = (chainId) => gql`
         impliedApy
         proName
         address
+        expiry
         pt {
           address
           symbol
@@ -88,6 +89,7 @@ function ptApys(pools) {
 }
 
 async function apy() {
+  const date = new Date();
   let pools = (
     await Promise.all(
       Object.keys(chains).map((c) =>
@@ -96,7 +98,7 @@ async function apy() {
     )
   )
     .flat()
-    .filter((p) => p.liquidity != null);
+    .filter((p) => p.liquidity != null && new Date(p.expiry) > date);
   pools = [poolApys(pools), ptApys(pools)]
     .flat()
     .sort((a, b) => b.tvlUsd - a.tvlUsd);
