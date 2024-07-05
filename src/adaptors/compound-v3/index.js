@@ -68,6 +68,14 @@ const markets = [
     rewardToken: '0x9e1028F5F1D5eDE59748FFceE5532509976840E0',
     chain: 'base',
   },
+  {
+    address: '0x2e44e174f7D53F0212823acC11C01A11d58c5bCB',
+    symbol: 'cUSDCv3-native',
+    underlying: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
+    underlyingSymbol: 'USDC',
+    rewardToken: '0x7e7d4467112689329f7E06571eD0E8CbAd4910eE',
+    chain: 'optimism',
+  },
 ];
 
 const main = async (pool) => {
