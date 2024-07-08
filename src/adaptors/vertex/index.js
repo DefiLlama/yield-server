@@ -10,7 +10,8 @@ const buildPool = (entry, chain) => {
     project: 'vertex',
     symbol: utils.formatSymbol(symbol),
     tvlUsd: entry.tvl,
-    apy: Number(entry.deposit_apr) * 100,
+    apyBase: Number(entry.deposit_apr) * 100,
+    apyBaseBorrow: Number(entry.borrow_apr) * 100
   };
 
   return newObj;
