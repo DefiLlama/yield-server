@@ -21,6 +21,12 @@ const chains = [
     graph:
       'https://subgraph.satsuma-prod.com/327d6f1d3de6/reserve/reserve-mainnet/api',
   },
+  {
+    chainName: 'arbitrum',
+    facade: '0x387A0C36681A22F728ab54426356F4CAa6bB48a9',
+    graph:
+      'https://subgraph.satsuma-prod.com/327d6f1d3de6/reserve/reserve-arbitrum/api',
+  },
 ];
 
 const rtokenQuery = gql`
@@ -66,10 +72,23 @@ const poolsMap = {
   'c04005c9-7e34-41a6-91c4-295834ed8ac0': 'stkcvxeusd3crv-f',
   'fa4d7ee4-0001-4133-9e8d-cf7d5d194a91': 'fusdc-vault',
   '325ad2d6-70b1-48d7-a557-c2c99a036f87': 'mrp-ausdc',
+
+  '13392973-be6e-4b2f-bce9-4f7dd53d1c3a': 'sdai',
+  'd118f505-e75f-4152-bad3-49a2dc7482bf': 'saEthPyUSD',
+  '66985a81-9c51-46ca-9977-42b4fe7bc6df': 'wsusde',
+  '74346f6f-c7ee-4506-a204-baf48e13decb': 'stkcvxETH+ETH-f',
+  '2ebf1030-f200-4318-ac72-08668265b0f0': 're7weth',
+
   // Base
   'df65c4f4-e33a-481c-bac8-0c2252867c93': 'wcusdcv3',
+  '7e0661bf-8cf3-45e6-9424-31916d4c7b84': 'sabasusdc',
   '9d09b0be-f6c2-463a-ad2c-4552b3e12bd9': 'wsgusdbc',
   '0f45d730-b279-4629-8e11-ccb5cc3038b4': 'cbeth',
+
+  //Arbitrum
+  'd9c395b9-00d0-4426-a6b3-572a6dd68e54': 'wcusdcv3',
+  'd9fa8e14-0447-4207-9ae8-7810199dfa1f': 'saarbusdcn',
+
 };
 
 const rtokenTvl = (rtoken) =>
