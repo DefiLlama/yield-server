@@ -113,20 +113,20 @@ const apyChain = async (chainProps) => {
   const poolsData = (await utils.getData('https://yields.llama.fi/pools'))
     ?.data;
 
-    const poolsInfo = (poolsData || [])
-    .filter((pool) => poolsMap[pool.pool])
-    .reduce((acc, pool) => {
-      const chain = pool.chain.toLowerCase()
-      const poolsByChain = acc[chain] || {}
-      acc[chain] = {
-        ...poolsByChain,
-        [poolsMap[pool.pool]]: {
-          yield: pool.apyMean30d || 0,
-          underlyings: pool.underlyingTokens,
-        },
-      }
-      return acc
-    })
+const poolsInfo = (poolsData || [])
+  .filter((pool) => poolsMap[pool.pool])
+  .reduce((acc, pool) => {
+    const chain = pool.chain.toLowerCase()
+    const poolsByChain = acc[chain] || {}
+    acc[chain] = {
+      ...poolsByChain,
+      [poolsMap[pool.pool]]: {
+        yield: pool.apyMean30d || 0,
+        underlyings: pool.underlyingTokens,
+      },
+    }
+    return acc
+  })
 
   const { rtokens } = await request(graph, rtokenQuery);
 
@@ -191,7 +191,7 @@ const apyChain = async (chainProps) => {
         })
         return acc
       })
-
+      
       let apyBase = BigNumber(0);
       let totalShares = BigNumber(0);
       const underlyingTokens = [];
@@ -209,6 +209,10 @@ const apyChain = async (chainProps) => {
       
         if (pool?.underlyings?.length)
           underlyingTokens.push(...pool.underlyings);
+      }
+
+      if (!totalShares.isZero()) {
+        apyBase = apyBase.div(totalShares);
       }
 
       return {
