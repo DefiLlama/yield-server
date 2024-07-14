@@ -117,8 +117,20 @@ const apyChain = async (chainProps) => {
   const poolsInfo = {};
   if (poolsData) {
     for (const pool of poolsData) {
-      if (poolsMap[pool.pool]) {
-        poolsInfo[poolsMap[pool.pool]] = {
+      if (poolsMap.Mainnet[pool.pool]) {
+        poolsInfo[poolsMap.Mainnet[pool.pool]] = {
+          yield: pool.apyMean30d || 0,
+          underlyings: pool.underlyingTokens,
+        };
+      }
+      if (poolsMap.Base[pool.pool]) {
+        poolsInfo[poolsMap.Base[pool.pool]] = {
+          yield: pool.apyMean30d || 0,
+          underlyings: pool.underlyingTokens,
+        };
+      }
+      if (poolsMap.Arbitrum[pool.pool]) {
+        poolsInfo[poolsMap.Arbitrum[pool.pool]] = {
           yield: pool.apyMean30d || 0,
           underlyings: pool.underlyingTokens,
         };
