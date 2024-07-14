@@ -126,7 +126,7 @@ const poolsInfo = (poolsData || [])
       },
     }
     return acc
-  })
+  }, {})
 
   const { rtokens } = await request(graph, rtokenQuery);
 
