@@ -23,6 +23,7 @@ const networkMapping = {
   122: 'fuse',
   128: 'heco',
   137: 'polygon',
+  169: 'manta',
   250: 'fantom',
   252: 'fraxtal',
   324: 'zksync',
@@ -71,7 +72,8 @@ const main = async () => {
       ].map((u) => getData(u))
     );
 
-  const data = [];
+  const data = {};
+  const nakedClms = {};
   for (const [chainId, tvls] of Object.entries(tvlsByChain)) {
     const llamaChain = networkMapping[chainId];
     if (!llamaChain) {
@@ -112,6 +114,8 @@ const main = async () => {
         type,
         tokenAddress,
         oracleId,
+        id,
+        version,
       } = vault;
 
       const tokenSymbols = [];
@@ -148,7 +152,7 @@ const main = async () => {
       let poolMeta = formatChain(platformId);
       poolMeta = poolDetails !== null ? `${poolMeta}-${poolDetails}` : poolMeta;
 
-      data.push({
+      data[vaultId] = {
         pool: `${earnContractAddress}-${llamaChain}`.toLowerCase(),
         chain: formatChain(llamaChain),
         project: 'beefy',
@@ -157,12 +161,35 @@ const main = async () => {
         apy: apy * 100,
         poolMeta,
         underlyingTokens,
-        url: `https://app.beefy.com/vault/${oracleId}`,
-      });
+        url: `https://app.beefy.com/vault/${id}`,
+      };
+
+      //for CLMs we need to subtract the TVL of the reward pool, else we get double counting
+      if (
+        type === 'gov' &&
+        vaultId.endsWith('-rp') &&
+        version === 2 &&
+        oracleId
+      ) {
+        nakedClms[oracleId] = vaultId;
+      }
     }
   }
 
-  return removeDuplicates(data);
+  for (const [clmId, vaultId] of Object.entries(nakedClms)) {
+    const clm = data[clmId];
+    const rewardPool = data[vaultId];
+    if (clm && rewardPool) {
+      data[clmId] = {
+        ...clm,
+        //there are some cases were some reward pools have more TVL than the naked CLM because rewards pools can have idle tokens on the strategy
+        tvlUsd:
+          clm.tvlusd < rewardPool.tvlUsd ? clm.tvlUsd - rewardPool.tvlUsd : 0,
+      };
+    }
+  }
+
+  return removeDuplicates(Object.values(data));
 };
 
 module.exports = {
