@@ -21,8 +21,8 @@ const chains = {
   10: {
     chainName: 'optimism',
     chainSlug: 'optimism',
-    PENDLE: '0xBC7B1Ff1c6989f006a1185318eD4E7b5796e66E1'
-  }
+    PENDLE: '0xBC7B1Ff1c6989f006a1185318eD4E7b5796e66E1',
+  },
 };
 
 const query = (chainId) => gql`
@@ -67,7 +67,7 @@ function poolApys(pools) {
     rewardTokens: [chains[p.chainId].PENDLE],
     underlyingTokens: [p.pt.address, p.sy.address],
     poolMeta: `For LP | Maturity ${p.pt.symbol.split('-').at(-1)}`,
-    url: `https://app.pendle.finance/simple/pools/${p.address}?chain=${
+    url: `https://app.pendle.finance/trade/pools/${p.address}/zap/in?chain=${
       chains[p.chainId].chainSlug
     }`,
   }));
@@ -82,9 +82,9 @@ function ptApys(pools) {
     apyBase: p.impliedApy * 100,
     underlyingTokens: [p.sy.underlyingAsset.address],
     poolMeta: `For buying ${p.pt.symbol}`,
-    url: `https://app.pendle.finance/simple/discounted-assets/${
+    url: `https://app.pendle.finance/trade/markets/${
       p.address
-    }?chain=${chains[p.chainId].chainSlug}`,
+    }/swap?view=pt&chain=${chains[p.chainId].chainSlug}&py=output`,
   }));
 }
 
