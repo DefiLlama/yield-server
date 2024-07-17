@@ -135,6 +135,7 @@ const excludeAdaptors = [
   'auragi-finance',
   'notional-v2',
   'stablebase',
+  'hedgefarm',
 ];
 
 const excludePools = [
