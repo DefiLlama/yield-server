@@ -146,6 +146,7 @@ const getMarkets = async (chain) => {
         indexToken: market.indexToken,
       };
 
+      if (!tickers[market.longToken?.toLowerCase()]) return null;
       const min = (
         await sdk.api.abi.call({
           target: CONTRACTS[chain].syntheticsReader, // synthetix,
@@ -244,7 +245,7 @@ const getMarkets = async (chain) => {
       const shortSymbol =
         tickers[market.shortToken.toLowerCase()]?.data?.tokenSymbol;
 
-      const tvlUsd = parseFloat(marketData.tvl);
+      const tvlUsd = parseFloat(marketData?.tvl);
 
       let apyReward;
       if (rewards) {
