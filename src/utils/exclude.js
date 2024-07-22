@@ -126,7 +126,6 @@ const excludeAdaptors = [
   'kagla-finance',
   'plenty',
   'platypus-finance',
-  'stakedao', // completely broken api
   'biswap-v2',
   'burrow',
   'raydium',
