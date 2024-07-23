@@ -11,27 +11,29 @@ const toSentenceCase = (str) => {
 };
 
 const poolsFunction = async () => {
-
   const query = gql`
-   {
-    allPools {
-      pool
-      chain
-      project
-      symbol
-      tvlUsd
-      apyBase
-      apyReward
-      rewardTokens
-      underlyingTokens
-      poolMeta
-      url
-      apyBaseBorrow
+    {
+      allPools {
+        pool
+        chain
+        project
+        symbol
+        tvlUsd
+        apyBase
+        apyReward
+        rewardTokens
+        underlyingTokens
+        poolMeta
+        url
+        apyBaseBorrow
+      }
     }
-  }
-`;
-  const result = await request ('https://squid.subsquid.io/cpool-squid/v/v1/graphql', query);
-  let pools = []
+  `;
+  const result = await request(
+    'https://squid.subsquid.io/cpool-squid/v/v1/graphql',
+    query
+  );
+  let pools = [];
   if (result && result.allPools) {
     result.allPools.map((pool) => {
       let chainName;
@@ -49,9 +51,12 @@ const poolsFunction = async () => {
       pools.push(pool);
     });
   }
-  
-  return pools.map(i => ({...i, pool: i.pool.replace('-mainnet', '-ethereum')}))
 
+  return pools.map((i) => ({
+    ...i,
+    pool: i.pool.replace('-mainnet', '-ethereum'),
+    project: 'clearpool-lending',
+  }));
 };
 
 module.exports = {

@@ -23,6 +23,7 @@ const networkMapping = {
   122: 'fuse',
   128: 'heco',
   137: 'polygon',
+  169: 'manta',
   250: 'fantom',
   252: 'fraxtal',
   324: 'zksync',
@@ -157,7 +158,7 @@ const main = async () => {
         apy: apy * 100,
         poolMeta,
         underlyingTokens,
-        url: `https://app.beefy.com/vault/${oracleId}`,
+        url: `https://app.beefy.com/vault/${vaultId}`,
       });
     }
   }

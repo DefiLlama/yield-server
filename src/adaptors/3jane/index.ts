@@ -5,36 +5,9 @@ const utils = require('../utils');
 const SUBGRAPH_URL =
   'https://api.goldsky.com/api/public/project_clvvvr5shxt6301t7b2zn04ii/subgraphs/3jane/1.4.2/gn';
 
-function apyToApr(interest, frequency) {
-  return ((1 + interest / 100) ** (1 / frequency) - 1) * frequency * 100;
-}
-
-const getNWeekApy = (perf, weekN) => {
-  return (
-    ((1 +
-      (perf[weekN]?.pricePerShare - perf[weekN - 1]?.pricePerShare) /
-        perf[weekN - 1]?.pricePerShare) **
-      52 -
-      1) *
-    100
-  );
+const annualizedWeeklyYield = (yieldPercent: number) => {
+  return (yieldPercent + 1) ** 52 - 1;
 };
-
-const PerfQuery = gql`
-  query PerfQuery($id: ID = "") {
-    vaultPerformanceUpdates(orderBy: round, where: { vault_: { id: $id } }) {
-      pricePerShare
-      round
-      id
-      timestamp
-      vault {
-        id
-        underlyingSymbol
-        totalBalance
-      }
-    }
-  }
-`;
 
 const VaultsQuery = gql`
   query VaultsQuery {
@@ -84,7 +57,7 @@ const poolsFunction = async () => {
         (trade) => Number(trade.premium) / Number(trade.vault.totalBalance)
       )
     );
-    const apyBase = avgWeeklyRet * 52;
+    const apyBase = annualizedWeeklyYield(avgWeeklyRet);
 
     const price = prices[vault.underlyingAsset];
 

@@ -4,7 +4,6 @@ const utils = require('../utils');
 
 const { farmAbi, pairAbi } = require('./abi');
 const { vstFraxStaking } = require('./vstFraxStaking');
-const { getERC4626Info } = require('../../helper/erc4626');
 
 const FRAXSWAP_POOLS_URL = 'https://api.frax.finance/v2/fraxswap/pools';
 const STAKING_URL = 'https://api.frax.finance/v1/pools';
@@ -22,13 +21,14 @@ const STAKING_CONTRACTS = {
 };
 
 const apy = async (timestamp) => {
-  const sfrax = await getERC4626Info(
+  const sfrax = await utils.getERC4626Info(
     '0xA663B02CF0a4b149d2aD41910CB81e23e1c41c32',
     'ethereum',
     timestamp
   );
+  const { tvl, ...rest } = sfrax;
   const sfraxvault = {
-    ...sfrax,
+    ...rest,
     project: 'frax',
     symbol: `sFRAX`,
     tvlUsd: sfrax.tvl / 1e18,

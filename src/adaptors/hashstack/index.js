@@ -3,7 +3,7 @@ const { uint256 } = require('starknet');
 const { call } = require('../../helper/starknet');
 const { metricsAbi } = require('./abis/metricsAbi');
 const { default: BigNumber } = require('bignumber.js');
-
+const { erc20abi } = require('./abis/erc20abi');
 const oracle =
   '0x07b05e8dc9c770b72befcf09599132093cf9e57becb2d1b3e89514e1f9bdf0ab';
 
@@ -160,7 +160,102 @@ const getTokenPrice = async (token) => {
 
 const market= '0x548f38cb45720a101a1ec2edfaf608b47d2b39d137d0d3134087315f1b5f4a5'
 
+async function getSpendBalances() {
+  const marketStats=[];
+
+  try {
+    const promises = [];
+    for (let i = 0; i < TOKENS?.length; ++i) {
+      const token = TOKENS[i];
+
+      const res=call({
+        abi:erc20abi?.balanceOf,
+        target:token?.address,
+        params:[token?.dToken],
+        allAbi:[],
+      })
+
+      promises.push(res);
+    }
+
+    return new Promise((resolve, _) => {
+      Promise.allSettled([...promises]).then((val) => {
+        const results = val.map((stat, idx) => {
+          if (
+            stat?.status == "fulfilled" &&
+            stat?.value 
+          ) {
+            return {
+              token: TOKENS[idx]?.name,
+              balance: 
+              BigNumber(stat?.value).div(BigNumber(`1e${TOKENS[idx]?.decimals}`)).toNumber(),
+            };
+          } else return marketStats;
+        });
+        resolve(results);
+      });
+    });
+  } catch (e) {
+    return marketStats;
+  }
+}
+
+async function netStrkBorrow(){
+  let netstrk=0;
+  let strkData=await getStarknetFoundationIncentives();
+    if (strkData != null) {
+      let netallocation = 0
+      for (let token in strkData) {
+        if (strkData.hasOwnProperty(token)) {
+          const array = strkData[token]
+          const lastObject = array[array.length - 1]
+          netallocation += 0.3 * (lastObject?.allocation ?lastObject?.allocation:0)
+        }
+      }
+      netstrk=netallocation
+    } else {
+      netstrk=0
+    }
+    return netstrk;
+}
+
+async function getStarknetFoundationIncentives() {
+  const { data } = await axios.get(starknetFoundationIncentivesEndpoint);
+  return data['Hashstack'];
+}
+
+async function netSpendbalance(){
+  let netbalance = 0;
+  const spendBalances=await getSpendBalances();
+  for(var i=0;i<spendBalances.length;i++){
+    const priceInUsd = await getTokenPrice(TOKENS[i]?.address);
+    const res = await call({
+      abi: metricsAbi?.get_protocol_stats,
+      target:
+        market,
+      params: [TOKENS[i]?.address],
+      allAbi: [],
+    });
+    if(res && priceInUsd ){
+      if(TOKENS[i]?.name==="BTC" || TOKENS[i]?.name==="DAI"){
+        let value = 0
+        netbalance += value
+      }else{
+        let value=(BigNumber(res?.total_borrow.toString()).div(BigNumber(`1e${TOKENS[i]?.decimals}`))-spendBalances[i].balance)*priceInUsd
+        netbalance += value
+      }
+    }
+  }
+  TOKENS.map(async(token,i)=>{
+  })
+  return netbalance
+}
+
 async function apy() {
+  const incentives = await getStarknetFoundationIncentives();
+  const strkPrice=await getTokenPrice('0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d')
+  const netSpendBalance=await  netSpendbalance();
+  const netsrtkborrow=await netStrkBorrow();
   const promises = 
     TOKENS.map(async (token, i) => {
       const priceInUsd = await getTokenPrice(token?.address);
@@ -177,6 +272,7 @@ async function apy() {
       const totalSupply=BigNumber(res?.total_supply.toString()).div(BigNumber(`1e${token.decimals}`))
       const totalSupplyUsd=totalSupply.times(priceInUsd);
       const totalBorrowUsd=totalDebt.times(priceInUsd);
+      const tokenIncentive = incentives[token.name];
       return{
         pool:`${token?.dToken.toLowerCase()}`,
         chain:'Starknet',
@@ -184,16 +280,25 @@ async function apy() {
         symbol:token?.name,
         tvlUsd:totalSupplyUsd.toNumber(),
         apyBase:supply_rate,
+        apyReward:
+            tokenIncentive && tokenIncentive.length > 0
+              ? 365 *
+              100  *
+                tokenIncentive[tokenIncentive.length - 1]['allocation']*0.7*strkPrice/ tokenIncentive[tokenIncentive.length - 1]['supply_usd']
+              : 0,
+        rewardTokens:tokenIncentive ? ['0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d']:[],
         apyBaseBorrow:borrow_rate,
+        apyRewardBorrow:tokenIncentive && tokenIncentive.length > 0
+        ?netsrtkborrow*365*100*strkPrice/netSpendBalance:0,
         underlyingTokens:[token?.address],
         totalSupplyUsd:totalSupplyUsd.toNumber(),
         totalBorrowUsd:totalBorrowUsd.toNumber(),
-        url:`https://app.hashstack.finance/market`
+        url:`https://app.hashstack.finance/v1/market`
       }
     })
   return Promise.all(promises)
 }
-
+apy()
 module.exports = {
   apy,
   url: 'https://app.hashstack.finance',
