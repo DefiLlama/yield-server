@@ -135,6 +135,7 @@ const excludeAdaptors = [
   'notional-v2',
   'stablebase',
   'hedgefarm',
+  'vendor-v2',
 ];
 
 const excludePools = [
