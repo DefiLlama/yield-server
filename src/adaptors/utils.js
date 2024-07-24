@@ -22,6 +22,7 @@ exports.formatChain = (chain) => {
   )
     return 'zkSync Era';
   if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
+  if (chain && chain.toLowerCase() === 'real') return 're.al';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
