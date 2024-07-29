@@ -150,7 +150,7 @@ const poolsFunction = async () => {
     };
 
     const VelaPool = {
-      pool: `${VAULT_ADDRESS}-${chain}`.toLowerCase(),
+      pool: `${TOKEN_FARM_ADDRESS[chain]}-${chain}`.toLowerCase(),
       chain: utils.formatChain(`${chain}`),
       project: 'vela-exchange',
       symbol: 'USDC',
