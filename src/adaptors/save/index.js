@@ -76,7 +76,7 @@ const main = async () => {
     return {
       pool: reserveConfig.address,
       chain: utils.formatChain('solana'),
-      project: 'solend',
+      project: 'save',
       symbol: `${reserveConfig.liquidityToken.symbol}`,
       poolMeta: secondaryString,
       tvlUsd,

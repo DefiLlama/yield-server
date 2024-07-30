@@ -296,7 +296,7 @@ const getApy = async (chain) => {
     poolsApy.push({
       pool: `${pool.lpToken}-${CONFIG[chain].LLAMA_NAME}`.toLowerCase(),
       chain: CONFIG[chain].LLAMA_NAME,
-      project: 'stargate',
+      project: 'stargate-v1',
       symbol: `${pool.lpTokenSymbol}`,
       tvlUsd: reserveUSD,
       apyReward: apy,

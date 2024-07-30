@@ -156,6 +156,7 @@ const getApy = async (chain) => {
       ltv: poolsReservesConfigurationData[i].ltv / 10000,
       url,
       borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
+      mintedCoin: pool.symbol === 'GHO' ? 'GHO' : null,
     };
   });
 };
