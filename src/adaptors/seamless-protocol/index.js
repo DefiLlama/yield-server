@@ -261,14 +261,12 @@ const lendingPoolsApy = async () => {
   return pools.flat().filter((p) => utils.keepFinite(p));
 };
 
-const getLpPrices = async (blockNumber, assets, decimals) => {
-  const allILMs = await getAllILMs();
-
+const getLpPrices = async (blockNumber, ilms, assets, decimals) => {
   const equityUSD = (
     await sdk.api.abi.multiCall({
       chain,
       abi: loopStrategyAbi.find(({ name }) => name === 'equityUSD'),
-      calls: allILMs.map((address) => ({ target: address })),
+      calls: ilms.map((address) => ({ target: address })),
       block: blockNumber,
     })
   ).output.map(({ output }) => output);
@@ -277,7 +275,7 @@ const getLpPrices = async (blockNumber, assets, decimals) => {
     await sdk.api.abi.multiCall({
       chain,
       abi: loopStrategyAbi.find(({ name }) => name === 'totalSupply'),
-      calls: allILMs.map((address) => ({ target: address })),
+      calls: ilms.map((address) => ({ target: address })),
       block: blockNumber,
     })
   ).output.map(({ output }) => output);
@@ -348,16 +346,19 @@ const ilmApys = async () => {
 
   const latestBlockPrices = await getLpPrices(
     latestBlock.number,
+    allILMs,
     assets,
     decimals
   );
   const prevBlock1DayPrices = await getLpPrices(
     prevBlock1Day.number,
+    allILMs,
     assets,
     decimals
   );
   const prevBlock7DayPrices = await getLpPrices(
     prevBlock7Day.number,
+    allILMs,
     assets,
     decimals
   );
