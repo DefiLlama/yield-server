@@ -15,6 +15,7 @@ const LQTY = '0x6DEA81C8171D0bA574754EF6F8b412F2Ed88c54D';
 const WSTETH = '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0';
 
 const QUARTZ = '0xbA8A621b4a54e61C442F5Ec623687e2a942225ef';
+const STAKED_QUARTZ = '0x0A36F9565c6FB862509aD8d148941968344a55D8';
 
 const STABILITY_POOL = '0x66017D22b0f8556afDd19FC67041899Eb65a21bb';
 const PRICE_CONVERTER = '0xD76B0Ff4A487CaFE4E19ed15B73f12f6A92095Ca';
@@ -24,7 +25,7 @@ const chain = 'ethereum';
 const DECIMALS = new BigNumber((1e18).toString());
 const USDC_DECIMALS = new BigNumber(1e6).toString();
 
-const COINS = [LUSD, USDC, WETH, LQTY];
+const COINS = [LUSD, USDC, WETH, LQTY, QUARTZ];
 
 const vaultMeta = {
   // it has to be string literal keys
@@ -48,9 +49,11 @@ const vaultMeta = {
 const apy = async () => {
   const prices = await getPrices(COINS);
 
-  return await Promise.all(
+  const strategyApys = await Promise.all(
     [AMBER, OPAL, EMERALD].map((vault) => calcErc4626PoolApy(vault, prices))
   );
+  const stakingApy = await calcQuartzStakingApy(prices);
+  return [...strategyApys, stakingApy];
 };
 
 async function getPrices(addresses) {
@@ -270,6 +273,39 @@ async function getSharePrice(assets, shares) {
 
 async function callAbi(target, abi, params, block = 'latest') {
   return (await sdk.api.abi.call({ target, abi, params, block, chain })).output;
+}
+
+async function calcQuartzStakingApy(prices) {
+  const stakedQuartz = await balanceOf(QUARTZ, STAKED_QUARTZ);
+  const quartzPrice = prices[QUARTZ.toLowerCase()];
+  const tvlUsd = new BigNumber(stakedQuartz.toString())
+    .multipliedBy(quartzPrice)
+    .div(DECIMALS)
+    .toNumber();
+  const rewardRate = await callAbi(STAKED_QUARTZ, abi.rewardRate, null);
+  const supply = await totalSupply(STAKED_QUARTZ);
+  const annualRewardUsd = new BigNumber(rewardRate.toString())
+    .multipliedBy(365 * 24 * 60 * 60)
+    .multipliedBy(prices[WETH.toLowerCase()])
+    .div(supply);
+  const apyReward = annualRewardUsd
+    .multipliedBy(100)
+    .div(quartzPrice)
+    .toNumber();
+  return {
+    pool: `${STAKED_QUARTZ}-${chain}`,
+    chain,
+    project: 'sandclock',
+    symbol: 'QUARTZ',
+    tvlUsd,
+    underlyingTokens: [QUARTZ],
+    rewardTokens: [WETH],
+    apyBase: 0,
+    apyBase7d: 0,
+    apyReward,
+    poolMeta: 'Staked Quartz',
+    url: 'https://app.sandclock.org/',
+  };
 }
 
 module.exports = {
