@@ -29,9 +29,9 @@ const ADDRESSES = {
 const CHAIN_TO_ID = {
   ethereum: 1,
   optimism: 10,
-  polygon: 137,
+  // polygon: 137,
   arbitrum: 42161,
-  bsc: 56,
+  // bsc: 56,
 };
 
 // returns a list of vaults, see https://github.com/Popcorn-Limited/defi-db/blob/main/archive/vaults/1.json

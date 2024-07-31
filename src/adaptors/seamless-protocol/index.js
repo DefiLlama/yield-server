@@ -27,7 +27,9 @@ const ILMs = [
 const ORACLE_ADDRESS = '0xFDd4e83890BCcd1fbF9b10d71a5cc0a738753b01';
 
 const API_URLS = {
-  base: 'https://api.thegraph.com/subgraphs/name/seamless-protocol/seamless-base',
+  base: sdk.graph.modifyEndpoint(
+    'BnWcGhtmV4gi3VgYvabXCNhiZYMEyUAoWEZ7KEa8CJLW'
+  ),
 };
 
 const getAssetPriceAbi = {
@@ -298,7 +300,7 @@ const ilmApys = async () => {
     { chain }
   );
   const prevBlock7Day = await sdk.api.util.lookupBlock(
-    latestBlock.timestamp - (7 * SECONDS_PER_DAY),
+    latestBlock.timestamp - 7 * SECONDS_PER_DAY,
     { chain }
   );
 
@@ -339,8 +341,16 @@ const ilmApys = async () => {
     assets,
     decimals
   );
-  const prevBlock1DayPrices = await getLpPrices(prevBlock1Day.number, assets, decimals);
-  const prevBlock7DayPrices = await getLpPrices(prevBlock7Day.number, assets, decimals);
+  const prevBlock1DayPrices = await getLpPrices(
+    prevBlock1Day.number,
+    assets,
+    decimals
+  );
+  const prevBlock7DayPrices = await getLpPrices(
+    prevBlock7Day.number,
+    assets,
+    decimals
+  );
 
   const pools = ILMs.map(({ address, compoundingPeriods }, i) => {
     return {

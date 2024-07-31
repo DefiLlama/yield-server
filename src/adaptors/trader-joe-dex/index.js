@@ -5,7 +5,7 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const abi_masterchef = require('./abi_masterchef');
 
-const url = 'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/exchange';
+const url = sdk.graph.modifyEndpoint('9ZjERoA7jGANYNz1YNuFMBt11fK44krveEhzssJTWokM');
 const masterchef = '0x4483f0b6e2F5486D06958C20f8C39A7aBe87bf8F';
 
 const JOE_TOKEN = '0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd';

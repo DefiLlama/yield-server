@@ -1,21 +1,32 @@
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const utils = require('../utils');
 const { EstimatedFees } = require('./estimateFee.ts');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 
-const baseUrl = 'https://api.thegraph.com/subgraphs/name';
 const chains = {
-  ethereum: `${baseUrl}/uniswap/uniswap-v3`,
-  polygon: `https://gateway-arbitrum.network.thegraph.com/api/a265c39f5a123ab2d40b25dc352adc22/subgraphs/id/3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm`,
-  arbitrum: `https://api.thegraph.com/subgraphs/id/QmZ5uwhnwsJXAQGYEF8qKPQ85iVhYAcVZcZAPfrF7ZNb9z`,
-  optimism: `${baseUrl}/ianlapham/optimism-post-regenesis`,
-  celo: `${baseUrl}/jesse-sawa/uniswap-celo`,
-  avax: `${baseUrl}/lynnshaoyu/uniswap-v3-avax`,
-  bsc: `${baseUrl}/ianlapham/uniswap-v3-bsc`,
+  ethereum: sdk.graph.modifyEndpoint(
+    '5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV'
+  ),
+  polygon: sdk.graph.modifyEndpoint(
+    '3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm'
+  ),
+  arbitrum: sdk.graph.modifyEndpoint(
+    'FbCGRftH4a3yZugY7TnbYgPJVEv2LvMT6oF1fxPe9aJM'
+  ),
+  optimism: sdk.graph.modifyEndpoint(
+    '7SVwgBfXoWmiK6x1NF1VEo1szkeWLniqWN1oYsX3UMb5'
+  ),
+  celo: sdk.graph.modifyEndpoint(
+    '5GMxLtvwbfKxyCpSgHvS8FbeofS2ry9K76NL9RCzPNm2'
+  ),
+  avax: sdk.graph.modifyEndpoint(
+    'GVH9h9KZ9CqheUEL93qMbq7QwgoBu32QXQDPR6bev4Eo'
+  ),
+  bsc: sdk.graph.modifyEndpoint('GcKPSgHoY42xNYVAkSPDhXSzi6aJDRQSKqBSXezL47gV'),
   base: 'https://api.studio.thegraph.com/query/48211/uniswap-v3-base/version/latest',
 };
 
@@ -177,63 +188,108 @@ const topLvl = async (
       utils.apy(el, dataPrior, dataPrior7d, version)
     );
 
-    if (chainString !== 'arbitrum') {
+    const enableV3Apy = true;
+    if (enableV3Apy && chainString !== 'arbitrum') {
       dataNow = dataNow.map((p) => ({
         ...p,
         token1_in_token0: p.price1 / p.price0,
       }));
 
-      // split up subgraph tick calls into n-batches
-      // (tick response can be in the thousands per pool)
-      const skip = 20;
-      let start = 0;
-      let stop = skip;
-      const pages = Math.floor(dataNow.length / skip);
+      // batching the tick query into 3 chunks to prevent it from breaking
+      const nbBatches = 3;
+      const chunkSize = Math.ceil(dataNow.length / nbBatches);
+      const chunks = [
+        dataNow.slice(0, chunkSize).map((i) => i.id),
+        dataNow.slice(chunkSize, chunkSize * 2).map((i) => i.id),
+        dataNow.slice(chunkSize * 2, dataNow.length).map((i) => i.id),
+      ];
+
+      const tickData = {};
+      // we fetch 3 pages for each pool
+      for (const page of [0, 1, 2]) {
+        console.log(`page nb: ${page}`);
+        let pageResults = {};
+        for (const chunk of chunks) {
+          console.log(chunk.length);
+          const tickQuery = `
+          query {
+            ${chunk
+              .map(
+                (poolAddress, index) => `
+              pool_${poolAddress}: ticks(
+                first: 1000,
+                skip: ${page * 1000},
+                where: { poolAddress: "${poolAddress}" },
+                orderBy: tickIdx
+              ) {
+                tickIdx
+                liquidityNet
+                price0
+                price1
+              }
+            `
+              )
+              .join('\n')}
+          }
+        `;
+
+          try {
+            const response = await request(url, tickQuery);
+            pageResults = { ...pageResults, ...response };
+          } catch (err) {
+            console.log(err);
+          }
+        }
+        tickData[`page_${page}`] = pageResults;
+      }
+
+      // reformat tickData
+      const ticks = {};
+      Object.values(tickData).forEach((page) => {
+        Object.entries(page).forEach(([pool, values]) => {
+          if (!ticks[pool]) {
+            ticks[pool] = [];
+          }
+          ticks[pool] = ticks[pool].concat(values);
+        });
+      });
+
+      // assume an investment of 1e5 USD
+      const investmentAmount = 1e5;
 
       // tick range
       const pct = 0.3;
       const pctStablePool = 0.001;
 
-      // assume an investment of 1e5 USD
-      const investmentAmount = 1e5;
-      let X = [];
-      for (let i = 0; i <= pages; i++) {
-        console.log(i);
-        let promises = dataNow.slice(start, stop).map((p) => {
-          const delta = p.stablecoin ? pctStablePool : pct;
+      dataNow = dataNow.map((p) => {
+        const poolTicks = ticks[`pool_${p.id}`] ?? [];
 
-          const priceAssumption = p.stablecoin ? 1 : p.token1_in_token0;
+        if (!poolTicks.length) {
+          console.log(`No pool ticks found for ${p.id}`);
+          return { ...p, estimatedFee: null, apy7d: null };
+        }
 
-          return EstimatedFees(
-            p.id,
-            priceAssumption,
-            [
-              p.token1_in_token0 * (1 - delta),
-              p.token1_in_token0 * (1 + delta),
-            ],
-            p.price1,
-            p.price0,
-            investmentAmount,
-            p.token0.decimals,
-            p.token1.decimals,
-            p.feeTier,
-            url,
-            p.volumeUSD7d
-          );
-        });
-        X.push(await Promise.all(promises));
-        start += skip;
-        stop += skip;
-      }
-      const d = {};
-      X.flat().forEach((p) => {
-        d[p.poolAddress] = p.estimatedFee;
+        const delta = p.stablecoin ? pctStablePool : pct;
+
+        const priceAssumption = p.stablecoin ? 1 : p.token1_in_token0;
+
+        const estimatedFee = EstimatedFees(
+          priceAssumption,
+          [p.token1_in_token0 * (1 - delta), p.token1_in_token0 * (1 + delta)],
+          p.price1,
+          p.price0,
+          investmentAmount,
+          p.token0.decimals,
+          p.token1.decimals,
+          p.feeTier,
+          p.volumeUSD7d,
+          poolTicks
+        );
+
+        const apy7d = ((estimatedFee * 52) / investmentAmount) * 100;
+
+        return { ...p, estimatedFee, apy7d };
       });
-
-      dataNow = dataNow.map((p) => ({
-        ...p,
-        apy7d: ((d[p.id] * 52) / investmentAmount) * 100,
-      }));
     }
 
     return dataNow.map((p) => {
@@ -278,10 +334,10 @@ const topLvl = async (
 
 const main = async (timestamp = null) => {
   const stablecoins = (
-    await superagent.get(
+    await axios.get(
       'https://stablecoins.llama.fi/stablecoins?includePrices=true'
     )
-  ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
+  ).data.peggedAssets.map((s) => s.symbol.toLowerCase());
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
 

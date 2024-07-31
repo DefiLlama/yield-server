@@ -7,8 +7,7 @@ const {
 } = require('ethers');
 const abi = require('./abi');
 
-const GRAPH_URL =
-  'https://api.thegraph.com/subgraphs/name/rocifi/rocifi-matic-lending-v2';
+const GRAPH_URL = sdk.graph.modifyEndpoint('42Yjxm8KTaBKfnzycNEhizZxd8jDfgnH9F5kWkzBikAq');
 
 const chain = 'polygon';
 

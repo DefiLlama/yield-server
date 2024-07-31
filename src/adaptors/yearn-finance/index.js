@@ -29,7 +29,11 @@ const getApy = async () => {
           project: 'yearn-finance',
           symbol: utils.formatSymbol(p.token.display_symbol),
           tvlUsd: p.tvl.tvl,
-          apyBase: p.apr.netAPR * 100,
+          apyBase:
+            // weeth on arbitrum use forward apr instead
+            p.address === '0x044E75fCbF7BD3f8f4577FF317554e9c0037F145'
+              ? p.apr.forwardAPR.netAPR * 100
+              : p.apr.netAPR * 100,
           apyReward,
           rewardTokens:
             apyReward > 0 ? ['0x4200000000000000000000000000000000000042'] : [],

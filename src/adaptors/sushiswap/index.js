@@ -12,18 +12,25 @@ const { minichefV2 } = require('./abiMinichefV2');
 const { rewarderABI } = require('./abiRewarder');
 
 // exchange urls
-const baseUrl = 'https://api.thegraph.com/subgraphs/name/sushiswap';
-const urlEthereum = `${baseUrl}/exchange`;
-const urlArbitrum = `${baseUrl}/arbitrum-exchange`;
-const urlPolygon = `${baseUrl}/matic-exchange`;
-const urlAvalanche = `${baseUrl}/avalanche-exchange`;
+const urlEthereum = sdk.graph.modifyEndpoint(
+  '6NUtT5mGjZ1tSshKLf5Q3uEEJtjBZJo1TpL5MXsUBqrT'
+);
+const urlArbitrum = sdk.graph.modifyEndpoint(
+  '8nFDCAhdnJQEhQF3ZRnfWkJ6FkRsfAiiVabVn4eGoAZH'
+);
+const urlPolygon = sdk.graph.modifyEndpoint(
+  '8NiXkxLRT3R22vpwLB4DXttpEf3X1LrKhe4T1tQ3jjbP'
+);
+const urlAvalanche = sdk.graph.modifyEndpoint(
+  '6VAhbtW5u2sPYkJKAcMsxgqTBu4a1rqmbiVQWgtNjrvT'
+);
 
 // LM reward urls
-const baseUrlLm = 'https://api.thegraph.com/subgraphs/name';
-const urlMc1 = `${baseUrlLm}/sushiswap/master-chef`;
-const urlMc2 = `${baseUrlLm}/sushiswap/master-chefv2`;
-const urlMcArbitrum = `${baseUrlLm}/sushiswap/arbitrum-minichef`;
-const urlMcPolygon = `${baseUrlLm}/sushiswap/matic-minichef`;
+const urlMc2 = sdk.graph.modifyEndpoint(
+  'FAa1YU79pPDUKj8vtkUPZGzCcPVS6Edg1md5LsRHSKWb'
+);
+const urlMcArbitrum = sdk.graph.modifyEndpoint('sushiswap/arbitrum-minichef');
+const urlMcPolygon = sdk.graph.modifyEndpoint('sushiswap/matic-minichef');
 
 // sushi token
 const SUSHI = {
@@ -455,8 +462,8 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
 const main = async () => {
   let data = await Promise.all([
     topLvl('ethereum', urlEthereum, urlMc2, 1),
-    topLvl('arbitrum', urlArbitrum, urlMcArbitrum, 42161),
-    topLvl('polygon', urlPolygon, urlMcPolygon, 137),
+    topLvl('arbitrum', urlArbitrum, null, 42161),
+    topLvl('polygon', urlPolygon, null, 137),
     topLvl('avalanche', urlAvalanche, null, 43114),
   ]);
 

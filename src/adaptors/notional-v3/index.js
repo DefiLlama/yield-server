@@ -11,9 +11,9 @@ const NOTE_Mainnet = '0xCFEAead4947f0705A14ec42aC3D44129E1Ef3eD5';
 
 const SUBGRAPHS = {
   arbitrum:
-    'https://api.studio.thegraph.com/query/36749/notional-v3-arbitrum/version/latest',
+    'https://api.studio.thegraph.com/query/60626/notional-v3-arbitrum/version/latest',
   ethereum:
-    'https://api.studio.thegraph.com/query/36749/notional-v3-mainnet/version/latest',
+    'https://api.studio.thegraph.com/query/60626/notional-v3-mainnet/version/latest',
 };
 
 const query = gql`

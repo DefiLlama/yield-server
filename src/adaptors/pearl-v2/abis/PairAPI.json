@@ -1,0 +1,1113 @@
+[
+  {
+    "inputs": [],
+    "name": "T",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "version",
+        "type": "uint8"
+      }
+    ],
+    "name": "Initialized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "oldOwner",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "Owner",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "oldVoter",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "newVoter",
+        "type": "address"
+      }
+    ],
+    "name": "Voter",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "MAX_EPOCHS",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MAX_REWARDS",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "WEEK",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_user",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_amounts",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_offset",
+        "type": "uint256"
+      }
+    ],
+    "name": "getAllPair",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "enum IPearlV2PoolAPI.Version",
+            "name": "version",
+            "type": "uint8"
+          },
+          {
+            "internalType": "address",
+            "name": "pair_address",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "box_address",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "box_manager_address",
+            "type": "address"
+          },
+          {
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "decimals",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "token0",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token1",
+            "type": "address"
+          },
+          {
+            "internalType": "uint24",
+            "name": "fee",
+            "type": "uint24"
+          },
+          {
+            "internalType": "string",
+            "name": "token0_symbol",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "token0_decimals",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "token1_symbol",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "token1_decimals",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "total_supply",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "total_supply0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "total_supply1",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint128",
+            "name": "total_liquidity",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint160",
+            "name": "sqrtPriceX96",
+            "type": "uint160"
+          },
+          {
+            "internalType": "int24",
+            "name": "tick",
+            "type": "int24"
+          },
+          {
+            "internalType": "address",
+            "name": "gauge",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "gauge_alm",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gauge_alm_total_supply",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "gauge_fee",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gauge_fee_claimable0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gauge_fee_claimable1",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "bribe",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "emissions",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "emissions_token",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "emissions_token_decimals",
+            "type": "uint256"
+          },
+          {
+            "internalType": "int24",
+            "name": "alm_lower",
+            "type": "int24"
+          },
+          {
+            "internalType": "int24",
+            "name": "alm_upper",
+            "type": "int24"
+          },
+          {
+            "internalType": "uint256",
+            "name": "alm_total_supply0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "alm_total_supply1",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "alm_staked_supply0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "alm_staked_supply1",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint128",
+            "name": "alm_total_liquidity",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_balance",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_amount0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_amount1",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_alm",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_alm_staked",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_alm_amount0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_alm_amount1",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_alm_staked_amount0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_alm_staked_amount1",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_alm_earned",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_alm_claimable0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_alm_claimable1",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_token0_balance",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_token1_balance",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_gauge_balance",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "tokenId",
+                "type": "uint256"
+              },
+              {
+                "internalType": "int24",
+                "name": "tickLower",
+                "type": "int24"
+              },
+              {
+                "internalType": "int24",
+                "name": "tickUpper",
+                "type": "int24"
+              },
+              {
+                "internalType": "uint128",
+                "name": "liquidity",
+                "type": "uint128"
+              },
+              {
+                "internalType": "uint256",
+                "name": "amount0",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "amount1",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "fee_amount0",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "fee_amount1",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "earned",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bool",
+                "name": "isStaked",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct IPearlV2PoolAPI.PositionInfo[]",
+            "name": "account_positions",
+            "type": "tuple[]"
+          }
+        ],
+        "internalType": "struct IPearlV2PoolAPI.PairInfo[]",
+        "name": "pairs",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_pair",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "tokenIds",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "getGaugeTVL",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "amount0",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount1",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_pair",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_account",
+        "type": "address"
+      },
+      {
+        "internalType": "uint8",
+        "name": "_version",
+        "type": "uint8"
+      }
+    ],
+    "name": "getPair",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "enum IPearlV2PoolAPI.Version",
+            "name": "version",
+            "type": "uint8"
+          },
+          {
+            "internalType": "address",
+            "name": "pair_address",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "box_address",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "box_manager_address",
+            "type": "address"
+          },
+          {
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "decimals",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "token0",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token1",
+            "type": "address"
+          },
+          {
+            "internalType": "uint24",
+            "name": "fee",
+            "type": "uint24"
+          },
+          {
+            "internalType": "string",
+            "name": "token0_symbol",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "token0_decimals",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "token1_symbol",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "token1_decimals",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "total_supply",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "total_supply0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "total_supply1",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint128",
+            "name": "total_liquidity",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint160",
+            "name": "sqrtPriceX96",
+            "type": "uint160"
+          },
+          {
+            "internalType": "int24",
+            "name": "tick",
+            "type": "int24"
+          },
+          {
+            "internalType": "address",
+            "name": "gauge",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "gauge_alm",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gauge_alm_total_supply",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "gauge_fee",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gauge_fee_claimable0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gauge_fee_claimable1",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "bribe",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "emissions",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "emissions_token",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "emissions_token_decimals",
+            "type": "uint256"
+          },
+          {
+            "internalType": "int24",
+            "name": "alm_lower",
+            "type": "int24"
+          },
+          {
+            "internalType": "int24",
+            "name": "alm_upper",
+            "type": "int24"
+          },
+          {
+            "internalType": "uint256",
+            "name": "alm_total_supply0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "alm_total_supply1",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "alm_staked_supply0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "alm_staked_supply1",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint128",
+            "name": "alm_total_liquidity",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_balance",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_amount0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_amount1",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_alm",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_alm_staked",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_alm_amount0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_alm_amount1",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_alm_staked_amount0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_alm_staked_amount1",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_alm_earned",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_alm_claimable0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_lp_alm_claimable1",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_token0_balance",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_token1_balance",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "account_gauge_balance",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "tokenId",
+                "type": "uint256"
+              },
+              {
+                "internalType": "int24",
+                "name": "tickLower",
+                "type": "int24"
+              },
+              {
+                "internalType": "int24",
+                "name": "tickUpper",
+                "type": "int24"
+              },
+              {
+                "internalType": "uint128",
+                "name": "liquidity",
+                "type": "uint128"
+              },
+              {
+                "internalType": "uint256",
+                "name": "amount0",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "amount1",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "fee_amount0",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "fee_amount1",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "earned",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bool",
+                "name": "isStaked",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct IPearlV2PoolAPI.PositionInfo[]",
+            "name": "account_positions",
+            "type": "tuple[]"
+          }
+        ],
+        "internalType": "struct IPearlV2PoolAPI.PairInfo",
+        "name": "_pairInfo",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_amounts",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_offset",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_pair",
+        "type": "address"
+      }
+    ],
+    "name": "getPairBribe",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "epochTimestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalVotes",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "pair",
+            "type": "address"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "token",
+                "type": "address"
+              },
+              {
+                "internalType": "uint8",
+                "name": "decimals",
+                "type": "uint8"
+              },
+              {
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "string",
+                "name": "symbol",
+                "type": "string"
+              }
+            ],
+            "internalType": "struct IPearlV2PoolAPI.TokenBribe[]",
+            "name": "bribes",
+            "type": "tuple[]"
+          }
+        ],
+        "internalType": "struct IPearlV2PoolAPI.PairBribeEpoch[]",
+        "name": "_pairEpoch",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_intialOwner",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_voter",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_posManager",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_liquidBoxManager",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_factoryV1",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_underlyingToken",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "lboxManager",
+    "outputs": [
+      {
+        "internalType": "contract ILiquidBoxManager",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_pair",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_token",
+        "type": "address"
+      }
+    ],
+    "name": "left",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "_rewPerEpoch",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "pairFactory",
+    "outputs": [
+      {
+        "internalType": "contract IPearlV2Factory",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "pairFactoryV1",
+    "outputs": [
+      {
+        "internalType": "contract IPearlV1Factory",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "positionManager",
+    "outputs": [
+      {
+        "internalType": "contract INonfungiblePositionManager",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_liquidBoxManager",
+        "type": "address"
+      }
+    ],
+    "name": "setBoxManager",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_owner",
+        "type": "address"
+      }
+    ],
+    "name": "setOwner",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_posManager",
+        "type": "address"
+      }
+    ],
+    "name": "setPositionManager",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_voter",
+        "type": "address"
+      }
+    ],
+    "name": "setVoter",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "underlyingToken",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "version",
+    "outputs": [
+      {
+        "internalType": "enum IPearlV2PoolAPI.Version",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "voter",
+    "outputs": [
+      {
+        "internalType": "contract IVoter",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

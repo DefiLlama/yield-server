@@ -30,8 +30,8 @@ async function apy() {
     pricesETH,
     pricesSTRK,
     pricesUSDC,
-    priceOfEth,
     priceOfStrk,
+    priceOfEth,
   ] = await Promise.all([
     utils.getData(`${API_URL}/tokens`),
     utils.getData(`${API_URL}/defi-spring-incentives`),
@@ -104,6 +104,7 @@ async function apy() {
         tvlUsd,
         apyBase,
         apyReward,
+        url: `https://app.ekubo.org/charts/${token0.symbol}/${token1.symbol}`,
       };
     })
     .filter((p) => !!p)
