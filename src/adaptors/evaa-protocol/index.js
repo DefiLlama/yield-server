@@ -434,7 +434,8 @@ const getApy = async () => {
                 url: `https://app.evaa.finance/token/${tokenSymbol}`,
                 totalSupplyUsd: totalSupplyUsd,
                 totalBorrowUsd: totalBorrowUsd,
-                apyBaseBorrow: borrowApy * 100
+                apyBaseBorrow: borrowApy * 100,
+                ltv: Number(assetConfig.collateralFactor) / 10000
             };
         } else {
             return undefined;
