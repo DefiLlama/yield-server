@@ -153,10 +153,12 @@ const poolsFunction = async () => {
       pool: `${TOKEN_FARM_ADDRESS[chain]}-${chain}`.toLowerCase(),
       chain: utils.formatChain(`${chain}`),
       project: 'vela-exchange',
-      symbol: 'USDC',
+      symbol: 'esVELA',
+      poolMeta: 'esVela vesting is up to 6 months',
       tvlUsd: Number(poolTotalLP) * Number(velaPrice),
-      apyBase: USDC_ROI,
+      apyReward: USDC_ROI,
       underlyingTokens: [VELA_ADDRESS[chain]],
+      rewardTokens: [USDC_ADDRESS[chain]]
     };
 
     pools.push(VLPPool);
