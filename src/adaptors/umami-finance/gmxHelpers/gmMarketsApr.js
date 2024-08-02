@@ -1,100 +1,28 @@
 const sdk = require('@defillama/sdk');
 const { gql, default: request } = require('graphql-request');
-const fetch = require('node-fetch');
-const { ethers } = require('ethers');
-const { sub } = require('date-fns');
-const { default: BigNumber } = require('bignumber.js');
-
-const arbitrumConstants = require('./arbitrum/umamiConstants.js');
-const avalancheConstants = require('./avalanche/umamiConstants.js');
-
-const { ABI: GmxDataStoreAbi } = require('./abis/gmxDataStore.js');
-const {
-  ABI: GmxSyntheticsReaderAbi,
-} = require('./abis/gmxSyntheticsReader.js');
-
-const { keccak256 } = require('ethers/lib/utils.js');
 const { default: axios } = require('axios');
 
-const SYNTHS_STATS_SUBGRAPH_URL = {
-  arbitrum: 'https://gmx.squids.live/gmx-synthetics-arbitrum/graphql',
-  avax: 'https://gmx.squids.live/gmx-synthetics-avalanche/graphql',
-};
+const {
+  SYNTHS_STATS_SUBGRAPH_URL,
+  CONTRACTS,
+  SIGNED_PRICES_API_URL,
+} = require('./constants.js');
+const { marketFeesQuery } = require('./queries.js');
+const {
+  expandDecimals,
+  bigintToNumber,
+  numberToBigint,
+  hashString,
+  hashData,
+} = require('./helpers.js');
 
-const CONTRACTS = {
-  arbitrum: {
-    syntheticsReader: '0x5ca84c34a381434786738735265b9f3fd814b824',
-    dataStore: '0xFD70de6b91282D8017aA4E741e9Ae325CAb992d8',
-  },
-  avax: {
-    syntheticsReader: '0xbad04ddcc5cc284a86493afa75d2beb970c72216',
-    dataStore: '0x2f0b22339414aded7d5f06f9d604c7ff5b2fe3f6',
-  },
-};
+const arbitrumConstants = require('../arbitrum/umamiConstants.js');
+const avalancheConstants = require('../avalanche/umamiConstants.js');
 
-const SIGNED_PRICES_API_URL = {
-  arbitrum: 'https://arbitrum-api.gmxinfra.io/signed_prices/latest',
-  avax: 'https://avalanche-api.gmxinfra.io/signed_prices/latest',
-};
-
-const marketFeesQuery = (marketAddress) => {
-  return `
-    _${marketAddress}_lte_start_of_period_: collectedMarketFeesInfos(
-        orderBy: timestampGroup_DESC,
-        where: {
-          marketAddress_containsInsensitive: "${marketAddress}",
-          period_eq: "1h",
-          timestampGroup_lte: ${Math.floor(
-            sub(new Date(), { days: 7 }).valueOf() / 1000
-          )}
-        },
-        limit: 1
-      ) {
-        cumulativeFeeUsdPerPoolValue
-        cumulativeBorrowingFeeUsdPerPoolValue
-      }
-
-    _${marketAddress}_recent: collectedMarketFeesInfos(
-      orderBy: timestampGroup_DESC,
-      where: {
-        marketAddress_containsInsensitive: "${marketAddress}",
-        period_eq: "1h"
-      },
-      limit: 1
-    ) {
-      cumulativeFeeUsdPerPoolValue
-      cumulativeBorrowingFeeUsdPerPoolValue
-    }
-
-    _${marketAddress}_poolValue: poolValues(where: { marketAddress_containsInsensitive: "${marketAddress}" }) {
-      poolValue
-    } 
-  `;
-};
-
-const hashData = (dataTypes, dataValues) => {
-  const bytes = ethers.utils.defaultAbiCoder.encode(dataTypes, dataValues);
-  const hash = ethers.utils.keccak256(ethers.utils.arrayify(bytes));
-
-  return hash;
-};
-
-const hashString = (string) => {
-  return hashData(['string'], [string]);
-};
-
-const bigNumberify = (n) => {
-  try {
-    return BigNumber(n);
-  } catch (e) {
-    console.error('bigNumberify error', e);
-    return undefined;
-  }
-};
-
-const expandDecimals = (n, decimals) => {
-  return BigInt(n) * BigInt(10 ** decimals);
-};
+const { ABI: GmxDataStoreAbi } = require('../abis/gmxDataStore.js');
+const {
+  ABI: GmxSyntheticsReaderAbi,
+} = require('../abis/gmxSyntheticsReader.js');
 
 const getBorrowingFactorPerPeriod = (marketInfo, isLong) => {
   const factorPerSecond = isLong
@@ -125,45 +53,6 @@ const calcAprByBorrowingFee = (marketInfo, poolValue) => {
     (borrowingFeeUsdForPoolPerYear * precision) / poolValue;
 
   return borrowingFeeUsdPerPoolValuePerYear;
-};
-
-const bigintToNumber = (value, decimals) => {
-  let myValue = value;
-  const negative = myValue < 0;
-  if (negative) {
-    myValue *= -1n;
-  }
-  const precision = BigInt(10) ** BigInt(decimals);
-  const int = myValue / precision;
-  const frac = myValue % precision;
-
-  const num = parseFloat(`${int}.${frac.toString().padStart(decimals, '0')}`);
-  return negative ? -num : num;
-};
-
-const numberToBigint = (value, decimals) => {
-  let myValue = value;
-  const negative = value < 0;
-  if (negative) {
-    myValue *= -1;
-  }
-
-  const int = Math.trunc(myValue);
-  let frac = myValue - int;
-
-  let res = BigInt(int);
-
-  for (let i = 0; i < decimals; i++) {
-    res *= 10n;
-    if (frac !== 0) {
-      frac *= 10;
-      const fracInt = Math.trunc(frac);
-      res += BigInt(fracInt);
-      frac -= fracInt;
-    }
-  }
-
-  return negative ? -res : res;
 };
 
 const calculateGmMarketAPY = (apr) => {
@@ -327,7 +216,7 @@ const getGmMarketOiFromDataStore = async (
   };
 };
 
-const getGmMarketsForUmami = async (chain) => {
+const getGmMarketsAprForUmami = async (chain) => {
   const gmMarketsForChain =
     chain === 'arbitrum'
       ? arbitrumConstants.GM_MARKETS
@@ -401,9 +290,9 @@ const getGmMarketsForUmami = async (chain) => {
     })
   );
 
-  return marketTokensAPRData.filter(Boolean);
+  return marketTokensAPRData;
 };
 
 module.exports = {
-  getGmMarketsForUmami,
+  getGmMarketsAprForUmami,
 };
