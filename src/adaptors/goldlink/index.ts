@@ -51,10 +51,10 @@ async function getInterestRate() {
     pool: arbitrumReserveAddress,
     chain: 'arbitrum',
     project: 'goldlink',
-    symbol: utils.formatSymbol('USD'),
+    symbol: utils.formatSymbol('USDC'),
     tvlUsd: total / 1e6,
-    apyBase: baseInterestRate + rateBelowOptimal + rateAboveOptimal,
-    apyReward: BONUS,
+    apyBase: (baseInterestRate + rateBelowOptimal + rateAboveOptimal) * 100,
+    apyReward: BONUS * 100,
     rewardTokens: ['0xaf88d065e77c8cC2239327C5EDb3A432268e5831', arbAddress],
     underlyingTokens: ['0xaf88d065e77c8cC2239327C5EDb3A432268e5831'],
   };
