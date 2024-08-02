@@ -1,4 +1,4 @@
-const { formatSymbol } = require('../utils')
+const { formatSymbol, formatChain } = require('../utils')
 
 function decodeUint(value, index = 0, length = 8) {
   let num = BigInt(0)
@@ -39,6 +39,23 @@ function getUrl(assetId) {
 
   const pairId = urlMap[assetId]
   return pairId ? `https://c3.io/trade/${pairId}` : undefined
+}
+
+function getChain(assetId) {
+  const chainMap = {
+    0: 'algorand',          //'ALGO'
+    893309613: 'avax',      //'AVAX'
+    1058926737: 'bitcoin',  //'BTC'
+    891648844: 'bsc',       //'BNB'
+    1221549217: 'arbitrum', //'ARB'
+    1007352535: 'avax',     //'USDC'
+    887406851: 'ethereum',  //'ETH'
+    887648583: 'solana',    //'SOL'
+    1684682524: 'solana',   //'PYTH'
+    1703994770: 'solana',   //'W'
+  }
+
+  return chainMap[assetId] ? formatChain(chainMap[assetId]) : 'algorand'
 }
 
 function globalStateToBlob(globalState) {
@@ -135,6 +152,7 @@ function parseInstrumentData(count, data) {
 module.exports = {
   getSymbol,
   getUrl,
+  getChain,
   globalStateToBlob,
   parsePricecasterData,
   parseInstrumentData,

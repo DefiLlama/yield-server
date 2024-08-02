@@ -1,11 +1,11 @@
 const { getGlobalData, getInstrumentData, getPriceMap } = require('./getter')
-const { getSymbol, getUrl } = require('./codec')
+const { getSymbol, getUrl, getChain } = require('./codec')
 const { calculateTVL, calculateBorrowAndLendAPR } = require('./calculations')
-const { formatChain } = require('../utils')
 
 function translateInstrumentData(initTimestamp, priceData, instrument) {
-  // Load token name and price
+  // Load token name, chain and price
   const symbol = getSymbol(instrument.assetId)
+  const chain = getChain(instrument.assetId)
   const price = priceData[instrument.assetId]
   if (symbol === undefined || price === undefined) return undefined
 
@@ -15,7 +15,7 @@ function translateInstrumentData(initTimestamp, priceData, instrument) {
 
   return {
     pool: `${instrument.assetId}-algorand`,
-    chain: formatChain('algorand'),
+    chain,
     project: 'c3-exchange',
     symbol,
     tvlUsd,
@@ -28,7 +28,6 @@ function translateInstrumentData(initTimestamp, priceData, instrument) {
     // apyReward?: number
     // rewardTokens?: Array<string>
     // poolMeta?: string
-    // url?: string
     // apyRewardBorrow?: number;
     // ltv?: number
   }
