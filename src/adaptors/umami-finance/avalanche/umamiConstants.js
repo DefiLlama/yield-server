@@ -50,6 +50,7 @@ const UMAMI_GM_VAULTS = [
     underlyingGmMarkets: [GM_MARKETS[0]],
     masterchefLpId: undefined,
     aggregateVaultAddress: GM_WETH_AGGREGATE_VAULT_ADDRESS,
+    url: 'https://umami.finance/vaults/avax/gm/gmusdc',
   },
   {
     id: 'avax_gmweth',
@@ -60,6 +61,7 @@ const UMAMI_GM_VAULTS = [
     underlyingGmMarkets: [GM_MARKETS[0]],
     masterchefLpId: undefined,
     aggregateVaultAddress: GM_WETH_AGGREGATE_VAULT_ADDRESS,
+    url: 'https://umami.finance/vaults/avax/gm/gmweth',
   },
 ];
 

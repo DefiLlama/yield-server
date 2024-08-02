@@ -80,7 +80,7 @@ const getUmamiGmSynthsVaultsYield = async (chain, gmMarketsInfos) => {
       apyBase: +vaultApr.toFixed(2),
       symbol: vault.symbol,
       underlyingTokens: [vault.underlyingAsset],
-      url: `https://umami.finance/vaults/arbitrum/gm/${vault.id}`,
+      url: vault.url,
     };
 
     if (rewardToken) {

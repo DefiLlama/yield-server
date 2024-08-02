@@ -81,6 +81,7 @@ const UMAMI_SYNTH_GM_VAULTS = [
     ],
     masterchefLpId: 0n,
     aggregateVaultAddress: GMI_AGGREGATE_VAULT,
+    url: 'https://umami.finance/vaults/arbitrum/gm/gmusdc',
   },
   {
     id: 'gmweth',
@@ -96,6 +97,7 @@ const UMAMI_SYNTH_GM_VAULTS = [
     ],
     masterchefLpId: 1n,
     aggregateVaultAddress: GMI_AGGREGATE_VAULT,
+    url: 'https://umami.finance/vaults/arbitrum/gm/gmweth',
   },
 ];
 
@@ -120,6 +122,7 @@ const UMAMI_GM_VAULTS = [
     underlyingGmMarkets: [GM_MARKETS[4]],
     masterchefLpId: 3n,
     aggregateVaultAddress: GM_WBTC_AGGREGATE_VAULT_ADDRESS,
+    url: 'https://umami.finance/vaults/arbitrum/gm/gmusdc_wbtc',
   },
   {
     id: 'gmwbtc',
@@ -130,6 +133,7 @@ const UMAMI_GM_VAULTS = [
     underlyingGmMarkets: [GM_MARKETS[4]],
     masterchefLpId: 2n,
     aggregateVaultAddress: GM_WBTC_AGGREGATE_VAULT_ADDRESS,
+    url: 'https://umami.finance/vaults/arbitrum/gm/gmwbtc',
   },
 ];
 

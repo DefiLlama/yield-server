@@ -62,7 +62,7 @@ const getUmamiGmVaultsYield = async (chain, gmMarketsInfos) => {
       apyBase: +Number(gmMarket.apyBase).toFixed(2),
       symbol: vault.symbol,
       underlyingTokens: [vault.underlyingAsset],
-      url: `https://umami.finance/vaults/gm/${vault.id}`,
+      url: vault.url,
     };
 
     if (rewardToken) {
