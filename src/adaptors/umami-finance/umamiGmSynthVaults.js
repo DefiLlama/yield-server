@@ -5,7 +5,6 @@ const sdk = require('@defillama/sdk');
 const arbitrumConstants = require('./arbitrum/umamiConstants.js');
 const avalancheConstants = require('./avalanche/umamiConstants.js');
 
-const { getGmMarketsAprForUmami } = require('./gmxHelpers/gmMarketsApr.js');
 const { getIncentivesAprForVault } = require('./umamiIncentivesHelper.js');
 const {
   getUmamiContractsForChain,
@@ -21,7 +20,7 @@ const getGmiGmMarketsWeights = async (gmiContract) => {
   return weights.map((weight) => parseFloat(formatUnits(BigInt(weight), 18)));
 };
 
-const getUmamiGmSynthsVaultsYield = async (chain) => {
+const getUmamiGmSynthsVaultsYield = async (chain, gmMarketsInfos) => {
   const gmVaults = [];
   const vaultsList =
     chain === 'arbitrum'
@@ -35,10 +34,7 @@ const getUmamiGmSynthsVaultsYield = async (chain) => {
 
   const coreContracts = getUmamiContractsForChain(chain);
 
-  const [gmMarketsInfos, weights] = await Promise.all([
-    getGmMarketsAprForUmami(chain),
-    getGmiGmMarketsWeights(coreContracts.gmiContract),
-  ]);
+  const weights = await getGmiGmMarketsWeights(coreContracts.gmiContract);
 
   for (let i = 0; i < vaultsList.length; i++) {
     const vault = vaultsList[i];

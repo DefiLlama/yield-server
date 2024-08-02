@@ -1,30 +1,31 @@
 const superagent = require('superagent');
-const { Web3 } = require('web3');
 const ethers = require('ethers');
 
+const arbitrumConstants = require('./arbitrum/umamiConstants.js');
+const avalancheConstants = require('./arbitrum/umamiConstants.js');
+
 const {
-  MASTER_CHEF,
-  REWARD_TOKEN_ADDRESS,
-} = require('./arbitrum/umamiConstants.js');
-const { GM_ASSET_VAULT_ABI } = require('./abis/gmAssetVault.js');
-const { ARB_MASTER_CHEF_ABI } = require('./abis/arbMasterchef.js');
-const { getUmamiContractsForChain } = require('./umamiContracts.js');
+  getUmamiContractsForChain,
+  getVaultContractForVault,
+} = require('./umamiContracts.js');
 
-const RPC_URL = 'https://arbitrum.llamarpc.com';
-
-const web3 = new Web3(RPC_URL);
-
-// ARB incentives through Masterchef
+// Incentives through Masterchef
 const getIncentivesAprForVault = async (vault, chain) => {
+  const rewardTokenAddress =
+    chain === 'arbitrum'
+      ? arbitrumConstants.REWARD_TOKEN_ADDRESS
+      : avalancheConstants.REWARD_TOKEN_ADDRESS;
+  const masterChefAddress =
+    chain === 'arbitrum'
+      ? arbitrumConstants.MASTER_CHEF
+      : avalancheConstants.MASTER_CHEF;
+
   const coreContracts = getUmamiContractsForChain(chain);
-  const vaultContract = new web3.eth.Contract(
-    GM_ASSET_VAULT_ABI,
-    vault.address
-  );
+  const vaultContract = getVaultContractForVault(chain, vault.address);
 
   const underlyingTokenPriceKey =
     `${chain}:${vault.underlyingAsset}`.toLowerCase();
-  const arbTokenPriceKey = `${chain}:${REWARD_TOKEN_ADDRESS}`.toLowerCase();
+  const arbTokenPriceKey = `${chain}:${rewardTokenAddress}`.toLowerCase();
   const [
     arbPerSecRaw,
     totalAllocpointsRaw,
@@ -39,7 +40,7 @@ const getIncentivesAprForVault = async (vault, chain) => {
     coreContracts.masterchefContract.methods
       .poolInfo(vault.masterchefLpId)
       .call(),
-    vaultContract.methods.balanceOf(MASTER_CHEF).call(),
+    vaultContract.methods.balanceOf(masterChefAddress).call(),
     vaultContract.methods.pps().call(),
     superagent.get(
       `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`

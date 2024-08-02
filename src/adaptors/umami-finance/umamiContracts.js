@@ -5,6 +5,7 @@ const sdk = require('@defillama/sdk');
 const arbitrumCoreAddresses = require('./arbitrum/umamiConstants.js');
 const avalancheCoreAddresses = require('./avalanche/umamiConstants.js');
 
+const { GM_ASSET_VAULT_ABI } = require('./abis/gmAssetVault.js');
 const { GMI_VAULT_ABI } = require('./abis/gmiVault.js');
 const { GMI_AGGREGATE_VAULT_ABI } = require('./abis/gmiAggregateVault.js');
 const { ARB_MASTER_CHEF_ABI } = require('./abis/arbMasterchef.js');
@@ -52,7 +53,22 @@ const getAggregateVaultContractForVault = (chain, aggregateVaultAddress) => {
   }
 };
 
+const getVaultContractForVault = (chain, vaultAddress) => {
+  if (chain === 'arbitrum') {
+    return new arbitrumWeb3Client.eth.Contract(
+      GM_ASSET_VAULT_ABI,
+      vaultAddress
+    );
+  } else {
+    return new avalancheWeb3Client.eth.Contract(
+      GM_ASSET_VAULT_ABI,
+      vaultAddress
+    );
+  }
+};
+
 module.exports = {
   getUmamiContractsForChain,
   getAggregateVaultContractForVault,
+  getVaultContractForVault,
 };

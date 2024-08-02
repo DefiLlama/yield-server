@@ -5,7 +5,6 @@ const sdk = require('@defillama/sdk');
 const arbitrumConstants = require('./arbitrum/umamiConstants.js');
 const avalancheConstants = require('./avalanche/umamiConstants.js');
 
-const { getGmMarketsAprForUmami } = require('./gmxHelpers/gmMarketsApr.js');
 const { getIncentivesAprForVault } = require('./umamiIncentivesHelper.js');
 const {
   getUmamiContractsForChain,
@@ -14,7 +13,7 @@ const {
 
 /** ---- GM VAULTS ---- */
 
-const getUmamiGmVaultsYield = async (chain) => {
+const getUmamiGmVaultsYield = async (chain, gmMarketsInfos) => {
   const gmVaults = [];
 
   const vaultsList =
@@ -26,8 +25,6 @@ const getUmamiGmVaultsYield = async (chain) => {
     chain === 'arbitrum'
       ? arbitrumConstants.REWARD_TOKEN_ADDRESS
       : avalancheConstants.REWARD_TOKEN_ADDRESS;
-
-  const gmMarketsInfos = await getGmMarketsAprForUmami(chain);
 
   for (let i = 0; i < vaultsList.length; i++) {
     const vault = vaultsList[i];
