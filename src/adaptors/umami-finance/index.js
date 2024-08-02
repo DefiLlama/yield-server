@@ -2,16 +2,27 @@ const { getUmamiGmSynthsVaultsYield } = require('./umamiGmSynthVaults.js');
 const { getUmamiGmVaultsYield } = require('./umamiGmVaults.js');
 
 const main = async () => {
-  const [synthGmVaults, gmVaults] = await Promise.all([
-    getUmamiGmSynthsVaultsYield(),
-    getUmamiGmVaultsYield(),
-  ]);
+  const [arbitrumSynthGmVaults, arbitrumGmVaults, avaxGmVaults] =
+    await Promise.all([
+      getUmamiGmSynthsVaultsYield('arbitrum'),
+      getUmamiGmVaultsYield('arbitrum'),
+      getUmamiGmVaultsYield('avax'),
+    ]);
 
-  return [...synthGmVaults, ...gmVaults].map((strat) => ({
+  const arbitrumVaults = [...arbitrumSynthGmVaults, ...arbitrumGmVaults].map(
+    (strat) => ({
+      ...strat,
+      chain: 'Arbitrum',
+      project: 'umami-finance',
+    })
+  );
+  const avaxVaults = [...avaxGmVaults].map((strat) => ({
     ...strat,
-    chain: 'Arbitrum',
+    chain: 'Avalanche',
     project: 'umami-finance',
   }));
+
+  return [...arbitrumVaults, ...avaxVaults];
 };
 
 module.exports = {
