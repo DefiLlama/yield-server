@@ -1,0 +1,56 @@
+{
+  "model_": {
+    "type": "function",
+    "name": "model_",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "optimalUtilization",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "baseInterestRate",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "rateSlope1",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "rateSlope2",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  "utilizedAssets_": {
+    "type": "function",
+    "name": "utilizedAssets_",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  "reserveBalance_": {
+    "type": "function",
+    "name": "reserveBalance_",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  }
+}
