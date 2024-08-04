@@ -45,6 +45,13 @@ const tokenAddresses = {
   }
 };
 
+const APYReward = {
+  WETH: 3,
+  USDC: 8,
+  USDT: 8,
+  DAI: 8,
+};
+
 const projectSlug = 'wise-lending-v2';
 
 const getTokenData = async (chain, token, addresses, contract) => {
@@ -56,7 +63,10 @@ const getTokenData = async (chain, token, addresses, contract) => {
 
   try {
 
+    let rewardToken = aaveHub;
+
     if (chain === "ethereum") {
+      rewardToken = wiseLending;
       sdk.api.config.setProvider(
         `${chain}`,
         new ethers.providers.JsonRpcProvider(`https://mainnet.infura.io/v3/b2ca877d39fa4a1c99e9120a03d53e57`)
@@ -129,6 +139,9 @@ const getTokenData = async (chain, token, addresses, contract) => {
       tvlUsd,
       apyBase: lendingRate,
       // apyReward: lendingRate,
+      apyReward: APYReward[token],
+      rewardTokens: [address[token], rewardToken],
+      underlyingTokens: [underlying[token]],
       url: 'https://wiselending.com/',
       apyBaseBorrow: borrowRate,
       // apyRewardBorrow: borrowRate,
