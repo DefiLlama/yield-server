@@ -166,7 +166,7 @@ const getApy = async () => {
     }
 
     // boosted APY dictionary, includes reward APY(actually it is APR) and rewards tokens
-    const boostedApy = [];
+    const boostedApy = {};
 
     for (const address in rewardsPerPool) {
         if (!(address in poolsInfo)) {
@@ -191,32 +191,29 @@ const getApy = async () => {
         }
         // using APR formula because it is not auto-compounding
         const apyReward = 365 * totalRewards / poolsInfo[address].tvl;
-        boostedApy.push({
-            tvl: poolsInfo[address].tvl,
+        boostedApy[address] = {
             apyReward: 100 * apyReward,
-            apyBase: 100 * poolsInfo[address].apyBase,
-            symbol: poolsInfo[address].symbol,
-            address: address,
-            underlyingTokens: poolsInfo[address].underlyingTokens,
             rewardTokens: rewardTokens
-        })
+        }
         console.log(rewardTokens)
     }
     // console.log(boostedApy)
 
-    const pools = boostedApy
-        .map((pool) => {
+    const pools = Object.keys(poolsInfo)
+        .map((pool_address) => {
+            const pool = poolsInfo[pool_address];
+            const boost = boostedApy[pool_address];
             return {
-                pool: `${pool.address}-ton`.toLowerCase(),
+                pool: `${pool_address}-ton`.toLowerCase(),
                 chain: 'Ton',
                 project: 'dedust',
                 symbol: pool.symbol,
                 tvlUsd: pool.tvl,
-                apyBase: pool.apyBase,
-                apyReward: pool.apyReward,
-                rewardTokens: pool.rewardTokens,
+                apyBase: 100 * pool.apyBase,
+                apyReward: boost?.apyReward,
+                rewardTokens: boost?.rewardTokens,
                 underlyingTokens: pool.underlyingTokens,
-                url: `https://dedust.io/pools/${pool.address}`
+                url: `https://dedust.io/pools/${pool_address}`
             };
         }).filter((pool) => pool != null);
     return pools;
