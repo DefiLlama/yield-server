@@ -1,29 +1,31 @@
 const superagent = require('superagent');
-const { Web3 } = require('web3');
 const ethers = require('ethers');
 
-const { ARB_MASTER_CHEF, ARB_ADDRESS } = require('./umamiConstants.js');
-const { GM_ASSET_VAULT_ABI } = require('./abis/gmAssetVault.js');
-const { ARB_MASTER_CHEF_ABI } = require('./abis/arbMasterchef.js');
+const arbitrumConstants = require('./arbitrum/umamiConstants.js');
+const avalancheConstants = require('./arbitrum/umamiConstants.js');
 
-const RPC_URL = 'https://rpc.ankr.com/arbitrum';
+const {
+  getUmamiContractsForChain,
+  getVaultContractForVault,
+} = require('./umamiContracts.js');
 
-const web3 = new Web3(RPC_URL);
+// Incentives through Masterchef
+const getIncentivesAprForVault = async (vault, chain) => {
+  const rewardTokenAddress =
+    chain === 'arbitrum'
+      ? arbitrumConstants.REWARD_TOKEN_ADDRESS
+      : avalancheConstants.REWARD_TOKEN_ADDRESS;
+  const masterChefAddress =
+    chain === 'arbitrum'
+      ? arbitrumConstants.MASTER_CHEF
+      : avalancheConstants.MASTER_CHEF;
 
-const masterchefContract = new web3.eth.Contract(
-  ARB_MASTER_CHEF_ABI,
-  ARB_MASTER_CHEF
-);
+  const coreContracts = getUmamiContractsForChain(chain);
+  const vaultContract = getVaultContractForVault(chain, vault.address);
 
-// ARB incentives through Masterchef
-const getIncentivesAprForVault = async (vault) => {
-  const vaultContract = new web3.eth.Contract(
-    GM_ASSET_VAULT_ABI,
-    vault.address
-  );
   const underlyingTokenPriceKey =
-    `arbitrum:${vault.underlyingAsset}`.toLowerCase();
-  const arbTokenPriceKey = `arbitrum:${ARB_ADDRESS}`.toLowerCase();
+    `${chain}:${vault.underlyingAsset}`.toLowerCase();
+  const arbTokenPriceKey = `${chain}:${rewardTokenAddress}`.toLowerCase();
   const [
     arbPerSecRaw,
     totalAllocpointsRaw,
@@ -33,10 +35,12 @@ const getIncentivesAprForVault = async (vault) => {
     underlyingTokenPriceObj,
     arbTokenPriceObj,
   ] = await Promise.all([
-    masterchefContract.methods.arbPerSec().call(),
-    masterchefContract.methods.totalAllocPoint().call(),
-    masterchefContract.methods.poolInfo(vault.masterchefLpId).call(),
-    vaultContract.methods.balanceOf(ARB_MASTER_CHEF).call(),
+    coreContracts.masterchefContract.methods.arbPerSec().call(),
+    coreContracts.masterchefContract.methods.totalAllocPoint().call(),
+    coreContracts.masterchefContract.methods
+      .poolInfo(vault.masterchefLpId)
+      .call(),
+    vaultContract.methods.balanceOf(masterChefAddress).call(),
     vaultContract.methods.pps().call(),
     superagent.get(
       `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`
