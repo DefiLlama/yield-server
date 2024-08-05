@@ -14,9 +14,15 @@ const ZEND = `0x00585c32b625999e6e5e78645ff8df7a9001cf5cf3eb6b80ccdd16cb64bd3a34
 
 const assets = [
   {
-    name: 'DAI',
+    name: 'DAIv0',
     address:
       '0x00da114221cb83fa859dbdb4c44beeaa0bb37c7537ad5ae66fe5e0efd20e6eb3',
+    decimals: 18,
+  },
+  {
+    name: 'DAI',
+    address:
+      '0x05574eb6b8789a91466f902c380d978e472db68170ff82a5b650b95a58ddf4ad',
     decimals: 18,
   },
   {
