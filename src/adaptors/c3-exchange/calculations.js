@@ -78,8 +78,8 @@ function calculateBorrowAndLendAPR(initTimestamp, poolData) {
 
 // Calculates the TVL given price and pool state
 function calculateTVL(price, borrowed, liquidity) {
-  const totalBorrowUsd = Number(price * borrowed / PRICE_SCALE_FACTOR)
-  const totalSupplyUsd = Number(price * liquidity / PRICE_SCALE_FACTOR)
+  const totalBorrowUsd = new BigNumber(price).times(new BigNumber(borrowed)).dividedBy(new BigNumber(PRICE_SCALE_FACTOR)).toNumber()
+  const totalSupplyUsd = new BigNumber(price).times(new BigNumber(liquidity)).dividedBy(new BigNumber(PRICE_SCALE_FACTOR)).toNumber()
   const tvlUsd = totalSupplyUsd - totalBorrowUsd
 
   return {
