@@ -69,7 +69,6 @@ const apy = async () => {
     }]
 }
 
-
 module.exports = {
     timetravel: false,
     url: 'https://kava.obyte.org',
