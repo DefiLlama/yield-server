@@ -1,7 +1,8 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
-const inETH = '0x122ee24cb3cc1b6b987800d3b54a68fc16910dbf';
+const vault = '0x122ee24cb3cc1b6b987800d3b54a68fc16910dbf';
+const inETH = '0xf073bAC22DAb7FaF4a3Dd6c6189a70D54110525C'
 const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 
 const apy = async () => {
@@ -31,12 +32,18 @@ const apy = async () => {
   day = 1
   
   const apr1d =
-    (sdk.api.abi.call() / 1e18);
+    (await sdk.api.abi.call({
+        target: vault,
+        abi: 'abi',
+      }) / 1e18);
 
   day = 7
   
-  const apr7d =
-    (sdk.api.abi.call() / 1e18 / 7);
+  const apr1d =
+    (await sdk.api.abi.call({
+        target: vault,
+        abi: 'abi',
+      }) / 1e18 / 7);
 
   const priceKey = `ethereum:${inETH}`;
   const price = (
