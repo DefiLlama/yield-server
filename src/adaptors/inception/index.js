@@ -24,30 +24,19 @@ const apy = async () => {
     await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp7dayAgo}`)
   ).data.height;
 
-  const abi = 'function averagePercentageRate() external view returns (uint256)';
+  const day = 0
+    
+  const abi = 'function averagePercentageRate(inETH, day) external view returns (uint256)';
 
-  const exchangeRates = await Promise.all([
-    sdk.api.abi.call({
-      target: inETH,
-      abi: abi,
-    }),
-    sdk.api.abi.call({
-      target: inETH,
-      abi: abi,
-      day: 1,
-    }),
-    sdk.api.abi.call({
-      target: inETH,
-      abi: abi,
-      day: 7,
-    }),
-  ]);
-
+  day = 1
+  
   const apr1d =
-    ((exchangeRates[0].output - exchangeRates[1].output) / 1e18) * 365 * 100;
+    (sdk.api.abi.call() / 1e18);
 
+  day = 7
+  
   const apr7d =
-    ((exchangeRates[0].output - exchangeRates[2].output) / 1e18 / 7) * 365 * 100;
+    (sdk.api.abi.call() / 1e18 / 7);
 
   const priceKey = `ethereum:${inETH}`;
   const price = (
