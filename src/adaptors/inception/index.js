@@ -27,7 +27,7 @@ const apy = async () => {
 
   const day = 0
     
-  const abi = 'function averagePercentageRate(inETH, day) external view returns (uint256)';
+  const abi = 'function averagePercentageRate(' + inETH + ',' + day + ') external view returns (uint256)';
 
   day = 1
   
