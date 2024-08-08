@@ -27,14 +27,16 @@ const apy = async () => {
 
   const day = 0
     
-  const abi = 'function averagePercentageRate(' + inETH + ',' + day + ') external view returns (uint256)';
+  const abi1 = 'function averagePercentageRate(0xf073bAC22DAb7FaF4a3Dd6c6189a70D54110525C , 1) external view returns (uint256)';
+  const abi7 = 'function averagePercentageRate(0xf073bAC22DAb7FaF4a3Dd6c6189a70D54110525C , 7) external view returns (uint256)';
+
 
   day = 1
   
   const apr1d =
     (await sdk.api.abi.call({
         target: vault,
-        abi: 'abi',
+        abi: 'abi1',
       }) / 1e18);
 
   day = 7
@@ -42,7 +44,7 @@ const apy = async () => {
   const apr7d =
     (await sdk.api.abi.call({
         target: vault,
-        abi: 'abi',
+        abi: 'abi7',
       }) / 1e18 / 7);
 
   const priceKey = `ethereum:${inETH}`;
