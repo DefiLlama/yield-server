@@ -39,7 +39,7 @@ const apy = async () => {
 
   day = 7
   
-  const apr1d =
+  const apr7d =
     (await sdk.api.abi.call({
         target: vault,
         abi: 'abi',
