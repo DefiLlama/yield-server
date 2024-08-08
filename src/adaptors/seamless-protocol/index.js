@@ -21,8 +21,6 @@ const chainUrlParam = {
 // https://docs.seamlessprotocol.com/technical/smart-contracts
 const ORACLE_ADDRESS = '0xFDd4e83890BCcd1fbF9b10d71a5cc0a738753b01';
 const ILM_REGISTRY_ADDRESS = '0x36291d2d51a0122b9facbe3c3f989cc6b1f859b3';
-const SEAM_ADDRESS = '0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85';
-const esSEAM_ADDRESS = '0x998e44232BEF4F8B033e5A5175BDC97F2B10d5e5';
 
 const API_URLS = {
   base: sdk.graph.modifyEndpoint(
@@ -111,16 +109,6 @@ const getAllCollateralAssetsForILMs = async () => {
 };
 
 const getPrices = async (addresses) => {
-  const esSeamLowerCase = esSEAM_ADDRESS.toLowerCase();
-  const seamLowerCase = SEAM_ADDRESS.toLowerCase();
-
-  addresses = addresses.map((elem) => {
-    const [chain, address] = elem.split(':');
-    const replacementAddress =
-      address === esSeamLowerCase ? seamLowerCase : address;
-    return `${chain}:${replacementAddress}`;
-  });
-
   const prices = (
     await superagent.get(
       `https://coins.llama.fi/prices/current/${addresses
@@ -128,15 +116,6 @@ const getPrices = async (addresses) => {
         .toLowerCase()}`
     )
   ).body.coins;
-
-  Object.entries(prices).forEach(([key, value]) => {
-    if (key.includes(seamLowerCase)) {
-      prices[key.replace(seamLowerCase, esSeamLowerCase)] = {
-        ...value,
-        symbol: 'esSEAM',
-      };
-    }
-  });
 
   const pricesBySymbol = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
