@@ -1,7 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
-const inETH = '0x46199cAa0e453971cedf97f926368d9E5415831a';
+const inETH = '0xf073bAC22DAb7FaF4a3Dd6c6189a70D54110525C';
 const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 
 const apy = async () => {
