@@ -60,7 +60,7 @@ const apy = async () => {
     {
       pool: inETH,
       chain: 'ethereum',
-      project: 'ether.fi-stake',
+      project: 'Inception',
       symbol: 'inETH',
       tvlUsd: totalSupply * price,
       apyBase: apr1d,
