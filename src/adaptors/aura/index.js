@@ -57,6 +57,15 @@ const ChainConfig = {
     ldoAddress: '0x96e334926454CD4B7b4efb8a8fcb650a738aD244',
     chainTokens: ['0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb'], // GNO
   },
+  polygon: {
+    booster: '0x98Ef32edd24e2c92525E59afc4475C1242a30184',
+    balancerVault: '0xBA12222222228d8Ba445958a75a0704d566BF2C8',
+    auraRewardsCalculator: '0x9e4CBe2EaFf2FA727bC805E6CbBf2ff01DdB812b',
+    auraAddress: '0x1509706a6c66CA549ff0cB464de88231DDBe213B',
+    balAddress: '0x9a71012b13ca4d3d0cdc72a177df3ef03b0e76a3',
+    ldoAddress: '0xC3C7d422809852031b44ab29EEC9F1EfF2A58756',
+    chainTokens: ['0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270'], // MATIC
+  },
 };
 
 const SECONDS_PER_YEAR = 60 * 60 * 24 * 365;
@@ -101,6 +110,7 @@ const main = async () => {
           abi: boosterABI.filter(({ name }) => name === 'poolLength')[0],
           target: booster,
           chain: chain,
+          permitFailure: true,
         })
       ).output
     );
@@ -114,6 +124,7 @@ const main = async () => {
           params: [index],
         })),
         chain,
+        permitFailure: true,
       })
     ).output.map(({ output }) => output);
     const validPools = allAuraPools.filter(
@@ -133,6 +144,7 @@ const main = async () => {
         chain,
         calls: validPools.map((p) => ({ target: p.token })),
         abi: 'erc20:totalSupply',
+        permitFailure: true,
       })
     ).output.map((o) => o.output);
 
@@ -171,19 +183,21 @@ const main = async () => {
           target: stakingContracts[i],
         })),
         chain,
+        permitFailure: true,
       })
     ).output.map(({ output }) => output);
-    const balRewardPerYearRates = balRewardPerSecondRates.map((x) =>
-      ethers.BigNumber.from(x).mul(SECONDS_PER_YEAR)
+    const balRewardPerYearRates = balRewardPerSecondRates.map(
+      (i) => i * SECONDS_PER_YEAR
     );
     const auraRewardPerYearRates = (
       await sdk.api.abi.multiCall({
         abi: miningABI.filter(({ name }) => name === 'convertCrvToCvx')[0],
         calls: _.range(validPoolsLength).map((i) => ({
           target: auraRewardsCalculator,
-          params: [balRewardPerYearRates[i]],
+          params: [BigInt(balRewardPerYearRates[i])],
         })),
         chain,
+        permitFailure: true,
       })
     ).output.map(({ output }) => output);
 
@@ -191,14 +205,7 @@ const main = async () => {
       if (poolTVLs[i] === 0) {
         return 0;
       }
-      return (
-        balRewardPerYearRates[i].mul(
-          ethers.utils.parseEther(balPrice.toString()).mul(100)
-        ) /
-        1e18 /
-        poolTVLs[i] /
-        1e18
-      );
+      return ((balRewardPerYearRates[i] / 1e18) * balPrice * 100) / poolTVLs[i];
     });
 
     const auraAPYs = _.range(validPoolsLength).map(
@@ -212,6 +219,7 @@ const main = async () => {
           target: stakingContracts[i],
         })),
         chain,
+        permitFailure: true,
       })
     ).output.map(({ output }) => output);
 
@@ -222,6 +230,7 @@ const main = async () => {
           target: lpTokens[i],
         })),
         chain,
+        permitFailure: true,
       })
     ).output.map(({ output }) => output);
 
@@ -236,6 +245,7 @@ const main = async () => {
             abi: lpTokenABI2.filter(({ name }) => name === 'POOL_ID')[0],
             target: lpTokens[i],
             chain,
+            permitFailure: true,
           })
         ).output;
       })
@@ -249,6 +259,7 @@ const main = async () => {
           params: [balancerPoolIds[i]],
         })),
         chain,
+        permitFailure: true,
       })
     ).output.map(({ output }) => output);
 
@@ -264,6 +275,7 @@ const main = async () => {
           target,
         })),
         chain,
+        permitFailure: true,
       })
     ).output.map(({ output }) => output);
 
@@ -298,6 +310,7 @@ const main = async () => {
               target: stakingContracts[i],
               chain,
               params: [x],
+              permitFailure: true,
             })
           ).output;
 
@@ -308,6 +321,7 @@ const main = async () => {
               )[0],
               target: virtualBalanceRewardPool,
               chain,
+              permitFailure: true,
             })
           ).output;
 
@@ -318,6 +332,7 @@ const main = async () => {
               )[0],
               target: virtualBalanceRewardPool,
               chain,
+              permitFailure: true,
             })
           ).output;
 
@@ -326,6 +341,7 @@ const main = async () => {
               abi: stashTokenABI.filter(({ name }) => name === 'baseToken')[0],
               target: stashToken,
               chain,
+              permitFailure: true,
             })
           ).output;
 

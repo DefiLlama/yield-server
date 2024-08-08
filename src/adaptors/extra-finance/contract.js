@@ -1,10 +1,11 @@
 const { getProvider } = require('@defillama/sdk/build/general');
 const { ethers, Contract, BigNumber } = require('ethers');
 const pairsSugarContractAbi = require("./abis/veloPairsSugarV2.json");
+const { concat } = require('lodash');
 
 const veloPairAddress = {
-  optimism: '0xF6F6955756Db870258C31B49cB51860b77b53194',
-  base: '0xC301856B4262E49E9239ec8a2d0c754d5ae317c0'
+  optimism: '0x1381B1E6aaFa01bD28e95AdaB35bdA8191826bC8',
+  base: '0x82357A700f242476da8C5712C010B2D5e327C588'
 }
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000"
 
@@ -25,10 +26,11 @@ exports.getAllVeloPools = async function (chain) {
   const rpcUrl = rpcUrlMap[chain]
   const simpleRpcProvider = new ethers.providers.JsonRpcProvider(rpcUrl);
   const veloPairContract = new Contract(veloPairAddress[chain], pairsSugarContractAbi, simpleRpcProvider)
-  const [poolInfoList1, poolInfoList2] = await Promise.all([
-    veloPairContract.all(300, 0),
-    veloPairContract.all(370, 300),
+  const poolInfoLists = await Promise.all([
+    veloPairContract.all(400, 0),
+    veloPairContract.all(400, 400),
+    veloPairContract.all(400, 800),
   ])
-  const poolInfoList = poolInfoList1.concat(poolInfoList2)
+  const poolInfoList = concat(...poolInfoLists)
   return poolInfoList
 }

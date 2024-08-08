@@ -4,7 +4,8 @@ const axios = require('axios');
 
 const utils = require('../utils');
 
-const url ='https://metisapi.0xgraph.xyz/subgraphs/name/cryptoalgebra/analytics';
+const url =
+  'https://metisapi.0xgraph.xyz/subgraphs/name/cryptoalgebra/analytics';
 
 const query = gql`
   {

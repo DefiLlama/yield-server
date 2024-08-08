@@ -1,5 +1,5 @@
 const {ethers} = require("ethers");
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk')
 const utils = require('../utils');
 const {TEAHOUSE_VAULT_STAT_API_URL, TEAHOUSE_VAULT_CONTENT_API_URL, TEAHOUSE_WEBSITE_URL} = require('./config');
 const bn = require('bignumber.js');

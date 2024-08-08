@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const abi = require('./abis.json');
 const { formatChain, getData } = require('../utils');
 const _ = require('lodash');

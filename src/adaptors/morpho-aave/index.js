@@ -1,9 +1,9 @@
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
-const subgraphMorphoAave =
-  'https://api.thegraph.com/subgraphs/name/morpho-labs/morpho-aavev2-mainnet';
+const subgraphMorphoAave = sdk.graph.modifyEndpoint('FKVL7B5yEHvz1GKB9hFpwp64YLN5KXS27aWpQLngyECx');
 
 const SECONDS_PER_YEAR = 3600 * 24 * 365;
 const usdcToken = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';

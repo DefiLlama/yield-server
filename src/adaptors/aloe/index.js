@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const { secondsInYear } = require('date-fns');
 const ethers = require('ethers');
 const { default: BigNumber } = require('bignumber.js');

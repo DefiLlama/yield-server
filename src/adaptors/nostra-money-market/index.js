@@ -4,6 +4,7 @@ const { call } = require('../../helper/starknet');
 const { assetTokenAbi } = require('./abis/AssetToken');
 const { interestRateModelAbi } = require('./abis/InterestRateModel');
 const { default: BigNumber } = require('bignumber.js');
+const utils = require('../utils');
 
 const interestRateModel =
   '0x59a943ca214c10234b9a3b61c558ac20c005127d183b86a99a8f3c60a08b4ff';
@@ -140,15 +141,28 @@ const markets = {
     debtToken:
       '0x4b036839a8769c04144cc47415c64b083a2b26e4a7daa53c07f6042a0d35792',
   },
+  NSTR: {
+    address:
+      '0x00c530f2c0aa4c16a0806365b0898499fba372e5df7a7172dc6fe9ba777e8007',
+    decimals: 18,
+    supplyTokens: [
+      '0x2b674ffda238279de5550d6f996bf717228d316555f07a77ef0a082d925b782',
+      '0x6f8ad459c712873993e9ffb9013a469248343c3d361e4d91a8cac6f98575834',
+      '0x2589fc11f60f21af6a1dda3aeb7a44305c552928af122f2834d1c3b1a7aa626',
+      '0x46ab56ec0c6a6d42384251c97e9331aa75eb693e05ed8823e2df4de5713e9a4',
+    ],
+    debtToken:
+      '0x3e0576565c1b51fcac3b402eb002447f21e97abb5da7011c0a2e0b465136814',
+  },
 };
 const starknetFoundationIncentivesEndpoint =
-  'https://kx58j6x5me.execute-api.us-east-1.amazonaws.com/starknet/fetchFile?file=qa_lending_strk_grant.json';
+  'https://kx58j6x5me.execute-api.us-east-1.amazonaws.com/starknet/fetchFile?file=prod-api/lending/lending_strk_grant.json';
 
 async function getTokenPrice(token) {
   const networkTokenPair = `starknet:${token}`;
   return (
     await axios.get(`https://coins.llama.fi/prices/current/${networkTokenPair}`)
-  ).data.coins[networkTokenPair].price;
+  ).data.coins[networkTokenPair]?.price;
 }
 
 async function getApys(debtToken) {
@@ -199,7 +213,7 @@ async function getSupply(tokens) {
 async function apy() {
   const incentives = await getStarknetFoundationIncentives();
 
-  return Promise.all(
+  const pools = await Promise.all(
     Object.entries(markets).map(
       async ([name, { address, decimals, supplyTokens, debtToken }]) => {
         const price = await getTokenPrice(address);
@@ -216,21 +230,23 @@ async function apy() {
           symbol: name,
           chain: 'Starknet',
           apyBase: lendingApy,
-          apyReward: tokenIncentive
-            ? 100 *
-              tokenIncentive[tokenIncentive.length - 1]['strk_grant_apr_nrs']
-            : 0,
+          apyReward:
+            tokenIncentive && tokenIncentive.length > 0
+              ? 100 *
+                tokenIncentive[tokenIncentive.length - 1]['strk_grant_apr_nrs']
+              : 0,
           rewardTokens: tokenIncentive ? [markets.STRK.address] : [],
           tvlUsd: totalSupplyUsd - totalBorrowUsd,
           underlyingTokens: [address],
           apyBaseBorrow: borrowApy,
           totalSupplyUsd,
           totalBorrowUsd,
-          url: `https://app.nostra.finance/asset/${name}`,
+          url: `https://app.nostra.finance/lend-borrow/${name}/deposit`,
         };
       }
     )
   );
+  return pools.filter((i) => utils.keepFinite(i));
 }
 
 module.exports = {

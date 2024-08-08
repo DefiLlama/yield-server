@@ -77,11 +77,12 @@ const main = async (body) => {
     apyBaseInception: strToNum(p.apyBaseInception),
   }));
 
-  // filter tvl to be btw lb-ub
+  // filter tvl to be btw lb-ub (except GHO borrow pool on aave-v3 (has a constant tvlUsd of 0 cause can't be used as collateral))
   data = data.filter(
     (p) =>
-      p.tvlUsd >= exclude.boundaries.tvlUsdDB.lb &&
-      p.tvlUsd <= exclude.boundaries.tvlUsdDB.ub
+      (p.tvlUsd >= exclude.boundaries.tvlUsdDB.lb &&
+        p.tvlUsd <= exclude.boundaries.tvlUsdDB.ub) ||
+      (p.project === 'aave-v3' && p.symbol === 'GHO')
   );
 
   // nullify NaN, undefined or Infinity apy values
@@ -173,18 +174,14 @@ const main = async (body) => {
   // need the protocol response to check if adapter.body === 'Dexes' category
 
   // required conditions to calculate IL field
-  const uniV3Forks = [
-    'uniswap-v3',
-    'hydradex-v3',
-    'forge',
-    'arbitrum-exchange-v3',
-    'maia-v3',
-    'ramses-v2',
-  ];
+  const isUniV3Fork = data.filter((i) =>
+    i.poolMeta?.includes('stablePool=')
+  ).length;
+
   if (
     data[0]?.underlyingTokens?.length &&
     protocolConfig[body.adaptor]?.category === 'Dexes' &&
-    !['balancer-v2', 'curve-dex', 'clipper', 'astroport'].includes(
+    !['balancer-v2', 'curve-dex', 'clipper', 'astroport', 'cetus'].includes(
       body.adaptor
     ) &&
     !['elrond', 'near', 'hedera', 'carbon'].includes(
@@ -210,7 +207,7 @@ const main = async (body) => {
 
     const timestamp7daysAgo = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
     // price endpoint seems to break with too many tokens, splitting it to max 150 per request
-    const maxSize = 150;
+    const maxSize = 100;
     const pages = Math.ceil(uniqueToken.length / maxSize);
     let prices7d_ = [];
     let x = '';
@@ -265,7 +262,7 @@ const main = async (body) => {
       let il7d = ((2 * Math.sqrt(d)) / (1 + d) - 1) * 100;
 
       // for uni v3
-      if (uniV3Forks.includes(body.adaptor)) {
+      if (isUniV3Fork) {
         const P = price1 / price0;
 
         // for stablecoin pools, we assume a +/- 0.1% range around current price
@@ -315,7 +312,7 @@ const main = async (body) => {
       ...p,
       config_id: id, // config PK field
       configID: id, // yield FK field referencing config_id in config
-      symbol: ['USDC+', 'ETH+'].some((i) => p.symbol.includes(i))
+      symbol: ['USDC+', 'ETH+', 'USDEX+'].some((i) => p.symbol.includes(i))
         ? p.symbol
         : utils.formatSymbol(p.symbol),
       tvlUsd: Math.round(p.tvlUsd), // round tvlUsd to integer and apy fields to n-dec
@@ -349,7 +346,7 @@ const main = async (body) => {
       poolMeta:
         p.poolMeta === undefined
           ? null
-          : uniV3Forks.includes(p.project)
+          : p.poolMeta?.includes('stablePool=')
           ? p.poolMeta?.split(',')[0]
           : p.poolMeta,
       il7d: p.il7d ? +p.il7d.toFixed(precision) : null,

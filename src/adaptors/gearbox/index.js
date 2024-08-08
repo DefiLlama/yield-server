@@ -9,7 +9,7 @@
  **
  **/
 
-var sdk = require('@defillama/sdk5');
+var sdk = require('@defillama/sdk');
 var utils = require('../utils');
 const fetch = require('node-fetch');
 
@@ -542,6 +542,7 @@ async function getTokensData(chain, pools) {
   return result;
 }
 function calcApyV3(info, supply, rewardPrice) {
+  if (!info) return 0;
   const now = BigInt(Math.floor(Date.now() / 1e3));
   if (info.finished <= now) {
     return 0;

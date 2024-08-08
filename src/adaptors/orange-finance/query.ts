@@ -68,9 +68,13 @@ const getStrykeLpPositionsListQuery = gql`
 `
 
 const getDailyStrikeEarningsListQuery = gql`
-  query getDailyStrikeEarningsList($tokenIds: [ID!]!, $tokenIdsCount: Int!) {
+  query getDailyStrikeEarningsListQuery(
+    $tokenIds: [ID!]!
+    $tokenIdsCount: Int!
+    $startTime: BigInt!
+  ) {
     dailyDonations(
-      where: { strike_: { id_in: $tokenIds } }
+      where: { strike_: { id_in: $tokenIds }, donation_gt: "0", start_gte: $startTime }
       orderBy: start
       orderDirection: desc
       first: $tokenIdsCount
@@ -84,7 +88,7 @@ const getDailyStrikeEarningsListQuery = gql`
       }
     }
     dailyFeeCompounds(
-      where: { strike_: { id_in: $tokenIds } }
+      where: { strike_: { id_in: $tokenIds }, compound_gt: "0", start_gte: $startTime }
       orderBy: start
       orderDirection: desc
       first: $tokenIdsCount
