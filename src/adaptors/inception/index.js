@@ -24,7 +24,7 @@ const apy = async () => {
     await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp7dayAgo}`)
   ).data.height;
 
-  const abi = 'function getRate() external view returns (uint256)';
+  const abi = 'function ratio() external view returns (uint256)';
 
   const exchangeRates = await Promise.all([
     sdk.api.abi.call({
