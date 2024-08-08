@@ -1,7 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
-const inETH = '0x122ee24cb3cc1b6b987800d3b54a68fc16910dbf';
+const inETH = '0xf073bAC22DAb7FaF4a3Dd6c6189a70D54110525C';
 const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 
 const apy = async () => {
@@ -24,7 +24,7 @@ const apy = async () => {
     await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp7dayAgo}`)
   ).data.height;
 
-  const abi = 'function getRatio() external view returns (uint256)';
+  const abi = 'function ratio() external view returns (uint256)';
 
   const exchangeRates = await Promise.all([
     sdk.api.abi.call({
@@ -44,12 +44,10 @@ const apy = async () => {
   ]);
 
   const apr1d =
-    ((exchangeRates[0].output - exchangeRates[1].output) / 1e18) * 365 * 100;
+    ((exchangeRates[0].output - exchangeRates[1].output) / 1e18);
 
   const apr7d =
-    ((exchangeRates[0].output - exchangeRates[2].output) / 1e18 / 7) *
-    365 *
-    100;
+    ((exchangeRates[0].output - exchangeRates[2].output) / 1e18 / 7);
 
   const priceKey = `ethereum:${inETH}`;
   const price = (
