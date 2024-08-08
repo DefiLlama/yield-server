@@ -27,6 +27,21 @@
     "type": "error"
   },
   {
+    "inputs": [],
+    "name": "ChainlinkIncompleteRound",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ChainlinkPriceZero",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ChainlinkStalePrice",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -351,12 +366,51 @@
     "inputs": [
       {
         "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "HarvestRewards",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
         "internalType": "uint64",
         "name": "version",
         "type": "uint64"
       }
     ],
     "name": "Initialized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "newMultihopPath",
+        "type": "bytes"
+      }
+    ],
+    "name": "MultihopPathUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint24",
+        "name": "newSlippageAndFeeFactor",
+        "type": "uint24"
+      }
+    ],
+    "name": "NewSlippageAndFeeFactor",
     "type": "event"
   },
   {
@@ -408,6 +462,45 @@
       }
     ],
     "name": "RescueFunds",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "crvRewards",
+        "type": "uint256"
+      }
+    ],
+    "name": "RescueRewards",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "harvest",
+        "type": "bool"
+      }
+    ],
+    "name": "SetHarvestRewards",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newSlippage",
+        "type": "uint256"
+      }
+    ],
+    "name": "SlippageUpdated",
     "type": "event"
   },
   {
@@ -492,6 +585,32 @@
     "type": "event"
   },
   {
+    "inputs": [],
+    "name": "ADDRESS_ZERO",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ageur",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -572,19 +691,6 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "cUSDCv3",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "internalType": "address",
@@ -600,6 +706,32 @@
     "name": "callExternalContract",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "chainlinkDataFeedCRVUSD",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "chainlinkDataFeedEURUSD",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -635,6 +767,84 @@
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "crv",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "crvPriceEUR",
+    "outputs": [
+      {
+        "internalType": "int256",
+        "name": "answer",
+        "type": "int256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "curveGauge",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "curveLpToken",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "curveMinter",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "curveZap",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -678,16 +888,130 @@
     "type": "function"
   },
   {
-    "inputs": [
+    "inputs": [],
+    "name": "earnedCRV",
+    "outputs": [
       {
-        "internalType": "contract IERC20",
-        "name": "_usdc",
-        "type": "address"
-      },
+        "internalType": "uint256",
+        "name": "toMint",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "euroc",
+    "outputs": [
       {
         "internalType": "address",
-        "name": "_cUSDCv3",
+        "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "harvestAndDepositRewards",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "harvestAmount",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "harvestRewards",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "harvestAmount",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "contract IERC20",
+            "name": "euroc",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "ageur",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "usdc",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "crv",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "weth",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "curveLpToken",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "curveGauge",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "curveZap",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "curveMinter",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "uniswapV3Router",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "chainlinkDataFeedCRVUSD",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "chainlinkDataFeedEURUSD",
+            "type": "address"
+          },
+          {
+            "internalType": "uint24",
+            "name": "slippageAndFeeFactor",
+            "type": "uint24"
+          }
+        ],
+        "internalType": "struct IReturnFinanceCurveEUROCVault.Config",
+        "name": "config",
+        "type": "tuple"
       }
     ],
     "name": "initialize",
@@ -793,6 +1117,19 @@
       }
     ],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "multihopPath",
+    "outputs": [
+      {
+        "internalType": "bytes",
+        "name": "",
+        "type": "bytes"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -950,6 +1287,45 @@
     "inputs": [
       {
         "internalType": "address",
+        "name": "destination",
+        "type": "address"
+      }
+    ],
+    "name": "rescueRewards",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "slippageAndFeeFactor",
+    "outputs": [
+      {
+        "internalType": "uint24",
+        "name": "",
+        "type": "uint24"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "stakedLpInCurveGauge",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "token",
         "type": "address"
       }
@@ -1084,7 +1460,59 @@
   },
   {
     "inputs": [],
+    "name": "uniswapV3Router",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes",
+        "name": "newMultihopPath",
+        "type": "bytes"
+      }
+    ],
+    "name": "updateMultihopPath",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint24",
+        "name": "newSlippageAndFeeFactor",
+        "type": "uint24"
+      }
+    ],
+    "name": "updateSlippageAndFeeFactor",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "usdc",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "weth",
     "outputs": [
       {
         "internalType": "address",
