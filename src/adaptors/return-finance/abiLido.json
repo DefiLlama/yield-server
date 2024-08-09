@@ -27,6 +27,26 @@
     "type": "error"
   },
   {
+    "inputs": [],
+    "name": "AssetsShouldBeEqualToMsgVaule",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ChainlinkIncompleteRound",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ChainlinkPriceZero",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ChainlinkStalePrice",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -130,7 +150,7 @@
         "type": "uint256"
       }
     ],
-    "name": "ERC4626ExceededMaxDeposit",
+    "name": "ERC7535ExceededMaxDeposit",
     "type": "error"
   },
   {
@@ -151,7 +171,7 @@
         "type": "uint256"
       }
     ],
-    "name": "ERC4626ExceededMaxMint",
+    "name": "ERC7535ExceededMaxMint",
     "type": "error"
   },
   {
@@ -172,7 +192,7 @@
         "type": "uint256"
       }
     ],
-    "name": "ERC4626ExceededMaxRedeem",
+    "name": "ERC7535ExceededMaxRedeem",
     "type": "error"
   },
   {
@@ -193,7 +213,7 @@
         "type": "uint256"
       }
     ],
-    "name": "ERC4626ExceededMaxWithdraw",
+    "name": "ERC7535ExceededMaxWithdraw",
     "type": "error"
   },
   {
@@ -269,6 +289,11 @@
       }
     ],
     "name": "UnableToSweep",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "WithdrawFailed",
     "type": "error"
   },
   {
@@ -408,6 +433,19 @@
       }
     ],
     "name": "RescueFunds",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newSlippage",
+        "type": "uint256"
+      }
+    ],
+    "name": "SlippageUpdated",
     "type": "event"
   },
   {
@@ -572,19 +610,6 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "cUSDCv3",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "internalType": "address",
@@ -600,6 +625,19 @@
     "name": "callExternalContract",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "chainlinkDataFeedstETHETH",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -642,6 +680,19 @@
   },
   {
     "inputs": [],
+    "name": "curveStETHETHPool",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "decimals",
     "outputs": [
       {
@@ -674,20 +725,30 @@
         "type": "uint256"
       }
     ],
-    "stateMutability": "nonpayable",
+    "stateMutability": "payable",
     "type": "function"
   },
   {
     "inputs": [
       {
-        "internalType": "contract IERC20",
-        "name": "_usdc",
+        "internalType": "address",
+        "name": "_stETH",
         "type": "address"
       },
       {
         "internalType": "address",
-        "name": "_cUSDCv3",
+        "name": "_chainlinkDataFeedstETHETH",
         "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_curveStETHETHPool",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_slippage",
+        "type": "uint256"
       }
     ],
     "name": "initialize",
@@ -792,7 +853,7 @@
         "type": "uint256"
       }
     ],
-    "stateMutability": "nonpayable",
+    "stateMutability": "payable",
     "type": "function"
   },
   {
@@ -949,6 +1010,58 @@
   {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "newSlippage",
+        "type": "uint256"
+      }
+    ],
+    "name": "setSlippage",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "slippage",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "stETH",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "stETHPriceETH",
+    "outputs": [
+      {
+        "internalType": "int256",
+        "name": "",
+        "type": "int256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "token",
         "type": "address"
@@ -1080,19 +1193,6 @@
     "name": "transferOwnership",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "usdc",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   },
   {
