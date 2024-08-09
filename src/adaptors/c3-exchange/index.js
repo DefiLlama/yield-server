@@ -1,5 +1,5 @@
 const { getGlobalData, getInstrumentData, getPriceMap } = require('./getter')
-const { getSymbol, getUrl, getChain } = require('./codec')
+const { getSymbol, getUrl, getChain, getTokenAddress } = require('./codec')
 const { calculateTVL, calculateBorrowAndLendAPR } = require('./calculations')
 
 function translateInstrumentData(initTimestamp, priceData, instrument) {
@@ -7,7 +7,7 @@ function translateInstrumentData(initTimestamp, priceData, instrument) {
   const symbol = getSymbol(instrument.assetId)
   const chain = getChain(instrument.assetId)
   const price = priceData[instrument.assetId]
-  if (symbol === undefined || price === undefined) return undefined
+  if (symbol === undefined || chain === undefined || price === undefined) return undefined
 
   // Calculate fields
   const { tvlUsd, totalBorrowUsd, totalSupplyUsd } = calculateTVL(price, instrument.borrowed, instrument.liquidity)
@@ -20,7 +20,7 @@ function translateInstrumentData(initTimestamp, priceData, instrument) {
     symbol,
     tvlUsd,
     apyBase: lendApr * 100,
-    underlyingTokens: [instrument.assetId.toString()],
+    underlyingTokens: getTokenAddress(instrument.assetId),
     apyBaseBorrow: borrowApr * 100,
     totalSupplyUsd,
     totalBorrowUsd,

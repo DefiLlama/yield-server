@@ -43,19 +43,36 @@ function getUrl(assetId) {
 
 function getChain(assetId) {
   const chainMap = {
-    0: 'algorand',          //'ALGO'
-    893309613: 'avax',      //'AVAX'
-    1058926737: 'bitcoin',  //'BTC'
-    891648844: 'bsc',       //'BNB'
-    1221549217: 'arbitrum', //'ARB'
-    1007352535: 'avax',     //'USDC'
-    887406851: 'ethereum',  //'ETH'
-    887648583: 'solana',    //'SOL'
-    1684682524: 'solana',   //'PYTH'
-    1703994770: 'solana',   //'W'
+    0: 'algorand',          //ALGO
+    893309613: 'avax',      //AVAX
+    1058926737: 'bitcoin',  //BTC
+    891648844: 'bsc',       //BNB
+    1221549217: 'arbitrum', //ARB
+    1007352535: 'avax',     //USDC
+    887406851: 'ethereum',  //ETH
+    887648583: 'solana',    //SOL
+    1684682524: 'solana',   //PYTH
+    1703994770: 'solana',   //W
   }
 
-  return chainMap[assetId] ? formatChain(chainMap[assetId]) : 'algorand'
+  return chainMap[assetId] ? formatChain(chainMap[assetId]) : undefined
+}
+
+function getTokenAddress(assetId) {
+  const tokenAddressesMap = {
+    0: ['0'],                                                     //ALGO - Algorand
+    893309613: ['0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7'],    //AVAX - Avax
+    1058926737: ['0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'],   //BTC - Ethereum
+    891648844: ['0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c'],    //BNB - bsc
+    1221549217: ['0x912CE59144191C1204E64559FE8253a0e49E6548'],   //ARB - Arbitrum
+    1007352535: ['0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E'],   //USDC - Avax
+    887406851: ['0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'],    //ETH - Ethereum
+    887648583: ['So11111111111111111111111111111111111111112'],   //SOL - Solana
+    1684682524: ['HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3'], //PYTH - Solana
+    1703994770: ['85VBFQZC9TZkfaptBWjvUw7YbZjy52A6mjtPGjstQAmQ'], //W - Solana
+  }
+
+  return tokenAddressesMap[assetId]
 }
 
 function globalStateToBlob(globalState) {
@@ -153,6 +170,7 @@ module.exports = {
   getSymbol,
   getUrl,
   getChain,
+  getTokenAddress,
   globalStateToBlob,
   parsePricecasterData,
   parseInstrumentData,
