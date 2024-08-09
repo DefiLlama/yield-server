@@ -17,6 +17,12 @@ const getPoolData = async ({ contract, abi, chain }) => {
     chain,
   });
 
+  const { output: decimals } = await sdk.api.abi.call({
+    target: contract,
+    abi: abi.find((m) => m.name === 'decimals'),
+    chain,
+  });
+
   const poolsData = await utils.getData(
     'https://api.return.finance//api/our-pools'
   );
@@ -35,7 +41,7 @@ const getPoolData = async ({ contract, abi, chain }) => {
     chain,
     project: 'return-finance',
     symbol: currentPool.currency,
-    tvlUsd: tvlUsd / 1000000,
+    tvlUsd: tvlUsd / Math.pow(10, decimals),
     apyBase: currentPool?.apy,
   };
 };
@@ -59,11 +65,11 @@ const getApy = async () => {
     chain: 'base',
   });
 
-    const benqi = await getPoolData({
-      contract: '0x3A3dAdbca3ec5a815431f45eca33EF1520388Ef2',
-      abi: abiBenqi,
-      chain: 'avax',
-    });
+  const benqi = await getPoolData({
+    contract: '0x3A3dAdbca3ec5a815431f45eca33EF1520388Ef2',
+    abi: abiBenqi,
+    chain: 'avax',
+  });
 
   const makerDao = await getPoolData({
     contract: '0xD8785CDae9Ec24b8796c45E3a2D0F7b03194F826',
