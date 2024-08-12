@@ -98,6 +98,9 @@ const getApy = async () => {
         stakedTvlUsd) *
       100;
 
+    const url = 'https://aerodrome.finance/deposit?token0=' + p.token0 + '&token1=' + p.token1 + '&type=' + p.type.toString() + '&factory=' + p.factory;
+    const poolMeta = 'CL' + p.type.toString() + ' - ' + (p.pool_fee / 10000).toString() + '%';
+
     return {
       pool: p.lp,
       chain: utils.formatChain('base'),
@@ -107,6 +110,8 @@ const getApy = async () => {
       apyReward,
       rewardTokens: apyReward ? [AERO] : [],
       underlyingTokens: [p.token0, p.token1],
+      poolMeta,
+      url,
     };
   });
 
@@ -116,5 +121,4 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://aerodrome.finance/liquidity',
 };
