@@ -6,25 +6,21 @@ const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 const { aTokenAbi } = require('../aave-v3/abi');
 const loopStrategyAbi = require('./loop-strategy-abi.json');
+const ilmRegistryAbi = require('./ilm-registry-abi.json');
 
 const SECONDS_PER_YEAR = 31536000;
 const SECONDS_PER_DAY = 86400;
 const USD_DECIMALS = 8;
 const ONE_USD = BigInt(10 ** USD_DECIMALS);
+const COMPOUNDING_PERIODS = 1;
 const chain = 'base';
 const chainUrlParam = {
   base: 'proto_base_v3',
 };
 
 // https://docs.seamlessprotocol.com/technical/smart-contracts
-const ILMs = [
-  {
-    address: '0x258730e23cF2f25887Cb962d32Bd10b878ea8a4e',
-    compoundingPeriods: 1,
-  },
-];
-
 const ORACLE_ADDRESS = '0xFDd4e83890BCcd1fbF9b10d71a5cc0a738753b01';
+const ILM_REGISTRY_ADDRESS = '0x36291d2d51a0122b9facbe3c3f989cc6b1f859b3';
 
 const API_URLS = {
   base: sdk.graph.modifyEndpoint(
@@ -40,7 +36,7 @@ const getAssetPriceAbi = {
   stateMutability: 'view',
 };
 
-const query = gql`
+const reservesQuery = gql`
   query ReservesQuery {
     reserves {
       name
@@ -76,6 +72,42 @@ const query = gql`
   }
 `;
 
+const rewardsQuery = gql`
+  query RewardsQuery {
+    rewards {
+      id
+      rewardToken
+      distributionEnd
+      emissionsPerSecond
+      rewardTokenDecimals
+    }
+  }
+`;
+
+const getAllILMs = async () => {
+  const allILMs = (
+    await sdk.api.abi.call({
+      chain,
+      target: ILM_REGISTRY_ADDRESS,
+      abi: ilmRegistryAbi.find(({ name }) => name === 'getAllILMs'),
+    })
+  ).output;
+
+  return allILMs.map((address) => address.toLowerCase());
+};
+
+const getAllCollateralAssetsForILMs = async () => {
+  const allILMs = await getAllILMs();
+
+  return (
+    await sdk.api.abi.multiCall({
+      chain,
+      abi: loopStrategyAbi.find(({ name }) => name === 'getAssets'),
+      calls: allILMs.map((address) => ({ target: address })),
+    })
+  ).output.map(({ output }) => output.collateral.toLowerCase());
+};
+
 const getPrices = async (addresses) => {
   const prices = (
     await superagent.get(
@@ -109,8 +141,8 @@ function formatUnitsToNumber(value, decimals) {
 }
 
 function calculateApy(endValue, startValue, timeWindow, compoundingPeriods) {
-  const endValueNumber = formatUnitsToNumber(endValue, 18);
-  const startValueNumber = formatUnitsToNumber(startValue, 18);
+  const endValueNumber = formatUnitsToNumber(endValue, USD_DECIMALS);
+  const startValueNumber = formatUnitsToNumber(startValue, USD_DECIMALS);
   const timeWindowNumber = Number(timeWindow);
 
   const apr =
@@ -125,14 +157,20 @@ const lendingPoolsApy = async () => {
   let data = await Promise.allSettled(
     Object.entries(API_URLS).map(async ([chain, url]) => [
       chain,
-      (await request(url, query)).reserves,
+      (await request(url, reservesQuery)).reserves,
     ])
   );
   data = data.filter((i) => i.status === 'fulfilled').map((i) => i.value);
 
+  const collateralAssetsForILMs = await getAllCollateralAssetsForILMs();
+
   data = data.map(([chain, reserves]) => [
     chain,
-    reserves.filter((p) => !p.isFrozen),
+    reserves.filter(
+      (reserve) =>
+        !reserve.isFrozen &&
+        !collateralAssetsForILMs.includes(reserve.aToken.underlyingAssetAddress)
+    ),
   ]);
 
   const totalSupply = await Promise.all(
@@ -255,12 +293,12 @@ const lendingPoolsApy = async () => {
   return pools.flat().filter((p) => utils.keepFinite(p));
 };
 
-const getLpPrices = async (blockNumber, assets, decimals) => {
+const getLpPrices = async (blockNumber, ilms, assets, decimals) => {
   const equityUSD = (
     await sdk.api.abi.multiCall({
       chain,
       abi: loopStrategyAbi.find(({ name }) => name === 'equityUSD'),
-      calls: ILMs.map(({ address }) => ({ target: address })),
+      calls: ilms.map((address) => ({ target: address })),
       block: blockNumber,
     })
   ).output.map(({ output }) => output);
@@ -269,7 +307,7 @@ const getLpPrices = async (blockNumber, assets, decimals) => {
     await sdk.api.abi.multiCall({
       chain,
       abi: loopStrategyAbi.find(({ name }) => name === 'totalSupply'),
-      calls: ILMs.map(({ address }) => ({ target: address })),
+      calls: ilms.map((address) => ({ target: address })),
       block: blockNumber,
     })
   ).output.map(({ output }) => output);
@@ -304,11 +342,13 @@ const ilmApys = async () => {
     { chain }
   );
 
+  const allILMs = await getAllILMs();
+
   const assets = (
     await sdk.api.abi.multiCall({
       chain,
       abi: loopStrategyAbi.find(({ name }) => name === 'getAssets'),
-      calls: ILMs.map(({ address }) => ({ target: address })),
+      calls: allILMs.map((address) => ({ target: address })),
     })
   ).output.map(({ output }) => output);
 
@@ -316,7 +356,7 @@ const ilmApys = async () => {
     await sdk.api.abi.multiCall({
       chain,
       abi: loopStrategyAbi.find(({ name }) => name === 'symbol'),
-      calls: ILMs.map(({ address }) => ({ target: address })),
+      calls: allILMs.map((address) => ({ target: address })),
     })
   ).output.map(({ output }) => output);
 
@@ -324,7 +364,7 @@ const ilmApys = async () => {
     await sdk.api.abi.multiCall({
       chain,
       abi: loopStrategyAbi.find(({ name }) => name === 'decimals'),
-      calls: ILMs.map(({ address }) => ({ target: address })),
+      calls: allILMs.map((address) => ({ target: address })),
     })
   ).output.map(({ output }) => output);
 
@@ -332,45 +372,89 @@ const ilmApys = async () => {
     await sdk.api.abi.multiCall({
       chain,
       abi: loopStrategyAbi.find(({ name }) => name === 'equityUSD'),
-      calls: ILMs.map(({ address }) => ({ target: address })),
+      calls: allILMs.map((address) => ({ target: address })),
     })
   ).output.map(({ output }) => output);
 
+  let rewardsData = await Promise.allSettled(
+    Object.entries(API_URLS).map(async ([chain, url]) => [
+      chain,
+      await request(url, rewardsQuery),
+    ])
+  );
+  rewardsData = rewardsData
+    .filter((i) => i.status === 'fulfilled')
+    .map((i) => i.value);
+
   const latestBlockPrices = await getLpPrices(
     latestBlock.number,
+    allILMs,
     assets,
     decimals
   );
   const prevBlock1DayPrices = await getLpPrices(
     prevBlock1Day.number,
+    allILMs,
     assets,
     decimals
   );
   const prevBlock7DayPrices = await getLpPrices(
     prevBlock7Day.number,
+    allILMs,
     assets,
     decimals
   );
 
-  const pools = ILMs.map(({ address, compoundingPeriods }, i) => {
+  const rewardTokens = rewardsData.map(([chain, { rewards }]) =>
+    rewards.map((rew) => `${chain}:${rew.rewardToken}`)
+  );
+
+  const { pricesByAddress, pricesBySymbol } = await getPrices(
+    rewardTokens.flat(Infinity)
+  );
+
+  const pools = allILMs.map((address, i) => {
+    const rewards = rewardsData.map(([, { rewards }]) =>
+      rewards.find(
+        (r) =>
+          r.id.split(':')[1] === address.toLowerCase() &&
+          r.distributionEnd > latestBlock.timestamp
+      )
+    );
+
+    const rewardPerYear = rewards.reduce(
+      (acc, rew) =>
+        acc +
+        (Number(rew.emissionsPerSecond) / 10 ** rew.rewardTokenDecimals) *
+          SECONDS_PER_YEAR *
+          (pricesByAddress[rew.rewardToken] ||
+            pricesBySymbol[rew.rewardTokenSymbol] ||
+            0),
+      0
+    );
+
+    const tvlUsd = Number(ethers.utils.formatUnits(tvlsUSD[i], USD_DECIMALS));
+
     return {
       pool: `${address}-${chain}`.toLowerCase(),
       chain: utils.formatChain(chain),
       project: 'seamless-protocol',
       symbol: symbols[i],
-      tvlUsd: Number(ethers.utils.formatUnits(tvlsUSD[i], USD_DECIMALS)),
+      tvlUsd,
       apyBase: calculateApy(
         latestBlockPrices[i],
         prevBlock1DayPrices[i],
         latestBlock.timestamp - prevBlock1Day.timestamp,
-        compoundingPeriods
+        COMPOUNDING_PERIODS
       ),
       apyBase7d: calculateApy(
         latestBlockPrices[i],
         prevBlock7DayPrices[i],
         latestBlock.timestamp - prevBlock7Day.timestamp,
-        compoundingPeriods
+        COMPOUNDING_PERIODS
       ),
+      apyReward: !!rewardPerYear ? (rewardPerYear / tvlUsd) * 100 : null,
+      rewardTokens: rewards.map((rew) => rew.rewardToken),
       underlyingTokens: [assets[i].underlying || assets[i].collateral],
     };
   });
@@ -381,7 +465,7 @@ const ilmApys = async () => {
 const apy = async () => {
   const apys = await Promise.all([lendingPoolsApy(), ilmApys()]);
 
-  console.log('apys: ', apys);
+  console.log('apys ', apys);
 
   return apys.flat().filter((p) => utils.keepFinite(p));
 };
