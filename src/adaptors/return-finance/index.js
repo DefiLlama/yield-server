@@ -10,7 +10,7 @@ const abiBenqi = require('./abiBenqiAvalanche.json');
 const abiCurveDex = require('./abiCurveDEX.json');
 const abiLido = require('./abiLido.json');
 
-const getPoolData = async ({ contract, abi, chain }) => {
+const getPoolData = async ({ contract, abi, chain, exchangeRate = 1 }) => {
   const { output: tvlUsd } = await sdk.api.abi.call({
     target: contract,
     abi: abi.find((m) => m.name === 'totalAssets'),
@@ -40,13 +40,19 @@ const getPoolData = async ({ contract, abi, chain }) => {
     pool: `${contract}-${chain}`,
     chain,
     project: 'return-finance',
-    symbol: currentPool.currency,
-    tvlUsd: tvlUsd / Math.pow(10, decimals),
+    symbol: currentPool.poolPair,
+    tvlUsd: (tvlUsd / Math.pow(10, decimals)) * exchangeRate,
     apyBase: currentPool?.apy,
   };
 };
 
 const getApy = async () => {
+  const ethExchangeRates = await utils.getData(
+    'https://api.coinbase.com/v2/exchange-rates?currency=ETH'
+  );
+
+  const ethUsdExchangeRate = ethExchangeRates.data.rates.USDC;
+
   const aavePolygon = await getPoolData({
     contract: '0x0271a46c049293448c2d4794bcd51f953bf742e8',
     abi: abiAAVEPolygon,
@@ -93,6 +99,7 @@ const getApy = async () => {
     contract: '0x2C2f0FFbFA1B8b9C85400f1726e1bc0892e63D9F',
     abi: abiLido,
     chain: 'ethereum',
+    exchangeRate: Number(ethUsdExchangeRate),
   });
 
   return [
