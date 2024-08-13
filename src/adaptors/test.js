@@ -57,7 +57,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
   });
 
   test('Check for unique pool ids', () => {
-    const poolIds = apy.map((pool) => pool.pool);
+    const poolIds = apy.map((pool) => `${pool.pool}-${pool.chain}`);
     const uniquePoolIds = [...new Set(poolIds)];
     expect(poolIds).toEqual(uniquePoolIds);
   });
