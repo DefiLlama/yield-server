@@ -132,7 +132,7 @@ const getApy = async () => {
         const borrowApy = ((((borrowRateScaled * SECONDS_PER_DAY) + 1) ** DAYS_PER_YEAR) - 1) * 100
 
         return {
-          pool: market.toLowerCase(),
+          pool: `${market.toLowerCase()}-moonbeam`,
           chain: utils.formatChain('moonbeam'),
           project: 'moonwell',
           symbol: token_info.symbol,
@@ -198,7 +198,7 @@ const getApy = async () => {
   const moonbeam_prices = await getPrices(Object.values(moonbeam_prices_id))
 
   for (let market of moonbeamResults) {
-    let marketRewards = moonbeam_incentives[market.pool]
+    let marketRewards = moonbeam_incentives[market.pool.split('-')[0]]
 
     for (let marketWithRewards of marketRewards) {
       const {
@@ -294,7 +294,7 @@ const getApy = async () => {
         const borrowApy = ((((borrowRateScaled * SECONDS_PER_DAY) + 1) ** DAYS_PER_YEAR) - 1) * 100
 
         return {
-          pool: market.toLowerCase(),
+          pool: `${market.toLowerCase()}-base`,
           chain: utils.formatChain('base'),
           project: 'moonwell',
           symbol: token_info.symbol == 'WETH' ? 'ETH' : token_info.symbol,
@@ -315,7 +315,7 @@ const getApy = async () => {
       .filter(e => e.ltv)
   }
 
-  const mrd_markets = await multicallMRD(baseResults.map(r => r.pool), 'base')
+  const mrd_markets = await multicallMRD(baseResults.map(r => r.pool.split('-')[0]), 'base')
 
   const prices_id = mrd_markets.flat().reduce((prev, curr) => {
     const [
@@ -467,7 +467,7 @@ const getApy = async () => {
         const borrowApy = ((((borrowRateScaled * SECONDS_PER_DAY) + 1) ** DAYS_PER_YEAR) - 1) * 100
 
         return {
-          pool: market.toLowerCase(),
+          pool: `${market.toLowerCase()}-optimism`,
           chain: utils.formatChain('optimism'),
           project: 'moonwell',
           symbol: token_info.symbol == 'WETH' ? 'ETH' : token_info.symbol,
@@ -488,7 +488,7 @@ const getApy = async () => {
       .filter(e => e.ltv)
   }
 
-  const optimism_mrd_markets = await multicallMRD(optimismResults.map(r => r.pool), 'optimism')
+  const optimism_mrd_markets = await multicallMRD(optimismResults.map(r => r.pool.split('-')[0]), 'optimism')
 
   const optimism_prices_id = optimism_mrd_markets.flat().reduce((prev, curr) => {
     const [
