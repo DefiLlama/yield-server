@@ -26,6 +26,7 @@ const crv = {
   kava: '0x965f84D915a9eFa2dD81b653e3AE736555d945f4',
   fantom: '0x1E4F97b9f9F913c46F1632781732927B9019C68b',
   base: '0x8Ee73c484A26e0A5df2Ee2a4960B789967dd0415',
+  fraxtal: '0x331B9182088e2A7d6D3Fe4742AbA1fB231aEcc56',
 };
 
 const getPools = async (blockchainId) => {

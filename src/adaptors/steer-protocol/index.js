@@ -1,30 +1,29 @@
-const { gql, request } = require('graphql-request');
+const { request } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
-const superagent = require('superagent');
+const axios = require('axios');
 
 // add chain deployments and subgraph endpoints here
 const supportedChains = [
   {
     name: 'Polygon',
-    subgraphEndpoint: 'steer-protocol-polygon',
+    subgraphEndpoint: sdk.graph.modifyEndpoint(
+      'uQxLz6EarmJcr2ymRRmTnrRPi8cCqas4XcPQb71HBvw'
+    ),
   },
   {
     name: 'Arbitrum',
-    subgraphEndpoint: 'steer-protocol-arbitrum',
+    subgraphEndpoint: sdk.graph.modifyEndpoint(
+      'HVC4Br5yprs3iK6wF8YVJXy4QZWBNXTCFp8LPe3UpcD4'
+    ),
   },
   {
     name: 'Optimism',
-    subgraphEndpoint: 'steer-protocol-optimism',
+    subgraphEndpoint: sdk.graph.modifyEndpoint(
+      'GgW1EwNARL3dyo3acQ3VhraQQ66MHT7QnYuGcQc5geDG'
+    ),
   },
-  // {
-  //     name: 'Binance',
-  //     subgraphEndpoint: 'steer-protocol-bsc'
-  // }
 ];
-
-const graphURLBaseEndpoint =
-  'https://api.thegraph.com/subgraphs/name/steerprotocol/';
 
 // Fetch active vaults and associated data @todo limited to 1000 per chain
 const query = `
@@ -53,10 +52,7 @@ const query = `
 const getPools = async () => {
   const pools = [];
   for (const chainInfo of supportedChains) {
-    const data = await request(
-      graphURLBaseEndpoint + chainInfo.subgraphEndpoint,
-      query
-    );
+    const data = await request(chainInfo.subgraphEndpoint, query);
     // get tokens
     const tokenList = new Set();
     data.vaults.forEach((vaultInfo) => {
@@ -66,10 +62,8 @@ const getPools = async () => {
 
     // get prices
     const tokenPrices = (
-      await superagent.get(
-        `https://coins.llama.fi/prices/current/${[...tokenList]}`
-      )
-    ).body.coins;
+      await axios.get(`https://coins.llama.fi/prices/current/${[...tokenList]}`)
+    ).data.coins;
 
     const chainPools = data.vaults.map((vault) => {
       // calculate tvl
@@ -102,7 +96,7 @@ const getPools = async () => {
     });
     pools.push(...chainPools);
   }
-  return pools;
+  return pools.filter((i) => utils.keepFinite(i));
 };
 
 module.exports = {

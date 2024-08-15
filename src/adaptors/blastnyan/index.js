@@ -1,8 +1,8 @@
 const utils = require('../utils');
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 
 const { default: BigNumber } = require('bignumber.js');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const viewHelperABI = require('./helper.json');
 
@@ -15,17 +15,9 @@ const WETH_ADDRESS = '0x4300000000000000000000000000000000000004';
 const DEPLOYER_ADDRESS = '0x32754478de813A42C9eD6e3e8d00d66c6009b40f';
 const YEAR = 365 * 60 * 60 * 24;
 
-const web3 = new Web3(
-  new Web3.providers.HttpProvider('https://rpc.blast.io')
-);
-
-function getHelper() {
-  return new web3.eth.Contract(viewHelperABI, HELPER_ADDRESS);
-}
+const web3 = new Web3(new Web3.providers.HttpProvider('https://rpc.blast.io'));
 
 async function getLPStakingInfo() {
-  helper = getHelper();
-
   var poolInfo = await helper.methods
     .getPoolInfo(LP_REWARD_ADDRESS, DEPLOYER_ADDRESS)
     .call();
@@ -37,28 +29,28 @@ async function getLPStakingInfo() {
       Number(lpPrice.blnyanBalance) * Number(lpPrice.blnyanValue)) /
     Number(lpPrice.supply);
 
-  poolValueEth =
-    Number(web3.utils.fromWei(poolInfo._staked)) * Number(tokenValue);
+  poolValueEth = (Number(poolInfo._staked) / 1e18) * Number(tokenValue);
   ethYearly = YEAR * Number(poolInfo._rewardRate);
 
-  apr = ethYearly / poolValueEth;
+  apyReward = (ethYearly / poolValueEth) * 100;
 
-  poolValueEth = Math.floor(poolValueEth).toString();
-  usd = await helper.methods.getTokenPriceUSDC(poolValueEth).call();
+  const ethPrice = (
+    await axios.get('https://coins.llama.fi/prices/current/coingecko:ethereum')
+  ).data.coins['coingecko:ethereum'].price;
 
-  usd = Number(usd) / 1e18;
+  const tvlUsd = (poolValueEth * ethPrice) / 1e18;
 
   data = {
     pool: LP_TOKEN_ADDRESS,
-    chain: utils.formatChain("blast"),
-    project: "blastnyan",
-    symbol: "blNYAN-WETH",
-    tvlUsd: Number(usd),
-    apyBase: Number(0),
-    apyReward: Number(apr) * 100,
+    chain: utils.formatChain('blast'),
+    project: 'blastnyan',
+    symbol: 'blNYAN-WETH',
+    tvlUsd,
+    apyBase: 0,
+    apyReward,
     underlyingTokens: [TOKEN_ADDRESS, WETH_ADDRESS],
     rewardTokens: [WETH_ADDRESS],
-    poolMeta: "BlastNYAN Earning Pool: Stake LP to EARN TAXED WETH"
+    poolMeta: 'BlastNYAN Earning Pool: Stake LP to EARN TAXED WETH',
   };
 
   return data;
@@ -69,11 +61,9 @@ const getblNyanStakingInfo = async () => {
     .getPoolInfo(STAKING_REWARD_ADDRESS, DEPLOYER_ADDRESS)
     .call();
 
-  var blNYANPrice = await helper.methods
-    .getBlnyanPrice(Web3.utils.toWei('1'))
-    .call();
-
+  var blNYANPrice = await helper.methods.getBlnyanPrice(1e18).call();
   poolValue = Number(poolInfo._staked);
+
   yearly = YEAR * Number(poolInfo._rewardRate);
   apr = yearly / poolValue;
 
@@ -86,19 +76,21 @@ const getblNyanStakingInfo = async () => {
 
   data = {
     pool: TOKEN_ADDRESS,
-    chain: utils.formatChain("blast"),
-    project: "blastnyan",
-    symbol: "blNYAN",
+    chain: utils.formatChain('blast'),
+    project: 'blastnyan',
+    symbol: 'blNYAN',
     tvlUsd: Number(usd),
     apyBase: Number(0),
     apyReward: Number(apr) * 100,
     underlyingTokens: [TOKEN_ADDRESS],
     rewardTokens: [TOKEN_ADDRESS],
-    poolMeta: "BlastNYAN Single Asset Staking Farm"
+    poolMeta: 'BlastNYAN Single Asset Staking Farm',
   };
 
   return data;
 };
+
+const helper = new web3.eth.Contract(viewHelperABI, HELPER_ADDRESS);
 
 const getApy = async () => {
   const poolsApy = [];

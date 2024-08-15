@@ -1,6 +1,10 @@
 const { BigNumber } = require('bignumber.js');
 const utils = require('../utils');
-const { FARMS, NODE_URL, LP_DECIMALS, WEEK_SEC } = require('./constants');
+const {
+  FARMS,
+  LP_DECIMALS,
+  UNCORRELATED_CURVE
+} = require('./constants');
 const {
   getUSDEquivalent,
   getPoolTotalLPUrl,
@@ -145,19 +149,7 @@ async function main() {
 
   for (let farmPool of FARMS) {
     const farmPoolInfo = await getAPRandTVL(farmPool);
-    const { deployedAddress, coinX, coinY, curve, uniqueFarmKey,  } = farmPool;
-
-    const aprs = await getAPRsFromSentio();
-
-    const aprBase = aprs.data.find((el) => (
-      (el.alias.pair === `${coinX.symbol}-${coinY.symbol}` ||
-        el.alias.pair === `${coinY.symbol}-${coinX.symbol}`) &&
-      (el.alias.ver === 'v0.5') &&
-      (el.alias.curve === 'Uncorrelated')
-      )
-    ).apr
-
-    const apy = (farmPoolInfo.apr + aprBase)
+    const { coinX, coinY, uniqueFarmKey  } = farmPool;
 
     pools.push({
       pool: uniqueFarmKey,
@@ -165,7 +157,7 @@ async function main() {
       project: 'liquidswap',
       symbol: `${coinX.symbol}-${coinY.symbol}`,
       tvlUsd: farmPoolInfo.tvl,
-      apy,
+      apy: farmPoolInfo.apr,
     });
   }
 

@@ -2,123 +2,87 @@ const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 const superagent = require('superagent');
 
-const tokens = {
-  SWISE: {
-    decimals: 18,
-    symbol: 'SWISE',
-    address: '0x48C3399719B582dD63eB5AADf12A40B4C3f52FA2',
-  },
-  USDC: {
-    decimals: 6,
-    symbol: 'USDC',
-    address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-  },
-  wstETH: {
-    decimals: 18,
-    symbol: 'wstETH',
-    address: '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0',
-  },
-  MORPHO: {
-    decimals: 18,
-    symbol: 'MORPHO',
-    address: '0x9994E35Db50125E0DF82e4c2dde62496CE330999',
-  },
-};
-
-const tokenDecimals = Object.fromEntries(
-  Object.values(tokens).map(({ address, decimals }) => [
-    address.toLowerCase(),
-    decimals,
-  ])
-);
+const MORPHO_TOKEN_ADDRESS = '0x9994E35Db50125E0DF82e4c2dde62496CE330999';
 
 const subgraphUrls = {
-  morphoBlue:
-    'https://api.thegraph.com/subgraphs/name/morpho-association/morpho-blue',
-  morphoBlueRewards:
-    'https://api.thegraph.com/subgraphs/name/morpho-association/morpho-blue-rewards',
+  morphoBlue: 'https://blue-api.morpho.org/graphql',
 };
 
 const gqlQueries = {
-  yieldsData: gql`
-    query GetYieldsData {
-      markets(first: 1000, orderBy: totalValueLockedUSD, orderDirection: desc) {
-        id
-        lltv
-        borrowedToken {
-          id
-          symbol
-          lastPriceUSD
-          decimals
-        }
-        inputToken {
-          id
-          symbol
-          lastPriceUSD
-          decimals
-        }
-        rates {
-          side
-          rate
-        }
-        totalSupply
-        totalBorrow
-        totalCollateral
-      }
-    }
-  `,
-  rewardsData: gql`
-    query GetRewardsData {
-      markets {
-        id
-        totalCollateral
-        totalSupplyShares
-        totalBorrowShares
-        rewardsRates {
-          id
-          supplyRatePerYear
-          borrowRatePerYear
-          collateralRatePerYear
-          rewardProgram {
-            id
-            sender {
-              id
+  marketsData: gql`
+    query GetYieldsData($chainId: Int!) {
+      markets(
+        first: 800
+        orderBy: SupplyAssetsUsd
+        orderDirection: Desc
+        where: { chainId_in: [$chainId] }
+      ) {
+        items {
+          uniqueKey
+          lltv
+          loanAsset {
+            address
+            symbol
+            priceUsd
+            decimals
+          }
+          collateralAsset {
+            address
+            symbol
+            priceUsd
+            decimals
+          }
+          state {
+            supplyApy
+            borrowApy
+            netSupplyApy
+            netBorrowApy
+            supplyAssets
+            borrowAssets
+            collateralAssets
+            collateralAssetsUsd
+            supplyAssetsUsd
+            borrowAssetsUsd
+            rewards {
+              asset {
+                address
+              }
             }
-            urd {
-              id
-            }
-            rewardToken
           }
         }
       }
     }
   `,
-  metaMorphoData: gql`
-    query GetMetaMorphoData {
-      metaMorphos(first: 1000, orderBy: lastTotalAssets, orderDirection: desc) {
-        id
-        name
-        symbol
-        decimals
-        asset {
-          id
-        }
-        fee
-        feeRecipient {
-          id
-        }
-        lastTotalAssets
-        asset {
-          id
-        }
-        withdrawQueue {
-          market {
+  metaMorphoVaults: gql`
+    query GetVaultsData($chainId: Int!) {
+      vaults(
+        first: 100
+        orderBy: TotalAssetsUsd
+        orderDirection: Desc
+        where: { chainId_in: [$chainId] }
+      ) {
+        items {
+          chain {
             id
+          }
+          address
+          name
+          symbol
+          asset {
+            address
+          }
+          state {
+            totalAssets
+            totalAssetsUsd
+            apy
+            netApy
+            fee
             totalSupply
-            borrowedToken {
-              id
-              decimals
-              lastPriceUSD
+            allocation {
+              market {
+                uniqueKey
+              }
+              supplyAssetsUsd
             }
           }
         }
@@ -127,319 +91,215 @@ const gqlQueries = {
   `,
 };
 
-const WAD = BigInt(1e18);
-
-const wadDivUp = (x, other) => {
-  return mulDivUp(x, WAD, other);
-};
-
-const mulDivUp = (x, y, scale) => {
-  if (x === 0n || y === 0n) return 0n;
-
-  return (x * y + scale - 1n) / scale;
-};
-
-const wadMulDown = (x, other) => {
-  return mulDivDown(x, other, WAD);
-};
-
-const mulDivDown = (x, y, scale) => {
-  if (x === 0n || y === 0n) return 0n;
-  return (x * y) / scale;
-};
-
-async function fetchPrices(addresses) {
+async function fetchGraphData(query, url, chainId) {
   try {
-    const url = `https://coins.llama.fi/prices/current/${addresses
-      .join(',')
-      .toLowerCase()}`;
-    const response = await superagent.get(url);
-    return Object.entries(response.body.coins).reduce(
-      (acc, [name, price]) => ({
-        ...acc,
-        [name.split(':')[1]]: price.price,
-      }),
-      {}
-    );
-  } catch (error) {
-    console.error('Error fetching prices:', error);
-    return {};
-  }
-}
-
-function rateToApy(ratePerYear) {
-  return Math.expm1(ratePerYear);
-}
-
-function calculateReward(
-  ratePerYear,
-  priceTokenUSD,
-  tokenDecimals,
-  totalAssets,
-  assetPriceUSD,
-  assetDecimals
-) {
-  if (ratePerYear > 0 && priceTokenUSD && tokenDecimals !== undefined) {
-    const numerator = (ratePerYear * priceTokenUSD) / 10 ** tokenDecimals;
-    const denom = (totalAssets * assetPriceUSD) / 10 ** assetDecimals;
-    return denom > 0 ? numerator / denom : 0;
-  }
-  return 0;
-}
-
-async function fetchGraphData(query, url) {
-  try {
-    return await request(url, query);
+    return await request(url, query, {
+      chainId: chainId,
+    });
   } catch (error) {
     console.error('Error fetching graph data:', error);
     return {};
   }
 }
 
-async function blueMarkets() {
+function isNegligible(valueA, valueB, threshold = 0.01) {
+  return Math.abs(valueA - valueB) / (valueA + valueB) < threshold;
+}
+
+function validatePool(pool) {
+  const requiredFields = [
+    'pool',
+    'chain',
+    'project',
+    'symbol',
+    'apyBase',
+    'apyReward',
+    'rewardTokens',
+    'tvlUsd',
+    'underlyingTokens',
+    'apyBaseBorrow',
+    'apyRewardBorrow',
+    'totalSupplyUsd',
+    'totalBorrowUsd',
+    'ltv',
+    'poolMeta',
+  ];
+  return requiredFields.every((field) => pool[field] !== undefined);
+}
+
+async function fetchBlueMarkets(chainId) {
   try {
     const marketDataResponse = await fetchGraphData(
-      gqlQueries.yieldsData,
-      subgraphUrls.morphoBlue
+      gqlQueries.marketsData,
+      subgraphUrls.morphoBlue,
+      chainId
     );
-    const rewardsDataResponse = await fetchGraphData(
-      gqlQueries.rewardsData,
-      subgraphUrls.morphoBlueRewards
-    );
-    const marketData = marketDataResponse?.markets || [];
-    const rewardsData = rewardsDataResponse?.markets || [];
 
-    const tokenAddresses = Object.values(tokens).map(
-      ({ address }) => `ethereum:${address}`
-    );
-    const prices = await fetchPrices(tokenAddresses);
-
-    // Map for quick access to rewards data by market ID
-    const rewardsDataMap = rewardsData.reduce((acc, market) => {
-      acc[market.id] = market;
-      return acc;
-    }, {});
+    const marketData = marketDataResponse?.markets.items || [];
 
     return Object.fromEntries(
-      marketData.map((market) => {
-        const marketRewards = rewardsDataMap[market.id] || { rewardsRates: [] };
-        const rewardTokenStates = {
-          hasSWISEReward: false,
-          hasUSDCReward: false,
-          hasWstETHReward: false,
-          hasMorphoReward: false,
-        };
-        // Calculate APYs for supply, borrow, and collateral based on rewards
-        let supplyRewardsApy = 0;
-        let borrowRewardsApy = 0;
-        let collateralRewardsApy = 0;
+      marketData
+        .map((market) => {
+          if (!market) {
+            console.warn('Skipping market due to undefined market data');
+            return null; // Skip undefined market
+          }
 
-        marketRewards.rewardsRates.forEach((reward) => {
-          const {
-            supplyRatePerYear,
-            borrowRatePerYear,
-            collateralRatePerYear,
-            rewardProgram,
-          } = reward;
-          const rewardTokenAddress = rewardProgram.rewardToken.toLowerCase();
-          // Check and set flags for reward token presence
-          if (rewardTokenAddress === tokens.SWISE.address.toLowerCase())
-            rewardTokenStates.hasSWISEReward = true;
-          if (rewardTokenAddress === tokens.USDC.address.toLowerCase())
-            rewardTokenStates.hasUSDCReward = true;
-          if (rewardTokenAddress === tokens.wstETH.address.toLowerCase())
-            rewardTokenStates.hasWstETHReward = true;
-          if (rewardTokenAddress === tokens.MORPHO.address.toLowerCase())
-            rewardTokenStates.hasMorphoReward = true;
-
-          const rewardTokenPriceUSD = prices[rewardTokenAddress] || 0;
-          const rewardTokenDecimals = tokenDecimals[rewardTokenAddress];
-
-          supplyRewardsApy +=
-            calculateReward(
-              supplyRatePerYear,
-              rewardTokenPriceUSD,
-              rewardTokenDecimals,
-              market.totalSupply,
-              market.borrowedToken.lastPriceUSD,
-              market.borrowedToken.decimals
-            ) * 100;
-
-          borrowRewardsApy +=
-            calculateReward(
-              borrowRatePerYear,
-              rewardTokenPriceUSD,
-              rewardTokenDecimals,
-              market.totalBorrow,
-              market.borrowedToken.lastPriceUSD,
-              market.borrowedToken.decimals
-            ) * 100;
-
-          collateralRewardsApy +=
-            calculateReward(
-              collateralRatePerYear,
-              rewardTokenPriceUSD,
-              rewardTokenDecimals,
-              market.totalCollateral,
-              market.inputToken.lastPriceUSD,
-              market.inputToken.decimals
-            ) * 100;
-        });
-
-        // Construct reward tokens array based on flags
-        const rewardTokens = [
-          rewardTokenStates.hasMorphoReward ? tokens.MORPHO.address : null,
-          rewardTokenStates.hasWstETHReward ? tokens.wstETH.address : null,
-          rewardTokenStates.hasUSDCReward ? tokens.USDC.address : null,
-          rewardTokenStates.hasSWISEReward ? tokens.SWISE.address : null,
-        ].filter(Boolean);
-
-        // Calculate total TVL, supply, and borrow in USD
-        const totalSupplyUsd =
-          (market.totalSupply * market.borrowedToken.lastPriceUSD) /
-            10 ** market.borrowedToken.decimals +
-          (market.totalCollateral * market.inputToken.lastPriceUSD) /
-            10 ** market.inputToken.decimals;
-        const totalBorrowUsd =
-          (market.totalBorrow * market.borrowedToken.lastPriceUSD) /
-          10 ** market.borrowedToken.decimals;
-        const totalTVL = totalSupplyUsd - totalBorrowUsd;
-        const ltv = market.lltv / 1e18;
-
-        // Return structured APY data for each market
-        return [
-          market.id,
-          {
-            pool: `morpho-blue-${market.id}`,
-            chain: 'ethereum',
+          const lltv = market.lltv / 1e18;
+          const rewardTokens = market.state.rewards
+            .map((reward) => reward.asset.address)
+            .filter((address) => address !== MORPHO_TOKEN_ADDRESS);
+          const apyReward = Math.max(
+            0,
+            (market.state.netSupplyApy || 0) - (market.state.supplyApy || 0)
+          );
+          const apyRewardBorrow = Math.max(
+            0,
+            (market.state.netBorrowApy || 0) - (market.state.borrowApy || 0)
+          );
+          const pool = {
+            pool: `morpho-blue-${market.uniqueKey}`,
+            chain: chainId === 1 ? 'ethereum' : 'base',
             project: 'morpho-blue',
-            symbol: utils.formatSymbol(
-              `${market.inputToken.symbol}-${market.borrowedToken.symbol}`
-            ),
-            apyBase:
-              rateToApy(
-                market.rates.find((rate) => rate.side === 'LENDER')?.rate || 0
-              ) * 100,
-            apyReward: supplyRewardsApy,
+            symbol: `${market.collateralAsset?.symbol || 'idle-market'}-${
+              market.loanAsset.symbol
+            }`,
+            apyBase: market.state.supplyApy || 0,
+            apyReward,
             rewardTokens,
-            tvlUsd: totalTVL,
-            underlyingTokens: [market.borrowedToken.id],
-            apyBaseBorrow:
-              rateToApy(
-                market.rates.find((rate) => rate.side === 'BORROWER')?.rate || 0
-              ) * 100,
-            apyRewardBorrow: borrowRewardsApy + collateralRewardsApy,
-            totalSupplyUsd,
-            totalBorrowUsd,
-            ltv,
-            poolMeta: `${ltv * 100}%`,
-          },
-        ];
-      })
+            tvlUsd:
+              (market.state.collateralAssetsUsd || 0) +
+              (market.state.supplyAssetsUsd || 0) -
+              (market.state.borrowAssetsUsd || 0),
+            underlyingTokens: [market.loanAsset.address],
+            apyBaseBorrow: market.state.borrowApy || 0,
+            apyRewardBorrow,
+            totalSupplyUsd:
+              (market.state.supplyAssetsUsd || 0) +
+              (market.state.collateralAssetsUsd || 0),
+            totalBorrowUsd: market.state.borrowAssetsUsd || 0,
+            ltv: lltv,
+            poolMeta: `${lltv * 100}%`,
+          };
+          if (!validatePool(pool)) {
+            console.warn(`Skipping invalid pool: ${JSON.stringify(pool)}`);
+            return null; // Skip invalid pool
+          }
+          return [market.uniqueKey, pool];
+        })
+        .filter(Boolean) // Filter out null entries
     );
   } catch (error) {
-    console.error('Error in blueMarkets:', error);
+    console.error('Error in fetchBlueMarkets:', error);
     return [];
   }
 }
 
-// note that for this section, the use of bigint and scale_factor (WAD) was necessary to avoid rounding errors in the apy calculation.
-async function metaMorphoAPY(resultsOriginal) {
+async function fetchMetaMorphoAPY(blueMarketsData, chainId) {
   try {
-    const metaMorphoDataResponse = await fetchGraphData(
-      gqlQueries.metaMorphoData,
-      subgraphUrls.morphoBlue
-    );
-    const vaultData = metaMorphoDataResponse?.metaMorphos || [];
-
-    const marketDataMap = Object.entries(resultsOriginal).reduce(
-      (acc, [marketId, marketInfo]) => {
-        acc[marketId] = marketInfo;
-        return acc;
-      },
-      {}
+    const vaultsDataResponse = await fetchGraphData(
+      gqlQueries.metaMorphoVaults,
+      subgraphUrls.morphoBlue,
+      chainId
     );
 
-    return vaultData.map((vault) => {
-      let totalMarketSupply = BigInt(0);
-      let rewardTokenSet = new Set();
-      const vaultTotalAssets = BigInt(vault.lastTotalAssets);
+    const vaultData = vaultsDataResponse?.vaults.items || [];
 
-      vault.withdrawQueue.forEach(({ market }) => {
-        const marketInfo = marketDataMap[market.id];
-        if (marketInfo) {
-          totalMarketSupply += BigInt(market.totalSupply) * WAD;
-        }
-      });
+    return Object.fromEntries(
+      vaultData
+        .map((vault) => {
+          if (!vault) {
+            console.warn('Skipping vault due to undefined vault data');
+            return null; // Skip undefined vault
+          }
 
-      let weightedApyBase = BigInt(0);
-      let weightedApyRewards = BigInt(0);
+          if (vault.state.totalAssetsUsd < 10000) {
+            console.log('Skipping vault due to insufficient USD value:', vault);
+            return null; // Skip vault with insufficient value
+          }
 
-      // Calculate weighted APYs for the vault
-      vault.withdrawQueue.forEach(({ market }) => {
-        const marketInfo = marketDataMap[market.id];
-        if (marketInfo) {
-          marketInfo.rewardTokens.forEach((token) => rewardTokenSet.add(token));
-          const marketSupply = BigInt(market.totalSupply) * WAD;
-          const weight = wadDivUp(marketSupply, totalMarketSupply);
-          weightedApyBase += wadMulDown(
-            weight,
-            BigInt(Math.round(marketInfo.apyBase * 1e18))
-          );
-          weightedApyRewards += wadMulDown(
-            weight,
-            BigInt(Math.round(marketInfo.apyReward * 1e18))
-          );
-        }
-      });
+          const lltv = 1;
+          let additionalRewardTokens = [];
 
-      const finalApyBase = (Number(weightedApyBase) / Number(WAD)).toFixed(6);
-      const finalApyRewards = (
-        Number(weightedApyRewards) / Number(WAD)
-      ).toFixed(6);
+          vault.state.allocation.forEach((allocatedMarket) => {
+            if (allocatedMarket.supplyAssetsUsd !== 0) {
+              const marketRewards = blueMarketsData.find(
+                (market) =>
+                  market.pool ===
+                  `morpho-blue-${allocatedMarket.market.uniqueKey}`
+              );
+              if (marketRewards) {
+                additionalRewardTokens = additionalRewardTokens.concat(
+                  marketRewards.rewardTokens
+                );
+              }
+            }
+          });
 
-      let underlyingToken;
-      let underlyingTokenDecimal;
-      let lastPriceUSD;
-      let totalSupplyUSD = 0;
+          const rewardsApy = vault.state.netApy - vault.state.apy;
+          const isNegligibleApy = isNegligible(rewardsApy, vault.state.apy);
+          const apyReward =
+            isNegligibleApy || additionalRewardTokens.length === 0
+              ? 0
+              : rewardsApy;
+          const rewardTokens =
+            isNegligibleApy || additionalRewardTokens.length === 0
+              ? []
+              : [...new Set(additionalRewardTokens)];
 
-      if (vault.withdrawQueue.length > 0) {
-        underlyingToken = vault.withdrawQueue[0].market.borrowedToken.id;
-        underlyingTokenDecimal =
-          vault.withdrawQueue[0].market.borrowedToken.decimals;
-        lastPriceUSD = vault.withdrawQueue[0].market.borrowedToken.lastPriceUSD;
-        totalSupplyUSD =
-          (parseFloat(vaultTotalAssets.toString()) * lastPriceUSD) /
-          10 ** underlyingTokenDecimal;
-      }
-
-      return {
-        pool: `morpho-blue-${vault.id}`,
-        chain: 'ethereum',
-        project: 'morpho-blue',
-        symbol: utils.formatSymbol(vault.symbol),
-        apyBase: parseFloat(finalApyBase),
-        apyReward: parseFloat(finalApyRewards),
-        rewardTokens: Array.from(rewardTokenSet),
-        tvlUsd: Number.isFinite(totalSupplyUSD) ? totalSupplyUSD : 0,
-        underlyingTokens: underlyingToken ? [underlyingToken] : [],
-        apyBaseBorrow: 0,
-        apyRewardBorrow: 0,
-        totalSupplyUsd: Number.isFinite(totalSupplyUSD) ? totalSupplyUSD : 0,
-        totalBorrowUsd: 0,
-        ltv: 0,
-      };
-    });
+          const pool = {
+            pool: `morpho-blue-${vault.address}`,
+            chain: chainId === 1 ? 'ethereum' : 'base',
+            project: 'morpho-blue',
+            symbol: vault.symbol,
+            apyBase: vault.state.apy || 0,
+            apyReward,
+            rewardTokens,
+            tvlUsd: vault.state.totalAssetsUsd || 0,
+            underlyingTokens: [vault.asset.address],
+            apyBaseBorrow: 0,
+            apyRewardBorrow: 0,
+            totalSupplyUsd: vault.state.totalAssetsUsd || 0,
+            totalBorrowUsd: 0,
+            ltv: lltv,
+            poolMeta: `${lltv * 100}%`,
+          };
+          if (!validatePool(pool)) {
+            console.warn(`Skipping invalid pool: ${JSON.stringify(pool)}`);
+            return null; // Skip invalid pool
+          }
+          return [vault.address, pool];
+        })
+        .filter(Boolean) // Filter out null entries
+    );
   } catch (error) {
-    console.error('Error in metaMorphoAPY:', error);
+    console.error('Error in fetchMetaMorphoAPY:', error);
     return [];
   }
 }
 
 async function apy() {
-  const resultsOriginal = await blueMarkets();
-  const resultsMetamorpho = await metaMorphoAPY(resultsOriginal);
-  return Object.values(resultsOriginal).concat(resultsMetamorpho);
+  const chainIds = [1, 8453];
+  let finalResult = [];
+
+  for (const chainId of chainIds) {
+    const blueMarketsData = Object.values(await fetchBlueMarkets(chainId));
+    const metaMorphoAPYData = Object.values(
+      await fetchMetaMorphoAPY(blueMarketsData, chainId)
+    );
+
+    const combinedData = metaMorphoAPYData.concat(blueMarketsData).map((i) => ({
+      ...i,
+      apyBase: i.apyBase * 100,
+      apyBaseBorrow: i.apyBaseBorrow * 100,
+      apyReward: i.apyReward * 100,
+      apyRewardBorrow: i.apyRewardBorrow * 100,
+    }));
+
+    finalResult = finalResult.concat(combinedData);
+  }
+
+  return finalResult;
 }
 
 module.exports = {

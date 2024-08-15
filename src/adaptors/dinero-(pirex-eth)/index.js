@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const token = '0x04C154b66CB340F3Ae24111CC767e0184Ed00Cc6';
@@ -8,7 +8,7 @@ const getApy = async () => {
   const tvl =
     (await sdk.api.erc20.totalSupply({ target: token })).output / 1e18;
 
-  const apyData = (await axios.get('https://dineroismoney.com/api/apr')).data;
+  const apyData = (await axios.get('https://dinero.xyz/api/apr')).data;
   const priceKey = `ethereum:${weth}`;
   const ethPrice = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)

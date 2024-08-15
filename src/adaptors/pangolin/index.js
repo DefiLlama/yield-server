@@ -5,7 +5,7 @@ const axios = require('axios');
 const utils = require('../utils');
 const minichefAbi = require('./minichefAbi');
 
-const url = 'https://api.thegraph.com/subgraphs/name/pangolindex/exchange';
+const url = sdk.graph.modifyEndpoint('7PRKughAkeESafrGZ8A2x1YsbNMQnFbxQ1bpeNjktwZk');
 const minichef = '0x1f806f7C8dED893fd3caE279191ad7Aa3798E928';
 const PNG = '0x60781c2586d68229fde47564546784ab3faca982';
 

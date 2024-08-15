@@ -386,8 +386,8 @@ const getApy = async () => {
   ];
   return pools.flat().map((i) => ({
     ...i,
-    apyReward: x.includes(i.pool) ? null : i.apyReward,
-    rewardTokens: x.includes(i.pool) ? null : i.rewardTokens,
+    apyReward: x.includes(i.pool) || i.chain === 'Manta' ? null : i.apyReward,
+    rewardTokens: x.includes(i.pool) || i.chain === 'Manta' ? null : i.rewardTokens,
   })).filter(p => p.chain != 'Binance');
 };
 

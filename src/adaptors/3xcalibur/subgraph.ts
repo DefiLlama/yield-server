@@ -1,8 +1,8 @@
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 
 const XCAL_USDC_PAIR_ADRESS = '0x2Cc6AC1454490AfA83333Fabc84345FaD751285B';
-const SUBGRAPH_URL =
-  'https://api.thegraph.com/subgraphs/name/0xleez/xcali-arbitrum';
+const SUBGRAPH_URL = sdk.graph.modifyEndpoint('J9xPBr2XdBxWvLi2HSiz8hW76HUU91WQ9ztkicCRccDS');
 
 const swapPairsQuery = gql`
   query PairsQuery {
