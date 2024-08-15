@@ -29,6 +29,7 @@ async function pools() {
     jglpApy,
     jusdcCollateralBalance,
     jglpCollateralBalance,
+    smartLpStrategiesRes,
   ] = await Promise.all([
     utils.getPrices([
       `ethereum:${aura}`,
@@ -66,6 +67,9 @@ async function pools() {
       params: [glpStrategy],
       chain: 'arbitrum',
     }),
+    utils
+      .getData('https://app.jonesdao.io/api/smart-lp/pools')
+      .then((res) => res.strategies),
   ]);
 
   const {
@@ -115,7 +119,17 @@ async function pools() {
     apyBaseInception: jglpApy.full,
   };
 
-  return [jUsdcPool, jGlpPool, jAuraPool];
+  const smartLpStrategies = smartLpStrategiesRes.map((strat) => ({
+    pool: `${strat.vaultAddress}-arbitrum`.toLowerCase(),
+    chain: 'Arbitrum',
+    project: 'jones-dao',
+    symbol: `${strat.poolName}-${strat.dex}-${strat.strategyName}`,
+    underlyingTokens: [strat.token0.address, strat.token1.address],
+    tvlUsd: strat.tvl,
+    apyBase: strat.apy + (strat.stipApr ?? 0) + (strat.merklApr ?? 0),
+  }));
+
+  return [jUsdcPool, jGlpPool, jAuraPool, ...smartLpStrategies];
 }
 
 module.exports = {
