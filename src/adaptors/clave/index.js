@@ -61,20 +61,26 @@ const getV1PoolData = async ({ abi, contract, chain, name, token }) => {
 
   const { decimals, price, symbol } = await getTokenData(token);
 
-  const formattedRewardAmount = formatUnits(
-    BigNumber.from(rewardRate).mul(ONE_YEAR).mul(100),
-    decimals
-  );
   const formattedtotalSupply = formatUnits(totalSupply, decimals);
-
-  const apyBase = Number(formattedRewardAmount) / Number(formattedtotalSupply);
   const tvlUsd = Number(formattedtotalSupply) * price;
+
+  const NOW = finishAt >= Math.floor(Date.now() / 1000);
+  let formattedRewardAmount = 0;
+  let apyBase = 0;
+
+  if (finishAt > NOW) {
+    formattedRewardAmount = formatUnits(
+      BigNumber.from(rewardRate).mul(ONE_YEAR).mul(100),
+      decimals
+    );
+    apyBase = Number(formattedRewardAmount) / Number(formattedtotalSupply);
+  }
 
   return {
     pool: name,
-    chain,
+    chain: utils.formatChain(chain),
     project: 'clave',
-    symbol,
+    symbol: utils.formatSymbol(symbol),
     tvlUsd,
     apyBase,
   };
