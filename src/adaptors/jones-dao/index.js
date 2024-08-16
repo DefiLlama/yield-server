@@ -123,10 +123,11 @@ async function pools() {
     pool: `${strat.vaultAddress}-arbitrum`.toLowerCase(),
     chain: 'Arbitrum',
     project: 'jones-dao',
-    symbol: `${strat.poolName}-${strat.dex}-${strat.strategyName}`,
+    symbol: strat.poolName,
     underlyingTokens: [strat.token0.address, strat.token1.address],
     tvlUsd: strat.tvl,
     apyBase: strat.apy + (strat.stipApr ?? 0) + (strat.merklApr ?? 0),
+    poolMeta: `${strat.strategyName.toUpperCase()} strategy on ${strat.dex.toUpperCase()}`,
   }));
 
   return [jUsdcPool, jGlpPool, jAuraPool, ...smartLpStrategies];
@@ -137,3 +138,6 @@ module.exports = {
   url: 'https://app.jonesdao.io/vaults',
   apy: pools,
 };
+
+// cd src/adaptors
+// npm run test --adapter=jones-dao
