@@ -514,6 +514,8 @@ const excludePools = [
   '0xa6ef6c45ebfdbc13f6d032fbdfec9b389c1603e5',
   'eqc11t8istqlkjgrocw3fer3kpsyzfuedzch943xkudmir7k-ton',
   'morpho-blue-0xade6749e981ae94420956cc22c299054e05ac3564cc196bf62f4c0924c03bfdf',
+  '0xBe96502c9bAa5Aec7E4C810c13D80F75e2D669E0',
+  '0xE39120b27e5bfeC953524402C2e261763c76519E',
 
   // temp: subset of velodrome v3 and aerordrom slipstream pools
   '0xf81e1a62cBfA487E807044618661bFD4802B4982',
