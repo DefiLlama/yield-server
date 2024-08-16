@@ -1,5 +1,8 @@
 const { ethers, Contract, BigNumber } = require('ethers');
-const sdk = require('@defillama/sdk3');
+const sdk = require('@defillama/sdk');
+
+const WETH_TOKEN = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+const OETH_TOKEN = '0x856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc3';
 
 const utils = require('../utils');
 
@@ -28,25 +31,17 @@ const poolsFunction = async () => {
   );
   const ethPrice = priceData.coins['coingecko:ethereum'].price;
 
-  const tvlUsd =
-    BigNumber.from(totalValueEth)
-      .mul(ethers.utils.parseEther(ethPrice.toString()))
-      .div(BigNumber.from('10').pow(36 - 8))
-      .toNumber() /
-    10 ** 8;
+  const tvlUsd = (totalValueEth / 1e18) * ethPrice;
 
   const oethData = {
-    pool: '0x856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc3',
+    pool: OETH_TOKEN,
     chain: 'Ethereum',
     project: 'origin-ether',
     symbol: 'OETH',
     tvlUsd,
     apy: Number(apyData.apy),
     underlyingTokens: [
-      '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH
-      '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84', // stETH
-      '0xae78736Cd615f374D3085123A210448E74Fc6393', // rETH
-      '0x5e8422345238f34275888049021821e8e08caa1f', // frxETH
+      WETH_TOKEN,
     ],
   };
 
@@ -56,5 +51,5 @@ const poolsFunction = async () => {
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
-  url: 'https://oeth.com',
+  url: 'https://originprotocol.com/oeth',
 };

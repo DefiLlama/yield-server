@@ -1,5 +1,4 @@
 const ethers = require('ethers');
-const ethersProviders = require('@ethersproject/providers');
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const BigNumber = require('bignumber.js');
@@ -178,7 +177,7 @@ const main = async () => {
     };
   });
 
-  return pools.filter((p) => utils.keepFinite(p));
+  return utils.removeDuplicates(pools.filter((p) => utils.keepFinite(p)));
 };
 
 module.exports = {

@@ -2,6 +2,8 @@ const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const abi = require('./abis.json');
 
+const utils = require('../utils');
+
 const unitroller = '0x5E23dC409Fc2F832f83CEc191E245A191a4bCc5C';
 const WCANTO = '0x826551890Dc65655a0Aceca109aB11AbDbD7a07B';
 
@@ -27,6 +29,7 @@ const poolInfo = async (chain) => {
           params: pool.pool,
         })),
         chain,
+        permitFailure: true,
       })
     )
   ).then((data) => data.map(getOutput));
@@ -56,6 +59,7 @@ const poolInfo = async (chain) => {
           target: address.pool,
         })),
         chain,
+        permitFailure: true,
       })
     )
   ).then((data) => data.map(getOutput));
@@ -71,6 +75,7 @@ const poolInfo = async (chain) => {
           target: token,
         })),
         chain,
+        permitFailure: true,
       })
     )
   ).then((data) => data.map(getOutput));
@@ -111,7 +116,7 @@ const poolInfo = async (chain) => {
     data.totalReserves = totalReserves[i];
     data.underlyingToken = underlyingToken[i];
     data.tokenSymbol = underlyingTokenSymbol[i];
-    data.price = prices[underlyingToken[i].toLowerCase()].usd;
+    data.price = prices[underlyingToken[i].toLowerCase()]?.usd;
     data.underlyingTokenDecimals = underlyingTokenDecimals[i];
   });
 
@@ -127,6 +132,7 @@ const unwrapLP = async (chain, lpTokens) => {
           target: token,
         })),
         chain,
+        permitFailure: true,
       })
     )
   ).then((data) => data.map(getOutput));
@@ -138,6 +144,7 @@ const unwrapLP = async (chain, lpTokens) => {
         target: token,
       })),
       chain,
+      permitFailure: true,
     })
   ).output.map((decimal) => Math.pow(10, Number(decimal.output)));
 
@@ -148,6 +155,7 @@ const unwrapLP = async (chain, lpTokens) => {
         target: token,
       })),
       chain,
+      permitFailure: true,
     })
   ).output.map((decimal) => Math.pow(10, Number(decimal.output)));
 
@@ -262,7 +270,11 @@ const getApy = async () => {
     return readyToExport;
   });
 
-  return yieldPools;
+  return yieldPools.filter(
+    (i) =>
+      utils.keepFinite(i) &&
+      i.pool !== '0xee602429ef7ece0a13e4ffe8dbc16e101049504c-canto'
+  );
 };
 
 function exportFormatter(

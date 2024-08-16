@@ -1,36 +1,50 @@
-const Web3 = require('web3');
-const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
-const { request, gql, batchRequests } = require('graphql-request');
-const superagent = require('superagent');
+const { request, gql } = require('graphql-request');
 const { chunk } = require('lodash');
 
 const { masterChefABI, lpTokenABI } = require('./abis');
 const utils = require('../utils');
-const { TokenProvider } = require('@uniswap/smart-order-router');
 
-const RPC_URL = 'https://endpoints.omniatech.io/v1/bsc/mainnet/public';
-const API_URL = 'https://api.thegraph.com/subgraphs/name/biswapcom/exchange5';
+const API_URL = sdk.graph.modifyEndpoint(
+  '2D9rXpMTvAgofWngsyRE17jKr5ywrU4W3Eaa71579qkd'
+);
 
 const MASTERCHEF_ADDRESS = '0xDbc1A13490deeF9c3C12b44FE77b503c1B061739';
 const BSW_TOKEN = '0x965f527d9159dce6288a2219db51fc6eef120dd1';
 
 const BSC_BLOCK_TIME = 3;
 const BLOCKS_PER_YEAR = Math.floor((60 / BSC_BLOCK_TIME) * 60 * 24 * 365);
-const BLOCKS_PER_DAY = Math.floor((60 / BSC_BLOCK_TIME) * 60 * 24);
 const WEEKS_PER_YEAR = 52;
 const FEE_RATE = 0.0005;
 const CHAIN = 'bsc';
 
-const web3 = new Web3(RPC_URL);
-
 const apy = async () => {
   const nonLpPools = [0];
-  const masterChef = new web3.eth.Contract(masterChefABI, MASTERCHEF_ADDRESS);
 
-  const poolsCount = await masterChef.methods.poolLength().call();
-  const totalAllocPoint = await masterChef.methods.totalAllocPoint().call();
-  const bswPerBlock = (await masterChef.methods.BSWPerBlock().call()) / 1e18;
+  const poolsCount = (
+    await sdk.api.abi.call({
+      target: MASTERCHEF_ADDRESS,
+      chain: CHAIN,
+      abi: masterChefABI.find((m) => m.name === 'poolLength'),
+    })
+  ).output;
+
+  const totalAllocPoint = (
+    await sdk.api.abi.call({
+      target: MASTERCHEF_ADDRESS,
+      chain: CHAIN,
+      abi: masterChefABI.find((m) => m.name === 'totalAllocPoint'),
+    })
+  ).output;
+
+  const bswPerBlock =
+    (
+      await sdk.api.abi.call({
+        target: MASTERCHEF_ADDRESS,
+        chain: CHAIN,
+        abi: masterChefABI.find((m) => m.name === 'BSWPerBlock'),
+      })
+    ).output / 1e18;
 
   const poolsRes = await sdk.api.abi.multiCall({
     abi: masterChefABI.filter(({ name }) => name === 'poolInfo')[0],
@@ -178,6 +192,5 @@ const apy = async () => {
 };
 
 module.exports = {
-  timetravel: false,
-  apy: apy,
+  apy,
 };

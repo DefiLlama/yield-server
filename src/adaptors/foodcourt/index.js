@@ -4,7 +4,6 @@ const { default: BigNumber } = require('bignumber.js');
 const superagent = require('superagent');
 const masterChefABI = require('./abis/masterchef.json');
 const lpABI = require('./abis/lp.json');
-const { Percent } = require('@uniswap/sdk-core');
 
 const COUPON_TOKEN = '0xbC09220a8e461880DBE5517ecF53bC1b12cAa05D';
 const REI_TOKEN = '0x7539595ebdA66096e8913a24Cc3C8c0ba1Ec79a0';

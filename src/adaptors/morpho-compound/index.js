@@ -1,9 +1,11 @@
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
-const subgraphMorphoCompound =
-  'https://api.thegraph.com/subgraphs/name/morpho-labs/morphocompoundmainnet';
+const subgraphMorphoCompound = sdk.graph.modifyEndpoint(
+  sdk.graph.modifyEndpoint('R7SWGbEtAH11a4PXdtLPiVgWtyKWBkExnST1FVaaFQ8')
+);
 
 const BLOCKS_PER_DAY = 7200;
 const SECONDS_PER_DAY = 3600 * 24;

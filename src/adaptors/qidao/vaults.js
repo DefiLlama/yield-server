@@ -1,3 +1,4 @@
+const sdk = require('@defillama/sdk');
 // ref https://github.com/royalaid/qidao-sdk/blob/main/src/vaultInfo.ts
 
 const ChainId = {
@@ -839,8 +840,9 @@ const vaults = {
   [ChainId.MATIC]: [
     {
       chainId: ChainId.MATIC,
-      subgraph:
-        'https://api.thegraph.com/subgraphs/name/0xlaozi/qi-dao-amwmatic-vaults',
+      subgraph: sdk.graph.modifyEndpoint(
+        '7xxKjtYc6yfDaSo2TDquGtZbxSXqdDnyfCZgvWGtXrRd'
+      ),
       vaultAddress: CAMWMATIC_VAULT_ADDRESS,
       token: Token.deserializer(
         ChainId.MATIC,
@@ -871,8 +873,9 @@ const vaults = {
     },
     {
       chainId: ChainId.MATIC,
-      subgraph:
-        'https://api.thegraph.com/subgraphs/name/0xlaozi/mai-finance-cam-weth-vaults',
+      subgraph: sdk.graph.modifyEndpoint(
+        'Ap8NjXbJ261qLEDJY79WDMBoB8noFCssqXVPeo2eHwuz'
+      ),
       vaultAddress: CAMWETH_VAULT_ADDRESS,
       token: Token.deserializer(
         ChainId.MATIC,
@@ -888,8 +891,9 @@ const vaults = {
     },
     {
       chainId: ChainId.MATIC,
-      subgraph:
-        'https://api.thegraph.com/subgraphs/name/0xlaozi/mai-finance-cam-aave-vaults',
+      subgraph: sdk.graph.modifyEndpoint(
+        '7DP4Egj28CbrrqVZALKqJehqYJa7AsvHwNUZXHVZ8hAd'
+      ),
       vaultAddress: CAMAAVE_VAULT_ADDRESS,
       token: Token.deserializer(
         ChainId.MATIC,
@@ -906,8 +910,9 @@ const vaults = {
     },
     {
       chainId: ChainId.MATIC,
-      subgraph:
-        'https://api.thegraph.com/subgraphs/name/0xlaozi/mai-finance-aave-vaults',
+      subgraph: sdk.graph.modifyEndpoint(
+        '4nCf52ozAhJvfzk9Fv7FvFTg4VtKTKVEW6X6kg1FKMYM'
+      ),
       vaultAddress: '0x87ee36f780ae843A78D5735867bc1c13792b7b11',
       token: Token.deserializer(
         ChainId.MATIC,
@@ -921,8 +926,9 @@ const vaults = {
     },
     {
       chainId: ChainId.MATIC,
-      subgraph:
-        'https://api.thegraph.com/subgraphs/name/0xlaozi/mai-finance-link-vaults',
+      subgraph: sdk.graph.modifyEndpoint(
+        'C9M2n9nEygAcbRzhns1hTVBDTbwtaPUci6DrWTnkj2fA'
+      ),
       vaultAddress: '0x61167073E31b1DAd85a3E531211c7B8F1E5cAE72',
       token: Token.deserializer(
         ChainId.MATIC,
@@ -936,8 +942,9 @@ const vaults = {
     },
     {
       chainId: ChainId.MATIC,
-      subgraph:
-        'https://api.thegraph.com/subgraphs/name/0xlaozi/mai-finance-curve-vaults',
+      subgraph: sdk.graph.modifyEndpoint(
+        '4TAKynX2eqkih6Cob4pBBCxtkgUtBR6QgvsSwA8y9joQ'
+      ),
       vaultAddress: '0x98B5F32dd9670191568b661a3e847Ed764943875',
       token: Token.deserializer(
         ChainId.MATIC,
@@ -951,8 +958,9 @@ const vaults = {
     },
     {
       chainId: ChainId.MATIC,
-      subgraph:
-        'https://api.thegraph.com/subgraphs/name/0xlaozi/qi-dao-wbtc-vaults',
+      subgraph: sdk.graph.modifyEndpoint(
+        '2n8LDgHqDMamjXvchFyTgU7o3YndcWVBLcTUFUx7C8Xp'
+      ),
       vaultAddress: '0x37131aEDd3da288467B6EBe9A77C523A700E6Ca1',
       token: Token.deserializer(
         ChainId.MATIC,
@@ -966,8 +974,9 @@ const vaults = {
     },
     {
       chainId: ChainId.MATIC,
-      subgraph:
-        'https://api.thegraph.com/subgraphs/name/0xlaozi/qi-dao-cam-wbtc-vaults',
+      subgraph: sdk.graph.modifyEndpoint(
+        '8Yihy9U8n4KnMPn2G4iiWfUycDhKZMhyCQn5urMWsWVi'
+      ),
       vaultAddress: CAMWBTC_VAULT_ADDRESS,
       token: Token.deserializer(
         ChainId.MATIC,
@@ -1015,8 +1024,9 @@ const vaults = {
     },
     {
       chainId: ChainId.MATIC,
-      subgraph:
-        'https://api.thegraph.com/subgraphs/name/0xlaozi/qi-dao-bal-vaults-v2',
+      subgraph: sdk.graph.modifyEndpoint(
+        '79gzKS8x9REyvAsqgQfgpuD4xX8mpr5HzysJiUF628iE'
+      ),
       vaultAddress: '0x701A1824e5574B0b6b1c8dA808B184a7AB7A2867',
       token: Token.deserializer(
         ChainId.MATIC,
@@ -1030,8 +1040,9 @@ const vaults = {
     },
     {
       chainId: ChainId.MATIC,
-      subgraph:
-        'https://api.thegraph.com/subgraphs/name/0xlaozi/qi-dao-dquick-vaults-v2',
+      subgraph: sdk.graph.modifyEndpoint(
+        '8VyL256uLZpZSMSPxYVqQcYckhvHQqqP1jKP2dZYWhnj'
+      ),
       vaultAddress: '0x649Aa6E6b6194250C077DF4fB37c23EE6c098513',
       token: Token.deserializer(
         ChainId.MATIC,
@@ -1045,8 +1056,9 @@ const vaults = {
     },
     {
       chainId: ChainId.MATIC,
-      subgraph:
-        'https://api.thegraph.com/subgraphs/name/0xlaozi/qi-dao-ghst-vaults',
+      subgraph: sdk.graph.modifyEndpoint(
+        'EWE671kZdZnHoQ7dNzaKr4ZcYe67APDYZ1jBrptnB9km'
+      ),
       vaultAddress: '0xF086dEdf6a89e7B16145b03a6CB0C0a9979F1433',
       token: Token.deserializer(
         ChainId.MATIC,

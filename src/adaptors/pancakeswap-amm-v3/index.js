@@ -1,27 +1,34 @@
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const superagent = require('superagent');
 
 const utils = require('../utils');
 const { EstimatedFees } = require('./estimateFee');
-const { getCakeAprs } = require('./cakeReward');
+const { getCakeAprs, CAKE, chainIds } = require('./cakeReward');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 
-const baseUrl = 'https://api.thegraph.com/subgraphs/name';
 const chains = {
-  ethereum: `${baseUrl}/pancakeswap/exchange-v3-eth`,
-  bsc: `${baseUrl}/pancakeswap/exchange-v3-bsc`,
+  ethereum: sdk.graph.modifyEndpoint(
+    'CJYGNhb7RvnhfBDjqpRnD3oxgyhibzc7fkAMa38YV3oS'
+  ),
+  // temp disable bsc
+  // bsc: sdk.graph.modifyEndpoint('Hv1GncLY5docZoGtXjo4kwbTvxm3MAhVZqBZE4sUT9eZ'),
   polygon_zkevm:
     'https://api.studio.thegraph.com/query/45376/exchange-v3-polygon-zkevm/version/latest',
   era: 'https://api.studio.thegraph.com/query/45376/exchange-v3-zksync/version/latest',
-  arbitrum: `${baseUrl}/pancakeswap/exchange-v3-arb`,
+  arbitrum: sdk.graph.modifyEndpoint(
+    '251MHFNN1rwjErXD2efWMpNS73SANZN8Ua192zw6iXve'
+  ),
+  op_bnb: 'https://proxy-worker-dev.pancake-swap.workers.dev/opbnb-exchange-v3',
+  linea:
+    'https://graph-query.linea.build/subgraphs/name/pancakeswap/exchange-v3-linea',
 };
 
-const CAKE = {
-  [utils.formatChain('ethereum')]: '0x152649eA73beAb28c5b49B26eb48f7EAD6d4c898',
-  [utils.formatChain('bsc')]: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
-};
+const cakeByFormatChain = Object.keys(chains).reduce((acc, chain) => {
+  acc[utils.formatChain(chain)] = CAKE[chain];
+  return acc;
+}, {});
 
 const query = gql`
   {
@@ -81,39 +88,11 @@ const topLvl = async (
     let dataNow = await request(url, queryC.replace('<PLACEHOLDER>', block));
     dataNow = dataNow.pools;
 
-    // uni v3 subgraph reserves values are wrong!
-    // instead of relying on subgraph values, gonna pull reserve data from contracts
-    // new tvl calc
-    // Note: pancake subgraph reserves tvl is fixed, but since there's still minor differences, keep this code for now
-    const balanceCalls = [];
-    for (const pool of dataNow) {
-      balanceCalls.push({
-        target: pool.token0.id,
-        params: pool.id,
-      });
-      balanceCalls.push({
-        target: pool.token1.id,
-        params: pool.id,
-      });
-    }
-
-    const tokenBalances = await sdk.api.abi.multiCall({
-      abi: 'erc20:balanceOf',
-      calls: balanceCalls,
-      chain: chainString,
-      permitFailure: true,
-    });
-
     dataNow = dataNow.map((p) => {
-      const x = tokenBalances.output.filter((i) => i.input.params[0] === p.id);
       return {
         ...p,
-        reserve0:
-          x.find((i) => i.input.target === p.token0.id).output /
-          `1e${p.token0.decimals}`,
-        reserve1:
-          x.find((i) => i.input.target === p.token1.id).output /
-          `1e${p.token1.decimals}`,
+        reserve0: p.totalValueLockedToken0,
+        reserve1: p.totalValueLockedToken1,
       };
     });
 
@@ -157,34 +136,92 @@ const topLvl = async (
       utils.apy(el, dataPrior, dataPrior7d, version)
     );
 
-    dataNow = dataNow.map((p) => ({
-      ...p,
-      token1_in_token0: p.price1 / p.price0,
-    }));
+    const enableV3Apy = true;
+    if (enableV3Apy) {
+      dataNow = dataNow.map((p) => ({
+        ...p,
+        token1_in_token0: p.price1 / p.price0,
+      }));
 
-    // split up subgraph tick calls into n-batches
-    // (tick response can be in the thousands per pool)
-    const skip = 20;
-    let start = 0;
-    let stop = skip;
-    const pages = Math.floor(dataNow.length / skip);
+      // batching the tick query into 3 chunks to prevent it from breaking
+      const nbBatches = 3;
+      const chunkSize = Math.ceil(dataNow.length / nbBatches);
+      const chunks = [
+        dataNow.slice(0, chunkSize).map((i) => i.id),
+        dataNow.slice(chunkSize, chunkSize * 2).map((i) => i.id),
+        dataNow.slice(chunkSize * 2, dataNow.length).map((i) => i.id),
+      ];
 
-    // tick range
-    const pct = 0.3;
-    const pctStablePool = 0.001;
+      const tickData = {};
+      // we fetch 3 pages for each pool
+      for (const page of [0, 1, 2]) {
+        console.log(`page nb: ${page}`);
+        let pageResults = {};
+        for (const chunk of chunks) {
+          console.log(chunk.length);
+          const tickQuery = `
+          query {
+            ${chunk
+              .map(
+                (poolAddress, index) => `
+              pool_${poolAddress}: ticks(
+                first: 1000,
+                skip: ${page * 1000},
+                where: { poolAddress: "${poolAddress}" },
+                orderBy: tickIdx
+              ) {
+                tickIdx
+                liquidityNet
+                price0
+                price1
+              }
+            `
+              )
+              .join('\n')}
+          }
+        `;
 
-    // assume an investment of 1e5 USD
-    const investmentAmount = 1e5;
-    let X = [];
-    for (let i = 0; i <= pages; i++) {
-      console.log(i);
-      let promises = dataNow.slice(start, stop).map((p) => {
+          try {
+            const response = await request(url, tickQuery);
+            pageResults = { ...pageResults, ...response };
+          } catch (err) {
+            console.log(err);
+          }
+        }
+        tickData[`page_${page}`] = pageResults;
+      }
+
+      // reformat tickData
+      const ticks = {};
+      Object.values(tickData).forEach((page) => {
+        Object.entries(page).forEach(([pool, values]) => {
+          if (!ticks[pool]) {
+            ticks[pool] = [];
+          }
+          ticks[pool] = ticks[pool].concat(values);
+        });
+      });
+
+      // assume an investment of 1e5 USD
+      const investmentAmount = 1e5;
+
+      // tick range
+      const pct = 0.3;
+      const pctStablePool = 0.001;
+
+      dataNow = dataNow.map((p) => {
+        const poolTicks = ticks[`pool_${p.id}`] ?? [];
+
+        if (!poolTicks.length) {
+          console.log(`No pool ticks found for ${p.id}`);
+          return { ...p, estimatedFee: null, apy7d: null };
+        }
+
         const delta = p.stablecoin ? pctStablePool : pct;
 
         const priceAssumption = p.stablecoin ? 1 : p.token1_in_token0;
 
-        return EstimatedFees(
-          p.id,
+        const estimatedFee = EstimatedFees(
           priceAssumption,
           [p.token1_in_token0 * (1 - delta), p.token1_in_token0 * (1 + delta)],
           p.price1,
@@ -193,34 +230,27 @@ const topLvl = async (
           p.token0.decimals,
           p.token1.decimals,
           p.feeTier,
-          url,
           p.volumeUSD7d,
-          p.feeProtocol
+          p.feeProtocol,
+          poolTicks
         );
-      });
-      X.push(await Promise.all(promises));
-      start += skip;
-      stop += skip;
-    }
-    const d = {};
-    X.flat().forEach((p) => {
-      d[p.poolAddress] = p.estimatedFee;
-    });
 
-    dataNow = dataNow.map((p) => ({
-      ...p,
-      apy7d: ((d[p.id] * 52) / investmentAmount) * 100,
-    }));
+        const apy7d = ((estimatedFee * 52) / investmentAmount) * 100;
+
+        return { ...p, estimatedFee, apy7d };
+      });
+    }
 
     return dataNow.map((p) => {
       const poolMeta = `${p.feeTier / 1e4}%`;
       const underlyingTokens = [p.token0.id, p.token1.id];
       const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
       const token1 = underlyingTokens === undefined ? '' : underlyingTokens[1];
-      const chain = chainString === 'ethereum' ? 'eth' : chainString;
+
+      const chainId = chainIds[chainString].id;
 
       const feeTier = Number(poolMeta.replace('%', '')) * 10000;
-      const url = `https://pancakeswap.finance/add/${token0}/${token1}/${feeTier}?chain=${chain}`;
+      const url = `https://pancakeswap.finance/add/${token0}/${token1}/${feeTier}?chainId=${chainId}`;
 
       return {
         pool: p.id,
@@ -255,11 +285,24 @@ const main = async (timestamp = null) => {
   const data = [];
   let cakeAPRsByChain = {};
   for (const [chain, url] of Object.entries(chains)) {
-    cakeAPRsByChain[utils.formatChain(chain)] = await getCakeAprs(chain);
     console.log(chain);
-    data.push(
-      await topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins)
-    );
+    try {
+      cakeAPRsByChain[utils.formatChain(chain)] = await getCakeAprs(chain);
+
+      data.push(
+        await topLvl(
+          chain,
+          url,
+          query,
+          queryPrior,
+          'v3',
+          timestamp,
+          stablecoins
+        )
+      );
+    } catch (err) {
+      console.log(err);
+    }
   }
 
   return data
@@ -275,7 +318,8 @@ const main = async (timestamp = null) => {
           ...p,
           apyReward: cakeAPRsByChain[p.chain][p.pool],
           rewardTokens: [
-            CAKE[p.chain] ?? '0x152649eA73beAb28c5b49B26eb48f7EAD6d4c898',
+            cakeByFormatChain[p.chain] ??
+              '0x152649eA73beAb28c5b49B26eb48f7EAD6d4c898',
           ],
         };
       }

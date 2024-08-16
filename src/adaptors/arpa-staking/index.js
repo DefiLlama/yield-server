@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk3');
+const sdk = require('@defillama/sdk');
 const ARPA = '0xBA50933C268F567BDC86E1aC131BE072C6B0b71a';
 const STAKING_CONTRACT = '0xee710f79aa85099e200be4d40cdf1bfb2b467a01';
 const { ethers } = require('ethers');

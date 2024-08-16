@@ -158,10 +158,10 @@ const topTvl = async (
         ...p,
         reserve0:
           x.find((i) => i.input.target === p.token0.id).output /
-          `1e${p.token0.decimals}`,
+          `1e${p.token0?.decimals}`,
         reserve1:
           x.find((i) => i.input.target === p.token1.id).output /
-          `1e${p.token1.decimals}`,
+          `1e${p.token1?.decimals}`,
       };
     });
 
@@ -250,61 +250,67 @@ const topTvl = async (
             pool,
             incentive.rewardToken,
             (incentive.reward /
-              10 ** rewardPrices[incentive.rewardToken].decimals) *
-              rewardPrices[incentive.rewardToken].price,
+              10 ** rewardPrices[incentive.rewardToken]?.decimals) *
+              rewardPrices[incentive.rewardToken]?.price,
             incentive.endTime - incentive.startTime
           );
         });
       return pool;
     });
 
-    // split up subgraph tick calls into n-batches
-    // (tick response can be in the thousands per pool)
-    const skip = 20;
-    let start = 0;
-    let stop = skip;
-    const pages = Math.floor(dataNow.length / skip);
+    const enableV3Apy = false;
+    if (enableV3Apy) {
+      // split up subgraph tick calls into n-batches
+      // (tick response can be in the thousands per pool)
+      const skip = 20;
+      let start = 0;
+      let stop = skip;
+      const pages = Math.floor(dataNow.length / skip);
 
-    // tick range
-    const pct = 0.3;
-    const pctStablePool = 0.001;
+      // tick range
+      const pct = 0.3;
+      const pctStablePool = 0.001;
 
-    // assume an investment of 1e5 USD
-    const investmentAmount = 1e5;
-    let X = [];
-    for (let i = 0; i <= pages; i++) {
-      let promises = dataNow.slice(start, stop).map((p) => {
-        const delta = p.stablecoin ? pctStablePool : pct;
+      // assume an investment of 1e5 USD
+      const investmentAmount = 1e5;
+      let X = [];
+      for (let i = 0; i <= pages; i++) {
+        let promises = dataNow.slice(start, stop).map((p) => {
+          const delta = p.stablecoin ? pctStablePool : pct;
 
-        const priceAssumption = p.stablecoin ? 1 : p.token1_in_token0;
+          const priceAssumption = p.stablecoin ? 1 : p.token1_in_token0;
 
-        return EstimatedFees(
-          p.id,
-          priceAssumption,
-          [p.token1_in_token0 * (1 - delta), p.token1_in_token0 * (1 + delta)],
-          p.price1,
-          p.price0,
-          investmentAmount,
-          p.token0.decimals,
-          p.token1.decimals,
-          p.feeTier,
-          url,
-          p.volumeUSD7d
-        );
+          return EstimatedFees(
+            p.id,
+            priceAssumption,
+            [
+              p.token1_in_token0 * (1 - delta),
+              p.token1_in_token0 * (1 + delta),
+            ],
+            p.price1,
+            p.price0,
+            investmentAmount,
+            p.token0?.decimals,
+            p.token1?.decimals,
+            p.feeTier,
+            url,
+            p.volumeUSD7d
+          );
+        });
+        X.push(await Promise.all(promises));
+        start += skip;
+        stop += skip;
+      }
+      const d = {};
+      X.flat().forEach((p) => {
+        d[p.poolAddress] = p.estimatedFee;
       });
-      X.push(await Promise.all(promises));
-      start += skip;
-      stop += skip;
-    }
-    const d = {};
-    X.flat().forEach((p) => {
-      d[p.poolAddress] = p.estimatedFee;
-    });
 
-    dataNow = dataNow.map((p) => ({
-      ...p,
-      apy7d: ((d[p.id] * 52) / investmentAmount) * 100,
-    }));
+      dataNow = dataNow.map((p) => ({
+        ...p,
+        apy7d: ((d[p.id] * 52) / investmentAmount) * 100,
+      }));
+    }
 
     return dataNow.map((p) => {
       const poolMeta = `${p.feeTier / 1e4}%`;

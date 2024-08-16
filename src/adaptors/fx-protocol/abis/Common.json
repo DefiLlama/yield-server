@@ -1,0 +1,58 @@
+{
+  "totalAssets": {
+    "inputs": [],
+    "name": "totalAssets",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  "totalSupply": {
+    "inputs": [],
+    "name": "totalSupply",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  "getCurrentNav": {
+    "inputs": [],
+    "name": "getCurrentNav",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "_baseNav",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_fNav",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_xNav",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  "tokensPerStEth": {
+    "inputs": [],
+    "name": "tokensPerStEth",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+}

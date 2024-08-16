@@ -82,6 +82,7 @@ const multiCallMarkets = async (markets, method, abi) => {
       chain: CHAIN,
       calls: markets.map((market) => ({ target: market })),
       abi: abi.find(({ name }) => name === method),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };

@@ -1,4 +1,4 @@
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 const axios = require('axios');
 const utils = require('../utils');
 
@@ -21,8 +21,10 @@ async function apr() {
   const blurVault = new web3.eth.Contract(vaultABI, BLUR_VAULT_ADDRESS);
   const oracle = new web3.eth.Contract(oracleABI, ETHUSD_ORACLE_ADDRESS);
 
-  const ethPrice = await oracle.methods.latestAnswer().call();
-  const totalAssetsPrologue = await prologueVault.methods.totalAssets().call();
+  const ethPrice = Number(await oracle.methods.latestAnswer().call());
+  const totalAssetsPrologue = Number(
+    await prologueVault.methods.totalAssets().call()
+  );
   const tvlUsdPrologue =
     (totalAssetsPrologue / 10 ** 18) * (ethPrice / 10 ** 8);
   const { data: prologueData } = await axios.get(
@@ -31,7 +33,9 @@ async function apr() {
   const actualApyPrologue = prologueData?.data?.okrs?.actual_returns;
   const apyPrologue = prologueData?.data?.okrs?.expected_return * 100;
 
-  const totalAssetsLeverage = await leverageVault.methods.totalAssets().call();
+  const totalAssetsLeverage = Number(
+    await leverageVault.methods.totalAssets().call()
+  );
   const tvlUsdLeverage =
     (totalAssetsLeverage / 10 ** 18) * (ethPrice / 10 ** 8);
   const { data: leverageData } = await axios.get(
@@ -40,7 +44,9 @@ async function apr() {
   const actualApyLeverage = leverageData?.data?.okrs?.actual_returns;
   const apyLeverage = leverageData?.data?.okrs?.expected_return * 100;
 
-  const totalAssetsFlagship = await flagshipVault.methods.totalAssets().call();
+  const totalAssetsFlagship = Number(
+    await flagshipVault.methods.totalAssets().call()
+  );
   const tvlUsdFlagship =
     (totalAssetsFlagship / 10 ** 18) * (ethPrice / 10 ** 8);
   const { data: flagshipData } = await axios.get(
@@ -49,9 +55,8 @@ async function apr() {
   const actualApyFlagship = flagshipData?.data?.okrs?.actual_returns;
   const apyFlagship = flagshipData?.data?.okrs?.expected_return * 100;
 
-  const totalAssetsBlur = await blurVault.methods.totalAssets().call();
-  const tvlUsdBlur =
-    (totalAssetsBlur / 10 ** 18) * (ethPrice / 10 ** 8);
+  const totalAssetsBlur = Number(await blurVault.methods.totalAssets().call());
+  const tvlUsdBlur = (totalAssetsBlur / 10 ** 18) * (ethPrice / 10 ** 8);
   const { data: blurData } = await axios.get(
     `https://api.spicefi.xyz/v2/api/vaults/${BLUR_VAULT_ADDRESS}`
   );
