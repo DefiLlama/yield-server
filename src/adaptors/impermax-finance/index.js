@@ -628,6 +628,8 @@ async function getTokenPrices(tokens, chain, allCoins) {
       await axios.get(`https://api.dexscreener.com/latest/dex/tokens/${token}`)
     ).data.pairs;
     if (!pairs?.length) return undefined;
+    // remove pairs with no liquidity
+    pairs = pairs.filter((p) => p.liquidity && p.liquidity.usd > 0);
 
     // Get pair with max liquidity
     const maxLiquidityPair = pairs.reduce((prev, curr) => {
