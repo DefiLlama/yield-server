@@ -66,14 +66,14 @@ const getV1PoolData = async ({ abi, contract, chain, name, token }) => {
 
   const NOW = finishAt >= Math.floor(Date.now() / 1000);
   let formattedRewardAmount = 0;
-  let apyBase = 0;
+  let apyReward = 0;
 
   if (finishAt > NOW) {
     formattedRewardAmount = formatUnits(
       BigNumber.from(rewardRate).mul(ONE_YEAR).mul(100),
       decimals
     );
-    apyBase = Number(formattedRewardAmount) / Number(formattedtotalSupply);
+    apyReward = Number(formattedRewardAmount) / Number(formattedtotalSupply);
   }
 
   return {
@@ -82,7 +82,7 @@ const getV1PoolData = async ({ abi, contract, chain, name, token }) => {
     project: 'clave',
     symbol: utils.formatSymbol(symbol),
     tvlUsd,
-    apyBase,
+    apyReward,
   };
 };
 
