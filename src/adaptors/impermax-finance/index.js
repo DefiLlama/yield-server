@@ -6,7 +6,6 @@ const abi = require('./abi');
 const SECONDS_IN_YEAR = BigNumber(365).times(24).times(3600);
 const protocolSlug = 'impermax-finance';
 const sdk = require('@defillama/sdk');
-const { getProvider } = require('@defillama/sdk/build/general');
 const { da } = require('date-fns/locale');
 const { pool } = require('../rocifi-v2/abi');
 
@@ -763,8 +762,7 @@ const main = async () => {
     let collaterals = [];
     let borrowables = [];
 
-    const provider = getProvider(chain);
-    const block = await provider.getBlockNumber();
+    const block = (await sdk.blocks.getBlock(chain)).block
 
     const {
       lendingPoolAddresses,
