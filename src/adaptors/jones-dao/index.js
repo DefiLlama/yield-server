@@ -11,7 +11,7 @@ const glpTracker = '0x13C6Bed5Aa16823Aba5bBA691CAeC63788b19D9d';
 const glpStrategy = '0x64ECc55a4F5D61ead9B966bcB59D777593afBd6f';
 const bridgedUsdc = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8';
 const usdc = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831';
-const arbitrum = '0x912CE59144191C1204E64559FE8253a0e49E6548';
+const arbToken = '0x912CE59144191C1204E64559FE8253a0e49E6548';
 const jusdcUnderlyingVault = '0xB0BDE111812EAC913b392D80D51966eC977bE3A2';
 
 const SECONDS_PER_YEAR = 31556952;
@@ -128,6 +128,7 @@ async function pools() {
     tvlUsd: strat.tvl,
     apyBase: strat.apy,
     apyReward: (strat.stipApr ?? 0) + (strat.merklApr ?? 0),
+    rewardTokens: [arbToken],
     poolMeta: `${strat.strategyName.toUpperCase()} strategy on ${strat.dex.toUpperCase()}`,
   }));
 
