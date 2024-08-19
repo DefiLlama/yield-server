@@ -139,6 +139,8 @@ const excludeAdaptors = [
   'beanstalk',
   'tenderize-v1',
   'blastnyan',
+  'forge',
+  'stakehouse',
 ];
 
 const excludePools = [
