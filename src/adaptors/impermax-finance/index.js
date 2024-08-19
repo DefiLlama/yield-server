@@ -27,22 +27,23 @@ const config = {
       '0x97bc7fefb84a4654d4d3938751b5fe401e8771c2',
     ],
   },
-  avax: {
-    factories: [
-      '0x8C3736e2FE63cc2cD89Ee228D9dBcAb6CE5B767B',
-      '0x9708e0b216a88d38d469b255ce78c1369ad898e6',
-      '0xc7f24fd6329738320883ba429C6C8133e6492739',
-    ],
-  },
-  moonriver: {
-    factories: ['0x8C3736e2FE63cc2cD89Ee228D9dBcAb6CE5B767B'],
-  },
-  canto: {
-    factories: ['0x9708E0B216a88D38d469B255cE78c1369ad898e6'],
-  },
-  era: {
-    factories: ['0x6ce1a2C079871e4d4b91Ff29E7D2acbD42b46E36'],
-  },
+  // Hide these as chain tvl is too low
+  // moonriver: {
+  //   factories: ['0x8C3736e2FE63cc2cD89Ee228D9dBcAb6CE5B767B'],
+  // },
+  // avax: {
+  //   factories: [
+  //     '0x8C3736e2FE63cc2cD89Ee228D9dBcAb6CE5B767B',
+  //     '0x9708e0b216a88d38d469b255ce78c1369ad898e6',
+  //     '0xc7f24fd6329738320883ba429C6C8133e6492739',
+  //   ],
+  // },
+  // canto: {
+  //   factories: ['0x9708E0B216a88D38d469B255cE78c1369ad898e6'],
+  // },
+  //era: {
+  //  factories: ['0x6ce1a2C079871e4d4b91Ff29E7D2acbD42b46E36'],
+  //},
   fantom: {
     factories: [
       // '0x60aE5F446AE1575534A5F234D6EC743215624556',
