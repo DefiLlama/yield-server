@@ -126,7 +126,8 @@ async function pools() {
     symbol: strat.poolName,
     underlyingTokens: [strat.token0.address, strat.token1.address],
     tvlUsd: strat.tvl,
-    apyBase: strat.apy + (strat.stipApr ?? 0) + (strat.merklApr ?? 0),
+    apyBase: strat.apy,
+    apyReward: (strat.stipApr ?? 0) + (strat.merklApr ?? 0),
     poolMeta: `${strat.strategyName.toUpperCase()} strategy on ${strat.dex.toUpperCase()}`,
   }));
 
