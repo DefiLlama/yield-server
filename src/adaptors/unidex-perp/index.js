@@ -71,7 +71,7 @@ module.exports = {
       pools.push({
         pool: `${pool.target.toLowerCase()}-${pool.chain}`,
         chain: pool.chainName,
-        project: 'unidex',
+        project: 'unidex-perp',
         symbol: pool.stakingToken.symbol,
         tvlUsd: Number(tvlUsd.toFixed(2)),
         apyReward: Number(
