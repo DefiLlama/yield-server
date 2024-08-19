@@ -83,6 +83,7 @@ const getV1PoolData = async ({ abi, contract, chain, name, token }) => {
     symbol: utils.formatSymbol(symbol),
     tvlUsd,
     apyReward,
+    rewardTokens: [ZK],
   };
 };
 
