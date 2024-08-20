@@ -1,14 +1,11 @@
 const validator = require('validator');
-const minify = require('pg-minify');
 
 const AppError = require('../../utils/appError');
 const { conn } = require('../db');
-const { customHeader } = require('../../utils/headers');
 
 // get latest data for each unique perp
 const getPerp = async (req, res) => {
-  const query = minify(
-    `
+  const query = `
     SELECT
         perp_id,
         "timestamp",
@@ -97,9 +94,7 @@ const getPerp = async (req, res) => {
                 AND weeklyStats.market = monthlyStats.market
         ) AS stats ON stats.marketplace = main.marketplace
         AND stats.market = main.market
-    `,
-    { compress: true }
-  );
+    `;
 
   const response = await conn.query(query, {
     age: 3, // last 3 hours
@@ -111,7 +106,7 @@ const getPerp = async (req, res) => {
     return new AppError(`Couldn't get data`, 404);
   }
 
-  res.set(customHeader(3600)).status(200).json({
+  res.status(200).json({
     status: 'success',
     data: response,
   });

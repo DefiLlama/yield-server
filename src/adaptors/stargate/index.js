@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk5');
 const superagent = require('superagent');
 const utils = require('../utils');
 const abi = require('./abis.json');
@@ -54,6 +54,18 @@ const CONFIG = {
     REWARD_TOKEN: '0xc86c7c0efbd6a49b35e8714c5f59d99de09a225b',
     LLAMA_NAME: 'Kava',
   },
+  linea: {
+    LP_STAKING: '0x4a364f8c717cAAD9A442737Eb7b8A55cc6cf18D8',
+    ETHER_TOKEN: '0x0000000000000000000000000000000000000000',
+    REWARD_TOKEN: '0x808d7c71ad2ba3FA531b068a2417C63106BC0949',
+    LLAMA_NAME: 'Linea',
+  },
+  mantle: {
+    LP_STAKING: '0x352d8275AAE3e0c2404d9f68f6cEE084B5bEB3DD',
+    ETHER_TOKEN: '0x0000000000000000000000000000000000000000',
+    REWARD_TOKEN: '0x8731d54E9D02c286767d56ac03e8037C07e01e98',
+    LLAMA_NAME: 'Mantle',
+  },
 };
 
 const CHAIN_MAP = {
@@ -66,6 +78,8 @@ const CHAIN_MAP = {
   bsc: 'bnb',
   avax: 'avax',
   kava: 'kava',
+  linea: 'linea',
+  mantle: 'mantle',
 };
 
 const pools = async (poolIndex, chain) => {
@@ -109,7 +123,7 @@ const pools = async (poolIndex, chain) => {
 
   let rewardPerBlock;
   // reward (STG) per block
-  if (!['optimism', 'base', 'kava'].includes(chain)) {
+  if (!['optimism', 'base', 'kava', 'linea', 'mantle'].includes(chain)) {
     const STGPerBlock = (
       await sdk.api.abi.call({
         abi: abi.stargatePerBlock,
@@ -187,6 +201,8 @@ const calcApy = async (
     case 'optimism':
     case 'base':
     case 'kava':
+    case 'linea':
+    case 'mantle':
       BLOCK_TIME = 1;
       break;
     // the others have rewardPerBlock
@@ -253,14 +269,13 @@ const getApy = async (chain) => {
     ).output
   );
   // use ETH pricing for STG since its most liquid, use OPT pricing for OP, and kava price for WKAVA
-  const rewardPrice =
-    chain == 'optimism' || chain == 'kava'
-      ? (await getPrices(chain, [CONFIG[chain].REWARD_TOKEN]))[
-          CONFIG[chain].REWARD_TOKEN.toLowerCase()
-        ]
-      : (await getPrices('ethereum', [CONFIG.ethereum.REWARD_TOKEN]))[
-          CONFIG.ethereum.REWARD_TOKEN.toLowerCase()
-        ];
+  const rewardPrice = ['optimism', 'kava', 'linea'].includes(chain)
+    ? (await getPrices(chain, [CONFIG[chain].REWARD_TOKEN]))[
+        CONFIG[chain].REWARD_TOKEN.toLowerCase()
+      ]
+    : (await getPrices('ethereum', [CONFIG.ethereum.REWARD_TOKEN]))[
+        CONFIG.ethereum.REWARD_TOKEN.toLowerCase()
+      ];
   for (index = 0; index < poolLength; index++) {
     const pool = await pools(index, chain);
     const reserveUSD = await tvl(
@@ -301,7 +316,11 @@ const main = async () => {
   const pools = [];
   for (const chain of Object.keys(CONFIG)) {
     console.log(chain);
-    pools.push(await getApy(chain, CONFIG[chain].LP_STAKING));
+    try {
+      pools.push(await getApy(chain, CONFIG[chain].LP_STAKING));
+    } catch (err) {
+      console.log(`${chain} failed`);
+    }
   }
 
   return pools

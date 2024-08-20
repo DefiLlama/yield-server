@@ -139,7 +139,8 @@ const main = async (timestamp = null) => {
         if (pool.tvl != 0) {
           // the active tvl adjustment for apy
           // to undo just don't multiply by `active_liq_fraction`
-          pool.active_tvl = pool.tvl * pool.active_liq_fraction;
+          // pool.active_tvl = pool.tvl * pool.active_liq_fraction;
+          pool.active_tvl = pool.tvl;
           // 20% goes to protocol
           pool.apyBase = (total_fee_usd / pool.active_tvl) * 365 * 100 * 0.8;
           pool.apySolid = (pool.solid_per_year_usd / pool.tvl) * 100;
