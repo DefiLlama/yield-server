@@ -14,6 +14,7 @@ const apy = async () => {
               id
               supplyAPY
               supply
+              liquidity
               lqSupplyAPY
               borrowAPY
               borrow
@@ -46,23 +47,19 @@ const apy = async () => {
   const getPool = (market) => {
     return {
       pool: registryData.find(
-        (script) => script.name === `Liqwid${market.id}Action`
+        (script) => script.name === `Liqwid${market.id}BatchFinal`
       ).scriptHash,
       chain: 'Cardano',
       project: 'liqwid',
       symbol: market.asset.symbol,
-      tvlUsd: market.supply * market.asset.price,
+      tvlUsd: market.liquidity * market.asset.price,
       apyReward:
         market.lqSupplyAPY * 100 > 100
           ? market.lqSupplyAPY
           : market.lqSupplyAPY * 100,
-      apyReward:
-        market.lqSupplyAPY * 100 > 100
-          ? market.lqSupplyAPY
-          : market.lqSupplyAPY * 100,
+      apyBase: market.supplyAPY,
       rewardTokens: [market.asset.symbol, 'LQ'],
       underlyingTokens: [market.asset.symbol],
-      // lending protocol fields
       apyBaseBorrow:
         market.borrowAPY * 100 > 100
           ? market.borrowAPY
