@@ -1,13 +1,19 @@
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 const { default: BigNumber } = require('bignumber.js');
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk');
 const { request, gql, batchRequests } = require('graphql-request');
 const superagent = require('superagent');
 const { chunk } = require('lodash');
 
-const { zfFarmABI, zfTokenABI, erc20ABI, zfFactory, zfGOVAbi } = require('./abis');
+const {
+  zfFarmABI,
+  zfTokenABI,
+  erc20ABI,
+  zfFactory,
+  zfGOVAbi,
+  zfLpABI,
+} = require('./abis');
 const utils = require('../utils');
-const { TokenProvider } = require('@uniswap/smart-order-router');
 const { SECONDS_PER_YEAR } = require('../across/constants');
 
 const ZFFarm = '0x9f9d043fb77a194b4216784eb5985c471b979d67';
@@ -18,14 +24,14 @@ const DAO_START_TIME = 1697716800;
 
 const RPC_URL = 'https://mainnet.era.zksync.io';
 const API_URL = 'https://api.studio.thegraph.com/query/49271/zkswap/0.0.9';
-const DAO_API_URL = 'https://api.studio.thegraph.com/query/49271/zfgovernancestaking/0.1.2'
+const DAO_API_URL =
+  'https://api.studio.thegraph.com/query/49271/zfgovernancestaking/0.1.2';
 
-const SECOND_PER_DAY = 60 * 60 * 24
+const SECOND_PER_DAY = 60 * 60 * 24;
 const DAY_PER_YEAR = 365;
-const SECOND_PER_YEAR =  SECOND_PER_DAY * DAY_PER_YEAR;
+const SECOND_PER_YEAR = SECOND_PER_DAY * DAY_PER_YEAR;
 const WEEKS_PER_YEAR = 52;
 const CHAIN = 'era';
-
 
 const web3 = new Web3(RPC_URL);
 
@@ -36,25 +42,16 @@ const apy = async () => {
   const zfGOV = new web3.eth.Contract(zfGOVAbi, ZF_GOV);
 
   const poolsCount = await zfFarm.methods.poolLength().call();
-  const totalAllocPoint = await zfFarm.methods.totalAllocPoint().call();
-  const zfPerSecond = (await zfFarm.methods.zfPerSecond().call()) / 1e18;
+  const totalAllocPoint = Number(await zfFarm.methods.totalAllocPoint().call());
+  const zfPerSecond = Number(await zfFarm.methods.zfPerSecond().call()) / 1e18;
 
   const protocolFeeRes = await sdk.api.abi.call({
-    abi: zfFactory.find(abi => abi.name === 'protocolFeeFactor'),
+    abi: zfFactory.find((abi) => abi.name === 'protocolFeeFactor'),
     target: ZFFactory,
     chain: CHAIN,
-  })
+  });
 
-  const feeRes = await sdk.api.abi.call({
-    abi: zfFactory.find(abi => abi.name === 'swapFee'),
-    target: ZFFactory,
-    chain: CHAIN,
-  })
-
-  const fee = feeRes.output
-  const protocolFee = protocolFeeRes.output
-
-  const feeRate = fee * (1 - 1 / protocolFee) / 10000
+  const protocolFee = protocolFeeRes.output;
 
   const poolsRes = await sdk.api.abi.multiCall({
     abi: zfFarmABI.filter(({ name }) => name === 'poolInfo')[0],
@@ -70,6 +67,23 @@ const apy = async () => {
     .filter(({ i }) => !nonLpPools.includes(i));
 
   const lpTokens = pools.map(({ lpToken }) => lpToken);
+
+  const lpTokensSwapFeeCall = await sdk.api.abi.multiCall({
+    abi: zfLpABI.filter(({ name }) => name === 'getSwapFee')[0],
+    calls: lpTokens.map((lpAddress) => ({
+      target: lpAddress,
+    })),
+    chain: CHAIN,
+    requery: true,
+  });
+
+  const lpTokensSwapFee = lpTokensSwapFeeCall.output.reduce(
+    (lpSwapFeeObj, item, index, arr) => {
+      lpSwapFeeObj[lpTokens[index]?.toLowerCase()] = item?.output;
+      return lpSwapFeeObj;
+    },
+    {}
+  );
 
   const nonLpPoolList = poolsRes.output
     .map(({ output }, i) => ({ ...output, i }))
@@ -102,28 +116,29 @@ const apy = async () => {
     CHAIN
   );
 
-
   const pairsInfo = await utils.uniswap.getPairsInfo(lpTokens, API_URL);
   const lpChunks = chunk(lpTokens, 10);
 
-  const currentTime = Math.round((new Date()).getTime()/1000)
+  const currentTime = Math.round(new Date().getTime() / 1000);
 
   const daoQuery = gql`
    query daoQuery {
     transfers(
-    where: {blockTimestamp_gt: ${currentTime - SECOND_PER_DAY * 3}, blockTimestamp_lte: ${currentTime}}
+    where: {blockTimestamp_gt: ${
+      currentTime - SECOND_PER_DAY * 3
+    }, blockTimestamp_lte: ${currentTime}}
     first: 1000
   ) {
     value
   }}
-  `
+  `;
 
-  const {transfers} = await request(DAO_API_URL, daoQuery)
+  const { transfers } = await request(DAO_API_URL, daoQuery);
 
-
-  const unstakedZFReward = transfers.reduce((volume, transf) => {
-    return volume + Number(transf.value)/1e18
-  }, 0 ) / 90
+  const unstakedZFReward =
+    transfers.reduce((volume, transf) => {
+      return volume + Number(transf.value) / 1e18;
+    }, 0) / 90;
 
   const pairVolumes = await Promise.all(
     lpChunks.map((lpsChunk) =>
@@ -132,10 +147,10 @@ const apy = async () => {
         gql`
     query volumesQuery {
       ${lpsChunk
-            .slice(0, 10)
-            .map(
-              (token, i) =>
-                `token_${token.toLowerCase()}:pairHourDatas(
+        .slice(0, 10)
+        .map(
+          (token, i) =>
+            `token_${token.toLowerCase()}:pairHourDatas(
                     orderBy: hourStartUnix
                     orderDirection: desc
                     first: 24
@@ -143,7 +158,8 @@ const apy = async () => {
                     {
                         hourlyVolumeUSD
                     }`
-            ).join('\n')}}`
+        )
+        .join('\n')}}`
       )
     )
   );
@@ -151,72 +167,79 @@ const apy = async () => {
   const volumesMap = pairVolumes.flat().reduce(
     (acc, curChunk) => ({
       ...acc,
-      ...Object.entries(curChunk).reduce((innerAcc, [key, val]) => ({
-        ...innerAcc,
-        [key.split('_')[1]]: val,
-      }),
+      ...Object.entries(curChunk).reduce(
+        (innerAcc, [key, val]) => ({
+          ...innerAcc,
+          [key.split('_')[1]]: val,
+        }),
         {}
       ),
     }),
     {}
   );
 
-  const [tvl] = await
-    makeMulticall(
-      zfTokenABI.filter(({ name }) => name === 'balanceOf')[0],
-      nonLpToken,
-      CHAIN,
-      [ZFFarm]
-    );
-  const nonLpTvl = tvl / 1e18
-  const nonLpRes = nonLpPoolList.map((pool, i) => {
-    const poolInfo = pool;
-    const poolWeight = poolInfo.allocPoint / totalAllocPoint
-    const totalRewardPricePerYear = tokensPrices[ZFToken] * poolWeight * zfPerSecond * SECOND_PER_YEAR
-    const totalStakingTokenInPool = tokensPrices[ZFToken] * nonLpTvl
-    const apyReward = (totalRewardPricePerYear / totalStakingTokenInPool) * 100
-    return {
-      pool: poolInfo.lpToken,
-      chain: CHAIN,
-      project: 'zkswap-finance',
-      symbol: 'ZF',
-      tvlUsd: totalStakingTokenInPool,
-      apyBase: 0,
-      apyReward,
-      underlyingTokens: [poolInfo.lpToken.toLowerCase()],
-      rewardTokens: [ZFToken],
-      url: 'https://zkswap.finance/earn',
-    };
-  }).filter(pool => pool.apyReward > 0)
+  const [tvl] = await makeMulticall(
+    zfTokenABI.filter(({ name }) => name === 'balanceOf')[0],
+    nonLpToken,
+    CHAIN,
+    [ZFFarm]
+  );
+  const nonLpTvl = tvl / 1e18;
+  const nonLpRes = nonLpPoolList
+    .map((pool, i) => {
+      const poolInfo = pool;
+      const poolWeight = poolInfo.allocPoint / totalAllocPoint;
+      const totalRewardPricePerYear =
+        tokensPrices[ZFToken] * poolWeight * zfPerSecond * SECOND_PER_YEAR;
+      const totalStakingTokenInPool = tokensPrices[ZFToken] * nonLpTvl;
+      const apyReward =
+        (totalRewardPricePerYear / totalStakingTokenInPool) * 100;
+      return {
+        pool: poolInfo.lpToken,
+        chain: CHAIN,
+        project: 'zkswap-finance',
+        symbol: 'ZF',
+        tvlUsd: totalStakingTokenInPool,
+        apyBase: 0,
+        apyReward,
+        underlyingTokens: [poolInfo.lpToken.toLowerCase()],
+        rewardTokens: [ZFToken],
+        url: 'https://zkswap.finance/earn',
+      };
+    })
+    .filter((pool) => pool.apyReward > 0);
 
+  const unstakedZFReward3Day =
+    (unstakedZFReward / 3) * DAY_PER_YEAR * tokensPrices[ZFToken];
 
-  const unstakedZFReward3Day = (unstakedZFReward/3 * DAY_PER_YEAR) * tokensPrices[ZFToken]
-
-  const {output: zfDAOPerSecondRes} = await sdk.api.abi.call({
+  const { output: zfDAOPerSecondRes } = await sdk.api.abi.call({
     abi: zfGOVAbi.filter(({ name }) => name === 'zfPerSecond')[0],
     target: ZF_GOV,
-    chain: CHAIN
+    chain: CHAIN,
   });
-  const zfDAOPerSecond = Number(zfDAOPerSecondRes)/1e18
+  const zfDAOPerSecond = Number(zfDAOPerSecondRes) / 1e18;
 
-  const {output: pendingZfRes} = await sdk.api.abi.call({
+  const { output: pendingZfRes } = await sdk.api.abi.call({
     abi: zfGOVAbi.filter(({ name }) => name === 'pendingZF')[0],
     target: ZF_GOV,
-    chain: CHAIN
+    chain: CHAIN,
   });
-  const pendingZf = Number(pendingZfRes)/1e18
+  const pendingZf = Number(pendingZfRes) / 1e18;
 
-  const {output: currentGovTvlRes} = await sdk.api.abi.call({
+  const { output: currentGovTvlRes } = await sdk.api.abi.call({
     abi: zfGOVAbi.filter(({ name }) => name === 'balance')[0],
     target: ZF_GOV,
-    chain: CHAIN
+    chain: CHAIN,
   });
-  const currentGovTvl = Number(currentGovTvlRes)/1e18
+  const currentGovTvl = Number(currentGovTvlRes) / 1e18;
 
-  const zfRewardDAOUntilNow = (currentTime - DAO_START_TIME) * zfDAOPerSecond
-  const govTvl = (currentGovTvl + pendingZf - zfRewardDAOUntilNow) * tokensPrices[ZFToken]
-  const unstakedAPY = unstakedZFReward3Day/govTvl * 100
-  const govFarmAPY = zfDAOPerSecond * SECONDS_PER_YEAR * tokensPrices[ZFToken] / govTvl * 100
+  const zfRewardDAOUntilNow = (currentTime - DAO_START_TIME) * zfDAOPerSecond;
+  const govTvl =
+    (currentGovTvl + pendingZf - zfRewardDAOUntilNow) * tokensPrices[ZFToken];
+  const unstakedAPY = (unstakedZFReward3Day / govTvl) * 100;
+  const govFarmAPY =
+    ((zfDAOPerSecond * SECONDS_PER_YEAR * tokensPrices[ZFToken]) / govTvl) *
+    100;
 
   const govPool = {
     pool: ZF_GOV,
@@ -261,6 +284,9 @@ const apy = async () => {
       )
       .toString();
 
+    const fee = lpTokensSwapFee[pool.lpToken.toLowerCase()];
+    const feeRate = (fee * (1 - 1 / protocolFee)) / 10000;
+
     const lpFees24h =
       (volumesMap[pool.lpToken.toLowerCase()] || []).reduce(
         (acc, { hourlyVolumeUSD }) => acc + Number(hourlyVolumeUSD),
@@ -286,7 +312,10 @@ const apy = async () => {
       tvlUsd: Number(zfFarmReservesUsd),
       apyBase,
       apyReward,
-      underlyingTokens: tokens0[i] && tokens1[i] ? [tokens0[i], tokens1[i]] : [poolInfo.address.toLowerCase()],
+      underlyingTokens:
+        tokens0[i] && tokens1[i]
+          ? [tokens0[i], tokens1[i]]
+          : [poolInfo.address.toLowerCase()],
       rewardTokens: [ZFToken],
       url: 'https://zkswap.finance/earn',
     };
@@ -308,7 +337,6 @@ const makeMulticall = async (abi, addresses, chain, params = null) => {
 
   return res;
 };
-
 
 module.exports = {
   timetravel: false,

@@ -1,23 +1,29 @@
+const sdk = require('@defillama/sdk');
+
 const utils = require('../utils');
 const controllerAbi = require('./abis/conic-controller-abi.json');
 const poolAbi = require('./abis/conic-pool-abi.json');
-const erc20Abi = require('./abis/conic-erc20-abi.json');
 const inflationManagerAbi = require('./abis/conic-inflation-manager-abi.json');
-const { getProvider } = require('@defillama/sdk/build/general');
-const { Contract, BigNumber } = require('ethers');
-const provider = getProvider('ethereum');
 
 const BLOCKS_PER_YEAR = 2580032;
 
-const CONTROLLER = '0x013A3Da6591d3427F164862793ab4e388F9B587e';
-const INFLATION_MANAGER = '0xf4A364d6B513158dC880d0e8DA6Ae65B9688FD7B';
+const CONTROLLER = '0x2790EC478f150a98F5D96755601a26403DF57EaE';
+const INFLATION_MANAGER = '0x05F494E6554fab539873dcF92A4D2F6930105B16';
 const CRV = '0xD533a949740bb3306d119CC777fa900bA034cd52';
 const CVX = '0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B';
 const CNC = '0x9aE380F0272E2162340a5bB646c354271c0F5cFC';
 
-const PRICE_API = 'https://coins.llama.fi/prices/current/ethereum:';
+const PRICE_API = 'https://coins.llama.fi/prices/current';
 const CURVE_APY_API = 'https://www.convexfinance.com/api/curve-apys';
 const CURVE_POOL_API = 'https://api.curve.fi/api/getPools/ethereum/main';
+
+const deployedAtBlock = {
+  '0x89dc3E9d493512F6CFb923E15369ebFddE591988': 19070154,
+  '0x80a3604977270B7Ef2e637f9Eb78cE1c3FA64316': 19079209,
+  '0x3367070ed152e2b715eef48D157685Cf496f3543': 19079112,
+  '0x72c23c94f68669C7B6A5B6e8c87aa9B70c263140': 19564336,
+  '0xb083AD0933fADF12761450a4FD45775B9Fb6Df77': 19564267,
+};
 
 const CURVE_POOL_DATA = {
   // USDC+crvUSD
@@ -38,59 +44,7 @@ const CURVE_POOL_DATA = {
   },
 };
 
-const blockNumber = async () => provider.getBlockNumber();
-
-const contract = (a, abi) => new Contract(a, abi, provider);
-
-const addresses = async () => contract(CONTROLLER, controllerAbi).listPools();
-
-const inflationRate = async () => {
-  return contract(
-    INFLATION_MANAGER,
-    inflationManagerAbi
-  ).currentInflationRate();
-};
-
-const symbol = async (a) => contract(a, erc20Abi).symbol();
-
-const decimals = async (a) => contract(a, erc20Abi).decimals();
-
-const underlying = async (a) => contract(a, poolAbi).underlying();
-
-const totalUnderlying = async (a) => contract(a, poolAbi).totalUnderlying();
-
-const weights = async (a) => contract(a, poolAbi).getWeights();
-
-const exchangeRate = async (a) => contract(a, poolAbi).exchangeRate();
-
 const bnToNum = (bn, dec = 18) => Number(bn.toString()) / 10 ** dec;
-
-const priceCoin = async (coin) => {
-  const data_ = await utils.getData(`${PRICE_API}${coin}`);
-  return data_.coins[`ethereum:${coin}`].price;
-};
-
-const curveApyData = async () => {
-  const data_ = await utils.getData(CURVE_APY_API);
-  return data_.apys;
-};
-
-const curvePoolData = async () => {
-  const data_ = await utils.getData(CURVE_POOL_API);
-  return data_.data.poolData;
-};
-
-const deployedAtBlock = async (poolAddress) => {
-  const poolContract = contract(poolAddress, poolAbi);
-  const deposits = await poolContract.queryFilter(
-    poolContract.filters.Deposit(null, null)
-  );
-
-  // Handle edge cases when the pool is first deployed
-  if (deposits.length === 0) return 0;
-
-  return deposits[0].blockNumber;
-};
 
 const curvePoolId = (poolData, poolAddress) => {
   const override = CURVE_POOL_DATA[poolAddress];
@@ -133,93 +87,130 @@ const poolApy = (
   };
 };
 
-const pool = async (address, apyData, poolData) => {
-  const [underlying_] = await Promise.all([underlying(address)]);
-  const [
-    symbol_,
-    decimals_,
-    totalUnderlying_,
-    price_,
-    weights_,
-    exchangeRate_,
-    blockNumber_,
-    deployedAtBlock_,
-  ] = await Promise.all([
-    symbol(underlying_),
-    decimals(underlying_),
-    totalUnderlying(address),
-    priceCoin(underlying_),
-    weights(address),
-    exchangeRate(address),
-    blockNumber(),
-    deployedAtBlock(address),
-  ]);
+const apy = async () => {
+  const addresses_ = (
+    await sdk.api.abi.call({
+      target: CONTROLLER,
+      abi: controllerAbi.find((m) => m.name === 'listPools'),
+    })
+  ).output;
 
-  const apr = poolApy(
-    weights_,
-    apyData,
-    poolData,
-    blockNumber_,
-    deployedAtBlock_,
-    exchangeRate_
-  );
+  const inflationRate_ = (
+    await sdk.api.abi.call({
+      target: INFLATION_MANAGER,
+      abi: inflationManagerAbi.find((m) => m.name === 'currentInflationRate'),
+    })
+  ).output;
 
-  return {
-    underlying: underlying_,
-    symbol: symbol_,
-    decimals: decimals_,
-    totalUnderlying: bnToNum(totalUnderlying_, decimals_),
-    price: price_,
-    baseApy: apr.base,
-    crvApy: apr.crv,
-  };
-};
+  const underlying = (
+    await sdk.api.abi.multiCall({
+      calls: addresses_.map((i) => ({
+        target: i,
+      })),
+      abi: poolAbi.find((m) => m.name === 'underlying'),
+    })
+  ).output.map((o) => o.output);
 
-const pools = async (addresses_) => {
-  const [apyData, poolData] = await Promise.all([
-    curveApyData(),
-    curvePoolData(),
-  ]);
-  return Promise.all(addresses_.map((a) => pool(a, apyData, poolData)));
-};
+  const priceKeys = [...underlying, CNC].map((i) => `ethereum:${i}`).join(',');
+  const prices = (await utils.getData(`${PRICE_API}/${priceKeys}`)).coins;
 
-const conicApy = async () => {
-  const addresses_ = (await addresses()).filter(
-    (a) => a !== '0xb652710eab40B6Ed32D6c32053fC37eF234562c2'
-  );
-  const [pools_, inflationRate_, cncPrice_] = await Promise.all([
-    pools(addresses_),
-    inflationRate(),
-    priceCoin(CNC),
-  ]);
+  const symbols = (
+    await sdk.api.abi.multiCall({
+      calls: underlying.map((i) => ({
+        target: i,
+      })),
+      abi: 'erc20:symbol',
+    })
+  ).output.map((o) => o.output);
 
-  const cncUsdPerYear = bnToNum(inflationRate_) * cncPrice_ * 365 * 86400;
+  const decimals = (
+    await sdk.api.abi.multiCall({
+      calls: underlying.map((i) => ({
+        target: i,
+      })),
+      abi: 'erc20:decimals',
+    })
+  ).output.map((o) => o.output);
+
+  const totalUnderlying = (
+    await sdk.api.abi.multiCall({
+      calls: addresses_.map((i) => ({
+        target: i,
+      })),
+      abi: poolAbi.find((m) => m.name === 'totalUnderlying'),
+    })
+  ).output.map((o) => o.output);
+
+  const weights = (
+    await sdk.api.abi.multiCall({
+      calls: addresses_.map((i) => ({
+        target: i,
+      })),
+      abi: poolAbi.find((m) => m.name === 'getWeights'),
+    })
+  ).output.map((o) => o.output);
+
+  const exchangeRate = (
+    await sdk.api.abi.multiCall({
+      calls: addresses_.map((i) => ({
+        target: i,
+      })),
+      abi: poolAbi.find((m) => m.name === 'exchangeRate'),
+    })
+  ).output.map((o) => o.output);
+
+  const blockNumber = (await sdk.util.blocks.getBlock('ethereum')).block;
+
+  const cncUsdPerYear =
+    bnToNum(inflationRate_) * prices[`ethereum:${CNC}`].price * 365 * 86400;
+
+  const apyData = (await utils.getData(CURVE_APY_API)).apys;
+  const poolData = (await utils.getData(CURVE_POOL_API)).data.poolData;
+
+  const pools_ = addresses_.map((address, i) => {
+    const apr = poolApy(
+      weights[i],
+      apyData,
+      poolData,
+      blockNumber,
+      deployedAtBlock[address],
+      exchangeRate[i]
+    );
+
+    return {
+      underlying: underlying[i],
+      symbol: symbols[i],
+      decimals: decimals[i],
+      totalUnderlying: bnToNum(totalUnderlying[i], decimals[i]),
+      price: prices[`ethereum:${underlying[i]}`]?.price,
+      baseApy: apr.base,
+      crvApy: apr.crv,
+    };
+  });
+
   const totalTvl = pools_.reduce((total, pool_) => {
     return total + pool_.totalUnderlying * pool_.price;
   }, 0);
-  // CNC rewards are temporarily disabled
-  // const cncApy = (cncUsdPerYear / totalTvl) * 100;
-  const cncApy = 0;
-  return Promise.all(
-    pools_.map(async (pool_) => {
-      const tvlUsd = pool_.totalUnderlying * pool_.price;
-      return {
-        pool: `conic-${pool_.symbol}-ethereum`.toLowerCase(),
-        chain: 'Ethereum',
-        project: 'conic-finance',
-        symbol: pool_.symbol === 'WETH' ? 'ETH' : pool_.symbol,
-        tvlUsd,
-        rewardTokens: [CNC, CRV, CVX],
-        underlyingTokens: [pool_.underlying],
-        apyBase: pool_.baseApy,
-        apyReward: pool_.crvApy + cncApy,
-      };
-    })
-  );
+  const cncApy = (cncUsdPerYear / totalTvl) * 100;
+
+  return pools_.map((pool_) => {
+    const tvlUsd = pool_.totalUnderlying * pool_.price;
+    return {
+      pool: `conic-${pool_.symbol}-ethereum`.toLowerCase(),
+      chain: 'Ethereum',
+      project: 'conic-finance',
+      symbol: pool_.symbol === 'WETH' ? 'ETH' : pool_.symbol,
+      tvlUsd,
+      rewardTokens: [CNC, CRV, CVX],
+      underlyingTokens: [pool_.underlying],
+      apyBase: pool_.baseApy,
+      apyReward: pool_.crvApy + cncApy,
+    };
+  });
 };
 
 module.exports = {
   timetravel: false,
-  apy: conicApy,
+  apy,
   url: 'https://conic.finance/',
 };

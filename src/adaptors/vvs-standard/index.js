@@ -1,4 +1,4 @@
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
@@ -66,7 +66,7 @@ const calculateApy = (
   reserveUSD,
   lpApr
 ) => {
-  const poolWeight = poolInfo.allocPoint / totalAllocPoint;
+  const poolWeight = poolInfo.allocPoint / Number(totalAllocPoint);
   const vvsPerYear = BLOCKS_PER_YEAR * vvsPerBlock;
 
   return ((poolWeight * vvsPerYear * vvsPrice) / reserveUSD) * 100 + lpApr;
@@ -169,7 +169,7 @@ const main = async () => {
 
   const totalAllocPoint = await masterChef.methods.totalAllocPoint().call();
   const vvsPerBlock = await masterChef.methods.vvsPerBlock().call();
-  const normilizedVvsPerBlock = vvsPerBlock / 1e18;
+  const normilizedVvsPerBlock = Number(vvsPerBlock) / 1e18;
   const poolsRes = await sdk.api.abi.multiCall({
     abi: masterChefABI.filter(({ name }) => name === 'poolInfo')[0],
     calls: [...Array(Number(poolsCount)).keys()].map((i) => ({
@@ -178,6 +178,7 @@ const main = async () => {
     })),
     chain: 'cronos',
     requery: true,
+    permitFailure: true,
   });
 
   const nonLpPools = [0, 23];
@@ -198,6 +199,7 @@ const main = async () => {
           params: method === 'balanceOf' ? [MASTERCHEF_ADDRESS] : null,
         })),
         chain: 'cronos',
+        permitFailure: true,
         ...(method !== 'getReserves' ? { requery: true } : {}),
       })
     )

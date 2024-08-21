@@ -3,11 +3,20 @@ const abiMcV3Arbitrum = require('./masterchefv3Arbitrum.json');
 const abiMcV3PolygonZkevm = require('./masterchefv3PolygonZkevm.json');
 
 const utils = require('../utils');
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk');
 const bn = require('bignumber.js');
 const fetch = require('node-fetch');
 
-const baseUrl = 'https://api.thegraph.com/subgraphs/name';
+const CAKE = {
+  ethereum: '0x152649eA73beAb28c5b49B26eb48f7EAD6d4c898',
+  bsc: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
+  polygon_zkevm: '0x0D1E753a25eBda689453309112904807625bEFBe2',
+  era: '0x3A287a06c66f9E95a56327185cA2BDF5f031cEcD',
+  arbitrum: '0x1b896893dfc86bb67Cf57767298b9073D2c1bA2c',
+  base: '0x3055913c90Fcc1A6CE9a358911721eEb942013A1',
+  linea: '0x0D1E753a25eBda689453309112904807625bEFBe',
+  op_bnb: '0x2779106e4F4A8A28d77A24c18283651a2AE22D1C',
+};
 
 const chainIds = {
   ethereum: {
@@ -33,6 +42,16 @@ const chainIds = {
   era: {
     id: 324,
     mchef: '0x4c615E78c5fCA1Ad31e4d66eb0D8688d84307463',
+    abi: abiMcV3Arbitrum,
+  },
+  linea: {
+    id: 59144,
+    mchef: '0x22E2f236065B780FA33EC8C4E58b99ebc8B55c57',
+    abi: abiMcV3Arbitrum,
+  },
+  op_bnb: {
+    id: 204,
+    mchef: '0x05ddEDd07C51739d2aE21F6A9d97a8d69C2C3aaA',
     abi: abiMcV3Arbitrum,
   },
 };
@@ -129,11 +148,11 @@ const getCakeAprs = async (chain) => {
     const token0Price = prices[`${chain}:${token0}`]?.price;
     const token1Price = prices[`${chain}:${token1}`]?.price;
     if (!token0Price) {
-      console.log('missing token price', token0);
+      console.log('missing token price', `${chain}:${token0}`);
       return acc;
     }
     if (!token1Price) {
-      console.log('missing token price', token1);
+      console.log('missing token price', `${chain}:${token1}`);
       return acc;
     }
     const token0Amount = new bn(tvl.token0);
@@ -192,7 +211,7 @@ const getBaseTokensPrice = async (allTokens, chain) => {
     cake: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
   };
 
-  const prices = (
+  let prices = (
     await utils.getData(
       `https://coins.llama.fi/prices/current/${Object.values(priceKeys)
         .map((t) => `bsc:${t}`)
@@ -201,10 +220,19 @@ const getBaseTokensPrice = async (allTokens, chain) => {
     )
   ).coins;
 
-  const cakePrice = prices[`bsc:${priceKeys.cake}`].price;
-  return { cakePrice, prices };
+  const cakePriceData = prices[`bsc:${priceKeys.cake}`];
+
+  const cakeId = `${chain}:${CAKE[chain]}`;
+
+  if (CAKE[chain] && !prices[cakeId]) {
+    prices[cakeId] = cakePriceData;
+  }
+
+  return { cakePrice: cakePriceData.price, prices };
 };
 
 module.exports = {
   getCakeAprs,
+  CAKE,
+  chainIds,
 };

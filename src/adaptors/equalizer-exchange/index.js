@@ -17,6 +17,7 @@ const getApy = async () => {
       target: pairFactory,
       abi: abiPairFactory.find((m) => m.name === 'allPairsLength'),
       chain: 'fantom',
+      permitFailure: true,
     })
   ).output;
 
@@ -28,6 +29,7 @@ const getApy = async () => {
       })),
       abi: abiPairFactory.find((m) => m.name === 'allPairs'),
       chain: 'fantom',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -38,6 +40,7 @@ const getApy = async () => {
       })),
       abi: abiPair.find((m) => m.name === 'metadata'),
       chain: 'fantom',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -48,6 +51,7 @@ const getApy = async () => {
       })),
       abi: abiPair.find((m) => m.name === 'symbol'),
       chain: 'fantom',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -59,6 +63,7 @@ const getApy = async () => {
       })),
       abi: abiVoter.find((m) => m.name === 'gauges'),
       chain: 'fantom',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -70,6 +75,7 @@ const getApy = async () => {
       })),
       abi: abiGauge.find((m) => m.name === 'rewardRate'),
       chain: 'fantom',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -81,11 +87,27 @@ const getApy = async () => {
         .concat(EQUAL)
     ),
   ];
-  const priceKeys = tokens.map((i) => `fantom:${i}`).join(',');
 
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const maxSize = 50;
+  const pages = Math.ceil(tokens.length / maxSize);
+  let pricesA = [];
+  let keys = '';
+  for (const p of [...Array(pages).keys()]) {
+    keys = tokens
+      .slice(p * maxSize, maxSize * (p + 1))
+      .map((i) => `fantom:${i}`)
+      .join(',')
+      .replaceAll('/', '');
+    pricesA = [
+      ...pricesA,
+      (await axios.get(`https://coins.llama.fi/prices/current/${keys}`)).data
+        .coins,
+    ];
+  }
+  let prices = {};
+  for (const p of pricesA) {
+    prices = { ...prices, ...p };
+  }
 
   const pools = allPairs.map((p, i) => {
     const poolMeta = metaData[i];

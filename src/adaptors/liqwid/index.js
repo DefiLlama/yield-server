@@ -1,7 +1,7 @@
 const { request, gql } = require('graphql-request');
 
 const apy = async () => {
-  const endpoint = 'https://api.liqwiddev.net/graphql'
+  const endpoint = 'https://api.liqwid.finance/graphql'
 
   const query = gql`query ($page: Int) {
     Page (page: $page) {

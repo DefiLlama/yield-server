@@ -19,7 +19,7 @@ const urlApy = 'https://magikfarm.herokuapp.com/apy/breakdown';
 const urlLpPrices = 'https://magikfarm.herokuapp.com/lps';
 const urlTokenPrices = 'https://magikfarm.herokuapp.com/prices';
 const sdk = require('@defillama/sdk');
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 const networkMapping = {
   10: {
     name: 'optimism',

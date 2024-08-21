@@ -2,144 +2,43 @@ const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
-const { windAndCheck,compounders,lpAbi,ercAbi } = require('./abi');
+const { windAndCheck, compounders, lpAbi, ercAbi } = require('./abi');
 
 const CHAIN = 'kava';
 
 const PROJECT_NAME = 'scrub-invest';
 
 const vaults = {
-  USDC: '0xcd017B495DF1dE2DC8069b274e2ddfBB78561176',
-  USDT: '0x88555c4d8e53ffB223aB5baDe0B5e6B2Cd3966c4',
-  DAI: '0xB4Ba7ba722eacAE8f1e4c6213AF05b5E8B27dbdB',
-  KAVA: '0xB9774bB2A18Af59Ec9bf86dCaeC07473A2D2F230',
-  WETH: '0x3CcA2C0d433E00433082ba16e968CA11dA6Dc156',
+  USDt: '0xfA8f4Fd6D961ECf25e3406a1e6a22A3671678a65',
+
+  KAVA: '0xC00804268b8Ce19D2276A81292a6E28277bf3591',
 };
 
-const vaultsLP = { "BEAR/WBTC": "0x4402Cf5433D57266563979654d20887AcE672393",
-"TIGER/USDC": "0xa2355f35Ab85f1771FB1085a0e5b2599B8F47457",
-"LION/USDC": "0x2c1C6aaB89272d07B7f78bFe93eefb6D2631Cf94",
-"MARE/USDC": "0x070110b0cAd64833b1a6a9E86337A4e4eE786607",
-"VARA/USDC": "0xE04539bD52618B7d197Be54B3e4D80732082906E",
-"VARA/WKAVA": "0xEa892552BD31A20F42ceb3476D6A280c405883d0",
-"LION/DEXI": "0xcf4673F714183C42DADc1B42DAC21BE09cfc3684",
-//"axlUSDC/USDC": "0xef7541FCa94988fA423bC418a854f7967f83a3E0",
-"WKAVA/WETH": "0x43Ac7f627e41EBDa7515FEaCa425306AaB9cB602",
-"TORE/WKAVA": "0x438c996F8c2ff18b9B7e01449443A8523b2B82E5",
+const vaultsLP = {
+  'TIGER/LION': '0x9e890FBD4295D92c41fA12a2083b51C387699Fd8',
 };
 const tokens = [
   {
-    name: 'USDC',
+    name: 'USDt',
     decimals: 6,
-    address: '0xfA9343C3897324496A05fC75abeD6bAC29f8A40f',
-    tokens: ["0xfA9343C3897324496A05fC75abeD6bAC29f8A40f"]
-  },
-  {
-    name: 'USDT',
-    decimals: 6,
-    address: '0xB44a9B6905aF7c801311e8F4E76932ee959c663C',
-    tokens: ["0xB44a9B6905aF7c801311e8F4E76932ee959c663C"]
-
-  },
-  {
-    name: 'DAI',
-    decimals: 18,
-    address: '0x765277eebeca2e31912c9946eae1021199b39c61',
-    tokens: ["0x765277eebeca2e31912c9946eae1021199b39c61"]
-
+    address: '0x919C1c267BC06a7039e03fcc2eF738525769109c',
+    tokens: ['0x919C1c267BC06a7039e03fcc2eF738525769109c'],
   },
   {
     name: 'KAVA',
     decimals: 18,
     address: '0xc86c7C0eFbd6A49B35E8714C5f59D99De09A225b',
-    tokens: ["0xc86c7C0eFbd6A49B35E8714C5f59D99De09A225b"]
-
+    tokens: ['0xc86c7C0eFbd6A49B35E8714C5f59D99De09A225b'],
   },
   {
-    name: 'WETH',
+    name: 'TIGER/LION',
     decimals: 18,
-    address: '0xE3F5a90F9cb311505cd691a46596599aA1A0AD7D',
-    tokens: ["0xE3F5a90F9cb311505cd691a46596599aA1A0AD7D"]
-
-  },
-  {
-    name: "BEAR/WBTC",
-    decimals: 18,
-    address: "0xeA848151ACB1508988e56Ee7689F004df2B15ced",
-    tokens: ["0x38481Fdc1aF61E6E72E0Ff46F069315A59779C65","0x818ec0A7Fe18Ff94269904fCED6AE3DaE6d6dC0b"],
-    lp:true
-  },
-  {
-    name: "TIGER/USDC",
-    decimals: 18,
-    address: "0x7f8ed7d31795dc6f5fc5f6685b11419674361501",
-    tokens: ["0x471F79616569343e8e84a66F342B7B433b958154","0xfA9343C3897324496A05fC75abeD6bAC29f8A40f"],
-    lp:true
-
-  },
-  {
-    name: "LION/USDC",
-    decimals: 18,
-    address: "0x09d6561b3795ae237e42f7adf3dc83742e10a2e8",
-    tokens: ["0x990e157fC8a492c28F5B50022F000183131b9026","0xfA9343C3897324496A05fC75abeD6bAC29f8A40f"],
-    lp:true
-  },
-  {
-    name: "MARE/USDC",
-    decimals: 18,
-    address: "0x0e1bc1939d977c676cd38cff4b7e411c32b6d3ce",
-    tokens: ["0xd86C8d4279CCaFbec840c782BcC50D201f277419","0xfA9343C3897324496A05fC75abeD6bAC29f8A40f"],
-    lp:true
-
-  },
-  {
-    name: "VARA/USDC",
-    decimals: 18,
-    address: "0x9bf1e3ee61cbe5c61e520c8beff45ed4d8212a9a",
-    tokens: ["0xE1da44C0dA55B075aE8E2e4b6986AdC76Ac77d73","0xfA9343C3897324496A05fC75abeD6bAC29f8A40f"],
-    lp:true
-
-  },
-  {
-    name: "VARA/WKAVA",
-    decimals: 18,
-    address: "0x7d8100072ba0e4da8dc6bd258859a5dc1a452e05",
-    tokens: ["0xE1da44C0dA55B075aE8E2e4b6986AdC76Ac77d73","0xc86c7C0eFbd6A49B35E8714C5f59D99De09A225b"],
-    lp:true
-
-  },
-  /*
-  {
-    name: "axlUSDC/USDC",
-    decimals: 18,
-    address: "0x7a08708E06A118F2B22C9000A990155bdEdC31d1",
-    tokens: ["0xfA9343C3897324496A05fC75abeD6bAC29f8A40f","0xfA9343C3897324496A05fC75abeD6bAC29f8A40f"],
-    lp:true
-  },
-  */
-  {
-    name: "WKAVA/WETH",
-    decimals: 18,
-    address: "0xB593E0A2e93864fF5F75689dADE29f5F6DEc64EF",
-    tokens: ["0xc86c7C0eFbd6A49B35E8714C5f59D99De09A225b","0xE3F5a90F9cb311505cd691a46596599aA1A0AD7D"],
-    lp:true
-
-    
-  },
-  {
-    name: "LION/DEXI",
-    decimals: 18,
-    address: "0x7098c06cd97079742278F637D3EFE4Ce39e19A86",
-    tokens: ["0x990e157fC8a492c28F5B50022F000183131b9026","0xD22a58f79e9481D1a88e00c343885A588b34b68B"],
-    lp:true
-
-  },
-  {
-    name: "TORE/WKAVA",
-    decimals: 18,
-    address: "0x1ae83a1b9Ee963213d1e3Ff337F92930582d304f",
-    tokens: ["0x8549724fcC84ee9ee6c7A676F1Ba2Cc2f43AAF5B","0xc86c7C0eFbd6A49B35E8714C5f59D99De09A225b"],
-    lp:true
+    address: '0x78Ef6D3E3d0da9B2248C11BE11743B4C573ADd25',
+    tokens: [
+      '0x990e157fC8a492c28F5B50022F000183131b9026',
+      '0x471F79616569343e8e84a66F342B7B433b958154',
+    ],
+    lp: true,
   },
 ];
 const getOutput = ({ output }) => output.map(({ output }) => output);
@@ -162,7 +61,7 @@ const unwrapLP = async (chain, lpTokens) => {
   const token1 = tokens.map((token) => `${chain}:${token[1]}`);
   const token0Decimals = (
     await sdk.api.abi.multiCall({
-      abi: ercAbi.find(({ name }) => name === "decimals"),
+      abi: ercAbi.find(({ name }) => name === 'decimals'),
       calls: token0Addresses.map((token) => ({
         target: token,
       })),
@@ -172,7 +71,7 @@ const unwrapLP = async (chain, lpTokens) => {
 
   const token1Decimals = (
     await sdk.api.abi.multiCall({
-      abi: ercAbi.find(({ name }) => name === "decimals"),
+      abi: ercAbi.find(({ name }) => name === 'decimals'),
       calls: token1Addresses.map((token) => ({
         target: token,
       })),
@@ -187,41 +86,51 @@ const unwrapLP = async (chain, lpTokens) => {
   });
 
   lpMarkets.map((token, i) => {
-    if(isNaN(token0Price[token0Addresses[i].toLowerCase()])) {
+    if (isNaN(token0Price[token0Addresses[i].toLowerCase()])) {
       token.lpPrice =
-      2*
-       ( (getReserves[i]._reserve1 / token1Decimals[i]) *
-          token1Price[token1Addresses[i].toLowerCase()]) /
-      (totalSupply[i] / 1e18);
-    }
-    else if(isNaN(token1Price[token1Addresses[i].toLowerCase()])) {
+        (2 *
+          ((getReserves[i]._reserve1 / token1Decimals[i]) *
+            token1Price[token1Addresses[i].toLowerCase()])) /
+        (totalSupply[i] / 1e18);
+    } else if (isNaN(token1Price[token1Addresses[i].toLowerCase()])) {
       token.lpPrice =
-      2*
-       ( (getReserves[i]._reserve0 / token0Decimals[i]) *
-          token0Price[token1Addresses[i].toLowerCase()]) /
-      (totalSupply[i] / 1e18);
+        (2 *
+          ((getReserves[i]._reserve0 / token0Decimals[i]) *
+            token0Price[token1Addresses[i].toLowerCase()])) /
+        (totalSupply[i] / 1e18);
     } else {
-    
-    token.lpPrice =
-      (((getReserves[i]._reserve0 / token0Decimals[i]) *
-        token0Price[token0Addresses[i].toLowerCase()] )+
-       ( (getReserves[i]._reserve1 / token1Decimals[i]) *
-          token1Price[token1Addresses[i].toLowerCase()])) /
-      (totalSupply[i] / 1e18);
+      token.lpPrice =
+        ((getReserves[i]._reserve0 / token0Decimals[i]) *
+          token0Price[token0Addresses[i].toLowerCase()] +
+          (getReserves[i]._reserve1 / token1Decimals[i]) *
+            token1Price[token1Addresses[i].toLowerCase()]) /
+        (totalSupply[i] / 1e18);
     }
-      console.log("LP Price Info", token.lpPrice, token0Decimals[i], token1Decimals[i], totalSupply[i], getReserves[i]._reserve0, getReserves[i]._reserve1,token0Addresses[i].toLowerCase(),token1Addresses[i].toLowerCase(), token0Price[token0Addresses[i].toLowerCase()], token1Price[token1Addresses[i].toLowerCase()])
+    console.log(
+      'LP Price Info',
+      token.lpPrice,
+      token0Decimals[i],
+      token1Decimals[i],
+      totalSupply[i],
+      getReserves[i]._reserve0,
+      getReserves[i]._reserve1,
+      token0Addresses[i].toLowerCase(),
+      token1Addresses[i].toLowerCase(),
+      token0Price[token0Addresses[i].toLowerCase()],
+      token1Price[token1Addresses[i].toLowerCase()]
+    );
   });
 
   const lpPrices = {};
   lpMarkets.map((lp) => {
-    lpPrices[lp.lpToken.toLowerCase()] = lp.lpPrice ;
+    lpPrices[lp.lpToken.toLowerCase()] = lp.lpPrice;
   });
 
   return lpPrices;
 };
 
 const getInfos = async () => {
-  const vaultInfo= await (
+  const vaultInfo = await (
     await sdk.api.abi.multiCall({
       chain: CHAIN,
       calls: Object.entries(vaults).map((vault) => ({
@@ -231,7 +140,7 @@ const getInfos = async () => {
       abi: windAndCheck.find(({ name }) => name === 'getUserInfo'),
     })
   ).output.map(({ output }) => output);
-  const vaultsLpInfo= await (
+  const vaultsLpInfo = await (
     await sdk.api.abi.multiCall({
       chain: CHAIN,
       calls: Object.entries(vaultsLP).map((vault) => ({
@@ -269,15 +178,14 @@ const convertAPR2APY = (apr) => {
 
 const calcApy = async () => {
   const pricesTokens = await getPrices(
-    tokens.filter(
-      (token) => !token.lp
-    ).map((token) => token.address).map((token) => `${CHAIN}:` + token)
+    tokens
+      .filter((token) => !token.lp)
+      .map((token) => token.address)
+      .map((token) => `${CHAIN}:` + token)
   );
   const lpPrices = await unwrapLP(
     CHAIN,
-    tokens.filter(
-      (token) => token.lp === true
-    ).map((token) => token.address)
+    tokens.filter((token) => token.lp === true).map((token) => token.address)
   );
   const prices = {
     ...pricesTokens,
@@ -285,21 +193,34 @@ const calcApy = async () => {
   };
 
   const infos = await getInfos();
-  
+
   const pools = tokens.map((token, i) => {
     const symbol = token.name;
     const tokenAddress = token.address;
     const tokxens = token.tokens;
-    
-    const vaultAddress = vaults[symbol]?.toLowerCase() ?? vaultsLP[symbol]?.toLowerCase();
+
+    const vaultAddress =
+      vaults[symbol]?.toLowerCase() ?? vaultsLP[symbol]?.toLowerCase();
 
     const decimals = token.decimals;
     let price = prices[tokenAddress.toLowerCase()];
-   
+
     const info = infos[i];
-    console.log("INFOS",symbol,token.lp?(info.userInfo.totalCollateral ?? 0 ):(info.totalSupplied ?? 0),price);
-    const tvlUsd = ((token.lp?(info.userInfo.totalCollateral ?? 0 ):(info.totalSupplied ?? 0)) / (10 ** decimals)) * price;
-    const apyBase = convertAPR2APY((token.lp?info.userInfo.lastAPR ?? 0 :info.lastAPR ?? 0) / 1e6);
+    console.log(
+      'INFOS',
+      symbol,
+      token.lp ? info.userInfo.totalCollateral ?? 0 : info.totalSupplied ?? 0,
+      price
+    );
+    const tvlUsd =
+      ((token.lp
+        ? info.userInfo.totalCollateral ?? 0
+        : info.totalSupplied ?? 0) /
+        10 ** decimals) *
+      price;
+    const apyBase = convertAPR2APY(
+      (token.lp ? info.userInfo.lastAPR ?? 0 : info.lastAPR ?? 0) / 1e6
+    );
 
     return {
       pool: vaultAddress,
@@ -308,7 +229,7 @@ const calcApy = async () => {
       symbol,
       tvlUsd,
       apyBase,
-      underlyingTokens:tokxens,
+      underlyingTokens: tokxens,
       rewardTokens: [tokenAddress],
     };
   });

@@ -16,20 +16,23 @@ const getApy = async () => {
       );
 
       return data.map((p) => {
-        if (p.details.retired || p.details.hideAlways) return {};
+        if (p.details.isRetired || p.details.isHidden) return {};
 
         const underlying = p.token.underlyingTokensAddresses;
 
         // OP incentives via yvToken staking
-        const apyReward = p.apy?.staking_rewards_apr * 100 ?? 0;
+        const apyReward = p.apr?.extra?.stakingRewardsAPR * 100 ?? 0;
+
+        const forwardAPR = p.apr.forwardAPR?.netAPR;
+        const apyBase = (forwardAPR ?? p.apr.netAPR) * 100;
 
         return {
           pool: p.address,
           chain: utils.formatChain(chain[0]),
           project: 'yearn-finance',
           symbol: utils.formatSymbol(p.token.display_symbol),
-          tvlUsd: p.tvl.tvl_deposited,
-          apyBase: p.apy.net_apy * 100,
+          tvlUsd: p.tvl.tvl,
+          apyBase,
           apyReward,
           rewardTokens:
             apyReward > 0 ? ['0x4200000000000000000000000000000000000042'] : [],

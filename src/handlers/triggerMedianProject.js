@@ -1,5 +1,3 @@
-const minify = require('pg-minify');
-
 const { pgp, connect } = require('../utils/dbConnection');
 
 module.exports.handler = async () => {
@@ -9,8 +7,7 @@ module.exports.handler = async () => {
 const main = async () => {
   const conn = await connect();
 
-  const query = minify(
-    `
+  const query = `
 INSERT INTO
     median_project (timestamp, project, "medianAPY", "uniquePools")
 WITH today AS (
@@ -46,9 +43,7 @@ FROM
 GROUP BY
     project
 
-    `,
-    { compress: true }
-  );
+    `;
 
   const response = await conn.query(query);
 

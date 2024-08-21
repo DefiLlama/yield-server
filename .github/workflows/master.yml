@@ -8,7 +8,7 @@ jobs:
   deploy:
     strategy:
       matrix:
-        node-version: [14.x]
+        node-version: [16.x]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -34,6 +34,7 @@ jobs:
           OPTIMISM_RPC: ${{ secrets.OPTIMISM_RPC }}
           AVAX_RPC: ${{ secrets.AVAX_RPC }}
           ARBITRUM_RPC: ${{ secrets.ARBITRUM_RPC }}
+          TRON_RPC: ${{ secrets.TRON_RPC }}
           BASE_RPC: ${{ secrets.BASE_RPC }}
           TVL_SPIKE_WEBHOOK: ${{ secrets.TVL_SPIKE_WEBHOOK }}
           NEW_YIELDS_WEBHOOK: ${{ secrets.NEW_YIELDS_WEBHOOK }}
@@ -41,3 +42,5 @@ jobs:
           ZEROX_API: ${{ secrets.ZEROX_API }}
           SMARDEX_SUBGRAPH_API_KEY: ${{ secrets.SMARDEX_SUBGRAPH_API_KEY }}
           VENDOR_FINANCE: ${{ secrets.VENDOR_FINANCE }}
+          TRADERJOE: ${{ secrets.TRADERJOE }}
+          GRAPH_API_KEY: ${{ secrets.GRAPH_API_KEY }}

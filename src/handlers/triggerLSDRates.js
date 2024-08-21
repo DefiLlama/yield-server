@@ -42,16 +42,17 @@ const lsdTokens = [
   },
   {
     name: 'StakeWise',
-    symbol: 'sETH2',
-    address: '0xfe2e637202056d30016725477c5da089ab0a043a',
-    type: r,
-    fee: 0.1,
+    symbol: 'osETH',
+    address: '0xf1C9acDc66974dFB6dEcB12aA385b9cD01190E38',
+    type: a,
+    fee: 0.05,
   },
   {
     name: 'Ankr',
     symbol: 'ANKRETH',
     address: '0xe95a203b1a91a908f9b9ce46459d101078c2c3cb',
     type: a,
+    fee: 0.1,
   },
   {
     name: 'Frax Ether',
@@ -81,8 +82,8 @@ const lsdTokens = [
   {
     name: 'Bifrost Liquid Staking',
     symbol: 'vETH',
-    // address: '0x4Bc3263Eb5bb2Ef7Ad9aB6FB68be80E43b43801F', // vETH
-    address: '0x74bAA141B18D5D1eeF1591abf37167FbeCE23B72', // Staking Liquidity Protocol Contract
+    address: '0x4Bc3263Eb5bb2Ef7Ad9aB6FB68be80E43b43801F', // vETH
+    addressExchangeRate: '0x74bAA141B18D5D1eeF1591abf37167FbeCE23B72', // Staking Liquidity Protocol Contract
     type: a,
   },
   {
@@ -100,7 +101,7 @@ const lsdTokens = [
     fee: 0.1,
   },
   {
-    name: 'Swell',
+    name: 'Swell Liquid Staking',
     symbol: 'swETH',
     address: '0xf951E335afb289353dc249e82926178EaC7DEd78',
     type: a,
@@ -116,8 +117,8 @@ const lsdTokens = [
   {
     name: 'Tranchess Ether',
     symbol: 'qETH',
-    // address: '0x93ef1Ea305D11A9b2a3EbB9bB4FCc34695292E7d', // qETH
-    address: '0xA6aeD7922366611953546014A3f9e93f058756a2', // QueenRateProvider
+    address: '0x93ef1Ea305D11A9b2a3EbB9bB4FCc34695292E7d', // qETH
+    addressExchangeRate: '0xA6aeD7922366611953546014A3f9e93f058756a2', // QueenRateProvider
     type: a,
     // fee: 0.1,
   },
@@ -125,33 +126,81 @@ const lsdTokens = [
     name: 'Stakehouse',
     symbol: 'dETH',
     address: '0x3d1e5cf16077f349e999d6b21a4f646e83cd90c5',
-    type: r,
+    type: a,
     fee: 0,
   },
   {
     name: 'Stader',
     symbol: 'ETHx',
-    address: '0xcf5EA1b38380f6aF39068375516Daf40Ed70D299',
+    address: '0xA35b1B31Ce002FBF2058D22F30f95D405200A15b',
+    addressExchangeRate: '0xcf5EA1b38380f6aF39068375516Daf40Ed70D299',
     type: a,
     fee: 0.1,
   },
   {
     name: 'NodeDAO',
     symbol: 'nETH',
-    // address: '0xC6572019548dfeBA782bA5a2093C836626C7789A',
-    address: '0x8103151E2377e78C04a3d2564e20542680ed3096',
+    address: '0xC6572019548dfeBA782bA5a2093C836626C7789A',
+    addressExchangeRate: '0x8103151E2377e78C04a3d2564e20542680ed3096',
+    type: a,
+    fee: 0.1,
+  },
+  {
+    name: 'Bedrock uniETH',
+    symbol: 'uniETH',
+    address: '0xF1376bceF0f78459C0Ed0ba5ddce976F1ddF51F4',
+    addressExchangeRate: '0x4beFa2aA9c305238AA3E0b5D17eB20C045269E9d',
+    type: a,
+    fee: 0.1,
+  },
+  {
+    name: 'Mantle Staked ETH',
+    symbol: 'mETH',
+    address: '0xd5F7838F5C461fefF7FE49ea5ebaF7728bB0ADfa',
+    addressExchangeRate: '0xe3cBd06D7dadB3F4e6557bAb7EdD924CD1489E8f',
+    type: a,
+    fee: 0.1,
+  },
+  {
+    name: 'Dinero (Pirex ETH)',
+    symbol: 'APXETH',
+    address: '0x04c154b66cb340f3ae24111cc767e0184ed00cc6',
+    type: a,
+    fee: 0.1,
+  },
+  {
+    name: 'Liquid Collective',
+    symbol: 'lsETH',
+    address: '0x8c1bed5b9a0928467c9b1341da1d7bd5e10b6549',
+    type: a,
+    fee: 0.1,
+  },
+  {
+    name: 'MEV Protocol',
+    symbol: 'mevETH',
+    address: '0x24Ae2dA0f361AA4BE46b48EB19C91e02c5e4f27E',
+    type: a,
+    fee: 0.1,
+  },
+  {
+    name: 'Meta Pool ETH',
+    symbol: 'mpETH',
+    address: '0x48AFbBd342F64EF8a9Ab1C143719b63C2AD81710',
+    type: a,
+    fee: 0.1,
+  },
+  {
+    name: 'Crypto.com Staked ETH',
+    symbol: 'CDCETH',
+    address: '0x7a7c9db510aB29A2FC362a4c34260BEcB5cE3446',
     type: a,
     fee: 0.1,
   },
 ];
 
-const priceUrl = 'https://api.0x.org/swap/v1/quote';
+const priceUrl = 'https://aggregator-api.kyberswap.com/ethereum/api/v1/routes';
 const cbETHRateUrl =
   'https://api-public.sandbox.pro.coinbase.com/wrapped-assets/CBETH/conversion-rate';
-
-const apiKey = {
-  headers: { '0x-api-key': process.env.ZEROX_API },
-};
 
 const getRates = async () => {
   const marketRates = await getMarketRates();
@@ -177,19 +226,18 @@ const getRates = async () => {
 };
 
 const getMarketRates = async () => {
-  const eth = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
   const amount = 1e18;
   const urls = lsdTokens
     .filter((i) => i.name !== 'StakeHound') // useless data
     .map(
       (lsd) =>
-        `${priceUrl}?sellToken=${lsd.address}&buyToken=${eth}&sellAmount=${amount}`
+        `${priceUrl}?tokenIn=${lsd.address}&tokenOut=0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE&amountIn=${amount}`
     );
 
   const marketRates = [];
   for (const url of urls) {
     try {
-      marketRates.push((await axios.get(url, apiKey)).data);
+      marketRates.push((await axios.get(url)).data.data.routeSummary);
       await sleep(500);
     } catch (err) {
       console.log(url, err.response.data);
@@ -197,10 +245,10 @@ const getMarketRates = async () => {
   }
 
   return marketRates.map((m) => ({
-    buyTokenAddress: m.buyTokenAddress,
-    sellTokenAddress: m.sellTokenAddress,
-    buyAmount: m.buyAmount,
-    sellAmount: m.sellAmount,
+    buyTokenAddress: m.tokenOut,
+    sellTokenAddress: m.tokenIn,
+    buyAmount: m.amountOut,
+    sellAmount: m.amountIn,
   }));
 };
 
@@ -309,6 +357,65 @@ const getExpectedRates = async () => {
     type: 'function',
   };
 
+  const uniETHAbi = {
+    inputs: [],
+    name: 'exchangeRatio',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
+  const mETHAbi = {
+    inputs: [{ internalType: 'uint256', name: 'mETHAmount', type: 'uint256' }],
+    name: 'mETHToETH',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
+  const lsETHAbi = {
+    inputs: [
+      {
+        internalType: 'uint256',
+        name: '_underlyingAssetAmount',
+        type: 'uint256',
+      },
+    ],
+    name: 'sharesFromUnderlyingBalance',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
+  const mevETHAbi = {
+    inputs: [],
+    name: 'fraction',
+    outputs: [
+      { internalType: 'uint128', name: 'elastic', type: 'uint128' },
+      { internalType: 'uint128', name: 'base', type: 'uint128' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
+  const mpETHAbi = {
+    inputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }],
+    name: 'convertToAssets',
+    outputs: [{ internalType: 'uint256', name: 'assets', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
+  const CDCETHAbi = {
+    inputs: [],
+    name: 'exchangeRate',
+    outputs: [
+      { internalType: 'uint256', name: '_exchangeRate', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  };
+
   // --- cbETH
   const cbETHRate = Number((await axios.get(cbETHRateUrl)).data.amount);
 
@@ -358,7 +465,8 @@ const getExpectedRates = async () => {
   const swETH =
     (
       await sdk.api.abi.call({
-        target: lsdTokens.find((lsd) => lsd.name === 'Swell').address,
+        target: lsdTokens.find((lsd) => lsd.name === 'Swell Liquid Staking')
+          .address,
         chain: 'ethereum',
         abi: swETHAbi,
       })
@@ -401,7 +509,8 @@ const getExpectedRates = async () => {
   const qETH =
     (
       await sdk.api.abi.call({
-        target: lsdTokens.find((lsd) => lsd.name === 'Tranchess Ether').address,
+        target: lsdTokens.find((lsd) => lsd.name === 'Tranchess Ether')
+          .addressExchangeRate,
         chain: 'ethereum',
         abi: qETHAbi,
       })
@@ -411,7 +520,7 @@ const getExpectedRates = async () => {
     (
       await sdk.api.abi.call({
         target: lsdTokens.find((lsd) => lsd.name === 'Bifrost Liquid Staking')
-          .address,
+          .addressExchangeRate,
         chain: 'ethereum',
         abi: vETHAbi,
         params: [BigInt(1e18)],
@@ -421,7 +530,8 @@ const getExpectedRates = async () => {
   const ETHx =
     (
       await sdk.api.abi.call({
-        target: lsdTokens.find((lsd) => lsd.name === 'Stader').address,
+        target: lsdTokens.find((lsd) => lsd.name === 'Stader')
+          .addressExchangeRate,
         chain: 'ethereum',
         abi: ETHxAbi,
       })
@@ -430,9 +540,72 @@ const getExpectedRates = async () => {
   const nETH =
     (
       await sdk.api.abi.call({
-        target: lsdTokens.find((lsd) => lsd.name === 'NodeDAO').address,
+        target: lsdTokens.find((lsd) => lsd.name === 'NodeDAO')
+          .addressExchangeRate,
         chain: 'ethereum',
         abi: nETHAbi,
+      })
+    ).output / 1e18;
+
+  const uniETH =
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Bedrock uniETH')
+          .addressExchangeRate,
+        chain: 'ethereum',
+        abi: uniETHAbi,
+      })
+    ).output / 1e18;
+
+  const mETH =
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Mantle Staked ETH')
+          .addressExchangeRate,
+        chain: 'ethereum',
+        abi: mETHAbi,
+        params: [1000000000000000000n],
+      })
+    ).output / 1e18;
+
+  const lsETH =
+    10000 /
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Liquid Collective')
+          .address,
+        chain: 'ethereum',
+        abi: lsETHAbi,
+        params: [10000],
+      })
+    ).output;
+
+  const mevETHRes = (
+    await sdk.api.abi.call({
+      target: lsdTokens.find((lsd) => lsd.name === 'MEV Protocol').address,
+      chain: 'ethereum',
+      abi: mevETHAbi,
+    })
+  ).output;
+  const mevETH = mevETHRes[0] / mevETHRes[1];
+
+  const mpETH =
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Meta Pool ETH').address,
+        chain: 'ethereum',
+        params: [1000000000000000000n],
+        abi: mpETHAbi,
+      })
+    ).output / 1e18;
+
+  const CDCETH =
+    (
+      await sdk.api.abi.call({
+        target: lsdTokens.find((lsd) => lsd.name === 'Crypto.com Staked ETH')
+          .address,
+        chain: 'cronos',
+        abi: CDCETHAbi,
       })
     ).output / 1e18;
 
@@ -449,7 +622,7 @@ const getExpectedRates = async () => {
         ? ankrETHRate
         : lsd.name === 'Frax Ether'
         ? sfrxETH
-        : lsd.name === 'Swell'
+        : lsd.name === 'Swell Liquid Staking'
         ? swETH
         : lsd.name === 'Binance staked ETH'
         ? wBETH
@@ -461,8 +634,20 @@ const getExpectedRates = async () => {
         ? vETH
         : lsd.name === 'Stader'
         ? ETHx
-        : lsd.name === 'NodeDao'
+        : lsd.name === 'NodeDAO'
         ? nETH
+        : lsd.name === 'Bedrock uniETH'
+        ? uniETH
+        : lsd.name === 'Mantle Staked ETH'
+        ? mETH
+        : lsd.name === 'Liquid Collective'
+        ? lsETH
+        : lsd.name === 'MEV Protocol'
+        ? mevETH
+        : lsd.name === 'Meta Pool ETH'
+        ? mpETH
+        : lsd.name === 'Crypto.com Staked ETH'
+        ? CDCETH
         : 1,
   }));
 };

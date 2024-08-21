@@ -4,8 +4,7 @@ const axios = require('axios');
 
 const utils = require('../utils');
 
-const url =
-  'https://api.thegraph.com/subgraphs/name/camelotlabs/camelot-amm-v3';
+const url = sdk.graph.modifyEndpoint('7mPnp1UqmefcCycB8umy4uUkTkFxMoHn1Y7ncBUscePp');
 
 const query = gql`
   {
@@ -15,10 +14,12 @@ const query = gql`
         token0 {
             symbol
             id
+            decimals
         }
         token1 {
             id
             symbol
+            decimals
         }
         reserve0: totalValueLockedToken0
         reserve1: totalValueLockedToken1
@@ -61,6 +62,39 @@ const topLvl = async (chainString, timestamp, url) => {
   const dataPrior7d = (
     await request(url, queryPrior.replace('<PLACEHOLDER>', blockPrior7d))
   ).pools;
+
+  // subgraph resever values are completely wrong
+  const balanceCalls = [];
+  for (const pool of data) {
+    balanceCalls.push({
+      target: pool.token0.id,
+      params: pool.id,
+    });
+    balanceCalls.push({
+      target: pool.token1.id,
+      params: pool.id,
+    });
+  }
+
+  const tokenBalances = await sdk.api.abi.multiCall({
+    abi: 'erc20:balanceOf',
+    calls: balanceCalls,
+    chain: chainString,
+    permitFailure: true,
+  });
+
+  data = data.map((p) => {
+    const x = tokenBalances.output.filter((i) => i.input.params[0] === p.id);
+    return {
+      ...p,
+      reserve0:
+        x.find((i) => i.input.target === p.token0.id).output /
+        `1e${p.token0.decimals}`,
+      reserve1:
+        x.find((i) => i.input.target === p.token1.id).output /
+        `1e${p.token1.decimals}`,
+    };
+  });
 
   data = await utils.tvl(data, chainString);
 

@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const {
   utils: { formatEther },
@@ -123,7 +123,7 @@ const getFarmsWithRewards = async (
       abi: farmingRangeABI.find(({ name }) => name === 'campaignInfo'),
       chain: chainString,
       calls: [...Array.from(Array(parseInt(campaignInfoLen, 10)).keys())]
-        .slice(1)
+        .slice(STAKING_ADDRESS ? 1 : 0)
         .map((campaignId) => ({
           target: FARMING_RANGE_ADDRESS,
           params: [campaignId],
@@ -134,7 +134,7 @@ const getFarmsWithRewards = async (
       abi: farmingRangeABI.find(({ name }) => name === 'rewardInfoLen'),
       chain: chainString,
       calls: [...Array.from(Array(parseInt(campaignInfoLen, 10)).keys())]
-        .slice(1)
+        .slice(STAKING_ADDRESS ? 1 : 0)
         .map((campaignId) => ({
           target: FARMING_RANGE_ADDRESS,
           params: [campaignId],
@@ -205,7 +205,8 @@ const campaignRewardAPY = (
   pair,
   currentBlockNumber,
   sdexPrice,
-  BLOCKS_PER_YEAR
+  BLOCKS_PER_YEAR,
+  STAKING_ADDRESS
 ) => {
   let apr = 0;
   if (
@@ -227,7 +228,9 @@ const campaignRewardAPY = (
 
       if (currentBlockNumber < reward.endBlock) {
         const aprBN = reward.rewardPerBlock
-          .mul(parseInt(campaign.id, 10) === 0 ? 1 : WeiPerEther)
+          .mul(
+            parseInt(campaign.id, 10) === 0 && STAKING_ADDRESS ? 1 : WeiPerEther
+          )
           .mul(BLOCKS_PER_YEAR)
           .mul(100)
           .div(campaign.totalStaked);
@@ -294,7 +297,7 @@ const topLvl = async (
   dataNow = await utils.tvl(dataNow, chainString);
   // calculate apy
   dataNow = dataNow.map((el) =>
-    utils.apy({ ...el, feeTier: 500 }, dataPrior, dataPrior7d, version)
+    utils.apy({ ...el, feeTier: 9000 }, dataPrior, dataPrior7d, version)
   );
 
   const prices = (
@@ -325,7 +328,8 @@ const topLvl = async (
       p,
       block,
       sdexPrice,
-      BLOCKS_PER_YEAR
+      BLOCKS_PER_YEAR,
+      STAKING_ADDRESS
     );
 
     return {
@@ -354,7 +358,7 @@ const main = async (timestamp = null) => {
   const chains = Object.keys(CONFIG);
 
   // Fetching data for each chain in parallel
-  const resultData = await Promise.all(
+  const resultData = await Promise.allSettled(
     chains.map(async (chain) => {
       const data = await topLvl(
         chain,
@@ -369,7 +373,11 @@ const main = async (timestamp = null) => {
     })
   );
 
-  return resultData.flat().filter(utils.keepFinite);
+  return resultData
+    .filter((i) => i.status === 'fulfilled')
+    .map((i) => i.value)
+    .flat()
+    .filter(utils.keepFinite);
 };
 
 module.exports = {

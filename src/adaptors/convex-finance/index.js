@@ -39,23 +39,33 @@ const main = async () => {
   const poolsList = (
     await Promise.all(
       [
-        'factory',
         'main',
         'crypto',
+        'factory',
         'factory-crypto',
+        'optimism',
         'factory-crvusd',
         'factory-tricrypto',
+        'factory-stable-ng',
+        'factory-twocrypto',
       ].map((registry) =>
         utils.getData(`https://api.curve.fi/api/getPools/ethereum/${registry}`)
       )
     )
   )
     .map(({ data }) => data.poolData)
-    .flat();
+    .flat()
+    .filter((i) => i?.address !== undefined);
 
   const { data: gauges } = await utils.getData(
     'https://api.curve.fi/api/getAllGauges'
   );
+
+  Object.keys(gauges).forEach((key) => {
+    if (gauges[key].swap_token === undefined) {
+      delete gauges[key];
+    }
+  });
 
   const mappedGauges = Object.entries(gauges).reduce(
     (acc, [name, gauge]) => ({
@@ -396,6 +406,8 @@ const main = async () => {
           // for CVX staking only need crvApr (which is actually cvxCRV reward)
           pool.lptoken === cvxAddress
             ? pool.crvApr
+            : pool.lptoken === '0xfffAE954601cFF1195a8E20342db7EE66d56436B'
+            ? null
             : pool.crvApr + pool.apr + pool.extrApr,
         underlyingTokens: pool.coins.map(({ address }) => address),
         rewardTokens:

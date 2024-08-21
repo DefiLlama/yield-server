@@ -9,14 +9,28 @@ exports.BLOCKCHAINIDS = [
   'xdai',
   'moonbeam',
   'kava',
+  'base',
+  'fraxtal',
   // 'celo',
 ];
 // https://github.com/curvefi/curve-api/blob/main/endpoints.md#getpools
-REGISTRY_TYPES = ['main', 'crypto', 'factory', 'factory-crypto', 'optimism', 'factory-crvusd', 'factory-tricrypto'];
+REGISTRY_TYPES = [
+  'main',
+  'crypto',
+  'factory',
+  'factory-crypto',
+  'optimism',
+  'factory-crvusd',
+  'factory-twocrypto',
+  'factory-tricrypto',
+  'factory-stable-ng',
+];
 exports.BLOCKCHAINID_TO_REGISTRIES = {};
 exports.BLOCKCHAINIDS.forEach((blockchainId) => {
   switch (blockchainId) {
     case 'ethereum':
+    case 'arbitrum':
+    case 'fraxtal':
       blockchainRegistries = REGISTRY_TYPES;
       break;
     case 'xdai':

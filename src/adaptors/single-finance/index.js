@@ -366,7 +366,7 @@ const apy = async () => {
     ...fantomSpookyPools,
     ...arbitrumSushiPools,
     ...arbitrumCamelotPools,
-  ];
+  ].filter(i => utils.keepFinite(i));
 };
 
 module.exports = {

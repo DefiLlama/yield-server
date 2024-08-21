@@ -1,25 +1,34 @@
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const axios = require('axios');
 
 const utils = require('../utils');
 
-const url =
-  'https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic';
-
 const urlFarm =
   'https://pool-farm.kyberswap.com/<CHAIN>/api/v1/elastic/farm-pools?page=1&perPage=10000';
 
 CHAINS_API = {
-  ethereum: `${url}-mainnet`,
-  arbitrum: `${url}-arbitrum-one`,
-  polygon:
-    'https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic-matic',
-  avalanche: `${url}-avalanche`,
-  bsc: `${url}-bsc`,
-  fantom: `${url}-fantom`,
+  ethereum: sdk.graph.modifyEndpoint(
+    '4U9PxDR4asVvfXyoVy18fhuj6NHnQhLzZkjZ5Bmuc5xk'
+  ),
+  arbitrum: sdk.graph.modifyEndpoint(
+    'C36tj8jSpEHxcNbjM3z7ayUZHVjrk4HRqnpGMFuRgXs6'
+  ),
+  polygon: sdk.graph.modifyEndpoint(
+    '8g4tJKCJ7eMAHjzZNeRWz9BkYG5U7vDNjdanSXfDXGXT'
+  ),
+  avalanche: sdk.graph.modifyEndpoint(
+    '9oMJfc7CL8uDqqQ3T3NFBnFCz9JMwq2YhH9AqojECFWp'
+  ),
+  bsc: sdk.graph.modifyEndpoint('FDEDgycFnTbPZ7PfrnWEZ4iR7T5De6BR69zx1i8gKQRa'),
+  fantom: sdk.graph.modifyEndpoint(
+    '9aj6YZFVL647wFBQXnNKM72eiowP4fyzynQKwLrn5axL'
+  ),
   cronos:
     'https://cronos-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-elastic-cronos',
-  optimism: `${url}-optimism`,
+  optimism: sdk.graph.modifyEndpoint(
+    '3Kpd8i7U94pTz3Mgdb8hyvT5o26fpwT7SUHAbTa6JzfZ'
+  ),
 };
 
 const query = gql`

@@ -1,5 +1,5 @@
 const {ethers} = require("ethers");
-const sdk = require('@defillama/sdk');
+const sdk = require('@defillama/sdk')
 const utils = require('../utils');
 const {TEAHOUSE_VAULT_STAT_API_URL, TEAHOUSE_VAULT_CONTENT_API_URL, TEAHOUSE_WEBSITE_URL} = require('./config');
 const bn = require('bignumber.js');
@@ -69,6 +69,7 @@ async function addTVLData(vaults: Vault[]): Promise<Vault[]> {
     }
     return newVaults
 }
+
 
 async function addTvlData(chain:string,vaults:Vault[]): Promise<Vault[]> {
     const newVaults = []
@@ -187,7 +188,14 @@ function convertToPool(vault: Vault): Pool {
     };
 }
 
+function updateRpcUrl(sdk: any, chain: string, chainId: number, rpcUrl: string) {
+    const provider = new ethers.providers.StaticJsonRpcProvider(
+        rpcUrl, {name: chain, chainId: chainId})
+    sdk.api.config.setProvider(chain, provider);
+}
+
 async function topLvl(_: number): Promise<Pool[]> {
+    updateRpcUrl(sdk, 'ethereum', 1, "https://cloudflare-eth.com/")
     // step 1: get managed vault data
     let vaults=await getManagedVaultData()
     console.log(`vaults: ${vaults.length}`)

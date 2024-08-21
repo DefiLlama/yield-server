@@ -33,6 +33,7 @@ provider:
     BUCKET_DATA: { Ref: BucketData }
     DATABASE_URL: ${file(./env.js):DATABASE_URL}
     ZEROX_API: ${file(./env.js):ZEROX_API}
+    GRAPH_API_KEY: ${file(./env.js):GRAPH_API_KEY}
 
 functions:
   # ---------- TRIGGER HANDLERS
@@ -51,14 +52,14 @@ functions:
   triggerAdaptor:
     handler: src/handlers/triggerAdaptor.handler
     description: Lambda which runs adaptors
-    timeout: 600
+    timeout: 900
     events:
       - sqs:
           arn:
             Fn::GetAtt:
               - AdapterQueue
               - Arn
-          batchSize: 2
+          batchSize: 4
           functionResponseType: ReportBatchItemFailures
     environment:
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
@@ -72,16 +73,18 @@ functions:
       AVAX_RPC: ${file(./env.js):AVAX_RPC}
       ARBITRUM_RPC: ${file(./env.js):ARBITRUM_RPC}
       BASE_RPC: ${file(./env.js):BASE_RPC}
+      TRON_RPC: ${file(./env.js):TRON_RPC}
       TVL_SPIKE_WEBHOOK: ${file(./env.js):TVL_SPIKE_WEBHOOK}
       NEW_YIELDS_WEBHOOK: ${file(./env.js):NEW_YIELDS_WEBHOOK}
       SMARDEX_SUBGRAPH_API_KEY: ${file(./env.js):SMARDEX_SUBGRAPH_API_KEY}
       VENDOR_FINANCE: ${file(./env.js):VENDOR_FINANCE}
+      TRADERJOE: ${file(./env.js):TRADERJOE}
 
   # --- data enrichment
   triggerEnrichment:
     handler: src/handlers/triggerEnrichment.handler
     description: Lambda which runs enrichment process
-    timeout: 600
+    timeout: 900
     memorySize: 1024
     events:
       # every hour at 16 past
@@ -91,7 +94,7 @@ functions:
   triggerStat:
     handler: src/handlers/triggerStat.handler
     description: Lambda which updates the stat table
-    timeout: 300
+    timeout: 600
     events:
       # 30min prior midnight
       - schedule: cron(30 23 * * ? *)
@@ -100,7 +103,7 @@ functions:
   triggerMedian:
     handler: src/handlers/triggerMedian.handler
     description: Lambda which inserts latest value into the median table
-    timeout: 300
+    timeout: 600
     events:
       # 30min prior midnight
       - schedule: cron(30 23 * * ? *)
@@ -149,6 +152,8 @@ functions:
     events:
       # every new hour
       - schedule: cron(0 * * * ? *)
+    environment:
+      ETHEREUM_RPC: ${file(./env.js):ETHEREUM_RPC}
 
   triggerProtocolNameChange:
     handler: src/handlers/triggerProtocolNameChange.handler
@@ -168,7 +173,7 @@ resources:
       Type: AWS::SQS::Queue
       Properties:
         QueueName: ${self:service}-${self:custom.stage}-AdapterQueue
-        VisibilityTimeout: 660
+        VisibilityTimeout: 960
         # setting this to 9hours
         MessageRetentionPeriod: 32400
         RedrivePolicy:

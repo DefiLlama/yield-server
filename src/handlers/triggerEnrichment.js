@@ -382,7 +382,8 @@ const checkStablecoin = (el, stablecoins) => {
     tokens.some((t) => t.includes('emaid')) ||
     tokens.some((t) => t.includes('grail')) ||
     tokens.some((t) => t.includes('oxai')) ||
-    tokens.some((t) => t.includes('crv'))
+    tokens.some((t) => t.includes('crv')) ||
+    tokens.some((t) => t.includes('wbai'))
   ) {
     stable = false;
   } else if (tokens.length === 1) {
@@ -415,7 +416,8 @@ const checkIlRisk = (el) => {
     symbol.includes('ammuni') ||
     symbol.includes('ammbpt') ||
     symbol.includes('tricrypto') ||
-    symbol.includes('3crypto')
+    symbol.includes('3crypto') ||
+    (symbol.includes('crvusd') && symbol.includes('eth'))
   ) {
     ilRisk = 'yes';
   } else if (tokens.length === 1) {
@@ -489,6 +491,7 @@ const addPoolInfo = (el, stablecoins, config) => {
           'y2k-v1',
           'y2k-v2',
           'o3-swap',
+          'solv-funds',
         ].includes(el.project)
       ? 'yes'
       : ['mycelium-perpetual-swaps', 'gmx', 'rage-trade'].includes(

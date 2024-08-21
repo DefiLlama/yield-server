@@ -15,12 +15,15 @@ module.exports = {
   AVAX_RPC: process.env.AVAX_RPC,
   ARBITRUM_RPC: process.env.ARBITRUM_RPC,
   BASE_RPC: process.env.BASE_RPC,
+  TRON_RPC: process.env.TRON_RPC,
   TVL_SPIKE_WEBHOOK: process.env.TVL_SPIKE_WEBHOOK,
   NEW_YIELDS_WEBHOOK: process.env.NEW_YIELDS_WEBHOOK,
   STALE_PROJECTS_WEBHOOK: process.env.STALE_PROJECTS_WEBHOOK,
   ZEROX_API: process.env.ZEROX_API,
   SMARDEX_SUBGRAPH_API_KEY: process.env.SMARDEX_SUBGRAPH_API_KEY,
   VENDOR_FINANCE: process.env.VENDOR_FINANCE,
+  TRADERJOE: process.env.TRADERJOE,
+  GRAPH_API_KEY: process.env.GRAPH_API_KEY,
   // DB
   DATABASE_URL: process.env.DATABASE_URL,
 };

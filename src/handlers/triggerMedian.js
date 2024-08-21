@@ -1,14 +1,16 @@
 const ss = require('simple-statistics');
 
-const { getYieldFiltered } = require('../queries/yield');
 const { insertMedian } = require('../queries/median');
+const utils = require('../utils/s3');
 
 module.exports.handler = async () => {
   await main();
 };
 
 const main = async () => {
-  let pools = await getYieldFiltered();
+  let pools = (
+    await utils.readFromS3('llama-apy-prod-data', 'enriched/dataEnriched.json')
+  ).map((i) => ({ ...i, timestamp: new Date(i.timestamp) }));
 
   // include only pools which we have updated on that day,
   // otherwise median calc for that day would include values from yst up to 7days ago
@@ -24,7 +26,7 @@ const main = async () => {
     {
       timestamp: new Date(),
       medianAPY: +ss.median(pools.map((p) => p.apy)).toFixed(5),
-      uniquePools: new Set(pools.map((p) => p.configID)).size,
+      uniquePools: new Set(pools.map((p) => p.pool)).size,
     },
   ];
   const response = await insertMedian(payload);

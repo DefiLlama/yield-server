@@ -4,6 +4,7 @@ const utils = require('../utils');
 const {TEAHOUSE_VAULT_STAT_API_URL, TEAHOUSE_VAULT_CONTENT_API_URL, TEAHOUSE_WEBSITE_URL} = require('./config');
 const bn = require('bignumber.js');
 const {TEAHOUSE_VAULT_V3_ABI} = require('./abi');
+const VAULT_DATA = require('./data.json');
 
 
 const interval = 24 * 60 * 60 * 7
@@ -103,26 +104,28 @@ function updateRpcUrl(sdk: any, chain: string, chainId: number, rpcUrl: string) 
     sdk.api.config.setProvider(chain, provider);
 }
 
-async function makeMulticall(abi: any, addresses: string[], chain: string, params = null, options) {
+async function makeCall(abi: any, address: string, chain: string, params = null, options) {
     const block = options.block || `latest`;
-    const data = await sdk.api.abi.multiCall({
+    console.log(`block: ${block}`, `chain: ${chain}`, `address: ${address}`, `params: ${params}`);
+    console.log(`abi: ${JSON.stringify(abi)}`);
+    const data = await sdk.api.abi.call({
         abi,
-        calls: addresses.map((address) => ({
-            target: address,
-            params,
-        })), chain, block
+        target: address,
+        params,
+        // calls: addresses.map((address) => ({
+        //     target: address,
+        //     params,
+        // })),
+        chain, block
     });
-    let outputByArray = []
-    let outputByAddress = {}
-    for (let i = 0; i < data.output.length; i++) {
-        const key = addresses[i].toLowerCase();
-        outputByArray.push(data.output[i].output);
-        outputByAddress[key] = data.output[i].output;
-    }
-    return {
-        outputByArray: outputByArray,
-        outputByAddress: outputByAddress
-    };
+    // let outputByArray = []
+    // let outputByAddress = {}
+    // for (let i = 0; i < data.output.length; i++) {
+    //     const key = addresses[i].toLowerCase();
+    //     outputByArray.push(data.output[i].output);
+    //     outputByAddress[key] = data.output[i].output;
+    // }
+    return data.output
 };
 
 
@@ -134,15 +137,13 @@ async function getLiquidityData(vault: Vault, block?: number): Promise<{
     const estimatedFnABI = TEAHOUSE_VAULT_V3_ABI.find(
         (el) => el.name === estimatedFn
     )
-    const [tvl] = (await makeMulticall(
-        estimatedFnABI, [vault.address], chain, null, {block: block}))
-        .outputByArray
+    const tvl = (await makeCall(
+        estimatedFnABI, vault.address, chain, null, {block: block}))
     const supplyFnABI = TEAHOUSE_VAULT_V3_ABI.find(
         (el) => el.name === `totalSupply`
     )
-    const [shareSupply] = (await makeMulticall(
-        supplyFnABI, [vault.address], chain, null, {block: block}))
-        .outputByArray
+    const shareSupply = (await makeCall(
+        supplyFnABI, vault.address, chain, null, {block: block}))
     return {
         tvl: new bn(tvl || 0),
         shareSupply: new bn(shareSupply || 0)
@@ -165,9 +166,8 @@ async function checkVaultSupply(vault: Vault, time: number): Promise<boolean> {
     const supplyFnABI = TEAHOUSE_VAULT_V3_ABI.find(
         (el) => el.name === `totalSupply`
     )
-    const [shareSupply] = (await makeMulticall(
-        supplyFnABI, [vault.address], vault.chain, null, {block: block}))
-        .outputByArray
+    const shareSupply = (await makeCall(
+        supplyFnABI, vault.address, vault.chain, null, {block: block}))
     const supply = new bn(shareSupply || 0)
     if (supply?.gt(0)) return true
     return false
@@ -266,12 +266,19 @@ function convertToPool(vault: Vault): Promise<Pool> {
     return pool;
 }
 
+function getVaultData2(): Promise<Vault[]> {
+    return VAULT_DATA
+}
+
 async function topLvl(_: number): Promise<Pool[]> {
     // step 1: get vault data
-    const vaultType = 'permissionless'
-    const vaults = await getVaultData(vaultType)
+    // const vaultType = 'permissionless'
+    // const vaults = await getVaultData(vaultType)
+    const vaults = getVaultData2()
     const interval = 24 * 60 * 60
     updateRpcUrl(sdk, 'arbitrum', 42161, "https://rpc.ankr.com/arbitrum")
+    updateRpcUrl(sdk, 'boba', 288, "https://lightning-replica.boba.network/")
+    updateRpcUrl(sdk, 'mantle', 5000, "https://rpc.mantle.xyz/")
     const pools = []
 
     for (let vault of vaults) {

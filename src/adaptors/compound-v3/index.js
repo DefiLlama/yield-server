@@ -1,7 +1,7 @@
 const superagent = require('superagent');
 
 const abi = require('./abi.js');
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk');
 
 const markets = [
   {
@@ -29,6 +29,14 @@ const markets = [
     chain: 'polygon',
   },
   {
+    address: '0xaeB318360f27748Acb200CE616E389A6C9409a07',
+    symbol: 'cUSDTv3',
+    underlying: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+    underlyingSymbol: 'USDT',
+    rewardToken: '0x8505b9d2254A7Ae468c0E9dd10Ccea3A837aef5c',
+    chain: 'polygon',
+  },
+  {
     address: '0xA5EDBDD9646f8dFF606d7448e414884C7d905dCA',
     symbol: 'cUSDCv3',
     underlying: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
@@ -45,10 +53,26 @@ const markets = [
     chain: 'arbitrum',
   },
   {
+    address: '0x6f7D514bbD4aFf3BcD1140B7344b32f063dEe486',
+    symbol: 'cWETHv3',
+    underlying: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+    underlyingSymbol: 'WETH',
+    rewardToken: '0x354A6dA3fcde098F8389cad84b0182725c6C91dE',
+    chain: 'arbitrum',
+  },
+  {
+    address: '0xd98Be00b5D27fc98112BdE293e487f8D4cA57d07',
+    symbol: 'cUSDTv3',
+    underlying: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
+    underlyingSymbol: 'USDT',
+    rewardToken: '0x354A6dA3fcde098F8389cad84b0182725c6C91dE',
+    chain: 'arbitrum',
+  },
+  {
     address: '0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf',
     symbol: 'cUSDbCv3',
     underlying: '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
-    underlyingSymbol: 'USDC',
+    underlyingSymbol: 'USDbC',
     rewardToken: '0x9e1028F5F1D5eDE59748FFceE5532509976840E0',
     chain: 'base',
   },
@@ -59,6 +83,38 @@ const markets = [
     underlyingSymbol: 'WETH',
     rewardToken: '0x9e1028F5F1D5eDE59748FFceE5532509976840E0',
     chain: 'base',
+  },
+  {
+    address: '0xb125E6687d4313864e53df431d5425969c15Eb2F',
+    symbol: 'cUSDCv3',
+    underlying: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
+    underlyingSymbol: 'USDC',
+    rewardToken: '0x9e1028F5F1D5eDE59748FFceE5532509976840E0',
+    chain: 'base',
+  },
+  {
+    address: '0xB2f97c1Bd3bf02f5e74d13f02E3e26F93D77CE44',
+    symbol: 'cUSDCv3',
+    underlying: '0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4',
+    underlyingSymbol: 'USDC',
+    rewardToken: '0x643e160a3C3E2B7eae198f0beB1BfD2441450e86',
+    chain: 'scroll',
+  },
+  {
+    address: '0x2e44e174f7D53F0212823acC11C01A11d58c5bCB',
+    symbol: 'cUSDCv3-native',
+    underlying: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
+    underlyingSymbol: 'USDC',
+    rewardToken: '0x7e7d4467112689329f7E06571eD0E8CbAd4910eE',
+    chain: 'optimism',
+  },
+  {
+    address: '0x995E394b8B2437aC8Ce61Ee0bC610D617962B214',
+    symbol: 'cUSDTv3',
+    underlying: '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58',
+    underlyingSymbol: 'USDT',
+    rewardToken: '0x7e7d4467112689329f7E06571eD0E8CbAd4910eE',
+    chain: 'optimism',
   },
 ];
 
@@ -220,7 +276,10 @@ const main = async (pool) => {
   return [
     ...collateralOnlyPools,
     {
-      pool: pool.address === "0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf"?`${pool.address}-${pool.chain}`:pool.address, // Fix for duplicated pool id
+      pool:
+        pool.address === '0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf'
+          ? `${pool.address}-${pool.chain}`
+          : pool.address, // Fix for duplicated pool id
       symbol: pool.underlyingSymbol,
       chain: pool.chain.charAt(0).toUpperCase() + pool.chain.slice(1),
       project: 'compound-v3',
