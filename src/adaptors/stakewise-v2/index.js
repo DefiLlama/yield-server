@@ -65,7 +65,7 @@ const getApy = async () => {
     {
       pool: osTokenAddress,
       chain,
-      project: 'stakewise-v1',
+      project: 'stakewise-v2',
       symbol: 'osETH',
       tvlUsd: tvl * ethPrice,
       apy: Number(apyBN) / 100,
