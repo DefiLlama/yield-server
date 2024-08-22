@@ -28,6 +28,8 @@ const fetch = (dataTvl, chainMapping) => {
   for (const chain of Object.keys(chainMapping)) {
     poolData = dataTvl[chain];
 
+    if (poolData === undefined) continue;
+
     for (const [addr, details] of Object.entries(poolData)) {
       if (details.status === 'deprecated') {
         continue;
