@@ -5,13 +5,15 @@ const { default: BigNumber } = require('bignumber.js');
 
 const API = (chain) =>
   chain === 'ethereum'
-    ? `https://data-dev.notional.finance/mainnet/yields`
-    : `https://data-dev.notional.finance/${chain}/yields`;
+    ? `https://registry.notional.finance/mainnet/yields`
+    : `https://registry.notional.finance/${chain}/yields`;
 const NOTE_Mainnet = '0xCFEAead4947f0705A14ec42aC3D44129E1Ef3eD5';
 
 const SUBGRAPHS = {
+  // arbitrum graph id: 'DnghsCNvJ4xmp4czX8Qn7UpkJ8HyHjy7cFN4wcH91Nrx',
   arbitrum:
     'https://api.studio.thegraph.com/query/60626/notional-v3-arbitrum/version/latest',
+  // ethereum graph id: '4oVxkMtN4cFepbiYrSKz1u6HWnJym435k5DQRAFt2vHW',
   ethereum:
     'https://api.studio.thegraph.com/query/60626/notional-v3-mainnet/version/latest',
 };
@@ -319,7 +321,7 @@ const getPools = async (chain) => {
 
   // NOTE: internal API results are only used for vaults, which often have off-chain custom
   // calculations to get the current APY
-  const apiResults = await utils.getData(API(chain));
+  const apiResults = await (await fetch(API(chain))).json();
   const vaultAddresses = unique(
     apiResults
       .filter((r) => r.token.tokenType === 'VaultShare' && !!r['leveraged'])
