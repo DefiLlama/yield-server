@@ -29,7 +29,7 @@ const chains = {
     kUSDT: '0xB20Faa4BA0DdEbDe49299557f4F1ebB5532745e3',
     apyEndpoint: 'https://b2api.kiloex.io/common/queryKiloNewVaultApyHistory',
     htokens:'https://b2api.kiloex.io/vault/hTokens'
-  },
+  }
 };
 
 const getApy = async () => {
