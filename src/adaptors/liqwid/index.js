@@ -52,8 +52,10 @@ const apy = async () => {
       project: 'liqwid',
       symbol: market.asset.symbol,
       tvlUsd: market.supply * market.asset.price,
-      apyBase: market.supplyAPY,
-      //NOTE: current API retrieves APY in fraction format but will be changed to percentage in the future
+      apyReward:
+        market.lqSupplyAPY * 100 > 100
+          ? market.lqSupplyAPY
+          : market.lqSupplyAPY * 100,
       apyReward:
         market.lqSupplyAPY * 100 > 100
           ? market.lqSupplyAPY
@@ -61,7 +63,10 @@ const apy = async () => {
       rewardTokens: [market.asset.symbol, 'LQ'],
       underlyingTokens: [market.asset.symbol],
       // lending protocol fields
-      apyBaseBorrow: market.borrowAPY,
+      apyBaseBorrow:
+        market.borrowAPY * 100 > 100
+          ? market.borrowAPY
+          : market.borrowAPY * 100,
       totalSupplyUsd: market.supply * market.asset.price,
       totalBorrowUsd: market.borrow * market.asset.price,
     };
