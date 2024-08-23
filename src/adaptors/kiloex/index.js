@@ -24,6 +24,11 @@ const chains = {
     kUSDT: '0x2646E743A8F47b8d2427dBcc10f89e911f2dBBaa',
     apyEndpoint: 'https://taikoapi.kiloex.io/common/queryKiloNewVaultApyHistory',
     htokens:'https://taikoapi.kiloex.io/vault/hTokens'
+  },
+  bsquared: {
+    kUSDT: '0xB20Faa4BA0DdEbDe49299557f4F1ebB5532745e3',
+    apyEndpoint: 'https://b2api.kiloex.io/common/queryKiloNewVaultApyHistory',
+    htokens:'https://b2api.kiloex.io/vault/hTokens'
   }
 };
 
