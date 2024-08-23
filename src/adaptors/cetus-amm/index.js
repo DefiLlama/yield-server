@@ -15,7 +15,7 @@ const apy = async (chain) => {
     );
     return {
       chain,
-      project: 'cetus',
+      project: 'cetus-amm',
       pool: p.swap_account,
       symbol: p.symbol,
       tvlUsd: Number(p.tvl_in_usd),

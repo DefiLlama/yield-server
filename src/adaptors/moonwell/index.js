@@ -4,9 +4,11 @@ const { request, gql, batchRequests } = require('graphql-request')
 const { MRD_ABI, VIEWS_ABI } = require('./abi')
 const axios = require('axios')
 
-const MRD_CONTRACT = '0xe9005b078701e2A0948D2EaC43010D35870Ad9d2'
+const BASE_MRD_CONTRACT = '0xe9005b078701e2A0948D2EaC43010D35870Ad9d2'
+const OPTIMISM_MRD_CONTRACT = '0xF9524bfa18C19C3E605FbfE8DFd05C6e967574Aa'
 const MOONBEAM_VIEWS_CONTRACT = '0xe76C8B8706faC85a8Fbdcac3C42e3E7823c73994'
 const BASE_VIEWS_CONTRACT = '0x821Ff3a967b39bcbE8A018a9b1563EAf878bad39'
+const OPTIMISM_VIEWS_CONTRACT = '0xD6C66868f937f00604d0FB860241970D6CC2CBfE'
 
 const SECONDS_PER_DAY = 86400
 const DAYS_PER_YEAR = 365
@@ -36,12 +38,12 @@ const getPrices = async addresses => {
   return pricesByAddress
 }
 
-const multicallMRD = async markets => {
+const multicallMRD = async (markets, network) => {
   return (
     await sdk.api.abi.multiCall({
-      chain: 'base',
+      chain: network,
       calls: markets.map(market => ({
-        target: MRD_CONTRACT,
+        target: network == 'base' ? BASE_MRD_CONTRACT : OPTIMISM_MRD_CONTRACT,
         params: [market]
       })),
       abi: MRD_ABI.find(({ name }) => name === 'getAllMarketConfigs')
@@ -54,7 +56,7 @@ const multicallViews = async (network) => {
     await sdk.api.abi.multiCall({
       chain: network,
       calls: [{
-        target: network == 'moonbeam' ? MOONBEAM_VIEWS_CONTRACT : BASE_VIEWS_CONTRACT,
+        target: network == 'moonbeam' ? MOONBEAM_VIEWS_CONTRACT : network == 'base' ? BASE_VIEWS_CONTRACT : OPTIMISM_VIEWS_CONTRACT,
         params: []
       }],
       abi: VIEWS_ABI.find(({ name }) => name === 'getAllMarketsInfo')
@@ -130,7 +132,7 @@ const getApy = async () => {
         const borrowApy = ((((borrowRateScaled * SECONDS_PER_DAY) + 1) ** DAYS_PER_YEAR) - 1) * 100
 
         return {
-          pool: market.toLowerCase(),
+          pool: `${market.toLowerCase()}-moonbeam`,
           chain: utils.formatChain('moonbeam'),
           project: 'moonwell',
           symbol: token_info.symbol,
@@ -196,7 +198,7 @@ const getApy = async () => {
   const moonbeam_prices = await getPrices(Object.values(moonbeam_prices_id))
 
   for (let market of moonbeamResults) {
-    let marketRewards = moonbeam_incentives[market.pool]
+    let marketRewards = moonbeam_incentives[market.pool.split('-')[0]]
 
     for (let marketWithRewards of marketRewards) {
       const {
@@ -292,7 +294,7 @@ const getApy = async () => {
         const borrowApy = ((((borrowRateScaled * SECONDS_PER_DAY) + 1) ** DAYS_PER_YEAR) - 1) * 100
 
         return {
-          pool: market.toLowerCase(),
+          pool: `${market.toLowerCase()}-base`,
           chain: utils.formatChain('base'),
           project: 'moonwell',
           symbol: token_info.symbol == 'WETH' ? 'ETH' : token_info.symbol,
@@ -313,7 +315,7 @@ const getApy = async () => {
       .filter(e => e.ltv)
   }
 
-  const mrd_markets = await multicallMRD(baseResults.map(r => r.pool))
+  const mrd_markets = await multicallMRD(baseResults.map(r => r.pool.split('-')[0]), 'base')
 
   const prices_id = mrd_markets.flat().reduce((prev, curr) => {
     const [
@@ -432,7 +434,170 @@ const getApy = async () => {
     delete market.incentives
   }
 
-  return [...moonbeamResults, ...baseResults]
+  //Optimism
+  const optimism_markets = await multicallViews('optimism')
+  let optimismResults
+
+  if (optimism_markets && optimism_markets.length == 1) {
+    const optimism_markets_data = optimism_markets[0]
+
+    optimismResults = optimism_markets_data
+      .filter(pool => pool.isListed)
+      .map(pool => {
+
+        const { market, collateralFactor, underlyingPrice, totalSupply, totalBorrows, exchangeRate, borrowRate, supplyRate } = pool;
+
+        const market_info = ponder_markets.find(r => r.address.toLowerCase() == market.toLowerCase() && r.chainId == 10)
+        const token_info = ponder_tokens.find(r => r.address.toLowerCase() == market_info.underlyingTokenAddress.toLowerCase() && r.chainId == 10)
+
+        const totalSupplyScaled = Number(totalSupply) / Math.pow(10, 8)
+        const totalBorrowsScaled = Number(totalBorrows) / Math.pow(10, token_info.decimals)
+        const exchangeRateScaled = Number(exchangeRate) / Math.pow(10, token_info.decimals + 10)
+        const underlyingPriceScaled = Number(underlyingPrice) / Math.pow(10, 36 - token_info.decimals)
+
+        const totalSupplyUsd =
+          Number(totalSupplyScaled) * Number(exchangeRateScaled) * underlyingPriceScaled
+        const totalBorrowUsd = Number(totalBorrowsScaled) * underlyingPriceScaled
+
+        const supplyRateScaled = Number(supplyRate) / Math.pow(10, 18)
+        const borrowRateScaled = Number(borrowRate) / Math.pow(10, 18)
+        const collateralFactorScaled = Number(collateralFactor) / Math.pow(10, 18)
+
+        const supplyApy = ((((supplyRateScaled * SECONDS_PER_DAY) + 1) ** DAYS_PER_YEAR) - 1) * 100
+        const borrowApy = ((((borrowRateScaled * SECONDS_PER_DAY) + 1) ** DAYS_PER_YEAR) - 1) * 100
+
+        return {
+          pool: `${market.toLowerCase()}-optimism`,
+          chain: utils.formatChain('optimism'),
+          project: 'moonwell',
+          symbol: token_info.symbol == 'WETH' ? 'ETH' : token_info.symbol,
+          tvlUsd: totalSupplyUsd - totalBorrowUsd,
+          apyBase: supplyApy,
+          apyReward: 0,
+          underlyingTokens: [token_info.address],
+          rewardTokens: [],
+          // borrow fields
+          totalSupplyUsd,
+          totalBorrowUsd,
+          apyBaseBorrow: borrowApy,
+          apyRewardBorrow: 0,
+          ltv: Number(collateralFactorScaled),
+          incentives: [] //helper
+        }
+      })
+      .filter(e => e.ltv)
+  }
+
+  const optimism_mrd_markets = await multicallMRD(optimismResults.map(r => r.pool.split('-')[0]), 'optimism')
+
+  const optimism_prices_id = optimism_mrd_markets.flat().reduce((prev, curr) => {
+    const [
+      _owner,
+      _emissionToken,
+      _endTime,
+      _supplyGlobalIndex,
+      _supplyGlobalTimestamp,
+      _borrowGlobalIndex,
+      _borrowGlobalTimestamp,
+      _supplyEmissionsPerSec,
+      _borrowEmissionsPerSec
+    ] = curr
+
+    let lookup
+    if (
+      _emissionToken.toLowerCase() ==
+      '0xa88594d404727625a9437c3f886c7643872296ae'
+    ) {
+      //WELL optimism -> WELL base
+      lookup = `base:${_emissionToken}`
+    } else {
+      lookup = `optimism:${_emissionToken}`
+    }
+    return {
+      ...prev,
+      [_emissionToken]: lookup
+    }
+  }, {})
+
+  const optimism_mrd_prices = await getPrices(Object.values(optimism_prices_id))
+
+  let optimismMarketIdx = 0
+  for (let market of optimismResults) {
+    let marketRewards = optimism_mrd_markets[optimismMarketIdx]
+    for (let marketWithRewards of marketRewards) {
+      const [
+        _owner,
+        _emissionToken,
+        _endTime,
+        _supplyGlobalIndex,
+        _supplyGlobalTimestamp,
+        _borrowGlobalIndex,
+        _borrowGlobalTimestamp,
+        _supplyEmissionsPerSec,
+        _borrowEmissionsPerSec
+      ] = marketWithRewards
+
+      let token_info = optimism_mrd_prices[_emissionToken.toLowerCase()]
+
+      if (!token_info) continue
+
+      let price = token_info.price
+      let decimals = token_info.decimals
+      let symbol = token_info.symbol
+
+      //only active
+      if (_endTime > NOW) {
+        const supplyRewardsPerDay =
+          (_supplyEmissionsPerSec / Math.pow(-10, decimals)) * SECONDS_PER_DAY
+
+        const supplyRewardsPerDayUSD = supplyRewardsPerDay * price
+
+        const borrowRewardsPerDay =
+          (_borrowEmissionsPerSec / Math.pow(-10, decimals)) * SECONDS_PER_DAY
+
+        const borrowRewardsPerDayUSD = borrowRewardsPerDay * price
+
+        market.incentives.push({
+          address: _emissionToken,
+          supplyRewardsAPR:
+            market.totalSupplyUsd > 0
+              ? (supplyRewardsPerDayUSD / market.totalSupplyUsd) *
+              DAYS_PER_YEAR *
+              100
+              : 0,
+          borrowRewardsAPR:
+            market.totalBorrowUsd > 0
+              ? (borrowRewardsPerDayUSD / market.totalBorrowUsd) *
+              DAYS_PER_YEAR *
+              100
+              : 0
+        })
+      }
+    }
+    optimismMarketIdx++
+  }
+
+  for (let market of optimismResults) {
+    const supplyIncentivesAPR = market.incentives.reduce(
+      (prev, curr) => prev + curr.supplyRewardsAPR,
+      0
+    )
+
+    const borrowIncentivesAPR = market.incentives.reduce(
+      (prev, curr) => prev + curr.borrowRewardsAPR,
+      0
+    )
+
+    market.rewardTokens = market.incentives.map(r => r.address)
+    market.apyReward = supplyIncentivesAPR
+    market.apyRewardBorrow = parseFloat(
+      Math.abs(borrowIncentivesAPR).toFixed(6)
+    )
+
+    delete market.incentives
+  }
+
+  return [...moonbeamResults, ...baseResults, ...optimismResults]
 }
 
 module.exports = {
