@@ -18,7 +18,7 @@ const getApy = async () => {
     {
       pool: token,
       chain: 'ethereum',
-      project: 'dinero-(pirex-eth)',
+      project: 'dinero-(pxeth)',
       symbol: 'apxeth',
       tvlUsd: tvl * ethPrice,
       apyBase: Number(apyData.apxEth),
