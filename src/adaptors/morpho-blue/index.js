@@ -179,7 +179,7 @@ async function fetchBlueMarkets(chainId) {
               (market.state.collateralAssetsUsd || 0),
             totalBorrowUsd: market.state.borrowAssetsUsd || 0,
             ltv: lltv,
-            poolMeta: `${lltv * 100}%`,
+            poolMeta: `LTV: ${lltv * 100}%`,
           };
           if (!validatePool(pool)) {
             console.warn(`Skipping invalid pool: ${JSON.stringify(pool)}`);
@@ -262,7 +262,7 @@ async function fetchMetaMorphoAPY(blueMarketsData, chainId) {
             totalSupplyUsd: vault.state.totalAssetsUsd || 0,
             totalBorrowUsd: 0,
             ltv: lltv,
-            poolMeta: `${lltv * 100}%`,
+            poolMeta: `LTV: ${lltv * 100}%`,
           };
           if (!validatePool(pool)) {
             console.warn(`Skipping invalid pool: ${JSON.stringify(pool)}`);
