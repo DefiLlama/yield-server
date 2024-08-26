@@ -717,9 +717,11 @@ const caculateTvl = (
     .times(BigNumber(underlyingTokenPriceUsd));
   const totalTvl = excessSupplyUsd.plus(lpTvlUsd);
 
-  // Impermax being a lending protocol, ltvUsd is actually the available liquidity
-  // in our case, this translates directly to the excess supply
-  // return ltvUsd;
+  // Impermax being a lending protocol, `ltvUsd` is actually the available liquidity
+  // in our case, this translates directly to the excess supply.
+  //
+  // `lpTvlUsd` refers in fact to `totalBorrows`, see the function `getBorrowableTokensReserves`
+  // return { ltvUsd, totalBorrowsUsd };
   return { excessSupplyUsd, lpTvlUsd };
 };
 
