@@ -720,7 +720,7 @@ const caculateTvl = (
   // Impermax being a lending protocol, ltvUsd is actually the available liquidity
   // in our case, this translates directly to the excess supply
   // return ltvUsd;
-  return excessSupplyUsd;
+  return { excessSupplyUsd, lpTvlUsd };
 };
 
 // calculate apy function
@@ -950,7 +950,8 @@ const main = async () => {
             chain: chain,
             project: protocolSlug,
             symbol: utils.formatSymbol(borrowable.tokenSymbol),
-            tvlUsd: totalTvl.toNumber(),
+            tvlUsd: totalTvl.excessSupplyUsd.toNumber(),
+            totalBorrowUsd: totalTvl.lpTvlUsd.toNumber(),
             apyBase: supplyRateAPY.times(BigNumber(100)).toNumber(),
             underlyingTokens: [borrowable.token0, borrowable.token1],
           };
