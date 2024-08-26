@@ -141,6 +141,7 @@ const excludeAdaptors = [
   'blastnyan',
   'forge',
   'stakehouse',
+  'yeti-finance',
 ];
 
 const excludePools = [
