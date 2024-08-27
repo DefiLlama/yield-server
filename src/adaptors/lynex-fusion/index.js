@@ -22,7 +22,7 @@ const getApy = async () => {
           rewardsApy = rewardsApy + reward.apr;
         });
         return {
-          pool: fusion.address,
+          pool: `${fusionSymbol}-${fusion.address}-linea`,
           chain: utils.formatChain('linea'),
           project: 'lynex-fusion',
           symbol: fusionSymbol,
