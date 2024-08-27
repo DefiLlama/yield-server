@@ -293,7 +293,6 @@ const main = async (pool) => {
       apyRewardBorrow,
       totalSupplyUsd,
       totalBorrowUsd,
-      poolMeta: `${pool.underlyingSymbol}-pool`,
       borrowable: true,
       ltv: 0,
     },
