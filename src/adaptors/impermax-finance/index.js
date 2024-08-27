@@ -40,9 +40,9 @@ const config = {
   // canto: {
   //   factories: ['0x9708E0B216a88D38d469B255cE78c1369ad898e6'],
   // },
-  //era: {
-  //  factories: ['0x6ce1a2C079871e4d4b91Ff29E7D2acbD42b46E36'],
-  //},
+  // era: {
+  //   factories: ['0x6ce1a2C079871e4d4b91Ff29E7D2acbD42b46E36'],
+  // },
   fantom: {
     factories: [
       // '0x60aE5F446AE1575534A5F234D6EC743215624556',
@@ -251,6 +251,7 @@ const getAllLendingPoolsForChain = async (chain, block) => {
   let allToken1s = [];
   let allLendingPoolDecimals = [];
   let allLendingPoolReserves = [];
+  let allLendingPoolLTVs = [];
   for (const factory of factories) {
     // get the data for the current factory
     const {
@@ -262,6 +263,7 @@ const getAllLendingPoolsForChain = async (chain, block) => {
       token1s,
       lendingPoolDecimals,
       lendingPoolReserves,
+      lendingPoolLTVs
     } = await getAllLendingPools(factory, chain, block);
 
     // add the data to the arrays
@@ -291,6 +293,10 @@ const getAllLendingPoolsForChain = async (chain, block) => {
       ...allLendingPoolReserves,
       ...lendingPoolReserves,
     ];
+    allLendingPoolLTVs = [
+      ...allLendingPoolLTVs,
+      ...lendingPoolLTVs
+    ]
   }
 
   const lendingPoolAddresses = allLendingPoolAddresses;
@@ -301,6 +307,7 @@ const getAllLendingPoolsForChain = async (chain, block) => {
   const token1s = allToken1s;
   const lendingPoolDecimals = allLendingPoolDecimals;
   const lendingPoolReserves = allLendingPoolReserves;
+  const lendingPoolLTVs = allLendingPoolLTVs;
 
   return {
     lendingPoolAddresses: allLendingPoolAddresses,
@@ -311,6 +318,7 @@ const getAllLendingPoolsForChain = async (chain, block) => {
     token1s: allToken1s,
     lendingPoolDecimals: allLendingPoolDecimals,
     lendingPoolReserves: allLendingPoolReserves,
+    lendingPoolLTVs: allLendingPoolLTVs
   };
 };
 
@@ -421,6 +429,13 @@ const getAllLendingPools = async (factory, chain, block) => {
     lendingPoolsDetails,
   );
 
+  const lendingPoolLTVs = await getCollateralLTV(
+    lendingPoolAddressesTargetCalls,
+    chain,
+    block,
+    lendingPoolsDetails,
+  );
+
   return {
     lendingPoolAddresses,
     lendingPoolAddressesParamsCalls,
@@ -430,8 +445,87 @@ const getAllLendingPools = async (factory, chain, block) => {
     token1s,
     lendingPoolDecimals,
     lendingPoolReserves,
+    lendingPoolLTVs
   };
 };
+
+  // LTV is the same for borrowable0 and borrowable1 for single borrow.
+  // When leveraging the LTV changes based on if you are borrowing more 
+  // of borrowable0 or borrowable1, but during normal borrows (borrow token0 or token1 only) 
+  // then the LTV is the same for either token, based on the collateral settings.
+  //
+  // From `collateral.sol` (assume amount0 OR amount1 is 0 and we are only borrowing one token):
+  //
+  // 		uint _safetyMarginSqrt = safetyMarginSqrt;
+	//    (uint price0, uint price1) = getPrices();
+	//    uint a = amount0.mul(price0).div(1e18);
+	//    uint b = amount1.mul(price1).div(1e18);
+	//    if(a < b) (a, b) = (b, a);
+	//    a = a.mul(_safetyMarginSqrt).div(1e18);
+	//    b = b.mul(1e18).div(_safetyMarginSqrt);
+	//    uint collateralNeeded = a.add(b).mul(liquidationPenalty()).div(1e18);
+  //
+  //    borrowLTV = 1 / (liqPenalty * liqPenalty);
+  //    leverageLTV = 1 / ((safetyMargin + 1 / safetyMargin) * liqPenalty / 2);
+const getCollateralLTV = async (
+  lendingPoolAddressesTargetCalls,
+  chain,
+  block,
+  lendingPoolsDetails,
+) => { 
+  let lendingPoolLTVs = [];
+
+  const callTargets = []
+  for (let i = 0; i < lendingPoolsDetails.length; i++) {
+    callTargets.push({ target: lendingPoolsDetails[i].collateral });
+  }
+
+  const { output: safetyMarginSqrtResults } = await tryUntilSucceed(() =>
+    sdk.api.abi.multiCall({
+      calls: callTargets.flat(),
+      abi: abi.safetyMarginSqrt,
+      chain,
+      block,
+      requery: true,
+    }),
+  );
+
+  // The earliest impermax pools had no `liquidationPenalty` and `liquidationFee` methods,
+  let liquidationPenaltyResults;
+  try {
+    const { output: response } = await sdk.api.abi.multiCall({
+      calls: callTargets,
+      abi: abi.liquidationPenalty,
+      chain,
+      block,
+      requery: true,
+    });
+    liquidationPenaltyResults = response
+  } catch (error) {
+    try {
+      const { output: response } = await sdk.api.abi.multiCall({
+        calls: callTargets,
+        abi: abi.liquidationIncentive,
+        chain,
+        block,
+        requery: true,
+      });
+    liquidationPenaltyResults = response
+    } catch (fallbackError) {
+      console.error("Get liquidation incentive call failed", fallbackError);
+      throw fallbackError;
+    }
+  }
+
+  for (let i = 0; i < callTargets.length; i++) {
+    const safetyMargin = safetyMarginSqrtResults[i].output / 1e18;
+    const liqPenalty = liquidationPenaltyResults[i].output / 1e18;
+    const ltv = 1 / (safetyMargin * liqPenalty);
+    lendingPoolLTVs.push(ltv.toFixed(3));
+  }
+
+  return lendingPoolLTVs;
+}
 
 const getBorrowableTokensReserves = async (
   lendingPoolAddressesTargetCalls,
@@ -712,9 +806,11 @@ const caculateTvl = (
   const excessSupplyUsd = BigNumber(excessSupply)
     .div(BigNumber(10).pow(BigNumber(tokenDecimals)))
     .times(BigNumber(underlyingTokenPriceUsd));
+
   const lpTvlUsd = BigNumber(lpReserve)
     .div(BigNumber(10).pow(BigNumber(tokenDecimals)))
     .times(BigNumber(underlyingTokenPriceUsd));
+
   const totalTvl = excessSupplyUsd.plus(lpTvlUsd);
 
   // Impermax being a lending protocol, `ltvUsd` is actually the available liquidity
@@ -775,6 +871,7 @@ const main = async () => {
       token1s,
       lendingPoolDecimals,
       lendingPoolReserves,
+      lendingPoolLTVs
     } = await getAllLendingPoolsForChain(chain, block);
 
     // get underlying LP related info
@@ -822,6 +919,7 @@ const main = async () => {
         const token0 = token0s[i];
         const token1 = token1s[i];
         const lendingPoolDecimal = lendingPoolDecimals[i];
+        const ltv = lendingPoolLTVs[i]
 
         return [
           {
@@ -836,6 +934,7 @@ const main = async () => {
             lendingPoolDecimal,
             tokenSymbol: tokenDetailsDict[token0].symbol,
             tokenDecimals: tokenDetailsDict[token0].decimals,
+            ltv
           },
           {
             lpReserve: reserves[1],
@@ -849,6 +948,7 @@ const main = async () => {
             lendingPoolDecimal,
             tokenSymbol: tokenDetailsDict[token1].symbol,
             tokenDecimals: tokenDetailsDict[token1].decimals,
+            ltv
           },
         ];
       },
@@ -956,6 +1056,9 @@ const main = async () => {
             totalBorrowUsd: totalTvl.lpTvlUsd.toNumber(),
             apyBase: supplyRateAPY.times(BigNumber(100)).toNumber(),
             underlyingTokens: [borrowable.token0, borrowable.token1],
+            apyBaseBorrow: borrowRateAPY.times(BigNumber(100)).toNumber(),
+            ltv: borrowable.ltv,
+            totalSupplyUsd: totalTvl.lpTvlUsd.plus(totalTvl.excessSupplyUsd).toNumber()
           };
           // add the data if the supply apy exists and the total tvl is under the threshold
           if (!supplyRateAPY.isNaN()) {
