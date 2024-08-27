@@ -493,23 +493,25 @@ const getCollateralLTV = async (
   // The earliest impermax pools had no `liquidationPenalty` and `liquidationFee` methods,
   let liquidationPenaltyResults;
   try {
-    const { output: response } = await sdk.api.abi.multiCall({
+    const { output: response } = await tryUntilSucceed(() => sdk.api.abi.multiCall({
       calls: callTargets,
       abi: abi.liquidationPenalty,
       chain,
       block,
       requery: true,
-    });
+      })
+    )
     liquidationPenaltyResults = response
   } catch (error) {
     try {
-      const { output: response } = await sdk.api.abi.multiCall({
+      const { output: response } = await tryUntilSucceed(() => sdk.api.abi.multiCall({
         calls: callTargets,
         abi: abi.liquidationIncentive,
         chain,
         block,
         requery: true,
-      });
+      })
+    )
     liquidationPenaltyResults = response
     } catch (fallbackError) {
       console.error("Get liquidation incentive call failed", fallbackError);
