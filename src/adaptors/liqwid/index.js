@@ -47,7 +47,7 @@ const apy = async () => {
   const getPool = (market) => {
     return {
       pool: registryData.find(
-        (script) => script.name === `Liqwid${market.id}BatchFinal`
+        (script) => script.name === `Liqwid${market.id}Action`
       ).scriptHash,
       chain: 'Cardano',
       project: 'liqwid',
