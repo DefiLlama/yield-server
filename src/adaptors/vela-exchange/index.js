@@ -3,6 +3,8 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const VaultABI = require('./VaultABI.json');
 const VLPABI = require('./VLPABI.json');
+const RewarderABI = require('./RewarderABI.json');
+const TokenFarmABI = require('./TokenFarmABI.json');
 const axios = require('axios');
 
 const VELA_ADDRESS = {
@@ -13,6 +15,16 @@ const USDC_ADDRESS = {
   ['arbitrum']: '0xaf88d065e77c8cc2239327c5edb3a432268e5831',
   ['base']: '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
 };
+
+const VELA_REWARDER_ADDRESS = {
+  ['arbitrum']: '0x1353e6C747Da576cEB760862f610b3ec5DBA0D21',
+  ['base']: '0xDD5aD536E987bF72Dddc1BF518f3bb8Cc2c615e2'
+}
+
+const TOKEN_FARM_ADDRESS = {
+    ['arbitrum']: '0x60b8C145235A31f1949a831803768bF37d7Ab7AA',
+    ['base']: '0x00B01710c2098b883C4F93dD093bE8Cf605a7BDe'
+}
 
 const VAULT_ADDRESS = '0xC4ABADE3a15064F9E3596943c699032748b13352';
 
@@ -51,6 +63,42 @@ const poolsFunction = async () => {
       `${chain}`,
       new ethers.providers.JsonRpcProvider(`${RPC[chain]}`)
     );
+
+    const esVela =       (
+      await sdk.api.abi.call({
+        target: TOKEN_FARM_ADDRESS[chain],
+        abi: TokenFarmABI.filter(({ name }) => name === 'esVELA')[0],
+        chain: `${chain}`,
+      })
+    ).output
+
+    const poolTotalLP = ethers.utils.formatUnits(
+      (
+        await sdk.api.abi.call({
+          target: TOKEN_FARM_ADDRESS[chain],
+          abi: TokenFarmABI.filter(({ name }) => name === 'poolTotalLp')[0],
+          chain: `${chain}`,
+          params: [esVela]
+        })
+      ).output,
+      18
+    );
+
+    const poolTotal = poolTotalLP * parseFloat(velaPrice)
+    const rewardsPerSecUSDC = ethers.utils.formatUnits(
+      (
+        await sdk.api.abi.call({
+          target: VELA_REWARDER_ADDRESS[chain],
+          abi: RewarderABI.filter(({ name }) => name === 'poolRewardsPerSec')[0],
+          chain: `${chain}`,
+          params: [esVela]
+        })
+      ).output.rewardsPerSec[0],
+      6
+    );
+
+
+    const USDC_ROI = (100 * (parseFloat(rewardsPerSecUSDC) * 365 * 86400)) / poolTotal
 
     const current = ethers.utils.formatUnits(
       (
@@ -101,7 +149,20 @@ const poolsFunction = async () => {
       poolMeta: 'VLP',
     };
 
+    const VelaPool = {
+      pool: `${TOKEN_FARM_ADDRESS[chain]}-${chain}`.toLowerCase(),
+      chain: utils.formatChain(`${chain}`),
+      project: 'vela-exchange',
+      symbol: 'esVELA',
+      poolMeta: 'esVela vesting is up to 6 months',
+      tvlUsd: Number(poolTotalLP) * Number(velaPrice),
+      apyReward: USDC_ROI,
+      underlyingTokens: [VELA_ADDRESS[chain]],
+      rewardTokens: [USDC_ADDRESS[chain]]
+    };
+
     pools.push(VLPPool);
+    pools.push(VelaPool)
   }
 
   return pools;

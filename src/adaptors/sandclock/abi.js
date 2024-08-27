@@ -10,4 +10,5 @@ module.exports = {
   ethToUsdc: 'function ethToUsdc(uint256) public view returns (uint256)',
   lqtyGain:
     'function getDepositorLQTYGain(address) public view returns (uint256)',
+  rewardRate: 'function rewardRate() public view returns (uint256)',
 };

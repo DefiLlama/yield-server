@@ -6,7 +6,6 @@ const abi = require('./abi');
 const SECONDS_IN_YEAR = BigNumber(365).times(24).times(3600);
 const protocolSlug = 'impermax-finance';
 const sdk = require('@defillama/sdk');
-const { getProvider } = require('@defillama/sdk/build/general');
 const { da } = require('date-fns/locale');
 const { pool } = require('../rocifi-v2/abi');
 
@@ -27,26 +26,43 @@ const config = {
       '0x97bc7fefb84a4654d4d3938751b5fe401e8771c2',
     ],
   },
-  avax: {
-    factories: [
-      '0x8C3736e2FE63cc2cD89Ee228D9dBcAb6CE5B767B',
-      '0x9708e0b216a88d38d469b255ce78c1369ad898e6',
-      '0xc7f24fd6329738320883ba429C6C8133e6492739',
-    ],
-  },
-  moonriver: {
-    factories: ['0x8C3736e2FE63cc2cD89Ee228D9dBcAb6CE5B767B'],
-  },
-  canto: {
-    factories: ['0x9708E0B216a88D38d469B255cE78c1369ad898e6'],
-  },
-  era: {
-    factories: ['0x6ce1a2C079871e4d4b91Ff29E7D2acbD42b46E36'],
-  },
+  // Hide these as chain tvl is too low
+  // moonriver: {
+  //   factories: ['0x8C3736e2FE63cc2cD89Ee228D9dBcAb6CE5B767B'],
+  // },
+  // avax: {
+  //   factories: [
+  //     '0x8C3736e2FE63cc2cD89Ee228D9dBcAb6CE5B767B',
+  //     '0x9708e0b216a88d38d469b255ce78c1369ad898e6',
+  //     '0xc7f24fd6329738320883ba429C6C8133e6492739',
+  //   ],
+  // },
+  // canto: {
+  //   factories: ['0x9708E0B216a88D38d469B255cE78c1369ad898e6'],
+  // },
+  //era: {
+  //  factories: ['0x6ce1a2C079871e4d4b91Ff29E7D2acbD42b46E36'],
+  //},
   fantom: {
     factories: [
       // '0x60aE5F446AE1575534A5F234D6EC743215624556',
       '0x9b4ae930255CB8695a9F525dA414F80C4C7a945B',
+    ],
+  },
+  optimism: {
+    factories: ['0xa058Ba91958cD30D44c7B0Cf58A369876Fb70B05'],
+  },
+  base: {
+    factories: [
+      '0x66ca66E002a9CEE8dEfE25dB6f0c6225117C2d9f',
+      '0x8aDc5F73e63b3Af3fd0648281fE451738D8B9D86',
+      '0x47183bB55AD0F891887E099Cec3570d3C667cD00',
+    ],
+  },
+  scroll: {
+    factories: [
+      '0x02Ff7B4d96EeBF8c9B34Fae0418E591e11da3099',
+      '0xFBD17F3AA7d6506601D2bF7e15a6C96081296a01',
     ],
   },
 };
@@ -91,6 +107,15 @@ const blackListedPools = {
     '0x877a330af63094d88792b9ca28ac36c71673eb1c', // IMX-FTM
     '0xb97b6ed451480fe6466a558e9c54eaac32e6c696', // OXD-FTM
   ],
+  optimism: [],
+  base: [],
+  scroll: [
+    /* deployed with the univ2 not staked so ignore these */
+    '0x838D141BdBECeAA2EB1C576b6a4309f26f795CF2'.toLowerCase(), // tkn/chi
+    '0xFFCe6dB18f18D711EF7Bf45b501A6b652b44bC43'.toLowerCase(), // zen/chi
+    '0xD448ac2A2d9C85010459E5f5Bf81931E5Bc40EC3'.toLowerCase(), // chi/weth
+    '0x7f0997bC0ee78553DDAb736d945b7Ba10Fe38B2E'.toLowerCase(), // wbtc/weth
+  ],
 };
 
 const coinGeckoChainMapping = {
@@ -102,6 +127,8 @@ const coinGeckoChainMapping = {
   avax: 'avalanche',
   moonriver: 'moonriver',
   canto: 'canto',
+  scroll: 'scroll',
+  base: 'base',
 };
 
 const factoryToProtocolMapping = {
@@ -189,6 +216,23 @@ const factoryToProtocolMapping = {
       '0x9B1434a02Ee86302d463bB6B365EbdFAc56e067A'.toLowerCase(),
       '0x95887654d8646C26fAb33F344576E2E74b211256'.toLowerCase(),
       '0xB83D21F60B73B21506c69DEcdBcF7Ab5AB737eB2'.toLowerCase(),
+    ],
+    Equalizer: ['0x592DD52CBF8271723E4e225ac0235D47e697A11c'.toLowerCase()],
+  },
+  optimism: {
+    Velodrome: ['0x47183bB55AD0F891887E099Cec3570d3C667cD00'.toLowerCase()],
+  },
+  base: {
+    Aero: [
+      '0x8f50a6d5ea6715f878e2984569975e8875eebafb'.toLowerCase(),
+      '0x5b06941953f97c13465f6b6e76e4f5b9f800e86b'.toLowerCase(),
+    ],
+    Scale: ['0x35a0e3c5adbddf6d917353f9b468c5cde80ee380'.toLowerCase()],
+  },
+  scroll: {
+    Tokan: [
+      '0x074568F090e93194289c2C2BF285eE7f60b485a9'.toLowerCase(),
+      '0x6c041ff2d25310a2751C57555265F2364CaCA195'.toLowerCase(),
     ],
   },
 };
@@ -278,7 +322,7 @@ const getAllLendingPools = async (factory, chain, block) => {
       chain,
       block,
       requery: true,
-    })
+    }),
   );
 
   // get all of the lending pools from the factory contract
@@ -293,14 +337,15 @@ const getAllLendingPools = async (factory, chain, block) => {
       chain,
       block,
       requery: true,
-    })
+    }),
   );
+
   let lendingPoolAddresses = lendingPoolsResults.map((i) => i.output);
   // let lendingPoolAddresses = ['0xE4702e545F4bF51FD383d00F01Bc284Ec9B8aa64', '0x06D3AE1Cfe7D3D27B8b9f541E2d76e5f33778923'];
 
   // remove blacklisted pools
   lendingPoolAddresses = lendingPoolAddresses.filter(
-    (i) => !blackListedPools[chain].includes(i.toLowerCase())
+    (i) => !blackListedPools[chain].includes(i.toLowerCase()),
   );
 
   // make sure the params and target are also filtered
@@ -318,23 +363,23 @@ const getAllLendingPools = async (factory, chain, block) => {
       chain,
       block,
       requery: true,
-    })
+    }),
   );
 
   let lendingPoolsDetails = getLendingPools.map((i) => i.output);
 
   // Removing all pool that are not initialized
   lendingPoolAddresses = lendingPoolAddresses.filter(
-    (i, index) => lendingPoolsDetails[index].initialized
+    (i, index) => lendingPoolsDetails[index].initialized,
   );
   lendingPoolAddressesParamsCalls = lendingPoolAddressesParamsCalls.filter(
-    (i, index) => lendingPoolsDetails[index].initialized
+    (i, index) => lendingPoolsDetails[index].initialized,
   );
   lendingPoolAddressesTargetCalls = lendingPoolAddressesTargetCalls.filter(
-    (i, index) => lendingPoolsDetails[index].initialized
+    (i, index) => lendingPoolsDetails[index].initialized,
   );
   lendingPoolsDetails = lendingPoolsDetails.filter(
-    (i, index) => lendingPoolsDetails[index].initialized
+    (i, index) => lendingPoolsDetails[index].initialized,
   );
 
   // get tokens 0 and 1 of all lending pools
@@ -345,7 +390,7 @@ const getAllLendingPools = async (factory, chain, block) => {
       chain,
       block,
       requery: true,
-    })
+    }),
   );
   const token0s = token0sResults.map((i) => i.output);
   const { output: token1sResults } = await tryUntilSucceed(() =>
@@ -355,7 +400,7 @@ const getAllLendingPools = async (factory, chain, block) => {
       chain,
       block,
       requery: true,
-    })
+    }),
   );
   const token1s = token1sResults.map((i) => i.output);
   // get lending pool address decimals
@@ -366,14 +411,14 @@ const getAllLendingPools = async (factory, chain, block) => {
       chain,
       block,
       requery: true,
-    })
+    }),
   );
   const lendingPoolDecimals = lendingPoolDecimalsResults.map((i) => i.output);
   const lendingPoolReserves = await getBorrowableTokensReserves(
     lendingPoolAddressesTargetCalls,
     chain,
     block,
-    lendingPoolsDetails
+    lendingPoolsDetails,
   );
 
   return {
@@ -392,7 +437,7 @@ const getBorrowableTokensReserves = async (
   lendingPoolAddressesTargetCalls,
   chain,
   block,
-  lendingPoolsDetails
+  lendingPoolsDetails,
 ) => {
   let lendingPoolReserves = [];
 
@@ -410,7 +455,7 @@ const getBorrowableTokensReserves = async (
       chain,
       block,
       requery: true,
-    })
+    }),
   );
 
   for (let i = 0; i < getReservesResults.length; i += 2) {
@@ -427,7 +472,7 @@ const getUnderlyingLiquidityPoolAddresses = async (
   lendingPoolAddresses,
   lendingPoolAddressesTargetCalls,
   chain,
-  block
+  block,
 ) => {
   const { output: lendingPoolSymbolsResults } = await tryUntilSucceed(() =>
     sdk.api.abi.multiCall({
@@ -436,7 +481,7 @@ const getUnderlyingLiquidityPoolAddresses = async (
       chain,
       block,
       requery: true,
-    })
+    }),
   );
   const lendingPoolSymbols = lendingPoolSymbolsResults.map((i) => i.output);
 
@@ -458,7 +503,7 @@ const getUnderlyingLiquidityPoolAddresses = async (
         chain,
         block,
         permitFailure: true,
-      })
+      }),
     );
     underlyingLpAddresses = underlyingLpAddressesResults.map((i) => i.output);
   }
@@ -480,7 +525,7 @@ const getUnderlyingLiquidityPoolAddresses = async (
         chain,
         block,
         requery: true,
-      })
+      }),
     );
   const underlyingLiquidityPoolSymbols =
     underlyingLiquidityPoolSymbolsResults.map((i) => i.output);
@@ -501,7 +546,7 @@ const checkIfTokenKeyExists = (fetchedData, key) => {
 
 const buildPoolMetadata = async (poolData, tokenDetailsDict, chain, block) => {
   const underlyingLiquidityPoolSymbols = poolData.map(
-    (i) => i.underlyingLiquidityPoolSymbol
+    (i) => i.underlyingLiquidityPoolSymbol,
   );
   let lendingPoolAddresses = poolData.map((i) => i.lendingPoolAddress);
   const token0Symbols = poolData.map((i) => tokenDetailsDict[i.token0].symbol);
@@ -510,7 +555,7 @@ const buildPoolMetadata = async (poolData, tokenDetailsDict, chain, block) => {
 
   // picking every other record
   const lendingPoolAddressesNoDuplicates = lendingPoolAddresses.filter(
-    (_, i) => i % 2 === 0
+    (_, i) => i % 2 === 0,
   );
 
   // use the factory to determine the pool name
@@ -521,10 +566,10 @@ const buildPoolMetadata = async (poolData, tokenDetailsDict, chain, block) => {
       chain,
       block,
       requery: true,
-    })
+    }),
   );
   const lendingPoolFactoriesNoDuplicates = lendingPoolFactory.map(
-    (i) => i.output
+    (i) => i.output,
   );
 
   // augment the factories to match the number of pools so that factories are valid for 2 entries in the lending pool addresses
@@ -539,7 +584,7 @@ const buildPoolMetadata = async (poolData, tokenDetailsDict, chain, block) => {
     const poolId = `${lendingPoolAddresses[fIndex]}-${tokenSymbols[fIndex]}-${chain}`;
     let poolMeta;
     for (const [key, value] of Object.entries(
-      factoryToProtocolMapping[chain]
+      factoryToProtocolMapping[chain],
     )) {
       if (i !== undefined && value.includes(i.toLowerCase())) {
         poolMeta = `${key} ${token0Symbols[fIndex]}/${token1Symbols[fIndex]}`;
@@ -560,21 +605,21 @@ const buildPoolMetadata = async (poolData, tokenDetailsDict, chain, block) => {
 async function getTokenPrices(tokens, chain, allCoins) {
   const chainCoins = allCoins.data.filter(
     (coin) =>
-      coin && coin.platforms && coin.platforms[coinGeckoChainMapping[chain]]
+      coin && coin.platforms && coin.platforms[coinGeckoChainMapping[chain]],
   );
 
   const tokenAddresses = tokens.map((a) => a.toLowerCase());
   const coins = chainCoins.filter((coin) =>
     tokenAddresses.includes(
-      coin.platforms[coinGeckoChainMapping[chain]].toLowerCase()
-    )
+      coin.platforms[coinGeckoChainMapping[chain]].toLowerCase(),
+    ),
   );
 
   const markets = (
     await axios.get(
       `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coins
         .map((c) => c.id)
-        .join(',')}`
+        .join(',')}`,
     )
   ).data;
 
@@ -586,21 +631,19 @@ async function getTokenPrices(tokens, chain, allCoins) {
     // remove pairs with no liquidity
     pairs = pairs.filter((p) => p.liquidity && p.liquidity.usd > 0);
 
-    const totalLiquidity = pairs
-      .map((p) => p.liquidity.usd)
-      .reduce((a, b) => a + b, 0);
-    return (
-      pairs
-        .map((p) => p.priceUsd * p.liquidity.usd)
-        .reduce((a, b) => a + b, 0) / totalLiquidity
-    );
+    // Get pair with max liquidity
+    const maxLiquidityPair = pairs.reduce((prev, curr) => {
+      return prev && prev.liquidity.usd > curr.liquidity.usd ? prev : curr;
+    });
+
+    return maxLiquidityPair.priceUsd;
   }
 
   function getPriceFromCoinGecko(token) {
     const id = chainCoins.find(
       (coin) =>
         coin.platforms[coinGeckoChainMapping[chain]].toLowerCase() ===
-        token.toLowerCase()
+        token.toLowerCase(),
     )?.id;
     if (id === undefined) return undefined;
     const marketData = markets.find((m) => m.id === id);
@@ -614,10 +657,10 @@ async function getTokenPrices(tokens, chain, allCoins) {
   }
 
   const pricePromises = tokenAddresses.map((t) =>
-    getPrice(t).then((p) => [t, p])
+    getPrice(t).then((p) => [t, p]),
   );
   const prices = await Promise.all(pricePromises).then((results) =>
-    Object.fromEntries(results)
+    Object.fromEntries(results),
   );
 
   return prices;
@@ -633,7 +676,7 @@ const getTokenDetails = async (allUniqueTokens, chain, block) => {
       chain,
       block,
       requery: true,
-    })
+    }),
   );
   // underlying tokens symbol just reference from bulk
   const { output: getTokenSymbols } = await tryUntilSucceed(() =>
@@ -643,7 +686,7 @@ const getTokenDetails = async (allUniqueTokens, chain, block) => {
       chain,
       block,
       requery: true,
-    })
+    }),
   );
   const tokensSymbols = getTokenSymbols.map((i) => i.output);
 
@@ -664,7 +707,7 @@ const caculateTvl = (
   excessSupply,
   tokenDecimals,
   underlyingTokenPriceUsd,
-  lpReserve
+  lpReserve,
 ) => {
   const excessSupplyUsd = BigNumber(excessSupply)
     .div(BigNumber(10).pow(BigNumber(tokenDecimals)))
@@ -686,7 +729,7 @@ const calculateApy = (
   borrowableDecimal,
   totalBorrows,
   totalSupply,
-  reserveFactor
+  reserveFactor,
 ) => {
   const borrowRateAPY = BigNumber(borrowRate)
     .div(BigNumber(10).pow(BigNumber(borrowableDecimal)))
@@ -697,13 +740,13 @@ const calculateApy = (
     .times(
       BigNumber(10)
         .pow(BigNumber(borrowableDecimal))
-        .minus(BigNumber(reserveFactor))
+        .minus(BigNumber(reserveFactor)),
     )
     .times(SECONDS_IN_YEAR)
     .div(
       BigNumber(10)
         .pow(BigNumber(borrowableDecimal))
-        .times(BigNumber(10).pow(BigNumber(borrowableDecimal)))
+        .times(BigNumber(10).pow(BigNumber(borrowableDecimal))),
     );
   return { borrowRateAPY, utilization, supplyRateAPY };
 };
@@ -712,15 +755,14 @@ const main = async () => {
   let data = [];
 
   allCoins = await axios.get(
-    'https://api.coingecko.com/api/v3/coins/list?include_platform=true'
+    'https://api.coingecko.com/api/v3/coins/list?include_platform=true',
   );
 
   for (const chain of Object.keys(config)) {
     let collaterals = [];
     let borrowables = [];
 
-    const provider = getProvider(chain);
-    const block = await provider.getBlockNumber();
+    const block = (await sdk.blocks.getBlock(chain)).block
 
     const {
       lendingPoolAddresses,
@@ -742,7 +784,7 @@ const main = async () => {
       lendingPoolAddresses,
       lendingPoolAddressesTargetCalls,
       chain,
-      block
+      block,
     );
 
     const allTokens = [...token0s, ...token1s];
@@ -757,7 +799,7 @@ const main = async () => {
     const tokenDetailsDict = await getTokenDetails(
       allUniqueTokens,
       chain,
-      block
+      block,
     );
 
     let allBorrowables = lendingPoolsDetails.flatMap(
@@ -807,7 +849,7 @@ const main = async () => {
             tokenDecimals: tokenDetailsDict[token1].decimals,
           },
         ];
-      }
+      },
     );
 
     // remove null
@@ -839,21 +881,22 @@ const main = async () => {
             })),
             chain: chain,
             requery: true,
-          })
-      )
+          }),
+      ),
     );
+
     const reserveFactor = reserveFactorRes.output.map((res) => res.output);
     const totalBorrows = totalBorrowsRes.output.map((res) => res.output);
     const borrowRate = borrowRateRes.output.map((res) => res.output);
     const borrowableDecimal = borrowableDecimalRes.output.map(
-      (res) => res.output
+      (res) => res.output,
     );
 
     const poolMetaData = await buildPoolMetadata(
       allBorrowables,
       tokenDetailsDict,
       chain,
-      block
+      block,
     );
 
     // calculate the tvl and yields for each borrowables
@@ -866,7 +909,7 @@ const main = async () => {
             return null;
           }
           const totalSupply = BigNumber(totalBorrows[i]).plus(
-            BigNumber(excessSupply[i])
+            BigNumber(excessSupply[i]),
           );
           //apy calculations
           const { borrowRateAPY, utilization, supplyRateAPY } = calculateApy(
@@ -874,7 +917,7 @@ const main = async () => {
             borrowableDecimal[i],
             totalBorrows[i],
             totalSupply,
-            reserveFactor[i]
+            reserveFactor[i],
           );
           const { poolId, poolMeta } = poolMetaData[i];
           // if poolId is undefined, probably abi is not published so skip
@@ -885,7 +928,7 @@ const main = async () => {
           if (
             !checkIfTokenKeyExists(
               fetchedPrices,
-              borrowable.underlyingTokenAddress.toLowerCase()
+              borrowable.underlyingTokenAddress.toLowerCase(),
             )
           ) {
             return null;
@@ -893,12 +936,14 @@ const main = async () => {
           // tvl calculations
           const underlyingTokenPriceUsd =
             fetchedPrices[borrowable.underlyingTokenAddress.toLowerCase()];
+
           const totalTvl = caculateTvl(
             excessSupply[i],
             borrowable.tokenDecimals,
             underlyingTokenPriceUsd,
-            borrowable.lpReserve
+            borrowable.lpReserve,
           );
+
           let poolData = {
             pool: `${poolId}`,
             poolMeta: `${poolMeta}`,
