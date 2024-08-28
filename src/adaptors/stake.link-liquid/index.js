@@ -95,13 +95,13 @@ const fetchPool = async (pool) => {
     };
   } catch (error) {
     console.error('Error fetching pool data:', error.message);
-    return null; // Return null or an empty array to handle errors gracefully
+    return null;
   }
 };
 
 const fetchPools = async () => {
   const poolsData = await Promise.all(pools.map(fetchPool));
-  return poolsData.filter(Boolean); // Remove any null entries
+  return poolsData.filter(Boolean);
 };
 
 module.exports = {
