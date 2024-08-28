@@ -34,9 +34,12 @@ const graphQuery = `{
       liquidationFee
       totalBalance
     }
+    pair {
+      uniswapV2Factory
+    }
   }
 }`;
 
-module.exports = { 
-  graphQuery
-}
+module.exports = {
+  graphQuery,
+};
