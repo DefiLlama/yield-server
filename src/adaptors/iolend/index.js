@@ -8,7 +8,6 @@ const abiPriceProvider = require('./abiPriceProvider');
 const { format } = require('date-fns');
 const { formatUnits } = require('ethers/lib/utils');
 
-const earlyExitPenalty = 1 - 0.9;
 const chains = {
   iotaevm: {
     RewardToken: '0xF5755e48B6F2F06F8ea904bdA26177CB3ca06Ff0',
