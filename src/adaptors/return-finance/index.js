@@ -40,7 +40,7 @@ const getPoolData = async ({ contract, abi, chain, exchangeRate = 1 }) => {
     pool: `${contract}-${chain}`,
     chain,
     project: 'return-finance',
-    symbol: currentPool.poolPair,
+    symbol: currentPool?.poolPair,
     tvlUsd: (tvlUsd / Math.pow(10, decimals)) * exchangeRate,
     apyBase: currentPool?.apy,
   };
