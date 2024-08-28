@@ -36,7 +36,7 @@ async function main() {
         project: 'meso-finance',
         symbol: utils.formatSymbol(coinSymbol),
         tvlUsd: (pool.poolSupply - pool.totalDebt) * coinPrice / 10 ** pool["token"]["decimals"],
-        apyBase: pool.supplyApy,
+        apyBase: pool.supplyApy + pool.stakingApr,
       }
 
       if (pool.incentiveSupplyApy > 0) {
