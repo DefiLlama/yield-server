@@ -1,114 +1,31 @@
-const axios = require('axios');
+const { request } = require('graphql-request');
 const { default: BigNumber } = require('bignumber.js');
-const utils = require('../utils');
-const { tryUntilSucceed } = require('../../helper/utils');
-const abi = require('./abi');
-const SECONDS_IN_YEAR = BigNumber(365).times(24).times(3600);
-const protocolSlug = 'impermax-finance';
 const sdk = require('@defillama/sdk');
-const { da } = require('date-fns/locale');
-const { pool } = require('../rocifi-v2/abi');
+
+const protocolSlug = 'impermax-finance';
+const SECONDS_PER_YEAR = BigNumber(60 * 60 * 24 * 365);
 
 const config = {
-  ethereum: {
-    factories: ['0x8C3736e2FE63cc2cD89Ee228D9dBcAb6CE5B767B'],
-  },
-  polygon: {
-    factories: [
-      '0xBB92270716C8c424849F17cCc12F4F24AD4064D6',
-      '0x7F7AD5b16c97Aa9C2B0447C2676ce7D5CEFEbCd3',
-      '0x7ED6eF7419cD9C00693d7A4F81c2a151F49c7aC2',
-    ],
-  },
-  arbitrum: {
-    factories: [
-      '0x8C3736e2FE63cc2cD89Ee228D9dBcAb6CE5B767B',
-      '0x97bc7fefb84a4654d4d3938751b5fe401e8771c2',
-    ],
-  },
-  // Hide these as chain tvl is too low
-  // moonriver: {
-  //   factories: ['0x8C3736e2FE63cc2cD89Ee228D9dBcAb6CE5B767B'],
-  // },
-  // avax: {
-  //   factories: [
-  //     '0x8C3736e2FE63cc2cD89Ee228D9dBcAb6CE5B767B',
-  //     '0x9708e0b216a88d38d469b255ce78c1369ad898e6',
-  //     '0xc7f24fd6329738320883ba429C6C8133e6492739',
-  //   ],
-  // },
-  // canto: {
-  //   factories: ['0x9708E0B216a88D38d469B255cE78c1369ad898e6'],
-  // },
-  // era: {
-  //   factories: ['0x6ce1a2C079871e4d4b91Ff29E7D2acbD42b46E36'],
-  // },
   fantom: {
-    factories: [
-      // '0x60aE5F446AE1575534A5F234D6EC743215624556',
-      '0x9b4ae930255CB8695a9F525dA414F80C4C7a945B',
+    Equalizer: [
+      'https://api.studio.thegraph.com/query/46041/impermax-fantom-solv2/v0.0.2',
     ],
   },
   optimism: {
-    factories: ['0xa058Ba91958cD30D44c7B0Cf58A369876Fb70B05'],
-  },
-  base: {
-    factories: [
-      '0x66ca66E002a9CEE8dEfE25dB6f0c6225117C2d9f',
-      '0x8aDc5F73e63b3Af3fd0648281fE451738D8B9D86',
-      '0x47183bB55AD0F891887E099Cec3570d3C667cD00',
+    Velodrome: [
+      'https://api.studio.thegraph.com/query/46041/impermax-optimism-solv2/v0.0.1',
     ],
   },
   scroll: {
-    factories: [
-      '0x02Ff7B4d96EeBF8c9B34Fae0418E591e11da3099',
-      '0xFBD17F3AA7d6506601D2bF7e15a6C96081296a01',
+    Tokan: [
+      'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2/v0.0.1',
+      'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2-stable/v0.0.7', // Stable
     ],
   },
 };
 
-const blackListedPools = {
-  ethereum: [
-    '0xa00d47b4b304792eb07b09233467b690db847c91'.toLowerCase(), // IMX-WETH
-    '0x46af8ac1b82f73db6aacc1645d40c56191ab787b'.toLowerCase(), // NDX-ETH
-    '0x8dcba0b75c1038c4babbdc0ff3bd9a8f6979dd13'.toLowerCase(), // DEFI5-ETH
-    '0x08650bb9dc722c9c8c62e79c2bafa2d3fc5b3293'.toLowerCase(), // AMP-ETH
-    '0xdf5096804705d135656b50b62f9ee13041253d97'.toLowerCase(), // YPIE-ETH
-  ],
-  polygon: [
-    '0x76483d4ba1177f69fa1448db58d2f1dbe0fb65fa'.toLowerCase(), // IMX-WETH
-    '0x8ce3bf56767dd87e87487f3fae63e557b821ea32'.toLowerCase(), // IMX-WETH
-    '0xd4f5f9643a4368324ac920414781b1c5655baed1'.toLowerCase(), // IMX-WETH
-    '0x5f819f510ca9b1469e6a3ffe4ecd7f0c1126f8f5'.toLowerCase(), // IMX-WETH
-    '0x23312fceadb118381c33b34343a61c7812f7a6a3'.toLowerCase(), // IMX-WETH
-    '0x5ed3147f07708a269f744b43c489e6cf3b60aec4'.toLowerCase(), // USDT-DAI
-    '0xb957d5a232eebd7c4c4b0a1af9f2043430304e65'.toLowerCase(), // USDC-rUSD
-    '0x87B94444d0f2c1e4610A2De8504D5d7b81898221'.toLowerCase(), // QUICK-POLYDOGE
-    '0xEC07dD093007AaE16508F76C07d26217B7db9f1b'.toLowerCase(), // DarkX-XONE
-  ],
-  arbitrum: [
-    '0xb7e5e74b52b9ada1042594cfd8abbdee506cc6c5'.toLowerCase(), // IMX-WETH
-    '0xcc5c1540683aff992201d8922df44898e1cc9806'.toLowerCase(), // IMX-WETH
-    '0x8884cc766b43ca10ea41b30192324c77efdd04cd'.toLowerCase(), // NYAN-ETH
-    '0x4062f4775bc001595838fbaae38908b250ee07cf'.toLowerCase(), // SWPR-ETH
-  ],
-  avax: [
-    '0xde0037afbe805c00d3cec67093a40882880779b7', // IMX-WETH
-    '0xe9439f67201894c30f1c1c6b362f0e9195fb8e2c', // IMX-WETH
-    '0xa34862a7de51a0e1aee6d3912c3767594390586d', // IMX-WETH
-    '0x69c1c44e8742b66d892294a7eeb9aac51891b0eb', // USDC-UST
-  ],
-  moonriver: [
-    '0x6ed3bc66dfcc5ac05daec840a75836da935fac97', // IMX-WETH
-  ],
-  canto: [],
-  era: [],
-  fantom: [
-    '0x877a330af63094d88792b9ca28ac36c71673eb1c', // IMX-FTM
-    '0xb97b6ed451480fe6466a558e9c54eaac32e6c696', // OXD-FTM
-  ],
-  optimism: [],
-  base: [],
+const blacklistedPools = {
+  fantom: ['0x65151e7a82c4415a73756608e2c66b39a57dca12'.toLowerCase()],
   scroll: [
     /* deployed with the univ2 not staked so ignore these */
     '0x838D141BdBECeAA2EB1C576b6a4309f26f795CF2'.toLowerCase(), // tkn/chi
@@ -118,967 +35,258 @@ const blackListedPools = {
   ],
 };
 
-const coinGeckoChainMapping = {
-  ethereum: 'ethereum',
-  arbitrum: 'arbitrum-one',
-  optimism: 'optimism',
-  polygon: 'polygon-pos',
-  fantom: 'fantom',
-  avax: 'avalanche',
-  moonriver: 'moonriver',
-  canto: 'canto',
-  scroll: 'scroll',
-  base: 'base',
-};
-
-const factoryToProtocolMapping = {
-  ethereum: {
-    Uniswap: ['0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f'.toLowerCase()],
-  },
-  polygon: {
-    QuickSwap: [
-      '0x5671B249391cA5E6a8FE28CEb1e85Dc41c12Ba7D'.toLowerCase(),
-      '0xF47B652cDE9b30D6aDd0b13027Bb7AD2F7AF04f4'.toLowerCase(),
-      '0xdB76318C5C5151A4578e2Aafa11a2A2e0B03A4E5'.toLowerCase(),
-    ],
-    'QuickSwap V2': [
-      '0x846019FB6f136fC98b80e527C3d34F39D16a38c4'.toLowerCase(),
-      '0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32'.toLowerCase(),
-      '0xc4505cc6125d61e2a352ce5cf2129f2fb19259a8'.toLowerCase(),
-    ],
-    ApeSwap: ['0xCf083Be4164828f00cAE704EC15a36D711491284'.toLowerCase()],
-    Tetu: ['0x8E45622663Bb01dc285B4F51Eb8F9FE4fa7b5899'.toLowerCase()],
-    Satin: ['0xCaF3Fb1b03F1D71A110167327f5106bE82beE209'.toLowerCase()],
-    Pearl: [
-      '0xB07C75e3DB03Eb69F047b92274019912014Ba78e'.toLowerCase(),
-      '0x1A645bfb46b00bb2dCE6a1A517D7dE2999155fe4'.toLowerCase(),
-      '0xCD9277EE36594fd8bDbE0dfCF0aFD60403e632B5'.toLowerCase(),
-    ],
-    Sushi: [
-      '0xcb30A66e72Ed90D1b34f78fc0655895FC28bB6CF'.toLowerCase(),
-      '0xc35DADB65012eC5796536bD9864eD8773aBc74C4'.toLowerCase(),
-      '0x3fDB0c33A86249ed689e497219acE3B80aFf5C0D'.toLowerCase(),
-    ],
-  },
-  arbitrum: {
-    Swapr: [
-      '0x5643C3aCEC0D4970a385fb9Cc1555bec1d912bb8'.toLowerCase(),
-      '0x4AE8915A8D11178154248C692e31710191053466'.toLowerCase(),
-    ],
-    SolidLizard: ['0x30d7ef0d94b43BFa4Ff5935DBC608D7fc0116BB7'.toLowerCase()],
-    Ramses: ['0x78a2251F1AAEaA8Fc1EaFcC379663cCa3F894708'.toLowerCase()],
-    Auragi: ['0x268bb0220aB61Abd9BD42C5Db49470bb3E6B0b2F'.toLowerCase()],
-    Solunea: ['0xf540E9C05ea1b54e310644Fc48E491d365bf86ba'.toLowerCase()],
-    Chronos: ['0x111eEEb6bfAb9e8d0E87E45DB15031d89846e5d7'.toLowerCase()],
-    Sushi: [
-      '0x270250F59C1ffA06C9e3234D528858Ff59aFCE68'.toLowerCase(),
-      '0xc35DADB65012eC5796536bD9864eD8773aBc74C4'.toLowerCase(),
-      '0x3fDB0c33A86249ed689e497219acE3B80aFf5C0D'.toLowerCase(),
-    ],
-  },
-  avax: {
-    Pangolin: [
-      '0xBB92270716C8c424849F17cCc12F4F24AD4064D6'.toLowerCase(),
-      '0xC596f6455054D8cdDE627096bE671e377791E295'.toLowerCase(),
-      '0x0aD3E5Ff1A410610Ca2eAbfEcF703c9460766Fd3'.toLowerCase(),
-      '0xca45c0b54a59C63c15b8CF436512E8Fec78d0f49'.toLowerCase(),
-    ],
-    TraderJoe: [
-      '0x16ED59ffbfbe62ebA9a69a304D38901F86461282'.toLowerCase(),
-      '0x58Fde5bdB2C6Bd828Bc41c12a68189C7cd93dCE2'.toLowerCase(),
-      '0x87da8bab9FbD09593F2368DC2F6fac3F80C2A845'.toLowerCase(),
-      '0xad587138E72fc2Bc29dA99471ce4d995425d8f0a'.toLowerCase(),
-      '0xbC1Bb900e34aDbb99957672361433c6ad62a0cAC'.toLowerCase(),
-    ],
-    Thorus: ['0x9141B3d02443a84793794f661Ae1e6607A03A201'.toLowerCase()],
-    Flair: ['0x462bCeBb3743E5c0B126985D82782025bdeD23ca'.toLowerCase()],
-    Glacier: ['0x7EB705bC12f488af3310d8166D3C577ACDBC619c'.toLowerCase()],
-  },
-  moonriver: {
-    Solarbeam: [
-      '0xBB92270716C8c424849F17cCc12F4F24AD4064D6'.toLowerCase(),
-      '0x95887654d8646C26fAb33F344576E2E74b211256'.toLowerCase(),
-      '0x23bdECdB7073D5f899708f33FCaFff787b81e287'.toLowerCase(),
-    ],
-  },
-  canto: {
-    Velocimeter: ['0x1c813cDd6dAecE2CB83C52F0798504e42816E9C5'.toLowerCase()],
-  },
-  era: {
-    Velocore: ['0x36BbDb0DEA4Aa211Dd76dF0a3201c89FD530851b'.toLowerCase()],
-    VeSync: ['0xCF3CAD85885254CBD445d6511c502Da095863f11'.toLowerCase()],
-    DraculaFi: ['0x589a63C2242c8E60cdACF6802AB04a721bA6049d'.toLowerCase()],
-  },
-  fantom: {
-    Solidex: [
-      '0x8610Dc1912a55761a713D827a1a1ad131bE8f579'.toLowerCase(),
-      '0xF14f98E6F34C12Bd74fcEAC1668aF749fc269cFf'.toLowerCase(),
-      '0x9B1434a02Ee86302d463bB6B365EbdFAc56e067A'.toLowerCase(),
-      '0x95887654d8646C26fAb33F344576E2E74b211256'.toLowerCase(),
-      '0xB83D21F60B73B21506c69DEcdBcF7Ab5AB737eB2'.toLowerCase(),
-    ],
-    Equalizer: ['0x592DD52CBF8271723E4e225ac0235D47e697A11c'.toLowerCase()],
-  },
-  optimism: {
-    Velodrome: ['0x47183bB55AD0F891887E099Cec3570d3C667cD00'.toLowerCase()],
-  },
-  base: {
-    Aero: [
-      '0x8f50a6d5ea6715f878e2984569975e8875eebafb'.toLowerCase(),
-      '0x5b06941953f97c13465f6b6e76e4f5b9f800e86b'.toLowerCase(),
-    ],
-    Scale: ['0x35a0e3c5adbddf6d917353f9b468c5cde80ee380'.toLowerCase()],
-  },
-  scroll: {
-    Tokan: [
-      '0x074568F090e93194289c2C2BF285eE7f60b485a9'.toLowerCase(),
-      '0x6c041ff2d25310a2751C57555265F2364CaCA195'.toLowerCase(),
-    ],
-  },
-};
-
-let allCoins = [];
-
-const getAllLendingPoolsForChain = async (chain, block) => {
-  const { factories } = config[chain];
-
-  // looping through all factories to get all lending pools
-  let allLendingPoolAddresses = [];
-  let allLendingPoolAddressesParamsCalls = [];
-  let allLendingPoolAddressesTargetCalls = [];
-  let allLendingPoolsDetails = [];
-  let allToken0s = [];
-  let allToken1s = [];
-  let allLendingPoolDecimals = [];
-  let allLendingPoolReserves = [];
-  let allLendingPoolLTVs = [];
-  for (const factory of factories) {
-    // get the data for the current factory
-    const {
-      lendingPoolAddresses,
-      lendingPoolAddressesParamsCalls,
-      lendingPoolAddressesTargetCalls,
-      lendingPoolsDetails,
-      token0s,
-      token1s,
-      lendingPoolDecimals,
-      lendingPoolReserves,
-      lendingPoolLTVs
-    } = await getAllLendingPools(factory, chain, block);
-
-    // add the data to the arrays
-    allLendingPoolAddresses = [
-      ...allLendingPoolAddresses,
-      ...lendingPoolAddresses,
-    ];
-    allLendingPoolAddressesParamsCalls = [
-      ...allLendingPoolAddressesParamsCalls,
-      ...lendingPoolAddressesParamsCalls,
-    ];
-    allLendingPoolAddressesTargetCalls = [
-      ...allLendingPoolAddressesTargetCalls,
-      ...lendingPoolAddressesTargetCalls,
-    ];
-    allLendingPoolsDetails = [
-      ...allLendingPoolsDetails,
-      ...lendingPoolsDetails,
-    ];
-    allToken0s = [...allToken0s, ...token0s];
-    allToken1s = [...allToken1s, ...token1s];
-    allLendingPoolDecimals = [
-      ...allLendingPoolDecimals,
-      ...lendingPoolDecimals,
-    ];
-    allLendingPoolReserves = [
-      ...allLendingPoolReserves,
-      ...lendingPoolReserves,
-    ];
-    allLendingPoolLTVs = [
-      ...allLendingPoolLTVs,
-      ...lendingPoolLTVs
-    ]
-  }
-
-  const lendingPoolAddresses = allLendingPoolAddresses;
-  const lendingPoolAddressesParamsCalls = allLendingPoolAddressesParamsCalls;
-  const lendingPoolAddressesTargetCalls = allLendingPoolAddressesTargetCalls;
-  const lendingPoolsDetails = allLendingPoolsDetails;
-  const token0s = allToken0s;
-  const token1s = allToken1s;
-  const lendingPoolDecimals = allLendingPoolDecimals;
-  const lendingPoolReserves = allLendingPoolReserves;
-  const lendingPoolLTVs = allLendingPoolLTVs;
-
-  return {
-    lendingPoolAddresses: allLendingPoolAddresses,
-    lendingPoolAddressesParamsCalls: allLendingPoolAddressesParamsCalls,
-    lendingPoolAddressesTargetCalls: allLendingPoolAddressesTargetCalls,
-    lendingPoolsDetails: allLendingPoolsDetails,
-    token0s: allToken0s,
-    token1s: allToken1s,
-    lendingPoolDecimals: allLendingPoolDecimals,
-    lendingPoolReserves: allLendingPoolReserves,
-    lendingPoolLTVs: allLendingPoolLTVs
-  };
-};
-
-const getAllLendingPools = async (factory, chain, block) => {
-  const { output: allLendingPoolsLength } = await tryUntilSucceed(() =>
-    sdk.api.abi.call({
-      target: factory,
-      abi: abi.allLendingPoolsLength,
-      chain,
-      block,
-      requery: true,
-    }),
-  );
-
-  // get all of the lending pools from the factory contract
-  const poolCalls = [];
-  for (let i = 0; i < +allLendingPoolsLength; i++)
-    poolCalls.push({ params: i });
-  const { output: lendingPoolsResults } = await tryUntilSucceed(() =>
-    sdk.api.abi.multiCall({
-      target: factory,
-      abi: abi.allLendingPools,
-      calls: poolCalls,
-      chain,
-      block,
-      requery: true,
-    }),
-  );
-
-  let lendingPoolAddresses = lendingPoolsResults.map((i) => i.output);
-  // let lendingPoolAddresses = ['0xE4702e545F4bF51FD383d00F01Bc284Ec9B8aa64', '0x06D3AE1Cfe7D3D27B8b9f541E2d76e5f33778923'];
-
-  // remove blacklisted pools
-  lendingPoolAddresses = lendingPoolAddresses.filter(
-    (i) => !blackListedPools[chain].includes(i.toLowerCase()),
-  );
-
-  // make sure the params and target are also filtered
-  let lendingPoolAddressesParamsCalls = lendingPoolAddresses.map((i) => ({
-    params: i,
-  }));
-  let lendingPoolAddressesTargetCalls = lendingPoolAddresses.map((i) => ({
-    target: i,
-  }));
-  let { output: getLendingPools } = await tryUntilSucceed(() =>
-    sdk.api.abi.multiCall({
-      target: factory,
-      abi: abi.getLendingPool,
-      calls: lendingPoolAddressesParamsCalls,
-      chain,
-      block,
-      requery: true,
-    }),
-  );
-
-  let lendingPoolsDetails = getLendingPools.map((i) => i.output);
-
-  // Removing all pool that are not initialized
-  lendingPoolAddresses = lendingPoolAddresses.filter(
-    (i, index) => lendingPoolsDetails[index].initialized,
-  );
-  lendingPoolAddressesParamsCalls = lendingPoolAddressesParamsCalls.filter(
-    (i, index) => lendingPoolsDetails[index].initialized,
-  );
-  lendingPoolAddressesTargetCalls = lendingPoolAddressesTargetCalls.filter(
-    (i, index) => lendingPoolsDetails[index].initialized,
-  );
-  lendingPoolsDetails = lendingPoolsDetails.filter(
-    (i, index) => lendingPoolsDetails[index].initialized,
-  );
-
-  // get tokens 0 and 1 of all lending pools
-  const { output: token0sResults } = await tryUntilSucceed(() =>
-    sdk.api.abi.multiCall({
-      calls: lendingPoolAddressesTargetCalls,
-      abi: abi.token0,
-      chain,
-      block,
-      requery: true,
-    }),
-  );
-  const token0s = token0sResults.map((i) => i.output);
-  const { output: token1sResults } = await tryUntilSucceed(() =>
-    sdk.api.abi.multiCall({
-      calls: lendingPoolAddressesTargetCalls,
-      abi: abi.token1,
-      chain,
-      block,
-      requery: true,
-    }),
-  );
-  const token1s = token1sResults.map((i) => i.output);
-  // get lending pool address decimals
-  const { output: lendingPoolDecimalsResults } = await tryUntilSucceed(() =>
-    sdk.api.abi.multiCall({
-      calls: lendingPoolAddressesTargetCalls,
-      abi: abi.decimals,
-      chain,
-      block,
-      requery: true,
-    }),
-  );
-  const lendingPoolDecimals = lendingPoolDecimalsResults.map((i) => i.output);
-  const lendingPoolReserves = await getBorrowableTokensReserves(
-    lendingPoolAddressesTargetCalls,
-    chain,
-    block,
-    lendingPoolsDetails,
-  );
-
-  const lendingPoolLTVs = await getCollateralLTV(
-    lendingPoolAddressesTargetCalls,
-    chain,
-    block,
-    lendingPoolsDetails,
-  );
-
-  return {
-    lendingPoolAddresses,
-    lendingPoolAddressesParamsCalls,
-    lendingPoolAddressesTargetCalls,
-    lendingPoolsDetails,
-    token0s,
-    token1s,
-    lendingPoolDecimals,
-    lendingPoolReserves,
-    lendingPoolLTVs
-  };
-};
-
-  // LTV is the same for borrowable0 and borrowable1 for single borrow.
-  // When leveraging the LTV changes based on if you are borrowing more 
-  // of borrowable0 or borrowable1, but during normal borrows (borrow token0 or token1 only) 
-  // then the LTV is the same for either token, based on the collateral settings.
-  //
-  // From `collateral.sol` (assume amount0 OR amount1 is 0 and we are only borrowing one token):
-  //
-  // 		uint _safetyMarginSqrt = safetyMarginSqrt;
-	//    (uint price0, uint price1) = getPrices();
-	//    uint a = amount0.mul(price0).div(1e18);
-	//    uint b = amount1.mul(price1).div(1e18);
-	//    if(a < b) (a, b) = (b, a);
-	//    a = a.mul(_safetyMarginSqrt).div(1e18);
-	//    b = b.mul(1e18).div(_safetyMarginSqrt);
-	//    uint collateralNeeded = a.add(b).mul(liquidationPenalty()).div(1e18);
-  //
-  //    borrowLTV = 1 / (liqPenalty * liqPenalty);
-  //    leverageLTV = 1 / ((safetyMargin + 1 / safetyMargin) * liqPenalty / 2);
-const getCollateralLTV = async (
-  lendingPoolAddressesTargetCalls,
-  chain,
-  block,
-  lendingPoolsDetails,
-) => { 
-  let lendingPoolLTVs = [];
-
-  const callTargets = []
-  for (let i = 0; i < lendingPoolsDetails.length; i++) {
-    callTargets.push({ target: lendingPoolsDetails[i].collateral });
-  }
-
-  const { output: safetyMarginSqrtResults } = await tryUntilSucceed(() =>
-    sdk.api.abi.multiCall({
-      calls: callTargets.flat(),
-      abi: abi.safetyMarginSqrt,
-      chain,
-      block,
-      requery: true,
-    }),
-  );
-
-  // The earliest impermax pools had no `liquidationPenalty` and `liquidationFee` methods,
-  let liquidationPenaltyResults;
-  try {
-    const { output: response } = await tryUntilSucceed(() => sdk.api.abi.multiCall({
-      calls: callTargets,
-      abi: abi.liquidationPenalty,
-      chain,
-      block,
-      requery: true,
-      })
-    )
-    liquidationPenaltyResults = response
-  } catch (error) {
-    try {
-      const { output: response } = await tryUntilSucceed(() => sdk.api.abi.multiCall({
-        calls: callTargets,
-        abi: abi.liquidationIncentive,
-        chain,
-        block,
-        requery: true,
-      })
-    )
-    liquidationPenaltyResults = response
-    } catch (fallbackError) {
-      console.error("Get liquidation incentive call failed", fallbackError);
-      throw fallbackError;
-    }
-  }
-
-  for (let i = 0; i < callTargets.length; i++) {
-    const safetyMargin = safetyMarginSqrtResults[i].output / 1e18;
-    const liqPenalty = liquidationPenaltyResults[i].output / 1e18;
-    const ltv = 1 / (safetyMargin * liqPenalty);
-    lendingPoolLTVs.push(ltv.toFixed(3));
-  }
-
-  return lendingPoolLTVs;
-}
-
-const getBorrowableTokensReserves = async (
-  lendingPoolAddressesTargetCalls,
-  chain,
-  block,
-  lendingPoolsDetails,
-) => {
-  let lendingPoolReserves = [];
-
-  const callTargets = [];
-  for (let i = 0; i < lendingPoolsDetails.length; i++) {
-    const borrowable0 = lendingPoolsDetails[i].borrowable0;
-    const borrowable1 = lendingPoolsDetails[i].borrowable1;
-    callTargets.push([borrowable0, borrowable1].map((i) => ({ target: i })));
-  }
-
-  const { output: getReservesResults } = await tryUntilSucceed(() =>
-    sdk.api.abi.multiCall({
-      calls: callTargets.flat(),
-      abi: abi.totalBorrows,
-      chain,
-      block,
-      requery: true,
-    }),
-  );
-
-  for (let i = 0; i < getReservesResults.length; i += 2) {
-    lendingPoolReserves.push([
-      getReservesResults[i].output,
-      getReservesResults[i + 1].output,
-    ]);
-  }
-
-  return lendingPoolReserves;
-};
-
-const getUnderlyingLiquidityPoolAddresses = async (
-  lendingPoolAddresses,
-  lendingPoolAddressesTargetCalls,
-  chain,
-  block,
-) => {
-  const { output: lendingPoolSymbolsResults } = await tryUntilSucceed(() =>
-    sdk.api.abi.multiCall({
-      calls: lendingPoolAddressesTargetCalls,
-      abi: abi.symbol,
-      chain,
-      block,
-      requery: true,
-    }),
-  );
-  const lendingPoolSymbols = lendingPoolSymbolsResults.map((i) => i.output);
-
-  // get underlying LP related info
-  let lpAddressesCalls = [];
-  let lpAddressesCallsIndex = [];
-  for (let index = 0; index < lendingPoolAddresses.length; index++) {
-    lpAddressesCalls.push({ target: lendingPoolAddresses[index] });
-    lpAddressesCallsIndex.push(index);
-  }
-
-  let underlyingLpAddresses = lendingPoolAddresses;
-
-  if (chain !== 'ethereum') {
-    const { output: underlyingLpAddressesResults } = await tryUntilSucceed(() =>
-      sdk.api.abi.multiCall({
-        abi: abi.underlying,
-        calls: lpAddressesCalls,
-        chain,
-        block,
-        permitFailure: true,
-      }),
-    );
-    underlyingLpAddresses = underlyingLpAddressesResults.map((i) => i.output);
-  }
-
-  if (lpAddressesCalls.length > 0) {
-    for (let x = 0; x < lpAddressesCalls.length; x++) {
-      underlyingLpAddresses[lpAddressesCallsIndex[x]] =
-        lendingPoolAddresses[lpAddressesCallsIndex[x]];
-    }
-  }
-  const underlyingLpAddressesTargetCalls = underlyingLpAddresses.map((i) => ({
-    target: i,
-  }));
-  const { output: underlyingLiquidityPoolSymbolsResults } =
-    await tryUntilSucceed(() =>
-      sdk.api.abi.multiCall({
-        calls: underlyingLpAddressesTargetCalls,
-        abi: abi.symbol,
-        chain,
-        block,
-        requery: true,
-      }),
-    );
-  const underlyingLiquidityPoolSymbols =
-    underlyingLiquidityPoolSymbolsResults.map((i) => i.output);
-  return {
-    lendingPoolSymbols,
-    underlyingLpAddresses,
-    underlyingLiquidityPoolSymbols,
-  };
-};
-
-const removeDuplicatesFromArray = (arr) => {
-  return [...new Set([].concat(...arr))];
-};
-
-const checkIfTokenKeyExists = (fetchedData, key) => {
-  return fetchedData[key];
-};
-
-const buildPoolMetadata = async (poolData, tokenDetailsDict, chain, block) => {
-  const underlyingLiquidityPoolSymbols = poolData.map(
-    (i) => i.underlyingLiquidityPoolSymbol,
-  );
-  let lendingPoolAddresses = poolData.map((i) => i.lendingPoolAddress);
-  const token0Symbols = poolData.map((i) => tokenDetailsDict[i.token0].symbol);
-  const token1Symbols = poolData.map((i) => tokenDetailsDict[i.token1].symbol);
-  const tokenSymbols = poolData.map((i) => i.tokenSymbol);
-
-  // picking every other record
-  const lendingPoolAddressesNoDuplicates = lendingPoolAddresses.filter(
-    (_, i) => i % 2 === 0,
-  );
-
-  // use the factory to determine the pool name
-  const { output: lendingPoolFactory } = await tryUntilSucceed(() =>
-    sdk.api.abi.multiCall({
-      calls: lendingPoolAddressesNoDuplicates.map((i) => ({ target: i })),
-      abi: abi.factory,
-      chain,
-      block,
-      requery: true,
-    }),
-  );
-  const lendingPoolFactoriesNoDuplicates = lendingPoolFactory.map(
-    (i) => i.output,
-  );
-
-  // augment the factories to match the number of pools so that factories are valid for 2 entries in the lending pool addresses
-  const lendingPoolFactories = [];
-  for (let i = 0; i < lendingPoolFactoriesNoDuplicates.length; i++) {
-    lendingPoolFactories.push(lendingPoolFactoriesNoDuplicates[i]);
-    lendingPoolFactories.push(lendingPoolFactoriesNoDuplicates[i]);
-  }
-
-  // map factories to protocol using factoryToProtocolMapping
-  let formatedPoolMeta = lendingPoolFactories.map((i, fIndex) => {
-    const poolId = `${lendingPoolAddresses[fIndex]}-${tokenSymbols[fIndex]}-${chain}`;
-    let poolMeta;
-    for (const [key, value] of Object.entries(
-      factoryToProtocolMapping[chain],
-    )) {
-      if (i !== undefined && value.includes(i.toLowerCase())) {
-        poolMeta = `${key} ${token0Symbols[fIndex]}/${token1Symbols[fIndex]}`;
+const graphQuery = `{
+  lendingPools {
+    id
+    borrowable0 {
+      id
+      totalBalance
+      totalBorrows
+      reserveFactor
+      borrowRate
+      underlying {
+        id
+        name
+        symbol
+        decimals
       }
     }
+    borrowable1 {
+      id
+      totalBalance
+      totalBorrows
+      reserveFactor
+      borrowRate
+      underlying {
+        id
+        name
+        symbol
+        decimals
+      }
+    }
+    collateral {
+      id
+      safetyMargin
+      liquidationIncentive
+      liquidationFee
+      totalBalance
+    }
+  }
+}`;
 
-    if (poolMeta === undefined) {
-      // console.log('unknown factory for pool ', poolId, ' with factory ', i);
-      poolMeta = `${i} ${token0Symbols[fIndex]}/${token1Symbols[fIndex]}`;
+// NOTE: This should *almost* never fail (outside of rate limiting).
+//       If fails then blacklist the lending pool because it is badly configured.
+async function getPriceFromDexScreener(token) {
+  console.log('Getting prices from dexscreener...');
+  console.log('Token: %s', token);
+  try {
+    const { pairs } = await fetch(
+      `https://api.dexscreener.com/latest/dex/tokens/${token}`
+    ).then((i) => i.json());
+
+    if (!pairs?.length) {
+      console.warn(`No pairs found on DexScreener for token: ${token}`);
+      return undefined;
     }
 
-    return { poolId, poolMeta };
-  });
-
-  return formatedPoolMeta;
-};
-
-async function getTokenPrices(tokens, chain, allCoins) {
-  const chainCoins = allCoins.data.filter(
-    (coin) =>
-      coin && coin.platforms && coin.platforms[coinGeckoChainMapping[chain]],
-  );
-
-  const tokenAddresses = tokens.map((a) => a.toLowerCase());
-  const coins = chainCoins.filter((coin) =>
-    tokenAddresses.includes(
-      coin.platforms[coinGeckoChainMapping[chain]].toLowerCase(),
-    ),
-  );
-
-  const markets = (
-    await axios.get(
-      `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coins
-        .map((c) => c.id)
-        .join(',')}`,
-    )
-  ).data;
-
-  async function getPriceFromDexScreener(token) {
-    let pairs = (
-      await axios.get(`https://api.dexscreener.com/latest/dex/tokens/${token}`)
-    ).data.pairs;
-    if (!pairs?.length) return undefined;
-    // remove pairs with no liquidity
-    pairs = pairs.filter((p) => p.liquidity && p.liquidity.usd > 0);
+    // Remove pairs with no liquidity
+    const pairsWithLiquidity = pairs.filter(
+      (p) => p.liquidity && p.liquidity.usd > 0
+    );
 
     // Get pair with max liquidity
-    const maxLiquidityPair = pairs.reduce((prev, curr) => {
+    const maxLiquidityPair = pairsWithLiquidity.reduce((prev, curr) => {
       return prev && prev.liquidity.usd > curr.liquidity.usd ? prev : curr;
     });
 
-    return maxLiquidityPair.priceUsd;
+    return parseFloat(maxLiquidityPair.priceUsd);
+  } catch (error) {
+    console.error(`Dexscreener price fail for token: ${token}:`, error.message);
+    return undefined;
   }
-
-  function getPriceFromCoinGecko(token) {
-    const id = chainCoins.find(
-      (coin) =>
-        coin.platforms[coinGeckoChainMapping[chain]].toLowerCase() ===
-        token.toLowerCase(),
-    )?.id;
-    if (id === undefined) return undefined;
-    const marketData = markets.find((m) => m.id === id);
-    return marketData?.current_price;
-  }
-
-  async function getPrice(token) {
-    return (
-      getPriceFromCoinGecko(token) ?? (await getPriceFromDexScreener(token))
-    );
-  }
-
-  const pricePromises = tokenAddresses.map((t) =>
-    getPrice(t).then((p) => [t, p]),
-  );
-  const prices = await Promise.all(pricePromises).then((results) =>
-    Object.fromEntries(results),
-  );
-
-  return prices;
 }
 
-const getTokenDetails = async (allUniqueTokens, chain, block) => {
-  let results = {};
-  const tokensCalls = allUniqueTokens.map((i) => ({ target: i }));
-  const { output: getTokenDecimals } = await tryUntilSucceed(() =>
-    sdk.api.abi.multiCall({
-      abi: `erc20:decimals`,
-      calls: tokensCalls,
-      chain,
-      block,
-      requery: true,
-    }),
+// Gets all token prices from the chain
+// 1. `tokenAddresses` is a list of all underlying tokens on this chain
+// 2. Tries to get prices from defillama coins api
+// 3. The response returns only prices of tokens it has
+// 4. Check which tokens we are missing
+// 5. Fetch the missing token prices from dexscreener
+const getUnderlyingPrices = async (chain, tokenAddresses) => {
+  // Remove duplicate underlyings
+  const uniqueTokens = tokenAddresses.filter(
+    (value, index, array) => array.indexOf(value) === index
   );
-  // underlying tokens symbol just reference from bulk
-  const { output: getTokenSymbols } = await tryUntilSucceed(() =>
-    sdk.api.abi.multiCall({
-      abi: `erc20:symbol`,
-      calls: tokensCalls,
-      chain,
-      block,
-      requery: true,
-    }),
-  );
-  const tokensSymbols = getTokenSymbols.map((i) => i.output);
 
-  for (let i = 0; i < getTokenDecimals.length; i++) {
-    tokensDecimalResult = getTokenDecimals[i];
-    tokenSymbolResult = getTokenSymbols[i];
-    let key = tokensDecimalResult.input.target;
-    results[key] = {
-      decimals: tokensDecimalResult.output,
-      symbol: tokenSymbolResult.output,
-    };
+  const coins = uniqueTokens.map((address) => `${chain}:${address}`).join(',');
+  const prices = await fetch(
+    `https://coins.llama.fi/prices/current/${coins}`
+  ).then((i) => i.json());
+
+  const result = {};
+  const missingTokens = [];
+
+  for (const address of tokenAddresses) {
+    const key = `${chain}:${address}`;
+    if (prices.coins[key] && prices.coins[key].price) {
+      result[key] = { price: prices.coins[key].price };
+    } else {
+      missingTokens.push(address);
+    }
   }
-  return results;
-};
 
-// calculate tvl function
-const caculateTvl = (
-  excessSupply,
-  tokenDecimals,
-  underlyingTokenPriceUsd,
-  lpReserve,
-) => {
-  const excessSupplyUsd = BigNumber(excessSupply)
-    .div(BigNumber(10).pow(BigNumber(tokenDecimals)))
-    .times(BigNumber(underlyingTokenPriceUsd));
+  // If missing tokens from defillama API, we try dexscreener
+  if (missingTokens.length > 0) {
+    console.log(`Fetching ${missingTokens.length} tokens from Dexscreener`);
 
-  const lpTvlUsd = BigNumber(lpReserve)
-    .div(BigNumber(10).pow(BigNumber(tokenDecimals)))
-    .times(BigNumber(underlyingTokenPriceUsd));
-
-  const totalTvl = excessSupplyUsd.plus(lpTvlUsd);
-
-  // Impermax being a lending protocol, `ltvUsd` is actually the available liquidity
-  // in our case, this translates directly to the excess supply.
-  //
-  // `lpTvlUsd` refers in fact to `totalBorrows`, see the function `getBorrowableTokensReserves`
-  // return { ltvUsd, totalBorrowsUsd };
-  return { excessSupplyUsd, lpTvlUsd };
-};
-
-// calculate apy function
-const calculateApy = (
-  borrowRate,
-  borrowableDecimal,
-  totalBorrows,
-  totalSupply,
-  reserveFactor,
-) => {
-  const borrowRateAPY = BigNumber(borrowRate)
-    .div(BigNumber(10).pow(BigNumber(borrowableDecimal)))
-    .times(SECONDS_IN_YEAR);
-  const utilization = BigNumber(totalBorrows).div(BigNumber(totalSupply));
-  const supplyRateAPY = BigNumber(borrowRate)
-    .times(BigNumber(utilization))
-    .times(
-      BigNumber(10)
-        .pow(BigNumber(borrowableDecimal))
-        .minus(BigNumber(reserveFactor)),
-    )
-    .times(SECONDS_IN_YEAR)
-    .div(
-      BigNumber(10)
-        .pow(BigNumber(borrowableDecimal))
-        .times(BigNumber(10).pow(BigNumber(borrowableDecimal))),
+    const dexScreenerPrices = await Promise.all(
+      missingTokens.map((token) => getPriceFromDexScreener(token))
     );
-  return { borrowRateAPY, utilization, supplyRateAPY };
+
+    missingTokens.forEach((token, index) => {
+      const key = `${chain}:${token}`;
+      if (dexScreenerPrices[index] !== undefined) {
+        result[key] = { price: dexScreenerPrices[index] };
+      } else {
+        // Should never be here
+        console.warn(`Can't get price for token ${key}`);
+      }
+    });
+  }
+
+  return result;
 };
+
+const getLendingPools = async (chain, project) => {
+  const urls = config[chain][project];
+  let allLendingPools = [];
+
+  for (const url of urls) {
+    const queryResult = await request(url, graphQuery);
+    allLendingPools = allLendingPools.concat(queryResult.lendingPools);
+  }
+
+  const blacklist = blacklistedPools[chain] || [];
+  return allLendingPools.filter((pool) => !blacklist.includes(pool.id));
+};
+
+// Annualized Borrow APR
+const calculateBorrowApr = (borrowRate) =>
+  BigNumber(borrowRate).times(SECONDS_PER_YEAR).times(BigNumber(100));
+
+// Annualized Supply APR
+const calculateSupplyApr = (
+  totalBorrows,
+  totalBalance,
+  borrowRate,
+  reserveFactor
+) => {
+  const utilization = BigNumber(totalBorrows).div(
+    BigNumber(totalBorrows).plus(BigNumber(totalBalance))
+  );
+  return BigNumber(borrowRate)
+    .times(utilization)
+    .times(BigNumber(1).minus(BigNumber(reserveFactor)));
+};
+
+// totlaBalance == excess supply (ie. available to be borrowed now)
+// tvlUsd = totalBalance * tokenPrice
+const calculateTvl = (totalBalance, tokenPriceUsd) =>
+  BigNumber(totalBalance).times(BigNumber(tokenPriceUsd));
+
+// borrowsUsd = totalBorrows * tokenPrice
+const calculateTotalBorrows = (totalBorrows, tokenPriceUsd) =>
+  BigNumber(totalBorrows).times(BigNumber(tokenPriceUsd));
 
 const main = async () => {
-  let data = [];
+  const pools = [];
 
-  allCoins = await axios.get(
-    'https://api.coingecko.com/api/v3/coins/list?include_platform=true',
-  );
+  for (const [chain, projects] of Object.entries(config)) {
+    console.log("Getting yields from: %s", chain)
+    for (const [project, _] of Object.entries(projects)) {
+      const lendingPools = await getLendingPools(chain, project);
 
-  for (const chain of Object.keys(config)) {
-    let collaterals = [];
-    let borrowables = [];
+      const tokenAddresses = lendingPools.flatMap((pool) => [
+        pool.borrowable0.underlying.id,
+        pool.borrowable1.underlying.id,
+      ]);
 
-    const block = (await sdk.blocks.getBlock(chain)).block
+      const prices = await getUnderlyingPrices(chain, tokenAddresses);
 
-    const {
-      lendingPoolAddresses,
-      lendingPoolAddressesParamsCalls,
-      lendingPoolAddressesTargetCalls,
-      lendingPoolsDetails,
-      token0s,
-      token1s,
-      lendingPoolDecimals,
-      lendingPoolReserves,
-      lendingPoolLTVs
-    } = await getAllLendingPoolsForChain(chain, block);
+      // We look
+      for (const pool of lendingPools) {
+        const token0 = pool.borrowable0.underlying;
+        const token1 = pool.borrowable1.underlying;
 
-    // get underlying LP related info
-    const {
-      lendingPoolSymbols,
-      underlyingLpAddresses,
-      underlyingLiquidityPoolSymbols,
-    } = await getUnderlyingLiquidityPoolAddresses(
-      lendingPoolAddresses,
-      lendingPoolAddressesTargetCalls,
-      chain,
-      block,
-    );
+        const price0 = prices[`${chain}:${token0.id}`]?.price;
+        const price1 = prices[`${chain}:${token1.id}`]?.price;
 
-    const allTokens = [...token0s, ...token1s];
-    const allUniqueTokens = removeDuplicatesFromArray(allTokens);
+        // If no prices we skip borrowable0/borrowable1
+        if (!price0 || !price1) {
+          console.warn(`Missing price, skipping lending pool ${pool.id}`);
+          continue;
+        }
 
-    let fetchedPrices = await getTokenPrices(allUniqueTokens, chain, allCoins);
+        const tvlUsd0 = calculateTvl(pool.borrowable0.totalBalance, price0);
+        const tvlUsd1 = calculateTvl(pool.borrowable1.totalBalance, price1);
 
-    // go to the next factory contract since no tokens were found here.
-    if (Object.keys(fetchedPrices) === 0) {
-      continue;
+        const totalBorrowsUsd0 = calculateTotalBorrows(
+          pool.borrowable0.totalBorrows,
+          price0
+        );
+        const totalBorrowsUsd1 = calculateTotalBorrows(
+          pool.borrowable1.totalBorrows,
+          price1
+        );
+
+        const borrowApr0 = calculateBorrowApr(pool.borrowable0.borrowRate);
+        const borrowApr1 = calculateBorrowApr(pool.borrowable1.borrowRate);
+
+        const supplyApr0 = calculateSupplyApr(
+          pool.borrowable0.totalBorrows,
+          pool.borrowable0.totalBalance,
+          borrowApr0,
+          pool.borrowable0.reserveFactor
+        );
+        const supplyApr1 = calculateSupplyApr(
+          pool.borrowable1.totalBorrows,
+          pool.borrowable1.totalBalance,
+          borrowApr1,
+          pool.borrowable1.reserveFactor
+        );
+
+        // Push borrowable0
+        pools.push({
+          pool: `${pool.id}-${token0.symbol}-${chain}`,
+          poolMeta: `${project} ${token0.symbol}/${token1.symbol}`,
+          chain,
+          project: protocolSlug,
+          symbol: token0.symbol,
+          tvlUsd: tvlUsd0.toNumber(),
+          totalBorrowUsd: totalBorrowsUsd0.toNumber(),
+          apyBase: supplyApr0.toNumber(),
+          apyBaseBorrow: borrowApr0.toNumber(),
+          underlyingTokens: [token0.id, token1.id],
+        });
+
+        // Push borrowable1
+        pools.push({
+          pool: `${pool.id}-${token1.symbol}-${chain}`,
+          poolMeta: `${project} ${token0.symbol}/${token1.symbol}`,
+          chain,
+          project: protocolSlug,
+          symbol: token1.symbol,
+          tvlUsd: tvlUsd1.toNumber(),
+          totalBorrowUsd: totalBorrowsUsd1.toNumber(),
+          apyBase: supplyApr1.toNumber(),
+          apyBaseBorrow: borrowApr1.toNumber(),
+          underlyingTokens: [token0.id, token1.id],
+        });
+      }
     }
-    const tokenDetailsDict = await getTokenDetails(
-      allUniqueTokens,
-      chain,
-      block,
-    );
-
-    let allBorrowables = lendingPoolsDetails.flatMap(
-      (lendingPoolDetails, i) => {
-        const reserves = lendingPoolReserves[i];
-        const lendingPoolAddress = lendingPoolAddresses[i];
-        if (reserves === null) {
-          return null;
-        }
-        const underlyingLiquidityPoolSymbol = underlyingLiquidityPoolSymbols[i];
-        // check if the lending pool has a name
-        if (underlyingLiquidityPoolSymbol === null) {
-          return null;
-        }
-        const borrowable0 = lendingPoolDetails.borrowable0;
-        const borrowable1 = lendingPoolDetails.borrowable1;
-        const collateral = lendingPoolDetails.collateral;
-        const token0 = token0s[i];
-        const token1 = token1s[i];
-        const lendingPoolDecimal = lendingPoolDecimals[i];
-        const ltv = lendingPoolLTVs[i]
-
-        return [
-          {
-            lpReserve: reserves[0],
-            lendingPoolAddress,
-            underlyingLiquidityPoolSymbol,
-            underlyingTokenAddress: token0,
-            borrowableTokenAddress: borrowable0,
-            collateral,
-            token0,
-            token1,
-            lendingPoolDecimal,
-            tokenSymbol: tokenDetailsDict[token0].symbol,
-            tokenDecimals: tokenDetailsDict[token0].decimals,
-            ltv
-          },
-          {
-            lpReserve: reserves[1],
-            lendingPoolAddress,
-            underlyingLiquidityPoolSymbol,
-            underlyingTokenAddress: token1,
-            borrowableTokenAddress: borrowable1,
-            collateral,
-            token0,
-            token1,
-            lendingPoolDecimal,
-            tokenSymbol: tokenDetailsDict[token1].symbol,
-            tokenDecimals: tokenDetailsDict[token1].decimals,
-            ltv
-          },
-        ];
-      },
-    );
-
-    // remove null
-    allBorrowables = allBorrowables.filter((p) => p);
-
-    const excessSupplyRes = await sdk.api.abi.multiCall({
-      abi: 'erc20:balanceOf',
-      calls: allBorrowables.map((b) => ({
-        target: b.underlyingTokenAddress,
-        params: b.borrowableTokenAddress,
-      })),
-      chain,
-    });
-    const excessSupply = excessSupplyRes.output.map((res) => res.output);
-
-    const [
-      reserveFactorRes,
-      totalBorrowsRes,
-      borrowRateRes,
-      borrowableDecimalRes,
-    ] = await Promise.all(
-      ['reserveFactor', 'totalBorrows', 'borrowRate', 'decimals'].map(
-        (method) =>
-          sdk.api.abi.multiCall({
-            abi: abi[method],
-            calls: allBorrowables.map((b) => ({
-              target: b.borrowableTokenAddress,
-              params: null,
-            })),
-            chain: chain,
-            requery: true,
-          }),
-      ),
-    );
-
-    const reserveFactor = reserveFactorRes.output.map((res) => res.output);
-    const totalBorrows = totalBorrowsRes.output.map((res) => res.output);
-    const borrowRate = borrowRateRes.output.map((res) => res.output);
-    const borrowableDecimal = borrowableDecimalRes.output.map(
-      (res) => res.output,
-    );
-
-    const poolMetaData = await buildPoolMetadata(
-      allBorrowables,
-      tokenDetailsDict,
-      chain,
-      block,
-    );
-
-    // calculate the tvl and yields for each borrowables
-    data = [
-      ...data,
-      ...allBorrowables
-        .map((borrowable, i) => {
-          // skip if no data
-          if (!borrowable) {
-            return null;
-          }
-          const totalSupply = BigNumber(totalBorrows[i]).plus(
-            BigNumber(excessSupply[i]),
-          );
-          //apy calculations
-          const { borrowRateAPY, utilization, supplyRateAPY } = calculateApy(
-            borrowRate[i],
-            borrowableDecimal[i],
-            totalBorrows[i],
-            totalSupply,
-            reserveFactor[i],
-          );
-          const { poolId, poolMeta } = poolMetaData[i];
-          // if poolId is undefined, probably abi is not published so skip
-          if (poolId === undefined) {
-            return null;
-          }
-
-          if (
-            !checkIfTokenKeyExists(
-              fetchedPrices,
-              borrowable.underlyingTokenAddress.toLowerCase(),
-            )
-          ) {
-            return null;
-          }
-          // tvl calculations
-          const underlyingTokenPriceUsd =
-            fetchedPrices[borrowable.underlyingTokenAddress.toLowerCase()];
-
-          const totalTvl = caculateTvl(
-            excessSupply[i],
-            borrowable.tokenDecimals,
-            underlyingTokenPriceUsd,
-            borrowable.lpReserve,
-          );
-
-          let poolData = {
-            pool: `${poolId}`,
-            poolMeta: `${poolMeta}`,
-            chain: chain,
-            project: protocolSlug,
-            symbol: utils.formatSymbol(borrowable.tokenSymbol),
-            tvlUsd: totalTvl.excessSupplyUsd.toNumber(),
-            totalBorrowUsd: totalTvl.lpTvlUsd.toNumber(),
-            apyBase: supplyRateAPY.times(BigNumber(100)).toNumber(),
-            underlyingTokens: [borrowable.token0, borrowable.token1],
-            apyBaseBorrow: borrowRateAPY.times(BigNumber(100)).toNumber(),
-            ltv: borrowable.ltv,
-            totalSupplyUsd: totalTvl.lpTvlUsd.plus(totalTvl.excessSupplyUsd).toNumber()
-          };
-          // add the data if the supply apy exists and the total tvl is under the threshold
-          if (!supplyRateAPY.isNaN()) {
-            return poolData;
-          } else {
-            return null;
-          }
-        })
-        .filter((data) => {
-          return data !== null;
-        }),
-    ];
   }
 
-  // remove potential dupliates based on pool ID
-  data = data.filter((v, i, a) => a.findIndex((t) => t.pool === v.pool) === i);
-
-  return data;
+  return pools;
 };
 
 module.exports = {
