@@ -1,25 +1,17 @@
 const { request } = require('graphql-request');
 const { default: BigNumber } = require('bignumber.js');
-const sdk = require('@defillama/sdk');
 const { blacklistedPools } = require('./blacklist.js');
 const { graphQuery } = require('./query.js');
+const sdk = require('@defillama/sdk');
 
 const protocolSlug = 'impermax-finance';
 const SECONDS_PER_YEAR = BigNumber(60 * 60 * 24 * 365);
 
 /**
- *  IMPERMAX CHAIN CONFIGS
+ *  ADAPTER CONFIGS
  */
 
-// {
-//   V2V1 = '1',      // Uniswap V2 Factory V1
-//   V2V1_1 = '2',    // Uniswap V2 Factory V1 (removed factory parameter)
-//   V2V1_2 = '3',    // Uniswap V2 Factory V1 (updated interest rate model and no borrow fee)
-//   V2V2 = '4',      // Uniswap V2 Factory V2 (liquidation fee)
-//   SOLV1_2 = '5',   // Solidly Factory V1
-//   SOLV2 = '6',     // Solidly Factory V2
-//   SOL_STABLE = '7',// Solidly Factory Stable
-// }
+// All our subgraphs on each chain
 const config = {
   fantom: [
     'https://api.studio.thegraph.com/query/46041/impermax-fantom-solv2/v0.0.2',
@@ -37,7 +29,7 @@ const config = {
   ],
 };
 
-// DEXes/StakedLP Token factories
+// DEXes or all our StakedLP Token factories
 const projectPoolFactories = {
   fantom: {
     Equalizer: ['0xc6366efd0af1d09171fe0ebf32c7943bb310832a'],
@@ -66,8 +58,8 @@ const getLendingPools = async (chain) => {
     const queryResult = await request(url, graphQuery);
     allLendingPools = allLendingPools.concat(queryResult.lendingPools);
   }
-  const blacklist = blacklistedPools[chain] || [];
 
+  const blacklist = blacklistedPools[chain] || [];
   return allLendingPools.filter((pool) => !blacklist.includes(pool.id));
 };
 
@@ -84,23 +76,24 @@ const getProject = (chain, factoryAddress) => {
  *  TOKEN PRICES
  */
 
-// Try get from llama api, else get dexscreener
+// Get all token prices from a chain
 const getUnderlyingPrices = async (chain, tokenAddresses) => {
   const uniqueTokens = tokenAddresses.filter(
-    (value, index, array) => array.indexOf(value) === index,
+    (value, index, array) => array.indexOf(value) === index
   );
 
+  // 1. Try llama api
   const { result: tokenPrices, missingTokens } = await getPriceFromDefiLlama(
     chain,
-    tokenAddresses,
+    tokenAddresses
   );
 
+  // 2. If missing try dexscreener
   if (missingTokens.length > 0) {
-    console.log(
-      `Fetching ${missingTokens.length} tokens from Dexscreener on ${chain}`,
-    );
+    console.log(`Fetching ${missingTokens.length} from Dexscreener ${chain}`);
+
     const dexScreenerPrices = await Promise.all(
-      missingTokens.map((token) => getPriceFromDexScreener(token)),
+      missingTokens.map((token) => getPriceFromDexScreener(token))
     );
 
     missingTokens.forEach((token, index) => {
@@ -108,7 +101,7 @@ const getUnderlyingPrices = async (chain, tokenAddresses) => {
       if (dexScreenerPrices[index] !== undefined) {
         tokenPrices[key] = { price: dexScreenerPrices[index] };
       } else {
-        console.warn(`Can't get price for token ${key}`);
+        console.warn(`Price for token ${key} failed`);
       }
     });
   }
@@ -122,7 +115,7 @@ async function getPriceFromDefiLlama(chain, tokenAddresses) {
     .join(',');
 
   const response = await fetch(
-    `https://coins.llama.fi/prices/current/${coins}`,
+    `https://coins.llama.fi/prices/current/${coins}`
   );
 
   const prices = await response.json();
@@ -146,7 +139,7 @@ async function getPriceFromDefiLlama(chain, tokenAddresses) {
 async function getPriceFromDexScreener(token) {
   try {
     const { pairs } = await fetch(
-      `https://api.dexscreener.com/latest/dex/tokens/${token}`,
+      `https://api.dexscreener.com/latest/dex/tokens/${token}`
     ).then((i) => i.json());
 
     if (!pairs?.length) {
@@ -156,7 +149,7 @@ async function getPriceFromDexScreener(token) {
 
     // Get pair with max liquidity
     const pairsWithLiquidity = pairs.filter(
-      (p) => p.liquidity && p.liquidity.usd > 0,
+      (p) => p.liquidity && p.liquidity.usd > 0
     );
     const maxLiquidityPair = pairsWithLiquidity.reduce((prev, curr) => {
       return prev && prev.liquidity.usd > curr.liquidity.usd ? prev : curr;
@@ -186,12 +179,12 @@ const calculateSupplyApr = (
   totalBorrows,
   totalBalance,
   borrowRate,
-  reserveFactor,
+  reserveFactor
 ) => {
   if (BigNumber(totalBorrows).eq(BigNumber(0))) return BigNumber(0);
 
   const utilization = BigNumber(totalBorrows).div(
-    BigNumber(totalBorrows).plus(BigNumber(totalBalance)),
+    BigNumber(totalBorrows).plus(BigNumber(totalBalance))
   );
 
   return BigNumber(borrowRate)
@@ -202,14 +195,13 @@ const calculateSupplyApr = (
 const calculateTotalBorrows = (totalBorrows, tokenPriceUsd) =>
   BigNumber(totalBorrows).times(BigNumber(tokenPriceUsd));
 
-/**
- *  MAIN
- */
 
-// -> Loop through each chain from config
-//    -> Get all lending pools in this chain via the config's graphql
-//    -> Get all underlying tokens from the lending pools in this chain and get their prices
-//       -> Loop through all lending pools in this chain, and match their uniswapv2factory to projectName
+/**
+ * -> Loop through each chain from config
+ *    -> Get all lending pools in this chain via the config's graphql
+ *    -> Get all underlying tokens from the lending pools in this chain and get their prices
+ *       -> Loop through all lending pools in this chain, match pair factory to project
+ */
 const main = async () => {
   const pools = [];
   const chains = Object.keys(config);
@@ -249,11 +241,11 @@ const main = async () => {
 
       const totalBorrowsUsd0 = calculateTotalBorrows(
         pool.borrowable0.totalBorrows,
-        price0,
+        price0
       );
       const totalBorrowsUsd1 = calculateTotalBorrows(
         pool.borrowable1.totalBorrows,
-        price1,
+        price1
       );
 
       const borrowApr0 = calculateBorrowApr(pool.borrowable0.borrowRate);
@@ -263,14 +255,14 @@ const main = async () => {
         pool.borrowable0.totalBorrows,
         pool.borrowable0.totalBalance,
         borrowApr0,
-        pool.borrowable0.reserveFactor,
+        pool.borrowable0.reserveFactor
       );
 
       const supplyApr1 = calculateSupplyApr(
         pool.borrowable1.totalBorrows,
         pool.borrowable1.totalBalance,
         borrowApr1,
-        pool.borrowable1.reserveFactor,
+        pool.borrowable1.reserveFactor
       );
 
       pools.push({
