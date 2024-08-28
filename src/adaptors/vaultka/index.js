@@ -33,5 +33,5 @@ const getApy = async () => {
 
 module.exports = {
   apy: getApy,
-  url: 'https://app.kamino.finance/',
+  url: 'https://solana.vaultka.com/',
 };
