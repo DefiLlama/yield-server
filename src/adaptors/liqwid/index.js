@@ -1,4 +1,5 @@
 const { request, gql } = require('graphql-request');
+const fetch = require('node-fetch');
 
 const apy = async () => {
   const endpoint = 'https://v2.api.liqwid.finance/graphql';
@@ -14,6 +15,7 @@ const apy = async () => {
               id
               supplyAPY
               supply
+              liquidity
               lqSupplyAPY
               borrowAPY
               borrow
@@ -51,18 +53,14 @@ const apy = async () => {
       chain: 'Cardano',
       project: 'liqwid',
       symbol: market.asset.symbol,
-      tvlUsd: market.supply * market.asset.price,
+      tvlUsd: market.liquidity * market.asset.price,
       apyReward:
         market.lqSupplyAPY * 100 > 100
           ? market.lqSupplyAPY
           : market.lqSupplyAPY * 100,
-      apyReward:
-        market.lqSupplyAPY * 100 > 100
-          ? market.lqSupplyAPY
-          : market.lqSupplyAPY * 100,
+      apyBase: market.supplyAPY * 100,
       rewardTokens: [market.asset.symbol, 'LQ'],
       underlyingTokens: [market.asset.symbol],
-      // lending protocol fields
       apyBaseBorrow:
         market.borrowAPY * 100 > 100
           ? market.borrowAPY
