@@ -17,33 +17,31 @@ const config = {
     'https://api.studio.thegraph.com/query/46041/impermax-mainnet-v1/v0.0.1',
   ],
   polygon: [
-    'https://api.studio.thegraph.com/query/46041/impermax-x-uniswap-v2-polygon/v0.0.1',
     'https://api.studio.thegraph.com/query/46041/impermax-x-uniswap-v2-polygon-v2/v0.0.1',
     'https://api.studio.thegraph.com/query/46041/impermax-polygon-solv2/v0.0.1',
     'https://api.studio.thegraph.com/query/46041/impermax-polygon-sol-stable/v0.0.1',
-  ],
-  fantom: [
-    'https://api.studio.thegraph.com/query/46041/impermax-fantom-solv2/v0.0.2',
-  ],
-  optimism: [
-    'https://api.studio.thegraph.com/query/46041/impermax-optimism-solv2/v0.0.1',
-  ],
-  scroll: [
-    'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2/v0.0.1',
-    'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2-stable/v0.0.7',
-  ],
-  base: [
-    'https://api.studio.thegraph.com/query/46041/impermax-base-solv2/v0.0.2',
-    'https://api.studio.thegraph.com/query/46041/impermax-base-solv2-stable/v0.0.1',
   ],
   arbitrum: [
     'https://api.studio.thegraph.com/query/46041/impermax-arbitrum-v1/v0.0.1',
     'https://api.studio.thegraph.com/query/46041/impermax-arbitrum-v2/v0.0.1',
     'https://api.studio.thegraph.com/query/46041/impermax-arbitrum-solv2/v0.0.2',
   ],
-  avalanche: [
-    'https://api.studio.thegraph.com/query/46041/impermax-avalanche-v1/v0.0.1',
+  optimism: [
+    'https://api.studio.thegraph.com/query/46041/impermax-optimism-solv2/v0.0.1',
   ],
+  fantom: [
+    'https://api.studio.thegraph.com/query/46041/impermax-fantom-solv2/v0.0.2',
+  ],
+  base: [
+    'https://api.studio.thegraph.com/query/46041/impermax-base-solv2/v0.0.2',
+    'https://api.studio.thegraph.com/query/46041/impermax-base-solv2-stable/v0.0.1',
+  ],
+  scroll: [
+    'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2/v0.0.1',
+    'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2-stable/v0.0.7',
+  ],
+  // Skip these as tvl is too low
+  // avalanche: [], moonriver: [], canto: [], zkSync: []
 };
 
 // DEXes or all our StakedLP Token factories for the dex
@@ -63,23 +61,6 @@ const projectPoolFactories = {
     ],
     Satin: ['0xcaf3fb1b03f1d71a110167327f5106be82bee209'],
   },
-  fantom: {
-    Equalizer: ['0xc6366efd0af1d09171fe0ebf32c7943bb310832a'],
-  },
-  optimism: {
-    Velodrome: ['0xf1046053aa5682b4f9a81b5481394da16be5ff5a'],
-  },
-  scroll: {
-    Tokan: [
-      '0x92af10c685d2cf4cd845388c5f45ac5dc97c5024',
-      '0x074568f090e93194289c2c2bf285ee7f60b485a9',
-      '0x6c041ff2d25310a2751c57555265f2364caca195',
-    ],
-  },
-  base: {
-    Aerodrome: ['0x420dd381b31aef6683db6b902084cb0ffece40da'],
-    Scale: ['0xed8db60acc29e14bc867a497d94ca6e3ceb5ec04'],
-  },
   arbitrum: {
     Sushiswap: ['0xc35dadb65012ec5796536bd9864ed8773abc74c4'],
     DXSwap: ['0x359f20ad0f42d75a5077e65f30274cabe6f4f01a'],
@@ -91,6 +72,23 @@ const projectPoolFactories = {
     Solunea: ['0x6ef065573cd3fff4c375d4d36e6ca93cd6e3d499'],
     SolidLizard: ['0x734d84631f00dc0d3fcd18b04b6cf42bfd407074'],
     Auragi: ['0x268bb0220ab61abd9bd42c5db49470bb3e6b0b2f'],
+  },
+  optimism: {
+    Velodrome: ['0xf1046053aa5682b4f9a81b5481394da16be5ff5a'],
+  },
+  fantom: {
+    Equalizer: ['0xc6366efd0af1d09171fe0ebf32c7943bb310832a'],
+  },
+  base: {
+    Aerodrome: ['0x420dd381b31aef6683db6b902084cb0ffece40da'],
+    Scale: ['0xed8db60acc29e14bc867a497d94ca6e3ceb5ec04'],
+  },
+  scroll: {
+    Tokan: [
+      '0x92af10c685d2cf4cd845388c5f45ac5dc97c5024',
+      '0x074568f090e93194289c2c2bf285ee7f60b485a9',
+      '0x6c041ff2d25310a2751c57555265f2364caca195',
+    ],
   },
   avalanche: {
     TraderJoe: ['0x9ad6c38be94206ca50bb0d90783181662f0cfa10'],
@@ -281,13 +279,13 @@ const main = async () => {
 
       const project = getProject(chain, lendingPool.pair.uniswapV2Factory);
       if (!project) {
-        console.warn(`Missing project, skipping borrowable ${id} `);
+        console.warn(`Missing project, skipping pool ${lendingPool.id} `);
         continue;
       }
 
       const price = prices[`${chain}:${underlying.id}`];
       if (!price) {
-        console.warn(`Missing price, skipping borrowable ${id}`);
+        console.warn(`Missing price, skipping pool ${lendingPool.id} `);
         continue;
       }
 

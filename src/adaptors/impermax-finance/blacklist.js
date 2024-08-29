@@ -25,17 +25,6 @@ const blacklistedLendingPools = {
     '0x242dd049be49e795cd60f0da812deef7cf4104dc',
     '0x7166f0509bd1deedf90e42046025d929078089b4',
     '0x6817f1adf8fc29f5cf23ba814cee18120f5e88b7',
-    /* These have the same lending pool, but different borrowables */
-    '0x14a49b53b62f7037814d4f5cab8c92f185d045b0',
-    '0x1714f3d4c4654bd5afd0ff2590d23b053e0bea81',
-    '0x2912a338df9877905e54c557e4d826f84365602e',
-    '0x33df8a72f92fb77b43f787cac7a56697f2ee54ab',
-    '0x59377dbd9f550568540cae0b21412bee1cc3f439',
-    '0x8ce3bf56767dd87e87487f3fae63e557b821ea32',
-    '0x8f7f8a534f6a7d57fbda855cf3588eb1edc4508b',
-    '0xc380e7fa325e1708e9e6ef4d9bed2cd806fcb328',
-    '0xc3a4c0677b033bf6e9a4e22f930f1d60c5cd2c86',
-    '0xe74189ce423345967ef5a646316ece52bb2fbfc9',
   ],
   fantom: [
     '0x65151e7a82c4415a73756608e2c66b39a57dca12'.toLowerCase(),
