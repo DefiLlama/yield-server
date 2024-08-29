@@ -33,7 +33,7 @@ const apr = async () => {
     result.push({
       pool: pool.denom.toString(),
       chain: utils.formatChain('Carbon'),
-      project: 'demex',
+      project: 'demex-perp',
       symbol: symbol,
       tvlUsd: poolTVL ?? 0,
       apy: Number(pool.apy),
