@@ -58,7 +58,7 @@ const poolsFunction = async () => {
     tvlUsd: Number(BN(pool[0].output[2]).div(1e18).toString()),
     apy: Number(BN(pool[0].output[1]).div(1e6).toString()),
     rewardTokens: ['0x02814F435dD04e254Be7ae69F61FCa19881a780D'],
-    poolMeta: 'Exit lockup: 5days ',
+    poolMeta: '5day lockup',
   };
 
   const pina_usdc = {
@@ -69,7 +69,7 @@ const poolsFunction = async () => {
     tvlUsd: Number(BN(usdctvl[0].output).div(1e18).toString()),
     apy: Number(BN(usdcapr[0].output).div(1e6).toString()),
     rewardTokens: ['0x02814F435dD04e254Be7ae69F61FCa19881a780D'],
-    poolMeta: 'Exit lockup: 3days',
+    poolMeta: '3day lockup',
   };
 
   const pina_meme = {
@@ -80,7 +80,7 @@ const poolsFunction = async () => {
     tvlUsd: Number(BN(pool[0].output[5]).div(1e18).toString()),
     apy: Number(BN(pool[0].output[4]).div(1e6).toString()),
     rewardTokens: ['0x02814F435dD04e254Be7ae69F61FCa19881a780D'],
-    poolMeta: 'Exit lockup: 3days',
+    poolMeta: '3day lockup',
   };
 
   const meme_eth = {
@@ -91,7 +91,7 @@ const poolsFunction = async () => {
     tvlUsd: Number(BN(pool[0].output[8]).div(1e18).toString()),
     apy: Number(BN(pool[0].output[7]).div(1e6).toString()),
     rewardTokens: ['0x02814F435dD04e254Be7ae69F61FCa19881a780D'],
-    poolMeta: 'Exit lockup: 3days',
+    poolMeta: '3day lockup',
   };
   return [forge, pina_usdc, pina_meme, meme_eth];
 };

@@ -5,7 +5,6 @@ const abiLendingPool = require('./abiLendingPool');
 const abiProtocolDataProvider = require('./abiProtocolDataProvider');
 const abiIncentivesController = require('./abiIncentivesController');
 
-
 const utils = require('../utils');
 
 const SECONDS_PER_YEAR = 60 * 60 * 24 * 365;
@@ -15,18 +14,20 @@ const chains = {
     LendingPool: '0x5E15d5E33d318dCEd84Bfe3F4EACe07909bE6d9c',
     ProtocolDataProvider: '0xE6729389DEa76D47b5BcB0bA5c080821c3B51329',
     IncentivesController: '0xfa255f5104f129b78f477e9a6d050a02f31a5d86',
-    reward_subgraph: 'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-gnosis-chain-v2',
-  }
+    reward_subgraph: sdk.graph.modifyEndpoint('EJezH1Cp31QkKPaBDerhVPRWsKVZLrDfzjrLqpmv6cGg'),
+  },
 };
 
 const query = gql`
-query BalancerV2Pool {
-  pool(id: "0x388cae2f7d3704c937313d990298ba67d70a3709000200000000000000000026") {
-    totalLiquidity
-    totalShares
+  query BalancerV2Pool {
+    pool(
+      id: "0x388cae2f7d3704c937313d990298ba67d70a3709000200000000000000000026"
+    ) {
+      totalLiquidity
+      totalShares
+    }
   }
-}`;
-
+`;
 
 const getApy = async () => {
   const pools = await Promise.all(
@@ -94,7 +95,7 @@ const getApy = async () => {
           ),
         })
       ).output.map((o) => o.output);
-   
+
       const incentivesVariableDebtTokenData = (
         await sdk.api.abi.multiCall({
           calls: reserveData.map((t) => ({
@@ -102,9 +103,7 @@ const getApy = async () => {
             params: t.variableDebtTokenAddress,
           })),
           chain: sdkChain,
-          abi: abiIncentivesController.find(
-            (n) => n.name === 'getAssetData'
-          ),
+          abi: abiIncentivesController.find((n) => n.name === 'getAssetData'),
         })
       ).output.map((o) => o.output);
 
@@ -115,9 +114,7 @@ const getApy = async () => {
             params: t.aTokenAddress,
           })),
           chain: sdkChain,
-          abi: abiIncentivesController.find(
-            (n) => n.name === 'getAssetData'
-          ),
+          abi: abiIncentivesController.find((n) => n.name === 'getAssetData'),
         })
       ).output.map((o) => o.output);
 
@@ -133,7 +130,9 @@ const getApy = async () => {
         if (!config.isActive) return null;
 
         const price = prices[`${sdkChain}:${t}`]?.price;
-        const rewardTokenPrice = rewardTokenData.pool.totalLiquidity / rewardTokenData.pool.totalShares;
+        const rewardTokenPrice =
+          rewardTokenData.pool.totalLiquidity /
+          rewardTokenData.pool.totalShares;
 
         const tvlUsd = (liquidity[i] / 10 ** decimals[i]) * price;
         const totalBorrowUsd = (totalBorrow[i] / 10 ** decimals[i]) * price;
@@ -142,8 +141,20 @@ const getApy = async () => {
         const apyBase = reserveData[i].currentLiquidityRate / 1e25;
         const apyBaseBorrow = reserveData[i].currentVariableBorrowRate / 1e25;
 
-        const apyReward = (incentivesAgTokenData[i] && totalSupplyUsd)? (incentivesAgTokenData[i][1] * rewardTokenPrice * SECONDS_PER_YEAR) / (totalSupplyUsd * 10e18) : 0;
-        const apyRewardBorrow= (incentivesVariableDebtTokenData[i] && totalBorrowUsd)? (incentivesVariableDebtTokenData[i][1] * SECONDS_PER_YEAR * rewardTokenPrice) / (totalBorrowUsd * 10e18) : 0;
+        const apyReward =
+          incentivesAgTokenData[i] && totalSupplyUsd
+            ? (incentivesAgTokenData[i][1] *
+                rewardTokenPrice *
+                SECONDS_PER_YEAR) /
+              (totalSupplyUsd * 10e18)
+            : 0;
+        const apyRewardBorrow =
+          incentivesVariableDebtTokenData[i] && totalBorrowUsd
+            ? (incentivesVariableDebtTokenData[i][1] *
+                SECONDS_PER_YEAR *
+                rewardTokenPrice) /
+              (totalBorrowUsd * 10e18)
+            : 0;
 
         const ltv = config.ltv / 1e4;
         const borrowable = config.borrowingEnabled;

@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 
 const { gql, request } = require('graphql-request');
 const sdk = require('@defillama/sdk');
@@ -7,9 +7,15 @@ const utils = require('../utils');
 const { arrakisABI } = require('./abi');
 
 const CHAINS = {
-  ethereum: 'mainnet',
-  polygon: 'polygon',
-  optimism: 'optimism',
+  ethereum: sdk.graph.modifyEndpoint(
+    '2jrpKNFuyHgD6rKf5UUMHkmn1LmkCZG4RsGW4DtqU2i'
+  ),
+  polygon: sdk.graph.modifyEndpoint(
+    '3mgJQXKpkggZUKbt8v5pDy9jvkvKV7EEYGi4rogNmLbZ'
+  ),
+  optimism: sdk.graph.modifyEndpoint(
+    'H7KF8RUHTk5PrtQCZ5iFCqB5Xrp66gq1aJhXbJXkW9xB'
+  ),
 };
 
 const CHAIN_IDS = {
@@ -17,9 +23,6 @@ const CHAIN_IDS = {
   optimism: 10,
   polygon: 137,
 };
-
-const getUrl = (chain) =>
-  `https://api.thegraph.com/subgraphs/name/arrakisfinance/vault-v1-${chain}`;
 
 const vaultsQuery = gql`
   {
@@ -54,7 +57,7 @@ const getApy = async () => {
     await Promise.all(
       Object.keys(CHAINS).map(async (chain) => [
         chain,
-        await request(getUrl(CHAINS[chain]), vaultsQuery),
+        await request(CHAINS[chain], vaultsQuery),
       ])
     )
   );
@@ -93,13 +96,13 @@ const getApy = async () => {
     keys.push(tokens[key].map((t) => `${key}:${t}`));
   }
   const prices = (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/${keys
         .flat()
         .join(',')
         .toLowerCase()}`
     )
-  ).body.coins;
+  ).data.coins;
 
   const pools = Object.keys(CHAINS).map((chain) => {
     const { vaults: chainVaults } = vaultData[chain];

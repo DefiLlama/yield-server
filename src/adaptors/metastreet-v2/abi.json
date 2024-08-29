@@ -1,0 +1,91 @@
+{
+    "getPools": "address[]:getPools",
+    "collateralToken": "address:collateralToken",
+    "currencyToken": "address:currencyToken",
+    "name": "string:name",
+    "liquidityNodes": "function liquidityNodes(uint128 startTick, uint128 endTick) view returns (tuple(uint128 tick, uint128 value, uint128 shares, uint128 available, uint128 pending, uint128 redemptions, uint128 prev, uint128 next)[])",
+    "liquidityNodeWithAccrual": {
+      "inputs": [
+        {
+          "internalType": "uint128",
+          "name": "tick",
+          "type": "uint128"
+        }
+      ],
+      "name": "liquidityNodeWithAccrual",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint128",
+              "name": "tick",
+              "type": "uint128"
+            },
+            {
+              "internalType": "uint128",
+              "name": "value",
+              "type": "uint128"
+            },
+            {
+              "internalType": "uint128",
+              "name": "shares",
+              "type": "uint128"
+            },
+            {
+              "internalType": "uint128",
+              "name": "available",
+              "type": "uint128"
+            },
+            {
+              "internalType": "uint128",
+              "name": "pending",
+              "type": "uint128"
+            },
+            {
+              "internalType": "uint128",
+              "name": "redemptions",
+              "type": "uint128"
+            },
+            {
+              "internalType": "uint128",
+              "name": "prev",
+              "type": "uint128"
+            },
+            {
+              "internalType": "uint128",
+              "name": "next",
+              "type": "uint128"
+            }
+          ],
+          "internalType": "struct ILiquidity.NodeInfo",
+          "name": "",
+          "type": "tuple"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint128",
+              "name": "accrued",
+              "type": "uint128"
+            },
+            {
+              "internalType": "uint64",
+              "name": "rate",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint64",
+              "name": "timestamp",
+              "type": "uint64"
+            }
+          ],
+          "internalType": "struct ILiquidity.AccrualInfo",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  }
+  

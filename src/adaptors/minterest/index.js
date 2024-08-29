@@ -1,10 +1,10 @@
 const superagent = require('superagent');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const { comptrollerAbi, ercDelegator } = require('../compound-v2/abi');
 
-const COMPTROLLER_ADDRESS = '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B';
+const COMPTROLLER_ADDRESS = '0xe53a90EFd263363993A3B41Aa29f7DaBde1a932D';
 const CHAIN = 'mantle';
 const GET_ALL_MARKETS = 'getAllMarkets';
 const REWARD_SPEED = 'compSupplySpeeds';
@@ -15,7 +15,7 @@ const TOTAL_BORROWS = 'totalBorrows';
 const GET_CHASH = 'getCash';
 const UNDERLYING = 'underlying';
 const BLOCKS_PER_DAY = 86400 / 12;
-const PROJECT_NAME = 'compound-v2';
+const PROJECT_NAME = 'minterest';
 
 const NATIVE_TOKEN = {
   decimals: 18,
@@ -67,6 +67,7 @@ const getRewards = async (markets, rewardMethod) => {
         params: [market],
       })),
       abi: comptrollerAbi.find(({ name }) => name === rewardMethod),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -77,6 +78,7 @@ const multiCallMarkets = async (markets, method, abi) => {
       chain: CHAIN,
       calls: markets.map((market) => ({ target: market })),
       abi: abi.find(({ name }) => name === method),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -197,8 +199,9 @@ const main = async () => {
         100
       );
     };
-    const apyReward = calcRewardApy(extraRewards, totalSupplyUsd);
-    const apyRewardBorrow = calcRewardApy(extraRewardsBorrow, totalBorrowUsd);
+    const apyReward = calcRewardApy(extraRewards, totalSupplyUsd) ?? null;
+    const apyRewardBorrow =
+      calcRewardApy(extraRewardsBorrow, totalBorrowUsd) ?? null;
 
     let poolReturned = {
       pool: market.toLowerCase(),
@@ -225,7 +228,7 @@ const main = async () => {
     }
     return poolReturned;
   });
-  return pools;
+  return pools.filter((i) => utils.keepFinite(i));
 };
 
 module.exports = {

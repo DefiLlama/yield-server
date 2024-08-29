@@ -1,7 +1,7 @@
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { request, gql } = require('graphql-request');
 const dayjs = require('dayjs');
-const { util, api } = require('@defillama/sdk');
 
 const graphQuery = () => gql`
   {
@@ -28,8 +28,7 @@ const graphQuery = () => gql`
   }
 `;
 
-const graphUrl =
-  'https://api.thegraph.com/subgraphs/name/alwaysbegrowing/arbor-v1';
+const graphUrl = sdk.graph.modifyEndpoint('9MKTb9g59rBG1CNUTrriA6tDdSR8neruGJCP6FjD7SSo');
 
 const defiUrl = 'https://coins.llama.fi/prices/current/';
 
