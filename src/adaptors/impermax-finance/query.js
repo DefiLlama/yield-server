@@ -13,6 +13,11 @@ const graphQuery = `{
     }
     lendingPool {
       id
+      collateral { 
+        liquidationFee
+        liquidationIncentive
+        safetyMargin
+      }
       pair {
         uniswapV2Factory
         token0 {

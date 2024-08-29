@@ -13,33 +13,33 @@ const { GECKOTERMINAL_IDS } = require('./geckoterminal.js');
 
 // All our subgraphs on each chain
 const config = {
-  ethereum: [
-    'https://api.studio.thegraph.com/query/46041/impermax-mainnet-v1/v0.0.1',
-  ],
-  polygon: [
-    'https://api.studio.thegraph.com/query/46041/impermax-x-uniswap-v2-polygon-v2/v0.0.1',
-    'https://api.studio.thegraph.com/query/46041/impermax-polygon-solv2/v0.0.1',
-    'https://api.studio.thegraph.com/query/46041/impermax-polygon-sol-stable/v0.0.1',
-  ],
-  arbitrum: [
-    'https://api.studio.thegraph.com/query/46041/impermax-arbitrum-v1/v0.0.1',
-    'https://api.studio.thegraph.com/query/46041/impermax-arbitrum-v2/v0.0.1',
-    'https://api.studio.thegraph.com/query/46041/impermax-arbitrum-solv2/v0.0.2',
-  ],
-  optimism: [
-    'https://api.studio.thegraph.com/query/46041/impermax-optimism-solv2/v0.0.1',
-  ],
-  fantom: [
-    'https://api.studio.thegraph.com/query/46041/impermax-fantom-solv2/v0.0.2',
-  ],
+  //  ethereum: [
+  //    'https://api.studio.thegraph.com/query/46041/impermax-mainnet-v1/v0.0.1',
+  //  ],
+  //  polygon: [
+  //    'https://api.studio.thegraph.com/query/46041/impermax-x-uniswap-v2-polygon-v2/v0.0.1',
+  //    'https://api.studio.thegraph.com/query/46041/impermax-polygon-solv2/v0.0.1',
+  //    'https://api.studio.thegraph.com/query/46041/impermax-polygon-sol-stable/v0.0.1',
+  //  ],
+  //  arbitrum: [
+  //    'https://api.studio.thegraph.com/query/46041/impermax-arbitrum-v1/v0.0.1',
+  //    'https://api.studio.thegraph.com/query/46041/impermax-arbitrum-v2/v0.0.1',
+  //    'https://api.studio.thegraph.com/query/46041/impermax-arbitrum-solv2/v0.0.2',
+  //  ],
+  //  optimism: [
+  //    'https://api.studio.thegraph.com/query/46041/impermax-optimism-solv2/v0.0.1',
+  //  ],
+  //  fantom: [
+  //    'https://api.studio.thegraph.com/query/46041/impermax-fantom-solv2/v0.0.2',
+  //  ],
   base: [
     'https://api.studio.thegraph.com/query/46041/impermax-base-solv2/v0.0.2',
     'https://api.studio.thegraph.com/query/46041/impermax-base-solv2-stable/v0.0.1',
   ],
-  scroll: [
-    'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2/v0.0.1',
-    'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2-stable/v0.0.7',
-  ],
+  //  scroll: [
+  //    'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2/v0.0.1',
+  //    'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2-stable/v0.0.7',
+  //  ],
   // Skip these as tvl is too low
   // avalanche: [], moonriver: [], canto: [], zkSync: []
 };
@@ -221,13 +221,13 @@ async function getPriceFromGeckoTerminal(chain, tokenAddresses) {
 const SECONDS_PER_YEAR = BigNumber(60 * 60 * 24 * 365);
 
 // Since we're a lending protocol the TVL is the excess supply (ie. `totalBalance`)
-const calculateTvl = (totalBalance, tokenPriceUsd) =>
+const getTvlUsd = (totalBalance, tokenPriceUsd) =>
   BigNumber(totalBalance).times(BigNumber(tokenPriceUsd));
 
-const calculateBorrowApr = (borrowRate) =>
+const getBorrowApr = (borrowRate) =>
   BigNumber(borrowRate).times(SECONDS_PER_YEAR).times(BigNumber(100));
 
-const calculateSupplyApr = (
+const getSupplyApr = (
   totalBorrows,
   totalBalance,
   borrowRate,
@@ -244,8 +244,18 @@ const calculateSupplyApr = (
     .times(BigNumber(1).minus(BigNumber(reserveFactor)));
 };
 
-const calculateTotalBorrows = (totalBorrows, tokenPriceUsd) =>
+const getTotalBorrowsUsd = (totalBorrows, tokenPriceUsd) =>
   BigNumber(totalBorrows).times(BigNumber(tokenPriceUsd));
+
+const getLtv = (safetyMargin, liqIncentive, liqFee) =>
+  BigNumber(1).div(
+    BigNumber(safetyMargin).sqrt().times(BigNumber(liqIncentive).plus(liqFee))
+  );
+
+const getTotalSupplyUsd = (totalBalance, totalBorrows, tokenPriceUsd) =>
+  BigNumber(totalBorrows)
+    .plus(BigNumber(totalBalance))
+    .times(BigNumber(tokenPriceUsd));
 
 /**
  * -> Loop through each chain from config
@@ -289,10 +299,19 @@ const main = async () => {
         continue;
       }
 
-      const tvlUsd = calculateTvl(totalBalance, price);
-      const totalBorrowsUsd = calculateTotalBorrows(totalBorrows, price);
-      const borrowApr = calculateBorrowApr(borrowRate);
-      const supplyApr = calculateSupplyApr(
+      const { safetyMargin, liquidationFee, liquidationIncentive } =
+        lendingPool.collateral;
+
+      const ltv = getLtv(safetyMargin, liquidationIncentive, liquidationFee);
+      const tvlUsd = getTvlUsd(totalBalance, price);
+      const totalBorrowsUsd = getTotalBorrowsUsd(totalBorrows, price);
+      const totalSupplyUsd = getTotalSupplyUsd(
+        totalBalance,
+        totalBorrows,
+        price
+      );
+      const borrowApr = getBorrowApr(borrowRate);
+      const supplyApr = getSupplyApr(
         totalBorrows,
         totalBalance,
         borrowApr,
@@ -309,9 +328,11 @@ const main = async () => {
         symbol: underlying.symbol,
         tvlUsd: tvlUsd.toNumber(),
         totalBorrowUsd: totalBorrowsUsd.toNumber(),
+        totalSupplyUsd: totalSupplyUsd.toNumber(),
         apyBase: supplyApr.toNumber(),
         apyBaseBorrow: borrowApr.toNumber(),
         underlyingTokens: [token0.id, token1.id],
+        ltv: ltv.toNumber().toFixed(3),
       });
     }
   }
