@@ -1,41 +1,33 @@
 const graphQuery = `{
-  lendingPools {
+  borrowables {
     id
-    borrowable0 {
+    totalBalance
+    totalBorrows
+    reserveFactor
+    borrowRate
+    underlying {
       id
-      totalBalance
-      totalBorrows
-      reserveFactor
-      borrowRate
-      underlying {
-        id
-        name
-        symbol
-        decimals
+      name
+      symbol
+      decimals
+    }
+    lendingPool {
+      id
+      pair {
+        uniswapV2Factory
+        token0 {
+          id
+          name
+          symbol
+          decimals
+        }
+        token1 {
+          id
+          name
+          symbol
+          decimals
+        }
       }
-    }
-    borrowable1 {
-      id
-      totalBalance
-      totalBorrows
-      reserveFactor
-      borrowRate
-      underlying {
-        id
-        name
-        symbol
-        decimals
-      }
-    }
-    collateral {
-      id
-      safetyMargin
-      liquidationIncentive
-      liquidationFee
-      totalBalance
-    }
-    pair {
-      uniswapV2Factory
     }
   }
 }`;
