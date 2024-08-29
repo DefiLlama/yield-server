@@ -13,33 +13,33 @@ const { GECKOTERMINAL_IDS } = require('./geckoterminal.js');
 
 // All our subgraphs on each chain
 const config = {
-  //  ethereum: [
-  //    'https://api.studio.thegraph.com/query/46041/impermax-mainnet-v1/v0.0.1',
-  //  ],
-  //  polygon: [
-  //    'https://api.studio.thegraph.com/query/46041/impermax-x-uniswap-v2-polygon-v2/v0.0.1',
-  //    'https://api.studio.thegraph.com/query/46041/impermax-polygon-solv2/v0.0.1',
-  //    'https://api.studio.thegraph.com/query/46041/impermax-polygon-sol-stable/v0.0.1',
-  //  ],
-  //  arbitrum: [
-  //    'https://api.studio.thegraph.com/query/46041/impermax-arbitrum-v1/v0.0.1',
-  //    'https://api.studio.thegraph.com/query/46041/impermax-arbitrum-v2/v0.0.1',
-  //    'https://api.studio.thegraph.com/query/46041/impermax-arbitrum-solv2/v0.0.2',
-  //  ],
-  //  optimism: [
-  //    'https://api.studio.thegraph.com/query/46041/impermax-optimism-solv2/v0.0.1',
-  //  ],
-  //  fantom: [
-  //    'https://api.studio.thegraph.com/query/46041/impermax-fantom-solv2/v0.0.2',
-  //  ],
+  ethereum: [
+    'https://api.studio.thegraph.com/query/46041/impermax-mainnet-v1/v0.0.1',
+  ],
+  polygon: [
+    'https://api.studio.thegraph.com/query/46041/impermax-x-uniswap-v2-polygon-v2/v0.0.1',
+    'https://api.studio.thegraph.com/query/46041/impermax-polygon-solv2/v0.0.1',
+    'https://api.studio.thegraph.com/query/46041/impermax-polygon-sol-stable/v0.0.1',
+  ],
+  arbitrum: [
+    'https://api.studio.thegraph.com/query/46041/impermax-arbitrum-v1/v0.0.1',
+    'https://api.studio.thegraph.com/query/46041/impermax-arbitrum-v2/v0.0.1',
+    'https://api.studio.thegraph.com/query/46041/impermax-arbitrum-solv2/v0.0.2',
+  ],
+  optimism: [
+    'https://api.studio.thegraph.com/query/46041/impermax-optimism-solv2/v0.0.1',
+  ],
+  fantom: [
+    'https://api.studio.thegraph.com/query/46041/impermax-fantom-solv2/v0.0.2',
+  ],
   base: [
     'https://api.studio.thegraph.com/query/46041/impermax-base-solv2/v0.0.2',
     'https://api.studio.thegraph.com/query/46041/impermax-base-solv2-stable/v0.0.1',
   ],
-  //  scroll: [
-  //    'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2/v0.0.1',
-  //    'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2-stable/v0.0.7',
-  //  ],
+  scroll: [
+    'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2/v0.0.1',
+    'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2-stable/v0.0.7',
+  ],
   // Skip these as tvl is too low
   // avalanche: [], moonriver: [], canto: [], zkSync: []
 };
