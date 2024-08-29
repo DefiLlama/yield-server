@@ -1,4 +1,5 @@
 const { request, gql } = require('graphql-request');
+const fetch = require('node-fetch');
 
 const apy = async () => {
   const endpoint = 'https://v2.api.liqwid.finance/graphql';
@@ -57,7 +58,7 @@ const apy = async () => {
         market.lqSupplyAPY * 100 > 100
           ? market.lqSupplyAPY
           : market.lqSupplyAPY * 100,
-      apyBase: market.supplyAPY,
+      apyBase: market.supplyAPY * 100,
       rewardTokens: [market.asset.symbol, 'LQ'],
       underlyingTokens: [market.asset.symbol],
       apyBaseBorrow:
