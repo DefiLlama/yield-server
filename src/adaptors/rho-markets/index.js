@@ -49,7 +49,7 @@ const apy = async () => {
     const pool = `${marketInfo.token}-${chain}`.toLowerCase();
     const underlyingSymbol = marketInfo.underlyingSymbol;
 
-    const poolMeta = `Rho ${underlyingSymbol} Market`.toLowerCase();
+    const poolMeta = `Rho ${underlyingSymbol} Market`;
     const tvlUsd = Number(ethers.utils.formatEther(marketInfo.tvl.toString()));
     const totalSupplyUsd = Number(
       ethers.utils.formatEther(marketInfo.totalSupply.toString())
