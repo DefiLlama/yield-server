@@ -7,7 +7,7 @@ const sdk = require('@defillama/sdk');
 const CHAINS = {
   bsc: 'bsc',
   linea: 'linea',
-  base : 'base'
+  base: 'base',
 };
 
 const config = {
@@ -34,25 +34,26 @@ const config = {
       '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
       '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
     ],
-  }
+  },
 };
 
-const getUrl = (chain, from) =>
-  `https://stats-kixqx.ondigitalocean.app/daily-apy?from=${from}&chain=${chain}`;
+const getUrl = (path, queries) =>
+  `https://stats-kixqx.ondigitalocean.app/${path}${queries}`;
+
+const getTestUrl = (path, queries) => `http://localhost:8080/${path}${queries}`;
 
 const pairsToObj = (pairs) =>
   pairs.reduce((acc, [el1, el2]) => ({ ...acc, [el1]: el2 }), {});
 
-const getApy = async () => {
+const getMultiStrategyVaultsApy = async () => {
   const ONE_DAY = 86400 * 1000; // in milliseconds
   const fromDate = new Date(new Date().getTime() - 7 * ONE_DAY); // 7 days ago like
 
   const vaultsData = pairsToObj(
     await Promise.all(
       Object.keys(CHAINS).map(async (chain) => {
-        const apyResponse = await axios.get(
-          getUrl(CHAINS[chain], fromDate.getTime())
-        );
+        const queries = `?from=${fromDate.getTime()}&chain=${CHAINS[chain]}`;
+        const apyResponse = await axios.get(getUrl('daily-apy', queries));
 
         let apy = 0;
         if (apyResponse.data.status === 'multistrategy_vault_apy_calculated') {
@@ -93,6 +94,39 @@ const getApy = async () => {
   });
 
   return pools;
+};
+
+const getPoolsApy = async () => {
+  const pools = [];
+
+  // const poolsData = pairsToObj(
+  await Promise.all(
+    Object.keys(CHAINS).map(async (chain) => {
+      const apyResponse = await axios.get(
+        getTestUrl('pools-apy', `?chain=${CHAINS[chain]}`)
+      );
+      console.log('apyResponse', apyResponse.data.data);
+      const tvlResponse = await axios.get(
+        getTestUrl('pools-tvl', `?chain=${CHAINS[chain]}`)
+      );
+      console.log('tvlResponse', tvlResponse.data.data);
+
+      // const poolsKeys = new Set([
+      //   ...Object.keys(apyResponse.data.data),
+      //   ...Object.keys(tvlResponse.data.data),
+      // ]);
+
+      // console.log('poolsKeys', poolsKeys);
+    })
+  );
+  // );
+};
+
+const getApy = async () => {
+  const multiStrategyVaultsApy = await getMultiStrategyVaultsApy();
+  await getPoolsApy();
+
+  return [...multiStrategyVaultsApy];
 };
 
 module.exports = {
