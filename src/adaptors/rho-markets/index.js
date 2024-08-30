@@ -3,7 +3,7 @@ const utils = require('../utils');
 const abis = require('./rho-markets.json');
 const ethers = require('ethers');
 
-const markets_state = '0x0c56D8ec24cf7Ca4f0009E571711dFDC73f7104d';
+const markets_state = '0x627d9DCad83B4d2048c71E217Da271db269e09dF';
 const chain = utils.formatChain('Scroll');
 const project = 'rho-markets';
 
@@ -47,15 +47,21 @@ const apy = async () => {
 
   const pools = allMarketsMetadata.map((marketInfo, i) => {
     const pool = `${marketInfo.token}-${chain}`.toLowerCase();
+    const poolMeta = `Rho ${marketInfo.symbol} Market`.toLowerCase();
     const tvlUsd = Number(ethers.utils.formatEther(marketInfo.tvl.toString()));
+    const totalSupplyUsd = Number(
+      ethers.utils.formatEther(marketInfo.totalSupply.toString())
+    );
     const totalBorrowUsd = Number(
-      ethers.utils.formatEther(marketInfo.borrows.toString())
+      ethers.utils.formatEther(marketInfo.totalBorrows.toString())
     );
 
     const supplyRatePerBlock = marketInfo.supplyRatePerBlock;
+    const borrowRatePerBlock = marketInfo.borrowRatePerBlock;
     const blocksPerYear = marketInfo.blocksPerYear;
 
     const apyBase = calculateApy(supplyRatePerBlock, blocksPerYear);
+    const apyBaseBorrow = calculateApy(supplyRatePerBlock, blocksPerYear);
 
     const underlyingSymbol = marketInfo.underlyingSymbol;
     const url = `https://dapp.rhomarkets.xyz/market/${underlyingSymbol}`;
@@ -64,10 +70,14 @@ const apy = async () => {
       pool,
       chain,
       project,
+      poolMeta,
       tvlUsd,
+      totalSupplyUsd,
       totalBorrowUsd,
       apyBase,
+      apyBaseBorrow,
       symbol: underlyingSymbol,
+      underlyingTokens: [marketInfo.underlying],
       url,
     };
   });

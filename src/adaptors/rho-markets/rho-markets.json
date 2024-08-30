@@ -35,9 +35,23 @@
         "internalType": "struct MarketsState.MarketsInfo[]",
         "components": [
           { "name": "tvl", "type": "uint256", "internalType": "uint256" },
-          { "name": "borrows", "type": "uint256", "internalType": "uint256" },
+          {
+            "name": "totalBorrows",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "totalSupply",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
           {
             "name": "supplyRatePerBlock",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "borrowRatePerBlock",
             "type": "uint256",
             "internalType": "uint256"
           },
@@ -79,6 +93,7 @@
       }
     ],
     "outputs": [
+      { "name": "", "type": "uint256", "internalType": "uint256" },
       { "name": "", "type": "uint256", "internalType": "uint256" },
       { "name": "", "type": "uint256", "internalType": "uint256" }
     ],
