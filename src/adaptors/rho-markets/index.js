@@ -47,7 +47,9 @@ const apy = async () => {
 
   const pools = allMarketsMetadata.map((marketInfo, i) => {
     const pool = `${marketInfo.token}-${chain}`.toLowerCase();
-    const poolMeta = `Rho ${marketInfo.symbol} Market`.toLowerCase();
+    const underlyingSymbol = marketInfo.underlyingSymbol;
+
+    const poolMeta = `Rho ${underlyingSymbol} Market`.toLowerCase();
     const tvlUsd = Number(ethers.utils.formatEther(marketInfo.tvl.toString()));
     const totalSupplyUsd = Number(
       ethers.utils.formatEther(marketInfo.totalSupply.toString())
@@ -63,7 +65,6 @@ const apy = async () => {
     const apyBase = calculateApy(supplyRatePerBlock, blocksPerYear);
     const apyBaseBorrow = calculateApy(supplyRatePerBlock, blocksPerYear);
 
-    const underlyingSymbol = marketInfo.underlyingSymbol;
     const url = `https://dapp.rhomarkets.xyz/market/${underlyingSymbol}`;
 
     return {
