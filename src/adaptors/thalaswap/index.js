@@ -40,6 +40,20 @@ async function main() {
     const liquidityPool = (await utils.getData(THALA_POOL_API_URL + pair.type))
       ?.data;
 
+    const swapFeesApr = liquidityPool.apr.find(item => item.source === 'Swap Fees')?.apr;
+    const farmingTHLApr = liquidityPool.apr.find(item => item.source === 'THL')?.apr;
+    const farmingTHAPTApr = liquidityPool.apr.find(item => item.source === 'thAPT')?.apr;
+    const rewardTokens = [];
+
+    // Check and push for THL
+    if (farmingTHLApr > 0) {
+        rewardTokens.push('0x7fd500c11216f0fe3095d0c4b8aa4d64a4e2e04f83758462f2b127255643615::thl_coin::THL');
+    }
+    // Check and push for thAPT
+    if (farmingTHAPTApr > 0) {
+        rewardTokens.push('0xfaf4e633ae9eb31366c9ca24214231760926576c7b625313b3688b5e900731f6::staking::ThalaAPT');
+    }
+
     tvlArr.push({
       pool:
         stablePoolType +
@@ -47,14 +61,13 @@ async function main() {
         '>',
       chain: utils.formatChain('aptos'),
       project: 'thalaswap',
-      apyBase: (liquidityPool.swapFeeApr ?? 0) * 100,
-      apyReward: (liquidityPool.farmingApr ?? 0) * 100,
-      rewardTokens: [
-        '0x7fd500c11216f0fe3095d0c4b8aa4d64a4e2e04f83758462f2b127255643615::thl_coin::THL',
-      ],
+      apyBase: (swapFeesApr ?? 0) * 100,
+      apyReward: ((farmingTHLApr ?? 0) + (farmingTHAPTApr ?? 0)) * 100,
+      rewardTokens,
       symbol: liquidityPool.coins.map((coin) => coin.symbol).join('-'),
       tvlUsd: liquidityPool.tvlUsd,
       underlyingTokens: liquidityPool.coinAddresses,
+      url: `${THALA_DAPP_URL}/pools/${liquidityPool.type}`,
     });
   }
 
