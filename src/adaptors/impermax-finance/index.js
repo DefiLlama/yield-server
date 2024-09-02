@@ -321,7 +321,7 @@ const main = async () => {
       const { token0, token1 } = lendingPool.pair;
 
       pools.push({
-        pool: `${lendingPool.id}-${underlying.symbol}-${chain}`,
+        pool: `${lendingPool.id}-${underlying.symbol}-${chain}`.toLowerCase(),
         poolMeta: `${project} ${token0.symbol}/${token1.symbol}`,
         chain,
         project: 'impermax-finance',
