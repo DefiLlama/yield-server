@@ -40,6 +40,8 @@ const config = {
 const getUrl = (path, queries) =>
   `https://stats-kixqx.ondigitalocean.app/${path}${queries}`;
 
+const getTestUrl = (path, queries) => `http://localhost:8080/${path}${queries}`;
+
 const pairsToObj = (pairs) =>
   pairs.reduce((acc, [el1, el2]) => ({ ...acc, [el1]: el2 }), {});
 
@@ -101,10 +103,10 @@ const getPoolsApy = async () => {
   await Promise.all(
     Object.keys(CHAINS).map(async (chain) => {
       const apyResponse = await axios.get(
-        getUrl('pools-apy', `?chain=${CHAINS[chain]}`)
+        getTestUrl('pools-apy', `?chain=${CHAINS[chain]}`)
       );
       const tvlResponse = await axios.get(
-        getUrl('pools-tvl', `?chain=${CHAINS[chain]}`)
+        getTestUrl('pools-tvl', `?chain=${CHAINS[chain]}`)
       );
 
       const apyResponseData = apyResponse?.data;
@@ -136,6 +138,14 @@ const getPoolsApy = async () => {
               apy: poolTotalApy,
               underlyingTokens: poolData.underlyingTokens,
             };
+
+            // add reward and base APYs if reward token exists
+            if (!!apyResponseData?.data?.[pool]?.rewardTokenAddress) {
+              const rewardToken = apyResponseData.data[pool].rewardTokenAddress;
+              poolObj.rewardTokens = [rewardToken];
+              poolObj.apyReward = Number(apyResponseData.data[pool].rewardApy);
+              poolObj.apyBase = Number(apyResponseData.data[pool].feeApy);
+            }
 
             pools.push(poolObj);
           }
