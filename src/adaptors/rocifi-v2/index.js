@@ -7,8 +7,7 @@ const {
 } = require('ethers');
 const abi = require('./abi');
 
-const GRAPH_URL =
-  'https://api.thegraph.com/subgraphs/name/rocifi/rocifi-matic-lending-v2';
+const GRAPH_URL = sdk.graph.modifyEndpoint('42Yjxm8KTaBKfnzycNEhizZxd8jDfgnH9F5kWkzBikAq');
 
 const chain = 'polygon';
 
@@ -70,9 +69,12 @@ const getApy = async (pool) => {
 
 const getPricesByAddresses = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses.map((address) => `${chain}:${address}`),
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .map((address) => `${chain}:${address}`)
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   return Object.entries(prices).reduce(

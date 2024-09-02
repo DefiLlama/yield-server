@@ -31,9 +31,11 @@ const PROTOCOL_TOKEN = {
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
@@ -75,6 +77,7 @@ const multiCallMarkets = async (markets, method, abi) => {
       chain: CHAIN,
       calls: markets.map((market) => ({ target: market })),
       abi: abi.find(({ name }) => name === method),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -102,7 +105,7 @@ const main = async () => {
 
   const extraRewards = await getRewards(allMarkets, REWARD_SPEED);
   const extraRewardsBorrow = await getRewards(allMarkets, REWARD_SPEED_BORROW);
-  const isPaused = await getRewards(allMarkets, "mintGuardianPaused");
+  const isPaused = await getRewards(allMarkets, 'mintGuardianPaused');
 
   const supplyRewards = await multiCallMarkets(
     allMarkets,
@@ -198,7 +201,7 @@ const main = async () => {
       underlyingTokens: [token],
       rewardTokens: [apyReward ? PROTOCOL_TOKEN.address : null].filter(Boolean),
     };
-    if(isPaused[i] === false){
+    if (isPaused[i] === false) {
       poolReturned = {
         ...poolReturned,
         // borrow fields
@@ -207,15 +210,12 @@ const main = async () => {
         apyBaseBorrow,
         apyRewardBorrow,
         ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
-      }
+      };
     }
-    return poolReturned
+    return poolReturned;
   });
 
-  return pools.filter(
-    (p) =>
-      ![].includes(p.pool)
-  );
+  return pools.filter((p) => ![].includes(p.pool));
 };
 
 module.exports = {

@@ -1,11 +1,11 @@
+const sdk = require('@defillama/sdk');
 const { gql, request } = require('graphql-request');
 const { mean } = require('lodash');
 const utils = require('../utils');
 
 const API = {
-  Avalanche:
-    'https://api.thegraph.com/subgraphs/name/ribbon-finance/ribbon-avax',
-  Ethereum: 'https://api.thegraph.com/subgraphs/name/ribbon-finance/ribbon-v2',
+  Avalanche: sdk.graph.modifyEndpoint('AmJzFkqot9NjxPCRLK8yXopYt3rtS736ZEX2zEFg7Tz2'),
+  Ethereum: sdk.graph.modifyEndpoint('3GhHcRwF6yH7WXGcJJvac9B5MHPuoXhS9uxc49TPqLf6'),
 };
 
 const getNWeekApy = (perf, weekN) => {
@@ -79,7 +79,7 @@ const apyChain = async (chain) => {
     const fee = 0.12;
     const apy = mean(
       [1, 2, 3, 4].map((n) => {
-        const nWeekApy = getNWeekApy(perf, perf.length - n);
+        const nWeekApy = getNWeekApy(perf, perf.length - n - 1);
         return nWeekApy > 0 ? nWeekApy * (1 - fee) : nWeekApy;
       })
     );
@@ -124,7 +124,7 @@ const apy = async () => {
     chains.map(async (chain) => await apyChain(chain))
   );
 
-  return pools.flat().filter(({ apyBase }) => apyBase > 0);
+  return pools.flat();
 };
 
 module.exports = {

@@ -32,11 +32,12 @@ const PROTOCOL_TOKEN = {
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
-
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
       ...acc,
@@ -66,6 +67,7 @@ const getRewards = async (markets, rewardMethod) => {
         params: [market],
       })),
       abi: comptrollerAbi.find(({ name }) => name === rewardMethod),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -76,6 +78,7 @@ const multiCallMarkets = async (markets, method, abi) => {
       chain: CHAIN,
       calls: markets.map((market) => ({ target: market })),
       abi: abi.find(({ name }) => name === method),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };

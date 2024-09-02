@@ -5,7 +5,7 @@ const superagent = require('superagent');
 const { getProvider } = require('@defillama/sdk/build/general');
 const utils = require('../utils');
 
-const dsEthIndex  = {
+const dsEthIndex = {
   address: '0x341c05c0E9b33C0E38d64de76516b2Ce970bB3BE',
   chain: 'Ethereum',
   symbol: 'dsETH',
@@ -20,22 +20,28 @@ const icEthIndex = {
 const SetTokenABI = ['function totalSupply() external view returns (uint256)'];
 
 const buildPool = async (index) => {
-  const apy = await getApy(index.symbol);
-  const tvlUsd = await getTvlUsd(index);
-  const chain = utils.formatChain(index.chain);
-  return {
-    pool: `${index.address}-${chain}`.toLowerCase(),
-    chain,
-    project: 'index-coop',
-    symbol: index.symbol,
-    tvlUsd,
-    apy,
-  };
+  try {
+    const apy = await getApy(index.symbol);
+    const tvlUsd = await getTvlUsd(index);
+    const chain = utils.formatChain(index.chain);
+    return {
+      pool: `${index.address}-${chain}`.toLowerCase(),
+      chain,
+      project: 'index-coop',
+      symbol: index.symbol,
+      tvlUsd,
+      apy,
+    };
+  } catch (err) {
+    console.log(err);
+  }
 };
 
 const getApy = async (indexSymbol) => {
-  const indexPath = indexSymbol.toLowerCase()
-  const res = await superagent.get(`https://api.indexcoop.com/${indexPath}/apy`);
+  const indexPath = indexSymbol.toLowerCase();
+  const res = await superagent.get(
+    `https://api.indexcoop.com/${indexPath}/apy`
+  );
   const json = JSON.parse(res.text);
   const apy = BigNumber(json.apy);
   return apy.div(1e18).toNumber();
@@ -45,9 +51,7 @@ const getPrice = async (index) => {
   const chain = utils.formatChain(index.chain);
   const key = `${chain}:${index.address}`.toLowerCase();
   const ethPriceUSD = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: [key],
-    })
+    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
   ).body.coins[key].price;
   return ethPriceUSD;
 };
@@ -67,9 +71,11 @@ const getTvlUsd = async (index) => {
 };
 
 const main = async () => {
-  const dsEth = await buildPool(dsEthIndex);
-  const icEth = await buildPool(icEthIndex);
-  return [dsEth, icEth];
+  // const dsEth = await buildPool(dsEthIndex);
+  // const icEth = await buildPool(icEthIndex);
+  // return [dsEth, icEth].filter((i) => Boolean(i));
+  const icETH = await buildPool(icEthIndex);
+  return [icETH];
 };
 
 module.exports = {

@@ -6,9 +6,12 @@ const STARGATE_USDT = '0x29e38769f23701a2e4a8ef0492e19da4604be62c';
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses.map((address) => `avax:${address}`),
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .map((address) => `avax:${address}`)
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesBySymbol = Object.entries(prices).reduce(
@@ -70,10 +73,17 @@ const main = async () => {
             (farm.totalDeposits / farm.lpToken.supply);
         }
       } else {
-        const tokenSymbol = farm.depositToken.address.toLowerCase();
-        const tokenName = farm.name.toLowerCase();
-        const tokenPrice =
-          pricesByAddress[tokenSymbol] || pricesBySymbol[tokenName];
+        let tokenPrice = 0;
+
+        if (farm.platform == 'wombat') {
+          const tokenSymbol = farm.depositToken.underlying[0].toLowerCase();
+          tokenPrice = pricesByAddress[tokenSymbol];
+        } else {
+          const tokenSymbol = farm.depositToken.address.toLowerCase();
+          const tokenName = farm.name.toLowerCase();
+          tokenPrice =
+            pricesByAddress[tokenSymbol] || pricesBySymbol[tokenName];
+        }
 
         if (farm.depositToken.stablecoin) tvlUsd = Number(farm.totalDeposits);
         else if (tokenPrice) tvlUsd = tokenPrice * Number(farm.totalDeposits);

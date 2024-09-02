@@ -8,7 +8,7 @@ const BigNumber = require('bignumber.js');
 
 const utils = require('../utils');
 
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 
 let uniswapV3FactoryContract;
 let stakePrizePoolContract;
@@ -45,6 +45,28 @@ async function init() {
   );
 }
 
+async function getTokenPriceInWeth(tokenContract) {
+  const uniswapV3TokenWethPoolAddress = await uniswapV3FactoryContract.methods
+    .getPool(tokenContract.options.address, WETH_ADDRESS, 3000)
+    .call();
+  const uniswapV3TokenWethPoolContract = new web3.eth.Contract(
+    uniswapV3PoolAbi,
+    uniswapV3TokenWethPoolAddress
+  );
+
+  const { tick } = await uniswapV3TokenWethPoolContract.methods.slot0().call();
+
+  const tokenDecimals = await tokenContract.methods.decimals().call();
+  const wethDecimals = await wethContract.methods.decimals().call();
+
+  const oneTokenInWeth =
+    1 /
+    ((1.0001 ** Number(tick) * 10 ** Number(wethDecimals)) /
+      10 ** Number(tokenDecimals));
+
+  return oneTokenInWeth;
+}
+
 async function getTokenPriceInUsdc(tokenContract) {
   const uniswapV3TokenUsdcPoolAddress = await uniswapV3FactoryContract.methods
     .getPool(tokenContract.options.address, USDC_ADDRESS, 3000)
@@ -60,37 +82,46 @@ async function getTokenPriceInUsdc(tokenContract) {
   const usdcDecimals = await usdcContract.methods.decimals().call();
 
   const oneTokenInUsdc =
-    1 / ((1.0001 ** Math.abs(tick) * 10 ** usdcDecimals) / 10 ** tokenDecimals);
+    1 /
+    ((1.0001 ** Number(tick) * 10 ** Number(usdcDecimals)) /
+      10 ** Number(tokenDecimals));
 
   return oneTokenInUsdc;
 }
 
 async function getApy() {
   // 1. Retrieve reward per year amount (in ASX tokens).
-  let rewardPerSecondInAsxTokens = await stakePrizePoolContract.methods
-    .getRewardPerSecond()
+  let rewardPerSecondInEsAsxTokens = await stakePrizePoolContract.methods
+    .esAsxRewardPerSecond()
     .call();
 
-  const rewardPerYearInAsxTokens =
-    +new BigNumber(rewardPerSecondInAsxTokens.toString()) * 60 * 60 * 24 * 365;
+  const rewardPerYearInEsAsxTokens =
+    +new BigNumber(rewardPerSecondInEsAsxTokens.toString()) *
+    60 *
+    60 *
+    24 *
+    365;
 
-  // 2. Calculate price of 1 ASX token in USDC.
-  const oneAsxInUsdc = await getTokenPriceInUsdc(asxContract);
+  // 2. Calculate price of 1 ASX token in WETH.
+  const oneAsxInWeth = await getTokenPriceInWeth(asxContract);
 
-  // 3. Calculate reward per year (in ASX tokens, in USDC).
-  const rewardPerYearInAsxTokensInUsdc =
-    rewardPerYearInAsxTokens * +new BigNumber(oneAsxInUsdc.toString());
-
-  // 4. Calculate price of 1 WETH token in USDC.
+  // 3. Calculate price of 1 WETH token in USDC.
   const oneWethPriceUsdc = await getTokenPriceInUsdc(wethContract);
 
-  // 5. Calculate APR.
+  // 4. Calculate price of 1 ASX token in USDC.
+  const oneAsxInUsdc = oneAsxInWeth * oneWethPriceUsdc;
+
+  // 5. Calculate reward per year (in esASX tokens, in USDC).
+  const rewardPerYearInEsAsxTokensInUsdc =
+    rewardPerYearInEsAsxTokens * +new BigNumber(oneAsxInUsdc.toString());
+
+  // 6. Calculate APR.
   const totalInProtocol = +new BigNumber(
     (await ticketContract.methods.totalSupply().call()).toString()
   );
 
   const lockedEthPriceInUsdc = totalInProtocol * oneWethPriceUsdc;
-  const apy = (rewardPerYearInAsxTokensInUsdc / lockedEthPriceInUsdc) * 100;
+  const apy = (rewardPerYearInEsAsxTokensInUsdc / lockedEthPriceInUsdc) * 100;
 
   if (apy === Infinity) {
     return 0;
@@ -107,7 +138,7 @@ async function getApyData() {
     chain: utils.formatChain('ethereum'),
     project: 'asymetrix-protocol',
     symbol: utils.formatSymbol('stETH'),
-    tvlUsd: await utils.getData('https://api.llama.fi/tvl/asymetrix-protocol/'),
+    tvlUsd: await utils.getData('https://api.llama.fi/tvl/asymetrix-protocol'),
     apyReward: await getApy(),
     rewardTokens: [asxContract.options.address], // [ASX]
     underlyingTokens: ['0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84'], // [stETH]

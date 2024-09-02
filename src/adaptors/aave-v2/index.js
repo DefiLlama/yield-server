@@ -60,6 +60,7 @@ const getApy = async () => {
                   : null,
             })),
             chain: sdkChain,
+            permitFailure: true,
           })
         )
       );

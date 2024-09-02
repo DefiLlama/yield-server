@@ -1,4 +1,4 @@
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 
@@ -24,8 +24,8 @@ const calculateApy = (
   cakePrice,
   reserveUSD
 ) => {
-  const poolWeight = poolInfo.allocPoint / totalAllocPoint;
-  const cakePerYear = BLOCKS_PER_YEAR * cakePerBlock;
+  const poolWeight = poolInfo.allocPoint / Number(totalAllocPoint);
+  const cakePerYear = BLOCKS_PER_YEAR * Number(cakePerBlock);
 
   return ((poolWeight * cakePerYear * cakePrice) / reserveUSD) * 100;
 };
@@ -94,17 +94,18 @@ const main = async () => {
   const cakeRateToRegularFarm = await masterChef.methods
     .cakePerBlock(true)
     .call();
-  const normalizedCakePerBlock = cakeRateToRegularFarm / 1e18;
+  const normalizedCakePerBlock = cakeRateToRegularFarm / BigInt(1e18);
 
   const [poolsRes, lpTokensRes] = await Promise.all(
     ['poolInfo', 'lpToken'].map((method) =>
       sdk.api.abi.multiCall({
         abi: masterChefABI.filter(({ name }) => name === method)[0],
-        calls: [...Array(Number(poolsCount - 1)).keys()].map((i) => ({
+        calls: [...Array(Number(poolsCount) - 1).keys()].map((i) => ({
           target: MASTERCHEF_ADDRESS,
           params: i,
         })),
         chain: 'bsc',
+        permitFailure: true,
       })
     )
   );
@@ -124,6 +125,7 @@ const main = async () => {
               params: method === 'balanceOf' ? [MASTERCHEF_ADDRESS] : null,
             })),
             chain: 'bsc',
+            permitFailure: true,
           })
       )
     );
@@ -140,6 +142,7 @@ const main = async () => {
       abi: 'erc20:symbol',
       calls: token0.map((t) => ({ target: t })),
       chain: 'bsc',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -148,6 +151,7 @@ const main = async () => {
       abi: 'erc20:symbol',
       calls: token1.map((t) => ({ target: t })),
       chain: 'bsc',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -157,6 +161,7 @@ const main = async () => {
       abi: 'erc20:decimals',
       calls: token0.map((t) => ({ target: t })),
       chain: 'bsc',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
   const decimals1 = (
@@ -164,6 +169,7 @@ const main = async () => {
       abi: 'erc20:decimals',
       calls: token1.map((t) => ({ target: t })),
       chain: 'bsc',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -215,7 +221,7 @@ const main = async () => {
   );
 
   // rmv null elements
-  return pools.filter(Boolean);
+  return pools.filter(Boolean).filter((i) => utils.keepFinite(i));
 };
 
 module.exports = {
