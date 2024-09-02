@@ -40,8 +40,6 @@ const config = {
 const getUrl = (path, queries) =>
   `https://stats-kixqx.ondigitalocean.app/${path}${queries}`;
 
-const getTestUrl = (path, queries) => `http://localhost:8080/${path}${queries}`;
-
 const pairsToObj = (pairs) =>
   pairs.reduce((acc, [el1, el2]) => ({ ...acc, [el1]: el2 }), {});
 
@@ -103,30 +101,57 @@ const getPoolsApy = async () => {
   await Promise.all(
     Object.keys(CHAINS).map(async (chain) => {
       const apyResponse = await axios.get(
-        getTestUrl('pools-apy', `?chain=${CHAINS[chain]}`)
+        getUrl('pools-apy', `?chain=${CHAINS[chain]}`)
       );
-      console.log('apyResponse', apyResponse.data.data);
       const tvlResponse = await axios.get(
-        getTestUrl('pools-tvl', `?chain=${CHAINS[chain]}`)
+        getUrl('pools-tvl', `?chain=${CHAINS[chain]}`)
       );
-      console.log('tvlResponse', tvlResponse.data.data);
 
-      // const poolsKeys = new Set([
-      //   ...Object.keys(apyResponse.data.data),
-      //   ...Object.keys(tvlResponse.data.data),
-      // ]);
+      const apyResponseData = apyResponse?.data;
+      const tvlResponseData = tvlResponse?.data;
 
-      // console.log('poolsKeys', poolsKeys);
+      if (tvlResponseData?.status === 'pools_tvl_prepared') {
+        Object.keys(tvlResponseData.data).forEach((pool) => {
+          const poolData = tvlResponseData.data[pool];
+
+          const poolTvlSuccess =
+            poolData?.status === 'pool_tvl_calculated' &&
+            poolData?.tvlUsd !== 0;
+
+          const poolApySuccess =
+            apyResponseData?.status === 'pools_apy_calculated' &&
+            apyResponseData?.data?.[pool]?.status === 'pool_apy_calculated';
+
+          const poolTotalApy = poolApySuccess
+            ? Number(apyResponseData.data[pool].apyTotal)
+            : 0;
+
+          if (poolTvlSuccess) {
+            const poolObj = {
+              pool: `${poolData.poolAddress}-${chain}`.toLowerCase(),
+              chain: utils.formatChain(chain),
+              project: 'clip-finance',
+              symbol: poolData.tokensSymbols?.map((symbol) => symbol).join('-'),
+              tvlUsd: poolData.tvlUsd,
+              apy: poolTotalApy,
+              underlyingTokens: poolData.underlyingTokens,
+            };
+
+            pools.push(poolObj);
+          }
+        });
+      }
     })
   );
-  // );
+
+  return pools;
 };
 
 const getApy = async () => {
   const multiStrategyVaultsApy = await getMultiStrategyVaultsApy();
-  await getPoolsApy();
+  const poolsApy = await getPoolsApy();
 
-  return [...multiStrategyVaultsApy];
+  return [...multiStrategyVaultsApy, ...poolsApy];
 };
 
 module.exports = {
