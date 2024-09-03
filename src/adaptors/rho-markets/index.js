@@ -63,7 +63,7 @@ const apy = async () => {
     const blocksPerYear = marketInfo.blocksPerYear;
 
     const apyBase = calculateApy(supplyRatePerBlock, blocksPerYear);
-    const apyBaseBorrow = calculateApy(supplyRatePerBlock, blocksPerYear);
+    const apyBaseBorrow = calculateApy(borrowRatePerBlock, blocksPerYear);
 
     const url = `https://dapp.rhomarkets.xyz/market/${underlyingSymbol}`;
 
