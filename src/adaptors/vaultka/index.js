@@ -14,6 +14,7 @@ const getApy = async () => {
     {
       pool: 'DMhoXyVNpCFeCEfEjEQfS6gzAEcPUUSXM8Xnd2UXJfiS',
       symbol: 'SOL',
+      underlyingTokens: ['So11111111111111111111111111111111111111112'],
       data: sol,
     },
   ];
@@ -26,7 +27,7 @@ const getApy = async () => {
     underlyingTokens,
     url: 'https://solana.vaultka.com/',
     apyBase: data.apr,
-    tvlUsd: data.vaultBalanceInUsd,
+    tvlUsd: data.vaultBalanceInUsd + data.borrowedAmountInUsd,
     totalBorrowUsd: data.borrowedAmountInUsd,
   }));
 };

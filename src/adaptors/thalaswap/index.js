@@ -32,7 +32,7 @@ async function main() {
     if (farmingTHAPTApr > 0) {
         rewardTokens.push('0xfaf4e633ae9eb31366c9ca24214231760926576c7b625313b3688b5e900731f6::staking::ThalaAPT');
     }
-    
+
     tvlArr.push({
       pool:
         (liquidityPool.poolType === 'Stable' ? stablePoolType : weightedPoolType) +
