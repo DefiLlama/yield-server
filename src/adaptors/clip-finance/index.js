@@ -7,6 +7,8 @@ const CHAINS = {
   base: 'base',
 };
 
+const POOLS_PAGE = 'https://clip.finance/earn';
+
 const getUrl = (path, queries) =>
   `https://stats-kixqx.ondigitalocean.app/${path}${queries}`;
 
@@ -51,6 +53,7 @@ const getPoolsApy = async () => {
               tvlUsd: poolData.tvlUsd,
               apy: poolTotalApy,
               underlyingTokens: poolData.underlyingTokens,
+              url: `${POOLS_PAGE}/${pool}`,
             };
 
             // add reward and base APYs if reward token exists
@@ -74,5 +77,5 @@ const getPoolsApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getPoolsApy,
-  url: 'https://clip.finance/',
+  url: POOLS_PAGE,
 };
