@@ -3,7 +3,7 @@ const utils = require('../utils');
 const abis = require('./rho-markets.json');
 const ethers = require('ethers');
 
-const markets_state = '0x627d9DCad83B4d2048c71E217Da271db269e09dF';
+const markets_state = '0x5FcDf2257d240Ed53459fAb752E7738e1eF4FA3F';
 const chain = utils.formatChain('Scroll');
 const project = 'rho-markets';
 
@@ -51,6 +51,7 @@ const apy = async () => {
 
     const poolMeta = `Rho ${underlyingSymbol} Market`;
     const tvlUsd = Number(ethers.utils.formatEther(marketInfo.tvl.toString()));
+    const ltv = Number(ethers.utils.formatEther(marketInfo.ltv.toString()));
     const totalSupplyUsd = Number(
       ethers.utils.formatEther(marketInfo.totalSupply.toString())
     );
@@ -72,6 +73,7 @@ const apy = async () => {
       chain,
       project,
       poolMeta,
+      ltv,
       tvlUsd,
       totalSupplyUsd,
       totalBorrowUsd,
