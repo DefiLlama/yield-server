@@ -35,7 +35,14 @@ async function apy() {
   const pageLimit = 5;
   const oracleDecimals = 6;
 
-  chains.forEach(async (chain) => {
+  await getApy('osmosis');
+  await getApy('neutron');
+
+  console.table(apyData);
+
+  return apyData;
+
+  async function getApy(chain) {
     let startAfter = null;
     const { params, redBank, oracle } = contractAddresses[chain];
     const api = restEndpoints[chain];
@@ -45,7 +52,6 @@ async function apy() {
       const assetParams = await queryContract(api, params, {
         all_asset_params: { limit: pageLimit, start_after: startAfter },
       });
-
       if (assetParams.length === pageLimit)
         startAfter = assetParams[assetParams.length - 1].denom;
       else startAfter = null;
@@ -55,9 +61,9 @@ async function apy() {
 
     async function getApyDataForAsset(assetParams, chain) {
       await Promise.all(
-        assetParams.forEach(async (params) => {
-          const asset = tokenInfos.find(
-            (token) => token.denom === params.denom
+        assetParams.map(async (currentParams) => {
+          const asset = tokenInfos.data.find(
+            (token) => token.denom === currentParams.denom
           );
           if (!asset) return;
 
@@ -77,38 +83,41 @@ async function apy() {
               amount_scaled: amountScaled,
             },
           });
-          const priceDecimalsDifference =
-            asset.decimals.toNumber() - oracleDecimals;
-          const price = priceInfo.price.shiftedBy(priceDecimalsDifference);
+
+          const priceDecimalsDifference = asset.decimals - oracleDecimals;
+          const price = new BigNumber(priceInfo.price).shiftedBy(
+            priceDecimalsDifference
+          );
 
           const totalSupplied = new BigNumber(
             totalDepositInfo.amount
           ).shiftedBy(-asset.decimals);
-          const totalBorrowed = new BigNumber(marketInfo.debtInfo).shiftedBy(
+          const totalBorrowed = new BigNumber(debtInfo).shiftedBy(
             -asset.decimals
           );
+
+          const depositApr = marketInfo.liquidity_rate * 100;
+          const borrowApr = marketInfo.borrow_rate * 100;
 
           apyData.push({
             pool: `mars-${asset.denom}-${chain}`.toLowerCase(),
             chain: `${chain.charAt(0).toUpperCase()}${chain.slice(1)}`,
             project: 'mars-protocol',
             symbol: asset.symbol,
-            tvlUsd: totalSupplied.minus(totalBorrowed).times(price).toString(),
-            apyBase: utils.aprToApy(marketInfo.liquidity_rate * 100, 365),
+            tvlUsd: totalSupplied.minus(totalBorrowed).times(price).toNumber(),
+            apyBase: utils.aprToApy(depositApr, 365),
             underlyingTokens: [asset.denom],
-            totalSupplyUsd: totalSupplied.times(price).toString(),
-            totalBorrowUsd: totalBorrowed.times(price).toString(),
-            apyBaseBorrow: utils.aprToApy(marketInfo.borrow_rate * 100, 365),
-            ltv: params.max_loan_to_value,
+            totalSupplyUsd: totalSupplied.times(price).toNumber(),
+            totalBorrowUsd: totalBorrowed.times(price).toNumber(),
+            apyBaseBorrow: utils.aprToApy(borrowApr, 365),
+            ltv: currentParams.max_loan_to_value,
             url: 'https://app.marsprotocol.io/earn/',
-            borrowable: params.red_bank.borrow_enabled,
+            borrowable: currentParams.red_bank.borrow_enabled,
           });
         })
       );
     }
-  });
-
-  return apyData;
+  }
 }
 
 async function queryContract(api, contract, data) {
@@ -117,7 +126,8 @@ async function queryContract(api, contract, data) {
   }
   const encodedData = Buffer.from(data).toString('base64');
   const endpoint = `${api}/cosmwasm/wasm/v1/contract/${contract}/smart/${encodedData}?x-apikey=7e3642de`;
-  return await await utils.getData(endpoint);
+  const result = await await utils.getData(endpoint);
+  return result.data;
 }
 
 module.exports = {
