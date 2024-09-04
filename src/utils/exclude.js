@@ -142,6 +142,7 @@ const excludeAdaptors = [
   'forge',
   'stakehouse',
   'yeti-finance',
+  'lst-optimizer',
 ];
 
 const excludePools = [
