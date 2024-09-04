@@ -98,6 +98,12 @@ async function apy() {
 
           const depositApr = marketInfo.liquidity_rate * 100;
           const borrowApr = marketInfo.borrow_rate * 100;
+          const tvlUsd = totalSupplied
+            .minus(totalBorrowed)
+            .times(price)
+            .toNumber();
+
+          if (tvlUsd < 10_000) return;
 
           apyData.push({
             pool: `mars-${asset.denom}-${chain}`.toLowerCase(),
