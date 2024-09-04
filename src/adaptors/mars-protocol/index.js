@@ -103,7 +103,8 @@ async function apy() {
             .times(price)
             .toNumber();
 
-          if (tvlUsd < 10_000) return;
+          if (tvlUsd < 10_000 || !currentParams.credit_manager.whitelisted)
+            return;
 
           apyData.push({
             pool: `mars-${asset.denom}-${chain}`.toLowerCase(),
