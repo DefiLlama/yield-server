@@ -38,8 +38,6 @@ async function apy() {
   await getApy('osmosis');
   await getApy('neutron');
 
-  console.table(apyData);
-
   return apyData;
 
   async function getApy(chain) {
