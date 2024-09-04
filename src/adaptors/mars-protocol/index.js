@@ -21,8 +21,8 @@ const contractAddresses = {
 };
 
 const restEndpoints = {
-  osmosis: 'https://osmosis-rest.cosmos-apis.com/?x-apikey=7e3642de',
-  neutron: 'https://neutron-rest.cosmos-apis.com/?x-apikey=7e3642de',
+  osmosis: 'https://osmosis-rest.cosmos-apis.com',
+  neutron: 'https://neutron-rest.cosmos-apis.com',
 };
 
 const tokenApis = {
@@ -116,7 +116,7 @@ async function queryContract(api, contract, data) {
     data = JSON.stringify(data);
   }
   const encodedData = Buffer.from(data).toString('base64');
-  const endpoint = `${api}/cosmwasm/wasm/v1/contract/${contract}/smart/${encodedData}`;
+  const endpoint = `${api}/cosmwasm/wasm/v1/contract/${contract}/smart/${encodedData}?x-apikey=7e3642de`;
   return await await utils.getData(endpoint);
 }
 
