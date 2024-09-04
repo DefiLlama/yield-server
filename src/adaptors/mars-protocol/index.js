@@ -118,7 +118,10 @@ async function apy() {
             totalBorrowUsd: totalBorrowed.times(price).toNumber(),
             apyBaseBorrow: utils.aprToApy(borrowApr, 365),
             ltv: currentParams.max_loan_to_value,
-            url: 'https://app.marsprotocol.io/earn/',
+            url:
+              chain === 'osmosis'
+                ? 'https://osmosis.marsprotocol.io/earn/'
+                : 'https://neutron.marsprotocol.io/earn/',
             borrowable: currentParams.red_bank.borrow_enabled,
           });
         })
