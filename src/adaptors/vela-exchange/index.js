@@ -93,8 +93,8 @@ const poolsFunction = async () => {
           chain: `${chain}`,
           params: [esVela]
         })
-      ).output.rewardsPerSec[0],
-      6
+      ).output.rewardsPerSec[1],
+      18
     );
 
 
@@ -156,7 +156,7 @@ const poolsFunction = async () => {
       symbol: 'esVELA',
       poolMeta: 'esVela vesting is up to 6 months',
       tvlUsd: Number(poolTotalLP) * Number(velaPrice),
-      apyReward: USDC_ROI,
+      apyReward: (USDC_ROI * current) + APR,
       underlyingTokens: [VELA_ADDRESS[chain]],
       rewardTokens: [USDC_ADDRESS[chain]]
     };
