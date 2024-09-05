@@ -97,12 +97,17 @@ const getPrices = async (addresses) => {
   return { pricesByAddress, pricesBySymbol };
 };
 
+const baseUrl = 'https://api.goldsky.com/api/public/project_clsk1wzatdsls01wchl2e4n0y/subgraphs/';
 const API_URLS = {
   ethereum:
-    'https://api.studio.thegraph.com/query/65585/zerolend-ethereum-lrt-market/version/latest',
+    baseUrl + 'zerolend-mainnet-lrt/1.0.0/gn',
   linea:
-    'https://api.studio.thegraph.com/query/65585/zerolend-linea-market/version/latest',
-  era: 'https://api.studio.thegraph.com/query/49970/zerolend/version/latest',
+    baseUrl + "zerolend-linea/1.0.0/gn",
+  era: baseUrl + "zerolend-zksync/1.0.0/gn",
+  manta: baseUrl + "zerolend-m/1.0.0/gn",
+  blast: baseUrl + "zerolend-blast/1.0.1/gn",
+  xlayer: baseUrl + "zerolend-xlayer/1.0.0/gn",
+  // era: 'https://api.studio.thegraph.com/query/49970/zerolend/version/latest',
 };
 
 const query = gql`
@@ -215,10 +220,10 @@ const apy = async () => {
         (acc, rew) =>
           acc +
           (rew.emissionsPerSecond / 10 ** rew.rewardTokenDecimals) *
-            SECONDS_PER_YEAR *
-            (pricesByAddress[rew.rewardToken] ||
-              pricesBySymbol[rew.rewardTokenSymbol] ||
-              0),
+          SECONDS_PER_YEAR *
+          (pricesByAddress[rew.rewardToken] ||
+            pricesBySymbol[rew.rewardTokenSymbol] ||
+            0),
         0
       );
 
@@ -227,10 +232,10 @@ const apy = async () => {
         (acc, rew) =>
           acc +
           (rew.emissionsPerSecond / 10 ** rew.rewardTokenDecimals) *
-            SECONDS_PER_YEAR *
-            (pricesByAddress[rew.rewardToken] ||
-              pricesBySymbol[rew.rewardTokenSymbol] ||
-              0),
+          SECONDS_PER_YEAR *
+          (pricesByAddress[rew.rewardToken] ||
+            pricesBySymbol[rew.rewardTokenSymbol] ||
+            0),
         0
       );
       let totalBorrowUsd = totalSupplyUsd - tvlUsd;
