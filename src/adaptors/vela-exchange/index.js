@@ -149,7 +149,7 @@ const poolsFunction = async () => {
       poolMeta: 'VLP',
       tvlUsd: (Number(totalSupply) / 1e18) * Number(current),
       apyBase: APR,
-      underlyingTokens: chain === 'arbitrum'? [USDC_ADDRESS[chain], GHO_ADDRESS[chain]] : USDC_ADDRESS[chain],
+      underlyingTokens: chain === 'arbitrum'? [USDC_ADDRESS[chain], GHO_ADDRESS[chain]] : [USDC_ADDRESS[chain]],
     };
 
     const GHOPool = {
