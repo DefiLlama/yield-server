@@ -86,7 +86,7 @@ const getPools = async () => {
         tvlUsd: poolTvl, // number representing current USD TVL in pool
         apyBase: parseFloat(vault.weeklyFeeAPR), // APY from pool fees/supplying in %
         underlyingTokens: [vault.token0, vault.token1], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
-        poolMeta: vault.beaconName,
+        poolMeta: vault.beaconName.replace('MultiPosition', ''),
         url:
           'https://app.steer.finance/app/' +
           vault.strategyToken.id +

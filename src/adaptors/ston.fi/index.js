@@ -13,6 +13,9 @@ const getApy = async () => {
     console.log("Well done, preparing output list")
     const asset2symbol = {};
     for (const asset of asset_list) {
+        if (asset.community || asset.blacklisted) {
+            continue;
+        }
         asset2symbol[asset.contract_address] = asset.symbol;
     }
     const pool2tvl = {};
@@ -28,11 +31,10 @@ const getApy = async () => {
         }
     }
 
-    const pools = farm_list
-        .filter((farm) => { return farm.status == 'operational' })
-        .filter((farm) => { return farm.pool_address in pool2tvl })
-        .map((farm) => {
-            const pool_info = pool2tvl[farm.pool_address];
+    const pools = Object.keys(pool2tvl)
+        .map((pool_address) => {
+            const farm = farm_list.find((f) => f.pool_address == pool_address && f.status == 'operational')
+            const pool_info = pool2tvl[pool_address];
             if (!(pool_info.tokens[0] in asset2symbol && pool_info.tokens[1] in asset2symbol)) {
                 console.error("Can't find symbol", pool_info);
                 return null;
@@ -52,16 +54,16 @@ const getApy = async () => {
             }
 
             return {
-                pool: `${farm.pool_address}-ton`.toLowerCase(),
+                pool: `${pool_address}-ton`.toLowerCase(),
                 chain: 'Ton',
                 project: 'ston.fi',
                 symbol: symbol,
                 tvlUsd: Number(pool_info.tvl),
                 apyBase: Number(pool_info.base_apy) * 100,
-                apyReward: Number(farm.apy) * 100,
-                rewardTokens: [farm.reward_token_address],
+                apyReward: farm ? Number(farm.apy) * 100 : 0,
+                rewardTokens: farm ? [farm.reward_token_address] : undefined,
                 underlyingTokens: pool_info.tokens,
-                url: `https://app.ston.fi/pools/${farm.pool_address}`
+                url: `https://app.ston.fi/pools/${pool_address}`
             };
         }).filter((pool) => pool != null);
     return pools;

@@ -667,9 +667,7 @@ const topLvl = async (chainString, url, timestamp) => {
           ...(rewardApr && { apyReward: rewardApr }),
           ...(rewardTokens && { rewardTokens: rewardTokens }),
           underlyingTokens: [b.poolTokens[0], b.poolTokens[1]],
-          poolMeta: `${parseInt(b.pool.fee) / 10000}%, tickLower: ${
-            b.ticks[0]
-          }, tickUpper: ${b.ticks[1]}`,
+          poolMeta: `${parseInt(b.pool.fee) / 10000}%`,
           url: `https://www.liquis.app/stake/${b.crvRewards}`,
         };
       })

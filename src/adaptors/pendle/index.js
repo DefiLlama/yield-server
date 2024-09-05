@@ -1,5 +1,6 @@
 const utils = require('../utils');
 const { request, gql } = require('graphql-request');
+const axios = require('axios');
 
 const api = 'https://api-v2.pendle.finance/core/graphql';
 const chains = {
@@ -80,7 +81,7 @@ function ptApys(pools) {
     symbol: utils.formatSymbol(p.proName),
     tvlUsd: p.liquidity?.usd,
     apyBase: p.impliedApy * 100,
-    underlyingTokens: [p.sy.underlyingAsset.address],
+    underlyingTokens: [p.underlyingAsset.address],
     poolMeta: `For buying ${p.pt.symbol}`,
     url: `https://app.pendle.finance/trade/markets/${
       p.address
@@ -90,13 +91,12 @@ function ptApys(pools) {
 
 async function apy() {
   const date = new Date();
+
   let pools = (
-    await Promise.all(
-      Object.keys(chains).map((c) =>
-        request(api, query(c)).then((r) => r.markets.results)
-      )
+    await axios.get(
+      'https://api-v2.pendle.finance/bff/v1/1/markets?skip=0&limit=100&select=pro&is_active=true'
     )
-  )
+  ).data.results
     .flat()
     .filter((p) => p.liquidity != null && new Date(p.expiry) > date);
   pools = [poolApys(pools), ptApys(pools)]

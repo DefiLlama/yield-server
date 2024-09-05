@@ -7,11 +7,19 @@ const abiCompoundV3Base = require('./abiCompoundV3Base.json');
 const abiMakerDAO = require('./abiMakerDAO.json');
 const abiConvex = require('./abiConvex.json');
 const abiBenqi = require('./abiBenqiAvalanche.json');
+const abiCurveDex = require('./abiCurveDEX.json');
+const abiLido = require('./abiLido.json');
 
-const getPoolData = async ({ contract, abi, chain }) => {
+const getPoolData = async ({ contract, abi, chain, exchangeRate = 1 }) => {
   const { output: tvlUsd } = await sdk.api.abi.call({
     target: contract,
     abi: abi.find((m) => m.name === 'totalAssets'),
+    chain,
+  });
+
+  const { output: decimals } = await sdk.api.abi.call({
+    target: contract,
+    abi: abi.find((m) => m.name === 'decimals'),
     chain,
   });
 
@@ -24,7 +32,7 @@ const getPoolData = async ({ contract, abi, chain }) => {
 
     return (
       pool.networkName.toLowerCase() === incomingChainParam &&
-      pool.returnContractAddress === contract
+      pool.returnContractAddress.toLowerCase() === contract.toLowerCase()
     );
   });
 
@@ -32,56 +40,77 @@ const getPoolData = async ({ contract, abi, chain }) => {
     pool: `${contract}-${chain}`,
     chain,
     project: 'return-finance',
-    symbol: 'USDC',
-    tvlUsd: tvlUsd / 1000000,
+    symbol: currentPool?.poolPair,
+    tvlUsd: (tvlUsd / Math.pow(10, decimals)) * exchangeRate,
     apyBase: currentPool?.apy,
   };
 };
 
 const getApy = async () => {
+  const ethExchangeRates = await utils.getData(
+    'https://api.coinbase.com/v2/exchange-rates?currency=ETH'
+  );
+
+  const ethUsdExchangeRate = ethExchangeRates.data.rates.USDC;
+
   const aavePolygon = await getPoolData({
-    contract: '0x3B6385493a1d4603809dDbaE647200eF8baA53F5',
+    contract: '0x0271a46c049293448c2d4794bcd51f953bf742e8',
     abi: abiAAVEPolygon,
     chain: 'polygon',
   });
 
   const aaveAvalanche = await getPoolData({
-    contract: '0x3B6385493a1d4603809dDbaE647200eF8baA53F5',
+    contract: '0x0271A46c049293448C2d4794bCD51f953Bf742e8',
     abi: abiAAVEAvalanche,
     chain: 'avax',
   });
 
   const compoundV3Base = await getPoolData({
-    contract: '0x3B6385493a1d4603809dDbaE647200eF8baA53F5',
+    contract: '0xd99d6D4EA1CDa97cC8eaE2A21007C47D3ae54d5F',
     abi: abiCompoundV3Base,
     chain: 'base',
   });
 
+  const benqi = await getPoolData({
+    contract: '0x3A3dAdbca3ec5a815431f45eca33EF1520388Ef2',
+    abi: abiBenqi,
+    chain: 'avax',
+  });
+
   const makerDao = await getPoolData({
-    contract: '0x201254227f9fE57296C257397Be6c617389a8cCb',
+    contract: '0xD8785CDae9Ec24b8796c45E3a2D0F7b03194F826',
     abi: abiMakerDAO,
     chain: 'ethereum',
   });
 
   const convexFinance = await getPoolData({
-    contract: '0xFD360A096E4a4c3C424fc3aCd85da8010D0Db9a5',
+    contract: '0xe5c26497D9492AD2328DFEE7dcA240e55cff1779',
     abi: abiConvex,
     chain: 'ethereum',
   });
 
-   const benqi = await getPoolData({
-     contract: '0xB86e10A24172155aE20B524e6e8E17a244c4d3aE',
-     abi: abiBenqi,
-     chain: 'avax',
-   });
+  const curveDEX = await getPoolData({
+    contract: '0xc2d4d9070236bA4ffefd7cf565eb98d11bFeB8E1',
+    abi: abiCurveDex,
+    chain: 'ethereum',
+  });
+
+  const lido = await getPoolData({
+    contract: '0x2C2f0FFbFA1B8b9C85400f1726e1bc0892e63D9F',
+    abi: abiLido,
+    chain: 'ethereum',
+    exchangeRate: Number(ethUsdExchangeRate),
+  });
 
   return [
     aavePolygon,
     aaveAvalanche,
     compoundV3Base,
+    benqi,
     makerDao,
     convexFinance,
-    benqi,
+    curveDEX,
+    lido,
   ].filter((i) => utils.keepFinite(i));
 };
 
