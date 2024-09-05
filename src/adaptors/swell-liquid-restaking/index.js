@@ -3,8 +3,8 @@ const sdk = require('@defillama/sdk');
 
 const abi = require('./abi.json');
 
-const apr = 'https://v3-lrt.svc.swellnetwork.io/api/tokens/rrswETH/apr';
-const apr7d = 'https://v3-lrt.svc.swellnetwork.io/api/tokens/rrswETH/apr';
+const apr = 'https://v3-lrt.svc.swellnetwork.io/api/tokens/rswETH/apr';
+const apr7d = 'https://v3-lrt.svc.swellnetwork.io/api/tokens/rswETH/apr';
 const rswETH = '0xFAe103DC9cf190eD75350761e95403b7b8aFa6c0';
 
 const apy = async () => {
