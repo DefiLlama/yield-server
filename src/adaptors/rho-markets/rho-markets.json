@@ -1,0 +1,94 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [
+      {
+        "name": "_comptroller",
+        "type": "address",
+        "internalType": "address"
+      },
+      { "name": "_oracle", "type": "address", "internalType": "address" }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "comptroller",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract Comptroller"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getActiveMarketsInfo",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct MarketState.MarketsInfo[]",
+        "components": [
+          { "name": "tvl", "type": "uint256", "internalType": "uint256" },
+          { "name": "ltv", "type": "uint256", "internalType": "uint256" },
+          {
+            "name": "totalSupply",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "totalBorrows",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "supplyRatePerBlock",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "borrowRatePerBlock",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "blocksPerYear",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          { "name": "token", "type": "address", "internalType": "address" },
+          {
+            "name": "underlying",
+            "type": "address",
+            "internalType": "address"
+          },
+          { "name": "symbol", "type": "string", "internalType": "string" },
+          {
+            "name": "underlyingSymbol",
+            "type": "string",
+            "internalType": "string"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "oracle",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract PriceOracleV2"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]
