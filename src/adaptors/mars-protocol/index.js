@@ -101,7 +101,11 @@ async function apy() {
             .times(price)
             .toNumber();
 
-          if (tvlUsd < 10_000 || !currentParams.credit_manager.whitelisted)
+          if (
+            tvlUsd < 10_000 ||
+            !currentParams.credit_manager.whitelisted ||
+            !currentParams.red_bank.deposit_enabled
+          )
             return;
 
           apyData.push({
