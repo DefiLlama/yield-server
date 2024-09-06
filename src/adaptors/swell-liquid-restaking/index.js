@@ -29,16 +29,16 @@ const apy = async () => {
 
   const exchangeRates = await Promise.all([
     sdk.api.abi.call({
-      target: weETH,
+      target: rswETH,
       abi: abi.find((m) => m.name === 'getRate'),
     }),
     sdk.api.abi.call({
-      target: weETH,
+      target: rswETH,
       abi: abi.find((m) => m.name === 'getRate'),
       block: block1dayAgo,
     }),
     sdk.api.abi.call({
-      target: weETH,
+      target: rswETH,
       abi: abi.find((m) => m.name === 'getRate'),
       block: block7dayAgo,
     }),
