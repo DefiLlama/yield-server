@@ -105,5 +105,3 @@ async function calcRate(
 
   return apr1d;
 }
-
-apy()
