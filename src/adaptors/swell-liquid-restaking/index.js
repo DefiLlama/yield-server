@@ -56,6 +56,7 @@ const apy = async () => {
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).data.coins[priceKey].price;
 
+  const rate = exchangeRates[0].output/1e18
   const tvlUsd = totalSupply * rate * ethPrice;
 
   return [
@@ -64,7 +65,7 @@ const apy = async () => {
       project: 'swell-liquid-restaking',
       chain: 'Ethereum',
       symbol: 'rswETH',
-      tvlUsd,
+      tvlUsd: tvlUsd,
       apyBase: apr1d,
       apyBase7d: apr7d,
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
