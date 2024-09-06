@@ -17,11 +17,17 @@ const apy = async () => {
   
   const now = Math.floor(Date.now() / 1000);
 
-  const timestamp1dayAgo = now - 86400;
+  const last_update = (
+    await sdk.api.abi.call({
+      target: rswETH,
+      abi: abi.find((m) => m.name === 'lastRepriceUNIX'),
+    })
+  ).output;
+  const last_time = last_update - 24 // ensure atleast 1 block before last update
   const timestamp7dayAgo = now - 86400 * 7;
 
   const block1dayAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp1dayAgo}`)
+    await axios.get(`https://coins.llama.fi/block/ethereum/${last_time}`)
   ).data.height;
   const block7dayAgo = (
     await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp7dayAgo}`)
