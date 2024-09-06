@@ -50,9 +50,9 @@ const apy = async () => {
     }),
   ]);
 
-
+  const date_delta = (now - last_time) / 86400
   const apr1d =
-    ((exchangeRates[0].output - exchangeRates[1].output) / 1e18) * 365 * 100;
+    ((exchangeRates[0].output - exchangeRates[1].output) / 1e18 / date_delta) * 365 * 100;
 
   const apr7d =
     ((exchangeRates[0].output - exchangeRates[2].output) / 1e18 / 7) * 365 * 100;
