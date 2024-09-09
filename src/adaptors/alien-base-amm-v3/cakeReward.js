@@ -17,7 +17,6 @@ const getCakeAprs = async (chain) => {
   if (chainIds[chain] === undefined) return [];
 
   const masterChef = chainIds[chain].mchef;
-
   const abi = chainIds[chain].abi;
 
   const poolLength = await sdk.api.abi
@@ -27,7 +26,6 @@ const getCakeAprs = async (chain) => {
       chain,
     })
     .then((o) => o.output);
-
   const totalAllocPoint = await sdk.api.abi
     .call({
       abi: abi.find((m) => m.name === 'totalAllocPoint'),
@@ -35,21 +33,20 @@ const getCakeAprs = async (chain) => {
       chain,
     })
     .then((o) => o.output);
-
-  const albPerSec = await sdk.api.abi
+  const latestPeriodCakePerSecond = await sdk.api.abi
     .call({
-      abi: abi.find((m) => m.name === 'albPerSec'),
+      abi: abi.find((m) => m.name === 'latestPeriodCakePerSecond'),
       target: masterChef,
       chain,
     })
     .then((o) => o.output);
 
-  const cakePerSecond = new bn(albPerSec.toString())
+  const cakePerSecond = new bn(latestPeriodCakePerSecond.toString())
     .div(1e18)
     .div(1e12)
     .toString();
 
-  const poolInfoCalls = Array.from({ length: +poolLength })
+  const poolInfoCalls = Array.from({ length: +poolLength + 1 })
     .map((_, i) => i)
     .filter((i) => i !== 0)
     .map((i) => {
@@ -61,55 +58,7 @@ const getCakeAprs = async (chain) => {
 
   const poolInfos = await sdk.api.abi
     .multiCall({
-      abi: {
-        inputs: [
-          {
-            internalType: 'uint256',
-            name: '',
-            type: 'uint256',
-          },
-        ],
-        name: 'poolInfo',
-        outputs: [
-          {
-            internalType: 'contract IBoringERC20',
-            name: 'lpToken',
-            type: 'address',
-          },
-          {
-            internalType: 'uint256',
-            name: 'allocPoint',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'lastRewardTimestamp',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'accAlbPerShare',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint16',
-            name: 'depositFeeBP',
-            type: 'uint16',
-          },
-          {
-            internalType: 'uint256',
-            name: 'harvestInterval',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'totalLp',
-            type: 'uint256',
-          },
-        ],
-        stateMutability: 'view',
-        type: 'function',
-      },
+      abi: abi.find((m) => m.name === 'poolInfo'),
       calls: poolInfoCalls,
       chain,
     })
