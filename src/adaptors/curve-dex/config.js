@@ -31,6 +31,7 @@ exports.BLOCKCHAINIDS.forEach((blockchainId) => {
     case 'ethereum':
     case 'arbitrum':
     case 'fraxtal':
+    case 'fantom':
       blockchainRegistries = REGISTRY_TYPES;
       break;
     case 'xdai':
