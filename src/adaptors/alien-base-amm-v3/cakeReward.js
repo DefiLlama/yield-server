@@ -1,24 +1,23 @@
 const abiMcV3 = require('./masterchef.json');
 
 const utils = require('../utils');
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk5');
 const bn = require('bignumber.js');
 const fetch = require('node-fetch');
-
-const baseUrl = 'https://api.thegraph.com/subgraphs/name';
 
 const chainIds = {
   base: {
     id: 8453,
     mchef: '0x52eaecac2402633d98b95213d0b473e069d86590',
     abi: abiMcV3,
-  }
+  },
 };
 
 const getCakeAprs = async (chain) => {
   if (chainIds[chain] === undefined) return [];
 
   const masterChef = chainIds[chain].mchef;
+
   const abi = chainIds[chain].abi;
 
   const poolLength = await sdk.api.abi
@@ -28,6 +27,7 @@ const getCakeAprs = async (chain) => {
       chain,
     })
     .then((o) => o.output);
+
   const totalAllocPoint = await sdk.api.abi
     .call({
       abi: abi.find((m) => m.name === 'totalAllocPoint'),
@@ -35,20 +35,21 @@ const getCakeAprs = async (chain) => {
       chain,
     })
     .then((o) => o.output);
-  const latestPeriodCakePerSecond = await sdk.api.abi
+
+  const albPerSec = await sdk.api.abi
     .call({
-      abi: abi.find((m) => m.name === 'latestPeriodCakePerSecond'),
+      abi: abi.find((m) => m.name === 'albPerSec'),
       target: masterChef,
       chain,
     })
     .then((o) => o.output);
 
-  const cakePerSecond = new bn(latestPeriodCakePerSecond.toString())
+  const cakePerSecond = new bn(albPerSec.toString())
     .div(1e18)
     .div(1e12)
     .toString();
 
-  const poolInfoCalls = Array.from({ length: +poolLength + 1 })
+  const poolInfoCalls = Array.from({ length: +poolLength })
     .map((_, i) => i)
     .filter((i) => i !== 0)
     .map((i) => {
@@ -60,7 +61,55 @@ const getCakeAprs = async (chain) => {
 
   const poolInfos = await sdk.api.abi
     .multiCall({
-      abi: abi.find((m) => m.name === 'poolInfo'),
+      abi: {
+        inputs: [
+          {
+            internalType: 'uint256',
+            name: '',
+            type: 'uint256',
+          },
+        ],
+        name: 'poolInfo',
+        outputs: [
+          {
+            internalType: 'contract IBoringERC20',
+            name: 'lpToken',
+            type: 'address',
+          },
+          {
+            internalType: 'uint256',
+            name: 'allocPoint',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint256',
+            name: 'lastRewardTimestamp',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint256',
+            name: 'accAlbPerShare',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint16',
+            name: 'depositFeeBP',
+            type: 'uint16',
+          },
+          {
+            internalType: 'uint256',
+            name: 'harvestInterval',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint256',
+            name: 'totalLp',
+            type: 'uint256',
+          },
+        ],
+        stateMutability: 'view',
+        type: 'function',
+      },
       calls: poolInfoCalls,
       chain,
     })

@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk5');
 const { request, gql } = require('graphql-request');
 const superagent = require('superagent');
 
@@ -7,22 +7,22 @@ const { EstimatedFees } = require('./estimateFee');
 const { getCakeAprs } = require('./cakeReward');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
-const {getFeeFromVolume} = require('./getFees');
+const { getFeeFromVolume } = require('./getFees');
 
 const v3abi = require('./uniswapv3.json');
 const bunniLensV2Abi = require('./bunnilens.json');
 
-const bunniLensAddress = '0x8fcd066d9507C02512972673d805a15Aa55031c2' //base only, for now
-const masterChefAddress = '0x52eaecac2402633d98b95213d0b473e069d86590'
+const bunniLensAddress = '0x8fcd066d9507C02512972673d805a15Aa55031c2'; //base only, for now
+const masterChefAddress = '0x52eaecac2402633d98b95213d0b473e069d86590';
 
-const baseUrl = 'https://api.thegraph.com/subgraphs/name';
+const baseUrl = 'https://api.studio.thegraph.com';
 const chains = {
-  ethereum: `${baseUrl}/pancakeswap/exchange-v3-eth`,
-  bsc: `${baseUrl}/pancakeswap/exchange-v3-bsc`,
-  polygon_zkevm:
-    'https://api.studio.thegraph.com/query/45376/exchange-v3-polygon-zkevm/version/latest',
-  era: 'https://api.studio.thegraph.com/query/45376/exchange-v3-zksync/version/latest',
-  arbitrum: `${baseUrl}/pancakeswap/exchange-v3-arb`,
+  base: `${baseUrl}/proxy/59130/v3alb/0.3`,
+  // bsc: `${baseUrl}/pancakeswap/exchange-v3-bsc`,
+  // polygon_zkevm:
+  //   'https://api.studio.thegraph.com/query/45376/exchange-v3-polygon-zkevm/version/latest',
+  // era: 'https://api.studio.thegraph.com/query/45376/exchange-v3-zksync/version/latest',
+  // arbitrum: `${baseUrl}/pancakeswap/exchange-v3-arb`,
 };
 
 const CAKE = {
@@ -86,11 +86,11 @@ const topLvl = async (
     // TODO: Change with actual query
     let queryC = query;
     let dataNow = await request(url, queryC.replace('<PLACEHOLDER>', block));
-    console.log("dataNowPre", dataNow);
+    console.log('dataNowPre', dataNow);
     dataNow = dataNow.poolDayDatas;
 
-    console.log("dataNow", dataNow);
-    
+    console.log('dataNow', dataNow);
+
     //dataNow has an array of objects with tvl, volume, and pool data
 
     const poolsData = dataNow.map((poolData) => {
@@ -99,14 +99,14 @@ const topLvl = async (
         token0: poolData.token0,
         token1: poolData.token1,
         feeTier: poolData.feeTier,
-        volumeUSD1d: poolData.volumeUSD
-      }
-    })
+        volumeUSD1d: poolData.volumeUSD,
+      };
+    });
 
     //queries onchain balance for the pools
 
     const balanceCalls = [];
-    const infoCalls = []
+    const infoCalls = [];
     const bunniLensCalls = [];
     for (const pool of poolsData) {
       balanceCalls.push({
@@ -119,12 +119,12 @@ const topLvl = async (
       });
       infoCalls.push({
         target: pool.address,
-        params: []
-      })
+        params: [],
+      });
       bunniLensCalls.push({
         target: bunniLensAddress,
-        params: pool.address
-      })
+        params: pool.address,
+      });
     }
 
     const tokenBalances = await sdk.api.abi.multiCall({
@@ -138,31 +138,30 @@ const topLvl = async (
       abi: v3abi.find((m) => m.name === 'slot0'),
       calls: infoCalls,
       chain: chainString,
-      permitFailure: true
+      permitFailure: true,
     });
 
     const bunniVaultData = await sdk.api.abi.multiCall({
       abi: bunniLensV2Abi.find((m) => m.name === 'getBunniVaults'),
       calls: bunniLensCalls,
       chain: chainString,
-      permitFailure: true
-    })
+      permitFailure: true,
+    });
 
     poolsData.map((poolData, index) => {
       return {
         ...poolData,
         liquidity: corePoolData[index].liquidity,
         feeProtocol: corePoolData[index].feeProtocol,
-      } 
-    })
+      };
+    });
 
-    
     //bunniVaultData is an array of [pool][[bunniKeys][bunniTokens]]
     //now we need to query specific info about each bunni pool
 
     const bunniInfoCalls = [];
     for (const pool of bunniVaultData) {
-      for(const key of pool) {
+      for (const key of pool) {
         bunniInfoCalls.push({
           target: bunniLensAddress,
           params: key,
@@ -174,13 +173,13 @@ const topLvl = async (
       abi: bunniLensV2Abi.find((m) => m.name === 'pricePerShare'),
       calls: bunniInfoCalls,
       chain: chainString,
-      permitFailure: true
-    })
+      permitFailure: true,
+    });
 
     const bunniTotalSupplyCalls = [];
     const bunniBalanceCalls = [];
     for (const pool of bunniVaultData) {
-      for(const token of pool) {
+      for (const token of pool) {
         bunniTotalSupplyCalls.push({
           target: token,
           params: [],
@@ -206,13 +205,10 @@ const topLvl = async (
       permitFailure: true,
     });
 
-
     let totalCounter = 0;
     //assigns bunni vault objects to poolsData
     bunniVaultData.forEach((bunniVaults, index) => {
-      
       poolsData[index].bunni = bunniVaults[0].map((vault, j) => {
-
         const result = {
           ...vault, //key info
           token: bunniVaults[1][j],
@@ -221,12 +217,10 @@ const topLvl = async (
           liquidity: vaultDetails[totalCounter].liquidity,
           amount0: vaultDetails[totalCounter].amount0,
           amount1: vaultDetails[totalCounter].amount1,
-        }
+        };
         totalCounter++;
       });
-    })
-
-    console.log("poolData", poolData)
+    });
 
     dataNow = dataNow.map((p) => {
       const x = tokenBalances.output.filter((i) => i.input.params[0] === p.id);
@@ -252,7 +246,6 @@ const topLvl = async (
     // calculate tvl
     dataNow = await utils.tvl(dataNow, chainString);
 
-    
     // we have total pool tvl now
     // now we need to query onchain:
     // liquidity from V3 - check
@@ -267,16 +260,16 @@ const topLvl = async (
     //calculate total fee amount
     //we assume that defillama takes care of the averaging of daily volumes and fees
 
-    poolsData.map((poolData) => { 
+    poolsData.map((poolData) => {
       return {
-        fees: getFeeFromVolume(poolData.volumeUSD1d, poolData.feeTier, poolData.protocolFee),
+        fees: getFeeFromVolume(
+          poolData.volumeUSD1d,
+          poolData.feeTier,
+          poolData.protocolFee
+        ),
         ...poolData,
-       }
-    })
-
-    
-
-    
+      };
+    });
 
     // to reduce the nb of subgraph calls for tick range, we apply the lb db filter in here
     dataNow = dataNow.filter(
@@ -327,7 +320,6 @@ const topLvl = async (
     const investmentAmount = 1e5;
     let X = [];
     for (let i = 0; i <= pages; i++) {
-      console.log(i);
       let promises = dataNow.slice(start, stop).map((p) => {
         const delta = p.stablecoin ? pctStablePool : pct;
 
@@ -361,7 +353,6 @@ const topLvl = async (
       ...p,
       apy7d: ((d[p.id] * 52) / investmentAmount) * 100,
     }));
-
 
     return dataNow.map((p) => {
       const poolMeta = `${p.feeTier / 1e4}%`;
@@ -422,7 +413,6 @@ const topLvl = async (
 // poolMeta -> bunniKey/params
 // url -> addLiquidity url
 
-
 const main = async (timestamp = null) => {
   const stablecoins = (
     await superagent.get(
@@ -436,10 +426,7 @@ const main = async (timestamp = null) => {
   let cakeAPRsByChain = {};
   for (const [chain, url] of Object.entries(chains)) {
     cakeAPRsByChain[utils.formatChain(chain)] = await getCakeAprs(chain);
-    console.log(chain);
-    console.log('URL', url);
-    console.log('query', query);
-    console.log('timestamp', timestamp);
+
     data.push(
       await topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins)
     );
