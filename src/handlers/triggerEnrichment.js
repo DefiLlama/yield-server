@@ -353,6 +353,8 @@ const checkStablecoin = (el, stablecoins) => {
     !symbolLC.includes('btc')
   ) {
     stable = true;
+  } else if (el.project === 'curve-dex' && symbolLC.includes('xstable')) {
+    stable = true;
   } else if (el.project === 'convex-finance' && symbolLC.includes('3crv')) {
     stable = true;
   } else if (el.project === 'aave-v2' && symbolLC.includes('amm')) {
