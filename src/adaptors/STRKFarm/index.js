@@ -16,13 +16,14 @@ const apy = async () => {
     if(currTvlUsd < 10000) return;
     let currPool = `${strat.name}`
     let currSymbol = `${strat.depositToken[0]}`
-    let currUnderlyingTokens = `${strat.contract.name}`
+    let currUnderlyingTokens = `${strat.contract[0].name}`
     let currApy = `${(strat.apy) * 100}`
     return {
         pool: currPool,
         chain: 'Starknet',
         project: 'STRKFarm',
         symbol: symbolMap[index],
+        underlyingTokens: currUnderlyingTokens,
         tvlUsd: currTvlUsd,
         apy: currApy,
     };
