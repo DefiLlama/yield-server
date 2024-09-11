@@ -31,8 +31,7 @@ const apy = async () => {
     };
   })
 };
-apy().then((s)=>{console.log(s)
-})
+
 module.exports = {
   timetravel: false,
   apy: apy,
