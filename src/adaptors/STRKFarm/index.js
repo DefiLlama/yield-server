@@ -18,19 +18,20 @@ const apy = async () => {
     let currApy = `${(strategy.apy) * 100}`
     let currPoolId = `${strategy.id}`
     return {
-        pool: currPool,
+        pool: currPoolId,
         chain: 'Starknet',
         project: 'STRKFarm',
         symbol: tokenAddressToSymbolMap[currTokenAddress],
-        underlyingTokens: currUnderlyingTokens,
-        tvlUsd: currTvlUsd,
-        apy: currApy,
+        underlyingTokens: [currUnderlyingTokens],
+        tvlUsd: parseFloat(currTvlUsd),
+        apyBase: parseFloat(currApy),
         url: `https://app.strkfarm.xyz/strategy/${currPoolId}`,
         poolMeta: currPool,
     };
   })
 };
-
+apy().then((s)=>{console.log(s)
+})
 module.exports = {
   timetravel: false,
   apy: apy,
