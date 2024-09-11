@@ -34,7 +34,7 @@ const query = gql`
 const web3 = new Web3(FTM_RPC);
 
 const getRewardTokenApr = async (marketsData) => {
-  const key = 'fantom:0xe0654c8e6fd4d733349ac7e09f6f23da256bf475';
+  const key = 'coingecko:scream';
   const rewardTokenPrice = (
     await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
   ).body.coins[key].price;

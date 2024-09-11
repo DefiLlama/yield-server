@@ -256,19 +256,31 @@ async function apyPerChain(chainName, refPoolAddr, endpoint) {
     }
   }
 
-  return _pools.map((pool, i) => ({
-    pool,
-    chain: utils.formatChain(chainName),
-    project: "gammaswap",
-    symbol: formatSymbols(chainName, _latestPoolsData[i].output.symbols,_latestPoolsData[i].output.tokens),
-    tvlUsd: Number(_gammaPoolTracers[i].lastDailyData.pool.tvlUSD),
-    apyBase: supplyApy(_gammaPoolTracers[i].lastDailyData, _latestPoolsData[i].output),
-    apyBaseBorrow: borrowApy(_gammaPoolTracers[i].lastDailyData, _latestPoolsData[i].output),
-    //rewardTokens: getRewardTokens(chainName, pool, stakingPoolData),
-    //apyReward: getRewardApy(chainName, pool, stakingPoolData), // APY from pool LM rewards in %
-    underlyingTokens: _latestPoolsData[i].output.tokens,
-    url: `https://app.gammaswap.com/earn/${formatChainName(chainName)}/${pool}`,
-  }));
+  return _pools.map((pool, i) => {
+    const pDetails = _gammaPoolTracers[i].lastDailyData.pool;
+
+    return {
+      pool,
+      chain: utils.formatChain(chainName),
+      project: 'gammaswap',
+      symbol: `${pDetails.token0.symbol}-${pDetails.token1.symbol}`,
+      tvlUsd: Number(_gammaPoolTracers[i].lastDailyData.pool.tvlUSD),
+      apyBase: supplyApy(
+        _gammaPoolTracers[i].lastDailyData,
+        _latestPoolsData[i].output
+      ),
+      apyBaseBorrow: borrowApy(
+        _gammaPoolTracers[i].lastDailyData,
+        _latestPoolsData[i].output
+      ),
+      //rewardTokens: getRewardTokens(chainName, pool, stakingPoolData),
+      //apyReward: getRewardApy(chainName, pool, stakingPoolData), // APY from pool LM rewards in %
+      underlyingTokens: _latestPoolsData[i].output.tokens,
+      url: `https://app.gammaswap.com/earn/${formatChainName(
+        chainName
+      )}/${pool}`,
+    };
+  });
 }
 
 module.exports = {

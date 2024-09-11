@@ -13,6 +13,8 @@ const {
 const _ = require('lodash');
 const ethers = require('ethers');
 
+const now = Math.floor(Date.now() / 1000);
+
 const RewardAssetConfig = {
   auraAddress: '0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF',
   balAddress: '0xba100000625a3754423978a60c9317c58a424e3D',
@@ -130,6 +132,16 @@ const main = async () => {
     const validPools = allAuraPools.filter(
       (poolInfo) => poolInfo.shutdown == false
     );
+
+    const lastTimeRewardApplicable = (
+      await sdk.api.abi.multiCall({
+        calls: validPools.map((i) => ({ target: i.crvRewards })),
+        chain,
+        abi: stakingABI.find(({ name }) => name === 'lastTimeRewardApplicable'),
+        permitFailure: true,
+      })
+    ).output.map((o) => o.output);
+
     const validPoolIds = validPools.map((poolInfo) =>
       allAuraPools.indexOf(poolInfo)
     );
@@ -384,6 +396,12 @@ const main = async () => {
         if (swapApr?.poolAprs) {
           data.apyBase = Number(swapApr.poolAprs.swap);
         }
+
+        if (lastTimeRewardApplicable[i] < now) {
+          data.apyReward = 0;
+          data.rewardTokens = [];
+        }
+
         return data;
       })
     );

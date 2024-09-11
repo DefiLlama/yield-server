@@ -190,4 +190,31 @@ module.exports = {
     stateMutability:'view',
     type: 'function'
   },
+  safetyMarginSqrt: {
+    constant: true,
+    inputs: [],
+    name: 'safetyMarginSqrt',
+    outputs: [{ internalType:'uint256', name: '', 'type': 'uint256'}],
+    payable: false,
+    stateMutability:'view',
+    type: 'function'
+  },
+  liquidationPenalty: {
+    constant: true,
+    inputs: [],
+    name: 'liquidationPenalty',
+    outputs: [{ internalType:'uint256', name: '', 'type': 'uint256'}],
+    payable: false,
+    stateMutability:'view',
+    type: 'function'
+  },
+  liquidationIncentive: {
+    constant: true,
+    inputs: [],
+    name: 'liquidationIncentive',
+    outputs: [{ internalType:'uint256', name: '', 'type': 'uint256'}],
+    payable: false,
+    stateMutability:'view',
+    type: 'function'
+  },
 };

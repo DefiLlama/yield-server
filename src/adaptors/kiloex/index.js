@@ -24,6 +24,11 @@ const chains = {
     kUSDT: '0x2646E743A8F47b8d2427dBcc10f89e911f2dBBaa',
     apyEndpoint: 'https://taikoapi.kiloex.io/common/queryKiloNewVaultApyHistory',
     htokens:'https://taikoapi.kiloex.io/vault/hTokens'
+  },
+  bsquared: {
+    kUSDT: '0xB20Faa4BA0DdEbDe49299557f4F1ebB5532745e3',
+    apyEndpoint: 'https://b2api.kiloex.io/common/queryKiloNewVaultApyHistory',
+    htokens:'https://b2api.kiloex.io/vault/hTokens'
   }
 };
 
@@ -36,26 +41,31 @@ const getApy = async () => {
       const hTokensData = (await axios.get(y.htokens)).data.data;
       const apr = hTokensData.apy
       for (const key in hTokensData.tokens) {
-        const token = hTokensData.tokens[key];
-        const balance =
-          (
-            await sdk.api.abi.call({
-              target: token.originToken,
-              abi: 'erc20:balanceOf',
-              params: [y.kUSDT],
+        try {
+            const token = hTokensData.tokens[key];
+            const balance =
+              (
+                await sdk.api.abi.call({
+                  target: token.originToken,
+                  abi: 'erc20:balanceOf',
+                  params: [y.kUSDT],
+                  chain,
+                })
+              ).output / token.tokenPrecision;
+    
+            results.push({
               chain,
-            })
-          ).output / token.tokenPrecision;
-
-        results.push({
-          chain,
-          project: 'kiloex',
-          pool: token.originToken,
-          symbol: token.tokenName,
-          tvlUsd: balance * token.price,
-          apyBase: parseFloat((apr * 100 * token.ltv /10000).toFixed(2)),
-          underlyingTokens: [token.originToken],
-        });
+              project: 'kiloex',
+              pool: token.originToken,
+              symbol: token.tokenName,
+              tvlUsd: balance * token.price,
+              apyBase: parseFloat((apr * 100 * token.ltv /10000).toFixed(2)),
+              underlyingTokens: [token.originToken],
+            });
+        } catch(e) {
+          //skip error
+        }
+        
       }
       // if (chain === 'manta') {
       //   const stoneBalance =

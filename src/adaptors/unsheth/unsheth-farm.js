@@ -116,7 +116,7 @@ async function getWeightedApr(){
     sfrxETH: (await axios.get('https://api.frax.finance/v2/frxeth/summary/latest')).data.sfrxethApr,
     cbETH: (await cbETHAdaptor.apy())[0].apyBase,
     rETH: parseFloat((await axios.get('https://api.rocketpool.net/api/apr')).data.yearlyAPR),
-    wstETH: parseFloat((await axios.get('https://stake.lido.fi/api/sma-steth-apr')).data)
+    wstETH: parseFloat((await axios.get('https://stake.lido.fi/api/sma-steth-apr')).data.data.smaApr)
   }
 
   let darknetRates = await getDarknetRates();

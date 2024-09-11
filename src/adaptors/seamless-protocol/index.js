@@ -104,6 +104,7 @@ const getAllCollateralAssetsForILMs = async () => {
       chain,
       abi: loopStrategyAbi.find(({ name }) => name === 'getAssets'),
       calls: allILMs.map((address) => ({ target: address })),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output.collateral.toLowerCase());
 };
@@ -342,13 +343,15 @@ const ilmApys = async () => {
     { chain }
   );
 
-  const allILMs = await getAllILMs();
+  const exclude = ['0x68dfad1a72c63897fec5fb9de9fdb5670280291e'];
+  const allILMs = (await getAllILMs()).filter((i) => !exclude.includes(i));
 
   const assets = (
     await sdk.api.abi.multiCall({
       chain,
       abi: loopStrategyAbi.find(({ name }) => name === 'getAssets'),
       calls: allILMs.map((address) => ({ target: address })),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 
@@ -357,6 +360,7 @@ const ilmApys = async () => {
       chain,
       abi: loopStrategyAbi.find(({ name }) => name === 'symbol'),
       calls: allILMs.map((address) => ({ target: address })),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 
@@ -365,6 +369,7 @@ const ilmApys = async () => {
       chain,
       abi: loopStrategyAbi.find(({ name }) => name === 'decimals'),
       calls: allILMs.map((address) => ({ target: address })),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 
@@ -373,6 +378,7 @@ const ilmApys = async () => {
       chain,
       abi: loopStrategyAbi.find(({ name }) => name === 'equityUSD'),
       calls: allILMs.map((address) => ({ target: address })),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 
