@@ -9,8 +9,10 @@ const apy = async () => {
     "0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8": "USDC",
     "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7": "ETH"
   };
-  return apyData.strategies.map((strategy, index) => {
-    let currTvlUsd = `${strategy.tvlUsd}`
+  return apyData.strategies
+  .filter(strategy => parseFloat(strategy.tvlUsd) >= 10000)
+  .map((strategy, index) => {
+    let currTvlUsd = `${strategy.tvlUsd}` 
     let currPool = `${strategy.name}`
     let currTokenAddress = `${strategy.depositToken[0]}`
     let currUnderlyingTokens = `${strategy.depositToken[0]}`
@@ -29,8 +31,7 @@ const apy = async () => {
     };
   })
 };
-apy().then((s)=>{console.log(s)
-})
+
 module.exports = {
   timetravel: false,
   apy: apy,
