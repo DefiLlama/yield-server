@@ -2,7 +2,7 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const abi = require('./abis/abi.json');
 
-const project = 'bmx';
+const project = 'bmx-classic-perps';
 
 // Base
 const tokenAddressBMXBase = '0x548f93779fBC992010C07467cBaf329DD5F059B7';
@@ -21,10 +21,12 @@ const tokenAddressBMXMode = '0x66eEd5FF1701E6ed8470DC391F05e27B1d0657eb';
 const mlpManagerAddressMode = '0xf9Fc0B2859f9B6d33fD1Cea5B0A9f1D56C258178';
 
 const feeBmxTrackerAddressMode = '0x548f93779fBC992010C07467cBaf329DD5F059B7';
-const stakedBmxTrackerAddressMode = '0x773F34397d5F378D993F498Ee646FFe4184E00A3';
+const stakedBmxTrackerAddressMode =
+  '0x773F34397d5F378D993F498Ee646FFe4184E00A3';
 
 const feeBltTrackerAddressMode = '0xCcBF79AA51919f1711E40293a32bbC71F8842FC3';
-const stakedBltTrackerAddressMode = '0x6c72ADbDc1029ee901dC97C5604487285D972A4f';
+const stakedBltTrackerAddressMode =
+  '0x6c72ADbDc1029ee901dC97C5604487285D972A4f';
 
 const secondsPerYear = 31536000;
 
@@ -121,8 +123,8 @@ async function getPoolBLT(
     project,
     symbol:
       pChain === 'base'
-        ? utils.formatSymbol('BLT (ETH-BTC-YFI-AERO-MOG-USDC-USDbC)')
-        : utils.formatSymbol('MLT (ETH-BTC-MODE-weETH-USDC)'),
+        ? 'ETH-BTC-YFI-AERO-MOG-USDC-USDbC'
+        : 'ETH-BTC-MODE-weETH-USDC',
     tvlUsd: parseFloat(pTvl),
     apyBase: apyFee,
     apyReward: apyInflation,
@@ -133,15 +135,14 @@ async function getPoolBLT(
         ? '0xe771b4E273dF31B85D7A7aE0Efd22fb44BdD0633'
         : '0x952AdBB385296Dcf86a668f7eaa02DF7eb684439',
     ],
+    poolMeta: pChain === 'base' ? 'BLT' : 'MLT',
   };
 }
 
 const getPools = async () => {
   let pools = [];
 
-  const priceKeys = ['ethereum', 'bmx']
-    .map((t) => `coingecko:${t}`)
-    .join(',');
+  const priceKeys = ['ethereum', 'bmx'].map((t) => `coingecko:${t}`).join(',');
   const { coins: prices } = await utils.getData(
     `https://coins.llama.fi/prices/current/${priceKeys}`
   );
