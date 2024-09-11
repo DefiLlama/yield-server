@@ -11,7 +11,6 @@ const apy = async () => {
   };
   return apyData.strategies.map((strategy, index) => {
     let currTvlUsd = `${strategy.tvlUsd}`
-    if(currTvlUsd < 10000) return;
     let currPool = `${strategy.name}`
     let currTokenAddress = `${strategy.depositToken[0]}`
     let currUnderlyingTokens = `${strategy.depositToken[0]}`
