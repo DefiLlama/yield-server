@@ -12,16 +12,16 @@ const apy = async () => {
   return apyData.strategies
   .filter(strategy => parseFloat(strategy.tvlUsd) >= 10000)
   .map((strategy, index) => {
-    let currTvlUsd = `${strategy.tvlUsd}` 
-    let currPool = `${strategy.name}`
-    let currTokenAddress = `${strategy.depositToken[0]}`
-    let currUnderlyingTokens = `${strategy.depositToken[0]}`
-    let currApy = `${(strategy.apy) * 100}`
-    let currPoolId = `${strategy.id}`
+    const currTvlUsd = `${strategy.tvlUsd}` 
+    const currPool = `${strategy.name}`
+    const currTokenAddress = `${strategy.depositToken[0]}`
+    const currUnderlyingTokens = `${strategy.depositToken[0]}`
+    const currApy = `${(strategy.apy) * 100}`
+    const currPoolId = `${strategy.id}`
     return {
         pool: currPoolId,
         chain: 'Starknet',
-        project: 'STRKFarm',
+        project: 'strkfarm',
         symbol: tokenAddressToSymbolMap[currTokenAddress],
         underlyingTokens: [currUnderlyingTokens],
         tvlUsd: parseFloat(currTvlUsd),
@@ -31,7 +31,8 @@ const apy = async () => {
     };
   })
 };
-
+apy().then((s)=>{console.log(s)
+})
 module.exports = {
   timetravel: false,
   apy: apy,
