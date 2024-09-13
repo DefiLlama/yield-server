@@ -25,7 +25,7 @@ const apy = async () => {
         symbol: tokenAddressToSymbolMap[currTokenAddress],
         underlyingTokens: [currUnderlyingTokens],
         tvlUsd: parseFloat(currTvlUsd),
-        apyBase: parseFloat(currApy),
+        apy: parseFloat(currApy),
         url: `https://app.strkfarm.xyz/strategy/${currPoolId}`,
         poolMeta: currPool,
     };
