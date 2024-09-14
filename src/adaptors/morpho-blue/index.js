@@ -157,9 +157,11 @@ async function fetchBlueMarkets(chainId) {
             0,
             (market.state.netBorrowApy || 0) - (market.state.borrowApy || 0)
           );
+
+          const chain = chainId === 1 ? 'ethereum' : 'base';
           const pool = {
-            pool: `morpho-blue-${market.uniqueKey}`,
-            chain: chainId === 1 ? 'ethereum' : 'base',
+            pool: `morpho-blue-${market.uniqueKey}-${chain}`,
+            chain,
             project: 'morpho-blue',
             symbol: `${market.collateralAsset?.symbol || 'idle-market'}-${
               market.loanAsset.symbol
@@ -247,9 +249,10 @@ async function fetchMetaMorphoAPY(blueMarketsData, chainId) {
               ? []
               : [...new Set(additionalRewardTokens)];
 
+          const chain = chainId === 1 ? 'ethereum' : 'base';
           const pool = {
-            pool: `morpho-blue-${vault.address}`,
-            chain: chainId === 1 ? 'ethereum' : 'base',
+            pool: `morpho-blue-${vault.address}-${chain}`,
+            chain,
             project: 'morpho-blue',
             symbol: vault.symbol,
             apyBase: vault.state.apy || 0,

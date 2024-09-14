@@ -6,6 +6,7 @@ const { default: BigNumber } = require('bignumber.js');
 const { blacklistedLendingPools } = require('./blacklist.js');
 const { graphQuery } = require('./query.js');
 const { GECKOTERMINAL_IDS } = require('./geckoterminal.js');
+const fetch = require('node-fetch');
 
 /**
  *  ADAPTER CONFIGS
