@@ -1,7 +1,16 @@
 const sdk = require('@defillama/sdk');
-const { getProvider } = require('@defillama/sdk/build/general');
 const ethers = require('ethers');
 const axios = require('axios');
+
+// Copied from ../mellow-yield/index.js - Extracts the alchemy key after /v2/
+const transformLink = (link) => {
+  let i = 0;
+  while (link[i] != 'v' || link[i + 1] != '2' || link[i + 2] != '/') {
+    i += 1;
+  }
+
+  return link.substr(i + 3, link.length);
+};
 
 const addressBook = {
   polygon: {
@@ -37,8 +46,9 @@ const getApy = async () => {
     await axios.get(`https://coins.llama.fi/block/polygon/${timestamp1dayAgo}`)
   ).data.height;
 
-  const provider = new ethers.providers.JsonRpcProvider(
-    process.env.ALCHEMY_CONNECTION_POLYGON
+  const provider = new ethers.providers.AlchemyProvider(
+    'matic',
+    transformLink(process.env.ALCHEMY_CONNECTION_ETHEREUM)
   );
 
   return await Promise.all(
