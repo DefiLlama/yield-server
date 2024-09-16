@@ -82,6 +82,7 @@ const getRewards = async (markets, rewardType, rewardSpeedMethod) => {
         params: [rewardType, market],
       })),
       abi: comptrollerAbi.find(({ name }) => name === rewardSpeedMethod),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -92,6 +93,7 @@ const multiCallMarkets = async (markets, method, abi) => {
       chain: CHAIN,
       calls: markets.map((market) => ({ target: market })),
       abi: abi.find(({ name }) => name === method),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };

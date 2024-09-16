@@ -80,7 +80,7 @@ const calcLiquidStakingExchangeRate = (cashReserve, totalShares) => {
    }
 
    return new BigNumber(cashReserve)
-      .multipliedBy(`1e18`)
+      .multipliedBy('1e18')
       .dividedBy(totalShares)
       .toFixed(0, BigNumber.ROUND_DOWN);
 };

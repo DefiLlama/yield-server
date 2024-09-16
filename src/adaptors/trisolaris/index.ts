@@ -13,6 +13,7 @@ const makeCall = async (targets, abi) => {
       abi,
       calls: targets.map((target) => ({ target })),
       chain: 'aurora',
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };

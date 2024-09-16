@@ -1,12 +1,15 @@
+const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 
 const utils = require('../utils');
 const { comptrollerABI } = require('./abi');
 
 const FTM_RPC = 'https://rpc.ankr.com/fantom/';
-const API_URL = 'https://api.thegraph.com/subgraphs/name/0xc30/scream';
+const API_URL = sdk.graph.modifyEndpoint(
+  '5HSMXwr8MjGvXgsur1xJdx9FV47qkaUxttYSsnZ2G3F4'
+);
 const COMPTROLLER_ADDRESS = '0x3d3094Aec3b63C744b9fe56397D36bE568faEBdF';
 
 const BLOCK_TIME = 1;
@@ -31,7 +34,7 @@ const query = gql`
 const web3 = new Web3(FTM_RPC);
 
 const getRewardTokenApr = async (marketsData) => {
-  const key = 'fantom:0xe0654c8e6fd4d733349ac7e09f6f23da256bf475';
+  const key = 'coingecko:scream';
   const rewardTokenPrice = (
     await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
   ).body.coins[key].price;
@@ -44,7 +47,7 @@ const getRewardTokenApr = async (marketsData) => {
   const rewardsPerBlock = await Promise.all(
     marketsData.map(async (market) => ({
       market: market.id,
-      reward: await comptroller.methods.compSpeeds(market.id).call(),
+      reward: Number(await comptroller.methods.compSpeeds(market.id).call()),
       totalBorrowUSD:
         Number(market.totalBorrows) * Number(market.underlyingPriceUSD),
       totalSupplyUSD:

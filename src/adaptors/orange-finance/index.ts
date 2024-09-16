@@ -1,97 +1,119 @@
 const utils = require('../utils');
-const { v1VaultAbi } = require('./abi');
-const Web3 = require('web3');
-const dayjs = require('dayjs');
-const duration =require('dayjs/plugin/duration')
-const { compact, isEmpty, last } = require('lodash');
+const { calculateAPR } = require('./strykeFee');
+const BigNumber = require('bignumber.js');
+const { chain, uniqBy } = require('lodash');
+const { request } = require('graphql-request');
 
-dayjs.extend(duration)
+const orangeGraphUrl =
+  'https://subgraph.satsuma-prod.com/1563a78cd0f9/pao-tech/orange-finance/api';
+const strykeGraphUrl =
+  'https://api.0xgraph.xyz/subgraphs/name/dopex-v2-clamm-public';
 
-const RPC_URL = 'https://arb1.arbitrum.io/rpc'
-const APR_BASE_DAYS = 30
-const V1_VAULTS = [
-  {
-    name: 'ETH-USDC.e',
-    address: '0xB9c5425084671221d7D5A547dBf1Bdcec26C8B7d',
-    yieldStart: 1689033600000,
-    showApy: true,
-  }
-]
-const web3 = new Web3(RPC_URL);
+const {
+  getStrykeVaultListQuery,
+  getUniV3PoolListQuery,
+  getStrykeLpPositionsListQuery,
+  getDailyStrikeEarningsListQuery,
+} = require('./query');
 
-const getAprFromActionEvents = async (address, yieldStart, block) => {
-  const v1Contract = new web3.eth.Contract(v1VaultAbi, address);
+const vaultList = [
+  '0xe1B68841E764Cc31be1Eb1e59d156a4ED1217c2C',
+  '0x708790D732c5886D56b0cBBEd7b60ABF47848FaA',
+  '0x01E371c500C49beA2fa985334f46A8Dc906253Ea',
+  '0x22dd31a495CafB229131A16C54a8e5b2f43C1162',
+  '0x5f6D5a7e8eccA2A53C6322a96e9a48907A8284e0',
+  '0xE32132282D181967960928b77236B3c472d5f396',
+  '0x3D2692Bb38686d0Fb9B1FAa2A3e2e5620EF112A9'
+];
 
-  const events = await v1Contract.getPastEvents('Action', {
-    filter: {actionType: [0]},
-    fromBlock: block
-  })
+const fetchVaultData = async(vault, pool, ethPriceUSD, rewardsData) => {
+  const dataDopexFirst = await request(
+    strykeGraphUrl,
+    getStrykeLpPositionsListQuery,
+    { vaultIds: [vault.id] }
+  );
 
-  const tokenValueList = await Promise.all(events.map(async (event) => {
-    const block = await web3.eth.getBlock(event.blockNumber)
-    const blockTime = dayjs.unix(block.timestamp)
+  const tokenIds = dataDopexFirst?.lppositions.map(lpPosition => lpPosition.strike.id) ?? []
 
-    if (blockTime.valueOf() < yieldStart) {
-      return null
-    }
-    const totalAssets = event.returnValues.totalAssets
-    const totalSupply = event.returnValues.totalSupply
-    const tokenValue = totalSupply !== 0 ? totalAssets / totalSupply : 0
-    return {
-      timestamp: blockTime.valueOf(),
-      tokenValue,
-    }
-  }))
+  const dataDopexSecond = await request(
+    strykeGraphUrl,
+    getDailyStrikeEarningsListQuery,
+    { tokenIds, tokenIdsCount: tokenIds.length, startTime: Math.floor(new Date().getTime() / 1000) - 60 * 60 * 24 }
+  );
+  
+  const lpPositions = dataDopexFirst?.lppositions ?? []
+  const dailyDonations = uniqBy(dataDopexSecond?.dailyDonations, 'strike.id')
+  const dailyFeeCompounds = uniqBy(dataDopexSecond?.dailyFeeCompounds, 'strike.id')
+  const dopexStrikeEarnings = chain(lpPositions)
+    .map(lpPosition => {
+      const donation = dailyDonations.find(d => d.strike.id === lpPosition.strike.id)
+      const compound = dailyFeeCompounds.find(c => c.strike.id === lpPosition.strike.id)
+      if (!donation && !compound) {
+        return null
+      }
 
-  const tokenValues = compact(tokenValueList)
-  const lastSnapshot = last(tokenValues)
-  const lastSnapshotTime = lastSnapshot?.timestamp ?? yieldStart
-  const yearDays = dayjs.duration(1, 'years').asDays()
-
-  if (tokenValues.length >= APR_BASE_DAYS) {
-    const baseSnapshot = tokenValues[tokenValues.length - APR_BASE_DAYS]
-    const gainValue = lastSnapshot.tokenValue - baseSnapshot.tokenValue
-    return (gainValue / baseSnapshot.tokenValue) * 100 * (yearDays / APR_BASE_DAYS)
-  } else {
-    const period = dayjs.duration(lastSnapshotTime - yieldStart, 'milliseconds').asDays()
-    return lastSnapshot.tokenValue * (yearDays / period)
+      return {
+        sqrtPriceX96: donation?.sqrtPriceX96 ?? compound?.sqrtPriceX96,
+        donation: donation?.donation ?? '0',
+        compound: compound?.compound ?? '0',
+        strike: lpPosition?.strike,
+        pool: lpPosition.pool,
+        shares: lpPosition.shares,
+        user: lpPosition.user,
+        handler: lpPosition.handler,
+      }
+    })
+    .compact()
+    .value()
+  
+  const stats = calculateAPR(dopexStrikeEarnings, vault, pool, ethPriceUSD)
+  const vaultStats = {stats, vault, pool}
+  const symbol = vaultStats.vault.isTokenPairReversed
+    ? `${vaultStats.pool.token1.symbol}-${vaultStats.pool.token0.symbol}`
+    : `${vaultStats.pool.token0.symbol}-${vaultStats.pool.token1.symbol}`
+  const apyReward = rewardsData[vault.id]?.rewardAPR || 0
+  return {
+    pool: vaultStats.vault.id,
+    chain: utils.formatChain('arbitrum'),
+    project: 'orange-finance',
+    symbol,
+    apyBase: vaultStats.stats.dopexApr.toNumber() * 100,
+    apyReward,
+    tvlUsd: vaultStats.stats.tvl.toNumber(),
+    poolMeta: 'LPDfi',
+    rewardTokens: ["0x912CE59144191C1204E64559FE8253a0e49E6548"]
   }
 }
 
-const getApy = async () => {
-  const totalDepositList = await Promise.all(
-    ['totalAssets', 'decimals', 'token0'].map((method) =>
-      utils.makeMulticall(
-        v1VaultAbi.find(({ name }) => name === method),
-        V1_VAULTS.map(({ address }) => address),
-        'arbitrum'
-      )
-    )
-  )
+async function getPools() {
+  const dataOrange = await request(orangeGraphUrl, getStrykeVaultListQuery);
 
-  const startTimestamp = dayjs().subtract(APR_BASE_DAYS + 5, 'days').unix()
-  const blocks = await utils.getBlocksByTime([startTimestamp], 'arbitrum')
+  const strykeVaults =
+    dataOrange?.dopexVaults.filter((vault) => {
+      return vaultList
+        .map((address) => address.toLowerCase())
+        .includes(vault.id.toLowerCase());
+    }) ?? [];
 
-  const res = await Promise.all(V1_VAULTS.map(async ({ name, address, yieldStart, showApy }, idx) => {
-    const apyBase = showApy ? await getAprFromActionEvents(address, yieldStart, blocks[0]) : 0
-    const pool = {
-      pool: address,
-      chain: utils.formatChain('arbitrum'),
-      project: 'orange-finance',
-      symbol: name,
-      tvlUsd: Number(totalDepositList[0][idx]) / (10 ** totalDepositList[1][idx]),
-      apyBase,
-      underlyingTokens: [totalDepositList[2][idx]],
-      poolMeta: 'v1',
-    }
-    return pool
+  const dataUni = await request(orangeGraphUrl, getUniV3PoolListQuery, {
+    poolIds: chain(strykeVaults).map((vault) => vault.pool).uniq().value(),
+  });
+  const ethPriceUSD = new BigNumber(dataUni.bundle.ethPriceUSD)
+
+  const rewardsData = await (await fetch('https://raw.githubusercontent.com/orange-finance/resource/main/stats.json')).json()
+  const formattedRewardsData = Object.fromEntries(
+    Object.entries(rewardsData).map(([k, v]) => [k.toLowerCase(), v])
+  );
+
+  const stats = await Promise.all(strykeVaults.map(vault => {
+    const pool = dataUni?.pools.find(pool => pool.id === vault?.pool)
+    return fetchVaultData(vault, pool, ethPriceUSD, formattedRewardsData)
   }))
-
-  return res
+  return stats
 }
 
 module.exports = {
   timetravel: false,
-  apy: getApy,
-  url: 'https://alpha.orangefinance.io',
+  apy: getPools,
+  url: 'https://app.orangefinance.io',
 };

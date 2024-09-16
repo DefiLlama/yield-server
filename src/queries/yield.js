@@ -41,7 +41,7 @@ const getYieldFiltered = async () => {
             FROM
                 $<yieldTable:name>
             WHERE
-                "tvlUsd" >= $<tvlLB>
+                ("tvlUsd" >= $<tvlLB> OR "configID" = $<AAVE_GHO>)
                 AND timestamp >= NOW() - INTERVAL '$<age> DAY'
             ORDER BY
                 "configID",
@@ -61,6 +61,7 @@ const getYieldFiltered = async () => {
     configTable: configTableName,
     excludePools: exclude.excludePools,
     excludeProjects: exclude.excludeAdaptors,
+    AAVE_GHO: '1e00ac2b-0c3c-4b1f-95be-9378f98d2b40',
   });
 
   if (!response) {

@@ -4,7 +4,7 @@ const abi = require('./abis/abi.json');
 const { request, gql } = require('graphql-request');
 const BigNumber = require('bignumber.js');
 
-const baseUrl = 'https://api.thegraph.com/subgraphs/name/defi-techz/covo-price';
+const baseUrl = sdk.graph.modifyEndpoint('FLWnk6nG7NDSTJWEh7UE2FBiYpUT6sspurmLzacNkGYr');
 
 const arbitrumGmxAddress = '0x681D3e1b54B3E1a338feB5B076cebf53a697d51F';
 const arbitrumGlpManagerAddress = '0x8d5398E5f97554334DDdc8ec4b9855652c887802';

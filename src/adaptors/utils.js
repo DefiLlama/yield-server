@@ -22,6 +22,7 @@ exports.formatChain = (chain) => {
   )
     return 'zkSync Era';
   if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
+  if (chain && chain.toLowerCase() === 'real') return 're.al';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
@@ -66,17 +67,6 @@ exports.getBlocksByTime = async (timestamps, chainString) => {
 };
 
 const getLatestBlockSubgraph = async (url) => {
-  // const queryGraph = gql`
-  //   {
-  //     indexingStatusForCurrentVersion(subgraphName: "<PLACEHOLDER>") {
-  //       chains {
-  //         latestBlock {
-  //           number
-  //         }
-  //       }
-  //     }
-  //   }
-  // `;
   const queryGraph = gql`
     {
       _meta {
@@ -87,19 +77,18 @@ const getLatestBlockSubgraph = async (url) => {
     }
   `;
 
-  // const blockGraph = await request(
-  //   'https://api.thegraph.com/index-node/graphql',
-  //   queryGraph.replace('<PLACEHOLDER>', url.split('name/')[1])
-  // );
   const blockGraph =
+    url.includes('https://gateway-arbitrum.network.thegraph.com/api') ||
     url.includes('metis-graph.maiadao.io') ||
     url.includes('babydoge/faas') ||
     url.includes('kybernetwork/kyberswap-elastic-cronos') ||
     url.includes('kybernetwork/kyberswap-elastic-matic') ||
+    url.includes('metisapi.0xgraph.xyz/subgraphs/name') ||
     url.includes(
       'https://subgraph.satsuma-prod.com/09c9cf3574cc/orbital-apes/v3-subgraph/api'
     ) ||
     url.includes('api.goldsky.com') ||
+    url.includes('api.studio.thegraph.com') ||
     url.includes('48211/uniswap-v3-base') ||
     url.includes('horizondex/block') ||
     url.includes('pancake-swap.workers.dev') ||
@@ -417,6 +406,7 @@ const makeMulticall = async (abi, addresses, chain, params = null) => {
       params,
     })),
     chain,
+    permitFailure: true,
   });
 
   const res = data.output.map(({ output }) => output);
@@ -437,4 +427,51 @@ exports.removeDuplicates = (pools) => {
   return pools.filter((i) => {
     return seen.hasOwnProperty(i.pool) ? false : (seen[i.pool] = true);
   });
+};
+
+exports.getERC4626Info = async (
+  address,
+  chain,
+  timestamp = Math.floor(Date.now() / 1e3),
+  {
+    assetUnit = '100000000000000000',
+    totalAssetsAbi = 'uint:totalAssets',
+    convertToAssetsAbi = 'function convertToAssets(uint256 shares) external view returns (uint256)',
+  } = {}
+) => {
+  const DAY = 24 * 3600;
+
+  const [blockNow, blockYesterday] = await Promise.all(
+    [timestamp, timestamp - DAY].map((time) =>
+      axios
+        .get(`https://coins.llama.fi/block/${chain}/${time}`)
+        .then((r) => r.data.height)
+    )
+  );
+  const [tvl, priceNow, priceYesterday] = await Promise.all([
+    sdk.api.abi.call({
+      target: address,
+      block: blockNow,
+      abi: totalAssetsAbi,
+    }),
+    sdk.api.abi.call({
+      target: address,
+      block: blockNow,
+      abi: convertToAssetsAbi,
+      params: [assetUnit],
+    }),
+    sdk.api.abi.call({
+      target: address,
+      block: blockYesterday,
+      abi: convertToAssetsAbi,
+      params: [assetUnit],
+    }),
+  ]);
+  const apy = (priceNow.output / priceYesterday.output) ** 365 * 100 - 100;
+  return {
+    pool: address,
+    chain,
+    tvl: tvl.output,
+    apyBase: apy,
+  };
 };

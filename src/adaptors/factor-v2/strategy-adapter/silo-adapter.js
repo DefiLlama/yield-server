@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 
 async function getSiloAddress(underlyingTokenAddress) {
@@ -33,7 +33,7 @@ async function getSiloApr(underlyingTokenAddress) {
   `;
 
   const response = await request(
-    'https://api.thegraph.com/subgraphs/name/siros-ena/silo-finance-arbitrum-alt',
+    sdk.graph.modifyEndpoint('HduBrJQ362TT8LmLscKuYLpQcMffZe3Z43juCuGkLstG'),
     subgraphQuery,
     {
       interestRateId: `LENDER-VARIABLE-${siloAddress.toLowerCase()}-${underlyingSiloAddress.toLowerCase()}`,

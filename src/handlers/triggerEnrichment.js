@@ -353,6 +353,8 @@ const checkStablecoin = (el, stablecoins) => {
     !symbolLC.includes('btc')
   ) {
     stable = true;
+  } else if (el.project === 'curve-dex' && symbolLC.includes('xstable')) {
+    stable = true;
   } else if (el.project === 'convex-finance' && symbolLC.includes('3crv')) {
     stable = true;
   } else if (el.project === 'aave-v2' && symbolLC.includes('amm')) {
@@ -416,7 +418,8 @@ const checkIlRisk = (el) => {
     symbol.includes('ammuni') ||
     symbol.includes('ammbpt') ||
     symbol.includes('tricrypto') ||
-    symbol.includes('3crypto')
+    symbol.includes('3crypto') ||
+    (symbol.includes('crvusd') && symbol.includes('eth'))
   ) {
     ilRisk = 'yes';
   } else if (tokens.length === 1) {

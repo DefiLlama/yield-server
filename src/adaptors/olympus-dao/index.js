@@ -13,8 +13,7 @@ const OHM_ADDRESS = '0x64aa3364f17a4d01c6f1751fd97c2bd3d7e7f1d5';
 
 const AURA_API =
   'https://graph.aura.finance/subgraphs/name/aura/aura-mainnet-v2';
-const BAL_API =
-  'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-v2';
+const BAL_API = sdk.graph.modifyEndpoint('C4ayEZP2yTXRAB8vSaTrgN4m9anTe9Mdm2ViyiAuV9TV');
 const SWAP_APR_API = 'https://cache.aura.finance/aura/aprs-deprecated';
 const AURA_TVL_API = 'https://cache.aura.finance/aura/tvl-deprecated';
 

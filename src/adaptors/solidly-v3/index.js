@@ -9,7 +9,7 @@ const {
   getPoolTicks,
   get_graph_url,
 } = require('./queries.ts');
-const { EstimateActiveLiq } = require('./estimateActiveLiq.ts');
+// const { EstimateActiveLiq } = require('./estimateActiveLiq.ts');
 const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
 
@@ -113,17 +113,17 @@ const main = async (timestamp = null) => {
         //   // console.log('NEW DELTA', pool.id, delta);
         // }
         let price_assumption = pool.t1.price / pool.t0.price;
-        pool.active_liq_fraction = await EstimateActiveLiq(
-          pool.id,
-          price_assumption,
-          [price_assumption * (1 - delta), price_assumption * (1 + delta)],
-          pool.t1.price,
-          pool.t0.price,
-          pool.tvl,
-          pool.t0.decimals,
-          pool.t1.decimals,
-          get_graph_url()
-        );
+        // pool.active_liq_fraction = await EstimateActiveLiq(
+        //   pool.id,
+        //   price_assumption,
+        //   [price_assumption * (1 - delta), price_assumption * (1 + delta)],
+        //   pool.t1.price,
+        //   pool.t0.price,
+        //   pool.tvl,
+        //   pool.t0.decimals,
+        //   pool.t1.decimals,
+        //   get_graph_url()
+        // );
         // console.log('ACTIVE LIQ', pool.id, delta, pool.active_liq_fraction);
 
         // reduce token fees to total fees in window

@@ -1,5 +1,5 @@
-const sdk = require('@defillama/sdk5');
-const Web3 = require('web3');
+const sdk = require('@defillama/sdk');
+const { Web3 } = require('web3');
 const superagent = require('superagent');
 const { masterChefABI, lpABI } = require('./abis');
 const utils = require('../utils');
@@ -51,7 +51,7 @@ const getPrice = async () => {
     Number(ethPrice * (Number(reserve1) / 10 ** 18)).toString()
   );
   const lpTotalPrice = Number(token0total + token1total);
-  const lpPrice = lpTotalPrice / (totalSupply / 10 ** 18);
+  const lpPrice = lpTotalPrice / (Number(totalSupply) / 10 ** 18);
 
   return { sBasePrice, ethPrice, lpPrice };
 };
@@ -61,8 +61,10 @@ const main = async () => {
   const masterChef = new web3.eth.Contract(masterChefABI, MASTERCHEF_ADDRESS);
 
   const poolsCount = await masterChef.methods.poolLength().call();
-  const totalAllocPoint = await masterChef.methods.totalAllocPoint().call();
-  const perSec = (await masterChef.methods.sBasePerSec().call()) / 1e18;
+  const totalAllocPoint = Number(
+    await masterChef.methods.totalAllocPoint().call()
+  );
+  const perSec = Number(await masterChef.methods.sBasePerSec().call()) / 1e18;
 
   const poolsRes = await sdk.api.abi.multiCall({
     abi: masterChefABI.filter(({ name }) => name === 'poolInfo')[0],

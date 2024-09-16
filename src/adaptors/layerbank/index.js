@@ -1,16 +1,12 @@
 const axios = require('axios');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 
 const abiCore = require('./abiCore.json');
 const abiLABDistributor = require('./abiLABDistributor.json');
 const abiLToken = require('./abiLToken.json');
 const abiRateModelSlope = require('./abiRateModelSlope.json');
 const abiPriceCalculator = require('./abiPriceCalculator.json');
-
-const CORE = '0xB7A23Fc0b066051dE58B922dC1a08f33DF748bbf';
-const LABDistributor = '0x67c10B7b8eEFe92EB4DfdEeedd94263632E483b0';
-const LAB = '0x20a512dbdc0d006f46e6ca11329034eb3d18c997';
-const PriceCalculator = '0x38f4384B457F81A4895c93a7503c255eFd0746d2';
+const utils = require('../utils');
 
 const CHAINS = {
   manta: {
@@ -188,14 +184,17 @@ const apy = async (chain) => {
     await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
   ).data.coins;
 
-  const priceLAB = (
-    await sdk.api.abi.call({
-      target: PriceCalculator,
-      abi: abiPriceCalculator.find((m) => m.name === 'priceOf'),
-      params: [LAB],
-      chain,
-    })
-  ).output;
+  const priceLAB =
+    chain !== 'manta'
+      ? (
+          await sdk.api.abi.call({
+            target: PriceCalculator,
+            abi: abiPriceCalculator.find((m) => m.name === 'priceOf'),
+            params: [LAB],
+            chain,
+          })
+        ).output
+      : null;
 
   return allMarkets.map((p, i) => {
     const price = prices[`${chain}:${underlying[i]}`]?.price;
@@ -249,7 +248,7 @@ const main = async () => {
   const pools = await Promise.all(
     Object.keys(CHAINS).map((chain) => apy(chain))
   );
-  return pools.flat();
+  return pools.flat().filter((i) => utils.keepFinite(i));
 };
 
 module.exports = {

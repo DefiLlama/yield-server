@@ -14,7 +14,7 @@ const masterchef = '0xd2bcFd6b84E778D2DE5Bb6A167EcBBef5D053A06';
 const ARX = '0xD5954c3084a1cCd70B4dA011E67760B8e78aeE84';
 const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 
-const url = 'https://api.thegraph.com/subgraphs/name/hekman-eth/arbidex-v3';
+const url = sdk.graph.modifyEndpoint('AQPMJVpukYUo96WvuKqn7aPZn3m8BHckYs82ZLSMKyeu');
 const chain = 'arbitrum';
 
 const query = gql`
@@ -70,7 +70,7 @@ const topLvl = async (
       await sdk.api.abi.multiCall({
         calls: [...Array(Number(poolLength)).keys()].map((i) => ({
           target: masterchef,
-          params: [i]
+          params: [i],
         })),
         abi: masterchefAbi.find((m) => m.name === 'poolInfo'),
         chain: chainString,
@@ -109,21 +109,23 @@ const topLvl = async (
       })
     ).output;
 
-    const arxPerSec = (
-      await sdk.api.abi.call({
-        target: masterchef,
-        abi: masterchefAbi.find((m) => m.name === 'arxPerSec'),
-        chain: chainString,
-      })
-    ).output / 1e18;
+    const arxPerSec =
+      (
+        await sdk.api.abi.call({
+          target: masterchef,
+          abi: masterchefAbi.find((m) => m.name === 'arxPerSec'),
+          chain: chainString,
+        })
+      ).output / 1e18;
 
-    const wethPerSec = (
-      await sdk.api.abi.call({
-        target: masterchef,
-        abi: masterchefAbi.find((m) => m.name === 'WETHPerSec'),
-        chain: chainString,
-      })
-    ).output / 1e18;
+    const wethPerSec =
+      (
+        await sdk.api.abi.call({
+          target: masterchef,
+          abi: masterchefAbi.find((m) => m.name === 'WETHPerSec'),
+          chain: chainString,
+        })
+      ).output / 1e18;
 
     const arxPriceKey = `arbitrum:${ARX}`;
     const arxPrice = (
@@ -247,10 +249,14 @@ const topLvl = async (
       )?.WETHAllocPoint;
 
       const arxApyReward =
-        (((arxAllocPoint / arxTotalAllocPoint) * arxPerYearUsd) / p.totalValueLockedUSD) * 100;
+        (((arxAllocPoint / arxTotalAllocPoint) * arxPerYearUsd) /
+          p.totalValueLockedUSD) *
+        100;
 
       const wethApyReward =
-        (((wethAllocPoint / wethTotalAllocPoint) * wethPerYearUsd) / p.totalValueLockedUSD) * 100;
+        (((wethAllocPoint / wethTotalAllocPoint) * wethPerYearUsd) /
+          p.totalValueLockedUSD) *
+        100;
 
       const apyReward = arxApyReward + wethApyReward;
 
@@ -284,7 +290,15 @@ const main = async (timestamp = null) => {
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
 
-  const data = await topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins)
+  const data = await topLvl(
+    chain,
+    url,
+    query,
+    queryPrior,
+    'v3',
+    timestamp,
+    stablecoins
+  );
   return data.filter((p) => utils.keepFinite(p));
 };
 

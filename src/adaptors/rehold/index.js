@@ -74,7 +74,8 @@ const CHAINS = {
 
 const SLUG = 'rehold';
 
-const POOL_META = 'Calculated as: 24h yield * 365. APY is fixed, and extendable with no limits after the staking period ends';
+const POOL_META =
+  'Calculated as: 24h yield * 365. APY is fixed, and extendable with no limits after the staking period ends';
 
 function _map(array) {
   return array.reduce((acc, item) => {
@@ -140,7 +141,10 @@ async function _apy(chain) {
       tokens[quoteToken] = apr;
     }
 
-    if (!pairs[`${baseToken}-${quoteToken}`] || pairs[`${baseToken}-${quoteToken}`] < apr) {
+    if (
+      !pairs[`${baseToken}-${quoteToken}`] ||
+      pairs[`${baseToken}-${quoteToken}`] < apr
+    ) {
       pairs[`${baseToken}-${quoteToken}`] = apr;
     }
   });

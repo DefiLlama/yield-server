@@ -7,90 +7,54 @@ const reBalanceAbi = require('./abis/reBalance.json');
 
 const ALADDIN_API_BASE_URL = 'https://api.aladdin.club/';
 
-const fx_reBalancePool = '0xa677d95B91530d56791FbA72C01a862f1B01A49e';
-const fx_stETHTreasury = '0x0e5CAA5c889Bdf053c9A76395f62267E653AFbb0';
-const wstETH = '0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0';
-const yearSecond = 31536000;
-const cBN = (val) => new BigNumber(val);
-const getTvlAndApy = async () => {
-  let _tvl = 0;
-  let _apy = 0;
-  try {
-    const rebalancesData = (
-      await sdk.api.abi.call({
-        target: fx_reBalancePool,
-        abi: CommonAbi.totalSupply,
-      })
-    ).output;
-    const getCurrentNav = (
-      await sdk.api.abi.call({
-        target: fx_stETHTreasury,
-        abi: CommonAbi.getCurrentNav,
-      })
-    ).output;
-    const rebalancesRewardData = (
-      await sdk.api.abi.call({
-        target: fx_reBalancePool,
-        params: wstETH,
-        abi: reBalanceAbi.extraRewardState,
-      })
-    ).output;
-    const _stETHRate = (
-      await sdk.api.abi.call({
-        target: wstETH,
-        abi: CommonAbi.tokensPerStEth,
-      })
-    ).output;
-    const stETHRate = cBN(1e18).div(_stETHRate).toFixed(4);
-    const { _baseNav, _fNav, _xNav } = getCurrentNav;
-    _tvl = cBN(rebalancesData).div(1e18).times(_fNav).div(1e18).toFixed(0);
+const getRebalancePoolData = async () => {
+  let RebalancePoolData = await utils.getData(
+    `${ALADDIN_API_BASE_URL}api1/fx_rebalance_tvl_apy`
+  );
+  const newObj = Object.keys(RebalancePoolData.data).map((item) => {
+    const { name, underlyingTokens, rebalancePoolAddress, apy, tvl } =
+      RebalancePoolData.data[item];
 
-    const { finishAt, rate } = rebalancesRewardData || {};
-
-    const _currentTime = Math.ceil(new Date().getTime() / 1000);
-    if (_currentTime > finishAt) {
-      _apy = 0;
-    } else {
-      const apyWei = cBN(rate)
-        .div(1e18)
-        .multipliedBy(yearSecond)
-        .multipliedBy(_baseNav)
-        .div(1e18)
-        .multipliedBy(stETHRate)
-        .div(_tvl)
-        .times(100);
-      _apy = apyWei.multipliedBy(1.04).toFixed(2);
-    }
-
+    const n = name.split('_');
+    const symbol = n[0];
+    const poolMeta = n.slice(1).join(' ');
     return {
-      address: fx_reBalancePool,
-      tvl: _tvl,
-      apy: _apy,
-    };
-  } catch (error) {
-    console.log(error);
-    return false;
-  }
-};
-
-const getPoolData = async () => {
-  let poolData = await getTvlAndApy();
-  const { address: rebalancePool, tvl, apy } = poolData;
-  const newObj = [
-    {
-      pool: `${rebalancePool}-f(x)`,
+      pool: `${rebalancePoolAddress}-f(x)`,
       chain: utils.formatChain('ethereum'),
       project: 'fx-protocol',
-      symbol: 'fETH',
+      symbol,
+      poolMeta,
       tvlUsd: parseInt(tvl, 10),
       apy: parseFloat(apy),
-    },
-  ];
+      underlyingTokens: underlyingTokens,
+    };
+  });
+  return newObj;
+};
+
+const getGaugePoolData = async () => {
+  let RebalancePoolData = await utils.getData(
+    `${ALADDIN_API_BASE_URL}api1/fx_gauge_tvl_apy`
+  );
+  const newObj = RebalancePoolData.data.map((data) => {
+    const { gauge, name, tvl, apy } = data;
+    return {
+      pool: `${gauge}-f(x)`,
+      chain: utils.formatChain('ethereum'),
+      project: 'fx-protocol',
+      symbol: utils.formatSymbol(name),
+      tvlUsd: parseInt(tvl, 10),
+      apy: parseFloat(apy),
+    };
+  });
+
   return newObj;
 };
 
 const main = async () => {
-  const data = await getPoolData();
+  const rebalancedata = await getRebalancePoolData();
+  const gaugeData = await getGaugePoolData();
+  const data = [].concat(rebalancedata).concat(gaugeData);
   return data.filter((p) => utils.keepFinite(p));
 };
 

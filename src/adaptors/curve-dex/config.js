@@ -10,6 +10,7 @@ exports.BLOCKCHAINIDS = [
   'moonbeam',
   'kava',
   'base',
+  'fraxtal',
   // 'celo',
 ];
 // https://github.com/curvefi/curve-api/blob/main/endpoints.md#getpools
@@ -20,6 +21,7 @@ REGISTRY_TYPES = [
   'factory-crypto',
   'optimism',
   'factory-crvusd',
+  'factory-twocrypto',
   'factory-tricrypto',
   'factory-stable-ng',
 ];
@@ -27,6 +29,9 @@ exports.BLOCKCHAINID_TO_REGISTRIES = {};
 exports.BLOCKCHAINIDS.forEach((blockchainId) => {
   switch (blockchainId) {
     case 'ethereum':
+    case 'arbitrum':
+    case 'fraxtal':
+    case 'fantom':
       blockchainRegistries = REGISTRY_TYPES;
       break;
     case 'xdai':
@@ -38,3 +43,12 @@ exports.BLOCKCHAINIDS.forEach((blockchainId) => {
   }
   exports.BLOCKCHAINID_TO_REGISTRIES[blockchainId] = blockchainRegistries;
 });
+exports.OVERRIDE_DATA = {
+  fantom: {
+    '0x3f833Ed02629545DD78AFc3D585f7F3918a3De62': {
+      symbol: 'xSTABLE',
+      url: 'https://curve.fi/#/fantom/pools/factory-stable-ng-24/deposit',
+    },
+  },
+};
+
