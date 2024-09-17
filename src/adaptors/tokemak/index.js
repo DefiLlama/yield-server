@@ -21,6 +21,7 @@ const autopoolsQuery = gql`
       baseAsset {
         id
         decimals
+        symbol
       }
       day7MAApy
       day30MAApy
@@ -120,7 +121,7 @@ async function main() {
     pool: pool.id,
     chain: 'Ethereum',
     project: 'tokemak',
-    symbol: pool.symbol,
+    symbol: pool.baseAsset.symbol,
     tvlUsd:
       Number(etherUtils.formatUnits(pool.nav, pool.baseAsset.decimals)) *
       wethPrice,
@@ -128,7 +129,7 @@ async function main() {
     underlyingTokens: [pool.baseAsset.id],
     apyBase:
       // Use the 30 day MA when we have it, falling back to the 7 when we don't, and finally to the max compositeReturn
-      (pool.day30MAApy
+      ((pool.day30MAApy
         ? Number(
             etherUtils.formatUnits(pool.day30MAApy, pool.baseAsset.decimals)
           )
@@ -136,16 +137,18 @@ async function main() {
         ? Number(
             etherUtils.formatUnits(pool.day7MAApy, pool.baseAsset.decimals)
           )
-        : autopoolCRs[pool.id]) || 0,
-    apyReward: pool.rewarder.currentApy
-      ? Number(
-          etherUtils.formatUnits(
-            pool.rewarder.currentApy,
-            pool.baseAsset.decimals
+        : autopoolCRs[pool.id]) || 0) * 100,
+    apyReward:
+      (pool.rewarder.currentApy
+        ? Number(
+            etherUtils.formatUnits(
+              pool.rewarder.currentApy,
+              pool.baseAsset.decimals
+            )
           )
-        )
-      : 0,
+        : 0) * 100,
     url: 'https://app.tokemak.xyz/autopool?id=' + pool.id,
+    poolMeta: pool.symbol,
   }));
 
   return pools;
