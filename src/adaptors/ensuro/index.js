@@ -2,15 +2,15 @@ const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
 const axios = require('axios');
 
-// Copied from ../mellow-yield/index.js - Extracts the alchemy key after /v2/
-const transformLink = (link) => {
-  let i = 0;
-  while (link[i] != 'v' || link[i + 1] != '2' || link[i + 2] != '/') {
-    i += 1;
-    if (i == link.length) return '';
-  }
+// Idea of using alchemyKey copied from ../mellow-yield/index.js, but now with better code
+const alchemy_url_regex = /https:[/][/].*alchemy[.]com[/]v2[/]([^/]+)/g;
 
-  return link.substr(i + 3, link.length);
+const extractKey = (alchemy_full_url) => {
+  console.log('alchemy_full_url', alchemy_full_url);
+  const match = alchemy_url_regex.exec(alchemy_full_url);
+  if (match === null) return null;
+  console.log('match', match, match[1]);
+  return match[1];
 };
 
 const addressBook = {
@@ -47,17 +47,13 @@ const getApy = async () => {
     await axios.get(`https://coins.llama.fi/block/polygon/${timestamp1dayAgo}`)
   ).data.height;
 
-  if (
-    process.env.ALCHEMY_CONNECTION_ETHEREUM === undefined ||
-    transformLink(process.env.ALCHEMY_CONNECTION_ETHEREUM) === ''
-  )
+  const alchemyKey = extractKey(process.env.ALCHEMY_CONNECTION_ETHEREUM || '');
+
+  if (alchemyKey === null)
     throw new Error(
       'Environment variable ALCHEMY_CONNECTION_ETHEREUM not defined or not in the expected format'
     );
-  const provider = new ethers.providers.AlchemyProvider(
-    'matic',
-    transformLink(process.env.ALCHEMY_CONNECTION_ETHEREUM)
-  );
+  const provider = new ethers.providers.AlchemyProvider('matic', alchemyKey);
 
   return await Promise.all(
     addressBook.polygon.eTokens.map(async (etk) => {
