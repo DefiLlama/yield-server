@@ -7,6 +7,7 @@ const transformLink = (link) => {
   let i = 0;
   while (link[i] != 'v' || link[i + 1] != '2' || link[i + 2] != '/') {
     i += 1;
+    if (i == link.length) return '';
   }
 
   return link.substr(i + 3, link.length);
@@ -46,6 +47,13 @@ const getApy = async () => {
     await axios.get(`https://coins.llama.fi/block/polygon/${timestamp1dayAgo}`)
   ).data.height;
 
+  if (
+    process.env.ALCHEMY_CONNECTION_ETHEREUM === undefined ||
+    transformLink(process.env.ALCHEMY_CONNECTION_ETHEREUM) === ''
+  )
+    throw new Error(
+      'Environment variable ALCHEMY_CONNECTION_ETHEREUM not defined or not in the expected format'
+    );
   const provider = new ethers.providers.AlchemyProvider(
     'matic',
     transformLink(process.env.ALCHEMY_CONNECTION_ETHEREUM)
