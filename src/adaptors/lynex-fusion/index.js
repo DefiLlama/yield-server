@@ -58,8 +58,9 @@ const getApy = async () => {
     const found = activeStrategies.find(
       (item) => item.address.toLowerCase() === poolAddress,
     );
+    const poolMeta = `${found?.type}`
     const symbol = found
-      ? `${firstSymbol}/${secondSymbol} (${found.type})`
+      ? `${firstSymbol}/${secondSymbol}`
       : pool.stable
         ? `sAMM-${firstSymbol}/${secondSymbol}`
         : `vAMM-${firstSymbol}/${secondSymbol}`;
@@ -99,6 +100,7 @@ const getApy = async () => {
         Number(pool.emissions),
         Number(pool.emissions_token_decimals),
       ),
+      poolMeta
     };
   });
 
@@ -207,7 +209,7 @@ const getApy = async () => {
     }
 
     return {
-      pool: `${pool.symbol}-${pool.address}-linea`,
+      pool: `${pool.address}-lynex-fusion`,
       chain: utils.formatChain('linea'),
       project: 'lynex-fusion',
       symbol: pool.symbol,
@@ -216,6 +218,7 @@ const getApy = async () => {
       apyReward: extraRewardsApy,
       rewardTokens: rewardsTokens,
       underlyingTokens: [pool.token0Address, pool.token1Address],
+      poolMeta: pool.poolMeta ?? null
     };
 
   });
