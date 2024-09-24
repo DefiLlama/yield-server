@@ -7,14 +7,11 @@ const getApy = async () => {
 
   reserveApys.push(
     ...reserves.map((r) => {
-        let poolName = ''
-        if(r.version === 1) poolName = 'Fulcrum Lending Pool'
-        if(r.version === 2) poolName = 'GMS Lending Pool'
 
         const totalSupplyUsd = Number(r.lendingPoolInfo[0].totalSupplyUsd)
         const totalBorrowUsd = Number(r.lendingPoolInfo[0].totalBorrowUsd)
       return {
-        pool: poolName + ' - ' + r.symbol,
+        pool: r.poolAddress,
         chain: 'Solana',
         project: 'nx-finance',
         symbol: utils.formatSymbol(r.symbol),
