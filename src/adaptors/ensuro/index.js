@@ -6,10 +6,8 @@ const axios = require('axios');
 const alchemy_url_regex = /https:[/][/].*alchemy[.]com[/]v2[/]([^/]+)/g;
 
 const extractKey = (alchemy_full_url) => {
-  console.log('alchemy_full_url', alchemy_full_url);
   const match = alchemy_url_regex.exec(alchemy_full_url);
   if (match === null) return null;
-  console.log('match', match, match[1]);
   return match[1];
 };
 
@@ -19,17 +17,17 @@ const addressBook = {
     eTokens: [
       // eTokens
       {
-        name: 'Jr Koala BMA',
+        name: 'Koala Jr Pool',
         address: '0xBC33c283A37d46ABA17BC5F8C27b27242688DeC6',
         symbol: 'eUSDCKoBMAJr',
       },
       {
-        name: 'Sr BMA',
+        name: 'Senior Pool',
         address: '0xF383eF2D31E1d4a19B3e04ca2937DB6A8DA9f229',
         symbol: 'eUSDCBMASr',
       },
       {
-        name: 'Jr Spot BMA',
+        name: 'Spot Jr Pool',
         address: '0x6229D78658305a301E177f9dAEa3a0799fd1528C',
         symbol: 'eUSDCGSJr',
       },
@@ -85,8 +83,6 @@ const getApy = async () => {
           ethers.BigNumber.from(0)
         )
         .toNumber();
-      console.log(netDeposits);
-      console.log(tsNow.output);
       const dailyApr =
         (tsNow.output - tsOneDayAgo.output - netDeposits) / tsOneDayAgo.output;
       // Using apr to apy formula from https://www.aprtoapy.com/
@@ -95,7 +91,8 @@ const getApy = async () => {
         pool: etk.address,
         chain: 'polygon',
         project: 'ensuro',
-        symbol: etk.symbol,
+        symbol: 'USDC',
+        poolMeta: etk.name,
         tvlUsd: tsNow.output / 1e6,
         apyBase: apy,
         url: `https://app.ensuro.co/eTokens/${etk.address}`,
