@@ -52,7 +52,7 @@ const apy = async () => {
       chain: 'ethereum',
       topics: [topic0rewardDistributed]
     })
-  ).output.sort((a, b) => b.blockNumber - a.blockNumber);
+  ).output.sort((a, b) => a.blockNumber - b.blockNumber);
 
   let aprBase = 0;
   if (logs.length > 0) {
