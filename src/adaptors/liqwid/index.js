@@ -22,7 +22,6 @@ const apy = async () => {
               utilization
               asset {
                 price
-                symbol
               }
             }
           }
@@ -52,15 +51,15 @@ const apy = async () => {
       ).scriptHash,
       chain: 'Cardano',
       project: 'liqwid',
-      symbol: market.asset.symbol,
+      symbol: market.id,
       tvlUsd: market.liquidity * market.asset.price,
       apyReward:
         market.lqSupplyAPY * 100 > 100
           ? market.lqSupplyAPY
           : market.lqSupplyAPY * 100,
       apyBase: market.supplyAPY * 100,
-      rewardTokens: [market.asset.symbol, 'LQ'],
-      underlyingTokens: [market.asset.symbol],
+      rewardTokens: [market.id, 'LQ'],
+      underlyingTokens: [market.id],
       apyBaseBorrow:
         market.borrowAPY * 100 > 100
           ? market.borrowAPY
