@@ -41,26 +41,31 @@ const getApy = async () => {
       const hTokensData = (await axios.get(y.htokens)).data.data;
       const apr = hTokensData.apy
       for (const key in hTokensData.tokens) {
-        const token = hTokensData.tokens[key];
-        const balance =
-          (
-            await sdk.api.abi.call({
-              target: token.originToken,
-              abi: 'erc20:balanceOf',
-              params: [y.kUSDT],
+        try {
+            const token = hTokensData.tokens[key];
+            const balance =
+              (
+                await sdk.api.abi.call({
+                  target: token.originToken,
+                  abi: 'erc20:balanceOf',
+                  params: [y.kUSDT],
+                  chain,
+                })
+              ).output / token.tokenPrecision;
+    
+            results.push({
               chain,
-            })
-          ).output / token.tokenPrecision;
-
-        results.push({
-          chain,
-          project: 'kiloex',
-          pool: token.originToken,
-          symbol: token.tokenName,
-          tvlUsd: balance * token.price,
-          apyBase: parseFloat((apr * 100 * token.ltv /10000).toFixed(2)),
-          underlyingTokens: [token.originToken],
-        });
+              project: 'kiloex',
+              pool: token.originToken,
+              symbol: token.tokenName,
+              tvlUsd: balance * token.price,
+              apyBase: parseFloat((apr * 100 * token.ltv /10000).toFixed(2)),
+              underlyingTokens: [token.originToken],
+            });
+        } catch(e) {
+          //skip error
+        }
+        
       }
       // if (chain === 'manta') {
       //   const stoneBalance =

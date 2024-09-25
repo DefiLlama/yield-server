@@ -233,7 +233,7 @@ const main = async (pool) => {
 
   // 1) collateral pools (no apy fields)
   const collateralOnlyPools = tokens.map((t, i) => ({
-    pool: `${t}-${pool.symbol}`,
+    pool: `${t}-${pool.symbol}-${pool.chain}`,
     symbol: symbols[i],
     chain: pool.chain.charAt(0).toUpperCase() + pool.chain.slice(1),
     project: 'compound-v3',
@@ -276,10 +276,7 @@ const main = async (pool) => {
   return [
     ...collateralOnlyPools,
     {
-      pool:
-        pool.address === '0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf'
-          ? `${pool.address}-${pool.chain}`
-          : pool.address, // Fix for duplicated pool id
+      pool: `${pool.address}-${pool.chain}`,
       symbol: pool.underlyingSymbol,
       chain: pool.chain.charAt(0).toUpperCase() + pool.chain.slice(1),
       project: 'compound-v3',

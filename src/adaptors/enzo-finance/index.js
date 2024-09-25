@@ -27,7 +27,7 @@ const markets = [
     pool: '0xBb0CB5C5e49d5C3903932d07831fB8c1bB1651d2',
     decimals: 6,
     symbol: 'USDC',
-    underlyingToken: '0x9827431e8b77E87C9894BD50B055D6BE56bE0030',
+    underlyingToken: '0xf8c374ce88a3be3d374e8888349c7768b607c755',
   },
   {
     pool: '0xAb7f136BBb18808F0C981D0307D3360cA92AD171',

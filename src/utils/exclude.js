@@ -142,6 +142,8 @@ const excludeAdaptors = [
   'forge',
   'stakehouse',
   'yeti-finance',
+  'lst-optimizer',
+  'deltaprime',
 ];
 
 const excludePools = [
@@ -520,6 +522,11 @@ const excludePools = [
   'morpho-blue-0xade6749e981ae94420956cc22c299054e05ac3564cc196bf62f4c0924c03bfdf',
   '0xBe96502c9bAa5Aec7E4C810c13D80F75e2D669E0',
   '0xE39120b27e5bfeC953524402C2e261763c76519E',
+
+  // merkl (temp)
+  '0x9fFCA51D23Ac7F7df82da414865Ef1055E5aFCc3',
+  '0x389938CF14Be379217570D8e4619E51fBDafaa21',
+  '0x7fCDC35463E3770c2fB992716Cd070B63540b947',
 
   // temp: subset of velodrome v3 and aerordrom slipstream pools
   '0xf81e1a62cBfA487E807044618661bFD4802B4982',

@@ -7,6 +7,7 @@ const CHAINS = {
   1: 'ethereum',
   42161: 'arbitrum',
   56: 'bsc',
+  252: 'fraxtal',
 };
 
 const poolsFunction = async () => {

@@ -189,11 +189,11 @@ const stkGho = async () => {
   const stkghoNativeApyRaw = stkghoData[6]; // 6th index of the tuple is the APY
   const stkghoNativeApy = convertStakedTokenApy(stkghoNativeApyRaw);
 
-  // const stkghoMeritApy = (
-  //   await axios.get('https://apps.aavechan.com/api/merit/aprs')
-  // ).data.currentAPR.actionsAPR.stkgho;
+  const stkghoMeritApy = (
+    await axios.get('https://apps.aavechan.com/api/merit/base-aprs')
+  ).data.actionsAPR["ethereum-stkgho"];
 
-  const stkghoApy = stkghoNativeApy;
+  const stkghoApy = stkghoNativeApy + stkghoMeritApy;
 
   const stkghoSupply =
     (
