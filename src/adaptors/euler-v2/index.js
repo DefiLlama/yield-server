@@ -70,7 +70,7 @@ const getApys = async () => {
                 apyBase: Number(ethers.utils.formatUnits(vaultInfo.output.irmInfo.interestRateInfo[0].supplyAPY, 25)),
                 apyBaseBorrow: Number(ethers.utils.formatUnits(vaultInfo.output.irmInfo.interestRateInfo[0].borrowAPY, 25)),
                 underlyingTokens: [vaultInfo.output.asset],
-                url: `https://app.euler.finance/vault/${vaultInfo.output.asset}`,
+                url: `https://app.euler.finance/vault/${vault}`,
             })
         }
     }
