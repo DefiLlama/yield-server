@@ -10,6 +10,14 @@ const rewardDistributor = '0xbE23BB6D817C08E7EC4Cd0adB0E23156189c1bA9';
 const topic0rewardDistributed = '0x3863fc447b7dde3f3f5a5ca0b5b06a5fd3570963a1a29918f09036746293f658';
 const rewardDistributedInterface = new ethers.utils.Interface(['event RewardDistributed(bytes32 indexed idempotencyKey, uint256 totalShares, uint256 totalUSRBefore, uint256 totalUSRAfter, uint256 stakingReward, uint256 feeReward)']);
 
+const calculateApy = (logDescription) => {
+  const totalUsrBefore = logDescription.args.totalUSRBefore;
+  const totalUsrAfter = logDescription.args.totalUSRAfter;
+  const totalShares = logDescription.args.totalShares;
+  const sharesRateBefore = totalUsrBefore / totalShares;
+  const sharesRateAfter = totalUsrAfter / totalShares;
+  return ((sharesRateAfter - sharesRateBefore) / sharesRateBefore) * 365;
+};
 const apy = async () => {
   const totalSupply = (
     await sdk.api.abi.call({
@@ -28,9 +36,11 @@ const apy = async () => {
 
   const currentBlock = await sdk.api.util.getLatestBlock('ethereum');
   const currentDate = new Date(currentBlock.timestamp * 1000);
-  const startOfDay = new Date(currentDate).setHours(0, 0, 0, 0);
 
-  const [fromBlock] = await utils.getBlocksByTime([startOfDay / 1000], 'ethereum');
+  const startOfDay = new Date(currentDate).setHours(0, 0, 0, 0);
+  const previousStartOfDay = startOfDay - 24 * 60 * 60 * 1000; // Subtract 1 day in milliseconds
+
+  const [fromBlock] = await utils.getBlocksByTime([previousStartOfDay / 1000], 'ethereum');
   const toBlock = currentBlock.block;
   const logs = (
     await sdk.api.util.getLogs({
@@ -46,14 +56,9 @@ const apy = async () => {
 
   let aprBase = 0;
   if (logs.length > 0) {
-    const log = logs[logs.length - 1];
-    const lastLog = rewardDistributedInterface.parseLog(log);
-    const totalUsrBefore = lastLog.args.totalUSRBefore;
-    const totalUsrAfter = lastLog.args.totalUSRAfter;
-    const totalShares = lastLog.args.totalShares;
-    const sharesRateBefore = totalUsrBefore / totalShares;
-    const sharesRateAfter = totalUsrAfter / totalShares;
-    aprBase = ((sharesRateAfter - sharesRateBefore) / sharesRateBefore) * 365;
+    const logToProcess = logs.length === 2 ? logs[logs.length - 1] : logs[0];
+    const parsedLog = rewardDistributedInterface.parseLog(logToProcess);
+    aprBase = calculateApy(parsedLog);
   }
 
   return [{
