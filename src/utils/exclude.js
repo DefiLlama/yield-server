@@ -144,6 +144,7 @@ const excludeAdaptors = [
   'yeti-finance',
   'lst-optimizer',
   'deltaprime',
+  'mellow-yield',
 ];
 
 const excludePools = [
