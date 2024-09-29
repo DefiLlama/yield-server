@@ -145,6 +145,7 @@ const excludeAdaptors = [
   'lst-optimizer',
   'deltaprime',
   'mellow-yield',
+  'glacier-exchange-v2',
 ];
 
 const excludePools = [
