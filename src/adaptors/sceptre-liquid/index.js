@@ -54,11 +54,6 @@ async function fetchFlarePrice() {
   return new BigNumber(pricesResponse.coins[priceKey].price);
 }
 
-async function fetchStakingApr() {
-  const aprResponse = await fetchWithRetry(CONFIG.REWARDS_API);
-  return new BigNumber(aprResponse.apr);
-}
-
 function calculateTvl(totalPooledFlr, flarePrice) {
   return totalPooledFlr.dividedBy(1e18).multipliedBy(flarePrice);
 }
