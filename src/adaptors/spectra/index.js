@@ -2,7 +2,7 @@ const utils = require('../utils');
 const axios = require('axios');
 
 const api = (chainId) =>
-  `https://app.spectra.finance/api/v1/${chains[chainId].slug}/pools`;
+  `https://app.spectra.finance/api/v1/${chains[chainId].slug}/pools?source=defillama`;
 const chains = {
   1: {
     name: 'ethereum',
@@ -78,7 +78,13 @@ const fixedRateApy = (p) => {
 async function apy() {
   const chainId = 1; // Mainnet only for now
 
-  const pts = (await axios.get(api(chainId))).data.flat();
+  const pts = (
+    await axios.get(api(chainId), {
+      headers: {
+        'x-client-id': 'defillama',
+      },
+    })
+  ).data.flat();
   pts.forEach((pt) => {
     pt.pools.forEach((pool) => {
       pool.pt = pt; // inject PT reference into pool itself
