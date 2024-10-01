@@ -48,7 +48,7 @@ const lpApy = (p) => {
   return {
     pool: p.address,
     chain: utils.formatChain(chain.name),
-    project: 'spectra',
+    project: 'spectra-v2',
     symbol: utils.formatSymbol(`LP ${formatIbt(p.pt.ibt)}`),
     tvlUsd: p.liquidity?.usd,
     apyBase: p.lpApy.total - apw,
@@ -65,7 +65,7 @@ const fixedRateApy = (p) => {
   return {
     pool: p.pt.address,
     chain: utils.formatChain(chain.name),
-    project: 'spectra',
+    project: 'spectra-v2',
     symbol: utils.formatSymbol(`PT ${formatIbt(p.pt.ibt)}`),
     tvlUsd: p.liquidity?.usd,
     apyBase: p.impliedApy,
