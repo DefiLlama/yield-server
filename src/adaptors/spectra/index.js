@@ -1,5 +1,4 @@
 const utils = require('../utils');
-const { request, gql } = require('graphql-request');
 const axios = require('axios');
 
 const api = (chainId) =>
