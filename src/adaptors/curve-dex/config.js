@@ -49,6 +49,10 @@ exports.OVERRIDE_DATA = {
       symbol: 'xSTABLE',
       url: 'https://curve.fi/#/fantom/pools/factory-stable-ng-24/deposit',
     },
+    '0x3C2fCf53f742345c5c1b3dcb2612a1949BC1F18d': {
+      symbol: 'xWETH',
+      url: 'https://curve.fi/#/fantom/pools/factory-stable-ng-37/deposit',
+    },
   },
 };
 
