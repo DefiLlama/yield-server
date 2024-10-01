@@ -56,7 +56,7 @@ const lpApy = (p) => {
     rewardTokens: apw > 0 ? [chain.APW] : [],
     underlyingTokens: [p.pt.address, p.pt.ibt.address],
     poolMeta: `For LP | Maturity ${formatMaturity(p.pt.maturity)}`,
-    url: `https://app.spectra.finance/pools#${chain.slug}/${p.address}`,
+    url: `https://app.spectra.finance/pools?ref=defillama#${chain.slug}/${p.address}`,
   };
 };
 
@@ -71,7 +71,7 @@ const fixedRateApy = (p) => {
     apyBase: p.impliedApy,
     underlyingTokens: [p.pt.underlying.address],
     poolMeta: `For PT | Maturity ${formatMaturity(p.pt.maturity)}`,
-    url: `https://app.spectra.finance/fixed-rate#${chain.slug}/${p.address}`,
+    url: `https://app.spectra.finance/fixed-rate?ref=defillama#${chain.slug}/${p.address}`,
   };
 };
 
