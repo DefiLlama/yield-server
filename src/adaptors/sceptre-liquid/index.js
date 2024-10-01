@@ -81,7 +81,7 @@ async function main() {
       tvlUsd: tvlUsd.toNumber(),
       apyBase: stakingApy.multipliedBy(100).toNumber(),
       underlyingTokens: [CONFIG.WFLR_ADDRESS],
-      poolMeta: 'sFLR staking pool',
+      poolMeta: 'Unstaking Cooldown: 14.5 days'
     }];
   } catch (error) {
     console.error('Error fetching data:', error.message);
