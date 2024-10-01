@@ -191,6 +191,7 @@ const getUsdtPoolTVL = async() => {
 }
 
 const getPoolsAPYs = async () => {
+  return [];
   let rewardAPRs = await fetch('https://2t8c1g5jra.execute-api.us-east-1.amazonaws.com/ltip-pool-boost-apy');
   rewardAPRs = await rewardAPRs.json();
 

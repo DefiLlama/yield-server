@@ -37,9 +37,9 @@ const CHAIN_TO_ID = {
 // returns a list of vaults, see https://github.com/Popcorn-Limited/defi-db/blob/main/archive/vaults/1.json
 // for schema
 const getVaults = async (chainID) => {
-  const vaults = (await axios.get(
-    `https://app.vaultcraft.io/api/vaults?chainId=${chainID}`
-  )).data;
+  const vaults = (
+    await axios.get(`https://app.vaultcraft.io/api/vaults?chainId=${chainID}`)
+  ).data;
   return Object.values(vaults);
 };
 
@@ -52,11 +52,15 @@ async function getTokenPrice(chain, token) {
 
 const apy = async (timestamp = null) => {
   const yieldData = [];
+
   for (const [chain, chainId] of Object.entries(CHAIN_TO_ID)) {
     const vaults = await getVaults(chainId);
     for (const vault of vaults) {
       if (!vault.baseApy) {
         // no apy
+        continue;
+      }
+      if (vault?.address === undefined || vault?.asset === undefined) {
         continue;
       }
 
@@ -70,7 +74,7 @@ const apy = async (timestamp = null) => {
 
       const decimals = (
         await sdk.api.abi.call({
-          target: vault.assetAddress,
+          target: vault.asset,
           abi: 'erc20:decimals',
           chain,
         })
@@ -85,7 +89,7 @@ const apy = async (timestamp = null) => {
       ).output;
 
       const tvl =
-        (totalAssets * (await getTokenPrice(chain, vault.assetAddress))) /
+        (totalAssets * (await getTokenPrice(chain, vault.asset))) /
         10 ** decimals;
 
       const data = {
@@ -95,7 +99,7 @@ const apy = async (timestamp = null) => {
         symbol,
         tvlUsd: tvl,
         apyBase: vault.baseApy,
-        underlyingTokens: [vault.assetAddress],
+        underlyingTokens: [vault.asset],
       };
 
       if (vault.gaugeLowerApr) {
@@ -105,6 +109,7 @@ const apy = async (timestamp = null) => {
       yieldData.push(data);
     }
   }
+
   return yieldData.filter((p) => keepFinite(p));
 };
 

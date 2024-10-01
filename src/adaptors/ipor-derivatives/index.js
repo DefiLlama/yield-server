@@ -25,9 +25,11 @@ const apy = async () => {
   const assetsArbitrum = (await superagent.get(LP_STATS_ARBITRUM_URL)).body
     .assets;
   const arbAidrdop = (await superagent.get(ARB_AIRDROP_URL)).body;
-  const arbAirdropLastEpochFinished = Date.parse(arbAidrdop.epochEnd) < Date.now(); //epochEnd will be date in past when last airdrop epoch will be finished
+  const arbAirdropLastEpochFinished =
+    Date.parse(arbAidrdop.epochEnd) < Date.now(); //epochEnd will be date in past when last airdrop epoch will be finished
   const wstEthAirdrop = (await superagent.get(WSTETH_AIRDROP_URL)).body;
-  const wstEthAirdropLastEpochFinished = Date.parse(wstEthAirdrop.epochEnd) < Date.now(); //epochEnd will be date in past when last airdrop epoch will be finished
+  const wstEthAirdropLastEpochFinished =
+    Date.parse(wstEthAirdrop.epochEnd) < Date.now(); //epochEnd will be date in past when last airdrop epoch will be finished
   const coinKeys = assetsEthereum.map(
     (assetData) => 'ethereum:' + assetData.assetAddress
   );
@@ -46,7 +48,8 @@ const apy = async () => {
   ).body.coins;
   const iporTokenUsdPrice = coinPrices['ethereum:' + IPOR_TOKEN_ETHEREUM].price;
   const arbTokenUsdPrice = coinPrices['arbitrum:' + ARB_TOKEN_ARBITRUM].price;
-  const wstethTokenUsdPrice = coinPrices['arbitrum:' + WSTETH_TOKEN_ARBITRUM].price;
+  const wstethTokenUsdPrice =
+    coinPrices['arbitrum:' + WSTETH_TOKEN_ARBITRUM].price;
 
   const lpTokenEthereumAddresses = assetsEthereum.map(
     (assetData) => assetData.ipTokenAssetAddress
@@ -136,7 +139,7 @@ const apy = async () => {
     pools.push({
       pool: asset.ipTokenAssetAddress + '-ethereum',
       chain: 'Ethereum',
-      project: 'ipor',
+      project: 'ipor-derivatives',
       symbol: asset.asset,
       tvlUsd: lpBalance * coinPrice,
       apyBase: Number(lpApr),
@@ -195,7 +198,8 @@ const apy = async () => {
           (liquidityMiningGlobalStats.aggregatedPowerUp / 1e18)) *
           0.2 * //base powerup
           BLOCKS_PER_YEAR *
-          wstethTokenUsdPrice * rewardsWstEthIporRatio) /
+          wstethTokenUsdPrice *
+          rewardsWstEthIporRatio) /
           lpTokenPrice /
           coinPrice) *
         100; //percentage
@@ -204,22 +208,23 @@ const apy = async () => {
     const rewardsArbIporRatio = arbAidrdop.pools.find(
       (assetData) => assetData.asset === asset.asset
     ).rewardsArbIporRatio;
-    const apyAirdrop = !arbAirdropLastEpochFinished ?
-      (((liquidityMiningGlobalStats.rewardsPerBlock /
-        1e8 /
-        (liquidityMiningGlobalStats.aggregatedPowerUp / 1e18)) *
-        0.2 * //base powerup
-        BLOCKS_PER_YEAR *
-        arbTokenUsdPrice * rewardsArbIporRatio) /
-        lpTokenPrice /
-        coinPrice) *
-      100 //percentage
+    const apyAirdrop = !arbAirdropLastEpochFinished
+      ? (((liquidityMiningGlobalStats.rewardsPerBlock /
+          1e8 /
+          (liquidityMiningGlobalStats.aggregatedPowerUp / 1e18)) *
+          0.2 * //base powerup
+          BLOCKS_PER_YEAR *
+          arbTokenUsdPrice *
+          rewardsArbIporRatio) /
+          lpTokenPrice /
+          coinPrice) *
+        100 //percentage
       : 0;
 
     pools.push({
       pool: asset.ipTokenAssetAddress + '-arbitrum',
       chain: 'Arbitrum',
-      project: 'ipor',
+      project: 'ipor-derivatives',
       symbol: asset.asset,
       tvlUsd: lpBalance * coinPrice,
       apyBase: Number(lpApr),

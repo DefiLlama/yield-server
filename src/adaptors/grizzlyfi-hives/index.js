@@ -590,7 +590,7 @@ async function apy() {
         pool: pool.hive,
         poolMeta: pool.name,
         chain: utils.formatChain('binance'),
-        project: 'grizzly-trade',
+        project: 'grizzlyfi-hives',
         symbol: pairInfo.pairName,
         tvlUsd: Number(masterChefReservesUsd),
         apyBase: Number(baseAPY) * 100,
