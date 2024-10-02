@@ -58,11 +58,7 @@ const getApy = async () => {
     const found = activeStrategies.find(
       (item) => item.address.toLowerCase() === poolAddress,
     );
-    const symbol = found
-      ? `${firstSymbol}/${secondSymbol} (${found.type})`
-      : pool.stable
-        ? `sAMM-${firstSymbol}/${secondSymbol}`
-        : `vAMM-${firstSymbol}/${secondSymbol}`;
+    const symbol = `${firstSymbol}/${secondSymbol}`
     return {
       title: found ? `${found.title}` : symbol,
       symbol,
@@ -143,7 +139,7 @@ const getApy = async () => {
   }
 
   // Put all together
-  const aux = pools.map((pool, i) => {
+  const returnData = pools.map((pool, i) => {
     let tvl;
     let rewardsTokens = [olynxAddress];
     let extraRewardsApy = 0
@@ -219,8 +215,7 @@ const getApy = async () => {
     };
 
   });
-  // const returnData = aux.filter((pool) => { return pool.tvlUsd > 500000 })
-  return aux;
+  return returnData;
 };
 
 module.exports = {
