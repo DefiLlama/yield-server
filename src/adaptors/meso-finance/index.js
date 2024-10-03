@@ -57,8 +57,11 @@ const COINS = [
 ];
 
 async function main() {
-  const pools = (await utils.getData(`https://api.meso.finance/api/v1/pool`))
-    .datas;
+  const pools = (
+    await utils.getData(
+      `https://api.meso.finance/api/v1/pool?page=1&limit=1000`
+    )
+  ).datas;
   const map = new Map(pools.map((pool) => [pool.tokenAddress, pool]));
   return await Promise.all(
     COINS.map(async (coin) => {
