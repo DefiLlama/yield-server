@@ -13,6 +13,14 @@ const markets = [
     chain: 'ethereum',
   },
   {
+    address: '0x3Afdc9BCA9213A35503b077a6072F3D0d5AB0840',
+    symbol: 'cUSDTv3',
+    underlying: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+    underlyingSymbol: 'USDT',
+    rewardToken: '0xc00e94Cb662C3520282E6f5717214004A7f26888',
+    chain: 'ethereum',
+  },
+  {
     address: '0xA17581A9E3356d9A858b789D68B4d866e593aE94',
     symbol: 'cWETHv3',
     underlying: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
