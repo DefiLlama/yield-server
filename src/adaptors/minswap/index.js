@@ -14,6 +14,7 @@ const apy = async () => {
       apyBase: d.apyBase,
       apyReward: d.apyReward,
       rewardTokens: d.rewardTokens,
+      poolMeta: d.poolMeta
     };
   });
 };

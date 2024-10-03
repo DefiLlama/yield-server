@@ -39,7 +39,6 @@ const abi = require('./abi');
 const SECONDS_IN_YEAR = BigNumber(365).times(24).times(3600);
 const protocolSlug = 'tarot';
 const sdk = require('@defillama/sdk');
-const { getChainTransform } = require('../../helper/transform');
 const { getProvider } = require('@defillama/sdk/build/general');
 const config = {
   // fantom: {
@@ -478,7 +477,7 @@ const main = async () => {
   let data = [];
   for (const chain of Object.keys(config)) {
     const { factories } = config[chain];
-    const transform = await getChainTransform(chain);
+    const transform = (addr) => `${chain}:${addr}`
     let collaterals = [];
     let borrowables = [];
     const provider = getProvider(chain);

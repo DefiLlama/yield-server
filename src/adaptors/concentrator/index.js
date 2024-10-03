@@ -12,6 +12,7 @@ const ALADDIN_API_BASE_URL = 'https://api.aladdin.club/';
 const concentratorAcrv = '0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884';
 const aladdinSdCRV = '0x43E54C2E7b3e294De3A155785F52AB49d87B9922';
 const aladdinCVX = '0xb0903Ab70a7467eE5756074b31ac88aEBb8fB777';
+const aladdinRUSD = '0x07D1718fF05a8C53C8F05aDAEd57C0d672945f9a';
 
 const getAllPools = async () => {
   let vaultsInfo = await utils.getData(
@@ -35,7 +36,7 @@ const getATokenData = async () => {
   let aTokenData = await utils.getData(
     `${ALADDIN_API_BASE_URL}api1/concentrator_aToken_tvl_apy`
   );
-  const { aCRV, asdCRV, aladdinCVX } = aTokenData.data;
+  const { aCRV, asdCRV, aladdinCVX, arUSD } = aTokenData.data;
   const newObj = [
     {
       pool: `${concentratorAcrv}-concentrator`,
@@ -60,6 +61,14 @@ const getATokenData = async () => {
       symbol: 'aCVX',
       tvlUsd: parseInt(aladdinCVX.tvl, 10),
       apy: parseFloat(aladdinCVX.apy),
+    },
+    {
+      pool: `${aladdinRUSD}-concentrator`,
+      chain: utils.formatChain('ethereum'),
+      project: 'concentrator',
+      symbol: 'arUSD',
+      tvlUsd: parseInt(arUSD.tvl, 10),
+      apy: parseFloat(arUSD.apy),
     },
   ];
   return newObj;

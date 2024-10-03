@@ -13,6 +13,8 @@ const {
 const _ = require('lodash');
 const ethers = require('ethers');
 
+const now = Math.floor(Date.now() / 1000);
+
 const RewardAssetConfig = {
   auraAddress: '0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF',
   balAddress: '0xba100000625a3754423978a60c9317c58a424e3D',
@@ -56,6 +58,15 @@ const ChainConfig = {
     balAddress: '0x7eF541E2a22058048904fE5744f9c7E4C57AF717',
     ldoAddress: '0x96e334926454CD4B7b4efb8a8fcb650a738aD244',
     chainTokens: ['0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb'], // GNO
+  },
+  polygon: {
+    booster: '0x98Ef32edd24e2c92525E59afc4475C1242a30184',
+    balancerVault: '0xBA12222222228d8Ba445958a75a0704d566BF2C8',
+    auraRewardsCalculator: '0x9e4CBe2EaFf2FA727bC805E6CbBf2ff01DdB812b',
+    auraAddress: '0x1509706a6c66CA549ff0cB464de88231DDBe213B',
+    balAddress: '0x9a71012b13ca4d3d0cdc72a177df3ef03b0e76a3',
+    ldoAddress: '0xC3C7d422809852031b44ab29EEC9F1EfF2A58756',
+    chainTokens: ['0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270'], // MATIC
   },
 };
 
@@ -121,6 +132,16 @@ const main = async () => {
     const validPools = allAuraPools.filter(
       (poolInfo) => poolInfo.shutdown == false
     );
+
+    const lastTimeRewardApplicable = (
+      await sdk.api.abi.multiCall({
+        calls: validPools.map((i) => ({ target: i.crvRewards })),
+        chain,
+        abi: stakingABI.find(({ name }) => name === 'lastTimeRewardApplicable'),
+        permitFailure: true,
+      })
+    ).output.map((o) => o.output);
+
     const validPoolIds = validPools.map((poolInfo) =>
       allAuraPools.indexOf(poolInfo)
     );
@@ -375,6 +396,12 @@ const main = async () => {
         if (swapApr?.poolAprs) {
           data.apyBase = Number(swapApr.poolAprs.swap);
         }
+
+        if (lastTimeRewardApplicable[i] < now) {
+          data.apyReward = 0;
+          data.rewardTokens = [];
+        }
+
         return data;
       })
     );

@@ -112,7 +112,7 @@ const POOLS = {
       { version: 2, address: '0x9617b633ef905860d919b88e1d9d9a6191795341' }, // FTT
       { version: 2, address: '0xcfc571f3203756319c231d3bc643cee807e74636' }, // SPELL (DegenBox)
       { version: 2, address: '0xbc36fde44a7fd8f545d459452ef9539d7a14dd63' }, // UST V1 (deprecated)
-      { version: 2, address: '0x59e9082e068ddb27fc5ef1690f9a9f22b32e573f' }, // UST V2 (deprecated)
+      // { version: 2, address: '0x59e9082e068ddb27fc5ef1690f9a9f22b32e573f' }, // UST V2 (deprecated
       { version: 2, address: '0x390db10e65b5ab920c19149c919d970ad9d18a41' }, // WETH
       { version: 2, address: '0x5ec47ee69bede0b6c2a2fc0d9d094df16c192498' }, // WBTC
       { version: 2, address: '0xf179fe36a36b32a4644587b8cdee7a23af98ed37' }, // yvCVXETH

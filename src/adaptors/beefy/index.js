@@ -23,6 +23,7 @@ const networkMapping = {
   122: 'fuse',
   128: 'heco',
   137: 'polygon',
+  169: 'manta',
   250: 'fantom',
   252: 'fraxtal',
   324: 'zksync',
@@ -34,6 +35,7 @@ const networkMapping = {
   5000: 'mantle',
   7700: 'canto',
   8453: 'base',
+  34443: 'mode',
   42161: 'arbitrum',
   42220: 'celo',
   42262: 'oasis',
@@ -41,6 +43,20 @@ const networkMapping = {
   59144: 'linea',
   1313161554: 'aurora',
   1666600000: 'harmony',
+};
+
+const extractePoolMetaDate = (string) => {
+  // match DDMMMYY
+  const pattern = /(\d{2}[A-Za-z]{3}\d{2})/;
+  const match = string.match(pattern);
+
+  if (match) {
+    const datePart = match[1];
+    const nonDatePart = string.replace(datePart, '').trim();
+    return { nonDatePart, datePart };
+  } else {
+    return { nonDatePart: string, datePart: null };
+  }
 };
 
 const main = async () => {
@@ -89,12 +105,14 @@ const main = async () => {
 
       const {
         assets,
+        name,
         platformId,
         depositTokenAddresses,
         earnContractAddress,
         chain,
         type,
         tokenAddress,
+        oracleId,
       } = vault;
 
       const tokenSymbols = [];
@@ -127,6 +145,10 @@ const main = async () => {
           ? depositTokenAddresses
           : tokenAddresses;
 
+      const poolDetails = extractePoolMetaDate(name).datePart;
+      let poolMeta = formatChain(platformId);
+      poolMeta = poolDetails !== null ? `${poolMeta}-${poolDetails}` : poolMeta;
+
       data.push({
         pool: `${earnContractAddress}-${llamaChain}`.toLowerCase(),
         chain: formatChain(llamaChain),
@@ -134,8 +156,9 @@ const main = async () => {
         symbol: formatSymbol(tokenSymbols.join('-')),
         tvlUsd: tvl,
         apy: apy * 100,
-        poolMeta: formatChain(platformId),
+        poolMeta,
         underlyingTokens,
+        url: `https://app.beefy.com/vault/${vaultId}`,
       });
     }
   }
@@ -146,5 +169,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.beefy.com/',
 };

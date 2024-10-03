@@ -9,9 +9,12 @@ const poolAbi = require('../aave-v3/poolAbi');
 const SECONDS_PER_YEAR = 31536000;
 
 const chainUrlParam = {
-  linea: 'proto_linea_v3',
-  ethereum: 'proto_mainnet_lrt_v3',
-  era: 'proto_zksync_era_v3',
+  linea: ['proto_linea_v3'],
+  ethereum: ['proto_mainnet_lrt_v3', 'proto_mainnet_btc_v3'],
+  era: ['proto_zksync_era_v3'],
+  blast: ['proto_blast_v3'],
+  manta: ['proto_manta_v3'],
+  xlayer: ['proto_layerx_v3'],
 };
 
 const oraclePriceABI = {
@@ -97,12 +100,18 @@ const getPrices = async (addresses) => {
   return { pricesByAddress, pricesBySymbol };
 };
 
+const baseUrl =
+  'https://api.goldsky.com/api/public/project_clsk1wzatdsls01wchl2e4n0y/subgraphs/';
 const API_URLS = {
-  ethereum:
-    'https://api.studio.thegraph.com/query/65585/zerolend-ethereum-lrt-market/version/latest',
-  linea:
-    'https://api.studio.thegraph.com/query/65585/zerolend-linea-market/version/latest',
-  era: 'https://api.studio.thegraph.com/query/49970/zerolend/version/latest',
+  ethereum: [
+    baseUrl + 'zerolend-mainnet-lrt/1.0.0/gn',
+    baseUrl + 'zerolend-mainnet-btc/1.0.0/gn',
+  ],
+  linea: [baseUrl + 'zerolend-linea/1.0.0/gn'],
+  era: [baseUrl + 'zerolend-zksync/1.0.0/gn'],
+  manta: [baseUrl + 'zerolend-m/1.0.0/gn'],
+  blast: [baseUrl + 'zerolend-blast/1.0.1/gn'],
+  xlayer: [baseUrl + 'zerolend-xlayer/1.0.0/gn'],
 };
 
 const query = gql`
@@ -143,10 +152,9 @@ const query = gql`
 
 const apy = async () => {
   let data = await Promise.all(
-    Object.entries(API_URLS).map(async ([chain, url]) => [
-      chain,
-      (await request(url, query)).reserves,
-    ])
+    Object.entries(API_URLS).flatMap(([chain, urls]) =>
+      urls.map(async (url) => [chain, (await request(url, query)).reserves])
+    )
   );
 
   data = data.map(([chain, reserves]) => [
@@ -263,7 +271,13 @@ const apy = async () => {
             ? (rewardPerYearBorrow / totalBorrowUsd) * 100
             : null,
         ltv: Number(pool.baseLTVasCollateral) / 10000,
-        url: `https://app.zerolend.xyz/reserve-overview/?underlyingAsset=${pool.aToken.underlyingAssetAddress}&marketName=${chainUrlParam[chain]}&utm_source=defillama&utm_medium=listing&utm_campaign=external`,
+        url: `https://app.zerolend.xyz/reserve-overview/?underlyingAsset=${
+          pool.aToken.underlyingAssetAddress
+        }&marketName=${
+          chain === 'ethereum' && pool.symbol.toLowerCase().includes('btc')
+            ? chainUrlParam[chain][1]
+            : chainUrlParam[chain][0]
+        }&utm_source=defillama&utm_medium=listing&utm_campaign=external`,
         borrowable: pool.borrowingEnabled,
       };
     });

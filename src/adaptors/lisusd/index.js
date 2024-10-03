@@ -168,12 +168,12 @@ const getApy = async () => {
         (Number(collateral) / 1e18) * prices[`bsc:${WBNB.toLowerCase()}`].price,
       totalBorrowUsd: totalSupplyUsd,
       ltv: 1 / Number(liquidationRatio.toNumber()),
-      mintedCoin: 'HAY',
+      mintedCoin: 'lisUSD',
     },
     {
       pool: hHAY,
       project: 'lisusd',
-      symbol: 'HAY',
+      symbol: 'lisUSD',
       chain: 'binance',
       apy: new BigNumber(hayRate)
         .times(SECONDS_PER_YEAR)

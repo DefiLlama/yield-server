@@ -5,7 +5,7 @@ const MERKLE_RESOURCE_ACCOUNT =
 
 async function main() {
   const result = await utils.getData(
-    `https://app.merkle.trade/api/v1/mklp/stats?p=30d`
+    `https://api.prod.merkle.trade/v1/mklp/stats?p=30d`
   );
   const tvl = result.usdcBalance;
   const apr30d = result.apr;

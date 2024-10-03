@@ -2,11 +2,12 @@ const sdk = require('@defillama/sdk');
 const { ethers } = require('ethers');
 const wiseLendingABI = require('./abi/wiseLendingABI.json');
 const wiseSecurityABI = require('./abi/wiseSecurityABI.json');
+const AaveHubABI = require('./abi/AaveHubABI.json');
 const superagent = require('superagent');
 
 const ChainName = {
-  ethereum: 'Ethereum',
-  arbitrum: 'Arbitrum',
+  ethereum: "Ethereum",
+  arbitrum: "Arbitrum",
 };
 
 const contracts = {
@@ -17,25 +18,54 @@ const contracts = {
   wiseSecurity: {
     ethereum: "0x8EB1B69fB74C6019C16f43ae93F0fAD7CCB9A59d",
     arbitrum: "0x67dae107eCF474F0D5B7d8aD45490608a5AdbE2A"
+  },
+  aaveHub: {
+    ethereum: "0x5b2E35d9dEB2962D05A5C7E91939169656DCd1Cd",
+    arbitrum: "0x4A56DCd67E66102E6a877dE8BF2E903Df5E18978"
   }
 };
 
+const aavePools = [
+  "0xe50fA9b3c56FfB159cB0FCA61F5c9D750e8128c8",
+  "0x724dc807b04555b71ed48a6896b6F41593b8C637",
+  "0x6ab707Aca953eDAeFBc4fD23bA73294241490620",
+  "0x82E64f49Ed5EC1bC6e43DAD4FC8Af9bb3A2312EE",
+];
+
 const tokenAddresses = {
   ethereum: {
-    WETH: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
+    WETH: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    WBTC: "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+    DAI: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+    wstETH: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
   },
   arbitrum: {
-    WETH: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
+    WETH: "0xe50fA9b3c56FfB159cB0FCA61F5c9D750e8128c8",
     USDC: "0x724dc807b04555b71ed48a6896b6F41593b8C637",
     USDT: "0x6ab707Aca953eDAeFBc4fD23bA73294241490620",
-    DAI: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+    DAI: "0x82E64f49Ed5EC1bC6e43DAD4FC8Af9bb3A2312EE",
     wstETH: "0x5979D7b546E38E414F7E9822514be443A4800529",
+  },
+  underlying: {
+    WETH: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+    USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+    USDT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+    DAI: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
   }
 };
 
 const projectSlug = 'wise-lending-v2';
 
-const getTokenData = async (chain, token, address, wiseSecurity, wiseLending) => {
+const getTokenData = async (chain, token, addresses, contract) => {
+  const address = addresses[chain];
+  const isAave = aavePools.includes(address[token]);
+  const underlyingAddress = isAave ? addresses.underlying[token] : address[token];
+  const wiseSecurity = contracts.wiseSecurity[chain];
+  const wiseLending = contracts.wiseLending[chain];
+  const aaveHub = isAave ? contracts.aaveHub[chain] : wiseSecurity;
+
   try {
 
     if (chain === "ethereum") {
@@ -54,10 +84,10 @@ const getTokenData = async (chain, token, address, wiseSecurity, wiseLending) =>
     ).body.coins[tokenAddress];
 
     const lendingData = await sdk.api.abi.call({
-      target: wiseSecurity,
-      abi: wiseSecurityABI.find((m) => m.name === 'getLendingRate'),
+      target: aaveHub,
+      abi: AaveHubABI.find((m) => m.name === 'getLendingRate'),
       chain,
-      params: [address[token]],
+      params: [underlyingAddress],
     });
 
     const lendingRate = lendingData.output / 1e16;
@@ -106,7 +136,8 @@ const getTokenData = async (chain, token, address, wiseSecurity, wiseLending) =>
       pool: `${address[token]}-${projectSlug}-${chain}`,
       chain: ChainName[chain],
       project: projectSlug,
-      symbol: usdPrice.symbol,
+      symbol: token,
+      poolMeta: usdPrice.symbol,
       tvlUsd,
       apyBase: lendingRate,
       // apyReward: lendingRate,
@@ -133,7 +164,12 @@ async function apy() {
             Promise.all(
               tokens.map(async (token) => {
 
-                return getTokenData(chain, token, tokenAddresses[chain], contracts.wiseSecurity[chain], contracts.wiseLending[chain]);
+                return getTokenData(
+                  chain,
+                  token,
+                  tokenAddresses,
+                  contracts
+                );
               })
             ),
           ]

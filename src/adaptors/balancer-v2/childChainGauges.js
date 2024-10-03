@@ -1,8 +1,8 @@
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const { capitalizeFirstLetter } = require('../utils');
 
-const urlBase = 'https://api.thegraph.com/subgraphs/name/balancer-labs';
-const urlGaugesEthereum = `${urlBase}/balancer-gauges`;
+const urlGaugesEthereum = sdk.graph.modifyEndpoint('4sESujoqmztX6pbichs4wZ1XXyYrkooMuHA8sKkYxpTn');
 
 // For reference - this is how chains are stored in the gauges subgraph
 // const chainToEnum = {
