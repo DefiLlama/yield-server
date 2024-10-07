@@ -15,6 +15,7 @@ const chainUrlParam = {
   blast: ['proto_blast_v3'],
   manta: ['proto_manta_v3'],
   xlayer: ['proto_layerx_v3'],
+  base: ['proto_base_v3'],
 };
 
 const oraclePriceABI = {
@@ -112,6 +113,7 @@ const API_URLS = {
   manta: [baseUrl + 'zerolend-m/1.0.0/gn'],
   blast: [baseUrl + 'zerolend-blast/1.0.1/gn'],
   xlayer: [baseUrl + 'zerolend-xlayer/1.0.0/gn'],
+  base: [baseUrl + 'zerolend-base-mainnet/1.0.0/gn'],
 };
 
 const query = gql`
@@ -223,10 +225,10 @@ const apy = async () => {
         (acc, rew) =>
           acc +
           (rew.emissionsPerSecond / 10 ** rew.rewardTokenDecimals) *
-            SECONDS_PER_YEAR *
-            (pricesByAddress[rew.rewardToken] ||
-              pricesBySymbol[rew.rewardTokenSymbol] ||
-              0),
+          SECONDS_PER_YEAR *
+          (pricesByAddress[rew.rewardToken] ||
+            pricesBySymbol[rew.rewardTokenSymbol] ||
+            0),
         0
       );
 
@@ -235,10 +237,10 @@ const apy = async () => {
         (acc, rew) =>
           acc +
           (rew.emissionsPerSecond / 10 ** rew.rewardTokenDecimals) *
-            SECONDS_PER_YEAR *
-            (pricesByAddress[rew.rewardToken] ||
-              pricesBySymbol[rew.rewardTokenSymbol] ||
-              0),
+          SECONDS_PER_YEAR *
+          (pricesByAddress[rew.rewardToken] ||
+            pricesBySymbol[rew.rewardTokenSymbol] ||
+            0),
         0
       );
       let totalBorrowUsd = totalSupplyUsd - tvlUsd;
@@ -271,13 +273,11 @@ const apy = async () => {
             ? (rewardPerYearBorrow / totalBorrowUsd) * 100
             : null,
         ltv: Number(pool.baseLTVasCollateral) / 10000,
-        url: `https://app.zerolend.xyz/reserve-overview/?underlyingAsset=${
-          pool.aToken.underlyingAssetAddress
-        }&marketName=${
-          chain === 'ethereum' && pool.symbol.toLowerCase().includes('btc')
+        url: `https://app.zerolend.xyz/reserve-overview/?underlyingAsset=${pool.aToken.underlyingAssetAddress
+          }&marketName=${chain === 'ethereum' && pool.symbol.toLowerCase().includes('btc')
             ? chainUrlParam[chain][1]
             : chainUrlParam[chain][0]
-        }&utm_source=defillama&utm_medium=listing&utm_campaign=external`,
+          }&utm_source=defillama&utm_medium=listing&utm_campaign=external`,
         borrowable: pool.borrowingEnabled,
       };
     });
