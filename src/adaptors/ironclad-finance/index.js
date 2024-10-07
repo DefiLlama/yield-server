@@ -4,6 +4,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const abiLendingPool = require('./abiLendingPool');
 const abiProtocolDataProvider = require('./abiProtocolDataProvider');
+const abiSimplifiedProtocolDataReader = require('./abiSimplifiedProtocolDataReader');
 
 const utils = require('../utils');
 
@@ -12,6 +13,8 @@ const chains = {
     LendingPool: '0xB702cE183b4E1Faa574834715E5D4a6378D0eEd3',
     ProtocolDataProvider: '0x29563f73De731Ae555093deb795ba4D1E584e42E',
     url: 'mode',
+    SimplifiedProtocolDataReader: '0x30c8E956f8F4Dbaf931e8e286Ebf18D2efF3D34B',
+    rewardTokens: ['0x3b6ea0fa8a487c90007ce120a83920fd52b06f6d']
   },
 };
 
@@ -28,6 +31,15 @@ const getApy = async () => {
           chain: sdkChain,
         })
       ).output;
+
+      const rewardsData = await sdk.api.abi.multiCall({
+        calls: reservesList.map((reserve) => ({
+          target: addresses.SimplifiedProtocolDataReader,
+          params: [reserve],
+        })),
+        abi: abiSimplifiedProtocolDataReader.find((m) => m.name === 'getAssetRewardsAPR'),
+        chain: sdkChain,
+      });
 
       const reserveData = (
         await sdk.api.abi.multiCall({
@@ -104,6 +116,10 @@ const getApy = async () => {
         const apyBase = reserveData[i].currentLiquidityRate / 1e25;
         const apyBaseBorrow = reserveData[i].currentVariableBorrowRate / 1e25;
 
+        // Add the new reward APY data
+        const apyReward = rewardsData.output[i].output[0] / 1e6;
+        const apyRewardBorrow = rewardsData.output[i].output[1] / 1e6;
+
         const ltv = config.ltv / 1e4;
         const borrowable = config.borrowingEnabled;
         const frozen = config.isFrozen;
@@ -117,12 +133,15 @@ const getApy = async () => {
           chain,
           tvlUsd,
           apyBase,
+          apyBorrow,
           underlyingTokens: [t],
           url,
           // borrow fields
           totalSupplyUsd,
           totalBorrowUsd,
           apyBaseBorrow,
+          apyRewardBorrow,
+          rewardTokens,
           ltv,
           borrowable,
           poolMeta: frozen ? 'frozen' : null,
