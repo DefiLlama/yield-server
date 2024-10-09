@@ -19,6 +19,7 @@ const protocolDataProviders = {
   xdai: '0x57038C3e3Fe0a170BB72DE2fD56E98e4d1a69717',
   bsc: '0x23dF2a19384231aFD114b036C14b6b03324D79BC',
   scroll: '0xe2108b60623C6Dcf7bBd535bD15a451fd0811f7b',
+  era: '0x5F2A704cE47B373c908fE8A29514249469b52b99',
 };
 
 const getApy = async (chain) => {
