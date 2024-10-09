@@ -2,6 +2,7 @@ const axios = require('axios');
 const utils = require('../utils');
 
 const API_URL = 'https://perps-api-mainnet.polynomial.finance/vaults/all?chainId=8008';
+// LIUIDITY UI
 const LIQUIDITY_URL = 'https://polynomial.fi/en/mainnet/earn/liquidity';
 
 const getApy = async () => {
