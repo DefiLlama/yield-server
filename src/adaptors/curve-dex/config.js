@@ -32,6 +32,7 @@ exports.BLOCKCHAINIDS.forEach((blockchainId) => {
     case 'arbitrum':
     case 'fraxtal':
     case 'fantom':
+    case 'optimism':
       blockchainRegistries = REGISTRY_TYPES;
       break;
     case 'xdai':
@@ -55,4 +56,3 @@ exports.OVERRIDE_DATA = {
     },
   },
 };
-
