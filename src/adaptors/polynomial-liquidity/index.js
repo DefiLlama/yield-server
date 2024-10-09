@@ -2,6 +2,7 @@ const axios = require('axios');
 const utils = require('../utils');
 
 const API_URL = 'https://perps-api-mainnet.polynomial.finance/vaults/all?chainId=8008';
+const LIQUIDITY_URL = 'https://polynomial.fi/en/mainnet/earn/liquidity';
 
 const getApy = async () => {
   // APR is retrieved using our api, tvl pairs etc trough subgraph
@@ -16,7 +17,7 @@ const getApy = async () => {
         symbol: pool.collateralType === 'fxUSDC' ? 'USDC' : pool.collateralType,
         tvlUsd: pool.tvl,
         apyBase: pool.apy,
-        url: API_URL
+        url: LIQUIDITY_URL
       };
     })
   );
