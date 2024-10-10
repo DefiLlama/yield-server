@@ -6,6 +6,7 @@ const YIELD_RISK_API_EXPONENTIAL =
 const getRiskRating = async (req, res) => {
   try {
     const poolData = req.query;
+    console.log(poolData)
     const response = await fetch(YIELD_RISK_API_EXPONENTIAL, {
     method: 'POST',
     headers: {
