@@ -16,6 +16,7 @@ const risk = require('./routes/risk');
 const app = express();
 app.use(require('morgan')('dev'));
 app.use(helmet());
+app.use(express.json());
 
 async function redisCache (req, res, next) {
   const lastCacheUpdate = await redis.get("lastUpdate#"+req.url)

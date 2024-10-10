@@ -1,11 +1,12 @@
 const fetch = require('node-fetch');
 
-export const YIELD_RISK_API_EXPONENTIAL =
+const YIELD_RISK_API_EXPONENTIAL =
   'https://api.exponential.fi/api/pool-risk/search';
 
 const getRiskRating = async (req, res) => {
-  const poolData = req.body;
-  const response = await fetch(YIELD_RISK_API_EXPONENTIAL, {
+  try {
+    const poolData = req.body;
+    const response = await fetch(YIELD_RISK_API_EXPONENTIAL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -22,8 +23,16 @@ const getRiskRating = async (req, res) => {
   const data = await response.json();
   res.status(200).json({
     status: 'success',
-    data,
-  });
+      data,
+    });
+    
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message,
+    });
+  }
 };
 
 function cleanPool(pool) {
