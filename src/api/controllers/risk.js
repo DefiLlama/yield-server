@@ -6,7 +6,6 @@ const YIELD_RISK_API_EXPONENTIAL =
 const getRiskRating = async (req, res) => {
   try {
     const poolData = req.query;
-    console.log(poolData);
 
     // pool_old + at least one of the other fields are requried
     if (!poolData.pool_old) {
