@@ -54,5 +54,9 @@ exports.OVERRIDE_DATA = {
       symbol: 'xWETH',
       url: 'https://curve.fi/#/fantom/pools/factory-stable-ng-37/deposit',
     },
+    '0x37F5dae6039C8eC4c32ad7D3e2a07aCaa55C08f9': {
+      symbol: 'xBTC',
+      url: 'https://curve.fi/#/fantom/pools/factory-stable-ng-39/deposit',
+    },
   },
 };
