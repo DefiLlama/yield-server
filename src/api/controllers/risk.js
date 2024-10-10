@@ -6,27 +6,45 @@ const YIELD_RISK_API_EXPONENTIAL =
 const getRiskRating = async (req, res) => {
   try {
     const poolData = req.query;
-    console.log(poolData)
+    console.log(poolData);
+
+    // pool_old + at least one of the other fields are requried
+    if (!poolData.pool_old) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'pool_old is required',
+      });
+    }
+
+    const otherFields = ['chain', 'project', 'tvlUsd', 'underlyingTokens'];
+    const hasOtherField = otherFields.some((field) => poolData[field]);
+
+    if (!hasOtherField) {
+      return res.status(400).json({
+        status: 'error',
+        message: `At least one of ${otherFields.join(',')} must be provided`,
+      });
+    }
+
     const response = await fetch(YIELD_RISK_API_EXPONENTIAL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-API-KEY': process.env.EXPONENTIAL_API_KEY,
-    },
-    body: JSON.stringify({
-      token_address: cleanPool(poolData.pool_old),
-      blockchain: poolData.chain?.toLowerCase(),
-      protocol: poolData.project,
-      tvl: poolData.tvlUsd,
-      assets: poolData.underlyingTokens,
-    }),
-  });
-  const data = await response.json();
-  res.status(200).json({
-    status: 'success',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': process.env.EXPONENTIAL_API_KEY,
+      },
+      body: JSON.stringify({
+        token_address: cleanPool(poolData.pool_old),
+        blockchain: poolData.chain?.toLowerCase(),
+        protocol: poolData.project,
+        tvl: poolData.tvlUsd,
+        assets: poolData.underlyingTokens,
+      }),
+    });
+    const data = await response.json();
+    res.status(200).json({
+      status: 'success',
       data,
     });
-    
   } catch (error) {
     console.error(error);
     res.status(500).json({
