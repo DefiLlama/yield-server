@@ -1,7 +1,7 @@
-import sdk from '@defillama/sdk';
-import axios from 'axios';
-import EarnVault from './EarnVault.json';
-import Accountant from './Accountant.json';
+const axios = require('axios');
+const sdk = require('@defillama/sdk');
+const EarnVault = require('./EarnVault.json');
+const Accountant = require('./Accountant.json');
 
 const earnETH = '0x9Ed15383940CC380fAEF0a75edacE507cC775f22';
 const accountant = '0x411c78BC8c36c3c66784514f28c56209e1DF2755';
@@ -22,14 +22,13 @@ const apy = async () => {
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).data.coins[priceKey].price;
 
-  const currentRate =
-    (
-      await sdk.api.abi.call({
-        target: accountant,
-        abi: Accountant.find((m) => m.name === 'getRate'),
-      })
-    ).output / 1e18;
-  const tvlUsd = totalSupply * currentRate * ethPrice;
+  const currentRate = (
+    await sdk.api.abi.call({
+      target: accountant,
+      abi: Accountant.find((m) => m.name === 'getRate'),
+    })
+  ).output;
+  const tvlUsd = totalSupply * (currentRate / 1e18) * ethPrice;
 
   // APY calculations
   const now = Math.floor(Date.now() / 1000);
@@ -56,7 +55,6 @@ const apy = async () => {
       block: block7dayAgo,
     }),
   ]);
-
   const apr1d = ((currentRate - exchangeRates[0].output) / 1e18) * 365 * 100;
 
   const apr7d =
