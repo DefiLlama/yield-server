@@ -16,7 +16,7 @@ const lendingResolver = {
   base: '0x3aF6FBEc4a2FE517F56E402C65e3f4c3e18C1D86'
 }
 
-const apy = async (chain) => {
+const getApy = async (chain) => {
   const fTokensEntireData = (
     await sdk.api.abi.call({
       target: lendingResolver[chain],
@@ -72,7 +72,13 @@ const apy = async (chain) => {
   return pools.filter((i) => utils.keepFinite(i));
 };
 
+const apy = (async () => {
+  const chains = Object.keys(CHAIN_ID_MAPPING);
+  const apy = await Promise.all(chains.map((chain) => getApy(chain)));
+  return apy.flat();
+})
+
 module.exports = {
   apy,
-  url: `https://fluid.instadapp.io/lending/${CHAIN_ID_MAPPING[chain]}`,
+  url: `https://fluid.instadapp.io/lending/`,
 };
