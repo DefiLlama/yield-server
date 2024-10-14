@@ -146,6 +146,9 @@ const excludeAdaptors = [
   'deltaprime',
   'mellow-yield',
   'glacier-exchange-v2',
+
+  // tmp
+  'fluid',
 ];
 
 const excludePools = [
