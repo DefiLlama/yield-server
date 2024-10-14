@@ -77,5 +77,5 @@ const apy = async () => {
 module.exports = {
   apy,
   timetravel: false,
-  url: 'https://app.swellnetwork.io/earn/defi',
+  url: 'https://app.swellnetwork.io/earn/vaults',
 };
