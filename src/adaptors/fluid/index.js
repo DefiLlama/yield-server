@@ -3,13 +3,23 @@ const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 
-const abiLendingResolver = require('./abiLendingResolver');
-const lendingResolver = '0xC215485C572365AE87f908ad35233EC2572A3BEC'
+const CHAIN_ID_MAPPING = {
+  ethereum: 1,
+  arbitrum: 42161,
+  base: 8453
+};
 
-const apy = async () => {
+const abiLendingResolver = require('./abiLendingResolver');
+const lendingResolver = {
+  ethereum: '0xC215485C572365AE87f908ad35233EC2572A3BEC',
+  arbitrum: '0xdF4d3272FfAE8036d9a2E1626Df2Db5863b4b302',
+  base: '0x3aF6FBEc4a2FE517F56E402C65e3f4c3e18C1D86'
+}
+
+const apy = async (chain) => {
   const fTokensEntireData = (
     await sdk.api.abi.call({
-      target: lendingResolver,
+      target: lendingResolver[chain],
       abi: abiLendingResolver.find((m) => m.name === 'getFTokensEntireData'),
     })
   ).output;
@@ -30,7 +40,7 @@ const apy = async () => {
     })
   ).output.map((o) => o.output);
 
-  const priceKeys = underlying.map((i) => `ethereum:${i}`).join(',');
+  const priceKeys = underlying.map((i) => `${chain}:${i}`).join(',');
   const prices = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
   ).data.coins;
@@ -39,7 +49,7 @@ const apy = async () => {
     const tokenAddress = token.tokenAddress
     const underlyingToken = token.asset
     const decimals = token.decimals
-    const tokenPrice = prices[`ethereum:${underlying[i]}`].price;
+    const tokenPrice = prices[`${chain}:${underlying[i]}`].price;
 
     const totalSupplyUsd = (token.totalAssets * tokenPrice) / 10 ** decimals;
 
@@ -48,7 +58,7 @@ const apy = async () => {
 
     return {
       project: 'fluid',
-      chain: 'ethereum',
+      chain: chain,
       pool: token,
       symbol: symbol[i],
       tvlUsd: totalSupplyUsd,
@@ -63,5 +73,5 @@ const apy = async () => {
 
 module.exports = {
   apy,
-  url: 'https://fluid.instadapp.io/lending',
+  url: `https://fluid.instadapp.io/lending/${CHAIN_ID_MAPPING[chain]}`,
 };
