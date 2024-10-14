@@ -52,22 +52,23 @@ const apy = async () => {
     const poolMeta = `Rho ${underlyingSymbol} Market`;
     const tvlUsd = Number(ethers.utils.formatEther(marketInfo.tvl));
     const ltv = Number(ethers.utils.formatEther(marketInfo.ltv));
-    const totalSupplyUsd = Number(ethers.utils.formatEther(marketInfo.totalSupply));
-    const totalBorrowUsd = Number(ethers.utils.formatEther(marketInfo.totalBorrows));
+    const totalSupplyUsd = Number(
+      ethers.utils.formatEther(marketInfo.totalSupply)
+    );
+    const totalBorrowUsd = Number(
+      ethers.utils.formatEther(marketInfo.totalBorrows)
+    );
 
     const blocksPerYear = marketInfo.blocksPerYear;
     const borrowRatePerBlock = marketInfo.borrowRatePerBlock;
     const supplyRatePerBlock = marketInfo.supplyRatePerBlock;
     const timestampsPerYear = marketInfo.timestampsPerYear;
 
-    const apyBase = calculateApy(
-      supplyRatePerBlock,
-      blocksPerYear || timestampsPerYear
-    );
-    const apyBaseBorrow = calculateApy(
-      borrowRatePerBlock,
-      blocksPerYear || timestampsPerYear
-    );
+    const base = blocksPerYear > 0 ? blocksPerYear : timestampsPerYear;
+
+    const apyBase = calculateApy(supplyRatePerBlock, base);
+
+    const apyBaseBorrow = calculateApy(borrowRatePerBlock, base);
 
     const url = `https://dapp.rhomarkets.xyz/market/${underlyingSymbol}`;
 
