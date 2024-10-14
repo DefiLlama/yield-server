@@ -48,6 +48,7 @@ const apy = async (chain) => {
   const pools = fTokensEntireData.map((token, i) => {
     const tokenAddress = token.tokenAddress
     const underlyingToken = token.asset
+    const underlyingSymbol = symbol[i]
     const decimals = token.decimals
     const tokenPrice = prices[`${chain}:${underlying[i]}`].price;
 
@@ -58,13 +59,13 @@ const apy = async (chain) => {
 
     return {
       project: 'fluid',
-      chain: chain,
-      pool: token,
-      symbol: symbol[i],
+      pool: tokenAddress,
       tvlUsd: totalSupplyUsd,
+      symbol: underlyingSymbol,
+      underlyingTokens: [underlyingToken],
+      chain,
       apyBase,
       apyReward,
-      underlyingTokens: [underlyingToken],
     };
   });
 
