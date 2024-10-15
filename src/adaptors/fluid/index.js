@@ -21,6 +21,7 @@ const getApy = async (chain) => {
     await sdk.api.abi.call({
       target: lendingResolver[chain],
       abi: abiLendingResolver.find((m) => m.name === 'getFTokensEntireData'),
+      chain
     })
   ).output;
 
@@ -30,6 +31,7 @@ const getApy = async (chain) => {
     await sdk.api.abi.multiCall({
       calls: underlying.map((t) => ({ target: t })),
       abi: 'erc20:symbol',
+      chain
     })
   ).output.map((o) => o.output);
 
@@ -37,6 +39,7 @@ const getApy = async (chain) => {
     await sdk.api.abi.multiCall({
       calls: underlying.map((t) => ({ target: t })),
       abi: 'erc20:decimals',
+      chain
     })
   ).output.map((o) => o.output);
 
