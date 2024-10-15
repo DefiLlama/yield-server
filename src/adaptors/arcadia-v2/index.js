@@ -79,6 +79,7 @@ const getApy = async () => {
       .price;
   const cbbtcPrice =
     coinPrices['coins']['base:0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf']
+      .price
 
   const totalDebtWeth = await sdk.api.abi.call({
     target: pools.wETH,
