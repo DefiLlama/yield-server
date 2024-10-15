@@ -57,8 +57,8 @@ const getApy = async (chain) => {
 
     const totalSupplyUsd = (token.totalAssets * tokenPrice) / 10 ** decimals;
 
-    const apyBase = token.supplyRate;
-    const apyReward = token.rewardsRate / 1e10;
+    const apyBase = Number(token.supplyRate / 1e2).toFixed(2);
+    const apyReward = Number(token.rewardsRate / 1e12).toFixed(2);
 
     return {
       project: 'fluid',
