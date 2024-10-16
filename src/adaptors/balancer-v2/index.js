@@ -484,6 +484,13 @@ const topLvl = async (
 
   // build pool objects
   return tvlInfo.map((p) => {
+    const chainUrl =
+      chainString === 'avax'
+        ? 'avalanche'
+        : chainString === 'xdai'
+        ? 'gnosis'
+        : chainString;
+
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
@@ -498,9 +505,7 @@ const topLvl = async (
           : p.aprLM,
       rewardTokens: p.rewardTokens,
       underlyingTokens: p.tokensList,
-      url: `https://${
-        chainString === 'ethereum' ? 'app' : chainString
-      }.balancer.fi/#/pool/${p.id}`,
+      url: `https://balancer.fi/pools/${chainUrl}/v2/${p.id}`,
     };
   });
 };
