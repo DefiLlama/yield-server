@@ -26,7 +26,7 @@ const urlGnosis = sdk.graph.modifyEndpoint(
   'EJezH1Cp31QkKPaBDerhVPRWsKVZLrDfzjrLqpmv6cGg'
 );
 const urlArbitrum = sdk.graph.modifyEndpoint(
-  '4AQ6YqEyZapJmuFCqhFXfh24qYUykkKeCboL4vpoYQqv'
+  '98cQDy6tufTJtshDCuhh9z2kWXsQWBHVh2bqnLHsGAeS'
 );
 const urlBaseChain = `https://api.studio.thegraph.com/query/24660/balancer-base-v2/version/latest`;
 const urlAvalanche = sdk.graph.modifyEndpoint(
@@ -256,7 +256,11 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
   let childChainRootGauges;
   if (chainString != 'ethereum') {
     childChainRootGauges = await getChildChainRootGauge(
-      chainString === 'avax' ? 'avalanche' : chainString
+      chainString === 'avax'
+        ? 'avalanche'
+        : chainString === 'xdai'
+        ? 'gnosis'
+        : chainString
     );
   }
 
