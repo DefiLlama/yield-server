@@ -94,6 +94,7 @@ const query = gql`
         symbol
         weight
       }
+      address
     }
   }
 `;
@@ -171,7 +172,10 @@ const correctMaker = (entry) => {
 const tvl = (entry, tokenPriceList, chainString) => {
   entry = { ...entry };
 
-  const balanceDetails = entry.tokens.filter(
+  // remove the pool address from tvl calculation to calculate tvl from underlying tokens only
+  let balanceDetails = entry.tokens.filter((i) => i.address !== entry.address);
+
+  balanceDetails = balanceDetails.filter(
     (t) =>
       ![
         'B-STETH-Stable',
