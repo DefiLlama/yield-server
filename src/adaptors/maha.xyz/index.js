@@ -23,40 +23,16 @@ const underlyingTokens = {
   ],
 };
 
-const getPoolTokenPrice = async (rpc, address) => {
-  const provider = new ethers.providers.JsonRpcProvider(rpc);
-  const Contract = new ethers.Contract(
-    address,
-    [
-      {
-        inputs: [],
-        name: 'latestAnswer',
-        outputs: [
-          {
-            internalType: 'int256',
-            name: '',
-            type: 'int256',
-          },
-        ],
-        stateMutability: 'view',
-        type: 'function',
-      },
-    ],
-    provider
-  );
-  const price = await Contract.latestAnswer();
-  return Number(price) / 1e8;
+const chainId = {
+  base: '8453',
 };
 
-let cacheMahaPrice;
 const getMahaPrice = async () => {
   try {
     const mahaPrice = await axios.get(
       'https://api.coingecko.com/api/v3/simple/price?ids=mahadao&vs_currencies=usd'
     );
 
-    if (!mahaPrice) return cacheMahaPrice;
-    cacheMahaPrice = mahaPrice.data.mahadao.usd;
     return mahaPrice.data.mahadao.usd;
   } catch (error) {
     console.log('error fetching maha price');
@@ -95,20 +71,7 @@ const getPoolsData = async () => {
           })
         ).output;
 
-        const totalSupply = (
-          await sdk.api.abi.call({
-            chain: chain,
-            abi: abi.find(({ name }) => name === 'totalSupply'),
-            target: poolAddress,
-          })
-        ).output;
-
         const receivedTokenAddress = poolAddress;
-
-        const price = await getPoolTokenPrice(
-          rpcBase, //sdk.getProvider(chain),
-          '0xA185cA8B2894B8D0c26448a7aC6902a96d13E580'
-        );
 
         const mahaPrice = await getMahaPrice();
 
@@ -125,19 +88,19 @@ const getPoolsData = async () => {
           })
         ).output;
 
-        const apyReward = (Number(res.mahaAprE8) + Number(res.usdcAprE8)) / 1e8;
+        const apyReward = (Number(res.mahaAprE8) + Number(res.usdcAprE8)) / 1e6;
 
         const pool = {
           pool: `${receivedTokenAddress}-${chain}`.toLowerCase(),
           chain: chain,
           project: 'maha.xyz',
           symbol: symbol,
-          tvlUsd: (price * Number(totalSupply)) / 1e18,
+          tvlUsd: res.poolUsdTVLE8 / 1e8,
           apyBase: 0,
-          apyReward: apyReward / 1e24,
+          apyReward: apyReward,
           rewardTokens: [rewardToken1, rewardToken2],
           underlyingTokens: underlyingTokens[`${chain}:${poolAddress}`],
-          url: `https://app.maha.xyz/earn/pool/1/${poolAddress}/`,
+          url: `https://app.maha.xyz/earn/pool/${chainId[chain]}/${poolAddress}/`,
         };
 
         pools.push(pool);
