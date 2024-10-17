@@ -164,6 +164,8 @@ const apy = async () => {
         2) * //50% early withdraw fee
       100; //percentage
 
+    const url = `https://app.ipor.io/zap/ethereum/${asset.asset.toLowerCase()}`;
+
     pools.push({
       pool: asset.ipTokenAssetAddress + '-ethereum',
       chain: 'Ethereum',
@@ -174,6 +176,7 @@ const apy = async () => {
       apyReward: Number(apyReward),
       underlyingTokens: [asset.assetAddress],
       rewardTokens: [IPOR_TOKEN_ETHEREUM],
+      url: url,
     });
   }
 
@@ -212,6 +215,10 @@ const apy = async () => {
         2) * //50% early withdraw fee
       100; //percentage
 
+    const url = asset.asset === 'USDM'
+      ? `https://app.ipor.io/deposit/arbitrum/${asset.asset.toLowerCase()}`
+      : `https://app.ipor.io/zap/arbitrum/${asset.asset.toLowerCase()}`;
+
     pools.push({
       pool: asset.ipTokenAssetAddress + '-arbitrum',
       chain: 'Arbitrum',
@@ -222,6 +229,7 @@ const apy = async () => {
       apyReward: Number(apyReward),
       underlyingTokens: [asset.assetAddress],
       rewardTokens: rewardsToken,
+      url: url,
     });
   }
 
@@ -230,6 +238,5 @@ const apy = async () => {
 
 module.exports = {
   timetravel: false,
-  apy: apy,
-  url: 'https://app.ipor.io/deposit',
+  apy: apy
 };
