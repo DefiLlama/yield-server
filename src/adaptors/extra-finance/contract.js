@@ -10,8 +10,8 @@ const veloPairAddress = {
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000"
 
 const rpcUrlMap = {
-  optimism: 'https://opt-mainnet.g.alchemy.com/v2/oEk9gsFsYITNlTL4guXm5BmhcRZ24NfA',
-  base: 'https://base-mainnet.g.alchemy.com/v2/4uTkolRkEpkMx7Egth0pzjJAd9IbYsJc'
+  optimism: 'https://optimism.llamarpc.com',
+  base: 'https://base.llamarpc.com',
 }
 
 exports.getVeloPoolInfo = async function (poolAddress, chain) {
