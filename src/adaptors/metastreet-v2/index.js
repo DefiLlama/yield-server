@@ -36,6 +36,7 @@ const getApy = async (chain) => {
       abi: abi.name,
       calls: collateralTokens.map((token) => ({ target: token, params: [] })),
       chain,
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 

@@ -19,7 +19,7 @@ const CHAINS = {
   // 2525: 'inEVM',
 };
 
-const PROJECT_NAME = 'yeltoken';
+const PROJECT_NAME = 'yel-finance';
 
 const POTION_SINGLE_STAKING_LIST = {
   81457: {
