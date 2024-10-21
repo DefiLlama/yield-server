@@ -148,6 +148,7 @@ const excludeAdaptors = [
   'glacier-exchange-v2',
   'pinjam-labs',
   'horizondex',
+  'equilibre',
 ];
 
 const excludePools = [
