@@ -147,6 +147,7 @@ const excludeAdaptors = [
   'mellow-yield',
   'glacier-exchange-v2',
   'pinjam-labs',
+  'horizondex',
 ];
 
 const excludePools = [
