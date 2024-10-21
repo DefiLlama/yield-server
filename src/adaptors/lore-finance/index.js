@@ -169,7 +169,7 @@ const getApy = async () => {
           totalBorrowUsd,
           apyBaseBorrow,
           // apyRewardBorrow,
-          rewardTokens,
+          // rewardTokens,
           ltv,
           borrowable,
           poolMeta: frozen ? 'frozen' : null,
