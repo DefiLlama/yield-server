@@ -1,6 +1,6 @@
 const { formatChain, formatSymbol, getData } = require('../utils');
 
-const url = 'https://maverick-v2-api-delta.vercel.app/api/v5/rewardContracts';
+const url = 'https://v2-api.mav.xyz/api/v5/rewardContracts';
 
 const networkMapping = {
   1: 'ethereum',
@@ -35,7 +35,7 @@ const main = async () => {
           v.position.pool.tokenA.address,
           v.position.pool.tokenB.address,
         ],
-        url: `https://app.mav.xyz/boosted-position/${v.boostedPositionAddress}/${v.id}`,
+        url: `https://app.mav.xyz/boosted-position/${v.boostedPositionAddress}/${v.id}?chain=${v.chainId}&f=true`,
       };
     });
 
