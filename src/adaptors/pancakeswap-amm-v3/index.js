@@ -9,20 +9,20 @@ const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 
 const chains = {
-  // ethereum: sdk.graph.modifyEndpoint(
-  //   'CJYGNhb7RvnhfBDjqpRnD3oxgyhibzc7fkAMa38YV3oS'
-  // ),
-  // // temp disable bsc
-  // // bsc: sdk.graph.modifyEndpoint('Hv1GncLY5docZoGtXjo4kwbTvxm3MAhVZqBZE4sUT9eZ'),
-  // polygon_zkevm:
-  //   'https://api.studio.thegraph.com/query/45376/exchange-v3-polygon-zkevm/version/latest',
-  // era: 'https://api.studio.thegraph.com/query/45376/exchange-v3-zksync/version/latest',
-  // arbitrum: sdk.graph.modifyEndpoint(
-  //   '251MHFNN1rwjErXD2efWMpNS73SANZN8Ua192zw6iXve'
-  // ),
-  // op_bnb: 'https://proxy-worker-dev.pancake-swap.workers.dev/opbnb-exchange-v3',
-  // linea:
-  //   'https://graph-query.linea.build/subgraphs/name/pancakeswap/exchange-v3-linea',
+  ethereum: sdk.graph.modifyEndpoint(
+    'CJYGNhb7RvnhfBDjqpRnD3oxgyhibzc7fkAMa38YV3oS'
+  ),
+  // temp disable bsc
+  // bsc: sdk.graph.modifyEndpoint('Hv1GncLY5docZoGtXjo4kwbTvxm3MAhVZqBZE4sUT9eZ'),
+  polygon_zkevm:
+    'https://api.studio.thegraph.com/query/45376/exchange-v3-polygon-zkevm/version/latest',
+  era: 'https://api.studio.thegraph.com/query/45376/exchange-v3-zksync/version/latest',
+  arbitrum: sdk.graph.modifyEndpoint(
+    '251MHFNN1rwjErXD2efWMpNS73SANZN8Ua192zw6iXve'
+  ),
+  op_bnb: 'https://proxy-worker-dev.pancake-swap.workers.dev/opbnb-exchange-v3',
+  linea:
+    'https://graph-query.linea.build/subgraphs/name/pancakeswap/exchange-v3-linea',
   base: 'https://api.studio.thegraph.com/query/45376/exchange-v3-base/version/latest',
 };
 
