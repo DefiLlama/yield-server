@@ -24,8 +24,8 @@ const main = async () => {
         project: 'maverick-v2',
         symbol: v.symbol,
         tvlUsd: v.position.tvl.amount,
-        apyBase: v.position.pool.apr,
-        apyReward: v.rewardAPR,
+        apyBase: v.position.pool.apr * 100,
+        apyReward: v.rewardAPR * 100,
         rewardTokens: v.rewards
           .filter((r) => r.totalRewardValueRemaining.amount != 0)
           .map((q) => {
