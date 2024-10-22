@@ -23,6 +23,7 @@ const chains = {
   op_bnb: 'https://proxy-worker-dev.pancake-swap.workers.dev/opbnb-exchange-v3',
   linea:
     'https://graph-query.linea.build/subgraphs/name/pancakeswap/exchange-v3-linea',
+  base: 'https://api.studio.thegraph.com/query/45376/exchange-v3-base/version/latest',
 };
 
 const cakeByFormatChain = Object.keys(chains).reduce((acc, chain) => {
