@@ -63,7 +63,7 @@ const apy = async () => {
   return [
     {
       pool: earnETH,
-      project: 'swell-earn-eth',
+      project: 'swell-eth-earn-vault',
       chain: 'Ethereum',
       symbol: 'earnETH',
       tvlUsd: tvlUsd,
