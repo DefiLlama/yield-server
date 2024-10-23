@@ -312,7 +312,7 @@ const main = async (body) => {
       ...p,
       config_id: id, // config PK field
       configID: id, // yield FK field referencing config_id in config
-      symbol: ['USDC+', 'ETH+', 'USDEX+', 'USD0++'].some((i) =>
+      symbol: ['USDC+', 'ETH+', 'USDEX+', 'USD0++', 'ARB++'].some((i) =>
         p.symbol.includes(i)
       )
         ? p.symbol

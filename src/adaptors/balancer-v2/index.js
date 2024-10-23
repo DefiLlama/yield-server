@@ -26,7 +26,7 @@ const urlGnosis = sdk.graph.modifyEndpoint(
   'EJezH1Cp31QkKPaBDerhVPRWsKVZLrDfzjrLqpmv6cGg'
 );
 const urlArbitrum = sdk.graph.modifyEndpoint(
-  '4AQ6YqEyZapJmuFCqhFXfh24qYUykkKeCboL4vpoYQqv'
+  '98cQDy6tufTJtshDCuhh9z2kWXsQWBHVh2bqnLHsGAeS'
 );
 const urlBaseChain = `https://api.studio.thegraph.com/query/24660/balancer-base-v2/version/latest`;
 const urlAvalanche = sdk.graph.modifyEndpoint(
@@ -94,6 +94,7 @@ const query = gql`
         symbol
         weight
       }
+      address
     }
   }
 `;
@@ -171,7 +172,10 @@ const correctMaker = (entry) => {
 const tvl = (entry, tokenPriceList, chainString) => {
   entry = { ...entry };
 
-  const balanceDetails = entry.tokens.filter(
+  // remove the pool address from tvl calculation to calculate tvl from underlying tokens only
+  let balanceDetails = entry.tokens.filter((i) => i.address !== entry.address);
+
+  balanceDetails = balanceDetails.filter(
     (t) =>
       ![
         'B-STETH-Stable',
@@ -256,7 +260,11 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
   let childChainRootGauges;
   if (chainString != 'ethereum') {
     childChainRootGauges = await getChildChainRootGauge(
-      chainString === 'avax' ? 'avalanche' : chainString
+      chainString === 'avax'
+        ? 'avalanche'
+        : chainString === 'xdai'
+        ? 'gnosis'
+        : chainString
     );
   }
 
@@ -480,6 +488,13 @@ const topLvl = async (
 
   // build pool objects
   return tvlInfo.map((p) => {
+    const chainUrl =
+      chainString === 'avax'
+        ? 'avalanche'
+        : chainString === 'xdai'
+        ? 'gnosis'
+        : chainString;
+
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
@@ -494,9 +509,7 @@ const topLvl = async (
           : p.aprLM,
       rewardTokens: p.rewardTokens,
       underlyingTokens: p.tokensList,
-      url: `https://${
-        chainString === 'ethereum' ? 'app' : chainString
-      }.balancer.fi/#/pool/${p.id}`,
+      url: `https://balancer.fi/pools/${chainUrl}/v2/${p.id}`,
     };
   });
 };
