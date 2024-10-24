@@ -3,15 +3,15 @@ const utils = require('../utils');
 const abis = require('./rho-markets.json');
 const ethers = require('ethers');
 
-const markets_state = '0x5FcDf2257d240Ed53459fAb752E7738e1eF4FA3F';
+const markets_state = '0xeF7ceDe2D4E053ccf2A58f977a1F1eDC8782Ecc5';
 const chain = utils.formatChain('Scroll');
 const project = 'rho-markets';
 
-function calculateApy(supplyRatePerBlock, blocksPerYear) {
-  supplyRatePerBlock = BigInt(supplyRatePerBlock);
-  blocksPerYear = BigInt(blocksPerYear);
+function calculateApy(ratePerSecond, compoundingsPerYear) {
+  ratePerSecond = BigInt(ratePerSecond);
+  compoundingsPerYear = BigInt(compoundingsPerYear);
 
-  if (supplyRatePerBlock === 0n) return 0;
+  if (ratePerSecond === 0n) return 0;
 
   const SCALE = BigInt(1e18);
 
@@ -26,13 +26,13 @@ function calculateApy(supplyRatePerBlock, blocksPerYear) {
       basePow = (basePow * basePow) / SCALE;
       exponent /= 2n;
     }
+
     return result;
   }
-
-  const compounded = pow(SCALE + supplyRatePerBlock, blocksPerYear);
+  const compounded = pow(SCALE + ratePerSecond, compoundingsPerYear);
   const rawData = (compounded - SCALE) * 100n;
 
-  const data = ethers.utils.formatEther(rawData.toString());
+  const data = ethers.utils.formatEther(rawData);
   return Number(data);
 }
 
@@ -50,21 +50,25 @@ const apy = async () => {
     const underlyingSymbol = marketInfo.underlyingSymbol;
 
     const poolMeta = `Rho ${underlyingSymbol} Market`;
-    const tvlUsd = Number(ethers.utils.formatEther(marketInfo.tvl.toString()));
-    const ltv = Number(ethers.utils.formatEther(marketInfo.ltv.toString()));
+    const tvlUsd = Number(ethers.utils.formatEther(marketInfo.tvl));
+    const ltv = Number(ethers.utils.formatEther(marketInfo.ltv));
     const totalSupplyUsd = Number(
-      ethers.utils.formatEther(marketInfo.totalSupply.toString())
+      ethers.utils.formatEther(marketInfo.totalSupply)
     );
     const totalBorrowUsd = Number(
-      ethers.utils.formatEther(marketInfo.totalBorrows.toString())
+      ethers.utils.formatEther(marketInfo.totalBorrows)
     );
 
-    const supplyRatePerBlock = marketInfo.supplyRatePerBlock;
-    const borrowRatePerBlock = marketInfo.borrowRatePerBlock;
     const blocksPerYear = marketInfo.blocksPerYear;
+    const borrowRatePerBlock = marketInfo.borrowRatePerBlock;
+    const supplyRatePerBlock = marketInfo.supplyRatePerBlock;
+    const timestampsPerYear = marketInfo.timestampsPerYear;
 
-    const apyBase = calculateApy(supplyRatePerBlock, blocksPerYear);
-    const apyBaseBorrow = calculateApy(borrowRatePerBlock, blocksPerYear);
+    const base = blocksPerYear > 0 ? blocksPerYear : timestampsPerYear;
+
+    const apyBase = calculateApy(supplyRatePerBlock, base);
+
+    const apyBaseBorrow = calculateApy(borrowRatePerBlock, base);
 
     const url = `https://dapp.rhomarkets.xyz/market/${underlyingSymbol}`;
 

@@ -6,115 +6,96 @@ const { aTokenAbi } = require('../aave-v3/abi');
 const poolAbi = require('../aave-v3/poolAbi');
 
 const chain = 'core';
-// PoolDataProvider
-const target = '0x567AF83d912C85c7a66d093e41D92676fA9076E3';
 
-const apy = async () => {
-  const reserveTokens = (
-    await sdk.api.abi.call({
+// List of PoolDataProviders where you can add additional 0x addresses as needed.
+const poolDataProviders = [
+  '0x567AF83d912C85c7a66d093e41D92676fA9076E3', // Main market
+  '0x8E43DF2503c69b090D385E36032814c73b746e3d', // LSTBTC market
+  // Add more PoolDataProvider addresses here as needed
+];
+
+const fetchMarketData = async (target) => {
+  const [reserveTokens, aTokens] = await Promise.all([
+    sdk.api.abi.call({
       target,
       abi: poolAbi.find((m) => m.name === 'getAllReservesTokens'),
       chain,
-    })
-  ).output;
-
-  const aTokens = (
-    await sdk.api.abi.call({
+    }),
+    sdk.api.abi.call({
       target,
       abi: poolAbi.find((m) => m.name === 'getAllATokens'),
       chain,
-    })
-  ).output;
+    }),
+  ]).then(([reserves, atokens]) => [reserves.output, atokens.output]);
 
-  const poolsReserveData = (
-    await sdk.api.abi.multiCall({
-      calls: reserveTokens.map((p) => ({
-        target,
-        params: p.tokenAddress,
-      })),
+  const [poolsReserveData, poolsReservesConfigurationData, totalSupplyData, balanceData, decimalsData] = await Promise.all([
+    sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({ target, params: p.tokenAddress })),
       abi: poolAbi.find((m) => m.name === 'getReserveData'),
       chain,
-    })
-  ).output.map((o) => o.output);
-
-  const poolsReservesConfigurationData = (
-    await sdk.api.abi.multiCall({
-      calls: reserveTokens.map((p) => ({
-        target,
-        params: p.tokenAddress,
-      })),
+    }),
+    sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({ target, params: p.tokenAddress })),
       abi: poolAbi.find((m) => m.name === 'getReserveConfigurationData'),
       chain,
-    })
-  ).output.map((o) => o.output);
-
-  const totalSupplyEthereum = (
-    await sdk.api.abi.multiCall({
+    }),
+    sdk.api.abi.multiCall({
       chain,
       abi: aTokenAbi.find(({ name }) => name === 'totalSupply'),
-      calls: aTokens.map((t) => ({
-        target: t.tokenAddress,
-      })),
-    })
-  ).output.map((o) => o.output);
-
-  const underlyingBalancesEthereum = (
-    await sdk.api.abi.multiCall({
+      calls: aTokens.map((t) => ({ target: t.tokenAddress })),
+    }),
+    sdk.api.abi.multiCall({
       chain,
       abi: aTokenAbi.find(({ name }) => name === 'balanceOf'),
-      calls: aTokens.map((t, i) => ({
-        target: reserveTokens[i].tokenAddress,
-        params: [t.tokenAddress],
-      })),
-    })
-  ).output.map((o) => o.output);
-
-  const underlyingDecimalsEthereum = (
-    await sdk.api.abi.multiCall({
+      calls: aTokens.map((t, i) => ({ target: reserveTokens[i].tokenAddress, params: [t.tokenAddress] })),
+    }),
+    sdk.api.abi.multiCall({
       chain,
       abi: aTokenAbi.find(({ name }) => name === 'decimals'),
-      calls: aTokens.map((t) => ({
-        target: t.tokenAddress,
-      })),
-    })
-  ).output.map((o) => o.output);
+      calls: aTokens.map((t) => ({ target: t.tokenAddress })),
+    }),
+  ]);
 
-  const priceKeys = reserveTokens
-    .map((t) => `${chain}:${t.tokenAddress}`)
-    .join(',');
-  const pricesEthereum = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const priceKeys = reserveTokens.map((t) => `${chain}:${t.tokenAddress}`).join(',');
+  const pricesEthereum = (await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)).data.coins;
 
-  return reserveTokens
-    .map((pool, i) => {
-      const p = poolsReserveData[i];
-      const price = pricesEthereum[`${chain}:${pool.tokenAddress}`]?.price;
+  return reserveTokens.map((pool, i) => {
+    const p = poolsReserveData.output[i].output;
+    const price = pricesEthereum[`${chain}:${pool.tokenAddress}`]?.price;
 
-      const supply = totalSupplyEthereum[i];
-      const totalSupplyUsd =
-        (supply / 10 ** underlyingDecimalsEthereum[i]) * price;
+    const supply = totalSupplyData.output[i].output;
+    const totalSupplyUsd = (supply / 10 ** decimalsData.output[i].output) * price;
 
-      const currentSupply = underlyingBalancesEthereum[i];
-      const tvlUsd =
-        (currentSupply / 10 ** underlyingDecimalsEthereum[i]) * price;
+    const currentSupply = balanceData.output[i].output;
+    const tvlUsd = (currentSupply / 10 ** decimalsData.output[i].output) * price;
 
-      return {
-        pool: `${aTokens[i].tokenAddress}-${chain}`.toLowerCase(),
-        chain,
-        project: 'colend-protocol',
-        symbol: pool.symbol,
-        tvlUsd,
-        apyBase: (p.liquidityRate / 10 ** 27) * 100,
-        underlyingTokens: [pool.tokenAddress],
-        totalSupplyUsd,
-        totalBorrowUsd: totalSupplyUsd - tvlUsd,
-        apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
-        ltv: poolsReservesConfigurationData[i].ltv / 10000,
-        borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
-      };
-    })
-    .filter((p) => utils.keepFinite(p));
+    return {
+      pool: `${aTokens[i].tokenAddress}-${chain}`.toLowerCase(),
+      chain,
+      project: 'colend-protocol',
+      symbol: pool.symbol,
+      tvlUsd,
+      apyBase: (p.liquidityRate / 10 ** 27) * 100,
+      underlyingTokens: [pool.tokenAddress],
+      totalSupplyUsd,
+      totalBorrowUsd: totalSupplyUsd - tvlUsd,
+      apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+      ltv: poolsReservesConfigurationData.output[i].output.ltv / 10000,
+      borrowable: poolsReservesConfigurationData.output[i].output.borrowingEnabled,
+    };
+  });
+};
+
+const apy = async () => {
+  // Fetch data for all PoolDataProviders in a flexible way
+  const allMarketData = await Promise.all(
+    poolDataProviders.map(fetchMarketData)
+  );
+
+  // Combine results from all markets
+  const combinedMarketData = allMarketData.flat();
+
+  return combinedMarketData.filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

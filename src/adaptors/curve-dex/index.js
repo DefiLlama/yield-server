@@ -422,6 +422,7 @@ const main = async () => {
   const correct = [
     '0x7f90122BF0700F9E7e1F688fe926940E8839F353-avalanche',
     '0x0f9cb53Ebe405d49A0bbdBD291A65Ff571bC83e1-ethereum',
+    '0x7f90122BF0700F9E7e1F688fe926940E8839F353-xdai',
   ];
   return defillamaPooldata.map((p) => ({
     ...p,

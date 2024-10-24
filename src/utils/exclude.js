@@ -146,6 +146,9 @@ const excludeAdaptors = [
   'deltaprime',
   'mellow-yield',
   'glacier-exchange-v2',
+  'pinjam-labs',
+  'horizondex',
+  'equilibre',
 ];
 
 const excludePools = [
@@ -605,6 +608,11 @@ const excludePools = [
   '0xC2E840BdD02B4a1d970C87A912D8576a7e61D314',
   'morpho-blue-0x3f35b581cf7292b09fdaca648638ec8b53969e9f54ecb6ca0e6252bda70b1f64-ethereum',
   'morpho-blue-0xEbFA750279dEfa89b8D99bdd145a016F6292757b-ethereum',
+
+  'morpho-blue-0xbef47159fd478cdd8c34073b71f97ca796aad295a87192fcffc813fad60de9f4-ethereum',
+  'morpho-blue-0xdf2654405b27b5cf7a8f5fd78337e0440d37cbc797de38b1421752671f0ed3b6-ethereum',
+  'morpho-blue-0x0d55c325847ed87d53506c2aca7de046cb59d8c22928fd55fb2790c4811d20db-ethereum',
+  'morpho-blue-0x355c9a4c12f60a10ab3b68507bfab21bd6913182037ffe25d94dabffea45429f-ethereum',
 ];
 
 const boundaries = {

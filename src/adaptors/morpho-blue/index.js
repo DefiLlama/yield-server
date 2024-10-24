@@ -302,7 +302,7 @@ async function apy() {
     finalResult = finalResult.concat(combinedData);
   }
 
-  return finalResult;
+  return finalResult.filter((i) => i.tvlUsd < 1e9);
 }
 
 module.exports = {

@@ -280,7 +280,7 @@ const main = async (timestamp = Date.now() / 1000) => {
       return {
         pool: pair.id,
         chain: utils.formatChain('base'),
-        project: 'alien-base-amm',
+        project: 'alien-base-v2',
         symbol,
         tvlUsd: reserveUSD,
         apyBase: isAlbStake ? 0 : apyBase,
