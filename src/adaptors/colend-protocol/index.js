@@ -10,7 +10,7 @@ const chain = 'core';
 // List of PoolDataProviders where you can add additional 0x addresses as needed.
 const poolDataProviders = [
   '0x567AF83d912C85c7a66d093e41D92676fA9076E3', // Main market
-  '0xLSTBTCPoolAddressHere',                    // LSTBTC market
+  '0x8E43DF2503c69b090D385E36032814c73b746e3d', // LSTBTC market
   // Add more PoolDataProvider addresses here as needed
 ];
 
