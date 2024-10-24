@@ -6,6 +6,7 @@ const abiRateModelSlope = require('./abiRateModelSlope.json');
 const abiRewardContract = require('./abiRewardContract.json'); // Import the updated reward contract ABI
 const utils = require('../utils');
 const { ethers } = require('ethers');
+const { rewardTokens } = require('../sommelier/config');
 // Helper function to format units without ethers.js
 const formatUnits = (value, decimals) => {
   return Number(value) / Math.pow(10, decimals);
@@ -128,7 +129,7 @@ const apy = async (chain) => {
       })
     ).output.map((o) => o.output.collateralFactorMantissa);
     // Fetch decimals first to use for formatting
-    console.log("Current Chain:", chain);
+    ////console.log("Current Chain:", chain);
     const decimalsRaw = (
       await sdk.api.abi.multiCall({
         chain,
@@ -298,11 +299,11 @@ const apy = async (chain) => {
               underlyingPrice: info.underlyingPrice,
               rewardsInfo: info.rewardsInfo.map(reward => ({
                 rewardSpeedPerSecondPerToken: reward.rewardSpeedPerSecondPerToken,
-                rewardToken: reward.rewardToken, // Include rewardToken here
+                rewardToken: reward.rewardToken || 0 , // Include rewardToken here
                 rewardTokenPrice: reward.rewardTokenPrice,
                 formattedAPR: reward.formattedAPR || null, // Use the 
               })),
-              rewardTokens: info.rewardsInfo.map(reward => reward.rewardToken),
+              rewardTokens: info.rewardsInfo.map(reward => reward.rewardToken) || 0,
             };
           });
          
@@ -312,32 +313,41 @@ const apy = async (chain) => {
           rewardApyPerMarket = marketRewardsInfo.map((marketReward, index) => {
             const rewards = marketReward.rewardsInfo;
             const rewardTokens = marketRewardsInfo[0]?.rewardsInfo.map(reward => reward.rewardToken).filter(token => token);
-            console.log('Reward Tokens:', rewardTokens); // Log the reward tokens for debugging
+            ////console.log('Reward Tokens:', rewardTokens); // Log the reward tokens for debugging
             // Total reward APY initialization
             const decimals = decimalsRaw[index]; 
-            console.log("CHAIN",chain)
-            console.log("decimals", decimals)
+            ////console.log("CHAIN",chain)
+            ////console.log("decimals", decimals)
             const uniqueFormattedAPRs = new Set();
 
             const totalRewardApy = rewards.reduce((total, reward) => {
               // Assuming reward.formattedAPR is in the correct format (e.g., in wei or smallest unit)
+              let lastRewardToken = null; 
               const formattedAPR = reward.formattedAPR;
-
+              const rewardToken = reward.rewardToken.toLowerCase(); 
+              if (lastRewardToken === rewardToken) {
+                ////console.log('Skipping consecutive reward for token:', rewardToken);
+                return total; // Skip this reward
+              }
+            
+              // Track the current reward token as the last processed one
+              lastRewardToken = rewardToken;
               
-              console.log("Raw formatted APR:", formattedAPR);
+              ////console.log("Raw formatted APR:", formattedAPR);
               if (uniqueFormattedAPRs.has(formattedAPR)) {
-                console.log("Skipping duplicate formatted APR:", formattedAPR);
+                ////console.log("Skipping duplicate formatted APR:", formattedAPR);
                 return total; // Skip duplicates
             } else {
                 uniqueFormattedAPRs.add(formattedAPR); // Add to the set of seen formatted APRs
             }
               // Convert formattedAPR to a number with 18 decimals
-              const rateAsNumber = Number(ethers.utils.formatUnits(formattedAPR, decimals));
+              const rateAsNumber = parseFloat(ethers.utils.formatUnits(formattedAPR, decimals));
+              
               let normalizedRate;
           
               // Check if formattedAPR is zero
               if (formattedAPR === "0") {
-                  console.log("Skipping zero formatted APR");
+                  ////console.log("Skipping zero formatted APR");
                   return total; // Skip zero values
               }
           
@@ -353,22 +363,7 @@ const apy = async (chain) => {
               } else {
                   // Scale down for decimals greater than 18
                   normalizedRate = rateAsNumber / (10 ** (decimals - 18)); // Scale down the rate
-              }
-          
-              // Debugging outputs
-              console.log(`Raw formatted APR: ${formattedAPR}`);
-              console.log(`Decimals: ${decimals}`);
-              console.log("Normalized Rate (scaled)", normalizedRate);
-              console.log("Rate as Number", rateAsNumber);
-          
-        
-              
-              // Debugging outputs
-              console.log(`Raw formatted APR: ${formattedAPR}`);
-              console.log(`Decimals: ${decimals}`);
-              console.log("Normalized Rate (scaled)", normalizedRate);
-              console.log("Rate as Number", rateAsNumber);
-              
+              }           
               // Accumulate the normalized rates
               return total + normalizedRate;
               
@@ -376,7 +371,7 @@ const apy = async (chain) => {
           
           // Convert totalRewardApy to a percentage
           const apyPercentage = totalRewardApy * 100; 
-          console.log("Percentage return",apyPercentage)
+          ////console.log("Percentage return",apyPercentage)
           return apyPercentage.toFixed(2); 
           });
           
@@ -395,7 +390,7 @@ const pools = allMarkets.map((p, i) => {
     console.warn(`Price not found for ${chain}:${underlying[i]}`);
     return null;
   }
-  console.log("token",underlying[i])
+  ////console.log("token",underlying[i])
   const decimal = tokenDecimals[i] || 18; // Fallback to 18 if token not found
   const totalBorrowInUsd = totalBorrow[i] ; // Convert totalBorrow to token value
   const cashInUsd = cash[i] ; // Convert cash to token value
@@ -422,7 +417,7 @@ const pools = allMarkets.map((p, i) => {
     apyBase = ratePerBlockToAPY(supplyRate[i], blocksPerMin) || 0;
   }
   // Reward APR calculation (adjusted with totalSupplyUsd for normalization)
-  console.log('rewards APY', rewardApyPerMarket[i])
+  ////console.log('rewards APY', rewardApyPerMarket[i])
   // // const rewardApy = rewardApyPerMarket[i] / (10 ** 12); // Convert from wei to ether if applicable
   // const apyReward = (totalSupplyUsd > 0 && rewardApyPerMarket[i] !== undefined)
   //   ? (rewardApy / totalSupplyUsd) * 100 // Normalize reward APY
@@ -443,7 +438,7 @@ const pools = allMarkets.map((p, i) => {
     totalBorrowUsd,
     apyReward: apyReward !== null && apyReward !== undefined ? apyReward : 0, // Ensure apyBase has a valid value,
     apyBase: apyBase !== null && apyBase !== undefined ? apyBase : 0, // Ensure apyBase has a valid value
-    apyTotal,
+    rewardTokens : rewardTokens,
   };
 });  
       return pools;
