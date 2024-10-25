@@ -259,7 +259,7 @@ const apy = async () => {
     return {
       pool: lpTokens[i],
       chain: utils.formatChain('fantom'),
-      project: 'spookyswap',
+      project: 'spookyswap-v2',
       symbol: `${symbols0[i]}-${symbols1[i]}`,
       tvlUsd:
         lpTokens[i]?.toLowerCase() ===

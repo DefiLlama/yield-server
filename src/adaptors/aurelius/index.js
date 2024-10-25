@@ -4,17 +4,17 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const abiLendingPool = require('./abiLendingPool');
 const abiProtocolDataProvider = require('./abiProtocolDataProvider');
-const abiSimplifiedProtocolDataReader = require('./abiSimplifiedProtocolDataReader');
+const abiYieldReader = require('./abiYieldReader');
 
 const utils = require('../utils');
 
 const chains = {
-  scroll: {
-    LendingPool: '0x4cE1A1eC13DBd9084B1A741b036c061b2d58dABf',
-    ProtocolDataProvider: '0xb17844F6E50f4eE8f8FeC7d9BA200B0E034b8236',
-    url: 'scroll',
-    SimplifiedProtocolDataReader: '0x8d21d9Cb7B6Bd1acf99C46295A9558bE6DDD2fDe',
-    rewardTokens: ['0xf270bfe3f97655fff1d89aff50a8e1dc381941b5']
+  mantle: {
+    LendingPool: '0x7c9C6F5BEd9Cfe5B9070C7D3322CF39eAD2F9492',
+    ProtocolDataProvider: '0xedB4f24e4b74a6B1e20e2EAf70806EAC19E1FA54',
+    url: 'mantle',
+    YieldReader: '0xAdeA539C144178AF7Ae8a4Bf6084d38Cf0E85D26',
+    rewardTokens: ['0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8']
   },
 };
 
@@ -31,17 +31,17 @@ const getApy = async () => {
           abi: abiLendingPool.find((m) => m.name === 'getReservesList'),
           chain: sdkChain,
         })
-      ).output;
+      ).output.filter((address) => address.toLowerCase() !== '0x4206931337dc273a630d328dA6441786BfaD668f'.toLowerCase());;
 
       // try catches incase of safemath error
       let rewardsData;
       try {
         rewardsData = await sdk.api.abi.multiCall({
           calls: reservesList.map((reserve) => ({
-            target: addresses.SimplifiedProtocolDataReader,
+            target: addresses.YieldReader,
             params: [reserve],
           })),
-          abi: abiSimplifiedProtocolDataReader.find((m) => m.name === 'getAssetRewardsAPR'),
+          abi: abiYieldReader.find((m) => m.name === 'getAssetRewardsAPR'),
           chain: sdkChain,
           failOnRevert: false, // Add this option to prevent failing on reverts
         });
@@ -57,8 +57,8 @@ const getApy = async () => {
       const processedRewardsData = rewardsData.output.map((result, index) => {
         if (result.success && Array.isArray(result.output) && result.output.length === 2) {
           return {
-            apyReward: Number(result.output[0]) / 1.893563261 / 1e8,
-            apyRewardBorrow: Number(result.output[1]) / 1.893563261 / 1e8
+            apyReward: Number(result.output[0]) / 1e16,
+            apyRewardBorrow: Number(result.output[1]) / 1e16
           };
         } else {
           console.warn(`Failed to get rewards data for reserve ${reservesList[index]} on chain ${chain}`);
@@ -144,32 +144,28 @@ const getApy = async () => {
         const apyBase = reserveData[i].currentLiquidityRate / 1e25;
         const apyBaseBorrow = reserveData[i].currentVariableBorrowRate / 1e25;
 
-        // console.log(`Raw reward data for ${symbols[i]}:`, rewardsData.output[i]?.output);
-        // console.log(`Parsed apyReward for ${symbols[i]}:`, apyReward);
-        // console.log(`Parsed apyRewardBorrow for ${symbols[i]}:`, apyRewardBorrow);
-
         const ltv = config.ltv / 1e4;
         const borrowable = config.borrowingEnabled;
         const frozen = config.isFrozen;
         const poolSymbol = symbols[i].toLowerCase()
-        const url = `https://app.lore.finance/markets/${poolSymbol}`;
+        const url = `https://app.aurelius.finance/markets/${poolSymbol}`;
 
         return {
           pool: `${reserveData[i].aTokenAddress}-${chain}`.toLowerCase(),
           symbol: symbols[i],
-          project: 'lore-finance',
+          project: 'aurelius',
           chain,
           tvlUsd,
           apyBase,
-          // apyReward,
+          apyReward,
           underlyingTokens: [t],
           url,
           // borrow fields
           totalSupplyUsd,
           totalBorrowUsd,
           apyBaseBorrow,
-          // apyRewardBorrow,
-          // rewardTokens,
+          apyRewardBorrow,
+          rewardTokens,
           ltv,
           borrowable,
           poolMeta: frozen ? 'frozen' : null,

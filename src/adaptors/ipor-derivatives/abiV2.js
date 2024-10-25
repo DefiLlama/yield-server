@@ -63,5 +63,34 @@ module.exports = {
       stateMutability: "view",
       type: "function"
     },
+    {
+      inputs: [
+        {
+          internalType: "address",
+          name: "lpToken",
+          type: "address"
+        }
+      ],
+      name: "getPoolPowerUpModifiers",
+      outputs: [
+        {
+          "name": "pwTokenModifier",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "logBase",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "vectorOfCurve",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      stateMutability: "view",
+      type: "function"
+    },
   ]
 }

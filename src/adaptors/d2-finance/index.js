@@ -65,9 +65,9 @@ const poolAddresses = [
     underlyingAsset: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
   },
   {
-    address: '0x57f467C9c4639B066F5A4D676Cd8Ed7D87C1791b',
-    symbol: 'GTxD2',
-    underlyingAsset: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    address: '0x195A9E0f29F96d4ab2139ee1272380A4aa352890',
+    symbol: 'd2ETH',
+    underlyingAsset: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
   },
 ];
 

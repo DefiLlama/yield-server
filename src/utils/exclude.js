@@ -143,12 +143,11 @@ const excludeAdaptors = [
   'stakehouse',
   'yeti-finance',
   'lst-optimizer',
-  'deltaprime',
   'mellow-yield',
   'glacier-exchange-v2',
-
-  // tmp
-  'fluid',
+  'pinjam-labs',
+  'horizondex',
+  'equilibre',
 ];
 
 const excludePools = [
