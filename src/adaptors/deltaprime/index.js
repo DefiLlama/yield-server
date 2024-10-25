@@ -191,7 +191,6 @@ const getUsdtPoolTVL = async() => {
 }
 
 const getPoolsAPYs = async () => {
-  return [];
   let rewardAPRs = await fetch('https://2t8c1g5jra.execute-api.us-east-1.amazonaws.com/ltip-pool-boost-apy');
   rewardAPRs = await rewardAPRs.json();
 
@@ -255,75 +254,77 @@ const getPoolsAPYs = async () => {
     rewardTokens: [ETH_TOKEN_ADDRESS],
   };
 
-  const ethPoolArbiTvl = await getEthPoolArbiTVL();
-  const ethPoolArbi = {
-    pool: `dp-${ETH_TOKEN_ARBI_ADDRESS}-arbitrum`,
-    chain: utils.formatChain('arbitrum'),
-    project: 'deltaprime',
-    symbol: utils.formatSymbol('WETH'),
-    tvlUsd: ethPoolArbiTvl,
-    apyBase: await getEthPoolArbiDepositRate(),
-    apyReward: rewardAPRs["ETH"]*100,
-    underlyingTokens: [ETH_TOKEN_ARBI_ADDRESS],
-    rewardTokens: [ETH_TOKEN_ARBI_ADDRESS, ARB_TOKEN_ARBI_ADDRESS],
-  };
+  // const ethPoolArbiTvl = await getEthPoolArbiTVL();
+  // const ethPoolArbi = {
+  //   pool: `dp-${ETH_TOKEN_ARBI_ADDRESS}-arbitrum`,
+  //   chain: utils.formatChain('arbitrum'),
+  //   project: 'deltaprime',
+  //   symbol: utils.formatSymbol('WETH'),
+  //   tvlUsd: ethPoolArbiTvl,
+  //   apyBase: await getEthPoolArbiDepositRate(),
+  //   apyReward: rewardAPRs["ETH"]*100,
+  //   underlyingTokens: [ETH_TOKEN_ARBI_ADDRESS],
+  //   rewardTokens: [ETH_TOKEN_ARBI_ADDRESS, ARB_TOKEN_ARBI_ADDRESS],
+  // };
 
-  const usdcPoolArbiTvl = await getUsdcPoolArbiTVL();
-  const usdcPoolArbi = {
-    pool: `dp-${USDC_TOKEN_ARBI_ADDRESS}-arbitrum`,
-    chain: utils.formatChain('arbitrum'),
-    project: 'deltaprime',
-    symbol: utils.formatSymbol('USDC'),
-    tvlUsd: usdcPoolArbiTvl,
-    apyBase: await getUsdcPoolArbiDepositRate(),
-    apyReward: rewardAPRs["USDC"]*100,
-    underlyingTokens: [USDC_TOKEN_ARBI_ADDRESS],
-    rewardTokens: [USDC_TOKEN_ARBI_ADDRESS, ARB_TOKEN_ARBI_ADDRESS],
-  };
+  // const usdcPoolArbiTvl = await getUsdcPoolArbiTVL();
+  // const usdcPoolArbi = {
+  //   pool: `dp-${USDC_TOKEN_ARBI_ADDRESS}-arbitrum`,
+  //   chain: utils.formatChain('arbitrum'),
+  //   project: 'deltaprime',
+  //   symbol: utils.formatSymbol('USDC'),
+  //   tvlUsd: usdcPoolArbiTvl,
+  //   apyBase: await getUsdcPoolArbiDepositRate(),
+  //   apyReward: rewardAPRs["USDC"]*100,
+  //   underlyingTokens: [USDC_TOKEN_ARBI_ADDRESS],
+  //   rewardTokens: [USDC_TOKEN_ARBI_ADDRESS, ARB_TOKEN_ARBI_ADDRESS],
+  // };
 
-  const arbPoolArbiTvl = await getArbPoolArbiTVL();
-  const arbPoolArbi = {
-    pool: `dp-${ARB_TOKEN_ARBI_ADDRESS}-arbitrum`,
-    chain: utils.formatChain('arbitrum'),
-    project: 'deltaprime',
-    symbol: utils.formatSymbol('ARB'),
-    tvlUsd: arbPoolArbiTvl,
-    apyBase: await getArbPoolArbiDepositRate(),
-    apyReward: rewardAPRs["ARB"]*100,
-    underlyingTokens: [ARB_TOKEN_ARBI_ADDRESS],
-    rewardTokens: [ARB_TOKEN_ARBI_ADDRESS, ARB_TOKEN_ARBI_ADDRESS],
-  };
+  // const arbPoolArbiTvl = await getArbPoolArbiTVL();
+  // const arbPoolArbi = {
+  //   pool: `dp-${ARB_TOKEN_ARBI_ADDRESS}-arbitrum`,
+  //   chain: utils.formatChain('arbitrum'),
+  //   project: 'deltaprime',
+  //   symbol: utils.formatSymbol('ARB'),
+  //   tvlUsd: arbPoolArbiTvl,
+  //   apyBase: await getArbPoolArbiDepositRate(),
+  //   apyReward: rewardAPRs["ARB"]*100,
+  //   underlyingTokens: [ARB_TOKEN_ARBI_ADDRESS],
+  //   rewardTokens: [ARB_TOKEN_ARBI_ADDRESS, ARB_TOKEN_ARBI_ADDRESS],
+  // };
 
-  const btcPoolArbiTvl = await getBtcPoolArbiTVL();
-  const btcPoolArbi = {
-    pool: `dp-${BTC_TOKEN_ARBI_ADDRESS}-arbitrum`,
-    chain: utils.formatChain('arbitrum'),
-    project: 'deltaprime',
-    symbol: utils.formatSymbol('WBTC'),
-    tvlUsd: btcPoolArbiTvl,
-    apyBase: await getBtcPoolArbiDepositRate(),
-    apyReward: rewardAPRs["BTC"]*100,
-    underlyingTokens: [BTC_TOKEN_ARBI_ADDRESS],
-    rewardTokens: [BTC_TOKEN_ARBI_ADDRESS, ARB_TOKEN_ARBI_ADDRESS],
-  };
+  // const btcPoolArbiTvl = await getBtcPoolArbiTVL();
+  // const btcPoolArbi = {
+  //   pool: `dp-${BTC_TOKEN_ARBI_ADDRESS}-arbitrum`,
+  //   chain: utils.formatChain('arbitrum'),
+  //   project: 'deltaprime',
+  //   symbol: utils.formatSymbol('WBTC'),
+  //   tvlUsd: btcPoolArbiTvl,
+  //   apyBase: await getBtcPoolArbiDepositRate(),
+  //   apyReward: rewardAPRs["BTC"]*100,
+  //   underlyingTokens: [BTC_TOKEN_ARBI_ADDRESS],
+  //   rewardTokens: [BTC_TOKEN_ARBI_ADDRESS, ARB_TOKEN_ARBI_ADDRESS],
+  // };
 
-  const daiPoolArbiTvl = await getDaiPoolArbiTVL();
-  const daiPoolArbi = {
-    pool: `dp-${DAI_TOKEN_ARBI_ADDRESS}-arbitrum`,
-    chain: utils.formatChain('arbitrum'),
-    project: 'deltaprime',
-    symbol: utils.formatSymbol('DAI'),
-    tvlUsd: daiPoolArbiTvl,
-    apyBase: await getDaiPoolArbiDepositRate(),
-    apyReward: rewardAPRs["DAI"]*100,
-    underlyingTokens: [DAI_TOKEN_ARBI_ADDRESS],
-    rewardTokens: [DAI_TOKEN_ARBI_ADDRESS, ARB_TOKEN_ARBI_ADDRESS],
-  };
-
-
+  // const daiPoolArbiTvl = await getDaiPoolArbiTVL();
+  // const daiPoolArbi = {
+  //   pool: `dp-${DAI_TOKEN_ARBI_ADDRESS}-arbitrum`,
+  //   chain: utils.formatChain('arbitrum'),
+  //   project: 'deltaprime',
+  //   symbol: utils.formatSymbol('DAI'),
+  //   tvlUsd: daiPoolArbiTvl,
+  //   apyBase: await getDaiPoolArbiDepositRate(),
+  //   apyReward: rewardAPRs["DAI"]*100,
+  //   underlyingTokens: [DAI_TOKEN_ARBI_ADDRESS],
+  //   rewardTokens: [DAI_TOKEN_ARBI_ADDRESS, ARB_TOKEN_ARBI_ADDRESS],
+  // };
 
 
-  return [usdcPool, usdtPool, wavaxPool, btcPool, ethPool, ethPoolArbi, usdcPoolArbi, arbPoolArbi, btcPoolArbi, daiPoolArbi];
+
+
+  return [usdcPool, usdtPool, wavaxPool, btcPool, ethPool,
+    // ethPoolArbi, usdcPoolArbi, arbPoolArbi, btcPoolArbi, daiPoolArbi
+    ];
 };
 
 module.exports = {

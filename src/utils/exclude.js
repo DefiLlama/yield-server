@@ -143,7 +143,6 @@ const excludeAdaptors = [
   'stakehouse',
   'yeti-finance',
   'lst-optimizer',
-  'deltaprime',
   'mellow-yield',
   'glacier-exchange-v2',
   'pinjam-labs',
