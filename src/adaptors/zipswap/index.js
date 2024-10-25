@@ -1,8 +1,8 @@
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 
-const subgraphURL =
-  'https://api.thegraph.com/subgraphs/name/nonamefits/zipswap';
+const subgraphURL = sdk.graph.modifyEndpoint('5tAUjmnM9iE4aADZwKhk3fobY8fMFbb1VMsrSKvo4kFr');
 
 const getCurrentDate = gql`
   {

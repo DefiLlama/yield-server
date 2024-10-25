@@ -1,4 +1,4 @@
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 const axios = require('axios');
 const poolAbi = require('./abis/pool.json');
 const stakingAbi = require('./abis/staking.json');

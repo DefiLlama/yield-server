@@ -1,4 +1,6 @@
 const axios = require('axios');
+const utils = require('../utils')
+
 const baseUrl = 'https://sdk.api.scallop.io/api';
 const marketEndpoint = `${baseUrl}/market`;
 const spoolsEndpoint = `${baseUrl}/spools`;
@@ -33,7 +35,7 @@ const main = async () => {
     });
   });
 
-  return arr;
+  return utils.removeDuplicates(arr)
 };
 
 module.exports = {

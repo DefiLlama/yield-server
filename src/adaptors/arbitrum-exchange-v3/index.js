@@ -14,7 +14,7 @@ const masterchef = '0xd2bcFd6b84E778D2DE5Bb6A167EcBBef5D053A06';
 const ARX = '0xD5954c3084a1cCd70B4dA011E67760B8e78aeE84';
 const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 
-const url = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id/AQPMJVpukYUo96WvuKqn7aPZn3m8BHckYs82ZLSMKyeu`;
+const url = sdk.graph.modifyEndpoint('AQPMJVpukYUo96WvuKqn7aPZn3m8BHckYs82ZLSMKyeu');
 const chain = 'arbitrum';
 
 const query = gql`

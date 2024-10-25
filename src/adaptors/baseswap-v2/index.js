@@ -36,7 +36,9 @@ const staker_contracts = [
 
 const utils = require('../utils');
 
-const url = 'https://api.thegraph.com/subgraphs/name/harleen-m/baseswap';
+const url = sdk.graph.modifyEndpoint(
+  sdk.graph.modifyEndpoint('BWHCfpXMHFDx3u4E14hEwv4ST7SUyN89FKJ2RjzWKgA9')
+);
 
 const query = gql`
   {

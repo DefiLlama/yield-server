@@ -1,3 +1,4 @@
+const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const { gql, request } = require('graphql-request');
 const axios = require('axios');
@@ -21,15 +22,13 @@ const GRAPH_URLS = {
   uniswapv3: {
     ethereum:
       'https://api.thegraph.com/subgraphs/name/unipilotvoirstudio/unipilot-v2-stats',
-    polygon:
-      'https://api.thegraph.com/subgraphs/name/hamzabhatti125/unipilto-stats-polygon',
+    polygon: sdk.graph.modifyEndpoint('5wUArtUmdKBipfXaD9Rwg3ZDWUTPRBTBJSDHvyhc7AHb'),
     arbitrum:
       'https://api.thegraph.com/subgraphs/name/hamzabhatti125/unipilot-stats-arbitrum',
     bsc: 'https://api.thegraph.com/subgraphs/name/hamzabhatti125/unipilot-stats-bnb',
   },
   quickswap: {
-    polygon:
-      'https://api.thegraph.com/subgraphs/name/hamzabhatti125/unipilot-quickswap-stats',
+    polygon: sdk.graph.modifyEndpoint('GXc2d1wMCbyKq2F2qRo8zcCad6tXsmXubEA5F8jGKBTG'),
     polygon_zkevm:
       'https://api.studio.thegraph.com/query/19956/unipilot-stats-polygonzkevm/v0.0.1',
     dogechain:

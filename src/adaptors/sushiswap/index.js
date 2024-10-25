@@ -12,16 +12,25 @@ const { minichefV2 } = require('./abiMinichefV2');
 const { rewarderABI } = require('./abiRewarder');
 
 // exchange urls
-const baseUrl = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id`;
-const urlEthereum = `${baseUrl}/6NUtT5mGjZ1tSshKLf5Q3uEEJtjBZJo1TpL5MXsUBqrT`;
-const urlArbitrum = `${baseUrl}/8nFDCAhdnJQEhQF3ZRnfWkJ6FkRsfAiiVabVn4eGoAZH`;
-const urlPolygon = `${baseUrl}/8NiXkxLRT3R22vpwLB4DXttpEf3X1LrKhe4T1tQ3jjbP`;
-const urlAvalanche = `${baseUrl}/6VAhbtW5u2sPYkJKAcMsxgqTBu4a1rqmbiVQWgtNjrvT`;
+const urlEthereum = sdk.graph.modifyEndpoint(
+  '6NUtT5mGjZ1tSshKLf5Q3uEEJtjBZJo1TpL5MXsUBqrT'
+);
+const urlArbitrum = sdk.graph.modifyEndpoint(
+  '8nFDCAhdnJQEhQF3ZRnfWkJ6FkRsfAiiVabVn4eGoAZH'
+);
+const urlPolygon = sdk.graph.modifyEndpoint(
+  '8NiXkxLRT3R22vpwLB4DXttpEf3X1LrKhe4T1tQ3jjbP'
+);
+const urlAvalanche = sdk.graph.modifyEndpoint(
+  '6VAhbtW5u2sPYkJKAcMsxgqTBu4a1rqmbiVQWgtNjrvT'
+);
 
 // LM reward urls
-const urlMc2 = `${baseUrl}/FAa1YU79pPDUKj8vtkUPZGzCcPVS6Edg1md5LsRHSKWb`;
-const urlMcArbitrum = `${baseUrl}/sushiswap/arbitrum-minichef`;
-const urlMcPolygon = `${baseUrl}/sushiswap/matic-minichef`;
+const urlMc2 = sdk.graph.modifyEndpoint(
+  'FAa1YU79pPDUKj8vtkUPZGzCcPVS6Edg1md5LsRHSKWb'
+);
+const urlMcArbitrum = sdk.graph.modifyEndpoint('sushiswap/arbitrum-minichef');
+const urlMcPolygon = sdk.graph.modifyEndpoint('sushiswap/matic-minichef');
 
 // sushi token
 const SUSHI = {

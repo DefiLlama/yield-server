@@ -16,21 +16,39 @@ const { excludePools } = require('../../utils/exclude');
 const { getChildChainRootGauge } = require('./childChainGauges.js');
 
 // Subgraph URLs
-
-const urlBase = `https://gateway-arbitrum.network.thegraph.com/api/${process.env.GRAPH_PROTOCOL}/subgraphs/id`;
-const urlEthereum = `${urlBase}/C4ayEZP2yTXRAB8vSaTrgN4m9anTe9Mdm2ViyiAuV9TV`;
-const urlPolygon = `${urlBase}/H9oPAbXnobBRq1cB3HDmbZ1E8MWQyJYQjT1QDJMrdbNp`;
-const urlGnosis = `${urlBase}/balancer-gnosis-chain-v2`;
-const urlArbitrum = `${urlBase}/4AQ6YqEyZapJmuFCqhFXfh24qYUykkKeCboL4vpoYQqv`;
+const urlEthereum = sdk.graph.modifyEndpoint(
+  'C4ayEZP2yTXRAB8vSaTrgN4m9anTe9Mdm2ViyiAuV9TV'
+);
+const urlPolygon = sdk.graph.modifyEndpoint(
+  'H9oPAbXnobBRq1cB3HDmbZ1E8MWQyJYQjT1QDJMrdbNp'
+);
+const urlGnosis = sdk.graph.modifyEndpoint(
+  'EJezH1Cp31QkKPaBDerhVPRWsKVZLrDfzjrLqpmv6cGg'
+);
+const urlArbitrum = sdk.graph.modifyEndpoint(
+  '98cQDy6tufTJtshDCuhh9z2kWXsQWBHVh2bqnLHsGAeS'
+);
 const urlBaseChain = `https://api.studio.thegraph.com/query/24660/balancer-base-v2/version/latest`;
-const urlAvalanche = `${urlBase}/7asfmtQA1KYu6CP7YVm5kv4bGxVyfAHEiptt2HMFgkHu`;
+const urlAvalanche = sdk.graph.modifyEndpoint(
+  '7asfmtQA1KYu6CP7YVm5kv4bGxVyfAHEiptt2HMFgkHu'
+);
 
-const urlGaugesEthereum = `${urlBase}/4sESujoqmztX6pbichs4wZ1XXyYrkooMuHA8sKkYxpTn`;
-const urlGaugesPolygon = `${urlBase}/AkD2HEjNoupFb1y3fERdhmFC1UbKvQUBwsu5fREAEcJd`;
-const urlGaugesGnosis = `${urlBase}/4nTERBBaGRc1PgLcGvtvvqupSFu7y8Ee2xKZFNM5aw56`;
-const urlGaugesArbitrum = `${urlBase}/Bb1hVjJZ52kL23chZyyGWJKrGEg3S6euuNa1YA6XRU4J`;
+const urlGaugesEthereum = sdk.graph.modifyEndpoint(
+  '4sESujoqmztX6pbichs4wZ1XXyYrkooMuHA8sKkYxpTn'
+);
+const urlGaugesPolygon = sdk.graph.modifyEndpoint(
+  'AkD2HEjNoupFb1y3fERdhmFC1UbKvQUBwsu5fREAEcJd'
+);
+const urlGaugesGnosis = sdk.graph.modifyEndpoint(
+  '4nTERBBaGRc1PgLcGvtvvqupSFu7y8Ee2xKZFNM5aw56'
+);
+const urlGaugesArbitrum = sdk.graph.modifyEndpoint(
+  'Bb1hVjJZ52kL23chZyyGWJKrGEg3S6euuNa1YA6XRU4J'
+);
 const urlGaugesBase = `https://api.studio.thegraph.com/query/24660/balancer-gauges-base/version/latest`;
-const urlGaugesAvalanche = `${urlBase}/BZ2DkZkaQKdBqDTRdur8kHM95ZFVt4fBudKmnvobiyN`;
+const urlGaugesAvalanche = sdk.graph.modifyEndpoint(
+  'BZ2DkZkaQKdBqDTRdur8kHM95ZFVt4fBudKmnvobiyN'
+);
 
 const protocolFeesCollector = '0xce88686553686DA562CE7Cea497CE749DA109f9F';
 const gaugeController = '0xC128468b7Ce63eA702C1f104D55A2566b13D3ABD';
@@ -76,6 +94,7 @@ const query = gql`
         symbol
         weight
       }
+      address
     }
   }
 `;
@@ -153,7 +172,10 @@ const correctMaker = (entry) => {
 const tvl = (entry, tokenPriceList, chainString) => {
   entry = { ...entry };
 
-  const balanceDetails = entry.tokens.filter(
+  // remove the pool address from tvl calculation to calculate tvl from underlying tokens only
+  let balanceDetails = entry.tokens.filter((i) => i.address !== entry.address);
+
+  balanceDetails = balanceDetails.filter(
     (t) =>
       ![
         'B-STETH-Stable',
@@ -238,7 +260,11 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
   let childChainRootGauges;
   if (chainString != 'ethereum') {
     childChainRootGauges = await getChildChainRootGauge(
-      chainString === 'avax' ? 'avalanche' : chainString
+      chainString === 'avax'
+        ? 'avalanche'
+        : chainString === 'xdai'
+        ? 'gnosis'
+        : chainString
     );
   }
 
@@ -462,6 +488,13 @@ const topLvl = async (
 
   // build pool objects
   return tvlInfo.map((p) => {
+    const chainUrl =
+      chainString === 'avax'
+        ? 'avalanche'
+        : chainString === 'xdai'
+        ? 'gnosis'
+        : chainString;
+
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
@@ -476,9 +509,7 @@ const topLvl = async (
           : p.aprLM,
       rewardTokens: p.rewardTokens,
       underlyingTokens: p.tokensList,
-      url: `https://${
-        chainString === 'ethereum' ? 'app' : chainString
-      }.balancer.fi/#/pool/${p.id}`,
+      url: `https://balancer.fi/pools/${chainUrl}/v2/${p.id}`,
     };
   });
 };

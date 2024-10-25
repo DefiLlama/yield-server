@@ -23,13 +23,16 @@ const getApy = async () => {
         // OP incentives via yvToken staking
         const apyReward = p.apr?.extra?.stakingRewardsAPR * 100 ?? 0;
 
+        const forwardAPR = p.apr.forwardAPR?.netAPR;
+        const apyBase = (forwardAPR ?? p.apr.netAPR) * 100;
+
         return {
           pool: p.address,
           chain: utils.formatChain(chain[0]),
           project: 'yearn-finance',
           symbol: utils.formatSymbol(p.token.display_symbol),
           tvlUsd: p.tvl.tvl,
-          apyBase: p.apr.netAPR * 100,
+          apyBase,
           apyReward,
           rewardTokens:
             apyReward > 0 ? ['0x4200000000000000000000000000000000000042'] : [],

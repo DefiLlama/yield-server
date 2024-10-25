@@ -1,155 +1,98 @@
 const superagent = require('superagent');
-const Web3 = require('web3');
-const ethers = require('ethers');
+const { Web3 } = require('web3');
 const sdk = require('@defillama/sdk');
 
+const arbitrumConstants = require('./arbitrum/umamiConstants.js');
+const avalancheConstants = require('./avalanche/umamiConstants.js');
+
+const { getIncentivesAprForVault } = require('./umamiIncentivesHelper.js');
 const {
-  UMAMI_SYNTH_GM_VAULTS,
-  ARB_MASTER_CHEF,
-  ARB_ADDRESS,
-  GMI_VAULT,
-  GMI_AGGREGATE_VAULT,
-} = require('./umamiConstants.js');
-const { getGmMarketsForUmami } = require('./gmx-helpers.js');
-const { ARB_MASTER_CHEF_ABI } = require('./abis/arbMasterchef.js');
-const { GMI_VAULT_ABI } = require('./abis/gmiVault.js');
-const { GMI_AGGREGATE_VAULT_ABI } = require('./abis/gmiAggregateVault.js');
-const { GM_ASSET_VAULT_ABI } = require('./abis/gmAssetVault.js');
+  getUmamiContractsForChain,
+  getAggregateVaultContractForVault,
+} = require('./umamiContracts.js');
+const { default: BigNumber } = require('bignumber.js');
+const { formatUnits } = require('ethers/lib/utils.js');
 
-const RPC_URL = 'https://rpc.ankr.com/arbitrum';
+// returns the weights of GMX GM tokens held in the GMI vault
+const getGmiGmMarketsWeights = async (gmiContract) => {
+  const weights = await gmiContract.methods.getWeights().call();
 
-const web3 = new Web3(RPC_URL);
-
-const aggregateVaultContract = new web3.eth.Contract(
-  GMI_AGGREGATE_VAULT_ABI,
-  GMI_AGGREGATE_VAULT
-);
-const masterchefContract = new web3.eth.Contract(
-  ARB_MASTER_CHEF_ABI,
-  ARB_MASTER_CHEF
-);
-const gmiContract = new web3.eth.Contract(GMI_VAULT_ABI, GMI_VAULT);
-
-// returns the balances of GMX GM tokens held in the GMI vault on behalf of the GM vaults (llamao)
-const getGmiGmMarketsBalances = async () => {
-  const balances = await gmiContract.methods.balances().call();
-
-  return balances;
+  return weights.map((weight) => parseFloat(formatUnits(BigInt(weight), 18)));
 };
 
-// ARB incentives through Masterchef
-const getIncentivesAprForVault = async (vault) => {
-  const vaultContract = new web3.eth.Contract(
-    GM_ASSET_VAULT_ABI,
-    vault.address
-  );
-  const underlyingTokenPriceKey =
-    `arbitrum:${vault.underlyingAsset}`.toLowerCase();
-  const arbTokenPriceKey = `arbitrum:${ARB_ADDRESS}`.toLowerCase();
-
-  const [
-    arbPerSecRaw,
-    stakedBalanceRaw,
-    vaultPpsRaw,
-    underlyingTokenPriceObj,
-    arbTokenPriceObj,
-  ] = await Promise.all([
-    masterchefContract.methods.arbPerSec().call(),
-    vaultContract.methods.balanceOf(ARB_MASTER_CHEF).call(),
-    aggregateVaultContract.methods
-      .getVaultPPS(vault.address.toLowerCase(), true, false)
-      .call(),
-    superagent.get(
-      `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`
-    ),
-    superagent.get(`https://coins.llama.fi/prices/current/${arbTokenPriceKey}`),
-  ]);
-
-  const underlyingTokenPrice =
-    underlyingTokenPriceObj.body.coins[underlyingTokenPriceKey].price;
-  const arbTokenPrice = arbTokenPriceObj.body.coins[arbTokenPriceKey].price;
-
-  const arbPerSec = arbPerSecRaw / 10 ** 18;
-  const vaultPps = vaultPpsRaw / 10 ** vault.decimals;
-  const assetsStakedTvl = Number(
-    ethers.utils.formatUnits(stakedBalanceRaw, vault.decimals) * vaultPps
-  );
-
-  const emissionsPerYearInUsd =
-    (arbPerSec * 60 * 60 * 24 * 365 * arbTokenPrice) / 2;
-  const emissionsPerYearInTokens = emissionsPerYearInUsd / underlyingTokenPrice;
-
-  const apr = (emissionsPerYearInTokens / assetsStakedTvl) * 100;
-
-  return isNaN(apr) ? 0 : apr;
-};
-
-const getUmamiGmSynthsVaultsYield = async () => {
+const getUmamiGmSynthsVaultsYield = async (chain, gmMarketsInfos) => {
   const gmVaults = [];
-  const [gmMarketsBalancesInGmi, gmMarketsInfos] = await Promise.all([
-    getGmiGmMarketsBalances(),
-    getGmMarketsForUmami(),
-  ]);
-  for (let i = 0; i < UMAMI_SYNTH_GM_VAULTS.length; i++) {
-    const vault = UMAMI_SYNTH_GM_VAULTS[i];
-    // get total value of GMX GM tokens
-    const gmMarketsValues = await Promise.all(
-      vault.underlyingGmMarkets.map((gmMarket, _index) => {
-        const gmTokenPrice = gmMarketsInfos[_index].gmTokenPrice;
-        const balanceValue = gmMarketsBalancesInGmi[_index] * gmTokenPrice;
-        if (balanceValue) {
-          return balanceValue;
-        }
-        return 0;
-      })
-    );
+  const vaultsList =
+    chain === 'arbitrum'
+      ? arbitrumConstants.UMAMI_SYNTH_GM_VAULTS
+      : avalancheConstants.UMAMI_SYNTH_GM_VAULTS;
 
-    // get weights out of values
-    const totalValue = gmMarketsValues.reduce((acc, value) => acc + value, 0);
-    const weights = gmMarketsValues.map((value) => value / totalValue);
+  const rewardToken =
+    chain === 'arbitrum'
+      ? arbitrumConstants.REWARD_TOKEN_ADDRESS
+      : avalancheConstants.REWARD_TOKEN_ADDRESS;
+
+  const coreContracts = getUmamiContractsForChain(chain);
+
+  const weights = await getGmiGmMarketsWeights(coreContracts.gmiContract);
+
+  for (let i = 0; i < vaultsList.length; i++) {
+    const vault = vaultsList[i];
+    const aggregateVaultContract = getAggregateVaultContractForVault(
+      chain,
+      vault.aggregateVaultAddress
+    );
 
     // get aprs out of GM markets
     const gmMarketsAprs = vault.underlyingGmMarkets.map((gmMarket, _index) => {
+      const gmMarketYieldInfos = gmMarketsInfos.find(
+        (market) => market.pool.toLowerCase() === gmMarket.address.toLowerCase()
+      );
+      if (!gmMarketYieldInfos) {
+        return 0;
+      }
       const gmMarketApr = gmMarketsInfos[_index].apyBase;
       const gmMarketWeight = weights[_index];
-      return (gmMarketApr || 0) * gmMarketWeight;
+      return gmMarketApr * gmMarketWeight;
     });
 
     const underlyingTokenPriceKey =
-      `arbitrum:${vault.underlyingAsset}`.toLowerCase();
+      `${chain}:${vault.underlyingAsset}`.toLowerCase();
 
-    const [tvlRaw, underlyingTokenPriceObj, bufferRaw] = await Promise.all([
+    const [tvlRaw, underlyingTokenPriceObj] = await Promise.all([
       aggregateVaultContract.methods
         .getVaultTVL(vault.address.toLowerCase(), false)
         .call(),
       superagent.get(
         `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`
       ),
-      sdk.api.erc20.balanceOf({
-        target: vault.underlyingAsset.toLowerCase(),
-        owner: GMI_AGGREGATE_VAULT,
-        chain: 'arbitrum',
-      }),
     ]);
 
     const underlyingTokenPrice =
       underlyingTokenPriceObj.body.coins[underlyingTokenPriceKey].price;
-    const tvl = tvlRaw / 10 ** vault.decimals;
+    const tvl = Number(tvlRaw) / 10 ** vault.decimals;
 
-    const buffer = bufferRaw.output / 10 ** vault.decimals;
+    const vaultApr = gmMarketsAprs.reduce((acc, apr) => acc + Number(apr), 0);
 
-    const bufferWeight = buffer / tvl;
-    let vaultApr = gmMarketsAprs.reduce((acc, apr) => acc + apr, 0);
-    vaultApr = vaultApr * (1 - bufferWeight);
-
-    gmVaults.push({
+    let vaultObject = {
       pool: vault.address,
       tvlUsd: +(tvl * underlyingTokenPrice),
       apyBase: +vaultApr.toFixed(2),
       symbol: vault.symbol,
       underlyingTokens: [vault.underlyingAsset],
-      url: `https://umami.finance/vaults/gm/${vault.id}`,
-    });
+      url: vault.url,
+    };
+
+    if (rewardToken) {
+      const vaultIncentivesApr = await getIncentivesAprForVault(vault, chain);
+      vaultObject = {
+        ...vaultObject,
+        apyReward: +vaultIncentivesApr.toFixed(2),
+        rewardTokens: [rewardToken],
+      };
+    }
+
+    gmVaults.push(vaultObject);
   }
 
   return gmVaults;
