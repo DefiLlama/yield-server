@@ -46,7 +46,7 @@ const apy = async () => {
     {
       pool: ARM_WETH_STETH_ADDRESS,
       chain: utils.formatChain('Ethereum'),
-      project: 'origin-arm-weth-steth',
+      project: 'origin-arm',
       symbol: 'ARM-WETH-stETH',
       tvlUsd,
       apy: Number(apyData.apy),
