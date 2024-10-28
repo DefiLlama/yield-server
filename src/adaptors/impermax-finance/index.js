@@ -41,6 +41,10 @@ const config = {
     'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2/v0.0.1',
     'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2-stable/v0.0.7',
   ],
+  real: [
+    'https://api.goldsky.com/api/public/project_cm2d5q4l4w31601vz4swb3vmi/subgraphs/impermax-finance/impermax-real-v2-stable/gn',
+    'https://api.goldsky.com/api/public/project_cm2rhb30ot9wu01to8c9h9e37/subgraphs/impermax-real-solv2/3.0/gn',
+  ],
   // Skip these as tvl is too low
   // avalanche: [], moonriver: [], canto: [], zkSync: []
 };
@@ -95,6 +99,13 @@ const projectPoolFactories = {
     TraderJoe: ['0x9ad6c38be94206ca50bb0d90783181662f0cfa10'],
     Pangolin: ['0xefa94de7a4656d787667c749f7e1223d71e9fd88'],
     Thorus: ['0xa98ea6356a316b44bf710d5f9b6b4ea0081409ef'],
+  },
+  real: {
+    PearlV2: [
+      '0x28e22d8c807b6e6c0eca4373fc3b9920453ceeee',
+      '0x317371f126680734d7db2ace2d751ffc0bd4b771',
+      '0x2b965fdf04f9e9beef1659464ef3a0094a68d923',
+    ],
   },
 };
 
