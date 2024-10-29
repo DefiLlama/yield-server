@@ -4,6 +4,7 @@ const abiCore = require('./abiCore.json');
 const abiLToken = require('./abiLToken.json');
 const abiRateModelSlope = require('./abiRateModelSlope.json');
 const abiRewardContract = require('./abiRewardContract.json'); // Import the updated reward contract ABI
+const abiFlyWheel = require('./abiFlyWheel.json');
 const utils = require('../utils');
 const { ethers } = require('ethers');
 const { rewardTokens } = require('../sommelier/config');
@@ -29,6 +30,11 @@ const markets = {
     // { ionUSDe: '0xBb2B9780BDB4Ccc168947050dFfC3181503c4D18' },
     { 'ionweETH.mode': '0xA0D844742B4abbbc43d8931a6Edb00C56325aA18' },
     { 'M-BTC': '0x19F245782b1258cf3e11Eda25784A378cC18c108' },
+    // {xxxxxxxxxxxxxxxx-below are native mode markets-xxxxxxxxxxxxxxxxxx},
+    // { ionMODE: '0x4341620757Bee7EB4553912FaFC963e59C949147' },
+    // { ionWETH: '0xDb8eE6D1114021A94A045956BBeeCF35d13a30F2' },
+    // { ionUSDC: '0xc53edEafb6D502DAEC5A7015D67936CEa0cD0F52' },
+    // { ionUSDT: '0x3120B4907851cc9D780eef9aF88ae4d5360175Fd' },
   ],
   // mode_native: [
   //   { ionWETH: '0xDb8eE6D1114021A94A045956BBeeCF35d13a30F2' },
@@ -74,11 +80,11 @@ const markets = {
     { ionLUSD: '0x9F4089Ea33773A090ac514934517990dF04ae5a7' },
     // Add other markets for Optimism as needed
   ],
-  bob: [
-    { ionWETH: '0x10f07DF86f5c3cB16f0cA62Bd8239A4954EeD2Df' },
-    { ionUSDC: '0x3E14B5D5187efE86eA99422F7696db5408a5E372' },
-    // Add other markets for Bob as needed
-  ],
+  // bob: [
+  //   { ionWETH: '0x10f07DF86f5c3cB16f0cA62Bd8239A4954EeD2Df' },
+  //   { ionUSDC: '0x3E14B5D5187efE86eA99422F7696db5408a5E372' },
+  //   // Add other markets for Bob as needed
+  // ],
   // Add other chains if needed
 };
 // Define CORE and Reward contract addresses per chain
@@ -117,7 +123,7 @@ const apy = async (chain) => {
   try {
     // Fetch collateral factors
 
-    
+
     const collateralFactorMantissa = (
       await sdk.api.abi.multiCall({
         chain,
@@ -129,7 +135,7 @@ const apy = async (chain) => {
       })
     ).output.map((o) => o.output.collateralFactorMantissa);
     // Fetch decimals first to use for formatting
-    ////console.log("Current Chain:", chain);
+    //////console.log("Current Chain:", chain);
     const decimalsRaw = (
       await sdk.api.abi.multiCall({
         chain,
@@ -230,7 +236,7 @@ const apy = async (chain) => {
     ).output.map((o) => o.output);
     const supplyRate = supplyRateRaw.map((val) => formatUnits(val, 18));
     // Fetch underlying tokens
-    
+
     const underlying = (
       await sdk.api.abi.multiCall({
         chain,
@@ -251,18 +257,18 @@ const apy = async (chain) => {
         permitFailure: true,
       })
     ).output.map((o) => o.output || 'UNKNOWN');
-      // Assemble pool data
-      const tokenDecimals = (
-        await sdk.api.abi.multiCall({
-          chain,
-          abi: abiLToken.find((n) => n.name === 'decimals'),
-          calls: allMarkets.map((m) => ({
-            target: m,
-          })),
-        })
-      ).output.map((o) => o.output);
+    // Assemble pool data
+    const tokenDecimals = (
+      await sdk.api.abi.multiCall({
+        chain,
+        abi: abiLToken.find((n) => n.name === 'decimals'),
+        calls: allMarkets.map((m) => ({
+          target: m,
+        })),
+      })
+    ).output.map((o) => o.output);
     // Fetch prices
-    
+
     const priceKeys = underlying.map((t) => `${chain}:${t}`).join(',');
     let prices = {};
     try {
@@ -272,176 +278,191 @@ const apy = async (chain) => {
       console.error(`Error fetching prices for chain ${chain}:`, error);
     }
     // Fetch reward rates from the Reward Contract using the updated ABI
-      // Fetch reward rates from the Reward Contract using the updated ABI
-      let rewardApyPerMarket = []; // Array to hold APY per market
-      const SECONDS_PER_YEAR = 60 * 60 * 24 * 365;
-      
-      if (REWARD_CONTRACT && REWARD_CONTRACT !== '') {
-        try {
-          // Ensure the function exists in the ABI
-          const getMarketRewardsInfoFunction = abiRewardContract.find((n) => n.name === 'getMarketRewardsInfo');
-          if (!getMarketRewardsInfoFunction) {
-            throw new Error("Function 'getMarketRewardsInfo' not found in abiRewardContract.json");
-          }
-      
-          // Fetch Market Rewards Info by passing all market addresses
-          const marketRewardsInfoRaw = await sdk.api.abi.call({
-            chain,
-            abi: getMarketRewardsInfoFunction,
-            target: REWARD_CONTRACT,
-            params: [allMarkets], // Pass all markets as parameters
-          });
-      
-          // Extract and map the output for each market
-          const marketRewardsInfo = marketRewardsInfoRaw.output.map(info => {
-            return {
-              market: info.market,
-              underlyingPrice: info.underlyingPrice,
-              rewardsInfo: info.rewardsInfo.map(reward => ({
-                rewardSpeedPerSecondPerToken: reward.rewardSpeedPerSecondPerToken,
-                rewardToken: reward.rewardToken || 0 , // Include rewardToken here
-                rewardTokenPrice: reward.rewardTokenPrice,
-                formattedAPR: reward.formattedAPR || null, // Use the 
-              })),
-              rewardTokens: info.rewardsInfo.map(reward => reward.rewardToken) || 0,
-            };
-          });
-         
-          const BLOCKS_PER_MINUTE = 27; // Given: 27 blocks per minute
-          const BLOCKS_PER_YEAR = BLOCKS_PER_MINUTE * 60 * 24 * 365; // Blocks in a year
-          // Calculate reward APY for each market
-          rewardApyPerMarket = marketRewardsInfo.map((marketReward, index) => {
-            const rewards = marketReward.rewardsInfo;
-            const rewardTokens = marketRewardsInfo[0]?.rewardsInfo.map(reward => reward.rewardToken).filter(token => token);
-            ////console.log('Reward Tokens:', rewardTokens); // Log the reward tokens for debugging
-            // Total reward APY initialization
-            const decimals = decimalsRaw[index]; 
-            ////console.log("CHAIN",chain)
-            ////console.log("decimals", decimals)
-            const uniqueFormattedAPRs = new Set();
+    // Fetch reward rates from the Reward Contract using the updated ABI
+    let rewardApyPerMarket = []; // Array to hold APY per market
+    const SECONDS_PER_YEAR = 60 * 60 * 24 * 365;
 
-            const totalRewardApy = rewards.reduce((total, reward) => {
-              // Assuming reward.formattedAPR is in the correct format (e.g., in wei or smallest unit)
-              let lastRewardToken = null; 
-              const formattedAPR = reward.formattedAPR;
-              const rewardToken = reward.rewardToken.toLowerCase(); 
-              if (lastRewardToken === rewardToken) {
-                ////console.log('Skipping consecutive reward for token:', rewardToken);
-                return total; // Skip this reward
-              }
-            
-              // Track the current reward token as the last processed one
-              lastRewardToken = rewardToken;
-              
-              ////console.log("Raw formatted APR:", formattedAPR);
-              if (uniqueFormattedAPRs.has(formattedAPR)) {
-                ////console.log("Skipping duplicate formatted APR:", formattedAPR);
-                return total; // Skip duplicates
-            } else {
-                uniqueFormattedAPRs.add(formattedAPR); // Add to the set of seen formatted APRs
-            }
-              // Convert formattedAPR to a number with 18 decimals
-              const rateAsNumber = parseFloat(ethers.utils.formatUnits(formattedAPR, decimals));
-              
-              let normalizedRate;
-          
-              // Check if formattedAPR is zero
-              if (formattedAPR === "0") {
-                  ////console.log("Skipping zero formatted APR");
-                  return total; // Skip zero values
-              }
-          
-              // Calculate scaling factor based on decimals
-              const scaleFactor = 10 ** (18 - decimals);
-          
-              if (decimals < 18) {
-                  // Scale up for decimals less than 18
-                  normalizedRate = rateAsNumber / scaleFactor; // Scale up the rate
-              } else if (decimals === 18) {
-                  // No scaling needed
-                  normalizedRate = rateAsNumber; 
-              } else {
-                  // Scale down for decimals greater than 18
-                  normalizedRate = rateAsNumber / (10 ** (decimals - 18)); // Scale down the rate
-              }           
-              // Accumulate the normalized rates
-              return total + normalizedRate;
-              
-          }, 0);
-          
-          // Convert totalRewardApy to a percentage
-          const apyPercentage = totalRewardApy * 100; 
-          ////console.log("Percentage return",apyPercentage)
-          return apyPercentage.toFixed(2); 
-          });
-          
-      
-        } catch (error) {
-          console.error("Error fetching Market Rewards Info:", error);
+    if (REWARD_CONTRACT && REWARD_CONTRACT !== '') {
+      try {
+        // Ensure the function exists in the ABI
+        const getMarketRewardsInfoFunction = abiRewardContract.find(n => n.name === 'getMarketRewardsInfo');
+        if (!getMarketRewardsInfoFunction) {
+          throw new Error("Function 'getMarketRewardsInfo' not found in abiRewardContract.json");
         }
+
+        // Fetch Market Rewards Info by passing all market addresses
+        // Step 1: Fetch raw market rewards info
+        const marketRewardsInfoRaw = await sdk.api.abi.call({
+          chain,
+          abi: getMarketRewardsInfoFunction,
+          target: REWARD_CONTRACT,
+          params: [allMarkets], // Pass all markets as parameters
+        });
+
+        // Step 2: Function to get the flywheel booster address for each reward's flywheel
+        async function getFlywheelBoosterAddress(sdk, chain, flywheelAddress) {
+          const flywheelBoosterFunction = abiFlyWheel.find(n => n.name === 'flywheelBooster');
+          if (!flywheelBoosterFunction) {
+            throw new Error("Function 'flywheelBooster' not found in abiFlyWheel.json");
+          }
+
+          // Fetch the flywheelBooster address
+          const flywheelBoosterAddressRaw = await sdk.api.abi.call({
+            chain,
+            abi: flywheelBoosterFunction,
+            target: flywheelAddress,
+          });
+          return flywheelBoosterAddressRaw.output;  // Ensure you access the `output` field for the result
+        }
+
+        // Step 3: Filter and map the output based on flywheel's booster address
+        async function getFilteredMarketRewardsInfo(sdk, chain, marketRewardsInfoRaw) {
+          const filteredRewards = [];
+
+          for (let info of marketRewardsInfoRaw.output) {
+            const filteredRewardsInfo = [];
+
+            // Iterate over each reward in rewardsInfo and check booster address
+            for (let reward of info.rewardsInfo) {
+              //console.log("reward flywheel",reward.flywheel)
+              const boosterAddress = await getFlywheelBoosterAddress(sdk, chain, reward.flywheel); // Use flywheel here
+              if (boosterAddress === '0x0000000000000000000000000000000000000000') {
+                filteredRewardsInfo.push(reward);
+              }
+            }
+
+            // Add market info only if there are valid rewards
+            if (filteredRewardsInfo.length > 0) {
+              filteredRewards.push({
+                market: info.market,
+                underlyingPrice: info.underlyingPrice,
+                rewardsInfo: filteredRewardsInfo.map(reward => ({
+                  rewardSpeedPerSecondPerToken: reward.rewardSpeedPerSecondPerToken,
+                  rewardToken: reward.rewardToken || 0,
+                  rewardTokenPrice: reward.rewardTokenPrice,
+                  formattedAPR: reward.formattedAPR || null,
+                })),
+                rewardTokens: filteredRewardsInfo.map(reward => reward.rewardToken) || 0,
+              });
+            }
+          }
+          return filteredRewards;
+        }
+
+        // Step 4: Execute the function to get the filtered rewards
+        const marketRewardsInfo = await getFilteredMarketRewardsInfo(sdk, chain, marketRewardsInfoRaw);
+
+        const BLOCKS_PER_MINUTE = 27; // Given: 27 blocks per minute
+        const BLOCKS_PER_YEAR = BLOCKS_PER_MINUTE * 60 * 24 * 365; // Blocks in a year
+
+        await Promise.all(marketRewardsInfo.map(async (marketReward, index) => {
+          const rewards = marketReward.rewardsInfo || [];
+          const decimals = decimalsRaw[index];
+        
+          // Filter out rewards with invalid formattedAPR
+          const validRewards = rewards.filter(reward => reward.formattedAPR);
+        
+          if (validRewards.length === 0) {
+            console.warn(`No valid rewards found for market at index ${index}:`, marketReward);
+            rewardApyPerMarket.push(0); // Push zero if no valid rewards are found
+            return; // Exit early for this market
+          }
+        
+          const totalRewardApy = await Promise.all(
+            validRewards.map(async (reward) => {
+              const formattedAPR = reward.formattedAPR;
+              const parsedRate = parseFloat(ethers.utils.formatUnits(formattedAPR, decimals));
+              const scaleFactor = 10 ** (18 - decimals);
+              let normalizedRate;
+        
+              // Normalize rates based on decimals
+              if (decimals < 18) {
+                normalizedRate = parsedRate / scaleFactor;
+              } else {
+                normalizedRate = parsedRate; // No scaling needed if decimals are 18 or more
+              }
+        
+              //console.log("Normalized Rate for reward:", normalizedRate);
+              return normalizedRate; // Return the normalized rate
+            })
+          );
+        
+          // Calculate total APY for the current market
+          const totalAPY = totalRewardApy.reduce((acc, curr) => acc + curr, 0);
+          const apyPercentage = (totalAPY > 0) ? totalAPY * 100 : 0; // Calculate percentage
+
+          const apyPercFormatted = apyPercentage.toFixed(2)
+          // Push the calculated total APY into the array
+          rewardApyPerMarket.push(apyPercFormatted); // Ensure this is the same array you're checking later
+        }));
+        //console.log('Final rewardApyPerMarket:', rewardApyPerMarket);
+
+      } catch (error) {
+        console.error("Error fetching Market Rewards Info:", error);
       }
-// Inside your pools mapping
-
-const blocksPerMin = 27; 
-
-const pools = allMarkets.map((p, i) => {
-  const price = prices[`${chain}:${underlying[i]}`]?.price || 0;
-  if (!price) {
-    console.warn(`Price not found for ${chain}:${underlying[i]}`);
-    return null;
-  }
-  ////console.log("token",underlying[i])
-  const decimal = tokenDecimals[i] || 18; // Fallback to 18 if token not found
-  const totalBorrowInUsd = totalBorrow[i] ; // Convert totalBorrow to token value
-  const cashInUsd = cash[i] ; // Convert cash to token value
-  
-  // Ensure price is in USD (double-check this value)
-  const totalBorrowUsd = totalBorrowInUsd * price; // Convert to USD
-  const tvlUsd = cashInUsd * price; // Convert to USD
-  
-  // Calculate total supply USD
-  const totalSupplyUsd = totalBorrowUsd + tvlUsd;
-  function ratePerBlockToAPY(ratePerBlock, blocksPerMin) {
-    // Check if ratePerBlock is null, undefined, or NaN
-    if (ratePerBlock == null || isNaN(ratePerBlock)) {
-      return 0; 
     }
-    
-    const blocksPerDay = blocksPerMin * 60 * 24; // Calculate blocks per day
-    const rateAsNumber = Number(ratePerBlock);
-  
-    return (Math.pow(rateAsNumber * blocksPerDay + 1, 365) - 1) * 100; // Calculate APY
-  }
-  let apyBase = 0;
-  if (supplyRate[i] !== 0 && supplyRate[i] !== null && supplyRate[i] !== undefined) {
-    apyBase = ratePerBlockToAPY(supplyRate[i], blocksPerMin) || 0;
-  }
-  // Reward APR calculation (adjusted with totalSupplyUsd for normalization)
-  ////console.log('rewards APY', rewardApyPerMarket[i])
-  // // const rewardApy = rewardApyPerMarket[i] / (10 ** 12); // Convert from wei to ether if applicable
-  // const apyReward = (totalSupplyUsd > 0 && rewardApyPerMarket[i] !== undefined)
-  //   ? (rewardApy / totalSupplyUsd) * 100 // Normalize reward APY
-  //   : 0;
+    // Inside your pools mapping
 
-  const apyReward = (rewardApyPerMarket[i]) 
-    ? Number((rewardApyPerMarket[i]))
-    : 0;
-  const apyTotal = apyReward + apyBase; 
-  // const apyTotal = (totalSupplyUsd > 0) ? (apyBase + totalSupplyRewardsAPR) : 0;
-  return {
-    pool: p,
-    chain,
-    project: 'ionic-protocol',
-    symbol: symbol[i],
-    tvlUsd,
-    totalSupplyUsd,
-    totalBorrowUsd,
-    apyReward: apyReward !== null && apyReward !== undefined ? apyReward : 0, // Ensure apyBase has a valid value,
-    apyBase: apyBase !== null && apyBase !== undefined ? apyBase : 0, // Ensure apyBase has a valid value
-    rewardTokens : rewardTokens,
-  };
-});  
-      return pools;
+    const blocksPerMin = 27;
+
+    const pools = allMarkets.map((p, i) => {
+      const price = prices[`${chain}:${underlying[i]}`]?.price || 0;
+      if (!price) {
+        console.warn(`Price not found for ${chain}:${underlying[i]}`);
+        return null;
+      }
+      //////console.log("token",underlying[i])
+      const decimal = tokenDecimals[i] || 18; // Fallback to 18 if token not found
+      const totalBorrowInUsd = totalBorrow[i]; // Convert totalBorrow to token value
+      const cashInUsd = cash[i]; // Convert cash to token value
+
+      // Ensure price is in USD (double-check this value)
+      const totalBorrowUsd = totalBorrowInUsd * price; // Convert to USD
+      const tvlUsd = cashInUsd * price; // Convert to USD
+
+      // Calculate total supply USD
+      const totalSupplyUsd = totalBorrowUsd + tvlUsd;
+      function ratePerBlockToAPY(ratePerBlock, blocksPerMin) {
+        // Check if ratePerBlock is null, undefined, or NaN
+        if (ratePerBlock == null || isNaN(ratePerBlock)) {
+          return 0;
+        }
+
+        const blocksPerDay = blocksPerMin * 60 * 24; // Calculate blocks per day
+        const rateAsNumber = Number(ratePerBlock);
+
+        return (Math.pow(rateAsNumber * blocksPerDay + 1, 365) - 1) * 100; // Calculate APY
+      }
+      let apyBase = 0;
+      if (supplyRate[i] !== 0 && supplyRate[i] !== null && supplyRate[i] !== undefined) {
+        apyBase = ratePerBlockToAPY(supplyRate[i], blocksPerMin) || 0;
+      }
+      // Reward APR calculation (adjusted with totalSupplyUsd for normalization)
+      //////console.log('rewards APY', rewardApyPerMarket[i])
+      // // const rewardApy = rewardApyPerMarket[i] / (10 ** 12); // Convert from wei to ether if applicable
+      // const apyReward = (totalSupplyUsd > 0 && rewardApyPerMarket[i] !== undefined)
+      //   ? (rewardApy / totalSupplyUsd) * 100 // Normalize reward APY
+      //   : 0;
+      //console.log("Final rewardApyPerMarket:", rewardApyPerMarket);
+      const apyReward = (rewardApyPerMarket[i])
+        ? Number((rewardApyPerMarket[i]))
+        : 0;
+      const apyTotal = apyReward + apyBase;
+      // const apyTotal = (totalSupplyUsd > 0) ? (apyBase + totalSupplyRewardsAPR) : 0;
+      return {
+        pool: p,
+        chain,
+        project: 'ionic-protocol',
+        symbol: symbol[i],
+        tvlUsd,
+        totalSupplyUsd,
+        totalBorrowUsd,
+        apyReward: apyReward !== null && apyReward !== undefined ? apyReward : 0, // Ensure apyBase has a valid value,
+        apyBase: apyBase !== null && apyBase !== undefined ? apyBase : 0, // Ensure apyBase has a valid value
+        rewardTokens: rewardTokens,
+      };
+    });
+    return pools;
   } catch (error) {
     console.error(`Error processing APY for chain ${chain}:`, error);
     return [];
@@ -465,3 +486,4 @@ module.exports = {
   apy: main,
   url: 'https://app.ionic.money/',
 };
+
