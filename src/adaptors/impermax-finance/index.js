@@ -38,8 +38,8 @@ const config = {
     'https://api.studio.thegraph.com/query/46041/impermax-base-solv2-stable/v0.0.1',
   ],
   scroll: [
-    'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2/v0.0.1',
-    'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2-stable/v0.0.7',
+    'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2/v0.0.2',
+    'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2-stable/0.0.9',
   ],
   real: [
     'https://api.goldsky.com/api/public/project_cm2d5q4l4w31601vz4swb3vmi/subgraphs/impermax-finance/impermax-real-v2-stable/gn',
