@@ -148,6 +148,8 @@ const excludeAdaptors = [
   'pinjam-labs',
   'horizondex',
   'equilibre',
+  'maia-dao',
+  'hermes-protocol',
 ];
 
 const excludePools = [
