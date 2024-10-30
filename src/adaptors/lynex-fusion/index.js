@@ -5,7 +5,6 @@ const pairAPI = require('./abis/pairAPI.json');
 const factoryAbi = require('./abis/factoryABI.json');
 const { getPrices, getTokenPrice, fetchPeriodFinish, fetchExtraPoolRewards, fromWei, loadActiveStrategies, fetchGammaInfo } = require('./utils');
 
-const TVL_FILTER = 10000
 const TEST_ACCOUNT = '0x1111110000000000000000000000000000000000'
 
 const getApy = async () => {
@@ -60,7 +59,7 @@ const getApy = async () => {
     );
     const poolMeta = `${found?.type}`
     const symbol = found
-      ? `${firstSymbol}/${secondSymbol}`
+      ? `${firstSymbol}/${secondSymbol} (${found.title})`
       : pool.stable
         ? `sAMM-${firstSymbol}/${secondSymbol}`
         : `vAMM-${firstSymbol}/${secondSymbol}`;
@@ -145,7 +144,7 @@ const getApy = async () => {
   }
 
   // Put all together
-  const aux = pools.map((pool, i) => {
+  const returnData = pools.map((pool, i) => {
     let tvl;
     let rewardsTokens = [olynxAddress];
     let extraRewardsApy = 0
@@ -222,8 +221,7 @@ const getApy = async () => {
     };
 
   });
-  // const returnData = aux.filter((pool) => { return pool.tvlUsd > 500000 })
-  return aux;
+  return returnData;
 };
 
 module.exports = {
