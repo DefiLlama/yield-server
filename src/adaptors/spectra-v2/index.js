@@ -15,7 +15,7 @@ const chains = {
     APW: '0x3a67ca29ddf5ecf1844e811c43f27bd79f9ec310',
   },
   10: {
-    nam: 'optimism',
+    name: 'optimism',
     slug: 'optimism',
     APW: '0x92a2a0d39da80e1fa21afdebdd87c4f975adf9f0',
   },
@@ -25,6 +25,9 @@ const chains = {
     APW: '0x5dbe772a051fa853433cdae923c3b3ae955df7bd',
   },
 };
+
+const poolId = (address, chainId) =>
+  `${address}-${chains[chainId].slug}`.toLowerCase();
 
 const apwApy = (pool) => {
   if (pool.lpApy.details.rewards?.['APW']) {
@@ -46,10 +49,10 @@ const lpApy = (p) => {
   const apw = apwApy(p);
   const chain = chains[p.chainId];
   return {
-    pool: p.address,
+    pool: poolId(p.address, p.chainId),
     chain: utils.formatChain(chain.name),
     project: 'spectra-v2',
-    symbol: utils.formatSymbol(`LP ${formatIbt(p.pt.ibt)}`),
+    symbol: utils.formatSymbol(`LP-${formatIbt(p.pt.ibt)}`),
     tvlUsd: p.liquidity?.usd,
     apyBase: p.lpApy.total - apw,
     apyReward: apw,
@@ -63,10 +66,10 @@ const lpApy = (p) => {
 const fixedRateApy = (p) => {
   const chain = chains[p.chainId];
   return {
-    pool: p.pt.address,
+    pool: poolId(p.pt.address, p.chainId),
     chain: utils.formatChain(chain.name),
     project: 'spectra-v2',
-    symbol: utils.formatSymbol(`PT ${formatIbt(p.pt.ibt)}`),
+    symbol: utils.formatSymbol(`PT-${formatIbt(p.pt.ibt)}`),
     tvlUsd: p.liquidity?.usd,
     apyBase: p.impliedApy,
     underlyingTokens: [p.pt.underlying.address],
@@ -76,15 +79,17 @@ const fixedRateApy = (p) => {
 };
 
 async function apy() {
-  const chainId = 1; // Mainnet only for now
-
-  const pts = (
-    await axios.get(api(chainId), {
-      headers: {
-        'x-client-id': 'defillama',
-      },
-    })
-  ).data.flat();
+  const pts = await Promise.all(
+    Object.keys(chains).map((chainId) =>
+      axios
+        .get(api(chainId), {
+          headers: {
+            'x-client-id': 'defillama',
+          },
+        })
+        .then((res) => res.data.flat())
+    )
+  ).then((res) => res.flat());
   pts.forEach((pt) => {
     pt.pools.forEach((pool) => {
       pool.pt = pt; // inject PT reference into pool itself
@@ -94,6 +99,7 @@ async function apy() {
 
   const apys = [...pools.map(lpApy), ...pools.map(fixedRateApy)]
     .flat()
+    .filter(({ tvlUsd }) => Number.isFinite(tvlUsd)) // skip pools with no TVL (e.g. missing price)
     .sort((a, b) => b.tvlUsd - a.tvlUsd);
 
   return apys;
