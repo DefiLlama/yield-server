@@ -10,6 +10,7 @@ const GET_ALL_MARKETS = 'getAllMarkets';
 const SUPPLY_RATE = 'supplyRatePerSecond';
 const BORROW_RATE = 'borrowRatePerSecond';
 const TOTAL_BORROWS = 'totalBorrows';
+const TOTAL_RESERVES = 'totalReserves';
 const GET_CHASH = 'getCash';
 const UNDERLYING = 'underlying';
 const BLOCKS_PER_DAY = 86400;
@@ -110,6 +111,11 @@ const lendingApy = async () => {
     TOTAL_BORROWS,
     ercDelegator
   );
+  const totalReserves = await multiCallMarkets(
+    allMarkets,
+    TOTAL_RESERVES,
+    ercDelegator
+  );
 
   const underlyingTokens = await multiCallMarkets(
     allMarkets,
@@ -143,11 +149,14 @@ const lendingApy = async () => {
       price = symbol.toLowerCase().includes('usd') ? 1 : 0;
 
     const totalSupplyUsd =
-      ((Number(marketsCash[i]) + Number(totalBorrows[i])) / 10 ** decimals) *
+      ((Number(marketsCash[i]) +
+        Number(totalBorrows[i]) -
+        Number(totalReserves[i])) /
+        10 ** decimals) *
       price;
-    const tvlUsd = (marketsCash[i] / 10 ** decimals) * price;
 
     const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
+    const tvlUsd = totalSupplyUsd - totalBorrowUsd;
 
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
     const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
@@ -160,7 +169,7 @@ const lendingApy = async () => {
       tvlUsd,
       apyBase,
       underlyingTokens: [token],
-      url: `https://traderjoexyz.com/lending/supply/${market}`,
+      url: `https://v1.lfj.gg/lend/supply/${market}`,
       // borrow fields
       totalSupplyUsd,
       totalBorrowUsd,
