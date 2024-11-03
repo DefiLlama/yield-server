@@ -6,9 +6,12 @@ const utils = require('../utils');
 const abi = require('./abi.json');
 const baseRewardPoolAbi = require('./baseRewardPoolAbi.json');
 const virtualBalanceRewardPoolAbi = require('./virtualBalanceRewardPoolAbi.json');
+const { getCvxCrvAprData } = require('./data/cvxcrv-apr');
+const { getTokensPrices } = require('./data/token-prices');
 
 const crvAddress = '0xD533a949740bb3306d119CC777fa900bA034cd52';
 const cvxAddress = '0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B';
+const crvUsdAddress = '0xf939e0a03fb07f59a73314e73794be0e57ac1b4e';
 const convexBoosterAddress = '0xF403C135812408BFbE8713b5A23a04b3D48AAE31';
 
 const cliffSize = 100000; // * 1e18; //new cliff every 100,000 tokens
@@ -17,18 +20,6 @@ const maxSupply = 100000000; // * 1e18; //100 mil max supply
 const projectedAprTvlThr = 1e6;
 
 let extraRewardsPrices = {};
-
-const getCrvCvxPrice = async () => {
-  const tokens = [crvAddress, cvxAddress].map((t) => `ethereum:${t}`).join(',');
-
-  const url = `https://coins.llama.fi/prices/current/${tokens}`;
-
-  const response = await superagent.get(url);
-  const data = response.body.coins;
-  const crvPrice = data[`ethereum:${crvAddress}`].price;
-  const cvxPrice = data[`ethereum:${cvxAddress}`].price;
-  return { crvPrice, cvxPrice };
-};
 
 const main = async () => {
   const [
@@ -40,7 +31,11 @@ const main = async () => {
     utils.getData('https://api.curve.fi/api/getAllGauges'),
     utils.getData('https://curve.convexfinance.com/api/curve/lending-vaults'),
   ]);
-  const { cvxPrice, crvPrice } = await getCrvCvxPrice();
+
+  const {
+    [crvAddress.toLowerCase()]: crvPrice,
+    [cvxAddress.toLowerCase()]: cvxPrice,
+  } = await getTokensPrices([crvAddress, cvxAddress]);
 
   const poolsList = (await utils.getData('https://api.curve.fi/api/getPools/all/ethereum')).data.poolData
     .filter((i) => i?.address !== undefined);
@@ -253,6 +248,16 @@ const main = async () => {
 
   const poolsWithApr = await Promise.all(
     withCvxTvl.map(async (pool, idx) => {
+      if (pool.lptoken === cvxCRV) {
+        return {
+          ...pool,
+          apr: (await getCvxCrvAprData()),
+          crvApr: 0,
+          extrApr: 0,
+          extraTokens: [crvUsdAddress], // It’ll show CRV+CVX+crvUSD as rewards
+        };
+      }
+
       const isFinished = new Date() > periodFinish[idx] * 1000;
       const rate = rewardRates[idx] / 10 ** 18;
 
