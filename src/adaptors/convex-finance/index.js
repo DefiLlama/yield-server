@@ -32,29 +32,11 @@ const getCrvCvxPrice = async () => {
 
 const main = async () => {
   const { apys: curveApys } = await utils.getData(
-    'https://www.convexfinance.com/api/curve-apys'
+    'https://curve.convexfinance.com/api/curve-apys'
   );
   const { cvxPrice, crvPrice } = await getCrvCvxPrice();
 
-  const poolsList = (
-    await Promise.all(
-      [
-        'main',
-        'crypto',
-        'factory',
-        'factory-crypto',
-        'optimism',
-        'factory-crvusd',
-        'factory-tricrypto',
-        'factory-stable-ng',
-        'factory-twocrypto',
-      ].map((registry) =>
-        utils.getData(`https://api.curve.fi/api/getPools/ethereum/${registry}`)
-      )
-    )
-  )
-    .map(({ data }) => data.poolData)
-    .flat()
+  const poolsList = (await utils.getData('https://api.curve.fi/api/getPools/all/ethereum')).data.poolData
     .filter((i) => i?.address !== undefined);
 
   const { data: gauges } = await utils.getData(
