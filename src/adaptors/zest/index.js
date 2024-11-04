@@ -1,9 +1,5 @@
-import {
-    callReadOnlyFunction,
-    contractPrincipalCV,
-} from "@stacks/transactions";
-
-import { StacksMainnet } from "@stacks/network";
+const { callReadOnlyFunction, contractPrincipalCV } = require("@stacks/transactions");
+const { StacksMainnet } = require("@stacks/network");
 
 const AssetConfig = {
     stSTX: {
