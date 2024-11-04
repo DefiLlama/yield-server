@@ -41,6 +41,7 @@ const apyChain = async (chain) => {
       params: vault,
     })),
     chain: chain,
+    permitFailure: true,
   });
 
   const vaultInfo = vaultInfoCall.output
@@ -57,6 +58,7 @@ const apyChain = async (chain) => {
           })),
           abi: 'erc20:symbol',
           chain: chain,
+          permitFailure: true,
         })
       ).output.map(({ output }) => output)
     )
@@ -81,6 +83,7 @@ const apyChain = async (chain) => {
         ? pool.rewardTokens
         : [chainDataMap[chain]['BASE_REWARD_TOKEN']],
       url: `https://app.tetu.io/vault/${pool.addr}`,
+      underlyingTokens: pool.assets,
     };
   });
   return result;

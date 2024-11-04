@@ -1537,6 +1537,25 @@ module.exports = {
       "anonymous": false,
       "inputs": [
         {
+          "indexed": true,
+          "internalType": "contract CToken",
+          "name": "cToken",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newSpeed",
+          "type": "uint256"
+        }
+      ],
+      "name": "CompBorrowSpeedUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
           "indexed": false,
           "internalType": "address",
           "name": "recipient",
@@ -1569,6 +1588,25 @@ module.exports = {
         }
       ],
       "name": "CompSpeedUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "contract CToken",
+          "name": "cToken",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newSpeed",
+          "type": "uint256"
+        }
+      ],
+      "name": "CompSupplySpeedUpdated",
       "type": "event"
     },
     {
@@ -1894,24 +1932,6 @@ module.exports = {
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "recipient",
-          "type": "address"
-        },
-        {
-          "internalType": "uint256",
-          "name": "amount",
-          "type": "uint256"
-        }
-      ],
-      "name": "_grantComp",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
       "inputs": [],
       "name": "_mintGuardianPaused",
       "outputs": [
@@ -2020,35 +2040,22 @@ module.exports = {
     {
       "inputs": [
         {
-          "internalType": "contract CToken",
+          "internalType": "contract CToken[]",
           "name": "cToken",
-          "type": "address"
+          "type": "address[]"
         },
         {
-          "internalType": "uint256",
-          "name": "compSpeed",
-          "type": "uint256"
-        }
-      ],
-      "name": "_setCompSpeed",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "contributor",
-          "type": "address"
+          "internalType": "uint256[]",
+          "name": "supplySpeeds",
+          "type": "uint256[]"
         },
         {
-          "internalType": "uint256",
-          "name": "compSpeed",
-          "type": "uint256"
+          "internalType": "uint256[]",
+          "name": "borrowSpeeds",
+          "type": "uint256[]"
         }
       ],
-      "name": "_setContributorCompSpeed",
+      "name": "_setCompSpeeds",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -2206,6 +2213,13 @@ module.exports = {
           "type": "uint256"
         }
       ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "_upgradeSplitCompRewards",
+      "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
     },
@@ -2504,6 +2518,25 @@ module.exports = {
           "type": "address"
         }
       ],
+      "name": "compBorrowSpeeds",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
       "name": "compBorrowState",
       "outputs": [
         {
@@ -2622,6 +2655,25 @@ module.exports = {
         }
       ],
       "name": "compSupplierIndex",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "compSupplySpeeds",
       "outputs": [
         {
           "internalType": "uint256",

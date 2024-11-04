@@ -1,7 +1,7 @@
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { request, gql } = require('graphql-request');
 const dayjs = require('dayjs');
-const { util, api } = require('@defillama/sdk');
 
 const graphQuery = () => gql`
   {
@@ -28,8 +28,7 @@ const graphQuery = () => gql`
   }
 `;
 
-const graphUrl =
-  'https://api.thegraph.com/subgraphs/name/alwaysbegrowing/arbor-v1';
+const graphUrl = sdk.graph.modifyEndpoint('9MKTb9g59rBG1CNUTrriA6tDdSR8neruGJCP6FjD7SSo');
 
 const defiUrl = 'https://coins.llama.fi/prices/current/';
 
@@ -52,7 +51,7 @@ const poolsFunction = async () => {
 
     const price = () => {
       if (!bond.clearingPrice) {
-        return (bondPrice = bond.auctions[0].minimumBondPrice);
+        return (bondPrice = bond.auctions[0]?.minimumBondPrice);
       } else {
         return (bondPrice = bond.clearingPrice);
       }
@@ -68,10 +67,11 @@ const poolsFunction = async () => {
       tvlUsd: tvl,
       apy: ((1 / bondPrice) ** (1 / yearsUntilMaturity) - 1) * 100,
       poolMeta: bond.symbol,
+      underlyingTokens: [bond.collateralToken.id],
     };
   });
 
-  return await Promise.all(bondPools);
+  return (await Promise.all(bondPools)).filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

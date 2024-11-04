@@ -1,0 +1,558 @@
+[
+  {
+    "stateMutability": "nonpayable",
+    "type": "constructor",
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "name": "setup",
+    "inputs": [
+      {
+        "name": "_voter",
+        "type": "address"
+      },
+      {
+        "name": "_wrapped_bribe_factory",
+        "type": "address"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "all",
+    "inputs": [
+      {
+        "name": "_limit",
+        "type": "uint256"
+      },
+      {
+        "name": "_offset",
+        "type": "uint256"
+      },
+      {
+        "name": "_account",
+        "type": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "components": [
+          {
+            "name": "pair_address",
+            "type": "address"
+          },
+          {
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "name": "decimals",
+            "type": "uint8"
+          },
+          {
+            "name": "stable",
+            "type": "bool"
+          },
+          {
+            "name": "total_supply",
+            "type": "uint256"
+          },
+          {
+            "name": "token0",
+            "type": "address"
+          },
+          {
+            "name": "token0_symbol",
+            "type": "string"
+          },
+          {
+            "name": "token0_decimals",
+            "type": "uint8"
+          },
+          {
+            "name": "reserve0",
+            "type": "uint256"
+          },
+          {
+            "name": "claimable0",
+            "type": "uint256"
+          },
+          {
+            "name": "token1",
+            "type": "address"
+          },
+          {
+            "name": "token1_symbol",
+            "type": "string"
+          },
+          {
+            "name": "token1_decimals",
+            "type": "uint8"
+          },
+          {
+            "name": "reserve1",
+            "type": "uint256"
+          },
+          {
+            "name": "claimable1",
+            "type": "uint256"
+          },
+          {
+            "name": "gauge",
+            "type": "address"
+          },
+          {
+            "name": "gauge_total_supply",
+            "type": "uint256"
+          },
+          {
+            "name": "fee",
+            "type": "address"
+          },
+          {
+            "name": "bribe",
+            "type": "address"
+          },
+          {
+            "name": "wrapped_bribe",
+            "type": "address"
+          },
+          {
+            "name": "emissions",
+            "type": "uint256"
+          },
+          {
+            "name": "emissions_token",
+            "type": "address"
+          },
+          {
+            "name": "emissions_token_decimals",
+            "type": "uint8"
+          },
+          {
+            "name": "account_balance",
+            "type": "uint256"
+          },
+          {
+            "name": "account_earned",
+            "type": "uint256"
+          },
+          {
+            "name": "account_staked",
+            "type": "uint256"
+          },
+          {
+            "name": "account_token0_balance",
+            "type": "uint256"
+          },
+          {
+            "name": "account_token1_balance",
+            "type": "uint256"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "byIndex",
+    "inputs": [
+      {
+        "name": "_index",
+        "type": "uint256"
+      },
+      {
+        "name": "_account",
+        "type": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "components": [
+          {
+            "name": "pair_address",
+            "type": "address"
+          },
+          {
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "name": "decimals",
+            "type": "uint8"
+          },
+          {
+            "name": "stable",
+            "type": "bool"
+          },
+          {
+            "name": "total_supply",
+            "type": "uint256"
+          },
+          {
+            "name": "token0",
+            "type": "address"
+          },
+          {
+            "name": "token0_symbol",
+            "type": "string"
+          },
+          {
+            "name": "token0_decimals",
+            "type": "uint8"
+          },
+          {
+            "name": "reserve0",
+            "type": "uint256"
+          },
+          {
+            "name": "claimable0",
+            "type": "uint256"
+          },
+          {
+            "name": "token1",
+            "type": "address"
+          },
+          {
+            "name": "token1_symbol",
+            "type": "string"
+          },
+          {
+            "name": "token1_decimals",
+            "type": "uint8"
+          },
+          {
+            "name": "reserve1",
+            "type": "uint256"
+          },
+          {
+            "name": "claimable1",
+            "type": "uint256"
+          },
+          {
+            "name": "gauge",
+            "type": "address"
+          },
+          {
+            "name": "gauge_total_supply",
+            "type": "uint256"
+          },
+          {
+            "name": "fee",
+            "type": "address"
+          },
+          {
+            "name": "bribe",
+            "type": "address"
+          },
+          {
+            "name": "wrapped_bribe",
+            "type": "address"
+          },
+          {
+            "name": "emissions",
+            "type": "uint256"
+          },
+          {
+            "name": "emissions_token",
+            "type": "address"
+          },
+          {
+            "name": "emissions_token_decimals",
+            "type": "uint8"
+          },
+          {
+            "name": "account_balance",
+            "type": "uint256"
+          },
+          {
+            "name": "account_earned",
+            "type": "uint256"
+          },
+          {
+            "name": "account_staked",
+            "type": "uint256"
+          },
+          {
+            "name": "account_token0_balance",
+            "type": "uint256"
+          },
+          {
+            "name": "account_token1_balance",
+            "type": "uint256"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "byAddress",
+    "inputs": [
+      {
+        "name": "_address",
+        "type": "address"
+      },
+      {
+        "name": "_account",
+        "type": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "components": [
+          {
+            "name": "pair_address",
+            "type": "address"
+          },
+          {
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "name": "decimals",
+            "type": "uint8"
+          },
+          {
+            "name": "stable",
+            "type": "bool"
+          },
+          {
+            "name": "total_supply",
+            "type": "uint256"
+          },
+          {
+            "name": "token0",
+            "type": "address"
+          },
+          {
+            "name": "token0_symbol",
+            "type": "string"
+          },
+          {
+            "name": "token0_decimals",
+            "type": "uint8"
+          },
+          {
+            "name": "reserve0",
+            "type": "uint256"
+          },
+          {
+            "name": "claimable0",
+            "type": "uint256"
+          },
+          {
+            "name": "token1",
+            "type": "address"
+          },
+          {
+            "name": "token1_symbol",
+            "type": "string"
+          },
+          {
+            "name": "token1_decimals",
+            "type": "uint8"
+          },
+          {
+            "name": "reserve1",
+            "type": "uint256"
+          },
+          {
+            "name": "claimable1",
+            "type": "uint256"
+          },
+          {
+            "name": "gauge",
+            "type": "address"
+          },
+          {
+            "name": "gauge_total_supply",
+            "type": "uint256"
+          },
+          {
+            "name": "fee",
+            "type": "address"
+          },
+          {
+            "name": "bribe",
+            "type": "address"
+          },
+          {
+            "name": "wrapped_bribe",
+            "type": "address"
+          },
+          {
+            "name": "emissions",
+            "type": "uint256"
+          },
+          {
+            "name": "emissions_token",
+            "type": "address"
+          },
+          {
+            "name": "emissions_token_decimals",
+            "type": "uint8"
+          },
+          {
+            "name": "account_balance",
+            "type": "uint256"
+          },
+          {
+            "name": "account_earned",
+            "type": "uint256"
+          },
+          {
+            "name": "account_staked",
+            "type": "uint256"
+          },
+          {
+            "name": "account_token0_balance",
+            "type": "uint256"
+          },
+          {
+            "name": "account_token1_balance",
+            "type": "uint256"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "epochsByAddress",
+    "inputs": [
+      {
+        "name": "_limit",
+        "type": "uint256"
+      },
+      {
+        "name": "_offset",
+        "type": "uint256"
+      },
+      {
+        "name": "_address",
+        "type": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "components": [
+          {
+            "name": "ts",
+            "type": "uint256"
+          },
+          {
+            "name": "pair_address",
+            "type": "address"
+          },
+          {
+            "name": "votes",
+            "type": "uint256"
+          },
+          {
+            "name": "emissions",
+            "type": "uint256"
+          },
+          {
+            "name": "bribes",
+            "type": "tuple[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "address"
+              },
+              {
+                "name": "decimals",
+                "type": "uint8"
+              },
+              {
+                "name": "symbol",
+                "type": "string"
+              },
+              {
+                "name": "amount",
+                "type": "uint256"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "pair_factory",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "voter",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "wrapped_bribe_factory",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "token",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "owner",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ]
+  }
+]

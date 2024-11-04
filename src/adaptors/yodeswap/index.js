@@ -11,27 +11,36 @@ const YODE_TOKEN = '0x6FC4563460d5f45932C473334d5c1C5B4aEA0E01';
 const MASTERCHEF_ADDRESS = '0xf7b1150cb31488bde3eB3201e0FDF1Bd54799712';
 const BLOCK_TIME = 2;
 const BLOCKS_PER_YEAR = Math.floor((60 / BLOCK_TIME) * 60 * 24 * 365);
-const FEE_RATE = 0.0010;
+const FEE_RATE = 0.001;
 const WEEKS_PER_YEAR = 52;
 
 const mapTokenDogeChaintoBSC = {
-  '0x765277EebeCA2e31912C9946eAe1021199B39C61': '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', // USDC
-  '0xB7ddC6414bf4F5515b52D8BdD69973Ae205ff101': '0xba2ae424d960c26247dd6c32edc70b295c744c43', // WWDOGE
-  '0xE3F5a90F9cb311505cd691a46596599aA1A0AD7D': '0x55d398326f99059fF775485246999027B3197955', // usdt,
-  '0x332730a4F6E03D9C55829435f10360E13cfA41Ff': '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56', // busd,
-  '0xA649325Aa7C5093d12D6F98EB4378deAe68CE23F': '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', // bnb
+  '0x765277EebeCA2e31912C9946eAe1021199B39C61':
+    '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', // USDC
+  '0xB7ddC6414bf4F5515b52D8BdD69973Ae205ff101':
+    '0xba2ae424d960c26247dd6c32edc70b295c744c43', // WWDOGE
+  '0xE3F5a90F9cb311505cd691a46596599aA1A0AD7D':
+    '0x55d398326f99059fF775485246999027B3197955', // usdt,
+  '0x332730a4F6E03D9C55829435f10360E13cfA41Ff':
+    '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56', // busd,
+  '0xA649325Aa7C5093d12D6F98EB4378deAe68CE23F':
+    '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', // bnb
 };
 
 const mapTokenBSCtoDogeChain = {
-  '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d': '0x765277EebeCA2e31912C9946eAe1021199B39C61',
-  '0xba2ae424d960c26247dd6c32edc70b295c744c43': '0xB7ddC6414bf4F5515b52D8BdD69973Ae205ff101',
-  '0x55d398326f99059ff775485246999027b3197955': '0xE3F5a90F9cb311505cd691a46596599aA1A0AD7D',
-  '0xe9e7cea3dedca5984780bafc599bd69add087d56': '0x332730a4F6E03D9C55829435f10360E13cfA41Ff',
-  '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c': '0xA649325Aa7C5093d12D6F98EB4378deAe68CE23F',
+  '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d':
+    '0x765277EebeCA2e31912C9946eAe1021199B39C61',
+  '0xba2ae424d960c26247dd6c32edc70b295c744c43':
+    '0xB7ddC6414bf4F5515b52D8BdD69973Ae205ff101',
+  '0x55d398326f99059ff775485246999027b3197955':
+    '0xE3F5a90F9cb311505cd691a46596599aA1A0AD7D',
+  '0xe9e7cea3dedca5984780bafc599bd69add087d56':
+    '0x332730a4F6E03D9C55829435f10360E13cfA41Ff',
+  '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c':
+    '0xA649325Aa7C5093d12D6F98EB4378deAe68CE23F',
 };
 
-const API_URL =
-  'https://graph.yodeswap.dog/subgraphs/name/yodeswap';
+const API_URL = 'https://graph.yodeswap.dog/subgraphs/name/yodeswap';
 const pairQuery = gql`
   query pairQuery($id_in: [ID!]) {
     pairs(where: { id_in: $id_in }) {
@@ -51,7 +60,7 @@ const pairQuery = gql`
 `;
 
 const getPriceByReserves = (reserves) => {
-  return ((reserves[1] / reserves[0]));
+  return reserves[1] / reserves[0];
 };
 
 const getPairInfo = async (pairs) => {
@@ -71,14 +80,20 @@ const getPairInfo = async (pairs) => {
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses.map((address) => `bsc:${mapTokenDogeChaintoBSC[address]}`),
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .map((address) => `bsc:${mapTokenDogeChaintoBSC[address]}`)
+
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
+
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
       ...acc,
-      [mapTokenBSCtoDogeChain[address.split(':')[1]].toLowerCase()]: price.price,
+      [mapTokenBSCtoDogeChain[address.split(':')[1]].toLowerCase()]:
+        price.price,
     }),
     {}
   );
@@ -97,10 +112,7 @@ const calculateApy = (
   const couponPerYear = BigNumber(couponPerSecond)
     .times(BLOCKS_PER_YEAR)
     .times(poolWeight);
-  const apy = couponPerYear
-    .times(couponPrice)
-    .div(reserveUSD)
-    .times(100);
+  const apy = couponPerYear.times(couponPrice).div(reserveUSD).times(100);
   return apy.toNumber();
 };
 
@@ -156,11 +168,11 @@ const getApy = async () => {
   });
 
   const pools = poolsRes.output
-  .map(({ output }, i) => ({ ...output, i }))
-  .filter((e) => e.allocPoint !== '0')
-  .filter(e => e.lpToken !== '0xB7ddC6414bf4F5515b52D8BdD69973Ae205ff101');
+    .map(({ output }, i) => ({ ...output, i }))
+    .filter((e) => e.allocPoint !== '0')
+    .filter((e) => e.lpToken !== '0xB7ddC6414bf4F5515b52D8BdD69973Ae205ff101');
 
-  const lpTokens = pools.map(({ lpToken }) => lpToken)
+  const lpTokens = pools.map(({ lpToken }) => lpToken);
   const [reservesRes, supplyRes, masterChefBalancesRes] = await Promise.all(
     ['getReserves', 'totalSupply', 'balanceOf'].map((method) =>
       sdk.api.abi.multiCall({
@@ -200,7 +212,7 @@ const getApy = async () => {
   const yodePrice = (
     await superagent.get(`https://coins.llama.fi/prices/current/${yodeId}`)
   ).body.coins[yodeId].price;
-  tokensPrices[YODE_TOKEN.toLowerCase()] = yodePrice
+  tokensPrices[YODE_TOKEN.toLowerCase()] = yodePrice;
   const pairsInfo = await getPairInfo(lpTokens);
   const lpChunks = chunk(lpTokens, 10);
 

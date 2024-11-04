@@ -50,14 +50,13 @@ const topLvl = async (chainId) => {
 };
 
 const main = async () => {
-  const data = await Promise.all([
+  const data = await Promise.allSettled([
     topLvl(ChainId.ETHEREUM),
     topLvl(ChainId.POLYGON),
     topLvl(ChainId.OPTIMISM),
     topLvl(ChainId.ARBITRUM),
   ]);
-
-  return data;
+  return data.filter((c) => c.status === 'fulfilled').map((c) => c.value);
 };
 
 module.exports = {

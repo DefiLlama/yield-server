@@ -15,6 +15,7 @@ jobs:
         env:
           ALCHEMY_CONNECTION_ARBITRUM: ${{ secrets.ALCHEMY_CONNECTION_ARBITRUM }}
           ALCHEMY_CONNECTION_ETHEREUM: ${{ secrets.ALCHEMY_CONNECTION_ETHEREUM }}
+          ALCHEMY_CONNECTION_POLYGON: ${{ secrets.ALCHEMY_CONNECTION_POLYGON }}
         run: |
           RUN_FILES=$(
             MODIFIED=${{ steps.file_changes.outputs.files_modified}} \

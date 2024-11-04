@@ -12,18 +12,25 @@ const { minichefV2 } = require('./abiMinichefV2');
 const { rewarderABI } = require('./abiRewarder');
 
 // exchange urls
-const baseUrl = 'https://api.thegraph.com/subgraphs/name/sushiswap';
-const urlEthereum = `${baseUrl}/exchange`;
-const urlArbitrum = `${baseUrl}/arbitrum-exchange`;
-const urlPolygon = `${baseUrl}/matic-exchange`;
-const urlAvalanche = `${baseUrl}/avalanche-exchange`;
+const urlEthereum = sdk.graph.modifyEndpoint(
+  '6NUtT5mGjZ1tSshKLf5Q3uEEJtjBZJo1TpL5MXsUBqrT'
+);
+const urlArbitrum = sdk.graph.modifyEndpoint(
+  '8nFDCAhdnJQEhQF3ZRnfWkJ6FkRsfAiiVabVn4eGoAZH'
+);
+const urlPolygon = sdk.graph.modifyEndpoint(
+  '8NiXkxLRT3R22vpwLB4DXttpEf3X1LrKhe4T1tQ3jjbP'
+);
+const urlAvalanche = sdk.graph.modifyEndpoint(
+  '6VAhbtW5u2sPYkJKAcMsxgqTBu4a1rqmbiVQWgtNjrvT'
+);
 
 // LM reward urls
-const baseUrlLm = 'https://api.thegraph.com/subgraphs/name';
-const urlMc1 = `${baseUrlLm}/sushiswap/master-chef`;
-const urlMc2 = `${baseUrlLm}/sushiswap/master-chefv2`;
-const urlMcArbitrum = `${baseUrlLm}/sushiswap/arbitrum-minichef`;
-const urlMcPolygon = `${baseUrlLm}/sushiswap/matic-minichef`;
+const urlMc2 = sdk.graph.modifyEndpoint(
+  'FAa1YU79pPDUKj8vtkUPZGzCcPVS6Edg1md5LsRHSKWb'
+);
+const urlMcArbitrum = sdk.graph.modifyEndpoint('sushiswap/arbitrum-minichef');
+const urlMcPolygon = sdk.graph.modifyEndpoint('sushiswap/matic-minichef');
 
 // sushi token
 const SUSHI = {
@@ -55,7 +62,7 @@ const blocksPerDay = secondsPerDay / secondsPerBlock;
 
 const query = gql`
   {
-    pairs(first: 1000, orderBy: trackedReserveETH, orderDirection: desc block: {number: <PLACEHOLDER>}) {
+    pairs(first: 1000, orderBy: reserveETH, orderDirection: desc block: {number: <PLACEHOLDER>}) {
       id
       reserve0
       reserve1
@@ -74,7 +81,7 @@ const query = gql`
 
 const queryPrior = gql`
   {
-    pairs (first: 1000 orderBy: trackedReserveETH orderDirection: desc block: {number: <PLACEHOLDER>}) { 
+    pairs (first: 1000 orderBy: reserveETH orderDirection: desc block: {number: <PLACEHOLDER>}) {
       id 
       volumeUSD 
     }
@@ -103,7 +110,7 @@ const queryMc = gql`
   }
 `;
 
-const topLvl = async (chainString, urlExchange, urlRewards) => {
+const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
   try {
     const [block, blockPrior] = await utils.getBlocks(chainString, null, [
       urlExchange,
@@ -135,6 +142,10 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
 
     data = await utils.tvl(data, chainString);
     data = data.map((p) => utils.apy(p, dataPrior, dataPrior7d, 'v2'));
+    data = data.map((p) => ({
+      ...p,
+      totalValueLockedUSDlp: p.totalValueLockedUSD,
+    }));
 
     if (chainString === 'avalanche') {
       return data.map((p) => ({
@@ -142,12 +153,13 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
         chain: utils.formatChain(chainString),
         project: 'sushiswap',
         symbol: utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`),
-        tvlUsd: p.totalValueLockedUSD,
+        tvlUsd: p.totalValueLockedUSDlp,
         apyBase: Number(p.apy1d),
         apyBase7d: Number(p.apy7d),
         underlyingTokens: [p.token0.id, p.token1.id],
         volumeUsd1d: p.volumeUSD1d,
         volumeUsd7d: p.volumeUSD7d,
+        url: `https://www.sushi.com/earn/${chainId}:${p.id}`,
       }));
     }
 
@@ -177,6 +189,7 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
               target: CHEF[chainString].mc2,
               abi: minichefV2.find(({ name }) => name === method),
               chain: chainString,
+              permitFailure: true,
             })
           )
         )
@@ -192,6 +205,7 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
             })),
             abi: minichefV2.find(({ name }) => name === method),
             chain: chainString,
+            permitFailure: true,
           })
         )
       );
@@ -207,6 +221,7 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
               target: rewarderMC2[i],
             })),
             chain: chainString,
+            permitFailure: true,
           })
         )
       );
@@ -227,6 +242,7 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
               target: CHEF[chainString].mc1,
               abi: masterchefABI.find(({ name }) => name === method),
               chain: chainString,
+              permitFailure: true,
             })
           )
         )
@@ -240,6 +256,7 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
           params: i,
         })),
         chain: chainString,
+        permitFailure: true,
       });
       poolsInfoMC1 = poolsInfoMC1.output.map((res) => res.output);
 
@@ -251,6 +268,7 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
               target: CHEF[chainString].mc2,
               abi: masterchefV2ABI.find(({ name }) => name === method),
               chain: chainString,
+              permitFailure: true,
             })
           )
         )
@@ -266,6 +284,7 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
               params: i,
             })),
             chain: chainString,
+            permitFailure: true,
           })
         )
       );
@@ -294,6 +313,7 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
             })),
             abi: lpTokenABI.find(({ name }) => name === method),
             chain: chainString,
+            permitFailure: true,
           })
         )
       );
@@ -302,10 +322,10 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
 
       const reserveRatios = {};
       lpTokens.forEach((lp, i) => {
-        reserveRatios[lp.toLowerCase()] = masterChefBalData[i] / supplyData[i];
+        reserveRatios[lp?.toLowerCase()] = masterChefBalData[i] / supplyData[i];
       });
       for (const p of data) {
-        const rr = reserveRatios[p.id.toLowerCase()];
+        const rr = reserveRatios[p.id?.toLowerCase()];
         if (rr === undefined) continue;
         p['totalValueLockedUSD'] *= rr;
       }
@@ -321,23 +341,23 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
       ).pools;
       for (const p of poolsInfoMC2) {
         const x = poolsRewardMC2.find(
-          (x) => x.pair.toLowerCase() === p.lpToken.toLowerCase()
+          (x) => x.pair?.toLowerCase() === p.lpToken?.toLowerCase()
         );
         const rewarder = x?.rewarder;
         p['rewardPerSecond'] =
           // ALCX reward token returns tokenPerBlock but subgraph doesn't distinguish
           // see: (https://etherscan.io/address/0x7519C93fC5073E15d89131fD38118D73A72370F8#readContract)
-          p.lpToken.toLowerCase() ===
+          p.lpToken?.toLowerCase() ===
           '0xc3f279090a47e80990fe3a9c30d24cb117ef91a8'
             ? Number(rewarder?.rewardPerSecond / secondsPerBlock)
             : // CVX rewards are 0
-            p.lpToken.toLowerCase() ===
+            p.lpToken?.toLowerCase() ===
               '0x05767d9ef41dc40689678ffca0608878fb3de906'
             ? 0
             : Number(rewarder?.rewardPerSecond);
         p['rewardToken'] =
           rewarder !== undefined
-            ? rewarder.rewardToken.toLowerCase()
+            ? rewarder.rewardToken?.toLowerCase()
             : rewarder;
       }
     }
@@ -346,12 +366,12 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
     let coins = [
       ...new Set(poolsInfoMC2.map((p) => p.rewardToken).filter((p) => p)),
     ].map((t) => `${chainString}:${t}`);
-    const sushi = `${chainString}:${SUSHI[chainString].toLowerCase()}`;
+    const sushi = `${chainString}:${SUSHI[chainString]?.toLowerCase()}`;
     coins = [...coins, sushi];
     const tokensUsd = (
-      await superagent.post('https://coins.llama.fi/prices').send({
-        coins,
-      })
+      await superagent.get(
+        `https://coins.llama.fi/prices/current/${coins.join(',').toLowerCase()}`
+      )
     ).body.coins;
 
     // for mc1: calc sushi per year in usd
@@ -393,7 +413,7 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
 
     data = data.map((p) => {
       const lm = dataLM.find(
-        (x) => x.lpToken.toLowerCase() === p.id.toLowerCase()
+        (x) => x.lpToken?.toLowerCase() === p.id?.toLowerCase()
       );
 
       let apySushi =
@@ -420,7 +440,7 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
         chain: utils.formatChain(chainString),
         project: 'sushiswap',
         symbol: utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`),
-        tvlUsd: p.totalValueLockedUSD,
+        tvlUsd: p.totalValueLockedUSDlp,
         apyBase: Number(p.apy1d),
         apyBase7d: Number(p.apy7d),
         apyReward,
@@ -428,6 +448,7 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
         underlyingTokens: [p.token0.id, p.token1.id],
         volumeUsd1d: p.volumeUSD1d,
         volumeUsd7d: p.volumeUSD7d,
+        url: `https://www.sushi.com/earn/${chainId}:${p.id}`,
       };
     });
 
@@ -440,10 +461,10 @@ const topLvl = async (chainString, urlExchange, urlRewards) => {
 
 const main = async () => {
   let data = await Promise.all([
-    topLvl('ethereum', urlEthereum, urlMc2),
-    topLvl('arbitrum', urlArbitrum, urlMcArbitrum),
-    topLvl('polygon', urlPolygon, urlMcPolygon),
-    topLvl('avalanche', urlAvalanche, null),
+    topLvl('ethereum', urlEthereum, urlMc2, 1),
+    topLvl('arbitrum', urlArbitrum, null, 42161),
+    topLvl('polygon', urlPolygon, null, 137),
+    topLvl('avalanche', urlAvalanche, null, 43114),
   ]);
 
   return data.flat().filter((p) => utils.keepFinite(p));
@@ -452,5 +473,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.sushi.com/trident/pools?chainId=1',
 };

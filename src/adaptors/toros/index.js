@@ -35,6 +35,10 @@ const POOL_DATA_QUERY = gql`
       }
       symbol
       totalValue
+      apy {
+        monthly
+        weekly
+      }
     }
   }
 `;
@@ -44,6 +48,13 @@ const formatValue = (value) => new BN(value).shiftedBy(-18).toNumber();
 const getDaysSincePoolCreation = (blockTime) =>
   Math.round((Date.now() / 1000 - +blockTime) / 86400);
 
+const chooseApy = (apy, blockTime, metrics) => {
+  if (!apy) return calcApy(blockTime, metrics);
+
+  return apy.weekly;
+};
+
+// Fallback APY calculation simply based on pool's past performance
 const calcApy = (blockTime, metrics) => {
   const daysActive = getDaysSincePoolCreation(blockTime);
   return daysActive >= 360
@@ -59,13 +70,13 @@ const calcApy = (blockTime, metrics) => {
 
 const fetchTorosYieldProducts = async () => {
   try {
-    const addresses = await request(DHEDGE_API_URL, YIELD_PRODUCTS_QUERY);
+    const response = await request(DHEDGE_API_URL, YIELD_PRODUCTS_QUERY);
     const products = await Promise.all(
-      addresses.yieldProducts.map(async ({ address }) => {
-        const poolData = await request(DHEDGE_API_URL, POOL_DATA_QUERY, {
+      response.yieldProducts.map(async ({ address }) => {
+        const { fund } = await request(DHEDGE_API_URL, POOL_DATA_QUERY, {
           address,
         });
-        return poolData.fund;
+        return fund;
       })
     );
     return products;
@@ -100,6 +111,7 @@ const listTorosYieldProducts = async () => {
       performanceMetrics,
       blockTime,
       fundComposition,
+      apy,
     }) => {
       const rewardIncentivisedPool = rewardData?.poolsWithRewards
         .map((address) => address.toLowerCase())
@@ -110,11 +122,7 @@ const listTorosYieldProducts = async () => {
         project: 'toros',
         symbol,
         tvlUsd: formatValue(totalValue),
-        apyBase: calcApy(blockTime, performanceMetrics),
-        apyReward:
-          rewardIncentivisedPool && rewardData?.rewardApy
-            ? +rewardData.rewardApy * 100
-            : null,
+        apy: chooseApy(apy, blockTime, performanceMetrics),
         rewardTokens:
           rewardIncentivisedPool && rewardData?.rewardToken
             ? [rewardData.rewardToken]
@@ -122,7 +130,7 @@ const listTorosYieldProducts = async () => {
         underlyingTokens: fundComposition
           .filter(({ amount }) => amount !== '0')
           .map(({ tokenAddress }) => tokenAddress),
-        url: `https://toros.finance/pool/${address}`,
+        url: `https://toros.finance/vault/${address}`,
       };
     }
   );

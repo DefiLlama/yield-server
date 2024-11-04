@@ -1,5 +1,5 @@
-const utils = require('../utils');
 const sdk = require('@defillama/sdk');
+const utils = require('../utils');
 const { default: BigNumber } = require('bignumber.js');
 const superagent = require('superagent');
 const masterChefABI = require('./abis/masterchef.json');
@@ -12,8 +12,9 @@ const BLOCKS_PER_YEAR = Math.floor((60 / BLOCK_TIME) * 60 * 24 * 365);
 const WEEKS_PER_YEAR = 52;
 const FEE_RATE = 0.0017;
 
-const SUBGRAPH_URL =
-  'https://api.thegraph.com/subgraphs/name/polymmfinance/exchang';
+const SUBGRAPH_URL = sdk.graph.modifyEndpoint(
+  'HTJcrXUUtrVFKyNHZH99ywRx3TQm5ChSFVbn3oBiqGq6'
+);
 const { request, gql, batchRequests } = require('graphql-request');
 const { chunk } = require('lodash');
 const pairQuery = gql`
@@ -50,10 +51,12 @@ const getPairInfo = async (pairs) => {
 };
 
 const getPrices = async (addresses) => {
+  const coins = addresses
+    .map((address) => `polygon:${address}`)
+    .join(',')
+    .toLowerCase();
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses.map((address) => `polygon:${address}`),
-    })
+    await superagent.get(`https://coins.llama.fi/prices/current/${coins}`)
   ).body.coins;
 
   const pricesObj = Object.entries(prices).reduce(

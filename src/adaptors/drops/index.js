@@ -5,16 +5,19 @@ const utils = require('../utils');
 const { comptrollerAbi, ercDelegator } = require('./abi');
 
 const COMPTROLLER_ADDRESS = {
-  'P0': '0x79b56CB219901DBF42bB5951a0eDF27465F96206',
-  'P1': '0xB70FB69a522ed8D4613C4C720F91F93a836EE2f5',
-  'P2': '0x9dEb56b9DD04822924B90ad15d01EE50415f8bC7',
-  'P3': '0x7312a3BC8733B068989Ef44bAC6344F07cFcDE7F',
-  'P4': '0x3903E6EcD8bc610D5a01061B1Dc31affD21F81C6'
+  P0: '0x79b56CB219901DBF42bB5951a0eDF27465F96206',
+  P1: '0xB70FB69a522ed8D4613C4C720F91F93a836EE2f5',
+  P2: '0x9dEb56b9DD04822924B90ad15d01EE50415f8bC7',
+  P3: '0x7312a3BC8733B068989Ef44bAC6344F07cFcDE7F',
+  P4: '0x3903E6EcD8bc610D5a01061B1Dc31affD21F81C6',
 };
 
 const CHAIN = 'ethereum';
 const GET_ALL_MARKETS = 'getAllMarkets';
-const REWARD_SPEED = 'compSpeeds';
+
+const REWARD_SPEED_OG = 'compSpeeds';
+const REWARD_SPEED = 'compSupplySpeeds';
+const REWARD_SPEED_BORROW = 'compBorrowSpeeds';
 const SUPPLY_RATE = 'supplyRatePerBlock';
 const BORROW_RATE = 'borrowRatePerBlock';
 const TOTAL_BORROWS = 'totalBorrows';
@@ -37,9 +40,11 @@ const PROTOCOL_TOKEN = {
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.post('https://coins.llama.fi/prices').send({
-      coins: addresses,
-    })
+    await superagent.get(
+      `https://coins.llama.fi/prices/current/${addresses
+        .join(',')
+        .toLowerCase()}`
+    )
   ).body.coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
@@ -71,6 +76,7 @@ const getRewards = async (comptrollerAddress, markets, rewardMethod) => {
         params: [market],
       })),
       abi: comptrollerAbi.find(({ name }) => name === rewardMethod),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -81,6 +87,7 @@ const multiCallMarkets = async (markets, method, abi) => {
       chain: CHAIN,
       calls: markets.map((market) => ({ target: market })),
       abi: abi.find(({ name }) => name === method),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -92,6 +99,7 @@ const main = async () => {
         target: comptrollerAddress,
         chain: CHAIN,
         abi: comptrollerAbi.find(({ name }) => name === GET_ALL_MARKETS),
+        permitFailure: true,
       })
     ).output;
     let allMarkets = Object.values(allMarketsRes);
@@ -112,10 +120,24 @@ const main = async () => {
           target: comptrollerAddress,
           params: [m],
         })),
+        permitFailure: true,
       })
     ).output.map((o) => o.output);
 
-    const extraRewards = await getRewards(comptrollerAddress, allMarkets, REWARD_SPEED);
+    const extraRewards = await getRewards(
+      comptrollerAddress,
+      allMarkets,
+      comptrollerAddress == '0x79b56CB219901DBF42bB5951a0eDF27465F96206'
+        ? REWARD_SPEED_OG
+        : REWARD_SPEED
+    );
+    const extraRewardsBorrow = await getRewards(
+      comptrollerAddress,
+      allMarkets,
+      comptrollerAddress == '0x79b56CB219901DBF42bB5951a0eDF27465F96206'
+        ? REWARD_SPEED_OG
+        : REWARD_SPEED_BORROW
+    );
 
     const supplyRewards = await multiCallMarkets(
       allMarkets,
@@ -164,11 +186,10 @@ const main = async () => {
         .map((token) => `${CHAIN}:` + token)
     );
 
-    const protocolTokenData = await utils.getData(
-      'https://api.coingecko.com/api/v3/simple/price?ids=drops-ownership-power&vs_currencies=usd'
-    );
-
-    const protocolTokenPrice = protocolTokenData['drops-ownership-power'].usd;
+    const priceKey = 'coingecko:drops-ownership-power';
+    const protocolTokenPrice = (
+      await utils.getData(`https://coins.llama.fi/prices/current/${priceKey}`)
+    ).coins[priceKey].price;
 
     prices[PROTOCOL_TOKEN.address] = protocolTokenPrice;
 
@@ -201,8 +222,12 @@ const main = async () => {
           100
         );
       };
-      const apyReward = totalSupplyUsd ? calcRewardApy(extraRewards, totalSupplyUsd) : 0;
-      const apyRewardBorrow = totalBorrowUsd ? calcRewardApy(extraRewards, totalBorrowUsd) : 0;
+      const apyReward = totalSupplyUsd
+        ? calcRewardApy(extraRewards, totalSupplyUsd)
+        : 0;
+      const apyRewardBorrow = totalBorrowUsd
+        ? calcRewardApy(extraRewardsBorrow, totalBorrowUsd)
+        : 0;
 
       return {
         pool: `${comptrollerAddress}-${market.toLowerCase()}`,
@@ -214,7 +239,9 @@ const main = async () => {
         apyBase,
         apyReward,
         underlyingTokens: [token],
-        rewardTokens: [apyReward ? PROTOCOL_TOKEN.address : null].filter(Boolean),
+        rewardTokens: [apyReward ? PROTOCOL_TOKEN.address : null].filter(
+          Boolean
+        ),
         // borrow fields
         totalSupplyUsd,
         totalBorrowUsd,

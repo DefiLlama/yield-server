@@ -1,0 +1,1413 @@
+[
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_master", "type": "address" },
+        {
+          "internalType": "address",
+          "name": "_wiseOracleHubAddress",
+          "type": "address"
+        },
+        { "internalType": "address", "name": "_nftContract", "type": "address" }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    { "inputs": [], "name": "AmountTooSmall", "type": "error" },
+    { "inputs": [], "name": "DeadOracle", "type": "error" },
+    { "inputs": [], "name": "InvalidAction", "type": "error" },
+    { "inputs": [], "name": "InvalidAddress", "type": "error" },
+    { "inputs": [], "name": "InvalidCaller", "type": "error" },
+    { "inputs": [], "name": "InvalidLiquidator", "type": "error" },
+    { "inputs": [], "name": "LiquidatorIsInPowerFarm", "type": "error" },
+    { "inputs": [], "name": "NoValue", "type": "error" },
+    { "inputs": [], "name": "NotMaster", "type": "error" },
+    { "inputs": [], "name": "NotPowerFarm", "type": "error" },
+    { "inputs": [], "name": "NotProposed", "type": "error" },
+    { "inputs": [], "name": "PositionLocked", "type": "error" },
+    { "inputs": [], "name": "SendValueFailed", "type": "error" },
+    { "inputs": [], "name": "TokenNotPresent", "type": "error" },
+    { "inputs": [], "name": "TooManyTokens", "type": "error" },
+    { "inputs": [], "name": "ValueIsZero", "type": "error" },
+    { "inputs": [], "name": "ValueNotZero", "type": "error" },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "borrower",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "nftId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "shares",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "FundsBorrowed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "nftId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "shares",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "FundsBorrowedOnBehalf",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "nftId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "shares",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "FundsDeposited",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "nftId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "totalPayment",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "totalPaymentShares",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "FundsReturned",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "nftId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "FundsSolelyDeposited",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "nftId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "FundsSolelyWithdrawn",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "nftId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "shares",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "FundsWithdrawn",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "nftId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "shares",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "FundsWithdrawnOnBehalf",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "proposer",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "proposedMaster",
+          "type": "address"
+        }
+      ],
+      "name": "MasterProposed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousMaster",
+          "type": "address"
+        }
+      ],
+      "name": "RenouncedOwnership",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "POSITION_NFT",
+      "outputs": [
+        {
+          "internalType": "contract IPositionNFTs",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "WETH_ADDRESS",
+      "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "WISE_ORACLE",
+      "outputs": [
+        {
+          "internalType": "contract IWiseOracleHub",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "WISE_SECURITY",
+      "outputs": [
+        {
+          "internalType": "contract IWiseSecurity",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+      "name": "algorithmData",
+      "outputs": [
+        { "internalType": "bool", "name": "increasePole", "type": "bool" },
+        { "internalType": "uint256", "name": "bestPole", "type": "uint256" },
+        { "internalType": "uint256", "name": "maxValue", "type": "uint256" },
+        { "internalType": "uint256", "name": "previousValue", "type": "uint256" }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        { "internalType": "uint256", "name": "_amount", "type": "uint256" }
+      ],
+      "name": "borrowExactAmount",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "uint256", "name": "_amount", "type": "uint256" }
+      ],
+      "name": "borrowExactAmountETH",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        { "internalType": "uint256", "name": "_amount", "type": "uint256" }
+      ],
+      "name": "borrowOnBehalfExactAmount",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+      "name": "borrowPoolData",
+      "outputs": [
+        { "internalType": "bool", "name": "allowBorrow", "type": "bool" },
+        {
+          "internalType": "uint256",
+          "name": "pseudoTotalBorrowAmount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalBorrowShares",
+          "type": "uint256"
+        },
+        { "internalType": "uint256", "name": "borrowRate", "type": "uint256" }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+      "name": "borrowRatesData",
+      "outputs": [
+        { "internalType": "uint256", "name": "pole", "type": "uint256" },
+        { "internalType": "uint256", "name": "deltaPole", "type": "uint256" },
+        { "internalType": "uint256", "name": "minPole", "type": "uint256" },
+        { "internalType": "uint256", "name": "maxPole", "type": "uint256" },
+        {
+          "internalType": "uint256",
+          "name": "multiplicativeFactor",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        { "internalType": "uint256", "name": "_amount", "type": "uint256" },
+        { "internalType": "bool", "name": "_maxSharePrice", "type": "bool" }
+      ],
+      "name": "calculateBorrowShares",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        { "internalType": "uint256", "name": "_amount", "type": "uint256" },
+        { "internalType": "bool", "name": "_maxSharePrice", "type": "bool" }
+      ],
+      "name": "calculateLendingShares",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        { "internalType": "uint256", "name": "_shares", "type": "uint256" }
+      ],
+      "name": "cashoutAmount",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "address", "name": "_caller", "type": "address" },
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        { "internalType": "uint256", "name": "_amount", "type": "uint256" }
+      ],
+      "name": "checkDeposit",
+      "outputs": [],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "address", "name": "_caller", "type": "address" }
+      ],
+      "name": "checkPositionLocked",
+      "outputs": [],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "claimOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "address", "name": "_poolToken", "type": "address" }
+      ],
+      "name": "collateralizeDeposit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        {
+          "internalType": "uint256",
+          "name": "_nftIdLiquidator",
+          "type": "uint256"
+        },
+        { "internalType": "address", "name": "_caller", "type": "address" },
+        { "internalType": "address", "name": "_paybackToken", "type": "address" },
+        { "internalType": "address", "name": "_receiveToken", "type": "address" },
+        {
+          "internalType": "uint256",
+          "name": "_paybackAmount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_shareAmountToPay",
+          "type": "uint256"
+        }
+      ],
+      "name": "coreLiquidationIsolationPools",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "uint256", "name": "_amount", "type": "uint256" },
+        { "internalType": "uint256", "name": "_shares", "type": "uint256" }
+      ],
+      "name": "corePaybackFeeManager",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            { "internalType": "bool", "name": "allowBorrow", "type": "bool" },
+            { "internalType": "address", "name": "poolToken", "type": "address" },
+            {
+              "internalType": "uint256",
+              "name": "poolMulFactor",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "poolCollFactor",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "maxDepositAmount",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct PoolManager.CreatePool",
+          "name": "_params",
+          "type": "tuple"
+        },
+        {
+          "components": [
+            {
+              "components": [
+                {
+                  "internalType": "address",
+                  "name": "curvePool",
+                  "type": "address"
+                },
+                {
+                  "internalType": "address",
+                  "name": "curveMetaPool",
+                  "type": "address"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "swapBytesPool",
+                  "type": "bytes"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "swapBytesMeta",
+                  "type": "bytes"
+                }
+              ],
+              "internalType": "struct CurveSwapStructData",
+              "name": "curveSecuritySwapsData",
+              "type": "tuple"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "uint256",
+                  "name": "curvePoolTokenIndexFrom",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "curvePoolTokenIndexTo",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "curveMetaPoolTokenIndexFrom",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "curveMetaPoolTokenIndexTo",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct CurveSwapStructToken",
+              "name": "curveSecuritySwapsToken",
+              "type": "tuple"
+            }
+          ],
+          "internalType": "struct PoolManager.CurvePoolSettings",
+          "name": "_settings",
+          "type": "tuple"
+        }
+      ],
+      "name": "createCurvePool",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            { "internalType": "bool", "name": "allowBorrow", "type": "bool" },
+            { "internalType": "address", "name": "poolToken", "type": "address" },
+            {
+              "internalType": "uint256",
+              "name": "poolMulFactor",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "poolCollFactor",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "maxDepositAmount",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct PoolManager.CreatePool",
+          "name": "_params",
+          "type": "tuple"
+        }
+      ],
+      "name": "createPool",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        { "internalType": "uint256", "name": "_amount", "type": "uint256" }
+      ],
+      "name": "depositExactAmount",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" }
+      ],
+      "name": "depositExactAmountETH",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "depositExactAmountETHMint",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        { "internalType": "uint256", "name": "_amount", "type": "uint256" }
+      ],
+      "name": "depositExactAmountMint",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "address", "name": "_poolToken", "type": "address" }
+      ],
+      "name": "getPositionBorrowShares",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "uint256", "name": "_index", "type": "uint256" }
+      ],
+      "name": "getPositionBorrowTokenByIndex",
+      "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" }
+      ],
+      "name": "getPositionBorrowTokenLength",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "address", "name": "_poolToken", "type": "address" }
+      ],
+      "name": "getPositionLendingShares",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "uint256", "name": "_index", "type": "uint256" }
+      ],
+      "name": "getPositionLendingTokenByIndex",
+      "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" }
+      ],
+      "name": "getPositionLendingTokenLength",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_poolToken", "type": "address" }
+      ],
+      "name": "getPseudoTotalBorrowAmount",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_poolToken", "type": "address" }
+      ],
+      "name": "getPseudoTotalPool",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "address", "name": "_poolToken", "type": "address" }
+      ],
+      "name": "getPureCollateralAmount",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_poolToken", "type": "address" }
+      ],
+      "name": "getTimeStamp",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_poolToken", "type": "address" }
+      ],
+      "name": "getTotalBareToken",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_poolToken", "type": "address" }
+      ],
+      "name": "getTotalBorrowShares",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_poolToken", "type": "address" }
+      ],
+      "name": "getTotalDepositShares",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_poolToken", "type": "address" }
+      ],
+      "name": "getTotalPool",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+      "name": "globalPoolData",
+      "outputs": [
+        { "internalType": "uint256", "name": "totalPool", "type": "uint256" },
+        { "internalType": "uint256", "name": "utilization", "type": "uint256" },
+        {
+          "internalType": "uint256",
+          "name": "totalBareToken",
+          "type": "uint256"
+        },
+        { "internalType": "uint256", "name": "poolFee", "type": "uint256" }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "address", "name": "_poolToken", "type": "address" }
+      ],
+      "name": "isUncollateralized",
+      "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+      "name": "lendingPoolData",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "pseudoTotalPool",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalDepositShares",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "collateralFactor",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        {
+          "internalType": "uint256",
+          "name": "_nftIdLiquidator",
+          "type": "uint256"
+        },
+        { "internalType": "address", "name": "_paybackToken", "type": "address" },
+        { "internalType": "address", "name": "_receiveToken", "type": "address" },
+        {
+          "internalType": "uint256",
+          "name": "_shareAmountToPay",
+          "type": "uint256"
+        }
+      ],
+      "name": "liquidatePartiallyFromTokens",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "master",
+      "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+      "name": "maxDepositValueToken",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        { "internalType": "uint256", "name": "_shares", "type": "uint256" }
+      ],
+      "name": "paybackAmount",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        { "internalType": "uint256", "name": "_amount", "type": "uint256" }
+      ],
+      "name": "paybackExactAmount",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" }
+      ],
+      "name": "paybackExactAmountETH",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        { "internalType": "uint256", "name": "_shares", "type": "uint256" }
+      ],
+      "name": "paybackExactShares",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "", "type": "uint256" },
+        { "internalType": "uint256", "name": "", "type": "uint256" }
+      ],
+      "name": "positionBorrowTokenData",
+      "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "", "type": "uint256" },
+        { "internalType": "uint256", "name": "", "type": "uint256" }
+      ],
+      "name": "positionLendTokenData",
+      "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "name": "positionLocked",
+      "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_proposedOwner", "type": "address" }
+      ],
+      "name": "proposeOwner",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "proposedMaster",
+      "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "", "type": "uint256" },
+        { "internalType": "address", "name": "", "type": "address" }
+      ],
+      "name": "pureCollateralAmount",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "renounceOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "sendingProgress",
+      "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        {
+          "internalType": "uint256",
+          "name": "_poolMulFactor",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_upperBoundMaxRate",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_lowerBoundMaxRate",
+          "type": "uint256"
+        },
+        { "internalType": "bool", "name": "_steppingDirection", "type": "bool" },
+        { "internalType": "bool", "name": "_isFinal", "type": "bool" }
+      ],
+      "name": "setParamsLASA",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        { "internalType": "uint256", "name": "_newFee", "type": "uint256" }
+      ],
+      "name": "setPoolFee",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        {
+          "internalType": "uint256",
+          "name": "_collateralFactor",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_maximumDeposit",
+          "type": "uint256"
+        }
+      ],
+      "name": "setPoolParameters",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "bool", "name": "_registerState", "type": "bool" }
+      ],
+      "name": "setRegistrationIsolationPool",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_wiseSecurity", "type": "address" }
+      ],
+      "name": "setSecurity",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_isolationPool",
+          "type": "address"
+        },
+        { "internalType": "bool", "name": "_state", "type": "bool" }
+      ],
+      "name": "setVerifiedIsolationPool",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        { "internalType": "uint256", "name": "_amount", "type": "uint256" }
+      ],
+      "name": "solelyDeposit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" }
+      ],
+      "name": "solelyDepositETH",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "solelyDepositETHMint",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        { "internalType": "uint256", "name": "_amount", "type": "uint256" }
+      ],
+      "name": "solelyDepositMint",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        {
+          "internalType": "uint256",
+          "name": "_withdrawAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "solelyWithdraw",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        {
+          "internalType": "uint256",
+          "name": "_withdrawAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "solelyWithdrawETH",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_poolToken", "type": "address" }
+      ],
+      "name": "syncManually",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+      "name": "timestampsPoolData",
+      "outputs": [
+        { "internalType": "uint256", "name": "timeStamp", "type": "uint256" },
+        {
+          "internalType": "uint256",
+          "name": "timeStampScaling",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "initialTimeStamp",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "address", "name": "_poolToken", "type": "address" }
+      ],
+      "name": "unCollateralizeDeposit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "", "type": "uint256" },
+        { "internalType": "address", "name": "", "type": "address" }
+      ],
+      "name": "userBorrowShares",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "", "type": "uint256" },
+        { "internalType": "address", "name": "", "type": "address" }
+      ],
+      "name": "userLendingData",
+      "outputs": [
+        { "internalType": "bool", "name": "unCollateralized", "type": "bool" },
+        { "internalType": "uint256", "name": "shares", "type": "uint256" }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+      "name": "verifiedIsolationPool",
+      "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        {
+          "internalType": "uint256",
+          "name": "_withdrawAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "withdrawExactAmount",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "uint256", "name": "_amount", "type": "uint256" }
+      ],
+      "name": "withdrawExactAmountETH",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        { "internalType": "uint256", "name": "_shares", "type": "uint256" }
+      ],
+      "name": "withdrawExactShares",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "uint256", "name": "_shares", "type": "uint256" }
+      ],
+      "name": "withdrawExactSharesETH",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        {
+          "internalType": "uint256",
+          "name": "_withdrawAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "withdrawOnBehalfExactAmount",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+        { "internalType": "address", "name": "_poolToken", "type": "address" },
+        { "internalType": "uint256", "name": "_shares", "type": "uint256" }
+      ],
+      "name": "withdrawOnBehalfExactShares",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    { "stateMutability": "payable", "type": "receive" }
+  ]

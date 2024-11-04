@@ -1,5 +1,4 @@
 const ethers = require('ethers');
-const ethersProviders = require('@ethersproject/providers');
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const BigNumber = require('bignumber.js');
@@ -15,10 +14,10 @@ const firmStart = 16159015;
 const DBR = '0xAD038Eb671c44b853887A7E32528FaB35dC5D710';
 const DOLA = '0x865377367054516e17014CcdED1e7d814EDC9ce4';
 
-const provider = new ethersProviders.AlchemyProvider(
-  'homestead',
+const provider = new ethers.providers.JsonRpcProvider(
   process.env.ALCHEMY_CONNECTION_ETHEREUM
 );
+
 const l1TokenPrices = async (l1TokenAddrs) => {
   const l1TokenQuery = l1TokenAddrs.map((addr) => `ethereum:${addr}`).join();
   const data = await utils.getData(
@@ -27,8 +26,13 @@ const l1TokenPrices = async (l1TokenAddrs) => {
 
   return Object.fromEntries(
     l1TokenAddrs.map((addr) => {
-      const { decimals, price, symbol } = data.coins[`ethereum:${addr}`];
-      return [addr, { price, decimals, symbol }];
+      const coinData = data.coins[`ethereum:${addr}`];
+      if (coinData) {
+        const { decimals, price, symbol } = coinData;
+        return [addr, { price, decimals, symbol }];
+      } else {
+        return [addr, { price: null, decimals: null, symbol: null }];
+      }
     })
   );
 };
@@ -170,7 +174,7 @@ const main = async () => {
       poolMeta: 'Fixed Borrow Rate',
       url: 'https://inverse.finance/firm/' + symbol,
       apyBaseBorrow: currentFixedRate,
-      debtCeilingUsd,
+      debtCeilingUsd: debtCeilingUsd + totalBorrowUsd,
       totalSupplyUsd,
       totalBorrowUsd,
       borrowable: !allBorrowPaused[marketIndex].output,
@@ -178,7 +182,7 @@ const main = async () => {
     };
   });
 
-  return pools;
+  return utils.removeDuplicates(pools.filter((p) => utils.keepFinite(p)));
 };
 
 module.exports = {

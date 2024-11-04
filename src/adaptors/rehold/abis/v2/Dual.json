@@ -1,0 +1,939 @@
+[{
+  "inputs": [{
+    "internalType": "contract IVault",
+    "name": "_vault",
+    "type": "address"
+  }, {
+    "internalType": "contract IPriceFeed",
+    "name": "_priceFeed",
+    "type": "address"
+  }, {
+    "internalType": "address",
+    "name": "_WETH",
+    "type": "address"
+  }],
+  "stateMutability": "nonpayable",
+  "type": "constructor"
+}, {
+  "anonymous": false,
+  "inputs": [{
+    "indexed": false,
+    "internalType": "uint256",
+    "name": "id",
+    "type": "uint256"
+  }],
+  "name": "DualClaimed",
+  "type": "event"
+}, {
+  "anonymous": false,
+  "inputs": [{
+    "indexed": false,
+    "internalType": "uint256",
+    "name": "id",
+    "type": "uint256"
+  }],
+  "name": "DualCreated",
+  "type": "event"
+}, {
+  "anonymous": false,
+  "inputs": [{
+    "indexed": false,
+    "internalType": "uint256",
+    "name": "id",
+    "type": "uint256"
+  }],
+  "name": "DualReplayed",
+  "type": "event"
+}, {
+  "anonymous": false,
+  "inputs": [{
+    "indexed": false,
+    "internalType": "address",
+    "name": "oldPriceFeed",
+    "type": "address"
+  }, {
+    "indexed": false,
+    "internalType": "address",
+    "name": "newPriceFeed",
+    "type": "address"
+  }],
+  "name": "PriceFeedUpdated",
+  "type": "event"
+}, {
+  "anonymous": false,
+  "inputs": [{
+    "indexed": true,
+    "internalType": "bytes32",
+    "name": "role",
+    "type": "bytes32"
+  }, {
+    "indexed": true,
+    "internalType": "bytes32",
+    "name": "previousAdminRole",
+    "type": "bytes32"
+  }, {
+    "indexed": true,
+    "internalType": "bytes32",
+    "name": "newAdminRole",
+    "type": "bytes32"
+  }],
+  "name": "RoleAdminChanged",
+  "type": "event"
+}, {
+  "anonymous": false,
+  "inputs": [{
+    "indexed": true,
+    "internalType": "bytes32",
+    "name": "role",
+    "type": "bytes32"
+  }, {
+    "indexed": true,
+    "internalType": "address",
+    "name": "account",
+    "type": "address"
+  }, {
+    "indexed": true,
+    "internalType": "address",
+    "name": "sender",
+    "type": "address"
+  }],
+  "name": "RoleGranted",
+  "type": "event"
+}, {
+  "anonymous": false,
+  "inputs": [{
+    "indexed": true,
+    "internalType": "bytes32",
+    "name": "role",
+    "type": "bytes32"
+  }, {
+    "indexed": true,
+    "internalType": "address",
+    "name": "account",
+    "type": "address"
+  }, {
+    "indexed": true,
+    "internalType": "address",
+    "name": "sender",
+    "type": "address"
+  }],
+  "name": "RoleRevoked",
+  "type": "event"
+}, {
+  "anonymous": false,
+  "inputs": [{
+    "indexed": false,
+    "internalType": "address",
+    "name": "oldVault",
+    "type": "address"
+  }, {
+    "indexed": false,
+    "internalType": "address",
+    "name": "newVault",
+    "type": "address"
+  }],
+  "name": "VaultUpdated",
+  "type": "event"
+}, {
+  "inputs": [],
+  "name": "DEFAULT_ADMIN_ROLE",
+  "outputs": [{
+    "internalType": "bytes32",
+    "name": "",
+    "type": "bytes32"
+  }],
+  "stateMutability": "view",
+  "type": "function"
+}, {
+  "inputs": [],
+  "name": "WETH",
+  "outputs": [{
+    "internalType": "address",
+    "name": "",
+    "type": "address"
+  }],
+  "stateMutability": "view",
+  "type": "function"
+}, {
+  "inputs": [{
+    "components": [{
+      "internalType": "uint256",
+      "name": "id",
+      "type": "uint256"
+    }, {
+      "internalType": "address",
+      "name": "baseToken",
+      "type": "address"
+    }, {
+      "internalType": "address",
+      "name": "quoteToken",
+      "type": "address"
+    }, {
+      "internalType": "uint256",
+      "name": "minBaseAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "maxBaseAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "minQuoteAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "maxQuoteAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "stakingPeriod",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "yield",
+      "type": "uint256"
+    }, {
+      "internalType": "bool",
+      "name": "enabled",
+      "type": "bool"
+    }],
+    "internalType": "struct DualTariff",
+    "name": "dualTariff",
+    "type": "tuple"
+  }],
+  "name": "addTariff",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "uint256",
+    "name": "id",
+    "type": "uint256"
+  }, {
+    "internalType": "uint80",
+    "name": "baseRoundId",
+    "type": "uint80"
+  }, {
+    "internalType": "uint80",
+    "name": "quoteRoundId",
+    "type": "uint80"
+  }],
+  "name": "claim",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "address",
+    "name": "_user",
+    "type": "address"
+  }],
+  "name": "countUserClaimedDuals",
+  "outputs": [{
+    "internalType": "uint256",
+    "name": "count",
+    "type": "uint256"
+  }],
+  "stateMutability": "view",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "address",
+    "name": "_user",
+    "type": "address"
+  }],
+  "name": "countUserClosedDuals",
+  "outputs": [{
+    "internalType": "uint256",
+    "name": "count",
+    "type": "uint256"
+  }],
+  "stateMutability": "view",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "address",
+    "name": "_user",
+    "type": "address"
+  }],
+  "name": "countUserOpenedDuals",
+  "outputs": [{
+    "internalType": "uint256",
+    "name": "count",
+    "type": "uint256"
+  }],
+  "stateMutability": "view",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "uint256",
+    "name": "tariffId",
+    "type": "uint256"
+  }, {
+    "internalType": "address",
+    "name": "_user",
+    "type": "address"
+  }, {
+    "internalType": "address",
+    "name": "inputToken",
+    "type": "address"
+  }, {
+    "internalType": "uint256",
+    "name": "inputAmount",
+    "type": "uint256"
+  }],
+  "name": "create",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "uint256",
+    "name": "tariffId",
+    "type": "uint256"
+  }],
+  "name": "createETH",
+  "outputs": [],
+  "stateMutability": "payable",
+  "type": "function"
+}, {
+  "inputs": [],
+  "name": "disable",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "uint256",
+    "name": "id",
+    "type": "uint256"
+  }],
+  "name": "disableTariff",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+}, {
+  "inputs": [],
+  "name": "dualIndex",
+  "outputs": [{
+    "internalType": "uint32",
+    "name": "",
+    "type": "uint32"
+  }],
+  "stateMutability": "view",
+  "type": "function"
+}, {
+  "inputs": [],
+  "name": "enable",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "uint256",
+    "name": "id",
+    "type": "uint256"
+  }],
+  "name": "enableTariff",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+}, {
+  "inputs": [],
+  "name": "enabled",
+  "outputs": [{
+    "internalType": "bool",
+    "name": "",
+    "type": "bool"
+  }],
+  "stateMutability": "view",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "uint256",
+    "name": "id",
+    "type": "uint256"
+  }],
+  "name": "get",
+  "outputs": [{
+    "components": [{
+      "internalType": "uint256",
+      "name": "id",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "tariffId",
+      "type": "uint256"
+    }, {
+      "internalType": "address",
+      "name": "user",
+      "type": "address"
+    }, {
+      "internalType": "address",
+      "name": "baseToken",
+      "type": "address"
+    }, {
+      "internalType": "address",
+      "name": "quoteToken",
+      "type": "address"
+    }, {
+      "internalType": "address",
+      "name": "inputToken",
+      "type": "address"
+    }, {
+      "internalType": "uint256",
+      "name": "inputAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "inputBaseAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "inputQuoteAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "address",
+      "name": "outputToken",
+      "type": "address"
+    }, {
+      "internalType": "uint256",
+      "name": "outputAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "stakingPeriod",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "yield",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "initialPrice",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "closedPrice",
+      "type": "uint256"
+    }, {
+      "internalType": "bool",
+      "name": "claimed",
+      "type": "bool"
+    }, {
+      "internalType": "uint256",
+      "name": "startedAt",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "finishAt",
+      "type": "uint256"
+    }],
+    "internalType": "struct Dual",
+    "name": "dual",
+    "type": "tuple"
+  }],
+  "stateMutability": "view",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "bytes32",
+    "name": "role",
+    "type": "bytes32"
+  }],
+  "name": "getRoleAdmin",
+  "outputs": [{
+    "internalType": "bytes32",
+    "name": "",
+    "type": "bytes32"
+  }],
+  "stateMutability": "view",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "bytes32",
+    "name": "role",
+    "type": "bytes32"
+  }, {
+    "internalType": "address",
+    "name": "account",
+    "type": "address"
+  }],
+  "name": "grantRole",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "bytes32",
+    "name": "role",
+    "type": "bytes32"
+  }, {
+    "internalType": "address",
+    "name": "account",
+    "type": "address"
+  }],
+  "name": "hasRole",
+  "outputs": [{
+    "internalType": "bool",
+    "name": "",
+    "type": "bool"
+  }],
+  "stateMutability": "view",
+  "type": "function"
+}, {
+  "inputs": [],
+  "name": "priceFeed",
+  "outputs": [{
+    "internalType": "contract IPriceFeed",
+    "name": "",
+    "type": "address"
+  }],
+  "stateMutability": "view",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "bytes32",
+    "name": "role",
+    "type": "bytes32"
+  }, {
+    "internalType": "address",
+    "name": "account",
+    "type": "address"
+  }],
+  "name": "renounceRole",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "uint256",
+    "name": "id",
+    "type": "uint256"
+  }, {
+    "internalType": "uint256",
+    "name": "tariffId",
+    "type": "uint256"
+  }, {
+    "internalType": "uint80",
+    "name": "baseRoundId",
+    "type": "uint80"
+  }, {
+    "internalType": "uint80",
+    "name": "quoteRoundId",
+    "type": "uint80"
+  }],
+  "name": "replay",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "bytes32",
+    "name": "role",
+    "type": "bytes32"
+  }, {
+    "internalType": "address",
+    "name": "account",
+    "type": "address"
+  }],
+  "name": "revokeRole",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "bytes4",
+    "name": "interfaceId",
+    "type": "bytes4"
+  }],
+  "name": "supportsInterface",
+  "outputs": [{
+    "internalType": "bool",
+    "name": "",
+    "type": "bool"
+  }],
+  "stateMutability": "view",
+  "type": "function"
+}, {
+  "inputs": [],
+  "name": "tariffs",
+  "outputs": [{
+    "components": [{
+      "internalType": "uint256",
+      "name": "id",
+      "type": "uint256"
+    }, {
+      "internalType": "address",
+      "name": "baseToken",
+      "type": "address"
+    }, {
+      "internalType": "address",
+      "name": "quoteToken",
+      "type": "address"
+    }, {
+      "internalType": "uint256",
+      "name": "minBaseAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "maxBaseAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "minQuoteAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "maxQuoteAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "stakingPeriod",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "yield",
+      "type": "uint256"
+    }, {
+      "internalType": "bool",
+      "name": "enabled",
+      "type": "bool"
+    }],
+    "internalType": "struct DualTariff[]",
+    "name": "dt1",
+    "type": "tuple[]"
+  }],
+  "stateMutability": "view",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "contract IPriceFeed",
+    "name": "_priceFeed",
+    "type": "address"
+  }],
+  "name": "updatePriceFeed",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "contract IVault",
+    "name": "_vault",
+    "type": "address"
+  }],
+  "name": "updateVault",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "address",
+    "name": "_user",
+    "type": "address"
+  }],
+  "name": "user",
+  "outputs": [{
+    "internalType": "uint256[]",
+    "name": "",
+    "type": "uint256[]"
+  }],
+  "stateMutability": "view",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "address",
+    "name": "_user",
+    "type": "address"
+  }, {
+    "internalType": "uint256",
+    "name": "limit",
+    "type": "uint256"
+  }, {
+    "internalType": "uint256",
+    "name": "offset",
+    "type": "uint256"
+  }],
+  "name": "userClaimedDuals",
+  "outputs": [{
+    "components": [{
+      "internalType": "uint256",
+      "name": "id",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "tariffId",
+      "type": "uint256"
+    }, {
+      "internalType": "address",
+      "name": "user",
+      "type": "address"
+    }, {
+      "internalType": "address",
+      "name": "baseToken",
+      "type": "address"
+    }, {
+      "internalType": "address",
+      "name": "quoteToken",
+      "type": "address"
+    }, {
+      "internalType": "address",
+      "name": "inputToken",
+      "type": "address"
+    }, {
+      "internalType": "uint256",
+      "name": "inputAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "inputBaseAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "inputQuoteAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "address",
+      "name": "outputToken",
+      "type": "address"
+    }, {
+      "internalType": "uint256",
+      "name": "outputAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "stakingPeriod",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "yield",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "initialPrice",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "closedPrice",
+      "type": "uint256"
+    }, {
+      "internalType": "bool",
+      "name": "claimed",
+      "type": "bool"
+    }, {
+      "internalType": "uint256",
+      "name": "startedAt",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "finishAt",
+      "type": "uint256"
+    }],
+    "internalType": "struct Dual[]",
+    "name": "duals",
+    "type": "tuple[]"
+  }],
+  "stateMutability": "view",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "address",
+    "name": "_user",
+    "type": "address"
+  }, {
+    "internalType": "uint256",
+    "name": "limit",
+    "type": "uint256"
+  }, {
+    "internalType": "uint256",
+    "name": "offset",
+    "type": "uint256"
+  }],
+  "name": "userClosedDuals",
+  "outputs": [{
+    "components": [{
+      "internalType": "uint256",
+      "name": "id",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "tariffId",
+      "type": "uint256"
+    }, {
+      "internalType": "address",
+      "name": "user",
+      "type": "address"
+    }, {
+      "internalType": "address",
+      "name": "baseToken",
+      "type": "address"
+    }, {
+      "internalType": "address",
+      "name": "quoteToken",
+      "type": "address"
+    }, {
+      "internalType": "address",
+      "name": "inputToken",
+      "type": "address"
+    }, {
+      "internalType": "uint256",
+      "name": "inputAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "inputBaseAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "inputQuoteAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "address",
+      "name": "outputToken",
+      "type": "address"
+    }, {
+      "internalType": "uint256",
+      "name": "outputAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "stakingPeriod",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "yield",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "initialPrice",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "closedPrice",
+      "type": "uint256"
+    }, {
+      "internalType": "bool",
+      "name": "claimed",
+      "type": "bool"
+    }, {
+      "internalType": "uint256",
+      "name": "startedAt",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "finishAt",
+      "type": "uint256"
+    }],
+    "internalType": "struct Dual[]",
+    "name": "duals",
+    "type": "tuple[]"
+  }],
+  "stateMutability": "view",
+  "type": "function"
+}, {
+  "inputs": [{
+    "internalType": "address",
+    "name": "_user",
+    "type": "address"
+  }, {
+    "internalType": "uint256",
+    "name": "limit",
+    "type": "uint256"
+  }, {
+    "internalType": "uint256",
+    "name": "offset",
+    "type": "uint256"
+  }],
+  "name": "userOpenedDuals",
+  "outputs": [{
+    "components": [{
+      "internalType": "uint256",
+      "name": "id",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "tariffId",
+      "type": "uint256"
+    }, {
+      "internalType": "address",
+      "name": "user",
+      "type": "address"
+    }, {
+      "internalType": "address",
+      "name": "baseToken",
+      "type": "address"
+    }, {
+      "internalType": "address",
+      "name": "quoteToken",
+      "type": "address"
+    }, {
+      "internalType": "address",
+      "name": "inputToken",
+      "type": "address"
+    }, {
+      "internalType": "uint256",
+      "name": "inputAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "inputBaseAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "inputQuoteAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "address",
+      "name": "outputToken",
+      "type": "address"
+    }, {
+      "internalType": "uint256",
+      "name": "outputAmount",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "stakingPeriod",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "yield",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "initialPrice",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "closedPrice",
+      "type": "uint256"
+    }, {
+      "internalType": "bool",
+      "name": "claimed",
+      "type": "bool"
+    }, {
+      "internalType": "uint256",
+      "name": "startedAt",
+      "type": "uint256"
+    }, {
+      "internalType": "uint256",
+      "name": "finishAt",
+      "type": "uint256"
+    }],
+    "internalType": "struct Dual[]",
+    "name": "duals",
+    "type": "tuple[]"
+  }],
+  "stateMutability": "view",
+  "type": "function"
+}, {
+  "inputs": [],
+  "name": "vault",
+  "outputs": [{
+    "internalType": "contract IVault",
+    "name": "",
+    "type": "address"
+  }],
+  "stateMutability": "view",
+  "type": "function"
+}]
