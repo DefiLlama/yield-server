@@ -1,5 +1,7 @@
 
 const utils = require('../utils');
+const superagent = require('superagent');
+
 
 
 const WETHARB = "0x272dF896f4D0c97F65e787f861bb6e882776a155";
@@ -14,10 +16,12 @@ const abis = {
 const poolsFunction = async () => {
   
   const tvl = await utils.makeMulticall(abis.swapPool.coverage, [WETHARB], 'arbitrum');
-  console.log("tvltvltvltvltvltvltvltvltvltvltvltvltvltvltvl");
-  console.log(tvl);
-  console.log(tvl[0][1]);
-  console.log(tvl[0].liabilities_);
+  const key = `arbitrum:${WETH}`.toLowerCase();
+  const usdcInUSDEth = (
+    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
+  ).body.coins[key].price;
+  console.log("usdcInUSDEthusdcInUSDEthusdcInUSDEthusdcInUSDEthusdcInUSDEthusdcInUSDEth");
+  console.log(usdcInUSDEth);
 
 
   // const makeMulticall = async (abi, addresses, chain, params = null) => {
