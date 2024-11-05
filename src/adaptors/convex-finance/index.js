@@ -394,10 +394,15 @@ const main = async () => {
         pool: pool.lptoken,
         chain: utils.formatChain('ethereum'),
         project: 'convex-finance',
-        symbol: (
+        symbol: ( // Symbol of the supplied token
           pool.isLendingVault ?
-            `Curve Lend: ${pool.assets.borrowed.symbol} (${pool.assets.collateral.symbol} collateral)` :
+            utils.formatSymbol(pool.assets.borrowed.symbol) :
             pool.coins.map((coin) => coin.symbol).join('-')
+        ),
+        poolMeta: ( // Displayed in parens next to `symbol`
+          pool.isLendingVault ?
+            `Curve Lend – ${pool.assets.collateral.symbol} collateral` :
+            undefined
         ),
         tvlUsd: (
           pool.isLendingVault ?
