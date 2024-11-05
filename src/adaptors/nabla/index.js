@@ -1,6 +1,9 @@
 
+const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
 const superagent = require('superagent');
+const sdk = require('@defillama/sdk');
+
 
 
 
@@ -9,7 +12,9 @@ const WETH = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1";
 
 const abis = {
   swapPool: {
-    coverage: "function coverage() external view returns (uint256 reserves_, uint256 liabilities_)"
+    coverage: "function coverage() external view returns (uint256 reserves_, uint256 liabilities_)",
+    chargedSwapFeesEvent: 'event ChargedSwapFees(uint256 lpFees, uint256 backstopFees, uint256 protocolFees)'
+
   }
 }
 
@@ -20,10 +25,23 @@ const poolsFunction = async () => {
   const usdcInUSDEth = (
     await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
   ).body.coins[key].price;
+
+  const blockNow = await sdk.api.util.getLatestBlock("arbitrum")
+
+  const timestampNow = Math.floor(Date.now() / 1000);
+  const timestamp7dayAgo = timestampNow - 86400 * 7;
+  const ARB_BLOCK_TIME = 0.25;
+  const fromBlockNumber = blockNow.block - Math.round(timestamp7dayAgo * ARB_BLOCK_TIME);
+
+  const feeLog = await sdk.api2.util.getLogs({
+    target: WETHARB,
+    topic: abis.swapPool.chargedSwapFeesEvent,
+    chain: 'arbitrum',
+    fromBlock: fromBlockNumber,
+    toBlock: blockNow.block,
+  })
   console.log("usdcInUSDEthusdcInUSDEthusdcInUSDEthusdcInUSDEthusdcInUSDEthusdcInUSDEth");
-  console.log(usdcInUSDEth);
-
-
+  console.log(feeLog);
   // const makeMulticall = async (abi, addresses, chain, params = null) => {
   //   const data = await sdk.api.abi.multiCall({
   //     abi,
@@ -41,7 +59,7 @@ const poolsFunction = async () => {
     project: 'nabla',
     symbol: utils.formatSymbol('WETH'),
     underlyingTokens: [WETH],
-    tvlUsd: tvl[0].liabilities_,
+    tvlUsd: BigNumber(tvl[0].liabilities_) * BigNumber(usdcInUSDEth) /BigNumber(1e18),
     apy: 100,
   };
 
