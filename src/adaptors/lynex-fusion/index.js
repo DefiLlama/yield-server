@@ -57,9 +57,9 @@ const getApy = async () => {
     const found = activeStrategies.find(
       (item) => item.address.toLowerCase() === poolAddress,
     );
-    const poolMeta = `${found?.type}`
+    const poolMeta = found ? found.title : 'Classic'
     const symbol = found
-      ? `${firstSymbol}/${secondSymbol} (${found.title})`
+      ? `${firstSymbol}/${secondSymbol}`
       : pool.stable
         ? `sAMM-${firstSymbol}/${secondSymbol}`
         : `vAMM-${firstSymbol}/${secondSymbol}`;
