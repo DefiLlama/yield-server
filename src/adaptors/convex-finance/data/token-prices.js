@@ -1,3 +1,5 @@
+const fetch = require('node-fetch')
+
 // [['a', '1'], ['b', 2], …] -> { a: 1, b: 2, … }
 const arrayToHashmap = (array) => (
   Object.assign({}, ...array.map(([key, val]) => ({ [key]: val })))
