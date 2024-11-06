@@ -14,11 +14,11 @@ const VAULTS = {
     }
   },
   polygon: {
-    '0xA02aA8774E8C95F5105E33c2f73bdC87ea45BD29': {
-      symbol: 'WETH', 
-      underlying: '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619',
-      apy: 0.0
-    },
+//    '0xA02aA8774E8C95F5105E33c2f73bdC87ea45BD29': {
+//      symbol: 'WETH', 
+//      underlying: '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619',
+//      apy: 0.0
+//    },
     '0xE7FE898A1EC421f991B807288851241F91c7e376': {
       symbol: 'USDC',
       underlying: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
@@ -52,7 +52,7 @@ const getApy = async () => {
       return {
         pool: `${vaultAddress}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
-        project: 'maxAPY',
+        project: 'maxapy',
         symbol: utils.formatSymbol(info.symbol),
         tvlUsd: 0, // You might want to fetch this from another source
         apyBase: info.apy,
