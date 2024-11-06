@@ -5,7 +5,7 @@ const VAULTS = {
     '0x9847c14FCa377305c8e2D10A760349c667c367d4': {
       symbol: 'WETH',
       underlying: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
-      apy: 0.0 // Fallback APY when API fails
+      apy: 0.0 
     },
     '0x349c996C4a53208b6EB09c103782D86a3F1BB57E': {
       symbol: 'USDC',
