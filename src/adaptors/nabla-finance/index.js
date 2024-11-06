@@ -68,7 +68,7 @@ const poolsFunction = async (chain) => {
       symbol: utils.formatSymbol(symbol),
       underlyingTokens: [tokenAddress],
       tvlUsd: (BigNumber(tvl)/(10**decimals) * price), 
-      apyBase: apr7dToApy(apr7d/(10**decimals)),
+      apyBase: apr7dToApy(apr7d/(10**decimals)) * 100,
     };
   });
 };
