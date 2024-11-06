@@ -52,7 +52,7 @@ const getApy = async () => {
       return {
         pool: `${vaultAddress}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
-        project: 'maxapy',
+        project: 'maxAPY',
         symbol: utils.formatSymbol(info.symbol),
         tvlUsd: 0, // You might want to fetch this from another source
         apyBase: info.apy,
