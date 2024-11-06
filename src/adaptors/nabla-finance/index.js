@@ -64,7 +64,7 @@ const poolsFunction = async (chain) => {
     return  {
       pool: `${pool}-${chain}`,
       chain: utils.formatChain(chain),
-      project: "nabla",
+      project: "nabla-finance",
       symbol: utils.formatSymbol(symbol),
       underlyingTokens: [tokenAddress],
       tvlUsd: (BigNumber(tvl)/(10**decimals) * price), 
