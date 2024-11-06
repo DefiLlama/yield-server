@@ -44,11 +44,11 @@ const BTC_TOKEN_ADDRESS = '0x152b9d0FdC40C096757F570A51E494bd4b943E50';
 const ETH_TOKEN_ADDRESS = '0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab';
 
 // Arbitrum
-const USDC_POOL_TUP_ARBI_CONTRACT = '0x8FE3842e0B7472a57f2A2D56cF6bCe08517A1De0';
-const ETH_POOL_TUP_ARBI_CONTRACT = '0x0BeBEB5679115f143772CfD97359BBcc393d46b3';
-const ARB_POOL_TUP_ARBI_CONTRACT = '0x2B8C610F3fC6F883817637d15514293565C3d08A';
-const BTC_POOL_TUP_ARBI_CONTRACT = '0x5CdE36c23f0909960BA4D6E8713257C6191f8C35';
-const DAI_POOL_TUP_ARBI_CONTRACT = '0xd5E8f691756c3d7b86FD8A89A06497D38D362540';
+const USDC_POOL_TUP_ARBI_CONTRACT = '0x5f3DB5899a7937c9ABF0A5Fc91718E6F813e4195';
+const ETH_POOL_TUP_ARBI_CONTRACT = '0x2E2fE9Bc7904649b65B6373bAF40F9e2E0b883c5';
+const ARB_POOL_TUP_ARBI_CONTRACT = '0x14c82CFc2c651700a66aBDd7dC375c9CeEFDDD72';
+const BTC_POOL_TUP_ARBI_CONTRACT = '0x275Caecf5542bF4a3CF64aa78a3f57dc9939675C';
+const DAI_POOL_TUP_ARBI_CONTRACT = '0x7Dcf909B1E4b280bEe72C6A69b3a7Ed8adfb63f0';
 
 const USDC_TOKEN_ARBI_ADDRESS = '0xaf88d065e77c8cc2239327c5edb3a432268e5831';
 const ETH_TOKEN_ARBI_ADDRESS = '0x82af49447d8a07e3bd95bd0d56f35241523fbab1';
@@ -254,76 +254,66 @@ const getPoolsAPYs = async () => {
     rewardTokens: [ETH_TOKEN_ADDRESS],
   };
 
-  // const ethPoolArbiTvl = await getEthPoolArbiTVL();
-  // const ethPoolArbi = {
-  //   pool: `dp-${ETH_TOKEN_ARBI_ADDRESS}-arbitrum`,
-  //   chain: utils.formatChain('arbitrum'),
-  //   project: 'deltaprime',
-  //   symbol: utils.formatSymbol('WETH'),
-  //   tvlUsd: ethPoolArbiTvl,
-  //   apyBase: await getEthPoolArbiDepositRate(),
-  //   apyReward: rewardAPRs["ETH"]*100,
-  //   underlyingTokens: [ETH_TOKEN_ARBI_ADDRESS],
-  //   rewardTokens: [ETH_TOKEN_ARBI_ADDRESS, ARB_TOKEN_ARBI_ADDRESS],
-  // };
+  const ethPoolArbiTvl = await getEthPoolArbiTVL();
+  const ethPoolArbi = {
+    pool: `dp-${ETH_TOKEN_ARBI_ADDRESS}-arbitrum`,
+    chain: utils.formatChain('arbitrum'),
+    project: 'deltaprime',
+    symbol: utils.formatSymbol('WETH'),
+    tvlUsd: ethPoolArbiTvl,
+    apyBase: await getEthPoolArbiDepositRate(),
+    underlyingTokens: [ETH_TOKEN_ARBI_ADDRESS],
+  };
 
-  // const usdcPoolArbiTvl = await getUsdcPoolArbiTVL();
-  // const usdcPoolArbi = {
-  //   pool: `dp-${USDC_TOKEN_ARBI_ADDRESS}-arbitrum`,
-  //   chain: utils.formatChain('arbitrum'),
-  //   project: 'deltaprime',
-  //   symbol: utils.formatSymbol('USDC'),
-  //   tvlUsd: usdcPoolArbiTvl,
-  //   apyBase: await getUsdcPoolArbiDepositRate(),
-  //   apyReward: rewardAPRs["USDC"]*100,
-  //   underlyingTokens: [USDC_TOKEN_ARBI_ADDRESS],
-  //   rewardTokens: [USDC_TOKEN_ARBI_ADDRESS, ARB_TOKEN_ARBI_ADDRESS],
-  // };
+  const usdcPoolArbiTvl = await getUsdcPoolArbiTVL();
+  const usdcPoolArbi = {
+    pool: `dp-${USDC_TOKEN_ARBI_ADDRESS}-arbitrum`,
+    chain: utils.formatChain('arbitrum'),
+    project: 'deltaprime',
+    symbol: utils.formatSymbol('USDC'),
+    tvlUsd: usdcPoolArbiTvl,
+    apyBase: await getUsdcPoolArbiDepositRate(),
+    underlyingTokens: [USDC_TOKEN_ARBI_ADDRESS],
+  };
 
-  // const arbPoolArbiTvl = await getArbPoolArbiTVL();
-  // const arbPoolArbi = {
-  //   pool: `dp-${ARB_TOKEN_ARBI_ADDRESS}-arbitrum`,
-  //   chain: utils.formatChain('arbitrum'),
-  //   project: 'deltaprime',
-  //   symbol: utils.formatSymbol('ARB'),
-  //   tvlUsd: arbPoolArbiTvl,
-  //   apyBase: await getArbPoolArbiDepositRate(),
-  //   apyReward: rewardAPRs["ARB"]*100,
-  //   underlyingTokens: [ARB_TOKEN_ARBI_ADDRESS],
-  //   rewardTokens: [ARB_TOKEN_ARBI_ADDRESS, ARB_TOKEN_ARBI_ADDRESS],
-  // };
+  const arbPoolArbiTvl = await getArbPoolArbiTVL();
+  const arbPoolArbi = {
+    pool: `dp-${ARB_TOKEN_ARBI_ADDRESS}-arbitrum`,
+    chain: utils.formatChain('arbitrum'),
+    project: 'deltaprime',
+    symbol: utils.formatSymbol('ARB'),
+    tvlUsd: arbPoolArbiTvl,
+    apyBase: await getArbPoolArbiDepositRate(),
+    underlyingTokens: [ARB_TOKEN_ARBI_ADDRESS],
+  };
 
-  // const btcPoolArbiTvl = await getBtcPoolArbiTVL();
-  // const btcPoolArbi = {
-  //   pool: `dp-${BTC_TOKEN_ARBI_ADDRESS}-arbitrum`,
-  //   chain: utils.formatChain('arbitrum'),
-  //   project: 'deltaprime',
-  //   symbol: utils.formatSymbol('WBTC'),
-  //   tvlUsd: btcPoolArbiTvl,
-  //   apyBase: await getBtcPoolArbiDepositRate(),
-  //   apyReward: rewardAPRs["BTC"]*100,
-  //   underlyingTokens: [BTC_TOKEN_ARBI_ADDRESS],
-  //   rewardTokens: [BTC_TOKEN_ARBI_ADDRESS, ARB_TOKEN_ARBI_ADDRESS],
-  // };
+  const btcPoolArbiTvl = await getBtcPoolArbiTVL();
+  const btcPoolArbi = {
+    pool: `dp-${BTC_TOKEN_ARBI_ADDRESS}-arbitrum`,
+    chain: utils.formatChain('arbitrum'),
+    project: 'deltaprime',
+    symbol: utils.formatSymbol('WBTC'),
+    tvlUsd: btcPoolArbiTvl,
+    apyBase: await getBtcPoolArbiDepositRate(),
+    underlyingTokens: [BTC_TOKEN_ARBI_ADDRESS],
+  };
 
-  // const daiPoolArbiTvl = await getDaiPoolArbiTVL();
-  // const daiPoolArbi = {
-  //   pool: `dp-${DAI_TOKEN_ARBI_ADDRESS}-arbitrum`,
-  //   chain: utils.formatChain('arbitrum'),
-  //   project: 'deltaprime',
-  //   symbol: utils.formatSymbol('DAI'),
-  //   tvlUsd: daiPoolArbiTvl,
-  //   apyBase: await getDaiPoolArbiDepositRate(),
-  //   apyReward: rewardAPRs["DAI"]*100,
-  //   underlyingTokens: [DAI_TOKEN_ARBI_ADDRESS],
-  //   rewardTokens: [DAI_TOKEN_ARBI_ADDRESS, ARB_TOKEN_ARBI_ADDRESS],
-  // };
+  const daiPoolArbiTvl = await getDaiPoolArbiTVL();
+  const daiPoolArbi = {
+    pool: `dp-${DAI_TOKEN_ARBI_ADDRESS}-arbitrum`,
+    chain: utils.formatChain('arbitrum'),
+    project: 'deltaprime',
+    symbol: utils.formatSymbol('DAI'),
+    tvlUsd: daiPoolArbiTvl,
+    apyBase: await getDaiPoolArbiDepositRate(),
+    underlyingTokens: [DAI_TOKEN_ARBI_ADDRESS],
+  };
 
 
 
 
   return [usdcPool, usdtPool, wavaxPool, btcPool, ethPool,
-    // ethPoolArbi, usdcPoolArbi, arbPoolArbi, btcPoolArbi, daiPoolArbi
+    ethPoolArbi, usdcPoolArbi, arbPoolArbi, btcPoolArbi, daiPoolArbi
     ];
 };
 
