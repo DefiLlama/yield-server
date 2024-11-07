@@ -11,6 +11,8 @@ const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const V2_GEN3_ETH_MAINNET_SUBGRAPH_URL =
   'https://subgraph.satsuma-prod.com/56ca3b0c9fd0/tokemak/v2-gen3-eth-mainnet/api';
 
+const BN_ZERO = BigNumber.from('0');
+
 const autopoolsQuery = gql`
   query AutopoolsQuery {
     autopools {
@@ -221,11 +223,24 @@ async function main() {
       compositeReturn += debtValueWeight * cr;
     }
 
+    const autopoolPeriodicFee = BigNumber.from(autopool.periodicFee);
+    const autopoolStreamingFee = BigNumber.from(autopool.streamingFee);
+
+    // Fees may temporarily go to zero but we want the crm to display as though
+    // they are still applied so we don't see sharp temporary increases
+    const applicablePeriodicFee = autopoolPeriodicFee.eq(BN_ZERO)
+      ? BigNumber.from(50)
+      : autopoolPeriodicFee;
+
+    const applicableStreamingFee = autopoolStreamingFee.eq(BN_ZERO)
+      ? BigNumber.from(1500)
+      : autopoolStreamingFee;
+
     // Calculate compositeReturn net of estimated fees
     compositeReturn =
       (compositeReturn / (1 - totalIdle / totalAssets) -
-        Number(etherUtils.formatUnits(autopool.periodicFee, 4))) *
-      (1 - Number(etherUtils.formatUnits(autopool.streamingFee, 4)));
+        Number(etherUtils.formatUnits(applicablePeriodicFee, 4))) *
+      (1 - Number(etherUtils.formatUnits(applicableStreamingFee, 4)));
 
     autopoolCRs[autopool.id] = compositeReturn;
 
