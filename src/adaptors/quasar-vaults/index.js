@@ -13,7 +13,7 @@ const vaultApys = async () => {
     {
         pool: mellowVault.address,
         chain: utils.formatChain(mellowVault.network),
-        project: 'mellow',
+        project: 'quasar-vaults',
         symbol: mellowVault.strategyAssets[0].symbol, // wstETH
         tvlUsd: Number(mellowVault.tvl.usd),
         apy: mellowVault.apy,
