@@ -162,7 +162,9 @@ const getApy = async (market) => {
       url,
       borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
       mintedCoin: pool.symbol === 'GHO' ? 'GHO' : null,
-      poolMeta: ['lido', 'etherfi'].includes(market) ? market : null,
+      poolMeta: ['lido', 'etherfi'].includes(market)
+        ? `${market}-market`
+        : null,
     };
   });
 };
