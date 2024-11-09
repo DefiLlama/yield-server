@@ -4,8 +4,9 @@ const BigNumber = require('bignumber.js');
 const axios = require('axios');
 const utils = require('../utils');
 const masterchefAbi = require('./masterchef.js');
-const SUBGRAPH_URL =
-  'https://api.studio.thegraph.com/query/59130/alien-base/version/latest';
+const SUBGRAPH_URL = sdk.graph.modifyEndpoint(
+  sdk.graph.modifyEndpoint('6bg5PGSbcbiXVj6iTNNYz7CaJE8zdVZhZNNCYu8oYmPc')
+);
 const masterchef = '0x52eaecac2402633d98b95213d0b473e069d86590';
 const ALB = '0x1dd2d631c92b1aCdFCDd51A0F7145A50130050C4';
 const WETH = '0x4200000000000000000000000000000000000006';

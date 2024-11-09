@@ -51,15 +51,17 @@ const blacklistedLendingPools = {
   ],
 };
 
-const blacklistedBorrowables = {
-  polygon: [
-    /* No token prices */
-    '0x3e5b7929c71b4d6fe88c3577382786d6169005d7',
-    '0x4849bb3f7fcad49437f3107a578e063677424302',
-  ],
+const blacklistedLendingVaults = {
+  scroll: ['0x83f22f87f504f8b9f10eb73ab05c58a0973b6681'],
+  polygon: [],
+  real: [],
+  arbitrum: [],
+  ethereum: [],
+  optimism: [],
+  fantom: []
 };
 
 module.exports = {
   blacklistedLendingPools,
-  blacklistedBorrowables,
+  blacklistedLendingVaults
 };
