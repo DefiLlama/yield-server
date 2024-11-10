@@ -14,39 +14,41 @@ const getApy = async () => {
 
     return [
         {
-        pool: APETH,
-        chain: utils.formatChain('ethereum'),
-        project: 'aqua-patina',
-        symbol: utils.formatSymbol('APETH'),
-        tvlUsd: tvl,
-        apy: apy.data,
+            pool: APETH,
+            chain: utils.formatChain('ethereum'),
+            project: 'aqua-patina',
+            symbol: utils.formatSymbol('APETH'),
+            tvlUsd: tvl,
+            apy: apy.data,
         },
     ];
 };
 
 async function tvlUsd() {
-    const supply = await sdk.api.abi.call({ 
-        target: APETH, 
+
+    const supply = await sdk.api.abi.call({
+        target: APETH,
         abi: abi['totalSupply'],
         chain: 'ethereum'
     });
-    const multiplier = await sdk.api.abi.call({ 
-        target: APETH, 
+
+    const multiplier = await sdk.api.abi.call({
+        target: APETH,
         abi: abi['ethPerAPEth'],
         chain: 'ethereum'
     });
 
-    let ethTVL = supply.output * multiplier.output / 1e18 / 1e18;
-
     const ethPrice = (
         await axios.get('https://coins.llama.fi/prices/current/coingecko:ethereum')
-      ).data.coins['coingecko:ethereum'].price;
+    ).data.coins['coingecko:ethereum'].price;
 
-    return ethTVL * ethPrice;
+    let tvl = BigInt(supply.output) * BigInt(multiplier.output) / BigInt(1e18) / BigInt(1e18);
+
+    return Number(tvl) * ethPrice;
 }
 
 module.exports = {
     timetravel: false,
     apy: getApy,
     url: 'https://aquapatina.eth/',
-  };
+};
