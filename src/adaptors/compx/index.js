@@ -1,11 +1,11 @@
 const axios = require('axios');
 
 const poolsFunction = async () => {
-  const { data: pools } = await axios.get(
-    "https://api-general.compx.io/api/defi-llama/staking-pools-v2"
+  const pools = await axios.get(
+    'https://api-general.compx.io/api/defi-llama/staking-pools-v2'
   );
 
-  return pools;
+  return pools.data;
 };
 
 module.exports = {
