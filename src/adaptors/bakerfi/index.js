@@ -41,6 +41,18 @@ const vaults = [
     poolMeta: 'wstETH/ETH Recursive Staking', // A string value which can stand for any specif
   },
   {
+    id: 'cm2subkbi0000ihv5e7www0ic',
+    pool: `0x892022FE1431fdE03836725BBD0f0380e21E2095-base`.toLowerCase(),
+    chain: 'base',
+    contract: '0x892022FE1431fdE03836725BBD0f0380e21E2095',
+    project: 'bakerfi',
+    symbol: utils.formatSymbol('ETH'),
+    apyReward: 0, // APY from pool LM rewards in %,
+    rewardTokens: ['0x4200000000000000000000000000000000000006'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
+    underlyingTokens: ['0x4200000000000000000000000000000000000006'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
+    poolMeta: 'wstETH/ETH Recursive Staking', // A string value which can stand for any specif
+  },
+  {
     id: 'cm1p7hcba0000125ua7hxn8m3',
     pool: `0x4c6d58749126FEBb1D28E8B8FdE97DC3107996d3-arbitrum`.toLowerCase(),
     chain: 'arbitrum',
