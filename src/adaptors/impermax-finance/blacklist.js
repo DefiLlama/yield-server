@@ -36,6 +36,10 @@ const blacklistedLendingPools = {
     '0xFFCe6dB18f18D711EF7Bf45b501A6b652b44bC43'.toLowerCase(), // zen/chi
     '0xD448ac2A2d9C85010459E5f5Bf81931E5Bc40EC3'.toLowerCase(), // chi/weth
     '0x7f0997bC0ee78553DDAb736d945b7Ba10Fe38B2E'.toLowerCase(), // wbtc/weth
+    '0x94d81405985A4c34EaC4945d2b98c74258EdD07F'.toLowerCase(), // tkn/chi - stakedlp
+    '0xE8f4895DF06a0c69A9BA87509EfdBBFBAFe86c2d'.toLowerCase(), // weth/tkn - stakedlp
+    '0x7c80Be56a6f23A3E598822648baaFD7524fe1239'.toLowerCase(), // chi/wUKRE stakedlp
+    '0xDD14d0c651C63e1EeA5bd8b250cf99757425D68F'.toLowerCase(), // chi/usdc stakedlp
   ],
   arbitrum: [
     /* Exclude IMX/WETH pool on sushi */
@@ -58,10 +62,10 @@ const blacklistedLendingVaults = {
   arbitrum: [],
   ethereum: [],
   optimism: [],
-  fantom: []
+  fantom: [],
 };
 
 module.exports = {
   blacklistedLendingPools,
-  blacklistedLendingVaults
+  blacklistedLendingVaults,
 };
