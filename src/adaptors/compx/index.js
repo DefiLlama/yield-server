@@ -11,5 +11,5 @@ const poolsFunction = async () => {
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
-  url: 'https://app.compx.io/staking-pools',
+  url: 'https://app.compx.io/farms',
 };
