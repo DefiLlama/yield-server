@@ -162,7 +162,7 @@ const lsdTokens = [
     fee: 0.1,
   },
   {
-    name: 'Dinero (Pirex ETH)',
+    name: 'Dinero (pxETH)',
     symbol: 'APXETH',
     address: '0x04c154b66cb340f3ae24111cc767e0184ed00cc6',
     addressExchangeRate: '0x9ba021b0a9b958b5e75ce9f6dff97c7ee52cb3e6',
@@ -580,7 +580,7 @@ const getExpectedRates = async () => {
   const apxEth =
     (
       await sdk.api.abi.call({
-        target: lsdTokens.find((lsd) => lsd.name === 'Dinero (Pirex ETH)')
+        target: lsdTokens.find((lsd) => lsd.name === 'Dinero (pxETH)')
           .addressExchangeRate,
         chain: 'ethereum',
         abi: apxETHAbi,
@@ -660,7 +660,7 @@ const getExpectedRates = async () => {
         ? uniETH
         : lsd.name === 'Mantle Staked ETH'
         ? mETH
-        : lsd.name === 'Dinero (Pirex ETH)'
+        : lsd.name === 'Dinero (pxETH)'
         ? apxEth
         : lsd.name === 'Liquid Collective'
         ? lsETH

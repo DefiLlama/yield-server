@@ -10,7 +10,7 @@ const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const utils = require('../utils');
 
 const url = sdk.graph.modifyEndpoint(
-  sdk.graph.modifyEndpoint('DsZsQrDp7VswGGm6PburYZ91AM3E9vwH45nwLCj3kXHA')
+  sdk.graph.modifyEndpoint('6Bjqi1HiqNphwqzaa3h3ojTgQwtFJ817QuE8vsyWBiCw')
 );
 
 const query = gql`

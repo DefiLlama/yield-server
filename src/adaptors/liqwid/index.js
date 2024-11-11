@@ -43,22 +43,17 @@ const apy = async () => {
     );
 
   // These are the markets that are either disabled or not borrowable, so no yield can be generated
-  const disableMarkets = [
-    'AGIX',
-    'WMT',
-    'POL',
-    'LQ'
-  ]
+  const disableMarkets = ['AGIX', 'WMT', 'POL', 'LQ'];
 
-  const markets =
-    data.liqwid.data.markets.results
-      .filter((market) => !disableMarkets.includes(market.id));
+  const markets = data.liqwid.data.markets.results.filter(
+    (market) => !disableMarkets.includes(market.id)
+  );
 
   const getPool = (market) => {
     return {
       pool: registryData.find(
         (script) => script.name === `Liqwid${market.id}Action`
-      ).scriptHash,
+      )?.scriptHash,
       chain: 'Cardano',
       project: 'liqwid',
       symbol: market.id,
@@ -79,7 +74,7 @@ const apy = async () => {
     };
   };
 
-  return markets.map(getPool);
+  return markets.map(getPool).filter((i) => i.pool !== undefined);
 };
 
 module.exports = {

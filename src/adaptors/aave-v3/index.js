@@ -20,10 +20,14 @@ const protocolDataProviders = {
   bsc: '0x23dF2a19384231aFD114b036C14b6b03324D79BC',
   scroll: '0xe2108b60623C6Dcf7bBd535bD15a451fd0811f7b',
   era: '0x5F2A704cE47B373c908fE8A29514249469b52b99',
+  lido: '0x08795CFE08C7a81dCDFf482BbAAF474B240f31cD', // on ethereum
+  etherfi: '0xE7d490885A68f00d9886508DF281D67263ed5758', // on ethereum
 };
 
-const getApy = async (chain) => {
-  const protocolDataProvider = protocolDataProviders[chain];
+const getApy = async (market) => {
+  const chain = ['lido', 'etherfi'].includes(market) ? 'ethereum' : market;
+
+  const protocolDataProvider = protocolDataProviders[market];
   const reserveTokens = (
     await sdk.api.abi.call({
       target: protocolDataProvider,
@@ -127,22 +131,22 @@ const getApy = async (chain) => {
       totalBorrowUsd = totalSupplyUsd - tvlUsd;
     }
 
-    const chainUrlParam =
-      chain === 'ethereum'
+    const marketUrlParam =
+      market === 'ethereum'
         ? 'mainnet'
-        : chain === 'avax'
+        : market === 'avax'
         ? 'avalanche'
-        : chain === 'xdai'
+        : market === 'xdai'
         ? 'gnosis'
-        : chain === 'bsc'
+        : market === 'bsc'
         ? 'bnb'
-        : chain;
+        : market;
 
-    const url = `https://app.aave.com/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=proto_${chainUrlParam}_v3`;
+    const url = `https://app.aave.com/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=proto_${marketUrlParam}_v3`;
 
     return {
       pool: `${aTokens[i].tokenAddress}-${
-        chain === 'avax' ? 'avalanche' : chain
+        market === 'avax' ? 'avalanche' : market
       }`.toLowerCase(),
       chain,
       project: 'aave-v3',
@@ -158,6 +162,9 @@ const getApy = async (chain) => {
       url,
       borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
       mintedCoin: pool.symbol === 'GHO' ? 'GHO' : null,
+      poolMeta: ['lido', 'etherfi'].includes(market)
+        ? `${market}-market`
+        : null,
     };
   });
 };
@@ -223,7 +230,7 @@ const stkGho = async () => {
 
 const apy = async () => {
   const pools = await Promise.allSettled(
-    Object.keys(protocolDataProviders).map(async (chain) => getApy(chain))
+    Object.keys(protocolDataProviders).map(async (market) => getApy(market))
   );
 
   const stkghoPool = await stkGho();

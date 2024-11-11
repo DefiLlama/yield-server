@@ -1,18 +1,21 @@
 // Llama
 const sdk = require('@defillama/sdk');
+const fetch = require('node-fetch');
 const { request } = require('graphql-request');
 const { default: BigNumber } = require('bignumber.js');
+
 // Impermax
-const { blacklistedLendingPools } = require('./blacklist.js');
-const { graphQuery } = require('./query.js');
+const {
+  blacklistedLendingPools,
+  blacklistedLendingVaults,
+} = require('./blacklist.js');
+const { graphQuery, vaultGraphQuery } = require('./query.js');
 const { GECKOTERMINAL_IDS } = require('./geckoterminal.js');
-const fetch = require('node-fetch');
 
 /**
- *  ADAPTER CONFIGS
+ *  LENDING POOLS CONFIGS
  */
 
-// All our subgraphs on each chain
 const config = {
   ethereum: [
     'https://api.studio.thegraph.com/query/46041/impermax-mainnet-v1/v0.0.1',
@@ -38,8 +41,12 @@ const config = {
     'https://api.studio.thegraph.com/query/46041/impermax-base-solv2-stable/v0.0.1',
   ],
   scroll: [
-    'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2/v0.0.1',
-    'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2-stable/v0.0.7',
+    'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2/v0.0.2',
+    'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2-stable/0.0.9',
+  ],
+  real: [
+    'https://api.goldsky.com/api/public/project_cm2d5q4l4w31601vz4swb3vmi/subgraphs/impermax-finance/impermax-real-v2-stable/gn',
+    'https://api.goldsky.com/api/public/project_cm2rhb30ot9wu01to8c9h9e37/subgraphs/impermax-real-solv2/3.0/gn',
   ],
   // Skip these as tvl is too low
   // avalanche: [], moonriver: [], canto: [], zkSync: []
@@ -96,8 +103,18 @@ const projectPoolFactories = {
     Pangolin: ['0xefa94de7a4656d787667c749f7e1223d71e9fd88'],
     Thorus: ['0xa98ea6356a316b44bf710d5f9b6b4ea0081409ef'],
   },
+  real: {
+    PearlV2: [
+      '0x28e22d8c807b6e6c0eca4373fc3b9920453ceeee',
+      '0x317371f126680734d7db2ace2d751ffc0bd4b771',
+      '0x2b965fdf04f9e9beef1659464ef3a0094a68d923',
+    ],
+  },
 };
 
+/**
+ * Gets all impermax borrowables in `chain`
+ */
 const getChainBorrowables = async (chain) => {
   const urls = config[chain];
   let allBorrowables = [];
@@ -111,7 +128,9 @@ const getChainBorrowables = async (chain) => {
   return allBorrowables.filter((i) => !blacklist.includes(i.lendingPool.id));
 };
 
-// Given a chain and a `uniswapV2Factory` (DEX or staked lp factory) get project
+/**
+ * Gets a third party DEX given a factory address
+ */
 const getProject = (chain, factoryAddress) => {
   const chainProjects = projectPoolFactories[chain] || {};
   for (const [project, factories] of Object.entries(chainProjects)) {
@@ -119,6 +138,101 @@ const getProject = (chain, factoryAddress) => {
   }
 
   return null;
+};
+
+/**
+ *  LENDING VAULTS CONFIGS
+ */
+
+const lendingVaultsConfig = {
+  polygon: [
+    'https://api.studio.thegraph.com/query/46041/lending-vault-polygon/v0.0.1',
+  ],
+  arbitrum: [
+    'https://api.studio.thegraph.com/query/46041/lending-vault-arbitrum/v0.0.1',
+  ],
+  base: [
+    'https://api.studio.thegraph.com/query/46041/lending-vault-base/v0.0.1',
+  ],
+  scroll: [
+    'https://api.studio.thegraph.com/query/46041/lending-vault-scroll/v0.0.1',
+  ],
+  real: [],
+  fantom: [],
+  optimism: [],
+  arbitrum: [],
+  ethereum: [],
+};
+
+const lendingVaultProfiles = {
+  arbitrum: [
+    {
+      address: '0x1122745fE34590419e18394bAA0e4D610f785205'.toLowerCase(),
+      risk: 'Conservative',
+    }, // ETH
+    {
+      address: '0x46D26374903F215DC28d461809cdd0667A603a9e'.toLowerCase(),
+      risk: 'Conservative',
+    }, // USDC
+  ],
+  polygon: [
+    {
+      address: '0xbF6d92C989bF14DCff0713341EbFa89C63c89EF9'.toLowerCase(),
+      risk: 'Conservative',
+    }, // MATIC
+    {
+      address: '0x59D2dFd97cB27e127F36a730CD2E3B7e5C2C1983'.toLowerCase(),
+      risk: 'Conservative',
+    }, // USDT
+    {
+      address: '0xE71675a4D284447abc8fCC834a6F54847A765584'.toLowerCase(),
+      risk: 'Conservative',
+    }, // USDC
+  ],
+  scroll: [
+    {
+      address: '0x20e29CF92C89DC97f6b131000F18c39bdc6964af'.toLowerCase(),
+      risk: 'Conservative',
+    }, // ETH
+    {
+      address: '0x175732fBD755c5282dcD1618664e607d487DB5eC'.toLowerCase(),
+      risk: 'Conservative',
+    }, // USDC
+    {
+      address: '0x83F22f87f504F8b9f10eb73ab05c58A0973b6681'.toLowerCase(),
+      risk: 'Conservative',
+    }, // CHI
+  ],
+  base: [
+    {
+      address: '0x0a19875829fDF28b8e3230A3F1EB46668240cc11'.toLowerCase(),
+      risk: 'Conservative',
+    }, // ETH
+    {
+      address: '0x929265aaD975CfeDedb65A19a05A3Be2196766F1'.toLowerCase(),
+      risk: 'Conservative',
+    }, // USDC
+    {
+      address: '0x683cc7cbb8b8c5b3c5fae85a4ae70e887217883b'.toLowerCase(),
+      risk: 'Aggressive',
+    }, // ETH (high)
+  ],
+};
+
+/**
+ * Gets all deployed lending vaults in `chain`
+ */
+const getChainVaults = async (chain) => {
+  const urls = lendingVaultsConfig[chain];
+  let allLendingVaults = [];
+
+  for (const url of urls) {
+    const queryResult = await request(url, vaultGraphQuery);
+    allLendingVaults = allLendingVaults.concat(queryResult.lendingVaults);
+  }
+
+  const blacklist = blacklistedLendingVaults[chain] || [];
+  return allLendingVaults.filter((i) => !blacklist.includes(i.id));
 };
 
 /**
@@ -260,23 +374,31 @@ const getTotalSupplyUsd = (totalBalance, totalBorrows, tokenPriceUsd) =>
 
 /**
  * -> Loop through each chain from config
- *   -> Get all borrowables on this chain
+ *   -> Get all borrowables + lending vaults on this chain
  *   -> Get all borrowable underlyings prices on this chain
  *   -> Loop through each borrowable on this chain
- *     -> Match proejct from this borrowable's lendingPool `uniswapV2Factory`, else skip
- *     -> Get price from the chain's prices we got before, else skip
+ *     -> Match project from this borrowable's `uniswapV2Factory` and add to pools array
+ *   -> Loop through each lending vault on this chain
+ *     -> Get vault risk profile and add to pools and add to pools aray
  */
 const main = async () => {
   const pools = [];
   const chains = Object.keys(config);
 
   for (const chain of chains) {
-    const borrowables = await getChainBorrowables(chain);
+    const [borrowables, lendingVaults] = await Promise.all([
+      getChainBorrowables(chain),
+      getChainVaults(chain),
+    ]);
+
     const prices = await getChainUnderlyingPrices(
       chain,
       borrowables.map((i) => i.underlying.id)
     );
 
+    /**
+     * Add borrowables
+     */
     for (const borrowable of borrowables) {
       const {
         id,
@@ -334,14 +456,48 @@ const main = async () => {
         apyBaseBorrow: borrowApr.toNumber(),
         underlyingTokens: [token0.id, token1.id],
         ltv: ltv.toNumber().toFixed(3),
+        url: 'https://impermax.finance',
+      });
+    }
+
+    /**
+     * Add lending vaults
+     */
+    for (const vault of lendingVaults) {
+      const { id, supplyRate, underlying, availableLiquidity } = vault;
+
+      const price = prices[`${chain}:${underlying.id}`];
+      if (!price) {
+        console.warn(`Missing price, skipping vault ${vault.id} `);
+        continue;
+      }
+
+      const apyBase = Number(supplyRate) * 24 * 60 * 60 * 365 * 100;
+      const tvlUsd = price * Number(availableLiquidity);
+
+      const chainVaults = lendingVaultProfiles[chain] || [];
+      const lendingVault = chainVaults.find(
+        (v) => v.address.toLowerCase() === id.toLowerCase()
+      );
+
+      pools.push({
+        pool: `${lendingVault.address}-${underlying.symbol}-${chain}`.toLowerCase(),
+        poolMeta: `${lendingVault?.risk}`,
+        chain,
+        project: 'impermax-finance',
+        symbol: underlying.symbol,
+        tvlUsd,
+        apyBase,
+        underlyingTokens: [underlying.id],
+        url: 'https://lite.impermax.finance/',
       });
     }
   }
+
   return pools;
 };
 
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://www.impermax.finance/',
 };

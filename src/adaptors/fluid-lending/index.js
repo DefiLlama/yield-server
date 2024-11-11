@@ -61,7 +61,7 @@ const getApy = async (chain) => {
     const apyReward = Number((token.rewardsRate / 1e12).toFixed(2));
 
     return {
-      project: 'fluid',
+      project: 'fluid-lending',
       pool: tokenAddress,
       tvlUsd: totalSupplyUsd,
       symbol: underlyingSymbol,

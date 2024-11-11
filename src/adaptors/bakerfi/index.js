@@ -5,6 +5,9 @@ const axios = require('axios');
 const API_URL = 'https://api-v1.bakerfi.xyz/api';
 
 const oracles = {
+  ethereum: {
+    ethToUSD: '0x0D01EdB9af465d8518999d2a9547526D0A887842',
+  },
   base: {
     ethToUSD: '0xddC3b00b6185484B54c00C154E6bB70c4942E910',
   },
@@ -14,10 +17,34 @@ const oracles = {
 };
 const vaults = [
   {
+    id: 'cm2lwpkwh00005q2qadxhpokp',
+    pool: `0x01280b3683fE20Dc9cCF4D9526418F252871E4F7-ethereum`.toLowerCase(),
+    chain: 'ethereum',
+    contract: '0x01280b3683fE20Dc9cCF4D9526418F252871E4F7',
+    project: 'bakerfi',
+    symbol: utils.formatSymbol('ETH'),
+    apyReward: 0, // APY from pool LM rewards in %,
+    rewardTokens: ['0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
+    underlyingTokens: ['0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
+    poolMeta: 'wstETH/ETH Recursive Staking', // A string value which can stand for any specif
+  },
+  {
     id: 'cly4i95530008kl5eesquxqyc',
     pool: `0x37327c99bBc522e677a97d01021dB20227faF60A-base`.toLowerCase(),
     chain: 'base',
     contract: '0x37327c99bBc522e677a97d01021dB20227faF60A',
+    project: 'bakerfi',
+    symbol: utils.formatSymbol('ETH'),
+    apyReward: 0, // APY from pool LM rewards in %,
+    rewardTokens: ['0x4200000000000000000000000000000000000006'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
+    underlyingTokens: ['0x4200000000000000000000000000000000000006'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
+    poolMeta: 'wstETH/ETH Recursive Staking', // A string value which can stand for any specif
+  },
+  {
+    id: 'cm2subkbi0000ihv5e7www0ic',
+    pool: `0x892022FE1431fdE03836725BBD0f0380e21E2095-base`.toLowerCase(),
+    chain: 'base',
+    contract: '0x892022FE1431fdE03836725BBD0f0380e21E2095',
     project: 'bakerfi',
     symbol: utils.formatSymbol('ETH'),
     apyReward: 0, // APY from pool LM rewards in %,
