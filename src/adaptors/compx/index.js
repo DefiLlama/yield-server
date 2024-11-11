@@ -2,7 +2,7 @@ const axios = require('axios');
 
 const poolsFunction = async () => {
   const pools = await axios.get(
-    'https://api-general.compx.io/api/defi-llama/staking-pools-v2'
+    'https://api-general.compx.io/api/defillama/yield-farms'
   );
 
   return pools.data;
