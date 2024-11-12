@@ -1,11 +1,11 @@
-const axios = require('axios');
+const utils = require('../utils');
 
 const poolsFunction = async () => {
-  const pools = await axios.get(
+  const pools = await utils.getData(
     'https://api-general.compx.io/api/defillama/yield-farms'
   );
 
-  return pools.data;
+  return pools;
 };
 
 module.exports = {
