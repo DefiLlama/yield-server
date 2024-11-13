@@ -96,9 +96,14 @@ const buildPool = (asset, chainData, chainConfig, chainName, iporTokenUsdPrice, 
   ).vectorOfCurve / 1e18;
 
   const apyReward = (((liquidityMiningGlobalStats.rewardsPerBlock / 1e8 /
-        (liquidityMiningGlobalStats.aggregatedPowerUp / 1e18)) *
-      (0.2 + vectorOfCurve) * BLOCKS_PER_YEAR * iporTokenUsdPrice) /
-    lpTokenPrice / coinPrice / 2) * 100;
+          (liquidityMiningGlobalStats.aggregatedPowerUp / 1e18)) *
+          (0.2 + vectorOfCurve) * //base powerup
+          BLOCKS_PER_YEAR *
+          iporTokenUsdPrice) /
+          lpTokenPrice /
+          coinPrice /
+          2) * //50% early withdraw fee
+        100; //percentage
 
   return {
     pool: `${asset.ipTokenAssetAddress}-${chainName}`,
