@@ -81,9 +81,18 @@ const getChainData = async (chain) => {
 const buildPool = (asset, chainData, chainConfig, chainName, iporTokenUsdPrice, coinPrices) => {
   const {globalStats, poolPowerUpModifiers} = chainData;
 
-  const lpApr = asset.periods.find(
-    ({period}) => period === 'MONTH'
-  ).ipTokenReturnValue;
+  const poolStartDate = new Date(asset.poolStartDate);
+  const now = new Date();
+  const poolAgeInDays = (now - poolStartDate) / (1000 * 60 * 60 * 24);
+
+  let lpApr;
+  if (poolAgeInDays < 7) {
+    lpApr = asset.periods.find(({period}) => period === 'DAY').ipTokenReturnValue;
+  } else if (poolAgeInDays < 30) {
+    lpApr = asset.periods.find(({period}) => period === 'WEEK').ipTokenReturnValue;
+  } else {
+    lpApr = asset.periods.find(({period}) => period === 'MONTH').ipTokenReturnValue;
+  }
 
   const coinPrice = coinPrices[`${chainName}:${asset.assetAddress.toLowerCase()}`].price;
   const lpBalanceHistory = asset.periods.find(({period}) => period === 'HOUR').totalLiquidity;
