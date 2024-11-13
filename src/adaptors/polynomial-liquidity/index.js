@@ -19,6 +19,7 @@ const getApy = async () => {
         tvlUsd: pool.tvl,
         apyBase: pool.apr,
         apyReward: pool.opRewardsApr,
+        rewardTokens: ['0x4200000000000000000000000000000000000042'],
         url: LIQUIDITY_URL
       };
     })
