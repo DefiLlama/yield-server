@@ -82,7 +82,7 @@ DefiLlama only displays pools with >10k TVL, so pools with less TVL than that wi
 
 > I'm getting errors when running `npm install`
 
-Just remove the packages `pg-promise`, `pg` and `pg-native` from package.json and then install again, make sure to avoid commiting these changes tho!
+Make sure you're running the command inside the `src/adaptors` folder, not in the project root folder.
 
 > Why is X pool missing from https://defillama.com/yields/stablecoins ?
 
