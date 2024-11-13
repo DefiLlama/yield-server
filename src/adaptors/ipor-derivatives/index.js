@@ -1,62 +1,52 @@
 const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
-const { liquidityMiningV2Abi } = require('./abiV2');
+const {liquidityMiningV2Abi} = require('./abiV2');
 
-const LP_STATS_ETHEREUM_URL =
-  'https://api.ipor.io/monitor/liquiditypool-statistics-1';
-const LP_STATS_ARBITRUM_URL =
-  'https://api.ipor.io/monitor/liquiditypool-statistics-42161';
 const COIN_PRICES_URL = 'https://coins.llama.fi/prices/current';
-
-const LM_ADDRESS_ETHEREUM = '0xCC3Fc4C9Ba7f8b8aA433Bc586D390A70560FF366';
-const LM_ADDRESS_ARBITRUM = '0xdE645aB0560E5A413820234d9DDED5f4a55Ff6dd';
-const IPOR_TOKEN_ETHEREUM = '0x1e4746dc744503b53b4a082cb3607b169a289090';
-const IPOR_TOKEN_ARBITRUM = '0x34229b3f16fbcdfa8d8d9d17c0852f9496f4c7bb';
-
 const BLOCKS_PER_YEAR = (365 * 24 * 3600) / 12;
 
-const apy = async () => {
-  const assetsEthereum = (await superagent.get(LP_STATS_ETHEREUM_URL)).body
-    .assets;
-  const assetsArbitrum = (await superagent.get(LP_STATS_ARBITRUM_URL)).body
-    .assets;
-  const coinKeys = assetsEthereum.map(
-    (assetData) => 'ethereum:' + assetData.assetAddress
-  );
-  const coinKeysArbitrum = assetsArbitrum.map(
-    (assetData) => 'arbitrum:' + assetData.assetAddress
-  );
+const CHAIN_CONFIG = {
+  ethereum: {
+    statsUrl: 'https://api.ipor.io/monitor/liquiditypool-statistics-1',
+    lmAddress: '0xCC3Fc4C9Ba7f8b8aA433Bc586D390A70560FF366',
+    iporToken: '0x1e4746dc744503b53b4a082cb3607b169a289090',
+    urlTemplate: (asset) => `https://app.ipor.io/zap/ethereum/${asset.toLowerCase()}`
+  },
+  arbitrum: {
+    statsUrl: 'https://api.ipor.io/monitor/liquiditypool-statistics-42161',
+    lmAddress: '0xdE645aB0560E5A413820234d9DDED5f4a55Ff6dd',
+    iporToken: '0x34229b3f16fbcdfa8d8d9d17c0852f9496f4c7bb',
+    urlTemplate: (asset) => asset === 'USDM' ?
+      `https://app.ipor.io/deposit/arbitrum/${asset.toLowerCase()}` :
+      `https://app.ipor.io/zap/arbitrum/${asset.toLowerCase()}`
+  },
+  base: {
+    statsUrl: 'https://api.ipor.io/monitor/liquiditypool-statistics-8453',
+    lmAddress: '0xE9331948766593EE9CeBBB426faE317b44DaF0f2',
+    iporToken: '0xbd4e5C2f8dE5065993d29A9794E2B7cEfc41437A',
+    urlTemplate: (asset) => `https://app.ipor.io/deposit/base/${asset.toLowerCase()}`
+  }
+};
 
-  coinKeys.push('ethereum:' + IPOR_TOKEN_ETHEREUM);
-  coinKeys.push(...coinKeysArbitrum);
-  const coinPrices = (
-    await superagent.get(
-      `${COIN_PRICES_URL}/${coinKeys.join(',').toLowerCase()}`
-    )
-  ).body.coins;
-  const iporTokenUsdPrice = coinPrices['ethereum:' + IPOR_TOKEN_ETHEREUM].price;
+const getChainData = async (chain) => {
+  const config = CHAIN_CONFIG[chain];
+  const assets = (await superagent.get(config.statsUrl)).body.assets;
 
-  const lpTokenEthereumAddresses = assetsEthereum.map(
+  const lpTokenAddresses = assets.map(
     (assetData) => assetData.ipTokenAssetAddress
   );
 
-  const lpTokenArbitrumAddresses = assetsArbitrum.map(
-    (assetData) => assetData.ipTokenAssetAddress
-  );
-
-  const globalStatsEthereum = new Map(
+  const globalStats = new Map(
     (
       await sdk.api.abi.multiCall({
-        chain: 'ethereum',
+        chain,
         abi: liquidityMiningV2Abi.find(
-          ({ name }) => name === 'getGlobalIndicators'
+          ({name}) => name === 'getGlobalIndicators'
         ),
-        calls: [
-          {
-            target: LM_ADDRESS_ETHEREUM,
-            params: [lpTokenEthereumAddresses],
-          },
-        ],
+        calls: [{
+          target: config.lmAddress,
+          params: [lpTokenAddresses],
+        },],
       })
     ).output.flatMap((response) =>
       response.output.map((stats) => [
@@ -65,62 +55,18 @@ const apy = async () => {
       ])
     )
   );
-  const poolPowerUpModifiersEthereum = new Map(
-    (
-      await sdk.api.abi.multiCall({
-        chain: 'ethereum',
-        abi: liquidityMiningV2Abi.find(
-          ({ name }) => name === 'getPoolPowerUpModifiers'
-        ),
-        calls: lpTokenEthereumAddresses.map(lpTokenEthereumAddress => {
-            return {
-              target: LM_ADDRESS_ETHEREUM,
-              params: [lpTokenEthereumAddress]
-            };
-          }
-        ),
-      })
-    ).output.map((response) => [
-        response.input.params[0].toLowerCase(),
-        response.output,
-    ])
-  );
 
-  const globalStatsArbitrum = new Map(
+  const poolPowerUpModifiers = new Map(
     (
       await sdk.api.abi.multiCall({
-        chain: 'arbitrum',
+        chain,
         abi: liquidityMiningV2Abi.find(
-          ({ name }) => name === 'getGlobalIndicators'
+          ({name}) => name === 'getPoolPowerUpModifiers'
         ),
-        calls: [
-          {
-            target: LM_ADDRESS_ARBITRUM,
-            params: [lpTokenArbitrumAddresses],
-          },
-        ],
-      })
-    ).output.flatMap((response) =>
-      response.output.map((stats) => [
-        stats.lpToken.toLowerCase(),
-        stats.indicators,
-      ])
-    )
-  );
-  const poolPowerUpModifiersArbitrum = new Map(
-    (
-      await sdk.api.abi.multiCall({
-        chain: 'arbitrum',
-        abi: liquidityMiningV2Abi.find(
-          ({ name }) => name === 'getPoolPowerUpModifiers'
-        ),
-        calls: lpTokenArbitrumAddresses.map(lpTokenEthereumAddress => {
-            return {
-              target: LM_ADDRESS_ARBITRUM,
-              params: [lpTokenEthereumAddress]
-            };
-          }
-        ),
+        calls: lpTokenAddresses.map(address => ({
+          target: config.lmAddress,
+          params: [address]
+        })),
       })
     ).output.map((response) => [
       response.input.params[0].toLowerCase(),
@@ -128,112 +74,71 @@ const apy = async () => {
     ])
   );
 
-  const pools = [];
+  return {assets, globalStats, poolPowerUpModifiers};
+};
 
-  for (const asset of assetsEthereum) {
-    const lpApr = asset.periods.find(
-      ({ period }) => period === 'MONTH'
-    ).ipTokenReturnValue;
-    const coinPrice =
-      coinPrices['ethereum:' + asset.assetAddress.toLowerCase()].price;
-    const lpBalanceHistory = asset.periods.find(
-      ({ period }) => period === 'HOUR'
-    ).totalLiquidity;
-    const lpBalance =
-      lpBalanceHistory[lpBalanceHistory.length - 1].totalLiquidity;
-    const lpTokenPriceHistory = asset.periods.find(
-      ({ period }) => period === 'HOUR'
-    ).ipTokenExchangeRates;
-    const lpTokenPrice =
-      lpTokenPriceHistory[lpTokenPriceHistory.length - 1].exchangeRate;
-    const liquidityMiningGlobalStats = globalStatsEthereum.get(
-      asset.ipTokenAssetAddress.toLowerCase()
-    );
-    const vectorOfCurve = poolPowerUpModifiersEthereum.get(
-      asset.ipTokenAssetAddress.toLowerCase()
-    ).vectorOfCurve / 1e18
-    const apyReward =
-      (((liquidityMiningGlobalStats.rewardsPerBlock /
-        1e8 /
+const buildPool = (asset, chainData, chainConfig, chainName, iporTokenUsdPrice, coinPrices) => {
+  const {globalStats, poolPowerUpModifiers} = chainData;
+
+  const lpApr = asset.periods.find(
+    ({period}) => period === 'MONTH'
+  ).ipTokenReturnValue;
+
+  const coinPrice = coinPrices[`${chainName}:${asset.assetAddress.toLowerCase()}`].price;
+  const lpBalanceHistory = asset.periods.find(({period}) => period === 'HOUR').totalLiquidity;
+  const lpBalance = lpBalanceHistory[lpBalanceHistory.length - 1].totalLiquidity;
+  const lpTokenPriceHistory = asset.periods.find(({period}) => period === 'HOUR').ipTokenExchangeRates;
+  const lpTokenPrice = lpTokenPriceHistory[lpTokenPriceHistory.length - 1].exchangeRate;
+
+  const liquidityMiningGlobalStats = globalStats.get(asset.ipTokenAssetAddress.toLowerCase());
+  const vectorOfCurve = poolPowerUpModifiers.get(
+    asset.ipTokenAssetAddress.toLowerCase()
+  ).vectorOfCurve / 1e18;
+
+  const apyReward = (((liquidityMiningGlobalStats.rewardsPerBlock / 1e8 /
         (liquidityMiningGlobalStats.aggregatedPowerUp / 1e18)) *
-        (0.2 + vectorOfCurve) * //base powerup
-        BLOCKS_PER_YEAR *
-        iporTokenUsdPrice) /
-        lpTokenPrice /
-        coinPrice /
-        2) * //50% early withdraw fee
-      100; //percentage
+      (0.2 + vectorOfCurve) * BLOCKS_PER_YEAR * iporTokenUsdPrice) /
+    lpTokenPrice / coinPrice / 2) * 100;
 
-    const url = `https://app.ipor.io/zap/ethereum/${asset.asset.toLowerCase()}`;
+  return {
+    pool: `${asset.ipTokenAssetAddress}-${chainName}`,
+    chain: chainName.charAt(0).toUpperCase() + chainName.slice(1),
+    project: 'ipor-derivatives',
+    symbol: asset.asset,
+    tvlUsd: lpBalance * coinPrice,
+    apyBase: Number(lpApr),
+    apyReward: Number(apyReward),
+    underlyingTokens: [asset.assetAddress],
+    rewardTokens: [chainConfig.iporToken],
+    url: chainConfig.urlTemplate(asset.asset),
+  };
+};
 
-    pools.push({
-      pool: asset.ipTokenAssetAddress + '-ethereum',
-      chain: 'Ethereum',
-      project: 'ipor-derivatives',
-      symbol: asset.asset,
-      tvlUsd: lpBalance * coinPrice,
-      apyBase: Number(lpApr),
-      apyReward: Number(apyReward),
-      underlyingTokens: [asset.assetAddress],
-      rewardTokens: [IPOR_TOKEN_ETHEREUM],
-      url: url,
-    });
-  }
+const apy = async () => {
+  const chainsData = await Promise.all(
+    Object.entries(CHAIN_CONFIG).map(async ([chain, config]) => ({
+      chain,
+      config,
+      data: await getChainData(chain)
+    }))
+  );
 
-  for (const asset of assetsArbitrum) {
-    const rewardsToken = [IPOR_TOKEN_ARBITRUM];
-    const lpApr = asset.periods.find(
-      ({ period }) => period === 'MONTH'
-    ).ipTokenReturnValue;
-    const coinPrice =
-      coinPrices['arbitrum:' + asset.assetAddress.toLowerCase()].price;
-    const lpBalanceHistory = asset.periods.find(
-      ({ period }) => period === 'HOUR'
-    ).totalLiquidity;
-    const lpBalance =
-      lpBalanceHistory[lpBalanceHistory.length - 1].totalLiquidity;
-    const lpTokenPriceHistory = asset.periods.find(
-      ({ period }) => period === 'HOUR'
-    ).ipTokenExchangeRates;
-    const lpTokenPrice =
-      lpTokenPriceHistory[lpTokenPriceHistory.length - 1].exchangeRate;
-    const liquidityMiningGlobalStats = globalStatsArbitrum.get(
-      asset.ipTokenAssetAddress.toLowerCase()
-    );
-    const vectorOfCurve = poolPowerUpModifiersArbitrum.get(
-      asset.ipTokenAssetAddress.toLowerCase()
-    ).vectorOfCurve / 1e18;
-    const apyReward =
-      (((liquidityMiningGlobalStats.rewardsPerBlock /
-        1e8 /
-        (liquidityMiningGlobalStats.aggregatedPowerUp / 1e18)) *
-        (0.2 + vectorOfCurve) * //base powerup
-        BLOCKS_PER_YEAR *
-        iporTokenUsdPrice) /
-        lpTokenPrice /
-        coinPrice /
-        2) * //50% early withdraw fee
-      100; //percentage
+  const coinKeys = chainsData.flatMap(({chain, data}) =>
+    data.assets.map(asset => `${chain}:${asset.assetAddress}`)
+  );
+  coinKeys.push('ethereum:' + CHAIN_CONFIG.ethereum.iporToken);
 
-    const url = asset.asset === 'USDM'
-      ? `https://app.ipor.io/deposit/arbitrum/${asset.asset.toLowerCase()}`
-      : `https://app.ipor.io/zap/arbitrum/${asset.asset.toLowerCase()}`;
+  const coinPrices = (
+    await superagent.get(`${COIN_PRICES_URL}/${coinKeys.join(',').toLowerCase()}`)
+  ).body.coins;
 
-    pools.push({
-      pool: asset.ipTokenAssetAddress + '-arbitrum',
-      chain: 'Arbitrum',
-      project: 'ipor-derivatives',
-      symbol: asset.asset,
-      tvlUsd: lpBalance * coinPrice,
-      apyBase: Number(lpApr),
-      apyReward: Number(apyReward),
-      underlyingTokens: [asset.assetAddress],
-      rewardTokens: rewardsToken,
-      url: url,
-    });
-  }
+  const iporTokenUsdPrice = coinPrices['ethereum:' + CHAIN_CONFIG.ethereum.iporToken].price;
 
-  return pools;
+  return chainsData.flatMap(({chain, config, data}) =>
+    data.assets.map(asset =>
+      buildPool(asset, data, config, chain, iporTokenUsdPrice, coinPrices)
+    )
+  );
 };
 
 module.exports = {
