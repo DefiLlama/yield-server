@@ -151,6 +151,7 @@ const excludeAdaptors = [
   'maia-dao',
   'hermes-protocol',
   'xtoken',
+  'deltaprime',
 ];
 
 const excludePools = [
