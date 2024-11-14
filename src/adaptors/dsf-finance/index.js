@@ -7,12 +7,13 @@ const collectPools = async () => {
 
   return [
     {
-      pool: dsfPoolStables,
+      pool: `${dsfPoolStables}-ethereum`,
       chain: utils.formatChain('ethereum'),
       project: 'dsf-finance',
-      symbol: 'dsf-finance',
+      symbol: 'USDT-USDC-DAI',
       tvlUsd: info['tvl'],
       apy: info['apy'],
+      url: 'https://app.dsf.finance/',
     }
   ];
 };
