@@ -9,7 +9,7 @@ const collectPools = async () => {
     {
       pool: `${dsfPoolStables}-ethereum`,
       chain: utils.formatChain('ethereum'),
-      project: 'dsf-finance',
+      project: 'DSF.Finance',
       symbol: 'USDT-USDC-DAI',
       tvlUsd: info['tvl'],
       apy: info['apy'],
