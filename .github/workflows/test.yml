@@ -25,4 +25,4 @@ jobs:
         run: npm install
 
       - name: Run adapter tests
-        run: npm run test --adapter=dsf-finance
+        run: npm run test --adapter=DSF.Finance
