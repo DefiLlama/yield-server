@@ -1,47 +1,28 @@
-name: Test_Change
-on: pull_request
+name: Test Adapter
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
-      - id: file_changes
-        uses: trilom/file-changes-action@v1.2.3
-        with:
-          output: 'json'
-          fileOutput: 'json'
-      - name: Check out repository code
+      - name: Checkout repository
         uses: actions/checkout@v2
-      - name: Run changes files through test script
-        env:
-          ALCHEMY_CONNECTION_ARBITRUM: ${{ secrets.ALCHEMY_CONNECTION_ARBITRUM }}
-          ALCHEMY_CONNECTION_ETHEREUM: ${{ secrets.ALCHEMY_CONNECTION_ETHEREUM }}
-          ALCHEMY_CONNECTION_POLYGON: ${{ secrets.ALCHEMY_CONNECTION_POLYGON }}
-        run: |
-          RUN_FILES=$(
-            MODIFIED=${{ steps.file_changes.outputs.files_modified}} \
-            ADDED=${{ steps.file_changes.outputs.files_added}} \
-            node ${{ github.workspace }}/.github/workflows/getFileList.js
-          )
 
-          if [ "$RUN_FILES" = "[]" ]; then
-            echo "No adapter files were modified"
-            exit 0
-          fi
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
 
-          npm ci
+      - name: Install dependencies
+        run: npm install
 
-          for i in $(echo $RUN_FILES | tr  -d '"[]' | tr "," "\n")
-          do
-            {
-              npm run test --adapter=${i} 2>&1 | tee output.txt
-              node ${{ github.workspace }}/.github/workflows/commentResult.js /home/runner/work/yield-server/yield-server/output.txt "${{ github.repository_owner }}" "${{ github.event.repository.name }}" "${{ github.event.number }}" ${i}
-              if grep -q "PASS src/adaptors/test.js" output.txt; then
-                exit 0;
-              else
-                exit 1;
-              fi
-            } || {
-              echo -n $i
-              echo ' doesnt run'
-            }
-          done
+      - name: Run tests
+        run: npm run test --adapter=dsf-finance
