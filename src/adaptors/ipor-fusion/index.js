@@ -46,7 +46,7 @@ async function buildPool(vault) {
         apyReward: vault.totalRewardsExpectedValue ? Number(vault.totalRewardsExpectedValue) : 0,
         rewardTokens: [chainData.iporToken],
         underlyingTokens: [vault.assetAddress],
-        poolMeta: `${vault.asset} on ${chain} chain under management by vault named: ${vault.name}`,
+        poolMeta: `${vault.asset} in vault: ${vault.name}`,
         url
     };
 }
