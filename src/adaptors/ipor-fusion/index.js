@@ -31,9 +31,10 @@ async function buildPool(vault) {
     const chainConfig = Object.entries(CHAIN_CONFIG).find(
         ([_, config]) => config.chainId === vault.chainId
     );
-    const chain = chainConfig[0]
-    const chainData = chainConfig[1]
-    const url = `https://app.ipor.info/fusion/${chain}/${vault.address.toLowerCase()}`;
+    const chain = chainConfig[0];
+    const chainData = chainConfig[1];
+    const url = `https://app.ipor.io`;
+    // const url = `https://app.ipor.io/fusion/${chain}/${vault.address.toLowerCase()}`; // TODO: change to this when dApp with Fusion is live
 
     return {
         pool: vault.address,
