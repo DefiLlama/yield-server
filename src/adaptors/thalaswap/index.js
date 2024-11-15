@@ -16,7 +16,7 @@ async function main() {
 
   tvlArr = [];
   for (const pool of filteredPools) {
-    const liquidityPool = (await utils.getData(`${THALA_POOL_API_URL}?pool-type=` + pool.poolType))
+    const liquidityPool = (await utils.getData(`${THALA_POOL_API_URL}?pool-type=` + pool.metadata.type))
       ?.data;
 
     const swapFeesApr = liquidityPool.apr.find(item => item.source === 'Swap Fees')?.apr;
