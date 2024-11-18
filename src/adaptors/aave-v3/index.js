@@ -113,60 +113,65 @@ const getApy = async (market) => {
       })
     ).output / 1e18;
 
-  return reserveTokens.map((pool, i) => {
-    const p = poolsReserveData[i];
-    const price = prices[`${chain}:${pool.tokenAddress}`]?.price;
+  return reserveTokens
+    .map((pool, i) => {
+      const frozen = poolsReservesConfigurationData[i].isFrozen;
+      if (frozen) return null;
 
-    const supply = totalSupply[i];
-    let totalSupplyUsd = (supply / 10 ** underlyingDecimals[i]) * price;
+      const p = poolsReserveData[i];
+      const price = prices[`${chain}:${pool.tokenAddress}`]?.price;
 
-    const currentSupply = underlyingBalances[i];
-    let tvlUsd = (currentSupply / 10 ** underlyingDecimals[i]) * price;
+      const supply = totalSupply[i];
+      let totalSupplyUsd = (supply / 10 ** underlyingDecimals[i]) * price;
 
-    if (pool.symbol === 'GHO') {
-      tvlUsd = 0;
-      totalSupplyUsd = tvlUsd;
-      totalBorrowUsd = ghoSupply * prices[`${chain}:${GHO}`]?.price;
-    } else {
-      totalBorrowUsd = totalSupplyUsd - tvlUsd;
-    }
+      const currentSupply = underlyingBalances[i];
+      let tvlUsd = (currentSupply / 10 ** underlyingDecimals[i]) * price;
 
-    const marketUrlParam =
-      market === 'ethereum'
-        ? 'mainnet'
-        : market === 'avax'
-        ? 'avalanche'
-        : market === 'xdai'
-        ? 'gnosis'
-        : market === 'bsc'
-        ? 'bnb'
-        : market;
+      if (pool.symbol === 'GHO') {
+        tvlUsd = 0;
+        totalSupplyUsd = tvlUsd;
+        totalBorrowUsd = ghoSupply * prices[`${chain}:${GHO}`]?.price;
+      } else {
+        totalBorrowUsd = totalSupplyUsd - tvlUsd;
+      }
 
-    const url = `https://app.aave.com/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=proto_${marketUrlParam}_v3`;
+      const marketUrlParam =
+        market === 'ethereum'
+          ? 'mainnet'
+          : market === 'avax'
+          ? 'avalanche'
+          : market === 'xdai'
+          ? 'gnosis'
+          : market === 'bsc'
+          ? 'bnb'
+          : market;
 
-    return {
-      pool: `${aTokens[i].tokenAddress}-${
-        market === 'avax' ? 'avalanche' : market
-      }`.toLowerCase(),
-      chain,
-      project: 'aave-v3',
-      symbol: pool.symbol,
-      tvlUsd,
-      apyBase: (p.liquidityRate / 10 ** 27) * 100,
-      underlyingTokens: [pool.tokenAddress],
-      totalSupplyUsd,
-      totalBorrowUsd,
-      debtCeilingUsd: pool.symbol === 'GHO' ? 1e8 : null,
-      apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
-      ltv: poolsReservesConfigurationData[i].ltv / 10000,
-      url,
-      borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
-      mintedCoin: pool.symbol === 'GHO' ? 'GHO' : null,
-      poolMeta: ['lido', 'etherfi'].includes(market)
-        ? `${market}-market`
-        : null,
-    };
-  });
+      const url = `https://app.aave.com/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=proto_${marketUrlParam}_v3`;
+
+      return {
+        pool: `${aTokens[i].tokenAddress}-${
+          market === 'avax' ? 'avalanche' : market
+        }`.toLowerCase(),
+        chain,
+        project: 'aave-v3',
+        symbol: pool.symbol,
+        tvlUsd,
+        apyBase: (p.liquidityRate / 10 ** 27) * 100,
+        underlyingTokens: [pool.tokenAddress],
+        totalSupplyUsd,
+        totalBorrowUsd,
+        debtCeilingUsd: pool.symbol === 'GHO' ? 1e8 : null,
+        apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+        ltv: poolsReservesConfigurationData[i].ltv / 10000,
+        url,
+        borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
+        mintedCoin: pool.symbol === 'GHO' ? 'GHO' : null,
+        poolMeta: ['lido', 'etherfi'].includes(market)
+          ? `${market}-market`
+          : null,
+      };
+    })
+    .filter((i) => Boolean(i));
 };
 
 const stkGho = async () => {
