@@ -43,8 +43,8 @@ async function buildPool(vault) {
         symbol: `${vault.asset}`,
         tvlUsd,
         apyBase,
-        apyReward: vault.totalRewardsExpectedValue ? Number(vault.totalRewardsExpectedValue) : 0,
-        rewardTokens: [chainData.iporToken],
+        apyReward: 0,
+        rewardTokens: [],
         underlyingTokens: [vault.assetAddress],
         poolMeta: `${vault.name}`,
         url
