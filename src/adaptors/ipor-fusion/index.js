@@ -40,13 +40,13 @@ async function buildPool(vault) {
         pool: vault.address,
         chain,
         project: 'ipor-fusion',
-        symbol: `${vault.asset} (${vault.name})`,
+        symbol: `${vault.asset}`,
         tvlUsd,
         apyBase,
         apyReward: vault.totalRewardsExpectedValue ? Number(vault.totalRewardsExpectedValue) : 0,
         rewardTokens: [chainData.iporToken],
         underlyingTokens: [vault.assetAddress],
-        poolMeta: `${vault.asset} in vault: ${vault.name}`,
+        poolMeta: `${vault.name}`,
         url
     };
 }
