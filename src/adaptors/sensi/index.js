@@ -12,10 +12,10 @@ const SY_pool = async() => {
         pool: '0x21B656d3818A1dD07B800c1FE728fB81921af3A3',
         chain: utils.formatChain('bnb'),
         project: 'sensi',
-        symbol: 'BNB (Smart Yield)',
+        symbol: 'BNB',
         tvlUsd: TVL,
         apy: APY,
-        poolMeta: "Smart Yield is an automated Yield farm, that does all the work of managing yield farming automatically",
+        poolMeta: "Automated Farm",
     }
 
     return [SY_pool_metrics]
