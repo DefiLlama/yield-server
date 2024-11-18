@@ -10,7 +10,7 @@ const SY_pool = async() => {
 
     const SY_pool_metrics = {
         pool: '0x21B656d3818A1dD07B800c1FE728fB81921af3A3',
-        chain: utils.formatChain('bnb'),
+        chain: utils.formatChain('bsc'),
         project: 'sensi',
         symbol: 'BNB',
         tvlUsd: TVL,
