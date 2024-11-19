@@ -13,7 +13,7 @@ const apy = async () => {
   return [
     // Mellow Vault
     {
-        poolMeta: "Mellow Finance Protocol. Lockup Period: After requesting withdrawal, you will not receive any points for the withdrawn LRT. The points earned are displayed in your dashboard. Withdrawals are processed by risk curators within 1-7 days in batches.",
+        poolMeta: "Mellow Finance Protocol. Lockup Period: Withdrawals are processed by risk curators within 1-7 days in batches.",
         pool: mellowVault.address,
         chain: utils.formatChain(mellowVault.network),
         project: 'quasar-vaults',
