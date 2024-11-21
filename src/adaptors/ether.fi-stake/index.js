@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const weETH = '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee';
+const eETH = '0x35fA164735182de50811E8e2E824cFb9B6118ac2'
 const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const eigen = '0xec53bf9167f50cdeb3ae105f56099aaab9061f83';
 
@@ -10,6 +11,14 @@ const apy = async () => {
     (
       await sdk.api.abi.call({
         target: weETH,
+        abi: 'erc20:totalSupply',
+      })
+    ).output / 1e18;
+
+  const totalSupplyEETH =
+    (
+      await sdk.api.abi.call({
+        target: eETH,
         abi: 'erc20:totalSupply',
       })
     ).output / 1e18;
@@ -58,17 +67,21 @@ const apy = async () => {
     target: '0xAB7590CeE3Ef1A863E9A5877fBB82D9bE11504da',
     abi: 'function categoryTVL(string _category) view returns (uint256)',
     params: [eigen]
-  }));
-  const eigenPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/ethereum:${eigen}`)
-  ).data.coins['ethereum:ETH']?.price;
+  })) / 1e18;
 
   const priceKey = `ethereum:${weETH}`;
+  const priceKeyEigen = `ethereum:${eigen}`;
+  const priceKeyEETH = `ethereum:${eETH}`;
+  const eigenPrice = (
+    await axios.get(`https://coins.llama.fi/prices/current/ethereum:${eigen}`)
+  ).data.coins[`ethereum:${eigen}`]?.price;
+  const eethPrice = (
+    await axios.get(`https://coins.llama.fi/prices/current/ethereum:${eETH}`)
+  ).data.coins[`ethereum:${eETH}`]?.price;
   const price = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).data.coins[priceKey]?.price;
-
-  const restakingApy = (restakingWeeklyEigen * price) / 7 / (totalSupply * price) * 365 * 100;
+  const restakingApy = (restakingWeeklyEigen * eigenPrice) / 7 / (totalSupplyEETH * eethPrice) * 365 * 100;
   console.log('restakingApy', restakingApy);
   return [
     {
