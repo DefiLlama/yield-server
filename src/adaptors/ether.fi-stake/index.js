@@ -3,6 +3,7 @@ const axios = require('axios');
 
 const weETH = '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee';
 const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+const eigen = '0xec53bf9167f50cdeb3ae105f56099aaab9061f83';
 
 const apy = async () => {
   const totalSupply =
@@ -51,11 +52,24 @@ const apy = async () => {
     365 *
     100;
 
+
+  const optimismApi = new sdk.ChainApi({ chain: 'optimism' });
+  const restakingWeeklyEigen = Number(await optimismApi.call({
+    target: '0xAB7590CeE3Ef1A863E9A5877fBB82D9bE11504da',
+    abi: 'function categoryTVL(string _category) view returns (uint256)',
+    params: [eigen]
+  }));
+  const eigenPrice = (
+    await axios.get(`https://coins.llama.fi/prices/current/ethereum:${eigen}`)
+  ).data.coins['ethereum:ETH']?.price;
+
   const priceKey = `ethereum:${weETH}`;
   const price = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).data.coins[priceKey]?.price;
 
+  const restakingApy = (restakingWeeklyEigen * price) / 7 / (totalSupply * price) * 365 * 100;
+  console.log('restakingApy', restakingApy);
   return [
     {
       pool: weETH,
@@ -65,6 +79,7 @@ const apy = async () => {
       tvlUsd: totalSupply * price,
       apyBase: apr1d,
       apyBase7d: apr7d,
+      apyReward: restakingApy,
       underlyingTokens: [weth],
     },
   ];
