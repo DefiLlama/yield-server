@@ -5,6 +5,7 @@ const BigNumber = require('bignumber.js');
 const utils = require('../utils');
 const abi = require('./abi');
 const path = require('path');
+const ERC4626abi = require('./ERC4626.json');
 
 require('dotenv').config({
   path: path.resolve(__dirname, '../../../config.env'),
@@ -13,10 +14,25 @@ require('dotenv').config({
 const firmStart = 16159015;
 const DBR = '0xAD038Eb671c44b853887A7E32528FaB35dC5D710';
 const DOLA = '0x865377367054516e17014CcdED1e7d814EDC9ce4';
+const INV = '0x41D5D79431A913C4aE7d69a668ecdfE5fF9DFB68';
+const SINV_ADDRESS = '0x08d23468A467d2bb86FaE0e32F247A26C7E2e994';
+const SDOLA_ADDRESS = '0xb45ad160634c528Cc3D2926d9807104FA3157305';
+const TOKENS_VIEWER = '0x826bBeB1DBd9aA36CD44538CC45Dcf9E93BDA574';
+const ONE_DAY_MS = 86400000;
+const WEEKS_PER_YEAR = 365 / 7;
 
 const provider = new ethers.providers.JsonRpcProvider(
   process.env.ALCHEMY_CONNECTION_ETHEREUM
 );
+
+const getWeekIndexUtc = (ts) => {
+  const d = ts ? new Date(ts) : new Date();
+  const weekFloat = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0) / (ONE_DAY_MS * 7);
+  return Math.floor(weekFloat);
+}
+
+const aprToApy = (apr, compoundingsPerYear) =>
+  !compoundingsPerYear ? apr : (Math.pow(1 + (apr / 100) / compoundingsPerYear, compoundingsPerYear) - 1) * 100;
 
 const l1TokenPrices = async (l1TokenAddrs) => {
   const l1TokenQuery = l1TokenAddrs.map((addr) => `ethereum:${addr}`).join();
@@ -61,6 +77,7 @@ const getFirmEscrowsWithMarket = async (markets, provider) => {
 
   return escrowsWithMarkets;
 };
+
 
 const main = async () => {
   const balances = {};
@@ -127,6 +144,8 @@ const main = async () => {
     })
   ).output;
 
+  const weekIndex = getWeekIndexUtc();
+
   const allLiquidity = (
     await sdk.api.abi.multiCall({
       chain: 'ethereum',
@@ -180,6 +199,114 @@ const main = async () => {
       borrowable: !allBorrowPaused[marketIndex].output,
       ltv: Number(allCfs[marketIndex].output) / 1e4,
     };
+  });
+
+  // sDOLA
+  const sdolaData = (
+    await Promise.all([
+      sdk.api.abi.multiCall(
+        {
+          chain: 'ethereum',
+          calls: [
+            {
+              target: SDOLA_ADDRESS,
+              params: [],
+            },
+          ],
+          abi: 'uint:totalAssets',
+        }
+      ),
+      sdk.api.abi.multiCall(
+        {
+          chain: 'ethereum',
+          calls: [
+            {
+              target: SDOLA_ADDRESS,
+              params: [weekIndex-1],
+            },
+          ],
+          abi: 'uint:weeklyRevenue',
+        }
+      ),
+    ])
+  ).output;
+
+  const sDolaTotalAssets = Number(sdolaData[0].output) / 1e18;
+  const sDolaPastWeekRevenue = Number(sdolaData[1].output) / 1e18;
+  const sDOLAapr = sDolaTotalAssets > 0 ? (sDolaPastWeekRevenue * WEEKS_PER_YEAR) / sDolaTotalAssets * 100 : 0;
+  
+  // add sDOLA
+  pools.push({
+    pool: `sDOLA`,
+    chain: 'Ethereum',
+    project: 'inverse-finance-firm',
+    mintedCoin: 'sDOLA',
+    symbol: 'sDOLA',
+    tvlUsd: sDolaTotalAssets * prices[DOLA].price,
+    apyBase: aprToApy(sDOLAapr, WEEKS_PER_YEAR),
+    underlyingTokens: [DOLA],
+    poolMeta: 'Yield-Bearing stable',
+    url: 'https://inverse.finance/sDOLA',
+  });
+
+  // sINV
+  const sinvData = (
+    await Promise.all([
+      sdk.api.abi.multiCall(
+        {
+          chain: 'ethereum',
+          calls: [
+            {
+              target: SINV_ADDRESS,
+              params: [],
+            },
+          ],
+          abi: 'uint:totalAssets',
+        }
+      ),
+      sdk.api.abi.multiCall(
+        {
+          chain: 'ethereum',
+          calls: [
+            {
+              target: SINV_ADDRESS,
+              params: [],
+            },
+          ],
+          abi: 'uint:pastPeriodRevenue',
+        }
+      ),
+      sdk.api.abi.multiCall(
+        {
+          chain: 'ethereum',
+          calls: [
+            {
+              target: TOKENS_VIEWER,
+              params: [],
+            },
+          ],
+          abi: 'uint:getDbrApr',
+        }
+      ),
+    ])
+  ).output;
+
+  const sInvTotalAssets = Number(sinvData[0].output) / 1e18;
+  const sinvPastWeekRevenue = Number(sinvData[1].output) / 1e18;
+  const sINVapr = sDolaTotalAssets > 0 ? (sinvPastWeekRevenue * WEEKS_PER_YEAR) / sInvTotalAssets * 100 : 0;
+  const dbrApr = Number(sinvData[2].output) / 1e18;
+  
+  // add sINV
+  pools.push({
+    pool: `sINV`,
+    chain: 'Ethereum',
+    project: 'inverse-finance-firm',
+    mintedCoin: 'sINV',
+    symbol: 'sINV',
+    tvlUsd: sInvTotalAssets * prices[INV].price,
+    apyBase: aprToApy(sINVapr, WEEKS_PER_YEAR),
+    underlyingTokens: [INV],
+    url: 'https://inverse.finance/sINV',
   });
 
   return utils.removeDuplicates(pools.filter((p) => utils.keepFinite(p)));
