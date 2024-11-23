@@ -22,7 +22,7 @@ const collectPools = async () => {
       pool: `${dsfPoolStables}-ethereum`,
       chain: utils.formatChain('ethereum'),
       project: 'dsf.finance',
-      symbol: 'StableUSD (USDT-USDC-DAI)',
+      symbol: 'USDT-USDC-DAI',
       tvlUsd: tvl / 1e18,
       apy: adjustedApy,
       rewardTokens: null,
