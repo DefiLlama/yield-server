@@ -197,7 +197,7 @@ const apy = async () => {
       return {
         pool: poolInfo.lpToken,
         chain: CHAIN,
-        project: 'zkswap-finance',
+        project: 'zkswap-v2',
         symbol: 'ZF',
         tvlUsd: totalStakingTokenInPool,
         apyBase: 0,
@@ -244,7 +244,7 @@ const apy = async () => {
   const govPool = {
     pool: ZF_GOV,
     chain: CHAIN,
-    project: 'zkswap-finance',
+    project: 'zkswap-v2',
     symbol: 'ZF',
     tvlUsd: govTvl,
     apyBase: unstakedAPY,
@@ -307,7 +307,7 @@ const apy = async () => {
     return {
       pool: pool.lpToken,
       chain: CHAIN,
-      project: 'zkswap-finance',
+      project: 'zkswap-v2',
       symbol: pairInfo.name,
       tvlUsd: Number(zfFarmReservesUsd),
       apyBase,

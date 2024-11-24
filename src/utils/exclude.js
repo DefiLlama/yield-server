@@ -617,6 +617,7 @@ const excludePools = [
   'morpho-blue-0x0d55c325847ed87d53506c2aca7de046cb59d8c22928fd55fb2790c4811d20db-ethereum',
   'morpho-blue-0x355c9a4c12f60a10ab3b68507bfab21bd6913182037ffe25d94dabffea45429f-ethereum',
   'FqsCPQ7x4qFcbxVLdmx1ty7iqSFWYcUzxxsxUFq4eyBn',
+  '0x1f0bc333c535838ca1020c87a6a043d89577c563-usdc-real',
 ];
 
 const boundaries = {
