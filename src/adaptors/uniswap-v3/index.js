@@ -34,7 +34,7 @@ const chains = {
 
 const query = gql`
   {
-    pools(first: 1000, skip: <SKIP>, orderBy: totalValueLockedUSD, orderDirection: desc block: {number: <PLACEHOLDER>}) {
+    pools(first: 1000, skip: <SKIP>, where: {totalValueLockedUSD_gt: "10000"}, orderBy: totalValueLockedUSD, orderDirection: desc block: {number: <PLACEHOLDER>}) {
       id
       totalValueLockedToken0
       totalValueLockedToken1
@@ -56,9 +56,9 @@ const query = gql`
 
 const queryPrior = gql`
   {
-    pools(first: 1000, skip: <SKIP>, orderBy: totalValueLockedUSD orderDirection:desc block: {number: <PLACEHOLDER>}) {
-      id 
-      volumeUSD 
+    pools(first: 1000, skip: <SKIP>, where: {totalValueLockedUSD_gt: "10000"}, orderBy: totalValueLockedUSD orderDirection:desc block: {number: <PLACEHOLDER>}) {
+      id
+      volumeUSD
     }
   }
 `;
@@ -89,6 +89,7 @@ const topLvl = async (
     let skip = 0;
     while (true) {
       let queryC = query;
+      console.log(`allPools: query pools from: ${skip} to: ${skip + 1000}`);
       let currentData = await request(url, queryC.replace('<PLACEHOLDER>', block).replace('<SKIP>', skip));
       if (!currentData.pools || currentData.pools.length === 0) break;
       allPools = [...allPools, ...currentData.pools];
@@ -161,6 +162,7 @@ const topLvl = async (
     let allPriorPools = [];
     skip = 0;
     while (true) {
+      console.log(`allPriorPools: query pools from: ${skip} to: ${skip + 1000}`);
       let currentData = await request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior).replace('<SKIP>', skip));
       if (!currentData.pools || currentData.pools.length === 0) break;
       allPriorPools = [...allPriorPools, ...currentData.pools];
@@ -193,6 +195,7 @@ const topLvl = async (
     let allPrior7dPools = [];
     skip = 0;
     while (true) {
+      console.log(`allPrior7dPools: query pools from: ${skip} to: ${skip + 1000}`);
       let currentData = await request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d).replace('<SKIP>', skip));
       if (!currentData.pools || currentData.pools.length === 0) break;
       allPrior7dPools = [...allPrior7dPools, ...currentData.pools];
