@@ -154,7 +154,7 @@ const lsdTokens = [
     fee: 0.1,
   },
   {
-    name: 'Mantle Staked ETH',
+    name: 'mETH Protocol',
     symbol: 'mETH',
     address: '0xd5F7838F5C461fefF7FE49ea5ebaF7728bB0ADfa',
     addressExchangeRate: '0xe3cBd06D7dadB3F4e6557bAb7EdD924CD1489E8f',
@@ -569,7 +569,7 @@ const getExpectedRates = async () => {
   const mETH =
     (
       await sdk.api.abi.call({
-        target: lsdTokens.find((lsd) => lsd.name === 'Mantle Staked ETH')
+        target: lsdTokens.find((lsd) => lsd.name === 'mETH Protocol')
           .addressExchangeRate,
         chain: 'ethereum',
         abi: mETHAbi,
@@ -658,7 +658,7 @@ const getExpectedRates = async () => {
         ? nETH
         : lsd.name === 'Bedrock uniETH'
         ? uniETH
-        : lsd.name === 'Mantle Staked ETH'
+        : lsd.name === 'mETH Protocol'
         ? mETH
         : lsd.name === 'Dinero (pxETH)'
         ? apxEth
