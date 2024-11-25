@@ -176,21 +176,8 @@ function loadMyRef(slice) {
 function parseMasterData(masterDataBOC) {
     const ASSETS_ID = MAINNET_ASSETS_ID;
     const masterSlice = Cell.fromBase64(masterDataBOC).beginParse();
-    const meta = masterSlice.loadRef().beginParse().loadStringTail();
-    const upgradeConfigParser = masterSlice.loadRef().beginParse();
-
-    const upgradeConfig = {
-        masterCodeVersion: Number(upgradeConfigParser.loadCoins()),
-        userCodeVersion: Number(upgradeConfigParser.loadCoins()),
-        timeout: upgradeConfigParser.loadUint(32),
-        updateTime: upgradeConfigParser.loadUint(64),
-        freezeTime: upgradeConfigParser.loadUint(64),
-        userCode: loadMyRef(upgradeConfigParser),
-        blankCode: loadMyRef(upgradeConfigParser),
-        newMasterCode: loadMaybeMyRef(upgradeConfigParser),
-        newUserCode: loadMaybeMyRef(upgradeConfigParser),
-    };
-    upgradeConfigParser.endParse();
+    masterSlice.loadRef(); // meta
+    masterSlice.loadRef() // upgradeConfigRef
 
     const masterConfigSlice = masterSlice.loadRef().beginParse();
 
@@ -208,16 +195,6 @@ function parseMasterData(masterDataBOC) {
         assetsExtendedData.set(assetID, assetData);
     }
 
-    const masterConfig = {
-        ifActive: masterConfigSlice.loadInt(8),
-        admin: masterConfigSlice.loadAddress(),
-        adminPK: masterConfigSlice.loadUintBig(256),
-        tokenKeys: loadMaybeMyRef(masterConfigSlice),
-        walletToMaster: loadMaybeMyRef(masterConfigSlice),
-    };
-
-    masterConfigSlice.endParse();
-
     for (const [_, assetID] of Object.entries(ASSETS_ID)) {
         const assetData = assetsExtendedData.get(assetID);
         const totalSupply = calculatePresentValue(assetData.sRate, assetData.totalSupply);
@@ -229,9 +206,6 @@ function parseMasterData(masterDataBOC) {
     }
 
     return {
-        meta: meta,
-        upgradeConfig: upgradeConfig,
-        masterConfig: masterConfig,
         assetsConfig: assetsConfigDict,
         assetsData: assetsExtendedData,
         assetsReserves: assetsReserves,

@@ -4,6 +4,7 @@ const sdk = require('@defillama/sdk');
 const abiFactory = require('./abiFactory.json');
 const abiControllers = require('./abiControllers.json');
 const abiPolicies = require('./abiPolicies.json');
+const { getERC4626Info } = require('../utils');
 
 const factory = '0xC9332fdCB1C491Dcc683bAe86Fe3cb70360738BC';
 const crvUsd = '0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E';
@@ -134,7 +135,7 @@ const apy = async () => {
     const ltv = ((maxBorrowable[i] / 1e18) * crvUsdPrice) / price;
 
     return {
-      pool: amms[i],
+      pool: `${amms[i]}-crvusd`,
       symbol,
       project: 'crvusd',
       chain: 'ethereum',
@@ -150,9 +151,25 @@ const apy = async () => {
     };
   });
 
-  return pools.filter(
-    (i) => i.pool !== '0x136e783846ef68C8Bd00a3369F787dF8d683a696'
+  const scrvusd = await getERC4626Info(
+    '0x0655977FEb2f289A4aB78af67BAB0d17aAb84367',
+    'ethereum'
   );
+
+  return pools
+    .concat([
+      {
+        symbol: 'scrvUSD',
+        pool: `${scrvusd.pool}-crvusd`,
+        project: 'crvusd',
+        chain: 'ethereum',
+        tvlUsd: scrvusd.tvl / 1e18,
+        apyBase: scrvusd.apyBase,
+      },
+    ])
+    .filter(
+      (i) => i.pool !== '0x136e783846ef68C8Bd00a3369F787dF8d683a696-crvusd'
+    );
 };
 
 module.exports = {

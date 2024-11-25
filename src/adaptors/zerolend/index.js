@@ -10,11 +10,16 @@ const SECONDS_PER_YEAR = 31536000;
 
 const chainUrlParam = {
   linea: ['proto_linea_v3'],
-  ethereum: ['proto_mainnet_lrt_v3', 'proto_mainnet_btc_v3'],
+  ethereum: [
+    'proto_mainnet_lrt_v3',
+    'proto_mainnet_btc_v3',
+    'proto_mainnet_rwa_v3',
+  ],
   era: ['proto_zksync_era_v3'],
   blast: ['proto_blast_v3'],
   manta: ['proto_manta_v3'],
   xlayer: ['proto_layerx_v3'],
+  base: ['proto_base_v3'],
 };
 
 const oraclePriceABI = {
@@ -106,12 +111,14 @@ const API_URLS = {
   ethereum: [
     baseUrl + 'zerolend-mainnet-lrt/1.0.0/gn',
     baseUrl + 'zerolend-mainnet-btc/1.0.0/gn',
+    baseUrl + 'zerolend-mainnet-rwa/1.0.0/gn',
   ],
   linea: [baseUrl + 'zerolend-linea/1.0.0/gn'],
   era: [baseUrl + 'zerolend-zksync/1.0.0/gn'],
   manta: [baseUrl + 'zerolend-m/1.0.0/gn'],
   blast: [baseUrl + 'zerolend-blast/1.0.1/gn'],
   xlayer: [baseUrl + 'zerolend-xlayer/1.0.0/gn'],
+  base: [baseUrl + 'zerolend-base-mainnet/1.0.0/gn'],
 };
 
 const query = gql`
@@ -201,9 +208,19 @@ const apy = async () => {
     )
   );
 
-  const { pricesByAddress, pricesBySymbol } = await getPrices(
-    underlyingTokens.flat().concat(rewardTokens.flat(Infinity))
-  );
+  const allTokens = underlyingTokens.flat().concat(rewardTokens.flat(Infinity));
+  const pricesByAddress = {};
+  const pricesBySymbol = {};
+
+  for (let i = 0; i < allTokens.length; i += 50) {
+    const chunk = allTokens.slice(i, i + 50);
+    const {
+      pricesByAddress: chunkPricesByAddress,
+      pricesBySymbol: chunkPricesBySymbol,
+    } = await getPrices(chunk);
+    Object.assign(pricesByAddress, chunkPricesByAddress);
+    Object.assign(pricesBySymbol, chunkPricesBySymbol);
+  }
 
   const pools = data.map(([chain, markets], i) => {
     const chainPools = markets.map((pool, idx) => {
@@ -276,6 +293,8 @@ const apy = async () => {
         }&marketName=${
           chain === 'ethereum' && pool.symbol.toLowerCase().includes('btc')
             ? chainUrlParam[chain][1]
+            : chain === 'ethereum' && pool.symbol.toLowerCase().includes('rwa')
+            ? chainUrlParam[chain][2]
             : chainUrlParam[chain][0]
         }&utm_source=defillama&utm_medium=listing&utm_campaign=external`,
         borrowable: pool.borrowingEnabled,

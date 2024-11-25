@@ -28,6 +28,7 @@ const ChainConfig = {
     auraAddress: RewardAssetConfig.auraAddress,
     balAddress: RewardAssetConfig.balAddress,
     ldoAddress: '0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32',
+    chainId: 1,
   },
   arbitrum: {
     booster: '0x98Ef32edd24e2c92525E59afc4475C1242a30184',
@@ -37,6 +38,7 @@ const ChainConfig = {
     balAddress: '0xFE8B128bA8C78aabC59d4c64cEE7fF28e9379921',
     ldoAddress: '0x13Ad51ed4F1B7e9Dc168d8a00cB3f4dDD85EfA60',
     chainTokens: ['0x912ce59144191c1204e64559fe8253a0e49e6548'], // ARB
+    chainId: 42161,
   },
   optimism: {
     booster: '0x98Ef32edd24e2c92525E59afc4475C1242a30184',
@@ -49,6 +51,7 @@ const ChainConfig = {
       '0x4200000000000000000000000000000000000042',
       '0x39FdE572a18448F8139b7788099F0a0740f51205',
     ], // OP, OATH
+    chainId: 10,
   },
   xdai: {
     booster: '0x98Ef32edd24e2c92525E59afc4475C1242a30184',
@@ -58,6 +61,7 @@ const ChainConfig = {
     balAddress: '0x7eF541E2a22058048904fE5744f9c7E4C57AF717',
     ldoAddress: '0x96e334926454CD4B7b4efb8a8fcb650a738aD244',
     chainTokens: ['0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb'], // GNO
+    chainId: 100,
   },
   polygon: {
     booster: '0x98Ef32edd24e2c92525E59afc4475C1242a30184',
@@ -67,6 +71,7 @@ const ChainConfig = {
     balAddress: '0x9a71012b13ca4d3d0cdc72a177df3ef03b0e76a3',
     ldoAddress: '0xC3C7d422809852031b44ab29EEC9F1EfF2A58756',
     chainTokens: ['0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270'], // MATIC
+    chainId: 137,
   },
 };
 
@@ -311,7 +316,7 @@ const main = async () => {
             ethers.utils.getAddress(auraAddress),
             ethers.utils.getAddress(balAddress),
           ],
-          url: `https://app.aura.finance/#/1/pool/${validPoolIds[i]}`,
+          url: `https://app.aura.finance/#/${ChainConfig[chain].chainId}/pool/${validPoolIds[i]}`,
         };
 
         // There are not too many extra reward pools so we do individual calls to simplify
@@ -325,6 +330,19 @@ const main = async () => {
               permitFailure: true,
             })
           ).output;
+
+          const periodFinish = (
+            await sdk.api.abi.call({
+              abi: virtualBalanceRewardPoolABI.filter(
+                ({ name }) => name === 'periodFinish'
+              )[0],
+              target: virtualBalanceRewardPool,
+              chain,
+              permitFailure: true,
+            })
+          ).output;
+
+          if (periodFinish < Math.floor(Date.now() / 1000)) continue;
 
           const extraRewardRate = (
             await sdk.api.abi.call({

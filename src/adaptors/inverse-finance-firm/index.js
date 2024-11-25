@@ -26,8 +26,13 @@ const l1TokenPrices = async (l1TokenAddrs) => {
 
   return Object.fromEntries(
     l1TokenAddrs.map((addr) => {
-      const { decimals, price, symbol } = data.coins[`ethereum:${addr}`];
-      return [addr, { price, decimals, symbol }];
+      const coinData = data.coins[`ethereum:${addr}`];
+      if (coinData) {
+        const { decimals, price, symbol } = coinData;
+        return [addr, { price, decimals, symbol }];
+      } else {
+        return [addr, { price: null, decimals: null, symbol: null }];
+      }
     })
   );
 };

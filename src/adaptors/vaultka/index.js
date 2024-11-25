@@ -2,7 +2,9 @@ const axios = require('axios');
 const utils = require('../utils');
 
 const getApy = async () => {
-  const response = await axios.get('https://solana-api.vaultka.com/lend/all');
+  const response = await axios.get(
+    'https://solana-api.vaultka.com/lend/all/11111111111111111111111111111111'
+  );
   const { usdc, sol, usdt } = response.data.data;
   const poolsConfig = [
     {

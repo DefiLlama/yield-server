@@ -13,6 +13,7 @@ const REWARD_SPEED_BORROW = 'tonicBorrowSpeeds';
 const SUPPLY_RATE = 'supplyRatePerBlock';
 const BORROW_RATE = 'borrowRatePerBlock';
 const TOTAL_BORROWS = 'totalBorrows';
+const TOTAL_RESERVES = 'totalReserves';
 const GET_CHASH = 'getCash';
 const UNDERLYING = 'underlying';
 const BLOCKS_PER_DAY = 86400 / 6;
@@ -131,6 +132,12 @@ const getApy = async () => {
     ercDelegator
   );
 
+  const totalReserves = await multiCallMarkets(
+    allMarkets,
+    TOTAL_RESERVES,
+    ercDelegator
+  );
+
   const underlyingTokens = await multiCallMarkets(
     allMarkets,
     UNDERLYING,
@@ -163,11 +170,14 @@ const getApy = async () => {
       price = symbol.toLowerCase().includes('usd') ? 1 : 0;
 
     const totalSupplyUsd =
-      ((Number(marketsCash[i]) + Number(totalBorrows[i])) / 10 ** decimals) *
+      ((Number(marketsCash[i]) +
+        Number(totalBorrows[i]) -
+        Number(totalReserves[i])) /
+        10 ** decimals) *
       price;
-    const tvlUsd = (marketsCash[i] / 10 ** decimals) * price;
 
     const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
+    const tvlUsd = totalSupplyUsd - totalBorrowUsd;
 
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
     const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);

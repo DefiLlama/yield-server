@@ -32,6 +32,7 @@ exports.BLOCKCHAINIDS.forEach((blockchainId) => {
     case 'arbitrum':
     case 'fraxtal':
     case 'fantom':
+    case 'optimism':
       blockchainRegistries = REGISTRY_TYPES;
       break;
     case 'xdai':
@@ -49,6 +50,13 @@ exports.OVERRIDE_DATA = {
       symbol: 'xSTABLE',
       url: 'https://curve.fi/#/fantom/pools/factory-stable-ng-24/deposit',
     },
+    '0x3C2fCf53f742345c5c1b3dcb2612a1949BC1F18d': {
+      symbol: 'xWETH',
+      url: 'https://curve.fi/#/fantom/pools/factory-stable-ng-37/deposit',
+    },
+    '0x37F5dae6039C8eC4c32ad7D3e2a07aCaa55C08f9': {
+      symbol: 'xBTC',
+      url: 'https://curve.fi/#/fantom/pools/factory-stable-ng-39/deposit',
+    },
   },
 };
-

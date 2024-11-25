@@ -9,6 +9,7 @@ const abiConvex = require('./abiConvex.json');
 const abiBenqi = require('./abiBenqiAvalanche.json');
 const abiCurveDex = require('./abiCurveDEX.json');
 const abiLido = require('./abiLido.json');
+const abiAerodromeBase = require('./abiAerodromeBase.json');
 
 const getPoolData = async ({ contract, abi, chain, exchangeRate = 1 }) => {
   const { output: tvlUsd } = await sdk.api.abi.call({
@@ -16,7 +17,7 @@ const getPoolData = async ({ contract, abi, chain, exchangeRate = 1 }) => {
     abi: abi.find((m) => m.name === 'totalAssets'),
     chain,
   });
-
+  
   const { output: decimals } = await sdk.api.abi.call({
     target: contract,
     abi: abi.find((m) => m.name === 'decimals'),
@@ -102,6 +103,12 @@ const getApy = async () => {
     exchangeRate: Number(ethUsdExchangeRate),
   });
 
+  const aerodromeBase = await getPoolData({
+    contract: '0x4d95d8A4705Ca23D6679F6E2974b37CC0e89f632',
+    abi: abiAerodromeBase,
+    chain: 'base',
+  });
+
   return [
     aavePolygon,
     aaveAvalanche,
@@ -111,6 +118,7 @@ const getApy = async () => {
     convexFinance,
     curveDEX,
     lido,
+    aerodromeBase,
   ].filter((i) => utils.keepFinite(i));
 };
 

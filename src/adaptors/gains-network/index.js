@@ -46,6 +46,17 @@ const chains = {
       },
     ],
   },
+  base: {
+    gns: '0xFB1Aaba03c31EA98A3eEC7591808AcB1947ee7Ac',
+    staking: '0x28efAa11199DAF45AA8fBf95f920e5bc090DCbF3',
+    vaults: [
+      {
+        symbol: 'USDC',
+        pool: '0xad20523A7dC37bAbc1CC74897E4977232b3D02e5',
+        underlying: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+      },
+    ],
+  },
 };
 
 const getApy = async () => {
@@ -112,5 +123,5 @@ const getApy = async () => {
 
 module.exports = {
   apy: getApy,
-  url: 'https://gainsnetwork.io/pools/',
+  url: 'https://gains.trade/vaults',
 };
