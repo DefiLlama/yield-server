@@ -8,9 +8,8 @@ const BASE_URL = 'https://coins.llama.fi/prices/current/';
 const POTIONS_URL = 'https://yel.finance/potions';
 
 const CHAINS = {
-  81457 : 'Blast',
-  8453  : 'Base',
-  250   : 'Fantom'
+  81457: 'Blast',
+  8453: 'Base'
 };
 
 const PROJECT_NAME = 'yel-finance';
