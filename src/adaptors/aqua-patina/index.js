@@ -19,7 +19,7 @@ const getApy = async () => {
             project: 'aqua-patina',
             symbol: utils.formatSymbol('APETH'),
             tvlUsd: tvl,
-            apy: apy.data,
+            apy: apy.data.apy,
         },
     ];
 };
