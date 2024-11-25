@@ -9,7 +9,8 @@ const POTIONS_URL = 'https://yel.finance/potions';
 
 const CHAINS = {
   81457: 'Blast',
-  8453: 'Base'
+  8453: 'Base',
+  250   : 'Fantom'
 };
 
 const PROJECT_NAME = 'yel-finance';
