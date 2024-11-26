@@ -25,8 +25,14 @@ const apy = async () => {
     };
 };
 
-module.exports = {
-    timetravel: false,
-    apy: apy,
-    url : 'https://app.endur.fi'
-};
+apy().then((data) => {
+    console.log(data)
+}).catch((error) => {
+    console.log(error)
+})
+
+// module.exports = {
+//     timetravel: false,
+//     apy: apy,
+//     url : 'https://app.endur.fi'
+// };
