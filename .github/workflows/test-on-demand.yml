@@ -1,6 +1,6 @@
 name: Test_Change_On_Demand
 on:
-  workflow_call:
+  workflow_dispatch:
     secrets:
       ALCHEMY_CONNECTION_ARBITRUM:
         required: true
