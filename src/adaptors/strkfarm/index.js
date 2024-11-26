@@ -32,12 +32,6 @@ const apy = async () => {
   })
 };
 
-apy().then((data) => {
-  console.log(data)
-}).catch((error) => {
-  console.log(error)
-})
-
 module.exports = {
   timetravel: false,
   apy: apy,
