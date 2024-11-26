@@ -12,7 +12,7 @@ const apy = async () => {
     const underlyingToken = symbolToToken[apyData.asset];
     const apy = apyData.apy * 100;
     const poolId = "endur_strk";
-    return {
+    return [{
         pool: poolId,
         chain: 'Starknet',
         project: 'endur',
@@ -22,7 +22,7 @@ const apy = async () => {
         apy: parseFloat(apy),
         url: 'https://app.endur.fi',
         poolMeta: pool
-    };
+    }];
 };
 
 module.exports = {
