@@ -18,6 +18,7 @@ const INV = '0x41D5D79431A913C4aE7d69a668ecdfE5fF9DFB68';
 const SINV_ADDRESS = '0x08d23468A467d2bb86FaE0e32F247A26C7E2e994';
 const SDOLA_ADDRESS = '0xb45ad160634c528Cc3D2926d9807104FA3157305';
 const TOKENS_VIEWER = '0x826bBeB1DBd9aA36CD44538CC45Dcf9E93BDA574';
+const FIRM_VIEWER = '0x545C963eB523199969cf0298395EeAdcE514b691';
 const ONE_DAY_MS = 86400000;
 const WEEKS_PER_YEAR = 365 / 7;
 
@@ -146,6 +147,17 @@ const main = async () => {
     })
   ).output;
 
+  const allPrices = (
+    await sdk.api.abi.multiCall({
+      chain: 'ethereum',
+      calls: markets.map((m) => ({
+        target: FIRM_VIEWER,
+        params: [m],
+      })),
+      abi: abi.getMarketPrice,
+    })
+  ).output;
+
   const allCfs = (
     await sdk.api.abi.multiCall({
       chain: 'ethereum',
@@ -195,8 +207,10 @@ const main = async () => {
     const underlying = allUnderlying.find((u) => u.input.target === m).output;
     const decimals = Number(allDecimals[marketIndex].output);
     const symbol = allSymbols[marketIndex].output;
+    // use oracle price as fallback for exotic collaterals such as pendle collaterals
+    const price = prices[underlying].price || (Number(allPrices[marketIndex].output)/1e18);
     const totalSupplyUsd =
-      (Number(balances[m]) / 10 ** decimals) * prices[underlying].price;
+      (Number(balances[m]) / 10 ** decimals) * price;
     const totalBorrowUsd = Number(allDebt[marketIndex].output) / 1e18;
     const debtCeilingUsd =
       (Number(allLiquidity[marketIndex].output) / 1e18) * prices[DOLA].price;
