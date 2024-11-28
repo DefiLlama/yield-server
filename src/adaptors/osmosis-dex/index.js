@@ -20,7 +20,7 @@ const apy = async () => {
 
     const apr = aprData.data.find((i) => i.pool_id === pool.pool_id);
     if (!apr) return null;
-    const apyBase = apr.swap_fees.lower + apr.superfluid.lower;
+    const apyBase = apr.swap_fees.lower;
 
     return {
       pool: `osmosis-${pool.pool_id}`,
