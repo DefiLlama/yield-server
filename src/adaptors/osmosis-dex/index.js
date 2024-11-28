@@ -14,15 +14,13 @@ const apy = async () => {
   });
 
   const data = tvlData.data.map((pool) => {
-    const tvlUsd = pool.liquidity;
     const symbol = `${pool.base_symbol}-${pool.quote_symbol}`;
 
     if (symbol.includes(undefined)) return null;
 
     const apr = aprData.data.find((i) => i.pool_id === pool.pool_id);
     if (!apr) return null;
-    const apyBase = apr.swap_fees.lower;
-    const apyReward = apr.superfluid.lower;
+    const apyBase = apr.swap_fees.lower + apr.superfluid.lower;
 
     return {
       pool: `osmosis-${pool.pool_id}`,
@@ -32,8 +30,6 @@ const apy = async () => {
       tvlUsd: pool.liquidity,
       apyBase,
       apyBase7d: apyBase,
-      apyReward,
-      rewardTokens: apyReward > 0 ? ['x'] : [],
       volumeUsd1d: pool.volume_24h,
       volumeUsd7d: pool.volume_7d,
       url: `https://app.osmosis.zone/pool/${pool.pool_id}`,
