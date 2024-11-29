@@ -33,10 +33,11 @@ const apy = async () => {
       volumeUsd1d: pool.volume_24h,
       volumeUsd7d: pool.volume_7d,
       url: `https://app.osmosis.zone/pool/${pool.pool_id}`,
+      poolMeta: `#${pool.pool_id}`,
     };
   });
 
-  return data.filter((p) => p && utils.keepFinite(p));
+  return utils.removeDuplicates(data.filter((p) => p && utils.keepFinite(p)));
 };
 
 module.exports = {
