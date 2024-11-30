@@ -34,7 +34,7 @@ const chains = {
 
 const query = gql`
   {
-    pools(first: 1000, skip: <SKIP>, orderBy: totalValueLockedUSD, orderDirection: desc block: {number: <PLACEHOLDER>}) {
+    pools(first: 1000, orderBy: totalValueLockedUSD, orderDirection: desc block: {number: <PLACEHOLDER>}) {
       id
       totalValueLockedToken0
       totalValueLockedToken1
@@ -56,7 +56,7 @@ const query = gql`
 
 const queryPrior = gql`
   {
-    pools(first: 1000, skip: <SKIP>, orderBy: totalValueLockedUSD orderDirection:desc block: {number: <PLACEHOLDER>}) {
+    pools( first: 1000 orderBy: totalValueLockedUSD orderDirection:desc block: {number: <PLACEHOLDER>}) {
       id 
       volumeUSD 
     }
@@ -85,16 +85,9 @@ const topLvl = async (
     );
 
     // pull data
-    let allPools = [];
-    let skip = 0;
-    while (true) {
-      let queryC = query;
-      let currentData = await request(url, queryC.replace('<PLACEHOLDER>', block).replace('<SKIP>', skip));
-      if (!currentData.pools || currentData.pools.length === 0) break;
-      allPools = [...allPools, ...currentData.pools];
-      skip += 1000;
-    }
-    let dataNow = [...new Map(allPools.map(pool => [pool.id, pool])).values()];
+    let queryC = query;
+    let dataNow = await request(url, queryC.replace('<PLACEHOLDER>', block));
+    dataNow = dataNow.pools;
 
     // uni v3 subgraph reserves values are wrong!
     // instead of relying on subgraph values, gonna pull reserve data from contracts
@@ -158,15 +151,11 @@ const topLvl = async (
 
     // pull 24h offset data to calculate fees from swap volume
     let queryPriorC = queryPrior;
-    let allPriorPools = [];
-    skip = 0;
-    while (true) {
-      let currentData = await request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior).replace('<SKIP>', skip));
-      if (!currentData.pools || currentData.pools.length === 0) break;
-      allPriorPools = [...allPriorPools, ...currentData.pools];
-      skip += 1000;
-    }
-    let dataPrior = [...new Map(allPriorPools.map(pool => [pool.id, pool])).values()];
+    let dataPrior = await request(
+      url,
+      queryPriorC.replace('<PLACEHOLDER>', blockPrior)
+    );
+    dataPrior = dataPrior.pools;
 
     // calculate tvl
     dataNow = await utils.tvl(dataNow, chainString);
@@ -190,15 +179,9 @@ const topLvl = async (
     });
 
     // for new v3 apy calc
-    let allPrior7dPools = [];
-    skip = 0;
-    while (true) {
-      let currentData = await request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d).replace('<SKIP>', skip));
-      if (!currentData.pools || currentData.pools.length === 0) break;
-      allPrior7dPools = [...allPrior7dPools, ...currentData.pools];
-      skip += 1000;
-    }
-    const dataPrior7d = [...new Map(allPrior7dPools.map(pool => [pool.id, pool])).values()];
+    const dataPrior7d = (
+      await request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
+    ).pools;
 
     // calc apy (note: old way of using 24h fees * 365 / tvl. keeping this for now) and will store the
     // new apy calc as a separate field
@@ -352,12 +335,6 @@ const topLvl = async (
 };
 
 const main = async (timestamp = null) => {
-  const uniswapV2Pools = new Set(
-    (await axios.get('https://yields.llama.fi/distinctID')).data
-      .filter((p) => p.project === 'uniswap-v2')
-      .map((p) => p.pool)
-  );
-
   const stablecoins = (
     await axios.get(
       'https://stablecoins.llama.fi/stablecoins?includePrices=true'
@@ -382,14 +359,7 @@ const main = async (timestamp = null) => {
           '0x0c6d9d0f82ed2e0b86c4d3e9a9febf95415d1b76',
           '0xc809d13e9ea08f296d3b32d4c69d46ff90f73fd8',
         ].includes(p.pool)
-    )
-    .filter((p) => {
-      if (uniswapV2Pools.has(p.pool)) {
-        console.log(`Warning: Filtered out duplicate pool ${p.pool} (exists in Uniswap V2)`);
-        return false;
-      }
-      return true;
-    });
+    );
 };
 
 module.exports = {
