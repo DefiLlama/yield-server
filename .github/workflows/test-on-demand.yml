@@ -19,8 +19,6 @@ jobs:
         with:
           output: 'json'
           fileOutput: 'json'
-          pushBefore: 279f1aac290c38c5aeef00d7484ae3fb8e8d7929
-          pushAfter: 3a131965cb5d0463c0d2f60c3a9e8fb339b798ab
       - name: Check out repository code
         uses: actions/checkout@v2
       - name: Run changes files through test script
