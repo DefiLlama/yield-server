@@ -15,7 +15,7 @@ module.exports = async function () {
   }
 
   const cwd = process.cwd();
-  const passedFile = cwd.includes('src/adaptors')
+  const passedFile = cwd.includes('src\\adaptors')
     ? path.resolve(cwd, adapter)
     : path.resolve(cwd, `./src/adaptors/${adapter}`);
   const module = require(passedFile);
