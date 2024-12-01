@@ -98,15 +98,13 @@ const fetchTransfersForFeeDistributedIds = async (ids) => {
 };
 
 const main = async (timestamp = null) => {
-  timestamp = timestamp ? timestamp : Math.floor(Date.now() / 1000);
+  timestamp = timestamp ? parseInt(timestamp) : Math.floor(Date.now() / 1000);
 
   // Get total fees distributed for junior and senior tranches
   const feesDistributedIds = await fetchFeeDistributedIds(timestamp);
   const { totalJunior, totalSenior } = await fetchTransfersForFeeDistributedIds(
     feesDistributedIds
   );
-
-  console.log(totalJunior, totalSenior);
 
   const [block] = await getBlocksByTime([timestamp], 'base');
 
@@ -117,14 +115,14 @@ const main = async (timestamp = null) => {
       target: ADDRESSES.base.USDC,
       params: [ADDRESSES.base.AvantisJuniorTranche],
       chain: 'base',
-      block: block.height,
+      block: block,
     }),
     sdk.api.abi.call({
       abi: 'erc20:balanceOf',
       target: ADDRESSES.base.USDC,
       params: [ADDRESSES.base.AvantisSeniorTranche],
       chain: 'base',
-      block: block.height,
+      block: block,
     }),
   ]);
 
