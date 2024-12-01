@@ -164,6 +164,6 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
-  timetravel: false,
+  timetravel: true,
   apy: main,
 };
