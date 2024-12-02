@@ -23,7 +23,7 @@ const apy = async () => {
 	const price = (await axios.get(`${baseURLLlamaPrice}${priceKey}` )).data.coins[priceKey].price;
 	const tvlUsd = totalSupply * price;
 	const reward = (await axios.get(`${baseURLRewardRate}${symbol}`)).data.rewards.find((e) => usual.toLowerCase() == e.rewardToken.toLowerCase());
-	const apyBase = utils.aprToApy(reward.apr, 52);
+	const apyBase = utils.aprToApy(reward.apr, 52) * 100;
 	return [{
 		pool: usd0PP,
 		chain: 'Ethereum',
