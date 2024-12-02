@@ -27,7 +27,7 @@ const apy = async () => {
 	return [{
 		pool: usd0PP,
 		chain: 'Ethereum',
-		project: 'Usual',
+		project: 'usual-money',
 		symbol: 'USD0++',
 		tvlUsd,
 		apyBase, 
