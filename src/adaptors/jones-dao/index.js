@@ -1,6 +1,4 @@
 const sdk = require('@defillama/sdk');
-const axios = require('axios');
-const superagent = require('superagent');
 const utils = require('../utils');
 
 const lockerABI = require('./aura-locker-abi.json');
@@ -10,44 +8,34 @@ const auraLocker = '0x3Fa73f1E5d8A792C80F426fc8F84FBF7Ce9bBCAC';
 const auraStrategy = '0x7629fc134e5a7feBEf6340438D96881C8D121f2c';
 const glp = '0x1aDDD80E6039594eE970E5872D247bf0414C8903';
 const glpTracker = '0x13C6Bed5Aa16823Aba5bBA691CAeC63788b19D9d';
-const glpStrategy = '0x15df56a82c194FeFEC9337C37A41964B69b584d5';
-const usdc = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8';
-const uvrt = '0xa485a0bc44988B95245D5F20497CCaFF58a73E99';
-const uvrtTracker = '0xEB23C7e19DB72F9a728fD64E1CAA459E457cfaca';
+const glpStrategy = '0x64ECc55a4F5D61ead9B966bcB59D777593afBd6f';
+const bridgedUsdc = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8';
+const usdc = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831';
+const arbToken = '0x912CE59144191C1204E64559FE8253a0e49E6548';
+const jusdcUnderlyingVault = '0xB0BDE111812EAC913b392D80D51966eC977bE3A2';
 
-async function getLeveragedVaultsTvl(token, address) {
-  const collateralBalance = await sdk.api.abi.call({
-    abi: 'erc20:balanceOf',
-    target: token,
-    params: [address],
-    chain: 'arbitrum',
-  });
-
-  const key = `arbitrum:${token}`;
-  const priceUsd = await axios
-    .get(`https://coins.llama.fi/prices/current/${key}`)
-    .then((res) => res.data.coins[key].price);
-
-  const tvl = (Number(collateralBalance.output) / 1e18) * priceUsd;
-
-  return tvl;
-}
+const SECONDS_PER_YEAR = 31556952;
+// 0.97% see https://docs.jonesdao.io/jones-dao/features/incentives
+const JUSDC_RETENTION = 0.97 / 100;
+const JGLP_RETENTION = 3 / 100;
 
 async function pools() {
-  // 0.97% see https://docs.jonesdao.io/jones-dao/features/incentives
-  const jusdcRetention = 0.97 / 100;
-  const jglpRetention = 3 / 100;
-
   const [
+    prices,
     auraLeftoverStrategy,
     auraLocked,
-    auraPriceUsd,
     jauraApyRes,
     jusdcApy,
     jglpApy,
-    jusdcTvl,
-    jglpTvl,
+    jusdcCollateralBalance,
+    jglpCollateralBalance,
+    smartLpStrategiesRes,
   ] = await Promise.all([
+    utils.getPrices([
+      `ethereum:${aura}`,
+      `arbitrum:${glp}`,
+      `arbitrum:${usdc}`,
+    ]),
     sdk.api.erc20
       .balanceOf({
         target: aura,
@@ -61,25 +49,41 @@ async function pools() {
         params: auraStrategy,
       })
       .then((result) => result.output[0]),
-    axios
-      .get(`https://coins.llama.fi/prices/current/ethereum:${aura}`)
-      .then((res) => res.data.coins[`ethereum:${aura}`].price),
-    axios
-      .get('https://api.jonesdao.io/api/v1/jones/apy-wjaura')
-      .then((res) => res.data),
-    axios
-      .get('https://api.jonesdao.io/api/v1/jones/apy-jusdc')
-      .then((res) => res.data.jusdcApy),
-    axios
-      .get('https://api.jonesdao.io/api/v1/jones/apy-jglp')
-      .then((res) => res.data.jglpApy),
-    getLeveragedVaultsTvl(uvrt, uvrtTracker),
-    getLeveragedVaultsTvl(glp, glpStrategy),
+    utils.getData('https://api.jonesdao.io/api/v1/jones/apy-wjaura'),
+    utils
+      .getData('https://api.jonesdao.io/api/v1/jones/apy-jusdc')
+      .then((res) => res.jusdcApy),
+    utils
+      .getData('https://api.jonesdao.io/api/v1/jones/apy-jglp')
+      .then((res) => res.jglpApy),
+    sdk.api.abi.call({
+      abi: 'uint256:totalAssets',
+      target: jusdcUnderlyingVault,
+      chain: 'arbitrum',
+    }),
+    sdk.api.abi.call({
+      abi: 'erc20:balanceOf',
+      target: glp,
+      params: [glpStrategy],
+      chain: 'arbitrum',
+    }),
+    utils
+      .getData('https://app.jonesdao.io/api/smart-lp/pools')
+      .then((res) => res.strategies),
   ]);
+
+  const {
+    aura: auraPrice,
+    fsglp: glpPrice,
+    usdc: usdcPrice,
+  } = prices.pricesBySymbol;
+
+  const jglpTvl = (Number(jglpCollateralBalance.output) / 1e18) * glpPrice;
+  const jusdcTvl = (Number(jusdcCollateralBalance.output) / 1e6) * usdcPrice;
 
   const jAuraTvl =
     (Number(auraLocked) / 1e18 + Number(auraLeftoverStrategy) / 1e18) *
-    auraPriceUsd;
+    auraPrice;
 
   const jAuraPool = {
     pool: `${auraStrategy}-arbitrum`.toLowerCase(),
@@ -88,18 +92,18 @@ async function pools() {
     symbol: 'jAURA',
     underlyingTokens: [aura],
     tvlUsd: jAuraTvl,
-    apyBase: jauraApyRes.jauraApy * (1 - jglpRetention),
+    apyBase: jauraApyRes.jauraApy * (1 - JGLP_RETENTION),
     apyBaseInception: jauraApyRes.jauraApyInception,
   };
 
   const jUsdcPool = {
-    pool: `${uvrtTracker}-arbitrum`.toLowerCase(),
+    pool: `${jusdcUnderlyingVault}-arbitrum-jones-dao`.toLowerCase(), // TODO update
     chain: 'Arbitrum',
     project: 'jones-dao',
     symbol: 'jUSDC',
     underlyingTokens: [usdc],
     tvlUsd: jusdcTvl,
-    apyBase: jusdcApy.week * (1 - jusdcRetention),
+    apyBase: jusdcApy.week * (1 - JUSDC_RETENTION),
     apyBaseInception: jusdcApy.full,
     poolMeta: '1day lock',
   };
@@ -111,11 +115,24 @@ async function pools() {
     symbol: 'jGLP',
     underlyingTokens: [glp],
     tvlUsd: jglpTvl,
-    apyBase: jglpApy.week * (1 - jglpRetention),
+    apyBase: jglpApy.week * (1 - JGLP_RETENTION),
     apyBaseInception: jglpApy.full,
   };
 
-  return [jUsdcPool, jGlpPool, jAuraPool];
+  const smartLpStrategies = smartLpStrategiesRes.map((strat) => ({
+    pool: `${strat.vaultAddress}-arbitrum`.toLowerCase(),
+    chain: 'Arbitrum',
+    project: 'jones-dao',
+    symbol: strat.poolName,
+    underlyingTokens: [strat.token0.address, strat.token1.address],
+    tvlUsd: strat.tvl,
+    apyBase: strat.apy,
+    apyReward: (strat.stipApr ?? 0) + (strat.merklApr ?? 0),
+    rewardTokens: [arbToken],
+    poolMeta: `${strat.strategyName.toUpperCase()} strategy on ${strat.dex.toUpperCase()}`,
+  }));
+
+  return [jUsdcPool, jGlpPool, jAuraPool, ...smartLpStrategies];
 }
 
 module.exports = {
@@ -123,3 +140,6 @@ module.exports = {
   url: 'https://app.jonesdao.io/vaults',
   apy: pools,
 };
+
+// cd src/adaptors
+// npm run test --adapter=jones-dao

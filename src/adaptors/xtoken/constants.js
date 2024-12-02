@@ -1,3 +1,4 @@
+const sdk = require('@defillama/sdk');
 const NETWORKS = {
   arbitrum: 'arbitrum',
   ethereum: 'ethereum',
@@ -6,14 +7,10 @@ const NETWORKS = {
 };
 
 const SUBGRAPHS = {
-  ethereum:
-    'https://api.thegraph.com/subgraphs/name/xtokenmarket/terminal-mainnet',
-  arbitrum:
-    'https://api.thegraph.com/subgraphs/name/xtokenmarket/terminal-arbitrum',
-  optimism:
-    'https://api.thegraph.com/subgraphs/name/xtokenmarket/terminal-optimism',
-  polygon:
-    'https://api.thegraph.com/subgraphs/name/xtokenmarket/terminal-polygon',
+  ethereum: sdk.graph.modifyEndpoint('AhQcCNvtM3YEoCBPQFYfPzxwY6Rk2nFqydr4276zki2c'),
+  arbitrum: sdk.graph.modifyEndpoint('HQFMggtEW3AfDLp8GCPYaaZi91K1SgH9BjnGDxUDptt5'),
+  optimism: sdk.graph.modifyEndpoint('DxV73USPBdBXunZFi1UEkBqL6pNA33rt7JYs5hgGbyEc'),
+  polygon: sdk.graph.modifyEndpoint('9ckmB5VjYouBNxWFWrDsXpNqsNF9jdDewnba8Yx5a9e2'),
 };
 
 const USDC_ADDRESSES = {

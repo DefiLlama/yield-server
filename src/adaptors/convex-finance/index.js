@@ -6,9 +6,12 @@ const utils = require('../utils');
 const abi = require('./abi.json');
 const baseRewardPoolAbi = require('./baseRewardPoolAbi.json');
 const virtualBalanceRewardPoolAbi = require('./virtualBalanceRewardPoolAbi.json');
+const { getCvxCrvAprData } = require('./data/cvxcrv-apr');
+const { getTokensPrices } = require('./data/token-prices');
 
 const crvAddress = '0xD533a949740bb3306d119CC777fa900bA034cd52';
 const cvxAddress = '0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B';
+const crvUsdAddress = '0xf939e0a03fb07f59a73314e73794be0e57ac1b4e';
 const convexBoosterAddress = '0xF403C135812408BFbE8713b5A23a04b3D48AAE31';
 
 const cliffSize = 100000; // * 1e18; //new cliff every 100,000 tokens
@@ -18,58 +21,37 @@ const projectedAprTvlThr = 1e6;
 
 let extraRewardsPrices = {};
 
-const getCrvCvxPrice = async () => {
-  const tokens = [crvAddress, cvxAddress].map((t) => `ethereum:${t}`).join(',');
-
-  const url = `https://coins.llama.fi/prices/current/${tokens}`;
-
-  const response = await superagent.get(url);
-  const data = response.body.coins;
-  const crvPrice = data[`ethereum:${crvAddress}`].price;
-  const cvxPrice = data[`ethereum:${cvxAddress}`].price;
-  return { crvPrice, cvxPrice };
-};
-
 const main = async () => {
-  const { apys: curveApys } = await utils.getData(
-    'https://www.convexfinance.com/api/curve-apys'
-  );
-  const { cvxPrice, crvPrice } = await getCrvCvxPrice();
+  const [
+    { apys: curveApys },
+    { data: gauges },
+    { lendingVaults },
+  ] = await Promise.all([
+    utils.getData('https://curve.convexfinance.com/api/curve-apys'),
+    utils.getData('https://api.curve.fi/api/getAllGauges'),
+    utils.getData('https://curve.convexfinance.com/api/curve/lending-vaults'),
+  ]);
 
-  const poolsList = (
-    await Promise.all(
-      [
-        'factory',
-        'main',
-        'crypto',
-        'factory-crypto',
-        'factory-crvusd',
-        'factory-tricrypto',
-      ].map((registry) =>
-        utils.getData(`https://api.curve.fi/api/getPools/ethereum/${registry}`)
-      )
-    )
-  )
-    .map(({ data }) => data.poolData)
-    .flat();
+  const {
+    [crvAddress.toLowerCase()]: crvPrice,
+    [cvxAddress.toLowerCase()]: cvxPrice,
+  } = await getTokensPrices([crvAddress, cvxAddress]);
 
-  const { data: gauges } = await utils.getData(
-    'https://api.curve.fi/api/getAllGauges'
-  );
+  const poolsList = (await utils.getData('https://api.curve.fi/api/getPools/all/ethereum')).data.poolData
+    .filter((i) => i?.address !== undefined);
 
-  const mappedGauges = Object.entries(gauges).reduce(
-    (acc, [name, gauge]) => ({
+  Object.keys(gauges).forEach((key) => {
+    if (gauges[key].isPool && gauges[key].swap_token === undefined) {
+      delete gauges[key];
+    }
+  });
+
+  const mappedGauges = Object.values(gauges).reduce(
+    (acc, gauge) => ({
       ...acc,
-      ...([
-        'fantom',
-        'optimism',
-        'xdai',
-        'polygon',
-        'avalanche',
-        'arbitrum',
-      ].some((chain) => gauge.name.includes(chain))
+      ...(gauge.blockchainId !== 'ethereum'
         ? {}
-        : { [gauge.swap_token.toLowerCase()]: { ...gauge } }),
+        : { [(gauge.isPool ? gauge.swap_token : gauge.lendingVaultAddress).toLowerCase()]: { ...gauge } }),
     }),
     {}
   );
@@ -99,6 +81,16 @@ const main = async () => {
         address.toLowerCase() === pool.lptoken.toLowerCase() ||
         pool.lptoken.toLowerCase() === (lpTokenAddress || '').toLowerCase() ||
         (gaugeAddress || '').toLowerCase() === pool.gauge.toLowerCase()
+    ),
+    ...lendingVaults.find(({ address }) => address.toLowerCase() === pool.lptoken.toLowerCase()),
+  })).map((data) => ({
+    ...data,
+    isLendingVault: data.lendingVaultUrls !== undefined,
+    isPool: data.lendingVaultUrls === undefined,
+  })).map((data) => ({
+    ...data,
+    coinsAddresses: (
+      data.isPool ? data.coinsAddresses : [data.assets.borrowed.address]
     ),
   }));
   // remove dupes on lptoken
@@ -158,12 +150,15 @@ const main = async () => {
         coinsAddresses: pool.coinsAddresses.filter(
           (address) => address !== '0x0000000000000000000000000000000000000000'
         ),
-        cvxTvl: v2PoolUsd
-          ? v2PoolUsd
-          : ((totalSupply[i] * virtualPrice) /
-              (pool.totalSupply * virtualPrice ||
-                pool.usdTotal * 10 ** decimals[i])) *
-            pool.usdTotal,
+        cvxTvl: (
+          pool.isLendingVault ? pool.convexPoolData.usdTotal : (
+            v2PoolUsd
+              ? v2PoolUsd
+              : ((totalSupply[i] * virtualPrice) /
+                (pool.totalSupply * virtualPrice ||
+                  pool.usdTotal * 10 ** decimals[i])) *
+              pool.usdTotal
+          )),
         currency: 'USD',
       };
     })
@@ -253,6 +248,16 @@ const main = async () => {
 
   const poolsWithApr = await Promise.all(
     withCvxTvl.map(async (pool, idx) => {
+      if (pool.lptoken === cvxCRV) {
+        return {
+          ...pool,
+          apr: (await getCvxCrvAprData()),
+          crvApr: 0,
+          extrApr: 0,
+          extraTokens: [crvUsdAddress], // It’ll show CRV+CVX+crvUSD as rewards
+        };
+      }
+
       const isFinished = new Date() > periodFinish[idx] * 1000;
       const rate = rewardRates[idx] / 10 ** 18;
 
@@ -382,30 +387,49 @@ const main = async () => {
           ? poolObj.find((p) => !p.id.includes('factory'))
           : poolObj[0];
 
-      const poolId = poolObj?.id;
+      const poolId = pool.isLendingVault ? pool.id : poolObj?.id;
       const baseApy = poolId ? curveApys[poolId]?.baseApy : undefined;
 
       return {
         pool: pool.lptoken,
         chain: utils.formatChain('ethereum'),
         project: 'convex-finance',
-        symbol: pool.coins.map((coin) => coin.symbol).join('-'),
-        tvlUsd: pool.cvxTvl,
+        symbol: ( // Symbol of the supplied token
+          pool.isLendingVault ?
+            utils.formatSymbol(pool.assets.borrowed.symbol) :
+            pool.coins.map((coin) => coin.symbol).join('-')
+        ),
+        poolMeta: ( // Displayed in parens next to `symbol`
+          pool.isLendingVault ?
+            `Curve Lend – ${pool.assets.collateral.symbol} collateral` :
+            undefined
+        ),
+        tvlUsd: (
+          pool.isLendingVault ?
+            pool.convexPoolData.usdTotal :
+            pool.cvxTvl
+        ),
         apyBase: [cvxAddress, cvxCRV].includes(pool.lptoken) ? null : baseApy,
         apyReward:
           // for CVX staking only need crvApr (which is actually cvxCRV reward)
           pool.lptoken === cvxAddress
             ? pool.crvApr
-            : pool.crvApr + pool.apr + pool.extrApr,
-        underlyingTokens: pool.coins.map(({ address }) => address),
+            : pool.lptoken === '0xfffAE954601cFF1195a8E20342db7EE66d56436B'
+              ? null
+              : pool.crvApr + pool.apr + pool.extrApr,
+        underlyingTokens: (
+          pool.isLendingVault ?
+            [pool.assets.borrowed.address] :
+            pool.coins.map(({ address }) => address)
+        ),
         rewardTokens:
           pool.lptoken === cvxAddress
             ? [cvxCRV]
             : [
-                '0xd533a949740bb3306d119cc777fa900ba034cd52', // crv
-                '0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b', // cvx
-                ...pool.extraTokens,
-              ],
+              '0xd533a949740bb3306d119cc777fa900ba034cd52', // crv
+              '0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b', // cvx
+              ...pool.extraTokens,
+            ],
       };
     })
     .filter((pool) => !pool.symbol.toLowerCase().includes('ust'));
@@ -416,5 +440,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://www.convexfinance.com/stake',
+  url: 'https://curve.convexfinance.com/stake',
 };

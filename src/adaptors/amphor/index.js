@@ -79,7 +79,7 @@ const poolsFunction = async () => {
     chain: 'ethereum',
     project: 'amphor',
     symbol: utils.formatSymbol('WBTC'),
-    tvlUsd: (Number(wbtcTotalAsset.output)/1e18) * prices[wbtc.toLowerCase()],
+    tvlUsd: (Number(wbtcTotalAsset.output)/1e8) * prices[wbtc.toLowerCase()],
     apy: wbtcApy,
   };
 

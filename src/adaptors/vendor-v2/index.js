@@ -1,5 +1,4 @@
 const sdk = require('@defillama/sdk');
-const { symbol } = require('@defillama/sdk/build/erc20');
 const { gql } = require('graphql-request');
 const { ethers } = require('ethers');
 const networkData = require('./network-data');
@@ -171,61 +170,65 @@ const getPools = async () => {
       query: networkConfig.query,
       type: networkConfig.type,
     });
-    const network = networkConfig.network.toLowerCase();
-    for (const pool of Object.entries(response.data)[0][1]) {
-      const {
-        lendTokenSymbol,
-        colTokenSymbol,
-        lendTokenDecimals,
-        colTokenDecimals,
-      } = await getGenericTokenInfo([pool.lendToken, pool.colToken], network);
-      const [lendTokenPriceInfo, colTokenPriceInfo] = await getTokenPriceInfo(
-        [pool.lendToken, pool.colToken],
-        network
-      );
-      const availableLiquidity = await getAvailableLiquidity(
-        pool.id,
-        lendTokenPriceInfo,
-        lendTokenDecimals,
-        network
-      );
-      const { totalBorrowedUsd, totalSuppliedUsd, lendFee } =
-        await getSuppliedAndBorrowedUsd(
-          pool,
+    try {
+      const network = networkConfig.network.toLowerCase();
+      for (const pool of Object.entries(response.data)[0][1]) {
+        const {
+          lendTokenSymbol,
+          colTokenSymbol,
           lendTokenDecimals,
           colTokenDecimals,
-          lendTokenPriceInfo,
+        } = await getGenericTokenInfo([pool.lendToken, pool.colToken], network);
+        const [lendTokenPriceInfo, colTokenPriceInfo] = await getTokenPriceInfo(
+          [pool.lendToken, pool.colToken],
           network
         );
-      const loanToValue = getLoanToValue(
-        lendTokenPriceInfo,
-        colTokenPriceInfo,
-        pool,
-        lendFee
-      );
-      const poolObj = {
-        pool: pool.id,
-        chain: networkConfig.network,
-        project: 'vendor-v2',
-        ltv: loanToValue,
-        underlyingTokens: [pool.lendToken, pool.colToken],
-        symbol: lendTokenSymbol,
-        tvlUsd: availableLiquidity,
-        totalBorrowUsd: totalBorrowedUsd,
-        totalSupplyUsd: totalSuppliedUsd,
-        apyBase: 0,
-        apyBaseBorrow:
-          pool.feeType == 1
-            ? ((31536000 /
-                (Number(pool.expiry) - new Date().getTime() / 1000)) *
-                pool.startRate) /
-              10000
-            : pool.startRate / 10000,
-        poolMeta: `Due ${new Date(pool.expiry * 1000)
-          .toUTCString()
-          .slice(5, -13)}, ${colTokenSymbol} collateral`,
-      };
-      pools.push(poolObj);
+        const availableLiquidity = await getAvailableLiquidity(
+          pool.id,
+          lendTokenPriceInfo,
+          lendTokenDecimals,
+          network
+        );
+        const { totalBorrowedUsd, totalSuppliedUsd, lendFee } =
+          await getSuppliedAndBorrowedUsd(
+            pool,
+            lendTokenDecimals,
+            colTokenDecimals,
+            lendTokenPriceInfo,
+            network
+          );
+        const loanToValue = getLoanToValue(
+          lendTokenPriceInfo,
+          colTokenPriceInfo,
+          pool,
+          lendFee
+        );
+        const poolObj = {
+          pool: pool.id,
+          chain: networkConfig.network,
+          project: 'vendor-v2',
+          ltv: loanToValue,
+          underlyingTokens: [pool.lendToken, pool.colToken],
+          symbol: lendTokenSymbol,
+          tvlUsd: availableLiquidity,
+          totalBorrowUsd: totalBorrowedUsd,
+          totalSupplyUsd: totalSuppliedUsd,
+          apyBase: 0,
+          apyBaseBorrow:
+            pool.feeType == 1
+              ? ((31536000 /
+                  (Number(pool.expiry) - new Date().getTime() / 1000)) *
+                  pool.startRate) /
+                10000
+              : pool.startRate / 10000,
+          poolMeta: `Due ${new Date(pool.expiry * 1000)
+            .toUTCString()
+            .slice(5, -13)}, ${colTokenSymbol} collateral`,
+        };
+        pools.push(poolObj);
+      }
+    } catch (err) {
+      console.log(err);
     }
   }
   return pools;

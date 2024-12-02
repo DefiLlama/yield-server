@@ -1,5 +1,5 @@
-const sdk = require('@defillama/sdk')
-const { ControllerAbi, ERC20Abi } = require('./abi')
+const sdk = require('@defillama/sdk');
+const { ControllerAbi, ERC20Abi } = require('./abi');
 
 const getAsset = async (strategy, pairId, block = 'latest') => {
   const data = (
@@ -10,10 +10,10 @@ const getAsset = async (strategy, pairId, block = 'latest') => {
       chain: 'arbitrum',
       block: block,
     })
-  ).output
+  ).output;
 
   return data;
-}
+};
 
 const getTotalSupply = async (strategyToken, block = 'latest') => {
   const data = (
@@ -24,13 +24,12 @@ const getTotalSupply = async (strategyToken, block = 'latest') => {
       chain: 'arbitrum',
       block: block,
     })
-  ).output
+  ).output;
 
   return data;
-}
-
+};
 
 module.exports = {
   getAsset,
-  getTotalSupply
-}
+  getTotalSupply,
+};

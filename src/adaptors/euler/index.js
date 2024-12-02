@@ -11,7 +11,7 @@ const abiStakingRewards = require('./abiStakingRewards');
 const abiEtoken = require('./abiEtoken');
 const abiEulerSimpleLens = require('./abiEulerSimpleLens');
 
-const url = 'https://api.thegraph.com/subgraphs/name/euler-xyz/euler-mainnet';
+const url = sdk.graph.modifyEndpoint('EQBXhrF4ppZy9cBYnhPdrMCRaVas6seNpqviih5VRGmU');
 const EULERSCAN_ENDPOINT = 'wss://escan-mainnet.euler.finance';
 const EULER = '0xd9fcd98c322942075a5c3860693e9f4f03aae07b';
 const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
@@ -122,7 +122,9 @@ const main = async () => {
       const apyBase = interestRates[i]?.supplyAPY / interestRateDecimals;
       const apyBaseBorrow = interestRates[i]?.borrowAPY / interestRateDecimals;
 
-      const ltv = underlyingToAssetConfig[i]?.collateralFactor / 4e9;
+      const borrowFactor = underlyingToAssetConfig[i]?.borrowFactor / 4e9;
+      const ltv =
+        (underlyingToAssetConfig[i]?.collateralFactor / 4e9) * borrowFactor;
 
       const eulDist = gaugeData.tokens[m] / 1e18;
       const apyRewardBorrow =
@@ -145,7 +147,7 @@ const main = async () => {
         rewardTokens: [EULER],
         ltv: Number.isFinite(ltv) ? ltv : null,
         url: `https://app.euler.finance/market/${m}`,
-        borrowFactor: underlyingToAssetConfig[i]?.borrowFactor / 4e9,
+        borrowFactor,
       };
     })
     .filter((p) => utils.keepFinite(p));

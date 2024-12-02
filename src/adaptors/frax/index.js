@@ -20,7 +20,20 @@ const STAKING_CONTRACTS = {
   'Fraxswap FRAX/SYN': '0xE8453a2e8E97cba69365A1d727Fde3768b18d814',
 };
 
-const apy = async () => {
+const apy = async (timestamp) => {
+  const sfrax = await utils.getERC4626Info(
+    '0xA663B02CF0a4b149d2aD41910CB81e23e1c41c32',
+    'ethereum',
+    timestamp
+  );
+  const { tvl, ...rest } = sfrax;
+  const sfraxvault = {
+    ...rest,
+    project: 'frax',
+    symbol: `sFRAX`,
+    tvlUsd: sfrax.tvl / 1e18,
+    underlyingTokens: ['0x853d955acef822db058eb8505911ed77f175b99e'],
+  };
   const { pools: fxswapData } = await utils.getData(FRAXSWAP_POOLS_URL);
   const stakingData = await utils
     .getData(STAKING_URL)
@@ -85,6 +98,7 @@ const apy = async () => {
   return fraxSwapRes
     .concat(stakingRes)
     .concat(vstFraxStakingRes)
+    .concat([sfraxvault])
     .filter(Boolean);
 };
 

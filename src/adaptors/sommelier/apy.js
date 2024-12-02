@@ -1,7 +1,6 @@
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 const cellarAbi = require('./cellar-v2.json');
-const { chain } = require('./config');
 const { endOfYesterday, subDays } = require('date-fns');
 const utils = require('../utils');
 
@@ -16,24 +15,24 @@ const getPositionAssets = cellarAbi.find(
   (el) => el.name === 'getPositionAssets'
 );
 
-async function getBlockByEpoch(epochSecs) {
+async function getBlockByEpoch(epochSecs, cellarChain) {
   if (!Number.isInteger) {
     throw new Error('getBlockByEpoch was not passed an integer');
   }
 
   const data = await utils.getData(
-    `https://coins.llama.fi/block/ethereum/${epochSecs}`
+    `https://coins.llama.fi/block/${cellarChain}/${epochSecs}`
   );
 
   return data.height;
 }
 
-async function getShareValueAtBlock(cellarAddress, block) {
+async function getShareValueAtBlock(cellarAddress, block, cellarChain) {
   const decimals = (
     await call({
       target: cellarAddress,
       abi: abiDecimals,
-      chain,
+      chain: cellarChain,
     })
   ).output;
 
@@ -45,7 +44,7 @@ async function getShareValueAtBlock(cellarAddress, block) {
       abi: abiConvertToAssets,
       params: [share.toString()],
       block,
-      chain,
+      chain: cellarChain,
     })
   ).output;
 
@@ -56,10 +55,11 @@ async function calcApy(
   cellarAddress,
   startEpochSecs,
   endEpochSecs,
-  intervalDays
+  intervalDays,
+  cellarChain
 ) {
-  const startBlock = await getBlockByEpoch(startEpochSecs);
-  const endBlock = await getBlockByEpoch(endEpochSecs);
+  const startBlock = await getBlockByEpoch(startEpochSecs, cellarChain);
+  const endBlock = await getBlockByEpoch(endEpochSecs, cellarChain);
 
   // APY 7 day may error out if share price oracle was not live for 7 days, so try catch here
   // Note we dont do this in the daily APY because that should always work if we're live
@@ -67,7 +67,11 @@ async function calcApy(
 
   let startValue;
   try {
-    startValue = await getShareValueAtBlock(cellarAddress, startBlock);
+    startValue = await getShareValueAtBlock(
+      cellarAddress,
+      startBlock,
+      cellarChain
+    );
   } catch (e) {
     console.error(
       'Unable to get start value for calcApy cellar: ',
@@ -75,12 +79,16 @@ async function calcApy(
       'startBlock: ',
       startBlock,
       'intervalDays: ',
-      intervalDays,
+      intervalDays
     );
     return 0; // Return 0 for APY if we can't get start value
   }
 
-  const endValue = await getShareValueAtBlock(cellarAddress, endBlock);
+  const endValue = await getShareValueAtBlock(
+    cellarAddress,
+    endBlock,
+    cellarChain
+  );
 
   const yieldRatio = endValue.minus(startValue).div(startValue);
   const result = yieldRatio
@@ -101,17 +109,17 @@ function utcEndOfYesterday() {
   return new Date(today.getTime() - 1000);
 }
 
-async function getApy(cellarAddress) {
+async function getApy(cellarAddress, cellarChain) {
   const yesterday = utcEndOfYesterday();
   const start = subDays(yesterday, 1);
 
   const yesterdayEpoch = Math.floor(yesterday.getTime() / 1000);
   const startEpoch = Math.floor(start.getTime() / 1000);
 
-  return calcApy(cellarAddress, startEpoch, yesterdayEpoch, 1);
+  return calcApy(cellarAddress, startEpoch, yesterdayEpoch, 1, cellarChain);
 }
 
-async function getApy7d(cellarAddress) {
+async function getApy7d(cellarAddress, cellarChain) {
   const interval = 7; // days
   const yesterday = utcEndOfYesterday();
 
@@ -121,7 +129,13 @@ async function getApy7d(cellarAddress) {
   const yesterdayEpoch = Math.floor(yesterday.getTime() / 1000);
   const startEpoch = Math.floor(start.getTime() / 1000);
 
-  return calcApy(cellarAddress, startEpoch, yesterdayEpoch, interval);
+  return calcApy(
+    cellarAddress,
+    startEpoch,
+    yesterdayEpoch,
+    interval,
+    cellarChain
+  );
 }
 
 module.exports = {

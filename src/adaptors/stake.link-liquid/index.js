@@ -1,4 +1,49 @@
-const utils = require('../utils');
+const { ethers } = require('ethers');
+const superagent = require('superagent');
+
+const getData = async (url, query = null) => {
+  let res;
+  if (query !== null) {
+    res = await superagent
+      .post(url)
+      .send(query)
+      .set('Content-Type', 'application/json');
+  } else {
+    res = await superagent.get(url);
+  }
+  return res.body;
+};
+
+const SUBGRAPH_URL =
+  'https://api.studio.thegraph.com/query/72555/stakedotlink-ethereum/version/latest';
+
+const query = `
+  {
+    totalRewardAmounts {
+      totalRewardSTLINK
+      __typename
+    }
+    totalCounts {
+      linkStakingDistributionCount
+      __typename
+    }
+    linkStakingDistributions(
+      first: 1
+      skip: 0
+      orderBy: ts
+      orderDirection: desc
+    ) {
+      reward_rate
+      reward_amount
+      total_staked
+      fees
+      fee_percentage
+      tx_hash
+      ts
+      __typename
+    }
+  }
+  `;
 
 const API_URL = 'https://stake.link/v1/metrics/staking';
 const CHAIN_NAME = 'Ethereum';
@@ -8,47 +53,55 @@ const pools = [
     symbol: 'stLINK',
     address: '0xb8b295df2cd735b15BE5Eb419517Aa626fc43cD5',
     priceId: 'chainlink',
-    query: `SELECT
-            (total_rewards * (31536000 / EXTRACT(epoch from period))) / (total_staked - rewards_amount) * 100 as apy,
-            total_staked 
-            FROM (SELECT *, (ts - prev_ts) as period
-            FROM (SELECT *,
-            (rewards_amount - total_fees) as total_rewards,
-            lead(ts) over (order by ts DESC)    as prev_ts
-            FROM staking_pool_update_strategy_rewards as rewards
-            ORDER BY ts DESC) as reward_rate) as reward_rate limit 1;`,
   },
 ];
 
 const fetchPrice = async (tokenId) => {
   const priceKey = `coingecko:${tokenId}`;
-  const data = await utils.getData(
+  const data = await getData(
     `https://coins.llama.fi/prices/current/${priceKey}`
   );
   return data.coins[priceKey].price;
 };
 
 const fetchPool = async (pool) => {
-  const { symbol, address, priceId, query } = pool;
+  try {
+    const { symbol, address, priceId } = pool;
+    const price = await fetchPrice(priceId);
+    const response = await getData(SUBGRAPH_URL, JSON.stringify({ query }));
 
-  const price = await fetchPrice(priceId);
+    if (
+      !response ||
+      !response.data ||
+      !response.data.linkStakingDistributions ||
+      !response.data.linkStakingDistributions[0]
+    ) {
+      throw new Error('Invalid data structure received from subgraph');
+    }
 
-  let data = await utils.getData(API_URL, query);
-  let apy = data[0].apy;
-  let tvl = data[0].total_staked * price;
+    const distribution = response.data.linkStakingDistributions[0];
+    const apy = parseFloat(distribution.reward_rate);
+    const totalStakedInWei = distribution.total_staked;
+    const totalStaked = parseFloat(ethers.utils.formatEther(totalStakedInWei));
+    const tvl = totalStaked * price;
 
-  return {
-    pool: `${address}-${CHAIN_NAME}`.toLowerCase(),
-    chain: CHAIN_NAME,
-    project: 'stake.link-liquid',
-    symbol,
-    tvlUsd: tvl,
-    apyBase: apy,
-  };
+    return {
+      pool: `${address}-${CHAIN_NAME}`.toLowerCase(),
+      chain: CHAIN_NAME,
+      project: 'stake.link-liquid',
+      symbol,
+      tvlUsd: tvl,
+      apyBase: apy,
+    };
+  } catch (error) {
+    console.error('Error fetching pool data:', error.message);
+    return null;
+  }
 };
 
 const fetchPools = async () => {
-  return Promise.all(pools.map((pool) => fetchPool(pool)));
+  const poolsData = await Promise.all(pools.map(fetchPool));
+  return poolsData.filter(Boolean);
 };
 
 module.exports = {

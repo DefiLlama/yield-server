@@ -10,9 +10,8 @@ const pools = require('../concentrator/pools');
 
 const project = 'stellaswap-v2';
 
-const url = 'https://api.thegraph.com/subgraphs/name/stellaswap/stella-swap';
-const urlStable =
-  'https://api.thegraph.com/subgraphs/name/stellaswap/stable-amm-2';
+const url = sdk.graph.modifyEndpoint('HgSAfZvHEDbAVuZciPUYEqFzhAUnjJWmyix5C1R2tmTp');
+const urlStable = sdk.graph.modifyEndpoint('bqFx2yiB2VBH8LAJMGZ37Zj3NtBrY7gArFFciLaA3nE');
 const masterchef = '0xF3a5454496E26ac57da879bf3285Fa85DEBF0388';
 const STELLA = '0x0e358838ce72d5e61e0018a2ffac4bec5f4c88d2';
 const STELLA_DEC = 18;
@@ -240,6 +239,7 @@ const getApy = async (timestamp = null) => {
       })),
       chain: 'moonbeam',
       abi: abiMasterchef.find((m) => m.name === 'poolRewardsPerSec'),
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -274,6 +274,7 @@ const getApy = async (timestamp = null) => {
           params: method === 'balanceOf' ? [masterchef] : null,
         })),
         chain: 'moonbeam',
+        permitFailure: true,
       })
     )
   );
@@ -298,7 +299,16 @@ const getApy = async (timestamp = null) => {
     const farmTvlUsd = reserveRatio * pool.tvlUsd;
     const stellaAPR = ((stellaPrice * stellaPerDay * 365) / farmTvlUsd) * 100;
 
-    const extraRewardAddresses = poolRewardsPerSec[i].addresses;
+    const extraRewardAddresses = poolRewardsPerSec[i]?.addresses;
+    if (!extraRewardAddresses)
+      return {
+        ...p,
+        stellaAPR,
+        extraAPR: 0,
+        rewardTokens: stellaAPR > 0 ? [STELLA] : [],
+        farmTvlUsd,
+      };
+
     const extraRewardDecimals = poolRewardsPerSec[i].decimals;
     const rewardsPerSec = poolRewardsPerSec[i].rewardsPerSec;
 

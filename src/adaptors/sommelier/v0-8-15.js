@@ -2,30 +2,29 @@ const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const cellarAbi = require('./cellar-v0-8-15.json');
-const { chain } = require('./config');
 const { getApy } = require('./apy');
 
 const call = sdk.api.abi.call;
 
-async function getUnderlyingTokens(cellarAddress) {
+async function getUnderlyingTokens(cellarAddress, cellarChain) {
   const asset = (
     await call({
       target: cellarAddress,
       abi: cellarAbi.asset,
-      chain,
+      chain: cellarChain,
     })
   ).output;
 
   return [asset];
 }
 
-async function getTvlUsd(cellarAddress, assetAddress) {
+async function getTvlUsd(cellarAddress, assetAddress, cellarChain) {
   // Total balance of asset held by the Cellar
   const totalAssets = (
     await call({
       target: cellarAddress,
       abi: cellarAbi.totalAssets,
-      chain,
+      chain: cellarChain,
     })
   ).output;
 
@@ -34,11 +33,11 @@ async function getTvlUsd(cellarAddress, assetAddress) {
     await call({
       target: assetAddress,
       abi: 'erc20:decimals',
-      chain,
+      chain: cellarChain,
     })
   ).output;
 
-  const prices = (await utils.getPrices([assetAddress], chain)).pricesByAddress;
+  const prices = (await utils.getPrices([assetAddress], cellarChain)).pricesByAddress;
   const price = prices[assetAddress.toLowerCase()];
 
   const total = new BigNumber(totalAssets);

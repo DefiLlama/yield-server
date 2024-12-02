@@ -4,6 +4,7 @@ const utils = require('../utils');
 const {TEAHOUSE_VAULT_STAT_API_URL, TEAHOUSE_VAULT_CONTENT_API_URL, TEAHOUSE_WEBSITE_URL} = require('./config');
 const bn = require('bignumber.js');
 const {TEAHOUSE_VAULT_V3_ABI} = require('./abi');
+const VAULT_DATA = require('./data.json');
 
 
 const interval = 24 * 60 * 60 * 7
@@ -176,7 +177,12 @@ async function addLiquidityData(vault: Vault, interval: number): Promise<Vault> 
     const chain = vault.chain
     const tokenName = vault.isAsset0Main ? "token0" : "token1"
     const token = getUnderlyingToken(tokenName, vault)
-    const rewardTokens = vault.rewardTokens
+    let rewardTokens = vault.rewardTokens;
+    if (rewardTokens.length) {
+      rewardTokens = rewardTokens.filter(
+        (t) => new Date(+t.rewardBook.endTime * 1000) > new Date()
+      );
+    }
     const {
         tvl, shareSupply
     } = await getLiquidityData(vault)
@@ -265,10 +271,15 @@ function convertToPool(vault: Vault): Promise<Pool> {
     return pool;
 }
 
+function getVaultData2(): Promise<Vault[]> {
+    return VAULT_DATA
+}
+
 async function topLvl(_: number): Promise<Pool[]> {
     // step 1: get vault data
-    const vaultType = 'permissionless'
-    const vaults = await getVaultData(vaultType)
+    // const vaultType = 'permissionless'
+    // const vaults = await getVaultData(vaultType)
+    const vaults = getVaultData2()
     const interval = 24 * 60 * 60
     updateRpcUrl(sdk, 'arbitrum', 42161, "https://rpc.ankr.com/arbitrum")
     updateRpcUrl(sdk, 'boba', 288, "https://lightning-replica.boba.network/")

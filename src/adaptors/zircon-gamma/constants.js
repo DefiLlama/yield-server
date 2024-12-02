@@ -1,3 +1,4 @@
+const sdk = require("@defillama/sdk");
 module.exports = Object.freeze({
   MASTER_CONTRACT_ADDRESS: "0x97b2aE105DAFb7DC8a73c93e5f56d3f095D0DCF3",
   PT_FACT_CONTRACT_ADDRESS: "0x2D4ddeB8b183413e9D88A98Fa3Dd844e34D41c54",
@@ -44,13 +45,13 @@ module.exports = Object.freeze({
   },
   BRANCH: 'dev',
   SUBGRAPH_URI: {
-    "1285": "https://api.thegraph.com/subgraphs/name/vittoridavide/psionicfarm-gamma",
+    "1285": sdk.graph.modifyEndpoint('2uB6zSi8gN1kCmijML2Qm2ZCRcNq3n1qLnTXMo5Jm2tk'),
     "1287": "https://api.thegraph.com/subgraphs/name/vittoridavide/psionic-farm-moonbase",
-    "56": "https://api.thegraph.com/subgraphs/name/vittoridavide/psionic-farm-bsc"
+    "56": sdk.graph.modifyEndpoint('GEoMDCQEb8ShDFjn8UvrVdfABEfKzWCuurdpbPi6Dyfx')
   },
   GAMMA_SUBGRAPH_URI: {
-    "1285": "https://api.thegraph.com/subgraphs/name/reshyresh/zircon-finance",
-    "56": "https://api.thegraph.com/subgraphs/name/reshyresh/zi",
+    "1285": sdk.graph.modifyEndpoint('8weH8Sp54JoeKtmQ9mYMhBzyXd1FdFoKvzgQmugRffwi'),
+    "56": sdk.graph.modifyEndpoint('9Ep2SL39VA42EAuPVvb7hAp683bUHwkmm4J4WPELKuah'),
     "1287": "https://api.thegraph.com/subgraphs/name/reshyresh/zircon-finance2"
   },
   ZRG_ADDRESS: {

@@ -76,6 +76,7 @@ const getRewards = async (comptrollerAddress, markets, rewardMethod) => {
         params: [market],
       })),
       abi: comptrollerAbi.find(({ name }) => name === rewardMethod),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -86,6 +87,7 @@ const multiCallMarkets = async (markets, method, abi) => {
       chain: CHAIN,
       calls: markets.map((market) => ({ target: market })),
       abi: abi.find(({ name }) => name === method),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -97,6 +99,7 @@ const main = async () => {
         target: comptrollerAddress,
         chain: CHAIN,
         abi: comptrollerAbi.find(({ name }) => name === GET_ALL_MARKETS),
+        permitFailure: true,
       })
     ).output;
     let allMarkets = Object.values(allMarketsRes);
@@ -117,6 +120,7 @@ const main = async () => {
           target: comptrollerAddress,
           params: [m],
         })),
+        permitFailure: true,
       })
     ).output.map((o) => o.output);
 
