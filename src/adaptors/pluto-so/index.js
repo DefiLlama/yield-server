@@ -19,7 +19,7 @@ const getApy = async () => {
       return {
         pool: r.earn_vault_address,
         chain: 'Solana',
-        project: 'pluto',
+        project: 'pluto-so',
         symbol: utils.formatSymbol(r.symbol),
         tvlUsd: Number(r.supply_amount_usd),
         url: `https://app.pluto.so/earn/`,
@@ -35,6 +35,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  timetravel: false,
   apy: getApy,
   url: 'https://pluto.so/',
 };
