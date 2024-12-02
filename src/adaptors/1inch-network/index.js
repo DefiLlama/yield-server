@@ -1,9 +1,13 @@
 const utils = require('../utils');
+// test3
 
 const ADDRESSES = {
   ethereum: {
     '1INCH': '0x111111111117dc0aa78b770fa6a738034120c302',
     dst1INCH: '0x9a0c8ff858d273f57072d714bca7411d717501d7',
+  },
+  base: {
+    '1INCH': '0xc5fecc3a29fb57b5024eec8a2239d4621e111cbe',
   },
 };
 

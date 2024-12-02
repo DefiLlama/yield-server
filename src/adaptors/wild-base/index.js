@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const masterchefAbi = require('./masterchef');
 const poolAbi = require('./poolAbi');
@@ -203,14 +203,16 @@ const topLv = async (chainString, version, timestamp) => {
     })
   ).output.map((o) => o.output);
 
-  const exclude = ['0x4200000000000000000000000000000000000006', '0x79474223AEdD0339780baCcE75aBDa0BE84dcBF9'];
+  const exclude = [
+    '0x4200000000000000000000000000000000000006',
+    '0x79474223AEdD0339780baCcE75aBDa0BE84dcBF9',
+  ];
 
   poolInfo = poolInfo.filter(
     (obj, index, self) =>
       index === self.findIndex((o) => o.lpToken === obj.lpToken) &&
       !exclude.includes(obj.lpToken)
   );
-
 
   const WILDxTotalAllocPoint = (
     await sdk.api.abi.call({

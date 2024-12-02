@@ -1,80 +1,14 @@
-const erc4626ABI = [
-  {
-    "inputs": [],
-    "name": "totalAssets",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "totalSupply",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-];
-
-const erc20ABI = [
-  {
-    "constant": true,
-    "inputs": [
-      { 
-        "internalType": "address",
-        "name": "_owner", 
-        "type": "address" 
-      }
-    ],
-    "name": "balanceOf",
-    "outputs": [
-      { 
-        "internalType": "uint256",
-        "name": "balance", 
-        "type": "uint256" 
-      }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-];
-
-const stabilityPoolABI = [
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_depositor",
-        "type": "address"
-      }
-    ],
-    "name": "getDepositorLQTYGain",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-];
-
 module.exports = {
-  erc4626ABI,
-  erc20ABI,
-  stabilityPoolABI,
+  balanceOf: 'erc20:balanceOf',
+  totalSupply: 'erc20:totalSupply',
+  totalAssets: 'function totalAssets() public view returns (uint256)',
+  totalCollateral: 'function totalCollateral() public view returns (uint256)',
+  totalDebt: 'function totalDebt() public view returns (uint256)',
+  getStETH: 'function getStETHByWstETH(uint256) public view returns (uint256)',
+  usdcBalance: 'function usdcBalance() public view returns (uint256)',
+  slippage: 'function slippageTolerance() public view returns (uint256)',
+  ethToUsdc: 'function ethToUsdc(uint256) public view returns (uint256)',
+  lqtyGain:
+    'function getDepositorLQTYGain(address) public view returns (uint256)',
+  rewardRate: 'function rewardRate() public view returns (uint256)',
 };

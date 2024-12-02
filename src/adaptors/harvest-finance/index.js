@@ -124,7 +124,7 @@ async function apy() {
     allVaults = [...allVaults, ...farms];
   }
 
-  allVaults = [...allVaults, ...specialVaults];
+  allVaults = [...allVaults, ...specialVaults].filter((i) => Boolean(i));
 
   return (
     allVaults

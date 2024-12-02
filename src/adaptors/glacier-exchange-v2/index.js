@@ -28,6 +28,7 @@ const getApy = async () => {
       })),
       abi: abiPairFactory.find((m) => m.name === 'allPairs'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -48,6 +49,7 @@ const getApy = async () => {
       })),
       abi: abiPair.find((m) => m.name === 'symbol'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -59,6 +61,7 @@ const getApy = async () => {
       })),
       abi: abiVoter.find((m) => m.name === 'gauges'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -70,6 +73,7 @@ const getApy = async () => {
       })),
       abi: abiGauge.find((m) => m.name === 'rewardRate'),
       chain: 'avax',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 

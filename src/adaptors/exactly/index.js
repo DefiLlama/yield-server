@@ -1,4 +1,4 @@
-const { api2 } = require("@defillama/sdk3");
+const { api2 } = require("@defillama/sdk");
 const { AddressZero } = require("@ethersproject/constants");
 const { aprToApy, getBlocksByTime, getPrices } = require("../utils");
 
@@ -176,16 +176,16 @@ const apy = async () =>
           /** @type {Pool} */
           const floating = Number.isFinite(apr) &&
             Number.isFinite(borrowAPR) && {
-            ...poolMetadata,
-            pool: `${market}-${chain}`.toLowerCase(),
-            apyBase: aprToApy(apr),
-            apyBaseBorrow: aprToApy(borrowAPR),
-            totalSupplyUsd: (totalSupply[i] * usdUnitPrice) / baseUnit,
-            totalBorrowUsd: (totalFloatingBorrowAssets[i] * usdUnitPrice) / baseUnit,
-            rewardTokens,
-            apyReward: aprReward ? aprToApy(aprReward) : undefined,
-            apyRewardBorrow: aprRewardBorrow ? aprToApy(aprRewardBorrow) : undefined,
-          };
+              ...poolMetadata,
+              pool: `${market}-${chain}`.toLowerCase(),
+              apyBase: aprToApy(apr),
+              apyBaseBorrow: aprToApy(borrowAPR),
+              totalSupplyUsd: (totalSupply[i] * usdUnitPrice) / baseUnit,
+              totalBorrowUsd: (totalFloatingBorrowAssets[i] * usdUnitPrice) / baseUnit,
+              rewardTokens,
+              apyReward: aprReward ? aprToApy(aprReward) : undefined,
+              apyRewardBorrow: aprRewardBorrow ? aprToApy(aprRewardBorrow) : undefined,
+            };
 
           const maturities = Array.from({ length: maxFuturePools[i] }, (_, j) => minMaturity + INTERVAL * j);
           /** @type FixedPool[] */

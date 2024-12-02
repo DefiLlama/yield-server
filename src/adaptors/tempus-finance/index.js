@@ -1,6 +1,6 @@
 const { default: BigNumber } = require('bignumber.js');
 const axios = require('axios');
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk');
 const tempStaking = require('./abis/TempStaking.json');
 
 const STAKING = '0x6C6D4753a1107585121599746c2E398cCbEa5119';

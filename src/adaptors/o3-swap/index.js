@@ -1,4 +1,4 @@
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 const axios = require('axios');
 const poolAbi = require('./abis/pool.json');
 const stakingAbi = require('./abis/staking.json');
@@ -225,7 +225,7 @@ function getO3StakingInfo() {
 function getTvlUsd(pool, balance, rates) {
   const price =
     rates[RATES_CHAIN[pool.chain]][pool.underlyingTokens[0].toLowerCase()]
-      .price;
+      ?.price;
   return new BigNumber(price).times(balance).dp(2).toNumber();
 }
 function getStakingAPR(pool, stakingInfo, rates) {
@@ -235,11 +235,11 @@ function getStakingAPR(pool, stakingInfo, rates) {
   const sharePerSecond = stakingInfo.sharePerSecond;
   const tokenPrice =
     rates[RATES_CHAIN[pool.chain]][pool.underlyingTokens[0].toLowerCase()]
-      .price;
+      ?.price;
   let yearProfits = new BigNumber(0);
   pool.rewardTokens.forEach((hash, index) => {
     const rewardTokenPrice =
-      rates[RATES_CHAIN[pool.chain]][hash.toLowerCase()].price;
+      rates[RATES_CHAIN[pool.chain]][hash.toLowerCase()]?.price;
     yearProfits = yearProfits.plus(
       yearSecond
         .times(new BigNumber(sharePerSecond[index]))

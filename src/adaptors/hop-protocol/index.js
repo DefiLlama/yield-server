@@ -1,5 +1,5 @@
 const axios = require('axios');
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 
 const utils = require('../utils');
@@ -17,17 +17,21 @@ const getApy = async () => {
   const pools = [];
   for (const token of tokens) {
     const tokenPools = data.pools[token];
-    const chains = Object.keys(tokenPools).filter(
-      (c) => !['nova'].includes(c)
-    );
+    const chains = Object.keys(tokenPools).filter((c) => !['nova'].includes(c));
 
     for (chain of chains) {
       const config = coreConfig[token][chain];
       const poolAddress = config?.l2SaddleSwap;
       const tokenAddress = config?.l2CanonicalToken;
       const hopTokenAddress = config?.l2HopBridgeToken;
-      const adaptedChain = chain === 'gnosis' ? 'xdai' : chain;
-      console.log(token, chain);
+      if (!tokenAddress || !poolAddress) continue;
+
+      const adaptedChain =
+        chain === 'gnosis'
+          ? 'xdai'
+          : chain === 'polygonzk'
+          ? 'polygon_zkevm'
+          : chain;
 
       const tokenBalance = (
         await sdk.api.abi.call({

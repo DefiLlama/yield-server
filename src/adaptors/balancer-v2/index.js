@@ -1,6 +1,6 @@
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const gaugeABIEthereum = require('./abis/gauge_ethereum.json');
@@ -16,18 +16,39 @@ const { excludePools } = require('../../utils/exclude');
 const { getChildChainRootGauge } = require('./childChainGauges.js');
 
 // Subgraph URLs
-const urlBase = 'https://api.thegraph.com/subgraphs/name/balancer-labs';
-const urlEthereum = `${urlBase}/balancer-v2`;
-const urlPolygon = `${urlBase}/balancer-polygon-v2`;
-const urlGnosis = `${urlBase}/balancer-gnosis-chain-v2`;
-const urlArbitrum = `${urlBase}/balancer-arbitrum-v2`;
+const urlEthereum = sdk.graph.modifyEndpoint(
+  'C4ayEZP2yTXRAB8vSaTrgN4m9anTe9Mdm2ViyiAuV9TV'
+);
+const urlPolygon = sdk.graph.modifyEndpoint(
+  'H9oPAbXnobBRq1cB3HDmbZ1E8MWQyJYQjT1QDJMrdbNp'
+);
+const urlGnosis = sdk.graph.modifyEndpoint(
+  'EJezH1Cp31QkKPaBDerhVPRWsKVZLrDfzjrLqpmv6cGg'
+);
+const urlArbitrum = sdk.graph.modifyEndpoint(
+  '98cQDy6tufTJtshDCuhh9z2kWXsQWBHVh2bqnLHsGAeS'
+);
 const urlBaseChain = `https://api.studio.thegraph.com/query/24660/balancer-base-v2/version/latest`;
+const urlAvalanche = sdk.graph.modifyEndpoint(
+  '7asfmtQA1KYu6CP7YVm5kv4bGxVyfAHEiptt2HMFgkHu'
+);
 
-const urlGaugesEthereum = `${urlBase}/balancer-gauges`;
-const urlGaugesPolygon = `${urlBase}/balancer-gauges-polygon`;
-const urlGaugesGnosis = `${urlBase}/balancer-gauges-gnosis-chain`;
-const urlGaugesArbitrum = `${urlBase}/balancer-gauges-arbitrum`;
+const urlGaugesEthereum = sdk.graph.modifyEndpoint(
+  '4sESujoqmztX6pbichs4wZ1XXyYrkooMuHA8sKkYxpTn'
+);
+const urlGaugesPolygon = sdk.graph.modifyEndpoint(
+  'AkD2HEjNoupFb1y3fERdhmFC1UbKvQUBwsu5fREAEcJd'
+);
+const urlGaugesGnosis = sdk.graph.modifyEndpoint(
+  '4nTERBBaGRc1PgLcGvtvvqupSFu7y8Ee2xKZFNM5aw56'
+);
+const urlGaugesArbitrum = sdk.graph.modifyEndpoint(
+  'Bb1hVjJZ52kL23chZyyGWJKrGEg3S6euuNa1YA6XRU4J'
+);
 const urlGaugesBase = `https://api.studio.thegraph.com/query/24660/balancer-gauges-base/version/latest`;
+const urlGaugesAvalanche = sdk.graph.modifyEndpoint(
+  'BZ2DkZkaQKdBqDTRdur8kHM95ZFVt4fBudKmnvobiyN'
+);
 
 const protocolFeesCollector = '0xce88686553686DA562CE7Cea497CE749DA109f9F';
 const gaugeController = '0xC128468b7Ce63eA702C1f104D55A2566b13D3ABD';
@@ -73,6 +94,7 @@ const query = gql`
         symbol
         weight
       }
+      address
     }
   }
 `;
@@ -150,7 +172,10 @@ const correctMaker = (entry) => {
 const tvl = (entry, tokenPriceList, chainString) => {
   entry = { ...entry };
 
-  const balanceDetails = entry.tokens.filter(
+  // remove the pool address from tvl calculation to calculate tvl from underlying tokens only
+  let balanceDetails = entry.tokens.filter((i) => i.address !== entry.address);
+
+  balanceDetails = balanceDetails.filter(
     (t) =>
       ![
         'B-STETH-Stable',
@@ -162,6 +187,9 @@ const tvl = (entry, tokenPriceList, chainString) => {
         'GHO/BB-A-USD',
         'B-ETHX/BB-A-WETH',
         'ETHX-WETH-BPT',
+        'SAVAX-WAVAX-BPT',
+        'GGAVAX-WAVAX-BPT',
+        'YYAVAX-WAVAX-BPT',
       ].includes(t.symbol.toUpperCase().trim())
   );
 
@@ -231,7 +259,13 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
 
   let childChainRootGauges;
   if (chainString != 'ethereum') {
-    childChainRootGauges = await getChildChainRootGauge(chainString);
+    childChainRootGauges = await getChildChainRootGauge(
+      chainString === 'avax'
+        ? 'avalanche'
+        : chainString === 'xdai'
+        ? 'gnosis'
+        : chainString
+    );
   }
 
   // Global source of truth for the inflation rate. All mainnet gauges use the BalancerTokenAdmin contract to update their locally stored inflation rate during checkpoints.
@@ -454,6 +488,13 @@ const topLvl = async (
 
   // build pool objects
   return tvlInfo.map((p) => {
+    const chainUrl =
+      chainString === 'avax'
+        ? 'avalanche'
+        : chainString === 'xdai'
+        ? 'gnosis'
+        : chainString;
+
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
@@ -468,9 +509,7 @@ const topLvl = async (
           : p.aprLM,
       rewardTokens: p.rewardTokens,
       underlyingTokens: p.tokensList,
-      url: `https://${
-        chainString === 'ethereum' ? 'app' : chainString
-      }.balancer.fi/#/pool/${p.id}`,
+      url: `https://balancer.fi/pools/${chainUrl}/v2/${p.id}`,
     };
   });
 };
@@ -537,6 +576,16 @@ const main = async () => {
       urlGaugesBase,
       queryGauge,
       gaugeABIBase,
+      swapFeePercentage
+    ),
+    topLvl(
+      'avax',
+      urlAvalanche,
+      query,
+      queryPrior,
+      urlGaugesAvalanche,
+      queryGauge,
+      gaugeABIArbitrum,
       swapFeePercentage
     ),
   ]);

@@ -1,82 +1,84 @@
 const { request, gql } = require('graphql-request');
+const fetch = require('node-fetch');
 
 const apy = async () => {
-  const endpoint = 'https://api.liqwiddev.net/graphql'
+  const endpoint = 'https://v2.api.liqwid.finance/graphql';
+  const registryEndpoint = 'https://public.liqwid.finance/registry.json';
 
-  const query = gql`query ($page: Int) {
-    Page (page: $page) {
-      market {
-        asset {
-          name
-        }
-        state {
-          totalSupply
-          supplyApy
-          utilization
-          borrowApy
-          borrowLqDistributionApy
-          supplyMarketParticipationAPR
-          maxLoanToValue
-        }
-        info {
-          scripts {
-            batchFinal {
-              hash
+  const query = gql`
+    query {
+      liqwid {
+        data {
+          markets {
+            page
+            results {
+              id
+              supplyAPY
+              supply
+              liquidity
+              lqSupplyAPY
+              borrowAPY
+              borrow
+              utilization
+              asset {
+                price
+              }
             }
           }
         }
-        price {
-          price
-        }
-        decimals
       }
     }
-    adaStakingAPY
-  }
-  `
-  const data = await request(endpoint, query)
-  const markets = data.Page.market;
-  const adaStakingAPY = data.adaStakingAPY; // ada liquid staking
+  `;
 
-  const getPool = (tokenName) => {
-    const market = markets.filter((market) => market.asset.name === tokenName)[0];
+  const data = await request(endpoint, query);
 
+  //NOTE: Action validator will be added to the API in the near future
+  const registryData = await fetch(registryEndpoint)
+    .then((res) => res.json())
+    .then((data) =>
+      data.scriptInfos.filter(
+        (script) =>
+          script.type === 'Validator' && script.tag === 'liqwidMainnet'
+      )
+    );
+
+  // These are the markets that are either disabled or not borrowable, so no yield can be generated
+  const disableMarkets = ['AGIX', 'WMT', 'POL', 'LQ'];
+
+  const markets = data.liqwid.data.markets.results.filter(
+    (market) => !disableMarkets.includes(market.id)
+  );
+
+  const getPool = (market) => {
     return {
-      // FIXME(Kylix, 20th Sep 2023): Construct Shelley address from hex scripthash
-      pool: market.info.scripts.batchFinal.hash.value0, // market batch final hash
-      chain: "Cardano",
-      project: "liqwid",
-      symbol: market.asset.name,
-      tvlUsd: market.state.totalSupply / Math.pow(10, market.decimals) * market.price.price,
-      apyBase: (tokenName == "ADA" ? adaStakingAPY : 0 + Number(market.state.supplyApy)) * 100,
-      apyReward: Number(market.state.supplyMarketParticipationAPR) * 100,
-      rewardTokens: [tokenName, "LQ"],
-      underlyingTokens: [tokenName],
-      // lending protocol fields
-      apyBaseBorrow: Number(market.state.borrowApy) * 100,
-      apyRewardBorrow: Number(market.state.borrowLqDistributionApy) * 100,
-      totalSupplyUsd: market.state.totalSupply / (1 - market.state.utilization) / Math.pow(10, market.decimals) * market.price.price,
-      totalBorrowUsd: market.state.totalSupply / (1 - market.state.utilization) / Math.pow(10, market.decimals) * market.state.utilization * market.price.price,
-      ltv: Number(market.state.maxLoanToValue)
+      pool: registryData.find(
+        (script) => script.name === `Liqwid${market.id}Action`
+      )?.scriptHash,
+      chain: 'Cardano',
+      project: 'liqwid',
+      symbol: market.id,
+      tvlUsd: market.liquidity * market.asset.price,
+      apyReward:
+        market.lqSupplyAPY * 100 > 100
+          ? market.lqSupplyAPY
+          : market.lqSupplyAPY * 100,
+      apyBase: market.supplyAPY * 100,
+      rewardTokens: [market.id, 'LQ'],
+      underlyingTokens: [market.id],
+      apyBaseBorrow:
+        market.borrowAPY * 100 > 100
+          ? market.borrowAPY
+          : market.borrowAPY * 100,
+      totalSupplyUsd: market.supply * market.asset.price,
+      totalBorrowUsd: market.borrow * market.asset.price,
     };
   };
 
-  return [
-    getPool("ADA"),
-    getPool("DJED"),
-    getPool("SHEN"),
-    getPool("iUSD"),
-    getPool("USDC"),
-    getPool("USDT"),
-    getPool("DAI"),
-    getPool("AGIX"),
-    getPool("WMT"),
-    getPool("MIN")
-  ];
+  return markets.map(getPool).filter((i) => i.pool !== undefined);
 };
 
 module.exports = {
   timetravel: false,
   apy: apy,
-  url: 'https://app.liqwid.finance/',
+  url: 'https://v2.liqwid.finance/',
 };

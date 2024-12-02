@@ -3,6 +3,9 @@ const axios = require('axios');
 const abi = require('./abi.js');
 const PermissionlessNodeRegistryAbi = require('./ PermissionlessNodeRegistryAbi.json');
 
+// const abiBsc = require('./abiBsc');
+const abiPolygon = require('./abiPolygon');
+
 const token = '0xa35b1b31ce002fbf2058d22f30f95d405200a15b';
 const stakingContract = '0xcf5EA1b38380f6aF39068375516Daf40Ed70D299';
 const nodeOperatorRegistry = '0x4f4bfa0861f62309934a5551e0b2541ee82fdcf1';
@@ -67,6 +70,58 @@ const getApy = async () => {
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).data.coins[priceKey]?.price;
 
+  // maticx contract on ethereum
+  const stakeManagerContract = '0xf03A7Eb46d01d9EcAA104558C732Cf82f6B6B645';
+  const exchangeRatesPolygon = await Promise.all([
+    sdk.api.abi.call({
+      target: stakeManagerContract,
+      chain: 'ethereum',
+      abi: abiPolygon.find((m) => m.name === 'convertMaticXToMatic'),
+      params: [1000000000000000000n],
+    }),
+    sdk.api.abi.call({
+      target: stakeManagerContract,
+      chain: 'ethereum',
+      abi: abiPolygon.find((m) => m.name === 'convertMaticXToMatic'),
+      params: [1000000000000000000n],
+      block: block1dayAgo,
+    }),
+    sdk.api.abi.call({
+      target: stakeManagerContract,
+      chain: 'ethereum',
+      abi: abiPolygon.find((m) => m.name === 'convertMaticXToMatic'),
+      params: [1000000000000000000n],
+      block: block7dayAgo,
+    }),
+  ]);
+
+  const apyBasePolygon =
+    ((exchangeRatesPolygon[0].output[0] - exchangeRatesPolygon[1].output[0]) /
+      1e18) *
+    365 *
+    100;
+
+  const apyBase7dPolygon =
+    ((exchangeRatesPolygon[0].output[0] - exchangeRatesPolygon[2].output[0]) /
+      1e18 /
+      7) *
+    365 *
+    100;
+
+  const priceKeyPolygon = `ethereum:${stakeManagerContract}`;
+  const maticxPrice = (
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKeyPolygon}`)
+  ).data.coins[priceKeyPolygon]?.price;
+
+  const tvlPolygon =
+    (
+      await sdk.api.abi.call({
+        target: stakeManagerContract,
+        abi: 'erc20:totalSupply',
+        chain: 'ethereum',
+      })
+    ).output / 1e18;
+
   return [
     {
       pool: token,
@@ -77,6 +132,16 @@ const getApy = async () => {
       apyBase,
       apyBase7d,
       underlyingTokens: [weth],
+    },
+    {
+      pool: stakeManagerContract,
+      chain: 'polygon',
+      project: 'stader',
+      symbol: 'maticx',
+      tvlUsd: tvlPolygon * maticxPrice,
+      apyBase: apyBasePolygon,
+      apyBase7d: apyBase7dPolygon,
+      underlyingTokens: ['0x0000000000000000000000000000000000001010'],
     },
   ];
 };

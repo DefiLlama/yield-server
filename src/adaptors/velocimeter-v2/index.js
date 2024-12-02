@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const utils = require('../utils');
@@ -121,15 +121,14 @@ const getApy = async () => {
     })
   ).output.map((o) => o.output);
 
-
   // we have some gauges set to null address 0x0000000000000000000000000000000000000000
   // and they're not supported in sdk4 as target value
   // thus we need to filter them out
-  const nullAddress = '0x0000000000000000000000000000000000000000'
-  allPairs = allPairs.filter((pair, index) => gauges[index] != nullAddress)
-  metaData = metaData.filter((meta, index) => gauges[index] != nullAddress)
-  symbols = symbols.filter((symbol, index) => gauges[index] != nullAddress)
-  gauges = gauges.filter((gauge) => gauge != nullAddress)
+  const nullAddress = '0x0000000000000000000000000000000000000000';
+  allPairs = allPairs.filter((pair, index) => gauges[index] != nullAddress);
+  metaData = metaData.filter((meta, index) => gauges[index] != nullAddress);
+  symbols = symbols.filter((symbol, index) => gauges[index] != nullAddress);
+  gauges = gauges.filter((gauge) => gauge != nullAddress);
 
   const rewardsListLengthForGauges = (
     await sdk.api.abi.multiCall({
@@ -240,7 +239,7 @@ const getApy = async () => {
     const rewardTokens = rewardTokensAndRates[i].map(([token]) =>
       token.toLowerCase()
     );
-    
+
     return {
       pool: p,
       chain: utils.formatChain(chain),
