@@ -421,6 +421,11 @@ const main = async () => {
         continue;
       }
 
+      // Geckoterminal is reporting the wrong price
+      if (underlying.id.toLowerCase() === '0x0f929C29dcE303F96b1d4104505F2e60eE795caC'.toLowerCase()) { 
+        continue;
+      }
+
       const { safetyMargin, liquidationFee, liquidationIncentive } =
         lendingPool.collateral;
 
