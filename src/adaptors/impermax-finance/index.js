@@ -160,7 +160,6 @@ const lendingVaultsConfig = {
   real: [],
   fantom: [],
   optimism: [],
-  arbitrum: [],
   ethereum: [],
 };
 
