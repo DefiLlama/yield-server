@@ -208,9 +208,19 @@ const apy = async () => {
     )
   );
 
-  const { pricesByAddress, pricesBySymbol } = await getPrices(
-    underlyingTokens.flat().concat(rewardTokens.flat(Infinity))
-  );
+  const allTokens = underlyingTokens.flat().concat(rewardTokens.flat(Infinity));
+  const pricesByAddress = {};
+  const pricesBySymbol = {};
+
+  for (let i = 0; i < allTokens.length; i += 50) {
+    const chunk = allTokens.slice(i, i + 50);
+    const {
+      pricesByAddress: chunkPricesByAddress,
+      pricesBySymbol: chunkPricesBySymbol,
+    } = await getPrices(chunk);
+    Object.assign(pricesByAddress, chunkPricesByAddress);
+    Object.assign(pricesBySymbol, chunkPricesBySymbol);
+  }
 
   const pools = data.map(([chain, markets], i) => {
     const chainPools = markets.map((pool, idx) => {

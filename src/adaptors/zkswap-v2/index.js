@@ -75,6 +75,7 @@ const apy = async () => {
     })),
     chain: CHAIN,
     requery: true,
+    permitFailure: true,
   });
 
   const lpTokensSwapFee = lpTokensSwapFeeCall.output.reduce(
@@ -197,7 +198,7 @@ const apy = async () => {
       return {
         pool: poolInfo.lpToken,
         chain: CHAIN,
-        project: 'zkswap-finance',
+        project: 'zkswap-v2',
         symbol: 'ZF',
         tvlUsd: totalStakingTokenInPool,
         apyBase: 0,
@@ -244,7 +245,7 @@ const apy = async () => {
   const govPool = {
     pool: ZF_GOV,
     chain: CHAIN,
-    project: 'zkswap-finance',
+    project: 'zkswap-v2',
     symbol: 'ZF',
     tvlUsd: govTvl,
     apyBase: unstakedAPY,
@@ -307,7 +308,7 @@ const apy = async () => {
     return {
       pool: pool.lpToken,
       chain: CHAIN,
-      project: 'zkswap-finance',
+      project: 'zkswap-v2',
       symbol: pairInfo.name,
       tvlUsd: Number(zfFarmReservesUsd),
       apyBase,
@@ -320,7 +321,7 @@ const apy = async () => {
       url: 'https://zkswap.finance/earn',
     };
   });
-  return [...nonLpRes, ...res, govPool];
+  return [...nonLpRes, ...res, govPool].filter((i) => utils.keepFinite(i));
 };
 
 const makeMulticall = async (abi, addresses, chain, params = null) => {
@@ -331,6 +332,7 @@ const makeMulticall = async (abi, addresses, chain, params = null) => {
       params,
     })),
     chain,
+    permitFailure: true,
   });
 
   const res = data.output.map(({ output }) => output);
