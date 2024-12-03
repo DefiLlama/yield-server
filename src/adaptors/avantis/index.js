@@ -2,7 +2,7 @@ const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const { chunkArray, calculateTrancheTotal } = require('./helpers');
-const { getBlocksByTime } = require('../utils');
+const { getBlocksByTime, getData } = require('../utils');
 
 const ADDRESSES = {
   base: {
@@ -97,16 +97,25 @@ const fetchTransfersForFeeDistributedIds = async (ids) => {
   return { totalJunior: totalJunior / 7, totalSenior: totalSenior / 7 };
 };
 
+// NOTE: OUR SUBGRAPH IS NOT CAUGHT UP TO DATE, SO WE ARE USING THE API FOR NOW
+// -----------------------------------------------------------------------------
+// We will reenable time travel once our subgraph is caught up
 const main = async (timestamp = null) => {
-  timestamp = timestamp ? parseInt(timestamp) : Math.floor(Date.now() / 1000);
+  // timestamp = timestamp ? parseInt(timestamp) : Math.floor(Date.now() / 1000);
 
+  // NOTE: OUR SUBGRAPH IS NOT CAUGHT UP TO DATE, SO WE ARE USING THE API FOR NOW
+  // -----------------------------------------------------------------------------
   // Get total fees distributed for junior and senior tranches
-  const feesDistributedIds = await fetchFeeDistributedIds(timestamp);
-  const { totalJunior, totalSenior } = await fetchTransfersForFeeDistributedIds(
-    feesDistributedIds
-  );
+  // const feesDistributedIds = await fetchFeeDistributedIds(timestamp);
+  // const { totalJunior, totalSenior } = await fetchTransfersForFeeDistributedIds(
+  //   feesDistributedIds
+  // );
 
-  const [block] = await getBlocksByTime([timestamp], 'base');
+  // const [block] = await getBlocksByTime([timestamp], 'base');
+
+  const { meta } = await getData(
+    'https://api.avantisfi.com/v1/vault/returns-7-days'
+  );
 
   // Get TVL for junior and senior tranches
   let [juniorTvl, seniorTvl] = await Promise.all([
@@ -115,14 +124,14 @@ const main = async (timestamp = null) => {
       target: ADDRESSES.base.USDC,
       params: [ADDRESSES.base.AvantisJuniorTranche],
       chain: 'base',
-      block: block,
+      // block: block,
     }),
     sdk.api.abi.call({
       abi: 'erc20:balanceOf',
       target: ADDRESSES.base.USDC,
       params: [ADDRESSES.base.AvantisSeniorTranche],
       chain: 'base',
-      block: block,
+      // block: block,
     }),
   ]);
 
@@ -130,8 +139,10 @@ const main = async (timestamp = null) => {
   seniorTvl = seniorTvl.output / 1e6;
 
   // Calculate daily returns for junior and senior tranches
-  const juniorDailyReturns = totalJunior / juniorTvl;
-  const seniorDailyReturns = totalSenior / seniorTvl;
+  // const juniorDailyReturns = totalJunior / juniorTvl;
+  // const seniorDailyReturns = totalSenior / seniorTvl;
+  const juniorDailyReturns = meta.averageJrFees / juniorTvl;
+  const seniorDailyReturns = meta.averageSrFees / seniorTvl;
 
   // Calculate APY for junior and senior tranches
   const juniorApy = (1 + juniorDailyReturns) ** 365 - 1;
@@ -162,6 +173,6 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
-  timetravel: true,
+  timetravel: false,
   apy: main,
 };
