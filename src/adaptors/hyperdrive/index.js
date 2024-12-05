@@ -272,15 +272,15 @@ async function getApy(chain) {
           if (pool.config.token.priceWithBase) tvlUsd = tvlUsd * pool.info.vaultSharePrice / 1e18;
 
           const result = {
-            pool: pool.name,
+            pool: pool.address,
             chain,
             project: 'hyperdrive',
             symbol: pool.config.token.symbol,
             tvlUsd: Number(tvlUsd) || 0,
-            apy: APY * 100,
             apyBase: APY * 100,
             underlyingTokens: [pool.config.token_contract_address],
-            url: `https://app.hyperdrive.box/market/${providers[chain].chainId}/${pool.address}`
+            url: `https://app.hyperdrive.box/market/${providers[chain].chainId}/${pool.address}`,
+            poolMeta: `Matures in ${pool.config.positionDuration / (24 * 60 * 60).toFixed(0)} days from position open`
           };
           return result;
         } catch (error) {
@@ -303,27 +303,6 @@ async function apy() {
   const pools = await Promise.allSettled(
     Object.keys(config).map(async (chain) => getApy(chain))
   );
-
-  // append [network] to duplicate pool names
-  const replaceNames = {
-    xdai: "gnosis"
-  }
-  const uniquePoolNames = new Set();
-  pools
-    .filter(p => p.status === 'fulfilled')
-    .forEach(promiseResult => {
-      promiseResult.value.forEach(pool => {
-        if (pool && uniquePoolNames.has(pool.pool)) {
-          // Identify the non-ethereum pool of the pair
-          const nonEthPool = pool.chain.includes('ethereum') ? pool : pool;
-          // Add [network] to the non-ethereum pool name
-          nonEthPool.pool = `${nonEthPool.pool} [${replaceNames[nonEthPool.chain] || nonEthPool.chain}]`;
-        }
-        if (pool) {
-          uniquePoolNames.add(pool.pool);
-        }
-      });
-    });
 
   return pools
     .filter((i) => i.status === 'fulfilled')
