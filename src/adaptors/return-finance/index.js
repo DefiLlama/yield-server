@@ -10,6 +10,7 @@ const abiBenqi = require('./abiBenqiAvalanche.json');
 const abiCurveDex = require('./abiCurveDEX.json');
 const abiLido = require('./abiLido.json');
 const abiAerodromeBase = require('./abiAerodromeBase.json');
+const abiEthenaEthereum = require('./abiEthenaEthereum.json');
 
 const getPoolData = async ({ contract, abi, chain, exchangeRate = 1 }) => {
   const { output: tvlUsd } = await sdk.api.abi.call({
@@ -109,6 +110,12 @@ const getApy = async () => {
     chain: 'base',
   });
 
+  const ethenaEthereum = await getPoolData({
+    contract: '0xb41C4126bb6145E8582946E2990ae61ab5b73b76',
+    abi: abiEthenaEthereum,
+    chain: 'ethereum',
+  });
+
   return [
     aavePolygon,
     aaveAvalanche,
@@ -119,6 +126,7 @@ const getApy = async () => {
     curveDEX,
     lido,
     aerodromeBase,
+    ethenaEthereum,
   ].filter((i) => utils.keepFinite(i));
 };
 
