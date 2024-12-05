@@ -1,5 +1,6 @@
 const utils = require('../utils');
 const { request, gql } = require('graphql-request');
+const axios = require('axios');
 
 const api = 'https://api-v2.pendle.finance/core/graphql';
 const chains = {
@@ -18,6 +19,11 @@ const chains = {
     chainSlug: 'bnbchain',
     PENDLE: '0xb3ed0a426155b79b898849803e3b36552f7ed507',
   },
+  10: {
+    chainName: 'optimism',
+    chainSlug: 'optimism',
+    PENDLE: '0xBC7B1Ff1c6989f006a1185318eD4E7b5796e66E1',
+  },
 };
 
 const query = (chainId) => gql`
@@ -30,6 +36,7 @@ const query = (chainId) => gql`
         impliedApy
         proName
         address
+        expiry
         pt {
           address
           symbol
@@ -61,7 +68,7 @@ function poolApys(pools) {
     rewardTokens: [chains[p.chainId].PENDLE],
     underlyingTokens: [p.pt.address, p.sy.address],
     poolMeta: `For LP | Maturity ${p.pt.symbol.split('-').at(-1)}`,
-    url: `https://app.pendle.finance/simple/pools/${p.address}?chain=${
+    url: `https://app.pendle.finance/trade/pools/${p.address}/zap/in?chain=${
       chains[p.chainId].chainSlug
     }`,
   }));
@@ -74,24 +81,24 @@ function ptApys(pools) {
     symbol: utils.formatSymbol(p.proName),
     tvlUsd: p.liquidity?.usd,
     apyBase: p.impliedApy * 100,
-    underlyingTokens: [p.sy.underlyingAsset.address],
+    underlyingTokens: [p.underlyingAsset.address],
     poolMeta: `For buying ${p.pt.symbol}`,
-    url: `https://app.pendle.finance/simple/discounted-assets/${
+    url: `https://app.pendle.finance/trade/markets/${
       p.address
-    }?chain=${chains[p.chainId].chainSlug}`,
+    }/swap?view=pt&chain=${chains[p.chainId].chainSlug}&py=output`,
   }));
 }
 
 async function apy() {
+  const date = new Date();
+
   let pools = (
-    await Promise.all(
-      Object.keys(chains).map((c) =>
-        request(api, query(c)).then((r) => r.markets.results)
-      )
+    await axios.get(
+      'https://api-v2.pendle.finance/bff/v1/1/markets?skip=0&limit=100&select=pro&is_active=true'
     )
-  )
+  ).data.results
     .flat()
-    .filter((p) => p.liquidity != null);
+    .filter((p) => p.liquidity != null && new Date(p.expiry) > date);
   pools = [poolApys(pools), ptApys(pools)]
     .flat()
     .sort((a, b) => b.tvlUsd - a.tvlUsd);

@@ -4,6 +4,7 @@ const utils = require('../utils');
 const {TEAHOUSE_VAULT_STAT_API_URL, TEAHOUSE_VAULT_CONTENT_API_URL, TEAHOUSE_WEBSITE_URL} = require('./config');
 const bn = require('bignumber.js');
 const {TEAHOUSE_VAULT_V3_ABI} = require('./abi');
+const VAULT_DATA = require('./data.json');
 
 
 const interval = 24 * 60 * 60 * 7
@@ -51,13 +52,26 @@ function mergeToVault(info: any, stat: any): Vault {
     const url = generateVaultURL(chain, address)
     const shareDecimals = new bn(contract?.decimals || 0)
     const tokens = []
+    let rewardTokens = []
     if (stat.latestInfo?.token0)
         tokens.push(getTokenData("0", info, stat))
     if (stat.latestInfo?.token1)
         tokens.push(getTokenData("1", info, stat))
+    if (info.rewardTokens){
+        rewardTokens=info.rewardTokens.map((el)=>({
+            address:el.address,
+            chain:chain,
+            decimals:el.decimals,
+            rewardBook:el.rewardBook,
+            symbol:el.symbol,
+            type:el.type
+        }))
+    }else {
+        rewardTokens=[]
+    }
     const data = {
         address, chain, name, vaultMeta, underlyingTokens: tokens, url,
-        isAsset0Main: info.isAsset0Main, shareDecimals
+        isAsset0Main: info.isAsset0Main, shareDecimals,rewardTokens:rewardTokens
     }
     return data
 }
@@ -90,26 +104,28 @@ function updateRpcUrl(sdk: any, chain: string, chainId: number, rpcUrl: string) 
     sdk.api.config.setProvider(chain, provider);
 }
 
-async function makeMulticall(abi: any, addresses: string[], chain: string, params = null, options) {
+async function makeCall(abi: any, address: string, chain: string, params = null, options) {
     const block = options.block || `latest`;
-    const data = await sdk.api.abi.multiCall({
+    console.log(`block: ${block}`, `chain: ${chain}`, `address: ${address}`, `params: ${params}`);
+    console.log(`abi: ${JSON.stringify(abi)}`);
+    const data = await sdk.api.abi.call({
         abi,
-        calls: addresses.map((address) => ({
-            target: address,
-            params,
-        })), chain, block
+        target: address,
+        params,
+        // calls: addresses.map((address) => ({
+        //     target: address,
+        //     params,
+        // })),
+        chain, block
     });
-    let outputByArray = []
-    let outputByAddress = {}
-    for (let i = 0; i < data.output.length; i++) {
-        const key = addresses[i].toLowerCase();
-        outputByArray.push(data.output[i].output);
-        outputByAddress[key] = data.output[i].output;
-    }
-    return {
-        outputByArray: outputByArray,
-        outputByAddress: outputByAddress
-    };
+    // let outputByArray = []
+    // let outputByAddress = {}
+    // for (let i = 0; i < data.output.length; i++) {
+    //     const key = addresses[i].toLowerCase();
+    //     outputByArray.push(data.output[i].output);
+    //     outputByAddress[key] = data.output[i].output;
+    // }
+    return data.output
 };
 
 
@@ -121,15 +137,13 @@ async function getLiquidityData(vault: Vault, block?: number): Promise<{
     const estimatedFnABI = TEAHOUSE_VAULT_V3_ABI.find(
         (el) => el.name === estimatedFn
     )
-    const [tvl] = (await makeMulticall(
-        estimatedFnABI, [vault.address], chain, null, {block: block}))
-        .outputByArray
+    const tvl = (await makeCall(
+        estimatedFnABI, vault.address, chain, null, {block: block}))
     const supplyFnABI = TEAHOUSE_VAULT_V3_ABI.find(
         (el) => el.name === `totalSupply`
     )
-    const [shareSupply] = (await makeMulticall(
-        supplyFnABI, [vault.address], chain, null, {block: block}))
-        .outputByArray
+    const shareSupply = (await makeCall(
+        supplyFnABI, vault.address, chain, null, {block: block}))
     return {
         tvl: new bn(tvl || 0),
         shareSupply: new bn(shareSupply || 0)
@@ -152,9 +166,8 @@ async function checkVaultSupply(vault: Vault, time: number): Promise<boolean> {
     const supplyFnABI = TEAHOUSE_VAULT_V3_ABI.find(
         (el) => el.name === `totalSupply`
     )
-    const [shareSupply] = (await makeMulticall(
-        supplyFnABI, [vault.address], vault.chain, null, {block: block}))
-        .outputByArray
+    const shareSupply = (await makeCall(
+        supplyFnABI, vault.address, vault.chain, null, {block: block}))
     const supply = new bn(shareSupply || 0)
     if (supply?.gt(0)) return true
     return false
@@ -164,6 +177,12 @@ async function addLiquidityData(vault: Vault, interval: number): Promise<Vault> 
     const chain = vault.chain
     const tokenName = vault.isAsset0Main ? "token0" : "token1"
     const token = getUnderlyingToken(tokenName, vault)
+    let rewardTokens = vault.rewardTokens;
+    if (rewardTokens.length) {
+      rewardTokens = rewardTokens.filter(
+        (t) => new Date(+t.rewardBook.endTime * 1000) > new Date()
+      );
+    }
     const {
         tvl, shareSupply
     } = await getLiquidityData(vault)
@@ -176,12 +195,31 @@ async function addLiquidityData(vault: Vault, interval: number): Promise<Vault> 
     const tokenKey = token.address.toLowerCase()
     const tokenDecimals = new bn(10).pow(token.decimals)
     const tvlUsd = new bn(tvl || 0).multipliedBy(prices[tokenKey]).div(tokenDecimals)
+    const rewardApy = await getRewardTokenApy(chain,rewardTokens,tvlUsd)
     vault.tvlUsd = tvlUsd
     vault.tvl = new bn(tvl || 0)
     vault.tvlBefore = new bn(tvlBefore || 0)
     vault.shareSupply = new bn(shareSupply || 0)
     vault.shareSupplyBefore = new bn(shareSupplyBefore || 0)
+    vault.rewardApy = rewardApy
     return vault
+}
+
+async function getRewardTokenApy(chain:string,rewardTokens:RewardToken[],tvlUsd:bn):Promise<number>{
+    if (rewardTokens.length===0) return 0
+    const addresses= rewardTokens.map((el)=>el.address.toLowerCase())
+    const prices = (await utils.getPrices(addresses, chain)).pricesByAddress
+    const totalApr = rewardTokens.reduce((acc,el)=>{
+        const rewardBook = el.rewardBook
+        const reward = new bn(rewardBook.totalReward)
+        const totalRewardUsd = reward.multipliedBy(prices[el.address.toLowerCase()]).div(new bn(10).pow(el.decimals))
+        const apy = totalRewardUsd
+            .div(Number(rewardBook.endTime)-Number(rewardBook.startTime))
+            .multipliedBy(365*24*60*60)
+            .div(tvlUsd).multipliedBy(100)
+        return acc.plus(apy)
+    },new bn(0))
+    return totalApr.toNumber()
 }
 
 async function updateBeforeLiquidityData(vault: Vault, time: number): Promise<Vault> {
@@ -216,6 +254,7 @@ function calculateAPY(price: bn, priceBefore: bn, interval: number): number {
 
 function convertToPool(vault: Vault): Promise<Pool> {
     const tokens = vault.underlyingTokens.map((el) => el.address)
+    const rewardTokens = vault.rewardTokens.map((el) => el.address)
     const pool = {
         pool: `${vault.address}-${vault.chain}`,
         chain: vault.chain,
@@ -224,20 +263,27 @@ function convertToPool(vault: Vault): Promise<Pool> {
         project: 'teahouse-permissionless',
         tvlUsd: vault.tvlUsd.toNumber(),
         apyBase: vault.apy,
-        apyReward: 0,
+        apyReward: vault.rewardApy,
         underlyingTokens: tokens,
-        rewardTokens: [],
+        rewardTokens: rewardTokens,
         poolMeta: vault.vaultMeta,
     }
     return pool;
 }
 
+function getVaultData2(): Promise<Vault[]> {
+    return VAULT_DATA
+}
+
 async function topLvl(_: number): Promise<Pool[]> {
     // step 1: get vault data
-    const vaultType = 'permissionless'
-    const vaults = await getVaultData(vaultType)
+    // const vaultType = 'permissionless'
+    // const vaults = await getVaultData(vaultType)
+    const vaults = getVaultData2()
     const interval = 24 * 60 * 60
     updateRpcUrl(sdk, 'arbitrum', 42161, "https://rpc.ankr.com/arbitrum")
+    updateRpcUrl(sdk, 'boba', 288, "https://lightning-replica.boba.network/")
+    updateRpcUrl(sdk, 'mantle', 5000, "https://rpc.mantle.xyz/")
     const pools = []
 
     for (let vault of vaults) {
@@ -273,6 +319,7 @@ interface Vault {
     name: string;
     chain: string;
     underlyingTokens: Array<UnderlyingToken>;
+    rewardTokens: Array<RewardToken>;
     isAsset0Main: boolean;
     url: string;
     vaultMeta: string; //other info
@@ -283,6 +330,7 @@ interface Vault {
     shareSupply?: bn;
     shareSupplyBefore?: bn;
     apy?: number;
+    rewardApy?: number;
 }
 
 interface UnderlyingToken {
@@ -292,6 +340,22 @@ interface UnderlyingToken {
     decimals: number;
     tvl: string;
     shareTokenApr: number;
+}
+
+interface RewardBook {
+    address: string;
+    endTime: string;
+    startTime: string;
+    totalReward: string;
+}
+
+interface RewardToken {
+    address: string;
+    chain: string;
+    decimals: number;
+    rewardBook: RewardBook;
+    symbol: string;
+    type: string;
 }
 
 interface Performance {

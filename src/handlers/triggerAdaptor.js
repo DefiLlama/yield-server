@@ -77,11 +77,12 @@ const main = async (body) => {
     apyBaseInception: strToNum(p.apyBaseInception),
   }));
 
-  // filter tvl to be btw lb-ub
+  // filter tvl to be btw lb-ub (except GHO borrow pool on aave-v3 (has a constant tvlUsd of 0 cause can't be used as collateral))
   data = data.filter(
     (p) =>
-      p.tvlUsd >= exclude.boundaries.tvlUsdDB.lb &&
-      p.tvlUsd <= exclude.boundaries.tvlUsdDB.ub
+      (p.tvlUsd >= exclude.boundaries.tvlUsdDB.lb &&
+        p.tvlUsd <= exclude.boundaries.tvlUsdDB.ub) ||
+      (p.project === 'aave-v3' && p.symbol === 'GHO')
   );
 
   // nullify NaN, undefined or Infinity apy values
@@ -173,10 +174,16 @@ const main = async (body) => {
   // need the protocol response to check if adapter.body === 'Dexes' category
 
   // required conditions to calculate IL field
+  const isUniV3Fork = data.filter((i) =>
+    i.poolMeta?.includes('stablePool=')
+  ).length;
+
   if (
     data[0]?.underlyingTokens?.length &&
     protocolConfig[body.adaptor]?.category === 'Dexes' &&
-    !['balancer', 'curve', 'clipper'].includes(body.adaptor) &&
+    !['balancer-v2', 'curve-dex', 'clipper', 'astroport', 'cetus-amm'].includes(
+      body.adaptor
+    ) &&
     !['elrond', 'near', 'hedera', 'carbon'].includes(
       data[0].chain.toLowerCase()
     )
@@ -200,7 +207,7 @@ const main = async (body) => {
 
     const timestamp7daysAgo = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
     // price endpoint seems to break with too many tokens, splitting it to max 150 per request
-    const maxSize = 150;
+    const maxSize = 100;
     const pages = Math.ceil(uniqueToken.length / maxSize);
     let prices7d_ = [];
     let x = '';
@@ -255,11 +262,7 @@ const main = async (body) => {
       let il7d = ((2 * Math.sqrt(d)) / (1 + d) - 1) * 100;
 
       // for uni v3
-      if (
-        body.adaptor === 'uniswap-v3' ||
-        body.adaptor === 'hydradex-v3' ||
-        body.adaptor === 'forge'
-      ) {
+      if (isUniV3Fork) {
         const P = price1 / price0;
 
         // for stablecoin pools, we assume a +/- 0.1% range around current price
@@ -309,7 +312,11 @@ const main = async (body) => {
       ...p,
       config_id: id, // config PK field
       configID: id, // yield FK field referencing config_id in config
-      symbol: utils.formatSymbol(p.symbol),
+      symbol: ['USDC+', 'ETH+', 'USDEX+', 'USD0++', 'ARB++'].some((i) =>
+        p.symbol.includes(i)
+      )
+        ? p.symbol
+        : utils.formatSymbol(p.symbol),
       tvlUsd: Math.round(p.tvlUsd), // round tvlUsd to integer and apy fields to n-dec
       apy: +p.apy.toFixed(precision), // round apy fields
       apyBase: p.apyBase !== null ? +p.apyBase.toFixed(precision) : p.apyBase,
@@ -341,7 +348,7 @@ const main = async (body) => {
       poolMeta:
         p.poolMeta === undefined
           ? null
-          : ['uniswap-v3', 'hydradex-v3', 'forge'].includes(p.project)
+          : p.poolMeta?.includes('stablePool=')
           ? p.poolMeta?.split(',')[0]
           : p.poolMeta,
       il7d: p.il7d ? +p.il7d.toFixed(precision) : null,
@@ -420,7 +427,9 @@ const main = async (body) => {
     console.log(`removed ${delta} sample(s) prior to insert`);
     // send discord message
     // we limit sending msg only if the pool's last tvlUsd value is >= $50k
-    const filteredPools = droppedPools.filter((p) => p.tvlUsdDB >= 5e4);
+    const filteredPools = droppedPools.filter(
+      (p) => p.tvlUsdDB >= 5e4 && p.apyDB >= 10
+    );
     if (filteredPools.length) {
       const message = filteredPools
         .map((p) =>
@@ -429,7 +438,7 @@ const main = async (body) => {
                 p.configID
               } from ${p.apyDB.toFixed()} to ${p.apy.toFixed()} (${p.apyMultiplier.toFixed(
                 2
-              )}x increase)
+              )}x increase) [tvlUsd: ${p.tvlUsd.toFixed()}]
           `
             : `TVL spike for configID: ${
                 p.configID

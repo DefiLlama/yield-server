@@ -1,5 +1,4 @@
 const axios = require('axios');
-const { symbol } = require('@defillama/sdk/build/erc20');
 const { ethers } = require('ethers');
 const sdk = require('@defillama/sdk');
 
@@ -20,8 +19,8 @@ exports.getUmamiVaultSharePrice = async (vaultAddress, network) => {
       })
     ).output
   );
-  const umamiGraphUrl =
-    'https://api.thegraph.com/subgraphs/name/umamidao/glp-vaults';
+  const umamiGraphUrl = sdk.graph.modifyEndpoint('EoXjimvYjR9KR5f33r3j3jAvD6PfJ9cVSarQ84Lg7SLb');
+
   // execute price per share query
   const response = await axios.post(umamiGraphUrl, {
     query: `{

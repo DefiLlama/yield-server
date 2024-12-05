@@ -1,4 +1,3 @@
-const { util } = require('@defillama/sdk');
 const { gql, request } = require('graphql-request');
 const config = require('./config.js');
 
@@ -106,7 +105,11 @@ const apy = async () => {
       });
     });
   }
-  return apy_export;
+
+  // remove dupes on lptoken
+  return apy_export.filter(
+    (v, i, a) => a.findIndex((v2) => v2.pool === v.pool) === i
+  );
 };
 
 module.exports = {

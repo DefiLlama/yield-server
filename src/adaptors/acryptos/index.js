@@ -15,8 +15,10 @@ const chainMapping = {
   1285: 'moonriver',
   2222: 'kava',
   7700: 'canto',
+  8453: 'base',
   42161: 'arbitrum',
   43114: 'avalanche',
+  59144: 'linea',
   1666600000: 'harmony',
 };
 
@@ -25,6 +27,8 @@ const fetch = (dataTvl, chainMapping) => {
 
   for (const chain of Object.keys(chainMapping)) {
     poolData = dataTvl[chain];
+
+    if (poolData === undefined) continue;
 
     for (const [addr, details] of Object.entries(poolData)) {
       if (details.status === 'deprecated') {
@@ -73,5 +77,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app-v2.acryptos.com/#/BSC/vaults/all',
+  url: 'https://app.acryptos.com/',
 };

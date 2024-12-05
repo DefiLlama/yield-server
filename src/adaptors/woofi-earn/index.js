@@ -10,6 +10,9 @@ const API_URLS = {
   polygon: `${API_URL}?network=polygon`,
   arbitrum: `${API_URL}?network=arbitrum`,
   optimism: `${API_URL}?network=optimism`,
+  era: `${API_URL}?network=zksync`,
+  base: `${API_URL}?network=base`,
+  mantle: `${API_URL}?network=mantle`,
 };
 
 const rewardTokensMapping = {
@@ -19,6 +22,7 @@ const rewardTokensMapping = {
   polygon: '0x1B815d120B3eF02039Ee11dC2d33DE7aA4a8C603', // WOO
   arbitrum: '0x912CE59144191C1204E64559FE8253a0e49E6548', // ARB
   optimism: '0x871f2F2ff935FD1eD867842FF2a7bfD051A5E527', // WOO
+  mantle: '0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8', // WMNT
 };
 
 const main = async () => {
@@ -45,6 +49,12 @@ const main = async () => {
       if (chain === "arbitrum") {
         apyReward = info['arb_rewards_apr'];
       }
+      let rewardTokens;
+      if (chain === "era" || chain === "base") {
+        rewardTokens = [];
+      } else {
+        rewardTokens = [rewardTokensMapping[chain]];
+      }
       results.push({
         pool: `${address}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
@@ -54,7 +64,7 @@ const main = async () => {
         tvlUsd: parseFloat(BigNumber(info['tvl']).div(10 ** decimals)),
         apyBase: info['weighted_average_apr'],
         apyReward: apyReward,
-        rewardTokens: [rewardTokensMapping[chain]],
+        rewardTokens: rewardTokens,
       });
     }
   }
@@ -65,5 +75,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://fi.woo.org/earn/',
+  url: 'https://fi.woo.org/swap/earn',
 };

@@ -1,5 +1,5 @@
 const { request, gql } = require('graphql-request');
-const sdk = require('@defillama/sdk3');
+const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const utils = require('../utils');
@@ -13,8 +13,7 @@ const gaugeMinter = '0x358fE82370a1B9aDaE2E3ad69D6cF9e503c96018';
 
 const sdl = '0xf1dc500fde233a4055e25e5bbf516372bc4f6871';
 
-const subgraph =
-  'https://api.thegraph.com/subgraphs/name/saddle-finance/saddle';
+const subgraph = sdk.graph.modifyEndpoint('79UL5SaLLsbXqC8Ks6v3fwWHR1FRs636FFRHn55o5SWq');
 
 const apy = async () => {
   const n_gauges = (
@@ -22,6 +21,7 @@ const apy = async () => {
       target: gaugeController,
       abi: gaugeControllerAbi.find((m) => m.name === 'n_gauges'),
       chain: 'ethereum',
+      permitFailure: true,
     })
   ).output;
 
@@ -34,6 +34,7 @@ const apy = async () => {
       })),
       abi: gaugeControllerAbi.find((m) => m.name === 'gauges'),
       chain: 'ethereum',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -45,6 +46,7 @@ const apy = async () => {
       })),
       abi: gaugeControllerAbi.find((m) => m.name === 'gauge_relative_weight'),
       chain: 'ethereum',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -53,6 +55,7 @@ const apy = async () => {
       target: gaugeMinter,
       abi: gaugeMinterAbi.find((m) => m.name === 'rate'),
       chain: 'ethereum',
+      permitFailure: true,
     })
   ).output;
 
@@ -63,6 +66,7 @@ const apy = async () => {
       })),
       abi: gaugeAbi.find((m) => m.name === 'lp_token'),
       chain: 'ethereum',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -73,6 +77,7 @@ const apy = async () => {
       })),
       abi: 'erc20:totalSupply',
       chain: 'ethereum',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -84,6 +89,7 @@ const apy = async () => {
       })),
       abi: 'erc20:balanceOf',
       chain: 'ethereum',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -148,6 +154,7 @@ const apy = async () => {
           })),
           chain: 'ethereum',
           abi: abi.find((m) => m.name === 'getToken'),
+          permitFailure: true,
         })
       ).output.map((o) => o.output);
 
@@ -159,6 +166,7 @@ const apy = async () => {
           })),
           chain: 'ethereum',
           abi: abi.find((m) => m.name === 'getTokenBalance'),
+          permitFailure: true,
         })
       ).output.map((o) => o.output);
 

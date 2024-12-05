@@ -8,19 +8,16 @@ const topLvl = async (chainString, url, token, address, underlying) => {
 
   if (chainString === 'ethereum') {
     dataTvl = await utils.getData(`${url}/short-lido-stats`);
-    dataApy = await utils.getData(`${url}/sma-steth-apr`);
-    dataTvl.apr = dataApy;
+    dataApy = await utils.getData(
+      `https://eth-api.lido.fi/v1/protocol/steth/apr/last`
+    );
+    dataTvl.apr = dataApy.data.apr;
     data = { ...dataTvl };
   } else {
     data = await utils.getData(url);
   }
   data.token = token;
   data.address = address;
-
-  if (chainString === 'solana') {
-    apy = await utils.getData(url);
-    data.apr = apy.apy.find((i) => i.title.includes('14-day')).apy;
-  }
 
   return {
     pool: `${data.address}-${chainString}`.toLowerCase(),
@@ -34,7 +31,7 @@ const topLvl = async (chainString, url, token, address, underlying) => {
 };
 
 const main = async () => {
-  const data = await Promise.allSettled([
+  const data = await Promise.all([
     topLvl(
       'ethereum',
       'https://stake.lido.fi/api',
@@ -49,16 +46,9 @@ const main = async () => {
       '0x9ee91F9f426fA633d227f7a9b000E28b9dfd8599',
       '0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0'
     ),
-    topLvl(
-      'solana',
-      'https://solana.lido.fi/api/stats',
-      'stSOL',
-      '7dHbWXmci3dT8UFYWYZweBLXgycu7Y3iL6trKn1Y7ARj',
-      '0x0000000000000000000000000000000000000000'
-    ),
   ]);
 
-  return data.filter((p) => p.status === 'fulfilled').map((p) => p.value);
+  return data;
 };
 
 module.exports = {
