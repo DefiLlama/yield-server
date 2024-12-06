@@ -99,7 +99,7 @@ const apy = async () => {
 
     apyInfos.push({
       chain: 'linea',
-      project: 'Bagful',
+      project: 'bagful',
       pool: pool.poolAddress,
       symbol: token.symbol,
       underlyingTokens: [pool.poolAssets],
