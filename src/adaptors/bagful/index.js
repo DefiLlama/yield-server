@@ -79,16 +79,16 @@ const apy = async () => {
     if (pool === undefined) {
       continue;
     }
-    let apyBase;
+    let apy;
     let tvlUsd = BigNumber(pool.tvl)
       .div(Math.pow(10, token.decimals))
       .multipliedBy(tokenPrices[token.priceKey])
       .toNumber();
 
     if (token.isFixedRate) {
-      apyBase = token.fixedRate;
+      apy = token.fixedRate;
     } else {
-      apyBase =
+      apy =
         tvlUsd === 0
           ? '0'
           : (token.dailyRewardAmount *
@@ -104,7 +104,7 @@ const apy = async () => {
       symbol: token.symbol,
       underlyingTokens: [pool.poolAssets],
       tvlUsd,
-      apyBase,
+      apy,
     });
   }
   return apyInfos;
