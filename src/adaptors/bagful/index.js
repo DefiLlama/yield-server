@@ -102,7 +102,7 @@ const apy = async () => {
               365) /
             tvlUsd;
     }
-    apy = (apy * 100).toFixed(2).toString() + '%';
+    apy = (apy * 100).toFixed(2).toString();
 
     apyInfos.push({
       chain: 'linea',
