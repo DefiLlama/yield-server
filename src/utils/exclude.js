@@ -153,6 +153,7 @@ const excludeAdaptors = [
   'xtoken',
   'deltaprime',
   'arbitrum-exchange-v3',
+  'bfx-(blast-futures)',
 ];
 
 const excludePools = [
