@@ -152,6 +152,7 @@ const excludeAdaptors = [
   'hermes-protocol',
   'xtoken',
   'deltaprime',
+  'arbitrum-exchange-v3',
 ];
 
 const excludePools = [
