@@ -25,17 +25,14 @@ const getApy = async (chain) => {
     })
   ).output;
 
-  console.log(vaultsEntireData[0]);
+  const filteredVaultsEntireData = vaultsEntireData.filter(
+    (o) => o[1] == false && o[2] == false
+  );
 
-  const symbol = vaultsEntireData.map((o) => o[3][10]);
-  const pool = vaultsEntireData.map((o) => o[0]);
+  const symbol = filteredVaultsEntireData.map((o) => o[3][10]);
+  const pool = filteredVaultsEntireData.map((o) => o[0]);
 
-  console.log("this is vaultID");
-  console.log(symbol);
-
-  const suppliedTokens = vaultsEntireData.map((o) => o[8][5]);
-
-  const underlyingToken = vaultsEntireData.map((o) => {
+  const underlyingTokenss = filteredVaultsEntireData.map((o) => {
     let tokens = [];
     tokens.push(o[3][8][0]);
     tokens.push(o[3][9][0]);
@@ -48,38 +45,57 @@ const getApy = async (chain) => {
     return tokens;
   });
 
-  // const decimals = (
-  //   await sdk.api.abi.multiCall({
-  //     calls: underlying.map((t) => ({ target: t })),
-  //     abi: 'erc20:decimals',
-  //     chain,
-  //   })
-  // ).output.map((o) => o.output);
+  const rewardsRate = filteredVaultsEntireData.map((o) => o[5][12]);
+  const supplyRate = filteredVaultsEntireData.map((o) => o[5][10]);
 
-  // const priceKeys = underlying.map((i) => `${chain}:${i}`).join(',');
-  // const prices = (
-  //   await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  // ).data.coins;
+  const calls = filteredVaultsEntireData.map((o) =>
+    o[3][8][0] === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
+      ? null
+      : { target: o[3][8][0] }
+  );
 
-  const pools = vaultsEntireData.map((token, i) => {
-    const tokenAddress = token.tokenAddress;
-    // const underlyingToken = token.asset;
-    const underlyingSymbol = symbol[i];
-    const decimals = token.decimals;
-    const tokenPrice = prices[`${chain}:${underlying[i]}`].price;
+  const supplyTokens = filteredVaultsEntireData.map((o) => o[3][8][0]);
 
-    const totalSupplyUsd = (token.totalAssets * tokenPrice) / 10 ** decimals;
+  const decimals = (
+    await sdk.api.abi.multiCall({
+      calls: calls.filter((call) => call !== null),
+      abi: 'erc20:decimals',
+      chain,
+    })
+  ).output.map((o, index) => o.output);
 
-    const apyBase = Number((token.supplyRate / 1e2).toFixed(2));
-    const apyReward = Number((token.rewardsRate / 1e12).toFixed(2));
+  // Reinsert 18 for the native token addresses
+  decimals.splice(
+    calls.reduce((acc, call, idx) => (call === null ? [...acc, idx] : acc), []),
+    0,
+    ...calls.filter((call) => call === null).map(() => 18)
+  );
+
+  const suppliedTokens = filteredVaultsEntireData.map((o) => o[8][5]);
+  const priceKeys = supplyTokens.map((i) => `${chain}:${i}`).join(',');
+  const prices = (
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).data.coins;
+
+  const tokenPrices = supplyTokens.map(
+    (token) => prices[`${chain}:${token}`].price
+  );
+
+  const totalSupplyUsd = suppliedTokens.map(
+    (o, i) => (o * tokenPrices[i]) / 10 ** decimals[i]
+  );
+
+  const pools = filteredVaultsEntireData.map((token, i) => {
+    const apyBase = Number((supplyRate[i] / 1e2).toFixed(2));
+    const apyReward = Number((rewardsRate[i] / 1e12).toFixed(2));
 
     return {
       project: 'fluid-vaults',
-      pool: tokenAddress,
-      tvlUsd: totalSupplyUsd,
-      symbol: underlyingSymbol,
-      underlyingTokens: [underlyingToken],
-      rewardTokens: [underlyingToken], // rewards are always in underlying
+      pool: pool[i],
+      tvlUsd: totalSupplyUsd[i],
+      symbol: symbol[i],
+      underlyingTokens: [underlyingTokenss[i]],
+      rewardTokens: [underlyingTokenss[i]], // rewards are always in underlying
       chain,
       apyBase,
       apyReward,
@@ -95,21 +111,18 @@ const apy = async () => {
   return apy.flat();
 };
 
-
-
 module.exports = {
-    apy,
-    url: `https://fluid.instadapp.io/vaults/`,
-  };
-  
- async function getApyAndLog() {
-    try {
-      const result = await apy();
-      console.log(JSON.stringify(result, null, 2));
-    } catch (error) {
-      console.error("Error fetching APY:", error);
-    }
+  apy,
+  url: `https://fluid.instadapp.io/vaults/`,
+};
+
+async function getApyAndLog() {
+  try {
+    const result = await apy(); // Call the exported apy() function
+    console.log(JSON.stringify(result, null, 2)); // Pretty print for better readability
+  } catch (error) {
+    console.error('Error occurred:', error);
   }
-  
-  getApyAndLog();
-console.log("Script started");
+}
+
+getApyAndLog();
