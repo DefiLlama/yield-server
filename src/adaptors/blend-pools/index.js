@@ -56,14 +56,14 @@ const getApy = async (poolId, backstop) => {
         symbol: reserve.tokenMetadata.symbol,
         tvlUsd: totalSupply - totalBorrow,
         // Supply is kept as APR to prevent overestimation of APY
-        apyBase: reserve.supplyApr,
-        apyReward: supplyEmissionsAPR,
+        apyBase: reserve.supplyApr * 100,
+        apyReward: supplyEmissionsAPR * 100,
         underlyingTokens: [reserve.assetId],
         rewardTokens: borrowEmissionsAPR || supplyEmissionsAPR ? [BLND_ID] : [],
         totalSupplyUsd: totalSupply,
         totalBorrowUsd: totalBorrow,
-        apyBaseBorrow: borrowApy,
-        apyRewardBorrow: borrowEmissionsAPR,
+        apyBaseBorrow: borrowApy * 100,
+        apyRewardBorrow: borrowEmissionsAPR * 100,
         ltv: totalBorrow / totalSupply,
         url,
       });
