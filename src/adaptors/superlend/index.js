@@ -125,7 +125,7 @@ const getApy = async () => {
 
       return {
         pool: `${aTokens[i].tokenAddress}-etlk`.toLowerCase(),
-        chain,
+        chain: 'Etherlink',
         project: 'superlend',
         symbol: pool.symbol,
         tvlUsd,
