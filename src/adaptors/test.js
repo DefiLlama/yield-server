@@ -12,6 +12,8 @@ const poolsUrl = global.poolsUrl;
 const uniquePoolIdentifiersDB = global.uniquePoolIdentifiersDB;
 const protocols = global.protocolsSlug;
 
+console.log("this is protocol : ", protocols);
+
 describe(`Running ${process.env.npm_config_adapter} Test`, () => {
   describe('Check for allowed field names', () => {
     const optionalFields = [

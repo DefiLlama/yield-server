@@ -1,0 +1,315 @@
+
+> defillama-apy-adapters@1.0.0 test
+> jest
+
+[
+  [
+    '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+    '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+  ],
+  [
+    '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+    '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+  ],
+  [
+    '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0',
+    '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
+  ],
+  [
+    '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0',
+    '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+  ],
+  [
+    '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0',
+    '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+  ],
+  [
+    '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee',
+    '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0'
+  ],
+  [
+    '0x9D39A5DE30e57443BfF2A8307A4256c8797A3497',
+    '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+  ],
+  [
+    '0x9D39A5DE30e57443BfF2A8307A4256c8797A3497',
+    '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+  ],
+  [
+    '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee',
+    '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+  ],
+  [
+    '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee',
+    '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+  ],
+  [
+    '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+    '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+  ],
+  [
+    '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+    '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+  ],
+  [
+    '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0',
+    '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
+  ],
+  [
+    '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0',
+    '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+  ],
+  [
+    '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0',
+    '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+  ],
+  [
+    '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee',
+    '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0'
+  ],
+  [
+    '0x9D39A5DE30e57443BfF2A8307A4256c8797A3497',
+    '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+  ],
+  [
+    '0x9D39A5DE30e57443BfF2A8307A4256c8797A3497',
+    '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+  ],
+  [
+    '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee',
+    '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+  ],
+  [
+    '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee',
+    '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+  ],
+  [
+    '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
+    '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+  ],
+  [
+    '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
+    '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+  ],
+  [
+    '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
+    '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
+  ],
+  [
+    '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+    '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599'
+  ],
+  [
+    '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0',
+    '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599'
+  ],
+  [
+    '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee',
+    '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599'
+  ],
+  [
+    '0x917ceE801a67f933F2e6b33fC0cD1ED2d5909D88',
+    '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0'
+  ],
+  [
+    '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf',
+    '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
+  ],
+  [
+    '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf',
+    '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+  ],
+  [
+    '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf',
+    '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+  ],
+  [
+    '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+    '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf'
+  ],
+  [
+    '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee',
+    '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf'
+  ],
+  [
+    '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0',
+    '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf'
+  ],
+  [
+    '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+    '0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f'
+  ],
+  [
+    '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0',
+    '0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f'
+  ],
+  [
+    '0x9D39A5DE30e57443BfF2A8307A4256c8797A3497',
+    '0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f'
+  ],
+  [
+    '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee',
+    '0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f'
+  ],
+  [
+    '0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD',
+    '0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f'
+  ],
+  [
+    '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
+    '0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f'
+  ],
+  [
+    '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf',
+    '0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f'
+  ],
+  [
+    '0x4c9EDD5852cd905f086C759E8383e09bff1E68B3',
+    '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+  ],
+  [
+    '0x4c9EDD5852cd905f086C759E8383e09bff1E68B3',
+    '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+  ],
+  [
+    '0x4c9EDD5852cd905f086C759E8383e09bff1E68B3',
+    '0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f'
+  ],
+  [
+    '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+    '0x4c9EDD5852cd905f086C759E8383e09bff1E68B3'
+  ],
+  [
+    '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0',
+    '0x4c9EDD5852cd905f086C759E8383e09bff1E68B3'
+  ],
+  [
+    '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee',
+    '0x4c9EDD5852cd905f086C759E8383e09bff1E68B3'
+  ],
+  [
+    '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
+    '0x4c9EDD5852cd905f086C759E8383e09bff1E68B3'
+  ],
+  [
+    '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf',
+    '0x4c9EDD5852cd905f086C759E8383e09bff1E68B3'
+  ]
+]
+
+Nb of pools: 48
+ 
+
+Sample pools: [
+  {
+    project: 'fluid-vaults',
+    pool: '0x1c6068eC051f0Ac1688cA1FE76810FA9c8644278',
+    tvlUsd: 739902976317101600,
+    symbol: '27',
+    underlyingTokens: [ [Array] ],
+    rewardTokens: [ [Array] ],
+    chain: 'ethereum',
+    apyBase: 0,
+    apyReward: 0
+  },
+  {
+    project: 'fluid-vaults',
+    pool: '0xF74cb9D69ada3559903149CFD60fD57cEAF95F30',
+    tvlUsd: 68818586465806780,
+    symbol: '26',
+    underlyingTokens: [ [Array] ],
+    rewardTokens: [ [Array] ],
+    chain: 'ethereum',
+    apyBase: 0,
+    apyReward: 0
+  },
+  {
+    project: 'fluid-vaults',
+    pool: '0xB242508306db9A52932a754D2F408Ca0cb479135',
+    tvlUsd: 54670531907986100,
+    symbol: '32',
+    underlyingTokens: [ [Array] ],
+    rewardTokens: [ [Array] ],
+    chain: 'ethereum',
+    apyBase: 0,
+    apyReward: 0
+  },
+  {
+    project: 'fluid-vaults',
+    pool: '0x03271C337c86a6Fd89625A2820e48621DC2a128b',
+    tvlUsd: 37039004544013770,
+    symbol: '25',
+    underlyingTokens: [ [Array] ],
+    rewardTokens: [ [Array] ],
+    chain: 'ethereum',
+    apyBase: 0.38,
+    apyReward: 0
+  },
+  {
+    project: 'fluid-vaults',
+    pool: '0x69deb634Edc47A35B7b05056768d957F029Cbc0A',
+    tvlUsd: 1545743784447.689,
+    symbol: '31',
+    underlyingTokens: [ [Array] ],
+    rewardTokens: [ [Array] ],
+    chain: 'ethereum',
+    apyBase: 1.97,
+    apyReward: 0
+  },
+  {
+    project: 'fluid-vaults',
+    pool: '0x6E0cDB09eb33cD3894C905E0DFF9289b95a86FFF',
+    tvlUsd: 1524366509498.2632,
+    symbol: '33',
+    underlyingTokens: [ [Array] ],
+    rewardTokens: [ [Array] ],
+    chain: 'ethereum',
+    apyBase: 0.38,
+    apyReward: 0
+  },
+  {
+    project: 'fluid-vaults',
+    pool: '0xB98EeA7132f1De6EC24D4Ee4AfBDf4d63Ef1a9F0',
+    tvlUsd: 801600000000,
+    symbol: '66',
+    underlyingTokens: [ [Array] ],
+    rewardTokens: [ [Array] ],
+    chain: 'ethereum',
+    apyBase: 1.25,
+    apyReward: 0
+  },
+  {
+    project: 'fluid-vaults',
+    pool: '0x82B27fA821419F5689381b565a8B0786aA2548De',
+    tvlUsd: 131817120.10840748,
+    symbol: '13',
+    underlyingTokens: [ [Array] ],
+    rewardTokens: [ [Array] ],
+    chain: 'ethereum',
+    apyBase: 0.38,
+    apyReward: 0
+  },
+  {
+    project: 'fluid-vaults',
+    pool: '0xE16A6f5359ABB1f61cE71e25dD0932e3E00B00eB',
+    tvlUsd: 53768265.16418024,
+    symbol: '12',
+    underlyingTokens: [ [Array] ],
+    rewardTokens: [ [Array] ],
+    chain: 'ethereum',
+    apyBase: 1.97,
+    apyReward: 0
+  },
+  {
+    project: 'fluid-vaults',
+    pool: '0x0C8C77B7FF4c2aF7F6CEBbe67350A490E3DD6cB3',
+    tvlUsd: 52781126.981052004,
+    symbol: '11',
+    underlyingTokens: [ [Array] ],
+    rewardTokens: [ [Array] ],
+    chain: 'ethereum',
+    apyBase: 1.97,
+    apyReward: 0
+  }
+]
+This adapter contains some pools with <10k TVL, these pools won't be shown in DefiLlama
