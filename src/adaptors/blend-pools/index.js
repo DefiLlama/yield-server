@@ -1,7 +1,4 @@
 const {
-  PoolConfig,
-  ReserveData,
-  BackstopConfig,
   Pool,
   BackstopToken,
   Backstop,
@@ -11,13 +8,17 @@ const { getPrices, keepFinite, formatChain } = require('../utils');
 
 const BACKSTOP_ID = 'CAO3AGAMZVRMHITL36EJ2VZQWKYRPWMQAPDQD5YEOF3GIF7T44U4JAL3';
 const BLND_ID = 'CD25MNVTZDL4Y3XBCPCJXGXATV5WUHHOWMYFF4YBEGU5FCPGMYTVG5JY';
-const network = {
+const BLEND_POOLS = [
+  'CDVQVKOY2YSXS2IC7KN6MNASSHPAO7UN2UR2ON4OI2SKMFJNVAMDX6DP',
+  'CBP7NO6F7FRDHSOFQBT2L2UWYIZ2PU76JKVRYAQTG3KZSQLYAOKIF2WB',
+];
+const NETWORK = {
   rpc: 'https://soroban-rpc.creit.tech/',
   passphrase: 'Public Global Stellar Network ; September 2015',
 };
 
 const getApy = async (poolId, backstop) => {
-  const pool = await Pool.load(network, poolId);
+  const pool = await Pool.load(NETWORK, poolId);
   // Skip pools that have been admin frozen - Pool is very likely to be broken
   if (pool.config.status === 4) return [];
   const prices = await getPrices(pool.config.reserveList, 'stellar');
@@ -50,7 +51,7 @@ const getApy = async (poolId, backstop) => {
       const url = `https://mainnet.blend.capital/dashboard/?poolId=${poolId}`;
 
       pools.push({
-        pool: `${poolId}-${reserve.assetId}-stellar`.toLowerCase(),
+        pool: `${reserve.assetId}-stellar`.toLowerCase(),
         chain: formatChain('stellar'),
         project: 'blend-pools',
         symbol: reserve.tokenMetadata.symbol,
@@ -73,15 +74,25 @@ const getApy = async (poolId, backstop) => {
 };
 
 const apy = async () => {
-  let backstop = await Backstop.load(network, BACKSTOP_ID);
-  const pools = await Promise.allSettled(
-    backstop.config.rewardZone.map(async (poolId) => getApy(poolId, backstop))
-  );
-  return pools
-    .filter((i) => i.status === 'fulfilled' && i.value !== undefined)
-    .map((i) => i.value)
-    .flat()
-    .filter((p) => p !== undefined && keepFinite(p));
+  let backstop = await Backstop.load(NETWORK, BACKSTOP_ID);
+  let pools = [];
+
+  for (const poolId of BLEND_POOLS) {
+    let poolApys = await getApy(poolId, backstop);
+    for (const poolApy of poolApys) {
+      if (poolApy) {
+        let index = pools.findIndex((pool) => pool.pool == poolApy.pool);
+        if (index !== -1) {
+          if (poolApy.apyReward > pools[index].apyReward) {
+            pools[index] = poolApy;
+          }
+        } else {
+          pools.push(poolApy);
+        }
+      }
+    }
+  }
+  return pools;
 };
 
 module.exports = {
