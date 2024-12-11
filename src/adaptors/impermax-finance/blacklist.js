@@ -59,7 +59,7 @@ const blacklistedLendingVaults = {
   scroll: ['0x83f22f87f504f8b9f10eb73ab05c58a0973b6681'],
   polygon: [],
   real: [],
-  arbitrum: [],
+  arbitrum: ['0x7f2ffc27618afded2813e457953514c54778fa1c'],
   ethereum: [],
   optimism: [],
   fantom: [],

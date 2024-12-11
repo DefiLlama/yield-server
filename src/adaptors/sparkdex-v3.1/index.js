@@ -221,7 +221,7 @@ function makePoolFlatmap(now, flrPrice, vaultAprMap) {
     });
 
     if (!emission) {
-      if (apyBase == 0) return [];
+      if (pool.apyBase == 0) return [];
 
       return pool;
     }
@@ -262,7 +262,13 @@ async function poolsFunction() {
     if (lpPage.length < limit) break;
   }
 
-  return liquidityPools.flatMap(makePoolFlatmap(now, flrPrice, vaultAprMap));
+  return liquidityPools
+    .flatMap(makePoolFlatmap(now, flrPrice, vaultAprMap))
+    .map((i) => ({
+      ...i,
+      rewardTokens:
+        i.apyReward > 0 ? ['0x26d460c3Cf931Fb2014FA436a49e3Af08619810e'] : [],
+    }));
 }
 
 module.exports = {

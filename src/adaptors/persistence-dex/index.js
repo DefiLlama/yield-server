@@ -53,7 +53,7 @@ const query = gql`
 
 async function apy() {
   const data = await request(
-    'https://api.core-1.dexter.zone/v1/graphql',
+    'https://api.dex.persistence.one/v1/graphql',
     query
   );
   const res = await superagent.get(
