@@ -7,7 +7,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@blend-capital/blend-sdk": "^2.1.1",
     "@defillama/sdk": "^5.0.60",
+    "@stacks/network": "^6.13.0",
+    "@stacks/transactions": "^6.15.0",
+    "@ton/ton": "14.0.0",
     "@types/jest": "^28.1.6",
     "@uniswap/sdk-core": "^5.3.0",
     "@uniswap/v3-sdk": "^3.13.0",
@@ -24,10 +28,7 @@
     "lodash": "^4.17.21",
     "node-fetch": "^2.6.1",
     "superagent": "^6.1.0",
-    "web3": "^4.9.0",
-    "@ton/ton": "14.0.0",
-    "@stacks/network": "^6.13.0",
-    "@stacks/transactions": "^6.15.0"
+    "web3": "^4.9.0"
   },
   "devDependencies": {
     "jest": "^28.1.3",
