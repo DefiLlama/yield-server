@@ -17,6 +17,7 @@ const contractAddresses = {
       'neutron1n97wnm7q6d2hrcna3rqlnyqw2we6k0l8uqvmyqq6gsml92epdu7quugyph',
     oracle:
       'neutron1dwp6m7pdrz6rnhdyrx5ha0acsduydqcpzkylvfgspsz60pj2agxqaqrr7g',
+    perps: 'neutron1g3catxyv0fk8zzsra2mjc0v4s69a7xygdjt85t54l7ym3gv0un4q2xhaf6',
   },
 };
 
@@ -28,6 +29,18 @@ const restEndpoints = {
 const tokenApis = {
   osmosis: 'https://api.astroport.fi/api/tokens?chainId=osmosis-1',
   neutron: 'https://api.astroport.fi/api/tokens?chainId=neutron-1',
+};
+
+const perpsVaultApi = {
+  osmosis: 'https://backend.prod.mars-dev.net/v2/perps_vault?chain=osmosis',
+  neutron: 'https://backend.prod.mars-dev.net/v2/perps_vault?chain=neutron',
+};
+
+const perpsDenom = {
+  osmosis:
+    'ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4',
+  neutron:
+    'ibc/B559A80D62249C8AA07A380E2A2BEA6E5CA9A6F079C912C3A9E9B494105E4F81',
 };
 
 async function apy() {
@@ -53,9 +66,46 @@ async function apy() {
       if (assetParams.length === pageLimit)
         startAfter = assetParams[assetParams.length - 1].denom;
       else startAfter = null;
-
+      await getApyDataForPerpsVault(chain);
       await getApyDataForAsset(assetParams, chain);
     } while (startAfter);
+
+    async function getApyDataForPerpsVault(chain) {
+      if (!contractAddresses[chain].perps) return;
+
+      const perpsVault = await queryContract(
+        api,
+        contractAddresses[chain].perps,
+        { vault: {} }
+      );
+
+      const perpsVaultApyData = await axios.get(perpsVaultApi[chain]);
+      if (perpsVault) {
+        const perpsAsset = tokenInfos.data.find(
+          (token) => token.denom === perpsDenom[chain]
+        );
+        if (!perpsAsset) return;
+        const perpsTotalBalance = new BigNumber(
+          perpsVault['total_balance']
+        ).shiftedBy(-perpsAsset.decimals);
+
+        const apyBase = perpsVaultApyData?.data['projected_apy'] ?? 0;
+
+        apyData.push({
+          pool: `mars-cpv-${perpsDenom[chain]}-${chain}`.toLowerCase(),
+          symbol: 'USDC',
+          project: 'mars',
+          chain: `${chain.charAt(0).toUpperCase()}${chain.slice(1)}`,
+          tvlUsd: perpsTotalBalance.times(perpsAsset.price).toNumber(),
+          apyBase,
+          poolMeta: '10 days unstaking',
+          url:
+            chain === 'osmosis'
+              ? 'https://osmosis.marsprotocol.io/perps-vault/'
+              : 'https://neutron.marsprotocol.io/perps-vault/',
+        });
+      }
+    }
 
     async function getApyDataForAsset(assetParams, chain) {
       await Promise.all(
