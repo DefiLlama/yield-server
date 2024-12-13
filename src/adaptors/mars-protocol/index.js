@@ -55,7 +55,7 @@ async function apy() {
 
   async function getApy(chain) {
     let startAfter = null;
-    const { params, redBank, oracle } = contractAddresses[chain];
+    const { params, redBank, oracle, perps } = contractAddresses[chain];
     const api = restEndpoints[chain];
     const tokenInfos = await axios.get(tokenApis[chain]);
 
@@ -71,13 +71,9 @@ async function apy() {
     } while (startAfter);
 
     async function getApyDataForPerpsVault(chain) {
-      if (!contractAddresses[chain].perps) return;
+      if (!perps) return;
 
-      const perpsVault = await queryContract(
-        api,
-        contractAddresses[chain].perps,
-        { vault: {} }
-      );
+      const perpsVault = await queryContract(api, perps, { vault: {} });
 
       const perpsVaultApyData = await axios.get(perpsVaultApi[chain]);
       if (perpsVault) {
@@ -86,17 +82,24 @@ async function apy() {
         );
         if (!perpsAsset) return;
         const perpsTotalBalance = new BigNumber(
-          perpsVault['total_balance']
+          perpsVault.total_balance
         ).shiftedBy(-perpsAsset.decimals);
-
-        const apyBase = perpsVaultApyData?.data['projected_apy'] ?? 0;
+        const perpsPriceInfo = await queryContract(api, oracle, {
+          price: { denom: perpsDenom[chain] },
+        });
+        const priceDecimalsDifference = asset.decimals - oracleDecimals;
+        const price = new BigNumber(perpsPriceInfo.price).shiftedBy(
+          priceDecimalsDifference
+        );
+        const apyBase = Number(perpsVaultApyData.data.projected_apy);
 
         apyData.push({
           pool: `mars-cpv-${perpsDenom[chain]}-${chain}`.toLowerCase(),
-          symbol: 'USDC',
+          symbol: perpsAsset.symbol,
+          underlyingTokens: [perpsAsset.denom],
           project: 'mars-protocol',
           chain: `${chain.charAt(0).toUpperCase()}${chain.slice(1)}`,
-          tvlUsd: perpsTotalBalance.times(perpsAsset.price).toNumber(),
+          tvlUsd: perpsTotalBalance.times(price).toNumber(),
           apyBase,
           poolMeta: '10 days unstaking',
           url:
