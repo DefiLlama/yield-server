@@ -73,11 +73,11 @@ async function apy() {
     async function getApyDataForPerpsVault(chain) {
       if (!contractAddresses[chain].perps) return;
 
-      const perpsVault = await queryContract({
-        contract: contractAddresses[chain].perps,
-        chain,
-        data: { vault: {} },
-      });
+      const perpsVault = await queryContract(
+        api,
+        contractAddresses[chain].perps,
+        { vault: {} }
+      );
 
       const perpsVaultApyData = await axios.get(perpsVaultApi[chain]);
       if (perpsVault) {
