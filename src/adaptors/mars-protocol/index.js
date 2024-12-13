@@ -166,6 +166,10 @@ async function apy() {
         tvlUsd: perpsTotalBalance.times(perpsDenomAsset.price).toNumber(),
         apyBase,
         poolMeta: '10 days unstaking',
+        url:
+          chain === 'osmosis'
+            ? 'https://osmosis.marsprotocol.io/perps-vault/'
+            : 'https://neutron.marsprotocol.io/perps-vault/',
       });
     }
   }
