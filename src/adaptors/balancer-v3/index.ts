@@ -26,12 +26,12 @@ const query = gql`
   }
 `;
 
-const getV3Pools = async (apiChain, frontendChain, llamaChain) => {
+const getV3Pools = async (backendChain, chainString) => {
   try {
     const { poolGetPools } = await request(
       'https://api-v3.balancer.fi/graphql',
       query,
-      { chain: apiChain }
+      { chain: backendChain }
     );
 
     return poolGetPools.map((pool) => {
@@ -53,9 +53,11 @@ const getV3Pools = async (apiChain, frontendChain, llamaChain) => {
         .map((token) => token.address)
         .filter(Boolean);
 
+      const chainUrl = chainString === 'xdai' ? 'gnosis' : chainString;
+
       return {
         pool: pool.address,
-        chain: utils.formatChain(llamaChain),
+        chain: utils.formatChain(chainString),
         project: 'balancer-v3',
         symbol: utils.formatSymbol(pool.symbol),
         tvlUsd: Number(pool.dynamicData.totalLiquidity),
@@ -63,19 +65,22 @@ const getV3Pools = async (apiChain, frontendChain, llamaChain) => {
         apyReward: stakingApr * 100,
         rewardTokens: rewardTokens,
         underlyingTokens: underlyingTokens,
-        url: `https://balancer.fi/pools/${frontendChain}/v3/${pool.address}`,
+        url: `https://balancer.fi/pools/${chainUrl}/v3/${pool.address}`,
       };
     });
   } catch (error) {
-    console.error(`Error fetching Balancer V3 pools for ${llamaChain}:`, error);
+    console.error(
+      `Error fetching Balancer V3 pools for ${chainString}:`,
+      error
+    );
     return [];
   }
 };
 
 const poolsFunction = async () => {
   const [mainnetPools, gnosisPools] = await Promise.all([
-    getV3Pools('MAINNET', 'ethereum', 'ethereum'),
-    getV3Pools('GNOSIS', 'gnosis', 'xdai'),
+    getV3Pools('MAINNET', 'ethereum'),
+    getV3Pools('GNOSIS', 'xdai'),
   ]);
 
   return [...mainnetPools, ...gnosisPools];
