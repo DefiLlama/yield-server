@@ -87,8 +87,10 @@ const extractVaultDetails = (filteredVaults) => ({
     String(vault[3][8][0]),
     String(vault[3][9][0])
   ]),
-  rewardsRates: filteredVaults.map((vault) => (vault[5][12] - vault[5][13])),
-  supplyRates: filteredVaults.map((vault) => (vault[5][8] - vault[5][9])),
+  rewardsRates: filteredVaults.map((vault) => (vault[5][12])),
+  rewardsRatesBorrow: filteredVaults.map((vault) => (vault[5][13])),
+  supplyRates: filteredVaults.map((vault) => (vault[5][8])),
+  supplyRatesBorrow: filteredVaults.map((vault) => (vault[5][9])),
   suppliedTokens: filteredVaults.map((vault) => vault[8][5]),
   supplyTokens: filteredVaults.map((vault) => vault[3][8][0]),
 });
@@ -172,7 +174,9 @@ const calculatePoolData = (chain, filteredVaults, vaultDetails, { decimals, pric
       rewardTokens: vaultDetails.underlyingTokens[index],
       chain,
       apyBase: Number((vaultDetails.supplyRates[index] / 1e2).toFixed(2)),
+      apyBaseBorrow: Number((vaultDetails.supplyRatesBorrow[index] / 1e2).toFixed(2)),
       apyReward: Number((vaultDetails.rewardsRates[index] / 1e12).toFixed(2)),
+      apyRewardBorrow: Number((vaultDetails.rewardsRatesBorrow[index] / 1e12).toFixed(2)),
     }))
     .filter((pool) => utils.keepFinite(pool));
 };
