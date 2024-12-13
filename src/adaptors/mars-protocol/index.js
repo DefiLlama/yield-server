@@ -80,7 +80,7 @@ async function apy() {
       });
 
       const perpsVaultApyData = await axios.get(perpsVaultApi[chain]);
-      if (perpsVault && perpsVaultApyData) {
+      if (perpsVault) {
         const perpsAsset = tokenInfos.data.find(
           (token) => token.denom === perpsDenom[chain]
         );
@@ -89,8 +89,7 @@ async function apy() {
           perpsVault['total_balance']
         ).shiftedBy(-perpsAsset.decimals);
 
-        const apyBase = perpsVaultApyData.data.projected_apy;
-        if (!apyBase) return;
+        const apyBase = perpsVaultApyData?.data['projected_apy'] ?? 0;
 
         apyData.push({
           pool: `mars-cpv-${perpsDenom[chain]}-${chain}`.toLowerCase(),
