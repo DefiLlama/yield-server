@@ -66,7 +66,7 @@ async function apy() {
       if (assetParams.length === pageLimit)
         startAfter = assetParams[assetParams.length - 1].denom;
       else startAfter = null;
-
+      await getApyDataForPerpsVault(chain);
       await getApyDataForAsset(assetParams, chain);
     } while (startAfter);
 
