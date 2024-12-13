@@ -87,11 +87,14 @@ async function apy() {
         const perpsPriceInfo = await queryContract(api, oracle, {
           price: { denom: perpsDenom[chain] },
         });
-        const priceDecimalsDifference = asset.decimals - oracleDecimals;
+        const priceDecimalsDifference = perpsAsset.decimals - oracleDecimals;
         const price = new BigNumber(perpsPriceInfo.price).shiftedBy(
           priceDecimalsDifference
         );
         const apyBase = Number(perpsVaultApyData.data.projected_apy);
+
+        const tvlUsd = perpsTotalBalance.times(price).toNumber();
+        if (tvlUsd < 10_000) return;
 
         apyData.push({
           pool: `mars-cpv-${perpsDenom[chain]}-${chain}`.toLowerCase(),
@@ -99,7 +102,7 @@ async function apy() {
           underlyingTokens: [perpsAsset.denom],
           project: 'mars-protocol',
           chain: `${chain.charAt(0).toUpperCase()}${chain.slice(1)}`,
-          tvlUsd: perpsTotalBalance.times(price).toNumber(),
+          tvlUsd,
           apyBase,
           poolMeta: '10 days unstaking',
           url:
