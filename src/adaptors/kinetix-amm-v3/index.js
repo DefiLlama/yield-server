@@ -38,7 +38,8 @@ const getApy = async () => {
     const tvlUsd =
       Number(token0Balance) * token0Price + Number(token1Balance) * token1Price;
 
-    const apyReward = feeApr + farmApr;
+    const apyBase = utils.aprToApy(feeApr);
+    const apyReward = utils.aprToApy(farmApr);
 
     return {
       pool: poolAddress,
@@ -46,6 +47,7 @@ const getApy = async () => {
       project: 'kinetix-amm-v3',
       symbol: `${token0Symbol}-${token1Symbol}`,
       tvlUsd,
+      apyBase,
       apyReward,
       rewardTokens: apyReward ? [KAI] : [],
       underlyingTokens: [token0Address, token1Address],
