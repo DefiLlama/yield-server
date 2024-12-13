@@ -94,7 +94,7 @@ async function apy() {
         apyData.push({
           pool: `mars-cpv-${perpsDenom[chain]}-${chain}`.toLowerCase(),
           symbol: 'USDC',
-          project: 'mars',
+          project: 'mars-protocol',
           chain: `${chain.charAt(0).toUpperCase()}${chain.slice(1)}`,
           tvlUsd: perpsTotalBalance.times(perpsAsset.price).toNumber(),
           apyBase,
