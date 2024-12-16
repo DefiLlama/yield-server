@@ -42,7 +42,7 @@ function createPoolData(chain, poolAddress, tvlUsd, apyReward, underlyingToken) 
 	return {
 		pool: poolAddress,
 		chain,
-		project: 'usual-money',
+		project: 'usual',
 		symbol: CONFIG.SYMBOL,
 		tvlUsd,
 		apyReward,
