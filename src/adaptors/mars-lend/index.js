@@ -100,7 +100,7 @@ async function apy() {
           pool: `mars-cpv-${perpsDenom[chain]}-${chain}`.toLowerCase(),
           symbol: perpsAsset.symbol,
           underlyingTokens: [perpsAsset.denom],
-          project: 'mars-protocol',
+          project: 'mars-lend',
           chain: `${chain.charAt(0).toUpperCase()}${chain.slice(1)}`,
           tvlUsd,
           apyBase,
@@ -167,7 +167,7 @@ async function apy() {
           apyData.push({
             pool: `mars-${asset.denom}-${chain}`.toLowerCase(),
             chain: `${chain.charAt(0).toUpperCase()}${chain.slice(1)}`,
-            project: 'mars-protocol',
+            project: 'mars-lend',
             symbol: asset.symbol,
             tvlUsd: totalSupplied.minus(totalBorrowed).times(price).toNumber(),
             apyBase: utils.aprToApy(depositApr, 365),
