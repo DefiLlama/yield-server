@@ -5,13 +5,13 @@ const ethers = require('ethers');
 
 const RLP = '0x4956b52aE2fF65D74CA2d61207523288e4528f96';
 
-const rlpPriceStorage = '0x31319866778a5223633bd745780BB6d59406371E';
+const rlpPriceStorage = '0xAa33e5ECAE01779b26cD9dBD3c62E34c29b2D565';
 
 const topic0priceSet =
-  '0xee47534b2400bc7be3fbdc39f0283b8643fc472a30ffd7324e6161b4b2b91f24';
+  '0x2f0fe01aa6daff1c7bb411a324bdebe55dc2cd1e0ff2fc504b7569346e7d7d5a';
 
 const priceSetInterface = new ethers.utils.Interface([
-  'event PriceSet(bytes32 indexed key, uint256 price)',
+  'event PriceSet(bytes32 indexed key, uint256 price, uint256 timestamp);',
 ]);
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
