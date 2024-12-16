@@ -16,10 +16,7 @@ const CONSTANTS = {
     base: '0x79B3102173EB84E6BCa182C7440AfCa5A41aBcF8',
   },
   PROJECT_SLUG: 'fluid-vaults',
-  SUPPORTED_CHAINS: ['ethereum', 
-    'arbitrum', 
-    'base'
-  ],
+  SUPPORTED_CHAINS: ['ethereum', 'arbitrum', 'base'],
 };
 
 // Import ABI
@@ -34,18 +31,26 @@ const getApy = async (chain) => {
   try {
     // Fetch vault data
     const vaultsEntireData = await fetchVaultsData(chain);
-    
+
     // Filter and process vaults
     const filteredVaults = filterT1Vaults(vaultsEntireData);
-    
+
     // Extract vault details
     const vaultDetails = extractVaultDetails(filteredVaults);
-    
+
     // Fetch token prices and decimals
-    const tokenPricesAndDecimals = await fetchTokenPricesAndDecimals(chain, vaultDetails);
-    
+    const tokenPricesAndDecimals = await fetchTokenPricesSymbolAndDecimals(
+      chain,
+      vaultDetails
+    );
+
     // Calculate pool data
-    return calculatePoolData(chain, filteredVaults, vaultDetails, tokenPricesAndDecimals);
+    return calculatePoolData(
+      chain,
+      filteredVaults,
+      vaultDetails,
+      tokenPricesAndDecimals
+    );
   } catch (error) {
     console.error(`Error fetching APY for ${chain}:`, error);
     return [];
@@ -63,7 +68,7 @@ const fetchVaultsData = async (chain) => {
     abi: abiVaultResolver.find((m) => m.name === 'getVaultsEntireData'),
     chain,
   });
-  
+
   return vaultsEntireDataResponse.output;
 };
 
@@ -72,7 +77,7 @@ const fetchVaultsData = async (chain) => {
  * @param {Array} vaultsEntireData - T1 vault data
  * @returns {Array} Filtered T1 vaults
  */
-const filterT1Vaults = (vaultsEntireData) => 
+const filterT1Vaults = (vaultsEntireData) =>
   vaultsEntireData.filter((vault) => vault[1] === false && vault[2] === false);
 
 /**
@@ -81,18 +86,28 @@ const filterT1Vaults = (vaultsEntireData) =>
  * @returns {Object} Extracted vault details
  */
 const extractVaultDetails = (filteredVaults) => ({
-  symbols: filteredVaults.map((vault) => vault[3][10]),
   pools: filteredVaults.map((vault) => vault[0]),
   underlyingTokens: filteredVaults.map((vault) => [
-    String(vault[3][8][0]),
-    String(vault[3][9][0])
+    String(vault[3][8][0]).toLowerCase() ===
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+      ? '0x0000000000000000000000000000000000000000'
+      : String(vault[3][8][0]),
+    String(vault[3][9][0]).toLowerCase() ===
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+      ? '0x0000000000000000000000000000000000000000'
+      : String(vault[3][9][0]),
   ]),
   rewardsRates: filteredVaults.map((vault) => Math.max(0, vault[5][12])),
   rewardsRatesBorrow: filteredVaults.map((vault) => Math.max(0, vault[5][13])),
   supplyRates: filteredVaults.map((vault) => Math.max(0, vault[5][8])),
   supplyRatesBorrow: filteredVaults.map((vault) => Math.max(0, vault[5][9])),
   suppliedTokens: filteredVaults.map((vault) => vault[8][5]),
-  supplyTokens: filteredVaults.map((vault) => vault[3][8][0]),
+  supplyTokens: filteredVaults.map((vault) =>
+    String(vault[3][8][0]).toLowerCase() ===
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+      ? '0x0000000000000000000000000000000000000000'
+      : String(vault[3][8][0])
+  ),
 });
 
 /**
@@ -101,13 +116,29 @@ const extractVaultDetails = (filteredVaults) => ({
  * @param {Object} vaultDetails - Extracted vault details
  * @returns {Promise<Object>} Token prices and decimals
  */
-const fetchTokenPricesAndDecimals = async (chain, vaultDetails) => {
-  const priceKeys = vaultDetails.supplyTokens.map((token) => `${chain}:${token}`).join(',');
+const fetchTokenPricesSymbolAndDecimals = async (chain, vaultDetails) => {
+  const priceKeys = vaultDetails.supplyTokens
+    .map((token) => `${chain}:${token}`)
+    .join(',');
+  const borrowPriceKeys = vaultDetails.underlyingTokens
+    .map((tokens) => `${chain}:${tokens[1]}`)
+    .join(',');
   const prices = await fetchTokenPrices(priceKeys);
+  const borrowPrices = await fetchTokenPrices(borrowPriceKeys);
 
-  return { 
-    decimals : vaultDetails.supplyTokens.map((token) => prices[`${chain}:${token}`].decimals), 
-    prices: vaultDetails.supplyTokens.map((token) => prices[`${chain}:${token}`].price) 
+  return {
+    symbol: vaultDetails.underlyingTokens.map(
+      (tokens) =>
+        prices[`${chain}:${tokens[0]}`].symbol +
+        '/' +
+        borrowPrices[`${chain}:${tokens[1]}`].symbol
+    ),
+    decimals: vaultDetails.supplyTokens.map(
+      (token) => prices[`${chain}:${token}`].decimals
+    ),
+    prices: vaultDetails.supplyTokens.map(
+      (token) => prices[`${chain}:${token}`].price
+    ),
   };
 };
 
@@ -125,18 +156,14 @@ const fetchDecimals = async (chain, calls) => {
   });
 
   const decimals = decimalResponses.output.map((response) => response.output);
-
+ 
   // Reinsert 18 for native token addresses
   const nativeTokenIndexes = calls.reduce(
-    (acc, call, idx) => (call === null ? [...acc, idx] : acc), 
+    (acc, call, idx) => (call === null ? [...acc, idx] : acc),
     []
   );
 
-  decimals.splice(
-    0, 
-    0, 
-    ...nativeTokenIndexes.map(() => 18)
-  );
+  decimals.splice(0, 0, ...nativeTokenIndexes.map(() => 18));
 
   return decimals;
 };
@@ -147,7 +174,9 @@ const fetchDecimals = async (chain, calls) => {
  * @returns {Promise<Object>} Token prices
  */
 const fetchTokenPrices = async (priceKeys) => {
-  const response = await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`);
+  const response = await axios.get(
+    `https://coins.llama.fi/prices/current/${priceKeys}`
+  );
   return response.data.coins;
 };
 
@@ -159,9 +188,15 @@ const fetchTokenPrices = async (priceKeys) => {
  * @param {Object} tokenPricesAndDecimals - Token prices and decimals
  * @returns {Array} Processed pool data
  */
-const calculatePoolData = (chain, filteredVaults, vaultDetails, { decimals, prices }) => {
+const calculatePoolData = (
+  chain,
+  filteredVaults,
+  vaultDetails,
+  { symbol, decimals, prices }
+) => {
   const totalSupplyUsd = vaultDetails.suppliedTokens.map(
-    (suppliedToken, index) => (suppliedToken * prices[index]) / 10 ** decimals[index]
+    (suppliedToken, index) =>
+      (suppliedToken * prices[index]) / 10 ** decimals[index]
   );
 
   return filteredVaults
@@ -169,14 +204,18 @@ const calculatePoolData = (chain, filteredVaults, vaultDetails, { decimals, pric
       project: CONSTANTS.PROJECT_SLUG,
       pool: vaultDetails.pools[index],
       tvlUsd: totalSupplyUsd[index],
-      symbol: vaultDetails.symbols[index],
+      symbol: symbol[index].replace('.base', ''),
       underlyingTokens: vaultDetails.underlyingTokens[index],
       rewardTokens: vaultDetails.underlyingTokens[index],
       chain,
       apyBase: Number((vaultDetails.supplyRates[index] / 1e2).toFixed(2)),
-      apyBaseBorrow: Number((vaultDetails.supplyRatesBorrow[index] / 1e2).toFixed(2)),
+      apyBaseBorrow: Number(
+        (vaultDetails.supplyRatesBorrow[index] / 1e2).toFixed(2)
+      ),
       apyReward: Number((vaultDetails.rewardsRates[index] / 1e12).toFixed(2)),
-      apyRewardBorrow: Number((vaultDetails.rewardsRatesBorrow[index] / 1e12).toFixed(2)),
+      apyRewardBorrow: Number(
+        (vaultDetails.rewardsRatesBorrow[index] / 1e12).toFixed(2)
+      ),
     }))
     .filter((pool) => utils.keepFinite(pool));
 };
@@ -186,9 +225,8 @@ const calculatePoolData = (chain, filteredVaults, vaultDetails, { decimals, pric
  * @returns {Promise<Array>} APY data for all chains
  */
 const apy = async () => {
-  const apyResults = await Promise.all(
-    CONSTANTS.SUPPORTED_CHAINS.map(getApy)
-  );
+  const apyResults = await Promise.all(CONSTANTS.SUPPORTED_CHAINS.map(getApy));
+  console.log(apyResults.flat());
   return apyResults.flat();
 };
 
@@ -196,3 +234,5 @@ module.exports = {
   apy: apy,
   url: 'https://fluid.instadapp.io/vaults/',
 };
+
+apy();
