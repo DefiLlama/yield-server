@@ -66,6 +66,7 @@ const getApy = async (poolId, backstop) => {
         apyBaseBorrow: borrowApy * 100,
         apyRewardBorrow: borrowEmissionsAPR * 100,
         ltv: totalBorrow / totalSupply,
+        poolMeta: `Pool ID: ${pool.id}`,
         url,
       });
     }
