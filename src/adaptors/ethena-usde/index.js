@@ -46,7 +46,7 @@ const apy = async () => {
     {
       pool: sUSDe,
       symbol: 'sUSDe',
-      project: 'ethena',
+      project: 'ethena-usde',
       chain: 'Ethereum',
       tvlUsd,
       apyBase,
