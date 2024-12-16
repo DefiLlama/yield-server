@@ -226,7 +226,6 @@ const calculatePoolData = (
  */
 const apy = async () => {
   const apyResults = await Promise.all(CONSTANTS.SUPPORTED_CHAINS.map(getApy));
-  console.log(apyResults.flat());
   return apyResults.flat();
 };
 
