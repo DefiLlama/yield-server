@@ -160,7 +160,6 @@ const lendingVaultsConfig = {
   real: [],
   fantom: [],
   optimism: [],
-  arbitrum: [],
   ethereum: [],
 };
 
@@ -419,6 +418,11 @@ const main = async () => {
       const price = prices[`${chain}:${underlying.id}`];
       if (!price) {
         console.warn(`Missing price, skipping pool ${lendingPool.id} `);
+        continue;
+      }
+
+      // Geckoterminal is reporting the wrong price
+      if (underlying.id.toLowerCase() === '0x0f929C29dcE303F96b1d4104505F2e60eE795caC'.toLowerCase()) { 
         continue;
       }
 

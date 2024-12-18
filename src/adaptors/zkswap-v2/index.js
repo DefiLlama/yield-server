@@ -75,6 +75,7 @@ const apy = async () => {
     })),
     chain: CHAIN,
     requery: true,
+    permitFailure: true,
   });
 
   const lpTokensSwapFee = lpTokensSwapFeeCall.output.reduce(
@@ -320,7 +321,7 @@ const apy = async () => {
       url: 'https://zkswap.finance/earn',
     };
   });
-  return [...nonLpRes, ...res, govPool];
+  return [...nonLpRes, ...res, govPool].filter((i) => utils.keepFinite(i));
 };
 
 const makeMulticall = async (abi, addresses, chain, params = null) => {
@@ -331,6 +332,7 @@ const makeMulticall = async (abi, addresses, chain, params = null) => {
       params,
     })),
     chain,
+    permitFailure: true,
   });
 
   const res = data.output.map(({ output }) => output);

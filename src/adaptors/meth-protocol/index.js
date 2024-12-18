@@ -68,7 +68,7 @@ const apy = async () => {
     {
       pool: mETH,
       chain: 'ethereum',
-      project: 'mantle-staked-eth',
+      project: 'meth-protocol',
       symbol: 'mETH',
       tvlUsd: tvl * ethPrice,
       apyBase,
