@@ -80,18 +80,7 @@ const apy = async () => {
 
   for (const poolId of BLEND_POOLS) {
     let poolApys = await getApy(poolId, backstop);
-    for (const poolApy of poolApys) {
-      if (poolApy) {
-        let index = pools.findIndex((pool) => pool.pool == poolApy.pool);
-        if (index !== -1) {
-          if (poolApy.apyReward > pools[index].apyReward) {
-            pools[index] = poolApy;
-          }
-        } else {
-          pools.push(poolApy);
-        }
-      }
-    }
+    pools.push(...poolApys)
   }
   return pools;
 };
