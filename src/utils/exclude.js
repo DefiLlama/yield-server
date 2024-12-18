@@ -154,6 +154,7 @@ const excludeAdaptors = [
   'deltaprime',
   'arbitrum-exchange-v3',
   'bfx-(blast-futures)',
+  'stack',
 ];
 
 const excludePools = [
