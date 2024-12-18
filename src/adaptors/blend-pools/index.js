@@ -48,10 +48,10 @@ const getApy = async (poolId, backstop) => {
       let totalSupply = reserve.totalSupplyFloat() * price;
       let totalBorrow = reserve.totalLiabilitiesFloat() * price;
 
-      const url = `https://mainnet.blend.capital/dashboard/?poolId=${poolId}`;
+      const url = `https://mainnet.blend.capital/dashboard/?poolId=${poolId}&assetId=${reserve.assetId}`;
 
       pools.push({
-        pool: `${reserve.assetId}-stellar`.toLowerCase(),
+        pool: `${pool.id}-${reserve.assetId}-stellar`.toLowerCase(),
         chain: formatChain('stellar'),
         project: 'blend-pools',
         symbol: reserve.tokenMetadata.symbol,
@@ -66,7 +66,7 @@ const getApy = async (poolId, backstop) => {
         apyBaseBorrow: borrowApy * 100,
         apyRewardBorrow: borrowEmissionsAPR * 100,
         ltv: totalBorrow / totalSupply,
-        poolMeta: `Pool ID: ${pool.id}`,
+        poolMeta: `${pool.config.name} Pool`,
         url,
       });
     }
