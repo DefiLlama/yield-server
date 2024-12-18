@@ -233,5 +233,3 @@ module.exports = {
   apy: apy,
   url: 'https://fluid.instadapp.io/vaults/',
 };
-
-apy();
