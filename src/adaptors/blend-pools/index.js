@@ -43,7 +43,7 @@ const getApy = async (poolId, backstop) => {
       if (borrowEmissionsPerAsset > 0) {
         borrowEmissionsAPR = (borrowEmissionsPerAsset * usdcPerBlnd) / price;
       }
-      // Estimate borrow APY compoumded daily
+      // Estimate borrow APY compounded daily
       const borrowApy = (1 + reserve.borrowApr / 365) ** 365 - 1;
       let totalSupply = reserve.totalSupplyFloat() * price;
       let totalBorrow = reserve.totalLiabilitiesFloat() * price;
