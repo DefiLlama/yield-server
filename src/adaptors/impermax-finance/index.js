@@ -422,7 +422,10 @@ const main = async () => {
       }
 
       // Geckoterminal is reporting the wrong price
-      if (underlying.id.toLowerCase() === '0x0f929C29dcE303F96b1d4104505F2e60eE795caC'.toLowerCase()) { 
+      if (
+        underlying.id.toLowerCase() ===
+        '0x0f929C29dcE303F96b1d4104505F2e60eE795caC'.toLowerCase()
+      ) {
         continue;
       }
 
@@ -481,11 +484,11 @@ const main = async () => {
 
       const chainVaults = lendingVaultProfiles[chain] || [];
       const lendingVault = chainVaults.find(
-        (v) => v.address.toLowerCase() === id.toLowerCase()
+        (v) => v?.address.toLowerCase() === id.toLowerCase()
       );
 
       pools.push({
-        pool: `${lendingVault.address}-${underlying.symbol}-${chain}`.toLowerCase(),
+        pool: `${lendingVault?.address}-${underlying.symbol}-${chain}`.toLowerCase(),
         poolMeta: `${lendingVault?.risk}`,
         chain,
         project: 'impermax-finance',
