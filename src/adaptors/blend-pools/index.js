@@ -48,7 +48,7 @@ const getApy = async (poolId, backstop) => {
       let totalSupply = reserve.totalSupplyFloat() * price;
       let totalBorrow = reserve.totalLiabilitiesFloat() * price;
 
-      const url = `https://mainnet.blend.capital/dashboard/?poolId=${poolId}&assetId=${reserve.assetId}`;
+      const url = `https://mainnet.blend.capital/dashboard/?poolId=${poolId}`;
 
       pools.push({
         pool: `${pool.id}-${reserve.assetId}-stellar`.toLowerCase(),
