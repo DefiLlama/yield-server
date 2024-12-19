@@ -215,6 +215,10 @@ const lendingVaultProfiles = {
       address: '0x683cc7cbb8b8c5b3c5fae85a4ae70e887217883b'.toLowerCase(),
       risk: 'Aggressive',
     }, // ETH (high)
+    {
+      address: '0xc68c47085D2B53A0A782c168D1b54a913A668cB5'.toLowerCase(),
+      risk: 'Conservative',
+    }, // cbBTC (low)
   ],
 };
 
