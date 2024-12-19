@@ -16,6 +16,14 @@ const chains = {
     SimplifiedProtocolDataReader: '0x78d5439da3201F44ce9A642DB95D798e9249952F',
     rewardTokens: ['0x3b6ea0fa8a487c90007ce120a83920fd52b06f6d']
   },
+  base: {
+    LendingPool: '0xB702cE183b4E1Faa574834715E5D4a6378D0eEd3',
+    ProtocolDataProvider: '0xed984A0E9c12Ee27602314191Fc4487A702bB83f',
+    url: 'base',
+    SimplifiedProtocolDataReader: '0x78d5439da3201F44ce9A642DB95D798e9249952F',
+    rewardTokens: ['0x3b6ea0fa8a487c90007ce120a83920fd52b06f6d']
+  }
+
 };
 
 const getApy = async () => {
