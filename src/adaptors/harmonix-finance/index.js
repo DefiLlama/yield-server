@@ -42,9 +42,13 @@ const assets = {
   arbitrum: {
     eth: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
     wbtc: '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f',
+    rseth: '0x4186BFC76E2E237523CBC30FD220FE055156b41F',
+    link: '0xf97f4df75117a78c1A5a0DBb814Af92458539FB4',
+    uni: '0xfa7f8980b0f1e64a2062791cc3b0871572f1f7f0'
   },
   ethereum: {
     eth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    rseth: '0xA1290d69c65A6Fe4DF752f95823fae25cB99e5A7',
   },
 };
 
@@ -92,7 +96,7 @@ const getApy = async () => {
         apyReward: 0, // hardcoded for now
         rewardTokens: [], // hardcoded for now
         url: `https://app.harmonix.fi/vaults/${v.slug}`, // URL to the vault
-        underlyingTokens: v.underlying_asset ? [v.underlying_asset] : [], // underlying asset
+        underlyingTokens: v.underlying_asset ? [assets[chainId][v.underlying_asset.toLowerCase()]] : [], // underlying asset
       };
     }));
   }));
