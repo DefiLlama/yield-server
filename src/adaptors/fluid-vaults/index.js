@@ -202,7 +202,7 @@ const calculatePoolData = (
   return filteredVaults
     .map((vault, index) => ({
       project: CONSTANTS.PROJECT_SLUG,
-      pool: vaultDetails.pools[index],
+      pool: `${chain}_${vaultDetails.pools[index]}`,
       tvlUsd: totalSupplyUsd[index],
       symbol: symbol[index].replace('.base', ''),
       underlyingTokens: vaultDetails.underlyingTokens[index],
