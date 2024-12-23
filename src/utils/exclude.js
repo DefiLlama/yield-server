@@ -155,6 +155,7 @@ const excludeAdaptors = [
   'bfx-(blast-futures)',
   'stack',
   'liquid-bolt',
+  'avault',
 ];
 
 const excludePools = [
