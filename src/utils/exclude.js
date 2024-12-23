@@ -154,6 +154,7 @@ const excludeAdaptors = [
   'arbitrum-exchange-v3',
   'bfx-(blast-futures)',
   'stack',
+  'liquid-bolt',
 ];
 
 const excludePools = [
