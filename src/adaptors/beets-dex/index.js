@@ -46,7 +46,7 @@ const apy = async () => {
           pool:
             chain === 'FANTOM' ? p.id : `${p.address}-${chain.toLowerCase()}`,
           chain: utils.formatChain(chain.toLowerCase()),
-          project: 'beethoven-x-dex',
+          project: 'beets-dex',
           symbol:
             p.address === '0x43da214fab3315aa6c02e0b8f2bfb7ef2e3c60a5'
               ? 'USDC-DAI'
