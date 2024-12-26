@@ -3,7 +3,7 @@ const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const { default: BigNumber } = require('bignumber.js');
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 const { chains, gaugesUrl } = require('./config');
 const StakingABI = require('./abis/abiStakingRewardsMulti.json');
 
@@ -140,15 +140,15 @@ const calculateRewardsFromContracts = async (
   const rewardsAmountUSDForDuration = rewardsAvailable.reduce((acc, reward) => {
     return (
       acc +
-      pricesByAddress[reward.token.toLowerCase()] *
-        new BigNumber(reward.amount).div(1e18)
+      (pricesByAddress[reward.token.toLowerCase()] * Number(reward.amount)) /
+        1e18
     );
   }, 0);
 
   //reward amounts are based on duration which is in seconds so we divide by seconds in a year
   entry.apyReward =
     (rewardsAmountUSDForDuration / entry.totalValueLockedUSD) *
-    (SECONDS_IN_YEAR / rewardsDuration) *
+    (SECONDS_IN_YEAR / Number(rewardsDuration)) *
     100;
 
   return entry;

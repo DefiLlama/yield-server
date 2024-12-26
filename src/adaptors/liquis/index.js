@@ -86,9 +86,10 @@ const balancerTokenABI = require('./abis/BalancerToken.json');
 const vaultABI = require('./abis/Vault.json');
 const { default: bunni } = require('../bunni');
 
-const baseUrl = 'https://api.thegraph.com/subgraphs/name/bunniapp';
 const chains = {
-  ethereum: `${baseUrl}/bunni-mainnet`,
+  ethereum: sdk.graph.modifyEndpoint(
+    'HH4HFj4rFnm5qnkb8MbEdP2V5eD9rZnLJE921YQAs7AV'
+  ),
 };
 
 const query = gql`
@@ -666,9 +667,7 @@ const topLvl = async (chainString, url, timestamp) => {
           ...(rewardApr && { apyReward: rewardApr }),
           ...(rewardTokens && { rewardTokens: rewardTokens }),
           underlyingTokens: [b.poolTokens[0], b.poolTokens[1]],
-          poolMeta: `${parseInt(b.pool.fee) / 10000}%, tickLower: ${
-            b.ticks[0]
-          }, tickUpper: ${b.ticks[1]}`,
+          poolMeta: `${parseInt(b.pool.fee) / 10000}%`,
           url: `https://www.liquis.app/stake/${b.crvRewards}`,
         };
       })

@@ -1,8 +1,9 @@
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
-const url = 'https://api.thegraph.com/subgraphs/name/arnkthr/ethv1';
+const url = sdk.graph.modifyEndpoint('CvSasxLYUvFbYyi7VXGhXL6PNgkZPoVDo2bo66ftEA2V');
 
 const query = gql`
     {

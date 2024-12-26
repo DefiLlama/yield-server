@@ -11,9 +11,10 @@ const abiVoter = require('./abiVoter.json');
 const pairFactory = '0xAAA20D08e59F6561f242b08513D36266C5A29415';
 const voter = '0xAAA2564DEb34763E3d05162ed3f5C2658691f499';
 const RAM = '0xAAA6C1E32C55A7Bfa8066A6FAE9b42650F262418';
-const baseUrl = 'https://api.thegraph.com/subgraphs/name';
 const chains = {
-  arbitrum: `${baseUrl}/ramsesexchange/concentrated-liquidity-graph`,
+  arbitrum: sdk.graph.modifyEndpoint(
+    'ATQTt3wRTgXy4canCh6t1yeczAz4ZuEkFQL2mrLXEMyQ'
+  ),
 };
 
 const superagent = require('superagent');
@@ -196,7 +197,8 @@ const topLvl = async (
       utils.apy(el, dataPrior, dataPrior7d, version, i)
     );
 
-    if (chainString !== 'arbitrum') {
+    const enableV3Apy = false;
+    if (enableV3Apy && chainString !== 'arbitrum') {
       dataNow = dataNow.map((p, i) => ({
         ...p,
         token1_in_token0: p.price1 / p.price0,

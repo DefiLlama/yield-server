@@ -1,5 +1,5 @@
+const sdk = require('@defillama/sdk');
 const { gql, request } = require('graphql-request');
-const { utils } = require('ethers');
 const { PREMIA_TOKEN_ADDRESS } = require('./addresses');
 const { convert, getChainRewardData } = require('./utils');
 const { getPrices } = require('../utils');
@@ -34,12 +34,18 @@ const getPoolsQuery = gql`
 `;
 
 const chainToSubgraph = {
-  ethereum: 'https://api.thegraph.com/subgraphs/name/premiafinance/premiav2',
-  arbitrum:
-    'https://api.thegraph.com/subgraphs/name/premiafinance/premia-arbitrum',
-  fantom: 'https://api.thegraph.com/subgraphs/name/premiafinance/premia-fantom',
-  optimism:
-    'https://api.thegraph.com/subgraphs/name/premiafinance/premia-optimism',
+  ethereum: sdk.graph.modifyEndpoint(
+    'CqWfkgRsJRrQ5vWq9tkEr68F5nvbAg63ati5SVJQLjK8'
+  ),
+  arbitrum: sdk.graph.modifyEndpoint(
+    '3o6rxHKuXZdy8jFifV99gMUe8FaVUL8w8bDTNdc4zyYg'
+  ),
+  fantom: sdk.graph.modifyEndpoint(
+    '5ahtXN7DVTwnPuDhWqgJWvEeAEP3JD7h2kD1Kpe67VuW'
+  ),
+  optimism: sdk.graph.modifyEndpoint(
+    '8wMexS8BB1cXWYu2V8cPHURGXSRGDBhshnU9nTiSkXQ7'
+  ),
 };
 
 interface PoolType {
@@ -86,13 +92,16 @@ async function getPREMIAPrice() {
 
 async function poolsFunction(): Promise<PoolType[]> {
   const PRICE = await getPREMIAPrice();
-  const pools = await Promise.all(
+  const pools = await Promise.allSettled(
     Object.keys(chainToSubgraph).map(async (chain) =>
       fetchChainPools(chainToSubgraph[chain], chain, PRICE)
     )
   );
 
-  return pools.flat();
+  return pools
+    .filter((i) => i.status === 'fulfilled')
+    .map((i) => i.value)
+    .flat();
 }
 
 module.exports = {

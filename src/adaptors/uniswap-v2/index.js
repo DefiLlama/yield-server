@@ -3,7 +3,9 @@ const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
-const url = 'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v2-dev';
+const url = sdk.graph.modifyEndpoint(
+  'FEtpnfQ1aqF8um2YktEkfzFD11ZKrfurvBLPeQzv9JB1'
+);
 
 const query = gql`
   {

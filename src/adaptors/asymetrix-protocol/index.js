@@ -8,7 +8,7 @@ const BigNumber = require('bignumber.js');
 
 const utils = require('../utils');
 
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 
 let uniswapV3FactoryContract;
 let stakePrizePoolContract;
@@ -60,7 +60,9 @@ async function getTokenPriceInWeth(tokenContract) {
   const wethDecimals = await wethContract.methods.decimals().call();
 
   const oneTokenInWeth =
-    1 / ((1.0001 ** Math.abs(tick) * 10 ** wethDecimals) / 10 ** tokenDecimals);
+    1 /
+    ((1.0001 ** Number(tick) * 10 ** Number(wethDecimals)) /
+      10 ** Number(tokenDecimals));
 
   return oneTokenInWeth;
 }
@@ -80,7 +82,9 @@ async function getTokenPriceInUsdc(tokenContract) {
   const usdcDecimals = await usdcContract.methods.decimals().call();
 
   const oneTokenInUsdc =
-    1 / ((1.0001 ** Math.abs(tick) * 10 ** usdcDecimals) / 10 ** tokenDecimals);
+    1 /
+    ((1.0001 ** Number(tick) * 10 ** Number(usdcDecimals)) /
+      10 ** Number(tokenDecimals));
 
   return oneTokenInUsdc;
 }
@@ -92,7 +96,11 @@ async function getApy() {
     .call();
 
   const rewardPerYearInEsAsxTokens =
-    +new BigNumber(rewardPerSecondInEsAsxTokens.toString()) * 60 * 60 * 24 * 365;
+    +new BigNumber(rewardPerSecondInEsAsxTokens.toString()) *
+    60 *
+    60 *
+    24 *
+    365;
 
   // 2. Calculate price of 1 ASX token in WETH.
   const oneAsxInWeth = await getTokenPriceInWeth(asxContract);
@@ -105,7 +113,7 @@ async function getApy() {
 
   // 5. Calculate reward per year (in esASX tokens, in USDC).
   const rewardPerYearInEsAsxTokensInUsdc =
-  rewardPerYearInEsAsxTokens * +new BigNumber(oneAsxInUsdc.toString());
+    rewardPerYearInEsAsxTokens * +new BigNumber(oneAsxInUsdc.toString());
 
   // 6. Calculate APR.
   const totalInProtocol = +new BigNumber(

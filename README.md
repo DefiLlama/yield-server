@@ -74,21 +74,21 @@ A note on how to set apy related fields:
 - if you are unsure/your data source doesn't contain a detailed breakdown, then provide an `apy` field indicating the total apy and omit the `apyBase` and `apyReward` fields (or set to null)
 ```
 
-#### FAQ
+### FAQ
 
-> Why are some pools missing on DefiLlama which appear on my adapter?
+#### Why are some pools missing on DefiLlama which appear on my adapter?
 
 DefiLlama only displays pools with >10k TVL, so pools with less TVL than that will appear on the adapter but not on defillama
 
-> I'm getting errors when running `npm install`
+#### I'm getting errors when running `npm install`
 
-Just remove the packages `pg-promise`, `pg` and `pg-native` from package.json and then install again, make sure to avoid commiting these changes tho!
+Make sure you're running the command inside the `src/adaptors` folder, not in the project root folder.
 
-> Why is X pool missing from https://defillama.com/yields/stablecoins ?
+#### Why is X pool missing from https://defillama.com/yields/stablecoins ?
 
 That page has stricter filters than other pages, only pools with >1M TVL and on audited protocols are included there.
 
-#### Adapter module structure
+### Adapter module structure
 
 ```js
 module.exports = {

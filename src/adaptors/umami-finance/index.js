@@ -1,28 +1,34 @@
-const superagent = require('superagent');
-const axios = require('axios');
-const { request, gql } = require('graphql-request');
-const {
-  UMAMI_ADDRESS,
-  mUMAMI_ADDRESS,
-  cmUMAMI_ADDRESS,
-  UMAMI_GRAPH_URL,
-  UMAMI_API_URL,
-  wETH_ADDRESS,
-} = require('./umamiConstants.js');
+const { getGmMarketsAprForUmami } = require('./gmxHelpers/gmMarketsApr.js');
 const { getUmamiGmSynthsVaultsYield } = require('./umamiGmSynthVaults.js');
 const { getUmamiGmVaultsYield } = require('./umamiGmVaults.js');
 
 const main = async () => {
-  const [synthGmVaults, gmVaults] = await Promise.all([
-    getUmamiGmSynthsVaultsYield(),
-    getUmamiGmVaultsYield(),
+  // Fetch infos & fees from GM markets first
+  const [arbitrumGmMarketsInfos, avalancheGmMarketsInfos] = await Promise.all([
+    getGmMarketsAprForUmami('arbitrum'),
+    getGmMarketsAprForUmami('avax'),
   ]);
+  const [arbitrumSynthGmVaults, arbitrumGmVaults, avaxGmVaults] =
+    await Promise.all([
+      getUmamiGmSynthsVaultsYield('arbitrum', arbitrumGmMarketsInfos),
+      getUmamiGmVaultsYield('arbitrum', arbitrumGmMarketsInfos),
+      getUmamiGmVaultsYield('avax', avalancheGmMarketsInfos),
+    ]);
 
-  return [...synthGmVaults, ...gmVaults].map((strat) => ({
+  const arbitrumVaults = [...arbitrumSynthGmVaults, ...arbitrumGmVaults].map(
+    (strat) => ({
+      ...strat,
+      chain: 'Arbitrum',
+      project: 'umami-finance',
+    })
+  );
+  const avaxVaults = [...avaxGmVaults].map((strat) => ({
     ...strat,
-    chain: 'Arbitrum',
+    chain: 'Avalanche',
     project: 'umami-finance',
   }));
+
+  return [...arbitrumVaults, ...avaxVaults];
 };
 
 module.exports = {

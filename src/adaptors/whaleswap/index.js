@@ -1,4 +1,4 @@
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
@@ -8,7 +8,9 @@ const utils = require('../utils');
 const { fetchURL } = require('../../helper/utils');
 
 const RPC_URL = 'https://bsc-dataseed1.binance.org/';
-const API_URL = 'https://api.thegraph.com/subgraphs/name/whale-swap/exchange';
+const API_URL = sdk.graph.modifyEndpoint(
+  'HtdMsZ5CvuaEntqZQybWg5Tw55Kx3FRrius6p7Jhc2XX'
+);
 const BACKEND_URL = 'https://api.whaleswap.finance';
 const PODMASTER_ADDRESS = '0xdEe627eaaB378ec57ECfB94b389B718ef3687c0D';
 

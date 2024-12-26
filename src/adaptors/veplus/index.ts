@@ -8,12 +8,14 @@ const abiGauge = require('./abiGauge.json');
 const abiVoter = require('./abiVoter.json');
 const { request, gql } = require('graphql-request');
 
-const SUBGRAPH_URL = 'https://api.thegraph.com/subgraphs/name/jameveplus/veplus'
+const SUBGRAPH_URL = sdk.graph.modifyEndpoint(
+  'FEYBMUkep7BKAoxP9mX9ZF733SvnTbNMWE9tgtNTw83g'
+);
 
 const pairFactory = '0x5Bcd9eE6C31dEf33334b255EE7A767B6EEDcBa4b';
 const voter = '0x792Ba5586E87005661C4e611b17e01De0de42599';
 const VEP = '0x1e32B79d8203AC691499fBFbB02c07A9C9850Dd7';
-const VEP_USDT_PAIR = '0xcb369dbd43de4a5f1d4341cf6621076a6ce668cd'
+const VEP_USDT_PAIR = '0xcb369dbd43de4a5f1d4341cf6621076a6ce668cd';
 
 const pairsQuery = gql`
   query pairQuery {
@@ -114,33 +116,31 @@ const getApy = async () => {
     const r1 = poolMeta.r1 / poolMeta.dec1;
 
     let p0, p1;
-    if(poolMeta.t0 == VEP){
+    if (poolMeta.t0 == VEP) {
       p0 = vep_price;
-    }else{
+    } else {
       p0 = prices[`bsc:${poolMeta.t0}`]?.price;
     }
 
-    if(poolMeta.t1 == VEP){
+    if (poolMeta.t1 == VEP) {
       p1 = vep_price;
-    }else{
+    } else {
       p1 = prices[`bsc:${poolMeta.t1}`]?.price;
     }
-    
+
     const tvlUsd = r0 * p0 + r1 * p1;
 
     const s = symbols[i];
 
-    const totalRewardPerDay =
-      ((rewardRate[i] * 86400) / 1e18) * vep_price;
+    const totalRewardPerDay = ((rewardRate[i] * 86400) / 1e18) * vep_price;
 
-    const apyReward =
-      (totalRewardPerDay * 36500) / tvlUsd;
+    const apyReward = (totalRewardPerDay * 36500) / tvlUsd;
 
     return {
       pool: p,
       chain: utils.formatChain('bsc'),
       project: 'veplus',
-      symbol: utils.formatSymbol(s.replace('/','-')),
+      symbol: utils.formatSymbol(s.replace('/', '-')),
       tvlUsd,
       apyReward,
       rewardTokens: apyReward ? [VEP] : [],
@@ -150,7 +150,6 @@ const getApy = async () => {
 
   return pools.filter((p) => utils.keepFinite(p));
 };
-
 
 module.exports = {
   timetravel: false,
