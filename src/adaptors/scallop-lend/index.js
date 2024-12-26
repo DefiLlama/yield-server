@@ -3,7 +3,7 @@ const utils = require('../utils')
 
 const baseUrl = 'https://sdk.api.scallop.io/api';
 const marketEndpoint = `${baseUrl}/market/migrate`;
-const spoolsEndpoint = `${baseUrl}/spools`;
+const spoolsEndpoint = `${baseUrl}/spools/migrate`;
 const borrowIncentiveEndpoint = `${baseUrl}/borrowIncentivePools`;
 
 const main = async () => {
