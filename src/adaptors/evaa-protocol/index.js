@@ -336,6 +336,111 @@ async function getPrices(endpoint = "api.stardust-mainnet.iotaledger.net") {
     }
 }
 
+function isLeapYear(year) {
+  return (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
+}
+
+async function getDistributions(endpoint = 'evaa.space') {
+  try {
+    let result = await fetch(`https://${endpoint}/query/distributions/list`, {
+      headers: { accept: 'application/json' },
+    });
+    let resData = await result.json();
+    return resData;
+  } catch (error) {
+    console.error(error);
+    return undefined;
+  }
+}
+
+function calculateRewardApy(distributionsResp, pool, data, prices) {
+  try {
+    if (
+      !distributionsResp?.distributions ||
+      distributionsResp.distributions.length === 0
+    ) {
+      console.log('Invalid distributions data:', distributionsResp);
+      return undefined;
+    }
+
+    const currentCampaign = distributionsResp?.distributions.find(
+      (campaign) => campaign.started && !campaign.expired
+    );
+
+    if (!currentCampaign) return 0;
+
+    const currentSeasons = currentCampaign?.seasons
+      ?.map((season) => {
+        if (!season.started || season.expired) {
+          return;
+        }
+
+        const rewardingAssetId = BigInt(season?.rewarding_asset_id ?? 0);
+        const rewardsAssetId = BigInt(season?.rewards_asset_id ?? 0);
+
+        const rewardingAssetData = data.assetsData.get(rewardingAssetId);
+        const rewardsAssetData = data.assetsData.get(rewardsAssetId);
+        const rewardPool = season?.pool;
+        if (!rewardingAssetData || !rewardsAssetData || rewardPool !== pool) {
+          return;
+        }
+
+        const rewardType = season?.reward_type;
+
+        const rewardingAssetConfig = data.assetsConfig.get(rewardingAssetId);
+        const rewardsAssetConfig = data.assetsConfig.get(rewardsAssetId);
+
+        const rewardingScaleFactor =
+          10 ** Number(rewardingAssetConfig.decimals);
+        const rewardsScaleFactor = 10 ** Number(rewardsAssetConfig.decimals);
+
+        const rewardingPriceData = prices.dict.get(rewardingAssetId);
+        const rewardsPriceData = prices.dict.get(rewardsAssetId);
+
+        const rewardingPrice =
+          Number(rewardingPriceData) / Number(priceScaleFactor);
+        const rewardsPrice =
+          Number(rewardsPriceData) / Number(priceScaleFactor);
+
+        const totalAmount =
+          rewardType === 'borrow'
+            ? rewardingAssetData.totalBorrow
+            : rewardingAssetData.totalSupply;
+        const rate = rewardingScaleFactor / Number(totalAmount);
+        const rewardForUnit =
+          rate *
+          (((Number(season?.rewards_amount) / rewardsScaleFactor) *
+            (rewardsPrice ?? 0)) /
+            rewardingPrice) *
+          rewardingScaleFactor;
+        const seasonStart = new Date(season?.campaign_start ?? 0);
+        const seasonEnd = new Date(season?.campaign_end ?? 0);
+        const totalSecsInCurrentSeason =
+          (Number(seasonEnd) - Number(seasonStart)) / 1000;
+        const isLeap = isLeapYear(new Date().getFullYear());
+        const totalSecsInYear = (isLeap ? 366 : 365) * 24 * 60 * 60;
+        const apy =
+          ((rewardForUnit * totalSecsInYear) /
+            totalSecsInCurrentSeason /
+            rewardingScaleFactor) *
+          100;
+
+        return {
+          apy,
+          rewardType,
+          rewardingAssetId,
+          rewardsAssetId,
+          pool: rewardPool,
+        };
+      })
+      ?.filter(Boolean);
+
+    return currentSeasons || [];
+  } catch (error) {
+    console.error(error);
+    return undefined;
+  }
+}
 
 // ignore pools with TVL below the threshold
 const MIN_TVL_USD = 100000;
@@ -350,6 +455,7 @@ function calculatePresentValue(index, principalValue) {
 const getApy = async () => {
     console.log("Requesting prices")
     let prices = await getPrices();
+    let distributions = await getDistributions();
     const client = new TonClient({
         endpoint: "https://toncenter.com/api/v2/jsonRPC"
     });
@@ -365,6 +471,9 @@ const getApy = async () => {
             console.log(e);
         }
     });
+
+    const rewardApys = calculateRewardApy(distributions, 'main', data,prices);
+
     return Object.entries(assets).map(([tokenSymbol, asset]) => {
         const { assetId, token } = asset;
         console.log("Process symbol", tokenSymbol, asset, assetId, token)
@@ -398,6 +507,24 @@ const getApy = async () => {
             console.log(tokenSymbol, "supplyApy", supplyApy * 100);
             console.log(tokenSymbol, "borrowApy", borrowApy * 100);
 
+            const apyRewardData = rewardApys.find(
+              (rewardApy) =>
+                rewardApy.rewardingAssetId == assetId &&
+                rewardApy.rewardType == 'supply'
+            );
+
+            const apyReward = apyRewardData ? apyRewardData.apy : undefined;
+
+            const apyRewardBorrowData = rewardApys.find(
+              (rewardApy) =>
+                rewardApy.rewardingAssetId == assetId &&
+                rewardApy.rewardType == 'borrow'
+            );
+
+            const apyRewardBorrow = apyRewardBorrowData
+              ? apyRewardBorrowData.apy
+              : undefined;
+
             return {
                 pool: `evaa-${assetId}-ton`.toLowerCase(),
                 chain: 'Ton',
@@ -405,6 +532,8 @@ const getApy = async () => {
                 symbol: tokenSymbol,
                 tvlUsd: totalSupplyUsd - totalBorrowUsd,
                 apyBase: supplyApy * 100,
+                apyReward,
+                //   apyRewardBorrow,
                 underlyingTokens: [token],
                 url: `https://app.evaa.finance/token/${tokenSymbol}`,
                 totalSupplyUsd: totalSupplyUsd,
