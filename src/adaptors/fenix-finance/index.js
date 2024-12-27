@@ -82,53 +82,13 @@ const getApy = async () => {
       }
     }
 
-    const alreadySeen = [];
-    for (const pair of pairs) {
-      const token0Key = 'blast:' + pair.token0.id.toLowerCase();
-      const token1Key = 'blast:' + pair.token1.id.toLowerCase();
-
-      if (!alreadySeen.includes(token0Key)) {
-        alreadySeen.push(token0Key);
-      }
-      if (!alreadySeen.includes(token1Key)) {
-        alreadySeen.push(token1Key);
-      }
-    }
-
-    let fullCoin = {};
-    const chunkSize = 60;
-    for (let i = 0; i < alreadySeen.length; i += chunkSize) {
-      const chunk = alreadySeen.slice(i, i + chunkSize);
-      const { coins } = await utils.getData(
-        `https://coins.llama.fi/prices/current/${chunk.join(
-          ','
-        )}?searchWidth=4h`
-      );
-      fullCoin = { ...fullCoin, ...coins };
-    }
-
     const pools = pairs.map((pair) => {
       let tvl = 0;
 
-      if (
-        fullCoin['blast:' + pair.token0.id.toLowerCase()] &&
-        fullCoin['blast:' + pair.token1.id.toLowerCase()]
-      ) {
-        // Fix: Use pair properties for TVL calculation
-        const token0Price =
-          fullCoin['blast:' + pair.token0.id.toLowerCase()].price;
-        const token1Price =
-          fullCoin['blast:' + pair.token1.id.toLowerCase()].price;
+      const token0ValueInReserve = parseFloat(pair.totalValueLockedToken0);
+      const token1ValueInReserve = parseFloat(pair.totalValueLockedToken1);
 
-        const token0ValueInReserve =
-          parseFloat(pair.totalValueLockedToken0) * token0Price;
-        const token1ValueInReserve =
-          parseFloat(pair.totalValueLockedToken1) * token1Price;
-
-        tvl = token0ValueInReserve + token1ValueInReserve;
-      } else {
-        tvl = parseFloat(pair.totalValueLockedUSD);
-      }
+      tvl = token0ValueInReserve + token1ValueInReserve;
 
       const poolData = {
         pool: pair.id,
@@ -143,14 +103,14 @@ const getApy = async () => {
 
       return poolData;
     });
-
+    console.log(pools);
     return pools;
   } catch (error) {
     console.error('Error in getApy:', error);
     throw error;
   }
 };
-
+getApy();
 module.exports = {
   timetravel: false,
   apy: getApy,
