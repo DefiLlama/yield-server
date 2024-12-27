@@ -46,6 +46,7 @@ const main = async () => {
   market.data.pools.forEach((pool) => {
     const supplyUsd = parseFloat(pool.supplyCoin) * parseFloat(pool.coinPrice);
     const borrowUsd = parseFloat(pool.borrowCoin) * parseFloat(pool.coinPrice);
+    const collateralFactor = market.data.collaterals.find((collateral) => collateral.coinType === pool.coinType);
     arr.push({
       chain: 'Sui',
       project: 'scallop-lend',
@@ -59,6 +60,7 @@ const main = async () => {
       totalBorrowUsd: borrowUsd,
       apyBaseBorrow: parseFloat(pool.borrowApy * 100),
       apyRewardBorrow: borrowRewards[pool.coinType] ? parseFloat(borrowRewards[pool.coinType].reduce((prev, curr) => prev + curr.rewardApr, 0) * 100) : null,
+      ltv: Number(parseFloat(collateralFactor ? collateralFactor.collateralFactor : 0).toFixed(2)),
     });
   });
 
