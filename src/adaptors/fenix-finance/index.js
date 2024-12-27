@@ -13,7 +13,7 @@ const FNX_ADDRESS = '0x52f847356b38720B55ee18Cb3e094ca11C85A192';
 const swapPairsQuery = (skip) => {
   return gql`
     query MyQuery {
-      pools(first: 100, skip: ${skip}, where: {totalValueLockedUSD_gt: 1000}) {
+      pools(first: 100, skip: ${skip}, where: {totalValueLockedUSD_gt: 10000}) {
        totalValueLockedToken0
        totalValueLockedToken1
        totalValueLockedUSD
