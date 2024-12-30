@@ -9,7 +9,6 @@ const CONSTANTS = {
     arbitrum: 42161,
     base: 8453,
   },
-  // SUPPORTED_CHAINS: ['ethereum'],
   SUPPORTED_CHAINS: ['ethereum', 'arbitrum', 'base'],
   RESOLVERS: {
     LENDING: {
