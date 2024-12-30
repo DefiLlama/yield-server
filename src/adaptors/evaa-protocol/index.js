@@ -514,6 +514,7 @@ const getApy = async () => {
             );
 
             const apyReward = apyRewardData ? apyRewardData.apy : undefined;
+            const rewardTokens = apyRewardData ? [apyRewardData.rewardsAssetId] : undefined;
 
             const apyRewardBorrowData = rewardApys.find(
               (rewardApy) =>
@@ -533,6 +534,7 @@ const getApy = async () => {
                 tvlUsd: totalSupplyUsd - totalBorrowUsd,
                 apyBase: supplyApy * 100,
                 apyReward,
+                rewardTokens,
                 //   apyRewardBorrow,
                 underlyingTokens: [token],
                 url: `https://app.evaa.finance/token/${tokenSymbol}`,
