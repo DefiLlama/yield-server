@@ -3,8 +3,9 @@ const utils = require('../utils');
 const fetch = require('node-fetch')
 const { TonClient } = require("@ton/ton");
 const { Address, Cell, Slice, Dictionary, beginCell } = require("@ton/core");
+const { signVerify } = require('@ton/crypto');
 const crypto = require("crypto");
-const NFT_ID = '0xfb9874544d76ca49c5db9cc3e5121e4c018bc8a2fb2bfe8f2a38c5b9963492f5';
+const getPrices = require('./getPrices');
 
 function sha256Hash(input) {
     const hash = crypto.createHash("sha256");
@@ -304,36 +305,6 @@ function calculateCurrentRates(assetConfig, assetData) {
         borrowInterest,
         now,
     };
-}
-
-async function getPrices(endpoint = "api.stardust-mainnet.iotaledger.net") {
-    try {
-        let result = await fetch(`https://${endpoint}/api/indexer/v1/outputs/nft/${NFT_ID}`, {
-            headers: { accept: 'application/json' },
-        });
-        let outputId = await result.json();
-
-        result = await fetch(`https://${endpoint}/api/core/v2/outputs/${outputId.items[0]}`, {
-            headers: { accept: 'application/json' },
-        });
-
-        let resData = await result.json();
-
-        const data = JSON.parse(
-            decodeURIComponent(resData.output.features[0].data.replace('0x', '').replace(/[0-9a-f]{2}/g, '%$&')),
-        );
-
-        const pricesCell = Cell.fromBoc(Buffer.from(data['packedPrices'], 'hex'))[0];
-        const signature = Buffer.from(data['signature'], 'hex');
-
-        return {
-            dict: pricesCell.beginParse().loadDictDirect(Dictionary.Keys.BigUint(256), Dictionary.Values.BigUint(64)),
-            dataCell: beginCell().storeRef(pricesCell).storeBuffer(signature).endCell(),
-        };
-    } catch (error) {
-        console.error(error);
-        return undefined;
-    }
 }
 
 function isLeapYear(year) {
