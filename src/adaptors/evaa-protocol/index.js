@@ -33,6 +33,12 @@ const assets = {
     tsTON: { assetId: sha256Hash("tsTON"), token: 'EQC98_qAmNEptUtPc7W6xdHh_ZHrBUFpw5Ft_IzNU20QAJav' },
 };
 
+function findAssetKeyByBigIntId(searchAssetId) {
+    return Object.entries(assets).find(([key, value]) => 
+        BigInt(value.assetId) === searchAssetId
+    )?.[0];
+}
+
 
 const MASTER_CONSTANTS = {
     FACTOR_SCALE: BigInt(1e12),
@@ -380,7 +386,9 @@ const getApy = async () => {
             );
 
             const apyReward = apyRewardData ? apyRewardData.apy : undefined;
-            const rewardTokens = apyRewardData ? [apyRewardData.rewardsAssetId] : undefined;
+            const rewardTokens = apyRewardData
+                ? [findAssetKeyByBigIntId(apyRewardData.rewardsAssetId)]
+                : undefined;
 
             const apyRewardBorrowData = rewardApys.find(
               (rewardApy) =>
