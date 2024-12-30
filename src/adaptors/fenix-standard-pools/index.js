@@ -77,52 +77,8 @@ const getApy = async () => {
     }
   }
 
-  const alreadySeen = [];
-  for (const pair of pairs) {
-    const token0Key = 'blast:' + pair.token0.id.toLowerCase();
-    const token1Key = 'blast:' + pair.token1.id.toLowerCase();
-
-    if (!alreadySeen.includes(token0Key)) {
-      alreadySeen.push(token0Key);
-    }
-
-    if (!alreadySeen.includes(token1Key)) {
-      alreadySeen.push(token1Key);
-    }
-  }
-
-  // asking price to defillama chunking requests
-  let fullCoin = {};
-  const chunkSize = 60;
-  for (let i = 0; i < alreadySeen.length; i += chunkSize) {
-    const chunk = alreadySeen.slice(i, i + chunkSize);
-
-    const { coins } = await utils.getData(
-      `https://coins.llama.fi/prices/current/${chunk.join(',')}?searchWidth=4h`
-    );
-    fullCoin = { ...fullCoin, ...coins };
-  }
-
   const pools = pairs.map((pair) => {
-    let tvl = 0;
-
-    if (
-      fullCoin['blast:' + pair.token0.id.toLowerCase()] &&
-      fullCoin['blast:' + pair.token1.id.toLowerCase()]
-    ) {
-      const token0ValueInReserve =
-        parseFloat(pair.reserve0) *
-        parseFloat(fullCoin['blast:' + pair.token0.id.toLowerCase()].price);
-      const token1ValueInReserve =
-        parseFloat(pair.reserve1) *
-        parseFloat(fullCoin['blast:' + pair.token1.id.toLowerCase()].price);
-
-      tvl = token0ValueInReserve + token1ValueInReserve;
-    } else {
-      // fallbacking to the one from api if defillama price are missing
-      tvl = parseFloat(pair.reserveUSD);
-    }
-
+    tvl = parseFloat(pair.reserveUSD);
     return {
       pool: pair.id,
       chain: utils.formatChain('blast'),
@@ -137,7 +93,7 @@ const getApy = async () => {
 
   return pools;
 };
-
+getApy();
 module.exports = {
   timetravel: false,
   apy: getApy,
