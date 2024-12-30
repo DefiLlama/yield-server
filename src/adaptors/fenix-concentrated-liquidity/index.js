@@ -83,17 +83,8 @@ const getApy = async () => {
     }
 
     const pools = pairs.map((pair) => {
-      let tvl = pair.totalValueLockedUSD;
-      console.log({
-        pool: pair.id,
-        chain: utils.formatChain('blast'),
-        project: 'fenix-concentrated-liquidity',
-        symbol: `${pair.token0.symbol}-${pair.token1.symbol}`,
-        tvlUsd: tvl,
-        apyReward: parseFloat(apyDict[pair.id.toLowerCase()] || 0),
-        underlyingTokens: [pair.token0.id, pair.token1.id],
-        rewardTokens: [FNX_ADDRESS],
-      });
+      let tvl = parseFloat(pair.totalValueLockedUSD);
+
       const poolData = {
         pool: pair.id,
         chain: utils.formatChain('blast'),
@@ -113,7 +104,7 @@ const getApy = async () => {
     throw error;
   }
 };
-getApy();
+
 module.exports = {
   timetravel: false,
   apy: getApy,
