@@ -71,7 +71,7 @@ function calculateRewardApy(distributionsResp, pool, data, prices) {
         const rewardsAssetData = data.assetsData.get(rewardsAssetId);
 
         if (!rewardingAssetData || !rewardsAssetData) {
-          return undefined;
+          return [];
         }
 
         const rewardType =
@@ -118,7 +118,7 @@ function calculateRewardApy(distributionsResp, pool, data, prices) {
         const totalSecsInCurrentSeason = (seasonEnd - seasonStart) / 1000;
 
         if (totalSecsInCurrentSeason <= 0) {
-          return undefined;
+          return [];
         }
 
         const baseApy = calcApy(
@@ -167,7 +167,7 @@ function calculateRewardApy(distributionsResp, pool, data, prices) {
     return seasonsApy.flat();
   } catch (error) {
     console.error(error);
-    return undefined;
+    return [];
   }
 }
 
