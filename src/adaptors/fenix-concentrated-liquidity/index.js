@@ -83,13 +83,17 @@ const getApy = async () => {
     }
 
     const pools = pairs.map((pair) => {
-      let tvl = 0;
-
-      const token0ValueInReserve = parseFloat(pair.totalValueLockedToken0);
-      const token1ValueInReserve = parseFloat(pair.totalValueLockedToken1);
-
-      tvl = token0ValueInReserve + token1ValueInReserve;
-
+      let tvl = pair.totalValueLockedUSD;
+      console.log({
+        pool: pair.id,
+        chain: utils.formatChain('blast'),
+        project: 'fenix-concentrated-liquidity',
+        symbol: `${pair.token0.symbol}-${pair.token1.symbol}`,
+        tvlUsd: tvl,
+        apyReward: parseFloat(apyDict[pair.id.toLowerCase()] || 0),
+        underlyingTokens: [pair.token0.id, pair.token1.id],
+        rewardTokens: [FNX_ADDRESS],
+      });
       const poolData = {
         pool: pair.id,
         chain: utils.formatChain('blast'),
@@ -103,7 +107,6 @@ const getApy = async () => {
 
       return poolData;
     });
-    console.log(pools);
     return pools;
   } catch (error) {
     console.error('Error in getApy:', error);
