@@ -3,8 +3,10 @@ const utils = require('../utils');
 const fetch = require('node-fetch')
 const { TonClient } = require("@ton/ton");
 const { Address, Cell, Slice, Dictionary, beginCell } = require("@ton/core");
+const { signVerify } = require('@ton/crypto');
 const crypto = require("crypto");
-const NFT_ID = '0xfb9874544d76ca49c5db9cc3e5121e4c018bc8a2fb2bfe8f2a38c5b9963492f5';
+const getPrices = require('./getPrices');
+const { getDistributions, calculateRewardApy } = require('./rewardApy');
 
 function sha256Hash(input) {
     const hash = crypto.createHash("sha256");
@@ -30,6 +32,12 @@ const assets = {
     stTON: { assetId: sha256Hash("stTON"), token: 'EQDNhy-nxYFgUqzfUzImBEP67JqsyMIcyk2S5_RwNNEYku0k' },
     tsTON: { assetId: sha256Hash("tsTON"), token: 'EQC98_qAmNEptUtPc7W6xdHh_ZHrBUFpw5Ft_IzNU20QAJav' },
 };
+
+function findAssetKeyByBigIntId(searchAssetId) {
+    return Object.entries(assets).find(([key, value]) => 
+        BigInt(value.assetId) === searchAssetId
+    )?.[0];
+}
 
 
 const MASTER_CONSTANTS = {
@@ -306,37 +314,6 @@ function calculateCurrentRates(assetConfig, assetData) {
     };
 }
 
-async function getPrices(endpoint = "api.stardust-mainnet.iotaledger.net") {
-    try {
-        let result = await fetch(`https://${endpoint}/api/indexer/v1/outputs/nft/${NFT_ID}`, {
-            headers: { accept: 'application/json' },
-        });
-        let outputId = await result.json();
-
-        result = await fetch(`https://${endpoint}/api/core/v2/outputs/${outputId.items[0]}`, {
-            headers: { accept: 'application/json' },
-        });
-
-        let resData = await result.json();
-
-        const data = JSON.parse(
-            decodeURIComponent(resData.output.features[0].data.replace('0x', '').replace(/[0-9a-f]{2}/g, '%$&')),
-        );
-
-        const pricesCell = Cell.fromBoc(Buffer.from(data['packedPrices'], 'hex'))[0];
-        const signature = Buffer.from(data['signature'], 'hex');
-
-        return {
-            dict: pricesCell.beginParse().loadDictDirect(Dictionary.Keys.BigUint(256), Dictionary.Values.BigUint(64)),
-            dataCell: beginCell().storeRef(pricesCell).storeBuffer(signature).endCell(),
-        };
-    } catch (error) {
-        console.error(error);
-        return undefined;
-    }
-}
-
-
 // ignore pools with TVL below the threshold
 const MIN_TVL_USD = 100000;
 
@@ -350,6 +327,7 @@ function calculatePresentValue(index, principalValue) {
 const getApy = async () => {
     console.log("Requesting prices")
     let prices = await getPrices();
+    let distributions = await getDistributions();
     const client = new TonClient({
         endpoint: "https://toncenter.com/api/v2/jsonRPC"
     });
@@ -365,6 +343,9 @@ const getApy = async () => {
             console.log(e);
         }
     });
+
+    const rewardApys = calculateRewardApy(distributions, 'main', data,prices);
+
     return Object.entries(assets).map(([tokenSymbol, asset]) => {
         const { assetId, token } = asset;
         console.log("Process symbol", tokenSymbol, asset, assetId, token)
@@ -398,6 +379,27 @@ const getApy = async () => {
             console.log(tokenSymbol, "supplyApy", supplyApy * 100);
             console.log(tokenSymbol, "borrowApy", borrowApy * 100);
 
+            const apyRewardData = rewardApys.find(
+              (rewardApy) =>
+                rewardApy.rewardingAssetId == assetId &&
+                rewardApy.rewardType.toLowerCase() === 'supply'
+            );
+
+            const apyReward = apyRewardData ? apyRewardData.apy : undefined;
+            const rewardTokens = apyRewardData
+                ? [findAssetKeyByBigIntId(apyRewardData.rewardsAssetId)]
+                : undefined;
+
+            const apyRewardBorrowData = rewardApys.find(
+              (rewardApy) =>
+                rewardApy.rewardingAssetId == assetId &&
+                rewardApy.rewardType.toLowerCase() === 'borrow'
+            );
+
+            const apyRewardBorrow = apyRewardBorrowData
+              ? apyRewardBorrowData.apy
+              : undefined;
+
             return {
                 pool: `evaa-${assetId}-ton`.toLowerCase(),
                 chain: 'Ton',
@@ -405,6 +407,9 @@ const getApy = async () => {
                 symbol: tokenSymbol,
                 tvlUsd: totalSupplyUsd - totalBorrowUsd,
                 apyBase: supplyApy * 100,
+                apyReward,
+                rewardTokens,
+                //   apyRewardBorrow,
                 underlyingTokens: [token],
                 url: `https://app.evaa.finance/token/${tokenSymbol}`,
                 totalSupplyUsd: totalSupplyUsd,
