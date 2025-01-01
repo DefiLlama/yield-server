@@ -43,7 +43,7 @@ const getApy = async (poolId, backstop) => {
       if (borrowEmissionsPerAsset > 0) {
         borrowEmissionsAPR = (borrowEmissionsPerAsset * usdcPerBlnd) / price;
       }
-      // Estimate borrow APY compoumded daily
+      // Estimate borrow APY compounded daily
       const borrowApy = (1 + reserve.borrowApr / 365) ** 365 - 1;
       let totalSupply = reserve.totalSupplyFloat() * price;
       let totalBorrow = reserve.totalLiabilitiesFloat() * price;
@@ -51,7 +51,7 @@ const getApy = async (poolId, backstop) => {
       const url = `https://mainnet.blend.capital/dashboard/?poolId=${poolId}`;
 
       pools.push({
-        pool: `${reserve.assetId}-stellar`.toLowerCase(),
+        pool: `${pool.id}-${reserve.assetId}-stellar`.toLowerCase(),
         chain: formatChain('stellar'),
         project: 'blend-pools',
         symbol: reserve.tokenMetadata.symbol,
@@ -66,7 +66,7 @@ const getApy = async (poolId, backstop) => {
         apyBaseBorrow: borrowApy * 100,
         apyRewardBorrow: borrowEmissionsAPR * 100,
         ltv: totalBorrow / totalSupply,
-        poolMeta: `Pool ID: ${pool.id}`,
+        poolMeta: `${pool.config.name} Pool`,
         url,
       });
     }
@@ -80,18 +80,7 @@ const apy = async () => {
 
   for (const poolId of BLEND_POOLS) {
     let poolApys = await getApy(poolId, backstop);
-    for (const poolApy of poolApys) {
-      if (poolApy) {
-        let index = pools.findIndex((pool) => pool.pool == poolApy.pool);
-        if (index !== -1) {
-          if (poolApy.apyReward > pools[index].apyReward) {
-            pools[index] = poolApy;
-          }
-        } else {
-          pools.push(poolApy);
-        }
-      }
-    }
+    pools.push(...poolApys)
   }
   return pools;
 };

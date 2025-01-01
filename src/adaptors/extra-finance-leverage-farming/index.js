@@ -12,7 +12,7 @@ const {
   getAllVeloPoolInfo,
 } = require('./compute');
 
-const project = 'extra-finance';
+const project = 'extra-finance-leverage-farming';
 
 const chains = ['optimism', 'base'];
 const subgraphUrls = {

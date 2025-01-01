@@ -59,16 +59,11 @@ const getBoostRewardTokenAbi = {
 }
 
 // Avalanche
-const USDC_POOL_TUP_CONTRACT = '0x2323dAC85C6Ab9bd6a8B5Fb75B0581E31232d12b';
-const USDT_POOL_TUP_CONTRACT = '0xd222e10D7Fe6B7f9608F14A8B5Cf703c74eFBcA1';
-const WAVAX_POOL_TUP_CONTRACT = '0xD26E504fc642B96751fD55D3E68AF295806542f5';
-const BTC_POOL_TUP_CONTRACT = '0x475589b0Ed87591A893Df42EC6076d2499bB63d0';
-const ETH_POOL_TUP_CONTRACT = '0xD7fEB276ba254cD9b34804A986CE9a8C3E359148';
-
-const AVAX_POOL_REWARDER_CONTRACT = '0x6373122eD8Eda8ECA439415709318DCB6ddC1af3';
-const USDT_POOL_REWARDER_CONTRACT = '0xBC6Ef309f2eC71698eA310D62FF2E0543472D965';
-const USDC_POOL_REWARDER_CONTRACT = '0x596f6EFD98daF650CF98A1E62A53AB2a44e7E875';
-const BTC_POOL_REWARDER_CONTRACT = '0x3FE9BE379eD15962AFAbE01c002B8c433C6Af4ec';
+const USDC_POOL_TUP_CONTRACT = '0x8027e004d80274FB320e9b8f882C92196d779CE8';
+const USDT_POOL_TUP_CONTRACT = '0x1b6D7A6044fB68163D8E249Bce86F3eFbb12368e';
+const WAVAX_POOL_TUP_CONTRACT = '0xaa39f39802F8C44e48d4cc42E088C09EDF4daad4';
+const BTC_POOL_TUP_CONTRACT = '0x70e80001bDbeC5b9e932cEe2FEcC8F123c98F738';
+const ETH_POOL_TUP_CONTRACT = '0x2A84c101F3d45610595050a622684d5412bdf510';
 
 const WAVAX_TOKEN_ADDRESS = '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7';
 const USDC_TOKEN_ADDRESS = '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E';
@@ -80,24 +75,17 @@ const GGAVAX_TOKEN_ADDRESS = '0xA25EaF2906FA1a3a13EdAc9B9657108Af7B703e3';
 const SAVAX_TOKEN_ADDRESS = '0x2b2C81e08f1Af8835a78Bb2A90AE924ACE0eA4bE';
 
 // Arbitrum
-const USDC_POOL_TUP_ARBI_CONTRACT = '0x5f3DB5899a7937c9ABF0A5Fc91718E6F813e4195';
-const ETH_POOL_TUP_ARBI_CONTRACT = '0x2E2fE9Bc7904649b65B6373bAF40F9e2E0b883c5';
-const ARB_POOL_TUP_ARBI_CONTRACT = '0x14c82CFc2c651700a66aBDd7dC375c9CeEFDDD72';
-const BTC_POOL_TUP_ARBI_CONTRACT = '0x275Caecf5542bF4a3CF64aa78a3f57dc9939675C';
-const DAI_POOL_TUP_ARBI_CONTRACT = '0x7Dcf909B1E4b280bEe72C6A69b3a7Ed8adfb63f0';
+const USDC_POOL_TUP_ARBI_CONTRACT = '0x8Ac9Dc27a6174a1CC30873B367A60AcdFAb965cc';
+const ETH_POOL_TUP_ARBI_CONTRACT = '0x788A8324943beb1a7A47B76959E6C1e6B87eD360';
+const ARB_POOL_TUP_ARBI_CONTRACT = '0xC629E8889350F1BBBf6eD1955095C2198dDC41c2';
+const BTC_POOL_TUP_ARBI_CONTRACT = '0x0ed7B42B74F039eda928E1AE6F44Eed5EF195Fb5';
+const DAI_POOL_TUP_ARBI_CONTRACT = '0xFA354E4289db87bEB81034A3ABD6D465328378f1';
 
 const USDC_TOKEN_ARBI_ADDRESS = '0xaf88d065e77c8cc2239327c5edb3a432268e5831';
 const ETH_TOKEN_ARBI_ADDRESS = '0x82af49447d8a07e3bd95bd0d56f35241523fbab1';
 const ARB_TOKEN_ARBI_ADDRESS = '0x912CE59144191C1204E64559FE8253a0e49E6548';
 const BTC_TOKEN_ARBI_ADDRESS = '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f';
 const DAI_TOKEN_ARBI_ADDRESS = '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1';
-
-const POOL_ADDRESS_TO_REWARDER_CONTRACT = {
-  '0x2323dAC85C6Ab9bd6a8B5Fb75B0581E31232d12b': USDC_POOL_REWARDER_CONTRACT,
-  '0xd222e10D7Fe6B7f9608F14A8B5Cf703c74eFBcA1': USDT_POOL_REWARDER_CONTRACT,
-  '0xD26E504fc642B96751fD55D3E68AF295806542f5': AVAX_POOL_REWARDER_CONTRACT,
-  '0x475589b0Ed87591A893Df42EC6076d2499bB63d0': BTC_POOL_REWARDER_CONTRACT
-}
 
 const getPoolTVL = async (poolAddress, chain = 'avax') => {
   return (await sdk.api.abi.call({
@@ -113,33 +101,6 @@ const getTokenPrice = async (tokenAddress, chain='avax') => {
       `https://coins.llama.fi/prices/current/${chain}:${tokenAddress}`
   );
   return data.coins[Object.keys(data.coins)[0]].price
-}
-
-const getPoolBoostRate = async (poolAddress, poolTVL, chain = 'avax') => {
-  if(chain === 'avax') {
-    let rewarderContractAddress = POOL_ADDRESS_TO_REWARDER_CONTRACT[poolAddress];
-
-    if(rewarderContractAddress) {
-      let rewardsRatePerSecond = (await sdk.api.abi.call({
-        abi: getPoolBoostRateAbi,
-        chain: chain,
-        target: rewarderContractAddress,
-        params: [],
-      })).output;
-
-      let rewardTokenAddress = (await sdk.api.abi.call({
-        abi: getBoostRewardTokenAbi,
-        chain: chain,
-        target: rewarderContractAddress,
-        params: [],
-      })).output;
-
-      let rewardTokenPrice = await getTokenPrice(rewardTokenAddress, chain);
-
-      return rewardsRatePerSecond * rewardTokenPrice * 86400 * 365 / poolTVL / 1e16;
-      }
-    }
-  return 0;
 }
 
 const getPoolDepositRate = async (poolAddress, chain = 'avax') => {
@@ -262,7 +223,6 @@ const getUsdtPoolTVL = async() => {
 
 const getPoolsAPYs = async () => {
   const usdcPoolTvl = await getUsdcPoolTVL();
-  const usdcRewardApy = await getPoolBoostRate(USDC_POOL_TUP_CONTRACT, usdcPoolTvl, 'avax');
   const usdcPool = {
     pool: `dp-${USDC_TOKEN_ADDRESS}-avalanche`,
     chain: utils.formatChain('avalanche'),
@@ -270,13 +230,10 @@ const getPoolsAPYs = async () => {
     symbol: utils.formatSymbol('USDC'),
     tvlUsd: usdcPoolTvl,
     apyBase: await getUsdcPoolDepositRate(),
-    apyReward: usdcRewardApy,
-    underlyingTokens: [USDC_TOKEN_ADDRESS],
-    rewardTokens: [GGAVAX_TOKEN_ADDRESS],
+    underlyingTokens: [USDC_TOKEN_ADDRESS]
   };
 
   const usdtPoolTvl = await getUsdtPoolTVL();
-  const usdtRewardApy = await getPoolBoostRate(USDT_POOL_TUP_CONTRACT, usdtPoolTvl, 'avax');
   const usdtPool = {
     pool: `dp-${USDT_TOKEN_ADDRESS}-avalanche`,
     chain: utils.formatChain('avalanche'),
@@ -284,13 +241,10 @@ const getPoolsAPYs = async () => {
     symbol: utils.formatSymbol('USDt'),
     tvlUsd: usdtPoolTvl,
     apyBase: await getUsdtPoolDepositRate(),
-    apyReward: usdtRewardApy,
-    underlyingTokens: [USDT_TOKEN_ADDRESS],
-    rewardTokens: [SAVAX_TOKEN_ADDRESS],
+    underlyingTokens: [USDT_TOKEN_ADDRESS]
   };
 
   const wavaxPoolTvl = await getWavaxPoolTVL();
-  const wavaxRewardApy = await getPoolBoostRate(WAVAX_POOL_TUP_CONTRACT, wavaxPoolTvl, 'avax');
   const wavaxPool = {
     pool: `dp-${WAVAX_TOKEN_ADDRESS}-avalanche`,
     chain: utils.formatChain('avalanche'),
@@ -298,13 +252,10 @@ const getPoolsAPYs = async () => {
     symbol: utils.formatSymbol('WAVAX'),
     tvlUsd: wavaxPoolTvl,
     apyBase: await getWavaxPoolDepositRate(),
-    apyReward: wavaxRewardApy,
     underlyingTokens: [WAVAX_TOKEN_ADDRESS],
-    rewardTokens: [SAVAX_TOKEN_ADDRESS],
   };
 
   const btcPoolTvl = await getBtcPoolTVL();
-  const btcRewardApy = await getPoolBoostRate(BTC_POOL_TUP_CONTRACT, btcPoolTvl, 'avax');
   const btcPool = {
     pool: `dp-${BTC_TOKEN_ADDRESS}-avalanche`,
     chain: utils.formatChain('avalanche'),
@@ -312,9 +263,7 @@ const getPoolsAPYs = async () => {
     symbol: utils.formatSymbol('BTC.b'),
     tvlUsd: btcPoolTvl,
     apyBase: await getBtcPoolDepositRate(),
-    apyReward: btcRewardApy,
-    underlyingTokens: [BTC_TOKEN_ADDRESS],
-    rewardTokens: [GGAVAX_TOKEN_ADDRESS],
+    underlyingTokens: [BTC_TOKEN_ADDRESS]
   };
 
   const ethPoolTvl = await getEthPoolTVL();

@@ -151,10 +151,11 @@ const excludeAdaptors = [
   'maia-dao',
   'hermes-protocol',
   'xtoken',
-  'deltaprime',
   'arbitrum-exchange-v3',
   'bfx-(blast-futures)',
   'stack',
+  'liquid-bolt',
+  'avault',
 ];
 
 const excludePools = [

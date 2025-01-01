@@ -9,6 +9,7 @@ const CONSTANTS = {
     arbitrum: 42161,
     base: 8453,
   },
+
   SUPPORTED_CHAINS: ['ethereum', 'arbitrum', 'base'],
   RESOLVERS: {
     LENDING: {
@@ -224,7 +225,6 @@ const calculateVaultPoolData = (
     ltv: vaultDetails.ltv[index] / 1e4,
   }));
 };
-
 // Main Function
 const apy = async () => {
   const [lendingData, vaultData] = await Promise.all([
@@ -232,7 +232,6 @@ const apy = async () => {
     Promise.all(CONSTANTS.SUPPORTED_CHAINS.map(getVaultApy)),
   ]);
   // Combine and flatten both arrays
-  console.log([...lendingData.flat(), ...vaultData.flat()]);
   return [...lendingData.flat(), ...vaultData.flat()];
 };
 
