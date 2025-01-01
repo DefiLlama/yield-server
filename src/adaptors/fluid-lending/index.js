@@ -9,7 +9,7 @@ const CONSTANTS = {
     arbitrum: 42161,
     base: 8453,
   },
-  // SUPPORTED_CHAINS: ['ethereum'],
+
   SUPPORTED_CHAINS: ['ethereum', 'arbitrum', 'base'],
   RESOLVERS: {
     LENDING: {
@@ -77,9 +77,7 @@ const getLendingApy = async (chain) => {
         chain,
         ltv: 0,
         apyBase: Number((token.supplyRate / 1e2).toFixed(2)),
-        apyBaseBorrow: 0,
         apyReward: Number((token.rewardsRate / 1e12).toFixed(2)),
-        apyRewardBorrow: 0,
       }))
       .filter((i) => utils.keepFinite(i));
   } catch (error) {
@@ -227,7 +225,6 @@ const calculateVaultPoolData = (
     ltv: vaultDetails.ltv[index] / 1e4,
   }));
 };
-
 // Main Function
 const apy = async () => {
   const [lendingData, vaultData] = await Promise.all([
@@ -242,3 +239,5 @@ module.exports = {
   apy,
   url: 'https://fluid.instadapp.io',
 };
+
+apy();
