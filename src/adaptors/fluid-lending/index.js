@@ -76,9 +76,7 @@ const getLendingApy = async (chain) => {
         chain,
         ltv: 0,
         apyBase: Number((token.supplyRate / 1e2).toFixed(2)),
-        apyBaseBorrow: 0,
         apyReward: Number((token.rewardsRate / 1e12).toFixed(2)),
-        apyRewardBorrow: 0,
       }))
       .filter((i) => utils.keepFinite(i));
   } catch (error) {
@@ -234,6 +232,7 @@ const apy = async () => {
     Promise.all(CONSTANTS.SUPPORTED_CHAINS.map(getVaultApy)),
   ]);
   // Combine and flatten both arrays
+  console.log([...lendingData.flat(), ...vaultData.flat()]);
   return [...lendingData.flat(), ...vaultData.flat()];
 };
 
@@ -241,3 +240,5 @@ module.exports = {
   apy,
   url: 'https://fluid.instadapp.io',
 };
+
+apy();
