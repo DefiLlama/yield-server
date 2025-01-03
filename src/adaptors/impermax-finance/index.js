@@ -160,7 +160,6 @@ const lendingVaultsConfig = {
   real: [],
   fantom: [],
   optimism: [],
-  arbitrum: [],
   ethereum: [],
 };
 
@@ -216,6 +215,10 @@ const lendingVaultProfiles = {
       address: '0x683cc7cbb8b8c5b3c5fae85a4ae70e887217883b'.toLowerCase(),
       risk: 'Aggressive',
     }, // ETH (high)
+    {
+      address: '0xc68c47085D2B53A0A782c168D1b54a913A668cB5'.toLowerCase(),
+      risk: 'Conservative',
+    }, // cbBTC (low)
   ],
 };
 
@@ -422,6 +425,14 @@ const main = async () => {
         continue;
       }
 
+      // Geckoterminal is reporting the wrong price
+      if (
+        underlying.id.toLowerCase() ===
+        '0x0f929C29dcE303F96b1d4104505F2e60eE795caC'.toLowerCase()
+      ) {
+        continue;
+      }
+
       const { safetyMargin, liquidationFee, liquidationIncentive } =
         lendingPool.collateral;
 
@@ -477,11 +488,11 @@ const main = async () => {
 
       const chainVaults = lendingVaultProfiles[chain] || [];
       const lendingVault = chainVaults.find(
-        (v) => v.address.toLowerCase() === id.toLowerCase()
+        (v) => v?.address.toLowerCase() === id.toLowerCase()
       );
 
       pools.push({
-        pool: `${lendingVault.address}-${underlying.symbol}-${chain}`.toLowerCase(),
+        pool: `${lendingVault?.address}-${underlying.symbol}-${chain}`.toLowerCase(),
         poolMeta: `${lendingVault?.risk}`,
         chain,
         project: 'impermax-finance',

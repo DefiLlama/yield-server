@@ -30,31 +30,43 @@ const POOLS = {
         address: '0x7962acfcfc2ccebc810045391d60040f635404fb',
         collateralPoolId: '906b233c-8478-4b94-94e5-2d77e6c7c9e5',
         symbol: "SOL-USDC",
-      }, // gmSOL
+      }, // gmSOLUSDC
       {
         version: 4,
         address: '0x2b02bBeAb8eCAb792d3F4DDA7a76f63Aa21934FA',
         collateralPoolId: '61b4c35c-97f6-4c05-a5ff-aeb4426adf5b',
         symbol: "ETH-USDC",
-      }, // gmETH
+      }, // gmETHUSDC
       {
         version: 4,
         address: '0xD7659D913430945600dfe875434B6d80646d552A',
         collateralPoolId: '5b8c0691-b9ff-4d82-97e4-19a1247e6dbf',
         symbol: "WBTC.B-USDC",
-      }, // gmBTC
+      }, // gmBTCUSDC
       {
         version: 4,
         address: '0x4F9737E994da9811B8830775Fd73E2F1C8e40741',
         collateralPoolId: 'f3fa942f-1867-4028-95ff-4eb76816cd07',
         symbol: "ARB-USDC",
-      }, // gmARB
+      }, // gmARBUSDC
       {
         version: 4,
         address: '0x66805F6e719d7e67D46e8b2501C1237980996C6a',
         collateralPoolId: 'dffb3514-d667-4f2f-8df3-f716ebe09c93',
         symbol: "LINK-USDC",
-      }, // gmLINK
+      }, // gmLINKUSDC
+      {
+        version: 4,
+        address: '0x9fF8b4C842e4a95dAB5089781427c836DAE94831',
+        collateralPoolId: 'ffb4e407-6507-4615-b776-a0d99cfc1bbb',
+        symbol: "WBTC.B-WBTC.B",
+      }, // gmBTC
+      {
+        version: 4,
+        address: '0x625Fe79547828b1B54467E5Ed822a9A8a074bD61',
+        collateralPoolId: '5e2aac09-71c8-4092-ba4f-00f1ac0d04fd',
+        symbol: "ETH-ETH",
+      }, // gmETH
       { version: 4, address: '0x49De724D7125641F56312EBBcbf48Ef107c8FA57' }, // WBTC
       { version: 4, address: '0x780db9770dDc236fd659A39430A8a7cC07D0C320' }, // WETHV2
     ],
