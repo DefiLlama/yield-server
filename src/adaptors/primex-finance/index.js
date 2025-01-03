@@ -27,7 +27,7 @@ const formatPool = async (bucket, config) => {
     estimatedLar,
     miningParams,
     name,
-  } = bucket[0];
+  } = bucket;
 
   const { chain, EPMX, USDCE, apyRewardBySymbol } = config;
 
@@ -75,7 +75,6 @@ const formatPool = async (bucket, config) => {
     tvlUsd,
     apyBase,
     apyReward,
-    rewardTokens: [EPMX],
     underlyingTokens,
     url: getPoolUrl(bucketAddress, chain),
     apyBaseBorrow,
@@ -91,42 +90,22 @@ const getPools = async (config) => {
     lensAddress,
     bucketsFactory,
     positionManager,
-    EPMX,
-    EPMXPriceFeed,
-    EPMXPriceFeedDecimals,
   } = config;
 
   if (chain === 'Ethereum') {
     sdk.api.config.setProvider(
       'ethereum',
       new ethers.providers.JsonRpcProvider(
-        'https://lb.drpc.org/ogrpc?network=ethereum&dkey=AhjAIUax7EMFtu9ErxcXVpiWXqG_mFMR7oB-goai82vO'
+        "https://lb.drpc.org/ogrpc?network=ethereum&dkey=AhjAIUax7EMFtu9ErxcXVpjOZcogyegR77I1IlZWwHzR"
       )
     );
   }
 
-  if (chain === 'Arbitrum') {
-    sdk.api.config.setProvider(
-      'ethereum',
-      new ethers.providers.JsonRpcProvider(
-        'https://lb.drpc.org/ogrpc?network=arbitrum&dkey=AhjAIUax7EMFtu9ErxcXVpgEW9szfIYR7qRQxqxINsn1'
-      )
-    );
-  }
-
-  if (chain === 'Polygon') {
-    sdk.api.config.setProvider(
-      'ethereum',
-      new ethers.providers.JsonRpcProvider(
-        'https://lb.drpc.org/ogrpc?network=polygon&dkey=AhjAIUax7EMFtu9ErxcXVpinS0aAWWER7oTEFnomaLKw'
-      )
-    );
-  }
   if (chain === 'Base') {
     sdk.api.config.setProvider(
       'base',
       new ethers.providers.JsonRpcProvider(
-        'https://lb.drpc.org/ogrpc?network=base&dkey=AhjAIUax7EMFtu9ErxcXVpg7GmZNgi4R74QSKjW4AN0P'
+        'https://lb.drpc.org/ogrpc?network=base&dkey=AhjAIUax7EMFtu9ErxcXVpjOZcogyegR77I1IlZWwHzR'
       )
     );
   }
@@ -153,27 +132,25 @@ const getPools = async (config) => {
         })
       ).output;
 
-      if (
-        (Array.isArray(result) &&
-          Array.isArray(result[0]) &&
-          result[0].length === 0) ||
-        JSON.stringify(result) === JSON.stringify([[], '0'])
-      ) {
+      if (result[0].length !== 0) {
+        bucketsArr = bucketsArr.concat(result[0]);
+      }
+
+      if (result[1] === '0') {
         break;
       }
 
-      bucketsArr = bucketsArr.concat(result);
       offset += limit;
     } catch (error) {
       console.error(error);
-      break
+      break;
     }
   }
-
+  
   return await Promise.all(
     bucketsArr
       .filter((bucket) => {
-        const miningParams = bucket[0]?.miningParams;
+        const miningParams = bucket.miningParams;
         const isMiningFailed =
           !miningParams?.isBucketLaunched &&
           miningParams?.deadlineTimestamp * 1000 <= Date.now();
