@@ -136,33 +136,37 @@ const getPools = async (config) => {
   const limit = 3;
 
   while (true) {
-    const result = (
-      await sdk.api.abi.call({
-        abi: abi.getAllBucketsFactory,
-        target: lensAddress,
-        chain: chain.toLowerCase(),
-        params: [
-          bucketsFactory,
-          DEAD_ADDRESS,
-          positionManager,
-          false,
-          offset,
-          limit,
-        ],
-      })
-    ).output;
+    try {
+      const result = (
+        await sdk.api.abi.call({
+          abi: abi.getAllBucketsFactory,
+          target: lensAddress,
+          chain: chain.toLowerCase(),
+          params: [
+            bucketsFactory,
+            DEAD_ADDRESS,
+            positionManager,
+            false,
+            offset,
+            limit,
+          ],
+        })
+      ).output;
 
-    if (
-      (Array.isArray(result) &&
-        Array.isArray(result[0]) &&
-        result[0].length === 0) ||
-      JSON.stringify(result) === JSON.stringify([[], '0'])
-    ) {
-      break;
+      if (
+        (Array.isArray(result) &&
+          Array.isArray(result[0]) &&
+          result[0].length === 0) ||
+        JSON.stringify(result) === JSON.stringify([[], '0'])
+      ) {
+        break;
+      }
+
+      bucketsArr = bucketsArr.concat(result);
+      offset += limit;
+    } catch (error) {
+      console.error(error);
     }
-
-    bucketsArr = bucketsArr.concat(result);
-    offset += limit;
   }
 
   return await Promise.all(
