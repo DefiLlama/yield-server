@@ -166,6 +166,7 @@ const getPools = async (config) => {
       offset += limit;
     } catch (error) {
       console.error(error);
+      break
     }
   }
 
