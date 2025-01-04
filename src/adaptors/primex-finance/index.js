@@ -109,7 +109,6 @@ const getPools = async (config) => {
       )
     );
   }
-
   let bucketsArr = [];
   let offset = 0;
   const limit = 3;
