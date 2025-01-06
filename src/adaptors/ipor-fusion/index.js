@@ -33,8 +33,7 @@ async function buildPool(vault) {
     );
     const chain = chainConfig[0];
     const chainData = chainConfig[1];
-    const url = `https://app.ipor.io`;
-    // const url = `https://app.ipor.io/fusion/${chain}/${vault.address.toLowerCase()}`; // TODO: change to this when dApp with Fusion is live
+    const url = `https://app.ipor.io/fusion/${chain}/${vault.address.toLowerCase()}`;
 
     return {
         pool: vault.address,

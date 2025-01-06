@@ -204,7 +204,7 @@ const stkGho = async () => {
 
   const stkghoMeritApy = (
     await axios.get('https://apps.aavechan.com/api/merit/base-aprs')
-  ).data.actionsAPR['ethereum-stkgho'];
+  ).data['ethereum-stkgho'];
 
   const stkghoApy = stkghoNativeApy + stkghoMeritApy;
 

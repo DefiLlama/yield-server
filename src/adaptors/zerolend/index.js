@@ -111,7 +111,7 @@ const API_URLS = {
   ethereum: [
     baseUrl + 'zerolend-mainnet-lrt/1.0.0/gn',
     baseUrl + 'zerolend-mainnet-btc/1.0.0/gn',
-    baseUrl + 'zerolend-mainnet-rwa/1.0.0/gn',
+    // baseUrl + 'zerolend-mainnet-rwa/1.0.0/gn',
   ],
   linea: [baseUrl + 'zerolend-linea/1.0.0/gn'],
   era: [baseUrl + 'zerolend-zksync/1.0.0/gn'],

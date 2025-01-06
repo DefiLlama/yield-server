@@ -151,7 +151,12 @@ const excludeAdaptors = [
   'maia-dao',
   'hermes-protocol',
   'xtoken',
-  'deltaprime',
+  'arbitrum-exchange-v3',
+  'bfx-(blast-futures)',
+  'stack',
+  'liquid-bolt',
+  'avault',
+  'metastreet-v2',
 ];
 
 const excludePools = [
@@ -618,6 +623,9 @@ const excludePools = [
   'morpho-blue-0x355c9a4c12f60a10ab3b68507bfab21bd6913182037ffe25d94dabffea45429f-ethereum',
   'FqsCPQ7x4qFcbxVLdmx1ty7iqSFWYcUzxxsxUFq4eyBn',
   '0x1f0bc333c535838ca1020c87a6a043d89577c563-usdc-real',
+  '0xba309e52c154f090c34c6574b78548fd24a7e284c4d52b832aa50ef67b7a6ac4',
+  '0xbc2539b24bba254b9843e992a3802027275c50c2ecef1b71d52e289781560ace',
+  '0x1ba3281b6012f0b927d4d122bda293aa3cac487f',
 ];
 
 const boundaries = {

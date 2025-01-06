@@ -1,74 +1,152 @@
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
-const abiVaultManager = require('./abiVaultManager');
+const { request, gql } = require('graphql-request');
+const { chunkArray, calculateTrancheTotal } = require('./helpers');
+const { getBlocksByTime, getData } = require('../utils');
 
 const ADDRESSES = {
   base: {
     AvantisJuniorTranche: '0x944766f715b51967E56aFdE5f0Aa76cEaCc9E7f9',
     AvantisSeniorTranche: '0x83084cB182162473d6FEFfCd3Aa48BA55a7B66F7',
-    AvantisVaultManager: '0xe9fB8C70aF1b99F2Baaa07Aa926FCf3d237348DD',
     USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
   },
 };
 
-const API_BASE = 'https://api.avantisfi.com/v1/history/vaults/apr/';
+const SUBGRAPH_URL =
+  'https://subgraph.satsuma-prod.com/052b6e8d4af9/avantis/avantis-mainnet/version/v0.1.9/api';
 
-const main = async () => {
-  const [jrData, srData] = await Promise.all([
-    utils.getData(`${API_BASE}${ADDRESSES.base.AvantisJuniorTranche}/7`),
-    utils.getData(`${API_BASE}${ADDRESSES.base.AvantisSeniorTranche}/7`),
-  ]);
+const feeFetchCount = 10000;
 
-  if (jrData.success === false || srData.success === false) {
-    throw new Error('API response is not successful');
+const feeDistributedQuery = gql`
+  query FeesDistributeds($first: Int!, $skip: Int!, $start: Int!, $end: Int!) {
+    feesDistributeds(
+      first: $first
+      skip: $skip
+      where: { timestamp_gte: $start, timestamp_lte: $end }
+      orderBy: timestamp
+      orderDirection: asc
+    ) {
+      id
+    }
+  }
+`;
+
+const vmToTrancheQuery = gql`
+  query VmToTrancheTransfers($transactionHashes: [String!]!, $to: [String!]!) {
+    vmtoTrancheTransfers(
+      where: { transactionHash_in: $transactionHashes, to_in: $to }
+    ) {
+      value
+      to
+    }
+  }
+`;
+
+const fetchFeeDistributedIds = async (timestamp, skip = 0) => {
+  const { feesDistributeds } = await request(
+    SUBGRAPH_URL,
+    feeDistributedQuery,
+    {
+      first: feeFetchCount,
+      skip: skip,
+      start: timestamp - 7 * 86400,
+      end: timestamp,
+    }
+  );
+
+  let ids = feesDistributeds.map((f) => f.id);
+
+  if (ids.length === feeFetchCount) {
+    ids = ids.concat(
+      await fetchFeeDistributedIds(timestamp, skip + feeFetchCount)
+    );
   }
 
-  const { averageApr: jrAverageApr, averageFee: jrAverageFee } = jrData;
-  const { averageApr: srAverageApr, averageFee: srAverageFee } = srData;
+  return ids;
+};
 
-  let [reserveRatio, profitMultiplier, jrTvl, srTvl] = await Promise.all([
-    sdk.api.abi.call({
-      target: ADDRESSES.base.AvantisVaultManager,
-      abi: abiVaultManager.find((m) => m.name === 'getReserveRatio'),
-      params: [0],
-      chain: 'base',
-    }),
-    sdk.api.abi.call({
-      target: ADDRESSES.base.AvantisVaultManager,
-      abi: abiVaultManager.find((m) => m.name === 'getProfitMultiplier'),
-      chain: 'base',
-    }),
+const fetchTransfersForFeeDistributedIds = async (ids) => {
+  const chunkedIds = chunkArray(ids, 1000);
+
+  let totalJunior = 0;
+  let totalSenior = 0;
+
+  for (const chunk of chunkedIds) {
+    const { vmtoTrancheTransfers } = await request(
+      SUBGRAPH_URL,
+      vmToTrancheQuery,
+      {
+        transactionHashes: chunk,
+        to: [
+          ADDRESSES.base.AvantisJuniorTranche,
+          ADDRESSES.base.AvantisSeniorTranche,
+        ],
+      }
+    );
+
+    totalJunior += calculateTrancheTotal(
+      vmtoTrancheTransfers,
+      ADDRESSES.base.AvantisJuniorTranche
+    );
+    totalSenior += calculateTrancheTotal(
+      vmtoTrancheTransfers,
+      ADDRESSES.base.AvantisSeniorTranche
+    );
+  }
+
+  return { totalJunior: totalJunior / 7, totalSenior: totalSenior / 7 };
+};
+
+// NOTE: OUR SUBGRAPH IS NOT CAUGHT UP TO DATE, SO WE ARE USING THE API FOR NOW
+// -----------------------------------------------------------------------------
+// We will reenable time travel once our subgraph is caught up
+const main = async (timestamp = null) => {
+  // timestamp = timestamp ? parseInt(timestamp) : Math.floor(Date.now() / 1000);
+
+  // NOTE: OUR SUBGRAPH IS NOT CAUGHT UP TO DATE, SO WE ARE USING THE API FOR NOW
+  // -----------------------------------------------------------------------------
+  // Get total fees distributed for junior and senior tranches
+  // const feesDistributedIds = await fetchFeeDistributedIds(timestamp);
+  // const { totalJunior, totalSenior } = await fetchTransfersForFeeDistributedIds(
+  //   feesDistributedIds
+  // );
+
+  // const [block] = await getBlocksByTime([timestamp], 'base');
+
+  const { meta } = await getData(
+    'https://api.avantisfi.com/v1/vault/returns-7-days'
+  );
+
+  // Get TVL for junior and senior tranches
+  let [juniorTvl, seniorTvl] = await Promise.all([
     sdk.api.abi.call({
       abi: 'erc20:balanceOf',
       target: ADDRESSES.base.USDC,
       params: [ADDRESSES.base.AvantisJuniorTranche],
       chain: 'base',
+      // block: block,
     }),
     sdk.api.abi.call({
       abi: 'erc20:balanceOf',
       target: ADDRESSES.base.USDC,
       params: [ADDRESSES.base.AvantisSeniorTranche],
       chain: 'base',
+      // block: block,
     }),
   ]);
 
-  jrTvl = jrTvl.output / 1e6;
-  srTvl = srTvl.output / 1e6;
+  juniorTvl = juniorTvl.output / 1e6;
+  seniorTvl = seniorTvl.output / 1e6;
 
-  const jrFeeSplit =
-    (parseFloat(profitMultiplier.output) * parseFloat(reserveRatio.output)) /
-    100;
+  // Calculate daily returns for junior and senior tranches
+  // const juniorDailyReturns = totalJunior / juniorTvl;
+  // const seniorDailyReturns = totalSenior / seniorTvl;
+  const juniorDailyReturns = meta.averageJrFees / juniorTvl;
+  const seniorDailyReturns = meta.averageSrFees / seniorTvl;
 
-  let adjApyJr = 0,
-    adjApySr = 0;
-
-  if (jrAverageApr > 0 && jrTvl > 0) {
-    adjApyJr = ((1 + jrAverageFee / jrTvl) ** 365 - 1) * jrFeeSplit;
-  }
-
-  if (srAverageApr > 0 && srTvl > 0) {
-    adjApySr = ((1 + srAverageFee / srTvl) ** 365 - 1) * (100 - jrFeeSplit);
-  }
+  // Calculate APY for junior and senior tranches
+  const juniorApy = (1 + juniorDailyReturns) ** 365 - 1;
+  const seniorApy = (1 + seniorDailyReturns) ** 365 - 1;
 
   return [
     {
@@ -77,8 +155,8 @@ const main = async () => {
       project: 'avantis',
       symbol: 'USDC',
       poolMeta: 'junior',
-      tvlUsd: jrTvl,
-      apyBase: adjApyJr,
+      tvlUsd: juniorTvl,
+      apyBase: juniorApy * 100,
       url: 'https://www.avantisfi.com/earn/junior',
     },
     {
@@ -87,8 +165,8 @@ const main = async () => {
       project: 'avantis',
       symbol: 'USDC',
       poolMeta: 'senior',
-      tvlUsd: srTvl,
-      apyBase: adjApySr,
+      tvlUsd: seniorTvl,
+      apyBase: seniorApy * 100,
       url: 'https://www.avantisfi.com/earn/senior',
     },
   ];
