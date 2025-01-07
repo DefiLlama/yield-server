@@ -7,10 +7,26 @@ const { borrowingAPR, getMarkets, lendingAPR, getTvl } = require('./api') as {
   getTvl: GetTvl;
 };
 const sdk = require('@defillama/sdk');
-const { protocolDataProviders: AaveProtocolDataProvider } = require('../aave-v3');
 const AaveV3Pool = require('../aave-v3/poolAbi');
 
-const TENORS_SECONDS = 60 * 60 * 24 * 3
+const AaveProtocolDataProvider = {
+  ethereum: '0x41393e5e337606dc3821075Af65AeE84D7688CBD',
+  optimism: '0x7F23D86Ee20D869112572136221e173428DD740B',
+  arbitrum: '0x7F23D86Ee20D869112572136221e173428DD740B',
+  polygon: '0x7F23D86Ee20D869112572136221e173428DD740B',
+  fantom: '0x69FA688f1Dc47d4B5d8029D5a35FB7a548310654',
+  avax: '0x374a2592f0265b3bb802d75809e61b1b5BbD85B7',
+  metis: '0xC01372469A17b6716A38F00c277533917B6859c0',
+  base: '0xd82a47fdebB5bf5329b09441C3DaB4b5df2153Ad',
+  xdai: '0x57038C3e3Fe0a170BB72DE2fD56E98e4d1a69717',
+  bsc: '0x23dF2a19384231aFD114b036C14b6b03324D79BC',
+  scroll: '0xe2108b60623C6Dcf7bBd535bD15a451fd0811f7b',
+  era: '0x5F2A704cE47B373c908fE8A29514249469b52b99',
+  lido: '0x08795CFE08C7a81dCDFf482BbAAF474B240f31cD', // on ethereum
+  etherfi: '0xE7d490885A68f00d9886508DF281D67263ed5758', // on ethereum
+};
+
+const TENOR_SECONDS = 60 * 60 * 24 * 3
 
 const DEPTH_BORROW_TOKEN = 10;
 
@@ -24,7 +40,7 @@ export async function apy(): Promise<Pool[]> {
   return Promise.all(
     markets.map(async (market) => {
       const tvl = await getTvl(market);
-      let apyBase = await lendingAPR(market, TENORS_SECONDS, DEPTH_BORROW_TOKEN)
+      let apyBase = await lendingAPR(market, TENOR_SECONDS, DEPTH_BORROW_TOKEN)
       if (apyBase === undefined) { // no limit borrow offers available, use Aave v3 as a variable-rate lending pool
         const { output: getReserveData } = await sdk.api.abi.call({
           target: AaveProtocolDataProvider[market.chain],
@@ -45,7 +61,7 @@ export async function apy(): Promise<Pool[]> {
         underlyingTokens: [market.debt_token.address],
         rewardTokens: [],
         url: `https://app.size.credit/borrow?action=market&type=lend&market_id=${market.id}`,
-        apyBaseBorrow: await borrowingAPR(market, TENORS_SECONDS, DEPTH_BORROW_TOKEN),
+        apyBaseBorrow: await borrowingAPR(market, TENOR_SECONDS, DEPTH_BORROW_TOKEN),
         apyRewardBorrow: 0,
         totalSupplyUsd: tvl.debt_tvl_usd,
         totalBorrowUsd: tvl.borrow_tvl_usd,

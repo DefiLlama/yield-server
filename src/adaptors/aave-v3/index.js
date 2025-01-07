@@ -250,5 +250,4 @@ const apy = async () => {
 
 module.exports = {
   apy,
-  protocolDataProviders
 };
