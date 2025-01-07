@@ -67,19 +67,12 @@ const getLendingApy = async (chain) => {
         tvlUsd:
           (token.totalAssets * prices[`${chain}:${underlying[i]}`].price) /
           10 ** decimals.output[i].output,
-        totalSupplyUsd:
-          (token.totalAssets * prices[`${chain}:${underlying[i]}`].price) /
-          10 ** decimals.output[i].output,
-        totalBorrowUsd: 0,
         symbol: symbol.output[i].output,
         underlyingTokens: [token.asset],
         rewardTokens: [token.asset],
         chain,
-        ltv: 0,
         apyBase: Number((token.supplyRate / 1e2).toFixed(2)),
-        apyBaseBorrow: 0,
         apyReward: Number((token.rewardsRate / 1e12).toFixed(2)),
-        apyRewardBorrow: 0,
       }))
       .filter((i) => utils.keepFinite(i));
   } catch (error) {
