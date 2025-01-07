@@ -52,13 +52,15 @@ const lpApy = (p) => {
     pool: poolId(p.address, p.chainId),
     chain: utils.formatChain(chain.name),
     project: 'spectra-v2',
-    symbol: utils.formatSymbol(`LP-${formatIbt(p.pt.ibt)}`),
+    symbol: utils.formatSymbol(`${p.pt.ibt.symbol}`),
     tvlUsd: p.liquidity?.usd,
     apyBase: p.lpApy.total - apw,
     apyReward: apw,
     rewardTokens: apw > 0 ? [chain.APW] : [],
     underlyingTokens: [p.pt.address, p.pt.ibt.address],
-    poolMeta: `For LP | Maturity ${formatMaturity(p.pt.maturity)}`,
+    poolMeta: `For LP on ${p.pt.ibt.protocol} | Maturity ${formatMaturity(
+      p.pt.maturity
+    )}`,
     url: `https://app.spectra.finance/pools?ref=defillama#${chain.slug}/${p.address}`,
   };
 };
@@ -69,11 +71,13 @@ const fixedRateApy = (p) => {
     pool: poolId(p.pt.address, p.chainId),
     chain: utils.formatChain(chain.name),
     project: 'spectra-v2',
-    symbol: utils.formatSymbol(`PT-${formatIbt(p.pt.ibt)}`),
+    symbol: utils.formatSymbol(`${p.pt.ibt.symbol}`),
     tvlUsd: p.liquidity?.usd,
     apyBase: p.impliedApy,
     underlyingTokens: [p.pt.underlying.address],
-    poolMeta: `For PT | Maturity ${formatMaturity(p.pt.maturity)}`,
+    poolMeta: `For PT on ${p.pt.ibt.protocol}  | Maturity ${formatMaturity(
+      p.pt.maturity
+    )}`,
     url: `https://app.spectra.finance/fixed-rate?ref=defillama#${chain.slug}/${p.address}`,
   };
 };
@@ -99,7 +103,7 @@ async function apy() {
 
   const apys = [...pools.map(lpApy), ...pools.map(fixedRateApy)]
     .flat()
-    .filter(({ tvlUsd }) => Number.isFinite(tvlUsd)) // skip pools with no TVL (e.g. missing price)
+    .filter((i) => utils.keepFinite(i)) // skip pools with no TVL (e.g. missing price)
     .sort((a, b) => b.tvlUsd - a.tvlUsd);
 
   return apys;
