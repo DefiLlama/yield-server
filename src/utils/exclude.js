@@ -156,6 +156,7 @@ const excludeAdaptors = [
   'stack',
   'liquid-bolt',
   'avault',
+  'metastreet-v2',
 ];
 
 const excludePools = [

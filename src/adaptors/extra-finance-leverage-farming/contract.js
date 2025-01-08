@@ -4,8 +4,8 @@ const pairsSugarContractAbi = require("./abis/veloPairsSugarV2.json");
 const { concat } = require('lodash');
 
 const veloPairAddress = {
-  optimism: '0x1381B1E6aaFa01bD28e95AdaB35bdA8191826bC8',
-  base: '0x82357A700f242476da8C5712C010B2D5e327C588'
+  optimism: '0xD11Aa38D87C6604A127431D4d3aa8C0e9763f0be',
+  base: '0x51f290CCCD6a54Af00b38edDd59212dE068B8A4b'
 }
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000"
 
@@ -27,9 +27,9 @@ exports.getAllVeloPools = async function (chain) {
   const simpleRpcProvider = new ethers.providers.JsonRpcProvider(rpcUrl);
   const veloPairContract = new Contract(veloPairAddress[chain], pairsSugarContractAbi, simpleRpcProvider)
   const poolInfoLists = await Promise.all([
-    veloPairContract.all(400, 0),
-    veloPairContract.all(400, 400),
-    veloPairContract.all(400, 800),
+    veloPairContract.all(300, 0),
+    veloPairContract.all(300, 300),
+    veloPairContract.all(300, 600),
   ])
   const poolInfoList = concat(...poolInfoLists)
   return poolInfoList

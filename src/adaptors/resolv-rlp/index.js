@@ -5,7 +5,7 @@ const ethers = require('ethers');
 
 const RLP = '0x4956b52aE2fF65D74CA2d61207523288e4528f96';
 
-const rlpPriceStorage = '0xAa33e5ECAE01779b26cD9dBD3c62E34c29b2D565';
+const rlpPriceStorage = '0xaE2364579D6cB4Bbd6695846C1D595cA9AF3574d';
 
 const topic0priceSet =
   '0x2f0fe01aa6daff1c7bb411a324bdebe55dc2cd1e0ff2fc504b7569346e7d7d5a';
