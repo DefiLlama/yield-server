@@ -160,6 +160,26 @@ function calculateRewardApy(distributionsResp, pool, data, prices) {
             rewardingAssetId,
             rewardsAssetId,
           });
+        } else if (
+          rewardType === 'Supply' &&
+          season?.borrow_budget &&
+          season.borrow_budget > 0
+        ) {
+          const borrowApy = calcApy(
+            season.borrow_budget,
+            totalAmountBorrow,
+            rewardingAssetPrice,
+            rewardsAssetPrice,
+            rewardingScaleFactor,
+            rewardsScaleFactor,
+            totalSecsInCurrentSeason
+          );
+          result.push({
+            apy: borrowApy,
+            rewardType: 'Borrow',
+            rewardingAssetId,
+            rewardsAssetId,
+          });
         }
 
         return result;
