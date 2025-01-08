@@ -7,6 +7,7 @@ const { signVerify } = require('@ton/crypto');
 const crypto = require("crypto");
 const getPrices = require('./getPrices');
 const { getDistributions, calculateRewardApy } = require('./rewardApy');
+const { tokens } = require('../across/constants')
 
 function sha256Hash(input) {
     const hash = crypto.createHash("sha256");
@@ -422,7 +423,14 @@ async function getPoolData(masterAddress, assets, poolName, prices, distribution
 
     return Object.entries(assets).map(([tokenSymbol, asset]) => {
         const { assetId, token } = asset;
-        console.log("Process symbol", tokenSymbol, asset, assetId, token)
+        console.log(
+          poolName,
+          'Process symbol',
+          tokenSymbol,
+          asset,
+          assetId,
+          token
+        );
         const priceData = prices.dict.get(assetId);
         const assetConfig = data.assetsConfig.get(assetId);
         const assetData = data.assetsData.get(assetId);
@@ -446,12 +454,22 @@ async function getPoolData(masterAddress, assets, poolName, prices, distribution
                     price) /
                 scaleFactor;
 
-            console.log(tokenSymbol, "totalSupplyInUsd", totalSupplyUsd);
-            console.log(tokenSymbol, "totalBorrowInUsd", totalBorrowUsd);
+            console.log(
+              poolName,
+              tokenSymbol,
+              'totalSupplyInUsd',
+              totalSupplyUsd
+            );
+            console.log(
+              poolName,
+              tokenSymbol,
+              'totalBorrowInUsd',
+              totalBorrowUsd
+            );
             supplyApy = (1 + (Number(assetData.supplyInterest) / 1e12) * 24 * 3600) ** 365 - 1;
             borrowApy = (1 + (Number(assetData.borrowInterest) / 1e12) * 24 * 3600) ** 365 - 1;
-            console.log(tokenSymbol, "supplyApy", supplyApy * 100);
-            console.log(tokenSymbol, "borrowApy", borrowApy * 100);
+            console.log(poolName, tokenSymbol, 'supplyApy', supplyApy * 100);
+            console.log(poolName, tokenSymbol, 'borrowApy', borrowApy * 100);
 
             const apyRewardData = rewardApys.find(
               (rewardApy) =>
@@ -460,9 +478,18 @@ async function getPoolData(masterAddress, assets, poolName, prices, distribution
             );
 
             const apyReward = apyRewardData ? apyRewardData.apy : undefined;
-            const rewardTokens = apyRewardData
+            const rewardTokensSupply = apyRewardData
                 ? [assets[findAssetKeyByBigIntId(apyRewardData.rewardsAssetId, assets)]?.token].filter(Boolean)
-                : undefined;
+                : [];
+            console.log(
+              poolName,
+              tokenSymbol,
+              'apyReward',
+              apyReward,
+              'rewardTokensSupply',
+              rewardTokensSupply
+            );
+            
 
             const apyRewardBorrowData = rewardApys.find(
               (rewardApy) =>
@@ -470,11 +497,12 @@ async function getPoolData(masterAddress, assets, poolName, prices, distribution
                 rewardApy.rewardType.toLowerCase() === 'borrow'
             );
 
-            const apyRewardBorrow = apyRewardBorrowData ? apyRewardBorrowData.apy : 0;
+            const apyRewardBorrow = apyRewardBorrowData ? apyRewardBorrowData.apy : undefined;
             
             const rewardTokensBorrow = apyRewardBorrowData
                 ? [assets[findAssetKeyByBigIntId(apyRewardBorrowData.rewardsAssetId, assets)]?.token].filter(Boolean)
-                : undefined;
+                : [];
+            console.log(poolName, tokenSymbol, 'apyRewardBorrow', apyRewardBorrow, "rewardTokensBorrow", rewardTokensBorrow);
 
             return {
               pool: `evaa-${assetId}-${poolName}-ton`.toLowerCase(),
@@ -484,10 +512,11 @@ async function getPoolData(masterAddress, assets, poolName, prices, distribution
               tvlUsd: totalSupplyUsd - totalBorrowUsd,
               apyBase: supplyApy * 100,
               apyReward,
-              rewardTokens,
+              rewardTokens: [
+                ...new Set([...rewardTokensSupply, ...rewardTokensBorrow]),
+              ],
               apyBorrow: borrowApy * 100,
               apyRewardBorrow,
-              rewardTokensBorrow,
               underlyingTokens: [token],
               url: `https://app.evaa.finance/token/${tokenSymbol}?pool=${poolName}`,
               totalSupplyUsd: totalSupplyUsd,
@@ -506,5 +535,3 @@ module.exports = {
     apy: getApy,
     url: 'https://evaa.finance/',
 };
-
-getApy().then(console.log).catch(console.error)
