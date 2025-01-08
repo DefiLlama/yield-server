@@ -415,6 +415,30 @@ function calculatePresentValue(index, principalValue) {
   return (principalValue * index) / MASTER_CONSTANTS.FACTOR_SCALE;
 }
 
+async function getContractStateWithRetry(client, address, maxRetries = 3, initialDelay = 500) {
+  let attempts = 0;
+
+  while (attempts < maxRetries) {
+    try {
+      return await client.getContractState(address);
+    } catch (err) {
+      if (err.message?.includes('429') || err.code === 429) {
+        attempts++;
+        const delay = initialDelay * 2 ** (attempts - 1);
+        console.warn(
+          `Rate limit (429) encountered. Retrying in ${delay} ms... (attempt ${attempts} of ${maxRetries})`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  throw new Error(`Max retries (${maxRetries}) exceeded while getting contract state for address ${address}.`);
+}
+
+
 const getApy = async () => {
   console.log('Requesting prices');
   let prices = await getPrices();
@@ -464,8 +488,12 @@ async function getPoolData(
 ) {
     let data;
     try {
-        const result = await client.getContractState(Address.parse(masterAddress));
-
+        const result = await getContractStateWithRetry(
+            client,
+            Address.parse(masterAddress),
+            5, // maxRetries
+            500 // initialDelay in ms
+        );
         if (!result?.data) {
             throw new Error('Master data not found');
         }
