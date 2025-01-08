@@ -421,7 +421,6 @@ const getApy = async () => {
   let distributions = await getDistributions();
   const client = new TonClient({
     endpoint: 'https://toncenter.com/api/v2/jsonRPC',
-    apiKey: '0a3487be8a15aca414bd0169998fdc09d832a7468703d2f5328704ae85b36278',
   });
 
     const poolData = await Promise.all([
