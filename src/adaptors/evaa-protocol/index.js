@@ -421,6 +421,7 @@ const getApy = async () => {
   let distributions = await getDistributions();
   const client = new TonClient({
     endpoint: 'https://toncenter.com/api/v2/jsonRPC',
+    apiKey: '0a3487be8a15aca414bd0169998fdc09d832a7468703d2f5328704ae85b36278',
   });
 
     const poolData = await Promise.all([
@@ -454,128 +455,137 @@ const getApy = async () => {
     .filter((pool) => pool.tvlUsd > MIN_TVL_USD);
 };
 
-async function getPoolData(masterAddress, assets, poolName, prices, distributions, client) {
-    const data = await client.getContractState(Address.parse(masterAddress)).then((result) => {
-        if (!result.data) {
-            throw new Error("Master data not found");
+async function getPoolData(
+  masterAddress,
+  assets,
+  poolName,
+  prices,
+  distributions,
+  client
+) {
+    let data;
+    try {
+        const result = await client.getContractState(Address.parse(masterAddress));
+
+        if (!result?.data) {
+            throw new Error('Master data not found');
         }
 
-        try {
-            return parseMasterData(result.data.toString("base64"), assets);
-        } catch (e) {
-            console.log(e);
-        }
-    });
+        data = parseMasterData(result.data.toString('base64'), assets);
+    } catch (error) {
+        console.error('getPoolData error:', error);
+        return [];
+    }
 
     const rewardApys = calculateRewardApy(distributions, poolName, data, prices);
 
     return Object.entries(assets).map(([tokenSymbol, asset]) => {
         const { assetId, token } = asset;
-        console.log(
-          poolName,
-          'Process symbol',
-          tokenSymbol,
-          asset,
-          assetId,
-          token
-        );
+        
+        console.log(poolName, 'Process symbol', tokenSymbol, asset, assetId, token);
+
         const priceData = prices.dict.get(assetId);
-        const assetConfig = data.assetsConfig.get(assetId);
-        const assetData = data.assetsData.get(assetId);
-
-      const price = Number(priceData) / Number(priceScaleFactor);
-
-      if (assetConfig && assetData && price) {
-        const scaleFactor = 10 ** Number(assetConfig.decimals);
-
-        const totalSupplyUsd =
-          (Number(
-            calculatePresentValue(assetData.sRate, assetData.totalSupply)
-          ) *
-            price) /
-          scaleFactor;
-
-        const totalBorrowUsd =
-          (Number(
-            calculatePresentValue(assetData.bRate, assetData.totalBorrow)
-          ) *
-            price) /
-          scaleFactor;
-
-            console.log(
-              poolName,
-              tokenSymbol,
-              'totalSupplyInUsd',
-              totalSupplyUsd
-            );
-            console.log(
-              poolName,
-              tokenSymbol,
-              'totalBorrowInUsd',
-              totalBorrowUsd
-            );
-            supplyApy = (1 + (Number(assetData.supplyInterest) / 1e12) * 24 * 3600) ** 365 - 1;
-            borrowApy = (1 + (Number(assetData.borrowInterest) / 1e12) * 24 * 3600) ** 365 - 1;
-            console.log(poolName, tokenSymbol, 'supplyApy', supplyApy * 100);
-            console.log(poolName, tokenSymbol, 'borrowApy', borrowApy * 100);
-
-            const apyRewardData = rewardApys.find(
-              (rewardApy) =>
-                BigInt(rewardApy.rewardingAssetId) === BigInt(assetId) &&
-                rewardApy.rewardType.toLowerCase() === 'supply'
-            );
-
-            const apyReward = apyRewardData ? apyRewardData.apy : undefined;
-            const rewardTokensSupply = apyRewardData
-                ? [assets[findAssetKeyByBigIntId(apyRewardData.rewardsAssetId, assets)]?.token].filter(Boolean)
-                : [];
-            console.log(
-              poolName,
-              tokenSymbol,
-              'apyReward',
-              apyReward,
-              'rewardTokensSupply',
-              rewardTokensSupply
-            );
-            
-
-            const apyRewardBorrowData = rewardApys.find(
-              (rewardApy) =>
-                BigInt(rewardApy.rewardingAssetId) === BigInt(assetId) &&
-                rewardApy.rewardType.toLowerCase() === 'borrow'
-            );
-
-            const apyRewardBorrow = apyRewardBorrowData ? apyRewardBorrowData.apy : undefined;
-            
-            const rewardTokensBorrow = apyRewardBorrowData
-                ? [assets[findAssetKeyByBigIntId(apyRewardBorrowData.rewardsAssetId, assets)]?.token].filter(Boolean)
-                : [];
-            console.log(poolName, tokenSymbol, 'apyRewardBorrow', apyRewardBorrow, "rewardTokensBorrow", rewardTokensBorrow);
-
-            return {
-              pool: `evaa-${assetId}-${poolName}-ton`.toLowerCase(),
-              chain: 'Ton',
-              project: 'evaa-protocol',
-              symbol: `${tokenSymbol} (${poolName})`,
-              tvlUsd: totalSupplyUsd - totalBorrowUsd,
-              apyBase: supplyApy * 100,
-              apyReward,
-              rewardTokens: [
-                ...new Set([...rewardTokensSupply, ...rewardTokensBorrow]),
-              ],
-              apyBorrow: borrowApy * 100,
-              apyRewardBorrow,
-              underlyingTokens: [token],
-              url: `https://app.evaa.finance/token/${tokenSymbol}?pool=${poolName}`,
-              totalSupplyUsd: totalSupplyUsd,
-              totalBorrowUsd: totalBorrowUsd,
-              apyBaseBorrow: borrowApy * 100,
-              ltv: Number(assetConfig.collateralFactor) / 10000,
-            };
-        } else {
+        if (!priceData) {
             return undefined;
         }
-    });
+
+        const assetConfig = data.assetsConfig.get(assetId);
+        const assetData = data.assetsData.get(assetId);
+        if (!assetConfig || !assetData) {
+            return undefined;
+        }
+
+        const price = Number(priceData) / Number(priceScaleFactor);
+        if (!price) {
+            return undefined;
+        }
+
+        const scaleFactor = 10 ** Number(assetConfig.decimals);
+        const totalSupplyNum = Number(
+            calculatePresentValue(assetData.sRate, assetData.totalSupply)
+        );
+        const totalBorrowNum = Number(
+            calculatePresentValue(assetData.bRate, assetData.totalBorrow)
+        );
+
+        const totalSupplyUsd = (totalSupplyNum * price) / scaleFactor;
+        const totalBorrowUsd = (totalBorrowNum * price) / scaleFactor;
+
+        console.log(poolName, tokenSymbol, 'totalSupplyInUsd', totalSupplyUsd);
+        console.log(poolName, tokenSymbol, 'totalBorrowInUsd', totalBorrowUsd);
+
+        const supplyApy = (1 + (Number(assetData.supplyInterest) / 1e12) * 86400) ** 365 - 1;
+        const borrowApy = (1 + (Number(assetData.borrowInterest) / 1e12) * 86400) ** 365 - 1;
+
+        console.log(poolName, tokenSymbol, 'supplyApy', supplyApy * 100);
+        console.log(poolName, tokenSymbol, 'borrowApy', borrowApy * 100);
+
+        const apyRewardData = rewardApys.find(
+            (r) =>
+                BigInt(r.rewardingAssetId) === BigInt(assetId) &&
+                r.rewardType.toLowerCase() === 'supply'
+        );
+        const apyReward = apyRewardData?.apy;
+        const rewardTokensSupply = apyRewardData
+            ? [
+                assets[findAssetKeyByBigIntId(apyRewardData.rewardsAssetId, assets)]
+                    ?.token,
+                ].filter(Boolean)
+            : [];
+
+        console.log(
+            poolName,
+            tokenSymbol,
+            'apyReward',
+            apyReward,
+            'rewardTokensSupply',
+            rewardTokensSupply
+        );
+
+        const apyRewardBorrowData = rewardApys.find(
+            (r) =>
+                BigInt(r.rewardingAssetId) === BigInt(assetId) &&
+                r.rewardType.toLowerCase() === 'borrow'
+        );
+        const apyRewardBorrow = apyRewardBorrowData?.apy;
+        const rewardTokensBorrow = apyRewardBorrowData
+            ? [
+                assets[
+                    findAssetKeyByBigIntId(apyRewardBorrowData.rewardsAssetId, assets)
+                ]?.token,
+                ].filter(Boolean)
+            : [];
+
+        console.log(
+            poolName,
+            tokenSymbol,
+            'apyRewardBorrow',
+            apyRewardBorrow,
+            'rewardTokensBorrow',
+            rewardTokensBorrow
+        );
+
+    return {
+      pool: `evaa-${assetId}-${poolName}-ton`.toLowerCase(),
+      chain: 'Ton',
+      project: 'evaa-protocol',
+      symbol: `${tokenSymbol} (${poolName})`,
+      tvlUsd: totalSupplyUsd - totalBorrowUsd,
+      apyBase: supplyApy * 100,
+      apyReward,
+      rewardTokens: [
+        ...new Set([...rewardTokensSupply, ...rewardTokensBorrow]),
+      ],
+      apyBaseBorrow: borrowApy * 100,
+      apyRewardBorrow,
+      underlyingTokens: [token],
+      url: `https://app.evaa.finance/token/${tokenSymbol}?pool=${poolName}`,
+      totalSupplyUsd,
+      totalBorrowUsd,
+      apyBaseBorrow: borrowApy * 100,
+      ltv: Number(assetConfig.collateralFactor) / 10000,
+    };
+  });
 }
 
 module.exports = {
