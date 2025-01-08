@@ -69,9 +69,9 @@ function calculateRewardApy(distributionsResp, pool, data, prices) {
       return [];
     }
 
-const seasonsApy = activeSeasons.map((season) => {
-const rewardingAssetId = BigInt(season?.rewarding_asset_id ?? 0);
-const rewardsAssetId = BigInt(season?.rewards_asset_id ?? 0);
+    const seasonsApy = activeSeasons.map((season) => {
+      const rewardingAssetId = BigInt(season?.rewarding_asset_id ?? 0);
+      const rewardsAssetId = BigInt(season?.rewards_asset_id ?? 0);
 
       const rewardingAssetData = data.assetsData.get(rewardingAssetId);
       const rewardsAssetData = data.assetsData.get(rewardsAssetId);
@@ -115,8 +115,9 @@ const rewardsAssetId = BigInt(season?.rewards_asset_id ?? 0);
       const rewardingPriceData = prices.dict.get(rewardingAssetId);
       const rewardsPriceData = prices.dict.get(rewardsAssetId);
 
-const rewardingAssetPrice = Number(rewardingPriceData);
-const rewardsAssetPrice = Number(rewardsPriceData);
+      const rewardingAssetPrice = Number(rewardingPriceData);
+      const rewardsAssetPrice = Number(rewardsPriceData);
+
       const seasonStart = new Date(season?.campaign_start ?? 0);
       const seasonEnd = new Date(season?.campaign_end ?? 0);
       const totalSecsInCurrentSeason = (seasonEnd - seasonStart) / 1000;
@@ -192,7 +193,7 @@ const rewardsAssetPrice = Number(rewardsPriceData);
     return seasonsApy.flat();
   } catch (error) {
     console.error(error);
-return [];
+    return [];
   }
 }
 

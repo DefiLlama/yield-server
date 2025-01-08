@@ -23,7 +23,7 @@ function bufferToBigInt(buffer, start = 0, end = buffer.length) {
   return BigInt(`0x${bufferAsHexString}`);
 }
 
-const assets = {
+const assetsMAIN = {
     TON: { assetId: sha256Hash("TON"), token: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c' },
     jUSDT: { assetId: sha256Hash("jUSDT"), token: 'EQBynBO23ywHy_CgarY9NK9FTz0yDsG82PtcbSTQgGoXwiuA' },
     USDT: { assetId: sha256Hash("USDT"), token: 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs' },
@@ -32,6 +32,57 @@ const assets = {
     tsTON: { assetId: sha256Hash("tsTON"), token: 'EQC98_qAmNEptUtPc7W6xdHh_ZHrBUFpw5Ft_IzNU20QAJav' },
 };
 
+const assetsLP = {
+  TON: {
+    assetId: sha256Hash('TON'),
+    token: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',
+  },
+  USDT: {
+    assetId: sha256Hash('USDT'),
+    token: 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs',
+  },
+  'USDT_STORM': {
+    assetId: sha256Hash('USDT_STORM'),
+    token: 'EQCup4xxCulCcNwmOocM9HtDYPU8xe0449tQLp6a-5BLEegW',
+  },
+  'TONUSDT_DEDUST': {
+    assetId: sha256Hash('TONUSDT_DEDUST'),
+    token: 'EQA-X_yo3fzzbDbJ_0bzFWKqtRuZFIRa1sJsveZJ1YpViO3r',
+  },
+  'TON_STORM': {
+    assetId: sha256Hash('TON_STORM'),
+    token: 'EQCNY2AQ3ZDYwJAqx_nzl9i9Xhd_Ex7izKJM6JTxXRnO6n1F',
+  },
+};
+
+const assetsALTS = {
+  TON: {
+    assetId: sha256Hash('TON'),
+    token: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',
+  },
+  USDT: {
+    assetId: sha256Hash('USDT'),
+    token: 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs',
+  },
+  NOT: {
+    assetId: sha256Hash('NOT'),
+    token: 'EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT',
+  },
+  DOGS: {
+    assetId: sha256Hash('DOGS'),
+    token: 'EQCvxJy4eG8hyHBFsZ7eePxrRsUQSFE_jpptRAYBmcG_DOGS',
+  },
+  CATI: {
+    assetId: sha256Hash('CATI'),
+    token: 'EQD-cvR0Nz6XAyRBvbhz-abTrRC6sI5tvHvvpeQraV9UAAD7',
+  },
+};
+
+function findAssetKeyByBigIntId(searchAssetId, assets) {
+    return Object.entries(assets).find(([key, value]) => 
+        BigInt(value.assetId) === searchAssetId
+    )?.[0];
+}
 
 const MASTER_CONSTANTS = {
   FACTOR_SCALE: BigInt(1e12),
@@ -42,10 +93,12 @@ const MASTER_CONSTANTS = {
   ASSET_ORIGINATION_FEE_SCALE: BigInt(1e9),
 };
 
-const MAINNET_ASSETS_ID = {};
-
-for (const key in assets) {
-    MAINNET_ASSETS_ID[key] = assets[key].assetId
+function createAssetsIdDict(assets) {
+    const ASSETS_ID = {};
+    for (const key in assets) {
+        ASSETS_ID[key] = assets[key].assetId;
+    }
+    return ASSETS_ID;
 }
 
 class MyCell extends Cell {
@@ -68,13 +121,13 @@ function mulDiv(x, y, z) {
 
 function createAssetData() {
     return {
-        serialize: (src, buidler) => {
-            buidler.storeUint(src.sRate, 64);
-            buidler.storeUint(src.bRate, 64);
-            buidler.storeUint(src.totalSupply, 64);
-            buidler.storeUint(src.totalBorrow, 64);
-            buidler.storeUint(src.lastAccural, 32);
-            buidler.storeUint(src.balance, 64);
+        serialize: (src, builder) => {
+            builder.storeUint(src.sRate, 64);
+            builder.storeUint(src.bRate, 64);
+            builder.storeUint(src.totalSupply, 64);
+            builder.storeUint(src.totalBorrow, 64);
+            builder.storeUint(src.lastAccural, 32);
+            builder.storeUint(src.balance, 64);
         },
         parse: (src) => {
             const sRate = BigInt(src.loadInt(64));
@@ -172,8 +225,8 @@ function loadMyRef(slice) {
   });
 }
 
-function parseMasterData(masterDataBOC) {
-    const ASSETS_ID = MAINNET_ASSETS_ID;
+function parseMasterData(masterDataBOC, assets) {
+    const ASSETS_ID = createAssetsIdDict(assets);
     const masterSlice = Cell.fromBase64(masterDataBOC).beginParse();
     masterSlice.loadRef(); // meta
     masterSlice.loadRef() // upgradeConfigRef
@@ -370,23 +423,62 @@ const getApy = async () => {
     endpoint: 'https://toncenter.com/api/v2/jsonRPC',
   });
 
-    const data = await client.getContractState(Address.parse('EQC8rUZqR_pWV1BylWUlPNBzyiTYVoBEmQkMIQDZXICfnuRr')).then((result) => {
+    const poolData = await Promise.all([
+      getPoolData(
+        'EQC8rUZqR_pWV1BylWUlPNBzyiTYVoBEmQkMIQDZXICfnuRr',
+        assetsMAIN,
+        'Main',
+        prices,
+        distributions,
+        client
+      ),
+      getPoolData(
+        'EQBIlZX2URWkXCSg3QF2MJZU-wC5XkBoLww-hdWk2G37Jc6N',
+        assetsLP,
+        'LP',
+        prices,
+        distributions,
+        client
+      ),
+      getPoolData(
+        'EQANURVS3fhBO9bivig34iyJQi97FhMbpivo1aUEAS2GYSu-',
+        assetsALTS,
+        'Alts',
+        prices,
+        distributions,
+        client
+      ),
+    ]);
+
+    return poolData.flat().filter((pool) => pool !== undefined)
+    .filter((pool) => pool.tvlUsd > MIN_TVL_USD);
+};
+
+async function getPoolData(masterAddress, assets, poolName, prices, distributions, client) {
+    const data = await client.getContractState(Address.parse(masterAddress)).then((result) => {
         if (!result.data) {
             throw new Error("Master data not found");
         }
 
         try {
-            return parseMasterData(result.data.toString("base64"), false);
+            return parseMasterData(result.data.toString("base64"), assets);
         } catch (e) {
             console.log(e);
         }
     });
 
-    const rewardApys = calculateRewardApy(distributions, 'main', data,prices);
+    const rewardApys = calculateRewardApy(distributions, poolName, data, prices);
 
     return Object.entries(assets).map(([tokenSymbol, asset]) => {
         const { assetId, token } = asset;
-        console.log("Process symbol", tokenSymbol, asset, assetId, token)
+        console.log(
+          poolName,
+          'Process symbol',
+          tokenSymbol,
+          asset,
+          assetId,
+          token
+        );
         const priceData = prices.dict.get(assetId);
         const assetConfig = data.assetsConfig.get(assetId);
         const assetData = data.assetsData.get(assetId);
@@ -410,55 +502,81 @@ const getApy = async () => {
             price) /
           scaleFactor;
 
-            console.log(tokenSymbol, "totalSupplyInUsd", totalSupplyUsd);
-            console.log(tokenSymbol, "totalBorrowInUsd", totalBorrowUsd);
+            console.log(
+              poolName,
+              tokenSymbol,
+              'totalSupplyInUsd',
+              totalSupplyUsd
+            );
+            console.log(
+              poolName,
+              tokenSymbol,
+              'totalBorrowInUsd',
+              totalBorrowUsd
+            );
             supplyApy = (1 + (Number(assetData.supplyInterest) / 1e12) * 24 * 3600) ** 365 - 1;
             borrowApy = (1 + (Number(assetData.borrowInterest) / 1e12) * 24 * 3600) ** 365 - 1;
-            console.log(tokenSymbol, "supplyApy", supplyApy * 100);
-            console.log(tokenSymbol, "borrowApy", borrowApy * 100);
+            console.log(poolName, tokenSymbol, 'supplyApy', supplyApy * 100);
+            console.log(poolName, tokenSymbol, 'borrowApy', borrowApy * 100);
 
             const apyRewardData = rewardApys.find(
               (rewardApy) =>
-                rewardApy.rewardingAssetId == assetId &&
+                BigInt(rewardApy.rewardingAssetId) === BigInt(assetId) &&
                 rewardApy.rewardType.toLowerCase() === 'supply'
             );
 
             const apyReward = apyRewardData ? apyRewardData.apy : undefined;
-            const rewardTokens = apyRewardData ? [apyRewardData.rewardsAssetId] : undefined;
+            const rewardTokensSupply = apyRewardData
+                ? [assets[findAssetKeyByBigIntId(apyRewardData.rewardsAssetId, assets)]?.token].filter(Boolean)
+                : [];
+            console.log(
+              poolName,
+              tokenSymbol,
+              'apyReward',
+              apyReward,
+              'rewardTokensSupply',
+              rewardTokensSupply
+            );
+            
 
             const apyRewardBorrowData = rewardApys.find(
               (rewardApy) =>
-                rewardApy.rewardingAssetId == assetId &&
+                BigInt(rewardApy.rewardingAssetId) === BigInt(assetId) &&
                 rewardApy.rewardType.toLowerCase() === 'borrow'
             );
 
-            const apyRewardBorrow = apyRewardBorrowData
-              ? apyRewardBorrowData.apy
-              : undefined;
+            const apyRewardBorrow = apyRewardBorrowData ? apyRewardBorrowData.apy : undefined;
+            
+            const rewardTokensBorrow = apyRewardBorrowData
+                ? [assets[findAssetKeyByBigIntId(apyRewardBorrowData.rewardsAssetId, assets)]?.token].filter(Boolean)
+                : [];
+            console.log(poolName, tokenSymbol, 'apyRewardBorrow', apyRewardBorrow, "rewardTokensBorrow", rewardTokensBorrow);
 
             return {
-                pool: `evaa-${assetId}-ton`.toLowerCase(),
-                chain: 'Ton',
-                project: 'evaa-protocol',
-                symbol: tokenSymbol,
-                tvlUsd: totalSupplyUsd - totalBorrowUsd,
-                apyBase: supplyApy * 100,
-                apyReward,
-                rewardTokens,
-                //   apyRewardBorrow,
-                underlyingTokens: [token],
-                url: `https://app.evaa.finance/token/${tokenSymbol}`,
-                totalSupplyUsd: totalSupplyUsd,
-                totalBorrowUsd: totalBorrowUsd,
-                apyBaseBorrow: borrowApy * 100,
-                ltv: Number(assetConfig.collateralFactor) / 10000
+              pool: `evaa-${assetId}-${poolName}-ton`.toLowerCase(),
+              chain: 'Ton',
+              project: 'evaa-protocol',
+              symbol: `${tokenSymbol} (${poolName})`,
+              tvlUsd: totalSupplyUsd - totalBorrowUsd,
+              apyBase: supplyApy * 100,
+              apyReward,
+              rewardTokens: [
+                ...new Set([...rewardTokensSupply, ...rewardTokensBorrow]),
+              ],
+              apyBorrow: borrowApy * 100,
+              apyRewardBorrow,
+              underlyingTokens: [token],
+              url: `https://app.evaa.finance/token/${tokenSymbol}?pool=${poolName}`,
+              totalSupplyUsd: totalSupplyUsd,
+              totalBorrowUsd: totalBorrowUsd,
+              apyBaseBorrow: borrowApy * 100,
+              ltv: Number(assetConfig.collateralFactor) / 10000,
             };
         } else {
             return undefined;
         }
-    }).filter((pool) => pool !== undefined)
-        .filter((pool) => pool.tvlUsd > MIN_TVL_USD);
-};
+    });
+}
 
 module.exports = {
   timetravel: false,
