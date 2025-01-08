@@ -28,18 +28,18 @@ function calcApy(
   rewardsScaleFactor,
   totalSecsInCurrentSeason
 ) {
-  const rate = rewardingScaleFactor / Number(totalAmount);
-  const rewardForUnit =
-    rate *
-    (((Number(rewardAmount) / rewardsScaleFactor) * (rewardsAssetPrice ?? 0)) /
-      (rewardingAssetPrice || 1)) *
-    rewardingScaleFactor;
+  const totalValueLockedUsd =
+    (Number(totalAmount) / rewardingScaleFactor) * (rewardingAssetPrice || 0);
 
-  return (
-    ((rewardForUnit * totalSecsInYear) /
-      (totalSecsInCurrentSeason * rewardingScaleFactor)) *
-    100
-  );
+  if (!totalValueLockedUsd) {
+    return 0;
+  }
+
+  const rewardAmountUsd =
+    (Number(rewardAmount) / rewardsScaleFactor) * (rewardsAssetPrice || 0);
+
+  const rewardsPerSecUsd = rewardAmountUsd / totalSecsInCurrentSeason;
+  return (rewardsPerSecUsd / totalValueLockedUsd) * totalSecsInYear * 100;
 }
 
 function calculateRewardApy(distributionsResp, pool, data, prices) {
@@ -52,130 +52,147 @@ function calculateRewardApy(distributionsResp, pool, data, prices) {
       return [];
     }
 
-    const currentCampaign = distributionsResp?.distributions.find(
+    const activeCampaigns = distributionsResp.distributions.filter(
       (campaign) => campaign.started && !campaign.expired
     );
-
-    if (!currentCampaign) {
+    if (!activeCampaigns.length) {
       return [];
     }
 
-    const seasonsApy = currentCampaign.seasons
-      ?.filter((season) => season.started && !season.expired)
-      ?.filter((season) => season.pool === pool)
-      ?.map((season) => {
-        const rewardingAssetId = BigInt(season?.rewarding_asset_id ?? 0);
-        const rewardsAssetId = BigInt(season?.rewards_asset_id ?? 0);
+    const activeSeasons = activeCampaigns
+      .flatMap((campaign) => campaign.seasons || [])
+      .filter(
+        (season) => season.started && !season.expired && season.pool === pool
+      );
 
-        const rewardingAssetData = data.assetsData.get(rewardingAssetId);
-        const rewardsAssetData = data.assetsData.get(rewardsAssetId);
+    if (!activeSeasons.length) {
+      return [];
+    }
 
-        if (!rewardingAssetData || !rewardsAssetData) {
-          return [];
-        }
+const seasonsApy = activeSeasons.map((season) => {
+const rewardingAssetId = BigInt(season?.rewarding_asset_id ?? 0);
+const rewardsAssetId = BigInt(season?.rewards_asset_id ?? 0);
 
-        const rewardType =
-          season?.reward_type?.toLowerCase() === 'borrow' ? 'Borrow' : 'Supply';
+      const rewardingAssetData = data.assetsData.get(rewardingAssetId);
+      const rewardsAssetData = data.assetsData.get(rewardsAssetId);
 
-        let rewardAmount = Number(season?.rewards_amount) || 0;
+      if (!rewardingAssetData || !rewardsAssetData) {
+        return [];
+      }
 
-        if (rewardType === 'Borrow' && season?.borrow_budget) {
-          rewardAmount = season.borrow_budget;
-        } else if (rewardType === 'Supply' && season?.supply_budget) {
-          rewardAmount = season.supply_budget;
-        }
+      const rewardType = season?.reward_type?.toLowerCase();
 
-        const totalAmountSupply =
-          rewardingAssetData.totalSupply?.original ??
-          rewardingAssetData.totalSupply;
-        const totalAmountBorrow =
-          rewardingAssetData.totalBorrow?.original ??
-          rewardingAssetData.totalBorrow;
+      let rewardAmount = Number(season?.rewards_amount) || 0;
 
-        const totalAmount =
-          rewardType === 'Borrow' ? totalAmountBorrow : totalAmountSupply;
+      if (rewardType === 'borrow' && season?.borrow_budget) {
+        rewardAmount = season.borrow_budget;
+      } else if (rewardType === 'supply' && season?.supply_budget) {
+        rewardAmount = season.supply_budget;
+      }
 
-        if (!totalAmount || totalAmount === '0') {
-          return [];
-        }
+      const totalAmountSupply =
+        rewardingAssetData.totalSupply?.original ??
+        rewardingAssetData.totalSupply;
+      const totalAmountBorrow =
+        rewardingAssetData.totalBorrow?.original ??
+        rewardingAssetData.totalBorrow;
 
-        const rewardingAssetConfig = data.assetsConfig.get(rewardingAssetId);
-        const rewardsAssetConfig = data.assetsConfig.get(rewardsAssetId);
+      const totalAmount =
+        rewardType === 'borrow' ? totalAmountBorrow : totalAmountSupply;
 
-        const rewardingScaleFactor =
-          10 ** Number(rewardingAssetConfig?.decimals ?? 0);
-        const rewardsScaleFactor =
-          10 ** Number(rewardsAssetConfig?.decimals ?? 0);
+      if (!totalAmount || totalAmount === '0') {
+        return [];
+      }
 
-        const rewardingPriceData = prices.dict.get(rewardingAssetId);
-        const rewardsPriceData = prices.dict.get(rewardsAssetId);
+      const rewardingAssetConfig = data.assetsConfig.get(rewardingAssetId);
+      const rewardsAssetConfig = data.assetsConfig.get(rewardsAssetId);
 
-        const rewardingAssetPrice = Number(rewardingPriceData);
-        const rewardsAssetPrice = Number(rewardsPriceData);
+      const rewardingScaleFactor =
+        10 ** Number(rewardingAssetConfig?.decimals ?? 0);
+      const rewardsScaleFactor =
+        10 ** Number(rewardsAssetConfig?.decimals ?? 0);
 
-        const seasonStart = new Date(season?.campaign_start ?? 0);
-        const seasonEnd = new Date(season?.campaign_end ?? 0);
-        const totalSecsInCurrentSeason = (seasonEnd - seasonStart) / 1000;
+      const rewardingPriceData = prices.dict.get(rewardingAssetId);
+      const rewardsPriceData = prices.dict.get(rewardsAssetId);
 
-        if (totalSecsInCurrentSeason <= 0) {
-<<<<<<< HEAD
-          return undefined;
-=======
-          return [];
->>>>>>> ea8112cd73e4e760ff0b446392e49e636efe6a9d
-        }
+const rewardingAssetPrice = Number(rewardingPriceData);
+const rewardsAssetPrice = Number(rewardsPriceData);
+      const seasonStart = new Date(season?.campaign_start ?? 0);
+      const seasonEnd = new Date(season?.campaign_end ?? 0);
+      const totalSecsInCurrentSeason = (seasonEnd - seasonStart) / 1000;
 
-        const baseApy = calcApy(
-          rewardAmount,
-          totalAmount,
+      if (totalSecsInCurrentSeason <= 0) {
+        return [];
+      }
+
+      const baseApy = calcApy(
+        rewardAmount,
+        totalAmount,
+        rewardingAssetPrice,
+        rewardsAssetPrice,
+        rewardingScaleFactor,
+        rewardsScaleFactor,
+        totalSecsInCurrentSeason
+      );
+
+      const result = [
+        {
+          apy: baseApy,
+          rewardType,
+          rewardingAssetId,
+          rewardsAssetId,
+        },
+      ];
+
+      if (
+        rewardType === 'borrow' &&
+        season?.supply_budget &&
+        season.supply_budget > 0
+      ) {
+        const supplyApy = calcApy(
+          season.supply_budget,
+          totalAmountSupply,
           rewardingAssetPrice,
           rewardsAssetPrice,
           rewardingScaleFactor,
           rewardsScaleFactor,
           totalSecsInCurrentSeason
         );
+        result.push({
+          apy: supplyApy,
+          rewardType: 'supply',
+          rewardingAssetId,
+          rewardsAssetId,
+        });
+      } else if (
+        rewardType === 'supply' &&
+        season?.borrow_budget &&
+        season.borrow_budget > 0
+      ) {
+        const borrowApy = calcApy(
+          season.borrow_budget,
+          totalAmountBorrow,
+          rewardingAssetPrice,
+          rewardsAssetPrice,
+          rewardingScaleFactor,
+          rewardsScaleFactor,
+          totalSecsInCurrentSeason
+        );
+        result.push({
+          apy: borrowApy,
+          rewardType: 'borrow',
+          rewardingAssetId,
+          rewardsAssetId,
+        });
+      }
 
-        const result = [
-          {
-            apy: baseApy,
-            rewardType,
-            rewardingAssetId,
-            rewardsAssetId,
-          },
-        ];
+      return result;
+    });
 
-        if (
-          rewardType === 'Borrow' &&
-          season?.supply_budget &&
-          season.supply_budget > 0
-        ) {
-          const supplyApy = calcApy(
-            season.supply_budget,
-            totalAmountSupply,
-            rewardingAssetPrice,
-            rewardsAssetPrice,
-            rewardingScaleFactor,
-            rewardsScaleFactor,
-            totalSecsInCurrentSeason
-          );
-          result.push({
-            apy: supplyApy,
-            rewardType: 'Supply',
-            rewardingAssetId,
-            rewardsAssetId,
-          });
-        }
-
-        return result;
-      });
     return seasonsApy.flat();
   } catch (error) {
     console.error(error);
-<<<<<<< HEAD
-    return undefined;
-=======
-    return [];
->>>>>>> ea8112cd73e4e760ff0b446392e49e636efe6a9d
+return [];
   }
 }
 
