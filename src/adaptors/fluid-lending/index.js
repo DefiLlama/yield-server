@@ -199,26 +199,32 @@ const calculateVaultPoolData = (
       10 ** tokenData.borrowTokenDecimals[index]
   );
 
-  return filteredVaults.map((vault, index) => ({
-    project: 'fluid-lending',
-    pool: `${chain}_${vaultDetails.pools[index]}`,
-    tvlUsd: totalSupplyUsd[index],
-    totalSupplyUsd: totalSupplyUsd[index],
-    totalBorrowUsd: totalBorrowUsd[index],
-    symbol: tokenData.symbol[index].replace('.base', ''),
-    underlyingTokens: vaultDetails.underlyingTokens[index],
-    rewardTokens: vaultDetails.underlyingTokens[index],
-    chain,
-    apyBase: Number((vaultDetails.supplyRates[index] / 1e2).toFixed(2)),
-    apyBaseBorrow: Number(
-      (vaultDetails.supplyRatesBorrow[index] / 1e2).toFixed(2)
-    ),
-    apyReward: Number((vaultDetails.rewardsRates[index] / 1e12).toFixed(2)),
-    apyRewardBorrow: Number(
-      (vaultDetails.rewardsRatesBorrow[index] / 1e12).toFixed(2)
-    ),
-    ltv: vaultDetails.ltv[index] / 1e4,
-  }));
+  return filteredVaults.map((vault, index) => {
+    const s = tokenData.symbol[index].replace('.base', '').split('/');
+    const supplySymbol = s[0];
+    const borrowSymbol = s[1];
+    return {
+      project: 'fluid-lending',
+      pool: `${chain}_${vaultDetails.pools[index]}`,
+      tvlUsd: totalSupplyUsd[index],
+      totalSupplyUsd: totalSupplyUsd[index],
+      totalBorrowUsd: totalBorrowUsd[index],
+      symbol: supplySymbol,
+      underlyingTokens: vaultDetails.underlyingTokens[index],
+      rewardTokens: vaultDetails.underlyingTokens[index],
+      chain,
+      apyBase: Number((vaultDetails.supplyRates[index] / 1e2).toFixed(2)),
+      apyBaseBorrow: Number(
+        (vaultDetails.supplyRatesBorrow[index] / 1e2).toFixed(2)
+      ),
+      apyReward: Number((vaultDetails.rewardsRates[index] / 1e12).toFixed(2)),
+      apyRewardBorrow: Number(
+        (vaultDetails.rewardsRatesBorrow[index] / 1e12).toFixed(2)
+      ),
+      ltv: vaultDetails.ltv[index] / 1e4,
+      mintedCoin: borrowSymbol,
+    };
+  });
 };
 
 // Main Function
