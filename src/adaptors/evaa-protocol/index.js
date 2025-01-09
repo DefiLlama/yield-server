@@ -596,7 +596,7 @@ async function getPoolData(
       pool: `evaa-${assetId}-${poolName}-ton`.toLowerCase(),
       chain: 'Ton',
       project: 'evaa-protocol',
-      symbol: `${tokenSymbol} (${poolName})`,
+      symbol: tokenSymbol,
       tvlUsd: totalSupplyUsd - totalBorrowUsd,
       apyBase: supplyApy * 100,
       apyReward,
@@ -611,6 +611,7 @@ async function getPoolData(
       totalBorrowUsd,
       apyBaseBorrow: borrowApy * 100,
       ltv: Number(assetConfig.collateralFactor) / 10000,
+      poolMeta: poolName
     };
   });
 }
