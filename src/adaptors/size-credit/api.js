@@ -1,6 +1,6 @@
-import type Fetch from 'node-fetch';
-const fetch = require('node-fetch') as typeof Fetch;
+const fetch = require('node-fetch');
 
+/*
 export interface Market {
   id: string;
   name: string;
@@ -47,7 +47,7 @@ export interface Market {
 }
 
 interface GetMarketsResponse {
-  available_markets: Market[];
+  markets_by_chain: Record<string, Market[]>
 }
 
 interface GetTvlResponse {
@@ -83,27 +83,39 @@ interface GetBestRateResponse {
     depth_used_collateral_token: number;
   }[][]
 }
+*/
 
 const ENDPOINT = 'https://api.size.credit';
 
-export async function getMarkets(): Promise<Market[]> {
-  const getMarketsResponse: GetMarketsResponse = await fetch(`${ENDPOINT}/`).then((res) => res.json());
-  return getMarketsResponse.available_markets;
+async function getMarkets() /*: Promise<Market[]>*/ {
+  const getMarketsResponse /*: GetMarketsResponse*/ = await fetch(
+    `${ENDPOINT}/`
+  ).then((res) => res.json());
+  return Object.values(getMarketsResponse.markets_by_chain).flat();
 }
 
-export async function getTvl(market: Market): Promise<GetTvlResponse> {
-  const getTvlResponse: GetTvlResponse = await fetch(`${ENDPOINT}${market.api_base_url}/market-tvl`).then((res) => res.json());
+async function getTvl(market /*: Market*/) /*: Promise<GetTvlResponse>*/ {
+  const getTvlResponse /*: GetTvlResponse*/ = await fetch(
+    `${ENDPOINT}${market.api_base_url}/market-tvl`
+  ).then((res) => res.json());
   return getTvlResponse;
 }
 
-export async function lendingAPR(market: Market, tenor: number, depth: number): Promise<number|undefined> {
-  const getBestRateResponse: GetBestRateResponse = await fetch(`${ENDPOINT}${market.api_base_url}/best-rate-for-tenors-scl/`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ tenors: [tenor], depth }),
-  }).then((res) => res.json());
+async function lendingAPR(
+  market /*: Market*/,
+  tenor /*: number*/,
+  depth /*: number*/
+) /*: Promise<number|undefined>*/ {
+  const getBestRateResponse /*: GetBestRateResponse*/ = await fetch(
+    `${ENDPOINT}${market.api_base_url}/best-rate-for-tenors-scl/`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ tenors: [tenor], depth }),
+    }
+  ).then((res) => res.json());
   const apr18decimals = getBestRateResponse.aprs[0];
   if (typeof apr18decimals === 'string') {
     return undefined;
@@ -111,14 +123,21 @@ export async function lendingAPR(market: Market, tenor: number, depth: number): 
   return apr18decimals / 1e16;
 }
 
-export async function borrowingAPR(market: Market, tenor: number, depth: number): Promise<number|undefined> {
-  const getBestRateResponse: GetBestRateResponse = await fetch(`${ENDPOINT}${market.api_base_url}/best-rate-for-tenors-bcl/`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ tenors: [tenor], depth }),
-  }).then((res) => res.json());
+async function borrowingAPR(
+  market /*: Market*/,
+  tenor /*: number*/,
+  depth /*: number*/
+) /*: Promise<number|undefined>*/ {
+  const getBestRateResponse /*: GetBestRateResponse*/ = await fetch(
+    `${ENDPOINT}${market.api_base_url}/best-rate-for-tenors-bcl/`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ tenors: [tenor], depth }),
+    }
+  ).then((res) => res.json());
   const apr18decimals = getBestRateResponse.aprs[0];
   if (typeof apr18decimals === 'string') {
     return undefined;
@@ -126,7 +145,9 @@ export async function borrowingAPR(market: Market, tenor: number, depth: number)
   return apr18decimals / 1e16;
 }
 
-export type GetMarkets = typeof getMarkets;
-export type GetTvl = typeof getTvl;
-export type LendingAPR = typeof lendingAPR;
-export type BorrowingAPR = typeof borrowingAPR;
+module.exports = {
+  getMarkets,
+  getTvl,
+  lendingAPR,
+  borrowingAPR,
+};
