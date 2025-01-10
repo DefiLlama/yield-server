@@ -2,7 +2,7 @@ const utils = require('../utils');
 
 const apy = async () => {
   const apyData = await utils.getData(
-    'https://app.strkfarm.xyz/api/strategies'
+    'https://app.strkfarm.com/api/strategies'
   );
   const tokenAddressToSymbolMap = {
     "0x4718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d": "STRK",
@@ -26,7 +26,7 @@ const apy = async () => {
         underlyingTokens: [currUnderlyingTokens],
         tvlUsd: parseFloat(currTvlUsd),
         apy: parseFloat(currApy),
-        url: `https://app.strkfarm.xyz/strategy/${currPoolId}`,
+        url: `https://app.strkfarm.com/strategy/${currPoolId}`,
         poolMeta: currPool,
     };
   })
@@ -35,5 +35,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy: apy,
-  url: 'https://app.strkfarm.xyz/?tab=strategies',
+  url: 'https://app.strkfarm.com/?tab=strategies',
 };
