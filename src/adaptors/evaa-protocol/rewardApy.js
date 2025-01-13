@@ -18,6 +18,7 @@ async function getDistributions(endpoint = 'evaa.space') {
 }
 const isLeap = isLeapYear(new Date().getFullYear());
 const totalSecsInYear = (isLeap ? 366 : 365) * 24 * 60 * 60;
+const SCALE_FACTOR = BigInt(1e12);
 
 function calcApy(
   rewardAmount,
@@ -91,11 +92,11 @@ function calculateRewardApy(distributionsResp, pool, data, prices) {
       }
 
       const totalAmountSupply =
-        rewardingAssetData.totalSupply?.original ??
-        rewardingAssetData.totalSupply;
+        (rewardingAssetData.totalSupply * rewardingAssetData.sRate) /
+        SCALE_FACTOR;
       const totalAmountBorrow =
-        rewardingAssetData.totalBorrow?.original ??
-        rewardingAssetData.totalBorrow;
+        (rewardingAssetData.totalBorrow * rewardingAssetData.bRate) /
+        SCALE_FACTOR;
 
       const totalAmount =
         rewardType === 'borrow' ? totalAmountBorrow : totalAmountSupply;
