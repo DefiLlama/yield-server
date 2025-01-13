@@ -1,12 +1,10 @@
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
-const { Web3 } = require('web3');
 
 const utils = require('../utils');
 const { comptrollerABI } = require('./abi');
 
-const FTM_RPC = 'https://rpc.ankr.com/fantom/';
 const API_URL = sdk.graph.modifyEndpoint(
   '5HSMXwr8MjGvXgsur1xJdx9FV47qkaUxttYSsnZ2G3F4'
 );
@@ -31,30 +29,32 @@ const query = gql`
   }
 `;
 
-const web3 = new Web3(FTM_RPC);
-
 const getRewardTokenApr = async (marketsData) => {
   const key = 'coingecko:scream';
   const rewardTokenPrice = (
     await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
   ).body.coins[key].price;
 
-  const comptroller = new web3.eth.Contract(
-    comptrollerABI,
-    COMPTROLLER_ADDRESS
-  );
+  const compSpeeds = (
+    await sdk.api.abi.multiCall({
+      calls: marketsData.map((m) => ({
+        target: COMPTROLLER_ADDRESS,
+        params: m.id,
+      })),
+      chain: 'fantom',
+      abi: comptrollerABI.find((m) => m.name === 'compSpeeds'),
+    })
+  ).output.map((i) => i.output);
 
-  const rewardsPerBlock = await Promise.all(
-    marketsData.map(async (market) => ({
-      market: market.id,
-      reward: Number(await comptroller.methods.compSpeeds(market.id).call()),
-      totalBorrowUSD:
-        Number(market.totalBorrows) * Number(market.underlyingPriceUSD),
-      totalSupplyUSD:
-        (Number(market.cash) + Number(market.totalBorrows)) *
-        Number(market.underlyingPriceUSD),
-    }))
-  );
+  const rewardsPerBlock = marketsData.map((market, i) => ({
+    market: market.id,
+    reward: Number(compSpeeds[i]),
+    totalBorrowUSD:
+      Number(market.totalBorrows) * Number(market.underlyingPriceUSD),
+    totalSupplyUSD:
+      (Number(market.cash) + Number(market.totalBorrows)) *
+      Number(market.underlyingPriceUSD),
+  }));
 
   const apr = rewardsPerBlock.reduce(
     (acc, { market, reward, totalBorrowUSD, totalSupplyUSD }) => {
