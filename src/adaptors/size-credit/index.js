@@ -1,4 +1,10 @@
-const { borrowingAPR, getMarkets, lendingAPR, getTvl, getMarketsLiquidity } = require('./api');
+const {
+  borrowingAPR,
+  getMarkets,
+  lendingAPR,
+  getTvl,
+  getMarketsLiquidity,
+} = require('./api');
 const sdk = require('@defillama/sdk');
 const AaveV3Pool = require('../aave-v3/poolAbi');
 
@@ -19,7 +25,8 @@ const AaveProtocolDataProvider = {
   etherfi: '0xE7d490885A68f00d9886508DF281D67263ed5758', // on ethereum
 };
 
-const TENOR_SECONDS = 60 * 60 * 24 * 3;
+const TENOR_DAYS = 3;
+const DAYS_TO_SECONDS = 24 * 60 * 60;
 
 const DEPTH_BORROW_TOKEN = 10;
 
@@ -36,7 +43,11 @@ async function apy() /*: Promise<Pool[]>*/ {
   return Promise.all(
     markets.map(async (market) => {
       const tvl = await getTvl(market);
-      let apyBase = await lendingAPR(market, TENOR_SECONDS, DEPTH_BORROW_TOKEN);
+      let apyBase = await lendingAPR(
+        market,
+        TENOR_DAYS * DAYS_TO_SECONDS,
+        DEPTH_BORROW_TOKEN
+      );
       if (apyBase === undefined) {
         // no limit borrow offers available, use Aave v3 as a variable-rate lending pool
         const { output: getReserveData } = await sdk.api.abi.call({
@@ -58,16 +69,13 @@ async function apy() /*: Promise<Pool[]>*/ {
         url: `https://app.size.credit/borrow?action=market&type=lend&market_id=${market.id}`,
         apyBaseBorrow: await borrowingAPR(
           market,
-          TENOR_SECONDS,
+          TENOR_DAYS * DAYS_TO_SECONDS,
           DEPTH_BORROW_TOKEN
         ),
         totalSupplyUsd: tvl.debt_tvl_usd,
         totalBorrowUsd: tvl.total_borrow_usd,
         ltv: 1e18 / market.risk_config.cr_liquidation,
-        poolMeta: JSON.stringify({
-          depth: DEPTH_BORROW_TOKEN,
-          tenor: TENOR_SECONDS,
-        }),
+        poolMeta: `Fixed-rate loans with a ${TENOR_DAYS}-day maturity date and a ${DEPTH_BORROW_TOKEN} ${market.quote_symbol} borrowing amount.`,
       };
     })
   );

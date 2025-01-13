@@ -104,10 +104,11 @@ async function getMarkets() /*: Promise<Market[]>*/ {
   return Object.values(getMarketsResponse.markets_by_chain).flat();
 }
 
-async function getMarketsLiquidity(market /*: Market*/) /*: Promise<GetMarketsLiquidityResponse>*/ {
-  const getMarketsLiquidityResponse /*: GetMarketsLiquidityResponse*/ = await fetch(
-    `${ENDPOINT}/markets-liquidity`
-  ).then((res) => res.json());
+async function getMarketsLiquidity(
+  market /*: Market*/
+) /*: Promise<GetMarketsLiquidityResponse>*/ {
+  const getMarketsLiquidityResponse /*: GetMarketsLiquidityResponse*/ =
+    await fetch(`${ENDPOINT}/markets-liquidity`).then((res) => res.json());
   return getMarketsLiquidityResponse;
 }
 
