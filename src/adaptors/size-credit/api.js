@@ -56,8 +56,8 @@ interface GetTvlResponse {
   collateral_tvl_usd: number;
   debt_tvl: number;
   debt_tvl_usd: number;
-  borrow_tvl: number;
-  borrow_tvl_usd: number;
+  total_borrow: number;
+  total_borrow_usd: number;
 }
 
 interface GetBestRateResponse {
@@ -83,6 +83,16 @@ interface GetBestRateResponse {
     depth_used_collateral_token: number;
   }[][]
 }
+
+interface GetMarketsLiquidityResponse {
+  [market_id: string]: {
+    total_liquidity_usd: number;
+    sell_side_liquidity_usd: number;
+    buy_side_liquidity_usd: number;
+    sell_liquidity: number;
+    buy_liquidity: number;
+  };
+}
 */
 
 const ENDPOINT = 'https://api.size.credit';
@@ -92,6 +102,13 @@ async function getMarkets() /*: Promise<Market[]>*/ {
     `${ENDPOINT}/`
   ).then((res) => res.json());
   return Object.values(getMarketsResponse.markets_by_chain).flat();
+}
+
+async function getMarketsLiquidity(market /*: Market*/) /*: Promise<GetMarketsLiquidityResponse>*/ {
+  const getMarketsLiquidityResponse /*: GetMarketsLiquidityResponse*/ = await fetch(
+    `${ENDPOINT}/markets-liquidity`
+  ).then((res) => res.json());
+  return getMarketsLiquidityResponse;
 }
 
 async function getTvl(market /*: Market*/) /*: Promise<GetTvlResponse>*/ {
@@ -150,4 +167,5 @@ module.exports = {
   getTvl,
   lendingAPR,
   borrowingAPR,
+  getMarketsLiquidity,
 };

@@ -1,4 +1,4 @@
-const { borrowingAPR, getMarkets, lendingAPR, getTvl } = require('./api');
+const { borrowingAPR, getMarkets, lendingAPR, getTvl, getMarketsLiquidity } = require('./api');
 const sdk = require('@defillama/sdk');
 const AaveV3Pool = require('../aave-v3/poolAbi');
 
@@ -28,7 +28,10 @@ function uppercaseFirst(str /*: string*/) /*: string*/ {
 }
 
 async function apy() /*: Promise<Pool[]>*/ {
-  const markets = await getMarkets();
+  const [markets, marketsLiquidity] = await Promise.all([
+    getMarkets(),
+    getMarketsLiquidity(),
+  ]);
 
   return Promise.all(
     markets.map(async (market) => {
@@ -49,21 +52,22 @@ async function apy() /*: Promise<Pool[]>*/ {
         chain: uppercaseFirst(market.chain),
         project: 'size-credit',
         symbol: market.quote_symbol,
-        tvlUsd: tvl.total_tvl_usd, // does not include borrows
+        tvlUsd: marketsLiquidity[market.id].buy_side_liquidity_usd,
         apyBase,
-        apyReward: 0,
         underlyingTokens: [market.debt_token.address],
-        rewardTokens: [],
         url: `https://app.size.credit/borrow?action=market&type=lend&market_id=${market.id}`,
         apyBaseBorrow: await borrowingAPR(
           market,
           TENOR_SECONDS,
           DEPTH_BORROW_TOKEN
         ),
-        apyRewardBorrow: 0,
         totalSupplyUsd: tvl.debt_tvl_usd,
-        totalBorrowUsd: tvl.borrow_tvl_usd,
-        ltv: 1e20 / market.risk_config.cr_liquidation,
+        totalBorrowUsd: tvl.total_borrow_usd,
+        ltv: 1e18 / market.risk_config.cr_liquidation,
+        poolMeta: JSON.stringify({
+          depth: DEPTH_BORROW_TOKEN,
+          tenor: TENOR_SECONDS,
+        }),
       };
     })
   );
