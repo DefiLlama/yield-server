@@ -76,7 +76,7 @@ async function apy() /*: Promise<Pool[]>*/ {
         totalSupplyUsd: tvl.debt_tvl_usd,
         totalBorrowUsd: tvl.total_borrow_usd,
         ltv: 1e18 / market.risk_config.cr_liquidation,
-        poolMeta: `APR information based on a ${TENOR_DAYS}-day maturity, ${DEPTH_BORROW_TOKEN} ${market.quote_symbol} fixed-rate loan using ${market.base_symbol} as collateral on ${uppercaseChain}.`,
+        poolMeta: `APY information based on a ${TENOR_DAYS}-day maturity, ${DEPTH_BORROW_TOKEN} ${market.quote_symbol} fixed-rate loan using ${market.base_symbol} as collateral on ${uppercaseChain}.`,
       };
     })
   );
