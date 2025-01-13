@@ -9,7 +9,6 @@ const CONSTANTS = {
     arbitrum: 42161,
     base: 8453,
   },
-  // SUPPORTED_CHAINS: ['ethereum'],
   SUPPORTED_CHAINS: ['ethereum', 'arbitrum', 'base'],
   RESOLVERS: {
     LENDING: {
@@ -73,6 +72,7 @@ const getLendingApy = async (chain) => {
         chain,
         apyBase: Number((token.supplyRate / 1e2).toFixed(2)),
         apyReward: Number((token.rewardsRate / 1e12).toFixed(2)),
+        url: `https://fluid.instadapp.io/lending/${CONSTANTS.CHAIN_ID_MAPPING[chain]}/${symbol.output[i].output}`,
       }))
       .filter((i) => utils.keepFinite(i));
   } catch (error) {
@@ -84,13 +84,18 @@ const getLendingApy = async (chain) => {
 // Vault Functions
 const getVaultApy = async (chain) => {
   try {
-    const vaultsEntireData = (
+    let vaultsEntireData = (
       await sdk.api.abi.call({
         target: CONSTANTS.RESOLVERS.VAULT[chain],
         abi: abiVaultResolver.find((m) => m.name === 'getVaultsEntireData'),
         chain,
       })
     ).output;
+
+    vaultsEntireData = vaultsEntireData.map((vault, index) => ({
+      ...vault,
+      VaultId: index + 1,
+    }));
 
     const filteredVaults = vaultsEntireData.filter(
       (vault) => vault[1] === false && vault[2] === false
@@ -223,6 +228,7 @@ const calculateVaultPoolData = (
       ),
       ltv: vaultDetails.ltv[index] / 1e4,
       mintedCoin: borrowSymbol,
+      url: `https://fluid.instadapp.io/vaults/${CONSTANTS.CHAIN_ID_MAPPING[chain]}/${vault.VaultId}`,
     };
   });
 };
@@ -239,5 +245,4 @@ const apy = async () => {
 
 module.exports = {
   apy,
-  url: 'https://fluid.instadapp.io',
 };
