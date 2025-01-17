@@ -14,6 +14,7 @@ const chains = {
   matic: 'polygon',
   arbitrum: 'arbitrum',
   base: 'base',
+  zksync: 'era',
 };
 
 function aggregateBaseApys(farm, poolsResponse) {
