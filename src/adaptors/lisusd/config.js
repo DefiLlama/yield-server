@@ -56,6 +56,7 @@ module.exports = {
     {
       symbol: 'pumpBTC',
       address: '0xc6F28a668b7c18F921ccBA4adc3D8db72BFF0FE2',
+      originAddress: '0xf9C4FF105803A77eCB5DAE300871Ad76c2794fa4',
       ilkName: 'cePumpBTC',
     },
     {
@@ -69,6 +70,21 @@ module.exports = {
     {
       symbol: 'FDUSD',
       address: '0xc5f0f7b66764F6ec8C8Dff7BA683102295E16409',
+    },
+    {
+      symbol: 'mBTC',
+      address: '0x4510aa2b3efd13bBFD78C9BfdE764F224ecc7f50',
+      ilkName: 'cemBTC',
+      originAddress: '0x7c1cca5b25fa0bc9af9275fb53cba89dc172b878',
+    },
+    {
+      symbol: 'mCAKE',
+      address: '0x581fa684d0ec11ccb46b1d92f1f24c8a3f95c0ca',
+      ilkName: 'mCAKE',
+    },
+    {
+      symbol: 'mwBETH',
+      address: '0x7dc91cbd6cb5a3e6a95eed713aa6bf1d987146c8',
     },
   ],
   getIlks,

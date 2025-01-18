@@ -120,16 +120,16 @@ const calcApr = async (collateralAddress) => {
 const getApy = async () => {
   try {
     // Get token prices
-    const tokenAddresses = collateralList.map(
-      (c) => `bsc:${c.address.toLowerCase()}`
-    );
-    console.log('Fetching prices for tokens:', tokenAddresses);
+    // const tokenAddresses = collateralList.map(
+    //   (c) => `bsc:${c.originAddress || c.address.toLowerCase()}`
+    // );
+    // console.log('Fetching prices for tokens:', tokenAddresses);
 
-    const pricesResponse = await superagent.get(
-      `https://coins.llama.fi/prices/current/${tokenAddresses.join(',')}`
-    );
-    const prices = pricesResponse.body.coins;
-    console.log('Got prices:', prices);
+    // const pricesResponse = await superagent.get(
+    //   `https://coins.llama.fi/prices/current/${tokenAddresses.join(',')}`
+    // );
+    // const prices = pricesResponse.body.coins;
+    // console.log('Got prices:', prices);
 
     const poolData = await Promise.all(
       collateralList.map(async (collateral) => {
@@ -150,11 +150,13 @@ const getApy = async () => {
           const aprRates = await calcApr(collateral);
           console.log(`APR rates for ${collateral.symbol}:`, aprRates);
 
-          const priceKey = `bsc:${collateral.address.toLowerCase()}`;
-          if (!prices[priceKey]) {
-            console.log(`No price found for ${priceKey}`);
-            return null;
-          }
+          //   const priceKey = `bsc:${
+          //     collateral.originAddress || collateral.address.toLowerCase()
+          //   }`;
+          //   if (!prices[priceKey]) {
+          //     console.log(`No price found for ${priceKey}`);
+          //     return null;
+          //   }
 
           //   const tvlUsd = (Number(tvl) / 1e18) * prices[priceKey].price;
 
