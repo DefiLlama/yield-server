@@ -49,13 +49,13 @@ async function fetchData() {
     const icp_price = await fetchPrice();
     const E8S = 100000000;
 
-    const tvl = Number(res.get("neuron_6m_tracked_stake") + res.get("neuron_8y_stake")) / E8S * icp_price || 0;
+    const tvl = (((Number(res.get("neuron_6m_tracked_stake")) + Number(res.get("neuron_8y_stake"))) / E8S) * icp_price) || 0;
 
     const apy = Number(res.get("apy")) * 100 || 0;
 
     return [{
         pool: `waterneuron-icp`,
-        chain: 'icp',
+        chain: utils.formatChain('icp'),
         project: 'waterneuron',
         symbol: 'nICP',
         tvlUsd: tvl,
