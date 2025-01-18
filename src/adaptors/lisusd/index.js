@@ -156,7 +156,7 @@ const getApy = async () => {
             return null;
           }
 
-          const tvlUsd = (Number(tvl) / 1e18) * prices[priceKey].price;
+          //   const tvlUsd = (Number(tvl) / 1e18) * prices[priceKey].price;
 
           return {
             pool: `${collateral.address}-bsc`.toLowerCase(),
@@ -164,7 +164,7 @@ const getApy = async () => {
             project: 'lisusd',
             symbol: collateral.symbol,
             underlyingTokens: [collateral.address],
-            tvlUsd,
+            tvlUsd: Number(tvl) / 1e18,
             apyBase: 0,
             apyBaseBorrow: aprRates || 0,
           };
