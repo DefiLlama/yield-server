@@ -49,7 +49,7 @@ async function fetchData() {
     const icp_price = await fetchPrice();
     const E8S = 100000000;
 
-    const tvl = Number(res.get("total_icp_deposited")) / E8S * icp_price || 0;
+    const tvl = Number(res.get("neuron_6m_tracked_stake") + res.get("neuron_8y_stake")) / E8S * icp_price || 0;
 
     const apy = Number(res.get("apy")) * 100 || 0;
 
