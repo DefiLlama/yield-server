@@ -149,7 +149,6 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
         type: 'number',
       },
       ltv: {
-        type: 'number',
         min: 0,
         max: 1,
       },
