@@ -162,7 +162,7 @@ async function getSiloData(api, deploymentData) {
     let assetMaxLtvFormatted = new BigNumber(
       ethers.utils.formatUnits(
         assetMaxLTV,
-        16
+        18
       )
     ).toString();
 
@@ -282,9 +282,10 @@ const main = async () => {
           apyBaseBorrow: new BigNumber(siloInfo.assetBorrowAprFormatted).toNumber(),
           url: `https://v2.silo.finance/markets/${chain}/${siloInfo.marketId}`,
           underlyingTokens: [siloInfo.assetAddress],
-          ltv: siloInfo.assetMaxLtvFormatted,
-          totalBorrowUsd: siloInfo.totalBorrowValueUSD,
-          totalSupplyUsd: siloInfo.totalSupplyValueUSD,
+          ltv: Number(siloInfo.assetMaxLtvFormatted),
+          totalBorrowUsd: Number(Number(siloInfo.totalBorrowValueUSD).toFixed(2)),
+          totalSupplyUsd: Number(Number(siloInfo.totalSupplyValueUSD).toFixed(2)),
+          poolMeta: `${siloInfo.marketId}`,
         };
 
         markets.push(marketData);
