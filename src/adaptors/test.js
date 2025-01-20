@@ -139,8 +139,8 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
 
   describe('Check additional field data rules', () => {
 
-    // All values added here are treated as optional
-    // If they are present, they will be checked against their rules
+    // All fields added here are treated as optional
+    // If a field is present, it will be checked against its rules
     let additionalFieldRules = {
       totalSupplyUsd: {
         type: 'number',
