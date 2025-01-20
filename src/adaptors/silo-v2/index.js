@@ -119,7 +119,7 @@ async function getSiloData(api, deploymentData) {
     }
   }
 
-  let assetPrices = await utils.getPrices(toaV2.map(entry => entry[0]), api.chain);
+  let assetPrices = await utils.getPrices(siloData.map(entry => entry[0]), api.chain);
 
   let assetDataBySilo = {};
   for(
