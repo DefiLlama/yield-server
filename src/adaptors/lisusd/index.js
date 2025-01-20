@@ -167,7 +167,12 @@ const getApy = async () => {
             symbol: collateral.symbol,
             underlyingTokens: [collateral.address],
             tvlUsd: Number(tvl) / 1e18,
-            apyBase: 0,
+            apyBase: aprRates || 0,
+            apyReward: aprRates || 0,
+            rewardTokens: [
+              '0x0782b6d8c4551B9760e74c0545a9bCD90bdc41E5',
+              '0xFceB31A79F71AC9CBDCF853519c1b12D379EdC46',
+            ], // lisUSD, LISTA
             apyBaseBorrow: aprRates || 0,
           };
         } catch (error) {
