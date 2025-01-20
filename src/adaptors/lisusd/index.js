@@ -1,87 +1,25 @@
 const { default: BigNumber } = require('bignumber.js');
-const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
-const HOUR = 60 * 60;
-const DAY = 24 * HOUR;
-const SECONDS_PER_YEAR = 365 * DAY;
-const RAY_PRECISION = 27;
-const RAY = new BigNumber(10).pow(RAY_PRECISION);
+const superagent = require('superagent');
+const { collateralList, getIlks } = require('./config');
 
-const WBNB = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c';
-const BUSD = '0xe9e7cea3dedca5984780bafc599bd69add087d56';
-const ceaBNBcAddress = '0x563282106A5B0538f8673c787B3A16D3Cc1DbF1a';
-const BNBJoin = '0xfA14F330711A2774eC438856BBCf2c9013c2a6a4';
-const HAY = '0x0782b6d8c4551B9760e74c0545a9bCD90bdc41E5';
-const hHAY = '0x0a1Fd12F73432928C190CAF0810b3B767A59717e';
+// under src/adaptors, run `npm run test --adapter=lisusd` to test the adaptor
+const SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
+const RAY = new BigNumber(10).pow(27);
 
-const pool =
-  '0x636541424e426300000000000000000000000000000000000000000000000000';
-const JUG = {
-  address: '0x787BdEaa29A253e40feB35026c3d05C18CbCA7B3',
+const INTERACTION = {
+  address: '0xB68443Ee3e828baD1526b3e0Bdf2Dfc6b1975ec4',
   abis: {
-    ilks: {
-      inputs: [
-        {
-          internalType: 'bytes32',
-          name: '',
-          type: 'bytes32',
-        },
-      ],
-      name: 'ilks',
-      outputs: [
-        {
-          internalType: 'uint256',
-          name: 'duty',
-          type: 'uint256',
-        },
-        {
-          internalType: 'uint256',
-          name: 'rho',
-          type: 'uint256',
-        },
-      ],
+    depositTVL: {
+      inputs: [{ internalType: 'address', name: 'token', type: 'address' }],
+      name: 'depositTVL',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
       stateMutability: 'view',
       type: 'function',
     },
-  },
-};
-
-const SPOT = {
-  address: '0x49bc2c4E5B035341b7d92Da4e6B267F7426F3038',
-  abis: {
-    ilks: {
-      inputs: [
-        {
-          internalType: 'bytes32',
-          name: '',
-          type: 'bytes32',
-        },
-      ],
-      name: 'ilks',
-      outputs: [
-        {
-          internalType: 'contract PipLike',
-          name: 'pip',
-          type: 'address',
-        },
-        {
-          internalType: 'uint256',
-          name: 'mat',
-          type: 'uint256',
-        },
-      ],
-      stateMutability: 'view',
-      type: 'function',
-    },
-  },
-};
-
-const JAR = {
-  address: hHAY,
-  abis: {
-    rate: {
-      inputs: [],
-      name: 'rate',
+    getNextDuty: {
+      inputs: [{ internalType: 'address', name: 'token', type: 'address' }],
+      name: 'getNextDuty',
       outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
       stateMutability: 'view',
       type: 'function',
@@ -89,106 +27,165 @@ const JAR = {
   },
 };
 
-const getApy = async () => {
-  const baseRataCall = (
-    await sdk.api.abi.call({
+const DYNAMIC_DUTY_CALCULATOR = {
+  address: '0x873339A8214657175D9B128dDd57A2f2c23256FA',
+  abis: {
+    maxDuty: {
+      inputs: [],
+      name: 'maxDuty',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
+    minDuty: {
+      inputs: [],
+      name: 'minDuty',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
+  },
+};
+
+const JUG = {
+  address: '0x787BdEaa29A253e40feB35026c3d05C18CbCA7B3',
+  abis: {
+    ilks: {
+      inputs: [{ internalType: 'bytes32', name: '', type: 'bytes32' }],
+      name: 'ilks',
+      outputs: [
+        { internalType: 'uint256', name: 'duty', type: 'uint256' },
+        { internalType: 'uint256', name: 'rho', type: 'uint256' },
+      ],
+      stateMutability: 'view',
+      type: 'function',
+    },
+  },
+};
+
+const calcApr = async (collateralAddress) => {
+  try {
+    // Get max and min duty rates
+    const [maxDutyResponse, minDutyResponse] = await Promise.all([
+      sdk.api.abi.call({
+        target: DYNAMIC_DUTY_CALCULATOR.address,
+        abi: DYNAMIC_DUTY_CALCULATOR.abis.maxDuty,
+        chain: 'bsc',
+      }),
+      sdk.api.abi.call({
+        target: DYNAMIC_DUTY_CALCULATOR.address,
+        abi: DYNAMIC_DUTY_CALCULATOR.abis.minDuty,
+        chain: 'bsc',
+      }),
+    ]);
+
+    // Get current duty rate using ilk name
+    const ilkHash = getIlks(collateralAddress);
+    const jugResponse = await sdk.api.abi.call({
       target: JUG.address,
-      params: pool,
+      params: [ilkHash],
       abi: JUG.abis.ilks,
       chain: 'bsc',
-    })
-  ).output;
+    });
 
-  const spot = (
-    await sdk.api.abi.call({
-      target: SPOT.address,
-      params: pool,
-      abi: SPOT.abis.ilks,
-      chain: 'bsc',
-    })
-  ).output;
+    let _duty = Number(jugResponse.output[0].toString());
+    const _maxDuty = Number(maxDutyResponse.output.toString());
+    const _minDuty = Number(minDutyResponse.output.toString());
 
-  const hayTotalSupply = (
-    await sdk.api.abi.call({
-      target: HAY,
-      abi: 'erc20:totalSupply',
-      chain: 'bsc',
-    })
-  ).output;
+    console.log('Raw values:');
+    console.log('duty:', _duty);
+    console.log('maxDuty:', _maxDuty);
+    console.log('minDuty:', _minDuty);
 
-  const hayRate = (
-    await sdk.api.abi.call({
-      target: hHAY,
-      abi: JAR.abis.rate,
-      chain: 'bsc',
-    })
-  ).output;
+    // Apply min/max constraints
+    if (_maxDuty != null && _duty >= _maxDuty) {
+      _duty = _maxDuty;
+    }
+    if (_minDuty != null && _duty <= _minDuty) {
+      _duty = _minDuty;
+    }
 
-  const hHayTotalSupply = (
-    await sdk.api.abi.call({
-      target: hHAY,
-      abi: 'erc20:totalSupply',
-      chain: 'bsc',
-    })
-  ).output;
+    // Calculate APR
+    const result = (_duty / 1e27) ** (365 * 24 * 3600) - 1;
 
-  const collateral = (
-    await sdk.api.abi.call({
-      target: ceaBNBcAddress,
-      abi: 'erc20:balanceOf',
-      params: [BNBJoin],
-      chain: 'bsc',
-    })
-  ).output;
+    console.log('Final APR:', result * 100);
 
-  const coins = [`bsc:${HAY}`, `bsc:${WBNB}`].join(',').toLowerCase();
+    return result * 100; // Convert to percentage
+  } catch (error) {
+    console.error('Error calculating APR:', error);
+    return 0;
+  }
+};
 
-  const prices = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${coins}`)
-  ).body.coins;
+const getApy = async () => {
+  try {
+    // Get token prices
+    // const tokenAddresses = collateralList.map(
+    //   (c) => `bsc:${c.originAddress || c.address.toLowerCase()}`
+    // );
+    // console.log('Fetching prices for tokens:', tokenAddresses);
 
-  const baseRata = baseRataCall.duty;
-  const normalizRate = new BigNumber(baseRata).dividedBy(RAY);
-  BigNumber.config({ POW_PRECISION: 100 });
-  const stabilityFee = normalizRate.pow(SECONDS_PER_YEAR).minus(1);
-  const totalSupplyUsd =
-    (Number(hayTotalSupply) / 1e18) * prices[`bsc:${HAY.toLowerCase()}`].price;
-  const liquidationRatio = new BigNumber(spot.mat).div(1e27);
-  return [
-    {
-      pool: ceaBNBcAddress,
-      project: 'lisusd',
-      symbol: 'BNB',
-      chain: 'binance',
-      apy: 0,
-      tvlUsd:
-        (Number(collateral) / 1e18) * prices[`bsc:${WBNB.toLowerCase()}`].price,
-      apyBaseBorrow: stabilityFee.toNumber() * 100,
-      totalSupplyUsd:
-        (Number(collateral) / 1e18) * prices[`bsc:${WBNB.toLowerCase()}`].price,
-      totalBorrowUsd: totalSupplyUsd,
-      ltv: 1 / Number(liquidationRatio.toNumber()),
-      mintedCoin: 'lisUSD',
-    },
-    {
-      pool: hHAY,
-      project: 'lisusd',
-      symbol: 'lisUSD',
-      chain: 'binance',
-      apy: new BigNumber(hayRate)
-        .times(SECONDS_PER_YEAR)
-        .div(hHayTotalSupply)
-        .times(100)
-        .toNumber(),
-      tvlUsd:
-        (Number(hHayTotalSupply) / 1e18) *
-        prices[`bsc:${HAY.toLowerCase()}`].price,
-    },
-  ];
+    // const pricesResponse = await superagent.get(
+    //   `https://coins.llama.fi/prices/current/${tokenAddresses.join(',')}`
+    // );
+    // const prices = pricesResponse.body.coins;
+    // console.log('Got prices:', prices);
+
+    const poolData = await Promise.all(
+      collateralList.map(async (collateral) => {
+        try {
+          console.log(`Processing collateral: ${collateral.symbol}`);
+
+          // Get TVL
+          const tvlResponse = await sdk.api.abi.call({
+            target: INTERACTION.address,
+            params: [collateral.address],
+            abi: INTERACTION.abis.depositTVL,
+            chain: 'bsc',
+          });
+          const tvl = tvlResponse.output;
+          console.log(`TVL for ${collateral.symbol}:`, tvl);
+
+          // Get APR rates - pass entire collateral object
+          const aprRates = await calcApr(collateral);
+          console.log(`APR rates for ${collateral.symbol}:`, aprRates);
+
+          //   const priceKey = `bsc:${
+          //     collateral.originAddress || collateral.address.toLowerCase()
+          //   }`;
+          //   if (!prices[priceKey]) {
+          //     console.log(`No price found for ${priceKey}`);
+          //     return null;
+          //   }
+
+          //   const tvlUsd = (Number(tvl) / 1e18) * prices[priceKey].price;
+
+          return {
+            pool: `${collateral.address}-bsc`.toLowerCase(),
+            chain: 'bsc',
+            project: 'lisusd',
+            symbol: collateral.symbol,
+            underlyingTokens: [collateral.address],
+            tvlUsd: Number(tvl) / 1e18,
+            apyBase: 0,
+            apyBaseBorrow: aprRates || 0,
+          };
+        } catch (error) {
+          console.error(`Error processing ${collateral.symbol}:`, error);
+          return null;
+        }
+      })
+    );
+
+    return poolData.filter(Boolean);
+  } catch (error) {
+    console.error('Error in getApy:', error);
+    return [];
+  }
 };
 
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://helio.money/',
+  url: 'https://lista.org/',
 };
