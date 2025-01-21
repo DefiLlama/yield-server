@@ -1,12 +1,4 @@
-const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
-const sdk = require('@defillama/sdk');
-
-const utils = require('../utils');
-const { aTokenAbi } = require('../aave-v3/abi');
-const poolAbi = require('../aave-v3/poolAbi');
-
-const SECONDS_PER_YEAR = 31536000;
 
 const yieldnestGatewayUrl = 'https://gateway.yieldnest.finance/api/v1/graphql';
 const yieldnestRestakePoolBaseUrl = 'https://app.yieldnest.finance/restake/';
