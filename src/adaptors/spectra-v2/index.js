@@ -7,33 +7,38 @@ const chains = {
   1: {
     name: 'ethereum',
     slug: 'mainnet',
-    APW: '0x4104b135dbc9609fc1a9490e61369036497660c8',
+    SPECTRA: '0x6a89228055c7c28430692e342f149f37462b478b',
   },
   42161: {
     name: 'arbitrum',
     slug: 'arbitrum',
-    APW: '0x3a67ca29ddf5ecf1844e811c43f27bd79f9ec310',
+    SPECTRA: '0x64fcc3a02eeeba05ef701b7eed066c6ebd5d4e51',
   },
   10: {
     name: 'optimism',
     slug: 'optimism',
-    APW: '0x92a2a0d39da80e1fa21afdebdd87c4f975adf9f0',
+    SPECTRA: '0x248f43b622ce2f35a14db3fc528284730b619cd5',
   },
   8453: {
     name: 'base',
     slug: 'base',
-    APW: '0x5dbe772a051fa853433cdae923c3b3ae955df7bd',
+    SPECTRA: '0x64fcc3a02eeeba05ef701b7eed066c6ebd5d4e51',
+  },
+  146: {
+    name: 'sonic',
+    slug: 'sonic',
+    SPECTRA: '0xb827e91c5cd4d6aca2fc0cd93a07db61896af40b',
   },
 };
 
 const poolId = (address, chainId) =>
   `${address}-${chains[chainId].slug}`.toLowerCase();
 
-const apwApy = (pool) => {
-  if (pool.lpApy.details.rewards?.['APW']) {
-    return pool.lpApy.details.rewards['APW'];
-  } else if (pool.lpApy.details.boostedRewards?.['APW']) {
-    return pool.lpApy.details.boostedRewards['APW'].min; // take lower APY bound
+const spectraApy = (pool) => {
+  if (pool.lpApy.details.rewards?.['SPECTRA']) {
+    return pool.lpApy.details.rewards['SPECTRA'];
+  } else if (pool.lpApy.details.boostedRewards?.['SPECTRA']) {
+    return pool.lpApy.details.boostedRewards['SPECTRA'].min; // take lower APY bound
   } else {
     return 0;
   }
@@ -46,7 +51,7 @@ const formatIbt = (ibt) =>
   `${ibt.symbol}${ibt.protocol ? ` (${ibt.protocol})` : ''}`;
 
 const lpApy = (p) => {
-  const apw = apwApy(p);
+  const spectra = spectraApy(p);
   const chain = chains[p.chainId];
   return {
     pool: poolId(p.address, p.chainId),
@@ -54,9 +59,9 @@ const lpApy = (p) => {
     project: 'spectra-v2',
     symbol: utils.formatSymbol(`${p.pt.ibt.symbol}`),
     tvlUsd: p.liquidity?.usd,
-    apyBase: p.lpApy.total - apw,
-    apyReward: apw,
-    rewardTokens: apw > 0 ? [chain.APW] : [],
+    apyBase: p.lpApy.total - spectra,
+    apyReward: spectra,
+    rewardTokens: spectra > 0 ? [chain.SPECTRA] : [],
     underlyingTokens: [p.pt.address, p.pt.ibt.address],
     poolMeta: `For LP on ${p.pt.ibt.protocol} | Maturity ${formatMaturity(
       p.pt.maturity
