@@ -138,7 +138,6 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
   });
 
   describe('Check additional field data rules', () => {
-
     // All fields added here are treated as optional
     // If a field is present, it will be checked against its rules
     let additionalFieldRules = {
@@ -152,26 +151,25 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
         min: 0,
         max: 1,
       },
-    }
+    };
 
     apy.forEach((pool) => {
       Object.entries(additionalFieldRules).map(([field, rule]) => {
-        console.log({'pool[field]': pool[field]})
-        if(pool[field] !== undefined) {
-          if(rule.type !== undefined) {
+        if (pool[field] !== undefined) {
+          if (rule.type !== undefined) {
             test(`${field} field of pool with id ${pool.pool} should be a ${rule.type}`, () => {
               expect(typeof pool[field]).toBe(rule.type);
             });
           }
-          if((rule.max !== undefined) && (rule.min !== undefined)) {
+          if (rule.max !== undefined && rule.min !== undefined) {
             test(`${field} field of pool with id ${pool.pool} should be in the range of ${rule.min}-${rule.max}`, () => {
               expect(pool[field]).toBeLessThanOrEqual(rule.max);
             });
-          } else if((rule.min !== undefined) && (rule.max === undefined)) {
+          } else if (rule.min !== undefined && rule.max === undefined) {
             test(`${field} field of pool with id ${pool.pool} should be greater than or equal to ${rule.min}`, () => {
               expect(pool[field]).toBeGreaterThanOrEqual(rule.min);
             });
-          } else if((rule.max !== undefined) && (rule.min === undefined)) {
+          } else if (rule.max !== undefined && rule.min === undefined) {
             test(`${field} field of pool with id ${pool.pool} should be less than or equal to ${rule.max}`, () => {
               expect(pool[field]).toBeLessThanOrEqual(rule.max);
             });
@@ -179,6 +177,5 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
         }
       });
     });
-  })
-
+  });
 });
