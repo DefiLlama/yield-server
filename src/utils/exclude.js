@@ -128,7 +128,6 @@ const excludeAdaptors = [
   'platypus-finance',
   'biswap-v2',
   'burrow',
-  'raydium',
   'ref-finance',
   'shoebill-v1',
   'auragi-finance',
