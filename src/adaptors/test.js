@@ -121,12 +121,18 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
 
   describe('Check if pool id already used by other project', () => {
     const uniqueIds = new Set(apy.map(({ pool }) => pool));
-    const duplicatedPoolIds = new Set(
-      [...uniqueIds].filter((p) => uniquePoolIdentifiersDB.has(p))
+    const duplicatedPoolIds = [...uniqueIds].filter((p) =>
+      uniquePoolIdentifiersDB.has(p)
     );
 
-    test('Expect duplicate ids array to be empty', () => {
-      expect(duplicatedPoolIds.size).toBe(0);
+    test('Print duplicated pool IDs and their existing projects', () => {
+      if (duplicatedPoolIds.length > 0) {
+        console.log('\nDuplicated pool IDs found:');
+        duplicatedPoolIds.forEach((poolId) => {
+          console.log(`Pool ID: ${poolId} is already used by another project`);
+        });
+      }
+      expect(duplicatedPoolIds.length).toBe(0);
     });
   });
 
