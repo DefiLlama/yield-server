@@ -30,8 +30,8 @@ const getYieldFiltered = async () => {
         "apyReward",
         "il7d",
         "apyBase7d",
-        "volumeUsd1d",
-        "volumeUsd7d",
+        CASE WHEN "volumeUsd1d" < 0 THEN NULL ELSE "volumeUsd1d" END as "volumeUsd1d",
+        CASE WHEN "volumeUsd7d" < 0 THEN NULL ELSE "volumeUsd7d" END as "volumeUsd7d",
         "apyBaseInception",
         url
     FROM

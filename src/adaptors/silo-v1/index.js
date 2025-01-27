@@ -347,7 +347,7 @@ const main = async () => {
       markets.push({
         pool: `${market.id}-ethereum`,
         chain: 'Ethereum',
-        project: 'silo-finance',
+        project: 'silo-v1',
         symbol: utils.formatSymbol(name),
         tvlUsd: tvlUsd.toNumber(),
         apyBase: Number(inputTokenSupplyRateObject.rate),

@@ -110,16 +110,20 @@ const main = async (timestamp = null) => {
   let data = [];
 
   for (const [chain, url] of Object.entries(chains)) {
-    console.log(`Fetching data for ${chain}...`);
-    const chainData = await topLvl(
-      chain,
-      url,
-      query,
-      queryPrior,
-      'v2',
-      timestamp
-    );
-    data.push(...chainData);
+    try {
+      console.log(`Fetching data for ${chain}...`);
+      const chainData = await topLvl(
+        chain,
+        url,
+        query,
+        queryPrior,
+        'v2',
+        timestamp
+      );
+      data.push(...chainData);
+    } catch (err) {
+      console.log(chain, err);
+    }
   }
 
   return data.filter((p) => utils.keepFinite(p));

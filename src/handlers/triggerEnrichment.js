@@ -86,7 +86,6 @@ const main = async () => {
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
   if (!stablecoins.includes('fraxbp')) stablecoins.push('fraxbp');
   if (!stablecoins.includes('usdr')) stablecoins.push('usdr');
-  if (!stablecoins.includes('usd0++')) stablecoins.push('usd0++');
   if (!stablecoins.includes('more')) stablecoins.push('more');
   if (!stablecoins.includes('ustb')) stablecoins.push('ustb');
 

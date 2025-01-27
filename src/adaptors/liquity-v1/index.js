@@ -63,7 +63,7 @@ const main = async () => {
   return [
     {
       pool: TROVE_MANAGER_ADDRESS,
-      project: 'liquity',
+      project: 'liquity-v1',
       symbol: 'WETH',
       chain: 'ethereum',
       apy: 0,
