@@ -20,6 +20,7 @@ const getSiloAssetBorrowAprAbi = "function getBorrowAPR(address _silo) external 
 const getSiloAssetDepositAprAbi = "function getDepositAPR(address _silo) external view returns (uint256 depositAPR)";
 const getSiloAssetMaxLtvAbi = "function getMaxLtv(address _silo) external view returns (uint256 maxLtv)";
 const getAssetStateAbiV2 = 'function getTotalAssetsStorage(uint8 _assetType) external view returns (uint256 totalAssetsByType)';
+const getIncentiveProgramAbi = 'function incentivesPrograms(bytes32) external view returns (uint256 index, address rewardToken, uint104 emissionPerSecond, uint40 lastUpdateTimestamp, uint40 distributionEnd)';
 
 const configV2 = {
   sonic: {
@@ -29,8 +30,15 @@ const configV2 = {
         START_BLOCK: 2672166,
         SILO_FACTORY: '0xa42001d6d2237d2c74108fe360403c4b796b7170', // Silo V2 Sonic (Main)
         SILO_LENS: "0xB6AdBb29f2D8ae731C7C72036A7FD5A7E970B198",
+        SILO_ADDRESS_TO_INCENTIVE_PROGRAM: {
+          "0x4E216C15697C1392fE59e1014B009505E05810Df": {
+            controller: "0x0dd368Cd6D8869F2b21BA3Cb4fd7bA107a2e3752",
+            name: "wS_sUSDC_008",
+            id: "0x77535f73555344435f3030380000000000000000000000000000000000000000",
+          }
+        }
       }
-    ]
+    ],
   },
   // arbitrum: {
   //   chainName: "Arbitrum",
@@ -80,6 +88,20 @@ async function getSiloData(api, deploymentData) {
       abi: getSiloStorageAbi,
       calls: siloArrayV2.map((siloAddress, i) => ({ target: siloAddress, params: [] })),
     });
+    const siloAddressToIncentiveResults = Object.assign({}, deploymentData.SILO_ADDRESS_TO_INCENTIVE_PROGRAM);
+    const siloIncentiveProgramData = await api.multiCall({
+      abi: getIncentiveProgramAbi,
+      calls: Object.entries(deploymentData.SILO_ADDRESS_TO_INCENTIVE_PROGRAM).map(([siloAddress, incentiveProgramEntry], i) => ({ target: incentiveProgramEntry.controller, params: [incentiveProgramEntry.id] })),
+    });
+    for(const [index, siloAddress] of Object.keys(deploymentData.SILO_ADDRESS_TO_INCENTIVE_PROGRAM).entries()) {
+      siloAddressToIncentiveResults[siloAddress].result = {
+        index: siloIncentiveProgramData[index].index,
+        rewardToken: siloIncentiveProgramData[index].rewardToken,
+        emissionPerSecond: siloIncentiveProgramData[index].emissionPerSecond,
+        lastUpdateTimestamp: siloIncentiveProgramData[index].lastUpdateTimestamp,
+        distributionEnd: siloIncentiveProgramData[index].distributionEnd,
+      };
+    }
     siloData = assetsV2.map((asset, i) => [
       asset,
       siloArrayV2[i],
@@ -90,6 +112,7 @@ async function getSiloData(api, deploymentData) {
       siloStorage[i].protectedAssets,
       siloStorage[i].collateralAssets,
       siloStorage[i].debtAssets,
+      siloAddressToIncentiveResults?.[siloArrayV2?.[i]] ? siloAddressToIncentiveResults[siloArrayV2[i]] : false,
     ]);
     let uniqueAssetAddresses = [...new Set(assetsV2)];
     const assetSymbols = await api.multiCall({
@@ -132,7 +155,8 @@ async function getSiloData(api, deploymentData) {
       assetMaxLTV,
       protectedAssetBalance,
       collateralAssetBalance,
-      debtAssetBalance
+      debtAssetBalance,
+      incentiveProgramResults,
     ] of siloData
   ) {
 
@@ -192,6 +216,22 @@ async function getSiloData(api, deploymentData) {
     .multipliedBy(assetPrices.pricesByAddress[assetAddress.toLowerCase()])
     .toString();
 
+    let boostedAprFormatted = 0;
+    let rewardTokens = [];
+    if(incentiveProgramResults?.result?.emissionPerSecond) {
+      let emissionsPerYearRewardToken = new BigNumber(incentiveProgramResults?.result.emissionPerSecond).multipliedBy(60).multipliedBy(60).multipliedBy(24).multipliedBy(365);
+      let emissionsPerYearUSD = new BigNumber(
+        ethers.utils.formatUnits(
+          emissionsPerYearRewardToken.toString(),
+          assetAddressToDecimals[incentiveProgramResults?.result?.rewardToken]
+        )
+      )
+      .multipliedBy(assetPrices.pricesByAddress[incentiveProgramResults?.result?.rewardToken.toLowerCase()])
+      .toString();
+      rewardTokens.push(incentiveProgramResults?.result?.rewardToken);
+      boostedAprFormatted = new BigNumber(new BigNumber(emissionsPerYearUSD).multipliedBy(100).toString()).dividedBy(new BigNumber(totalSupplyValueUSD)).toString();
+    }
+
     assetDataBySilo[siloAddress] = {
       assetAddress: assetAddress,
       assetSymbol: assetAddressToSymbol[assetAddress],
@@ -212,6 +252,8 @@ async function getSiloData(api, deploymentData) {
       totalBorrowValueUSD: totalBorrowValueUSD,
       assetMaxLtvRaw: assetMaxLTV,
       assetMaxLtvFormatted: assetMaxLtvFormatted,
+      boostedAprFormatted,
+      rewardTokens,
     }
   }
 
@@ -286,6 +328,10 @@ const main = async () => {
           totalBorrowUsd: Number(Number(siloInfo.totalBorrowValueUSD).toFixed(2)),
           totalSupplyUsd: Number(Number(siloInfo.totalSupplyValueUSD).toFixed(2)),
           poolMeta: `${siloInfo.marketId}`,
+          ...(siloInfo.boostedAprFormatted && {
+            apyReward: new BigNumber(siloInfo.boostedAprFormatted).toNumber(),
+            rewardTokens: siloInfo.rewardTokens,
+          })
         };
 
         markets.push(marketData);
