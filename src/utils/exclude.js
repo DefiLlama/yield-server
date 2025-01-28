@@ -157,6 +157,7 @@ const excludeAdaptors = [
   'avault',
   'metastreet-v2',
   'mero',
+  'meteora', // pushed by mistake
 ];
 
 const excludePools = [
