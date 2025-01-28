@@ -6,7 +6,7 @@ const utils = require('../utils');
 // As discussed with the Defi-Llama team, we will only be listing vaults (we call them strategies) that provide an extra yield on top of the underlying protocol. This is so that we don't repeat
 // the same pools already on the Defi-Llama yield section. We will be fetching the underlying protocol's APY (using Defi-Llama's yield API) and adding the Balmy yield on top of it.
 
-const API = 'https://dev.api.balmy.xyz'; // TODO: update to prod
+const API = 'https://api.balmy.xyz';
 const LIQ_MINING_MANAGER = '0xE7615B68BFe7664488881080DF9dD62681A781A1'
 
 async function getPoolsInChain(chainId: number, chainName: string, { strategies, tokens }: StrategiesInChainResponse, mappings: Record<string, string>): Promise<Pool[]> {
