@@ -37,7 +37,9 @@ const apy = async () => {
     };
   });
 
-  return utils.removeDuplicates(data.filter((p) => p && utils.keepFinite(p)));
+  return utils.removeDuplicates(
+    data.filter((p) => p && utils.keepFinite(p) && p.tvlUsd < 50e6)
+  );
 };
 
 module.exports = {

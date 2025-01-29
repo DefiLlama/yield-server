@@ -121,12 +121,18 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
 
   describe('Check if pool id already used by other project', () => {
     const uniqueIds = new Set(apy.map(({ pool }) => pool));
-    const duplicatedPoolIds = new Set(
-      [...uniqueIds].filter((p) => uniquePoolIdentifiersDB.has(p))
+    const duplicatedPoolIds = [...uniqueIds].filter((p) =>
+      uniquePoolIdentifiersDB.has(p)
     );
 
-    test('Expect duplicate ids array to be empty', () => {
-      expect(duplicatedPoolIds.size).toBe(0);
+    test('Print duplicated pool IDs and their existing projects', () => {
+      if (duplicatedPoolIds.length > 0) {
+        console.log('\nDuplicated pool IDs found:');
+        duplicatedPoolIds.forEach((poolId) => {
+          console.log(`Pool ID: ${poolId} is already used by another project`);
+        });
+      }
+      expect(duplicatedPoolIds.length).toBe(0);
     });
   });
 
@@ -135,5 +141,47 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
     expect(
       protocolsSlug.includes(apy[0].project) && apy[0].project === adapter
     ).toBe(true);
+  });
+
+  describe('Check additional field data rules', () => {
+    // All fields added here are treated as optional
+    // If a field is present, it will be checked against its rules
+    let additionalFieldRules = {
+      totalSupplyUsd: {
+        type: 'number',
+      },
+      totalBorrowUsd: {
+        type: 'number',
+      },
+      ltv: {
+        min: 0,
+        max: 1,
+      },
+    };
+
+    apy.forEach((pool) => {
+      Object.entries(additionalFieldRules).map(([field, rule]) => {
+        if (pool[field] !== undefined) {
+          if (rule.type !== undefined) {
+            test(`${field} field of pool with id ${pool.pool} should be a ${rule.type}`, () => {
+              expect(typeof pool[field]).toBe(rule.type);
+            });
+          }
+          if (rule.max !== undefined && rule.min !== undefined) {
+            test(`${field} field of pool with id ${pool.pool} should be in the range of ${rule.min}-${rule.max}`, () => {
+              expect(pool[field]).toBeLessThanOrEqual(rule.max);
+            });
+          } else if (rule.min !== undefined && rule.max === undefined) {
+            test(`${field} field of pool with id ${pool.pool} should be greater than or equal to ${rule.min}`, () => {
+              expect(pool[field]).toBeGreaterThanOrEqual(rule.min);
+            });
+          } else if (rule.max !== undefined && rule.min === undefined) {
+            test(`${field} field of pool with id ${pool.pool} should be less than or equal to ${rule.max}`, () => {
+              expect(pool[field]).toBeLessThanOrEqual(rule.max);
+            });
+          }
+        }
+      });
+    });
   });
 });
