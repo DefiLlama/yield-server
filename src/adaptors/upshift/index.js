@@ -10,6 +10,35 @@ const config = {
     avax: ["0x3408b22d8895753C9A3e14e4222E981d4E9A599E"],
     base: ["0x4e2D90f0307A93b54ACA31dc606F93FE6b9132d2"]
 }
+const rewardConfig = {
+    "0x3408b22d8895753C9A3e14e4222E981d4E9A599E": "0xAeAc5f82B140c0f7309f7E9Ec43019062A5e5BE2",
+}
+
+const chainMapping = {
+    ethereum: {
+        chain: 'ethereum',
+        chainId: '1',
+        nativeToken: ethers.constants.AddressZero,
+        decimals: 18,
+        symbol: 'ETH',
+    },
+    avax: {
+        chain: 'avax',
+        chainId: '43114',
+        nativeToken: ethers.constants.AddressZero,
+        decimals: 18,
+        symbol: 'AVAX',
+    },
+    base: {
+        chain: 'base',
+        chainId: '8453',
+        nativeToken: ethers.constants.AddressZero,
+        decimals: 18,
+        symbol: 'ETH',
+    }
+}
+
+const APR_MULTIPLIER = 31536000;
 const projectName = 'upshift';
 
 const getApy = async () => {
@@ -110,6 +139,12 @@ const getPoolInfo = async (pool, chain) => {
         chain: chain,
     }))?.output;
 
+    const pool_decimals = (await sdk.api.abi.call({
+        target: pool,
+        abi: 'erc20:decimals',
+        chain: chain,
+    }))?.output;
+
     const underlyingDecimals = (await sdk.api.abi.call({
         target: underlying_token,
         abi: 'erc20:decimals',
@@ -126,58 +161,46 @@ const getPoolInfo = async (pool, chain) => {
 
     const loans = await getPoolActiveLoans(pool, chain);
 
-    const formattedLoansArray =
-        await Promise.all(
-            loans.map(async (l) => {
-                const borrower = (await sdk.api.abi.call({
-                    target: l,
-                    abi: 'function borrower() view returns (address)',
-                }))?.output;
-
-                return {
-                    borrower: borrower,
-                    loan: l,
-                };
-            }),
-        );
-    const uniqueBorrowers = [
-        ...new Set(formattedLoansArray.map((l) => l.borrower)),
-    ];
-
-
     const newLoans = (
         await Promise.all(
-            formattedLoansArray?.map(async (loanObj) => {
-
-                const borrower = loanObj.borrower;
-
+            loans?.map(async (loanAddress) => {
                 const [_loanApr, _principalAmt, _collateral, _principalRepaid] =
                     await Promise.all([
                         sdk.api.abi.call({
-                            target: loanObj.loan,
+                            target: loanAddress,
                             abi: 'function currentApr() view returns (uint256)',
+                            chain
                         }),
                         sdk.api.abi.call({
-                            target: loanObj.loan,
+                            target: loanAddress,
                             abi: 'function principalAmount() view returns (uint256)',
+                            chain
                         }),
                         sdk.api.abi.call({
-                            target: loanObj.loan,
+                            target: loanAddress,
                             abi: 'function collateralToken() view returns (address)',
+                            chain
                         }),
                         sdk.api.abi.call({
-                            target: loanObj.loan,
+                            target: loanAddress,
                             abi: 'function principalRepaid() view returns (uint256)',
+                            chain
+                        }),
+                        sdk.api.abi.call({
+                            target: loanAddress,
+                            abi: 'function principalToken() view returns (address)',
+                            chain
                         }),
                     ]);
 
                 let _principalDecimals = 18;
                 if (_collateral.output !== ethers.constants.AddressZero) {
-                    const collateralDecimals = sdk.api.abi.call({
+                    const collateralDecimals = await sdk.api.abi.call({
                         target: _collateral.output,
                         abi: 'function decimals() view returns (uint8)',
+                        chain
                     });
-                    _principalDecimals = collateralDecimals;
+                    _principalDecimals = collateralDecimals.output;
                 }
                 // handle aprs
                 aggregateApr += _loanApr.output || BigInt(0);
@@ -185,14 +208,12 @@ const getPoolInfo = async (pool, chain) => {
 
                 const loanApr = Number(_loanApr.output || 0) / 100;
 
-
                 const allocation =
                     Number(ethers.utils.formatUnits(_principalAmt.output, _principalDecimals)) /
                     Number(ethers.utils.formatUnits(totalSupply, _principalDecimals));
 
-
                 const newLoanObj = {
-                    address: loanObj.loan,
+                    address: loanAddress,
                     apr: loanApr,
                     allocation,
                 };
@@ -206,6 +227,45 @@ const getPoolInfo = async (pool, chain) => {
         (acc, { apr, allocation }) => acc + apr * allocation,
         0,
     );
+
+    if (rewardConfig[pool]) {
+        const rewardDistributor = rewardConfig[pool];
+
+        const rewardToken = [chainMapping[chain].nativeToken];
+
+        const totalStaked = await sdk.api.abi.call({
+            target: rewardDistributor,
+            abi: 'function totalStaked() view returns (uint256)',
+            chain
+        });
+        const rewardsPerSecond = await sdk.api.abi.call({
+            target: rewardDistributor,
+            abi: 'function rewardsPerSecond() view returns (uint256)',
+            chain
+        });
+
+        const priceKey = `${utils.formatChain(chain)}:${rewardToken[0]}`;
+        const rewardTokenPrice = (await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)).data.coins[priceKey]?.price;
+
+        const rewardAPR =
+            ((Number(ethers.utils.formatUnits(rewardsPerSecond.output, chainMapping[chain].decimals)) *
+                APR_MULTIPLIER *
+                rewardTokenPrice) /
+                (ethers.utils.formatUnits(totalStaked.output, pool_decimals) * Number(1))) *
+            100;
+
+        return {
+            pool: `${pool}-${utils.formatChain(chain)}`,
+            chain: utils.formatChain(chain),
+            project: projectName,
+            symbol: symbol,
+            tvlUsd: tvlUsd,
+            apyBase: weightedAverage,
+            apyReward: rewardAPR,
+            rewardTokens: rewardToken,
+            underlyingTokens: [underlying_token],
+        }
+    }
 
     return {
         pool: `${pool}-${utils.formatChain(chain)}`,
