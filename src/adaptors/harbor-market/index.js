@@ -4,6 +4,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const abiLendingPool = require('./abiLendingPool');
 const abiProtocolDataProvider = require('./abiProtocolDataProvider');
+const abiSimplifiedProtocolDataReader = require('./abiSimplifiedProtocolDataReader');
 
 const utils = require('../utils');
 
@@ -12,6 +13,8 @@ const chains = {
     LendingPool: '0xf5Ab6C920af8f1bd4b16fDa9e7EF3173ffb616f7',
     ProtocolDataProvider: '0xFa0AC9b741F0868B2a8C4a6001811a5153019818',
     url: 'bsc',
+    SimplifiedProtocolDataReader: '0x2756F9db44dB040437bF58E850A454a38E390b9C',
+    rewardTokens: ['0x45c19a3068642b98f5aef1dede023443cd1fbfad']
   },
 };
 
@@ -20,6 +23,7 @@ const getApy = async () => {
     Object.keys(chains).map(async (chain) => {
       const addresses = chains[chain];
       const sdkChain = chain;
+      const rewardTokens = addresses.rewardTokens;
 
       const reservesList = (
         await sdk.api.abi.call({
@@ -28,6 +32,39 @@ const getApy = async () => {
           chain: sdkChain,
         })
       ).output.filter((address) => address.toLowerCase() !== '0x4206931337dc273a630d328dA6441786BfaD668f'.toLowerCase());;
+
+      // try catches incase of safemath error
+      let rewardsData;
+      try {
+        rewardsData = await sdk.api.abi.multiCall({
+          calls: reservesList.map((reserve) => ({
+            target: addresses.SimplifiedProtocolDataReader,
+            params: [reserve],
+          })),
+          abi: abiSimplifiedProtocolDataReader.find((m) => m.name === 'getAssetRewardsAPR'),
+          chain: sdkChain,
+          failOnRevert: false, // Add this option to prevent failing on reverts
+        });
+      } catch (error) {
+        console.error(`Error fetching rewards data for chain ${chain}:`, error);
+        // Implement fallback mechanism or use default values
+        rewardsData = {
+          output: reservesList.map(() => ({ success: false, output: null }))
+        };
+      }
+
+      // Process the results, handling potential failures
+      const processedRewardsData = rewardsData.output.map((result, index) => {
+        if (result.success && Array.isArray(result.output) && result.output.length === 2) {
+          return {
+            apyReward: Number(result.output[0]) / 1e8,
+            apyRewardBorrow: Number(result.output[1]) / 1e8
+          };
+        } else {
+          console.warn(`Failed to get rewards data for reserve ${reservesList[index]} on chain ${chain}`);
+          return { apyReward: 0, apyRewardBorrow: 0 };
+        }
+      });
 
       const reserveData = (
         await sdk.api.abi.multiCall({
@@ -93,7 +130,10 @@ const getApy = async () => {
 
       return reservesList.map((t, i) => {
         const config = reserveConfigurationData[i];
-        if (!config || !config.isActive) return null;
+
+        const { apyReward, apyRewardBorrow } = processedRewardsData[i];
+
+        if (!config.isActive) return null;
 
         const price = prices[`${sdkChain}:${t}`]?.price;
 
@@ -117,12 +157,15 @@ const getApy = async () => {
           chain,
           tvlUsd,
           apyBase,
+          // apyReward,
           underlyingTokens: [t],
           url,
           // borrow fields
           totalSupplyUsd,
           totalBorrowUsd,
           apyBaseBorrow,
+          // apyRewardBorrow,
+          // rewardTokens,
           ltv,
           borrowable,
           poolMeta: frozen ? 'frozen' : null,

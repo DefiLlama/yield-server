@@ -8,7 +8,7 @@ const getVault = async (address, price, symbol, token) => {
     const vault = (await utils.getData(GRAPHQL_ENDPOINT, {
         query: `
         query {
-  vault(address: "${address}") {
+  getVault(address: "${address}") {
     freeBalance
     config {
       asset {
@@ -21,7 +21,7 @@ const getVault = async (address, price, symbol, token) => {
     }
   }
 }`
-    })).data.vault;
+    })).data.getVault;
     console.log(vault);
     return {
         pool: `${address}-ton`.toLowerCase(),

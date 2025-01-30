@@ -1,18 +1,17 @@
 const { request, gql } = require('graphql-request');
-const utils = require('../utils');
-const superagent = require('superagent');
 
-const MORPHO_TOKEN_ADDRESS = '0x9994E35Db50125E0DF82e4c2dde62496CE330999';
-
-const subgraphUrls = {
-  morphoBlue: 'https://blue-api.morpho.org/graphql',
+const GRAPH_URL = 'https://blue-api.morpho.org/graphql';
+const CHAINS = {
+  ethereum: 1,
+  base: 8453,
 };
 
 const gqlQueries = {
   marketsData: gql`
-    query GetYieldsData($chainId: Int!) {
+    query GetYieldsData($chainId: Int!, $skip: Int!) {
       markets(
-        first: 800
+        first: 100
+        skip: $skip
         orderBy: SupplyAssetsUsd
         orderDirection: Desc
         where: { chainId_in: [$chainId] }
@@ -44,6 +43,7 @@ const gqlQueries = {
             supplyAssetsUsd
             borrowAssetsUsd
             rewards {
+              borrowApr
               asset {
                 address
               }
@@ -54,9 +54,10 @@ const gqlQueries = {
     }
   `,
   metaMorphoVaults: gql`
-    query GetVaultsData($chainId: Int!) {
+    query GetVaultsData($chainId: Int!, $skip: Int!) {
       vaults(
         first: 100
+        skip: $skip
         orderBy: TotalAssetsUsd
         orderDirection: Desc
         where: { chainId_in: [$chainId] }
@@ -79,10 +80,18 @@ const gqlQueries = {
             fee
             totalSupply
             allocation {
+              supplyAssetsUsd
               market {
                 uniqueKey
+                state {
+                  rewards {
+                    asset {
+                      address
+                    }
+                    supplyApr
+                  }
+                }
               }
-              supplyAssetsUsd
             }
           }
         }
@@ -91,222 +100,138 @@ const gqlQueries = {
   `,
 };
 
-async function fetchGraphData(query, url, chainId) {
-  try {
-    return await request(url, query, {
-      chainId: chainId,
-    });
-  } catch (error) {
-    console.error('Error fetching graph data:', error);
-    return {};
-  }
-}
-
-function isNegligible(valueA, valueB, threshold = 0.01) {
+const isNegligible = (valueA, valueB, threshold = 0.01) => {
   return Math.abs(valueA - valueB) / (valueA + valueB) < threshold;
-}
+};
 
-function validatePool(pool) {
-  const requiredFields = [
-    'pool',
-    'chain',
-    'project',
-    'symbol',
-    'apyBase',
-    'apyReward',
-    'rewardTokens',
-    'tvlUsd',
-    'underlyingTokens',
-    'apyBaseBorrow',
-    'apyRewardBorrow',
-    'totalSupplyUsd',
-    'totalBorrowUsd',
-    'ltv',
-    'poolMeta',
-  ];
-  return requiredFields.every((field) => pool[field] !== undefined);
-}
+const apy = async () => {
+  let pools = [];
 
-async function fetchBlueMarkets(chainId) {
-  try {
-    const marketDataResponse = await fetchGraphData(
-      gqlQueries.marketsData,
-      subgraphUrls.morphoBlue,
-      chainId
-    );
+  for (const [chain, chainId] of Object.entries(CHAINS)) {
+    // Fetch vaults data with pagination
+    let allVaults = [];
+    let skip = 0;
+    while (true) {
+      const { vaults } = await request(GRAPH_URL, gqlQueries.metaMorphoVaults, {
+        chainId,
+        skip,
+      });
 
-    const marketData = marketDataResponse?.markets.items || [];
+      if (!vaults.items.length) break;
 
-    return Object.fromEntries(
-      marketData
-        .map((market) => {
-          if (!market) {
-            console.warn('Skipping market due to undefined market data');
-            return null; // Skip undefined market
-          }
+      allVaults = [...allVaults, ...vaults.items];
+      skip += 100;
+    }
 
-          const lltv = market.lltv / 1e18;
-          const rewardTokens = market.state.rewards
-            .map((reward) => reward.asset.address)
-            .filter((address) => address !== MORPHO_TOKEN_ADDRESS);
-          const apyReward = Math.max(
-            0,
-            (market.state.netSupplyApy || 0) - (market.state.supplyApy || 0)
-          );
-          const apyRewardBorrow = Math.max(
-            0,
-            (market.state.netBorrowApy || 0) - (market.state.borrowApy || 0)
-          );
+    // Fetch markets data with pagination
+    let allMarkets = [];
+    skip = 0;
+    while (true) {
+      const { markets } = await request(GRAPH_URL, gqlQueries.marketsData, {
+        chainId,
+        skip,
+      });
 
-          const chain = chainId === 1 ? 'ethereum' : 'base';
-          const pool = {
-            pool: `morpho-blue-${market.uniqueKey}-${chain}`,
-            chain,
-            project: 'morpho-blue',
-            symbol: `${market.collateralAsset?.symbol || 'idle-market'}-${
-              market.loanAsset.symbol
-            }`,
-            apyBase: market.state.supplyApy || 0,
-            apyReward,
-            rewardTokens,
-            tvlUsd:
-              (market.state.collateralAssetsUsd || 0) +
-              (market.state.supplyAssetsUsd || 0) -
-              (market.state.borrowAssetsUsd || 0),
-            underlyingTokens: [market.loanAsset.address],
-            apyBaseBorrow: market.state.borrowApy || 0,
-            apyRewardBorrow,
-            totalSupplyUsd:
-              (market.state.supplyAssetsUsd || 0) +
-              (market.state.collateralAssetsUsd || 0),
-            totalBorrowUsd: market.state.borrowAssetsUsd || 0,
-            ltv: lltv,
-            poolMeta: `LTV: ${lltv * 100}%`,
-          };
-          if (!validatePool(pool)) {
-            console.warn(`Skipping invalid pool: ${JSON.stringify(pool)}`);
-            return null; // Skip invalid pool
-          }
-          return [market.uniqueKey, pool];
-        })
-        .filter(Boolean) // Filter out null entries
-    );
-  } catch (error) {
-    console.error('Error in fetchBlueMarkets:', error);
-    return [];
-  }
-}
+      if (!markets.items.length) break;
 
-async function fetchMetaMorphoAPY(blueMarketsData, chainId) {
-  try {
-    const vaultsDataResponse = await fetchGraphData(
-      gqlQueries.metaMorphoVaults,
-      subgraphUrls.morphoBlue,
-      chainId
-    );
+      allMarkets = [...allMarkets, ...markets.items];
+      skip += 100;
+    }
 
-    const vaultData = vaultsDataResponse?.vaults.items || [];
+    const earn = allVaults;
+    const borrow = allMarkets;
 
-    return Object.fromEntries(
-      vaultData
-        .map((vault) => {
-          if (!vault) {
-            console.warn('Skipping vault due to undefined vault data');
-            return null; // Skip undefined vault
-          }
-
-          if (vault.state.totalAssetsUsd < 10000) {
-            console.log('Skipping vault due to insufficient USD value:', vault);
-            return null; // Skip vault with insufficient value
-          }
-
-          const lltv = 1;
-          let additionalRewardTokens = [];
-
-          vault.state.allocation.forEach((allocatedMarket) => {
-            if (allocatedMarket.supplyAssetsUsd !== 0) {
-              const marketRewards = blueMarketsData.find(
-                (market) =>
-                  market.pool ===
-                  `morpho-blue-${allocatedMarket.market.uniqueKey}`
-              );
-              if (marketRewards) {
-                additionalRewardTokens = additionalRewardTokens.concat(
-                  marketRewards.rewardTokens
-                );
-              }
+    const earnPools = earn.map((vault) => {
+      // fetch reward token addresses from allocation data
+      let additionalRewardTokens = new Set();
+      vault.state.allocation.forEach((allocatedMarket) => {
+        const allocationUsd = allocatedMarket.supplyAssetsUsd;
+        if (allocationUsd > 0) {
+          // For each reward from the allocated market
+          allocatedMarket.market.state.rewards?.forEach((rw) => {
+            if (rw.supplyApr > 0) {
+              additionalRewardTokens.add(rw.asset.address.toLowerCase());
             }
           });
+        }
+      });
 
-          const rewardsApy = vault.state.netApy - vault.state.apy;
-          const isNegligibleApy = isNegligible(rewardsApy, vault.state.apy);
-          const apyReward =
-            isNegligibleApy || additionalRewardTokens.length === 0
-              ? 0
-              : rewardsApy;
-          const rewardTokens =
-            isNegligibleApy || additionalRewardTokens.length === 0
-              ? []
-              : [...new Set(additionalRewardTokens)];
+      // net = including rewards, apy = baseApy
+      const rewardsApy = Math.max(vault.state.netApy - vault.state.apy, 0);
+      const isNegligibleApy = isNegligible(rewardsApy, vault.state.netApy);
+      const rewardTokens = isNegligibleApy ? [] : [...additionalRewardTokens];
+      const apyReward = rewardTokens.length === 0 ? 0 : rewardsApy * 100;
 
-          const chain = chainId === 1 ? 'ethereum' : 'base';
-          const pool = {
-            pool: `morpho-blue-${vault.address}-${chain}`,
-            chain,
-            project: 'morpho-blue',
-            symbol: vault.symbol,
-            apyBase: vault.state.apy || 0,
-            apyReward,
-            rewardTokens,
-            tvlUsd: vault.state.totalAssetsUsd || 0,
-            underlyingTokens: [vault.asset.address],
-            apyBaseBorrow: 0,
-            apyRewardBorrow: 0,
-            totalSupplyUsd: vault.state.totalAssetsUsd || 0,
-            totalBorrowUsd: 0,
-            ltv: lltv,
-            poolMeta: `LTV: ${lltv * 100}%`,
-          };
-          if (!validatePool(pool)) {
-            console.warn(`Skipping invalid pool: ${JSON.stringify(pool)}`);
-            return null; // Skip invalid pool
-          }
-          return [vault.address, pool];
-        })
-        .filter(Boolean) // Filter out null entries
-    );
-  } catch (error) {
-    console.error('Error in fetchMetaMorphoAPY:', error);
-    return [];
-  }
-}
+      return {
+        pool: `morpho-blue-${vault.address}-${chain}`,
+        chain,
+        project: 'morpho-blue',
+        symbol: vault.symbol,
+        apyBase: vault.state.apy * 100,
+        tvlUsd: vault.state.totalAssetsUsd || 0,
+        underlyingTokens: [vault.asset.address],
+        url: `https://app.morpho.org/vault?vault=${vault.address}&network=${
+          chain === 'ethereum' ? 'mainnet' : chain
+        }`,
+        apyReward,
+        rewardTokens,
+      };
+    });
 
-async function apy() {
-  const chainIds = [1, 8453];
-  let finalResult = [];
+    const borrowPools = borrow.map((market) => {
+      if (!market.collateralAsset?.symbol) return null;
+      const rewardTokens = market.state.rewards
+        .filter((reward) => reward.borrowApr > 0)
+        .map((reward) => reward.asset.address);
 
-  for (const chainId of chainIds) {
-    const blueMarketsData = Object.values(await fetchBlueMarkets(chainId));
-    const metaMorphoAPYData = Object.values(
-      await fetchMetaMorphoAPY(blueMarketsData, chainId)
-    );
+      const apyRewardBorrow =
+        Math.max(
+          0,
+          (market.state.borrowApy || 0) - (market.state.netBorrowApy || 0)
+        ) * 100;
 
-    const combinedData = metaMorphoAPYData.concat(blueMarketsData).map((i) => ({
-      ...i,
-      apyBase: i.apyBase * 100,
-      apyBaseBorrow: i.apyBaseBorrow * 100,
-      apyReward: i.apyReward * 100,
-      apyRewardBorrow: i.apyRewardBorrow * 100,
-    }));
+      return {
+        pool: `morpho-blue-${market.uniqueKey}-${chain}`,
+        chain,
+        project: 'morpho-blue',
+        symbol: market.collateralAsset?.symbol,
+        apy: 0,
+        tvlUsd: market.state.collateralAssetsUsd || 0,
+        underlyingTokens: [market.collateralAsset.address],
+        apyBaseBorrow: market.state.borrowApy * 100,
+        totalSupplyUsd: market.state.collateralAssetsUsd,
+        totalBorrowUsd: market.state.borrowAssetsUsd,
+        debtCeilingUsd:
+          market.state.supplyAssetsUsd - market.state.borrowAssetsUsd,
+        ltv: market.lltv / 1e18,
+        mintedCoin: market.loanAsset?.symbol,
+        url: `https://app.morpho.org/market?id=${market.uniqueKey}&network=${
+          chain === 'ethereum' ? 'mainnet' : chain
+        }`,
+        apyRewardBorrow,
+        rewardTokens: apyRewardBorrow > 0 ? rewardTokens : [],
+      };
+    });
 
-    finalResult = finalResult.concat(combinedData);
+    pools = [...pools, ...earnPools, ...borrowPools];
   }
 
-  return finalResult;
-}
+  const uniquePools = Array.from(
+    pools
+      .reduce((map, pool) => {
+        if (!pool) return map;
+        const key = `morpho-blue-${pool.pool}-${pool.chain}`;
+        if (!map.has(key) || pool.tvlUsd > map.get(key).tvlUsd) {
+          map.set(key, pool);
+        }
+        return map;
+      }, new Map())
+      .values()
+  );
+
+  return uniquePools.filter(Boolean);
+};
 
 module.exports = {
-  timetravel: false,
   apy,
-  url: 'https://app.morpho.xyz',
 };

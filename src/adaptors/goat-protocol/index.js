@@ -1,10 +1,10 @@
 const utils = require('../utils');
 
-const dappUrl = 'https://goat.fi';
+const dappUrl = 'https://app.goat.fi';
 const url = 'https://api.goat.fi';
 const urlApy = `${url}/apy`;
 const urlTvl = `${url}/tvl`;
-const urlMeta = `${url}/vaults`;
+const urlMeta = `${url}/multistrategies`;
 
 const networkMapping = {
   42161: 'arbitrum',
@@ -21,28 +21,22 @@ const main = async () => {
       if (apy[pool] === undefined) {
         continue;
       }
-      const poolMeta = meta.find((m) => m?.id === pool);
-      const platformId = poolMeta?.platformId;
+      const poolMeta = meta.find((m) => m?.address === pool);
 
       if (!poolMeta) continue;
 
-      const poolId = poolMeta.earnedTokenAddress;
+      const poolId = poolMeta.address;
       const isActive = poolMeta.status == 'active';
 
-      const underlyingTokens =
-        poolMeta && poolMeta.assets.length === 1 && poolMeta.tokenAddress
-          ? [poolMeta.tokenAddress]
-          : undefined;
+      const underlyingTokens = poolMeta ? [poolMeta.asset] : undefined;
 
       data.push({
         pool: `${poolId}-${networkMapping[chain]}`.toLowerCase(),
         chain: utils.formatChain(networkMapping[chain]),
         project: 'goat-protocol',
-        symbol: utils.formatSymbol(poolMeta?.assets.join('-')),
+        symbol: utils.formatSymbol(poolMeta.oracleId),
         tvlUsd: poolData[pool],
         apy: isActive ? apy[pool] * 100 : 0,
-        poolMeta:
-          platformId === undefined ? null : utils.formatChain(platformId),
         underlyingTokens,
         url: `${dappUrl}/#/${networkMapping[chain].toLowerCase()}/vault/${poolId}`
       });

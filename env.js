@@ -26,4 +26,5 @@ module.exports = {
   GRAPH_API_KEY: process.env.GRAPH_API_KEY,
   // DB
   DATABASE_URL: process.env.DATABASE_URL,
+  OSMOSIS_API_KEY: process.env.OSMOSIS_API_KEY,
 };

@@ -32,7 +32,7 @@
       {
         "name": "",
         "type": "tuple[]",
-        "internalType": "struct MarketState.MarketsInfo[]",
+        "internalType": "struct MarketStateV2.MarketsInfo[]",
         "components": [
           { "name": "tvl", "type": "uint256", "internalType": "uint256" },
           { "name": "ltv", "type": "uint256", "internalType": "uint256" },
@@ -58,6 +58,11 @@
           },
           {
             "name": "blocksPerYear",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "timestampsPerYear",
             "type": "uint256",
             "internalType": "uint256"
           },

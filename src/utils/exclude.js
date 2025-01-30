@@ -128,7 +128,6 @@ const excludeAdaptors = [
   'platypus-finance',
   'biswap-v2',
   'burrow',
-  'raydium',
   'ref-finance',
   'shoebill-v1',
   'auragi-finance',
@@ -143,6 +142,22 @@ const excludeAdaptors = [
   'stakehouse',
   'yeti-finance',
   'lst-optimizer',
+  'mellow-yield',
+  'glacier-exchange-v2',
+  'pinjam-labs',
+  'horizondex',
+  'equilibre',
+  'maia-dao',
+  'hermes-protocol',
+  'xtoken',
+  'arbitrum-exchange-v3',
+  'bfx-(blast-futures)',
+  'stack',
+  'liquid-bolt',
+  'avault',
+  'metastreet-v2',
+  'mero',
+  'meteora', // pushed by mistake
 ];
 
 const excludePools = [
@@ -598,6 +613,20 @@ const excludePools = [
   '0xefb02e6287bB46AC9196DE3e4120E3749e8DE59a',
   '0x522Dc96E6fD6F78A4E7433d0Ee05B7087e515236',
   '0x478946BcD4a5a22b316470F5486fAfb928C0bA25',
+
+  '0xC2E840BdD02B4a1d970C87A912D8576a7e61D314',
+  'morpho-blue-0x3f35b581cf7292b09fdaca648638ec8b53969e9f54ecb6ca0e6252bda70b1f64-ethereum',
+  'morpho-blue-0xEbFA750279dEfa89b8D99bdd145a016F6292757b-ethereum',
+
+  'morpho-blue-0xbef47159fd478cdd8c34073b71f97ca796aad295a87192fcffc813fad60de9f4-ethereum',
+  'morpho-blue-0xdf2654405b27b5cf7a8f5fd78337e0440d37cbc797de38b1421752671f0ed3b6-ethereum',
+  'morpho-blue-0x0d55c325847ed87d53506c2aca7de046cb59d8c22928fd55fb2790c4811d20db-ethereum',
+  'morpho-blue-0x355c9a4c12f60a10ab3b68507bfab21bd6913182037ffe25d94dabffea45429f-ethereum',
+  'FqsCPQ7x4qFcbxVLdmx1ty7iqSFWYcUzxxsxUFq4eyBn',
+  '0x1f0bc333c535838ca1020c87a6a043d89577c563-usdc-real',
+  '0xba309e52c154f090c34c6574b78548fd24a7e284c4d52b832aa50ef67b7a6ac4',
+  '0xbc2539b24bba254b9843e992a3802027275c50c2ecef1b71d52e289781560ace',
+  '0x1ba3281b6012f0b927d4d122bda293aa3cac487f',
 ];
 
 const boundaries = {

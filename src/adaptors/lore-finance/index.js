@@ -4,6 +4,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const abiLendingPool = require('./abiLendingPool');
 const abiProtocolDataProvider = require('./abiProtocolDataProvider');
+const abiSimplifiedProtocolDataReader = require('./abiSimplifiedProtocolDataReader');
 
 const utils = require('../utils');
 
@@ -12,6 +13,8 @@ const chains = {
     LendingPool: '0x4cE1A1eC13DBd9084B1A741b036c061b2d58dABf',
     ProtocolDataProvider: '0xb17844F6E50f4eE8f8FeC7d9BA200B0E034b8236',
     url: 'scroll',
+    SimplifiedProtocolDataReader: '0x8d21d9Cb7B6Bd1acf99C46295A9558bE6DDD2fDe',
+    rewardTokens: ['0xf270bfe3f97655fff1d89aff50a8e1dc381941b5']
   },
 };
 
@@ -20,6 +23,7 @@ const getApy = async () => {
     Object.keys(chains).map(async (chain) => {
       const addresses = chains[chain];
       const sdkChain = chain;
+      const rewardTokens = addresses.rewardTokens;
 
       const reservesList = (
         await sdk.api.abi.call({
@@ -28,6 +32,39 @@ const getApy = async () => {
           chain: sdkChain,
         })
       ).output;
+
+      // try catches incase of safemath error
+      let rewardsData;
+      try {
+        rewardsData = await sdk.api.abi.multiCall({
+          calls: reservesList.map((reserve) => ({
+            target: addresses.SimplifiedProtocolDataReader,
+            params: [reserve],
+          })),
+          abi: abiSimplifiedProtocolDataReader.find((m) => m.name === 'getAssetRewardsAPR'),
+          chain: sdkChain,
+          failOnRevert: false, // Add this option to prevent failing on reverts
+        });
+      } catch (error) {
+        console.error(`Error fetching rewards data for chain ${chain}:`, error);
+        // Implement fallback mechanism or use default values
+        rewardsData = {
+          output: reservesList.map(() => ({ success: false, output: null }))
+        };
+      }
+
+      // Process the results, handling potential failures
+      const processedRewardsData = rewardsData.output.map((result, index) => {
+        if (result.success && Array.isArray(result.output) && result.output.length === 2) {
+          return {
+            apyReward: Number(result.output[0]) / 1.893563261 / 1e8,
+            apyRewardBorrow: Number(result.output[1]) / 1.893563261 / 1e8
+          };
+        } else {
+          console.warn(`Failed to get rewards data for reserve ${reservesList[index]} on chain ${chain}`);
+          return { apyReward: 0, apyRewardBorrow: 0 };
+        }
+      });
 
       const reserveData = (
         await sdk.api.abi.multiCall({
@@ -93,6 +130,9 @@ const getApy = async () => {
 
       return reservesList.map((t, i) => {
         const config = reserveConfigurationData[i];
+
+        const { apyReward, apyRewardBorrow } = processedRewardsData[i];
+
         if (!config.isActive) return null;
 
         const price = prices[`${sdkChain}:${t}`]?.price;
@@ -104,11 +144,15 @@ const getApy = async () => {
         const apyBase = reserveData[i].currentLiquidityRate / 1e25;
         const apyBaseBorrow = reserveData[i].currentVariableBorrowRate / 1e25;
 
+        // console.log(`Raw reward data for ${symbols[i]}:`, rewardsData.output[i]?.output);
+        // console.log(`Parsed apyReward for ${symbols[i]}:`, apyReward);
+        // console.log(`Parsed apyRewardBorrow for ${symbols[i]}:`, apyRewardBorrow);
+
         const ltv = config.ltv / 1e4;
         const borrowable = config.borrowingEnabled;
         const frozen = config.isFrozen;
         const poolSymbol = symbols[i].toLowerCase()
-        const url = `https://lore.finance/markets/${poolSymbol}`;
+        const url = `https://app.lore.finance/markets/${poolSymbol}`;
 
         return {
           pool: `${reserveData[i].aTokenAddress}-${chain}`.toLowerCase(),
@@ -117,12 +161,15 @@ const getApy = async () => {
           chain,
           tvlUsd,
           apyBase,
+          // apyReward,
           underlyingTokens: [t],
           url,
           // borrow fields
           totalSupplyUsd,
           totalBorrowUsd,
           apyBaseBorrow,
+          // apyRewardBorrow,
+          // rewardTokens,
           ltv,
           borrowable,
           poolMeta: frozen ? 'frozen' : null,

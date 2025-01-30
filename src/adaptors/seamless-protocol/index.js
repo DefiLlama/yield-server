@@ -238,10 +238,10 @@ const lendingPoolsApy = async () => {
         .reduce(
           (acc, rew) =>
             acc +
-            (Number(rew.emissionsPerSecond) / 10 ** rew.rewardTokenDecimals) *
+            (Number(rew?.emissionsPerSecond) / 10 ** rew?.rewardTokenDecimals) *
               SECONDS_PER_YEAR *
-              (pricesByAddress[rew.rewardToken] ||
-                pricesBySymbol[rew.rewardTokenSymbol] ||
+              (pricesByAddress[rew?.rewardToken] ||
+                pricesBySymbol[rew?.rewardTokenSymbol] ||
                 0),
           0
         );
@@ -252,10 +252,10 @@ const lendingPoolsApy = async () => {
         .reduce(
           (acc, rew) =>
             acc +
-            (Number(rew.emissionsPerSecond) / 10 ** rew.rewardTokenDecimals) *
+            (Number(rew?.emissionsPerSecond) / 10 ** rew?.rewardTokenDecimals) *
               SECONDS_PER_YEAR *
-              (pricesByAddress[rew.rewardToken] ||
-                pricesBySymbol[rew.rewardTokenSymbol] ||
+              (pricesByAddress[rew?.rewardToken] ||
+                pricesBySymbol[rew?.rewardTokenSymbol] ||
                 0),
           0
         );
@@ -274,7 +274,7 @@ const lendingPoolsApy = async () => {
           : null,
         rewardTokens: rewards
           .filter(({ distributionEnd }) => distributionEnd > now)
-          .map((rew) => rew.rewardToken),
+          .map((rew) => rew?.rewardToken),
         underlyingTokens: [pool.aToken.underlyingAssetAddress],
         totalSupplyUsd,
         totalBorrowUsd,
@@ -431,10 +431,10 @@ const ilmApys = async () => {
     const rewardPerYear = rewards.reduce(
       (acc, rew) =>
         acc +
-        (Number(rew.emissionsPerSecond) / 10 ** rew.rewardTokenDecimals) *
+        (Number(rew?.emissionsPerSecond) / 10 ** rew?.rewardTokenDecimals) *
           SECONDS_PER_YEAR *
-          (pricesByAddress[rew.rewardToken] ||
-            pricesBySymbol[rew.rewardTokenSymbol] ||
+          (pricesByAddress[rew?.rewardToken] ||
+            pricesBySymbol[rew?.rewardTokenSymbol] ||
             0),
       0
     );
@@ -460,7 +460,7 @@ const ilmApys = async () => {
         COMPOUNDING_PERIODS
       ),
       apyReward: !!rewardPerYear ? (rewardPerYear / tvlUsd) * 100 : null,
-      rewardTokens: rewards.map((rew) => rew.rewardToken),
+      rewardTokens: rewards.map((rew) => rew?.rewardToken),
       underlyingTokens: [assets[i].underlying || assets[i].collateral],
     };
   });
