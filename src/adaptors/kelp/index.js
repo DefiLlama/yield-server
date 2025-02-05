@@ -52,7 +52,7 @@ const apy = async () => {
     {
       pool: `${rsETH}-ethereum`.toLowerCase(),
       chain: 'Ethereum',
-      project: 'kelp-rseth',
+      project: 'kelp',
       symbol: 'rsETH',
       underlyingTokens: tokens,
       tvlUsd,

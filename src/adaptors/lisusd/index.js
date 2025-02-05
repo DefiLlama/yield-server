@@ -24,6 +24,20 @@ const INTERACTION = {
       stateMutability: 'view',
       type: 'function',
     },
+    collateralTVL: {
+      inputs: [{ internalType: 'address', name: 'token', type: 'address' }],
+      name: 'collateralTVL',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
+    collateralRate: {
+      inputs: [{ internalType: 'address', name: 'token', type: 'address' }],
+      name: 'collateralRate',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
   },
 };
 
@@ -56,6 +70,25 @@ const JUG = {
       outputs: [
         { internalType: 'uint256', name: 'duty', type: 'uint256' },
         { internalType: 'uint256', name: 'rho', type: 'uint256' },
+      ],
+      stateMutability: 'view',
+      type: 'function',
+    },
+  },
+};
+
+const VAT = {
+  address: '0x33A34eAB3ee892D40420507B820347b1cA2201c4',
+  abis: {
+    ilks: {
+      inputs: [{ internalType: 'bytes32', name: '', type: 'bytes32' }],
+      name: 'ilks',
+      outputs: [
+        { internalType: 'uint256', name: 'Art', type: 'uint256' },
+        { internalType: 'uint256', name: 'rate', type: 'uint256' },
+        { internalType: 'uint256', name: 'spot', type: 'uint256' },
+        { internalType: 'uint256', name: 'line', type: 'uint256' },
+        { internalType: 'uint256', name: 'dust', type: 'uint256' },
       ],
       stateMutability: 'view',
       type: 'function',
@@ -160,14 +193,48 @@ const getApy = async () => {
 
           //   const tvlUsd = (Number(tvl) / 1e18) * prices[priceKey].price;
 
+          // Get collateral rate and debt
+          const [collateralRateRes, debtRes] = await Promise.all([
+            sdk.api.abi.call({
+              target: INTERACTION.address,
+              params: [collateral.address],
+              abi: INTERACTION.abis.collateralRate,
+              chain: 'bsc',
+            }),
+            sdk.api.abi.call({
+              target: INTERACTION.address,
+              params: [collateral.address],
+              abi: INTERACTION.abis.collateralTVL,
+              chain: 'bsc',
+            }),
+          ]);
+
+          const collateralRate = Number(collateralRateRes.output) / 1e18;
+          const debt = Number(debtRes.output) / 1e18;
+
+          // Get VAT ilks data for debt ceiling
+          const ilkHash = getIlks(collateral);
+          const vatIlksRes = await sdk.api.abi.call({
+            target: VAT.address,
+            params: [ilkHash],
+            abi: VAT.abis.ilks,
+            chain: 'bsc',
+          });
+
+          const debtCeiling = Number(vatIlksRes.output.line) / 1e45; // line is in RAD (45 decimals)
           return {
             pool: `${collateral.address}-bsc`.toLowerCase(),
             chain: 'bsc',
             project: 'lisusd',
             symbol: collateral.symbol,
-            underlyingTokens: [collateral.address],
+            apy: 0,
             tvlUsd: Number(tvl) / 1e18,
-            apyBase: 0,
+
+            totalSupplyUsd: Number(tvl) / 1e18,
+            totalBorrowUsd: debt,
+            debtCeilingUsd: debtCeiling,
+            mintedCoin: 'lisUSD',
+            ltv: collateralRate,
             apyBaseBorrow: aprRates || 0,
           };
         } catch (error) {
