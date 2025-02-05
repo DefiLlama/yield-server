@@ -146,11 +146,11 @@ const apy = async () => {
       continue;
     }
 
-    const aprBase = (totalRewardsUsd * 365) / (tvlUsd * daysSinceStart) * 100;
-    const apyBase = utils.aprToApy(aprBase, 52);
+    const aprReward = (totalRewardsUsd * 365) / (tvlUsd * daysSinceStart) * 100;
+    const apyReward = utils.aprToApy(aprReward, 52);
 
-    console.log(`APR (Base) for ${chain}: `, aprBase);
-    console.log(`APY (Base) for ${chain}: `, apyBase);
+    console.log(`APR (Reward) for ${chain}: `, aprReward);
+    console.log(`APY (Reward) for ${chain}: `, apyReward);
 
     results.push({
       pool: VOTING_ESCROW_ADDRESSES[chain],
@@ -158,7 +158,7 @@ const apy = async () => {
       project: 'zeebu',
       symbol: 'ZBU',
       tvlUsd,
-      apyBase,
+      apyReward,
       rewardTokens: REWARD_TOKENS[chain],
       underlyingTokens: [ZBU[chain]],
       poolMeta: 'Zeebu Staking Rewards',
