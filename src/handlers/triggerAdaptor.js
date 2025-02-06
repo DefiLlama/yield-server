@@ -362,8 +362,10 @@ const main = async (body) => {
         p.apyRewardBorrowFake !== null
           ? +p.apyRewardBorrowFake.toFixed(precision)
           : p.apyRewardBorrowFake,
-      volumeUsd1d: p.volumeUsd1d ? +p.volumeUsd1d.toFixed(precision) : null,
-      volumeUsd7d: p.volumeUsd7d ? +p.volumeUsd7d.toFixed(precision) : null,
+      volumeUsd1d:
+        p.volumeUsd1d >= 0 ? +p.volumeUsd1d.toFixed(precision) : null,
+      volumeUsd7d:
+        p.volumeUsd7d >= 0 ? +p.volumeUsd7d.toFixed(precision) : null,
       apyBaseInception: p.apyBaseInception
         ? +p.apyBaseInception.toFixed(precision)
         : null,
