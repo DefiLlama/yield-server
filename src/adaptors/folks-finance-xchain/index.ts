@@ -186,7 +186,7 @@ const updateWithRewardsV1Data = async (poolsInfo) => {
   poolsInfo.forEach((poolInfo, i) => {
     if (poolRewardsInfo[i] === null) return;
     const { remainingRewards, remainingTime } = poolRewardsInfo[i];
-    poolInfo.rewardTokens.push(`${rewardTokenAddr}-${rewardChain}`);
+    poolInfo.rewardTokens.push(`${rewardChain}:${rewardTokenAddr}`);
     poolInfo.apyReward += calculateRewardApr(
       remainingRewards,
       avaxPrice,
