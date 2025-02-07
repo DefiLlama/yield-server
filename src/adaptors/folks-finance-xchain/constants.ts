@@ -1,4 +1,4 @@
-const PROJECT_SLUG = 'folks-xchain';
+const PROJECT_SLUG = 'folks-finance-xchain';
 
 const ONE_18_DP = BigInt(1e18);
 const EVERY_HOUR = BigInt(365 * 24);
