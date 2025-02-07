@@ -30,7 +30,9 @@ async function getPoolsForChain(chain, timestamp) {
     {
       beans${block ? `(block: {number: ${block}})` : ''} {
         id
-        lastSeason
+        currentSeason {
+          season
+        }
         pools {
           id
           liquidityUSD
@@ -47,7 +49,7 @@ async function getPoolsForChain(chain, timestamp) {
 
     // Get apy info
     const apy = await axios.post(API, {
-      season: bean.lastSeason,
+      season: bean.currentSeason.season,
       emaWindows: [720],
       tokens: bean.pools.map(p => p.id),
       options: {
