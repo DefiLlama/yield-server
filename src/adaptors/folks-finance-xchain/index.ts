@@ -27,7 +27,7 @@ async function initPools() {
       });
       const tokensAndOwners = HubPools[chain].pools.map((pool) => [
         pool.tokenAddress,
-        pool.chainPoolAddress ?? pool.poolAddress,
+        pool.spokeAddress ?? pool.poolAddress,
       ]);
       return await chainApi.sumTokens({ tokensAndOwners });
     })
@@ -54,6 +54,7 @@ async function initPools() {
         tvlUsd: toUsdValue(poolTvl, price, decimals),
         underlyingTokens: [pool.tokenAddress],
         rewardTokens: [],
+        apyReward: 0,
         meta: {
           poolId: pool.id,
           pool: pool.poolAddress.toLowerCase(),
@@ -118,20 +119,22 @@ const updateWithLendingData = async (poolsInfo) => {
     );
 
     // Update pool info
-    Object.assign(poolInfo, {
-      apyBase: calculateInterestYieldPercentage(
-        depositInterestRate[i],
-        EVERY_HOUR,
-        ONE_18_DP
-      ),
-      apyBaseBorrow: calculateInterestYieldPercentage(
-        borrowRate,
-        EVERY_SECOND,
-        ONE_18_DP
-      ),
-      totalSupplyUsd: toUsdValue(depositTotalAmount[i], price, decimals),
-      totalBorrowUsd: toUsdValue(totalDebt, price, decimals),
-    });
+    poolInfo.apyBase = calculateInterestYieldPercentage(
+      depositInterestRate[i],
+      EVERY_HOUR,
+      ONE_18_DP
+    );
+    poolInfo.apyBaseBorrow = calculateInterestYieldPercentage(
+      borrowRate,
+      EVERY_SECOND,
+      ONE_18_DP
+    );
+    poolInfo.totalSupplyUsd = toUsdValue(
+      depositTotalAmount[i],
+      price,
+      decimals
+    );
+    poolInfo.totalBorrowUsd = toUsdValue(totalDebt, price, decimals);
   });
   return poolsInfo;
 };
@@ -184,7 +187,7 @@ const updateWithRewardsV1Data = async (poolsInfo) => {
     if (poolRewardsInfo[i] === null) return;
     const { remainingRewards, remainingTime } = poolRewardsInfo[i];
     poolInfo.rewardTokens.push(`${rewardTokenAddr}-${rewardChain}`);
-    poolInfo.apyReward = calculateRewardApr(
+    poolInfo.apyReward += calculateRewardApr(
       remainingRewards,
       avaxPrice,
       avaxDecimals,
