@@ -28,7 +28,9 @@ const urlGnosis = sdk.graph.modifyEndpoint(
 const urlArbitrum = sdk.graph.modifyEndpoint(
   '98cQDy6tufTJtshDCuhh9z2kWXsQWBHVh2bqnLHsGAeS'
 );
-const urlBaseChain = `https://api.studio.thegraph.com/query/24660/balancer-base-v2/version/latest`;
+const urlBaseChain = sdk.graph.modifyEndpoint(
+  'E7XyutxXVLrp8njmjF16Hh38PCJuHm12RRyMt5ma4ctX'
+);
 const urlAvalanche = sdk.graph.modifyEndpoint(
   '7asfmtQA1KYu6CP7YVm5kv4bGxVyfAHEiptt2HMFgkHu'
 );

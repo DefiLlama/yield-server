@@ -10,7 +10,8 @@ const POTIONS_URL = 'https://yel.finance/potions';
 const CHAINS = {
   81457: 'Blast',
   8453: 'Base',
-  250   : 'Fantom'
+  250   : 'Fantom',
+  146   : 'Sonic'
 };
 
 const PROJECT_NAME = 'yel-finance';
@@ -21,19 +22,38 @@ const POTION_SINGLE_STAKING_LIST = {
         '0x795a85CD543D0E2d29F7e11e33a20a38A4b5121e': '0x4300000000000000000000000000000000000004',  // lWETH / WETH
         '0x07BF0Bc908Ef4badF8ec0fB1f77A8dBFe33c33c0': '0xb1a5700fA2358173Fe465e6eA4Ff52E36e88E2ad',  // lBLAST / Blast
         '0x7d2f5881F0C4B840fcFA2c49F4052d1A004eAf0d': '0x949185D3BE66775Ea648F4a306740EA9eFF9C567',  // lYEL / YEL
+        '0xC107e89b842403D3f3Be56D3b611a74388FF69dA': '0xe36072dd051ce26261bf50cd966311cab62c596e'   // lTHRUST / THRUST
       },
   8453 : {
     //                  Potion                                       Potion Base token
         '0x56a827776511689d6502c5213425c4BFBE3915d1' : '0x4200000000000000000000000000000000000006',  // lWETH / WETH
         '0x8ca29479CECa6eE24539508B90A02ec1939B88c6' : '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',  // lUSDC / USDC
-        '0x1DC50dA045Ad23812c22148e03D62C9691958B47' : '0x949185D3BE66775Ea648F4a306740EA9eFF9C567'   // lYEL / YEL
+        '0x1DC50dA045Ad23812c22148e03D62C9691958B47' : '0x949185D3BE66775Ea648F4a306740EA9eFF9C567',  // lYEL / YEL
+        '0x2c21bFc177E297A83EAa87793c29E592fe81CeAC': '0x79bbF4508B1391af3A0F4B30bb5FC4aa9ab0E07C'    // lANON / ANON
       },
   250 : {
     //                  Potion                                       Potion Base token
         '0x97bB72E43Dc056621cBeC637e558C654A5cDe7d2' : '0x949185D3BE66775Ea648F4a306740EA9eFF9C567',  // lYEL / YEL
         '0x5FF262D0c0Ecd0923DE3d9C0be6308D86F1229B4' : '0x1B6382DBDEa11d97f24495C9A90b7c88469134a4',  // laxlUSDC / axlUSDC
         '0x9F7908Fc313f7A276c8366C5892839a26e66B5Bc' : '0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83'   // lWFTM / lWFTM
-      }
+      },
+
+  146  : {
+    '0x7Ba0abb5f6bDCbf6409BB2803CdF801215424490': '0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38',    // LSONIC / SONIC
+    '0x995171196618b7FE0F0C6D606D79583DD1c8ff60': '0x29219dd400f2Bf60E5a23d13Be72B486D4038894',    // lUSDC / USDC
+    '0x92Dd17b19F74E696502Ee9eD478901F24c5d9a9A': '0x79bbF4508B1391af3A0F4B30bb5FC4aa9ab0E07C',    // lANON / ANON
+    '0xecf1b589F47511D23b026eF53D16FEbB89Aa5f3A': '0x0e0Ce4D450c705F8a0B6Dd9d5123e3df2787D16B',    // lWAGMI / WAGMI
+    '0x6E074300A7Bf53af6e20f1f07dDDfeedAE5598A8': '0x949185D3BE66775Ea648F4a306740EA9eFF9C567',     // lYEL / YEL -
+    '0xdE31054Fb0ee7c6C39641db2e677011E276644aC': '0x9fDbC3f8Abc05Fa8f3Ad3C17D2F806c1230c4564',    // lGOGLZ / GOGLZ
+    '0x555733fBa1CA24ec45e7027E00C4B6c5065BaC96': '0xE5DA20F15420aD15DE0fa650600aFc998bbE3955',    // lstS / stS
+    '0x85262a5121B8aD219C521665787A6F21eCbBf679': '0x7A0C53F7eb34C5BC8B01691723669adA9D6CB384',    // lBOO / BOO -
+    '0x30Fb515Cf3e0C7fF94Aa923788B466F44768cAA4': '0x59524D5667B299c0813Ba3c99a11C038a3908fBC',    // lYOKO / YOKO
+
+    '0x4E7f1965e54C5B8aB7Ad087922A7C1ae6B14e273': '0x3bcE5CB273F0F148010BbEa2470e7b5df84C7812',     // lscETH / scETH
+    '0x25844EA46AE4bAa410d3823DB9050CeA1692AF02': '0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE'     // lscUSD / sdcUSD
+
+
+  }
 };
 
 const formatNumber = (n, decimals) => {
@@ -54,8 +74,6 @@ const getAPY = async () => {
 };
 
 const getData = async ({ chainId, address }) => {
-  const baseToken = [POTION_SINGLE_STAKING_LIST[chainId][address]];
-  const calls = [];
   const chain = CHAINS[chainId].toLowerCase();
 
   const baseAsset = await sdk.api.abi.call({
@@ -114,8 +132,9 @@ const getData = async ({ chainId, address }) => {
     `${BASE_URL}${CHAINS[chainId]}:${baseAsset.output[0].token}`
   );
 
-  const baseTokenPrice =
-    data.coins[`${CHAINS[chainId]}:${baseAsset.output[0].token}`].price;
+    const baseTokenPrice =
+      data.coins[`${CHAINS[chainId]}:${baseAsset.output[0].token}`]?.price || 0;
+
   const baseAssetAmountFormated = formatNumber(
     baseAssetOnPotion.output,
     baseAssetDecimals.output

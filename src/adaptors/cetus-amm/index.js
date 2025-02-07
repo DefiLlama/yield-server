@@ -8,28 +8,30 @@ const chains = {
 const apy = async (chain) => {
   const data = (await axios.get(chains[chain])).data.data.pools;
 
-  return data.map((p) => {
-    const apyReward = p.rewarder_apr.reduce(
-      (a, b) => a + Number(b.replace('%', '')),
-      0
-    );
-    return {
-      chain,
-      project: 'cetus-amm',
-      pool: p.swap_account,
-      symbol: p.symbol,
-      tvlUsd: Number(p.tvl_in_usd),
-      apyBase: Number(p.apr_24h.replace('%', '')),
-      apyBase7d: Number(p.apr_7day.replace('%', '')),
-      volumeUsd1d: Number(p.vol_in_usd_24h),
-      volumeUsd7d: Number(p.vol_in_usd_7_day),
-      apyReward,
-      rewardTokens: apyReward > 0 ? ['sui', 'cetus'] : [],
-      poolMeta: `${Number(p.fee) * 100}%`,
-      underlyingTokens: [p.token_a_address, p.token_b_address],
-      url: `https://app.cetus.zone/liquidity/deposit?poolAddress=${p.swap_account}`,
-    };
-  });
+  return data
+    .map((p) => {
+      const apyReward = p.rewarder_apr.reduce(
+        (a, b) => a + Number(b.replace('%', '')),
+        0
+      );
+      return {
+        chain,
+        project: 'cetus-amm',
+        pool: p.swap_account,
+        symbol: p.symbol,
+        tvlUsd: Number(p.tvl_in_usd),
+        apyBase: Number(p.apr_24h.replace('%', '')),
+        apyBase7d: Number(p.apr_7day.replace('%', '')),
+        volumeUsd1d: Number(p.vol_in_usd_24h),
+        volumeUsd7d: Number(p.vol_in_usd_7_day),
+        apyReward,
+        rewardTokens: apyReward > 0 ? ['sui', 'cetus'] : [],
+        poolMeta: `${Number(p.fee) * 100}%`,
+        underlyingTokens: [p.token_a_address, p.token_b_address],
+        url: `https://app.cetus.zone/liquidity/deposit?poolAddress=${p.swap_account}`,
+      };
+    })
+    .filter((i) => i.tvlUsd <= 1e8);
 };
 
 const main = async () => {
