@@ -77,8 +77,8 @@ const HubPools = {
   ethereum: {
     name: 'Ethereum',
     pools: [
-      // excluding USDC cause bridged
-      // excluding SolvBTC cause bridged
+      // excluding USDC because bridged
+      // excluding SolvBTC because bridged
       {
         // ETH_eth
         id: 4,
@@ -100,8 +100,8 @@ const HubPools = {
   base: {
     name: 'Base',
     pools: [
-      // excluding USDC cause bridged
-      // excluding SolvBTC cause bridged
+      // excluding USDC because bridged
+      // excluding SolvBTC because bridged
       {
         // ETH_base
         id: 5,
@@ -123,7 +123,7 @@ const HubPools = {
   bsc: {
     name: 'Binance',
     pools: [
-      // excluding SolvBTC cause bridged
+      // excluding SolvBTC because bridged
       {
         // BNB
         id: 10,
@@ -153,8 +153,8 @@ const HubPools = {
   arbitrum: {
     name: 'Arbitrum',
     pools: [
-      // excluding USDC cause bridged
-      // excluding SolvBTC cause bridged
+      // excluding USDC because bridged
+      // excluding SolvBTC because bridged
       {
         // ETH_arb
         id: 13,
