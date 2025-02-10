@@ -95,7 +95,7 @@ const getLockUsdwApy = async () => {
         await sdk.api.abi.call({
             abi: LOCK_USDW_ABI.find((abi) => abi.name == 'lockAPY'),
             target: LOCK_USDW_ADDRESS,
-            params: [3],
+            params: [0],
             chain,
         })
     ).output)
