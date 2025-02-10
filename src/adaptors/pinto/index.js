@@ -70,7 +70,6 @@ async function getPoolsForChain(chain, timestamp) {
         project: 'pinto',
         symbol: `${tokens[0].name}-${tokens[1].name}`,
         tvlUsd: parseInt(pool.liquidityUSD),
-        apyBase: 0,
         apyReward: Math.round(yields[pool.id].bean * 10000) / 100,
         rewardTokens: [bean.id],
         underlyingTokens: tokens.map(p => p.id.toLowerCase()),
