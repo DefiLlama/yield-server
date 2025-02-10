@@ -4,6 +4,10 @@ const ONE_18_DP = BigInt(1e18);
 const EVERY_HOUR = BigInt(365 * 24);
 const EVERY_SECOND = BigInt(365 * 24 * 60 * 60);
 
+const GENERAL_LOAN_TYPE = 2;
+
+const loanManagerAddress = '0xF4c542518320F09943C35Db6773b2f9FeB2F847e';
+
 const rewardsV1Address = '0x7c532A6209350cF27EfC3D06E82E35ACFd362C7C';
 
 const HubPools = {
@@ -181,5 +185,7 @@ module.exports = {
   ONE_18_DP,
   EVERY_HOUR,
   EVERY_SECOND,
+  GENERAL_LOAN_TYPE,
+  loanManagerAddress,
   rewardsV1Address,
 };

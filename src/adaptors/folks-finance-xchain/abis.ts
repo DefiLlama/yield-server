@@ -1,3 +1,119 @@
+const LoanManagerAbi = {
+  getLoanPool: {
+    inputs: [
+      {
+        internalType: 'uint16',
+        name: 'loanTypeId',
+        type: 'uint16',
+      },
+      {
+        internalType: 'uint8',
+        name: 'poolId',
+        type: 'uint8',
+      },
+    ],
+    name: 'getLoanPool',
+    outputs: [
+      {
+        components: [
+          {
+            internalType: 'uint256',
+            name: 'collateralUsed',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint256',
+            name: 'borrowUsed',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint64',
+            name: 'collateralCap',
+            type: 'uint64',
+          },
+          {
+            internalType: 'uint64',
+            name: 'borrowCap',
+            type: 'uint64',
+          },
+          {
+            internalType: 'uint16',
+            name: 'collateralFactor',
+            type: 'uint16',
+          },
+          {
+            internalType: 'uint16',
+            name: 'borrowFactor',
+            type: 'uint16',
+          },
+          {
+            internalType: 'uint16',
+            name: 'liquidationBonus',
+            type: 'uint16',
+          },
+          {
+            internalType: 'uint16',
+            name: 'liquidationFee',
+            type: 'uint16',
+          },
+          {
+            internalType: 'bool',
+            name: 'isAdded',
+            type: 'bool',
+          },
+          {
+            internalType: 'bool',
+            name: 'isDeprecated',
+            type: 'bool',
+          },
+          {
+            components: [
+              {
+                internalType: 'uint64',
+                name: 'lastUpdateTimestamp',
+                type: 'uint64',
+              },
+              {
+                internalType: 'uint256',
+                name: 'minimumAmount',
+                type: 'uint256',
+              },
+              {
+                internalType: 'uint256',
+                name: 'collateralSpeed',
+                type: 'uint256',
+              },
+              {
+                internalType: 'uint256',
+                name: 'borrowSpeed',
+                type: 'uint256',
+              },
+              {
+                internalType: 'uint256',
+                name: 'collateralRewardIndex',
+                type: 'uint256',
+              },
+              {
+                internalType: 'uint256',
+                name: 'borrowRewardIndex',
+                type: 'uint256',
+              },
+            ],
+            internalType: 'struct LoanManagerState.LoanPoolReward',
+            name: 'reward',
+            type: 'tuple',
+          },
+        ],
+        internalType: 'struct LoanManagerState.LoanPool',
+        name: '',
+        type: 'tuple',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+};
+
 const HubPoolAbi = {
   getDepositData: {
     inputs: [],
@@ -209,6 +325,7 @@ const RewardsV1Abi = {
 };
 
 module.exports = {
+  LoanManagerAbi,
   HubPoolAbi,
   RewardsV1Abi,
 };

@@ -13,9 +13,11 @@ const {
   ONE_18_DP,
   EVERY_HOUR,
   EVERY_SECOND,
+  GENERAL_LOAN_TYPE,
+  loanManagerAddress,
   rewardsV1Address,
 } = require('./constants');
-const { HubPoolAbi, RewardsV1Abi } = require('./abis');
+const { LoanManagerAbi, HubPoolAbi, RewardsV1Abi } = require('./abis');
 
 async function initPools() {
   // Get TVL for each spoke token in each chain
@@ -74,9 +76,12 @@ const updateWithLendingData = async (poolsInfo) => {
   });
 
   // Fetch lending data for each pool
-  const targets = poolsInfo.map((item) => item.meta.pool);
-  const [depositData, variableBorrowData, stableBorrowData] = await Promise.all(
-    [
+  const [targets, poolIds] = [
+    poolsInfo.map((item) => item.meta.pool),
+    poolsInfo.map((item) => item.meta.poolId),
+  ];
+  const [depositData, variableBorrowData, stableBorrowData, loanPools] =
+    await Promise.all([
       await chainApi.multiCall({
         calls: targets,
         abi: HubPoolAbi.getDepositData,
@@ -89,8 +94,14 @@ const updateWithLendingData = async (poolsInfo) => {
         calls: targets,
         abi: HubPoolAbi.getStableBorrowData,
       }),
-    ]
-  );
+      await chainApi.multiCall({
+        calls: poolIds.map((poolId) => ({
+          target: loanManagerAddress,
+          params: [GENERAL_LOAN_TYPE, poolId],
+        })),
+        abi: LoanManagerAbi.getLoanPool,
+      }),
+    ]);
 
   // Convert data to BigInt
   const [depositTotalAmount, depositInterestRate] = [
@@ -105,6 +116,9 @@ const updateWithLendingData = async (poolsInfo) => {
     stableBorrowData.map((item) => BigInt(item.totalAmount)),
     stableBorrowData.map((item) => BigInt(item.interestRate)),
   ];
+  const ltvs = loanPools.map(
+    (item) => (Number(item.collateralFactor) * Number(item.borrowFactor)) / 1e8
+  );
 
   poolsInfo.forEach((poolInfo, i) => {
     const { price, decimals } = poolInfo.meta;
@@ -135,6 +149,7 @@ const updateWithLendingData = async (poolsInfo) => {
       decimals
     );
     poolInfo.totalBorrowUsd = toUsdValue(totalDebt, price, decimals);
+    poolInfo.ltv = ltvs[i];
   });
   return poolsInfo;
 };
