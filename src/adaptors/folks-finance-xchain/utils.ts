@@ -55,14 +55,14 @@ function calculateInterestYield(value, freq, scale) {
 
 function interestRateToPercentage(interestRate, decimals = 5) {
   const percentage = Number(interestRate) / Number(ONE_18_DP);
-  return Number(percentage.toFixed(decimals));
+  return Number(percentage.toFixed(decimals)) * 100;
 }
 
 function calculateInterestYieldPercentage(value, freq, scale) {
   return interestRateToPercentage(calculateInterestYield(value, freq, scale));
 }
 
-function calculateRewardApr(
+function calculateRewardAprPercentage(
   rewardsAmount,
   rewardsTokenPrice,
   rewardsTokenDecimals,
@@ -72,7 +72,8 @@ function calculateRewardApr(
   return (
     (toUsdValue(rewardsAmount, rewardsTokenPrice, rewardsTokenDecimals) /
       totalSupplyUsd) *
-    (Number(EVERY_SECOND) / Number(remainingTime))
+    (Number(EVERY_SECOND) / Number(remainingTime)) *
+    100
   );
 }
 module.exports = {
@@ -82,5 +83,5 @@ module.exports = {
   calculateInterestYieldPercentage,
   interestRateToPercentage,
   getPrices,
-  calculateRewardApr,
+  calculateRewardAprPercentage,
 };

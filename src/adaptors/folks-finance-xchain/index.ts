@@ -5,7 +5,7 @@ const {
   calculateInterestYieldPercentage,
   toUsdValue,
   overallBorrowInterestRate,
-  calculateRewardApr,
+  calculateRewardAprPercentage,
 } = require('./utils');
 const {
   PROJECT_SLUG,
@@ -187,7 +187,7 @@ const updateWithRewardsV1Data = async (poolsInfo) => {
     if (poolRewardsInfo[i] === null) return;
     const { remainingRewards, remainingTime } = poolRewardsInfo[i];
     poolInfo.rewardTokens.push(`${rewardChain}:${rewardTokenAddr}`);
-    poolInfo.apyReward += calculateRewardApr(
+    poolInfo.apyReward += calculateRewardAprPercentage(
       remainingRewards,
       avaxPrice,
       avaxDecimals,
