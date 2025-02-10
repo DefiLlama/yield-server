@@ -210,7 +210,7 @@ const getApy = async () => {
     return {
       pool: `${pool.address}-lynex-fusion`,
       chain: utils.formatChain('linea'),
-      project: 'lynex-fusion',
+      project: 'lynex-v2',
       symbol: pool.symbol,
       tvlUsd: tvl.toNumber(),
       apyBase: apy,
