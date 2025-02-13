@@ -67,7 +67,7 @@ const apy = async () => {
   const topic =
     '0x8dd3783ac3ed2cabfce0fa4347c2cab93b8273171a7e30b28a83147b099c4038';
   const logs = (
-    await sdk.api2.util.getLogs({
+    await sdk.api.util.getLogs({
       target: '0x73cb180bf0521828d8849bc8CF2B920918e23032',
       topic: '',
       toBlock,
@@ -78,12 +78,15 @@ const apy = async () => {
     })
   ).output.sort((a, b) => b.blockNumber - a.blockNumber);
 
+  const elapsedTime =
+    (await sdk.api.util.getTimestamp(logs[0].blockNumber, 'arbitrum')) -
+    (await sdk.api.util.getTimestamp(logs[1].blockNumber, 'arbitrum'));
+
   const iface = new ethers.utils.Interface(eventAbi);
   const decoded = iface.parseLog(logs[0]);
   const rewardsReceived = parseInt(decoded.args.profit / 1e6);
-  const aprBase = ((rewardsReceived * 365) / tvlUsd) * 100;
   // daily compounding
-  const apyBase = utils.aprToApy(aprBase, 365);
+  const apyBase = calcApy(rewardsReceived, tvlUsd, elapsedTime);
   return [
     {
       pool: xUSD,
@@ -95,6 +98,16 @@ const apy = async () => {
     },
   ];
 };
+
+function calcApy(profit, totalSupply, elapsedTime) {
+  if (profit == 0) {
+    return 0;
+  }
+  const hourlyRate = (profit / totalSupply / elapsedTime) * 3600;
+  const dailyRate = hourlyRate * 24;
+  const apy = (dailyRate + 1) ** 365 - 1;
+  return apy * 100;
+}
 
 module.exports = {
   apy,
