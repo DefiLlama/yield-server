@@ -89,19 +89,3 @@ module.exports = {
   ],
   getIlks,
 };
-
-//   pool: collateral.address + chainIds.chain
-//   chain: bsc
-//   project: lisusd
-//   symbol: collateral.symbol
-//   underlyingTokens: [collateral.address]
-//   tvlUsd: deposit TVL
-//   apyBaseBorrow: borrow reward
-
-//   apyReward: deposit emission reward
-//   rewardTokens: [lista.address]
-//   apyBase: deposit reward
-//   apyRewardBorrow: borrow emission reward
-//   totalBorrowUsd: borrow TVL
-
-// todo: add collateral after pumpBTC
