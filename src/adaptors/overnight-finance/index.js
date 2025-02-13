@@ -82,7 +82,7 @@ const apy = async () => {
   const decoded = iface.parseLog(logs[0]);
   const rewardsReceived = parseInt(decoded.args.profit / 1e6);
   const aprBase = ((rewardsReceived * 365) / tvlUsd) * 100;
-  // weekly compoounding
+  // daily compounding
   const apyBase = utils.aprToApy(aprBase, 365);
   return [
     {
