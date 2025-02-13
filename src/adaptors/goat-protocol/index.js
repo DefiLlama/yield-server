@@ -37,7 +37,7 @@ const main = async () => {
             project: 'goat-protocol',
             symbol: utils.formatSymbol(vault.asset.symbol),
             tvlUsd: vault.tvl,
-            apy: vault.apy,
+            apy: vault.apy * 100,
             underlyingTokens: [vault.asset.address],
             url: `${dappUrl}/vault/${networkMapping[chain]}/${vaultName}`
             });
