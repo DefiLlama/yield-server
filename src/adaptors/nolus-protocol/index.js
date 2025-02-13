@@ -50,7 +50,9 @@ const queryContract = async function (contract, data) {
   }
   let encodedData = Buffer.from(data).toString('base64');
   let endpoint = `${api}/cosmwasm/wasm/v1/contract/${contract}/smart/${encodedData}`
-  return await await utils.getData(endpoint)
+  const response = await fetch(endpoint)
+  const out = await response.json()
+  return out
 }
 
 const getApy = async () => {
