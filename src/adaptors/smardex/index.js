@@ -134,6 +134,14 @@ const EXCEPTIONS = {
             })
           ).output / 1e18;
         const apyBase = await computeUsdnApr();
+        console.log({
+          pool: USDN_TOKEN_ADDRESS,
+          symbol: 'USDN',
+          project: 'smardex',
+          chain: utils.formatChain(chainString),
+          tvlUsd: totalSupply,
+          apyBase,
+        });
         return {
           pool: USDN_TOKEN_ADDRESS,
           symbol: 'USDN',
@@ -567,7 +575,7 @@ async function fetchUSDNData(chain, timestamp) {
   });
 
   const wstEthPrice = await getWstEthPriceAtTimestamp(chain, timestamp);
-  const formattedWstEthPrice = BigInt(Math.round(wstEthPrice * 10 ** 8));
+  const formattedWstEthPrice = BigInt(Math.round(wstEthPrice * 10 ** 18));
 
   const usdnVaultAssetAvailableWithFundingCall = sdk.api.abi.call({
     target: USDN_PROTOCOL_ADDRESS,
@@ -634,8 +642,7 @@ const computeUsdnApr = async (chain = 'ethereum') => {
       BIGINT_10_POW_18) *
       BigInt(DAYS_IN_YEAR)) /
     (BigInt(timestampNow) - BigInt(timestampOneYearAgo));
-
-  return Number(formatEther(apr));
+  return Number(formatEther(apr) * 100_000);
 };
 
 module.exports = {
