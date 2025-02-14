@@ -7,26 +7,31 @@ const chains = {
   1: {
     name: 'ethereum',
     slug: 'mainnet',
+    urlSlug: "eth",
     SPECTRA: '0x6a89228055c7c28430692e342f149f37462b478b',
   },
   42161: {
     name: 'arbitrum',
     slug: 'arbitrum',
+    urlSlug: "arb",
     SPECTRA: '0x64fcc3a02eeeba05ef701b7eed066c6ebd5d4e51',
   },
   10: {
     name: 'optimism',
     slug: 'optimism',
+    urlSlug: "op",
     SPECTRA: '0x248f43b622ce2f35a14db3fc528284730b619cd5',
   },
   8453: {
     name: 'base',
     slug: 'base',
+    urlSlug: "base",
     SPECTRA: '0x64fcc3a02eeeba05ef701b7eed066c6ebd5d4e51',
   },
   146: {
     name: 'sonic',
     slug: 'sonic',
+    urlSlug: "sonic",
     SPECTRA: '0xb827e91c5cd4d6aca2fc0cd93a07db61896af40b',
   },
 };
@@ -66,7 +71,7 @@ const lpApy = (p) => {
     poolMeta: `For LP on ${p.pt.ibt.protocol} | Maturity ${formatMaturity(
       p.pt.maturity
     )}`,
-    url: `https://app.spectra.finance/pools?ref=defillama#${chain.slug}/${p.address}`,
+    url: `https://app.spectra.finance/pools/${chain.shortSlug}:${p.address}?ref=defillama`,
   };
 };
 
@@ -83,7 +88,7 @@ const fixedRateApy = (p) => {
     poolMeta: `For PT on ${p.pt.ibt.protocol}  | Maturity ${formatMaturity(
       p.pt.maturity
     )}`,
-    url: `https://app.spectra.finance/fixed-rate?ref=defillama#${chain.slug}/${p.address}`,
+    url: `https://app.spectra.finance/fixed-rate/${chain.shortSlug}:${p.address}?ref=defillama`,
   };
 };
 
