@@ -71,7 +71,7 @@ const lpApy = (p) => {
     poolMeta: `For LP on ${p.pt.ibt.protocol} | Maturity ${formatMaturity(
       p.pt.maturity
     )}`,
-    url: `https://app.spectra.finance/pools/${chain.shortSlug}:${p.address}?ref=defillama`,
+    url: `https://app.spectra.finance/pools/${chain.urlSlug}:${p.address}?ref=defillama`,
   };
 };
 
@@ -88,7 +88,7 @@ const fixedRateApy = (p) => {
     poolMeta: `For PT on ${p.pt.ibt.protocol}  | Maturity ${formatMaturity(
       p.pt.maturity
     )}`,
-    url: `https://app.spectra.finance/fixed-rate/${chain.shortSlug}:${p.address}?ref=defillama`,
+    url: `https://app.spectra.finance/fixed-rate/${chain.urlSlug}:${p.address}?ref=defillama`,
   };
 };
 
