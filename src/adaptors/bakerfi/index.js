@@ -2,7 +2,7 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const axios = require('axios');
 
-const API_URL = 'https://api-v1.bakerfi.xyz/api';
+const API_URL = 'https://api-v1.bakerfi.ai/api';
 
 const oracles = {
   ethereum: {
@@ -103,5 +103,5 @@ async function readVaultsInfo(args) {
 module.exports = {
   timetravel: false,
   apy: readVaultsInfo,
-  url: 'https://bakerfi.xyz/app',
+  url: 'https://bakerfi.ai/app',
 };
