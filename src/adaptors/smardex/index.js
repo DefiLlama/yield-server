@@ -134,14 +134,6 @@ const EXCEPTIONS = {
             })
           ).output / 1e18;
         const apyBase = await computeUsdnApr();
-        console.log({
-          pool: USDN_TOKEN_ADDRESS,
-          symbol: 'USDN',
-          project: 'smardex',
-          chain: utils.formatChain(chainString),
-          tvlUsd: totalSupply,
-          apyBase,
-        });
         return {
           pool: USDN_TOKEN_ADDRESS,
           symbol: 'USDN',
