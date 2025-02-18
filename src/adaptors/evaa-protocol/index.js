@@ -478,6 +478,57 @@ const getApy = async () => {
     .filter((pool) => pool.tvlUsd > MIN_TVL_USD);
 };
 
+async function validateAndFetchMissingAssets(poolData, assets, prices) {
+  const missingAssets = [];
+  const maxRetries = 3;
+  const initialDelay = 1000; // 1 second
+
+  for (const [tokenSymbol, asset] of Object.entries(assets)) {
+    const { assetId } = asset;
+    const priceData = prices.dict.get(assetId);
+    
+    if (!priceData) {
+      console.warn(`Missing price data for ${tokenSymbol}, attempting to fetch...`);
+      let attempts = 0;
+      let success = false;
+
+      while (attempts < maxRetries && !success) {
+        try {
+          const delay = initialDelay * Math.pow(2, attempts);
+          if (attempts > 0) {
+            console.log(`Retry attempt ${attempts + 1} for ${tokenSymbol} after ${delay}ms delay`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+
+          const price = await getPrices();
+          if (!price || !price.dict) {
+            console.error(`Failed to fetch price for ${tokenSymbol}`);
+            return null;
+          }
+
+          const assetId = sha256Hash(tokenSymbol);
+          const tokenPrice = price.dict.get(assetId);
+          if (!tokenPrice) {
+            console.error(`No price data available for ${tokenSymbol}`);
+            return null;
+          }
+
+          return { dict: price.dict, dataCell: price.dataCell };
+        } catch (error) {
+          attempts++;
+          console.error(`Attempt ${attempts} failed for ${tokenSymbol}:`, error.message);
+          
+          if (attempts === maxRetries) {
+            console.error(`All retry attempts failed for ${tokenSymbol}`);
+            missingAssets.push(tokenSymbol);
+          }
+        }
+      }
+    }
+  }
+  return missingAssets;
+}
+
 async function getPoolData(
   masterAddress,
   assets,
@@ -499,6 +550,13 @@ async function getPoolData(
         }
 
         data = parseMasterData(result.data.toString('base64'), assets);
+        
+        // Validate and attempt to fetch missing assets
+        const missingAssets = await validateAndFetchMissingAssets(data, assets, prices);
+        if (missingAssets.length > 0) {
+            console.warn(`Unable to fetch data for assets: ${missingAssets.join(', ')}`);
+        }
+
     } catch (error) {
         console.error('getPoolData error:', error);
         return [];
@@ -513,17 +571,20 @@ async function getPoolData(
 
         const priceData = prices.dict.get(assetId);
         if (!priceData) {
+            console.warn(`No price data available for ${tokenSymbol}, skipping...`);
             return undefined;
         }
 
         const assetConfig = data.assetsConfig.get(assetId);
         const assetData = data.assetsData.get(assetId);
         if (!assetConfig || !assetData) {
+            console.warn(`Missing config or data for ${tokenSymbol}, skipping...`);
             return undefined;
         }
 
         const price = Number(priceData) / Number(priceScaleFactor);
         if (!price) {
+            console.warn(`Invalid price for ${tokenSymbol}, skipping...`);
             return undefined;
         }
 
