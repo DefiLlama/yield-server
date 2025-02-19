@@ -136,7 +136,15 @@ function createAssetData() {
             const totalBorrow = BigInt(src.loadInt(64));
             const lastAccural = BigInt(src.loadInt(32));
             const balance = BigInt(src.loadInt(64));
-            return { sRate, bRate, totalSupply, totalBorrow, lastAccural, balance };
+
+            return {
+              sRate,
+              bRate,
+              totalSupply,
+              totalBorrow,
+              lastAccural,
+              balance
+            };
         },
     };
 }
@@ -226,55 +234,74 @@ function loadMyRef(slice) {
 }
 
 function parseMasterData(masterDataBOC, assets) {
-    const ASSETS_ID = createAssetsIdDict(assets);
-    const masterSlice = Cell.fromBase64(masterDataBOC).beginParse();
-    masterSlice.loadRef(); // meta
-    masterSlice.loadRef() // upgradeConfigRef
+  const ASSETS_ID = createAssetsIdDict(assets);
+  const masterSlice = Cell.fromBase64(masterDataBOC).beginParse();
+  const meta = masterSlice.loadRef().beginParse().loadStringTail();
+  const upgradeConfigParser = masterSlice.loadRef().beginParse();
+
+  const upgradeConfig = {
+      masterCodeVersion: Number(upgradeConfigParser.loadCoins()),
+      userCodeVersion: Number(upgradeConfigParser.loadCoins()),
+      timeout: upgradeConfigParser.loadUint(32),
+      updateTime: upgradeConfigParser.loadUint(64),
+      freezeTime: upgradeConfigParser.loadUint(64),
+      userCode: loadMyRef(upgradeConfigParser),
+      newMasterCode: loadMaybeMyRef(upgradeConfigParser),
+      newUserCode: loadMaybeMyRef(upgradeConfigParser),
+  };
 
   const masterConfigSlice = masterSlice.loadRef().beginParse();
+  const assetsConfigDict = masterConfigSlice.loadDict(Dictionary.Keys.BigUint(256), createAssetConfig());
+  const assetsDataDict = masterSlice.loadDict(Dictionary.Keys.BigUint(256), createAssetData());
 
-  const assetsConfigDict = masterConfigSlice.loadDict(
-    Dictionary.Keys.BigUint(256),
-    createAssetConfig()
-  );
-  const assetsDataDict = masterSlice.loadDict(
-    Dictionary.Keys.BigUint(256),
-    createAssetData()
-  );
   const assetsExtendedData = Dictionary.empty();
   const assetsReserves = Dictionary.empty();
   const apy = {
-    supply: Dictionary.empty(),
-    borrow: Dictionary.empty(),
+      supply: Dictionary.empty(),
+      borrow: Dictionary.empty(),
   };
-
-  for (const [tokenSymbol, assetID] of Object.entries(ASSETS_ID)) {
+  
+  for (const [_, assetId] of Object.entries(ASSETS_ID)) {
     const assetData = calculateAssetData(
       assetsConfigDict,
       assetsDataDict,
-      assetID
+      assetId,
+      MASTER_CONSTANTS
     );
-    assetsExtendedData.set(assetID, assetData);
+    assetsExtendedData.set(assetId, assetData);
   }
+  const masterConfig = {
+      ifActive: masterConfigSlice.loadInt(8),
+      admin: masterConfigSlice.loadAddress(),
+      oraclesInfo:  {
+          numOracles: masterConfigSlice.loadUint(16),
+          threshold: masterConfigSlice.loadUint(16),
+          oracles: loadMaybeMyRef(masterConfigSlice)
+      },
+      tokenKeys: loadMaybeMyRef(masterConfigSlice),
+  };
+  masterConfigSlice.endParse();
 
-  for (const [_, assetID] of Object.entries(ASSETS_ID)) {
-    const assetData = assetsExtendedData.get(assetID);
+  for (const [_, assetId] of Object.entries(ASSETS_ID)) {
+    const assetData = assetsExtendedData.get(assetId);
     const totalSupply = calculatePresentValue(
       assetData.sRate,
-      assetData.totalSupply
+      assetData.totalSupply,
+      MASTER_CONSTANTS
     );
     const totalBorrow = calculatePresentValue(
       assetData.bRate,
-      assetData.totalBorrow
+      assetData.totalBorrow,
+      MASTER_CONSTANTS
     );
-    assetsReserves.set(assetID, assetData.balance - totalSupply + totalBorrow);
+    assetsReserves.set(assetId, assetData.balance - totalSupply + totalBorrow);
 
     apy.supply.set(
-      assetID,
+      assetId,
       (1 + (Number(assetData.supplyInterest) / 1e12) * 24 * 3600) ** 365 - 1
     );
     apy.borrow.set(
-      assetID,
+      assetId,
       (1 + (Number(assetData.borrowInterest) / 1e12) * 24 * 3600) ** 365 - 1
     );
   }
