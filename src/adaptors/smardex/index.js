@@ -14,6 +14,7 @@ const BASE_URL = 'https://smardex.io/liquidity';
 const DAYS_IN_YEAR = 365;
 const DAYS_IN_WEEK = 7;
 const SECONDS_IN_DAY = 86400;
+const YEAR_IN_SECONDS = DAYS_IN_YEAR * SECONDS_IN_DAY;
 const BIGINT_10_POW_18 = BigInt(10 ** 18);
 
 // Smardex gateway for subgraph queries, for each chain
@@ -632,9 +633,9 @@ const computeUsdnApr = async (chain = 'ethereum') => {
         first.usdnVaultAssetAvailableWithFunding *
         first.wstEthPrice) -
       BIGINT_10_POW_18) *
-      BigInt(DAYS_IN_YEAR)) /
+      BigInt(YEAR_IN_SECONDS)) /
     (BigInt(timestampNow) - BigInt(timestampOneYearAgo));
-  return Number(formatEther(apr) * 100_000);
+  return Number(formatEther(apr));
 };
 
 module.exports = {
