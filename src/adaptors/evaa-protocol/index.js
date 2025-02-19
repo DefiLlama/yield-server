@@ -406,8 +406,6 @@ function calculateCurrentRates(assetConfig, assetData) {
   };
 }
 
-// ignore pools with TVL below the threshold
-const MIN_TVL_USD = 100000;
 
 const priceScaleFactor = BigInt(1e9);
 
@@ -474,8 +472,7 @@ const getApy = async () => {
       ),
     ]);
 
-    return poolData.flat().filter((pool) => pool !== undefined)
-    .filter((pool) => pool.tvlUsd > MIN_TVL_USD);
+    return poolData.flat().filter((pool) => pool !== undefined);
 };
 
 async function validateAndFetchMissingAssets(poolData, assets, prices) {
