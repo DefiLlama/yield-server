@@ -21,7 +21,7 @@ const buildQuery = (chain) => {
 };
 
 const apy = async () => {
-  const chains = ['FANTOM', 'OPTIMISM'];
+  const chains = ['FANTOM', 'OPTIMISM', 'SONIC'];
   const pools = await Promise.all(
     chains.map(async (chain) => {
       const data = (
