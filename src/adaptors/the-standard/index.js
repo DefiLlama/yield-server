@@ -43,10 +43,8 @@ const getApy = async () => {
       const gammaPool = gammaPools.filter(p => p.address.toLowerCase() === pool.address)[0];
       const poolRewardData = rewardData[MASTERCHEF].pools[pool.address];
       let poolRewardTokens = [];
-      if (poolRewardData) {
-        if (poolRewardData.rewarders) {
-          poolRewardTokens = Object.keys(poolRewardData.rewarders).map(rewarder => poolRewardData.rewarders[rewarder].rewardToken);
-        }
+      if (pool.rewardsDetails) {
+        poolRewardTokens = [ ... poolRewardTokens, ... pool.rewardsDetails.map(reward => reward.rewardToken) ]
       }
       
       return {
@@ -54,7 +52,7 @@ const getApy = async () => {
         chain: 'Arbitrum',
         project: 'the-standard',
         symbol: gammaPool.symbol,
-        tvlUsd: pool.tvlUSD,
+        tvlUsd: parseFloat(pool.tvlUSD),
         apyBase: pool.feeApr,
         apyReward: pool.rewardApr,
         rewardTokens: poolRewardTokens,
