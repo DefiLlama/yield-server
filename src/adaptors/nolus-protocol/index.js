@@ -29,20 +29,22 @@ const astroportUsdcOracleAddr = 'nolus1vhzdx9lqexuqc0wqd48c5hc437yzw7jy7ggum9k25
 const astroportUsdcLppAddr = 'nolus17vsedux675vc44yu7et9m64ndxsy907v7sfgrk7tw3xnjtqemx3q6t3xw6'
 
 const contracts = [
-  { lpp: osmosisUsdcLppAddr, oracle: osmosisUsdcOracleAddr, symbol: 'USDC', meta: '', protocolInterest: 40},
-  { lpp: osmosisAllBtcLppAddr, oracle: osmosisAllBtcOracleAddr, symbol: 'BTC', meta: '', protocolInterest: 15 },
-  { lpp: osmosisAllSolLppAddr, oracle: osmosisAllSolOracleAddr, symbol: 'SOL', meta: '', protocolInterest: 40 },
-  { lpp: astroportUsdcLppAddr, oracle: astroportUsdcOracleAddr, symbol: 'USDC', meta: '', protocolInterest: 40 }
+  { lpp: osmosisUsdcLppAddr, oracle: osmosisUsdcOracleAddr, symbol: 'USDC', protocolName: 'OSMOSIS-OSMOSIS-USDC_NOBLE', meta: ''},
+  { lpp: osmosisAllBtcLppAddr, oracle: osmosisAllBtcOracleAddr, symbol: 'BTC', protocolName: 'OSMOSIS-OSMOSIS-ALL_BTC', meta: ''},
+  { lpp: osmosisAllSolLppAddr, oracle: osmosisAllSolOracleAddr, symbol: 'SOL', protocolName: 'OSMOSIS-OSMOSIS-ALL_SOL', meta: ''},
+  { lpp: astroportUsdcLppAddr, oracle: astroportUsdcOracleAddr, symbol: 'USDC', protocolName: 'NEUTRON-ASTROPORT-USDC_NOBLE', meta: ''}
 ]
 
 // nolus node rest api
 const api = 'https://lcd.nolus.network'
 // ETL(extract transform load) rest api
-const etlAddress = 'https://etl-cl.nolus.network:8080'
+const etlAddress = 'https://etl.nolus.network'
 // api/max_ls_interest_7d/{lpp_address}
 const dailyMaxInterestEp = 'api/max_ls_interest_7d'
 // api/max_lp_ratio/{lpp_address}
 const maxLpRatioEp = 'api/max_lp_ratio'
+// api/earn-apr?protocol={protocol_name}
+const earnApyBase = 'api/earn-apr'
 
 const queryContract = async function (contract, data) {
   if (typeof data !== 'string') {
@@ -64,8 +66,7 @@ const getApy = async () => {
     let oraclePriceData = await queryContract(c.oracle, { 'stable_price': {'currency': lppTickerData.data} })
     let currencyData = _.find(oracleCurrenciesData.data, (n) => n.ticker == lppTickerData.data)
     let lppBalanceData = await queryContract(c.lpp, { 'lpp_balance': [] })
-    let dailyMaxLSInterest = await utils.getData(`${etlAddress}/${dailyMaxInterestEp}/${c.lpp}`)
-    let dailyMaxLPRatio = await utils.getData(`${etlAddress}/${maxLpRatioEp}/${c.lpp}`)
+    let earnApy = await utils.getData(`${etlAddress}/${earnApyBase}?protocol=${c.protocolName}`)
 
     // Calculate asset price with BigNumber
     const amount = new BigNumber(oraclePriceData.data.amount.amount);
@@ -84,31 +85,17 @@ const getApy = async () => {
     const balance = new BigNumber(lppBalanceData.data.balance.amount);
     const tvlUsd = balance.div(new BigNumber(10).pow(currencyData.decimal_digits)).times(price);
 
-    let merged = []
-    for (const date in dailyMaxLSInterest) {
-      if (!!dailyMaxLPRatio[date]) {
-        merged.push({
-          'mli': dailyMaxLSInterest[date],
-          'mlr': dailyMaxLPRatio[date]
-        })
-      }
-    }
-
-    let avg = merged.reduce((acc, curr) => acc + (curr.mli - contracts[i].protocolInterest) * curr.mlr, 0) / merged.length
-    let apr = avg / 10
-    let apy = (Math.pow((1 + (apr / 100 / 365)), 365) - 1) * 100
-
     result.push({
       pool: c.lpp,
       chain: 'Nolus',
       project: 'nolus-protocol',
-      symbol: contracts[i].symbol,
+      symbol: c.symbol,
       tvlUsd: tvlUsd.toNumber(),
-      apyBase: apy,
+      apyBase: parseFloat(earnApy.earn_apr),
       // apyReward: null, TODO: add NLS rewards
       underlyingTokens: [currencyData.bank_symbol, currencyData.dex_symbol], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
       // rewardTokens: ['0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'], TODO: add NLS rewards
-      poolMeta: contracts[i].meta,
+      poolMeta: c.meta,
     })
   }
 
