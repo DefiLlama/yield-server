@@ -136,7 +136,15 @@ function createAssetData() {
             const totalBorrow = BigInt(src.loadInt(64));
             const lastAccural = BigInt(src.loadInt(32));
             const balance = BigInt(src.loadInt(64));
-            return { sRate, bRate, totalSupply, totalBorrow, lastAccural, balance };
+
+            return {
+              sRate,
+              bRate,
+              totalSupply,
+              totalBorrow,
+              lastAccural,
+              balance
+            };
         },
     };
 }
@@ -226,55 +234,74 @@ function loadMyRef(slice) {
 }
 
 function parseMasterData(masterDataBOC, assets) {
-    const ASSETS_ID = createAssetsIdDict(assets);
-    const masterSlice = Cell.fromBase64(masterDataBOC).beginParse();
-    masterSlice.loadRef(); // meta
-    masterSlice.loadRef() // upgradeConfigRef
+  const ASSETS_ID = createAssetsIdDict(assets);
+  const masterSlice = Cell.fromBase64(masterDataBOC).beginParse();
+  const meta = masterSlice.loadRef().beginParse().loadStringTail();
+  const upgradeConfigParser = masterSlice.loadRef().beginParse();
+
+  const upgradeConfig = {
+      masterCodeVersion: Number(upgradeConfigParser.loadCoins()),
+      userCodeVersion: Number(upgradeConfigParser.loadCoins()),
+      timeout: upgradeConfigParser.loadUint(32),
+      updateTime: upgradeConfigParser.loadUint(64),
+      freezeTime: upgradeConfigParser.loadUint(64),
+      userCode: loadMyRef(upgradeConfigParser),
+      newMasterCode: loadMaybeMyRef(upgradeConfigParser),
+      newUserCode: loadMaybeMyRef(upgradeConfigParser),
+  };
 
   const masterConfigSlice = masterSlice.loadRef().beginParse();
+  const assetsConfigDict = masterConfigSlice.loadDict(Dictionary.Keys.BigUint(256), createAssetConfig());
+  const assetsDataDict = masterSlice.loadDict(Dictionary.Keys.BigUint(256), createAssetData());
 
-  const assetsConfigDict = masterConfigSlice.loadDict(
-    Dictionary.Keys.BigUint(256),
-    createAssetConfig()
-  );
-  const assetsDataDict = masterSlice.loadDict(
-    Dictionary.Keys.BigUint(256),
-    createAssetData()
-  );
   const assetsExtendedData = Dictionary.empty();
   const assetsReserves = Dictionary.empty();
   const apy = {
-    supply: Dictionary.empty(),
-    borrow: Dictionary.empty(),
+      supply: Dictionary.empty(),
+      borrow: Dictionary.empty(),
   };
-
-  for (const [tokenSymbol, assetID] of Object.entries(ASSETS_ID)) {
+  
+  for (const [_, assetId] of Object.entries(ASSETS_ID)) {
     const assetData = calculateAssetData(
       assetsConfigDict,
       assetsDataDict,
-      assetID
+      assetId,
+      MASTER_CONSTANTS
     );
-    assetsExtendedData.set(assetID, assetData);
+    assetsExtendedData.set(assetId, assetData);
   }
+  const masterConfig = {
+      ifActive: masterConfigSlice.loadInt(8),
+      admin: masterConfigSlice.loadAddress(),
+      oraclesInfo:  {
+          numOracles: masterConfigSlice.loadUint(16),
+          threshold: masterConfigSlice.loadUint(16),
+          oracles: loadMaybeMyRef(masterConfigSlice)
+      },
+      tokenKeys: loadMaybeMyRef(masterConfigSlice),
+  };
+  masterConfigSlice.endParse();
 
-  for (const [_, assetID] of Object.entries(ASSETS_ID)) {
-    const assetData = assetsExtendedData.get(assetID);
+  for (const [_, assetId] of Object.entries(ASSETS_ID)) {
+    const assetData = assetsExtendedData.get(assetId);
     const totalSupply = calculatePresentValue(
       assetData.sRate,
-      assetData.totalSupply
+      assetData.totalSupply,
+      MASTER_CONSTANTS
     );
     const totalBorrow = calculatePresentValue(
       assetData.bRate,
-      assetData.totalBorrow
+      assetData.totalBorrow,
+      MASTER_CONSTANTS
     );
-    assetsReserves.set(assetID, assetData.balance - totalSupply + totalBorrow);
+    assetsReserves.set(assetId, assetData.balance - totalSupply + totalBorrow);
 
     apy.supply.set(
-      assetID,
+      assetId,
       (1 + (Number(assetData.supplyInterest) / 1e12) * 24 * 3600) ** 365 - 1
     );
     apy.borrow.set(
-      assetID,
+      assetId,
       (1 + (Number(assetData.borrowInterest) / 1e12) * 24 * 3600) ** 365 - 1
     );
   }
@@ -475,57 +502,6 @@ const getApy = async () => {
     return poolData.flat().filter((pool) => pool !== undefined);
 };
 
-async function validateAndFetchMissingAssets(poolData, assets, prices) {
-  const missingAssets = [];
-  const maxRetries = 3;
-  const initialDelay = 1000; // 1 second
-
-  for (const [tokenSymbol, asset] of Object.entries(assets)) {
-    const { assetId } = asset;
-    const priceData = prices.dict.get(assetId);
-    
-    if (!priceData) {
-      console.warn(`Missing price data for ${tokenSymbol}, attempting to fetch...`);
-      let attempts = 0;
-      let success = false;
-
-      while (attempts < maxRetries && !success) {
-        try {
-          const delay = initialDelay * Math.pow(2, attempts);
-          if (attempts > 0) {
-            console.log(`Retry attempt ${attempts + 1} for ${tokenSymbol} after ${delay}ms delay`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-          }
-
-          const price = await getPrices();
-          if (!price || !price.dict) {
-            console.error(`Failed to fetch price for ${tokenSymbol}`);
-            return null;
-          }
-
-          const assetId = sha256Hash(tokenSymbol);
-          const tokenPrice = price.dict.get(assetId);
-          if (!tokenPrice) {
-            console.error(`No price data available for ${tokenSymbol}`);
-            return null;
-          }
-
-          return { dict: price.dict, dataCell: price.dataCell };
-        } catch (error) {
-          attempts++;
-          console.error(`Attempt ${attempts} failed for ${tokenSymbol}:`, error.message);
-          
-          if (attempts === maxRetries) {
-            console.error(`All retry attempts failed for ${tokenSymbol}`);
-            missingAssets.push(tokenSymbol);
-          }
-        }
-      }
-    }
-  }
-  return missingAssets;
-}
-
 async function getPoolData(
   masterAddress,
   assets,
@@ -547,13 +523,6 @@ async function getPoolData(
         }
 
         data = parseMasterData(result.data.toString('base64'), assets);
-        
-        // Validate and attempt to fetch missing assets
-        const missingAssets = await validateAndFetchMissingAssets(data, assets, prices);
-        if (missingAssets.length > 0) {
-            console.warn(`Unable to fetch data for assets: ${missingAssets.join(', ')}`);
-        }
-
     } catch (error) {
         console.error('getPoolData error:', error);
         return [];
