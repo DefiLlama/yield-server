@@ -39,10 +39,6 @@ const contracts = [
 const api = 'https://lcd.nolus.network'
 // ETL(extract transform load) rest api
 const etlAddress = 'https://etl.nolus.network'
-// api/max_ls_interest_7d/{lpp_address}
-const dailyMaxInterestEp = 'api/max_ls_interest_7d'
-// api/max_lp_ratio/{lpp_address}
-const maxLpRatioEp = 'api/max_lp_ratio'
 // api/earn-apr?protocol={protocol_name}
 const earnApyBase = 'api/earn-apr'
 
