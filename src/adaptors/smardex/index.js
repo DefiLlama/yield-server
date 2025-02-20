@@ -105,6 +105,7 @@ const EXCEPTIONS = {
 
         const sUSDeApy = await getsUSDeApy(susdnPrice);
         const apyBase = rewardApy + sUSDeApy;
+        console.log(apyBase);
         return {
           pool: SUSDN_TOKEN_ADDRESS,
           symbol: 'sUSDN',
@@ -635,7 +636,7 @@ const computeUsdnApr = async (chain = 'ethereum') => {
       BIGINT_10_POW_18) *
       BigInt(YEAR_IN_SECONDS)) /
     (BigInt(timestampNow) - BigInt(timestampOneYearAgo));
-  return Number(formatEther(apr));
+  return Number(formatEther(apr)) * 100;
 };
 
 module.exports = {
