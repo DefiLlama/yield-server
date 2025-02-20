@@ -105,7 +105,6 @@ const EXCEPTIONS = {
 
         const sUSDeApy = await getsUSDeApy(susdnPrice);
         const apyBase = rewardApy + sUSDeApy;
-        console.log(apyBase);
         return {
           pool: SUSDN_TOKEN_ADDRESS,
           symbol: 'sUSDN',
