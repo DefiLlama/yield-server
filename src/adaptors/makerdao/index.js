@@ -400,6 +400,7 @@ const main = async () => {
         debtCeilingUsd: debtCeilingUsd.toNumber(),
         mintedCoin: 'DAI',
         ltv: 1 / Number(liquidationRatio.toNumber()),
+        url: 'https://makerdao.com/',
       };
     })
     .concat([await dsrPool])
@@ -451,6 +452,7 @@ const susdsAPY = async () => {
       tvlUsd: totalSupply * price,
       apy,
       underlyingTokens: [USDS],
+      url: 'https://app.sky.money/?network=ethereum',
     },
   ];
 };
@@ -462,5 +464,4 @@ const apy = async () => {
 
 module.exports = {
   apy,
-  url: 'https://makerdao.com/',
 };
