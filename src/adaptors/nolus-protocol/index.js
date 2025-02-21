@@ -24,6 +24,11 @@ const osmosisAllSolLppAddr = 'nolus1qufnnuwj0dcerhkhuxefda6h5m24e64v2hfp9pac5lgl
 //const osmosisAktOracleAddr = 'nolus12sx0kr60rptp846z2wvuwyxn47spg55dcnzwrhl4f7nfdduzsrxq7rfetn'
 //const osmosisAktLppAddr = 'nolus1lxr7f5xe02jq6cce4puk6540mtu9sg36at2dms5sk69wdtzdrg9qq0t67z'
 
+// Osmosis ATOM Protocol Contracts (OSMOSIS-OSMOSIS-ATOM) pirin-1
+//Note: APY is 0% atm, so not worth adding, but might in the future
+//const osmosisAtomOracleAddr = 'nolus16xt97qd5mc2zkya7fs5hvuavk92cqds82qjuq6rf7p7akxfcuxcs5u2280'
+//const osmosisAtomLppAddr = 'nolus1u0zt8x3mkver0447glfupz9lz6wnt62j70p5fhhtu3fr46gcdd9s5dz9l6'
+
 // Astroport USDC Protocol Contracts (NEUTRON-ASTROPORT-USDC_NOBLE) pirin-1
 const astroportUsdcOracleAddr = 'nolus1vhzdx9lqexuqc0wqd48c5hc437yzw7jy7ggum9k25yy2hz7eaatq0mepvn'
 const astroportUsdcLppAddr = 'nolus17vsedux675vc44yu7et9m64ndxsy907v7sfgrk7tw3xnjtqemx3q6t3xw6'
