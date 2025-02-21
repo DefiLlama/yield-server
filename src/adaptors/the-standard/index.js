@@ -48,7 +48,7 @@ const getApy = async () => {
       }
       
       return {
-        pool: `${gammaPool.symbol}-arbitrum`,
+        pool: `${pool.address}-arbitrum`,
         chain: 'Arbitrum',
         project: 'the-standard',
         symbol: gammaPool.symbol,
