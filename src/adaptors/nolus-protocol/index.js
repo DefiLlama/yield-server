@@ -6,11 +6,6 @@ const BigNumber = require('bignumber.js');
 const osmosisUsdcOracleAddr = 'nolus1vjlaegqa7ssm2ygf2nnew6smsj8ref9cmurerc7pzwxqjre2wzpqyez4w6'
 const osmosisUsdcLppAddr = 'nolus1ueytzwqyadm6r0z8ajse7g6gzum4w3vv04qazctf8ugqrrej6n4sq027cf'
 
-// Osmosis stATOM Protocol Contracts (OSMOSIS-OSMOSIS-ST_ATOM) pirin-1 
-//Note: APY is 0% atm, so not worth adding, but might in the future
-//const osmosisStAtomOracleAddr = 'nolus1mtcv0vhpt94s82mcemj5sc3v94pq3k2g62yfa5p82npfnd3xqx8q2w8c5f'
-//const osmosisStAtomLppAddr = 'nolus1jufcaqm6657xmfltdezzz85quz92rmtd88jk5x0hq9zqseem32ysjdm990'
-
 // Osmosis allBTC Protocol Contracts (OSMOSIS-OSMOSIS-ALL_BTC) pirin-1
 const osmosisAllBtcOracleAddr = 'nolus1y0nlrnw25mh2vxhaupamwca4wdvuxs26tq4tnxgjk8pw0gxevwfq5ry07c'
 const osmosisAllBtcLppAddr = 'nolus1w2yz345pqheuk85f0rj687q6ny79vlj9sd6kxwwex696act6qgkqfz7jy3'
@@ -18,6 +13,15 @@ const osmosisAllBtcLppAddr = 'nolus1w2yz345pqheuk85f0rj687q6ny79vlj9sd6kxwwex696
 // Osmosis allSOL Protocol Contracts (OSMOSIS-OSMOSIS-ALL_SOL) pirin-1
 const osmosisAllSolOracleAddr = 'nolus153kmhl85vavd03r9c7ardw4fgydge6kvvhrx5v2uvec4eyrlwthsejc6ce'
 const osmosisAllSolLppAddr = 'nolus1qufnnuwj0dcerhkhuxefda6h5m24e64v2hfp9pac5lglwclxz9dsva77wm'
+
+// Astroport USDC Protocol Contracts (NEUTRON-ASTROPORT-USDC_NOBLE) pirin-1
+const astroportUsdcOracleAddr = 'nolus1vhzdx9lqexuqc0wqd48c5hc437yzw7jy7ggum9k25yy2hz7eaatq0mepvn'
+const astroportUsdcLppAddr = 'nolus17vsedux675vc44yu7et9m64ndxsy907v7sfgrk7tw3xnjtqemx3q6t3xw6'
+
+// Osmosis stATOM Protocol Contracts (OSMOSIS-OSMOSIS-ST_ATOM) pirin-1 
+//Note: APY is 0% atm, so not worth adding, but might in the future
+//const osmosisStAtomOracleAddr = 'nolus1mtcv0vhpt94s82mcemj5sc3v94pq3k2g62yfa5p82npfnd3xqx8q2w8c5f'
+//const osmosisStAtomLppAddr = 'nolus1jufcaqm6657xmfltdezzz85quz92rmtd88jk5x0hq9zqseem32ysjdm990'
 
 // Osmosis AKT Protocol Contracts (OSMOSIS-OSMOSIS-AKT) pirin-1
 //Note: APY is 0% atm, so not worth adding, but might in the future
@@ -28,10 +32,6 @@ const osmosisAllSolLppAddr = 'nolus1qufnnuwj0dcerhkhuxefda6h5m24e64v2hfp9pac5lgl
 //Note: APY is 0% atm, so not worth adding, but might in the future
 //const osmosisAtomOracleAddr = 'nolus16xt97qd5mc2zkya7fs5hvuavk92cqds82qjuq6rf7p7akxfcuxcs5u2280'
 //const osmosisAtomLppAddr = 'nolus1u0zt8x3mkver0447glfupz9lz6wnt62j70p5fhhtu3fr46gcdd9s5dz9l6'
-
-// Astroport USDC Protocol Contracts (NEUTRON-ASTROPORT-USDC_NOBLE) pirin-1
-const astroportUsdcOracleAddr = 'nolus1vhzdx9lqexuqc0wqd48c5hc437yzw7jy7ggum9k25yy2hz7eaatq0mepvn'
-const astroportUsdcLppAddr = 'nolus17vsedux675vc44yu7et9m64ndxsy907v7sfgrk7tw3xnjtqemx3q6t3xw6'
 
 const contracts = [
   { lpp: osmosisUsdcLppAddr, oracle: osmosisUsdcOracleAddr, symbol: 'USDC', protocolName: 'OSMOSIS-OSMOSIS-USDC_NOBLE', meta: ''},
