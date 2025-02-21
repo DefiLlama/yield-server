@@ -28,4 +28,4 @@ const getApy = async () => {
   ];
 };
 
-module.exports = { apy: getApy, url: 'https://marinade.finance/liquid-staking' };
+module.exports = { apy: getApy, url: 'https://station.jup.ag/guides/jupsol/jupsol' };
