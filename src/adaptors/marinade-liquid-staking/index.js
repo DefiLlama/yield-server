@@ -9,7 +9,6 @@ const getApy = async () => {
 
   const totalSupply = msolData.market_data.total_supply
   const currentPrice = msolData.market_data.current_price.usd
-console.log(await utils.getData("https://api.marinade.finance/msol/apy/7d"))
   const apy =
     (
      await utils.getData("https://api.marinade.finance/msol/apy/7d")
