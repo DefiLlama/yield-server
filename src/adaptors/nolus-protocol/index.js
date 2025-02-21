@@ -77,7 +77,7 @@ const getApy = async () => {
     // Adjust price for decimal differences
     const decimalsAdjustment = {
       USDC: 1,
-      BTC: 100, // 8 - 6 = 2 decimal places difference, 10^2 = 100
+      BTC: 1,
       SOL: 1000 // 9 - 6 = 3 decimal places difference, 10^3 = 1000
     };
     price = price.times(decimalsAdjustment[c.symbol] || 1); // Default to 1 if symbol is not in the map
