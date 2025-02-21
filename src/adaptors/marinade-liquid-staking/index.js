@@ -5,14 +5,12 @@ const utils = require('../utils');
 const MSOL_ADDRESS = 'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So'
 
 const getApy = async () => {
-  const msolData = await utils.getData("https://api.coingecko.com/api/v3/coins/marinade-staked-sol")
-
-  const totalSupply = msolData.market_data.total_supply
-  const currentPrice = msolData.market_data.current_price.usd
-  const apy =
-    (
-     await utils.getData("https://api.marinade.finance/msol/apy/7d")
-    )['value'];
+  const [apy, tvlData] = await Promise.all([
+    utils.getData("https://api.marinade.finance/msol/apy/7d"),
+    utils.getData("https://api.marinade.finance/tlv")
+  ]);
+  const apyValue = apy['value'];
+  const tvlValue = tvlData['staked_usd'];
 
   return [
     {
@@ -20,8 +18,8 @@ const getApy = async () => {
       chain: utils.formatChain('solana'),
       project: 'marinade-liquid-staking',
       symbol: utils.formatSymbol('msol'),
-      tvlUsd: totalSupply * currentPrice,
-      apyBase: apy * 100,
+      tvlUsd: tvlValue,
+      apyBase: apyValue * 100,
       underlyingTokens: [MSOL_ADDRESS],
     },
   ];
