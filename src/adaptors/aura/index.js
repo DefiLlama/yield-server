@@ -13,6 +13,8 @@ const {
 const _ = require('lodash');
 const ethers = require('ethers');
 
+const now = Math.floor(Date.now() / 1000);
+
 const RewardAssetConfig = {
   auraAddress: '0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF',
   balAddress: '0xba100000625a3754423978a60c9317c58a424e3D',
@@ -26,6 +28,7 @@ const ChainConfig = {
     auraAddress: RewardAssetConfig.auraAddress,
     balAddress: RewardAssetConfig.balAddress,
     ldoAddress: '0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32',
+    chainId: 1,
   },
   arbitrum: {
     booster: '0x98Ef32edd24e2c92525E59afc4475C1242a30184',
@@ -35,6 +38,7 @@ const ChainConfig = {
     balAddress: '0xFE8B128bA8C78aabC59d4c64cEE7fF28e9379921',
     ldoAddress: '0x13Ad51ed4F1B7e9Dc168d8a00cB3f4dDD85EfA60',
     chainTokens: ['0x912ce59144191c1204e64559fe8253a0e49e6548'], // ARB
+    chainId: 42161,
   },
   optimism: {
     booster: '0x98Ef32edd24e2c92525E59afc4475C1242a30184',
@@ -47,6 +51,7 @@ const ChainConfig = {
       '0x4200000000000000000000000000000000000042',
       '0x39FdE572a18448F8139b7788099F0a0740f51205',
     ], // OP, OATH
+    chainId: 10,
   },
   xdai: {
     booster: '0x98Ef32edd24e2c92525E59afc4475C1242a30184',
@@ -56,6 +61,17 @@ const ChainConfig = {
     balAddress: '0x7eF541E2a22058048904fE5744f9c7E4C57AF717',
     ldoAddress: '0x96e334926454CD4B7b4efb8a8fcb650a738aD244',
     chainTokens: ['0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb'], // GNO
+    chainId: 100,
+  },
+  polygon: {
+    booster: '0x98Ef32edd24e2c92525E59afc4475C1242a30184',
+    balancerVault: '0xBA12222222228d8Ba445958a75a0704d566BF2C8',
+    auraRewardsCalculator: '0x9e4CBe2EaFf2FA727bC805E6CbBf2ff01DdB812b',
+    auraAddress: '0x1509706a6c66CA549ff0cB464de88231DDBe213B',
+    balAddress: '0x9a71012b13ca4d3d0cdc72a177df3ef03b0e76a3',
+    ldoAddress: '0xC3C7d422809852031b44ab29EEC9F1EfF2A58756',
+    chainTokens: ['0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270'], // MATIC
+    chainId: 137,
   },
 };
 
@@ -101,6 +117,7 @@ const main = async () => {
           abi: boosterABI.filter(({ name }) => name === 'poolLength')[0],
           target: booster,
           chain: chain,
+          permitFailure: true,
         })
       ).output
     );
@@ -114,11 +131,22 @@ const main = async () => {
           params: [index],
         })),
         chain,
+        permitFailure: true,
       })
     ).output.map(({ output }) => output);
     const validPools = allAuraPools.filter(
       (poolInfo) => poolInfo.shutdown == false
     );
+
+    const lastTimeRewardApplicable = (
+      await sdk.api.abi.multiCall({
+        calls: validPools.map((i) => ({ target: i.crvRewards })),
+        chain,
+        abi: stakingABI.find(({ name }) => name === 'lastTimeRewardApplicable'),
+        permitFailure: true,
+      })
+    ).output.map((o) => o.output);
+
     const validPoolIds = validPools.map((poolInfo) =>
       allAuraPools.indexOf(poolInfo)
     );
@@ -133,6 +161,7 @@ const main = async () => {
         chain,
         calls: validPools.map((p) => ({ target: p.token })),
         abi: 'erc20:totalSupply',
+        permitFailure: true,
       })
     ).output.map((o) => o.output);
 
@@ -171,19 +200,21 @@ const main = async () => {
           target: stakingContracts[i],
         })),
         chain,
+        permitFailure: true,
       })
     ).output.map(({ output }) => output);
-    const balRewardPerYearRates = balRewardPerSecondRates.map((x) =>
-      ethers.BigNumber.from(x).mul(SECONDS_PER_YEAR)
+    const balRewardPerYearRates = balRewardPerSecondRates.map(
+      (i) => i * SECONDS_PER_YEAR
     );
     const auraRewardPerYearRates = (
       await sdk.api.abi.multiCall({
         abi: miningABI.filter(({ name }) => name === 'convertCrvToCvx')[0],
         calls: _.range(validPoolsLength).map((i) => ({
           target: auraRewardsCalculator,
-          params: [balRewardPerYearRates[i]],
+          params: [BigInt(balRewardPerYearRates[i])],
         })),
         chain,
+        permitFailure: true,
       })
     ).output.map(({ output }) => output);
 
@@ -191,14 +222,7 @@ const main = async () => {
       if (poolTVLs[i] === 0) {
         return 0;
       }
-      return (
-        balRewardPerYearRates[i].mul(
-          ethers.utils.parseEther(balPrice.toString()).mul(100)
-        ) /
-        1e18 /
-        poolTVLs[i] /
-        1e18
-      );
+      return ((balRewardPerYearRates[i] / 1e18) * balPrice * 100) / poolTVLs[i];
     });
 
     const auraAPYs = _.range(validPoolsLength).map(
@@ -212,6 +236,7 @@ const main = async () => {
           target: stakingContracts[i],
         })),
         chain,
+        permitFailure: true,
       })
     ).output.map(({ output }) => output);
 
@@ -222,38 +247,43 @@ const main = async () => {
           target: lpTokens[i],
         })),
         chain,
+        permitFailure: true,
       })
     ).output.map(({ output }) => output);
 
-    // Some of the pools do not have `getPoolId` so we use an alternative method to get the pool id
-    await Promise.all(
-      _.range(validPoolsLength).map(async (i) => {
-        if (balancerPoolIds[i]) {
-          return;
-        }
-        balancerPoolIds[i] = (
-          await sdk.api.abi.call({
-            abi: lpTokenABI2.filter(({ name }) => name === 'POOL_ID')[0],
-            target: lpTokens[i],
-            chain,
-          })
-        ).output;
-      })
-    );
-
+    // only make calls for non-null pool IDs (otherwise it breaks)
     const balancerPoolTokenInfos = (
       await sdk.api.abi.multiCall({
         abi: vaultABI.filter(({ name }) => name === 'getPoolTokens')[0],
-        calls: _.range(validPoolsLength).map((i) => ({
-          target: balancerVault,
-          params: [balancerPoolIds[i]],
-        })),
+        calls: _.range(validPoolsLength)
+          .filter((i) => balancerPoolIds[i] !== null)
+          .map((i) => ({
+            target: balancerVault,
+            params: [balancerPoolIds[i]],
+          })),
         chain,
+        permitFailure: true,
       })
-    ).output.map(({ output }) => output);
+    ).output;
 
-    const underlyingTokens = _.range(validPoolsLength).map((i) =>
-      balancerPoolTokenInfos[i].tokens.filter((token) => token !== lpTokens[i])
+    // create mapping to restore the original array structure with null values
+    const tokenInfoMapping = {};
+    _.range(validPoolsLength)
+      .filter((i) => balancerPoolIds[i] !== null)
+      .forEach((i, index) => {
+        tokenInfoMapping[i] = balancerPoolTokenInfos[index].output;
+      });
+
+    // reconstruct array with null values in place
+    const fullBalancerPoolTokenInfos = _.range(validPoolsLength).map(
+      (i) => tokenInfoMapping[i] || null
+    );
+
+    const underlyingTokens = _.range(validPoolsLength).map(
+      (i) =>
+        fullBalancerPoolTokenInfos[i]?.tokens?.filter(
+          (token) => token !== lpTokens[i]
+        ) || []
     );
 
     const uniqueTokens = Array.from(new Set(_.flatten(underlyingTokens)));
@@ -264,6 +294,7 @@ const main = async () => {
           target,
         })),
         chain,
+        permitFailure: true,
       })
     ).output.map(({ output }) => output);
 
@@ -287,7 +318,7 @@ const main = async () => {
             ethers.utils.getAddress(auraAddress),
             ethers.utils.getAddress(balAddress),
           ],
-          url: `https://app.aura.finance/#/1/pool/${validPoolIds[i]}`,
+          url: `https://app.aura.finance/#/${ChainConfig[chain].chainId}/pool/${validPoolIds[i]}`,
         };
 
         // There are not too many extra reward pools so we do individual calls to simplify
@@ -298,8 +329,22 @@ const main = async () => {
               target: stakingContracts[i],
               chain,
               params: [x],
+              permitFailure: true,
             })
           ).output;
+
+          const periodFinish = (
+            await sdk.api.abi.call({
+              abi: virtualBalanceRewardPoolABI.filter(
+                ({ name }) => name === 'periodFinish'
+              )[0],
+              target: virtualBalanceRewardPool,
+              chain,
+              permitFailure: true,
+            })
+          ).output;
+
+          if (periodFinish < Math.floor(Date.now() / 1000)) continue;
 
           const extraRewardRate = (
             await sdk.api.abi.call({
@@ -308,6 +353,7 @@ const main = async () => {
               )[0],
               target: virtualBalanceRewardPool,
               chain,
+              permitFailure: true,
             })
           ).output;
 
@@ -318,6 +364,7 @@ const main = async () => {
               )[0],
               target: virtualBalanceRewardPool,
               chain,
+              permitFailure: true,
             })
           ).output;
 
@@ -326,6 +373,7 @@ const main = async () => {
               abi: stashTokenABI.filter(({ name }) => name === 'baseToken')[0],
               target: stashToken,
               chain,
+              permitFailure: true,
             })
           ).output;
 
@@ -368,6 +416,12 @@ const main = async () => {
         if (swapApr?.poolAprs) {
           data.apyBase = Number(swapApr.poolAprs.swap);
         }
+
+        if (lastTimeRewardApplicable[i] < now) {
+          data.apyReward = 0;
+          data.rewardTokens = [];
+        }
+
         return data;
       })
     );
@@ -375,7 +429,16 @@ const main = async () => {
     allPools.push(...chainPools.filter((p) => utils.keepFinite(p)));
   }
 
-  return allPools;
+  return allPools.filter(
+    (i) =>
+      ![
+        '0xc4ce391d82d164c166df9c8336ddf84206b2f812',
+        '0xc1d48bb722a22cc6abf19facbe27470f08b3db8c',
+        '0x89bb794097234e5e930446c0cec0ea66b35d7570',
+        '0x272d6be442e30d7c87390edeb9b96f1e84cecd8d',
+        '0x6e6bb18449fcf15b79efa2cfa70acf7593088029',
+      ].includes(i.pool)
+  );
 };
 
 module.exports = {

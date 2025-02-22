@@ -167,7 +167,8 @@ const apy = async () => {
     (p) => p.symbol === 'DAI' && p.chain === 'Ethereum'
   );
   ethereumDaiPool.totalSupplyUsd = Number(ilk.line) / 1e45;
-  ethereumDaiPool.tvlUsd = ethereumDaiPool.totalSupplyUsd - ethereumDaiPool.totalBorrowUsd;
+  ethereumDaiPool.tvlUsd =
+    ethereumDaiPool.totalSupplyUsd - ethereumDaiPool.totalBorrowUsd;
 
   return v3Pools;
 };

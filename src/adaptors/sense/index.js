@@ -6,8 +6,7 @@ const { format } = require('date-fns');
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 
-const graphEndpoint =
-  'https://api.thegraph.com/subgraphs/name/sense-finance/sense-v1';
+const graphEndpoint = sdk.graph.modifyEndpoint('GiBzr9juc4hMmyj6KstUnoaacux4wB5jsdgCV38W3Zwt');
 
 const query = gql`
   {

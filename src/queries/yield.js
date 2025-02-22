@@ -30,8 +30,8 @@ const getYieldFiltered = async () => {
         "apyReward",
         "il7d",
         "apyBase7d",
-        "volumeUsd1d",
-        "volumeUsd7d",
+        CASE WHEN "volumeUsd1d" < 0 THEN NULL ELSE "volumeUsd1d" END as "volumeUsd1d",
+        CASE WHEN "volumeUsd7d" < 0 THEN NULL ELSE "volumeUsd7d" END as "volumeUsd7d",
         "apyBaseInception",
         url
     FROM
@@ -41,7 +41,7 @@ const getYieldFiltered = async () => {
             FROM
                 $<yieldTable:name>
             WHERE
-                "tvlUsd" >= $<tvlLB>
+                ("tvlUsd" >= $<tvlLB> OR "configID" = $<AAVE_GHO>)
                 AND timestamp >= NOW() - INTERVAL '$<age> DAY'
             ORDER BY
                 "configID",
@@ -61,6 +61,7 @@ const getYieldFiltered = async () => {
     configTable: configTableName,
     excludePools: exclude.excludePools,
     excludeProjects: exclude.excludeAdaptors,
+    AAVE_GHO: '1e00ac2b-0c3c-4b1f-95be-9378f98d2b40',
   });
 
   if (!response) {

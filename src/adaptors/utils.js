@@ -14,14 +14,16 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'milkomeda_a1') return 'Milkomeda A1';
   if (chain && chain.toLowerCase() === 'boba_avax') return 'Boba_Avax';
   if (chain && chain.toLowerCase() === 'boba_bnb') return 'Boba_Bnb';
+  if (chain && chain.toLowerCase() === 'iotaevm') return 'IOTA EVM';
   if (
-    chain &&
-    (chain.toLowerCase() === 'zksync_era' ||
-      chain.toLowerCase() === 'zksync era' ||
-      chain.toLowerCase() === 'era')
+      chain &&
+      (chain.toLowerCase() === 'zksync_era' ||
+          chain.toLowerCase() === 'zksync era' ||
+          chain.toLowerCase() === 'era')
   )
     return 'zkSync Era';
   if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
+  if (chain && chain.toLowerCase() === 'real') return 're.al';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
@@ -34,12 +36,12 @@ const getFormatter = (symbol) => {
 // set mimatic to mai, uppercase all symbols
 exports.formatSymbol = (symbol) => {
   return symbol
-    .replace(getFormatter(symbol), '-')
-    .replace(/\s/g, '')
-    .trim()
-    .toLowerCase()
-    .replaceAll('mimatic', 'mai')
-    .toUpperCase();
+      .replace(getFormatter(symbol), '-')
+      .replace(/\s/g, '')
+      .trim()
+      .toLowerCase()
+      .replaceAll('mimatic', 'mai')
+      .toUpperCase();
 };
 
 exports.getData = async (url, query = null) => {
@@ -58,7 +60,7 @@ exports.getBlocksByTime = async (timestamps, chainString) => {
   const blocks = [];
   for (const timestamp of timestamps) {
     const response = await superagent.get(
-      `https://coins.llama.fi/block/${chain}/${timestamp}`
+        `https://coins.llama.fi/block/${chain}/${timestamp}`
     );
     blocks.push(response.body.height);
   }
@@ -66,17 +68,6 @@ exports.getBlocksByTime = async (timestamps, chainString) => {
 };
 
 const getLatestBlockSubgraph = async (url) => {
-  // const queryGraph = gql`
-  //   {
-  //     indexingStatusForCurrentVersion(subgraphName: "<PLACEHOLDER>") {
-  //       chains {
-  //         latestBlock {
-  //           number
-  //         }
-  //       }
-  //     }
-  //   }
-  // `;
   const queryGraph = gql`
     {
       _meta {
@@ -87,44 +78,37 @@ const getLatestBlockSubgraph = async (url) => {
     }
   `;
 
-  // const blockGraph = await request(
-  //   'https://api.thegraph.com/index-node/graphql',
-  //   queryGraph.replace('<PLACEHOLDER>', url.split('name/')[1])
-  // );
   const blockGraph =
-    url.includes('metis-graph.maiadao.io') ||
-    url.includes('babydoge/faas') ||
-    url.includes('kybernetwork/kyberswap-elastic-cronos') ||
-    url.includes('kybernetwork/kyberswap-elastic-matic') ||
-    url.includes(
-      'https://subgraph.satsuma-prod.com/09c9cf3574cc/orbital-apes/v3-subgraph/api'
-    ) ||
-    url.includes('api.goldsky.com') ||
-    url.includes('api.studio.thegraph.com') ||
-    url.includes('48211/uniswap-v3-base') ||
-    url.includes('horizondex/block') ||
-    url.includes('pancake-swap.workers.dev') ||
-    url.includes('pancakeswap/exchange-v3-linea') ||
-    url.includes('exchange-v3-polygon-zkevm/version/latest') ||
-    url.includes('exchange-v3-zksync/version/latest') ||
-    url.includes('balancer-base-v2/version/latest') ||
-    url.includes('horizondex') ||
-    url.includes(
-      'https://api.thegraph.com/subgraphs/id/QmZ5uwhnwsJXAQGYEF8qKPQ85iVhYAcVZcZAPfrF7ZNb9z'
-    ) ||
-    url.includes(
-      'https://gateway-arbitrum.network.thegraph.com/api/a265c39f5a123ab2d40b25dc352adc22/subgraphs/id/3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm'
-    )
-      ? await request(url, queryGraph)
-      : url.includes('aperture/uniswap-v3')
-      ? await request(
-          'https://api.goldsky.com/api/public/project_clnz7akg41cv72ntv0uhyd3ai/subgraphs/aperture/manta-pacific-blocks/gn',
-          queryGraph
-        )
-      : await request(
-          `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
-          queryGraph
-        );
+      url.includes('https://gateway-arbitrum.network.thegraph.com/api') ||
+      url.includes('metis-graph.maiadao.io') ||
+      url.includes('babydoge/faas') ||
+      url.includes('kybernetwork/kyberswap-elastic-cronos') ||
+      url.includes('kybernetwork/kyberswap-elastic-matic') ||
+      url.includes('metisapi.0xgraph.xyz/subgraphs/name') ||
+      url.includes(
+          'https://subgraph.satsuma-prod.com/09c9cf3574cc/orbital-apes/v3-subgraph/api'
+      ) ||
+      url.includes('api.goldsky.com') ||
+      url.includes('api.studio.thegraph.com') ||
+      url.includes('48211/uniswap-v3-base') ||
+      url.includes('horizondex/block') ||
+      url.includes('pancake-swap.workers.dev') ||
+      url.includes('pancakeswap/exchange-v3-linea') ||
+      url.includes('exchange-v3-polygon-zkevm/version/latest') ||
+      url.includes('exchange-v3-zksync/version/latest') ||
+      url.includes('balancer-base-v2/version/latest') ||
+      url.includes('horizondex') ||
+      url.includes('swopfi-units')
+          ? await request(url, queryGraph)
+          : url.includes('aperture/uniswap-v3')
+              ? await request(
+                  'https://api.goldsky.com/api/public/project_clnz7akg41cv72ntv0uhyd3ai/subgraphs/aperture/manta-pacific-blocks/gn',
+                  queryGraph
+              )
+              : await request(
+                  `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
+                  queryGraph
+              );
 
   // return Number(
   //   blockGraph.indexingStatusForCurrentVersion.chains[0].latestBlock.number
@@ -136,20 +120,20 @@ const getLatestBlockSubgraph = async (url) => {
 // the latest block from https://coins.llama.fi/block/, if within a certain bound -> ok, otherwise
 // will break as data is stale
 exports.getBlocks = async (
-  chainString,
-  tsTimeTravel,
-  urlArray,
-  offset = 86400
+    chainString,
+    tsTimeTravel,
+    urlArray,
+    offset = 86400
 ) => {
   const timestamp =
-    tsTimeTravel !== null
-      ? Number(tsTimeTravel)
-      : Math.floor(Date.now() / 1000);
+      tsTimeTravel !== null
+          ? Number(tsTimeTravel)
+          : Math.floor(Date.now() / 1000);
 
   const timestampPrior = timestamp - offset;
   let [block, blockPrior] = await this.getBlocksByTime(
-    [timestamp, timestampPrior],
-    chainString
+      [timestamp, timestampPrior],
+      chainString
   );
 
   // in case of standard run, we ping the subgraph and check its latest block
@@ -168,7 +152,7 @@ exports.getBlocks = async (
 
     // check delta (keeping this large for now)
     const thr =
-      chainString === 'ethereum' ? 300 : chainString === 'cronos' ? 6000 : 3000;
+        chainString === 'ethereum' ? 300 : chainString === 'cronos' ? 6000 : 3000;
     if (blockDelta > thr) {
       console.log(`block: ${block}, blockGraph: ${blockGraph}`);
       throw new Error(`Stale subgraph of ${blockDelta} blocks!`);
@@ -204,13 +188,13 @@ exports.tvl = async (dataNow, networkString) => {
   let x = '';
   for (const p of [...Array(pages).keys()]) {
     x = idsSet
-      .slice(p * maxSize, maxSize * (p + 1))
-      .join(',')
-      .replaceAll('/', '');
+        .slice(p * maxSize, maxSize * (p + 1))
+        .join(',')
+        .replaceAll('/', '');
     pricesA = [
       ...pricesA,
       (await axios.get(`https://coins.llama.fi/prices/current/${x}`)).data
-        .coins,
+          .coins,
     ];
   }
   let prices = {};
@@ -244,14 +228,14 @@ exports.tvl = async (dataNow, networkString) => {
 
 exports.aprToApy = (apr, compoundFrequency = 365) => {
   return (
-    ((1 + (apr * 0.01) / compoundFrequency) ** compoundFrequency - 1) * 100
+      ((1 + (apr * 0.01) / compoundFrequency) ** compoundFrequency - 1) * 100
   );
 };
 
 exports.apyToApr = (apy, compoundFrequency = 365) => {
   return (
-    (((apy / 100 + 1) ** (1 / compoundFrequency) - 1) * compoundFrequency) /
-    0.01
+      (((apy / 100 + 1) ** (1 / compoundFrequency) - 1) * compoundFrequency) /
+      0.01
   );
 };
 
@@ -274,11 +258,11 @@ exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
 
   // calc prior volume on 24h offset
   pool['volumeUSDPrior1d'] = dataPrior1d.find(
-    (el) => el.id === pool.id
+      (el) => el.id === pool.id
   )?.volumeUSD;
 
   pool['volumeUSDPrior7d'] = dataPrior7d.find(
-    (el) => el.id === pool.id
+      (el) => el.id === pool.id
   )?.volumeUSD;
 
   // calc 24h volume
@@ -302,9 +286,9 @@ exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
 
 exports.keepFinite = (p) => {
   if (
-    !['apyBase', 'apyReward', 'apy']
-      .map((f) => Number.isFinite(p[f]))
-      .includes(true)
+      !['apyBase', 'apyReward', 'apy']
+          .map((f) => Number.isFinite(p[f]))
+          .includes(true)
   )
     return false;
 
@@ -313,30 +297,30 @@ exports.keepFinite = (p) => {
 
 exports.getPrices = async (addresses, chain) => {
   const priceKeys = chain
-    ? addresses.map((address) => `${chain}:${address}`)
-    : addresses;
+      ? addresses.map((address) => `${chain}:${address}`)
+      : addresses;
   const prices = (
-    await superagent.get(
-      `https://coins.llama.fi/prices/current/${priceKeys
-        .join(',')
-        .toLowerCase()}`
-    )
+      await superagent.get(
+          `https://coins.llama.fi/prices/current/${priceKeys
+              .join(',')
+              .toLowerCase()}`
+      )
   ).body.coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
-    (acc, [address, price]) => ({
-      ...acc,
-      [address.split(':')[1].toLowerCase()]: price.price,
-    }),
-    {}
+      (acc, [address, price]) => ({
+        ...acc,
+        [address.split(':')[1].toLowerCase()]: price.price,
+      }),
+      {}
   );
 
   const pricesBySymbol = Object.entries(prices).reduce(
-    (acc, [name, price]) => ({
-      ...acc,
-      [price.symbol.toLowerCase()]: price.price,
-    }),
-    {}
+      (acc, [name, price]) => ({
+        ...acc,
+        [price.symbol.toLowerCase()]: price.price,
+      }),
+      {}
   );
 
   return { pricesBySymbol, pricesByAddress };
@@ -345,12 +329,12 @@ exports.getPrices = async (addresses, chain) => {
 ///////// UNISWAP V2
 
 const calculateApy = (
-  poolInfo,
-  totalAllocPoint,
-  rewardPerBlock,
-  rewardPrice,
-  reserveUSD,
-  blocksPerYear
+    poolInfo,
+    totalAllocPoint,
+    rewardPerBlock,
+    rewardPrice,
+    reserveUSD,
+    blocksPerYear
 ) => {
   const poolWeight = poolInfo.allocPoint / totalAllocPoint;
   const tokensPerYear = blocksPerYear * rewardPerBlock;
@@ -359,11 +343,11 @@ const calculateApy = (
 };
 
 const calculateReservesUSD = (
-  reserves,
-  reservesRatio,
-  token0,
-  token1,
-  tokenPrices
+    reserves,
+    reservesRatio,
+    token0,
+    token1,
+    tokenPrices
 ) => {
   const { decimals: token0Decimals, id: token0Address } = token0;
   const { decimals: token1Decimals, id: token1Address } = token1;
@@ -371,11 +355,11 @@ const calculateReservesUSD = (
   const token1Price = tokenPrices[token1Address.toLowerCase()];
 
   const reserve0 = new BigNumber(reserves._reserve0)
-    .times(reservesRatio)
-    .times(10 ** (18 - token0Decimals));
+      .times(reservesRatio)
+      .times(10 ** (18 - token0Decimals));
   const reserve1 = new BigNumber(reserves._reserve1)
-    .times(reservesRatio)
-    .times(10 ** (18 - token1Decimals));
+      .times(reservesRatio)
+      .times(10 ** (18 - token1Decimals));
 
   if (token0Price) return reserve0.times(token0Price).times(2).div(1e18);
   if (token1Price) return reserve1.times(token1Price).times(2).div(1e18);
@@ -399,17 +383,17 @@ const getPairsInfo = async (pairs, url) => {
     }
   `;
   const pairInfo = await Promise.all(
-    chunk(pairs, 7).map((tokens) =>
-      request(url, pairQuery, {
-        id_in: tokens.map((pair) => pair.toLowerCase()),
-      })
-    )
+      chunk(pairs, 7).map((tokens) =>
+          request(url, pairQuery, {
+            id_in: tokens.map((pair) => pair.toLowerCase()),
+          })
+      )
   );
 
   return pairInfo
-    .map(({ pairs }) => pairs)
-    .flat()
-    .reduce((acc, pair) => ({ ...acc, [pair.id.toLowerCase()]: pair }), {});
+      .map(({ pairs }) => pairs)
+      .flat()
+      .reduce((acc, pair) => ({ ...acc, [pair.id.toLowerCase()]: pair }), {});
 };
 
 exports.uniswap = { calculateApy, calculateReservesUSD, getPairsInfo };
@@ -424,6 +408,7 @@ const makeMulticall = async (abi, addresses, chain, params = null) => {
       params,
     })),
     chain,
+    permitFailure: true,
   });
 
   const res = data.output.map(({ output }) => output);
@@ -444,4 +429,51 @@ exports.removeDuplicates = (pools) => {
   return pools.filter((i) => {
     return seen.hasOwnProperty(i.pool) ? false : (seen[i.pool] = true);
   });
+};
+
+exports.getERC4626Info = async (
+    address,
+    chain,
+    timestamp = Math.floor(Date.now() / 1e3),
+    {
+      assetUnit = '100000000000000000',
+      totalAssetsAbi = 'uint:totalAssets',
+      convertToAssetsAbi = 'function convertToAssets(uint256 shares) external view returns (uint256)',
+    } = {}
+) => {
+  const DAY = 24 * 3600;
+
+  const [blockNow, blockYesterday] = await Promise.all(
+      [timestamp, timestamp - DAY].map((time) =>
+          axios
+              .get(`https://coins.llama.fi/block/${chain}/${time}`)
+              .then((r) => r.data.height)
+      )
+  );
+  const [tvl, priceNow, priceYesterday] = await Promise.all([
+    sdk.api.abi.call({
+      target: address,
+      block: blockNow,
+      abi: totalAssetsAbi,
+    }),
+    sdk.api.abi.call({
+      target: address,
+      block: blockNow,
+      abi: convertToAssetsAbi,
+      params: [assetUnit],
+    }),
+    sdk.api.abi.call({
+      target: address,
+      block: blockYesterday,
+      abi: convertToAssetsAbi,
+      params: [assetUnit],
+    }),
+  ]);
+  const apy = (priceNow.output / priceYesterday.output) ** 365 * 100 - 100;
+  return {
+    pool: address,
+    chain,
+    tvl: tvl.output,
+    apyBase: apy,
+  };
 };

@@ -12,6 +12,7 @@ const REWARD_SPEED_BORROW = 'compBorrowSpeeds';
 const SUPPLY_RATE = 'supplyRatePerBlock';
 const BORROW_RATE = 'borrowRatePerBlock';
 const TOTAL_BORROWS = 'totalBorrows';
+const TOTAL_RESERVES = 'totalReserves';
 const GET_CHASH = 'getCash';
 const UNDERLYING = 'underlying';
 const BLOCKS_PER_DAY = 86400 / 12;
@@ -67,6 +68,7 @@ const getRewards = async (markets, rewardMethod) => {
         params: [market],
       })),
       abi: comptrollerAbi.find(({ name }) => name === rewardMethod),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -77,6 +79,7 @@ const multiCallMarkets = async (markets, method, abi) => {
       chain: CHAIN,
       calls: markets.map((market) => ({ target: market })),
       abi: abi.find(({ name }) => name === method),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -87,6 +90,7 @@ const main = async () => {
       target: COMPTROLLER_ADDRESS,
       chain: CHAIN,
       abi: comptrollerAbi.find(({ name }) => name === GET_ALL_MARKETS),
+      permitFailure: true,
     })
   ).output;
   const allMarkets = Object.values(allMarketsRes);
@@ -99,6 +103,7 @@ const main = async () => {
         target: COMPTROLLER_ADDRESS,
         params: [m],
       })),
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -110,6 +115,7 @@ const main = async () => {
         target: COMPTROLLER_ADDRESS,
         params: [m],
       })),
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -137,6 +143,11 @@ const main = async () => {
   const totalBorrows = await multiCallMarkets(
     allMarkets,
     TOTAL_BORROWS,
+    ercDelegator
+  );
+  const totalReserves = await multiCallMarkets(
+    allMarkets,
+    TOTAL_RESERVES,
     ercDelegator
   );
 
@@ -178,11 +189,14 @@ const main = async () => {
       price = symbol.toLowerCase().includes('usd') ? 1 : 0;
 
     const totalSupplyUsd =
-      ((Number(marketsCash[i]) + Number(totalBorrows[i])) / 10 ** decimals) *
+      ((Number(marketsCash[i]) +
+        Number(totalBorrows[i]) -
+        Number(totalReserves[i])) /
+        10 ** decimals) *
       price;
-    const tvlUsd = (marketsCash[i] / 10 ** decimals) * price;
 
     const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
+    const tvlUsd = totalSupplyUsd - totalBorrowUsd;
 
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
     const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
@@ -240,5 +254,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.compound.finance/',
+  url: 'https://app.compound.finance/markets/v2',
 };

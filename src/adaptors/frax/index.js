@@ -4,7 +4,6 @@ const utils = require('../utils');
 
 const { farmAbi, pairAbi } = require('./abi');
 const { vstFraxStaking } = require('./vstFraxStaking');
-const { getERC4626Info } = require('../helpers/erc4626');
 
 const FRAXSWAP_POOLS_URL = 'https://api.frax.finance/v2/fraxswap/pools';
 const STAKING_URL = 'https://api.frax.finance/v1/pools';
@@ -22,14 +21,34 @@ const STAKING_CONTRACTS = {
 };
 
 const apy = async (timestamp) => {
-  const sfrax = await getERC4626Info("0xA663B02CF0a4b149d2aD41910CB81e23e1c41c32", "ethereum", timestamp)
+  const sfrax = await utils.getERC4626Info(
+    '0xA663B02CF0a4b149d2aD41910CB81e23e1c41c32',
+    'ethereum',
+    timestamp
+  );
+  const { tvl: sfraxTvl, ...restSfrax } = sfrax;
   const sfraxvault = {
-    ...sfrax,
+    ...restSfrax,
     project: 'frax',
     symbol: `sFRAX`,
-    tvlUsd: sfrax.tvl/1e18,
-    underlyingTokens: ["0x853d955acef822db058eb8505911ed77f175b99e"],
+    tvlUsd: sfraxTvl / 1e18,
+    underlyingTokens: ['0x853d955acef822db058eb8505911ed77f175b99e'],
   };
+
+  const sfrxusd = await utils.getERC4626Info(
+    '0xcf62F905562626CfcDD2261162a51fd02Fc9c5b6',
+    'ethereum',
+    timestamp
+  );
+  const { tvl: sfrxusdTVL, ...restSfrxusd } = sfrxusd;
+  const sfrxusdvault = {
+    ...restSfrxusd,
+    project: 'frax',
+    symbol: `sfrxUSD`,
+    tvlUsd: sfrxusdTVL / 1e18,
+    underlyingTokens: ['0xCAcd6fd266aF91b8AeD52aCCc382b4e165586E29'],
+  };
+
   const { pools: fxswapData } = await utils.getData(FRAXSWAP_POOLS_URL);
   const stakingData = await utils
     .getData(STAKING_URL)
@@ -95,6 +114,7 @@ const apy = async (timestamp) => {
     .concat(stakingRes)
     .concat(vstFraxStakingRes)
     .concat([sfraxvault])
+    .concat([sfrxusdvault])
     .filter(Boolean);
 };
 

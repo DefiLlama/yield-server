@@ -1,10 +1,10 @@
 const superagent = require('superagent');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const { comptrollerAbi, ercDelegator } = require('../compound-v2/abi');
 
-const COMPTROLLER_ADDRESS = '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B';
+const COMPTROLLER_ADDRESS = '0xe53a90EFd263363993A3B41Aa29f7DaBde1a932D';
 const CHAIN = 'mantle';
 const GET_ALL_MARKETS = 'getAllMarkets';
 const REWARD_SPEED = 'compSupplySpeeds';
@@ -12,10 +12,11 @@ const REWARD_SPEED_BORROW = 'compBorrowSpeeds';
 const SUPPLY_RATE = 'supplyRatePerBlock';
 const BORROW_RATE = 'borrowRatePerBlock';
 const TOTAL_BORROWS = 'totalBorrows';
+const TOTAL_RESERVES = 'totalReserves';
 const GET_CHASH = 'getCash';
 const UNDERLYING = 'underlying';
 const BLOCKS_PER_DAY = 86400 / 12;
-const PROJECT_NAME = 'compound-v2';
+const PROJECT_NAME = 'minterest';
 
 const NATIVE_TOKEN = {
   decimals: 18,
@@ -67,6 +68,7 @@ const getRewards = async (markets, rewardMethod) => {
         params: [market],
       })),
       abi: comptrollerAbi.find(({ name }) => name === rewardMethod),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -77,6 +79,7 @@ const multiCallMarkets = async (markets, method, abi) => {
       chain: CHAIN,
       calls: markets.map((market) => ({ target: market })),
       abi: abi.find(({ name }) => name === method),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -139,6 +142,11 @@ const main = async () => {
     TOTAL_BORROWS,
     ercDelegator
   );
+  const totalReserves = await multiCallMarkets(
+    allMarkets,
+    TOTAL_RESERVES,
+    ercDelegator
+  );
 
   const underlyingTokens = await multiCallMarkets(
     allMarkets,
@@ -178,11 +186,14 @@ const main = async () => {
       price = symbol.toLowerCase().includes('usd') ? 1 : 0;
 
     const totalSupplyUsd =
-      ((Number(marketsCash[i]) + Number(totalBorrows[i])) / 10 ** decimals) *
+      ((Number(marketsCash[i]) +
+        Number(totalBorrows[i]) -
+        Number(totalReserves[i])) /
+        10 ** decimals) *
       price;
-    const tvlUsd = (marketsCash[i] / 10 ** decimals) * price;
 
     const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
+    const tvlUsd = totalSupplyUsd - totalBorrowUsd;
 
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
     const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
@@ -197,8 +208,9 @@ const main = async () => {
         100
       );
     };
-    const apyReward = calcRewardApy(extraRewards, totalSupplyUsd);
-    const apyRewardBorrow = calcRewardApy(extraRewardsBorrow, totalBorrowUsd);
+    const apyReward = calcRewardApy(extraRewards, totalSupplyUsd) ?? null;
+    const apyRewardBorrow =
+      calcRewardApy(extraRewardsBorrow, totalBorrowUsd) ?? null;
 
     let poolReturned = {
       pool: market.toLowerCase(),
@@ -210,26 +222,21 @@ const main = async () => {
       apyReward,
       underlyingTokens: [token],
       rewardTokens: [apyReward ? PROTOCOL_TOKEN.address : null].filter(Boolean),
+      // borrow fields
+      totalSupplyUsd,
+      totalBorrowUsd,
+      apyBaseBorrow,
+      apyRewardBorrow,
+      ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
     };
-    if (isPaused[i] === false) {
-      poolReturned = {
-        ...poolReturned,
-        // borrow fields
-        totalSupplyUsd,
-        totalBorrowUsd,
-        apyBaseBorrow,
-        apyRewardBorrow,
-        ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
-        debtCeilingUsd: (borrowCaps[i] / 1e18) * price,
-      };
-    }
+
     return poolReturned;
   });
-  return pools;
+  return pools.filter((i) => utils.keepFinite(i));
 };
 
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.compound.finance/',
+  url: 'https://mantle.minterest.com/',
 };

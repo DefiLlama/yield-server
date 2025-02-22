@@ -1,119 +1,191 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
+
 const abi = require('./abi.js');
+const abiToken = require('./abiToken.js');
+const utils = require('../utils.js');
 
-const main = async () => {
-  const gammatrollerAddress = '0x1e0c9d09f9995b95ec4175aaa18b49f49f6165a3';
-  const rewardAddress = '0xb3cb6d2f8f2fde203a022201c81a96c167607f15';
-  const key = 'bsc:0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c';
-  const gammakey = 'bsc:0xb3cb6d2f8f2fde203a022201c81a96c167607f15';
+const gammatrollerAddress = '0x1e0c9d09f9995b95ec4175aaa18b49f49f6165a3';
+const GAMMA = '0xb3cb6d2f8f2fde203a022201c81a96c167607f15';
 
-  const bnbPriceUSD = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).body.coins[key].price;
+const blocksPerDay = 28800;
+const daysPerYear = 365;
 
-  const gammaPriceUSD = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${gammakey}`)
-  ).body.coins[gammakey].price;
-
-  const data = (
-    await superagent.get('https://aquaapi.planet.finance/getGreenPlanetMarkets')
-  ).text;
-
-  let markets = JSON.parse(data);
-
-  const gammaSpeedsRes = await sdk.api.abi.multiCall({
-    abi: abi.find((i) => i.name === 'gammaSpeeds'),
-    calls: markets.map((t) => ({
+const apy = async () => {
+  const markets = (
+    await sdk.api.abi.call({
       target: gammatrollerAddress,
-      params: t.id,
-    })),
-    chain: 'bsc',
-  });
-  let gammaSpeeds = {};
-  gammaSpeedsRes.output.map((o) => {
-    gammaSpeeds[o.input.params[0]] = o.output;
-  });
+      abi: abi.find((m) => m.name === 'getAllMarkets'),
+      chain: 'bsc',
+    })
+  ).output;
 
-  const getGammaBoostPercentageRes = await sdk.api.abi.multiCall({
-    abi: abi.find((i) => i.name === 'getGammaBoostPercentage'),
-    calls: markets.map((t) => ({
-      target: gammatrollerAddress,
-      params: t.id,
-    })),
-    chain: 'bsc',
-  });
-  let getGammaBoostPercentage = {};
-  getGammaBoostPercentageRes.output.map((o) => {
-    getGammaBoostPercentage[o.input.params[0]] = o.output;
-  });
+  const metadata = (
+    await sdk.api.abi.multiCall({
+      abi: abi.find((i) => i.name === 'markets'),
+      calls: markets.map((m) => ({
+        target: gammatrollerAddress,
+        params: m,
+      })),
+      chain: 'bsc',
+    })
+  ).output.map((o) => o.output);
 
-  const pools = [];
-  for (const p of markets) {
-    let apyReward = 0;
-    let apyRewardBorrow = 0;
-    const blocksPerDay = 28800;
-    const daysPerYear = 365;
-    let totalSupply = Number(p.totalSupply) * Number(p.exchangeRate);
-    let totalBorrows = Number(p.totalBorrows);
-    let gammaPerBlock =
-      ((10000 - parseInt(getGammaBoostPercentage[p.id])) / 10000) *
-      (Number(gammaSpeeds[p.id]) / 1e18);
-    let gammaPerDay = gammaPerBlock * blocksPerDay;
-    let gammaBorrowPerDay = (Number(gammaSpeeds[p.id]) / 1e18) * blocksPerDay;
-    apyReward =
+  const gammaSpeeds = (
+    await sdk.api.abi.multiCall({
+      abi: abi.find((i) => i.name === 'gammaSpeeds'),
+      calls: markets.map((m) => ({
+        target: gammatrollerAddress,
+        params: m,
+      })),
+      chain: 'bsc',
+    })
+  ).output.map((o) => o.output);
+
+  const totalSupply = (
+    await sdk.api.abi.multiCall({
+      abi: abiToken.find((i) => i.name === 'totalSupply'),
+      calls: markets.map((m) => ({
+        target: m,
+      })),
+      chain: 'bsc',
+    })
+  ).output.map((o) => o.output);
+
+  const totalBorrows = (
+    await sdk.api.abi.multiCall({
+      abi: abiToken.find((i) => i.name === 'totalBorrows'),
+      calls: markets.map((m) => ({
+        target: m,
+      })),
+      chain: 'bsc',
+    })
+  ).output.map((o) => o.output);
+
+  const exchangeRateStored = (
+    await sdk.api.abi.multiCall({
+      abi: abiToken.find((i) => i.name === 'exchangeRateStored'),
+      calls: markets.map((m) => ({
+        target: m,
+      })),
+      chain: 'bsc',
+    })
+  ).output.map((o) => o.output);
+
+  const supplyRatePerBlock = (
+    await sdk.api.abi.multiCall({
+      abi: abiToken.find((i) => i.name === 'supplyRatePerBlock'),
+      calls: markets.map((m) => ({
+        target: m,
+      })),
+      chain: 'bsc',
+    })
+  ).output.map((o) => o.output);
+
+  const borrowRatePerBlock = (
+    await sdk.api.abi.multiCall({
+      abi: abiToken.find((i) => i.name === 'borrowRatePerBlock'),
+      calls: markets.map((m) => ({
+        target: m,
+      })),
+      chain: 'bsc',
+    })
+  ).output.map((o) => o.output);
+
+  const underlying = (
+    await sdk.api.abi.multiCall({
+      abi: abiToken.find((i) => i.name === 'underlying'),
+      calls: markets.map((m) => ({
+        target: m,
+      })),
+      chain: 'bsc',
+      permitFailure: true,
+    })
+  ).output.map((o) => o.output);
+
+  const symbol = (
+    await sdk.api.abi.multiCall({
+      abi: 'erc20:symbol',
+      calls: underlying.map((m) => ({
+        target: m,
+      })),
+      chain: 'bsc',
+      permitFailure: true,
+    })
+  ).output.map((o) => o.output);
+
+  const priceKeys = [...underlying, GAMMA].map((t) => `bsc:${t}`).join(',');
+  const prices = (
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).data.coins;
+  const gammaPriceUSD = prices[`bsc:${GAMMA}`].price;
+
+  const pools = markets.map((m, i) => {
+    const price = prices[`bsc:${underlying[i]}`]?.price;
+
+    const totalSupplyUsd =
+      (((totalSupply[i] / 1e18) * exchangeRateStored[i]) / 1e18) * price;
+
+    const totalBorrowUsd = (totalBorrows[i] / 1e18) * price;
+
+    const apyBase =
+      (Math.pow(
+        (supplyRatePerBlock[i] / 1e18) * blocksPerDay + 1,
+        daysPerYear
+      ) -
+        1) *
+      100;
+
+    const apyBaseBorrow =
+      (Math.pow(
+        (borrowRatePerBlock[i] / 1e18) * blocksPerDay + 1,
+        daysPerYear
+      ) -
+        1) *
+      100;
+
+    const gammaPerDay = (gammaSpeeds[i] / 1e18) * blocksPerDay;
+
+    const apyReward =
       100 *
       (Math.pow(
-        1 +
-          (gammaPriceUSD * gammaPerDay) /
-            (totalSupply * Number(p.underlyingPrice)),
+        1 + (gammaPriceUSD * gammaPerDay) / totalSupplyUsd,
         daysPerYear
       ) -
         1);
-    apyRewardBorrow =
+
+    const apyRewardBorrow =
       100 *
       (Math.pow(
-        1 +
-          (gammaPriceUSD * gammaBorrowPerDay) /
-            (totalBorrows * Number(p.underlyingPrice)),
+        1 + (gammaPriceUSD * gammaPerDay) / totalBorrowUsd,
         daysPerYear
       ) -
         1);
 
-    if (p.totalBorrows == 0) {
-      apyRewardBorrow = 0;
-    }
-    let totalSupplyUsd =
-      Number(p.totalSupply) *
-      Number(p.exchangeRate) *
-      Number(p.underlyingPrice);
-    let totalBorrowUsd = Number(p.totalBorrows) * Number(p.underlyingPrice);
-    pools.push({
-      pool: p.id,
+    return {
+      pool: m.toLowerCase(),
       chain: 'BSC',
       project: 'green-planet',
-      symbol: p.symbol.slice(1),
+      symbol: symbol[i],
       tvlUsd: totalSupplyUsd - totalBorrowUsd,
-      apyBase:
-        (Math.pow(p.supplyRate * blocksPerDay + 1, daysPerYear) - 1) * 100,
+      apyBase,
       apyReward,
       rewardTokens:
         apyReward > 0 ? ['0xb3cb6d2f8f2fde203a022201c81a96c167607f15'] : [],
-      underlyingTokens: [p.underlyingAddress],
+      underlyingTokens: [underlying[i]],
       // borrow fields
-      apyBaseBorrow:
-        (Math.pow(p.borrowRate * blocksPerDay + 1, daysPerYear) - 1) * 100,
-      apyRewardBorrow: apyRewardBorrow,
-      totalSupplyUsd: totalSupplyUsd,
-      totalBorrowUsd: totalBorrowUsd,
-      ltv: Number(p.collateralFactor),
-    });
-  }
-  return pools;
+      apyBaseBorrow,
+      apyRewardBorrow,
+      totalSupplyUsd,
+      totalBorrowUsd,
+      ltv: metadata[i].collateralFactorMantissa / 1e18,
+    };
+  });
+
+  return pools.filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
-  timetravel: false,
-  apy: main,
+  apy,
   url: 'https://app.planet.finance/lending',
 };

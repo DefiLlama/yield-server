@@ -1,13 +1,17 @@
+const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
 const chains = {
-  avalanche: 'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/joe-v2',
-  arbitrum:
-    'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/joe-v2-arbitrum',
-  bsc: 'https://api.thegraph.com/subgraphs/name/traderjoe-xyz/joe-v2-bnb',
+  avalanche: sdk.graph.modifyEndpoint(
+    '6KD9JYCg2qa3TxNK3tLdhj5zuZTABoLLNcnUZXKG9vuH'
+  ),
+  arbitrum: sdk.graph.modifyEndpoint(
+    '9RoEdAwZiP651miLbKLYQczjckg7HxmyoKXWYXBDYsJc'
+  ),
+  bsc: sdk.graph.modifyEndpoint('9ANwfoCsnDa2fREYqEpGxWcTQHsmBDeTkdSDXGYAspN7'),
 };
 
 const query = gql`
