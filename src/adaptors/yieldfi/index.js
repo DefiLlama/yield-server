@@ -17,7 +17,7 @@ const poolsFunction = async () => {
     chain: 'ethereum',
     project: 'yieldfi',
     symbol: utils.formatSymbol('yUSD'),
-    tvlUsd: (parseFloat(dataTvl)*parseFloat(price)).toFixed(2),
+    tvlUsd: parseFloat((parseFloat(dataTvl)*price).toFixed(2)),
     apy: apyData.apy,
   };
 
