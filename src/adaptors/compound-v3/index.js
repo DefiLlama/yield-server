@@ -124,6 +124,14 @@ const markets = [
     rewardToken: '0x7e7d4467112689329f7E06571eD0E8CbAd4910eE',
     chain: 'optimism',
   },
+  {
+    address: '0xE36A30D249f7761327fd973001A32010b521b6Fd',
+    symbol: 'cWETHv3',
+    underlying: '0x4200000000000000000000000000000000000006',
+    underlyingSymbol: 'WETH',
+    rewardToken: '0x7e7d4467112689329f7E06571eD0E8CbAd4910eE',
+    chain: 'optimism',
+  },
 ];
 
 const main = async (pool) => {

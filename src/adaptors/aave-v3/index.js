@@ -20,10 +20,14 @@ const protocolDataProviders = {
   bsc: '0x23dF2a19384231aFD114b036C14b6b03324D79BC',
   scroll: '0xe2108b60623C6Dcf7bBd535bD15a451fd0811f7b',
   era: '0x5F2A704cE47B373c908fE8A29514249469b52b99',
+  lido: '0x08795CFE08C7a81dCDFf482BbAAF474B240f31cD', // on ethereum
+  etherfi: '0xE7d490885A68f00d9886508DF281D67263ed5758', // on ethereum
 };
 
-const getApy = async (chain) => {
-  const protocolDataProvider = protocolDataProviders[chain];
+const getApy = async (market) => {
+  const chain = ['lido', 'etherfi'].includes(market) ? 'ethereum' : market;
+
+  const protocolDataProvider = protocolDataProviders[market];
   const reserveTokens = (
     await sdk.api.abi.call({
       target: protocolDataProvider,
@@ -109,57 +113,65 @@ const getApy = async (chain) => {
       })
     ).output / 1e18;
 
-  return reserveTokens.map((pool, i) => {
-    const p = poolsReserveData[i];
-    const price = prices[`${chain}:${pool.tokenAddress}`]?.price;
+  return reserveTokens
+    .map((pool, i) => {
+      const frozen = poolsReservesConfigurationData[i].isFrozen;
+      if (frozen) return null;
 
-    const supply = totalSupply[i];
-    let totalSupplyUsd = (supply / 10 ** underlyingDecimals[i]) * price;
+      const p = poolsReserveData[i];
+      const price = prices[`${chain}:${pool.tokenAddress}`]?.price;
 
-    const currentSupply = underlyingBalances[i];
-    let tvlUsd = (currentSupply / 10 ** underlyingDecimals[i]) * price;
+      const supply = totalSupply[i];
+      let totalSupplyUsd = (supply / 10 ** underlyingDecimals[i]) * price;
 
-    if (pool.symbol === 'GHO') {
-      tvlUsd = 0;
-      totalSupplyUsd = tvlUsd;
-      totalBorrowUsd = ghoSupply * prices[`${chain}:${GHO}`]?.price;
-    } else {
-      totalBorrowUsd = totalSupplyUsd - tvlUsd;
-    }
+      const currentSupply = underlyingBalances[i];
+      let tvlUsd = (currentSupply / 10 ** underlyingDecimals[i]) * price;
 
-    const chainUrlParam =
-      chain === 'ethereum'
-        ? 'mainnet'
-        : chain === 'avax'
-        ? 'avalanche'
-        : chain === 'xdai'
-        ? 'gnosis'
-        : chain === 'bsc'
-        ? 'bnb'
-        : chain;
+      if (pool.symbol === 'GHO') {
+        tvlUsd = 0;
+        totalSupplyUsd = tvlUsd;
+        totalBorrowUsd = ghoSupply * prices[`${chain}:${GHO}`]?.price;
+      } else {
+        totalBorrowUsd = totalSupplyUsd - tvlUsd;
+      }
 
-    const url = `https://app.aave.com/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=proto_${chainUrlParam}_v3`;
+      const marketUrlParam =
+        market === 'ethereum'
+          ? 'mainnet'
+          : market === 'avax'
+          ? 'avalanche'
+          : market === 'xdai'
+          ? 'gnosis'
+          : market === 'bsc'
+          ? 'bnb'
+          : market;
 
-    return {
-      pool: `${aTokens[i].tokenAddress}-${
-        chain === 'avax' ? 'avalanche' : chain
-      }`.toLowerCase(),
-      chain,
-      project: 'aave-v3',
-      symbol: pool.symbol,
-      tvlUsd,
-      apyBase: (p.liquidityRate / 10 ** 27) * 100,
-      underlyingTokens: [pool.tokenAddress],
-      totalSupplyUsd,
-      totalBorrowUsd,
-      debtCeilingUsd: pool.symbol === 'GHO' ? 1e8 : null,
-      apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
-      ltv: poolsReservesConfigurationData[i].ltv / 10000,
-      url,
-      borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
-      mintedCoin: pool.symbol === 'GHO' ? 'GHO' : null,
-    };
-  });
+      const url = `https://app.aave.com/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=proto_${marketUrlParam}_v3`;
+
+      return {
+        pool: `${aTokens[i].tokenAddress}-${
+          market === 'avax' ? 'avalanche' : market
+        }`.toLowerCase(),
+        chain,
+        project: 'aave-v3',
+        symbol: pool.symbol,
+        tvlUsd,
+        apyBase: (p.liquidityRate / 10 ** 27) * 100,
+        underlyingTokens: [pool.tokenAddress],
+        totalSupplyUsd,
+        totalBorrowUsd,
+        debtCeilingUsd: pool.symbol === 'GHO' ? 1e8 : null,
+        apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+        ltv: poolsReservesConfigurationData[i].ltv / 10000,
+        url,
+        borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
+        mintedCoin: pool.symbol === 'GHO' ? 'GHO' : null,
+        poolMeta: ['lido', 'etherfi'].includes(market)
+          ? `${market}-market`
+          : null,
+      };
+    })
+    .filter((i) => Boolean(i));
 };
 
 const stkGho = async () => {
@@ -191,8 +203,8 @@ const stkGho = async () => {
   const stkghoNativeApy = convertStakedTokenApy(stkghoNativeApyRaw);
 
   const stkghoMeritApy = (
-    await axios.get('https://apps.aavechan.com/api/merit/base-aprs')
-  ).data.actionsAPR['ethereum-stkgho'];
+    await axios.get('https://apps.aavechan.com/api/merit/aprs')
+  ).data.currentAPR.actionsAPR['ethereum-stkgho'];
 
   const stkghoApy = stkghoNativeApy + stkghoMeritApy;
 
@@ -223,7 +235,7 @@ const stkGho = async () => {
 
 const apy = async () => {
   const pools = await Promise.allSettled(
-    Object.keys(protocolDataProviders).map(async (chain) => getApy(chain))
+    Object.keys(protocolDataProviders).map(async (market) => getApy(market))
   );
 
   const stkghoPool = await stkGho();

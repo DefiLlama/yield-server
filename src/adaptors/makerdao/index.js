@@ -1,7 +1,9 @@
 const ethers = require('ethers');
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
+
+const abiSUSDS = require('./abiSUSDS.json');
 
 const HOUR = 60 * 60;
 const DAY = 24 * HOUR;
@@ -272,12 +274,12 @@ function onlyUnique(value, index, self) {
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/${addresses
         .join(',')
         .toLowerCase()}`
     )
-  ).body.coins;
+  ).data.coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -406,8 +408,59 @@ const main = async () => {
     .filter((e) => e.tvlUsd);
 };
 
+const susdsAPY = async () => {
+  const USDS = '0xdC035D45d973E3EC169d2276DDab16f1e407384F';
+  const sUSDS = '0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD';
+
+  const totalSupply =
+    (
+      await sdk.api.abi.call({
+        target: sUSDS,
+        abi: 'erc20:totalSupply',
+      })
+    ).output / 1e18;
+
+  const key = `ethereum:${sUSDS}`;
+  const price = (
+    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
+  ).data.coins[key].price;
+
+  // sky savings rate
+  const RAY = 1e27;
+  const ssr =
+    (
+      await sdk.api.abi.call({
+        target: sUSDS,
+        abi: abiSUSDS.find((m) => m.name === 'ssr'),
+      })
+    ).output / RAY;
+
+  const secPerYear = 60 * 60 * 24 * 365;
+
+  // https://github.com/makerdao/sdai/blob/susds/src/SUsds.sol
+  const nChi = Math.pow(ssr, secPerYear) * RAY;
+
+  const apy = (nChi / RAY - 1) * 100;
+
+  return [
+    {
+      pool: sUSDS,
+      symbol: 'SUSDS',
+      project: 'makerdao',
+      chain: 'ethereum',
+      tvlUsd: totalSupply * price,
+      apy,
+      underlyingTokens: [USDS],
+    },
+  ];
+};
+
+const apy = async () => {
+  const pools = await Promise.all([main(), susdsAPY()]);
+  return pools.flat();
+};
+
 module.exports = {
-  timetravel: false,
-  apy: main,
+  apy,
   url: 'https://makerdao.com/',
 };

@@ -17,7 +17,9 @@ const getApy = async () => {
         project: 'polynomial-liquidity',
         symbol: pool.collateralType === 'fxUSDC' ? 'USDC' : pool.collateralType,
         tvlUsd: pool.tvl,
-        apyBase: pool.apy,
+        apyBase: pool.apr + pool.baseApr,
+        apyReward: pool.opRewardsApr,
+        rewardTokens: ['0x4200000000000000000000000000000000000042'],
         url: LIQUIDITY_URL
       };
     })

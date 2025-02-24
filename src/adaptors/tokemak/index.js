@@ -7,9 +7,26 @@ const { autopoolAbi } = require('./abis/Autopool');
 const { autopoolETHStrategyAbi } = require('./abis/AutopoolETHStrategy');
 const { erc20Abi } = require('./abis/ERC20');
 
-const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
-const V2_GEN3_ETH_MAINNET_SUBGRAPH_URL =
-  'https://subgraph.satsuma-prod.com/56ca3b0c9fd0/tokemak/v2-gen3-eth-mainnet/api';
+const SETTINGS_BY_CHAIN = {
+  1: {
+    subgraphUrl:
+      'https://subgraph.satsuma-prod.com/56ca3b0c9fd0/tokemak/v2-gen3-eth-mainnet/api',
+    weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    multicallChainId: 'ethereum',
+    pricePrefixChainId: 'ethereum',
+    poolsChainId: 'Ethereum',
+  },
+  8453: {
+    subgraphUrl:
+      'https://subgraph.satsuma-prod.com/56ca3b0c9fd0/tokemak/v2-gen3-base-mainnet/api',
+    weth: '0x4200000000000000000000000000000000000006',
+    multicallChainId: 'base',
+    pricePrefixChainId: 'base',
+    poolsChainId: 'Base',
+  },
+};
+
+const BN_ZERO = BigNumber.from('0');
 
 const autopoolsQuery = gql`
   query AutopoolsQuery {
@@ -24,8 +41,7 @@ const autopoolsQuery = gql`
         decimals
         symbol
       }
-      day7MAApy
-      day30MAApy
+      currentApy
       periodicFee
       streamingFee
       rewarder {
@@ -48,25 +64,23 @@ const autopoolsQuery = gql`
   }
 `;
 
-const getAutopools = async () => {
-  const { autopools } = await request(
-    V2_GEN3_ETH_MAINNET_SUBGRAPH_URL,
-    autopoolsQuery,
-    {}
-  );
+const getAutopools = async (settings) => {
+  const { autopools } = await request(settings.subgraphUrl, autopoolsQuery, {});
   return autopools;
 };
 
-const getWethPrice = async () => {
-  const wethPriceKey = `ethereum:${WETH}`;
+const getWethPrice = async (settings) => {
+  const wethPriceKey = `${settings.pricePrefixChainId}:${settings.weth}`;
   const wethPrice = (
     await axios.get(`https://coins.llama.fi/prices/current/${wethPriceKey}`)
   ).data.coins[wethPriceKey]?.price;
   return wethPrice;
 };
 
-async function main() {
-  const autopools = await getAutopools();
+async function getPoolsForChain(chainId) {
+  const settings = SETTINGS_BY_CHAIN[chainId];
+
+  const autopools = await getAutopools(settings);
 
   const multicalls = [];
 
@@ -88,7 +102,7 @@ async function main() {
           };
         });
       }),
-      chain: 'ethereum',
+      chain: settings.multicallChainId,
       permitFailure: false,
     })
   );
@@ -105,7 +119,7 @@ async function main() {
           };
         });
       }),
-      chain: 'ethereum',
+      chain: settings.multicallChainId,
       permitFailure: false,
     })
   );
@@ -122,7 +136,7 @@ async function main() {
           };
         });
       }),
-      chain: 'ethereum',
+      chain: settings.multicallChainId,
       permitFailure: false,
     })
   );
@@ -139,7 +153,7 @@ async function main() {
           params: [],
         };
       }),
-      chain: 'ethereum',
+      chain: settings.multicallChainId,
       permitFailure: false,
     })
   );
@@ -154,7 +168,7 @@ async function main() {
           params: [],
         };
       }),
-      chain: 'ethereum',
+      chain: settings.multicallChainId,
       permitFailure: false,
     })
   );
@@ -221,22 +235,35 @@ async function main() {
       compositeReturn += debtValueWeight * cr;
     }
 
+    const autopoolPeriodicFee = BigNumber.from(autopool.periodicFee);
+    const autopoolStreamingFee = BigNumber.from(autopool.streamingFee);
+
+    // Fees may temporarily go to zero but we want the crm to display as though
+    // they are still applied so we don't see sharp temporary increases
+    const applicablePeriodicFee = autopoolPeriodicFee.eq(BN_ZERO)
+      ? BigNumber.from(50)
+      : autopoolPeriodicFee;
+
+    const applicableStreamingFee = autopoolStreamingFee.eq(BN_ZERO)
+      ? BigNumber.from(1500)
+      : autopoolStreamingFee;
+
     // Calculate compositeReturn net of estimated fees
     compositeReturn =
       (compositeReturn / (1 - totalIdle / totalAssets) -
-        Number(etherUtils.formatUnits(autopool.periodicFee, 4))) *
-      (1 - Number(etherUtils.formatUnits(autopool.streamingFee, 4)));
+        Number(etherUtils.formatUnits(applicablePeriodicFee, 4))) *
+      (1 - Number(etherUtils.formatUnits(applicableStreamingFee, 4)));
 
     autopoolCRs[autopool.id] = compositeReturn;
 
     ix += dl;
   }
 
-  const wethPrice = await getWethPrice();
+  const wethPrice = await getWethPrice(settings);
 
   const pools = autopools.map((pool, i) => ({
     pool: pool.id,
-    chain: 'Ethereum',
+    chain: settings.poolsChainId,
     project: 'tokemak',
     symbol: pool.baseAsset.symbol,
     tvlUsd:
@@ -245,14 +272,10 @@ async function main() {
     rewardTokens: [pool.rewarder.rewardToken.id],
     underlyingTokens: [pool.baseAsset.id],
     apyBase:
-      // Use the 30 day MA when we have it, falling back to the 7 when we don't, and finally to the max compositeReturn
-      ((pool.day30MAApy
+      // If we have a currentApy populated, use it. Otherwise, use the weighted CRM.
+      ((pool.currentApy
         ? Number(
-            etherUtils.formatUnits(pool.day30MAApy, pool.baseAsset.decimals)
-          )
-        : pool.day7MAApy
-        ? Number(
-            etherUtils.formatUnits(pool.day7MAApy, pool.baseAsset.decimals)
+            etherUtils.formatUnits(pool.currentApy, pool.baseAsset.decimals)
           )
         : autopoolCRs[pool.id]) || 0) * 100,
     apyReward:
@@ -268,6 +291,15 @@ async function main() {
     poolMeta: pool.symbol,
   }));
 
+  return pools;
+}
+
+async function main() {
+  const chainIds = Object.keys(SETTINGS_BY_CHAIN);
+  const pools = [];
+  for (let i = 0; i < chainIds.length; i++) {
+    pools.push(...(await getPoolsForChain(chainIds[i])));
+  }
   return pools;
 }
 
