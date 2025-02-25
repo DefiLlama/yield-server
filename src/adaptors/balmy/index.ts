@@ -46,13 +46,14 @@ async function getPoolsInChain(chainId: number, chainName: string, { strategies,
       pool: `${registry}-${id}-${chainName}`.toLowerCase(),
       chain: chainName,
       project: 'balmy',
-      symbol: `BAL${tokens[strategy.farm.asset.address].symbol}`,
+      symbol: `${tokens[strategy.farm.asset.address].symbol}`,
       url: `https://app.balmy.xyz/earn/vaults/${chainId}/${strategy.id}`,
       underlyingTokens: [strategy.farm.asset.address],
       rewardTokens: strategy.farm.rewards.tokens.map((token) => token.address),
       tvlUsd,
       apyBase: apy.apyBase,
       apyReward: apy.apyReward + extraRewardAPY,
+      poolMeta: strategy.farm.protocol,
     }
   })
 }
@@ -208,6 +209,7 @@ type StrategiesInChainResponse = {
     id: string;
     farm: {
       id: string;
+      protocol: string;
       asset: {
         address: string;
       }
