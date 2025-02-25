@@ -90,7 +90,7 @@ module.exports = {
       }
 
       campaigns.push({
-        pool: campaign.target.poolAddress,
+        pool: campaign.id.toLowerCase(),
         chain: formatChain(chain),
         project: PROJECT,
         symbol: formatSymbol(poolTokenSymbols.join(' - ')),
