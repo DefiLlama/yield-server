@@ -203,8 +203,8 @@ const stkGho = async () => {
   const stkghoNativeApy = convertStakedTokenApy(stkghoNativeApyRaw);
 
   const stkghoMeritApy = (
-    await axios.get('https://apps.aavechan.com/api/merit/base-aprs')
-  ).data['ethereum-stkgho'];
+    await axios.get('https://apps.aavechan.com/api/merit/aprs')
+  ).data.currentAPR.actionsAPR['ethereum-stkgho'];
 
   const stkghoApy = stkghoNativeApy + stkghoMeritApy;
 

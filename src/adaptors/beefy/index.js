@@ -43,6 +43,7 @@ const networkMapping = {
   59144: 'linea',
   1313161554: 'aurora',
   1666600000: 'harmony',
+  146: 'sonic',
 };
 
 const extractePoolMetaDate = (string) => {
