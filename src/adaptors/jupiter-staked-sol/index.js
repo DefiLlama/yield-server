@@ -1,31 +1,59 @@
-const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const utils = require('../utils');
 
-const JUPSOL_ADDRESS = 'jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v'
+const JUPSOL_ADDRESS = 'jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v';
+const priceKey = `solana:${JUPSOL_ADDRESS}`;
 
-const getApy = async () => {
-  const [apy, tvlData] = await Promise.all([
-    utils.getData("https://worker.jup.ag/lst-apys"),
-    utils.getData("https://api.coingecko.com/api/v3/coins/jupiter-staked-sol")
+const getTotalSupply = async (tokenMintAddress) => {
+  const rpcUrl = 'https://api.mainnet-beta.solana.com';
+  const requestBody = {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'getTokenSupply',
+    params: [
+      tokenMintAddress,
+      {
+        commitment: 'confirmed',
+      },
+    ],
+  };
+
+  const response = await axios.post(rpcUrl, requestBody, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  const data = response.data;
+
+  const totalSupply = data.result.value.amount;
+  const decimals = data.result.value.decimals;
+  const supplyInTokens = totalSupply / Math.pow(10, decimals);
+
+  return supplyInTokens;
+};
+
+const apy = async () => {
+  const [apyResponse, priceResponse, totalSupply] = await Promise.all([
+    axios.get('https://worker.jup.ag/lst-apys'),
+    axios.get(`https://coins.llama.fi/prices/current/${priceKey}`),
+    getTotalSupply(JUPSOL_ADDRESS),
   ]);
-  const apyValue = apy['apys'][JUPSOL_ADDRESS];
 
-  const totalSupply = tvlData.market_data.total_supply
-  const currentPrice = tvlData.market_data.current_price.usd
-  const tvlValue = totalSupply * currentPrice;
+  const apyValue = apyResponse.data.apys[JUPSOL_ADDRESS];
+  const currentPrice = priceResponse.data.coins[priceKey].price;
+  const tvlUsd = totalSupply * currentPrice;
 
   return [
     {
       pool: JUPSOL_ADDRESS,
-      chain: utils.formatChain('solana'),
+      chain: 'Solana',
       project: 'jupiter-staked-sol',
-      symbol: utils.formatSymbol('jupsol'),
-      tvlUsd: tvlValue,
+      symbol: 'JUPSOL',
+      tvlUsd: tvlUsd,
       apyBase: apyValue * 100,
       underlyingTokens: [JUPSOL_ADDRESS],
     },
   ];
 };
 
-module.exports = { apy: getApy, url: 'https://station.jup.ag/guides/jupsol/jupsol' };
+module.exports = { apy, url: 'https://station.jup.ag/guides/jupsol/jupsol' };
