@@ -1,26 +1,28 @@
-const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const utils = require('../utils');
+const { getTotalSupply } = require('../utils');
 
-const HSOL_ADDRESS = 'he1iusmfkpAdwvxLNGV8Y1iSbj4rUy6yMhEA3fotn9A'
+const HSOL_ADDRESS = 'he1iusmfkpAdwvxLNGV8Y1iSbj4rUy6yMhEA3fotn9A';
+const priceKey = `solana:${HSOL_ADDRESS}`;
 
-const getApy = async () => {
-  const hsolData = await utils.getData("https://api.coingecko.com/api/v3/coins/helius-staked-sol")
+const apy = async () => {
+  const totalSupply = await getTotalSupply(HSOL_ADDRESS);
 
-  const totalSupply = hsolData.market_data.total_supply
-  const currentPrice = hsolData.market_data.current_price.usd
+  const priceResponse = await axios.get(
+    `https://coins.llama.fi/prices/current/${priceKey}`
+  );
+  const currentPrice = priceResponse.data.coins[priceKey].price;
 
-  const apy =
-    (
-     await utils.getData(`https://extra-api.sanctum.so/v1/apy/latest?lst=${HSOL_ADDRESS}`)
-    ).apys[HSOL_ADDRESS];
+  const apyResponse = await axios.get(
+    `https://extra-api.sanctum.so/v1/apy/latest?lst=${HSOL_ADDRESS}`
+  );
+  const apy = apyResponse.data.apys[HSOL_ADDRESS];
 
   return [
     {
       pool: HSOL_ADDRESS,
-      chain: utils.formatChain('solana'),
+      chain: 'Solana',
       project: 'helius-staked-sol',
-      symbol: utils.formatSymbol('hsol'),
+      symbol: 'HSOL',
       tvlUsd: totalSupply * currentPrice,
       apyBase: apy * 100,
       underlyingTokens: [HSOL_ADDRESS],
@@ -28,4 +30,7 @@ const getApy = async () => {
   ];
 };
 
-module.exports = { apy: getApy, url: 'https://www.helius.dev/blog/solana-staking-simplified-guide-to-sol-staking#what-is-liquid-staking' };
+module.exports = {
+  apy,
+  url: 'https://www.helius.dev/blog/solana-staking-simplified-guide-to-sol-staking#what-is-liquid-staking',
+};
