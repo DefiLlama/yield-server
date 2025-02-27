@@ -60,8 +60,8 @@ const getApy = async () => {
         project: 'the-standard',
         symbol: `${token0Symbol}-${token1Symbol}`,
         tvlUsd: token0TVLUSD + token1TVLUSD,
-        apyBase: pool.feeApr,
-        apyReward: pool.rewardApr,
+        apyBase: parseFloat(pool.feeApr) * 100,
+        apyReward: parseFloat(pool.rewardApr) * 100,
         rewardTokens: poolRewardTokens,
         underlyingTokens: [token0, token1]
       };
