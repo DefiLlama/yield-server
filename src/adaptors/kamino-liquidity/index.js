@@ -1,27 +1,13 @@
 const axios = require('axios');
 const utils = require('../utils');
-const retry = require('async-retry');
 
 const getApy = async () => {
-  const responses = await retry(
-    async () =>
-      Promise.allSettled([
-        axios.get(
-          'https://api.kamino.finance/strategies/metrics?env=mainnet-beta&status=LIVE'
-        ),
-        axios.get(
-          'https://api.kamino.finance/strategies/metrics?env=mainnet-beta&status=IGNORED'
-        ),
-        axios.get(
-          'https://api.kamino.finance/v2/strategies/volume?env=mainnet-beta'
-        ),
-      ]),
-    {
-      retries: 3,
-      onRetry: (err) => {
-        console.log(`Retrying chain ${name} due to error: ${err.message}`);
-      },
-    }
+  const responses = await Promise.allSettled(
+    [
+      'https://api.kamino.finance/strategies/metrics?env=mainnet-beta&status=LIVE',
+      'https://api.kamino.finance/strategies/metrics?env=mainnet-beta&status=IGNORED',
+      'https://api.kamino.finance/v2/strategies/volume?env=mainnet-beta',
+    ].map((i) => axios.get(i))
   );
 
   const strategies =
