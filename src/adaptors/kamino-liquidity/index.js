@@ -1,10 +1,11 @@
 const axios = require('axios');
 const utils = require('../utils');
 const retry = require('async-retry');
+
 const getApy = async () => {
   const responses = await retry(
     async () =>
-      Promise.all([
+      Promise.allSettled([
         axios.get(
           'https://api.kamino.finance/strategies/metrics?env=mainnet-beta&status=LIVE'
         ),
@@ -22,8 +23,14 @@ const getApy = async () => {
       },
     }
   );
-  const strategies = [...responses[0].data, ...responses[1].data];
-  const volume = responses[2].data;
+
+  const strategies =
+    responses[0].status === 'fulfilled' && responses[1].status === 'fulfilled'
+      ? [...responses[0].value.data, ...responses[1].value.data]
+      : [];
+
+  const volume =
+    responses[2].status === 'fulfilled' ? responses[2].value.data : [];
 
   const apy = strategies.map((p) => {
     const strategyVolume = volume.find((x) => x.strategy === p.strategy);
