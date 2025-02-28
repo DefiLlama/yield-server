@@ -29,8 +29,6 @@ const poolsFunction = async () => {
     }
   }
 
-  console.log(pools);
-
   return pools;
 };
 
