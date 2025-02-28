@@ -136,7 +136,7 @@ const getLpsTvl = async (chain, factory, lps) => {
   }));
 
   // Calculate lps tvl
-  const poolsTvl = await utils.tvl(formattedPairsData, chain.chain);
+  const poolsTvl = await utils.tvl(0, chain.chain);
 
   // Return addresses and tvls
   return lps.map((lp) => ({
