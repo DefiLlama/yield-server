@@ -86,6 +86,9 @@ const main = async () => {
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
   if (!stablecoins.includes('fraxbp')) stablecoins.push('fraxbp');
   if (!stablecoins.includes('usdr')) stablecoins.push('usdr');
+  if (!stablecoins.includes('more')) stablecoins.push('more');
+  if (!stablecoins.includes('ustb')) stablecoins.push('ustb');
+  if (!stablecoins.includes('usdn')) stablecoins.push('usdn');
 
   // get catgory data (we hardcode IL to true for options protocols)
   const config = (
@@ -283,11 +286,6 @@ const main = async () => {
     .map((p) => ({ ...p, pool_old: p.pool, pool: p.configID }))
     .map(({ configID, ...p }) => p);
 
-  // temporarily remove OP pools on uniswap-v3 cause subgraph volume values are totally wrong
-  dataEnriched = dataEnriched.filter(
-    (p) => !(p.project === 'uniswap-v3' && p.chain === 'Optimism')
-  );
-
   // overwrite triggerAdapter apy calc for abracadabra (some of their vaults apply interest on collateral
   // instead of borrowed mim) -> negative apyBase -> negative apy (we don't store negative apy values in db though
   // nor do we use neg values on feature calc cause might break some things)
@@ -358,6 +356,8 @@ const checkStablecoin = (el, stablecoins) => {
     !symbolLC.includes('btc')
   ) {
     stable = true;
+  } else if (el.project === 'curve-dex' && symbolLC.includes('xstable')) {
+    stable = true;
   } else if (el.project === 'convex-finance' && symbolLC.includes('3crv')) {
     stable = true;
   } else if (el.project === 'aave-v2' && symbolLC.includes('amm')) {
@@ -387,7 +387,8 @@ const checkStablecoin = (el, stablecoins) => {
     tokens.some((t) => t.includes('emaid')) ||
     tokens.some((t) => t.includes('grail')) ||
     tokens.some((t) => t.includes('oxai')) ||
-    tokens.some((t) => t.includes('crv'))
+    tokens.some((t) => t.includes('crv')) ||
+    tokens.some((t) => t.includes('wbai'))
   ) {
     stable = false;
   } else if (tokens.length === 1) {
@@ -420,7 +421,8 @@ const checkIlRisk = (el) => {
     symbol.includes('ammuni') ||
     symbol.includes('ammbpt') ||
     symbol.includes('tricrypto') ||
-    symbol.includes('3crypto')
+    symbol.includes('3crypto') ||
+    (symbol.includes('crvusd') && symbol.includes('eth'))
   ) {
     ilRisk = 'yes';
   } else if (tokens.length === 1) {
@@ -491,6 +493,10 @@ const addPoolInfo = (el, stablecoins, config) => {
           'arbor-finance',
           'opyn-squeeth',
           'gmd-protocol',
+          'y2k-v1',
+          'y2k-v2',
+          'o3-swap',
+          'solv-funds',
         ].includes(el.project)
       ? 'yes'
       : ['mycelium-perpetual-swaps', 'gmx', 'rage-trade'].includes(

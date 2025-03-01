@@ -12,7 +12,7 @@ const CDP_URL = 'https://api.angle.money/v1/vaultManagers';
 const cdpNetworksSupport = {
   1: 'ethereum',
   137: 'polygon',
-  // 42161: 'arbitrum',
+  42161: 'arbitrum',
   10: 'optimism',
 };
 
@@ -45,7 +45,7 @@ const getPoolsData = async () => {
       tvlUsd: apyData[staking]?.tvl || 0,
       apyBase:
         apyData[staking]['apr']?.value ||
-        apyData[staking]['apr']?.details['ANGLE'] ||
+        apyData[staking]['apr']?.details?.['ANGLE'] ||
         0,
     };
     result.push(pool);
@@ -116,5 +116,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.angle.money/#/earn',
+  url: 'https://app.angle.money/earn',
 };

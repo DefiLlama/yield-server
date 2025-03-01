@@ -1,4 +1,4 @@
-const { api2 } = require("@defillama/sdk3");
+const { api2 } = require("@defillama/sdk");
 const { AddressZero } = require("@ethersproject/constants");
 const { aprToApy, getBlocksByTime, getPrices } = require("../utils");
 
@@ -127,8 +127,7 @@ const apy = async () =>
                   chain,
                 });
                 /** @type number */
-                const rewardUsd = rewardsPrices[reward.toLowerCase()];
-
+                const rewardUSD = rewardsPrices[reward.toLowerCase()] ?? 0;
                 const firstMaturity = configStart - (configStart % INTERVAL) + INTERVAL;
                 const maxMaturity = timestampNow - (timestampNow % INTERVAL) + INTERVAL + maxFuturePools[i] * INTERVAL;
                 const rewardMaturities = Array.from(
@@ -155,7 +154,7 @@ const apy = async () =>
                     totalFloatingBorrowAssets[i] + fixedDebt > 0
                       ? (projectedBorrowIndex - borrowIndex) *
                         ((totalFloatingBorrowShares[i] + previewRepay) / baseUnit) *
-                        (rewardUsd / 1e18) *
+                        (rewardUSD / 1e18) *
                         (baseUnit / (((totalFloatingBorrowAssets[i] + fixedDebt) * usdUnitPrice) / 1e18)) *
                         (365 * 24)
                       : 0,
@@ -163,30 +162,30 @@ const apy = async () =>
                     totalAssets[i] > 0
                       ? (projectedDepositIndex - depositIndex) *
                         (totalSupply[i] / baseUnit) *
-                        (rewardUsd / 1e18) *
+                        (rewardUSD / 1e18) *
                         (baseUnit / ((totalAssets[i] * usdUnitPrice) / 1e18)) *
                         (365 * 24)
                       : 0,
                 };
               })
             );
-
-            aprReward = rates.reduce((min, { deposit }) => (deposit < min ? deposit : min), rates[0].deposit) / 1e16;
-            aprRewardBorrow = rates.reduce((min, { borrow }) => (borrow < min ? borrow : min), rates[0].borrow) / 1e16;
+            aprReward = rates.reduce((sum, { deposit }) => sum + deposit, 0) / 1e16;
+            aprRewardBorrow = rates.reduce((sum, { borrow }) => sum + borrow, 0) / 1e16;
           }
 
           /** @type {Pool} */
-          const floating = {
-            ...poolMetadata,
-            pool: `${market}-${chain}`.toLowerCase(),
-            apyBase: aprToApy(apr),
-            apyBaseBorrow: aprToApy(borrowAPR),
-            totalSupplyUsd: (totalSupply[i] * usdUnitPrice) / baseUnit,
-            totalBorrowUsd: (totalFloatingBorrowAssets[i] * usdUnitPrice) / baseUnit,
-            rewardTokens,
-            apyReward: aprReward ? aprToApy(aprReward) : undefined,
-            apyRewardBorrow: aprRewardBorrow ? aprToApy(aprRewardBorrow) : undefined,
-          };
+          const floating = Number.isFinite(apr) &&
+            Number.isFinite(borrowAPR) && {
+              ...poolMetadata,
+              pool: `${market}-${chain}`.toLowerCase(),
+              apyBase: aprToApy(apr),
+              apyBaseBorrow: aprToApy(borrowAPR),
+              totalSupplyUsd: (totalSupply[i] * usdUnitPrice) / baseUnit,
+              totalBorrowUsd: (totalFloatingBorrowAssets[i] * usdUnitPrice) / baseUnit,
+              rewardTokens,
+              apyReward: aprReward ? aprToApy(aprReward) : undefined,
+              apyRewardBorrow: aprRewardBorrow ? aprToApy(aprRewardBorrow) : undefined,
+            };
 
           const maturities = Array.from({ length: maxFuturePools[i] }, (_, j) => minMaturity + INTERVAL * j);
           /** @type FixedPool[] */
@@ -206,6 +205,15 @@ const apy = async () =>
                 fixSupplied = BigInt(supplied),
                 fixUnassignedEarnings = BigInt(unassignedEarnings);
 
+              if (fixSupplied + BigInt(previewFloatingAssetsAverages[i]) === 0n) return;
+
+              const { rate: minFixedRate } = await api2.abi.call({
+                target: interestRateModels[i],
+                abi: abis.minFixedRate,
+                params: [borrowed, supplied, previewFloatingAssetsAverages[i]],
+                block,
+                chain,
+              });
               const unassignedEarning =
                 fixUnassignedEarnings -
                 (fixUnassignedEarnings * BigInt(timestampNow - lastAccrual)) /
@@ -222,16 +230,6 @@ const apy = async () =>
                   : 0;
 
               const secsToMaturity = maturity - timestampNow;
-
-              const { rate: minFixedRate } = await api2.abi.call({
-                target: interestRateModels[i],
-                abi: abis.minFixedRate,
-                params: [borrowed, supplied, previewFloatingAssetsAverages[i]],
-                block,
-                chain,
-              });
-
-              const fixedBorrowAPR = previewFloatingAssetsAverages[i] + supplied > 0 ? minFixedRate / 1e16 : 0;
               const poolMeta = new Date(maturity * 1_000).toISOString().slice(0, 10);
 
               /** @type {Pool} */
@@ -240,7 +238,7 @@ const apy = async () =>
                 pool: `${market}-${chain}-${poolMeta}`.toLowerCase(),
                 poolMeta,
                 apyBase: aprToApy(fixedDepositAPR, secsToMaturity / 86_400),
-                apyBaseBorrow: aprToApy(fixedBorrowAPR, secsToMaturity / 86_400),
+                apyBaseBorrow: aprToApy(minFixedRate / 1e16, secsToMaturity / 86_400),
                 totalSupplyUsd:
                   (Number(
                     BigInt(supplied) +
@@ -256,7 +254,7 @@ const apy = async () =>
             })
           );
 
-          return [floating, ...fixed];
+          return [floating, ...fixed].filter(Boolean);
         })
       );
     })

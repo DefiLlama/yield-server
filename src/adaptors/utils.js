@@ -1,4 +1,5 @@
 const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const { chunk } = require('lodash');
 const sdk = require('@defillama/sdk');
@@ -13,8 +14,16 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'milkomeda_a1') return 'Milkomeda A1';
   if (chain && chain.toLowerCase() === 'boba_avax') return 'Boba_Avax';
   if (chain && chain.toLowerCase() === 'boba_bnb') return 'Boba_Bnb';
-  if (chain && chain.toLowerCase() === 'zksync_era') return 'zkSync Era';
+  if (chain && chain.toLowerCase() === 'iotaevm') return 'IOTA EVM';
+  if (
+    chain &&
+    (chain.toLowerCase() === 'zksync_era' ||
+      chain.toLowerCase() === 'zksync era' ||
+      chain.toLowerCase() === 'era')
+  )
+    return 'zkSync Era';
   if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
+  if (chain && chain.toLowerCase() === 'real') return 're.al';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
@@ -59,17 +68,6 @@ exports.getBlocksByTime = async (timestamps, chainString) => {
 };
 
 const getLatestBlockSubgraph = async (url) => {
-  // const queryGraph = gql`
-  //   {
-  //     indexingStatusForCurrentVersion(subgraphName: "<PLACEHOLDER>") {
-  //       chains {
-  //         latestBlock {
-  //           number
-  //         }
-  //       }
-  //     }
-  //   }
-  // `;
   const queryGraph = gql`
     {
       _meta {
@@ -80,19 +78,33 @@ const getLatestBlockSubgraph = async (url) => {
     }
   `;
 
-  // const blockGraph = await request(
-  //   'https://api.thegraph.com/index-node/graphql',
-  //   queryGraph.replace('<PLACEHOLDER>', url.split('name/')[1])
-  // );
   const blockGraph =
+    url.includes('https://gateway-arbitrum.network.thegraph.com/api') ||
     url.includes('metis-graph.maiadao.io') ||
     url.includes('babydoge/faas') ||
     url.includes('kybernetwork/kyberswap-elastic-cronos') ||
     url.includes('kybernetwork/kyberswap-elastic-matic') ||
+    url.includes('metisapi.0xgraph.xyz/subgraphs/name') ||
     url.includes(
       'https://subgraph.satsuma-prod.com/09c9cf3574cc/orbital-apes/v3-subgraph/api'
-    )
+    ) ||
+    url.includes('api.goldsky.com') ||
+    url.includes('api.studio.thegraph.com') ||
+    url.includes('48211/uniswap-v3-base') ||
+    url.includes('horizondex/block') ||
+    url.includes('pancake-swap.workers.dev') ||
+    url.includes('pancakeswap/exchange-v3-linea') ||
+    url.includes('exchange-v3-polygon-zkevm/version/latest') ||
+    url.includes('exchange-v3-zksync/version/latest') ||
+    url.includes('balancer-base-v2/version/latest') ||
+    url.includes('horizondex') ||
+    url.includes('swopfi-units')
       ? await request(url, queryGraph)
+      : url.includes('aperture/uniswap-v3')
+      ? await request(
+          'https://api.goldsky.com/api/public/project_clnz7akg41cv72ntv0uhyd3ai/subgraphs/aperture/manta-pacific-blocks/gn',
+          queryGraph
+        )
       : await request(
           `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
           queryGraph
@@ -169,13 +181,29 @@ exports.tvl = async (dataNow, networkString) => {
   }
   let idsSet = [...new Set(ids.flat())];
 
-  // pull token prices
-  let prices = await this.getData('https://coins.llama.fi/prices', {
-    coins: idsSet,
-  });
-  prices = prices.coins;
+  // price endpoint seems to break with too many tokens, splitting it to max 50 per request
+  const maxSize = 50;
+  const pages = Math.ceil(idsSet.length / maxSize);
+  let pricesA = [];
+  let x = '';
+  for (const p of [...Array(pages).keys()]) {
+    x = idsSet
+      .slice(p * maxSize, maxSize * (p + 1))
+      .join(',')
+      .replaceAll('/', '');
+    pricesA = [
+      ...pricesA,
+      (await axios.get(`https://coins.llama.fi/prices/current/${x}`)).data
+        .coins,
+    ];
+  }
+  let prices = {};
+  for (const p of pricesA.flat()) {
+    prices = { ...prices, ...p };
+  }
 
   // calc tvl
+  const precision = 5;
   for (const el of dataNowCopy) {
     let price0 = prices[`${networkString}:${el.token0.id}`]?.price;
     let price1 = prices[`${networkString}:${el.token1.id}`]?.price;
@@ -220,6 +248,8 @@ exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
     pool['feeTier'] = 3000;
   } else if (version === 'stellaswap') {
     pool['feeTier'] = 2000;
+  } else if (version === 'baseswap') {
+    pool['feeTier'] = 1700;
   } else if (version === 'zyberswap') {
     pool['feeTier'] = 1500;
   } else if (version === 'arbidex') {
@@ -378,6 +408,7 @@ const makeMulticall = async (abi, addresses, chain, params = null) => {
       params,
     })),
     chain,
+    permitFailure: true,
   });
 
   const res = data.output.map(({ output }) => output);
@@ -386,3 +417,96 @@ const makeMulticall = async (abi, addresses, chain, params = null) => {
 };
 
 exports.makeMulticall = makeMulticall;
+
+const capitalizeFirstLetter = (str) => {
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
+
+exports.capitalizeFirstLetter = capitalizeFirstLetter;
+
+exports.removeDuplicates = (pools) => {
+  const seen = {};
+  return pools.filter((i) => {
+    return seen.hasOwnProperty(i.pool) ? false : (seen[i.pool] = true);
+  });
+};
+
+exports.getERC4626Info = async (
+  address,
+  chain,
+  timestamp = Math.floor(Date.now() / 1e3),
+  {
+    assetUnit = '100000000000000000',
+    totalAssetsAbi = 'uint:totalAssets',
+    convertToAssetsAbi = 'function convertToAssets(uint256 shares) external view returns (uint256)',
+  } = {}
+) => {
+  const DAY = 24 * 3600;
+
+  const [blockNow, blockYesterday] = await Promise.all(
+    [timestamp, timestamp - DAY].map((time) =>
+      axios
+        .get(`https://coins.llama.fi/block/${chain}/${time}`)
+        .then((r) => r.data.height)
+    )
+  );
+  const [tvl, priceNow, priceYesterday] = await Promise.all([
+    sdk.api.abi.call({
+      target: address,
+      block: blockNow,
+      abi: totalAssetsAbi,
+    }),
+    sdk.api.abi.call({
+      target: address,
+      block: blockNow,
+      abi: convertToAssetsAbi,
+      params: [assetUnit],
+    }),
+    sdk.api.abi.call({
+      target: address,
+      block: blockYesterday,
+      abi: convertToAssetsAbi,
+      params: [assetUnit],
+    }),
+  ]);
+  const apy = (priceNow.output / priceYesterday.output) ** 365 * 100 - 100;
+  return {
+    pool: address,
+    chain,
+    tvl: tvl.output,
+    apyBase: apy,
+  };
+};
+
+// solana
+exports.getTotalSupply = async (tokenMintAddress) => {
+  const rpcUrl = 'https://api.mainnet-beta.solana.com';
+  const requestBody = {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'getTokenSupply',
+    params: [
+      tokenMintAddress,
+      {
+        commitment: 'confirmed',
+      },
+    ],
+  };
+
+  const response = await axios.post(rpcUrl, requestBody, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  const data = response.data;
+  if (data.error) {
+    throw new Error(`Error fetching total supply: ${data.error.message}`);
+  }
+
+  const totalSupply = data.result.value.amount;
+  const decimals = data.result.value.decimals;
+  const supplyInTokens = totalSupply / Math.pow(10, decimals);
+
+  return supplyInTokens;
+};

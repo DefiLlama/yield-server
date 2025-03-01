@@ -120,7 +120,7 @@ const topLvl = async (
       utils.apy(el, dataPrior, dataPrior7d, version)
     );
 
-    const enableV3Apy = true;
+    const enableV3Apy = false;
     if (enableV3Apy) {
       dataNow = dataNow.map((p) => ({
         ...p,

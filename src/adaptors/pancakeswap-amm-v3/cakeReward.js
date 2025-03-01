@@ -1,41 +1,90 @@
 const abiMcV3 = require('./masterchefv3.json');
+const abiMcV3Arbitrum = require('./masterchefv3Arbitrum.json');
+const abiMcV3PolygonZkevm = require('./masterchefv3PolygonZkevm.json');
+
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const bn = require('bignumber.js');
 const fetch = require('node-fetch');
 
-const MASTERCHEF_ADDRESS = '0x556B9306565093C855AEA9AE92A594704c2Cd59e';
-
-const baseUrl = 'https://api.thegraph.com/subgraphs/name';
-const chains = {
-  ethereum: `${baseUrl}/pancakeswap/exchange-v3-eth`,
-  bsc: `${baseUrl}/pancakeswap/exchange-v3-bsc`,
+const CAKE = {
+  ethereum: '0x152649eA73beAb28c5b49B26eb48f7EAD6d4c898',
+  bsc: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
+  polygon_zkevm: '0x0D1E753a25eBda689453309112904807625bEFBe2',
+  era: '0x3A287a06c66f9E95a56327185cA2BDF5f031cEcD',
+  arbitrum: '0x1b896893dfc86bb67Cf57767298b9073D2c1bA2c',
+  base: '0x3055913c90Fcc1A6CE9a358911721eEb942013A1',
+  linea: '0x0D1E753a25eBda689453309112904807625bEFBe',
+  op_bnb: '0x2779106e4F4A8A28d77A24c18283651a2AE22D1C',
 };
 
 const chainIds = {
-  ethereum: 1,
-  bsc: 56,
+  ethereum: {
+    id: 1,
+    mchef: '0x556B9306565093C855AEA9AE92A594704c2Cd59e',
+    abi: abiMcV3,
+  },
+  bsc: {
+    id: 56,
+    mchef: '0x556B9306565093C855AEA9AE92A594704c2Cd59e',
+    abi: abiMcV3,
+  },
+  polygon_zkevm: {
+    id: 1101,
+    mchef: '0xe9c7f3196ab8c09f6616365e8873daeb207c0391',
+    abi: abiMcV3PolygonZkevm,
+  },
+  arbitrum: {
+    id: 42161,
+    mchef: '0x5e09ACf80C0296740eC5d6F643005a4ef8DaA694',
+    abi: abiMcV3Arbitrum,
+  },
+  era: {
+    id: 324,
+    mchef: '0x4c615E78c5fCA1Ad31e4d66eb0D8688d84307463',
+    abi: abiMcV3Arbitrum,
+  },
+  linea: {
+    id: 59144,
+    mchef: '0x22E2f236065B780FA33EC8C4E58b99ebc8B55c57',
+    abi: abiMcV3Arbitrum,
+  },
+  op_bnb: {
+    id: 204,
+    mchef: '0x05ddEDd07C51739d2aE21F6A9d97a8d69C2C3aaA',
+    abi: abiMcV3Arbitrum,
+  },
+  base: {
+    id: 8453, 
+    mchef: '0xC6A2Db661D5a5690172d8eB0a7DEA2d3008665A3', 
+    abi: abiMcV3Arbitrum
+  }
 };
 
 const getCakeAprs = async (chain) => {
+  if (chainIds[chain] === undefined) return [];
+
+  const masterChef = chainIds[chain].mchef;
+  const abi = chainIds[chain].abi;
+
   const poolLength = await sdk.api.abi
     .call({
-      abi: abiMcV3.find((m) => m.name === 'poolLength'),
-      target: MASTERCHEF_ADDRESS,
+      abi: abi.find((m) => m.name === 'poolLength'),
+      target: masterChef,
       chain,
     })
     .then((o) => o.output);
   const totalAllocPoint = await sdk.api.abi
     .call({
-      abi: abiMcV3.find((m) => m.name === 'totalAllocPoint'),
-      target: MASTERCHEF_ADDRESS,
+      abi: abi.find((m) => m.name === 'totalAllocPoint'),
+      target: masterChef,
       chain,
     })
     .then((o) => o.output);
   const latestPeriodCakePerSecond = await sdk.api.abi
     .call({
-      abi: abiMcV3.find((m) => m.name === 'latestPeriodCakePerSecond'),
-      target: MASTERCHEF_ADDRESS,
+      abi: abi.find((m) => m.name === 'latestPeriodCakePerSecond'),
+      target: masterChef,
       chain,
     })
     .then((o) => o.output);
@@ -50,14 +99,14 @@ const getCakeAprs = async (chain) => {
     .filter((i) => i !== 0)
     .map((i) => {
       return {
-        target: MASTERCHEF_ADDRESS,
+        target: masterChef,
         params: i,
       };
     });
 
   const poolInfos = await sdk.api.abi
     .multiCall({
-      abi: abiMcV3.find((m) => m.name === 'poolInfo'),
+      abi: abi.find((m) => m.name === 'poolInfo'),
       calls: poolInfoCalls,
       chain,
     })
@@ -72,7 +121,7 @@ const getCakeAprs = async (chain) => {
   const allStakedTVL = await Promise.allSettled(
     poolInfos.map((p) => {
       return fetch(
-        `https://farms-api.pancakeswap.com/v3/${chainIds[chain]}/liquidity/${p.v3Pool}`
+        `https://farms-api.pancakeswap.com/v3/${chainIds[chain].id}/liquidity/${p.v3Pool}`
       )
         .then((r) => r.json())
         .catch((err) => {
@@ -85,7 +134,7 @@ const getCakeAprs = async (chain) => {
   const tvls = {};
 
   for (const [index, allStakedTVLResult] of allStakedTVL.entries()) {
-    if (allStakedTVLResult.status === 'fulfilled') {
+    if (allStakedTVLResult.status === 'fulfilled' && 'formatted' in allStakedTVLResult.value) {
       tvls[poolInfos[index].v3Pool] = allStakedTVLResult.value.formatted;
     }
   }
@@ -104,11 +153,11 @@ const getCakeAprs = async (chain) => {
     const token0Price = prices[`${chain}:${token0}`]?.price;
     const token1Price = prices[`${chain}:${token1}`]?.price;
     if (!token0Price) {
-      console.log('missing token price', token0);
+      console.log('missing token price', `${chain}:${token0}`);
       return acc;
     }
     if (!token1Price) {
-      console.log('missing token price', token1);
+      console.log('missing token price', `${chain}:${token1}`);
       return acc;
     }
     const token0Amount = new bn(tvl.token0);
@@ -167,7 +216,7 @@ const getBaseTokensPrice = async (allTokens, chain) => {
     cake: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
   };
 
-  const prices = (
+  let prices = (
     await utils.getData(
       `https://coins.llama.fi/prices/current/${Object.values(priceKeys)
         .map((t) => `bsc:${t}`)
@@ -176,10 +225,19 @@ const getBaseTokensPrice = async (allTokens, chain) => {
     )
   ).coins;
 
-  const cakePrice = prices[`bsc:${priceKeys.cake}`].price;
-  return { cakePrice, prices };
+  const cakePriceData = prices[`bsc:${priceKeys.cake}`];
+
+  const cakeId = `${chain}:${CAKE[chain]}`;
+
+  if (CAKE[chain] && !prices[cakeId]) {
+    prices[cakeId] = cakePriceData;
+  }
+
+  return { cakePrice: cakePriceData.price, prices };
 };
 
 module.exports = {
   getCakeAprs,
+  CAKE,
+  chainIds,
 };

@@ -10,17 +10,23 @@ const {
 } = require('./config');
 const { ContractABIs } = require('./abi');
 
-const NATIVE_TOKEN_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+const NATIVE_TOKEN_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
 const getTokenBalance = (provider, tokenAddress, ownerAddress, decimals) => {
-  const tokenContract = new ethers.Contract(tokenAddress, ContractABIs.miniERC20ABI, provider);
+  const tokenContract = new ethers.Contract(
+    tokenAddress,
+    ContractABIs.miniERC20ABI,
+    provider
+  );
   return tokenContract.balanceOf(ownerAddress).then((balance) => {
     return balance / Math.pow(10, decimals);
   });
 };
 
 const main = async () => {
-  const { data: resp } = await axios.get('https://api.xy.finance/ypool/stats/eachVault');
+  const { data: resp } = await axios.get(
+    'https://api.xy.finance/ypool/stats/eachVault'
+  );
   if (!resp.isSuccess) {
     throw new Error('Failed to fetch data from XY Finance');
   }
@@ -38,29 +44,41 @@ const main = async () => {
         continue;
       }
 
-      const ypoolInfo = YPoolInfo(symbol, chainId);
+      try {
+        const ypoolInfo = YPoolInfo(symbol, chainId);
+        console.log(chainId, ypoolInfo);
 
-      let ypoolLocked = 0;
-      let provider = new ethers.providers.JsonRpcProvider(RPCEndpoint(chainId));
-      if ( ypoolInfo.ypoolToken === NATIVE_TOKEN_ADDRESS ) {
-        await provider.getBalance(ypoolInfo.ypool).then((balance) => {
-          ypoolLocked = ethers.utils.formatEther(balance);
+        let ypoolLocked = 0;
+        let provider = new ethers.providers.JsonRpcProvider(
+          RPCEndpoint(chainId)
+        );
+        if (ypoolInfo.ypoolToken === NATIVE_TOKEN_ADDRESS) {
+          await provider.getBalance(ypoolInfo.ypool).then((balance) => {
+            ypoolLocked = ethers.utils.formatEther(balance);
+          });
+        } else {
+          ypoolLocked = await getTokenBalance(
+            provider,
+            ypoolInfo.ypoolToken,
+            ypoolInfo.ypool,
+            ypoolInfo.decimals
+          );
+        }
+
+        const chainName = supportedChainName(chainId);
+        pools.push({
+          pool: `ypool-${ypoolInfo.ypool}-${chainName}`.toLowerCase(),
+          chain: chainName,
+          project: 'xy-finance',
+          symbol: symbol,
+          apyBase: Number(vaultInfo.dayAPY),
+          apyBase7d: Number(vaultInfo.weekAPY),
+          underlyingTokens: [ypoolInfo.ypoolToken],
+          tvlUsd: Number(ypoolLocked) * tokenPrice,
         });
-      } else {
-        ypoolLocked = await getTokenBalance(provider, ypoolInfo.ypoolToken, ypoolInfo.ypool, ypoolInfo.decimals);
+      } catch (err) {
+        console.log(err);
       }
-
-      const chainName = supportedChainName(chainId);
-      pools.push({
-        pool: `ypool-${ypoolInfo.ypool}-${chainName}`.toLowerCase(),
-        chain: chainName,
-        project: 'xy-finance',
-        symbol: symbol,
-        apyBase: Number(vaultInfo.dayAPY),
-        apyBase7d: Number(vaultInfo.weekAPY),
-        underlyingTokens: [ypoolInfo.ypoolToken],
-        tvlUsd: Number(ypoolLocked) * tokenPrice,
-      });
     }
   }
   return pools;

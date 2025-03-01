@@ -1,81 +1,14 @@
-const lusdVaultABI = [
-    {
-        "inputs": [],
-        "name": "totalUnderlying",
-        "outputs": [
-          {
-            "internalType": "uint256",
-            "name": "",
-            "type": "uint256"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "totalUnderlyingMinusSponsored",
-        "outputs": [
-          {
-            "internalType": "uint256",
-            "name": "",
-            "type": "uint256"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "totalShares",
-        "outputs": [
-          {
-            "internalType": "uint256",
-            "name": "",
-            "type": "uint256"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    }
-];
-
-const erc4626ABI = [
-  {
-      "inputs": [],
-      "name": "totalAssets",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-  },
-  {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "shares",
-          "type": "uint256"
-        }
-      ],
-      "name": "convertToAssets",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-  }
-];
-
 module.exports = {
-  lusdVaultABI,
-  erc4626ABI,
+  balanceOf: 'erc20:balanceOf',
+  totalSupply: 'erc20:totalSupply',
+  totalAssets: 'function totalAssets() public view returns (uint256)',
+  totalCollateral: 'function totalCollateral() public view returns (uint256)',
+  totalDebt: 'function totalDebt() public view returns (uint256)',
+  getStETH: 'function getStETHByWstETH(uint256) public view returns (uint256)',
+  usdcBalance: 'function usdcBalance() public view returns (uint256)',
+  slippage: 'function slippageTolerance() public view returns (uint256)',
+  ethToUsdc: 'function ethToUsdc(uint256) public view returns (uint256)',
+  lqtyGain:
+    'function getDepositorLQTYGain(address) public view returns (uint256)',
+  rewardRate: 'function rewardRate() public view returns (uint256)',
 };

@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
-const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 
 const hub = '0xb5087f95643a9a4069471a28d32c569d9bd57fe4';
@@ -31,7 +31,7 @@ const lit = {
 const olit = {
   ethereum: '0x627fee87d0d9d2c55098a06ac805db8f98b158aa',
   polygon: '',
-  arbitrum: '',
+  arbitrum: '0x0ffB33812FA5cd8bCE181Db3FD76E11935105B12',
   optimism: '',
 };
 
@@ -46,15 +46,17 @@ const hubABI = require('./abis/BunniHub.json');
 const lensABI = require('./abis/BunniLens.json');
 const adminABI = require('./abis/TokenAdmin.json');
 const gaugeABI = require('./abis/LiquidityGauge.json');
+const childGaugeABI = require('./abis/ChildGauge.json');
 const controllerABI = require('./abis/GaugeController.json');
 const oracleABI = require('./abis/OptionsOracle.json');
 
-const baseUrl = 'https://api.thegraph.com/subgraphs/name/bunniapp';
 const chains = {
-  ethereum: `${baseUrl}/bunni-mainnet`,
-  polygon: `${baseUrl}/bunni-polygon`,
-  arbitrum: `${baseUrl}/bunni-arbitrum`,
-  optimism: `${baseUrl}/bunni-optimism`,
+  ethereum: sdk.graph.modifyEndpoint(
+    'HH4HFj4rFnm5qnkb8MbEdP2V5eD9rZnLJE921YQAs7AV'
+  ),
+  polygon: sdk.graph.modifyEndpoint(
+    '7WkeneDon7GY3CdcZW3rsPi4pRfDthwe1nWGKX21dRgC'
+  ),
 };
 
 const query = gql`
@@ -119,17 +121,17 @@ const topLvl = async (chainString, url, query, queryPrior, timestamp) => {
         chain: chainString,
       }),
 
-      admin[chainString] &&
+      admin['ethereum'] &&
         sdk.api.abi.call({
-          target: admin[chainString],
+          target: admin['ethereum'],
           abi: adminABI.find((n) => n.name === 'rate'),
-          chain: chainString,
+          chain: 'ethereum',
         }),
-      oracle[chainString] &&
+      oracle['ethereum'] &&
         sdk.api.abi.call({
-          target: oracle[chainString],
+          target: oracle['ethereum'],
           abi: oracleABI.find((n) => n.name === 'multiplier'),
-          chain: chainString,
+          chain: 'ethereum',
         }),
     ]);
 
@@ -169,6 +171,7 @@ const topLvl = async (chainString, url, query, queryPrior, timestamp) => {
       { output: gaugesIsKilled },
       { output: gaugesRelativeWeight },
       { output: gaugesExists },
+      { output: gaugesInflationRate },
     ] = await Promise.all([
       sdk.api.abi.multiCall({
         abi: 'erc20:symbol',
@@ -218,7 +221,8 @@ const topLvl = async (chainString, url, query, queryPrior, timestamp) => {
           calls: gauges.map((gauge) => ({ target: gauge })),
           chain: chainString,
         }),
-      gauges.length &&
+      chainString == 'ethereum' &&
+        gauges.length &&
         sdk.api.abi.multiCall({
           abi: gaugeABI.find((n) => n.name === 'getCappedRelativeWeight'),
           calls: gauges.map((gauge) => ({
@@ -230,23 +234,35 @@ const topLvl = async (chainString, url, query, queryPrior, timestamp) => {
       gauges.length &&
         sdk.api.abi.multiCall({
           abi: controllerABI.find((n) => n.name === 'gauge_exists'),
-          target: controller[chainString],
+          target: controller['ethereum'],
           calls: gauges.map((gauge) => ({ params: [gauge] })),
+          chain: 'ethereum',
+        }),
+      chainString != 'ethereum' &&
+        gauges.length &&
+        sdk.api.abi.multiCall({
+          abi: childGaugeABI.find((n) => n.name === 'inflation_rate'),
+          calls: gauges.map((gauge) => ({
+            target: gauge,
+            params: [Math.floor(this_period_timestamp / 604800)],
+          })),
           chain: chainString,
         }),
     ]);
 
     // fetch token prices
-    const keys = tokens.map((token) => `${chainString}:${token}`).join(',');
+    let keys = tokens.map((token) => `${chainString}:${token}`).join(',');
+    if (chainString != 'ethereum')
+      keys = keys.concat(`,ethereum:${lit['ethereum']}`);
     const prices = (
-      await superagent.get(`https://coins.llama.fi/prices/current/${keys}`)
-    ).body.coins;
+      await axios.get(`https://coins.llama.fi/prices/current/${keys}`)
+    ).data.coins;
 
     // calculate the price of oLIT
     let optionPrice = 0;
-    if (lit[chainString]) {
-      const litPrice = prices[`${chainString}:${lit[chainString]}`]
-        ? prices[`${chainString}:${lit[chainString]}`].price
+    if (lit['ethereum']) {
+      const litPrice = prices[`ethereum:${lit['ethereum']}`]
+        ? prices[`ethereum:${lit['ethereum']}`].price
         : 0;
       optionPrice = litPrice * multiplier;
     }
@@ -319,7 +335,7 @@ const topLvl = async (chainString, url, query, queryPrior, timestamp) => {
             ((b.pool.totalFeesToken1 - prior.totalFeesToken1) /
               Math.pow(10, token1Decimals)) *
             token1Price;
-          const fee = (fee0 + fee1) * 365;
+          const fee = Math.min(fee0, fee1) * 365;
           baseApr =
             ((fee * parseInt(b.liquidity)) / parseInt(b.pool.liquidity) / tvl) *
             (1 - protocolFee) *
@@ -341,16 +357,25 @@ const topLvl = async (chainString, url, query, queryPrior, timestamp) => {
 
         // we only care about gauges that have been whitelisted and have not been killed
         if (exists && !killed) {
-          const relativeWeight =
-            gaugesRelativeWeight.find((g) => g.input.target == b.gauge?.address)
-              .output / 1e18;
+          const relativeWeight = gaugesRelativeWeight
+            ? gaugesRelativeWeight.find(
+                (g) => g.input.target == b.gauge?.address
+              ).output / 1e18
+            : 0;
           const tokenlessProduction = gaugesTokenlessProduction.find(
             (g) => g.input.target == b.gauge?.address
           )?.output;
           const workingSupply =
             gaugesWorkingSupply.find((g) => g.input.target == b.gauge?.address)
               ?.output / 1e18;
-          const relativeInflation = inflationRate * relativeWeight;
+
+          const gaugeInflationRate =
+            gaugesInflationRate &&
+            gaugesInflationRate.find((g) => g.input.target == b.gauge?.address)
+              ?.output / 1e18;
+          const relativeInflation = gaugeInflationRate
+            ? gaugeInflationRate
+            : inflationRate * relativeWeight;
 
           // we only care about gauges that receive rewards (ie those that receive votes)
           if (relativeInflation > 0) {
@@ -382,10 +407,8 @@ const topLvl = async (chainString, url, query, queryPrior, timestamp) => {
         ...(rewardApr && { apyReward: apy(rewardApr, 365) }),
         ...(rewardTokens && { rewardTokens: rewardTokens }),
         underlyingTokens: [b.pool.token0, b.pool.token1],
-        poolMeta: `${parseInt(b.pool.fee) / 10000}%, tickLower: ${
-          b.tickLower
-        }, tickUpper: ${b.tickUpper}`,
-        url: `https://bunni.pro/pool/${b.pool.id}?bunniToken=${b.address}`,
+        poolMeta: `${parseInt(b.pool.fee) / 10000}%`,
+        url: `https://bunni.pro/pools/${chainString}/${b.pool.id}/${b.address}`,
       };
     });
 

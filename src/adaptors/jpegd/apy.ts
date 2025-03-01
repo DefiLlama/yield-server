@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const BN = require('bignumber.js');
 
 const abi = require('./abi');
+require('dotenv').config({ path: './config.env' });
 
 const APE_STAKING = '0x5954aB967Bc958940b7EB73ee84797Dc8a2AFbb9';
 const APE_MATCHING = '0xD4b06218C545C047ac3ACc7cE49d124C172DB409';

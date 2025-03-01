@@ -6,22 +6,152 @@ const {
   BigNumber,
 } = require('ethers');
 const utils = require('../utils');
-const { farmingRangeABI } = require('./abis');
+const {
+  farmingRangeABI,
+  usdnABI,
+  usdnProtocolABI,
+  wUsdnABI,
+} = require('./abis');
+
+const API_KEY = process.env.SMARDEX_SUBGRAPH_API_KEY;
 
 const BASE_URL = 'https://smardex.io/liquidity';
 const DAYS_IN_YEAR = 365;
 const DAYS_IN_WEEK = 7;
 const SECONDS_IN_DAY = 86400;
+const YEAR_IN_SECONDS = DAYS_IN_YEAR * SECONDS_IN_DAY;
+const BIGINT_10_POW_18 = BigInt(10 ** 18);
+
+// Smardex gateway for subgraph queries, for each chain
+const ENDPOINT_BASE = 'https://subgraph.smardex.io/defillama';
+
+// Smardex seed USDN token available on Ethereum
+const SUSDN_TOKEN_ADDRESS = '0xf67e2dc041b8a3c39d066037d29f500757b1e886';
+const SUSDE_TOKEN_ADDRESS = '0x9D39A5DE30e57443BfF2A8307A4256c8797A3497';
+const USDN_TOKEN_ADDRESS = '0xde17a000BA631c5d7c2Bd9FB692EFeA52D90DEE2';
+const WSTETH_TOKEN_ADDRESS = '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0';
+const USDN_PROTOCOL_ADDRESS = '0x656cB8C6d154Aad29d8771384089be5B5141f01a';
+const USDN_PROTOCOL_FIRST_DEPOSIT = 1737663167;
+const WUSDN_TOKEN_ADDRESS = '0x99999999999999Cc837C997B882957daFdCb1Af9';
 
 const CONFIG = {
   ethereum: {
-    ENDPOINT:
-      'https://api.studio.thegraph.com/query/41381/smardex-volumes/v0.0.7',
+    ENDPOINT: `${ENDPOINT_BASE}/ethereum`,
     SDEX_TOKEN_ADDRESS: '0x5de8ab7e27f6e7a1fff3e5b337584aa43961beef',
-    FARMING_RANGE_ADDRESS: '0xe74A7a544534DA80fBaC4d2475a6fDc03388154f',
+    FARMING_RANGE_ADDRESS: '0x7d85C0905a6E1Ab5837a0b57cD94A419d3a77523',
     TIME_BETWEEN_BLOCK: 12,
-    STAKING_ADDRESS: '0xb940d63c2ded1184bbde059acc7fee93654f02bf',
+    STAKING_ADDRESS: '0x80497049b005Fd236591c3CD431DBD6E06eB1A31',
   },
+  arbitrum: {
+    ENDPOINT: `${ENDPOINT_BASE}/arbitrum`,
+    SDEX_TOKEN_ADDRESS: '0xabD587f2607542723b17f14d00d99b987C29b074',
+    FARMING_RANGE_ADDRESS: '0x53D165DF0414bD02E91747775450934BF2257f69',
+    TIME_BETWEEN_BLOCK: 0.25,
+  },
+  polygon: {
+    ENDPOINT: `${ENDPOINT_BASE}/polygon`,
+    SDEX_TOKEN_ADDRESS: '0x6899fAcE15c14348E1759371049ab64A3a06bFA6',
+    FARMING_RANGE_ADDRESS: '0x7DB73A1e526db36c40e508b09428420c1fA8e46b',
+    TIME_BETWEEN_BLOCK: 2.2,
+  },
+  bsc: {
+    ENDPOINT: `${ENDPOINT_BASE}/bsc`,
+    SDEX_TOKEN_ADDRESS: '0xFdc66A08B0d0Dc44c17bbd471B88f49F50CdD20F',
+    FARMING_RANGE_ADDRESS: '0xb891Aeb2130805171796644a2af76Fc7Ff25a0b9',
+    TIME_BETWEEN_BLOCK: 3,
+  },
+  base: {
+    ENDPOINT: `${ENDPOINT_BASE}/base`,
+    SDEX_TOKEN_ADDRESS: '0xFd4330b0312fdEEC6d4225075b82E00493FF2e3f',
+    FARMING_RANGE_ADDRESS: '0xa5D378c05192E3f1F365D6298921879C4D51c5a3',
+    TIME_BETWEEN_BLOCK: 2,
+  },
+};
+
+const EXCEPTIONS = {
+  ethereum: [
+    {
+      tokenAddress: SUSDN_TOKEN_ADDRESS,
+      symbol: 'sUSDN',
+      customHandler: async ({
+        chainString,
+        block,
+        farmsWithRewards,
+        sdexPrice,
+        BLOCKS_PER_YEAR,
+        STAKING_ADDRESS,
+      }) => {
+        const prices = (
+          await utils.getData(
+            `https://coins.llama.fi/prices/current/${chainString}:${SUSDN_TOKEN_ADDRESS}`
+          )
+        ).coins;
+        const susdnPrice =
+          prices[`${chainString}:${SUSDN_TOKEN_ADDRESS}`]?.price || 0;
+        const totalSupply =
+          (
+            await sdk.api.abi.call({
+              target: SUSDN_TOKEN_ADDRESS,
+              abi: 'erc20:totalSupply',
+              chain: chainString,
+            })
+          ).output / 1e18;
+        const rewardApy = campaignRewardAPY(
+          farmsWithRewards.find(
+            (farm) =>
+              farm.pairAddress.toLowerCase() ===
+              SUSDN_TOKEN_ADDRESS.toLowerCase()
+          ),
+          block,
+          susdnPrice,
+          sdexPrice,
+          BLOCKS_PER_YEAR,
+          STAKING_ADDRESS
+        );
+
+        const sUSDeApy = await getsUSDeApy(susdnPrice);
+        const apyBase = rewardApy + sUSDeApy;
+        return {
+          pool: SUSDN_TOKEN_ADDRESS,
+          symbol: 'sUSDN',
+          project: 'smardex',
+          chain: utils.formatChain(chainString),
+          tvlUsd: totalSupply * susdnPrice,
+          apyBase,
+        };
+      },
+    },
+    {
+      tokenAddress: USDN_TOKEN_ADDRESS,
+      symbol: 'USDN',
+      customHandler: async ({
+        chainString,
+        block,
+        farmsWithRewards,
+        sdexPrice,
+        BLOCKS_PER_YEAR,
+        STAKING_ADDRESS,
+      }) => {
+        const totalSupply =
+          (
+            await sdk.api.abi.call({
+              target: USDN_TOKEN_ADDRESS,
+              abi: 'erc20:totalSupply',
+              chain: chainString,
+            })
+          ).output / 1e18;
+        const apyBase = await computeUsdnApr();
+        return {
+          pool: USDN_TOKEN_ADDRESS,
+          symbol: 'USDN',
+          project: 'smardex',
+          chain: utils.formatChain(chainString),
+          tvlUsd: totalSupply,
+          apyBase,
+        };
+      },
+    },
+  ],
 };
 
 const query = gql`
@@ -55,6 +185,25 @@ const queryPrior = gql`
   }
 `;
 
+const queryLastBlock = gql`
+  {
+    _meta {
+      block {
+        number
+      }
+    }
+  }
+`;
+
+/**
+ * GraphQL request helper function that authenticates to Smardex subgraph gateway
+ */
+const gqlRequest = (url, query, variables = null) => {
+  return request(url, query, variables, {
+    'x-api-key': API_KEY,
+  });
+};
+
 const getFarmsWithRewards = async (
   chainString,
   STAKING_ADDRESS,
@@ -76,7 +225,7 @@ const getFarmsWithRewards = async (
       abi: farmingRangeABI.find(({ name }) => name === 'campaignInfo'),
       chain: chainString,
       calls: [...Array.from(Array(parseInt(campaignInfoLen, 10)).keys())]
-        .slice(1)
+        .slice(STAKING_ADDRESS ? 1 : 0)
         .map((campaignId) => ({
           target: FARMING_RANGE_ADDRESS,
           params: [campaignId],
@@ -87,7 +236,7 @@ const getFarmsWithRewards = async (
       abi: farmingRangeABI.find(({ name }) => name === 'rewardInfoLen'),
       chain: chainString,
       calls: [...Array.from(Array(parseInt(campaignInfoLen, 10)).keys())]
-        .slice(1)
+        .slice(STAKING_ADDRESS ? 1 : 0)
         .map((campaignId) => ({
           target: FARMING_RANGE_ADDRESS,
           params: [campaignId],
@@ -152,16 +301,44 @@ const getFarmsWithRewards = async (
   return farmsWithRewards;
 };
 
+const applyPoolExceptions = async (
+  chainString,
+  block,
+  farmsWithRewards,
+  sdexPrice,
+  BLOCKS_PER_YEAR,
+  STAKING_ADDRESS
+) => {
+  if (!EXCEPTIONS[chainString]) return [];
+
+  const exceptions = EXCEPTIONS[chainString];
+  const exceptionPools = [];
+
+  for (const exception of exceptions) {
+    const pool = await exception.customHandler({
+      chainString,
+      block,
+      farmsWithRewards,
+      sdexPrice,
+      BLOCKS_PER_YEAR,
+      STAKING_ADDRESS,
+    });
+
+    exceptionPools.push(pool);
+  }
+  return exceptionPools;
+};
+
 // Computes rewards as APY from Farming Campaigns
 const campaignRewardAPY = (
   campaign,
-  pair,
   currentBlockNumber,
+  poolPrice,
   sdexPrice,
-  BLOCKS_PER_YEAR
+  BLOCKS_PER_YEAR,
+  STAKING_ADDRESS
 ) => {
   let apr = 0;
-
   if (
     sdexPrice &&
     campaign &&
@@ -169,24 +346,19 @@ const campaignRewardAPY = (
     campaign.rewards.length !== 0 &&
     parseInt(campaign.totalStaked) !== 0
   ) {
-    const pairPrice =
-      parseFloat(pair.totalSupply) > 0
-        ? (parseFloat(pair.reserve0) * pair.price0 +
-            parseFloat(pair.reserve1) * pair.price1) /
-          parseFloat(pair.totalSupply)
-        : 1;
-
     for (let i = 0; i < campaign.rewards.length; i += 1) {
       const reward = campaign.rewards[i];
 
       if (currentBlockNumber < reward.endBlock) {
         const aprBN = reward.rewardPerBlock
-          .mul(parseInt(campaign.id, 10) === 0 ? 1 : WeiPerEther)
+          .mul(
+            parseInt(campaign.id, 10) === 0 && STAKING_ADDRESS ? 1 : WeiPerEther
+          )
           .mul(BLOCKS_PER_YEAR)
           .mul(100)
           .div(campaign.totalStaked);
 
-        apr = (parseFloat(formatEther(aprBN)) * sdexPrice) / pairPrice;
+        apr = (parseFloat(formatEther(aprBN)) * sdexPrice) / poolPrice;
         break;
       }
     }
@@ -195,7 +367,7 @@ const campaignRewardAPY = (
   return apr;
 };
 
-const topLvl = async (
+const topTvl = async (
   chainString,
   url,
   query,
@@ -210,9 +382,8 @@ const topLvl = async (
     STAKING_ADDRESS,
   } = CONFIG[chainString];
   const BLOCKS_PER_YEAR = Math.floor(
-    (60 * 60 * 24 * DAYS_IN_YEAR) / TIME_BETWEEN_BLOCK
+    (SECONDS_IN_DAY * DAYS_IN_YEAR) / TIME_BETWEEN_BLOCK
   );
-
   const currentTimestamp = timestamp || Math.floor(Date.now() / 1000);
   const timestampPrior = currentTimestamp - SECONDS_IN_DAY;
   const timestampPrior7d = currentTimestamp - 7 * SECONDS_IN_DAY;
@@ -222,27 +393,31 @@ const topLvl = async (
     chainString
   );
 
+  const lastIndexedBlock = (await gqlRequest(url, queryLastBlock))._meta.block
+    .number;
+  if (block > lastIndexedBlock) {
+    // If the block is not indexed yet, we use the last indexed block
+    block = lastIndexedBlock;
+  }
+
   // pull data
   let queryC = query;
-  let dataNow = (await request(url, queryC.replace('<PLACEHOLDER>', block)))
+  let dataNow = (await gqlRequest(url, queryC.replace('<PLACEHOLDER>', block)))
     .pairs;
-
   // pull 24h offset data to calculate fees from swap volume
   let queryPriorC = queryPrior;
   const dataPrior = (
-    await request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior))
+    await gqlRequest(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior))
   ).pairs;
 
   // 7d offset
   const dataPrior7d = (
-    await request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
+    await gqlRequest(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
   ).pairs;
 
-  // calculate tvl
   dataNow = await utils.tvl(dataNow, chainString);
-  // calculate apy
   dataNow = dataNow.map((el) =>
-    utils.apy({ ...el, feeTier: 500 }, dataPrior, dataPrior7d, version)
+    utils.apy({ ...el, feeTier: 9000 }, dataPrior, dataPrior7d, version)
   );
 
   const prices = (
@@ -250,30 +425,34 @@ const topLvl = async (
       `https://coins.llama.fi/prices/current/${chainString}:${SDEX_TOKEN_ADDRESS}`
     )
   ).coins;
-  const sdexPrice = prices[`${chainString}:${SDEX_TOKEN_ADDRESS}`].price;
-
-  // Get farming campagns for APY rewards
+  const sdexPrice = prices[`${chainString}:${SDEX_TOKEN_ADDRESS}`]?.price || 0;
   const farmsWithRewards = await getFarmsWithRewards(
     chainString,
     STAKING_ADDRESS,
     FARMING_RANGE_ADDRESS
   );
-
-  return dataNow.map((p) => {
+  dataNow = dataNow.map((p) => {
     const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
     const underlyingTokens = [p.token0.id, p.token1.id];
     const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
     const token1 = underlyingTokens === undefined ? '' : underlyingTokens[1];
     const url = `${BASE_URL}/add?tokenA=${token0}&tokenB=${token1}`;
+    const poolPrice =
+      parseFloat(p.totalSupply) > 0
+        ? (parseFloat(p.reserve0) * p.price0 +
+            parseFloat(p.reserve1) * p.price1) /
+          parseFloat(p.totalSupply)
+        : 1;
 
     const apyReward = campaignRewardAPY(
       farmsWithRewards.find(
         (farm) => farm.pairAddress.toLowerCase() === p.id.toLowerCase()
       ),
-      p,
       block,
+      poolPrice,
       sdexPrice,
-      BLOCKS_PER_YEAR
+      BLOCKS_PER_YEAR,
+      STAKING_ADDRESS
     );
 
     return {
@@ -292,21 +471,206 @@ const topLvl = async (
       volumeUsd7d: p.volumeUSD7d,
     };
   });
+
+  // Apply pool exceptions
+  const exceptionPools = await applyPoolExceptions(
+    chainString,
+    block,
+    farmsWithRewards,
+    sdexPrice,
+    BLOCKS_PER_YEAR,
+    STAKING_ADDRESS
+  );
+
+  // Combine data with pool exceptions
+  return [...dataNow, ...exceptionPools];
 };
 
 const main = async (timestamp = null) => {
-  const chainString = 'ethereum';
+  if (API_KEY === undefined) {
+    throw new Error('Missing SMARDEX_SUBGRAPH_API_KEY environment variable');
+  }
+  // Getting configuration keys as array of chains
+  const chains = Object.keys(CONFIG);
 
-  let data = await topLvl(
-    chainString,
-    CONFIG[chainString].ENDPOINT,
-    query,
-    queryPrior,
-    'custom',
-    timestamp
+  // Fetching data for each chain in parallel
+  const resultData = await Promise.allSettled(
+    chains.map(async (chain) => {
+      const data = await topTvl(
+        chain,
+        CONFIG[chain].ENDPOINT,
+        query,
+        queryPrior,
+        'custom',
+        timestamp
+      );
+
+      return data;
+    })
   );
 
-  return data.filter((p) => utils.keepFinite(p));
+  return resultData
+    .filter((i) => i.status === 'fulfilled')
+    .map((i) => i.value)
+    .flat()
+    .filter(utils.keepFinite);
+};
+
+/**
+ * NOTE:
+ * This method is almost entirely taken from the Ethena adapter (src/adaptors/ethena/index.js)
+ * We need to calculate the APY of sUSDe because sUSDN contains the yield of sUSDe.
+ */
+const getsUSDeApy = async (sUSDNPrice) => {
+  const totalSupply =
+    (
+      await sdk.api.abi.call({
+        target: SUSDE_TOKEN_ADDRESS,
+        abi: 'erc20:totalSupply',
+      })
+    ).output / 1e18;
+
+  const tvlUsd = totalSupply * sUSDNPrice;
+
+  const currentBlock = await sdk.api.util.getLatestBlock('ethereum');
+  const toBlock = currentBlock.number;
+  const topic =
+    '0xbb28dd7cd6be6f61828ea9158a04c5182c716a946a6d2f31f4864edb87471aa6';
+  const logs = (
+    await sdk.api.util.getLogs({
+      target: '0x9D39A5DE30e57443BfF2A8307A4256c8797A3497',
+      topic: '',
+      toBlock,
+      fromBlock: 19026137,
+      keys: [],
+      topics: [topic],
+      chain: 'ethereum',
+    })
+  ).output.sort((a, b) => b.blockNumber - a.blockNumber);
+
+  // rewards are now beeing streamed every 8hours, which we scale up to a year
+  const rewardsReceived = parseInt(logs[0].data / 1e18);
+  const aprBase = ((rewardsReceived * 3 * 365) / tvlUsd) * 100;
+  // weekly compoounding
+  const apyBase = utils.aprToApy(aprBase, 52);
+  return apyBase;
+};
+
+async function fetchUSDNData(chain, timestamp) {
+  const [block] = await utils.getBlocksByTime([timestamp], chain);
+
+  const usdnDivisorCall = sdk.api.abi.call({
+    target: USDN_TOKEN_ADDRESS,
+    abi: usdnABI.find((m) => m.name === 'divisor'),
+    chain,
+    block,
+  });
+
+  const usdnTotalSupplyCall = sdk.api.abi.call({
+    target: USDN_TOKEN_ADDRESS,
+    abi: usdnABI.find((m) => m.name === 'totalSupply'),
+    chain,
+    block,
+  });
+
+  const wUsdnSharesRatioCall = sdk.api.abi.call({
+    target: WUSDN_TOKEN_ADDRESS,
+    abi: wUsdnABI.find((m) => m.name === 'SHARES_RATIO'),
+    chain,
+    block,
+  });
+
+  const wstEthPrice = await getWstEthPriceAtTimestamp(chain, timestamp);
+  const formattedWstEthPrice = BigInt(Math.round(wstEthPrice * 10 ** 18));
+
+  const usdnVaultAssetAvailableWithFundingCall = sdk.api.abi.call({
+    target: USDN_PROTOCOL_ADDRESS,
+    abi: usdnProtocolABI.find(
+      (m) => m.name === 'vaultAssetAvailableWithFunding'
+    ),
+    chain,
+    block,
+    params: [formattedWstEthPrice, BigInt(timestamp)],
+  });
+
+  const [
+    usdnDivisor,
+    usdnTotalSupply,
+    usdnVaultAssetAvailableWithFunding,
+    wUsdnSharesRatio,
+  ] = await Promise.all([
+    usdnDivisorCall,
+    usdnTotalSupplyCall,
+    usdnVaultAssetAvailableWithFundingCall,
+    wUsdnSharesRatioCall,
+  ]);
+
+  const usdnPrice = await getUsdnPriceAtTimestamp(chain, timestamp);
+  const formattedUsdnPrice = BigInt(Math.round(usdnPrice * 10 ** 18));
+  const usdnDivisorOutput = BigInt(usdnDivisor.output);
+
+  return {
+    usdnDivisor: usdnDivisorOutput,
+    usdnTotalSupply: BigInt(usdnTotalSupply.output),
+    usdnVaultAssetAvailableWithFunding: BigInt(
+      usdnVaultAssetAvailableWithFunding.output
+    ),
+    wstEthPrice: formattedWstEthPrice,
+    wusdnPrice:
+      (BigInt(wUsdnSharesRatio.output) * formattedUsdnPrice) /
+      usdnDivisorOutput,
+  };
+}
+
+const getWstEthPriceAtTimestamp = async (chain, timestamp) => {
+  const prices = (
+    await utils.getData(
+      `https://coins.llama.fi/prices/historical/${timestamp}/${chain}:${WSTETH_TOKEN_ADDRESS}`
+    )
+  ).coins;
+  const wstETHResult = prices[`${chain}:${WSTETH_TOKEN_ADDRESS}`];
+  if (wstETHResult === undefined) {
+    throw new Error('No price data found for wstETH');
+  }
+  return wstETHResult.price;
+};
+
+const getUsdnPriceAtTimestamp = async (chain, timestamp) => {
+  const prices = (
+    await utils.getData(
+      `https://coins.llama.fi/prices/historical/${timestamp}/${chain}:${USDN_TOKEN_ADDRESS}`
+    )
+  ).coins;
+  const usdnResult = prices[`${chain}:${USDN_TOKEN_ADDRESS}`];
+  if (usdnResult === undefined) {
+    throw new Error('No price data found for USDN');
+  }
+  return usdnResult.price;
+};
+
+const computeUsdnApr = async (chain = 'ethereum') => {
+  const timestampNow = Math.floor(Date.now() / 1_000);
+  const timestampOneYearAgo = Math.max(
+    timestampNow - 24 * 60 * 60 * 365,
+    USDN_PROTOCOL_FIRST_DEPOSIT
+  );
+
+  const [first, last] = await Promise.all([
+    fetchUSDNData(chain, timestampOneYearAgo),
+    fetchUSDNData(chain, timestampNow),
+  ]);
+
+  const elapsedTimeBetweenFirst =
+    (timestampNow - timestampOneYearAgo) / SECONDS_IN_DAY;
+
+  const totalYield =
+    Number(
+      ((last.wusdnPrice - first.wusdnPrice) * BIGINT_10_POW_18) /
+        first.wusdnPrice
+    ) /
+    10 ** 18;
+
+  return (Math.pow(1 + totalYield, 365 / elapsedTimeBetweenFirst) - 1) * 100;
 };
 
 module.exports = {

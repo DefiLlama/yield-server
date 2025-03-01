@@ -1,14 +1,16 @@
+const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
-const url = 'https://api.thegraph.com/subgraphs/name/0xfantommenace';
 const subgraphs = {
-  fantom: `${url}/granary-fantom`,
-  optimism: `${url}/granary-optimism`,
-  ethereum: `${url}/granary-ethereum`,
-  avalanche: `${url}/granary-avalanche`,
+  fantom: sdk.graph.modifyEndpoint(
+    '2Hjpy81pbiD8V8pTGHfRCFmb5Gsj2CfFRjJjcdGUZK3q'
+  ),
+  optimism: sdk.graph.modifyEndpoint(
+    '7MwUKrqGbDz7voH87MgwLZ9hq1WLJVgK5fHt8NtKeas4'
+  ),
 };
 
 const query = gql`

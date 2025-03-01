@@ -1,7 +1,13 @@
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 
-const url = 'https://api.thegraph.com/subgraphs/name/sameepsi/quickswap06';
+const url = sdk.graph.modifyEndpoint(
+  'FnbpmBoXSidpFCghB5oxEb7XBUyGsSmyyXs9p8t3esvF'
+);
+const sushiPolygon = sdk.graph.modifyEndpoint(
+  '8NiXkxLRT3R22vpwLB4DXttpEf3X1LrKhe4T1tQ3jjbP'
+);
 
 const query = gql`
   {
@@ -53,8 +59,6 @@ const buildPool = (entry, chainString) => {
 };
 
 const topLvl = async (chainString, timestamp, url, version) => {
-  const sushiPolygon =
-    'https://api.thegraph.com/subgraphs/name/sushiswap/matic-exchange';
   const [block, blockPrior] = await utils.getBlocks(
     chainString,
     timestamp,
@@ -97,7 +101,7 @@ const topLvl = async (chainString, timestamp, url, version) => {
 
 const main = async (timestamp = null) => {
   const data = await Promise.all([topLvl('polygon', timestamp, url, 'v2')]);
-  return data.flat().filter((p) => utils.keepFinite(p));
+  return data.flat().filter((p) => utils.keepFinite(p) && p.tvlUsd < 5e6);
 };
 
 module.exports = {

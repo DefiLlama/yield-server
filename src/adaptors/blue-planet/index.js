@@ -1,4 +1,4 @@
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
@@ -8,8 +8,9 @@ const utils = require('../utils');
 const { fetchURL } = require('../../helper/utils');
 
 const RPC_URL = 'https://bsc-dataseed1.binance.org/';
-const API_URL =
-  'https://api.thegraph.com/subgraphs/name/makemyideatech/planet-finance-v3';
+const API_URL = sdk.graph.modifyEndpoint(
+  '6VnGdhHKmys4uJ8Dnb4ow9eg794kqnE8v35Gmwrjo1iW'
+);
 const LP_APRS = 'https://api.planet.finance/v2/markets/getpoolsinfo';
 const GAMMA_FARM_ADDRESS = '0x9EBce8B8d535247b2a0dfC0494Bc8aeEd7640cF9';
 const GAMMA = '0xb3Cb6d2f8f2FDe203a022201C81a96c167607F15';
@@ -138,6 +139,7 @@ const main = async () => {
           params: i,
         })),
         chain: 'bsc',
+        permitFailure: true,
       })
     )
   );
@@ -152,6 +154,7 @@ const main = async () => {
           params: method === 'balanceOf' ? [poolInfo.strat] : null,
         })),
         chain: 'bsc',
+        permitFailure: true,
       })
     )
   );

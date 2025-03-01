@@ -25,10 +25,15 @@ const chains = {
     // ChefIncentivesController: '0x7C16aBb090d3FB266E9d17F60174B632f4229933',
     url: '0x63764769dA006395515c3f8afF9c91A809eF6607',
   },
+  base: {
+    LendingPool: '0x30798cFe2CCa822321ceed7e6085e633aAbC492F',
+    ProtocolDataProvider: '0x07d2DC09A1CbDD01e5f6Ca984b060A3Ff31b9EAF',
+    url: '0xe7f252d19ab96254144fbb0d94ebc0ff7ea0c541',
+  },
 };
 
 const getApy = async () => {
-  const pools = await Promise.all(
+  const pools = await Promise.allSettled(
     Object.keys(chains).map(async (chain) => {
       const addresses = chains[chain];
 
@@ -206,7 +211,11 @@ const getApy = async () => {
       });
     })
   );
-  return pools.flat().filter((p) => utils.keepFinite(p));
+  return pools
+    .filter((i) => i.status === 'fulfilled')
+    .map((i) => i.value)
+    .flat()
+    .filter((p) => p !== null && utils.keepFinite(p));
 };
 
 module.exports = {

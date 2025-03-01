@@ -9,6 +9,7 @@ const chainMapping = {
   LTC: 'litecoin',
   TERRA: 'terra',
   GAIA: 'cosmos',
+  AVAX: 'avalanche',
 };
 
 const buildPool = (entry, runePrice) => {
@@ -32,6 +33,27 @@ const buildPool = (entry, runePrice) => {
   return newObj;
 };
 
+const buildSavers = (entry, runePrice) => {
+  const asset = entry.asset.split('.');
+  const chain = chainMapping[asset[0]];
+  const symbol = `${asset[1].split('-')[0]}`;
+
+  const balanceAsset =
+    (Number(entry.saversDepth) / 1e8) * Number(entry.assetPriceUSD);
+
+  const newObj = {
+    pool: `${entry.asset}-thorchain-savers`,
+    chain: chain !== undefined ? utils.formatChain(chain) : null,
+    project: 'thorchain',
+    symbol: utils.formatSymbol(symbol),
+    tvlUsd: balanceAsset,
+    apy: Number(entry.saversAPR) * 100,
+    url: 'https://app.thorswap.finance/earn',
+  };
+
+  return newObj;
+};
+
 const topLvl = async () => {
   // https://midgard.ninerealms.com/v2/doc (for more info)
   const url = 'https://midgard.ninerealms.com/v2/pools';
@@ -41,9 +63,12 @@ const topLvl = async () => {
   );
 
   // build pool objects
-  data = data.map((el) => buildPool(el, Number(runePrice.runePriceUSD)));
+  const pools = data.map((el) => buildPool(el, Number(runePrice.runePriceUSD)));
+  const savers = data.map((el) =>
+    buildSavers(el, Number(runePrice.runePriceUSD))
+  );
 
-  return data.filter((p) => p.chain);
+  return [...savers, ...pools].filter((p) => p.chain && utils.keepFinite(p));
 };
 
 const main = async () => {
