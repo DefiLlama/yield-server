@@ -2,21 +2,17 @@ const axios = require('axios');
 const utils = require('../utils');
 
 const getApy = async () => {
-  const responses = await Promise.allSettled(
-    [
-      'https://api.kamino.finance/strategies/metrics?env=mainnet-beta&status=LIVE',
-      'https://api.kamino.finance/strategies/metrics?env=mainnet-beta&status=IGNORED',
-      'https://api.kamino.finance/v2/strategies/volume?env=mainnet-beta',
-    ].map((i) => axios.get(i))
-  );
+  const strategies = (
+    await axios.get(
+      'https://api.kamino.finance/strategies/metrics?env=mainnet-beta&status=LIVE'
+    )
+  ).data;
 
-  const strategies =
-    responses[0].status === 'fulfilled' && responses[1].status === 'fulfilled'
-      ? [...responses[0].value.data, ...responses[1].value.data]
-      : [];
-
-  const volume =
-    responses[2].status === 'fulfilled' ? responses[2].value.data : [];
+  const volume = (
+    await axios.get(
+      'https://api.kamino.finance/v2/strategies/volume?env=mainnet-beta'
+    )
+  ).data;
 
   const apy = strategies.map((p) => {
     const strategyVolume = volume.find((x) => x.strategy === p.strategy);
