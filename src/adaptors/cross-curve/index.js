@@ -3,14 +3,9 @@ const curve = require('../curve-dex');
 const { default: BigNumber } = require('bignumber.js');
 
 const chainIdMap = {
-  1: 'Ethereum',
-  137: 'Polygon',
-  10: 'Optimism',
   146: 'Sonic',
   250: 'Fantom',
   42161: 'Arbitrum',
-  1101: 'Polygon_zkevm',
-  8453: 'Base',
 }
 
 const getGauges = async () => {
@@ -57,16 +52,16 @@ const merkl = async () => {
 }
 
 const resolveMerklPool = (merklData, address) => {
-  const data = merklData.find((pool) => pool.id.split('_').at(1).toLowerCase() === address);
+  const data = merklData.find((pool) => pool.campaigns.active[0]?.campaignParameters?.targetToken?.toLowerCase() === address && pool.status === 'live');
 
   if (!data)
     return;
 
-  if (data.status === 'live') {
+  // if (data.status === 'live') {
     return data;
-  }
+  // }
 
-  return merklData.find((pool) => pool.platform === data.platform && pool.status === 'live');
+  // return merklData.find((pool) => pool.platform === data.platform && pool.status === 'live');
 }
 
 // Main Function
