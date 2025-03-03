@@ -120,12 +120,6 @@ const main = async () => {
   }
 }
 
-main().then((data) => {
-  console.log(data);
-}).catch((error) => {
-  console.log(error)
-});
-
 module.exports = {
   timetravel: false,
   apy: main,
