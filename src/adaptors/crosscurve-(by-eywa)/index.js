@@ -99,7 +99,7 @@ const main = async () => {
       return {
         pool: address,
         chain: curvePool?.chain || chainIdMap[merklPool?.chainId],
-        project: 'cross-curve',
+        project: 'crosscurve-(by-eywa)',
         symbol: curvePool?.symbol || merklPool?.platform,
         apy: new BigNumber(curvePool?.apyReward || 0)
           .plus(curvePool?.apyBase || 0)
@@ -118,4 +118,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://app.crosscurve.fi/farm'
 };
