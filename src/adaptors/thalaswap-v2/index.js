@@ -1,7 +1,7 @@
 const utils = require('../utils');
 
-const thalaswapAddress =
-  '0x48271d39d0b05bd6efca2278f22277d6fcc375504f9839fd73f74ace240861af';
+const thalaswapV2Address =
+  '0x7730cd28ee1cdc9e999336cbc430f99e7c44397c0aa77516f6f23a78559bb5';
 const THALA_DAPP_URL = 'http://app.thala.fi';
 const THALA_POOL_API_URL = `${THALA_DAPP_URL}/api/liquidity-pool`;
 const THALA_COIN_INFO_URL = `${THALA_DAPP_URL}/api/coin-info`;
@@ -17,10 +17,10 @@ async function main() {
     return [];
   }
   const filteredPools = liquidityPools.filter((pool) => pool.tvl > 10000);
-  const v1Pools = filteredPools.filter((pool) => pool.metadata.isV2 === false);
+  const v2Pools = filteredPools.filter((pool) => pool.metadata.isV2 === true);
 
   const tvlArr = [];
-  for (const liquidityPool of v1Pools) {
+  for (const liquidityPool of v2Pools) {
     const swapFeesApr = liquidityPool.apr.find(item => item.source === 'Swap Fees')?.apr;
     const farmingTHLApr = liquidityPool.apr.find(item => item.source === 'THL')?.apr;
     const farmingTHAPTApr = liquidityPool.apr.find(item => item.source === 'thAPT')?.apr;
@@ -40,7 +40,7 @@ async function main() {
       pool:
         coinNames + ' ' + liquidityPool.metadata.poolType + ' Pool',
       chain: utils.formatChain('aptos'),
-      project: 'thalaswap',
+      project: 'thalaswap-v2',
       apyBase: (swapFeesApr ?? 0) * 100,
       apyReward: ((farmingTHLApr ?? 0) + (farmingTHAPTApr ?? 0)) * 100,
       rewardTokens,
