@@ -72,7 +72,7 @@ const main = async () => {
     const curveData = await curve.apy();
     const merklData = await merkl();
 
-    return addresses.map((address) => {
+    return Promise.all(addresses.map(async (address) => {
       const curvePool = curveData.find((pool) => pool.pool.split('-').at(0).toLowerCase() === address);
       const merklPool = resolveMerklPool(merklData, address);
       const gauge = gauges[address];
@@ -96,6 +96,17 @@ const main = async () => {
         underlyingTokens.push(...merklPool.underlyingTokens)
       }
 
+      let tvlUsd;
+
+      if (address === '0x38dd6b3c096c8cbe649fa0039cc144f333be8e61') {
+        const req = await fetch('https://eywa-bot-api-service.eywa.fi/pools-data');
+        const res = await req.json();
+        console.log(res)
+        tvlUsd = res.data.pools.find(pool => pool.address === '0x38dd6b3c096c8cbe649fa0039cc144f333be8e61').tvl
+      } else {
+        tvlUsd = new BigNumber(curvePool?.tvlUsd || 0).plus(merklPool?.tvlUsd || 0).toNumber()
+      }
+
       return {
         pool: address,
         chain: curvePool?.chain || chainIdMap[merklPool?.chainId],
@@ -105,15 +116,19 @@ const main = async () => {
           .plus(curvePool?.apyBase || 0)
           .plus(new BigNumber(1).div(gauge.totalDeposited.boosted).multipliedBy(merklPool?.dailyrewards || 0).multipliedBy(365).multipliedBy(100))
           .toNumber(),
-        tvlUsd: new BigNumber(curvePool?.tvlUsd || 0).plus(merklPool?.tvlUsd || 0).toNumber(),
+        tvlUsd,
         rewardTokens: Array.from(new Set(rewardTokens.map( address => address.toLowerCase()))),
         underlyingTokens: Array.from(new Set(underlyingTokens.map( address => address.toLowerCase()))),
       };
-    });
+    }));
   } catch (error) {
     console.log(error)
   }
 }
+
+main().then((data) => {
+  console.log(data);
+});
 
 module.exports = {
   timetravel: false,
