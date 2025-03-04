@@ -51,11 +51,6 @@ async function main() {
     });
   }
 
-  // console.log(tvlArr);
-  // Object.entries(coinInfoCache).forEach(([key, value]) => {
-  //   console.log(`Key: ${key}`);
-  //   console.log(`Value:`, value);
-  // });
   return tvlArr;
 }
 
