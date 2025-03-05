@@ -187,7 +187,7 @@ async function main() {
       pool:
          `${marketAddress}-aptos`.toLowerCase(),
       chain: utils.formatChain('aptos'),
-      project: 'echelon',
+      project: 'echelon-market',
       apyBase: ((lendingSupplyApr + (stakingSupplyApr ?? 0)) ?? 0) * 100,
       apyReward: ((farmingAPTApr ?? 0) + (farmingTHAPTApr ?? 0)) * 100,
       apyBaseBorrow: (lendingBorrowApr ?? 0) * 100,
