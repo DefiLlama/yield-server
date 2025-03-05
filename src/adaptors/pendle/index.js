@@ -39,36 +39,49 @@ const chains = {
   },
 };
 
-function poolApys(pools) {
+function splitId(id) {
+  const [chainId, address] = id.split('-');
+  return { chainId, address };
+}
+
+function expiryToText(dateIso) {
+  return new Date(dateIso)
+    .toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    })
+    .replace(/ /g, '')
+    .toUpperCase();
+}
+
+function poolApys(chainId, pools) {
   return pools.map((p) => ({
     pool: p.address,
-    chain: utils.formatChain(chains[p.chainId].chainName),
+    chain: utils.formatChain(chains[chainId].chainName),
     project: 'pendle',
-    symbol: utils.formatSymbol(p.proName),
-    tvlUsd: p.liquidity?.usd,
-    apyBase: (p.aggregatedApy - p.pendleApy) * 100,
-    apyReward: p.pendleApy * 100,
-    rewardTokens: [chains[p.chainId].PENDLE],
-    underlyingTokens: [p.pt.address, p.sy.address],
-    poolMeta: `For LP | Maturity ${p.pt.symbol.split('-').at(-1)}`,
-    url: `https://app.pendle.finance/trade/pools/${p.address}/zap/in?chain=${
-      chains[p.chainId].chainSlug
-    }`,
+    symbol: utils.formatSymbol(p.name),
+    tvlUsd: p.details.liquidity,
+    apyBase: (p.details.aggregatedApy - p.details.pendleApy) * 100,
+    apyReward: p.details.pendleApy * 100,
+    rewardTokens: [chains[chainId].PENDLE],
+    underlyingTokens: [splitId(p.pt).address, splitId(p.sy).address],
+    poolMeta: `For LP | Maturity ${expiryToText(p.expiry)}`,
+    url: `https://app.pendle.finance/trade/pools/${p.address}/zap/in?chain=${chains[chainId].chainSlug}`,
   }));
 }
-function ptApys(pools) {
+
+function ptApys(chainId, pools) {
   return pools.map((p) => ({
-    pool: p.pt.address,
-    chain: utils.formatChain(chains[p.chainId].chainName),
+    pool: splitId(p.pt).address,
+    chain: utils.formatChain(chains[chainId].chainName),
     project: 'pendle',
-    symbol: utils.formatSymbol(p.proName),
-    tvlUsd: p.liquidity?.usd,
-    apyBase: p.impliedApy * 100,
-    underlyingTokens: [p.underlyingAsset.address],
-    poolMeta: `For buying ${p.pt.symbol}`,
-    url: `https://app.pendle.finance/trade/markets/${
-      p.address
-    }/swap?view=pt&chain=${chains[p.chainId].chainSlug}&py=output`,
+    symbol: utils.formatSymbol(p.name),
+    tvlUsd: p.details.liquidity,
+    apyBase: p.details.impliedApy * 100,
+    underlyingTokens: [splitId(p.underlyingAsset).address],
+    poolMeta: `For buying PT-${p.name}-${expiryToText(p.expiry)}`,
+    url: `https://app.pendle.finance/trade/markets/${p.address}/swap?view=pt&chain=${chains[chainId].chainSlug}&py=output`,
   }));
 }
 
@@ -80,12 +93,10 @@ async function apy() {
     Object.keys(chains).map(async (chainId) => {
       let pools = (
         await axios.get(
-          `https://api-v2.pendle.finance/bff/v1/${chainId}/markets?skip=0&limit=100&select=pro&is_active=true`
+          `https://api-v2.pendle.finance/core/v1/${chainId}/markets/active`
         )
-      ).data.results
-        .flat()
-        .filter((p) => p.liquidity != null && new Date(p.expiry) > date);
-      pools = [poolApys(pools), ptApys(pools)]
+      ).data.markets;
+      pools = [poolApys(chainId, pools), ptApys(chainId, pools)]
         .flat()
         .sort((a, b) => b.tvlUsd - a.tvlUsd);
 
