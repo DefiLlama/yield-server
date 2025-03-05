@@ -251,37 +251,39 @@ const main = async () => {
       })
     ).output.map(({ output }) => output);
 
-    // Some of the pools do not have `getPoolId` so we use an alternative method to get the pool id
-    await Promise.all(
-      _.range(validPoolsLength).map(async (i) => {
-        if (balancerPoolIds[i]) {
-          return;
-        }
-        balancerPoolIds[i] = (
-          await sdk.api.abi.call({
-            abi: lpTokenABI2.filter(({ name }) => name === 'POOL_ID')[0],
-            target: lpTokens[i],
-            chain,
-            permitFailure: true,
-          })
-        ).output;
-      })
-    );
-
+    // only make calls for non-null pool IDs (otherwise it breaks)
     const balancerPoolTokenInfos = (
       await sdk.api.abi.multiCall({
         abi: vaultABI.filter(({ name }) => name === 'getPoolTokens')[0],
-        calls: _.range(validPoolsLength).map((i) => ({
-          target: balancerVault,
-          params: [balancerPoolIds[i]],
-        })),
+        calls: _.range(validPoolsLength)
+          .filter((i) => balancerPoolIds[i] !== null)
+          .map((i) => ({
+            target: balancerVault,
+            params: [balancerPoolIds[i]],
+          })),
         chain,
         permitFailure: true,
       })
-    ).output.map(({ output }) => output);
+    ).output;
 
-    const underlyingTokens = _.range(validPoolsLength).map((i) =>
-      balancerPoolTokenInfos[i].tokens.filter((token) => token !== lpTokens[i])
+    // create mapping to restore the original array structure with null values
+    const tokenInfoMapping = {};
+    _.range(validPoolsLength)
+      .filter((i) => balancerPoolIds[i] !== null)
+      .forEach((i, index) => {
+        tokenInfoMapping[i] = balancerPoolTokenInfos[index].output;
+      });
+
+    // reconstruct array with null values in place
+    const fullBalancerPoolTokenInfos = _.range(validPoolsLength).map(
+      (i) => tokenInfoMapping[i] || null
+    );
+
+    const underlyingTokens = _.range(validPoolsLength).map(
+      (i) =>
+        fullBalancerPoolTokenInfos[i]?.tokens?.filter(
+          (token) => token !== lpTokens[i]
+        ) || []
     );
 
     const uniqueTokens = Array.from(new Set(_.flatten(underlyingTokens)));
@@ -427,7 +429,16 @@ const main = async () => {
     allPools.push(...chainPools.filter((p) => utils.keepFinite(p)));
   }
 
-  return allPools;
+  return allPools.filter(
+    (i) =>
+      ![
+        '0xc4ce391d82d164c166df9c8336ddf84206b2f812',
+        '0xc1d48bb722a22cc6abf19facbe27470f08b3db8c',
+        '0x89bb794097234e5e930446c0cec0ea66b35d7570',
+        '0x272d6be442e30d7c87390edeb9b96f1e84cecd8d',
+        '0x6e6bb18449fcf15b79efa2cfa70acf7593088029',
+      ].includes(i.pool)
+  );
 };
 
 module.exports = {

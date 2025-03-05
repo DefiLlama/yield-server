@@ -128,7 +128,6 @@ const excludeAdaptors = [
   'platypus-finance',
   'biswap-v2',
   'burrow',
-  'raydium',
   'ref-finance',
   'shoebill-v1',
   'auragi-finance',
@@ -151,9 +150,14 @@ const excludeAdaptors = [
   'maia-dao',
   'hermes-protocol',
   'xtoken',
-  'deltaprime',
   'arbitrum-exchange-v3',
   'bfx-(blast-futures)',
+  'stack',
+  'liquid-bolt',
+  'avault',
+  'metastreet-v2',
+  'mero',
+  'meteora', // pushed by mistake
 ];
 
 const excludePools = [

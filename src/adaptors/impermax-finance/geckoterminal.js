@@ -7,7 +7,9 @@ const GECKOTERMINAL_IDS = {
   base: 'base',
   scroll: 'scroll',
   optimism: 'optimism',
-  real: 'real'
+  real: 'real',
+  blast: 'blast',
+  sonic: 'sonic'
 }
 
 module.exports = { 

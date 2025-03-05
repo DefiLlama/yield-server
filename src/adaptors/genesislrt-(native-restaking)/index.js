@@ -35,7 +35,7 @@ const apy = async () => {
       })
     ).output / 1e18;
 
-  const priceKey = `ethereum:${inETH}`;
+  const priceKey = `coingecko:genesislrt-restaked-eth`;
   const price = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).data.coins[priceKey]?.price;

@@ -39,6 +39,7 @@ const config = {
   base: [
     'https://api.studio.thegraph.com/query/46041/impermax-base-solv2/v0.0.2',
     'https://api.studio.thegraph.com/query/46041/impermax-base-solv2-stable/v0.0.1',
+    'https://gateway.thegraph.com/api/1350441d268f171aeb0934412dfadf3b/subgraphs/id/B7xsBeef3FohKaFPcsAsviyLKaWXTqcSELjAsPj2B7iW',
   ],
   scroll: [
     'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2/v0.0.2',
@@ -47,6 +48,14 @@ const config = {
   real: [
     'https://api.goldsky.com/api/public/project_cm2d5q4l4w31601vz4swb3vmi/subgraphs/impermax-finance/impermax-real-v2-stable/gn',
     'https://api.goldsky.com/api/public/project_cm2rhb30ot9wu01to8c9h9e37/subgraphs/impermax-real-solv2/3.0/gn',
+  ],
+  blast: [
+    'https://gateway.thegraph.com/api/1350441d268f171aeb0934412dfadf3b/subgraphs/id/4FDikpVjE2XnDJ5QcpQ1YJXWcUDiAgE7x8ErtsHh33UB',
+    'https://gateway.thegraph.com/api/1350441d268f171aeb0934412dfadf3b/subgraphs/id/6xkrXFPJ4wqh9cy9ayP19WGr2wZVSMP3FniMjcW2LUG4',
+    'https://gateway.thegraph.com/api/1350441d268f171aeb0934412dfadf3b/subgraphs/id/CfJnk2rt4fUs71dvJJk21dbSS4dshKFWjfLsCceTXNBa',
+  ],
+  sonic: [
+    'https://gateway.thegraph.com/api/1350441d268f171aeb0934412dfadf3b/subgraphs/id/HK9BA4oFp1xaoQW7YVP4m2nbxX7q2bQCZWNPKBtudtZR',
   ],
   // Skip these as tvl is too low
   // avalanche: [], moonriver: [], canto: [], zkSync: []
@@ -90,6 +99,10 @@ const projectPoolFactories = {
   base: {
     Aerodrome: ['0x420dd381b31aef6683db6b902084cb0ffece40da'],
     Scale: ['0xed8db60acc29e14bc867a497d94ca6e3ceb5ec04'],
+    UniswapV2: [
+      '0x3e84d913803b02a4a7f027165e8ca42c14c0fde7',
+      '0x8909dc15e40173ff4699343b6eb8132c65e18ec6',
+    ],
   },
   scroll: {
     Tokan: [
@@ -109,6 +122,12 @@ const projectPoolFactories = {
       '0x317371f126680734d7db2ace2d751ffc0bd4b771',
       '0x2b965fdf04f9e9beef1659464ef3a0094a68d923',
     ],
+  },
+  blast: {
+    Fenix: ['0xa19c51d91891d3df7c13ed22a2f89d328a82950f'],
+  },
+  sonic: {
+    Equalizer: ['0xddd9845ba0d8f38d3045f804f67a1a8b9a528fcc'],
   },
 };
 
@@ -161,6 +180,10 @@ const lendingVaultsConfig = {
   fantom: [],
   optimism: [],
   ethereum: [],
+  blast: [
+    'https://gateway.thegraph.com/api/1350441d268f171aeb0934412dfadf3b/subgraphs/id/8UbzkWkh1zqWhkgkomcVAVR7tmvDNq9LUtfmvRwtDQTh',
+  ],
+  sonic: [],
 };
 
 const lendingVaultProfiles = {
@@ -215,6 +238,16 @@ const lendingVaultProfiles = {
       address: '0x683cc7cbb8b8c5b3c5fae85a4ae70e887217883b'.toLowerCase(),
       risk: 'Aggressive',
     }, // ETH (high)
+    {
+      address: '0xc68c47085D2B53A0A782c168D1b54a913A668cB5'.toLowerCase(),
+      risk: 'Conservative',
+    }, // cbBTC (low)
+  ],
+  blast: [
+    {
+      address: '0xFBFBd1c9E05c114684Bc447Da5182Fe09315E038'.toLowerCase(),
+      risk: 'Aggressive',
+    }, // ETH
   ],
 };
 
@@ -422,7 +455,10 @@ const main = async () => {
       }
 
       // Geckoterminal is reporting the wrong price
-      if (underlying.id.toLowerCase() === '0x0f929C29dcE303F96b1d4104505F2e60eE795caC'.toLowerCase()) { 
+      if (
+        underlying.id.toLowerCase() ===
+        '0x0f929C29dcE303F96b1d4104505F2e60eE795caC'.toLowerCase()
+      ) {
         continue;
       }
 
@@ -481,11 +517,11 @@ const main = async () => {
 
       const chainVaults = lendingVaultProfiles[chain] || [];
       const lendingVault = chainVaults.find(
-        (v) => v.address.toLowerCase() === id.toLowerCase()
+        (v) => v?.address.toLowerCase() === id.toLowerCase()
       );
 
       pools.push({
-        pool: `${lendingVault.address}-${underlying.symbol}-${chain}`.toLowerCase(),
+        pool: `${lendingVault?.address}-${underlying.symbol}-${chain}`.toLowerCase(),
         poolMeta: `${lendingVault?.risk}`,
         chain,
         project: 'impermax-finance',
