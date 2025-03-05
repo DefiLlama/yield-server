@@ -5,6 +5,8 @@ const thalaswapAddress =
 const THALA_DAPP_URL = 'http://app.thala.fi';
 const THALA_POOL_API_URL = `${THALA_DAPP_URL}/api/liquidity-pool`;
 const THALA_COIN_INFO_URL = `${THALA_DAPP_URL}/api/coin-info`;
+const stablePoolType = `${thalaswapAddress}::stable_pool::StablePool<`;
+const weightedPoolType = `${thalaswapAddress}::weighted_pool::WeightedPool<`;
 
 const coinInfoCache = {};
 
@@ -38,7 +40,9 @@ async function main() {
     const coinNames = coinInfos.map((coinInfo) => coinInfo.symbol).join('-');
     tvlArr.push({
       pool:
-        coinNames + ' ' + liquidityPool.metadata.poolType + ' Pool',
+      (liquidityPool.metadata.poolType === 'Stable' ? stablePoolType : weightedPoolType) +
+      coinNames +
+      '>',
       chain: utils.formatChain('aptos'),
       project: 'thalaswap',
       apyBase: (swapFeesApr ?? 0) * 100,
@@ -60,7 +64,6 @@ async function getCoinInfoWithCache(coinAddress) {
   }
   
   const coinInfo = await utils.getData(`${THALA_COIN_INFO_URL}?coin=${coinAddress}`);
-  console.log(coinAddress, coinInfo);
   coinInfoCache[coinAddress] = coinInfo?.data;
 
   return coinInfo?.data;
