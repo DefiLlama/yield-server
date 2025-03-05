@@ -1,6 +1,6 @@
 const utils = require('../utils');
 
-const ECHELON_DAPP_URL = 'https://app.echelon.market/';
+const ECHELON_DAPP_URL = 'https://app.echelon.market';
 const ECHELON_MARKETS_API_URL = `${ECHELON_DAPP_URL}/api/markets?network=aptos_mainnet`;
 
 const SEC_PER_YEAR = 365 * 24 * 60 * 60;
