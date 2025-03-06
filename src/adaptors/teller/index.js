@@ -18,8 +18,8 @@ const chains = {
 
 // Query to get current pool metrics
 const query = gql`
-  {
-    groupPoolMetrics (first: 1000) {
+  query GetPoolMetrics($block: Block_height) {
+    groupPoolMetrics(first: 1000, block: $block) {
       id
       group_pool_address
       principal_token_address
@@ -38,8 +38,8 @@ const query = gql`
 
 // Query to get historical pool metrics for APY calculation
 const queryPrior = gql`
-  {
-    groupPoolMetrics (first: 1000 ) {
+  query GetPriorPoolMetrics($block: Block_height) {
+    groupPoolMetrics(first: 1000, block: $block) {
       id
       group_pool_address
       total_principal_tokens_committed
@@ -85,13 +85,15 @@ const topLvl = async (
   const [_, blockPrior7d] = await utils.getBlocks(chainString, timestamp, [url], 604800);
   
   // Pull current data
-  let queryC = query;
-  let dataNow = await request(url, queryC.replace('<PLACEHOLDER>', block));
+  let dataNow = await request(url, query, { 
+    block: block ? { number: parseInt(block) } : null 
+  });
   dataNow = dataNow.groupPoolMetrics;
   
   // Pull 24h offset data
-  let queryPriorC = queryPrior;
-  let dataPrior = await request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior));
+  let dataPrior = await request(url, queryPrior, { 
+    block: blockPrior ? { number: parseInt(blockPrior) } : null 
+  });
   dataPrior = dataPrior.groupPoolMetrics;
   
  
@@ -180,7 +182,7 @@ const topLvl = async (
     return {
       pool: p.group_pool_address,
       chain: utils.formatChain(chainString),
-      project: 'teller-finance',
+      project: 'teller',
       symbol,
       tvlUsd: p.tvlUsd,
       apy: p.apyBase, // Already in percentage format from our calculation 
@@ -200,8 +202,6 @@ const topLvl = async (
 // Function to calculate active yield based on pool utilization and interest rate bounds
 // Converted from Rust to JavaScript
 const calculateActiveYield = (poolBorrowedPercent, interestRateLowerBound, interestRateUpperBound) => {
-
-  
   let poolYieldRaw;
   
   if (poolBorrowedPercent === 0) {
@@ -226,9 +226,7 @@ const calculateActiveYield = (poolBorrowedPercent, interestRateLowerBound, inter
   // Scale by utilization
   const activeYieldScaled = poolYieldScaled * poolBorrowedPercent;
 
-  // The formula was giving us values about 10x too high, so divide by 10
-  // Convert to percentage (e.g., if rate is 0.1045 or 10.45%, we return 10.45)
-  return  activeYieldScaled    ;
+  return activeYieldScaled;
 }
 
 
@@ -251,7 +249,12 @@ const main = async (timestamp = null) => {
       console.log(chain, err);
     }
   }
-  return data.filter((p) => utils.keepFinite(p));
+  
+  const filteredData = data.filter((p) => utils.keepFinite(p));
+  
+  
+  
+  return filteredData;
 };
 
 module.exports = {
