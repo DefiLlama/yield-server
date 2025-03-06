@@ -8,18 +8,21 @@ const CONSTANTS = {
     ethereum: 1,
     arbitrum: 42161,
     base: 8453,
+    polygon: 137,
   },
-  SUPPORTED_CHAINS: ['ethereum', 'arbitrum', 'base'],
+  SUPPORTED_CHAINS: ['ethereum', 'arbitrum', 'base', 'polygon'],
   RESOLVERS: {
     LENDING: {
       ethereum: '0xC215485C572365AE87f908ad35233EC2572A3BEC',
       arbitrum: '0xdF4d3272FfAE8036d9a2E1626Df2Db5863b4b302',
       base: '0x3aF6FBEc4a2FE517F56E402C65e3f4c3e18C1D86',
+      polygon: '0x8e72291D5e6f4AAB552cc827fB857a931Fc5CAC1',
     },
     VAULT: {
       ethereum: '0x814c8C7ceb1411B364c2940c4b9380e739e06686',
       arbitrum: '0xD7D455d387d7840F56C65Bb08aD639DE9244E463',
       base: '0x79B3102173EB84E6BCa182C7440AfCa5A41aBcF8',
+      polygon: '0x9edb8D8b6db9A869c3bd913E44fa416Ca7490aCA',
     },
   },
 };
@@ -246,3 +249,4 @@ const apy = async () => {
 module.exports = {
   apy,
 };
+// test: npm run test --adapter=fluid-lending
