@@ -183,13 +183,17 @@ async function main() {
         rewardTokens.push('0xfaf4e633ae9eb31366c9ca24214231760926576c7b625313b3688b5e900731f6::staking::ThalaAPT');
     }
 
+    if (stakingSupplyApr > 0) {
+      rewardTokens.push('0xb30a694a344edee467d9f82330bbe7c3b89f440a1ecd2da1f3bca266560fce69');
+    }
+
     tvlArr.push({
       pool:
          `${marketAddress}-aptos`.toLowerCase(),
       chain: utils.formatChain('aptos'),
       project: 'echelon-market',
-      apyBase: ((lendingSupplyApr + (stakingSupplyApr ?? 0)) ?? 0) * 100,
-      apyReward: ((farmingAPTApr ?? 0) + (farmingTHAPTApr ?? 0)) * 100,
+      apyBase: ((lendingSupplyApr) ?? 0) * 100,
+      apyReward: ((farmingAPTApr ?? 0) + (farmingTHAPTApr ?? 0) + (stakingSupplyApr ?? 0)) * 100,
       apyBaseBorrow: (lendingBorrowApr ?? 0) * 100,
       totalSupplyUsd,
       totalBorrowUsd,
