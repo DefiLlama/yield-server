@@ -38,7 +38,7 @@ async function main() {
     const coinNames = coinInfos.map((coinInfo) => coinInfo.symbol).join('-');
     tvlArr.push({
       pool:
-        coinNames + ' ' + liquidityPool.metadata.poolType + ' Pool',
+        liquidityPool.metadata.type + '-aptos',
       chain: utils.formatChain('aptos'),
       project: 'thalaswap-v2',
       apyBase: (swapFeesApr ?? 0) * 100,
