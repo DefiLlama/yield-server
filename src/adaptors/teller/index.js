@@ -1,8 +1,7 @@
+
+
+
  
-
-
-
-
 
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
@@ -24,19 +23,25 @@ const query = gql`
       group_pool_address
       principal_token_address
       collateral_token_address
+      shares_token_address
       market_id
       total_principal_tokens_committed
+      total_principal_tokens_withdrawn
       total_principal_tokens_borrowed
-      total_interest_collected
+      total_interest_collected 
+      token_difference_from_liquidations
       total_principal_tokens_repaid
       total_collateral_tokens_escrowed
       interest_rate_upper_bound
       interest_rate_lower_bound
+      liquidity_threshold_percent
+      collateral_ratio
+
     }
   }
 `;
 
-// Query to get historical pool metrics for APY calculation
+/*
 const queryPrior = gql`
   query GetPriorPoolMetrics($block: Block_height) {
     groupPoolMetrics(first: 1000, block: $block) {
@@ -48,6 +53,7 @@ const queryPrior = gql`
     }
   }
 `;
+*/
 
 // Function to fetch token info (symbols and decimals)
 const fetchTokenInfo = async (tokenAddresses, chainString) => {
@@ -77,7 +83,7 @@ const topLvl = async (
   chainString,
   url,
   query,
-  queryPrior,
+ // queryPrior,
   timestamp
 ) => {
   // Get blocks for current, 24h ago, and 7d ago timestamps
@@ -91,10 +97,10 @@ const topLvl = async (
   dataNow = dataNow.groupPoolMetrics;
   
   // Pull 24h offset data
-  let dataPrior = await request(url, queryPrior, { 
+ /* let dataPrior = await request(url, queryPrior, { 
     block: blockPrior ? { number: parseInt(blockPrior) } : null 
   });
-  dataPrior = dataPrior.groupPoolMetrics;
+  dataPrior = dataPrior.groupPoolMetrics;*/
   
  
   // Get unique token addresses
@@ -121,16 +127,46 @@ const topLvl = async (
       const principalTokenDivisor = 10 ** principalTokenDecimals;
       
       // Calculate TVL in USD using the correct token decimals
-      const tvlUsd = parseInt(pool.total_principal_tokens_committed) * 
+      //  measures all assets locked in the protocol 
+
+
+      const totalTokensActivelyBorrowed = parseInt(pool.total_principal_tokens_borrowed) - parseInt(pool.total_principal_tokens_repaid);
+      const totalTokensActivelyCommitted =  parseInt(pool.total_principal_tokens_committed) - parseInt(pool.total_principal_tokens_withdrawn);
+ 
+     
+      const tvlUsd = totalTokensActivelyCommitted * 
+        parseFloat(pricesByAddress[pool.principal_token_address.toLowerCase()] || 0) / principalTokenDivisor;
+
+
+      /*  
+         const poolTotalEstimatedValue =  totalPrincipalTokensCommitted 
+        + int256(totalInterestCollected) 
+         + int256(tokenDifferenceFromLiquidations) 
+         + excessivePrincipalTokensRepaid
+         - totalPrincipalTokensWithdrawn
+
+      ; */
+
+      const totalInterestCollected = parseInt(pool.total_interest_collected);
+      const tokenDifferenceFromLiquidatons = parseInt(pool.token_difference_from_liquidations);
+
+        
+
+      const totalSupplyAvailable = totalTokensActivelyCommitted + totalInterestCollected + tokenDifferenceFromLiquidatons - totalTokensActivelyBorrowed ;
+
+
+      //  the portion of those assets that are currently available for borrowing
+      const totalSupplyUsd = totalSupplyAvailable * 
         parseFloat(pricesByAddress[pool.principal_token_address.toLowerCase()] || 0) / principalTokenDivisor;
       
-      // Find prior data for APY calculations
-      const prior24h = dataPrior.find(p => p.id === pool.id);
-     // const prior7d = dataPrior7d.find(p => p.id === pool.id);
-      
+          
       // Calculate pool utilization rate
-      const totalCommitted = parseInt(pool.total_principal_tokens_committed);
-      const totalBorrowed = parseInt(pool.total_principal_tokens_borrowed);
+      const totalCommitted = parseInt( totalTokensActivelyCommitted  );
+      const totalBorrowed = parseInt( totalTokensActivelyBorrowed );
+
+
+      const totalBorrowUsd =  totalBorrowed * 
+        parseFloat(pricesByAddress[pool.principal_token_address.toLowerCase()] || 0) / (10 ** principalTokenDecimals) ;
       
       // Calculate utilization (clamped between 0 and 1)
       const poolBorrowedPercent = totalCommitted > 0 ? 
@@ -142,12 +178,39 @@ const topLvl = async (
       const interestRateUpperBound = parseInt(pool.interest_rate_upper_bound) || 1500; // 15% in basis points
        
       // Calculate APY using our calculateActiveYield function
-      const apyBase = calculateActiveYield(
+      const apyBase = calculateActiveLenderYield(
         poolBorrowedPercent,
         interestRateLowerBound,
         interestRateUpperBound
       ); 
+    
+
+      //The LTV ratio represents the maximum percentage of the collateral's value that can be borrowed by users
+      const ltv =  100.0 / (parseInt( pool.collateral_ratio) / 100.0 ); 
+
+
+      // total supply usd   Represents the total value (in USD) of assets that have been supplied to the lending pool and are available for borrowing. This is the capital provided by lenders/depositors that's currently active in the protocol.
+      // totalBorrowUsd  Represents the total value (in USD) of assets that have been borrowed from the lending pool. This is the portion of the supplied assets that borrowers have taken out as loans.
+
+       // const tvlUsd = (liquidity[i] / 10 ** decimals[i]) * price;
+       // const totalBorrowUsd = (totalBorrow[i] / 10 ** decimals[i]) * price;
+       // const totalSupplyUsd = tvlUsd + totalBorrowUsd;
+
+
+
+
+
+       // console.log({ ltv } );
  
+
+     //  borrow apy is based on the max pool borrowed percent 
+      const borrowApy = calculateActiveBorrowerYield (
+          poolBorrowedPercent,
+          interestRateLowerBound,
+          interestRateUpperBound
+        );
+
+
       
       // Get token symbols from our token info
       const principalSymbol = tokenInfo[pool.principal_token_address.toLowerCase()]?.symbol || 'UNKNOWN';
@@ -155,7 +218,10 @@ const topLvl = async (
       
       // Also get token decimals for later use
       const collateralTokenDecimals = tokenInfo[pool.collateral_token_address.toLowerCase()]?.decimals || 18;
-      
+        
+    
+
+
       // Log token decimals for debugging
       console.log(`Token decimals for pool ${pool.group_pool_address}: Principal=${principalTokenDecimals}, Collateral=${collateralTokenDecimals}`);
       
@@ -163,6 +229,11 @@ const topLvl = async (
         ...pool,
         tvlUsd,
         apyBase,
+
+        totalSupplyUsd,
+        totalBorrowUsd, 
+        ltv,
+        borrowApy,
    
         principalSymbol,
         collateralSymbol,
@@ -173,7 +244,8 @@ const topLvl = async (
   );
   
   return enrichedData.map((p) => {
-    const symbol = `${p.collateralSymbol}-${p.principalSymbol}`;
+   // const symbol = `${p.collateralSymbol}-${p.principalSymbol}`;
+
     const underlyingTokens = [p.principal_token_address, p.collateral_token_address];
     const chain = chainString === 'ethereum' ? 'mainnet' : chainString;
     const url = `https://app.teller.org/${chainString}/lend/pool/${p.group_pool_address}`;
@@ -183,13 +255,19 @@ const topLvl = async (
       pool: p.group_pool_address,
       chain: utils.formatChain(chainString),
       project: 'teller',
-      symbol,
+      symbol: p.collateralSymbol, 
+      mintedCoin: p.principalSymbol, 
       tvlUsd: p.tvlUsd,
-      apy: p.apyBase, // Already in percentage format from our calculation 
+      totalBorrowUsd: p.totalBorrowUsd, 
+      totalSupplyUsd: p.totalSupplyUsd, 
+      ltv: p.ltv, 
+      apyBaseBorrow: p.borrowApy , 
+
+      apyBase: p.apyBase, // Already in percentage format from our calculation 
       underlyingTokens,
       url,
       // Adding other metrics that might be useful - using the correct token decimals
-      totalBorrowUsd: parseInt(p.total_principal_tokens_borrowed) / (10 ** p.principalTokenDecimals),
+      
     //  totalRepaid: parseInt(p.total_principal_tokens_repaid) / (10 ** p.principalTokenDecimals),
     //  totalCollateral: parseInt(p.total_collateral_tokens_escrowed) / (10 ** p.collateralTokenDecimals)
     };
@@ -201,7 +279,7 @@ const topLvl = async (
 
 // Function to calculate active yield based on pool utilization and interest rate bounds
 // Converted from Rust to JavaScript
-const calculateActiveYield = (poolBorrowedPercent, interestRateLowerBound, interestRateUpperBound) => {
+const calculateActiveLenderYield = (poolBorrowedPercent, interestRateLowerBound, interestRateUpperBound) => {
   let poolYieldRaw;
   
   if (poolBorrowedPercent === 0) {
@@ -229,6 +307,36 @@ const calculateActiveYield = (poolBorrowedPercent, interestRateLowerBound, inter
   return activeYieldScaled;
 }
 
+const calculateActiveBorrowerYield = (poolBorrowedPercent, interestRateLowerBound, interestRateUpperBound) => {
+  let poolYieldRaw;
+  
+  if (poolBorrowedPercent === 0) {
+    // If nothing is borrowed, yield is at minimum
+    poolYieldRaw = interestRateLowerBound;
+  } else if (poolBorrowedPercent === 1) {
+    // If fully utilized, yield is at maximum
+    poolYieldRaw = interestRateUpperBound;
+  } else {
+    // Linear interpolation between lower and upper bounds based on utilization
+    const lowerBound = interestRateLowerBound;
+    const upperBound = interestRateUpperBound;
+    const range = upperBound - lowerBound;
+    
+    // Calculate yield: lower_bound + (utilization * range)
+    poolYieldRaw = lowerBound + (poolBorrowedPercent * range);
+  }
+
+  // Scale from basis points (0.01%) to percentage
+  const poolYieldScaled = poolYieldRaw / 100;
+  
+  // Scale by utilization
+  const activeYieldScaled = poolYieldScaled * 1.0;
+
+  return activeYieldScaled;
+}
+
+
+
 
 
 
@@ -241,7 +349,7 @@ const main = async (timestamp = null) => {
         chain,
         url,
         query,
-        queryPrior,
+       // queryPrior,
         timestamp
       );
       data.push(...chainData);
