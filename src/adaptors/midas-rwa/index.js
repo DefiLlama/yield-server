@@ -1,7 +1,6 @@
 const fetchTVL = require('./fetchTVL');
 const computeAPY = require('./computeAPY');
 const contractAddresses = require('./addresses');
-const utils = require('../utils');
 
 const poolsFunction = async () => {
   const pools = [];
@@ -23,7 +22,8 @@ const poolsFunction = async () => {
         project: 'midas-rwa',
         symbol: token,
         tvlUsd: tvlUsd,
-        apyBase: APYs[token],
+        // apyBase: APYs[token],
+        apyBase7d: APYs[token],
         url: tokenData.url,
       });
     }
