@@ -15,6 +15,19 @@ const chains = {
   // Add more chains as needed
 };
 
+
+
+
+/*
+
+DEV NOTES 
+
+  Ideally upgrade subgraph in the future to include excessivePrincipalTokensRepaid  but very minor delta for now 
+
+*/
+ 
+
+
 // Query to get current pool metrics
 const query = gql`
   query GetPoolMetrics($block: Block_height) {
@@ -41,19 +54,6 @@ const query = gql`
   }
 `;
 
-/*
-const queryPrior = gql`
-  query GetPriorPoolMetrics($block: Block_height) {
-    groupPoolMetrics(first: 1000, block: $block) {
-      id
-      group_pool_address
-      total_principal_tokens_committed
-      total_principal_tokens_borrowed
-      total_interest_collected
-    }
-  }
-`;
-*/
 
 // Function to fetch token info (symbols and decimals)
 const fetchTokenInfo = async (tokenAddresses, chainString) => {
@@ -96,12 +96,7 @@ const topLvl = async (
   });
   dataNow = dataNow.groupPoolMetrics;
   
-  // Pull 24h offset data
- /* let dataPrior = await request(url, queryPrior, { 
-    block: blockPrior ? { number: parseInt(blockPrior) } : null 
-  });
-  dataPrior = dataPrior.groupPoolMetrics;*/
-  
+ 
  
   // Get unique token addresses
   const tokenAddresses = new Set();
@@ -135,7 +130,7 @@ const topLvl = async (
  
      
       const tvlUsd = totalTokensActivelyCommitted * 
-        parseFloat(pricesByAddress[pool.principal_token_address.toLowerCase()] || 0) / principalTokenDivisor;
+       parseFloat(pricesByAddress[pool.principal_token_address.toLowerCase()] || 0) / principalTokenDivisor;
 
 
       /*  
@@ -143,8 +138,7 @@ const topLvl = async (
         + int256(totalInterestCollected) 
          + int256(tokenDifferenceFromLiquidations) 
          + excessivePrincipalTokensRepaid
-         - totalPrincipalTokensWithdrawn
-
+         - totalPrincipalTokensWithdrawn 
       ; */
 
       const totalInterestCollected = parseInt(pool.total_interest_collected);
@@ -189,19 +183,6 @@ const topLvl = async (
       const ltv =  100.0 / (parseInt( pool.collateral_ratio) / 100.0 ); 
 
 
-      // total supply usd   Represents the total value (in USD) of assets that have been supplied to the lending pool and are available for borrowing. This is the capital provided by lenders/depositors that's currently active in the protocol.
-      // totalBorrowUsd  Represents the total value (in USD) of assets that have been borrowed from the lending pool. This is the portion of the supplied assets that borrowers have taken out as loans.
-
-       // const tvlUsd = (liquidity[i] / 10 ** decimals[i]) * price;
-       // const totalBorrowUsd = (totalBorrow[i] / 10 ** decimals[i]) * price;
-       // const totalSupplyUsd = tvlUsd + totalBorrowUsd;
-
-
-
-
-
-       // console.log({ ltv } );
- 
 
      //  borrow apy is based on the max pool borrowed percent 
       const borrowApy = calculateActiveBorrowerYield (
