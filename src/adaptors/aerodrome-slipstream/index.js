@@ -7,7 +7,7 @@ const abiSugar = require('./abiSugar.json');
 const abiSugarHelper = require('./abiSugarHelper.json');
 
 const AERO = '0x940181a94A35A4569E4529A3CDfB74e38FD98631';
-const sugar = '0x68c19e13618C41158fE4bAba1B8fb3A9c74bDb0A';
+const sugar = '0x92294D631E995f1dd9CeE4097426e6a71aB87Bcf';
 const sugarHelper = '0x6d2D739bf37dFd93D804523c2dfA948EAf32f8E1';
 const nullAddress = '0x0000000000000000000000000000000000000000';
 
