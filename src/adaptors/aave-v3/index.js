@@ -22,6 +22,7 @@ const protocolDataProviders = {
   era: '0x5F2A704cE47B373c908fE8A29514249469b52b99',
   lido: '0x08795CFE08C7a81dCDFf482BbAAF474B240f31cD', // on ethereum
   etherfi: '0xE7d490885A68f00d9886508DF281D67263ed5758', // on ethereum
+  sonic: '0x306c124fFba5f2Bc0BcAf40D249cf19D492440b9',
 };
 
 const getApy = async (market) => {
