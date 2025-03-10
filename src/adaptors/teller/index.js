@@ -1,6 +1,13 @@
 
 
 
+
+/*
+
+totalSupplyUSD = total supplied collateral (independent of whats being borrowed),
+ tvlUsd = totalSupplyUSD - totalBorrowUSD
+
+*/
  
 
 const sdk = require('@defillama/sdk');
@@ -45,6 +52,7 @@ const query = gql`
       token_difference_from_liquidations
       total_principal_tokens_repaid
       total_collateral_tokens_escrowed
+      total_collateral_withdrawn
       interest_rate_upper_bound
       interest_rate_lower_bound
       liquidity_threshold_percent
@@ -113,46 +121,41 @@ const topLvl = async (
     dataNow.map(async (pool) => {
       // Get token prices
       const { pricesByAddress } = await utils.getPrices(
-        [pool.principal_token_address], 
+        [pool.principal_token_address, pool.collateral_token_address], 
         chainString
       );
       
       // Get principal token decimals
       const principalTokenDecimals = tokenInfo[pool.principal_token_address.toLowerCase()]?.decimals || 18;
       const principalTokenDivisor = 10 ** principalTokenDecimals;
+        
+      const collateralTokenDecimals = tokenInfo[pool.collateral_token_address.toLowerCase()]?.decimals || 18;
+      const collateralTokenDivisor = 10 ** collateralTokenDecimals;
       
-      // Calculate TVL in USD using the correct token decimals
-      //  measures all assets locked in the protocol 
+
+ 
+
+
+      const totalCollateralEscrowedNet =  parseInt(pool.total_collateral_tokens_escrowed) - parseInt(pool.total_collateral_withdrawn); 
+
+      const totalSupplyUsd = totalCollateralEscrowedNet * 
+        parseFloat(pricesByAddress[pool.collateral_token_address.toLowerCase()] || 0) / collateralTokenDivisor;
+        
+
+
+
 
 
       const totalTokensActivelyBorrowed = parseInt(pool.total_principal_tokens_borrowed) - parseInt(pool.total_principal_tokens_repaid);
       const totalTokensActivelyCommitted =  parseInt(pool.total_principal_tokens_committed) - parseInt(pool.total_principal_tokens_withdrawn);
  
-     
-      const tvlUsd = totalTokensActivelyCommitted * 
-       parseFloat(pricesByAddress[pool.principal_token_address.toLowerCase()] || 0) / principalTokenDivisor;
 
-
-      /*  
-         const poolTotalEstimatedValue =  totalPrincipalTokensCommitted 
-        + int256(totalInterestCollected) 
-         + int256(tokenDifferenceFromLiquidations) 
-         + excessivePrincipalTokensRepaid
-         - totalPrincipalTokensWithdrawn 
-      ; */
 
       const totalInterestCollected = parseInt(pool.total_interest_collected);
       const tokenDifferenceFromLiquidatons = parseInt(pool.token_difference_from_liquidations);
 
         
 
-      const totalSupplyAvailable = totalTokensActivelyCommitted + totalInterestCollected + tokenDifferenceFromLiquidatons - totalTokensActivelyBorrowed ;
-
-
-      //  the portion of those assets that are currently available for borrowing
-      const totalSupplyUsd = totalSupplyAvailable * 
-        parseFloat(pricesByAddress[pool.principal_token_address.toLowerCase()] || 0) / principalTokenDivisor;
-      
           
       // Calculate pool utilization rate
       const totalCommitted = parseInt( totalTokensActivelyCommitted  );
@@ -161,7 +164,13 @@ const topLvl = async (
 
       const totalBorrowUsd =  totalBorrowed * 
         parseFloat(pricesByAddress[pool.principal_token_address.toLowerCase()] || 0) / (10 ** principalTokenDecimals) ;
-      
+        
+
+
+        const  tvlUsd = totalSupplyUsd - totalBorrowUsd ; 
+
+
+
       // Calculate utilization (clamped between 0 and 1)
       const poolBorrowedPercent = totalCommitted > 0 ? 
         Math.min(Math.max(totalBorrowed / totalCommitted, 0), 1) : 0;
@@ -198,7 +207,6 @@ const topLvl = async (
       const collateralSymbol = tokenInfo[pool.collateral_token_address.toLowerCase()]?.symbol || 'UNKNOWN';
       
       // Also get token decimals for later use
-      const collateralTokenDecimals = tokenInfo[pool.collateral_token_address.toLowerCase()]?.decimals || 18;
         
     
 
