@@ -158,6 +158,8 @@ const excludeAdaptors = [
   'metastreet-v2',
   'mero',
   'meteora', // pushed by mistake
+  'rhino.fi',
+  'icpex',
 ];
 
 const excludePools = [
