@@ -21,6 +21,7 @@ const protocolDataProviders = {
   era: '0xf79473ea6ef2C9537027bAe2f6E07d67dD9999E0',
   lido: '0x66FeAe868EBEd74A34A7043e88742AAE00D2bC53', // on ethereum
   etherfi: '0xECdA3F25B73261d1FdFa1E158967660AA29f00cC', // on ethereum
+  linea: '0x9eEBf28397D8bECC999472fC8838CBbeF54aebf6',
   sonic: '0x306c124fFba5f2Bc0BcAf40D249cf19D492440b9',
 };
 
