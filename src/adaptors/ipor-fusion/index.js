@@ -1,5 +1,6 @@
 const superagent = require('superagent');
 
+const IPOR_GITHUB_ADDRESSES_URL = "https://raw.githubusercontent.com/IPOR-Labs/ipor-abi/refs/heads/main/mainnet/addresses.json";
 const FUSION_API_URL = 'https://api.ipor.io/fusion/vaults';
 const CHAIN_CONFIG = {
     ethereum: {
@@ -21,6 +22,19 @@ async function getChainData(chain) {
     const chainVaults = allVaultsRes.body.vaults.filter(
         vault => vault.chainId === CHAIN_CONFIG[chain].chainId
     );
+
+    return chainVaults;
+}
+
+async function getPublicVaults() {
+    const response = await superagent.get(IPOR_GITHUB_ADDRESSES_URL);
+    const publicVaults = JSON.parse(response.text);
+    const chainVaults = new Map();
+
+    Object.entries(publicVaults).forEach(([chainName, { vaults }]) => {
+        const lowerCaseVaults = vaults.map(vault => vault.PlasmaVault.toLowerCase());
+        chainVaults.set(chainName, lowerCaseVaults);
+    });
 
     return chainVaults;
 }
@@ -51,6 +65,7 @@ async function buildPool(vault) {
 }
 
 const apy = async() => {
+    const publicVaults = await getPublicVaults();
     const chainsData = await Promise.all(
         Object.entries(CHAIN_CONFIG).map(async([chain, config]) => ({
             chain,
@@ -60,9 +75,10 @@ const apy = async() => {
     );
 
     const pools = await Promise.all(
-        chainsData.flatMap(({ data }) =>
+        chainsData.flatMap(({ chain, data }) =>
             data
             .filter(vault => !vault.name.toLowerCase().includes('pilot')) // filter out pilot vaults
+            .filter(vault => publicVaults.get(chain).includes(vault.address.toLowerCase()))
             .map(vault => buildPool(vault))
         )
     );
