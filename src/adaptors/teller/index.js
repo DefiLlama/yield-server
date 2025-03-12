@@ -131,36 +131,24 @@ const topLvl = async (
         
       const collateralTokenDecimals = tokenInfo[pool.collateral_token_address.toLowerCase()]?.decimals || 18;
       const collateralTokenDivisor = 10 ** collateralTokenDecimals;
-      
-
- 
-
-
-      const totalCollateralEscrowedNet =  parseInt(pool.total_collateral_tokens_escrowed) - parseInt(pool.total_collateral_withdrawn); 
-
-      const totalSupplyUsd = totalCollateralEscrowedNet * 
-        parseFloat(pricesByAddress[pool.collateral_token_address.toLowerCase()] || 0) / collateralTokenDivisor;
         
-
-
-
-
-
-      const totalTokensActivelyBorrowed = parseInt(pool.total_principal_tokens_borrowed) - parseInt(pool.total_principal_tokens_repaid);
-      const totalTokensActivelyCommitted =  parseInt(pool.total_principal_tokens_committed) - parseInt(pool.total_principal_tokens_withdrawn);
- 
 
 
       const totalInterestCollected = parseInt(pool.total_interest_collected);
       const tokenDifferenceFromLiquidatons = parseInt(pool.token_difference_from_liquidations);
 
-        
+
+
+      const totalTokensActivelyBorrowed = parseInt(pool.total_principal_tokens_borrowed) - parseInt(pool.total_principal_tokens_repaid);
+      const totalTokensActivelyCommitted =  parseInt(pool.total_principal_tokens_committed) + totalInterestCollected + tokenDifferenceFromLiquidatons - parseInt(pool.total_principal_tokens_withdrawn);       
 
           
       // Calculate pool utilization rate
       const totalCommitted = parseInt( totalTokensActivelyCommitted  );
       const totalBorrowed = parseInt( totalTokensActivelyBorrowed );
 
+      const totalSupplyUsd = totalCommitted * 
+        parseFloat(pricesByAddress[pool.principal_token_address.toLowerCase()] || 0) / (10 ** principalTokenDecimals);
 
       const totalBorrowUsd =  totalBorrowed * 
         parseFloat(pricesByAddress[pool.principal_token_address.toLowerCase()] || 0) / (10 ** principalTokenDecimals) ;
