@@ -8,7 +8,7 @@ const GENERAL_LOAN_TYPE = 2;
 
 const loanManagerAddress = '0xF4c542518320F09943C35Db6773b2f9FeB2F847e';
 
-const rewardsV1Address = '0x7c532A6209350cF27EfC3D06E82E35ACFd362C7C';
+const rewardsV2Address = '0x3E85a56C2202Ec067EB4Ac090db3e8149dA46d19';
 
 const HubPools = {
   avax: {
@@ -209,6 +209,21 @@ const HubPools = {
   },
 };
 
+const RewardsTokenV2 = {
+  // AVAX (Avalanche)
+  1: {
+    chain: 'avax',
+    tokenAddress: '0x0000000000000000000000000000000000000000',
+    spokeAddress: '0x2aa8FeE178A79182C4b7c61EfeB4227Cb8843915',
+  },
+  // GoGoPool (Avalanche)
+  2: {
+    chain: 'avax',
+    tokenAddress: '0x69260b9483f9871ca57f81a90d91e2f96c2cd11d',
+    spokeAddress: '0xb14f2576BE100CFE3B274233091A841f1E040604',
+  },
+};
+
 module.exports = {
   PROJECT_SLUG,
   HubPools,
@@ -217,5 +232,6 @@ module.exports = {
   EVERY_SECOND,
   GENERAL_LOAN_TYPE,
   loanManagerAddress,
-  rewardsV1Address,
+  rewardsV2Address,
+  RewardsTokenV2,
 };
