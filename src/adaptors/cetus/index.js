@@ -3,35 +3,33 @@ const utils = require('../utils');
 
 const getApy = async () => {
   let pools = (
-    await axios.get('https://api-sui.cetus.zone/v2/sui/swap/count')
-  ).data.data.pools;
-  let poolInfo = (
-    await axios.get('https://api-sui.cetus.zone/v2/sui/pools_info')
+    await axios.get('https://api-sui.cetus.zone/v2/sui/stats_pools?is_vaults=false&display_all_pools=true&has_mining=true&has_farming=true&no_incentives=true&order_by=-tvl&limit=100&offset=0')
   ).data.data.lp_list;
-  let poolInfoObj = Object.fromEntries(poolInfo.map((item, key) => [item.address, item]))
   
   pools = pools.map((p) => {
-      const rewarder_apr_1 = Number(p.rewarder_apr[0].replace('%',''))
-      const rewarder_apr_2 = Number(p.rewarder_apr[1].replace('%',''))
-      const rewarder_apr_3 = Number(p.rewarder_apr[2].replace('%',''))
-      let apyReward =  rewarder_apr_1+rewarder_apr_2+rewarder_apr_3
 
-      let rewarders = poolInfoObj[p.swap_account]?.object.rewarder_manager?.fields?.rewarders
+      const apyReward = p.rewarder_apr.reduce(
+        (a, b) => a + Number(b.replace('%', '')),
+        0
+      );
+
+      let rewarders = p.object.rewarder_manager?.fields?.rewarders
       let rewardTokens = rewarders?.map(rewards=>{
         return rewards.fields.reward_coin.fields.name
       })
     return {
-      pool: p.swap_account,
+      pool: p.address,
       chain: 'Sui',
       project: 'cetus',
-      symbol: utils.formatSymbol(p.is_forward?`${p.token_a_reserves}-${p.token_b_reserves}`:`${p.token_b_reserves}-${p.token_a_reserves}`),
-      underlyingTokens: [p.token_a_address, p.token_b_address],
+      symbol: p.symbol,
+      underlyingTokens: [p.coin_a_address, p.coin_b_address],
       rewardTokens,
-      tvlUsd: Number(p.tvl_in_usd),
-      apyBase: Number(p?.apr_7day.replace('%','')),
-      apyReward: apyReward > 0 ? apyReward : null,
+      tvlUsd: Number(p.pure_tvl_in_usd),
+      apyBase: Number(p?.apr.fee_apr_24h.replace('%','')),
+      apyReward: apyReward > 0 ? apyReward : 0,
       volumeUsd1d: p?.vol_in_usd_24h,
-      volumeUsd7d: p?.vol_in_usd_7_day,
+      poolMeta: `${Number(p.fee) * 100}%`,
+      url: `https://app.cetus.zone/liquidity/deposit?poolAddress=${p.swap_account}`,
     };
   });
   return pools.filter((p) => utils.keepFinite(p))
