@@ -41,10 +41,7 @@ async function fetchPriceData(tokens) {
   const response = await request(GRAPH_URL, query, queryVariables);
 
   return Object.fromEntries(
-    tokens.map((token) => [
-      token,
-      response?.[`${token}Price`] ?? null, // Fix: Access the correct property from response
-    ])
+    tokens.map((token) => [token, response?.[`${token}Price`] ?? null])
   );
 }
 
