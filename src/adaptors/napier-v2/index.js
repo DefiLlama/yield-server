@@ -54,7 +54,7 @@ const api = (chainId) =>
 const formatMaturity = (maturity) =>
   new Date(Number(maturity) * 1000).toDateString('en-US');
 
-const poolId = (address, chainId) =>
+const tokenId = (address, chainId) =>
   `${address}-${chains[chainId].name}`.toLowerCase();
 
 async function apy() {
@@ -69,12 +69,14 @@ async function apy() {
     .map((market) => {
       const chain = chains[market.chainId];
 
-      const rewardTokens = market.metrics.underlyingRewards?.map(r => r.rewardToken.address) || [];
+      const rewardTokens =
+        market.metrics.underlyingRewards?.map((r) => r.rewardToken.address) ||
+        [];
       const rewardApy = market.metrics.underlyingRewardsApy || 0;
 
       // LP Pool APY
       const lpApy = {
-        pool: poolId(market.pool.address, market.chainId),
+        pool: tokenId(market.pool.address, market.chainId),
         chain: utils.formatChain(chain.name),
         project: 'napier-v2',
         symbol: utils.formatSymbol(market.tokens.targetToken.symbol),
@@ -82,14 +84,19 @@ async function apy() {
         apyBase: Number(market.metrics.poolBaseApy),
         apyReward: Number(rewardApy),
         rewardTokens,
-        underlyingTokens: [market.tokens.principalToken.address, market.tokens.targetToken.address],
-        poolMeta: `LP Pool | Maturity ${formatMaturity(market.maturityTimestamp)}`,
-        url: `https://app.napier.finance/user/pool/${market.chainId}/${market.pool.address}/zap/add`,
+        underlyingTokens: [
+          market.tokens.principalToken.address,
+          market.tokens.targetToken.address,
+        ],
+        poolMeta: `LP Pool | Maturity ${formatMaturity(
+          market.maturityTimestamp
+        )}`,
+        url: `https://app.napier.finance/user/pool/${market.chainId}/${market.principalToken.address}/zap/add`,
       };
 
       // Fixed Rate (Principal Token) APY
       const ptApy = {
-        pool: poolId(market.tokens.principalToken.address, market.chainId),
+        pool: tokenId(market.tokens.principalToken.address, market.chainId),
         chain: utils.formatChain(chain.name),
         project: 'napier-v2',
         symbol: utils.formatSymbol(market.tokens.targetToken.symbol),
@@ -98,8 +105,10 @@ async function apy() {
         apyReward: Number(rewardApy),
         rewardTokens,
         underlyingTokens: [market.tokens.targetToken.address],
-        poolMeta: `Principal Token | Maturity ${formatMaturity(market.maturityTimestamp)}`,
-        url: `https://app.napier.finance/user/mint/${market.chainId}/${market.tokens.principalToken.address}/zap/add`,
+        poolMeta: `Principal Token | Maturity ${formatMaturity(
+          market.maturityTimestamp
+        )}`,
+        url: `https://app.napier.finance/user/mint/${market.chainId}/${market.tokens.principalToken.address}/mint`,
       };
 
       return [lpApy, ptApy];
