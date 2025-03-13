@@ -65,9 +65,6 @@ function calculateAPY(recentPrice, oldPrice, recentTimestamp, oldTimestamp) {
   );
 }
 
-/**
- * Compute APY for a given mToken.
- */
 function computeAPY(priceData) {
   if (!priceData || priceData.length < 2) return 0.0;
 
