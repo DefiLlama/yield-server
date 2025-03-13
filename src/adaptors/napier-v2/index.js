@@ -76,7 +76,7 @@ async function apy() {
       const lpApy = {
         pool: tokenId(market.tokens.poolToken.address, chainId),
         chain: utils.formatChain(chain.name),
-        project: 'napier-v2',
+        project: 'napier',
         symbol: utils.formatSymbol(market.tokens.targetToken.symbol),
         tvlUsd: Number(market.metrics.poolTvlInUsdFmt),
         apyBase: Number(market.metrics.poolBaseApy),
@@ -96,7 +96,7 @@ async function apy() {
       const ptApy = {
         pool: tokenId(market.tokens.principalToken.address, chainId),
         chain: utils.formatChain(chain.name),
-        project: 'napier-v2',
+        project: 'napier',
         symbol: utils.formatSymbol(market.tokens.targetToken.symbol),
         tvlUsd: Number(market.metrics.ptTvlInUsdFmt),
         apyBase: Number(market.metrics.impliedApy),
