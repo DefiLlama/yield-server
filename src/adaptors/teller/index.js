@@ -147,7 +147,7 @@
       const url = `https://app.teller.org/${chainString}/lend/pool/${p.group_pool_address}`;
 
       const lendingPool = {
-        pool: p.group_pool_address,
+        pool: p.group_pool_address + "-lending",
         chain: utils.formatChain(chainString),
         project: 'teller',
         symbol: p.principalSymbol,
@@ -159,7 +159,7 @@
       };
 
       const collateralPool = {
-        pool: p.group_pool_address,
+        pool: p.group_pool_address + "-collateral",
         chain: utils.formatChain(chainString),
         project: 'teller',
         symbol: p.collateralSymbol,
