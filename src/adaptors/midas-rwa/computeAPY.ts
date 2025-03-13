@@ -1,40 +1,51 @@
 const { request } = require('graphql-request');
+const contractAddresses = require('./addresses');
 
 const GRAPH_URL =
   'https://subgraph.satsuma-prod.com/3e11c7846b93/midas--174381/midas-main-public/api';
 
-/**
- * Fetch historical price data from The Graph API.
- */
-async function fetchPriceData(mToken, from, to, limit = 10) {
-  try {
-    const query = `
-      query GetAnswers($mToken: Bytes, $from: BigInt, $to: BigInt, $limit: Int) {
-        dataFeedAnswers(
-          orderBy: timestamp
-          orderDirection: desc
-          where: { timestamp_gte: $from, timestamp_lte: $to, mToken: $mToken }
-          first: $limit
-        ) {
-          timestamp
-          answer
-          decimals
-        }
+const createGetLastMTokenPricesByNetworkIdQuery = (tokens) => {
+  const tokenQueryFields = tokens
+    .map(
+      (token) => `
+      ${token}Price: dataFeedAnswers(
+        orderBy: "timestamp"
+        orderDirection: "desc"
+        first: 10
+        where: { mToken: $${token} }
+      ) {
+        timestamp
+        answer
+        decimals
       }
-    `;
+    `
+    )
+    .join('\n');
 
-    const { dataFeedAnswers = [] } = await request(GRAPH_URL, query, {
-      mToken,
-      from,
-      to,
-      limit,
-    });
+  return `
+    query GetLastMTokenPrices(
+      ${tokens.map((token) => `$${token}: Bytes!`).join(',\n')}
+    ) {
+      ${tokenQueryFields}
+    }
+  `;
+};
 
-    return dataFeedAnswers;
-  } catch (error) {
-    console.error('GraphQL request failed:', error);
-    return [];
-  }
+async function fetchPriceData(tokens) {
+  const queryVariables = Object.fromEntries(
+    tokens.map((token) => [token, contractAddresses['ethereum'][token].address])
+  );
+
+  const query = createGetLastMTokenPricesByNetworkIdQuery(tokens);
+
+  const response = await request(GRAPH_URL, query, queryVariables);
+
+  return Object.fromEntries(
+    tokens.map((token) => [
+      token,
+      response?.[`${token}Price`] ?? null, // Fix: Access the correct property from response
+    ])
+  );
 }
 
 /**
@@ -60,53 +71,32 @@ function calculateAPY(recentPrice, oldPrice, recentTimestamp, oldTimestamp) {
 /**
  * Compute APY for a given mToken.
  */
-async function computeAPY(mToken) {
-  const now = Math.floor(Date.now() / 1000);
-  const sevenDaysAgo = now - 7 * 86400;
-  const oneMonthAgo = now - 30 * 86400;
+function computeAPY(priceData) {
+  if (!priceData || priceData.length < 2) return 0.0;
 
-  // Fetch up to 7 recent price data points
-  let priceData = await fetchPriceData(mToken, sevenDaysAgo, now, 7);
-  if (!priceData.length) return 0.0;
+  // Most recent data point
+  const recentData = priceData[0];
+  const recentTimestamp = Number(recentData.timestamp);
 
-  let [newestData] = priceData;
-  let oldestData = priceData[priceData.length - 1];
+  // Calculate six days ago relative to the most recent timestamp
+  const sixDaysAgoFromLatestPrice = recentTimestamp - 6 * 86400;
 
-  // If we don't have enough data, fetch an older data point
-  if (priceData.length < 2) {
-    const olderData = await fetchPriceData(
-      mToken,
-      oneMonthAgo,
-      sevenDaysAgo,
-      1
-    );
-    if (!olderData.length) return 0.0;
-    oldestData = olderData[0];
+  // Find the first data point that's at least six days old
+  let oldestData;
+  for (const price of priceData) {
+    if (Number(price.timestamp) <= sixDaysAgoFromLatestPrice) {
+      oldestData = price;
+      break;
+    }
   }
 
-  const recentPrice = parsePrice(newestData);
+  if (!oldestData) return 0.0;
+
+  const recentPrice = parsePrice(recentData);
   const oldPrice = parsePrice(oldestData);
-  const recentTimestamp = Number(newestData.timestamp);
   const oldTimestamp = Number(oldestData.timestamp);
-
-  // Ensure a sufficient time gap for APY calculation
-  if ((recentTimestamp - oldTimestamp) / 86400 < 6.5) {
-    const olderData = await fetchPriceData(
-      mToken,
-      oneMonthAgo,
-      sevenDaysAgo,
-      1
-    );
-    if (!olderData.length) return 0.0;
-    return calculateAPY(
-      recentPrice,
-      parsePrice(olderData[0]),
-      recentTimestamp,
-      Number(olderData[0].timestamp)
-    );
-  }
 
   return calculateAPY(recentPrice, oldPrice, recentTimestamp, oldTimestamp);
 }
 
-module.exports = computeAPY;
+module.exports = { computeAPY, fetchPriceData };

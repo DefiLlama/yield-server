@@ -7,11 +7,11 @@ const contractAddresses = {
       dataFeed: getAddress('0x1615cBC603192ae8A9FF20E98dd0e40a405d76e4'),
       url: 'https://midas.app/mbasis',
     },
-    mTBILL: {
-      address: getAddress('0xDD629E5241CbC5919847783e6C96B2De4754e438'),
-      dataFeed: getAddress('0xfCEE9754E8C375e145303b7cE7BEca3201734A2B'),
-      url: 'https://midas.app/mtbill',
-    },
+    // mTBILL: {
+    //   address: getAddress('0xDD629E5241CbC5919847783e6C96B2De4754e438'),
+    //   dataFeed: getAddress('0xfCEE9754E8C375e145303b7cE7BEca3201734A2B'),
+    //   url: 'https://midas.app/mtbill',
+    // },
     mBTC: {
       address: getAddress('0x007115416AB6c266329a03B09a8aa39aC2eF7d9d'),
       dataFeed: getAddress('0x9987BE0c1dc5Cd284a4D766f4B5feB4F3cb3E28e'),
@@ -28,7 +28,7 @@ const contractAddresses = {
     mMEV: {
       address: getAddress('0x030b69280892c888670EDCDCD8B69Fd8026A0BF3'),
       dataFeed: getAddress('0x9BF00b7CFC00D6A7a2e2C994DB8c8dCa467ee359'),
-      url: 'https://midas.app/https://midas.app/mmev',
+      url: 'https://midas.app/mmev',
     },
   },
   //   mRe7YIELD: {
@@ -43,11 +43,11 @@ const contractAddresses = {
       dataFeed: getAddress('0xD48D38Ec56CDB44c4281068129038A37F5Df04e5'),
       url: 'https://midas.app/mbasis',
     },
-    mTBILL: {
-      address: getAddress('0xDD629E5241CbC5919847783e6C96B2De4754e438'),
-      dataFeed: getAddress('0xcbCf1e67F1988e2572a2A620321Aef2ff73369f0'),
-      url: 'https://midas.app/mtbill',
-    },
+    // mTBILL: {
+    //   address: getAddress('0xDD629E5241CbC5919847783e6C96B2De4754e438'),
+    //   dataFeed: getAddress('0xcbCf1e67F1988e2572a2A620321Aef2ff73369f0'),
+    //   url: 'https://midas.app/mtbill',
+    // },
     // mEDGE: {
     //   address: getAddress('0x4089dC8b6637218f13465d28950A82a7E90cBE27'),
     //   dataFeed: getAddress('0xA7aB67Aa19F6b387BA12FcEdB6d1447E0c25897c'),
@@ -64,13 +64,13 @@ const contractAddresses = {
     //   url: 'https://midas.app/https://midas.app/mre7yield',
     // },
   },
-  sapphire: {
-    mTBILL: {
-      address: getAddress('0xDD629E5241CbC5919847783e6C96B2De4754e438'),
-      dataFeed: getAddress('0x1075762cb143B495dbccE139712add38Eff19dAb'),
-      url: 'https://midas.app/mtbill',
-    },
-  },
+  // sapphire: {
+  //   mTBILL: {
+  //     address: getAddress('0xDD629E5241CbC5919847783e6C96B2De4754e438'),
+  //     dataFeed: getAddress('0x1075762cb143B495dbccE139712add38Eff19dAb'),
+  //     url: 'https://midas.app/mtbill',
+  //   },
+  // },
 };
 
 module.exports = contractAddresses;
