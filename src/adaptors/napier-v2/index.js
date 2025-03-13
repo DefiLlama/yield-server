@@ -42,7 +42,7 @@ const chains = {
     name: 'fraxtal',
     slug: 'fraxtal',
   },
-  32500: {
+  999: {
     name: 'hyperliquid',
     slug: 'hyperliquid',
   },
