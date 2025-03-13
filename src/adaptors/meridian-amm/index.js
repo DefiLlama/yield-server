@@ -9,7 +9,7 @@ const MERIDIAN_COIN_INFO_URL = `${MERIDIAN_DAPP_URL}/api/coin-info`;
 const coinInfoCache = {};
 
 async function main() {
-  // We use Thala's API and not resources on chain as there are too many pools to parse and query
+  // We use Meridian's API and not resources on chain as there are too many pools to parse and query
   // for TVL, APR, etc. metrics. This way we fetch all our pools with TVL attached, then can filter.
   const liquidityPools = (await utils.getData(`${MERIDIAN_POOL_API_URL}s`))
       ?.data;
