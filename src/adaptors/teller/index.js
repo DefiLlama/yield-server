@@ -151,6 +151,7 @@
         chain: utils.formatChain(chainString),
         project: 'teller',
         symbol: p.principalSymbol,
+        poolMeta: p.collateralSymbol,
         tvlUsd: Number(p.totalSupplyUsd.toFixed(4)),
         apyBase: p.apyBase,
         underlyingTokens,
@@ -211,6 +212,7 @@
       try {
         console.log(`Fetching data for ${chain}...`);
         const chainData = await topLvl(chain, url, query, timestamp);
+        console.log("chainData", chainData)
         data.push(...chainData);
       } catch (err) {
         console.log(chain, err);
