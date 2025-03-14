@@ -28,6 +28,7 @@ const getApy = async () => {
       })),
       abi: abiPairFactory.find((m) => m.name === 'allPairs'),
       chain: 'kava',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -38,6 +39,7 @@ const getApy = async () => {
       })),
       abi: abiPair.find((m) => m.name === 'metadata'),
       chain: 'kava',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -48,6 +50,7 @@ const getApy = async () => {
       })),
       abi: abiPair.find((m) => m.name === 'symbol'),
       chain: 'kava',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -59,6 +62,7 @@ const getApy = async () => {
       })),
       abi: abiVoter.find((m) => m.name === 'gauges'),
       chain: 'kava',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -70,6 +74,7 @@ const getApy = async () => {
       })),
       abi: abiGauge.find((m) => m.name === 'rewardRate'),
       chain: 'kava',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -80,6 +85,7 @@ const getApy = async () => {
       })),
       abi: abiGauge.find((m) => m.name === 'derivedSupply'),
       chain: 'kava',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -90,6 +96,7 @@ const getApy = async () => {
       })),
       abi: abiGauge.find((m) => m.name === 'totalSupply'),
       chain: 'kava',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 

@@ -75,7 +75,8 @@ const getDefiLLamaPools = async (project, chain) => {
   const pools = (await superagent.get('https://yields.llama.fi/pools')).body
     .data;
   return pools.filter(
-    (pool) => pool.project === project && pool.chain === chain
+    (pool) =>
+      pool.project === project && pool.chain === chain && pool.underlyingTokens
   );
 };
 
@@ -191,10 +192,7 @@ const maxApy = async () => {
       target: DISCOUNT_CALCULATOR_MODULE,
       abi: abi['calculateDiscountRate'],
       chain: 'ethereum',
-      params: [
-        ethers.utils.parseEther('50'),
-        ethers.utils.parseEther('100000'),
-      ],
+      params: [50000000000000000000n, 100000000000000000000000n],
     })
   ).output;
   const fee = (

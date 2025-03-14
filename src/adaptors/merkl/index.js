@@ -6,7 +6,7 @@ const networks = {
   137: 'polygon',
   10: 'optimism',
   42161: 'arbitrum',
-  1101: 'polygonzkevm',
+  1101: 'polygon_zkevm',
   8453: 'base',
 };
 

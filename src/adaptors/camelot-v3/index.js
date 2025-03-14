@@ -4,8 +4,9 @@ const axios = require('axios');
 
 const utils = require('../utils');
 
-const url =
-  'https://api.thegraph.com/subgraphs/name/camelotlabs/camelot-amm-v3';
+const url = sdk.graph.modifyEndpoint(
+  '3utanEBA9nqMjPnuQP1vMCCys6enSM3EawBpKTVwnUw2'
+);
 
 const query = gql`
   {

@@ -1,26 +1,24 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const { aTokenAbi } = require('../aave-v3/abi');
-const poolAbi = require('../aave-v3/poolAbi');
 
 const SECONDS_PER_YEAR = 31536000;
 
 const chainUrlParam = {
-  ethereum: 'proto_mainnet_v3',
   arbitrum: 'proto_arbitrum_v3',
 };
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/${addresses
         .join(',')
         .toLowerCase()}`
     )
-  ).body.coins;
+  ).data.coins;
 
   const pricesBySymbol = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
@@ -42,9 +40,9 @@ const getPrices = async (addresses) => {
 };
 
 const API_URLS = {
-  arbitrum:
-    'https://api.thegraph.com/subgraphs/name/mahalend/protocol-v3-arbitrum',
-  ethereum: 'https://api.thegraph.com/subgraphs/name/mahalend/mahalend-mainnet',
+  arbitrum: sdk.graph.modifyEndpoint(
+    'FPS9fdGYvwyCkFzUqmF5YYYqNKT88K5V5fjnmTNPjd9t'
+  ),
 };
 
 const query = gql`
@@ -209,7 +207,6 @@ const apy = async () => {
 
     return chainPools;
   });
-
   return pools.flat().filter((p) => !!p.tvlUsd);
 };
 

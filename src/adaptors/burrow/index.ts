@@ -13,30 +13,26 @@ async function commonCall(url, method, args = {}) {
 }
 
 function getBurrowStats() {
-  return commonCall('https://brrr.burrow.cash/api/rewards', '');
+  return commonCall('https://api.burrow.finance/get_rewards', '');
 }
 
 async function getBurrowFarms() {
-  const target_list = [];
-  (await getBurrowStats()).map((item) => {
-    const target = {
-      pool: 'burrow-pool-' + item.token_id,
-      chain: 'NEAR',
-      project: 'burrow',
-      symbol: item.symbol,
-      tvlUsd: item.tvlUsd,
-      apyReward: item.apyReward + item.apyRewardTvl,
-      apyBase: item.apyBase,
-      underlyingTokens: [item.token_id],
-      rewardTokens: item.rewardTokens,
-      apyBaseBorrow: item.apyBaseBorrow,
-      totalSupplyUsd: item.totalSupplyUsd,
-      totalBorrowUsd: item.totalBorrowUsd,
-      ltv: item.ltv / 1e4,
-    };
-    target_list.push(target);
-  });
-  return target_list;
+  const stats = await getBurrowStats();
+  return stats.map((item) => ({
+    pool: 'burrow-pool-' + item.token_id,
+    chain: 'NEAR',
+    project: 'burrow',
+    symbol: item.symbol,
+    tvlUsd: item.tvl_usd,
+    apyReward: item.apy_reward + item.apy_reward_tvl,
+    apyBase: item.apy_base,
+    underlyingTokens: [item.token_id],
+    rewardTokens: item.reward_tokens,
+    apyBaseBorrow: item.apy_base_borrow,
+    totalSupplyUsd: item.total_supply_usd,
+    totalBorrowUsd: item.total_borrow_usd,
+    ltv: item.ltv / 1e4,
+  }));
 }
 
 module.exports = {

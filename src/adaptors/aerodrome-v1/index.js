@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const utils = require('../utils');
@@ -75,6 +75,15 @@ const getApy = async () => {
     })
   ).output.map((o) => o.output);
 
+  const poolSupply = (
+    await sdk.api.abi.multiCall({
+      calls: allPools.map((i) => ({ target: i })),
+      chain: 'base',
+      abi: 'erc20:totalSupply',
+      permitFailure: true,
+    })
+  ).output.map((o) => o.output);
+
   const totalSupply = (
     await sdk.api.abi.multiCall({
       calls: gauges.map((i) => ({
@@ -129,9 +138,16 @@ const getApy = async () => {
     const s = symbols[i];
 
     const pairPrice = (tvlUsd * 1e18) / totalSupply[i];
+
+    // Only staked supply is eligible for the rewardRate's emissions
+    let stakedSupplyRatio = 1;
+    if (totalSupply[i] !== 0) {
+      stakedSupplyRatio = poolSupply[i] / totalSupply[i];
+    }
+
     const apyReward =
       (((rewardRate[i] / 1e18) * 86400 * 365 * prices[`base:${AERO}`]?.price) /
-        tvlUsd) *
+        tvlUsd) * stakedSupplyRatio *
       100;
 
     return {

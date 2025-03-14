@@ -11,6 +11,8 @@ const API_URLS = {
   arbitrum: `${API_URL}?network=arbitrum`,
   optimism: `${API_URL}?network=optimism`,
   era: `${API_URL}?network=zksync`,
+  base: `${API_URL}?network=base`,
+  mantle: `${API_URL}?network=mantle`,
 };
 
 const rewardTokensMapping = {
@@ -20,6 +22,7 @@ const rewardTokensMapping = {
   polygon: '0x1B815d120B3eF02039Ee11dC2d33DE7aA4a8C603', // WOO
   arbitrum: '0x912CE59144191C1204E64559FE8253a0e49E6548', // ARB
   optimism: '0x871f2F2ff935FD1eD867842FF2a7bfD051A5E527', // WOO
+  mantle: '0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8', // WMNT
 };
 
 const main = async () => {
@@ -47,7 +50,7 @@ const main = async () => {
         apyReward = info['arb_rewards_apr'];
       }
       let rewardTokens;
-      if (chain === "era") {
+      if (chain === "era" || chain === "base") {
         rewardTokens = [];
       } else {
         rewardTokens = [rewardTokensMapping[chain]];

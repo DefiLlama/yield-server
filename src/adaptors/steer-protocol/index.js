@@ -1,30 +1,29 @@
-const { gql, request } = require('graphql-request');
+const { request } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
-const superagent = require('superagent');
+const axios = require('axios');
 
 // add chain deployments and subgraph endpoints here
 const supportedChains = [
   {
     name: 'Polygon',
-    subgraphEndpoint: 'steer-protocol-polygon',
+    subgraphEndpoint: sdk.graph.modifyEndpoint(
+      'uQxLz6EarmJcr2ymRRmTnrRPi8cCqas4XcPQb71HBvw'
+    ),
   },
   {
     name: 'Arbitrum',
-    subgraphEndpoint: 'steer-protocol-arbitrum',
+    subgraphEndpoint: sdk.graph.modifyEndpoint(
+      'HVC4Br5yprs3iK6wF8YVJXy4QZWBNXTCFp8LPe3UpcD4'
+    ),
   },
   {
     name: 'Optimism',
-    subgraphEndpoint: 'steer-protocol-optimism',
+    subgraphEndpoint: sdk.graph.modifyEndpoint(
+      'GgW1EwNARL3dyo3acQ3VhraQQ66MHT7QnYuGcQc5geDG'
+    ),
   },
-  // {
-  //     name: 'Binance',
-  //     subgraphEndpoint: 'steer-protocol-bsc'
-  // }
 ];
-
-const graphURLBaseEndpoint =
-  'https://api.thegraph.com/subgraphs/name/steerprotocol/';
 
 // Fetch active vaults and associated data @todo limited to 1000 per chain
 const query = `
@@ -53,56 +52,57 @@ const query = `
 const getPools = async () => {
   const pools = [];
   for (const chainInfo of supportedChains) {
-    const data = await request(
-      graphURLBaseEndpoint + chainInfo.subgraphEndpoint,
-      query
-    );
-    // get tokens
-    const tokenList = new Set();
-    data.vaults.forEach((vaultInfo) => {
-      tokenList.add((chainInfo.name + ':' + vaultInfo.token0).toLowerCase());
-      tokenList.add((chainInfo.name + ':' + vaultInfo.token1).toLowerCase());
-    });
+    try {
+      const data = await request(chainInfo.subgraphEndpoint, query);
+      // get tokens
+      const tokenList = new Set();
+      data.vaults.forEach((vaultInfo) => {
+        tokenList.add((chainInfo.name + ':' + vaultInfo.token0).toLowerCase());
+        tokenList.add((chainInfo.name + ':' + vaultInfo.token1).toLowerCase());
+      });
 
-    // get prices
-    const tokenPrices = (
-      await superagent.get(
-        `https://coins.llama.fi/prices/current/${[...tokenList]}`
-      )
-    ).body.coins;
+      // get prices
+      const tokenPrices = (
+        await axios.get(
+          `https://coins.llama.fi/prices/current/${[...tokenList]}`
+        )
+      ).data.coins;
 
-    const chainPools = data.vaults.map((vault) => {
-      // calculate tvl
-      const totalUSD0 =
-        (Number(vault.totalAmount0) *
-          tokenPrices[`${chainInfo.name.toLowerCase()}:${vault.token0}`]
-            ?.price) /
-        10 ** Number(vault.token0Decimals);
-      const totalUSD1 =
-        (Number(vault.totalAmount1) *
-          tokenPrices[`${chainInfo.name.toLowerCase()}:${vault.token1}`]
-            ?.price) /
-        10 ** Number(vault.token1Decimals);
-      const poolTvl = totalUSD0 + totalUSD1;
-      return {
-        pool: (vault.id + '-' + chainInfo.name).toLowerCase(),
-        chain: chainInfo.name, // chain where the pool is (needs to match the `name` field in here https://api.llama.fi/chains)
-        project: 'steer-protocol', // protocol (using the slug again)
-        symbol: vault.token0Symbol + '-' + vault.token1Symbol, // symbol of the tokens in pool, can be a single symbol if pool is single-sided or multiple symbols (eg: USDT-ETH) if it's an LP
-        tvlUsd: poolTvl, // number representing current USD TVL in pool
-        apyBase: parseFloat(vault.weeklyFeeAPR), // APY from pool fees/supplying in %
-        underlyingTokens: [vault.token0, vault.token1], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
-        poolMeta: vault.beaconName,
-        url:
-          'https://app.steer.finance/app/' +
-          vault.strategyToken.id +
-          '/vault/' +
-          vault.id,
-      };
-    });
-    pools.push(...chainPools);
+      const chainPools = data.vaults.map((vault) => {
+        // calculate tvl
+        const totalUSD0 =
+          (Number(vault.totalAmount0) *
+            tokenPrices[`${chainInfo.name.toLowerCase()}:${vault.token0}`]
+              ?.price) /
+          10 ** Number(vault.token0Decimals);
+        const totalUSD1 =
+          (Number(vault.totalAmount1) *
+            tokenPrices[`${chainInfo.name.toLowerCase()}:${vault.token1}`]
+              ?.price) /
+          10 ** Number(vault.token1Decimals);
+        const poolTvl = totalUSD0 + totalUSD1;
+        return {
+          pool: (vault.id + '-' + chainInfo.name).toLowerCase(),
+          chain: chainInfo.name, // chain where the pool is (needs to match the `name` field in here https://api.llama.fi/chains)
+          project: 'steer-protocol', // protocol (using the slug again)
+          symbol: vault.token0Symbol + '-' + vault.token1Symbol, // symbol of the tokens in pool, can be a single symbol if pool is single-sided or multiple symbols (eg: USDT-ETH) if it's an LP
+          tvlUsd: poolTvl, // number representing current USD TVL in pool
+          apyBase: parseFloat(vault.weeklyFeeAPR), // APY from pool fees/supplying in %
+          underlyingTokens: [vault.token0, vault.token1], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
+          poolMeta: vault.beaconName.replace('MultiPosition', ''),
+          url:
+            'https://app.steer.finance/app/' +
+            vault.strategyToken.id +
+            '/vault/' +
+            vault.id,
+        };
+      });
+      pools.push(...chainPools);
+    } catch (err) {
+      console.log(err.message);
+    }
   }
-  return pools;
+  return pools.filter((i) => utils.keepFinite(i));
 };
 
 module.exports = {

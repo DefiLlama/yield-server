@@ -1,10 +1,11 @@
 // Copied from aave v3
-const superagent = require('superagent');
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const { aTokenAbi } = require('../aave-v3/abi');
 const poolAbi = require('../aave-v3/poolAbi');
+const abiSKYFarm = require('./abiSKYFarm.json');
 
 const sparkChains = ['ethereum', 'gnosis'];
 
@@ -99,8 +100,8 @@ async function fetchV3Pools(chain) {
     .map((t) => `${chain}:${t.tokenAddress}`)
     .join(',');
   const pricesEthereum = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).data.coins;
 
   return reserveTokens
     .map((pool, i) => {
@@ -134,7 +135,66 @@ async function fetchV3Pools(chain) {
     .filter((p) => utils.keepFinite(p));
 }
 
+const skyFarm = async () => {
+  const stakingRewards = '0x0650CAF159C5A49f711e8169D4336ECB9b950275';
+  const USDS = '0xdC035D45d973E3EC169d2276DDab16f1e407384F';
+  const SKY = '0x56072C95FAA701256059aa122697B133aDEd9279';
+
+  const totalSupply =
+    (
+      await sdk.api.abi.call({
+        target: stakingRewards,
+        abi: 'erc20:totalSupply',
+      })
+    ).output / 1e18;
+
+  const stakingToken = (
+    await sdk.api.abi.call({
+      target: stakingRewards,
+      abi: abiSKYFarm.find((m) => m.name === 'stakingToken'),
+    })
+  ).output;
+
+  const prices = await axios.get(
+    `https://coins.llama.fi/prices/current/${[USDS, SKY]
+      .map((i) => `ethereum:${i}`)
+      .join(',')}`
+  );
+
+  const priceUSDS = prices.data.coins[`ethereum:${USDS}`].price;
+  const priceSKY = prices.data.coins[`ethereum:${SKY}`].price;
+
+  const tvlUsd = totalSupply * priceUSDS;
+
+  const rewardRate =
+    (
+      await sdk.api.abi.call({
+        target: stakingRewards,
+        abi: abiSKYFarm.find((m) => m.name === 'rewardRate'),
+      })
+    ).output / 1e18;
+
+  const secPerDay = 86400;
+  const apyReward = ((rewardRate * secPerDay * 365 * priceSKY) / tvlUsd) * 100;
+
+  return [
+    {
+      pool: stakingRewards,
+      chain: 'Ethereum',
+      project: 'spark',
+      symbol: 'USDS',
+      poolMeta: 'SKY Farming Pool',
+      tvlUsd: totalSupply * priceUSDS,
+      apyReward,
+      underlyingTokens: [stakingToken],
+      rewardTokens: [SKY],
+    },
+  ];
+};
+
 const apy = async () => {
+  const skyFarmPool = await skyFarm();
+
   const v3Pools = [
     ...(await Promise.all(sparkChains.map(fetchV3Pools))),
   ].flat();
@@ -167,9 +227,10 @@ const apy = async () => {
     (p) => p.symbol === 'DAI' && p.chain === 'Ethereum'
   );
   ethereumDaiPool.totalSupplyUsd = Number(ilk.line) / 1e45;
-  ethereumDaiPool.tvlUsd = ethereumDaiPool.totalSupplyUsd - ethereumDaiPool.totalBorrowUsd;
+  ethereumDaiPool.tvlUsd =
+    ethereumDaiPool.totalSupplyUsd - ethereumDaiPool.totalBorrowUsd;
 
-  return v3Pools;
+  return [...v3Pools, ...skyFarmPool];
 };
 
 module.exports = {

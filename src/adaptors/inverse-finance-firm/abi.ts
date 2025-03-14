@@ -75,5 +75,7 @@ module.exports = {
   ],
   "dbr": [
     "event AddMarket(address indexed market)"
-  ]
+  ],
+  "weeklyRevenue": {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"weeklyRevenue","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  "getMarketPrice": {"inputs":[{"internalType":"address","name":"market","type":"address"}],"name":"getMarketPrice","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
 }

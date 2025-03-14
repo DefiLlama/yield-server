@@ -5,8 +5,8 @@ const utils = require('../utils');
 // todo: llama block api returning 502 for linea chain
 CHAINS_API = {
   linea:
-    'https://subgraph-mainnet.horizondex.io/subgraphs/name/horizondex/horizondex-mainnet-v2',
-  base: 'https://subgraph-base.horizondex.io/subgraphs/name/horizondex/horizondex-base-v2',
+    'https://graph-v2.horizondex.io/subgraphs/name/cryptoalgebra/analytics',
+  // base: 'https://subgraph-base.horizondex.io/subgraphs/name/horizondex/horizondex-base-v2',
 };
 
 const query = gql`
@@ -14,7 +14,7 @@ const query = gql`
         pools(first: 1000, orderBy: totalValueLockedUSD, orderDirection: desc block: {number: <PLACEHOLDER>}) {
             id
             volumeUSD
-            feeTier
+            fee
             token0 {
                 symbol
                 id
@@ -55,7 +55,7 @@ const topLvl = async (chainString, url, timestamp) => {
       ...p,
       reserve0: p.totalValueLockedToken0,
       reserve1: p.totalValueLockedToken1,
-      feeTier: p.feeTier * 10,
+      feeTier: p.fee * 10,
     }));
     data = await utils.tvl(data, chainString);
 

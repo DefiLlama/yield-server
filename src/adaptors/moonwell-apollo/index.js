@@ -13,6 +13,7 @@ const REWARD_SPEED_BORROW = 'borrowRewardSpeeds';
 const SUPPLY_RATE = 'supplyRatePerTimestamp';
 const BORROW_RATE = 'borrowRatePerTimestamp';
 const TOTAL_BORROWS = 'totalBorrows';
+const TOTAL_RESERVES = 'totalReserves';
 const GET_CHASH = 'getCash';
 const UNDERLYING = 'underlying';
 const BLOCKS_PER_DAY = 86400;
@@ -82,6 +83,7 @@ const getRewards = async (markets, rewardType, rewardSpeedMethod) => {
         params: [rewardType, market],
       })),
       abi: comptrollerAbi.find(({ name }) => name === rewardSpeedMethod),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -92,6 +94,7 @@ const multiCallMarkets = async (markets, method, abi) => {
       chain: CHAIN,
       calls: markets.map((market) => ({ target: market })),
       abi: abi.find(({ name }) => name === method),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 };
@@ -154,6 +157,12 @@ const getApy = async () => {
     ercDelegator
   );
 
+  const totalReserves = await multiCallMarkets(
+    allMarkets,
+    TOTAL_RESERVES,
+    ercDelegator
+  );
+
   const marketsCash = await multiCallMarkets(
     allMarkets,
     GET_CHASH,
@@ -200,11 +209,14 @@ const getApy = async () => {
         : prices[ETH_TOKENS[symbol]];
 
     const totalSupplyUsd =
-      ((Number(marketsCash[i]) + Number(totalBorrows[i])) / 10 ** decimals) *
+      ((Number(marketsCash[i]) +
+        Number(totalBorrows[i]) -
+        Number(totalReserves[i])) /
+        10 ** decimals) *
       price;
-    const tvlUsd = (marketsCash[i] / 10 ** decimals) * price;
 
     const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
+    const tvlUsd = totalSupplyUsd - totalBorrowUsd;
 
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
     const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);

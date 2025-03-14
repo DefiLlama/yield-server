@@ -1,22 +1,27 @@
 const axios = require('axios');
+const baseUrl = 'https://open-api.naviprotocol.io/api/poolsinfo';
 
 const poolsFunction = async () => {
-  let pools = await axios.get(
-    'https://api-defi.naviprotocol.io/getIndexAssetData'
-  );
-
+  const response = await axios.get(baseUrl);
+  const data = response.data.pools;
   const arr = [];
-  Object.entries(pools.data).forEach(([key, val]) => {
+
+  Object.keys(data).forEach((key) => {
+    const pool = data[key];
+    const supplyUsd = parseFloat(pool.total_supply) * parseFloat(pool.tokenPrice);
+    const borrowUsd = parseFloat(pool.total_borrow) * parseFloat(pool.tokenPrice);
     arr.push({
       chain: 'Sui',
       project: 'navi-lending',
-      pool: val.pool, // `${ReceivedTokenAddress}-${chain}`
-      symbol: val.symbol, // symbol of the tokens in pool
-      tvlUsd: parseFloat(val.total_supply) * parseFloat(val.price),
-      apyBase: parseFloat(val.supply_rate),
-      apyReward: parseFloat(val.boosted) > 0 ? parseFloat(val.boosted) : null,
-      rewardTokens: val.rewardTokens,
-      poolMeta: null,
+      pool: pool.pool,
+      symbol: pool.symbol,
+      tvlUsd: supplyUsd - borrowUsd,
+      apyBase: parseFloat(pool.base_supply_rate),
+      apyReward: pool.boosted_supply_rate ? parseFloat(pool.boosted_supply_rate) : null,
+      rewardTokens: pool.rewardTokenAddress ? pool.rewardTokenAddress : [],
+      totalSupplyUsd: supplyUsd,
+      totalBorrowUsd: borrowUsd,
+      apyBaseBorrow: parseFloat(pool.base_borrow_rate),
     });
   });
 
@@ -28,3 +33,5 @@ module.exports = {
   apy: poolsFunction,
   url: 'https://app.naviprotocol.io/',
 };
+
+//poolsFunction().then(res => console.log(res));

@@ -14,6 +14,7 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'milkomeda_a1') return 'Milkomeda A1';
   if (chain && chain.toLowerCase() === 'boba_avax') return 'Boba_Avax';
   if (chain && chain.toLowerCase() === 'boba_bnb') return 'Boba_Bnb';
+  if (chain && chain.toLowerCase() === 'iotaevm') return 'IOTA EVM';
   if (
     chain &&
     (chain.toLowerCase() === 'zksync_era' ||
@@ -22,6 +23,7 @@ exports.formatChain = (chain) => {
   )
     return 'zkSync Era';
   if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
+  if (chain && chain.toLowerCase() === 'real') return 're.al';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
@@ -66,17 +68,6 @@ exports.getBlocksByTime = async (timestamps, chainString) => {
 };
 
 const getLatestBlockSubgraph = async (url) => {
-  // const queryGraph = gql`
-  //   {
-  //     indexingStatusForCurrentVersion(subgraphName: "<PLACEHOLDER>") {
-  //       chains {
-  //         latestBlock {
-  //           number
-  //         }
-  //       }
-  //     }
-  //   }
-  // `;
   const queryGraph = gql`
     {
       _meta {
@@ -87,11 +78,8 @@ const getLatestBlockSubgraph = async (url) => {
     }
   `;
 
-  // const blockGraph = await request(
-  //   'https://api.thegraph.com/index-node/graphql',
-  //   queryGraph.replace('<PLACEHOLDER>', url.split('name/')[1])
-  // );
   const blockGraph =
+    url.includes('https://gateway-arbitrum.network.thegraph.com/api') ||
     url.includes('metis-graph.maiadao.io') ||
     url.includes('babydoge/faas') ||
     url.includes('kybernetwork/kyberswap-elastic-cronos') ||
@@ -110,12 +98,7 @@ const getLatestBlockSubgraph = async (url) => {
     url.includes('exchange-v3-zksync/version/latest') ||
     url.includes('balancer-base-v2/version/latest') ||
     url.includes('horizondex') ||
-    url.includes(
-      'https://api.thegraph.com/subgraphs/id/QmZ5uwhnwsJXAQGYEF8qKPQ85iVhYAcVZcZAPfrF7ZNb9z'
-    ) ||
-    url.includes(
-      'https://gateway-arbitrum.network.thegraph.com/api/a265c39f5a123ab2d40b25dc352adc22/subgraphs/id/3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm'
-    )
+    url.includes('swopfi-units')
       ? await request(url, queryGraph)
       : url.includes('aperture/uniswap-v3')
       ? await request(
@@ -425,6 +408,7 @@ const makeMulticall = async (abi, addresses, chain, params = null) => {
       params,
     })),
     chain,
+    permitFailure: true,
   });
 
   const res = data.output.map(({ output }) => output);
@@ -445,4 +429,84 @@ exports.removeDuplicates = (pools) => {
   return pools.filter((i) => {
     return seen.hasOwnProperty(i.pool) ? false : (seen[i.pool] = true);
   });
+};
+
+exports.getERC4626Info = async (
+  address,
+  chain,
+  timestamp = Math.floor(Date.now() / 1e3),
+  {
+    assetUnit = '100000000000000000',
+    totalAssetsAbi = 'uint:totalAssets',
+    convertToAssetsAbi = 'function convertToAssets(uint256 shares) external view returns (uint256)',
+  } = {}
+) => {
+  const DAY = 24 * 3600;
+
+  const [blockNow, blockYesterday] = await Promise.all(
+    [timestamp, timestamp - DAY].map((time) =>
+      axios
+        .get(`https://coins.llama.fi/block/${chain}/${time}`)
+        .then((r) => r.data.height)
+    )
+  );
+  const [tvl, priceNow, priceYesterday] = await Promise.all([
+    sdk.api.abi.call({
+      target: address,
+      block: blockNow,
+      abi: totalAssetsAbi,
+    }),
+    sdk.api.abi.call({
+      target: address,
+      block: blockNow,
+      abi: convertToAssetsAbi,
+      params: [assetUnit],
+    }),
+    sdk.api.abi.call({
+      target: address,
+      block: blockYesterday,
+      abi: convertToAssetsAbi,
+      params: [assetUnit],
+    }),
+  ]);
+  const apy = (priceNow.output / priceYesterday.output) ** 365 * 100 - 100;
+  return {
+    pool: address,
+    chain,
+    tvl: tvl.output,
+    apyBase: apy,
+  };
+};
+
+// solana
+exports.getTotalSupply = async (tokenMintAddress) => {
+  const rpcUrl = 'https://api.mainnet-beta.solana.com';
+  const requestBody = {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'getTokenSupply',
+    params: [
+      tokenMintAddress,
+      {
+        commitment: 'confirmed',
+      },
+    ],
+  };
+
+  const response = await axios.post(rpcUrl, requestBody, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  const data = response.data;
+  if (data.error) {
+    throw new Error(`Error fetching total supply: ${data.error.message}`);
+  }
+
+  const totalSupply = data.result.value.amount;
+  const decimals = data.result.value.decimals;
+  const supplyInTokens = totalSupply / Math.pow(10, decimals);
+
+  return supplyInTokens;
 };

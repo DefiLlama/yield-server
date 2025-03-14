@@ -2,7 +2,7 @@ const {
   formatChain,
   formatSymbol,
   getData,
-  removeDuplicates
+  removeDuplicates,
 } = require('../utils');
 
 const url = 'https://api.beefy.finance';
@@ -11,6 +11,8 @@ const urlTvl = `${url}/tvl`;
 const urlVaults = `${url}/harvestable-vaults`;
 const urlGovVaults = `${url}/gov-vaults`;
 const urlAddressbook = `${url}/tokens`;
+
+const urlVaultsStatus = `${url}/vaults`;
 
 const networkMapping = {
   1: 'ethereum',
@@ -21,6 +23,7 @@ const networkMapping = {
   122: 'fuse',
   128: 'heco',
   137: 'polygon',
+  169: 'manta',
   250: 'fantom',
   252: 'fraxtal',
   324: 'zksync',
@@ -32,21 +35,43 @@ const networkMapping = {
   5000: 'mantle',
   7700: 'canto',
   8453: 'base',
+  34443: 'mode',
   42161: 'arbitrum',
   42220: 'celo',
   42262: 'oasis',
   43114: 'avalanche',
   59144: 'linea',
   1313161554: 'aurora',
-  1666600000: 'harmony'
+  1666600000: 'harmony',
+  146: 'sonic',
+};
+
+const extractePoolMetaDate = (string) => {
+  // match DDMMMYY
+  const pattern = /(\d{2}[A-Za-z]{3}\d{2})/;
+  const match = string.match(pattern);
+
+  if (match) {
+    const datePart = match[1];
+    const nonDatePart = string.replace(datePart, '').trim();
+    return { nonDatePart, datePart };
+  } else {
+    return { nonDatePart: string, datePart: null };
+  }
 };
 
 const main = async () => {
-  const [apys, tvlsByChain, vaults, govVaults, tokens] = await Promise.all(
-    [urlApy, urlTvl, urlVaults, urlGovVaults, urlAddressbook].map((u) =>
-      getData(u)
-    )
-  );
+  const [apys, tvlsByChain, vaults, govVaults, tokens, vaultStatus] =
+    await Promise.all(
+      [
+        urlApy,
+        urlTvl,
+        urlVaults,
+        urlGovVaults,
+        urlAddressbook,
+        urlVaultsStatus,
+      ].map((u) => getData(u))
+    );
 
   const data = [];
   for (const [chainId, tvls] of Object.entries(tvlsByChain)) {
@@ -57,6 +82,11 @@ const main = async () => {
     }
 
     for (const [vaultId, tvl] of Object.entries(tvls)) {
+      const s = vaultStatus.find(
+        (i) => i.id.toLowerCase() === vaultId.toLowerCase()
+      );
+      if (s && ['eol', 'paused'].includes(s.status.toLowerCase())) continue;
+
       let vault = vaults.find((v) => v.id === vaultId);
       if (vault === undefined) {
         vault = govVaults.find((v) => v.id === vaultId);
@@ -76,12 +106,14 @@ const main = async () => {
 
       const {
         assets,
+        name,
         platformId,
         depositTokenAddresses,
         earnContractAddress,
         chain,
         type,
-        tokenAddress
+        tokenAddress,
+        oracleId,
       } = vault;
 
       const tokenSymbols = [];
@@ -111,8 +143,12 @@ const main = async () => {
         tokenAddresses.length === 0 && assets.length === 1
           ? [tokenAddress]
           : type === 'cowcentrated'
-            ? depositTokenAddresses
-            : tokenAddresses;
+          ? depositTokenAddresses
+          : tokenAddresses;
+
+      const poolDetails = extractePoolMetaDate(name).datePart;
+      let poolMeta = formatChain(platformId);
+      poolMeta = poolDetails !== null ? `${poolMeta}-${poolDetails}` : poolMeta;
 
       data.push({
         pool: `${earnContractAddress}-${llamaChain}`.toLowerCase(),
@@ -121,8 +157,9 @@ const main = async () => {
         symbol: formatSymbol(tokenSymbols.join('-')),
         tvlUsd: tvl,
         apy: apy * 100,
-        poolMeta: formatChain(platformId),
-        underlyingTokens
+        poolMeta,
+        underlyingTokens,
+        url: `https://app.beefy.com/vault/${vaultId}`,
       });
     }
   }
@@ -133,5 +170,4 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.beefy.com/'
 };
