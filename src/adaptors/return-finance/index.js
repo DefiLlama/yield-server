@@ -3,13 +3,11 @@ const utils = require('../utils');
 
 const abiAAVEPolygon = require('./abiAAVEPolygon.json');
 const abiAAVEAvalanche = require('./abiAAVEAvalanche.json');
-const abiCompoundV3Base = require('./abiCompoundV3Base.json');
 const abiMakerDAO = require('./abiMakerDAO.json');
 const abiConvex = require('./abiConvex.json');
 const abiBenqi = require('./abiBenqiAvalanche.json');
 const abiCurveDex = require('./abiCurveDEX.json');
 const abiLido = require('./abiLido.json');
-const abiAerodromeBase = require('./abiAerodromeBase.json');
 const abiEthenaEthereum = require('./abiEthenaEthereum.json');
 
 const getPoolData = async ({ contract, abi, chain, exchangeRate = 1 }) => {
@@ -67,12 +65,6 @@ const getApy = async () => {
     chain: 'avax',
   });
 
-  const compoundV3Base = await getPoolData({
-    contract: '0xd99d6D4EA1CDa97cC8eaE2A21007C47D3ae54d5F',
-    abi: abiCompoundV3Base,
-    chain: 'base',
-  });
-
   const benqi = await getPoolData({
     contract: '0x3A3dAdbca3ec5a815431f45eca33EF1520388Ef2',
     abi: abiBenqi,
@@ -86,7 +78,7 @@ const getApy = async () => {
   });
 
   const convexFinance = await getPoolData({
-    contract: '0xe5c26497D9492AD2328DFEE7dcA240e55cff1779',
+    contract: '0x4D7F26a161a3e1fbE10C11e1c9abC05Fa43DdE67',
     abi: abiConvex,
     chain: 'ethereum',
   });
@@ -104,14 +96,8 @@ const getApy = async () => {
     exchangeRate: Number(ethUsdExchangeRate),
   });
 
-  const aerodromeBase = await getPoolData({
-    contract: '0x4d95d8A4705Ca23D6679F6E2974b37CC0e89f632',
-    abi: abiAerodromeBase,
-    chain: 'base',
-  });
-
   const ethenaEthereum = await getPoolData({
-    contract: '0xb41C4126bb6145E8582946E2990ae61ab5b73b76',
+    contract: '0x4cba5780Dcbee1c8B5220D24f4F54e14D796a31C',
     abi: abiEthenaEthereum,
     chain: 'ethereum',
   });
@@ -119,13 +105,11 @@ const getApy = async () => {
   return [
     aavePolygon,
     aaveAvalanche,
-    compoundV3Base,
     benqi,
     makerDao,
     convexFinance,
     curveDEX,
     lido,
-    aerodromeBase,
     ethenaEthereum,
   ].filter((i) => utils.keepFinite(i));
 };
