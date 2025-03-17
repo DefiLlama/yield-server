@@ -160,6 +160,7 @@ const excludeAdaptors = [
   'meteora', // pushed by mistake
   'rhino.fi',
   'icpex',
+  'nx-finance',
 ];
 
 const excludePools = [
