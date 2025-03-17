@@ -1,7 +1,7 @@
 const utils = require('../utils');
 
 const ECHELON_DAPP_URL = 'https://app.echelon.market';
-const ECHELON_MARKETS_API_URL = `${ECHELON_DAPP_URL}/api/markets?network=aptos_mainnet`;
+const ECHELON_MARKETS_API_URL = `${ECHELON_DAPP_URL}/api/markets?network=`;
 
 const SEC_PER_YEAR = 365 * 24 * 60 * 60;
 
@@ -136,9 +136,21 @@ function calculateFarmingAprs(farmingData, coins) {
   }
 
 async function main() {
-  // We use Thala's API and not resources on chain as there are too many pools to parse and query
+  const netTVLArr = [];
+  const chains = ['aptos', 'move'];
+  for (const chain of chains) {
+    const chainTVLArr = await fetchEchelonForChain(chain);
+    netTVLArr.push(...chainTVLArr);
+  }
+  console.log(netTVLArr);
+  return netTVLArr;
+}
+
+async function fetchEchelonForChain(chain) {
+  // We use Echelon's API and not resources on chain as there are too many pools to parse and query
   // for TVL, APR, etc. metrics. This way we fetch all our pools with TVL attached, then can filter.
-  const response = (await utils.getData(`${ECHELON_MARKETS_API_URL}`))
+  const chainNameForRequest = chain === 'aptos' ? 'aptos_mainnet' : 'movement_mainnet';
+  const response = (await utils.getData(`${ECHELON_MARKETS_API_URL}${chainNameForRequest}`))
       ?.data;
   const markets = response?.assets;
   const marketStats = response?.marketStats;
@@ -174,30 +186,32 @@ async function main() {
     const farmingTHAPTApr = farmingAprs.supply[marketAddress]?.find(item => item.coin.address === '0xfaf4e633ae9eb31366c9ca24214231760926576c7b625313b3688b5e900731f6::staking::ThalaAPT')?.apr;
     const rewardTokens = [];
 
-    // Check and push for APT
+    // Check and push for APT OR MOVE
     if (farmingAPTApr > 0) {
         rewardTokens.push('0x1::aptos_coin::AptosCoin');
     }
     // Check and push for thAPT
-    if (farmingTHAPTApr > 0) {
-        rewardTokens.push('0xfaf4e633ae9eb31366c9ca24214231760926576c7b625313b3688b5e900731f6::staking::ThalaAPT');
+    if (farmingTHAPTApr > 0 && chain === 'aptos') {
+      rewardTokens.push('0xfaf4e633ae9eb31366c9ca24214231760926576c7b625313b3688b5e900731f6::staking::ThalaAPT');
     }
+    // TODO: eventually support movemetn incentives
 
     if (stakingSupplyApr > 0) {
-      rewardTokens.push('0xb30a694a344edee467d9f82330bbe7c3b89f440a1ecd2da1f3bca266560fce69');
+      // TODO: handle susde on move when its live
+      rewardTokens.push(chain === 'aptos' ? '0xb30a694a344edee467d9f82330bbe7c3b89f440a1ecd2da1f3bca266560fce69' : undefined);
     }
-
+    
     tvlArr.push({
       pool:
-         `${marketAddress}-aptos`.toLowerCase(),
-      chain: utils.formatChain('aptos'),
+         `${marketAddress}-${chain}`.toLowerCase(),
+      chain: utils.formatChain(chain),
       project: 'echelon-market',
       apyBase: ((lendingSupplyApr) ?? 0) * 100,
       apyReward: ((farmingAPTApr ?? 0) + (farmingTHAPTApr ?? 0) + (stakingSupplyApr ?? 0)) * 100,
       apyBaseBorrow: (lendingBorrowApr ?? 0) * 100,
       totalSupplyUsd,
       totalBorrowUsd,
-      rewardTokens,
+      rewardTokens: rewardTokens.filter(token => token !== undefined),
       symbol: market.symbol,
       tvlUsd: (totalSupplyUsd - totalBorrowUsd),
       underlyingTokens: [assetAddress],
