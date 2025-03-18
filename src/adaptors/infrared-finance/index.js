@@ -1,6 +1,8 @@
 const axios = require('axios');
 const { ethers } = require('ethers');
 const iberaAbi = require('./abi');
+const utils = require('../utils');
+
 const IBERA_ADDRESS = '0x9b6761bf2397bb5a6624a856cc84a3a14dcd3fe5';
 const RPC_URL = 'https://rpc.berachain.com/';
 
@@ -22,7 +24,7 @@ const apy = async () => {
     return [
     {
       pool: IBERA_ADDRESS,
-      chain: formatChain('berachain'),
+      chain: utils.formatChain('berachain'),
       project: 'infrared-finance',
       symbol: 'IBERA',
       tvlUsd: totalSupply * currentPrice,
