@@ -20,7 +20,7 @@ const apy = async () => {
   return [
     {
       pool: BBSOL_ADDRESS,
-      chain: 'Solana',
+      chain: formatChain('Solana'),
       project: 'bybit-staked-sol',
       symbol: 'BBSOL',
       tvlUsd: totalSupply * currentPrice,
