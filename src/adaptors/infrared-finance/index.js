@@ -22,7 +22,7 @@ const apy = async () => {
     return [
     {
       pool: IBERA_ADDRESS,
-      chain: 'berachain',
+      chain: formatChain('berachain'),
       project: 'infrared-finance',
       symbol: 'IBERA',
       tvlUsd: totalSupply * currentPrice,
