@@ -1,13 +1,14 @@
-const axios = require('axios');
 const utils = require('../utils');
 
-const API_URL = 'https://perps-api-mainnet.polynomial.finance/vaults/all?chainId=8008';
+const API_URL =
+  'https://perps-api-mainnet.polynomial.finance/vaults/all?chainId=8008';
 // LIUIDITY UI
 const LIQUIDITY_URL = 'https://polynomial.fi/en/mainnet/earn/liquidity';
 
 const getApy = async () => {
   // APR is retrieved using our api, tvl pairs etc trough subgraph
-  const data = (await axios.get(API_URL)).data;
+  const response = await fetch(API_URL);
+  const data = await response.json();
 
   const poolInfo = await Promise.all(
     data.map(async (pool) => {
@@ -20,12 +21,11 @@ const getApy = async () => {
         apyBase: pool.apr + pool.baseApr,
         apyReward: pool.opRewardsApr,
         rewardTokens: ['0x4200000000000000000000000000000000000042'],
-        url: LIQUIDITY_URL
+        url: LIQUIDITY_URL,
       };
     })
   );
   return poolInfo;
-
 };
 
 async function main() {
@@ -37,4 +37,3 @@ module.exports = {
   timetravel: false,
   apy: main,
 };
-
