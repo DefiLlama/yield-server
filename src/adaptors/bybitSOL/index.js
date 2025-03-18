@@ -1,5 +1,6 @@
 const axios = require('axios');
 const { getTotalSupply } = require('../utils');
+const utils = require('../utils');
 
 const BBSOL_ADDRESS = 'Bybit2vBJGhPF52GBdNaQfUJ6ZpThSgHBobjWZpLPb4B';
 const priceKey = `solana:${BBSOL_ADDRESS}`;
@@ -20,7 +21,7 @@ const apy = async () => {
   return [
     {
       pool: BBSOL_ADDRESS,
-      chain: formatChain('Solana'),
+      chain: utils.formatChain('Solana'),
       project: 'bybit-staked-sol',
       symbol: 'BBSOL',
       tvlUsd: totalSupply * currentPrice,
