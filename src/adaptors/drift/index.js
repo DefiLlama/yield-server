@@ -1,5 +1,6 @@
 const axios = require('axios');
 const { getTotalSupply } = require('../utils');
+const utils = require('../utils');
 
 const DSOL_ADDRESS = 'Dso1bDeDjCQxTrWHqUUi63oBvV7Mdm6WaobLbQ7gnPQ'
 const priceKey = `solana:${DSOL_ADDRESS}`;
@@ -20,7 +21,7 @@ const apy = async () => {
   return [
     {
       pool: DSOL_ADDRESS,
-      chain: 'Solana',
+      chain: utils.formatChain('solana'),
       project: 'drift',
       symbol: 'dSOL',
       tvlUsd: totalSupply * currentPrice,
