@@ -22,7 +22,7 @@ const apy = async () => {
     {
       pool: DSOL_ADDRESS,
       chain: utils.formatChain('solana'),
-      project: 'drift',
+      project: 'drift-staked-sol',
       symbol: 'dSOL',
       tvlUsd: totalSupply * currentPrice,
       apyBase: apy * 100,
