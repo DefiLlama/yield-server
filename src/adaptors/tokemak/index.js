@@ -103,7 +103,7 @@ async function getPoolsForChain(chainId) {
         });
       }),
       chain: settings.multicallChainId,
-      permitFailure: false,
+      permitFailure: true,
     })
   );
 
@@ -120,7 +120,7 @@ async function getPoolsForChain(chainId) {
         });
       }),
       chain: settings.multicallChainId,
-      permitFailure: false,
+      permitFailure: true,
     })
   );
 
@@ -137,7 +137,7 @@ async function getPoolsForChain(chainId) {
         });
       }),
       chain: settings.multicallChainId,
-      permitFailure: false,
+      permitFailure: true,
     })
   );
 
@@ -154,7 +154,7 @@ async function getPoolsForChain(chainId) {
         };
       }),
       chain: settings.multicallChainId,
-      permitFailure: false,
+      permitFailure: true,
     })
   );
 
@@ -169,7 +169,7 @@ async function getPoolsForChain(chainId) {
         };
       }),
       chain: settings.multicallChainId,
-      permitFailure: false,
+      permitFailure: true,
     })
   );
 
@@ -228,9 +228,16 @@ async function getPoolsForChain(chainId) {
 
       const debtValueWeight = debtValueHeldByVaultEth / totalAssets;
 
-      const cr = Number(
-        etherUtils.formatUnits(summaryStatResult.output.compositeReturn, 18)
-      );
+      const cr =
+        summaryStatResult.output &&
+        summaryStatResult.output.compositeReturn != null
+          ? Number(
+              etherUtils.formatUnits(
+                summaryStatResult.output.compositeReturn,
+                18
+              )
+            )
+          : 0;
 
       compositeReturn += debtValueWeight * cr;
     }

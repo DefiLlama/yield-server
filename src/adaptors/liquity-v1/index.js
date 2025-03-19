@@ -64,7 +64,7 @@ const main = async () => {
     {
       pool: TROVE_MANAGER_ADDRESS,
       project: 'liquity-v1',
-      symbol: 'WETH',
+      symbol: 'ETH',
       chain: 'ethereum',
       apy: 0,
       tvlUsd: (Number(troveEthTvl) / 1e18) * Number(troveType.price),

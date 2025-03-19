@@ -11,7 +11,7 @@ const apy = async () => {
     return {
       pool: pool.id,
       chain: 'Solana',
-      project: 'raydium',
+      project: 'raydium-amm',
       symbol: `${pool.mintA.symbol}-${pool.mintB.symbol}`,
       tvlUsd: pool.tvl,
       apyBase: pool.day.feeApr,

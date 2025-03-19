@@ -97,7 +97,8 @@ const getLatestBlockSubgraph = async (url) => {
     url.includes('exchange-v3-polygon-zkevm/version/latest') ||
     url.includes('exchange-v3-zksync/version/latest') ||
     url.includes('balancer-base-v2/version/latest') ||
-    url.includes('horizondex')
+    url.includes('horizondex') ||
+    url.includes('swopfi-units')
       ? await request(url, queryGraph)
       : url.includes('aperture/uniswap-v3')
       ? await request(
@@ -475,4 +476,37 @@ exports.getERC4626Info = async (
     tvl: tvl.output,
     apyBase: apy,
   };
+};
+
+// solana
+exports.getTotalSupply = async (tokenMintAddress) => {
+  const rpcUrl = 'https://api.mainnet-beta.solana.com';
+  const requestBody = {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'getTokenSupply',
+    params: [
+      tokenMintAddress,
+      {
+        commitment: 'confirmed',
+      },
+    ],
+  };
+
+  const response = await axios.post(rpcUrl, requestBody, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  const data = response.data;
+  if (data.error) {
+    throw new Error(`Error fetching total supply: ${data.error.message}`);
+  }
+
+  const totalSupply = data.result.value.amount;
+  const decimals = data.result.value.decimals;
+  const supplyInTokens = totalSupply / Math.pow(10, decimals);
+
+  return supplyInTokens;
 };
