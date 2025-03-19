@@ -62,6 +62,8 @@ const getLendingApy = async (chain) => {
       await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
     ).data.coins;
 
+    const merkleRewardsTokens = (await axios.get(`https://api.fluid.instadapp.io/${CONSTANTS.CHAIN_ID_MAPPING[chain]}/tokens`)).data.data;
+
     return fTokensEntireData
       .map((token, i) => ({
         project: 'fluid-lending',
@@ -71,11 +73,24 @@ const getLendingApy = async (chain) => {
           10 ** decimals.output[i].output,
         symbol: symbol.output[i].output,
         underlyingTokens: [token.asset],
-        rewardTokens: [token.asset],
+        rewardTokens: [
+          token.asset,
+          ...merkleRewardsTokens
+            .find(t => t.address.toLowerCase() === token.tokenAddress.toLowerCase())
+            ?.rewards?.map(reward => reward?.token?.address) || []
+        ],
         chain,
         apyBase: Number((token.supplyRate / 1e2).toFixed(2)),
-        apyReward: Number((token.rewardsRate / 1e12).toFixed(2)),
-        url: `https://fluid.instadapp.io/lending/${CONSTANTS.CHAIN_ID_MAPPING[chain]}/${symbol.output[i].output}`,
+        apyReward: (() => {
+          const nativeRewardsRate = Number((token.rewardsRate / 1e12).toFixed(2));
+          const fTokenMerkleData = merkleRewardsTokens.find(t => t.address.toLowerCase() === token.tokenAddress.toLowerCase());
+          if (!fTokenMerkleData || !fTokenMerkleData.rewards || fTokenMerkleData.rewards.length === 0) {
+            return nativeRewardsRate;
+          }
+          const merkleRewardsSum = fTokenMerkleData.rewards.reduce((sum, reward) => sum + (reward.rate / 1e2), 0);
+          return Number((nativeRewardsRate + merkleRewardsSum).toFixed(2));
+        })(),
+        url: `https://fluid.io/lending/${CONSTANTS.CHAIN_ID_MAPPING[chain]}/${symbol.output[i].output}`,
       }))
       .filter((i) => utils.keepFinite(i));
   } catch (error) {
@@ -231,7 +246,7 @@ const calculateVaultPoolData = (
       ),
       ltv: vaultDetails.ltv[index] / 1e4,
       mintedCoin: borrowSymbol,
-      url: `https://fluid.instadapp.io/vaults/${CONSTANTS.CHAIN_ID_MAPPING[chain]}/${vault.VaultId}`,
+      url: `https://fluid.io/vaults/${CONSTANTS.CHAIN_ID_MAPPING[chain]}/${vault.VaultId}`,
     };
   });
 };
