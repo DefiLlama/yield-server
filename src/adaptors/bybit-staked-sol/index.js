@@ -16,16 +16,17 @@ const apy = async () => {
   const bybitResponseBBSOL = await axios.get(
     'https://api2.bybit.com/spot/api/web3/staking/v2/pool/apys?poolId=77&span=1'
   );
-  const apy = bybitResponseBBSOL.data.result.apys.at(-1).apy;
-
+  const apys = bybitResponseBBSOL.data.result.apys;
+  const bbSolApy = apys[apys.length - 1].apy;
+  
   return [
     {
       pool: BBSOL_ADDRESS,
-      chain: utils.formatChain('Solana'),
+      chain: utils.formatChain('solana'),
       project: 'bybit-staked-sol',
       symbol: 'BBSOL',
       tvlUsd: totalSupply * currentPrice,
-      apy: apy,
+      apy: bbSolApy,
       underlyingTokens: [BBSOL_ADDRESS],
     },
   ];
