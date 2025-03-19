@@ -25,7 +25,7 @@ const apy = async () => {
       project: 'bybit-staked-sol',
       symbol: 'BBSOL',
       tvlUsd: totalSupply * currentPrice,
-      apyBase: apy,
+      apy: apy,
       underlyingTokens: [BBSOL_ADDRESS],
     },
   ];
