@@ -70,7 +70,7 @@ const main = async () => {
         ...p,
         symbol,
         poolMeta,
-        project: 'cian-vaults',
+        project: 'cian-yield-layer',
       };
     });
 };
