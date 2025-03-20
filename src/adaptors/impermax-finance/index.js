@@ -128,7 +128,9 @@ const projectPoolFactories = {
     Fenix: ['0xa19c51d91891d3df7c13ed22a2f89d328a82950f'],
   },
   sonic: {
-    Equalizer: ['0xddd9845ba0d8f38d3045f804f67a1a8b9a528fcc'],
+    Equalizer: ['0xddd9845ba0d8f38d3045f804f67a1a8b9a528fcc', '0x543cc9542314e0bec710eccd03586006df355d83'],
+    SwapX: ['0x05c1be79d3ac21cc4b727eed58c9b2ff757f5663', '0xb84bba16a3a332ac2e66aa4508db1efd300cde2b'],
+    Shadow: ['0x2da25e7446a70d7be65fd4c053948becaa6374c8', '0x1d3258b9c35198454c1f44e89003de5851748cc5']
   },
 };
 
@@ -531,7 +533,7 @@ const main = async () => {
         apyBase: supplyApr.toNumber(),
         apyBaseBorrow: borrowApr.toNumber(),
         underlyingTokens: [token0.id, token1.id],
-        ltv: ltv.toNumber().toFixed(3),
+        ltv: Number(ltv.toFixed(3)),
         url: 'https://impermax.finance',
       });
     }
