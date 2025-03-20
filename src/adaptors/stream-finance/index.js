@@ -85,21 +85,57 @@ const getVaultAPY = async (vaultAddress, chain) => {
   const vaultState = await getContractData(vaultAddress, 'vaultState', chain);
   const currRound = vaultState.round;
   
-  const prevPricePerShare = await getContractData(
-    vaultAddress, 
-    'roundPricePerShare', 
-    chain, 
-    [currRound - 2]
-  );
+  // Look at last 7 rounds to get a weekly average
+  const numRoundsToAnalyze = 7;
+  const startRound = Math.max(1, currRound - numRoundsToAnalyze);
   
-  const currPricePerShare = await getContractData(
-    vaultAddress, 
-    'roundPricePerShare', 
-    chain, 
-    [currRound - 1]
-  );
-
-  return ((currPricePerShare - prevPricePerShare) / prevPricePerShare) * 100 * WEEKS_PER_YEAR;
+  let pricePerShareValues = [];
+  
+  // Collect price per share for each round
+  for (let round = startRound; round < currRound; round++) {
+    try {
+      const pricePerShare = await getContractData(
+        vaultAddress,
+        'roundPricePerShare',
+        chain,
+        [round]
+      );
+      pricePerShareValues.push(pricePerShare);
+    } catch (error) {
+      console.error(`Error fetching price per share for round ${round}:`, error.message);
+    }
+  }
+  
+  if (pricePerShareValues.length < 2) {
+    console.warn('Not enough price data to calculate APY');
+    return 0;
+  }
+  
+  // Calculate daily yield rates
+  const dailyYields = [];
+  for (let i = 1; i < pricePerShareValues.length; i++) {
+    const prevPrice = pricePerShareValues[i - 1];
+    const currPrice = pricePerShareValues[i];
+    if (prevPrice && prevPrice > 0) {
+      const dailyYield = (currPrice - prevPrice) / prevPrice;
+      dailyYields.push(dailyYield);
+    }
+  }
+  
+  if (dailyYields.length === 0) {
+    console.warn('No valid yield rates calculated');
+    return 0;
+  }
+  
+  // Calculate average daily yield
+  const avgDailyYield = dailyYields.reduce((sum, yieldRate) => sum + yieldRate, 0) / dailyYields.length;
+  
+  // Convert to APY using compound interest formula
+  // APY = (1 + r)^n - 1, where r is the periodic rate and n is number of periods
+  const periodsPerYear = 365; // Daily compounding
+  const apy = (Math.pow(1 + avgDailyYield, periodsPerYear) - 1) * 100;
+  
+  return Number.isFinite(apy) ? Number(apy.toFixed(2)) : 0;
 };
 
 const getVaultTVL = async (chain, vaultType, vaultDecimals) => {
