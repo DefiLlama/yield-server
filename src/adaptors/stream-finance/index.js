@@ -1,6 +1,7 @@
 const utils = require('../utils');
 const axios = require('axios');
-const sdk = require('@defillama/sdk5');
+const sdk = require('@defillama/sdk');
+const { ethers } = require('ethers');
 const vaultABI = require('./abiVault.json');
 
 // Configuration constants
@@ -28,6 +29,12 @@ const ADDRESSES = {
   }
 };
 
+const VAULT_DECIMALS = {
+  '0xE2Fc85BfB48C4cF147921fBE110cf92Ef9f26F94': 6,
+  '0x12fd502e2052CaFB41eccC5B596023d9978057d6': 8,
+  '0x7E586fBaF3084C0be7aB5C82C04FfD7592723153': 18
+}
+
 
 const UNDERLYING_SYMBOL_MAP = {
   XUSD: 'USDC',
@@ -40,6 +47,12 @@ const mapToUnderlying = (vault) => UNDERLYING_SYMBOL_MAP[vault] || vault;
 
 const getContractData = async (target, abi, chain, params = []) => {
   try {
+    sdk.api.config.setProvider(
+      'ethereum',
+      new ethers.providers.JsonRpcProvider(
+        'https://eth.llamarpc.com'
+      )
+    );
     const result = await sdk.api.abi.call({
       target,
       abi: vaultABI.find((m) => m.name === abi),
@@ -69,7 +82,8 @@ const getTokenPrice = async (priceKey, amount, decimals) => {
 
 
 const getVaultAPY = async (vaultAddress, chain) => {
-  const [currRound] = await getContractData(vaultAddress, 'vaultState', chain);
+  const vaultState = await getContractData(vaultAddress, 'vaultState', chain);
+  const currRound = vaultState.round;
   
   const prevPricePerShare = await getContractData(
     vaultAddress, 
@@ -88,14 +102,14 @@ const getVaultAPY = async (vaultAddress, chain) => {
   return ((currPricePerShare - prevPricePerShare) / prevPricePerShare) * 100 * WEEKS_PER_YEAR;
 };
 
-const getVaultTVL = async (chain, vaultType, vaultParams) => {
+const getVaultTVL = async (chain, vaultType, vaultDecimals) => {
   const wrapperAddress = ADDRESSES[chain].wrappers[vaultType];
   const underlyingAddress = ADDRESSES[chain].underlyingTokens[vaultType];
   const priceKey = `${chain}:${underlyingAddress}`;
   
   const totalSupply = await getContractData(wrapperAddress, 'totalSupply', chain);
   
-  return getTokenPrice(priceKey, Number(totalSupply), vaultParams[0]);
+  return getTokenPrice(priceKey, Number(totalSupply), vaultDecimals);
 };
 
 
@@ -105,25 +119,32 @@ const main = async () => {
   for (const chain of Object.keys(ADDRESSES)) {
     for (const [vaultType, vaultAddress] of Object.entries(ADDRESSES[chain].vaults)) {
       try {
-        const vaultParams = await getContractData(vaultAddress, 'vaultParams', chain);
+        const vaultDecimals = VAULT_DECIMALS[vaultAddress];
         const underlyingTicker = mapToUnderlying(utils.formatSymbol(vaultType));
+        const tvlUSD = await getVaultTVL(chain, vaultType, vaultDecimals);
+        const apy = await getVaultAPY(vaultAddress, chain);
         
-        pools.push({
-          pool: `${vaultAddress}-${chain}`,
-          chain: utils.formatChain(chain),
-          project: 'stream-finance',
-          symbol: underlyingTicker,
-          tvlUsd: await getVaultTVL(chain, vaultType, vaultParams),
-          apy: await getVaultAPY(vaultAddress, chain),
-          poolMeta: utils.formatSymbol(vaultType)
-        });
+        if (tvlUSD !== undefined && apy !== undefined) {
+          pools.push({
+            pool: `${vaultAddress}-${chain}`,
+            chain: utils.formatChain(chain),
+            project: 'stream-finance',
+            symbol: underlyingTicker,
+            tvlUsd: Number(tvlUSD.toFixed(2)),
+            apyBase: Number(apy.toFixed(2)),
+            underlyingTokens: [ADDRESSES[chain].underlyingTokens[vaultType]],
+            poolMeta: utils.formatSymbol(vaultType)
+          });
+        }
+
       } catch (error) {
         console.error(`Error processing vault ${vaultType} on ${chain}:`, error.message);
       }
     }
   }
 
-  return pools.filter(utils.keepFinite);
+
+  return pools;
 };
 
 module.exports = {
