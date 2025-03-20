@@ -33,7 +33,7 @@ const apy = async (chain) => {
           tvlUsd: Number(p.pure_tvl_in_usd),
           apyBase: Number(p?.apr.fee_apr_24h.replace('%','')),
           apyReward: apyRewardSui > 0 ? apyRewardSui : 0,
-          volumeUsd1d: p?.vol_in_usd_24h,
+          volumeUsd1d: Number(p?.vol_in_usd_24h),
           poolMeta: `${Number(p.fee) * 100}%`,
           url: `https://app.cetus.zone/liquidity/deposit?poolAddress=${p.swap_account}`,
         };
