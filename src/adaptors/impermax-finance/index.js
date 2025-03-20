@@ -39,7 +39,7 @@ const config = {
   base: [
     'https://api.studio.thegraph.com/query/46041/impermax-base-solv2/v0.0.2',
     'https://api.studio.thegraph.com/query/46041/impermax-base-solv2-stable/v0.0.1',
-    'https://gateway.thegraph.com/api/1350441d268f171aeb0934412dfadf3b/subgraphs/id/B7xsBeef3FohKaFPcsAsviyLKaWXTqcSELjAsPj2B7iW',
+    'https://api.studio.thegraph.com/query/46041/impermax-base-v2/v0.0.3',
   ],
   scroll: [
     'https://api.studio.thegraph.com/query/46041/impermax-scroll-solv2/v0.0.2',
@@ -50,12 +50,13 @@ const config = {
     'https://api.goldsky.com/api/public/project_cm2rhb30ot9wu01to8c9h9e37/subgraphs/impermax-real-solv2/3.0/gn',
   ],
   blast: [
-    'https://gateway.thegraph.com/api/1350441d268f171aeb0934412dfadf3b/subgraphs/id/4FDikpVjE2XnDJ5QcpQ1YJXWcUDiAgE7x8ErtsHh33UB',
-    'https://gateway.thegraph.com/api/1350441d268f171aeb0934412dfadf3b/subgraphs/id/6xkrXFPJ4wqh9cy9ayP19WGr2wZVSMP3FniMjcW2LUG4',
-    'https://gateway.thegraph.com/api/1350441d268f171aeb0934412dfadf3b/subgraphs/id/CfJnk2rt4fUs71dvJJk21dbSS4dshKFWjfLsCceTXNBa',
+    'https://api.studio.thegraph.com/query/46041/impermax-blast-solv2/v0.0.3',
+    'https://api.studio.thegraph.com/query/46041/impermax-blast-v2/v0.0.2',
+    'https://api.studio.thegraph.com/query/46041/impermax-blast-solv2-stable/v0.0.2',
   ],
   sonic: [
-    'https://gateway.thegraph.com/api/1350441d268f171aeb0934412dfadf3b/subgraphs/id/HK9BA4oFp1xaoQW7YVP4m2nbxX7q2bQCZWNPKBtudtZR',
+    'https://api.studio.thegraph.com/query/46041/impermax-sonic-solv2/v0.0.2',
+    'https://api.studio.thegraph.com/query/46041/impermax-sonic-solv2-stable/v0.0.1',
   ],
   // Skip these as tvl is too low
   // avalanche: [], moonriver: [], canto: [], zkSync: []
@@ -181,73 +182,108 @@ const lendingVaultsConfig = {
   optimism: [],
   ethereum: [],
   blast: [
-    'https://gateway.thegraph.com/api/1350441d268f171aeb0934412dfadf3b/subgraphs/id/8UbzkWkh1zqWhkgkomcVAVR7tmvDNq9LUtfmvRwtDQTh',
+    'https://api.studio.thegraph.com/query/46041/lending-vault-blast/v0.0.1',
   ],
-  sonic: [],
+  sonic: ['https://api.studio.thegraph.com/query/46041/lending-vault-sonic/v0.0.1'],
 };
 
 const lendingVaultProfiles = {
   arbitrum: [
     {
-      address: '0x1122745fE34590419e18394bAA0e4D610f785205'.toLowerCase(),
-      risk: 'Conservative',
+      address: "0x1122745fE34590419e18394bAA0e4D610f785205".toLowerCase(),
+      risk: "Conservative",
     }, // ETH
     {
-      address: '0x46D26374903F215DC28d461809cdd0667A603a9e'.toLowerCase(),
-      risk: 'Conservative',
+      address: "0x46D26374903F215DC28d461809cdd0667A603a9e".toLowerCase(),
+      risk: "Conservative",
     }, // USDC
+    {
+      address: "0x90e3329B8E372bD7C6823b8866C7804DC5282Aab".toLowerCase(),
+      risk: "Conservative",
+    }, // ETHV2
+    {
+      address: "0x069C1372b1Ebf3c9aBc3d37e673584962C52a0Ac".toLowerCase(),
+      risk: "Conservative",
+    }, // USDCV2
   ],
   polygon: [
     {
-      address: '0xbF6d92C989bF14DCff0713341EbFa89C63c89EF9'.toLowerCase(),
-      risk: 'Conservative',
+      address: "0xbF6d92C989bF14DCff0713341EbFa89C63c89EF9".toLowerCase(),
+      risk: "Conservative",
     }, // MATIC
     {
-      address: '0x59D2dFd97cB27e127F36a730CD2E3B7e5C2C1983'.toLowerCase(),
-      risk: 'Conservative',
+      address: "0x59D2dFd97cB27e127F36a730CD2E3B7e5C2C1983".toLowerCase(),
+      risk: "Conservative",
     }, // USDT
     {
-      address: '0xE71675a4D284447abc8fCC834a6F54847A765584'.toLowerCase(),
-      risk: 'Conservative',
+      address: "0xE71675a4D284447abc8fCC834a6F54847A765584".toLowerCase(),
+      risk: "Conservative",
     }, // USDC
   ],
   scroll: [
     {
-      address: '0x20e29CF92C89DC97f6b131000F18c39bdc6964af'.toLowerCase(),
-      risk: 'Conservative',
+      address: "0x20e29CF92C89DC97f6b131000F18c39bdc6964af".toLowerCase(),
+      risk: "Conservative",
     }, // ETH
     {
-      address: '0x175732fBD755c5282dcD1618664e607d487DB5eC'.toLowerCase(),
-      risk: 'Conservative',
+      address: "0x175732fBD755c5282dcD1618664e607d487DB5eC".toLowerCase(),
+      risk: "Conservative",
     }, // USDC
-    {
-      address: '0x83F22f87f504F8b9f10eb73ab05c58A0973b6681'.toLowerCase(),
-      risk: 'Conservative',
-    }, // CHI
+    // { address: "0x83F22f87f504F8b9f10eb73ab05c58A0973b6681".toLowerCase(), risk: "Conservative" } // CHI
   ],
   base: [
     {
-      address: '0x0a19875829fDF28b8e3230A3F1EB46668240cc11'.toLowerCase(),
-      risk: 'Conservative',
+      address: "0x0a19875829fDF28b8e3230A3F1EB46668240cc11".toLowerCase(),
+      risk: "Conservative",
     }, // ETH
     {
-      address: '0x929265aaD975CfeDedb65A19a05A3Be2196766F1'.toLowerCase(),
-      risk: 'Conservative',
+      address: "0x929265aaD975CfeDedb65A19a05A3Be2196766F1".toLowerCase(),
+      risk: "Conservative",
     }, // USDC
     {
-      address: '0x683cc7cbb8b8c5b3c5fae85a4ae70e887217883b'.toLowerCase(),
-      risk: 'Aggressive',
+      address: "0xc68c47085D2B53A0A782c168D1b54a913A668cB5".toLowerCase(),
+      risk: "Conservative",
+    }, // cbBTC
+    {
+      address: "0x683cc7cbb8b8c5b3c5fae85a4ae70e887217883b".toLowerCase(),
+      risk: "Aggressive",
     }, // ETH (high)
     {
-      address: '0xc68c47085D2B53A0A782c168D1b54a913A668cB5'.toLowerCase(),
-      risk: 'Conservative',
-    }, // cbBTC (low)
+      address: "0x5F3810Aa219EadAd29329110777b4671ED0b1A78".toLowerCase(),
+      risk: "Conservative",
+    }, // ETHV2
+    {
+      address: "0x7838a0329CFF90434424952411D5fFE687360F49".toLowerCase(),
+      risk: "Conservative",
+    }, // USDCV2
+    {
+      address: "0xaD9cfEBB7666f2698cA9d836eD8CBeb0545a4263".toLowerCase(),
+      risk: "Conservative",
+    }, // cbBTCV2
+    {
+      address: "0xa1D0f86d74BB7C832308c640b504b8525168Ed62".toLowerCase(),
+      risk: "Aggressive",
+    }, // ETHV2 (high)
   ],
   blast: [
     {
-      address: '0xFBFBd1c9E05c114684Bc447Da5182Fe09315E038'.toLowerCase(),
-      risk: 'Aggressive',
+      address: "0xFBFBd1c9E05c114684Bc447Da5182Fe09315E038".toLowerCase(),
+      risk: "Balanced",
     }, // ETH
+  ],
+  sonic: [
+    {
+      address: "0x49967493310250254Aee27F0AbD2C97b45cb1509".toLowerCase(),
+      risk: "Balanced",
+    }, // ws
+    {
+      address: "0xDD8761dec5dF366a6AF7fE4E15b8f3888c0a905c".toLowerCase(),
+      risk: "Balanced",
+    }, // usdc.e
+    {
+      address: "0x835dA504bEfedC85404ad6A11df278049bc56d12".toLowerCase(),
+      risk: "Balanced",
+    }, // weth
   ],
 };
 
