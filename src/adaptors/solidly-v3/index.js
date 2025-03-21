@@ -114,13 +114,21 @@ async function processPool(pool, prices, blockStart, chain) {
   // Calculate total fees in USD
   let totalFeeUsd = 0;
   for (const [token, fee] of Object.entries(feePerToken)) {
-    const feeUsd = bnToFloat(fee, pool[token].decimals ?? 18) * pool[token].price;
-    totalFeeUsd += feeUsd;
+    const tokenPrice = prices[token];
+    if (tokenPrice) {
+      // Get decimals from pool data
+      const tokenDecimals = token === pool.token0.id.toLowerCase() 
+        ? parseInt(pool.token0.decimals) 
+        : parseInt(pool.token1.decimals);
+      
+      const feeUsd = bnToFloat(fee, tokenDecimals) * tokenPrice.price;
+      totalFeeUsd += feeUsd;
+    }
   }
 
   // Calculate rewards
   const solid = getSolid(chain);
-  const solidPerYearUsd = solid ? 
+  const solidPerYearUsd = solid && prices[solid] ? 
     bnToFloat(pool.solid_per_year, 18) * prices[solid].price : 0;
   
   const rewardTokens = [];
@@ -131,7 +139,7 @@ async function processPool(pool, prices, blockStart, chain) {
   if (pool.tvl > 0) {
     // 20% goes to protocol, 80% to LPs
     apyBase = (totalFeeUsd / pool.tvl) * 365 * 100 * 0.8;
-    apySolid = solid ? (solidPerYearUsd / pool.tvl) * 100 : 0;
+    apySolid = solid && prices[solid] ? (solidPerYearUsd / pool.tvl) * 100 : 0;
     
     if (apySolid > 0) {
       apyReward += apySolid;
@@ -141,8 +149,17 @@ async function processPool(pool, prices, blockStart, chain) {
     // Add other emissions
     for (const emission of pool.emissions_per_year) {
       if (emission.token in prices) {
-        const tokenObj = prices[emission.token];
-        const perYearUsd = bnToFloat(emission.per_year, tokenObj.decimals ?? 18) * tokenObj.price;
+        // Default to 18 decimals for emission tokens not in the pool
+        let emissionDecimals = 18;
+        
+        // Try to get decimals from pool tokens if it's one of them
+        if (emission.token.toLowerCase() === pool.token0.id.toLowerCase()) {
+          emissionDecimals = parseInt(pool.token0.decimals);
+        } else if (emission.token.toLowerCase() === pool.token1.id.toLowerCase()) {
+          emissionDecimals = parseInt(pool.token1.decimals);
+        }
+        
+        const perYearUsd = bnToFloat(emission.per_year, emissionDecimals) * prices[emission.token].price;
         const emissionApy = (perYearUsd / pool.tvl) * 100;
         apyReward += emissionApy;
         rewardTokens.push(emission.token);
@@ -150,11 +167,15 @@ async function processPool(pool, prices, blockStart, chain) {
     }
   }
   
+  // Make sure to use the tokens' actual symbols from the original data
+  const token0Symbol = pool.token0.symbol || 'unknown';
+  const token1Symbol = pool.token1.symbol || 'unknown';
+  
   return {
     pool: pool.id,
     chain,
     project: 'solidly-v3',
-    symbol: `${pool.t0.symbol}-${pool.t1.symbol}`,
+    symbol: `${token0Symbol}-${token1Symbol}`,
     tvlUsd: pool.tvl,
     apyBase,
     apyReward,
@@ -185,10 +206,9 @@ async function processChain(chain, timestamp) {
       const t0 = pool.token0.id.toLowerCase();
       const t1 = pool.token1.id.toLowerCase();
       
-      pool.t0 = prices[t0];
-      pool.t1 = prices[t1];
-      pool[t0] = prices[t0];
-      pool[t1] = prices[t1];
+      // Just store price information
+      pool.t0 = { price: prices[t0].price };
+      pool.t1 = { price: prices[t1].price };
       
       // Get actual balances from blockchain
       const actualBalances = await getActualPoolBalances(pool, chain);

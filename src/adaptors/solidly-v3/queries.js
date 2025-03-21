@@ -286,12 +286,14 @@ async function fetchPools(now, chain) {
  * @returns {Promise<Object>} Token prices
  */
 async function fetchPrices(tokenAddresses, chain) {
+  const config = getChainConfig(chain);
+  const chainId = config.chainId;
   try {
     // Deduplicate and lowercase all addresses
     const uniqueAddresses = [...new Set(tokenAddresses.map(addr => addr.toLowerCase()))];
     
     // Format tokens with chain prefix
-    const tokenIds = uniqueAddresses.map(addr => `${chain}:${addr}`);
+    const tokenIds = uniqueAddresses.map(addr => `token_addresses=${addr}`);
     
     // Chunk requests to avoid URL length limits
     const CHUNK_SIZE = 50;
@@ -305,28 +307,19 @@ async function fetchPrices(tokenAddresses, chain) {
     
     // Process each chunk
     await Promise.all(chunks.map(async (chunk) => {
-      const addressString = chunk.join(',').replaceAll('/', '');
+      const addressString = chunk.join('&').replaceAll('/', '');
       
       if (addressString) {
-        const response = await axios.get(`https://coins.llama.fi/prices/current/${addressString}`);
-        Object.assign(allPrices, response.data.coins);
+        const response = await axios.get(`https://api.odos.xyz/pricing/token/${chainId}?${addressString}`);
+        Object.assign(allPrices, response.data.tokenPrices);
       }
     }));
-    
-    // Remove chain prefix from results
+   
     const formattedPrices = {};
-    Object.entries(allPrices).forEach(([key, value]) => {
-      const address = key.split(':')[1].toLowerCase();
-      formattedPrices[address] = value;
+    Object.entries(allPrices).forEach(([address, value]) => {
+      formattedPrices[address.toLowerCase()] = {price: value??0}
     });
 
-    //make sure any missing prices are set to 0
-    uniqueAddresses.forEach(address => {
-      if (!formattedPrices[address]) {
-        formattedPrices[address] = { price: 0, totalSupply: 0 };
-      }
-    });
-    
     return formattedPrices;
   } catch (error) {
     console.error(`Error fetching prices:`, error);
