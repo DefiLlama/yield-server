@@ -1,8 +1,8 @@
+const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 const { ethers } = require('ethers');
 const superagent = require('superagent');
 
-const { getProvider } = require('@defillama/sdk/build/general');
 const utils = require('../utils');
 
 const dsEthIndex = {
@@ -55,16 +55,10 @@ const getPrice = async (index) => {
   return ethPriceUSD;
 };
 
-const getSupply = async (address) => {
-  const provider = getProvider();
-  const contract = new ethers.Contract(address, SetTokenABI, provider);
-  return await contract.totalSupply();
-};
-
 const getTvlUsd = async (index) => {
   const priceUsd = await getPrice(index);
-  const supply = await getSupply(index.address);
-  const supplyNumber = new BigNumber(supply.toString());
+  const supply = await sdk.api2.erc20.totalSupply({ target: index.address });
+  const supplyNumber = new BigNumber(supply.output.toString());
   const tvlUsd = supplyNumber.div(1e18).toNumber() * priceUsd;
   return tvlUsd;
 };
