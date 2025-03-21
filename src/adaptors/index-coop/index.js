@@ -21,7 +21,8 @@ const SetTokenABI = ['function totalSupply() external view returns (uint256)'];
 
 const buildPool = async (index) => {
   try {
-    const apy = await getApy(index.symbol);
+    const apy = await getApy(index.address);
+    console.log(apy);
     const tvlUsd = await getTvlUsd(index);
     const chain = utils.formatChain(index.chain);
     return {
@@ -37,14 +38,13 @@ const buildPool = async (index) => {
   }
 };
 
-const getApy = async (indexSymbol) => {
-  const indexPath = indexSymbol.toLowerCase();
+const getApy = async (address) => {
   const res = await superagent.get(
-    `https://api.indexcoop.com/${indexPath}/apy`
+    `https://api.indexcoop.com/v2/data/${address}?chainId=1&metrics=apy`
   );
   const json = JSON.parse(res.text);
-  const apy = BigNumber(json.apy);
-  return apy.div(1e18).toNumber();
+  const { APY, Rate, StreamingFee } = json.metrics[0];
+  return APY + Rate + StreamingFee;
 };
 
 const getPrice = async (index) => {
