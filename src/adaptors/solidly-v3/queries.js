@@ -25,7 +25,8 @@ const CHAIN_CONFIG = [
     graphId: 'C8G1vfqsgWTg4ydzxWdsLj1jCKsxAKFamP5GjuSdRF8W',
     alchemyUrl: 'https://base-mainnet.g.alchemy.com/v2/',
     chainId: 8453,
-    solid: '0x777CF5ba9C291A1A8f57FF14836F6F9dC5c0F9Dd' 
+    solid: '0x777CF5ba9C291A1A8f57FF14836F6F9dC5c0F9Dd',
+    blacklistedPools:['0xccc1decbedfa4f8a0d556f30e0a33522e476e7bc'.toLowerCase()] 
   },
   {
     chain: 'arbitrum',
@@ -215,7 +216,7 @@ async function fetchPools(now, chain) {
     let touchedTokens = res.pools.flatMap(pool => [pool.token0.id, pool.token1.id]);
     touchedTokens.push(config.solid); // Add SOLID due to emissions
     
-    const processedPools = res.pools.map(pool => {
+    let processedPools = res.pools.map(pool => {
       // Process SOLID emissions
       const latestSolidEmission = pool.lpSolidEmissions
         .map(emission => ({
@@ -262,6 +263,11 @@ async function fetchPools(now, chain) {
 
       return pool;
     });
+
+    // Filter out blacklisted pools
+    if (config.blacklistedPools) {
+      processedPools = processedPools.filter(pool => !config.blacklistedPools.includes(pool.id.toLowerCase()));
+    }
 
     return {
       pools: processedPools,
