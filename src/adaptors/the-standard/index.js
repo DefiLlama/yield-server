@@ -10,7 +10,8 @@ const gammaPools = [
   '0x6B7635b7d2E85188dB41C3c05B1efa87B143fcE8',
   '0xfA392dbefd2d5ec891eF5aEB87397A89843a8260',
   '0xF08BDBC590C59cb7B27A8D224E419ef058952b5f',
-  '0x547a116a2622876ce1c8d19d41c683c8f7bec5c0'
+  '0x547a116a2622876ce1c8d19d41c683c8f7bec5c0',
+  '0x95375694685E39997828Ed5B17f30f0A3eD90537'
 ];
 
 const unwrappedTokenData = async (tokenAddress, tokenAmount) => {
