@@ -22,7 +22,6 @@ const SetTokenABI = ['function totalSupply() external view returns (uint256)'];
 const buildPool = async (index) => {
   try {
     const apy = await getApy(index.address);
-    console.log(apy);
     const tvlUsd = await getTvlUsd(index);
     const chain = utils.formatChain(index.chain);
     return {
