@@ -172,7 +172,7 @@ async function processPool(pool, prices, blockStart, chain) {
   const token1Symbol = pool.token1.symbol || 'unknown';
   
   return {
-    pool: pool.id,
+    pool: `${chain}:${pool.id}`, // we have duplicated pools across chains because of deterministic addresses
     chain,
     project: 'solidly-v3',
     symbol: `${token0Symbol}-${token1Symbol}`,
