@@ -214,7 +214,7 @@ const getPoolsAPYs = async () => {
 
 module.exports = {
   timetravel: false,
-  start: 18007697,
+  start: 27707209,
   apy: getPoolsAPYs,
   url: 'https://app.degenprime.io/#/pools',
 };
