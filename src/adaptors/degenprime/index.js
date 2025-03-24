@@ -213,7 +213,6 @@ const getPoolsAPYs = async () => {
   return [usdcPool, brettPool, aeroPool, btcPool, ethPool];
 };
 
-//export module
 module.exports = {
   timetravel: false,
   start: 27707209,
