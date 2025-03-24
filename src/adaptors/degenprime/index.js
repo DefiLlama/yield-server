@@ -193,7 +193,7 @@ const getPoolsAPYs = async () => {
     pool: `dgp-${BTC_TOKEN_ADDRESS}-base`,
     chain: utils.formatChain('base'),
     project: 'degenprime',
-    symbol: utils.formatSymbol('cbBTC'),
+    symbol: utils.formatSymbol('BTC'),
     tvlUsd: btcPoolTvl,
     apyBase: await getBtcPoolDepositRate(),
     underlyingTokens: [BTC_TOKEN_ADDRESS],
@@ -213,6 +213,7 @@ const getPoolsAPYs = async () => {
   return [usdcPool, brettPool, aeroPool, btcPool, ethPool];
 };
 
+//export module
 module.exports = {
   timetravel: false,
   start: 27707209,
