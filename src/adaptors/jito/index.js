@@ -24,7 +24,7 @@ const apy = async () => {
       project: 'jito',
       symbol: 'JITOSOL',
       tvlUsd: totalSupply * currentPrice,
-      apyBase: apy,
+      apyBase: Number(apy),
       underlyingTokens: [JITOSOL_ADDRESS],
     },
   ];
