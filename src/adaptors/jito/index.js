@@ -30,4 +30,4 @@ const apy = async () => {
   ];
 };
 
-module.exports = { apy, url: 'https://www.binance.com/en/solana-staking' };
+module.exports = { apy, url: 'https://www.jito.network/staking/' };
