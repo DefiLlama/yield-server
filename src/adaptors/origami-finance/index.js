@@ -20,7 +20,7 @@ const GRAPH_URLS = {
 
 function getSubgraphQuery() {
   const nowUnix = Math.floor(new Date().getTime() / 1000);
-  const averageMetricsTypes = "[AVERAGE_7D_HOURLY]" // ,AVERAGE_1D_HOURLY]"
+  const averageMetricsTypes = "[AVERAGE_7D_HOURLY,AVERAGE_1D_HOURLY]"
   return gql`
   {
     investmentVaults {
