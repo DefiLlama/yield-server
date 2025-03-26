@@ -25,11 +25,11 @@ const SAVING_MODULE = {
 };
 
 const main = async () => {
-    const rate = await sdk.api.abi.call({
+    const rate = (await sdk.api.abi.call({
         target: TOKEN,
         abi: SAVING_MODULE.abis.currentRate,
         chain: 'ethereum',
-    })
+    })).output;
 
     return [{
         apy: (1 + rate / 10 ** 12) ** 365,
