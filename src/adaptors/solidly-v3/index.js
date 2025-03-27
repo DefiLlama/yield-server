@@ -1,269 +1,193 @@
 const utils = require('../utils');
+const {
+  fetch_pools,
+  fetch_prices,
+  block_24h_ago,
+  pool_state_changes,
+  get_solid,
+  bn_to_float,
+  getPoolTicks,
+  get_graph_url,
+} = require('./queries.ts');
+// const { EstimateActiveLiq } = require('./estimateActiveLiq.ts');
 const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
-const {
-  fetchPools,
-  fetchPrices,
-  getBlock24hAgo,
-  getPoolStateChanges,
-  getSolid,
-  bnToFloat,
-} = require('./queries.js');
 
 const ZERO = ethers.BigNumber.from(0);
-const SUPPORTED_CHAINS = ['ethereum', 'base', 'arbitrum', 'optimism', 'fantom', 'sonic'];
 
-/**
- * Determines the input token during a swap
- */
-function getPoolInput(pool, swapData) {
-  const price = Math.abs(
-    ethers.FixedNumber.from(swapData.amount1.toString())
-      .divUnsafe(ethers.FixedNumber.from(swapData.amount0.toString()))
+// - All pools (subgraph) [X]
+// - Solid Emissions per pool (subgraph) [X]
+// - lp token incentives per pool (subgraph) [X]
+// - prices of tokens in usd (the defilama api call) [X]
+// - Fee change events for pools (on chain call) [X]
+// - Swap events for pools (on chain call) [X]
+//    - get fee of the pool at start of the period [X]
+//    - get total fee for each token for period (accounted for pool fee changes) [X]
+//    - get start liq of the pool for tvl [X]
+//    - get how much token the active liq is worth [X] -> Use uniswap v3 adapter code
+//          then active liq range can be inferred from swaps
+//    - price the token liq and fee liq [X]
+//    - get active token emissions [X]
+//    - get active solidly emissions [X]
+//
+// - Balances of pools (range inferred from swap events and use total liquidity indexed by tick then added)
+
+function pool_input(pool, x) {
+  let price = Math.abs(
+    ethers.FixedNumber.from(x.amount1.toString())
+      .divUnsafe(ethers.FixedNumber.from(x.amount0.toString()))
       .toUnsafeFloat()
   );
-  
-  if (swapData.amount0.gt(ZERO)) {
-    return { 
-      token: pool.token0.id.toLowerCase(), 
-      input: swapData.amount0, 
-      price 
-    };
+  if (x.amount0 > ZERO) {
+    return { token: pool.token0.id.toLowerCase(), input: x.amount0, price };
   } else {
-    return { 
-      token: pool.token1.id.toLowerCase(), 
-      input: swapData.amount1, 
-      price 
-    };
+    return { token: pool.token1.id.toLowerCase(), input: x.amount1, price };
   }
 }
 
-/**
- * Converts token amount to decimal based on token decimals
- */
-function convertTokenToDecimal(tokenAmount, decimals) {
-  if (!tokenAmount) return 0;
-  return parseFloat(tokenAmount) / Math.pow(10, decimals);
-}
-
-/**
- * Fetches actual token balances from the blockchain
- */
-async function getActualPoolBalances(pool, chain) {
-  try {
-    const [token0Balance, token1Balance] = await Promise.all([
-      sdk.api.erc20.balanceOf({
-        target: pool.token0.id,
-        owner: pool.id,
-        chain
-      }),
-      sdk.api.erc20.balanceOf({
-        target: pool.token1.id,
-        owner: pool.id,
-        chain
-      })
-    ]);
-    
-    const t0Amount = convertTokenToDecimal(
-      token0Balance.output, 
-      parseInt(pool.token0.decimals)
-    );
-    
-    const t1Amount = convertTokenToDecimal(
-      token1Balance.output,
-      parseInt(pool.token1.decimals)
-    );
-    
-    return { token0: t0Amount, token1: t1Amount };
-  } catch (error) {
-    console.error(`Error fetching balances for pool ${pool.id}:`, error);
-    return null;
+const main = async (timestamp = null) => {
+  if (timestamp == null) {
+    timestamp = Math.floor(Date.now() / 1000.0);
   }
-}
-
-/**
- * Process a single pool to calculate its APY metrics
- */
-async function processPool(pool, prices, blockStart, chain) {
-  // Get fee changes and swap events
-  let { begin_fee, state_changes } = await getPoolStateChanges(
-    pool.id,
-    blockStart,
-    chain
-  );
-  
-  let currentFee = begin_fee;
-  let feePerToken = {
-    [pool.token0.id.toLowerCase()]: ZERO,
-    [pool.token1.id.toLowerCase()]: ZERO
-  };
-
-  for (const event of state_changes) {
-    if (event.event === 'Swap') {
-      const poolInput = getPoolInput(pool, event.args);
-      const swapFee = poolInput.input
-        .mul(currentFee)
-        .div(ethers.BigNumber.from(1_000_000));
-
-      feePerToken[poolInput.token] = feePerToken[poolInput.token].add(swapFee);
-    } else if (event.event === 'SetFee') {
-      currentFee = ethers.BigNumber.from(event.args.feeNew);
-    }
-  }
-
-  // Calculate total fees in USD
-  let totalFeeUsd = 0;
-  for (const [token, fee] of Object.entries(feePerToken)) {
-    const tokenPrice = prices[token];
-    if (tokenPrice) {
-      // Get decimals from pool data
-      const tokenDecimals = token === pool.token0.id.toLowerCase() 
-        ? parseInt(pool.token0.decimals) 
-        : parseInt(pool.token1.decimals);
-      
-      const feeUsd = bnToFloat(fee, tokenDecimals) * tokenPrice.price;
-      totalFeeUsd += feeUsd;
-    }
-  }
-
-  // Calculate rewards
-  const solid = getSolid(chain);
-  const solidPerYearUsd = solid && prices[solid] ? 
-    bnToFloat(pool.solid_per_year, 18) * prices[solid].price : 0;
-  
-  const rewardTokens = [];
-  let apyReward = 0;
-  let apyBase = 0;
-  let apySolid = 0;
-  
-  if (pool.tvl > 0) {
-    // 20% goes to protocol, 80% to LPs
-    apyBase = (totalFeeUsd / pool.tvl) * 365 * 100 * 0.8;
-    apySolid = solid && prices[solid] ? (solidPerYearUsd / pool.tvl) * 100 : 0;
-    
-    if (apySolid > 0) {
-      apyReward += apySolid;
-      rewardTokens.push(solid);
-    }
-    
-    // Add other emissions
-    for (const emission of pool.emissions_per_year) {
-      if (emission.token in prices) {
-        // Default to 18 decimals for emission tokens not in the pool
-        let emissionDecimals = 18;
-        
-        // Try to get decimals from pool tokens if it's one of them
-        if (emission.token.toLowerCase() === pool.token0.id.toLowerCase()) {
-          emissionDecimals = parseInt(pool.token0.decimals);
-        } else if (emission.token.toLowerCase() === pool.token1.id.toLowerCase()) {
-          emissionDecimals = parseInt(pool.token1.decimals);
-        }
-        
-        const perYearUsd = bnToFloat(emission.per_year, emissionDecimals) * prices[emission.token].price;
-        const emissionApy = (perYearUsd / pool.tvl) * 100;
-        apyReward += emissionApy;
-        rewardTokens.push(emission.token);
+  const block_start = await block_24h_ago(timestamp);
+  let { pools, touched_tokens } = await fetch_pools(timestamp);
+  let prices = await fetch_prices(touched_tokens);
+  pools = pools
+    .map((x) => {
+      let t0 = x.token0.id.toLowerCase();
+      let t1 = x.token1.id.toLowerCase();
+      if (!(t0 in prices) || !(t1 in prices)) {
+        return [];
       }
-    }
-  }
-  
-  // Make sure to use the tokens' actual symbols from the original data
-  const token0Symbol = pool.token0.symbol || 'unknown';
-  const token1Symbol = pool.token1.symbol || 'unknown';
-  
-  return {
-    pool: `${chain}:${pool.id}`, // we have duplicated pools across chains because of deterministic addresses
-    chain,
-    project: 'solidly-v3',
-    symbol: `${token0Symbol}-${token1Symbol}`,
-    tvlUsd: pool.tvl,
-    apyBase,
-    apyReward,
-    rewardTokens: [...new Set(rewardTokens)],
-    url: `https://solidly.com/liquidity/manage/${pool.id}/`,
-    underlyingTokens: [pool.token0.id, pool.token1.id],
-  };
-}
-
-/**
- * Process pools for a specific chain
- */
-async function processChain(chain, timestamp) {
-  const blockStart = await getBlock24hAgo(timestamp, chain);
-  const { pools, touched_tokens } = await fetchPools(timestamp, chain);
-  const prices = await fetchPrices(touched_tokens, chain);
-  
-  // Filter pools with available price data
-  const poolsWithPrices = pools.filter(pool => {
-    const t0 = pool.token0.id.toLowerCase();
-    const t1 = pool.token1.id.toLowerCase();
-    return (t0 in prices) && (t1 in prices);
-  });
-  
-  // Enrich pools with additional data
-  const enrichedPools = await Promise.all(
-    poolsWithPrices.map(async (pool) => {
-      const t0 = pool.token0.id.toLowerCase();
-      const t1 = pool.token1.id.toLowerCase();
-      
-      // Just store price information
-      pool.t0 = { price: prices[t0].price };
-      pool.t1 = { price: prices[t1].price };
-      
-      // Get actual balances from blockchain
-      const actualBalances = await getActualPoolBalances(pool, chain);
-      
-      if (actualBalances) {
-        pool.t0_usd = actualBalances.token0 * pool.t0.price;
-        pool.t1_usd = actualBalances.token1 * pool.t1.price;
-      } else {
-        // Fallback to subgraph data
-        const t0Amount = convertTokenToDecimal(
-          pool.totalValueLockedToken0,
-          parseInt(pool.token0.decimals)
-        );
-        const t1Amount = convertTokenToDecimal(
-          pool.totalValueLockedToken1,
-          parseInt(pool.token1.decimals)
-        );
-        pool.t0_usd = t0Amount * pool.t0.price;
-        pool.t1_usd = t1Amount * pool.t1.price;
-      }
-      
-      pool.tvl = pool.t0_usd + pool.t1_usd;
-      return pool;
+      x.t0 = prices[t0];
+      x.t1 = prices[t1];
+      x[t0] = prices[t0];
+      x[t1] = prices[t1];
+      x.t0_usd = parseFloat(x.totalValueLockedToken0) * x.t0.price;
+      x.t1_usd = parseFloat(x.totalValueLockedToken1) * x.t1.price;
+      x.tvl = x.t0_usd + x.t1_usd;
+      return [x];
     })
-  );
+    .flat();
+  // console.log('pools lenght', pools.length);
 
-  // Calculate APY for each pool
-  const poolsWithApy = await Promise.all(
-    enrichedPools.map(pool => processPool(pool, prices, blockStart, chain))
-  );
+  let data = (
+    await Promise.all(
+      pools.map(async (pool) => {
+        let { begin_fee, state_changes, begin_liq } = await pool_state_changes(
+          pool.id,
+          block_start
+        );
+        let current_fee = begin_fee;
+        let fee_per_token = {};
 
-  return poolsWithApy;
-}
+        fee_per_token[pool.token0.id.toLowerCase()] = ZERO;
+        fee_per_token[pool.token1.id.toLowerCase()] = ZERO;
 
-/**
- * Main function to calculate APY for all supported chains
- */
-async function main(timestamp = null) {
-  timestamp = timestamp || Math.floor(Date.now() / 1000);
-  
-  try {
-    // Process all chains in parallel
-    const chainResults = await Promise.all(
-      SUPPORTED_CHAINS.map(chain => processChain(chain, timestamp))
-    );
-    
-    // Combine and filter results
-    return chainResults.flat().filter(p => utils.keepFinite(p));
-  } catch (error) {
-    console.error('Error processing chains:', error);
-    return [];
-  }
-}
+        let touched_prices = [];
+        for (let s of state_changes) {
+          // console.log(s);
+          if (s.event == 'Swap') {
+            // have to take fee from the positive amount
+            let pool_in = pool_input(pool, s.args);
+            touched_prices.push(pool_in.price);
+            let swap_fee = pool_in.input
+              .mul(current_fee)
+              .div(ethers.BigNumber.from(1_000_000));
+
+            fee_per_token[pool_in.token] =
+              fee_per_token[pool_in.token].add(swap_fee);
+
+            // console.log('got swap');
+          } else if (s.event == 'SetFee') {
+            current_fee = ethers.BigNumber.from(s.args.feeNew);
+          }
+        }
+
+        let delta = 0.3;
+        // get the more accurate delta using the prices from the swaps
+        // if (touched_prices.length > 2) {
+        //   let min = Math.min(...touched_prices);
+        //   let max = Math.max(...touched_prices);
+        //   delta = min / max;
+        //   // console.log('NEW DELTA', pool.id, delta);
+        // }
+        let price_assumption = pool.t1.price / pool.t0.price;
+        // pool.active_liq_fraction = await EstimateActiveLiq(
+        //   pool.id,
+        //   price_assumption,
+        //   [price_assumption * (1 - delta), price_assumption * (1 + delta)],
+        //   pool.t1.price,
+        //   pool.t0.price,
+        //   pool.tvl,
+        //   pool.t0.decimals,
+        //   pool.t1.decimals,
+        //   get_graph_url()
+        // );
+        // console.log('ACTIVE LIQ', pool.id, delta, pool.active_liq_fraction);
+
+        // reduce token fees to total fees in window
+        let total_fee_usd = 0.0;
+        for (let [k, v] of Object.entries(fee_per_token)) {
+          let fee_usd = bn_to_float(v, pool[k].decimals) * pool[k].price;
+          total_fee_usd += fee_usd;
+        }
+        pool.solid_per_year_usd =
+          bn_to_float(pool.solid_per_year, 18) * prices[get_solid()].price;
+        pool.rewardTokens = [];
+        pool.apyReward = 0.0;
+        if (pool.tvl != 0) {
+          // the active tvl adjustment for apy
+          // to undo just don't multiply by `active_liq_fraction`
+          // pool.active_tvl = pool.tvl * pool.active_liq_fraction;
+          pool.active_tvl = pool.tvl;
+          // 20% goes to protocol
+          pool.apyBase = (total_fee_usd / pool.active_tvl) * 365 * 100 * 0.8;
+          pool.apySolid = (pool.solid_per_year_usd / pool.tvl) * 100;
+          if (pool.apySolid != 0.0) {
+            pool.apyReward = pool.apySolid;
+            pool.rewardTokens.push(get_solid());
+          }
+          pool.apyEmissions = 0.0;
+          for (let emission of pool.emissions_per_year) {
+            if (emission.token in prices) {
+              let token_obj = prices[emission.token];
+              let per_year_usd =
+                bn_to_float(emission.per_year, token_obj.decimals) *
+                token_obj.price;
+              pool.apyEmissions += (per_year_usd / pool.tvl) * 100;
+              pool.rewardTokens.push(emission.token);
+              pool.apyReward += pool.apyEmissions;
+            }
+          }
+        }
+        pool.symbol = `${pool.t0.symbol}-${pool.t1.symbol}`;
+        // console.log(pool);
+        return pool;
+      })
+    )
+  ).map((pool) => {
+    return {
+      pool: pool.id,
+      chain: 'ethereum',
+      project: 'solidly-v3',
+      symbol: pool.symbol,
+      tvlUsd: pool.tvl,
+      apyBase: pool.apyBase,
+      apyReward: pool.apyReward,
+      rewardTokens: [...new Set(pool.rewardTokens)],
+      url: `https://solidly.com/liquidity/manage/${pool.id}/`,
+      underlyingTokens: [pool.token0.id, pool.token1.id],
+    };
+  });
+  // console.log(data);
+
+  // throw '';
+  // console.log(data);
+  return data.flat().filter((p) => utils.keepFinite(p));
+};
 
 module.exports = {
-  timetravel: true,
+  timetravel: false,
   apy: main,
 };
