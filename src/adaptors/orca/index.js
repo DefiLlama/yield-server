@@ -4,7 +4,7 @@ const utils = require('../utils');
 const getApy = async () => {
   let whirlpools = (
     await axios.get('https://api.mainnet.orca.so/v1/whirlpool/list')
-  ).data.whirlpools;
+  ).data.whirlpools.filter((i) => i.whitelisted === true);
 
   whirlpools = whirlpools.map((p) => {
     const apyReward =
