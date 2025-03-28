@@ -70,7 +70,7 @@ const main = async () => {
         project: 'reservoir-protocol',
         chain: 'Ethereum',
         tvlUsd: (totalSupply / 10 ** 18) * price / 10 ** 8,
-        apy: (1 + rate / 10 ** 12) ** 365,
+        apy: ((1 + rate / 10 ** 12) ** 365 - 1) * 100,
     }];
 };
 
