@@ -5,7 +5,11 @@ async function apy() {
 
   const data = response.data.payload
 
-  return data
+  return data.map(item => ({
+    ...item,
+    tvlUsd: parseFloat(item.tvlUsd),
+    apy: parseFloat(item.apy)
+  }))
 }
 
 
