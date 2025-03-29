@@ -7,6 +7,7 @@ async function apy() {
 
   return data.map(item => ({
     ...item,
+    project: item.project.toLowerCase(),
     tvlUsd: parseFloat(item.tvlUsd),
     apy: parseFloat(item.apy)
   }))
