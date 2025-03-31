@@ -134,7 +134,7 @@ const main = async () => {
         symbol: curvePool?.symbol || merklPool?.platform,
         apy: new BigNumber(curvePool?.apyReward || 0)
           .plus(curvePool?.apyBase || 0)
-          .plus(new BigNumber(1).div(gauge.totalDeposited.boosted).multipliedBy(merklPool?.dailyRewards || 0).multipliedBy(365).multipliedBy(100).multipliedBy(2.5))
+          .plus(new BigNumber(1).div(gauge.totalDeposited.boosted).multipliedBy(merklPool?.dailyRewards || 0).multipliedBy(365).multipliedBy(100))
           .toNumber(),
         tvlUsd,
         rewardTokens: Array.from(new Set(rewardTokens.map( address => address.toLowerCase()))),
