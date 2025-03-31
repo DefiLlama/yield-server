@@ -259,7 +259,7 @@ async function dsr() {
 
   return {
     pool: MCD_POT.address,
-    project: 'makerdao',
+    project: 'sky-lending',
     symbol: 'DAI',
     chain: 'ethereum',
     poolMeta: 'DSR',
@@ -385,7 +385,7 @@ const main = async () => {
       const liquidationRatio = new BigNumber(spot.mat).div(1e27);
       return {
         pool: joins[index],
-        project: 'makerdao',
+        project: 'sky-lending',
         symbol: symbols[index],
         chain: 'ethereum',
         poolMeta: !blackList.includes(ilkIds[index])
@@ -446,7 +446,7 @@ const susdsAPY = async () => {
     {
       pool: sUSDS,
       symbol: 'SUSDS',
-      project: 'makerdao',
+      project: 'sky-lending',
       chain: 'ethereum',
       tvlUsd: totalSupply * price,
       apy,
@@ -462,5 +462,5 @@ const apy = async () => {
 
 module.exports = {
   apy,
-  url: 'https://makerdao.com/',
+  url: 'https://sky.money/',
 };

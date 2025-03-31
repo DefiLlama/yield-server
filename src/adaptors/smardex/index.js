@@ -6,7 +6,12 @@ const {
   BigNumber,
 } = require('ethers');
 const utils = require('../utils');
-const { farmingRangeABI, usdnABI, usdnProtocolABI } = require('./abis');
+const {
+  farmingRangeABI,
+  usdnABI,
+  usdnProtocolABI,
+  wUsdnABI,
+} = require('./abis');
 
 const API_KEY = process.env.SMARDEX_SUBGRAPH_API_KEY;
 
@@ -26,7 +31,8 @@ const SUSDE_TOKEN_ADDRESS = '0x9D39A5DE30e57443BfF2A8307A4256c8797A3497';
 const USDN_TOKEN_ADDRESS = '0xde17a000BA631c5d7c2Bd9FB692EFeA52D90DEE2';
 const WSTETH_TOKEN_ADDRESS = '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0';
 const USDN_PROTOCOL_ADDRESS = '0x656cB8C6d154Aad29d8771384089be5B5141f01a';
-const USDN_PROTOCOL_FIRST_DEPOSIT = 1737570539;
+const USDN_PROTOCOL_FIRST_DEPOSIT = 1737663167;
+const WUSDN_TOKEN_ADDRESS = '0x99999999999999Cc837C997B882957daFdCb1Af9';
 
 const CONFIG = {
   ethereum: {
@@ -361,7 +367,7 @@ const campaignRewardAPY = (
   return apr;
 };
 
-const topLvl = async (
+const topTvl = async (
   chainString,
   url,
   query,
@@ -376,7 +382,7 @@ const topLvl = async (
     STAKING_ADDRESS,
   } = CONFIG[chainString];
   const BLOCKS_PER_YEAR = Math.floor(
-    (60 * 60 * 24 * DAYS_IN_YEAR) / TIME_BETWEEN_BLOCK
+    (SECONDS_IN_DAY * DAYS_IN_YEAR) / TIME_BETWEEN_BLOCK
   );
   const currentTimestamp = timestamp || Math.floor(Date.now() / 1000);
   const timestampPrior = currentTimestamp - SECONDS_IN_DAY;
@@ -490,7 +496,7 @@ const main = async (timestamp = null) => {
   // Fetching data for each chain in parallel
   const resultData = await Promise.allSettled(
     chains.map(async (chain) => {
-      const data = await topLvl(
+      const data = await topTvl(
         chain,
         CONFIG[chain].ENDPOINT,
         query,
@@ -567,6 +573,13 @@ async function fetchUSDNData(chain, timestamp) {
     block,
   });
 
+  const wUsdnSharesRatioCall = sdk.api.abi.call({
+    target: WUSDN_TOKEN_ADDRESS,
+    abi: wUsdnABI.find((m) => m.name === 'SHARES_RATIO'),
+    chain,
+    block,
+  });
+
   const wstEthPrice = await getWstEthPriceAtTimestamp(chain, timestamp);
   const formattedWstEthPrice = BigInt(Math.round(wstEthPrice * 10 ** 18));
 
@@ -580,20 +593,32 @@ async function fetchUSDNData(chain, timestamp) {
     params: [formattedWstEthPrice, BigInt(timestamp)],
   });
 
-  const [usdnDivisor, usdnTotalSupply, usdnVaultAssetAvailableWithFunding] =
-    await Promise.all([
-      usdnDivisorCall,
-      usdnTotalSupplyCall,
-      usdnVaultAssetAvailableWithFundingCall,
-    ]);
+  const [
+    usdnDivisor,
+    usdnTotalSupply,
+    usdnVaultAssetAvailableWithFunding,
+    wUsdnSharesRatio,
+  ] = await Promise.all([
+    usdnDivisorCall,
+    usdnTotalSupplyCall,
+    usdnVaultAssetAvailableWithFundingCall,
+    wUsdnSharesRatioCall,
+  ]);
+
+  const usdnPrice = await getUsdnPriceAtTimestamp(chain, timestamp);
+  const formattedUsdnPrice = BigInt(Math.round(usdnPrice * 10 ** 18));
+  const usdnDivisorOutput = BigInt(usdnDivisor.output);
 
   return {
-    usdnDivisor: BigInt(usdnDivisor.output),
+    usdnDivisor: usdnDivisorOutput,
     usdnTotalSupply: BigInt(usdnTotalSupply.output),
     usdnVaultAssetAvailableWithFunding: BigInt(
       usdnVaultAssetAvailableWithFunding.output
     ),
     wstEthPrice: formattedWstEthPrice,
+    wusdnPrice:
+      (BigInt(wUsdnSharesRatio.output) * formattedUsdnPrice) /
+      usdnDivisorOutput,
   };
 }
 
@@ -605,9 +630,22 @@ const getWstEthPriceAtTimestamp = async (chain, timestamp) => {
   ).coins;
   const wstETHResult = prices[`${chain}:${WSTETH_TOKEN_ADDRESS}`];
   if (wstETHResult === undefined) {
-    throw new Error('No price data found');
+    throw new Error('No price data found for wstETH');
   }
   return wstETHResult.price;
+};
+
+const getUsdnPriceAtTimestamp = async (chain, timestamp) => {
+  const prices = (
+    await utils.getData(
+      `https://coins.llama.fi/prices/historical/${timestamp}/${chain}:${USDN_TOKEN_ADDRESS}`
+    )
+  ).coins;
+  const usdnResult = prices[`${chain}:${USDN_TOKEN_ADDRESS}`];
+  if (usdnResult === undefined) {
+    throw new Error('No price data found for USDN');
+  }
+  return usdnResult.price;
 };
 
 const computeUsdnApr = async (chain = 'ethereum') => {
@@ -622,20 +660,17 @@ const computeUsdnApr = async (chain = 'ethereum') => {
     fetchUSDNData(chain, timestampNow),
   ]);
 
-  const apr =
-    (((first.usdnDivisor *
-      first.usdnTotalSupply *
-      last.usdnVaultAssetAvailableWithFunding *
-      last.wstEthPrice *
-      BIGINT_10_POW_18) /
-      (last.usdnDivisor *
-        last.usdnTotalSupply *
-        first.usdnVaultAssetAvailableWithFunding *
-        first.wstEthPrice) -
-      BIGINT_10_POW_18) *
-      BigInt(YEAR_IN_SECONDS)) /
-    (BigInt(timestampNow) - BigInt(timestampOneYearAgo));
-  return Number(formatEther(apr)) * 100;
+  const elapsedTimeBetweenFirst =
+    (timestampNow - timestampOneYearAgo) / SECONDS_IN_DAY;
+
+  const totalYield =
+    Number(
+      ((last.wusdnPrice - first.wusdnPrice) * BIGINT_10_POW_18) /
+        first.wusdnPrice
+    ) /
+    10 ** 18;
+
+  return (Math.pow(1 + totalYield, 365 / elapsedTimeBetweenFirst) - 1) * 100;
 };
 
 module.exports = {

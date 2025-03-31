@@ -1,0 +1,208 @@
+module.exports = [
+    {
+      inputs: [{ internalType: "address", name: "ownerAddr", type: "address" }],
+      stateMutability: "nonpayable",
+      type: "constructor",
+    },
+    { inputs: [], name: "InvalidPoolAddress", type: "error" },
+    { inputs: [], name: "InvalidRewardTokenAddress", type: "error" },
+    { inputs: [], name: "OwnerOnly", type: "error" },
+    { inputs: [], name: "OwnerRequired", type: "error" },
+    { inputs: [], name: "PoolAddressNotExist", type: "error" },
+    { inputs: [], name: "PoolAlreadyExist", type: "error" },
+    { inputs: [], name: "ReentrantCall", type: "error" },
+    {
+      anonymous: false,
+      inputs: [
+        {
+          indexed: true,
+          internalType: "address",
+          name: "previousOwner",
+          type: "address",
+        },
+        {
+          indexed: true,
+          internalType: "address",
+          name: "newOwner",
+          type: "address",
+        },
+      ],
+      name: "OwnershipTransferred",
+      type: "event",
+    },
+    {
+      anonymous: false,
+      inputs: [
+        {
+          indexed: true,
+          internalType: "address",
+          name: "poolAddress",
+          type: "address",
+        },
+        {
+          indexed: false,
+          internalType: "address",
+          name: "rewardToken",
+          type: "address",
+        },
+        {
+          indexed: false,
+          internalType: "uint16",
+          name: "apyBase",
+          type: "uint16",
+        },
+        {
+          indexed: false,
+          internalType: "uint16",
+          name: "apyReward",
+          type: "uint16",
+        },
+      ],
+      name: "PoolAdded",
+      type: "event",
+    },
+    {
+      anonymous: false,
+      inputs: [
+        {
+          indexed: true,
+          internalType: "address",
+          name: "poolAddress",
+          type: "address",
+        },
+      ],
+      name: "PoolDeleted",
+      type: "event",
+    },
+    {
+      anonymous: false,
+      inputs: [
+        {
+          indexed: true,
+          internalType: "address",
+          name: "poolAddress",
+          type: "address",
+        },
+        {
+          indexed: false,
+          internalType: "address",
+          name: "rewardToken",
+          type: "address",
+        },
+        {
+          indexed: false,
+          internalType: "uint16",
+          name: "apyBase",
+          type: "uint16",
+        },
+        {
+          indexed: false,
+          internalType: "uint16",
+          name: "apyReward",
+          type: "uint16",
+        },
+        {
+          indexed: false,
+          internalType: "uint256",
+          name: "updatedAt",
+          type: "uint256",
+        },
+      ],
+      name: "PoolUpdated",
+      type: "event",
+    },
+    {
+      inputs: [
+        { internalType: "uint16", name: "chainId", type: "uint16" },
+        { internalType: "uint16", name: "apyBase", type: "uint16" },
+        { internalType: "uint16", name: "apyReward", type: "uint16" },
+        { internalType: "address", name: "poolAddress", type: "address" },
+        { internalType: "address", name: "rewardToken", type: "address" },
+      ],
+      name: "addPool",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    {
+      inputs: [
+        { internalType: "address", name: "poolAddress", type: "address" },
+        { internalType: "uint16", name: "chainId", type: "uint16" },
+      ],
+      name: "deletePool",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    {
+      inputs: [{ internalType: "address", name: "poolAddress", type: "address" }],
+      name: "getPoolInfo",
+      outputs: [
+        {
+          components: [
+            { internalType: "uint16", name: "apyBase", type: "uint16" },
+            { internalType: "uint16", name: "apyReward", type: "uint16" },
+            { internalType: "uint256", name: "updatedAt", type: "uint256" },
+            { internalType: "address", name: "rewardToken", type: "address" },
+          ],
+          internalType: "struct APYRegistry.PoolInfo",
+          name: "",
+          type: "tuple",
+        },
+      ],
+      stateMutability: "view",
+      type: "function",
+    },
+    {
+      inputs: [{ internalType: "uint16", name: "chainId", type: "uint16" }],
+      name: "getPools",
+      outputs: [{ internalType: "address[]", name: "", type: "address[]" }],
+      stateMutability: "view",
+      type: "function",
+    },
+    {
+      inputs: [{ internalType: "bytes[]", name: "data", type: "bytes[]" }],
+      name: "multicall",
+      outputs: [{ internalType: "bytes[]", name: "results", type: "bytes[]" }],
+      stateMutability: "payable",
+      type: "function",
+    },
+    {
+      inputs: [],
+      name: "owner",
+      outputs: [{ internalType: "address", name: "", type: "address" }],
+      stateMutability: "view",
+      type: "function",
+    },
+    {
+      inputs: [{ internalType: "address", name: "newOwner", type: "address" }],
+      name: "transferOwnership",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    {
+      inputs: [
+        { internalType: "address", name: "poolAddress", type: "address" },
+        { internalType: "uint16", name: "apyBase", type: "uint16" },
+        { internalType: "uint16", name: "apyReward", type: "uint16" },
+        { internalType: "address", name: "rewardToken", type: "address" },
+      ],
+      name: "updatePool",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+    {
+      inputs: [
+        { internalType: "address", name: "poolAddress", type: "address" },
+        { internalType: "uint16", name: "apyBase", type: "uint16" },
+        { internalType: "uint16", name: "apyReward", type: "uint16" },
+      ],
+      name: "updatePoolAPYs",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
+  ];
+  
