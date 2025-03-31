@@ -7,7 +7,7 @@ const GECKOTERMINAL_IDS = {
   base: 'base',
   scroll: 'scroll',
   optimism: 'optimism',
-  real: 'real',
+  real: 're-al',
   blast: 'blast',
   sonic: 'sonic'
 }

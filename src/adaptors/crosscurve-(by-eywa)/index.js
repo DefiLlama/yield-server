@@ -91,7 +91,6 @@ const main = async () => {
       if (Array.isArray(curvePool?.underlyingTokens)) {
         underlyingTokens.push(...curvePool.underlyingTokens)
       }
-
       if (merklPool?.tokens) {
         underlyingTokens.push(...merklPool.tokens.map(token => token.address.toLowerCase()))
       }
@@ -106,26 +105,6 @@ const main = async () => {
       } else {
         tvlUsd = new BigNumber(curvePool?.tvlUsd || 0).plus(merklPool?.tvlUsd || 0).toNumber()
       }
-
-      // if (address === '0x38dd6b3c096c8cbe649fa0039cc144f333be8e61') {
-      //   console.log("ADDRESS", address)
-      //   console.log("CURVE", curvePool)
-      //   console.log("MERKL", merklPool)
-      //   console.log("GAUGE", gauge)
-      //   console.log("RES", {
-      //     pool: address,
-      //     chain: curvePool?.chain || chainIdMap[merklPool?.chainId],
-      //     project: 'crosscurve-(by-eywa)',
-      //     symbol: curvePool?.symbol || merklPool?.platform,
-      //     apy: new BigNumber(curvePool?.apyReward || 0)
-      //       .plus(curvePool?.apyBase || 0)
-      //       .plus(new BigNumber(1).div(gauge.totalDeposited.boosted).multipliedBy(merklPool?.dailyRewards || 0).multipliedBy(365).multipliedBy(100).multipliedBy(2.5))
-      //       .toNumber(),
-      //     tvlUsd,
-      //     rewardTokens: Array.from(new Set(rewardTokens.map( address => address.toLowerCase()))),
-      //     underlyingTokens: Array.from(new Set(underlyingTokens.map( address => address.toLowerCase()))),
-      //   })
-      // }
 
       return {
         pool: address,

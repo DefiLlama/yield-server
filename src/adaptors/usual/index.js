@@ -66,6 +66,13 @@ const apy = async () => {
 
 	const ethData = await getChainData(CONFIG.ETHEREUM);
 	const arbData = await getChainData(CONFIG.ARBITRUM);
+	const usualxSupply = await getTokenSupply('Ethereum', '0x06B964d96f5dCF7Eae9d7C559B09EDCe244d4B8E');
+	const usualxPrice = await getTokenPrice('Ethereum', '0x06B964d96f5dCF7Eae9d7C559B09EDCe244d4B8E');
+	const { data: usualxRewardData } = await axios.get('https://app.usual.money/api/rewards/rates/USUALx');
+	const usualxReward = usualxRewardData.rewards.find(
+		(e) => CONFIG.USUAL_TOKEN.toLowerCase() === e.rewardToken.toLowerCase()
+	);
+	const usualxApyReward = utils.aprToApy(usualxReward.apr, 52) * 100;
 
 	return [
 		createPoolData(
@@ -81,7 +88,18 @@ const apy = async () => {
 			arbData.supply * arbData.price,
 			apyReward,
 			CONFIG.ARBITRUM.USD0
-		)
+		),
+		{
+			pool: '0x06B964d96f5dCF7Eae9d7C559B09EDCe244d4B8E',
+			chain: "Ethereum",
+			project: 'usual',
+			symbol: "USUALx",
+			tvlUsd: usualxSupply * usualxPrice,
+			apyReward: usualxApyReward,
+			rewardTokens: [CONFIG.USUAL_TOKEN],
+			underlyingTokens: ['0xC4441c2BE5d8fA8126822B9929CA0b81Ea0DE38E'],
+			url: 'https://app.usual.money/swap?action=stake&from=USUAL&to=USUALx'
+		}
 	];
 };
 

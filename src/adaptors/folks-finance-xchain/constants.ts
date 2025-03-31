@@ -8,7 +8,7 @@ const GENERAL_LOAN_TYPE = 2;
 
 const loanManagerAddress = '0xF4c542518320F09943C35Db6773b2f9FeB2F847e';
 
-const rewardsV1Address = '0x7c532A6209350cF27EfC3D06E82E35ACFd362C7C';
+const rewardsV2Address = '0x3E85a56C2202Ec067EB4Ac090db3e8149dA46d19';
 
 const HubPools = {
   avax: {
@@ -177,6 +177,51 @@ const HubPools = {
       },
     ],
   },
+  polygon: {
+    name: 'Polygon',
+    pools: [
+      // excluding USDC cause bridged
+      {
+        // POL
+        id: 19,
+        underlyingSymbol: 'POL',
+        poolAddress: '0x481cF0c02BF17a33753CE32f1931ED9990fFB40E',
+        tokenAddress: '0x0000000000000000000000000000000000000000',
+        spokeAddress: '0x4Db12F554623E4B0b3F5bAcF1c8490D4493380A5',
+      },
+      {
+        // wBTC_pol
+        id: 20,
+        underlyingSymbol: 'WBTC',
+        poolAddress: '0x7054254933279d93D97309745AfbFF9310cdb570',
+        tokenAddress: '0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6',
+        spokeAddress: '0x1A40208E9506E08a6f62DbCCf8de7387743179E9',
+      },
+      {
+        // wETH_pol
+        id: 21,
+        underlyingSymbol: 'WETH',
+        poolAddress: '0x88Ae56886233C706409c74c3D4EA9A9Ac1D65ab2',
+        tokenAddress: '0x7ceb23fd6bc0add59e62ac25578270cff1b9f619',
+        spokeAddress: '0x2e6e4603536078bd7661338F06FB93cf6F9b7A98',
+      },
+    ],
+  },
+};
+
+const RewardsTokenV2 = {
+  // AVAX (Avalanche)
+  1: {
+    chain: 'avax',
+    tokenAddress: '0x0000000000000000000000000000000000000000',
+    spokeAddress: '0x2aa8FeE178A79182C4b7c61EfeB4227Cb8843915',
+  },
+  // GoGoPool (Avalanche)
+  2: {
+    chain: 'avax',
+    tokenAddress: '0x69260b9483f9871ca57f81a90d91e2f96c2cd11d',
+    spokeAddress: '0xb14f2576BE100CFE3B274233091A841f1E040604',
+  },
 };
 
 module.exports = {
@@ -187,5 +232,6 @@ module.exports = {
   EVERY_SECOND,
   GENERAL_LOAN_TYPE,
   loanManagerAddress,
-  rewardsV1Address,
+  rewardsV2Address,
+  RewardsTokenV2,
 };

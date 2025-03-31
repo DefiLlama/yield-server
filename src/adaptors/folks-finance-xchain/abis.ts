@@ -280,8 +280,8 @@ const HubPoolAbi = {
   },
 };
 
-const RewardsV1Abi = {
-  getActiveEpoch: {
+const RewardsV2Abi = {
+  getActivePoolEpoch: {
     inputs: [
       {
         internalType: 'uint8',
@@ -289,7 +289,7 @@ const RewardsV1Abi = {
         type: 'uint8',
       },
     ],
-    name: 'getActiveEpoch',
+    name: 'getActivePoolEpoch',
     outputs: [
       {
         internalType: 'uint16',
@@ -309,12 +309,24 @@ const RewardsV1Abi = {
             type: 'uint256',
           },
           {
-            internalType: 'uint256',
-            name: 'totalRewards',
-            type: 'uint256',
+            components: [
+              {
+                internalType: 'uint8',
+                name: 'rewardTokenId',
+                type: 'uint8',
+              },
+              {
+                internalType: 'uint256',
+                name: 'totalRewards',
+                type: 'uint256',
+              },
+            ],
+            internalType: 'struct HubRewardsV2.EpochReward[]',
+            name: 'rewards',
+            type: 'tuple[]',
           },
         ],
-        internalType: 'struct RewardsV1.Epoch',
+        internalType: 'struct HubRewardsV2.Epoch',
         name: 'epoch',
         type: 'tuple',
       },
@@ -327,5 +339,5 @@ const RewardsV1Abi = {
 module.exports = {
   LoanManagerAbi,
   HubPoolAbi,
-  RewardsV1Abi,
+  RewardsV2Abi,
 };

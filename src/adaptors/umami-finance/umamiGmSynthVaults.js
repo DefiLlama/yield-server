@@ -13,6 +13,8 @@ const {
 const { default: BigNumber } = require('bignumber.js');
 const { formatUnits } = require('ethers/lib/utils.js');
 
+const INCENTIVES_ENABLED = false;
+
 // returns the weights of GMX GM tokens held in the GMI vault
 const getGmiGmMarketsWeights = async (gmiContract) => {
   const weights = await gmiContract.methods.getWeights().call();
@@ -83,7 +85,7 @@ const getUmamiGmSynthsVaultsYield = async (chain, gmMarketsInfos) => {
       url: vault.url,
     };
 
-    if (rewardToken) {
+    if (INCENTIVES_ENABLED) {
       const vaultIncentivesApr = await getIncentivesAprForVault(vault, chain);
       vaultObject = {
         ...vaultObject,
