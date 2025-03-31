@@ -168,25 +168,25 @@ const getProject = (chain, factoryAddress) => {
 
 const lendingVaultsConfig = {
   polygon: [
-    'https://api.studio.thegraph.com/query/46041/lending-vault-polygon/v0.0.1',
+    'https://api.studio.thegraph.com/query/46041/lending-vault-polygon/v0.0.2',
   ],
   arbitrum: [
-    'https://api.studio.thegraph.com/query/46041/lending-vault-arbitrum/v0.0.1',
+    'https://api.studio.thegraph.com/query/46041/lending-vault-arbitrum/v0.0.3',
   ],
   base: [
-    'https://api.studio.thegraph.com/query/46041/lending-vault-base/v0.0.1',
+    'https://api.studio.thegraph.com/query/46041/lending-vault-base/v0.0.3',
   ],
   scroll: [
-    'https://api.studio.thegraph.com/query/46041/lending-vault-scroll/v0.0.1',
+    'https://api.studio.thegraph.com/query/46041/lending-vault-scroll/v0.0.2',
   ],
   real: [],
   fantom: [],
   optimism: [],
   ethereum: [],
   blast: [
-    'https://api.studio.thegraph.com/query/46041/lending-vault-blast/v0.0.1',
+    'https://api.studio.thegraph.com/query/46041/lending-vault-blast/v0.0.2',
   ],
-  sonic: ['https://api.studio.thegraph.com/query/46041/lending-vault-sonic/v0.0.1'],
+  sonic: ['https://api.studio.thegraph.com/query/46041/lending-vault-sonic/v0.0.2'],
 };
 
 const lendingVaultProfiles = {
@@ -207,6 +207,14 @@ const lendingVaultProfiles = {
       address: "0x069C1372b1Ebf3c9aBc3d37e673584962C52a0Ac".toLowerCase(),
       risk: "Conservative",
     }, // USDCV2
+    {
+      address: "0x1a0e2d1071e43cfee561cb486a01b6dc8b64c496".toLowerCase(),
+      risk: "Conservative"
+    },
+    {
+      address: "0x118b5047b05f64534a92bf4cdc2f14fc6cc5b592".toLowerCase(),
+      risk: "Conservative"
+    }
   ],
   polygon: [
     {
