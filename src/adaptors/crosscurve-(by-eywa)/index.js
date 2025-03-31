@@ -145,7 +145,6 @@ const main = async () => {
     console.log(error)
   }
 }
-main();
 
 module.exports = {
   timetravel: false,
