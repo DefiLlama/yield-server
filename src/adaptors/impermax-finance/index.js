@@ -570,7 +570,7 @@ const main = async () => {
         pool: `${lendingVault?.address}-${underlying.symbol}-${chain}`.toLowerCase(),
         poolMeta: `${lendingVault?.risk}`,
         chain,
-        project: 'impermax-finance',
+        project: 'impermax-v2',
         symbol: underlying.symbol,
         tvlUsd,
         apyBase,
