@@ -533,7 +533,7 @@ const main = async () => {
         pool: `${lendingPool.id}-${underlying.symbol}-${chain}`.toLowerCase(),
         poolMeta: `${project} ${token0.symbol}/${token1.symbol}`,
         chain,
-        project: 'impermax-finance',
+        project: 'impermax-v2',
         symbol: underlying.symbol,
         tvlUsd: tvlUsd.toNumber(),
         totalBorrowUsd: totalBorrowsUsd.toNumber(),
