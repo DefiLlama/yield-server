@@ -17,7 +17,8 @@ const { GECKOTERMINAL_IDS } = require('./geckoterminal.js');
  */
 
 const config = {
-  arbitrum: ["https://arbitrum-factory-v3-production.up.railway.app/"]
+  arbitrum: ["https://arbitrum-factory-v3-production.up.railway.app/"],
+  base: ["https://base-factory-v3-production.up.railway.app/"]
 };
 
 // NFTLP factory address
@@ -25,6 +26,9 @@ const projectPoolFactories = {
   arbitrum: {
     UniswapV3: ['0x4936b5aafe83611aa2fa926a683973ddb48ce7f1'],
   },
+  base: { 
+    UniswapV3: ['0xe5d6cf969c01bf8d6c46840ed784d7f209038d7a']
+  }
 };
 
 /**
