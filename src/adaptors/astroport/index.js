@@ -33,7 +33,7 @@ const getRewardTokens = (pool) => {
 const apy = async () => {
   let results = (
     await axios.get(
-      'https://app.astroport.fi/api/trpc/pools.getAll?input=%7B%22json%22%3A%7B%22chainId%22%3A%5B%22neutron-1%22%5D%7D%7D'
+      'https://app.astroport.fi/api/trpc/pools.getAll?input=%7B%22json%22%3A%7B%22chainId%22%3A%22neutron-1%22%7D%7D'
     )
   ).data.result.data.json;
 
@@ -61,7 +61,7 @@ const apy = async () => {
         apyBase,
         apyReward,
         rewardTokens: getRewardTokens(pool) ?? null,
-        underlyingTokens: [pool.token0Address, pool.token1Address],
+        underlyingTokens: [pool.assets[0].address, pool.assets[1].address],
         url: `https://app.astroport.fi/pools/${pool.poolAddress}/provide`,
       };
     });

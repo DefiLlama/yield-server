@@ -1,8 +1,6 @@
 const utils = require('../utils');
-const { request, gql } = require('graphql-request');
 const axios = require('axios');
 
-const api = 'https://api-v2.pendle.finance/core/graphql';
 const chains = {
   1: {
     chainName: 'ethereum',
@@ -24,92 +22,92 @@ const chains = {
     chainSlug: 'optimism',
     PENDLE: '0xBC7B1Ff1c6989f006a1185318eD4E7b5796e66E1',
   },
+  146: {
+    chainName: 'sonic',
+    chainSlug: 'sonic',
+    PENDLE: '0xf1ef7d2d4c0c881cd634481e0586ed5d2871a74b',
+  },
+  8453: {
+    chainName: 'base',
+    chainSlug: 'base',
+    PENDLE: '0xa99f6e6785da0f5d6fb42495fe424bce029eeb3e',
+  },
+  5000: {
+    chainName: 'mantle',
+    chainSlug: 'mantle',
+    PENDLE: '0xd27b18915e7acc8fd6ac75db6766a80f8d2f5729',
+  },
 };
 
-const query = (chainId) => gql`
-  {
-    markets(chainId: ${chainId}, limit: 100) {
-      results {
-        chainId
-        aggregatedApy
-        pendleApy
-        impliedApy
-        proName
-        address
-        expiry
-        pt {
-          address
-          symbol
-        }
-        sy {
-          address
-          underlyingAsset {
-            address
-            symbol
-          }
-        }
-        liquidity {
-          usd
-        }
-      }
-    }
-  }
-`;
+function splitId(id) {
+  const [chainId, address] = id.split('-');
+  return { chainId, address };
+}
 
-function poolApys(pools) {
+function expiryToText(dateIso) {
+  return new Date(dateIso)
+    .toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    })
+    .replace(/ /g, '')
+    .toUpperCase();
+}
+
+function poolApys(chainId, pools) {
   return pools.map((p) => ({
     pool: p.address,
-    chain: utils.formatChain(chains[p.chainId].chainName),
+    chain: utils.formatChain(chains[chainId].chainName),
     project: 'pendle',
-    symbol: utils.formatSymbol(p.proName),
-    tvlUsd: p.liquidity?.usd,
-    apyBase: (p.aggregatedApy - p.pendleApy) * 100,
-    apyReward: p.pendleApy * 100,
-    rewardTokens: [chains[p.chainId].PENDLE],
-    underlyingTokens: [p.pt.address, p.sy.address],
-    poolMeta: `For LP | Maturity ${p.pt.symbol.split('-').at(-1)}`,
-    url: `https://app.pendle.finance/trade/pools/${p.address}/zap/in?chain=${
-      chains[p.chainId].chainSlug
-    }`,
+    symbol: utils.formatSymbol(p.name),
+    tvlUsd: p.details.liquidity,
+    apyBase: (p.details.aggregatedApy - p.details.pendleApy) * 100,
+    apyReward: p.details.pendleApy * 100,
+    rewardTokens: [chains[chainId].PENDLE],
+    underlyingTokens: [splitId(p.pt).address, splitId(p.sy).address],
+    poolMeta: `For LP | Maturity ${expiryToText(p.expiry)}`,
+    url: `https://app.pendle.finance/trade/pools/${p.address}/zap/in?chain=${chains[chainId].chainSlug}`,
   }));
 }
-function ptApys(pools) {
+
+function ptApys(chainId, pools) {
   return pools.map((p) => ({
-    pool: p.pt.address,
-    chain: utils.formatChain(chains[p.chainId].chainName),
+    pool: splitId(p.pt).address,
+    chain: utils.formatChain(chains[chainId].chainName),
     project: 'pendle',
-    symbol: utils.formatSymbol(p.proName),
-    tvlUsd: p.liquidity?.usd,
-    apyBase: p.impliedApy * 100,
-    underlyingTokens: [p.underlyingAsset.address],
-    poolMeta: `For buying ${p.pt.symbol}`,
-    url: `https://app.pendle.finance/trade/markets/${
-      p.address
-    }/swap?view=pt&chain=${chains[p.chainId].chainSlug}&py=output`,
+    symbol: utils.formatSymbol(p.name),
+    tvlUsd: p.details.liquidity,
+    apyBase: p.details.impliedApy * 100,
+    underlyingTokens: [splitId(p.underlyingAsset).address],
+    poolMeta: `For buying PT-${p.name}-${expiryToText(p.expiry)}`,
+    url: `https://app.pendle.finance/trade/markets/${p.address}/swap?view=pt&chain=${chains[chainId].chainSlug}&py=output`,
   }));
 }
 
 async function apy() {
   const date = new Date();
-
-  let pools = (
-    await axios.get(
-      'https://api-v2.pendle.finance/bff/v1/1/markets?skip=0&limit=100&select=pro&is_active=true'
-    )
-  ).data.results
-    .flat()
-    .filter((p) => p.liquidity != null && new Date(p.expiry) > date);
-  pools = [poolApys(pools), ptApys(pools)]
-    .flat()
-    .sort((a, b) => b.tvlUsd - a.tvlUsd);
-
-  const unique = new Set();
   const poolsFiltered = [];
-  for (const p of pools) {
-    if (unique.has(p.pool)) continue;
-    poolsFiltered.push(p);
-    unique.add(p.pool);
-  }
+
+  await Promise.all(
+    Object.keys(chains).map(async (chainId) => {
+      let pools = (
+        await axios.get(
+          `https://api-v2.pendle.finance/core/v1/${chainId}/markets/active`
+        )
+      ).data.markets;
+      pools = [poolApys(chainId, pools), ptApys(chainId, pools)]
+        .flat()
+        .sort((a, b) => b.tvlUsd - a.tvlUsd);
+
+      const unique = new Set();
+      for (const p of pools) {
+        if (unique.has(p.pool)) continue;
+        poolsFiltered.push(p);
+        unique.add(p.pool);
+      }
+    })
+  );
 
   return poolsFiltered;
 }
