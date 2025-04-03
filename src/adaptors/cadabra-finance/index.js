@@ -17,6 +17,12 @@ const cadabraConfig = [
     vault: '0x31206FFb663651aBe29cCb72aD213d5F95BdaC45',
     fromBlock: 293021794,
   },
+  {
+    chain: 'sonic',
+    abra: '0xcA1c644704feBf4ab81f85daca488d1623C28e63',
+    vault: '0x575Ac25f047A76B467A84BfA69b328D6ebC6aE60',
+    fromBlock: 13212801,
+  },
 ]
 
 const networkMapping = {
@@ -28,6 +34,7 @@ const networkMapping = {
   122: 'fuse',
   128: 'heco',
   137: 'polygon',
+  146: 'sonic',
   169: 'manta',
   250: 'fantom',
   252: 'fraxtal',
