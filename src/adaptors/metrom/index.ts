@@ -11,7 +11,7 @@ const CHAIN_NAMES: Record<number, string> = {
   146: 'Sonic',
   478: 'Form',
   100: 'Gnosis',
-  1890: 'LightLink',
+  1_890: 'LightLink',
 };
 
 interface Erc20Token {
@@ -26,7 +26,7 @@ interface AmmPool {
 interface AmmPoolLiquidityTarget {
   type: 'amm-pool-liquidity';
   chainId: number;
-  poolAddress: string;
+  poolId: string;
 }
 
 interface TokenDistributable {
@@ -80,7 +80,7 @@ module.exports = {
         response.resolvedAmmPools[campaign.target.chainId];
       if (!resolvedPoolsByChain) continue;
 
-      const resolvedPool = resolvedPoolsByChain[campaign.target.poolAddress];
+      const resolvedPool = resolvedPoolsByChain[campaign.target.poolId];
       if (!resolvedPool) continue;
 
       const poolTokenSymbols = [];
