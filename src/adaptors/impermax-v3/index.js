@@ -21,6 +21,29 @@ const config = {
   base: ["https://base-factory-v3-production.up.railway.app/"]
 };
 
+const lendingVaultsConfig = {
+  polygon: [
+    'https://api.studio.thegraph.com/query/46041/lending-vault-polygon/v0.0.2',
+  ],
+  arbitrum: [
+    'https://api.studio.thegraph.com/query/46041/lending-vault-arbitrum/v0.0.3',
+  ],
+  base: [
+    'https://api.studio.thegraph.com/query/46041/lending-vault-base/v0.0.3',
+  ],
+  scroll: [
+    'https://api.studio.thegraph.com/query/46041/lending-vault-scroll/v0.0.2',
+  ],
+  real: [],
+  fantom: [],
+  optimism: [],
+  ethereum: [],
+  blast: [
+    'https://api.studio.thegraph.com/query/46041/lending-vault-blast/v0.0.2',
+  ],
+  sonic: ['https://api.studio.thegraph.com/query/46041/lending-vault-sonic/v0.0.2'],
+};
+
 // NFTLP factory address
 const projectPoolFactories = {
   arbitrum: {
@@ -29,6 +52,39 @@ const projectPoolFactories = {
   base: { 
     UniswapV3: ['0xe5d6cf969c01bf8d6c46840ed784d7f209038d7a']
   }
+};
+
+// Only list balanced/aggressive vaults as default is conservative
+const lendingVaultProfiles = {
+  arbitrum: [],
+  polygon: [],
+  scroll: [],
+  base: [
+    {
+      address: "0xaD9cfEBB7666f2698cA9d836eD8CBeb0545a4263".toLowerCase(),
+      risk: "Aggressive",
+    },
+  ],
+  blast: [
+    {
+      address: "0xFBFBd1c9E05c114684Bc447Da5182Fe09315E038".toLowerCase(),
+      risk: "Balanced",
+    }, // ETH
+  ],
+  sonic: [
+    {
+      address: "0x49967493310250254Aee27F0AbD2C97b45cb1509".toLowerCase(),
+      risk: "Balanced",
+    }, // ws
+    {
+      address: "0xDD8761dec5dF366a6AF7fE4E15b8f3888c0a905c".toLowerCase(),
+      risk: "Balanced",
+    }, // usdc.e
+    {
+      address: "0x835dA504bEfedC85404ad6A11df278049bc56d12".toLowerCase(),
+      risk: "Balanced",
+    }, // weth
+  ],
 };
 
 /**
@@ -45,6 +101,22 @@ const getChainBorrowables = async (chain) => {
 
   const blacklist = blacklistedLendingPools[chain] || [];
   return allBorrowables.filter((i) => !blacklist.includes(i.lendingPool.id));
+};
+
+/**
+ * Gets all deployed lending vaults in `chain`
+ */
+const getChainVaults = async (chain) => {
+  const urls = lendingVaultsConfig[chain];
+  let allLendingVaults = [];
+
+  for (const url of urls) {
+    const queryResult = await request(url, vaultGraphQuery);
+    allLendingVaults = allLendingVaults.concat(queryResult.lendingVaults);
+  }
+
+  const blacklist = blacklistedLendingVaults[chain] || [];
+  return allLendingVaults.filter((i) => !blacklist.includes(i.id));
 };
 
 /**
@@ -211,7 +283,10 @@ const main = async () => {
   const chains = Object.keys(config);
 
   for (const chain of chains) {
-    const borrowables = await getChainBorrowables(chain);
+    const [borrowables, lendingVaults] = await Promise.all([
+      getChainBorrowables(chain),
+      getChainVaults(chain),
+    ]);
 
     const prices = await getChainUnderlyingPrices(
       chain,
@@ -279,6 +354,37 @@ const main = async () => {
         underlyingTokens: [token0.id, token1.id],
         ltv: Number(ltv.toFixed(3)),
         url: 'https://impermax.finance',
+      });
+    }
+
+    /**
+     * Add lending vaults
+     */
+    for (const vault of lendingVaults) {
+      const { id, supplyRate, underlying, availableLiquidity } = vault;
+
+      const price = prices[`${chain}:${underlying.id}`];
+      if (!price) {
+        console.warn(`Missing price, skipping vault ${vault.id} `);
+        continue;
+      }
+
+      const apyBase = Number(supplyRate) * 24 * 60 * 60 * 365 * 100;
+      const tvlUsd = price * Number(availableLiquidity);
+
+      const chainVaults = lendingVaultProfiles[chain] || [];
+      const vaultRisk = chainVaults.find((v) => v?.address.toLowerCase() === id.toLowerCase())?.risk ?? "Conservative";
+
+      pools.push({
+        pool: `${id}-${underlying.symbol}-${chain}`.toLowerCase(),
+        poolMeta: `${vaultRisk}`,
+        chain,
+        project: 'impermax-v3',
+        symbol: underlying.symbol,
+        tvlUsd,
+        apyBase,
+        underlyingTokens: [underlying.id],
+        url: 'https://lite.impermax.finance/',
       });
     }
   }
