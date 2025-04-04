@@ -1,7 +1,8 @@
 const superagent = require('superagent');
+const sdk = require('@defillama/sdk');
 
 const abi = require('./abi.js');
-const sdk = require('@defillama/sdk');
+const { keepFinite } = require('../utils.js');
 
 const markets = [
   {
@@ -197,7 +198,7 @@ const main = async (pool) => {
   const collateralTotalSupplyUsd = tokens.map(
     (t, i) =>
       (Number(totalsCollateral[i].totalSupplyAsset) *
-        prices[`${pool.chain}:${t}`].price) /
+        prices[`${pool.chain}:${t}`]?.price) /
       10 ** Number(collateralDecimals[i])
   );
 
@@ -266,8 +267,8 @@ const main = async (pool) => {
   // 2) usdc pool
   // --- calc apy's
   const secondsPerYear = 60 * 60 * 24 * 365;
-  const compPrice = prices[`${pool.chain}:${pool.rewardToken}`].price;
-  const usdcPrice = prices[`${pool.chain}:${pool.underlying}`].price;
+  const compPrice = prices[`${pool.chain}:${pool.rewardToken}`]?.price;
+  const usdcPrice = prices[`${pool.chain}:${pool.underlying}`]?.price;
 
   // supply side
   const totalSupplyUsd = (totalSupply / 10 ** decimals) * usdcPrice;
@@ -314,7 +315,7 @@ const main = async (pool) => {
 
 const apy = async () => {
   const pools = (await Promise.all(markets.map((p) => main(p)))).flat();
-  return pools;
+  return pools.filter((i) => keepFinite(i));
 };
 
 module.exports = {

@@ -34,7 +34,7 @@ const getGauges = async () => {
 
 const merkl = async () => {
   try {
-    const response = await fetch('https://api.merkl.xyz/v3/opportunity?campaigns=true&testTokens=false', {
+    const response = await fetch('https://api.merkl.xyz/v4/opportunities?mainProtocolId=crosscurve', {
       timeout: 10000
     });
     
@@ -68,13 +68,13 @@ const resolveMerklPool = (merklData, address) => {
 const main = async () => {
   try {
     const gauges = await getGauges();
-    const addresses = Object.keys(gauges);
+    const addresses = Object.keys(gauges).map((address) => address.toLowerCase());
     const curveData = await curve.apy();
     const merklData = await merkl();
 
     return Promise.all(addresses.map(async (address) => {
       const curvePool = curveData.find((pool) => pool.pool.split('-').at(0).toLowerCase() === address);
-      const merklPool = resolveMerklPool(merklData, address);
+      const merklPool = merklData.find(data => data.explorerAddress.toLowerCase() === address);
       const gauge = gauges[address];
       const rewardTokens = []
 
@@ -82,8 +82,8 @@ const main = async () => {
         rewardTokens.push(...curvePool.rewardTokens)
       }
 
-      if (Array.isArray(merklPool?.rewardTokenIcons)) {
-        rewardTokens.push(...merklPool.rewardTokenIcons)
+      if (merklPool?.rewardsRecord?.breakdowns.length) {
+        rewardTokens.push(...merklPool.rewardsRecord.breakdowns.map(reward => reward.token.address.toLowerCase()))
       }
 
       const underlyingTokens = []
@@ -91,9 +91,8 @@ const main = async () => {
       if (Array.isArray(curvePool?.underlyingTokens)) {
         underlyingTokens.push(...curvePool.underlyingTokens)
       }
-
-      if (Array.isArray(merklPool?.underlyingTokens)) {
-        underlyingTokens.push(...merklPool.underlyingTokens)
+      if (merklPool?.tokens) {
+        underlyingTokens.push(...merklPool.tokens.map(token => token.address.toLowerCase()))
       }
 
       let tvlUsd;
@@ -101,8 +100,8 @@ const main = async () => {
       if (address === '0x38dd6b3c096c8cbe649fa0039cc144f333be8e61') {
         const req = await fetch('https://eywa-bot-api-service.eywa.fi/pools-data');
         const res = await req.json();
-        console.log(res)
         tvlUsd = res.data.pools.find(pool => pool.address === '0x38dd6b3c096c8cbe649fa0039cc144f333be8e61').tvl
+        merklPool.platform = 'xCRV'
       } else {
         tvlUsd = new BigNumber(curvePool?.tvlUsd || 0).plus(merklPool?.tvlUsd || 0).toNumber()
       }
@@ -114,7 +113,7 @@ const main = async () => {
         symbol: curvePool?.symbol || merklPool?.platform,
         apy: new BigNumber(curvePool?.apyReward || 0)
           .plus(curvePool?.apyBase || 0)
-          .plus(new BigNumber(1).div(gauge.totalDeposited.boosted).multipliedBy(merklPool?.dailyrewards || 0).multipliedBy(365).multipliedBy(100))
+          .plus(new BigNumber(1).div(gauge.totalDeposited.boosted).multipliedBy(merklPool?.dailyRewards || 0).multipliedBy(365).multipliedBy(100))
           .toNumber(),
         tvlUsd,
         rewardTokens: Array.from(new Set(rewardTokens.map( address => address.toLowerCase()))),
