@@ -65,7 +65,7 @@ async function apy() {
       symbol: pool.assetSymbol,
       underlyingTokens: [pool.asset],
       tvlUsd: tvl * assetPrice,
-      apy,
+      apyBase: apy,
       url: `https://celeron.xyz/vault`,
       project: 'celeron',
     };
