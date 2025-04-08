@@ -32,7 +32,7 @@ const formatPair = (pair, chain, protocol) => {
     apyRewardBorrow: apyRewardBorrow,
     totalSupplyUsd: parseFloat(pair.total_underlying),
     totalBorrowUsd: parseFloat(pair.total_debt),
-    ltv: parseFloat(pair.utilization_rate),
+    ltv: parseFloat(pair.total_underlying) > 0 ? parseFloat(pair.total_debt) / parseFloat(pair.total_underlying) : 0,
     underlyingTokens: [pair.underlying_token.address],
     rewardTokens: pair.rewards.map(reward => reward.token_address),
     poolMeta: `${protocol.charAt(0).toUpperCase() + protocol.slice(1)} - ${pair.pair_collateral_token.symbol} collateral`,
