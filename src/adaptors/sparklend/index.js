@@ -120,7 +120,7 @@ async function fetchV3Pools(chain) {
         pool: `${aTokens[i].tokenAddress}-${chain}`.toLowerCase(),
         // Captialize the first letter of the chain
         chain: chain === 'xdai' ? 'Gnosis' : 'Ethereum',
-        project: 'spark',
+        project: 'sparklend',
         symbol: pool.symbol,
         tvlUsd,
         apyBase: (p.liquidityRate / 10 ** 27) * 100,
@@ -181,7 +181,7 @@ const skyFarm = async () => {
     {
       pool: stakingRewards,
       chain: 'Ethereum',
-      project: 'spark',
+      project: 'sparklend',
       symbol: 'USDS',
       poolMeta: 'SKY Farming Pool',
       tvlUsd: totalSupply * priceUSDS,
