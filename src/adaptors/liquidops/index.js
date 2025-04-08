@@ -9,10 +9,6 @@ const chain = 'AO'
 
 const apy = async () => {
 
-   
-
-      
-
     const supportedTokensRes = await DryRun(controllerId, "Get-Tokens")
     const supportedTokens = JSON.parse(supportedTokensRes.Messages[0].Data)
     const redstoneTickers = JSON.stringify(supportedTokens.map(token => convertTicker(token.ticker.toUpperCase())))
@@ -72,12 +68,6 @@ const apy = async () => {
     return poolsArray
  
 }
-
-apy().then(poolsArray => {
-    console.log('Final result:', poolsArray);
-  }).catch(error => {
-    console.error('Error:', error);
-  });
 
 
 // Access AO on chain data via the node endpoint
