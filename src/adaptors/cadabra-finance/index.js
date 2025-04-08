@@ -7,15 +7,18 @@ const cadabraConfig = [
   {
     chain: 'bsc',
     abra: '0xcA1c644704feBf4ab81f85daca488d1623C28e63',
-    vault: '0x6f24f5EB8f50DE36C1D1FEcD31c423e1fc8ba4ae',
-    fromBlock: 45524968,
     lens: '0x2A479CFf64574Ed192f42509a205e3eb94Dc258C',
+    wrappersLens: '0x08639AE6D35105820fE708770158C482e4257d85',
   },
   {
     chain: 'arbitrum',
     abra: '0x65114046C6e73AF794308547124aD5C8dcE3be6F',
-    vault: '0x31206FFb663651aBe29cCb72aD213d5F95BdaC45',
-    fromBlock: 293021794,
+    wrappersLens: '0xAb8185196B53118468765E8AEB526A20770ae329',
+  },
+  {
+    chain: 'sonic',
+    abra: '0xcA1c644704feBf4ab81f85daca488d1623C28e63',
+    wrappersLens: '0x0385aD4E3CA6a770165AeA4693421Dd4D9bCCb4e',
   },
 ]
 
@@ -28,6 +31,7 @@ const networkMapping = {
   122: 'fuse',
   128: 'heco',
   137: 'polygon',
+  146: 'sonic',
   169: 'manta',
   250: 'fantom',
   252: 'fraxtal',
@@ -55,7 +59,7 @@ const main = async () => {
   let wrapperInfoByChain = new Map();
 
   for (const config of cadabraConfig) {
-    let wrappers = await collectWrappers(config.vault, config.fromBlock, config.chain)
+    let wrappers = await collectWrappers(config.wrappersLens, config.chain)
     const result = (
       await sdk.api.abi.multiCall({
         abi: 'function reserves() view returns(address[] memory, uint256[] memory)',
@@ -183,39 +187,12 @@ function chainToken(chain, token) {
   return (chain + ':' + token).toLowerCase()
 }
 
-async function collectWrappers(vault, fromBlock, chain) {
-  const blockNow = await sdk.api.util.getLatestBlock(chain)
-
-  const ifacePoolRegistered = new ethers.utils.Interface(['event PoolRegistered(bytes32 indexed poolId, address indexed poolAddress, uint8 specialization)'])
-  const ifaceTokensRegistered = new ethers.utils.Interface(['event TokensRegistered(bytes32 indexed poolId, address[] tokens, address[] assetManagers)'])
-
-  const logs = (
-    await sdk.api.util.getLogs({
-    target: vault,
-    topic: '',
-    fromBlock: fromBlock,
-    toBlock: blockNow.number,
-    keys: [],
-    topics: [ifacePoolRegistered.getEventTopic('PoolRegistered')],
-    chain: chain,
-  })).output
-    .filter((ev) => !ev.removed)
-    .map((ev) => ifacePoolRegistered.parseLog(ev).args)
-  const logs2 = (await sdk.api.util.getLogs({
-    target: vault,
-    topic: '',
-    fromBlock: fromBlock,
-    toBlock: blockNow.number,
-    keys: [],
-    topics: [ifaceTokensRegistered.getEventTopic('TokensRegistered')],
-    chain: chain,
-  })).output
-    .filter((ev) => !ev.removed)
-    .map((ev) => ifaceTokensRegistered.parseLog(ev).args)
-
-  let tokens =  logs2.map(ev => ev.tokens).flat();
-  let blacklistedTokens =  new Set(logs.flatMap((ev, idx) => ev.poolAddress));
-  return tokens.filter(t => !blacklistedTokens.has(t))
+async function collectWrappers(wrappersLens, chain) {
+  return (await sdk.api.abi.call({
+    abi: 'function wrappers() view returns(address[] memory)',
+    target: wrappersLens,
+    chain: chain
+  })).output;
 }
 
 module.exports = {

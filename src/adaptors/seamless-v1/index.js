@@ -265,7 +265,7 @@ const lendingPoolsApy = async () => {
       return {
         pool: `${pool.aToken.id}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
-        project: 'seamless-protocol',
+        project: 'seamless-v1',
         symbol: pool.symbol,
         tvlUsd,
         apyBase: (pool.liquidityRate / 10 ** 27) * 100,
@@ -444,7 +444,7 @@ const ilmApys = async () => {
     return {
       pool: `${address}-${chain}`.toLowerCase(),
       chain: utils.formatChain(chain),
-      project: 'seamless-protocol',
+      project: 'seamless-v1',
       symbol: symbols[i],
       tvlUsd,
       apyBase: calculateApy(

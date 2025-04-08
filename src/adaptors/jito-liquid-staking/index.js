@@ -21,7 +21,7 @@ const apy = async () => {
     {
       pool: JITOSOL_ADDRESS,
       chain: 'Solana',
-      project: 'jito',
+      project: 'jito-liquid-staking',
       symbol: 'JITOSOL',
       tvlUsd: totalSupply * currentPrice,
       apyBase: Number(apy),
