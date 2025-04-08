@@ -35,8 +35,9 @@ const apy = async () => {
 
     const totalLends = scaleBalance(infoTagsObject['Cash'], infoTagsObject['Denomination'])
     const totalBorrows = scaleBalance(infoTagsObject['Total-Borrows'], infoTagsObject['Denomination'])
+    const totalSupply = scaleBalance(infoTagsObject['Total-Supply'], infoTagsObject['Denomination'])
 
-    const supplyAPY = formatSupplyAPR(borrowAPR,  infoTagsObject, totalBorrows)
+    const supplyAPY = formatSupplyAPR(borrowAPR,  infoTagsObject, totalBorrows, totalSupply)
 
     const ltv = Number(infoTagsObject['Collateral-Factor']) / 100
 
@@ -50,14 +51,10 @@ const apy = async () => {
         symbol: utils.formatSymbol(`o${ticker}`),
         tvlUsd: totalLends * tokenUSDPrice,
         apyBase: supplyAPY,
-        apyReward: null,
-        rewardTokens: null,
         underlyingTokens: [tokenID],
-        poolMeta: null,
         url: `https://liquidops.io/${ticker}`,
         apyBaseBorrow: borrowAPR,
-        apyRewardBorrow: null,
-        totalSupplyUsd: totalLends * tokenUSDPrice,
+        totalSupplyUsd: totalSupply * tokenUSDPrice,
         totalBorrowUsd: totalBorrows * tokenUSDPrice,
         ltv
         };
@@ -108,8 +105,7 @@ function formatBorrowAPR(aprResponse) {
     return apr / rateMultiplier
 }
 
-function formatSupplyAPR(borrowAPR, infoTagsObject, totalBorrows) {
-    const totalSupply = scaleBalance(infoTagsObject['Total-Supply'], infoTagsObject['Denomination'])
+function formatSupplyAPR(borrowAPR, infoTagsObject, totalBorrows, totalSupply) {
     const utilizationRate = totalBorrows / totalSupply
     const reserveFactorFract = Number(infoTagsObject['Reserve-Factor']) / 100;
     return borrowAPR * utilizationRate * (1 - reserveFactorFract);
