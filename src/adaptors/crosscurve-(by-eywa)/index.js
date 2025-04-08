@@ -106,15 +106,17 @@ const main = async () => {
         tvlUsd = new BigNumber(curvePool?.tvlUsd || 0).plus(merklPool?.tvlUsd || 0).toNumber()
       }
 
+      const apyBase = curvePool?.apyBase || 0
+      const apyReward = new BigNumber(curvePool?.apyReward || 0)
+      .plus(new BigNumber(1).div(gauge.totalDeposited.boosted).multipliedBy(merklPool?.dailyRewards || 0).multipliedBy(365).multipliedBy(100)).toNumber()
+
       return {
         pool: address,
         chain: curvePool?.chain || chainIdMap[merklPool?.chainId],
         project: 'crosscurve-(by-eywa)',
         symbol: curvePool?.symbol || merklPool?.platform,
-        apy: new BigNumber(curvePool?.apyReward || 0)
-          .plus(curvePool?.apyBase || 0)
-          .plus(new BigNumber(1).div(gauge.totalDeposited.boosted).multipliedBy(merklPool?.dailyRewards || 0).multipliedBy(365).multipliedBy(100))
-          .toNumber(),
+        apyBase,
+        apyReward,
         tvlUsd,
         rewardTokens: Array.from(new Set(rewardTokens.map( address => address.toLowerCase()))),
         underlyingTokens: Array.from(new Set(underlyingTokens.map( address => address.toLowerCase()))),
