@@ -19,7 +19,7 @@ const formatPair = (pair, chain, protocol) => {
     return total + parseFloat(reward.apr);
   }, 0);
 
-  const symbol = `${pair.debt_token.symbol}-${pair.pair_collateral_token.symbol}`;
+  const symbol = `${pair.underlying_token.symbol}`;
 
   return {
     pool: `${pair.address.toLowerCase()}-${chain}`,
@@ -27,11 +27,13 @@ const formatPair = (pair, chain, protocol) => {
     project: 'resupply',
     symbol: utils.formatSymbol(symbol),
     tvlUsd: parseFloat(pair.total_underlying),
+    mintedCoin: pair.debt_token.symbol,
     apyBase: parseFloat(pair.base_apr),
     apyBaseBorrow: parseFloat(pair.borrow_cost_apr),
     apyRewardBorrow: apyRewardBorrow,
     totalSupplyUsd: parseFloat(pair.total_underlying),
     totalBorrowUsd: parseFloat(pair.total_debt),
+    debtCeilingUsd: parseFloat(pair.borrow_limit),
     ltv: parseFloat(pair.total_underlying) > 0 ? parseFloat(pair.total_debt) / parseFloat(pair.total_underlying) : 0,
     underlyingTokens: [pair.underlying_token.address],
     rewardTokens: pair.rewards.map(reward => reward.token_address),
