@@ -8,6 +8,7 @@ const networks = {
   42161: 'arbitrum',
   1101: 'polygon_zkevm',
   8453: 'base',
+  60808: 'bob',
 };
 
 async function getRateAngle(token) {
