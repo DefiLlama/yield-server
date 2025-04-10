@@ -69,7 +69,7 @@ const apy = async () => {
       symbol: utils.formatSymbol('sbUSD'),
       tvlUsd,
       underlyingTokens: [BUSD_ADDRESS],
-      apyBase: utils.aprToApy(apr),
+      apyBase: apr,
       apyReward: 0,
       rewardTokens: null,
     }
