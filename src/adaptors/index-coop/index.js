@@ -17,6 +17,12 @@ const icEthIndex = {
   symbol: 'icETH',
 };
 
+const hyEthIndex = {
+  address: '0xc4506022Fb8090774E8A628d5084EED61D9B99Ee',
+  chain: 'Ethereum',
+  symbol: 'hyETH',
+};
+
 const SetTokenABI = ['function totalSupply() external view returns (uint256)'];
 
 const buildPool = async (index) => {
