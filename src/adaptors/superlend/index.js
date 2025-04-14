@@ -143,7 +143,6 @@ const getApy = async () => {
 
       const apyBase = (p.liquidityRate / 10 ** 27) * 100;
       const apyReward = rewardData[pool.symbol.toUpperCase()] ?? 0;
-      const apy = apyBase + apyReward;
 
       return {
         pool: `${aTokens[i].tokenAddress}-etlk`.toLowerCase(),
@@ -153,7 +152,6 @@ const getApy = async () => {
         tvlUsd,
         apyBase,
         apyReward,
-        apy,
         underlyingTokens: [pool.tokenAddress],
         rewardTokens: apyReward > 0 ? [APPLE_REWARD_TOKEN] : [],
         totalSupplyUsd,
