@@ -11,7 +11,9 @@ const CHAIN_NAMES: Record<number, string> = {
   146: 'Sonic',
   478: 'Form',
   100: 'Gnosis',
+  40: 'Telos',
   1_890: 'LightLink',
+  1_329: 'Sei',
 };
 
 interface Erc20Token {
