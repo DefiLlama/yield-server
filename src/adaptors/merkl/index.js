@@ -20,6 +20,12 @@ const protocolsBlacklist = [
   'gamma',
 ];
 
+// Allow specific pools from blacklisted protocols
+const poolsWhitelist = [
+  // Pool from Aerodrome CL: xPufETH-WETH
+  '0xCDf927C0F7b81b146C0C9e9323eb5A28D1BFA183',
+];
+
 async function getRateAngle(token) {
   const prices = await utils.getData('https://api.angle.money/v1/prices/');
   const price = prices.filter((p) => p.token == token)[0]?.rate;
@@ -54,7 +60,7 @@ const main = async () => {
       pageI++;
     }
 
-    for (const pool of pools.filter(x => !x.protocol || !protocolsBlacklist.includes(x.protocol.id))) {
+    for (const pool of pools.filter(x => !x.protocol || !protocolsBlacklist.includes(x.protocol.id) || poolsWhitelist.includes(x.identifier))) {
       try {
         const poolAddress = pool.identifier;
 
