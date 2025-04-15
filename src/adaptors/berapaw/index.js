@@ -5,6 +5,7 @@ const SECONDS_PER_YEAR = 31557600; // 365.25 days per year
 
 // Contract addresses
 const ADDRESSES = {
+    WBERA: '0x6969696969696969696969696969696969696969',
     LBGT: '0xBaadCC2962417C01Af99fb2B7C75706B9bd6Babe',
     PPAW: '0x03c86e21623f25Eca0eA544890c7603B9a33E1AC',
     WBERA_LBGT_WEIGHTED: '0x705Fc16BA5A1EB67051934F2Fb17EacaE660F6c7',
@@ -105,13 +106,87 @@ const getLpApr = async (stakingTvlUsd) => {
     return aprPpaw + aprLbgt;
 };
 
+const getVaultsFromApi = async () => {
+    const query = {
+        operationName: "GetVaults",
+        variables: {
+            orderBy: "apr",
+            orderDirection: "desc",
+            pageSize: 300,
+            where: {
+                includeNonWhitelisted: false,
+            },
+        },
+        query: `query GetVaults($where: GqlRewardVaultFilter, $pageSize: Int, $skip: Int, $orderBy: GqlRewardVaultOrderBy = bgtCapturePercentage, $orderDirection: GqlRewardVaultOrderDirection = desc, $search: String) {
+            polGetRewardVaults(
+                where: $where
+                first: $pageSize
+                skip: $skip
+                orderBy: $orderBy
+                orderDirection: $orderDirection
+                search: $search
+            ) {
+                vaults {
+                    id: vaultAddress
+                    vaultAddress
+                    address: vaultAddress
+                    isVaultWhitelisted
+                    dynamicData {
+                        allTimeReceivedBGTAmount
+                        apr
+                        tvl
+                        bgtCapturePercentage
+                        activeIncentivesValueUsd
+                        activeIncentivesRateUsd
+                    }
+                    stakingToken {
+                        address
+                        name
+                        symbol
+                        decimals
+                    }
+                    metadata {
+                        name
+                        logoURI
+                        url
+                        protocolName
+                        description
+                    }
+                    activeIncentives {
+                        active
+                        remainingAmount
+                        remainingAmountUsd
+                        incentiveRate
+                        tokenAddress
+                        token {
+                            address
+                            name
+                            symbol
+                            decimals
+                        }
+                    }
+                }
+            }
+        }`
+    };
+
+    const response = await utils.getData('https://api.berachain.com/', query);
+    return response.data.polGetRewardVaults.vaults;
+};
+
 const getPoolData = async () => {
-    const [stLbgtTvl, lpLbgtWberaTvl] = await Promise.all([
+    const [stLbgtTvl, lpLbgtWberaTvl, apiVaults, lbgtPrice, beraPrice] = await Promise.all([
         getStLbgtTvlUsd(),
-        getLpTvlUsd(ADDRESSES.LBGT_WBERA_STAKING, ADDRESSES.WBERA_LBGT_WEIGHTED)
+        getLpTvlUsd(ADDRESSES.LBGT_WBERA_STAKING, ADDRESSES.WBERA_LBGT_WEIGHTED),
+        getVaultsFromApi(),
+        getTokenPrice(ADDRESSES.LBGT),
+        getTokenPrice(ADDRESSES.WBERA),
     ]);
 
-    const stLbgt = {
+    const pools = [];
+
+    // Add stLbgt staking
+    pools.push({
         pool: ADDRESSES.ST_LBGT_VAULT,
         chain: 'berachain',
         project: 'berapaw',
@@ -120,9 +195,10 @@ const getPoolData = async () => {
         apyBase: utils.aprToApy(await getStLbgtApr(), 365 * 24 * 60 / 5), // compounding every 5 minutes
         rewardTokens: [ADDRESSES.LBGT],
         underlyingTokens: [ADDRESSES.LBGT],
-    };
+    });
 
-    const lp_lbgt_wbera = {
+    // Add lp_lbgt_wbera staking
+    pools.push({
         pool: ADDRESSES.LBGT_WBERA_STAKING,
         chain: 'berachain',
         project: 'berapaw',
@@ -131,9 +207,38 @@ const getPoolData = async () => {
         apyBase: await getLpApr(lpLbgtWberaTvl),
         rewardTokens: [ADDRESSES.LBGT, ADDRESSES.PPAW],
         underlyingTokens: [ADDRESSES.WBERA_LBGT_WEIGHTED],
-    };
+    });
 
-    return [stLbgt, lp_lbgt_wbera];
+    // Add vaults
+    for (const vault of apiVaults) {
+        if (!vault.isVaultWhitelisted) continue;
+
+        // Calculate BGT APR
+        let bgtApr = 0;
+        if (vault.dynamicData?.apr) {
+            bgtApr = parseFloat(vault.dynamicData.apr) * 100;
+        }
+
+        // Calculate LBGT APR using formula: lbgtApr = bgtApr × (lbgtPrice / beraPrice)
+        let lbgtApr = bgtApr;
+        if (beraPrice && lbgtPrice) {
+            lbgtApr = bgtApr * (lbgtPrice / beraPrice);
+        }
+
+        pools.push({
+            pool: vault.vaultAddress,
+            chain: 'berachain',
+            project: 'berapaw',
+            symbol: vault.stakingToken.symbol,
+            tvlUsd: parseFloat(vault.dynamicData.tvl),
+            apyBase: lbgtApr,
+            rewardTokens: [ADDRESSES.LBGT],
+            underlyingTokens: [vault.stakingToken.address],
+            url: 'https://www.berapaw.com/vaults',
+        });
+    }
+
+    return pools;
 };
 
 module.exports = {
