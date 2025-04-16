@@ -2,7 +2,7 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { ethers } = require('ethers');
 
-const DATA_ADDRESS = '0xFfa39236d86bFC7662dFA7b268bE7684D5bAe3ac';
+const DATA_ADDRESS = '0x3306597d0eAba6e753FDEF4FB689Fe46449D3920';
 const CHAIN = 'berachain';
 
 async function apy() {
