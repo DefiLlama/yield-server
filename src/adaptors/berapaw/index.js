@@ -192,7 +192,7 @@ const getPoolData = async () => {
         project: 'berapaw',
         symbol: 'LBGT',
         tvlUsd: stLbgtTvl,
-        apyBase: utils.aprToApy(await getStLbgtApr(), 365 * 24 * 60 / 5), // compounding every 5 minutes
+        apyReward: utils.aprToApy(await getStLbgtApr(), 365 * 24 * 60 / 5), // compounding every 5 minutes
         rewardTokens: [ADDRESSES.LBGT],
         underlyingTokens: [ADDRESSES.LBGT],
     });
@@ -204,7 +204,7 @@ const getPoolData = async () => {
         project: 'berapaw',
         symbol: '50WBERA-50LBGT-WEIGHTED',
         tvlUsd: lpLbgtWberaTvl,
-        apyBase: await getLpApr(lpLbgtWberaTvl),
+        apyReward: await getLpApr(lpLbgtWberaTvl),
         rewardTokens: [ADDRESSES.LBGT, ADDRESSES.PPAW],
         underlyingTokens: [ADDRESSES.WBERA_LBGT_WEIGHTED],
     });
@@ -231,7 +231,7 @@ const getPoolData = async () => {
             project: 'berapaw',
             symbol: vault.stakingToken.symbol,
             tvlUsd: parseFloat(vault.dynamicData.tvl),
-            apyBase: lbgtApr,
+            apyReward: lbgtApr,
             rewardTokens: [ADDRESSES.LBGT],
             underlyingTokens: [vault.stakingToken.address],
             url: 'https://www.berapaw.com/vaults',
