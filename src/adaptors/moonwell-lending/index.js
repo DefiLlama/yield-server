@@ -134,7 +134,7 @@ const getApy = async () => {
         return {
           pool: `${market.toLowerCase()}-moonbeam`,
           chain: utils.formatChain('moonbeam'),
-          project: 'moonwell',
+          project: 'moonwell-lending',
           symbol: token_info.symbol,
           tvlUsd: totalSupplyUsd - totalBorrowUsd,
           apyBase: supplyApy,
@@ -296,7 +296,7 @@ const getApy = async () => {
         return {
           pool: `${market.toLowerCase()}-base`,
           chain: utils.formatChain('base'),
-          project: 'moonwell',
+          project: 'moonwell-lending',
           symbol: token_info.symbol == 'WETH' ? 'ETH' : token_info.symbol,
           tvlUsd: totalSupplyUsd - totalBorrowUsd,
           apyBase: supplyApy,
@@ -469,7 +469,7 @@ const getApy = async () => {
         return {
           pool: `${market.toLowerCase()}-optimism`,
           chain: utils.formatChain('optimism'),
-          project: 'moonwell',
+          project: 'moonwell-lending',
           symbol: token_info.symbol == 'WETH' ? 'ETH' : token_info.symbol,
           tvlUsd: totalSupplyUsd - totalBorrowUsd,
           apyBase: supplyApy,
