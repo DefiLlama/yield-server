@@ -1,8 +1,8 @@
+const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 const { ethers } = require('ethers');
 const superagent = require('superagent');
 
-const { getProvider } = require('@defillama/sdk/build/general');
 const utils = require('../utils');
 
 const dsEthIndex = {
@@ -21,7 +21,7 @@ const SetTokenABI = ['function totalSupply() external view returns (uint256)'];
 
 const buildPool = async (index) => {
   try {
-    const apy = await getApy(index.symbol);
+    const apy = await getApy(index.address);
     const tvlUsd = await getTvlUsd(index);
     const chain = utils.formatChain(index.chain);
     return {
@@ -37,14 +37,13 @@ const buildPool = async (index) => {
   }
 };
 
-const getApy = async (indexSymbol) => {
-  const indexPath = indexSymbol.toLowerCase();
+const getApy = async (address) => {
   const res = await superagent.get(
-    `https://api.indexcoop.com/${indexPath}/apy`
+    `https://api.indexcoop.com/v2/data/${address}?chainId=1&metrics=apy`
   );
   const json = JSON.parse(res.text);
-  const apy = BigNumber(json.apy);
-  return apy.div(1e18).toNumber();
+  const { APY, Rate, StreamingFee } = json.metrics[0];
+  return APY + Rate + StreamingFee;
 };
 
 const getPrice = async (index) => {
@@ -56,16 +55,10 @@ const getPrice = async (index) => {
   return ethPriceUSD;
 };
 
-const getSupply = async (address) => {
-  const provider = getProvider();
-  const contract = new ethers.Contract(address, SetTokenABI, provider);
-  return await contract.totalSupply();
-};
-
 const getTvlUsd = async (index) => {
   const priceUsd = await getPrice(index);
-  const supply = await getSupply(index.address);
-  const supplyNumber = new BigNumber(supply.toString());
+  const supply = await sdk.api2.erc20.totalSupply({ target: index.address });
+  const supplyNumber = new BigNumber(supply.output.toString());
   const tvlUsd = supplyNumber.div(1e18).toNumber() * priceUsd;
   return tvlUsd;
 };

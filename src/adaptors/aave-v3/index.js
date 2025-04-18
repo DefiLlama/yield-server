@@ -8,22 +8,27 @@ const { aaveStakedTokenDataProviderAbi } = require('./abi');
 const GHO = '0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f';
 
 const protocolDataProviders = {
-  ethereum: '0x41393e5e337606dc3821075Af65AeE84D7688CBD',
-  optimism: '0x7F23D86Ee20D869112572136221e173428DD740B',
-  arbitrum: '0x7F23D86Ee20D869112572136221e173428DD740B',
-  polygon: '0x7F23D86Ee20D869112572136221e173428DD740B',
-  fantom: '0x69FA688f1Dc47d4B5d8029D5a35FB7a548310654',
-  avax: '0x374a2592f0265b3bb802d75809e61b1b5BbD85B7',
-  metis: '0xC01372469A17b6716A38F00c277533917B6859c0',
-  base: '0xd82a47fdebB5bf5329b09441C3DaB4b5df2153Ad',
-  xdai: '0x57038C3e3Fe0a170BB72DE2fD56E98e4d1a69717',
-  bsc: '0x23dF2a19384231aFD114b036C14b6b03324D79BC',
-  scroll: '0xe2108b60623C6Dcf7bBd535bD15a451fd0811f7b',
-  era: '0x5F2A704cE47B373c908fE8A29514249469b52b99',
+  ethereum: '0x497a1994c46d4f6C864904A9f1fac6328Cb7C8a6',
+  optimism: '0x14496b405D62c24F91f04Cda1c69Dc526D56fDE5',
+  arbitrum: '0x14496b405D62c24F91f04Cda1c69Dc526D56fDE5',
+  polygon: '0x14496b405D62c24F91f04Cda1c69Dc526D56fDE5',
+  avax: '0x14496b405D62c24F91f04Cda1c69Dc526D56fDE5',
+  metis: '0xbb4a3B6781be3650B252552dFF6332EfB1162152',
+  base: '0xC4Fcf9893072d61Cc2899C0054877Cb752587981',
+  xdai: '0xA2d323DBc43F445aD2d8974F17Be5dab32aAD474',
+  bsc: '0x1e26247502e90b4fab9D0d17e4775e90085D2A35',
+  scroll: '0xDC3c96ef82F861B4a3f10C81d4340c75460209ca',
+  era: '0xf79473ea6ef2C9537027bAe2f6E07d67dD9999E0',
+  lido: '0x66FeAe868EBEd74A34A7043e88742AAE00D2bC53', // on ethereum
+  etherfi: '0xECdA3F25B73261d1FdFa1E158967660AA29f00cC', // on ethereum
+  linea: '0x9eEBf28397D8bECC999472fC8838CBbeF54aebf6',
+  sonic: '0x306c124fFba5f2Bc0BcAf40D249cf19D492440b9',
 };
 
-const getApy = async (chain) => {
-  const protocolDataProvider = protocolDataProviders[chain];
+const getApy = async (market) => {
+  const chain = ['lido', 'etherfi'].includes(market) ? 'ethereum' : market;
+
+  const protocolDataProvider = protocolDataProviders[market];
   const reserveTokens = (
     await sdk.api.abi.call({
       target: protocolDataProvider,
@@ -109,57 +114,65 @@ const getApy = async (chain) => {
       })
     ).output / 1e18;
 
-  return reserveTokens.map((pool, i) => {
-    const p = poolsReserveData[i];
-    const price = prices[`${chain}:${pool.tokenAddress}`]?.price;
+  return reserveTokens
+    .map((pool, i) => {
+      const frozen = poolsReservesConfigurationData[i].isFrozen;
+      if (frozen) return null;
 
-    const supply = totalSupply[i];
-    let totalSupplyUsd = (supply / 10 ** underlyingDecimals[i]) * price;
+      const p = poolsReserveData[i];
+      const price = prices[`${chain}:${pool.tokenAddress}`]?.price;
 
-    const currentSupply = underlyingBalances[i];
-    let tvlUsd = (currentSupply / 10 ** underlyingDecimals[i]) * price;
+      const supply = totalSupply[i];
+      let totalSupplyUsd = (supply / 10 ** underlyingDecimals[i]) * price;
 
-    if (pool.symbol === 'GHO') {
-      tvlUsd = 0;
-      totalSupplyUsd = tvlUsd;
-      totalBorrowUsd = ghoSupply * prices[`${chain}:${GHO}`]?.price;
-    } else {
-      totalBorrowUsd = totalSupplyUsd - tvlUsd;
-    }
+      const currentSupply = underlyingBalances[i];
+      let tvlUsd = (currentSupply / 10 ** underlyingDecimals[i]) * price;
 
-    const chainUrlParam =
-      chain === 'ethereum'
-        ? 'mainnet'
-        : chain === 'avax'
-        ? 'avalanche'
-        : chain === 'xdai'
-        ? 'gnosis'
-        : chain === 'bsc'
-        ? 'bnb'
-        : chain;
+      if (pool.symbol === 'GHO') {
+        tvlUsd = 0;
+        totalSupplyUsd = tvlUsd;
+        totalBorrowUsd = ghoSupply * prices[`${chain}:${GHO}`]?.price;
+      } else {
+        totalBorrowUsd = totalSupplyUsd - tvlUsd;
+      }
 
-    const url = `https://app.aave.com/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=proto_${chainUrlParam}_v3`;
+      const marketUrlParam =
+        market === 'ethereum'
+          ? 'mainnet'
+          : market === 'avax'
+          ? 'avalanche'
+          : market === 'xdai'
+          ? 'gnosis'
+          : market === 'bsc'
+          ? 'bnb'
+          : market;
 
-    return {
-      pool: `${aTokens[i].tokenAddress}-${
-        chain === 'avax' ? 'avalanche' : chain
-      }`.toLowerCase(),
-      chain,
-      project: 'aave-v3',
-      symbol: pool.symbol,
-      tvlUsd,
-      apyBase: (p.liquidityRate / 10 ** 27) * 100,
-      underlyingTokens: [pool.tokenAddress],
-      totalSupplyUsd,
-      totalBorrowUsd,
-      debtCeilingUsd: pool.symbol === 'GHO' ? 1e8 : null,
-      apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
-      ltv: poolsReservesConfigurationData[i].ltv / 10000,
-      url,
-      borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
-      mintedCoin: pool.symbol === 'GHO' ? 'GHO' : null,
-    };
-  });
+      const url = `https://app.aave.com/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=proto_${marketUrlParam}_v3`;
+
+      return {
+        pool: `${aTokens[i].tokenAddress}-${
+          market === 'avax' ? 'avalanche' : market
+        }`.toLowerCase(),
+        chain,
+        project: 'aave-v3',
+        symbol: pool.symbol,
+        tvlUsd,
+        apyBase: (p.liquidityRate / 10 ** 27) * 100,
+        underlyingTokens: [pool.tokenAddress],
+        totalSupplyUsd,
+        totalBorrowUsd,
+        debtCeilingUsd: pool.symbol === 'GHO' ? 1e8 : null,
+        apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+        ltv: poolsReservesConfigurationData[i].ltv / 10000,
+        url,
+        borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
+        mintedCoin: pool.symbol === 'GHO' ? 'GHO' : null,
+        poolMeta: ['lido', 'etherfi'].includes(market)
+          ? `${market}-market`
+          : null,
+      };
+    })
+    .filter((i) => Boolean(i));
 };
 
 const stkGho = async () => {
@@ -191,8 +204,8 @@ const stkGho = async () => {
   const stkghoNativeApy = convertStakedTokenApy(stkghoNativeApyRaw);
 
   const stkghoMeritApy = (
-    await axios.get('https://apps.aavechan.com/api/merit/base-aprs')
-  ).data.actionsAPR['ethereum-stkgho'];
+    await axios.get('https://apps.aavechan.com/api/merit/aprs')
+  ).data.currentAPR.actionsAPR['ethereum-stkgho'];
 
   const stkghoApy = stkghoNativeApy + stkghoMeritApy;
 
@@ -223,7 +236,7 @@ const stkGho = async () => {
 
 const apy = async () => {
   const pools = await Promise.allSettled(
-    Object.keys(protocolDataProviders).map(async (chain) => getApy(chain))
+    Object.keys(protocolDataProviders).map(async (market) => getApy(market))
   );
 
   const stkghoPool = await stkGho();

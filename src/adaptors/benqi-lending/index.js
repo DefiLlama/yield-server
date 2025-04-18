@@ -136,6 +136,11 @@ const getApy = async () => {
     'totalBorrows',
     qiErc
   );
+  const totalReserves = await multiCallMarkets(
+    allMarkets,
+    'totalReserves',
+    qiErc
+  );
 
   const underlyingTokens = await multiCallMarkets(
     allMarkets,
@@ -161,13 +166,15 @@ const getApy = async () => {
     const token = underlyingTokens[i] || AVAX.address;
     const decimals = Number(underlyingDecimals[i]) || AVAX.decimals;
     const totalSupplyUsd =
-      ((Number(marketsCash[i]) + Number(totalBorrows[i])) / 10 ** decimals) *
+      ((Number(marketsCash[i]) +
+        Number(totalBorrows[i]) -
+        Number(totalReserves[i])) /
+        10 ** decimals) *
       prices[token.toLowerCase()];
 
     const totalBorrowUsd =
       (Number(totalBorrows[i]) / 10 ** decimals) * prices[token.toLowerCase()];
-    const tvlUsd =
-      (marketsCash[i] / 10 ** decimals) * prices[token.toLowerCase()];
+    const tvlUsd = totalSupplyUsd - totalBorrowUsd;
 
     const apyBase = calculateApy(supplyRatePerTimestamp[i]);
     const apyBaseBorrow = calculateApy(borrowRatePerTimestamp[i]);

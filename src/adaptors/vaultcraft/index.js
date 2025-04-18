@@ -29,8 +29,11 @@ const ADDRESSES = {
 const CHAIN_TO_ID = {
   ethereum: 1,
   optimism: 10,
-  // polygon: 137,
+  polygon: 137,
   arbitrum: 42161,
+  base: 8453,
+  avax: 43114,
+  fraxtal: 252
   // bsc: 56,
 };
 
@@ -72,14 +75,6 @@ const apy = async (timestamp = null) => {
         })
       ).output.replace('pop-', '');
 
-      const decimals = (
-        await sdk.api.abi.call({
-          target: vault.asset,
-          abi: 'erc20:decimals',
-          chain,
-        })
-      ).output;
-
       const totalAssets = (
         await sdk.api.abi.call({
           target: vault.address,
@@ -89,8 +84,8 @@ const apy = async (timestamp = null) => {
       ).output;
 
       const tvl =
-        (totalAssets * (await getTokenPrice(chain, vault.asset))) /
-        10 ** decimals;
+        (totalAssets * (await getTokenPrice(chain, vault.asset.address))) /
+        10 ** vault.asset.decimals;
 
       const data = {
         pool: `${vault.address}-${chain}`,
@@ -99,7 +94,7 @@ const apy = async (timestamp = null) => {
         symbol,
         tvlUsd: tvl,
         apyBase: vault.baseApy,
-        underlyingTokens: [vault.asset],
+        underlyingTokens: [vault.asset.address],
       };
 
       if (vault.gaugeLowerApr) {

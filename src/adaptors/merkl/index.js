@@ -8,7 +8,23 @@ const networks = {
   42161: 'arbitrum',
   1101: 'polygon_zkevm',
   8453: 'base',
+  60808: 'bob',
 };
+
+// Protocols that should not be listed under Merkl
+// as they already have their own adapters.
+const protocolsBlacklist = [
+  'euler',
+  'crosscurve',
+  'aerodrome',
+  'gamma',
+];
+
+// Allow specific pools from blacklisted protocols
+const poolsWhitelist = [
+  // Pool from Aerodrome CL: xPufETH-WETH
+  '0xCDf927C0F7b81b146C0C9e9323eb5A28D1BFA183',
+];
 
 async function getRateAngle(token) {
   const prices = await utils.getData('https://api.angle.money/v1/prices/');
@@ -20,119 +36,56 @@ async function getRateAngle(token) {
 const main = async () => {
   var poolsData = [];
 
-  let data;
-  try {
-    data = await utils.getData('https://api.angle.money/v2/merkl');
-  } catch (err) {
-    console.log('no data for Merkl');
-  }
-
   const project = 'merkl';
 
-  for (const chainId of Object.keys(data)) {
-    console.log(chainId);
-    const pools = data[chainId].pools;
-    for (const pool in pools) {
-      const poolAddress = pool;
-      // const chainId = data.pools[poolAddress].chainId;
-      const chain = networks[chainId];
-      const distributionData = pools[poolAddress].distributionData; // array with distribution data
+  for (const chainId of Object.keys(networks)) {
+    const chain = networks[chainId];
 
-      // filter past distributions
-      let liveDistributionsData = distributionData.filter(
-        (element) => element.endTimestamp * 1000 > Date.now()
-      );
+    let pools = [];
+    let pageI = 0;
 
-      // if at least one live distribution, find and load pool data
-      // else, do nothing and move to the next pool
-      if (liveDistributionsData.length > 0) {
-        try {
-          const symbol =
-            pools[poolAddress].symbolToken0 +
-            '-' +
-            pools[poolAddress].symbolToken1;
-          const underlyingTokens = [
-            pools[poolAddress].token0,
-            pools[poolAddress].token1,
-          ];
-
-          // TVL from the API
-          const tvlUsd = pools[poolAddress].tvl;
-
-          // Trying to fetch tvl on-chain: query balances of the pool and price of both tokens
-          /*¨
-          const amountUsdOnChain0 = (
-            await sdk.api.abi.call({
-              target: underlyingTokens[0],
-              abi: 'erc20:balanceOf',
-              params: poolAddress,
-              chain: chain,
-            })
-          ).output;
-
-          const decimalsToken0 = (
-            await sdk.api.abi.call({
-              target: underlyingTokens[0],
-              abi: 'erc20:decimals',
-              chain: chain,
-            })
-          ).output;
-
-          const priceToken0 =
-            (await utils.getPrices([underlyingTokens[0]], chain))
-              .pricesByAddress[underlyingTokens[0].toLowerCase()] ??
-            getRateAngle(pools[poolAddress].symbolToken0);
-
-          const amountUsdOnChain1 = (
-            await sdk.api.abi.call({
-              target: underlyingTokens[1],
-              abi: 'erc20:balanceOf',
-              params: poolAddress,
-              chain: chain,
-            })
-          ).output;
-
-          const decimalsToken1 = (
-            await sdk.api.abi.call({
-              target: underlyingTokens[1],
-              abi: 'erc20:decimals',
-              chain: chain,
-            })
-          ).output;
-
-          const priceToken1 =
-            (await utils.getPrices([underlyingTokens[1]], chain))
-              .pricesByAddress[underlyingTokens[1].toLowerCase()] ??
-            (await getRateAngle(pools[poolAddress].symbolToken1));
-
-          const tvlUsdOnChain =
-            (amountUsdOnChain0 / 10 ** decimalsToken0) * priceToken0 +
-            (amountUsdOnChain1 / 10 ** decimalsToken1) * priceToken1;
-            */
-
-          const rewardToken = [];
-          liveDistributionsData.forEach((element) => {
-            rewardToken.push(element.rewardToken);
-          });
-          const apyReward = pools[poolAddress].meanAPR;
-
-          if (apyReward && apyReward > 0 && tvlUsd && tvlUsd > 0 && chain) {
-            const poolData = {
-              pool: poolAddress,
-              chain: chain,
-              project: project,
-              symbol: symbol,
-              tvlUsd: tvlUsd,
-              apyReward: apyReward,
-              rewardTokens: [...new Set(rewardToken)],
-              underlyingTokens: underlyingTokens,
-            };
-            poolsData.push(poolData);
-          }
-        } catch {}
-      } else {
-        continue;
+    while(true) {
+      let data;
+      try {
+        data = await utils.getData(`https://api.merkl.xyz/v4/opportunities?chainId=${chainId}&status=LIVE&items=100&page=${pageI}`);
+      } catch (err) {
+        console.log('failed to fetch Merkl data on chain ' + chain);
       }
+
+      if (data.length === 0) {
+        break;
+      }
+
+      pools.push(...data);
+      pageI++;
+    }
+
+    for (const pool of pools.filter(x => !x.protocol || !protocolsBlacklist.includes(x.protocol.id) || poolsWhitelist.includes(x.identifier))) {
+      try {
+        const poolAddress = pool.identifier;
+
+        const symbol = pool.tokens.map(x => x.symbol).join('-');
+        const underlyingTokens = pool.tokens.map(x => x.address)
+  
+        const tvlUsd = pool.tvl;
+        
+        const rewardTokens = pool.rewardsRecord?.breakdowns.map(x => x.token.address) || []
+        const apyReward = pool.apr;
+  
+        if (apyReward && apyReward > 0 && tvlUsd && tvlUsd > 0 && chain && rewardTokens.length > 0) {
+          const poolData = {
+            pool: poolAddress,
+            chain: chain,
+            project: project,
+            symbol: symbol,
+            tvlUsd: tvlUsd,
+            apyReward: apyReward,
+            rewardTokens: [...new Set(rewardTokens)],
+            underlyingTokens: underlyingTokens,
+          };
+          poolsData.push(poolData);
+        }
+      } catch {}
     }
   }
   return poolsData.filter((p) => utils.keepFinite(p));

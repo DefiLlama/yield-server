@@ -12,6 +12,7 @@ const REWARD_SPEED_BORROW = 'compBorrowSpeeds';
 const SUPPLY_RATE = 'supplyRatePerBlock';
 const BORROW_RATE = 'borrowRatePerBlock';
 const TOTAL_BORROWS = 'totalBorrows';
+const TOTAL_RESERVES = 'totalReserves';
 const GET_CHASH = 'getCash';
 const UNDERLYING = 'underlying';
 const BLOCKS_PER_DAY = 86400 / 12;
@@ -144,6 +145,11 @@ const main = async () => {
     TOTAL_BORROWS,
     ercDelegator
   );
+  const totalReserves = await multiCallMarkets(
+    allMarkets,
+    TOTAL_RESERVES,
+    ercDelegator
+  );
 
   const underlyingTokens = await multiCallMarkets(
     allMarkets,
@@ -183,11 +189,14 @@ const main = async () => {
       price = symbol.toLowerCase().includes('usd') ? 1 : 0;
 
     const totalSupplyUsd =
-      ((Number(marketsCash[i]) + Number(totalBorrows[i])) / 10 ** decimals) *
+      ((Number(marketsCash[i]) +
+        Number(totalBorrows[i]) -
+        Number(totalReserves[i])) /
+        10 ** decimals) *
       price;
-    const tvlUsd = (marketsCash[i] / 10 ** decimals) * price;
 
     const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
+    const tvlUsd = totalSupplyUsd - totalBorrowUsd;
 
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
     const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
@@ -245,5 +254,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.compound.finance/',
+  url: 'https://app.compound.finance/markets/v2',
 };

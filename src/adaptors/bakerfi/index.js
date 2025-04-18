@@ -2,7 +2,7 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const axios = require('axios');
 
-const API_URL = 'https://api-v1.bakerfi.xyz/api';
+const API_URL = 'https://api-v1.bakerfi.ai/api';
 
 const oracles = {
   ethereum: {
@@ -33,6 +33,18 @@ const vaults = [
     pool: `0x37327c99bBc522e677a97d01021dB20227faF60A-base`.toLowerCase(),
     chain: 'base',
     contract: '0x37327c99bBc522e677a97d01021dB20227faF60A',
+    project: 'bakerfi',
+    symbol: utils.formatSymbol('ETH'),
+    apyReward: 0, // APY from pool LM rewards in %,
+    rewardTokens: ['0x4200000000000000000000000000000000000006'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
+    underlyingTokens: ['0x4200000000000000000000000000000000000006'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
+    poolMeta: 'wstETH/ETH Recursive Staking', // A string value which can stand for any specif
+  },
+  {
+    id: 'cm2subkbi0000ihv5e7www0ic',
+    pool: `0x892022FE1431fdE03836725BBD0f0380e21E2095-base`.toLowerCase(),
+    chain: 'base',
+    contract: '0x892022FE1431fdE03836725BBD0f0380e21E2095',
     project: 'bakerfi',
     symbol: utils.formatSymbol('ETH'),
     apyReward: 0, // APY from pool LM rewards in %,
@@ -91,5 +103,5 @@ async function readVaultsInfo(args) {
 module.exports = {
   timetravel: false,
   apy: readVaultsInfo,
-  url: 'https://bakerfi.xyz/app',
+  url: 'https://bakerfi.ai/app',
 };

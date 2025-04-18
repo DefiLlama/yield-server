@@ -27,7 +27,9 @@ const chains = {
     'GVH9h9KZ9CqheUEL93qMbq7QwgoBu32QXQDPR6bev4Eo'
   ),
   bsc: sdk.graph.modifyEndpoint('GcKPSgHoY42xNYVAkSPDhXSzi6aJDRQSKqBSXezL47gV'),
-  base: 'https://api.studio.thegraph.com/query/48211/uniswap-v3-base/version/latest',
+  base: sdk.graph.modifyEndpoint(
+    'HMuAwufqZ1YCRmzL2SfHTVkzZovC9VL2UAKhjvRqKiR1'
+  ),
 };
 
 const query = gql`
