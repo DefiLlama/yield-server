@@ -3,72 +3,107 @@ const { getData, formatChain, formatSymbol, keepFinite } = require('../utils');
 const PROJECT = 'metrom';
 
 const CHAIN_NAMES: Record<number, string> = {
-  8_453: 'Base',
   34_443: 'Mode',
   5_000: 'Mantle',
+  8_453: 'Base',
   167_000: 'Taiko',
+  534_352: 'Scroll',
+  146: 'Sonic',
+  478: 'Form',
+  100: 'Gnosis',
+  40: 'Telos',
+  1_890: 'LightLink',
+  1_329: 'Sei',
 };
 
 interface Erc20Token {
-  address: string;
-  decimals: number;
   symbol: string;
 }
 
-interface Pool {
-  address: string;
-  tokens: Erc20Token[];
+interface AmmPool {
+  tokens: string[];
   usdTvl: number;
 }
 
-interface Reward extends Erc20Token {
-  amount: string;
+interface AmmPoolLiquidityTarget {
+  type: 'amm-pool-liquidity';
+  chainId: number;
+  poolId: string;
+}
+
+interface TokenDistributable {
+  token: string;
+}
+
+interface TokenDistributables {
+  type: 'tokens';
+  list: TokenDistributable[];
 }
 
 interface Campaign {
   chainId: number;
   id: string;
-  pool: Pool;
-  rewards: Reward[];
-  apr: number | null;
+  target: AmmPoolLiquidityTarget;
+  distributables: TokenDistributables;
+  apr?: number;
+}
+
+interface CampaignsResponse {
+  resolvedTokens: Record<number, Record<string, Erc20Token>>;
+  resolvedAmmPools: Record<number, Record<string, AmmPool>>;
+  campaigns: Campaign[];
 }
 
 module.exports = {
   timetravel: false,
   apy: async () => {
-    const rawCampaigns = (await getData(
+    const response = (await getData(
       'https://api.metrom.xyz/v1/campaigns?status=active'
-    )) as Campaign[];
+    )) as CampaignsResponse;
 
     const campaigns = [];
-    for (const rawCampaign of rawCampaigns) {
-      const chainId = rawCampaign.chainId;
+    outer: for (const campaign of response.campaigns) {
+      const chainId = campaign.chainId;
       const chain = CHAIN_NAMES[chainId];
-      if (!chain) {
-        console.warn(`No chain with id ${rawCampaign.chainId}`);
+      if (
+        !chain ||
+        campaign.distributables.type !== 'tokens' ||
+        campaign.target.type !== 'amm-pool-liquidity' ||
+        chainId !== campaign.target.chainId ||
+        !campaign.apr
+      )
         continue;
-      }
 
-      const apr = rawCampaign.apr;
-      if (!apr) {
-        console.warn(
-          `No APR for campaign with id ${rawCampaign.id} on chain ${chainId}`
-        );
-        continue;
+      const resolvedTokensByChain =
+        response.resolvedTokens[campaign.target.chainId];
+      if (!resolvedTokensByChain) continue;
+
+      const resolvedPoolsByChain =
+        response.resolvedAmmPools[campaign.target.chainId];
+      if (!resolvedPoolsByChain) continue;
+
+      const resolvedPool = resolvedPoolsByChain[campaign.target.poolId];
+      if (!resolvedPool) continue;
+
+      const poolTokenSymbols = [];
+      for (const token of resolvedPool.tokens) {
+        const resolvedToken = resolvedTokensByChain[token];
+        if (!resolvedToken) continue outer;
+        poolTokenSymbols.push(resolvedToken.symbol);
       }
 
       campaigns.push({
-        pool: rawCampaign.pool.address,
+        pool: campaign.id.toLowerCase(),
         chain: formatChain(chain),
         project: PROJECT,
-        symbol: formatSymbol(
-          rawCampaign.pool.tokens.map((token) => token.symbol).join(' - ')
+        symbol: formatSymbol(poolTokenSymbols.join(' - ')),
+        tvlUsd: resolvedPool.usdTvl,
+        apyReward: campaign.apr,
+        rewardTokens: campaign.distributables.list.map(
+          (reward) => reward.token
         ),
-        tvlUsd: rawCampaign.pool.usdTvl,
-        apyReward: apr,
-        rewardTokens: rawCampaign.rewards.map((reward) => reward.address),
-        underlyingTokens: rawCampaign.pool.tokens.map((token) => token.address),
-        url: `https://app.metrom.xyz/campaigns/${chainId}/${rawCampaign.id}`,
+        underlyingTokens: resolvedPool.tokens,
+        url: `https://app.metrom.xyz/en/campaigns/${chainId}/${campaign.id}`,
       });
     }
 

@@ -40,6 +40,9 @@ const apy = async () => {
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).data.coins[priceKey]?.price;
 
+  console.log(apr7d, price);
+  process.exit();
+
   return [
     {
       pool: inETH,

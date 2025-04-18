@@ -1,0 +1,61 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_aggregator",
+        "type": "address"
+      }
+    ],
+    "name": "changeAggregator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getDataInBase18",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "answer",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_ac",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_aggregator",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_healthyDiff",
+        "type": "uint256"
+      },
+      {
+        "internalType": "int256",
+        "name": "_minExpectedAnswer",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "_maxExpectedAnswer",
+        "type": "int256"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]
