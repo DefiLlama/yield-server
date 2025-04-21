@@ -11,6 +11,7 @@ const API_URLS = {
   arbitrum: `${API_URL}?network=arbitrum`,
   optimism: `${API_URL}?network=optimism`,
   era: `${API_URL}?network=zksync`,
+  linea: `${API_URL}?network=linea`,
   base: `${API_URL}?network=base`,
   mantle: `${API_URL}?network=mantle`,
   sonic: `${API_URL}?network=sonic`,
