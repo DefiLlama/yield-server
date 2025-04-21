@@ -6,7 +6,7 @@ const apy = async () => {
   );
 
   return apyData.strategies
-    .filter(strategy => parseFloat(strategy.tvlUsd) > 0)
+    .filter(strategy => parseFloat(strategy.tvlUsd) > 10000)
     .map((strategy) => {
       const currTvlUsd = parseFloat(strategy.tvlUsd);
       const currPool = strategy.name;
