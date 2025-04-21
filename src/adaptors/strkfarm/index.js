@@ -6,14 +6,14 @@ const apy = async () => {
   );
 
   return apyData.strategies
-    .filter(strategy => parseFloat(strategy.tvlUsd) > 10000)
+    .filter(strategy => parseFloat(strategy.tvlUsd) > 0)
     .map((strategy) => {
       const currTvlUsd = parseFloat(strategy.tvlUsd);
       const currPool = strategy.name;
       const currPoolId = strategy.id;
       const baseApy = (strategy.apySplit.baseApy || 0) * 100;
       const rewardsApy = (strategy.apySplit.rewardsApy || 0) * 100;
-
+      const rewardTokens = strategy.depositToken.map(token => token.address);
       const underlyingTokens = strategy.depositToken.map(token => token.address);
       const symbols = strategy.depositToken.map(token => token.symbol).join('-');
 
@@ -26,20 +26,12 @@ const apy = async () => {
         tvlUsd: currTvlUsd,
         apyBase: baseApy,
         apyReward: rewardsApy,
+        rewardTokens: rewardTokens,
         url: `https://app.strkfarm.com/strategy/${currPoolId}`,
         poolMeta: currPool,
       };
     });
 };
-
-apy().then((strategies) => {
-  strategies.forEach((strategy) => {
-    console.log(strategy);
-    console.log('-----------------------------');
-  });
-}).catch((error) => {
-  console.error('Error fetching strategies:', error);
-});
 
 module.exports = {
   timetravel: false,
