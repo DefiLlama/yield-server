@@ -51,11 +51,13 @@ const main = async () => {
       }
 
       let decimals = info['decimals'];
-      let apyReward = info['reward_apr'];
+      let apyReward;
       let rewardTokens;
       if (chain === "mantle") {
+        apyReward = info['reward_apr'];
         rewardTokens = [rewardTokensMapping[chain]];
       } else {
+        apyReward = 0;
         rewardTokens = [];
       }
       results.push({
