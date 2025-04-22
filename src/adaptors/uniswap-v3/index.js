@@ -6,6 +6,7 @@ const utils = require('../utils');
 const { EstimatedFees } = require('./estimateFee.ts');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
+const getOnchainPools = require('./onchain');
 
 const chains = {
   ethereum: sdk.graph.modifyEndpoint(
@@ -350,6 +351,7 @@ const main = async (timestamp = null) => {
       await topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins)
     );
   }
+  data.push(...(await getOnchainPools()))
   return data
     .flat()
     .filter(
