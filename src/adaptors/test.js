@@ -122,7 +122,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
   describe('Check if pool id already used by other project', () => {
     const uniqueIds = new Set(apy.map(({ pool }) => pool));
     const duplicatedPoolIds = [...uniqueIds].filter((p) =>
-      uniquePoolIdentifiersDB.has(p)
+      uniquePoolIdentifiersDB.has(p.toLowerCase())
     );
 
     test('Print duplicated pool IDs and their existing projects', () => {
