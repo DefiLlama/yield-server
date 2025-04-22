@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const chains = {
   ethereum: sdk.graph.modifyEndpoint(
@@ -126,7 +127,10 @@ const main = async (timestamp = null) => {
     }
   }
 
-  return data.filter((p) => utils.keepFinite(p));
+  return addMerklRewardApy(
+    data.filter((p) => utils.keepFinite(p)),
+    'uniswap'
+  );
 };
 
 module.exports = {
