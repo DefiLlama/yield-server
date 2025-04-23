@@ -20,12 +20,23 @@ const VAULTS = {
       symbol: 'USDC',
       underlying: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174'
     }
+  },
+  base: {
+    '0xb272e80042634Bca5d3466446b0C48Ba278A8Ae5': {
+      symbol: 'WETH',
+      underlying: '0x4200000000000000000000000000000000000006'
+    },
+    '0x7a63e8FC1d0A5E9BE52f05817E8C49D9e2d6efAe': {
+      symbol: 'USDC',
+      underlying: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+    }
   }
 };
 
 const CHAIN_IDS = {
   ethereum: 1,
-  polygon: 137
+  polygon: 137,
+  base: 8453
 };
 
 class MaxApyAdapter {
