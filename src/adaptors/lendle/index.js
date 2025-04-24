@@ -4,12 +4,21 @@ const abiLendingPool = require('../aave-v2/abiLendingPool');
 const abiProtocolDataProvider = require('../aave-v2/abiProtocolDataProvider');
 
 const utils = require('../utils');
+const { rewardTokens } = require('../sommelier/config');
+
+const vaultsApi = 'https://lendle-vaults-api-184110952121.europe-west4.run.app';
+const vaultsApy = `${vaultsApi}/apy/breakdown`;
+const vaultsTvl = `${vaultsApi}/tvl`;
+const vaultsData = `${vaultsApi}/vaults`;
+
+const vaultsCampaignApi = 'https://api.merkl.xyz/v4/opportunities?name=lendle';
 
 const chains = {
   mantle: {
     LendingPool: '0xCFa5aE7c2CE8Fadc6426C1ff872cA45378Fb7cF3',
     ProtocolDataProvider: '0x552b9e4bae485C4B7F540777d7D25614CdB84773',
     url: 'mantle',
+    chainId: 5000,
   },
 };
 
@@ -127,7 +136,63 @@ const getApy = async () => {
       });
     })
   );
-  return pools.flat().filter((p) => utils.keepFinite(p));
+
+  const vaults = await Promise.all(
+    Object.keys(chains).map(async (chain) => {
+      const chainId = chains[chain].chainId;
+
+      const _vaultsData = (await axios.get(vaultsData)).data;
+      const vaultsList = _vaultsData.map((vault) => vault.earnContractAddress);
+
+      const _vaultsTvl = (await axios.get(vaultsTvl)).data;
+      const _vaultsApy = (await axios.get(vaultsApy)).data;
+
+      const _vaultsCampaignApi = (await axios.get(vaultsCampaignApi)).data;
+
+      return vaultsList.map((t, i) => {
+        const config = _vaultsData[i];
+        if (config.status !== 'active') return null;
+
+        const tvlUsd = _vaultsTvl[chainId][config.id];
+
+        let id = config.id;
+        if (config.id === 'lendle-vault-mnt') {
+          id = 'lendle-vault-wmnt';
+        }
+        const apyBase = _vaultsApy[id].totalApy;
+
+        const aprData = _vaultsCampaignApi.find(
+          (item) =>
+            item.status === 'LIVE' &&
+            item.identifier.toLowerCase() === t.toLowerCase() &&
+            item.rewardsRecord.breakdowns[0].token.address !== '0x0000000000000000000000000000000000000000'
+        );
+        const apyReward = aprData ? aprData.apr : 0;
+
+        const url = `https://app.lendle.xyz/vault/${
+          config.id
+        }`;
+
+        return {
+          pool: `${t}-${chain}`.toLowerCase(),
+          symbol: config.earnedToken,
+          project: 'lendle',
+          chain,
+          tvlUsd,
+          apyBase,
+          apyReward,
+          underlyingTokens: [config.tokenAddress],
+          rewardTokens: aprData && apyReward
+            ? [aprData.rewardsRecord.breakdowns[0].token.address]
+            : ['0x0000000000000000000000000000000000000000'],
+          url,
+          poolMeta: 'Vault',
+        };
+      });
+    })
+  );
+
+  return [...pools.flat(), ...vaults.flat()].filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
