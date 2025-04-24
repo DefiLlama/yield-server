@@ -4,7 +4,6 @@ const abiLendingPool = require('../aave-v2/abiLendingPool');
 const abiProtocolDataProvider = require('../aave-v2/abiProtocolDataProvider');
 
 const utils = require('../utils');
-const { rewardTokens } = require('../sommelier/config');
 
 const vaultsApi = 'https://lendle-vaults-api-184110952121.europe-west4.run.app';
 const vaultsApy = `${vaultsApi}/apy/breakdown`;
