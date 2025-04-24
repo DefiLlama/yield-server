@@ -14,7 +14,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@blend-capital/blend-sdk": "^2.2.0",
     "@defillama/sdk": "^5.0.112",
     "@stacks/network": "^6.13.0",
     "@stacks/transactions": "^6.15.0",
