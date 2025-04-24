@@ -1,7 +1,7 @@
 const utils = require('../utils');
 
 const meridianAddress =
-  '0x7730cd28ee1cdc9e999336cbc430f99e7c44397c0aa77516f6f23a78559bb5';
+  '0xfbdb3da73efcfa742d542f152d65fc6da7b55dee864cd66475213e4be18c9d54';
 const MERIDIAN_DAPP_URL = 'https://app.meridian.money';
 const MERIDIAN_POOL_API_URL = `${MERIDIAN_DAPP_URL}/api/liquidity-pool`;
 const MERIDIAN_COIN_INFO_URL = `${MERIDIAN_DAPP_URL}/api/coin-info`;
