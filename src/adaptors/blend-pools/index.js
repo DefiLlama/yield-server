@@ -1,72 +1,80 @@
 const {
-  Pool,
+  PoolV1,
   BackstopToken,
   Backstop,
   FixedMath,
+  TokenMetadata,
 } = require('@blend-capital/blend-sdk');
-const { getPrices, keepFinite, formatChain } = require('../utils');
+const { getPrices, keepFinite, formatChain, getData } = require('../utils');
 
 const BACKSTOP_ID = 'CAO3AGAMZVRMHITL36EJ2VZQWKYRPWMQAPDQD5YEOF3GIF7T44U4JAL3';
 const BLND_ID = 'CD25MNVTZDL4Y3XBCPCJXGXATV5WUHHOWMYFF4YBEGU5FCPGMYTVG5JY';
 const BLEND_POOLS = [
   'CDVQVKOY2YSXS2IC7KN6MNASSHPAO7UN2UR2ON4OI2SKMFJNVAMDX6DP',
   'CBP7NO6F7FRDHSOFQBT2L2UWYIZ2PU76JKVRYAQTG3KZSQLYAOKIF2WB',
+  'CDE65QK2ROZ32V2LVLBOKYPX47TYMYO37Z6ASQTBRTBNK53C7C6QF4Y7',
+  'CAQF5KNOFIGRI24NQRRGUPD46Q45MGMXZMRTQFXS25Y4NZVNPT34GM6S',
 ];
 const NETWORK = {
   rpc: 'https://soroban-rpc.creit.tech/',
   passphrase: 'Public Global Stellar Network ; September 2015',
 };
 
-const getApy = async (poolId, backstop) => {
-  const pool = await Pool.load(NETWORK, poolId);
+const getApy = async (poolId, backstop, blndPrice) => {
+  const pool = await PoolV1.load(NETWORK, poolId);
   // Skip pools that have been admin frozen - Pool is very likely to be broken
-  if (pool.config.status === 4) return [];
-  const prices = await getPrices(pool.config.reserveList, 'stellar');
+  if (pool.metadata.status === 4) return [];
+
+  const prices = await getPrices(pool.metadata.reserveList, 'stellar');
   let pools = [];
-  for (const reserve of pool.reserves.values()) {
+
+  for (const reserve of Array.from(pool.reserves.values())) {
     const price = prices.pricesByAddress[reserve.assetId.toLowerCase()];
+
     if (price) {
-      let supplyEmissionsPerAsset = reserve.emissionsPerYearPerSuppliedAsset();
-      let borrowEmissionsPerAsset = reserve.emissionsPerYearPerBorrowedAsset();
+      let tokenMetadata = await TokenMetadata.load(NETWORK, reserve.assetId);
       let supplyEmissionsAPR = undefined;
       let borrowEmissionsAPR = undefined;
-      // The backstop token is an 80/20 weighted lp token of blnd and usdc respectively
-      // (Calculated using balancer spot equation)
-      // @TODO replace with coingecko price after listing
-      const usdcPerBlnd =
-        FixedMath.toFloat(backstop.backstopToken.usdc, 7) /
-        0.2 /
-        (FixedMath.toFloat(backstop.backstopToken.blnd, 7) / 0.8);
-      if (supplyEmissionsPerAsset > 0) {
-        supplyEmissionsAPR = (supplyEmissionsPerAsset * usdcPerBlnd) / price;
+      if (reserve.supplyEmissions) {
+        const supplyEmissionsPerAsset =
+          reserve.supplyEmissions.emissionsPerYearPerToken(
+            reserve.totalSupply(),
+            reserve.config.decimals
+          );
+
+        supplyEmissionsAPR = (supplyEmissionsPerAsset * blndPrice) / price;
       }
-      if (borrowEmissionsPerAsset > 0) {
-        borrowEmissionsAPR = (borrowEmissionsPerAsset * usdcPerBlnd) / price;
+      if (reserve.borrowEmissions) {
+        const borrowEmissionsPerAsset =
+          reserve.borrowEmissions.emissionsPerYearPerToken(
+            reserve.totalLiabilities(),
+            reserve.config.decimals
+          );
+        borrowEmissionsAPR = (borrowEmissionsPerAsset * blndPrice) / price;
       }
-      // Estimate borrow APY compounded daily
-      const borrowApy = (1 + reserve.borrowApr / 365) ** 365 - 1;
+
       let totalSupply = reserve.totalSupplyFloat() * price;
       let totalBorrow = reserve.totalLiabilitiesFloat() * price;
-
       const url = `https://mainnet.blend.capital/dashboard/?poolId=${poolId}`;
 
       pools.push({
         pool: `${pool.id}-${reserve.assetId}-stellar`.toLowerCase(),
         chain: formatChain('stellar'),
         project: 'blend-pools',
-        symbol: reserve.tokenMetadata.symbol,
+        symbol: tokenMetadata.symbol,
         tvlUsd: totalSupply - totalBorrow,
-        // Supply is kept as APR to prevent overestimation of APY
-        apyBase: reserve.supplyApr * 100,
+        //Estimated weekly compounding
+        apyBase: reserve.estSupplyApy * 100,
         apyReward: supplyEmissionsAPR * 100,
         underlyingTokens: [reserve.assetId],
         rewardTokens: borrowEmissionsAPR || supplyEmissionsAPR ? [BLND_ID] : [],
         totalSupplyUsd: totalSupply,
         totalBorrowUsd: totalBorrow,
-        apyBaseBorrow: borrowApy * 100,
+        // Estimated daily compounding
+        apyBaseBorrow: reserve.estBorrowApy * 100,
         apyRewardBorrow: borrowEmissionsAPR * 100,
         ltv: totalBorrow / totalSupply,
-        poolMeta: `${pool.config.name} Pool`,
+        poolMeta: `${pool.metadata.name} Pool`,
         url,
       });
     }
@@ -77,10 +85,16 @@ const getApy = async (poolId, backstop) => {
 const apy = async () => {
   let backstop = await Backstop.load(NETWORK, BACKSTOP_ID);
   let pools = [];
-
+  const data = await getData(
+    'https://coins.llama.fi/prices/current/coingecko:blend'
+  );
   for (const poolId of BLEND_POOLS) {
-    let poolApys = await getApy(poolId, backstop);
-    pools.push(...poolApys)
+    let poolApys = await getApy(
+      poolId,
+      backstop,
+      data.coins['coingecko:blend'].price
+    );
+    pools.push(...poolApys);
   }
   return pools;
 };
