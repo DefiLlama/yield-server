@@ -460,14 +460,18 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
 };
 
 const main = async () => {
-  let data = await Promise.all([
+  let data = await Promise.allSettled([
     topLvl('ethereum', urlEthereum, urlMc2, 1),
     topLvl('arbitrum', urlArbitrum, null, 42161),
     topLvl('polygon', urlPolygon, null, 137),
     topLvl('avalanche', urlAvalanche, null, 43114),
   ]);
 
-  return data.flat().filter((p) => utils.keepFinite(p));
+  return data
+    .filter((i) => i.status === 'fulfilled')
+    .map((i) => i.value)
+    .flat()
+    .filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
