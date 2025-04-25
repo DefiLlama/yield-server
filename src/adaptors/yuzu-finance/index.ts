@@ -62,8 +62,8 @@ async function main() {
         project: 'yuzu-finance',
         symbol,
         tvlUsd: parseFloat(pool.tvl),
-        apyBase: pool.feeApr,
-        apyReward: pool.rewardApr,
+        apyBase: pool.feeApr * 100,
+        apyReward: pool.rewardApr * 100,
         rewardTokens:
           pool.rewardInfos?.map((reward) => reward.tokenMetadata) || [],
         underlyingTokens: [pool.token0, pool.token1],
