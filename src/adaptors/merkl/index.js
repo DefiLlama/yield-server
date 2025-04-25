@@ -74,7 +74,7 @@ const main = async () => {
   
         if (apyReward && apyReward > 0 && tvlUsd && tvlUsd > 0 && chain && rewardTokens.length > 0) {
           const poolData = {
-            pool: poolAddress,
+            pool: `${poolAddress}-merkl`,
             chain: chain,
             project: project,
             symbol: symbol,
