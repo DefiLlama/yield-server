@@ -48,9 +48,6 @@ async function main() {
 
   const defiLlamaPools = pools
     .map((pool) => {
-      // Skip pools with TVL < 10K USD
-      if (parseFloat(pool.tvl) < 10000) return null;
-
       const token0 = tokens.find((token) => token.metadata === pool.token0);
       const token1 = tokens.find((token) => token.metadata === pool.token1);
       const symbol =
