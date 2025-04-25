@@ -64,8 +64,11 @@ async function main() {
         tvlUsd: parseFloat(pool.tvl),
         apyBase: pool.feeApr * 100,
         apyReward: pool.rewardApr * 100,
-        rewardTokens:
-          pool.rewardInfos?.map((reward) => reward.tokenMetadata) || [],
+        // Ensure unique reward tokens since the frontend allows adding the same token multiple times
+        // This prevents duplicate rewards from appearing in the DefiLlama dashboard
+        rewardTokens: Array.from(
+          new Set(pool.rewardInfos?.map((reward) => reward.tokenMetadata) || [])
+        ),
         underlyingTokens: [pool.token0, pool.token1],
       };
     })
