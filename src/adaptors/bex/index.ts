@@ -1,5 +1,3 @@
-import { Pool } from '../../types/Pool';
-import { PoolGetPoolsResponse } from './types';
 const { request, gql } = require('graphql-request');
 
 const BEX_API_URL = 'https://api.berachain.com';
@@ -8,12 +6,12 @@ const CHAIN = 'Berachain';
 const PROJECT = 'bex';
 const BGT_ADDRESS = '0x656b95E550C07a9ffe548bd4085c72418Ceb1dba';
 
-async function getPoolData(): Promise<Pool[]> {
+async function getPoolData() {
   const allPools = await getPools();
   const filteredPools = await filterPools(allPools);
-  const pools: Pool[] = [];
+  const pools = [];
   for (const pool of filteredPools.poolGetPools) {
-    const poolData: Pool = {
+    const poolData = {
       pool: `${pool.address}-${CHAIN}`,
       chain: CHAIN,
       project: PROJECT,
@@ -33,9 +31,7 @@ async function getPoolData(): Promise<Pool[]> {
   return pools;
 }
 
-async function filterPools(
-  pools: PoolGetPoolsResponse
-): Promise<PoolGetPoolsResponse> {
+async function filterPools(pools) {
   const poolMustHaveApr = (pool) => pool.dynamicData.aprItems.length > 0;
   const poolMustHaveRewardVault = (pool) => pool.rewardVault !== null;
 
@@ -46,7 +42,7 @@ async function filterPools(
   };
 }
 
-async function getPools(): Promise<PoolGetPoolsResponse> {
+async function getPools() {
   const query = gql`
     query GetPoolData {
       poolGetPools(
