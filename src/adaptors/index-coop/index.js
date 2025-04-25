@@ -74,14 +74,16 @@ const getPrice = async (index) => {
 
 const getTvlUsd = async (index) => {
   const priceUsd = await getPrice(index);
-  const supply = await sdk.api2.erc20.totalSupply({ target: index.address });
+  const supply = await sdk.api2.erc20.totalSupply({
+    target: index.address,
+    chain: index.chain.toLowerCase(),
+  });
   const supplyNumber = new BigNumber(supply.output.toString());
   const tvlUsd = supplyNumber.div(1e18).toNumber() * priceUsd;
   return tvlUsd;
 };
 
 const main = async () => {
-  // return [dsEth, icEth].filter((i) => Boolean(i));
   const hyETH = await buildPool(hyEthData);
   const icETH = await buildPool(icEthIndex);
   const wstETH15x = await buildPool(wstETH15xData);
