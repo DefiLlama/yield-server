@@ -118,7 +118,6 @@ const excludeAdaptors = [
   'swapr-v2',
   'agave',
   'blueshift',
-  'index-coop',
   'gyroscope-protocol',
   'blue-planet',
   'archimedes-finance',
