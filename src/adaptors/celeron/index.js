@@ -70,7 +70,7 @@ async function apy() {
       project: 'celeron',
     };
   });
-  return data;
+  return utils.removeDuplicates(data);
 }
 
 let abi = {
