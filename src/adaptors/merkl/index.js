@@ -13,12 +13,7 @@ const networks = {
 
 // Protocols that should not be listed under Merkl
 // as they already have their own adapters.
-const protocolsBlacklist = [
-  'euler',
-  'crosscurve',
-  'aerodrome',
-  'gamma',
-];
+const protocolsBlacklist = ['euler', 'crosscurve', 'aerodrome', 'gamma'];
 
 // Allow specific pools from blacklisted protocols
 const poolsWhitelist = [
@@ -44,10 +39,12 @@ const main = async () => {
     let pools = [];
     let pageI = 0;
 
-    while(true) {
+    while (true) {
       let data;
       try {
-        data = await utils.getData(`https://api.merkl.xyz/v4/opportunities?chainId=${chainId}&status=LIVE&items=100&page=${pageI}`);
+        data = await utils.getData(
+          `https://api.merkl.xyz/v4/opportunities?chainId=${chainId}&status=LIVE&items=100&page=${pageI}`
+        );
       } catch (err) {
         console.log('failed to fetch Merkl data on chain ' + chain);
       }
@@ -60,19 +57,32 @@ const main = async () => {
       pageI++;
     }
 
-    for (const pool of pools.filter(x => !x.protocol || !protocolsBlacklist.includes(x.protocol.id) || poolsWhitelist.includes(x.identifier))) {
+    for (const pool of pools.filter(
+      (x) =>
+        !x.protocol ||
+        !protocolsBlacklist.includes(x.protocol.id) ||
+        poolsWhitelist.includes(x.identifier)
+    )) {
       try {
         const poolAddress = pool.identifier;
 
-        const symbol = pool.tokens.map(x => x.symbol).join('-');
-        const underlyingTokens = pool.tokens.map(x => x.address)
-  
+        const symbol = pool.tokens.map((x) => x.symbol).join('-');
+        const underlyingTokens = pool.tokens.map((x) => x.address);
+
         const tvlUsd = pool.tvl;
-        
-        const rewardTokens = pool.rewardsRecord?.breakdowns.map(x => x.token.address) || []
+
+        const rewardTokens =
+          pool.rewardsRecord?.breakdowns.map((x) => x.token.address) || [];
         const apyReward = pool.apr;
-  
-        if (apyReward && apyReward > 0 && tvlUsd && tvlUsd > 0 && chain && rewardTokens.length > 0) {
+
+        if (
+          apyReward &&
+          apyReward > 0 &&
+          tvlUsd &&
+          tvlUsd > 0 &&
+          chain &&
+          rewardTokens.length > 0
+        ) {
           const poolData = {
             pool: `${poolAddress}-merkl`,
             chain: chain,
@@ -88,7 +98,7 @@ const main = async () => {
       } catch {}
     }
   }
-  return poolsData.filter((p) => utils.keepFinite(p));
+  return utils.removeDuplicates(poolsData.filter((p) => utils.keepFinite(p)));
 };
 
 /*
