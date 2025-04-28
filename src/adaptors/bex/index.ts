@@ -15,7 +15,7 @@ async function getPoolData() {
       pool: `${pool.address}-${CHAIN}`,
       chain: CHAIN,
       project: PROJECT,
-      symbol: pool.symbol,
+      symbol: pool.name.replace(' | ', '-'),
       tvlUsd: Number(pool.dynamicData.totalLiquidity),
       apyBase: Number(pool.dynamicData.aprItems[0].apr),
       apyReward: Number(pool.rewardVault?.dynamicData.apr),
@@ -25,6 +25,7 @@ async function getPoolData() {
         ...pool.displayTokens.map((token) => token.address),
       ],
       url: `${BEX_URL}/pools/${pool.id}/details/`,
+      poolMeta: pool.symbol,
     };
     pools.push(poolData);
   }
@@ -53,6 +54,7 @@ async function getPools() {
         id
         address
         chain
+        name
         symbol
         chain
         displayTokens {
