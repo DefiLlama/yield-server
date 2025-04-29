@@ -63,8 +63,7 @@ const getApy = async (poolId, backstop, blndPrice) => {
         project: 'blend-pools',
         symbol: tokenMetadata.symbol,
         tvlUsd: totalSupply - totalBorrow,
-        //Estimated weekly compounding
-        apyBase: reserve.estSupplyApy * 100,
+        apyBase: reserve.supplyApr * 100,
         apyReward: supplyEmissionsAPR * 100,
         underlyingTokens: [reserve.assetId],
         rewardTokens: borrowEmissionsAPR || supplyEmissionsAPR ? [BLND_ID] : [],
