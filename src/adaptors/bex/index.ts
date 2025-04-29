@@ -17,15 +17,15 @@ async function getPoolData() {
       project: PROJECT,
       symbol: pool.name.replace(' | ', '-'),
       tvlUsd: Number(pool.dynamicData.totalLiquidity),
-      apyBase: Number(pool.dynamicData.aprItems[0].apr),
-      apyReward: Number(pool.rewardVault?.dynamicData.apr),
+      apyBase: Number(pool.dynamicData.aprItems[0].apr) * 100,
+      apyReward: Number(pool.rewardVault?.dynamicData.apr) * 100,
       rewardTokens: [BGT_ADDRESS],
       underlyingTokens: [
         pool.address,
         ...pool.displayTokens.map((token) => token.address),
       ],
       url: `${BEX_URL}/pools/${pool.id}/details/`,
-      poolMeta: pool.symbol,
+      poolMeta: pool.symbol.split('-').pop() || '',
     };
     pools.push(poolData);
   }
