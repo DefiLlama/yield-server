@@ -29,6 +29,17 @@ const main = async () => {
     (p) => !(p.project === 'aave-v2' && p.poolMeta === 'frozen')
   );
 
+  // remove expired pendle pools (expiration is in poolMeta)
+  data = data.filter((p) => {
+    if (p.project !== 'pendle') return true;
+
+    const match = p.poolMeta?.match(/(\d{2}[A-Z]{3}\d{4})/);
+    if (!Array.isArray(match) || match.length < 2) return true; // keep if no valid match
+
+    const date = new Date(match[1]);
+    return !isNaN(date) && date > new Date(); // keep if valid future date
+  });
+
   // ---------- add additional fields
   // for each project we get 3 offsets (1D, 7D, 30D) and calculate absolute apy pct-change
   console.log('\nadding pct-change fields');
