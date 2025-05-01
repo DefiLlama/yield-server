@@ -92,7 +92,7 @@ const main = async () => {
     // removing any stable which a price 30% from 1usd
     .filter((s) => s.price >= 0.7)
     .map((s) => s.symbol.toLowerCase())
-    .filter((s) => s !== 'r');
+    .filter((s) => !['r', 'm'].includes(s));
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
   if (!stablecoins.includes('fraxbp')) stablecoins.push('fraxbp');
