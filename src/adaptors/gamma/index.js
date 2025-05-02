@@ -52,8 +52,8 @@ const EXCHANGES_CHAINS = {
   hercules: ["metis"],
   baseswap: ["base"],
   swapbased: ["base"],
-  pharaoh: ["avalanche"],
-  swapr: ["gnosis"],
+  pharaoh: ["avax"],
+  swapr: ["xdai"],
   thick: ["base"],
   cleopatra: ["mantle"],
 };
@@ -75,7 +75,7 @@ const CHAINS_API = {
   kava: 'kava/',
   op_bnb: 'opbnb/',
   manta: 'manta/',
-  metis: 'manta/',
+  metis: 'metis/',
   xdai: 'gnosis/',
   bob: 'bob/',
 };
