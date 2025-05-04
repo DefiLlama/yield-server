@@ -72,7 +72,7 @@ const main = async () => {
     const curveData = await curve.apy();
     const merklData = await merkl();
 
-    return Promise.all(addresses.map(async (address) => {
+    const pools = await Promise.all(addresses.map(async (address) => {
       const curvePool = curveData.find((pool) => pool.pool.split('-').at(0).toLowerCase() === address);
       const merklPool = merklData.find(data => data.explorerAddress.toLowerCase() === address);
       const gauge = gauges[address];
@@ -101,7 +101,7 @@ const main = async () => {
         const req = await fetch('https://eywa-bot-api-service.eywa.fi/pools-data');
         const res = await req.json();
         tvlUsd = res.data.pools.find(pool => pool.address === '0x38dd6b3c096c8cbe649fa0039cc144f333be8e61').tvl
-        merklPool.platform = 'xCRV'
+        if (merklPool?.platform) {merklPool.platform = 'xCRV'}
       } else {
         tvlUsd = new BigNumber(curvePool?.tvlUsd || 0).plus(merklPool?.tvlUsd || 0).toNumber()
       }
@@ -122,6 +122,7 @@ const main = async () => {
         underlyingTokens: Array.from(new Set(underlyingTokens.map( address => address.toLowerCase()))),
       };
     }));
+    return pools.filter(i => i.symbol)
   } catch (error) {
     console.log(error)
   }

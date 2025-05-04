@@ -158,6 +158,7 @@ const getApy = async () => {
         if (config.id === 'lendle-vault-mnt') {
           id = 'lendle-vault-wmnt';
         }
+
         const apyBase = _vaultsApy[id].totalApy * 100;
 
         const aprData = _vaultsCampaignApi.find(

@@ -175,7 +175,7 @@ async function apy() {
             totalSupplyUsd: totalSupplied.times(price).toNumber(),
             totalBorrowUsd: totalBorrowed.times(price).toNumber(),
             apyBaseBorrow: utils.aprToApy(borrowApr, 365),
-            ltv: currentParams.max_loan_to_value,
+            ltv: Number(currentParams.max_loan_to_value),
             url:
               chain === 'osmosis'
                 ? 'https://osmosis.marsprotocol.io/earn/'

@@ -3,7 +3,6 @@ const fetch = require('node-fetch');
 
 const apy = async () => {
   const endpoint = 'https://v2.api.liqwid.finance/graphql';
-  const registryEndpoint = 'https://public.liqwid.finance/registry.json';
 
   const query = gql`
     query {
@@ -23,6 +22,9 @@ const apy = async () => {
               asset {
                 price
               }
+              registry {
+                actionScriptHash
+              }
             }
           }
         }
@@ -31,16 +33,6 @@ const apy = async () => {
   `;
 
   const data = await request(endpoint, query);
-
-  //NOTE: Action validator will be added to the API in the near future
-  const registryData = await fetch(registryEndpoint)
-    .then((res) => res.json())
-    .then((data) =>
-      data.scriptInfos.filter(
-        (script) =>
-          script.type === 'Validator' && script.tag === 'liqwidMainnet'
-      )
-    );
 
   // These are the markets that are either disabled or not borrowable, so no yield can be generated
   const disableMarkets = ['AGIX', 'WMT', 'POL', 'LQ'];
@@ -51,9 +43,7 @@ const apy = async () => {
 
   const getPool = (market) => {
     return {
-      pool: registryData.find(
-        (script) => script.name === `Liqwid${market.id}Action`
-      )?.scriptHash,
+      pool: market.registry.actionScriptHash,
       chain: 'Cardano',
       project: 'liqwid',
       symbol: market.id,

@@ -19,13 +19,13 @@
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
 const protocolSlug = 'saucerswap-v1';
-const baseUrl = 'https://api.saucerswap.finance/';
+const baseUrl = 'https://api.saucerswap.finance';
 const staderUrl =
   'https://server.saucerswap.finance/api/v1/partners/stader/stats';
 const apis = {
   farms: `${baseUrl}/farms`,
   pools: `${baseUrl}/pools`,
-  fiveDAvg: `${baseUrl}pools/5day-avg`,
+  fiveDAvg: `${baseUrl}/pools/5day-avg`,
   stader: staderUrl,
 };
 const chain = 'hedera';
