@@ -217,8 +217,8 @@ const updateWithRewardsV2Data = async (poolsInfo) => {
       poolInfo.rewardTokens.push(rewardTokenInfo.tokenAddress);
       poolInfo.apyReward += calculateRewardAprPercentage(
         remainingRewardsAmount,
-        rewardTokenPrice.price,
-        rewardTokenPrice.decimals,
+        rewardTokenPrice?.price,
+        rewardTokenPrice?.decimals,
         poolInfo.totalSupplyUsd,
         remainingTime
       );
