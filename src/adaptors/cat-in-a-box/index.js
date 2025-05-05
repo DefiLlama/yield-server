@@ -43,8 +43,8 @@ const getCats = async () => {
   tdl = ethers.utils.formatEther(tdl);
 
   const lidoStethApr = (
-    await axios.get('https://stake.lido.fi/api/sma-steth-apr')
-  )['data'];
+    await axios.get('https://eth-api.lido.fi/v1/protocol/steth/apr/last')
+  )['data'].apr;
   const userPoints = 1 - 0;
   const totalPoints = tvl + 1 - tdl;
   let totalProtocolYieldCollateral = (tvl + 1) * (lidoStethApr / 100);
