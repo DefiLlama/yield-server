@@ -5,6 +5,9 @@ const abiProtocolDataProvider = require('../aave-v2/abiProtocolDataProvider');
 
 const utils = require('../utils');
 
+const lendleUrl = 'https://app.lendle.xyz';
+const poolsApr = `${lendleUrl}/api/apr`;
+
 const vaultsApi = 'https://lendle-vaults-api-184110952121.europe-west4.run.app';
 const vaultsApy = `${vaultsApi}/apy/breakdown`;
 const vaultsTvl = `${vaultsApi}/tvl`;
@@ -94,7 +97,9 @@ const getApy = async () => {
         await axios.get(`https://coins.llama.fi/prices/current/${pricesArray}`)
       ).data.coins;
 
-      return reservesList.map((t, i) => {
+      const _poolsApr = (await axios.get(poolsApr)).data;
+
+      return reservesList.map(async (t, i) => {
         const config = reserveConfigurationData[i];
         if (!config.isActive) return null;
 
@@ -107,11 +112,13 @@ const getApy = async () => {
         const apyBase = reserveData[i].currentLiquidityRate / 1e25;
         const apyBaseBorrow = reserveData[i].currentVariableBorrowRate / 1e25;
 
+        const apyReward = _poolsApr.rewards_apy?.[t.toLowerCase()]?.supply * 100 || 0;
+
         const ltv = config.ltv / 1e4;
         const borrowable = config.borrowingEnabled;
         const frozen = config.isFrozen;
 
-        const url = `https://app.lendle.xyz/marketdetail?asset=${
+        const url = `${lendleUrl}/marketdetail?asset=${
           symbols[i]
         }&contract=${t.toLowerCase()}`;
 
@@ -122,6 +129,7 @@ const getApy = async () => {
           chain,
           tvlUsd,
           apyBase,
+          apyReward,
           underlyingTokens: [t],
           url,
           // borrow fields
@@ -141,7 +149,9 @@ const getApy = async () => {
       const chainId = chains[chain].chainId;
 
       const _vaultsData = (await axios.get(vaultsData)).data;
-      const vaultsList = _vaultsData.map((vault) => vault.earnContractAddress);
+      const vaultsList = _vaultsData
+        .filter((vault) => vault.id.startsWith('lendle-'))
+        .map((vault) => vault.earnContractAddress);
 
       const _vaultsTvl = (await axios.get(vaultsTvl)).data;
       const _vaultsApy = (await axios.get(vaultsApy)).data;
@@ -149,16 +159,12 @@ const getApy = async () => {
       const _vaultsCampaignApi = (await axios.get(vaultsCampaignApi)).data;
 
       return vaultsList.map((t, i) => {
-        const config = _vaultsData[i];
-        if (config.status !== 'active') return null;
+        const config = _vaultsData.find((vault) => vault.earnContractAddress === t);
+        if (!config || config.status !== 'active') return null;
 
         const tvlUsd = _vaultsTvl[chainId][config.id];
 
-        let id = config.id;
-        if (config.id === 'lendle-vault-mnt') {
-          id = 'lendle-vault-wmnt';
-        }
-        const apyBase = _vaultsApy[id].totalApy;
+        const apyBase = _vaultsApy[config.id]?.totalApy * 100 || 0;
 
         const aprData = _vaultsCampaignApi.find(
           (item) =>
@@ -168,13 +174,11 @@ const getApy = async () => {
         );
         const apyReward = aprData ? aprData.apr : 0;
 
-        const url = `https://app.lendle.xyz/vault/${
-          config.id
-        }`;
+        const url = `https://app.lendle.xyz/vault/${config.id}`;
 
         return {
           pool: `${t}-${chain}`.toLowerCase(),
-          symbol: config.earnedToken,
+          symbol: config.name,
           project: 'lendle',
           chain,
           tvlUsd,
