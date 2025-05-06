@@ -20,16 +20,14 @@ const GRAPH_URLS = {
 
 function getSubgraphQuery() {
   const nowUnix = Math.floor(new Date().getTime() / 1000);
-  const averageMetricsTypes = "[AVERAGE_7D_HOURLY,AVERAGE_1D_HOURLY]"
+  const averageMetricsTypes = "[AVERAGE_7D_HOURLY,AVERAGE_1D_HOURLY,AVERAGE_6H_HOURLY]"
   return gql`
   {
-    investmentVaults {
+    vaults {
       id
       symbol
-      kinds
-      reserveToken {
-        id
-      }
+      vaultKinds
+      underlyingTokens
       latestMetrics: metrics(
         where: {
           metricsType: LATEST
@@ -80,7 +78,7 @@ function getSubgraphQuery() {
 }
 
 function vaultApy(chain, chainId, vault) {
-  isLeveraged = vault.kinds.includes("Leverage");
+  isLeveraged = vault.vaultKinds.includes("Leverage");
 
   let totalApr = 0;
   if (isLeveraged) {
@@ -99,7 +97,7 @@ function vaultApy(chain, chainId, vault) {
     symbol: vault.symbol,
     tvlUsd: parseFloat(vault.latestMetrics[0].tvlUSD),
     apyBase: (Math.exp(totalApr / 100) - 1) * 100,
-    underlyingTokens: [getAddress(vault.reserveToken.id)],
+    underlyingTokens: vault.underlyingTokens,
     url: `https://origami.finance/vaults/${chainId}-${getAddress(vault.id)}/info`,
   };
   return result;
@@ -107,7 +105,7 @@ function vaultApy(chain, chainId, vault) {
 
 async function chainApy(chain, config, sgraphQuery) {
   const chainResults = await request(config.subgraphUrl, sgraphQuery);
-  return chainResults.investmentVaults.map(vault => vaultApy(chain, config.chainId, vault));
+  return chainResults.vaults.map(vault => vaultApy(chain, config.chainId, vault));
 }
 
 const apy = async () => {
