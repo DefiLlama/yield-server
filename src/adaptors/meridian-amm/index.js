@@ -22,7 +22,13 @@ async function main() {
   const tvlArr = [];
   for (const liquidityPool of v2Pools) {
     const swapFeesApr = liquidityPool.apr.find(item => item.source === 'Swap Fees')?.apr;
+    const farmingMOVEApr = liquidityPool.apr.find(item => item.source === 'MOVE')?.apr;
     const rewardTokens = [];
+
+    // Check and push for MOVE
+    if (farmingMOVEApr > 0) {
+      rewardTokens.push('0x1::aptos_coin::AptosCoin');
+    }
 
     const coinInfos = await Promise.all(liquidityPool.metadata.coinAddresses.map(async (address) => await getCoinInfoWithCache(address)));
     const coinNames = coinInfos.map((coinInfo) => coinInfo.symbol).join('-');
@@ -32,7 +38,7 @@ async function main() {
       chain: utils.formatChain('move'),
       project: 'meridian-amm',
       apyBase: (swapFeesApr ?? 0) * 100,
-      apyReward: 0,
+      apyReward: (farmingMOVEApr ?? 0) * 100,
       rewardTokens,
       symbol: coinNames,
       tvlUsd: liquidityPool.tvl,
