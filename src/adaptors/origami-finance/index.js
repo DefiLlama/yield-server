@@ -20,7 +20,6 @@ const GRAPH_URLS = {
 
 function getSubgraphQuery() {
   const nowUnix = Math.floor(new Date().getTime() / 1000);
-  const averageMetricsTypes = "[AVERAGE_7D_HOURLY,AVERAGE_1D_HOURLY,AVERAGE_6H_HOURLY]"
   return gql`
   {
     vaults {
@@ -39,7 +38,7 @@ function getSubgraphQuery() {
 
       averageMetrics: metrics(
         where: {
-         metricsType_in: ${averageMetricsTypes}
+         metricsType_not: LATEST
         }
       ) {
         yieldSpreadApr
@@ -67,7 +66,7 @@ function getSubgraphQuery() {
       ) {
         averageMetrics: metrics(
           where: {
-            metricsType_in: ${averageMetricsTypes}
+            metricsType_not: LATEST
           }
         ) {
           apr
