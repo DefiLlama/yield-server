@@ -114,6 +114,8 @@ function formatSupplyAPR(borrowAPR, infoTagsObject, totalBorrows, totalSupply) {
 function convertTicker(ticker) {
     if (ticker === "QAR") return "AR";
     if (ticker === "WUSDC") return "USDC";
+    if (ticker === "WAR") return "AR";
+    if (ticker === "WUSDT") return "USDT";
     return ticker;
   }
 
