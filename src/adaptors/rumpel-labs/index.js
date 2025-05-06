@@ -3,29 +3,9 @@ const utils = require('../utils');
 const RUMPEL_API_URL = 'https://www.app.rumpel.xyz/api/apys';
 const RUMPEL_TVL_API_URL =
   'https://point-tokenization-app.vercel.app/api/tvl-by-strategy';
-const PROJECT_SLUG = 'rumpel';
+const PROJECT_SLUG = 'rumpel-labs';
 
 const MIN_TVL_USD = 10_000;
-
-// interface Pool {
-//     pool: string;
-//     chain: string;
-//     project: string;
-//     symbol: string;
-//     tvlUsd: number; // for lending protocols: tvlUsd = totalSupplyUsd - totalBorrowUsd
-//     apyBase?: number;
-//     apyReward?: number;
-//     rewardTokens?: Array<string>;
-//     underlyingTokens?: Array<string>;
-//     poolMeta?: string;
-//     url?: string;
-//     // optional lending protocol specific fields:
-//     apyBaseBorrow?: number;
-//     apyRewardBorrow?: number;
-//     totalSupplyUsd?: number;
-//     totalBorrowUsd?: number;
-//     ltv?: number; // btw [0, 1]
-//   }
 
 const getPools = async () => {
   let apyResponse;
@@ -55,6 +35,7 @@ const getPools = async () => {
       '[Rumpel] Failed to fetch TVL data from API, TVL will be 0 for all pools',
       e
     );
+
     return [];
   }
 
