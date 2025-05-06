@@ -7,6 +7,7 @@ const { EstimatedFees } = require('./estimateFee.ts');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 const getOnchainPools = require('./onchain');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const chains = {
   ethereum: sdk.graph.modifyEndpoint(
@@ -352,7 +353,8 @@ const main = async (timestamp = null) => {
     );
   }
   data.push(...(await getOnchainPools()))
-  return data
+  return addMerklRewardApy(
+    data
     .flat()
     .filter(
       (p) =>
@@ -361,7 +363,9 @@ const main = async (timestamp = null) => {
           '0x0c6d9d0f82ed2e0b86c4d3e9a9febf95415d1b76',
           '0xc809d13e9ea08f296d3b32d4c69d46ff90f73fd8',
         ].includes(p.pool)
-    );
+    ),
+    'uniswap'
+  );
 };
 
 module.exports = {

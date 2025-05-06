@@ -1,15 +1,7 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
-const networks = {
-  1: 'ethereum',
-  137: 'polygon',
-  10: 'optimism',
-  42161: 'arbitrum',
-  1101: 'polygon_zkevm',
-  8453: 'base',
-  60808: 'bob',
-};
+const { networks } = require('./config');
 
 // Protocols that should not be listed under Merkl
 // as they already have their own adapters.
@@ -47,6 +39,7 @@ const main = async () => {
         );
       } catch (err) {
         console.log('failed to fetch Merkl data on chain ' + chain);
+        break;
       }
 
       if (data.length === 0) {
