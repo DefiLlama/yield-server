@@ -8,6 +8,9 @@ const utils = require('../utils');
 const lendleUrl = 'https://app.lendle.xyz';
 const poolsApr = `${lendleUrl}/api/apr`;
 
+const methYield = "https://meth.mantle.xyz/api/stats/apy";
+const ethenaYield = "https://ethena.fi/api/yields/protocol-and-staking-yield";
+
 const vaultsApi = 'https://lendle-vaults-api-184110952121.europe-west4.run.app';
 const vaultsApy = `${vaultsApi}/apy/breakdown`;
 const vaultsTvl = `${vaultsApi}/tvl`;
@@ -22,6 +25,17 @@ const chains = {
     url: 'mantle',
     chainId: 5000,
   },
+};
+
+async function additionalAPY(symbol) {
+  if(symbol === 'sUSDe') {
+    const res = (await axios.get(ethenaYield)).data;
+    return res.stakingYield.value;
+  } else if (symbol === 'mETH' || symbol === 'cmETH') {
+    const res = (await axios.get(methYield)).data;
+    return res.data[0].WeekAPY * 100;
+  }
+  return 0;
 };
 
 const getApy = async () => {
@@ -112,7 +126,9 @@ const getApy = async () => {
         const apyBase = reserveData[i].currentLiquidityRate / 1e25;
         const apyBaseBorrow = reserveData[i].currentVariableBorrowRate / 1e25;
 
-        const apyReward = _poolsApr.rewards_apy?.[t.toLowerCase()]?.supply * 100 || 0;
+        const mainReward = _poolsApr.rewards_apy?.[t.toLowerCase()]?.supply * 100 || 0;
+        const additionalReward = await additionalAPY(symbols[i]);
+        const apyReward = mainReward + additionalReward;
 
         const ltv = config.ltv / 1e4;
         const borrowable = config.borrowingEnabled;
@@ -131,6 +147,7 @@ const getApy = async () => {
           apyBase,
           apyReward,
           underlyingTokens: [t],
+          rewardTokens: ["0x25356aeca4210eF7553140edb9b8026089E49396"],
           url,
           // borrow fields
           totalSupplyUsd,
