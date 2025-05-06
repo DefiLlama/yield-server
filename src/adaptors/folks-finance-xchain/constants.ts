@@ -82,14 +82,14 @@ const HubPools = {
         underlyingSymbol: 'AUSD',
         poolAddress: '0xc7DdB440666c144c2F27a3a5156D636Bacfc769C',
         tokenAddress: '0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a',
-        chainPoolAddress: '0x666aea026bC606220ec6eb83a83D81881fA48e0f',
+        spokeAddress: '0x666aea026bC606220ec6eb83a83D81881fA48e0f',
       },
       { // savUSD
         id: 23,
         underlyingSymbol: 'savUSD',
         poolAddress: '0xE6B7713854620076B5716E2743262D315bf8609D',
         tokenAddress: '0x06d47F3fb376649c3A9Dafe069B3D6E35572219E',
-        chainPoolAddress: '0xe396E1246B7341Eb6EDA05DCfef9EaB9E661f80C',
+        spokeAddress: '0xe396E1246B7341Eb6EDA05DCfef9EaB9E661f80C',
       }
     ],
   },
@@ -196,7 +196,7 @@ const HubPools = {
         underlyingSymbol: 'WBTC',
         poolAddress: '0x3445055F633fEF5A64F852aaCD6dA76143aCA109',
         tokenAddress: '0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f',
-        chainPoolAddress: '0x2d1c07209696456b7901949fdf81037016d541A5',
+        spokeAddress: '0x2d1c07209696456b7901949fdf81037016d541A5',
       },
       {
         // tBTC_arb
@@ -204,7 +204,7 @@ const HubPools = {
         underlyingSymbol: 'tBTC',
         poolAddress: '0xdd9eFBf83572f5387381aD3A04b1318221d545A2',
         tokenAddress: '0x6c84a8f1c29108F47a79964b5Fe888D4f4D0dE40',
-        chainPoolAddress: '0xDF2da9288C4D0aDF6c52CCbb5062b8C73fb19111',
+        spokeAddress: '0xDF2da9288C4D0aDF6c52CCbb5062b8C73fb19111',
       },
       {
         // wstETH_arb
@@ -212,7 +212,7 @@ const HubPools = {
         underlyingSymbol: 'wstETH',
         poolAddress: '0x9f0c0aDEc9fd4ef946aCe1e2b4F32e49aE45C8F3',
         tokenAddress: '0x5979D7b546E38E414F7E9822514be443A4800529',
-        chainPoolAddress: '0x74416b0121DAadFeb2A9C2306827CCf80a6EE097',
+        spokeAddress: '0x74416b0121DAadFeb2A9C2306827CCf80a6EE097',
       },
       {
         // weETH_arb
@@ -220,7 +220,7 @@ const HubPools = {
         underlyingSymbol: 'weETH',
         poolAddress: '0x78B4e5cda33C898b546dB7925162879E7bd2A9d1',
         tokenAddress: '0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe',
-        chainPoolAddress: '0x624363570A6b6Fee5531CcA341b794B286Af091c',
+        spokeAddress: '0x624363570A6b6Fee5531CcA341b794B286Af091c',
       },
       {
         // rsETH_arb
@@ -228,7 +228,7 @@ const HubPools = {
         underlyingSymbol: 'rsETH',
         poolAddress: '0x60f2682Ab38e3C9a51b07fbd69f42Ad2Cfe731db',
         tokenAddress: '0x4186BFC76E2E237523CBC30FD220FE055156b41F',
-        chainPoolAddress: '0xC0a3536E0b6799014A14664bA4370BBd5D0c7590',
+        spokeAddress: '0xC0a3536E0b6799014A14664bA4370BBd5D0c7590',
       }
     ],
   },
@@ -266,7 +266,7 @@ const HubPools = {
         underlyingSymbol: 'wstETH',
         poolAddress: '0xD77b920A9c05B3e768FEaE0bcB5839cd224328fE',
         tokenAddress: '0x03b54A6e9a984069379fae1a4fC4dBAE93B3bCCD',
-        chainPoolAddress: '0xa526f90c0CAab6A0E6085830e75b084cd3c84000',
+        spokeAddress: '0xa526f90c0CAab6A0E6085830e75b084cd3c84000',
       },
       {
         // LINK_pol
@@ -274,7 +274,7 @@ const HubPools = {
         underlyingSymbol: 'LINK',
         poolAddress: '0x84C420D5e077cF0ed8a20c44d803C380172eD5D5',
         tokenAddress: '0x53E0bca35eC356BD5ddDFebbD1Fc0fD03FaBad39',
-        chainPoolAddress: '0x63ad90A703e95e39be7CB9e460C2b05870c982B8',
+        spokeAddress: '0x63ad90A703e95e39be7CB9e460C2b05870c982B8',
       },
       {
         // MaticX
@@ -282,7 +282,7 @@ const HubPools = {
         underlyingSymbol: 'MaticX',
         poolAddress: '0x59023eFDB22B9d8b2C7aeD842aC1fd2f6110e5B5',
         tokenAddress: '0xfa68FB4628DFF1028CFEc22b4162FCcd0d45efb6',
-        chainPoolAddress: '0xCB66564d0cF3D28B26a1b6D4eCb830D6E216a75a',
+        spokeAddress: '0xCB66564d0cF3D28B26a1b6D4eCb830D6E216a75a',
       },
     ],
   },
