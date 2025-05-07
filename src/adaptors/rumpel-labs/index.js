@@ -35,7 +35,6 @@ const getPools = async () => {
       '[Rumpel] Failed to fetch TVL data from API, TVL will be 0 for all pools',
       e
     );
-
     return [];
   }
 
@@ -57,7 +56,7 @@ const getPools = async () => {
       pool: strategy.name,
       chain: 'Ethereum',
       project: PROJECT_SLUG,
-      symbol: strategy.underlyingSymbol,
+      symbol: utils.formatSymbol(strategy.name),
       tvlUsd: tvlUsd,
       apyBase:
         strategy.totalApy !== undefined && strategy.totalApy !== null
