@@ -61,91 +61,96 @@ const getApys = async () => {
   const lensIFace = new ethers.utils.Interface(lensAbi);
 
   for (const [chain, config] of Object.entries(chains)) {
-    const currentBlock = await sdk.api.util.getLatestBlock(chain);
-    const toBlock = currentBlock.number;
+    try {
+      const currentBlock = await sdk.api.util.getLatestBlock(chain);
+      const toBlock = currentBlock.number;
 
-    // Fetch all pools from factory events
-    const poolDeployEvents = await sdk.api.util.getLogs({
-      fromBlock: config.fromBlock,
-      toBlock: toBlock,
-      target: config.factory,
-      chain: chain,
-      topic: '',
-      keys: [],
-      topics: [factoryIFace.getEventTopic('ProxyCreated')],
-      entireLog: true,
-    });
-
-    const vaultAddresses = poolDeployEvents.output.map((event) => {
-      const decoded = factoryIFace.decodeEventLog(
-        'ProxyCreated',
-        event.data,
-        event.topics
-      );
-      return decoded['proxy'];
-    });
-
-    // TODO loop over all vaults to get their info
-    for (const vault of vaultAddresses) {
-      const vaultInfo = await sdk.api.abi.call({
-        target: config.vaultLens,
-        params: [vault],
-        abi: lensAbi.find((m) => m.name === 'getVaultInfoFull'),
-        chain,
+      // Fetch all pools from factory events
+      const poolDeployEvents = await sdk.api.util.getLogs({
+        fromBlock: config.fromBlock,
+        toBlock: toBlock,
+        target: config.factory,
+        chain: chain,
+        topic: '',
+        keys: [],
+        topics: [factoryIFace.getEventTopic('ProxyCreated')],
+        entireLog: true,
       });
 
-      // Only pools with an interest rate
-      if (
-        vaultInfo.output.irmInfo.interestRateInfo[0] &&
-        vaultInfo.output.irmInfo.interestRateInfo[0].supplyAPY > 0
-      ) {
-        const price = (
-          await axios.get(
-            `https://coins.llama.fi/prices/current/${chain}:${vaultInfo.output.asset}`
-          )
-        ).data.coins[`${chain}:${vaultInfo.output.asset}`]?.price;
+      const vaultAddresses = poolDeployEvents.output.map((event) => {
+        const decoded = factoryIFace.decodeEventLog(
+          'ProxyCreated',
+          event.data,
+          event.topics
+        );
+        return decoded['proxy'];
+      });
 
-        const totalSupplied = vaultInfo.output.totalAssets;
-        const totalBorrowed = vaultInfo.output.totalBorrowed;
-
-        const totalSuppliedUSD =
-          ethers.utils.formatUnits(
-            totalSupplied,
-            vaultInfo.output.assetDecimals
-          ) * price;
-        const totalBorrowedUSD =
-          ethers.utils.formatUnits(
-            totalBorrowed,
-            vaultInfo.output.assetDecimals
-          ) * price;
-
-        result.push({
-          pool: vault,
+      // TODO loop over all vaults to get their info
+      for (const vault of vaultAddresses) {
+        const vaultInfo = await sdk.api.abi.call({
+          target: config.vaultLens,
+          params: [vault],
+          abi: lensAbi.find((m) => m.name === 'getVaultInfoFull'),
           chain,
-          project: 'euler-v2',
-          symbol: vaultInfo.output.assetSymbol,
-          poolMeta: vaultInfo.output.vaultName,
-          tvlUsd: totalSuppliedUSD - totalBorrowedUSD,
-          totalSupplyUsd: totalSuppliedUSD,
-          totalBorrowUsd: totalBorrowedUSD,
-          apyBase: Number(
-            ethers.utils.formatUnits(
-              vaultInfo.output.irmInfo.interestRateInfo[0].supplyAPY,
-              25
-            )
-          ),
-          apyBaseBorrow: Number(
-            ethers.utils.formatUnits(
-              vaultInfo.output.irmInfo.interestRateInfo[0].borrowAPY,
-              25
-            )
-          ),
-          underlyingTokens: [vaultInfo.output.asset],
-          url: `https://app.euler.finance/vault/${vault}?network=${chain}`,
         });
+
+        // Only pools with an interest rate
+        if (
+          vaultInfo.output.irmInfo.interestRateInfo[0] &&
+          vaultInfo.output.irmInfo.interestRateInfo[0].supplyAPY > 0
+        ) {
+          const price = (
+            await axios.get(
+              `https://coins.llama.fi/prices/current/${chain}:${vaultInfo.output.asset}`
+            )
+          ).data.coins[`${chain}:${vaultInfo.output.asset}`]?.price;
+
+          const totalSupplied = vaultInfo.output.totalAssets;
+          const totalBorrowed = vaultInfo.output.totalBorrowed;
+
+          const totalSuppliedUSD =
+            ethers.utils.formatUnits(
+              totalSupplied,
+              vaultInfo.output.assetDecimals
+            ) * price;
+          const totalBorrowedUSD =
+            ethers.utils.formatUnits(
+              totalBorrowed,
+              vaultInfo.output.assetDecimals
+            ) * price;
+
+          result.push({
+            pool: vault,
+            chain,
+            project: 'euler-v2',
+            symbol: vaultInfo.output.assetSymbol,
+            poolMeta: vaultInfo.output.vaultName,
+            tvlUsd: totalSuppliedUSD - totalBorrowedUSD,
+            totalSupplyUsd: totalSuppliedUSD,
+            totalBorrowUsd: totalBorrowedUSD,
+            apyBase: Number(
+              ethers.utils.formatUnits(
+                vaultInfo.output.irmInfo.interestRateInfo[0].supplyAPY,
+                25
+              )
+            ),
+            apyBaseBorrow: Number(
+              ethers.utils.formatUnits(
+                vaultInfo.output.irmInfo.interestRateInfo[0].borrowAPY,
+                25
+              )
+            ),
+            underlyingTokens: [vaultInfo.output.asset],
+            url: `https://app.euler.finance/vault/${vault}?network=${chain}`,
+          });
+        }
       }
+    } catch (err) {
+      console.error(`Error processing chain ${chain}:`, err);
     }
   }
+
   return result;
 };
 
