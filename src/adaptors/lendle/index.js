@@ -131,6 +131,7 @@ const getApy = async () => {
           apyBase,
           apyReward,
           underlyingTokens: [t],
+          rewardTokens: ["0x25356aeca4210eF7553140edb9b8026089E49396"],
           url,
           // borrow fields
           totalSupplyUsd,
