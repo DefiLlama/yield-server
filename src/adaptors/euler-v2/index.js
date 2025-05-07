@@ -1,10 +1,9 @@
-const utils = require('../utils');
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
+
 const lensAbi = require('./lens.abi.json');
 const factoryAbi = require('./factory.abi.json');
-const axios = require('axios');
-const { url } = require('inspector');
 
 const chains = {
   ethereum: {
@@ -58,7 +57,6 @@ const getApys = async () => {
   const result = [];
 
   const factoryIFace = new ethers.utils.Interface(factoryAbi);
-  const lensIFace = new ethers.utils.Interface(lensAbi);
 
   for (const [chain, config] of Object.entries(chains)) {
     try {
@@ -86,72 +84,74 @@ const getApys = async () => {
         return decoded['proxy'];
       });
 
-      // TODO loop over all vaults to get their info
-      for (const vault of vaultAddresses) {
-        const vaultInfo = await sdk.api.abi.call({
-          target: config.vaultLens,
-          params: [vault],
+      const vaultInfos = (
+        await sdk.api.abi.multiCall({
+          calls: vaultAddresses.map((address) => ({
+            target: config.vaultLens,
+            params: [address],
+          })),
           abi: lensAbi.find((m) => m.name === 'getVaultInfoFull'),
           chain,
-        });
+          permitFailure: true,
+        })
+      ).output.map((o) => o.output);
 
-        // Only pools with an interest rate
-        if (
-          vaultInfo.output.irmInfo.interestRateInfo[0] &&
-          vaultInfo.output.irmInfo.interestRateInfo[0].supplyAPY > 0
-        ) {
-          const price = (
-            await axios.get(
-              `https://coins.llama.fi/prices/current/${chain}:${vaultInfo.output.asset}`
+      // keep only pools with interest rate data
+      const vaultInfosFilterted = vaultInfos.filter(
+        (i) => i?.irmInfo?.interestRateInfo[0]?.supplyAPY > 0
+      );
+
+      const priceKeys = vaultInfosFilterted
+        .map((i) => `${chain}:${i.asset}`)
+        .join(',');
+
+      const { data: prices } = await axios.get(
+        `https://coins.llama.fi/prices/current/${priceKeys}`
+      );
+
+      const pools = vaultInfosFilterted.map((i) => {
+        const price = prices.coins[`${chain}:${i.asset}`]?.price;
+
+        const totalSupplied = i.totalAssets;
+        const totalBorrowed = i.totalBorrowed;
+
+        const totalSuppliedUSD =
+          ethers.utils.formatUnits(totalSupplied, i.assetDecimals) * price;
+        const totalBorrowedUSD =
+          ethers.utils.formatUnits(totalBorrowed, i.assetDecimals) * price;
+
+        return {
+          pool: i.vault,
+          chain,
+          project: 'euler-v2',
+          symbol: i.assetSymbol,
+          poolMeta: i.vaultName,
+          tvlUsd: totalSuppliedUSD - totalBorrowedUSD,
+          totalSupplyUsd: totalSuppliedUSD,
+          totalBorrowUsd: totalBorrowedUSD,
+          apyBase: Number(
+            ethers.utils.formatUnits(
+              i.irmInfo.interestRateInfo[0].supplyAPY,
+              25
             )
-          ).data.coins[`${chain}:${vaultInfo.output.asset}`]?.price;
-
-          const totalSupplied = vaultInfo.output.totalAssets;
-          const totalBorrowed = vaultInfo.output.totalBorrowed;
-
-          const totalSuppliedUSD =
+          ),
+          apyBaseBorrow: Number(
             ethers.utils.formatUnits(
-              totalSupplied,
-              vaultInfo.output.assetDecimals
-            ) * price;
-          const totalBorrowedUSD =
-            ethers.utils.formatUnits(
-              totalBorrowed,
-              vaultInfo.output.assetDecimals
-            ) * price;
-
-          result.push({
-            pool: vault,
-            chain,
-            project: 'euler-v2',
-            symbol: vaultInfo.output.assetSymbol,
-            poolMeta: vaultInfo.output.vaultName,
-            tvlUsd: totalSuppliedUSD - totalBorrowedUSD,
-            totalSupplyUsd: totalSuppliedUSD,
-            totalBorrowUsd: totalBorrowedUSD,
-            apyBase: Number(
-              ethers.utils.formatUnits(
-                vaultInfo.output.irmInfo.interestRateInfo[0].supplyAPY,
-                25
-              )
-            ),
-            apyBaseBorrow: Number(
-              ethers.utils.formatUnits(
-                vaultInfo.output.irmInfo.interestRateInfo[0].borrowAPY,
-                25
-              )
-            ),
-            underlyingTokens: [vaultInfo.output.asset],
-            url: `https://app.euler.finance/vault/${vault}?network=${chain}`,
-          });
-        }
-      }
+              i.irmInfo.interestRateInfo[0].borrowAPY,
+              25
+            )
+          ),
+          underlyingTokens: [i.asset],
+          url: `https://app.euler.finance/vault/${i.vault}?network=${chain}`,
+        };
+      });
+      result.push(pools);
     } catch (err) {
       console.error(`Error processing chain ${chain}:`, err);
     }
   }
 
-  return result;
+  return result.flat();
 };
 
 module.exports = {
