@@ -99,49 +99,51 @@ const getApy = async () => {
 
       const _poolsApr = (await axios.get(poolsApr)).data;
 
-      return reservesList.map(async (t, i) => {
-        const config = reserveConfigurationData[i];
-        if (!config.isActive) return null;
+      return Promise.all(
+        reservesList.map(async (t, i) => {
+          const config = reserveConfigurationData[i];
+          if (!config.isActive) return null;
 
-        const price = prices[`${sdkChain}:${t}`]?.price;
+          const price = prices[`${sdkChain}:${t}`]?.price;
 
-        const tvlUsd = (liquidity[i] / 10 ** decimals[i]) * price;
-        const totalBorrowUsd = (totalBorrow[i] / 10 ** decimals[i]) * price;
-        const totalSupplyUsd = tvlUsd + totalBorrowUsd;
+          const tvlUsd = (liquidity[i] / 10 ** decimals[i]) * price;
+          const totalBorrowUsd = (totalBorrow[i] / 10 ** decimals[i]) * price;
+          const totalSupplyUsd = tvlUsd + totalBorrowUsd;
 
-        const apyBase = reserveData[i].currentLiquidityRate / 1e25;
-        const apyBaseBorrow = reserveData[i].currentVariableBorrowRate / 1e25;
+          const apyBase = reserveData[i].currentLiquidityRate / 1e25;
+          const apyBaseBorrow = reserveData[i].currentVariableBorrowRate / 1e25;
 
-        const apyReward = _poolsApr.rewards_apy?.[t.toLowerCase()]?.supply * 100 || 0;
+          const apyReward = _poolsApr.rewards_apy?.[t.toLowerCase()]?.supply * 100 || 0;
 
-        const ltv = config.ltv / 1e4;
-        const borrowable = config.borrowingEnabled;
-        const frozen = config.isFrozen;
+          const ltv = config.ltv / 1e4;
+          const borrowable = config.borrowingEnabled;
+          const frozen = config.isFrozen;
 
-        const url = `${lendleUrl}/marketdetail?asset=${
-          symbols[i]
-        }&contract=${t.toLowerCase()}`;
+          const url = `${lendleUrl}/marketdetail?asset=${
+            symbols[i]
+          }&contract=${t.toLowerCase()}`;
 
-        return {
-          pool: `${reserveData[i].aTokenAddress}-${chain}`.toLowerCase(),
-          symbol: symbols[i],
-          project: 'lendle',
-          chain,
-          tvlUsd,
-          apyBase,
-          apyReward,
-          underlyingTokens: [t],
-          rewardTokens: ["0x25356aeca4210eF7553140edb9b8026089E49396"],
-          url,
-          // borrow fields
-          totalSupplyUsd,
-          totalBorrowUsd,
-          apyBaseBorrow,
-          ltv,
-          borrowable,
-          poolMeta: frozen ? 'frozen' : null,
-        };
-      });
+          return {
+            pool: `${reserveData[i].aTokenAddress}-${chain}`.toLowerCase(),
+            symbol: symbols[i],
+            project: 'lendle',
+            chain,
+            tvlUsd,
+            apyBase,
+            apyReward,
+            underlyingTokens: [t],
+            rewardTokens: ["0x25356aeca4210eF7553140edb9b8026089E49396"],
+            url,
+            // borrow fields
+            totalSupplyUsd,
+            totalBorrowUsd,
+            apyBaseBorrow,
+            ltv,
+            borrowable,
+            poolMeta: frozen ? 'frozen' : null,
+          };
+        })
+      );
     })
   );
 
