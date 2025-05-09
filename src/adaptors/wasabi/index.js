@@ -8,12 +8,13 @@ const apy = async () => {
     const poolState = data.poolState;
     const totalBorrowUsd = data.tvlUsd * data.utilizationRate;
     const isRewardAPY = vault.chain === 'berachain' && token.symbol === 'WBERA';
+    const isDeprecated = vault.deprecated;
     return {
       pool: `wasabi-${vault.chain}-${vault.symbol}`,
       chain: vault.chain === "mainnet" ? "Ethereum" : utils.formatChain(vault.chain),
       project: 'wasabi',
       symbol: token.symbol,
-      tvlUsd: data.tvlUsd,
+      tvlUsd: isDeprecated ? 0 : data.tvlUsd,
       apyBase: isRewardAPY ? 0 : data.apr * 100,
       apyReward: isRewardAPY ? data.apr * 100 : 0,
       underlyingTokens: [vault.tokenAddress],
