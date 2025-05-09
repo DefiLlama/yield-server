@@ -6,7 +6,6 @@ const apy = async (timestamp) => {
   return vaultsData.items.map(async (data) => {
     const vault = data.vault;
     const token = data.token;
-    const poolState = data.poolState;
     const { tvl } = await utils.getERC4626Info(vault.address, vault.chain, timestamp);
     const tvlUsd = tvl * utils.getPrices([vault.tokenAddress], vault.chain).pricesByAddress[vault.tokenAddress];
     const totalBorrowUsd = tvlUsd * data.utilizationRate;
