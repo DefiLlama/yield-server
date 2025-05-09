@@ -1,8 +1,8 @@
 const superagent = require('superagent');
-const { formatChain } = require('../utils');
+const { formatChain, getPrices, getERC4626Info } = require('../utils');
 
+const PROJECT_NAME = 'yo-protocol';
 const API_URL = 'https://api.yo.xyz/api/v1/vault/stats';
-const BASE_CHAIN_ID = 8453;
 const symboToNameMap = {
   yoETH: 'Yield Optimizer ETH',
   yoBTC: 'Yield Optimizer BTC',
@@ -18,25 +18,42 @@ const apy = async () => {
     .join(',')
     .toLowerCase();
 
-  const pricesResponse = await superagent.get(
-    `https://coins.llama.fi/prices/current/${priceQuery}`
+  const prices = await getPrices(
+    vaults.map((vault) => vault.asset.address),
+    'base'
   );
-  const prices = pricesResponse.body.coins;
+
+  const tvls = await Promise.all(
+    vaults.map((vault) =>
+      getERC4626Info(
+        vault.contracts.vaultAddress.toLowerCase(),
+        vault.chain.name
+      )
+    )
+  );
+
+  const tvlByAddress = tvls.reduce((acc, tvl) => {
+    acc[tvl.pool.toLowerCase()] = tvl.tvl;
+    return acc;
+  }, {});
 
   const result = [];
   for (const vault of vaults) {
+    const normalizedTvl =
+      tvlByAddress[vault.contracts.vaultAddress.toLowerCase()] /
+      10 ** vault.asset.decimals;
+
+    const tvlUsd =
+      normalizedTvl *
+      Number(prices.pricesByAddress[vault.asset.address.toLowerCase()]);
+
     const pool = {
       pool: symboToNameMap[vault.name],
       chain: formatChain(vault.chain.name),
-      project: 'yo',
+      project: PROJECT_NAME,
       symbol: vault.name,
-      tvlUsd:
-        Number(vault.tvl.formatted) *
-        Number(
-          prices[`${vault.chain.name}:${vault.asset.address.toLowerCase()}`]
-            .price
-        ),
-      apyBase: vault.yield['1d'],
+      tvlUsd: tvlUsd,
+      apyBase: Number(vault.yield['1d']),
       underlyingTokens: [vault.asset.address],
       url: `https://app.yo.xyz/vault/base/${vault.contracts.vaultAddress}`,
     };
