@@ -153,7 +153,7 @@ const getApys = async () => {
     }
   }
 
-  return addMerklRewardApy(result.flat(), 'euler');
+  return await addMerklRewardApy(result.flat(), 'euler');
 };
 
 module.exports = {
