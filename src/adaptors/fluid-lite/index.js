@@ -8,7 +8,7 @@ const getApy = async () => {
   const pools = vaultData.map((item) => ({
     pool: item.vault,
     chain: utils.formatChain('ethereum'),
-    project: 'instadapp-lite',
+    project: 'fluid-lite',
     symbol: item.token.symbol,
     tvlUsd: Number(item.vaultTVLInAsset) * item.token.price,
     apy: Number(item.apy.apyWithoutFee),

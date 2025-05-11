@@ -127,10 +127,12 @@ const main = async (timestamp = null) => {
     }
   }
 
-  return addMerklRewardApy(
+  const pools = await addMerklRewardApy(
     data.filter((p) => utils.keepFinite(p)),
     'uniswap'
   );
+
+  return pools;
 };
 
 module.exports = {
