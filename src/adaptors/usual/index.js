@@ -27,13 +27,14 @@ const CONFIG = {
   DAO_PROJECTED_WEEKLY_REVENUE: 500000,
   WEEKS_PER_YEAR: 52,
   USUALX_BALANCES_BLACKLIST: [
-    '0x86E2a16A5aBC67467Ce502e3Dab511c909C185A8', // Pendle SY
-    '0xF9F7ee120E4Ce2b4500611952Df8C7470Af09816', // Uniswap USUALx/USUAL
-    '0x36dee1e8B4679c67d73C8361E943C3401aD77FE3', // Uniswap USUALx/USD0
-    '0xDe4b4eaF83b678017E1b3C455117E752fE4e70eA', // Uniswap USUALx/USDT
-    '0x06B964d96f5dCF7Eae9d7C559B09EDCe244d4B8E', // USUALx dead shares
+    '0x86E2a16A5aBC67467Ce502e3Dab511c909C185A8',
+    '0xF9F7ee120E4Ce2b4500611952Df8C7470Af09816',
+    '0x36dee1e8B4679c67d73C8361E943C3401aD77FE3',
+    '0xDe4b4eaF83b678017E1b3C455117E752fE4e70eA',
+    '0x06B964d96f5dCF7Eae9d7C559B09EDCe244d4B8E',
   ],
 };
+
 async function getTokenSupply(chain, address) {
   const params = {
     chain: chain.toLowerCase(),
@@ -43,6 +44,7 @@ async function getTokenSupply(chain, address) {
   const { output } = await sdk.api.abi.call(params);
   return output / CONFIG.SCALAR;
 }
+
 async function getTokenBalance(chain, address, user) {
   const params = {
     target: address,
@@ -54,6 +56,7 @@ async function getTokenBalance(chain, address, user) {
   const { output } = await sdk.api.abi.call(params);
   return output / CONFIG.SCALAR;
 }
+
 async function getTokenPrice(chain, address) {
   const priceKey = `${chain.toLowerCase()}:${address}`;
   const { data } = await axios.get(`${CONFIG.URLS.LLAMA_PRICE}${priceKey}`);
@@ -84,6 +87,7 @@ async function getChainData(chainConfig) {
   const price = await getTokenPrice(chainConfig.CHAIN, chainConfig.USD0PP);
   return { supply, price };
 }
+
 async function getUsualXAPY(chain, usualXPrice) {
   const { output } = await sdk.api.abi.call({
     target: CONFIG.USUALX_TOKEN,
@@ -91,6 +95,7 @@ async function getUsualXAPY(chain, usualXPrice) {
     abi: abi.find((abi) => abi.name === 'totalAssets'),
   });
   const totalAssets = output / CONFIG.SCALAR;
+
   const rate =
     (
       await sdk.api.abi.call({
@@ -121,18 +126,13 @@ async function getUsualXAPY(chain, usualXPrice) {
     rawUsualXTVL - (blacklistedBalances?.reduce((a, b) => a + b, 0) ?? 0);
 
   const usualXApr = (rate * CONFIG.DAYS_PER_YEAR) / totalAssets;
-
   const usualxApyReward = utils.aprToApy(usualXApr * 100);
 
   const usualxMarketCap = usualXTVL * usualXPrice;
-
   const revenueSwitchApr =
     (CONFIG.DAO_PROJECTED_WEEKLY_REVENUE * CONFIG.WEEKS_PER_YEAR) /
     usualxMarketCap;
-  const usualxApyRevenueSwitch = utils.aprToApy(
-    revenueSwitchApr * 100,
-    CONFIG.WEEKS_PER_YEAR
-  );
+  const usualxApyRevenueSwitch = revenueSwitchApr * 100;
 
   return {
     usualxApyReward,
@@ -140,6 +140,7 @@ async function getUsualXAPY(chain, usualXPrice) {
     rawUsualXTVL,
   };
 }
+
 const apy = async () => {
   const { data: rewardData } = await axios.get(
     `${CONFIG.URLS.REWARD_RATE}${CONFIG.SYMBOL}`
