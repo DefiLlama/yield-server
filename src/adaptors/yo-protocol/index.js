@@ -48,7 +48,7 @@ const apy = async () => {
       Number(prices.pricesByAddress[vault.asset.address.toLowerCase()]);
 
     const pool = {
-      pool: symboToNameMap[vault.name],
+      pool: vault.contracts.vaultAddress,
       chain: formatChain(vault.chain.name),
       project: PROJECT_NAME,
       symbol: vault.name,
