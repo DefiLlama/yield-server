@@ -31,7 +31,7 @@ const EXCHANGES_API = {
   cleopatra: 'cleopatra/',
 };
 const EXCHANGES_CHAINS = {
-  uniswapv3: ["ethereum", "optimism", "polygon", "arbitrum", "celo", "bsc", "moonbeam"],
+  uniswapv3: ["ethereum", "optimism", "polygon", "arbitrum", "celo", "bsc", "moonbeam", "bob"],
   quickswap: ["polygon", "polygon_zkevm", "manta"],
   zyberswap: ["arbitrum"],
   thena: ["bsc"],
@@ -52,8 +52,8 @@ const EXCHANGES_CHAINS = {
   hercules: ["metis"],
   baseswap: ["base"],
   swapbased: ["base"],
-  pharaoh: ["avalanche"],
-  swapr: ["gnosis"],
+  pharaoh: ["avax"],
+  swapr: ["xdai"],
   thick: ["base"],
   cleopatra: ["mantle"],
 };
@@ -75,8 +75,9 @@ const CHAINS_API = {
   kava: 'kava/',
   op_bnb: 'opbnb/',
   manta: 'manta/',
-  metis: 'manta/',
+  metis: 'metis/',
   xdai: 'gnosis/',
+  bob: 'bob/',
 };
 const CHAIN_IDS = {
   ethereum: 1,
@@ -98,6 +99,7 @@ const CHAIN_IDS = {
   manta: 169,
   metis: 1088,
   xdai: 100,
+  bob: 60808,
 };
 const UNISWAP_FEE = {
   "100": "0.01%",
@@ -166,6 +168,7 @@ const blacklist = {
   manta: [],
   metis: [],
   xdai: [],
+  bob: [],
 };
 const masterchef_blacklist = {
   ethereum: [],
@@ -187,6 +190,7 @@ const masterchef_blacklist = {
   manta: [],
   metis: [],
   xdai: [],
+  bob: [],
 };
 const getUrl_allData = (chain, exchange) =>
   `https://wire2.gamma.xyz/${exchange}${chain}hypervisors/allData`;
