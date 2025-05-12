@@ -253,70 +253,68 @@ function packOraclesData(oraclesData, assets) {
   );
 }
 
-async function getPrices(endpoint = 'api.stardust-mainnet.iotaledger.net') {
+async function getPrices(endpoint = 'api.evaa.space') {
   try {
-    const prices = await Promise.all(
-      ORACLES.map(async (oracle) => {
-        try {
-          const outputResponse = await fetch(
-            `https://${endpoint}/api/indexer/v1/outputs/nft/${oracle.address}`,
-            {
-              headers: { accept: 'application/json' },
-              signal: AbortSignal.timeout(5000),
-            }
-          );
-          const outputData = await outputResponse.json();
-          const priceResponse = await fetch(
-            `https://${endpoint}/api/core/v2/outputs/${outputData.items[0]}`,
-            {
-              headers: { accept: 'application/json' },
-              signal: AbortSignal.timeout(5000),
-            }
-          );
-          const priceData = await priceResponse.json();
+    const allPricesResponse = await fetch(`https://${endpoint}/api/prices`, {
+      headers: { accept: 'application/json' },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!allPricesResponse.ok) {
+      throw new Error(
+        `Failed to fetch prices from EVAA API: ${allPricesResponse.status} ${allPricesResponse.statusText}`
+      );
+    }
+    const allPricesData = await allPricesResponse.json();
 
-          const data = JSON.parse(
-            decodeURIComponent(
-              priceData.output.features[0].data
-                .replace('0x', '')
-                .replace(/[0-9a-f]{2}/g, '%$&')
-            )
-          );
-
-          const pricesCell = Cell.fromBoc(
-            Buffer.from(data.packedPrices, 'hex')
-          )[0];
-          const signature = Buffer.from(data.signature, 'hex');
-          const publicKey = Buffer.from(data.publicKey, 'hex');
-          const timestamp = Number(data.timestamp);
-
-          return {
-            dict: pricesCell
-              .beginParse()
-              .loadRef()
-              .beginParse()
-              .loadDictDirect(
-                Dictionary.Keys.BigUint(256),
-                Dictionary.Values.BigVarUint(4)
-              ),
-            dataCell: beginCell()
-              .storeRef(pricesCell)
-              .storeBuffer(signature)
-              .endCell(),
-            oracleId: oracle.id,
-            signature,
-            pubkey: publicKey,
-            timestamp,
-          };
-        } catch (error) {
-          console.error(
-            `Error fetching prices from oracle ${oracle.id}:`,
-            error
+    const prices = ORACLES.map((oracle) => {
+      try {
+        const packedDataString = allPricesData[oracle.address];
+        if (!packedDataString) {
+          console.warn(
+            `No data found for oracle ${oracle.id} (address: ${oracle.address}) in EVAA API response.`
           );
           return null;
         }
-      })
-    );
+
+        const data = JSON.parse(
+          decodeURIComponent(
+            packedDataString.replace('0x', '').replace(/[0-9a-f]{2}/g, '%$&')
+          )
+        );
+
+        const pricesCell = Cell.fromBoc(
+          Buffer.from(data.packedPrices, 'hex')
+        )[0];
+        const signature = Buffer.from(data.signature, 'hex');
+        const publicKeyFromApi = Buffer.from(data.publicKey, 'hex');
+        const timestamp = Number(data.timestamp);
+
+        return {
+          dict: pricesCell
+            .beginParse()
+            .loadRef()
+            .beginParse()
+            .loadDictDirect(
+              Dictionary.Keys.BigUint(256),
+              Dictionary.Values.BigVarUint(4)
+            ),
+          dataCell: beginCell()
+            .storeRef(pricesCell)
+            .storeBuffer(signature)
+            .endCell(),
+          oracleId: oracle.id,
+          signature: signature,
+          pubkey: publicKeyFromApi,
+          timestamp: timestamp,
+        };
+      } catch (error) {
+        console.error(
+          `Error processing prices for oracle ${oracle.id} (address: ${oracle.address}):`,
+          error
+        );
+        return null;
+      }
+    });
 
     const validPrices = prices.filter(
       (price) =>
