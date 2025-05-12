@@ -254,18 +254,44 @@ function packOraclesData(oraclesData, assets) {
 }
 
 async function getPrices(endpoint = 'api.evaa.space') {
+  let allPricesData;
   try {
-    const allPricesResponse = await fetch(`https://${endpoint}/api/prices`, {
-      headers: { accept: 'application/json' },
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!allPricesResponse.ok) {
-      throw new Error(
-        `Failed to fetch prices from EVAA API: ${allPricesResponse.status} ${allPricesResponse.statusText}`
-      );
-    }
-    const allPricesData = await allPricesResponse.json();
+    const primaryUrl = `https://${endpoint}/api/prices`;
+    const fallbackUrl =
+      'https://6khmc-aiaaa-aaaap-ansfq-cai.raw.icp0.io/prices';
+    let allPricesResponse;
 
+    try {
+      allPricesResponse = await fetch(primaryUrl, {
+        headers: { accept: 'application/json' },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!allPricesResponse.ok) {
+        throw new Error(
+          `Failed to fetch prices from primary EVAA API: ${allPricesResponse.status} ${allPricesResponse.statusText}`
+        );
+      }
+    } catch (primaryError) {
+      console.warn(
+        `Primary API fetch failed: ${primaryError.message}. Trying fallback...`
+      );
+      allPricesResponse = await fetch(fallbackUrl, {
+        headers: { accept: 'application/json' },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!allPricesResponse.ok) {
+        throw new Error(
+          `Failed to fetch prices from fallback EVAA API: ${allPricesResponse.status} ${allPricesResponse.statusText}`
+        );
+      }
+    }
+    allPricesData = await allPricesResponse.json();
+  } catch (error) {
+    console.error('Error fetching prices from all sources:', error);
+    return undefined;
+  }
+
+  try {
     const prices = ORACLES.map((oracle) => {
       try {
         const packedDataString = allPricesData[oracle.address];
@@ -365,8 +391,8 @@ async function getPrices(endpoint = 'api.evaa.space') {
       dict,
       dataCell: packPrices(packedMedianData, packedOracleData),
     };
-  } catch (error) {
-    console.error('Error processing prices:', error);
+  } catch (processingError) {
+    console.error('Error processing prices:', processingError);
     return undefined;
   }
 }
