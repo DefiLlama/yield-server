@@ -117,7 +117,9 @@ const main = async (body) => {
     apy: p.apy < 0 ? 0 : p.apy,
     apyBase:
       protocolConfig[body.adaptor]?.category === 'Options' ||
-      ['mellow-protocol', 'sommelier', 'abracadabra'].includes(body.adaptor)
+      ['mellow-protocol', 'sommelier', 'abracadabra', 'resolv'].includes(
+        body.adaptor
+      )
         ? p.apyBase
         : p.apyBase < 0
         ? 0
@@ -363,9 +365,13 @@ const main = async (body) => {
           ? +p.apyRewardBorrowFake.toFixed(precision)
           : p.apyRewardBorrowFake,
       volumeUsd1d:
-        p.volumeUsd1d >= 0 ? +p.volumeUsd1d.toFixed(precision) : null,
+        p.volumeUsd1d >= 0
+          ? +parseFloat(p.volumeUsd1d).toFixed(precision)
+          : null,
       volumeUsd7d:
-        p.volumeUsd7d >= 0 ? +p.volumeUsd7d.toFixed(precision) : null,
+        p.volumeUsd7d >= 0
+          ? +parseFloat(p.volumeUsd7d).toFixed(precision)
+          : null,
       apyBaseInception: p.apyBaseInception
         ? +p.apyBaseInception.toFixed(precision)
         : null,

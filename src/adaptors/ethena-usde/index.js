@@ -2,7 +2,6 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
 
-const USDe = '0x4c9edd5852cd905f086c759e8383e09bff1e68b3';
 const sUSDe = '0x9D39A5DE30e57443BfF2A8307A4256c8797A3497';
 
 const apy = async () => {
@@ -14,7 +13,7 @@ const apy = async () => {
       })
     ).output / 1e18;
 
-  const priceKey = `ethereum:${USDe}`;
+  const priceKey = `ethereum:${sUSDe}`;
   const price = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).data.coins[priceKey].price;

@@ -7,8 +7,10 @@ const { autopoolAbi } = require('./abis/Autopool');
 const { autopoolETHStrategyAbi } = require('./abis/AutopoolETHStrategy');
 const { erc20Abi } = require('./abis/ERC20');
 
-const SETTINGS_BY_CHAIN = {
-  1: {
+const SETTINGS_BY_SYSTEM = [
+  {
+    chainId: 1,
+    systemName: 'gen3',
     subgraphUrl:
       'https://subgraph.satsuma-prod.com/56ca3b0c9fd0/tokemak/v2-gen3-eth-mainnet/api',
     weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
@@ -16,7 +18,9 @@ const SETTINGS_BY_CHAIN = {
     pricePrefixChainId: 'ethereum',
     poolsChainId: 'Ethereum',
   },
-  8453: {
+  {
+    chainId: 8453,
+    systemName: 'gen3',
     subgraphUrl:
       'https://subgraph.satsuma-prod.com/56ca3b0c9fd0/tokemak/v2-gen3-base-mainnet/api',
     weth: '0x4200000000000000000000000000000000000006',
@@ -24,7 +28,7 @@ const SETTINGS_BY_CHAIN = {
     pricePrefixChainId: 'base',
     poolsChainId: 'Base',
   },
-};
+];
 
 const BN_ZERO = BigNumber.from('0');
 
@@ -64,23 +68,47 @@ const autopoolsQuery = gql`
   }
 `;
 
+const getGenStratAprsForSystem = async (settings) => {
+  const results = {};
+  try {
+    const { data } = await axios.get(
+      `https://genstrat-aprs.tokemaklabs.xyz/api/aprs?chainId=${settings.chainId}&systemName=${settings.systemName}`
+    );
+    if (data.success) {
+      for (const autopool of data.aprs) {
+        const aid = autopool.autopoolAddress.toLowerCase();
+        results[aid] = {};
+        for (const dest of autopool.destinations) {
+          const did = dest.address.toLowerCase();
+          results[aid][did] = dest.apr;
+        }
+      }
+    }
+  } catch (e) {
+    console.error(e);
+  }
+
+  return results;
+};
+
 const getAutopools = async (settings) => {
   const { autopools } = await request(settings.subgraphUrl, autopoolsQuery, {});
   return autopools;
 };
 
-const getWethPrice = async (settings) => {
-  const wethPriceKey = `${settings.pricePrefixChainId}:${settings.weth}`;
-  const wethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${wethPriceKey}`)
-  ).data.coins[wethPriceKey]?.price;
-  return wethPrice;
+const getBaseAssetPrice = async (settings, baseAsset) => {
+  const baseAssetPriceKey = `${settings.pricePrefixChainId}:${baseAsset}`;
+  const baseAssetPrice = (
+    await axios.get(
+      `https://coins.llama.fi/prices/current/${baseAssetPriceKey}`
+    )
+  ).data.coins[baseAssetPriceKey]?.price;
+  return baseAssetPrice;
 };
 
-async function getPoolsForChain(chainId) {
-  const settings = SETTINGS_BY_CHAIN[chainId];
-
+async function getPoolsForSystem(settings) {
   const autopools = await getAutopools(settings);
+  const genStratAprs = await getGenStratAprsForSystem(settings);
 
   const multicalls = [];
 
@@ -103,7 +131,7 @@ async function getPoolsForChain(chainId) {
         });
       }),
       chain: settings.multicallChainId,
-      permitFailure: false,
+      permitFailure: true,
     })
   );
 
@@ -120,7 +148,7 @@ async function getPoolsForChain(chainId) {
         });
       }),
       chain: settings.multicallChainId,
-      permitFailure: false,
+      permitFailure: true,
     })
   );
 
@@ -137,7 +165,7 @@ async function getPoolsForChain(chainId) {
         });
       }),
       chain: settings.multicallChainId,
-      permitFailure: false,
+      permitFailure: true,
     })
   );
 
@@ -154,7 +182,7 @@ async function getPoolsForChain(chainId) {
         };
       }),
       chain: settings.multicallChainId,
-      permitFailure: false,
+      permitFailure: true,
     })
   );
 
@@ -169,7 +197,7 @@ async function getPoolsForChain(chainId) {
         };
       }),
       chain: settings.multicallChainId,
-      permitFailure: false,
+      permitFailure: true,
     })
   );
 
@@ -228,9 +256,28 @@ async function getPoolsForChain(chainId) {
 
       const debtValueWeight = debtValueHeldByVaultEth / totalAssets;
 
-      const cr = Number(
-        etherUtils.formatUnits(summaryStatResult.output.compositeReturn, 18)
-      );
+      let cr = 0;
+      if (
+        autopool.strategy.id == '0x0000000000000000000000000000000000000000' ||
+        autopool.strategy.id == '0x000000000000000000000000000000000000dead'
+      ) {
+        // gen strat
+        cr =
+          genStratAprs[autopool.id.toLowerCase()]?.[
+            autopool.destinationVaults[d].id.toLowerCase()
+          ] || 0;
+      } else {
+        cr =
+          summaryStatResult.output &&
+          summaryStatResult.output.compositeReturn != null
+            ? Number(
+                etherUtils.formatUnits(
+                  summaryStatResult.output.compositeReturn,
+                  18
+                )
+              )
+            : 0;
+      }
 
       compositeReturn += debtValueWeight * cr;
     }
@@ -238,15 +285,8 @@ async function getPoolsForChain(chainId) {
     const autopoolPeriodicFee = BigNumber.from(autopool.periodicFee);
     const autopoolStreamingFee = BigNumber.from(autopool.streamingFee);
 
-    // Fees may temporarily go to zero but we want the crm to display as though
-    // they are still applied so we don't see sharp temporary increases
-    const applicablePeriodicFee = autopoolPeriodicFee.eq(BN_ZERO)
-      ? BigNumber.from(50)
-      : autopoolPeriodicFee;
-
-    const applicableStreamingFee = autopoolStreamingFee.eq(BN_ZERO)
-      ? BigNumber.from(1500)
-      : autopoolStreamingFee;
+    const applicablePeriodicFee = autopoolPeriodicFee;
+    const applicableStreamingFee = autopoolStreamingFee;
 
     // Calculate compositeReturn net of estimated fees
     compositeReturn =
@@ -259,46 +299,42 @@ async function getPoolsForChain(chainId) {
     ix += dl;
   }
 
-  const wethPrice = await getWethPrice(settings);
-
-  const pools = autopools.map((pool, i) => ({
-    pool: pool.id,
-    chain: settings.poolsChainId,
-    project: 'tokemak',
-    symbol: pool.baseAsset.symbol,
-    tvlUsd:
-      Number(etherUtils.formatUnits(pool.nav, pool.baseAsset.decimals)) *
-      wethPrice,
-    rewardTokens: [pool.rewarder.rewardToken.id],
-    underlyingTokens: [pool.baseAsset.id],
-    apyBase:
-      // If we have a currentApy populated, use it. Otherwise, use the weighted CRM.
-      ((pool.currentApy
-        ? Number(
-            etherUtils.formatUnits(pool.currentApy, pool.baseAsset.decimals)
-          )
-        : autopoolCRs[pool.id]) || 0) * 100,
-    apyReward:
-      (pool.rewarder.currentApy
-        ? Number(
-            etherUtils.formatUnits(
-              pool.rewarder.currentApy,
-              pool.baseAsset.decimals
+  const pools = [];
+  for (const pool of autopools) {
+    const baseAssetPrice = await getBaseAssetPrice(settings, pool.baseAsset.id);
+    pools.push({
+      pool: pool.id,
+      chain: settings.poolsChainId,
+      project: 'tokemak',
+      symbol: pool.baseAsset.symbol,
+      tvlUsd:
+        Number(etherUtils.formatUnits(pool.nav, pool.baseAsset.decimals)) *
+        baseAssetPrice,
+      rewardTokens: [pool.rewarder.rewardToken.id],
+      underlyingTokens: [pool.baseAsset.id],
+      apyBase:
+        // If we have a currentApy populated, use it. Otherwise, use the weighted CRM.
+        ((pool.currentApy
+          ? Number(
+              etherUtils.formatUnits(pool.currentApy, pool.baseAsset.decimals)
             )
-          )
-        : 0) * 100,
-    url: 'https://app.tokemak.xyz/autopool?id=' + pool.id,
-    poolMeta: pool.symbol,
-  }));
+          : autopoolCRs[pool.id]) || 0) * 100,
+      apyReward:
+        (pool.rewarder.currentApy
+          ? Number(etherUtils.formatUnits(pool.rewarder.currentApy, 18))
+          : 0) * 100,
+      url: 'https://app.tokemak.xyz/autopool?id=' + pool.id,
+      poolMeta: pool.symbol,
+    });
+  }
 
   return pools;
 }
 
 async function main() {
-  const chainIds = Object.keys(SETTINGS_BY_CHAIN);
   const pools = [];
-  for (let i = 0; i < chainIds.length; i++) {
-    pools.push(...(await getPoolsForChain(chainIds[i])));
+  for (const system of SETTINGS_BY_SYSTEM) {
+    pools.push(...(await getPoolsForSystem(system)));
   }
   return pools;
 }

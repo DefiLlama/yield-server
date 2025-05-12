@@ -7,7 +7,7 @@ const topLvl = async (chainString, url, token, address, underlying) => {
   let apy;
 
   if (chainString === 'ethereum') {
-    dataTvl = await utils.getData(`${url}/short-lido-stats`);
+    dataTvl = await utils.getData(url);
     dataApy = await utils.getData(
       `https://eth-api.lido.fi/v1/protocol/steth/apr/last`
     );
@@ -34,7 +34,7 @@ const main = async () => {
   const data = await Promise.all([
     topLvl(
       'ethereum',
-      'https://stake.lido.fi/api',
+      'https://eth-api.lido.fi/v1/protocol/steth/stats',
       'stETH',
       '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84',
       '0x0000000000000000000000000000000000000000'

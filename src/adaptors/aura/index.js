@@ -305,7 +305,7 @@ const main = async () => {
     const chainPools = await Promise.all(
       _.range(validPoolsLength).map(async (i) => {
         const data = {
-          pool: lpTokens[i].toLowerCase(),
+          pool: `${lpTokens[i].toLowerCase()}-aura`,
           chain,
           project: 'aura',
           symbol: underlyingTokens[i]

@@ -15,9 +15,10 @@ const {
   EVERY_SECOND,
   GENERAL_LOAN_TYPE,
   loanManagerAddress,
-  rewardsV1Address,
+  rewardsV2Address,
+  RewardsTokenV2,
 } = require('./constants');
-const { LoanManagerAbi, HubPoolAbi, RewardsV1Abi } = require('./abis');
+const { LoanManagerAbi, HubPoolAbi, RewardsV2Abi } = require('./abis');
 
 async function initPools() {
   // Get TVL for each spoke token in each chain
@@ -154,62 +155,76 @@ const updateWithLendingData = async (poolsInfo) => {
   return poolsInfo;
 };
 
-const updateWithRewardsV1Data = async (poolsInfo) => {
-  const rewardTokenAddr = '0x0000000000000000000000000000000000000000';
-  const rewardChain = 'avax';
-
+const updateWithRewardsV2Data = async (poolsInfo) => {
   const now = Math.floor(Date.now() / 1000);
   const chainApi = new sdk.ChainApi({
     chain: 'avax',
     timestamp: now,
   });
 
-  // Fetch reward token price
-  const { price: avaxPrice, decimals: avaxDecimals } = (
-    await getPrices([`${rewardChain}:${rewardTokenAddr}`])
-  )[`${rewardChain}:${rewardTokenAddr}`];
-
   // Fetch active epoch data for each pool
   const poolIds = poolsInfo.map((pool) => pool.meta.poolId);
   const activeEpochs = await chainApi.multiCall({
     calls: poolIds.map((poolId) => ({
-      target: rewardsV1Address,
+      target: rewardsV2Address,
       params: [poolId],
     })),
-    abi: RewardsV1Abi.getActiveEpoch,
+    abi: RewardsV2Abi.getActivePoolEpoch,
     permitFailure: true,
   });
 
-  // Extract rewards info for each pool epoch
+  // Extract rewards info for each reward token for each pool epoch
+
   const poolRewardsInfo = activeEpochs.map((activeEpoch) => {
     if (activeEpoch === null) return null;
-    const [start, end, totalRewards] = [
-      activeEpoch.epoch.start,
-      activeEpoch.epoch.end,
-      activeEpoch.epoch.totalRewards,
-    ].map((item) => BigInt(item));
+    const [start, end, rewards] = [
+      BigInt(activeEpoch.epoch.start),
+      BigInt(activeEpoch.epoch.end),
+      activeEpoch.epoch.rewards,
+    ];
 
     const remainingTime = end - BigInt(now);
     const fullEpochTime = end - start;
     return {
       remainingTime,
       fullEpochTime,
-      remainingRewards: (remainingTime * totalRewards) / fullEpochTime,
+      remainingRewards: rewards.map((reward) => [
+        reward.rewardTokenId,
+        (remainingTime * BigInt(reward.totalRewards)) / fullEpochTime,
+      ]),
     };
   });
+  const rewardsTokenPriceIds = poolRewardsInfo
+    .filter(Boolean)
+    .map((poolRewardInfo) =>
+      poolRewardInfo.remainingRewards.map(
+        ([rewardTokenId]) =>
+          `${RewardsTokenV2[rewardTokenId].chain}:${RewardsTokenV2[rewardTokenId].tokenAddress}`
+      )
+    )
+    .flat();
+
+  const tokenPrices = await getPrices(rewardsTokenPriceIds);
 
   poolsInfo.forEach((poolInfo, i) => {
     if (poolRewardsInfo[i] === null) return;
     const { remainingRewards, remainingTime } = poolRewardsInfo[i];
-    poolInfo.rewardTokens.push(rewardTokenAddr);
-    poolInfo.apyReward += calculateRewardAprPercentage(
-      remainingRewards,
-      avaxPrice,
-      avaxDecimals,
-      poolInfo.totalSupplyUsd,
-      remainingTime
-    );
+    remainingRewards.forEach(([rewardTokenId, remainingRewardsAmount]) => {
+      const rewardTokenInfo = RewardsTokenV2[rewardTokenId];
+      const rewardTokenPrice =
+        tokenPrices[`${rewardTokenInfo.chain}:${rewardTokenInfo.tokenAddress.toLowerCase()}`];
+
+      poolInfo.rewardTokens.push(rewardTokenInfo.tokenAddress);
+      poolInfo.apyReward += calculateRewardAprPercentage(
+        remainingRewardsAmount,
+        rewardTokenPrice?.price,
+        rewardTokenPrice?.decimals,
+        poolInfo.totalSupplyUsd,
+        remainingTime
+      );
+    });
   });
+
   return poolsInfo;
 };
 
@@ -223,7 +238,7 @@ const deletePoolsInfoMeta = async (poolsInfo) => {
 const calcYields = async () => {
   return await initPools()
     .then(updateWithLendingData)
-    .then(updateWithRewardsV1Data)
+    .then(updateWithRewardsV2Data)
     .then(deletePoolsInfoMeta);
 };
 
