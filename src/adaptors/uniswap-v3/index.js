@@ -6,6 +6,8 @@ const utils = require('../utils');
 const { EstimatedFees } = require('./estimateFee.ts');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
+const getOnchainPools = require('./onchain');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const chains = {
   ethereum: sdk.graph.modifyEndpoint(
@@ -34,7 +36,7 @@ const chains = {
 
 const query = gql`
   {
-    pools(first: 1000, skip: <SKIP>, where: {totalValueLockedUSD_gt: "10000"}, orderBy: totalValueLockedUSD, orderDirection: desc block: {number: <PLACEHOLDER>}) {
+    pools(first: 1000, orderBy: totalValueLockedUSD, orderDirection: desc block: {number: <PLACEHOLDER>}) {
       id
       totalValueLockedToken0
       totalValueLockedToken1
@@ -56,9 +58,9 @@ const query = gql`
 
 const queryPrior = gql`
   {
-    pools(first: 1000, skip: <SKIP>, where: {totalValueLockedUSD_gt: "10000"}, orderBy: totalValueLockedUSD orderDirection:desc block: {number: <PLACEHOLDER>}) {
-      id
-      volumeUSD
+    pools( first: 1000 orderBy: totalValueLockedUSD orderDirection:desc block: {number: <PLACEHOLDER>}) {
+      id 
+      volumeUSD 
     }
   }
 `;
@@ -85,17 +87,9 @@ const topLvl = async (
     );
 
     // pull data
-    let allPools = [];
-    let skip = 0;
-    while (true) {
-      let queryC = query;
-      console.log(`allPools: query pools from: ${skip} to: ${skip + 1000}`);
-      let currentData = await request(url, queryC.replace('<PLACEHOLDER>', block).replace('<SKIP>', skip));
-      if (!currentData.pools || currentData.pools.length === 0) break;
-      allPools = [...allPools, ...currentData.pools];
-      skip += 1000;
-    }
-    let dataNow = [...new Map(allPools.map(pool => [pool.id, pool])).values()];
+    let queryC = query;
+    let dataNow = await request(url, queryC.replace('<PLACEHOLDER>', block));
+    dataNow = dataNow.pools;
 
     // uni v3 subgraph reserves values are wrong!
     // instead of relying on subgraph values, gonna pull reserve data from contracts
@@ -159,16 +153,11 @@ const topLvl = async (
 
     // pull 24h offset data to calculate fees from swap volume
     let queryPriorC = queryPrior;
-    let allPriorPools = [];
-    skip = 0;
-    while (true) {
-      console.log(`allPriorPools: query pools from: ${skip} to: ${skip + 1000}`);
-      let currentData = await request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior).replace('<SKIP>', skip));
-      if (!currentData.pools || currentData.pools.length === 0) break;
-      allPriorPools = [...allPriorPools, ...currentData.pools];
-      skip += 1000;
-    }
-    let dataPrior = [...new Map(allPriorPools.map(pool => [pool.id, pool])).values()];
+    let dataPrior = await request(
+      url,
+      queryPriorC.replace('<PLACEHOLDER>', blockPrior)
+    );
+    dataPrior = dataPrior.pools;
 
     // calculate tvl
     dataNow = await utils.tvl(dataNow, chainString);
@@ -192,16 +181,9 @@ const topLvl = async (
     });
 
     // for new v3 apy calc
-    let allPrior7dPools = [];
-    skip = 0;
-    while (true) {
-      console.log(`allPrior7dPools: query pools from: ${skip} to: ${skip + 1000}`);
-      let currentData = await request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d).replace('<SKIP>', skip));
-      if (!currentData.pools || currentData.pools.length === 0) break;
-      allPrior7dPools = [...allPrior7dPools, ...currentData.pools];
-      skip += 1000;
-    }
-    const dataPrior7d = [...new Map(allPrior7dPools.map(pool => [pool.id, pool])).values()];
+    const dataPrior7d = (
+      await request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
+    ).pools;
 
     // calc apy (note: old way of using 24h fees * 365 / tvl. keeping this for now) and will store the
     // new apy calc as a separate field
@@ -355,12 +337,6 @@ const topLvl = async (
 };
 
 const main = async (timestamp = null) => {
-  const uniswapV2Pools = new Set(
-    (await axios.get('https://yields.llama.fi/distinctID')).data
-      .filter((p) => p.project === 'uniswap-v2')
-      .map((p) => p.pool)
-  );
-
   const stablecoins = (
     await axios.get(
       'https://stablecoins.llama.fi/stablecoins?includePrices=true'
@@ -376,23 +352,24 @@ const main = async (timestamp = null) => {
       await topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins)
     );
   }
-  return data
-    .flat()
-    .filter(
-      (p) =>
-        utils.keepFinite(p) &&
-        ![
-          '0x0c6d9d0f82ed2e0b86c4d3e9a9febf95415d1b76',
-          '0xc809d13e9ea08f296d3b32d4c69d46ff90f73fd8',
-        ].includes(p.pool)
-    )
-    .filter((p) => {
-      if (uniswapV2Pools.has(p.pool)) {
-        console.log(`Warning: Filtered out duplicate pool ${p.pool} (exists in Uniswap V2)`);
-        return false;
-      }
-      return true;
-    });
+
+  const bobPools = await getOnchainPools();
+  data.push(bobPools);
+
+  const pools = await addMerklRewardApy(
+    data
+      .flat()
+      .filter(
+        (p) =>
+          utils.keepFinite(p) &&
+          ![
+            '0x0c6d9d0f82ed2e0b86c4d3e9a9febf95415d1b76',
+            '0xc809d13e9ea08f296d3b32d4c69d46ff90f73fd8',
+          ].includes(p.pool)
+      ),
+    'uniswap'
+  );
+  return pools;
 };
 
 module.exports = {

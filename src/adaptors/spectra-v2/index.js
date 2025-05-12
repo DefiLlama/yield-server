@@ -34,6 +34,12 @@ const chains = {
     urlSlug: "sonic",
     SPECTRA: '0xb827e91c5cd4d6aca2fc0cd93a07db61896af40b',
   },
+  43111: {
+    name: 'hemi',
+    slug: 'hemi',
+    urlSlug: "hemi",
+    SPECTRA: '0x392fca63e58C1870fBeC04Eb6518A75703Dd2954',
+  },
 };
 
 const poolId = (address, chainId) =>

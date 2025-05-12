@@ -1,5 +1,7 @@
-const { ethers, Contract, BigNumber } = require('ethers');
+const axios = require('axios');
+const { gql, request } = require('graphql-request');
 const sdk = require('@defillama/sdk');
+
 const { capitalizeFirstLetter } = require('../utils');
 
 const ETHEREUM_WETH_TOKEN = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
@@ -7,7 +9,10 @@ const ETHEREUM_OETH_TOKEN = '0x856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc3';
 const BASE_WETH_TOKEN = '0x4200000000000000000000000000000000000006';
 const BASE_SUPER_OETH_TOKEN = '0xDBFeFD2e8460a6Ee4955A68582F85708BAEA60A3';
 
-const utils = require('../utils');
+const oethVaultAddress = '0x39254033945AA2E4809Cc2977E7087BEE48bd7Ab';
+const superOETHbVaultAddress = '0x98a0CbeF61bD2D21435f433bE4CD42B56B38CC93';
+
+const graphUrl = 'https://origin.squids.live/origin-squid/graphql';
 
 const vaultABI = {
   inputs: [],
@@ -16,16 +21,35 @@ const vaultABI = {
   stateMutability: 'view',
   type: 'function',
 };
-const oethVaultAddress = '0x39254033945AA2E4809Cc2977E7087BEE48bd7Ab';
-const superOETHbVaultAddress = '0x98a0CbeF61bD2D21435f433bE4CD42B56B38CC93';
 
-const fetchPoolData = async ({ chain, vaultAddress, apyUrl, token, symbol, project, underlyingToken }) => {
-  const priceData = await utils.getData(
-    'https://coins.llama.fi/prices/current/coingecko:ethereum?searchWidth=4h'
-  );
-  const ethPrice = priceData.coins['coingecko:ethereum'].price;
+const fetchPoolData = async ({
+  chain,
+  vaultAddress,
+  token,
+  symbol,
+  project,
+  underlyingToken,
+  chainId,
+}) => {
+  const query = gql`
+    query OTokenApy($chainId: Int!, $token: String!) {
+      oTokenApies(
+        limit: 1
+        orderBy: timestamp_DESC
+        where: { chainId_eq: $chainId, otoken_containsInsensitive: $token }
+      ) {
+        apy7DayAvg
+      }
+    }
+  `;
 
-  const apyData = await utils.getData(apyUrl);
+  const variables = {
+    token,
+    chainId,
+  };
+
+  const apyData = await request(graphUrl, query, variables);
+  const apy = apyData.oTokenApies[0]?.apy7DayAvg * 100;
 
   const totalValueEth = (
     await sdk.api.abi.call({
@@ -35,6 +59,12 @@ const fetchPoolData = async ({ chain, vaultAddress, apyUrl, token, symbol, proje
     })
   ).output;
 
+  const ethPriceKey = `ethereum:${ETHEREUM_WETH_TOKEN}`;
+  const ethPriceRes = await axios.get(
+    `https://coins.llama.fi/prices/current/${ethPriceKey}`
+  );
+  const ethPrice = ethPriceRes.data.coins[ethPriceKey].price;
+
   const tvlUsd = (totalValueEth / 1e18) * ethPrice;
 
   return {
@@ -43,16 +73,16 @@ const fetchPoolData = async ({ chain, vaultAddress, apyUrl, token, symbol, proje
     project,
     symbol,
     tvlUsd,
-    apy: Number(apyData.apy),
+    apy,
     underlyingTokens: [underlyingToken],
   };
 };
 
-const poolsFunction = async () => {
+const apy = async () => {
   const oethData = await fetchPoolData({
     chain: 'ethereum',
+    chainId: 1,
     vaultAddress: oethVaultAddress,
-    apyUrl: 'https://analytics.ousd.com/api/v2/oeth/apr/trailing',
     token: ETHEREUM_OETH_TOKEN,
     symbol: 'OETH',
     project: 'origin-ether',
@@ -61,8 +91,8 @@ const poolsFunction = async () => {
 
   const superOETHbData = await fetchPoolData({
     chain: 'base',
+    chainId: 8453,
     vaultAddress: superOETHbVaultAddress,
-    apyUrl: 'https://api.originprotocol.com/api/v2/superoethb/apr/trailing',
     token: BASE_SUPER_OETH_TOKEN,
     symbol: 'superOETHb',
     project: 'origin-ether',
@@ -74,6 +104,6 @@ const poolsFunction = async () => {
 
 module.exports = {
   timetravel: false,
-  apy: poolsFunction,
+  apy,
   url: 'https://originprotocol.com',
 };

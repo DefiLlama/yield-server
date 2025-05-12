@@ -2,7 +2,7 @@ const axios = require('axios');
 const { getPools } = require('../morfi/gql-requests');
 
 const chains = {
-  sui: 'https://api-sui.cetus.zone/v2/sui/stats_pools?is_vaults=false&display_all_pools=true&has_mining=true&has_farming=true&no_incentives=true&order_by=-tvl&limit=100&offset=0',
+  sui: 'https://api-sui.cetus.zone/v3/sui/clmm/stats_pools?is_vaults=false&display_all_pools=true&has_mining=true&has_farming=true&no_incentives=true&order_by=-tvl&limit=100&offset=0',
   aptos: 'https://api.cetus.zone/v2/swap/count',
 };
 
@@ -10,32 +10,29 @@ const apy = async (chain) => {
   if (chain === 'sui') {
     let pools = (
         await axios.get(chains[chain])
-      ).data.data.lp_list;
+      ).data.data.list;
       
       return pools.map((p) => {
     
-          const apyRewardSui = p.rewarder_apr.reduce(
-            (a, b) => a + Number(b.replace('%', '')),
-            0
-          );
+          const apyBase = Number(p?.stats[0].apr) * 100;
+          const apyReward = p.totalApr*100-apyBase;
     
-          let rewarders = p.object.rewarder_manager?.fields?.rewarders
-          let rewardTokens = rewarders?.map(rewards=>{
-            return rewards.fields.reward_coin.fields.name
+          let rewardTokens = p.miningRewarders?.map(rewards=>{
+            return rewards.coinType
           })
         return {
-          pool: p.address,
+          pool: p.pool,
           chain: chain,
           project: 'cetus-amm',
-          symbol: p.symbol,
-          underlyingTokens: [p.coin_a_address, p.coin_b_address],
+          symbol: [p.coinA.symbol, p.coinB.symbol].join('-'),
+          underlyingTokens: [p.coinA.coinType, p.coinB.coinType],
           rewardTokens,
-          tvlUsd: Number(p.pure_tvl_in_usd),
-          apyBase: Number(p?.apr.fee_apr_24h.replace('%','')),
-          apyReward: apyRewardSui > 0 ? apyRewardSui : 0,
-          volumeUsd1d: Number(p?.vol_in_usd_24h),
-          poolMeta: `${Number(p.fee) * 100}%`,
-          url: `https://app.cetus.zone/liquidity/deposit?poolAddress=${p.swap_account}`,
+          tvlUsd: Number(p.tvl),
+          apyBase: apyBase,
+          apyReward: apyReward > 0 ? apyReward : 0,
+          volumeUsd1d: Number(p?.stats[0].vol),
+          poolMeta: `${Number(p.feeRate) / 100}%`,
+          url: `https://app.cetus.zone/liquidity/deposit?poolAddress=${p.pool}`,
         };
       })
       .filter((i) => i.tvlUsd <= 1e8);
