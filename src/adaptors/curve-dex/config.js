@@ -11,6 +11,7 @@ exports.BLOCKCHAINIDS = [
   'kava',
   'base',
   'fraxtal',
+  'sonic',
   // 'celo',
 ];
 // https://github.com/curvefi/curve-api/blob/main/endpoints.md#getpools
@@ -33,6 +34,7 @@ exports.BLOCKCHAINIDS.forEach((blockchainId) => {
     case 'fraxtal':
     case 'fantom':
     case 'optimism':
+    case 'sonic':
       blockchainRegistries = REGISTRY_TYPES;
       break;
     case 'xdai':
