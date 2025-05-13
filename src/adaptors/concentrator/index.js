@@ -80,6 +80,7 @@ const getATokenData = async () => {
       symbol: 'fxSave',
       tvlUsd: parseInt(fxSave.tvl, 10),
       apy: parseFloat(fxSave.apy),
+      apyBase: parseFloat(fxSave.baseAPR),
     },
     {
       pool: `${asdPENDLEAddress}-concentrator`,

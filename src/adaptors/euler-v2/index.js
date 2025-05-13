@@ -2,6 +2,8 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
 
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
+
 const lensAbi = require('./lens.abi.json');
 const factoryAbi = require('./factory.abi.json');
 
@@ -151,7 +153,7 @@ const getApys = async () => {
     }
   }
 
-  return result.flat();
+  return await addMerklRewardApy(result.flat(), 'euler');
 };
 
 module.exports = {

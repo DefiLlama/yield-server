@@ -113,7 +113,8 @@ const getApy = async () => {
           const apyBase = reserveData[i].currentLiquidityRate / 1e25;
           const apyBaseBorrow = reserveData[i].currentVariableBorrowRate / 1e25;
 
-          const apyReward = _poolsApr.rewards_apy?.[t.toLowerCase()]?.supply * 100 || 0;
+          const apyReward =
+            _poolsApr.rewards_apy?.[t.toLowerCase()]?.supply * 100 || 0;
 
           const ltv = config.ltv / 1e4;
           const borrowable = config.borrowingEnabled;
@@ -126,13 +127,13 @@ const getApy = async () => {
           return {
             pool: `${reserveData[i].aTokenAddress}-${chain}`.toLowerCase(),
             symbol: symbols[i],
-            project: 'lendle',
+            project: 'lendle-lend',
             chain,
             tvlUsd,
             apyBase,
             apyReward,
             underlyingTokens: [t],
-            rewardTokens: ["0x25356aeca4210eF7553140edb9b8026089E49396"],
+            rewardTokens: ['0x25356aeca4210eF7553140edb9b8026089E49396'],
             url,
             // borrow fields
             totalSupplyUsd,
@@ -162,7 +163,9 @@ const getApy = async () => {
       const _vaultsCampaignApi = (await axios.get(vaultsCampaignApi)).data;
 
       return vaultsList.map((t, i) => {
-        const config = _vaultsData.find((vault) => vault.earnContractAddress === t);
+        const config = _vaultsData.find(
+          (vault) => vault.earnContractAddress === t
+        );
         if (!config || config.status !== 'active') return null;
 
         const tvlUsd = _vaultsTvl[chainId][config.id];
@@ -173,7 +176,8 @@ const getApy = async () => {
           (item) =>
             item.status === 'LIVE' &&
             item.identifier.toLowerCase() === t.toLowerCase() &&
-            item.rewardsRecord.breakdowns[0].token.address !== '0x0000000000000000000000000000000000000000'
+            item.rewardsRecord.breakdowns[0].token.address !==
+              '0x0000000000000000000000000000000000000000'
         );
         const apyReward = aprData ? aprData.apr : 0;
 
@@ -182,15 +186,16 @@ const getApy = async () => {
         return {
           pool: `${t}-${chain}`.toLowerCase(),
           symbol: config.name,
-          project: 'lendle',
+          project: 'lendle-lend',
           chain,
           tvlUsd,
           apyBase,
           apyReward,
           underlyingTokens: [config.tokenAddress],
-          rewardTokens: aprData && apyReward
-            ? [aprData.rewardsRecord.breakdowns[0].token.address]
-            : ['0x0000000000000000000000000000000000000000'],
+          rewardTokens:
+            aprData && apyReward
+              ? [aprData.rewardsRecord.breakdowns[0].token.address]
+              : ['0x0000000000000000000000000000000000000000'],
           url,
           poolMeta: 'Vault',
         };

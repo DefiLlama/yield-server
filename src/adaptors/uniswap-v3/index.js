@@ -352,7 +352,10 @@ const main = async (timestamp = null) => {
       await topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins)
     );
   }
-  data.push(...(await getOnchainPools()));
+
+  const bobPools = await getOnchainPools();
+  data.push(bobPools);
+
   const pools = await addMerklRewardApy(
     data
       .flat()
