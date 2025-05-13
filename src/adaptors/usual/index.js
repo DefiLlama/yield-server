@@ -126,8 +126,8 @@ async function getUsualXAPY(chain, usualXPrice) {
 
   const usualXApr = (rate * CONFIG.DAYS_PER_YEAR) / totalAssets;
 
-  // No weekly compounding for USUALx apyReward anymore
-  const usualxApyReward = utils.aprToApy(usualXApr * 100);  // No weekly compounding for apyReward
+  // Applying weekly compounding only to USUALx apyReward
+  const usualxApyReward = utils.aprToApy(usualXApr * 100, CONFIG.WEEKS_PER_YEAR);  // Weekly compounding for apyReward
 
   const usualxMarketCap = usualXTVL * usualXPrice;
 
@@ -154,8 +154,8 @@ const apy = async () => {
     (e) => CONFIG.USUAL_TOKEN.toLowerCase() === e.rewardToken.toLowerCase()
   );
 
-  // No weekly compounding for USD0++ apyReward
-  const apyReward = utils.aprToApy(reward.apr * 100);  // No weekly compounding for apyReward
+  // No weekly compounding for USD0++
+  const apyReward = reward.apr * 100;  // Direct APR-to-APY conversion without weekly compounding
 
   const ethData = await getChainData(CONFIG.ETHEREUM);
   const arbData = await getChainData(CONFIG.ARBITRUM);
@@ -190,7 +190,7 @@ const apy = async () => {
       project: 'usual',
       symbol: 'USUALx',
       tvlUsd: rawUsualXTVL * usualxPrice,
-      apyBase: usualxApyReward,  // No weekly compounding for USUALx APY
+      apyBase: usualxApyReward,  // Weekly compounding for USUALx APY
       apyReward: usualxApyRevenueSwitch,
       rewardTokens: [CONFIG.ETHEREUM.USD0],
       underlyingTokens: [CONFIG.USUAL_TOKEN],
