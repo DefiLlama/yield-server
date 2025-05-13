@@ -46,13 +46,13 @@ const getBLusdRebondStrategy = async (): Promise<ChickenBondsStrategy> => {
 const getBLusdLusd3CrvStrategy = async (): Promise<ChickenBondsStrategy> => {
   const curvePoolDataResponse = (
     await superagent.get(
-      'https://api.curve.fi/api/getPools/ethereum/factory-crypto'
+      'https://api.curve.finance/api/getPools/ethereum/factory-crypto'
     )
   ).body as PartialCurvePoolData;
 
   const curvePoolDetailsResponse = (
     await superagent.get(
-      'https://api.curve.fi/api/getFactoryAPYs?version=crypto'
+      'https://api.curve.finance/api/getFactoryAPYs?version=crypto'
     )
   ).body as PartialCurvePoolDetails;
 
