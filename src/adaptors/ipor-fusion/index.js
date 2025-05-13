@@ -4,16 +4,13 @@ const IPOR_GITHUB_ADDRESSES_URL = "https://raw.githubusercontent.com/IPOR-Labs/i
 const FUSION_API_URL = 'https://api.ipor.io/fusion/vaults';
 const CHAIN_CONFIG = {
     ethereum: {
-        chainId: 1,
-        iporToken: '0x1e4746dc744503b53b4a082cb3607b169a289090'
+        chainId: 1
     },
     arbitrum: {
-        chainId: 42161,
-        iporToken: '0x34229b3f16fbcdfa8d8d9d17c0852f9496f4c7bb'
+        chainId: 42161
     },
     base: {
-        chainId: 8453,
-        iporToken: '0xbd4e5C2f8dE5065993d29A9794E2B7cEfc41437A'
+        chainId: 8453
     }
 };
 
