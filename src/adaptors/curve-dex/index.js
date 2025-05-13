@@ -353,7 +353,7 @@ const main = async () => {
       const symbol =
         overrideData?.symbol || pool.coins.map((coin) => coin.symbol).join('-');
       const url =
-        overrideData?.url || `https://curve.fi/#/${blockchainId}/pools`;
+        overrideData?.url || `https://curve.finance/#/${blockchainId}/pools`;
 
       defillamaPooldata.push({
         pool: address + '-' + blockchainId,
