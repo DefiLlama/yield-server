@@ -51,7 +51,7 @@ const getApy = async () => {
         const url = `https://app.lendle.xyz/vault/${config.id}`;
 
         return {
-          pool: `${t}-${chain}`.toLowerCase(),
+          pool: `${t}-${chain}-lendle-earn`.toLowerCase(),
           symbol: config.name,
           project: 'lendle-earn',
           chain,
