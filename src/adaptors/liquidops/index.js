@@ -36,7 +36,11 @@ const apy = async () => {
     const totalBorrows = scaleBalance(infoTagsObject['Total-Borrows'], infoTagsObject['Denomination'])
     const totalSupply = scaleBalance(infoTagsObject['Total-Supply'], infoTagsObject['Denomination'])
 
-    const supplyAPY = formatSupplyAPR(borrowAPR,  infoTagsObject, totalBorrows, totalSupply)
+    let supplyAPY = formatSupplyAPR(borrowAPR,  infoTagsObject, totalBorrows, totalSupply)
+
+    if (supplyAPY.toString() === 'NaN') {
+        supplyAPY = 0
+    }
 
     const ltv = Number(infoTagsObject['Collateral-Factor']) / 100
 
@@ -115,13 +119,4 @@ module.exports = {
     apy,
 };
 // npm run test --adapter=liquidops
-
-
-function convertTicker(ticker) {
-    if (ticker === "QAR") return "AR";
-    if (ticker === "WUSDC") return "USDC";
-    if (ticker === "WAR") return "AR";
-    if (ticker === "WUSDT") return "USDT";
-    return ticker;
-  }
 
