@@ -7,6 +7,7 @@ const apy = async () => {
     const vault = data.vault;
     const token = data.token;
     const totalBorrowUsd = data.tvlUsd * data.utilizationRate;
+    const apr = data.apr + data.nativeApr;
     const isRewardAPY = vault.chain === 'berachain' && token.symbol === 'WBERA';
     const isDeprecated = vault.deprecated;
     return {
@@ -15,8 +16,8 @@ const apy = async () => {
       project: 'wasabi',
       symbol: token.symbol,
       tvlUsd: isDeprecated ? 0 : data.tvlUsd,
-      apyBase: isRewardAPY ? 0 : data.apr * 100,
-      apyReward: isRewardAPY ? data.apr * 100 : 0,
+      apyBase: isRewardAPY ? 0 : apr * 100,
+      apyReward: isRewardAPY ? apr * 100 : 0,
       underlyingTokens: [vault.tokenAddress],
       rewardTokens: isRewardAPY ? ["0xac03CABA51e17c86c921E1f6CBFBdC91F8BB2E6b"] : [],
       totalSupplyUsd: data.tvlUsd,
