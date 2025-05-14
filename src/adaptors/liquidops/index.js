@@ -125,5 +125,3 @@ function convertTicker(ticker) {
     return ticker;
   }
 
-
-  
