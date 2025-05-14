@@ -53,7 +53,6 @@ const poolsFunction = async () => {
     project: 'yieldfi',
     symbol: utils.formatSymbol('yUSD'),
     tvlUsd: tvl,
-    apy: parseFloat(apy),
     apyBase: parseFloat(apy),
   };
 
