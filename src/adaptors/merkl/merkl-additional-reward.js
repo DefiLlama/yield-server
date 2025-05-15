@@ -42,7 +42,7 @@ exports.addMerklRewardApy = async (
 
     return pools.map(pool => {
       const poolAddress = poolAddressGetter ? poolAddressGetter(pool) : pool.pool;
-      const merklRewards = merklPoolsMap[pool.chain.toLowerCase()][poolAddress.toLowerCase()];
+      const merklRewards = merklPoolsMap[pool.chain.toLowerCase()]?.[poolAddress.toLowerCase()];
 
       if (!merklRewards) {
         return pool;
