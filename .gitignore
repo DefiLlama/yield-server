@@ -1,4 +1,5 @@
 .DS_Store
+.op
 node_modules
 ccImages
 *.env
