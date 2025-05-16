@@ -1,6 +1,8 @@
 try {
   require('dotenv').config({ path: './config.env' });
-} catch (e) {}
+} catch (e) {
+  console.log('No config.env file found');
+}
 
 module.exports = {
   // API keys
@@ -25,6 +27,7 @@ module.exports = {
   TRADERJOE: process.env.TRADERJOE,
   GRAPH_API_KEY: process.env.GRAPH_API_KEY,
   // DB
+  REDIS_URL: process.env.REDIS_URL,
   DATABASE_URL: process.env.DATABASE_URL,
   OSMOSIS_API_KEY: process.env.OSMOSIS_API_KEY,
 };
