@@ -9,7 +9,7 @@ provider:
   name: aws
   runtime: nodejs22.x
   stage: dev
-  region: eu-west-1
+  region: eu-west-2
   tracing:
     apiGateway: true
     lambda: true
@@ -30,7 +30,7 @@ provider:
           Resource: '*'
 
   environment:
-    BUCKET_DATA: { Ref: BucketData }
+    BUCKET_DATA: ${self:service}-${self:custom.stage}-thirdguard
     DATABASE_URL: ${file(./env.js):DATABASE_URL}
     ZEROX_API: ${file(./env.js):ZEROX_API}
     GRAPH_API_KEY: ${file(./env.js):GRAPH_API_KEY}
@@ -195,11 +195,6 @@ resources:
         # leaving this at max, 14days, after that msg in there will be deleted
         MessageRetentionPeriod: 1209600
 
-    # --- create bucket
-    BucketData:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: ${self:service}-${self:custom.stage}-data
 
     # --- alarm stuff for DLQ
     DlqAlarm:
