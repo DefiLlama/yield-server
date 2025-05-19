@@ -7,7 +7,7 @@ const SUBGRAPH_URL = "https://thegraph.coredao.org/subgraphs/name/glyph/glyph-ex
 const liquidityPairFeeRate = 0.003;
 const WCORE_TOKEN_ADDRESS = '0x191e94fa59739e188dce837f7f6978d84727ad01';
 const NATIVE_TOKEN_ADDRESS = '0x0000000000000000000000000000000000000000';
-const USDT_ADDRESS = '0x81ECac0D6Be0550A00FF064a4f9dd2400585FE9c';
+const USDT_ADDRESS = '0x81ecac0d6be0550a00ff064a4f9dd2400585fe9c';
 
 const PAIR_VOLUME_DAYS_QUERY = gql`
   query PairVolumeDays($first: Int!, $skip: Int!, $timestamp_gte: BigInt!) {
@@ -125,14 +125,16 @@ const main = async () => {
   return pairsWithTVL.map(pair => ({
     pool: `${pair.id}-${chain}`.toLowerCase(),
     chain: utils.formatChain(chain),
-    project: 'GlyphExchange',
+    project: 'glyph-v2',
     symbol: `${pair.token0.symbol}-${pair.token1.symbol}`,
     tvlUsd: pair.tvlUsd,
     apyBase: pair.tvlUsd > 0 ? 
       (volumeByPair[pair.id] || 0) * liquidityPairFeeRate / pair.tvlUsd * 100 : 0,
     underlyingTokens: [pair.token0.id, pair.token1.id],
     url: `https://app.glyph.exchange/pool/?type=v2&address=${pair.id}`,
-  })).filter(p => utils.keepFinite(p));
+  }))
+  .filter(p => p.tvlUsd >= 10000)
+  .filter(p => utils.keepFinite(p));
 };
 
 module.exports = {
