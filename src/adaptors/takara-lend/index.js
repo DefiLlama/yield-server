@@ -165,9 +165,12 @@ const apy = async () => {
         );
         const allSubsidy  = [...partnerList, ...rewardList];
         apyReward = Number(allSubsidy.reduce((acc, item) => acc + item.value, 0).toFixed(2));
-        rewardTokens.push(
-          ...new Set([ ...partnerList, ...rewardList ].map(o => o.name))
-        );
+        const tokens = [...new Set([ ...partnerList, ...rewardList ].map(o => o.name))];
+        allMarketsMetadata.forEach(item=>{
+          if(tokens.includes(item.underlyingSymbol)){
+            rewardTokens.push(item.underlying)
+          }
+        })
     }
 
     return {
