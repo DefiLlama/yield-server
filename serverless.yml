@@ -30,7 +30,7 @@ provider:
           Resource: '*'
 
   environment:
-    BUCKET_DATA: ${self:service}-${self:custom.stage}-thirdguard
+    S3_BUCKET_NAME: thirdguard-apy-${self:custom.stage}-data
     DATABASE_URL: ${file(./env.js):DATABASE_URL}
     ZEROX_API: ${file(./env.js):ZEROX_API}
     GRAPH_API_KEY: ${file(./env.js):GRAPH_API_KEY}
@@ -89,7 +89,7 @@ functions:
     memorySize: 1024
     events:
       # every hour at 16 past
-      - schedule: cron(16 * * * ? *)
+      - schedule: cron(* * * * ? *)
 
   # --- stats update
   triggerStat:
@@ -98,7 +98,7 @@ functions:
     timeout: 600
     events:
       # 30min prior midnight
-      - schedule: cron(30 23 * * ? *)
+      - schedule: cron(* * * * ? *)
 
   # --- median insert
   triggerMedian:
@@ -107,7 +107,7 @@ functions:
     timeout: 600
     events:
       # 30min prior midnight
-      - schedule: cron(30 23 * * ? *)
+      - schedule: cron(* * * * ? *)
 
   # --- save poolsEnriched as CSV
   triggerCsv:
@@ -116,7 +116,7 @@ functions:
     timeout: 300
     events:
       # every hour at 25 past
-      - schedule: cron(25 * * * ? *)
+      - schedule: cron(* * * * ? *)
 
   # --- trigger monitor
   triggerMonitor:
@@ -125,7 +125,7 @@ functions:
     timeout: 300
     events:
       # every hour at 30 past
-      - schedule: cron(30 * * * ? *)
+      - schedule: cron(* * * * ? *)
     environment:
       STALE_PROJECTS_WEBHOOK: ${file(./env.js):STALE_PROJECTS_WEBHOOK}
 
@@ -136,7 +136,7 @@ functions:
     timeout: 300
     events:
       # every new hour
-      - schedule: cron(0 * * * ? *)
+      - schedule: cron(* * * * ? *)
 
   triggerMedianProject:
     handler: src/handlers/triggerMedianProject.handler
@@ -144,7 +144,7 @@ functions:
     timeout: 300
     events:
       # 30min prior midnight
-      - schedule: cron(30 23 * * ? *)
+      - schedule: cron(* * * * ? *)
 
   triggerLSDRates:
     handler: src/handlers/triggerLSDRates.handler
@@ -152,7 +152,7 @@ functions:
     timeout: 300
     events:
       # every new hour
-      - schedule: cron(0 * * * ? *)
+      - schedule: cron(* * * * ? *)
     environment:
       ETHEREUM_RPC: ${file(./env.js):ETHEREUM_RPC}
 
@@ -162,12 +162,52 @@ functions:
     timeout: 300
     events:
       # every hour 40min past
-      - schedule: cron(40 * * * ? *)
+      - schedule: cron(* * * * ? *)
     environment:
       STALE_PROJECTS_WEBHOOK: ${file(./env.js):STALE_PROJECTS_WEBHOOK}
 
 resources:
   Resources:
+    Bucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: thirdguard-apy-${self:custom.stage}-data
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: aws:kms
+                KMSMasterKeyID: alias/aws/s3
+        PublicAccessBlockConfiguration:
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+    BucketBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref Bucket
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            # Deny unencrypted (insecure transport) requests
+            - Sid: DenyUnEncryptedTransport
+              Effect: Deny
+              Principal: '*'
+              Action: 's3:*'
+              Resource:
+                - !GetAtt Bucket.Arn
+                - !Sub ${Bucket.Arn}/*
+              Condition:
+                Bool:
+                  aws:SecureTransport: 'false'
+            # Allow access only to Lambda services and users in this account
+            - Sid: AllowAccountLambdas
+              Effect: Allow
+              Principal:
+                AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+                Service: lambda.amazonaws.com
+              Action: 's3:*'
+              Resource:
+                - !GetAtt Bucket.Arn
+                - !Sub ${Bucket.Arn}/*
     # QUEUES
     # --- queue for adaptor handler
     AdapterQueue:
@@ -219,7 +259,7 @@ resources:
       Type: AWS::SNS::Topic
       Properties:
         Subscription:
-          - Endpoint: slasher125@protonmail.com
+          - Endpoint: ian@thirdguard.com
             Protocol: email
 
 custom:

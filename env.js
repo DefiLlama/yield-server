@@ -29,5 +29,6 @@ module.exports = {
   // DB
   REDIS_URL: process.env.REDIS_URL,
   DATABASE_URL: process.env.DATABASE_URL,
+  S3_BUCKET_NAME: process.env.S3_BUCKET_NAME,
   OSMOSIS_API_KEY: process.env.OSMOSIS_API_KEY,
 };

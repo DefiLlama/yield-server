@@ -9,7 +9,7 @@ module.exports.handler = async () => {
 
 const main = async () => {
   let poolsEnriched = (
-    await utils.readFromS3('defillama-datasets', 'yield-api/pools')
+    await utils.readFromS3(process.env.S3_BUCKET_NAME, 'yield-api/pools')
   ).data;
 
   // parse nested prediction field into separate fields
@@ -32,7 +32,7 @@ const main = async () => {
   const csv = headerString + body;
 
   const params = {
-    Bucket: 'defillama-datasets',
+    Bucket: process.env.S3_BUCKET_NAME,
     Key: 'yields/yield_rankings.csv',
     ACL: 'public-read',
     Body: csv,

@@ -168,7 +168,7 @@ const main = async () => {
   console.log('\nadding apy runway prediction');
   // load categorical feature mappings
   const modelMappings = await utils.readFromS3(
-    'llama-apy-prediction-prod',
+    process.env.S3_BUCKET_NAME,
     'mlmodelartefacts/categorical_feature_mapping_2022_05_20.json'
   );
   for (const el of dataEnriched) {
@@ -309,7 +309,7 @@ const main = async () => {
   // ---------- save output to S3
   console.log('\nsaving data to S3');
   console.log('nb of pools', dataEnriched.length);
-  const bucket = process.env.BUCKET_DATA;
+  const bucket = process.env.S3_BUCKET_NAME;
   const key = 'enriched/dataEnriched.json';
   dataEnriched = dataEnriched.sort((a, b) => b.tvlUsd - a.tvlUsd);
   await utils.writeToS3(bucket, key, dataEnriched);
@@ -331,14 +331,14 @@ const main = async () => {
     return newPool;
   });
 
-  await utils.storeAPIResponse('defillama-datasets', 'yield-api/pools', {
+  await utils.storeAPIResponse(process.env.S3_BUCKET_NAME, 'yield-api/pools', {
     status: 'success',
     data: pools,
   });
 
   // query db for lendBorrow and store to s3 as origin for cloudfront
   await utils.storeAPIResponse(
-    'defillama-datasets',
+    process.env.S3_BUCKET_NAME,
     'yield-api/lendBorrow',
     await getYieldLendBorrow()
   );

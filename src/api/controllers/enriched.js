@@ -20,7 +20,7 @@ async function getPoolsEnrichedData(){
   if(poolsEnriched.lastUpdate < (Date.now() - 10*60*1e3) || poolsEnriched.data === null){
     // this leads to race conditions but thats fine
     const data = await readFromS3(
-      'llama-apy-prod-data',
+      process.env.S3_BUCKET_NAME,
       'enriched/dataEnriched.json'
     );
     poolsEnriched = {
@@ -76,7 +76,7 @@ const getPoolsEnrichedOld = async (req, res) => {
 const getPoolsBorrow = async (req, res) => {
   const data = await Promise.all(
     ['pools', 'lendBorrow'].map((p) =>
-      readFromS3('defillama-datasets', `yield-api/${p}`)
+      readFromS3(process.env.S3_BUCKET_NAME, `yield-api/${p}`)
     )
   );
 

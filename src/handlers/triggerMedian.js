@@ -9,7 +9,7 @@ module.exports.handler = async () => {
 
 const main = async () => {
   let pools = (
-    await utils.readFromS3('llama-apy-prod-data', 'enriched/dataEnriched.json')
+    await utils.readFromS3(process.env.S3_BUCKET_NAME, 'enriched/dataEnriched.json')
   ).map((i) => ({ ...i, timestamp: new Date(i.timestamp) }));
 
   // include only pools which we have updated on that day,

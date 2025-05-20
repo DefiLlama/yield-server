@@ -12,7 +12,7 @@ module.exports.handler = async (event, context) => {
 // for the majority of pools)
 const main = async () => {
   let data = (
-    await utils.readFromS3('llama-apy-prod-data', 'enriched/dataEnriched.json')
+    await utils.readFromS3(process.env.S3_BUCKET_NAME, 'enriched/dataEnriched.json')
   ).map((i) => ({ ...i, configID: i.pool, timestamp: new Date(i.timestamp) }));
   const T = 365;
   // transform raw apy to return field (required for geometric mean)
