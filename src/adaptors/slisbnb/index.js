@@ -46,6 +46,8 @@ const apy = async () => {
       apyBase,
       underlyingTokens: [SLISBNB],
       url: 'https://lista.org/liquid-staking/BNB',
+      poolMeta:
+        'To earn Launchpool rewards, users need to stake clisBNB on Binance Launchpool. For details, please refer to the official guide: https://docs.bsc.lista.org/introduction/binance-launchpool-clisbnb',
     },
   ];
 };
