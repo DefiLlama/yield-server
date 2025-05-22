@@ -35,6 +35,7 @@ const adaptors = [
   'pendle',
   'uniswap-v2',
   'uniswap-v3',
+  'yearn-finance',
 ];
 
 
