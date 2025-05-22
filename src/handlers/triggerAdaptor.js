@@ -16,6 +16,7 @@ const {
 const fs = require('fs');
 
 const adaptors = [
+  'aura',
   'aave-v2',
   'aave-v3',
   'balancer-v2',
