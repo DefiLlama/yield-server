@@ -22,7 +22,7 @@ const main = async () => {
   if (noMatch.length) {
     await sendMessage(
       `Check /protocols slug for ${noMatch}`,
-      process.env.STALE_PROJECTS_WEBHOOK
+      process.env.DISCORD_WEBHOOK
     );
   }
 };

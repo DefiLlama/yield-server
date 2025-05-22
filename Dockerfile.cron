@@ -1,0 +1,23 @@
+FROM node:22-alpine
+
+ENV AWS_SDK_LOAD_CONFIG="true"
+
+# Install crond and other dependencies
+RUN apk add --no-cache tini dcron tzdata python3 make g++
+
+# Create app directory
+WORKDIR /app
+
+# Copy package files
+COPY package.json .
+
+COPY . .
+
+# Install dependencies
+RUN npm install
+
+RUN chmod +x /app/entrypoint.sh
+
+ENTRYPOINT ["/sbin/tini", "--"]
+
+CMD ["/app/entrypoint.sh"] 

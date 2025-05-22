@@ -13,6 +13,12 @@ module.exports.sendMessage = async (message, webhookUrl, formatted = true) => {
     await sendMessage(lines.slice(mid).join('\n'), webhookUrl);
     return;
   }
+
+  if (!webhookUrl || webhookUrl === '') {
+    console.log('No webhook URL provided');
+    return;
+  }
+
   // Example: https://gist.github.com/dragonwocky/ea61c8d21db17913a43da92efe0de634
   // Docs: https://gist.github.com/dragonwocky/ea61c8d21db17913a43da92efe0de634
   const response = await fetch(`${webhookUrl}?wait=true`, {

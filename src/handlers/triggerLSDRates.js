@@ -3,8 +3,7 @@ const axios = require('axios');
 
 const { insertLsd } = require('../queries/lsd');
 
-module.exports.handler = async (event, context) => {
-  context.callbackWaitsForEmptyEventLoop = false;
+module.exports.handler = async () => {
   const payload = await getRates();
   const response = await insertLsd(payload);
   console.log(response);

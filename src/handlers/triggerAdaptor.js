@@ -13,41 +13,42 @@ const {
   buildInsertConfigQuery,
   getDistinctProjects,
 } = require('../queries/config');
+const fs = require('fs');
 
-module.exports.handler = async (event, context) => {
-  context.callbackWaitsForEmptyEventLoop = false;
-  console.log(event);
+const adaptors = [
+  'aave-v2',
+  'aave-v3',
+  'balancer-v2',
+  'balancer-v3',
+  'compound-v2',
+  'compound-v3',
+  'curve-dex',
+  'curve-llamalend',
+  'morpho-aave',
+  'morpho-blue',
+  'morpho-compound',
+  'pendle',
+  'uniswap-v2',
+  'uniswap-v3',
+];
 
-  // We return failed msg ids,
-  // so that only failed messages will be retried by SQS in case of min of 1 error init batch
-  // https://www.serverless.com/blog/improved-sqs-batch-error-handling-with-aws-lambda
-  const failedMessageIds = [];
 
-  for (const record of event.Records) {
+module.exports.handler = async () => {
+  for (const adaptor of adaptors) {
     try {
-      const body = JSON.parse(record.body);
-      await main(body);
+      await main(adaptor);
     } catch (err) {
-      console.log(err);
-      failedMessageIds.push(record.messageId);
+      console.error(`53 - ${err}`);
     }
   }
-  return {
-    batchItemFailures: failedMessageIds.map((id) => {
-      return {
-        itemIdentifier: id,
-      };
-    }),
-  };
 };
 
 // func for running adaptor, storing result to db
-const main = async (body) => {
+const main = async (adaptor) => {
   // ---------- run adaptor
-  console.log(body.adaptor);
-  const project = require(`../adaptors/${body.adaptor}`);
+  console.log(`Adaptor ${adaptor} started`);
+  const project = require(`../adaptors/${adaptor}`);
   let data = await project.apy();
-  console.log(data[0]);
 
   const protocolConfig = (
     await superagent.get('https://api.llama.fi/config/yields?a=1')
@@ -116,9 +117,9 @@ const main = async (body) => {
     ...p,
     apy: p.apy < 0 ? 0 : p.apy,
     apyBase:
-      protocolConfig[body.adaptor]?.category === 'Options' ||
+      protocolConfig[adaptor]?.category === 'Options' ||
       ['mellow-protocol', 'sommelier', 'abracadabra', 'resolv'].includes(
-        body.adaptor
+        adaptor
       )
         ? p.apyBase
         : p.apyBase < 0
@@ -170,7 +171,6 @@ const main = async (body) => {
         ? 'Avalanche'
         : p.chain,
   }));
-  console.log(data.length);
 
   // ---- add IL (only for dexes + pools with underlyingTokens array)
   // need the protocol response to check if adapter.body === 'Dexes' category
@@ -182,9 +182,9 @@ const main = async (body) => {
 
   if (
     data[0]?.underlyingTokens?.length &&
-    protocolConfig[body.adaptor]?.category === 'Dexes' &&
+    protocolConfig[adaptor]?.category === 'Dexes' &&
     !['balancer-v2', 'curve-dex', 'clipper', 'astroport', 'cetus-amm'].includes(
-      body.adaptor
+      adaptor
     ) &&
     !['elrond', 'near', 'hedera', 'carbon'].includes(
       data[0].chain.toLowerCase()
@@ -297,7 +297,7 @@ const main = async (body) => {
   }
 
   // for PK, FK, read data from config table
-  const config = await getConfigProject(body.adaptor);
+  const config = await getConfigProject(adaptor);
   const mapping = {};
   for (const c of config) {
     // the pool fields are used to map to the config_id values from the config table
@@ -388,7 +388,7 @@ const main = async (body) => {
   // -> block update
 
   // load last entries for each pool for this sepcific adapter
-  const dataInitial = await getYieldProject(body.adaptor);
+  const dataInitial = await getYieldProject(adaptor);
 
   const dataDB = [];
   const nHours = 5;
@@ -410,7 +410,6 @@ const main = async (body) => {
         p.apy > x.apy * apyDeltaMultiplier) &&
       timedelta < timedeltaLimit
     ) {
-      console.log(`removing pool ${p.pool}`);
       droppedPools.push({
         configID: p.configID,
         symbol: p.symbol,
@@ -432,7 +431,6 @@ const main = async (body) => {
   // send msg to discord if tvl spikes
   const delta = data.length - dataDB.length;
   if (delta > 0) {
-    console.log(`removed ${delta} sample(s) prior to insert`);
     // send discord message
     // we limit sending msg only if the pool's last tvlUsd value is >= $50k
     const filteredPools = droppedPools.filter(
@@ -456,24 +454,31 @@ const main = async (body) => {
             `
         )
         .join('\n');
-      await sendMessage(message, process.env.TVL_SPIKE_WEBHOOK);
+      await sendMessage(message, process.env.DISCORD_WEBHOOK);
     }
   }
 
   // ---------- discord bot for newly added projects
   const distinctProjects = await getDistinctProjects();
   if (
-    !distinctProjects.includes(body.adaptor) &&
+    !distinctProjects.includes(adaptor) &&
     dataDB.filter(({ tvlUsd }) => tvlUsd > exclude.boundaries.tvlUsdUI.lb)
       .length
   ) {
-    const message = `Project ${body.adaptor} yields have been added`;
-    await sendMessage(message, process.env.NEW_YIELDS_WEBHOOK);
+    const message = `Project ${adaptor} yields have been added`;
+    await sendMessage(message, process.env.DISCORD_WEBHOOK);
   }
 
   // ---------- DB INSERT
   const response = await insertConfigYieldTransaction(dataDB);
-  console.log(response);
+
+  if (response.status === 'success') {
+    data = response.data;
+
+    console.log(`Adaptor ${adaptor} completed`, data);
+  } else {
+    console.error(`Adaptor ${adaptor} failed`, response.error);
+  }
 };
 
 // --------- transaction query
@@ -502,8 +507,9 @@ const insertConfigYieldTransaction = async (payload) => {
       };
     })
     .catch((err) => {
-      // failure, ROLLBACK was executed
-      console.log(err);
-      return new AppError('ConfigYield Transaction failed, rolling back', 404);
+      return {
+        status: 'error',
+        error: err,
+      };
     });
 };

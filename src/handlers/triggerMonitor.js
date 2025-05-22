@@ -17,6 +17,6 @@ const main = async () => {
           }:${p.stale_since.minutes}:00 ago (${p.nb_effected_pools} pool(s))`
       )
       .join('\n');
-    await sendMessage(message, process.env.STALE_PROJECTS_WEBHOOK);
+    await sendMessage(message, process.env.DISCORD_WEBHOOK);
   }
 };

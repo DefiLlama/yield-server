@@ -25,10 +25,40 @@ services:
       - REDIS_URL=redis://redis:6379
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     depends_on:
-      - postgres
       - redis
+      - postgres
+      - migrations
     ports:
       - "3000:3000"
+
+  cron:
+    build:
+      context: .
+      dockerfile: Dockerfile.cron
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-thirdguard-yield-data}
+      - AWS_REGION=${AWS_REGION:-eu-west-2}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    depends_on:
+      - redis
+      - postgres
+      - migrations
+    volumes:
+      - ./src/scripts:/app/src/scripts
+      - ./src/handlers:/app/src/handlers
+
+  migrations:
+    build:
+      target: migrations
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      - postgres
 
 volumes:
   redis_data:

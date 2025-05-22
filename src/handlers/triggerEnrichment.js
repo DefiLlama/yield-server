@@ -164,22 +164,22 @@ const main = async () => {
       p['sigma'] > outlierBoundaries['sigma']['ub'],
   }));
 
-  // add ML predictions
-  console.log('\nadding apy runway prediction');
-  // load categorical feature mappings
-  const modelMappings = await utils.readFromS3(
-    process.env.S3_BUCKET_NAME,
-    'mlmodelartefacts/categorical_feature_mapping_2022_05_20.json'
-  );
-  for (const el of dataEnriched) {
-    project_fact = modelMappings.project_factorized[el.project];
-    chain_fact = modelMappings.chain_factorized[el.chain];
-    // in case of new project assign -1 to factorised variable indicated missing value
-    // RF usually handles this quite well, of course if we get lots of new projects, will
-    // need to retrain the algorithm
-    el.project_factorized = project_fact === undefined ? -1 : project_fact;
-    el.chain_factorized = chain_fact === undefined ? -1 : chain_fact;
-  }
+  // // add ML predictions
+  // console.log('\nadding apy runway prediction');
+  // // load categorical feature mappings
+  // const modelMappings = await utils.readFromS3(
+  //   process.env.S3_BUCKET_NAME,
+  //   'mlmodelartefacts/categorical_feature_mapping_2022_05_20.json'
+  // );
+  // for (const el of dataEnriched) {
+  //   project_fact = modelMappings.project_factorized[el.project];
+  //   chain_fact = modelMappings.chain_factorized[el.chain];
+  //   // in case of new project assign -1 to factorised variable indicated missing value
+  //   // RF usually handles this quite well, of course if we get lots of new projects, will
+  //   // need to retrain the algorithm
+  //   el.project_factorized = project_fact === undefined ? -1 : project_fact;
+  //   el.chain_factorized = chain_fact === undefined ? -1 : chain_fact;
+  // }
 
   // impute null values on apyStdExpanding (this will be null whenever we have pools with less than 2
   // samples, eg. whenever a new pool project is listed or an existing project adds new pools

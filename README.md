@@ -134,13 +134,31 @@ You can find examples for a bunch of other protocols in the [src/adaptors/](src/
 
 
 Yields:
-- AAVE: V2, V3
-- Morpho
+- AAVE: v2, v3
 - Curve
-- Pendle
 - Maker
+- Morpho
+- Pendle
 
-- Yearn
+- Balancer: v2 , v3
 - Compound
-- Balancer
 - Uniswap
+- Yearn
+
+
+Adaptors:
+- aave-v2
+- aave-v3
+- balancer-v2
+- balancer-v3
+- compound-v2
+- compound-v3
+- curve-dex
+- curve-llamalend
+- morpo-aave
+- morpo-blue
+- morpo-compound
+- pendle
+- uniswap-v2
+- uniswap-v3
+

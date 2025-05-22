@@ -1,0 +1,33 @@
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+jobs:
+  deploy:
+    name: Deploy to server
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create SSH key file
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+      - name: Configure SSH known hosts
+        run: |
+          # Only need to add the bastion host to known_hosts since it's the only direct connection
+          ssh-keyscan -H ${{ vars.BASTION_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Switch to branch
+        run: |
+          # Using StrictHostKeyChecking=no only for the second hop since it's behind NAT
+          ssh -J devops@${{ vars.BASTION_HOST }} -o "ProxyCommand ssh -W %h:%p devops@${{ vars.BASTION_HOST }}" -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SERVER_HOST }} "cd ${{ vars.DEPLOY_PATH }} && git switch ${{ github.ref_name }}"
+
+      - name: Pull latest changes
+        run: |
+          ssh -J devops@${{ vars.BASTION_HOST }} -o "ProxyCommand ssh -W %h:%p devops@${{ vars.BASTION_HOST }}" -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SERVER_HOST }} "cd ${{ vars.DEPLOY_PATH }} && git pull origin ${{ github.ref_name }}"
+
+      - name: Deploying to server
+        run: |
+          ssh -J devops@${{ vars.BASTION_HOST }} -o "ProxyCommand ssh -W %h:%p devops@${{ vars.BASTION_HOST }}" -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SERVER_HOST }} "${{ vars.DEPLOY_PATH }}/deploy.sh ${{ github.ref_name }}"

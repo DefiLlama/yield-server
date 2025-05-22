@@ -36,9 +36,7 @@ jobs:
           ARBITRUM_RPC: ${{ secrets.ARBITRUM_RPC }}
           TRON_RPC: ${{ secrets.TRON_RPC }}
           BASE_RPC: ${{ secrets.BASE_RPC }}
-          TVL_SPIKE_WEBHOOK: ${{ secrets.TVL_SPIKE_WEBHOOK }}
-          NEW_YIELDS_WEBHOOK: ${{ secrets.NEW_YIELDS_WEBHOOK }}
-          STALE_PROJECTS_WEBHOOK: ${{ secrets.STALE_PROJECTS_WEBHOOK }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           ZEROX_API: ${{ secrets.ZEROX_API }}
           SMARDEX_SUBGRAPH_API_KEY: ${{ secrets.SMARDEX_SUBGRAPH_API_KEY }}
           VENDOR_FINANCE: ${{ secrets.VENDOR_FINANCE }}
