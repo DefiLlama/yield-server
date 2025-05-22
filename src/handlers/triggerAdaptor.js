@@ -118,13 +118,13 @@ const main = async (adaptor) => {
     apy: p.apy < 0 ? 0 : p.apy,
     apyBase:
       protocolConfig[adaptor]?.category === 'Options' ||
-      ['mellow-protocol', 'sommelier', 'abracadabra', 'resolv'].includes(
-        adaptor
-      )
+        ['mellow-protocol', 'sommelier', 'abracadabra', 'resolv'].includes(
+          adaptor
+        )
         ? p.apyBase
         : p.apyBase < 0
-        ? 0
-        : p.apyBase,
+          ? 0
+          : p.apyBase,
     apyReward: p.apyReward < 0 ? 0 : p.apyReward,
     apyBaseBorrow: p.apyBaseBorrow < 0 ? 0 : p.apyBaseBorrow,
     apyRewardBorrow: p.apyRewardBorrow < 0 ? 0 : p.apyRewardBorrow,
@@ -145,7 +145,7 @@ const main = async (adaptor) => {
       p.apy !== null && p.apyBase !== null && p.apyReward !== null
         ? p.apyBase + p.apyReward
         : // all other cases for which we compute the sum only if apy is null/undefined
-          p.apy ?? p.apyBase + p.apyReward,
+        p.apy ?? p.apyBase + p.apyReward,
   }));
 
   // remove pools based on apy boundaries
@@ -168,8 +168,8 @@ const main = async (adaptor) => {
       p.chain === 'Binance'
         ? 'BSC'
         : p.chain === 'Avax'
-        ? 'Avalanche'
-        : p.chain,
+          ? 'Avalanche'
+          : p.chain,
   }));
 
   // ---- add IL (only for dexes + pools with underlyingTokens array)
@@ -351,8 +351,8 @@ const main = async (adaptor) => {
         p.poolMeta === undefined
           ? null
           : p.poolMeta?.includes('stablePool=')
-          ? p.poolMeta?.split(',')[0]
-          : p.poolMeta,
+            ? p.poolMeta?.split(',')[0]
+            : p.poolMeta,
       il7d: p.il7d ? +p.il7d.toFixed(precision) : null,
       apyBase7d:
         p.apyBase7d !== null ? +p.apyBase7d.toFixed(precision) : p.apyBase7d,
@@ -440,17 +440,15 @@ const main = async (adaptor) => {
       const message = filteredPools
         .map((p) =>
           p.apyMultiplier >= apyDeltaMultiplier
-            ? `APY spike for configID: ${
-                p.configID
-              } from ${p.apyDB.toFixed()} to ${p.apy.toFixed()} (${p.apyMultiplier.toFixed(
-                2
-              )}x increase) [tvlUsd: ${p.tvlUsd.toFixed()}]
+            ? `APY spike for configID: ${p.configID
+            } from ${p.apyDB.toFixed()} to ${p.apy.toFixed()} (${p.apyMultiplier.toFixed(
+              2
+            )}x increase) [tvlUsd: ${p.tvlUsd.toFixed()}]
           `
-            : `TVL spike for configID: ${
-                p.configID
-              } from ${p.tvlUsdDB.toFixed()} to ${p.tvlUsd.toFixed()} (${p.tvlMultiplier.toFixed(
-                2
-              )}x increase)
+            : `TVL spike for configID: ${p.configID
+            } from ${p.tvlUsdDB.toFixed()} to ${p.tvlUsd.toFixed()} (${p.tvlMultiplier.toFixed(
+              2
+            )}x increase)
             `
         )
         .join('\n');
@@ -473,9 +471,7 @@ const main = async (adaptor) => {
   const response = await insertConfigYieldTransaction(dataDB);
 
   if (response.status === 'success') {
-    data = response.data;
-
-    console.log(`Adaptor ${adaptor} completed`, data);
+    console.log(`Adaptor ${adaptor} completed`);
   } else {
     console.error(`Adaptor ${adaptor} failed`, response.error);
   }

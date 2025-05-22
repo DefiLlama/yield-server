@@ -2,7 +2,14 @@ const fetch = require('node-fetch');
 
 // copy pasta from defillama-server
 module.exports.sendMessage = async (message, webhookUrl, formatted = true) => {
-  const formattedMessage = formatted ? '```\n' + message + '\n```' : message; // Put it into a code block to prevent the format from getting messed up
+  if (!webhookUrl || webhookUrl === '') {
+    console.log('No webhook URL provided');
+    return;
+  }
+
+  const formattedMessage = formatted ? '```\n' + message + '\n```' : message; 
+  
+  // Put it into a code block to prevent the format from getting messed up
   if (formattedMessage.length >= 2000) {
     const lines = message.split('\n');
     if (lines.length <= 2) {
@@ -14,11 +21,7 @@ module.exports.sendMessage = async (message, webhookUrl, formatted = true) => {
     return;
   }
 
-  if (!webhookUrl || webhookUrl === '') {
-    console.log('No webhook URL provided');
-    return;
-  }
-
+  console.log('Sending message to discord:', message);
   // Example: https://gist.github.com/dragonwocky/ea61c8d21db17913a43da92efe0de634
   // Docs: https://gist.github.com/dragonwocky/ea61c8d21db17913a43da92efe0de634
   const response = await fetch(`${webhookUrl}?wait=true`, {
@@ -30,5 +33,5 @@ module.exports.sendMessage = async (message, webhookUrl, formatted = true) => {
       content: formattedMessage,
     }),
   }).then((body) => body.json());
-  console.log('discord', response);
+  console.log('Response from discord:', response);
 };
