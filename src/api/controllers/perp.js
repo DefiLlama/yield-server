@@ -106,6 +106,18 @@ const getPerp = async (req, res) => {
     return new AppError(`Couldn't get data`, 404);
   }
 
+  if (req.query.market) {
+    response = response.filter((r) => r.market === req.query.market);
+  }
+
+  if (req.query.marketplace) {
+    response = response.filter((r) => r.marketplace === req.query.marketplace);
+  }
+
+  if (req.query.baseAsset) {
+    response = response.filter((r) => r.baseAsset === req.query.baseAsset);
+  }
+
   res.status(200).json({
     status: 'success',
     data: response,
