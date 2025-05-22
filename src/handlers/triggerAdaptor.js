@@ -25,6 +25,7 @@ const adaptors = [
   'convex-finance',
   'curve-dex',
   'curve-llamalend',
+  'euler',
   'ethena-usde',
   'morpho-aave',
   'morpho-blue',

@@ -48,7 +48,7 @@ const getDistinctID = async (req, res) => {
 
 // get config data of pool
 const getConfigPool = async (req, res) => {
-  const configID = req.params.configID;
+  const configID = req.params.poolID;
   const ids = configID.split(',');
   const valid =
     ids.map((id) => validator.isUUID(id)).reduce((a, b) => a + b, 0) ===
@@ -88,7 +88,19 @@ const getAllPools = async (req, res) => {
         config
     `;
 
-  const response = await conn.query(query);
+  let response = await conn.query(query);
+
+  if (req.query.symbol) {
+    response = response.filter((r) => r.symbol == req.query.symbol)
+  }
+
+  if (req.query.protocol) {
+    response = response.filter((r) => r.project == req.query.protocol)
+  }
+
+  if (req.query.chain) {
+    response = response.filter((r) => r.chain == req.query.chain)
+  }
 
   if (!response) {
     return new AppError(`Couldn't get data`, 404);
