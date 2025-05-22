@@ -96,7 +96,7 @@ const getPerp = async (req, res) => {
         AND stats.market = main.market
     `;
 
-  const response = await conn.query(query, {
+  let response = await conn.query(query, {
     age: 3, // last 3 hours
     ageWeeklyStats: 7,
     ageMonthlyStats: 30,
