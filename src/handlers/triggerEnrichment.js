@@ -40,6 +40,9 @@ const main = async () => {
     return !isNaN(date) && date > new Date(); // keep if valid future date
   });
 
+  // remove past Merkl pools
+  data = data.filter((p) => !(p.project === 'merkl' && p.poolMeta === 'past'));
+
   // ---------- add additional fields
   // for each project we get 3 offsets (1D, 7D, 30D) and calculate absolute apy pct-change
   console.log('\nadding pct-change fields');
