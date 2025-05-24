@@ -15,11 +15,11 @@ const priceSetInterface = new ethers.utils.Interface([
 // stUSR Constants
 const stUSR = '0x6c8984bc7DBBeDAf4F6b2FD766f16eBB7d10AAb4';
 const USR = '0x66a1E37c9b0eAddca17d3662D6c05F4DECf3e110';
-const rewardDistributor = '0xbE23BB6D817C08E7EC4Cd0adB0E23156189c1bA9';
+const rewardDistributor = '0x9F805FC8679e5F81a0683c3203ad48417efDAd12';
 const topic0rewardDistributed =
-  '0x3863fc447b7dde3f3f5a5ca0b5b06a5fd3570963a1a29918f09036746293f658';
+  '0x8e97a7864cd6b584c022565df813008122c26e4c7e76117b80268b24c60c8c82';
 const rewardDistributedInterface = new ethers.utils.Interface([
-  'event RewardDistributed(bytes32 indexed idempotencyKey, uint256 totalShares, uint256 totalUSRBefore, uint256 totalUSRAfter, uint256 stakingReward, uint256 feeReward)',
+  'event RewardAllocated(bytes32 indexed _idempotencyKey, uint256 _totalShares, uint256 _totalUSRBefore, uint256 _totalUSRAfter, uint256 _stakingReward, uint256 _feeReward)',
 ]);
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
