@@ -52,9 +52,9 @@ const getTokenPrice = async (tokenAddress) => {
 };
 
 const calculateStUSRApy = (logDescription) => {
-  const { totalUSRBefore, totalUSRAfter, totalShares } = logDescription.args;
-  const sharesRateBefore = totalUSRBefore / totalShares;
-  const sharesRateAfter = totalUSRAfter / totalShares;
+  const { _totalUSRBefore, _totalUSRAfter, _totalShares } = logDescription.args;
+  const sharesRateBefore = _totalUSRBefore / _totalShares;
+  const sharesRateAfter = _totalUSRAfter / _totalShares;
   return ((sharesRateAfter - sharesRateBefore) / sharesRateBefore) * 365;
 };
 
