@@ -40,7 +40,11 @@ ORDER BY timestamp;
     .slice(204);
 
   const conn = pgp({
-    connectionString: process.env.DATABASE_URL,
+    host: process.env.POSTGRES_HOST,
+    port: process.env.POSTGRES_PORT,
+    user: process.env.POSTGRES_USER,
+    password: process.env.POSTGRES_PASSWORD,
+    database: process.env.POSTGRES_DATABASE,
     idleTimeoutMillis: 5000,
     max: 1,
   });

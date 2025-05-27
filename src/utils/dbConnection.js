@@ -18,10 +18,14 @@ let conn = null;
 
 const connect = async () => {
   if (conn === null) {
-    console.log('using new db connection');
+    console.log('Starting new postgres connection');
     // set connection
     conn = pgp({
-      connectionString: process.env.DATABASE_URL,
+      host: process.env.POSTGRES_HOST,
+      port: process.env.POSTGRES_PORT,
+      user: process.env.POSTGRES_USER,
+      password: process.env.POSTGRES_PASSWORD,
+      database: process.env.POSTGRES_DATABASE,
       // max milliseconds a client can go unused before it is removed
       // from the connection pool and destroyed.
       // overriding default of 30sec to 60sec to decrease nb of potential reconnects of 1 lambda
@@ -42,6 +46,7 @@ process.on('SIGTERM', async () => {
   if(conn !== null){
     let realConn = await conn
     await realConn.$pool.end()
+    console.log('Closed postgres connection');
   }
   
   console.info('[runtime] exiting');
