@@ -169,7 +169,7 @@ const getApy = async (market) => {
         mintedCoin: pool.symbol === 'GHO' ? 'GHO' : null,
         poolMeta: ['lido', 'etherfi'].includes(market)
           ? `${market}-market`
-          : null,
+          : market,
       };
     })
     .filter((i) => Boolean(i));

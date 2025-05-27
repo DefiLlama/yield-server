@@ -109,7 +109,13 @@ const getAllPools = async (req, res) => {
     return new AppError(`Couldn't get data`, 404);
   }
 
-  res.status(200).json(response);
+  res.status(200).json(response.map(
+    (r) => ({
+      ...r,
+      token: r.pool,
+      tokenLabel: r.poolMeta,
+    })
+  ));
 };
 
 module.exports = {
