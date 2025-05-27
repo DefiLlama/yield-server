@@ -83,6 +83,9 @@ const getAllPools = async (req, res) => {
         symbol,
         project,
         chain,
+        "url",
+        "pool",
+        "poolMeta",
         "underlyingTokens"
     FROM
         config
@@ -91,15 +94,15 @@ const getAllPools = async (req, res) => {
   let response = await conn.query(query);
 
   if (req.query.symbol) {
-    response = response.filter((r) => r.symbol == req.query.symbol)
+    response = response.filter((r) => r.symbol?.toLowerCase() == req.query.symbol.toLowerCase());
   }
 
   if (req.query.protocol) {
-    response = response.filter((r) => r.project == req.query.protocol)
+    response = response.filter((r) => r.project?.toLowerCase() == req.query.protocol.toLowerCase());
   }
 
   if (req.query.chain) {
-    response = response.filter((r) => r.chain == req.query.chain)
+    response = response.filter((r) => r.chain?.toLowerCase() == req.query.chain.toLowerCase());
   }
 
   if (!response) {

@@ -27,6 +27,7 @@ const adaptors = [
   'curve-dex',
   'curve-llamalend',
   'euler',
+  'euler-v2',
   'ethena-usde',
   'morpho-aave',
   'morpho-blue',

@@ -9,7 +9,8 @@
     "build": "sls package",
     "test": "jest",
     "migrate": "node-pg-migrate",
-    "start:api": "node src/api/server"
+    "start:api": "node src/api/server",
+    "dev": "nodemon src/api/server"
   },
   "author": "",
   "license": "ISC",
