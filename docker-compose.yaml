@@ -1,25 +1,11 @@
 services:
-  postgres:
-    image: postgres:16
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB:-postgres}
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  redis:
-    image: redis:latest
-    volumes:
-      - redis_data:/data
-
   api:
     build:
       context: .
       dockerfile: Dockerfile
     environment:
-      - REDIS_URL=redis://redis:6379
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - REDIS_URL=${REDIS_URL}
+      - DATABASE_URL=${DATABASE_URL}
     depends_on:
       - redis
       - postgres
@@ -32,10 +18,10 @@ services:
       context: .
       dockerfile: Dockerfile.cron
     environment:
-      - REDIS_URL=redis://redis:6379
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-thirdguard-yield-data}
-      - AWS_REGION=${AWS_REGION:-eu-west-2}
+      - REDIS_URL=${REDIS_URL}
+      - DATABASE_URL=${DATABASE_URL}
+      - AWS_REGION=${AWS_REGION}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
     depends_on:
@@ -49,10 +35,9 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - DATABASE_URL=${DATABASE_URL}
     depends_on:
       - postgres
 
 volumes:
-  redis_data:
   postgres_data:
