@@ -66,7 +66,7 @@ function poolApys(chainId, pools) {
     apyReward: p.details.pendleApy * 100,
     rewardTokens: [chains[chainId].PENDLE],
     underlyingTokens: [splitId(p.pt).address, splitId(p.sy).address],
-    poolMeta: `For LP | Maturity ${expiryToText(p.expiry)}`,
+    poolMeta: `LP-${p.name}-${expiryToText(p.expiry)}`,
     url: `https://app.pendle.finance/trade/pools/${p.address}/zap/in?chain=${chains[chainId].chainSlug}`,
   }));
 }
@@ -80,7 +80,7 @@ function ptApys(chainId, pools) {
     tvlUsd: p.details.liquidity,
     apyBase: p.details.impliedApy * 100,
     underlyingTokens: [splitId(p.underlyingAsset).address],
-    poolMeta: `For buying PT-${p.name}-${expiryToText(p.expiry)}`,
+    poolMeta: `PT-${p.name}-${expiryToText(p.expiry)}`,
     url: `https://app.pendle.finance/trade/markets/${p.address}/swap?view=pt&chain=${chains[chainId].chainSlug}&py=output`,
   }));
 }

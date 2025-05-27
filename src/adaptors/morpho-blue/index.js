@@ -191,7 +191,7 @@ const apy = async () => {
         ) * 100;
 
       return {
-        pool: `morpho-blue-${market.uniqueKey}-${chain}`,
+        pool: market.uniqueKey,
         chain,
         project: 'morpho-blue',
         symbol: market.collateralAsset?.symbol,

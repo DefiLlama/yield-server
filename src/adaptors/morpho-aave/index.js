@@ -122,7 +122,7 @@ const apy = async () => {
           totalBorrow;
 
     return {
-      pool: `morpho-aave-${marketFromGraph.token.address}`,
+      pool: marketFromGraph.token.address,
       chain: 'ethereum',
       project: 'morpho-aave',
       symbol: utils.formatSymbol(marketFromGraph.token.symbol),
