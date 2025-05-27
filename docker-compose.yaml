@@ -7,8 +7,6 @@ services:
       - REDIS_URL=${REDIS_URL}
       - DATABASE_URL=${DATABASE_URL}
     depends_on:
-      - redis
-      - postgres
       - migrations
     ports:
       - "3000:3000"
@@ -25,8 +23,6 @@ services:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
     depends_on:
-      - redis
-      - postgres
       - migrations
 
   migrations:
@@ -36,8 +32,3 @@ services:
       dockerfile: Dockerfile
     environment:
       - DATABASE_URL=${DATABASE_URL}
-    depends_on:
-      - postgres
-
-volumes:
-  postgres_data:
