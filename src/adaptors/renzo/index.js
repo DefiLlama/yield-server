@@ -52,12 +52,11 @@ const apy = async () => {
       }),
   ]);
 
-  if (rateNow.output === 0 || typeof rateNow.output !== 'number') {
-    console.log(rateNow, typeof rateNow.output);
+  if (rateNow.output == 0 || typeof rateNow.output !== 'string') {
     throw new Error('RPC issue: Current rate is invalid');
   }
 
-  if (rate30d.output === 0 || typeof rate30d.output !== 'number') {
+  if (rate30d.output == 0 || typeof rate30d.output !== 'string') {
     throw new Error('RPC issue: 30d rate is invalid');
   }
 
@@ -70,16 +69,16 @@ const apy = async () => {
   
   // Fetch ezETH price
   const priceKey = `ethereum:${EZETH_CONTRACT_ADDRESS}`;
-  const ezethPrice = (
+  const ezethPriceUsd = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).data.coins[priceKey].price;
 
-  if (ezethPrice === 0 || typeof ezethPrice !== 'number') {
+  if (ezethPriceUsd === 0 || typeof ezethPriceUsd !== 'number') {
     throw new Error('Oracle issue: ezETH price is invalid');
   }
 
   // Calculate TVL
-  const tvlUsd = totalSupply * ezethPrice;
+  const tvlUsd = totalSupply * ezethPriceUsd;
   
   return [
     {
