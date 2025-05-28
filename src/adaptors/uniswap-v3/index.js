@@ -3,7 +3,7 @@ const { request, gql } = require('graphql-request');
 const axios = require('axios');
 
 const utils = require('../utils');
-const { EstimatedFees } = require('./estimateFee.ts');
+const { EstimatedFees } = require('./estimateFee');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 const getOnchainPools = require('./onchain');
@@ -74,7 +74,7 @@ const topLvl = async (
   timestamp,
   stablecoins
 ) => {
-  try {
+  // try {
     const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
       url,
     ]);
@@ -330,10 +330,10 @@ const topLvl = async (
         volumeUsd7d: p.volumeUSD7d,
       };
     });
-  } catch (e) {
-    console.log(chainString, e);
-    return [];
-  }
+  // } catch (e) {
+  //   console.log(chainString, e);
+  //   return [];
+  // }
 };
 
 const main = async (timestamp = null) => {

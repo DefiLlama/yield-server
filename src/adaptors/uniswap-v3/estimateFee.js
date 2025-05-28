@@ -2,22 +2,11 @@
 
 const bn = require('bignumber.js');
 
-interface Tick {
-  tickIdx: string;
-  liquidityNet: string;
-  price0: string;
-  price1: string;
-}
-
 bn.config({ EXPONENTIAL_AT: 999999, DECIMAL_PLACES: 40 });
 
 const Q96 = new bn(2).pow(96);
 
-const getTickFromPrice = (
-  price: number,
-  token0Decimal: string,
-  token1Decimal: string
-): number => {
+const getTickFromPrice = (price, token0Decimal, token1Decimal) => {
   const token0 = expandDecimals(price, Number(token0Decimal));
   const token1 = expandDecimals(1, Number(token1Decimal));
   const sqrtPrice = encodeSqrtPriceX96(token1).div(encodeSqrtPriceX96(token0));
@@ -26,18 +15,14 @@ const getTickFromPrice = (
 };
 
 // for calculation detail, please visit README.md (Section: Calculation Breakdown, No. 1)
-interface TokensAmount {
-  amount0: number;
-  amount1: number;
-}
 const getTokensAmountFromDepositAmountUSD = (
-  P: number,
-  Pl: number,
-  Pu: number,
-  priceUSDX: number,
-  priceUSDY: number,
-  depositAmountUSD: number
-): TokensAmount => {
+  P,
+  Pl,
+  Pu,
+  priceUSDX,
+  priceUSDY,
+  depositAmountUSD
+) => {
   const deltaL =
     depositAmountUSD /
     ((Math.sqrt(P) - Math.sqrt(Pl)) * priceUSDY +
@@ -57,30 +42,18 @@ const getTokensAmountFromDepositAmountUSD = (
 };
 
 // for calculation detail, please visit README.md (Section: Calculation Breakdown, No. 2)
-const getLiquidityForAmount0 = (
-  sqrtRatioAX96: bn,
-  sqrtRatioBX96: bn,
-  amount0: bn
-): bn => {
+const getLiquidityForAmount0 = (sqrtRatioAX96, sqrtRatioBX96, amount0) => {
   // amount0 * (sqrt(upper) * sqrt(lower)) / (sqrt(upper) - sqrt(lower))
   const intermediate = mulDiv(sqrtRatioBX96, sqrtRatioAX96, Q96);
   return mulDiv(amount0, intermediate, sqrtRatioBX96.minus(sqrtRatioAX96));
 };
 
-const getLiquidityForAmount1 = (
-  sqrtRatioAX96: bn,
-  sqrtRatioBX96: bn,
-  amount1: bn
-): bn => {
+const getLiquidityForAmount1 = (sqrtRatioAX96, sqrtRatioBX96, amount1) => {
   // amount1 / (sqrt(upper) - sqrt(lower))
   return mulDiv(amount1, Q96, sqrtRatioBX96.minus(sqrtRatioAX96));
 };
 
-const getSqrtPriceX96 = (
-  price: number,
-  token0Decimal: number,
-  token1Decimal: number
-): bn => {
+const getSqrtPriceX96 = (price, token0Decimal, token1Decimal) => {
   const token0 = expandDecimals(price, token0Decimal);
   const token1 = expandDecimals(1, token1Decimal);
 
@@ -88,14 +61,14 @@ const getSqrtPriceX96 = (
 };
 
 const getLiquidityDelta = (
-  P: number,
-  lowerP: number,
-  upperP: number,
-  amount0: number,
-  amount1: number,
-  token0Decimal: number,
-  token1Decimal: number
-): bn => {
+  P,
+  lowerP,
+  upperP,
+  amount0,
+  amount1,
+  token0Decimal,
+  token1Decimal
+) => {
   const amt0 = expandDecimals(amount0, token1Decimal);
   const amt1 = expandDecimals(amount1, token0Decimal);
 
@@ -103,7 +76,7 @@ const getLiquidityDelta = (
   const sqrtRatioAX96 = getSqrtPriceX96(lowerP, token0Decimal, token1Decimal);
   const sqrtRatioBX96 = getSqrtPriceX96(upperP, token0Decimal, token1Decimal);
 
-  let liquidity: bn;
+  let liquidity;
   if (sqrtRatioX96.lte(sqrtRatioAX96)) {
     liquidity = getLiquidityForAmount0(sqrtRatioAX96, sqrtRatioBX96, amt0);
   } else if (sqrtRatioX96.lt(sqrtRatioBX96)) {
@@ -126,12 +99,7 @@ const getLiquidityDelta = (
   return liquidity;
 };
 
-const estimateFee = (
-  liquidityDelta: bn,
-  liquidity: bn,
-  volume24H: number,
-  feeTier: string
-): number => {
+const estimateFee = (liquidityDelta, liquidity, volume24H, feeTier) => {
   const feeTierPercentage = getFeeTierPercentage(feeTier);
   const liquidityPercentage = liquidityDelta
     .div(liquidity.plus(liquidityDelta))
@@ -140,9 +108,9 @@ const estimateFee = (
   return feeTierPercentage * volume24H * liquidityPercentage;
 };
 
-const getLiquidityFromTick = (poolTicks: Tick[], tick: number): bn => {
+const getLiquidityFromTick = (poolTicks, tick) => {
   // calculate a cumulative of liquidityNet from all ticks that poolTicks[i] <= tick
-  let liquidity: bn = new bn(0);
+  let liquidity = new bn(0);
   for (let i = 0; i < poolTicks.length - 1; ++i) {
     liquidity = liquidity.plus(new bn(poolTicks[i].liquidityNet));
 
@@ -158,19 +126,19 @@ const getLiquidityFromTick = (poolTicks: Tick[], tick: number): bn => {
 };
 
 // private helper functions
-const encodeSqrtPriceX96 = (price: number | string | bn): bn => {
+const encodeSqrtPriceX96 = (price) => {
   return new bn(price).sqrt().multipliedBy(Q96).integerValue(3);
 };
 
-const expandDecimals = (n: number | string | bn, exp: number): bn => {
+const expandDecimals = (n, exp) => {
   return new bn(n).multipliedBy(new bn(10).pow(exp));
 };
 
-const mulDiv = (a: bn, b: bn, multiplier: bn) => {
+const mulDiv = (a, b, multiplier) => {
   return a.multipliedBy(b).div(multiplier);
 };
 
-const getFeeTierPercentage = (tier: string): number => {
+const getFeeTierPercentage = (tier) => {
   if (tier === '100') return 0.01 / 100;
   if (tier === '500') return 0.05 / 100;
   if (tier === '3000') return 0.3 / 100;
