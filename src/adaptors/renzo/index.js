@@ -35,6 +35,10 @@ const apy = async () => {
     await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp30DaysAgoSeconds}`)
   ).data.height;
 
+  if (block30dayAgo === 0 || typeof block30dayAgo !== 'number') {
+    throw new Error('RPC issue: Block number for 30d ago is invalid');
+  }
+
   // Fetch current and 30d ago rates from the rate provider
   const [rateNow, rate30d] = await Promise.all([
     sdk.api.abi.call({
@@ -48,6 +52,14 @@ const apy = async () => {
       }),
   ]);
 
+  if (rateNow.output === 0 || typeof rateNow.output !== 'number') {
+    throw new Error('RPC issue: Current rate is invalid');
+  }
+
+  if (rate30d.output === 0 || typeof rate30d.output !== 'number') {
+    throw new Error('RPC issue: 30d rate is invalid');
+  }
+
   // Calculate APY for last 30 days
   const rateChangePeriodDays = 30;
   const rateStart = rate30d.output;
@@ -60,6 +72,10 @@ const apy = async () => {
   const ezethPrice = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).data.coins[priceKey].price;
+
+  if (ezethPrice === 0 || typeof ezethPrice !== 'number') {
+    throw new Error('Oracle issue: ezETH price is invalid');
+  }
 
   // Calculate TVL
   const tvlUsd = totalSupply * ezethPrice;
