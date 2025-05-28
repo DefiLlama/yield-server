@@ -171,6 +171,16 @@ async function getApyBase(feesData, tvl){
 }
 
 /**
+ * @dev Fetches the APY reward for a given vault.
+ * @param {string} vaultAddress The address of the vault.
+ * @returns {Promise<object>} An object containing the APY reward.
+ */
+async function getApyReward(vaultAddress){
+    const response = await utils.getData(`https://api.basisos.org/v1/vaults/apr/${vaultAddress}`);
+    return response;
+}
+
+/**
  * @dev Calculates the APY for each BasisOS vault.
  * @returns {Promise<Array<object>>} An array of pool objects, each containing APY and other relevant information.
  */
@@ -194,6 +204,7 @@ async function apy() {
     const tvl_in_usd = Number(tvl_in_asset.output) / 10 ** Number(assetDecimal.output);
 
     const apyBase = await getApyBase(hyperliquidPositionFees, tvl_in_usd);
+    const apyReward = await getApyReward(vault);
 
     pools.push({
       pool: `${vault}-arbitrum`.toLowerCase(),
@@ -203,6 +214,7 @@ async function apy() {
       tvlUsd: tvl_in_usd,
       underlyingTokens: [productToken.output, assetToken.output],
       apyBase: apyBase,
+      apyReward: apyReward,
     });
   }
 
