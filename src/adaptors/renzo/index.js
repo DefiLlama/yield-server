@@ -53,6 +53,7 @@ const apy = async () => {
   ]);
 
   if (rateNow.output === 0 || typeof rateNow.output !== 'number') {
+    console.log(rateNow, typeof rateNow.output);
     throw new Error('RPC issue: Current rate is invalid');
   }
 
