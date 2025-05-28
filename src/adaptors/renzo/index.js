@@ -70,7 +70,7 @@ const apy = async () => {
       chain: 'ethereum',
       project: 'renzo',
       symbol: 'ezETH',
-      apyBase: apy30d,
+      apyBase: apy30d * 100,
       tvlUsd: tvlUsd,
     },
   ];
