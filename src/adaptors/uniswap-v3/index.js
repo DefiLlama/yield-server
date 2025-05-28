@@ -74,7 +74,7 @@ const topLvl = async (
   timestamp,
   stablecoins
 ) => {
-  // try {
+  try {
     const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
       url,
     ]);
@@ -211,10 +211,8 @@ const topLvl = async (
       const tickData = {};
       // we fetch 3 pages for each pool
       for (const page of [0, 1, 2]) {
-        console.log(`page nb: ${page}`);
         let pageResults = {};
         for (const chunk of chunks) {
-          console.log(chunk.length);
           const tickQuery = `
           query {
             ${chunk
@@ -241,7 +239,7 @@ const topLvl = async (
             const response = await request(url, tickQuery);
             pageResults = { ...pageResults, ...response };
           } catch (err) {
-            console.log(err);
+            console.error("Error fetching tick data:", err);
           }
         }
         tickData[`page_${page}`] = pageResults;
@@ -269,7 +267,7 @@ const topLvl = async (
         const poolTicks = ticks[`pool_${p.id}`] ?? [];
 
         if (!poolTicks.length) {
-          console.log(`No pool ticks found for ${p.id}`);
+          console.error(`No ticks found for pool: ${p.id}`);
           return { ...p, estimatedFee: null, apy7d: null };
         }
 
@@ -330,10 +328,10 @@ const topLvl = async (
         volumeUsd7d: p.volumeUSD7d,
       };
     });
-  // } catch (e) {
-  //   console.log(chainString, e);
-  //   return [];
-  // }
+  } catch (err) {
+    console.error(`${chainString} error:`, err);
+    return [];
+  }
 };
 
 const main = async (timestamp = null) => {
@@ -347,7 +345,6 @@ const main = async (timestamp = null) => {
 
   const data = [];
   for (const [chain, url] of Object.entries(chains)) {
-    console.log(chain);
     data.push(
       await topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins)
     );

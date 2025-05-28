@@ -197,7 +197,6 @@ const getPools = async (chain) => {
 const getOnchainPools = async () => {
   const data = [];
   for (const chain of Object.keys(chains)) {
-    console.log(chain);
     data.push(await getPools(chain));
   }
   return data.flat();
