@@ -23,9 +23,7 @@ exports.getPerpData = async () => {
   // --- rate limited endpoints (indexPrices and historical FRs)
   const maxSize = 10;
   let indexPrices = [];
-  console.log('indexPrices...');
   for (const p of [...Array(Math.ceil(markets.length / maxSize)).keys()]) {
-    console.log(p);
     indexPrices.push(
       await Promise.all(
         markets
@@ -41,9 +39,7 @@ exports.getPerpData = async () => {
     .flat();
 
   let previusFRs = [];
-  console.log('FR history...');
   for (const p of [...Array(Math.ceil(okxFR.length / maxSize)).keys()]) {
-    console.log(p);
     previusFRs.push(
       await Promise.all(
         okxFR
