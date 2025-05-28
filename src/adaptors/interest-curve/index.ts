@@ -3,6 +3,8 @@ const utils = require('../utils');
 const API_URL_BASE =
   'https://api.interestlabs.io/v1/movement/mainnet/curve/metrics';
 
+const INTEREST_DAPP_URL = 'https://www.interest.xyz';
+
 async function getPools() {
   const pageSize = 100;
   let currentPage = 1;
@@ -50,9 +52,10 @@ async function main() {
         apyReward: +pool.metrics.farmApr,
         rewardTokens: Array.from(new Set(pool.rewards)),
         underlyingTokens: pool.coins,
+        url: `${INTEREST_DAPP_URL}/pools/details?address=${pool.poolId}`,
       };
     })
-    .filter(Boolean); // Remove null entries
+    .filter((pool) => pool.apyReward > 0); // Pools when farm APR is 0
 
   return defiLlamaPools;
 }
@@ -60,5 +63,5 @@ async function main() {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: `https://www.interest.xyz/pools`,
+  url: `${INTEREST_DAPP_URL}/pools`,
 };
