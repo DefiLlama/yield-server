@@ -1,83 +1,77 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
-const getRate_Contract = '0x387dBc0fB00b26fb085aa658527D5BE98302c84C';
-const ezETH = '0xbf5495efe5db9ce00f80364c8b423567e58d2110';
+// Time constants
+const MS_PER_SECOND = 1000;
+const SECONDS_PER_DAY = 86400;
+const THIRTY_DAYS_SECONDS = SECONDS_PER_DAY * 30;
+const DAYS_PER_YEAR = 365;
+
+// Contract addresses constants
+const RATE_PROVIDER_CONTRACT_ADDRESS = '0x387dBc0fB00b26fb085aa658527D5BE98302c84C';
+const EZETH_CONTRACT_ADDRESS = '0xbf5495efe5db9ce00f80364c8b423567e58d2110';
+
+// Function ABI constants
+const ERC20_ABI_totalSupply = 'erc20:totalSupply';
+const RATE_PROVIDER_ABI_getRate = 'function getRate() external view returns (uint256)';
 
 const apy = async () => {
-
+  // Fetch current total supply of ezETH
   const totalSupply =
     (
       await sdk.api.abi.call({
-        target: ezETH,
-        abi: 'erc20:totalSupply',
+        target: EZETH_CONTRACT_ADDRESS,
+        abi: ERC20_ABI_totalSupply,
       })
     ).output / 1e18;
 
-  const now = Math.floor(Date.now() / 1000);
-  const timestamp1dayAgo = now - 86400;
-  const timestamp7dayAgo = now - 86400 * 7;
-  const timestamp30dayAgo = now - 86400 * 30;
-  const block1dayAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp1dayAgo}`)
-  ).data.height;
+  // Calculate timestamp for 30d ago
+  const timestampNowMs = Date.now();
+  const timestampNowSeconds = timestampNowMs / MS_PER_SECOND;
+  const timestamp30DaysAgoSeconds = timestampNowSeconds - THIRTY_DAYS_SECONDS;
 
-  const block7dayAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp7dayAgo}`)
-  ).data.height;
-
+  // Fetch block number for 30d ago
   const block30dayAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp30dayAgo}`)
+    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp30DaysAgoSeconds}`)
   ).data.height;
 
-  const abi = 'function getRate() external view returns (uint256)';
-
-  const exchangeRates = await Promise.all([
+  // Fetch current and 30d ago rates from the rate provider
+  const [rateNow, rate30d] = await Promise.all([
     sdk.api.abi.call({
-      target: getRate_Contract,
-      abi: abi,
+      target: RATE_PROVIDER_CONTRACT_ADDRESS,
+      abi: RATE_PROVIDER_ABI_getRate,
     }),
     sdk.api.abi.call({
-      target: getRate_Contract,
-      abi: abi,
-      block: block1dayAgo,
-    }),
-    sdk.api.abi.call({
-      target: getRate_Contract,
-      abi: abi,
-      block: block7dayAgo,
-    }),
-    sdk.api.abi.call({
-        target: getRate_Contract,
-        abi: abi,
+        target: RATE_PROVIDER_CONTRACT_ADDRESS,
+        abi: RATE_PROVIDER_ABI_getRate,
         block: block30dayAgo,
       }),
   ]);
 
-  const apr1d =
-    ((exchangeRates[0].output - exchangeRates[1].output) / exchangeRates[0].output)  * 365 * 100;
-
-  const apr7d =
-    ((exchangeRates[0].output - exchangeRates[2].output) / exchangeRates[0].output / 7)  * 365 *100;
-
-  const apr30d = 
-    ((exchangeRates[0].output - exchangeRates[3].output) / exchangeRates[0].output / 30)  * 365 *100;
-
+  // Calculate APY for last 30 days
+  const rateChangePeriodDays = 30;
+  const rateStart = rate30d.output;
+  const rateEnd = rateNow.output;
+  const rateDelta = rateNow.output - rate30d.output;
+  const apy30d = (1 + rateDelta / rateStart) ** (DAYS_PER_YEAR / rateChangePeriodDays) - 1
   
-  const priceKey = `ethereum:${ezETH}`;
+  // Fetch ezETH price
+  const priceKey = `ethereum:${EZETH_CONTRACT_ADDRESS}`;
   const ezethPrice = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).data.coins[priceKey].price;
-  
+
+  // Calculate TVL
+  const tvlUsd = totalSupply * ezethPrice;
   
   return [
     {
-      pool: ezETH ,
+      pool: EZETH_CONTRACT_ADDRESS ,
       chain: 'ethereum',
       project: 'renzo',
       symbol: 'ezETH',
-      apyBase: apr30d,
-      tvlUsd: totalSupply * ezethPrice,
+      apyBase: apy30d,
+      tvlUsd: tvlUsd,
     },
   ];
 };
