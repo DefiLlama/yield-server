@@ -8,7 +8,7 @@ const apy = async () => {
     query {
       liqwid {
         data {
-          markets {
+          markets (input: { perPage: 100 }) {
             page
             results {
               id
