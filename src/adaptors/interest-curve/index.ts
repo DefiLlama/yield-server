@@ -38,21 +38,20 @@ async function main() {
 
   const defiLlamaPools = pools
     .map((pool) => {
-      const poolSymbol = pool.isStable
-        ? 'stable-' + pool.symbols.join('-')
-        : 'volatile-' + pool.symbols.join('-');
-
       return {
         pool: pool.poolId + '-move',
         chain: utils.formatChain('move'),
         project: 'interest-curve',
-        symbol: poolSymbol,
+        symbol: pool.symbols
+          .map((symbol) => utils.formatSymbol(symbol))
+          .join('-'),
         tvlUsd: parseFloat(pool.metrics.tvl),
         apyBase: +pool.metrics.apr,
         apyReward: +pool.metrics.farmApr,
         rewardTokens: Array.from(new Set(pool.rewards)),
         underlyingTokens: pool.coins,
         url: `${INTEREST_DAPP_URL}/pools/details?address=${pool.poolId}`,
+        poolMeta: pool.isStable ? 'stable' : 'volatile',
       };
     })
     .filter((pool) => pool.apyReward > 0); // Pools when farm APR is 0
