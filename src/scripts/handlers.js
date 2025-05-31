@@ -46,5 +46,6 @@ async function runHandlers() {
     logMessage(`All handlers execution completed (total duration: ${totalDuration}ms)`);
 }
 
-// Run the handlers every 30 minutes
-cron.schedule('* * * * *', runHandlers);
+cron.schedule('* * * * *', runHandlers, {
+    noOverlap: true,
+});
