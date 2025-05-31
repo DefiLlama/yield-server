@@ -8,17 +8,17 @@ const customHeader = (cacheTime) => {
 
 const getCacheDates = () => {
   const date = new Date();
-  date.setMinutes(22);
-  if (date < new Date()) {
-    // we are past the :22 mark, roll over to next hour
-    date.setHours(date.getHours() + 1);
-  }
+  const minutes = date.getMinutes();
+  
+  date.setMinutes(minutes + 5);
+
   return {
     nextCacheDate: date,
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
       Expires: date.toUTCString(),
+      'Cache-Control': 'max-age=300',
     }
   };
 };

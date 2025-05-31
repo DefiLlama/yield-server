@@ -14,39 +14,50 @@ const { getCacheDates } = require('../utils/headers');
 const risk = require('./routes/risk');
 
 const app = express();
+
 app.use(require('morgan')('dev'));
+
 app.use(helmet());
+
 app.use(express.json());
 
-async function redisCache (req, res, next) {
-  const lastCacheUpdate = await redis.get("lastUpdate#"+req.url)
-  const {headers, nextCacheDate} = getCacheDates()
-  if(lastCacheUpdate !== null && Number(lastCacheUpdate) > (nextCacheDate.getTime() - 3600e3)){
-    const cacheObject = await redis.get("data#"+req.url)
+async function redisCache(req, res, next) {
+  const CACHE_DURATION_MS = 5 * 60 * 1000;
+
+  const lastCacheUpdate = await redis.get("lastUpdate#" + req.url);
+
+  const { headers } = getCacheDates();
+
+  const now = Date.now();
+
+  if (lastCacheUpdate !== null && (now - Number(lastCacheUpdate)) < CACHE_DURATION_MS) {
+    const cacheObject = await redis.get("data#" + req.url);
+
     res.set(headers)
       .status(200)
       .send(cacheObject);
   } else {
     res._apicache = {
-        url: req.url,
-        end: res.end
-    }
-    res.end = function(content, encoding) {
-      if(res.statusCode === 200){
-        redis.set("data#" + res._apicache.url, content.toString())
-        redis.set("lastUpdate#" + res._apicache.url, Date.now())
-        res.set(headers)
+      url: req.url,
+      end: res.end
+    };
+    res.end = function (content, encoding) {
+      if (res.statusCode === 200) {
+        redis.set("data#" + res._apicache.url, content.toString());
+        redis.set("lastUpdate#" + res._apicache.url, Date.now());
+        res.set(headers);
       }
-      return res._apicache.end.apply(this, arguments)
-    }
-    next()
+      return res._apicache.end.apply(this, arguments);
+    };
+    next();
   }
 }
+
 app.use(redisCache)
 
 app.use('/', [yields, config, median, perp, enriched, lsd, risk]);
 
-function errorHandler (err, req, res, next) {
+function errorHandler(err, req, res, next) {
   console.log(err)
   res.status(500)
   res.render('error', { error: err })
