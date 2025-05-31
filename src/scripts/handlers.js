@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const { promisify } = require('util');
+const cron = require('node-cron');
+
 
 // Get all handler files
 const handlersDir = path.join(__dirname, '..', 'handlers');
@@ -44,8 +46,5 @@ async function runHandlers() {
     logMessage(`All handlers execution completed (total duration: ${totalDuration}ms)`);
 }
 
-// Run the handlers
-runHandlers().catch(error => {
-    logMessage(`Fatal error in handler execution: ${error.message}`, 'ERROR');
-    logMessage(error.stack, 'ERROR');
-}); 
+// Run the handlers every 30 minutes
+cron.schedule('*/30 * * * *', runHandlers);

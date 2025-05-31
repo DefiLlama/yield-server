@@ -11,8 +11,4 @@ node /app/src/scripts/handlers.js 2>&1 | tee -a /var/log/handlers.log
 EOF
 chmod +x /app/handlers.sh
 
-echo '* * * * * /app/handlers.sh 2>&1' > /etc/crontabs/root
-
-crond -b -d 8 > /var/log/cron.log 2>&1 &
-
-tail -f /var/log/handlers.log
+/app/handlers.sh & tail -f /var/log/handlers.log

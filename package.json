@@ -41,6 +41,7 @@
     "limiter": "2.1.0",
     "lodash": "4.17.21",
     "morgan": "1.10.0",
+    "node-cron": "4.1.0",
     "node-fetch": "2.7.0",
     "pg-promise": "10.11.1",
     "simple-statistics": "7.7.5",
