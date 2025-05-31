@@ -48,4 +48,6 @@ async function runHandlers() {
 
 cron.schedule('* * * * *', runHandlers, {
     noOverlap: true,
+}).on('error', (error) => {
+    logMessage(`Cron error: ${error.message}`, 'ERROR');
 });
