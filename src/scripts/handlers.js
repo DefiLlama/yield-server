@@ -47,4 +47,4 @@ async function runHandlers() {
 }
 
 // Run the handlers every 30 minutes
-cron.schedule('*/30 * * * *', runHandlers);
+cron.schedule('* * * * *', runHandlers);
