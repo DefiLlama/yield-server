@@ -25,34 +25,24 @@ async function runHandlers() {
     
     for (const handlerFile of handlers) {
         const handlerStartTime = Date.now();
-        // try {
-        //     logMessage(`Starting handler: ${handlerFile}`);
-        //     const handler = require(path.join(handlersDir, handlerFile));
+        try {
+            logMessage(`Starting handler: ${handlerFile}`);
+            const handler = require(path.join(handlersDir, handlerFile));
             
-        //     if (typeof handler.handler === 'function') {
-        //         await handler.handler();
-        //         const duration = Date.now() - handlerStartTime;
-        //         logMessage(`Successfully completed: ${handlerFile} (duration: ${duration}ms)`);
-        //     } else {
-        //         logMessage(`Skipping ${handlerFile}: no handler function found`, 'WARN');
-        //     }
-        // } catch (error) {
-        //     logMessage(`Error in ${handlerFile}: ${error.message}`, 'ERROR');
-        //     logMessage(error.stack, 'ERROR');
-        // }
-
-        // wait 2 seconds
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        const duration = Date.now() - handlerStartTime;
+            if (typeof handler.handler === 'function') {
+                cron.schedule('* * * * *', handler.handler, {
+                    noOverlap: true,
+                }).on('error', (error) => {
+                    logMessage(`Cron error in ${handlerFile}: ${error.message}`, 'ERROR');
+                });
+            } else {
+                logMessage(`Skipping ${handlerFile}: no handler function found`, 'WARN');
+            }
+        } catch (error) {
+            logMessage(`Error in ${handlerFile}: ${error.message}`, 'ERROR');
+            logMessage(error.stack, 'ERROR');
+        }
     }
-    
-    const totalDuration = Date.now() - startTime;
-    logMessage(`All handlers execution completed (total duration: ${totalDuration}ms)`);
 }
 
-cron.schedule('* * * * *', runHandlers, {
-    noOverlap: true,
-}).on('error', (error) => {
-    logMessage(`Cron error: ${error.message}`, 'ERROR');
-});
+runHandlers();
