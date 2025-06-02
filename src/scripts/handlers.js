@@ -25,21 +25,26 @@ async function runHandlers() {
     
     for (const handlerFile of handlers) {
         const handlerStartTime = Date.now();
-        try {
-            logMessage(`Starting handler: ${handlerFile}`);
-            const handler = require(path.join(handlersDir, handlerFile));
+        // try {
+        //     logMessage(`Starting handler: ${handlerFile}`);
+        //     const handler = require(path.join(handlersDir, handlerFile));
             
-            if (typeof handler.handler === 'function') {
-                await handler.handler();
-                const duration = Date.now() - handlerStartTime;
-                logMessage(`Successfully completed: ${handlerFile} (duration: ${duration}ms)`);
-            } else {
-                logMessage(`Skipping ${handlerFile}: no handler function found`, 'WARN');
-            }
-        } catch (error) {
-            logMessage(`Error in ${handlerFile}: ${error.message}`, 'ERROR');
-            logMessage(error.stack, 'ERROR');
-        }
+        //     if (typeof handler.handler === 'function') {
+        //         await handler.handler();
+        //         const duration = Date.now() - handlerStartTime;
+        //         logMessage(`Successfully completed: ${handlerFile} (duration: ${duration}ms)`);
+        //     } else {
+        //         logMessage(`Skipping ${handlerFile}: no handler function found`, 'WARN');
+        //     }
+        // } catch (error) {
+        //     logMessage(`Error in ${handlerFile}: ${error.message}`, 'ERROR');
+        //     logMessage(error.stack, 'ERROR');
+        // }
+
+        // wait 2 seconds
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        const duration = Date.now() - handlerStartTime;
     }
     
     const totalDuration = Date.now() - startTime;
