@@ -139,9 +139,10 @@ async function discoverLendingPairs(chainConfig) {
 }
 
 // ========== Asset Metadata Helper ==========
-// Get asset addresses and decimals for each lending pair
+// Get asset addresses, decimals, and symbols for each lending pair
 async function getAssetMetadata(lendingPairs, chainConfig) {
   const uniqueAssets = {};
+  // Multicall: asset addresses
   const calls = lendingPairs.map(lp => ({
     target: lp.lendingPair,
     abi: "function asset() view returns (address)"
@@ -153,6 +154,8 @@ async function getAssetMetadata(lendingPairs, chainConfig) {
     type: 'asset',
   });
   const assetAddresses = assetsResOutput.map(r => r.output);
+
+  // Multicall: decimals
   const decCalls = assetAddresses.map(addr => ({
     target: addr,
     abi: "function decimals() view returns (uint8)"
@@ -163,15 +166,32 @@ async function getAssetMetadata(lendingPairs, chainConfig) {
     abi: "function decimals() view returns (uint8)",
     type: 'decimals',
   });
+
+  // Multicall: symbols
+  const symbolCalls = assetAddresses.map(addr => ({
+    target: addr,
+    abi: "function symbol() view returns (string)"
+  }));
+  const symbolResOutput = await batchedMultiCall({
+    calls: symbolCalls,
+    chain: chainConfig.name.toLowerCase(),
+    abi: "function symbol() view returns (string)",
+    type: 'symbol',
+  });
+
+  // Fill uniqueAssets with all data
   for (let i = 0; i < lendingPairs.length; i++) {
     const assetAddr = assetsResOutput[i].output;
     const decimals = decResOutput[i].output;
-    uniqueAssets[assetAddr.toLowerCase()] = { assetAddr, decimals };
+    const symbol = symbolResOutput[i].output;
+    uniqueAssets[assetAddr.toLowerCase()] = { assetAddr, decimals, symbol };
     lendingPairs[i].assetAddr = assetAddr;
     lendingPairs[i].assetDecimals = decimals;
+    lendingPairs[i].assetSymbol = symbol; // mocht je het direct op de pairs willen hebben
   }
   return uniqueAssets;
 }
+
 
 // ========== Asset Price Helper ==========
 // Fetch prices for all unique assets in one API call
@@ -274,10 +294,9 @@ async function main() {
         pool: lp.lendingPair,
         chain: chainKey,
         project: "peapods-finance",
-        symbol: pairSymbol,
+        symbol: lp.assetSymbol,
         tvlUsd,
         apyBase: supplierApy * 100,
-        apy: supplierApy * 100,
         apyBaseBorrow: borrowApr * 100,
         underlyingTokens: [lp.assetAddr],
         rewardTokens: [],
