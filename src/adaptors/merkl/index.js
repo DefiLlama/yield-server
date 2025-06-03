@@ -5,7 +5,7 @@ const { networks } = require('./config');
 
 // Protocols that should not be listed under Merkl
 // as they already have their own adapters.
-const protocolsBlacklist = ['euler', 'crosscurve', 'aerodrome', 'gamma'];
+const protocolsBlacklist = ['euler', 'crosscurve', 'aerodrome', 'gamma', 'uniswap'];
 
 // Allow specific pools from blacklisted protocols
 const poolsWhitelist = [
@@ -72,6 +72,7 @@ const main = async () => {
           pool: `${poolAddress}-merkl`,
           chain: chain,
           project: project,
+          poolMeta: pool.status === 'PAST' ? 'past' : undefined,
           symbol: symbol,
           tvlUsd: tvlUsd ?? 0,
           apyReward: apyReward ?? 0,
