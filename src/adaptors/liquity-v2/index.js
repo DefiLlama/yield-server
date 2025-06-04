@@ -32,7 +32,7 @@ const RETH_BRANCH = {
 
 const branches = [WETH_BRANCH, WSTETH_BRANCH, RETH_BRANCH];
 
-const SP_YIELD_SPLIT = 0.75;
+const SP_YIELD_SPLIT = 0.75; 
 
 const ABIS = {
     getTotalBoldDeposits: {
@@ -171,7 +171,7 @@ const ABIS = {
         chain: 'ethereum',
       })).output;
  
-    // Yield is the  by ratio of the branch supply to the BOLD in the SP
+    // Yield is the branch interest rate amplifyed by ratio of branch supply to the BOLD in the SP
     const spApy = avgBranchInterestRate * SP_YIELD_SPLIT * branchBoldSupply / (spSupply / 1e18);
 
     return spApy;
@@ -179,7 +179,6 @@ const ABIS = {
 
   const getPrices = async (addresses) => {
     const req = addresses.map((address) => `ethereum:${address}`).join(',').toLowerCase();
-    // console.log(`req: ${req}`);
     const prices = (await superagent.get(`https://coins.llama.fi/prices/current/${req}`)).body.coins;
 
     const pricesObj = Object.fromEntries(
