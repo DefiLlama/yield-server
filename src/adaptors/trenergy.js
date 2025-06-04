@@ -1,12 +1,13 @@
-const utils = require('../utils');
+const utils = require('../../utils');
 
 module.exports = {
   timetravel: false,
   apy: async () => {
-    const priceData = await utils.getPrices(['tron']);
-    const trxPrice = priceData['tron'].price;
-    const stakedTRX = 42968491;
-    const tvlUsd = stakedTRX * trxPrice;
+    const price = await utils.getPrices(['tron']);
+    const trxPrice = price['tron'].price;
+
+    //TRX Stacked
+    const totalTRX = 168153490;
 
     return [
       {
@@ -14,8 +15,8 @@ module.exports = {
         chain: 'Tron',
         project: 'trenergy',
         symbol: 'TRX',
-        tvlUsd: tvlUsd,
-        apyBase: 20.0, // твоя ставка
+        tvlUsd: totalTRX * trxPrice,
+        apyBase: 18.36, // APY Average per 1 Year
       },
     ];
   },
