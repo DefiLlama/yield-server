@@ -275,7 +275,7 @@ const ABIS = {
       const totalColl = await getBranchColl(collPools);
       const tvlUsd = totalColl * branch.price
 
-      const ltv = getLTV(branch.borrowerOperations);
+      const ltv = await getLTV(branch.borrowerOperations);
       const borrowApy = await getNewApproxAvgInterestRateFromTroveChange(branch.activePool);
       
       const totalDebt = await getBranchDebt(collPools);
