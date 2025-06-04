@@ -3,39 +3,47 @@ const sdk = require('@defillama/sdk');
 
 const MOAR_APP_URL = 'https://app.moar.market';
 const MOAR_ADDRESS = "0xa3afc59243afb6deeac965d40b25d509bb3aebc12f502b8592c283070abc2e07";
+const MOAR_PACKAGE_OWNER_ADDRESS = "0x37e9ce6910ceadd16b0048250a33dac6342549acf31387278ea0f95c9057f110";
 
 async function apy() {
-    const allPoolsResponse = await function_view({
-        functionStr: `${MOAR_ADDRESS}::pool::get_all_pools`,
-        type_arguments: [],
-        args: [],
-    })
+    const poolsConfig = await getAptosResource(MOAR_PACKAGE_OWNER_ADDRESS, `${MOAR_ADDRESS}::pool::PoolConfigs`)
+    const poolAddresses =  poolsConfig['data']['all_pools']['inline_vec'].map(x => x['inner'])
 
     const pools = [];
-    for (const poolData of allPoolsResponse) {
+    let poolIndex = 0;
+    for (const poolAddress of poolAddresses) {
+        const poolData = (await getAptosResource(poolAddress, `${MOAR_ADDRESS}::pool::Pool`)).data
         const underlyingAsset = poolData.underlying_asset.inner;
-        const faSymbol = await function_view({
-            functionStr: "0x1::fungible_asset::symbol",
-            type_arguments: ["0x1::fungible_asset::Metadata"],
-            args: [underlyingAsset],
-        })
+
+        const [faSymbol, interestRateResponse] = await Promise.all([
+            aptosView({
+                functionStr: "0x1::fungible_asset::symbol",
+                type_arguments: ["0x1::fungible_asset::Metadata"],
+                args: [underlyingAsset]}),
+            aptosView({
+                functionStr: `${MOAR_ADDRESS}::pool::get_interest_rate`,
+                type_arguments: [],
+                args: [poolIndex.toString()],
+            })])
+        const interestRate = interestRateResponse[0];
 
         pools.push({
-            pool: poolData.name,
+            pool: `${poolAddress}_aptos`,
             chain: 'aptos',
             project: 'moar-market',
-            apyBase: (poolData.interest_rate / 1e8 * (1 - poolData.fee_on_interest_bps / 1e4)) * 100,
+            apyBase: (interestRate / 1e8 * (1 - poolData.fee_on_interest_bps / 1e4)) * 100,
             apyReward: null,
-            apyBaseBorrow: poolData.interest_rate / 1e8 * 100,
+            apyBaseBorrow: interestRate / 1e8 * 100,
             apyRewardBorrow: null,
             totalSupplyUsd: await getUSDValue(poolData.total_deposited, underlyingAsset),
             totalBorrowUsd: await getUSDValue(poolData.total_borrows, underlyingAsset),
             rewardTokens: [],
             symbol: faSymbol,
             tvlUsd: await getUSDValue(poolData.total_deposited - poolData.total_borrows, underlyingAsset),
-            underlyingTokens: [poolData.underlying_asset.inner],
+            underlyingTokens: [underlyingAsset],
             url: `${MOAR_APP_URL}/lend/${faSymbol.toLowerCase()}`,
         })
+        poolIndex++;
     }
 
     return pools;
@@ -48,7 +56,12 @@ async function getUSDValue(amount, asset) {
     return usdValue
 }
 
-async function function_view({ functionStr, type_arguments = [], args = [], ledgerVersion = undefined }) {
+async function getAptosResource(address, resource) {
+    const response = await axios.get(`https://api.mainnet.aptoslabs.com/v1/accounts/${address}/resource/${resource}`)
+    return response.data
+}
+
+async function aptosView({ functionStr, type_arguments = [], args = [], ledgerVersion = undefined }) {
     let path = `https://api.mainnet.aptoslabs.com/v1/view`
     if (ledgerVersion !== undefined) path += `?ledger_version=${ledgerVersion}`
     const response = await axios.post(path,
