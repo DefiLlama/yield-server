@@ -66,6 +66,8 @@ const apy = async () => {
   const rateEnd = rateNow.output;
   const rateDelta = rateNow.output - rate30d.output;
   const apy30d = (1 + rateDelta / rateStart) ** (DAYS_PER_YEAR / rateChangePeriodDays) - 1
+
+  console.log({rateStart, rateEnd, rateDelta, apy30d});
   
   // Fetch ezETH price
   const priceKey = `ethereum:${EZETH_CONTRACT_ADDRESS}`;
