@@ -25,6 +25,7 @@ const rewardTokensMapping = {
   // polygon: '0x1B815d120B3eF02039Ee11dC2d33DE7aA4a8C603', // WOO
   // arbitrum: '0xcAFcD85D8ca7Ad1e1C6F82F651fA15E33AEfD07b', // WOO
   // optimism: '0x871f2F2ff935FD1eD867842FF2a7bfD051A5E527', // WOO
+  optimism: '0x4200000000000000000000000000000000000042', // OP
   // linea: '0xF3df0A31ec5EA438150987805e841F960b9471b6', // WOO
   // base: '0xF3df0A31ec5EA438150987805e841F960b9471b6', // WOO
   mantle: '0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8', // WMNT
@@ -53,7 +54,7 @@ const main = async () => {
       let decimals = info['decimals'];
       let apyReward;
       let rewardTokens;
-      if (chain === "mantle") {
+      if (chain === "optimism" || chain === "mantle") {
         apyReward = info['reward_apr'];
         rewardTokens = [rewardTokensMapping[chain]];
       } else {
