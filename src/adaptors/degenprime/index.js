@@ -65,6 +65,8 @@ const BTC_POOL_TUP_CONTRACT = '0xCA8C954073054551B99EDee4e1F20c3d08778329';
 const ETH_POOL_TUP_CONTRACT = '0x81b0b59C7967479EC5Ce55cF6588bf314C3E4852';
 const BRETT_POOL_TUP_CONTRACT = '0x6c307F792FfDA3f63D467416C9AEdfeE2DD27ECF';
 const KAITO_POOL_TUP_CONTRACT = '0x293E41F1405Dde427B41c0074dee0aC55D064825';
+const DOGE_POOL_TUP_CONTRACT = '0xAf61B10BDB78e31fdbC5Da4e57d60e32aFe468B9';
+const XRP_POOL_TUP_CONTRACT = '0x056076e717332403Bc23B2D4F6D87683ceF582B9';
 
 // Token Addresses
 const AERO_TOKEN_ADDRESS = '0x940181a94A35A4569E4529A3CDfB74e38FD98631';
@@ -74,6 +76,9 @@ const BTC_TOKEN_ADDRESS = '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf';
 const ETH_TOKEN_ADDRESS = '0x4200000000000000000000000000000000000006';
 const DEGEN_TOKEN_ADDRESS = '0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed';
 const KAITO_TOKEN_ADDRESS = '0x98d0baa52b2D063E780DE12F615f963Fe8537553';
+const DOGE_TOKEN_ADDRESS = '0xcbD06E5A2B0C65597161de254AA074E489dEb510';
+const XRP_TOKEN_ADDRESS = '0xcb585250f852C6c6bf90434AB21A00f02833a4af';
+
 
 const getPoolTVL = async (poolAddress, chain = 'base') => {
   return (
@@ -104,6 +109,14 @@ const getPoolDepositRate = async (poolAddress, chain = 'base') => {
   ).output;
 };
 
+const getDogePoolDepositRate = async () => {
+  return (await getPoolDepositRate(DOGE_POOL_TUP_CONTRACT)) / 1e16;
+};
+
+const getXrpPoolDepositRate = async () => {
+  return (await getPoolDepositRate(XRP_POOL_TUP_CONTRACT)) / 1e16;
+};
+
 const getBtcPoolDepositRate = async () => {
   return (await getPoolDepositRate(BTC_POOL_TUP_CONTRACT)) / 1e16;
 };
@@ -124,6 +137,20 @@ const getAeroPoolDepositRate = async () => {
 };
 const getKaitoPoolDepositRate = async () => {
   return (await getPoolDepositRate(KAITO_POOL_TUP_CONTRACT)) / 1e16;
+};
+
+const getDogePoolTVL = async () => {
+  const supply = await getPoolTVL(DOGE_POOL_TUP_CONTRACT);
+
+  const price = await getTokenPrice(DOGE_TOKEN_ADDRESS);
+  return (supply * price) / 1e8;
+};
+
+const getXrpPoolTVL = async () => {
+  const supply = await getPoolTVL(XRP_POOL_TUP_CONTRACT);
+
+  const price = await getTokenPrice(XRP_TOKEN_ADDRESS);
+  return (supply * price) / 1e6;
 };
 
 const getBtcPoolTVL = async () => {
@@ -167,6 +194,28 @@ const getAeroPoolTVL = async () => {
 };
 
 const getPoolsAPYs = async () => {
+  const dogePoolTvl = await getDogePoolTVL();
+  const dogePool = {
+    pool: `dgp-${DOGE_TOKEN_ADDRESS}-base`,
+    chain: utils.formatChain('base'),
+    project: 'degenprime',
+    symbol: utils.formatSymbol('DOGE'),
+    tvlUsd: dogePoolTvl,
+    apyBase: await getDogePoolDepositRate(),
+    underlyingTokens: [DOGE_TOKEN_ADDRESS],
+  };
+
+  const xrpPoolTvl = await getXrpPoolTVL();
+  const xrpPool = {
+    pool: `dgp-${XRP_TOKEN_ADDRESS}-base`,
+    chain: utils.formatChain('base'),
+    project: 'degenprime',
+    symbol: utils.formatSymbol('XRP'),
+    tvlUsd: xrpPoolTvl,
+    apyBase: await getXrpPoolDepositRate(),
+    underlyingTokens: [XRP_TOKEN_ADDRESS],
+  };
+
   const usdcPoolTvl = await getUsdcPoolTVL();
   const usdcPool = {
     pool: `dgp-${USDC_TOKEN_ADDRESS}-base`,
@@ -233,7 +282,7 @@ const getPoolsAPYs = async () => {
     underlyingTokens: [KAITO_TOKEN_ADDRESS],
   };
 
-  return [usdcPool, brettPool, aeroPool, btcPool, ethPool, kaitoPool];
+  return [usdcPool, brettPool, aeroPool, btcPool, ethPool, kaitoPool, dogePool, xrpPool];
 };
 
 module.exports = {
