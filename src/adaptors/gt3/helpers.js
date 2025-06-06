@@ -1,7 +1,7 @@
-// Utilidades específicas para GT3 Finance
+// GT3 Finance specific utilities
 const utils = require('../utils');
 
-// Usar superagent como fetch si fetch no está disponible
+// Use superagent as fetch fallback if fetch is not available
 let fetch;
 try {
   fetch = globalThis.fetch;
@@ -20,7 +20,7 @@ try {
   };
 }
 
-// Configuración de la API
+// API configuration
 const GRAPHQL_ENDPOINT = 'https://backend.gt3.finance/graphql';
 const PROJECT_KEY = 'GT3';
 
@@ -33,7 +33,7 @@ const REQUEST_HEADERS = {
   'user-agent': 'Mozilla/5.0 (compatible; DeFiLlama/1.0)'
 };
 
-// Mapeo de chainID a nombres de cadena para DeFiLlama
+// Chain ID to chain name mapping for DeFiLlama
 const CHAIN_MAPPING = {
   1: 'ethereum',
   56: 'binance',
@@ -50,9 +50,9 @@ const CHAIN_MAPPING = {
 };
 
 /**
- * Función para hacer peticiones GraphQL usando fetch
- * @param {Object} query - Query GraphQL a ejecutar
- * @returns {Promise<Object>} - Respuesta de la API
+ * Make GraphQL requests using fetch
+ * @param {Object} query - GraphQL query to execute
+ * @returns {Promise<Object>} - API response
  */
 const makeGraphQLRequest = async (query) => {
   try {
@@ -80,9 +80,9 @@ const makeGraphQLRequest = async (query) => {
 };
 
 /**
- * Obtener nombre de cadena formateado para DeFiLlama
- * @param {number} chainID - ID de la cadena
- * @returns {string} - Nombre de la cadena formateado
+ * Get formatted chain name for DeFiLlama
+ * @param {number} chainID - Chain ID
+ * @returns {string} - Formatted chain name
  */
 const getChainName = (chainID) => {
   const chainKey = CHAIN_MAPPING[chainID];
@@ -94,9 +94,9 @@ const getChainName = (chainID) => {
 };
 
 /**
- * Calcular TVL en USD usando los datos de shareTokenSupply
- * @param {Object} pool - Pool completo con shareTokenSupply
- * @returns {number} - TVL en USD
+ * Calculate TVL in USD using shareTokenSupply data
+ * @param {Object} pool - Complete pool with shareTokenSupply
+ * @returns {number} - TVL in USD
  */
 const calculateTVLFromPool = (pool) => {
   if (!pool || !pool.shareTokenSupply || !pool.shareTokenSupply.currencyAmounts) {
@@ -104,13 +104,13 @@ const calculateTVLFromPool = (pool) => {
   }
 
   try {
-    // Buscar el valor en USD en shareTokenSupply
+    // Find USD value in shareTokenSupply
     const usdAmount = pool.shareTokenSupply.currencyAmounts.find(ca => ca.currencyID === 'USD');
     if (usdAmount && usdAmount.number > 0) {
       return usdAmount.number;
     }
 
-    // Fallback: usar el número principal del shareTokenSupply
+    // Fallback: use main shareTokenSupply number
     return pool.shareTokenSupply.number || 0;
   } catch (error) {
     console.error('Error calculating TVL from pool:', error);
@@ -119,9 +119,9 @@ const calculateTVLFromPool = (pool) => {
 };
 
 /**
- * Obtener todos los pools con paginación automática
- * @param {Function} createPoolStatsQuery - Función para crear query de pools
- * @returns {Promise<Array>} - Lista completa de pools
+ * Get all pools with automatic pagination
+ * @param {Function} createPoolStatsQuery - Function to create pool query
+ * @returns {Promise<Array>} - Complete list of pools
  */
 const getAllPools = async (createPoolStatsQuery) => {
   let allPools = [];
@@ -143,7 +143,7 @@ const getAllPools = async (createPoolStatsQuery) => {
       
       allPools = allPools.concat(pools);
       
-      // Verificar si hay más pools
+      // Check if there are more pools
       hasMore = pools.length === limit && offset + limit < metadata.numElements;
       offset += limit;
       
@@ -157,10 +157,10 @@ const getAllPools = async (createPoolStatsQuery) => {
 };
 
 /**
- * Obtener tokens subyacentes de un pool
- * @param {Object} poolConfig - Configuración del pool
- * @param {Array} addresses - Mapeo de tokenID a address
- * @returns {Array<string>} - Lista de direcciones de tokens
+ * Get underlying tokens from a pool configuration
+ * @param {Object} poolConfig - Pool configuration
+ * @param {Array} addresses - Token ID to address mapping
+ * @returns {Array<string>} - List of token addresses
  */
 const getUnderlyingTokens = (poolConfig, addresses) => {
   if (!poolConfig || !poolConfig.tokens || !Array.isArray(poolConfig.tokens)) {
@@ -176,11 +176,11 @@ const getUnderlyingTokens = (poolConfig, addresses) => {
 };
 
 /**
- * Obtener tokens de recompensa si existen
- * @param {Object} poolStats - Estadísticas del pool
- * @param {Array} gauges - Lista de gauges de configuración
- * @param {Array} addresses - Mapeo de tokenID a address
- * @returns {Array<string>} - Lista de direcciones de tokens de recompensa
+ * Get reward tokens if they exist
+ * @param {Object} poolStats - Pool statistics
+ * @param {Array} gauges - Gauge configuration list
+ * @param {Array} addresses - Token ID to address mapping
+ * @returns {Array<string>} - List of reward token addresses
  */
 const getRewardTokens = (poolStats, gauges, addresses) => {
   if (!gauges || !Array.isArray(gauges)) {
@@ -198,9 +198,9 @@ const getRewardTokens = (poolStats, gauges, addresses) => {
 };
 
 /**
- * Validar que los datos del pool son válidos
- * @param {Object} pool - Datos del pool
- * @returns {boolean} - Si el pool es válido
+ * Validate that pool data is valid
+ * @param {Object} pool - Pool data
+ * @returns {boolean} - Whether the pool is valid
  */
 const isValidPool = (pool) => {
   return pool &&
@@ -213,9 +213,9 @@ const isValidPool = (pool) => {
 };
 
 /**
- * Crear URL específica del pool
- * @param {string} poolId - ID/nombre del pool (ej: "GT3-WBTC")
- * @returns {string} - URL del pool
+ * Create specific pool URL
+ * @param {string} poolId - Pool ID/name (e.g., "GT3-WBTC")
+ * @returns {string} - Pool URL
  */
 const createPoolUrl = (poolId) => {
   return `https://dapp.gt3.finance/explore/pools/${poolId}`;

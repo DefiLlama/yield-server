@@ -1,4 +1,4 @@
-// GraphQL queries para GT3 Finance
+// GraphQL queries for GT3 Finance API
 
 /**
  * Query to get project configuration including tokens, pools, addresses, and gauges
