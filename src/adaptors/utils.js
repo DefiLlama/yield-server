@@ -455,18 +455,21 @@ exports.getERC4626Info = async (
       target: address,
       block: blockNow,
       abi: totalAssetsAbi,
+      chain: chain,
     }),
     sdk.api.abi.call({
       target: address,
       block: blockNow,
       abi: convertToAssetsAbi,
       params: [assetUnit],
+      chain: chain,
     }),
     sdk.api.abi.call({
       target: address,
       block: blockYesterday,
       abi: convertToAssetsAbi,
       params: [assetUnit],
+      chain: chain,
     }),
   ]);
   const apy = (priceNow.output / priceYesterday.output) ** 365 * 100 - 100;

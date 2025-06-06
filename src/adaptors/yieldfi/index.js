@@ -5,13 +5,13 @@ const { poll } = require('ethers/lib/utils');
 const sdk = require('@defillama/sdk');
 
 // 2) Addresses and ABIs
-const distributionAddress = "0xf4eF3ba63593dfD0967577B2bb3C9ba51D78427b";
+const distributionAddress = "0x392017161a9507F19644E8886A237C58809212B5";
 const distributionABI = [
-  "event DistributeYield(address indexed asset, address indexed receiver, uint256 amount, bool profit)"
+  "event DistributeYield(address caller, address indexed asset, address indexed receiver, uint256 amount, bool profit)"
 ];
 
-const sUsdAddress = "0x4F8E1426A9d10bddc11d26042ad270F16cCb95F2";
-const sUsdABI = 'function totalSupply() view returns (uint256)';
+const yUSDAddress = "0x19Ebd191f7A24ECE672ba13A302212b5eF7F35cb";
+const yUSDABI = 'function totalSupply() view returns (uint256)';
 
 // 3) Create contract objects
 
@@ -39,21 +39,21 @@ const poolsFunction = async () => {
 
   const  {output} = await sdk.api.abi.call({
     chain: "ethereum",
-    abi: sUsdABI,
-    target: sUsdAddress,
+    abi: yUSDABI,
+    target: yUSDAddress,
     block: eventBlockNumber
   });
   const tvl = parseFloat((output/1e18).toFixed(2));
-  const yieldAmount = parseFloat(iface.parseLog(lastLog).args.amount/1e18);
+  const yieldAmount = parseFloat(iface.parseLog(lastLog).args.amount/1e6);
   const apy = ((((tvl+yieldAmount)/tvl)**365-1)*100).toFixed(2);
 
   const yusdPool = {
-    pool: '0x1CE7D9942ff78c328A4181b9F3826fEE6D845A97',
+    pool: '0x19Ebd191f7A24ECE672ba13A302212b5eF7F35cb',
     chain: 'ethereum',
     project: 'yieldfi',
     symbol: utils.formatSymbol('yUSD'),
     tvlUsd: tvl,
-    apy: parseFloat(apy),
+    apyBase: parseFloat(apy),
   };
 
   return [yusdPool];

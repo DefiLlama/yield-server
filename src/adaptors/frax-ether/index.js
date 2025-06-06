@@ -1,7 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
-const token = '0x5E8422345238F34275888049021821E8E08CAa1f';
+const token = '0xac3e018457b222d93114458476f3e3416abbe38f';
 const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 
 const getApy = async () => {

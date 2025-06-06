@@ -220,11 +220,11 @@ const main = async () => {
   ).body.coins;
 
   // const celoApy = (
-  //   await utils.getData('https://api.curve.fi/api/getFactoryAPYs-celo')
+  //   await utils.getData('https://api.curve.fiance/api/getFactoryAPYs-celo')
   // ).data.poolDetails;
 
   const baseApy = (
-    await utils.getData('https://api.curve.fi/api/getFactoryAPYs-base')
+    await utils.getData('https://api.curve.finance/api/getFactoryAPYs-base')
   ).data.poolDetails;
 
   // create feeder closure to fill defillamaPooldata asynchroniously
@@ -241,7 +241,7 @@ const main = async () => {
     if (['optimism', 'celo', 'kava', 'base'].includes(blockchainId)) {
       factoryAprData = (
         await utils.getData(
-          `https://api.curve.fi/api/getFactoGauges/${blockchainId}`
+          `https://api.curve.finance/api/getFactoGauges/${blockchainId}`
         )
       ).data.gauges;
     }
@@ -353,7 +353,7 @@ const main = async () => {
       const symbol =
         overrideData?.symbol || pool.coins.map((coin) => coin.symbol).join('-');
       const url =
-        overrideData?.url || `https://curve.fi/#/${blockchainId}/pools`;
+        overrideData?.url || `https://curve.finance/#/${blockchainId}/pools`;
 
       defillamaPooldata.push({
         pool: address + '-' + blockchainId,

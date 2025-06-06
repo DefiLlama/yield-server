@@ -29,6 +29,20 @@ const main = async () => {
     (p) => !(p.project === 'aave-v2' && p.poolMeta === 'frozen')
   );
 
+  // remove expired pendle pools (expiration is in poolMeta)
+  data = data.filter((p) => {
+    if (p.project !== 'pendle') return true;
+
+    const match = p.poolMeta?.match(/(\d{2}[A-Z]{3}\d{4})/);
+    if (!Array.isArray(match) || match.length < 2) return true; // keep if no valid match
+
+    const date = new Date(match[1]);
+    return !isNaN(date) && date > new Date(); // keep if valid future date
+  });
+
+  // remove past Merkl pools
+  data = data.filter((p) => !(p.project === 'merkl' && p.poolMeta === 'past'));
+
   // ---------- add additional fields
   // for each project we get 3 offsets (1D, 7D, 30D) and calculate absolute apy pct-change
   console.log('\nadding pct-change fields');
@@ -81,7 +95,7 @@ const main = async () => {
     // removing any stable which a price 30% from 1usd
     .filter((s) => s.price >= 0.7)
     .map((s) => s.symbol.toLowerCase())
-    .filter((s) => s !== 'r');
+    .filter((s) => !['r', 'm'].includes(s));
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
   if (!stablecoins.includes('fraxbp')) stablecoins.push('fraxbp');
@@ -388,7 +402,8 @@ const checkStablecoin = (el, stablecoins) => {
     tokens.some((t) => t.includes('grail')) ||
     tokens.some((t) => t.includes('oxai')) ||
     tokens.some((t) => t.includes('crv')) ||
-    tokens.some((t) => t.includes('wbai'))
+    tokens.some((t) => t.includes('wbai')) ||
+    tokens.some((t) => t.includes('move'))
   ) {
     stable = false;
   } else if (tokens.length === 1) {
