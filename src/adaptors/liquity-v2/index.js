@@ -164,17 +164,17 @@ const ABIS = {
     }
   };
 
-  const getSPApy = async (spAddr, avgBranchInterestRate, branchBoldSupply) => {
+  const getSPSupplyAndApy = async (spAddr, avgBranchInterestRate, branchBoldSupply) => {
       const spSupply = (await sdk.api.abi.call({
         target: spAddr,
         abi: ABIS.getTotalBoldDeposits,
         chain: 'ethereum',
-      })).output;
+      })).output / 1e18;
  
     // Yield is the branch interest rate amplifyed by ratio of branch supply to the BOLD in the SP
-    const spApy = avgBranchInterestRate * SP_YIELD_SPLIT * branchBoldSupply / (spSupply / 1e18);
+    const spApy = avgBranchInterestRate * SP_YIELD_SPLIT * branchBoldSupply / spSupply;
 
-    return spApy;
+    return [spSupply, spApy];
   }
 
   const getPrices = async (addresses) => {
@@ -185,13 +185,10 @@ const ABIS = {
       Object.entries(prices).map(([address, priceData]) => [address.split(':')[1].toLowerCase(), priceData.price])
     );
 
-    console.dir(pricesObj);
-
     return pricesObj;
   }
 
   const getBranchColl = async (collPools) => {
-    console.dir(collPools);
     const results = await sdk.api.abi.multiCall({
       calls: collPools.map((poolAddr) => ({
         target: poolAddr, 
@@ -273,32 +270,47 @@ const ABIS = {
       const collPools = [branch.activePool, branch.defaultPool];
 
       const totalColl = await getBranchColl(collPools);
-      const tvlUsd = totalColl * branch.price
+      const totalCollUsd = totalColl * branch.price
 
       const ltv = await getLTV(branch.borrowerOperations);
       const borrowApy = await getNewApproxAvgInterestRateFromTroveChange(branch.activePool);
       
       const totalDebt = await getBranchDebt(collPools);
       const totalDebtUsd = totalDebt * prices[BOLD_TOKEN];
-      const spApy = await getSPApy(branch.stabilityPool, borrowApy, totalDebt);
 
-      const pool = 
+      const [spSupply, spApy] = await getSPSupplyAndApy(branch.stabilityPool, borrowApy, totalDebt);
+      const spSupplyUsd = spSupply * prices[BOLD_TOKEN];
+
+      const spPool = 
         {
           pool: branch.stabilityPool,
           project: 'liquity-v2',
-          symbol: branch.symbol,
+          symbol: 'BOLD',
           chain: 'ethereum',
           apy: spApy,
-          tvlUsd: tvlUsd,
+          tvlUsd: spSupplyUsd,
+          underlyingTokens: [BOLD_TOKEN],
+          rewardTokens: [BOLD_TOKEN, branch.collToken],
+          poolMeta: `BOLD deposited in the ${branch.symbol} Stability Pool earns continuous BOLD yield and periodic ${branch.symbol} rewards from Trove liquidations`
+        }
+
+      const borrowPool = 
+        {
+          pool: branch.activePool,
+          project: 'liquity-v2',
+          symbol: branch.symbol,
+          chain: 'ethereum',
+          apy: 0,
+          tvlUsd: totalCollUsd,
           apyBaseBorrow: borrowApy,
-          totalSupplyUsd: tvlUsd,
+          totalSupplyUsd: totalCollUsd,
           totalBorrowUsd: totalDebtUsd,
           ltv: ltv,
           mintedCoin: 'BOLD',
-          underlyingTokens: [branch.collToken],
+          underlyingTokens: [branch.collToken], 
         }
 
-      pools.push(pool);
+      pools.push(spPool, borrowPool);
     };
 
     return pools;
