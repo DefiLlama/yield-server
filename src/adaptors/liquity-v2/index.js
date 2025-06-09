@@ -248,7 +248,8 @@ const ABIS = {
         chain: 'ethereum',
       });
      
-      return res.output / 1e18;
+      // convert from 18 decimals and make percentage
+      return res.output / 1e16;
   }
 
   const main = async () => {
