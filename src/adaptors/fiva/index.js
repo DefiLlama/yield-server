@@ -35,7 +35,7 @@ function createLpPools(assets) {
         asset.jettons.sy.master_address
       ],
       poolMeta: `For LP | Maturity ${expiryToText(asset.maturity_date)}`,
-      url: `${asset.earn_url.replace('/fixed-yield/', '/pools/')}?dir=provide&strategy=auto-mint`,
+      url: `${asset.earn_url.replace('/fixed-yield/', '/pools/')}?dir=provide&strategy=auto-mint&access=DLAMA`,
     }));
 }
 
@@ -51,7 +51,7 @@ function createPtPools(assets) {
       apyBase: asset.fixed_apr,
       underlyingTokens: [asset.jettons.underlying_jetton.master_address],
       poolMeta: `For buying ${asset.jettons.pt.symbol}-${expiryToText(asset.maturity_date)}`,
-      url: asset.earn_url,
+      url: asset.earn_url + "?access=DLAMA",
     }));
 }
 
