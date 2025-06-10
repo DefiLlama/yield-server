@@ -375,7 +375,7 @@ const HubPools = {
       },
       {
         // aUSD_pol
-        id: 42,
+        id: 43,
         underlyingSymbol: 'aUSD',
         poolAddress: '0x34f1BA5808EB5Bf60c9B1C343d86e410466F4860',
         tokenAddress: '0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a',
