@@ -24,7 +24,6 @@ const getApy = async () => {
     })
   ).output;
   const tvlUsd = tvl / 10 ** 6;
-  console.log(tvlUsd, base_rate, reward_rate, data);
 
   return [
     {
