@@ -39,7 +39,7 @@ function getPoolLink(chain, poolIndex) {
   let chainId = 1
   if (chain === 'arbitrum') chainId = 42161;
   if (chain === 'polygon') chainId = 137;
-  if (chain === '8453') chainId = 42161;
+  if (chain === 'base') chainId = 8453;
 
   return `https://fluid.io/stats/${chainId}/dex#${poolIndex}`;
 }

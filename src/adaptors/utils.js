@@ -5,6 +5,10 @@ const { chunk } = require('lodash');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 
+exports.formatAddress = (address) => {
+  return String(address).toLowerCase();
+}
+
 exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'xdai') return 'Gnosis';
   if (chain && chain.toLowerCase() === 'kcc') return 'KCC';
