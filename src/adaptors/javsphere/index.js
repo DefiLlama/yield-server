@@ -92,7 +92,7 @@ const main = async (timestamp = null) => {
       poolMeta: 'xJAVLIS Vault',
       tvlUsd: javlisTvl,
       apyBase: meta.yieldJavlisVault.apy,
-      url: 'https://app.leveragex.trade/x-vault',
+      url: 'https://app.leveragex.trade/x-vault/xJAVLIS',
     },
     {
       pool: `LEVERAGEX-${ADDRESSES.base.LeverageXJAVVault}-base`.toLowerCase(),
@@ -102,7 +102,7 @@ const main = async (timestamp = null) => {
       poolMeta: 'xJAV Vault',
       tvlUsd: javTvl,
       apyBase: meta.yieldJavVault.apy,
-      url: 'https://app.leveragex.trade/x-vault',
+      url: 'https://app.leveragex.trade/x-vault/xJAV',
     },
     {
       pool: `LEVERAGEX-${ADDRESSES.base.LeverageXLLPPool}-base`.toLowerCase(),
