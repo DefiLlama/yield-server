@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const STAKING_CONTRACT = '0xee21ab613d30330823D35Cf91A84cE964808B83F';
 const MARKETPLACE_CONTRACT = '0x04EA61C431F7934d51fEd2aCb2c5F942213f8967';
+const WBTC_VAULT_CONTRACT = '0xa3CD4D4A568b76CFF01048E134096D2Ba0171C27';
 const { getLatestBlock } = require('@defillama/sdk/build/util');
 const { getPrices } = require('../utils');
 const { fetchURL } = require('../../helper/utils');
@@ -321,7 +322,7 @@ const getDualCOREVault = async (blockNumber) => {
   let apy =
     ((currentExchangeRate.output / exchangeRateYesterday.output) ** 365 - 1) *
     100;
-  return { apy, totalStake: totalStake.output/1e18 };
+  return { apy, totalStake: totalStake.output / 1e18 };
 };
 
 const getBTCMarketplace = async (blockNumber, corePrice, btcPrice) => {
@@ -329,11 +330,186 @@ const getBTCMarketplace = async (blockNumber, corePrice, btcPrice) => {
   const coreRewardForBTCHolderPerDay = await getCORERewardForBTCHolderPerDay(
     blockNumber
   );
-  const btcLock = Math.min(totalBTCLock.bitcoin, coreRewardForBTCHolderPerDay.btcStake);
-  const apy = ((corePrice * coreRewardForBTCHolderPerDay.reward) / btcLock / btcPrice) * 365 * 100;
+  const btcLock = Math.min(
+    totalBTCLock.bitcoin,
+    coreRewardForBTCHolderPerDay.btcStake
+  );
+  const apy =
+    ((corePrice * coreRewardForBTCHolderPerDay.reward) / btcLock / btcPrice) *
+    365 *
+    100;
   return { totalLock: btcLock, apy };
 };
 
+const getWBTCVault = async (blockNumber, corePrice, btcPrice) => {
+  const totalStake = await sdk.api.abi.call({
+    target: '0x2e3ea6cf100632a4a4b34f26681a6f50347775c9',
+    params: '0xa3CD4D4A568b76CFF01048E134096D2Ba0171C27', // wbtc vault address
+    abi: 'erc20:balanceOf',
+    chain: 'core',
+  });
+
+  const wbtcReserve = await sdk.api.abi.call({
+    chain: 'core',
+    target: '0x0CEa9F0F49F30d376390e480ba32f903B43B19C5',
+    params: '0x5832f53d147b3d6cd4578b9cbd62425c7ea9d0bd',
+    abi: {
+      outputs: [
+        {
+          components: [
+            {
+              components: [
+                {
+                  name: 'data',
+                  internalType: 'uint256',
+                  type: 'uint256',
+                },
+              ],
+              name: 'configuration',
+              internalType: 'struct DataTypes.ReserveConfigurationMap',
+              type: 'tuple',
+            },
+            {
+              name: 'liquidityIndex',
+              internalType: 'uint128',
+              type: 'uint128',
+            },
+            {
+              name: 'currentLiquidityRate',
+              internalType: 'uint128',
+              type: 'uint128',
+            },
+            {
+              name: 'variableBorrowIndex',
+              internalType: 'uint128',
+              type: 'uint128',
+            },
+            {
+              name: 'currentVariableBorrowRate',
+              internalType: 'uint128',
+              type: 'uint128',
+            },
+            {
+              name: 'currentStableBorrowRate',
+              internalType: 'uint128',
+              type: 'uint128',
+            },
+            {
+              name: 'lastUpdateTimestamp',
+              internalType: 'uint40',
+              type: 'uint40',
+            },
+            {
+              name: 'id',
+              internalType: 'uint16',
+              type: 'uint16',
+            },
+            {
+              name: 'aTokenAddress',
+              internalType: 'address',
+              type: 'address',
+            },
+            {
+              name: 'stableDebtTokenAddress',
+              internalType: 'address',
+              type: 'address',
+            },
+            {
+              name: 'variableDebtTokenAddress',
+              internalType: 'address',
+              type: 'address',
+            },
+            {
+              name: 'interestRateStrategyAddress',
+              internalType: 'address',
+              type: 'address',
+            },
+            {
+              name: 'accruedToTreasury',
+              internalType: 'uint128',
+              type: 'uint128',
+            },
+            {
+              name: 'unbacked',
+              internalType: 'uint128',
+              type: 'uint128',
+            },
+            {
+              name: 'isolationModeTotalDebt',
+              internalType: 'uint128',
+              type: 'uint128',
+            },
+          ],
+          name: '',
+          internalType: 'struct DataTypes.ReserveData',
+          type: 'tuple',
+        },
+      ],
+      inputs: [
+        {
+          name: 'asset',
+          internalType: 'address',
+          type: 'address',
+        },
+      ],
+      name: 'getReserveData',
+      stateMutability: 'view',
+      type: 'function',
+    },
+  });
+  const wbtcRate = wbtcReserve.output[2] / 1e25; //currentLiquidityRate
+  const liquidityIndex = wbtcReserve.output[1];
+  const lastRoundClaim = await sdk.api.abi.call({
+    chain: 'core',
+    target: '0xa3CD4D4A568b76CFF01048E134096D2Ba0171C27',
+    abi: 'uint:lastRoundClaim',
+  });
+  const rewardDataLog = await sdk.api.abi.multiCall({
+    abi: {
+      inputs: [
+        {
+          internalType: 'uint256',
+          name: 'round',
+          type: 'uint256',
+        },
+      ],
+      name: 'rewardDataLog',
+      outputs: [
+        {
+          internalType: 'uint256',
+          name: 'accPerShare',
+          type: 'uint256',
+        },
+        {
+          internalType: 'uint256',
+          name: 'liquidityIndex',
+          type: 'uint256',
+        },
+      ],
+      stateMutability: 'view',
+      type: 'function',
+    },
+    calls: [
+      {
+        target: '0xa3CD4D4A568b76CFF01048E134096D2Ba0171C27',
+        params: [lastRoundClaim.output - 1],
+      },
+      {
+        target: '0xa3CD4D4A568b76CFF01048E134096D2Ba0171C27',
+        params: [lastRoundClaim.output],
+      },
+    ],
+    chain: 'core',
+  });
+  const coreReward =
+    (rewardDataLog.output[1].output.accPerShare -
+      rewardDataLog.output[0].output.accPerShare) /
+    1e28;
+  const coreAPR =
+    (coreReward / (liquidityIndex / 1e27) / btcPrice) * corePrice * 365 * 100;
+  const apy = ((1 + (coreAPR + wbtcRate) / 365 / 100) ** 365 - 1) * 100;
+  return { apy, totalStake: totalStake.output / 1e8 };
+};
 const getApy = async () => {
   const blockNumber = await getLatestBlock('core');
   const price = await getPrices(
@@ -342,6 +518,11 @@ const getApy = async () => {
       '0x5832f53d147b3d6cd4578b9cbd62425c7ea9d0bd',
     ],
     'core'
+  );
+  const wBTCVault = await getWBTCVault(
+    blockNumber,
+    price.pricesBySymbol.core,
+    price.pricesBySymbol.wbtc
   );
   const dualCOREVault = await getDualCOREVault(blockNumber);
   const btcMarketplace = await getBTCMarketplace(
@@ -355,9 +536,18 @@ const getApy = async () => {
       pool: `${STAKING_CONTRACT}-core`,
       project: 'b14g',
       symbol: 'CORE',
-      tvlUsd: dualCOREVault.totalStake * price.pricesBySymbol.core ,
+      tvlUsd: dualCOREVault.totalStake * price.pricesBySymbol.core,
       apyBase: dualCOREVault.apy,
-      chain: "core",
+      chain: 'core',
+      url: 'https://app.b14g.xyz/vaults/core',
+    },
+    {
+      pool: `${WBTC_VAULT_CONTRACT}-core`,
+      project: 'b14g',
+      symbol: 'WBTC',
+      tvlUsd: wBTCVault.totalStake * price.pricesBySymbol.wbtc,
+      apyBase: wBTCVault.apy,
+      chain: 'core',
       url: 'https://app.b14g.xyz/vaults/core',
     },
     {
