@@ -130,7 +130,7 @@ const main = async (unixTimestamp) => {
       eventAbi: EventPoolSwap,
       targets: Object.values(allDexPools).filter(pool => pool.tvlUsd > 10000).map(pool => pool.pool),
       flatten: true, // !!!
-      fromBlock: last1DaysBlock,
+      fromBlock: last7DaysBlock,
       toBlock: currentBlock,
       entireLog: true,
     })).map(log => {
