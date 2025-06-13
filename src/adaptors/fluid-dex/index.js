@@ -8,9 +8,9 @@ const PROJECT = 'fluid-dex';
 
 const DexReservesResolvers = {
   ethereum: '0xC93876C0EEd99645DD53937b25433e311881A27C',
-  // arbitrum: '0x666A400b8cDA0Dc9b59D61706B0F982dDdAF2d98',
-  // polygon: '0x18DeDd1cF3Af3537D4e726D2Aa81004D65DA8581',
-  // base: '0x41E6055a282F8b7Abdb8D22Bcd85c2A0eE22e38A',
+  arbitrum: '0x666A400b8cDA0Dc9b59D61706B0F982dDdAF2d98',
+  polygon: '0x18DeDd1cF3Af3537D4e726D2Aa81004D65DA8581',
+  base: '0x41E6055a282F8b7Abdb8D22Bcd85c2A0eE22e38A',
 }
 
 const EventSwap = 'event Swap(bool swap0to1, uint256 amountIn, uint256 amountOut, address to)';
@@ -163,7 +163,7 @@ const main = async (unixTimestamp) => {
       allDexPools[log.address].volumeUsd7d += volumeUsd;
     }
 
-    for (const p of Object.values(allDexPools)) {
+    for (const p of Object.values(allDexPools).filter(pool => pool.tvlUsd > 0)) {
       const feeUsd = p.volumeUsd1d * p.feeRate;
       const feeUsd7d = p.volumeUsd7d * p.feeRate;
 

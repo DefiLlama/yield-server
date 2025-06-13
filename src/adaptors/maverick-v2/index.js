@@ -9,7 +9,27 @@ const FactoryConfigs = {
   ethereum: {
     factory: '0x0A7e848Aca42d879EF06507Fca0E7b33A0a63c1e',
     fromBlock: 20027237,
-  }
+  },
+  // arbitrum: {
+  //   factory: '0x0A7e848Aca42d879EF06507Fca0E7b33A0a63c1e',
+  //   fromBlock: 219205178,
+  // },
+  // base: {
+  //   factory: '0x0A7e848Aca42d879EF06507Fca0E7b33A0a63c1e',
+  //   fromBlock: 15321282,
+  // },
+  // bsc: {
+  //   factory: '0x0A7e848Aca42d879EF06507Fca0E7b33A0a63c1e',
+  //   fromBlock: 39421941,
+  // },
+  // scroll: {
+  //   factory: '0x0A7e848Aca42d879EF06507Fca0E7b33A0a63c1e',
+  //   fromBlock: 7332349,
+  // },
+  // era: {
+  //   factory: '0x7A6902af768a06bdfAb4F076552036bf68D1dc56',
+  //   fromBlock: 35938168,
+  // },
 }
 
 const EventPoolCreated = 'event PoolCreated(address poolAddress, uint8 protocolFeeRatio, uint256 feeAIn, uint256 feeBIn, uint256 tickSpacing, uint256 lookback, int32 activeTick, address tokenA, address tokenB, uint8 kinds, address accessor)';
@@ -128,7 +148,7 @@ const main = async (unixTimestamp) => {
     const swapLogs = (await sdk.getEventLogs({
       chain: chain,
       eventAbi: EventPoolSwap,
-      targets: Object.values(allDexPools).filter(pool => pool.tvlUsd > 10000).map(pool => pool.pool),
+      targets: Object.values(allDexPools).filter(pool => pool.tvlUsd > 0).map(pool => pool.pool),
       flatten: true, // !!!
       fromBlock: last7DaysBlock,
       toBlock: currentBlock,
@@ -172,7 +192,7 @@ const main = async (unixTimestamp) => {
       allDexPools[log.address].feeUsd7d += feeUsd;
     }
 
-    for (const p of Object.values(allDexPools)) {
+    for (const p of Object.values(allDexPools).filter(pool => pool.tvlUsd > 0)) {
       yieldPools.push({
         chain: utils.formatChain(chain),
         project: PROJECT,
@@ -189,8 +209,7 @@ const main = async (unixTimestamp) => {
     }
   }
 
-  return yieldPools
-    .filter(pool => pool.tvlUsd > 0);
+  return yieldPools;
 };
 
 module.exports = {
