@@ -222,6 +222,17 @@ exports.tvl = async (dataNow, networkString) => {
       tvl = 0;
     }
 
+    if (el.id === '0x3c03af907879e827f93c3903de813a60faab7986') {
+      console.log(el.reserve0 !== undefined)
+      console.log({
+        pair: el.id,
+        token0: el.token0,
+        token1: el.token1,
+        reserve0: el.reserve0, reserve1: el.reserve1, price0, price1, tvl
+      })
+      process.exit(0)
+    }
+
     el['totalValueLockedUSD'] = tvl;
     el['price0'] = price0;
     el['price1'] = price1;
