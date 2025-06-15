@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-
+const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 
 const abiSugar = require('./abiSugar.json');
@@ -10,11 +10,91 @@ const AERO = '0x940181a94A35A4569E4529A3CDfB74e38FD98631';
 const sugar = '0x92294D631E995f1dd9CeE4097426e6a71aB87Bcf';
 const sugarHelper = '0x6d2D739bf37dFd93D804523c2dfA948EAf32f8E1';
 const nullAddress = '0x0000000000000000000000000000000000000000';
+const PROJECT = 'aerodrome-slipstream';
+const CHAIN = 'base';
+const SUBGRAPH = sdk.graph.modifyEndpoint('GENunSHWLBXm59mBSgPzQ8metBEp9YDfdqwFr91Av1UM');
 
 const tickWidthMappings = {1: 5, 50: 5, 100: 15, 200: 10, 2000: 2};
 
-const getApy = async () => {
+const query = gql`
+{
+  pools(first: 1000, orderBy: totalValueLockedUSD, orderDirection: desc, block: {number: <PLACEHOLDER>}) {
+    id
+    reserve0: totalValueLockedToken0
+    reserve1: totalValueLockedToken1
+    volumeUSD
+    feeTier
+    token0 {
+      symbol
+      id
+    }
+    token1 {
+      symbol
+      id
+    }
+  }
+}
+`;
 
+const queryPrior = gql`
+{
+  pools(first: 1000 orderBy: totalValueLockedUSD orderDirection: desc, block: {number: <PLACEHOLDER>}) { 
+    id 
+    volumeUSD 
+  }
+}
+`;
+
+async function getPoolVolumes(timestamp = null) {
+  const [block, blockPrior] = await utils.getBlocks(CHAIN, timestamp, [
+    SUBGRAPH,
+  ]);
+
+  const [_, blockPrior7d] = await utils.getBlocks(
+    CHAIN,
+    timestamp,
+    [SUBGRAPH],
+    604800
+  );
+
+  // pull data
+  let dataNow = await request(SUBGRAPH, query.replace('<PLACEHOLDER>', block));
+  dataNow = dataNow.pools;
+
+  // pull 24h offset data to calculate fees from swap volume
+  let queryPriorC = queryPrior;
+  let dataPrior = await request(
+    SUBGRAPH,
+    queryPriorC.replace('<PLACEHOLDER>', blockPrior)
+  );
+  dataPrior = dataPrior.pools;
+
+  // 7d offset
+  const dataPrior7d = (
+    await request(SUBGRAPH, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
+  ).pools;
+
+  // calculate tvl
+  dataNow = await utils.tvl(dataNow, CHAIN);
+  // calculate apy
+  dataNow = dataNow.map((el) => utils.apy(el, dataPrior, dataPrior7d, 'v3'));
+
+  const pools = {}
+  for (const p of dataNow.filter(p => p.volumeUSD1d >= 0 && (!isNaN(p.apy1d) || !isNaN(p.apy7d)))) {
+    const poolAddress = utils.formatAddress(p.id);
+    pools[poolAddress] = {
+      pool: poolAddress,
+      apyBase: p.apy1d,
+      apyBase7d: p.apy7d,
+      volumeUsd1d: p.volumeUSD1d,
+      volumeUsd7d: p.volumeUSD7d,
+    }
+  }
+
+  return pools;
+}
+
+const getGaugeApy = async () => {
   const chunkSize = 400;
   let currentOffset = 1650; // Ignore older non-Slipstream pools
   let unfinished = true;
@@ -154,7 +234,7 @@ const getApy = async () => {
     return {
       pool: p.lp,
       chain: utils.formatChain('base'),
-      project: 'aerodrome-slipstream',
+      project: PROJECT,
       symbol: s,
       tvlUsd,
       apyReward,
@@ -168,7 +248,24 @@ const getApy = async () => {
   return pools.filter((p) => utils.keepFinite(p));
 };
 
+async function main(timestamp = null) {
+  const poolsApy = await getGaugeApy();
+  const poolsVolumes = await getPoolVolumes(timestamp);
+  
+  return poolsApy.map(pool => {
+    const poolAddress = utils.formatAddress(pool.id);
+    return {
+      ...pool,
+
+      apyBase: poolsVolumes[poolAddress] ? poolsVolumes[poolAddress].apyBase : undefined,
+      apyBase7d: poolsVolumes[poolAddress] ? poolsVolumes[poolAddress].apyBase7d : undefined,
+      volumeUsd1d: poolsVolumes[poolAddress] ? poolsVolumes[poolAddress].volumeUsd1d : undefined,
+      volumeUsd7d: poolsVolumes[poolAddress] ? poolsVolumes[poolAddress].volumeUsd7d : undefined,
+    }
+  });
+}
+
 module.exports = {
   timetravel: false,
-  apy: getApy,
+  apy: main,
 };
