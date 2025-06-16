@@ -1,6 +1,7 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
+const logger = require("../../utils/logger");
 
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
