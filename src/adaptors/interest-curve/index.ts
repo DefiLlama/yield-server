@@ -52,6 +52,8 @@ async function main() {
         underlyingTokens: pool.coins,
         url: `${INTEREST_DAPP_URL}/pools/details?address=${pool.poolId}`,
         poolMeta: pool.isStable ? 'stable' : 'volatile',
+        volumeUsd1d: +pool.metrics.volume1D,
+        volumeUsd7d: +pool.metrics.volume7D,
       };
     })
     .filter((pool) => pool.apyReward > 0); // Pools when farm APR is 0

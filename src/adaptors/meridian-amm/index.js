@@ -42,6 +42,7 @@ async function main() {
       rewardTokens,
       symbol: coinNames,
       tvlUsd: liquidityPool.tvl,
+      volumeUsd1d: +liquidityPool.volume1d,
       underlyingTokens: liquidityPool.metadata.coinAddresses,
       url: `${MERIDIAN_DAPP_URL}/pools/${liquidityPool.metadata.type}`,
     });
