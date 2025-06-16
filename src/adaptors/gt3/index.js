@@ -45,9 +45,9 @@ const transformPool = async (pool, config, chainName) => {
     // Convert APR to APY using DeFiLlama's official utility
     const apyBase = utils.aprToApy(aprValue);
 
-    // Get pool symbol
-    const symbol = poolConfig ? 
-      utils.formatSymbol(poolConfig.symbol) : 
+    // Get pool symbol - use pool name/id as symbol for better distinction
+    const symbol = poolConfig && poolConfig.name ? 
+      utils.formatSymbol(poolConfig.name) : 
       `GT3-${pool.id}`;
 
     // Get underlying tokens
@@ -68,10 +68,8 @@ const transformPool = async (pool, config, chainName) => {
       url: createPoolUrl(pool.id)
     };
 
-    // Add optional fields if they exist
-    if (poolConfig && poolConfig.name) {
-      poolData.poolMeta = poolConfig.name;
-    }
+    // Add poolMeta with descriptive suffix
+    poolData.poolMeta = `${symbol} Liquidity Pool`;
 
     if (rewardTokens.length > 0) {
       poolData.rewardTokens = rewardTokens;
