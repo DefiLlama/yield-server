@@ -47,7 +47,7 @@ module.exports.handler = async () => {
     try {
       await main(adaptor);
     } catch (err) {
-      logger.error(`53 - ${err}`);
+      logger.error(`Adaptor Error - ${adaptor}:`, err);
     }
   }
 };
