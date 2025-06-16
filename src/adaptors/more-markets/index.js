@@ -170,7 +170,8 @@ const apy = async () => {
 
     const liquidityUsd = tokenPrice?.price ? liquidity * tokenPrice.price : 0;
     const borrowedUsd = tokenPrice?.price ? borrowed * tokenPrice.price : 0;
-    const tvlUsd = liquidityUsd + borrowedUsd;
+    const totalSupplyUsd = liquidityUsd + borrowedUsd;
+    const tvlUsd = liquidityUsd;
 
     // Find matching incentive data for this reserve
     const matchingIncentive = incentivesData.find(
@@ -210,7 +211,7 @@ const apy = async () => {
       apyReward: supplyRewards.apyReward,
       rewardTokens: supplyRewards.rewardTokens,
       underlyingTokens: [underlyingAsset],
-      totalSupplyUsd: liquidityUsd,
+      totalSupplyUsd,
       totalBorrowUsd: borrowedUsd,
       debtCeilingUsd: null,
       apyBaseBorrow: borrowAPY,
