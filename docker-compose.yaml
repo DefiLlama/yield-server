@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - .env
     environment:
       - REDIS_URL=${REDIS_URL}
       - POSTGRES_HOST=${POSTGRES_HOST}
@@ -18,6 +20,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.cron
+    env_file:
+      - .env
     environment:
       - REDIS_URL=${REDIS_URL}
       - POSTGRES_HOST=${POSTGRES_HOST}
