@@ -11,6 +11,10 @@ git fetch --all
 git switch $1
 git pull origin $1
 
+echo "Clearing Docker build cache..."
+docker builder prune -a -f
+echo "Docker build cache cleared"
+
 # Run the docker compose up command
 docker compose up -d --build
 
