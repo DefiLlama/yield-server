@@ -2,6 +2,7 @@ const BigNumber = require('bignumber.js');
 const utils = require('../utils');
 
 const API_URL = 'https://fi-api.woo.org/yield';
+const STATS_API_URL = 'https://api.woofi.com/token_stat';
 
 const API_URLS = {
   binance: `${API_URL}?network=bsc`,
@@ -31,7 +32,22 @@ const rewardTokensMapping = {
   // sonic: '0xF3df0A31ec5EA438150987805e841F960b9471b6', // WOO
 };
 
+async function getStats() {
+  const stats = {}
+  for (const chain of Object.keys(API_URLS)) {
+    let woofiChain = chain;
+    if (chain === 'binance') woofiChain = 'bsc';
+    if (chain === 'avalanche') woofiChain = 'avax';
+    if (chain === 'era') woofiChain = 'zksync';
+
+    // don't know why woofi api return bsc data key for all chains here
+    stats[chain] = (await utils.getData(`${STATS_API_URL}?network=${woofiChain}`))['data']['bsc'];
+  }
+  return stats;
+}
+
 const main = async () => {
+  const stats = await getStats()
   const datas = await Promise.all(
     Object.entries(API_URLS).map(async ([chain, url]) => [
       chain,
@@ -60,6 +76,16 @@ const main = async () => {
         apyReward = 0;
         rewardTokens = [];
       }
+
+      let volumeUsd1d = 0;
+      if (stats[chain]) {
+        for (const token of stats[chain]) {
+          if (token.symbol === info['symbol']) {
+            volumeUsd1d = Number(token['24h_volume_usd']) / 1e18;
+          }
+        }
+      }
+
       results.push({
         pool: `${address}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
@@ -69,6 +95,8 @@ const main = async () => {
         tvlUsd: parseFloat(BigNumber(info['tvl']).div(10 ** decimals)),
         apyBase: info['weighted_average_apr'],
         apyReward: apyReward,
+        volumeUsd1d: volumeUsd1d,
+        volumeUsd7d: volumeUsd1d * 7,
         rewardTokens: rewardTokens,
       });
     }
