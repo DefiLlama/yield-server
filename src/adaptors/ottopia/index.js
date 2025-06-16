@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const retry = require('async-retry');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { GraphQLClient, gql } = require('graphql-request');
 
 async function tvl(timestamp) {

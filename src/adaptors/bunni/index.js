@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const axios = require('axios');
 const { request, gql } = require('graphql-request');
 
@@ -414,7 +415,7 @@ const topLvl = async (chainString, url, query, queryPrior, timestamp) => {
 
     return poolData;
   } catch (e) {
-    console.log(e);
+    logger.info(e);
     return [];
   }
 };
@@ -422,7 +423,7 @@ const topLvl = async (chainString, url, query, queryPrior, timestamp) => {
 const main = async (timestamp = null) => {
   const data = [];
   for (const [chain, url] of Object.entries(chains)) {
-    console.log(chain);
+    logger.info(chain);
     data.push(await topLvl(chain, url, query, queryPrior, timestamp));
   }
   return data.flat().filter((p) => utils.keepFinite(p));

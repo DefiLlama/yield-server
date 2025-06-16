@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 async function fetchPrice() {
     try {
@@ -38,7 +39,7 @@ async function fetchAndParseMetrics(url) {
         const rawData = await response.text();
         return parsePrometheusMetrics(rawData);
     } catch (error) {
-        console.error('Error fetching metrics:', error);
+        logger.error('Error fetching metrics:', error);
         throw error;
     }
 }

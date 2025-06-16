@@ -1,4 +1,5 @@
 const fetch = require('node-fetch');
+const logger = require("../utils/logger");
 
 const YIELD_RISK_API_EXPONENTIAL =
   'https://api.exponential.fi/api/pool-risk/search';
@@ -45,7 +46,7 @@ const getRiskRating = async (req, res) => {
       data,
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({
       status: 'error',
       message: error.message,

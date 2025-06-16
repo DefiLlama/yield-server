@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const main = async () => {
   let data = await utils.getData(
     'https://classic.notional.finance/.netlify/functions/yields'

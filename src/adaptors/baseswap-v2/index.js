@@ -35,6 +35,7 @@ const staker_contracts = [
 ];
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const url = sdk.graph.modifyEndpoint(
   sdk.graph.modifyEndpoint('BWHCfpXMHFDx3u4E14hEwv4ST7SUyN89FKJ2RjzWKgA9')

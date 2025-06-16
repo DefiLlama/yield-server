@@ -18,6 +18,7 @@
 */
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const protocolSlug = 'saucerswap-v1';
 const baseUrl = 'https://api.saucerswap.finance';
 const staderUrl =

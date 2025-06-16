@@ -90,7 +90,7 @@ async function main() {
               })
             ).output;
           } catch (error) {
-            console.error(`Error fetching markets for ${chain}:`, error);
+            logger.error(`Error fetching markets for ${chain}:`, error);
             throw error;
           }
 
@@ -145,7 +145,7 @@ async function main() {
               {
                 retries: 3,
                 onRetry: (err) => {
-                  console.log(
+                  logger.info(
                     `Retrying market ${market} due to error: ${err.message}`
                   );
                 },
@@ -158,7 +158,7 @@ async function main() {
         {
           retries: 3,
           onRetry: (err) => {
-            console.log(`Retrying chain ${name} due to error: ${err.message}`);
+            logger.info(`Retrying chain ${name} due to error: ${err.message}`);
           },
         }
       );

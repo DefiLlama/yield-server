@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const ECHELON_DAPP_URL = 'https://app.echelon.market';
 const ECHELON_MARKETS_API_URL = `${ECHELON_DAPP_URL}/api/markets?network=`;
@@ -142,7 +143,7 @@ async function main() {
     const chainTVLArr = await fetchEchelonForChain(chain);
     netTVLArr.push(...chainTVLArr);
   }
-  console.log(netTVLArr);
+  logger.info(netTVLArr);
   return netTVLArr;
 }
 

@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const thalaswapAddress =
   '0x48271d39d0b05bd6efca2278f22277d6fcc375504f9839fd73f74ace240861af';

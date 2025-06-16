@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { gql, default: request } = require('graphql-request');
 const { getTvl } = require('./contract');
 const { getApy } = require('./contract');

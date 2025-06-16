@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const poolsFunction = async () => {
   const vaultData = await utils.getData('https://api.v2.robo-vault.com/vaults');

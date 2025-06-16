@@ -3,6 +3,7 @@ const bybit = require('../perpetuals/bybit');
 const dydx = require('../perpetuals/dydx');
 const okx = require('../perpetuals/okx');
 const synthetix = require('../perpetuals/synthetix');
+const logger = require("../utils/logger");
 
 const { insertPerp } = require('../queries/perp');
 
@@ -38,5 +39,5 @@ const main = async () => {
     .filter((m) => m.indexPrice >= 0);
 
   const r = await insertPerp(perps);
-  console.log(r);
+  logger.info(r);
 };

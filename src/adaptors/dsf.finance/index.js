@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const dsfPoolStables = '0x22586ea4fdaa9ef012581109b336f0124530ae69';
 
@@ -57,7 +58,7 @@ async function getAPYFromAPI() {
       throw new Error('API response is empty or undefined');
     }
   } catch (error) {
-    console.error('Error fetching APY data:', error);
+    logger.error('Error fetching APY data:', error);
     return { apy: 0 };
   }
 }

@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const STAKING_API = 'https://gateway.mdex.one/v3/boardroom/pools?mdex_chainid=';
 const LP_API = 'https://gateway.mdex.one/v3/mingpool/lps?mdex_chainid=';

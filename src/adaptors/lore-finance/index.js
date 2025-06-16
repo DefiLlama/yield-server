@@ -7,6 +7,7 @@ const abiProtocolDataProvider = require('./abiProtocolDataProvider');
 const abiSimplifiedProtocolDataReader = require('./abiSimplifiedProtocolDataReader');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const chains = {
   scroll: {
@@ -46,7 +47,7 @@ const getApy = async () => {
           failOnRevert: false, // Add this option to prevent failing on reverts
         });
       } catch (error) {
-        console.error(`Error fetching rewards data for chain ${chain}:`, error);
+        logger.error(`Error fetching rewards data for chain ${chain}:`, error);
         // Implement fallback mechanism or use default values
         rewardsData = {
           output: reservesList.map(() => ({ success: false, output: null }))
@@ -144,9 +145,9 @@ const getApy = async () => {
         const apyBase = reserveData[i].currentLiquidityRate / 1e25;
         const apyBaseBorrow = reserveData[i].currentVariableBorrowRate / 1e25;
 
-        // console.log(`Raw reward data for ${symbols[i]}:`, rewardsData.output[i]?.output);
-        // console.log(`Parsed apyReward for ${symbols[i]}:`, apyReward);
-        // console.log(`Parsed apyRewardBorrow for ${symbols[i]}:`, apyRewardBorrow);
+        // logger.info(`Raw reward data for ${symbols[i]}:`, rewardsData.output[i]?.output);
+        // logger.info(`Parsed apyReward for ${symbols[i]}:`, apyReward);
+        // logger.info(`Parsed apyRewardBorrow for ${symbols[i]}:`, apyRewardBorrow);
 
         const ltv = config.ltv / 1e4;
         const borrowable = config.borrowingEnabled;

@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const getLendingPoolData = async () => {
   try {
@@ -17,11 +18,11 @@ const getLendingPoolData = async () => {
         totalSupplyUsd: vault.totalSupplied.usdTotal
       }))
     } else {
-      console.error('Failed to fetch lending pool data');
+      logger.error('Failed to fetch lending pool data');
       return [];
     }
   } catch (error) {
-    console.error('Error fetching lending pool data:', error);
+    logger.error('Error fetching lending pool data:', error);
     return [];
   }
 };
@@ -41,11 +42,11 @@ const getGaugesData = async () => {
       });
       return gaugesByAddress;
     } else {
-      console.error('Failed to fetch gauges data');
+      logger.error('Failed to fetch gauges data');
       return {};
     }
   } catch (error) {
-    console.error('Error fetching gauges data:', error);
+    logger.error('Error fetching gauges data:', error);
     return {};
   }
 };

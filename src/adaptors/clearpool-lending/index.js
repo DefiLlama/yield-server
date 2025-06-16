@@ -4,6 +4,7 @@
 
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const toSentenceCase = (str) => {
   if (!str) return str;

@@ -4,6 +4,7 @@ const abiLendingPool = require('../aave-v2/abiLendingPool');
 const abiProtocolDataProvider = require('../aave-v2/abiProtocolDataProvider');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const lendleUrl = 'https://app.lendle.xyz';
 const poolsApr = `${lendleUrl}/api/apr`;

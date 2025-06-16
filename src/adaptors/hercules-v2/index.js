@@ -12,6 +12,7 @@ const factory = '0xF38E7c7f8eA779e8A193B61f9155E6650CbAE095';
 const TORCH = '0xbB1676046C36BCd2F6fD08d8f60672c7087d9aDF';
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const url =
   'https://metisapi.0xgraph.xyz/subgraphs/name/amm-subgraph-andromeda/';

@@ -3,6 +3,7 @@ const { request, gql } = require('graphql-request');
 const superagent = require('superagent');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
 const masterchefAbi = require('./masterchef');

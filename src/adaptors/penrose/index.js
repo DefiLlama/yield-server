@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const collectPools = async () => {
   const data = await utils.getData('https://api.penrose.money/pools');

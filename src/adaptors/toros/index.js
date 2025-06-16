@@ -81,7 +81,7 @@ const fetchTorosYieldProducts = async () => {
     );
     return products;
   } catch (err) {
-    console.error('Failed to fetch toros yield pools: ', err);
+    logger.error('Failed to fetch toros yield pools: ', err);
     return [];
   }
 };
@@ -91,7 +91,7 @@ const fetchRewardIncentivesData = async () => {
     const response = await axios.get(DHEDGE_REWARDS_API_URL);
     return response.data;
   } catch (err) {
-    console.error('Failed to fetch toros reward data: ', err);
+    logger.error('Failed to fetch toros reward data: ', err);
     return;
   }
 };

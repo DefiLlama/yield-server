@@ -4,6 +4,7 @@ const { gql, request } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { arrakisABI } = require('./abi');
 
 const CHAINS = {

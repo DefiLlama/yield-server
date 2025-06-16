@@ -3,6 +3,7 @@ const ERC20Abi = require('./abi/ERC20.json');
 const MasterChefAbi = require('./abi/MasterChef.json');
 const ERC20MasterChefAbi = require('./abi/ERC20MasterChef.json');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const BigNumber = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 

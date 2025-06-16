@@ -2,6 +2,7 @@ const lendingPoolABI = require('./lending-pool.json');
 const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abi = require('./abi')
 const axios = require('axios');
 

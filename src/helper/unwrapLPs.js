@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const BigNumber = require("bignumber.js");
 const { requery } = require('./requery');
+const logger = require("../utils/logger");
 
 const lpReservesAbi = { "constant": true, "inputs": [], "name": "getReserves", "outputs": [{ "internalType": "uint112", "name": "_reserve0", "type": "uint112" }, { "internalType": "uint112", "name": "_reserve1", "type": "uint112" }, { "internalType": "uint32", "name": "_blockTimestampLast", "type": "uint32" }], "payable": false, "stateMutability": "view", "type": "function" }
 const lpSuppliesAbi = { "constant": true, "inputs": [], "name": "totalSupply", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" }
@@ -62,7 +63,6 @@ async function unwrapUniswapLPs(balances, lpPositions, block, chain = 'ethereum'
       token0 = token0_.output.toLowerCase()
       token1 = token1_.output.toLowerCase()
       supply = supply_.output
-      // console.log(token0_, supply_, token1_, lpToken)
 
       if (supply === "0") {
         return
@@ -107,7 +107,7 @@ async function unwrapUniswapLPs(balances, lpPositions, block, chain = 'ethereum'
         sdk.util.sumSingleBalance(balances, await transformAddress(token1), token1Balance.toFixed(0))
       }
     } catch (e) {
-      console.log(`Failed to get data for LP token at ${lpPosition.token} on chain ${chain}`)
+      logger.info(`Failed to get data for LP token at ${lpPosition.token} on chain ${chain}`)
       throw e
     }
   }))

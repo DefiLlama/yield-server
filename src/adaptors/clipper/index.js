@@ -1,5 +1,6 @@
 const { request } = require('graphql-request');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const ChainId = {
   ETHEREUM: 1,

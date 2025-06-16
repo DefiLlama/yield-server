@@ -3,6 +3,7 @@
 // https://wiki.sovryn.com/en/sovryn-dapp/lending
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { tokensPool, tokensLending } = require('./address');
 const { request, gql } = require('graphql-request');
 const subgraphUrl = 'https://subgraph.sovryn.app/subgraphs/name/DistributedCollective/sovryn-subgraph';

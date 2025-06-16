@@ -1,6 +1,7 @@
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const API_URL = 'https://api.sithswap.info/';
 const FEE_PRECISION = 1000000;

@@ -40,7 +40,7 @@ async function apy() {
       };
     })
   } catch (error) {
-    console.error('Error:', error);
+    logger.error('Error:', error);
   }
 }
 

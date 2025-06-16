@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const API_URL = 'https://ocean.defichain.com/v0/mainnet/poolpairs?size=200';
 

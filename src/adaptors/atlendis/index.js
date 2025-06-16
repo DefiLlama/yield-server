@@ -1,6 +1,7 @@
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const baseUrl = 'https://atlendis.herokuapp.com/graphql';
 const urlPolygon = `${baseUrl}/atlendis-hosted-service-polygon`;

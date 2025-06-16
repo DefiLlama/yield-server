@@ -7,6 +7,7 @@ const abiLToken = require('./abiLToken.json');
 const abiRateModelSlope = require('./abiRateModelSlope.json');
 const abiPriceCalculator = require('./abiPriceCalculator.json');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const MOVEMENT_RPC = 'https://mainnet.movementnetwork.xyz/v1';
 

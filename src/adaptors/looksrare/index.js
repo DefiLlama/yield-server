@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 abi = require("./abis.json");
 
 

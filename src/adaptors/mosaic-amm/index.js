@@ -1,5 +1,6 @@
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const MOSAIC_AMM_LIQUIDITY_POOL_URL = 'https://app.mosaic.ag/liquidity';
 const MOSAIC_AMM_POOL_STATS_URL = 'https://stats.mosaic.ag/v1/public/pools';

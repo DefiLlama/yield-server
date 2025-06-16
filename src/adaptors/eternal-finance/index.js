@@ -1,5 +1,6 @@
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const MODULE_ADDRESS = '0x25a64579760a4c64be0d692327786a6375ec80740152851490cfd0b53604cf95';
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';

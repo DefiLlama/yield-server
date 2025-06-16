@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const controllerAbi = require('./abis/conic-controller-abi.json');
 const poolAbi = require('./abis/conic-pool-abi.json');
 const inflationManagerAbi = require('./abis/conic-inflation-manager-abi.json');

@@ -1,6 +1,7 @@
 const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const SAVAX_ADDRESS = '0x2b2C81e08f1Af8835a78Bb2A90AE924ACE0eA4bE';
 const AVAX_ADDRESS = '0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7';
@@ -70,7 +71,7 @@ const main = async () => {
       },
     ];
   } catch (error) {
-    console.error('Error fetching data:', error.message);
+    logger.error('Error fetching data:', error.message);
     throw new Error(`Failed to fetch data: ${error.message}`);
   }
 };

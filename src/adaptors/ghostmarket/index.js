@@ -1,10 +1,11 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const poolsFunction = async () => {
   const poolData = await utils.getData(
     'https://api-external.ghostmarket.io/defillama/yield'
   );
-  console.log(poolData)
+  logger.info(poolData)
   return [poolData]
 };
 

@@ -5,6 +5,7 @@ const { assetTokenAbi } = require('./abis/AssetToken');
 const { interestRateModelAbi } = require('./abis/InterestRateModel');
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const interestRateModel =
   '0x59a943ca214c10234b9a3b61c558ac20c005127d183b86a99a8f3c60a08b4ff';

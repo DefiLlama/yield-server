@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const zlib = require('zlib');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { BigNumber } = require('ethers');
 const ethers = require('ethers');
 
@@ -193,7 +194,7 @@ const getLTV = (
     // max LTV to 3 decimal places
     return maxLoanAmountValue.mul(1000).div(collCcyPledgeValue);
   } catch (e) {
-    console.log(e);
+    logger.info(e);
     return '0';
   }
 };

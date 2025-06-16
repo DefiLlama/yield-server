@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 const superagent = require('superagent');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const ABI = require('./abi.json');
 
 const CIV_TOKEN = '0x37fE0f067FA808fFBDd12891C0858532CFE7361d';

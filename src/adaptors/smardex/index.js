@@ -6,6 +6,7 @@ const {
   BigNumber,
 } = require('ethers');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const {
   farmingRangeABI,
   usdnABI,

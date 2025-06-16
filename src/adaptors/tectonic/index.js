@@ -2,6 +2,7 @@ const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { comptrollerAbi, ercDelegator } = require('./abi');
 
 const COMPTROLLER_ADDRESS = '0xb3831584acb95ED9cCb0C11f677B5AD01DeaeEc0';

@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const thalaswapV2Address =
   '0x7730cd28ee1cdc9e999336cbc430f99e7c44397c0aa77516f6f23a78559bb5';
@@ -60,7 +61,7 @@ async function getCoinInfoWithCache(coinAddress) {
   }
   
   const coinInfo = await utils.getData(`${THALA_COIN_INFO_URL}?coin=${coinAddress}`);
-  console.log(coinAddress, coinInfo);
+  logger.info(coinAddress, coinInfo);
   coinInfoCache[coinAddress] = coinInfo?.data;
 
   return coinInfo?.data;

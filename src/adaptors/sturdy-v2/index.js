@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const { BigNumber } = require('bignumber.js');
 const { DataProviderAbi } = require('./abi');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const BIG_10 = new BigNumber('10');
 

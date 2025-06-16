@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const ethers = require('ethers');
 const sdk = require('@defillama/sdk');
 

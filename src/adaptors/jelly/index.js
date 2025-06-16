@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const { getPoolInfos } = require('./abi.json');
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const helper = '0xEd950eB5acAD4CD63784618437bAF28fA2eE36Ab';
 const jellyUsdcLP = '0x64C2F792038f1FB55da1A9a22749971eAC94463E';

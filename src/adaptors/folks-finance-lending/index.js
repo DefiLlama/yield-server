@@ -7,6 +7,7 @@ const {
 } = require('./v2/index');
 const { interestRateToPercentage, ratioToPercentage } = require('./v2/utils');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const { pools } = constants;
 

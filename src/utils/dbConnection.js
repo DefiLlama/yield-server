@@ -1,6 +1,7 @@
 const path = require('path');
 
 require('dotenv').config({ path: path.resolve(__dirname, '../../config.env') });
+const logger = require("../utils/logger");
 
 const pgp = require('pg-promise')({
   /* initialization options */
@@ -18,7 +19,7 @@ let conn = null;
 
 const connect = async () => {
   if (conn === null) {
-    console.log('Starting new postgres connection');
+    logger.info('Starting new postgres connection');
     // set connection
     conn = pgp({
       host: process.env.POSTGRES_HOST,
@@ -40,16 +41,16 @@ const connect = async () => {
 // SIGTERM Handler
 // from https://github.com/aws-samples/graceful-shutdown-with-aws-lambda
 process.on('SIGTERM', async () => {
-  console.info('[runtime] SIGTERM received');
+  logger.info('[runtime] SIGTERM received');
 
-  console.info('[runtime] cleaning up');
+  logger.info('[runtime] cleaning up');
   if(conn !== null){
     let realConn = await conn
     await realConn.$pool.end()
-    console.log('Closed postgres connection');
+    logger.info('Closed postgres connection');
   }
   
-  console.info('[runtime] exiting');
+  logger.info('[runtime] exiting');
   process.exit(0)
 });
 

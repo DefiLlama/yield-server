@@ -1,12 +1,13 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const logger = require("../utils/logger");
 
 const { insertLsd } = require('../queries/lsd');
 
 module.exports.handler = async () => {
   const payload = await getRates();
   const response = await insertLsd(payload);
-  console.log(response);
+  logger.info(response);
 };
 
 function sleep(ms) {
@@ -240,7 +241,7 @@ const getMarketRates = async () => {
       marketRates.push((await axios.get(url)).data.data.routeSummary);
       await sleep(500);
     } catch (err) {
-      console.log(url, err.response.data);
+      logger.error(url, err.response.data);
     }
   }
 

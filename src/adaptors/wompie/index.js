@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const BigNumber = require('bignumber.js');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const _ = require('lodash');
 
 const MagpieReaderABI = require('./abis/MagpieReader.json');
@@ -117,7 +118,7 @@ async function apy() {
                 priceId: rawInfo.stakingTokenSymbol.toUpperCase(),
               },
       };
-      //console.log("pool", pool)
+      //logger.info("pool", pool)
       if (rawInfo.poolType === 'WOMBAT_POOL') {
         pool.helperInfo = {
           depositToken: rawInfo.wombatHelperInfo.depositToken,
@@ -284,7 +285,7 @@ async function apy() {
             .multipliedBy(priceData['WOM'])
             .dividedBy(tvl);
         } else {
-          //console.log(poolInfo, rewardInfo, rewardInfos)
+          //logger.info(poolInfo, rewardInfo, rewardInfos)
           let rewardAmount = new BigNumber(formatEther(rewardInfo.tokenPerSec))
             .multipliedBy(365)
             .multipliedBy(24)
@@ -345,7 +346,7 @@ async function apy() {
             .multipliedBy(priceData['WOM'])
             .dividedBy(tvl);
         } else {
-          //console.log(poolInfo, rewardInfo, rewardInfos)
+          //logger.info(poolInfo, rewardInfo, rewardInfos)
           let rewardAmount = new BigNumber(formatEther(rewardInfo.tokenPerSec))
             .multipliedBy(365)
             .multipliedBy(24)
@@ -390,7 +391,7 @@ async function apy() {
     }
 
     for (let poolInfo of poolInfos) {
-      //console.log(poolInfo)
+      //logger.info(poolInfo)
       if (poolInfo.tvlInfo.totalAmount == 0) {
         continue;
       }

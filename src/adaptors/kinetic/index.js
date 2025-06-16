@@ -3,6 +3,7 @@ const { request, gql } = require('graphql-request');
 const { Web3, eth } = require('web3');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const { comptrollerAbi, cToken, flrETH } = require('./abi');
 const { symbol } = require('@defillama/sdk/build/erc20');

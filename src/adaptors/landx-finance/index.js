@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 let oraclePrices = new Map();
 oraclePrices.set('arbitrum', '0x050EF3b1CE0CCE775A224d9712b961A86137aa80');

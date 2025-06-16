@@ -6,6 +6,7 @@ const abiRateModelSlope = require('./abiRateModelSlope.json');
 const abiRewardContract = require('./abiRewardContract.json'); // Import the updated reward contract ABI
 const abiFlyWheel = require('./abiFlyWheel.json');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { ethers } = require('ethers');
 const { rewardTokens } = require('../sommelier/config');
 // Helper function to format units without ethers.js
@@ -135,7 +136,7 @@ const apy = async (chain) => {
       })
     ).output.map((o) => o.output.collateralFactorMantissa);
     // Fetch decimals first to use for formatting
-    //////console.log("Current Chain:", chain);
+    //////logger.info("Current Chain:", chain);
     const decimalsRaw = (
       await sdk.api.abi.multiCall({
         chain,
@@ -275,7 +276,7 @@ const apy = async (chain) => {
       const pricesResponse = await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`);
       prices = pricesResponse.data.coins;
     } catch (error) {
-      console.error(`Error fetching prices for chain ${chain}:`, error);
+      logger.error(`Error fetching prices for chain ${chain}:`, error);
     }
     // Fetch reward rates from the Reward Contract using the updated ABI
     // Fetch reward rates from the Reward Contract using the updated ABI
@@ -324,7 +325,7 @@ const apy = async (chain) => {
 
             // Iterate over each reward in rewardsInfo and check booster address
             for (let reward of info.rewardsInfo) {
-              //console.log("reward flywheel",reward.flywheel)
+              //logger.info("reward flywheel",reward.flywheel)
               const boosterAddress = await getFlywheelBoosterAddress(sdk, chain, reward.flywheel); // Use flywheel here
               if (boosterAddress === '0x0000000000000000000000000000000000000000') {
                 filteredRewardsInfo.push(reward);
@@ -382,7 +383,7 @@ const apy = async (chain) => {
                 normalizedRate = parsedRate; // No scaling needed if decimals are 18 or more
               }
         
-              //console.log("Normalized Rate for reward:", normalizedRate);
+              //logger.info("Normalized Rate for reward:", normalizedRate);
               return normalizedRate; // Return the normalized rate
             })
           );
@@ -395,10 +396,10 @@ const apy = async (chain) => {
           // Push the calculated total APY into the array
           rewardApyPerMarket.push(apyPercFormatted); // Ensure this is the same array you're checking later
         }));
-        //console.log('Final rewardApyPerMarket:', rewardApyPerMarket);
+        //logger.info('Final rewardApyPerMarket:', rewardApyPerMarket);
 
       } catch (error) {
-        console.error("Error fetching Market Rewards Info:", error);
+        logger.error("Error fetching Market Rewards Info:", error);
       }
     }
     // Inside your pools mapping
@@ -411,7 +412,7 @@ const apy = async (chain) => {
         console.warn(`Price not found for ${chain}:${underlying[i]}`);
         return null;
       }
-      //////console.log("token",underlying[i])
+      //////logger.info("token",underlying[i])
       const decimal = tokenDecimals[i] || 18; // Fallback to 18 if token not found
       const totalBorrowInUsd = totalBorrow[i]; // Convert totalBorrow to token value
       const cashInUsd = cash[i]; // Convert cash to token value
@@ -438,12 +439,12 @@ const apy = async (chain) => {
         apyBase = ratePerBlockToAPY(supplyRate[i], blocksPerMin) || 0;
       }
       // Reward APR calculation (adjusted with totalSupplyUsd for normalization)
-      //////console.log('rewards APY', rewardApyPerMarket[i])
+      //////logger.info('rewards APY', rewardApyPerMarket[i])
       // // const rewardApy = rewardApyPerMarket[i] / (10 ** 12); // Convert from wei to ether if applicable
       // const apyReward = (totalSupplyUsd > 0 && rewardApyPerMarket[i] !== undefined)
       //   ? (rewardApy / totalSupplyUsd) * 100 // Normalize reward APY
       //   : 0;
-      //console.log("Final rewardApyPerMarket:", rewardApyPerMarket);
+      //logger.info("Final rewardApyPerMarket:", rewardApyPerMarket);
       const apyReward = (rewardApyPerMarket[i])
         ? Number((rewardApyPerMarket[i]))
         : 0;
@@ -464,7 +465,7 @@ const apy = async (chain) => {
     });
     return pools;
   } catch (error) {
-    console.error(`Error processing APY for chain ${chain}:`, error);
+    logger.error(`Error processing APY for chain ${chain}:`, error);
     return [];
   }
 };
@@ -477,7 +478,7 @@ const main = async () => {
     const pools = poolArrays.flat().filter((i) => utils.keepFinite(i));
     return pools;
   } catch (error) {
-    console.error('Error in main APY function:', error);
+    logger.error('Error in main APY function:', error);
     return [];
   }
 };

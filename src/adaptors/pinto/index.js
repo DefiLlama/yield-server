@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const axios = require('axios');
 
 const START_TIME = 1732071601; // First silo yield distribution at Season 4.

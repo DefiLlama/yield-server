@@ -1,5 +1,6 @@
 const { gql, request } = require('graphql-request');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const CHAINS = {
   gnosis: 'Gnosis',

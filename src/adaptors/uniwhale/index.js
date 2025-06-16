@@ -1,5 +1,6 @@
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const USDT = '0x55d398326f99059fF775485246999027B3197955';
 const UNIWHALE_LIQUIDITY_POOL = '0xBdeCAFd9096D43616a8E0eB8F3fa0865fD4769E7';

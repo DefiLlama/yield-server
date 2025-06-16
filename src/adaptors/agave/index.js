@@ -6,6 +6,7 @@ const abiProtocolDataProvider = require('./abiProtocolDataProvider');
 const abiIncentivesController = require('./abiIncentivesController');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const SECONDS_PER_YEAR = 60 * 60 * 24 * 365;
 

@@ -1,5 +1,6 @@
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const baseUrl = 'https://api-v1.verocket.com';
 const urlApy = `${baseUrl}/apy`;

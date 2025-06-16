@@ -114,7 +114,7 @@ const main = async () => {
 
     return removeDuplicates(formatted);
   } catch (e) {
-    console.error(e);
+    logger.error(e);
     return [];
   }
 };

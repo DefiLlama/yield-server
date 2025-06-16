@@ -2,6 +2,7 @@ const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abi = require('./abis/abi.json');
 const AladdinConvexVaultABI = require('./abis/AladdinConvexVault.json');
 const AladdinCRVABI = require('./abis/AladdinCRV.json');

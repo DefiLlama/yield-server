@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { Web3 } = require('web3');
 
 const { default: BigNumber } = require('bignumber.js');

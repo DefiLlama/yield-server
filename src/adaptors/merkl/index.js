@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const { networks } = require('./config');
 
@@ -38,7 +39,7 @@ const main = async () => {
           `https://api.merkl.xyz/v4/opportunities?chainId=${chainId}&status=LIVE,PAST&items=100&page=${pageI}`
         );
       } catch (err) {
-        console.log('failed to fetch Merkl data on chain ' + chain);
+        logger.info('failed to fetch Merkl data on chain ' + chain);
         break;
       }
 
@@ -87,7 +88,7 @@ const main = async () => {
 
 /*
 main().then((data) => {
-  console.log(data);
+  logger.info(data);
 });
 */
 

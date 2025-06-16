@@ -1,6 +1,7 @@
 const superagent = require('superagent');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const pools = require('./pools.json');
 const sdk = require('@defillama/sdk');
 const abi = require('./abi.json');

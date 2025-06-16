@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const IqAbi = require('./abi');
 
 const token = '0x1bf5457ecaa14ff63cc89efd560e251e814e16ba';

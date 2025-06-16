@@ -517,12 +517,12 @@
 // const main = async () => {
 //   const pools = [];
 //   for (const chain of Object.keys(chains)) {
-//     console.log(chains[chain]);
+//     logger.info(chains[chain]);
 //     try {
 //       const poolsChain = await apy(chain);
 //       pools.push(poolsChain);
 //     } catch (err) {
-//       console.log(err);
+//       logger.info(err);
 //     }
 //   }
 

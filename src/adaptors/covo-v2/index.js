@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abi = require('./abis/abi.json');
 const { request, gql } = require('graphql-request');
 const BigNumber = require('bignumber.js');
@@ -118,11 +119,11 @@ async function getPoolUsdc(
 
   const totalRewardsInUSDC =
     (stakedCovoclaimedUSDC1 + stakedCovoPendingUSDC2) / 1000000;
-  console.log({ totalRewardsInUSDC2: totalRewardsInUSDC });
+  logger.info({ totalRewardsInUSDC2: totalRewardsInUSDC });
   const tvlcovo = PolygonUSDCPoolBalance2 / 10 ** 6;
-  console.log({ tvlcovo2: tvlcovo });
+  logger.info({ tvlcovo2: tvlcovo });
   const apy = calculateApy(totalRewardsInUSDC, tvlcovo);
-  console.log({ apy2: apy });
+  logger.info({ apy2: apy });
 
   return {
     pool: pInflationTrackerAddress,

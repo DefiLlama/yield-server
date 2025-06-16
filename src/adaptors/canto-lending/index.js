@@ -3,6 +3,7 @@ const superagent = require('superagent');
 const abi = require('./abis.json');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const unitroller = '0x5E23dC409Fc2F832f83CEc191E245A191a4bCc5C';
 const WCANTO = '0x826551890Dc65655a0Aceca109aB11AbDbD7a07B';

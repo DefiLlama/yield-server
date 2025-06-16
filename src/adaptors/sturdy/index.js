@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const poolsFunction = async () => {
   const ftmVaultData = await utils.getData(

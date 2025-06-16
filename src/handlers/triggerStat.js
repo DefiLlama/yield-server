@@ -1,6 +1,7 @@
 const { welfordUpdate } = require('../utils/welford');
 const { getStat, insertStat } = require('../queries/stat');
 const utils = require('../utils/s3');
+const logger = require("../utils/logger");
 
 module.exports.handler = async (event, context) => {
   await main();
@@ -24,5 +25,5 @@ const main = async () => {
   const dataStat = await getStat();
   const payload = welfordUpdate(data, dataStat);
   const response = await insertStat(payload);
-  console.log(response);
+  logger.info(response);
 };

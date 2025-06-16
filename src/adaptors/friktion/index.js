@@ -1,5 +1,6 @@
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 // matches the mapping on the frontend and
 // imo is much easier to understand than poolId
@@ -31,7 +32,7 @@ async function tvl() {
       typeof poolsTvl === 'object'
     )
   ) {
-    console.log(friktionSnapshot);
+    logger.info(friktionSnapshot);
     throw new Error('Unexpected response from friktionSnapshot');
   }
 

@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { default: BigNumber } = require('bignumber.js');
 const { parseUnits, formatUnits } = require('ethers/lib/utils');
 
@@ -23,7 +24,7 @@ const unwrappedTokenData = async (tokenAddress, tokenAmount) => {
     const tokenData = coins[priceKey];
 
     if (!tokenData) {
-      console.log(`No price data found for token: ${priceKey}`);
+      logger.info(`No price data found for token: ${priceKey}`);
       return [null, 0];
     }
 
@@ -32,7 +33,7 @@ const unwrappedTokenData = async (tokenAddress, tokenAmount) => {
       formatUnits(tokenAmount, tokenData.decimals) * tokenData.price,
     ];
   } catch (error) {
-    console.error(`Error fetching price for token ${tokenAddress}:`, error);
+    logger.error(`Error fetching price for token ${tokenAddress}:`, error);
     return [null, 0];
   }
 };
@@ -101,7 +102,7 @@ const getApy = async () => {
             );
 
             if (!token0Symbol || !token1Symbol) {
-              console.log(
+              logger.info(
                 `Missing token symbol data for pool: ${pool.address}`
               );
               return null;
@@ -119,7 +120,7 @@ const getApy = async () => {
               underlyingTokens: [token0, token1],
             };
           } catch (error) {
-            console.error(`Error processing pool ${pool.address}:`, error);
+            logger.error(`Error processing pool ${pool.address}:`, error);
             return null;
           }
         })

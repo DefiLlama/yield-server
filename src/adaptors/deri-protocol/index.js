@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abi = require('./abi.js');
 const sdk = require('@defillama/sdk');
 

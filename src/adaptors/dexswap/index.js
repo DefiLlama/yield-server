@@ -3,6 +3,7 @@ const BigNumber = require('bignumber.js');
 const { LP_ABI } = require('./abi/LP');
 const { FARM } = require('./abi/FARM');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const TOKENS = {
   GDEX: '0x92a212d9f5eef0b262ac7d84aea64a0d0758b94f',

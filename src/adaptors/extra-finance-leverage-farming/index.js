@@ -3,6 +3,7 @@ const superagent = require('superagent');
 const BigNumber = require('bignumber.js');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const {
   getTokenInfo,
   getLendPoolTvl,
@@ -163,7 +164,7 @@ async function getPoolsData() {
     try {
       await getPoolsByChain(chain);
     } catch (err) {
-      console.log(err);
+      logger.info(err);
     }
   }
 

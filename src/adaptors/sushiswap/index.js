@@ -3,6 +3,7 @@ const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const {
   lpTokenABI,
   masterchefABI,

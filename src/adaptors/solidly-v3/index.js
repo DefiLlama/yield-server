@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const {
   fetch_pools,
   fetch_prices,
@@ -69,7 +70,7 @@ const main = async (timestamp = null) => {
       return [x];
     })
     .flat();
-  // console.log('pools lenght', pools.length);
+  // logger.info('pools lenght', pools.length);
 
   let data = (
     await Promise.all(
@@ -86,7 +87,7 @@ const main = async (timestamp = null) => {
 
         let touched_prices = [];
         for (let s of state_changes) {
-          // console.log(s);
+          // logger.info(s);
           if (s.event == 'Swap') {
             // have to take fee from the positive amount
             let pool_in = pool_input(pool, s.args);
@@ -98,7 +99,7 @@ const main = async (timestamp = null) => {
             fee_per_token[pool_in.token] =
               fee_per_token[pool_in.token].add(swap_fee);
 
-            // console.log('got swap');
+            // logger.info('got swap');
           } else if (s.event == 'SetFee') {
             current_fee = ethers.BigNumber.from(s.args.feeNew);
           }
@@ -110,7 +111,7 @@ const main = async (timestamp = null) => {
         //   let min = Math.min(...touched_prices);
         //   let max = Math.max(...touched_prices);
         //   delta = min / max;
-        //   // console.log('NEW DELTA', pool.id, delta);
+        //   // logger.info('NEW DELTA', pool.id, delta);
         // }
         let price_assumption = pool.t1.price / pool.t0.price;
         // pool.active_liq_fraction = await EstimateActiveLiq(
@@ -124,7 +125,7 @@ const main = async (timestamp = null) => {
         //   pool.t1.decimals,
         //   get_graph_url()
         // );
-        // console.log('ACTIVE LIQ', pool.id, delta, pool.active_liq_fraction);
+        // logger.info('ACTIVE LIQ', pool.id, delta, pool.active_liq_fraction);
 
         // reduce token fees to total fees in window
         let total_fee_usd = 0.0;
@@ -162,7 +163,7 @@ const main = async (timestamp = null) => {
           }
         }
         pool.symbol = `${pool.t0.symbol}-${pool.t1.symbol}`;
-        // console.log(pool);
+        // logger.info(pool);
         return pool;
       })
     )
@@ -180,10 +181,10 @@ const main = async (timestamp = null) => {
       underlyingTokens: [pool.token0.id, pool.token1.id],
     };
   });
-  // console.log(data);
+  // logger.info(data);
 
   // throw '';
-  // console.log(data);
+  // logger.info(data);
   return data.flat().filter((p) => utils.keepFinite(p));
 };
 

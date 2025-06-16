@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const urlApi = 'https://api.unrekt.net/api/v2/acryptos-asset.json';
 

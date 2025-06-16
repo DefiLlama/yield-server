@@ -42,7 +42,7 @@ async function fetchApr(key) {
       return parseFloat(res.value) || 0;
     })
     .catch((error) => {
-      console.error(`Error fetching APR for ${key}:`, error);
+      logger.error(`Error fetching APR for ${key}:`, error);
       return 0;
     });
 }
@@ -53,7 +53,7 @@ async function fetchAssetAnalytics(assetName) {
     const response = await get(`https://analytics.indigoprotocol.io/api/assets/${assetName}/analytics`);
     return response[assetName];
   } catch (error) {
-    console.error(`Error fetching analytics for ${assetName}:`, error);
+    logger.error(`Error fetching analytics for ${assetName}:`, error);
     return null;
   }
 }
@@ -64,7 +64,7 @@ async function fetchAdaPriceToUsd() {
     const response = await get('https://analytics.indigoprotocol.io/api/price?from=ADA&to=USD');
     return response.price;
   } catch (error) {
-    console.error('Error fetching ADA price:', error);
+    logger.error('Error fetching ADA price:', error);
     return 0;
   }
 }

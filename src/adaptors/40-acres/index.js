@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 async function getVault(timestamp, address, network, symbol, underlyingToken) {
     const vaultInfo = await utils.getERC4626Info(address, network, timestamp);

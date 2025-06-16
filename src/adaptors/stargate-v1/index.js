@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abi = require('./abis.json');
 
 //optimism uses (OP) token for rewards and kava uses (WKAVA), all else use (STG) token
@@ -315,11 +316,11 @@ const getApy = async (chain) => {
 const main = async () => {
   const pools = [];
   for (const chain of Object.keys(CONFIG)) {
-    console.log(chain);
+    logger.info(chain);
     try {
       pools.push(await getApy(chain, CONFIG[chain].LP_STAKING));
     } catch (err) {
-      console.log(`${chain} failed`);
+      logger.info(`${chain} failed`);
     }
   }
 

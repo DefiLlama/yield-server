@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const getUrl = (chain) =>
   `https://api.ib.xyz/api/v1/itoken?comptroller=${chain}`;

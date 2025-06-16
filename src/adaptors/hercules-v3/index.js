@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const url =
   'https://metisapi.0xgraph.xyz/subgraphs/name/cryptoalgebra/analytics';
@@ -125,7 +126,7 @@ const topLvl = async (chainString, timestamp, url) => {
 };
 
 const main = async (timestamp = null) => {
-  console.log(timestamp);
+  logger.info(timestamp);
   const data = await Promise.all([topLvl('metis', timestamp, url)]);
   return data.flat().filter((p) => utils.keepFinite(p));
 };

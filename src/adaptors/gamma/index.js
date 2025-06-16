@@ -2,6 +2,7 @@ const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { print } = require('graphql');
 
 const EXCHANGES_API = {
@@ -229,7 +230,7 @@ const getApy = async () => {
       });
 
 
-    } catch (error) { console.log(error) };
+    } catch (error) { logger.info(error) };
 
     // try add rewards
     try {
@@ -261,7 +262,7 @@ const getApy = async () => {
 
       });
 
-    } catch (error) { console.log(error) };
+    } catch (error) { logger.info(error) };
   };
 
   const tokens = Object.entries(hype_allData).reduce(

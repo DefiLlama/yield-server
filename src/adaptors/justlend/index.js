@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const API_URL = 'https://labc.ablesdxd.link/justlend/yieldInfos';
 
@@ -34,7 +35,7 @@ const getApy = async () => {
   const { data: rewards } = await getRewardApy(marketsData);
 
   const pools = marketsData.map(({ data: market }) => {
-    console.log(market);
+    logger.info(market);
     return {
       pool: market.jtokenAddress,
       chain: utils.formatChain('tron'),

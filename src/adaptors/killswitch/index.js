@@ -3,6 +3,7 @@ const API_APY_URL = (chainId) =>
   `https://api.killswitch.finance/ksw2/apy?chain=${chainId}`;
 const API_TVL_URL = 'https://api.killswitch.finance/ksw/tvl';
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const POOL_ONE_TOKEN = {
   bsc: [
     'apeswap.0x603c7f932ed1fc6575303d8fb018fdcbb0f39a95',

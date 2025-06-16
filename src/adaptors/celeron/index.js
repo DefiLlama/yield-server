@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { ethers } = require('ethers');
 
 const DATA_ADDRESS = '0x3306597d0eAba6e753FDEF4FB689Fe46449D3920';

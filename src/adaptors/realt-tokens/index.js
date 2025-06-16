@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 const abi = require('./abi.json');
@@ -69,7 +70,7 @@ async function callGetReservesData() {
   // Only WXDai is lendable
   let wxdai = res[0]['0'];
 
-  //console.log(sdk)
+  //logger.info(sdk)
   let latest_block = await sdk.api.util.getLatestBlock('xdai');
 
   // get compoundeds of variable/stable borrow rates

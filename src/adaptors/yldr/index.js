@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 const { calculateAPY } = require('./utils');
 const BigNumber = require('bignumber.js');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const chains = ['ethereum', 'arbitrum', 'polygon', 'base'];
 const UI_POOL_DATA_PROVIDERS = { "ethereum": '0x6Ab39f4e9F494733893Ca90212558e55C7196012', "arbitrum": '0x775f2616557824bbcf2ea619cA2BacaBd930F2BD', 'polygon': '0x2464dA5c26651cdceD9f6afa9afdc79B5f6413AD', 'base': '0xb9d350537A63B7e5cb02B44e230e093C0abB2707'};

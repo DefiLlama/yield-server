@@ -10,11 +10,12 @@ const WILDx = '0xbCDa0bD6Cd83558DFb0EeC9153eD9C9cfa87782E';
 const WETH = '0x4200000000000000000000000000000000000006';
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const getPoolDetails = async (block, poolInfo, chainString) => {
   const poolDetails = [];
 
-  // console.log(poolInfo);
+  // logger.info(poolInfo);
   for (let i = 0; i < poolInfo.length; i++) {
     // SKIP LP OF WILDx STANDALONE
     if (poolInfo[i].lpToken != '0xbCDa0bD6Cd83558DFb0EeC9153eD9C9cfa87782E') {
@@ -293,7 +294,7 @@ const topLv = async (chainString, version, timestamp) => {
     return obj1;
   });
 
-  console.log('dataNowUpdated', dataNowUpdated);
+  logger.info('dataNowUpdated', dataNowUpdated);
 
   // calculate apy
   dataNow = dataNowUpdated.map((el) =>
@@ -317,7 +318,7 @@ const topLv = async (chainString, version, timestamp) => {
       (pid) => pid.lpToken.toLowerCase() === p.id?.toLowerCase()
     )?.allocPoint;
 
-    console.log(symbol, WILDxAllocPoint);
+    logger.info(symbol, WILDxAllocPoint);
 
     let totalDeposit = poolInfo.find(
       (pid) => pid.lpToken.toLowerCase() === p.id?.toLowerCase()

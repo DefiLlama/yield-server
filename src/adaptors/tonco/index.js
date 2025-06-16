@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { Address } = require('@ton/core');
 
 const MIN_TVL_USD = 100000;
@@ -22,7 +23,7 @@ const POOLS_QUERY = `
 `;
 
 const getApy = async () => {
-    console.log("Requesting pools list")
+    logger.info("Requesting pools list")
     const poolsList = (await utils.getData(GRAPHQL_ENDPOINT, {
         query: POOLS_QUERY
     })).data.pools;
@@ -44,7 +45,7 @@ const getApy = async () => {
             underlyingTokens: [Address.parse(pool.jetton0.address).toString(), Address.parse(pool.jetton1.address).toString()]
         }
     }
-    console.log(`Inited ${Object.keys(poolsInfo).length} pools`);
+    logger.info(`Inited ${Object.keys(poolsInfo).length} pools`);
 
 
     const pools = Object.keys(poolsInfo)

@@ -27,7 +27,7 @@ const getGauges = async () => {
     return jsonData.data;
 
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     return [];
   }
 };
@@ -46,7 +46,7 @@ const merkl = async () => {
         
     return Object.values(merklData);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     return [];
   }
 }
@@ -124,7 +124,7 @@ const main = async () => {
     }));
     return pools.filter(i => i.symbol)
   } catch (error) {
-    console.log(error)
+    logger.info(error)
   }
 }
 

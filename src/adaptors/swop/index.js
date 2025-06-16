@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { request, gql } = require('graphql-request');
 
 const API_URL = 'https://backend.swop.fi/pools';

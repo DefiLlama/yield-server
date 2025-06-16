@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const url = 'https://backend-api-prod.frfi.io/autofarm?$limit=1000';
 

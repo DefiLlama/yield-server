@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const API_URL = 'https://2jbbf-vqaaa-aaaam-ab5fa-cai.raw.icp0.io/pool-list';
 

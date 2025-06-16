@@ -5,6 +5,7 @@ const abiProtocolDataProvider = require('./abiProtocolDataProvider');
 // const abiChefIncentivesController = require('./abiChefIncentivesController');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const RDNT = '0x0c4681e6c0235179ec3d4f4fc4df3d14fdd96017';
 

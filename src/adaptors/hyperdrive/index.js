@@ -2,6 +2,7 @@ const ethers = require("ethers")
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const providers = require('@defillama/sdk/build/providers.json');
 const { GET_POOL_CONFIG_ABI, GET_POOL_INFO_ABI, POSITION_ABI, MARKET_ABI } = require('./abi');
 
@@ -244,7 +245,7 @@ async function getApy(chain) {
         config.token.priceWithBase = priceWithBase;
         config.token.address = tokenAddress;
       } catch (error) {
-        console.error(`Error fetching price for ${priceKey}:`, error);
+        logger.error(`Error fetching price for ${priceKey}:`, error);
         // Return default token price info
         config.token = { price: 0, decimals: 0, symbol: '?', priceWithBase: priceWithBase, address: tokenAddress };
       }
@@ -284,7 +285,7 @@ async function getApy(chain) {
           };
           return result;
         } catch (error) {
-          console.error('Error processing pool:', pool.name, error);
+          logger.error('Error processing pool:', pool.name, error);
           return null;
         }
       })
@@ -294,7 +295,7 @@ async function getApy(chain) {
       .filter((i) => i.status === 'fulfilled')
       .map((i) => i.value);
   } catch (error) {
-    console.error('Error getting APY for chain:', chain, error);
+    logger.error('Error getting APY for chain:', chain, error);
     return [];
   }
 }

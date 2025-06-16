@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const GHNY = '0xa045e37a0d1dd3a45fefb8803d22457abc0a728a';
 const APY_URL = 'https://api.grizzly.fi/apy/current/bsc';
 const lpABI = require('./abis/lp.json');

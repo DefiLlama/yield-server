@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abi = require('./abis/abi.json');
 const BigNumber = require('bignumber.js');
 
@@ -57,7 +58,7 @@ async function calculateKlpPrice() {
 
     return price.toString();
   } catch (error) {
-    console.error('Error calculating KLP price:', error);
+    logger.error('Error calculating KLP price:', error);
   }
 }
 

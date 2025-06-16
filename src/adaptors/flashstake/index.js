@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const API_LATEST = "https://apr.flashstake.io/latest";
 const API_HISTORICAL = "https://apr.flashstake.io/historical";

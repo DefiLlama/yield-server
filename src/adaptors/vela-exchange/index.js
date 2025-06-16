@@ -1,6 +1,7 @@
 const ethers = require('ethers');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const VaultABI = require('./VaultABI.json');
 const VLPABI = require('./VLPABI.json');
 const RewarderABI = require('./RewarderABI.json');

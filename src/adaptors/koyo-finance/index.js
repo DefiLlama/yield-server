@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const getData = async (chainString) => {
   const rawTVLData = await utils.getData(

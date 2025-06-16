@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abiPairFactory = require('./abiPairFactory.json');
 const abiPair = require('./abiPair.json');
 const abiGauge = require('./abiGauge.json');
@@ -21,7 +22,7 @@ const getApy = async () => {
     })
   ).output;
 
-  console.log('allPairsLength', allPairsLength);
+  logger.info('allPairsLength', allPairsLength);
 
   const allPairs = (
     await sdk.api.abi.multiCall({

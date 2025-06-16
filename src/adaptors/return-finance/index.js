@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const abiAAVEPolygon = require('./abiAAVEPolygon.json');
 const abiAAVEAvalanche = require('./abiAAVEAvalanche.json');

@@ -1,6 +1,7 @@
 const { request } = require('graphql-request');
 const { query } = require('./query.json');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const API_URL = 'https://graph.xexchange.com/graphql';
 

@@ -1,5 +1,6 @@
 const { parse } = require('date-fns');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { ethers } = require("ethers");
 const { poll } = require('ethers/lib/utils');
 const sdk = require('@defillama/sdk');

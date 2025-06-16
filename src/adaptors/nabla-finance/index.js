@@ -1,5 +1,6 @@
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 
@@ -36,7 +37,7 @@ const poolsFunction = async (chain) => {
     const swapPools = (await request(graphUrls[chain], query)).swapPools;
 
     if (!swapPools || swapPools.length === 0) {
-      console.log(`No swap pools found for chain: ${chain}`);
+      logger.info(`No swap pools found for chain: ${chain}`);
       return [];
     }
 
@@ -63,7 +64,7 @@ const poolsFunction = async (chain) => {
         const priceData = usdPrices[key];
 
         if (!priceData) {
-          console.log(`No price data found for token: ${key}`);
+          logger.info(`No price data found for token: ${key}`);
           return null;
         }
 
@@ -81,7 +82,7 @@ const poolsFunction = async (chain) => {
       })
       .filter(Boolean);
   } catch (error) {
-    console.error(`Error fetching pools for chain ${chain}:`, error);
+    logger.error(`Error fetching pools for chain ${chain}:`, error);
     return [];
   }
 };
@@ -91,7 +92,7 @@ const poolsOnAllChains = async () => {
 
   const allPoolsPromises = chains.map((chain) =>
     poolsFunction(chain).catch((error) => {
-      console.error(`Failed to fetch pools for chain ${chain}:`, error);
+      logger.error(`Failed to fetch pools for chain ${chain}:`, error);
       return [];
     })
   );

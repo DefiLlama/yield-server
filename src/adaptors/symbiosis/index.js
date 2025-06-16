@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const config = require('./config');
 
 const erc20ABI = {

@@ -1,6 +1,7 @@
 const superagent = require('superagent');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const savingsPool = '0xAF985437DCA19DEFf89e61F83Cd526b272523719';
 const savingsPlusPolygonPool = '0x77D5333d97A092cA01A783468E53E550C379dc3C';

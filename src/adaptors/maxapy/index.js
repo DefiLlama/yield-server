@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const VAULTS = {
   ethereum: {
@@ -64,7 +65,7 @@ class MaxApyAdapter {
         `${this.baseUrl}/apys?chainId=${chainId}&vault=${vaultAddress}`
       );
     } catch (error) {
-      console.error(
+      logger.error(
         `Failed to fetch APY for vault ${vaultAddress} on chain ${chainId}:`,
         error.message
       );
@@ -105,7 +106,7 @@ class MaxApyAdapter {
       return pools.filter(utils.keepFinite);
       
     } catch (error) {
-      console.error('Failed to fetch APY data:', error);
+      logger.error('Failed to fetch APY data:', error);
       return [];
     }
   }

@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const BigNumber = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 const { default: axios } = require('axios');

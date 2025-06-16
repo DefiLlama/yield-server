@@ -1,5 +1,6 @@
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 function aggregateApys(aprs, key, locking) {
   const stakingApys = aprs.Staking[key]?.total;

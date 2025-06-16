@@ -8,6 +8,7 @@ const ARX = '0xD5954c3084a1cCd70B4dA011E67760B8e78aeE84';
 const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const url = sdk.graph.modifyEndpoint(
   sdk.graph.modifyEndpoint('6Bjqi1HiqNphwqzaa3h3ojTgQwtFJ817QuE8vsyWBiCw')

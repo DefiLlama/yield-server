@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const axios = require('axios');
 
 const API_URL = 'https://api-v1.bakerfi.ai/api';

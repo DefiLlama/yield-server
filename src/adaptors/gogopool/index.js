@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const axios = require('axios');
 const { ethers } = require('ethers');
 
@@ -24,7 +25,7 @@ async function fetchTotalAssets() {
         return ethers.utils.formatUnits(totalAssets, 18);
         
     } catch (error) {
-        console.error('Error in fetching total assets:', error);
+        logger.error('Error in fetching total assets:', error);
     }
 }
 
@@ -36,7 +37,7 @@ const avaxPrice = async () => {
         return response.data['avalanche-2'].usd;
          
     } catch (error) {
-        console.error('Error fetching price data', error);
+        logger.error('Error fetching price data', error);
         return null;
     }
 };

@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abis = require('./alien-finance.json');
 
 const alien = '0x50454acC07bf8fC78100619a1b68e9E8d28cE022';

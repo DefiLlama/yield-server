@@ -3,6 +3,7 @@ const { request, gql } = require('graphql-request');
 const axios = require('axios');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abiPairFactory = require('./abiPairFactory.json');
 const abiPair = require('./abiPair.json');
 const abiGauge = require('./abiGauge.json');
@@ -220,7 +221,7 @@ const topLvl = async (
       const investmentAmount = 1e5;
       let X = [];
       for (let i = 0; i <= pages; i++) {
-        console.log(i);
+        logger.info(i);
         let promises = dataNow.slice(start, stop).map((p) => {
           const delta = p.stablecoin ? pctStablePool : pct;
 
@@ -314,7 +315,7 @@ const main = async (timestamp = null) => {
 
   const data = [];
   for (const [chain, url] of Object.entries(chains)) {
-    console.log(chain);
+    logger.info(chain);
     data.push(
       await topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins)
     );

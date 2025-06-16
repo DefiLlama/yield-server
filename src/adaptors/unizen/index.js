@@ -1,5 +1,6 @@
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const BigNumber = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 const { ethABI, polygonABI } = require('./abis');

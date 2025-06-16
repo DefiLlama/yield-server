@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const abiPoolFactory = require('../velodrome-v1/abiPoolFactory.json');
 const abiPool = require('../velodrome-v1/abiPool.json');

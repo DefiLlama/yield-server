@@ -88,7 +88,7 @@ const poolsFunction = async () => {
       })
     );
   } catch (error) {
-    console.error('Failed to fetch mStable pools', error);
+    logger.error('Failed to fetch mStable pools', error);
 
     return [];
   }

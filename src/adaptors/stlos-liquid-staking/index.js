@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const sdk = require('@defillama/sdk');
 const sTlosAbi = require('./sTlos.json');
 const axios = require('axios');

@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const SHIBARIUM_CHAIN_NAME = 'shibarium';
 

@@ -3,6 +3,7 @@ const { request, gql } = require('graphql-request');
 const BigNumber = require('bignumber.js');
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const masterchefAbi = require('./masterchef.js');
 const SUBGRAPH_URL = sdk.graph.modifyEndpoint(
   sdk.graph.modifyEndpoint('6bg5PGSbcbiXVj6iTNNYz7CaJE8zdVZhZNNCYu8oYmPc')
@@ -219,7 +220,7 @@ const main = async (timestamp = Date.now() / 1000) => {
   const chainString = 'base';
   const pairs = await getPairs();
   const { weeklyVolumes, lastDayVolumes } = await getWeeklyVolumes(pairs);
-  console.log(weeklyVolumes, lastDayVolumes);
+  logger.info(weeklyVolumes, lastDayVolumes);
   const poolLength = (
     await sdk.api.abi.call({
       target: masterchef,
@@ -238,7 +239,7 @@ const main = async (timestamp = Date.now() / 1000) => {
       chain: chainString,
     })
   ).output.map((o) => o.output);
-  console.log(poolInfo);
+  logger.info(poolInfo);
   const wethPriceKey = `base:${WETH}`;
   const wethPrice = (
     await axios.get(`https://coins.llama.fi/prices/current/${wethPriceKey}`)

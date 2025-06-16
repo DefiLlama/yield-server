@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const { gql, request } = require('graphql-request');
 const { BigNumber, utils: etherUtils } = require('ethers');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const PoolViewerABI = require('./abi.json');
 const IGammaPoolABI = require('./IGammaPool.json');
 const IStakingRouterABI = require('./IStakingRouter.json');

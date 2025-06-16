@@ -34,4 +34,4 @@ module.exports = {
   url: 'https://app.naviprotocol.io/',
 };
 
-//poolsFunction().then(res => console.log(res));
+//poolsFunction().then(res => logger.info(res));

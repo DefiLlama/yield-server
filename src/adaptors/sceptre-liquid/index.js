@@ -84,7 +84,7 @@ async function main() {
       poolMeta: 'Unstaking Cooldown: 14.5days'
     }];
   } catch (error) {
-    console.error('Error fetching data:', error.message);
+    logger.error('Error fetching data:', error.message);
     throw new Error(`Failed to fetch data: ${error.message}`);
   }
 }

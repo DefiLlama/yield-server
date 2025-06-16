@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const fetch = require('node-fetch');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const ABI = require('./abi');
 const { default: BigNumber } = require('bignumber.js');
 

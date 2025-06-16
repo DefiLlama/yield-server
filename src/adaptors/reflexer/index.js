@@ -1,6 +1,7 @@
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { request, gql } = require('graphql-request');
 
 const ETH_JOIN = '0x2D3cD7b81c93f188F3CB8aD87c8Acc73d6226e3A';

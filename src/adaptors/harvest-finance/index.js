@@ -1,6 +1,7 @@
 const superagent = require('superagent');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { readFromS3 } = require('../../utils/s3');
 // no longer needed, see note below
 const farmsUrl =

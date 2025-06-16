@@ -2,8 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { promisify } = require('util');
 const cron = require('node-cron');
-const {logger} = require("./logger")
-
+const logger = require("../utils/logger");
 
 // Get all handler files
 const handlersDir = path.join(__dirname, '..', 'handlers');
@@ -14,9 +13,8 @@ function getTimestamp() {
     return new Date().toISOString();
 }
 
-function logMessage(message, type = 'info') {
-    const timestamp = getTimestamp();
-    logger.log(type, `[${timestamp}] [${type}] ${message}`);
+function logMessage(message) {
+    logger.info(message);
 }
 
 async function runHandlers() {
@@ -31,7 +29,7 @@ async function runHandlers() {
             const handler = require(path.join(handlersDir, handlerFile));
             
             if (typeof handler.handler === 'function') {
-                cron.schedule('* * * * *', handler.handler, {
+                cron.schedule('*/15 * * * *', handler.handler, {
                     noOverlap: true,
                 }).on('error', (error) => {
                     logMessage(`Cron error in ${handlerFile}: ${error.message}`, 'ERROR');

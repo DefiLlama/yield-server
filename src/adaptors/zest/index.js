@@ -68,7 +68,7 @@ async function getAddressBalances() {
 
         return processedBalances;
     } catch (error) {
-        console.error('Error fetching address balances:', error);
+        logger.error('Error fetching address balances:', error);
     }
 }
 
@@ -110,7 +110,7 @@ async function getZestPools() {
             }
 
         } catch (error) {
-            console.log(`Error fetching yields: ${error}`);
+            logger.info(`Error fetching yields: ${error}`);
         }
 
         try {
@@ -129,7 +129,7 @@ async function getZestPools() {
             tvlUsd = price * assetBalance;
             
         } catch (error) {
-            console.log(`Error fetching TVL: ${error}`);
+            logger.info(`Error fetching TVL: ${error}`);
         }
 
         pools.push({
@@ -146,7 +146,7 @@ async function getZestPools() {
   } catch (e) {
     if (e instanceof Error) {
         if (!e.message.includes('UnwrapFailure')) {
-            console.log(e);
+            logger.info(e);
         }
     }
     return [];

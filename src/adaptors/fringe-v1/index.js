@@ -32,7 +32,7 @@ const getPrices = async (chain, addresses) => {
         return pricesObj;
     
     } catch (error) {
-        console.log(error)
+        logger.info(error)
     }
 };
 
@@ -182,7 +182,7 @@ const allLendingTokens = async () => {
         }
     }
 
-    // console.log('allLendingTokens\n', lendingTokens);  // works all ok.
+    // logger.info('allLendingTokens\n', lendingTokens);  // works all ok.
     return lendingTokens;
 
 };

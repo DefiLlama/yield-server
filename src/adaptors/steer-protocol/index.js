@@ -1,6 +1,7 @@
 const { request } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const axios = require('axios');
 
 // add chain deployments and subgraph endpoints here
@@ -99,7 +100,7 @@ const getPools = async () => {
       });
       pools.push(...chainPools);
     } catch (err) {
-      console.log(err.message);
+      logger.info(err.message);
     }
   }
   return pools.filter((i) => utils.keepFinite(i));

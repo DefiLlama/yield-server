@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { ethers } = require('ethers');
 
 const xUSD = '0xe80772Eaf6e2E18B651F160Bc9158b2A5caFCA65';

@@ -2,6 +2,7 @@ const { default: request, gql } = require('graphql-request');
 const axios = require('axios');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const chain = {
   1: 'ethereum',

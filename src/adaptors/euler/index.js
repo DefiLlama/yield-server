@@ -6,6 +6,7 @@ const ethers = require('ethers');
 
 const EulerToolsClient = require('./EulerToolsClient');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abiRewardDistribution = require('./abiRewardDistribution');
 const abiStakingRewards = require('./abiStakingRewards');
 const abiEtoken = require('./abiEtoken');
@@ -23,8 +24,8 @@ const eulerClient = new EulerToolsClient({
   version: 'example script',
   endpoint: EULERSCAN_ENDPOINT,
   WebSocket,
-  onConnect: () => console.log('Euler History Client connected'),
-  onDisconnect: () => console.log('Euler History Client disconnected'),
+  onConnect: () => logger.info('Euler History Client connected'),
+  onDisconnect: () => logger.info('Euler History Client disconnected'),
 });
 
 const getGaugeData = () => {

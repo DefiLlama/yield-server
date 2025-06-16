@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 const BIG_10 = new BigNumber(10);
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { vaults, ChainId, FRONTEND } = require('./vaults');
 
 const MAI_ID = 'mimatic';

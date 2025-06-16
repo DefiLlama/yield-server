@@ -3,6 +3,7 @@ const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const gaugeABIEthereum = require('./abis/gauge_ethereum.json');
 const gaugeABIArbitrum = require('./abis/gauge_arbitrum.json');
 const gaugeABIPolygon = require('./abis/gauge_polygon.json');
@@ -408,7 +409,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
 
       x.rewardTokens = rewardTokens;
     } catch (err) {
-      console.log('failed for', pool.poolId);
+      logger.info('failed for', pool.poolId);
     }
   }
   return data;

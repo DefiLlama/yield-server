@@ -1,6 +1,7 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const chains = {
   polygon: {
@@ -116,7 +117,7 @@ const getApy = async () => {
 
         return [gnsStaking, ...vaults];
       } catch (error) {
-        console.error(`Error fetching APY data for ${chain}:`, error);
+        logger.error(`Error fetching APY data for ${chain}:`, error);
         return [];
       }
     })

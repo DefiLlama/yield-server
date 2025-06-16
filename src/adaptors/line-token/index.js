@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const BigNumber = require('bignumber.js');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const {
   LINE_CONTRACT_ADDRESS,

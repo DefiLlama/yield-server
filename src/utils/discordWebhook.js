@@ -1,9 +1,10 @@
 const fetch = require('node-fetch');
+const logger = require("../utils/logger");
 
 // copy pasta from defillama-server
 module.exports.sendMessage = async (message, webhookUrl, formatted = true) => {
   if (!webhookUrl || webhookUrl === '') {
-    console.log('No webhook URL provided');
+    logger.info('No webhook URL provided');
     return;
   }
 
@@ -21,7 +22,7 @@ module.exports.sendMessage = async (message, webhookUrl, formatted = true) => {
     return;
   }
 
-  console.log('Sending message to discord:', message);
+  logger.info('Sending message to discord:', message);
   // Example: https://gist.github.com/dragonwocky/ea61c8d21db17913a43da92efe0de634
   // Docs: https://gist.github.com/dragonwocky/ea61c8d21db17913a43da92efe0de634
   const response = await fetch(`${webhookUrl}?wait=true`, {
@@ -33,5 +34,5 @@ module.exports.sendMessage = async (message, webhookUrl, formatted = true) => {
       content: formattedMessage,
     }),
   }).then((body) => body.json());
-  console.log('Response from discord:', response);
+  logger.info('Response from discord:', response);
 };

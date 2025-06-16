@@ -1,5 +1,6 @@
 const { gql } = require('graphql-request');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const fetch = require('node-fetch');
 
 const USDX = '0xf3527ef8dE265eAa3716FB312c12847bFBA66Cef';
@@ -33,7 +34,7 @@ const poolsFunction = async (chainString, subgraphUrl, token) => {
     apyData.deposit_apy = rewardAccumulations[0].apy;
     apyData.tvl = rewardAccumulations[0].totalAssets;
   } catch (err) {
-    console.log('Error fetching token prices:', err);
+    logger.info('Error fetching token prices:', err);
     return {};
   }
 

@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { ethers } = require('ethers');
 const fetch = require('node-fetch');
 
@@ -56,7 +57,7 @@ const poolsFunction = async () => {
       return data.data;
     });
 
-  console.log(data_pricing, 'data_lllll');
+  logger.info(data_pricing, 'data_lllll');
 
   const zethPool = {
     pool: '0xb2C57D651dB0FcCc96cABda11191DF25E05B88b6',

@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { request, gql } = require('graphql-request');
 const graphs_url = 'https://yw-api-2-55s94.ondigitalocean.app/graphql';
 

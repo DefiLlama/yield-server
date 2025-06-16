@@ -5,6 +5,7 @@ const abiLendingPool = require('./abiLendingPool.json');
 const abiProtocolDataProvider = require('./abiProtocolDataProvider.json');
 const abiChefIncentiveController = require('./abiChefIncentiveController.json');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const lendingPool = '0x2409aF0251DCB89EE3Dee572629291f9B087c668';
 const protocolDataProvider = '0x17938eDE656Ca1901807abf43a6B1D138D8Cd521';

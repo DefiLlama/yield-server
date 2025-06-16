@@ -3,6 +3,7 @@ const axios = require('axios');
 const { ethers } = require('ethers');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { SECONDS_PER_YEAR, contracts, tokens } = require('./constants');
 
 const fixedPoint = ethers.utils.parseUnits('1');

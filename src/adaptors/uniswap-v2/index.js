@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const chains = {
@@ -112,7 +113,7 @@ const main = async (timestamp = null) => {
 
   for (const [chain, url] of Object.entries(chains)) {
     try {
-      console.log(`Fetching data for ${chain}...`);
+      logger.info(`Fetching data for ${chain}...`);
       const chainData = await topLvl(
         chain,
         url,
@@ -123,7 +124,7 @@ const main = async (timestamp = null) => {
       );
       data.push(...chainData);
     } catch (err) {
-      console.log(chain, err);
+      logger.info(chain, err);
     }
   }
 

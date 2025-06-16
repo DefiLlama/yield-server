@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const MASTER_CHEF = '0x3782C47E62b13d579fe748946AEf7142B45B2cf7';
 

@@ -7,6 +7,7 @@
  */
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 axios.interceptors.request.use((config) => {
   config.headers['key'] =

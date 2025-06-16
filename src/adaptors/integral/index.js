@@ -1,5 +1,6 @@
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const mainnetUrlSize = `https://size-api.integral.link/api/v6/pools?apiKey=00Gfs4iNa%2FXJDBkF%2B%2FX83SRqx3MXXAngJMkpx3lM%2FTU=&network=Mainnet`;
 const mainnetUrlFive = `https://five-api.integral.link/api/v1/pools?apiKey=00Gfs4iNa%2FXJDBkF%2B%2FX83SRqx3MXXAngJMkpx3lM%2FTU=&network=Mainnet`;

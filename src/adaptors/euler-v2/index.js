@@ -149,7 +149,7 @@ const getApys = async () => {
       });
       result.push(pools);
     } catch (err) {
-      console.error(`Error processing chain ${chain}:`, err);
+      logger.error(`Error processing chain ${chain}:`, err);
     }
   }
 

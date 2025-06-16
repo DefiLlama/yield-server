@@ -3,6 +3,7 @@ const { secondsInYear } = require('date-fns');
 const ethers = require('ethers');
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const superagent = require('superagent');
 const { rewardTokens } = require('../sommelier/config');
 

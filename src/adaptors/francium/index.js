@@ -1,5 +1,6 @@
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const FARM_FEE = 0.04;
 const apiBase = 'https://francium-data.s3-us-west-2.amazonaws.com/';
@@ -27,7 +28,7 @@ async function getPoolsData() {
   ]);
 
   if (!farmPoolData || !lendPoolData) {
-    // console.log({farmPoolData, lendPoolData});
+    // logger.info({farmPoolData, lendPoolData});
     throw new Error('Unexpected response from frcPoolsData');
     return;
   }

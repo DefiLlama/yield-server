@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const sdk = require('@defillama/sdk');
 const factoryAbi = require('./abis/factory.json');
 const pairAbi = require('./abis/pair.json');

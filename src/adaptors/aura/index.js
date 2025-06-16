@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const {
   boosterABI,
   stakingABI,
@@ -385,7 +386,7 @@ const main = async () => {
               ![ldoAddress, auraAddress].includes(baseToken)) ||
             !(`${chain}:${baseToken.toLowerCase()}` in tokenPrices)
           ) {
-            console.log(
+            logger.info(
               validPoolIds[i],
               'new reward token. please add support for',
               baseToken

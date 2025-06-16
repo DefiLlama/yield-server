@@ -35,7 +35,7 @@ const getMahaPrice = async () => {
 
     return mahaPrice.data.mahadao.usd;
   } catch (error) {
-    console.log('error fetching maha price');
+    logger.info('error fetching maha price');
   }
 };
 
@@ -108,7 +108,7 @@ const getPoolsData = async () => {
     );
   }
   return pools;
-  // console.log(pools);
+  // logger.info(pools);
 };
 
 const apy = async () => {

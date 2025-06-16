@@ -2,6 +2,7 @@ const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { zenBullAbi, eulerSimpleLens } = require('./abi');
 
 const poolsFunction = async () => {
@@ -83,7 +84,7 @@ const poolsFunction = async () => {
     ) -
       1) *
     100;
-  console.log(annualizedUsdcReturns);
+  logger.info(annualizedUsdcReturns);
 
   const chain = 'ethereum';
   const usdcPool = {

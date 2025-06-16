@@ -4,6 +4,7 @@ const BigNumber = require('bignumber.js');
 const ethers = require('ethers');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 BigNumber.config({ EXPONENTIAL_AT: [-1e9, 1e9] });
 

@@ -1,5 +1,6 @@
 const BigNumber = require('bignumber.js');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { calcRewardsAPY } = require('./utils/math.js');
 const { getMoneyMarkets, getTokenPrices, getExchangeRates, getRewardsBatches, getBoostedRewards, getBoostedColateralMap } = require('./utils/data.js');
 

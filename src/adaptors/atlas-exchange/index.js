@@ -1,6 +1,7 @@
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 CHAINS_API = {
   hemi: 'https://api.studio.thegraph.com/query/43776/atlas-analytics/version/latest',

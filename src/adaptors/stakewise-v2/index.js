@@ -3,6 +3,7 @@ const ethers = require('ethers');
 const BigNumber = require('bignumber.js');
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const secondsInYear = 31536000;
 const secondsInWeek = 7 * 60 * 60 * 24;

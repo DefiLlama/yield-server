@@ -46,7 +46,7 @@ const main = async () => {
 
       try {
         const ypoolInfo = YPoolInfo(symbol, chainId);
-        console.log(chainId, ypoolInfo);
+        logger.info(chainId, ypoolInfo);
 
         let ypoolLocked = 0;
         let provider = new ethers.providers.JsonRpcProvider(
@@ -77,7 +77,7 @@ const main = async () => {
           tvlUsd: Number(ypoolLocked) * tokenPrice,
         });
       } catch (err) {
-        console.log(err);
+        logger.info(err);
       }
     }
   }

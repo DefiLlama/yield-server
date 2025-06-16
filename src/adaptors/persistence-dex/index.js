@@ -3,6 +3,7 @@ const { request, gql } = require('graphql-request');
 const BigNumber = require('bignumber.js').default;
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const query = gql`
   {

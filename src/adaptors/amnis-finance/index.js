@@ -1,6 +1,7 @@
 const { default: BigNumber } = require('bignumber.js');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const AMNIS_RESOURCE_ACCOUNT ='0x111ae3e5bc816a5e63c2da97d0aa3886519e0cd5e4b046659fa35796bd11542a';
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';

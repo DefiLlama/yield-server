@@ -2,6 +2,7 @@ const superagent = require('superagent');
 const { mapKeys, camelCase } = require('lodash');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const API_URL = {
   ontology: 'https://flashapi.wing.finance/api/v1/userflashpooloverview',

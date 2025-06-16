@@ -1,6 +1,7 @@
 const fetch = require('node-fetch');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const uniquePools = new Set();
 const project = 'ghost';

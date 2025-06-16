@@ -8,6 +8,7 @@ const erc20ABI = require('./abis/abi-erc20.json');
 const apePriceABI = require('./abis/abi-ape-price-getter.json');
 const jungleFarmsABI = require('./abis/abi-jungle-farms.json');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { chunk } = require('lodash');
 const { request, gql, batchRequests } = require('graphql-request');
 const { CHAINS } = require('./config');

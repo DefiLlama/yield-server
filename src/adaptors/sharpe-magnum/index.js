@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const axios = require('axios');
 const ethers = require('ethers');
 const {abi} = require("./ABI")

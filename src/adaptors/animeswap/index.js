@@ -1,6 +1,7 @@
 const { default: BigNumber } = require('bignumber.js');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const DEPLOYER_ADDRESS = '0x16fe2df00ea7dde4a63409201f7f4e536bde7bb7335526a35d05111e68aa322c';
 const STAKING_ADDRESS = '0x8615f5671592532631e56c76ca09d332fae1cd03d463bc379eec1007973966ef';

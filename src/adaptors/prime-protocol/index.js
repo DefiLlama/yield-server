@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 // interface PoolType {
 //     pool: string;
@@ -430,7 +431,7 @@ const addRewardMarketPools = async (pools) => {
     const market = primeRewardMarketsData.rewardAssets[ra].market;
 
     for (let r = 0; r < market.rewards.length; r++) {
-      console.log(
+      logger.info(
         `\nmarket(${market.address})-reward(${market.rewards[r].rewardAssetAddress})`
       );
 
@@ -455,7 +456,7 @@ const addAllMarketPools = async (pools) => {
   for (let m = 0; m < primeAllMarketsData.markets.length; m++) {
     const market = primeAllMarketsData.markets[m];
 
-    console.log(`\nmarket(${market.address})`);
+    logger.info(`\nmarket(${market.address})`);
 
     let marketAlreadyAdded = false;
 
@@ -470,7 +471,7 @@ const addAllMarketPools = async (pools) => {
         await getPool('moonbeam', CHAIN_ID_TO_NETWORK[market.chainId], market)
       );
     } catch (err) {
-      console.log(market);
+      logger.info(market);
     }
   }
 };

@@ -6,6 +6,7 @@ const axios = require('axios');
 const BigNumber = require('bignumber.js');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const chain = 'bsc';
 

@@ -3,6 +3,7 @@ const { Web3 } = require('web3');
 const superagent = require('superagent');
 const { masterChefABI, lpABI } = require('./abis');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const MASTERCHEF_ADDRESS = '0x8eE78D4836B44944D393941A736b6DC23e33bc69';
 const sBASE = '0x616F5b97C22Fa42C3cA7376F7a25F0d0F598b7Bb';

@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const abi = require('./abi.json');
 const BigNumber = require('bignumber.js');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const POLY_BOOKKEEPER = '0x0A0846c978a56D6ea9D2602eeb8f977B21F3207F';
 const POLY_CONTRACT_READER = '0xCa9C8Fba773caafe19E6140eC0A7a54d996030Da';

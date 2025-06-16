@@ -85,7 +85,7 @@ const getGenStratAprsForSystem = async (settings) => {
       }
     }
   } catch (e) {
-    console.error(e);
+    logger.error(e);
   }
 
   return results;

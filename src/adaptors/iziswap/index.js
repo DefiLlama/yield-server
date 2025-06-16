@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const url = 'https://izumi.finance/api/v1/farm/dashboard/?status=LIVE';
 

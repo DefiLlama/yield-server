@@ -3,6 +3,7 @@ const multiRewardFarms = require('./multi-reward-farms');
 const farms = require('./farms');
 const magicGlp = require('./magic-glp');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const getApy = async () => {
   const pools = [

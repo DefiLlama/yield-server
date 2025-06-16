@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
  
 async function main() {
     const apyData = await utils.getData(

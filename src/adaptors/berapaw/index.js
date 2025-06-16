@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const sdk = require('@defillama/sdk');
 
 const SECONDS_PER_YEAR = 31557600; // 365.25 days per year

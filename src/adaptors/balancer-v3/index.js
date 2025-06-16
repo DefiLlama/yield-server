@@ -1,5 +1,6 @@
 const { gql, request } = require('graphql-request');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const query = gql`
   query GetPools($chain: GqlChain!) {
@@ -69,7 +70,7 @@ const getV3Pools = async (backendChain, chainString) => {
       };
     });
   } catch (error) {
-    console.error(
+    logger.error(
       `Error fetching Balancer V3 pools for ${chainString}:`,
       error
     );

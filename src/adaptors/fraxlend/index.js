@@ -2,6 +2,7 @@ const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 const BIG_10 = new BigNumber('10');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const HOUR = 60 * 60;
 const DAY = 24 * HOUR;

@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const SUPPORTED_PROTOCOLS = {
   ethereum: ['curvelend', 'fraxlend']
@@ -9,7 +10,7 @@ const fetchPairsForProtocol = async (chain, protocol) => {
     const response = await utils.getData(`https://api.hippo.army/v1/protocols/${chain}/${protocol}/pairs`);
     return response.pairs || [];
   } catch (error) {
-    console.error(`Error fetching ${protocol} pairs for ${chain}:`, error);
+    logger.error(`Error fetching ${protocol} pairs for ${chain}:`, error);
     return [];
   }
 };

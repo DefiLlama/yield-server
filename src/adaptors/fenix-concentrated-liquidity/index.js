@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { request, gql } = require('graphql-request');
 
 const API_URL = `https://www.fenixfinance.io/api/blaze/liquidity/rewards`;
@@ -48,7 +49,7 @@ const getPairs = async () => {
 
     return pools;
   } catch (error) {
-    console.error('Error in getPairs:', error);
+    logger.error('Error in getPairs:', error);
     throw error;
   }
 };
@@ -60,7 +61,7 @@ const getApy = async () => {
     const poolsRes = await axios.get(
       `${API_URL}?${pairs.map((pair) => `pools=${pair.id}`).join('&')}`
     );
-    // console.log('Pools rewards sample:', poolsRes.data);
+    // logger.info('Pools rewards sample:', poolsRes.data);
 
     const { coins: fnxPrice } = await utils.getData(
       `https://coins.llama.fi/prices/current/blast:${FNX_ADDRESS}?searchWidth=4h`
@@ -100,7 +101,7 @@ const getApy = async () => {
     });
     return pools;
   } catch (error) {
-    console.error('Error in getApy:', error);
+    logger.error('Error in getApy:', error);
     throw error;
   }
 };

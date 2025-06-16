@@ -5,6 +5,7 @@ const ADMIN_CONTRACT_ADDRESS = '0xf7Cc67326F9A1D057c1e4b110eF6c680B13a1f53';
 const GRAI_ADDRESS = '0x15f74458aE0bFdAA1a96CA1aa779D715Cc1Eefe4';
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 // const URL = 'https://api.instadapp.io/defi/mainnet/liquity/trove-types';
 
 const ABIS = {
@@ -151,8 +152,8 @@ const main = async () => {
     ABIS.getValidCollateral
   );
   const graiPrice = await fetchPrice(GRAI_ADDRESS);
-  // console.log('\nCollaterals:\n', collaterals);
-  // console.log(`GRAI price -> ${graiPrice}`);
+  // logger.info('\nCollaterals:\n', collaterals);
+  // logger.info(`GRAI price -> ${graiPrice}`);
 
   const pools = await Promise.all(
     collaterals.map(async (collateral) => {
@@ -181,12 +182,12 @@ const main = async () => {
       ]);
 
       /*   
-      console.log(`ERC20.getSymbol() -> ${symbol}`);
-      console.log(`${symbol} ERC20.price() -> ${assetPrice}`);
-      console.log(`${symbol} VesselManager.getEntireSystemColl() -> ${vesselAssetTvl}`);
-      console.log(`${symbol} VesselManager.getEntireSystemDebt() -> ${mintedGrai}`);
-      console.log(`${symbol} AdminContract.getMCR() -> ${mcr}`);
-      console.log(`${symbol} AdminContract.getBorrowingFee() -> ${borrowingFee}`); */
+      logger.info(`ERC20.getSymbol() -> ${symbol}`);
+      logger.info(`${symbol} ERC20.price() -> ${assetPrice}`);
+      logger.info(`${symbol} VesselManager.getEntireSystemColl() -> ${vesselAssetTvl}`);
+      logger.info(`${symbol} VesselManager.getEntireSystemDebt() -> ${mintedGrai}`);
+      logger.info(`${symbol} AdminContract.getMCR() -> ${mcr}`);
+      logger.info(`${symbol} AdminContract.getBorrowingFee() -> ${borrowingFee}`); */
 
       const totalSupplyUsd = (vesselAssetTvl * assetPrice) / 1e18;
       const totalBorrowUsd = (mintedGrai * graiPrice) / 1e18;

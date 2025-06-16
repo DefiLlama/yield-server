@@ -5,6 +5,7 @@ const { request, gql } = require('graphql-request');
 
 const { masterChefABI, lpTokenABI } = require('./abis');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const RPC_URL = 'https://evm.cronos.org/';
 const API_URL = 'https://graph.cronoslabs.com/subgraphs/name/vvs/exchange';

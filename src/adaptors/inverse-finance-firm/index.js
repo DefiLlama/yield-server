@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const BigNumber = require('bignumber.js');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abi = require('./abi');
 const path = require('path');
 const ERC4626abi = require('./ERC4626.json');

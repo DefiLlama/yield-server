@@ -9,8 +9,8 @@
     "build": "sls package",
     "test": "jest",
     "migrate": "node-pg-migrate",
-    "start:api": "OTEL_SERVICE_NAME=yield-api node -r ./src/scripts/tracing.js -r ./src/scripts/logger.js ./src/api/server.js",
-    "start:cron": "OTEL_SERVICE_NAME=yield-cron node -r ./src/scripts/tracing.js -r ./src/scripts/logger.js ./src/scripts/handlers.js",
+    "start:api": "OTEL_SERVICE_NAME=yield-api node -r ./src/tracing.js ./src/api/server.js",
+    "start:cron": "OTEL_SERVICE_NAME=yield-cron node -r ./src/tracing.js ./src/scripts/handlers.js",
     "dev": "nodemon ./src/api/server.js"
   },
   "author": "",

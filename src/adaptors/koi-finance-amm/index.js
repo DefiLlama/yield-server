@@ -5,6 +5,7 @@ const { request, gql } = require('graphql-request');
 
 const { factoryABI, lpTokenABI } = require('./abi');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const axios = require('axios');
 
 //const web3 = new Web3(RPC_URL);

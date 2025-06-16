@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const {BigNumber, FixedFormat, FixedNumber} = require('@ethersproject/bignumber');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abi = require('./abi.json');
 const voterProxy = '0xe96c48C5FddC0DC1Df5Cf21d68A3D8b3aba68046';
 const masterWombat = '0x489833311676B566f888119c29bd997Dc6C95830';
@@ -258,7 +259,7 @@ async function apy() {
         wom,
         quo
     ])), chain);
-    // console.log(pricesBySymbol, pricesByAddress);
+    // logger.info(pricesBySymbol, pricesByAddress);
 
     const yearSeconds = 365 * 24 * 60 * 60;
     const multiplier18 = getMultiplier();

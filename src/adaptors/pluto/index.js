@@ -1,5 +1,6 @@
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const CLIENT_ID = "726755f8-ff00-4376-ad3a-259537bfac80"
 const CLIENT_KEY = "736a9e0729bac973ebd5b4df653ba133c5ee7c105852ce111eb74bd7f7e94c56"

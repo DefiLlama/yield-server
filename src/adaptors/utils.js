@@ -4,6 +4,8 @@ const { request, gql } = require('graphql-request');
 const { chunk } = require('lodash');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
+const logger = require("../utils/logger");
+
 
 exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'xdai') return 'Gnosis';
@@ -154,7 +156,7 @@ exports.getBlocks = async (
     const thr =
       chainString === 'ethereum' ? 300 : chainString === 'cronos' ? 6000 : 3000;
     if (blockDelta > thr) {
-      console.log(`block: ${block}, blockGraph: ${blockGraph}`);
+      logger.info(`block: ${block}, blockGraph: ${blockGraph}`);
       throw new Error(`Stale subgraph of ${blockDelta} blocks!`);
     }
 

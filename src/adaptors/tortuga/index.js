@@ -1,6 +1,7 @@
 const { default: BigNumber } = require('bignumber.js');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const TGOV_ADDRESS =
   '0x84d7aeef42d38a5ffc3ccef853e1b82e4958659d16a7de736a29c55fbbeb0114';

@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const zunETHAddr = "0xc2e660C62F72c2ad35AcE6DB78a616215E2F2222";
 const zunETHApsAddr = "0x5Ab3aa11a40eB34f1d2733f08596532871bd28e2";

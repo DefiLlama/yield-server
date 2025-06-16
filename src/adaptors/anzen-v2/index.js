@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const USDz = '0xA469B7Ee9ee773642b3e93E842e5D9b5BaA10067';
 const sUSDz = '0x547213367cfb08ab418e7b54d7883b2c2aa27fd7';
@@ -37,7 +38,7 @@ const apy = async () => {
     })
   ).output.sort((a, b) => b.blockNumber - a.blockNumber);
 
-  console.log(logs[0]);
+  logger.info(logs[0]);
   // rewards are now beeing streamed every week, which we scale up to a year
   const rewardsReceived = parseInt(logs[0].topics[1] / 1e18);
   const aprBase = ((rewardsReceived * 365 / 7) / tvlUsd) * 100;

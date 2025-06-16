@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const filHubPool = '0xfeB16A48dbBB0E637F68215b19B4DF5b12449676';
 const sdkChain = 'filecoin';
@@ -30,7 +31,7 @@ const getApy = async () => {
     chain: sdkChain,
   });
 
-  console.log('getFilAPY: ', parseFloat(getFilAPY / 100));
+  logger.info('getFilAPY: ', parseFloat(getFilAPY / 100));
 
   const owner = '0xe012f3957226894b1a2a44b3ef5070417a069dc2';
   const validators = await sdk.api2.abi.call({

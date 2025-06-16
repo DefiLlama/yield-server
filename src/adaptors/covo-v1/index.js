@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abi = require('./abis/abi.json');
 const { request, gql } = require('graphql-request');
 const BigNumber = require('bignumber.js');

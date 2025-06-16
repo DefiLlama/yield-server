@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const BigNumber = require("bignumber.js")
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const veth = '0x4bc3263eb5bb2ef7ad9ab6fb68be80e43b43801f';
 const veth_1='0xc3d088842dcf02c13699f936bb83dfbbc6f721ab'

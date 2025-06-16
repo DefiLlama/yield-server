@@ -1,6 +1,7 @@
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const rSavingsRateAbi = require('./abis/RSavingsRate.json');
 
 const RR = {

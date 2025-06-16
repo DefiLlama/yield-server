@@ -4,6 +4,7 @@ const { default: BigNumber } = require('bignumber.js');
 
 const BIG_10 = new BigNumber('10');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const TOKEN = '0x738d1115B90efa71AE468F1287fc864775e23a31';
 const TARGET = '0x5475611Dffb8ef4d697Ae39df9395513b6E947d7';

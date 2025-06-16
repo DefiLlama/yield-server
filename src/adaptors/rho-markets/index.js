@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abis = require('./rho-markets.json');
 const ethers = require('ethers');
 

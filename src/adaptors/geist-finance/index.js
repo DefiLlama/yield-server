@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abi = require('./abi.json');
 const abiDataProvider = require('./abiDataProvider.json');
 const pools = require('./pools.json');

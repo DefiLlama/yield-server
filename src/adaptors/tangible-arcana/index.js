@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const RebaseManager = require('./abis/RebaseManager.json');
 const PointsVault = require('./abis/PointsBoostingVault.json');

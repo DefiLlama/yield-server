@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const poolsFunction = async () => {
   const get = await utils.getData('https://api.ellipsis.finance/api/getAPRs');

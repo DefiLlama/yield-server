@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 // ignore pools with TVL below the threshold
 const MIN_TVL_USD = 100000;
@@ -68,9 +69,9 @@ const formatAddress = (addr) => {
 }
 
 const getApy = async () => {
-    // console.log("Requesting pools list")
+    // logger.info("Requesting pools list")
     // const pool_list = (await utils.getData('https://api.ston.fi/v1/pools')).pool_list;
-    console.log("Requesting assets list")
+    logger.info("Requesting assets list")
     const assetsList = (await utils.getData(GRAPHQL_ENDPOINT, {
         query: ASSETS_QUERY,
         operationName: 'GetAssets'
@@ -85,9 +86,9 @@ const getApy = async () => {
             symbol: asset.symbol
         }
     }
-    console.log(`Inited ${Object.keys(assetInfo).length} assets`);
+    logger.info(`Inited ${Object.keys(assetInfo).length} assets`);
 
-    console.log("Requesting pools list")
+    logger.info("Requesting pools list")
     const poolsList = (await utils.getData(GRAPHQL_ENDPOINT, {
         query: POOLS_QUERY,
         operationName: 'GetPools'
@@ -137,9 +138,9 @@ const getApy = async () => {
             underlyingTokens: [formatAddress(leftAddr), formatAddress(rightAddr)]
         }
     }
-    console.log(`Inited ${Object.keys(poolsInfo).length} pools`);
+    logger.info(`Inited ${Object.keys(poolsInfo).length} pools`);
 
-    console.log("Requesting boosts list");
+    logger.info("Requesting boosts list");
     const boostsList = (await utils.getData(GRAPHQL_ENDPOINT, {
         query: BOOSTS_QUERY,
         operationName: 'GetBoosts'
@@ -148,7 +149,7 @@ const getApy = async () => {
     // rewards in USD per pool for each token
     const rewardsPerPool = {};
     for (const boost of boostsList) {
-        // console.log(boost)
+        // logger.info(boost)
         if (!(boost.asset in assetInfo)) {
             console.warn("Boosted asset not in assets list", boost);
             continue;
@@ -175,7 +176,7 @@ const getApy = async () => {
         }
 
         const pool = rewardsPerPool[address];
-        // console.log(pool)
+        // logger.info(pool)
         let totalRewards = 0;
         let rewardTokens = [];
         for (const reward of Object.values(pool)) {
@@ -195,9 +196,9 @@ const getApy = async () => {
             apyReward: 100 * apyReward,
             rewardTokens: rewardTokens
         }
-        console.log(rewardTokens)
+        logger.info(rewardTokens)
     }
-    // console.log(boostedApy)
+    // logger.info(boostedApy)
 
     const pools = Object.keys(poolsInfo)
         .map((pool_address) => {

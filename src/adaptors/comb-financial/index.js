@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const mappings = require('./mappings.json');
 
 const rewardToken = '0xaE45a827625116d6C0C40B5D7359EcF68F8e9AFD'; //COMB Token

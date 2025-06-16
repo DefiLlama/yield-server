@@ -1,5 +1,6 @@
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const fetchApy = async () => {
   const { data: apyData } = await axios.get(

@@ -7,6 +7,7 @@ const erc20Abi = require('./abi/ERC20.json');
 const BigNumber = require('bignumber.js');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const { Web3 } = require('web3');
 

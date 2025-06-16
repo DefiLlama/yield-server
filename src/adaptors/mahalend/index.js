@@ -3,6 +3,7 @@ const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { aTokenAbi } = require('../aave-v3/abi');
 
 const SECONDS_PER_YEAR = 31536000;

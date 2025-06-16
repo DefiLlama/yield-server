@@ -1,5 +1,6 @@
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const BASE_URL = 'https://us-central1-psyfi-api.cloudfunctions.net/';
 

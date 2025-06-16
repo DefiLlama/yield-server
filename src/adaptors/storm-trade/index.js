@@ -1,10 +1,11 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const GRAPHQL_ENDPOINT = 'https://api5.storm.tg/graphql';
 
 
 const getVault = async (address, price, symbol, token) => {
-    console.log("Requesting vault " + address)
+    logger.info("Requesting vault " + address)
     const vault = (await utils.getData(GRAPHQL_ENDPOINT, {
         query: `
         query {
@@ -22,7 +23,7 @@ const getVault = async (address, price, symbol, token) => {
   }
 }`
     })).data.getVault;
-    console.log(vault);
+    logger.info(vault);
     return {
         pool: `${address}-ton`.toLowerCase(),
         chain: 'Ton',
@@ -37,7 +38,7 @@ const getVault = async (address, price, symbol, token) => {
 
 
 const getApr = async () => {
-    console.log("Requesting vaults list")
+    logger.info("Requesting vaults list")
     const TON = 'ton:EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c';
     const NOT = 'ton:EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT';
     const price = async (token) => (await utils.getData(`https://coins.llama.fi/prices/current/${token}`)).coins[token].price;

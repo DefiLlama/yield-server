@@ -5,6 +5,7 @@ const { request, gql } = require('graphql-request');
 
 const { masterChefABI, lpTokenABI, stakeABI, oracleAbi } = require('./abis');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { fetchURL } = require('../../helper/utils');
 
 const RPC_URL = 'https://rpc.ftm.tools/';

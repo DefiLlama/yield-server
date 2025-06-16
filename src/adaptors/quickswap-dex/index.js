@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const url = sdk.graph.modifyEndpoint(
   'FnbpmBoXSidpFCghB5oxEb7XBUyGsSmyyXs9p8t3esvF'

@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 
@@ -676,7 +677,7 @@ const topLvl = async (chainString, url, timestamp) => {
     poolData = await Promise.all(poolData);
     return poolData;
   } catch (e) {
-    console.log(e);
+    logger.info(e);
     return [];
   }
 };

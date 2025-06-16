@@ -2,6 +2,7 @@ const { request, gql } = require('graphql-request');
 
 const { getLpTokens } = require('./utils');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const url =
   'https://graph-bsc-mainnet.babydoge.com/subgraphs/name/babydoge/faas';

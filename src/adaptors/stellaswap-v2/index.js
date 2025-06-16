@@ -3,6 +3,7 @@ const { request, gql } = require('graphql-request');
 const axios = require('axios');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abiMasterchef = require('./abiMasterchef.js');
 const abiLpToken = require('./abiLpToken.js');
 const abiStableSwap = require('./abiStableSwap.js');

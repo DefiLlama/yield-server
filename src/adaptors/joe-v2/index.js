@@ -3,6 +3,7 @@ const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const chains = {
   avalanche: sdk.graph.modifyEndpoint(

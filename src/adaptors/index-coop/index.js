@@ -4,6 +4,7 @@ const { ethers } = require('ethers');
 const superagent = require('superagent');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const chainId = {
   Ethereum: 1,
@@ -50,7 +51,7 @@ const buildPool = async (index) => {
       apy,
     };
   } catch (err) {
-    console.log(err);
+    logger.info(err);
   }
 };
 

@@ -4,6 +4,7 @@ const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { aTokenAbi } = require('../aave-v3/abi');
 const loopStrategyAbi = require('./loop-strategy-abi.json');
 const ilmRegistryAbi = require('./ilm-registry-abi.json');
@@ -471,7 +472,7 @@ const ilmApys = async () => {
 const apy = async () => {
   const apys = await Promise.all([lendingPoolsApy(), ilmApys()]);
 
-  console.log('apys ', apys);
+  logger.info('apys ', apys);
 
   return apys.flat().filter((p) => utils.keepFinite(p));
 };

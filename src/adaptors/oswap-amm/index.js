@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const OSWAP_STATS_ENDPOINT = 'https://v2-stats.oswap.io/api/v1';
 const LIQUIDITY_PROVIDER_ENDPOINT = 'https://liquidity.obyte.org';

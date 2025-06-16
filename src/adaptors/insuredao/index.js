@@ -2,6 +2,7 @@
 // const superagent = require('superagent');
 // const { default: BigNumber } = require('bignumber.js');
 // const utils = require('../utils');
+const logger = require("../../utils/logger");
 // const abi = require('./abis/abi.json');
 // const { request, gql } = require('graphql-request');
 // const dayjs = require('dayjs');

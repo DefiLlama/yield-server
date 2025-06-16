@@ -1,6 +1,8 @@
 const express = require('express');
 const helmet = require('helmet');
 const { Redis } = require("ioredis");
+const logger = require("../utils/logger");
+
 
 const redis = new Redis(process.env.REDIS_URL);
 
@@ -58,7 +60,7 @@ app.use(redisCache)
 app.use('/', [yields, config, median, perp, enriched, lsd, risk]);
 
 function errorHandler(err, req, res, next) {
-  console.log(err)
+  logger.error(err)
   res.status(500)
   res.render('error', { error: err })
 }
@@ -66,7 +68,7 @@ function errorHandler(err, req, res, next) {
 app.use(errorHandler)
 
 process.on('uncaughtException', (err) => {
-  console.error('uncaughtException:', err.message);
+  logger.error('uncaughtException:', err.message);
   process.exit(1);
 });
 

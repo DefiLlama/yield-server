@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const { gql, request } = require('graphql-request');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const UNIT_ADDRESS = '0xb95fB324b8A2fAF8ec4f76e3dF46C718402736e2';
 

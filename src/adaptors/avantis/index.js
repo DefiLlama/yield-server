@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const { chunkArray, calculateTrancheTotal } = require('./helpers');

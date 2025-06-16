@@ -1,6 +1,7 @@
 const fetch = require('node-fetch');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const baseUrl = 'https://api.solend.fi';
 const configEndpoint = `${baseUrl}/v1/markets/configs`;

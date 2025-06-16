@@ -3,6 +3,7 @@ const { request, gql } = require('graphql-request');
 const axios = require('axios');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const urlFarm =
   'https://pool-farm.kyberswap.com/<CHAIN>/api/v1/elastic/farm-pools?page=1&perPage=10000';

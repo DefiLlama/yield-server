@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const API_URL =
   'https://api.instadapp.io/v2/mainnet/lite/users/0x0000000000000000000000000000000000000000/vaults';

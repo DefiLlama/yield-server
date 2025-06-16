@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const baseUrl = 'https://2ch9hbg8hh.execute-api.us-east-1.amazonaws.com/dev/api';
 const ftmUrl = baseUrl+'/vaults/0xfa';

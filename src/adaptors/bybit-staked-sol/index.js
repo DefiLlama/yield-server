@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { getTotalSupply } = require('../utils');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const BBSOL_ADDRESS = 'Bybit2vBJGhPF52GBdNaQfUJ6ZpThSgHBobjWZpLPb4B';
 const priceKey = `solana:${BBSOL_ADDRESS}`;

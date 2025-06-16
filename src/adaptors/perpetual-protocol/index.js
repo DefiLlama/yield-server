@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const vaultAbi = require('./abi/QuoteVault');
 const erc20abi = require('./abi/erc20');

@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const BigNumberJs = require('bignumber.js');
 const ABI = require('./abi.json');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const {
   getExtraRewardInfos,
   getExtraRewardTokenStaticDatas,

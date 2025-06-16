@@ -1,5 +1,6 @@
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const constants = require('./constants');
 const { getPoolsQuery } = require('./query');
 const {
@@ -157,7 +158,7 @@ const getLPTokensDetails = async (token0, token1, poolPrice, network) => {
         uniswapPrice = '0';
       }
     } catch (err) {
-      console.error(`err retrieving uniswap price: ${err.message}`);
+      logger.error(`err retrieving uniswap price: ${err.message}`);
       uniswapPrice = '0';
     }
     token0Details.price = uniswapPrice;
@@ -177,7 +178,7 @@ const getLPTokensDetails = async (token0, token1, poolPrice, network) => {
         uniswapPrice = '0';
       }
     } catch (err) {
-      console.error(`err retrieving uniswap price: ${err.message}`);
+      logger.error(`err retrieving uniswap price: ${err.message}`);
       uniswapPrice = '0';
     }
     token1Details.price = uniswapPrice;
@@ -219,7 +220,7 @@ const calculateTVL = (token0Price, token1Price, poolBalances) => {
       tvl,
     };
   } catch (err) {
-    console.error(`error calculating TVL: ${err}`);
+    logger.error(`error calculating TVL: ${err}`);
     return {
       t0Value: '0',
       t1Value: '0',
@@ -265,7 +266,7 @@ const calculateAPY = (
       ? amoutPerYearTotalNum
       : (amoutPerYearTotalNum * 100) / tvlUsd;
   } catch (err) {
-    console.error(`error calculating APY: ${err}`);
+    logger.error(`error calculating APY: ${err}`);
     return 0;
   }
 };
@@ -390,7 +391,7 @@ const getPools = async () => {
         data: { query: getPoolsQuery },
       })
     )
-  ).catch((err) => console.error('Pools subgraph request failed:', err));
+  ).catch((err) => logger.error('Pools subgraph request failed:', err));
   const poolsInfo = responses.map((res) => res.data.data.pools);
 
   const pools = [];

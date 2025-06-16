@@ -4,6 +4,7 @@ const abiLendingPool = require('./abiLendingPool');
 const abiProtocolDataProvider = require('./abiProtocolDataProvider');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const chains = {
   ethereum: {

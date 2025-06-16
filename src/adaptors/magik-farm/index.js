@@ -11,6 +11,7 @@
 // 2.  look at total apy field
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 // make sure that the pool files under ./config/vault are up to date
 const magikConfig = require('./config');
 

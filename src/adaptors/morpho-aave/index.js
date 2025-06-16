@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const subgraphMorphoAave = sdk.graph.modifyEndpoint('FKVL7B5yEHvz1GKB9hFpwp64YLN5KXS27aWpQLngyECx');
 

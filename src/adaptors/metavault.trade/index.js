@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abi = require('./abis/abi.json');
 
 const polygonMvxAddress = '0x2760e46d9bb43dafcbecaad1f64b93207f9f0ed7';

@@ -127,9 +127,9 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
 
     test('Print duplicated pool IDs and their existing projects', () => {
       if (duplicatedPoolIds.length > 0) {
-        console.log('\nDuplicated pool IDs found:');
+        logger.log('\nDuplicated pool IDs found:');
         duplicatedPoolIds.forEach((poolId) => {
-          console.log(`Pool ID: ${poolId} is already used by another project`);
+          logger.log(`Pool ID: ${poolId} is already used by another project`);
         });
       }
       expect(duplicatedPoolIds.length).toBe(0);

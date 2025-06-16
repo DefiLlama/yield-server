@@ -2,6 +2,7 @@ const superagent = require('superagent');
 const { default: BigNumber } = require('bignumber.js');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const {
   CRV_API_BASE_URL,
@@ -400,7 +401,7 @@ const main = async () => {
   try {
     await Promise.all(responses);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
   }
 
   // correct these pools reward Apy

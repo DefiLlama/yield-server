@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const BigNumber = require('bignumber.js');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const _ = require("lodash")
 const BoosterABI = require('./abis/Booster.json');
 const MWABI = require('./abis/MasterWombat.json');
@@ -64,8 +65,8 @@ async function tokenToBUSD(token, amount_in, chain) {
         return result;
     }
     catch (error) {
-        console.log(error);
-        console.log(token);
+        logger.info(error);
+        logger.info(token);
     }
 }
 
@@ -88,7 +89,7 @@ async function getLpUsdOut(pool, amt, chain) {
             tokenOut = tokens.find((t) => miscEpt.includes(t));
         }
         if (tokenOut === zeroAddress || tokenOut === undefined) {
-            console.log(`No endpoint token in pool ${pool}`);
+            logger.info(`No endpoint token in pool ${pool}`);
             return 0
         }
         else {

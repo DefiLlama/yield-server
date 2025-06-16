@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { BigNumber } = require('ethers');
 const { AddressZero } = require('@ethersproject/constants');
 
@@ -70,12 +71,12 @@ function apy(apr, aprWeights) {
 
   const apy1 = (1 + apr1 / NUMBER_OF_PERIODS) ** NUMBER_OF_PERIODS;
 
-  // console.log("weight1:", Number(formatBigNumber(aprWeights[0], 4)));
-  // console.log("weight2:", Number(formatBigNumber(aprWeights[1], 4)));
-  // console.log("weight3:", Number(formatBigNumber(aprWeights[2], 4)));
-  // console.log("apr1:", apr1);
-  // console.log("apr2:", apr2);
-  // console.log("apy1:", apy1);
+  // logger.info("weight1:", Number(formatBigNumber(aprWeights[0], 4)));
+  // logger.info("weight2:", Number(formatBigNumber(aprWeights[1], 4)));
+  // logger.info("weight3:", Number(formatBigNumber(aprWeights[2], 4)));
+  // logger.info("apr1:", apr1);
+  // logger.info("apr2:", apr2);
+  // logger.info("apy1:", apy1);
 
   return apy1 + (apr2 / apr1) * (apy1 - 1) - 1;
 }
@@ -206,11 +207,11 @@ async function farming(
       : aprBase;
     const apyReward = aprReward;
 
-    // console.log(tokensSymbols);
-    // console.log("aprBase:", aprBase.toString());
-    // console.log("aprReward:", aprReward.toString());
-    // console.log("apyBase:", apyBase.toString());
-    // console.log("apyReward:", apyReward.toString());
+    // logger.info(tokensSymbols);
+    // logger.info("aprBase:", aprBase.toString());
+    // logger.info("aprReward:", aprReward.toString());
+    // logger.info("apyBase:", apyBase.toString());
+    // logger.info("apyReward:", apyReward.toString());
 
     res.push({
       pool: farm.toLowerCase(),
@@ -283,8 +284,8 @@ async function staking(chain, aprWeights, rewardToken, BLUES_PRICE) {
       aprWeights
     );
 
-    // console.log("aprReward:", formatBigNumber(aprReward.toString(), 4));
-    // console.log("apyReward:", apyReward.toString());
+    // logger.info("aprReward:", formatBigNumber(aprReward.toString(), 4));
+    // logger.info("apyReward:", apyReward.toString());
 
     res.push({
       pool: `${staking}`.toLowerCase(),

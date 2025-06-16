@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const { GraphQLClient, gql } = require('graphql-request');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const fetch = require('node-fetch');
 
 const ethereumEndpoint = sdk.graph.modifyEndpoint('G4tmH3LNcPYUzuXx1Lqv7egUzyQpagNWn8MCpwMtEVFF');

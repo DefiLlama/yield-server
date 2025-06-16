@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const sdk = require('@defillama/sdk');
 
 const vaultData = async () => {
@@ -24,9 +25,9 @@ const vaultData = async () => {
           tokens: tokens,
         });
         const usdBalance = await ethereumApi.getUSDValue();
-        console.log('Vault TVL: ', usdBalance);
+        logger.info('Vault TVL: ', usdBalance);
 
-        console.log('Vault Symbol: ', vaultSymbol);
+        logger.info('Vault Symbol: ', vaultSymbol);
         const pool = {
           pool: `${vaultAddress}-ethereum`,
           chain: 'Ethereum',
@@ -37,7 +38,7 @@ const vaultData = async () => {
         };
         pools.push(pool);
       } catch (error) {
-        console.error(`Error processing vault: ${vaultAddress}`, error);
+        logger.error(`Error processing vault: ${vaultAddress}`, error);
       }
     })
   );

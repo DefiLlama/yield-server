@@ -1,7 +1,8 @@
 const superagent = require('superagent');
 const ss = require('simple-statistics');
-
+const logger = require("../utils/logger");
 const utils = require('../utils/s3');
+
 const {
   getYieldFiltered,
   getYieldOffset,
@@ -17,10 +18,10 @@ module.exports.handler = async (event, context) => {
 };
 
 const main = async () => {
-  console.log('START DATA ENRICHMENT');
+  logger.info('START DATA ENRICHMENT');
 
   // ---------- get lastet unique pool
-  console.log('\ngetting pools');
+  logger.info('\ngetting pools');
   let data = await getYieldFiltered();
 
   // remove aave v2 frozen assets from dataEnriched (we keep ingesting into db, but don't
@@ -42,7 +43,7 @@ const main = async () => {
 
   // ---------- add additional fields
   // for each project we get 3 offsets (1D, 7D, 30D) and calculate absolute apy pct-change
-  console.log('\nadding pct-change fields');
+  logger.info('\nadding pct-change fields');
   const days = ['1', '7', '30'];
   let dataEnriched = [];
   const failed = [];
@@ -64,9 +65,9 @@ const main = async () => {
         ...dataProject.map((p) => enrich(p, days, offsets)),
       ];
     } catch (err) {
-      console.log(err);
+      logger.info(err);
       failed.push(adaptor);
-      console.log('defaulting to main data');
+      logger.info('defaulting to main data');
       dataEnriched = [
         ...dataEnriched,
         ...data.filter((el) => el.project === adaptor),
@@ -83,7 +84,7 @@ const main = async () => {
   }));
 
   // add info about stablecoin, exposure etc.
-  console.log('\nadding additional pool info fields');
+  logger.info('\nadding additional pool info fields');
   const stablecoins = (
     await superagent.get(
       'https://stablecoins.llama.fi/stablecoins?includePrices=true'
@@ -110,7 +111,7 @@ const main = async () => {
   // add ML and overview plot fields
   // expanding mean, expanding standard deviation,
   // geometric mean and standard deviation (of daily returns)
-  console.log('\nadding stats columns');
+  logger.info('\nadding stats columns');
   const T = 365;
   dataEnriched = dataEnriched.map((p) => ({
     ...p,
@@ -165,7 +166,7 @@ const main = async () => {
   }));
 
   // // add ML predictions
-  // console.log('\nadding apy runway prediction');
+  // logger.info('\nadding apy runway prediction');
   // // load categorical feature mappings
   // const modelMappings = await utils.readFromS3(
   //   process.env.S3_BUCKET_NAME,
@@ -307,8 +308,8 @@ const main = async () => {
   }));
 
   // ---------- save output to S3
-  console.log('\nsaving data to S3');
-  console.log('nb of pools', dataEnriched.length);
+  logger.info('\nsaving data to S3');
+  logger.info('nb of pools', dataEnriched.length);
   const bucket = process.env.S3_BUCKET_NAME;
   const key = 'enriched/dataEnriched.json';
   dataEnriched = dataEnriched.sort((a, b) => b.tvlUsd - a.tvlUsd);

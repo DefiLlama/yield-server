@@ -10,6 +10,7 @@
  * Any issues or upgrades to yield server offerings please contact @hellojintao (twitter) or jintao#0713 (discord).
  */
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 // utilize badger-sdk network object if typescript becomes available
 // https://github.com/Badger-Finance/badger-sdk/blob/main/src/config/enums/network.enum.ts

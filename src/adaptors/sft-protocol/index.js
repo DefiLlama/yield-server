@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const stakingPool = "0xE86D3dBd8233F1BFA22679cB57FaB3428E9654f7";
 const sdkChain = 'filecoin'

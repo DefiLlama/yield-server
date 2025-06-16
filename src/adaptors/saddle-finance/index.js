@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abi = require('./abi');
 const gaugeAbi = require('./gaugeAbi');
 const gaugeControllerAbi = require('./gaugeControllerAbi');

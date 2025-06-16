@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const ethers = require('ethers');
 
 // RLP Constants
@@ -33,7 +34,7 @@ const getTotalSupply = async (tokenAddress, chain = 'ethereum') => {
     });
     return output / 1e18;
   } catch (error) {
-    console.error(`Error fetching total supply for ${tokenAddress}:`, error);
+    logger.error(`Error fetching total supply for ${tokenAddress}:`, error);
     throw error;
   }
 };
@@ -46,7 +47,7 @@ const getTokenPrice = async (tokenAddress) => {
     );
     return data.coins[priceKey].price;
   } catch (error) {
-    console.error(`Error fetching price for ${tokenAddress}:`, error);
+    logger.error(`Error fetching price for ${tokenAddress}:`, error);
     throw error;
   }
 };
@@ -109,7 +110,7 @@ const rlpPool = async () => {
       apyBase: aprBase * 100,
     };
   } catch (error) {
-    console.error('Error fetching RLP pool data:', error);
+    logger.error('Error fetching RLP pool data:', error);
     throw error;
   }
 };
@@ -160,7 +161,7 @@ const stUsrPool = async () => {
       apyBase: aprBase * 100,
     };
   } catch (error) {
-    console.error('Error fetching stUSR pool data:', error);
+    logger.error('Error fetching stUSR pool data:', error);
     throw error;
   }
 };
@@ -169,7 +170,7 @@ const apy = async () => {
   try {
     return [await rlpPool(), await stUsrPool()];
   } catch (error) {
-    console.error('Error fetching APYs:', error);
+    logger.error('Error fetching APYs:', error);
     throw error;
   }
 };

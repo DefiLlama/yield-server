@@ -5,6 +5,7 @@ const BigNumber = require('bignumber.js');
 const abi = require('./abi');
 const addresses = require('./addresses.json');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const WeiPerEther = BigNumber(1000000000000000000);
 

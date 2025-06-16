@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const POOLS_URL = 'https://api-v3.bancor.network/pools';
 

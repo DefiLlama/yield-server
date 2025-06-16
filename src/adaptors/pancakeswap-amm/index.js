@@ -4,6 +4,7 @@ const sdk = require('@defillama/sdk');
 
 const { masterChefABI, lpTokenABI } = require('./abis');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { fetchURL } = require('../../helper/utils');
 
 const RPC_URL = 'https://bsc-dataseed1.binance.org/';

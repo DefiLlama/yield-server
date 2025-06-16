@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 const { ethers } = require('ethers');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const poolDirectoryAbi = require('../midas-capital/abiPoolDirectory');
 const poolLensAbi = require('../midas-capital/abiPoolLens');
 const flywheelLensRouterAbiV1 = require('../midas-capital/abiFlywheelLensRouter');

@@ -21,6 +21,7 @@ const {
 const axios = require('axios');
 const { BigNumber } = require('bignumber.js');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 let getPoolsSubgraph = async function (chainId, web3) {
   let blockNumber = await web3.eth.getBlockNumber();
@@ -49,7 +50,7 @@ const getTokenPrice = async (tokenAddress, chain = 'moonriver') => {
   const data = await utils.getData(
     `https://coins.llama.fi/prices/current/${key}`
   );
-  console.log(data);
+  logger.info(data);
   return data.coins[key];
 };
 
@@ -404,7 +405,7 @@ let getPools = async function (chainId) {
           WMOVRBalance,
         });
       } catch (e) {
-        console.error(e);
+        logger.error(e);
       }
     }
   }

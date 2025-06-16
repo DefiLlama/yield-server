@@ -3,6 +3,7 @@ const helperUtils = require("../../helper/utils");
 const { ethers } = require('ethers');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abi_rewardrouter_arb = require('./abis/RwardRouter_arb.json');
 const abi_Elp_arb = require('./abis/Elp_arb.json');
 const abi_ElpManager_arb = require('./abis/ElpManager_arb.json');
@@ -65,11 +66,11 @@ async function getVaultTvl(vault, vault_tokens, pChain, priceDataRes) {
             chain: pChain,
             params: [vault],
         });
-        // console.log("vault_balance::", vault_balance.output / (18 ** decimals.output))
+        // logger.info("vault_balance::", vault_balance.output / (18 ** decimals.output))
 
         tvl = tvl + (priceDataRes[token_map_arbirtrum_elp1[token]] / 10 ** 30) * (vault_balance.output / (10 ** decimals.output));
     }
-    // console.log("tvl::", tvl)
+    // logger.info("tvl::", tvl)
 
     return tvl
 }
@@ -89,11 +90,11 @@ async function getVaultTvl_bsc(vault, vault_tokens, pChain, priceDataRes) {
             chain: pChain,
             params: [vault],
         });
-        // console.log("vault_balance::", vault_balance.output / (18 ** decimals.output))
+        // logger.info("vault_balance::", vault_balance.output / (18 ** decimals.output))
 
         tvl = tvl + (priceDataRes[token_map_bsc_elp1[token]] / 10 ** 30) * (vault_balance.output / (10 ** decimals.output));
     }
-    // console.log("tvl::", tvl)
+    // logger.info("tvl::", tvl)
 
     return tvl
 }
@@ -108,14 +109,14 @@ const getPools = async () => {
         abi: abi_rewardrouter_arb["stakedELPnAmount"],
         chain: "arbitrum",
     });
-    // console.log("arb_info::", arb_info.output);
+    // logger.info("arb_info::", arb_info.output);
     const totalStaked_elp1 = Number(ethers.utils.formatUnits(arb_info.output[1][0], 18));
     const stakingPool_elp1 = Number(ethers.utils.formatUnits(arb_info.output[2][0], 18));
-    // console.log("totalStaked_elp1::", totalStaked_elp1)
-    // console.log("stakingPool_elp1::", stakingPool_elp1)
+    // logger.info("totalStaked_elp1::", totalStaked_elp1)
+    // logger.info("stakingPool_elp1::", stakingPool_elp1)
 
     const apr_ede_elp = (stakingPool_elp1 * 3600 * 24 * 365 * edePrice) / (totalStaked_elp1 * elpPrice);
-    // console.log("apr_ede_elp::", apr_ede_elp)
+    // logger.info("apr_ede_elp::", apr_ede_elp)
 
 
     let feeAmount_arb = await sdk.api.abi.call({
@@ -124,7 +125,7 @@ const getPools = async () => {
         chain: "arbitrum",
         params: [1,1]
     });
-    // console.log("feeAmount_arb::", feeAmount_arb.output);
+    // logger.info("feeAmount_arb::", feeAmount_arb.output);
 
 
     let elpManager_info = await sdk.api.abi.call({
@@ -136,12 +137,12 @@ const getPools = async () => {
     const elpManager_totalSupply = Number(ethers.utils.formatUnits(elpManager_info.output[2], 18));
 
 
-    // console.log("elpManager_info::", elpManager_info.output);
+    // logger.info("elpManager_info::", elpManager_info.output);
 
 
     const apr_eusd_elp = (Number(ethers.utils.formatUnits(feeAmount_arb.output, 18)) / 1 * 365) / (1 * elpManager_totalSupply * elpPrice) * 0.6;
 
-    // console.log("apr_eusd_elp::", apr_eusd_elp)
+    // logger.info("apr_eusd_elp::", apr_eusd_elp)
 
 
 
@@ -155,7 +156,7 @@ const getPools = async () => {
         'https://api.ede.finance/prices'
     );
 
-    // console.log("priceDataRes::", priceDataRes)
+    // logger.info("priceDataRes::", priceDataRes)
 
     let tvl_arbitrum_elp1 = await getVaultTvl(vault_arbitrum_elp1, vault_tokens_arbitrum_elp1, 'arbitrum', priceDataRes);
 
@@ -180,12 +181,12 @@ const getPools = async () => {
         abi: abi_rewardrouter_arb["stakedELPnAmount"],
         chain: "bsc",
     });
-    console.log("bsc_info::", bsc_info.output);
+    logger.info("bsc_info::", bsc_info.output);
 
     const totalStaked_elp1_bsc = Number(ethers.utils.formatUnits(bsc_info.output[1][2], 18));
     const stakingPool_elp1_bsc = Number(ethers.utils.formatUnits(bsc_info.output[2][2], 18));
-    console.log("totalStaked_elp1_bsc::", totalStaked_elp1_bsc)
-    console.log("stakingPool_elp1_bsc::", stakingPool_elp1_bsc)
+    logger.info("totalStaked_elp1_bsc::", totalStaked_elp1_bsc)
+    logger.info("stakingPool_elp1_bsc::", stakingPool_elp1_bsc)
 
     edePrice = (await utils.getData(
         'https://data.ede.finance/bsc/edekline'
@@ -193,13 +194,13 @@ const getPools = async () => {
 
     elpPrice = 0.92
     const apr_ede_elp_bsc = (stakingPool_elp1_bsc * 3600 * 24 * 365 * edePrice) / (totalStaked_elp1_bsc * elpPrice);
-    console.log("apr_ede_elp_bsc::", apr_ede_elp_bsc)
+    logger.info("apr_ede_elp_bsc::", apr_ede_elp_bsc)
 
 
     const feeAmount_bsc = (
         await helperUtils.fetchURL("https://data.ede.finance/api/ede/dalyFee")
     ).data.elp1;
-    console.log("feeAmount_bsc::", feeAmount_bsc);
+    logger.info("feeAmount_bsc::", feeAmount_bsc);
 
 
     let elpManager_info_bsc = await sdk.api.abi.call({
@@ -208,15 +209,15 @@ const getPools = async () => {
         chain: "bsc"
     });
 
-    console.log("elpManager_info_bsc::", elpManager_info_bsc.output);
+    logger.info("elpManager_info_bsc::", elpManager_info_bsc.output);
 
     const elpManager_totalSupply_bsc = Number(ethers.utils.formatUnits(elpManager_info_bsc.output[2], 18));
 
-    console.log("elpManager_totalSupply_bsc::", elpManager_totalSupply_bsc);
+    logger.info("elpManager_totalSupply_bsc::", elpManager_totalSupply_bsc);
 
     const apr_eusd_elp_bsc = (Number(ethers.utils.formatUnits(feeAmount_bsc, 18)) / 1 * 365) / (1 * elpManager_totalSupply_bsc * elpPrice) * 0.6;
 
-    console.log("apr_eusd_elp_bsc::", apr_eusd_elp_bsc)
+    logger.info("apr_eusd_elp_bsc::", apr_eusd_elp_bsc)
 
 
     let tvl_bsc_elp1 = await getVaultTvl_bsc(vault_bsc_elp1, vault_tokens_bsc_elp1, 'bsc', priceDataRes);

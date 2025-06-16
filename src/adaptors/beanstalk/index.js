@@ -1,5 +1,6 @@
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const axios = require('axios');
 
 const chains = {

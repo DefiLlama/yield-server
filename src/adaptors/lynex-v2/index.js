@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const BigNumber = require('bignumber.js');
 const { Web3 } = require('web3');
 const pairAPI = require('./abis/pairAPI.json');
@@ -35,7 +36,7 @@ const getApy = async () => {
   try {
     activeStrategies = await loadActiveStrategies();
   } catch (error) {
-    console.log('Error loading active stategies: ', error);
+    logger.info('Error loading active stategies: ', error);
   }
 
   // Fetch pair length
@@ -44,7 +45,7 @@ const getApy = async () => {
       factoryContract.methods.allPairsLength().call(),
     ]);
   } catch (error) {
-    console.log('Error fetching pairs length: ', error);
+    logger.info('Error fetching pairs length: ', error);
     return;
   }
 
@@ -58,7 +59,7 @@ const getApy = async () => {
     ]);
     poolInfos = [...v2pools, ...gammaPools];
   } catch (error) {
-    console.log('Error fetching Pool Info: ', error);
+    logger.info('Error fetching Pool Info: ', error);
     return;
   }
 
@@ -117,14 +118,14 @@ const getApy = async () => {
   try {
     periodFinishes = await fetchPeriodFinish(pools);
   } catch (error) {
-    console.log(`Gauge Period Finish Fetch Error: ${error}`);
+    logger.info(`Gauge Period Finish Fetch Error: ${error}`);
     return;
   }
   let poolExtraRewrards;
   try {
     poolExtraRewrards = await fetchExtraPoolRewards(pools);
   } catch (error) {
-    console.log(`Extra Rewards Fetch Error: ${error}`);
+    logger.info(`Extra Rewards Fetch Error: ${error}`);
     return;
   }
 
@@ -140,7 +141,7 @@ const getApy = async () => {
       }
     });
   } catch {
-    console.log('Error getting the pools tokens: ', error);
+    logger.info('Error getting the pools tokens: ', error);
     return;
   }
 
@@ -149,7 +150,7 @@ const getApy = async () => {
   try {
     prices = await getPrices(tokens);
   } catch {
-    console.log("Error getting the token's prices: ", error);
+    logger.info("Error getting the token's prices: ", error);
     return;
   }
 
@@ -185,7 +186,7 @@ const getApy = async () => {
         : tvl.div(pool.totalSupply);
       gaugeTvl = pool.gaugeTotalSupply.times(lpPrice);
     } catch {
-      console.log('Error while calculating TVL');
+      logger.info('Error while calculating TVL');
     }
 
     // Get Extra Rewards
@@ -208,7 +209,7 @@ const getApy = async () => {
                   .toNumber();
           extraRewardsApy += apr;
         } catch {
-          console.log('Error while calculating Extra Rewards: ' + extraReward);
+          logger.info('Error while calculating Extra Rewards: ' + extraReward);
         }
       });
     }
@@ -225,7 +226,7 @@ const getApy = async () => {
           .toNumber();
       }
     } catch {
-      console.log('Error while calculating APY');
+      logger.info('Error while calculating APY');
     }
 
     return {

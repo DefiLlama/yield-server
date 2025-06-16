@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abis = require('./takara-lend.json');
 const ethers = require('ethers');
 

@@ -125,10 +125,10 @@ const calcApr = async (collateralAddress) => {
     const _maxDuty = Number(maxDutyResponse.output.toString());
     const _minDuty = Number(minDutyResponse.output.toString());
 
-    console.log('Raw values:');
-    console.log('duty:', _duty);
-    console.log('maxDuty:', _maxDuty);
-    console.log('minDuty:', _minDuty);
+    logger.info('Raw values:');
+    logger.info('duty:', _duty);
+    logger.info('maxDuty:', _maxDuty);
+    logger.info('minDuty:', _minDuty);
 
     // Apply min/max constraints
     if (_maxDuty != null && _duty >= _maxDuty) {
@@ -141,11 +141,11 @@ const calcApr = async (collateralAddress) => {
     // Calculate APR
     const result = (_duty / 1e27) ** (365 * 24 * 3600) - 1;
 
-    console.log('Final APR:', result * 100);
+    logger.info('Final APR:', result * 100);
 
     return result * 100; // Convert to percentage
   } catch (error) {
-    console.error('Error calculating APR:', error);
+    logger.error('Error calculating APR:', error);
     return 0;
   }
 };
@@ -156,18 +156,18 @@ const getApy = async () => {
     // const tokenAddresses = collateralList.map(
     //   (c) => `bsc:${c.originAddress || c.address.toLowerCase()}`
     // );
-    // console.log('Fetching prices for tokens:', tokenAddresses);
+    // logger.info('Fetching prices for tokens:', tokenAddresses);
 
     // const pricesResponse = await superagent.get(
     //   `https://coins.llama.fi/prices/current/${tokenAddresses.join(',')}`
     // );
     // const prices = pricesResponse.body.coins;
-    // console.log('Got prices:', prices);
+    // logger.info('Got prices:', prices);
 
     const poolData = await Promise.all(
       collateralList.map(async (collateral) => {
         try {
-          console.log(`Processing collateral: ${collateral.symbol}`);
+          logger.info(`Processing collateral: ${collateral.symbol}`);
 
           // Get TVL
           const tvlResponse = await sdk.api.abi.call({
@@ -177,17 +177,17 @@ const getApy = async () => {
             chain: 'bsc',
           });
           const tvl = tvlResponse.output;
-          console.log(`TVL for ${collateral.symbol}:`, tvl);
+          logger.info(`TVL for ${collateral.symbol}:`, tvl);
 
           // Get APR rates - pass entire collateral object
           const aprRates = await calcApr(collateral);
-          console.log(`APR rates for ${collateral.symbol}:`, aprRates);
+          logger.info(`APR rates for ${collateral.symbol}:`, aprRates);
 
           //   const priceKey = `bsc:${
           //     collateral.originAddress || collateral.address.toLowerCase()
           //   }`;
           //   if (!prices[priceKey]) {
-          //     console.log(`No price found for ${priceKey}`);
+          //     logger.info(`No price found for ${priceKey}`);
           //     return null;
           //   }
 
@@ -238,7 +238,7 @@ const getApy = async () => {
             apyBaseBorrow: aprRates || 0,
           };
         } catch (error) {
-          console.error(`Error processing ${collateral.symbol}:`, error);
+          logger.error(`Error processing ${collateral.symbol}:`, error);
           return null;
         }
       })
@@ -246,7 +246,7 @@ const getApy = async () => {
 
     return poolData.filter(Boolean);
   } catch (error) {
-    console.error('Error in getApy:', error);
+    logger.error('Error in getApy:', error);
     return [];
   }
 };

@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const { ethers } = require('ethers');
@@ -61,7 +62,7 @@ const getContractData = async (target, abi, chain, params = []) => {
     });
     return result.output;
   } catch (error) {
-    console.error(`Error fetching ${abi} for ${target}:`, error.message);
+    logger.error(`Error fetching ${abi} for ${target}:`, error.message);
     throw error;
   }
 };
@@ -75,7 +76,7 @@ const getTokenPrice = async (priceKey, amount, decimals) => {
     }
     return (response.data.coins[priceKey].price * amount) / 10 ** decimals;
   } catch (error) {
-    console.error(`Error fetching price for ${priceKey}:`, error.message);
+    logger.error(`Error fetching price for ${priceKey}:`, error.message);
     return 0;
   }
 };
@@ -102,7 +103,7 @@ const getVaultAPY = async (vaultAddress, chain) => {
       );
       pricePerShareValues.push(pricePerShare);
     } catch (error) {
-      console.error(`Error fetching price per share for round ${round}:`, error.message);
+      logger.error(`Error fetching price per share for round ${round}:`, error.message);
     }
   }
   
@@ -174,7 +175,7 @@ const main = async () => {
         }
 
       } catch (error) {
-        console.error(`Error processing vault ${vaultType} on ${chain}:`, error.message);
+        logger.error(`Error processing vault ${vaultType} on ${chain}:`, error.message);
       }
     }
   }

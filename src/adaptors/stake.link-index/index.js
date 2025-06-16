@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const API_URL = 'https://stake.link/v1/metrics/staking';
 const CHAIN_NAME = 'Ethereum';

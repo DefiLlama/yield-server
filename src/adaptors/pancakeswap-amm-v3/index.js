@@ -3,6 +3,7 @@ const { request, gql } = require('graphql-request');
 const superagent = require('superagent');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { EstimatedFees } = require('./estimateFee');
 const { getCakeAprs, CAKE, chainIds } = require('./cakeReward');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
@@ -156,10 +157,10 @@ const topLvl = async (
       const tickData = {};
       // we fetch 3 pages for each pool
       for (const page of [0, 1, 2]) {
-        console.log(`page nb: ${page}`);
+        logger.info(`page nb: ${page}`);
         let pageResults = {};
         for (const chunk of chunks) {
-          console.log(chunk.length);
+          logger.info(chunk.length);
           const tickQuery = `
           query {
             ${chunk
@@ -186,7 +187,7 @@ const topLvl = async (
             const response = await request(url, tickQuery);
             pageResults = { ...pageResults, ...response };
           } catch (err) {
-            console.log(err);
+            logger.info(err);
           }
         }
         tickData[`page_${page}`] = pageResults;
@@ -214,7 +215,7 @@ const topLvl = async (
         const poolTicks = ticks[`pool_${p.id}`] ?? [];
 
         if (!poolTicks.length) {
-          console.log(`No pool ticks found for ${p.id}`);
+          logger.info(`No pool ticks found for ${p.id}`);
           return { ...p, estimatedFee: null, apy7d: null };
         }
 
@@ -286,7 +287,7 @@ const main = async (timestamp = null) => {
   const data = [];
   let cakeAPRsByChain = {};
   for (const [chain, url] of Object.entries(chains)) {
-    console.log(chain);
+    logger.info(chain);
     try {
       cakeAPRsByChain[utils.formatChain(chain)] = await getCakeAprs(chain);
 
@@ -302,7 +303,7 @@ const main = async (timestamp = null) => {
         )
       );
     } catch (err) {
-      console.log(err);
+      logger.info(err);
     }
   }
 

@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const API_URL = 'https://api.frakt.xyz/liquidity/pools';
 const SOLANA_PRICE_URL =

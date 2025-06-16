@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const BigNumber = require("bignumber.js");
 //https://coins.llama.fi/prices/current/aptos:0x1::aptos_coin::AptosCoin
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';
@@ -22,7 +23,7 @@ async function view(payload) {
         const data = (await utils.getData(`https://fullnode.mainnet.aptoslabs.com/v1/view`, payload)) || []
         return data
     } catch (e) {
-        console.log(e)
+        logger.info(e)
         return null;
     }
 }
@@ -36,7 +37,7 @@ async function getPoolsAddress() {
         const data = (await utils.getData(`https://fullnode.mainnet.aptoslabs.com/v1/view`, payload)) || []
         return data[0]
     } catch (e) {
-        console.log(e)
+        logger.info(e)
         return null;
     }
 }
@@ -50,7 +51,7 @@ async function getWrapper(address) {
         const data = (await utils.getData(`https://fullnode.mainnet.aptoslabs.com/v1/view`, payload)) || []
         return data[0]
     } catch (e) {
-        console.log(e)
+        logger.info(e)
         return null;
     }
 }
@@ -171,7 +172,7 @@ async function getGaugeAddress(poolAddress) {
         const data = (await utils.getData(`https://fullnode.mainnet.aptoslabs.com/v1/view`, payload)) || []
         return data[0]?.inner
     } catch (e) {
-        console.log(e)
+        logger.info(e)
         return null
     }
 
@@ -187,7 +188,7 @@ async function getRewardsPool(gaugeAddress) {
         return data[0]?.inner;
     } catch (e) {
 
-        console.log(e)
+        logger.info(e)
         return null
     }
 
@@ -202,7 +203,7 @@ getFeesAddress = async (poolAddress) => {
         const data = await view(payload);
         return data[0].inner
     } catch (e) {
-        console.log('getFeesAddress error: ' + e);
+        logger.info('getFeesAddress error: ' + e);
         return null;
     }
 };
@@ -216,7 +217,7 @@ getBribeAddress = async (poolAddress) => {
         const data = await view(payload);
         return data[0].inner;
     } catch (e) {
-        console.log('getBribeAddress error: ' + e);
+        logger.info('getBribeAddress error: ' + e);
         return null;
     }
 };
@@ -232,7 +233,7 @@ async function getRewardRate(poolAddress) {
 
         return data[0];
     } catch (e) {
-        console.log(e)
+        logger.info(e)
         return 0
 
     }
@@ -301,7 +302,7 @@ fetchRewards = async (
         const data = await view(payload);
         return data[0]
     } catch (e) {
-        console.log(e);
+        logger.info(e);
         return null;
     }
 }

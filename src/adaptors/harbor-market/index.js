@@ -7,6 +7,7 @@ const abiProtocolDataProvider = require('./abiProtocolDataProvider');
 const abiSimplifiedProtocolDataReader = require('./abiSimplifiedProtocolDataReader');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const chains = {
   bsc: {
@@ -46,7 +47,7 @@ const getApy = async () => {
           failOnRevert: false, // Add this option to prevent failing on reverts
         });
       } catch (error) {
-        console.error(`Error fetching rewards data for chain ${chain}:`, error);
+        logger.error(`Error fetching rewards data for chain ${chain}:`, error);
         // Implement fallback mechanism or use default values
         rewardsData = {
           output: reservesList.map(() => ({ success: false, output: null }))

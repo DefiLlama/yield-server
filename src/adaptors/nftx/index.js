@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { request, gql } = require('graphql-request');
 const uniswapV2PairAbi = require('./abis/UniswapV2Pair.json');
 const erc20Abi = require('./abis/ERC20.json');

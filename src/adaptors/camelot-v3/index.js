@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const url = sdk.graph.modifyEndpoint(
   '3utanEBA9nqMjPnuQP1vMCCys6enSM3EawBpKTVwnUw2'

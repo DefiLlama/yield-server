@@ -1,6 +1,7 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 // Constants
 const CONSTANTS = {
@@ -94,7 +95,7 @@ const getLendingApy = async (chain) => {
       }))
       .filter((i) => utils.keepFinite(i));
   } catch (error) {
-    console.error(`Error fetching lending APY for ${chain}:`, error);
+    logger.error(`Error fetching lending APY for ${chain}:`, error);
     return [];
   }
 };
@@ -153,7 +154,7 @@ const getVaultApy = async (chain) => {
       tokenData
     ).filter((pool) => utils.keepFinite(pool));
   } catch (error) {
-    console.error(`Error fetching vault APY for ${chain}:`, error);
+    logger.error(`Error fetching vault APY for ${chain}:`, error);
     return [];
   }
 };

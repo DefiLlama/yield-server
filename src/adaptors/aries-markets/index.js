@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';
 const COINS_LLAMA_PRICE_URL = 'https://coins.llama.fi/prices/current/';

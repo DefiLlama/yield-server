@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 require('dotenv').config({ path: './config.env' });
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abi = require('./abi.json');
 const baseRewardPoolAbi = require('./baseRewardPoolAbi.json');
 const virtualBalanceRewardPoolAbi = require('./virtualBalanceRewardPoolAbi.json');

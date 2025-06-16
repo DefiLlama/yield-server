@@ -1,3 +1,4 @@
+const logger = require("./logger");
 const S3 = require('aws-sdk/clients/s3');
 
 module.exports.writeToS3 = async (bucket, key, body) => {
@@ -9,7 +10,7 @@ module.exports.writeToS3 = async (bucket, key, body) => {
   const s3 = new S3();
   const resp = await s3.upload(params).promise();
   const msg = `saved to ${resp.Location}`;
-  console.log(msg);
+  logger.info(msg);
 
   return resp;
 };

@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const main = async () => {
   const stats = await utils.getData('https://sideshift.ai/api/v2/xai/stats');

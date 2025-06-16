@@ -1,5 +1,6 @@
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { PromisePool } = require('@supercharge/promise-pool');
 const { BigNumber } = require('bignumber.js');
 

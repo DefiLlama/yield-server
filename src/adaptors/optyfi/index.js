@@ -2,6 +2,7 @@ const superagent = require('superagent');
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const { default: BigNumber } = require('bignumber.js');
 const { ethers } = require('ethers');

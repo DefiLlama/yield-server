@@ -3,6 +3,7 @@ const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { aTokenAbi } = require('../aave-v3/abi');
 const poolAbi = require('../aave-v3/poolAbi');
 
@@ -105,7 +106,7 @@ const apy = async () => {
         })
       ).output.map(({ output }) => output);
     })
-  ).catch((e) => console.log('err', e));
+  ).catch((e) => logger.info('err', e));
 
   const underlyingBalances = await Promise.all(
     data.map(async ([chain, reserves]) =>

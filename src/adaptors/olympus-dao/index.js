@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 const liquidityRegistry = require('./abis/liquidityRegistryAbi.json');
 const vaultManager = require('./abis/vaultManagerAbi.json');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const OLYMPUS_LIQUIDITY_REGISTRY = '0x375E06C694B5E50aF8be8FB03495A612eA3e2275';
 const AURA_ADDRESS = '0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF'.toLowerCase();
@@ -240,7 +241,7 @@ const getAuraAPY = async (address, swapAprs, prices, auraSupply) => {
       rewardTokens,
     };
   } catch (e) {
-    console.log(e);
+    logger.info(e);
     return;
   }
 };

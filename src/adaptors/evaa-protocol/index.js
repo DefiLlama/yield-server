@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const fetch = require('node-fetch');
 const { TonClient } = require('@ton/ton');
@@ -18,7 +19,7 @@ function sha256Hash(input) {
 }
 
 function bufferToBigInt(buffer, start = 0, end = buffer.length) {
-  console.log(buffer);
+  logger.info(buffer);
   const bufferAsHexString = buffer.subarray(start, end).toString('hex');
   return BigInt(`0x${bufferAsHexString}`);
 }
@@ -465,7 +466,7 @@ async function getContractStateWithRetry(client, address, maxRetries = 3, initia
 
 
 const getApy = async () => {
-  console.log('Requesting prices');
+  logger.info('Requesting prices');
   let prices = await getPrices();
   let distributions = await getDistributions();
   const client = new TonClient({
@@ -524,7 +525,7 @@ async function getPoolData(
 
         data = parseMasterData(result.data.toString('base64'), assets);
     } catch (error) {
-        console.error('getPoolData error:', error);
+        logger.error('getPoolData error:', error);
         return [];
     }
 
@@ -533,7 +534,7 @@ async function getPoolData(
     return Object.entries(assets).map(([tokenSymbol, asset]) => {
         const { assetId, token } = asset;
         
-        console.log(poolName, 'Process symbol', tokenSymbol, asset, assetId, token);
+        logger.info(poolName, 'Process symbol', tokenSymbol, asset, assetId, token);
 
         const priceData = prices.dict.get(assetId);
         if (!priceData) {
@@ -565,14 +566,14 @@ async function getPoolData(
         const totalSupplyUsd = (totalSupplyNum * price) / scaleFactor;
         const totalBorrowUsd = (totalBorrowNum * price) / scaleFactor;
 
-        console.log(poolName, tokenSymbol, 'totalSupplyInUsd', totalSupplyUsd);
-        console.log(poolName, tokenSymbol, 'totalBorrowInUsd', totalBorrowUsd);
+        logger.info(poolName, tokenSymbol, 'totalSupplyInUsd', totalSupplyUsd);
+        logger.info(poolName, tokenSymbol, 'totalBorrowInUsd', totalBorrowUsd);
 
         const supplyApy = (1 + (Number(assetData.supplyInterest) / 1e12) * 86400) ** 365 - 1;
         const borrowApy = (1 + (Number(assetData.borrowInterest) / 1e12) * 86400) ** 365 - 1;
 
-        console.log(poolName, tokenSymbol, 'supplyApy', supplyApy * 100);
-        console.log(poolName, tokenSymbol, 'borrowApy', borrowApy * 100);
+        logger.info(poolName, tokenSymbol, 'supplyApy', supplyApy * 100);
+        logger.info(poolName, tokenSymbol, 'borrowApy', borrowApy * 100);
 
         const apyRewardData = rewardApys.find(
             (r) =>
@@ -587,7 +588,7 @@ async function getPoolData(
                 ].filter(Boolean)
             : [];
 
-        console.log(
+        logger.info(
             poolName,
             tokenSymbol,
             'apyReward',
@@ -610,7 +611,7 @@ async function getPoolData(
                 ].filter(Boolean)
             : [];
 
-        console.log(
+        logger.info(
             poolName,
             tokenSymbol,
             'apyRewardBorrow',

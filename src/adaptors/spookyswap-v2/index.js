@@ -5,6 +5,7 @@ const axios = require('axios');
 
 const { masterChefABI, lpTokenABI } = require('./abis');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const API_URL = sdk.graph.modifyEndpoint(
   'HyhMfT7gehNHMBmFiExqeg3pDtop9UikjvBPfAXT3b21'

@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const api = 'https://assets.hop.exchange';
 

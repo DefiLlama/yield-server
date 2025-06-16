@@ -4,6 +4,7 @@ const LPool = require('./abis/LPool.json');
 const OplContract = require('./abis/OplContract.json');
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { default: BigNumber } = require('bignumber.js');
 
 openleve_address = {
@@ -86,7 +87,7 @@ async function getPoolListByUrl(chain) {
     const response = await getPoolInfo(chain);
     poolList = response.data;
   } catch (err) {
-    console.error(`Error fetching pool info for chain ${chain}:`, err);
+    logger.error(`Error fetching pool info for chain ${chain}:`, err);
     return {};
   }
   const pools = {};
@@ -106,7 +107,7 @@ async function getPoolListByUrl(chain) {
         lendOleRewardApy: poolList[i].lendOleRewardApy,
       };
       pools[poolList[i].poolAddress] = info;
-      console.log(
+      logger.info(
         `Pool ${info.name} (${poolList[i].poolAddress}) on Chain ${chain} TVL > 8000`
       );
     }
@@ -172,7 +173,7 @@ const main = async () => {
     try {
       poolInfo = await getPoolListByUrl(chain);
     } catch (err) {
-      console.error(`Skipping chain ${chain} due to unexpected error:`, err);
+      logger.error(`Skipping chain ${chain} due to unexpected error:`, err);
       continue;
     }
 
@@ -207,7 +208,7 @@ const main = async () => {
       try {
         tokenPriceInUsdt = await getTokenPriceInUsdt(chain, poolDetails.token);
       } catch (e) {
-        console.error(
+        logger.error(
           `Error fetching token price for ${poolDetails.token} on ${chain}:`,
           e
         );
@@ -232,7 +233,7 @@ const main = async () => {
         underlyingTokens: [poolDetails.token],
         poolMeta: `${utils.formatSymbol(poolDetails.name)} Market`,
       };
-      console.log(poolValues);
+      logger.info(poolValues);
       result.push(poolValues);
     }
   }

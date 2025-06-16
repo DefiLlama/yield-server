@@ -3,6 +3,7 @@ const superagent = require('superagent');
 const { abi } = require('./abi');
 const { ethers } = require('ethers');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const {
   CHAIN_IDS,
   DEAD_ADDRESS,
@@ -141,7 +142,7 @@ const getPools = async (config) => {
 
       offset += limit;
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       break;
     }
   }

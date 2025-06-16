@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 // Reward tokens per chain (1st = stablecoin, 2nd = ZBU)
 const REWARD_TOKENS = { 
@@ -48,11 +49,11 @@ const DECIMALS = {
 const ADDED_REWARD_DISTRIBUTION_TOPIC = '0xf00943d3f835d7ca6986bc0202fbb734d3be564db0bad44bafccb5d41149302e';
 
 const apy = async () => {
-  console.log("Starting APY calculation...");
+  logger.info("Starting APY calculation...");
   const results = [];
 
   for (const chain of Object.keys(REWARD_DISTRIBUTORS)) {
-    console.log(`Processing ${chain}...`);
+    logger.info(`Processing ${chain}...`);
 
     // Fetch total staked ZBU
     const totalStakedZBU = (
@@ -63,7 +64,7 @@ const apy = async () => {
         chain,
       })
     ).output / 1e18; // ZBU has 18 decimals
-    console.log(`Total Staked ZBU on ${chain}: `, totalStakedZBU, ` ZBU`);
+    logger.info(`Total Staked ZBU on ${chain}: `, totalStakedZBU, ` ZBU`);
 
     // Fetch prices for both reward tokens (stablecoin + ZBU)
     const tokenPrices = {};
@@ -73,11 +74,11 @@ const apy = async () => {
         await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
       ).data.coins[priceKey]?.price; 
     }
-    console.log(`Token Prices for ${chain}: `, tokenPrices);
+    logger.info(`Token Prices for ${chain}: `, tokenPrices);
 
     // Calculate TVL in USD (using stablecoin price)
     const tvlUsd = totalStakedZBU * tokenPrices[REWARD_TOKENS[chain][1]];
-    console.log(`TVL (USD) for ${chain}: $ `, tvlUsd);
+    logger.info(`TVL (USD) for ${chain}: $ `, tvlUsd);
     const currentBlock = await sdk.api.util.getLatestBlock(chain);
     const toBlock = currentBlock.number;
     // Fetch logs from RewardDistributor contract
@@ -92,10 +93,10 @@ const apy = async () => {
         chain,
       })
     ).output.sort((a, b) => b.blockNumber - a.blockNumber);
-    // console.log(`Fetched Logs for ${chain}: `, logs);
+    // logger.info(`Fetched Logs for ${chain}: `, logs);
 
     if (logs.length === 0) {
-      console.log(`No reward distribution events found for ${chain}.`);
+      logger.info(`No reward distribution events found for ${chain}.`);
       continue;
     }
 
@@ -108,7 +109,7 @@ const apy = async () => {
       const timestampHex = dataHex.slice(66, 130); // Second 32 bytes -> Reward Timestamp
 
       const tokenAddress = `0x${log.topics[2].slice(-40)}`; // Extract token address
-      console.log("Token Address: ", tokenAddress);
+      logger.info("Token Address: ", tokenAddress);
       const decimals = REWARD_TOKENS[chain][0].toLowerCase() === tokenAddress.toLowerCase() 
       ? DECIMALS[chain][0] // First token (Stablecoin)
       : DECIMALS[chain][1]; // Second token (ZBU)
@@ -131,10 +132,10 @@ const apy = async () => {
       const rewardValueUsd = Number(amount) * tokenPrice;
       totalRewardsUsd += rewardValueUsd;
 
-      console.log(`Token: ${tokenAddress} - Amount: ${amount} - Reward Value (in USD): ${rewardValueUsd} - Timestamp: ${rewardTimestamp}`);
+      logger.info(`Token: ${tokenAddress} - Amount: ${amount} - Reward Value (in USD): ${rewardValueUsd} - Timestamp: ${rewardTimestamp}`);
     }
 
-    console.log(`Total Rewards in USD for ${chain}: `, totalRewardsUsd);
+    logger.info(`Total Rewards in USD for ${chain}: `, totalRewardsUsd);
 
     // APY Calculation
     const now = Math.floor(Date.now() / 1000);
@@ -142,15 +143,15 @@ const apy = async () => {
     const daysSinceStart = (now - firstLogTimestamp) / 86400;
 
     if (daysSinceStart <= 0) {
-      console.log(`Invalid daysSinceStart for ${chain}. Skipping APY calculation.`);
+      logger.info(`Invalid daysSinceStart for ${chain}. Skipping APY calculation.`);
       continue;
     }
 
     const aprReward = (totalRewardsUsd * 365) / (tvlUsd * daysSinceStart) * 100;
     const apyReward = utils.aprToApy(aprReward, 52);
 
-    console.log(`APR (Reward) for ${chain}: `, aprReward);
-    console.log(`APY (Reward) for ${chain}: `, apyReward);
+    logger.info(`APR (Reward) for ${chain}: `, aprReward);
+    logger.info(`APY (Reward) for ${chain}: `, apyReward);
 
     results.push({
       pool: VOTING_ESCROW_ADDRESSES[chain],

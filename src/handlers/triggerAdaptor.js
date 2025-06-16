@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const logger = require("../utils/logger");
 
 const superagent = require('superagent');
 
@@ -46,7 +47,7 @@ module.exports.handler = async () => {
     try {
       await main(adaptor);
     } catch (err) {
-      console.error(`53 - ${err}`);
+      logger.error(`53 - ${err}`);
     }
   }
 };
@@ -54,7 +55,7 @@ module.exports.handler = async () => {
 // func for running adaptor, storing result to db
 const main = async (adaptor) => {
   // ---------- run adaptor
-  console.log(`Adaptor ${adaptor} started`);
+  logger.info(`Adaptor ${adaptor} started`);
   const project = require(`../adaptors/${adaptor}`);
   let data = await project.apy();
 
@@ -479,9 +480,9 @@ const main = async (adaptor) => {
   const response = await insertConfigYieldTransaction(dataDB);
 
   if (response.status === 'success') {
-    console.log(`Adaptor ${adaptor} completed`);
+    logger.info(`Adaptor ${adaptor} completed`);
   } else {
-    console.error(`Adaptor ${adaptor} failed`, response.error);
+    logger.error(`Adaptor ${adaptor} failed`, response.error);
   }
 };
 

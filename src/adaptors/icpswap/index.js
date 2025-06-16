@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const API_URL = 'https://uvevg-iyaaa-aaaak-ac27q-cai.raw.ic0.app/tickers';
 

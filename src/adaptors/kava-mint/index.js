@@ -1,6 +1,7 @@
 const axios = require('axios');
 const superagent = require('superagent');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const USDX_ID = 'usdx';
 
 const getPrices = async (addresses) => {
@@ -121,7 +122,7 @@ function convertSymbol(symbol) {
     case 'ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2':
       return { id: 'kava-swap', decimals: 6, symbol: 'SWP' };
     default:
-      console.log(symbol);
+      logger.info(symbol);
   }
 }
 

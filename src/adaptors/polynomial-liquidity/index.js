@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const API_URL =
   'https://perps-api-mainnet.polynomial.finance/vaults/all?chainId=8008';

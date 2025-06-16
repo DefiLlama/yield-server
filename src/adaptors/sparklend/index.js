@@ -3,6 +3,7 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { aTokenAbi } = require('../aave-v3/abi');
 const poolAbi = require('../aave-v3/poolAbi');
 const abiSKYFarm = require('./abiSKYFarm.json');

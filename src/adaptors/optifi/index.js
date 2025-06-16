@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const collectPools = async () => {
     const [data1, data2] = await Promise.all([

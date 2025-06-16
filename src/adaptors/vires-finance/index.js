@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const API_URL = 'https://api.vires.finance/state';
 const API_URL_CONFIG = 'https://api.vires.finance/v2/config';

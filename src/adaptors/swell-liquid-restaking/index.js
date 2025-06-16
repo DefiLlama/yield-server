@@ -139,8 +139,8 @@ async function getCloseestTo7dAgo(repriceEvents) {
     }
   }
 
-  //console.log("Closest event before 7 days ago:", closestBefore);
-  //console.log("Closest event after 7 days ago:", closestAfter);
+  //logger.info("Closest event before 7 days ago:", closestBefore);
+  //logger.info("Closest event after 7 days ago:", closestAfter);
 
   return { closestBefore, closestAfter, timestamp7DaysAgo };
 }
@@ -160,6 +160,6 @@ async function interpolate7d(closestBefore, closestAfter, timestamp7DaysAgo) {
     rateDiff.mul(timeRatio).div(BigNumber.from(10).pow(18))
   );
 
- //console.log("Interpolated rate:", interpolatedRateBN.toString());
+ //logger.info("Interpolated rate:", interpolatedRateBN.toString());
   return interpolatedRateBN;
 }

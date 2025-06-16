@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 async function getTokenPrice(chain, token) {
   const data = await utils.getData(

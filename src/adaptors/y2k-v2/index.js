@@ -3,6 +3,7 @@ const ethers = require('ethers');
 const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { ContractABIs } = require('./abi');
 
 const chain = 'arbitrum';

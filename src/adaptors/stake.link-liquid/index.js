@@ -94,7 +94,7 @@ const fetchPool = async (pool) => {
       apyBase: apy,
     };
   } catch (error) {
-    console.error('Error fetching pool data:', error.message);
+    logger.error('Error fetching pool data:', error.message);
     return null;
   }
 };

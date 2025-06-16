@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abi = require('./abis/abi.json');
 
 const LP = '0x03229fb11e3D7E8Aca8C758DBD0EA737950d6CD0';

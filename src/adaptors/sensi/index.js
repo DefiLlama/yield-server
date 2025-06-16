@@ -4,7 +4,7 @@ const utils = require('../utils')
 
 const SY_pool = async() => {
 
-    console.log("running")
+    logger.info("running")
     const TVL = Number(await utils.getData('https://api.llama.fi/tvl/sensi'))
     const APY = await utils.getData("https://sensi-autotask-rebalance.sensible-finance.workers.dev/syAPR")
 

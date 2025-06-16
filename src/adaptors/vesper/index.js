@@ -1,5 +1,6 @@
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const urls = {
   ethereum: 'https://api.vesper.finance/pools?stages=prod',
   avalanche: 'https://api-avalanche.vesper.finance/pools?stages=prod',

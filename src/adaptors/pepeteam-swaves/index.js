@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { data } = require('./waves');
 
 const wavesStakingContract = '3PDPzZVLhN1EuzGy4xAxjjTVkawKDLEaHiV';

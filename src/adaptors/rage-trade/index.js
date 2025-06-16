@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const getVaultMarketValue = {
   inputs: [],

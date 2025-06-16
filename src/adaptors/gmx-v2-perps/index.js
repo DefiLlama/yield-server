@@ -1,5 +1,6 @@
 const { ABI } = require('./abi');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const sdk = require('@defillama/sdk');
 const { gql, default: request } = require('graphql-request');
@@ -97,7 +98,7 @@ function bigNumberify(n) {
   try {
     return BigNumber(n);
   } catch (e) {
-    console.error('bigNumberify error', e);
+    logger.error('bigNumberify error', e);
     return undefined;
   }
 }

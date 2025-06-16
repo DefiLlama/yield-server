@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const topLvl = async (chainString, url, token, address, underlying) => {
   let dataTvl;

@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 const gmdAbi = require('./abis/gmd.json');
 const { comptrollerAbi, ercDelegator } = require('./abis/tender');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const gmxAbi = require('./abis/gmx.json');
 
 const COMPTROLLER_ADDRESS = '0xeed247Ba513A8D6f78BE9318399f5eD1a4808F8e';

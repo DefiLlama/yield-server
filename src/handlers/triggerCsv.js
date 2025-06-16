@@ -2,6 +2,7 @@ const AWS = require('aws-sdk');
 const createCsvStringifier = require('csv-writer').createObjectCsvStringifier;
 
 const utils = require('../utils/s3');
+const logger = require("../utils/logger");
 
 module.exports.handler = async () => {
   await main();
@@ -42,5 +43,5 @@ const main = async () => {
   const s3 = new AWS.S3();
   const resp = await s3.upload(params).promise();
   const msg = `saved to ${resp.Location}`;
-  console.log(msg);
+  logger.info(msg);
 };

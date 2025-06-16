@@ -1,5 +1,6 @@
 const BigNumber = require('bignumber.js');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const API_URL = 'https://fi-api.woo.org/yield';
 

@@ -7,6 +7,7 @@ const masterchef = '0x9BA666165867E916Ee7Ed3a3aE6C19415C2fBDDD';
 const ZYB = '0x3B475F6f2f41853706afc9Fa6a6b8C5dF1a2724c';
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const url = sdk.graph.modifyEndpoint('3g83GYhbyHtjy581vpTmN1AP9cB9MjWMh5TiuNpvTU4R');
 

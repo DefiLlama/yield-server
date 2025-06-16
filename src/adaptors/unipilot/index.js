@@ -3,6 +3,7 @@ const superagent = require('superagent');
 const { gql, request } = require('graphql-request');
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const EXCHANGES_CHAINS = {
   quickswap: {
@@ -202,7 +203,7 @@ const getApy = async () => {
       });
       resultArray.push(...pools.flat());
     } catch (error) {
-      console.log(error);
+      logger.info(error);
     }
   }
   return resultArray;

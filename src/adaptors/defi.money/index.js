@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const BigNumber = require('bignumber.js');
 
 const SMONEY_CONTRACT = '0x4626C0D31c52991573DDd4dF8F2bB1Bc5101284F';

@@ -4,6 +4,7 @@ const { chunk } = require('lodash');
 
 const { masterChefABI, lpTokenABI } = require('./abis');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const API_URL = sdk.graph.modifyEndpoint(
   '2D9rXpMTvAgofWngsyRE17jKr5ywrU4W3Eaa71579qkd'

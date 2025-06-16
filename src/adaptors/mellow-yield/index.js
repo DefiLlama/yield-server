@@ -2,6 +2,7 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const { vaultRegistry, rootVault, farm } = require('./abi');
 

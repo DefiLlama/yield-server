@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const { gql, request } = require('graphql-request');
 const { mean } = require('lodash');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const API = {
   Avalanche: sdk.graph.modifyEndpoint('AmJzFkqot9NjxPCRLK8yXopYt3rtS736ZEX2zEFg7Tz2'),

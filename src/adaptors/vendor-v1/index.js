@@ -4,6 +4,7 @@ const axios = require('axios');
 const { ethers } = require('ethers');
 const networkData = require('./network-data');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { FeesManagerABI } = require('./ContractABIs');
 
 const ENTITY_URL = process.env.VENDOR_FINANCE;

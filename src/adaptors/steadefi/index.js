@@ -3,6 +3,7 @@ const axios = require('axios');
 const ethers = require('ethers');
 const abi = require('./abi.json');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const project = 'steadefi';
 
@@ -49,7 +50,7 @@ async function apy() {
           })
         ).output;
       } catch (err) {
-        console.log(p.address, chain);
+        logger.info(p.address, chain);
         return {};
       }
 
@@ -111,7 +112,7 @@ async function apy() {
           })
         ).output;
       } catch (err) {
-        console.log(p.address, chain);
+        logger.info(p.address, chain);
         return {};
       }
 

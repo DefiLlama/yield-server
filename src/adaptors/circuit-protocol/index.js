@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const url = 'https://api.circuit.farm';
 const urlApy = `${url}/apy`;

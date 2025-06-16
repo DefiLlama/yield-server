@@ -2,6 +2,7 @@ const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { windAndCheck, compounders, lpAbi, ercAbi } = require('./abi');
 
 const CHAIN = 'kava';
@@ -106,7 +107,7 @@ const unwrapLP = async (chain, lpTokens) => {
             token1Price[token1Addresses[i].toLowerCase()]) /
         (totalSupply[i] / 1e18);
     }
-    console.log(
+    logger.info(
       'LP Price Info',
       token.lpPrice,
       token0Decimals[i],
@@ -206,7 +207,7 @@ const calcApy = async () => {
     let price = prices[tokenAddress.toLowerCase()];
 
     const info = infos[i];
-    console.log(
+    logger.info(
       'INFOS',
       symbol,
       token.lp ? info.userInfo.totalCollateral ?? 0 : info.totalSupplied ?? 0,

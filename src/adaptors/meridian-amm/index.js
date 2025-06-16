@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const meridianAddress =
   '0xfbdb3da73efcfa742d542f152d65fc6da7b55dee864cd66475213e4be18c9d54';

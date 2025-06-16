@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const axios = require('axios');
 
 const API_URL = 'https://api.loopring.network/api/v2/amm/poolsStats';

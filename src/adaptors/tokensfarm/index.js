@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const FARM_URL = 'https://api.tokensfarm.com/farm/list?active=true&page=1&page_size=100&farm_type=LP,STAKE,STAKING';
 const FARM_CONFIG_URL = (symbol, type, nonce) =>
   `https://api.tokensfarm.com/farm/config?symbol=${symbol}&type=${type}&nonce=${nonce}`

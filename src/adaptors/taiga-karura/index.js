@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const getPools = async () => {
   const taiKsmApr = await utils.getData(

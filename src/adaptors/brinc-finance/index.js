@@ -11,6 +11,7 @@
 // const StakingABI = require('./staking_abi.json');
 // const BrcABI = require('./brc_abi.json');
 // const utils = require('../utils');
+const logger = require("../../utils/logger");
 // const {Web3} = require('web3');
 // const jsonRpcProvider = new JsonRpcProvider(
 //   process.env.ALCHEMY_CONNECTION_ARBITRUM
@@ -132,11 +133,11 @@
 //         }
 //       })
 //       .catch((err) => {
-//         console.log('cost quote brc->gbrc error', err);
+//         logger.info('cost quote brc->gbrc error', err);
 //         return '0';
 //       });
 //   } catch (error) {
-//     console.log('getGBRCPriceFromBRC', error);
+//     logger.info('getGBRCPriceFromBRC', error);
 //   }
 // };
 
@@ -144,7 +145,7 @@
 //   try {
 //     return (Number(daiCost) / Number(gBRCCost)) * (amount / 1e18);
 //   } catch (error) {
-//     console.log('Failed to getGBRCPrice \n Error => ', error);
+//     logger.info('Failed to getGBRCPrice \n Error => ', error);
 //     return new BigNumber(0);
 //   }
 // };

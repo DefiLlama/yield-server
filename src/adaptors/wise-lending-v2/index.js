@@ -148,7 +148,7 @@ const getTokenData = async (chain, token, addresses, contract) => {
       totalBorrowUsd,
     };
   } catch (e) {
-    console.log('error', chain, token, address[token], wiseSecurity, wiseLending, e);
+    logger.info('error', chain, token, address[token], wiseSecurity, wiseLending, e);
   }
 };
 

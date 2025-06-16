@@ -193,7 +193,7 @@ const getPriceFromDefiLlama = async (chain, tokenAddresses) => {
 };
 
 async function getPriceFromGeckoTerminal(chain, tokenAddresses) {
-  console.log(`Getting ${tokenAddresses.length} tokens from gecko on ${chain}`);
+  logger.info(`Getting ${tokenAddresses.length} tokens from gecko on ${chain}`);
   const MAX_GECKO_COINS = 25;
   const geckoChainId = GECKOTERMINAL_IDS[chain];
   const tokenPrices = {};
@@ -221,7 +221,7 @@ async function getPriceFromGeckoTerminal(chain, tokenAddresses) {
     }
     return tokenPrices;
   } catch (error) {
-    console.error(`Gecko prices fail on ${chain}:`, error.message);
+    logger.error(`Gecko prices fail on ${chain}:`, error.message);
     return undefined;
   }
 }

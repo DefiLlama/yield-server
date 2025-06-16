@@ -1,5 +1,6 @@
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 // const pfcore = 'https://api.pickle.finance/prod/protocol/pfcore/';
 const pfcore =
   'https://f8wgg18t1h.execute-api.us-west-1.amazonaws.com/prod/protocol/pfcore';

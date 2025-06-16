@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const axios = require('axios');
 const BigNumber = require('bignumber.js');
 

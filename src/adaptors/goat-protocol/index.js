@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 const dappUrl = 'https://app.goat.fi';
 const url = 'https://api.goat.fi';

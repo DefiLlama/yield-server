@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const bridgeInterestReceiverABI = require('./bridgeinterestreceiver');
 const sdk = require('@defillama/sdk');
 

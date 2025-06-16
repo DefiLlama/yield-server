@@ -3,6 +3,7 @@ const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const abi_masterchef = require('./abi_masterchef');
 
 const url = sdk.graph.modifyEndpoint(

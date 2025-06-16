@@ -1,6 +1,7 @@
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 
 // todo: llama block api returning 502 for linea chain
 CHAINS_API = {

@@ -3,6 +3,7 @@ const { request, gql } = require('graphql-request');
 const axios = require('axios');
 
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { EstimatedFees } = require('./estimateFee');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
@@ -239,7 +240,7 @@ const topLvl = async (
             const response = await request(url, tickQuery);
             pageResults = { ...pageResults, ...response };
           } catch (err) {
-            console.error("Error fetching tick data:", err);
+            logger.error("Error fetching tick data:", err);
           }
         }
         tickData[`page_${page}`] = pageResults;
@@ -267,7 +268,7 @@ const topLvl = async (
         const poolTicks = ticks[`pool_${p.id}`] ?? [];
 
         if (!poolTicks.length) {
-          console.error(`No ticks found for pool: ${p.id}`);
+          logger.error(`No ticks found for pool: ${p.id}`);
           return { ...p, estimatedFee: null, apy7d: null };
         }
 
@@ -329,7 +330,7 @@ const topLvl = async (
       };
     });
   } catch (err) {
-    console.error(`${chainString} error:`, err);
+    logger.error(`${chainString} error:`, err);
     return [];
   }
 };

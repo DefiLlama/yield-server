@@ -4,6 +4,7 @@ const { ethers } = require('ethers');
 const networkData = require('./network-data');
 const axios = require('axios');
 const utils = require('../utils');
+const logger = require("../../utils/logger");
 const { LendingPoolV2ABI, FeesManagerABI } = require('./ContractABIs');
 const { getUmamiVaultSharePrice } = require('./custom-prices/umami-vaults');
 
@@ -228,7 +229,7 @@ const getPools = async () => {
         pools.push(poolObj);
       }
     } catch (err) {
-      console.log(err);
+      logger.info(err);
     }
   }
   return pools;
