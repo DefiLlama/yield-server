@@ -11,6 +11,17 @@ const poolsFunction = async () => {
   const markets = await utils.getData(API_URL);
   const pools = [];
   
+  // Extract ABI functions once (they're constant)
+  const assetConfigAbi = singletonAbi
+    .find(item => item.type === 'interface' && item.name === 'vesu::v2::singleton_v2::ISingletonV2')
+    .items.find(fn => fn.name === 'asset_config_unsafe');
+  
+  const extensionInterface = extensionAbi.find(item => 
+    item.type === 'interface' && 
+    item.name === 'vesu::extension::interface::IExtension'
+  );
+  const interestRateAbi = extensionInterface?.items.find(fn => fn.name === 'interest_rate');
+  
   for (const market of markets.data) {
     const { pool, stats, symbol, decimals, usdPrice, address } = market;
     
@@ -29,10 +40,6 @@ const poolsFunction = async () => {
       
       const totalDebtToken = Number(stats.totalDebt?.value || 0) / Math.pow(10, decimals);
       const totalBorrowUsd = totalDebtToken * priceUsd;
-      
-      const assetConfigAbi = singletonAbi
-        .find(item => item.type === 'interface' && item.name === 'vesu::v2::singleton_v2::ISingletonV2')
-        .items.find(fn => fn.name === 'asset_config_unsafe');
       
       const rawResponse = await call({
         target: SINGLETON_CONTRACT,
@@ -58,13 +65,6 @@ const poolsFunction = async () => {
       
       let supplyAPY = 0;
       let borrowAPY = 0;
-      
-      let interestRateAbi;
-      if (Array.isArray(extensionAbi)) {
-        interestRateAbi = extensionAbi
-          .find(item => item.type === 'interface')
-          ?.items?.find(fn => fn.name === 'interest_rate');
-      }
       
       if (interestRateAbi) {
         const borrowRateResponse = await call({
