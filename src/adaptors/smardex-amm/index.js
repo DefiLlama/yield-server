@@ -14,6 +14,7 @@ const {
 } = require('./abis');
 
 const API_KEY = process.env.SMARDEX_SUBGRAPH_API_KEY;
+const project = 'smardex-amm';
 
 const BASE_URL = 'https://smardex.io/liquidity';
 const DAYS_IN_YEAR = 365;
@@ -114,7 +115,7 @@ const EXCEPTIONS = {
         return {
           pool: SUSDN_TOKEN_ADDRESS,
           symbol: 'sUSDN',
-          project: 'smardex',
+          project,
           chain: utils.formatChain(chainString),
           tvlUsd: totalSupply * susdnPrice,
           apyBase,
@@ -144,7 +145,7 @@ const EXCEPTIONS = {
         return {
           pool: USDN_TOKEN_ADDRESS,
           symbol: 'USDN',
-          project: 'smardex',
+          project,
           chain: utils.formatChain(chainString),
           tvlUsd: totalSupply,
           apyBase,
@@ -458,7 +459,7 @@ const topTvl = async (
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
-      project: 'smardex',
+      project,
       symbol,
       tvlUsd: p.totalValueLockedUSD,
       apyBase: p.apy1d,
