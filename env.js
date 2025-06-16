@@ -1,5 +1,5 @@
 try {
-  require('dotenv').config({ path: './config.env' });
+  require('dotenv').config({ path: '.env' });
 } catch (e) {
   console.log('No config.env file found');
 }

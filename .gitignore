@@ -17,6 +17,9 @@ yarn-error.log
 test.sql
 yarn.lock
 
+.pnp.*
+.yarn/*
+
 
 src/adaptors/maverick-protocol/
 src/adaptors/metavault-v3/

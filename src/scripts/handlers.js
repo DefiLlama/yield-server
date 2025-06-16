@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { promisify } = require('util');
 const cron = require('node-cron');
+const {logger} = require("./logger")
 
 
 // Get all handler files
@@ -13,9 +14,9 @@ function getTimestamp() {
     return new Date().toISOString();
 }
 
-function logMessage(message, type = 'INFO') {
+function logMessage(message, type = 'info') {
     const timestamp = getTimestamp();
-    console.log(`[${timestamp}] [${type}] ${message}`);
+    logger.log(type, `[${timestamp}] [${type}] ${message}`);
 }
 
 async function runHandlers() {
