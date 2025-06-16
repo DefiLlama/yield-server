@@ -1,5 +1,5 @@
 const fetch = require('node-fetch');
-const logger = require("../utils/logger");
+const logger = require("../../utils/logger");
 
 const YIELD_RISK_API_EXPONENTIAL =
   'https://api.exponential.fi/api/pool-risk/search';
