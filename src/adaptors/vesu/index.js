@@ -1,9 +1,11 @@
 const utils = require('../utils');
-const { call } = require('../../helper/starknet');
-const { assetConfigAbi, interestRateAbi } = require('./abi');
+const { call } = require('./starknet-helper');
+const singletonAbi = require('./abi/singletonAbi');
+const extensionAbi = require('./abi/extensionAbi');
 
 const API_URL = 'https://api.vesu.xyz/markets';
 const SINGLETON_CONTRACT = '0x000d8d6dfec4d33bfb6895de9f3852143a17c6f92fd2a21da3d6924d34870160';
+const EXTENSION_CONTRACT = '0x4e06e04b8d624d039aa1c3ca8e0aa9e21dc1ccba1d88d0d650837159e0ee054';
 
 const poolsFunction = async () => {
   const markets = await utils.getData(API_URL);
@@ -13,28 +15,80 @@ const poolsFunction = async () => {
     const { pool, stats, symbol, decimals, usdPrice, address } = market;
     
     try {
-      // Skip if no supply or null price
       if (!stats.totalSupplied?.value || 
           stats.totalSupplied.value === '0' ||
           !usdPrice?.value) {
         continue;
       }
       
-      // Calculate TVL
       const totalSuppliedToken = Number(stats.totalSupplied.value) / Math.pow(10, decimals);
       const priceUsd = Number(usdPrice.value) / Math.pow(10, usdPrice.decimals);
       const tvlUsd = totalSuppliedToken * priceUsd;
       
-      // Use API data for APY (already calculated correctly by Vesu)
-      const supplyAPY = Number(stats.supplyApy.value) / Math.pow(10, stats.supplyApy.decimals) * 100;
-      const borrowAPY = Number(stats.borrowApr?.value || 0) / Math.pow(10, stats.borrowApr?.decimals || 18) * 100;
       const supplyRewardsAPR = Number(stats.defiSpringSupplyApr.value) / Math.pow(10, stats.defiSpringSupplyApr.decimals) * 100;
       
-      // Calculate borrow data
       const totalDebtToken = Number(stats.totalDebt?.value || 0) / Math.pow(10, decimals);
       const totalBorrowUsd = totalDebtToken * priceUsd;
       
-      // Create pool entry
+      const assetConfigAbi = singletonAbi
+        .find(item => item.type === 'interface' && item.name === 'vesu::v2::singleton_v2::ISingletonV2')
+        .items.find(fn => fn.name === 'asset_config_unsafe');
+      
+      const rawResponse = await call({
+        target: SINGLETON_CONTRACT,
+        abi: assetConfigAbi,
+        params: [pool.id, address]
+      });
+      
+      if (!rawResponse || rawResponse.length < 2) {
+        continue;
+      }
+      
+      const [assetConfigStruct, additionalValue] = rawResponse;
+      
+      const totalNominalDebt = assetConfigStruct.total_nominal_debt;
+      const lastRateAccumulator = assetConfigStruct.last_rate_accumulator;
+      const reserve = assetConfigStruct.reserve;
+      const lastUpdated = Number(assetConfigStruct.last_updated);
+      const lastFullUtilizationRate = assetConfigStruct.last_full_utilization_rate;
+      
+      const totalDebt = totalNominalDebt * lastRateAccumulator / BigInt(1e18);
+      const totalSupplied = totalDebt + reserve;
+      const utilization = totalSupplied > 0n ? Number(totalDebt * BigInt(1e18) / totalSupplied) / 1e18 : 0;
+      
+      let supplyAPY = 0;
+      let borrowAPY = 0;
+      
+      let interestRateAbi;
+      if (Array.isArray(extensionAbi)) {
+        interestRateAbi = extensionAbi
+          .find(item => item.type === 'interface')
+          ?.items?.find(fn => fn.name === 'interest_rate');
+      }
+      
+      if (interestRateAbi) {
+        const borrowRateResponse = await call({
+          target: EXTENSION_CONTRACT,
+          abi: interestRateAbi,
+          params: [
+            pool.id, 
+            address, 
+            Math.floor(utilization * 1e18).toString(), 
+            lastUpdated.toString(), 
+            lastFullUtilizationRate.toString()
+          ]
+        });
+        
+        if (borrowRateResponse && borrowRateResponse[0]) {
+          const borrowRatePerSecond = Number(borrowRateResponse[0]) / 1e18;
+          const borrowAPYDecimal = Math.pow(1 + borrowRatePerSecond, 365.25 * 24 * 3600) - 1;
+          borrowAPY = borrowAPYDecimal * 100;
+          
+          const supplyAPYDecimal = utilization * borrowAPYDecimal;
+          supplyAPY = supplyAPYDecimal * 100;
+        }
+      }
+      
       const poolData = {
         pool: `${pool.id}-${symbol}-starknet`,
         chain: 'Starknet',
@@ -49,19 +103,16 @@ const poolsFunction = async () => {
         totalBorrowUsd: totalBorrowUsd,
         underlyingTokens: [address],
         url: `https://app.vesu.xyz/pool/${pool.id}`,
+        poolMeta: symbol,
       };
       
-      // Add rewardTokens if there are rewards
       if (supplyRewardsAPR > 0) {
-        // Assuming STRK token for DeFi Spring rewards
-        // You may need to adjust this based on actual reward token from API
-        poolData.rewardTokens = ['0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d']; // STRK token address
+        poolData.rewardTokens = ['0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d'];
       }
       
       pools.push(poolData);
       
     } catch (error) {
-      console.error(`Error processing market ${pool.id}-${symbol}:`, error);
       continue;
     }
   }
