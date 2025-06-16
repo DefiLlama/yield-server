@@ -96,7 +96,6 @@ const main = async () => {
         apyBase: info['weighted_average_apr'],
         apyReward: apyReward,
         volumeUsd1d: volumeUsd1d,
-        volumeUsd7d: volumeUsd1d * 7,
         rewardTokens: rewardTokens,
       });
     }
