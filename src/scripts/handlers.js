@@ -29,30 +29,18 @@ async function runHandlers() {
             const handler = require(path.join(handlersDir, handlerFile));
 
             if (typeof handler.handler === 'function') {
-                const task = cron.schedule('*/10 * * * *', async (context) => {
+                const task = cron.schedule('*/15 * * * *', async (context) => {
                     try {
                         await handler.handler()
                     } catch (error) {
                         logger.error(error)
                     }
-
-                    const status = await context.task.getStatus()
-
-                    if (status === "running") {
-                        await context.task.destroy()
-                    }
-                }, {
-                    noOverlap: true,
                 });
 
                 task.on("execution:failed", (context) => {
                     if (context.execution) {
                         logger.error(context.execution.error)
                     }
-                });
-
-                task.on("execution:overlap", (context) => {
-                    context.task.destroy()
                 });
             } else {
                 logMessage(`Skipping ${handlerFile}: no handler function found`);
