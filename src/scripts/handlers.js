@@ -21,31 +21,45 @@ async function runHandlers() {
     const startTime = Date.now();
     logMessage('Starting handlers execution cycle');
     logMessage(`Found ${handlers.length} handlers to execute`);
-    
+
     for (const handlerFile of handlers) {
         const handlerStartTime = Date.now();
         try {
             logMessage(`Starting handler: ${handlerFile}`);
             const handler = require(path.join(handlersDir, handlerFile));
-            
+
             if (typeof handler.handler === 'function') {
-                cron.schedule('*/10 * * * *', async (context) => {
-                    const task = context.task
+                const task = cron.schedule('*/10 * * * *', async (context) => {
+                    try {
+                        await handler.handler()
+                    } catch (error) {
+                        logger.error(error)
+                    }
 
-                    logMessage(await task.getStatus())
+                    const status = await context.task.getStatus()
 
-                    await handler.handler()
+                    if (status === "running") {
+                        await context.task.destroy()
+                    }
                 }, {
                     noOverlap: true,
-                }).on('error', (error) => {
-                    logMessage(`Cron error in ${handlerFile}: ${error.message}`, 'ERROR');
+                });
+
+                task.on("execution:failed", (context) => {
+                    if (context.execution) {
+                        logger.error(context.execution.error)
+                    }
+                });
+
+                task.on("execution:overlap", (context) => {
+                    context.task.destroy()
                 });
             } else {
-                logMessage(`Skipping ${handlerFile}: no handler function found`, 'WARN');
+                logMessage(`Skipping ${handlerFile}: no handler function found`);
             }
         } catch (error) {
-            logMessage(`Error in ${handlerFile}: ${error.message}`, 'ERROR');
-            logMessage(error.stack, 'ERROR');
+            logMessage(`Error in ${handlerFile}: ${error.message}`);
+            logMessage(error.stack);
         }
     }
 }
