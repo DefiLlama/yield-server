@@ -29,7 +29,13 @@ async function runHandlers() {
             const handler = require(path.join(handlersDir, handlerFile));
             
             if (typeof handler.handler === 'function') {
-                cron.schedule('*/10 * * * *', handler.handler, {
+                cron.schedule('*/10 * * * *', async (context) => {
+                    const task = context.task
+
+                    logMessage(await task.getStatus())
+
+                    await handler.handler()
+                }, {
                     noOverlap: true,
                 }).on('error', (error) => {
                     logMessage(`Cron error in ${handlerFile}: ${error.message}`, 'ERROR');
