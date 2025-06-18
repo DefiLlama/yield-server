@@ -2,7 +2,6 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const {
   usdnABI,
-  usdnProtocolABI,
   wUsdnABI,
 } = require('./abis');
 
@@ -125,7 +124,7 @@ const computeYield = async (
   return {
     pool: chainConfig.USDN_TOKEN_ADDRESS,
     symbol: 'USDN',
-    project: 'smardex',
+    project: 'smardex-usdn',
     chain: utils.formatChain(chainConfig.chain),
     tvlUsd: totalSupply,
     apyBase,

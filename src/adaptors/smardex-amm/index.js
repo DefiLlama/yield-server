@@ -6,21 +6,14 @@ const {
   BigNumber,
 } = require('ethers');
 const utils = require('../utils');
-const {
-  farmingRangeABI,
-  usdnABI,
-  usdnProtocolABI,
-  wUsdnABI,
-} = require('./abis');
+const { farmingRangeABI } = require('./abis');
 
 const API_KEY = process.env.SMARDEX_SUBGRAPH_API_KEY;
 const project = 'smardex-amm';
 
 const BASE_URL = 'https://smardex.io/liquidity';
 const DAYS_IN_YEAR = 365;
-const DAYS_IN_WEEK = 7;
 const SECONDS_IN_DAY = 86400;
-const YEAR_IN_SECONDS = DAYS_IN_YEAR * SECONDS_IN_DAY;
 
 // Smardex gateway for subgraph queries, for each chain
 const ENDPOINT_BASE = 'https://subgraph.smardex.io/defillama';
