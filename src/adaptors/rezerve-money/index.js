@@ -75,7 +75,7 @@ function getTimestampDaysBefore(days) {
 
 async function getBlockNumber(timestamp) {
   const response = await superagent.get(
-    `https://coins.llama.fi/block/berachain/${timestamp}`
+    `https://coins.llama.fi/block/sonic/${timestamp}`
   );
   return response.body.height;
 }
