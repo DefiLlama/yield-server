@@ -6,11 +6,9 @@ const {
   wUsdnABI,
 } = require('./abis');
 
-const BASE_URL = 'https://smardex.io/liquidity';
 const DAYS_IN_YEAR = 365;
 const SECONDS_IN_DAY = 86400;
 const SECONDS_IN_A_YEAR = DAYS_IN_YEAR * SECONDS_IN_DAY;
-const BIGINT_10_POW_18 = BigInt(10 ** 18);
 
 const CONFIGS = [
   {
@@ -19,7 +17,6 @@ const CONFIGS = [
     WUSDN_TOKEN_ADDRESS: '0x99999999999999Cc837C997B882957daFdCb1Af9',
     USDN_PROTOCOL_ADDRESS: '0x656cB8C6d154Aad29d8771384089be5B5141f01a',
     USDN_PROTOCOL_FIRST_DEPOSIT: 1737663167,
-    UNDERLYING_TOKEN_ADDRESS: '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0', // wstETH
   },
 ];
 
@@ -34,20 +31,6 @@ const getUsdnPriceAtTimestamp = async (chainConfig, timestamp) => {
     throw new Error('No price data found for USDN');
   }
   return usdnResult.price;
-};
-
-const getUnderlyingPriceAtTimestamp = async (chainConfig, timestamp) => {
-  const prices = (
-    await utils.getData(
-      `https://coins.llama.fi/prices/historical/${timestamp}/${chainConfig.chain}:${chainConfig.UNDERLYING_TOKEN_ADDRESS}`
-    )
-  ).coins;
-
-  const underlyingData = prices[`${chainConfig.chain}:${chainConfig.UNDERLYING_TOKEN_ADDRESS}`];
-  if (underlyingData === undefined) {
-    throw new Error('No price data found for underlying token');
-  }
-  return underlyingData.price;
 };
 
 async function fetchUSDNData(chainConfig, timestamp) {
@@ -74,42 +57,23 @@ async function fetchUSDNData(chainConfig, timestamp) {
     block,
   });
 
-  const underlyingPrice = await getUsdnPriceAtTimestamp(chainConfig, timestamp);
-  const formattedUnderlyingPrice = BigInt(Math.round(underlyingPrice * 10 ** 18));
-
-  const usdnVaultAssetAvailableWithFundingCall = sdk.api.abi.call({
-    target: chainConfig.USDN_PROTOCOL_ADDRESS,
-    abi: usdnProtocolABI.find(
-      (m) => m.name === 'vaultAssetAvailableWithFunding'
-    ),
-    chain: chainConfig.chain,
-    block,
-    params: [formattedUnderlyingPrice, BigInt(timestamp)],
-  });
-
   const [
     usdnDivisor,
     usdnTotalSupply,
-    usdnVaultAssetAvailableWithFunding,
     wUsdnSharesRatio,
   ] = await Promise.all([
     usdnDivisorCall,
     usdnTotalSupplyCall,
-    usdnVaultAssetAvailableWithFundingCall,
     wUsdnSharesRatioCall,
   ]);
 
-  const usdnPrice = await getUnderlyingPriceAtTimestamp(chainConfig, timestamp);
+  const usdnPrice = await getUsdnPriceAtTimestamp(chainConfig, timestamp);
   const formattedUsdnPrice = BigInt(Math.round(usdnPrice * 10 ** 18));
   const usdnDivisorOutput = BigInt(usdnDivisor.output);
 
   return {
     usdnDivisor: usdnDivisorOutput,
     usdnTotalSupply: BigInt(usdnTotalSupply.output),
-    usdnVaultAssetAvailableWithFunding: BigInt(
-      usdnVaultAssetAvailableWithFunding.output
-    ),
-    underlyingPrice: formattedUnderlyingPrice,
     wusdnPrice:
       (BigInt(wUsdnSharesRatio.output) * formattedUsdnPrice) /
       usdnDivisorOutput,
@@ -122,23 +86,22 @@ const computeUsdnApr = async (chainConfig, timestampNow) => {
     chainConfig.USDN_PROTOCOL_FIRST_DEPOSIT,
   );
 
-  const [first, last] = await Promise.all([
+  const [yearAgo, now] = await Promise.all([
     fetchUSDNData(chainConfig, timestampOneYearAgo),
     fetchUSDNData(chainConfig, timestampNow),
   ]);
 
-  console.log('first last', first, last);
-  const elapsedTimeBetweenFirst =
+  const timePeriodInDays =
     (timestampNow - timestampOneYearAgo) / SECONDS_IN_DAY;
 
   const totalYield =
     Number(
-      ((last.wusdnPrice - first.wusdnPrice) * BIGINT_10_POW_18) /
-        first.wusdnPrice
+      ((now.wusdnPrice - yearAgo.wusdnPrice) * BigInt(10 ** 18)) /
+        yearAgo.wusdnPrice
     ) /
     10 ** 18;
 
-  return (Math.pow(1 + totalYield, 365 / elapsedTimeBetweenFirst) - 1) * 100;
+  return (Math.pow(1 + totalYield, 365 / timePeriodInDays) - 1) * 100;
 };
 
 const computeYield = async (
@@ -190,5 +153,5 @@ const main = async (timestamp = null) => {
 module.exports = {
   timetravel: true,
   apy: main,
-  url: BASE_URL,
+  url: 'https://smardex.io/liquidity',
 };
