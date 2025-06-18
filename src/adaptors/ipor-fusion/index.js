@@ -11,6 +11,9 @@ const CHAIN_CONFIG = {
     },
     base: {
         chainId: 8453
+    },
+    unichain: {
+        chainId: 130
     }
 };
 
@@ -38,7 +41,7 @@ async function getPublicVaults() {
 
 async function buildPool(vault) {
     const tvlUsd = Number(vault.tvl);
-    const apyBase = Number(vault.apr);
+    const apyBase = Number(vault.apy);
     const chainConfig = Object.entries(CHAIN_CONFIG).find(
         ([_, config]) => config.chainId === vault.chainId
     );
