@@ -34,7 +34,7 @@ const poolsFunction = async () => {
       
       const totalSuppliedToken = Number(stats.totalSupplied.value) / Math.pow(10, decimals);
       const priceUsd = Number(usdPrice.value) / Math.pow(10, usdPrice.decimals);
-      const tvlUsd = totalSuppliedToken * priceUsd;
+      const totalSupplyUsd = totalSuppliedToken * priceUsd;
       
       const supplyRewardsAPR = Number(stats.defiSpringSupplyApr.value) / Math.pow(10, stats.defiSpringSupplyApr.decimals) * 100;
       
@@ -94,15 +94,15 @@ const poolsFunction = async () => {
         chain: 'Starknet',
         project: 'vesu',
         symbol: symbol,
-        tvlUsd: tvlUsd,
+        tvlUsd: totalSupplyUsd - totalBorrowUsd,
         apyBase: supplyAPY > 0 ? supplyAPY : null,
         apyReward: supplyRewardsAPR > 0 ? supplyRewardsAPR : null,
         apyBaseBorrow: borrowAPY > 0 ? borrowAPY : null,
         apyRewardBorrow: null,
-        totalSupplyUsd: tvlUsd,
+        totalSupplyUsd: totalSupplyUsd,
         totalBorrowUsd: totalBorrowUsd,
         underlyingTokens: [address],
-        url: `https://app.vesu.xyz/pool/${pool.id}`,
+        url: "https://vesu.xyz/markets",
         poolMeta: symbol,
       };
       
