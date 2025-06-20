@@ -79,6 +79,22 @@ const pools = [
     symbol: 'WETH',
     hasReward: false,
   },
+  // xALGO
+  {
+    appId: 2611131944,
+    assetId: 1134696561,
+    fAssetId: 2611138444,
+    symbol: 'xALGO',
+    hasReward: false,
+  },
+  // tALGO
+  {
+    appId: 3073474613,
+    assetId: 2537013734,
+    fAssetId: 3073480070,
+    symbol: 'tALGO',
+    hasReward: false,
+  },
 ];
 
 const oracleAppId = 1040271396;

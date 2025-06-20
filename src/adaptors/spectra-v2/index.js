@@ -89,7 +89,7 @@ const fixedRateApy = (p) => {
     project: 'spectra-v2',
     symbol: utils.formatSymbol(`${p.pt.ibt.symbol}`),
     tvlUsd: p.liquidity?.usd,
-    apyBase: p.impliedApy,
+    apyBase: p.pt.ibt.apr?.total,
     underlyingTokens: [p.pt.underlying.address],
     poolMeta: `For PT on ${p.pt.ibt.protocol}  | Maturity ${formatMaturity(
       p.pt.maturity
