@@ -1,6 +1,4 @@
 const utils = require('../utils');
-const { erc20Abi } = require('./abis');
-const { ethers } = require('ethers');
 
 const CONFIG = {
   chain: utils.formatChain('berachain'),
@@ -35,6 +33,7 @@ interface Pool {
 interface BeranciaResponse {
   vaults: {
     address: string;
+    symbol: string;
     apy: {
       base: string;
       leveraged: string | null;
@@ -143,7 +142,6 @@ const parseAndFormatNumeric = (value: string | null | undefined): number => {
 
 const transformVaultToPool = (
   vault: BeranciaResponse['vaults'][0],
-  symbol: string,
   commonData: { chain: string; project: string }
 ): Pool => {
   const isLeveraged =
@@ -157,38 +155,9 @@ const transformVaultToPool = (
     pool: vault.address,
     tvlUsd: parseAndFormatNumeric(vault.tvl.total),
     apyBase: parseAndFormatNumeric(apyValue),
-    symbol,
+    symbol: vault.symbol,
     poolMeta: isLeveraged ? CONFIG.poolMetaLeveraged : CONFIG.poolMeta,
   };
-};
-
-const createProvider = () => {
-  return new ethers.providers.JsonRpcProvider(CONFIG.rpcUrl);
-};
-
-const fetchVaultSymbol = async (
-  address: string,
-  provider: any
-): Promise<string> => {
-  try {
-    const contract = new ethers.Contract(address, erc20Abi, provider);
-    const symbol = await contract.symbol();
-    return symbol;
-  } catch (error) {
-    throw new Error(`Failed to fetch symbol for ${address}: ${error.message}`);
-  }
-};
-
-const fetchVaultSymbols = async (
-  vaultAddresses: string[]
-): Promise<string[]> => {
-  const provider = createProvider();
-
-  const symbolPromises = vaultAddresses.map((address) =>
-    fetchVaultSymbol(address, provider)
-  );
-
-  return await Promise.all(symbolPromises);
 };
 
 const getPools = async (): Promise<Pool[]> => {
@@ -201,12 +170,8 @@ const getPools = async (): Promise<Pool[]> => {
 
   const commonData = { chain: CONFIG.chain, project: CONFIG.project };
 
-  const vaultAddresses = data.vaults.map((vault) => vault.address);
-  // TODO: get from Berancia API
-  const symbols = await fetchVaultSymbols(vaultAddresses);
-
-  const pools = data.vaults.map((vault, index) =>
-    transformVaultToPool(vault, symbols[index], commonData)
+  const pools = data.vaults.map((vault) =>
+    transformVaultToPool(vault, commonData)
   );
 
   return pools;
