@@ -3,8 +3,7 @@ const utils = require('../utils');
 const CONFIG = {
   chain: utils.formatChain('berachain'),
   project: 'berancia',
-  // TODO: change to production URL
-  apiUrl: 'https://qa.berancia.io/api/vault-stats',
+  apiUrl: 'https://app.berancia.io/api/vault-stats',
   appUrl: 'https://app.berancia.io/',
   rpcUrl: 'https://rpc.berachain.com',
   poolMeta: 'BGT Maximizer',
