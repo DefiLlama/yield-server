@@ -442,6 +442,12 @@ const RewardsTokenV2 = {
     tokenAddress: '0x0000000000000000000000000000000000000000',
     spokeAddress: '0xCD7eE494fa616FDbE38Aa0A9355E20b7215108Bf',
   },
+  // USDT0 (Arbitrum)
+  5: {
+    chain: 'arbitrum',
+    tokenAddress: '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',
+    spokeAddress: '0x0259617bE41aDA4D97deD60dAf848Caa6db3F228',
+  },
 };
 
 module.exports = {
