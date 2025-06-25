@@ -26,7 +26,7 @@ const poolsFunction = async () => {
     })
     .then((result) => result.output);
 
-  const apy = (Math.pow(1 + (apr/1e18) / 365, 365) - 1);
+  const apy = (Math.pow(1 + (apr/1e18) / 365, 365) - 1) * 100;
 
   const msUSDPool = {
     pool: msUSD.address,
