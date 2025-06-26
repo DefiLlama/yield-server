@@ -103,7 +103,7 @@ const apy = async () => {
   });
 
   const superOETHpData = await fetchPoolData({
-    chain: 'plume_mainnet',
+    chain: 'Plume Mainnet',
     chainId: 98866,
     vaultAddress: superOETHpVaultAddress,
     token: PLUME_SUPER_OETH_TOKEN,
