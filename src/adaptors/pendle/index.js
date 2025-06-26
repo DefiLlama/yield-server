@@ -189,6 +189,10 @@ async function fetchPoolsVolumes(chain, pools, routers) {
       console.log(event);
       process.exit(0);
     }
+    if (!markets[event.market]) {
+      console.warn(`Market not found for event.market: ${event.market}`);
+      continue;
+    }
     const volumeUsd = event.tokenAmount * tokens[event.token].price / 10**tokens[event.token].decimals;
 
     if (event.blockNumber >= last1DaysBlock) {
@@ -198,10 +202,11 @@ async function fetchPoolsVolumes(chain, pools, routers) {
   }
 
   return pools.map(pool => {
+    const market = markets[utils.formatAddress(pool.address)] || { volumeUsd1d: 0, volumeUsd7d: 0 };
     return {
       ...pool,
-      volumeUsd1d: markets[utils.formatAddress(pool.address)].volumeUsd1d,
-      volumeUsd7d: markets[utils.formatAddress(pool.address)].volumeUsd7d,
+      volumeUsd1d: market.volumeUsd1d,
+      volumeUsd7d: market.volumeUsd7d,
     }
   })
 }
@@ -220,8 +225,8 @@ async function poolApys(chainId, pools) {
     apyReward: p.details.pendleApy * 100,
     rewardTokens: [chains[chainId].PENDLE],
     underlyingTokens: [splitId(p.pt).address, splitId(p.sy).address],
-    volumeUsd1d: p.volumeUsd1d,
-    volumeUsd7d: p.volumeUsd7d,
+    volumeUsd1d: typeof p.volumeUsd1d === 'number' ? p.volumeUsd1d : 0,
+    volumeUsd7d: typeof p.volumeUsd7d === 'number' ? p.volumeUsd7d : 0,
     poolMeta: `For LP | Maturity ${expiryToText(p.expiry)}`,
     url: `https://app.pendle.finance/trade/pools/${p.address}/zap/in?chain=${chains[chainId].chainSlug}`,
   }));
