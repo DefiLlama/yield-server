@@ -1,30 +1,44 @@
+// src/adaptors/trenergy/trenergy.js
 const axios = require("axios");
-const { getTrxPrice } = require("../../utils");
 
-async function tvl() {
-  try {
-    const stats = await axios.get("https://core.tr.energy/api/energy-stats");
-    const trxPrice = await getTrxPrice();
 
-    const totalEnergy = stats.data.data.total_energy;
-    const tvlInTrx = totalEnergy / 10.52;
-    const tvlInUsd = tvlInTrx * trxPrice;
+async function getConfig() {
+  const { data } = await axios.get("https://core.tr.energy/api/config");
+  return data.data;
+}
+async function getStats() {
+  const { data } = await axios.get("https://core.tr.energy/api/energy-stats");
+  return data.data;
+}
 
-    return {
-      tron: tvlInUsd
-    };
-  } catch (error) {
-    console.error("Failed to fetch TR.ENERGY TVL data:", error);
-    return {};
-  }
+
+async function apy() {
+  const cfg   = await getConfig();
+  const stats = await getStats();
+
+  // TVL
+  const tvlTrx = stats.total_energy / 10.52;
+  const tvlUsd = tvlTrx * cfg.trx_usd_rate;
+
+  // APY  (profit_percent + static_percent) * percent_cef
+  const baseApy = (cfg.profit_percent + cfg.static_percent) * cfg.percent_cef * 100;
+
+  return [
+    {
+      pool: "trenergy-trx",
+      chain: "Tron",
+      project: "trenergy",
+      symbol: "TRX",
+      tvlUsd,
+      apyBase: baseApy,
+      underlyingTokens: ["TRX"],   
+      url: "https://tr.energy",
+    },
+  ];
 }
 
 module.exports = {
   timetravel: false,
-  misrepresentedTokens: true,
-  tron: {
-    tvl,
-  },
-  methodology:
-    "TVL is calculated as the total amount of delegated energy divided by the coefficient 10.52 (representing the TRX-to-energy rate). The resulting TRX value is then converted to USD using the TRX price obtained from https://core.tr.energy/api/config",
+  apy,               
+  url: "https://tr.energy",
 };
