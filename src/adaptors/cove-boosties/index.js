@@ -1,69 +1,125 @@
 const utils = require('../utils');
+const sdk = require('@defillama/sdk');
 
 const chains = {
-  ethereum: 1,
+  Ethereum: 1,
 };
+
+const getAssetSymbolAbi =
+  'function symbol() public view returns (string memory)';
+const getAssetTotalSupplyAbi =
+  'function totalSupply() public view returns (uint256)';
 
 const getApy = async () => {
   const data = await Promise.all(
     Object.entries(chains).map(async (chain) => {
-      // Use Cove's API endpoint which has APY data
-      const vaults = await utils.getData(
+      // instantiate the sdk api for the chain
+      const api = new sdk.ChainApi({ chain: chain[0].toLowerCase() });
+      // Get yearn vaults data
+      const yearnVaults = await utils.getData(
         `https://boosties.cove.finance/api/v1/yearn-vaults?chainId=${chain[1]}`
       );
 
-      return vaults
-        .filter((vault) => {
+      // Get Cove's boosties data
+      const boostiesData = await utils.getData(
+        `https://eo2sjzp61i.execute-api.us-east-1.amazonaws.com/Prod/data`
+      );
+      const boostiesVaults = boostiesData.vaults;
+
+      // Create a map of yearn vaults by address for easy lookup
+      const yearnVaultsMap = {};
+      yearnVaults.forEach((vault) => {
+        yearnVaultsMap[vault.address.toLowerCase()] = vault;
+      });
+
+      // Fetch asset symbols for all boosties vaults
+      const assetSymbols = await api.multiCall({
+        abi: getAssetSymbolAbi,
+        calls: boostiesVaults.map((vault) => ({
+          target: vault.coveYearnStrategy,
+        })),
+      });
+
+      // Enrich boosties vaults with their strategy symbols
+      boostiesVaults.forEach((vault, i) => {
+        vault.coveYearnStrategySymbol = assetSymbols[i];
+      });
+
+      // Fetch the total supply of each coveYearnStrategy
+      const coveYearnStrategyTotalSupply = await api.multiCall({
+        abi: getAssetTotalSupplyAbi,
+        calls: boostiesVaults.map((vault) => ({
+          target: vault.coveYearnStrategy,
+        })),
+      });
+
+      // Multiply by the vault.coveYearnStrategyPricePerShare and divide by 1e18
+      // Multiply by the underlying asset price, which is tvl.price of matching yearn vault
+      const coveYearnStrategyTVL = coveYearnStrategyTotalSupply.map(
+        (totalSupply, i) => {
+          return parseFloat(
+            Number(
+              (((totalSupply *
+                boostiesVaults[i].coveYearnStrategyPricePerShare) /
+                1e18) *
+                yearnVaultsMap[boostiesVaults[i].yearnVault.toLowerCase()].tvl
+                  .price) /
+                1e18
+            ).toFixed(2)
+          );
+        }
+      );
+
+      // Enrich boosties vaults with their coveYearnStrategyTVL
+      boostiesVaults.forEach((vault, i) => {
+        vault.coveYearnStrategyTVL = coveYearnStrategyTVL[i];
+      });
+
+      return boostiesVaults
+        .filter((boostie) => {
+          // Find matching yearn vault
+          const yearnVault = yearnVaultsMap[boostie.yearnVault.toLowerCase()];
+
+          // Skip if no matching yearn vault found
+          if (!yearnVault) return false;
+
           // Skip retired vaults
-          if (vault.info?.isRetired) return false;
-          
+          if (yearnVault.info?.isRetired) return false;
+
           // Only include vaults with TVL > 0
-          if (!vault.tvl?.tvl || vault.tvl.tvl <= 0) return false;
-          
+          if (!yearnVault.tvl?.tvl || yearnVault.tvl.tvl <= 0) return false;
+
           return true;
         })
-        .map((vault) => {
-          // Get APY components
-          const apyBase = (vault.apr?.netAPR || 0) * 100;
-          const apyReward = (vault.apr?.extra?.stakingRewardsAPR || 0) * 100;
+        .map((boostie) => {
+          // Get the matching yearn vault
+          const yearnVault = yearnVaultsMap[boostie.yearnVault.toLowerCase()];
 
-          // Determine reward tokens based on whether there are rewards
-          const rewardTokens = [];
-          if (apyReward > 0) {
-            // Add COVE token as reward
-            rewardTokens.push('0x32fb7D6E0cBEb9433772689aA4647828Cc7cbBA8');
-            
-            // If it's a Curve vault with CRV rewards, add CRV
-            if (vault.apr?.forwardAPR?.type === 'crv' || vault.apr?.forwardAPR?.type === 'convexcrv') {
-              rewardTokens.push('0xD533a949740bb3306d119CC777fa900bA034cd52'); // CRV
-            }
-            
-            // If it has CVX rewards, add CVX
-            if (vault.apr?.forwardAPR?.composite?.cvxAPR > 0) {
-              rewardTokens.push('0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B'); // CVX
-            }
-          }
+          // Multiply coveYearnStrategy1DayAPR by yearnVault.apr.netAPR to get the net base APY for
+          // the boosties vault
+          const apyBase =
+            (boostie.coveYearnStrategy1DayAPR + 100) *
+              (((yearnVault.apr.netAPR + 1) * 100) / 100) -
+            100;
 
           return {
-            pool: `${vault.address}-cove-boosties`,
-            chain: utils.formatChain(chain[0]),
+            pool: `${boostie.coveYearnStrategy}-${chain[0]}`.toLowerCase(),
+            chain: chain[0],
             project: 'cove-boosties',
-            symbol: utils.formatSymbol(vault.symbol),
-            tvlUsd: vault.tvl.tvl,
+            symbol: boostie.coveYearnStrategySymbol,
+            tvlUsd: boostie.coveYearnStrategyTVL,
             apyBase,
-            apyReward,
-            rewardTokens,
-            url: `https://app.cove.finance/boosties`,
-            underlyingTokens: [vault.address], // The vault itself is the underlying token
-            poolMeta: `${vault.name} - Cove Boosties`,
+            apyReward: null,
+            rewardTokens: [],
+            url: `https://boosties.cove.finance/boosties`,
+            underlyingTokens: [boostie.vaultAsset],
+            poolMeta: `${boostie.coveYearnStrategySymbol} - Cove Boosties`,
           };
         });
     })
   );
 
-  return data
-    .flat()
-    .filter((p) => utils.keepFinite(p));
+  return data.flat().filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
