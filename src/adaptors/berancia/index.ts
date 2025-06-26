@@ -42,6 +42,7 @@ interface BeranciaResponse {
       total: string | null;
       base: string | null;
     };
+    tokenSymbols: string[];
   }[];
 }
 
@@ -154,7 +155,7 @@ const transformVaultToPool = (
     pool: vault.address,
     tvlUsd: parseAndFormatNumeric(vault.tvl.total),
     apyBase: parseAndFormatNumeric(apyValue),
-    symbol: vault.symbol,
+    symbol: vault.tokenSymbols.join('-'),
     poolMeta: isLeveraged ? CONFIG.poolMetaLeveraged : CONFIG.poolMeta,
   };
 };
