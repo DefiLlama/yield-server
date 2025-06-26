@@ -113,7 +113,6 @@ const getApy = async () => {
             rewardTokens: [],
             url: `https://boosties.cove.finance/boosties`,
             underlyingTokens: [boostie.vaultAsset],
-            poolMeta: `${boostie.coveYearnStrategySymbol} - Cove Boosties`,
           };
         });
     })
