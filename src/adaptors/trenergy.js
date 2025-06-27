@@ -1,4 +1,4 @@
-// src/adaptors/trenergy/trenergy.js
+
 const axios = require("axios");
 
 
@@ -27,7 +27,7 @@ async function apy() {
     {
       pool: "trenergy-trx",
       chain: "Tron",
-      project: "trenergy",
+      project: "tr-energy",
       symbol: "TRX",
       tvlUsd,
       apyBase: baseApy,
