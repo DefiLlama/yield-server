@@ -31,14 +31,16 @@ async function apy() {
       symbol: "TRX",
       tvlUsd,
       apyBase: baseApy,
-      underlyingTokens: ["TRX"],   
+      underlyingTokens: ["TRX"],
       url: "https://tr.energy",
     },
   ];
 }
 
 module.exports = {
+  project: "tr-energy",
   timetravel: false,
-  apy,               
+  apy,
   url: "https://tr.energy",
-};
+  misrepresentedTokens: true,
+}
