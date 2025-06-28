@@ -27,7 +27,6 @@ async function apy() {
     const tvl = pool.tvlUSD;
     const tokenA = pool.pool.token1;
     const tokenB = pool.pool.token2;
-    const tokenList = [tokenA, tokenB];
     const symbolA = pool.pool.token1Info.symbol;
     const symbolB = pool.pool.token2Info.symbol;
 
@@ -39,7 +38,7 @@ async function apy() {
       tvlUsd: Number(tvl),
       apyBase: aprToApy(feeAPR),
       apyReward: aprToApy(farmAPR),
-      rewardTokens: [pool.pool.farm.map((item) => item.rewardFa)].flat(),
+      rewardTokens: pool.pool.farm.map((item) => item.rewardFa),
       underlyingTokens: [tokenA, tokenB],
       url: `https://hyperion.xyz/pool/${poolId}`,
     });
