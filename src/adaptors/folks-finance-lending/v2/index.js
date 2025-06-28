@@ -13,16 +13,9 @@ const {
   getRewardInterestRate,
 } = require('./utils');
 const { pools } = require('./constants');
-const utils = require('../../utils');
 const { getCachedPrices } = require('./prices');
 
 const REWARD_APP_ID = 1093729103;
-const X_ALGO_POOL_APP_ID = 2611131944;
-
-async function retrieveXAlgoLiquidStakingApr() {
-  const { apr } = await utils.getData('https://t2mirm6n2ivqbd7dwnby3gxaaa0naxxx.lambda-url.eu-central-1.on.aws/')
-  return BigInt(apr) * BigInt(1e12); // Convert 4dp APR to 16dp interest rate
-}
 
 async function retrievePoolInfo({ poolAppId, poolAssetId }) {
   const state = await getAppState(poolAppId);
@@ -47,9 +40,8 @@ async function retrievePoolInfo({ poolAppId, poolAssetId }) {
 
   const depositsAmountUsd = Number(interest[3]) * transformPrice(price);
 
-  const stakingApr = poolAppId === X_ALGO_POOL_APP_ID ? await retrieveXAlgoLiquidStakingApr() : BigInt(0);
-  const depositInterestYield = calculateInterestYield(interest[4]) + stakingApr;
-  const depositInterestRate = interest[4] + stakingApr;
+  const depositInterestYield = calculateInterestYield(interest[4]);
+  const depositInterestRate = interest[4];
 
   const depositInterestIndex = calcDepositInterestIndex(
     interest[4],
