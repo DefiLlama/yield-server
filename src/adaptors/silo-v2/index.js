@@ -5,6 +5,8 @@ const ethers = require('ethers');
 
 const utils = require('../utils');
 
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 BigNumber.config({ EXPONENTIAL_AT: [-1e9, 1e9] });
 
 const XAI = '0xd7c9f0e536dc865ae858b0c0453fe76d13c3beac'
@@ -36,7 +38,8 @@ const configV2 = {
             name: "wS_sUSDC_008",
             id: "0x77535f73555344435f3030380000000000000000000000000000000000000000",
           }
-        }
+        },
+        SUBGRAPH_URL: 'https://api.thegraph.com/subgraphs/id/QmRMbysN34otXPE6k169HsuTbajYhy3WVNS9RaXYNFwWNS',
       }
     ],
   },
@@ -257,6 +260,8 @@ async function getSiloData(api, deploymentData) {
     }
   }
 
+  console.log({siloAddressToMarketId})
+
   return assetDataBySilo;
 }
 
@@ -300,6 +305,192 @@ async function getSilosV2(chainApi, deploymentData) {
   return { siloAddresses, siloAddressesToSiloConfigAddress };
 }
 
+async function getVaultData(api, deploymentData) {
+
+  // Handle V2 Vaults
+  let rawVaultData = {};
+  let assetDataByVault = {};
+  let assetsForPriceData = [];
+  let subgraphVaults;
+  if(deploymentData?.SUBGRAPH_URL) {
+    const vaultQuery = gql`
+      {
+        vaults {
+          id
+          name
+          totalSupply
+          assetRatio
+          decimals
+          asset {
+            symbol
+            name
+            id
+            decimals
+          }
+        }
+      }
+    `;
+    subgraphVaults = await request(deploymentData?.SUBGRAPH_URL, vaultQuery);
+
+    for(let vault of subgraphVaults?.vaults) {
+      // Only collect data for vaults with a positive supply
+      if(vault?.totalSupply && new BigNumber(vault.totalSupply).isGreaterThan(0)) {
+        rawVaultData[vault.id] = {
+          id: vault.id,
+          name: vault.name,
+          totalSupply: vault.totalSupply,
+          assetRatio: vault.assetRatio,
+          asset: vault.asset,
+        }
+        if(vault?.asset?.id && assetsForPriceData?.indexOf(vault?.asset?.id) === -1) {
+          assetsForPriceData.push(vault?.asset?.id);
+        }
+      }
+    }
+
+  }
+
+  let assetPrices = await utils.getPrices(assetsForPriceData, api.chain);
+
+  if(deploymentData?.SUBGRAPH_URL) {
+    const VAULT_POSITION_BATCH_SIZE = 10;
+    let vaultBatches = [];
+    let vaultIdToPositionMetadata = {};
+    for (let i = 0; i < subgraphVaults?.vaults?.length; i += VAULT_POSITION_BATCH_SIZE) {
+      const batch = subgraphVaults?.vaults.slice(i, i + VAULT_POSITION_BATCH_SIZE);
+      vaultBatches.push(batch);
+    }
+
+    for (let vaultBatch of vaultBatches) {
+
+      console.log({vaultBatch})
+
+      let vaultAddresses = vaultBatch.map((vault) => vault.id);
+
+      console.log({vaultAddresses})
+
+      const vaultPositionsBatchQuery = gql`
+        query vaultPositionQuery($account_in: [String!]) {
+          positions(where: {account_in: $account_in}) {
+            account {
+              id
+            }
+            sTokenBalance
+            market {
+              id
+              collateralRatio
+              rates(where: {side: LENDER}) {
+                rate
+              }
+            }
+            sToken {
+              asset {
+                id
+              }
+              decimals
+              symbol
+            }
+          }
+        }
+      `;
+      const vaultPositions = await request(deploymentData?.SUBGRAPH_URL, vaultPositionsBatchQuery, {
+        account_in: vaultAddresses
+      });
+
+      console.log({vaultPositions})
+
+      for(let vaultPosition of vaultPositions?.positions) {
+        let vaultAccountId = vaultPosition?.account?.id;
+        let underlyingAssetAmount = new BigNumber(vaultPosition?.sTokenBalance).multipliedBy(vaultPosition?.market?.collateralRatio).toFixed(0);
+        // console.log({underlyingAssetAmount})
+        if(!vaultIdToPositionMetadata[vaultAccountId]) {
+          vaultIdToPositionMetadata[vaultAccountId] = {
+            totalUnderlyingAssets: underlyingAssetAmount,
+            totalUnderlyingAssetsUSD: ethers.utils.formatUnits(new BigNumber(underlyingAssetAmount).multipliedBy(assetPrices.pricesByAddress[vaultPosition?.sToken?.asset?.id.toLowerCase()]).toFixed(0), vaultPosition?.sToken?.decimals),
+            positions: [{
+              rates: vaultPosition?.market?.rates,
+              underlyingAssetSymbol: vaultPosition?.sToken?.symbol,
+              underlyingAssetAmount,
+              underlyingAssetAmountUSD: ethers.utils.formatUnits(new BigNumber(underlyingAssetAmount).multipliedBy(assetPrices.pricesByAddress[vaultPosition?.sToken?.asset?.id.toLowerCase()]).toFixed(0), vaultPosition?.sToken?.decimals),
+              underlyingAssetDecimals: vaultPosition?.sToken?.decimals,
+            }]
+          }
+        } else {
+          vaultIdToPositionMetadata[vaultAccountId].totalUnderlyingAssets = new BigNumber(vaultIdToPositionMetadata[vaultAccountId].totalUnderlyingAssets).plus(underlyingAssetAmount).toString();
+          vaultIdToPositionMetadata[vaultAccountId].totalUnderlyingAssetsUSD = new BigNumber(vaultIdToPositionMetadata[vaultAccountId].totalUnderlyingAssetsUSD).plus(new BigNumber(ethers.utils.formatUnits(new BigNumber(underlyingAssetAmount).multipliedBy(assetPrices.pricesByAddress[vaultPosition?.sToken?.asset?.id.toLowerCase()]).toFixed(0), vaultPosition?.sToken?.decimals))).toFixed(0),
+          vaultIdToPositionMetadata[vaultAccountId].positions.push({
+            rates: vaultPosition?.market?.rates,
+            underlyingAssetSymbol: vaultPosition?.sToken?.symbol,
+            underlyingAssetAmount,
+            underlyingAssetAmountUSD: ethers.utils.formatUnits(new BigNumber(underlyingAssetAmount).multipliedBy(assetPrices.pricesByAddress[vaultPosition?.sToken?.asset?.id.toLowerCase()]).toFixed(0), vaultPosition?.sToken?.decimals),
+            underlyingAssetDecimals: vaultPosition?.sToken?.decimals,
+          })
+        }
+      }
+
+    }
+
+    for(let matchAddress of 
+      [
+        // '0xf136c06d23492ff143afd9f5dc4e886224ba7050',
+        '0xcca902f2d3d265151f123d8ce8fdac38ba9745ed'
+      ]
+    ) {
+      if(vaultIdToPositionMetadata[matchAddress]) {
+        console.log({matchAddress, 'vaultIdToPositionMetadata[matchAddress]': vaultIdToPositionMetadata[matchAddress]})
+        for(let position of vaultIdToPositionMetadata[matchAddress].positions) {
+          console.log({position, 'rates': position.rates});
+          let positionRatio = '';
+        }
+      }
+    }
+    await sleep(10000);
+  }
+
+  for(
+    let [
+      vaultAddress,
+      {
+        id,
+        name,
+        totalSupply,
+        assetRatio,
+        asset,
+        decimals,
+      }
+    ] of Object.entries(rawVaultData)
+  ) {
+
+    let assetDepositedBalance = new BigNumber(assetRatio).multipliedBy(totalSupply)
+    let assetDepositedBalanceFormatted = ethers.utils.formatUnits(
+      assetDepositedBalance.toFixed(0),
+      decimals
+    )
+
+    let assetDepositedBalanceValueUSD = new BigNumber(
+        assetDepositedBalanceFormatted
+      )
+      .multipliedBy(assetPrices.pricesByAddress[asset.id.toLowerCase()])
+      .toString();
+
+    assetDataByVault[vaultAddress] = {
+      assetAddress: asset.id,
+      assetSymbol: asset.symbol,
+      assetDecimals: asset.decimals,
+      assetPrice: assetPrices.pricesByAddress[asset.id.toLowerCase()],
+      vaultId: name,
+      totalSupplyRaw: assetDepositedBalance.toString(),
+      totalSupplyFormatted: assetDepositedBalanceFormatted.toString(),
+      totalSupplyValueUSD: assetDepositedBalanceValueUSD,
+    }
+
+    // console.log({assetDataByVault})
+
+  }
+
+  return assetDataByVault;
+}
+
 const main = async () => {
 
   const markets = [];
@@ -310,28 +501,54 @@ const main = async () => {
 
     for(let deploymentData of config.deployments) {
 
-      let siloData = await getSiloData(api, deploymentData);
+      // let siloData = await getSiloData(api, deploymentData);
 
-      for(let [siloAddress, siloInfo] of Object.entries(siloData)) {
+      // for(let [siloAddress, siloInfo] of Object.entries(siloData)) {
+
+      //   let marketData = {
+      //     pool: `${siloInfo.marketId}-${siloAddress}-${chain}`,
+      //     chain: config.chainName,
+      //     project: 'silo-v2',
+      //     symbol: utils.formatSymbol(siloInfo.assetSymbol),
+      //     tvlUsd: new BigNumber(siloInfo.assetBalanceValueUSD).toNumber(),
+      //     apyBase: new BigNumber(siloInfo.assetDepositAprFormatted).toNumber(),
+      //     apyBaseBorrow: new BigNumber(siloInfo.assetBorrowAprFormatted).toNumber(),
+      //     url: `https://v2.silo.finance/markets/${chain}/${siloInfo.marketId}`,
+      //     underlyingTokens: [siloInfo.assetAddress],
+      //     ltv: Number(siloInfo.assetMaxLtvFormatted),
+      //     totalBorrowUsd: Number(Number(siloInfo.totalBorrowValueUSD).toFixed(2)),
+      //     totalSupplyUsd: Number(Number(siloInfo.totalSupplyValueUSD).toFixed(2)),
+      //     poolMeta: `${siloInfo.marketId}`,
+      //     ...(siloInfo.boostedAprFormatted && {
+      //       apyReward: new BigNumber(siloInfo.boostedAprFormatted).toNumber(),
+      //       rewardTokens: siloInfo.rewardTokens,
+      //     })
+      //   };
+
+      //   markets.push(marketData);
+      // }
+
+      let vaultData = await getVaultData(api, deploymentData);
+
+      for(let [vaultAddress, vaultInfo] of Object.entries(vaultData)) {
 
         let marketData = {
-          pool: `${siloInfo.marketId}-${siloAddress}-${chain}`,
+          pool: `${vaultInfo.vaultId}-${vaultAddress}-${chain}`,
           chain: config.chainName,
           project: 'silo-v2',
-          symbol: utils.formatSymbol(siloInfo.assetSymbol),
-          tvlUsd: new BigNumber(siloInfo.assetBalanceValueUSD).toNumber(),
-          apyBase: new BigNumber(siloInfo.assetDepositAprFormatted).toNumber(),
-          apyBaseBorrow: new BigNumber(siloInfo.assetBorrowAprFormatted).toNumber(),
-          url: `https://v2.silo.finance/markets/${chain}/${siloInfo.marketId}`,
-          underlyingTokens: [siloInfo.assetAddress],
-          ltv: Number(siloInfo.assetMaxLtvFormatted),
-          totalBorrowUsd: Number(Number(siloInfo.totalBorrowValueUSD).toFixed(2)),
-          totalSupplyUsd: Number(Number(siloInfo.totalSupplyValueUSD).toFixed(2)),
-          poolMeta: `${siloInfo.marketId}`,
-          ...(siloInfo.boostedAprFormatted && {
-            apyReward: new BigNumber(siloInfo.boostedAprFormatted).toNumber(),
-            rewardTokens: siloInfo.rewardTokens,
-          })
+          symbol: utils.formatSymbol(vaultInfo.assetSymbol),
+          tvlUsd: Number(Number(vaultInfo.totalSupplyValueUSD).toFixed(2)),
+          // apyBase: new BigNumber(vaultInfo.assetDepositAprFormatted).toNumber(),
+          // apyBaseBorrow: new BigNumber(vaultInfo.assetBorrowAprFormatted).toNumber(),
+          url: `https://app.silo.finance/vaults/${chain}/${vaultAddress}?action=deposit`,
+          underlyingTokens: [vaultInfo.assetAddress],
+          // ltv: Number(vaultInfo.assetMaxLtvFormatted),
+          totalSupplyUsd: Number(Number(vaultInfo.totalSupplyValueUSD).toFixed(2)),
+          poolMeta: `${vaultInfo.vaultId}`,
+          // ...(vaultInfo.boostedAprFormatted && {
+          //   apyReward: new BigNumber(vaultInfo.boostedAprFormatted).toNumber(),
+          //   rewardTokens: vaultInfo.rewardTokens,
+          // })
         };
 
         markets.push(marketData);
