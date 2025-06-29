@@ -124,8 +124,48 @@ const getYieldLendBorrowHistory = async (req, res) => {
   });
 };
 
+const getVolumeHistory = async (req, res) => {
+  const configID = req.params.pool;
+  if (!validator.isUUID(configID))
+    return res.status(400).json('invalid configID!');
+
+  const query = `
+          SELECT
+              timestamp,
+              "volumeUsd1d"
+          FROM
+              yield
+          WHERE
+              timestamp IN (
+                  SELECT
+                      max(timestamp)
+                  FROM
+                      yield
+                  WHERE
+                      "configID" = $<configIDValue>
+                  GROUP BY
+                      (timestamp :: date)
+              )
+              AND "configID" = $<configIDValue>
+          ORDER BY
+              timestamp ASC
+        `;
+
+  const response = await conn.query(query, { configIDValue: configID });
+
+  if (!response) {
+    return new AppError(`Couldn't get data`, 404);
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: response,
+  });
+};
+
 module.exports = {
   getYieldHistory,
   getYieldHistoryHourly,
   getYieldLendBorrowHistory,
+  getVolumeHistory,
 };
