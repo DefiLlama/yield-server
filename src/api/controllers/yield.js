@@ -147,6 +147,7 @@ const getVolumeHistory = async (req, res) => {
                       (timestamp :: date)
               )
               AND "configID" = $<configIDValue>
+              AND "volumeUsd1d" IS NOT NULL
           ORDER BY
               timestamp ASC
         `;
