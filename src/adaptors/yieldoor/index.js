@@ -296,7 +296,7 @@ const getLpData = async (chain) => {
       underlyingTokens: [vaultsData[vault].token0, vaultsData[vault].token1],
       symbol: `yldr-${vaultsData[vault].token0Symbol}-${vaultsData[vault].token1Symbol}`,
       tvlUsd: vaultsData[vault].totalBalanceUsd || 0,
-      apyBase: vaultsData[vault].apy || 0,
+      apyBase: 100 * vaultsData[vault].apy || 0,
       url: `${BASE_URL}/vaults/${lp[vault].name}`
     }
   });
@@ -323,7 +323,7 @@ const getShadowLpData = async (chain) => {
       underlyingTokens: [vaultsData[vault].token0, vaultsData[vault].token1],
       symbol: `${vaultsData[vault].token0Symbol}-${vaultsData[vault].token1Symbol}`,
       tvlUsd: vaultsData[vault].totalBalanceUsd || 0,
-      apyBase: vaultsData[vault].apy || 0,
+      apyBase: 100 * vaultsData[vault].apy || 0,
       url: `${BASE_URL}/vaults/${shadowLp[vault].name}`
     }
   });
