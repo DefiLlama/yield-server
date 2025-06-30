@@ -1,5 +1,6 @@
 const { BigNumber } = require('bignumber.js');
 const utils = require('../utils');
+const axios = require('axios');
 const {
   FARMS,
   LP_DECIMALS,
@@ -144,7 +145,7 @@ async function getAPRandTVL(farmPool) {
   };
 }
 
-async function main() {
+async function aptosPools() {
   const pools = [];
 
   for (let farmPool of FARMS) {
@@ -162,6 +163,32 @@ async function main() {
   }
 
   return pools;
+}
+
+async function movementPools() {
+  const pools = (await axios.get('https://api.liquidswap.com/pools/registered?networkId=126')).data;
+
+ return pools.filter(pool => pool.tvl !== null).map(pool => {
+  const [lpID,,curveId] = pool.stats.curve.split('::');
+  const poolId = `${lpID}-${pool.coinX.symbol}-${pool.coinY.symbol}-${curveId}`;
+
+  const volumeUsd1d = parseFloat(pool.volume24);
+  const fee24h = volumeUsd1d * parseFloat(pool.normalizedFee);
+
+  return {
+    pool: poolId,
+    chain: utils.formatChain('movement'),
+    project: 'liquidswap',
+    symbol: `${pool.coinX.symbol}-${pool.coinY.symbol}`,
+    tvlUsd: Number(pool.tvl),
+    apyBase: volumeUsd1d > 0 ? fee24h * 365 * 100 / volumeUsd1d : 0,
+    volumeUsd1d: volumeUsd1d,
+  }
+ })
+}
+
+async function main() {
+  return (await aptosPools()).concat(await movementPools())
 }
 
 module.exports = {

@@ -38,7 +38,7 @@ const getApy = async () => {
 
 
         poolsInfo[pool.address] = {
-            symbol: pool.name,
+            symbol: pool.name.replace('wTTon', 'TON'),
             tvl: tvl,
             apyBase: pool.apr,
             underlyingTokens: [Address.parse(pool.jetton0.address).toString(), Address.parse(pool.jetton1.address).toString()]

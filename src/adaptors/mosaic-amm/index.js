@@ -35,6 +35,7 @@ async function apy() {
         tvlUsd: pool.stats.tvl_usd,
         apyBase: pool.stats.apr_fees,
         apyReward: pool.stats.apr_farming_rewards,
+        volumeUsd1d: +pool.stats.volume_24h_usd,
         rewardTokens: rewardTokens,
         underlyingTokens: [pool.metadata.token_x, pool.metadata.token_y],
         url: `${MOSAIC_AMM_LIQUIDITY_POOL_URL}/add?pool=${pool.pool_address}`,
