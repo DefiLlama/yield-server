@@ -5,6 +5,7 @@ const sdk = require('@defillama/sdk');
 const DOLOMITE_MARGIN_ADDRESS_MAP = {
   arbitrum: '0x6Bd780E7fDf01D77e4d475c821f1e7AE05409072',
   berachain: '0x003Ca23Fd5F0ca87D01F6eC6CD14A8AE60c2b97D',
+  ethereum: '0x003Ca23Fd5F0ca87D01F6eC6CD14A8AE60c2b97D',
 };
 
 async function apy() {
