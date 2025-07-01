@@ -6,19 +6,16 @@ const sdk = require('@defillama/sdk');
 const CHAIN = 'ethereum';
 const DECIMALS = {
   yUSD: 18,
-  vyUSD: 18
 };
 
 // Contract addresses
 const CONTRACTS = {
   yUSD: "0x19Ebd191f7A24ECE672ba13A302212b5eF7F35cb",
-  vyUSD: "0x2e3C5e514EEf46727DE1FE44618027A9b70D92FC"
 };
 
 // API endpoints
 const API_ENDPOINTS = {
   yUSD: 'https://ctrl.yield.fi/t/yusd/apyHistory',
-  vyUSD: 'https://ctrl.yield.fi/t/vyusd/apyHistory'
 };
 
 // ABIs
@@ -131,12 +128,11 @@ const processToken = async (tokenAddress, symbol) => {
 const poolsFunction = async () => {
   try {
     // Process both tokens
-    const [yusdPool, vyusdPool] = await Promise.all([
+    const [yusdPool] = await Promise.all([
       processToken(CONTRACTS.yUSD, 'yUSD'),
-      processToken(CONTRACTS.vyUSD, 'vyUSD')
     ]);
 
-    return [yusdPool, vyusdPool].filter(Boolean);
+    return [yusdPool].filter(Boolean);
   } catch (error) {
     console.error('Error in poolsFunction:', error);
     return [];
