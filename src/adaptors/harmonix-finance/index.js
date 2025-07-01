@@ -66,7 +66,7 @@ const getApy = async () => {
   const pools = await Promise.all(response.data.map(async vault => {
     return Promise.all(vault.vaults.map(async v => {
       const chainId = chains[v.network_chain];
-
+      
       if (chainId === 'hyperevm') {
         const provider = new ethers.providers.JsonRpcProvider("https://rpc.hyperliquid.xyz/evm");
 
@@ -81,7 +81,7 @@ const getApy = async () => {
           const contract = new ethers.Contract(contractAddress, abi, provider);
           const [price, conf, expo, timestamp] = await contract.getPriceUnsafe(priceFeed);
           const normalizedPrice = Number(price) * 10 ** expo;
-          return normalizedPrice
+          return normalizedPrice * v.tvl
         }
         tvlUsd = await getTvlUsd()
       }
