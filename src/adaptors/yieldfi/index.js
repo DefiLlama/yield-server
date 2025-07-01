@@ -27,11 +27,11 @@ const ABIS = {
 };
 
 /**
- * Fetch APY data from the API and calculate average
+ * Fetch latest APY data from the API
  * @param {string} tokenSymbol - Token symbol (yUSD or vyUSD)
- * @returns {Promise<number>} Average APY
+ * @returns {Promise<number>} Latest APY
  */
-const fetchAverageAPY = async (tokenSymbol) => {
+const fetchLatestAPY = async (tokenSymbol) => {
   try {
     const endpoint = API_ENDPOINTS[tokenSymbol];
     if (!endpoint) {
@@ -52,12 +52,11 @@ const fetchAverageAPY = async (tokenSymbol) => {
       return 0;
     }
 
-    // Calculate average APY from the history
-    const totalAPY = apyHistory.reduce((sum, entry) => sum + entry.apy, 0);
-    const averageAPY = totalAPY / apyHistory.length;
+    // Get the latest APY (first entry in the array is the most recent)
+    const latestAPY = apyHistory[0].apy;
 
-    console.log(`${tokenSymbol} average APY: ${averageAPY.toFixed(2)}%`);
-    return parseFloat(averageAPY.toFixed(2));
+    console.log(`${tokenSymbol} latest APY: ${latestAPY.toFixed(2)}%`);
+    return parseFloat(latestAPY.toFixed(2));
   } catch (error) {
     console.error(`Error fetching APY for ${tokenSymbol}:`, error);
     return 0;
@@ -110,7 +109,7 @@ const processToken = async (tokenAddress, symbol) => {
   try {
     const [tvl, apy] = await Promise.all([
       getTVL(tokenAddress),
-      fetchAverageAPY(symbol)
+      fetchLatestAPY(symbol)
     ]);
 
     if (apy === 0) {
