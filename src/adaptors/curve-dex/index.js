@@ -5,6 +5,7 @@ const utils = require('../utils');
 
 const {
   CRV_API_BASE_URL,
+  CRV_API_BASE_URL_V1,
   BLOCKCHAINIDS,
   BLOCKCHAINID_TO_REGISTRIES,
   OVERRIDE_DATA,
@@ -45,6 +46,25 @@ const getPools = async (blockchainId) => {
         response.data.poolData.map((pool) => [pool.address, pool])
       );
       Object.assign(poolsByAddress, poolsByAddressForRegistry);
+    }
+  }
+  return poolsByAddress;
+};
+
+const getPoolsVolumes = async (blockchainId) => {
+  const poolsByAddress = {};
+  for (const registry of BLOCKCHAINID_TO_REGISTRIES[blockchainId]) {
+    const uri = `/getVolumes/${blockchainId}`;
+    let response;
+    try {
+      response = await utils.getData(CRV_API_BASE_URL_V1 + uri);
+    } catch (error) {
+      continue;
+    }
+    if (response?.success && response?.data?.pools?.length) {
+      for (const pool of response.data.pools) {
+        poolsByAddress[String(pool.address).toLowerCase()] = pool;
+      }
     }
   }
   return poolsByAddress;
@@ -208,6 +228,9 @@ const main = async () => {
   const blockchainToPoolPromise = Object.fromEntries(
     BLOCKCHAINIDS.map((blockchainId) => [blockchainId, getPools(blockchainId)])
   );
+  const blockchainToPoolsVolumesPromise = Object.fromEntries(
+    BLOCKCHAINIDS.map((blockchainId) => [blockchainId, getPoolsVolumes(blockchainId)])
+  );
 
   // we need the ethereum data first for the crv prive and await extra query to CG
   const ethereumPools = await blockchainToPoolPromise.ethereum;
@@ -220,11 +243,11 @@ const main = async () => {
   ).body.coins;
 
   // const celoApy = (
-  //   await utils.getData('https://api.curve.fi/api/getFactoryAPYs-celo')
+  //   await utils.getData('https://api.curve.fiance/api/getFactoryAPYs-celo')
   // ).data.poolDetails;
 
   const baseApy = (
-    await utils.getData('https://api.curve.fi/api/getFactoryAPYs-base')
+    await utils.getData('https://api.curve.finance/api/getFactoryAPYs-base')
   ).data.poolDetails;
 
   // create feeder closure to fill defillamaPooldata asynchroniously
@@ -233,6 +256,7 @@ const main = async () => {
     const [
       addressToPool,
       addressToPoolSubgraph,
+      addressToPoolVolumes,
       addressToGauge,
       gaugeAddressToExtraRewards,
     ] = poolData;
@@ -241,7 +265,7 @@ const main = async () => {
     if (['optimism', 'celo', 'kava', 'base'].includes(blockchainId)) {
       factoryAprData = (
         await utils.getData(
-          `https://api.curve.fi/api/getFactoGauges/${blockchainId}`
+          `https://api.curve.finance/api/getFactoGauges/${blockchainId}`
         )
       ).data.gauges;
     }
@@ -353,9 +377,9 @@ const main = async () => {
       const symbol =
         overrideData?.symbol || pool.coins.map((coin) => coin.symbol).join('-');
       const url =
-        overrideData?.url || `https://curve.fi/#/${blockchainId}/pools`;
+        overrideData?.url || `https://curve.finance/#/${blockchainId}/pools`;
 
-      defillamaPooldata.push({
+      const yieldPool = {
         pool: address + '-' + blockchainId,
         chain: utils.formatChain(blockchainId),
         project: 'curve-dex',
@@ -377,7 +401,17 @@ const main = async () => {
           .filter((i) => i !== '0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32'),
         underlyingTokens,
         url,
-      });
+      }
+
+      if (addressToPoolVolumes) {
+        const normalAddress = String(address).toLowerCase();
+        if (addressToPoolVolumes[normalAddress]) {
+          yieldPool.volumeUsd1d = addressToPoolVolumes[normalAddress].volumeUSD
+          yieldPool.volumeUsd7d = yieldPool.volumeUsd1d * 7 * Number(addressToPoolVolumes[normalAddress].latestWeeklyApyPcent) / Number(addressToPoolVolumes[normalAddress].latestDailyApyPcent);
+        }
+      }
+
+      defillamaPooldata.push(yieldPool);
     }
   };
 
@@ -390,6 +424,7 @@ const main = async () => {
       Promise.all([
         poolPromise,
         blockchainToPoolSubgraphPromise[blockchainId],
+        blockchainToPoolsVolumesPromise[blockchainId],
         gaugePromise,
         extraRewardPromise,
       ]).then((poolData) => feedLlama(poolData, blockchainId))

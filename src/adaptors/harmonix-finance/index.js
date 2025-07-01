@@ -66,7 +66,6 @@ const getApy = async () => {
   const pools = await Promise.all(response.data.map(async vault => {
     return Promise.all(vault.vaults.map(async v => {
       const chainId = chains[v.network_chain];
-      
       if (chainId === 'hyperevm') {
         const provider = new ethers.providers.JsonRpcProvider("https://rpc.hyperliquid.xyz/evm");
 
@@ -110,7 +109,6 @@ const getApy = async () => {
           tvlUsd /= 1e6
         }
       }
-      
 
       return {
         pool: v.contract_address, // unique identifier for the pool

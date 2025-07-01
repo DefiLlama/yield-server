@@ -417,14 +417,6 @@ const getExpectedRates = async () => {
     type: 'function',
   };
 
-  const apxETHAbi = {
-    inputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }],
-    name: 'convertToAssets',
-    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  };
-
   // --- cbETH
   const cbETHRate = Number((await axios.get(cbETHRateUrl)).data.amount);
 
@@ -577,17 +569,6 @@ const getExpectedRates = async () => {
       })
     ).output / 1e18;
 
-  const apxEth =
-    (
-      await sdk.api.abi.call({
-        target: lsdTokens.find((lsd) => lsd.name === 'Dinero (pxETH)')
-          .addressExchangeRate,
-        chain: 'ethereum',
-        abi: apxETHAbi,
-        params: [1000000000000000000n],
-      })
-    ).output / 1e18;
-
   const lsETH =
     10000 /
     (
@@ -660,8 +641,6 @@ const getExpectedRates = async () => {
         ? uniETH
         : lsd.name === 'mETH Protocol'
         ? mETH
-        : lsd.name === 'Dinero (pxETH)'
-        ? apxEth
         : lsd.name === 'Liquid Collective'
         ? lsETH
         : lsd.name === 'MEV Protocol'

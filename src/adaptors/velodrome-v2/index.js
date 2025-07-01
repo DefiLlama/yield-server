@@ -117,6 +117,24 @@ const apy = async () => {
     })
   ).output.map((o) => o.output);
 
+  const poolSupply = (
+    await sdk.api.abi.multiCall({
+      calls: allPools.map((i) => ({ target: i })),
+      chain,
+      abi: 'erc20:totalSupply',
+      permitFailure: true,
+    })
+  ).output.map((o) => o.output);
+
+  const gaugeSupply = (
+    await sdk.api.abi.multiCall({
+      calls: gauges.map((i) => ({ target: i })),
+      chain,
+      abi: 'erc20:totalSupply',
+      permitFailure: true,
+    })
+  ).output.map((o) => o.output);
+
   const uniqueTokens = [...new Set(metadata.map((i) => [i.t0, i.t1]).flat())];
 
   const maxSize = 50;
@@ -162,13 +180,18 @@ const apy = async () => {
 
     const symbol = symbols[i].split('-')[1];
 
+    // Only staked supply is eligible for the rewardRate's emissions
+    let stakedSupplyRatio = 1;
+    if (gaugeSupply[i] !== 0) {
+      stakedSupplyRatio = poolSupply[i] / gaugeSupply[i];
+    }
+
     const apyReward =
       (((rewardRate[i] / 1e18) *
         86400 *
         365 *
         prices[`optimism:${velo}`]?.price) /
-        tvlUsd) *
-      100;
+        tvlUsd) * stakedSupplyRatio * 100;
 
     const feeTier = meta.st
       ? `${feeStable[i] / 100}`

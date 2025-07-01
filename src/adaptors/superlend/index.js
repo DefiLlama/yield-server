@@ -1,4 +1,6 @@
 const sdk = require('@defillama/sdk');
+const utils = require('../utils');
+
 const {
   poolAbi,
   uiPoolDataProviderAbi,
@@ -7,6 +9,10 @@ const {
   PROTOCOL_DATA_PROVIDER,
   UI_POOL_DATA_PROVIDER,
   PROVIDER_ADDRESS,
+  CHAIN_ID,
+  MERKLE_BASE_URL,
+  CAMPAIGN_ID_MAP,
+  APPLE_REWARD_TOKEN,
 } = require('./constants');
 
 const getApy = async () => {
@@ -105,6 +111,18 @@ const getApy = async () => {
       ) / 1e8;
   }
 
+  // reward data
+  const rewardData = {};
+  for (const pool of reserveTokens) {
+    const campaignId = CAMPAIGN_ID_MAP[pool.symbol.toUpperCase()];
+    const url = MERKLE_BASE_URL.replace('CHAIN_ID', CHAIN_ID).replace(
+      'CAMPAIGN_ID',
+      campaignId
+    );
+    const campaign = await utils.getData(url);
+    rewardData[pool.symbol.toUpperCase()] = campaign[0]?.Opportunity?.apr ?? 0;
+  }
+
   return reserveTokens
     .map((pool, i) => {
       const frozen = poolsReservesConfigurationData[i].isFrozen;
@@ -123,14 +141,19 @@ const getApy = async () => {
 
       const url = `https://markets.superlend.xyz/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=etherlink`;
 
+      const apyBase = (p.liquidityRate / 10 ** 27) * 100;
+      const apyReward = rewardData[pool.symbol.toUpperCase()] ?? 0;
+
       return {
         pool: `${aTokens[i].tokenAddress}-etlk`.toLowerCase(),
         chain: 'Etherlink',
         project: 'superlend',
         symbol: pool.symbol,
         tvlUsd,
-        apyBase: (p.liquidityRate / 10 ** 27) * 100,
+        apyBase,
+        apyReward,
         underlyingTokens: [pool.tokenAddress],
+        rewardTokens: apyReward > 0 ? [APPLE_REWARD_TOKEN] : [],
         totalSupplyUsd,
         totalBorrowUsd,
         debtCeilingUsd: null,

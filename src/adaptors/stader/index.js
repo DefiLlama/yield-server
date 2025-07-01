@@ -2,8 +2,6 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const abi = require('./abi.js');
 const PermissionlessNodeRegistryAbi = require('./ PermissionlessNodeRegistryAbi.json');
-
-// const abiBsc = require('./abiBsc');
 const abiPolygon = require('./abiPolygon');
 
 const token = '0xa35b1b31ce002fbf2058d22f30f95d405200a15b';
@@ -27,12 +25,7 @@ const getApy = async () => {
   tvl += nodeOperatorCount * 4;
 
   const now = Math.floor(Date.now() / 1000);
-  const timestamp1dayAgo = now - 86400;
   const timestamp7dayAgo = now - 86400 * 7;
-  const block1dayAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp1dayAgo}`)
-  ).data.height;
-
   const block7dayAgo = (
     await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp7dayAgo}`)
   ).data.height;
@@ -47,21 +40,12 @@ const getApy = async () => {
       target: stakingContract,
       abi: abi.find((m) => m.name === 'getExchangeRate'),
       chain: 'ethereum',
-      block: block1dayAgo,
-    }),
-    sdk.api.abi.call({
-      target: stakingContract,
-      abi: abi.find((m) => m.name === 'getExchangeRate'),
-      chain: 'ethereum',
       block: block7dayAgo,
     }),
   ]);
 
-  const apyBase =
-    ((exchangeRates[0].output - exchangeRates[1].output) / 1e18) * 365 * 100;
-
   const apyBase7d =
-    ((exchangeRates[0].output - exchangeRates[2].output) / 1e18 / 7) *
+    ((exchangeRates[0].output - exchangeRates[1].output) / 1e18 / 7) *
     365 *
     100;
 
@@ -84,25 +68,12 @@ const getApy = async () => {
       chain: 'ethereum',
       abi: abiPolygon.find((m) => m.name === 'convertMaticXToMatic'),
       params: [1000000000000000000n],
-      block: block1dayAgo,
-    }),
-    sdk.api.abi.call({
-      target: stakeManagerContract,
-      chain: 'ethereum',
-      abi: abiPolygon.find((m) => m.name === 'convertMaticXToMatic'),
-      params: [1000000000000000000n],
       block: block7dayAgo,
     }),
   ]);
 
-  const apyBasePolygon =
-    ((exchangeRatesPolygon[0].output[0] - exchangeRatesPolygon[1].output[0]) /
-      1e18) *
-    365 *
-    100;
-
   const apyBase7dPolygon =
-    ((exchangeRatesPolygon[0].output[0] - exchangeRatesPolygon[2].output[0]) /
+    ((exchangeRatesPolygon[0].output[0] - exchangeRatesPolygon[1].output[0]) /
       1e18 /
       7) *
     365 *
@@ -129,7 +100,7 @@ const getApy = async () => {
       project: 'stader',
       symbol: 'ethx',
       tvlUsd: tvl * ethPrice,
-      apyBase,
+      apyBase: apyBase7d,
       apyBase7d,
       underlyingTokens: [weth],
     },
@@ -139,7 +110,7 @@ const getApy = async () => {
       project: 'stader',
       symbol: 'maticx',
       tvlUsd: tvlPolygon * maticxPrice,
-      apyBase: apyBasePolygon,
+      apyBase: apyBase7dPolygon,
       apyBase7d: apyBase7dPolygon,
       underlyingTokens: ['0x0000000000000000000000000000000000001010'],
     },

@@ -8,12 +8,26 @@ const main = async () => {
     getGmMarketsAprForUmami('arbitrum'),
     getGmMarketsAprForUmami('avax'),
   ]);
-  const [arbitrumSynthGmVaults, arbitrumGmVaults, avaxGmVaults] =
-    await Promise.all([
-      getUmamiGmSynthsVaultsYield('arbitrum', arbitrumGmMarketsInfos),
-      getUmamiGmVaultsYield('arbitrum', arbitrumGmMarketsInfos),
-      getUmamiGmVaultsYield('avax', avalancheGmMarketsInfos),
-    ]);
+  const [
+    arbitrumSynthGmVaultsResult,
+    arbitrumGmVaultsResult,
+    avaxGmVaultsResult,
+  ] = await Promise.allSettled([
+    getUmamiGmSynthsVaultsYield('arbitrum', arbitrumGmMarketsInfos),
+    getUmamiGmVaultsYield('arbitrum', arbitrumGmMarketsInfos),
+    getUmamiGmVaultsYield('avax', avalancheGmMarketsInfos),
+  ]);
+
+  const arbitrumSynthGmVaults =
+    arbitrumSynthGmVaultsResult.status === 'fulfilled'
+      ? arbitrumSynthGmVaultsResult.value
+      : [];
+  const arbitrumGmVaults =
+    arbitrumGmVaultsResult.status === 'fulfilled'
+      ? arbitrumGmVaultsResult.value
+      : [];
+  const avaxGmVaults =
+    avaxGmVaultsResult.status === 'fulfilled' ? avaxGmVaultsResult.value : [];
 
   const arbitrumVaults = [...arbitrumSynthGmVaults, ...arbitrumGmVaults].map(
     (strat) => ({

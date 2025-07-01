@@ -202,6 +202,27 @@
     "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes4",
+        "name": "functionSig",
+        "type": "bytes4"
+      }
+    ],
+    "name": "FunctionCallNotAllowed",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InconsistentArrayLengths",
+    "type": "error"
+  },
+  {
     "inputs": [],
     "name": "InvalidInitialization",
     "type": "error"
@@ -258,16 +279,6 @@
       }
     ],
     "name": "SafeERC20FailedOperation",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "SlippageTooHigh",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "SwapFeeTooHigh",
     "type": "error"
   },
   {
@@ -329,6 +340,19 @@
     "anonymous": false,
     "inputs": [
       {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "targetsCount",
+        "type": "uint256"
+      }
+    ],
+    "name": "BatchExecuted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
         "indexed": true,
         "internalType": "address",
         "name": "sender",
@@ -354,6 +378,31 @@
       }
     ],
     "name": "Deposit",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes4",
+        "name": "functionSig",
+        "type": "bytes4"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "isAllowed",
+        "type": "bool"
+      }
+    ],
+    "name": "FunctionAllowlistUpdated",
     "type": "event"
   },
   {
@@ -413,37 +462,11 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "totalDai",
+        "name": "amount",
         "type": "uint256"
       }
     ],
     "name": "RescueFunds",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "newSlippage",
-        "type": "uint256"
-      }
-    ],
-    "name": "SlippageUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "newSwapFee",
-        "type": "uint256"
-      }
-    ],
-    "name": "SwapFeeUpdated",
     "type": "event"
   },
   {
@@ -555,6 +578,30 @@
     "inputs": [
       {
         "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes4",
+        "name": "",
+        "type": "bytes4"
+      }
+    ],
+    "name": "allowedCalls",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "spender",
         "type": "address"
       },
@@ -608,46 +655,31 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "balancerStablePool",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "balancerVault",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "target",
-        "type": "address"
+        "internalType": "address[]",
+        "name": "targets",
+        "type": "address[]"
       },
       {
-        "internalType": "bytes",
+        "internalType": "bytes[]",
         "name": "data",
-        "type": "bytes"
+        "type": "bytes[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "values",
+        "type": "uint256[]"
       }
     ],
-    "name": "callExternalContract",
-    "outputs": [],
+    "name": "batchCall",
+    "outputs": [
+      {
+        "internalType": "bytes[]",
+        "name": "results",
+        "type": "bytes[]"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -737,26 +769,6 @@
         "internalType": "address",
         "name": "_sUsde",
         "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_balancerVault",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_balancerStablePool",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_swapFee",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_slippage",
-        "type": "uint256"
       }
     ],
     "name": "initialize",
@@ -1017,64 +1029,12 @@
   },
   {
     "inputs": [],
-    "name": "sUsde",
+    "name": "stakingToken",
     "outputs": [
       {
         "internalType": "address",
         "name": "",
         "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "newSlippage",
-        "type": "uint256"
-      }
-    ],
-    "name": "setSlippage",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "newSwapFee",
-        "type": "uint256"
-      }
-    ],
-    "name": "setSwapFee",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "slippage",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "swapFee",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -1104,6 +1064,29 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes4",
+        "name": "functionSig",
+        "type": "bytes4"
+      },
+      {
+        "internalType": "bool",
+        "name": "isAllowed",
+        "type": "bool"
+      }
+    ],
+    "name": "toggleAllowedCalls",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -1218,7 +1201,7 @@
   },
   {
     "inputs": [],
-    "name": "usdc",
+    "name": "vaultToken",
     "outputs": [
       {
         "internalType": "address",

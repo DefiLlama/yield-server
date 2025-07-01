@@ -1,7 +1,6 @@
 const { request, gql } = require('graphql-request');
 
 const GRAPH_URL = 'https://blue-api.morpho.org/graphql';
-const MORPHO_TOKEN_ADDRESS = '0x9994E35Db50125E0DF82e4c2dde62496CE330999';
 const CHAINS = {
   ethereum: 1,
   base: 8453,
@@ -9,9 +8,10 @@ const CHAINS = {
 
 const gqlQueries = {
   marketsData: gql`
-    query GetYieldsData($chainId: Int!) {
+    query GetYieldsData($chainId: Int!, $skip: Int!) {
       markets(
-        first: 800
+        first: 100
+        skip: $skip
         orderBy: SupplyAssetsUsd
         orderDirection: Desc
         where: { chainId_in: [$chainId] }
@@ -43,6 +43,7 @@ const gqlQueries = {
             supplyAssetsUsd
             borrowAssetsUsd
             rewards {
+              borrowApr
               asset {
                 address
               }
@@ -53,9 +54,10 @@ const gqlQueries = {
     }
   `,
   metaMorphoVaults: gql`
-    query GetVaultsData($chainId: Int!) {
+    query GetVaultsData($chainId: Int!, $skip: Int!) {
       vaults(
         first: 100
+        skip: $skip
         orderBy: TotalAssetsUsd
         orderDirection: Desc
         where: { chainId_in: [$chainId] }
@@ -78,10 +80,18 @@ const gqlQueries = {
             fee
             totalSupply
             allocation {
+              supplyAssetsUsd
               market {
                 uniqueKey
+                state {
+                  rewards {
+                    asset {
+                      address
+                    }
+                    supplyApr
+                  }
+                }
               }
-              supplyAssetsUsd
             }
           }
         }
@@ -98,42 +108,59 @@ const apy = async () => {
   let pools = [];
 
   for (const [chain, chainId] of Object.entries(CHAINS)) {
-    const data = await Promise.all([
-      request(GRAPH_URL, gqlQueries.metaMorphoVaults, { chainId }),
-      request(GRAPH_URL, gqlQueries.marketsData, { chainId }),
-    ]);
+    // Fetch vaults data with pagination
+    let allVaults = [];
+    let skip = 0;
+    while (true) {
+      const { vaults } = await request(GRAPH_URL, gqlQueries.metaMorphoVaults, {
+        chainId,
+        skip,
+      });
 
-    const earn = data[0].vaults.items;
-    const borrow = data[1].markets.items;
+      if (!vaults.items.length) break;
+
+      allVaults = [...allVaults, ...vaults.items];
+      skip += 100;
+    }
+
+    // Fetch markets data with pagination
+    let allMarkets = [];
+    skip = 0;
+    while (true) {
+      const { markets } = await request(GRAPH_URL, gqlQueries.marketsData, {
+        chainId,
+        skip,
+      });
+
+      if (!markets.items.length) break;
+
+      allMarkets = [...allMarkets, ...markets.items];
+      skip += 100;
+    }
+
+    const earn = allVaults;
+    const borrow = allMarkets;
 
     const earnPools = earn.map((vault) => {
-      // fetch reward token addresses from borrow data
-      let additionalRewardTokens = [];
+      // fetch reward token addresses from allocation data
+      let additionalRewardTokens = new Set();
       vault.state.allocation.forEach((allocatedMarket) => {
-        if (allocatedMarket.supplyAssetsUsd !== 0) {
-          const marketRewards = borrow.find(
-            (market) =>
-              market.pool === `morpho-blue-${allocatedMarket.market.uniqueKey}`
-          );
-          if (marketRewards) {
-            additionalRewardTokens = additionalRewardTokens.concat(
-              marketRewards.rewardTokens
-            );
-          }
+        const allocationUsd = allocatedMarket.supplyAssetsUsd;
+        if (allocationUsd > 0) {
+          // For each reward from the allocated market
+          allocatedMarket.market.state.rewards?.forEach((rw) => {
+            if (rw.supplyApr > 0) {
+              additionalRewardTokens.add(rw.asset.address.toLowerCase());
+            }
+          });
         }
       });
 
       // net = including rewards, apy = baseApy
-      const rewardsApy = vault.state.netApy - vault.state.apy;
-      const isNegligibleApy = isNegligible(rewardsApy, vault.state.apy);
-      const apyReward =
-        isNegligibleApy || additionalRewardTokens.length === 0
-          ? 0
-          : rewardsApy * 100;
-      const rewardTokens =
-        isNegligibleApy || additionalRewardTokens.length === 0
-          ? []
-          : [...new Set(additionalRewardTokens)];
+      const rewardsApy = Math.max(vault.state.netApy - vault.state.apy, 0);
+      const isNegligibleApy = isNegligible(rewardsApy, vault.state.netApy);
+      const rewardTokens = isNegligibleApy ? [] : [...additionalRewardTokens];
+      const apyReward = rewardTokens.length === 0 ? 0 : rewardsApy * 100;
 
       return {
         pool: `morpho-blue-${vault.address}-${chain}`,
@@ -153,10 +180,9 @@ const apy = async () => {
 
     const borrowPools = borrow.map((market) => {
       if (!market.collateralAsset?.symbol) return null;
-
       const rewardTokens = market.state.rewards
-        .map((reward) => reward.asset.address)
-        .filter((address) => address !== MORPHO_TOKEN_ADDRESS);
+        .filter((reward) => reward.borrowApr > 0)
+        .map((reward) => reward.asset.address);
 
       const apyRewardBorrow =
         Math.max(
@@ -190,7 +216,20 @@ const apy = async () => {
     pools = [...pools, ...earnPools, ...borrowPools];
   }
 
-  return pools.filter(Boolean);
+  const uniquePools = Array.from(
+    pools
+      .reduce((map, pool) => {
+        if (!pool) return map;
+        const key = `morpho-blue-${pool.pool}-${pool.chain}`;
+        if (!map.has(key) || pool.tvlUsd > map.get(key).tvlUsd) {
+          map.set(key, pool);
+        }
+        return map;
+      }, new Map())
+      .values()
+  );
+
+  return uniquePools.filter(Boolean);
 };
 
 module.exports = {
