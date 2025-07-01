@@ -201,7 +201,7 @@ async function apy() {
         return range.reduce((acc, i) => {
           if (tokens[i]) {
             acc.push({
-              pool: `${tokens[i]}-${chain}`.toLowerCase(),
+              pool: `${tokens[i]}-dolomite-${chain}`.toLowerCase(),
               symbol: symbols[i],
               chain: chain.charAt(0).toUpperCase() + chain.slice(1),
               project: 'dolomite',
