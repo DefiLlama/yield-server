@@ -12,13 +12,9 @@ async function main() {
       query: {
         page: 1,
         pageSize: 100,
-        keyword: '',
         interval: '7d',
         sortBy: 'tvl',
         sortOrder: 'desc',
-        tokenAddrs: [],
-        poolType: '',
-        onlyBoosted: false,
       },
     },
   });
