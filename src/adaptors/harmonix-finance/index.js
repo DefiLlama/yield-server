@@ -66,7 +66,8 @@ const getApy = async () => {
   const pools = await Promise.all(response.data.map(async vault => {
     return Promise.all(vault.vaults.map(async v => {
       const chainId = chains[v.network_chain];
-      
+      let tvlUsd = 0
+
       if (chainId === 'hyperevm') {
         const provider = new ethers.providers.JsonRpcProvider("https://rpc.hyperliquid.xyz/evm");
 
@@ -77,18 +78,18 @@ const getApy = async () => {
 
         const priceFeed = "0x4279e31cc369bbcc2faf022b382b080e32a8e689ff20fbc530d2a603eb6cd98b";
 
-        async function getTvlUsd() {
-          const contract = new ethers.Contract(contractAddress, abi, provider);
-          const [price, conf, expo, timestamp] = await contract.getPriceUnsafe(priceFeed);
-          const normalizedPrice = Number(price) * 10 ** expo;
-          return normalizedPrice * v.tvl
-        }
-        tvlUsd = await getTvlUsd()
+      
+        const contract = new ethers.Contract(contractAddress, abi, provider);
+        const [price, conf, expo, timestamp] = await contract.getPriceUnsafe(priceFeed);
+        const normalizedPrice = Number(price) * 10 ** expo;
+        
+      
+        tvlUsd = normalizedPrice * v.tvl;
+    
       }
       else {
         const tvl = await getTvl(v.contract_address, chainId);
-        let tvlUsd = tvl; // Default to the fetched TVL
-
+        tvlUsd = tvl; // Default to the fetched TVL
         // Convert TVL to USDC if vault_currency is not USDC
         if (v.vault_currency !== 'USDC') {
           const tokenKey = `${chainId}:${assets[chainId][v.vault_currency.toLowerCase()]}`
@@ -108,9 +109,8 @@ const getApy = async () => {
         }
         else {
           tvlUsd /= 1e6
-        }
+        }  
       }
-      
 
       return {
         pool: v.contract_address, // unique identifier for the pool
