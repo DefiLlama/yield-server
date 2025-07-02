@@ -22,7 +22,7 @@ const getApy = async () => {
 
       // Get Cove's boosties data
       const boostiesData = await utils.getData(
-        `https://eo2sjzp61i.execute-api.us-east-1.amazonaws.com/Prod/data`
+        `https://boosties.cove.finance/api/v1/cove-vaults`
       );
       const boostiesVaults = boostiesData.vaults;
 
