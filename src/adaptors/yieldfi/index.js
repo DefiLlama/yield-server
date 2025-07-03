@@ -1,62 +1,142 @@
-const { parse } = require('date-fns');
 const utils = require('../utils');
 const { ethers } = require("ethers");
-const { poll } = require('ethers/lib/utils');
 const sdk = require('@defillama/sdk');
 
-// 2) Addresses and ABIs
-const distributionAddress = "0x392017161a9507F19644E8886A237C58809212B5";
-const distributionABI = [
-  "event DistributeYield(address caller, address indexed asset, address indexed receiver, uint256 amount, bool profit)"
-];
+// Constants
+const CHAIN = 'ethereum';
+const DECIMALS = {
+  yUSD: 18,
+};
 
-const yUSDAddress = "0x19Ebd191f7A24ECE672ba13A302212b5eF7F35cb";
-const yUSDABI = 'function totalSupply() view returns (uint256)';
+// Contract addresses
+const CONTRACTS = {
+  yUSD: "0x19Ebd191f7A24ECE672ba13A302212b5eF7F35cb",
+};
 
-// 3) Create contract objects
+// API endpoints
+const API_ENDPOINTS = {
+  yUSD: 'https://ctrl.yield.fi/t/yusd/apyHistory',
+};
 
+// ABIs
+const ABIS = {
+  totalSupply: 'function totalSupply() view returns (uint256)'
+};
+
+/**
+ * Fetch latest APY data from the API
+ * @param {string} tokenSymbol - Token symbol (yUSD or vyUSD)
+ * @returns {Promise<number>} Latest APY
+ */
+const fetchLatestAPY = async (tokenSymbol) => {
+  try {
+    const endpoint = API_ENDPOINTS[tokenSymbol];
+    if (!endpoint) {
+      console.error(`No API endpoint found for ${tokenSymbol}`);
+      return 0;
+    }
+
+    const response = await fetch(endpoint);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const apyHistory = data.apy_history;
+
+    if (!apyHistory || !Array.isArray(apyHistory) || apyHistory.length === 0) {
+      console.error(`No APY history data found for ${tokenSymbol}`);
+      return 0;
+    }
+
+    // Get the latest APY (first entry in the array is the most recent)
+    const latestAPY = apyHistory[0].apy;
+
+    console.log(`${tokenSymbol} latest APY: ${latestAPY.toFixed(2)}%`);
+    return parseFloat(latestAPY.toFixed(2));
+  } catch (error) {
+    console.error(`Error fetching APY for ${tokenSymbol}:`, error);
+    return 0;
+  }
+};
+
+/**
+ * Get TVL for a specific token
+ * @param {string} tokenAddress - Token contract address
+ * @returns {Promise<number>} TVL value
+ */
+const getTVL = async (tokenAddress) => {
+  try {
+    const response = await sdk.api.abi.call({
+      chain: CHAIN,
+      abi: ABIS.totalSupply,
+      target: tokenAddress
+    });
+    return parseFloat((response.output / 10 ** DECIMALS.yUSD).toFixed(2));
+  } catch (error) {
+    console.error(`Error getting TVL for ${tokenAddress}:`, error);
+    return 0;
+  }
+};
+
+/**
+ * Create pool object for a token
+ * @param {string} tokenAddress - Token contract address
+ * @param {string} symbol - Token symbol
+ * @param {number} tvl - Total Value Locked
+ * @param {number} apy - Annual Percentage Yield
+ * @returns {Object} Pool object
+ */
+const createPool = (tokenAddress, symbol, tvl, apy) => ({
+  pool: tokenAddress,
+  chain: CHAIN,
+  project: 'yieldfi',
+  symbol: utils.formatSymbol(symbol),
+  tvlUsd: tvl,
+  apyBase: apy,
+});
+
+/**
+ * Process token data
+ * @param {string} tokenAddress - Token contract address
+ * @param {string} symbol - Token symbol
+ * @returns {Promise<Object|null>} Pool object or null if error
+ */
+const processToken = async (tokenAddress, symbol) => {
+  try {
+    const [tvl, apy] = await Promise.all([
+      getTVL(tokenAddress),
+      fetchLatestAPY(symbol)
+    ]);
+
+    if (apy === 0) {
+      console.log(`No APY data available for ${symbol}`);
+      return null;
+    }
+
+    return createPool(tokenAddress, symbol, tvl, apy);
+  } catch (error) {
+    console.error(`Error processing ${symbol}:`, error);
+    return null;
+  }
+};
+
+/**
+ * Main function to get pool data
+ * @returns {Promise<Array>} Array of pool objects
+ */
 const poolsFunction = async () => {
-  const latestBlockResp = await sdk.api.util.getLatestBlock("ethereum");
-  const latestBlock = latestBlockResp.number;
+  try {
+    // Process both tokens
+    const [yusdPool] = await Promise.all([
+      processToken(CONTRACTS.yUSD, 'yUSD'),
+    ]);
 
-  const numBlocksToCheck = 30000;
-  const fromBlock = Math.max(latestBlock - numBlocksToCheck, 0);
-  const iface = new ethers.utils.Interface(distributionABI);
-
-  let logs  = (await sdk.api.util.getLogs({
-    target: distributionAddress,
-    topic: '',
-    fromBlock: fromBlock,
-    toBlock: latestBlock,
-    topics: [iface.getEventTopic('DistributeYield')],
-    keys: [],
-    chain: 'ethereum',
-  })).output
-  .filter((ev) => !ev.removed)
-
-  const lastLog = logs[logs.length - 1];
-  const eventBlockNumber = lastLog.blockNumber;
-
-  const  {output} = await sdk.api.abi.call({
-    chain: "ethereum",
-    abi: yUSDABI,
-    target: yUSDAddress,
-    block: eventBlockNumber
-  });
-  const tvl = parseFloat((output/1e18).toFixed(2));
-  const yieldAmount = parseFloat(iface.parseLog(lastLog).args.amount/1e6);
-  const apy = ((((tvl+yieldAmount)/tvl)**365-1)*100).toFixed(2);
-
-  const yusdPool = {
-    pool: '0x19Ebd191f7A24ECE672ba13A302212b5eF7F35cb',
-    chain: 'ethereum',
-    project: 'yieldfi',
-    symbol: utils.formatSymbol('yUSD'),
-    tvlUsd: tvl,
-    apyBase: parseFloat(apy),
-  };
-
-  return [yusdPool];
+    return [yusdPool].filter(Boolean);
+  } catch (error) {
+    console.error('Error in poolsFunction:', error);
+    return [];
+  }
 };
 
 module.exports = {
@@ -64,5 +144,3 @@ module.exports = {
   apy: poolsFunction,
   url: 'https://yield.fi/mint',
 };
-
-poolsFunction()
