@@ -225,7 +225,7 @@ const getApy = async () => {
           return {
             pool: `${collateral.address}-bsc`.toLowerCase(),
             chain: 'bsc',
-            project: 'lisusd',
+            project: 'lista-cdp',
             symbol: collateral.symbol,
             apy: 0,
             tvlUsd: Number(tvl) / 1e18,
