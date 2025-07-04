@@ -33,7 +33,7 @@ async function main() {
       chain: utils.formatChain('aptos'),
       project: 'tapp-exchange',
       apyBase: pool.apr.feeAprPercentage,
-      apyReward: pool.apr.totalAprPercentage,
+      apyReward: pool.apr.boostedAprPercentage,
       rewardTokens: pool.apr.campaignAprs.map(
         (campaign) => campaign.token.addr
       ),
