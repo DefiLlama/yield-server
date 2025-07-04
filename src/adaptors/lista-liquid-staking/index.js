@@ -40,7 +40,7 @@ const apy = async () => {
     {
       pool: SLISBNB,
       chain: 'bsc',
-      project: 'slisbnb',
+      project: 'lista-liquid-staking',
       symbol: 'slisBNB',
       tvlUsd,
       apyBase,
