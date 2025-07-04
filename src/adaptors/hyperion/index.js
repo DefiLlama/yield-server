@@ -41,6 +41,7 @@ async function apy() {
       rewardTokens: pool.pool.farm.map((item) => item.rewardFa),
       underlyingTokens: [tokenA, tokenB],
       url: `https://hyperion.xyz/pool/${poolId}`,
+      poolMeta: `${Number(pool.pool.feeRate) / 10000}%`,
     });
   }
 
