@@ -96,7 +96,7 @@ const poolsFunction = async () => {
         const pool = {
           pool: `${poolName}-hydration-dex`,
           chain: 'Polkadot',
-          project: 'hydradx',
+          project: 'hydration-dex',
           symbol: poolName,
           tvlUsd: poolTvl,
           apyBase: apyBase > 0 ? apyBase : null,
@@ -145,7 +145,7 @@ const poolsFunction = async () => {
       const pool = {
         pool: `${symbol}-hydration-dex`,
         chain: 'Polkadot',
-        project: 'hydradx', // Note: Protocol was rebranded from HydraDX to Hydration, folder name remains 'hydradx' for legacy reasons
+        project: 'hydration-dex',
         symbol: utils.formatSymbol(symbol),
         tvlUsd: tvlUsd,
         apyBase: apyBase > 0 ? apyBase : null,
