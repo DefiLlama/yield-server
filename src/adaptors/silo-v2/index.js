@@ -5,8 +5,6 @@ const ethers = require('ethers');
 
 const utils = require('../utils');
 
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
 BigNumber.config({ EXPONENTIAL_AT: [-1e9, 1e9] });
 
 const XAI = '0xd7c9f0e536dc865ae858b0c0453fe76d13c3beac'
@@ -259,8 +257,6 @@ async function getSiloData(api, deploymentData) {
       rewardTokens,
     }
   }
-
-  console.log({siloAddressToMarketId})
 
   return assetDataBySilo;
 }
