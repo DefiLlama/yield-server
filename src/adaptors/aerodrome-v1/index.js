@@ -81,10 +81,20 @@ async function getPoolVolumes(timestamp = null) {
 
   const pools = {}
   for (const p of dataNow.filter(p => p.volumeUSD1d >= 0 && (!isNaN(p.apy1d) || !isNaN(p.apy7d)))) {
-    pools[p.id] = {
-      pool: p.id,
+    const url = 'https://aerodrome.finance/deposit?token0=' + p.token0.id + '&token1=' + p.token1.id + '&factory=0x420DD381b31aEf6683db6B902084cB0FFECe40Da';
+    const underlyingTokens = [p.token0.id, p.token1.id];
+
+    const poolAddress = utils.formatAddress(p.id);
+    pools[poolAddress] = {
+      pool: poolAddress,
+      chain: utils.formatChain('base'),
+      project: PROJECT,
+      symbol: `${p.token0.symbol}-${p.token1.symbol}`,
+      tvlUsd: p.totalValueLockedUSD,
       apyBase: p.apy1d,
       apyBase7d: p.apy7d,
+      underlyingTokens,
+      url,
       volumeUsd1d: p.volumeUSD1d,
       volumeUsd7d: p.volumeUSD7d,
     }
@@ -231,7 +241,7 @@ const getGaugeApy = async () => {
       100;
 
     return {
-      pool: p,
+      pool: utils.formatAddress(p),
       chain: utils.formatChain(CHAIN),
       project: PROJECT,
       symbol: utils.formatSymbol(s.split('-')[1]),
@@ -243,21 +253,25 @@ const getGaugeApy = async () => {
     };
   });
 
-  return pools.filter((p) => utils.keepFinite(p));
+  const poolsApy = {};
+  for (const pool of pools.filter((p) => utils.keepFinite(p))) {
+    poolsApy[pool.pool] = pool;
+  }
+
+  return poolsApy;
 };
 
 async function main(timestamp = null) {
   const poolsApy = await getGaugeApy();
   const poolsVolumes = await getPoolVolumes(timestamp);
 
-  return poolsApy.map(pool => {
+  return Object.values(poolsVolumes).map(pool => {
+    const poolAddress = utils.formatAddress(pool.pool);
     return {
       ...pool,
 
-      apyBase: poolsVolumes[pool.id] ? poolsVolumes[pool.id].apyBase : undefined,
-      apyBase7d: poolsVolumes[pool.id] ? poolsVolumes[pool.id].apyBase7d : undefined,
-      volumeUsd1d: poolsVolumes[pool.id] ? poolsVolumes[pool.id].volumeUsd1d : undefined,
-      volumeUsd7d: poolsVolumes[pool.id] ? poolsVolumes[pool.id].volumeUsd7d : undefined,
+      apyReward: poolsApy[pool.pool] ? poolsApy[pool.pool].apyReward : undefined,
+      rewardTokens: poolsApy[pool.pool] ? [AERO] : [],
     }
   });
 }
