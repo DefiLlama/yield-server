@@ -44,7 +44,7 @@ const getApy = async () => {
       symbol: 'ZKP2P',
       tvlUsd: Number(latestData.tvl),
       apy: Number(latestData.protocol_apr_pct),
-      url: 'https://zkp2p.com',
+      url: 'https://zkp2p.xyz',
     };
 
     console.log('ZKP2P: Fetched fresh data from Dune');
