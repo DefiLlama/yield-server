@@ -1,4 +1,3 @@
-const sdk = require('@defillama/sdk');
 const https = require('https');
 
 const VAULT_ADDRESS = '0x1e37a337ed460039d1b15bd3bc489de789768d5e';
@@ -39,7 +38,7 @@ function fetchVaultDetails() {
   });
 }
 
-function computeAPY(vaultDetails) {
+function computeAPYInception(vaultDetails) {
   const portfolio = vaultDetails.portfolio.find((p) => p[0] === 'allTime');
   if (!portfolio) throw new Error('Missing allTime portfolio');
 
@@ -53,24 +52,15 @@ function computeAPY(vaultDetails) {
   const values_tvl = accountValueHistory.map(([, v]) => parseFloat(v));
   const values_pnl = pnlHistory.map(([, v]) => parseFloat(v));
 
-  const deltaTime = [];
-  const deltaTVL = [];
   const deltaPNL = [];
-  const netFlows = [];
 
   for (let i = 1; i < timestamps.length; i++) {
-    const dt = (timestamps[i] - timestamps[i - 1]) / 86400000;
-    deltaTime.push(dt);
-
-    deltaTVL.push(values_tvl[i] - values_tvl[i - 1]);
     deltaPNL.push(values_pnl[i] - values_pnl[i - 1]);
-    netFlows.push(deltaTVL[i - 1] - deltaPNL[i - 1]);
   }
 
   const twr = [];
-  for (let i = 1; i < deltaPNL.length; i++) {
-    const denominator = netFlows[i] + values_tvl[i];
-    twr.push(denominator !== 0 ? deltaPNL[i] / denominator : 0);
+  for (let i = 0; i < deltaPNL.length; i++) {
+    twr.push(values_tvl[i] !== 0 ? deltaPNL[i] / values_tvl[i] : 0);
   }
 
   const twr_acc = [1];
@@ -82,14 +72,55 @@ function computeAPY(vaultDetails) {
   const ann_yield = Math.pow(twr_acc[twr_acc.length - 1], 365 / days) - 1;
 
   const latestTVL = values_tvl[values_tvl.length - 1];
+  return {
+    tvlUsd: latestTVL,
+    apyBaseInception: ann_yield,
+  }
+}
+
+function computeAPY7Day(vaultDetails) {
+  let alltimeData = computeAPYInception(vaultDetails);
+
+  const portfolio = vaultDetails.portfolio.find((p) => p[0] === 'week');
+  if (!portfolio) throw new Error('Missing weekly portfolio');
+
+  const accountValueHistory = portfolio[1].accountValueHistory;
+  const pnlHistory = portfolio[1].pnlHistory;
+
+  if (accountValueHistory.length < 3 || pnlHistory.length < 3)
+    throw new Error('Not enough data points');
+
+  const timestamps = accountValueHistory.map(([t]) => t);
+  const values_tvl = accountValueHistory.map(([, v]) => parseFloat(v));
+  const values_pnl = pnlHistory.map(([, v]) => parseFloat(v));
+
+  const deltaPNL = [];
+
+  for (let i = 1; i < timestamps.length; i++) {
+    deltaPNL.push(values_pnl[i] - values_pnl[i - 1]);
+  }
+
+  const twr = [];
+  for (let i = 0; i < deltaPNL.length; i++) {
+    twr.push(values_tvl[i] !== 0 ? deltaPNL[i] / values_tvl[i] : 0);
+  }
+
+  const twr_acc = [1];
+  for (let i = 0; i < twr.length; i++) {
+    twr_acc.push(twr_acc[i] * (1 + twr[i]));
+  }
+
+  const days = (timestamps[timestamps.length - 1] - timestamps[0]) / 86400000;
+  const ann_yield = Math.pow(twr_acc[twr_acc.length - 1], 365 / days) - 1;
 
   return {
     pool: `growihf-vault-hyperliquid`,
-    chain: 'Hyperliquid',
+    chain: 'hyperliquid',
     project: 'growihf',
     symbol: 'USDC',
-    tvlUsd: latestTVL,
+    tvlUsd: alltimeData['tvlUsd'],
     apy: ann_yield * 100,
+    apyBaseInception: alltimeData['apyBaseInception'] * 100,
     underlyingTokens: [USDC_ADDRESS_ARBITRUM],
     poolMeta: 'Hyperliquid Vault',
     url: 'https://app.hf.growi.fi/',
@@ -100,6 +131,6 @@ module.exports = {
   timetravel: false,
   apy: async () => {
     const vaultDetails = await fetchVaultDetails();
-    return [computeAPY(vaultDetails)];
+    return [computeAPY7Day(vaultDetails)];
   },
 };
