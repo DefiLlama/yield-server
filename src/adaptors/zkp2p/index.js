@@ -1,6 +1,15 @@
 const axios = require('axios');
 
 const getApy = async () => {
+  // time-based scheduling: only run once a day at hour 0 (midnight)
+  const currentHour = new Date().getHours();
+  if (currentHour !== 0) {
+    console.log(
+      `zkp2p: Skipping execution at hour ${currentHour} (runs once daily at midnight)`
+    );
+    return [];
+  }
+
   try {
     // Fetch data from Dune API with your API key
     const response = await axios.get(
