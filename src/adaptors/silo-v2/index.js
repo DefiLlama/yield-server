@@ -572,7 +572,7 @@ const main = async () => {
             totalSupplyUsd: Number(Number(vaultInfo.totalSupplyValueUSD).toFixed(2)),
             poolMeta: `${vaultInfo.vaultId}`,
           };
-          vaultPoolIds.push()
+          vaultPoolIds.push(vaultPoolId)
           markets.push(marketData);
         }
       }
