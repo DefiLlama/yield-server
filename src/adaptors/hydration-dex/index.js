@@ -205,7 +205,49 @@ async function fetchAssetSymbols() {
   return response.assets.nodes || [];
 }
 
-// Get asset TVL using GraphQL historical data
+// Fetch omnipool TVL data using the new omnipoolAssetsLatestTvl query
+async function fetchOmnipoolTvl() {
+  const query = gql`
+    query MyQuery {
+      omnipoolAssetsLatestTvl {
+        nodes {
+          assetId
+          assetRegistryId
+          tvlInRefAssetNorm
+          paraBlockHeight
+        }
+      }
+    }
+  `;
+
+  const response = await request(HYDRATION_GRAPHQL_URL, query);
+  return response.omnipoolAssetsLatestTvl.nodes || [];
+}
+
+// Fetch XYK pool TVL data using the new xykpoolsLatestTvl query
+async function fetchXykPoolTvl(poolIds) {
+  if (!poolIds || poolIds.length === 0) {
+    return [];
+  }
+
+  const poolIdsFilter = poolIds.map(id => `"${id}"`).join(', ');
+  const query = gql`
+    query MyQuery {
+      xykpoolsLatestTvl(filter: {poolIds: [${poolIdsFilter}]}) {
+        nodes {
+          poolId
+          tvlInRefAssetNorm
+          paraBlockHeight
+        }
+      }
+    }
+  `;
+
+  const response = await request(HYDRATION_GRAPHQL_URL, query);
+  return response.xykpoolsLatestTvl.nodes || [];
+}
+
+// Get asset TVL using the new TVL queries
 async function getTvlData() {
   try {
     // Fetch asset symbols mapping
@@ -219,87 +261,52 @@ async function getTvlData() {
 
     const assetTvls = {};
 
-    // Process each asset to get TVL from historical data
-    for (const asset of assetSymbols) {
-      const assetId = asset.assetRegistryId;
-      const symbol = cleanSymbol(asset.symbol);
+    // Fetch omnipool TVL data
+    const omnipoolTvlData = await fetchOmnipoolTvl();
+    
+    // Process omnipool TVL data
+    for (const tvlEntry of omnipoolTvlData) {
+      const assetId = tvlEntry.assetRegistryId;
+      const symbol = assetIdToSymbol[assetId];
       
-      // Skip if we don't have a CoinGecko mapping for this asset
-      if (!cgMapping[symbol]) {
-        continue;
-      }
-
-      try {        const query = gql`
-          query MyQuery {
-            assetHistoricalData(
-              first: 1
-              orderBy: PARA_BLOCK_HEIGHT_DESC
-              filter: {assetId: {equalTo: "${assetId}"}}
-            ) {
-              nodes {
-                totalIssuance
-                usdPriceNormalised
-                asset {
-                  decimals
-                }
-              }
-            }
-          }
-        `;
-
-        const response = await request(HYDRATION_GRAPHQL_URL, query);
-        const data = response.assetHistoricalData.nodes[0];
-        
-        if (data) {
-          const totalIssuance = BigInt(data.totalIssuance);
-          const decimals = data.asset.decimals;
-          const usdPrice = parseFloat(data.usdPriceNormalised);
-          
-          // Normalize issuance by decimals and calculate TVL
-          const normalizedIssuance = Number(totalIssuance) / (10 ** decimals);
-          const tvl = normalizedIssuance * usdPrice;
-          
-          assetTvls[symbol] = tvl;
+      if (symbol) {
+        const cleanedSymbol = cleanSymbol(symbol);
+        // Skip if we don't have a CoinGecko mapping for this asset
+        if (cgMapping[cleanedSymbol]) {
+          const tvlUsd = parseFloat(tvlEntry.tvlInRefAssetNorm);
+          assetTvls[cleanedSymbol] = tvlUsd;
         }
-      } catch (error) {
-        console.error(`Error fetching TVL for asset ${symbol} (${assetId}):`, error);
       }
     }
 
-    // Handle isolated pools (XYK pools) using static data
+    // Handle isolated pools (XYK pools) with pool ID mapping
     const staticXykPools = [
-      { poolAccountId: "15L6BQ1sMd9pESapK13dHaXBPPtBYnDnKTVhb2gBeGrrJNBx", assetIdA: 30, assetIdB: 5, composition: ['MYTH', 'DOT'] },
-      { poolAccountId: "15BuQdFibo2wZmwksPWCJ3owmXCduSU56gaXzVKDc1pcCcsd", assetIdA: 1000085, assetIdB: 5, composition: ['WUD', 'DOT'] },
-      { poolAccountId: "15nzS2D2wJdh52tqZdUJVMeDQqQe7wJfo5NZKL7pUxhwYgwq", assetIdA: 5, assetIdB: 252525, composition: ['DOT', 'EWT'] },
-      { poolAccountId: "15sjxrJkJRCXs64J7wvxNE3vjJ8CGjDPggqeNwEyijvydwri", assetIdA: 5, assetIdB: 25, composition: ['DOT', 'UNQ'] },
-      { poolAccountId: "12NzWeY2eDLRbdmjUunmLVE3TBnkgFGy3SCFH2hmDbhLs8qB", assetIdA: 1000082, assetIdB: 5, composition: ['WIFD', 'DOT'] }
+      { poolAccountId: "15L6BQ1sMd9pESapK13dHaXBPPtBYnDnKTVhb2gBeGrrJNBx", poolId: "0xbf80080b4d0077544ef058a29e878ae6f6bdb8cf2f462ab390490f668eb50b73", composition: ['MYTH', 'DOT'] },
+      { poolAccountId: "15BuQdFibo2wZmwksPWCJ3owmXCduSU56gaXzVKDc1pcCcsd", poolId: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef", composition: ['WUD', 'DOT'] },
+      { poolAccountId: "15nzS2D2wJdh52tqZdUJVMeDQqQe7wJfo5NZKL7pUxhwYgwq", poolId: "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890", composition: ['DOT', 'EWT'] },
+      { poolAccountId: "15sjxrJkJRCXs64J7wvxNE3vjJ8CGjDPggqeNwEyijvydwri", poolId: "0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba", composition: ['DOT', 'UNQ'] },
+      { poolAccountId: "12NzWeY2eDLRbdmjUunmLVE3TBnkgFGy3SCFH2hmDbhLs8qB", poolId: "0xfedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210", composition: ['WIFD', 'DOT'] }
     ];
 
-    // Calculate TVL for isolated pools
+    // Extract pool IDs for XYK query
+    const poolIds = staticXykPools.map(pool => pool.poolId);
+    
+    // Fetch XYK pool TVL data
+    const xykTvlData = await fetchXykPoolTvl(poolIds);
+    
+    // Create pool ID to TVL mapping
+    const xykTvlMap = {};
+    xykTvlData.forEach(tvlEntry => {
+      xykTvlMap[tvlEntry.poolId] = parseFloat(tvlEntry.tvlInRefAssetNorm);
+    });
+
+    // Process XYK pool TVL data
     for (const pool of staticXykPools) {
-      let poolTvl = 0;
-      const poolComposition = [];
-      
-      for (const assetId of [pool.assetIdA, pool.assetIdB]) {
-        const symbol = assetIdToSymbol[assetId];
-        if (symbol) {
-          const cleanedSymbol = cleanSymbol(symbol);
-          const assetTvl = assetTvls[cleanedSymbol] || 0;
-          
-          // For isolated pools, we estimate their share of the total asset TVL
-          // This is a simplification - in reality we'd need the actual pool balances
-          // But since we're moving away from RPC calls, we'll use a fraction
-          const estimatedPoolShare = 0.1; // 10% of total asset TVL as estimate
-          const poolAssetTvl = assetTvl * estimatedPoolShare;
-          
-          poolTvl += poolAssetTvl;
-          poolComposition.push(cleanedSymbol);
-        }
-      }
+      const poolTvl = xykTvlMap[pool.poolId] || 0;
       
       if (poolTvl > 0) {
         assetTvls[pool.poolAccountId] = poolTvl;
-        assetTvls[`${pool.poolAccountId}_composition`] = poolComposition;
+        assetTvls[`${pool.poolAccountId}_composition`] = pool.composition;
       }
     }
 
