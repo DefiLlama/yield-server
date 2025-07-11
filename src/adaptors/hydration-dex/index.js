@@ -224,6 +224,24 @@ async function fetchOmnipoolTvl() {
   return response.omnipoolAssetsLatestTvl.nodes || [];
 }
 
+// Fetch all available XYK pools to get their pool IDs
+async function fetchAllXykPools() {
+  const query = gql`
+    query MyQuery {
+      xykpoolsLatestTvl {
+        nodes {
+          poolId
+          tvlInRefAssetNorm
+          paraBlockHeight
+        }
+      }
+    }
+  `;
+
+  const response = await request(HYDRATION_GRAPHQL_URL, query);
+  return response.xykpoolsLatestTvl.nodes || [];
+}
+
 // Fetch XYK pool TVL data using the new xykpoolsLatestTvl query
 async function fetchXykPoolTvl(poolIds) {
   if (!poolIds || poolIds.length === 0) {
@@ -279,34 +297,29 @@ async function getTvlData() {
       }
     }
 
-    // Handle isolated pools (XYK pools) with pool ID mapping
-    const staticXykPools = [
-      { poolAccountId: "15L6BQ1sMd9pESapK13dHaXBPPtBYnDnKTVhb2gBeGrrJNBx", poolId: "0xbf80080b4d0077544ef058a29e878ae6f6bdb8cf2f462ab390490f668eb50b73", composition: ['MYTH', 'DOT'] },
-      { poolAccountId: "15BuQdFibo2wZmwksPWCJ3owmXCduSU56gaXzVKDc1pcCcsd", poolId: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef", composition: ['WUD', 'DOT'] },
-      { poolAccountId: "15nzS2D2wJdh52tqZdUJVMeDQqQe7wJfo5NZKL7pUxhwYgwq", poolId: "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890", composition: ['DOT', 'EWT'] },
-      { poolAccountId: "15sjxrJkJRCXs64J7wvxNE3vjJ8CGjDPggqeNwEyijvydwri", poolId: "0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba", composition: ['DOT', 'UNQ'] },
-      { poolAccountId: "12NzWeY2eDLRbdmjUunmLVE3TBnkgFGy3SCFH2hmDbhLs8qB", poolId: "0xfedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210", composition: ['WIFD', 'DOT'] }
-    ];
-
-    // Extract pool IDs for XYK query
-    const poolIds = staticXykPools.map(pool => pool.poolId);
+    // Handle isolated pools (XYK pools) with correct pool ID mapping
+    const allXykPools = await fetchAllXykPools();
     
-    // Fetch XYK pool TVL data
-    const xykTvlData = await fetchXykPoolTvl(poolIds);
-    
-    // Create pool ID to TVL mapping
-    const xykTvlMap = {};
-    xykTvlData.forEach(tvlEntry => {
-      xykTvlMap[tvlEntry.poolId] = parseFloat(tvlEntry.tvlInRefAssetNorm);
-    });
+    // Known mappings of pool IDs to compositions based on actual pool IDs
+    const xykPoolMappings = {
+      '0xbf80080b4d0077544ef058a29e878ae6f6bdb8cf2f462ab390490f668eb50b73': { 
+        poolAccountId: "15L6BQ1sMd9pESapK13dHaXBPPtBYnDnKTVhb2gBeGrrJNBx", 
+        composition: ['MYTH', 'DOT'] 
+      },
+      '0xd4044eed8c3a16740b3edf9e85cd6384c66eecf21179843cd863c20bfa6b082f': {
+        poolAccountId: "15nzS2D2wJdh52tqZdUJVMeDQqQe7wJfo5NZKL7pUxhwYgwq", 
+        composition: ['DOT', 'EWT']
+      }
+    };
 
-    // Process XYK pool TVL data
-    for (const pool of staticXykPools) {
-      const poolTvl = xykTvlMap[pool.poolId] || 0;
+    // Process XYK pool TVL data using known mappings
+    for (const xykPool of allXykPools) {
+      const poolTvl = parseFloat(xykPool.tvlInRefAssetNorm);
+      const poolMapping = xykPoolMappings[xykPool.poolId];
       
-      if (poolTvl > 0) {
-        assetTvls[pool.poolAccountId] = poolTvl;
-        assetTvls[`${pool.poolAccountId}_composition`] = pool.composition;
+      if (poolMapping && poolTvl > 0) {
+        assetTvls[poolMapping.poolAccountId] = poolTvl;
+        assetTvls[`${poolMapping.poolAccountId}_composition`] = poolMapping.composition;
       }
     }
 
