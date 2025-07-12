@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { ethers } = require('ethers');
 const utils = require('../utils');
+const sdk = require('@defillama/sdk');
 
 const fetchApy = async () => {
   const [filPool, icntPool] = await Promise.all([
@@ -52,11 +53,6 @@ const getICNTPool = async () => {
   };
 
   try {
-    // Base chain RPC endpoint
-    const provider = new ethers.providers.JsonRpcProvider(
-      'https://mainnet.base.org'
-    );
-
     // Periphery contract address
     const peripheryAddress = '0x3a24CFF2F5c9af8e77775418A115214e171112B8';
 
@@ -90,35 +86,51 @@ const getICNTPool = async () => {
       },
     ];
 
-    const peripheryContract = new ethers.Contract(
-      peripheryAddress,
-      peripheryABI,
-      provider
-    );
-
-    // Call both apy() and tvl() methods in parallel
-    const [apyRaw, tvlRaw] = await Promise.all([
-      peripheryContract.apy(),
-      peripheryContract.tvl(),
+    // Call both apy() and tvl() methods using DefiLlama SDK with timeout
+    const [apyRaw, tvlRaw] = await Promise.allSettled([
+      sdk.api.abi.call({
+        target: peripheryAddress,
+        abi: peripheryABI.find((abi) => abi.name === 'apy'),
+        chain: 'base',
+      }),
+      sdk.api.abi.call({
+        target: peripheryAddress,
+        abi: peripheryABI.find((abi) => abi.name === 'tvl'),
+        chain: 'base',
+      }),
     ]);
 
-    icntPool.apy = Number(ethers.utils.formatUnits(apyRaw, 18)) * 100;
+    // Handle APY result
+    if (apyRaw.status === 'fulfilled' && apyRaw.value?.output) {
+      icntPool.apy =
+        Number(ethers.utils.formatUnits(apyRaw.value.output, 18)) * 100;
+    }
 
-    // Convert from wei to USD (assuming the contract returns TVL in wei)
-    // You may need to adjust this conversion based on how the contract returns the TVL
-    const tvlRawNumber = Number(ethers.utils.formatUnits(tvlRaw, 18));
+    // Handle TVL result
+    let tvlRawNumber = 0;
+    if (tvlRaw.status === 'fulfilled' && tvlRaw.value?.output) {
+      tvlRawNumber = Number(ethers.utils.formatUnits(tvlRaw.value.output, 18));
+    }
 
-    // <- ICNT ->
-    const icntPriceKey = `coingecko:impossible-cloud-network-token`;
-    const icntPrice = (
-      await axios.get(`https://coins.llama.fi/prices/current/${icntPriceKey}`)
-    ).data.coins[icntPriceKey]?.price;
-
-    icntPool.tvlUsd = tvlRawNumber * icntPrice;
+    // Try to get ICNT price with timeout
+    try {
+      const icntPriceKey = `coingecko:impossible-cloud-network-token`;
+      const priceResponse = await axios.get(
+        `https://coins.llama.fi/prices/current/${icntPriceKey}`,
+        {
+          timeout: 10000, // 10 second timeout
+        }
+      );
+      const icntPrice = priceResponse.data.coins[icntPriceKey]?.price || 0;
+      icntPool.tvlUsd = tvlRawNumber * icntPrice;
+    } catch (priceError) {
+      console.error('Error fetching ICNT price:', priceError.message);
+      icntPool.tvlUsd = 0;
+    }
 
     return icntPool;
   } catch (error) {
-    console.error('Error fetching ICNT pool data:', error);
+    console.error('Error fetching ICNT pool data:', error.message);
     return icntPool;
   }
 };
