@@ -31,7 +31,7 @@ const getFilecoinPool = async () => {
   ).data.coins[filPriceKey]?.price;
 
   return {
-    pool: '0x43dAe5624445e7679D16a63211c5ff368681500c-filecoin',
+    pool: '0xe764Acf02D8B7c21d2B6A8f0a96C78541e0DC3fd-filecoin',
     chain: utils.formatChain('filecoin'),
     project: 'glif',
     symbol: utils.formatSymbol('IFIL'),
