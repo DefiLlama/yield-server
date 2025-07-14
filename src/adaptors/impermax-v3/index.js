@@ -17,22 +17,23 @@ const { GECKOTERMINAL_IDS } = require('./geckoterminal.js');
  */
 
 const config = {
-  arbitrum: ["https://arbitrum-factory-v3-production.up.railway.app/"],
-  base: ["https://base-factory-v3-production.up.railway.app/"]
+  arbitrum: ['https://arbitrum-factory-v3-production.up.railway.app/'],
+  base: ['https://base-factory-v3-production.up.railway.app/'],
+  unichain: ['https://unichain-factoryv3-production.up.railway.app/'],
 };
 
 const lendingVaultsConfig = {
   polygon: [
-    'https://api.studio.thegraph.com/query/46041/lending-vault-polygon/v0.0.2',
+    'https://api.studio.thegraph.com/query/46041/lending-vault-polygon/v0.0.3',
   ],
   arbitrum: [
-    'https://api.studio.thegraph.com/query/46041/lending-vault-arbitrum/v0.0.3',
+    'https://api.studio.thegraph.com/query/46041/lending-vault-arbitrum/v0.0.4',
   ],
   base: [
-    'https://api.studio.thegraph.com/query/46041/lending-vault-base/v0.0.3',
+    'https://api.goldsky.com/api/public/project_cm2d5q4l4w31601vz4swb3vmi/subgraphs/lending-vault-base-v2/1.0.0/gn',
   ],
   scroll: [
-    'https://api.studio.thegraph.com/query/46041/lending-vault-scroll/v0.0.2',
+    'https://api.studio.thegraph.com/query/46041/lending-vault-scroll/v0.0.3',
   ],
   real: [],
   fantom: [],
@@ -41,7 +42,12 @@ const lendingVaultsConfig = {
   blast: [
     'https://api.studio.thegraph.com/query/46041/lending-vault-blast/v0.0.2',
   ],
-  sonic: ['https://api.studio.thegraph.com/query/46041/lending-vault-sonic/v0.0.2'],
+  sonic: [
+    'https://api.studio.thegraph.com/query/46041/lending-vault-sonic/v0.0.3',
+  ],
+  unichain: [
+    'https://api.studio.thegraph.com/query/46041/lending-vault-unichain/v0.0.1',
+  ],
 };
 
 // NFTLP factory address
@@ -49,9 +55,12 @@ const projectPoolFactories = {
   arbitrum: {
     UniswapV3: ['0x4936b5aafe83611aa2fa926a683973ddb48ce7f1'],
   },
-  base: { 
-    UniswapV3: ['0xe5d6cf969c01bf8d6c46840ed784d7f209038d7a']
-  }
+  base: {
+    UniswapV3: ['0xc2da400cf63e9a01680c8fe14ab360098a35dcd8'],
+  },
+  unichain: {
+    UniswapV3: ['0x62b45128b3c2783d5b1f86e6db92c9aa43eed6af'],
+  },
 };
 
 // Only list balanced/aggressive vaults as default is conservative
@@ -61,29 +70,55 @@ const lendingVaultProfiles = {
   scroll: [],
   base: [
     {
-      address: "0xaD9cfEBB7666f2698cA9d836eD8CBeb0545a4263".toLowerCase(),
-      risk: "Aggressive",
-    },
+      address: '0x0988cc53b8Ddd625C20e382f1af2f9c385E4f9A3'.toLowerCase(),
+      risk: 'Conservative',
+    }, // ETHV2
+    {
+      address: '0x7838a0329CFF90434424952411D5fFE687360F49'.toLowerCase(),
+      risk: 'Conservative',
+    }, // USDCV2
+    {
+      address: '0xaD9cfEBB7666f2698cA9d836eD8CBeb0545a4263'.toLowerCase(),
+      risk: 'Aggressive',
+    }, // ETHV2
+    {
+      address: '0xa1D0f86d74BB7C832308c640b504b8525168Ed62'.toLowerCase(),
+      risk: 'Conservative',
+    }, // cbBTCV2 (high)
   ],
   blast: [
     {
-      address: "0xFBFBd1c9E05c114684Bc447Da5182Fe09315E038".toLowerCase(),
-      risk: "Balanced",
+      address: '0xFBFBd1c9E05c114684Bc447Da5182Fe09315E038'.toLowerCase(),
+      risk: 'Balanced',
     }, // ETH
   ],
   sonic: [
     {
-      address: "0x49967493310250254Aee27F0AbD2C97b45cb1509".toLowerCase(),
-      risk: "Balanced",
+      address: '0x49967493310250254Aee27F0AbD2C97b45cb1509'.toLowerCase(),
+      risk: 'Balanced',
     }, // ws
     {
-      address: "0xDD8761dec5dF366a6AF7fE4E15b8f3888c0a905c".toLowerCase(),
-      risk: "Balanced",
+      address: '0xDD8761dec5dF366a6AF7fE4E15b8f3888c0a905c'.toLowerCase(),
+      risk: 'Balanced',
     }, // usdc.e
     {
-      address: "0x835dA504bEfedC85404ad6A11df278049bc56d12".toLowerCase(),
-      risk: "Balanced",
+      address: '0x835dA504bEfedC85404ad6A11df278049bc56d12'.toLowerCase(),
+      risk: 'Balanced',
     }, // weth
+  ],
+  unichain: [
+    {
+      address: '0xcae4a89a26aadbe63a20d575259386d3f3dd4e5c'.toLowerCase(),
+      risk: "Conservative",
+    }, // ETH
+    {
+      address: '0xdb6a07a55177724e27a47f39fb1f73dba2d7e07a'.toLowerCase(),
+      risk: "Conservative",
+    }, // USDC
+    {
+      address: '0x80e019CB1e5b3cb42c66b45974290cfD28FBfe18'.toLowerCase(),
+      risk: "Conservative",
+    }, // WbBTC
   ],
 };
 
@@ -130,7 +165,6 @@ const getProject = (chain, factoryAddress) => {
 
   return null;
 };
-
 
 /**
  *  TOKEN PRICES
@@ -373,7 +407,9 @@ const main = async () => {
       const tvlUsd = price * Number(availableLiquidity);
 
       const chainVaults = lendingVaultProfiles[chain] || [];
-      const vaultRisk = chainVaults.find((v) => v?.address.toLowerCase() === id.toLowerCase())?.risk ?? "Conservative";
+      const vaultRisk =
+        chainVaults.find((v) => v?.address.toLowerCase() === id.toLowerCase())
+          ?.risk ?? 'Conservative';
 
       pools.push({
         pool: `${id}-${underlying.symbol}-${chain}`.toLowerCase(),

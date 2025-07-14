@@ -93,9 +93,9 @@ const apy = async () => {
       tvlUsd: totalSupply * price,
       apyBase: apr1d,
       apyBase7d: apr7d,
-      apyReward: restakingApy,
+      // apyReward: restakingApy,
       underlyingTokens: [weth],
-      rewardTokens: [lrt2],
+      // rewardTokens: [lrt2],
     },
   ];
 };

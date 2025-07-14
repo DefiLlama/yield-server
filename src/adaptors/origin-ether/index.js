@@ -8,9 +8,12 @@ const ETHEREUM_WETH_TOKEN = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
 const ETHEREUM_OETH_TOKEN = '0x856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc3';
 const BASE_WETH_TOKEN = '0x4200000000000000000000000000000000000006';
 const BASE_SUPER_OETH_TOKEN = '0xDBFeFD2e8460a6Ee4955A68582F85708BAEA60A3';
+const PLUME_WETH_TOKEN = '0xca59cA09E5602fAe8B629DeE83FfA819741f14be';
+const PLUME_SUPER_OETH_TOKEN = '0xFCbe50DbE43bF7E5C88C6F6Fb9ef432D4165406E';
 
 const oethVaultAddress = '0x39254033945AA2E4809Cc2977E7087BEE48bd7Ab';
 const superOETHbVaultAddress = '0x98a0CbeF61bD2D21435f433bE4CD42B56B38CC93';
+const superOETHpVaultAddress = '0xc8c8F8bEA5631A8AF26440AF32a55002138cB76a';
 
 const graphUrl = 'https://origin.squids.live/origin-squid/graphql';
 
@@ -99,7 +102,17 @@ const apy = async () => {
     underlyingToken: BASE_WETH_TOKEN,
   });
 
-  return [oethData, superOETHbData];
+  const superOETHpData = await fetchPoolData({
+    chain: 'plume_mainnet',
+    chainId: 98866,
+    vaultAddress: superOETHpVaultAddress,
+    token: PLUME_SUPER_OETH_TOKEN,
+    symbol: 'superOETHp',
+    project: 'origin-ether',
+    underlyingToken: PLUME_WETH_TOKEN,
+  });
+
+  return [oethData, superOETHbData, superOETHpData];
 };
 
 module.exports = {

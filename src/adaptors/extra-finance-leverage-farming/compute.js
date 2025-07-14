@@ -85,7 +85,7 @@ exports.getAllVeloPoolInfo = async function(vaults, chain, prices, lendingPools)
   function getToken(address) {
     return getTokenInfo(chain, address, prices)
   }
-  const veloPoolsInfo = await getAllVeloPools(chain)
+  const veloPoolsInfo = await getAllVeloPools(chain, vaults)
 
   for(let index = 0; index < vaults.length; index++) {
     const item = vaults[index]

@@ -8,6 +8,8 @@ const CONFIG = {
   ETHEREUM: {
     USD0PP: '0x35D8949372D46B7a3D5A56006AE77B215fc69bC0',
     USD0: '0x73A15FeD60Bf67631dC6cd7Bc5B6e8da8190aCF5',
+    ETH0: '0x734eec7930bc84eC5732022B9EB949A81fB89AbE',
+    STETH: '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84',
     CHAIN: 'Ethereum',
   },
   ARBITRUM: {
@@ -17,7 +19,8 @@ const CONFIG = {
   },
   USUAL_TOKEN: '0xC4441c2BE5d8fA8126822B9929CA0b81Ea0DE38E',
   USUALX_TOKEN: '0x06B964d96f5dCF7Eae9d7C559B09EDCe244d4B8E',
-  SYMBOL: 'USD0++',
+  USD0PP_SYMBOL: 'USD0++',
+  ETH0_SYMBOL: 'ETH0',
   URLS: {
     REWARD_RATE: 'https://app.usual.money/api/rewards/rates/',
     LLAMA_PRICE: 'https://coins.llama.fi/prices/current/',
@@ -34,6 +37,7 @@ const CONFIG = {
     '0x06B964d96f5dCF7Eae9d7C559B09EDCe244d4B8E', // USUALx dead shares
   ],
 };
+
 async function getTokenSupply(chain, address) {
   const params = {
     chain: chain.toLowerCase(),
@@ -43,6 +47,7 @@ async function getTokenSupply(chain, address) {
   const { output } = await sdk.api.abi.call(params);
   return output / CONFIG.SCALAR;
 }
+
 async function getTokenBalance(chain, address, user) {
   const params = {
     target: address,
@@ -54,6 +59,7 @@ async function getTokenBalance(chain, address, user) {
   const { output } = await sdk.api.abi.call(params);
   return output / CONFIG.SCALAR;
 }
+
 async function getTokenPrice(chain, address) {
   const priceKey = `${chain.toLowerCase()}:${address}`;
   const { data } = await axios.get(`${CONFIG.URLS.LLAMA_PRICE}${priceKey}`);
@@ -63,18 +69,20 @@ async function getTokenPrice(chain, address) {
 function createPoolData(
   chain,
   poolAddress,
+  symbol,
   tvlUsd,
   apyReward,
+  rewardToken,
   underlyingToken
 ) {
   return {
     pool: poolAddress,
     chain,
     project: 'usual',
-    symbol: CONFIG.SYMBOL,
+    symbol,
     tvlUsd,
     apyReward,
-    rewardTokens: [CONFIG.USUAL_TOKEN],
+    rewardTokens: [rewardToken],
     underlyingTokens: [underlyingToken],
   };
 }
@@ -84,6 +92,13 @@ async function getChainData(chainConfig) {
   const price = await getTokenPrice(chainConfig.CHAIN, chainConfig.USD0PP);
   return { supply, price };
 }
+
+async function getETH0ChainData(chainConfig) {
+  const supply = await getTokenSupply(chainConfig.CHAIN, chainConfig.ETH0);
+  const price = await getTokenPrice(chainConfig.CHAIN, chainConfig.STETH);
+  return { supply, price };
+}
+
 async function getUsualXAPY(chain, usualXPrice) {
   const { output } = await sdk.api.abi.call({
     target: CONFIG.USUALX_TOKEN,
@@ -122,7 +137,11 @@ async function getUsualXAPY(chain, usualXPrice) {
 
   const usualXApr = (rate * CONFIG.DAYS_PER_YEAR) / totalAssets;
 
-  const usualxApyReward = utils.aprToApy(usualXApr * 100);
+  // Applying weekly compounding only to USUALx apyReward
+  const usualxApyReward = utils.aprToApy(
+    usualXApr * 100,
+    CONFIG.WEEKS_PER_YEAR
+  ); // Weekly compounding for apyReward
 
   const usualxMarketCap = usualXTVL * usualXPrice;
 
@@ -140,17 +159,39 @@ async function getUsualXAPY(chain, usualXPrice) {
     rawUsualXTVL,
   };
 }
-const apy = async () => {
+
+async function getRewardData(symbol, token) {
   const { data: rewardData } = await axios.get(
-    `${CONFIG.URLS.REWARD_RATE}${CONFIG.SYMBOL}`
+    `${CONFIG.URLS.REWARD_RATE}${symbol}`
   );
   const reward = rewardData.rewards.find(
-    (e) => CONFIG.USUAL_TOKEN.toLowerCase() === e.rewardToken.toLowerCase()
+    (e) => token.toLowerCase() === e.rewardToken.toLowerCase()
   );
-  const apyReward = utils.aprToApy(reward.apr * 100, CONFIG.WEEKS_PER_YEAR);
 
+  if (!reward) {
+    throw new Error(`No reward data found for ${token} in ${symbol}`);
+  }
+
+  return {
+    apr: reward.apr,
+    rewardToken: reward.rewardToken,
+  };
+}
+
+const apy = async () => {
+  const reward = await getRewardData(CONFIG.USD0PP_SYMBOL, CONFIG.USUAL_TOKEN);
+
+  // No weekly compounding for USD0++
+  const apyReward = reward.apr * 100; // Direct APR-to-APY conversion without weekly compounding
   const ethData = await getChainData(CONFIG.ETHEREUM);
   const arbData = await getChainData(CONFIG.ARBITRUM);
+
+  const rewardEth0 = await getRewardData(
+    CONFIG.ETH0_SYMBOL,
+    CONFIG.USUAL_TOKEN
+  );
+  const apyRewardEth0 = rewardEth0.apr * 100; // Direct APR-to-APY conversion for ETH0
+  const eth0Data = await getETH0ChainData(CONFIG.ETHEREUM);
 
   const usualbalance = await getTokenBalance(
     'Ethereum',
@@ -164,16 +205,29 @@ const apy = async () => {
   return [
     createPoolData(
       CONFIG.ETHEREUM.CHAIN,
+      CONFIG.ETHEREUM.ETH0,
+      CONFIG.ETH0_SYMBOL,
+      eth0Data.supply * eth0Data.price,
+      apyRewardEth0,
+      CONFIG.USUAL_TOKEN,
+      CONFIG.ETHEREUM.STETH
+    ),
+    createPoolData(
+      CONFIG.ETHEREUM.CHAIN,
       CONFIG.ETHEREUM.USD0PP,
+      CONFIG.USD0PP_SYMBOL,
       ethData.supply * ethData.price,
-      apyReward,
+      apyReward, // Corrected to USD0++ APY
+      CONFIG.USUAL_TOKEN,
       CONFIG.ETHEREUM.USD0
     ),
     createPoolData(
       CONFIG.ARBITRUM.CHAIN,
       CONFIG.ARBITRUM.USD0PP,
+      CONFIG.USD0PP_SYMBOL,
       arbData.supply * arbData.price,
-      apyReward,
+      apyReward, // Corrected for Arbitrum USD0++
+      CONFIG.USUAL_TOKEN,
       CONFIG.ARBITRUM.USD0
     ),
     {
@@ -182,7 +236,7 @@ const apy = async () => {
       project: 'usual',
       symbol: 'USUALx',
       tvlUsd: rawUsualXTVL * usualxPrice,
-      apyBase: usualxApyReward,
+      apyBase: usualxApyReward, // Weekly compounding for USUALx APY
       apyReward: usualxApyRevenueSwitch,
       rewardTokens: [CONFIG.ETHEREUM.USD0],
       underlyingTokens: [CONFIG.USUAL_TOKEN],

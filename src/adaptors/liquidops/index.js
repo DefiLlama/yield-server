@@ -11,8 +11,8 @@ const apy = async () => {
 
     const supportedTokensRes = await DryRun(controllerId, "Get-Tokens")
     const supportedTokens = JSON.parse(supportedTokensRes.Messages[0].Data)
-    const redstoneTickers = JSON.stringify(supportedTokens.map(token => convertTicker(token.ticker.toUpperCase())))
 
+    const redstoneTickers = JSON.stringify(supportedTokens.map(token => token.ticker))
     const redstonePriceFeedRes = await DryRun(redstoneOracleAddress, "v2.Request-Latest-Data", [["Tickers", redstoneTickers]]);
     const redstonePrices = JSON.parse(redstonePriceFeedRes.Messages[0].Data)
 
@@ -30,14 +30,17 @@ const apy = async () => {
     );
 
     const ticker = poolObject.ticker
-    const redstoneTicker = convertTicker(ticker.toUpperCase())
-    const tokenUSDPrice = (redstonePrices[redstoneTicker]).v
+    const tokenUSDPrice = (redstonePrices[ticker]).v
 
     const totalLends = scaleBalance(infoTagsObject['Cash'], infoTagsObject['Denomination'])
     const totalBorrows = scaleBalance(infoTagsObject['Total-Borrows'], infoTagsObject['Denomination'])
     const totalSupply = scaleBalance(infoTagsObject['Total-Supply'], infoTagsObject['Denomination'])
 
-    const supplyAPY = formatSupplyAPR(borrowAPR,  infoTagsObject, totalBorrows, totalSupply)
+    let supplyAPY = formatSupplyAPR(borrowAPR,  infoTagsObject, totalBorrows, totalSupply)
+
+    if (supplyAPY.toString() === 'NaN') {
+        supplyAPY = 0
+    }
 
     const ltv = Number(infoTagsObject['Collateral-Factor']) / 100
 
@@ -111,21 +114,9 @@ function formatSupplyAPR(borrowAPR, infoTagsObject, totalBorrows, totalSupply) {
     return borrowAPR * utilizationRate * (1 - reserveFactorFract);
 }
 
-function convertTicker(ticker) {
-    if (ticker === "QAR") return "AR";
-    if (ticker === "WUSDC") return "USDC";
-    if (ticker === "WAR") return "AR";
-    if (ticker === "WUSDT") return "USDT";
-    return ticker;
-  }
-
 
 module.exports = {
     apy,
 };
 // npm run test --adapter=liquidops
 
-
-
-
-  
