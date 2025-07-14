@@ -32,6 +32,7 @@ const config = {
   ],
   optimism: [
     'https://api.studio.thegraph.com/query/46041/impermax-optimism-solv2/v0.0.1',
+    'https://api.studio.thegraph.com/query/46041/impermax-optimism-solv2-stable/v0.0.1'
   ],
   fantom: [
     'https://api.studio.thegraph.com/query/46041/impermax-fantom-solv2/v0.0.2',
@@ -147,7 +148,7 @@ const getChainBorrowables = async (chain) => {
   }
 
   const blacklist = blacklistedLendingPools[chain] || [];
-  return allBorrowables.filter((i) => !blacklist.includes(i.lendingPool.id));
+  return allBorrowables.filter((i) => !blacklist.map(i => i.toLowerCase()).includes(i.lendingPool.id.toLowerCase()));
 };
 
 /**

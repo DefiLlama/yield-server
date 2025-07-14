@@ -1,4 +1,5 @@
 exports.CRV_API_BASE_URL = 'https://api.curve.finance/api';
+exports.CRV_API_BASE_URL_V1 = 'https://api.curve.finance/v1';
 exports.BLOCKCHAINIDS = [
   'ethereum',
   'polygon',

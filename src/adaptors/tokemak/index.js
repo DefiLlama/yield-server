@@ -13,7 +13,6 @@ const SETTINGS_BY_SYSTEM = [
     systemName: 'gen3',
     subgraphUrl:
       'https://subgraph.satsuma-prod.com/56ca3b0c9fd0/tokemak/v2-gen3-eth-mainnet/api',
-    weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
     multicallChainId: 'ethereum',
     pricePrefixChainId: 'ethereum',
     poolsChainId: 'Ethereum',
@@ -23,10 +22,18 @@ const SETTINGS_BY_SYSTEM = [
     systemName: 'gen3',
     subgraphUrl:
       'https://subgraph.satsuma-prod.com/56ca3b0c9fd0/tokemak/v2-gen3-base-mainnet/api',
-    weth: '0x4200000000000000000000000000000000000006',
     multicallChainId: 'base',
     pricePrefixChainId: 'base',
     poolsChainId: 'Base',
+  },
+  {
+    chainId: 146,
+    systemName: 'gen3',
+    subgraphUrl:
+      'https://subgraph.satsuma-prod.com/56ca3b0c9fd0/tokemak/v2-gen3-sonic-mainnet2/api',
+    multicallChainId: 'sonic',
+    pricePrefixChainId: 'sonic',
+    poolsChainId: 'Sonic',
   },
 ];
 
@@ -52,6 +59,12 @@ const autopoolsQuery = gql`
         currentApy
         rewardToken {
           id
+        }
+        extraRewarders {
+          currentApy
+          rewardToken {
+            id
+          }
         }
       }
       destinationVaults {
@@ -215,6 +228,7 @@ async function getPoolsForSystem(settings) {
   const autopoolCRs = {};
   for (let a = 0; a < autopools.length; a++) {
     const autopool = autopools[a];
+
     const totalAssets = Number(
       etherUtils.formatUnits(totalAssetResults.output[a].output, 18)
     );
@@ -223,6 +237,7 @@ async function getPoolsForSystem(settings) {
         getAssetBreakdownResults.output[a].output.totalIdle
       )
     );
+
     const dl = autopool.destinationVaults.length;
     let compositeReturn = 0;
     for (let d = 0; d < dl; d++) {
@@ -299,9 +314,29 @@ async function getPoolsForSystem(settings) {
     ix += dl;
   }
 
+  const formatApy = (num) => {
+    const value = (num ? Number(etherUtils.formatUnits(num, 18)) : 0) * 100;
+    if (value > 0.01) {
+      return value;
+    }
+    return 0;
+  };
+
   const pools = [];
   for (const pool of autopools) {
     const baseAssetPrice = await getBaseAssetPrice(settings, pool.baseAsset.id);
+
+    const rewardTokens = new Set(
+      pool.rewarder.extraRewarders.map((x) => x.rewardToken.id)
+    );
+    rewardTokens.add(pool.rewarder.rewardToken.id);
+
+    let rewarderApy = formatApy(pool.rewarder.currentApy);
+
+    for (const er of pool.rewarder.extraRewarders) {
+      rewarderApy += formatApy(er.currentApy);
+    }
+
     pools.push({
       pool: pool.id,
       chain: settings.poolsChainId,
@@ -310,7 +345,7 @@ async function getPoolsForSystem(settings) {
       tvlUsd:
         Number(etherUtils.formatUnits(pool.nav, pool.baseAsset.decimals)) *
         baseAssetPrice,
-      rewardTokens: [pool.rewarder.rewardToken.id],
+      rewardTokens: Array.from(rewardTokens),
       underlyingTokens: [pool.baseAsset.id],
       apyBase:
         // If we have a currentApy populated, use it. Otherwise, use the weighted CRM.
@@ -319,10 +354,7 @@ async function getPoolsForSystem(settings) {
               etherUtils.formatUnits(pool.currentApy, pool.baseAsset.decimals)
             )
           : autopoolCRs[pool.id]) || 0) * 100,
-      apyReward:
-        (pool.rewarder.currentApy
-          ? Number(etherUtils.formatUnits(pool.rewarder.currentApy, 18))
-          : 0) * 100,
+      apyReward: rewarderApy,
       url: 'https://app.tokemak.xyz/autopool?id=' + pool.id,
       poolMeta: pool.symbol,
     });

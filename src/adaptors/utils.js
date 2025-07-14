@@ -5,6 +5,10 @@ const { chunk } = require('lodash');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 
+exports.formatAddress = (address) => {
+  return String(address).toLowerCase();
+};
+
 exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'xdai') return 'Gnosis';
   if (chain && chain.toLowerCase() === 'kcc') return 'KCC';
@@ -24,6 +28,7 @@ exports.formatChain = (chain) => {
     return 'zkSync Era';
   if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
   if (chain && chain.toLowerCase() === 'real') return 're.al';
+  if (chain && chain.toLowerCase() === 'plume_mainnet') return 'Plume Mainnet';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
@@ -216,6 +221,21 @@ exports.tvl = async (dataNow, networkString) => {
       tvl = Number(el.reserve1) * price1 * 2;
     } else {
       tvl = 0;
+    }
+
+    if (el.id === '0x3c03af907879e827f93c3903de813a60faab7986') {
+      console.log(el.reserve0 !== undefined);
+      console.log({
+        pair: el.id,
+        token0: el.token0,
+        token1: el.token1,
+        reserve0: el.reserve0,
+        reserve1: el.reserve1,
+        price0,
+        price1,
+        tvl,
+      });
+      process.exit(0);
     }
 
     el['totalValueLockedUSD'] = tvl;

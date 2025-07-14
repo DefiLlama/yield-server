@@ -40,6 +40,7 @@ const blacklistedLendingPools = {
     '0xE8f4895DF06a0c69A9BA87509EfdBBFBAFe86c2d'.toLowerCase(), // weth/tkn - stakedlp
     '0x7c80Be56a6f23A3E598822648baaFD7524fe1239'.toLowerCase(), // chi/wUKRE stakedlp
     '0xDD14d0c651C63e1EeA5bd8b250cf99757425D68F'.toLowerCase(), // chi/usdc stakedlp
+    '0xc90073e1cabcf5069e00c5a6cb10023c9e1d5c4f'.toLowerCase(), // wbtc/eth stakedlp
   ],
   arbitrum: [
     /* Exclude IMX/WETH pool on sushi */
@@ -53,6 +54,9 @@ const blacklistedLendingPools = {
     '0x4b28550846405a7825247f54070b568c2ece3eeb',
     '0xcf49f93ff15b0ab9d336f1d5c8697f12d95012c4',
   ],
+  sonic: [
+    '0xd9de9f15994182518a688933d09787a9a9fb5bc9' // s/shadow stakedlp
+  ]
 };
 
 const blacklistedLendingVaults = {

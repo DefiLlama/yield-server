@@ -1,12 +1,10 @@
 const utils = require('../utils');
 const { Address } = require('@ton/core');
 
-const MIN_TVL_USD = 100000;
-
 const GRAPHQL_ENDPOINT = 'https://indexer.tonco.io/';
 const POOLS_QUERY = `
     query Pools {
-    pools {
+    pools ( filter: { orderBy: "usd" } ) {
         address
         apr
         name
@@ -28,14 +26,10 @@ const getApy = async () => {
     })).data.pools;
 
     const poolsInfo = {};
-    for (const pool of poolsList) {
+    for (const pool of poolsList.slice(0, 10)) {
         const address = pool.address;
 
         const tvl = pool.totalValueLockedUsd;
-        if (tvl < MIN_TVL_USD) {
-            continue
-        }
-
 
         poolsInfo[pool.address] = {
             symbol: pool.name.replace('wTTon', 'TON'),
