@@ -8,7 +8,7 @@ const sdk = require('@defillama/sdk');
 const PoolHolder = [
     {
         chain: 'base',
-        vaultName: 'USDC',
+        vaultName: 'USDC (MORTGAGEFI-USDC-WETH)',
         poolAddress: '0x1bE87D273d47C3832Ab7853812E9A995A4DE9EEA',
         stableAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
         stableDecimals: 6,
@@ -17,7 +17,7 @@ const PoolHolder = [
     },
     {
         chain: 'base',
-        vaultName: 'USDC',
+        vaultName: 'USDC (MORTGAGEFI-USDC-cbBTC)',
         poolAddress: '0xE93131620945A1273b48F57f453983d270b62DC7',
         stableAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
         stableDecimals: 6,
@@ -26,7 +26,7 @@ const PoolHolder = [
     },
     {
         chain: 'arbitrum',
-        vaultName: 'USDT',
+        vaultName: 'USDT (MORTGAGEFI-USDT-WBTC)',
         poolAddress: '0x9Be2Cf73E62DD3b5dF4334D9A36888394822A33F',
         stableAddress: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
         stableDecimals: 6,
@@ -131,28 +131,28 @@ const apy = async () => {
             pool: `${usdcWethVault.vaultName}`,
             chain: 'base',
             project: 'mortgagefi',
-            symbol: 'MOGFI-USDC-WETH',
+            symbol: 'USDC',
             tvlUsd: wethTVL,
             apy: baseApys.output[1].output / 100,
-            url: 'https://mortgagefi.com/markets',
+            url: 'https://mortgagefi.app/markets',
         },
         {
             pool: `${usdcCbBtcVault.vaultName}`,
             chain: 'base',
             project: 'mortgagefi',
-            symbol: 'MOGFI-USDC-cbBTC',
+            symbol: 'USDC',
             tvlUsd: cbBtcTVL,
             apy: baseApys.output[0].output / 100,
-            url: 'https://mortgagefi.com/markets',
+            url: 'https://mortgagefi.app/markets',
         },
         {
             pool: `${usdtWbtcVault.vaultName}`,
             chain: 'arbitrum',
             project: 'mortgagefi',
-            symbol: 'MOGFI-USDT-WBTC',
+            symbol: 'USDT',
             tvlUsd: wbtcTVL,
             apy: arbitrumApys.output[0].output / 100,
-            url: 'https://mortgagefi.com/markets',
+            url: 'https://mortgagefi.app/markets',
         }
     ]
     return pools
