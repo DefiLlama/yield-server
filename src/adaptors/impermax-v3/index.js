@@ -69,22 +69,35 @@ const lendingVaultProfiles = {
   polygon: [],
   scroll: [],
   base: [
+    // These vaults were affected by the exploit, are replaced below
+    //{
+    //  address: '0x7838a0329CFF90434424952411D5fFE687360F49'.toLowerCase(),
+    //  risk: 'Conservative',
+    //}, // USDCV2
+    //{
+    //  address: '0xaD9cfEBB7666f2698cA9d836eD8CBeb0545a4263'.toLowerCase(),
+    //  risk: 'Aggressive',
+    //}, // ETHV2
+    //{
+    //  address: '0xa1D0f86d74BB7C832308c640b504b8525168Ed62'.toLowerCase(),
+    //  risk: 'Conservative',
+    //}, // cbBTCV2 (high)
     {
       address: '0x0988cc53b8Ddd625C20e382f1af2f9c385E4f9A3'.toLowerCase(),
       risk: 'Conservative',
     }, // ETHV2
     {
-      address: '0x7838a0329CFF90434424952411D5fFE687360F49'.toLowerCase(),
-      risk: 'Conservative',
-    }, // USDCV2
+      address: '0x5e68e1bde6699bae9cab165b35989e5acc6b7e67'.toLowerCase(),
+      risk: 'Conservative'
+    }, // CBBTC
     {
-      address: '0xaD9cfEBB7666f2698cA9d836eD8CBeb0545a4263'.toLowerCase(),
-      risk: 'Aggressive',
-    }, // ETHV2
+      address: '0xf7408ba0aaf8ca80d4442731415bbe2156da8958'.toLowerCase(),
+      risk: 'Conservative'
+    }, // Usdc
     {
-      address: '0xa1D0f86d74BB7C832308c640b504b8525168Ed62'.toLowerCase(),
-      risk: 'Conservative',
-    }, // cbBTCV2 (high)
+      address: '0xad9cfebb7666f2698ca9d836ed8cbeb0545a4263'.toLowerCase(),
+      risk: 'Aggressive'
+    } // eth
   ],
   blast: [
     {
@@ -119,6 +132,10 @@ const lendingVaultProfiles = {
       address: '0x80e019CB1e5b3cb42c66b45974290cfD28FBfe18'.toLowerCase(),
       risk: "Conservative",
     }, // WbBTC
+    {
+      address: '0x16507321843166033894da01547bf48483a9abc8'.toLowerCase(),
+      risk: "Conservative"
+    }
   ],
 };
 
