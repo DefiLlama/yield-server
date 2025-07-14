@@ -4,10 +4,12 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 
+//Calculate APR function uses the last 45 days of rewards to calculate yield
+//Yield token is traded 1:1 with the stablecoin and is not dual sided.
 
 const PoolHolder = [
     {
-        chain: 'base',
+        chain: 'Base',
         vaultName: 'USDC (MORTGAGEFI-USDC-WETH)',
         poolAddress: '0x1bE87D273d47C3832Ab7853812E9A995A4DE9EEA',
         stableAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
@@ -16,7 +18,7 @@ const PoolHolder = [
         collateralDecimals: 18,
     },
     {
-        chain: 'base',
+        chain: 'Base',
         vaultName: 'USDC (MORTGAGEFI-USDC-cbBTC)',
         poolAddress: '0xE93131620945A1273b48F57f453983d270b62DC7',
         stableAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
@@ -25,7 +27,7 @@ const PoolHolder = [
         collateralDecimals: 8,
     },
     {
-        chain: 'arbitrum',
+        chain: 'Arbitrum',
         vaultName: 'USDT (MORTGAGEFI-USDT-WBTC)',
         poolAddress: '0x9Be2Cf73E62DD3b5dF4334D9A36888394822A33F',
         stableAddress: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
@@ -34,7 +36,6 @@ const PoolHolder = [
         collateralDecimals: 8,
     }
 ]
-
 const aprAbi = {
     "inputs": [],
     "name": "calculateAPR",
@@ -128,36 +129,35 @@ const apy = async () => {
 
     const pools = [
         {
-            pool: `${usdcWethVault.vaultName}`,
-            chain: 'base',
+            pool: `${usdcWethVault.poolAddress}-base`,
+            chain: 'Base',
             project: 'mortgagefi',
             symbol: 'USDC',
             tvlUsd: wethTVL,
             apy: baseApys.output[1].output / 100,
-            url: 'https://mortgagefi.app/markets',
         },
         {
-            pool: `${usdcCbBtcVault.vaultName}`,
-            chain: 'base',
+            pool: `${usdcCbBtcVault.poolAddress}-base`,
+            chain: 'Base',
             project: 'mortgagefi',
             symbol: 'USDC',
             tvlUsd: cbBtcTVL,
             apy: baseApys.output[0].output / 100,
-            url: 'https://mortgagefi.app/markets',
         },
         {
-            pool: `${usdtWbtcVault.vaultName}`,
-            chain: 'arbitrum',
+            pool: `${usdtWbtcVault.poolAddress}-arbitrum`,
+            chain: 'Arbitrum',
             project: 'mortgagefi',
             symbol: 'USDT',
             tvlUsd: wbtcTVL,
             apy: arbitrumApys.output[0].output / 100,
-            url: 'https://mortgagefi.app/markets',
         }
     ]
     return pools
 }
 
 module.exports = {
-    apy,
+    timetravel: false,
+    apy: apy,
+    url: 'https://mortgagefi.app/markets',
 }
