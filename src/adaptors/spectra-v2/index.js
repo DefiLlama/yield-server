@@ -46,6 +46,12 @@ const chains = {
     urlSlug: "avax",
     SPECTRA: '0x4baB31D6c557F8285eccB5167095147a36D9BaFa',
   },
+  56: {
+    name: 'bsc',
+    slug: 'bsc',
+    urlSlug: "bsc",
+    SPECTRA: "0x4baB31D6c557F8285eccB5167095147a36D9BaFa"
+  }
 };
 
 const poolId = (address, chainId) =>

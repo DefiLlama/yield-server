@@ -147,21 +147,21 @@ const apy = async () => {
     const supplyAPY =
       liquidityRate > 0
         ? (Math.pow(
-          1 + liquidityRate / RAY / SECONDS_PER_YEAR,
-          SECONDS_PER_YEAR
-        ) -
-          1) *
-        100
+            1 + liquidityRate / RAY / SECONDS_PER_YEAR,
+            SECONDS_PER_YEAR
+          ) -
+            1) *
+          100
         : 0;
 
     const borrowAPY =
       variableBorrowRate > 0
         ? (Math.pow(
-          1 + variableBorrowRate / RAY / SECONDS_PER_YEAR,
-          SECONDS_PER_YEAR
-        ) -
-          1) *
-        100
+            1 + variableBorrowRate / RAY / SECONDS_PER_YEAR,
+            SECONDS_PER_YEAR
+          ) -
+            1) *
+          100
         : 0;
 
     // Calculate TVL and borrow amounts
@@ -182,21 +182,21 @@ const apy = async () => {
     // Calculate supply rewards (aToken incentives)
     const supplyRewards = matchingIncentive
       ? calculateRewardAPY(
-        matchingIncentive.aIncentiveData,
-        liquidity + borrowed, // total supply = available liquidity + borrowed
-        tokenPrice?.price || 0,
-        Number(decimals)
-      )
+          matchingIncentive.aIncentiveData,
+          liquidity + borrowed, // total supply = available liquidity + borrowed
+          tokenPrice?.price || 0,
+          Number(decimals)
+        )
       : { apyReward: 0, rewardTokens: [] };
 
     // Calculate borrow rewards (variable debt token incentives)
     const borrowRewards = matchingIncentive
       ? calculateRewardAPY(
-        matchingIncentive.vIncentiveData,
-        borrowed, // total borrowed
-        tokenPrice?.price || 0,
-        Number(decimals)
-      )
+          matchingIncentive.vIncentiveData,
+          borrowed, // total borrowed
+          tokenPrice?.price || 0,
+          Number(decimals)
+        )
       : { apyReward: 0, rewardTokens: [] };
 
     const url = `https://app.more.markets/reserve-overview/?underlyingAsset=${underlyingAsset.toLowerCase()}&marketName=proto_flow_v3`;
@@ -204,7 +204,7 @@ const apy = async () => {
     return {
       pool: aTokenAddress.toLowerCase(),
       chain,
-      project: 'more-markets',
+      project: 'more-lend',
       symbol,
       tvlUsd,
       apyBase: supplyAPY,

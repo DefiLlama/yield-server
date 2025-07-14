@@ -81,11 +81,22 @@ async function getPoolVolumes(timestamp = null) {
 
   const pools = {}
   for (const p of dataNow.filter(p => p.volumeUSD1d >= 0 && (!isNaN(p.apy1d) || !isNaN(p.apy7d)))) {
+    const url = 'https://aerodrome.finance/deposit?token0=' + p.token0.id + '&token1=' + p.token1.id + '&factory=' + p.factory;
+    const poolMeta = 'CL' + ' - ' + (Number(p.feeTier) / 10000).toString() + '%';
+    const underlyingTokens = [p.token0.id, p.token1.id];
+
     const poolAddress = utils.formatAddress(p.id);
     pools[poolAddress] = {
       pool: poolAddress,
+      chain: utils.formatChain('base'),
+      project: PROJECT,
+      poolMeta,
+      symbol: `${p.token0.symbol}-${p.token1.symbol}`,
+      tvlUsd: p.totalValueLockedUSD,
       apyBase: p.apy1d,
       apyBase7d: p.apy7d,
+      underlyingTokens,
+      url,
       volumeUsd1d: p.volumeUSD1d,
       volumeUsd7d: p.volumeUSD7d,
     }
@@ -232,7 +243,7 @@ const getGaugeApy = async () => {
     const poolMeta = 'CL' + p.type.toString() + ' - ' + (p.pool_fee / 10000).toString() + '%';
 
     return {
-      pool: p.lp,
+      pool: utils.formatAddress(p.lp),
       chain: utils.formatChain('base'),
       project: PROJECT,
       symbol: s,
@@ -245,22 +256,26 @@ const getGaugeApy = async () => {
     };
   });
 
-  return pools.filter((p) => utils.keepFinite(p));
+  const poolsApy = {};
+  for (const pool of pools.filter((p) => utils.keepFinite(p))) {
+    poolsApy[pool.pool] = pool;
+  }
+
+  return poolsApy;
 };
 
 async function main(timestamp = null) {
   const poolsApy = await getGaugeApy();
   const poolsVolumes = await getPoolVolumes(timestamp);
   
-  return poolsApy.map(pool => {
-    const poolAddress = utils.formatAddress(pool.id);
+  return Object.values(poolsVolumes).map(pool => {
+    const poolAddress = utils.formatAddress(pool.pool);
     return {
       ...pool,
 
-      apyBase: poolsVolumes[poolAddress] ? poolsVolumes[poolAddress].apyBase : undefined,
-      apyBase7d: poolsVolumes[poolAddress] ? poolsVolumes[poolAddress].apyBase7d : undefined,
-      volumeUsd1d: poolsVolumes[poolAddress] ? poolsVolumes[poolAddress].volumeUsd1d : undefined,
-      volumeUsd7d: poolsVolumes[poolAddress] ? poolsVolumes[poolAddress].volumeUsd7d : undefined,
+      poolMeta: poolsApy[pool.pool] ? poolsApy[pool.pool].poolMeta : pool.poolMeta,
+      apyReward: poolsApy[pool.pool] ? poolsApy[pool.pool].apyReward : undefined,
+      rewardTokens: poolsApy[pool.pool] ? [AERO] : [],
     }
   });
 }

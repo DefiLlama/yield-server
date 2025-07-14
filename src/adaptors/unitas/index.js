@@ -31,7 +31,7 @@ async function getSignatures() {
         params: [
             DISTRIBUTE_ACCOUNT,
             {
-                "limit": 50,
+                "limit": 20,
                 "commitment": "finalized"
             }
         ]
@@ -56,12 +56,33 @@ async function getTransaction(sig) {
     return res.data.result;
 }
 
+function createRateLimiter(interval) {
+    let queue = Promise.resolve();
+
+    return function (fn) {
+        queue = queue.then(() => new Promise((resolve) => {
+            setTimeout(async () => {
+                try {
+                    const result = await fn();
+                    resolve(result);
+                } catch (e) {
+                    resolve(null);
+                }
+            }, interval);
+        }));
+        return queue;
+    };
+}
+
 async function getRewardDistribution() {
-    const signatures = await getSignatures()
+    const rateLimit = createRateLimiter(5000);
+
+    const signatures = await rateLimit(() => getSignatures())
 
     for (const sig of signatures) {
         const signature = sig.signature
-        const tx = await getTransaction(signature)
+        const tx = await rateLimit(() => getTransaction(signature));
+        if (!tx) continue;
 
         const message = tx.transaction.message;
         const instructions = message.instructions;

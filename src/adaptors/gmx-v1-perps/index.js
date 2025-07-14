@@ -25,7 +25,7 @@ const avalancheInflationGlpTrackerAddress =
   '0x9e295B5B976a184B14aD8cd72413aD846C299660';
 
 const secondsPerYear = 31536000;
-const project = 'gmx-v1';
+const project = 'gmx-v1-perps';
 
 async function getAdjustedAmount(pTarget, pChain, pAbi, pParams = []) {
   let decimals = await sdk.api.abi.call({
