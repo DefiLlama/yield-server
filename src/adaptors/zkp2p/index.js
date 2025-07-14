@@ -45,6 +45,7 @@ const getApy = async () => {
       tvlUsd: Number(latestData.tvl),
       apy: Number(latestData.protocol_apr_pct),
       url: 'https://zkp2p.xyz',
+      poolMeta: 'APR is a TVL-weighted median across payment rail pools (e.g., Venmo, Zelle). Details: https://docs.zkp2p.xyz/user-guides/for-sellers/calculating-apr',
     };
 
     console.log('ZKP2P: Fetched fresh data from Dune');
