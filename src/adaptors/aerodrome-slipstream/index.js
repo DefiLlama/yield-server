@@ -5,6 +5,7 @@ const utils = require('../utils');
 
 const abiSugar = require('./abiSugar.json');
 const abiSugarHelper = require('./abiSugarHelper.json');
+const { pool } = require('../rocifi-v2/abi');
 
 const AERO = '0x940181a94A35A4569E4529A3CDfB74e38FD98631';
 const sugar = '0x92294D631E995f1dd9CeE4097426e6a71aB87Bcf';
@@ -23,6 +24,7 @@ const query = gql`
     reserve0: totalValueLockedToken0
     reserve1: totalValueLockedToken1
     volumeUSD
+    volumeToken0
     feeTier
     token0 {
       symbol
@@ -40,7 +42,8 @@ const queryPrior = gql`
 {
   pools(first: 1000 orderBy: totalValueLockedUSD orderDirection: desc, block: {number: <PLACEHOLDER>}) { 
     id 
-    volumeUSD 
+    volumeUSD
+    volumeToken0
   }
 }
 `;
