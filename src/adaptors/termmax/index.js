@@ -2,18 +2,21 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 
-const vaults = {
+const VAULTS = {
   Ethereum: {
     alias: 'eth',
     chain: 'ethereum',
+    chainId: 1,
     addresses: [
       '0x984408C88a9B042BF3e2ddf921Cd1fAFB4b735D1',
       '0xDEB8a9C0546A01b7e5CeE8e44Fd0C8D8B96a1f6e',
+      '0xdC4d99aB6c69943b4E17431357AbC5b54B4C2F56',
     ],
   },
   Arbitrum: {
     alias: 'arb',
     chain: 'arbitrum',
+    chainId: 42161,
     addresses: [
       '0xc94b752839a22D2C44E99e298671dd4B2aDd11b3',
       '0x8c5161f287Cbc9Afa48bC8972eE8CC0a755fcAdC',
@@ -22,6 +25,7 @@ const vaults = {
   Binance: {
     alias: 'bnb',
     chain: 'bsc',
+    chainId: 56,
     addresses: [
       '0x86c958CAc8aeE37dE62715691c0D597c710Eca51',
       '0x89653E6523fB73284353252b41AE580E6f96dFad',
@@ -29,10 +33,19 @@ const vaults = {
   },
 };
 
+async function getMerklOpportunities() {
+  const res = await axios.get(
+    new URL('https://api.merkl.xyz/v4/opportunities?name=termmax')
+  );
+  return res.data.filter((o) => o.status === 'LIVE');
+}
+
 async function apy() {
+  const opportunities = await getMerklOpportunities();
+
   const pools = [];
   const promises = [];
-  for (const [chain, vaultData] of Object.entries(vaults)) {
+  for (const [chain, vaultData] of Object.entries(VAULTS)) {
     const task = async () => {
       const calls = vaultData.addresses.map((address) => ({
         target: address,
@@ -137,7 +150,8 @@ async function apy() {
           `https://app.termmax.ts.finance/earn/${address.toLowerCase()}`
         );
         url.searchParams.set('chain', vaultData.alias);
-        pools.push({
+
+        const pool = {
           pool: `${address}-${chain.toLowerCase()}`,
           chain,
           project: 'termmax',
@@ -147,7 +161,26 @@ async function apy() {
           url: String(url),
           underlyingTokens: [assetAddress],
           poolMeta: names.output[i].output,
-        });
+        };
+
+        const opportunity = opportunities.find(
+          (o) =>
+            o.chainId === vaultData.chainId &&
+            o.identifier.toLowerCase() === address.toLowerCase()
+        );
+        if (opportunity) {
+          pool.apyReward = opportunity.apr;
+
+          const breakdowns =
+            (opportunity.rewardsRecord &&
+              opportunity.rewardsRecord.breakdowns) ||
+            [];
+          pool.rewardTokens = breakdowns
+            .map((b) => b.token.address)
+            .filter((a) => a);
+        }
+
+        pools.push(pool);
       }
     };
     promises.push(task());

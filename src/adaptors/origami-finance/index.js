@@ -33,7 +33,7 @@ function getSubgraphQuery() {
         }
       ) {
         vaultPriceBasedApr
-        tvlUSD
+        totalTvlUSD
       }
 
       averageMetrics: metrics(
@@ -94,7 +94,7 @@ function vaultApy(chain, chainId, vault) {
     chain: chain,
     project: 'origami-finance',
     symbol: vault.symbol,
-    tvlUsd: parseFloat(vault.latestMetrics[0].tvlUSD),
+    tvlUsd: parseFloat(vault.latestMetrics[0].totalTvlUSD),
     apyBase: (Math.exp(totalApr / 100) - 1) * 100,
     underlyingTokens: vault.underlyingTokens,
     url: `https://origami.finance/vaults/${chainId}-${getAddress(vault.id)}/info`,
