@@ -43,7 +43,7 @@ const VAULTS = [
     accountant: '0x6870599e4ffB6b9aB7facA3420875A1D2e188906',
     symbol: 'aiAVAX',
     underlyingToken: '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7',
-    rateDecimals: 8,
+    rateDecimals: 18,
   },
   {
     chainId: '43114',
