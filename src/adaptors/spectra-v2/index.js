@@ -40,6 +40,18 @@ const chains = {
     urlSlug: "hemi",
     SPECTRA: '0x392fca63e58C1870fBeC04Eb6518A75703Dd2954',
   },
+  43114: {
+    name: 'avax',
+    slug: 'avalanche',
+    urlSlug: "avax",
+    SPECTRA: '0x4baB31D6c557F8285eccB5167095147a36D9BaFa',
+  },
+  56: {
+    name: 'bsc',
+    slug: 'bsc',
+    urlSlug: "bsc",
+    SPECTRA: "0x4baB31D6c557F8285eccB5167095147a36D9BaFa"
+  }
 };
 
 const poolId = (address, chainId) =>
@@ -89,7 +101,7 @@ const fixedRateApy = (p) => {
     project: 'spectra-v2',
     symbol: utils.formatSymbol(`${p.pt.ibt.symbol}`),
     tvlUsd: p.liquidity?.usd,
-    apyBase: p.impliedApy,
+    apyBase: p.pt.ibt.apr?.total,
     underlyingTokens: [p.pt.underlying.address],
     poolMeta: `For PT on ${p.pt.ibt.protocol}  | Maturity ${formatMaturity(
       p.pt.maturity

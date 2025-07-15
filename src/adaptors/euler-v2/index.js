@@ -53,6 +53,11 @@ const chains = {
     vaultLens: '0x03833b4A873eA1F657340C72971a2d0EbB2B4D82',
     fromBlock: 8541544,
   },
+  arbitrum: {
+    factory: '0x78Df1CF5bf06a7f27f2ACc580B934238C1b80D50',
+    vaultLens: '0x1Df19EE4Ed7353fCC54e26E54f960a19Aa43D304',
+    fromBlock: 300690953,
+  },
 };
 
 const getApys = async () => {

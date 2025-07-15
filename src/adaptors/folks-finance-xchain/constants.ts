@@ -92,6 +92,14 @@ const HubPools = {
         tokenAddress: '0x06d47F3fb376649c3A9Dafe069B3D6E35572219E',
         spokeAddress: '0xe396E1246B7341Eb6EDA05DCfef9EaB9E661f80C',
       },
+      {
+        // USDt_ava
+        id: 44,
+        underlyingSymbol: 'USDt',
+        poolAddress: '0xA1E1024c49c77297bA6367F624cFbEFC80E697c6',
+        tokenAddress: '0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7',
+        spokeAddress: '0x66dD1c6bEAdFFcA88365BAdE7928323672323d11',
+      },
     ],
   },
   ethereum: {
@@ -154,6 +162,14 @@ const HubPools = {
         poolAddress: '0x4E6dD5E35638008cdB1E9004F3E952bCDd920E6D',
         tokenAddress: '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee',
         spokeAddress: '0x63BCB60165E7EC30F03883Fcb800AEf304EE7eEa',
+      },
+      {
+        // USDt_eth
+        id: 45,
+        underlyingSymbol: 'USDt',
+        poolAddress: '0xf51a72b92cB9C16376Da04f48eF071c966B9C50B',
+        tokenAddress: '0xdac17f958d2ee523a2206206994597c13d831ec7',
+        spokeAddress: '0x12d4FeDD9cE1b4d7dB90b07366284ac1675a5a90',
       },
     ],
   },
@@ -319,6 +335,14 @@ const HubPools = {
         tokenAddress: '0x4186BFC76E2E237523CBC30FD220FE055156b41F',
         spokeAddress: '0xC0a3536E0b6799014A14664bA4370BBd5D0c7590',
       },
+      {
+        // USDT0_arb
+        id: 47,
+        underlyingSymbol: 'USD₮0',
+        poolAddress: '0x1b5a1dCe059E6069Ed33C3656826Ad04bE536465',
+        tokenAddress: '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',
+        spokeAddress: '0xe69e068539Ee627bAb1Ce878843a6C76484CBd2c',
+      },
     ],
   },
   polygon: {
@@ -375,11 +399,19 @@ const HubPools = {
       },
       {
         // aUSD_pol
-        id: 42,
+        id: 43,
         underlyingSymbol: 'aUSD',
         poolAddress: '0x34f1BA5808EB5Bf60c9B1C343d86e410466F4860',
         tokenAddress: '0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a',
         spokeAddress: '0xaB07AfCf16fecdCC3D83dB7513c7839aEd626322',
+      },
+      {
+        // USDt_pol
+        id: 46,
+        underlyingSymbol: 'USDt',
+        poolAddress: '0x11f82b5Ea7408Ff257F6031E6A3e29203557A1DD',
+        tokenAddress: '0xc2132d05d31c914a87c6611c10748aeb04b58e8f',
+        spokeAddress: '0xf2ee689fd3f7A7358bEDA46f83E7968Ad894abF0',
       },
     ],
   },
@@ -409,6 +441,12 @@ const RewardsTokenV2 = {
     chain: 'polygon',
     tokenAddress: '0x0000000000000000000000000000000000000000',
     spokeAddress: '0xCD7eE494fa616FDbE38Aa0A9355E20b7215108Bf',
+  },
+  // USDT0 (Arbitrum)
+  5: {
+    chain: 'arbitrum',
+    tokenAddress: '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',
+    spokeAddress: '0x0259617bE41aDA4D97deD60dAf848Caa6db3F228',
   },
 };
 

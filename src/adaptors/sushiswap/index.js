@@ -1,6 +1,7 @@
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
+const env = require('../../../env');
 
 const utils = require('../utils');
 const {
@@ -24,6 +25,7 @@ const urlPolygon = sdk.graph.modifyEndpoint(
 const urlAvalanche = sdk.graph.modifyEndpoint(
   '6VAhbtW5u2sPYkJKAcMsxgqTBu4a1rqmbiVQWgtNjrvT'
 );
+const urlBase = `https://gateway-arbitrum.network.thegraph.com/api/${env.GRAPH_API_KEY}/deployments/id/QmQfYe5Ygg9A3mAiuBZYj5a64bDKLF4gF6sezfhgxKvb9y`;
 
 // LM reward urls
 const urlMc2 = sdk.graph.modifyEndpoint(
@@ -128,9 +130,7 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
     let data = (
       await request(urlExchange, query.replace('<PLACEHOLDER>', block))
     ).pairs;
-    let queryPriorC = queryPrior;
-    queryPriorC = queryPriorC.replace('<PLACEHOLDER>', blockPrior);
-    const dataPrior = (await request(urlExchange, queryPriorC)).pairs;
+    const dataPrior = (await request(urlExchange, queryPrior.replace('<PLACEHOLDER>', blockPrior))).pairs;
 
     // 7d offset
     const dataPrior7d = (
@@ -147,7 +147,7 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
       totalValueLockedUSDlp: p.totalValueLockedUSD,
     }));
 
-    if (chainString === 'avalanche') {
+    if (chainString === 'avalanche' || chainString === 'base') {
       return data.map((p) => ({
         pool: p.id,
         chain: utils.formatChain(chainString),
@@ -159,7 +159,7 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
         underlyingTokens: [p.token0.id, p.token1.id],
         volumeUsd1d: p.volumeUSD1d,
         volumeUsd7d: p.volumeUSD7d,
-        url: `https://www.sushi.com/earn/${chainId}:${p.id}`,
+        url: `https://www.sushi.com/${chainString}/pool/v2/${p.id}`,
       }));
     }
 
@@ -448,7 +448,7 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
         underlyingTokens: [p.token0.id, p.token1.id],
         volumeUsd1d: p.volumeUSD1d,
         volumeUsd7d: p.volumeUSD7d,
-        url: `https://www.sushi.com/earn/${chainId}:${p.id}`,
+        url: `https://www.sushi.com/${chainString}/pool/v2/${p.id}`,
       };
     });
 
@@ -465,6 +465,7 @@ const main = async () => {
     topLvl('arbitrum', urlArbitrum, null, 42161),
     topLvl('polygon', urlPolygon, null, 137),
     topLvl('avalanche', urlAvalanche, null, 43114),
+    topLvl('base', urlBase, null, 8453),
   ]);
 
   return data
