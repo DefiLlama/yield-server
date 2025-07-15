@@ -23,8 +23,6 @@ async function getChainIdToNameMap() {
 const apy = async function () {
   const response = await fetch('https://edgeapi.csigma.finance/api/v1/external/pools/apr');
   if (!response.ok) {
-    console.error(`HTTP error! status: ${response.status}`);
-    console.error(response);
     throw new Error(`HTTP error! status: ${response.status}`);
   }
   const data = await response.json();
