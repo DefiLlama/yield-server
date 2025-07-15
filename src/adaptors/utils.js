@@ -289,6 +289,21 @@ exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
   pool['volumeUSD1d'] = Number(pool.volumeUSD) - Number(pool.volumeUSDPrior1d);
   pool['volumeUSD7d'] = Number(pool.volumeUSD) - Number(pool.volumeUSDPrior7d);
 
+  if (pool.volumeToken0 && (pool['volumeUSD1d'] === 0 || pool['volumeUSD7d'] === 0)) {
+    const poolDataPrior1D = dataPrior1d.find((el) => el.id === pool.id)
+    const poolDataPrior7D = dataPrior7d.find((el) => el.id === pool.id)
+
+    if (pool['volumeUSD1d'] === 0 && poolDataPrior1D) {
+      const volumeToken0 = Number(pool.volumeToken0) - Number(poolDataPrior1D.volumeToken0);
+      pool['volumeUSD1d'] = volumeToken0 * pool.price0;
+    }
+    if (pool['volumeUSD7d'] === 0 && poolDataPrior7D) {
+      const volumeToken0 = Number(pool.volumeToken0) - Number(poolDataPrior7D.volumeToken0);
+      pool['volumeUSD7d'] = volumeToken0 * pool.price0;
+    }
+  }
+
+
   // calc fees
   pool['feeUSD1d'] = (pool.volumeUSD1d * Number(pool.feeTier)) / 1e6;
   pool['feeUSD7d'] = (pool.volumeUSD7d * Number(pool.feeTier)) / 1e6;

@@ -148,7 +148,7 @@ const getChainBorrowables = async (chain) => {
   }
 
   const blacklist = blacklistedLendingPools[chain] || [];
-  return allBorrowables.filter((i) => !blacklist.includes(i.lendingPool.id));
+  return allBorrowables.filter((i) => !blacklist.map(i => i.toLowerCase()).includes(i.lendingPool.id.toLowerCase()));
 };
 
 /**
