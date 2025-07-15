@@ -31,9 +31,6 @@ const apy = async function () {
   let pools = [];
   for (const pool of data.data.pools) {
     const { address, networkId, apr } = pool;
-    if (apr === 0) {
-      continue; // Skip pools with APR 0
-    }
     const chain = (chainIdToName[networkId] || 'unknown').toLowerCase();
     const [
       { output: poolToken },
