@@ -66,7 +66,7 @@ const vaults = [
   },
   {
     id: '6f0f805c35fbb925ec5c28085f2b3f',
-    pool: `0x909d587c482766814B368d5b136d98819B9373d7-arbitrum`.toLowerCase(),
+    pool: `0x909d587c482766814B368d5b136d98819B9373d7-ethereum`.toLowerCase(),
     chain: 'ethereum',
     contract: '0x909d587c482766814B368d5b136d98819B9373d7',
     project: 'bakerfi',
@@ -78,7 +78,7 @@ const vaults = [
   },
   {
     id: '8445df8580569e3abfd828cf4ed24f',
-    pool: `0x4BA3f77a8072217dabd7FeD28DB244A5d32C572E-arbitrum`.toLowerCase(),
+    pool: `0x4BA3f77a8072217dabd7FeD28DB244A5d32C572E-base`.toLowerCase(),
     chain: 'base',
     contract: '0x4BA3f77a8072217dabd7FeD28DB244A5d32C572E',
     project: 'bakerfi',
