@@ -72,7 +72,6 @@ const vaults = [
     project: 'bakerfi',
     symbol: utils.formatSymbol('USDC'),
     apyReward: 0, // APY from pool LM rewards in %,
-    rewardTokens: ['0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
     underlyingTokens: ['0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
     poolMeta: 'wstETH/ETH Recursive Staking', // A string value which can stand for any specif
   },
@@ -84,7 +83,6 @@ const vaults = [
     project: 'bakerfi',
     symbol: utils.formatSymbol('USDC'),
     apyReward: 0, // APY from pool LM rewards in %,
-    rewardTokens: ['0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
     underlyingTokens: ['0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
     poolMeta: 'wstETH/ETH Recursive Staking', // A string value which can stand for any specif
   },
