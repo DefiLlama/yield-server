@@ -64,6 +64,30 @@ const vaults = [
     underlyingTokens: ['0x82af49447d8a07e3bd95bd0d56f35241523fbab1'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
     poolMeta: 'wstETH/ETH Recursive Staking', // A string value which can stand for any specif
   },
+  {
+    id: '6f0f805c35fbb925ec5c28085f2b3f',
+    pool: `0x909d587c482766814B368d5b136d98819B9373d7-arbitrum`.toLowerCase(),
+    chain: 'ethereum',
+    contract: '0x909d587c482766814B368d5b136d98819B9373d7',
+    project: 'bakerfi',
+    symbol: utils.formatSymbol('USDC'),
+    apyReward: 0, // APY from pool LM rewards in %,
+    rewardTokens: ['0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
+    underlyingTokens: ['0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
+    poolMeta: 'wstETH/ETH Recursive Staking', // A string value which can stand for any specif
+  },
+  {
+    id: '8445df8580569e3abfd828cf4ed24f',
+    pool: `0x4BA3f77a8072217dabd7FeD28DB244A5d32C572E-arbitrum`.toLowerCase(),
+    chain: 'base',
+    contract: '0x4BA3f77a8072217dabd7FeD28DB244A5d32C572E',
+    project: 'bakerfi',
+    symbol: utils.formatSymbol('USDC'),
+    apyReward: 0, // APY from pool LM rewards in %,
+    rewardTokens: ['0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
+    underlyingTokens: ['0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
+    poolMeta: 'wstETH/ETH Recursive Staking', // A string value which can stand for any specif
+  },
 ];
 
 async function readVaultsInfo(args) {
