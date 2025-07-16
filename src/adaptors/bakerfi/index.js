@@ -26,7 +26,7 @@ const vaults = [
     apyReward: 0, // APY from pool LM rewards in %,
     rewardTokens: ['0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
     underlyingTokens: ['0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
-    poolMeta: 'wstETH/ETH Recursive Staking', // A string value which can stand for any specif
+    poolMeta: 'wstETH/ETH AAVEv3 Ethereum Vault', // A string value which can stand for any specif
   },
   {
     id: 'cly4i95530008kl5eesquxqyc',
@@ -38,7 +38,7 @@ const vaults = [
     apyReward: 0, // APY from pool LM rewards in %,
     rewardTokens: ['0x4200000000000000000000000000000000000006'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
     underlyingTokens: ['0x4200000000000000000000000000000000000006'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
-    poolMeta: 'wstETH/ETH Recursive Staking', // A string value which can stand for any specif
+    poolMeta: 'wstETH/ETH AAVEv3 Base Vault', // A string value which can stand for any specif
   },
   {
     id: 'cm2subkbi0000ihv5e7www0ic',
@@ -50,7 +50,7 @@ const vaults = [
     apyReward: 0, // APY from pool LM rewards in %,
     rewardTokens: ['0x4200000000000000000000000000000000000006'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
     underlyingTokens: ['0x4200000000000000000000000000000000000006'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
-    poolMeta: 'wstETH/ETH Recursive Staking', // A string value which can stand for any specif
+    poolMeta: 'wstETH/ETH Morpho Base Vault', // A string value which can stand for any specif
   },
   {
     id: 'cm1p7hcba0000125ua7hxn8m3',
@@ -62,7 +62,7 @@ const vaults = [
     apyReward: 0, // APY from pool LM rewards in %,
     rewardTokens: ['0x82af49447d8a07e3bd95bd0d56f35241523fbab1'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
     underlyingTokens: ['0x82af49447d8a07e3bd95bd0d56f35241523fbab1'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
-    poolMeta: 'wstETH/ETH Recursive Staking', // A string value which can stand for any specif
+    poolMeta: 'wstETH/ETH AAVEv3 Arbitrum Vault', // A string value which can stand for any specif
   },
   {
     id: '6f0f805c35fbb925ec5c28085f2b3f',
@@ -73,7 +73,7 @@ const vaults = [
     symbol: utils.formatSymbol('USDC'),
     apyReward: 0, // APY from pool LM rewards in %,
     underlyingTokens: ['0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
-    poolMeta: 'wstETH/ETH Recursive Staking', // A string value which can stand for any specif
+    poolMeta: 'Stable USD Ethereum Vault', // A string value which can stand for any specif
   },
   {
     id: '8445df8580569e3abfd828cf4ed24f',
@@ -84,7 +84,7 @@ const vaults = [
     symbol: utils.formatSymbol('USDC'),
     apyReward: 0, // APY from pool LM rewards in %,
     underlyingTokens: ['0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
-    poolMeta: 'wstETH/ETH Recursive Staking', // A string value which can stand for any specif
+    poolMeta: 'Stable USD Base Vault', // A string value which can stand for any specif
   },
 ];
 
