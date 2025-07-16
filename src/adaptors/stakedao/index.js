@@ -74,27 +74,33 @@ const poolsFunction = async () => {
       ]);
     }, []);
 
-  const lockers = resp[5].parsed.map((locker) => {
-    const rewardTokens = locker?.rewards
-      ?.filter((t) => t.apr > 0)
-      .map((t) => t.token.address);
+  const lockers = resp[5].parsed
+    .map((locker) => {
+      const rewardTokens = locker?.rewards
+        ?.filter((t) => t.apr > 0)
+        .map((t) => t.token.address);
 
-    return {
-      pool: locker.sdToken.symbol,
-      chain: utils.formatChain(CHAINS[locker.chainId]),
-      project: 'stakedao',
-      symbol: utils.formatSymbol(locker.sdToken.symbol),
-      poolMeta: locker.protocol ? utils.formatChain(locker.protocol) : null,
-      tvlUsd: locker.tvl,
-      // Select lower bounds of rewards, without veSDT boost
-      apyReward: locker.streaming ? locker.apr[0] : 0,
-      apyBase: 0,
-      rewardTokens,
-      underlyingTokens: [locker.token.address],
-    };
-  });
+      if (!CHAINS[locker.chainId]) return [];
 
-  return strats.concat(lockers).filter((i) => utils.keepFinite(i));
+      return {
+        pool: locker.sdToken.symbol,
+        chain: utils.formatChain(CHAINS[locker.chainId]),
+        project: 'stakedao',
+        symbol: utils.formatSymbol(locker.sdToken.symbol),
+        poolMeta: locker.protocol ? utils.formatChain(locker.protocol) : null,
+        tvlUsd: locker.tvl,
+        // Select lower bounds of rewards, without veSDT boost
+        apyReward: locker.streaming ? locker.apr[0] : 0,
+        apyBase: 0,
+        rewardTokens,
+        underlyingTokens: [locker.token.address],
+      };
+    })
+    .flat();
+
+  return utils.removeDuplicates(
+    strats.concat(lockers).filter((i) => utils.keepFinite(i))
+  );
 };
 
 module.exports = {

@@ -2,7 +2,7 @@ const utils = require('../utils');
 
 const getLendingPoolData = async () => {
   try {
-    const response = await utils.getData('https://api.curve.fi/v1/getLendingVaults/all');
+    const response = await utils.getData('https://api.curve.finance/v1/getLendingVaults/all');
     if (response.success) {
       return response.data.lendingVaultData.map(vault =>({
         pool: vault.address + '-' + vault.blockchainId,
@@ -28,7 +28,7 @@ const getLendingPoolData = async () => {
 
 const getGaugesData = async () => {
   try {
-    const response = await utils.getData('https://api.curve.fi/v1/getAllGauges');
+    const response = await utils.getData('https://api.curve.finance/v1/getAllGauges');
     if (response.success) {
       const gaugesByAddress = {};
       Object.entries(response.data).forEach(([key, gauge]) => {

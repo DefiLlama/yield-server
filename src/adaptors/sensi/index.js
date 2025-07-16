@@ -1,4 +1,4 @@
-const { symbol } = require('../impermax-finance/abi');
+const { symbol } = require('../impermax-v2/abi');
 const { REWARD_TOKEN } = require('../line-token-rewards/config');
 const utils = require('../utils')
 

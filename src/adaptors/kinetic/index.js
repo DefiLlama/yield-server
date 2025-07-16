@@ -8,8 +8,10 @@ const { comptrollerAbi, cToken, flrETH } = require('./abi');
 const { symbol } = require('@defillama/sdk/build/erc20');
 
 const COMPTROLLER_ADDRESS = '0x8041680Fb73E1Fe5F851e76233DCDfA0f2D2D7c8';
+const ISO_COMPTROLLER_ADDRESS = '0xDcce91d46Ecb209645A26B5885500127819BeAdd';
 const FLR_ETH = '0x26a1fab310bd080542dc864647d05985360b16a5';
 const WETH = '0x1502fa4be69d526124d453619276faccab275d3d';
+const C_ETH_MARKET = '0xd7291D5001693d15b6e4d56d73B5d2cD7eCfE5c6';
 const FLARE_CHAIN = 'flare';
 
 const JOULE = {
@@ -76,12 +78,12 @@ const calculateApy = (ratePerTimestamps) => {
   );
 };
 
-const getRewards = async (rewardType, markets, isBorrow = false) => {
+const getRewards = async (rewardType, markets, comptroller, isBorrow = false) => {
   return (
     await sdk.api.abi.multiCall({
       chain: FLARE_CHAIN,
       calls: markets.map((market) => ({
-        target: COMPTROLLER_ADDRESS,
+        target: comptroller,
         params: [rewardType, market],
       })),
       abi: comptrollerAbi.find(
@@ -103,10 +105,10 @@ const multiCallMarkets = async (markets, method, abi) => {
   ).output.map(({ output }) => output);
 };
 
-const getApy = async () => {
+const getApy = async (comptroller) => {
   const allMarketsRes = (
     await sdk.api.abi.call({
-      target: COMPTROLLER_ADDRESS,
+      target: comptroller,
       chain: FLARE_CHAIN,
       abi: comptrollerAbi.find(({ name }) => name === 'getAllMarkets'),
       permitFailure: true,
@@ -119,7 +121,7 @@ const getApy = async () => {
     await sdk.api.abi.multiCall({
       chain: FLARE_CHAIN,
       calls: allMarkets.map((market) => ({
-        target: COMPTROLLER_ADDRESS,
+        target: comptroller,
         params: market,
       })),
       abi: comptrollerAbi.find(({ name }) => name === 'markets'),
@@ -127,15 +129,15 @@ const getApy = async () => {
     })
   ).output.map(({ output }) => output);
 
-  const jouleRewards = await getRewards(REWARD_TYPES.JOULE, allMarkets);
-  const flrRewards = await getRewards(REWARD_TYPES.FLR, allMarkets);
-  const kiiRewards = await getRewards(REWARD_TYPES.KII, allMarkets);
-  const rFLRRewards = await getRewards(REWARD_TYPES.RFLR, allMarkets);
+  const jouleRewards = await getRewards(REWARD_TYPES.JOULE, allMarkets, comptroller);
+  const flrRewards = await getRewards(REWARD_TYPES.FLR, allMarkets, comptroller);
+  const kiiRewards = await getRewards(REWARD_TYPES.KII, allMarkets, comptroller);
+  const rFLRRewards = await getRewards(REWARD_TYPES.RFLR, allMarkets, comptroller);
 
-  const jouleBorrowRewards = await getRewards(REWARD_TYPES.JOULE, allMarkets, true);
-  const flrBorrowRewards = await getRewards(REWARD_TYPES.FLR, allMarkets, true);
-  const kiiBorrowRewards = await getRewards(REWARD_TYPES.KII, allMarkets, true);
-  const rflrBorrowRewards = await getRewards(REWARD_TYPES.RFLR, allMarkets, true);
+  const jouleBorrowRewards = await getRewards(REWARD_TYPES.JOULE, allMarkets, comptroller, true);
+  const flrBorrowRewards = await getRewards(REWARD_TYPES.FLR, allMarkets, comptroller, true);
+  const kiiBorrowRewards = await getRewards(REWARD_TYPES.KII, allMarkets, comptroller, true);
+  const rflrBorrowRewards = await getRewards(REWARD_TYPES.RFLR, allMarkets, comptroller, true);
   
   const supplyRatePerTimestamp = await multiCallMarkets(
     allMarkets,
@@ -161,21 +163,31 @@ const getApy = async () => {
     cToken
   );
 
-  const underlyingTokens = await multiCallMarkets(
-    allMarkets,
+  const tempMarkets = allMarkets.filter(m => m.toLocaleLowerCase() != C_ETH_MARKET.toLocaleLowerCase())
+
+  let underlyingTokens = await multiCallMarkets(
+    tempMarkets,
     'underlying',
     cToken
   );
-  const underlyingSymbols = await multiCallMarkets(
+
+  let underlyingSymbols = await multiCallMarkets(
     underlyingTokens,
     'symbol',
     cToken
   );
-  const underlyingDecimals = await multiCallMarkets(
+
+  let underlyingDecimals = await multiCallMarkets(
     underlyingTokens,
     'decimals',
     cToken
   );
+
+  if(underlyingTokens.length != allMarkets.length){
+    underlyingTokens = underlyingTokens.concat([FLR.address]);
+    underlyingSymbols = underlyingSymbols.concat('FLR');
+    underlyingDecimals = underlyingDecimals.concat(18);
+  }
 
   const prices = await getPrices(
     underlyingTokens.concat([FLR.address, JOULE.address]).map((token) => 'flare:' + token)
@@ -311,8 +323,13 @@ const getApy = async () => {
   return pools;
 };
 
+const getAPys = async() => {
+  const pools = await getApy(COMPTROLLER_ADDRESS);
+  return pools.concat(await getApy(ISO_COMPTROLLER_ADDRESS))
+}
+
 module.exports = {
   timetravel: false,
-  apy: getApy,
+  apy: getAPys,
   url: 'https://app.kinetic.market/dashboard',
 };

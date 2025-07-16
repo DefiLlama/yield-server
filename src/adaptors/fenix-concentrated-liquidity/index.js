@@ -3,7 +3,7 @@ const axios = require('axios');
 const utils = require('../utils');
 const { request, gql } = require('graphql-request');
 
-const API_URL = `https://blaze.prod.fenix.aegas.it/liquidity/rewards`;
+const API_URL = `https://www.fenixfinance.io/api/blaze/liquidity/rewards`;
 
 const SUBGRAPH_URL =
   'https://api.goldsky.com/api/public/project_clxadvm41bujy01ui2qalezdn/subgraphs/fenix-v3-dex/latest/gn';

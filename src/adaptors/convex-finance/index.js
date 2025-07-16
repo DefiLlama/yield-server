@@ -28,7 +28,7 @@ const main = async () => {
     { lendingVaults },
   ] = await Promise.all([
     utils.getData('https://curve.convexfinance.com/api/curve-apys'),
-    utils.getData('https://api.curve.fi/api/getAllGauges'),
+    utils.getData('https://api.curve.finance/api/getAllGauges'),
     utils.getData('https://curve.convexfinance.com/api/curve/lending-vaults'),
   ]);
 
@@ -37,7 +37,7 @@ const main = async () => {
     [cvxAddress.toLowerCase()]: cvxPrice,
   } = await getTokensPrices([crvAddress, cvxAddress]);
 
-  const poolsList = (await utils.getData('https://api.curve.fi/api/getPools/all/ethereum')).data.poolData
+  const poolsList = (await utils.getData('https://api.curve.finance/api/getPools/all/ethereum')).data.poolData
     .filter((i) => i?.address !== undefined);
 
   Object.keys(gauges).forEach((key) => {
