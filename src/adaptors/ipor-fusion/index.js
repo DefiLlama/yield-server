@@ -14,6 +14,12 @@ const CHAIN_CONFIG = {
     },
     unichain: {
         chainId: 130
+    },
+    tac: {
+        chainId: 239
+    },
+    ink: {
+        chainId: 57073
     }
 };
 
