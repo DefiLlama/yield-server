@@ -276,9 +276,9 @@ async function main(timestamp = null) {
     return {
       ...pool,
 
-      // poolMeta: poolsApy[pool.pool] ? poolsApy[pool.pool].poolMeta : pool.poolMeta,
-      // apyReward: poolsApy[pool.pool] ? poolsApy[pool.pool].apyReward : undefined,
-      // rewardTokens: poolsApy[pool.pool] ? [AERO] : [],
+      poolMeta: poolsApy[pool.pool] ? poolsApy[pool.pool].poolMeta : pool.poolMeta,
+      apyReward: poolsApy[pool.pool] ? poolsApy[pool.pool].apyReward : undefined,
+      rewardTokens: poolsApy[pool.pool] ? [AERO] : [],
     }
   });
 }
