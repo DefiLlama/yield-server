@@ -181,7 +181,7 @@ const getGaugeApy = async () => {
   }
 
   let allStakedData = [];
-  for (pool of allPoolsData) {
+  for (let pool of allPoolsData) {
     // don't waste RPC calls if gauge has no staked liquidity
     if (Number(pool.gauge_liquidity) == 0) {
       allStakedData.push({'amount0': 0, 'amount1': 0});
