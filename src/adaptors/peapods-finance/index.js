@@ -337,7 +337,7 @@ async function main() {
       return {
         pool: lp.lendingPair,
         chain: chainKey,
-        project: 'peapods-options',
+        project: 'peapods-finance',
         symbol: lp.assetSymbol,
         tvlUsd,
         apyBase: supplierApy * 100,
