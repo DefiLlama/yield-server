@@ -86,10 +86,13 @@ async function calcErc4626PoolApy(vault, prices) {
   const sharePriceNow = await calcSharePrice(vault, prices);
 
   const sharePriceYesterday = await calcSharePrice(vault, prices, 1);
-  const apyBase = calcApy(sharePriceNow, sharePriceYesterday, 1);
+  const aprBase = calcApr(sharePriceNow, sharePriceYesterday, 1);
 
   const sharePriceWeekBefore = await calcSharePrice(vault, prices, 7);
-  const apyBase7d = calcApy(sharePriceNow, sharePriceWeekBefore, 7);
+  const aprBase7d = calcApr(sharePriceNow, sharePriceWeekBefore, 7);
+
+  const apyBase = convertAprToApy(aprBase);
+  const apyBase7d = convertAprToApy(aprBase7d);
 
   return {
     pool: `${vault}-${chain}`,
@@ -137,7 +140,7 @@ const totalAssets = async (vault, block = 'latest') => {
   return new BigNumber(await callAbi(vault, abi.totalAssets, null, block));
 };
 
-function calcApy(sharePriceNow, sharePriceBefore, daysBetween) {
+function calcApr(sharePriceNow, sharePriceBefore, daysBetween) {
   return sharePriceBefore.isZero()
     ? 0
     : sharePriceNow
@@ -146,6 +149,12 @@ function calcApy(sharePriceNow, sharePriceBefore, daysBetween) {
         .div(daysBetween)
         .div(sharePriceBefore)
         .toNumber();
+}
+
+function convertAprToApy(apr) {
+  const aprNormalized = apr / 100;
+  const n = 365 * 3;
+  return (Math.pow(1 + aprNormalized / n, n) - 1) * 100;
 }
 
 async function getShares(vault, block = 'latest') {
