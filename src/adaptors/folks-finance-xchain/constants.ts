@@ -415,6 +415,51 @@ const HubPools = {
       },
     ],
   },
+  sei: {
+    name: 'Sei',
+    pools: [
+      {
+        // SEI
+        id: 48,
+        underlyingSymbol: 'SEI',
+        poolAddress: '0x63EFdA4bf91Ba13D678C58AF47304e6180dD46DF',
+        tokenAddress: '0x0000000000000000000000000000000000000000',
+        spokeAddress: '0x5f2F4771B7dc7e2F7E9c1308B154E1e8957ecAB0',
+      },
+      {
+        // iSEI
+        id: 49,
+        underlyingSymbol: 'iSEI',
+        poolAddress: '0x2B7995fd223dCf3A660Cc5a514349E3fa7B16168',
+        tokenAddress: '0x5Cf6826140C1C56Ff49C808A1A75407Cd1DF9423',
+        spokeAddress: '0x4Db12F554623E4B0b3F5bAcF1c8490D4493380A5',
+      },
+      {
+        // USDT0_sei
+        id: 50,
+        underlyingSymbol: 'USD₮0',
+        poolAddress: '0x213299AC40Ce76117C2c4B13945D9d935686BB85',
+        tokenAddress: '0x9151434b16b9763660705744891fA906F660EcC5',
+        spokeAddress: '0x12Db9758c4D9902334C523b94e436258EB54156f',
+      },
+      {
+        // wETH_sei
+        id: 51,
+        underlyingSymbol: 'WETH',
+        poolAddress: '0x9A102080970043B96773c15E6520d182565C68Ff',
+        tokenAddress: '0x160345fc359604fc6e70e3c5facbde5f7a9342d8',
+        spokeAddress: '0x802063A23E78D0f5D158feaAc605028Ee490b03b',
+      },
+      {
+        // wBTC_sei
+        id: 52,
+        underlyingSymbol: 'WBTC',
+        poolAddress: '0x7Cd4afD7F4DB51A0bF06Bf4630752A5B28e0B6C1',
+        tokenAddress: '0x0555E30da8f98308EdB960aa94C0Db47230d2B9c',
+        spokeAddress: '0x7218Bd1050D41A9ECfc517abdd294FB8116aEe81',
+      },
+    ],
+  },
 };
 
 const RewardsTokenV2 = {
@@ -447,6 +492,12 @@ const RewardsTokenV2 = {
     chain: 'arbitrum',
     tokenAddress: '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',
     spokeAddress: '0x0259617bE41aDA4D97deD60dAf848Caa6db3F228',
+  },
+  // SEI (Sei)
+  6: {
+    chain: 'sei',
+    tokenAddress: '0x0000000000000000000000000000000000000000',
+    spokeAddress: '0x531490B7674ef239C9FEC39d2Cf3Cc10645d14d4',
   },
 };
 
