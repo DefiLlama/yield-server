@@ -147,15 +147,15 @@ const lendingVaultProfiles = {
   ],
   avalanche: [
     {
-      address: "0xe93ca55cbd509fab8420649f7198705ef37790de".toLowerCase(),
+      address: "0x6859e20754ffbf93a81428f3da55c9f0eb723b2a".toLowerCase(),
       risk: "Conservative",
     }, // AVAX
     {
-      address: "0x74480d1cee7e53195c35055f5b33a30e3739888a".toLowerCase(),
+      address: "0xf35c95bd8869f4ae4b68a97e25462c3db08e9468".toLowerCase(),
       risk: "Conservative",
     }, // USDC
     {
-      address: "0x3d992bcd37de363dec6c4ec81f97aeb66e866af2".toLowerCase(),
+      address: "0x738f2d9a7c52f91c4f2fdf515fb8aad951c22cd9".toLowerCase(),
       risk: "Conservative",
     }, // WETH.e
   ]
