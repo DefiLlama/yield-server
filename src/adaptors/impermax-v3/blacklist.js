@@ -63,6 +63,7 @@ const blacklistedLendingVaults = {
   ethereum: [],
   optimism: [],
   fantom: [],
+  avalanche: []
 };
 
 module.exports = {

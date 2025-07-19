@@ -9,7 +9,7 @@ const {
   blacklistedLendingPools,
   blacklistedLendingVaults,
 } = require('./blacklist.js');
-const { graphQuery, vaultGraphQuery } = require('./query.js');
+const { graphQuery, vaultGraphQuery, vaultGraphQueryV2 } = require('./query.js');
 const { GECKOTERMINAL_IDS } = require('./geckoterminal.js');
 
 /**
@@ -20,6 +20,11 @@ const config = {
   arbitrum: ['https://arbitrum-factory-v3-production.up.railway.app/'],
   base: ['https://base-factory-v3-production.up.railway.app/'],
   unichain: ['https://unichain-factoryv3-production.up.railway.app/'],
+  avalanche: [],
+  scroll: [],
+  polygon: [],
+  sonic: [],
+  blast: []
 };
 
 const lendingVaultsConfig = {
@@ -48,6 +53,9 @@ const lendingVaultsConfig = {
   unichain: [
     'https://api.studio.thegraph.com/query/46041/lending-vault-unichain/v0.0.1',
   ],
+  avalanche: [
+    'https://avalanche-lendingvaults-production.up.railway.app'
+  ]
 };
 
 // NFTLP factory address
@@ -137,6 +145,20 @@ const lendingVaultProfiles = {
       risk: "Conservative"
     }
   ],
+  avalanche: [
+    {
+      address: "0x6859e20754ffbf93a81428f3da55c9f0eb723b2a".toLowerCase(),
+      risk: "Balanced",
+    }, // AVAX
+    {
+      address: "0xf35c95bd8869f4ae4b68a97e25462c3db08e9468".toLowerCase(),
+      risk: "Balanced",
+    }, // USDC
+    {
+      address: "0x738f2d9a7c52f91c4f2fdf515fb8aad951c22cd9".toLowerCase(),
+      risk: "Balanced",
+    }, // WETH.e
+  ]
 };
 
 /**
@@ -163,8 +185,9 @@ const getChainVaults = async (chain) => {
   let allLendingVaults = [];
 
   for (const url of urls) {
-    const queryResult = await request(url, vaultGraphQuery);
-    allLendingVaults = allLendingVaults.concat(queryResult.lendingVaults);
+    const isV2 = url.includes("railway");
+    const queryResult = await request(url, isV2 ? vaultGraphQueryV2 : vaultGraphQuery);
+    allLendingVaults = allLendingVaults.concat(isV2 ? queryResult.lendingVaults.items : queryResult.lendingVaults);
   }
 
   const blacklist = blacklistedLendingVaults[chain] || [];
@@ -416,7 +439,7 @@ const main = async () => {
 
       const price = prices[`${chain}:${underlying.id}`];
       if (!price) {
-        console.warn(`Missing price, skipping vault ${vault.id} `);
+        console.warn(`Missing price, skipping vault ${vault.id} on ${chain}`);
         continue;
       }
 

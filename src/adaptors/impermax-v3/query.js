@@ -56,7 +56,27 @@ const vaultGraphQuery = `{
   }
 }`
 
+const vaultGraphQueryV2 = `{ 
+    lendingVaults {
+      items {
+        id
+        supplyRate
+        underlying {
+          id
+          symbol
+        }
+        reserveFactor
+        lastUpdate
+        totalBalance
+        totalSupply
+        exchangeRate
+        availableLiquidity
+      }
+    }
+}`
+
 module.exports = {
   graphQuery,
-  vaultGraphQuery
+  vaultGraphQuery,
+  vaultGraphQueryV2,
 };
