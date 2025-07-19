@@ -148,15 +148,15 @@ const lendingVaultProfiles = {
   avalanche: [
     {
       address: "0x6859e20754ffbf93a81428f3da55c9f0eb723b2a".toLowerCase(),
-      risk: "Conservative",
+      risk: "Balanced",
     }, // AVAX
     {
       address: "0xf35c95bd8869f4ae4b68a97e25462c3db08e9468".toLowerCase(),
-      risk: "Conservative",
+      risk: "Balanced",
     }, // USDC
     {
       address: "0x738f2d9a7c52f91c4f2fdf515fb8aad951c22cd9".toLowerCase(),
-      risk: "Conservative",
+      risk: "Balanced",
     }, // WETH.e
   ]
 };
