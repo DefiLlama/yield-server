@@ -25,8 +25,8 @@ const query = {
           price
         }
       }
-      syrupGlobals(first: 1) {
-        rewardAPY
+      syrupGlobals {
+        dripsYieldBoost
       }
     }
   `,
@@ -37,7 +37,7 @@ const apy = async () => {
     const response = await axios.post(API_URL, query);
     const pools = response.data.data.poolV2S;
     const syrupGlobals = response.data.data.syrupGlobals[0];
-    const rewardAPY = syrupGlobals?.rewardAPY || 0;
+    const rewardAPY = syrupGlobals?.dripsYieldBoost || 0;
 
     return pools
       .map((pool) => {
