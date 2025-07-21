@@ -10,6 +10,57 @@ const protocolDataProviders = {
   base: '0x1566DA4640b6a0b32fF309b07b8df6Ade40fd98D',
 };
 
+
+function getRewardInfo(merklRewards, reserve) {
+  let apyReward = 0
+  let apyRewardBorrow = 0
+  const rewardTokens = []
+
+  // get supply reward
+  let targetRewardItem = find((merklRewards || []), rewardItem => {
+    return rewardItem.action?.toLowerCase() === 'lend' &&
+      rewardItem.identifier?.toLowerCase() === reserve.aTokenAddress?.toLowerCase()
+  })
+  // type = MULTILOG_DUTCH
+  if (!targetRewardItem) {
+    targetRewardItem = find((merklRewards || []), rewardItem => {
+      const tokensHasAtoken = find(rewardItem?.tokens || [], (tokenItem) => {
+        return tokenItem?.address?.toLowerCase() === reserve.aTokenAddress?.toLowerCase()
+      })
+      return rewardItem.action?.toLowerCase() === 'lend' &&
+        rewardItem.type === 'MULTILOG_DUTCH' &&
+        !!tokensHasAtoken
+    })
+  }
+  if (targetRewardItem) {
+    let incentiveAPR = String(targetRewardItem.apr / 100)
+    if (targetRewardItem.type === 'MULTILOG_DUTCH') {
+      if (targetRewardItem?.effective && targetRewardItem?.effective?.userEffectiveUSD) {
+        incentiveAPR = String(targetRewardItem?.dailyRewards * 365 / targetRewardItem?.effective?.userEffectiveUSD)
+      }
+    }
+    apyReward = incentiveAPR
+    rewardTokens.push(targetRewardItem.rewardsRecord?.breakdowns?.[0]?.token?.address)
+  }
+
+  // get borrow reward
+  const targetBorrowRewardItem = find((merklRewards || []), rewardItem => {
+    return rewardItem.action?.toLowerCase() === 'borrow' &&
+      rewardItem.identifier?.toLowerCase() === reserve.variableDebtTokenAddress?.toLowerCase()
+  })
+  if (targetBorrowRewardItem) {
+    apyReward = targetBorrowRewardItem.rewardsRecord?.breakdowns?.[0]?.value * 365 / 
+      targetBorrowRewardItem?.tvlRecord?.total || 0,
+    rewardTokens.push(targetBorrowRewardItem.rewardsRecord?.breakdowns?.[0]?.token?.address)
+  }
+
+  return {
+    apyReward,
+    apyRewardBorrow,
+    rewardTokens,
+  }
+}
+
 const getApy = async (market) => {
   const chain = market;
 
@@ -90,6 +141,16 @@ const getApy = async (market) => {
     await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
   ).data.coins;
 
+  let merklRewards = []
+  try {
+    merklRewards = (
+      await axios(`https://api.merkl.xyz/v4/opportunities?mainProtocolId=xlend`)
+    ).data.filter(i => (i.status || '').toLowerCase() === 'live')
+  } catch (err) {
+    console.warn('get merkl rewards error')
+  }
+  console.log('merklRewards :>> ', merklRewards);
+
   return reserveTokens
     .map((pool, i) => {
       const frozen = poolsReservesConfigurationData[i].isFrozen;
@@ -108,6 +169,10 @@ const getApy = async (market) => {
 
       const url = `https://xlend.extrafi.io/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=${market}`;
 
+      const {
+        apyReward, apyRewardBorrow, rewardTokens,
+      } = getRewardInfo(merklRewards, pool)
+
       return {
         pool: `${aTokens[i].tokenAddress}-${market}-extrafi-xlend`.toLowerCase(),
         chain,
@@ -120,6 +185,9 @@ const getApy = async (market) => {
         totalBorrowUsd,
         debtCeilingUsd: null,
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+        apyReward,
+        apyRewardBorrow,
+        rewardTokens,
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         url,
         borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
