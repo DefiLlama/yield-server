@@ -4,7 +4,9 @@ const { formatChain, getPrices, getERC4626Info } = require('../utils');
 const BigNumber = require('bignumber.js');
 const { formatCollectsQuery } = require('./queries');
 const sdk = require('@defillama/sdk');
-const { fetchAccrualPosition } = require('@morpho-org/blue-sdk-viem');
+const { blueAbi, adaptiveCurveIrmAbi, blueOracleAbi } = require('./morphoBlueAbi');
+const { morphoMarketAbi, code } = require('./morphoMarketAbi');
+const { getUtilization, getAccruedInterest, getAccrualBorrowRate, getBorrowApy, toBorrowAssets, getLtv } = require('./morphoSdk');
 const { getFormattedActiveMarkets } = require('./pendleMarkets');
 const { formatUnits, formatEther } = require('viem');
 const { createPublicClient, http } = require('viem');
@@ -28,6 +30,10 @@ const CONFIG = {
   ethereum: {
     subgraph: 'https://subgraph.satsuma-prod.com/ebe562dbf792/yieldoor--594520/yieldoor-leverager-base/version/v0.0.2/api',
     blockTime: 12,
+    morpho: {
+      morpho: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb',
+      adaptiveCurveIrm: '0x870aC11D48B15DB9a138Cf899d20F13F79Ba00BC',
+    },
     lendingPool: '',
     lp: [],
     looped: [{
@@ -427,6 +433,121 @@ const getUniqueTokensFromMorphoPositions = async (morphoPositionsParams, chain) 
   return tokenData;
 };
 
+const accrueInterest = async (position, timestamp) => {
+  timestamp = BigInt(timestamp);
+
+  const { elapsed, avgBorrowRate, endRateAtTarget } =
+    getAccrualBorrowRate(position, position.marketId, timestamp);
+
+  const { interest, feeShares } = getAccruedInterest(
+    avgBorrowRate,
+    position,
+    elapsed,
+  );
+
+  return {
+    ...position,
+    totalSupplyAssets: position.totalSupplyAssets + interest,
+    totalBorrowAssets: position.totalBorrowAssets + interest,
+    totalSupplyShares: position.totalSupplyShares + feeShares,
+    lastUpdate: timestamp,
+    rateAtTarget: endRateAtTarget,
+  };
+}
+
+const fetchAccrualPosition = async (chain, user, marketId, parameters = {}) => {
+  const { morpho, adaptiveCurveIrm } = CONFIG[chain].morpho;
+
+  // morpho, adaptiveCurveIrm addresses
+  // then fetch position and market
+  // then for each position, accrue interest
+  // position.accrueInterest(BigInt(Math.floor(Date.now() / 1000)));
+
+
+  // fetch position
+
+  // function position
+  const result = await sdk.api.abi.call({
+    target: morpho,
+    abi: blueAbi[2],
+    params: [marketId, user],
+    chain
+  });
+  
+  const position = {
+      user,
+      marketId,
+      supplyShares: result.output.supplyShares,
+      borrowShares: result.output.borrowShares,
+      collateral: result.output.collateral,
+  };
+
+  //fetch market
+
+  const marketParams = await sdk.api.abi.call({
+    target: morpho,
+    abi: blueAbi[0],
+    params: [marketId],
+    chain
+  });
+
+  const [loanToken, collateralToken, oracle, irm, lltv] = marketParams.output;
+
+  const [marketResult, priceResult, rateAtTargetResult] = await Promise.all([
+    sdk.api.abi.call({
+      target: morpho,
+      abi: blueAbi[1],
+      params: [marketId],
+      chain
+    }),
+    sdk.api.abi.call({
+      target: oracle,
+      abi: blueOracleAbi[0],
+      params: [],
+      chain
+    }),
+    sdk.api.abi.call({
+      target: adaptiveCurveIrm,
+      abi: adaptiveCurveIrmAbi[0],
+      params: [marketId],
+      chain
+    })
+  ]);
+
+  const [totalSupplyAssets, totalSupplyShares, totalBorrowAssets, totalBorrowShares, lastUpdate, fee, hasPrice] = marketResult.output;
+  const price = priceResult.output;
+  const rateAtTarget = rateAtTargetResult.output;
+
+
+  const market = {
+    params: {
+      loanToken,
+      collateralToken,
+      oracle,
+      irm,
+      lltv
+    },
+    totalSupplyAssets,
+    totalBorrowAssets,
+    totalSupplyShares,
+    totalBorrowShares,
+    lastUpdate,
+    fee,
+    price,
+    rateAtTarget,
+    utilization: getUtilization(totalSupplyAssets, totalBorrowAssets),
+  };
+
+  const res = {
+    ...position,
+    borrowAssets: toBorrowAssets(position.borrowShares, market),
+    ltv: getLtv(position, market),
+    market: market
+  }
+
+  return res;
+}
+
 const getLoopedData = async (chain) => {
   const chainId = CHAINS[chain];
   const viemChain = VIEM_CHAINS[chain];
@@ -646,14 +767,14 @@ const getLoopedData = async (chain) => {
 
         const morphoPositions = await Promise.all(
           morphoIds.map((id) =>
-            fetchAccrualPosition(vault.address, id.output, client)
+            fetchAccrualPosition(chain, vault.address, id.output)
           )
         );
 
         let { total, apyMult, positions } = morphoPositions.reduce(
           (acc, position, index) => {
             // Accrue interest to get the latest position data
-            position.accrueInterest(BigInt(Math.floor(Date.now() / 1000)));
+            accrueInterest(position, BigInt(Math.floor(Date.now() / 1000)));
 
             const {
               borrowAssets,
@@ -665,7 +786,7 @@ const getLoopedData = async (chain) => {
             const collateralToken = market.params.collateralToken;
             const loanToken = market.params.loanToken;
             const ltv = +formatEther(_ltv ?? BigInt(0));
-            const borrowApy = +formatEther(market.getBorrowApy());
+            const borrowApy = +formatEther(getBorrowApy(market, BigInt(Math.floor(Date.now() / 1000))));
             const ptApy =
               pendleMarketDetails[market.params.collateralToken]
                 .impliedApy;
@@ -741,6 +862,7 @@ const apy = async () => {
   ]);
 
   const pools = [...lpResults.flat(), ...shadowLpResults.flat(), ...loopedResults.flat()];
+
   return pools;
 };
 
