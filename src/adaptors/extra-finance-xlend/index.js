@@ -39,7 +39,7 @@ function getRewardInfo(merklRewards, reserve) {
         incentiveAPR = String(targetRewardItem?.dailyRewards * 365 / targetRewardItem?.effective?.userEffectiveUSD)
       }
     }
-    apyReward = incentiveAPR
+    apyReward = incentiveAPR * 100
     rewardTokens.push(targetRewardItem.rewardsRecord?.breakdowns?.[0]?.token?.address)
   }
 
@@ -50,7 +50,7 @@ function getRewardInfo(merklRewards, reserve) {
   })
   if (targetBorrowRewardItem) {
     apyReward = targetBorrowRewardItem.rewardsRecord?.breakdowns?.[0]?.value * 365 / 
-      targetBorrowRewardItem?.tvlRecord?.total || 0,
+      targetBorrowRewardItem?.tvlRecord?.total * 100 || 0,
     rewardTokens.push(targetBorrowRewardItem.rewardsRecord?.breakdowns?.[0]?.token?.address)
   }
 
