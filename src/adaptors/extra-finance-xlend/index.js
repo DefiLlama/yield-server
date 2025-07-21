@@ -3,7 +3,6 @@ const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const poolAbi = require('./poolAbi');
-const { aaveStakedTokenDataProviderAbi } = require('./abi');
 
 const protocolDataProviders = {
   optimism: '0xCC61E9470B5f0CE21a3F6255c73032B47AaeA9C0',
@@ -17,14 +16,14 @@ function getRewardInfo(merklRewards, reserve) {
   const rewardTokens = []
 
   // get supply reward
-  let targetRewardItem = find((merklRewards || []), rewardItem => {
+  let targetRewardItem = merklRewards.find(rewardItem => {
     return rewardItem.action?.toLowerCase() === 'lend' &&
       rewardItem.identifier?.toLowerCase() === reserve.aTokenAddress?.toLowerCase()
   })
   // type = MULTILOG_DUTCH
   if (!targetRewardItem) {
-    targetRewardItem = find((merklRewards || []), rewardItem => {
-      const tokensHasAtoken = find(rewardItem?.tokens || [], (tokenItem) => {
+    targetRewardItem = merklRewards.find(rewardItem => {
+      const tokensHasAtoken = rewardItem?.tokens?.find((tokenItem) => {
         return tokenItem?.address?.toLowerCase() === reserve.aTokenAddress?.toLowerCase()
       })
       return rewardItem.action?.toLowerCase() === 'lend' &&
@@ -44,7 +43,7 @@ function getRewardInfo(merklRewards, reserve) {
   }
 
   // get borrow reward
-  const targetBorrowRewardItem = find((merklRewards || []), rewardItem => {
+  const targetBorrowRewardItem = merklRewards.find(rewardItem => {
     return rewardItem.action?.toLowerCase() === 'borrow' &&
       rewardItem.identifier?.toLowerCase() === reserve.variableDebtTokenAddress?.toLowerCase()
   })
@@ -144,12 +143,11 @@ const getApy = async (market) => {
   let merklRewards = []
   try {
     merklRewards = (
-      await axios(`https://api.merkl.xyz/v4/opportunities?mainProtocolId=xlend`)
+      await axios.get(`https://api.merkl.xyz/v4/opportunities?mainProtocolId=xlend`)
     ).data.filter(i => (i.status || '').toLowerCase() === 'live')
   } catch (err) {
     console.warn('get merkl rewards error')
   }
-  console.log('merklRewards :>> ', merklRewards);
 
   return reserveTokens
     .map((pool, i) => {
@@ -171,7 +169,7 @@ const getApy = async (market) => {
 
       const {
         apyReward, apyRewardBorrow, rewardTokens,
-      } = getRewardInfo(merklRewards, pool)
+      } = getRewardInfo(merklRewards || [], pool)
 
       return {
         pool: `${aTokens[i].tokenAddress}-${market}-extrafi-xlend`.toLowerCase(),
