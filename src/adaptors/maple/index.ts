@@ -55,9 +55,7 @@ const apy = async () => {
           .toNumber();
 
         const apyBase = new BigNumber(pool.weeklyApy).dividedBy(new BigNumber(10).pow(28)).toNumber();
-
-        const apyReward = new BigNumber(rewardAPY).dividedBy(new BigNumber(10).pow(28)).toNumber();
-
+        const apyReward = new BigNumber(rewardAPY).dividedBy(new BigNumber(10).pow(4)).toNumber();
         return {
           pool: pool.id,
           chain: utils.formatChain('ethereum'),
