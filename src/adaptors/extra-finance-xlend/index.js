@@ -52,9 +52,10 @@ function getRewardInfo(merklRewards, reserve) {
       }
     }
     apyReward = incentiveAPR * 100;
-    rewardTokens.push(
-      targetRewardItem.rewardsRecord?.breakdowns?.[0]?.token?.address
-    );
+    const rewardTk =targetRewardItem.rewardsRecord?.breakdowns?.[0]?.token?.address.toLowerCase()
+    if (!rewardTokens.includes(rewardTk)) {
+      rewardTokens.push(rewardTk);
+    }
   }
 
   // get borrow reward
@@ -66,13 +67,15 @@ function getRewardInfo(merklRewards, reserve) {
     );
   });
   if (targetBorrowRewardItem) {
-    (apyRewardBorrow =
+    apyRewardBorrow =
       ((targetBorrowRewardItem.rewardsRecord?.breakdowns?.[0]?.value * 365) /
         targetBorrowRewardItem?.tvlRecord?.total) *
-        100 || 0),
-      rewardTokens.push(
-        targetBorrowRewardItem.rewardsRecord?.breakdowns?.[0]?.token?.address
-      );
+        100 || 0;
+    
+    const rewardTk = targetBorrowRewardItem.rewardsRecord?.breakdowns?.[0]?.token?.address.toLowerCase()
+    if (!rewardTokens.includes(rewardTk)) {
+      rewardTokens.push(rewardTk);
+    }
   }
 
   return {
