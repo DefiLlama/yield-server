@@ -5,7 +5,13 @@ const { networks } = require('./config');
 
 // Protocols that should not be listed under Merkl
 // as they already have their own adapters.
-const protocolsBlacklist = ['euler', 'crosscurve', 'aerodrome', 'gamma', 'uniswap'];
+const protocolsBlacklist = [
+  'euler',
+  'crosscurve',
+  'aerodrome',
+  'gamma',
+  'uniswap',
+];
 
 // Allow specific pools from blacklisted protocols
 const poolsWhitelist = [
@@ -95,5 +101,5 @@ main().then((data) => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://merkl.angle.money/claim',
+  url: 'https://app.merkl.xyz/',
 };
