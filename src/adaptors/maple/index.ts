@@ -36,7 +36,7 @@ const apy = async () => {
   try {
     const response = await axios.post(API_URL, query);
     const pools = response.data.data.poolV2S;
-    const syrupGlobals = response.data.data.syrupGlobals[0];
+    const syrupGlobals = response.data.data.syrupGlobals;
     const rewardAPY = syrupGlobals?.dripsYieldBoost || 0;
 
     return pools
@@ -66,6 +66,7 @@ const apy = async () => {
           apyBase: apyBase,
           apyReward: apyReward,
           underlyingTokens: [pool.asset.id],
+          rewardTokens: apyReward > 0 ? ['0x643C4E15d7d62Ad0aBeC4a9BD4b001aA3Ef52d66'] : [],
           // borrow fields
           ltv: 0, // permissioned
           url: `https://app.maple.finance/pool/${pool.id}`,
