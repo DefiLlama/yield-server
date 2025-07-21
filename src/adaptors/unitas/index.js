@@ -5,7 +5,7 @@ const SOL_RPC = 'https://api.mainnet-beta.solana.com';
 const STAKE_POOL = 'CFgrWjb9DYKVqf7QyQfmwjboDDkXpFHQ6292rnYxrjsa';
 const SUSDU = '9iq5Q33RSiz1WcupHAQKbHBZkpn92UxBG2HfPWAZhMCa';
 const DISTRIBUTE_ACCOUNT = "AmAcmYeJgxdHfoMSb3zwWFFPwWivADiyMozHwg5WyTtW"
-const DISTRIBUTOR_DISCRIMINATOR = 'FytrVezWcPWVBkq6Bc5T9y';
+const DISTRIBUTOR_DISCRIMINATOR = "FytrVezW"
 
 async function getStakePoolSize() {
     const res = await axios.post(SOL_RPC, {
@@ -74,6 +74,13 @@ function createRateLimiter(interval) {
     };
 }
 
+function matchDis(data) {
+    for (let i = 0; i < DISTRIBUTOR_DISCRIMINATOR.length; i++) {
+        if (data[i] !== DISTRIBUTOR_DISCRIMINATOR[i]) return false;
+    }
+    return true
+}
+
 async function getRewardDistribution() {
     const rateLimit = createRateLimiter(5000);
 
@@ -88,7 +95,7 @@ async function getRewardDistribution() {
         const instructions = message.instructions;
 
         for (const inst of instructions) {
-            if (inst.data === DISTRIBUTOR_DISCRIMINATOR) {
+            if (matchDis(inst.data)) {
                 const amount = tx.meta.innerInstructions[0].instructions[0].parsed.info.tokenAmount.amount
                 const decimal = tx.meta.innerInstructions[0].instructions[0].parsed.info.tokenAmount.decimals
                 return amount / Math.pow(10, decimal)
