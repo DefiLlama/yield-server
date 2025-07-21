@@ -8,9 +8,9 @@ const { blueAbi, adaptiveCurveIrmAbi, blueOracleAbi } = require('./morphoBlueAbi
 const { morphoMarketAbi, code } = require('./morphoMarketAbi');
 const { getUtilization, getAccruedInterest, getAccrualBorrowRate, getBorrowApy, toBorrowAssets, getLtv } = require('./morphoSdk');
 const { getFormattedActiveMarkets } = require('./pendleMarkets');
-const { formatUnits, formatEther } = require('viem');
-const { createPublicClient, http } = require('viem');
-const { mainnet } = require('viem/chains');
+const {
+  utils: { formatEther, formatUnits },
+} = require('ethers');
 
 const PROJECT_NAME = 'yieldoor';
 const BASE_URL = 'https://app.yieldoor.com';
@@ -19,9 +19,6 @@ const CHAINS = {
   ethereum: 1,
   base: 8453,
   sonic: 146
-}
-const VIEM_CHAINS = {
-  ethereum: mainnet,
 }
 
 const MORPHO_GRAPH_URL = 'https://blue-api.morpho.org/graphql';
@@ -550,11 +547,7 @@ const fetchAccrualPosition = async (chain, user, marketId, parameters = {}) => {
 
 const getLoopedData = async (chain) => {
   const chainId = CHAINS[chain];
-  const viemChain = VIEM_CHAINS[chain];
-  const client = createPublicClient({
-    chain: viemChain,
-    transport: http(),
-  });
+
   const pendleMarketDetails = await getFormattedActiveMarkets(chainId);
 
   const loopedVaults = CONFIG[chain].looped;

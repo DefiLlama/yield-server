@@ -1,5 +1,5 @@
 const axios = require("axios");
-const { getAddress } = require("viem");
+const { utils: { getAddress } } = require("ethers");
 
 const HOSTED_SDK_URL = "https://api-v2.pendle.finance/core/v1/";
 
