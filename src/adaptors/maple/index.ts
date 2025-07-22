@@ -60,18 +60,16 @@ const apy = async () => {
 
         const apyBase = new BigNumber(pool.weeklyApy)
           .dividedBy(new BigNumber(10).pow(28))
-          .dividedBy(100)
           .toNumber();
         const apyReward = new BigNumber(dripsYieldBoost)
           .dividedBy(new BigNumber(10).pow(4))
-          .dividedBy(100)
           .toNumber();
 
         return {
           pool: pool.id,
           chain: utils.formatChain('ethereum'),
           project: 'maple',
-          symbol: pool.name.replace(' ', ''),
+          symbol: pool.asset.symbol,
           poolMeta: pool.name,
           tvlUsd: tvlUsd,
           apyBase: apyBase,
