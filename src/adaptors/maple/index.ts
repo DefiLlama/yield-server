@@ -37,12 +37,16 @@ const apy = async () => {
     const response = await axios.post(API_URL, query);
     const pools = response.data.data.poolV2S;
     const syrupGlobals = response.data.data.syrupGlobals;
-    const rewardAPY = syrupGlobals?.dripsYieldBoost || 0;
+    const dripsYieldBoost = syrupGlobals?.dripsYieldBoost || 0;
 
     return pools
       .map((pool) => {
         const assetDecimals = pool.asset.decimals;
-        const tokenPrice = new BigNumber(pool.asset.price).dividedBy(new BigNumber(10).pow(assetDecimals));
+        const priceDecimals = 8;
+
+        const tokenPrice = new BigNumber(pool.asset.price).dividedBy(
+          new BigNumber(10).pow(priceDecimals)
+        );
 
         const totalAssets = new BigNumber(pool.assets || 0)
           .plus(pool.strategiesDeployed || 0)
@@ -54,25 +58,33 @@ const apy = async () => {
           .dividedBy(new BigNumber(10).pow(assetDecimals))
           .toNumber();
 
-        const apyBase = new BigNumber(pool.weeklyApy).dividedBy(new BigNumber(10).pow(28)).toNumber();
-        const apyReward = new BigNumber(rewardAPY).dividedBy(new BigNumber(10).pow(4)).toNumber();
+        const apyBase = new BigNumber(pool.weeklyApy)
+          .dividedBy(new BigNumber(10).pow(28))
+          .dividedBy(100)
+          .toNumber();
+        const apyReward = new BigNumber(dripsYieldBoost)
+          .dividedBy(new BigNumber(10).pow(4))
+          .dividedBy(100)
+          .toNumber();
+
         return {
           pool: pool.id,
           chain: utils.formatChain('ethereum'),
           project: 'maple',
-          symbol: pool.asset.symbol,
+          symbol: pool.name.replace(' ', ''),
           poolMeta: pool.name,
           tvlUsd: tvlUsd,
           apyBase: apyBase,
           apyReward: apyReward,
           underlyingTokens: [pool.asset.id],
-          rewardTokens: apyReward > 0 ? ['0x643C4E15d7d62Ad0aBeC4a9BD4b001aA3Ef52d66'] : [],
+          rewardTokens:
+            apyReward > 0 ? ['0x643C4E15d7d62Ad0aBeC4a9BD4b001aA3Ef52d66'] : [], // Syrup token
           // borrow fields
           ltv: 0, // permissioned
-          url: `https://app.maple.finance/pool/${pool.id}`,
+          url: 'https://app.maple.finance/earn', // Direct to earn page
         };
       })
-      .filter((p) => p !== null && p.tvlUsd > 0);
+      .filter((p) => p !== null && p.tvlUsd > 0); // Filter out pools with no TVL
   } catch (error) {
     console.error('Error fetching Maple Finance data:', error);
     return [];
@@ -82,5 +94,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy,
-  url: 'https://app.maple.finance/#/earn',
+  url: 'https://app.maple.finance/earn',
 };
