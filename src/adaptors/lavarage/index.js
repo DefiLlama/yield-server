@@ -3,8 +3,9 @@ const { getMint } = require('@solana/spl-token');
 const { Program } = require('@coral-xyz/anchor');
 const utils = require('../utils');
 const { LavarageIdl, StakingIdl } = require('./idls');
+const base58 = require('bs58').default;
 
-const SOLANA_RPC = 'https://api.mainnet-beta.solana.com';
+const SOLANA_RPC = process.env.SOLANA_RPC || 'https://api.mainnet-beta.solana.com';
 const PROGRAM_ID = 'CRSeeBqjDnm3UPefJ9gxrtngTsnQRhEJiTA345Q83X3v';
 const STAKING_PROGRAM_ID = '85vAnW1P89t9tdNddRGk6fo5bDxhYAY854NfVJDqzf7h';
 const LAVA_STAKING_TOKEN = '1stqQC3rTGhCwsXsXqF8qEwz7LQ2euK858V7adB7gaQ';
@@ -130,7 +131,7 @@ const getSumOpenedPositions = async (lavarageProgram) => {
         {
           memcmp: {
             offset: 40,
-            bytes: Buffer.from(new Uint8Array(8)).toString('base64'),
+            bytes: base58.encode(Buffer.from(new Uint8Array(8))),
           },
         },
       ])
@@ -140,7 +141,7 @@ const getSumOpenedPositions = async (lavarageProgram) => {
         {
           memcmp: {
             offset: 40,
-            bytes: valueBuffer.toString('base64'),
+            bytes: base58.encode(valueBuffer),
           },
         },
       ])
