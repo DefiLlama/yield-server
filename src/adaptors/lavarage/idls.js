@@ -1,4 +1,4 @@
-export const LavarageIdl = {
+const LavarageIdl = {
     "version": "0.1.0",
     "name": "lavarage",
     "instructions": [
@@ -1137,7 +1137,7 @@ export const LavarageIdl = {
     ]
 }
   
-export const StakingIdl = {
+const StakingIdl = {
     "version": "0.1.0",
     "name": "staking",
     "instructions": [
@@ -1685,3 +1685,8 @@ export const StakingIdl = {
       }
     ]
   };
+
+module.exports = {
+  LavarageIdl,
+  StakingIdl
+};

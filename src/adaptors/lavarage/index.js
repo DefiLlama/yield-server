@@ -1,7 +1,6 @@
-const { Connection, PublicKey } = require('@solana/web3.js');
+const { Connection, PublicKey, Keypair } = require('@solana/web3.js');
 const { getMint } = require('@solana/spl-token');
 const { AnchorProvider, Program, Wallet } = require('@coral-xyz/anchor');
-const { Keypair } = require('@solana/web3.js');
 const utils = require('../utils');
 const { LavarageIdl, StakingIdl } = require('./idls');
 
@@ -59,12 +58,6 @@ const apy = async () => {
     const totalTvlSol = vaultBalance.total / 1e9; // Convert lamports to SOL
     const tvlUsd = totalTvlSol * solPrice;
 
-    // Only proceed if TVL is meaningful
-    if (tvlUsd < 1000) {
-      console.warn('TVL too low, returning empty pools');
-      return [];
-    }
-
     // Calculate APY based on NAV
     const currentTimestamp = Math.floor(Date.now() / 1000);
     const timeElapsed = currentTimestamp - PROJECT_START_TIMESTAMP;
@@ -83,9 +76,10 @@ const apy = async () => {
       symbol: 'SOL',
       tvlUsd: tvlUsd,
       apyBase: combinedAPY,
+      underlyingTokens: ['So11111111111111111111111111111111111111112'],
     };
 
-    return pool;
+    return [pool];
 
   } catch (error) {
     console.error('Error fetching Lavarage on-chain data:', error.message);
@@ -253,7 +247,7 @@ const getSolPrice = async () => {
     const priceResponse = await utils.getData(
       'https://coins.llama.fi/prices/current/solana:So11111111111111111111111111111111111111112'
     );
-    return priceResponse.coins['solana:so11111111111111111111111111111111111111112'].price;
+    return priceResponse.coins['solana:So11111111111111111111111111111111111111112'].price;
   } catch (error) {
     console.error('Error fetching SOL price:', error);
     return 0;

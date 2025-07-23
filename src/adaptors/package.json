@@ -8,7 +8,10 @@
   "license": "ISC",
   "dependencies": {
     "@blend-capital/blend-sdk": "3.0.1",
+    "@coral-xyz/anchor": "^0.31.1",
     "@defillama/sdk": "^5.0.112",
+    "@solana/spl-token": "^0.4.13",
+    "@solana/web3.js": "^1.98.2",
     "@stacks/network": "^6.13.0",
     "@stacks/transactions": "^6.15.0",
     "@ton/ton": "14.0.0",
