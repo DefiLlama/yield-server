@@ -8,7 +8,7 @@
   "license": "ISC",
   "dependencies": {
     "@blend-capital/blend-sdk": "3.0.1",
-    "@coral-xyz/anchor": "^0.31.1",
+    "@coral-xyz/anchor": "0.29.0",
     "@defillama/sdk": "^5.0.112",
     "@solana/spl-token": "^0.4.13",
     "@solana/web3.js": "^1.98.2",

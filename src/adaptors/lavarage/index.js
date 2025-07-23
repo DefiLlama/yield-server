@@ -1,6 +1,6 @@
-const { Connection, PublicKey, Keypair } = require('@solana/web3.js');
+const { Connection, PublicKey } = require('@solana/web3.js');
 const { getMint } = require('@solana/spl-token');
-const { AnchorProvider, Program, Wallet } = require('@coral-xyz/anchor');
+const { Program } = require('@coral-xyz/anchor');
 const utils = require('../utils');
 const { LavarageIdl, StakingIdl } = require('./idls');
 
@@ -25,15 +25,9 @@ const EDGE_CASE_TIMESTAMPS = [
 const apy = async () => {
   try {
     const connection = new Connection(SOLANA_RPC, 'confirmed');
-    
-    // Initialize Anchor programs
-    const wallet = new Wallet(Keypair.generate());
-    const provider = new AnchorProvider(connection, wallet, {
-      preflightCommitment: 'confirmed',
-    });
-    
-    const lavarageProgram = new Program(LavarageIdl, PROGRAM_ID, provider);
-    const stakingProgram = new Program(StakingIdl, STAKING_PROGRAM_ID, provider);
+
+    const lavarageProgram = new Program(LavarageIdl, PROGRAM_ID, {connection});
+    const stakingProgram = new Program(StakingIdl, STAKING_PROGRAM_ID, {connection});
     
     // Get mint information for both tokens
     const [mint, mintMBP] = await Promise.all([
