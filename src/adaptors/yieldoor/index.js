@@ -4,19 +4,39 @@ const { formatChain, getPrices, getERC4626Info } = require('../utils');
 const BigNumber = require('bignumber.js');
 const { formatCollectsQuery } = require('./queries');
 const sdk = require('@defillama/sdk');
+const { blueAbi, adaptiveCurveIrmAbi, blueOracleAbi } = require('./morphoBlueAbi');
+const { morphoMarketAbi, code } = require('./morphoMarketAbi');
+const { getUtilization, getAccruedInterest, getAccrualBorrowRate, getBorrowApy, toBorrowAssets, getLtv } = require('./morphoSdk');
+const { getFormattedActiveMarkets } = require('./pendleMarkets');
+const {
+  utils: { formatEther, formatUnits },
+} = require('ethers');
 
 const PROJECT_NAME = 'yieldoor';
 const BASE_URL = 'https://app.yieldoor.com';
 const TEN = new BigNumber(10);
+const CHAINS = {
+  ethereum: 1,
+  base: 8453,
+  sonic: 146
+}
 
+const MORPHO_GRAPH_URL = 'https://blue-api.morpho.org/graphql';
 
 const CONFIG = {
   ethereum: {
     subgraph: 'https://subgraph.satsuma-prod.com/ebe562dbf792/yieldoor--594520/yieldoor-leverager-base/version/v0.0.2/api',
     blockTime: 12,
+    morpho: {
+      morpho: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb',
+      adaptiveCurveIrm: '0x870aC11D48B15DB9a138Cf899d20F13F79Ba00BC',
+    },
     lendingPool: '',
     lp: [],
-    looped: ['0x67d0bde18945999ff517a04fa156189a07ba6543']
+    looped: [{
+      address: '0x67d0bde18945999ff517a04fa156189a07ba6543',
+      name: 'ethereum-looped-usdc'
+    }]
   },
   base: {
     subgraph: 'https://subgraph.satsuma-prod.com/ebe562dbf792/yieldoor--594520/yieldoor-leverager-base/version/v0.0.2/api',
@@ -85,12 +105,42 @@ const CONFIG = {
 }
 
 const abis = {
+  getAsset: "function asset() view returns (address asset)",
   getPrice: "function getPrice(address asset) view returns (uint256)",
   balances: "function balances() view returns (uint256, uint256)",
   positions: "function positions(uint256) view returns (address denomination, uint256 borrowedAmount, uint256 borrowedIndex, uint256 initCollateralValue, uint256 initCollateralUsd, uint256 initBorrowedUsd, uint256 shares, address vault, address token0, address token1)",
   reservesList: "function reservesList(uint256) view returns (address)",
   reserves: "function reserves(address) view returns (uint256 borrowingIndex, uint256 currentBorrowingRate, uint256 totalBorrows, address yTokenAddress, address stakingAddress, uint256 reserveCapacity, (uint256 utilizationA, uint256 borrowingRateA, uint256 utilizationB, uint256 borrowingRateB, uint256 maxBorrowingRate) borrowingRateConfig, (uint256 maxIndividualBorrow, uint256 LTV, uint256 LLTV) leverageParams, uint256 underlyingBalance, uint128 lastUpdateTimestamp, (bool isActive, bool frozen, bool borrowingEnabled) flags)",
-  getVestingAmounts: "function getVestingAmounts() view returns (uint256, uint256)"
+  getVestingAmounts: "function getVestingAmounts() view returns (uint256, uint256)",
+  getMaxNumberMarkets: "function MAX_NUMBER_MARKETS() view returns (uint8)",
+  getIdleBalance: "function idleBalance() view returns (uint256)",
+  getPricefeed: "function pricefeed() view returns (address)",
+  getCollateralAToken: "function collateralAToken() view returns (address)",
+  getDebtVToken: "function debtVToken() view returns (address)",
+  getAave: "function aave() view returns (address)",
+  getMorphoPositions: "function morphoPositions(uint256) view returns (address, address, address, address, uint256)",
+  getId: {
+    type: "function",
+    name: "getId",
+    inputs: [
+      {
+        name: "marketParams",
+        type: "tuple",
+        internalType: "struct MarketParams",
+        components: [
+          { name: "loanToken", type: "address", internalType: "address" },
+          { name: "collateralToken", type: "address", internalType: "address" },
+          { name: "oracle", type: "address", internalType: "address" },
+          { name: "irm", type: "address", internalType: "address" },
+          { name: "lltv", type: "uint256", internalType: "uint256" },
+        ],
+      },
+    ],
+    outputs: [{ name: "id", type: "bytes32", internalType: "Id" }],
+    stateMutability: "pure",
+  },
+  getReserveData: "function getReserveData(address asset) view returns (uint256 unbacked, uint256 accruedToTreasuryScaled, uint256 totalAToken, uint256 totalStableDebt, uint256 totalVariableDebt, uint256 liquidityRate, uint256 variableBorrowRate, uint256 stableBorrowRate, uint256 averageStableBorrowRate, uint256 liquidityIndex, uint256 variableBorrowIndex, uint40 lastUpdateTimestamp)",
+  getUnderlyingAssetAddress: "function UNDERLYING_ASSET_ADDRESS() view returns (address)",
 }
 
 const getDailyFees = async (graphUrl, vault, pool, strategy, block, prices, vaultsData) => {
@@ -329,16 +379,483 @@ const getShadowLpData = async (chain) => {
   });
 }
 
+const getUniqueTokensFromMorphoPositions = async (morphoPositionsParams, chain) => {
+  // Extract unique tokens from morpho positions
+  const uniqueTokens = morphoPositionsParams.reduce((acc, params) => {
+    if (!params) return acc;
+    const [loanToken, collateralToken] = params;
+    acc.add(loanToken);
+    acc.add(collateralToken);
+    return acc;
+  }, new Set());
+
+  const uniqueTokensArray = Array.from(uniqueTokens);
+
+  if (uniqueTokensArray.length === 0) {
+    return {};
+  }
+
+  // Create multicall parameters for symbol and decimals
+  const symbolCalls = uniqueTokensArray.map((token) => {
+    return sdk.api.abi.call({ 
+      target: token, 
+      abi: "erc20:symbol",
+      chain
+    });
+  });
+
+  const decimalsCalls = uniqueTokensArray.map((token)=> {
+    return sdk.api.abi.call({ 
+      target: token, 
+      abi: "erc20:decimals",
+      chain
+    });
+  });
+
+  // Execute all calls in parallel
+  const [symbolResults, decimalsResults] = await Promise.all([
+    Promise.all(symbolCalls),
+    Promise.all(decimalsCalls)
+  ]);
+
+  // Build token data object
+  const tokenData = uniqueTokensArray.reduce((acc, token, index) => {
+    acc[token] = {
+      symbol: symbolResults[index].output ?? "",
+      decimals: Number(decimalsResults[index].output ?? 18),
+    };
+    return acc;
+  }, {});
+
+  return tokenData;
+};
+
+const accrueInterest = async (position, timestamp) => {
+  timestamp = BigInt(timestamp);
+
+  const { elapsed, avgBorrowRate, endRateAtTarget } =
+    getAccrualBorrowRate(position, position.marketId, timestamp);
+
+  const { interest, feeShares } = getAccruedInterest(
+    avgBorrowRate,
+    position,
+    elapsed,
+  );
+
+  return {
+    ...position,
+    totalSupplyAssets: position.totalSupplyAssets + interest,
+    totalBorrowAssets: position.totalBorrowAssets + interest,
+    totalSupplyShares: position.totalSupplyShares + feeShares,
+    lastUpdate: timestamp,
+    rateAtTarget: endRateAtTarget,
+  };
+}
+
+const fetchAccrualPosition = async (chain, user, marketId, parameters = {}) => {
+  const { morpho, adaptiveCurveIrm } = CONFIG[chain].morpho;
+
+  // morpho, adaptiveCurveIrm addresses
+  // then fetch position and market
+  // then for each position, accrue interest
+  // position.accrueInterest(BigInt(Math.floor(Date.now() / 1000)));
+
+
+  // fetch position
+
+  // function position
+  const result = await sdk.api.abi.call({
+    target: morpho,
+    abi: blueAbi[2],
+    params: [marketId, user],
+    chain
+  });
+  
+  const position = {
+      user,
+      marketId,
+      supplyShares: result.output.supplyShares,
+      borrowShares: result.output.borrowShares,
+      collateral: result.output.collateral,
+  };
+
+  //fetch market
+
+  const marketParams = await sdk.api.abi.call({
+    target: morpho,
+    abi: blueAbi[0],
+    params: [marketId],
+    chain
+  });
+
+  const [loanToken, collateralToken, oracle, irm, lltv] = marketParams.output;
+
+  const [marketResult, priceResult, rateAtTargetResult] = await Promise.all([
+    sdk.api.abi.call({
+      target: morpho,
+      abi: blueAbi[1],
+      params: [marketId],
+      chain
+    }),
+    sdk.api.abi.call({
+      target: oracle,
+      abi: blueOracleAbi[0],
+      params: [],
+      chain
+    }),
+    sdk.api.abi.call({
+      target: adaptiveCurveIrm,
+      abi: adaptiveCurveIrmAbi[0],
+      params: [marketId],
+      chain
+    })
+  ]);
+
+  const [totalSupplyAssets, totalSupplyShares, totalBorrowAssets, totalBorrowShares, lastUpdate, fee, hasPrice] = marketResult.output;
+  const price = priceResult.output;
+  const rateAtTarget = rateAtTargetResult.output;
+
+
+  const market = {
+    params: {
+      loanToken,
+      collateralToken,
+      oracle,
+      irm,
+      lltv
+    },
+    totalSupplyAssets,
+    totalBorrowAssets,
+    totalSupplyShares,
+    totalBorrowShares,
+    lastUpdate,
+    fee,
+    price,
+    rateAtTarget,
+    utilization: getUtilization(totalSupplyAssets, totalBorrowAssets),
+  };
+
+  const res = {
+    ...position,
+    borrowAssets: toBorrowAssets(position.borrowShares, market),
+    ltv: getLtv(position, market),
+    market: market
+  }
+
+  return res;
+}
+
+const getLoopedData = async (chain) => {
+  const chainId = CHAINS[chain];
+
+  const pendleMarketDetails = await getFormattedActiveMarkets(chainId);
+
+  const loopedVaults = CONFIG[chain].looped;
+
+  const calls = loopedVaults.map((vault) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        const testMaxNumberOfMarkets = await sdk.api.abi.call({ 
+          target: vault.address, 
+          abi: abis.getMaxNumberMarkets,
+          chain
+        });
+
+        const [maxNumberOfMarkets, idleBalance, assetDecimals, pricefeed, collateralAToken, debtVToken, aave, asset] = await Promise.all([
+          sdk.api.abi.call({ 
+            target: vault.address, 
+            abi: abis.getMaxNumberMarkets,
+            chain
+          }),
+          sdk.api.abi.call({ 
+            target: vault.address, 
+            abi: abis.getIdleBalance,
+            chain
+          }),
+          sdk.api.abi.call({ 
+            target: vault.address, 
+            abi: "erc20:decimals",
+            chain
+          }),
+          sdk.api.abi.call({ 
+            target: vault.address, 
+            abi: abis.getPricefeed,
+            chain
+          }),
+          sdk.api.abi.call({ 
+            target: vault.address, 
+            abi: abis.getCollateralAToken,
+            chain
+          }),
+          sdk.api.abi.call({ 
+            target: vault.address,
+            abi: abis.getDebtVToken,
+            chain
+          }),
+          sdk.api.abi.call({ 
+            target: vault.address,
+            abi: abis.getAave,
+            chain
+          }),
+          sdk.api.abi.call({ 
+            target: vault.address,
+            abi: abis.getAsset,
+            chain
+          })
+        ]);
+  
+        const [assetSymbol, debtUnderlyingAssetAddress, collateralUnderlyingAssetAddress, debtBalance, collateralBalance] = await Promise.all([
+          sdk.api.abi.call({ 
+            target: asset.output, 
+            abi: "erc20:symbol",
+            chain
+          }),
+          sdk.api.abi.call({ 
+            target: debtVToken.output, 
+            abi: abis.getUnderlyingAssetAddress,
+            chain
+          }),
+          sdk.api.abi.call({ 
+            target: collateralAToken.output, 
+            abi: abis.getUnderlyingAssetAddress,
+            chain
+          }),
+          sdk.api.abi.call({ 
+            target: debtVToken.output, 
+            abi: "erc20:balanceOf",
+            params: [vault.address],
+            chain
+          }),
+          sdk.api.abi.call({ 
+            target: collateralAToken.output, 
+            abi: "erc20:balanceOf",
+            params: [vault.address],
+            chain
+          })
+        ]);
+
+        const [debtDecimals, collateralDecimals, reserveData, debtPrice, collateralPrice] = await Promise.all([
+          sdk.api.abi.call({ 
+            target: debtUnderlyingAssetAddress.output, 
+            abi: "erc20:decimals",
+            chain
+          }),
+          sdk.api.abi.call({ 
+            target: collateralUnderlyingAssetAddress.output, 
+            abi: "erc20:decimals",
+            chain
+          }),
+          sdk.api.abi.call({ 
+            target: aave.output, 
+            abi: abis.getReserveData,
+            params: [debtUnderlyingAssetAddress.output],
+            chain
+          }),
+          sdk.api.abi.call({ 
+            target: pricefeed.output, 
+            abi: abis.getPrice,
+            params: [debtUnderlyingAssetAddress.output],
+            chain
+          }),
+          sdk.api.abi.call({ 
+            target: pricefeed.output, 
+            abi: abis.getPrice,
+            params: [collateralUnderlyingAssetAddress.output],
+            chain
+          })
+        ]);
+
+        const variableBorrowRate = +formatUnits(reserveData.output[4], 27);
+
+        const debtTokenPrice = +formatEther(debtPrice.output);
+        const collateralTokenPrice = +formatEther(collateralPrice.output);
+
+        const debtSize = +formatUnits(debtBalance.output, debtDecimals.output);
+        const collateralSize = +formatUnits(collateralBalance.output, collateralDecimals.output);
+        const debtTokenUsd = debtSize * debtTokenPrice;
+        const collateralTokenUsd = collateralSize * collateralTokenPrice;
+
+        const ltv = debtTokenUsd / collateralTokenUsd;
+        const ltvPercentage = ltv * 100;
+
+        const ptApy =
+          pendleMarketDetails[collateralUnderlyingAssetAddress.output]?.impliedApy ?? 0;
+
+        // APY = LTV / (100 - LTV) * (PT APY - Borrow APY) + PT APY
+
+        const aavePositionApy = ltvPercentage / (100 - ltvPercentage) * (ptApy - variableBorrowRate) + ptApy;
+
+        const aavePosition = {
+          marketApy: aavePositionApy,
+          positionSize: collateralTokenUsd - debtTokenUsd,
+        };
+
+
+        const formattedIdleBalance = +formatUnits(idleBalance.output, assetDecimals.output);
+
+        const _morphoPositionsParams = await Promise.all(
+          Array.from({ length: maxNumberOfMarkets.output }).map(async (_, i) => {
+            try {
+              return await sdk.api.abi.call({ 
+                target: vault.address, 
+                abi: abis.getMorphoPositions,
+                params: [i],
+                chain
+              });
+            } catch {
+              return null;
+            }
+          })
+        );
+
+        const morphoPositionsParams = _morphoPositionsParams.reduce(
+          (acc, curr) => {
+            if (curr) {
+              acc.push(curr.output);
+            }
+            return acc;
+          },
+          []
+        );
+
+        const tokenData = await getUniqueTokensFromMorphoPositions(morphoPositionsParams, chain);
+
+        const loanTokenPrices = await Promise.all(
+          morphoPositionsParams.map((params) => {
+            const [loanToken] = params;
+            return sdk.api.abi.call({ 
+              target: pricefeed.output, 
+              abi: abis.getPrice,
+              params: [loanToken],
+              chain
+            });
+          })
+        );
+
+        const collateralTokenPrices = await Promise.all(
+          morphoPositionsParams.map((params) => {
+            const [, collateralToken] = params;
+            return sdk.api.abi.call({ 
+              target: pricefeed.output, 
+              abi: abis.getPrice,
+              params: [collateralToken],
+              chain
+            });
+          })
+        );
+
+        const morphoIds = await Promise.all(
+          morphoPositionsParams.map((params) => {
+            const [loanToken, collateralToken, oracle, irm, lltv] = params;
+
+            return sdk.api.abi.call({ 
+              target: vault.address, 
+              abi: abis.getId,
+              params: [{loanToken, collateralToken, oracle, irm, lltv}],
+              chain
+            });
+          })
+        );
+
+        const morphoPositions = await Promise.all(
+          morphoIds.map((id) =>
+            fetchAccrualPosition(chain, vault.address, id.output)
+          )
+        );
+
+        let { total, apyMult, positions } = morphoPositions.reduce(
+          (acc, position, index) => {
+            // Accrue interest to get the latest position data
+            accrueInterest(position, BigInt(Math.floor(Date.now() / 1000)));
+
+            const {
+              borrowAssets,
+              ltv: _ltv,
+              market,
+              collateral, // quoted in borrowToken
+            } = position;
+
+            const collateralToken = market.params.collateralToken;
+            const loanToken = market.params.loanToken;
+            const ltv = +formatEther(_ltv ?? BigInt(0));
+            const borrowApy = +formatEther(getBorrowApy(market, BigInt(Math.floor(Date.now() / 1000))));
+            const ptApy =
+              pendleMarketDetails[market.params.collateralToken]
+                .impliedApy;
+
+            const marketApy = ((ptApy - borrowApy) * ltv) / (1 - ltv) + ptApy;
+
+            const collateralSize = +formatUnits(collateral, tokenData[collateralToken].decimals);
+            const borrowSize = +formatUnits(borrowAssets ?? BigInt(0), tokenData[loanToken].decimals);
+
+            const collateralUsd =
+              collateralSize *
+              +formatEther(collateralTokenPrices[index].output);
+
+            const borrowUsd =
+              borrowSize *
+              +formatEther(loanTokenPrices[index].output);
+
+            const positionSize = collateralUsd - borrowUsd;
+
+            acc.apyMult += positionSize * marketApy;
+            acc.total += positionSize;
+            return acc;
+          },
+          {
+            total: 0,
+            apyMult: 0
+          }
+        );
+
+        let tvl = formattedIdleBalance + total;
+        
+        if (Object.keys(aavePosition).length > 0) {
+          tvl += aavePosition.positionSize;
+          apyMult += aavePosition.positionSize * aavePosition.marketApy;
+        }
+        
+        const vaultApy = apyMult / tvl;
+
+        resolve({ vaultApy: vaultApy, tvl: tvl, asset: asset.output, name: vault.name, address: vault.address, symbol: assetSymbol.output });
+      } catch (error) {
+        console.error("Error fetching looped vault data:");
+        console.error(error);
+        reject(error);
+      }
+    });
+  });
+
+  const res = await Promise.all(calls);
+
+  return res.map(vault => {
+    return {
+      pool: vault.address,
+      chain: formatChain(chain),
+      project: PROJECT_NAME,
+      underlyingTokens: [vault.asset],
+      symbol: `Looped${vault.symbol}`,
+      tvlUsd: vault.tvl || 0,
+      apyBase: 100 * vault.vaultApy || 0,
+      url: `${BASE_URL}/vaults/${vault.name}`
+    }
+  });
+};
+
 const apy = async () => {
   const lp = Object.keys(CONFIG).map(async chain => getLpData(chain));
   const shadowLp = [getShadowLpData("sonic")];
+  const looped = [getLoopedData("ethereum")];
 
-  const [lpResults, shadowLpResults] = await Promise.all([
+  const [lpResults, shadowLpResults, loopedResults] = await Promise.all([
     Promise.all(lp),
-    Promise.all(shadowLp)
+    Promise.all(shadowLp),
+    Promise.all(looped)
   ]);
 
-  const pools = [...lpResults.flat(), ...shadowLpResults.flat()];
+  const pools = [...lpResults.flat(), ...shadowLpResults.flat(), ...loopedResults.flat()];
+
   return pools;
 };
 
