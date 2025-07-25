@@ -59,8 +59,8 @@ const apy = async () => {
     const decimals = decimalsResponse.output;
     const scalingFactor = 10 ** decimals;
     const totalSupply = totalSupplyResponse.output / scalingFactor;
-    const underlyingPrice = underlyingPriceResponse.data;
-    const currentRate = currentRateResponse.output.coins[priceKey].price;
+    const underlyingPrice = underlyingPriceResponse.output;
+    const currentRate = currentRateResponse.data.coins[priceKey].price;
     const tvlUsd =
         totalSupply * (currentRate / scalingFactor) * underlyingPrice;
 
