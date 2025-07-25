@@ -106,7 +106,7 @@ async function calcErc4626PoolApy(vault, prices) {
     apyBase7d,
     apyReward: 0,
     poolMeta: vaultMeta[vault].name,
-    url: 'https://rezerve.money/stake?tab=vaults',
+    url: 'https://rezerve.money/liquid-staking?utm_source=defillama',
   };
 }
 
