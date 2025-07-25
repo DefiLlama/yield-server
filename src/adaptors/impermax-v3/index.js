@@ -362,9 +362,10 @@ const main = async () => {
       getChainVaults(chain),
     ]);
 
+    const chainPools = [...borrowables, ...lendingVaults];
     const prices = await getChainUnderlyingPrices(
       chain,
-      borrowables.map((i) => i.underlying.id)
+      chainPools.map((i) => i.underlying.id)
     );
 
     /**
