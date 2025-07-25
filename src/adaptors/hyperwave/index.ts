@@ -6,7 +6,7 @@ const Accountant = require("./Accountant.json");
 const hwHLP = "0x9FD7466f987Fd4C45a5BBDe22ED8aba5BC8D72d1";
 const hwHLP_ACCOUNTANT = "0x78E3Ac5Bf48dcAF1835e7F9861542c0D43D0B03E";
 const UNDERLYING = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; // USDC
-const CHAIN = "hyperliquid";
+const CHAIN = "ethereum";
 
 const apy = async () => {
     const totalSupplyCall = sdk.api.abi.call({
@@ -59,8 +59,8 @@ const apy = async () => {
     const decimals = decimalsResponse.output;
     const scalingFactor = 10 ** decimals;
     const totalSupply = totalSupplyResponse.output / scalingFactor;
-    const underlyingPrice = underlyingPriceResponse.output;
-    const currentRate = currentRateResponse.data.coins[priceKey].price;
+    const underlyingPrice = underlyingPriceResponse.data.coins[priceKey].price;
+    const currentRate = currentRateResponse.output;
     const tvlUsd =
         totalSupply * (currentRate / scalingFactor) * underlyingPrice;
 
@@ -89,7 +89,7 @@ const apy = async () => {
         {
             pool: hwHLP,
             project: "hyperwave",
-            chain: "hyperliquid",
+            chain: CHAIN,
             symbol: "hwHLP",
             tvlUsd: tvlUsd,
             apyBase: apr1d,
