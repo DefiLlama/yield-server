@@ -20,7 +20,7 @@ const apy = async () => {
 
     const priceKey = `ethereum:${UNDERLYING}`;
     const underlyingPriceCall = axios.get(
-        `https://coins.llama.fi/prices/current/${priceKey}`
+        `https://coins.llama.fi/prices/current/${priceKey}?searchWidth=24h`
     );
 
     const currentRateCall = sdk.api.abi.call({
