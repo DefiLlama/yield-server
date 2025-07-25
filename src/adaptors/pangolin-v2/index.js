@@ -46,7 +46,7 @@ const buildPool = (entry, chainString) => {
   const newObj = {
     pool: entry.id,
     chain: utils.formatChain(chainString),
-    project: 'pangolin',
+    project: 'pangolin-v2',
     symbol,
     tvlUsd: entry.totalValueLockedUSD,
     apyBase: entry.apy1d,
