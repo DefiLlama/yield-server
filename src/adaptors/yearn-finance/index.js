@@ -6,6 +6,7 @@ const chains = {
   arbitrum: 42161,
   optimism: 10,
   base: 8453,
+  katana: 747474,
 };
 
 const getApy = async () => {
