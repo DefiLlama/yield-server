@@ -12,7 +12,7 @@ const UNDERLYING = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'; // USDC
 // const RPC = process.env.ALCHEMY_CONNECTION_ETHEREUM;
 // const PROVIDER = new ethers.providers.JsonRpcProvider(RPC);
 const CHAIN = 'hyperliquid';
-const RPC = 'https://rpc.hyperliquid.xyz/evm';
+const RPC = 'https://rpc.hyperlend.finance/archive';
 const PROVIDER = new ethers.providers.JsonRpcProvider(RPC);
 
 const apy = async () => {
