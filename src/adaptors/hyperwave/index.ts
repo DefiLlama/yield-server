@@ -10,13 +10,12 @@ const UNDERLYING = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'; // USDC
 
 const config = [
   {
-    chain : "ethereum",
+    chain: 'ethereum',
   },
   {
-    chain: "hyperliquid",
+    chain: 'hyperliquid',
   },
-]
-
+];
 
 /**
  * Calculate TVL (Total Value Locked) for the vault
@@ -62,7 +61,7 @@ const calculateTVL = async (chain) => {
   const totalSupply = totalSupplyResponse.output / scalingFactor;
   const underlyingPrice = underlyingPriceResponse.data.coins[priceKey].price;
   const currentRate = currentRateResponse.output;
-  
+
   const tvlUsd = totalSupply * (currentRate / scalingFactor) * underlyingPrice;
 
   return {
@@ -76,7 +75,7 @@ const calculateTVL = async (chain) => {
 /**
  * Calculate APR (Annual Percentage Rate) for 1 day and 7 days
  */
-const calculateAPR = async (currentRate, scalingFactor, chain="ethereum") => {
+const calculateAPR = async (currentRate, scalingFactor, chain = 'ethereum') => {
   const now = Math.floor(Date.now() / 1000);
   const timestamp1dayAgo = now - 86400;
   const timestamp7dayAgo = now - 86400 * 7;
@@ -111,8 +110,10 @@ const calculateAPR = async (currentRate, scalingFactor, chain="ethereum") => {
     }),
   ]);
 
-  const apr1d = ((currentRate - rate1dayAgo.output) / scalingFactor) * 365 * 100;
-  const apr7d = ((currentRate - rate7dayAgo.output) / scalingFactor / 7) * 365 * 100;
+  const apr1d =
+    ((currentRate - rate1dayAgo.output) / scalingFactor) * 365 * 100;
+  const apr7d =
+    ((currentRate - rate7dayAgo.output) / scalingFactor / 7) * 365 * 100;
 
   return {
     apr1d,
@@ -124,28 +125,27 @@ const calculateAPR = async (currentRate, scalingFactor, chain="ethereum") => {
  * Main function that orchestrates TVL and APR calculations
  */
 const apy = async () => {
-  const out = await Promise.all(config.map(
-    async (chainConfig) => {
-
-      const { tvlUsd, currentRate, scalingFactor } = await calculateTVL(chainConfig.chain);
+  const out = await Promise.all(
+    config.map(async (chainConfig) => {
+      const { tvlUsd, currentRate, scalingFactor } = await calculateTVL(
+        chainConfig.chain
+      );
+      // using ethereum for APR as most HyperEVM RPCs don't have archival state
       const { apr1d, apr7d } = await calculateAPR(currentRate, scalingFactor);
-      return [
-        {
-          pool: hwHLP,
-          project: 'hyperwave',
-          chain: utils.formatChain(chainConfig.chain),
-          symbol: 'hwHLP',
-          tvlUsd: tvlUsd,
-          apyBase: apr1d,
-          apyBase7d: apr7d,
-          underlyingTokens: [UNDERLYING],
-        },
-      ];
-    }
-  ))
-  
-  return out
+      return {
+        pool: `${chainConfig.chain}_${hwHLP}`,
+        project: 'hyperwave',
+        chain: utils.formatChain(chainConfig.chain),
+        symbol: 'hwHLP',
+        tvlUsd: tvlUsd,
+        apyBase: apr1d,
+        apyBase7d: apr7d,
+        underlyingTokens: [UNDERLYING],
+      };
+    })
+  );
 
+  return out;
 };
 
 module.exports = {
