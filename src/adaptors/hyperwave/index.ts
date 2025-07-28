@@ -8,12 +8,12 @@ const ethers = require('ethers');
 const hwHLP = '0x9FD7466f987Fd4C45a5BBDe22ED8aba5BC8D72d1';
 const hwHLP_ACCOUNTANT = '0x78E3Ac5Bf48dcAF1835e7F9861542c0D43D0B03E';
 const UNDERLYING = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'; // USDC
-const CHAIN = 'ethereum';
-const RPC = process.env.ALCHEMY_CONNECTION_ETHEREUM;
-const PROVIDER = new ethers.providers.JsonRpcProvider(RPC);
-// const CHAIN = 'hyperliquid';
-// const RPC = 'https://rpc.hyperliquid.xyz/evm';
+// const CHAIN = 'ethereum';
+// const RPC = process.env.ALCHEMY_CONNECTION_ETHEREUM;
 // const PROVIDER = new ethers.providers.JsonRpcProvider(RPC);
+const CHAIN = 'hyperliquid';
+const RPC = 'https://rpc.hyperliquid.xyz/evm';
+const PROVIDER = new ethers.providers.JsonRpcProvider(RPC);
 
 const apy = async () => {
   const totalSupplyCall = sdk.api.abi.call({
