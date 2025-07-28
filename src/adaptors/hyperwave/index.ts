@@ -3,7 +3,7 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const Vault = require('./Vault.json');
 const Accountant = require('./Accountant.json');
-const ethers = require('ethers');
+// const ethers = require('ethers');
 
 const hwHLP = '0x9FD7466f987Fd4C45a5BBDe22ED8aba5BC8D72d1';
 const hwHLP_ACCOUNTANT = '0x78E3Ac5Bf48dcAF1835e7F9861542c0D43D0B03E';
@@ -12,19 +12,19 @@ const UNDERLYING = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'; // USDC
 // const RPC = process.env.ALCHEMY_CONNECTION_ETHEREUM;
 // const PROVIDER = new ethers.providers.JsonRpcProvider(RPC);
 const CHAIN = 'hyperliquid';
-const RPC = 'https://rpc.hyperlend.finance/archive';
-const PROVIDER = new ethers.providers.JsonRpcProvider(RPC);
+// const RPC = 'https://rpc.hyperlend.finance/archive';
+// const PROVIDER = new ethers.providers.JsonRpcProvider(RPC);
 
 const apy = async () => {
   const totalSupplyCall = sdk.api.abi.call({
     target: hwHLP,
     abi: Vault.find((m) => m.name === 'totalSupply'),
-    provider: PROVIDER,
+    // provider: PROVIDER,
   });
   const decimalsCall = sdk.api.abi.call({
     target: hwHLP,
     abi: Vault.find((m) => m.name === 'decimals'),
-    provider: PROVIDER,
+    // provider: PROVIDER,
   });
 
   const priceKey = `ethereum:${UNDERLYING}`;
@@ -35,7 +35,7 @@ const apy = async () => {
   const currentRateCall = sdk.api.abi.call({
     target: hwHLP_ACCOUNTANT,
     abi: Accountant.find((m) => m.name === 'getRate'),
-    provider: PROVIDER,
+    // provider: PROVIDER,
   });
 
   const now = Math.floor(Date.now() / 1000);
@@ -72,29 +72,30 @@ const apy = async () => {
   const underlyingPrice = underlyingPriceResponse.data.coins[priceKey].price;
   const currentRate = currentRateResponse.output;
   const tvlUsd = totalSupply * (currentRate / scalingFactor) * underlyingPrice;
+  console.log(tvlUsd)
 
   const block1dayAgo = block1dayAgoResponse.data.height;
   const block7dayAgo = block7dayAgoResponse.data.height;
 
-  const [rate1dayAgo, rate7dayAgo] = await Promise.all([
-    sdk.api.abi.call({
-      target: hwHLP_ACCOUNTANT,
-      abi: Accountant.find((m) => m.name === 'getRate'),
-      block: block1dayAgo,
-      provider: PROVIDER,
-    }),
-    sdk.api.abi.call({
-      target: hwHLP_ACCOUNTANT,
-      abi: Accountant.find((m) => m.name === 'getRate'),
-      block: block7dayAgo,
-      provider: PROVIDER,
-    }),
-  ]);
-  const apr1d =
-    ((currentRate - rate1dayAgo.output) / scalingFactor) * 365 * 100;
+  // const [rate1dayAgo, rate7dayAgo] = await Promise.all([
+  //   sdk.api.abi.call({
+  //     target: hwHLP_ACCOUNTANT,
+  //     abi: Accountant.find((m) => m.name === 'getRate'),
+  //     block: block1dayAgo,
+  //     // provider: PROVIDER,
+  //   }),
+  //   sdk.api.abi.call({
+  //     target: hwHLP_ACCOUNTANT,
+  //     abi: Accountant.find((m) => m.name === 'getRate'),
+  //     block: block7dayAgo,
+  //     // provider: PROVIDER,
+  //   }),
+  // ]);
+  // const apr1d =
+  //   ((currentRate - rate1dayAgo.output) / scalingFactor) * 365 * 100;
 
-  const apr7d =
-    ((currentRate - rate7dayAgo.output) / scalingFactor / 7) * 365 * 100;
+  // const apr7d =
+  //   ((currentRate - rate7dayAgo.output) / scalingFactor / 7) * 365 * 100;
 
   return [
     {
@@ -103,8 +104,8 @@ const apy = async () => {
       chain: utils.formatChain(CHAIN),
       symbol: 'hwHLP',
       tvlUsd: tvlUsd,
-      apyBase: apr1d,
-      apyBase7d: apr7d,
+      apyBase: 0,
+      apyBase7d: 0,
       underlyingTokens: [UNDERLYING],
     },
   ];
