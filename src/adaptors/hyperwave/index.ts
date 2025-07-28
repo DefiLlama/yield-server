@@ -3,27 +3,17 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const Vault = require('./Vault.json');
 const Accountant = require('./Accountant.json');
-const ethers = require('ethers');
 
 const hwHLP = '0x9FD7466f987Fd4C45a5BBDe22ED8aba5BC8D72d1';
 const hwHLP_ACCOUNTANT = '0x78E3Ac5Bf48dcAF1835e7F9861542c0D43D0B03E';
 const UNDERLYING = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'; // USDC
 
-// const CHAIN = 'ethereum';
-const ethRPC = process.env.ALCHEMY_CONNECTION_ETHEREUM;
-const ethPROVIDER = new ethers.providers.JsonRpcProvider(ethRPC);
-// const CHAIN = 'hyperliquid';
-const hyperevmRPC = 'https://rpc.hyperlend.finance/archive';
-const hyperevmPROVIDER = new ethers.providers.JsonRpcProvider(hyperevmRPC);
-
 const config = [
   {
     chain : "ethereum",
-    provider: ethPROVIDER
   },
   {
     chain: "hyperliquid",
-    provider: hyperevmPROVIDER
   },
 ]
 
@@ -31,17 +21,17 @@ const config = [
 /**
  * Calculate TVL (Total Value Locked) for the vault
  */
-const calculateTVL = async (provider) => {
+const calculateTVL = async (chain) => {
   const totalSupplyCall = sdk.api.abi.call({
     target: hwHLP,
     abi: Vault.find((m) => m.name === 'totalSupply'),
-    provider: provider,
+    chain: chain,
   });
 
   const decimalsCall = sdk.api.abi.call({
     target: hwHLP,
     abi: Vault.find((m) => m.name === 'decimals'),
-    provider: provider,
+    chain: chain,
   });
 
   const priceKey = `ethereum:${UNDERLYING}`;
@@ -52,7 +42,7 @@ const calculateTVL = async (provider) => {
   const currentRateCall = sdk.api.abi.call({
     target: hwHLP_ACCOUNTANT,
     abi: Accountant.find((m) => m.name === 'getRate'),
-    provider: provider,
+    chain: chain,
   });
 
   const [
@@ -86,7 +76,7 @@ const calculateTVL = async (provider) => {
 /**
  * Calculate APR (Annual Percentage Rate) for 1 day and 7 days
  */
-const calculateAPR = async (currentRate, scalingFactor, chain="ethereum", provider=ethPROVIDER) => {
+const calculateAPR = async (currentRate, scalingFactor, chain="ethereum") => {
   const now = Math.floor(Date.now() / 1000);
   const timestamp1dayAgo = now - 86400;
   const timestamp7dayAgo = now - 86400 * 7;
@@ -111,13 +101,13 @@ const calculateAPR = async (currentRate, scalingFactor, chain="ethereum", provid
       target: hwHLP_ACCOUNTANT,
       abi: Accountant.find((m) => m.name === 'getRate'),
       block: block1dayAgo,
-      provider: provider,
+      chain: chain,
     }),
     sdk.api.abi.call({
       target: hwHLP_ACCOUNTANT,
       abi: Accountant.find((m) => m.name === 'getRate'),
       block: block7dayAgo,
-      provider: provider,
+      chain: chain,
     }),
   ]);
 
@@ -137,7 +127,7 @@ const apy = async () => {
   const out = await Promise.all(config.map(
     async (chainConfig) => {
 
-      const { tvlUsd, currentRate, scalingFactor } = await calculateTVL(chainConfig.provider);
+      const { tvlUsd, currentRate, scalingFactor } = await calculateTVL(chainConfig.chain);
       const { apr1d, apr7d } = await calculateAPR(currentRate, scalingFactor);
       return [
         {
