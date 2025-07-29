@@ -51,6 +51,12 @@ const chains = {
     slug: 'bsc',
     urlSlug: "bsc",
     SPECTRA: "0x4baB31D6c557F8285eccB5167095147a36D9BaFa"
+  },
+  999: {
+    name: 'hyperliquid',
+    slug: 'hyperevm',
+    urlSlug: "hyperevm",
+    SPECTRA: "0x6bd93ee39bcc7b9baba122c2ba65246e4347bbf9"
   }
 };
 
