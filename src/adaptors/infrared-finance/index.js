@@ -7,10 +7,6 @@ const project = 'infrared-finance';
 const symbol = 'ibera';
 
 const apy = async () => {
-  const tvl =
-    (await sdk.api.erc20.totalSupply({ target: ibera, chain: 'berachain' }))
-      .output / 1e18;
-
   const priceKey = `berachain:${bera}`;
   const beraPrice = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
@@ -27,34 +23,40 @@ const apy = async () => {
     await axios.get(`https://coins.llama.fi/block/berachain/${timestampYesterday}`)
   ).data.height;
 
+      const exchangeRateAbi = {
+        inputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }],
+        name: 'convertToAssets',
+        outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+      };
+      const exchangeRateYesterday = await sdk.api.abi.call({
+        target: ibera,
+        chain: 'berachain',
+        abi: exchangeRateAbi,
+        params: ['1000000000000000000'],
+        block: blockYesterday,
+      });
 
-  const totalPooledBeraYesterday = await sdk.api.abi.call({
-    target: ibera,
-    chain: 'berachain',
-    abi: 'uint256:totalAssets',
-    block: blockYesterday,
-  });
+      const exchangeRateToday = await sdk.api.abi.call({
+        target: ibera,
+        chain: 'berachain',
+        abi: exchangeRateAbi,
+        params: ['1000000000000000000'],
+        block: blockNow,
+      });
+        const totalPooledBera = await sdk.api.abi.call({
+          target: ibera,
+          chain: 'berachain',
+          abi: 'uint256:totalAssets',
+        });
 
-  const totalPooledBeraToday = await sdk.api.abi.call({
-    target: ibera,
-    chain: 'berachain',
-    abi: 'uint256:totalAssets',
-    block: blockNow,
-  });
-  const totalIberaSupplyYesterday = await sdk.api.abi.call({
-    target: ibera,
-    chain: 'berachain',
-    abi: 'uint256:totalSupply',
-    block: blockYesterday,
-  });
-
-  const totalIberaSupplyToday = await sdk.api.abi.call({
-    target: ibera,
-    chain: 'berachain',
-    abi: 'uint256:totalSupply',
-    block: blockNow,
-  });
-  const apr = (totalPooledBeraToday.output / totalIberaSupplyToday.output - totalPooledBeraYesterday.output / totalIberaSupplyYesterday.output) * 365 * 100;
+      const apr =
+        ((exchangeRateToday.output / 1e18 -
+          exchangeRateYesterday.output / 1e18) /
+          (exchangeRateYesterday.output / 1e18)) *
+        365 *
+        100;
 
   return [
     {
@@ -65,7 +67,7 @@ const apy = async () => {
       underlyingTokens: [bera],
       apyBase: apr,
       apy: apr,
-      tvlUsd: totalPooledBeraToday.output / 1e18 * beraPrice,
+      tvlUsd: totalPooledBera.output/1e18 * beraPrice,
     },
   ];
 };
