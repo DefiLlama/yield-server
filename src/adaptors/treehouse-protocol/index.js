@@ -52,8 +52,7 @@ const apy = async () => {
 
     const apr =
         ((exchangeRateToday.output / 1e18 - exchangeRateYesterday.output / 1e18) /
-            (exchangeRateYesterday.output / 1e18)) * 365 *
-        100;
+            (exchangeRateYesterday.output / 1e18)) * 365 * 100;
 
     return [
         {
