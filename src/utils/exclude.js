@@ -59,7 +59,6 @@ const excludeAdaptors = [
   'xy-finance',
   'quoll',
   'omnidex-lend',
-  'maple',
   'ease.org',
   'kyberswap-elastic',
   'penrose',

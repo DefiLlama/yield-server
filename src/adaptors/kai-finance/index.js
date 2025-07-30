@@ -34,6 +34,22 @@ const VAULTS = [
     id: '0x6e58792dccbaa1d1d708d9a847a7c5b3f90c7878d1b76fd79afa48d31063bca6',
     coinType: '0xdeeb7a4662eec9f2f3def03fb937a663dddaa2e215b8078a284d026b7946c270::deep::DEEP' // DEEP
   },
+  {
+    id: '0x4ee20ca2594e137a1388d5de03c0b1f3dd7caddefb4c55b1c7bca15d0fe18c86',
+    coinType: '0x356a26eb9e012a68958082340d4c4116e7f55615cf27affcff209cf0ae544f59::wal::WAL' // WAL
+  },
+  {
+    id: '0x5674aae155d38e09edaf3163f2e3f85fe77790f484485f0b480ca55915d7c446',
+    coinType: '0xaafb102dd0902f5055cadecd687fb5b71ca82ef0e0285d90afde828ec58ca96b::btc::BTC' // wBTC
+  },
+  {
+    id: '0x362ce1fc1425ec0bdf958f2023b07cda52c924fa42e4ff88a9a48c595fd8437d',
+    coinType: '0x3e8e9423d80e1774a7ca128fccd8bf5f1f7753be658c5e645929037f7c819040::lbtc::LBTC' // LBTC
+  },
+  {
+    id: '0x653beede5a005272526f0c835c272ef37491dc5bff3f8e466175e02675510137',
+    coinType: '0x876a4b7bce8aeaef60464c11f4026903e9afacab79b9b142686158aa86560b50::xbtc::XBTC' // xBTC
+  }
 ]
 
 async function getCoinInfos(coinTypes) {
