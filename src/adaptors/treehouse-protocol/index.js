@@ -7,8 +7,6 @@ const project = 'treehouse-protocol';
 const symbol = 'teth';
 
 const apy = async () => {
-    const tvl =
-        (await sdk.api.erc20.totalSupply({ target: teth })).output / 1e18;
 
     const priceKey = `ethereum:${wsteth}`;
     const wstEthPrice = (
@@ -49,6 +47,11 @@ const apy = async () => {
         params: ['1000000000000000000'],
         block: blockNow,
     });
+    const totalPooledBWsteth = await sdk.api.abi.call({
+        target: teth,
+        chain: 'ethereum',
+        abi: 'uint256:totalAssets',
+    });
 
     const apr =
         ((exchangeRateToday.output / 1e18 - exchangeRateYesterday.output / 1e18) /
@@ -63,7 +66,7 @@ const apy = async () => {
             underlyingTokens: [wsteth],
             apyBase: apr,
             apy: apr,
-            tvlUsd: tvl * wstEthPrice,
+            tvlUsd: totalPooledBWsteth.output / 1e18 * wstEthPrice,
         },
     ];
 };
