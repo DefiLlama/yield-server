@@ -27,8 +27,8 @@ const restEndpoints = {
 };
 
 const tokenApis = {
-  osmosis: 'https://api.astroport.fi/api/tokens?chainId=osmosis-1',
-  neutron: 'https://api.astroport.fi/api/tokens?chainId=neutron-1',
+  osmosis: 'https://cache.marsprotocol.io/api/osmosis-1/tokens',
+  neutron: 'https://cache.marsprotocol.io/api/neutron-1/tokens',
 };
 
 const perpsVaultApi = {
@@ -77,7 +77,7 @@ async function apy() {
 
       const perpsVaultApyData = await axios.get(perpsVaultApi[chain]);
       if (perpsVault) {
-        const perpsAsset = tokenInfos.data.find(
+        const perpsAsset = tokenInfos.data.tokens.find(
           (token) => token.denom === perpsDenom[chain]
         );
         if (!perpsAsset) return;
@@ -116,7 +116,7 @@ async function apy() {
     async function getApyDataForAsset(assetParams, chain) {
       await Promise.all(
         assetParams.map(async (currentParams) => {
-          const asset = tokenInfos.data.find(
+          const asset = tokenInfos.data.tokens.find(
             (token) => token.denom === currentParams.denom
           );
           if (!asset) return;
