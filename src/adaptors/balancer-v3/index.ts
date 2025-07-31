@@ -78,12 +78,33 @@ const getV3Pools = async (backendChain, chainString) => {
 };
 
 const poolsFunction = async () => {
-  const [mainnetPools, gnosisPools] = await Promise.all([
+  const [
+    mainnetPools,
+    gnosisPools,
+    arbitrumPools,
+    optimismPools,
+    avalanchePools,
+    basePools,
+    hyperliquidPools,
+  ] = await Promise.all([
     getV3Pools('MAINNET', 'ethereum'),
     getV3Pools('GNOSIS', 'xdai'),
+    getV3Pools('ARBITRUM', 'arbitrum'),
+    getV3Pools('OPTIMISM', 'optimism'),
+    getV3Pools('AVALANCHE', 'avax'),
+    getV3Pools('BASE', 'base'),
+    getV3Pools('HYPEREVM', 'hyperliquid'),
   ]);
 
-  return [...mainnetPools, ...gnosisPools];
+  return [
+    ...mainnetPools,
+    ...gnosisPools,
+    ...arbitrumPools,
+    ...optimismPools,
+    ...avalanchePools,
+    ...basePools,
+    ...hyperliquidPools,
+  ];
 };
 
 module.exports = {
