@@ -65,7 +65,6 @@ const apy = async () => {
             symbol,
             underlyingTokens: [wsteth],
             apyBase: apr,
-            apy: apr,
             tvlUsd: totalPooledBWsteth.output / 1e18 * wstEthPrice,
         },
     ];
