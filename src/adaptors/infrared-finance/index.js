@@ -66,7 +66,6 @@ const apy = async () => {
       symbol,
       underlyingTokens: [bera],
       apyBase: apr,
-      apy: apr,
       tvlUsd: totalPooledBera.output/1e18 * beraPrice,
     },
   ];
