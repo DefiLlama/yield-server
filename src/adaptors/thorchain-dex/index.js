@@ -6,10 +6,12 @@ const chainMapping = {
   BCH: 'bitcoincash',
   BNB: 'binance',
   DOGE: 'doge',
-  LTC: 'litecoin',
+  LTC: 'litecoin', 
   TERRA: 'terra',
   GAIA: 'cosmos',
-  AVAX: 'avalanche',
+  AVAX: 'avalanche', 
+  BASE: 'base',
+  XRP: 'ripple'
 };
 
 const buildPool = (entry, runePrice) => {
