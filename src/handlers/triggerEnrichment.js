@@ -22,6 +22,10 @@ const main = async () => {
   // ---------- get lastet unique pool
   console.log('\ngetting pools');
   let data = await getYieldFiltered();
+  const aaveGHO = await getLatestYieldForPool(
+    '1e00ac2b-0c3c-4b1f-95be-9378f98d2b40'
+  );
+  data = [...data, ...aaveGHO];
 
   // remove aave v2 frozen assets from dataEnriched (we keep ingesting into db, but don't
   // want to display frozen pools on the UI)

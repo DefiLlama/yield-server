@@ -640,7 +640,7 @@ const boundaries = {
   // we only insert pools into the db with a tvlUsd of minimum $1k
   tvlUsdDB: { lb: 1e3, ub: 5e10 },
   // we only get pools for the UI with a tvlUsd of minimum $10k and max ($20 billion)
-  tvlUsdUI: { lb: 1e4, ub: 2e10 },
+  tvlUsdUI: { lb: 10000, ub: 2e10 },
   // we only get pools for the UI with a maximum apy of 1million %
   apy: { lb: 0, ub: 1e6 },
   // reading from database returns only pools which is max 7 days old
