@@ -11,47 +11,46 @@ const getYieldFiltered = async () => {
 
   // -- get latest yield row per unique configID (a pool)
   // -- exclude if tvlUsd is < LB
-  // -- exclude if pool age > 7days
+  // -- exclude if pool age > 7days (speeds up query)
   // -- join config data
   const query = `
-    SELECT
-        "configID",
-        pool,
-        timestamp,
-        project,
-        chain,
-        symbol,
-        "poolMeta",
-        "underlyingTokens",
-        "rewardTokens",
-        "tvlUsd",
-        apy,
-        "apyBase",
-        "apyReward",
-        "il7d",
-        "apyBase7d",
-        CASE WHEN "volumeUsd1d" < 0 THEN NULL ELSE "volumeUsd1d" END as "volumeUsd1d",
-        CASE WHEN "volumeUsd7d" < 0 THEN NULL ELSE "volumeUsd7d" END as "volumeUsd7d",
-        "apyBaseInception",
-        url
-    FROM
-        (
-            SELECT
-                DISTINCT ON ("configID") *
-            FROM
-                $<yieldTable:name>
-            WHERE
-                ("tvlUsd" >= $<tvlLB> OR "configID" = $<AAVE_GHO>)
-                AND timestamp >= NOW() - INTERVAL '$<age> DAY'
-            ORDER BY
-                "configID",
-                timestamp DESC
-        ) AS y
-        INNER JOIN $<configTable:name> AS c ON c.config_id = y."configID"
-    WHERE
-        pool NOT IN ($<excludePools:csv>)
-        AND project NOT IN ($<excludeProjects:csv>)
-        AND symbol not like '%RENBTC%'
+  WITH wanted_cfg AS (
+      SELECT *
+      FROM   $<configTable:name>
+      WHERE  pool    NOT IN ($<excludePools:csv>)
+        AND  project NOT IN ($<excludeProjects:csv>)
+        AND  symbol  NOT LIKE '%RENBTC%'
+  )
+  SELECT
+      c.config_id          AS "configID",
+      c.pool,
+      y.timestamp,
+      c.project,
+      c.chain,
+      c.symbol,
+      c."poolMeta",
+      c."underlyingTokens",
+      c."rewardTokens",
+      y."tvlUsd",
+      y.apy,
+      y."apyBase",
+      y."apyReward",
+      y."il7d",
+      y."apyBase7d",
+      CASE WHEN y."volumeUsd1d" < 0 THEN NULL ELSE y."volumeUsd1d" END AS "volumeUsd1d",
+      CASE WHEN y."volumeUsd7d" < 0 THEN NULL ELSE y."volumeUsd7d" END AS "volumeUsd7d",
+      y."apyBaseInception",
+      c.url
+  FROM   wanted_cfg AS c
+  CROSS  JOIN LATERAL (
+          SELECT *
+          FROM   $<yieldTable:name>
+          WHERE  "configID" = c.config_id
+            AND "tvlUsd" >= $<tvlLB>
+            AND  timestamp >= NOW() - INTERVAL '$<age> DAY'
+          ORDER  BY timestamp DESC
+          LIMIT  1
+  ) AS y
   `;
 
   const response = await conn.query(query, {
@@ -61,7 +60,56 @@ const getYieldFiltered = async () => {
     configTable: configTableName,
     excludePools: exclude.excludePools,
     excludeProjects: exclude.excludeAdaptors,
-    AAVE_GHO: '1e00ac2b-0c3c-4b1f-95be-9378f98d2b40',
+  });
+
+  if (!response) {
+    return new AppError(`Couldn't get ${tableName} data`, 404);
+  }
+
+  return response;
+};
+
+const getLatestYieldForPool = async (configID) => {
+  const conn = await connect();
+
+  const query = `
+  SELECT
+      y."configID"        AS "configID",
+      c.pool,
+      y.timestamp,
+      c.project,
+      c.chain,
+      c.symbol,
+      c."poolMeta",
+      c."underlyingTokens",
+      c."rewardTokens",
+      y."tvlUsd",
+      y.apy,
+      y."apyBase",
+      y."apyReward",
+      y."il7d",
+      y."apyBase7d",
+      CASE WHEN y."volumeUsd1d" < 0 THEN NULL ELSE y."volumeUsd1d" END AS "volumeUsd1d",
+      CASE WHEN y."volumeUsd7d" < 0 THEN NULL ELSE y."volumeUsd7d" END AS "volumeUsd7d",
+      y."apyBaseInception",
+      c.url
+  FROM   $<configTable:name> AS c
+  CROSS  JOIN LATERAL (
+          SELECT *
+          FROM   $<yieldTable:name>
+          WHERE  "configID" = $<configID>
+            AND  timestamp  >= NOW() - INTERVAL '$<age> DAY'
+          ORDER  BY timestamp DESC
+          LIMIT  1
+  ) AS y
+  WHERE  c.config_id = $<configID>;
+  `;
+
+  const response = await conn.query(query, {
+    configID,
+    age: exclude.boundaries.age,
+    yieldTable: tableName,
+    configTable: configTableName,
   });
 
   if (!response) {
@@ -187,38 +235,37 @@ const getYieldLendBorrow = async () => {
   const conn = await connect();
 
   const query = `
-    SELECT
-        "configID" as pool,
-        "apyBaseBorrow",
-        "apyRewardBorrow",
-        "totalSupplyUsd",
-        "totalBorrowUsd",
-        "debtCeilingUsd",
-        "ltv",
-        "borrowable",
-        "mintedCoin",
-        "rewardTokens",
-        "underlyingTokens",
-        "borrowFactor"
-    FROM
-        (
-            SELECT
-                DISTINCT ON ("configID") *
-            FROM
-                $<yieldTable:name>
-            WHERE
-                timestamp >= NOW() - INTERVAL '$<age> DAY'
-            ORDER BY
-                "configID",
-                timestamp DESC
-        ) AS y
-        INNER JOIN $<configTable:name> AS c ON c.config_id = y."configID"
-    WHERE
-        pool NOT IN ($<excludePools:csv>)
-        AND project NOT IN ($<excludeProjects:csv>)
-        AND ltv BETWEEN 0 AND 1
-        AND "totalSupplyUsd" >= 0
-        AND symbol not like '%RENBTC%'
+  WITH wanted_cfg AS (
+      SELECT *
+      FROM   $<configTable:name>
+      WHERE  pool    NOT IN ($<excludePools:csv>)
+        AND  project NOT IN ($<excludeProjects:csv>)
+        AND  symbol  NOT LIKE '%RENBTC%'
+        AND  ltv BETWEEN 0 AND 1
+  )
+  SELECT
+      c.config_id           AS pool,
+      y."apyBaseBorrow",
+      y."apyRewardBorrow",
+      y."totalSupplyUsd",
+      y."totalBorrowUsd",
+      y."debtCeilingUsd",
+      c.ltv,
+      c.borrowable,
+      c."mintedCoin",
+      c."rewardTokens",
+      c."underlyingTokens",
+      c."borrowFactor"
+  FROM   wanted_cfg AS c
+  CROSS  JOIN LATERAL (
+          SELECT *
+          FROM   $<yieldTable:name>
+          WHERE  "configID" = c.config_id
+            AND  timestamp  >= NOW() - INTERVAL '$<age> DAY'
+            AND  "totalSupplyUsd" >= 0
+          ORDER  BY timestamp DESC
+          LIMIT  1
+  ) AS y;
   `;
 
   const response = await conn.query(query, {
