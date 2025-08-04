@@ -14,6 +14,14 @@ const apy = async () => {
     (await sdk.api.erc20.totalSupply({ target: wbeth, chain: 'bsc' })).output /
     1e18;
 
+  const wbethExchangeRateRaw = await sdk.api.abi.call({
+    target: wbeth,
+    abi: 'uint256:exchangeRate',
+    chain: 'ethereum',
+  });
+
+  const wbethExchangeRate = wbethExchangeRateRaw.output / 1e18;
+
   const priceKey = `ethereum:${weth}`;
   const ethPrice = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
@@ -34,7 +42,7 @@ const apy = async () => {
       symbol,
       underlyingTokens: [weth],
       apyBase: apr,
-      tvlUsd: tvlEthereum * ethPrice,
+      tvlUsd: tvlEthereum * ethPrice * wbethExchangeRate,
     },
     {
       pool: `${wbeth}-bsc`,
@@ -43,7 +51,7 @@ const apy = async () => {
       symbol,
       underlyingTokens: [weth],
       apyBase: apr,
-      tvlUsd: tvlBsc * ethPrice,
+      tvlUsd: tvlBsc * ethPrice * wbethExchangeRate,
     },
   ];
 };
