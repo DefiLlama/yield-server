@@ -350,6 +350,7 @@ const buildInsertYieldQuery = (payload) => {
 
 module.exports = {
   getYieldFiltered,
+  getLatestYieldForPool,
   getYieldOffset,
   getYieldProject,
   getYieldLendBorrow,

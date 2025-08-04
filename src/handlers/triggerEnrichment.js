@@ -4,6 +4,7 @@ const ss = require('simple-statistics');
 const utils = require('../utils/s3');
 const {
   getYieldFiltered,
+  getLatestYieldForPool,
   getYieldOffset,
   getYieldAvg30d,
   getYieldLendBorrow,
