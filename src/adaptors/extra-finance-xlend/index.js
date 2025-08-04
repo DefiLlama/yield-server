@@ -1,13 +1,89 @@
-const axios = require('axios');
+const superagent = require('superagent');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const poolAbi = require('./poolAbi');
-const { aaveStakedTokenDataProviderAbi } = require('./abi');
 
 const protocolDataProviders = {
   optimism: '0xCC61E9470B5f0CE21a3F6255c73032B47AaeA9C0',
+  base: '0x1566DA4640b6a0b32fF309b07b8df6Ade40fd98D',
 };
+
+function getRewardInfo(merklRewards, reserve) {
+  let apyReward = 0;
+  let apyRewardBorrow = 0;
+  const rewardTokens = [];
+
+  // get supply reward
+  let targetRewardItem = merklRewards.find((rewardItem) => {
+    return (
+      rewardItem.action?.toLowerCase() === 'lend' &&
+      rewardItem.identifier?.toLowerCase() ===
+        reserve.aTokenAddress?.toLowerCase()
+    );
+  });
+  // type = MULTILOG_DUTCH
+  if (!targetRewardItem) {
+    targetRewardItem = merklRewards.find((rewardItem) => {
+      const tokensHasAtoken = rewardItem?.tokens?.find((tokenItem) => {
+        return (
+          tokenItem?.address?.toLowerCase() ===
+          reserve.aTokenAddress?.toLowerCase()
+        );
+      });
+      return (
+        rewardItem.action?.toLowerCase() === 'lend' &&
+        rewardItem.type === 'MULTILOG_DUTCH' &&
+        !!tokensHasAtoken
+      );
+    });
+  }
+  if (targetRewardItem) {
+    let incentiveAPR = String(targetRewardItem.apr / 100);
+    if (targetRewardItem.type === 'MULTILOG_DUTCH') {
+      if (
+        targetRewardItem?.effective &&
+        targetRewardItem?.effective?.userEffectiveUSD
+      ) {
+        incentiveAPR = String(
+          (targetRewardItem?.dailyRewards * 365) /
+            targetRewardItem?.effective?.userEffectiveUSD
+        );
+      }
+    }
+    apyReward = incentiveAPR * 100;
+    const rewardTk =targetRewardItem.rewardsRecord?.breakdowns?.[0]?.token?.address.toLowerCase()
+    if (!rewardTokens.includes(rewardTk)) {
+      rewardTokens.push(rewardTk);
+    }
+  }
+
+  // get borrow reward
+  const targetBorrowRewardItem = merklRewards.find((rewardItem) => {
+    return (
+      rewardItem.action?.toLowerCase() === 'borrow' &&
+      rewardItem.identifier?.toLowerCase() ===
+        reserve.variableDebtTokenAddress?.toLowerCase()
+    );
+  });
+  if (targetBorrowRewardItem) {
+    apyRewardBorrow =
+      ((targetBorrowRewardItem.rewardsRecord?.breakdowns?.[0]?.value * 365) /
+        targetBorrowRewardItem?.tvlRecord?.total) *
+        100 || 0;
+    
+    const rewardTk = targetBorrowRewardItem.rewardsRecord?.breakdowns?.[0]?.token?.address.toLowerCase()
+    if (!rewardTokens.includes(rewardTk)) {
+      rewardTokens.push(rewardTk);
+    }
+  }
+
+  return {
+    apyReward,
+    apyRewardBorrow,
+    rewardTokens,
+  };
+}
 
 const getApy = async (market) => {
   const chain = market;
@@ -21,14 +97,6 @@ const getApy = async (market) => {
     })
   ).output;
 
-  const aTokens = (
-    await sdk.api.abi.call({
-      target: protocolDataProvider,
-      abi: poolAbi.find((m) => m.name === 'getAllATokens'),
-      chain,
-    })
-  ).output;
-
   const poolsReserveData = (
     await sdk.api.abi.multiCall({
       calls: reserveTokens.map((p) => ({
@@ -36,6 +104,17 @@ const getApy = async (market) => {
         params: p.tokenAddress,
       })),
       abi: poolAbi.find((m) => m.name === 'getReserveData'),
+      chain,
+    })
+  ).output.map((o) => o.output);
+
+  const reserveTokenAddresses = (
+    await sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({
+        target: protocolDataProvider,
+        params: p.tokenAddress,
+      })),
+      abi: poolAbi.find((m) => m.name === 'getReserveTokensAddresses'),
       chain,
     })
   ).output.map((o) => o.output);
@@ -55,8 +134,8 @@ const getApy = async (market) => {
     await sdk.api.abi.multiCall({
       chain,
       abi: 'erc20:totalSupply',
-      calls: aTokens.map((t) => ({
-        target: t.tokenAddress,
+      calls: reserveTokenAddresses.map((t) => ({
+        target: t.aTokenAddress,
       })),
     })
   ).output.map((o) => o.output);
@@ -65,9 +144,9 @@ const getApy = async (market) => {
     await sdk.api.abi.multiCall({
       chain,
       abi: 'erc20:balanceOf',
-      calls: aTokens.map((t, i) => ({
+      calls: reserveTokenAddresses.map((t, i) => ({
         target: reserveTokens[i].tokenAddress,
-        params: [t.tokenAddress],
+        params: [t.aTokenAddress],
       })),
     })
   ).output.map((o) => o.output);
@@ -76,8 +155,8 @@ const getApy = async (market) => {
     await sdk.api.abi.multiCall({
       chain,
       abi: 'erc20:decimals',
-      calls: aTokens.map((t) => ({
-        target: t.tokenAddress,
+      calls: reserveTokenAddresses.map((t) => ({
+        target: t.aTokenAddress,
       })),
     })
   ).output.map((o) => o.output);
@@ -86,8 +165,19 @@ const getApy = async (market) => {
     .map((t) => `${chain}:${t.tokenAddress}`)
     .join(',');
   const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+    await superagent.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).body.coins;
+
+  let merklRewards = [];
+  try {
+    merklRewards = (
+      await superagent.get(
+        `https://api.merkl.xyz/v4/opportunities?mainProtocolId=xlend`
+      )
+    ).body.filter((i) => (i.status || '').toLowerCase() === 'live');
+  } catch (err) {
+    console.warn('get merkl rewards error');
+  }
 
   return reserveTokens
     .map((pool, i) => {
@@ -107,8 +197,13 @@ const getApy = async (market) => {
 
       const url = `https://xlend.extrafi.io/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=${market}`;
 
+      const { apyReward, apyRewardBorrow, rewardTokens } = getRewardInfo(
+        merklRewards || [],
+        reserveTokenAddresses[i]
+      );
+
       return {
-        pool: `${aTokens[i].tokenAddress}-${market}-extrafi-xlend`.toLowerCase(),
+        pool: `${reserveTokenAddresses[i].aTokenAddress}-${market}-extrafi-xlend`.toLowerCase(),
         chain,
         project: 'extra-finance-xlend',
         symbol: pool.symbol,
@@ -119,6 +214,9 @@ const getApy = async (market) => {
         totalBorrowUsd,
         debtCeilingUsd: null,
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+        apyReward,
+        apyRewardBorrow,
+        rewardTokens,
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         url,
         borrowable: poolsReservesConfigurationData[i].borrowingEnabled,

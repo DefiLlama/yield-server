@@ -5,6 +5,10 @@ const { chunk } = require('lodash');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 
+exports.formatAddress = (address) => {
+  return String(address).toLowerCase();
+};
+
 exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'xdai') return 'Gnosis';
   if (chain && chain.toLowerCase() === 'kcc') return 'KCC';
@@ -24,6 +28,7 @@ exports.formatChain = (chain) => {
     return 'zkSync Era';
   if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
   if (chain && chain.toLowerCase() === 'real') return 're.al';
+  if (chain && chain.toLowerCase() === 'plume_mainnet') return 'Plume Mainnet';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
@@ -218,6 +223,21 @@ exports.tvl = async (dataNow, networkString) => {
       tvl = 0;
     }
 
+    if (el.id === '0x3c03af907879e827f93c3903de813a60faab7986') {
+      console.log(el.reserve0 !== undefined);
+      console.log({
+        pair: el.id,
+        token0: el.token0,
+        token1: el.token1,
+        reserve0: el.reserve0,
+        reserve1: el.reserve1,
+        price0,
+        price1,
+        tvl,
+      });
+      process.exit(0);
+    }
+
     el['totalValueLockedUSD'] = tvl;
     el['price0'] = price0;
     el['price1'] = price1;
@@ -268,6 +288,21 @@ exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
   // calc 24h volume
   pool['volumeUSD1d'] = Number(pool.volumeUSD) - Number(pool.volumeUSDPrior1d);
   pool['volumeUSD7d'] = Number(pool.volumeUSD) - Number(pool.volumeUSDPrior7d);
+
+  if (pool.volumeToken0 && (pool['volumeUSD1d'] === 0 || pool['volumeUSD7d'] === 0)) {
+    const poolDataPrior1D = dataPrior1d.find((el) => el.id === pool.id)
+    const poolDataPrior7D = dataPrior7d.find((el) => el.id === pool.id)
+
+    if (pool['volumeUSD1d'] === 0 && poolDataPrior1D) {
+      const volumeToken0 = Number(pool.volumeToken0) - Number(poolDataPrior1D.volumeToken0);
+      pool['volumeUSD1d'] = volumeToken0 * pool.price0;
+    }
+    if (pool['volumeUSD7d'] === 0 && poolDataPrior7D) {
+      const volumeToken0 = Number(pool.volumeToken0) - Number(poolDataPrior7D.volumeToken0);
+      pool['volumeUSD7d'] = volumeToken0 * pool.price0;
+    }
+  }
+
 
   // calc fees
   pool['feeUSD1d'] = (pool.volumeUSD1d * Number(pool.feeTier)) / 1e6;
@@ -455,18 +490,21 @@ exports.getERC4626Info = async (
       target: address,
       block: blockNow,
       abi: totalAssetsAbi,
+      chain: chain,
     }),
     sdk.api.abi.call({
       target: address,
       block: blockNow,
       abi: convertToAssetsAbi,
       params: [assetUnit],
+      chain: chain,
     }),
     sdk.api.abi.call({
       target: address,
       block: blockYesterday,
       abi: convertToAssetsAbi,
       params: [assetUnit],
+      chain: chain,
     }),
   ]);
   const apy = (priceNow.output / priceYesterday.output) ** 365 * 100 - 100;

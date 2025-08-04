@@ -59,7 +59,6 @@ const excludeAdaptors = [
   'xy-finance',
   'quoll',
   'omnidex-lend',
-  'maple',
   'ease.org',
   'kyberswap-elastic',
   'penrose',
@@ -118,7 +117,6 @@ const excludeAdaptors = [
   'swapr-v2',
   'agave',
   'blueshift',
-  'index-coop',
   'gyroscope-protocol',
   'blue-planet',
   'archimedes-finance',
@@ -631,13 +629,18 @@ const excludePools = [
   '0xbc2539b24bba254b9843e992a3802027275c50c2ecef1b71d52e289781560ace',
   '0x1ba3281b6012f0b927d4d122bda293aa3cac487f',
   '0x1d60d7e0987aefb69c41c98fe3233d61f8d8315a-arbitrum',
+  '3AFvR4L5p25KHiKmuvEXg9SxfCf4MpanN3KuK5qASqqc',
+  '0xde1e437e0be59b596e69ff58e2bda9209a72ce8b',
+  '0x9552db595b21884ffcc6851e24a7e3cbe0b638b06e472f77e824b58e0bfe9e0f',
+  '0x219e6623b7bda645b95ea0b46d22c06081e2adb3-base',
+  '0xc87a900078f04c45b7f14e46c520d4a6f37296b0-ethereum',
 ];
 
 const boundaries = {
   // we only insert pools into the db with a tvlUsd of minimum $1k
   tvlUsdDB: { lb: 1e3, ub: 5e10 },
   // we only get pools for the UI with a tvlUsd of minimum $10k and max ($20 billion)
-  tvlUsdUI: { lb: 1e4, ub: 2e10 },
+  tvlUsdUI: { lb: 10000, ub: 2e10 },
   // we only get pools for the UI with a maximum apy of 1million %
   apy: { lb: 0, ub: 1e6 },
   // reading from database returns only pools which is max 7 days old

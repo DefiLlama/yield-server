@@ -129,8 +129,8 @@ async function getStakingProgram() {
         currTime <= endTimestamp
           ? currTime - lu
           : lu <= endTimestamp
-          ? endTimestamp - lu
-          : BigInt(0);
+            ? endTimestamp - lu
+            : BigInt(0);
       const rewardPerToken = rpt + (rewardRate * dt) / ts;
 
       const rewardAssetId = Number(

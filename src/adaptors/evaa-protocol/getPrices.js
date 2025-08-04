@@ -253,70 +253,94 @@ function packOraclesData(oraclesData, assets) {
   );
 }
 
-async function getPrices(endpoint = 'api.stardust-mainnet.iotaledger.net') {
+async function getPrices(endpoint = 'api.evaa.space') {
+  let allPricesData;
   try {
-    const prices = await Promise.all(
-      ORACLES.map(async (oracle) => {
-        try {
-          const outputResponse = await fetch(
-            `https://${endpoint}/api/indexer/v1/outputs/nft/${oracle.address}`,
-            {
-              headers: { accept: 'application/json' },
-              signal: AbortSignal.timeout(5000),
-            }
-          );
-          const outputData = await outputResponse.json();
-          const priceResponse = await fetch(
-            `https://${endpoint}/api/core/v2/outputs/${outputData.items[0]}`,
-            {
-              headers: { accept: 'application/json' },
-              signal: AbortSignal.timeout(5000),
-            }
-          );
-          const priceData = await priceResponse.json();
+    const primaryUrl = `https://${endpoint}/api/prices`;
+    const fallbackUrl =
+      'https://6khmc-aiaaa-aaaap-ansfq-cai.raw.icp0.io/prices';
+    let allPricesResponse;
 
-          const data = JSON.parse(
-            decodeURIComponent(
-              priceData.output.features[0].data
-                .replace('0x', '')
-                .replace(/[0-9a-f]{2}/g, '%$&')
-            )
-          );
+    try {
+      allPricesResponse = await fetch(primaryUrl, {
+        headers: { accept: 'application/json' },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!allPricesResponse.ok) {
+        throw new Error(
+          `Failed to fetch prices from primary EVAA API: ${allPricesResponse.status} ${allPricesResponse.statusText}`
+        );
+      }
+    } catch (primaryError) {
+      console.warn(
+        `Primary API fetch failed: ${primaryError.message}. Trying fallback...`
+      );
+      allPricesResponse = await fetch(fallbackUrl, {
+        headers: { accept: 'application/json' },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!allPricesResponse.ok) {
+        throw new Error(
+          `Failed to fetch prices from fallback EVAA API: ${allPricesResponse.status} ${allPricesResponse.statusText}`
+        );
+      }
+    }
+    allPricesData = await allPricesResponse.json();
+  } catch (error) {
+    console.error('Error fetching prices from all sources:', error);
+    return undefined;
+  }
 
-          const pricesCell = Cell.fromBoc(
-            Buffer.from(data.packedPrices, 'hex')
-          )[0];
-          const signature = Buffer.from(data.signature, 'hex');
-          const publicKey = Buffer.from(data.publicKey, 'hex');
-          const timestamp = Number(data.timestamp);
-
-          return {
-            dict: pricesCell
-              .beginParse()
-              .loadRef()
-              .beginParse()
-              .loadDictDirect(
-                Dictionary.Keys.BigUint(256),
-                Dictionary.Values.BigVarUint(4)
-              ),
-            dataCell: beginCell()
-              .storeRef(pricesCell)
-              .storeBuffer(signature)
-              .endCell(),
-            oracleId: oracle.id,
-            signature,
-            pubkey: publicKey,
-            timestamp,
-          };
-        } catch (error) {
-          console.error(
-            `Error fetching prices from oracle ${oracle.id}:`,
-            error
+  try {
+    const prices = ORACLES.map((oracle) => {
+      try {
+        const packedDataString = allPricesData[oracle.address];
+        if (!packedDataString) {
+          console.warn(
+            `No data found for oracle ${oracle.id} (address: ${oracle.address}) in EVAA API response.`
           );
           return null;
         }
-      })
-    );
+
+        const data = JSON.parse(
+          decodeURIComponent(
+            packedDataString.replace('0x', '').replace(/[0-9a-f]{2}/g, '%$&')
+          )
+        );
+
+        const pricesCell = Cell.fromBoc(
+          Buffer.from(data.packedPrices, 'hex')
+        )[0];
+        const signature = Buffer.from(data.signature, 'hex');
+        const publicKeyFromApi = Buffer.from(data.publicKey, 'hex');
+        const timestamp = Number(data.timestamp);
+
+        return {
+          dict: pricesCell
+            .beginParse()
+            .loadRef()
+            .beginParse()
+            .loadDictDirect(
+              Dictionary.Keys.BigUint(256),
+              Dictionary.Values.BigVarUint(4)
+            ),
+          dataCell: beginCell()
+            .storeRef(pricesCell)
+            .storeBuffer(signature)
+            .endCell(),
+          oracleId: oracle.id,
+          signature: signature,
+          pubkey: publicKeyFromApi,
+          timestamp: timestamp,
+        };
+      } catch (error) {
+        console.error(
+          `Error processing prices for oracle ${oracle.id} (address: ${oracle.address}):`,
+          error
+        );
+        return null;
+      }
+    });
 
     const validPrices = prices.filter(
       (price) =>
@@ -367,8 +391,8 @@ async function getPrices(endpoint = 'api.stardust-mainnet.iotaledger.net') {
       dict,
       dataCell: packPrices(packedMedianData, packedOracleData),
     };
-  } catch (error) {
-    console.error('Error processing prices:', error);
+  } catch (processingError) {
+    console.error('Error processing prices:', processingError);
     return undefined;
   }
 }

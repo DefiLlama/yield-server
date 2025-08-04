@@ -212,13 +212,17 @@ const updateWithRewardsV2Data = async (poolsInfo) => {
     remainingRewards.forEach(([rewardTokenId, remainingRewardsAmount]) => {
       const rewardTokenInfo = RewardsTokenV2[rewardTokenId];
       const rewardTokenPrice =
-        tokenPrices[`${rewardTokenInfo.chain}:${rewardTokenInfo.tokenAddress}`];
+        tokenPrices[
+          `${
+            rewardTokenInfo.chain
+          }:${rewardTokenInfo.tokenAddress.toLowerCase()}`
+        ];
 
       poolInfo.rewardTokens.push(rewardTokenInfo.tokenAddress);
       poolInfo.apyReward += calculateRewardAprPercentage(
         remainingRewardsAmount,
-        rewardTokenPrice.price,
-        rewardTokenPrice.decimals,
+        rewardTokenPrice?.price,
+        rewardTokenPrice?.decimals,
         poolInfo.totalSupplyUsd,
         remainingTime
       );

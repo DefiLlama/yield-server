@@ -24,12 +24,38 @@ function bufferToBigInt(buffer, start = 0, end = buffer.length) {
 }
 
 const assetsMAIN = {
-    TON: { assetId: sha256Hash("TON"), token: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c' },
-    jUSDT: { assetId: sha256Hash("jUSDT"), token: 'EQBynBO23ywHy_CgarY9NK9FTz0yDsG82PtcbSTQgGoXwiuA' },
-    USDT: { assetId: sha256Hash("USDT"), token: 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs' },
-    jUSDC: { assetId: sha256Hash("jUSDC"), token: 'EQB-MPwrd1G6WKNkLz_VnV6WqBDd142KMQv-g1O-8QUA3728' },
-    stTON: { assetId: sha256Hash("stTON"), token: 'EQDNhy-nxYFgUqzfUzImBEP67JqsyMIcyk2S5_RwNNEYku0k' },
-    tsTON: { assetId: sha256Hash("tsTON"), token: 'EQC98_qAmNEptUtPc7W6xdHh_ZHrBUFpw5Ft_IzNU20QAJav' },
+  TON: {
+    assetId: sha256Hash('TON'),
+    token: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',
+  },
+  jUSDT: {
+    assetId: sha256Hash('jUSDT'),
+    token: 'EQBynBO23ywHy_CgarY9NK9FTz0yDsG82PtcbSTQgGoXwiuA',
+  },
+  USDT: {
+    assetId: sha256Hash('USDT'),
+    token: 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs',
+  },
+  jUSDC: {
+    assetId: sha256Hash('jUSDC'),
+    token: 'EQB-MPwrd1G6WKNkLz_VnV6WqBDd142KMQv-g1O-8QUA3728',
+  },
+  stTON: {
+    assetId: sha256Hash('stTON'),
+    token: 'EQDNhy-nxYFgUqzfUzImBEP67JqsyMIcyk2S5_RwNNEYku0k',
+  },
+  tsTON: {
+    assetId: sha256Hash('tsTON'),
+    token: 'EQC98_qAmNEptUtPc7W6xdHh_ZHrBUFpw5Ft_IzNU20QAJav',
+  },
+  USDe: {
+    assetId: sha256Hash('USDe'),
+    token: 'EQAIb6KmdfdDR7CN1GBqVJuP25iCnLKCvBlJ07Evuu2dzP5f',
+  },
+  tsUSDe: {
+    assetId: sha256Hash('tsUSDe'),
+    token: 'EQDQ5UUyPHrLcQJlPAczd_fjxn8SLrlNQwolBznxCdSlfQwr',
+  },
 };
 
 const assetsLP = {
@@ -75,6 +101,25 @@ const assetsALTS = {
   CATI: {
     assetId: sha256Hash('CATI'),
     token: 'EQD-cvR0Nz6XAyRBvbhz-abTrRC6sI5tvHvvpeQraV9UAAD7',
+  },
+};
+
+const assetsSTABLE = {
+  USDT: {
+    assetId: sha256Hash('USDT'),
+    token: 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs',
+  },
+  USDe: {
+    assetId: sha256Hash('USDe'),
+    token: 'EQAIb6KmdfdDR7CN1GBqVJuP25iCnLKCvBlJ07Evuu2dzP5f',
+  },
+  tsUSDe: {
+    assetId: sha256Hash('tsUSDe'),
+    token: 'EQDQ5UUyPHrLcQJlPAczd_fjxn8SLrlNQwolBznxCdSlfQwr',
+  },
+  PT_tsUSDe_01Sep2025: {
+    assetId: sha256Hash('PT_tsUSDe_01Sep2025'),
+    token: 'EQDb90Bss5FnIyq7VMmnG2UeZIzZomQsILw9Hjo1wxaF1df3',
   },
 };
 
@@ -493,6 +538,14 @@ const getApy = async () => {
         'EQANURVS3fhBO9bivig34iyJQi97FhMbpivo1aUEAS2GYSu-',
         assetsALTS,
         'Alts',
+        prices,
+        distributions,
+        client
+      ),
+      getPoolData(
+        'EQCdIdXf1kA_2Hd9mbGzSFDEPA-Px-et8qTWHEXgRGo0K3zd',
+        assetsSTABLE,
+        'Stable',
         prices,
         distributions,
         client
