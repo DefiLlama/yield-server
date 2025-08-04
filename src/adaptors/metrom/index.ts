@@ -3,8 +3,6 @@ const { getData, formatChain, formatSymbol, keepFinite } = require('../utils');
 const PROJECT = 'metrom';
 
 const CHAIN_NAMES: Record<number, string> = {
-  34_443: 'Mode',
-  5_000: 'Mantle',
   8_453: 'Base',
   167_000: 'Taiko',
   534_352: 'Scroll',
@@ -14,6 +12,10 @@ const CHAIN_NAMES: Record<number, string> = {
   40: 'Telos',
   1_890: 'LightLink',
   1_329: 'Sei',
+  1_923: 'Swell',
+  43_111: 'Hemi',
+  232: 'Lens',
+  994873017: 'Lumia',
 };
 
 interface Erc20Token {
