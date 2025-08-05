@@ -204,7 +204,7 @@ const apy = async () => {
     return {
       pool: aTokenAddress.toLowerCase(),
       chain,
-      project: 'more-lend',
+      project: 'more-markets',
       symbol,
       tvlUsd,
       apyBase: supplyAPY,
