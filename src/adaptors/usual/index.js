@@ -22,6 +22,7 @@ const CONFIG = {
   USUALX_TOKEN: '0x06B964d96f5dCF7Eae9d7C559B09EDCe244d4B8E',
   USUALX_LOCKUP: '0x85B6F9BDdb10c6B320d07416a250F984f0F0E9ED',
   USUALX_LOCKUP_SYMBOL: 'lUSUALx (12 months)',
+  USD0_SYMBOL: 'USD0',
   USUAL_SYMBOL: 'USUAL',
   USD0PP_SYMBOL: 'USD0++',
   ETH0_SYMBOL: 'ETH0',
@@ -157,11 +158,12 @@ async function getUsualXAPY(chain, usualXPrice) {
   const usualXLockupMarketCap = usualXLockupBalance * usualXPrice;
   const usualXUnlockedMarketCap = usualxMarketCap - usualXLockupMarketCap;
 
-  const revenueSwitchApr =
-    (CONFIG.DAO_PROJECTED_WEEKLY_REVENUE * CONFIG.WEEKS_PER_YEAR) /
-    usualxMarketCap;
+  const revenueSwitch = await getRewardData(
+    CONFIG.USUALX_LOCKUP_SYMBOL,
+    CONFIG.USD0_SYMBOL
+  );
   const usualxApyRevenueSwitch = utils.aprToApy(
-    revenueSwitchApr * 100,
+    revenueSwitch.apr,
     CONFIG.WEEKS_PER_YEAR
   );
 
