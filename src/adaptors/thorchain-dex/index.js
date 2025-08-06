@@ -24,7 +24,7 @@ const buildPool = (entry, runePrice) => {
   const newObj = {
     pool: entry.asset,
     chain: chain !== undefined ? utils.formatChain(chain) : null,
-    project: 'thorchain',
+    project: 'thorchain-dex',
     symbol: utils.formatSymbol(symbol),
     tvlUsd: balanceAsset + balanceRune,
     apy: Number(entry.poolAPY) * 100,
@@ -44,7 +44,7 @@ const buildSavers = (entry, runePrice) => {
   const newObj = {
     pool: `${entry.asset}-thorchain-savers`,
     chain: chain !== undefined ? utils.formatChain(chain) : null,
-    project: 'thorchain',
+    project: 'thorchain-dex',
     symbol: utils.formatSymbol(symbol),
     tvlUsd: balanceAsset,
     apy: Number(entry.saversAPR) * 100,

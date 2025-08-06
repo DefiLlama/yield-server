@@ -67,6 +67,8 @@ async function main() {
           new Set(pool.rewardInfos?.map((reward) => reward.tokenMetadata) || [])
         ),
         underlyingTokens: [pool.token0, pool.token1],
+        volumeUsd1d: +pool.volume24h,
+        volumeUsd7d: +pool.volume7d,
       };
     })
     .filter(Boolean); // Remove null entries
