@@ -3,7 +3,6 @@ const axios = require('axios');
 const utils = require('../utils');
 const ethers = require('ethers');
 const abi = require('./abi');
-const { pool } = require('../rocifi-v2/abi');
 
 const CONFIG = {
   ETHEREUM: {
