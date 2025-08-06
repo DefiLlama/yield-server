@@ -17,7 +17,7 @@ async function apy() {
   const stats = await getStats();
 
   // TVL
-  const tvlTrx = stats.total_energy / 10.52;
+  const tvlTrx = stats.total_energy / cfg.trx_staking_energy_rate;
   const tvlUsd = tvlTrx * cfg.trx_usd_rate;
 
   // APY  (profit_percent + static_percent) * percent_cef
@@ -38,9 +38,7 @@ async function apy() {
 }
 
 module.exports = {
-  project: "tr-energy",
   timetravel: false,
   apy,
   url: "https://tr.energy",
-  misrepresentedTokens: true,
 }
