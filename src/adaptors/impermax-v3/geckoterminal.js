@@ -1,5 +1,5 @@
 const GECKOTERMINAL_IDS = { 
-  avalanche: 'avax',
+  avax: 'avax',
   ethereum: 'eth',
   polygon: 'polygon_pos',
   arbitrum: 'arbitrum',
