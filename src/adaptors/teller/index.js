@@ -4,13 +4,13 @@
 
   // Supported chains and their subgraph endpoints
   const chains = {
-    ethereum: sdk.graph.modifyEndpoint('x6qJPkv7FaCWkfcjDWx12Z2NEfsvCCwuy87vQzk9zRh'),
+    ethereum:  "https://hasura-mainnet.nfteller.org/v1/graphql" //sdk.graph.modifyEndpoint('x6qJPkv7FaCWkfcjDWx12Z2NEfsvCCwuy87vQzk9zRh'),
   };
 
   // GraphQL query to get current pool metrics
   const query = gql`
-    query GetPoolMetrics($block: Block_height) {
-      groupPoolMetrics(first: 1000, block: $block) {
+    query groupPoolMetrics($block: Block_height) {
+      group_pool_metric(limit: 1000) {
         id
         group_pool_address
         principal_token_address
@@ -51,13 +51,9 @@
   };
 
   const topLvl = async (chainString, url, query, timestamp) => {
-    // Get the current block and calculate block number minus 30 in case indexer is delayed
-    const [block] = await utils.getBlocks(chainString, timestamp, [url]);
-    const blockMinus30 = block ? { number: Number(block) - 30 } : null;
-
-    // Fetch pool data from blockMinus30
-    let dataNow = await request(url, query, { block: blockMinus30 });
-    dataNow = dataNow.groupPoolMetrics;
+    // Fetch pool data from current state (Hasura endpoint doesn't support block queries)
+    let dataNow = await request(url, query);
+    dataNow = dataNow.group_pool_metric;
 
     // Get unique token addresses from all pools
     const tokenAddresses = new Set();
