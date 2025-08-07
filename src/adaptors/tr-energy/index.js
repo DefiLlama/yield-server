@@ -11,14 +11,20 @@ async function getStats() {
   return data.data;
 }
 
+async function getTrxPrice() {
+  const { data } = await axios.get('https://coins.llama.fi/prices/current/coingecko:tron')
+  return data.coins
+}
+
 
 async function apy() {
   const cfg   = await getConfig();
   const stats = await getStats();
+  const trxPrice = await getTrxPrice();
 
   // TVL
   const tvlTrx = stats.total_energy / cfg.trx_staking_energy_rate;
-  const tvlUsd = tvlTrx * cfg.trx_usd_rate;
+  const tvlUsd = tvlTrx * trxPrice['coingecko:tron'].price;
 
   // APY  (profit_percent + static_percent) * percent_cef
   const baseApy = (cfg.profit_percent + cfg.static_percent) * cfg.percent_cef * 100;
