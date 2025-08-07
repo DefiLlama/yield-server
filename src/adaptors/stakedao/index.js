@@ -26,7 +26,7 @@ const poolsFunction = async () => {
     utils.getData(`${API_ENDPOINT}lockers`),
   ]);
 
-  const curveStrategies = resp[0].deployed;
+  const curveStrategies = resp[0].deployed.filter(s => s.chainId !== 42161);
   const pendleStrategies = resp[1].deployed;
   const balancerStrategies = resp[2].deployed;
   const yearnStrategies = resp[3].deployed;
