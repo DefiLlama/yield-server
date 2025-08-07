@@ -49,7 +49,7 @@ async function apy() {
       return sum.add(BigNumber.from(deposit.totalAssets));
     }, BigNumber.from(0)).div(depositProfits.length);
 
-  const lastDepositProfit = depositProfits[depositProfits.length - 1];
+  const lastDepositProfit = depositProfits[0];
 
   const timeDiff =
     new Date(parseInt(lastDepositProfit.blockTimestamp) * 1000).getTime() - startTimestamp;
