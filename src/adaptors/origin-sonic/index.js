@@ -51,7 +51,7 @@ const apy = async () => {
 
     return [
         {
-            pool: `${WRAPPED_ORIGIN_SONIC}`,
+            pool: `${ORIGIN_SONIC}`,
             chain: 'sonic',
             project,
             symbol,
