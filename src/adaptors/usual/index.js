@@ -17,7 +17,10 @@ const CONFIG = {
     USD0: '0x35f1C5cB7Fb977E669fD244C567Da99d8a3a6850',
     CHAIN: 'Arbitrum',
   },
+  USUSDSPP_VAULT: '0x67ec31a47a4126A66C7bb2fE017308cf5832A4Db',
+  USUSDSPP_VAULT_SYMBOL: 'usUSDS++',
   USUAL_TOKEN: '0xC4441c2BE5d8fA8126822B9929CA0b81Ea0DE38E',
+  SUSDS_TOKEN: '0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD',
   USUALX_TOKEN: '0x06B964d96f5dCF7Eae9d7C559B09EDCe244d4B8E',
   USUALX_LOCKUP: '0x85B6F9BDdb10c6B320d07416a250F984f0F0E9ED',
   USUALX_LOCKUP_SYMBOL: 'lUSUALx (12 months)',
@@ -175,6 +178,64 @@ async function getUsualXAPY(chain, usualXPrice) {
   };
 }
 
+async function getUsUSDSAPY(chain) {
+  const { output } = await sdk.api.abi.call({
+    target: CONFIG.USUSDSPP_VAULT,
+    chain: chain.toLowerCase(),
+    abi: abi.find((abi) => abi.name === 'totalAssets'),
+  });
+  const totalAssets = output / CONFIG.SCALAR;
+
+  const blacklistedBalances = await sdk.api.abi
+    .multiCall({
+      abi: 'erc20:balanceOf',
+      calls: CONFIG.USUALX_BALANCES_BLACKLIST.map((address) => ({
+        target: CONFIG.USUSDSPP_VAULT,
+        params: [address],
+      })),
+      chain: chain.toLowerCase(),
+      permitFailure: true,
+    })
+    .then((call) =>
+      call.output.map((e) => {
+        return e.output / CONFIG.SCALAR;
+      })
+    );
+
+  const rawUsUSDSppTVL = await getTokenSupply(chain, CONFIG.USUSDSPP_VAULT);
+
+  const usualXTVL =
+    rawUsUSDSppTVL - (blacklistedBalances?.reduce((a, b) => a + b, 0) ?? 0);
+
+  //sUSDS++ vault data
+  const susdsBalance = await getTokenBalance(
+    'Ethereum',
+    CONFIG.SUSDS_TOKEN,
+    CONFIG.USUSDSPP_VAULT
+  );
+  const susdsPrice = await getTokenPrice('Ethereum', CONFIG.SUSDS_TOKEN);
+  const usUSDSppMarketCap = susdsBalance * susdsPrice;
+
+  const baseRewards = await getRewardData(
+    CONFIG.USUSDSPP_VAULT_SYMBOL,
+    CONFIG.USD0PP_SYMBOL
+  );
+  const baseUsUSDSApy = utils.aprToApy(baseRewards.apr, CONFIG.WEEKS_PER_YEAR);
+  const usualRewards = await getRewardData(
+    CONFIG.USUSDSPP_VAULT_SYMBOL,
+    CONFIG.USUAL_SYMBOL
+  );
+  const usUSDSRewardApy = utils.aprToApy(
+    usualRewards.apr,
+    CONFIG.WEEKS_PER_YEAR
+  );
+  return {
+    baseUsUSDSApy,
+    usUSDSRewardApy,
+    usUSDSppMarketCap,
+  };
+}
+
 async function getRewardData(pool, reward) {
   const { data } = await axios.get(`${CONFIG.URLS.REWARD_APR_RATE}`);
   const apr = data[pool][reward];
@@ -218,7 +279,8 @@ const apy = async () => {
     usualXLockupMarketCap,
     usualXUnlockedMarketCap,
   } = await getUsualXAPY('Ethereum', usualxPrice);
-
+  const { baseUsUSDSApy, usUSDSRewardApy, usUSDSppMarketCap } =
+    await getUsUSDSAPY('Ethereum');
   return [
     createPoolData(
       CONFIG.ETHEREUM.CHAIN,
@@ -272,6 +334,19 @@ const apy = async () => {
       underlyingTokens: [CONFIG.USUAL_TOKEN],
       poolMeta: 'USUALx Lockup',
       url: 'https://app.usual.money/swap?from=USUALx&to=lUSUALx',
+    },
+    {
+      pool: CONFIG.USUSDSPP_VAULT,
+      chain: 'Ethereum',
+      project: 'usual',
+      symbol: 'usUSDS++',
+      tvlUsd: usUSDSppMarketCap,
+      apyBase: baseUsUSDSApy, // Weekly compounding for USUSDS++ APY in USD0++
+      apyReward: usUSDSRewardApy, // Reward in Usual APY for USUSDS++
+      rewardTokens: [CONFIG.USUAL_TOKEN],
+      underlyingTokens: [CONFIG.ETHEREUM.USD0PP],
+      poolMeta: 'usUSDS++ vault',
+      url: 'https://app.usual.money/vault/susds',
     },
   ];
 };
