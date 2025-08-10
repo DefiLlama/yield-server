@@ -225,7 +225,7 @@ const stkGho = async () => {
     pool: `${STKGHO}-ethereum`.toLowerCase(),
     chain: 'Ethereum',
     project: 'aave-v3',
-    symbol: 'GHO',
+    symbol: 'sGHO',
     tvlUsd: stkghoSupply * ghoPrice,
     apy: stkghoApy,
     url: 'https://app.aave.com/staking',

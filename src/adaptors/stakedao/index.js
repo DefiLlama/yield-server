@@ -8,28 +8,36 @@ const CHAINS = {
   42161: 'arbitrum',
   56: 'bsc',
   252: 'fraxtal',
+  10: 'optimism',
+  8453: 'base',
+  146: 'sonic',
 };
 
 const poolsFunction = async () => {
   const resp = await Promise.all([
+    // Strategies v1
     utils.getData(`${API_ENDPOINT}strategies/curve`),
     utils.getData(`${API_ENDPOINT}strategies/pendle`),
     utils.getData(`${API_ENDPOINT}strategies/balancer`),
     utils.getData(`${API_ENDPOINT}strategies/yearn`),
-    utils.getData(`${API_ENDPOINT}strategies/pancakeswap`),
+    // Strategies v2
+    utils.getData(`${API_ENDPOINT}strategies/v2/curve`),
+    // Lockers
     utils.getData(`${API_ENDPOINT}lockers`),
   ]);
-  const curveStrategies = resp[0].deployed;
+
+  const curveStrategies = resp[0].deployed.filter(s => s.chainId !== 42161);
   const pendleStrategies = resp[1].deployed;
   const balancerStrategies = resp[2].deployed;
   const yearnStrategies = resp[3].deployed;
-  const pancakeswapStrategies = resp[4].deployed;
+
+  const v2CurveStrategies = resp[4];
 
   const strats = curveStrategies
     .concat(pendleStrategies)
     .concat(balancerStrategies)
     .concat(yearnStrategies)
-    .concat(pancakeswapStrategies)
+    .concat(v2CurveStrategies)
     .reduce((acc, strat) => {
       const rewardTokens = strat?.rewards
         ?.filter((t) => {

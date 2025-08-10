@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 const fetch = require('node-fetch');
 const { request } = require('graphql-request');
 const { default: BigNumber } = require('bignumber.js');
+const utils = require('../utils');
 
 // Impermax
 const {
@@ -20,7 +21,7 @@ const config = {
   arbitrum: ['https://arbitrum-factory-v3-production.up.railway.app/'],
   base: ['https://base-factory-v3-production.up.railway.app/'],
   unichain: ['https://unichain-factoryv3-production.up.railway.app/'],
-  avalanche: [],
+  avax: [],
   scroll: [],
   polygon: [],
   sonic: [],
@@ -53,7 +54,7 @@ const lendingVaultsConfig = {
   unichain: [
     'https://api.studio.thegraph.com/query/46041/lending-vault-unichain/v0.0.1',
   ],
-  avalanche: [
+  avax: [
     'https://avalanche-lendingvaults-production.up.railway.app'
   ]
 };
@@ -65,6 +66,7 @@ const projectPoolFactories = {
   },
   base: {
     UniswapV3: ['0xc2da400cf63e9a01680c8fe14ab360098a35dcd8'],
+    Aerodrome: ['0xf159c02bff0617a58d8e5b811aa63ca3aea0bb04']
   },
   unichain: {
     UniswapV3: ['0x62b45128b3c2783d5b1f86e6db92c9aa43eed6af'],
@@ -145,7 +147,7 @@ const lendingVaultProfiles = {
       risk: "Conservative"
     }
   ],
-  avalanche: [
+  avax: [
     {
       address: "0x6859e20754ffbf93a81428f3da55c9f0eb723b2a".toLowerCase(),
       risk: "Balanced",
@@ -343,6 +345,12 @@ const getTotalSupplyUsd = (totalBalance, totalBorrows, tokenPriceUsd) =>
     .plus(BigNumber(totalBalance))
     .times(BigNumber(tokenPriceUsd));
 
+// For urls
+const formatImpermaxURLChain = (chain) => {
+  if (chain === 'avax') return 'avalanche'
+  return chain
+}
+
 /**
  * -> Loop through each chain from config
  *   -> Get all borrowables + lending vaults on this chain
@@ -362,9 +370,10 @@ const main = async () => {
       getChainVaults(chain),
     ]);
 
+    const chainPools = [...borrowables, ...lendingVaults];
     const prices = await getChainUnderlyingPrices(
       chain,
-      borrowables.map((i) => i.underlying.id)
+      chainPools.map((i) => i.underlying.id)
     );
 
     /**
@@ -417,7 +426,7 @@ const main = async () => {
       pools.push({
         pool: `${lendingPool.id}-${underlying.symbol}-${chain}`.toLowerCase(),
         poolMeta: `${project} ${token0.symbol}/${token1.symbol}`,
-        chain,
+        chain: utils.formatChain(formatImpermaxURLChain(chain)),
         project: 'impermax-v3',
         symbol: underlying.symbol,
         tvlUsd: tvlUsd.toNumber(),
@@ -427,7 +436,7 @@ const main = async () => {
         apyBaseBorrow: borrowApr.toNumber(),
         underlyingTokens: [token0.id, token1.id],
         ltv: Number(ltv.toFixed(3)),
-        url: 'https://impermax.finance',
+        url: `https://app.impermax.finance/markets/${formatImpermaxURLChain(chain)}/8/${lendingPool.id}`, // V3 pools always use factory "8"
       });
     }
 
@@ -435,7 +444,7 @@ const main = async () => {
      * Add lending vaults
      */
     for (const vault of lendingVaults) {
-      const { id, supplyRate, underlying, availableLiquidity } = vault;
+      const { id, supplyRate, underlying, totalSupply, exchangeRate } = vault;
 
       const price = prices[`${chain}:${underlying.id}`];
       if (!price) {
@@ -444,23 +453,25 @@ const main = async () => {
       }
 
       const apyBase = Number(supplyRate) * 24 * 60 * 60 * 365 * 100;
-      const tvlUsd = price * Number(availableLiquidity);
+      const tvlUsd = price * Number(totalSupply) * Number(exchangeRate);
 
       const chainVaults = lendingVaultProfiles[chain] || [];
-      const vaultRisk =
-        chainVaults.find((v) => v?.address.toLowerCase() === id.toLowerCase())
-          ?.risk ?? 'Conservative';
+      const vaultRisk = chainVaults.find((v) => v?.address.toLowerCase() === id.toLowerCase())?.risk;
+      if (!vaultRisk) {
+        console.warn(`Deprecated vault or missing profile, skipping vault ${vault.id} on ${chain}`)
+        continue;
+      }
 
       pools.push({
         pool: `${id}-${underlying.symbol}-${chain}`.toLowerCase(),
         poolMeta: `${vaultRisk}`,
-        chain,
+        chain: utils.formatChain(formatImpermaxURLChain(chain)),
         project: 'impermax-v3',
         symbol: underlying.symbol,
         tvlUsd,
         apyBase,
         underlyingTokens: [underlying.id],
-        url: 'https://lite.impermax.finance/',
+        url: `https://app.impermax.finance/vaults/${formatImpermaxURLChain(chain)}/${id}`,
       });
     }
   }

@@ -63,7 +63,7 @@ const apy = async () => {
     {
       pool: cdceth.cronos,
       chain: 'cronos',
-      project: 'crypto.com-staked-eth',
+      project: 'crypto.com-liquid-staking',
       symbol: 'cdcETH',
       tvlUsd: totalSupply * price,
       apyBase: apr7d,
