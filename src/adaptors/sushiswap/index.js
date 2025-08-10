@@ -16,9 +16,8 @@ const { rewarderABI } = require('./abiRewarder');
 const urlEthereum = sdk.graph.modifyEndpoint(
   '6NUtT5mGjZ1tSshKLf5Q3uEEJtjBZJo1TpL5MXsUBqrT'
 );
-const urlArbitrum = sdk.graph.modifyEndpoint(
-  '8nFDCAhdnJQEhQF3ZRnfWkJ6FkRsfAiiVabVn4eGoAZH'
-);
+const urlArbitrum = `https://gateway-arbitrum.network.thegraph.com/api/${env.GRAPH_API_KEY}/deployments/id/QmfN96hDXYtgeLsBv5WjQY8FAwqBfBFoiq8gzsn9oApcoU`;
+
 const urlPolygon = sdk.graph.modifyEndpoint(
   '8NiXkxLRT3R22vpwLB4DXttpEf3X1LrKhe4T1tQ3jjbP'
 );
@@ -130,7 +129,12 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
     let data = (
       await request(urlExchange, query.replace('<PLACEHOLDER>', block))
     ).pairs;
-    const dataPrior = (await request(urlExchange, queryPrior.replace('<PLACEHOLDER>', blockPrior))).pairs;
+    const dataPrior = (
+      await request(
+        urlExchange,
+        queryPrior.replace('<PLACEHOLDER>', blockPrior)
+      )
+    ).pairs;
 
     // 7d offset
     const dataPrior7d = (
