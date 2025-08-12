@@ -31,7 +31,15 @@ const apy = async (timestamp) => {
         '0x0b2c639c533813f4aa9d7837caf62653d097ff85'
     );
 
-    return [fortyAcresBasevault, fortyAcresOpvault];
+    const fortyAcresAvaxVault = await getVault(
+        timestamp,
+        '0x124D00b1ce4453Ffc5a5F65cE83aF13A7709baC7',
+        'avax',
+        '40avax-USDC-Vault',
+        '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E'
+    );
+
+    return [fortyAcresBasevault, fortyAcresOpvault, fortyAcresAvaxVault];
 };
 
 module.exports = {
