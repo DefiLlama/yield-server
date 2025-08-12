@@ -1,6 +1,6 @@
 const utils = require('../utils');
 
-const API_ENDPOINT = 'https://api.stakedao.org/api/';
+const API_ENDPOINT = 'https://api.stake-dao.org/api/';
 const SDT_ADDRESS = '0x73968b9a57c6e53d41345fd57a6e6ae27d6cdb2f';
 
 const CHAINS = {
@@ -26,7 +26,7 @@ const poolsFunction = async () => {
     utils.getData(`${API_ENDPOINT}lockers`),
   ]);
 
-  const curveStrategies = resp[0].deployed.filter(s => s.chainId !== 42161);
+  const curveStrategies = resp[0].deployed.filter((s) => s.chainId !== 42161);
   const pendleStrategies = resp[1].deployed;
   const balancerStrategies = resp[2].deployed;
   const yearnStrategies = resp[3].deployed;
@@ -70,7 +70,7 @@ const poolsFunction = async () => {
         {
           pool: `sd-${strat.key}-${CHAINS[strat.chainId]}`,
           chain: utils.formatChain(CHAINS[strat.chainId]),
-          project: 'stakedao',
+          project: 'stake-dao',
           symbol: symbol ? utils.formatSymbol(symbol) : null,
           poolMeta: strat.protocol ? utils.formatChain(strat.protocol) : null,
           tvlUsd: strat.tvl,
@@ -93,7 +93,7 @@ const poolsFunction = async () => {
       return {
         pool: locker.sdToken.symbol,
         chain: utils.formatChain(CHAINS[locker.chainId]),
-        project: 'stakedao',
+        project: 'stake-dao',
         symbol: utils.formatSymbol(locker.sdToken.symbol),
         poolMeta: locker.protocol ? utils.formatChain(locker.protocol) : null,
         tvlUsd: locker.tvl,
@@ -114,5 +114,5 @@ const poolsFunction = async () => {
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
-  url: 'https://stakedao.org',
+  url: 'https://stake-dao.org',
 };
