@@ -100,6 +100,14 @@ const HubPools = {
         tokenAddress: '0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7',
         spokeAddress: '0x66dD1c6bEAdFFcA88365BAdE7928323672323d11',
       },
+      {
+        // YBTCB
+        id: 53,
+        underlyingSymbol: 'YBTC.B',
+        poolAddress: '0x13A21bC65844CD530098Ab15431c57078ea90737',
+        tokenAddress: '0x2cd3CdB3bd68Eea0d3BE81DA707bC0c8743D7335',
+        spokeAddress: '0x24dB057615203c0f27F0968452A0f2327e6bC86F',
+      },
     ],
   },
   ethereum: {
@@ -107,6 +115,7 @@ const HubPools = {
     pools: [
       // excluding USDC because bridged
       // excluding SolvBTC because bridged
+      // excluding YBTCB because bridged
       {
         // ETH_eth
         id: 4,
@@ -248,6 +257,7 @@ const HubPools = {
     name: 'Binance',
     pools: [
       // excluding SolvBTC because bridged
+      // excluding YBTCB because bridged
       {
         // BNB
         id: 10,
