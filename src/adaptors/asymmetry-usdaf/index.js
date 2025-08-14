@@ -325,7 +325,7 @@ const ABIS = {
           tvlUsd: spSupplyUsd,
           underlyingTokens: [BOLD_TOKEN],
           rewardTokens: [BOLD_TOKEN, branch.collToken],
-          poolMeta: `USDaf deposited in the ${branch.symbol} Stability Pool earns continuous USDaf yield and periodic ${branch.symbol} rewards from Trove liquidations`
+          poolMeta: `${branch.symbol} Stability Pool`
         }
 
       const borrowPool = 
