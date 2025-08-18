@@ -180,6 +180,14 @@ const HubPools = {
         tokenAddress: '0xdac17f958d2ee523a2206206994597c13d831ec7',
         spokeAddress: '0x12d4FeDD9cE1b4d7dB90b07366284ac1675a5a90',
       },
+      {
+        // SYRUP_eth
+        id: 54,
+        underlyingSymbol: 'SYRUP',
+        poolAddress: '0xD4F87eb6cc8795e727F7DbC1e2C6c3452ad0010c',
+        tokenAddress: '0x643C4E15d7d62Ad0aBeC4a9BD4b001aA3Ef52d66',
+        spokeAddress: '0x3aEa5E1f27935Ed59424F35Ea801420d804219E4',
+      },
     ],
   },
   base: {
