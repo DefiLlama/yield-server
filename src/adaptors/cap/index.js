@@ -25,7 +25,7 @@ const poolsFunction = async () => {
     const stcUSDPool = {
         pool: stcUSDInfos.pool,
         chain: utils.formatChain(chain),
-        project: 'cap-money',
+        project: 'cap',
         symbol: utils.formatSymbol(stcUSD.id),
         tvlUsd: tvlUsdNum,
         apy: stcUSDInfos.apyBase,
