@@ -159,6 +159,7 @@ const excludeAdaptors = [
   'rhino.fi',
   'icpex',
   'nx-finance',
+  'c3-exchange',
 ];
 
 const excludePools = [
