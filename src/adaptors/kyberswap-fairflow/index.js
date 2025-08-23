@@ -97,7 +97,7 @@ const topLvl = async (timestamp) => {
           return {
             pool: `${pool.poolAddress}-${chain}`,
             chain: utils.formatChain(chain),
-            project: 'KyberSwap Fairflow',
+            project: 'kyberswap-fairflow',
             symbol,
             tvlUsd: parseFloat(pool.tvlUsd) || 0,
             apyBase,
