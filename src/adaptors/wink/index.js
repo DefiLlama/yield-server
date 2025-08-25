@@ -154,7 +154,7 @@ const poolsFunction = async () => {
         chain: utils.formatChain(chain),
         project: 'wink',
         symbol: 'LockWINK',
-        tvlUsd: new BigNumber(lockWinkBalance).times(winkData.price).div(1e18).toNumber(),
+        tvlUsd: new BigNumber(lockWinkBalance).times(winkData?.price).div(1e18).toNumber(),
         apyReward: await getLockWinkApy(fromBlock, toBlock, lockWinkBalance),
         rewardTokens: [WINK_TOKEN_ADDRESS],
         poolMeta: '3 to 24 months lock'
@@ -163,7 +163,7 @@ const poolsFunction = async () => {
         chain: utils.formatChain(chain),
         project: 'wink',
         symbol: 'LockUSDW',
-        tvlUsd: new BigNumber(lockUsdwBalance).times(usdwData.price).div(1e18).toNumber(),
+        tvlUsd: new BigNumber(lockUsdwBalance).times(usdwData?.price).div(1e18).toNumber(),
         apyReward: await getLockUsdwApy(),
         rewardTokens: [USDW_TOKEN_ADDRESS],
         poolMeta: '3 to 24 months lock'
@@ -172,7 +172,7 @@ const poolsFunction = async () => {
         chain: utils.formatChain(chain),
         project: 'wink',
         symbol: 'sUSDW',
-        tvlUsd: new BigNumber(susdwBalance).times(usdwData.price).div(1e18).toNumber(),
+        tvlUsd: new BigNumber(susdwBalance).times(usdwData?.price).div(1e18).toNumber(),
         apyReward: await getSusdwApy(),
         rewardTokens: [USDW_TOKEN_ADDRESS],
         poolMeta: 'Liquid staking'
