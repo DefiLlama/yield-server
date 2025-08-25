@@ -4,6 +4,7 @@ const axios = require('axios');
 const abi = require('./abi');
 
 const archController = '0xfEB516d9D946dD487A9346F6fee11f40C6945eE4';
+const chain = 'ethereum';
 
 const apy = async () => {
   // all markets
@@ -64,7 +65,7 @@ const apy = async () => {
     })
   ).output.map((i) => i.output);
 
-  const priceApiKeys = asset.map((i) => `ethereum:${i}`);
+  const priceApiKeys = asset.map((i) => `${chain}:${i}`);
   const prices = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceApiKeys}`)
   ).data.coins;
@@ -78,11 +79,12 @@ const apy = async () => {
     pools.push({
       pool: m,
       project: 'wildcat-protocol',
+      chain,
       symbol: symbol[i],
       apyBase: annualInterestBips[i] / 100,
       tvlUsd:
         (maximumDeposit[i] / 10 ** decimals[i]) *
-        prices[`ethereum:${asset[i]}`]?.price,
+        prices[`${chain}:${asset[i]}`]?.price,
       underlyingTokens: [asset[i]],
       poolMeta: name[i],
       url: `https://app.wildcat.finance/lender/market/${m.toLowerCase()}`,
