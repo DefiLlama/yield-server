@@ -82,37 +82,36 @@ const fetchPoolData = async ({
 };
 
 const apy = async () => {
-  const oethData = await fetchPoolData({
-    chain: 'ethereum',
-    chainId: 1,
-    vaultAddress: oethVaultAddress,
-    token: ETHEREUM_OETH_TOKEN,
-    symbol: 'OETH',
-    project: 'origin-ether',
-    underlyingToken: ETHEREUM_WETH_TOKEN,
-  });
-
-  const superOETHbData = await fetchPoolData({
-    chain: 'base',
-    chainId: 8453,
-    vaultAddress: superOETHbVaultAddress,
-    token: BASE_SUPER_OETH_TOKEN,
-    symbol: 'superOETHb',
-    project: 'origin-ether',
-    underlyingToken: BASE_WETH_TOKEN,
-  });
-
-  const superOETHpData = await fetchPoolData({
-    chain: 'plume_mainnet',
-    chainId: 98866,
-    vaultAddress: superOETHpVaultAddress,
-    token: PLUME_SUPER_OETH_TOKEN,
-    symbol: 'superOETHp',
-    project: 'origin-ether',
-    underlyingToken: PLUME_WETH_TOKEN,
-  });
-
-  return [oethData, superOETHbData, superOETHpData];
+  const pools = await Promise.allSettled([
+    fetchPoolData({
+      chain: 'ethereum',
+      chainId: 1,
+      vaultAddress: oethVaultAddress,
+      token: ETHEREUM_OETH_TOKEN,
+      symbol: 'OETH',
+      project: 'origin-ether',
+      underlyingToken: ETHEREUM_WETH_TOKEN,
+    }),
+    fetchPoolData({
+      chain: 'base',
+      chainId: 8453,
+      vaultAddress: superOETHbVaultAddress,
+      token: BASE_SUPER_OETH_TOKEN,
+      symbol: 'superOETHb',
+      project: 'origin-ether',
+      underlyingToken: BASE_WETH_TOKEN,
+    }),
+    fetchPoolData({
+      chain: 'plume_mainnet',
+      chainId: 98866,
+      vaultAddress: superOETHpVaultAddress,
+      token: PLUME_SUPER_OETH_TOKEN,
+      symbol: 'superOETHp',
+      project: 'origin-ether',
+      underlyingToken: PLUME_WETH_TOKEN,
+    }),
+  ]);
+  return pools.filter((i) => i.status === 'fulfilled').map((i) => i.value);
 };
 
 module.exports = {
