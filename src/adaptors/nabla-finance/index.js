@@ -7,8 +7,10 @@ const WEEKS_IN_YEAR = 52.142;
 
 const graphUrls = {
   arbitrum:
-    'https://subgraph.satsuma-prod.com/9b84d9926bf3/nabla-finance--3958960/nabla-mainnetAlpha/api',
+    'https://subgraph.satsuma-prod.com/9b84d9926bf3/nabla-finance--3958960/nabla-mainnetAlpha-arbitrum/api',
   base: 'https://subgraph.satsuma-prod.com/9b84d9926bf3/nabla-finance--3958960/nabla-mainnetAlpha-base/api',
+  berachain:
+    'https://subgraph.satsuma-prod.com/9b84d9926bf3/nabla-finance--3958960/nabla-mainnetAlpha-berachain-public/api',
 };
 
 const query = gql`
