@@ -73,12 +73,11 @@ const poolsFunction = async (chain) => {
 
         const { decimals, symbol, price } = priceData;
 
-        const tvlUsd = BigNumber(tvl)
-          .div(10 ** (decimals || 18))
-          .times(price)
-          .toNumber();
+        const tvlNormalized = BigNumber(tvl).div(10 ** (decimals || 18));
+        const tvlUsd = tvlNormalized.times(price).toNumber();
 
         const aprNormalized = Number(apr7d || 0) / 10 ** (decimals || 18);
+        const apyBase = apr7dToApy(aprNormalized) * 100;
 
         return {
           pool: `${pool}-${chain}`,
@@ -86,8 +85,8 @@ const poolsFunction = async (chain) => {
           project: 'nabla-finance',
           symbol: utils.formatSymbol(symbol),
           underlyingTokens: [tokenAddress],
-          tvlUsd,
-          apyBase: apr7dToApy(aprNormalized) * 100,
+          tvlUsd: tvlUsd,
+          apyBase: apyBase,
         };
       })
       .filter(Boolean);
