@@ -55,6 +55,22 @@ const fetchSparkDexV2Data = async (timestamp = null) => {
     const dataPrior7d = await request(SUBGRAPH_URL, queryPrior.replace('<PLACEHOLDER>', blockPrior7d));
     const dataPrior7dPairs = dataPrior7d.pairs;
 
+    // Process token reserves with proper decimals before TVL calculation
+    dataNow = dataNow.map((pair) => {
+      const token0Decimals = parseInt(pair.token0.decimals);
+      const token1Decimals = parseInt(pair.token1.decimals);
+      
+      // Convert reserves from wei to actual token amounts
+      const reserve0 = Number(pair.reserve0) / Math.pow(10, token0Decimals);
+      const reserve1 = Number(pair.reserve1) / Math.pow(10, token1Decimals);
+      
+      return {
+        ...pair,
+        reserve0: reserve0.toString(),
+        reserve1: reserve1.toString(),
+      };
+    });
+
     // Calculate TVL
     dataNow = await utils.tvl(dataNow, CHAIN);
     
