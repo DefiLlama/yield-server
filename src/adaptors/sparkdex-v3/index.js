@@ -1,144 +1,101 @@
-const utils = require('../utils');
+const axios = require('axios');
 
-/**
- * @typedef {Object} LPPage
- * @property {string} address
- * @property {Object} token0
- * @property {string} token0.address
- * @property {string} token0.symbol
- * @property {Object} token1
- * @property {string} token1.address
- * @property {string} token1.symbol
- * @property {Array} statistics
- * @property {number} statistics.tvlUSD
- * @property {number} statistics.feeUSD
- * @property {string} statistics.period
- * @property {Array} emissions
- * @property {number} emissions.dailyEmission
- * @property {string} emissions.startDate
- * @property {string} emissions.endDate
- */
+const rFLR = '0x26d460c3Cf931Fb2014FA436a49e3Af08619810e'; // Reward FLR
 
-/**
- * @typedef {Object} Pool
- * @property {string} pool
- * @property {string} chain
- * @property {string} project
- * @property {string} symbol
- * @property {number} tvlUsd
- * @property {number} apyBase
- * @property {number} apyReward
- * @property {Array} rewardTokens
- * @property {Array<string>} underlyingTokens
- * @property {string} poolMeta
- * @property {string} url
- * @property {number} apyBaseBorrow
- * @property {number} apyRewardBorrow
- * @property {number} totalSupplyUsd
- * @property {number} totalBorrowUsd
- * @property {number} ltv
- */
+const calculateApy = (_apr) => {
+  // Handle extremely high APR values that could cause calculation issues
+  if (_apr > 10000) { // If APR > 10000%, cap it to prevent extreme values
+    return 10000;
+  }
+  
+  const APR = _apr / 100;
+  const n = 365;
 
-/**
- *
- * @returns {Promise<number>}
- */
-function getFlrPrice() {
-  return utils.getData('https://api.flaremetrics.io/v2/defi/flare/price');
-}
+  // APY calculation
+  const APY = (1 + APR / n) ** n - 1;
+  const APYPercentage = APY * 100;
 
-/**
- *
- * @param {number} limit
- * @param {number} offset
- * @returns {Promise<LPPage[]>}
- */
-function getLPPage(limit, offset) {
-  return utils.getData(
-    `https://api.flaremetrics.io/v2/defi/flare/liquidity-pools?product=sparkdex-pool&tvlUSD=10000&limit=${limit}&offset=${offset}`
-  );
-}
+  // Cap APY to reasonable maximum (10000%)
+  return Math.min(APYPercentage, 10000);
+};
 
-/**
- * @param {number} now
- * @param {number} flrPrice
- * @returns {(lp: LPPage) => Pool[]}
- */
-function makePoolFlatmap(now, flrPrice) {
-  /**
-   * @param {LPPage} lp
-   */
-  return function poolFlatMap(lp) {
-    const chain = 'Flare';
-    const address = lp.address;
-    const token0symbol = lp.token0.symbol;
-    const token1symbol = lp.token1.symbol;
-    const token0address = lp.token0.address;
-    const token1address = lp.token1.address;
-    const stats = lp.statistics.find((s) => s.period == '1d');
+const apy = async () => {
+  const pools = (
+    await axios.get(
+      'https://api.sparkdex.ai/dex/v3/pairs?chainId=14&dex=SparkDEX&version=v3'
+    )
+  ).data[0].data;
 
-    if (!stats) return [];
+  const chain = 'flare';
 
-    const tvlUsd = stats.tvlUSD;
-    const feeUsd = stats.feeUSD;
+  const i = pools.map((lp) => {
+    // Skip pools without APR data
+    if (!lp.apr) return;
+    
+    // Skip pools with zero or negative TVL
+    if (!lp.tvlUSD || lp.tvlUSD <= 0) return;
 
-    const apyBase = (feeUsd / tvlUsd) * 365 * 100;
-    /**
-     * @type {Pool}
-     */
-    const pool = {
-      pool: `${address}-${chain}`.toLowerCase(),
-      chain,
+    const tvlUsd = lp.tvlUSD;
+    const feeUsd = lp.feesUSDDay || 0;
+
+    // Calculate base APY, handle division by zero
+    const baseApy = tvlUsd > 0 && feeUsd > 0 ? (feeUsd / tvlUsd) * 365 * 100 : 0;
+
+    let pool = {
+      pool: `${lp.id}-${chain}`.toLowerCase(),
+      symbol: `${lp.token0.symbol}-${lp.token1.symbol}`,
       project: 'sparkdex-v3',
-      symbol: `${token0symbol}-${token1symbol}`,
+      chain,
       tvlUsd,
-      apyBase,
-      underlyingTokens: [token0address, token1address],
+      apyBase: baseApy,
+      underlyingTokens: [lp.token0.address, lp.token1.address],
     };
 
-    const emissions = lp.emissions || [];
-    const emission = emissions.find((e) => {
-      const startDate = Date.parse(e.startDate);
-      const endDate = Date.parse(e.endDate);
-      return now >= startDate && now < endDate;
-    });
+    // Extract rFLR reward APRs
+    const rFlrRewardAprs = lp.aprs.filter(
+      (apr) => apr.provider === 'rFLR Rewards'
+    );
 
-    if (!emission) {
-      if (apyBase == 0) return [];
+    // Extract other reward APRs
+    const rewardAprs = lp.aprs.filter(
+      (apr) => !apr.isPoolApr && apr.provider !== 'rFLR Rewards'
+    );
 
-      return pool;
+    // Calculate total reward APY from all sources
+    const totalRewardApy = calculateApy(
+      rewardAprs.reduce((sum, apr) => sum + apr.apr, 0)
+    );
+    const rFlrRewardApy = calculateApy(
+      rFlrRewardAprs.reduce((sum, apr) => sum + apr.apr, 0)
+    );
+
+    // Add remaining rewards
+    if (totalRewardApy > 0) {
+      // Rewards can be swapped instantly to wFLR
+      pool.apyReward = totalRewardApy;
+      pool.rewardTokens = [rFLR]; // rFLR
     }
 
-    pool.apyReward = ((emission.dailyEmission * flrPrice) / tvlUsd) * 365 * 100;
-    pool.rewardTokens = ['0x26d460c3Cf931Fb2014FA436a49e3Af08619810e']; // rFLR
+    // Add rFLR apr
+    if (rFlrRewardApy > 0) {
+      // rFLR can be swapped with 50% penalty instantly to wFLR or linear 12 months
+      // so taking care to lower bund %50
+      pool.apyReward = (pool.apyReward || 0) + rFlrRewardApy / 2;
+      pool.rewardTokens = [rFLR]; // rFLR
+    }
 
     return pool;
-  };
-}
+  });
 
-async function poolsFunction() {
-  const now = Date.now();
-  const flrPrice = await getFlrPrice();
-  /**
-   * @type {LPPage[]}
-   */
-  const liquidityPools = [];
-  const limit = 250;
+  const result = i.filter(Boolean);
 
-  for (let i = 0; i < 10; i += 1) {
-    const offset = i * limit;
-    const lpPage = await getLPPage(limit, offset);
+  console.log(result);
 
-    liquidityPools.push(...lpPage);
-
-    if (lpPage.length < limit) break;
-  }
-
-  return liquidityPools.flatMap(makePoolFlatmap(now, flrPrice));
-}
+  return result;
+};
 
 module.exports = {
   timetravel: false,
-  apy: poolsFunction,
-  url: 'https://sparkdex.ai/apps/liquidity',
+  apy,
+  url: 'https://sparkdex.ai/pool',
 };
