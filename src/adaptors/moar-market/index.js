@@ -14,8 +14,10 @@ async function apy() {
     for (const poolAddress of poolAddresses) {
         const poolData = (await getAptosResource(poolAddress, `${MOAR_ADDRESS}::pool::Pool`)).data
         const underlyingAsset = poolData.underlying_asset.inner;
+        const rewardTokens = [];
+        let apyReward = null;
 
-        const [faSymbol, interestRateResponse] = await Promise.all([
+        const [faSymbol, interestRateResponse, incentivesEnabled] = await Promise.all([
             aptosView({
                 functionStr: "0x1::fungible_asset::symbol",
                 type_arguments: ["0x1::fungible_asset::Metadata"],
@@ -23,8 +25,21 @@ async function apy() {
             aptosView({
                 functionStr: `${MOAR_ADDRESS}::pool::get_interest_rate`,
                 type_arguments: [],
-                args: [poolIndex.toString()],
-            })])
+                args: [poolIndex.toString()]}),
+            aptosView({
+                functionStr: `${MOAR_ADDRESS}::farming::is_farming_enabled`,
+                type_arguments: [],
+                args: [`${poolAddress}-${poolIndex}`]})
+        ])
+        
+        if (incentivesEnabled) {
+            const incentiveRate = await aptosView({
+                functionStr: `${MOAR_ADDRESS}::pool::get_farming_pool_apy`,
+                type_arguments: [],
+                args: [poolIndex.toString(), "APT-1"]});
+            apyReward = Number(incentiveRate) / 1e6;
+            rewardTokens.push("0xa");
+        }
         const interestRate = interestRateResponse[0];
 
         pools.push({
@@ -32,12 +47,12 @@ async function apy() {
             chain: 'aptos',
             project: 'moar-market',
             apyBase: (interestRate / 1e8 * (1 - poolData.fee_on_interest_bps / 1e4)) * 100,
-            apyReward: null,
+            apyReward: apyReward,
             apyBaseBorrow: interestRate / 1e8 * 100,
             apyRewardBorrow: null,
             totalSupplyUsd: await getUSDValue(poolData.total_deposited, underlyingAsset),
             totalBorrowUsd: await getUSDValue(poolData.total_borrows, underlyingAsset),
-            rewardTokens: [],
+            rewardTokens: rewardTokens,
             symbol: faSymbol,
             tvlUsd: await getUSDValue(poolData.total_deposited - poolData.total_borrows, underlyingAsset),
             underlyingTokens: [underlyingAsset],
