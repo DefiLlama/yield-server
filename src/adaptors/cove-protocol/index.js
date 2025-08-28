@@ -4,6 +4,7 @@ const sdk = require('@defillama/sdk');
 const API_URL = 'https://app.cove.finance/api/v1/apys?chainId=1';
 const basketManager = '0x716c39658Ba56Ce34bdeCDC1426e8768E61912f8';
 const basketTokensAbi = 'function basketTokens() view returns (address[])';
+const assetAbi = 'function asset() view returns (address)';
 
 const getApy = async () => {
   try {
@@ -39,10 +40,18 @@ const getApy = async () => {
       chain: 'ethereum',
     });
 
+    const assetCalls = await sdk.api.abi.multiCall({
+      calls: basketTokens.map((token) => ({
+        target: token,
+      })),
+      abi: assetAbi,
+      chain: 'ethereum',
+    });
+
     const pools = [];
 
     for (let i = 0; i < basketTokens.length; i++) {
-      const tokenAddress = basketTokens[i].toLowerCase();
+      const tokenAddress = basketTokens[i];
       const tokenData = apyData[basketTokens[i]];
 
       if (!tokenData) {
@@ -52,6 +61,7 @@ const getApy = async () => {
 
       const totalSupply = totalSupplyCalls.output[i].output;
       const decimals = decimalsCalls.output[i].output;
+      const asset = assetCalls.output[i].output;
 
       if (!totalSupply || !decimals) {
         console.log(
@@ -66,18 +76,18 @@ const getApy = async () => {
       const price = parseFloat(tokenData.price);
       const tvlUsd = totalSupplyFormatted * price;
 
-      // Use 7-day USDC APY as it's more stable than 24h
-      const apyBase = tokenData['7d'] ? parseFloat(tokenData['7d'].usdcApy) : 0;
+      // Use 24h USDC APY
+      const apyBase = tokenData['24h'] ? parseFloat(tokenData['24h'].usdcApy) : 0;
 
       const pool = {
-        pool: `${tokenAddress}-ethereum`,
+        pool: `${tokenAddress}-ethereum`.toLowerCase(),
         chain: 'Ethereum',
-        project: 'cove',
+        project: 'cove-protocol',
         symbol: tokenData.symbol,
         tvlUsd: tvlUsd,
         apyBase: apyBase,
-        url: `https://app.cove.finance/vaults/${tokenAddress}`,
-        underlyingTokens: [tokenAddress],
+        url: `https://app.cove.finance/vaults/${tokenAddress.toLowerCase()}`,
+        underlyingTokens: [asset],
       };
 
       pools.push(pool);
