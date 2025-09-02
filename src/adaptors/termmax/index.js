@@ -11,6 +11,7 @@ const VAULTS = {
       '0x984408C88a9B042BF3e2ddf921Cd1fAFB4b735D1',
       '0xDEB8a9C0546A01b7e5CeE8e44Fd0C8D8B96a1f6e',
       '0xdC4d99aB6c69943b4E17431357AbC5b54B4C2F56',
+      '0xDAdeAcC03a59639C0ecE5ec4fF3BC0d9920A47eC',
     ],
   },
   Arbitrum: {
@@ -29,6 +30,22 @@ const VAULTS = {
     addresses: [
       '0x86c958CAc8aeE37dE62715691c0D597c710Eca51',
       '0x89653E6523fB73284353252b41AE580E6f96dFad',
+    ],
+  },
+};
+
+const VAULTS_V1 = {
+  Ethereum: {
+    alias: 'eth',
+    chain: 'ethereum',
+    chainId: 1,
+    addresses: [
+      '0x6aa8b4366d3BcFa51473677e9C961BAbADCec4e3',
+      '0x09400f3a0b358eb408060f5a3272ed7e3b7664e0',
+      '0x581AA6F8D7498E68E02D4fB6abFA7972c9d86286',
+      '0xf4B8dCD6509B3Cb87DA9C491cB0728a2F3088d3F',
+      '0xB3Bad0e31E08395eaaE76bE47985D074A4112F38',
+      '0x0d6b6280915313e7322dcb4d71d511a93a75d98d',
     ],
   },
 };
@@ -147,7 +164,9 @@ async function apy() {
           .toNumber();
 
         const url = new URL(
-          `https://app.termmax.ts.finance/earn/${address.toLowerCase()}`
+          `https://app.termmax.ts.finance/earn/${
+            vaultData.alias
+          }/${address.toLowerCase()}`
         );
         url.searchParams.set('chain', vaultData.alias);
 
@@ -158,6 +177,148 @@ async function apy() {
           symbol: assetNames.output[i].output,
           tvlUsd,
           apyBase: readableApr,
+          url: String(url),
+          underlyingTokens: [assetAddress],
+          poolMeta: names.output[i].output,
+        };
+
+        const opportunity = opportunities.find(
+          (o) =>
+            o.chainId === vaultData.chainId &&
+            o.identifier.toLowerCase() === address.toLowerCase()
+        );
+        if (opportunity) {
+          pool.apyReward = opportunity.apr;
+
+          const breakdowns =
+            (opportunity.rewardsRecord &&
+              opportunity.rewardsRecord.breakdowns) ||
+            [];
+          pool.rewardTokens = breakdowns
+            .map((b) => b.token.address)
+            .filter((a) => a);
+        }
+
+        pools.push(pool);
+      }
+    };
+    promises.push(task());
+  }
+  for (const [chain, vaultData] of Object.entries(VAULTS_V1)) {
+    const task = async () => {
+      const calls = vaultData.addresses.map((address) => ({
+        target: address,
+      }));
+      const [apy, asset, decimals, names, totalAssets] = await Promise.all([
+        sdk.api.abi.multiCall({
+          calls,
+          abi: {
+            name: 'apy',
+            type: 'function',
+            inputs: [],
+            outputs: [{ type: 'uint256' }],
+          },
+          chain: vaultData.chain,
+        }),
+        sdk.api.abi.multiCall({
+          calls,
+          abi: {
+            name: 'asset',
+            type: 'function',
+            inputs: [],
+            outputs: [{ type: 'address' }],
+          },
+          chain: vaultData.chain,
+        }),
+        sdk.api.abi.multiCall({
+          calls,
+          abi: {
+            name: 'decimals',
+            type: 'function',
+            inputs: [],
+            outputs: [{ type: 'uint8' }],
+          },
+          chain: vaultData.chain,
+        }),
+        sdk.api.abi.multiCall({
+          calls,
+          abi: {
+            name: 'name',
+            type: 'function',
+            inputs: [],
+            outputs: [{ type: 'string' }],
+          },
+          chain: vaultData.chain,
+        }),
+        sdk.api.abi.multiCall({
+          calls,
+          abi: {
+            name: 'totalAssets',
+            type: 'function',
+            inputs: [],
+            outputs: [{ type: 'uint256' }],
+          },
+          chain: vaultData.chain,
+        }),
+      ]);
+      const assetNames = await sdk.api.abi.multiCall({
+        calls: asset.output.map((o) => ({ target: o.output })),
+        abi: {
+          name: 'symbol',
+          type: 'function',
+          inputs: [],
+          outputs: [{ type: 'string' }],
+        },
+        chain: vaultData.chain,
+      });
+
+      const assetAddresses = new Set(asset.output.map((o) => o.output));
+      const priceMap = new Map();
+      {
+        const promises = [];
+        for (const assetAddress of assetAddresses) {
+          const url = new URL(
+            `https://coins.llama.fi/prices/current/${vaultData.chain}:${assetAddress}`
+          );
+          promises.push(
+            axios.get(url).then((response) => {
+              const priceKey = `${vaultData.chain}:${assetAddress}`;
+              priceMap.set(
+                assetAddress,
+                response.data.coins[priceKey]?.price || 0
+              );
+            })
+          );
+        }
+        await Promise.all(promises);
+      }
+
+      for (let i = 0; i < vaultData.addresses.length; i++) {
+        const address = vaultData.addresses[i];
+        const assetAddress = asset.output[i].output;
+
+        const readableApy = new BigNumber(apy.output[i].output)
+          .div(new BigNumber(10).pow(6))
+          .toNumber();
+        const tvlUsd = new BigNumber(totalAssets.output[i].output)
+          .div(new BigNumber(10).pow(decimals.output[i].output))
+          .times(priceMap.get(assetAddress) || 0)
+          .toNumber();
+
+        const url = new URL(
+          `https://app.termmax.ts.finance/earn/${
+            vaultData.alias
+          }/${address.toLowerCase()}`
+        );
+        url.searchParams.set('chain', vaultData.alias);
+
+        const pool = {
+          pool: `${address}-${chain.toLowerCase()}`,
+          chain,
+          project: 'termmax',
+          symbol: assetNames.output[i].output,
+          tvlUsd,
+          apyBase: readableApy,
           url: String(url),
           underlyingTokens: [assetAddress],
           poolMeta: names.output[i].output,
