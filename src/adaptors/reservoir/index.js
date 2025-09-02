@@ -1,11 +1,9 @@
-const { get } = require('axios');
+const { fetchURL } = require('../../helper/utils');
 
 const API_URL = 'https://api.reservoir.fi/v1/pairs';
 
 const getApy = async () => {
-    const { data: pairs } = await get(API_URL);
-
-    console.log(pairs)
+    const { data: pairs } = await fetchURL(API_URL);
 
     return pairs.map((pair) => {
         const symbols = pair.token0.symbol + '-' + pair.token1.symbol
