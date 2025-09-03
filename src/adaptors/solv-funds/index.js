@@ -12,6 +12,7 @@ const chain = {
   25: 'cronos',
   324: 'zksync_era',
   5000: 'mantle',
+  60808: 'bob',
 };
 
 const poolsQuery = gql`
@@ -69,7 +70,7 @@ const poolsFunction = async () => {
 
   const poolConfiguration = (
     await axios.get(
-      `https://raw.githubusercontent.com/solv-finance-dev/slov-protocol-defillama/main/pools.json`
+      `https://raw.githubusercontent.com/solv-finance/solv-protocol-defillama/refs/heads/main/pools.json`
     )
   ).data;
 
