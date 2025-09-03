@@ -77,6 +77,13 @@ const HubPools = {
         spokeAddress: '0xe53189D00D1b4F231A2a208a7967E0dCaE8Db073',
       },
       {
+        // SHIB
+        id: 18,
+        underlyingSymbol: 'SHIB',
+        poolAddress: '0x9f59642C6733397dF5c2696D3Ac9ceb431b1b573',
+        tokenAddress: '0x2f643d728926C20269f0A04931dd7b4b6B650204',
+      },
+      {
         // aUSD
         id: 22,
         underlyingSymbol: 'AUSD',
@@ -106,7 +113,6 @@ const HubPools = {
         underlyingSymbol: 'YBTC.B',
         poolAddress: '0x13A21bC65844CD530098Ab15431c57078ea90737',
         tokenAddress: '0x2cd3CdB3bd68Eea0d3BE81DA707bC0c8743D7335',
-        spokeAddress: '0x24dB057615203c0f27F0968452A0f2327e6bC86F',
       },
     ],
   },
@@ -115,6 +121,7 @@ const HubPools = {
     pools: [
       // excluding USDC because bridged
       // excluding SolvBTC because bridged
+      // excluding SHIB because bridged
       // excluding YBTCB because bridged
       {
         // ETH_eth
@@ -195,6 +202,7 @@ const HubPools = {
     pools: [
       // excluding USDC because bridged
       // excluding SolvBTC because bridged
+      // excluding SHIB because bridged
       {
         // ETH_base
         id: 5,
@@ -266,6 +274,7 @@ const HubPools = {
     pools: [
       // excluding SolvBTC because bridged
       // excluding YBTCB because bridged
+      // excluding SHIB because bridged
       {
         // BNB
         id: 10,
@@ -297,6 +306,7 @@ const HubPools = {
     pools: [
       // excluding USDC because bridged
       // excluding SolvBTC because bridged
+      // excluding SHIB because bridged
       {
         // ETH_arb
         id: 13,
