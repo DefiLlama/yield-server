@@ -46,3 +46,4 @@ jobs:
           GRAPH_API_KEY: ${{ secrets.GRAPH_API_KEY }}
           OSMOSIS_API_KEY: ${{ secrets.OSMOSIS_API_KEY}}
           DUNE_API_KEY: ${{ secrets.DUNE_API_KEY}}
+          HYPERLIQUID_RPC: ${{ secrets.HYPERLIQUID_RPC }}
