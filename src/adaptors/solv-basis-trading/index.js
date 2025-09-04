@@ -121,7 +121,7 @@ const poolsFunction = async () => {
         chain[pool.productInfo.chainId]
       }`,
       chain: chain[pool.productInfo.chainId],
-      project: `solv-funds`,
+      project: `solv-basis-trading`,
       symbol: pool.currencyInfo.symbol,
       underlyingTokens: [pool.currencyInfo.currencyAddress],
       tvlUsd: Number(
