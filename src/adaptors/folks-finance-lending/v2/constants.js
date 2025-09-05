@@ -1,3 +1,15 @@
+
+const LoanType = {
+  GENERAL: 'GENERAL',
+  ALGORAND_ECOSYSTEM: 'ALGORAND_ECOSYSTEM',
+};
+
+const MainnetLoans = {
+  [LoanType.GENERAL]: 971388781,
+  [LoanType.ALGORAND_ECOSYSTEM]: 3184333108,
+};
+
+
 const pools = [
   // ALGO
   {
@@ -6,6 +18,7 @@ const pools = [
     fAssetId: 971381860,
     symbol: 'ALGO',
     hasReward: false,
+    loanType: LoanType.GENERAL,
   },
   // gALGO
   {
@@ -14,6 +27,7 @@ const pools = [
     fAssetId: 971383839,
     symbol: 'gALGO',
     hasReward: false,
+    loanType: LoanType.GENERAL,
   },
   // xALGO
   {
@@ -22,6 +36,7 @@ const pools = [
     fAssetId: 2611138444,
     symbol: 'xALGO',
     hasReward: false,
+    loanType: LoanType.GENERAL,
   },
   // tALGO
   {
@@ -30,6 +45,7 @@ const pools = [
     fAssetId: 3073480070,
     symbol: 'tALGO',
     hasReward: false,
+    loanType: LoanType.GENERAL,
   },
   // USDC
   {
@@ -38,6 +54,7 @@ const pools = [
     fAssetId: 971384592,
     symbol: 'USDC',
     hasReward: true,
+    loanType: LoanType.GENERAL,
   },
   // USDt
   {
@@ -46,6 +63,7 @@ const pools = [
     fAssetId: 971385312,
     symbol: 'USDt',
     hasReward: true,
+    loanType: LoanType.GENERAL,
   },
   // Gard
   {
@@ -54,6 +72,7 @@ const pools = [
     fAssetId: 1060587336,
     symbol: 'GARD',
     hasReward: false,
+    loanType: LoanType.GENERAL,
   },
   // EURS
   {
@@ -62,6 +81,7 @@ const pools = [
     fAssetId: 1247054501,
     symbol: 'EURS',
     hasReward: true,
+    loanType: LoanType.GENERAL,
   },
   // goBTC
   {
@@ -70,6 +90,7 @@ const pools = [
     fAssetId: 971386173,
     symbol: 'goBTC',
     hasReward: false,
+    loanType: LoanType.GENERAL,
   },
   // goETH
   {
@@ -78,6 +99,7 @@ const pools = [
     fAssetId: 971387073,
     symbol: 'goETH',
     hasReward: false,
+    loanType: LoanType.GENERAL,
   },
   // WBTC
   {
@@ -86,6 +108,7 @@ const pools = [
     fAssetId: 1067295154,
     symbol: 'WBTC',
     hasReward: false,
+    loanType: LoanType.GENERAL,
   },
   // WETH
   {
@@ -94,6 +117,7 @@ const pools = [
     fAssetId: 1067295558,
     symbol: 'WETH',
     hasReward: false,
+    loanType: LoanType.GENERAL,
   },
   // WAVAX
   {
@@ -102,6 +126,7 @@ const pools = [
     fAssetId: 1166979636,
     symbol: 'WAVAX',
     hasReward: false,
+    loanType: LoanType.GENERAL,
   },
   // WSOL
   {
@@ -110,6 +135,7 @@ const pools = [
     fAssetId: 1166980820,
     symbol: 'WSOL',
     hasReward: false,
+    loanType: LoanType.GENERAL,
   },
   // WLINK
   {
@@ -118,6 +144,7 @@ const pools = [
     fAssetId: 1216437148,
     symbol: 'WLINK',
     hasReward: false,
+    loanType: LoanType.GENERAL,
   },
   // GOLD
   {
@@ -126,6 +153,7 @@ const pools = [
     fAssetId: 1258524377,
     symbol: 'GOLD',
     hasReward: false,
+    loanType: LoanType.GENERAL,
   },
   // SILVER
   {
@@ -134,6 +162,7 @@ const pools = [
     fAssetId: 1258524381,
     symbol: 'SILVER',
     hasReward: false,
+    loanType: LoanType.GENERAL,
   },
   // Opul
   {
@@ -142,6 +171,7 @@ const pools = [
     fAssetId: 1044269355,
     symbol: 'OPUL',
     hasReward: false,
+    loanType: LoanType.GENERAL,
   },
   // WMPL
   {
@@ -150,6 +180,34 @@ const pools = [
     fAssetId: 1166982296,
     symbol: 'WMPL',
     hasReward: false,
+    loanType: LoanType.GENERAL,
+  },
+  // // ISOLATED_ALGO
+  {
+    appId: 3184317016,
+    assetId: 0,
+    fAssetId: 3184331013,
+    symbol: 'ISOLATED_ALGO',
+    hasReward: false,
+    loanType: LoanType.ALGORAND_ECOSYSTEM,
+  },
+  // ISOLATED_USDC
+  {
+    appId: 3184324594,
+    assetId: 31566704,
+    fAssetId: 3184331239,
+    symbol: 'ISOLATED_USDC',
+    hasReward: false,
+    loanType: LoanType.ALGORAND_ECOSYSTEM,
+  },
+  // ISOLATED_TINY
+  {
+    appId: 3184325123,
+    assetId: 2200000000,
+    fAssetId: 3184331789,
+    symbol: 'ISOLATED_TINY',
+    hasReward: true,
+    loanType: LoanType.ALGORAND_ECOSYSTEM,
   },
 ];
 
@@ -160,4 +218,6 @@ module.exports = {
   pools,
   oracleAppId,
   oracleDecimals,
+  LoanType,
+  MainnetLoans,
 };
