@@ -66,7 +66,7 @@ const poolsFunction = async () => {
 
     return {
       pool: vault.id,
-      project: '3jane',
+      project: '3jane-options',
       chain: 'Ethereum',
       symbol,
       tvlUsd: price * (vault.totalBalance / 10 ** vault.underlyingDecimals),
@@ -82,5 +82,5 @@ const poolsFunction = async () => {
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
-  url: 'https://app.3jane.xyz/vault/eeth-x-c',
+  url: 'https://app.3jane.xyz/supply',
 };

@@ -69,7 +69,6 @@ const excludeAdaptors = [
   'liqee',
   'earnmos',
   'magik-farm',
-  'reservoir',
   'swapfish',
   'rage-trade',
   'ottopia',
@@ -159,6 +158,8 @@ const excludeAdaptors = [
   'rhino.fi',
   'icpex',
   'nx-finance',
+  'c3-exchange',
+  'bagful',
 ];
 
 const excludePools = [
@@ -635,6 +636,16 @@ const excludePools = [
   '0x219e6623b7bda645b95ea0b46d22c06081e2adb3-base',
   '0xc87a900078f04c45b7f14e46c520d4a6f37296b0-ethereum',
   '0x5b2384D566D2E4a0b29B8eccB642C63199cd393c',
+  'BCH.BCH-thorchain-savers',
+  'BTC.BTC-thorchain-savers',
+  'ETH.ETH-thorchain-savers',
+  'ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7-thorchain-savers',
+  'AVAX.AVAX-thorchain-savers',
+  'ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48-thorchain-savers',
+  'DOGE.DOGE-thorchain-savers',
+  'AVAX.USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E-thorchain-savers',
+  'GAIA.ATOM-thorchain-savers',
+  'LTC.LTC-thorchain-savers',
 ];
 
 const boundaries = {

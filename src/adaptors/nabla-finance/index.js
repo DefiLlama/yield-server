@@ -3,12 +3,12 @@ const utils = require('../utils');
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 
-const WEEKS_IN_YEAR = 52.142;
-
 const graphUrls = {
   arbitrum:
-    'https://subgraph.satsuma-prod.com/9b84d9926bf3/nabla-finance--3958960/nabla-mainnetAlpha/api',
+    'https://subgraph.satsuma-prod.com/9b84d9926bf3/nabla-finance--3958960/nabla-mainnetAlpha-arbitrum/api',
   base: 'https://subgraph.satsuma-prod.com/9b84d9926bf3/nabla-finance--3958960/nabla-mainnetAlpha-base/api',
+  berachain:
+    'https://subgraph.satsuma-prod.com/9b84d9926bf3/nabla-finance--3958960/nabla-mainnetAlpha-berachain-public/api',
 };
 
 const query = gql`
@@ -26,6 +26,7 @@ const query = gql`
 
 const getPriceKey = (address, chain) => `${chain}:${address}`;
 
+// APR → APY conversion (7-day APR assumed, converted to daily then compounded yearly)
 const apr7dToApy = (apr) => {
   const aprDay = apr / 365;
   return (1 + aprDay) ** 365 - 1;
@@ -40,19 +41,22 @@ const poolsFunction = async (chain) => {
       return [];
     }
 
-    const tokens = swapPools.map((p) => p.token.id);
+    const tokens = [...new Set(swapPools.map((swapPool) => swapPool.token.id))];
 
-    const priceKeys = [...new Set(tokens)].map((address) =>
-      getPriceKey(address, chain)
-    );
+    const priceKeys = tokens.map((address) => getPriceKey(address, chain));
 
-    const priceResponse = await superagent.get(
-      `https://coins.llama.fi/prices/current/${priceKeys
-        .join(',')
-        .toLowerCase()}`
-    );
-
-    const usdPrices = priceResponse.body.coins || {};
+    let usdPrices = {};
+    try {
+      const priceResponse = await superagent.get(
+        `https://coins.llama.fi/prices/current/${priceKeys
+          .join(',')
+          .toLowerCase()}`
+      );
+      usdPrices = priceResponse.body.coins || {};
+    } catch (err) {
+      console.error(`Failed fetching prices for chain ${chain}:`, err);
+      return [];
+    }
 
     return swapPools
       .map((swapPool) => {
@@ -69,14 +73,20 @@ const poolsFunction = async (chain) => {
 
         const { decimals, symbol, price } = priceData;
 
+        const tvlNormalized = BigNumber(tvl).div(10 ** (decimals || 18));
+        const tvlUsd = tvlNormalized.times(price).toNumber();
+
+        const aprNormalized = Number(apr7d || 0) / 10 ** (decimals || 18);
+        const apyBase = apr7dToApy(aprNormalized) * 100;
+
         return {
           pool: `${pool}-${chain}`,
           chain: utils.formatChain(chain),
           project: 'nabla-finance',
           symbol: utils.formatSymbol(symbol),
           underlyingTokens: [tokenAddress],
-          tvlUsd: (BigNumber(tvl) / 10 ** decimals) * price,
-          apyBase: apr7dToApy(apr7d / 10 ** decimals) * 100,
+          tvlUsd: tvlUsd,
+          apyBase: apyBase,
         };
       })
       .filter(Boolean);

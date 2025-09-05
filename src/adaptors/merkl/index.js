@@ -65,7 +65,18 @@ const main = async () => {
       try {
         const poolAddress = pool.identifier;
 
-        const symbol = pool.tokens.map((x) => x.symbol).join('-');
+        let symbol = pool.tokens.map((x) => x.symbol).join('-');
+
+        if (!symbol.length) {
+          symbol = (
+            await sdk.api.abi.call({
+              target: pool.depositUrl.split('/').slice(-1)[0],
+              chain,
+              abi: 'erc20:symbol',
+            })
+          ).output;
+        }
+
         const underlyingTokens = pool.tokens.map((x) => x.address);
 
         const tvlUsd = pool.tvl;

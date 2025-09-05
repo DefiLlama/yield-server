@@ -10,4 +10,5 @@ exports.networks = {
   43114: 'avax',
   80094: 'berachain',
   56: 'bsc',
+  42220: 'celo',
 };
