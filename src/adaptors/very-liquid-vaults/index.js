@@ -1,3 +1,4 @@
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
 const utils = require('../utils');
@@ -133,6 +134,15 @@ async function apy() /*: Promise<Pool[]>*/ {
             .then(({ output }) => output.map(({ output }) => output)),
         ]);
 
+      const prices = await Promise.all(
+        vaults.map(async (vault, i) => {
+          const res = await axios.get(
+            `https://coins.llama.fi/prices/current/${chain}:${assets[i]}`
+          );
+          return res.data.coins[`${chain}:${assets[i]}`].price;
+        })
+      );
+
       const lastVaultStatusLogPerVault = await Promise.all(
         vaults.map((vault) => getLastVaultStatusLog(vault, chain))
       );
@@ -154,10 +164,10 @@ async function apy() /*: Promise<Pool[]>*/ {
         aprBase: aprBasePerVault[i],
         project: 'very-liquid-vaults',
         symbol: symbols[i],
-        tvlUsd: totalAssets[i] / 10 ** decimals[i],
+        tvlUsd: (totalAssets[i] * prices[i]) / 10 ** decimals[i],
         underlyingTokens: [assets[i]],
         url: `https://veryliquid.xyz/${chain}/vault/${vault}`,
-        totalSupplyUsd: totalAssets[i],
+        totalSupplyUsd: (totalAssets[i] * prices[i]) / 10 ** decimals[i],
       }));
     })
   );
