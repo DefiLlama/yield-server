@@ -84,5 +84,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://curve.fi/#/ethereum/pools/factory-v2-268/deposit',
+  url: 'https://curve.finance/#/ethereum/pools/factory-v2-268/deposit',
 };

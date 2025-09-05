@@ -1,41 +1,24 @@
-const { request, gql } = require('graphql-request');
+const { fetchURL } = require('../../helper/utils');
 
-const GRAPHQL_URL = 'https://data.staging.arkiver.net/robolabs/reservoir-mainnet-v2/graphql';
-
-const graphQuery = gql`
-    query GetStats {
-        PairSnapshots {
-            swapApr
-            managedApy
-            pair {
-                address
-                curveId
-                token0
-                token1
-                token0Symbol
-                token1Symbol
-                tvlUSD
-            }
-        }
-    }
-`;
+const API_URL = 'https://api.reservoir.fi/v1/pairs';
 
 const getApy = async () => {
-    const { PairSnapshots } = await request(GRAPHQL_URL, graphQuery);
+    const { data: pairs } = await fetchURL(API_URL);
 
-    return PairSnapshots.map((snapshot) => {
-        const symbols = snapshot.pair.token0Symbol + '-' + snapshot.pair.token1Symbol
-        const poolType = snapshot.pair.curveId === 0 ? 'Constant Product' : 'Stable'
+    return pairs.map((pair) => {
+        const symbols = pair.token0.symbol + '-' + pair.token1.symbol
+        const poolType = pair.curveId === 0 ? 'Constant Product' : 'Stable'
+        const tvlUSD = pair.token0.usdPrice * Number(pair.token0Reserve) + pair.token1.usdPrice * Number(pair.token1Reserve)
         return {
-            pool: snapshot.pair.address,
+            pool: pair.address,
             chain: 'Avalanche',
             project: 'reservoir',
             symbol: symbols,
-            tvlUsd: snapshot.pair.tvlUSD,
-            apyBase: (snapshot.swapApr + snapshot.managedApy) * 100, // to convert into percentage form
-            apyReward: 0,
-            rewardTokens: [], // we do not have incentive tokens at this point
-            underlyingTokens: [snapshot.pair.token0, snapshot.pair.token1],
+            tvlUsd: tvlUSD,
+            apyBase: pair.swapApr,
+            apyReward: pair.supplyApr,
+            rewardTokens: ['0x2e3b32730B4F6b6502BdAa9122df3B026eDE5391'],
+            underlyingTokens: [pair.token0.contractAddress, pair.token1.contractAddress],
             poolMeta: poolType
         }
     })
@@ -44,5 +27,5 @@ const getApy = async () => {
 module.exports = {
     timetravel: false,
     apy: getApy,
-    url: 'https://analytics.reservoir.fi/',
+    url: 'https://app.reservoir.fi/analytics',
 };

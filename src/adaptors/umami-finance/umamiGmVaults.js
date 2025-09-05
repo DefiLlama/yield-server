@@ -11,6 +11,8 @@ const {
   getAggregateVaultContractForVault,
 } = require('./umamiContracts.js');
 
+const INCENTIVES_ENABLED = false;
+
 /** ---- GM VAULTS ---- */
 
 const getUmamiGmVaultsYield = async (chain, gmMarketsInfos) => {
@@ -65,7 +67,7 @@ const getUmamiGmVaultsYield = async (chain, gmMarketsInfos) => {
       url: vault.url,
     };
 
-    if (rewardToken) {
+    if (INCENTIVES_ENABLED) {
       const vaultIncentivesApr = await getIncentivesAprForVault(vault, chain);
 
       vaultObject = {

@@ -1,20 +1,114 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-
+const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 
 const abiSugar = require('./abiSugar.json');
 const abiSugarHelper = require('./abiSugarHelper.json');
+const { pool } = require('../rocifi-v2/abi');
 
 const AERO = '0x940181a94A35A4569E4529A3CDfB74e38FD98631';
-const sugar = '0x68c19e13618C41158fE4bAba1B8fb3A9c74bDb0A';
+const sugar = '0x92294D631E995f1dd9CeE4097426e6a71aB87Bcf';
 const sugarHelper = '0x6d2D739bf37dFd93D804523c2dfA948EAf32f8E1';
 const nullAddress = '0x0000000000000000000000000000000000000000';
+const PROJECT = 'aerodrome-slipstream';
+const CHAIN = 'base';
+const SUBGRAPH = sdk.graph.modifyEndpoint('GENunSHWLBXm59mBSgPzQ8metBEp9YDfdqwFr91Av1UM');
 
 const tickWidthMappings = {1: 5, 50: 5, 100: 15, 200: 10, 2000: 2};
 
-const getApy = async () => {
+const query = gql`
+{
+  pools(first: 1000, orderBy: totalValueLockedUSD, orderDirection: desc, block: {number: <PLACEHOLDER>}) {
+    id
+    reserve0: totalValueLockedToken0
+    reserve1: totalValueLockedToken1
+    volumeUSD
+    volumeToken0
+    feeTier
+    token0 {
+      symbol
+      id
+    }
+    token1 {
+      symbol
+      id
+    }
+  }
+}
+`;
 
+const queryPrior = gql`
+{
+  pools(first: 1000 orderBy: totalValueLockedUSD orderDirection: desc, block: {number: <PLACEHOLDER>}) { 
+    id 
+    volumeUSD
+    volumeToken0
+  }
+}
+`;
+
+async function getPoolVolumes(timestamp = null) {
+  const [block, blockPrior] = await utils.getBlocks(CHAIN, timestamp, [
+    SUBGRAPH,
+  ]);
+
+  const [_, blockPrior7d] = await utils.getBlocks(
+    CHAIN,
+    timestamp,
+    [SUBGRAPH],
+    604800
+  );
+
+  // pull data
+  let dataNow = await request(SUBGRAPH, query.replace('<PLACEHOLDER>', block));
+  dataNow = dataNow.pools;
+
+  // pull 24h offset data to calculate fees from swap volume
+  let queryPriorC = queryPrior;
+  let dataPrior = await request(
+    SUBGRAPH,
+    queryPriorC.replace('<PLACEHOLDER>', blockPrior)
+  );
+  dataPrior = dataPrior.pools;
+
+  // 7d offset
+  const dataPrior7d = (
+    await request(SUBGRAPH, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
+  ).pools;
+
+  // calculate tvl
+  dataNow = await utils.tvl(dataNow, CHAIN);
+  // calculate apy
+  dataNow = dataNow.map((el) => utils.apy(el, dataPrior, dataPrior7d, 'v3'));
+
+  const pools = {}
+  for (const p of dataNow.filter(p => p.volumeUSD1d >= 0 && (!isNaN(p.apy1d) || !isNaN(p.apy7d)))) {
+    const url = 'https://aerodrome.finance/deposit?token0=' + p.token0.id + '&token1=' + p.token1.id + '&factory=' + p.factory;
+    const poolMeta = 'CL' + ' - ' + (Number(p.feeTier) / 10000).toString() + '%';
+    const underlyingTokens = [p.token0.id, p.token1.id];
+
+    const poolAddress = utils.formatAddress(p.id);
+    pools[poolAddress] = {
+      pool: poolAddress,
+      chain: utils.formatChain('base'),
+      project: PROJECT,
+      poolMeta,
+      symbol: `${p.token0.symbol}-${p.token1.symbol}`,
+      tvlUsd: p.totalValueLockedUSD,
+      apyBase: p.apy1d,
+      apyBase7d: p.apy7d,
+      underlyingTokens,
+      url,
+      volumeUsd1d: p.volumeUSD1d,
+      volumeUsd7d: p.volumeUSD7d,
+    }
+  }
+
+  return pools;
+}
+
+const getGaugeApy = async () => {
   const chunkSize = 400;
   let currentOffset = 1650; // Ignore older non-Slipstream pools
   let unfinished = true;
@@ -87,7 +181,7 @@ const getApy = async () => {
   }
 
   let allStakedData = [];
-  for (pool of allPoolsData) {
+  for (let pool of allPoolsData) {
     // don't waste RPC calls if gauge has no staked liquidity
     if (Number(pool.gauge_liquidity) == 0) {
       allStakedData.push({'amount0': 0, 'amount1': 0});
@@ -152,9 +246,9 @@ const getApy = async () => {
     const poolMeta = 'CL' + p.type.toString() + ' - ' + (p.pool_fee / 10000).toString() + '%';
 
     return {
-      pool: p.lp,
+      pool: utils.formatAddress(p.lp),
       chain: utils.formatChain('base'),
-      project: 'aerodrome-slipstream',
+      project: PROJECT,
       symbol: s,
       tvlUsd,
       apyReward,
@@ -165,10 +259,31 @@ const getApy = async () => {
     };
   });
 
-  return pools.filter((p) => utils.keepFinite(p));
+  const poolsApy = {};
+  for (const pool of pools.filter((p) => utils.keepFinite(p))) {
+    poolsApy[pool.pool] = pool;
+  }
+
+  return poolsApy;
 };
+
+async function main(timestamp = null) {
+  const poolsApy = await getGaugeApy();
+  const poolsVolumes = await getPoolVolumes(timestamp);
+  
+  return Object.values(poolsVolumes).map(pool => {
+    const poolAddress = utils.formatAddress(pool.pool);
+    return {
+      ...pool,
+
+      poolMeta: poolsApy[pool.pool] ? poolsApy[pool.pool].poolMeta : pool.poolMeta,
+      apyReward: poolsApy[pool.pool] ? poolsApy[pool.pool].apyReward : undefined,
+      rewardTokens: poolsApy[pool.pool] ? [AERO] : [],
+    }
+  });
+}
 
 module.exports = {
   timetravel: false,
-  apy: getApy,
+  apy: main,
 };
