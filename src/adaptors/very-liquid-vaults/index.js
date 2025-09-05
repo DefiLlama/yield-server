@@ -76,51 +76,62 @@ async function apy() /*: Promise<Pool[]>*/ {
     chains.map(async (chain) => {
       const vaults = VERY_LIQUID_VAULTS[chain];
 
-      const [assets, symbols, totalAssets, totalSupply] = await Promise.all([
-        sdk.api.abi
-          .multiCall({
-            abi: VeryLiquidVaultABI.abi.find(({ name }) => name === 'asset'),
-            calls: vaults.map((vault) => ({
-              target: vault,
-            })),
-            chain,
-          })
-          .then(({ output }) => output.map(({ output }) => output)),
+      const [assets, symbols, totalAssets, totalSupply, decimals] =
+        await Promise.all([
+          sdk.api.abi
+            .multiCall({
+              abi: VeryLiquidVaultABI.abi.find(({ name }) => name === 'asset'),
+              calls: vaults.map((vault) => ({
+                target: vault,
+              })),
+              chain,
+            })
+            .then(({ output }) => output.map(({ output }) => output)),
 
-        sdk.api.abi
-          .multiCall({
-            abi: 'erc20:symbol',
-            calls: vaults.map((vault) => ({
-              target: vault,
-            })),
-            chain,
-          })
-          .then(({ output }) => output.map(({ output }) => output)),
+          sdk.api.abi
+            .multiCall({
+              abi: 'erc20:symbol',
+              calls: vaults.map((vault) => ({
+                target: vault,
+              })),
+              chain,
+            })
+            .then(({ output }) => output.map(({ output }) => output)),
 
-        sdk.api.abi
-          .multiCall({
-            abi: VeryLiquidVaultABI.abi.find(
-              ({ name }) => name === 'totalAssets'
-            ),
-            calls: vaults.map((vault) => ({
-              target: vault,
-            })),
-            chain,
-          })
-          .then(({ output }) => output.map(({ output }) => output)),
+          sdk.api.abi
+            .multiCall({
+              abi: VeryLiquidVaultABI.abi.find(
+                ({ name }) => name === 'totalAssets'
+              ),
+              calls: vaults.map((vault) => ({
+                target: vault,
+              })),
+              chain,
+            })
+            .then(({ output }) => output.map(({ output }) => output)),
 
-        sdk.api.abi
-          .multiCall({
-            abi: VeryLiquidVaultABI.abi.find(
-              ({ name }) => name === 'totalSupply'
-            ),
-            calls: vaults.map((vault) => ({
-              target: vault,
-            })),
-            chain,
-          })
-          .then(({ output }) => output.map(({ output }) => output)),
-      ]);
+          sdk.api.abi
+            .multiCall({
+              abi: VeryLiquidVaultABI.abi.find(
+                ({ name }) => name === 'totalSupply'
+              ),
+              calls: vaults.map((vault) => ({
+                target: vault,
+              })),
+              chain,
+            })
+            .then(({ output }) => output.map(({ output }) => output)),
+
+          sdk.api.abi
+            .multiCall({
+              abi: 'erc20:decimals',
+              calls: vaults.map((vault) => ({
+                target: vault,
+              })),
+              chain,
+            })
+            .then(({ output }) => output.map(({ output }) => output)),
+        ]);
 
       const lastVaultStatusLogPerVault = await Promise.all(
         vaults.map((vault) => getLastVaultStatusLog(vault, chain))
@@ -143,7 +154,7 @@ async function apy() /*: Promise<Pool[]>*/ {
         aprBase: aprBasePerVault[i],
         project: 'very-liquid-vaults',
         symbol: symbols[i],
-        tvlUsd: totalAssets[i],
+        tvlUsd: totalAssets[i] / 10 ** decimals[i],
         underlyingTokens: [assets[i]],
         url: `https://veryliquid.xyz/${chain}/vault/${vault}`,
         totalSupplyUsd: totalAssets[i],
