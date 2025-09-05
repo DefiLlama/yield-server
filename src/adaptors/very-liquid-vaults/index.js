@@ -43,7 +43,7 @@ async function getLastVaultStatusLog(vault, chain) /*: Promise<VaultStatus>*/ {
     timestamp: timestamp,
     totalShares: Number(decodedLog.args.totalShares.toString()),
     totalAssets: Number(decodedLog.args.totalAssets.toString()),
-  }
+  };
   return vaultStatus;
 }
 
@@ -70,65 +70,74 @@ function getAPY(
 }
 
 async function apy() /*: Promise<Pool[]>*/ {
-  const response = {};
   const chains = Object.keys(VERY_LIQUID_VAULTS);
-  for (const chain of chains) {
-    const vaults = VERY_LIQUID_VAULTS[chain];
-    const assets = await sdk.api.abi
-      .multiCall({
-        abi: VeryLiquidVaultABI.abi.find(({ name }) => name === 'asset'),
-        calls: vaults.map((vault) => ({
-          target: vault,
-        })),
-        chain,
-      })
-      .then(({ output }) => output.map(({ output }) => output));
 
-    const symbols = await sdk.api.abi
-      .multiCall({
-        abi: 'erc20:symbol',
-        calls: vaults.map((vault) => ({
-          target: vault,
-        })),
-        chain,
-      })
-      .then(({ output }) => output.map(({ output }) => output));
+  const chainResults = await Promise.all(
+    chains.map(async (chain) => {
+      const vaults = VERY_LIQUID_VAULTS[chain];
 
-    const totalAssets = await sdk.api.abi
-      .multiCall({
-        abi: VeryLiquidVaultABI.abi.find(({ name }) => name === 'totalAssets'),
-        calls: vaults.map((vault) => ({
-          target: vault,
-        })),
-        chain,
-      })
-      .then(({ output }) => output.map(({ output }) => output));
+      const [assets, symbols, totalAssets, totalSupply] = await Promise.all([
+        sdk.api.abi
+          .multiCall({
+            abi: VeryLiquidVaultABI.abi.find(({ name }) => name === 'asset'),
+            calls: vaults.map((vault) => ({
+              target: vault,
+            })),
+            chain,
+          })
+          .then(({ output }) => output.map(({ output }) => output)),
 
-    const totalSupply = await sdk.api.abi
-      .multiCall({
-        abi: VeryLiquidVaultABI.abi.find(({ name }) => name === 'totalSupply'),
-        calls: vaults.map((vault) => ({
-          target: vault,
-        })),
-        chain,
-      })
-      .then(({ output }) => output.map(({ output }) => output));
+        sdk.api.abi
+          .multiCall({
+            abi: 'erc20:symbol',
+            calls: vaults.map((vault) => ({
+              target: vault,
+            })),
+            chain,
+          })
+          .then(({ output }) => output.map(({ output }) => output)),
 
-    const lastVaultStatusLogPerVault = await Promise.all(
-      vaults.map((vault) => getLastVaultStatusLog(vault, chain))
-    );
-    const aprBasePerVault = lastVaultStatusLogPerVault.map((lastVaultStatusLog, i) => {
-      const currentStatus = {
-        timestamp: Math.floor(new Date().getTime() / 1000),
-        totalShares: Number(totalSupply[i]),
-        totalAssets: Number(totalAssets[i]),
-      };
-      return getAPY(lastVaultStatusLog, currentStatus);
-    });
-    console.log(aprBasePerVault);
+        sdk.api.abi
+          .multiCall({
+            abi: VeryLiquidVaultABI.abi.find(
+              ({ name }) => name === 'totalAssets'
+            ),
+            calls: vaults.map((vault) => ({
+              target: vault,
+            })),
+            chain,
+          })
+          .then(({ output }) => output.map(({ output }) => output)),
 
-    response[chain] = vaults.map((vault, i) => {
-      return {
+        sdk.api.abi
+          .multiCall({
+            abi: VeryLiquidVaultABI.abi.find(
+              ({ name }) => name === 'totalSupply'
+            ),
+            calls: vaults.map((vault) => ({
+              target: vault,
+            })),
+            chain,
+          })
+          .then(({ output }) => output.map(({ output }) => output)),
+      ]);
+
+      const lastVaultStatusLogPerVault = await Promise.all(
+        vaults.map((vault) => getLastVaultStatusLog(vault, chain))
+      );
+
+      const aprBasePerVault = lastVaultStatusLogPerVault.map(
+        (lastVaultStatusLog, i) => {
+          const currentStatus = {
+            timestamp: Math.floor(new Date().getTime() / 1000),
+            totalShares: Number(totalSupply[i]),
+            totalAssets: Number(totalAssets[i]),
+          };
+          return getAPY(lastVaultStatusLog, currentStatus);
+        }
+      );
+
+      return vaults.map((vault, i) => ({
         pool: vault,
         chain,
         aprBase: aprBasePerVault[i],
@@ -138,11 +147,11 @@ async function apy() /*: Promise<Pool[]>*/ {
         underlyingTokens: [assets[i]],
         url: `https://veryliquid.xyz/${chain}/vault/${vault}`,
         totalSupplyUsd: totalAssets[i],
-      };
-    });
-  }
-  console.log(response)
-  return response;
+      }));
+    })
+  );
+
+  return chainResults.flat();
 }
 
 module.exports = {
