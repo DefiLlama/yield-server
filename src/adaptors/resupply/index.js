@@ -1,4 +1,5 @@
-const utils = require('../utils');
+const utils = require('../utils')
+const { getERC4626Info } = require('../utils');
 
 const SUPPORTED_PROTOCOLS = {
   ethereum: ['curvelend', 'fraxlend']
@@ -52,8 +53,25 @@ const main = async () => {
       allPools.push(...formattedPairs);
     }
   }
+  const sreusd = await getERC4626Info(
+    '0x557AB1e003951A73c12D16F0fEA8490E39C33C35',
+    'ethereum'
+  );
 
-  return allPools.filter(pool => utils.keepFinite(pool));
+  return allPools
+    .concat([
+      {
+        symbol: 'sreUSD',
+        pool: `${sreusd.pool}-ethereum`,
+        project: 'resupply',
+        chain: 'Ethereum',
+        tvlUsd: sreusd.tvl / 1e18,
+        apyBase: sreusd.apyBase,
+        poolMeta: 'Savings reUSD',
+        url: 'https://resupply.fi/supply',
+      },
+    ])
+    .filter(pool => utils.keepFinite(pool));
 };
 
 module.exports = {
