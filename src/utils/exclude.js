@@ -159,6 +159,7 @@ const excludeAdaptors = [
   'icpex',
   'nx-finance',
   'c3-exchange',
+  'bagful',
 ];
 
 const excludePools = [
