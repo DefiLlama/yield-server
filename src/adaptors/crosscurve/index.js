@@ -8,6 +8,19 @@ const chainIdMap = {
   42161: 'Arbitrum',
 };
 
+const poolToSymbol = {
+  '0x346704605c72d9f5f9f02d651e5a3dcce6964f3d': 'xfrxETH',
+  '0xf1232a1ab5661abdd6e02c6d8ac9940a23bb0b84': 'xfrxUSD',
+  '0x71868ed5316714ed6ae89bd8e4836016216930db': 'xeFraxtal',
+  '0x4cdb45979d19da8632ea1d3459cb18258854b285': 'xsFraxtal',
+  '0x1028452e86ad0ae114a86b0b041af5110ff1f0b5': 'xCRV2',
+  '0x38dd6b3c096c8cbe649fa0039cc144f333be8e61': 'xCRV',
+  '0x24479a0d48849781b4386ed91fdd84241673ab1e': 'xeEthereum',
+  '0xe5a0813a7de6abd8599594e84cb23e4a6d9d9800': 'xeLinea',
+  '0xd9bf67d8a5d698a028160f62480d456801f0b4b1': 'xsOptimism',
+  '0x9e63e5d31fd0136290ef99b3cac4515f346fef1c': 'xsLinea',
+};
+
 const getGauges = async () => {
   try {
     const response = await fetch(
@@ -151,7 +164,8 @@ const main = async () => {
           pool: address,
           chain: curvePool?.chain || chainIdMap[merklPool?.chainId],
           project: 'crosscurve',
-          symbol: curvePool?.symbol || merklPool?.platform,
+          symbol:
+            poolToSymbol[address] || curvePool?.symbol || merklPool?.platform,
           apyBase,
           apyReward,
           tvlUsd,
