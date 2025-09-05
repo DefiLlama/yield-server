@@ -7,7 +7,7 @@ frameworkVersion: '3'
 
 provider:
   name: aws
-  runtime: nodejs16.x
+  runtime: nodejs22.x
   stage: dev
   region: eu-central-1
   tracing:
@@ -80,6 +80,8 @@ functions:
       VENDOR_FINANCE: ${file(./env.js):VENDOR_FINANCE}
       TRADERJOE: ${file(./env.js):TRADERJOE}
       OSMOSIS_API_KEY: ${file(./env.js):OSMOSIS_API_KEY}
+      DUNE_API_KEY: ${file(./env.js):DUNE_API_KEY}
+      HYPERLIQUID_RPC: ${file(./env.js):HYPERLIQUID_RPC}
 
   # --- data enrichment
   triggerEnrichment:

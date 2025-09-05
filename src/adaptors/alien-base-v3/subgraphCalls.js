@@ -1,5 +1,7 @@
-const { gql } = require("graphql-request");
-const SUBGRAPH_URL = 'https://api.studio.thegraph.com/query/59130/v3alb/version/latest';
+const sdk = require("@defillama/sdk");
+const { request, gql } = require("graphql-request");
+
+const SUBGRAPH_URL = sdk.graph.modifyEndpoint("378iBSg3LF7U4Gby57EsgACtTjjhD55fm7324H58sMeo");
 
 const queryPrior = gql`
   {
@@ -34,7 +36,7 @@ const query = gql`
 `;
 
 const fetchPoolsFromSubgraph = async () => {
-  const query = `
+  const poolQuery = gql`
     query {
       pools(first: 100, where: {totalValueLockedUSD_gt: 1000}) {
         id
@@ -50,14 +52,9 @@ const fetchPoolsFromSubgraph = async () => {
       }
     }
   `;
-
+  
   try {
-    const response = await fetch(SUBGRAPH_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
-    });
-    const { data } = await response.json();
+    const data = await request(SUBGRAPH_URL, poolQuery);
     return data.pools;
   } catch (err) {
     console.log('Error fetching pools:', err);
@@ -74,7 +71,7 @@ const averageArray = (dataToCalculate) => {
 };
 
 const fetchPoolAvgInfo = async (address) => {
-  const query = `
+  const volumeQuery = gql`
     query getVolume($days: Int!, $address: String!) {
       poolDayDatas(first: $days, orderBy: date, orderDirection: desc, where: { pool: $address }) {
         volumeUSD
@@ -84,17 +81,15 @@ const fetchPoolAvgInfo = async (address) => {
       }
     }
   `;
+  
   try {
-    const response = await fetch(SUBGRAPH_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, variables: { days: 7, address: address.toLowerCase() } }),
+    const data = await request(SUBGRAPH_URL, volumeQuery, { 
+      days: 7, 
+      address: address.toLowerCase() 
     });
-    const { data } = await response.json();
+    
     const poolDayDatas = data.poolDayDatas;
-
     const volumes = poolDayDatas.map((d) => Number(d.volumeUSD));
-
     return {
       volumeUSD: averageArray(volumes),
     };
@@ -105,7 +100,7 @@ const fetchPoolAvgInfo = async (address) => {
 };
 
 const fetchTokenPricesFromSubgraph = async () => {
-  const query = `
+  const tokenQuery = gql`
     query {
       tokens(first: 100) {
         id
@@ -115,15 +110,10 @@ const fetchTokenPricesFromSubgraph = async () => {
       }
     }
   `;
-
+  
   try {
-    const response = await fetch(SUBGRAPH_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
-    });
-    const { data } = await response.json();
-    
+    const data = await request(SUBGRAPH_URL, tokenQuery);
+   
     const tokenPrices = {};
     data.tokens.forEach((token) => {
       tokenPrices[token.id?.toLowerCase()] = {

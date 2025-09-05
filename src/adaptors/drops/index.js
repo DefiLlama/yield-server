@@ -189,7 +189,7 @@ const main = async () => {
     const priceKey = 'coingecko:drops-ownership-power';
     const protocolTokenPrice = (
       await utils.getData(`https://coins.llama.fi/prices/current/${priceKey}`)
-    ).coins[priceKey].price;
+    ).coins[priceKey]?.price;
 
     prices[PROTOCOL_TOKEN.address] = protocolTokenPrice;
 

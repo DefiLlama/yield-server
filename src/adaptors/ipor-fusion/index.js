@@ -1,18 +1,25 @@
 const superagent = require('superagent');
 
+const IPOR_GITHUB_ADDRESSES_URL = "https://raw.githubusercontent.com/IPOR-Labs/ipor-abi/refs/heads/main/mainnet/addresses.json";
 const FUSION_API_URL = 'https://api.ipor.io/fusion/vaults';
 const CHAIN_CONFIG = {
     ethereum: {
-        chainId: 1,
-        iporToken: '0x1e4746dc744503b53b4a082cb3607b169a289090'
+        chainId: 1
     },
     arbitrum: {
-        chainId: 42161,
-        iporToken: '0x34229b3f16fbcdfa8d8d9d17c0852f9496f4c7bb'
+        chainId: 42161
     },
     base: {
-        chainId: 8453,
-        iporToken: '0xbd4e5C2f8dE5065993d29A9794E2B7cEfc41437A'
+        chainId: 8453
+    },
+    unichain: {
+        chainId: 130
+    },
+    tac: {
+        chainId: 239
+    },
+    ink: {
+        chainId: 57073
     }
 };
 
@@ -25,9 +32,22 @@ async function getChainData(chain) {
     return chainVaults;
 }
 
+async function getPublicVaults() {
+    const response = await superagent.get(IPOR_GITHUB_ADDRESSES_URL);
+    const publicVaults = JSON.parse(response.text);
+    const chainVaults = new Map();
+
+    Object.entries(publicVaults).forEach(([chainName, { vaults }]) => {
+        const lowerCaseVaults = vaults.map(vault => vault.PlasmaVault.toLowerCase());
+        chainVaults.set(chainName, lowerCaseVaults);
+    });
+
+    return chainVaults;
+}
+
 async function buildPool(vault) {
     const tvlUsd = Number(vault.tvl);
-    const apyBase = Number(vault.apr);
+    const apyBase = Number(vault.apy);
     const chainConfig = Object.entries(CHAIN_CONFIG).find(
         ([_, config]) => config.chainId === vault.chainId
     );
@@ -51,6 +71,7 @@ async function buildPool(vault) {
 }
 
 const apy = async() => {
+    const publicVaults = await getPublicVaults();
     const chainsData = await Promise.all(
         Object.entries(CHAIN_CONFIG).map(async([chain, config]) => ({
             chain,
@@ -60,9 +81,10 @@ const apy = async() => {
     );
 
     const pools = await Promise.all(
-        chainsData.flatMap(({ data }) =>
+        chainsData.flatMap(({ chain, data }) =>
             data
             .filter(vault => !vault.name.toLowerCase().includes('pilot')) // filter out pilot vaults
+            .filter(vault => publicVaults.get(chain).includes(vault.address.toLowerCase()))
             .map(vault => buildPool(vault))
         )
     );

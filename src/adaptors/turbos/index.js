@@ -2,7 +2,7 @@ const utils = require('../utils');
 const axios = require('axios');
 
 const PAGE_SIZE = 100;
-const API_URL = 'https://api.turbos.finance/pools/v2';
+const API_URL = 'https://api2.turbos.finance/pools';
 
 const getApy = async () => {
   let pools = [];
@@ -17,8 +17,8 @@ const getApy = async () => {
       },
       headers: { 'Api-Version': 'v2' },
     });
-    pools.push(...result.data.list);
-    if (result.data.list.length < PAGE_SIZE) break;
+    pools.push(...result.data.result);
+    if (result.data.result.length < PAGE_SIZE) break;
   }
 
   pools = pools.filter((p) => p.apr > 0 && p.liquidity_usd >= 10000);
