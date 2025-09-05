@@ -33,13 +33,32 @@ const VYUSD_CONTRACTS = {
   avax: "0xF4F447E6AFa04c9D11Ef0e2fC0d7f19C24Ee55de",
 };
 
+const YETH_CONTRACTS = {
+  ethereum: "0x8464F6eCAe1EA58EC816C13f964030eAb8Ec123A",
+};
+
+const VYETH_CONTRACTS = {
+  ethereum: "0x3073112c2c4800b89764973d5790ccc7fba5c9f9",
+};
+
+const YBTC_CONTRACTS = {
+  ethereum: "0xa01200b2e74DE6489cF56864E3d76BBc06fc6C43",
+};
+
+const VYBTC_CONTRACTS = {
+  ethereum: "0x1e2a5622178f93EFd4349E2eB3DbDF2761749e1B",
+};
 // Supported chains
 const SUPPORTED_CHAINS = Object.keys(YUSD_CONTRACTS);
 
 // API endpoints
 const API_ENDPOINTS = {
-  yUSD: 'https://ctrl.yield.fi/t/yusd/apyHistory',
-  vyUSD: 'https://ctrl.yield.fi/t/vyusd/apyHistory'
+  yUSD: 'https://ctrl.yield.fi/t/apy/yusd/apyHistory',
+  vyUSD: 'https://ctrl.yield.fi/t/apy/vyusd/apyHistory',
+  yETH: 'https://ctrl.yield.fi/t/apy/yeth/apyHistory',
+  vyETH: 'https://ctrl.yield.fi/t/apy/vyeth/apyHistory',
+  yBTC: 'https://ctrl.yield.fi/t/apy/ybtc/apyHistory',
+  vyBTC: 'https://ctrl.yield.fi/t/apy/vybtc/apyHistory',
 };
 
 // ABIs
@@ -157,12 +176,23 @@ const poolsFunction = async () => {
 
   // Process all chains in parallel
   const chainPromises = SUPPORTED_CHAINS.map(async (chain) => {
-    const [yusdPool, vyusdPool] = await Promise.all([
+    const tokenPromises = [
       processToken(YUSD_CONTRACTS[chain], 'yUSD', chain),
       processToken(VYUSD_CONTRACTS[chain], 'vyUSD', chain)
-    ]);
+    ];
 
-    return [yusdPool, vyusdPool].filter(Boolean);
+    // Only process yETH, vyETH, yBTC, vyBTC on Ethereum
+    if (chain === 'ethereum') {
+      tokenPromises.push(
+        processToken(YETH_CONTRACTS[chain], 'yETH', chain),
+        processToken(VYETH_CONTRACTS[chain], 'vyETH', chain),
+        processToken(YBTC_CONTRACTS[chain], 'yBTC', chain),
+        processToken(VYBTC_CONTRACTS[chain], 'vyBTC', chain)
+      );
+    }
+
+    const pools = await Promise.all(tokenPromises);
+    return pools.filter(Boolean);
   });
 
   const chainResults = await Promise.all(chainPromises);
