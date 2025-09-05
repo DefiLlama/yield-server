@@ -69,7 +69,6 @@ const excludeAdaptors = [
   'liqee',
   'earnmos',
   'magik-farm',
-  'reservoir',
   'swapfish',
   'rage-trade',
   'ottopia',
