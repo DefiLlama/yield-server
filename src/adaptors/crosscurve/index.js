@@ -8,17 +8,10 @@ const chainIdMap = {
   42161: 'Arbitrum',
 };
 
-const poolToSymbol = {
-  '0x346704605c72d9f5f9f02d651e5a3dcce6964f3d': 'xfrxETH',
-  '0xf1232a1ab5661abdd6e02c6d8ac9940a23bb0b84': 'xfrxUSD',
-  '0x71868ed5316714ed6ae89bd8e4836016216930db': 'xeFraxtal',
-  '0x4cdb45979d19da8632ea1d3459cb18258854b285': 'xsFraxtal',
-  '0x1028452e86ad0ae114a86b0b041af5110ff1f0b5': 'xCRV2',
-  '0x38dd6b3c096c8cbe649fa0039cc144f333be8e61': 'xCRV',
-  '0x24479a0d48849781b4386ed91fdd84241673ab1e': 'xeEthereum',
-  '0xe5a0813a7de6abd8599594e84cb23e4a6d9d9800': 'xeLinea',
-  '0xd9bf67d8a5d698a028160f62480d456801f0b4b1': 'xsOptimism',
-  '0x9e63e5d31fd0136290ef99b3cac4515f346fef1c': 'xsLinea',
+const chainNameToKey = {
+  Sonic: 'sonic',
+  Fantom: 'fantom',
+  Arbitrum: 'arbitrum',
 };
 
 const getGauges = async () => {
@@ -44,6 +37,25 @@ const getGauges = async () => {
   } catch (error) {
     console.error(error);
     return [];
+  }
+};
+
+const getConfig = async () => {
+  try {
+    const response = await fetch('https://api.crosscurve.fi/networks', {
+      timeout: 10000,
+    });
+
+    if (!response.ok) {
+      throw new Error(response.status);
+    }
+
+    const configData = await response.json();
+
+    return configData;
+  } catch (error) {
+    console.error(error);
+    return {};
   }
 };
 
@@ -88,6 +100,8 @@ const resolveMerklPool = (merklData, address) => {
 // Main Function
 const main = async () => {
   try {
+    const config = await getConfig();
+
     const gauges = await getGauges();
     const addresses = Object.keys(gauges).map((address) =>
       address.toLowerCase()
@@ -160,12 +174,28 @@ const main = async () => {
           )
           .toNumber();
 
+        const chain = curvePool?.chain || chainIdMap[merklPool?.chainId];
+        const chainKey = chainNameToKey[chain];
+        const pools = config[chainKey]?.pools || [];
+        const tokens = config[chainKey]?.tokens || [];
+        const pool = pools.find(
+          (p) => p.address.toLowerCase() === address.toLowerCase()
+        );
+        const lp = pool
+          ? tokens.find(
+              (t) => t.address.toLowerCase() === pool.lp.address.toLowerCase()
+            )
+          : null;
+
         return {
           pool: address,
           chain: curvePool?.chain || chainIdMap[merklPool?.chainId],
           project: 'crosscurve',
           symbol:
-            poolToSymbol[address] || curvePool?.symbol || merklPool?.platform,
+            lp?.symbol ||
+            pool?.label ||
+            curvePool?.symbol ||
+            merklPool?.platform,
           apyBase,
           apyReward,
           tvlUsd,
