@@ -147,7 +147,7 @@ async function apy() /*: Promise<Pool[]>*/ {
         vaults.map((vault) => getLastVaultStatusLog(vault, chain))
       );
 
-      const aprBasePerVault = lastVaultStatusLogPerVault.map(
+      const apyBasePerVault = lastVaultStatusLogPerVault.map(
         (lastVaultStatusLog, i) => {
           const currentStatus = {
             timestamp: Math.floor(new Date().getTime() / 1000),
@@ -161,7 +161,7 @@ async function apy() /*: Promise<Pool[]>*/ {
       return vaults.map((vault, i) => ({
         pool: vault,
         chain,
-        aprBase: aprBasePerVault[i],
+        apyBase: apyBasePerVault[i],
         project: 'very-liquid-vaults',
         symbol: symbols[i],
         tvlUsd: (totalAssets[i] * prices[i]) / 10 ** decimals[i],
