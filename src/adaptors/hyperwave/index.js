@@ -6,43 +6,43 @@
  * @author maybeYonas
  * @version 1.1.0
  */
-const utils = require('../utils');
-const ethers = require('ethers');
-const axios = require('axios');
-const sdk = require('@defillama/sdk');
-const Vault = require('./Vault.json');
-const Accountant = require('./Accountant.json');
-const hwHLP = '0x9FD7466f987Fd4C45a5BBDe22ED8aba5BC8D72d1';
-const hwHYPE = '0x4DE03cA1F02591B717495cfA19913aD56a2f5858';
-const hwHLP_ACCOUNTANT = '0x78E3Ac5Bf48dcAF1835e7F9861542c0D43D0B03E';
-const hwHYPE_ACCOUNTANT = '0xCf9be8BF79ad26fdD7aA73f3dd5bA73eCDee2a32';
-const hwHLP_UNDERLYING_USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'; // USDC
-const hwHLP_UNDERLYING_USDT0 = '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb';
-const hwHYPE_UNDERLYING_WHYPE = '0x5555555555555555555555555555555555555555';
+const utils = require("../utils");
+const ethers = require("ethers");
+const axios = require("axios");
+const sdk = require("@defillama/sdk");
+const Vault = require("./Vault.json");
+const Accountant = require("./Accountant.json");
+const hwHLP = "0x9FD7466f987Fd4C45a5BBDe22ED8aba5BC8D72d1";
+const hwHYPE = "0x4DE03cA1F02591B717495cfA19913aD56a2f5858";
+const hwHLP_ACCOUNTANT = "0x78E3Ac5Bf48dcAF1835e7F9861542c0D43D0B03E";
+const hwHYPE_ACCOUNTANT = "0xCf9be8BF79ad26fdD7aA73f3dd5bA73eCDee2a32";
+const hwHLP_UNDERLYING_USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; // USDC
+const hwHLP_UNDERLYING_USDT0 = "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb";
+const hwHYPE_UNDERLYING_WHYPE = "0x5555555555555555555555555555555555555555";
 const config = [
     {
-        symbol: 'hwHLP',
+        symbol: "hwHLP",
         boringVault: hwHLP,
         accountant: hwHLP_ACCOUNTANT,
         underlying: hwHLP_UNDERLYING_USDC,
         decimals: 6,
-        chain: 'ethereum',
+        chain: "ethereum",
     },
     {
-        symbol: 'hwHLP',
+        symbol: "hwHLP",
         boringVault: hwHLP,
         accountant: hwHLP_ACCOUNTANT,
         underlying: hwHLP_UNDERLYING_USDT0,
         decimals: 6,
-        chain: 'hyperliquid',
+        chain: "hyperliquid",
     },
     {
-        symbol: 'hwHYPE',
+        symbol: "hwHYPE",
         boringVault: hwHYPE,
         accountant: hwHYPE_ACCOUNTANT,
         underlying: hwHYPE_UNDERLYING_WHYPE,
         decimals: 18,
-        chain: 'hyperliquid',
+        chain: "hyperliquid",
     },
 ];
 /**
@@ -69,21 +69,17 @@ const calculateTVL = async (config) => {
     const { chain, underlying, accountant, boringVault, decimals } = config;
     const totalSupplyCall = sdk.api.abi.call({
         target: boringVault,
-        abi: Vault.find((m) => m.name === 'totalSupply'),
+        abi: Vault.find((m) => m.name === "totalSupply"),
         chain: chain,
     });
     const priceKey = `${chain}:${underlying}`;
     const underlyingPriceCall = axios.get(`https://coins.llama.fi/prices/current/${priceKey}?searchWidth=24h`);
     const currentRateCall = sdk.api.abi.call({
         target: accountant,
-        abi: Accountant.find((m) => m.name === 'getRate'),
+        abi: Accountant.find((m) => m.name === "getRate"),
         chain: chain,
     });
-    const [totalSupplyResponse, underlyingPriceResponse, currentRateResponse,] = await Promise.all([
-        totalSupplyCall,
-        underlyingPriceCall,
-        currentRateCall,
-    ]);
+    const [totalSupplyResponse, underlyingPriceResponse, currentRateResponse] = await Promise.all([totalSupplyCall, underlyingPriceCall, currentRateCall]);
     const scalingFactor = 10 ** decimals;
     const totalSupply = totalSupplyResponse.output / scalingFactor;
     const underlyingPrice = underlyingPriceResponse.data.coins[priceKey].price;
@@ -119,9 +115,9 @@ const calculateTVL = async (config) => {
 const calculateAPR = async (config, currentRate) => {
     const { chain, accountant, decimals } = config;
     const scalingFactor = 10 ** decimals;
-    if (chain === 'hyperliquid') {
+    if (chain === "hyperliquid") {
         console.log("Setting provider for hyperliquid");
-        sdk.api.config.setProvider('hyperliquid', new ethers.providers.JsonRpcProvider('https://rpc.hyperlend.finance'));
+        sdk.api.config.setProvider("hyperliquid", new ethers.providers.JsonRpcProvider("https://rpc.hyperlend.finance"));
     }
     const now = Math.floor(Date.now() / 1000);
     const timestamp1dayAgo = now - 86400;
@@ -137,14 +133,14 @@ const calculateAPR = async (config, currentRate) => {
     const [rate1dayAgo, rate7dayAgo] = await Promise.all([
         sdk.api.abi.call({
             target: accountant,
-            abi: Accountant.find((m) => m.name === 'getRate'),
+            abi: Accountant.find((m) => m.name === "getRate"),
             block: block1dayAgo,
             chain: chain,
             // provider
         }),
         sdk.api.abi.call({
             target: accountant,
-            abi: Accountant.find((m) => m.name === 'getRate'),
+            abi: Accountant.find((m) => m.name === "getRate"),
             block: block7dayAgo,
             chain: chain,
         }),
@@ -199,7 +195,7 @@ const apy = async () => {
         const { apr1d, apr7d } = await calculateAPR(chainConfig, currentRate);
         return {
             pool: `${chainConfig.chain}_${chainConfig.boringVault}`,
-            project: 'hyperwave',
+            project: "hyperwave",
             chain: utils.formatChain(chainConfig.chain),
             symbol: chainConfig.symbol,
             tvlUsd: tvlUsd,
@@ -213,5 +209,5 @@ const apy = async () => {
 module.exports = {
     apy,
     timetravel: false,
-    url: 'https://app.hyperwavefi.xyz/assets/hwhlp',
+    url: "https://app.hyperwavefi.xyz/assets/hwhlp",
 };
