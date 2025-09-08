@@ -3,11 +3,12 @@
  * This module interfaces with the hwHLP vault contract and its accountant to fetch
  * financial metrics across Ethereum and Hyperliquid chains.
  *
- * @author Hyperwave Finance Integration
- * @version 1.0.0
+ * @author maybeYonas
+ * @version 1.1.0
  */
 
 const utils = require('../utils');
+const ethers = require('ethers');
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const Vault = require('./Vault.json');
@@ -15,13 +16,30 @@ const Accountant = require('./Accountant.json');
 
 const hwHLP = '0x9FD7466f987Fd4C45a5BBDe22ED8aba5BC8D72d1';
 const hwHLP_ACCOUNTANT = '0x78E3Ac5Bf48dcAF1835e7F9861542c0D43D0B03E';
-const UNDERLYING = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'; // USDC
+const hwHLP_UNDERLYING_USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'; // USDC
+const hwHLP_UNDERLYING_USDT0 = '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb'
 
-const config = [
+interface AssetConfig {
+  boringVault: string;
+  accountant: string;
+  underlying: string;
+  decimals: number;
+  chain: string;
+}
+
+const config: AssetConfig[] = [
   {
+    boringVault: hwHLP,
+    accountant: hwHLP_ACCOUNTANT,
+    underlying: hwHLP_UNDERLYING_USDC,
+    decimals: 6,
     chain: 'ethereum',
   },
   {
+    boringVault: hwHLP,
+    accountant: hwHLP_ACCOUNTANT,
+    underlying: hwHLP_UNDERLYING_USDT0,
+    decimals: 6,
     chain: 'hyperliquid',
   },
 ];
@@ -47,43 +65,35 @@ const config = [
  * const tvlData = await calculateTVL('ethereum');
  * console.log(`TVL: $${tvlData.tvlUsd.toFixed(2)}`);
  */
-const calculateTVL = async (chain) => {
+const calculateTVL = async (config: AssetConfig) => {
+  const {chain, underlying, accountant, boringVault, decimals} = config;
   const totalSupplyCall = sdk.api.abi.call({
-    target: hwHLP,
+    target: boringVault,
     abi: Vault.find((m) => m.name === 'totalSupply'),
     chain: chain,
   });
 
-  const decimalsCall = sdk.api.abi.call({
-    target: hwHLP,
-    abi: Vault.find((m) => m.name === 'decimals'),
-    chain: chain,
-  });
-
-  const priceKey = `ethereum:${UNDERLYING}`;
+  const priceKey = `${chain}:${underlying}`;
   const underlyingPriceCall = axios.get(
     `https://coins.llama.fi/prices/current/${priceKey}?searchWidth=24h`
   );
 
   const currentRateCall = sdk.api.abi.call({
-    target: hwHLP_ACCOUNTANT,
+    target: accountant,
     abi: Accountant.find((m) => m.name === 'getRate'),
     chain: chain,
   });
 
   const [
     totalSupplyResponse,
-    decimalsResponse,
     underlyingPriceResponse,
     currentRateResponse,
   ] = await Promise.all([
     totalSupplyCall,
-    decimalsCall,
     underlyingPriceCall,
     currentRateCall,
   ]);
 
-  const decimals = decimalsResponse.output;
   const scalingFactor = 10 ** decimals;
   const totalSupply = totalSupplyResponse.output / scalingFactor;
   const underlyingPrice = underlyingPriceResponse.data.coins[priceKey].price;
@@ -93,8 +103,6 @@ const calculateTVL = async (chain) => {
 
   return {
     tvlUsd,
-    decimals,
-    scalingFactor,
     currentRate,
   };
 };
@@ -121,7 +129,18 @@ const calculateTVL = async (chain) => {
  * console.log(`1d APR: ${aprData.apr1d.toFixed(2)}%`);
  * console.log(`7d APR: ${aprData.apr7d.toFixed(2)}%`);
  */
-const calculateAPR = async (currentRate, scalingFactor, chain = 'ethereum') => {
+const calculateAPR = async (config: AssetConfig, currentRate: number) => {
+  const {chain, accountant,decimals} = config;
+  const scalingFactor = 10 ** decimals;
+
+  if (chain === 'hyperliquid') {
+    console.log("Setting provider for hyperliquid");
+    sdk.api.config.setProvider(
+      'hyperliquid', 
+      new ethers.providers.JsonRpcProvider('https://rpc.hyperlend.finance')
+    )
+  }
+
   const now = Math.floor(Date.now() / 1000);
   const timestamp1dayAgo = now - 86400;
   const timestamp7dayAgo = now - 86400 * 7;
@@ -143,18 +162,28 @@ const calculateAPR = async (currentRate, scalingFactor, chain = 'ethereum') => {
 
   const [rate1dayAgo, rate7dayAgo] = await Promise.all([
     sdk.api.abi.call({
-      target: hwHLP_ACCOUNTANT,
+      target: accountant,
       abi: Accountant.find((m) => m.name === 'getRate'),
       block: block1dayAgo,
       chain: chain,
+      // provider
     }),
     sdk.api.abi.call({
-      target: hwHLP_ACCOUNTANT,
+      target: accountant,
       abi: Accountant.find((m) => m.name === 'getRate'),
       block: block7dayAgo,
       chain: chain,
     }),
   ]);
+
+  // console.log("Rates:", {
+  //   chain,
+  //   currentRate,
+  //   rate1dayAgo: rate1dayAgo.output,
+  //   rate7dayAgo: rate7dayAgo.output,
+  //   block1dayAgo,
+  //   block7dayAgo
+  // });
 
   const apr1d =
     ((currentRate - rate1dayAgo.output) / scalingFactor) * 365 * 100;
@@ -198,11 +227,12 @@ const calculateAPR = async (currentRate, scalingFactor, chain = 'ethereum') => {
 const apy = async () => {
   const out = await Promise.all(
     config.map(async (chainConfig) => {
-      const { tvlUsd, currentRate, scalingFactor } = await calculateTVL(
-        chainConfig.chain
+      const { tvlUsd, currentRate } = await calculateTVL(
+        chainConfig
       );
       // using ethereum for APR as most HyperEVM RPCs don't have archival state
-      const { apr1d, apr7d } = await calculateAPR(currentRate, scalingFactor);
+      // const { apr1d, apr7d } = await calculateAPR(currentRate, scalingFactor);
+      const { apr1d, apr7d } = await calculateAPR(chainConfig, currentRate, );
       return {
         pool: `${chainConfig.chain}_${hwHLP}`,
         project: 'hyperwave',
@@ -211,7 +241,7 @@ const apy = async () => {
         tvlUsd: tvlUsd,
         apyBase: apr1d,
         apyBase7d: apr7d,
-        underlyingTokens: [UNDERLYING],
+        underlyingTokens: [chainConfig.underlying],
       };
     })
   );
