@@ -172,7 +172,7 @@ async function apy() /*: Promise<Pool[]>*/ {
 
       return vaults.map((vault, i) => ({
         pool: `vlv-${vault}`,
-        chain: uppercaseFirst(market.chain),
+        chain: uppercaseFirst(chain),
         apyBase: apyBasePerVault[i],
         project: 'size-credit',
         symbol: symbols[i],
