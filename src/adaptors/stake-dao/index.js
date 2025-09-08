@@ -1,6 +1,6 @@
 const utils = require('../utils');
 
-const API_ENDPOINT = 'https://api.stake-dao.org/api/';
+const API_ENDPOINT = 'https://api.stakedao.org/api/';
 const SDT_ADDRESS = '0x73968b9a57c6e53d41345fd57a6e6ae27d6cdb2f';
 
 const CHAINS = {
