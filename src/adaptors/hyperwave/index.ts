@@ -253,7 +253,7 @@ const apy = async () => {
         pool: `${chainConfig.chain}_${hwHLP}`,
         project: 'hyperwave',
         chain: utils.formatChain(chainConfig.chain),
-        symbol: 'hwHLP',
+        symbol: chainConfig.symbol,
         tvlUsd: tvlUsd,
         apyBase: apr1d,
         apyBase7d: apr7d,
