@@ -4,7 +4,7 @@
  * financial metrics across Ethereum and Hyperliquid chains.
  *
  * @author maybeYonas
- * @version 1.0.0
+ * @version 1.1.0
  */
 const utils = require('../utils');
 const ethers = require('ethers');
@@ -13,11 +13,15 @@ const sdk = require('@defillama/sdk');
 const Vault = require('./Vault.json');
 const Accountant = require('./Accountant.json');
 const hwHLP = '0x9FD7466f987Fd4C45a5BBDe22ED8aba5BC8D72d1';
+const hwHYPE = '0x4DE03cA1F02591B717495cfA19913aD56a2f5858';
 const hwHLP_ACCOUNTANT = '0x78E3Ac5Bf48dcAF1835e7F9861542c0D43D0B03E';
+const hwHYPE_ACCOUNTANT = '0xCf9be8BF79ad26fdD7aA73f3dd5bA73eCDee2a32';
 const hwHLP_UNDERLYING_USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'; // USDC
 const hwHLP_UNDERLYING_USDT0 = '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb';
+const hwHYPE_UNDERLYING_WHYPE = '0x5555555555555555555555555555555555555555';
 const config = [
     {
+        symbol: 'hwHLP',
         boringVault: hwHLP,
         accountant: hwHLP_ACCOUNTANT,
         underlying: hwHLP_UNDERLYING_USDC,
@@ -25,10 +29,19 @@ const config = [
         chain: 'ethereum',
     },
     {
+        symbol: 'hwHLP',
         boringVault: hwHLP,
         accountant: hwHLP_ACCOUNTANT,
         underlying: hwHLP_UNDERLYING_USDT0,
         decimals: 6,
+        chain: 'hyperliquid',
+    },
+    {
+        symbol: 'hwHYPE',
+        boringVault: hwHYPE,
+        accountant: hwHYPE_ACCOUNTANT,
+        underlying: hwHYPE_UNDERLYING_WHYPE,
+        decimals: 18,
         chain: 'hyperliquid',
     },
 ];
