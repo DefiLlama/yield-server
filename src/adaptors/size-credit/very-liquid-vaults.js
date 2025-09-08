@@ -22,6 +22,10 @@ interface VaultStatus {
 }
 */
 
+function uppercaseFirst(str /*: string*/) /*: string*/ {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 async function getLastVaultStatusLog(vault, chain) /*: Promise<VaultStatus>*/ {
   const currentBlock = await sdk.api.util.getLatestBlock(chain);
   const toBlock = currentBlock.number;
@@ -167,8 +171,8 @@ async function apy() /*: Promise<Pool[]>*/ {
       );
 
       return vaults.map((vault, i) => ({
-        pool: vault,
-        chain,
+        pool: `vlv-${vault}`,
+        chain: uppercaseFirst(market.chain),
         apyBase: apyBasePerVault[i],
         project: 'size-credit',
         symbol: symbols[i],
