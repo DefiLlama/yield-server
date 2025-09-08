@@ -1,24 +1,29 @@
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const baseChainId = 8453;
+const baseVaultRegistry = "0x414F0e07cd833cE73c9d59280699f910b48E1ECb";
 
 async function getApy() {
-  const data = await utils.getData(
-    "https://dynavaults-api.singularityfinance.ai/api/manager/dynavaults-backend/vaults"
-  );
+  const dynaVaults = (await sdk.api.abi.call({
+    abi: 'function allVaults() view returns (tuple(address vault, uint8 VaultType, bool active)[] memory)',
+    target: baseVaultRegistry,
+    chain: "base"
+  })).output;
 
-  return await Promise.all(data.filter(vault => !vault.isClosed && vault.chainId == baseChainId).map(async (vault) => {
-    const vaultInfo = await utils.getERC4626Info(vault.address, "base");
+
+  return await Promise.all(dynaVaults.map(async (vault) => {
+    const vaultInfo = await utils.getERC4626Info(vault.vault, "base");
     const { tvl, apyBase, ...rest } = vaultInfo;
 
     return {
-      pool: vault.address,
+      pool: vault.vault,
       chain: "base",
       project: 'singularity-finance',
       symbol: utils.formatSymbol("USDC"),
       tvlUsd: tvl / 1e6,
       apyBase,
-      url: `https://singularityfinance.ai/vaults/${vault.address}`,
+      url: `https://singularityfinance.ai/vaults/${vault.vault}`,
     };
   }));
 }
