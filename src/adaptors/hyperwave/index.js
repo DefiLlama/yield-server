@@ -1,7 +1,7 @@
 /**
  * @fileoverview Hyperwave Finance vault adapter for calculating TVL and APR metrics
- * This module interfaces with the hwHLP vault contract and its accountant to fetch
- * financial metrics across Ethereum and Hyperliquid chains.
+ * This module interfaces with Hyperwave vault contracts (hwHLP and hwHYPE) and their
+ * accountants to fetch financial metrics across Ethereum and Hyperliquid chains.
  *
  * @author maybeYonas
  * @version 1.1.0
@@ -46,24 +46,23 @@ const config = [
     },
 ];
 /**
- * Calculate TVL (Total Value Locked) for the vault
+ * Calculate TVL (Total Value Locked) for a vault
  *
  * Fetches the total supply of vault tokens, current exchange rate from the accountant,
  * and underlying asset price to compute the total USD value locked in the vault.
+ * Supports both hwHLP and hwHYPE vaults across different chains.
  *
  * @async
  * @function calculateTVL
- * @param {string} chain - The blockchain network identifier (e.g., 'ethereum', 'hyperliquid')
+ * @param {AssetConfig} config - Configuration object containing vault details
  * @returns {Promise<Object>} Object containing TVL metrics
  * @returns {number} returns.tvlUsd - Total Value Locked in USD
- * @returns {number} returns.decimals - Token decimals for the vault
- * @returns {number} returns.scalingFactor - 10^decimals used for calculations
  * @returns {string} returns.currentRate - Current exchange rate from accountant contract
  *
  * @throws {Error} Throws error if contract calls fail or price data is unavailable
  *
  * @example
- * const tvlData = await calculateTVL('ethereum');
+ * const tvlData = await calculateTVL(configObject);
  * console.log(`TVL: $${tvlData.tvlUsd.toFixed(2)}`);
  */
 const calculateTVL = async (config) => {
@@ -100,12 +99,12 @@ const calculateTVL = async (config) => {
  *
  * Computes yield rates by comparing the current exchange rate with historical rates
  * from 1 day and 7 days ago. Uses block height data to fetch historical contract state.
+ * Supports both hwHLP and hwHYPE vaults with appropriate decimal scaling.
  *
  * @async
  * @function calculateAPR
+ * @param {AssetConfig} config - Configuration object containing vault and chain details
  * @param {string|number} currentRate - Current exchange rate from the accountant contract
- * @param {number} scalingFactor - Scaling factor (10^decimals) for rate calculations
- * @param {string} [chain='ethereum'] - Blockchain network for historical block data
  * @returns {Promise<Object>} Object containing APR calculations
  * @returns {number} returns.apr1d - 1-day APR as a percentage
  * @returns {number} returns.apr7d - 7-day APR as a percentage
@@ -113,7 +112,7 @@ const calculateTVL = async (config) => {
  * @throws {Error} Throws error if historical block data or contract calls fail
  *
  * @example
- * const aprData = await calculateAPR('1000000000000000000', 1e18, 'ethereum');
+ * const aprData = await calculateAPR(configObject, currentRate);
  * console.log(`1d APR: ${aprData.apr1d.toFixed(2)}%`);
  * console.log(`7d APR: ${aprData.apr7d.toFixed(2)}%`);
  */
@@ -168,29 +167,28 @@ const calculateAPR = async (config, currentRate) => {
 /**
  * Main function that orchestrates TVL and APR calculations
  *
- * Processes all configured chains to calculate TVL and APR metrics for the hwHLP vault.
- * Returns standardized pool data for each chain that can be consumed by DeFi dashboards.
- * Note: APR calculations use Ethereum chain for historical data due to archival state limitations
- * on HyperEVM RPCs.
+ * Processes all configured vaults (hwHLP and hwHYPE) to calculate TVL and APR metrics
+ * across Ethereum and Hyperliquid chains. Returns standardized pool data for each
+ * vault configuration that can be consumed by DeFi dashboards.
  *
  * @async
  * @function apy
- * @returns {Promise<Array<Object>>} Array of pool objects with metrics for each chain
+ * @returns {Promise<Array<Object>>} Array of pool objects with metrics for each vault configuration
  * @returns {string} returns[].pool - Unique pool identifier (chain_contractAddress)
  * @returns {string} returns[].project - Project name ('hyperwave')
  * @returns {string} returns[].chain - Formatted chain name
- * @returns {string} returns[].symbol - Token symbol ('hwHLP')
+ * @returns {string} returns[].symbol - Token symbol ('hwHLP' or 'hwHYPE')
  * @returns {number} returns[].tvlUsd - Total Value Locked in USD
  * @returns {number} returns[].apyBase - 1-day APR as base yield percentage
  * @returns {number} returns[].apyBase7d - 7-day APR as base yield percentage
  * @returns {Array<string>} returns[].underlyingTokens - Array of underlying token addresses
  *
- * @throws {Error} Throws error if TVL or APR calculations fail for any configured chain
+ * @throws {Error} Throws error if TVL or APR calculations fail for any configured vault
  *
  * @example
  * const poolData = await apy();
  * poolData.forEach(pool => {
- *   console.log(`${pool.chain}: TVL $${pool.tvlUsd.toFixed(2)}, APR ${pool.apyBase.toFixed(2)}%`);
+ *   console.log(`${pool.symbol} ${pool.chain}: TVL $${pool.tvlUsd.toFixed(2)}, APR ${pool.apyBase.toFixed(2)}%`);
  * });
  */
 const apy = async () => {
@@ -200,7 +198,7 @@ const apy = async () => {
         // const { apr1d, apr7d } = await calculateAPR(currentRate, scalingFactor);
         const { apr1d, apr7d } = await calculateAPR(chainConfig, currentRate);
         return {
-            pool: `${chainConfig.chain}_${hwHLP}`,
+            pool: `${chainConfig.chain}_${chainConfig.boringVault}`,
             project: 'hyperwave',
             chain: utils.formatChain(chainConfig.chain),
             symbol: chainConfig.symbol,
