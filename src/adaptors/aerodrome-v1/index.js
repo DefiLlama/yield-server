@@ -265,14 +265,16 @@ async function main(timestamp = null) {
   const poolsApy = await getGaugeApy();
   const poolsVolumes = await getPoolVolumes(timestamp);
 
-  return Object.values(poolsVolumes).map(pool => {
-    const poolAddress = utils.formatAddress(pool.pool);
+  // left-join volumes onto APY output to avoid filtering out pools
+  return Object.values(poolsApy).map((pool) => {
+    const v = poolsVolumes[pool.pool];
     return {
       ...pool,
-
-      apyReward: poolsApy[pool.pool] ? poolsApy[pool.pool].apyReward : undefined,
-      rewardTokens: poolsApy[pool.pool] ? [AERO] : [],
-    }
+      apyBase: v?.apyBase,
+      apyBase7d: v?.apyBase7d,
+      volumeUsd1d: v?.volumeUsd1d,
+      volumeUsd7d: v?.volumeUsd7d,
+    };
   });
 }
 
