@@ -191,11 +191,7 @@ const main = async () => {
           pool: address,
           chain: curvePool?.chain || chainIdMap[merklPool?.chainId],
           project: 'crosscurve',
-          symbol:
-            lp?.symbol ||
-            pool?.label ||
-            curvePool?.symbol ||
-            merklPool?.platform,
+          symbol: curvePool?.symbol || merklPool?.platform,
           apyBase,
           apyReward,
           tvlUsd,
@@ -205,6 +201,7 @@ const main = async () => {
           underlyingTokens: Array.from(
             new Set(underlyingTokens.map((address) => address.toLowerCase()))
           ),
+          poolMeta: lp?.symbol || pool?.label,
         };
       })
     );
