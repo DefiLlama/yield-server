@@ -26,7 +26,13 @@ module.exports = async function () {
   );
   global.poolsUrl = module.url;
 
-  fs.writeFileSync(`./${adapter}_test_output.json`, JSON.stringify(global.apy));
+  // write test output to a central folder at repo root
+  const outputDir = path.resolve(__dirname, '../../.test-adapter-output');
+  fs.mkdirSync(outputDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(outputDir, `${adapter}.json`),
+    JSON.stringify(global.apy)
+  );
 
   global.protocolsSlug = [
     ...new Set(
