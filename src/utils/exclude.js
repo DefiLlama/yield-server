@@ -161,6 +161,7 @@ const excludeAdaptors = [
   'c3-exchange',
   'bagful',
   'conic-finance',
+  'cadabra-finance',
 ];
 
 const excludePools = [
