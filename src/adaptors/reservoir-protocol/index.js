@@ -126,7 +126,7 @@ const main = async () => {
 
   const rateW = (
     await sdk.api.abi.call({
-      target: TARGET,
+      target: WSRUSD,
       abi: WSRUSD_ABI.abis.currentRate,
       chain: 'ethereum',
     })
@@ -134,7 +134,7 @@ const main = async () => {
 
   const priceW = (
     await sdk.api.abi.call({
-      target: TARGET,
+      target: WSRUSD,
       abi: 'function convertToAssets(uint256 shares) public view virtual returns (uint256)',
       params: [1e18],
       chain: 'ethereum',
