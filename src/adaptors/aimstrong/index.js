@@ -1,14 +1,16 @@
 const { ethers } = require('ethers');
 const axios = require('axios');
 
-const addr = {
-  base: {
+const config = {
+  Base: {
     pool: '0x7c94606f2240E61E242D14Ed984Aa38FA4C79c0C',
     factory: '0xb28ee1F4Ae2C8082a6c06c446C79aD8173d988e4',
+    rewardToken: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2',
   },
-  arb1: {
+  Arbitrum: {
     pool: '0x7c94606f2240E61E242D14Ed984Aa38FA4C79c0C',
     factory: '0x2659e4a192D4f9541267578BD4ae41D391774A06',
+    rewardToken: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
   },
 };
 
@@ -37,28 +39,16 @@ const erc20ABI = [
 
 const apy = async () => {
   const providers = {
-    base: new ethers.providers.JsonRpcProvider(
-      process.env.BASE_RPC || 'https://base.llamarpc.com'
+    Base: new ethers.providers.JsonRpcProvider('https://base.llamarpc.com'),
+    Arbitrum: new ethers.providers.JsonRpcProvider(
+      'https://arb1.arbitrum.io/rpc'
     ),
-    arb1: new ethers.providers.JsonRpcProvider(
-      process.env.ARBITRUM_RPC || 'https://arb1.arbitrum.io/rpc'
-    ),
-  };
-
-  const chainNames = {
-    base: 'Base',
-    arb1: 'Arbitrum',
-  };
-
-  const rewardTokens = {
-    base: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2',
-    arb1: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
   };
 
   const pools = [];
 
-  for (const [chainKey, provider] of Object.entries(providers)) {
-    const pool = new ethers.Contract(addr[chainKey].pool, poolABI, provider);
+  for (const [chainName, provider] of Object.entries(providers)) {
+    const pool = new ethers.Contract(config[chainName].pool, poolABI, provider);
     const reservesList = await pool.getReservesList();
 
     for (const reserveAddress of reservesList) {
@@ -83,7 +73,7 @@ const apy = async () => {
       const incentivesControllerAddr = await getIncentivesController(
         provider,
         reserveAddress,
-        chainKey
+        chainName
       );
       if (
         incentivesControllerAddr &&
@@ -93,13 +83,13 @@ const apy = async () => {
           provider,
           incentivesControllerAddr,
           reserveAddress,
-          chainKey
+          chainName
         );
       }
 
       const tTokenBalance = await token.balanceOf(reserveData.tTokenAddress);
 
-      const tokenPrice = await getPrice(reserveAddress, chainKey);
+      const tokenPrice = await getPrice(reserveAddress, chainName);
       const priceInUsd = parseFloat(ethers.utils.formatUnits(tokenPrice, 18));
 
       const tvlUsd =
@@ -111,14 +101,15 @@ const apy = async () => {
       const totalBorrowInUsd = Math.max(0, totalSupplyInUsd - tvlUsd);
 
       const poolData = {
-        pool: `${reserveData.tTokenAddress}-${chainNames[chainKey]}`.toLowerCase(),
-        chain: chainNames[chainKey],
+        pool: `${reserveData.tTokenAddress}-${chainName}`.toLowerCase(),
+        chain: chainName,
         project: 'aimstrong',
         symbol: symbol,
         tvlUsd: tvlUsd,
         apyBase: apyBase > 0 ? apyBase : null,
         apyReward: apyReward > 0 ? apyReward : null,
-        rewardTokens: apyReward > 0 ? [rewardTokens[chainKey]] : undefined,
+        rewardTokens:
+          apyReward > 0 ? [config[chainName].rewardToken] : undefined,
         underlyingTokens: [reserveAddress],
         apyBaseBorrow: apyBaseBorrow > 0 ? apyBaseBorrow : null,
       };
@@ -132,9 +123,9 @@ const apy = async () => {
   return pools;
 };
 
-async function getIncentivesController(provider, token, chainKey) {
+async function getIncentivesController(provider, token, chainName) {
   const factory = new ethers.Contract(
-    addr[chainKey].factory,
+    config[chainName].factory,
     incentivesFactoryABI,
     provider
   );
@@ -142,7 +133,7 @@ async function getIncentivesController(provider, token, chainKey) {
   return controllerAddress;
 }
 
-async function getRewardApy(provider, icAddr, tokenAddr, chainKey) {
+async function getRewardApy(provider, icAddr, tokenAddr, chainName) {
   const controller = new ethers.Contract(
     icAddr,
     incentivesControllerABI,
@@ -159,8 +150,8 @@ async function getRewardApy(provider, icAddr, tokenAddr, chainKey) {
   const stakeDecimals = await stakeToken.decimals();
   const rewardDecimals = await rewardToken.decimals();
 
-  const stakeRawPrice = await getPrice(stakeTokenAddr, chainKey);
-  const rewardRawPrice = await getPrice(rewardTokenAddr, chainKey);
+  const stakeRawPrice = await getPrice(stakeTokenAddr, chainName);
+  const rewardRawPrice = await getPrice(rewardTokenAddr, chainName);
 
   const stakeUnitPrice = ethers.utils.parseUnits(
     ethers.utils.formatUnits(stakeRawPrice, stakeDecimals),
@@ -178,8 +169,8 @@ async function getRewardApy(provider, icAddr, tokenAddr, chainKey) {
   return parseFloat(ethers.utils.formatUnits(apyWithPrecision, 2));
 }
 
-async function getPrice(tokenAddress, chainKey) {
-  const priceKey = `${chainKey.toLowerCase()}:${tokenAddress.toLowerCase()}`;
+async function getPrice(tokenAddress, chainName) {
+  const priceKey = `${chainName.toLowerCase()}:${tokenAddress.toLowerCase()}`;
   const response = await axios.get(
     `https://coins.llama.fi/prices/current/${priceKey}`
   );
