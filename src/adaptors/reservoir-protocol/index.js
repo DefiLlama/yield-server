@@ -136,7 +136,7 @@ const main = async () => {
     await sdk.api.abi.call({
       target: WSRUSD,
       abi: 'function convertToAssets(uint256 shares) external view returns (uint256 assets)',
-      params: [1e18],
+      params: [1000000000000000000n],
       chain: 'ethereum',
     })
   ).output;
@@ -149,7 +149,8 @@ const main = async () => {
       chain: 'Ethereum',
       tvlUsd: (totalSupply / 10 ** 18) * price / 10 ** 8,
       apy: ((1 + rate / 10 ** 12) ** 365 - 1) * 100,
-    }, {
+    },
+    {
       pool: WSRUSD,
       symbol: 'wsrUSD',
       project: 'reservoir-protocol',
