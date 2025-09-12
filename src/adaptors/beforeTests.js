@@ -22,19 +22,19 @@ module.exports = async function () {
   const module = require(passedFile);
 
   global.adapter = adapter;
-  const output = await module.apy(timestamp);
-  global.apy = isFast ? output : output.sort((a, b) => b.tvlUsd - a.tvlUsd);
+  global.apy = (await module.apy(timestamp)).sort(
+    (a, b) => b.tvlUsd - a.tvlUsd
+  );
   global.poolsUrl = module.url;
 
-  if (!isFast) {
-    // write test output to a central folder at repo root
-    const outputDir = path.resolve(__dirname, '../../.test-adapter-output');
-    fs.mkdirSync(outputDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(outputDir, `${adapter}.json`),
-      JSON.stringify(global.apy)
-    );
+  const outputDir = path.resolve(__dirname, '../../.test-adapter-output');
+  fs.mkdirSync(outputDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(outputDir, `${adapter}.json`),
+    JSON.stringify(global.apy)
+  );
 
+  if (!isFast) {
     global.protocolsSlug = [
       ...new Set(
         (await axios.get('https://api.llama.fi/protocols')).data.map(
