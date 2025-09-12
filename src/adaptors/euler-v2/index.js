@@ -10,52 +10,52 @@ const factoryAbi = require('./factory.abi.json');
 const chains = {
   ethereum: {
     factory: '0x29a56a1b8214D9Cf7c5561811750D5cBDb45CC8e',
-    vaultLens: '0xA8695d44EC128136F8Afcd796D6ba3Db3cdA8914',
+    vaultLens: '0x83801C7BbeEFa54B91F8A07E36D81515a0Fc5b60',
     fromBlock: 20529225,
   },
   bob: {
     factory: '0x046a9837A61d6b6263f54F4E27EE072bA4bdC7e4',
-    vaultLens: '0xb20343277ad78150D21CC8820fF012efDDa71531',
+    vaultLens: '0xC6B56a52e5823659d90F3020164b92D1c2de03CE',
     fromBlock: 12266832,
   },
   sonic: {
     factory: '0xF075cC8660B51D0b8a4474e3f47eDAC5fA034cFB',
-    vaultLens: '0x0058F402aaa67868A682DA1bDd2E08c7aA3795eE',
+    vaultLens: '0x4c7BA548032FE3eA11b7D6BeaF736B3B74F69248',
     fromBlock: 5324454,
   },
   avax: {
     factory: '0xaf4B4c18B17F6a2B32F6c398a3910bdCD7f26181',
-    vaultLens: '0xeE2CaC5Df4984f56395b48e71b1D1E84acFbcD9E',
+    vaultLens: '0xcC5F7593a4D5974F84A30B28Bd3fdb374319a254',
     fromBlock: 56805794,
   },
   berachain: {
     factory: '0x5C13fb43ae9BAe8470f646ea647784534E9543AF',
-    vaultLens: '0xa61BC2Df76DBFCeDAe4fAaB7A1341bA98fA76FdA',
+    vaultLens: '0x2ffd260BAd257C08516B649c93Ea3eb6b63a5639',
     fromBlock: 786314,
   },
   bsc: {
     factory: '0x7F53E2755eB3c43824E162F7F6F087832B9C9Df6',
-    vaultLens: '0xBfD019C90e8Ca8286f9919DF31c25BF989C6bD46',
+    vaultLens: '0x84641751808f85F54344369036594E1a7301a414',
     fromBlock: 46370655,
   },
   base: {
     factory: '0x7F321498A801A191a93C840750ed637149dDf8D0',
-    vaultLens: '0xCCC8D18e40c439F5234042FbEA0f4f1528f52f00',
+    vaultLens: '0x3530dA02ceC2818477888FdC77e777b566B6db4C',
     fromBlock: 22282408,
   },
   swellchain: {
     factory: '0x238bF86bb451ec3CA69BB855f91BDA001aB118b9',
-    vaultLens: '0x1f1997528FbD68496d8007E65599637fBBe85582',
+    vaultLens: '0x94Dd6A076838D6Fc5031e32138b95d810793DB1c',
     fromBlock: 2350701,
   },
   unichain: {
     factory: '0xbAd8b5BDFB2bcbcd78Cc9f1573D3Aad6E865e752',
-    vaultLens: '0x03833b4A873eA1F657340C72971a2d0EbB2B4D82',
+    vaultLens: '0xd40DD19eD88a949436f784877A1BB59660ee8DE3',
     fromBlock: 8541544,
   },
   arbitrum: {
     factory: '0x78Df1CF5bf06a7f27f2ACc580B934238C1b80D50',
-    vaultLens: '0x1Df19EE4Ed7353fCC54e26E54f960a19Aa43D304',
+    vaultLens: '0x59d28aF1fC4A52EE402C9099BeCEf333366184Df',
     fromBlock: 300690953,
   },
 };
