@@ -7,6 +7,7 @@ module.exports = async function () {
 
   const adapter = process.env.npm_config_adapter;
   const timestamp = process.env.npm_config_timestamp;
+  const isFast = !!process.env.npm_config_fast;
   if (!adapter) {
     console.error(
       `Missing argument, you need to provide the adapter name. Eg: npm run test --adapter=aave-v2`
@@ -21,30 +22,31 @@ module.exports = async function () {
   const module = require(passedFile);
 
   global.adapter = adapter;
-  global.apy = (await module.apy(timestamp)).sort(
-    (a, b) => b.tvlUsd - a.tvlUsd
-  );
+  const output = await module.apy(timestamp);
+  global.apy = isFast ? output : output.sort((a, b) => b.tvlUsd - a.tvlUsd);
   global.poolsUrl = module.url;
 
-  // write test output to a central folder at repo root
-  const outputDir = path.resolve(__dirname, '../../.test-adapter-output');
-  fs.mkdirSync(outputDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(outputDir, `${adapter}.json`),
-    JSON.stringify(global.apy)
-  );
+  if (!isFast) {
+    // write test output to a central folder at repo root
+    const outputDir = path.resolve(__dirname, '../../.test-adapter-output');
+    fs.mkdirSync(outputDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(outputDir, `${adapter}.json`),
+      JSON.stringify(global.apy)
+    );
 
-  global.protocolsSlug = [
-    ...new Set(
-      (await axios.get('https://api.llama.fi/protocols')).data.map(
-        (protocol) => protocol.slug
-      )
-    ),
-  ];
+    global.protocolsSlug = [
+      ...new Set(
+        (await axios.get('https://api.llama.fi/protocols')).data.map(
+          (protocol) => protocol.slug
+        )
+      ),
+    ];
 
-  global.uniquePoolIdentifiersDB = new Set(
-    (await axios.get('https://yields.llama.fi/distinctID')).data
-      .filter((p) => p.project !== global.apy[0].project)
-      .map((p) => p.pool)
-  );
+    global.uniquePoolIdentifiersDB = new Set(
+      (await axios.get('https://yields.llama.fi/distinctID')).data
+        .filter((p) => p.project !== global.apy[0].project)
+        .map((p) => p.pool)
+    );
+  }
 };
