@@ -1,129 +1,120 @@
-const { ethers } = require('ethers');
+const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
+const abi = {
+  getReservesList: 'function getReservesList() view returns (address[])',
+  getReserveData:
+    'function getReserveData(address asset) external view returns (tuple(tuple(uint256 data) configuration, uint128 liquidityIndex, uint128 variableBorrowIndex, uint128 currentLiquidityRate, uint128 currentVariableBorrowRate, uint40 lastUpdateTimestamp, address tTokenAddress, address variableDebtTokenAddress, address interestRateStrategyAddress, uint8 id))',
+  totalSupply: 'function totalSupply() external view returns (uint256)',
+  symbol: 'function symbol() external view returns (string)',
+  decimals: 'function decimals() external view returns (uint8)',
+  getVault: 'function getVault(address token) external view returns (address)',
+  ratePerSecond: 'function ratePerSecond() external view returns (uint256)',
+  tokenStaked: 'function tokenStaked() external view returns (address)',
+  tokenRewards: 'function tokenRewards() external view returns (address)',
+};
+
 const config = {
-  Base: {
+  base: {
     pool: '0x7c94606f2240E61E242D14Ed984Aa38FA4C79c0C',
     factory: '0xb28ee1F4Ae2C8082a6c06c446C79aD8173d988e4',
     rewardToken: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2',
   },
-  Arbitrum: {
+  arbitrum: {
     pool: '0x7c94606f2240E61E242D14Ed984Aa38FA4C79c0C',
     factory: '0x2659e4a192D4f9541267578BD4ae41D391774A06',
     rewardToken: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
   },
 };
 
-const SECONDS_IN_YEAR = ethers.BigNumber.from(365 * 24 * 60 * 60);
-const TEN_POW_27 = ethers.BigNumber.from('1000000000000000000000000000');
+const SECONDS_IN_YEAR = 365 * 24 * 60 * 60;
+const TEN_POW_27 = 10 ** 27;
 const PRECISION_FACTOR = 10000;
 
-const poolABI = [
-  'function getReservesList() external view returns (address[] memory)',
-  'function getReserveData(address asset) external view returns (tuple(tuple(uint256 data) configuration, uint128 liquidityIndex, uint128 variableBorrowIndex, uint128 currentLiquidityRate, uint128 currentVariableBorrowRate, uint40 lastUpdateTimestamp, address tTokenAddress, address variableDebtTokenAddress, address interestRateStrategyAddress, uint8 id))',
-];
-const incentivesFactoryABI = [
-  'function getVault(address token) external view returns (address)',
-];
-const incentivesControllerABI = [
-  'function ratePerSecond() external view returns (uint256)',
-  'function tokenStaked() external view returns (address)',
-  'function tokenRewards() external view returns (address)',
-];
-const erc20ABI = [
-  'function decimals() external view returns (uint8)',
-  'function symbol() external view returns (string)',
-  'function totalSupply() external view returns (uint256)',
-  'function balanceOf(address account) external view returns (uint256)',
-];
-
 const apy = async () => {
-  const providers = {
-    Base: new ethers.providers.JsonRpcProvider('https://base.llamarpc.com'),
-    Arbitrum: new ethers.providers.JsonRpcProvider(
-      'https://arb1.arbitrum.io/rpc'
-    ),
-  };
-
+  const chains = ['base', 'arbitrum'];
   const pools = [];
 
-  for (const [chainName, provider] of Object.entries(providers)) {
-    const pool = new ethers.Contract(config[chainName].pool, poolABI, provider);
-    const reservesList = await pool.getReservesList();
+  for (const chain of chains) {
+    const reservesList = await sdk.api.abi.call({
+      abi: abi.getReservesList,
+      target: config[chain].pool,
+      chain,
+    });
 
-    for (const reserveAddress of reservesList) {
-      const reserveData = await pool.getReserveData(reserveAddress);
+    for (const reserveAddress of reservesList.output) {
+      const reserveData = await sdk.api.abi.call({
+        abi: abi.getReserveData,
+        target: config[chain].pool,
+        params: [reserveAddress],
+        chain,
+      });
 
-      const token = new ethers.Contract(reserveAddress, erc20ABI, provider);
-      const symbol = await token.symbol();
-      const decimals = await token.decimals();
-      const totalSupply = await token.totalSupply();
+      const [symbol, decimals] = await Promise.all([
+        sdk.api.abi.call({
+          abi: abi.symbol,
+          target: reserveAddress,
+          chain,
+        }),
+        sdk.api.abi.call({
+          abi: abi.decimals,
+          target: reserveAddress,
+          chain,
+        }),
+      ]);
 
-      const currentLiquidityRate = parseFloat(
-        ethers.utils.formatUnits(reserveData.currentLiquidityRate, 27)
-      );
-      const currentVariableBorrowRate = parseFloat(
-        ethers.utils.formatUnits(reserveData.currentVariableBorrowRate, 27)
-      );
+      const currentLiquidityRate =
+        reserveData.output.currentLiquidityRate / TEN_POW_27;
+      const currentVariableBorrowRate =
+        reserveData.output.currentVariableBorrowRate / TEN_POW_27;
 
       const apyBase = currentLiquidityRate * 100;
       const apyBaseBorrow = currentVariableBorrowRate * 100;
 
       let apyReward = 0;
       const incentivesControllerAddr = await getIncentivesController(
-        provider,
         reserveAddress,
-        chainName
+        chain
       );
       if (
         incentivesControllerAddr &&
-        incentivesControllerAddr !== ethers.constants.AddressZero
+        incentivesControllerAddr !==
+          '0x0000000000000000000000000000000000000000'
       ) {
-        apyReward = await getRewardApy(
-          provider,
-          incentivesControllerAddr,
-          reserveAddress,
-          chainName
-        );
+        apyReward = await getRewardApy(incentivesControllerAddr, chain);
       }
 
-      const tToken = new ethers.Contract(
-        reserveData.tTokenAddress,
-        erc20ABI,
-        provider
-      );
-      const tTokenTotalSupply = await tToken.totalSupply();
+      const [tTokenTotalSupply, variableDebtTotalSupply] = await Promise.all([
+        sdk.api.abi.call({
+          abi: abi.totalSupply,
+          target: reserveData.output.tTokenAddress,
+          chain,
+        }),
+        sdk.api.abi.call({
+          abi: abi.totalSupply,
+          target: reserveData.output.variableDebtTokenAddress,
+          chain,
+        }),
+      ]);
 
-      const variableDebtToken = new ethers.Contract(
-        reserveData.variableDebtTokenAddress,
-        erc20ABI,
-        provider
-      );
-      const variableDebtTotalSupply = await variableDebtToken.totalSupply();
-
-      const tokenPrice = await getPrice(reserveAddress, chainName);
-      const priceInUsd = parseFloat(ethers.utils.formatUnits(tokenPrice, 18));
+      const priceInUsd = await getPrice(reserveAddress, chain);
 
       const totalSupplyUsd =
-        parseFloat(ethers.utils.formatUnits(tTokenTotalSupply, decimals)) *
-        priceInUsd;
+        (tTokenTotalSupply.output / 10 ** decimals.output) * priceInUsd;
       const totalBorrowUsd =
-        parseFloat(
-          ethers.utils.formatUnits(variableDebtTotalSupply, decimals)
-        ) * priceInUsd;
+        (variableDebtTotalSupply.output / 10 ** decimals.output) * priceInUsd;
 
       const tvlUsd = totalSupplyUsd - totalBorrowUsd;
 
       const poolData = {
-        pool: `${reserveData.tTokenAddress}-${chainName}`.toLowerCase(),
-        chain: chainName,
+        pool: `${reserveData.output.tTokenAddress}-${chain}`.toLowerCase(),
+        chain: chain.charAt(0).toUpperCase() + chain.slice(1),
         project: 'aimstrong',
-        symbol: symbol,
+        symbol: symbol.output,
         tvlUsd: tvlUsd,
         apyBase: apyBase > 0 ? apyBase : null,
         apyReward: apyReward > 0 ? apyReward : null,
-        rewardTokens:
-          apyReward > 0 ? [config[chainName].rewardToken] : undefined,
+        rewardTokens: apyReward > 0 ? [config[chain].rewardToken] : undefined,
         underlyingTokens: [reserveAddress],
         apyBaseBorrow: apyBaseBorrow > 0 ? apyBaseBorrow : null,
         totalSupplyUsd: totalSupplyUsd,
@@ -139,59 +130,68 @@ const apy = async () => {
   return pools;
 };
 
-async function getIncentivesController(provider, token, chainName) {
-  const factory = new ethers.Contract(
-    config[chainName].factory,
-    incentivesFactoryABI,
-    provider
-  );
-  const controllerAddress = await factory.getVault(token);
-  return controllerAddress;
+async function getIncentivesController(token, chain) {
+  const controllerAddress = await sdk.api.abi.call({
+    abi: abi.getVault,
+    target: config[chain].factory,
+    params: [token],
+    chain,
+  });
+  return controllerAddress.output;
 }
 
-async function getRewardApy(provider, icAddr, tokenAddr, chainName) {
-  const controller = new ethers.Contract(
-    icAddr,
-    incentivesControllerABI,
-    provider
-  );
+async function getRewardApy(icAddr, chain) {
+  const [rps, stakeTokenAddr, rewardTokenAddr] = await Promise.all([
+    sdk.api.abi.call({
+      abi: abi.ratePerSecond,
+      target: icAddr,
+      chain,
+    }),
+    sdk.api.abi.call({
+      abi: abi.tokenStaked,
+      target: icAddr,
+      chain,
+    }),
+    sdk.api.abi.call({
+      abi: abi.tokenRewards,
+      target: icAddr,
+      chain,
+    }),
+  ]);
 
-  const rps = await controller.ratePerSecond();
-  const stakeTokenAddr = await controller.tokenStaked();
-  const rewardTokenAddr = await controller.tokenRewards();
+  const [stakeDecimals, rewardDecimals] = await Promise.all([
+    sdk.api.abi.call({
+      abi: abi.decimals,
+      target: stakeTokenAddr.output,
+      chain,
+    }),
+    sdk.api.abi.call({
+      abi: abi.decimals,
+      target: rewardTokenAddr.output,
+      chain,
+    }),
+  ]);
 
-  const stakeToken = new ethers.Contract(stakeTokenAddr, erc20ABI, provider);
-  const rewardToken = new ethers.Contract(rewardTokenAddr, erc20ABI, provider);
+  const stakeUnitPrice = await getPrice(stakeTokenAddr.output, chain);
+  const rewardUnitPrice = await getPrice(rewardTokenAddr.output, chain);
 
-  const stakeDecimals = await stakeToken.decimals();
-  const rewardDecimals = await rewardToken.decimals();
+  const numerator =
+    (rps.output * SECONDS_IN_YEAR * rewardUnitPrice) /
+    10 ** rewardDecimals.output;
+  const denominator =
+    (stakeUnitPrice * TEN_POW_27) / 10 ** stakeDecimals.output;
+  const apyWithPrecision = (numerator * PRECISION_FACTOR) / denominator;
 
-  const stakeRawPrice = await getPrice(stakeTokenAddr, chainName);
-  const rewardRawPrice = await getPrice(rewardTokenAddr, chainName);
-
-  const stakeUnitPrice = ethers.utils.parseUnits(
-    ethers.utils.formatUnits(stakeRawPrice, stakeDecimals),
-    18
-  );
-  const rewardUnitPrice = ethers.utils.parseUnits(
-    ethers.utils.formatUnits(rewardRawPrice, rewardDecimals),
-    18
-  );
-
-  const numerator = rps.mul(SECONDS_IN_YEAR).mul(rewardUnitPrice);
-  const denominator = stakeUnitPrice.mul(TEN_POW_27);
-  const apyWithPrecision = numerator.mul(PRECISION_FACTOR).div(denominator);
-
-  return parseFloat(ethers.utils.formatUnits(apyWithPrecision, 2));
+  return apyWithPrecision / 100;
 }
 
-async function getPrice(tokenAddress, chainName) {
-  const priceKey = `${chainName.toLowerCase()}:${tokenAddress.toLowerCase()}`;
+async function getPrice(tokenAddress, chain) {
+  const priceKey = `${chain}:${tokenAddress.toLowerCase()}`;
   const response = await axios.get(
     `https://coins.llama.fi/prices/current/${priceKey}`
   );
   const price = response.data.coins[priceKey]?.price || 1;
-  return ethers.utils.parseUnits(price.toString(), 18);
+  return price;
 }
 
 module.exports = {
