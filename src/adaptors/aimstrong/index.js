@@ -87,18 +87,32 @@ const apy = async () => {
         );
       }
 
-      const tTokenBalance = await token.balanceOf(reserveData.tTokenAddress);
+      const tToken = new ethers.Contract(
+        reserveData.tTokenAddress,
+        erc20ABI,
+        provider
+      );
+      const tTokenTotalSupply = await tToken.totalSupply();
+
+      const variableDebtToken = new ethers.Contract(
+        reserveData.variableDebtTokenAddress,
+        erc20ABI,
+        provider
+      );
+      const variableDebtTotalSupply = await variableDebtToken.totalSupply();
 
       const tokenPrice = await getPrice(reserveAddress, chainName);
       const priceInUsd = parseFloat(ethers.utils.formatUnits(tokenPrice, 18));
 
-      const tvlUsd =
-        parseFloat(ethers.utils.formatUnits(tTokenBalance, decimals)) *
+      const totalSupplyUsd =
+        parseFloat(ethers.utils.formatUnits(tTokenTotalSupply, decimals)) *
         priceInUsd;
-      const totalSupplyInUsd =
-        parseFloat(ethers.utils.formatUnits(totalSupply, decimals)) *
-        priceInUsd;
-      const totalBorrowInUsd = Math.max(0, totalSupplyInUsd - tvlUsd);
+      const totalBorrowUsd =
+        parseFloat(
+          ethers.utils.formatUnits(variableDebtTotalSupply, decimals)
+        ) * priceInUsd;
+
+      const tvlUsd = totalSupplyUsd - totalBorrowUsd;
 
       const poolData = {
         pool: `${reserveData.tTokenAddress}-${chainName}`.toLowerCase(),
@@ -112,6 +126,8 @@ const apy = async () => {
           apyReward > 0 ? [config[chainName].rewardToken] : undefined,
         underlyingTokens: [reserveAddress],
         apyBaseBorrow: apyBaseBorrow > 0 ? apyBaseBorrow : null,
+        totalSupplyUsd: totalSupplyUsd,
+        totalBorrowUsd: totalBorrowUsd,
       };
 
       if (apyBase > 0 || apyReward > 0) {
