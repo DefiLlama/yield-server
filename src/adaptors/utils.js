@@ -50,13 +50,13 @@ exports.formatSymbol = (symbol) => {
 };
 
 exports.getData = async (url, query = null) => {
+  let res;
   if (query !== null) {
     res = await superagent.post(url).send(query);
   } else {
     res = await superagent.get(url);
   }
-  res = res.body;
-  return res;
+  return res.body;
 };
 
 // retrive block based on unixTimestamp array
