@@ -58,6 +58,32 @@ const chains = {
     vaultLens: '0x59d28aF1fC4A52EE402C9099BeCEf333366184Df',
     fromBlock: 300690953,
   },
+  linea: {
+    factory: '0x84711986Fd3BF0bFe4a8e6d7f4E22E67f7f27F04',
+    vaultLens: '0xd20E9D6cfa0431aC306cC9906896a7BC0BE0Db64',
+    fromBlock: 17915340,
+  },
+  tac: {
+    factory: '0x2b21621b8Ef1406699a99071ce04ec14cCd50677',
+    vaultLens: '0x70d9bc0aBd4EF6Ceb7C88875b9cf4013db3D780A',
+    fromBlock: 555116,
+  },
+};
+
+// Chain name mapping for URL construction
+const chainNameMapping = {
+  ethereum: 'ethereum',
+  bob: 'bob',
+  sonic: 'sonic',
+  avax: 'avalanche',
+  berachain: 'berachain',
+  bsc: 'bnbsmartchain',
+  base: 'base',
+  swellchain: 'swellchain',
+  unichain: 'unichain',
+  arbitrum: 'arbitrumone',
+  linea: 'lineamainnet',
+  tac: 'tac'
 };
 
 const getApys = async () => {
@@ -149,7 +175,7 @@ const getApys = async () => {
             )
           ),
           underlyingTokens: [i.asset],
-          url: `https://app.euler.finance/vault/${i.vault}?network=${chain}`,
+          url: `https://app.euler.finance/vault/${i.vault}?network=${chainNameMapping[chain]}`,
         };
       });
       result.push(pools);
