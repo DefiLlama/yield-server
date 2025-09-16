@@ -60,7 +60,7 @@ exports.getData = async (url, query = null) => {
 };
 
 // retrive block based on unixTimestamp array
-exports.getBlocksByTime = async (timestamps, chainString) => {
+const getBlocksByTime = async (timestamps, chainString) => {
   const chain = chainString === 'avalanche' ? 'avax' : chainString;
   const blocks = [];
   for (const timestamp of timestamps) {
@@ -71,6 +71,8 @@ exports.getBlocksByTime = async (timestamps, chainString) => {
   }
   return blocks;
 };
+
+exports.getBlocksByTime = getBlocksByTime;
 
 const getLatestBlockSubgraph = async (url) => {
   const queryGraph = gql`
@@ -136,7 +138,7 @@ exports.getBlocks = async (
       : Math.floor(Date.now() / 1000);
 
   const timestampPrior = timestamp - offset;
-  let [block, blockPrior] = await this.getBlocksByTime(
+  let [block, blockPrior] = await getBlocksByTime(
     [timestamp, timestampPrior],
     chainString
   );
@@ -149,11 +151,11 @@ exports.getBlocks = async (
     for (const url of urlArray.filter((el) => el !== null)) {
       blocksPromises.push(getLatestBlockSubgraph(url));
     }
-    blocks = await Promise.all(blocksPromises);
+    const blocks = await Promise.all(blocksPromises);
     // we use oldest block
-    blockGraph = Math.min(...blocks);
+    const blockGraph = Math.min(...blocks);
     // calc delta
-    blockDelta = Math.abs(block - blockGraph);
+    const blockDelta = Math.abs(block - blockGraph);
 
     // check delta (keeping this large for now)
     const thr =
@@ -176,42 +178,37 @@ exports.tvl = async (dataNow, networkString) => {
   // make copy
   const dataNowCopy = dataNow.map((el) => ({ ...el }));
 
-  // extract unique token id's
-  const ids = [];
-  for (const e of dataNowCopy) {
-    ids.push([
-      `${networkString}:${e.token0.id}`,
-      `${networkString}:${e.token1.id}`,
-    ]);
-  }
-  let idsSet = [...new Set(ids.flat())];
+  const formatId = (id) => `${networkString}:${String(id).toLowerCase()}`;
+  const idsSet = Array.from(
+    new Set(
+      dataNowCopy.flatMap((pool) => [
+        formatId(pool.token0.id),
+        formatId(pool.token1.id),
+      ])
+    )
+  );
 
   // price endpoint seems to break with too many tokens, splitting it to max 50 per request
-  const maxSize = 50;
-  const pages = Math.ceil(idsSet.length / maxSize);
-  let pricesA = [];
-  let x = '';
-  for (const p of [...Array(pages).keys()]) {
-    x = idsSet
-      .slice(p * maxSize, maxSize * (p + 1))
-      .join(',')
-      .replaceAll('/', '');
-    pricesA = [
-      ...pricesA,
-      (await axios.get(`https://coins.llama.fi/prices/current/${x}`)).data
-        .coins,
-    ];
-  }
-  let prices = {};
-  for (const p of pricesA.flat()) {
-    prices = { ...prices, ...p };
+  const fetchTokenPrices = async (tokenIds) => {
+    const idList = tokenIds.join(',').replaceAll('/', '');
+    const { data } = await axios.get(
+      `https://coins.llama.fi/prices/current/${idList}`
+    );
+    return data.coins;
+  };
+
+  const prices = {};
+  for (let index = 0; index < idsSet.length; index += 50) {
+    const chunk = idsSet.slice(index, index + 50);
+    const chunkPrices = await fetchTokenPrices(chunk);
+    Object.assign(prices, chunkPrices);
   }
 
   // calc tvl
-  const precision = 5;
   for (const el of dataNowCopy) {
-    let price0 = prices[`${networkString}:${el.token0.id}`]?.price;
-    let price1 = prices[`${networkString}:${el.token1.id}`]?.price;
+    let price0 = prices[formatId(el.token0.id)]?.price;
+    let price1 = prices[formatId(el.token1.id)]?.price;
+    let tvl;
 
     if (price0 !== undefined && price1 !== undefined) {
       tvl = Number(el.reserve0) * price0 + Number(el.reserve1) * price1;
@@ -221,21 +218,6 @@ exports.tvl = async (dataNow, networkString) => {
       tvl = Number(el.reserve1) * price1 * 2;
     } else {
       tvl = 0;
-    }
-
-    if (el.id === '0x3c03af907879e827f93c3903de813a60faab7986') {
-      console.log(el.reserve0 !== undefined);
-      console.log({
-        pair: el.id,
-        token0: el.token0,
-        token1: el.token1,
-        reserve0: el.reserve0,
-        reserve1: el.reserve1,
-        price0,
-        price1,
-        tvl,
-      });
-      process.exit(0);
     }
 
     el['totalValueLockedUSD'] = tvl;
@@ -289,20 +271,24 @@ exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
   pool['volumeUSD1d'] = Number(pool.volumeUSD) - Number(pool.volumeUSDPrior1d);
   pool['volumeUSD7d'] = Number(pool.volumeUSD) - Number(pool.volumeUSDPrior7d);
 
-  if (pool.volumeToken0 && (pool['volumeUSD1d'] === 0 || pool['volumeUSD7d'] === 0)) {
-    const poolDataPrior1D = dataPrior1d.find((el) => el.id === pool.id)
-    const poolDataPrior7D = dataPrior7d.find((el) => el.id === pool.id)
+  if (
+    pool.volumeToken0 &&
+    (pool['volumeUSD1d'] === 0 || pool['volumeUSD7d'] === 0)
+  ) {
+    const poolDataPrior1D = dataPrior1d.find((el) => el.id === pool.id);
+    const poolDataPrior7D = dataPrior7d.find((el) => el.id === pool.id);
 
     if (pool['volumeUSD1d'] === 0 && poolDataPrior1D) {
-      const volumeToken0 = Number(pool.volumeToken0) - Number(poolDataPrior1D.volumeToken0);
+      const volumeToken0 =
+        Number(pool.volumeToken0) - Number(poolDataPrior1D.volumeToken0);
       pool['volumeUSD1d'] = volumeToken0 * pool.price0;
     }
     if (pool['volumeUSD7d'] === 0 && poolDataPrior7D) {
-      const volumeToken0 = Number(pool.volumeToken0) - Number(poolDataPrior7D.volumeToken0);
+      const volumeToken0 =
+        Number(pool.volumeToken0) - Number(poolDataPrior7D.volumeToken0);
       pool['volumeUSD7d'] = volumeToken0 * pool.price0;
     }
   }
-
 
   // calc fees
   pool['feeUSD1d'] = (pool.volumeUSD1d * Number(pool.feeTier)) / 1e6;

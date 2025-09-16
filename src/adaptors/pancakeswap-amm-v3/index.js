@@ -89,11 +89,44 @@ const topLvl = async (
     let dataNow = await request(url, queryC.replace('<PLACEHOLDER>', block));
     dataNow = dataNow.pools;
 
-    dataNow = dataNow.map((p) => {
+    const balanceCalls = dataNow.flatMap((pool) => [
+      { target: pool.token0.id, params: pool.id },
+      { target: pool.token1.id, params: pool.id },
+    ]);
+
+    const tokenBalances = await sdk.api.abi.multiCall({
+      abi: 'erc20:balanceOf',
+      calls: balanceCalls,
+      chain: chainString,
+      permitFailure: true,
+    });
+
+    const balancesByPool = tokenBalances.output.reduce(
+      (acc, { input, output }) => {
+        const poolId = input.params[0];
+        if (!acc[poolId]) acc[poolId] = {};
+        acc[poolId][input.target.toLowerCase()] = output ?? '0';
+        return acc;
+      },
+      {}
+    );
+
+    dataNow = dataNow.map((pool) => {
+      const poolBalances = balancesByPool[pool.id] || {};
+      const reserve0Raw = poolBalances[pool.token0.id.toLowerCase()];
+      const reserve1Raw = poolBalances[pool.token1.id.toLowerCase()];
+
+      const reserve0 = reserve0Raw
+        ? Number(reserve0Raw) / 10 ** Number(pool.token0.decimals)
+        : Number(pool.totalValueLockedToken0);
+      const reserve1 = reserve1Raw
+        ? Number(reserve1Raw) / 10 ** Number(pool.token1.decimals)
+        : Number(pool.totalValueLockedToken1);
+
       return {
-        ...p,
-        reserve0: p.totalValueLockedToken0,
-        reserve1: p.totalValueLockedToken1,
+        ...pool,
+        reserve0,
+        reserve1,
       };
     });
 
@@ -138,7 +171,7 @@ const topLvl = async (
     );
 
     const enableV3Apy = true;
-    if (enableV3Apy) {
+    if (enableV3Apy && dataNow.length) {
       dataNow = dataNow.map((p) => ({
         ...p,
         token1_in_token0: p.price1 / p.price0,
@@ -160,6 +193,7 @@ const topLvl = async (
         let pageResults = {};
         for (const chunk of chunks) {
           console.log(chunk.length);
+          if (!chunk.length) continue;
           const tickQuery = `
           query {
             ${chunk
@@ -288,7 +322,7 @@ const main = async (timestamp = null) => {
   for (const [chain, url] of Object.entries(chains)) {
     console.log(chain);
     try {
-      cakeAPRsByChain[utils.formatChain(chain)] = await getCakeAprs(chain);
+      // cakeAPRsByChain[utils.formatChain(chain)] = await getCakeAprs(chain);
 
       data.push(
         await topLvl(
