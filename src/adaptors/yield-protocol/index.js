@@ -1,14 +1,17 @@
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const { formatChain, formatSymbol } = require('../utils');
 const superagent = require('superagent');
 const { format } = require('date-fns');
 const { compact } = require('lodash');
 
-const SUBGRAPH_BASE = 'https://api.thegraph.com/subgraphs/name/yieldprotocol/';
-
 const SUBGRAPHS = {
-  ethereum: `${SUBGRAPH_BASE}v2-mainnet`,
-  arbitrum: `${SUBGRAPH_BASE}v2-arbitrum`,
+  ethereum: sdk.graph.modifyEndpoint(
+    '7wjb6tjwaKtZagvNJ8eK18bHkEigLDePhvcryNbGbJEL'
+  ),
+  arbitrum: sdk.graph.modifyEndpoint(
+    '4pW9NfmTa6AwHV9KG3JU6RynQMaNR9dzchxBYF3vy4Q9'
+  ),
 };
 
 // in certain pools, the underlying is deposited to earn interest; therefore, as a liquidity provider, a portion of the provided liquidity earns interest
@@ -22,8 +25,9 @@ const getBlendedSharesTokenAPY = async (
 ) => {
   if (chain !== 'ethereum') return 0;
 
-  const EULER_SUPGRAPH_ENDPOINT =
-    'https://api.thegraph.com/subgraphs/name/euler-xyz/euler-mainnet';
+  const EULER_SUPGRAPH_ENDPOINT = sdk.graph.modifyEndpoint(
+    'EQBXhrF4ppZy9cBYnhPdrMCRaVas6seNpqviih5VRGmU'
+  );
 
   const query = `
   query ($address: Bytes!) {

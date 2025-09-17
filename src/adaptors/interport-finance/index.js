@@ -4,7 +4,7 @@ const sdk = require('@defillama/sdk');
 const abi = require('./abis/abi.json');
 const erc20Abi = require('./abis/erc20.abi.json');
 const stableAbi = require('./abis/stable.abi.json');
-const { getProvider } = require('@defillama/sdk4');
+const { getProvider } = require('@defillama/sdk');
 
 const BASE_URL = 'https://api.interport.fi';
 const STABLECOIN_URL = 'https://app.interport.fi/stablecoin-pools';
@@ -12,6 +12,10 @@ const STABLECOIN_URL = 'https://app.interport.fi/stablecoin-pools';
 const CHAINS = {
   1: 'Ethereum',
   250: 'Fantom',
+  81457: 'Blast',
+  59144: 'Linea',
+  169: 'Manta',
+  // 2525: 'inEVM',
 };
 
 const ITP_ADDRESS = '0x2b1D36f5B61AdDAf7DA7ebbd11B35FD8cfb0DE31';
@@ -26,6 +30,25 @@ const STABLECOIN_FARM_TYPE_LIST = {
     '0xEc8DDCb498b44C35EFaD7e5e43E0Caf6D16A66E8': 0,
     '0x5b45B414c6CD2a3341bE70Ba22BE786b0124003F': 1,
   },
+  81457: {
+    '0x5b45B414c6CD2a3341bE70Ba22BE786b0124003F': 0,
+  },
+  59144: {
+    '0xEc8DDCb498b44C35EFaD7e5e43E0Caf6D16A66E8': 0,
+    '0x5b45B414c6CD2a3341bE70Ba22BE786b0124003F': 1,
+  },
+  169: {
+    '0xEc8DDCb498b44C35EFaD7e5e43E0Caf6D16A66E8': 0,
+    '0x5b45B414c6CD2a3341bE70Ba22BE786b0124003F': 1,
+  },
+  // 2525: {
+  //   '0xEc8DDCb498b44C35EFaD7e5e43E0Caf6D16A66E8': 0,
+  //   '0x5b45B414c6CD2a3341bE70Ba22BE786b0124003F': 1,
+  // },
+};
+
+const formatNumber = (n, decimals) => {
+  return n / 10 ** decimals;
 };
 
 const getAPY = async () => {
@@ -48,6 +71,12 @@ const getData = async ({ chainId, address }) => {
   const symbol = await sdk.api.abi.call({
     target: address,
     abi: erc20Abi.find(({ name }) => name === 'symbol'),
+    chain,
+  });
+
+  const decimals = await sdk.api.abi.call({
+    target: address,
+    abi: erc20Abi.find(({ name }) => name === 'decimals'),
     chain,
   });
 
@@ -92,7 +121,7 @@ const getData = async ({ chainId, address }) => {
     poolInfoResponse,
   ] = await Promise.all(calls);
 
-  const tvl = Number(tvlResponse.output) / 1e6;
+  const tvl = formatNumber(tvlResponse.output, decimals.output);
 
   const { data } = await axios.get(
     `${BASE_URL}/utils/get-interport-token-info`
@@ -110,7 +139,7 @@ const getData = async ({ chainId, address }) => {
     allocationPoint,
   } = poolInfoResponse.output;
 
-  const totalInUSD = Number(stakingTokenTotalAmount / 1e6);
+  const totalInUSD = formatNumber(stakingTokenTotalAmount, decimals.output);
   const totalUSDPerPeriod =
     ((itpPerYear * itpPrice) / totalAllocationPoint) * Number(allocationPoint);
 
@@ -119,7 +148,7 @@ const getData = async ({ chainId, address }) => {
   return {
     chain: CHAINS[chainId],
     project: PROJECT_NAME,
-    pool: address,
+    pool: `${chainId}-${address}`,
     symbol: symbol.output.replace('i', ''),
     apyBase: Number(apr),
     tvlUsd: Number(tvl),

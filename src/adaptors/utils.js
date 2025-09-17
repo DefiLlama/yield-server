@@ -5,6 +5,10 @@ const { chunk } = require('lodash');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 
+exports.formatAddress = (address) => {
+  return String(address).toLowerCase();
+};
+
 exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'xdai') return 'Gnosis';
   if (chain && chain.toLowerCase() === 'kcc') return 'KCC';
@@ -14,6 +18,7 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'milkomeda_a1') return 'Milkomeda A1';
   if (chain && chain.toLowerCase() === 'boba_avax') return 'Boba_Avax';
   if (chain && chain.toLowerCase() === 'boba_bnb') return 'Boba_Bnb';
+  if (chain && chain.toLowerCase() === 'iotaevm') return 'IOTA EVM';
   if (
     chain &&
     (chain.toLowerCase() === 'zksync_era' ||
@@ -22,6 +27,8 @@ exports.formatChain = (chain) => {
   )
     return 'zkSync Era';
   if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
+  if (chain && chain.toLowerCase() === 'real') return 're.al';
+  if (chain && chain.toLowerCase() === 'plume_mainnet') return 'Plume Mainnet';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
@@ -43,17 +50,17 @@ exports.formatSymbol = (symbol) => {
 };
 
 exports.getData = async (url, query = null) => {
+  let res;
   if (query !== null) {
     res = await superagent.post(url).send(query);
   } else {
     res = await superagent.get(url);
   }
-  res = res.body;
-  return res;
+  return res.body;
 };
 
 // retrive block based on unixTimestamp array
-exports.getBlocksByTime = async (timestamps, chainString) => {
+const getBlocksByTime = async (timestamps, chainString) => {
   const chain = chainString === 'avalanche' ? 'avax' : chainString;
   const blocks = [];
   for (const timestamp of timestamps) {
@@ -65,18 +72,9 @@ exports.getBlocksByTime = async (timestamps, chainString) => {
   return blocks;
 };
 
+exports.getBlocksByTime = getBlocksByTime;
+
 const getLatestBlockSubgraph = async (url) => {
-  // const queryGraph = gql`
-  //   {
-  //     indexingStatusForCurrentVersion(subgraphName: "<PLACEHOLDER>") {
-  //       chains {
-  //         latestBlock {
-  //           number
-  //         }
-  //       }
-  //     }
-  //   }
-  // `;
   const queryGraph = gql`
     {
       _meta {
@@ -87,24 +85,27 @@ const getLatestBlockSubgraph = async (url) => {
     }
   `;
 
-  // const blockGraph = await request(
-  //   'https://api.thegraph.com/index-node/graphql',
-  //   queryGraph.replace('<PLACEHOLDER>', url.split('name/')[1])
-  // );
   const blockGraph =
+    url.includes('https://gateway-arbitrum.network.thegraph.com/api') ||
     url.includes('metis-graph.maiadao.io') ||
     url.includes('babydoge/faas') ||
     url.includes('kybernetwork/kyberswap-elastic-cronos') ||
     url.includes('kybernetwork/kyberswap-elastic-matic') ||
+    url.includes('metisapi.0xgraph.xyz/subgraphs/name') ||
     url.includes(
       'https://subgraph.satsuma-prod.com/09c9cf3574cc/orbital-apes/v3-subgraph/api'
     ) ||
     url.includes('api.goldsky.com') ||
+    url.includes('api.studio.thegraph.com') ||
     url.includes('48211/uniswap-v3-base') ||
     url.includes('horizondex/block') ||
+    url.includes('pancake-swap.workers.dev') ||
+    url.includes('pancakeswap/exchange-v3-linea') ||
     url.includes('exchange-v3-polygon-zkevm/version/latest') ||
     url.includes('exchange-v3-zksync/version/latest') ||
-    url.includes('balancer-base-v2/version/latest')
+    url.includes('balancer-base-v2/version/latest') ||
+    url.includes('horizondex') ||
+    url.includes('swopfi-units')
       ? await request(url, queryGraph)
       : url.includes('aperture/uniswap-v3')
       ? await request(
@@ -137,7 +138,7 @@ exports.getBlocks = async (
       : Math.floor(Date.now() / 1000);
 
   const timestampPrior = timestamp - offset;
-  let [block, blockPrior] = await this.getBlocksByTime(
+  let [block, blockPrior] = await getBlocksByTime(
     [timestamp, timestampPrior],
     chainString
   );
@@ -150,11 +151,11 @@ exports.getBlocks = async (
     for (const url of urlArray.filter((el) => el !== null)) {
       blocksPromises.push(getLatestBlockSubgraph(url));
     }
-    blocks = await Promise.all(blocksPromises);
+    const blocks = await Promise.all(blocksPromises);
     // we use oldest block
-    blockGraph = Math.min(...blocks);
+    const blockGraph = Math.min(...blocks);
     // calc delta
-    blockDelta = Math.abs(block - blockGraph);
+    const blockDelta = Math.abs(block - blockGraph);
 
     // check delta (keeping this large for now)
     const thr =
@@ -177,45 +178,37 @@ exports.tvl = async (dataNow, networkString) => {
   // make copy
   const dataNowCopy = dataNow.map((el) => ({ ...el }));
 
-  // extract unique token id's
-  const ids = [];
-  for (const e of dataNowCopy) {
-    ids.push([
-      `${networkString}:${e.token0.id}`,
-      `${networkString}:${e.token1.id}`,
-    ]);
-  }
-  let idsSet = [...new Set(ids.flat())];
+  const formatId = (id) => `${networkString}:${String(id).toLowerCase()}`;
+  const idsSet = Array.from(
+    new Set(
+      dataNowCopy.flatMap((pool) => [
+        formatId(pool.token0.id),
+        formatId(pool.token1.id),
+      ])
+    )
+  );
 
   // price endpoint seems to break with too many tokens, splitting it to max 50 per request
-  const maxSize = 50;
-  const pages = Math.ceil(idsSet.length / maxSize);
-  let pricesA = [];
-  let x = '';
-  for (const p of [...Array(pages).keys()]) {
-    x = idsSet
-      .slice(p * maxSize, maxSize * (p + 1))
-      .join(',')
-      .replaceAll('/', '');
-    pricesA = [
-      ...pricesA,
-      (await axios.get(`https://coins.llama.fi/prices/current/${x}`)).data
-        .coins,
-    ];
-  }
-  let prices = {};
-  for (const p of pricesA.flat()) {
-    prices = { ...prices, ...p };
+  const fetchTokenPrices = async (tokenIds) => {
+    const idList = tokenIds.join(',').replaceAll('/', '');
+    const { data } = await axios.get(
+      `https://coins.llama.fi/prices/current/${idList}`
+    );
+    return data.coins;
+  };
+
+  const prices = {};
+  for (let index = 0; index < idsSet.length; index += 50) {
+    const chunk = idsSet.slice(index, index + 50);
+    const chunkPrices = await fetchTokenPrices(chunk);
+    Object.assign(prices, chunkPrices);
   }
 
   // calc tvl
-  const precision = 5;
   for (const el of dataNowCopy) {
-    let price0 = prices[`${networkString}:${el.token0.id}`]?.price;
-    let price1 = prices[`${networkString}:${el.token1.id}`]?.price;
-
-    price0 = price0 !== undefined ? Number(price0.toFixed(precision)) : price0;
-    price1 = price1 !== undefined ? Number(price1.toFixed(precision)) : price1;
+    let price0 = prices[formatId(el.token0.id)]?.price;
+    let price1 = prices[formatId(el.token1.id)]?.price;
+    let tvl;
 
     if (price0 !== undefined && price1 !== undefined) {
       tvl = Number(el.reserve0) * price0 + Number(el.reserve1) * price1;
@@ -277,6 +270,25 @@ exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
   // calc 24h volume
   pool['volumeUSD1d'] = Number(pool.volumeUSD) - Number(pool.volumeUSDPrior1d);
   pool['volumeUSD7d'] = Number(pool.volumeUSD) - Number(pool.volumeUSDPrior7d);
+
+  if (
+    pool.volumeToken0 &&
+    (pool['volumeUSD1d'] === 0 || pool['volumeUSD7d'] === 0)
+  ) {
+    const poolDataPrior1D = dataPrior1d.find((el) => el.id === pool.id);
+    const poolDataPrior7D = dataPrior7d.find((el) => el.id === pool.id);
+
+    if (pool['volumeUSD1d'] === 0 && poolDataPrior1D) {
+      const volumeToken0 =
+        Number(pool.volumeToken0) - Number(poolDataPrior1D.volumeToken0);
+      pool['volumeUSD1d'] = volumeToken0 * pool.price0;
+    }
+    if (pool['volumeUSD7d'] === 0 && poolDataPrior7D) {
+      const volumeToken0 =
+        Number(pool.volumeToken0) - Number(poolDataPrior7D.volumeToken0);
+      pool['volumeUSD7d'] = volumeToken0 * pool.price0;
+    }
+  }
 
   // calc fees
   pool['feeUSD1d'] = (pool.volumeUSD1d * Number(pool.feeTier)) / 1e6;
@@ -417,6 +429,7 @@ const makeMulticall = async (abi, addresses, chain, params = null) => {
       params,
     })),
     chain,
+    permitFailure: true,
   });
 
   const res = data.output.map(({ output }) => output);
@@ -437,4 +450,87 @@ exports.removeDuplicates = (pools) => {
   return pools.filter((i) => {
     return seen.hasOwnProperty(i.pool) ? false : (seen[i.pool] = true);
   });
+};
+
+exports.getERC4626Info = async (
+  address,
+  chain,
+  timestamp = Math.floor(Date.now() / 1e3),
+  {
+    assetUnit = '100000000000000000',
+    totalAssetsAbi = 'uint:totalAssets',
+    convertToAssetsAbi = 'function convertToAssets(uint256 shares) external view returns (uint256)',
+  } = {}
+) => {
+  const DAY = 24 * 3600;
+
+  const [blockNow, blockYesterday] = await Promise.all(
+    [timestamp, timestamp - DAY].map((time) =>
+      axios
+        .get(`https://coins.llama.fi/block/${chain}/${time}`)
+        .then((r) => r.data.height)
+    )
+  );
+  const [tvl, priceNow, priceYesterday] = await Promise.all([
+    sdk.api.abi.call({
+      target: address,
+      block: blockNow,
+      abi: totalAssetsAbi,
+      chain: chain,
+    }),
+    sdk.api.abi.call({
+      target: address,
+      block: blockNow,
+      abi: convertToAssetsAbi,
+      params: [assetUnit],
+      chain: chain,
+    }),
+    sdk.api.abi.call({
+      target: address,
+      block: blockYesterday,
+      abi: convertToAssetsAbi,
+      params: [assetUnit],
+      chain: chain,
+    }),
+  ]);
+  const apy = (priceNow.output / priceYesterday.output) ** 365 * 100 - 100;
+  return {
+    pool: address,
+    chain,
+    tvl: tvl.output,
+    apyBase: apy,
+  };
+};
+
+// solana
+exports.getTotalSupply = async (tokenMintAddress) => {
+  const rpcUrl = 'https://api.mainnet-beta.solana.com';
+  const requestBody = {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'getTokenSupply',
+    params: [
+      tokenMintAddress,
+      {
+        commitment: 'confirmed',
+      },
+    ],
+  };
+
+  const response = await axios.post(rpcUrl, requestBody, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  const data = response.data;
+  if (data.error) {
+    throw new Error(`Error fetching total supply: ${data.error.message}`);
+  }
+
+  const totalSupply = data.result.value.amount;
+  const decimals = data.result.value.decimals;
+  const supplyInTokens = totalSupply / Math.pow(10, decimals);
+
+  return supplyInTokens;
 };

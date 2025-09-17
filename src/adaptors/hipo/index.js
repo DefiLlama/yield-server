@@ -1,6 +1,6 @@
 const utils = require('../utils');
 
-const address = 'EQBNo5qAG8I8J6IxGaz15SfQVB-kX98YhKV_mT36Xo5vYxUa';
+const address = 'EQCLyZHP4Xe8fpchQz76O-_RmUhaVc_9BAoGyJrwJrcbz2eZ';
 
 module.exports = {
   timetravel: false,
@@ -11,18 +11,14 @@ module.exports = {
     );
     const tvlUsd = protocolData.currentChainTvls['TON'];
 
-    const response1 = await utils.getData(
-      'https://toncenter.com/api/v2/runGetMethod',
+    const getTreasuryState = await utils.getData(
+      'https://toncenter.com/api/v3/runGetMethod',
       {
         address,
         method: 'get_treasury_state',
         stack: [],
       }
     );
-    if (!response1.ok) {
-      throw new Error('Error in calling toncenter.com/api/v2/runGetMethod');
-    }
-    const getTreasuryState = response1.result;
     if (getTreasuryState.exit_code !== 0) {
       throw new Error(
         'Expected a zero exit code, but got ' + getTreasuryState.exit_code
@@ -31,36 +27,32 @@ module.exports = {
 
     await sleep(1000);
 
-    const response2 = await utils.getData(
-      'https://toncenter.com/api/v2/runGetMethod',
+    const getTimes = await utils.getData(
+      'https://toncenter.com/api/v3/runGetMethod',
       {
         address,
         method: 'get_times',
         stack: [],
       }
     );
-    if (!response2.ok) {
-      throw new Error('Error in calling toncenter.com/api/v2/runGetMethod');
-    }
-    const getTimes = response2.result;
     if (getTimes.exit_code !== 0) {
       throw new Error(
         'Expected a zero exit code, but got ' + getTimes.exit_code
       );
     }
 
-    const lastStaked = Number(getTreasuryState.stack[5][1]);
-    const lastRecovered = Number(getTreasuryState.stack[6][1]);
+    const lastStaked = Number(getTreasuryState.stack[11].value);
+    const lastRecovered = Number(getTreasuryState.stack[12].value);
 
-    const currentRoundSince = Number(getTimes.stack[0][1]);
-    const nextRoundSince = Number(getTimes.stack[3][1]);
+    const currentRoundSince = Number(getTimes.stack[0].value);
+    const nextRoundSince = Number(getTimes.stack[3].value);
 
     const duration = 2 * (nextRoundSince - currentRoundSince);
     const year = 365 * 24 * 60 * 60;
     const compoundingFrequency = year / duration;
     const apyBase =
       (Math.pow(
-        Number(lastRecovered) / Number(lastStaked) || 1,
+        lastRecovered / lastStaked || 1,
         compoundingFrequency
       ) -
         1) *

@@ -1,7 +1,6 @@
-// forked from uniswap.fish chads (see https://github.com/chunza2542/uniswap.fish)
+// forked from see https://github.com/chunza2542/uniswap.fish
 
 const bn = require('bignumber.js');
-const axios = require('axios');
 
 interface Tick {
   tickIdx: string;
@@ -24,29 +23,6 @@ const getTickFromPrice = (
   const sqrtPrice = encodeSqrtPriceX96(token1).div(encodeSqrtPriceX96(token0));
 
   return Math.log(sqrtPrice.toNumber()) / Math.log(Math.sqrt(1.0001));
-};
-
-const getPriceFromTick = (
-  tick: number,
-  token0Decimal: string,
-  token1Decimal: string
-): number => {
-  const sqrtPrice = new bn(Math.pow(Math.sqrt(1.0001), tick)).multipliedBy(
-    new bn(2).pow(96)
-  );
-  const token0 = expandDecimals(1, Number(token0Decimal));
-  const token1 = expandDecimals(1, Number(token1Decimal));
-  const L2 = mulDiv(
-    encodeSqrtPriceX96(token0),
-    encodeSqrtPriceX96(token1),
-    Q96
-  );
-  const price = mulDiv(L2, Q96, sqrtPrice)
-    .div(new bn(2).pow(96))
-    .div(new bn(10).pow(token0Decimal))
-    .pow(2);
-
-  return price.toNumber();
 };
 
 // for calculation detail, please visit README.md (Section: Calculation Breakdown, No. 1)
@@ -202,67 +178,6 @@ const getFeeTierPercentage = (tier: string): number => {
   return 0;
 };
 
-const getPoolTicks = async (
-  poolAddress: string,
-  url: string
-): Promise<Tick[]> => {
-  const PAGE_SIZE = 3;
-  let result: Tick[] = [];
-  let page = 0;
-  while (true) {
-    const pool1 = await _getPoolTicksByPage(poolAddress, page, url);
-    const pool2 = await _getPoolTicksByPage(poolAddress, page + 1, url);
-    const pool3 = await _getPoolTicksByPage(poolAddress, page + 2, url);
-
-    result = [...result, ...pool1, ...pool2, ...pool3];
-    if (pool1.length === 0 || pool2.length === 0 || pool3.length === 0) {
-      break;
-    }
-    page += PAGE_SIZE;
-  }
-  return result;
-};
-
-const _getPoolTicksByPage = async (
-  poolAddress: string,
-  page: number,
-  url: string
-): Promise<Tick[]> => {
-  let res;
-  try {
-    res = await _queryUniswap(
-      `{
-    ticks(first: 1000, skip: ${
-      page * 1000
-    }, where: { poolAddress: "${poolAddress}" }, orderBy: tickIdx) {
-      tickIdx
-      liquidityNet
-      price0
-      price1
-    }
-  }`,
-      url
-    );
-  } catch (e) {
-    console.log('_getPoolTicksByPage failed for', poolAddress);
-    return [];
-  }
-
-  return res === undefined ? [] : res.ticks;
-};
-
-const _queryUniswap = async (query: string, url: string): Promise<any> => {
-  const { data } = await axios({
-    url,
-    method: 'post',
-    data: {
-      query,
-    },
-  });
-
-  return data.data;
-};
-
 const FEE_BASE = 10_000;
 
 function parseProtocolFees(feeProtocol) {
@@ -276,8 +191,7 @@ function parseProtocolFees(feeProtocol) {
   return [token0ProtocolFee / FEE_BASE, token1ProtocolFee / FEE_BASE];
 }
 
-module.exports.EstimatedFees = async (
-  poolAddress,
+module.exports.EstimatedFees = (
   priceAssumptionValue,
   priceRangeValue,
   currentPriceUSDToken1,
@@ -286,9 +200,9 @@ module.exports.EstimatedFees = async (
   decimalsToken0,
   decimalsToken1,
   feeTier,
-  url,
   volume,
-  feeProtocol
+  feeProtocol,
+  poolTicks
 ) => {
   const P = priceAssumptionValue;
   let Pl = priceRangeValue[0];
@@ -322,20 +236,13 @@ module.exports.EstimatedFees = async (
     decimalsToken0 || '18',
     decimalsToken1 || '18'
   );
-  const poolTicks = await getPoolTicks(poolAddress, url);
-
-  if (!poolTicks.length) {
-    console.log(`No pool ticks found for ${poolAddress}`);
-    return { poolAddress, estimatedFee: 0 };
-  }
 
   const L = getLiquidityFromTick(poolTicks, currentTick);
 
   const estimatedFee =
     P >= Pl && P <= Pu ? estimateFee(deltaL, L, volume, feeTier) : 0;
 
-
   const estimatedFeeAfterProtocolFee = estimatedFee * (1 - protocolFee);
 
-  return { poolAddress, estimatedFee: estimatedFeeAfterProtocolFee };
+  return estimatedFeeAfterProtocolFee;
 };

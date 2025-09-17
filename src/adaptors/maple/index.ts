@@ -1,44 +1,96 @@
 const axios = require('axios');
-
 const utils = require('../utils');
+const { default: BigNumber } = require('bignumber.js');
 
 const API_URL = 'https://api.maple.finance/v2/graphql';
 
+// Query for Syrup pools only
 const query = {
   operationName: 'getLendData',
   variables: {},
-  query:
-    'query getLendData {\n  poolV2S(where: {activated: true}) {\n    ...PoolV2Overview\n    __typename\n  }\n  maple(id: "1") {\n    ...MapleOverview\n    __typename\n  }\n}\n\nfragment PoolV2Overview on PoolV2 {\n  assets\n apyData {\n    id\n    monthlyApyAfterFees\n    __typename\n  }\n  asset {\n    decimals\n    id\n    price\n    symbol\n    __typename\n  }\n  delegateManagementFeeRate\n  id\n  name\n  openToPublic\n  poolMeta {\n    ...PoolMetaV2\n    __typename\n  }\n  platformManagementFeeRate\n  principalOut\n  totalLoanOriginations\n  __typename\n}\n\nfragment PoolMetaV2 on PoolMetadata {\n  overview\n  poolDelegate {\n    aboutBusiness\n    totalAssetsUnderManagement\n    companyName\n    companySize\n    deckFileUrl\n    deckFileName\n    linkedIn\n    name\n    profileUrl\n    twitter\n    videoUrl\n    website\n    __typename\n  }\n  poolName\n  reportFileName\n  reportFileUrl\n  strategy\n  underwritingBullets\n  __typename\n}\n\nfragment MapleOverview on Maple {\n  id\n  totalActiveLoans\n  totalInterestEarned\n  totalInterestEarnedV2\n  totalLoanOriginations\n  __typename\n}',
+  query: `
+    query getLendData {
+      poolV2S(where: {syrupRouter_not: null}) {
+        id
+        name
+        assets
+        strategiesDeployed
+        principalOut
+        collateralValue
+        weeklyApy
+        asset {
+          id
+          symbol
+          decimals
+          price
+        }
+      }
+      syrupGlobals {
+        dripsYieldBoost
+      }
+    }
+  `,
 };
 
 const apy = async () => {
-  const pools = (await axios.post(API_URL, query)).data.data.poolV2S;
+  try {
+    const response = await axios.post(API_URL, query);
+    const pools = response.data.data.poolV2S;
+    const syrupGlobals = response.data.data.syrupGlobals;
+    const dripsYieldBoost = syrupGlobals?.dripsYieldBoost || 0;
 
-  return pools
-    .map((pool) => {
-      // exclude permissioned pools
-      if (!pool.openToPublic) return {};
+    return pools
+      .map((pool) => {
+        const assetDecimals = pool.asset.decimals;
+        const priceDecimals = 8;
 
-      const tokenPrice = pool.asset.price / 1e8;
+        const tokenPrice = new BigNumber(pool.asset.price).dividedBy(
+          new BigNumber(10).pow(priceDecimals)
+        );
 
-      return {
-        pool: pool.apyData.id,
-        chain: utils.formatChain('ethereum'),
-        project: 'maple',
-        symbol: pool.asset.symbol,
-        poolMeta: pool.name,
-        tvlUsd: (Number(pool.assets) * tokenPrice) / 10 ** pool.asset.decimals,
-        apyBase: Number(pool.apyData.monthlyApyAfterFees) / 1e28,
-        underlyingTokens: [pool.asset.id],
-        // borrow fields
-        ltv: 0, // permissioned
-      };
-    })
-    .filter((p) => p.pool);
+        const totalAssets = new BigNumber(pool.assets || 0)
+          .plus(pool.strategiesDeployed || 0)
+          .plus(pool.principalOut || 0)
+          .plus(pool.collateralValue || 0);
+
+        const tvlUsd = totalAssets
+          .multipliedBy(tokenPrice)
+          .dividedBy(new BigNumber(10).pow(assetDecimals))
+          .toNumber();
+
+        const apyBase = new BigNumber(pool.weeklyApy)
+          .dividedBy(new BigNumber(10).pow(28))
+          .toNumber();
+        const apyReward = new BigNumber(dripsYieldBoost)
+          .dividedBy(new BigNumber(10).pow(4))
+          .toNumber();
+
+        return {
+          pool: pool.id,
+          chain: utils.formatChain('ethereum'),
+          project: 'maple',
+          symbol: pool.asset.symbol,
+          poolMeta: pool.name,
+          tvlUsd: tvlUsd,
+          apyBase: apyBase,
+          apyReward: apyReward,
+          underlyingTokens: [pool.asset.id],
+          rewardTokens:
+            apyReward > 0 ? ['0x643C4E15d7d62Ad0aBeC4a9BD4b001aA3Ef52d66'] : [], // Syrup token
+          // borrow fields
+          ltv: 0, // permissioned
+          url: 'https://app.maple.finance/earn', // Direct to earn page
+        };
+      })
+      .filter((p) => p !== null && p.tvlUsd > 0); // Filter out pools with no TVL
+  } catch (error) {
+    console.error('Error fetching Maple Finance data:', error);
+    return [];
+  }
 };
 
 module.exports = {
   timetravel: false,
   apy,
-  url: 'https://app.maple.finance/#/earn',
+  url: 'https://app.maple.finance/earn',
 };

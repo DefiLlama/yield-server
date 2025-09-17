@@ -2,8 +2,16 @@ const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
-const url = 'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v2-dev';
+const chains = {
+  ethereum: sdk.graph.modifyEndpoint(
+    'FEtpnfQ1aqF8um2YktEkfzFD11ZKrfurvBLPeQzv9JB1'
+  ),
+  base: sdk.graph.modifyEndpoint(
+    '4jGhpKjW4prWoyt5Bwk1ZHUwdEmNWveJcjEyjoTZWCY9'
+  ),
+};
 
 const query = gql`
   {
@@ -100,9 +108,31 @@ const topLvl = async (
 };
 
 const main = async (timestamp = null) => {
-  let data = await topLvl('ethereum', url, query, queryPrior, 'v2', timestamp);
+  let data = [];
 
-  return data.filter((p) => utils.keepFinite(p));
+  for (const [chain, url] of Object.entries(chains)) {
+    try {
+      console.log(`Fetching data for ${chain}...`);
+      const chainData = await topLvl(
+        chain,
+        url,
+        query,
+        queryPrior,
+        'v2',
+        timestamp
+      );
+      data.push(...chainData);
+    } catch (err) {
+      console.log(chain, err);
+    }
+  }
+
+  const pools = await addMerklRewardApy(
+    data.filter((p) => utils.keepFinite(p)),
+    'uniswap'
+  );
+
+  return pools;
 };
 
 module.exports = {

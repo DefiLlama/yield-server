@@ -1,55 +1,71 @@
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const { abi } = require('./abi');
-const { CHAIN_IDS, DEAD_ADDRESS, ROLES, SECONDS_PER_YEAR, APY_REWARD_BONUS, config, addressEq, getPoolUrl } = require('./utils')
+const { ethers } = require('ethers');
+const utils = require('../utils');
+const {
+  CHAIN_IDS,
+  DEAD_ADDRESS,
+  ROLES,
+  SECONDS_PER_YEAR,
+  APY_REWARD_BONUS,
+  config,
+  addressEq,
+  getPoolUrl,
+} = require('./utils');
 
-const formatPool = async (bucket, config, EPMXPrice) => {
-  const { bucketAddress, asset, supportedAssets, supply, demand, bar, lar, estimatedBar, estimatedLar, miningParams, name } = bucket;
-  const { chain, activityRewardDistributor, EPMX, USDCE, apyRewardBySymbol } = config
+const formatPool = async (bucket, config) => {
+  const {
+    bucketAddress,
+    asset,
+    supportedAssets,
+    supply,
+    demand,
+    bar,
+    lar,
+    estimatedBar,
+    estimatedLar,
+    miningParams,
+    name,
+  } = bucket;
 
-  const [rewardPerTokenLender, rewardPerTokenTrader] = (await Promise.all(
-    Object.values(ROLES).map((r) => {
-      return (
-        sdk.api.abi.call({
-          abi: abi.activityRewardDistributorBuckets,
-          target: activityRewardDistributor,
-          chain: chain.toLowerCase(),
-          params: [bucketAddress, r]
-        })
-        )
-      })
-      )).map(v => {
-        return v.output.isFinished ? 0 : v.output.rewardPerToken
-      })
+  const { chain, EPMX, USDCE, apyRewardBySymbol } = config;
 
-  const symbol = addressEq(asset.tokenAddress, USDCE) ? 'USDC.E' : asset.symbol
-  const underlyingTokens = [asset.tokenAddress]
+  const symbol = addressEq(asset?.tokenAddress, USDCE)
+    ? 'USDC.E'
+    : asset?.symbol;
+  const underlyingTokens = [asset?.tokenAddress];
 
-  const priceKeys = underlyingTokens.map((t) => `${chain.toLowerCase()}:${t}`).join(',')
+  const priceKeys = underlyingTokens
+    .map((t) => `${chain.toLowerCase()}:${t}`)
+    .join(',');
+
   const prices = (
     await superagent.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
   ).body.coins;
 
-  const assetPrice = prices[`${chain.toLowerCase()}:${asset.tokenAddress}`]
-  const totalSupplyUsd = (supply / 10 ** assetPrice.decimals) * assetPrice.price
-  const totalBorrowUsd = (demand / 10 ** assetPrice.decimals) * assetPrice.price
-  const tvlUsd = totalSupplyUsd - totalBorrowUsd
+  const assetPrice = prices[`${chain.toLowerCase()}:${asset?.tokenAddress}`];
+  const totalSupplyUsd =
+    (supply / 10 ** assetPrice?.decimals) * assetPrice?.price;
+  const totalBorrowUsd =
+    (demand / 10 ** assetPrice?.decimals) * assetPrice?.price;
+  const tvlUsd = totalSupplyUsd - totalBorrowUsd;
 
-  const isMiningPhase = !miningParams.isBucketLaunched && miningParams.deadlineTimestamp * 1000 > Date.now()
+  const isMiningPhase =
+    !miningParams?.isBucketLaunched &&
+    miningParams?.deadlineTimestamp * 1000 > Date.now();
 
-  const apyBaseCalculated = (Math.pow(1 + (lar / 10 ** 27) / SECONDS_PER_YEAR, SECONDS_PER_YEAR) - 1) * 100
-  const apyBase = isMiningPhase ? 0 : apyBaseCalculated
+  const apyBaseCalculated =
+    (Math.pow(1 + lar / 10 ** 27 / SECONDS_PER_YEAR, SECONDS_PER_YEAR) - 1) *
+    100;
+  const apyBase = isMiningPhase ? 0 : apyBaseCalculated;
 
-  const apyBaseBorrowCalculated = (Math.pow(1 + (bar / 10 ** 27) / SECONDS_PER_YEAR, SECONDS_PER_YEAR) - 1) * 100
-  const apyBaseBorrow = isMiningPhase ? 0 : apyBaseBorrowCalculated
-
-  // const apyRewardCalculated = (rewardPerTokenLender * 10 ** asset.decimals / 10 ** 18 * SECONDS_PER_YEAR * EPMXPrice / assetPrice.price / 10 ** 18) * 100;
-  // const apyReward = isMiningPhase ? apyRewardBySymbol[symbol] + APY_REWARD_BONUS : apyRewardCalculated
-  const apyReward = isMiningPhase ? APY_REWARD_BONUS : 0
-
-  // const apyRewardBorrowCalculated = (rewardPerTokenTrader * 10 ** asset.decimals / 10 ** 18 * SECONDS_PER_YEAR * EPMXPrice / assetPrice.price / 10 ** 18) * 100;
-  // const apyRewardBorrow = isMiningPhase ? 0 : apyRewardBorrowCalculated
-  const apyRewardBorrow = 0
+  const apyBaseBorrowCalculated =
+    (Math.pow(1 + bar / 10 ** 27 / SECONDS_PER_YEAR, SECONDS_PER_YEAR) - 1) *
+    100;
+  const apyBaseBorrow = isMiningPhase ? 0 : apyBaseBorrowCalculated;
+  const apyReward = isMiningPhase ? APY_REWARD_BONUS : 0;
+  const apyRewardBorrow = 0;
 
   return {
     pool: `${bucketAddress}-${chain}`.toLowerCase(),
@@ -59,47 +75,93 @@ const formatPool = async (bucket, config, EPMXPrice) => {
     tvlUsd,
     apyBase,
     apyReward,
-    rewardTokens: [EPMX],
     underlyingTokens,
     url: getPoolUrl(bucketAddress, chain),
     apyBaseBorrow,
     apyRewardBorrow,
     totalSupplyUsd,
     totalBorrowUsd,
-  }
-}
+  };
+};
 
 const getPools = async (config) => {
-  const { chain, lensAddress, bucketsFactory, positionManager, EPMX, EPMXPriceFeed, EPMXPriceFeedDecimals } = config;
+  const {
+    chain,
+    lensAddress,
+    bucketsFactory,
+    positionManager,
+  } = config;
 
-  const buckets = (
-    await sdk.api.abi.call({
-      abi: abi.getAllBucketsFactory,
-      target: lensAddress,
-      chain: chain.toLowerCase(),
-      params: [bucketsFactory, DEAD_ADDRESS, positionManager, false]
-    })).output
+  if (chain === 'Ethereum') {
+    sdk.api.config.setProvider(
+      'ethereum',
+      new ethers.providers.JsonRpcProvider(
+        "https://lb.drpc.org/ogrpc?network=ethereum&dkey=AhjAIUax7EMFtu9ErxcXVpjOZcogyegR77I1IlZWwHzR"
+      )
+    );
+  }
 
-  const EPMXPrice = (await sdk.api.abi.call({
-    abi: abi.getChainlinkLatestRoundData,
-    target: lensAddress,
-    chain: chain.toLowerCase(),
-    params: [[EPMXPriceFeed]]
-  })).output[0].answer / 10 ** EPMXPriceFeedDecimals
+  if (chain === 'Base') {
+    sdk.api.config.setProvider(
+      'base',
+      new ethers.providers.JsonRpcProvider(
+        'https://lb.drpc.org/ogrpc?network=base&dkey=AhjAIUax7EMFtu9ErxcXVpjOZcogyegR77I1IlZWwHzR'
+      )
+    );
+  }
+  let bucketsArr = [];
+  let offset = 0;
+  const limit = 3;
 
+  while (true) {
+    try {
+      const result = (
+        await sdk.api.abi.call({
+          abi: abi.getAllBucketsFactory,
+          target: lensAddress,
+          chain: chain.toLowerCase(),
+          params: [
+            bucketsFactory,
+            DEAD_ADDRESS,
+            positionManager,
+            false,
+            offset,
+            limit,
+          ],
+        })
+      ).output;
+
+      if (result[0].length !== 0) {
+        bucketsArr = bucketsArr.concat(result[0]);
+      }
+
+      if (result[1] === '0') {
+        break;
+      }
+
+      offset += limit;
+    } catch (error) {
+      console.error(error);
+      break;
+    }
+  }
+  
   return await Promise.all(
-    buckets
-      .filter(({ miningParams }) => {
-        const isMiningFailed = !miningParams.isBucketLaunched && miningParams.deadlineTimestamp * 1000 <= Date.now()
-        
-        return !isMiningFailed
+    bucketsArr
+      .filter((bucket) => {
+        const miningParams = bucket.miningParams;
+        const isMiningFailed =
+          !miningParams?.isBucketLaunched &&
+          miningParams?.deadlineTimestamp * 1000 <= Date.now();
+        return !isMiningFailed;
       })
-      .map((b) => formatPool(b, config, EPMXPrice))
-  )
-}
+      .map((b) => formatPool(b, config))
+  );
+};
 
 const getApy = async () => {
-  return (await Promise.all(config.map((c) => getPools(c)))).flat()
+  const pools = (await Promise.all(config.map((c) => getPools(c)))).flat();
+  return pools.filter((i) => utils.keepFinite(i));
 };
 
 module.exports = {

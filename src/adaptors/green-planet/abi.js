@@ -1,40 +1,1109 @@
 module.exports = [
+  { inputs: [], stateMutability: 'nonpayable', type: 'constructor' },
   {
-    "inputs": [
+    anonymous: false,
+    inputs: [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
+        indexed: false,
+        internalType: 'address',
+        name: '_vault',
+        type: 'address',
+      },
+      { indexed: false, internalType: 'bool', name: 'prev', type: 'bool' },
+      { indexed: false, internalType: 'bool', name: 'curr', type: 'bool' },
     ],
-    "name": "gammaSpeeds",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
+    name: 'AuthorizationToClaimToggled',
+    type: 'event',
   },
   {
-    "inputs": [
+    anonymous: false,
+    inputs: [
       {
-        "internalType": "address",
-        "name": "market",
-        "type": "address"
-      }
-    ],
-    "name": "getGammaBoostPercentage",
-    "outputs": [
+        indexed: true,
+        internalType: 'contract GTokenInterface',
+        name: 'gToken',
+        type: 'address',
+      },
       {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
+        indexed: true,
+        internalType: 'address',
+        name: 'borrower',
+        type: 'address',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'gammaDelta',
+        type: 'uint256',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'gammaBorrowIndex',
+        type: 'uint256',
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
-  }
+    name: 'DistributedBorrowerGamma',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: 'contract GTokenInterface',
+        name: 'gToken',
+        type: 'address',
+      },
+      {
+        indexed: true,
+        internalType: 'address',
+        name: 'supplier',
+        type: 'address',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'gammaDelta',
+        type: 'uint256',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'gammaSupplyIndex',
+        type: 'uint256',
+      },
+    ],
+    name: 'DistributedSupplierGamma',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'error',
+        type: 'uint256',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'info',
+        type: 'uint256',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'detail',
+        type: 'uint256',
+      },
+    ],
+    name: 'Failure',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: 'contract GTokenInterface',
+        name: 'gToken',
+        type: 'address',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'newBoost',
+        type: 'uint256',
+      },
+    ],
+    name: 'GammaBoostUpdated',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: 'address',
+        name: 'recipient',
+        type: 'address',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'amount',
+        type: 'uint256',
+      },
+    ],
+    name: 'GammaGranted',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: 'contract GTokenInterface',
+        name: 'gToken',
+        type: 'address',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'newSpeed',
+        type: 'uint256',
+      },
+    ],
+    name: 'GammaSpeedUpdated',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: 'address',
+        name: 'gToken',
+        type: 'address',
+      },
+    ],
+    name: 'MarketBoostDeprecated',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: 'contract GTokenInterface',
+        name: 'gToken',
+        type: 'address',
+      },
+      {
+        indexed: false,
+        internalType: 'address',
+        name: 'account',
+        type: 'address',
+      },
+    ],
+    name: 'MarketEntered',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: 'contract GTokenInterface',
+        name: 'gToken',
+        type: 'address',
+      },
+      {
+        indexed: false,
+        internalType: 'address',
+        name: 'account',
+        type: 'address',
+      },
+    ],
+    name: 'MarketExited',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: 'contract GTokenInterface',
+        name: 'gToken',
+        type: 'address',
+      },
+    ],
+    name: 'MarketListed',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: 'contract GTokenInterface',
+        name: 'gToken',
+        type: 'address',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'oldCollateralFactorMantissa',
+        type: 'uint256',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'newCollateralFactorMantissa',
+        type: 'uint256',
+      },
+    ],
+    name: 'NewCollateralFactor',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'oldLiquidationIncentiveMantissa',
+        type: 'uint256',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'newLiquidationIncentiveMantissa',
+        type: 'uint256',
+      },
+    ],
+    name: 'NewLiquidationIncentive',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: 'address',
+        name: 'newReservoirAddress',
+        type: 'address',
+      },
+    ],
+    name: 'ReservoirUpdated',
+    type: 'event',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'contract UnitrollerInterface',
+        name: 'unitroller',
+        type: 'address',
+      },
+    ],
+    name: '_become',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'gToken', type: 'address' }],
+    name: '_deprecateBoostMarket',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'recipient', type: 'address' },
+      { internalType: 'uint256', name: 'amount', type: 'uint256' },
+    ],
+    name: '_grantGamma',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'contract GTokenInterface',
+        name: 'gToken',
+        type: 'address',
+      },
+      { internalType: 'bool', name: 'state', type: 'bool' },
+    ],
+    name: '_setBorrowPaused',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'uint256',
+        name: 'newCloseFactorMantissa',
+        type: 'uint256',
+      },
+    ],
+    name: '_setCloseFactor',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'contract GTokenInterface',
+        name: 'gToken',
+        type: 'address',
+      },
+      {
+        internalType: 'uint256',
+        name: 'newCollateralFactorMantissa',
+        type: 'uint256',
+      },
+    ],
+    name: '_setCollateralFactor',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'contract GTokenInterface[]',
+        name: 'gTokens',
+        type: 'address[]',
+      },
+      { internalType: 'uint256[]', name: 'gammaSpeeds', type: 'uint256[]' },
+    ],
+    name: '_setGammaSpeeds',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'uint256',
+        name: 'newLiquidationIncentiveMantissa',
+        type: 'uint256',
+      },
+    ],
+    name: '_setLiquidationIncentive',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'contract GTokenInterface[]',
+        name: 'gTokens',
+        type: 'address[]',
+      },
+      { internalType: 'uint256[]', name: 'newBorrowCaps', type: 'uint256[]' },
+    ],
+    name: '_setMarketBorrowCaps',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'contract GTokenInterface',
+        name: 'gToken',
+        type: 'address',
+      },
+      { internalType: 'bool', name: 'state', type: 'bool' },
+    ],
+    name: '_setMintPaused',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'newPauseGuardian', type: 'address' },
+    ],
+    name: '_setPauseGuardian',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'contract PriceOracleInterface',
+        name: 'newOracle',
+        type: 'address',
+      },
+    ],
+    name: '_setPriceOracle',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'bool', name: 'state', type: 'bool' }],
+    name: '_setSeizePaused',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'bool', name: '_stakeToVault', type: 'bool' }],
+    name: '_setStakeGammaToVault',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'bool', name: 'state', type: 'bool' }],
+    name: '_setTransferPaused',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'contract GTokenInterface',
+        name: 'gToken',
+        type: 'address',
+      },
+    ],
+    name: '_supportMarket',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: '_newInfinityVaultAddress',
+        type: 'address',
+      },
+    ],
+    name: '_updateGammaInfinityVaultAddress',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: '_newInfinityVaultAddress',
+        type: 'address',
+      },
+      { internalType: 'address', name: '_newiGammaAddress', type: 'address' },
+    ],
+    name: '_updateGammaInfinityVaultAddressAndiGammaAddress',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: '_newReservoirAddress',
+        type: 'address',
+      },
+    ],
+    name: '_updateReservoirAddress',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: '', type: 'address' },
+      { internalType: 'uint256', name: '', type: 'uint256' },
+    ],
+    name: 'accountAssets',
+    outputs: [
+      { internalType: 'contract GTokenInterface', name: '', type: 'address' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'admin',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    name: 'allBoostedMarkets',
+    outputs: [
+      { internalType: 'contract GTokenInterface', name: '', type: 'address' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    name: 'allMarkets',
+    outputs: [
+      { internalType: 'contract GTokenInterface', name: '', type: 'address' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '', type: 'address' }],
+    name: 'authorizedToClaim',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'gToken', type: 'address' },
+      { internalType: 'address', name: 'borrower', type: 'address' },
+      { internalType: 'uint256', name: 'borrowAmount', type: 'uint256' },
+    ],
+    name: 'borrowAllowed',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '', type: 'address' }],
+    name: 'borrowCaps',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '', type: 'address' }],
+    name: 'borrowGuardianPaused',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'account', type: 'address' },
+      {
+        internalType: 'contract GTokenInterface',
+        name: 'gToken',
+        type: 'address',
+      },
+    ],
+    name: 'checkMembership',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'holder', type: 'address' },
+      {
+        internalType: 'contract GTokenInterface[]',
+        name: 'suppliedgTokens',
+        type: 'address[]',
+      },
+      {
+        internalType: 'contract GTokenInterface[]',
+        name: 'borrowedgTokens',
+        type: 'address[]',
+      },
+      { internalType: 'bool', name: 'borrower', type: 'bool' },
+      { internalType: 'bool', name: 'supplier', type: 'bool' },
+    ],
+    name: 'claimGamma',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'holder', type: 'address' },
+      {
+        internalType: 'contract GTokenInterface[]',
+        name: 'gTokens',
+        type: 'address[]',
+      },
+    ],
+    name: 'claimGamma',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'holder', type: 'address' }],
+    name: 'claimGamma',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address[]', name: 'holders', type: 'address[]' },
+      {
+        internalType: 'contract GTokenInterface[]',
+        name: 'gTokens',
+        type: 'address[]',
+      },
+      { internalType: 'bool', name: 'borrowers', type: 'bool' },
+      { internalType: 'bool', name: 'suppliers', type: 'bool' },
+    ],
+    name: 'claimGamma',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'closeFactorMantissa',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address[]', name: 'gTokens', type: 'address[]' }],
+    name: 'enterMarkets',
+    outputs: [{ internalType: 'uint256[]', name: '', type: 'uint256[]' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'gTokenAddress', type: 'address' },
+    ],
+    name: 'exitMarket',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '', type: 'address' }],
+    name: 'gammaAccrued',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '', type: 'address' }],
+    name: 'gammaBoostPercentage',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '', type: 'address' }],
+    name: 'gammaBorrowState',
+    outputs: [
+      { internalType: 'uint224', name: 'index', type: 'uint224' },
+      { internalType: 'uint224', name: 'boostIndex', type: 'uint224' },
+      { internalType: 'uint32', name: 'block', type: 'uint32' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: '', type: 'address' },
+      { internalType: 'address', name: '', type: 'address' },
+    ],
+    name: 'gammaBorrowerBoostIndex',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: '', type: 'address' },
+      { internalType: 'address', name: '', type: 'address' },
+    ],
+    name: 'gammaBorrowerIndex',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'gammaInfinityVaultAddress',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'gammaInitialIndex',
+    outputs: [{ internalType: 'uint224', name: '', type: 'uint224' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '', type: 'address' }],
+    name: 'gammaSpeeds',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: '', type: 'address' },
+      { internalType: 'address', name: '', type: 'address' },
+    ],
+    name: 'gammaSupplierBoostIndex',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: '', type: 'address' },
+      { internalType: 'address', name: '', type: 'address' },
+    ],
+    name: 'gammaSupplierIndex',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '', type: 'address' }],
+    name: 'gammaSupplyState',
+    outputs: [
+      { internalType: 'uint224', name: 'index', type: 'uint224' },
+      { internalType: 'uint224', name: 'boostIndex', type: 'uint224' },
+      { internalType: 'uint32', name: 'block', type: 'uint32' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'account', type: 'address' }],
+    name: 'getAccountLiquidity',
+    outputs: [
+      { internalType: 'uint256', name: '', type: 'uint256' },
+      { internalType: 'uint256', name: '', type: 'uint256' },
+      { internalType: 'uint256', name: '', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'getAllBoostedMarkets',
+    outputs: [
+      {
+        internalType: 'contract GTokenInterface[]',
+        name: '',
+        type: 'address[]',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'getAllMarkets',
+    outputs: [
+      {
+        internalType: 'contract GTokenInterface[]',
+        name: '',
+        type: 'address[]',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'account', type: 'address' }],
+    name: 'getAssetsIn',
+    outputs: [
+      {
+        internalType: 'contract GTokenInterface[]',
+        name: '',
+        type: 'address[]',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'market', type: 'address' }],
+    name: 'getGammaBoostPercentage',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'market', type: 'address' }],
+    name: 'getGammaSpeed',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'account', type: 'address' },
+      { internalType: 'address', name: 'gTokenModify', type: 'address' },
+      { internalType: 'uint256', name: 'redeemTokens', type: 'uint256' },
+      { internalType: 'uint256', name: 'borrowAmount', type: 'uint256' },
+    ],
+    name: 'getHypotheticalAccountLiquidity',
+    outputs: [
+      { internalType: 'uint256', name: '', type: 'uint256' },
+      { internalType: 'uint256', name: '', type: 'uint256' },
+      { internalType: 'uint256', name: '', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'getOracle',
+    outputs: [
+      {
+        internalType: 'contract PriceOracleInterface',
+        name: '',
+        type: 'address',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'implementation',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'contract GTokenInterface',
+        name: 'gToken',
+        type: 'address',
+      },
+    ],
+    name: 'isDeprecated',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'isGammatroller',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'gTokenBorrowed', type: 'address' },
+      { internalType: 'address', name: 'gTokenCollateral', type: 'address' },
+      { internalType: 'address', name: 'liquidator', type: 'address' },
+      { internalType: 'address', name: 'borrower', type: 'address' },
+      { internalType: 'uint256', name: 'repayAmount', type: 'uint256' },
+    ],
+    name: 'liquidateBorrowAllowed',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'gTokenBorrowed', type: 'address' },
+      { internalType: 'address', name: 'gTokenCollateral', type: 'address' },
+      { internalType: 'uint256', name: 'actualRepayAmount', type: 'uint256' },
+    ],
+    name: 'liquidateCalculateSeizeTokens',
+    outputs: [
+      { internalType: 'uint256', name: '', type: 'uint256' },
+      { internalType: 'uint256', name: '', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'liquidationIncentiveMantissa',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '', type: 'address' }],
+    name: 'markets',
+    outputs: [
+      { internalType: 'bool', name: 'isListed', type: 'bool' },
+      {
+        internalType: 'uint256',
+        name: 'collateralFactorMantissa',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'gToken', type: 'address' },
+      { internalType: 'address', name: 'minter', type: 'address' },
+      { internalType: 'uint256', name: 'mintAmount', type: 'uint256' },
+    ],
+    name: 'mintAllowed',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '', type: 'address' }],
+    name: 'mintGuardianPaused',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'oracle',
+    outputs: [
+      {
+        internalType: 'contract PriceOracleInterface',
+        name: '',
+        type: 'address',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'pauseGuardian',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'pendingAdmin',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'pendingGammatrollerImplementation',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'gToken', type: 'address' },
+      { internalType: 'address', name: 'redeemer', type: 'address' },
+      { internalType: 'uint256', name: 'redeemTokens', type: 'uint256' },
+    ],
+    name: 'redeemAllowed',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'gToken', type: 'address' },
+      { internalType: 'address', name: 'redeemer', type: 'address' },
+      { internalType: 'uint256', name: 'redeemAmount', type: 'uint256' },
+      { internalType: 'uint256', name: 'redeemTokens', type: 'uint256' },
+    ],
+    name: 'redeemVerify',
+    outputs: [],
+    stateMutability: 'pure',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'gToken', type: 'address' },
+      { internalType: 'address', name: 'payer', type: 'address' },
+      { internalType: 'address', name: 'borrower', type: 'address' },
+      { internalType: 'uint256', name: 'repayAmount', type: 'uint256' },
+    ],
+    name: 'repayBorrowAllowed',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'reservoirAddress',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'gTokenCollateral', type: 'address' },
+      { internalType: 'address', name: 'gTokenBorrowed', type: 'address' },
+      { internalType: 'address', name: 'liquidator', type: 'address' },
+      { internalType: 'address', name: 'borrower', type: 'address' },
+      { internalType: 'uint256', name: 'seizeTokens', type: 'uint256' },
+    ],
+    name: 'seizeAllowed',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'seizeGuardianPaused',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'contract GTokenInterface[]',
+        name: 'gTokens',
+        type: 'address[]',
+      },
+      { internalType: 'uint256[]', name: 'gammaBoosts', type: 'uint256[]' },
+    ],
+    name: 'setGammaBoost',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'stakeGammaToVault',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'gToken', type: 'address' },
+      { internalType: 'address', name: 'src', type: 'address' },
+      { internalType: 'address', name: 'dst', type: 'address' },
+      { internalType: 'uint256', name: 'transferTokens', type: 'uint256' },
+    ],
+    name: 'transferAllowed',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'transferGuardianPaused',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '_vault', type: 'address' }],
+    name: 'updateAuthorizedToClaimAddress',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: '_user', type: 'address' },
+      { internalType: 'uint256', name: '_newiGammaBalance', type: 'uint256' },
+    ],
+    name: 'updateFactor',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
 ];

@@ -2,34 +2,42 @@ const BigNumber = require('bignumber.js');
 const { default: axios } = require('axios');
 const { request } = require('graphql-request');
 
-const { queryPrices, queryMoneyMarkets, queryRewards } = require('./queries')
+const { queryPrices, queryMoneyMarkets, queryRewards } = require('./queries');
 const { calcLiquidStakingExchangeRate, calcSimulateExchangeRate } = require('./math');
 
 const API_URL = 'https://mainnet-api.hatom.com/graphql';
+const WAD = '1000000000000000000';
 
 async function getMoneyMarkets() {
   const response = await request(API_URL, queryMoneyMarkets, {});
+
   return response.queryMoneyMarket.reduce((prev, market) => {
+    if (!market.stateHistory.length) {
+      return prev;
+    }
+
     const symbol = market.underlying.symbol;
+    const latestState = market.stateHistory[0];
     const value = {
       address: market.address,
       decimals: market.underlying.decimals,
-      cash: market.stateHistory[0].cash,
-      borrows: market.stateHistory[0].borrows,
-      reserves: market.stateHistory[0].reserves,
-      rate: market.stateHistory[0].supplyRatePerSecond,
-      timestamp: market.stateHistory[0].timestamp,
-      totalSupply: market.stateHistory[0].totalSupply,
-      borrowRatePerSecond: market.stateHistory[0].borrowRatePerSecond,
-      supplyAPY: market.stateHistory[0].supplyAPY,
-      supplyRatePerSecond: market.stateHistory[0].supplyRatePerSecond,
+      cash: latestState.cash,
+      borrows: latestState.borrows,
+      reserves: latestState.reserves,
+      rate: latestState.supplyRatePerSecond,
+      timestamp: latestState.timestamp,
+      totalSupply: latestState.totalSupply,
+      borrowRatePerSecond: latestState.borrowRatePerSecond,
+      supplyAPY: latestState.supplyAPY,
+      supplyRatePerSecond: latestState.supplyRatePerSecond,
       totalColateral: market.totalCollateral,
-    }
+    };
+
     return {
       ...prev,
       [symbol]: value,
     };
-  }, {})
+  }, {});
 }
 
 async function getTokenPrices() {
@@ -56,7 +64,7 @@ async function getTokenPrices() {
       if (tokenItem.symbol == 'EGLD') {
         dailyPriceInEgld = '1';
       } else if (tokenItem.symbol == 'SEGLD') {
-        dailyPriceInEgld = new BigNumber(1).multipliedBy(liquidStakingExchangeRate).dividedBy(BigNumber.WAD).toString();
+        dailyPriceInEgld = new BigNumber(1).multipliedBy(liquidStakingExchangeRate).dividedBy(WAD);
       } else {
         dailyPriceInEgld = priceEgld;
       }

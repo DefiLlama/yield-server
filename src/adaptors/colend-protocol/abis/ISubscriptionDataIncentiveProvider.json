@@ -1,0 +1,918 @@
+{
+    "abi": [
+        {
+            "type": "function",
+            "name": "getFullReservesIncentiveData",
+            "inputs": [
+                {
+                    "name": "subscriptionPool",
+                    "type": "address",
+                    "internalType": "contract ISubscriptionPool"
+                },
+                {
+                    "name": "user",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "tuple[]",
+                    "internalType": "struct ISubscriptionDataIncentiveProvider.AggregatedReserveIncentiveData[]",
+                    "components": [
+                        {
+                            "name": "underlyingAsset",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "trackingIncentiveData",
+                            "type": "tuple",
+                            "internalType": "struct ISubscriptionDataIncentiveProvider.IncentiveData",
+                            "components": [
+                                {
+                                    "name": "tokenAddress",
+                                    "type": "address",
+                                    "internalType": "address"
+                                },
+                                {
+                                    "name": "incentiveControllerAddress",
+                                    "type": "address",
+                                    "internalType": "address"
+                                },
+                                {
+                                    "name": "rewardsTokenInformation",
+                                    "type": "tuple[]",
+                                    "internalType": "struct ISubscriptionDataIncentiveProvider.RewardInfo[]",
+                                    "components": [
+                                        {
+                                            "name": "rewardTokenSymbol",
+                                            "type": "string",
+                                            "internalType": "string"
+                                        },
+                                        {
+                                            "name": "rewardTokenAddress",
+                                            "type": "address",
+                                            "internalType": "address"
+                                        },
+                                        {
+                                            "name": "rewardPriceId",
+                                            "type": "bytes32",
+                                            "internalType": "bytes32"
+                                        },
+                                        {
+                                            "name": "emissionPerSecond",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        },
+                                        {
+                                            "name": "incentivesLastUpdateTimestamp",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        },
+                                        {
+                                            "name": "tokenIncentivesIndex",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        },
+                                        {
+                                            "name": "emissionEndTimestamp",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        },
+                                        {
+                                            "name": "rewardPriceFeed",
+                                            "type": "int256",
+                                            "internalType": "int256"
+                                        },
+                                        {
+                                            "name": "rewardTokenDecimals",
+                                            "type": "uint8",
+                                            "internalType": "uint8"
+                                        },
+                                        {
+                                            "name": "precision",
+                                            "type": "uint8",
+                                            "internalType": "uint8"
+                                        },
+                                        {
+                                            "name": "priceFeedDecimals",
+                                            "type": "uint8",
+                                            "internalType": "uint8"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "",
+                    "type": "tuple[]",
+                    "internalType": "struct ISubscriptionDataIncentiveProvider.UserReserveIncentiveData[]",
+                    "components": [
+                        {
+                            "name": "underlyingAsset",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "trackingTokenIncentivesUserData",
+                            "type": "tuple",
+                            "internalType": "struct ISubscriptionDataIncentiveProvider.UserIncentiveData",
+                            "components": [
+                                {
+                                    "name": "tokenAddress",
+                                    "type": "address",
+                                    "internalType": "address"
+                                },
+                                {
+                                    "name": "incentiveControllerAddress",
+                                    "type": "address",
+                                    "internalType": "address"
+                                },
+                                {
+                                    "name": "userRewardsInformation",
+                                    "type": "tuple[]",
+                                    "internalType": "struct ISubscriptionDataIncentiveProvider.UserRewardInfo[]",
+                                    "components": [
+                                        {
+                                            "name": "rewardTokenSymbol",
+                                            "type": "string",
+                                            "internalType": "string"
+                                        },
+                                        {
+                                            "name": "rewardPriceId",
+                                            "type": "bytes32",
+                                            "internalType": "bytes32"
+                                        },
+                                        {
+                                            "name": "rewardTokenAddress",
+                                            "type": "address",
+                                            "internalType": "address"
+                                        },
+                                        {
+                                            "name": "userUnclaimedRewards",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        },
+                                        {
+                                            "name": "tokenIncentivesUserIndex",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        },
+                                        {
+                                            "name": "rewardPriceFeed",
+                                            "type": "int256",
+                                            "internalType": "int256"
+                                        },
+                                        {
+                                            "name": "priceFeedDecimals",
+                                            "type": "uint8",
+                                            "internalType": "uint8"
+                                        },
+                                        {
+                                            "name": "rewardTokenDecimals",
+                                            "type": "uint8",
+                                            "internalType": "uint8"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "getReservesIncentivesData",
+            "inputs": [
+                {
+                    "name": "subscriptionPool",
+                    "type": "address",
+                    "internalType": "contract ISubscriptionPool"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "tuple[]",
+                    "internalType": "struct ISubscriptionDataIncentiveProvider.AggregatedReserveIncentiveData[]",
+                    "components": [
+                        {
+                            "name": "underlyingAsset",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "trackingIncentiveData",
+                            "type": "tuple",
+                            "internalType": "struct ISubscriptionDataIncentiveProvider.IncentiveData",
+                            "components": [
+                                {
+                                    "name": "tokenAddress",
+                                    "type": "address",
+                                    "internalType": "address"
+                                },
+                                {
+                                    "name": "incentiveControllerAddress",
+                                    "type": "address",
+                                    "internalType": "address"
+                                },
+                                {
+                                    "name": "rewardsTokenInformation",
+                                    "type": "tuple[]",
+                                    "internalType": "struct ISubscriptionDataIncentiveProvider.RewardInfo[]",
+                                    "components": [
+                                        {
+                                            "name": "rewardTokenSymbol",
+                                            "type": "string",
+                                            "internalType": "string"
+                                        },
+                                        {
+                                            "name": "rewardTokenAddress",
+                                            "type": "address",
+                                            "internalType": "address"
+                                        },
+                                        {
+                                            "name": "rewardPriceId",
+                                            "type": "bytes32",
+                                            "internalType": "bytes32"
+                                        },
+                                        {
+                                            "name": "emissionPerSecond",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        },
+                                        {
+                                            "name": "incentivesLastUpdateTimestamp",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        },
+                                        {
+                                            "name": "tokenIncentivesIndex",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        },
+                                        {
+                                            "name": "emissionEndTimestamp",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        },
+                                        {
+                                            "name": "rewardPriceFeed",
+                                            "type": "int256",
+                                            "internalType": "int256"
+                                        },
+                                        {
+                                            "name": "rewardTokenDecimals",
+                                            "type": "uint8",
+                                            "internalType": "uint8"
+                                        },
+                                        {
+                                            "name": "precision",
+                                            "type": "uint8",
+                                            "internalType": "uint8"
+                                        },
+                                        {
+                                            "name": "priceFeedDecimals",
+                                            "type": "uint8",
+                                            "internalType": "uint8"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "getUserReservesIncentivesData",
+            "inputs": [
+                {
+                    "name": "subscriptionPool",
+                    "type": "address",
+                    "internalType": "contract ISubscriptionPool"
+                },
+                {
+                    "name": "user",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "tuple[]",
+                    "internalType": "struct ISubscriptionDataIncentiveProvider.UserReserveIncentiveData[]",
+                    "components": [
+                        {
+                            "name": "underlyingAsset",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "trackingTokenIncentivesUserData",
+                            "type": "tuple",
+                            "internalType": "struct ISubscriptionDataIncentiveProvider.UserIncentiveData",
+                            "components": [
+                                {
+                                    "name": "tokenAddress",
+                                    "type": "address",
+                                    "internalType": "address"
+                                },
+                                {
+                                    "name": "incentiveControllerAddress",
+                                    "type": "address",
+                                    "internalType": "address"
+                                },
+                                {
+                                    "name": "userRewardsInformation",
+                                    "type": "tuple[]",
+                                    "internalType": "struct ISubscriptionDataIncentiveProvider.UserRewardInfo[]",
+                                    "components": [
+                                        {
+                                            "name": "rewardTokenSymbol",
+                                            "type": "string",
+                                            "internalType": "string"
+                                        },
+                                        {
+                                            "name": "rewardPriceId",
+                                            "type": "bytes32",
+                                            "internalType": "bytes32"
+                                        },
+                                        {
+                                            "name": "rewardTokenAddress",
+                                            "type": "address",
+                                            "internalType": "address"
+                                        },
+                                        {
+                                            "name": "userUnclaimedRewards",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        },
+                                        {
+                                            "name": "tokenIncentivesUserIndex",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        },
+                                        {
+                                            "name": "rewardPriceFeed",
+                                            "type": "int256",
+                                            "internalType": "int256"
+                                        },
+                                        {
+                                            "name": "priceFeedDecimals",
+                                            "type": "uint8",
+                                            "internalType": "uint8"
+                                        },
+                                        {
+                                            "name": "rewardTokenDecimals",
+                                            "type": "uint8",
+                                            "internalType": "uint8"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "stateMutability": "view"
+        }
+    ],
+    "bytecode": {
+        "object": "0x",
+        "sourceMap": "",
+        "linkReferences": {}
+    },
+    "deployedBytecode": {
+        "object": "0x",
+        "sourceMap": "",
+        "linkReferences": {}
+    },
+    "methodIdentifiers": {
+        "getFullReservesIncentiveData(address,address)": "47637536",
+        "getReservesIncentivesData(address)": "976fafc5",
+        "getUserReservesIncentivesData(address,address)": "799bdcf5"
+    },
+    "rawMetadata": "{\"compiler\":{\"version\":\"0.8.28+commit.7893614a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"contract ISubscriptionPool\",\"name\":\"subscriptionPool\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"}],\"name\":\"getFullReservesIncentiveData\",\"outputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"underlyingAsset\",\"type\":\"address\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"tokenAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"incentiveControllerAddress\",\"type\":\"address\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"rewardTokenSymbol\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"rewardTokenAddress\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"rewardPriceId\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"emissionPerSecond\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"incentivesLastUpdateTimestamp\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"tokenIncentivesIndex\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"emissionEndTimestamp\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"rewardPriceFeed\",\"type\":\"int256\"},{\"internalType\":\"uint8\",\"name\":\"rewardTokenDecimals\",\"type\":\"uint8\"},{\"internalType\":\"uint8\",\"name\":\"precision\",\"type\":\"uint8\"},{\"internalType\":\"uint8\",\"name\":\"priceFeedDecimals\",\"type\":\"uint8\"}],\"internalType\":\"struct ISubscriptionDataIncentiveProvider.RewardInfo[]\",\"name\":\"rewardsTokenInformation\",\"type\":\"tuple[]\"}],\"internalType\":\"struct ISubscriptionDataIncentiveProvider.IncentiveData\",\"name\":\"trackingIncentiveData\",\"type\":\"tuple\"}],\"internalType\":\"struct ISubscriptionDataIncentiveProvider.AggregatedReserveIncentiveData[]\",\"name\":\"\",\"type\":\"tuple[]\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"underlyingAsset\",\"type\":\"address\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"tokenAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"incentiveControllerAddress\",\"type\":\"address\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"rewardTokenSymbol\",\"type\":\"string\"},{\"internalType\":\"bytes32\",\"name\":\"rewardPriceId\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"rewardTokenAddress\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"userUnclaimedRewards\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"tokenIncentivesUserIndex\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"rewardPriceFeed\",\"type\":\"int256\"},{\"internalType\":\"uint8\",\"name\":\"priceFeedDecimals\",\"type\":\"uint8\"},{\"internalType\":\"uint8\",\"name\":\"rewardTokenDecimals\",\"type\":\"uint8\"}],\"internalType\":\"struct ISubscriptionDataIncentiveProvider.UserRewardInfo[]\",\"name\":\"userRewardsInformation\",\"type\":\"tuple[]\"}],\"internalType\":\"struct ISubscriptionDataIncentiveProvider.UserIncentiveData\",\"name\":\"trackingTokenIncentivesUserData\",\"type\":\"tuple\"}],\"internalType\":\"struct ISubscriptionDataIncentiveProvider.UserReserveIncentiveData[]\",\"name\":\"\",\"type\":\"tuple[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contract ISubscriptionPool\",\"name\":\"subscriptionPool\",\"type\":\"address\"}],\"name\":\"getReservesIncentivesData\",\"outputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"underlyingAsset\",\"type\":\"address\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"tokenAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"incentiveControllerAddress\",\"type\":\"address\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"rewardTokenSymbol\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"rewardTokenAddress\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"rewardPriceId\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"emissionPerSecond\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"incentivesLastUpdateTimestamp\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"tokenIncentivesIndex\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"emissionEndTimestamp\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"rewardPriceFeed\",\"type\":\"int256\"},{\"internalType\":\"uint8\",\"name\":\"rewardTokenDecimals\",\"type\":\"uint8\"},{\"internalType\":\"uint8\",\"name\":\"precision\",\"type\":\"uint8\"},{\"internalType\":\"uint8\",\"name\":\"priceFeedDecimals\",\"type\":\"uint8\"}],\"internalType\":\"struct ISubscriptionDataIncentiveProvider.RewardInfo[]\",\"name\":\"rewardsTokenInformation\",\"type\":\"tuple[]\"}],\"internalType\":\"struct ISubscriptionDataIncentiveProvider.IncentiveData\",\"name\":\"trackingIncentiveData\",\"type\":\"tuple\"}],\"internalType\":\"struct ISubscriptionDataIncentiveProvider.AggregatedReserveIncentiveData[]\",\"name\":\"\",\"type\":\"tuple[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contract ISubscriptionPool\",\"name\":\"subscriptionPool\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"}],\"name\":\"getUserReservesIncentivesData\",\"outputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"underlyingAsset\",\"type\":\"address\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"tokenAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"incentiveControllerAddress\",\"type\":\"address\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"rewardTokenSymbol\",\"type\":\"string\"},{\"internalType\":\"bytes32\",\"name\":\"rewardPriceId\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"rewardTokenAddress\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"userUnclaimedRewards\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"tokenIncentivesUserIndex\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"rewardPriceFeed\",\"type\":\"int256\"},{\"internalType\":\"uint8\",\"name\":\"priceFeedDecimals\",\"type\":\"uint8\"},{\"internalType\":\"uint8\",\"name\":\"rewardTokenDecimals\",\"type\":\"uint8\"}],\"internalType\":\"struct ISubscriptionDataIncentiveProvider.UserRewardInfo[]\",\"name\":\"userRewardsInformation\",\"type\":\"tuple[]\"}],\"internalType\":\"struct ISubscriptionDataIncentiveProvider.UserIncentiveData\",\"name\":\"trackingTokenIncentivesUserData\",\"type\":\"tuple\"}],\"internalType\":\"struct ISubscriptionDataIncentiveProvider.UserReserveIncentiveData[]\",\"name\":\"\",\"type\":\"tuple[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/interfaces/ISubscriptionDataIncentiveProvider.sol\":\"ISubscriptionDataIncentiveProvider\"},\"evmVersion\":\"shanghai\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"none\"},\"optimizer\":{\"enabled\":true,\"runs\":10000},\"remappings\":[\":@/=src/\",\":@aave/core-v3/contracts/=node_modules/@aave/core-v3/contracts/\",\":@aave/periphery-v3/contracts/=node_modules/@aave/periphery-v3/contracts/\",\":@ensdomains/=node_modules/@aave/periphery-v3/node_modules/@ensdomains/\",\":@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/\",\":@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/\",\":@solmate/=node_modules/solmate/src/\",\":eth-gas-reporter/=node_modules/@aave/core-v3/node_modules/eth-gas-reporter/\",\":forge-std/=node_modules/forge-std/src/\",\":hardhat-deploy/=node_modules/@aave/core-v3/node_modules/hardhat-deploy/\",\":hardhat/=node_modules/@aave/core-v3/node_modules/hardhat/\",\":solmate/=node_modules/solmate/\",\":test/=test/\"],\"viaIR\":true},\"sources\":{\"node_modules/@aave/core-v3/contracts/interfaces/IAaveIncentivesController.sol\":{\"keccak256\":\"0x906b896fdcb878d1472f740a70680f26e9a601dc28701113ab1f89cd9edce0bd\",\"license\":\"AGPL-3.0\",\"urls\":[\"bzz-raw://b17473265a3ec2ec73dac797e0e60c147590f4e5cc7016f8eb61efbe072c49e0\",\"dweb:/ipfs/QmchQGeuyUw3VW4Kgwfg5Ys9ky1F7Q6QCcKbywbRaEUPt7\"]},\"node_modules/@aave/core-v3/contracts/interfaces/IPool.sol\":{\"keccak256\":\"0xbfd2077251c8dc766a56d45f4b03eb07f3441323e79c0f794efea3657a99747f\",\"license\":\"AGPL-3.0\",\"urls\":[\"bzz-raw://c6ff6221de0ea877932c73c0b99d3e4535f293053ae44f9f9d6b9d265e9af2f6\",\"dweb:/ipfs/QmSTaEKrhz1xNVnx4oBzWw8DenYPShVzJoP1A9GTEWkAzX\"]},\"node_modules/@aave/core-v3/contracts/interfaces/IPoolAddressesProvider.sol\":{\"keccak256\":\"0x16468a4e76d9a330d9dcf9ff7ad0754265bd4d8aa81da5c468eb72fe08c85042\",\"license\":\"AGPL-3.0\",\"urls\":[\"bzz-raw://eb6e658e297ff3caa6a8e098a7eb082ddb71c54f88b2d5398e8995bb86732e1e\",\"dweb:/ipfs/QmZ5M8LaSZ3HdBEPwLT4KtsZYWcUqttX9eKpNdoYrWN4yW\"]},\"node_modules/@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol\":{\"keccak256\":\"0x771cb99fd8519c974f7e12130387c4d9a997a6e8d0ac10e4303b842fe53efa88\",\"license\":\"BUSL-1.1\",\"urls\":[\"bzz-raw://0f41689d1d58bc13678c749bae8830f5a8b19b89cd135e962bf07d483350f828\",\"dweb:/ipfs/QmQSNGDxjYGqT1GU2CZzsWUTNcAtcfkg1jDGTH516nCAfN\"]},\"node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol\":{\"keccak256\":\"0xe06a3f08a987af6ad2e1c1e774405d4fe08f1694b67517438b467cecf0da0ef7\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://df6f0c459663c9858b6cba2cda1d14a7d05a985bed6d2de72bd8e78c25ee79db\",\"dweb:/ipfs/QmeTTxZ7qVk9rjEv2R4CpCwdf8UMCcRqDNMvzNxHc3Fnn9\"]},\"src/interfaces/ISoulboundToken.sol\":{\"keccak256\":\"0x641ddca9f150248160e993026516ed3e3fbb5a02e6e8c23c19fef07d0f1d6e7a\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://5166928e574e0d12409ecdccc809fc03963fa9e0aa7fb219315eef6b669301c5\",\"dweb:/ipfs/QmQXsakfZdgR579MaxPsoetzxEoYRXM9CJZ21Xph3rTfia\"]},\"src/interfaces/ISubscriptionDataIncentiveProvider.sol\":{\"keccak256\":\"0x896067a3c5948bb8740a272839440a59e60de77ce6dac4f9ff0da5de2995b3a9\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://14c51a5b11ba32679a200de4c167516eb28878814e6e18816fcfca61da1eb5b4\",\"dweb:/ipfs/QmaVyx5Jzf77fcMLcEFAbKD7LB6izgAsrzfFhhdNBjvEA8\"]},\"src/interfaces/ISubscriptionPool.sol\":{\"keccak256\":\"0x6a2dd9a596cdaad3ac1b451a158f040e6f87e7547350547a5d6e7e6c87bf4b15\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://7a301a0a9731df8cf1effe8cd6ef3594f913c18d3da86a072bcd380d4e7d6a2d\",\"dweb:/ipfs/QmSf5c2jm9MNoBvMkpx6dBaqZmgVCKJoqM16ug1mCcs5XP\"]},\"src/interfaces/IVirtualRewardTrackingToken.sol\":{\"keccak256\":\"0xf15fe407c1192166c01444807c979adfcc184303509dbf1ea183fc4106f7e632\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://ae763bbfef658b65ea26bb029fb6a57c29e457dbc1a4f174e0f22f8d48c00d0b\",\"dweb:/ipfs/QmW1DKjbTkBqamvNqsEFBdEQ2DzHSRTpwzTDD4VAdJpTod\"]}},\"version\":1}",
+    "metadata": {
+        "compiler": {
+            "version": "0.8.28+commit.7893614a"
+        },
+        "language": "Solidity",
+        "output": {
+            "abi": [
+                {
+                    "inputs": [
+                        {
+                            "internalType": "contract ISubscriptionPool",
+                            "name": "subscriptionPool",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "user",
+                            "type": "address"
+                        }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "getFullReservesIncentiveData",
+                    "outputs": [
+                        {
+                            "internalType": "struct ISubscriptionDataIncentiveProvider.AggregatedReserveIncentiveData[]",
+                            "name": "",
+                            "type": "tuple[]",
+                            "components": [
+                                {
+                                    "internalType": "address",
+                                    "name": "underlyingAsset",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "struct ISubscriptionDataIncentiveProvider.IncentiveData",
+                                    "name": "trackingIncentiveData",
+                                    "type": "tuple",
+                                    "components": [
+                                        {
+                                            "internalType": "address",
+                                            "name": "tokenAddress",
+                                            "type": "address"
+                                        },
+                                        {
+                                            "internalType": "address",
+                                            "name": "incentiveControllerAddress",
+                                            "type": "address"
+                                        },
+                                        {
+                                            "internalType": "struct ISubscriptionDataIncentiveProvider.RewardInfo[]",
+                                            "name": "rewardsTokenInformation",
+                                            "type": "tuple[]",
+                                            "components": [
+                                                {
+                                                    "internalType": "string",
+                                                    "name": "rewardTokenSymbol",
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "internalType": "address",
+                                                    "name": "rewardTokenAddress",
+                                                    "type": "address"
+                                                },
+                                                {
+                                                    "internalType": "bytes32",
+                                                    "name": "rewardPriceId",
+                                                    "type": "bytes32"
+                                                },
+                                                {
+                                                    "internalType": "uint256",
+                                                    "name": "emissionPerSecond",
+                                                    "type": "uint256"
+                                                },
+                                                {
+                                                    "internalType": "uint256",
+                                                    "name": "incentivesLastUpdateTimestamp",
+                                                    "type": "uint256"
+                                                },
+                                                {
+                                                    "internalType": "uint256",
+                                                    "name": "tokenIncentivesIndex",
+                                                    "type": "uint256"
+                                                },
+                                                {
+                                                    "internalType": "uint256",
+                                                    "name": "emissionEndTimestamp",
+                                                    "type": "uint256"
+                                                },
+                                                {
+                                                    "internalType": "int256",
+                                                    "name": "rewardPriceFeed",
+                                                    "type": "int256"
+                                                },
+                                                {
+                                                    "internalType": "uint8",
+                                                    "name": "rewardTokenDecimals",
+                                                    "type": "uint8"
+                                                },
+                                                {
+                                                    "internalType": "uint8",
+                                                    "name": "precision",
+                                                    "type": "uint8"
+                                                },
+                                                {
+                                                    "internalType": "uint8",
+                                                    "name": "priceFeedDecimals",
+                                                    "type": "uint8"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "internalType": "struct ISubscriptionDataIncentiveProvider.UserReserveIncentiveData[]",
+                            "name": "",
+                            "type": "tuple[]",
+                            "components": [
+                                {
+                                    "internalType": "address",
+                                    "name": "underlyingAsset",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "struct ISubscriptionDataIncentiveProvider.UserIncentiveData",
+                                    "name": "trackingTokenIncentivesUserData",
+                                    "type": "tuple",
+                                    "components": [
+                                        {
+                                            "internalType": "address",
+                                            "name": "tokenAddress",
+                                            "type": "address"
+                                        },
+                                        {
+                                            "internalType": "address",
+                                            "name": "incentiveControllerAddress",
+                                            "type": "address"
+                                        },
+                                        {
+                                            "internalType": "struct ISubscriptionDataIncentiveProvider.UserRewardInfo[]",
+                                            "name": "userRewardsInformation",
+                                            "type": "tuple[]",
+                                            "components": [
+                                                {
+                                                    "internalType": "string",
+                                                    "name": "rewardTokenSymbol",
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "internalType": "bytes32",
+                                                    "name": "rewardPriceId",
+                                                    "type": "bytes32"
+                                                },
+                                                {
+                                                    "internalType": "address",
+                                                    "name": "rewardTokenAddress",
+                                                    "type": "address"
+                                                },
+                                                {
+                                                    "internalType": "uint256",
+                                                    "name": "userUnclaimedRewards",
+                                                    "type": "uint256"
+                                                },
+                                                {
+                                                    "internalType": "uint256",
+                                                    "name": "tokenIncentivesUserIndex",
+                                                    "type": "uint256"
+                                                },
+                                                {
+                                                    "internalType": "int256",
+                                                    "name": "rewardPriceFeed",
+                                                    "type": "int256"
+                                                },
+                                                {
+                                                    "internalType": "uint8",
+                                                    "name": "priceFeedDecimals",
+                                                    "type": "uint8"
+                                                },
+                                                {
+                                                    "internalType": "uint8",
+                                                    "name": "rewardTokenDecimals",
+                                                    "type": "uint8"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "contract ISubscriptionPool",
+                            "name": "subscriptionPool",
+                            "type": "address"
+                        }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "getReservesIncentivesData",
+                    "outputs": [
+                        {
+                            "internalType": "struct ISubscriptionDataIncentiveProvider.AggregatedReserveIncentiveData[]",
+                            "name": "",
+                            "type": "tuple[]",
+                            "components": [
+                                {
+                                    "internalType": "address",
+                                    "name": "underlyingAsset",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "struct ISubscriptionDataIncentiveProvider.IncentiveData",
+                                    "name": "trackingIncentiveData",
+                                    "type": "tuple",
+                                    "components": [
+                                        {
+                                            "internalType": "address",
+                                            "name": "tokenAddress",
+                                            "type": "address"
+                                        },
+                                        {
+                                            "internalType": "address",
+                                            "name": "incentiveControllerAddress",
+                                            "type": "address"
+                                        },
+                                        {
+                                            "internalType": "struct ISubscriptionDataIncentiveProvider.RewardInfo[]",
+                                            "name": "rewardsTokenInformation",
+                                            "type": "tuple[]",
+                                            "components": [
+                                                {
+                                                    "internalType": "string",
+                                                    "name": "rewardTokenSymbol",
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "internalType": "address",
+                                                    "name": "rewardTokenAddress",
+                                                    "type": "address"
+                                                },
+                                                {
+                                                    "internalType": "bytes32",
+                                                    "name": "rewardPriceId",
+                                                    "type": "bytes32"
+                                                },
+                                                {
+                                                    "internalType": "uint256",
+                                                    "name": "emissionPerSecond",
+                                                    "type": "uint256"
+                                                },
+                                                {
+                                                    "internalType": "uint256",
+                                                    "name": "incentivesLastUpdateTimestamp",
+                                                    "type": "uint256"
+                                                },
+                                                {
+                                                    "internalType": "uint256",
+                                                    "name": "tokenIncentivesIndex",
+                                                    "type": "uint256"
+                                                },
+                                                {
+                                                    "internalType": "uint256",
+                                                    "name": "emissionEndTimestamp",
+                                                    "type": "uint256"
+                                                },
+                                                {
+                                                    "internalType": "int256",
+                                                    "name": "rewardPriceFeed",
+                                                    "type": "int256"
+                                                },
+                                                {
+                                                    "internalType": "uint8",
+                                                    "name": "rewardTokenDecimals",
+                                                    "type": "uint8"
+                                                },
+                                                {
+                                                    "internalType": "uint8",
+                                                    "name": "precision",
+                                                    "type": "uint8"
+                                                },
+                                                {
+                                                    "internalType": "uint8",
+                                                    "name": "priceFeedDecimals",
+                                                    "type": "uint8"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "contract ISubscriptionPool",
+                            "name": "subscriptionPool",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "user",
+                            "type": "address"
+                        }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "getUserReservesIncentivesData",
+                    "outputs": [
+                        {
+                            "internalType": "struct ISubscriptionDataIncentiveProvider.UserReserveIncentiveData[]",
+                            "name": "",
+                            "type": "tuple[]",
+                            "components": [
+                                {
+                                    "internalType": "address",
+                                    "name": "underlyingAsset",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "struct ISubscriptionDataIncentiveProvider.UserIncentiveData",
+                                    "name": "trackingTokenIncentivesUserData",
+                                    "type": "tuple",
+                                    "components": [
+                                        {
+                                            "internalType": "address",
+                                            "name": "tokenAddress",
+                                            "type": "address"
+                                        },
+                                        {
+                                            "internalType": "address",
+                                            "name": "incentiveControllerAddress",
+                                            "type": "address"
+                                        },
+                                        {
+                                            "internalType": "struct ISubscriptionDataIncentiveProvider.UserRewardInfo[]",
+                                            "name": "userRewardsInformation",
+                                            "type": "tuple[]",
+                                            "components": [
+                                                {
+                                                    "internalType": "string",
+                                                    "name": "rewardTokenSymbol",
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "internalType": "bytes32",
+                                                    "name": "rewardPriceId",
+                                                    "type": "bytes32"
+                                                },
+                                                {
+                                                    "internalType": "address",
+                                                    "name": "rewardTokenAddress",
+                                                    "type": "address"
+                                                },
+                                                {
+                                                    "internalType": "uint256",
+                                                    "name": "userUnclaimedRewards",
+                                                    "type": "uint256"
+                                                },
+                                                {
+                                                    "internalType": "uint256",
+                                                    "name": "tokenIncentivesUserIndex",
+                                                    "type": "uint256"
+                                                },
+                                                {
+                                                    "internalType": "int256",
+                                                    "name": "rewardPriceFeed",
+                                                    "type": "int256"
+                                                },
+                                                {
+                                                    "internalType": "uint8",
+                                                    "name": "priceFeedDecimals",
+                                                    "type": "uint8"
+                                                },
+                                                {
+                                                    "internalType": "uint8",
+                                                    "name": "rewardTokenDecimals",
+                                                    "type": "uint8"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "devdoc": {
+                "kind": "dev",
+                "methods": {},
+                "version": 1
+            },
+            "userdoc": {
+                "kind": "user",
+                "methods": {},
+                "version": 1
+            }
+        },
+        "settings": {
+            "remappings": [
+                "@/=src/",
+                "@aave/core-v3/contracts/=node_modules/@aave/core-v3/contracts/",
+                "@aave/periphery-v3/contracts/=node_modules/@aave/periphery-v3/contracts/",
+                "@ensdomains/=node_modules/@aave/periphery-v3/node_modules/@ensdomains/",
+                "@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/",
+                "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+                "@solmate/=node_modules/solmate/src/",
+                "eth-gas-reporter/=node_modules/@aave/core-v3/node_modules/eth-gas-reporter/",
+                "forge-std/=node_modules/forge-std/src/",
+                "hardhat-deploy/=node_modules/@aave/core-v3/node_modules/hardhat-deploy/",
+                "hardhat/=node_modules/@aave/core-v3/node_modules/hardhat/",
+                "solmate/=node_modules/solmate/",
+                "test/=test/"
+            ],
+            "optimizer": {
+                "enabled": true,
+                "runs": 10000
+            },
+            "metadata": {
+                "bytecodeHash": "none"
+            },
+            "compilationTarget": {
+                "src/interfaces/ISubscriptionDataIncentiveProvider.sol": "ISubscriptionDataIncentiveProvider"
+            },
+            "evmVersion": "shanghai",
+            "libraries": {},
+            "viaIR": true
+        },
+        "sources": {
+            "node_modules/@aave/core-v3/contracts/interfaces/IAaveIncentivesController.sol": {
+                "keccak256": "0x906b896fdcb878d1472f740a70680f26e9a601dc28701113ab1f89cd9edce0bd",
+                "urls": [
+                    "bzz-raw://b17473265a3ec2ec73dac797e0e60c147590f4e5cc7016f8eb61efbe072c49e0",
+                    "dweb:/ipfs/QmchQGeuyUw3VW4Kgwfg5Ys9ky1F7Q6QCcKbywbRaEUPt7"
+                ],
+                "license": "AGPL-3.0"
+            },
+            "node_modules/@aave/core-v3/contracts/interfaces/IPool.sol": {
+                "keccak256": "0xbfd2077251c8dc766a56d45f4b03eb07f3441323e79c0f794efea3657a99747f",
+                "urls": [
+                    "bzz-raw://c6ff6221de0ea877932c73c0b99d3e4535f293053ae44f9f9d6b9d265e9af2f6",
+                    "dweb:/ipfs/QmSTaEKrhz1xNVnx4oBzWw8DenYPShVzJoP1A9GTEWkAzX"
+                ],
+                "license": "AGPL-3.0"
+            },
+            "node_modules/@aave/core-v3/contracts/interfaces/IPoolAddressesProvider.sol": {
+                "keccak256": "0x16468a4e76d9a330d9dcf9ff7ad0754265bd4d8aa81da5c468eb72fe08c85042",
+                "urls": [
+                    "bzz-raw://eb6e658e297ff3caa6a8e098a7eb082ddb71c54f88b2d5398e8995bb86732e1e",
+                    "dweb:/ipfs/QmZ5M8LaSZ3HdBEPwLT4KtsZYWcUqttX9eKpNdoYrWN4yW"
+                ],
+                "license": "AGPL-3.0"
+            },
+            "node_modules/@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol": {
+                "keccak256": "0x771cb99fd8519c974f7e12130387c4d9a997a6e8d0ac10e4303b842fe53efa88",
+                "urls": [
+                    "bzz-raw://0f41689d1d58bc13678c749bae8830f5a8b19b89cd135e962bf07d483350f828",
+                    "dweb:/ipfs/QmQSNGDxjYGqT1GU2CZzsWUTNcAtcfkg1jDGTH516nCAfN"
+                ],
+                "license": "BUSL-1.1"
+            },
+            "node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol": {
+                "keccak256": "0xe06a3f08a987af6ad2e1c1e774405d4fe08f1694b67517438b467cecf0da0ef7",
+                "urls": [
+                    "bzz-raw://df6f0c459663c9858b6cba2cda1d14a7d05a985bed6d2de72bd8e78c25ee79db",
+                    "dweb:/ipfs/QmeTTxZ7qVk9rjEv2R4CpCwdf8UMCcRqDNMvzNxHc3Fnn9"
+                ],
+                "license": "MIT"
+            },
+            "src/interfaces/ISoulboundToken.sol": {
+                "keccak256": "0x641ddca9f150248160e993026516ed3e3fbb5a02e6e8c23c19fef07d0f1d6e7a",
+                "urls": [
+                    "bzz-raw://5166928e574e0d12409ecdccc809fc03963fa9e0aa7fb219315eef6b669301c5",
+                    "dweb:/ipfs/QmQXsakfZdgR579MaxPsoetzxEoYRXM9CJZ21Xph3rTfia"
+                ],
+                "license": "MIT"
+            },
+            "src/interfaces/ISubscriptionDataIncentiveProvider.sol": {
+                "keccak256": "0x896067a3c5948bb8740a272839440a59e60de77ce6dac4f9ff0da5de2995b3a9",
+                "urls": [
+                    "bzz-raw://14c51a5b11ba32679a200de4c167516eb28878814e6e18816fcfca61da1eb5b4",
+                    "dweb:/ipfs/QmaVyx5Jzf77fcMLcEFAbKD7LB6izgAsrzfFhhdNBjvEA8"
+                ],
+                "license": "MIT"
+            },
+            "src/interfaces/ISubscriptionPool.sol": {
+                "keccak256": "0x6a2dd9a596cdaad3ac1b451a158f040e6f87e7547350547a5d6e7e6c87bf4b15",
+                "urls": [
+                    "bzz-raw://7a301a0a9731df8cf1effe8cd6ef3594f913c18d3da86a072bcd380d4e7d6a2d",
+                    "dweb:/ipfs/QmSf5c2jm9MNoBvMkpx6dBaqZmgVCKJoqM16ug1mCcs5XP"
+                ],
+                "license": "MIT"
+            },
+            "src/interfaces/IVirtualRewardTrackingToken.sol": {
+                "keccak256": "0xf15fe407c1192166c01444807c979adfcc184303509dbf1ea183fc4106f7e632",
+                "urls": [
+                    "bzz-raw://ae763bbfef658b65ea26bb029fb6a57c29e457dbc1a4f174e0f22f8d48c00d0b",
+                    "dweb:/ipfs/QmW1DKjbTkBqamvNqsEFBdEQ2DzHSRTpwzTDD4VAdJpTod"
+                ],
+                "license": "MIT"
+            }
+        },
+        "version": 1
+    },
+    "id": 85
+}

@@ -9,7 +9,7 @@ const {
   getPoolTicks,
   get_graph_url,
 } = require('./queries.ts');
-const { EstimateActiveLiq } = require('./estimateActiveLiq.ts');
+// const { EstimateActiveLiq } = require('./estimateActiveLiq.ts');
 const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
 
@@ -63,8 +63,8 @@ const main = async (timestamp = null) => {
       x.t1 = prices[t1];
       x[t0] = prices[t0];
       x[t1] = prices[t1];
-      x.t0_usd = parseFloat(x.totalValueLockedToken0) * x.t0.price;
-      x.t1_usd = parseFloat(x.totalValueLockedToken1) * x.t1.price;
+      x.t0_usd = parseFloat(x.totalValueLockedToken0) * x.t0?.price;
+      x.t1_usd = parseFloat(x.totalValueLockedToken1) * x.t1?.price;
       x.tvl = x.t0_usd + x.t1_usd;
       return [x];
     })
@@ -90,7 +90,7 @@ const main = async (timestamp = null) => {
           if (s.event == 'Swap') {
             // have to take fee from the positive amount
             let pool_in = pool_input(pool, s.args);
-            touched_prices.push(pool_in.price);
+            touched_prices.push(pool_in?.price);
             let swap_fee = pool_in.input
               .mul(current_fee)
               .div(ethers.BigNumber.from(1_000_000));
@@ -113,27 +113,27 @@ const main = async (timestamp = null) => {
         //   // console.log('NEW DELTA', pool.id, delta);
         // }
         let price_assumption = pool.t1.price / pool.t0.price;
-        pool.active_liq_fraction = await EstimateActiveLiq(
-          pool.id,
-          price_assumption,
-          [price_assumption * (1 - delta), price_assumption * (1 + delta)],
-          pool.t1.price,
-          pool.t0.price,
-          pool.tvl,
-          pool.t0.decimals,
-          pool.t1.decimals,
-          get_graph_url()
-        );
+        // pool.active_liq_fraction = await EstimateActiveLiq(
+        //   pool.id,
+        //   price_assumption,
+        //   [price_assumption * (1 - delta), price_assumption * (1 + delta)],
+        //   pool.t1.price,
+        //   pool.t0.price,
+        //   pool.tvl,
+        //   pool.t0.decimals,
+        //   pool.t1.decimals,
+        //   get_graph_url()
+        // );
         // console.log('ACTIVE LIQ', pool.id, delta, pool.active_liq_fraction);
 
         // reduce token fees to total fees in window
         let total_fee_usd = 0.0;
         for (let [k, v] of Object.entries(fee_per_token)) {
-          let fee_usd = bn_to_float(v, pool[k].decimals) * pool[k].price;
+          let fee_usd = bn_to_float(v, pool[k].decimals) * pool[k]?.price;
           total_fee_usd += fee_usd;
         }
         pool.solid_per_year_usd =
-          bn_to_float(pool.solid_per_year, 18) * prices[get_solid()].price;
+          bn_to_float(pool.solid_per_year, 18) * prices[get_solid()]?.price;
         pool.rewardTokens = [];
         pool.apyReward = 0.0;
         if (pool.tvl != 0) {
@@ -154,7 +154,7 @@ const main = async (timestamp = null) => {
               let token_obj = prices[emission.token];
               let per_year_usd =
                 bn_to_float(emission.per_year, token_obj.decimals) *
-                token_obj.price;
+                token_obj?.price;
               pool.apyEmissions += (per_year_usd / pool.tvl) * 100;
               pool.rewardTokens.push(emission.token);
               pool.apyReward += pool.apyEmissions;

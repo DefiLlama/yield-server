@@ -1,11 +1,13 @@
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
+const axios = require('axios');
 
 const { masterChefABI, lpTokenABI } = require('./abis');
 const utils = require('../utils');
 const { fetchURL } = require('../../helper/utils');
 
+const PROJECT = 'pancakeswap-amm';
 const RPC_URL = 'https://bsc-dataseed1.binance.org/';
 const LP_APRS =
   'https://raw.githubusercontent.com/pancakeswap/pancake-frontend/develop/apps/web/src/config/constants/lpAprs/56.json';
@@ -17,6 +19,33 @@ const BLOCKS_PER_YEAR = (60 / BSC_BLOCK_TIME) * 60 * 24 * 365;
 
 const web3 = new Web3(RPC_URL);
 
+const CHAINS = ['bsc', 'base', 'ethereum', 'linea', 'zksync', 'arbitrum', 'opbnb']
+const EXPLORER_API = 'https://explorer.pancakeswap.com/api/cached';
+
+async function getPoolsApy(chain) {
+  const response = await axios.get(`${EXPLORER_API}/pools/v2/${chain}/list/top`, { timeout: 0 });
+  return response.data.map(p => {
+    const symbol = p.token0.symbol + '-' + p.token1.symbol;
+
+    // 0.25% fee per swap
+    const feeUsd = Number(p.volumeUSD24h) * 0.0025;
+    const feeUsd7d = Number(p.volumeUSD7d) * 0.0025;
+
+    return {
+      pool: utils.formatAddress(p.id),
+      chain: utils.formatChain(chain),
+      project: PROJECT,
+      symbol,
+      tvlUsd: Number(p.tvlUSD),
+      apyBase: feeUsd * 365 * 100 / Number(p.tvlUSD),
+      apyBase7d: feeUsd7d * 365 * 100 / 7 / Number(p.tvlUSD),
+      volumeUsd1d: Number(p.volumeUSD24h),
+      volumeUsd7d: Number(p.volumeUSD7d),
+      underlyingTokens: [p.token0.id, p.token1.id],
+    }
+  })
+}
+
 const calculateApy = (
   poolInfo,
   totalAllocPoint,
@@ -24,8 +53,8 @@ const calculateApy = (
   cakePrice,
   reserveUSD
 ) => {
-  const poolWeight = poolInfo.allocPoint / totalAllocPoint;
-  const cakePerYear = BLOCKS_PER_YEAR * cakePerBlock;
+  const poolWeight = poolInfo.allocPoint / Number(totalAllocPoint);
+  const cakePerYear = BLOCKS_PER_YEAR * Number(cakePerBlock);
 
   return ((poolWeight * cakePerYear * cakePrice) / reserveUSD) * 100;
 };
@@ -79,7 +108,7 @@ const getBaseTokensPrice = async () => {
   return { cakePrice, ethPrice, bnbPrice };
 };
 
-const main = async () => {
+const getPoolsBsc = async () => {
   const { cakePrice, ethPrice, bnbPrice } = await getBaseTokensPrice();
   const masterChef = new web3.eth.Contract(masterChefABI, MASTERCHEF_ADDRESS);
   let { data: lpAprs } = await fetchURL(LP_APRS);
@@ -94,17 +123,18 @@ const main = async () => {
   const cakeRateToRegularFarm = await masterChef.methods
     .cakePerBlock(true)
     .call();
-  const normalizedCakePerBlock = cakeRateToRegularFarm / 1e18;
+  const normalizedCakePerBlock = cakeRateToRegularFarm / BigInt(1e18);
 
   const [poolsRes, lpTokensRes] = await Promise.all(
     ['poolInfo', 'lpToken'].map((method) =>
       sdk.api.abi.multiCall({
         abi: masterChefABI.filter(({ name }) => name === method)[0],
-        calls: [...Array(Number(poolsCount - 1)).keys()].map((i) => ({
+        calls: [...Array(Number(poolsCount) - 1).keys()].map((i) => ({
           target: MASTERCHEF_ADDRESS,
           params: i,
         })),
         chain: 'bsc',
+        permitFailure: true,
       })
     )
   );
@@ -124,6 +154,7 @@ const main = async () => {
               params: method === 'balanceOf' ? [MASTERCHEF_ADDRESS] : null,
             })),
             chain: 'bsc',
+            permitFailure: true,
           })
       )
     );
@@ -140,6 +171,7 @@ const main = async () => {
       abi: 'erc20:symbol',
       calls: token0.map((t) => ({ target: t })),
       chain: 'bsc',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -148,6 +180,7 @@ const main = async () => {
       abi: 'erc20:symbol',
       calls: token1.map((t) => ({ target: t })),
       chain: 'bsc',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -157,6 +190,7 @@ const main = async () => {
       abi: 'erc20:decimals',
       calls: token0.map((t) => ({ target: t })),
       chain: 'bsc',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
   const decimals1 = (
@@ -164,10 +198,11 @@ const main = async () => {
       abi: 'erc20:decimals',
       calls: token1.map((t) => ({ target: t })),
       chain: 'bsc',
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
-  const pools = await Promise.all(
+  let pools = await Promise.all(
     poolsInfo.map((pool, i) => {
       // the first two pools are for lotteries, etc.
       if (i < 2) return;
@@ -203,7 +238,7 @@ const main = async () => {
       return {
         pool: lpTokens[i].toLowerCase(),
         chain: utils.formatChain('binance'),
-        project: 'pancakeswap-amm',
+        project: PROJECT,
         symbol,
         tvlUsd: Number(reserveUSD),
         apyBase: lpAprs[lpTokens[i].toLowerCase()],
@@ -215,8 +250,22 @@ const main = async () => {
   );
 
   // rmv null elements
-  return pools.filter(Boolean);
+  return pools.filter(Boolean).filter((i) => utils.keepFinite(i));
 };
+
+async function main(timestamp = null) {
+  let yieldPools = []
+
+  for (const chain of CHAINS) {
+    if (chain === 'bsc') {
+      yieldPools = yieldPools.concat(await getPoolsBsc());
+    } else {
+      yieldPools = yieldPools.concat(await getPoolsApy(chain));
+    }
+  }
+
+  return yieldPools;
+}
 
 module.exports = {
   timetravel: false,

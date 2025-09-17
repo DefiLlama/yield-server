@@ -1,7 +1,21 @@
-const { ethers, Contract, BigNumber } = require('ethers');
-const sdk = require('@defillama/sdk3');
+const axios = require('axios');
+const { gql, request } = require('graphql-request');
+const sdk = require('@defillama/sdk');
 
-const utils = require('../utils');
+const { capitalizeFirstLetter } = require('../utils');
+
+const ETHEREUM_WETH_TOKEN = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+const ETHEREUM_OETH_TOKEN = '0x856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc3';
+const BASE_WETH_TOKEN = '0x4200000000000000000000000000000000000006';
+const BASE_SUPER_OETH_TOKEN = '0xDBFeFD2e8460a6Ee4955A68582F85708BAEA60A3';
+const PLUME_WETH_TOKEN = '0xca59cA09E5602fAe8B629DeE83FfA819741f14be';
+const PLUME_SUPER_OETH_TOKEN = '0xFCbe50DbE43bF7E5C88C6F6Fb9ef432D4165406E';
+
+const oethVaultAddress = '0x39254033945AA2E4809Cc2977E7087BEE48bd7Ab';
+const superOETHbVaultAddress = '0x98a0CbeF61bD2D21435f433bE4CD42B56B38CC93';
+const superOETHpVaultAddress = '0xc8c8F8bEA5631A8AF26440AF32a55002138cB76a';
+
+const graphUrl = 'https://origin.squids.live/origin-squid/graphql';
 
 const vaultABI = {
   inputs: [],
@@ -10,51 +24,98 @@ const vaultABI = {
   stateMutability: 'view',
   type: 'function',
 };
-const vaultAddress = '0x39254033945AA2E4809Cc2977E7087BEE48bd7Ab';
 
-const poolsFunction = async () => {
-  const apyData = await utils.getData(
-    'https://analytics.ousd.com/api/v2/oeth/apr/trailing'
-  );
+const fetchPoolData = async ({
+  chain,
+  vaultAddress,
+  token,
+  symbol,
+  project,
+  underlyingToken,
+  chainId,
+}) => {
+  const query = gql`
+    query OTokenApy($chainId: Int!, $token: String!) {
+      oTokenApies(
+        limit: 1
+        orderBy: timestamp_DESC
+        where: { chainId_eq: $chainId, otoken_containsInsensitive: $token }
+      ) {
+        apy7DayAvg
+      }
+    }
+  `;
+
+  const variables = {
+    token,
+    chainId,
+  };
+
+  const apyData = await request(graphUrl, query, variables);
+  const apy = apyData.oTokenApies[0]?.apy7DayAvg * 100;
+
   const totalValueEth = (
     await sdk.api.abi.call({
+      chain,
       target: vaultAddress,
       abi: vaultABI,
     })
   ).output;
 
-  const priceData = await utils.getData(
-    'https://coins.llama.fi/prices/current/coingecko:ethereum?searchWidth=4h'
+  const ethPriceKey = `ethereum:${ETHEREUM_WETH_TOKEN}`;
+  const ethPriceRes = await axios.get(
+    `https://coins.llama.fi/prices/current/${ethPriceKey}`
   );
-  const ethPrice = priceData.coins['coingecko:ethereum'].price;
+  const ethPrice = ethPriceRes.data.coins[ethPriceKey].price;
 
-  const tvlUsd =
-    BigNumber.from(totalValueEth)
-      .mul(ethers.utils.parseEther(ethPrice.toString()))
-      .div(BigNumber.from('10').pow(36 - 8))
-      .toNumber() /
-    10 ** 8;
+  const tvlUsd = (totalValueEth / 1e18) * ethPrice;
 
-  const oethData = {
-    pool: '0x856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc3',
-    chain: 'Ethereum',
-    project: 'origin-ether',
-    symbol: 'OETH',
+  return {
+    pool: token,
+    chain: capitalizeFirstLetter(chain),
+    project,
+    symbol,
     tvlUsd,
-    apy: Number(apyData.apy),
-    underlyingTokens: [
-      '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH
-      '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84', // stETH
-      '0xae78736Cd615f374D3085123A210448E74Fc6393', // rETH
-      '0x5e8422345238f34275888049021821e8e08caa1f', // frxETH
-    ],
+    apy,
+    underlyingTokens: [underlyingToken],
   };
+};
 
-  return [oethData];
+const apy = async () => {
+  const pools = await Promise.allSettled([
+    fetchPoolData({
+      chain: 'ethereum',
+      chainId: 1,
+      vaultAddress: oethVaultAddress,
+      token: ETHEREUM_OETH_TOKEN,
+      symbol: 'OETH',
+      project: 'origin-ether',
+      underlyingToken: ETHEREUM_WETH_TOKEN,
+    }),
+    fetchPoolData({
+      chain: 'base',
+      chainId: 8453,
+      vaultAddress: superOETHbVaultAddress,
+      token: BASE_SUPER_OETH_TOKEN,
+      symbol: 'superOETHb',
+      project: 'origin-ether',
+      underlyingToken: BASE_WETH_TOKEN,
+    }),
+    fetchPoolData({
+      chain: 'plume_mainnet',
+      chainId: 98866,
+      vaultAddress: superOETHpVaultAddress,
+      token: PLUME_SUPER_OETH_TOKEN,
+      symbol: 'superOETHp',
+      project: 'origin-ether',
+      underlyingToken: PLUME_WETH_TOKEN,
+    }),
+  ]);
+  return pools.filter((i) => i.status === 'fulfilled').map((i) => i.value);
 };
 
 module.exports = {
   timetravel: false,
-  apy: poolsFunction,
-  url: 'https://oeth.com',
+  apy,
+  url: 'https://originprotocol.com',
 };

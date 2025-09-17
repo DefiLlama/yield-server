@@ -8,10 +8,9 @@ module.exports.handler = async () => {
 };
 
 const main = async () => {
-  const poolsEnriched = await utils.readFromS3(
-    'defillama-datasets',
-    'yield-api/pools'
-  );
+  let poolsEnriched = (
+    await utils.readFromS3('defillama-datasets', 'yield-api/pools')
+  ).data;
 
   // parse nested prediction field into separate fields
   poolsEnriched = poolsEnriched.map((p) => ({

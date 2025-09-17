@@ -1,5 +1,5 @@
 const axios = require('axios');
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 
 const utils = require('../utils');
@@ -24,6 +24,7 @@ const getApy = async () => {
       const poolAddress = config?.l2SaddleSwap;
       const tokenAddress = config?.l2CanonicalToken;
       const hopTokenAddress = config?.l2HopBridgeToken;
+      if (!tokenAddress || !poolAddress) continue;
 
       const adaptedChain =
         chain === 'gnosis'

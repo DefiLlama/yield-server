@@ -13,7 +13,9 @@ const GRAIL = '0x3d9907f9a368ad0a51be60f7da3b97cf940982d8';
 
 const utils = require('../utils');
 
-const url = 'https://api.thegraph.com/subgraphs/name/camelotlabs/camelot-amm-2';
+const url = sdk.graph.modifyEndpoint(
+  '8zagLSufxk5cVhzkzai3tyABwJh53zxn9tmUYJcJxijG'
+);
 
 const query = gql`
   {

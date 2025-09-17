@@ -1,5 +1,5 @@
 const axios = require('axios');
-const sdk = require('@defillama/sdk4');
+const sdk = require('@defillama/sdk');
 
 const stUSDT = 'TThzxNRLrW2Brp9DcTQU8i4Wd9udCWEdZ3';
 const stUSDTEthereum = '0x25ec98773d7b4ced4cafab96a2a1c0945f145e10';

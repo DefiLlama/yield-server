@@ -2,7 +2,6 @@ const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 const queries = require('./queries');
 const cellarAbi = require('./cellar-v2.json');
-const { chain } = require('./config');
 const utils = require('../utils');
 const { getApy, getApy7d } = require('./apy');
 
@@ -14,12 +13,12 @@ const getPositionAssets = cellarAbi.find(
 );
 
 // Call getPositionAssets to get all the credit position's underlying assets
-async function getUnderlyingTokens(cellarAddress) {
+async function getUnderlyingTokens(cellarAddress, cellarChain) {
   const assets = (
     await call({
       target: cellarAddress,
       abi: getPositionAssets,
-      chain,
+      chain: cellarChain,
     })
   ).output;
 
@@ -27,12 +26,12 @@ async function getUnderlyingTokens(cellarAddress) {
   return [...new Set(assets)];
 }
 
-async function getHoldingPosition(cellarAddress) {
+async function getHoldingPosition(cellarAddress, cellarChain) {
   const asset = (
     await call({
       target: cellarAddress,
       abi: abiAsset,
-      chain,
+      chain: cellarChain,
     })
   ).output;
 

@@ -1,6 +1,6 @@
 const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
-const sdk = require('@defillama/sdk3');
+const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const { aTokenAbi } = require('../aave-v3/abi');
@@ -9,7 +9,42 @@ const poolAbi = require('../aave-v3/poolAbi');
 const SECONDS_PER_YEAR = 31536000;
 
 const chainUrlParam = {
-  zksync_era: 'proto_zksync_era_v3',
+  linea: ['proto_linea_v3'],
+  ethereum: [
+    'proto_mainnet_lrt_v3',
+    'proto_mainnet_btc_v3',
+    'proto_mainnet_rwa_v3',
+  ],
+  era: ['proto_zksync_era_v3'],
+  blast: ['proto_blast_v3'],
+  manta: ['proto_manta_v3'],
+  xlayer: ['proto_layerx_v3'],
+  base: ['proto_base_v3'],
+};
+
+const mainnnet_pools = {
+  '0x3bc3d34c32cc98bf098d832364df8a222bbab4c0': 'proto_mainnet_lrt_v3',
+  '0xcd2b31071119d7ea449a9d211ac8ebf7ee97f987': 'proto_mainnet_btc_v3',
+  '0xd3a4da66ec15a001466f324fa08037f3272bdbe8': 'proto_mainnet_rwa_v3',
+};
+const oraclePriceABI = {
+  inputs: [
+    {
+      internalType: 'address',
+      name: 'asset',
+      type: 'address',
+    },
+  ],
+  name: 'getAssetPrice',
+  outputs: [
+    {
+      internalType: 'uint256',
+      name: '',
+      type: 'uint256',
+    },
+  ],
+  stateMutability: 'view',
+  type: 'function',
 };
 
 const getPrices = async (addresses) => {
@@ -21,11 +56,34 @@ const getPrices = async (addresses) => {
     )
   ).body.coins;
 
+  const zeroPrice = (
+    await sdk.api.abi.call({
+      target: '0x1cc993f2C8b6FbC43a9bafd2A44398E739733385',
+      abi: oraclePriceABI,
+      params: ['0x3db28e471fa398bf2527135a1c559665941ee7a3'],
+      chain: 'ethereum',
+    })
+  ).output;
+
   const earlyZero = {
     'era:0x9793eac2fecef55248efa039bec78e82ac01cb2f': {
       decimals: 18,
       symbol: 'earlyZERO',
-      price: 0.000003,
+      price: Number(zeroPrice) / 1e8,
+      timestamp: Date.now(),
+      confidence: 0.99,
+    },
+    'linea:0x40a59a3f3b16d9e74c811d24d8b7969664cfe180': {
+      decimals: 18,
+      symbol: 'earlyZERO',
+      price: Number(zeroPrice) / 1e8,
+      timestamp: Date.now(),
+      confidence: 0.99,
+    },
+    'ethereum:0x3db28e471fa398bf2527135a1c559665941ee7a3': {
+      decimals: 18,
+      symbol: 'earlyZERO',
+      price: Number(zeroPrice) / 1e8,
       timestamp: Date.now(),
       confidence: 0.99,
     },
@@ -52,8 +110,20 @@ const getPrices = async (addresses) => {
   return { pricesByAddress, pricesBySymbol };
 };
 
+const baseUrl =
+  'https://api.goldsky.com/api/public/project_clsk1wzatdsls01wchl2e4n0y/subgraphs/';
 const API_URLS = {
-  era: 'https://api.studio.thegraph.com/query/49970/zerolend/version/latest',
+  ethereum: [
+    baseUrl + 'zerolend-mainnet-lrt/1.0.0/gn',
+    baseUrl + 'zerolend-mainnet-btc/1.0.0/gn',
+    baseUrl + 'zerolend-mainnet-rwa/1.0.1/gn',
+  ],
+  linea: [baseUrl + 'zerolend-linea/1.0.0/gn'],
+  era: [baseUrl + 'zerolend-zksync/1.0.0/gn'],
+  manta: [baseUrl + 'zerolend-m/1.0.0/gn'],
+  blast: [baseUrl + 'zerolend-blast/1.0.1/gn'],
+  xlayer: [baseUrl + 'zerolend-xlayer/1.0.0/gn'],
+  base: [baseUrl + 'zerolend-base-mainnet/1.0.0/gn'],
 };
 
 const query = gql`
@@ -61,6 +131,9 @@ const query = gql`
     reserves(where: { name_not: "" }) {
       name
       borrowingEnabled
+      pool {
+        pool
+      }
       aToken {
         id
         rewards {
@@ -94,10 +167,12 @@ const query = gql`
 
 const apy = async () => {
   let data = await Promise.all(
-    Object.entries(API_URLS).map(async ([chain, url]) => [
-      chain,
-      (await request(url, query)).reserves,
-    ])
+    Object.entries(API_URLS).flatMap(([chain, urls]) => {
+      return urls.map(async (url) => [
+        chain,
+        (await request(url, query)).reserves,
+      ]);
+    })
   );
 
   data = data.map(([chain, reserves]) => [
@@ -144,9 +219,19 @@ const apy = async () => {
     )
   );
 
-  const { pricesByAddress, pricesBySymbol } = await getPrices(
-    underlyingTokens.flat().concat(rewardTokens.flat(Infinity))
-  );
+  const allTokens = underlyingTokens.flat().concat(rewardTokens.flat(Infinity));
+  const pricesByAddress = {};
+  const pricesBySymbol = {};
+
+  for (let i = 0; i < allTokens.length; i += 50) {
+    const chunk = allTokens.slice(i, i + 50);
+    const {
+      pricesByAddress: chunkPricesByAddress,
+      pricesBySymbol: chunkPricesBySymbol,
+    } = await getPrices(chunk);
+    Object.assign(pricesByAddress, chunkPricesByAddress);
+    Object.assign(pricesBySymbol, chunkPricesBySymbol);
+  }
 
   const pools = data.map(([chain, markets], i) => {
     const chainPools = markets.map((pool, idx) => {
@@ -168,7 +253,8 @@ const apy = async () => {
           (rew.emissionsPerSecond / 10 ** rew.rewardTokenDecimals) *
             SECONDS_PER_YEAR *
             (pricesByAddress[rew.rewardToken] ||
-              pricesBySymbol[rew.rewardTokenSymbol]),
+              pricesBySymbol[rew.rewardTokenSymbol] ||
+              0),
         0
       );
 
@@ -179,7 +265,8 @@ const apy = async () => {
           (rew.emissionsPerSecond / 10 ** rew.rewardTokenDecimals) *
             SECONDS_PER_YEAR *
             (pricesByAddress[rew.rewardToken] ||
-              pricesBySymbol[rew.rewardTokenSymbol]),
+              pricesBySymbol[rew.rewardTokenSymbol] ||
+              0),
         0
       );
       let totalBorrowUsd = totalSupplyUsd - tvlUsd;
@@ -190,7 +277,7 @@ const apy = async () => {
 
       return {
         pool: `${pool.aToken.id}-${chain}`.toLowerCase(),
-        chain: utils.formatChain('zksync_era'),
+        chain: utils.formatChain(chain),
         project: 'zerolend',
         symbol: pool.symbol,
         tvlUsd,
@@ -212,7 +299,13 @@ const apy = async () => {
             ? (rewardPerYearBorrow / totalBorrowUsd) * 100
             : null,
         ltv: Number(pool.baseLTVasCollateral) / 10000,
-        url: `https://app.zerolend.xyz/reserve-overview/?underlyingAsset=${pool.aToken.underlyingAssetAddress}&marketName=${chainUrlParam[chain]}&utm_source=defillama&utm_medium=listing&utm_campaign=external`,
+        url: `https://app.zerolend.xyz/reserve-overview/?underlyingAsset=${
+          pool.aToken.underlyingAssetAddress
+        }&marketName=${
+          chain === 'ethereum' 
+            ? mainnnet_pools[pool.pool.pool]
+            : chainUrlParam[chain][0]
+        }&utm_source=defillama&utm_medium=listing&utm_campaign=external`,
         borrowable: pool.borrowingEnabled,
       };
     });
@@ -220,11 +313,7 @@ const apy = async () => {
     return chainPools;
   });
 
-  console.log(pools);
   return pools.flat().filter((p) => !!p.tvlUsd);
 };
 
-module.exports = {
-  timetravel: false,
-  apy: apy,
-};
+module.exports = { timetravel: false, apy };

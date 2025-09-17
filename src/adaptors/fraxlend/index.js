@@ -248,6 +248,7 @@ const main = async () => {
       abi: 'erc20:symbol',
       chain: 'ethereum',
       requery: false,
+      permitFailure: true,
     })
   ).output.map((x) => (x.input.target === MKR ? 'MKR' : x.output));
 
@@ -284,7 +285,7 @@ const main = async () => {
         .div(BIG_10.pow(18))
         .multipliedBy(100);
 
-      const apyRewardBorrow = apyBaseBorrow
+      const apyBase = apyBaseBorrow
         .multipliedBy(new BigNumber(totalBorrows[index].amount))
         .div(new BigNumber(totalAssets[index].amount));
       return {
@@ -292,11 +293,10 @@ const main = async () => {
         project: 'fraxlend',
         symbol: underlyingCollaterals[index],
         chain: 'ethereum',
-        apyBase: apyRewardBorrow.toNumber(),
+        apyBase: apyBase.toNumber(),
         tvlUsd: tvlUsd.toNumber(),
         // borrow fields
         apyBaseBorrow: apyBaseBorrow.toNumber(),
-        apyRewardBorrow: apyRewardBorrow.toNumber(),
         totalSupplyUsd: tvlUsd.toNumber(),
         totalBorrowUsd: totalBorrowUsd.toNumber(),
         debtCeilingUsd: debtCeilingUsd.toNumber(),
