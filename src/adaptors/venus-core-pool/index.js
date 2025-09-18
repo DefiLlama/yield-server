@@ -130,7 +130,7 @@ const getPrices = async (chain, addresses) => {
 
 function calculateApy(rate, price = 1, tvl = 1) {
   // supply rate per block * number of blocks per year
-  const BLOCK_TIME = 3;
+  const BLOCK_TIME = 0.75; // https://x.com/BNBCHAIN/status/1939374483833335935
   const YEARLY_BLOCKS = (365 * 24 * 60 * 60) / BLOCK_TIME;
   const apy = (((rate / 1e18) * YEARLY_BLOCKS * price) / tvl) * 100;
   return apy;
