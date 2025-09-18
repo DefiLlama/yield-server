@@ -1,7 +1,6 @@
 const utils = require('../utils');
 const { ethers } = require("ethers");
 const sdk = require('@defillama/sdk');
-const axios = require('axios');
 
 // Constants
 const DECIMALS = {
@@ -111,43 +110,27 @@ const fetchLatestAPY = async (tokenSymbol) => {
 };
 
 /**
- * Get token price from DefiLlama coins API
- * @param {string} tokenAddress - Token contract address
- * @param {string} chain - Blockchain name
- * @returns {Promise<number>} Token price in USD
- */
-const getTokenPrice = async (tokenAddress, chain) => {
-  try {
-    const url = `https://coins.llama.fi/prices/current/${chain}:${tokenAddress}`;
-    const response = await axios.get(url);
-    const priceKey = `${chain}:${tokenAddress}`;
-    return response.data.coins[priceKey]?.price || 0;
-  } catch (error) {
-    console.error(`Error getting price for ${tokenAddress} on ${chain}:`, error);
-    return 0;
-  }
-};
-
-/**
  * Get TVL for a specific token on a specific chain
  * @param {string} tokenAddress - Token contract address
  * @param {string} chain - Blockchain name
+ * @param {number} decimals - Token decimals
  * @returns {Promise<number>} TVL value in USD
  */
-const getTVL = async (tokenAddress, chain) => {
+const getTVL = async (tokenAddress, chain, decimals = DECIMALS.yUSD) => {
   try {
     // Get total supply and token price in parallel
-    const [supplyResponse, tokenPrice] = await Promise.all([
+    const [supplyResponse, priceData] = await Promise.all([
       sdk.api.abi.call({
         chain: chain,
         abi: ABIS.totalSupply,
         target: tokenAddress
       }),
-      getTokenPrice(tokenAddress, chain)
+      utils.getPrices([tokenAddress], chain)
     ]);
 
-    const totalSupply = supplyResponse.output / 10 ** DECIMALS.yUSD;
-    const tvlUsd = totalSupply * tokenPrice;
+    const totalSupply = supplyResponse.output / (10 ** decimals);
+    const tokenPrice = priceData.pricesByAddress[tokenAddress.toLowerCase()] || 0;
+    const tvlUsd = totalSupply * tokenPrice;  
     return parseFloat(tvlUsd.toFixed(2));
   } catch (error) {
     console.error(`Error getting TVL for ${tokenAddress} on ${chain}:`, error);
