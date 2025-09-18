@@ -240,6 +240,10 @@
    
 
      for (const [chain, url] of Object.entries(pools_v2_endpoints)) {
+      if (!url) {
+        console.log(`Skipping v2 data for ${chain} - no URL configured`);
+        continue;
+      }
       try {
         console.log(`Fetching v2 data for ${chain}...`);
         const chainData = await topLvl(chain, url, query, timestamp);
@@ -250,6 +254,10 @@
     } 
 
      for (const [chain, url] of Object.entries(pools_v1_endpoints)) {
+      if (!url) {
+        console.log(`Skipping v1 data for ${chain} - no URL configured`);
+        continue;
+      }
       try {
         console.log(`Fetching v1 data for ${chain}...`);
         const chainData = await topLvl(chain, url, query, timestamp);
