@@ -24,7 +24,7 @@ const CHAIN_CONFIG = {
     plasma: {
         chainId: 9745
     },
-    avalanche: {
+    avax: {
         chainId: 43114
     }
 };
