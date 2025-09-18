@@ -1,4 +1,8 @@
 const utils = require('../utils');
+const {
+  utils: { formatEther, formatUnits },
+} = require('ethers');
+
 // Note: we use GammaSwap internal API per-vault endpoint for live fields needed for APY
 
 const GS_API_URL = 'https://api.gammaswap.com/yield-tokens';
@@ -46,13 +50,16 @@ function calculateLatestStrategyAPY(params) {
     skipEventTypes = ["REBALANCE"]
   } = params; 
 
+  const TOLERANCE = 3600; // 1 hour
+  const MAX_WINDOW = SECONDS_IN_24_HRS + TOLERANCE
+
   if (periods.length === 0) {
     return 0;
   }
 
   const validPeriods = periods.filter(p => 
     p.nav && 
-    p.navUpdateTime && 
+    p.startTime && 
     !skipEventTypes.includes(p.lastEventType || "")
   );
 
@@ -64,20 +71,20 @@ function calculateLatestStrategyAPY(params) {
   let totalFees1 = BigInt(0);
   
   let periodStart = validPeriods[0];
-  let windowStartTime = parseInt(periodStart.navUpdateTime);
+  let windowStartTime = parseInt(periodStart.startTime);
   
   for (let i = 0; i < validPeriods.length; i++) {
     const candidate = validPeriods[i];
-    const candidateTime = parseInt(candidate.navUpdateTime);
+    const candidateTime = parseInt(candidate.startTime);
     
-    if ((windowEndTime - candidateTime) >= SECONDS_IN_24_HRS) {
+    if ((windowEndTime - candidateTime) >= MAX_WINDOW) {
       periodStart = candidate;
       windowStartTime = candidateTime;
       break;
     }
     
-    totalFees0 += BigInt(candidate.totalFees0 || "0");
-    totalFees1 += BigInt(candidate.totalFees1 || "0");
+    totalFees0 += BigInt(candidate.totalFees0);
+    totalFees1 += BigInt(candidate.totalFees1);
     
     periodStart = candidate;
     windowStartTime = candidateTime;
@@ -112,17 +119,22 @@ function calculate24hAveragedAPY(
   navAtWindowEnd,
   isReversed
 ) {
-  const orderedAccumulatedFees0 = isReversed ? totalFees1 : totalFees0;
-  const orderedAccumulatedFees1 = isReversed ? totalFees0 : totalFees1;
+  // check for reversal since fees are stored depending on token order from subgraph
+  const orderedAccumulatedTotalFees0 = isReversed ? totalFees1 : totalFees0;
+  const orderedAccumulatedTotalFees1 = isReversed ? totalFees0 : totalFees1;
+
+  const orderedAccumulatedTotalFees0Num = Number(formatUnits(orderedAccumulatedTotalFees0, token0Decimals));
+  const orderedAccumulatedTotalFees1Num = Number(formatUnits(orderedAccumulatedTotalFees1, token1Decimals));
+
+  // converting from portioned fees in each token to all fees converted to each token
+  const feesInToken0Num = orderedAccumulatedTotalFees0Num + orderedAccumulatedTotalFees1Num * Number(currentPriceToken0);
+  const feesInToken1Num = orderedAccumulatedTotalFees1Num + orderedAccumulatedTotalFees0Num * Number(currentPriceToken1);
 
   const windowSeconds = Math.max(actualWindowSeconds, 1);
   const windowDays = Math.max(windowSeconds / SECONDS_IN_24_HRS, 1e-6);
-
-  const feesInToken0Num = Number(orderedAccumulatedFees0) / Math.pow(10, token0Decimals);
-  const feesInToken1Num = Number(orderedAccumulatedFees1) / Math.pow(10, token1Decimals);
   
   const assetTokenDecimals = isAssetToken0 ? token0Decimals : token1Decimals;
-  const navNum = Number(BigInt(navAtWindowEnd)) / Math.pow(10, assetTokenDecimals);
+  const navNum = Number(formatUnits(navAtWindowEnd, assetTokenDecimals));
   
   if (navNum <= 0) {
     return 0;
@@ -179,16 +191,16 @@ async function fetchPeriodStrategies(chainConfig, vaultAddress, latestBlockTimes
     periodStrategies(
       where: {
         vault: "${vaultAddress.toLowerCase()}",
-        navUpdateTime_gte: "${lookbackTime}"
+        startTime_gte: "${lookbackTime}"
       }
-      orderBy: navUpdateTime
+      orderBy: startTime
       orderDirection: desc
       first: ${limitCount}
     ) {
       id
       periodNumber
       nav
-      navUpdateTime
+      startTime
       totalFees0
       totalFees1
       lastEventType
@@ -206,12 +218,12 @@ async function fetchPeriodStrategies(chainConfig, vaultAddress, latestBlockTimes
   const result = [];
 
   for (const strategy of periodStrategies) {
-    if (strategy.nav && strategy.navUpdateTime) {
+    if (strategy.nav && strategy.startTime) {
       result.push({
         id: strategy.id,
         periodNumber: strategy.periodNumber,
         nav: strategy.nav,
-        navUpdateTime: strategy.navUpdateTime,
+        startTime: strategy.startTime,
         totalFees0: strategy.totalFees0 || "0",
         totalFees1: strategy.totalFees1 || "0",
         lastEventType: strategy.lastEventType,
@@ -293,9 +305,6 @@ const apy = async () => {
       const vaultsQuery = `{
         vaults(first: 1000) {
           id
-          token0 { id decimals symbol }
-          token1 { id decimals symbol }
-          totalSupply
         }
       }`;
 
@@ -313,8 +322,8 @@ const apy = async () => {
           if (!yt) continue;
 
           // gammavault onchain data
-          const totalFees0Raw = yt.currentTotalFeesInToken0 || '0';
-          const totalFees1Raw = yt.currentTotalFeesInToken1 || '0';
+          const totalFees0Raw = yt.currentTotalFees0 || '0';
+          const totalFees1Raw = yt.currentTotalFees1 || '0';
           const nav = yt.currentNav || '0';
           const isAssetToken0 = !!yt.isAssetToken0;
           const isReversed = !!yt.isReversed;
@@ -329,14 +338,14 @@ const apy = async () => {
           const apyValue = await getStrategyAPY(
             chainConfig,
             vaultRow.id,
-            BigInt(totalFees0Raw || "0"),
-            BigInt(totalFees1Raw || "0"),
-            BigInt(nav || "0"),
+            BigInt(totalFees0Raw) || 0n,
+            BigInt(totalFees1Raw) || 0n,
+            BigInt(nav) || 0n,
             isAssetToken0,
             price0,
             price1,
-            Number(token0Meta?.decimals || 18),
-            Number(token1Meta?.decimals || 18),
+            Number(token0Meta?.decimals),
+            Number(token1Meta?.decimals),
             latestBlockTimestamp,
             isReversed
           );
