@@ -20,6 +20,12 @@ const CHAIN_CONFIG = {
     },
     ink: {
         chainId: 57073
+    },
+    plasma: {
+        chainId: 9745
+    },
+    avalanche: {
+        chainId: 43114
     }
 };
 
