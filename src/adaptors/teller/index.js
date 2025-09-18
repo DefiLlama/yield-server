@@ -19,7 +19,7 @@
     base: "https://subgraph.satsuma-prod.com/daba7a4f162f/teller--16564/tellerv2-poolsv2-base/api",
     arbitrum: "https://subgraph.satsuma-prod.com/daba7a4f162f/teller--16564/tellerv2-poolsv2-arbitrum/api",
     polygon: "https://subgraph.satsuma-prod.com/daba7a4f162f/teller--16564/tellerv2-poolsv2-polygon/api",
-    katana: "https://api.goldsky.com/api/public/project_cme01oezy1dwd01um5nile55y/subgraphs/teller-poolsv2-katana/0.4.21.8/gn"
+   // katana: "https://api.goldsky.com/api/public/project_cme01oezy1dwd01um5nile55y/subgraphs/teller-poolsv2-katana/0.4.21.8/gn"
  
   };
 
