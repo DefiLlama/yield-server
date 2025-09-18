@@ -5,7 +5,11 @@ const sdk = require('@defillama/sdk');
 // Constants
 const DECIMALS = {
   yUSD: 18,
-  vyUSD: 18
+  vyUSD: 18,
+  yETH: 18,
+  vyETH: 18,
+  yBTC: 18,
+  vyBTC: 18,
 };
 
 // Contract addresses - Multi-chain configuration
@@ -19,6 +23,7 @@ const YUSD_CONTRACTS = {
   katana: "0x4772D2e014F9fC3a820C444e3313968e9a5C8121",
   bsc: "0x4772D2e014F9fC3a820C444e3313968e9a5C8121",
   avax: "0x4772D2e014F9fC3a820C444e3313968e9a5C8121",
+  tac: "0x4772D2e014F9fC3a820C444e3313968e9a5C8121",
 };
 
 const VYUSD_CONTRACTS = {
@@ -31,6 +36,7 @@ const VYUSD_CONTRACTS = {
   katana: "0xF4F447E6AFa04c9D11Ef0e2fC0d7f19C24Ee55de",
   bsc: "0xF4F447E6AFa04c9D11Ef0e2fC0d7f19C24Ee55de",
   avax: "0xF4F447E6AFa04c9D11Ef0e2fC0d7f19C24Ee55de",
+  tac: "0xF4F447E6AFa04c9D11Ef0e2fC0d7f19C24Ee55de",
 };
 
 const YETH_CONTRACTS = {
@@ -107,16 +113,25 @@ const fetchLatestAPY = async (tokenSymbol) => {
  * Get TVL for a specific token on a specific chain
  * @param {string} tokenAddress - Token contract address
  * @param {string} chain - Blockchain name
- * @returns {Promise<number>} TVL value
+ * @param {number} decimals - Token decimals
+ * @returns {Promise<number>} TVL value in USD
  */
-const getTVL = async (tokenAddress, chain) => {
+const getTVL = async (tokenAddress, chain, decimals = DECIMALS.yUSD) => {
   try {
-    const response = await sdk.api.abi.call({
-      chain: chain,
-      abi: ABIS.totalSupply,
-      target: tokenAddress
-    });
-    return parseFloat((response.output / 10 ** DECIMALS.yUSD).toFixed(2));
+    // Get total supply and token price in parallel
+    const [supplyResponse, priceData] = await Promise.all([
+      sdk.api.abi.call({
+        chain: chain,
+        abi: ABIS.totalSupply,
+        target: tokenAddress
+      }),
+      utils.getPrices([tokenAddress], chain)
+    ]);
+
+    const totalSupply = supplyResponse.output / (10 ** decimals);
+    const tokenPrice = priceData.pricesByAddress[tokenAddress.toLowerCase()] || 0;
+    const tvlUsd = totalSupply * tokenPrice;  
+    return parseFloat(tvlUsd.toFixed(2));
   } catch (error) {
     console.error(`Error getting TVL for ${tokenAddress} on ${chain}:`, error);
     return 0;
