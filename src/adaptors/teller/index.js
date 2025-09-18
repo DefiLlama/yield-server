@@ -19,7 +19,7 @@
     base: "https://subgraph.satsuma-prod.com/daba7a4f162f/teller--16564/tellerv2-poolsv2-base/api",
     arbitrum: "https://subgraph.satsuma-prod.com/daba7a4f162f/teller--16564/tellerv2-poolsv2-arbitrum/api",
     polygon: "https://subgraph.satsuma-prod.com/daba7a4f162f/teller--16564/tellerv2-poolsv2-polygon/api",
-   //  katana: "https://api.goldsky.com/api/public/project_cme01oezy1dwd01um5nile55y/subgraphs/teller-poolsv2-katana/0.4.21.8/gn"
+    katana: "https://api.goldsky.com/api/public/project_cme01oezy1dwd01um5nile55y/subgraphs/teller-poolsv2-katana/0.4.21.8/gn"
  
   };
 
@@ -168,7 +168,7 @@
         const interestRateUpperBound = Number(pool.interest_rate_upper_bound) || 1500;
 
         const apyBase = calculateActiveLenderYield(poolBorrowedPercent, interestRateLowerBound, interestRateUpperBound);
-        const ltv = 100.0 / (Number(pool.collateral_ratio) / 100.0);
+        const ltv = 1.0 / (Number(pool.collateral_ratio) / 100.0);
         const borrowApy = calculateActiveBorrowerYield(poolBorrowedPercent, interestRateLowerBound, interestRateUpperBound);
 
         const principalSymbol = tokenInfo[pool.principal_token_address.toLowerCase()]?.symbol || 'UNKNOWN';
