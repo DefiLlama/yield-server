@@ -83,7 +83,6 @@ const apy = async() => {
     const pools = await Promise.all(
         chainsData.flatMap(({ chain, data }) =>
             data
-            .filter(vault => !vault.name.toLowerCase().includes('pilot')) // filter out pilot vaults
             .filter(vault => publicVaults.get(chain).includes(vault.address.toLowerCase()))
             .map(vault => buildPool(vault))
         )
