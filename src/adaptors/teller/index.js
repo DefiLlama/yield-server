@@ -168,7 +168,7 @@
         const interestRateUpperBound = Number(pool.interest_rate_upper_bound) || 1500;
 
         const apyBase = calculateActiveLenderYield(poolBorrowedPercent, interestRateLowerBound, interestRateUpperBound);
-        const ltv = 1.0 / (Number(pool.collateral_ratio) / 100.0);
+        const ltv = 100.0 / (Number(pool.collateral_ratio) / 100.0);
         const borrowApy = calculateActiveBorrowerYield(poolBorrowedPercent, interestRateLowerBound, interestRateUpperBound);
 
         const principalSymbol = tokenInfo[pool.principal_token_address.toLowerCase()]?.symbol || 'UNKNOWN';
@@ -196,6 +196,24 @@
 
     // For each enriched pool, create separate lending and collateral pool objects
     return enrichedData.flatMap((p) => {
+      // Skip pools with unknown tokens or invalid data
+      if (p.principalSymbol === 'UNKNOWN' || p.collateralSymbol === 'UNKNOWN') {
+        console.log(`Skipping pool ${p.group_pool_address} due to unknown tokens`);
+        return [];
+      }
+
+      // Skip pools with invalid LTV (too small or too large)
+      if (p.ltv < 0.001 || p.ltv > 1) {
+        console.log(`Skipping pool ${p.group_pool_address} due to invalid LTV: ${p.ltv}`);
+        return [];
+      }
+
+      // Skip pools with very low TVL
+      if (p.totalSupplyUsd < 1000 || p.totalCollateralUsd < 1000) {
+        console.log(`Skipping pool ${p.group_pool_address} due to low TVL`);
+        return [];
+      }
+
       const underlyingTokens = [p.principal_token_address, p.collateral_token_address];
       const chain = chainString === 'ethereum' ? 'mainnet' : chainString;
       const url = `https://app.teller.org/${chainString}/lend/pool/${p.group_pool_address}`;
