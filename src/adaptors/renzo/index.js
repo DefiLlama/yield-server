@@ -65,6 +65,9 @@ const apy = async () => {
   const rateStart = rate30d.output;
   const rateEnd = rateNow.output;
   const rateDelta = rateNow.output - rate30d.output;
+  if (rateDelta === 0) {
+    throw new Error("rateDelta is 0 -> apy30d would be 0, skipping");
+  }
   const apy30d = (1 + rateDelta / rateStart) ** (DAYS_PER_YEAR / rateChangePeriodDays) - 1
   
   // Fetch ezETH price

@@ -119,7 +119,7 @@ const getApy = async () => {
           return {
             pool: `${reserveData[i].aTokenAddress}-${chain}`.toLowerCase(),
             symbol: symbols[i],
-            project: 'lendle-lend',
+            project: 'lendle-pooled-markets',
             chain,
             tvlUsd,
             apyBase,

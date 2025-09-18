@@ -40,6 +40,7 @@ const getATokenData = async () => {
   );
   const { aCRV, asdCRV, aladdinCVX, arUSD, fxSave, asdPENDLE } =
     aTokenData.data;
+
   const newObj = [
     {
       pool: `${concentratorAcrv}-concentrator`,
@@ -80,7 +81,6 @@ const getATokenData = async () => {
       symbol: 'fxSave',
       tvlUsd: parseInt(fxSave.tvl, 10),
       apy: parseFloat(fxSave.apy),
-      apyBase: parseFloat(fxSave.baseAPR),
     },
     {
       pool: `${asdPENDLEAddress}-concentrator`,

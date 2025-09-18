@@ -1,6 +1,6 @@
 const utils = require('../utils');
 
-const API_ENDPOINT = 'https://api.stake-dao.org/api/';
+const API_ENDPOINT = 'https://api.stakedao.org/api/';
 const SDT_ADDRESS = '0x73968b9a57c6e53d41345fd57a6e6ae27d6cdb2f';
 
 const CHAINS = {
@@ -16,7 +16,6 @@ const CHAINS = {
 const poolsFunction = async () => {
   const resp = await Promise.all([
     // Strategies v1
-    utils.getData(`${API_ENDPOINT}strategies/curve`),
     utils.getData(`${API_ENDPOINT}strategies/pendle`),
     utils.getData(`${API_ENDPOINT}strategies/balancer`),
     utils.getData(`${API_ENDPOINT}strategies/yearn`),
@@ -26,18 +25,16 @@ const poolsFunction = async () => {
     utils.getData(`${API_ENDPOINT}lockers`),
   ]);
 
-  const curveStrategies = resp[0].deployed.filter((s) => s.chainId !== 42161);
-  const pendleStrategies = resp[1].deployed;
-  const balancerStrategies = resp[2].deployed;
-  const yearnStrategies = resp[3].deployed;
+  const pendleStrategies = resp[0].deployed;
+  const balancerStrategies = resp[1].deployed;
+  const yearnStrategies = resp[2].deployed;
 
-  const v2CurveStrategies = resp[4];
+  const v2CurveStrategies = resp[3];
 
-  const strats = curveStrategies
+  const strats = v2CurveStrategies
     .concat(pendleStrategies)
     .concat(balancerStrategies)
     .concat(yearnStrategies)
-    .concat(v2CurveStrategies)
     .reduce((acc, strat) => {
       const rewardTokens = strat?.rewards
         ?.filter((t) => {
@@ -82,7 +79,7 @@ const poolsFunction = async () => {
       ]);
     }, []);
 
-  const lockers = resp[5].parsed
+  const lockers = resp[4].parsed
     .map((locker) => {
       const rewardTokens = locker?.rewards
         ?.filter((t) => t.apr > 0)
@@ -114,5 +111,5 @@ const poolsFunction = async () => {
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
-  url: 'https://stake-dao.org',
+  url: 'https://stakedao.org',
 };

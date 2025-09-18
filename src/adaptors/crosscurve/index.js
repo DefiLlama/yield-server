@@ -8,6 +8,12 @@ const chainIdMap = {
   42161: 'Arbitrum',
 };
 
+const chainNameToKey = {
+  Sonic: 'sonic',
+  Fantom: 'fantom',
+  Arbitrum: 'arbitrum',
+};
+
 const getGauges = async () => {
   try {
     const response = await fetch(
@@ -31,6 +37,25 @@ const getGauges = async () => {
   } catch (error) {
     console.error(error);
     return [];
+  }
+};
+
+const getConfig = async () => {
+  try {
+    const response = await fetch('https://api.crosscurve.fi/networks', {
+      timeout: 10000,
+    });
+
+    if (!response.ok) {
+      throw new Error(response.status);
+    }
+
+    const configData = await response.json();
+
+    return configData;
+  } catch (error) {
+    console.error(error);
+    return {};
   }
 };
 
@@ -75,6 +100,8 @@ const resolveMerklPool = (merklData, address) => {
 // Main Function
 const main = async () => {
   try {
+    const config = await getConfig();
+
     const gauges = await getGauges();
     const addresses = Object.keys(gauges).map((address) =>
       address.toLowerCase()
@@ -147,6 +174,19 @@ const main = async () => {
           )
           .toNumber();
 
+        const chain = curvePool?.chain || chainIdMap[merklPool?.chainId];
+        const chainKey = chainNameToKey[chain];
+        const pools = config[chainKey]?.pools || [];
+        const tokens = config[chainKey]?.tokens || [];
+        const pool = pools.find(
+          (p) => p.address.toLowerCase() === address.toLowerCase()
+        );
+        const lp = pool
+          ? tokens.find(
+              (t) => t.address.toLowerCase() === pool.lp.address.toLowerCase()
+            )
+          : null;
+
         return {
           pool: address,
           chain: curvePool?.chain || chainIdMap[merklPool?.chainId],
@@ -161,6 +201,7 @@ const main = async () => {
           underlyingTokens: Array.from(
             new Set(underlyingTokens.map((address) => address.toLowerCase()))
           ),
+          poolMeta: lp?.symbol || pool?.label,
         };
       })
     );

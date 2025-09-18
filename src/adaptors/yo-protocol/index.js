@@ -7,6 +7,7 @@ const symboToNameMap = {
   yoETH: 'Yield Optimizer ETH',
   yoBTC: 'Yield Optimizer BTC',
   yoUSD: 'Yield Optimizer USD',
+  yoEUR: 'Yield Optimizer EUR',
 };
 
 const apy = async () => {
@@ -50,8 +51,9 @@ const apy = async () => {
     const pool = {
       pool: vault.contracts.vaultAddress,
       chain: formatChain(vault.chain.name),
+      poolMeta: vault.name,
       project: PROJECT_NAME,
-      symbol: vault.name,
+      symbol: vault.asset.symbol,
       tvlUsd: tvlUsd,
       apyBase: Number(vault.yield['1d']),
       underlyingTokens: [vault.asset.address],

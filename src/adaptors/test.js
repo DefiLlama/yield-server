@@ -12,6 +12,16 @@ const poolsUrl = global.poolsUrl;
 const uniquePoolIdentifiersDB = global.uniquePoolIdentifiersDB;
 const protocols = global.protocolsSlug;
 
+// fast mode: only ensure adapter main function executed
+if (process.env.npm_config_fast) {
+  describe(`Running ${process.env.npm_config_adapter} Test (fast)`, () => {
+    test('Adapter executed and returned an array', () => {
+      expect(Array.isArray(apy)).toBe(true);
+    });
+  });
+  // skip rest of the checks in fast mode
+} else {
+
 describe(`Running ${process.env.npm_config_adapter} Test`, () => {
   describe('Check for allowed field names', () => {
     const optionalFields = [
@@ -185,3 +195,4 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
     });
   });
 });
+}

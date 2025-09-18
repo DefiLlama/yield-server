@@ -7,6 +7,7 @@ const {
 } = require('./api');
 const sdk = require('@defillama/sdk');
 const AaveV3Pool = require('../aave-v3/poolAbi');
+const { apy: veryLiquidVaultsApy } = require('./very-liquid-vaults');
 
 const AaveProtocolDataProvider = {
   ethereum: '0x41393e5e337606dc3821075Af65AeE84D7688CBD',
@@ -40,7 +41,7 @@ async function apy() /*: Promise<Pool[]>*/ {
     getMarketsLiquidity(),
   ]);
 
-  return Promise.all(
+  const pools = await Promise.all(
     markets.map(async (market) => {
       const tvl = await getTvl(market);
       const uppercaseChain = uppercaseFirst(market.chain);
@@ -80,6 +81,8 @@ async function apy() /*: Promise<Pool[]>*/ {
       };
     })
   );
+  const veryLiquidVaults = await veryLiquidVaultsApy();
+  return [...pools, ...veryLiquidVaults];
 }
 
 module.exports = {
