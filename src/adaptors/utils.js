@@ -50,6 +50,7 @@ exports.formatSymbol = (symbol) => {
 };
 
 exports.getData = async (url, query = null) => {
+  let res;
   if (query !== null) {
     res = await superagent.post(url).send(query);
   } else {
