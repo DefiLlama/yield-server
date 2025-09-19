@@ -3,33 +3,51 @@
   const utils = require('../utils');
 
   // Supported chains and their subgraph endpoints
-  const chains = {
-    ethereum:  "https://hasura-mainnet.nfteller.org/v1/graphql" //sdk.graph.modifyEndpoint('x6qJPkv7FaCWkfcjDWx12Z2NEfsvCCwuy87vQzk9zRh'),
+  const pools_v1_endpoints = {
+
+
+    ethereum:  "https://subgraph.satsuma-prod.com/daba7a4f162f/teller--16564/tellerv2-pools-mainnet/api" ,//sdk.graph.modifyEndpoint('x6qJPkv7FaCWkfcjDWx12Z2NEfsvCCwuy87vQzk9zRh'),
+  //   base: "https://subgraph.satsuma-prod.com/daba7a4f162f/teller--16564/tellerv2-pools-base/api",
+    arbitrum: "https://subgraph.satsuma-prod.com/daba7a4f162f/teller--16564/tellerv2-pools-arbitrum/api",
+    polygon: "https://subgraph.satsuma-prod.com/daba7a4f162f/teller--16564/tellerv2-pools-polygon/api",
+    
   };
+  const pools_v2_endpoints = {
+
+
+    ethereum:  "https://subgraph.satsuma-prod.com/daba7a4f162f/teller--16564/tellerv2-poolsv2-mainnet/api" ,//sdk.graph.modifyEndpoint('x6qJPkv7FaCWkfcjDWx12Z2NEfsvCCwuy87vQzk9zRh'),
+    base: "https://subgraph.satsuma-prod.com/daba7a4f162f/teller--16564/tellerv2-poolsv2-base/api",
+    arbitrum: "https://subgraph.satsuma-prod.com/daba7a4f162f/teller--16564/tellerv2-poolsv2-arbitrum/api",
+    polygon: "https://subgraph.satsuma-prod.com/daba7a4f162f/teller--16564/tellerv2-poolsv2-polygon/api",
+   // katana: "https://api.goldsky.com/api/public/project_cme01oezy1dwd01um5nile55y/subgraphs/teller-poolsv2-katana/0.4.21.8/gn"
+ 
+  };
+
+
 
   // GraphQL query to get current pool metrics
   const query = gql`
-    query groupPoolMetrics($block: Block_height) {
-      group_pool_metric(limit: 1000) {
-        id
-        group_pool_address
-        principal_token_address
-        collateral_token_address
-        shares_token_address
-        market_id
-        total_principal_tokens_committed
-        total_principal_tokens_withdrawn
-        total_principal_tokens_borrowed
-        total_interest_collected 
-        token_difference_from_liquidations
-        total_principal_tokens_repaid
-        total_collateral_tokens_escrowed
-        total_collateral_withdrawn
-        interest_rate_upper_bound
-        interest_rate_lower_bound
-        liquidity_threshold_percent
-        collateral_ratio
-      }
+    query  {
+         groupPoolMetrics (first: 1000) {
+          id
+          group_pool_address
+          principal_token_address
+          collateral_token_address
+          market_id
+          total_principal_tokens_committed
+
+         total_principal_tokens_withdrawn
+           total_principal_tokens_borrowed
+          token_difference_from_liquidations
+            total_collateral_withdrawn
+          total_interest_collected
+          total_principal_tokens_repaid
+          total_collateral_tokens_escrowed
+          interest_rate_upper_bound
+          interest_rate_lower_bound
+          liquidity_threshold_percent
+          collateral_ratio
+        }
     }
   `;
 
@@ -38,12 +56,29 @@
     const tokens = {};
     for (const address of tokenAddresses) {
       try {
-        const tokenInfo = await sdk.api.erc20.info(address, chainString);
+         
+
+         // Add timeout to prevent hanging
+                const timeoutPromise = new Promise((_, reject) =>
+                   setTimeout(() => reject(new Error('Token fetch timeout')), 1500 )
+               );
+       
+               const tokenInfoPromise = sdk.api.erc20.info(address, chainString);
+               const tokenInfo = await Promise.race([tokenInfoPromise, timeoutPromise]);
+
+
+
+      //  const tokenInfo = await sdk.api.erc20.info(address, chainString);
         tokens[address.toLowerCase()] = {
           symbol: tokenInfo.output.symbol,
           decimals: Number(tokenInfo.output.decimals) || 18,
         };
+
+         console.log(`Successfully fetched ${tokenInfo.output.symbol} for ${address}`);
+
+
       } catch (error) {
+          console.warn(`failure to fetch token info ${address}, ${chainString}`);
         tokens[address.toLowerCase()] = { symbol: 'UNKNOWN', decimals: 18 };
       }
     }
@@ -52,8 +87,16 @@
 
   const topLvl = async (chainString, url, query, timestamp) => {
     // Fetch pool data from current state (Hasura endpoint doesn't support block queries)
+  //  console.log(`Making GraphQL request to ${url} for ${chainString}`);
     let dataNow = await request(url, query);
-    dataNow = dataNow.group_pool_metric;
+   // console.log(`Raw response for ${chainString}:`, Object.keys(dataNow));
+    dataNow = dataNow.groupPoolMetrics;
+    console.log(`Found ${dataNow ? dataNow.length : 0} pools for ${chainString}`);
+
+    if (!dataNow || dataNow.length === 0) {
+      console.log(`No pools found for ${chainString}, returning empty array`);
+      return [];
+    }
 
     // Get unique token addresses from all pools
     const tokenAddresses = new Set();
@@ -63,15 +106,27 @@
     });
 
     // Fetch token info (symbols and decimals)
+  //  console.log(`Fetching token info for ${tokenAddresses.size} unique tokens for ${chainString}`);
     const tokenInfo = await fetchTokenInfo(Array.from(tokenAddresses), chainString);
+    console.log(`Token info fetched for ${chainString}, processing pools...`);
 
     // Enrich pool data with calculated metrics
     const enrichedData = await Promise.all(
-      dataNow.map(async (pool) => {
-        const { pricesByAddress } = await utils.getPrices(
-          [pool.principal_token_address, pool.collateral_token_address],
-          chainString
-        );
+      dataNow.map(async (pool, index) => {
+        console.log(`Processing pool ${index + 1}/${dataNow.length} for ${chainString}: ${pool.group_pool_address}`);
+
+        let pricesByAddress = {};
+        try {
+          const prices = await utils.getPrices(
+            [pool.principal_token_address, pool.collateral_token_address],
+            chainString
+          );
+          pricesByAddress = prices.pricesByAddress || {};
+          console.log(`Got prices for pool ${index + 1}/${dataNow.length} for ${chainString}`);
+        } catch (priceError) {
+          console.warn(`Failed to get prices for pool ${pool.group_pool_address} on ${chainString}:`, priceError.message);
+          pricesByAddress = {};
+        }
 
         const principalTokenDecimals = tokenInfo[pool.principal_token_address.toLowerCase()]?.decimals || 18;
         const principalTokenDivisor = 10 ** principalTokenDecimals;
@@ -136,8 +191,29 @@
       })
     );
 
+     console.log(`enriching data for  ${chainString} ...`);
+
+
     // For each enriched pool, create separate lending and collateral pool objects
     return enrichedData.flatMap((p) => {
+      // Skip pools with unknown tokens or invalid data
+      if (p.principalSymbol === 'UNKNOWN' || p.collateralSymbol === 'UNKNOWN') {
+        console.log(`Skipping pool ${p.group_pool_address} due to unknown tokens`);
+        return [];
+      }
+
+      // Skip pools with invalid LTV (too small or too large)
+      if (p.ltv < 0.001 || p.ltv > 1) {
+        console.log(`Skipping pool ${p.group_pool_address} due to invalid LTV: ${p.ltv}`);
+        return [];
+      }
+
+      // Skip pools with very low TVL
+      if (p.totalSupplyUsd < 1000 || p.totalCollateralUsd < 1000) {
+        console.log(`Skipping pool ${p.group_pool_address} due to low TVL`);
+        return [];
+      }
+
       const underlyingTokens = [p.principal_token_address, p.collateral_token_address];
       const chain = chainString === 'ethereum' ? 'mainnet' : chainString;
       const url = `https://app.teller.org/${chainString}/lend/pool/${p.group_pool_address}`;
@@ -204,15 +280,38 @@
 
   const main = async (timestamp = null) => {
     let data = [];
-    for (const [chain, url] of Object.entries(chains)) {
+   
+
+     for (const [chain, url] of Object.entries(pools_v2_endpoints)) {
+      if (!url) {
+        console.log(`Skipping v2 data for ${chain} - no URL configured`);
+        continue;
+      }
       try {
-        console.log(`Fetching data for ${chain}...`);
+        console.log(`Fetching v2 data for ${chain}...`);
+        const chainData = await topLvl(chain, url, query, timestamp);
+        data.push(...chainData);
+      } catch (err) {
+        console.log(chain, err);
+      }
+    } 
+
+     for (const [chain, url] of Object.entries(pools_v1_endpoints)) {
+      if (!url) {
+        console.log(`Skipping v1 data for ${chain} - no URL configured`);
+        continue;
+      }
+      try {
+        console.log(`Fetching v1 data for ${chain}...`);
         const chainData = await topLvl(chain, url, query, timestamp);
         data.push(...chainData);
       } catch (err) {
         console.log(chain, err);
       }
     }
+
+     console.log(`build filteredData ...`);
+
     const filteredData = data.filter((p) => utils.keepFinite(p));
     return filteredData;
   };
