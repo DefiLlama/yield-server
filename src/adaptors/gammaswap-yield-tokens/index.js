@@ -4,14 +4,11 @@ const {
   utils: { formatEther, formatUnits },
 } = require('ethers');
 
-// Load the IGammaVault ABI
 const IGammaVaultAbi = require('./IGammaVault.json');
 
 // Note: we use GammaSwap internal API per-vault endpoint for live fields needed for APY
+const GS_API_URL = "https://api.gammaswap.com/yield-tokens";
 
-const GS_API_URL = "https://staging-api.gammaswap.com/yield-tokens";
-
-// Chain configurations
 const CHAINS = {
   base: {
     chainId: 8453,
@@ -19,10 +16,6 @@ const CHAINS = {
       "https://api.goldsky.com/api/public/project_clut9lukx80ry01xb5ngf1zmj/subgraphs/gammaswap-v1-base/prod/gn",
     vaultSubgraphUrl:
       "https://api.goldsky.com/api/public/project_clut9lukx80ry01xb5ngf1zmj/subgraphs/vaults-v1-base/prod/gn",
-    weethAddress: "0x04c0599ae5a44757c0af6f9ec3b93da8976c150a",
-    pools: [
-      "0x679fc242cea26358026dae06bf7613384d0877bf", // weETH/USDC
-    ],
   },
   arbitrum: {
     chainId: 42161,
@@ -30,10 +23,6 @@ const CHAINS = {
       "https://api.goldsky.com/api/public/project_clut9lukx80ry01xb5ngf1zmj/subgraphs/gammaswap-v1-arbitrum/prod/gn",
     vaultSubgraphUrl:
       "https://api.goldsky.com/api/public/project_clut9lukx80ry01xb5ngf1zmj/subgraphs/vaults-v1-arbitrum/prod/gn",
-    weethAddress: "0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe",
-    pools: [
-      "0x1234567890123456789012345678901234567890", // weETH/USDC (placeholder)
-    ],
   },
 };
 
@@ -417,7 +406,7 @@ const apy = async () => {
           const price0 = yt.currentPriceToken0 || 1;
           const price1 = yt.currentPriceToken1 || 1;
           const assetPrice = yt.assetTokenPriceUSD || 1;
-
+          const tokenSymbol = yt.symbol;
           const token0Meta = yt.token0;
           const token1Meta = yt.token1;
 
@@ -442,7 +431,7 @@ const apy = async () => {
             pool: `${vaultRow.id}-${chainKey}`,
             chain: utils.formatChain(chainKey),
             project: "gammaswap-yield-tokens",
-            symbol: utils.formatSymbol(`${token0Meta?.symbol || "T0"}-${token1Meta?.symbol || "T1"}`),
+            symbol: utils.formatSymbol(tokenSymbol),
             tvlUsd: (() => {
               try {
                 // Calculate TVL as NAV * assetTokenPriceUSD
@@ -456,7 +445,7 @@ const apy = async () => {
               token0Meta?.id || vaultRow.token0?.id,
               token1Meta?.id || vaultRow.token1?.id,
             ],
-            poolMeta: "Yield Token Strategy APY",
+            poolMeta: "Yield Token",
             url: `https://app.gammaswap.com/yield-tokens/${chainKey}/${vaultRow.id}`,
           };
 
