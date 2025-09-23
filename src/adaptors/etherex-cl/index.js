@@ -101,11 +101,11 @@ async function apy() {
       const apiPool = etherexPools.find(p => p.id.toLowerCase() === poolAddress);
       if (apiPool && apiPool.recommendedRangesNew) {
         if (tickSpacing === 1 || tickSpacing === 5) {
-          const narrowRange = apiPool.recommendedRangesNew.find(range => range.name === 'Narrow');
-          apyReward = narrowRange ? narrowRange.lpApr : apiData.lpApr || 0;
-        } else {
           const wideRange = apiPool.recommendedRangesNew.find(range => range.name === 'Wide');
           apyReward = wideRange ? wideRange.lpApr : apiData.lpApr || 0;
+        } else {
+          const narrowRange = apiPool.recommendedRangesNew.find(range => range.name === 'Narrow');
+          apyReward = narrowRange ? narrowRange.lpApr : apiData.lpApr || 0;
         }
       } else {
         apyReward = apiData.lpApr || 0;
