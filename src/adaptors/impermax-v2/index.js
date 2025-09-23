@@ -32,7 +32,7 @@ const config = {
   ],
   optimism: [
     'https://api.studio.thegraph.com/query/46041/impermax-optimism-solv2/v0.0.1',
-    'https://api.studio.thegraph.com/query/46041/impermax-optimism-solv2-stable/v0.0.1'
+    'https://api.studio.thegraph.com/query/46041/impermax-optimism-solv2-stable/v0.0.1',
   ],
   fantom: [
     'https://api.studio.thegraph.com/query/46041/impermax-fantom-solv2/v0.0.2',
@@ -60,8 +60,8 @@ const config = {
     'https://api.studio.thegraph.com/query/46041/impermax-sonic-solv2-stable/v0.0.1',
   ],
   avalanche: [
-    'https://api.studio.thegraph.com/query/46041/impermax-avalanche-solv2/v0.0.3'
-  ]
+    'https://api.studio.thegraph.com/query/46041/impermax-avalanche-solv2/v0.0.3',
+  ],
 };
 
 // DEXes or all our StakedLP Token factories for the dex
@@ -118,7 +118,10 @@ const projectPoolFactories = {
     TraderJoe: ['0x9ad6c38be94206ca50bb0d90783181662f0cfa10'],
     Pangolin: ['0xefa94de7a4656d787667c749f7e1223d71e9fd88'],
     Thorus: ['0xa98ea6356a316b44bf710d5f9b6b4ea0081409ef'],
-    Blackhole: ['0x48168439ca4ef9e95975e3e2488bfcbd8fb1a80c', '0x1899d3b1e62a1e52cab440ef065d6a6cdfcf1125']
+    Blackhole: [
+      '0x48168439ca4ef9e95975e3e2488bfcbd8fb1a80c',
+      '0x1899d3b1e62a1e52cab440ef065d6a6cdfcf1125',
+    ],
   },
   real: {
     PearlV2: [
@@ -131,9 +134,18 @@ const projectPoolFactories = {
     Fenix: ['0xa19c51d91891d3df7c13ed22a2f89d328a82950f'],
   },
   sonic: {
-    Equalizer: ['0xddd9845ba0d8f38d3045f804f67a1a8b9a528fcc', '0x543cc9542314e0bec710eccd03586006df355d83'],
-    SwapX: ['0x05c1be79d3ac21cc4b727eed58c9b2ff757f5663', '0xb84bba16a3a332ac2e66aa4508db1efd300cde2b'],
-    Shadow: ['0x2da25e7446a70d7be65fd4c053948becaa6374c8', '0x1d3258b9c35198454c1f44e89003de5851748cc5']
+    Equalizer: [
+      '0xddd9845ba0d8f38d3045f804f67a1a8b9a528fcc',
+      '0x543cc9542314e0bec710eccd03586006df355d83',
+    ],
+    SwapX: [
+      '0x05c1be79d3ac21cc4b727eed58c9b2ff757f5663',
+      '0xb84bba16a3a332ac2e66aa4508db1efd300cde2b',
+    ],
+    Shadow: [
+      '0x2da25e7446a70d7be65fd4c053948becaa6374c8',
+      '0x1d3258b9c35198454c1f44e89003de5851748cc5',
+    ],
   },
 };
 
@@ -150,7 +162,12 @@ const getChainBorrowables = async (chain) => {
   }
 
   const blacklist = blacklistedLendingPools[chain] || [];
-  return allBorrowables.filter((i) => !blacklist.map(i => i.toLowerCase()).includes(i.lendingPool.id.toLowerCase()));
+  return allBorrowables.filter(
+    (i) =>
+      !blacklist
+        .map((i) => i.toLowerCase())
+        .includes(i.lendingPool.id.toLowerCase())
+  );
 };
 
 /**
@@ -316,86 +333,89 @@ const main = async () => {
   const chains = Object.keys(config);
 
   for (const chain of chains) {
-    const borrowables = await getChainBorrowables(chain);
+    try {
+      const borrowables = await getChainBorrowables(chain);
 
-    const prices = await getChainUnderlyingPrices(
-      chain,
-      borrowables.map((i) => i.underlying.id)
-    );
-
-    /**
-     * Add borrowables
-     */
-    for (const borrowable of borrowables) {
-      const {
-        id,
-        underlying,
-        totalBorrows,
-        totalBalance,
-        reserveFactor,
-        borrowRate,
-        lendingPool,
-      } = borrowable;
-
-      const project = getProject(chain, lendingPool.pair.uniswapV2Factory);
-      if (!project) {
-        console.warn(`Missing project, skipping pool ${lendingPool.id} `);
-        continue;
-      }
-
-      const price = prices[`${chain}:${underlying.id}`];
-      if (!price) {
-        console.warn(`Missing price, skipping pool ${lendingPool.id} `);
-        continue;
-      }
-
-      // Geckoterminal is reporting the wrong price
-      if (
-        underlying.id.toLowerCase() ===
-        '0x0f929C29dcE303F96b1d4104505F2e60eE795caC'.toLowerCase()
-      ) {
-        continue;
-      }
-
-      const { safetyMargin, liquidationFee, liquidationIncentive } =
-        lendingPool.collateral;
-
-      const ltv = getLtv(safetyMargin, liquidationIncentive, liquidationFee);
-      const tvlUsd = getTvlUsd(totalBalance, price);
-      const totalBorrowsUsd = getTotalBorrowsUsd(totalBorrows, price);
-      const totalSupplyUsd = getTotalSupplyUsd(
-        totalBalance,
-        totalBorrows,
-        price
-      );
-      const borrowApr = getBorrowApr(borrowRate);
-      const supplyApr = getSupplyApr(
-        totalBorrows,
-        totalBalance,
-        borrowApr,
-        reserveFactor
-      );
-
-      const { token0, token1 } = lendingPool.pair;
-
-      pools.push({
-        pool: `${lendingPool.id}-${underlying.symbol}-${chain}`.toLowerCase(),
-        poolMeta: `${project} ${token0.symbol}/${token1.symbol}`,
+      const prices = await getChainUnderlyingPrices(
         chain,
-        project: 'impermax-v2',
-        symbol: underlying.symbol,
-        tvlUsd: tvlUsd.toNumber(),
-        totalBorrowUsd: totalBorrowsUsd.toNumber(),
-        totalSupplyUsd: totalSupplyUsd.toNumber(),
-        apyBase: supplyApr.toNumber(),
-        apyBaseBorrow: borrowApr.toNumber(),
-        underlyingTokens: [token0.id, token1.id],
-        ltv: Number(ltv.toFixed(3)),
-        url: 'https://impermax.finance',
-      });
+        borrowables.map((i) => i.underlying.id)
+      );
+
+      /**
+       * Add borrowables
+       */
+      for (const borrowable of borrowables) {
+        const {
+          id,
+          underlying,
+          totalBorrows,
+          totalBalance,
+          reserveFactor,
+          borrowRate,
+          lendingPool,
+        } = borrowable;
+
+        const project = getProject(chain, lendingPool.pair.uniswapV2Factory);
+        if (!project) {
+          console.warn(`Missing project, skipping pool ${lendingPool.id} `);
+          continue;
+        }
+
+        const price = prices[`${chain}:${underlying.id}`];
+        if (!price) {
+          console.warn(`Missing price, skipping pool ${lendingPool.id} `);
+          continue;
+        }
+
+        // Geckoterminal is reporting the wrong price
+        if (
+          underlying.id.toLowerCase() ===
+          '0x0f929C29dcE303F96b1d4104505F2e60eE795caC'.toLowerCase()
+        ) {
+          continue;
+        }
+
+        const { safetyMargin, liquidationFee, liquidationIncentive } =
+          lendingPool.collateral;
+
+        const ltv = getLtv(safetyMargin, liquidationIncentive, liquidationFee);
+        const tvlUsd = getTvlUsd(totalBalance, price);
+        const totalBorrowsUsd = getTotalBorrowsUsd(totalBorrows, price);
+        const totalSupplyUsd = getTotalSupplyUsd(
+          totalBalance,
+          totalBorrows,
+          price
+        );
+        const borrowApr = getBorrowApr(borrowRate);
+        const supplyApr = getSupplyApr(
+          totalBorrows,
+          totalBalance,
+          borrowApr,
+          reserveFactor
+        );
+
+        const { token0, token1 } = lendingPool.pair;
+
+        pools.push({
+          pool: `${lendingPool.id}-${underlying.symbol}-${chain}`.toLowerCase(),
+          poolMeta: `${project} ${token0.symbol}/${token1.symbol}`,
+          chain,
+          project: 'impermax-v2',
+          symbol: underlying.symbol,
+          tvlUsd: tvlUsd.toNumber(),
+          totalBorrowUsd: totalBorrowsUsd.toNumber(),
+          totalSupplyUsd: totalSupplyUsd.toNumber(),
+          apyBase: supplyApr.toNumber(),
+          apyBaseBorrow: borrowApr.toNumber(),
+          underlyingTokens: [token0.id, token1.id],
+          ltv: Number(ltv.toFixed(3)),
+          url: 'https://impermax.finance',
+        });
+      }
+    } catch (err) {
+      console.log(`error for chain ${chain}:`, err);
     }
   }
-
   return pools;
 };
 

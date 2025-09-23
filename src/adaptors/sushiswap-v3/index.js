@@ -7,6 +7,7 @@ const utils = require('../utils');
 const { EstimatedFees } = require('./estimateFee.ts');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const PROJECT = 'sushiswap-v3';
 
@@ -317,7 +318,9 @@ const main = async (timestamp = null) => {
     );
   }
 
-  return data.flat();
+  return addMerklRewardApy(data.flat().filter(
+    (p) =>
+      utils.keepFinite(p)), 'sushi-swap');
 };
 
 module.exports = {
