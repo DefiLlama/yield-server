@@ -87,7 +87,6 @@ async function apy() {
     for (const pool of pools) {
       const tvlUsd = Number(pool.totalValueLockedUSD) || 0;
 
-      if (tvlUsd < 10000) continue;
       if (!pool.gauge?.id) continue;
 
       const poolAddress = pool.id.toLowerCase();
@@ -102,11 +101,11 @@ async function apy() {
       const apiPool = etherexPools.find(p => p.id.toLowerCase() === poolAddress);
       if (apiPool && apiPool.recommendedRangesNew) {
         if (tickSpacing === 1 || tickSpacing === 5) {
-          const degenRange = apiPool.recommendedRangesNew.find(range => range.name === 'Degen');
-          apyReward = degenRange ? degenRange.lpApr : apiData.lpApr || 0;
-        } else {
           const narrowRange = apiPool.recommendedRangesNew.find(range => range.name === 'Narrow');
           apyReward = narrowRange ? narrowRange.lpApr : apiData.lpApr || 0;
+        } else {
+          const wideRange = apiPool.recommendedRangesNew.find(range => range.name === 'Wide');
+          apyReward = wideRange ? wideRange.lpApr : apiData.lpApr || 0;
         }
       } else {
         apyReward = apiData.lpApr || 0;
@@ -145,9 +144,7 @@ async function apy() {
   }
 }
 
-
 module.exports = {
   timetravel: false,
   apy: apy,
-  url: 'https://www.etherex.finance/liquidity',
 };
