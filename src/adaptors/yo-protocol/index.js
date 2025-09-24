@@ -1,8 +1,15 @@
 const superagent = require('superagent');
-const { formatChain, getPrices, getERC4626Info } = require('../utils');
+const {
+  formatChain,
+  getPrices,
+  getERC4626Info,
+} = require('../utils');
+const { getVaultReward } = require('./services');
 
 const PROJECT_NAME = 'yo-protocol';
 const API_URL = 'https://api.yo.xyz/api/v1/vault/stats';
+const MERKL_API_URL =
+  'https://api.merkl.xyz/v4/opportunities/?creatorAddress=0xd7A77013933A97A2c08dad7d59937119E76C879a&status=LIVE&chainName=Base';
 const symboToNameMap = {
   yoETH: 'Yield Optimizer ETH',
   yoBTC: 'Yield Optimizer BTC',
@@ -38,6 +45,9 @@ const apy = async () => {
     return acc;
   }, {});
 
+  // Fetch vault rewards
+  const vaultRewardMap = await getVaultReward(MERKL_API_URL);
+
   const result = [];
   for (const vault of vaults) {
     const normalizedTvl =
@@ -47,6 +57,10 @@ const apy = async () => {
     const tvlUsd =
       normalizedTvl *
       Number(prices.pricesByAddress[vault.asset.address.toLowerCase()]);
+
+    const vaultReward = vaultRewardMap.get(
+      vault.contracts.vaultAddress.toLowerCase()
+    );
 
     const pool = {
       pool: vault.contracts.vaultAddress,
@@ -58,6 +72,10 @@ const apy = async () => {
       apyBase: Number(vault.yield['1d']),
       underlyingTokens: [vault.asset.address],
       url: `https://app.yo.xyz/vault/base/${vault.contracts.vaultAddress}`,
+      ...(vaultReward && {
+        apyReward: Number(vaultReward.apr),
+        rewardTokens: [vault.asset.address],
+      }),
     };
 
     result.push(pool);
