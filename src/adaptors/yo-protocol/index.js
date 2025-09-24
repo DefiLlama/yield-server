@@ -3,8 +3,8 @@ const {
   formatChain,
   getPrices,
   getERC4626Info,
-  getVaultReward,
 } = require('../utils');
+const { getVaultReward } = require('./services');
 
 const PROJECT_NAME = 'yo-protocol';
 const API_URL = 'https://api.yo.xyz/api/v1/vault/stats';
