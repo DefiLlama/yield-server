@@ -2,10 +2,10 @@ const { gql, request } = require('graphql-request');
 const utils = require('../utils');
 
 const query = gql`
-  query GetPools($chain: GqlChain!) {
+  query GetPools($chain: GqlChain! $version: Int!) {
     poolGetPools(
       first: 1000
-      where: { chainIn: [$chain], protocolVersionIn: [3] }
+      where: { chainIn: [$chain], protocolVersionIn: [$version] }
     ) {
       chain
       symbol
@@ -26,12 +26,12 @@ const query = gql`
   }
 `;
 
-const getV3Pools = async (backendChain, chainString) => {
+const getPools = async (backendChain, chainString, version) => {
   try {
     const { poolGetPools } = await request(
       'https://api-v3.balancer.fi/graphql',
       query,
-      { chain: backendChain }
+      { chain: backendChain, version: version}
     );
 
     return poolGetPools.map((pool) => {
@@ -88,14 +88,14 @@ const poolsFunction = async () => {
     hyperliquidPools,
     plasmaPools,
   ] = await Promise.all([
-    getV3Pools('MAINNET', 'ethereum'),
-    getV3Pools('GNOSIS', 'xdai'),
-    getV3Pools('ARBITRUM', 'arbitrum'),
-    getV3Pools('OPTIMISM', 'optimism'),
-    getV3Pools('AVALANCHE', 'avax'),
-    getV3Pools('BASE', 'base'),
-    getV3Pools('HYPEREVM', 'hyperliquid'),
-    getV3Pools('PLASMA', 'plasma')
+    getPools('MAINNET', 'ethereum', '3'),
+    getPools('GNOSIS', 'xdai', '3'),
+    getPools('ARBITRUM', 'arbitrum', '3'),
+    getPools('OPTIMISM', 'optimism', '3'),
+    getPools('AVALANCHE', 'avax', '3'),
+    getPools('BASE', 'base', '3'),
+    getPools('HYPEREVM', 'hyperliquid', '3'),
+    getPools('PLASMA', 'plasma', '3')
   ]);
 
   return [
