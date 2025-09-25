@@ -18,7 +18,7 @@ const query = gql`
         totalLiquidity
         aprItems {
           type
-          apr
+          apra
           rewardTokenAddress
         }
       }
@@ -88,14 +88,14 @@ const poolsFunction = async () => {
     hyperliquidPools,
     plasmaPools,
   ] = await Promise.all([
-    getPools('MAINNET', 'ethereum', '3'),
-    getPools('GNOSIS', 'xdai', '3'),
-    getPools('ARBITRUM', 'arbitrum', '3'),
-    getPools('OPTIMISM', 'optimism', '3'),
-    getPools('AVALANCHE', 'avax', '3'),
-    getPools('BASE', 'base', '3'),
-    getPools('HYPEREVM', 'hyperliquid', '3'),
-    getPools('PLASMA', 'plasma', '3')
+    getPools('MAINNET', 'ethereum', 3),
+    getPools('GNOSIS', 'xdai', 3),
+    getPools('ARBITRUM', 'arbitrum', 3),
+    getPools('OPTIMISM', 'optimism', 3),
+    getPools('AVALANCHE', 'avax', 3),
+    getPools('BASE', 'base', 3),
+    getPools('HYPEREVM', 'hyperliquid', 3),
+    getPools('PLASMA', 'plasma', 3)
   ]);
 
   return [
