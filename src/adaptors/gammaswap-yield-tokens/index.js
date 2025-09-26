@@ -75,6 +75,73 @@ async function calculateNAV(vaultAddress, chainKey) {
   }
 }
 
+function overlapSec(a0, a1, b0, b1) {
+  return Math.max(0, Math.min(a1, b1) - Math.max(a0, b0));
+}
+
+export function normalizePeriodStrategies(periods, nowSec) {
+  const sorted = [...periods].sort((a, b) => Number(a.periodNumber) - Number(b.periodNumber));
+
+  const out = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const cur = sorted[i];
+    const next = sorted[i + 1];
+    const start = Number(cur.startTime);
+    const end = Math.max(start, next ? Number(next.startTime) : nowSec);
+
+    out.push({
+      periodNumber: Number(cur.periodNumber),
+      start,
+      end,
+      fees0: cur.totalFees0,
+      fees1: cur.totalFees1,
+      nav: cur.nav,
+    });
+  }
+
+  return out;
+}
+
+export function estimateTrailing24hFees(
+  periods,
+  nowSec,
+  token0Decimals,
+  token1Decimals,
+  isReversed
+) {
+  const win0 = nowSec - SECONDS_IN_24_HRS;
+  const win1 = nowSec;
+
+  let est0 = 0;
+  let est1 = 0;
+  let startTime = undefined;
+
+  for (const p of periods) {
+    const dur = Math.max(1, p.end - p.start);
+    const ovl = overlapSec(win0, win1, p.start, p.end);
+    
+    if (ovl <= 0) continue;
+
+    // Capture the start time of the first period with non-zero overlap
+    if (startTime === undefined) {
+      startTime = p.start;
+    }
+
+    // matches decimals order coming from the subgraph
+    const orderedToken0Decimals = isReversed ? token1Decimals : token0Decimals;
+    const orderedToken1Decimals = isReversed ? token0Decimals : token1Decimals;
+
+    const fees0 = Number(formatUnits(BigInt(p.fees0), orderedToken0Decimals))
+    const fees1 = Number(formatUnits(BigInt(p.fees1), orderedToken1Decimals))
+
+    // proportionally attribute fees to the overlapping fraction of the period
+    est0 += (fees0 * ovl) / dur;
+    est1 += (fees1 * ovl) / dur;
+  }
+
+  return { estFees0: est0, estFees1: est1, startTime: startTime };
+}
+
 
 // Calculate 24h averaged APY
 function calculateLatestStrategyAPY(params) {
@@ -87,67 +154,34 @@ function calculateLatestStrategyAPY(params) {
     currentPriceToken0,
     currentPriceToken1,
     isReversed,
-    skipEventTypes = ["REBALANCE"],
   } = params;
   console.log("all params:\n", params)
 
-  const TOLERANCE = 3600; // 1 hour
-  const MAX_WINDOW = SECONDS_IN_24_HRS + TOLERANCE;
+  if (!periods.length) return 0;
 
-  if (periods.length === 0) {
-    return 0;
-  }
+  const normalized = normalizePeriodStrategies(periods, windowEndTime);
+  const { estFees0, estFees1 } = estimateTrailing24hFees(normalized, windowEndTime, token0Decimals, token1Decimals, isReversed);
 
-  const validPeriods = periods.filter(
-    (p) =>
-      p.nav && p.startTime && !skipEventTypes.includes(p.lastEventType || ""),
-  );
-
-  if (validPeriods.length === 0) {
-    return 0;
-  }
-
-  let totalFees0 = BigInt(0);
-  let totalFees1 = BigInt(0);
-
-  let periodStart = validPeriods[0];
-  let windowStartTime = parseInt(periodStart.startTime);
-
-  for (let i = 0; i < validPeriods.length; i++) {
-    const candidate = validPeriods[i];
-    const candidateTime = parseInt(candidate.startTime);
-
-    if (windowEndTime - candidateTime >= MAX_WINDOW) {
-      periodStart = candidate;
-      windowStartTime = candidateTime;
-      break;
-    }
-
-    totalFees0 += BigInt(candidate.totalFees0);
-    totalFees1 += BigInt(candidate.totalFees1);
-
-    periodStart = candidate;
-    windowStartTime = candidateTime;
-  }
-
-  const actualWindowSeconds = windowEndTime - windowStartTime;
+  const navAtWindowEnd = periods[periods.length - 1].nav;
 
   return calculate24hAveragedAPY(
-    totalFees0,
-    totalFees1,
-    actualWindowSeconds,
+    estFees0,
+    estFees1,
+    SECONDS_IN_24_HRS,
     isAssetToken0,
     token0Decimals,
     token1Decimals,
     currentPriceToken0,
     currentPriceToken1,
-    validPeriods[0].nav,
+    navAtWindowEnd,
     isReversed,
   );
 }
 
-// Calculate APY from accumulated fees and window data
-function calculate24hAveragedAPY(
+/**
+ * Calculate APY from accumulated fees and window data
+ */
+export function calculate24hAveragedAPY(
   totalFees0,
   totalFees1,
   actualWindowSeconds,
@@ -159,34 +193,26 @@ function calculate24hAveragedAPY(
   navAtWindowEnd,
   isReversed,
 ) {
+
   // check for reversal since fees are stored depending on token order from subgraph
   const orderedAccumulatedTotalFees0 = isReversed ? totalFees1 : totalFees0;
   const orderedAccumulatedTotalFees1 = isReversed ? totalFees0 : totalFees1;
 
-  const orderedAccumulatedTotalFees0Num = Number(
-    formatUnits(orderedAccumulatedTotalFees0, token0Decimals),
-  );
-  const orderedAccumulatedTotalFees1Num = Number(
-    formatUnits(orderedAccumulatedTotalFees1, token1Decimals),
-  );
-
   // converting from portioned fees in each token to all fees converted to each token
-  const feesInToken0Num =
-    orderedAccumulatedTotalFees0Num +
-    orderedAccumulatedTotalFees1Num * Number(currentPriceToken0);
-  const feesInToken1Num =
-    orderedAccumulatedTotalFees1Num +
-    orderedAccumulatedTotalFees0Num * Number(currentPriceToken1);
+  const feesInToken0Num = orderedAccumulatedTotalFees0 + orderedAccumulatedTotalFees1 * Number(currentPriceToken0);
+  const feesInToken1Num = orderedAccumulatedTotalFees1 + orderedAccumulatedTotalFees0 * Number(currentPriceToken1);
 
   const windowSeconds = Math.max(actualWindowSeconds, 1);
   const windowDays = Math.max(windowSeconds / SECONDS_IN_24_HRS, 1e-6);
-
-  const navNum = Number(navAtWindowEnd);
-
+  
+  const assetTokenDecimals = isAssetToken0 ? token0Decimals : token1Decimals;
+  const navNum = Number(formatUnits(BigInt(navAtWindowEnd), assetTokenDecimals));
+  
   if (navNum <= 0) {
+    console.warn(`Invalid NAV: ${navNum}`);
     return 0;
   }
-
+  
   return calculateAnnualizedStrategyAPY(
     feesInToken0Num,
     feesInToken1Num,
@@ -237,7 +263,7 @@ async function fetchPeriodStrategies(
   latestBlockTimestamp,
   limitCount = 100,
 ) {
-  const lookbackTime = latestBlockTimestamp - SECONDS_IN_24_HRS;
+  const lookbackTime = latestBlockTimestamp - (SECONDS_IN_24_HRS * 2);
 
   const periodStrategiesQuery = `{
     periodStrategies(
@@ -246,7 +272,7 @@ async function fetchPeriodStrategies(
         startTime_gte: "${lookbackTime}"
       }
       orderBy: startTime
-      orderDirection: desc
+      orderDirection: asc
       first: ${limitCount}
     ) {
       id
@@ -347,7 +373,6 @@ async function getStrategyAPY(
       currentPriceToken0,
       currentPriceToken1,
       isReversed,
-      skipEventTypes: ["REBALANCE"],
     });
 
     return feeAPR;
