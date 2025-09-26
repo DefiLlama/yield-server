@@ -16,10 +16,10 @@ const fetchAllVerifiedMarketPools = async () => {
 const fetchSolVaults = async () => {
   try {
     const response = await axios.get(`${API_BASE}/sol-vaults`);
-    const vaults = response.data?.vaults || [];
-    return Array.isArray(vaults) ? vaults : [];
+    // Return the full response data to include solPrice
+    return response.data || { vaults: [], solPrice: null };
   } catch (error) {
-    return [];
+    return { vaults: [], solPrice: null };
   }
 };
 
@@ -47,32 +47,43 @@ const formatSolReservePool = (market, poolData) => {
     apyReward = Number(poolData.incentiveApr.currentAPR) * 100;
   }
   
+  // Calculate TVL following DefiLlama's standard for lending protocols
+  const totalSupplyUsd = Number(solReserve?.totalSupplyUsd || 0);
+  const totalBorrowUsd = Number(solReserve?.totalBorrowUsd || 0);
+  const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+  
+  // Get borrow APR if available
+  const borrowApr = Number(solReserve?.borrowInterest || 0) * 100;
+  
   return {
     pool: `${market.lendingMarketId}-solana`.toLowerCase(),
     chain: utils.formatChain('solana'),
     project: 'sendit',
     symbol: 'SOL',
     poolMeta: `SOL in ${tokenSymbol} market`,
-    tvlUsd: Number(solReserve?.totalSupplyUsd || 0),
+    tvlUsd: tvlUsd,
     apyBase: supplyApr,
     apyReward: apyReward > 0 ? apyReward : null,
     rewardTokens: nonSolReserve?.mintAddress ? [nonSolReserve.mintAddress] : [],
     underlyingTokens: [WSOL_MINT],
-    url: `https://sendit.fun/market/${market.lendingMarketId}`
+    url: `https://sendit.fun/market/${market.lendingMarketId}`,
+    totalSupplyUsd: totalSupplyUsd,
+    totalBorrowUsd: totalBorrowUsd,
+    apyBaseBorrow: borrowApr > 0 ? borrowApr : null
   };
 };
 
 const getVaultCategoryName = (vaultAddress) => {
-  const categories = {
-    'bluechip': 'Blue Chip Vault',
-    'midcap': 'Mid Cap Vault',
-    'smallcap': 'Small Cap Vault'
+  const vaultNames = {
+    '7EyBhsXnLUWTj5wKWmeGDDDJXcWRXiUa2YuFbwCQrNH2': 'SOL Blue Chip Vault',
+    '5iNq4uB73mjkJKru7g9FSXk3biA2jnvP6McYn6bezazT': 'SOL Mid Cap Vault',
+    '6nVHK1wcg7hJVaLct7A5KJtjgi5XhSrgEFbQvoagtHbQ': 'SOL Small Cap Vault'
   };
   
-  return 'SOL Vault';
+  return vaultNames[vaultAddress] || 'SOL Vault';
 };
 
-const formatSolVaultPool = (vault) => {
+const formatSolVaultPool = (vault, solPrice) => {
   // Calculate average APR from deployed positions
   let avgApr = 0;
   if (vault?.deployedPositions && vault.deployedPositions.length > 0) {
@@ -82,8 +93,6 @@ const formatSolVaultPool = (vault) => {
     );
   }
   
-  // Assume SOL price of ~$195 (should ideally fetch this from an API)
-  const solPrice = 195;
   const tvlUsd = Number(vault?.totalValueLockedSol || 0) * solPrice;
   const vaultName = getVaultCategoryName(vault?.vaultAddress);
   
@@ -120,11 +129,15 @@ const poolsFunction = async () => {
   const pools = [];
   
   try {
-    const [verifiedMarketPools, solVaults, singleSidedVaults] = await Promise.all([
+    const [verifiedMarketPools, solVaultsData, singleSidedVaults] = await Promise.all([
       fetchAllVerifiedMarketPools(),
       fetchSolVaults(),
       fetchSingleSidedVaults()
     ]);
+    
+    // Extract SOL price and vaults from the response
+    const solPrice = solVaultsData?.solPrice || 195; // Fallback to 195 if no price
+    const solVaults = solVaultsData?.vaults || [];
     
     // Process verified market pools
     verifiedMarketPools.forEach(poolData => {
@@ -134,7 +147,7 @@ const poolsFunction = async () => {
             { lendingMarketId: poolData.marketAddress }, 
             poolData
           );
-          if (pool && pool.tvlUsd > 10000) {
+          if (pool) {
             pools.push(pool);
           }
         } catch (err) {
@@ -145,8 +158,8 @@ const poolsFunction = async () => {
     
     solVaults.forEach(vault => {
       try {
-        const pool = formatSolVaultPool(vault);
-        if (pool && pool.tvlUsd > 10000) {
+        const pool = formatSolVaultPool(vault, solPrice);
+        if (pool) {
           pools.push(pool);
         }
       } catch (err) {
@@ -157,7 +170,7 @@ const poolsFunction = async () => {
     singleSidedVaults.forEach(vault => {
       try {
         const pool = formatSingleSidedVaultPool(vault);
-        if (pool && pool.tvlUsd > 10000) {
+        if (pool) {
           pools.push(pool);
         }
       } catch (err) {
