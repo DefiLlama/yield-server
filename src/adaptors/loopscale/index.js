@@ -1,6 +1,5 @@
 const axios = require('axios');
 const utils = require('../utils');
-const { rewardTokens } = require('../sommelier/config');
 
 const getApy = async () => {
     const body = {"page": 0,"pageSize": 100};
