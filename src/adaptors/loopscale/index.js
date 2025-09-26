@@ -1,5 +1,6 @@
 const axios = require('axios');
 const utils = require('../utils');
+const { rewardTokens } = require('../sommelier/config');
 
 const getApy = async () => {
     const body = {"page": 0,"pageSize": 100};
@@ -18,7 +19,8 @@ const getApy = async () => {
             apyBase: Number(vault.apy),
             apyReward: Number(vault.rewardsApy),
             totalSupplyUsd: Number(vault.principalDepositsUsd),
-            totalBorrowUsd: Number(vault.principalDeployedUsd)
+            totalBorrowUsd: Number(vault.principalDeployedUsd),
+            rewardTokens: vault.rewardsMints,
         });
     }
 
