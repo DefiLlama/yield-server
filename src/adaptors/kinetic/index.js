@@ -9,6 +9,7 @@ const { symbol } = require('@defillama/sdk/build/erc20');
 
 const COMPTROLLER_ADDRESS = '0x8041680Fb73E1Fe5F851e76233DCDfA0f2D2D7c8';
 const ISO_COMPTROLLER_ADDRESS = '0xDcce91d46Ecb209645A26B5885500127819BeAdd';
+const FXRP_ISO_COMPTROLLER_ADDRESS = '0x15F69897E6aEBE0463401345543C26d1Fd994abB';
 const FLR_ETH = '0x26a1fab310bd080542dc864647d05985360b16a5';
 const WETH = '0x1502fa4be69d526124d453619276faccab275d3d';
 const C_ETH_MARKET = '0xd7291D5001693d15b6e4d56d73B5d2cD7eCfE5c6';
@@ -324,8 +325,9 @@ const getApy = async (comptroller) => {
 };
 
 const getAPys = async() => {
-  const pools = await getApy(COMPTROLLER_ADDRESS);
-  return pools.concat(await getApy(ISO_COMPTROLLER_ADDRESS))
+  let pools = await getApy(COMPTROLLER_ADDRESS);
+  pools = pools.concat(await getApy(ISO_COMPTROLLER_ADDRESS))
+  return pools.concat(await getApy(FXRP_ISO_COMPTROLLER_ADDRESS))
 }
 
 module.exports = {
