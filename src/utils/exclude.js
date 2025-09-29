@@ -163,6 +163,7 @@ const excludeAdaptors = [
   'conic-finance',
   'cadabra-finance',
   'zeroliquid',
+  'corepound',
 ];
 
 const excludePools = [

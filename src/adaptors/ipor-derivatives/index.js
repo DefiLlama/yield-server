@@ -91,7 +91,7 @@ const buildPool = (asset, chainData, chainConfig, chainName, coinPrices) => {
     lpApr = asset.periods.find(({period}) => period === 'MONTH').ipTokenReturnValue;
   }
 
-  const coinPrice = coinPrices[`${chainName}:${asset.assetAddress.toLowerCase()}`].price;
+  const coinPrice = coinPrices[`${chainName}:${asset.assetAddress.toLowerCase()}`]?.price;
   const lpBalanceHistory = asset.periods.find(({period}) => period === 'HOUR').totalLiquidity;
   const lpBalance = lpBalanceHistory[lpBalanceHistory.length - 1].totalLiquidity;
   const lpTokenPriceHistory = asset.periods.find(({period}) => period === 'HOUR').ipTokenExchangeRates;
