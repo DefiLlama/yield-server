@@ -14,7 +14,7 @@ const apy = async () => {
         const underlyingToken = lst.assetAddress;
 
         return {
-            pool: currPool, 
+            pool: `endur-${currPool}`, 
             chain: 'Starknet',
             project: 'endur',
             symbol: currPool,
