@@ -130,6 +130,29 @@ const HubPools = {
         tokenAddress: '0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2',
         spokeAddress: '0x1C7EC7198F297119D4e9f359d91127c8B2f9A9D2',
       },
+      {
+        // EURC_ava
+        id: 57,
+        underlyingSymbol: 'EURC',
+        poolAddress: '0x3F87F3B301f031ba59C479EDF067621DcC72DDca',
+        tokenAddress: '0xc891eb4cbdeff6e073e859e987815ed1505c2acd',
+        spokeAddress: '0xe47285cc79A8de62DFaED52Abe919B87973294C8',
+      },
+      {
+        // tETH
+        id: 58,
+        underlyingSymbol: 'tETH',
+        poolAddress: '0x5FE123B659FC5242f46884C37550F05Ef08C816a',
+        tokenAddress: '0xd09ACb80C1E8f2291862c4978A008791c9167003',
+      },
+      {
+        // tAVAX
+        id: 59,
+        underlyingSymbol: 'tAVAX',
+        poolAddress: '0x3F63A6401e6354a486e6a38127409fD16e222B59',
+        tokenAddress: '0x14A84F1a61cCd7D1BE596A6cc11FE33A36Bc1646',
+        spokeAddress: '0x0aeE2B84bd3E280CFcc9325917bFA0Bb20F3cdC6',
+      },
     ],
   },
   ethereum: {
@@ -139,6 +162,7 @@ const HubPools = {
       // excluding SolvBTC because bridged
       // excluding SHIB because bridged
       // excluding YBTCB because bridged
+      // excluding tETH because bridged
       {
         // ETH_eth
         id: 4,
