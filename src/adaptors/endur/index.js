@@ -17,7 +17,7 @@ const apy = async () => {
             pool: currPool, 
             chain: 'Starknet',
             project: 'endur',
-            symbols: currPool,
+            symbol: currPool,
             underlyingTokens: [underlyingToken],
             tvlUsd: currTvlUsd,
             apyBase: baseApy,
