@@ -33,6 +33,15 @@ const apy = async () => {
     });
 };
 
+apy().then((strategies) => {
+  strategies.forEach((strategy) => {
+    console.log(strategy);
+    console.log('-----------------------------');
+  });
+}).catch((error) => {
+  console.error('Error fetching strategies:', error);
+});
+
 module.exports = {
   timetravel: false,
   apy: apy,
