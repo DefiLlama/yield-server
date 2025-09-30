@@ -10,15 +10,15 @@ const apy = async () => {
     .map((lst) => {
         const currTvlUsd = parseFloat(lst.tvlUsd);
         const currPool = lst.asset;
-        const baseApy = lst.apyInPercentage;
-        const underlyingTokens = lst.assetAddress;
+        const baseApy = (lst.apy || 0) * 100;
+        const underlyingToken = lst.assetAddress;
 
         return {
             pool: currPool, 
             chain: 'Starknet',
             project: 'endur',
             symbols: currPool,
-            underlyingTokens: underlyingTokens,
+            underlyingTokens: [underlyingToken],
             tvlUsd: currTvlUsd,
             apyBase: baseApy,
             url: `https://app.endur.fi/`,
@@ -26,6 +26,15 @@ const apy = async () => {
         }
     })
 };
+
+apy().then((strategies) => {	
+  strategies.forEach((strategy) => {	
+    console.log(strategy);	
+    console.log('-----------------------------');	
+  });	
+}).catch((error) => {	
+  console.error('Error fetching strategies:', error);	
+});
 
 module.exports = {
     timetravel: false,
