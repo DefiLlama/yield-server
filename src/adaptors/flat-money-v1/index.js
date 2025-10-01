@@ -53,7 +53,7 @@ const apy = async () => {
     {
       pool: `${UNIT_ADDRESS}-${chain}`.toLowerCase(),
       chain: utils.formatChain(chain),
-      project: 'flat-money',
+      project: 'flat-money-v1',
       symbol: utils.formatSymbol('UNIT'),
       tvlUsd,
       apyBase,

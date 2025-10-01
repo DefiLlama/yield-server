@@ -1,4 +1,9 @@
 const config = {
+  avax: {
+    chainName: 'avalanche',
+    USDp: '0x9eE1963f05553eF838604Dd39403be21ceF26AA4',
+    sUSDp: '0x9d92c21205383651610f90722131655a5b8ed3e0',
+  },
   ethereum: {
     chainName: 'Ethereum',
     USDp: '0x9B3a8f7CEC208e247d97dEE13313690977e24459',

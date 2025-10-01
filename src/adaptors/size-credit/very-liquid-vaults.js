@@ -6,12 +6,15 @@ const VeryLiquidVaultABI = require('./VeryLiquidVault.json');
 
 const DEPLOYMENT_BLOCKS = {
   base: 35109672,
-  ethereum: 0,
+  ethereum: 23320146,
 };
 
 const VERY_LIQUID_VAULTS = {
   base: ['0xf4D43A8570Dad86595fc079c633927aa936264F4'],
-  ethereum: [],
+  ethereum: [
+    '0x3AdF08AFe804691cA6d76742367cc50A24a1F4A1',
+    '0x13dDa6fD149a4Da0f2012F16e70925586ee603b8',
+  ],
 };
 
 /*
@@ -138,13 +141,15 @@ async function apy() /*: Promise<Pool[]>*/ {
             .then(({ output }) => output.map(({ output }) => output)),
         ]);
 
-      const assetsSymbols = await sdk.api.abi.multiCall({
-        abi: 'erc20:symbol',
-        calls: assets.map((asset) => ({
-          target: asset,
-        })),
-        chain,
-      }).then(({ output }) => output.map(({ output }) => output));
+      const assetsSymbols = await sdk.api.abi
+        .multiCall({
+          abi: 'erc20:symbol',
+          calls: assets.map((asset) => ({
+            target: asset,
+          })),
+          chain,
+        })
+        .then(({ output }) => output.map(({ output }) => output));
 
       const prices = await Promise.all(
         vaults.map(async (vault, i) => {
@@ -191,4 +196,3 @@ async function apy() /*: Promise<Pool[]>*/ {
 module.exports = {
   apy,
 };
-

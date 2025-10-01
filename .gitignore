@@ -15,6 +15,7 @@ Untitled.ipynb
 yarn-error.log
 test.sql
 yarn.lock
+.test-adapter-output/
 
 
 src/adaptors/maverick-protocol/
