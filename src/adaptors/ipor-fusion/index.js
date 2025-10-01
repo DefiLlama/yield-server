@@ -44,7 +44,7 @@ async function getPublicVaults() {
     const chainVaults = new Map();
 
     Object.entries(publicVaults).forEach(([chainName, { vaults }]) => {
-        const lowerCaseVaults = vaults.map(vault => vault.PlasmaVault.toLowerCase());
+        const lowerCaseVaults = (vaults || []).map(vault => vault.PlasmaVault.toLowerCase());
         chainVaults.set(chainName, lowerCaseVaults);
     });
 
