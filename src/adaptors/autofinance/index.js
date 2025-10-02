@@ -14,7 +14,7 @@ async function getPoolsForSystem(settings) {
     return {
       pool: pool.id,
       chain: settings.chainName,
-      project: 'tokemak',
+      project: 'autofinance',
       symbol: pool.baseAssetSymbol,
       tvlUsd: Number(pool.tvlUsd),
       rewardTokens: Array.from(rewardTokens),
