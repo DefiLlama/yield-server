@@ -2,7 +2,7 @@ const { gql, request } = require('graphql-request');
 const utils = require('../utils');
 
 const query = gql`
-  query GetPools($chain: GqlChain! $version: Int!) {
+  query GetPools($chain: GqlChain!, $version: Int!) {
     poolGetPools(
       first: 1000
       where: { chainIn: [$chain], protocolVersionIn: [$version] }
@@ -18,7 +18,7 @@ const query = gql`
         totalLiquidity
         aprItems {
           type
-          apra
+          apr
           rewardTokenAddress
         }
       }
@@ -31,14 +31,18 @@ const getPools = async (backendChain, chainString, version) => {
     const { poolGetPools } = await request(
       'https://api-v3.balancer.fi/graphql',
       query,
-      { chain: backendChain, version: version}
+      { chain: backendChain, version: version }
     );
 
     return poolGetPools.map((pool) => {
       const aprItems = pool.dynamicData.aprItems || [];
 
       const baseApr = aprItems
-        .filter((item) => item.type === 'SWAP_FEE' || item.type === 'IB_YIELD')
+        .filter(
+          (item) =>
+            item.type === 'IB_YIELD' ||
+            item.type === 'SWAP_FEE_24H'
+        )
         .reduce((sum, item) => sum + Number(item.apr), 0);
 
       const stakingApr = aprItems
@@ -95,7 +99,7 @@ const poolsFunction = async () => {
     getPools('AVALANCHE', 'avax', 3),
     getPools('BASE', 'base', 3),
     getPools('HYPEREVM', 'hyperliquid', 3),
-    getPools('PLASMA', 'plasma', 3)
+    getPools('PLASMA', 'plasma', 3),
   ]);
 
   return [
