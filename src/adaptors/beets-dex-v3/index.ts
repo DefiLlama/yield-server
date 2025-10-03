@@ -90,9 +90,9 @@ export const getPools = async (backendChain, chainString, version) => {
 };
 
 const poolsFunction = async () => {
-  const [sonicPoolsV2] = await Promise.all([getPools('SONIC', 'sonic', 2)]);
+  const [sonicPoolsV3] = await Promise.all([getPools('SONIC', 'sonic', 3)]);
 
-  return [...sonicPoolsV2];
+  return [...sonicPoolsV3];
 };
 
 module.exports = {
