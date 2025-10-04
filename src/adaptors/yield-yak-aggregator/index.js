@@ -52,6 +52,22 @@ const VAULTS = [
     symbol: 'aiUSD',
     underlyingToken: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
     rateDecimals: 6,
+  },
+  {
+    chainId: '43114',
+    address: '0x0FB51627a4D9E01B24C427BB62Ed8d5C9018f8F6',
+    accountant: '0x00da610F7b9bc42fa2EF2D4BA312f8cD95131fA2',
+    symbol: 'aiBTC',
+    underlyingToken: '0x152b9d0FdC40C096757F570A51E494bd4b943E50',
+    rateDecimals: 6,
+  },
+  {
+    chainId: '43114',
+    address: '0x72Ab674eC8FB2b2626Cf48131Fe34fC95075D9b5',
+    accountant: '0x5554A2b4dB48a5B923F7C74798F679F8458e3BE6',
+    symbol: 'sSUZ',
+    underlyingToken: '0x451532F1C9eb7E4Dc2d493dB52b682C0Acf6F5EF',
+    rateDecimals: 18,
   }
 ];
 
