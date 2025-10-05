@@ -353,7 +353,7 @@ var CHAIN_CONFIGS = {
       },
     },
   },
-  etherlink: {
+  etlk: {
     ADDRESS_PROVIDER_V3: null,
     GEAR_TOKEN: null,
     REWARD_TOKEN: '0x0008b6C5b44305693bEB4Cd6E1A91b239D2A041E'.toLowerCase(),
@@ -448,7 +448,7 @@ function getPoolUrl(chain, poolAddress) {
   const chainIds = {
     ethereum: '',
     plasma: '9745',
-    etherlink: '42793',
+    etlk: '42793',
     lisk: '1135',
     hemi: '43111',
   };
@@ -466,7 +466,7 @@ const MERKL_CONFIGS = {
     poolId: '0x76309A9a56309104518847BbA321c261B7B4a43f',
     rewardToken: '0x6100e367285b01f48d07953803a2d8dca5d19873', // WXPL
   },
-  etherlink: {
+  etlk: {
     chainId: 42793,
     poolId: '0x653e62A9Ef0e869F91Dc3D627B479592aA02eA75',
     rewardToken: '0x0008b6C5b44305693bEB4Cd6E1A91b239D2A041E',
@@ -687,7 +687,7 @@ async function getPlasmaPoolsV3(chain) {
 
 async function getPoolsV3(chain) {
   // Handle non-registry chains using the individual pool approach
-  if (chain === 'plasma' || chain === 'etherlink' || chain === 'lisk' || chain === 'hemi') {
+  if (chain === 'plasma' || chain === 'etlk' || chain === 'lisk' || chain === 'hemi') {
     return await getPlasmaPoolsV3(chain);
   }
 
@@ -783,7 +783,7 @@ async function getPoolsV3(chain) {
 async function getTokensData(chain, pools) {
   // For non-registry chains, we need to use known token addresses for pricing
   let tokens;
-  if (chain === 'plasma' || chain === 'etherlink' || chain === 'lisk' || chain === 'hemi') {
+  if (chain === 'plasma' || chain === 'etlk' || chain === 'lisk' || chain === 'hemi') {
     tokens = pools.map((p) => p.underlyingForPrice || p.underlying);
   } else {
     tokens = pools.map((p) => p.underlying);
@@ -881,7 +881,7 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
     const underlying = pool.underlying.toLowerCase();
     const poolAddr = pool.pool.toLowerCase();
     // For non-registry chains, use the underlyingForPrice token for pricing
-    const priceToken = (chain === 'plasma' || chain === 'etherlink' || chain === 'lisk' || chain === 'hemi') && pool.underlyingForPrice ?
+    const priceToken = (chain === 'plasma' || chain === 'etlk' || chain === 'lisk' || chain === 'hemi') && pool.underlyingForPrice ?
       pool.underlyingForPrice.toLowerCase() : underlying;
     const underlyingPrice = tokens[priceToken]?.price || 0;
     const daoFee = Number(daoFees[poolAddr] ?? 0);
@@ -889,7 +889,7 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
     // Calculate TVL and borrowing data using the same logic for all chains
     let totalSupplyUsd, totalBorrowUsd, tvlUsd;
 
-    if (chain === 'plasma' || chain === 'etherlink' || chain === 'lisk' || chain === 'hemi') {
+    if (chain === 'plasma' || chain === 'etlk' || chain === 'lisk' || chain === 'hemi') {
       // Use proper Gearbox calculation for non-registry chains with real borrowing data
       totalSupplyUsd = calculateTvl(
         pool.availableLiquidity,
@@ -921,7 +921,7 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
       tvlUsd = totalSupplyUsd - totalBorrowUsd;
     }
 
-    const dieselPrice = (chain === 'plasma' || chain === 'etherlink' || chain === 'lisk' || chain === 'hemi') ?
+    const dieselPrice = (chain === 'plasma' || chain === 'etlk' || chain === 'lisk' || chain === 'hemi') ?
       Number(underlyingPrice) / WAD : // For non-registry chains, use simpler calculation
       (Number(underlyingPrice) * Number(pool.dieselRate)) / RAY;
     const supplyInfo = {
@@ -978,7 +978,7 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
       url: getPoolUrl(chain, pool.pool),
       // daoFee here is taken from last cm connected to this pool. in theory, it can be different for different CMs
       // in practice, it's 25% for v3 cms and 50% for v2 cms
-      apyBaseBorrow: (chain === 'plasma' || chain === 'etherlink' || chain === 'lisk' || chain === 'hemi') ?
+      apyBaseBorrow: (chain === 'plasma' || chain === 'etlk' || chain === 'lisk' || chain === 'hemi') ?
         // For non-registry chains, use base interest rate directly (no DAO fees initially)
         (Number(pool.baseInterestRate) / 1e27) * 100 :
         ((daoFee + PERCENTAGE_FACTOR) *
@@ -988,13 +988,13 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
       totalSupplyUsd: Number(totalSupplyUsd) || 0,
       totalBorrowUsd: Number(totalBorrowUsd) || 0,
       ltv: 0,
-      poolMeta: (chain === 'plasma' || chain === 'etherlink' || chain === 'lisk' || chain === 'hemi') ? `${chain}-chain` : null,
+      poolMeta: (chain === 'plasma' || chain === 'etlk' || chain === 'lisk' || chain === 'hemi') ? `${chain}-chain` : null,
       // this is currently just for the isolated earn page
     };
   });
 }
 async function getApy() {
-  const supportedChains = ['ethereum', 'plasma', 'etherlink', 'lisk', 'hemi'];
+  const supportedChains = ['ethereum', 'plasma', 'etlk', 'lisk', 'hemi'];
   const allPools = [];
 
   console.log(`🚀 Fetching Gearbox data for chains: ${supportedChains.join(', ')}`);
