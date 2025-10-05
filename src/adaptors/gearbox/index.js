@@ -522,8 +522,8 @@ async function getPlasmaPoolsV3(chain) {
   console.log(`🔍 Fetching ${poolAddresses.length} Plasma pools...`);
 
   try {
-    // Get basic pool data
-    const [symbols, decimalsData, totalSupplies, supplyRates] = await Promise.all([
+    // Get basic pool data including borrowing information
+    const [symbols, decimalsData, totalSupplies, supplyRates, totalBorrowedAmounts, availableLiquidities, baseInterestRates] = await Promise.all([
       multiCall({
         abi: abis_default.symbol,
         calls: poolAddresses.map((target) => ({ target })),
@@ -541,6 +541,21 @@ async function getPlasmaPoolsV3(chain) {
       }),
       multiCall({
         abi: 'function supplyRate() external view returns (uint256)',
+        calls: poolAddresses.map((target) => ({ target })),
+        chain,
+      }),
+      multiCall({
+        abi: 'function totalBorrowed() external view returns (uint256)',
+        calls: poolAddresses.map((target) => ({ target })),
+        chain,
+      }),
+      multiCall({
+        abi: 'function availableLiquidity() external view returns (uint256)',
+        calls: poolAddresses.map((target) => ({ target })),
+        chain,
+      }),
+      multiCall({
+        abi: 'function baseInterestRate() external view returns (uint256)',
         calls: poolAddresses.map((target) => ({ target })),
         chain,
       }),
@@ -573,11 +588,11 @@ async function getPlasmaPoolsV3(chain) {
         decimals: Math.pow(10, decimalsData[i]),
         totalSupply: Number(totalSupplies[i]),
         supplyRate: Number(supplyRates[i]),
-        // Default values for Plasma (may be refined later)
-        availableLiquidity: 0,
-        totalBorrowed: 0,
-        baseInterestRate: 0,
-        dieselRate: Math.pow(10, 27), // Default 1:1 rate
+        // Real borrowing data from contract
+        availableLiquidity: Number(availableLiquidities[i]),
+        totalBorrowed: Number(totalBorrowedAmounts[i]),
+        baseInterestRate: Number(baseInterestRates[i]),
+        dieselRate: Math.pow(10, 27), // Default 1:1 rate for Plasma
         withdrawFee: 0,
       };
     });
@@ -788,18 +803,24 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
     const underlyingPrice = tokens[priceToken]?.price || 0;
     const daoFee = Number(daoFees[poolAddr] ?? 0);
 
-    // For Plasma, use totalSupply as TVL since we don't have detailed liquidity data
+    // Calculate TVL and borrowing data using the same logic for both chains
     let totalSupplyUsd, totalBorrowUsd, tvlUsd;
 
     if (chain === 'plasma') {
-      // Simplified calculation for Plasma - handle BigInt carefully
-      const totalSupplyNum = Number(pool.totalSupply);
-      const decimalsNum = Number(pool.decimals);
-      const underlyingPriceNum = Number(underlyingPrice);
-      const wadNum = WAD;
-      tvlUsd = (totalSupplyNum / decimalsNum) * (underlyingPriceNum / wadNum);
-      totalSupplyUsd = tvlUsd;
-      totalBorrowUsd = 0; // No borrow data available for Plasma initially
+      // Use proper Gearbox calculation for Plasma with real borrowing data
+      totalSupplyUsd = calculateTvl(
+        pool.availableLiquidity,
+        pool.totalBorrowed,
+        underlyingPrice,
+        pool.decimals
+      );
+      totalBorrowUsd = calculateTvl(
+        0,
+        pool.totalBorrowed,
+        underlyingPrice,
+        pool.decimals
+      );
+      tvlUsd = totalSupplyUsd - totalBorrowUsd;
     } else {
       // Original Ethereum calculation
       totalSupplyUsd = calculateTvl(
@@ -875,7 +896,8 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
       // daoFee here is taken from last cm connected to this pool. in theory, it can be different for different CMs
       // in practice, it's 25% for v3 cms and 50% for v2 cms
       apyBaseBorrow: chain === 'plasma' ?
-        0 : // No borrow data available for Plasma initially
+        // For Plasma, use base interest rate directly (no DAO fees initially)
+        (Number(pool.baseInterestRate) / 1e27) * 100 :
         ((daoFee + PERCENTAGE_FACTOR) *
           (Number(pool.baseInterestRate) / 1e27)) /
         100,
