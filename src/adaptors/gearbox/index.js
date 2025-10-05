@@ -353,6 +353,45 @@ var CHAIN_CONFIGS = {
       },
     },
   },
+  etherlink: {
+    ADDRESS_PROVIDER_V3: null,
+    GEAR_TOKEN: null,
+    REWARD_TOKEN: '0x0008b6C5b44305693bEB4Cd6E1A91b239D2A041E'.toLowerCase(),
+    chainName: 'Etherlink',
+    POOLS: {
+      '0x653e62A9Ef0e869F91Dc3D627B479592aA02eA75': {
+        symbol: 'USDC',
+        underlying: '0x796Ea11Fa2dD751eD01b53C372fFDB4AAa8f00F9', // USDC
+        name: 'USDC Lending Pool',
+      },
+    },
+  },
+  lisk: {
+    ADDRESS_PROVIDER_V3: null,
+    GEAR_TOKEN: null,
+    REWARD_TOKEN: '0xac485391EB2d7D88253a7F1eF18C37f4242D1A24'.toLowerCase(), // LISK
+    chainName: 'Lisk',
+    POOLS: {
+      '0xA16952191248E6B4b3A24130Dfc47F96ab1956a7': {
+        symbol: 'ETH',
+        underlying: '0x4200000000000000000000000000000000000006', // WETH
+        name: 'WETH Lending Pool',
+      },
+    },
+  },
+  hemi: {
+    ADDRESS_PROVIDER_V3: null,
+    GEAR_TOKEN: null,
+    REWARD_TOKEN: '0xad11a8BEb98bbf61dbb1aa0F6d6F2ECD87b35afA'.toLowerCase(), // USDC.E
+    chainName: 'Hemi',
+    POOLS: {
+      '0x614eB485DE3c6C49701b40806AC1B985ad6F0A2f': {
+        symbol: 'USDC.E',
+        underlying: '0xad11a8BEb98bbf61dbb1aa0F6d6F2ECD87b35afA', // USDC.E
+        name: 'USDC.E Lending Pool',
+      },
+    },
+  },
 };
 
 // Legacy constants for backward compatibility
@@ -404,22 +443,63 @@ function getExtraRewards(chain, poolAddr) {
   return EXTRA_REWARDS[chain]?.[poolAddr] ?? [];
 }
 
-// Fetch Merkl rewards data for Plasma pools
+// Helper function to generate pool URLs
+function getPoolUrl(chain, poolAddress) {
+  const chainIds = {
+    ethereum: '',
+    plasma: '9745',
+    etherlink: '42793',
+    lisk: '1135',
+    hemi: '43111',
+  };
+
+  const chainId = chainIds[chain];
+  return chainId ?
+    `https://app.gearbox.fi/pools/${chainId}/${poolAddress}` :
+    `https://app.gearbox.fi/pools/${poolAddress}`;
+}
+
+// Chain-specific Merkl API configurations
+const MERKL_CONFIGS = {
+  plasma: {
+    chainId: 9745,
+    poolId: '0x76309A9a56309104518847BbA321c261B7B4a43f',
+    rewardToken: '0x6100e367285b01f48d07953803a2d8dca5d19873', // WXPL
+  },
+  etherlink: {
+    chainId: 42793,
+    poolId: '0x653e62A9Ef0e869F91Dc3D627B479592aA02eA75',
+    rewardToken: '0x0008b6C5b44305693bEB4Cd6E1A91b239D2A041E',
+  },
+  lisk: {
+    chainId: 1135,
+    poolId: '0xA16952191248E6B4b3A24130Dfc47F96ab1956a7',
+    rewardToken: '0xac485391EB2d7D88253a7F1eF18C37f4242D1A24', // LISK
+  },
+  hemi: {
+    chainId: 43111,
+    poolId: '0x614eB485DE3c6C49701b40806AC1B985ad6F0A2f',
+    rewardToken: '0xad11a8BEb98bbf61dbb1aa0F6d6F2ECD87b35afA', // USDC.E
+  },
+};
+
+// Fetch Merkl rewards data for supported chains
 async function getMerklRewards(chain) {
-  if (chain !== 'plasma') return {};
+  const config = MERKL_CONFIGS[chain];
+  if (!config) return {};
 
   try {
-    const response = await fetch('https://api.merkl.xyz/v4/opportunities/?chainId=9745&identifier=0x76309A9a56309104518847BbA321c261B7B4a43f');
+    const response = await fetch(`https://api.merkl.xyz/v4/opportunities/?chainId=${config.chainId}&identifier=${config.poolId}`);
     const data = await response.json();
 
     if (!data || !Array.isArray(data) || data.length === 0) {
-      console.log('⚠️  No Merkl rewards data found for Plasma');
+      console.log(`⚠️  No Merkl rewards data found for ${chain}`);
       return {};
     }
 
     const opportunity = data[0];
     if (opportunity.status !== 'LIVE') {
-      console.log('⚠️  Merkl rewards not currently LIVE');
+      console.log(`⚠️  Merkl rewards not currently LIVE for ${chain}`);
       return {};
     }
 
@@ -427,13 +507,13 @@ async function getMerklRewards(chain) {
     return {
       [opportunity.identifier.toLowerCase()]: {
         apr: opportunity.apr || 0,
-        rewardToken: '0x6100e367285b01f48d07953803a2d8dca5d19873', // WXPL
+        rewardToken: config.rewardToken,
         tvl: opportunity.tvl || 0,
         dailyRewards: opportunity.dailyRewards || 0,
       }
     };
   } catch (error) {
-    console.error('Error fetching Merkl rewards:', error.message);
+    console.error(`Error fetching Merkl rewards for ${chain}:`, error.message);
     return {};
   }
 }
@@ -519,7 +599,7 @@ async function getPlasmaPoolsV3(chain) {
   }
 
   const poolAddresses = Object.keys(chainConfig.POOLS);
-  console.log(`🔍 Fetching ${poolAddresses.length} Plasma pools...`);
+  console.log(`🔍 Fetching ${poolAddresses.length} ${chain} pools...`);
 
   try {
     // Get basic pool data including borrowing information
@@ -597,21 +677,21 @@ async function getPlasmaPoolsV3(chain) {
       };
     });
 
-    console.log(`✅ Successfully fetched ${pools.length} Plasma pools`);
+    console.log(`✅ Successfully fetched ${pools.length} ${chain} pools`);
     return pools;
   } catch (error) {
-    console.error(`Error fetching Plasma pools:`, error.message);
+    console.error(`Error fetching ${chain} pools:`, error.message);
     return [];
   }
 }
 
 async function getPoolsV3(chain) {
-  // Handle Plasma chain separately
-  if (chain === 'plasma') {
+  // Handle non-registry chains using the individual pool approach
+  if (chain === 'plasma' || chain === 'etherlink' || chain === 'lisk' || chain === 'hemi') {
     return await getPlasmaPoolsV3(chain);
   }
 
-  // Original Ethereum implementation
+  // Original Ethereum implementation with registry
   const stakedDieselTokens = [
     '0x9ef444a6d7F4A5adcd68FD5329aA5240C90E14d2',
     // sdUSDCV3
@@ -701,9 +781,9 @@ async function getPoolsV3(chain) {
     });
 }
 async function getTokensData(chain, pools) {
-  // For Plasma, we need to use known token addresses for pricing
+  // For non-registry chains, we need to use known token addresses for pricing
   let tokens;
-  if (chain === 'plasma') {
+  if (chain === 'plasma' || chain === 'etherlink' || chain === 'lisk' || chain === 'hemi') {
     tokens = pools.map((p) => p.underlyingForPrice || p.underlying);
   } else {
     tokens = pools.map((p) => p.underlying);
@@ -717,6 +797,9 @@ async function getTokensData(chain, pools) {
   }
   if (chainConfig?.WXPL_TOKEN) {
     tokens.push(chainConfig.WXPL_TOKEN);
+  }
+  if (chainConfig?.REWARD_TOKEN) {
+    tokens.push(chainConfig.REWARD_TOKEN);
   }
 
   // Add chain-specific extra reward tokens
@@ -797,17 +880,17 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
   return pools.map((pool) => {
     const underlying = pool.underlying.toLowerCase();
     const poolAddr = pool.pool.toLowerCase();
-    // For Plasma, use the underlyingForPrice token for pricing
-    const priceToken = chain === 'plasma' && pool.underlyingForPrice ?
+    // For non-registry chains, use the underlyingForPrice token for pricing
+    const priceToken = (chain === 'plasma' || chain === 'etherlink' || chain === 'lisk' || chain === 'hemi') && pool.underlyingForPrice ?
       pool.underlyingForPrice.toLowerCase() : underlying;
     const underlyingPrice = tokens[priceToken]?.price || 0;
     const daoFee = Number(daoFees[poolAddr] ?? 0);
 
-    // Calculate TVL and borrowing data using the same logic for both chains
+    // Calculate TVL and borrowing data using the same logic for all chains
     let totalSupplyUsd, totalBorrowUsd, tvlUsd;
 
-    if (chain === 'plasma') {
-      // Use proper Gearbox calculation for Plasma with real borrowing data
+    if (chain === 'plasma' || chain === 'etherlink' || chain === 'lisk' || chain === 'hemi') {
+      // Use proper Gearbox calculation for non-registry chains with real borrowing data
       totalSupplyUsd = calculateTvl(
         pool.availableLiquidity,
         pool.totalBorrowed,
@@ -838,8 +921,8 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
       tvlUsd = totalSupplyUsd - totalBorrowUsd;
     }
 
-    const dieselPrice = chain === 'plasma' ?
-      Number(underlyingPrice) / WAD : // For Plasma, use simpler calculation
+    const dieselPrice = (chain === 'plasma' || chain === 'etherlink' || chain === 'lisk' || chain === 'hemi') ?
+      Number(underlyingPrice) / WAD : // For non-registry chains, use simpler calculation
       (Number(underlyingPrice) * Number(pool.dieselRate)) / RAY;
     const supplyInfo = {
       amount: Number(pool.stakedDieselTokenSupply || pool.totalSupply || 0),
@@ -872,11 +955,15 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
       apyRewardTotal += apyReward;
     }
 
-    // Add Merkl rewards for Plasma
+    // Add Merkl rewards for supported chains
     const merklReward = merklRewards[poolAddr];
-    if (merklReward && chainConfig?.WXPL_TOKEN) {
-      extraRewardTokens.push(chainConfig.WXPL_TOKEN);
-      apyRewardTotal += merklReward.apr;
+    if (merklReward) {
+      // Use WXPL_TOKEN for Plasma, REWARD_TOKEN for other chains
+      const rewardToken = chainConfig?.WXPL_TOKEN || chainConfig?.REWARD_TOKEN;
+      if (rewardToken) {
+        extraRewardTokens.push(rewardToken);
+        apyRewardTotal += merklReward.apr;
+      }
     }
     return {
       pool: poolAddr,
@@ -884,19 +971,15 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
       project: 'gearbox',
       symbol: tokens[underlying]?.symbol || pool.symbol || 'Unknown',
       tvlUsd: Number(tvlUsd) || 0,
-      apyBase: chain === 'plasma' ?
-        (Number(pool.supplyRate) / 1e27) * 100 :
-        (Number(pool.supplyRate) / 1e27) * 100,
+      apyBase: (Number(pool.supplyRate) / 1e27) * 100,
       apyReward: apyRewardTotal,
       underlyingTokens: [pool.underlying],
       rewardTokens: [...rewardTokens, ...extraRewardTokens],
-      url: chain === 'plasma'
-        ? `https://app.gearbox.fi/pools/9745/${pool.pool}`
-        : `https://app.gearbox.fi/pools/${pool.pool}`,
+      url: getPoolUrl(chain, pool.pool),
       // daoFee here is taken from last cm connected to this pool. in theory, it can be different for different CMs
       // in practice, it's 25% for v3 cms and 50% for v2 cms
-      apyBaseBorrow: chain === 'plasma' ?
-        // For Plasma, use base interest rate directly (no DAO fees initially)
+      apyBaseBorrow: (chain === 'plasma' || chain === 'etherlink' || chain === 'lisk' || chain === 'hemi') ?
+        // For non-registry chains, use base interest rate directly (no DAO fees initially)
         (Number(pool.baseInterestRate) / 1e27) * 100 :
         ((daoFee + PERCENTAGE_FACTOR) *
           (Number(pool.baseInterestRate) / 1e27)) /
@@ -905,13 +988,13 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
       totalSupplyUsd: Number(totalSupplyUsd) || 0,
       totalBorrowUsd: Number(totalBorrowUsd) || 0,
       ltv: 0,
-      poolMeta: chain === 'plasma' ? 'plasma-chain' : null,
+      poolMeta: (chain === 'plasma' || chain === 'etherlink' || chain === 'lisk' || chain === 'hemi') ? `${chain}-chain` : null,
       // this is currently just for the isolated earn page
     };
   });
 }
 async function getApy() {
-  const supportedChains = ['ethereum', 'plasma'];
+  const supportedChains = ['ethereum', 'plasma', 'etherlink', 'lisk', 'hemi'];
   const allPools = [];
 
   console.log(`🚀 Fetching Gearbox data for chains: ${supportedChains.join(', ')}`);
