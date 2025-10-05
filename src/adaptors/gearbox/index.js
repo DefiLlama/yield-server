@@ -461,6 +461,18 @@ function getPoolUrl(chain, poolAddress) {
 
 // Chain-specific Merkl API configurations
 const MERKL_CONFIGS = {
+  ethereum: {
+    chainId: 1,
+    rewardToken: '0xBa3335588D9403515223F109EdC4eB7269a9Ab5D', // GEAR
+    pools: [
+      '0xda0002859B2d05F66a753d8241fCDE8623f26F4f', // WETH
+      '0xe7146F53dBcae9D6Fa3555FE502648deb0B2F823', // DAI
+      '0xda00000035fef4082F78dEF6A8903bee419FbF8E', // USDC
+      '0x05A811275fE9b4DE503B3311F51edF6A856D936e', // USDT
+      '0x4d56c9cBa373AD39dF69Eb18F076b7348000AE09', // GHO
+      '0x72CCB97cbdC40f8fb7FFA42Ed93AE74923547200', // wstETH (with Merkl rewards)
+    ],
+  },
   plasma: {
     chainId: 9745,
     poolId: '0x76309A9a56309104518847BbA321c261B7B4a43f',
@@ -489,29 +501,43 @@ async function getMerklRewards(chain) {
   if (!config) return {};
 
   try {
-    const response = await fetch(`https://api.merkl.xyz/v4/opportunities/?chainId=${config.chainId}&identifier=${config.poolId}`);
-    const data = await response.json();
+    const rewards = {};
 
-    if (!data || !Array.isArray(data) || data.length === 0) {
-      console.log(`⚠️  No Merkl rewards data found for ${chain}`);
-      return {};
-    }
+    // Handle multiple pools (new format) or single pool (backward compatibility)
+    const poolsToFetch = config.pools || [config.poolId];
 
-    const opportunity = data[0];
-    if (opportunity.status !== 'LIVE') {
-      console.log(`⚠️  Merkl rewards not currently LIVE for ${chain}`);
-      return {};
-    }
+    // Fetch rewards for each pool
+    await Promise.all(poolsToFetch.map(async (poolId) => {
+      if (!poolId) return;
 
-    // Extract reward data
-    return {
-      [opportunity.identifier.toLowerCase()]: {
-        apr: opportunity.apr || 0,
-        rewardToken: config.rewardToken,
-        tvl: opportunity.tvl || 0,
-        dailyRewards: opportunity.dailyRewards || 0,
+      try {
+        const response = await fetch(`https://api.merkl.xyz/v4/opportunities/?chainId=${config.chainId}&identifier=${poolId}`);
+        const data = await response.json();
+
+        if (!data || !Array.isArray(data) || data.length === 0) {
+          console.log(`⚠️  No Merkl rewards data found for ${chain} pool ${poolId}`);
+          return;
+        }
+
+        const opportunity = data[0];
+        if (opportunity.status !== 'LIVE') {
+          console.log(`⚠️  Merkl rewards not currently LIVE for ${chain} pool ${poolId}`);
+          return;
+        }
+
+        // Extract reward data for this pool
+        rewards[opportunity.identifier.toLowerCase()] = {
+          apr: opportunity.apr || 0,
+          rewardToken: config.rewardToken,
+          tvl: opportunity.tvl || 0,
+          dailyRewards: opportunity.dailyRewards || 0,
+        };
+      } catch (poolError) {
+        console.error(`Error fetching Merkl rewards for ${chain} pool ${poolId}:`, poolError.message);
       }
-    };
+    }));
+
+    return rewards;
   } catch (error) {
     console.error(`Error fetching Merkl rewards for ${chain}:`, error.message);
     return {};
@@ -957,13 +983,10 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
 
     // Add Merkl rewards for supported chains
     const merklReward = merklRewards[poolAddr];
-    if (merklReward) {
-      // Use WXPL_TOKEN for Plasma, REWARD_TOKEN for other chains
-      const rewardToken = chainConfig?.WXPL_TOKEN || chainConfig?.REWARD_TOKEN;
-      if (rewardToken) {
-        extraRewardTokens.push(rewardToken);
-        apyRewardTotal += merklReward.apr;
-      }
+    if (merklReward && merklReward.apr > 0) {
+      // Use the reward token from merklReward itself
+      extraRewardTokens.push(merklReward.rewardToken);
+      apyRewardTotal += merklReward.apr;
     }
     return {
       pool: poolAddr,
