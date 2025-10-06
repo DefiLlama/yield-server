@@ -1011,8 +1011,6 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
       totalSupplyUsd: Number(totalSupplyUsd) || 0,
       totalBorrowUsd: Number(totalBorrowUsd) || 0,
       ltv: 0,
-      poolMeta: (chain === 'plasma' || chain === 'etlk' || chain === 'lisk' || chain === 'hemi') ? `${chain}-chain` : null,
-      // this is currently just for the isolated earn page
     };
   });
 }
