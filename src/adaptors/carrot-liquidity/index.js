@@ -17,7 +17,7 @@ const getApy = async () => {
     symbol: utils.formatSymbol('USDC-USDT-PYUSD'),
     underlyingTokens: metricsData.assets.map(asset => asset.mint),
     tvlUsd: Number(metricsData.tvl),
-    apyBase: Number(performanceData.navAPY[0].apy) / 100,
+    apyBase: Number(performanceData.navAPY[0].apy),
   };
 
   return [crtPool];
