@@ -70,21 +70,18 @@ export const getPools = async (backendChain, chainString, version) => {
       return {
         pool: pool.address,
         chain: utils.formatChain(chainString),
-        project: version === 3 ? 'beets-dex-v3' : 'beets-dex',
+        project: 'beets-dex-v3',
         symbol: utils.formatSymbol(pool.symbol),
         tvlUsd: Number(pool.dynamicData.totalLiquidity),
         apyBase: baseApr * 100,
         apyReward: stakingApr * 100,
         rewardTokens: rewardTokens,
         underlyingTokens: underlyingTokens,
-        url: `https://beets.fi/pools/${chainString}/v${version}/${pool.id}`,
+        url: `https://beets.fi/pools/${chainString}/v3/${pool.id}`,
       };
     });
   } catch (error) {
-    console.error(
-      `Error fetching Beets V${version} pools for ${chainString}:`,
-      error
-    );
+    console.error(`Error fetching Beets V3 pools for ${chainString}:`, error);
     return [];
   }
 };
