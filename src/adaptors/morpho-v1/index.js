@@ -165,7 +165,7 @@ const apy = async () => {
       return {
         pool: `morpho-blue-${vault.address}-${chain}`,
         chain,
-        project: 'morpho-blue',
+        project: 'morpho-v1',
         symbol: vault.symbol,
         apyBase: vault.state.apy * 100,
         tvlUsd: vault.state.totalAssetsUsd || 0,
@@ -193,7 +193,7 @@ const apy = async () => {
       return {
         pool: `morpho-blue-${market.uniqueKey}-${chain}`,
         chain,
-        project: 'morpho-blue',
+        project: 'morpho-v1',
         symbol: market.collateralAsset?.symbol,
         apy: 0,
         tvlUsd: market.state.collateralAssetsUsd || 0,
