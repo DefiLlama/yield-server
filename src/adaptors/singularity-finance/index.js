@@ -10,7 +10,7 @@ async function getApy() {
     chain: "base"
   })).output;
 
-  const batchSize = 100;
+  const batchSize = 9;
   let results = [];
 
   for (let i = 0; i < numberOfVaults; i += batchSize) {
