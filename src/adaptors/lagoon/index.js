@@ -65,7 +65,6 @@ const apy = async () => {
 
   for (const [chain, chainId] of Object.entries(CHAINS)) {
     // Fetch vaults data with pagination
-    
     let allVaults = [];
     let skip = 0;
     while (true) {
@@ -80,7 +79,8 @@ const apy = async () => {
       skip += 100;
     }
 
-    pools = allVaults.map((vault) => {
+
+    const _pools = allVaults.map((vault) => {
       
       const apyReward = vault.state.weeklyApr.incentives.apr * 100 + vault.state.weeklyApr.airdrops.apr * 100 + vault.state.weeklyApr.nativeYields.apr * 100;
 
@@ -96,6 +96,7 @@ const apy = async () => {
         apyReward,
       };
     });
+    pools = pools.concat(_pools);
   }
   return pools;
 };
