@@ -15,12 +15,15 @@ const CHAINS = {
 
 const gqlQueries = {
   vaultsData: gql`
-    query GetVaultsData($chainId: Int!, $skip: Int!) {
+    query GetVaultsData($chainId: String!, $skip: Int!) {
       vaults(
         first: 100
         skip: $skip
         where: { chainId_in: [$chainId] }
       ) {
+        pageInfo {
+          hasNextPage
+        }
         items {
           id
           address
@@ -51,10 +54,7 @@ const gqlQueries = {
             }
           }
         }
-      }
-    }
-    pageInfo {
-      hasNextPage
+      }   
     }
   `,
 };
@@ -69,7 +69,7 @@ const apy = async () => {
     let skip = 0;
     while (true) {
       const { vaults } = await request(GRAPH_URL, gqlQueries.vaultsData, {
-        chainId,
+        chainId: chainId.toString(),
         skip,
       });
 
