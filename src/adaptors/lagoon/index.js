@@ -1,4 +1,4 @@
-const { request, gql } = require('graphql-request');
+import { request, gql } from 'graphql-request';
 
 const GRAPH_URL = 'https://api.lagoon.finance/api/query';
 const CHAINS = {
@@ -9,18 +9,12 @@ const CHAINS = {
   linea: 59144,
   plasma: 9745,
   avalanche: 43114,
-  
 };
-
 
 const gqlQueries = {
   vaultsData: gql`
     query GetVaultsData($chainId: String!, $skip: Int!) {
-      vaults(
-        first: 100
-        skip: $skip
-        where: { chainId_in: [$chainId] }
-      ) {
+      vaults(first: 100, skip: $skip, where: { chainId_in: [$chainId] }) {
         pageInfo {
           hasNextPage
         }
@@ -54,11 +48,10 @@ const gqlQueries = {
             }
           }
         }
-      }   
+      }
     }
   `,
 };
-
 
 const apy = async () => {
   let pools = [];
@@ -73,23 +66,23 @@ const apy = async () => {
         skip,
       });
 
+      allVaults = allVaults.concat(vaults.items);
       if (!vaults.pageInfo.hasNextPage) break;
-
-      allVaults = [...allVaults, ...vaults.items];
       skip += 100;
     }
-
-
     const _pools = allVaults.map((vault) => {
-      
-      const apyReward = vault.state.weeklyApr.incentives.apr * 100 + vault.state.weeklyApr.airdrops.apr * 100 + vault.state.weeklyApr.nativeYields.apr * 100;
+      const apyReward =
+        vault.state.weeklyApr.incentives.apr ||
+        0 + vault.state.weeklyApr.airdrops.apr ||
+        0 + vault.state.weeklyApr.nativeYields.apr ||
+        0;
 
       return {
         pool: `lagoon-${vault.address}-${chain}`,
         chain,
         project: 'lagoon',
         symbol: vault.symbol,
-        apyBase: vault.state.weeklyApr.linearNetAprWithoutExtraYields * 100,
+        apyBase: vault.state.weeklyApr.linearNetAprWithoutExtraYields,
         tvlUsd: vault.state.totalAssetsUsd || 0,
         underlyingTokens: [vault.asset.address],
         url: `https://app.lagoon.finance/vault/${vault.chain.id}/${vault.address}`,
