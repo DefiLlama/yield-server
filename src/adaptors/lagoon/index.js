@@ -65,6 +65,7 @@ const apy = async () => {
 
   for (const [chain, chainId] of Object.entries(CHAINS)) {
     // Fetch vaults data with pagination
+    
     let allVaults = [];
     let skip = 0;
     while (true) {
@@ -79,12 +80,7 @@ const apy = async () => {
       skip += 100;
     }
 
-    // Fetch markets data with pagination
-   
-
-    const earn = allVaults;
-
-    const earnPools = earn.map((vault) => {
+    pools = allVaults.map((vault) => {
       
       const apyReward = vault.state.weeklyApr.incentives.apr * 100 + vault.state.weeklyApr.airdrops.apr * 100 + vault.state.weeklyApr.nativeYields.apr * 100;
 
@@ -101,6 +97,7 @@ const apy = async () => {
       };
     });
   }
+  return pools;
 };
 
 module.exports = {
