@@ -43,7 +43,7 @@ async function getApy() {
 
       const { tvl, apyBase, ...rest } = vaultInfos[index];
 
-      const tvlUsd = (await sdk.api.abi.call({
+      const tvlUsd = referenceAssetAddress == USDC.address ? tvl : (await sdk.api.abi.call({
         abi: 'function tokenValueInQuoteAsset(address base, uint256 amount, address quote) view returns (uint256 value)',
         target: vault.vault,
         chain: "base",
