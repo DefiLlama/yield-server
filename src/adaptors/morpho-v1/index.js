@@ -1,9 +1,15 @@
 const { request, gql } = require('graphql-request');
 
-const GRAPH_URL = 'https://blue-api.morpho.org/graphql';
+const GRAPH_URL = 'https://api.morpho.org/graphql';
 const CHAINS = {
   ethereum: 1,
   base: 8453,
+  optimism: 10,
+  hyperliquid: 999,
+  katana: 747474,
+  arbitrum: 42161,
+  unichain: 130,
+  polygon: 137
 };
 
 const gqlQueries = {
@@ -170,9 +176,7 @@ const apy = async () => {
         apyBase: vault.state.apy * 100,
         tvlUsd: vault.state.totalAssetsUsd || 0,
         underlyingTokens: [vault.asset.address],
-        url: `https://app.morpho.org/vault?vault=${vault.address}&network=${
-          chain === 'ethereum' ? 'mainnet' : chain
-        }`,
+        url: `https://app.morpho.org/${chain}/vault/${vault.address}`,
         apyReward,
         rewardTokens,
       };
@@ -205,9 +209,7 @@ const apy = async () => {
           market.state.supplyAssetsUsd - market.state.borrowAssetsUsd,
         ltv: market.lltv / 1e18,
         mintedCoin: market.loanAsset?.symbol,
-        url: `https://app.morpho.org/market?id=${market.uniqueKey}&network=${
-          chain === 'ethereum' ? 'mainnet' : chain
-        }`,
+        url: `https://app.morpho.org/market?id=${market.uniqueKey}&network=${chain}`,
         apyRewardBorrow,
         rewardTokens: apyRewardBorrow > 0 ? rewardTokens : [],
       };
