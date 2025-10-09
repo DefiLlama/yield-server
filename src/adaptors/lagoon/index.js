@@ -1,6 +1,6 @@
 import { request, gql } from 'graphql-request';
 
-const GRAPH_URL = 'https://api.lagoon.finance/api/query';
+const GRAPH_URL = 'https://api.lagoon.finance/query';
 const CHAINS = {
   ethereum: 1,
   base: 8453,
