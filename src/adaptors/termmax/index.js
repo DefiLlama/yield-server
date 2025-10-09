@@ -1,7 +1,6 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
-const { default: pools } = require('../concentrator/pools');
 const { Interface } = require('ethers/lib/utils');
 
 const EVENTS = {
@@ -148,8 +147,8 @@ async function getVaultV1Addresses(chain, blockNumber) {
   return addresses;
 }
 
-async function getV1Pools({ alias, chain, chainId, number, opportunities }) {
-  const pools = [];
+async function getVaultsV1({ alias, chain, chainId, number, opportunities }) {
+  const vaults = [];
 
   const addresses = await getVaultV1Addresses(chain, number).then((addresses) =>
     addresses.filter((a) => !VAULT_BLACKLIST[chain].includes(a))
@@ -242,7 +241,7 @@ async function getV1Pools({ alias, chain, chainId, number, opportunities }) {
     );
     url.searchParams.set('chain', alias);
 
-    const pool = {
+    const vault = {
       pool: `${address}-${chain.toLowerCase()}`,
       chain,
       project: 'termmax',
@@ -260,20 +259,20 @@ async function getV1Pools({ alias, chain, chainId, number, opportunities }) {
         o.identifier.toLowerCase() === address.toLowerCase()
     );
     if (opportunity) {
-      pool.apyReward = opportunity.apr;
+      vault.apyReward = opportunity.apr;
 
       const breakdowns =
         (opportunity.rewardsRecord && opportunity.rewardsRecord.breakdowns) ||
         [];
-      pool.rewardTokens = breakdowns
+      vault.rewardTokens = breakdowns
         .map((b) => b.token.address)
         .filter((a) => a);
     }
 
-    pools.push(pool);
+    vaults.push(vault);
   }
 
-  return pools;
+  return vaults;
 }
 
 async function getVaultV2Addresses(chain, blockNumber) {
@@ -308,8 +307,8 @@ async function getVaultV2Addresses(chain, blockNumber) {
   return addresses;
 }
 
-async function getV2Pools({ alias, chain, chainId, number, opportunities }) {
-  const pools = [];
+async function getVaultV2({ alias, chain, chainId, number, opportunities }) {
+  const vaults = [];
 
   const addresses = await getVaultV2Addresses(chain, number).then((addresses) =>
     addresses.filter((a) => !VAULT_BLACKLIST[chain].includes(a))
@@ -402,7 +401,7 @@ async function getV2Pools({ alias, chain, chainId, number, opportunities }) {
     );
     url.searchParams.set('chain', alias);
 
-    const pool = {
+    const vault = {
       pool: `${address}-${chain.toLowerCase()}`,
       chain,
       project: 'termmax',
@@ -420,24 +419,24 @@ async function getV2Pools({ alias, chain, chainId, number, opportunities }) {
         o.identifier.toLowerCase() === address.toLowerCase()
     );
     if (opportunity) {
-      pool.apyReward = opportunity.apr;
+      vault.apyReward = opportunity.apr;
 
       const breakdowns =
         (opportunity.rewardsRecord && opportunity.rewardsRecord.breakdowns) ||
         [];
-      pool.rewardTokens = breakdowns
+      vault.rewardTokens = breakdowns
         .map((b) => b.token.address)
         .filter((a) => a);
     }
 
-    pools.push(pool);
+    vaults.push(vault);
   }
 
-  return pools;
+  return vaults;
 }
 
-async function getPoolsOnChain(chain, chainId, alias) {
-  const poolsOnChain = [];
+async function getVaultsOnChain(chain, chainId, alias) {
+  const vaultsOnChain = [];
 
   const [opportunities, { number }] = await Promise.all([
     getMerklOpportunities(),
@@ -447,43 +446,43 @@ async function getPoolsOnChain(chain, chainId, alias) {
   const tasks = [];
   {
     const task1 = async () => {
-      const v1Pools = await getV1Pools({
+      const vaultsV1 = await getVaultsV1({
         alias,
         chain,
         chainId,
         number,
         opportunities,
       });
-      for (const pool of v1Pools) poolsOnChain.push(pool);
+      for (const vault of vaultsV1) vaultsOnChain.push(vault);
     };
     tasks.push(task1());
   }
   {
     const task2 = async () => {
-      const v2Pools = await getV2Pools({
+      const vaultsV2 = await getVaultV2({
         alias,
         chain,
         chainId,
         number,
         opportunities,
       });
-      for (const pool of v2Pools) poolsOnChain.push(pool);
+      for (const vault of vaultsV2) vaultsOnChain.push(vault);
     };
     tasks.push(task2());
   }
   await Promise.all(tasks);
 
-  return poolsOnChain;
+  return vaultsOnChain;
 }
 
 async function apy() {
-  const pools = [];
+  const vaults = [];
   for (const key of Object.keys(VAULTS)) {
     const { alias, chain, chainId } = VAULTS[key];
-    const poolsOnChain = await getPoolsOnChain(chain, chainId, alias);
-    for (const pool of poolsOnChain) pools.push(pool);
+    const vaultsOnChain = await getVaultsOnChain(chain, chainId, alias);
+    for (const vault of vaultsOnChain) vaults.push(vault);
   }
-  return pools;
+  return vaults;
 }
 
 module.exports = {
