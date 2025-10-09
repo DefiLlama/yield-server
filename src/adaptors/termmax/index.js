@@ -148,10 +148,8 @@ async function getVaultV1Addresses(chain, blockNumber) {
   return addresses;
 }
 
-async function getV1Pools(chain, chainId, alias, opportunities) {
+async function getV1Pools({ alias, chain, chainId, number, opportunities }) {
   const pools = [];
-
-  const { number } = await sdk.api.util.getLatestBlock(chain);
 
   const addresses = await getVaultV1Addresses(chain, number).then((addresses) =>
     addresses.filter((a) => !VAULT_BLACKLIST[chain].includes(a))
@@ -310,21 +308,180 @@ async function getVaultV2Addresses(chain, blockNumber) {
   return addresses;
 }
 
-async function apy() {
+async function getV2Pools({ alias, chain, chainId, number, opportunities }) {
   const pools = [];
 
-  const opportunities = await getMerklOpportunities();
+  const addresses = await getVaultV2Addresses(chain, number).then((addresses) =>
+    addresses.filter((a) => !VAULT_BLACKLIST[chain].includes(a))
+  );
+  const calls = addresses.map((target) => ({ target }));
+  const [apys, assets, decimalses, names, totalAssetses] = await Promise.all([
+    sdk.api.abi.multiCall({
+      chain,
+      calls,
+      abi: {
+        name: 'apy',
+        type: 'function',
+        inputs: [],
+        outputs: [{ type: 'uint256' }],
+      },
+    }),
+    sdk.api.abi.multiCall({
+      chain,
+      calls,
+      abi: {
+        name: 'asset',
+        type: 'function',
+        inputs: [],
+        outputs: [{ type: 'address' }],
+      },
+    }),
+    sdk.api.abi.multiCall({
+      chain,
+      calls,
+      abi: {
+        name: 'decimals',
+        type: 'function',
+        inputs: [],
+        outputs: [{ type: 'uint8' }],
+      },
+    }),
+    sdk.api.abi.multiCall({
+      chain,
+      calls,
+      abi: {
+        name: 'name',
+        type: 'function',
+        inputs: [],
+        outputs: [{ type: 'string' }],
+      },
+    }),
+    sdk.api.abi.multiCall({
+      chain,
+      calls,
+      abi: {
+        name: 'totalAssets',
+        type: 'function',
+        inputs: [],
+        outputs: [{ type: 'uint256' }],
+      },
+    }),
+  ]);
+
+  const [assetNames, priceMap] = await Promise.all([
+    sdk.api.abi.multiCall({
+      chain,
+      calls: assets.output.map((a) => ({ target: a.output })),
+      abi: {
+        name: 'name',
+        type: 'function',
+        inputs: [],
+        outputs: [{ type: 'string' }],
+      },
+    }),
+    getPrices(
+      chain,
+      assets.output.map((a) => a.output)
+    ),
+  ]);
+
+  for (let i = 0; i < addresses.length; i++) {
+    const address = addresses[i];
+    const assetAddress = assets.output[i].output;
+
+    const readableApy = new BigNumber(apys.output[i].output)
+      .div(new BigNumber(10).pow(8))
+      .toNumber();
+    const tvlUsd = new BigNumber(totalAssetses.output[i].output)
+      .div(new BigNumber(10).pow(decimalses.output[i].output))
+      .times(priceMap.get(assetAddress) || 0)
+      .toNumber();
+
+    const url = new URL(
+      `https://app.termmax.ts.finance/earn/${alias}/${address.toLowerCase()}`
+    );
+    url.searchParams.set('chain', alias);
+
+    const pool = {
+      pool: `${address}-${chain.toLowerCase()}`,
+      chain,
+      project: 'termmax',
+      symbol: assetNames.output[i].output,
+      tvlUsd,
+      apyBase: readableApy,
+      url: String(url),
+      underlyingTokens: [assetAddress],
+      poolMeta: names.output[i].output,
+    };
+
+    const opportunity = opportunities.find(
+      (o) =>
+        o.chainId === chainId &&
+        o.identifier.toLowerCase() === address.toLowerCase()
+    );
+    if (opportunity) {
+      pool.apyReward = opportunity.apr;
+
+      const breakdowns =
+        (opportunity.rewardsRecord && opportunity.rewardsRecord.breakdowns) ||
+        [];
+      pool.rewardTokens = breakdowns
+        .map((b) => b.token.address)
+        .filter((a) => a);
+    }
+
+    pools.push(pool);
+  }
+
+  return pools;
+}
+
+async function getPoolsOnChain(chain, chainId, alias) {
+  const poolsOnChain = [];
+
+  const [opportunities, { number }] = await Promise.all([
+    getMerklOpportunities(),
+    sdk.api.util.getLatestBlock(chain),
+  ]);
 
   const tasks = [];
-  for (const [chain, { chainId, alias }] of Object.entries(VAULTS)) {
-    const task = async () => {
-      const v1Pools = await getV1Pools(chain, chainId, alias, opportunities);
-      for (const pool of v1Pools) pools.push(pool);
+  for (const key of Object.keys(VAULTS)) {
+    const task1 = async () => {
+      const v1Pools = await getV1Pools({
+        alias,
+        chain,
+        chainId,
+        number,
+        opportunities,
+      });
+      for (const pool of v1Pools) poolsOnChain.push(pool);
     };
-    tasks.push(task());
-  }
-  await Promise.all(tasks);
+    tasks.push(task1());
 
+    const task2 = async () => {
+      const v2Pools = await getV2Pools({
+        alias,
+        chain,
+        chainId,
+        number,
+        opportunities,
+      });
+      for (const pool of v2Pools) poolsOnChain.push(pool);
+    };
+    tasks.push(task2());
+  }
+
+  await Promise.all(tasks);
+  return poolsOnChain;
+}
+
+async function apy() {
+  const pools = [];
+  for (const key of Object.keys(VAULTS)) {
+    const { alias, chain, chainId } = VAULTS[key];
+    const poolsOnChain = await getPoolsOnChain(chain, chainId, alias);
+    for (const pool of poolsOnChain) pools.push(pool);
+  }
   return pools;
 }
 
