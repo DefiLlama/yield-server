@@ -13,7 +13,7 @@ const CHAINS = {
 
 const gqlQueries = {
   vaultsData: gql`
-    query GetVaultsData($chainId: String!, $skip: Int!) {
+    query GetVaultsData($chainId: Int!, $skip: Int!) {
       vaults(first: 100, skip: $skip, where: { chainId_in: [$chainId] }) {
         pageInfo {
           hasNextPage
@@ -56,7 +56,7 @@ const apy = async () => {
     let skip = 0;
     while (true) {
       const { vaults } = await request(GRAPH_URL, gqlQueries.vaultsData, {
-        chainId: chainId.toString(),
+        chainId,
         skip,
       });
 
