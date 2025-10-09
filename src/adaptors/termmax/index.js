@@ -445,7 +445,7 @@ async function getPoolsOnChain(chain, chainId, alias) {
   ]);
 
   const tasks = [];
-  for (const key of Object.keys(VAULTS)) {
+  {
     const task1 = async () => {
       const v1Pools = await getV1Pools({
         alias,
@@ -457,7 +457,8 @@ async function getPoolsOnChain(chain, chainId, alias) {
       for (const pool of v1Pools) poolsOnChain.push(pool);
     };
     tasks.push(task1());
-
+  }
+  {
     const task2 = async () => {
       const v2Pools = await getV2Pools({
         alias,
@@ -470,8 +471,8 @@ async function getPoolsOnChain(chain, chainId, alias) {
     };
     tasks.push(task2());
   }
-
   await Promise.all(tasks);
+
   return poolsOnChain;
 }
 
