@@ -158,52 +158,27 @@ async function getVaultsV1({ alias, chain, chainId, number, opportunities }) {
     sdk.api.abi.multiCall({
       chain,
       calls,
-      abi: {
-        name: 'apr',
-        type: 'function',
-        inputs: [],
-        outputs: [{ type: 'uint256' }],
-      },
+      abi: 'uint256:apr',
     }),
     sdk.api.abi.multiCall({
       chain,
       calls,
-      abi: {
-        name: 'asset',
-        type: 'function',
-        inputs: [],
-        outputs: [{ type: 'address' }],
-      },
+      abi: 'address:asset',
     }),
     sdk.api.abi.multiCall({
       chain,
       calls,
-      abi: {
-        name: 'decimals',
-        type: 'function',
-        inputs: [],
-        outputs: [{ type: 'uint8' }],
-      },
+      abi: 'uint8:decimals',
     }),
     sdk.api.abi.multiCall({
       chain,
       calls,
-      abi: {
-        name: 'name',
-        type: 'function',
-        inputs: [],
-        outputs: [{ type: 'string' }],
-      },
+      abi: 'string:name',
     }),
     sdk.api.abi.multiCall({
       chain,
       calls,
-      abi: {
-        name: 'totalAssets',
-        type: 'function',
-        inputs: [],
-        outputs: [{ type: 'uint256' }],
-      },
+      abi: 'uint256:totalAssets',
     }),
   ]);
 
@@ -211,12 +186,7 @@ async function getVaultsV1({ alias, chain, chainId, number, opportunities }) {
     sdk.api.abi.multiCall({
       chain,
       calls: assets.output.map((a) => ({ target: a.output })),
-      abi: {
-        name: 'name',
-        type: 'function',
-        inputs: [],
-        outputs: [{ type: 'string' }],
-      },
+      abi: 'string:name',
     }),
     getPrices(
       chain,
@@ -318,52 +288,27 @@ async function getVaultV2({ alias, chain, chainId, number, opportunities }) {
     sdk.api.abi.multiCall({
       chain,
       calls,
-      abi: {
-        name: 'apy',
-        type: 'function',
-        inputs: [],
-        outputs: [{ type: 'uint256' }],
-      },
+      abi: 'uint256:apy',
     }),
     sdk.api.abi.multiCall({
       chain,
       calls,
-      abi: {
-        name: 'asset',
-        type: 'function',
-        inputs: [],
-        outputs: [{ type: 'address' }],
-      },
+      abi: 'address:asset',
     }),
     sdk.api.abi.multiCall({
       chain,
       calls,
-      abi: {
-        name: 'decimals',
-        type: 'function',
-        inputs: [],
-        outputs: [{ type: 'uint8' }],
-      },
+      abi: 'uint8:decimals',
     }),
     sdk.api.abi.multiCall({
       chain,
       calls,
-      abi: {
-        name: 'name',
-        type: 'function',
-        inputs: [],
-        outputs: [{ type: 'string' }],
-      },
+      abi: 'string:name',
     }),
     sdk.api.abi.multiCall({
       chain,
       calls,
-      abi: {
-        name: 'totalAssets',
-        type: 'function',
-        inputs: [],
-        outputs: [{ type: 'uint256' }],
-      },
+      abi: 'uint256:totalAssets',
     }),
   ]);
 
@@ -371,12 +316,7 @@ async function getVaultV2({ alias, chain, chainId, number, opportunities }) {
     sdk.api.abi.multiCall({
       chain,
       calls: assets.output.map((a) => ({ target: a.output })),
-      abi: {
-        name: 'name',
-        type: 'function',
-        inputs: [],
-        outputs: [{ type: 'string' }],
-      },
+      abi: 'string:name',
     }),
     getPrices(
       chain,
