@@ -3,6 +3,8 @@ const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 const { Interface } = require('ethers/lib/utils');
 
+const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
+
 const EVENTS = {
   V1: {
     CreateVault:
@@ -277,6 +279,130 @@ async function getVaultV2Addresses(chain, blockNumber) {
   return addresses;
 }
 
+async function getAaveVaultEffectiveApy({
+  aavePool,
+  apy,
+  assetAddress,
+  chain,
+  poolAddress,
+  vaultAddress,
+}) {
+  const aToken = await sdk.api.abi
+    .call({
+      target: poolAddress,
+      abi: 'address:aToken',
+      chain,
+    })
+    .then((r) => r.output)
+    .catch(() => NULL_ADDRESS);
+  if (aToken === NULL_ADDRESS) return apy;
+
+  const [assetsInThirdPool, idle] = await Promise.all([
+    sdk.api.abi
+      .call({
+        target: aToken,
+        abi: {
+          inputs: [{ type: 'address' }],
+          name: 'balanceOf',
+          outputs: [{ type: 'uint256' }],
+        },
+        params: [poolAddress],
+        chain,
+      })
+      .then((r) => r.output),
+    sdk.api.abi
+      .call({
+        target: assetAddress,
+        abi: {
+          inputs: [{ type: 'address' }],
+          name: 'balanceOf',
+          outputs: [{ type: 'uint256' }],
+        },
+        params: [poolAddress],
+        chain,
+      })
+      .then((r) => r.output),
+  ]);
+
+  const idleFund = new BigNumber(assetsInThirdPool).plus(idle);
+  if (idleFund.isZero()) return apy;
+
+  const passiveRatio = new BigNumber(assetsInThirdPool).div(idleFund);
+
+  const currentLiquidityRate = await sdk.api.abi
+    .call({
+      target: aavePool,
+      abi: {
+        inputs: [{ type: 'address' }],
+        name: 'getReserveData',
+        outputs: [
+          {
+            components: [
+              {
+                components: [{ type: 'uint256', name: 'data' }],
+                name: 'configuration',
+                type: 'tuple',
+              },
+              { type: 'uint128', name: 'liquidityIndex' },
+              { type: 'uint128', name: 'currentLiquidityRate' },
+              { type: 'uint128', name: 'variableBorrowIndex' },
+              { type: 'uint128', name: 'currentVariableBorrowRate' },
+              { type: 'uint128', name: 'currentStableBorrowRate' },
+              { type: 'uint40', name: 'lastUpdateTimestamp' },
+              { type: 'uint16', name: 'id' },
+              { type: 'address', name: 'aTokenAddress' },
+              { type: 'address', name: 'stableDebtTokenAddress' },
+              { type: 'address', name: 'variableDebtTokenAddress' },
+              { type: 'address', name: 'interestRateStrategyAddress' },
+              { type: 'uint128', name: 'accruedToTreasury' },
+              { type: 'uint128', name: 'unbacked' },
+              { type: 'uint128', name: 'isolationModeTotalDebt' },
+            ],
+            name: 'res',
+            type: 'tuple',
+          },
+        ],
+      },
+      params: [assetAddress],
+      chain,
+    })
+    .then((r) => r.output.currentLiquidityRate);
+
+  const passiveApy = new BigNumber(currentLiquidityRate).div(
+    new BigNumber(10).pow(27)
+  );
+  return new BigNumber(apy).plus(passiveApy.times(passiveRatio)).toNumber();
+}
+
+async function getVaultEffectiveApy({
+  apy,
+  assetAddress,
+  chain,
+  chainId,
+  poolAddress,
+  vaultAddress,
+}) {
+  const aavePool = await sdk.api.abi
+    .call({
+      target: poolAddress,
+      abi: 'address:aavePool',
+      chain,
+    })
+    .then((r) => r.output)
+    .catch(() => NULL_ADDRESS);
+  if (aavePool !== NULL_ADDRESS)
+    return await getAaveVaultEffectiveApy({
+      apy,
+      assetAddress,
+      chain,
+      poolAddress,
+      vaultAddress,
+      aavePool,
+    });
+
+  return apy;
+}
+
 async function getVaultV2({ alias, chain, chainId, number, opportunities }) {
   const vaults = [];
 
@@ -284,33 +410,39 @@ async function getVaultV2({ alias, chain, chainId, number, opportunities }) {
     addresses.filter((a) => !VAULT_BLACKLIST[chain].includes(a))
   );
   const calls = addresses.map((target) => ({ target }));
-  const [apys, assets, decimalses, names, totalAssetses] = await Promise.all([
-    sdk.api.abi.multiCall({
-      chain,
-      calls,
-      abi: 'uint256:apy',
-    }),
-    sdk.api.abi.multiCall({
-      chain,
-      calls,
-      abi: 'address:asset',
-    }),
-    sdk.api.abi.multiCall({
-      chain,
-      calls,
-      abi: 'uint8:decimals',
-    }),
-    sdk.api.abi.multiCall({
-      chain,
-      calls,
-      abi: 'string:name',
-    }),
-    sdk.api.abi.multiCall({
-      chain,
-      calls,
-      abi: 'uint256:totalAssets',
-    }),
-  ]);
+  const [apys, assets, decimalses, names, totalAssetses, pools] =
+    await Promise.all([
+      sdk.api.abi.multiCall({
+        chain,
+        calls,
+        abi: 'uint256:apy',
+      }),
+      sdk.api.abi.multiCall({
+        chain,
+        calls,
+        abi: 'address:asset',
+      }),
+      sdk.api.abi.multiCall({
+        chain,
+        calls,
+        abi: 'uint8:decimals',
+      }),
+      sdk.api.abi.multiCall({
+        chain,
+        calls,
+        abi: 'string:name',
+      }),
+      sdk.api.abi.multiCall({
+        chain,
+        calls,
+        abi: 'uint256:totalAssets',
+      }),
+      sdk.api.abi.multiCall({
+        chain,
+        calls,
+        abi: 'address:pool',
+      }),
+    ]);
 
   const [assetNames, priceMap] = await Promise.all([
     sdk.api.abi.multiCall({
@@ -328,9 +460,19 @@ async function getVaultV2({ alias, chain, chainId, number, opportunities }) {
     const address = addresses[i];
     const assetAddress = assets.output[i].output;
 
-    const readableApy = new BigNumber(apys.output[i].output)
+    let apy = new BigNumber(apys.output[i].output)
       .div(new BigNumber(10).pow(8))
       .toNumber();
+    if (pools.output[i].output !== NULL_ADDRESS) {
+      apy = await getVaultEffectiveApy({
+        apy,
+        assetAddress,
+        chain,
+        chainId,
+        poolAddress: pools.output[i].output,
+        vaultAddress: address,
+      });
+    }
     const tvlUsd = new BigNumber(totalAssetses.output[i].output)
       .div(new BigNumber(10).pow(decimalses.output[i].output))
       .times(priceMap.get(assetAddress) || 0)
@@ -347,7 +489,7 @@ async function getVaultV2({ alias, chain, chainId, number, opportunities }) {
       project: 'termmax',
       symbol: assetNames.output[i].output,
       tvlUsd,
-      apyBase: readableApy,
+      apyBase: apy,
       url: String(url),
       underlyingTokens: [assetAddress],
       poolMeta: names.output[i].output,
@@ -385,7 +527,7 @@ async function getVaultsOnChain(chain, chainId, alias) {
 
   const tasks = [];
   {
-    const task1 = async () => {
+    const taskV1 = async () => {
       const vaultsV1 = await getVaultsV1({
         alias,
         chain,
@@ -395,10 +537,10 @@ async function getVaultsOnChain(chain, chainId, alias) {
       });
       for (const vault of vaultsV1) vaultsOnChain.push(vault);
     };
-    tasks.push(task1());
+    tasks.push(taskV1());
   }
   {
-    const task2 = async () => {
+    const taskV2 = async () => {
       const vaultsV2 = await getVaultV2({
         alias,
         chain,
@@ -408,7 +550,7 @@ async function getVaultsOnChain(chain, chainId, alias) {
       });
       for (const vault of vaultsV2) vaultsOnChain.push(vault);
     };
-    tasks.push(task2());
+    tasks.push(taskV2());
   }
   await Promise.all(tasks);
 
@@ -417,11 +559,16 @@ async function getVaultsOnChain(chain, chainId, alias) {
 
 async function apy() {
   const vaults = [];
+  const tasks = [];
   for (const key of Object.keys(VAULTS)) {
-    const { alias, chain, chainId } = VAULTS[key];
-    const vaultsOnChain = await getVaultsOnChain(chain, chainId, alias);
-    for (const vault of vaultsOnChain) vaults.push(vault);
+    const task = async () => {
+      const { alias, chain, chainId } = VAULTS[key];
+      const vaultsOnChain = await getVaultsOnChain(chain, chainId, alias);
+      for (const vault of vaultsOnChain) vaults.push(vault);
+    };
+    tasks.push(task());
   }
+  await Promise.all(tasks);
   return vaults;
 }
 
