@@ -37,6 +37,9 @@ const gqlQueries = {
           }
           state {
             totalAssetsUsd
+            weeklyApr {
+              linearNetAprWithoutExtraYields
+            }
           }
         }
       }
