@@ -114,6 +114,45 @@ const HubPools = {
         poolAddress: '0x13A21bC65844CD530098Ab15431c57078ea90737',
         tokenAddress: '0x2cd3CdB3bd68Eea0d3BE81DA707bC0c8743D7335',
       },
+      {
+        // USDe_ava
+        id: 55,
+        underlyingSymbol: 'USDe',
+        poolAddress: '0x5431e7f480C4985e9C3FaAcd3Bd1fc7143eAdEFa',
+        tokenAddress: '0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34',
+        spokeAddress: '0x07C911b5a1657126B14C25e697E3d00f3a134A23',
+      },
+      {
+        // sUSDe_ava
+        id: 56,
+        underlyingSymbol: 'sUSDe',
+        poolAddress: '0x94307E63eF02Cf9B39894553f14b21378Ef20adB',
+        tokenAddress: '0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2',
+        spokeAddress: '0x1C7EC7198F297119D4e9f359d91127c8B2f9A9D2',
+      },
+      {
+        // EURC_ava
+        id: 57,
+        underlyingSymbol: 'EURC',
+        poolAddress: '0x3F87F3B301f031ba59C479EDF067621DcC72DDca',
+        tokenAddress: '0xc891eb4cbdeff6e073e859e987815ed1505c2acd',
+        spokeAddress: '0xe47285cc79A8de62DFaED52Abe919B87973294C8',
+      },
+      {
+        // tETH
+        id: 58,
+        underlyingSymbol: 'tETH',
+        poolAddress: '0x5FE123B659FC5242f46884C37550F05Ef08C816a',
+        tokenAddress: '0xd09ACb80C1E8f2291862c4978A008791c9167003',
+      },
+      {
+        // tAVAX
+        id: 59,
+        underlyingSymbol: 'tAVAX',
+        poolAddress: '0x3F63A6401e6354a486e6a38127409fD16e222B59',
+        tokenAddress: '0x14A84F1a61cCd7D1BE596A6cc11FE33A36Bc1646',
+        spokeAddress: '0x0aeE2B84bd3E280CFcc9325917bFA0Bb20F3cdC6',
+      },
     ],
   },
   ethereum: {
@@ -123,6 +162,7 @@ const HubPools = {
       // excluding SolvBTC because bridged
       // excluding SHIB because bridged
       // excluding YBTCB because bridged
+      // excluding tETH because bridged
       {
         // ETH_eth
         id: 4,

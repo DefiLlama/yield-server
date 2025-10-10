@@ -242,7 +242,8 @@ async function fetchEchelonForChain(chain) {
       chain: utils.formatChain(chain),
       project: 'echelon-market',
       apyBase: ((lendingSupplyApr) ?? 0) * 100,
-      apyReward: ((farmingAPTApr ?? 0) + (farmingTHAPTApr ?? 0) + (farmingEsINITApr ?? 0) + (stakingSupplyApr ?? 0)) * 100,
+      // exclude intrinsic yield from susde
+      apyReward: ((farmingAPTApr ?? 0) + (farmingTHAPTApr ?? 0) + (farmingEsINITApr ?? 0) + (market.symbol.toLowerCase() === 'susde' ? 0 : stakingSupplyApr ?? 0)) * 100,
       apyBaseBorrow: (lendingBorrowApr ?? 0) * 100,
       apyRewardBorrow: ((farmingEsINITBorrowApr ?? 0) + (farmingAPTAprBorrow ?? 0) + (farmingTHAPTAprBorrow ?? 0)) * 100,
       totalSupplyUsd,

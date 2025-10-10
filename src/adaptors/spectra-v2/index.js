@@ -57,6 +57,12 @@ const chains = {
     slug: 'hyperevm',
     urlSlug: "hyperevm",
     SPECTRA: "0x6bd93ee39bcc7b9baba122c2ba65246e4347bbf9"
+  },
+  747474: {
+    name: 'katana',
+    slug: 'katana',
+    urlSlug: "katana",
+    SPECTRA: "0xb77f1a8cb126d8567f226f990f84e2f698cc30f8"
   }
 };
 
