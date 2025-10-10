@@ -79,7 +79,7 @@ function overlapSec(a0, a1, b0, b1) {
   return Math.max(0, Math.min(a1, b1) - Math.max(a0, b0));
 }
 
-export function normalizePeriodStrategies(periods, nowSec) {
+function normalizePeriodStrategies(periods, nowSec) {
   const sorted = [...periods].sort((a, b) => Number(a.periodNumber) - Number(b.periodNumber));
 
   const out = [];
@@ -102,7 +102,7 @@ export function normalizePeriodStrategies(periods, nowSec) {
   return out;
 }
 
-export function estimateTrailing24hFees(
+function estimateTrailing24hFees(
   periods,
   nowSec,
   token0Decimals,
@@ -181,7 +181,7 @@ function calculateLatestStrategyAPY(params) {
 /**
  * Calculate APY from accumulated fees and window data
  */
-export function calculate24hAveragedAPY(
+function calculate24hAveragedAPY(
   totalFees0,
   totalFees1,
   actualWindowSeconds,
