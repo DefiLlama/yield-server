@@ -14,7 +14,11 @@ const CHAINS = {
 const gqlQueries = {
   vaultsData: gql`
     query GetVaultsData($chainId: Int!, $skip: Int!) {
-      vaults(first: 100, skip: $skip, where: { chainId_in: [$chainId] }) {
+      vaults(
+        first: 100
+        skip: $skip
+        where: { chainId_in: [$chainId], isVisible_eq: true }
+      ) {
         pageInfo {
           hasNextPage
         }
@@ -32,7 +36,6 @@ const gqlQueries = {
             symbol
           }
           state {
-            totalAssets
             totalAssetsUsd
             weeklyApr {
               linearNetAprWithoutExtraYields
@@ -65,8 +68,11 @@ const apy = async () => {
       skip += 100;
     }
     const _pools = allVaults.map((vault) => {
-      const apyReward = vault.state.weeklyApr.incentives.apr || 0;
-
+      const apyReward =
+        vault.state.weeklyApr.incentives.reduce(
+          (acc, curr) => acc + curr.apr,
+          0
+        ) || 0;
       return {
         pool: `lagoon-${vault.address}-${chain}`,
         chain,
@@ -81,6 +87,7 @@ const apy = async () => {
     });
     pools = pools.concat(_pools);
   }
+
   return pools;
 };
 
