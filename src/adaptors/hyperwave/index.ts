@@ -4,7 +4,7 @@
  * accountants to fetch financial metrics across Ethereum and Hyperliquid chains.
  *
  * @author maybeYonas
- * @version 1.1.0
+ * @version 1.1.1
  */
 
 const utils = require("../utils");
