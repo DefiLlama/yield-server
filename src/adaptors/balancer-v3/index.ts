@@ -38,7 +38,9 @@ const getV3Pools = async (backendChain, chainString) => {
       const aprItems = pool.dynamicData.aprItems || [];
 
       const baseApr = aprItems
-        .filter((item) => item.type === 'SWAP_FEE' || item.type === 'IB_YIELD')
+        .filter(
+          (item) => item.type === 'IB_YIELD' || item.type === 'SWAP_FEE_24H'
+        )
         .reduce((sum, item) => sum + Number(item.apr), 0);
 
       const stakingApr = aprItems
@@ -86,6 +88,7 @@ const poolsFunction = async () => {
     avalanchePools,
     basePools,
     hyperliquidPools,
+    plasmaPools,
   ] = await Promise.all([
     getV3Pools('MAINNET', 'ethereum'),
     getV3Pools('GNOSIS', 'xdai'),
@@ -94,6 +97,7 @@ const poolsFunction = async () => {
     getV3Pools('AVALANCHE', 'avax'),
     getV3Pools('BASE', 'base'),
     getV3Pools('HYPEREVM', 'hyperliquid'),
+    getV3Pools('PLASMA', 'plasma'),
   ]);
 
   return [
@@ -104,6 +108,7 @@ const poolsFunction = async () => {
     ...avalanchePools,
     ...basePools,
     ...hyperliquidPools,
+    ...plasmaPools,
   ];
 };
 

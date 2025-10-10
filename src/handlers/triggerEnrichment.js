@@ -108,6 +108,7 @@ const main = async () => {
   if (!stablecoins.includes('more')) stablecoins.push('more');
   if (!stablecoins.includes('ustb')) stablecoins.push('ustb');
   if (!stablecoins.includes('usdn')) stablecoins.push('usdn');
+  if (!stablecoins.includes('aiusd')) stablecoins.push('aiusd');
 
   // get catgory data (we hardcode IL to true for options protocols)
   const config = (
@@ -406,7 +407,7 @@ const checkStablecoin = (el, stablecoins) => {
     tokens.some((t) => t.includes('emaid')) ||
     tokens.some((t) => t.includes('grail')) ||
     tokens.some((t) => t.includes('oxai')) ||
-    tokens.some((t) => t.includes('crv')) ||
+    tokens.some((t) => t.includes('crv') && !t.includes('crvusd')) ||
     tokens.some((t) => t.includes('wbai')) ||
     tokens.some((t) => t.includes('move'))
   ) {

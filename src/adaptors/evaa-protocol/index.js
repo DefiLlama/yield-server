@@ -325,7 +325,8 @@ function parseMasterData(masterDataBOC, assets) {
       },
       tokenKeys: loadMaybeMyRef(masterConfigSlice),
   };
-  masterConfigSlice.endParse();
+  // dont call endParse() here: contract may append fields later
+  // only parse the fields we need and ignore any trailing data
 
   for (const [_, assetId] of Object.entries(ASSETS_ID)) {
     const assetData = assetsExtendedData.get(assetId);

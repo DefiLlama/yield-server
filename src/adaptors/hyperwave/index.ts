@@ -141,14 +141,6 @@ const calculateAPR = async (config: AssetConfig, currentRate: number) => {
   const { chain, accountant, decimals } = config;
   const scalingFactor = 10 ** decimals;
 
-  // if (chain === "hyperliquid") {
-  //   console.log("Setting provider for hyperliquid");
-  //   sdk.api.config.setProvider(
-  //     "hyperliquid",
-  //     new ethers.providers.JsonRpcProvider("https://rpc.hyperlend.finance"),
-  //   );
-  // }
-
   const now = Math.floor(Date.now() / 1000);
   const timestamp1dayAgo = now - 86400;
   const timestamp7dayAgo = now - 86400 * 7;
