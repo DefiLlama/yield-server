@@ -3,17 +3,14 @@ const utils = require("../utils");
 const AFFLUENT_MULTIPLY_VAULT_API_URL = "https://api.affluent.org/v2/api/strategyvaults";
 const AFFLUENT_LENDING_VAULT_API_URL = "https://api.affluent.org/v2/api/sharevaults";
 const AFFLUENT_ASSETS_API_URL = "https://api.affluent.org/v2/api/assets";
-const AFFLUENT_METADATA_API_URL = "https://api.factorial.finance/info/metadata"
 
 const nowSec = () => Math.floor(Date.now() / 1000);
 
 const getAPY = async () => {
     try {
-        const assetMap = await getAssetMap();
-
         const [strategy, share] = await Promise.all([
-            getStrategyVaultsMapped(assetMap),
-            getShareVaultsMapped(assetMap),
+            getStrategyVaultsMapped(),
+            getShareVaultsMapped(),
         ]);
 
         const merged = [...strategy, ...share];
@@ -24,7 +21,7 @@ const getAPY = async () => {
     }
 };
 
-async function getStrategyVaultsMapped(assetMap) {
+async function getStrategyVaultsMapped() {
     const res = await fetch(AFFLUENT_MULTIPLY_VAULT_API_URL);
     if (!res.ok) {
         throw new Error(`Strategy API error: HTTP ${res.status} ${res.statusText}`);
@@ -36,15 +33,9 @@ async function getStrategyVaultsMapped(assetMap) {
     }
 
     return data.map((v) => {
-        const assetKeys = Object.keys(v.assets || {});
-        const assetSymbols = assetKeys
-            .map((addr) => assetMap[addr] || addr)
-            .sort((a, b) => a.localeCompare(b));
-        const assetSymbolString = assetSymbols.join("-");
-
         return mapToOutput({
             address: v.address,
-            symbol: assetSymbolString,
+            symbol: v.name,
             tvl: v.tvl,
             netApy: v.netApy,
         });
@@ -75,7 +66,7 @@ async function getShareVaultPoint(address, ts = nowSec()) {
     return Array.isArray(arr) && arr[0] ? arr[0] : null;
 }
 
-async function getShareVaultsMapped(assetMap) {
+async function getShareVaultsMapped() {
     const list = await getShareVaultList();
     const ts = nowSec();
 
@@ -85,11 +76,9 @@ async function getShareVaultsMapped(assetMap) {
             const netApy = typeof p?.apy === "number" ? p.apy : undefined;
             const tvl = p?.tvl;
 
-            const underlyingSymbol = v?.underlying ? (assetMap[v.underlying] || v.underlying) : undefined;
-
             return mapToOutput({
                 address: v.address,
-                symbol: underlyingSymbol,
+                symbol: v.name,
                 tvl,
                 netApy,
             });
@@ -106,31 +95,6 @@ async function getShareVaultsMapped(assetMap) {
             netApy: undefined,
         });
     });
-}
-
-async function getAssetMap() {
-    const res = await fetch(AFFLUENT_ASSETS_API_URL);
-    if (!res.ok) {
-        throw new Error(`Asset API error: HTTP ${res.status} ${res.statusText}`);
-    }
-
-    const data = await res.json();
-    if (!Array.isArray(data)) {
-        throw new Error("Asset: Unexpected response shape (not an array)");
-    }
-
-    const map = {};
-    for (const item of data) {
-        let symbol = item.symbol;
-
-        if (symbol === "FactorialTON") {
-            symbol = "TON";
-        }
-
-        map[item.address] = symbol;
-    }
-
-    return map;
 }
 
 module.exports = {
