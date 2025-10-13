@@ -407,7 +407,7 @@ const checkStablecoin = (el, stablecoins) => {
     tokens.some((t) => t.includes('emaid')) ||
     tokens.some((t) => t.includes('grail')) ||
     tokens.some((t) => t.includes('oxai')) ||
-    tokens.some((t) => t.includes('crv')) ||
+    tokens.some((t) => t.includes('crv') && !t.includes('crvusd')) ||
     tokens.some((t) => t.includes('wbai')) ||
     tokens.some((t) => t.includes('move'))
   ) {

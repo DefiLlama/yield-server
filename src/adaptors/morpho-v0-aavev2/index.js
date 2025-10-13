@@ -3,7 +3,9 @@ const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
 
-const subgraphMorphoAave = sdk.graph.modifyEndpoint('FKVL7B5yEHvz1GKB9hFpwp64YLN5KXS27aWpQLngyECx');
+const subgraphMorphoAave = sdk.graph.modifyEndpoint(
+  'FKVL7B5yEHvz1GKB9hFpwp64YLN5KXS27aWpQLngyECx'
+);
 
 const SECONDS_PER_YEAR = 3600 * 24 * 365;
 const usdcToken = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
@@ -124,7 +126,7 @@ const apy = async () => {
     return {
       pool: `morpho-aave-${marketFromGraph.token.address}`,
       chain: 'ethereum',
-      project: 'morpho-aave',
+      project: 'morpho-v0-aavev2',
       symbol: utils.formatSymbol(marketFromGraph.token.symbol),
       apyBase: avgSupplyAPY,
       tvlUsd: totalSupplyUsd,
