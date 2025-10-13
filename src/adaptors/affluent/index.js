@@ -3,6 +3,7 @@ const utils = require("../utils");
 const AFFLUENT_MULTIPLY_VAULT_API_URL = "https://api.affluent.org/v2/api/strategyvaults";
 const AFFLUENT_LENDING_VAULT_API_URL = "https://api.affluent.org/v2/api/sharevaults";
 const AFFLUENT_ASSETS_API_URL = "https://api.affluent.org/v2/api/assets";
+const AFFLUENT_METADATA_API_URL = "https://api.factorial.finance/info/metadata"
 
 const nowSec = () => Math.floor(Date.now() / 1000);
 
@@ -151,8 +152,9 @@ function mapToOutput({ address, symbol, tvl, netApy }) {
     const pool = `${address}-TON`;
     const project = "affluent";
     const apyBase = netApy;
+    const vaultUrl = `https://app.affluent.org/earn/${address}`;
 
-    return {
+    const output = {
         pool,
         chain: "TON",
         project,
@@ -160,4 +162,14 @@ function mapToOutput({ address, symbol, tvl, netApy }) {
         tvlUsd: toNumberOr0(tvl),
         ...(apyBase !== undefined ? { apyBase } : {}),
     };
+
+    if (!hiddenVaultUrlWhitelist.includes(address)) {
+        output.url = vaultUrl;
+    }
+
+    return output;
 }
+
+const hiddenVaultUrlWhitelist = [
+    "EQD3F7Ex_uxBjxEub8FgeDoYYUSIbAUVyehCb_JSiCVL369T",
+];
