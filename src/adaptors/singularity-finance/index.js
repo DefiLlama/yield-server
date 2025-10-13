@@ -13,11 +13,12 @@ async function getApy() {
   })).output;
 
   const batchSize = 100;
+
   let results = [];
 
   for (let i = 0; i < numberOfVaults; i += batchSize) {
     const dynaVaults = (await sdk.api.abi.call({
-      abi: 'function getVaults(uint256 offset, uint256 size) view returns (tuple(address vault, uint8 VaultType, bool active)[] memory)',
+      abi: 'function getVaults(uint256 offset, uint256 size) view returns (tuple(address vault, uint8 vaultType, bool active)[] memory)',
       target: baseVaultRegistry,
       chain: "base",
       params: [
@@ -26,9 +27,11 @@ async function getApy() {
       ],
     })).output;
 
-    const vaultInfos = await multiGetERC4626Infos(dynaVaults.map(vault => vault.vault), "base");
+    // vault type: 3 = beta, 4 = production
+    const activeVaultsInProdOrBeta = dynaVaults.filter(vault => vault.active && (vault.vaultType == 3 || vault.vaultType == 4));
+    const vaultInfos = await multiGetERC4626Infos(activeVaultsInProdOrBeta.map(vault => vault.vault), "base");
 
-    const subResults = await Promise.all(dynaVaults.filter(vault => vault.active).map(async (vault, index) => {
+    const subResults = await Promise.all(activeVaultsInProdOrBeta.map(async (vault, index) => {
       const referenceAssetAddress = (await sdk.api.abi.call({
         abi: 'function referenceAsset() view returns (address)',
         target: vault.vault,
@@ -61,11 +64,11 @@ async function getApy() {
         symbol: utils.formatSymbol(referenceAssetSymbol),
         tvlUsd: tvlUsd / 10 ** USDC.decimals,
         apyBase,
-        url: `https://singularityfinance.ai/vaults/${vault.vault}`,
+        url: `https://singularityfinance.ai/vaults/${vault.vault}:8453`,
       };
     }));
 
-    results.push(...subResults);
+    if (subResults != []) results.push(...subResults);
   }
 
   return results;
