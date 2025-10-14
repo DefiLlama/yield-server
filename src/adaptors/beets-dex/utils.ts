@@ -27,7 +27,7 @@ const query = gql`
   }
 `;
 
-export const getPools = async (backendChain, chainString, version) => {
+const getPools = async (backendChain, chainString, version) => {
   try {
     const { poolGetPools } = await request(
       'https://backend-v3.beets-ftm-node.com/graphql',
@@ -88,3 +88,5 @@ export const getPools = async (backendChain, chainString, version) => {
     return [];
   }
 };
+
+module.exports = { getPools };
