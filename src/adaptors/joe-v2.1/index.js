@@ -3,7 +3,7 @@ const utils = require('../utils');
 
 const apy = async () => {
   const pools = await Promise.all(
-    ['avalanche', 'arbitrum', 'ethereum', 'mantle'].map(async (chain) => {
+    ['avalanche', 'arbitrum', 'ethereum'].map(async (chain) => {
       const apiUrl = `https://api.lfj.dev/v1/pools/${chain}?filterBy=1d&orderBy=volume&pageNum=1&pageSize=100&status=main`;
 
       const pools = (
