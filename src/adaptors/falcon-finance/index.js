@@ -1,10 +1,14 @@
 const sdk = require('@defillama/sdk')
 const axios = require('axios')
 const utils = require('../utils')
+const { apyBase } = require('../barnbridge/numbers')
 
 const CHAIN = 'ethereum'
 const SUSDf = '0xc8CF6D7991f15525488b2A83Df53468D682Ba4B0'  // sUSDf (ERC-4626)
 const USDf  = '0xFa2B947eEc368f42195f24F36d2aF29f7c24CeC2'
+
+const FF = '0xFA1C09fC8B491B6A4d3Ff53A10CAd29381b3F949'
+const sFF = '0x1a0c3ffcbd101c6f2f6650ded9964c4a568c4d72'
 
 const abi = {
   convertToAssets: { "inputs":[{"internalType":"uint256","name":"shares","type":"uint256"}],"name":"convertToAssets","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function" },
@@ -19,9 +23,9 @@ async function getBlockAt(ts, chain = CHAIN) {
   return { block: data.height || data.number, ts: data.timestamp || ts }
 }
 
-async function readRate(blockTag) {
+async function readRate(blockTag, vault) {
   const { output } = await sdk.api.abi.call({
-    target: SUSDf,
+    target: vault,
     abi: abi.convertToAssets,
     params: [SHARES.toString()],
     chain: CHAIN,
@@ -43,7 +47,7 @@ function ratioToDaily(rNow, rPrev, secondsBigOrNum) {
   return daily
 }
 
-async function computeApyBase() {
+async function computeApyBase(vault) {
   const nowTs = Math.floor(Date.now() / 1000)
   const WEEK = [86400 * 7]
 
@@ -51,7 +55,7 @@ async function computeApyBase() {
     getBlockAt(nowTs),
     getBlockAt(nowTs - WEEK),
   ])
-  const [rNow, rPast] = await Promise.all([readRate(bNow), readRate(bPast)])
+  const [rNow, rPast] = await Promise.all([readRate(bNow, vault), readRate(bPast, vault)])
   if (rNow !== 0n && rPast !== 0n && rNow !== rPast) {
     const daily = ratioToDaily(rNow, rPast, Math.max(1, tNow - tPast))
     if (daily) {
@@ -64,42 +68,58 @@ async function computeApyBase() {
   return { apyBase: 0 }
 }
 
-async function apy() {
-  const { block: currentBlock } = await getBlockAt(Math.floor(Date.now() / 1000))
-
+async function getData(vault, underlying) {
   const { output: totalAssetsBn } = await sdk.api.abi.call({
-    target: SUSDf,
+    target: vault,
     abi: abi.totalAssets,
     chain: CHAIN,
-    block: currentBlock,
   })
-  
-  const priceKeyU = `ethereum:${USDf}`
+
+  const priceKey = `${CHAIN}:${underlying}`
   let price = 1
   try {
-    const { data } = await axios.get(`https://coins.llama.fi/prices/current/${priceKeyU}`)
-    price = data.coins?.[priceKeyU]?.price ?? 1
+    const { data } = await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
+    price = data.coins?.[priceKey]?.price ?? 1
   } catch (_) {}
-  
-  const tvlUsd = Number(totalAssetsBn) / 1e18 * price
 
-  const { apyBase } = await computeApyBase()
+  const tvlUsd = (Number(totalAssetsBn) / 1e18) * price
+  const apyBase = await computeApyBase(vault)
+
+  return { tvlUsd, apyBase }
+}
+
+async function apy() {
+  const [sUSDfData, sFFData] = await Promise.all([
+    getData(SUSDf, USDf),
+    getData(sFF,   FF),
+  ])
+  
 
   return [{
-    pool: `${SUSDf}-${CHAIN}`,
+    pool: `${sFF}-${CHAIN}`,
+    chain: 'Ethereum',
+    project: 'falcon-finance',
+    symbol: "sFF",
+    tvlUsd: sFFData.tvlUsd,
+    apyBase: sFFData.apyBase,
+    underlyingTokens: [FF],
+    poolMeta: 'ERC-4626: FF → sFF',
+    url: 'https://app.falcon.finance/earn/classic',
+  },
+  { pool: `${SUSDf}-${CHAIN}`,
     chain: 'Ethereum',
     project: 'falcon-finance',
     symbol: "sUSDf",
-    tvlUsd,
-    apyBase,
+    tvlUsd: sUSDfData.tvlUsd,
+    apyBase: sUSDfData.apyBase,
     underlyingTokens: [USDf],
     poolMeta: 'ERC-4626: USDf → sUSDf',
-    url: 'https://app.falcon.finance/earn',
+    url: 'https://app.falcon.finance/earn/classic',
   }]
 }
 
 module.exports = {
   timetravel: false,
   apy,
-  url: 'https://app.falcon.finance/earn',
+  url: 'https://app.falcon.finance/earn/classic',
 }
