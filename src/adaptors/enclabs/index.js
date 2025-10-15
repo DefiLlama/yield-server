@@ -118,4 +118,5 @@ async function main() {
 module.exports = {
   timetravel: false,
   apy: main,
+  url: 'https://www.enclabs.finance',
 };
