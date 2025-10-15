@@ -8,9 +8,11 @@ const nowSec = () => Math.floor(Date.now() / 1000);
 
 const getAPY = async () => {
     try {
+        const assetMap = await getAssetMap();
+
         const [strategy, share] = await Promise.all([
-            getStrategyVaultsMapped(),
-            getShareVaultsMapped(),
+            getStrategyVaultsMapped(assetMap),
+            getShareVaultsMapped(assetMap),
         ]);
 
         const merged = [...strategy, ...share];
@@ -21,7 +23,7 @@ const getAPY = async () => {
     }
 };
 
-async function getStrategyVaultsMapped() {
+async function getStrategyVaultsMapped(assetMap) {
     const res = await fetch(AFFLUENT_MULTIPLY_VAULT_API_URL);
     if (!res.ok) {
         throw new Error(`Strategy API error: HTTP ${res.status} ${res.statusText}`);
@@ -32,12 +34,20 @@ async function getStrategyVaultsMapped() {
         throw new Error("Strategy: Unexpected response shape (not an array)");
     }
 
+
     return data.map((v) => {
+        const assetKeys = Object.keys(v.assets || {});
+        const assetSymbols = assetKeys
+            .map((addr) => assetMap[addr] || addr)
+            .sort((a, b) => a.localeCompare(b));
+        const assetSymbolString = assetSymbols.join("-");
+
         return mapToOutput({
             address: v.address,
-            symbol: v.name,
+            symbol: assetSymbolString,
             tvl: v.tvl,
             netApy: v.netApy,
+            poolMeta: v.name,
         });
     });
 }
@@ -66,7 +76,7 @@ async function getShareVaultPoint(address, ts = nowSec()) {
     return Array.isArray(arr) && arr[0] ? arr[0] : null;
 }
 
-async function getShareVaultsMapped() {
+async function getShareVaultsMapped(assetMap) {
     const list = await getShareVaultList();
     const ts = nowSec();
 
@@ -76,11 +86,14 @@ async function getShareVaultsMapped() {
             const netApy = typeof p?.apy === "number" ? p.apy : undefined;
             const tvl = p?.tvl;
 
+            const underlyingSymbol = v?.underlying ? (assetMap[v.underlying] || v.underlying) : undefined;
+
             return mapToOutput({
                 address: v.address,
-                symbol: v.name,
+                symbol: underlyingSymbol,
                 tvl,
                 netApy,
+                poolMeta: v.name,
             });
         })
     );
@@ -90,11 +103,37 @@ async function getShareVaultsMapped() {
         const sv = list[i];
         return mapToOutput({
             address: sv.address,
-            symbol: sv?.symbol,
+            symbol: sv.symbol,
             tvl: 0,
             netApy: undefined,
+            poolMeta: sv.poolMeta,
         });
     });
+}
+
+async function getAssetMap() {
+    const res = await fetch(AFFLUENT_ASSETS_API_URL);
+    if (!res.ok) {
+        throw new Error(`Asset API error: HTTP ${res.status} ${res.statusText}`);
+    }
+
+    const data = await res.json();
+    if (!Array.isArray(data)) {
+        throw new Error("Asset: Unexpected response shape (not an array)");
+    }
+
+    const map = {};
+    for (const item of data) {
+        let symbol = item.symbol;
+
+        if (symbol === "FactorialTON") {
+            symbol = "TON";
+        }
+
+        map[item.address] = symbol;
+    }
+
+    return map;
 }
 
 module.exports = {
@@ -112,7 +151,7 @@ function toNumberOr0(v) {
     return 0;
 }
 
-function mapToOutput({ address, symbol, tvl, netApy }) {
+function mapToOutput({ address, symbol, tvl, netApy, poolMeta }) {
     const pool = `${address}-TON`;
     const project = "affluent";
     const apyBase = netApy;
@@ -122,7 +161,8 @@ function mapToOutput({ address, symbol, tvl, netApy }) {
         pool,
         chain: "TON",
         project,
-        symbol: String(symbol ?? ""),
+        symbol: symbol,
+        poolMeta: poolMeta,
         tvlUsd: toNumberOr0(tvl),
         ...(apyBase !== undefined ? { apyBase } : {}),
     };
