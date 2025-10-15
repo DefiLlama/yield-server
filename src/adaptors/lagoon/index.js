@@ -1,4 +1,4 @@
-import { request, gql } from 'graphql-request';
+const { request, gql } = require('graphql-request');
 
 const GRAPH_URL = 'https://api.lagoon.finance/query';
 const CHAINS = {
