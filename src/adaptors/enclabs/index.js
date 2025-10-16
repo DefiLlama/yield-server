@@ -14,11 +14,13 @@ const abi = {
   exchangeRateStored: "function exchangeRateStored() view returns (uint256)",
   totalBorrows: "function totalBorrows() view returns (uint256)",
   supplyRatePerBlock: "function supplyRatePerBlock() view returns (uint256)",
+  borrowRatePerBlock: "function borrowRatePerBlock() view returns (uint256)",
   getUnderlyingPrice: "function getUnderlyingPrice(address cToken) view returns (uint256)",
   underlying: "function underlying() view returns (address)",
+  markets: "function markets(address) view returns (bool, uint256, bool)",
 };
 
-const BLOCKS_PER_YEAR = 31_536_000;
+const BLOCKS_PER_YEAR = 31_536_000; 
 
 function round(n) {
   return Math.round(n * 100) / 100;
@@ -34,7 +36,6 @@ async function main() {
   const pools = [];
 
   for (const market of markets) {
-
     const { output: cTokenSymbol } = await sdk.api.abi.call({
       target: market,
       abi: abi.symbol,
@@ -68,7 +69,7 @@ async function main() {
         abi: abi.decimals,
         chain: "sonic",
       });
-      decimals = d;
+      decimals = Number(d);
     } catch {}
 
     const [
@@ -76,27 +77,48 @@ async function main() {
       { output: exchangeRateRaw },
       { output: totalBorrowsRaw },
       { output: supplyRateRaw },
+      { output: borrowRateRaw },
       { output: priceRaw },
+      { output: marketData },
     ] = await Promise.all([
       sdk.api.abi.call({ target: market, abi: abi.totalSupply, chain: "sonic" }),
       sdk.api.abi.call({ target: market, abi: abi.exchangeRateStored, chain: "sonic" }),
       sdk.api.abi.call({ target: market, abi: abi.totalBorrows, chain: "sonic" }),
       sdk.api.abi.call({ target: market, abi: abi.supplyRatePerBlock, chain: "sonic" }),
-      sdk.api.abi.call({ target: CORE_POOL.oracle, abi: abi.getUnderlyingPrice, params: [market], chain: "sonic" }),
+      sdk.api.abi.call({ target: market, abi: abi.borrowRatePerBlock, chain: "sonic" }),
+      sdk.api.abi.call({
+        target: CORE_POOL.oracle,
+        abi: abi.getUnderlyingPrice,
+        params: [market],
+        chain: "sonic",
+      }),
+      sdk.api.abi.call({
+        target: CORE_POOL.comptroller,
+        abi: abi.markets,
+        params: [market],
+        chain: "sonic",
+      }),
     ]);
 
     const exchangeRate = Number(exchangeRateRaw) / 1e18;
     const totalSupplyUnderlying = (Number(totalSupplyRaw) / 10 ** decimals) * exchangeRate;
     const totalBorrowsUnderlying = Number(totalBorrowsRaw) / 10 ** decimals;
-
     const price = Number(priceRaw) / 10 ** (36 - decimals);
 
     const totalSupplyUsd = totalSupplyUnderlying * price;
     const totalBorrowUsd = totalBorrowsUnderlying * price;
     const tvlUsd = totalSupplyUsd - totalBorrowUsd;
 
-    const ratePerBlock = Number(supplyRateRaw) / 1e18;
-    const apyBase = (Math.pow(1 + ratePerBlock, BLOCKS_PER_YEAR) - 1) * 100;
+    const supplyRatePerBlock = Number(supplyRateRaw) / 1e18;
+    const borrowRatePerBlock = Number(borrowRateRaw) / 1e18;
+
+    const apyBase = (Math.pow(1 + supplyRatePerBlock, BLOCKS_PER_YEAR) - 1) * 100;
+    const apyBaseBorrow = borrowRatePerBlock * BLOCKS_PER_YEAR * 100;
+
+    let ltv = 0;
+    try {
+      ltv = Number(marketData[1]) / 1e18;
+    } catch {}
 
     pools.push({
       pool: `${market}-sonic`.toLowerCase(),
@@ -105,8 +127,10 @@ async function main() {
       symbol: underlyingSymbol,
       tvlUsd: round(tvlUsd),
       apyBase: round(apyBase),
+      apyBaseBorrow: round(apyBaseBorrow),
       totalSupplyUsd: round(totalSupplyUsd),
       totalBorrowUsd: round(totalBorrowUsd),
+      ltv: round(ltv),
       underlyingTokens: [underlying],
       poolMeta: CORE_POOL.name,
     });
@@ -118,5 +142,5 @@ async function main() {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://www.enclabs.finance',
+  url: "https://www.enclabs.finance",
 };
