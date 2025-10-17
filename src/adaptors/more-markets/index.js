@@ -11,6 +11,34 @@ const provider = '0x1830a96466d1d108935865c75B0a9548681Cfd9A';
 const apy = async () => {
   const chain = 'flow';
 
+  // Fetch weekly merkle-distributed rewards (external source)
+  let merkleRewards = [];
+  try {
+    const resp = await axios.get(
+      'https://rewards-distributor.vercel.app/api/markets/apy'
+    );
+    merkleRewards = Array.isArray(resp.data) ? resp.data : [];
+  } catch (e) {
+    // Continue gracefully if the external service is unavailable
+  }
+
+  const nowTs = Math.floor(Date.now() / 1000);
+  merkleRewards = merkleRewards.filter((r) => {
+    const hasEmission = Number(r?.emission_wei_per_second || 0) > 0;
+    const startsOk = !r?.start_timestamp || nowTs >= Number(r.start_timestamp);
+    const endsOk = !r?.end_timestamp || nowTs <= Number(r.end_timestamp);
+    return hasEmission && startsOk && endsOk;
+  });
+
+  // Group merkle rewards by the tracked token address (aToken or variableDebt token)
+  const merkleByTracked = merkleRewards.reduce((acc, r) => {
+    const key = (r?.tracked_token_address || '').toLowerCase();
+    if (!key) return acc;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(r);
+    return acc;
+  }, {});
+
   const getReservesDataAbi = poolAbi.find((m) => m.name === 'getReservesData');
   const reservesData = await sdk.api.abi.call({
     target: protocolDataProvider,
@@ -41,12 +69,20 @@ const apy = async () => {
 
   // Get token prices
   const underlyingTokens = reserves.map((reserve) => reserve.underlyingAsset);
-  const priceKeys = underlyingTokens
-    .map((tokenAddress) => `${chain}:${tokenAddress}`)
-    .join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const rewardTokenAddresses = Array.from(
+    new Set(
+      merkleRewards
+        .map((r) => (r?.reward_token_address || '').toLowerCase())
+        .filter(Boolean)
+    )
+  );
+  const priceTokens = [...underlyingTokens, ...rewardTokenAddresses];
+  const priceKeys = priceTokens.map((addr) => `${chain}:${addr}`).join(',');
+  const prices = priceKeys
+    ? (
+      await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+    ).data.coins
+    : {};
 
   // Helper function to calculate reward APY
   const calculateRewardAPY = (
@@ -134,6 +170,7 @@ const apy = async () => {
       isActive,
       isPaused,
       aTokenAddress,
+      variableDebtTokenAddress,
     } = reserve;
 
     // Get price using chain:address format
@@ -199,7 +236,41 @@ const apy = async () => {
         )
       : { apyReward: 0, rewardTokens: [] };
 
-    const url = `https://app.more.markets/reserve-overview/?underlyingAsset=${underlyingAsset.toLowerCase()}&marketName=proto_flow_v3`;
+    // Add merkle-distributed rewards (external feed)
+    let merkleSupplyApy = 0;
+    let merkleSupplyRewardTokens = [];
+    let merkleBorrowApy = 0;
+
+    // For supply side: match by aToken address OR underlying asset and type 'supply'
+    const merkleSupplyEntries = [
+      ...(merkleByTracked[aTokenAddress.toLowerCase()] || []),
+      ...(merkleByTracked[underlyingAsset.toLowerCase()] || []),
+    ].filter((r) => (r?.tracked_token_type || '').toLowerCase() === 'supply');
+    for (const r of merkleSupplyEntries) {
+      const rewardPrice = prices[`${chain}:${r.reward_token_address.toLowerCase()}`]?.price || 0;
+      if (rewardPrice > 0 && totalSupplyUsd > 0) {
+        const emissionPerSecondTokens = Number(r.emission_wei_per_second) / 1e18;
+        const annualRewardUsd = emissionPerSecondTokens * SECONDS_PER_YEAR * rewardPrice;
+        merkleSupplyApy += (annualRewardUsd / totalSupplyUsd) * 100;
+        merkleSupplyRewardTokens.push(r.reward_token_address.toLowerCase());
+      }
+    }
+
+    // For borrow side: match by variableDebt token OR underlying asset and type 'borrow'
+    const merkleBorrowEntries = [
+      ...(merkleByTracked[variableDebtTokenAddress?.toLowerCase?.() || ''] || []),
+      ...(merkleByTracked[underlyingAsset.toLowerCase()] || []),
+    ].filter((r) => (r?.tracked_token_type || '').toLowerCase() === 'borrow');
+    for (const r of merkleBorrowEntries) {
+      const rewardPrice = prices[`${chain}:${r.reward_token_address.toLowerCase()}`]?.price || 0;
+      if (rewardPrice > 0 && borrowedUsd > 0) {
+        const emissionPerSecondTokens = Number(r.emission_wei_per_second) / 1e18;
+        const annualRewardUsd = emissionPerSecondTokens * SECONDS_PER_YEAR * rewardPrice;
+        merkleBorrowApy += (annualRewardUsd / borrowedUsd) * 100;
+      }
+    }
+
+    const url = `https://app.more.markets/markets/${underlyingAsset.toLowerCase()}`;
 
     return {
       pool: aTokenAddress.toLowerCase(),
@@ -208,14 +279,16 @@ const apy = async () => {
       symbol,
       tvlUsd,
       apyBase: supplyAPY,
-      apyReward: supplyRewards.apyReward,
-      rewardTokens: supplyRewards.rewardTokens,
+      apyReward: supplyRewards.apyReward + merkleSupplyApy,
+      rewardTokens: Array.from(
+        new Set([...(supplyRewards.rewardTokens || []), ...merkleSupplyRewardTokens])
+      ),
       underlyingTokens: [underlyingAsset],
       totalSupplyUsd,
       totalBorrowUsd: borrowedUsd,
       debtCeilingUsd: null,
       apyBaseBorrow: borrowAPY,
-      apyRewardBorrow: borrowRewards.apyReward,
+      apyRewardBorrow: borrowRewards.apyReward + merkleBorrowApy,
       ltv: Number(baseLTVasCollateral) / 10000,
       url,
       borrowable: borrowingEnabled && isActive && !isPaused,

@@ -1,4 +1,4 @@
-import { getPools } from '../beets-dex/utils';
+const { getPools } = require('../beets-dex/utils');
 
 const poolsFunction = async () => {
   const [sonicPoolsV3] = await Promise.all([getPools('SONIC', 'sonic', 3)]);

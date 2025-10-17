@@ -1,4 +1,4 @@
-import { getPools } from './utils';
+const { getPools } = require('./utils');
 
 const poolsFunction = async () => {
   const [sonicPoolsV2] = await Promise.all([getPools('SONIC', 'sonic', 2)]);

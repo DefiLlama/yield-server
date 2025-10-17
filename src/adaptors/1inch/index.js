@@ -21,7 +21,7 @@ const main = async () => {
     return {
       pool: `1INCH-${pool.resolver_address}-${pool.chain}`.toLowerCase(),
       chain: utils.formatChain(pool.chain),
-      project: '1inch-network',
+      project: '1inch',
       symbol: '1INCH',
       poolMeta: pool.pool,
       tvlUsd: Number(pool.tvlUsd),
