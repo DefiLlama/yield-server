@@ -77,6 +77,11 @@ const contractAddresses = {
       dataFeed: getAddress('0xe604a420388Fbf2693F2250db0DC84488EE99aA1'),
       url: 'https://midas.app/mwildusd',
     },
+    mFARM: {
+      address: getAddress('0xA19f6e0dF08a7917F2F8A33Db66D0AF31fF5ECA6'),
+      dataFeed: getAddress('0x9f49B0980B141b539e2A94Ec0864Faf699fF9524'),
+      url: 'https://midas.app/mfarm',
+    },
   },
   base: {
     mBASIS: {
