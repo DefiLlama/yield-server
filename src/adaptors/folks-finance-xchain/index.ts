@@ -41,9 +41,13 @@ async function initPools() {
 
   // Init Pool Info for each pool for each chain
   return chainsPoolsTvl.flatMap((chainPoolsTvl) => {
-    return Object.entries(chainPoolsTvl).map(([token, poolTvl]) => {
-      const [chain, tvlTokenAddress] = token.split(':');
-      const { price, decimals } = tokenPrices[token];
+    return Object.entries(chainPoolsTvl)
+      .map(([token, poolTvl]) => {
+        const priceInfo = tokenPrices[token];
+        if (!priceInfo || priceInfo.price === undefined) return null;
+
+        const [chain, tvlTokenAddress] = token.split(':');
+        const { price, decimals } = priceInfo;
       const { pools, name } = HubPools[chain];
       const pool = pools.find(
         ({ tokenAddress }) => tokenAddress.toLowerCase() === tvlTokenAddress
@@ -66,7 +70,8 @@ async function initPools() {
           decimals,
         },
       };
-    });
+      })
+      .filter(Boolean);
   });
 }
 
