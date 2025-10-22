@@ -188,7 +188,7 @@ async function getVaultsV1({ alias, chain, chainId, number, opportunities }) {
     sdk.api.abi.multiCall({
       chain,
       calls: assets.output.map((a) => ({ target: a.output })),
-      abi: 'string:name',
+      abi: 'string:symbol',
     }),
     getPrices(
       chain,
@@ -403,7 +403,7 @@ async function getVaultEffectiveApy({
   return apy;
 }
 
-async function getVaultV2({ alias, chain, chainId, number, opportunities }) {
+async function getVaultsV2({ alias, chain, chainId, number, opportunities }) {
   const vaults = [];
 
   const addresses = await getVaultV2Addresses(chain, number).then((addresses) =>
@@ -448,7 +448,7 @@ async function getVaultV2({ alias, chain, chainId, number, opportunities }) {
     sdk.api.abi.multiCall({
       chain,
       calls: assets.output.map((a) => ({ target: a.output })),
-      abi: 'string:name',
+      abi: 'string:symbol',
     }),
     getPrices(
       chain,
@@ -541,7 +541,7 @@ async function getVaultsOnChain(chain, chainId, alias) {
   }
   {
     const taskV2 = async () => {
-      const vaultsV2 = await getVaultV2({
+      const vaultsV2 = await getVaultsV2({
         alias,
         chain,
         chainId,
