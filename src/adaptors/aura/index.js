@@ -27,6 +27,7 @@ async function poolsFunction() {
       if (activePools.length === 0) continue;
 
       const lpTokens = activePools.map((pool) => pool.lptoken);
+
       const [symbolsData, tvlsData, balancerData] = await Promise.all([
         getSymbols(lpTokens, sdkChainName),
         getPoolTvls(activePools, sdkChainName),
@@ -64,7 +65,7 @@ async function poolsFunction() {
         );
 
         return {
-          pool: `${pool.lptoken}-${chainName}`,
+          pool: `${pool.lptoken.toLowerCase()}-aura`,
           chain: chainConfig.llamaChainName,
           project: 'aura',
           symbol: utils.formatSymbol(symbolsData[idx] ?? 'Unknown'),

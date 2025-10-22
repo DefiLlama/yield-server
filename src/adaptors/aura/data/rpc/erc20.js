@@ -11,7 +11,7 @@ async function getSymbols(tokenAddresses, chain) {
     permitFailure: true,
   });
   return result.output.reduce((acc, { output }, idx) => {
-    acc[idx] = output;
+    acc[idx] = output?.replace(/-BPT$/, '') || null;
     return acc;
   }, {});
 }
