@@ -114,7 +114,7 @@ async function apy() {
     {
       pool: `${savUSD}-avax`,
       chain: 'avax',
-      project: 'avant-protocol',
+      project: 'avant-avusd',
       symbol: 'savUSD',
       tvlUsd: savUSDData.tvlUsd,
       apyBase: savUSDData.apyBase,
@@ -125,7 +125,7 @@ async function apy() {
     {
       pool: `${savBTC}-avax`,
       chain: 'avax',
-      project: 'avant-protocol',
+      project: 'avant-avbtc',
       symbol: 'savBTC',
       tvlUsd: savBTCData.tvlUsd,
       apyBase: savBTCData.apyBase,
@@ -136,7 +136,7 @@ async function apy() {
     {
       pool: `${savETH}-ethereum`,
       chain: 'ethereum',
-      project: 'avant-protocol',
+      project: 'avant-aveth',
       symbol: 'savETH',
       tvlUsd: savETHData.tvlUsd,
       apyBase: savETHData.apyBase,
