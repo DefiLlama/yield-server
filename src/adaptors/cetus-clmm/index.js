@@ -8,22 +8,20 @@ const chains = {
 
 const apy = async (chain) => {
   if (chain === 'sui') {
-    let pools = (
-        await axios.get(chains[chain])
-      ).data.data.list;
-      
-      return pools.map((p) => {
-    
-          const apyBase = Number(p?.stats[0].apr) * 100;
-          const apyReward = p.totalApr*100-apyBase;
-    
-          let rewardTokens = p.miningRewarders?.map(rewards=>{
-            return rewards.coinType
-          })
+    let pools = (await axios.get(chains[chain])).data.data.list;
+
+    return pools
+      .map((p) => {
+        const apyBase = Number(p?.stats[0].apr) * 100;
+        const apyReward = p.totalApr * 100 - apyBase;
+
+        let rewardTokens = p.miningRewarders?.map((rewards) => {
+          return rewards.coinType;
+        });
         return {
           pool: p.pool,
           chain: chain,
-          project: 'cetus-amm',
+          project: 'cetus-clmm',
           symbol: [p.coinA.symbol, p.coinB.symbol].join('-'),
           underlyingTokens: [p.coinA.coinType, p.coinB.coinType],
           rewardTokens,
@@ -47,7 +45,7 @@ const apy = async (chain) => {
       );
       return {
         chain,
-        project: 'cetus-amm',
+        project: 'cetus-clmm',
         pool: p.swap_account,
         symbol: p.symbol,
         tvlUsd: Number(p.tvl_in_usd),
