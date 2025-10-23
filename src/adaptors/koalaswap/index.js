@@ -7,7 +7,7 @@ const chain = 'unit0'
 const config = {
   factory: '0xcF3Ee60d29531B668Ae89FD3577E210082Da220b',
   fromBlock: 2291892,
-  blockTime: 2,
+  blockTime: 1,
   uiBase: 'https://koalaswap.app',
   rpc: 'https://rpc.unit0.dev',
 }
@@ -47,6 +47,27 @@ async function getTokenInfo(token, poolAddress) {
   return { balance, decimals, symbol }
 }
 
+async function getOnchainPrice(tokenA, tokenB, poolAddress, decimalsA, decimalsB, priceBUSD) {
+  try {
+    const iface = new ethers.utils.Interface(['function slot0() view returns (bytes)'])
+    const selector = iface.getSighash('slot0')
+    const raw = await provider.call({ to: poolAddress, data: selector })
+
+    const sqrtPriceX96 = ethers.BigNumber.from('0x' + raw.slice(2, 66))
+
+    const ratio = new BigNumber(sqrtPriceX96.toString())
+      .pow(2)
+      .div(new BigNumber(2).pow(192))
+      .times(new BigNumber(10).pow(decimalsB - decimalsA))
+
+    const priceAUSD = ratio.times(priceBUSD)
+    return priceAUSD.toNumber()
+  } catch (e) {
+    console.warn('⚠️ On-chain price fallback failed for', tokenA, 'in pool', poolAddress, e.message)
+    return 0
+  }
+}
+
 async function getPools() {
   const logs = await provider.getLogs({
     address: config.factory,
@@ -74,17 +95,22 @@ async function getPools() {
     ])
 
     const prices = await utils.getPrices([p.token0, p.token1], chain)
-    const price0 = prices.pricesByAddress[p.token0.toLowerCase()] || 1
-    const price1 = prices.pricesByAddress[p.token1.toLowerCase()] || 1
+    let price0 = prices.pricesByAddress[p.token0.toLowerCase()] ?? 0
+    let price1 = prices.pricesByAddress[p.token1.toLowerCase()] ?? 0
 
-    const tvl0 = new BigNumber(t0.balance)
-      .div(`1e${t0.decimals}`)
-      .times(price0)
-    const tvl1 = new BigNumber(t1.balance)
-      .div(`1e${t1.decimals}`)
-      .times(price1)
+    if (price0 === 0 && price1 > 0) {
+      price0 = await getOnchainPrice(p.token0, p.token1, p.pool, t0.decimals, t1.decimals, price1)
+    } else if (price1 === 0 && price0 > 0) {
+      price1 = await getOnchainPrice(p.token1, p.token0, p.pool, t1.decimals, t0.decimals, price0)
+    }
+
+    if (price0 === 0 && price1 === 0) continue
+
+    const tvl0 = new BigNumber(t0.balance).div(`1e${t0.decimals}`).times(price0)
+    const tvl1 = new BigNumber(t1.balance).div(`1e${t1.decimals}`).times(price1)
     const tvl = tvl0.plus(tvl1)
 
+    // считаем volume/fee
     let totalFee0 = 0n
     let totalFee1 = 0n
     try {
@@ -105,21 +131,17 @@ async function getPools() {
         const args = poolIface.parseLog(log).args
         const amt0 = BigInt(args.amount0.toString())
         const amt1 = BigInt(args.amount1.toString())
-        if (amt0 > 0n) totalFee0 += (amt0 * BigInt(p.fee)) / 1000000n
-        if (amt1 > 0n) totalFee1 += (amt1 * BigInt(p.fee)) / 1000000n
+        if (amt0 > 0n) totalFee0 += (amt0 * BigInt(p.fee)) / 1_000_000n
+        if (amt1 > 0n) totalFee1 += (amt1 * BigInt(p.fee)) / 1_000_000n
       }
     } catch (_) {}
 
-    const feeValue0 = new BigNumber(totalFee0.toString())
-      .div(`1e${t0.decimals}`)
-      .times(price0)
-    const feeValue1 = new BigNumber(totalFee1.toString())
-      .div(`1e${t1.decimals}`)
-      .times(price1)
+    const feeValue0 = new BigNumber(totalFee0.toString()).div(`1e${t0.decimals}`).times(price0)
+    const feeValue1 = new BigNumber(totalFee1.toString()).div(`1e${t1.decimals}`).times(price1)
     const feeUsd = feeValue0.plus(feeValue1)
 
     const aprBn = tvl.gt(0) ? feeUsd.div(tvl).times(36500) : new BigNumber(0)
-    const apy = utils.aprToApy(aprBn.toNumber())
+    const apy = aprBn.toNumber()
 
     const feeTier = Number(p.fee) / 1_000_000
     const feeUsdNum = isFinite(feeUsd.toNumber()) ? feeUsd.toNumber() : 0
