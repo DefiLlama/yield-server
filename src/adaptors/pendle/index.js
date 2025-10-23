@@ -143,6 +143,9 @@ async function fetchPoolsVolumes(chain, pools, routers) {
       data: log.data,
     });
 
+    const market = utils.formatAddress(event.args.market);
+    if (!markets[market]) return null;
+
     let netTokenAmount = Number(event.args.netTokenAmount);
     if (event.name === 'AddLiquiditySingleToken' || eventname === 'RemoveLiquiditySingleToken') {
       netTokenAmount = netTokenAmount / 2;
@@ -152,11 +155,11 @@ async function fetchPoolsVolumes(chain, pools, routers) {
       tx: log.transactionHash, // for debug purpose
       address: utils.formatAddress(log.address),
       blockNumber: Number(log.blockNumber),
-      market: utils.formatAddress(event.args.market),
+      market,
       token: utils.formatAddress(event.args.token),
       tokenAmount: netTokenAmount,
     }
-  })
+  }).filter(Boolean)
 
   const tokens = {}
   for (const event of events) {
