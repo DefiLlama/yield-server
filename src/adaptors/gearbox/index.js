@@ -341,14 +341,14 @@ var CHAIN_CONFIGS = {
     // Ethereum KPK (PoolQuotaKeeper) pools that need manual configuration
     POOLS: {
       '0xa9d17f6d3285208280a1fd9b94479c62e0aaba64': {
-        symbol: 'kpkwstETH',
+        symbol: 'kpk wstETH',
         underlying: '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0', // wstETH
-        name: 'wstETH v3',
+        name: 'kpk wstETH',
       },
       '0x9396dcbf78fc526bb003665337c5e73b699571ef': {
-        symbol: 'kpkWETH',
+        symbol: 'kpk ETH',
         underlying: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH
-        name: 'WETH Market',
+        name: 'kpk ETH',
       },
     },
   },
@@ -367,7 +367,7 @@ var CHAIN_CONFIGS = {
       '0x53e4e9b8766969c43895839cc9c673bb6bc8ac97': {
         symbol: 'USDT0 v3',
         underlying: '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb', // USDT0
-        name: 'Plasma USDT0',
+        name: 'Edge UltraYield',
       },
       '0xb74760fd26400030620027dd29d19d74d514700e': {
         symbol: 'hyperGearboxUSDT',
