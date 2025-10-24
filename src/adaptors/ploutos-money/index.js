@@ -1,4 +1,4 @@
-// Ploutos money market (Aave v3 fork) — yield adapter with Merkl integration via Map (clean, SES-safe)
+// Ploutos Money Market (Aave v3 fork) — yield adapter with Merkl integration (dedup by opportunity id, SES-safe)
 // project: 'ploutos-money'
 
 const axios = require('axios')
@@ -25,7 +25,7 @@ const CHAIN_NAME = {
   hemi: 'Hemi',
 }
 
-// chainIds (актуальные)
+// chain IDs
 const CHAIN_ID = {
   base: 8453,
   arbitrum: 42161,
@@ -48,16 +48,17 @@ const RAY = 1e27
 const aprRayToDecimal = (ray) => Number(ray) / RAY
 const aprToApyDecimal = (apr) => Math.pow(1 + apr / 365, 365) - 1
 
-// ---------- utils ----------
-const WARN = (...a) => console.warn('[ploutos]', ...a)
+// ---------- helpers ----------
 const setToArray = (s) => Array.from(s ? s.values() : [])
 
-// Вытягивает первое валидное 0x-адресное вхождение из «грязной» строки (SES-safe)
+/**
+ * Extracts first valid 0x-address from any string (SES-safe)
+ */
 function extractAddrLoose(x) {
   if (x == null) return ''
   const s = String(x)
     .toLowerCase()
-    .replace(/[\u200b-\u200d\uFEFF]/g, '') // удалить zero-width
+    .replace(/[\u200b-\u200d\uFEFF]/g, '') // remove zero-width chars
     .trim()
   const m = s.match(/0x[0-9a-f]{40}/i)
   return m ? m[0] : ''
@@ -76,16 +77,20 @@ async function fetchMerkl() {
     })
     merklCache = Array.isArray(data) ? data : (data ? [data] : [])
   } catch (e) {
-    WARN('Merkl fetch failed:', e?.message || e)
+    console.warn('[ploutos]', 'Merkl fetch failed:', e?.message || e)
     merklCache = []
   }
   return merklCache
 }
 
 /**
- * Индекс по ключу `${chainId}:${addressLower}`
- * Map<string, { supply:{apr:number,rewardTokens:string[]}, borrow:{apr:number,rewardTokens:string[]} }>
- * SES-safe: без спредов/for..of по Set
+ * Build Merkl index by key `${chainId}:${addressLower}`
+ * Value shape:
+ *   { supplyOps: Map<opId,{apr:number,rewardTokens:string[]}>, borrowOps: Map<...> }
+ *
+ * Deduplicated by opportunity ID (it.id) to avoid double-counting the same
+ * opportunity that appears under both aToken and underlying addresses.
+ * SES-safe: no direct iteration with spreads.
  */
 async function buildMerklIndex() {
   const items = await fetchMerkl()
@@ -97,9 +102,11 @@ async function buildMerklIndex() {
     if (!chainId) continue
 
     const side = String(it.type || '').toUpperCase().includes('BORROW') ? 'borrow' : 'supply'
-    const apr = Number(it.apr || 0)
+    const apr  = Number(it.apr || 0)
+    const opId = String(it.id || '')
+    if (!opId) continue
 
-    // reward tokens
+    // collect reward tokens
     const rewardSet = new Set()
     const br = (it.rewardsRecord && it.rewardsRecord.breakdowns) || []
     for (let j = 0; j < br.length; j++) {
@@ -108,13 +115,12 @@ async function buildMerklIndex() {
     }
     const rewardTokens = setToArray(rewardSet)
 
-    // keys
+    // bind this opportunity to possible keys (identifier, explorerAddress, tokens)
     const keysRaw = new Set()
     const k1 = normAddr(it.identifier)
     const k2 = normAddr(it.explorerAddress)
     if (k1) keysRaw.add(k1)
     if (k2) keysRaw.add(k2)
-
     const toks = Array.isArray(it.tokens) ? it.tokens : []
     for (let k = 0; k < toks.length; k++) {
       const a = normAddr(typeof toks[k] === 'string' ? toks[k] : toks[k]?.address)
@@ -124,14 +130,18 @@ async function buildMerklIndex() {
     const keysArr = setToArray(keysRaw).map(a => `${chainId}:${a}`)
     for (let qi = 0; qi < keysArr.length; qi++) {
       const key = keysArr[qi]
-      const cur = index.get(key) || {
-        supply: { apr: 0, rewardTokens: [] },
-        borrow: { apr: 0, rewardTokens: [] },
+      const cur = index.get(key) || { supplyOps: new Map(), borrowOps: new Map() }
+      const bucket = side === 'borrow' ? cur.borrowOps : cur.supplyOps
+      const ex = bucket.get(opId)
+      if (ex) {
+        // merge duplicate entries if the same op appears twice in API
+        ex.apr += apr
+        const s = new Set(ex.rewardTokens || [])
+        for (let ri = 0; ri < rewardTokens.length; ri++) s.add(rewardTokens[ri])
+        ex.rewardTokens = setToArray(s)
+      } else {
+        bucket.set(opId, { apr, rewardTokens })
       }
-      cur[side].apr += apr
-      const curSet = new Set(cur[side].rewardTokens)
-      for (let rtIdx = 0; rtIdx < rewardTokens.length; rtIdx++) curSet.add(rewardTokens[rtIdx])
-      cur[side].rewardTokens = setToArray(curSet)
       index.set(key, cur)
     }
   }
@@ -231,33 +241,38 @@ async function getApy(market) {
     const marketUrlParam = toMarketUrlParam(market)
     const url = `https://app.ploutos.money/reserve-overview/?underlyingAsset=${r.tokenAddress.toLowerCase()}&marketName=proto_${marketUrlParam}_v3`
 
-    // Merkl match by chainId + (aToken | underlying)
+    // Merkl match by chainId + (aToken | underlying), deduplicated by opId
     const aTok = normAddr(aTokens[i].tokenAddress)
     const uTok = normAddr(r.tokenAddress)
 
     const mAT = chainId ? merklMap.get(`${chainId}:${aTok}`) : undefined
     const mUA = chainId ? merklMap.get(`${chainId}:${uTok}`) : undefined
 
-    let apyReward
-    let apyRewardBorrow
-    const rewardSet = new Set()
+    // Merge by unique opportunity ID for each side
+    function unionOps(a, b, side) {
+      const mapA = a ? (side === 'borrow' ? a.borrowOps : a.supplyOps) : null
+      const mapB = b ? (side === 'borrow' ? b.borrowOps : b.supplyOps) : null
+      const ids = new Set()
+      if (mapA) mapA.forEach((_, id) => ids.add(id))
+      if (mapB) mapB.forEach((_, id) => ids.add(id))
 
-    if (mAT?.supply) {
-      if (mAT.supply.apr > 0) apyReward = (apyReward || 0) + mAT.supply.apr
-      for (const rt of mAT.supply.rewardTokens || []) rewardSet.add(rt)
+      let aprSum = 0
+      const rts = new Set()
+      ids.forEach((id) => {
+        const rec = (mapA && mapA.get(id)) || (mapB && mapB.get(id)) || null
+        if (!rec) return
+        aprSum += Number(rec.apr || 0)
+        const tokens = rec.rewardTokens || []
+        for (let t = 0; t < tokens.length; t++) rts.add(tokens[t])
+      })
+      return { apr: aprSum, rts: setToArray(rts) }
     }
-    if (mUA?.supply) {
-      if (mUA.supply.apr > 0) apyReward = (apyReward || 0) + mUA.supply.apr
-      for (const rt of mUA.supply.rewardTokens || []) rewardSet.add(rt)
-    }
-    if (mAT?.borrow) {
-      if (mAT.borrow.apr > 0) apyRewardBorrow = (apyRewardBorrow || 0) + mAT.borrow.apr
-      for (const rt of mAT.borrow.rewardTokens || []) rewardSet.add(rt)
-    }
-    if (mUA?.borrow) {
-      if (mUA.borrow.apr > 0) apyRewardBorrow = (apyRewardBorrow || 0) + mUA.borrow.apr
-      for (const rt of mUA.borrow.rewardTokens || []) rewardSet.add(rt)
-    }
+
+    const sup = unionOps(mAT, mUA, 'supply')
+    const bor = unionOps(mAT, mUA, 'borrow')
+
+    const rewardUnion = new Set([...sup.rts, ...bor.rts])
+    const rewardTokens = setToArray(rewardUnion)
 
     const poolObj = {
       pool: `${aTokens[i].tokenAddress}-${(market === 'avax' ? 'avalanche' : market)}`.toLowerCase(),
@@ -275,10 +290,9 @@ async function getApy(market) {
       url,
     }
 
-    const rewardTokens = setToArray(rewardSet)
+    if (sup.apr > 0) poolObj.apyReward = sup.apr
+    if (bor.apr > 0) poolObj.apyRewardBorrow = bor.apr
     if (rewardTokens.length) poolObj.rewardTokens = rewardTokens
-    if (apyReward > 0) poolObj.apyReward = apyReward       // Merkl APR уже в процентах
-    if (apyRewardBorrow > 0) poolObj.apyRewardBorrow = apyRewardBorrow
 
     out.push(poolObj)
   }
