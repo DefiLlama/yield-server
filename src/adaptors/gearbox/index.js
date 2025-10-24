@@ -494,12 +494,18 @@ const MERKL_CONFIGS = {
       '0x05A811275fE9b4DE503B3311F51edF6A856D936e', // USDT
       '0x4d56c9cBa373AD39dF69Eb18F076b7348000AE09', // GHO
       '0x72CCB97cbdC40f8fb7FFA42Ed93AE74923547200', // wstETH (with Merkl rewards)
+      '0xa9d17f6d3285208280a1fd9b94479c62e0aaba64', // KPK wstETH
+      '0x9396dcbf78fc526bb003665337c5e73b699571ef', // KPK ETH
     ],
   },
   plasma: {
     chainId: 9745,
-    poolId: '0x76309A9a56309104518847BbA321c261B7B4a43f',
     rewardToken: '0x6100e367285b01f48d07953803a2d8dca5d19873', // WXPL
+    pools: [
+      '0x76309A9a56309104518847BbA321c261B7B4a43f', // Invariant USDT0 (existing)
+      '0xB74760FD26400030620027DD29D19d74D514700e', // Hyperithm Gearbox
+      '0x53E4e9b8766969c43895839CC9c673bb6bC8Ac97', // Edge UltraYield
+    ],
   },
   etlk: {
     chainId: 42793,
