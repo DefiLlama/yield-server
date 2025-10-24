@@ -341,12 +341,12 @@ var CHAIN_CONFIGS = {
     // Ethereum KPK (PoolQuotaKeeper) pools that need manual configuration
     POOLS: {
       '0xa9d17f6d3285208280a1fd9b94479c62e0aaba64': {
-        symbol: 'kpk wstETH',
+        symbol: 'wstETH',
         underlying: '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0', // wstETH
         name: 'kpk wstETH',
       },
       '0x9396dcbf78fc526bb003665337c5e73b699571ef': {
-        symbol: 'kpk ETH',
+        symbol: 'ETH',
         underlying: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH
         name: 'kpk ETH',
       },
@@ -362,7 +362,7 @@ var CHAIN_CONFIGS = {
       '0x76309A9a56309104518847BbA321c261B7B4a43f': {
         symbol: 'dUSDT0',
         underlying: '0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb', // USDT0 deposit token
-        name: 'USDT0 Lending Pool',
+        name: 'Invariant USDT0',
       },
       '0x53e4e9b8766969c43895839cc9c673bb6bc8ac97': {
         symbol: 'USDT0 v3',
