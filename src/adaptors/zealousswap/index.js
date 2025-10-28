@@ -6,7 +6,7 @@
 // - We use `apr` from our API as `apyBase` (already annualized %).
 // - If `apr` is missing, we fall back to fee APR from volume * feeRate.
 // - We include `apyReward` only if our API reports a positive `farmApr`.
-// - Only emit pools with `hasUSDValues === true` and tvl > 10000 to avoid noise.
+// - Only emit pools with `hasUSDValues === true`.
 
 const axios = require("axios");
 
@@ -67,12 +67,11 @@ async function apy() {
                 : [],
             underlyingTokens: [p.token0?.address, p.token1?.address].filter(Boolean),
             url: "https://app.zealousswap.com/liquidity",
-            poolMeta: "Zealous Swap spot pool",
             volumeUsd1d: toNumber(p.volumeUSD),
         });
     }
 
-    return results.filter(x => Number.isFinite(x.tvlUsd) && x.tvlUsd >= 10000);
+    return results.filter(x => Number.isFinite(x.tvlUsd));
 }
 
 module.exports = {
