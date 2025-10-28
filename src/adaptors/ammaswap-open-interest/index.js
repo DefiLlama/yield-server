@@ -262,7 +262,7 @@ async function apyPerChain(chainName, refPoolAddr, endpoint) {
     return {
       pool,
       chain: utils.formatChain(chainName),
-      project: 'gammaswap',
+      project: 'gammaswap-open-interest',
       symbol: `${pDetails.token0.symbol}-${pDetails.token1.symbol}`,
       tvlUsd: Number(_gammaPoolTracers[i].lastDailyData.pool.tvlUSD),
       apyBase: supplyApy(
