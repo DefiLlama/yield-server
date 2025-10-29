@@ -16,7 +16,7 @@ const apy = async () => {
       return {
         pool: p.pool,
         chain: 'Sui',
-        project: 'bluefin-clmm',
+        project: 'bluefin-spot',
         symbol: `${p.coinA.symbol}-${p.coinB.symbol}`,
         underlyingTokens: [p.coinA.coinType, p.coinB.coinType],
         rewardTokens,
