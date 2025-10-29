@@ -2,6 +2,7 @@ const axios = require('axios');
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 
+const INFINIT_URL = 'https://app.infinit.tech/en/strategy';
 const API_BASE_URL = 'https://api.infinit.tech/nexus/strategy';
 const CHAINS_API_URL = 'https://api.llama.fi/chains';
 
@@ -84,7 +85,7 @@ const getApy = async () => {
           tvlUsd: strategyInfo.tvl ?? 0,
           apyBase,
           underlyingTokens,
-          url: `${API_BASE_URL}/${strategyId}`,
+          url: `${INFINIT_URL}/${strategyId}`,
         };
       } catch (error) {
         console.error(`Error processing strategy ${strategy.strategyId}:`, error.message);
