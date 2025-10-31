@@ -104,7 +104,7 @@ const getApy = async () => {
     })
   );
 
-  return pools.flat();
+  return utils.removeDuplicates(pools.flat())
 };
 
 module.exports = {

@@ -52,7 +52,7 @@ const getPoolEnriched = async (req, res) => {
     });
 };
 
-const getPoolsEnrichedOld = async (req, res) => {
+const getPoolsEnrichedPro = async (req, res) => {
   const queryString = req.query;
 
   // add pool_old (the pool field from the adpaters == address)
@@ -118,4 +118,4 @@ const getPoolsBorrow = async (req, res) => {
   });
 };
 
-module.exports = { getPoolEnriched, getPoolsEnrichedOld, getPoolsBorrow };
+module.exports = { getPoolEnriched, getPoolsEnrichedPro, getPoolsBorrow };

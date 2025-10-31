@@ -45,17 +45,19 @@ const fetchData = async (chainId) => {
           pool: id,
           chain: chainNames[chainId] ?? 'Unknown Chain',
           project: 'nayms',
-          symbol: assetToken.symbol,
+          symbol: assetToken?.symbol,
           tvlUsd: paidInCapital,
           apy: targetRoiMin,
-          underlyingTokens: [assetToken.address],
-          poolMeta: `${participationTokenSymbol}, ${formatString(businessTypes)} (Status: ${cellStatus})`,
+          underlyingTokens: [assetToken?.address],
+          poolMeta: `${participationTokenSymbol}, ${formatString(
+            businessTypes
+          )} (Status: ${cellStatus})`,
         })
       );
-  } catch ({ status, response }) {
+  } catch (err) {
     throw new Error(
-      `Network response was not ok: ${status} - ${
-        response?.text ?? 'No response text'
+      `Network response was not ok: ${err.status ?? 'unknown'} - ${
+        err.response?.text ?? err.message ?? 'No response text'
       }`
     );
   }
@@ -64,7 +66,7 @@ const fetchData = async (chainId) => {
 const apy = async () => {
   const chainsToFetch = [1, 8453];
   const data = await Promise.all(chainsToFetch.map(fetchData));
-  return data.flat();
+  return data.flat().filter((i) => i.symbol);
 };
 
 module.exports = {

@@ -118,8 +118,8 @@ const getPools = async () => {
     `https://coins.llama.fi/prices/current/${priceKeys}`
   );
   const priceData = {
-    mvx: priceDataRes['coingecko:metavault-trade'],
-    matic: priceDataRes['coingecko:matic-network'],
+    mvx: priceDataRes['coingecko:metavault-trade'] || { price: 0 },
+    matic: priceDataRes['coingecko:matic-network'] || { price: 0 },
   };
 
   const polygonStakedMvx = await getAdjustedAmount(

@@ -12,84 +12,74 @@ const erc20Abi = [
   },
 ];
 
-const vault = '0xaf08a9d918f16332F22cf8Dc9ABE9D9E14DdcbC2';
-const usdc = '0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4';
+const vaultBSC = '0x7470C48FBf23067F6F8Ef63f7D9B4A2aA5D0afEf';
+const usd1 = '0x8d0D000Ee44948FC98c9B98A4FA4921476f08B0d';
 
-const holdStaking = '0x7cF68AA037c67B6dae9814745345FFa9FC7075b1';
-const hold = '0xed4040fD47629e7c8FBB7DA76bb50B3e7695F0f2';
-const esHold = '0x671ceD60a5b4baEfD4FcaF15beD4DD1292FF14a0';
+const vaultWC = '0x9BD647B2C8Fed689ADd2e7AA8b428d3eD12f75cb';
+const wld = '0x2cFc85d8E48F8EAB294be644d9E25C3030863003';
 
-const provider = new ethers.providers.JsonRpcProvider(
-  'https://mainnet.era.zksync.io'
+const BSCProvider = new ethers.providers.JsonRpcProvider(
+  'https://binance.llamarpc.com'
 );
 
-const usdcPool = async () => {
+const WLDProvider = new ethers.providers.JsonRpcProvider(
+  'https://worldchain-mainnet.g.alchemy.com/public'
+);
+
+const wldPool = async () => {
   const currentTime = Math.trunc(Date.now() / 1000);
 
-  const apy7dUrl = `https://api-trading.holdstation.com/api/apy/history/vault/time/${currentTime}?chainId=324`;
+  const apy7dUrl = `https://worldfuture.holdstation.com/api/apy/history/vault/time/${currentTime}`;
   const apy7d = await utils.getData(apy7dUrl);
 
-  const apy24hUrl = `https://api-trading.holdstation.com/api/apy/history/vault-24h/time/${currentTime}?chainId=324`;
+  const apy24hUrl = `https://worldfuture.holdstation.com/api/apy/mUSDC`;
   const apyBase = await utils.getData(apy24hUrl);
 
-  const usdcContract = new ethers.Contract(usdc, erc20Abi, provider);
-  const usdcBalance = await usdcContract.balanceOf(vault);
+  const wldContract = new ethers.Contract(wld, erc20Abi, WLDProvider);
+  const wldBalance = await wldContract.balanceOf(vaultWC);
 
   return {
-    pool: `${vault}-zksync_era`,
-    chain: 'zksync_era',
+    pool: `${vaultWC}-worldchain`,
+    chain: 'World Chain',
     project: 'holdstation-defutures',
-    symbol: utils.formatSymbol('USDC'),
-    tvlUsd: usdcBalance / 1e6,
+    symbol: utils.formatSymbol('WLD'),
+    tvlUsd: wldBalance / 1e18,
     apyBase7d: apy7d.rate,
     apyBase: apyBase.rate,
 
-    // https://github.com/DefiLlama/yield-server/pull/1146#issuecomment-1895398250
-    apyReward: parseFloat(apyBase.esHoldRate) * 0.5,
-    
-    underlyingTokens: [usdc],
-    rewardTokens: [esHold],
+    underlyingTokens: [wld],
   };
 };
 
-const holdPool = async () => {
+const usd1Pool = async () => {
   const currentTime = Math.trunc(Date.now() / 1000);
 
-  const apy7dUrl = `https://gateway.holdstation.com/services/launchpad/api/hold-staking-vault/yield/time/${currentTime}`;
+  const apy7dUrl = `https://bnbfutures.holdstation.com/api/apy/history/vault/time/${currentTime}`;
   const apy7d = await utils.getData(apy7dUrl);
 
-  const apy24hUrl = `https://gateway.holdstation.com/services/launchpad/api/hold-staking-vault/yield-24h/time/${currentTime}`;
+  const apy24hUrl = `https://bnbfutures.holdstation.com/api/apy/mUSDC`;
   const apyBase = await utils.getData(apy24hUrl);
 
-  const holdContract = new ethers.Contract(hold, erc20Abi, provider);
-  const balance = await holdContract.balanceOf(holdStaking);
-
-  const coinResp = await axios.get(
-    `https://coins.llama.fi/prices/current/coingecko:holdstation`
-  );
-  const coin = coinResp.data.coins['coingecko:holdstation'];
+  const usd1Contract = new ethers.Contract(usd1, erc20Abi, BSCProvider);
+  const usd1Balance = await usd1Contract.balanceOf(vaultBSC);
 
   return {
-    pool: `${holdStaking}-zksync_era`,
-    chain: 'zksync_era',
+    pool: `${vaultBSC}-binance`,
+    chain: 'Binance',
     project: 'holdstation-defutures',
-    symbol: utils.formatSymbol(coin.symbol),
-    tvlUsd: (balance / 1e18) * coin.price,
-    apyBase7d: apy7d.baseRate,
-    apyBase: apyBase.baseRate,
+    symbol: utils.formatSymbol('USD1'),
+    tvlUsd: usd1Balance / 1e18,
+    apyBase7d: apy7d.rate,
+    apyBase: apyBase.rate,
 
-    // https://github.com/DefiLlama/yield-server/pull/1146#issuecomment-1895398250
-    apyReward: apyBase.esHoldRate * 0.5,
-    
-    underlyingTokens: [hold],
-    rewardTokens: [esHold],
+    underlyingTokens: [usd1],
   };
 };
 
 module.exports = {
   timetravel: true,
   apy: async () => {
-    return [await usdcPool(), await holdPool()];
+    return [await usd1Pool(), await wldPool()];
   },
   url: 'https://holdstation.exchange/vault',
 };

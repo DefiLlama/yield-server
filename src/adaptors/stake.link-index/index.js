@@ -1,22 +1,39 @@
 const utils = require('../utils');
+const superagent = require('superagent');
 
-const API_URL = 'https://stake.link/v1/metrics/staking';
+const SUBGRAPH_URL =
+  'https://graph-readonly.linkpool.pro/subgraphs/name/stakedotlink-ethereum-production';
 const CHAIN_NAME = 'Ethereum';
+
+const getData = async (url, query = null) => {
+  let res;
+  if (query !== null) {
+    res = await superagent
+      .post(url)
+      .send(query)
+      .set('Content-Type', 'application/json');
+  } else {
+    res = await superagent.get(url);
+  }
+  return res.body;
+};
+
+const wsdQuery = `
+  {
+    wsdstakingPools {
+      id
+      reward_rate_stpol_9x
+      reward_rate_stlink_9x
+      tvl
+    }
+  }
+`;
 
 const pools = [
   {
-    symbol: 'ixETH',
-    address: '0x535321013A1E2D5aF3B1853812a64CA3fc6C1fa1',
-    priceId: 'ethereum',
-    query: `SELECT
-            (total_rewards * (31536000 / EXTRACT(epoch from period))) / (total_deposits - rewards_amount) * 100 as apy,
-            total_deposits
-            FROM (SELECT *, (ts - prev_ts) as period
-            FROM (SELECT *,
-            (rewards_amount - total_fees) as total_rewards,
-            lead(ts) over (order by ts DESC)    as prev_ts
-            FROM index_update_rewards as rewards
-            ORDER BY ts DESC) as reward_rate) as reward_rate limit 1;`,
+    symbol: 'SDL', // Stake.link token
+    address: '0xa95c5ebb86e0de73b4fb8c47a45b792cfea28c23', // SDL token contract address
+    priceId: 'stake-link', // CoinGecko ID for SDL token
   },
 ];
 
@@ -29,30 +46,62 @@ const fetchPrice = async (tokenId) => {
 };
 
 const fetchPool = async (pool) => {
-  const { symbol, address, priceId, query } = pool;
+  try {
+    const { symbol, address, priceId } = pool;
 
-  const price = await fetchPrice(priceId);
+    const price = await fetchPrice(priceId);
 
-  let data = await utils.getData(API_URL, query);
-  let apy = data[0].apy;
-  let tvl = data[0].total_deposits * price;
+    const response = await getData(
+      SUBGRAPH_URL,
+      JSON.stringify({ query: wsdQuery })
+    );
 
-  return {
-    pool: `${address}-${CHAIN_NAME}`.toLowerCase(),
-    chain: CHAIN_NAME,
-    project: 'stake.link-index',
-    symbol,
-    tvlUsd: tvl,
-    apyBase: apy,
-  };
+    if (
+      !response ||
+      !response.data ||
+      !response.data.wsdstakingPools ||
+      !response.data.wsdstakingPools[0]
+    ) {
+      throw new Error('Invalid data structure received from subgraph');
+    }
+
+    const poolData = response.data.wsdstakingPools[0];
+
+    // Combine both stPOL and stLINK 9x reward rates
+    const stpolRewardRate = parseFloat(poolData.reward_rate_stpol_9x);
+    const stlinkRewardRate = parseFloat(poolData.reward_rate_stlink_9x);
+    const combinedRewardRate = stpolRewardRate + stlinkRewardRate;
+
+    // Rates are already in percentage form, no need to multiply by 100
+    const apy = combinedRewardRate;
+
+    // Use TVL from the subgraph
+    const tvl = parseFloat(poolData.tvl);
+
+    return {
+      pool: `${address}-${CHAIN_NAME}`.toLowerCase(),
+      chain: CHAIN_NAME,
+      project: 'stake.link-index',
+      symbol,
+      tvlUsd: tvl,
+      apyBase: apy,
+    };
+  } catch (error) {
+    console.error(
+      `Error fetching pool data for ${pool.symbol}:`,
+      error.message
+    );
+    return null;
+  }
 };
 
 const fetchPools = async () => {
-  return Promise.all(pools.map((pool) => fetchPool(pool)));
+  const poolsData = await Promise.all(pools.map(fetchPool));
+  return poolsData.filter(Boolean);
 };
 
 module.exports = {
   timetravel: false,
   apy: fetchPools,
-  url: 'https://stake.link/staking-pools',
+  url: 'https://stake.link/sdl',
 };

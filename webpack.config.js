@@ -1,5 +1,6 @@
 const slsw = require('serverless-webpack');
 const path = require('path');
+const webpack = require('webpack');
 
 module.exports = {
   entry: slsw.lib.entries,
@@ -23,4 +24,8 @@ module.exports = {
       'node-fetch$': 'node-fetch/lib/index.js',
     },
   },
+  plugins: [
+    // pg optionally requires pg-native; ignore it -> webpack doesn't fail when the native addon isn't installed
+    new webpack.IgnorePlugin({ resourceRegExp: /^pg-native$/ }),
+  ],
 };

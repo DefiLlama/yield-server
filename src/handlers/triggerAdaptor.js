@@ -117,7 +117,9 @@ const main = async (body) => {
     apy: p.apy < 0 ? 0 : p.apy,
     apyBase:
       protocolConfig[body.adaptor]?.category === 'Options' ||
-      ['mellow-protocol', 'sommelier', 'abracadabra'].includes(body.adaptor)
+      ['mellow-protocol', 'sommelier', 'abracadabra', 'resolv'].includes(
+        body.adaptor
+      )
         ? p.apyBase
         : p.apyBase < 0
         ? 0
@@ -312,8 +314,8 @@ const main = async (body) => {
       ...p,
       config_id: id, // config PK field
       configID: id, // yield FK field referencing config_id in config
-      symbol: ['USDC+', 'ETH+', 'USDEX+', 'USD0++', 'ARB++'].some((i) =>
-        p.symbol.includes(i)
+      symbol: ['usdc+', 'eth+', 'usdex+', 'usd0++', 'arb++'].some((i) =>
+        p.symbol.toLowerCase().includes(i)
       )
         ? p.symbol
         : utils.formatSymbol(p.symbol),
@@ -362,8 +364,14 @@ const main = async (body) => {
         p.apyRewardBorrowFake !== null
           ? +p.apyRewardBorrowFake.toFixed(precision)
           : p.apyRewardBorrowFake,
-      volumeUsd1d: p.volumeUsd1d ? +p.volumeUsd1d.toFixed(precision) : null,
-      volumeUsd7d: p.volumeUsd7d ? +p.volumeUsd7d.toFixed(precision) : null,
+      volumeUsd1d:
+        p.volumeUsd1d >= 0
+          ? +parseFloat(p.volumeUsd1d).toFixed(precision)
+          : null,
+      volumeUsd7d:
+        p.volumeUsd7d >= 0
+          ? +parseFloat(p.volumeUsd7d).toFixed(precision)
+          : null,
       apyBaseInception: p.apyBaseInception
         ? +p.apyBaseInception.toFixed(precision)
         : null,

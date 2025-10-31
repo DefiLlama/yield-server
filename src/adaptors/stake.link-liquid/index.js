@@ -15,9 +15,9 @@ const getData = async (url, query = null) => {
 };
 
 const SUBGRAPH_URL =
-  'https://api.studio.thegraph.com/query/72555/stakedotlink-ethereum/version/latest';
+  'https://graph-readonly.linkpool.pro/subgraphs/name/stakedotlink-ethereum-production';
 
-const query = `
+const linkQuery = `
   {
     totalRewardAmounts {
       totalRewardSTLINK
@@ -45,14 +45,49 @@ const query = `
   }
   `;
 
+const polQuery = `
+ {
+    totalRewardAmounts {
+      totalRewardSTPOL
+      __typename
+    }
+    totalCounts {
+      polStakingDistributionCount
+      __typename
+    }
+    polStakingDistributions(
+      first: 1
+      skip: 0
+      orderBy: ts
+      orderDirection: desc
+      where: {isUpdatedWithBurnAmount: true}
+    ) {
+      reward_rate
+      reward_amount
+      total_staked
+      fees
+      fee_percentage
+      tx_hash
+      ts
+      __typename
+    }
+  }
+  `;
+
 const API_URL = 'https://stake.link/v1/metrics/staking';
-const CHAIN_NAME = 'Ethereum';
 
 const pools = [
   {
     symbol: 'stLINK',
     address: '0xb8b295df2cd735b15BE5Eb419517Aa626fc43cD5',
     priceId: 'chainlink',
+    chain: 'Ethereum',
+  },
+  {
+    symbol: 'stPOL',
+    address: '0x2ff4390dB61F282Ef4E6D4612c776b809a541753',
+    priceId: 'polygon-ecosystem-token',
+    chain: 'Ethereum',
   },
 ];
 
@@ -66,35 +101,48 @@ const fetchPrice = async (tokenId) => {
 
 const fetchPool = async (pool) => {
   try {
-    const { symbol, address, priceId } = pool;
+    const { symbol, address, priceId, chain } = pool;
     const price = await fetchPrice(priceId);
+
+    // Use appropriate query and field names based on the token
+    const query = symbol === 'stPOL' ? polQuery : linkQuery;
+    const distributionField =
+      symbol === 'stPOL'
+        ? 'polStakingDistributions'
+        : 'linkStakingDistributions';
+
     const response = await getData(SUBGRAPH_URL, JSON.stringify({ query }));
 
     if (
       !response ||
       !response.data ||
-      !response.data.linkStakingDistributions ||
-      !response.data.linkStakingDistributions[0]
+      !response.data[distributionField] ||
+      !response.data[distributionField][0]
     ) {
-      throw new Error('Invalid data structure received from subgraph');
+      throw new Error(
+        `Invalid data structure received from subgraph for ${symbol}`
+      );
     }
 
-    const distribution = response.data.linkStakingDistributions[0];
+    const distribution = response.data[distributionField][0];
     const apy = parseFloat(distribution.reward_rate);
     const totalStakedInWei = distribution.total_staked;
     const totalStaked = parseFloat(ethers.utils.formatEther(totalStakedInWei));
     const tvl = totalStaked * price;
 
     return {
-      pool: `${address}-${CHAIN_NAME}`.toLowerCase(),
-      chain: CHAIN_NAME,
+      pool: `${address}-${chain}`.toLowerCase(),
+      chain: chain,
       project: 'stake.link-liquid',
       symbol,
       tvlUsd: tvl,
       apyBase: apy,
     };
   } catch (error) {
-    console.error('Error fetching pool data:', error.message);
+    console.error(
+      `Error fetching pool data for ${pool.symbol}:`,
+      error.message
+    );
     return null;
   }
 };
@@ -107,5 +155,5 @@ const fetchPools = async () => {
 module.exports = {
   timetravel: false,
   apy: fetchPools,
-  url: 'https://stake.link/staking-pools',
+  url: 'https://stake.link/',
 };

@@ -1,6 +1,5 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
-
 const utils = require('../utils');
 
 const chains = {
@@ -60,65 +59,70 @@ const chains = {
 };
 
 const getApy = async () => {
-  const pools = await Promise.all(
+  const results = await Promise.all(
     Object.keys(chains).map(async (chain) => {
-      const y = chains[chain];
+      try {
+        const y = chains[chain];
+        const data = (
+          await axios.get(`https://backend-${chain}.gains.trade/apr`)
+        ).data;
+        const priceKeys = [y.gns, ...y.vaults.map((i) => i.underlying)].map(
+          (i) => `${chain}:${i}`
+        );
+        const prices = (
+          await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+        ).data.coins;
 
-      const data = (await axios.get(`https://backend-${chain}.gains.trade/apr`))
-        .data;
+        const balance =
+          (
+            await sdk.api.abi.call({
+              target: y.gns,
+              abi: 'erc20:balanceOf',
+              params: [y.staking],
+              chain,
+            })
+          ).output / 1e18;
 
-      const priceKeys = [y.gns, ...y.vaults.map((i) => i.underlying)].map(
-        (i) => `${chain}:${i}`
-      );
-
-      const prices = (
-        await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-      ).data.coins;
-
-      // gns staking pool
-      const balance =
-        (
-          await sdk.api.abi.call({
-            target: y.gns,
-            abi: 'erc20:balanceOf',
-            params: [y.staking],
-            chain,
-          })
-        ).output / 1e18;
-
-      const gnsStaking = {
-        chain,
-        project: 'gains-network',
-        pool: y.staking,
-        symbol: 'GNS',
-        tvlUsd: balance * prices[`${chain}:${y.gns}`].price,
-        apyBase: utils.aprToApy(data.sssApr),
-        underlyingTokens: [y.gns],
-      };
-
-      // vaults
-      const vaults = data.collateralRewards.map((i) => {
-        const addresses = y.vaults.find((v) => v.symbol === i.symbol);
-        const priceData = prices[`${chain}:${addresses.underlying}`];
-        const tvlUsd =
-          Number(i.vaultTvl / 10 ** priceData.decimals) * priceData.price;
-
-        return {
+        const gnsStaking = {
           chain,
           project: 'gains-network',
-          pool: addresses.pool,
-          symbol: i.symbol,
-          tvlUsd,
-          apyBase: utils.aprToApy(i.vaultApr),
-          underlyingTokens: [addresses.underlying],
+          pool: y.staking,
+          symbol: 'GNS',
+          tvlUsd: balance * prices[`${chain}:${y.gns}`].price,
+          apyBase: utils.aprToApy(data.sssApr),
+          underlyingTokens: [y.gns],
         };
-      });
 
-      return [gnsStaking, ...vaults];
+        const vaults = data.collateralRewards.flatMap((i) => {
+          const addresses = y.vaults.find((v) => v.symbol === i.symbol);
+          if (!addresses) return [];
+
+          const priceData = prices[`${chain}:${addresses.underlying}`];
+          const tvlUsd =
+            Number(i.vaultTvl / 10 ** priceData.decimals) * priceData.price;
+
+          return [
+            {
+              chain,
+              project: 'gains-network',
+              pool: addresses.pool,
+              symbol: i.symbol,
+              tvlUsd,
+              apyBase: utils.aprToApy(i.vaultApr),
+              underlyingTokens: [addresses.underlying],
+            },
+          ];
+        });
+
+        return [gnsStaking, ...vaults];
+      } catch (error) {
+        console.error(`Error fetching APY data for ${chain}:`, error);
+        return [];
+      }
     })
   );
 
-  return pools.flat();
+  return results.flat();
 };
 
 module.exports = {

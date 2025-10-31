@@ -29,9 +29,12 @@ const ADDRESSES = {
 const CHAIN_TO_ID = {
   ethereum: 1,
   optimism: 10,
-  // polygon: 137,
+  polygon: 137,
   arbitrum: 42161,
-  // bsc: 56,
+  base: 8453,
+  avax: 43114,
+  fraxtal: 252,
+  bsc: 56,
 };
 
 // returns a list of vaults, see https://github.com/Popcorn-Limited/defi-db/blob/main/archive/vaults/1.json
@@ -52,69 +55,91 @@ async function getTokenPrice(chain, token) {
 
 const apy = async (timestamp = null) => {
   const yieldData = [];
+  const chainEntries = Object.entries(CHAIN_TO_ID);
 
-  for (const [chain, chainId] of Object.entries(CHAIN_TO_ID)) {
-    const vaults = await getVaults(chainId);
-    for (const vault of vaults) {
-      if (!vault.baseApy) {
-        // no apy
-        continue;
-      }
-      if (vault?.address === undefined || vault?.asset === undefined) {
-        continue;
-      }
+  const chainResults = await Promise.allSettled(
+    chainEntries.map(([chain, chainId]) =>
+      (async () => {
+        const chainYieldData = [];
+        const vaults = await getVaults(chainId);
 
-      const symbol = (
-        await sdk.api.abi.call({
-          target: vault.address,
-          abi: vaultAbi.find((n) => n.name === 'symbol'),
-          chain,
-        })
-      ).output.replace('pop-', '');
+        for (const vault of vaults) {
+          if (!vault.baseApy) {
+            // no apy
+            continue;
+          }
+          if (vault?.address === undefined || vault?.asset === undefined) {
+            continue;
+          }
 
-      const decimals = (
-        await sdk.api.abi.call({
-          target: vault.asset,
-          abi: 'erc20:decimals',
-          chain,
-        })
-      ).output;
+          try {
+            const symbol = (
+              await sdk.api.abi.call({
+                target: vault.address,
+                abi: vaultAbi.find((n) => n.name === 'symbol'),
+                chain,
+              })
+            ).output.replace('pop-', '');
 
-      const totalAssets = (
-        await sdk.api.abi.call({
-          target: vault.address,
-          abi: vaultAbi.find((n) => n.name === 'totalAssets'),
-          chain,
-        })
-      ).output;
+            const totalAssets = (
+              await sdk.api.abi.call({
+                target: vault.address,
+                abi: vaultAbi.find((n) => n.name === 'totalAssets'),
+                chain,
+              })
+            ).output;
 
-      const tvl =
-        (totalAssets * (await getTokenPrice(chain, vault.asset))) /
-        10 ** decimals;
+            const price = await getTokenPrice(chain, vault.asset.address);
+            if (!price) {
+              continue;
+            }
 
-      const data = {
-        pool: `${vault.address}-${chain}`,
-        chain: formatChain(chain),
-        project: 'vaultcraft',
-        symbol,
-        tvlUsd: tvl,
-        apyBase: vault.baseApy,
-        underlyingTokens: [vault.asset],
-      };
+            const tvl = (totalAssets * price) / 10 ** vault.asset.decimals;
 
-      if (vault.gaugeLowerApr) {
-        data.apyReward = vault.gaugeLowerApr;
-        data.rewardTokens = [ADDRESSES[chain].oVCX];
-      }
-      yieldData.push(data);
+            const data = {
+              pool: `${vault.address}-${chain}`,
+              chain: formatChain(chain),
+              project: 'vaultcraft',
+              symbol,
+              tvlUsd: tvl,
+              apyBase: vault.baseApy,
+              underlyingTokens: [vault.asset.address],
+            };
+
+            if (vault.gaugeLowerApr && ADDRESSES[chain]?.oVCX) {
+              data.apyReward = vault.gaugeLowerApr;
+              data.rewardTokens = [ADDRESSES[chain].oVCX];
+            }
+            chainYieldData.push(data);
+          } catch (vaultError) {
+            console.error(
+              `vaultcraft: failed to load vault ${vault.address} on ${chain}`,
+              vaultError?.message || vaultError
+            );
+          }
+        }
+
+        return chainYieldData;
+      })()
+    )
+  );
+
+  chainResults.forEach((result, index) => {
+    const [chain] = chainEntries[index];
+    if (result.status === 'fulfilled') {
+      yieldData.push(...result.value);
+    } else {
+      console.error(
+        `vaultcraft: failed to load vaults for chain ${chain}`,
+        result.reason?.message || result.reason
+      );
     }
-  }
+  });
 
   return yieldData.filter((p) => keepFinite(p));
 };
 
 module.exports = {
-  timetravel: false,
   apy,
   url: 'https://app.vaultcraft.io/vaults',
 };
