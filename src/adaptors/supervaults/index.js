@@ -114,9 +114,6 @@ async function apy() {
       ? `https://app.neutron.org/bitcoin-summer?vault=${vault.contract_address}`
       : 'https://app.neutron.org/bitcoin-summer';
 
-    // Pool metadata (can include pool_id or other identifying info)
-    const poolMeta = vault.pool_id || vault.pool_address || undefined;
-
     pools.push({
       pool: `${vault.contract_address}-neutron`.toLowerCase(),
       chain: 'Neutron',
@@ -125,7 +122,6 @@ async function apy() {
       tvlUsd,
       apyBase,
       underlyingTokens,
-      poolMeta,
       url: poolUrl,
     });
   }
