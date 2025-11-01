@@ -1,8 +1,14 @@
 const sdk = require("@defillama/sdk");
 
-const CORE_POOL = {
+const CORE_SONIC_POOL = {
   name: "Core Sonic Pool",
   comptroller: "0xccAdFCFaa71407707fb3dC93D7d83950171aA2c9",
+  oracle: "0xd05b05590609c3610161e60eb41eC317c7562408",
+};
+
+const CORE_PLASMA_POOL = {
+  name: "Core Plasma Pool",
+  comptroller: "0xA3F48548562A30A33257A752d396A20B4413E8E3",
   oracle: "0xd05b05590609c3610161e60eb41eC317c7562408",
 };
 
@@ -20,17 +26,17 @@ const abi = {
   markets: "function markets(address) view returns (bool, uint256, bool)",
 };
 
-const BLOCKS_PER_YEAR = 31_536_000; 
+const BLOCKS_PER_YEAR = 31_536_000;
 
 function round(n) {
   return Math.round(n * 100) / 100;
 }
 
-async function main() {
+async function getPoolsData(poolConfig, chain) {
   const { output: markets } = await sdk.api.abi.call({
-    target: CORE_POOL.comptroller,
+    target: poolConfig.comptroller,
     abi: abi.getAllMarkets,
-    chain: "sonic",
+    chain,
   });
 
   const pools = [];
@@ -39,7 +45,7 @@ async function main() {
     const { output: cTokenSymbol } = await sdk.api.abi.call({
       target: market,
       abi: abi.symbol,
-      chain: "sonic",
+      chain,
     });
 
     let underlying = market;
@@ -47,7 +53,7 @@ async function main() {
       const { output } = await sdk.api.abi.call({
         target: market,
         abi: abi.underlying,
-        chain: "sonic",
+        chain,
       });
       underlying = output;
     } catch {}
@@ -57,7 +63,7 @@ async function main() {
       const { output: symbol } = await sdk.api.abi.call({
         target: underlying,
         abi: abi.symbol,
-        chain: "sonic",
+        chain,
       });
       underlyingSymbol = symbol;
     } catch {}
@@ -67,7 +73,7 @@ async function main() {
       const { output: d } = await sdk.api.abi.call({
         target: underlying,
         abi: abi.decimals,
-        chain: "sonic",
+        chain,
       });
       decimals = Number(d);
     } catch {}
@@ -81,23 +87,13 @@ async function main() {
       { output: priceRaw },
       { output: marketData },
     ] = await Promise.all([
-      sdk.api.abi.call({ target: market, abi: abi.totalSupply, chain: "sonic" }),
-      sdk.api.abi.call({ target: market, abi: abi.exchangeRateStored, chain: "sonic" }),
-      sdk.api.abi.call({ target: market, abi: abi.totalBorrows, chain: "sonic" }),
-      sdk.api.abi.call({ target: market, abi: abi.supplyRatePerBlock, chain: "sonic" }),
-      sdk.api.abi.call({ target: market, abi: abi.borrowRatePerBlock, chain: "sonic" }),
-      sdk.api.abi.call({
-        target: CORE_POOL.oracle,
-        abi: abi.getUnderlyingPrice,
-        params: [market],
-        chain: "sonic",
-      }),
-      sdk.api.abi.call({
-        target: CORE_POOL.comptroller,
-        abi: abi.markets,
-        params: [market],
-        chain: "sonic",
-      }),
+      sdk.api.abi.call({ target: market, abi: abi.totalSupply, chain }),
+      sdk.api.abi.call({ target: market, abi: abi.exchangeRateStored, chain }),
+      sdk.api.abi.call({ target: market, abi: abi.totalBorrows, chain }),
+      sdk.api.abi.call({ target: market, abi: abi.supplyRatePerBlock, chain }),
+      sdk.api.abi.call({ target: market, abi: abi.borrowRatePerBlock, chain }),
+      sdk.api.abi.call({ target: poolConfig.oracle, abi: abi.getUnderlyingPrice, params: [market], chain }),
+      sdk.api.abi.call({ target: poolConfig.comptroller, abi: abi.markets, params: [market], chain }),
     ]);
 
     const exchangeRate = Number(exchangeRateRaw) / 1e18;
@@ -121,8 +117,8 @@ async function main() {
     } catch {}
 
     pools.push({
-      pool: `${market}-sonic`.toLowerCase(),
-      chain: "Sonic",
+      pool: `${market}-${chain}`.toLowerCase(),
+      chain: chain.charAt(0).toUpperCase() + chain.slice(1),
       project: "enclabs",
       symbol: underlyingSymbol,
       tvlUsd: round(tvlUsd),
@@ -132,15 +128,21 @@ async function main() {
       totalBorrowUsd: round(totalBorrowUsd),
       ltv: round(ltv),
       underlyingTokens: [underlying],
-      poolMeta: CORE_POOL.name,
+      poolMeta: poolConfig.name,
     });
   }
 
   return pools;
 }
 
+async function main() {
+  const sonicPools = await getPoolsData(CORE_SONIC_POOL, "sonic");
+  const plasmaPools = await getPoolsData(CORE_PLASMA_POOL, "plasma");
+  return [...sonicPools, ...plasmaPools];
+}
+
 module.exports = {
   timetravel: false,
   apy: main,
   url: "https://www.enclabs.finance",
-};
+}
