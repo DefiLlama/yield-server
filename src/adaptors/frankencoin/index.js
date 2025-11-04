@@ -65,8 +65,24 @@ const gqlQueries = {
       }
     }
   `,
-  // Query for Borrow PositionV2 - Mainnet
-  borrowing: '',
+  // Query for Borrow PositionV2 Positions - Mainnet
+  borrowing: gql`
+    {
+      mintingHubV2PositionV2s(where: { closed: false, denied: false }) {
+        items {
+          position
+          collateral
+          collateralSymbol
+          collateralBalance
+          collateralDecimals
+          riskPremiumPPM
+          limitForClones
+          availableForClones
+          minted
+        }
+      }
+    }
+  `,
 };
 
 const getChainName = (chainId) => {
@@ -77,9 +93,13 @@ const getChainName = (chainId) => {
 const apy = async () => {
   const { savingsStatuss } = await request(GRAPH_URL, gqlQueries.lending, {});
 
-  const defaultFrankencoin = ChainAddressMap['ethereum'].frankencoin;
+  const defaultFrankencoin =
+    ChainAddressMap['ethereum'].frankencoin.toLowerCase();
+  const leadrateModuleId =
+    'savings-0x3bf301b0e2003e75a3e86ab82bd1eff6a9dfb2ae-ethereum';
+
   const price = (await getPrices([defaultFrankencoin], 'ethereum'))
-    .pricesByAddress[defaultFrankencoin.toLowerCase()];
+    .pricesByAddress[defaultFrankencoin];
 
   const earnPools = savingsStatuss.items.map((savings) => {
     const chain = getChainName(savings.chainId);
@@ -90,7 +110,7 @@ const apy = async () => {
     ).toLowerCase();
 
     return {
-      pool: `frankencoin-savings-${savings.module.toLowerCase()}-${chain}`,
+      pool: `savings-${savings.module.toLowerCase()}-${chain}`,
       chain,
       project: 'frankencoin',
       symbol: `ZCHF`,
@@ -98,11 +118,58 @@ const apy = async () => {
       tvlUsd: (savings.balance / 1e18) * price || 0,
       underlyingTokens: [token],
       url: `https://app.frankencoin.com/savings?chain=${chain}`,
-      poolMeta: `Savings (${chain})`,
+      poolMeta: `Savings`,
     };
   });
 
-  return [...earnPools];
+  const queryPositionData = await request(GRAPH_URL, gqlQueries.borrowing, {});
+  const positionData = queryPositionData.mintingHubV2PositionV2s.items;
+
+  const collateralAddresses = [];
+  positionData.forEach((pos) => {
+    if (collateralAddresses.includes(pos.collateral)) return;
+    collateralAddresses.push(pos.collateral);
+  });
+
+  const collateralPrices = await getPrices(collateralAddresses, 'ethereum');
+  const leadratePool = earnPools.find((p) => p.pool == leadrateModuleId);
+  const leadrate = leadratePool ? leadratePool.apyBase : 0;
+
+  const borrowPools = positionData.map((pos) => {
+    const chain = 'ethereum';
+
+    const collateralBalance =
+      pos.collateralBalance / 10 ** pos.collateralDecimals;
+    const collateralPrice = collateralPrices.pricesByAddress[pos.collateral];
+    const collateralValueUsd = collateralBalance * collateralPrice;
+
+    if (collateralPrice == undefined) console.log(pos);
+
+    const loanBalance = pos.minted / 10 ** 18;
+    const loanValueUsd = loanBalance * price;
+
+    const ltv = loanValueUsd / collateralValueUsd;
+
+    return {
+      pool: `position-v2-${pos.position.toLowerCase()}-${chain}`,
+      chain,
+      project: 'frankencoin',
+      symbol: pos.collateralSymbol,
+      apy: 0,
+      tvlUsd: collateralValueUsd,
+      underlyingTokens: [pos.collateral],
+      apyBaseBorrow: leadrate + pos.riskPremiumPPM / 10000,
+      totalSupplyUsd: (pos.limitForClones / 10 ** 18) * price,
+      totalBorrowUsd: (pos.minted / 10 ** 18) * price,
+      debtCeilingUsd: (pos.availableForClones / 10 ** 18) * price,
+      ltv,
+      mintedCoin: 'ZCHF',
+      url: `https://app.frankencoin.com/mint?chain=${chain}`,
+      poolMeta: `PositionV2`,
+    };
+  });
+
+  return [...earnPools, ...borrowPools];
 };
 
 // export
