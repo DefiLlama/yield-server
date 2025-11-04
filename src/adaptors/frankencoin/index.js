@@ -143,8 +143,6 @@ const apy = async () => {
     const collateralPrice = collateralPrices.pricesByAddress[pos.collateral];
     const collateralValueUsd = collateralBalance * collateralPrice;
 
-    if (collateralPrice == undefined) console.log(pos);
-
     const loanBalance = pos.minted / 10 ** 18;
     const loanValueUsd = loanBalance * price;
 
