@@ -18,30 +18,18 @@ const CHAIN_TYPE_AND_NAMES: ByChainTypeAndId<string> = {
     1_923: 'Swell',
     43_111: 'Hemi',
     232: 'Lens',
-    994873017: 'Lumia',
+    994_873_017: 'Lumia',
   },
   aptos: {
     1: 'Aptos',
   },
 };
 
-interface Erc20Token {
+const PAGE_SIZE = 20;
+
+interface Token {
+  address: string;
   symbol: string;
-}
-
-interface AmmPool {
-  tokens: string[];
-  usdTvl: number;
-}
-
-interface LiquityV2Collateral {
-  usdTvl: number;
-  mintedDebt: number;
-  stabilityPoolDebt: number;
-}
-interface AaveV3Collateral {
-  usdSupply: number;
-  usdDebt: number;
 }
 
 interface BaseTarget {
@@ -51,12 +39,14 @@ interface BaseTarget {
 
 interface AmmPoolLiquidityTarget extends BaseTarget {
   type: 'amm-pool-liquidity';
-  poolId: string;
+  id: string;
+  tokens: Token[];
+  usdTvl: number;
 }
 
 interface BaseLiquityV2Target extends BaseTarget {
   brand: string;
-  collateral: string;
+  collateral: Token;
 }
 
 interface LiquityV2DebtTarget extends BaseLiquityV2Target {
@@ -75,7 +65,7 @@ interface GmxV1LiquidityTarget extends BaseTarget {
 interface BaseAaveV3Target extends BaseTarget {
   brand: string;
   market: string;
-  collateral: string;
+  collateral: Token;
 }
 
 interface AaveV3SupplyTarget extends BaseAaveV3Target {
@@ -90,13 +80,13 @@ interface AaveV3NetSupplyTarget extends BaseAaveV3Target {
   type: 'aave-v3-net-supply';
 }
 
-interface TokenDistributable {
-  token: string;
+interface Reward extends Token {
+  amount: string;
+  remaining: string;
 }
 
-interface TokenDistributables {
-  type: 'tokens';
-  list: TokenDistributable[];
+interface Rewards {
+  assets: Reward[];
 }
 
 interface Campaign {
@@ -111,275 +101,111 @@ interface Campaign {
     | AaveV3SupplyTarget
     | AaveV3BorrowTarget
     | AaveV3NetSupplyTarget;
-  distributables: TokenDistributables;
+  rewards: Rewards;
+  usdTvl?: number;
   apr?: number;
 }
 
 interface CampaignsResponse {
-  resolvedTokens: ByChainTypeAndId<Record<string, Erc20Token>>;
-  resolvedPricedTokens: ByChainTypeAndId<Record<string, Erc20Token>>;
-  resolvedAmmPools: ByChainTypeAndId<Record<string, AmmPool>>;
-  resolvedLiquityV2Collaterals: ByChainTypeAndId<
-    Record<string, Record<string, LiquityV2Collateral>>
-  >;
-  resolvedAaveV3Collaterals: ByChainTypeAndId<
-    Record<string, Record<string, Record<string, AaveV3Collateral>>>
-  >;
+  totalItems: number;
   campaigns: Campaign[];
 }
 
 module.exports = {
   timetravel: false,
   apy: async () => {
-    const response = (await getData(
-      'https://api.metrom.xyz/v2/campaigns?status=active'
-    )) as CampaignsResponse;
-
     const campaigns = [];
-    for (const campaign of response.campaigns) {
-      const chainType = campaign.chainType;
-      const byType = CHAIN_TYPE_AND_NAMES[chainType];
-      if (!byType) continue;
 
-      const chainId = campaign.chainId;
-      const chain = byType[chainId];
+    let page = 1;
+    while (true) {
+      const response = (await getData(
+        `https://api.metrom.xyz/v2/campaigns/rewards?page=${page}&pageSize=${PAGE_SIZE}&statuses=active`
+      )) as CampaignsResponse;
 
-      if (
-        !chain ||
-        campaign.distributables.type !== 'tokens' ||
-        chainId !== campaign.target.chainId ||
-        !campaign.apr
-      )
-        continue;
+      for (const campaign of response.campaigns) {
+        const chainType = campaign.chainType;
+        const byType = CHAIN_TYPE_AND_NAMES[chainType];
+        if (!byType) continue;
 
-      let processedCampaign;
-      try {
-        processedCampaign = processCampaign(response, campaign);
-      } catch (err) {
-        console.error(
-          `Could not process campaign with id ${campaign.id}: ${err}`
-        );
-        continue;
+        const chainId = campaign.chainId;
+        const chain = byType[chainId];
+
+        if (
+          !chain ||
+          chainId !== campaign.target.chainId ||
+          !campaign.apr ||
+          !campaign.usdTvl
+        )
+          continue;
+
+        let processedCampaign;
+        try {
+          processedCampaign = processCampaign(campaign);
+        } catch (err) {
+          console.error(
+            `Could not process campaign with id ${campaign.id}: ${err}`
+          );
+          continue;
+        }
+
+        campaigns.push({
+          ...processedCampaign,
+          pool: campaign.id.toLowerCase(),
+          chain: formatChain(chain),
+          project: PROJECT,
+          apyReward: campaign.apr,
+          tvlUsd: campaign.usdTvl,
+          rewardTokens: campaign.rewards.assets.map((reward) => reward.address),
+          url: `https://app.metrom.xyz/en/campaigns/${chainType}/${chainId}/${campaign.id}`,
+        });
       }
 
-      campaigns.push({
-        ...processedCampaign,
-        pool: campaign.id.toLowerCase(),
-        chain: formatChain(chain),
-        project: PROJECT,
-        apyReward: campaign.apr,
-        rewardTokens: campaign.distributables.list.map(
-          (reward) => reward.token
-        ),
-        url: `https://app.metrom.xyz/en/campaigns/${chainType}/${chainId}/${campaign.id}`,
-      });
+      if (response.campaigns.length < PAGE_SIZE) break;
+
+      page++;
     }
 
     return campaigns.filter(keepFinite);
   },
 };
 
-function getByChainTypeAndId<I extends object>(
-  map: ByChainTypeAndId<I>,
-  chainType: string,
-  chainId: number
-): I {
-  const byChainType = map[chainType];
-  if (!byChainType) return {} as I;
-  return byChainType[chainId];
-}
-
 interface ProcessedCampaign {
   symbol: string;
-  tvlUsd: number;
   underlyingTokens: string[];
 }
 
-function processCampaign(
-  response: CampaignsResponse,
-  campaign: Campaign
-): ProcessedCampaign | null {
+function processCampaign(campaign: Campaign): ProcessedCampaign | null {
   switch (campaign.target.type) {
     case 'amm-pool-liquidity': {
-      return processAmmPoolLiquidityCampaign(
-        response,
-        campaign,
-        campaign.target.poolId
-      );
+      return {
+        symbol: formatSymbol(
+          campaign.target.tokens.map((token) => token.symbol).join(' - ')
+        ),
+        underlyingTokens: campaign.target.tokens.map((token) => token.address),
+      };
     }
-    case 'liquity-v2-debt': {
-      return processLiquityV2Campaign(
-        response,
-        campaign,
-        campaign.target.brand,
-        campaign.target.collateral,
-        true
-      );
-    }
+    case 'liquity-v2-debt':
     case 'liquity-v2-stability-pool': {
-      return processLiquityV2Campaign(
-        response,
-        campaign,
-        campaign.target.brand,
-        campaign.target.collateral,
-        false
-      );
+      return {
+        symbol: formatSymbol(campaign.target.collateral.symbol),
+        underlyingTokens: [campaign.target.collateral.symbol],
+      };
     }
     case 'gmx-v1-liquidity': {
       // FIXME: for now, with the current API, it's impossible to process GMX v1
       // campaigns, address this later on
       return null;
     }
-    case 'aave-v3-supply': {
-      return processAaveV3Campaign(
-        response,
-        campaign,
-        campaign.target.brand,
-        campaign.target.market,
-        campaign.target.collateral,
-        'supply'
-      );
-    }
-    case 'aave-v3-borrow': {
-      return processAaveV3Campaign(
-        response,
-        campaign,
-        campaign.target.brand,
-        campaign.target.market,
-        campaign.target.collateral,
-        'borrow'
-      );
-    }
+    case 'aave-v3-supply':
+    case 'aave-v3-borrow':
     case 'aave-v3-net-supply': {
-      return processAaveV3Campaign(
-        response,
-        campaign,
-        campaign.target.brand,
-        campaign.target.market,
-        campaign.target.collateral,
-        'net-supply'
-      );
+      return {
+        symbol: formatSymbol(campaign.target.collateral.symbol),
+        underlyingTokens: [campaign.target.collateral.symbol],
+      };
     }
     default: {
       return null;
     }
   }
-}
-
-function processAmmPoolLiquidityCampaign(
-  response: CampaignsResponse,
-  campaign: Campaign,
-  poolId: string
-): ProcessedCampaign | null {
-  const resolvedTokens = getByChainTypeAndId(
-    response.resolvedTokens,
-    campaign.target.chainType,
-    campaign.target.chainId
-  );
-
-  const resolvedPools = getByChainTypeAndId(
-    response.resolvedAmmPools,
-    campaign.target.chainType,
-    campaign.target.chainId
-  );
-
-  const resolvedPool = resolvedPools[poolId];
-
-  const poolTokenSymbols = [];
-  for (const token of resolvedPool.tokens) {
-    const resolvedToken = resolvedTokens[token];
-    if (!resolvedToken) return null;
-    poolTokenSymbols.push(resolvedToken.symbol);
-  }
-
-  return {
-    symbol: formatSymbol(poolTokenSymbols.join(' - ')),
-    tvlUsd: resolvedPool.usdTvl,
-    underlyingTokens: resolvedPool.tokens,
-  };
-}
-
-function processLiquityV2Campaign(
-  response: CampaignsResponse,
-  campaign: Campaign,
-  brand: string,
-  collateralAddress: string,
-  debt: boolean
-): ProcessedCampaign | null {
-  const resolvedPricedTokens = getByChainTypeAndId(
-    response.resolvedPricedTokens,
-    campaign.target.chainType,
-    campaign.target.chainId
-  );
-
-  const collateralToken = resolvedPricedTokens[collateralAddress];
-  if (!collateralToken) return null;
-
-  const resolvedCollaterals = getByChainTypeAndId(
-    response.resolvedLiquityV2Collaterals,
-    campaign.target.chainType,
-    campaign.target.chainId
-  );
-  const resolvedCollateralsByBrand = resolvedCollaterals[brand];
-  if (!resolvedCollateralsByBrand) return null;
-  const collateral = resolvedCollateralsByBrand[collateralAddress];
-  if (!collateral) return null;
-
-  return {
-    symbol: formatSymbol(collateralToken.symbol),
-    tvlUsd: debt ? collateral.mintedDebt : collateral.stabilityPoolDebt,
-    underlyingTokens: [collateralToken.symbol],
-  };
-}
-
-function processAaveV3Campaign(
-  response: CampaignsResponse,
-  campaign: Campaign,
-  brand: string,
-  market: string,
-  collateralAddress: string,
-  action: 'supply' | 'borrow' | 'net-supply'
-): ProcessedCampaign | null {
-  const resolvedTokens = getByChainTypeAndId(
-    response.resolvedTokens,
-    campaign.target.chainType,
-    campaign.target.chainId
-  );
-
-  const collateralToken = resolvedTokens[collateralAddress];
-  if (!collateralToken) return null;
-
-  const resolvedCollaterals = getByChainTypeAndId(
-    response.resolvedAaveV3Collaterals,
-    campaign.target.chainType,
-    campaign.target.chainId
-  );
-  const resolvedCollateralsByBrand = resolvedCollaterals[brand];
-  if (!resolvedCollateralsByBrand) return null;
-  const resolvedCollateralsByMarket = resolvedCollateralsByBrand[market];
-  if (!resolvedCollateralsByMarket) return null;
-  const collateral = resolvedCollateralsByMarket[collateralAddress];
-  if (!collateral) return null;
-
-  let tvlUsd;
-  switch (action) {
-    case 'supply': {
-      tvlUsd = collateral.usdSupply;
-      break;
-    }
-    case 'borrow': {
-      tvlUsd = collateral.usdDebt;
-      break;
-    }
-    case 'net-supply': {
-      tvlUsd = Math.max(collateral.usdSupply - collateral.usdDebt, 0);
-      break;
-    }
-  }
-
-  return {
-    symbol: formatSymbol(collateralToken.symbol),
-    tvlUsd,
-    underlyingTokens: [collateralToken.symbol],
-  };
 }
