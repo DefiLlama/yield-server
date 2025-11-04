@@ -162,7 +162,7 @@ const apy = async () => {
       debtCeilingUsd: (pos.availableForClones / 10 ** 18) * price,
       ltv,
       mintedCoin: 'ZCHF',
-      url: `https://app.frankencoin.com/mint?chain=${chain}`,
+      url: `https://app.frankencoin.com/monitoring/${pos.position}?chain=${chain}`,
       poolMeta: `PositionV2`,
     };
   });
