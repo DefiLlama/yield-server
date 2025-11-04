@@ -76,16 +76,18 @@ const getChainName = (chainId) => {
 // apy callback function
 const apy = async () => {
   const { savingsStatuss } = await request(GRAPH_URL, gqlQueries.lending, {});
+
   const defaultFrankencoin = ChainAddressMap['ethereum'].frankencoin;
   const price = (await getPrices([defaultFrankencoin], 'ethereum'))
     .pricesByAddress[defaultFrankencoin.toLowerCase()];
 
   const earnPools = savingsStatuss.items.map((savings) => {
     const chain = getChainName(savings.chainId);
-    const token =
+    const token = (
       chain == 'ethereum'
         ? defaultFrankencoin
-        : ChainAddressMap[chain].bridgedFrankencoin;
+        : ChainAddressMap[chain].bridgedFrankencoin
+    ).toLowerCase();
 
     return {
       pool: `frankencoin-savings-${savings.module.toLowerCase()}-${chain}`,
@@ -96,8 +98,6 @@ const apy = async () => {
       tvlUsd: (savings.balance / 1e18) * price || 0,
       underlyingTokens: [token],
       url: `https://app.frankencoin.com/savings?chain=${chain}`,
-      apyReward: 0,
-      rewardTokens: [],
       poolMeta: `Savings (${chain})`,
     };
   });
