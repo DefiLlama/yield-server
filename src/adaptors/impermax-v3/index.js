@@ -93,21 +93,29 @@ const lendingVaultProfiles = {
     //  risk: 'Conservative',
     //}, // cbBTCV2 (high)
     {
-      address: '0x0988cc53b8Ddd625C20e382f1af2f9c385E4f9A3'.toLowerCase(),
+      address: '0x0988cc53b8ddd625c20e382f1af2f9c385e4f9a3',
       risk: 'Conservative',
     }, // ETHV2
     {
-      address: '0x5e68e1bde6699bae9cab165b35989e5acc6b7e67'.toLowerCase(),
+      address: '0x5e68e1bde6699bae9cab165b35989e5acc6b7e67',
       risk: 'Conservative'
     }, // CBBTC
     {
-      address: '0xf7408ba0aaf8ca80d4442731415bbe2156da8958'.toLowerCase(),
+      address: '0xf7408ba0aaf8ca80d4442731415bbe2156da8958',
       risk: 'Conservative'
     }, // Usdc
     {
-      address: '0xad9cfebb7666f2698ca9d836ed8cbeb0545a4263'.toLowerCase(),
-      risk: 'Aggressive'
-    } // eth
+      address: '0xad9cfebb7666f2698ca9d836ed8cbeb0545a4263',
+      risk: 'Balanced'
+    }, // eth
+    {
+      address: '0x7bba312faa13443d60275b1c995b79c0af73091b',
+      risk: 'Balanced'
+    }, // usdc
+    {
+      address: '0xe918f47d385a1f00121930f5769b6c83e614493d',
+      risk: 'Conservative'
+    } // aave
   ],
   blast: [
     {
