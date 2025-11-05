@@ -54,6 +54,11 @@ module.exports = async function () {
 
   const module = require(resolvedAdapterPath);
 
+  // Debug: Check what's in the module
+  console.log('Module keys:', Object.keys(module));
+  console.log('module.apy type:', typeof module.apy);
+  console.log('module:', module);
+
   global.adapter = adapter;
   global.apy = (await module.apy(timestamp)).sort(
     (a, b) => b.tvlUsd - a.tvlUsd
