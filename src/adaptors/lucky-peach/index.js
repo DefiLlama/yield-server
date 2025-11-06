@@ -197,7 +197,7 @@ const apy = async () => {
       return {
         pool: `${pool.aToken.id}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
-        project: 'luckypeach',
+        project: 'lucky-peach',
         symbol: pool.symbol,
         tvlUsd,
         apyBase: (pool.liquidityRate / 10 ** 27) * 100,
