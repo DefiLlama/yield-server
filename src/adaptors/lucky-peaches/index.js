@@ -220,11 +220,7 @@ const apy = async () => {
         ltv: Number(pool.baseLTVasCollateral) / 10000,
         url: `https://luckypeach.xyz/reserve-overview/?underlyingAsset=${
           pool.aToken.underlyingAssetAddress
-        }&marketName=${
-          chain === 'ethereum' 
-            ? mainnnet_pools[pool.pool.pool]
-            : chainUrlParam[chain][0]
-        }&utm_source=defillama&utm_medium=listing&utm_campaign=external`,
+        }&marketName=${chainUrlParam[chain][0]}&utm_source=defillama&utm_medium=listing&utm_campaign=external`,
         borrowable: pool.borrowingEnabled,
       };
     });
