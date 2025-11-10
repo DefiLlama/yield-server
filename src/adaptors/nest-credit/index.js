@@ -12,13 +12,13 @@ const poolsFunction = async () => {
   const pools = vaults.map((v) => {
     const address = (v.vaultAddress || '').toLowerCase();
 
-    // APY with fallback: rolling30d -> rolling7d -> sec30d, then convert to %
-    const apySrc =
-      v?.apy?.rolling30d ??
-      v?.apy?.rolling7d ??
-      v?.apy?.sec30d ??
-      undefined;
-    const apy = apySrc !== undefined && apySrc !== null ? Number(apySrc) * 100 : undefined;
+    // Calculate 30-day APY
+    const apy30dSrc = v?.apy?.rolling30d;
+    const apy30day = apy30dSrc !== undefined && apy30dSrc !== null ? Number(apy30dSrc) * 100 : undefined;
+
+    // Calculate 7-day APY
+    const apy7dSrc = v?.apy?.rolling7d;
+    const apy7day = apy7dSrc !== undefined && apy7dSrc !== null ? Number(apy7dSrc) * 100 : undefined;
 
     // Prefer Plume-native underlying tokens
     const underlyingTokens = (v.liquidAssets || [])
@@ -29,13 +29,13 @@ const poolsFunction = async () => {
       // ✅ pool = vault address (lowercased)
       pool: address,
       chain: utils.formatChain(PLUME_CHAIN_KEY),
-      project: 'nest-credit',
       symbol: utils.formatSymbol(v.symbol || 'NEST'),
       tvlUsd: Number(v.tvl || 0),
       url: `https://app.nest.credit/vault/${v.slug}`,
     };
 
-    if (apy !== undefined) pool.apy = apy;
+    if (apy30day !== undefined) pool.apy30day = apy30day;
+    if (apy7day !== undefined) pool.apy7day = apy7day;
     if (underlyingTokens.length) pool.underlyingTokens = [...new Set(underlyingTokens)];
 
     return pool;
