@@ -8,7 +8,9 @@ const BGT_ADDRESS = '0x656b95E550C07a9ffe548bd4085c72418Ceb1dba';
 
 async function getPoolData() {
   const allPools = await getPools();
+
   const filteredPools = await filterPools(allPools);
+
   const pools = [];
   for (const pool of filteredPools.poolGetPools) {
     const poolData = {
@@ -17,7 +19,9 @@ async function getPoolData() {
       project: PROJECT,
       symbol: pool.name.replace(' | ', '-'),
       tvlUsd: Number(pool.dynamicData.totalLiquidity),
-      apyBase: Number(pool.dynamicData.aprItems[0].apr) * 100,
+      apyBase: pool.dynamicData.aprItems[0]?.apr
+        ? Number(pool.dynamicData.aprItems[0].apr) * 100
+        : null,
       apyReward: Number(pool.rewardVault?.dynamicData.apr) * 100,
       rewardTokens: [BGT_ADDRESS],
       underlyingTokens: [
@@ -33,12 +37,12 @@ async function getPoolData() {
 }
 
 async function filterPools(pools) {
-  const poolMustHaveApr = (pool) => pool.dynamicData.aprItems.length > 0;
+  // const poolMustHaveApr = (pool) => pool.dynamicData.aprItems.length > 0;
   const poolMustHaveRewardVault = (pool) => pool.rewardVault !== null;
 
   return {
     poolGetPools: pools.poolGetPools
-      .filter(poolMustHaveApr)
+      // .filter(poolMustHaveApr)
       .filter(poolMustHaveRewardVault),
   };
 }

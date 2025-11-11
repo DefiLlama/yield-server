@@ -7,7 +7,7 @@ const { sliceIntoChunks, sleep } = require('./utils')
 const _rateLimited = plimit(1)
 const rateLimited = fn => (...args) => _rateLimited(() => fn(...args))
 
-const STARKNET_RPC = 'https://starknet-mainnet.public.blastapi.io'
+const STARKNET_RPC = process.env.STARKNET_RPC
 
 function formCallBody({ abi, target, params = [], allAbi = [] }, id = 0) {
   if ((params || params === 0) && !Array.isArray(params))
