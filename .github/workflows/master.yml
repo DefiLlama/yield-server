@@ -48,3 +48,4 @@ jobs:
           DUNE_API_KEY: ${{ secrets.DUNE_API_KEY}}
           HYPERLIQUID_RPC: ${{ secrets.HYPERLIQUID_RPC }}
           PLASMA_RPC: ${{ secrets.PLASMA_RPC }}
+          STARKNET_RPC: ${{ secrets.STARKNET_RPC }}

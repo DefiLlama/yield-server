@@ -30,4 +30,5 @@ module.exports = {
   DUNE_API_KEY: process.env.DUNE_API_KEY,
   HYPERLIQUID_RPC: process.env.HYPERLIQUID_RPC,
   PLASMA_RPC: process.env.PLASMA_RPC,
+  STARKNET_RPC: process.env.STARKNET_RPC,
 };

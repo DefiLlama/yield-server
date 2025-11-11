@@ -83,6 +83,7 @@ functions:
       DUNE_API_KEY: ${file(./env.js):DUNE_API_KEY}
       HYPERLIQUID_RPC: ${file(./env.js):HYPERLIQUID_RPC}
       PLASMA_RPC: ${file(./env.js):PLASMA_RPC}
+      STARKNET_RPC: ${file(./env.js):STARKNET_RPC}
 
   # --- data enrichment
   triggerEnrichment:
