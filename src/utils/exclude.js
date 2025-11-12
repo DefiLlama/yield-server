@@ -164,6 +164,7 @@ const excludeAdaptors = [
   'cadabra-finance',
   'zeroliquid',
   'corepound',
+  'midas-rwa',
 ];
 
 const excludePools = [
