@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const axios = require('axios');
 
 const API_URL =
   'https://perps-api-mainnet.polynomial.finance/vaults/all?chainId=8008';
@@ -7,8 +8,17 @@ const LIQUIDITY_URL = 'https://polynomial.fi/en/mainnet/earn/liquidity';
 
 const getApy = async () => {
   // APR is retrieved using our api, tvl pairs etc trough subgraph
-  const response = await fetch(API_URL);
-  const data = await response.json();
+
+  const { data } = await axios.get(
+    'https://perps-api-mainnet.polynomial.finance/vaults/all?chainId=8008',
+    {
+      maxBodyLength: Infinity,
+      headers: {
+        'User-Agent': 'defillama (aws-lambda)',
+        Accept: 'application/json',
+      },
+    }
+  );
 
   const poolInfo = await Promise.all(
     data.map(async (pool) => {
