@@ -153,6 +153,13 @@ const HubPools = {
         tokenAddress: '0x14A84F1a61cCd7D1BE596A6cc11FE33A36Bc1646',
         spokeAddress: '0x0aeE2B84bd3E280CFcc9325917bFA0Bb20F3cdC6',
       },
+      {
+        // wstLINK
+        id: 60,
+        underlyingSymbol: 'wstLINK',
+        poolAddress: '0x42Bb92684e72707030F59C48FBe5A222A0d8b387',
+        tokenAddress: '0x601486C8Fdc3aD22745b01c920037d6c036A38B9',
+      },
     ],
   },
   ethereum: {
@@ -163,6 +170,7 @@ const HubPools = {
       // excluding SHIB because bridged
       // excluding YBTCB because bridged
       // excluding tETH because bridged
+      // excluding wstLINK because bridged
       {
         // ETH_eth
         id: 4,
@@ -347,6 +355,7 @@ const HubPools = {
       // excluding USDC because bridged
       // excluding SolvBTC because bridged
       // excluding SHIB because bridged
+      // excluding wstLINK because bridged
       {
         // ETH_arb
         id: 13,
@@ -417,6 +426,7 @@ const HubPools = {
     name: 'Polygon',
     pools: [
       // excluding USDC cause bridged
+      // excluding wstLINK because bridged
       {
         // POL
         id: 19,
