@@ -11,6 +11,7 @@ const CHAINS = {
   10: 'optimism',
   8453: 'base',
   146: 'sonic',
+  42793: 'etherlink',
 };
 
 const poolsFunction = async () => {
