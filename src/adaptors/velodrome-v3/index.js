@@ -98,35 +98,39 @@ const getApy = async () => {
     const lowTick = Number(pool.tick) - (wideTickAmount * Number(pool.type));
     const highTick = Number(pool.tick) + ((wideTickAmount - 1) * Number(pool.type));
 
-    const ratioA = (
-      await sdk.api.abi.call({
-        target: sugarHelper,
-        params: [lowTick],
-        abi: abiSugarHelper.find((m) => m.name === 'getSqrtRatioAtTick'),
-        chain: 'optimism',
-      })
-    ).output;
-
-    const ratioB = (
-      await sdk.api.abi.call({
-        target: sugarHelper,
-        params: [highTick],
-        abi: abiSugarHelper.find((m) => m.name === 'getSqrtRatioAtTick'),
-        chain: 'optimism',
-      })
-    ).output;
-
-    // fetch staked liquidity around wide set of ticks
-    const stakedAmounts = (
-      await sdk.api.abi.call({
-        target: sugarHelper,
-        params: [pool.sqrt_ratio, ratioA, ratioB, pool.gauge_liquidity],
-        abi: abiSugarHelper.find((m) => m.name === 'getAmountsForLiquidity'),
-        chain: 'optimism',
-      })
-    ).output;
-
-    allStakedData.push(stakedAmounts);
+    try {
+      const ratioA = (
+        await sdk.api.abi.call({
+          target: sugarHelper,
+          params: [lowTick],
+          abi: abiSugarHelper.find((m) => m.name === 'getSqrtRatioAtTick'),
+          chain: 'optimism',
+        })
+      ).output;
+  
+      const ratioB = (
+        await sdk.api.abi.call({
+          target: sugarHelper,
+          params: [highTick],
+          abi: abiSugarHelper.find((m) => m.name === 'getSqrtRatioAtTick'),
+          chain: 'optimism',
+        })
+      ).output;
+  
+      // fetch staked liquidity around wide set of ticks
+      const stakedAmounts = (
+        await sdk.api.abi.call({
+          target: sugarHelper,
+          params: [pool.sqrt_ratio, ratioA, ratioB, pool.gauge_liquidity],
+          abi: abiSugarHelper.find((m) => m.name === 'getAmountsForLiquidity'),
+          chain: 'optimism',
+        })
+      ).output;
+  
+      allStakedData.push(stakedAmounts);
+    } catch(e) {
+      allStakedData.push({'amount0': 0, 'amount1': 0});
+    }
   }
   
   const pools = allPoolsData.map((p, i) => {
