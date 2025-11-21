@@ -1,3 +1,4 @@
+const axios = require('axios');
 const utils = require('../utils');
 
 const API_URL =
@@ -5,7 +6,8 @@ const API_URL =
 const PROJECT_NAME = 'btcfi-cdp';
 
 const apy = async () => {
-  const data = await utils.getData(API_URL);
+  const response = await axios.get(API_URL);
+  const data = response.data;
 
   const cbBTCPool = {
     pool: `0x4F7aB59b5AC112970F5dD66D8a7ac505c8E5e08B-base`.toLowerCase(),
