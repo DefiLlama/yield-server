@@ -34,6 +34,7 @@ async function getStrategyVaultsMapped(assetMap) {
         throw new Error("Strategy: Unexpected response shape (not an array)");
     }
 
+
     return data.map((v) => {
         const assetKeys = Object.keys(v.assets || {});
         const assetSymbols = assetKeys
@@ -46,6 +47,7 @@ async function getStrategyVaultsMapped(assetMap) {
             symbol: assetSymbolString,
             tvl: v.tvl,
             netApy: v.netApy,
+            poolMeta: v.name,
         });
     });
 }
@@ -91,6 +93,7 @@ async function getShareVaultsMapped(assetMap) {
                 symbol: underlyingSymbol,
                 tvl,
                 netApy,
+                poolMeta: v.name,
             });
         })
     );
@@ -100,9 +103,10 @@ async function getShareVaultsMapped(assetMap) {
         const sv = list[i];
         return mapToOutput({
             address: sv.address,
-            symbol: sv?.symbol,
+            symbol: sv.symbol,
             tvl: 0,
             netApy: undefined,
+            poolMeta: sv.poolMeta,
         });
     });
 }
@@ -147,17 +151,29 @@ function toNumberOr0(v) {
     return 0;
 }
 
-function mapToOutput({ address, symbol, tvl, netApy }) {
+function mapToOutput({ address, symbol, tvl, netApy, poolMeta }) {
     const pool = `${address}-TON`;
     const project = "affluent";
     const apyBase = netApy;
+    const vaultUrl = `https://app.affluent.org/earn/${address}`;
 
-    return {
+    const output = {
         pool,
         chain: "TON",
         project,
-        symbol: String(symbol ?? ""),
+        symbol: symbol,
+        poolMeta: poolMeta,
         tvlUsd: toNumberOr0(tvl),
         ...(apyBase !== undefined ? { apyBase } : {}),
     };
+
+    if (!hiddenVaultUrlWhitelist.includes(address)) {
+        output.url = vaultUrl;
+    }
+
+    return output;
 }
+
+const hiddenVaultUrlWhitelist = [
+    "EQD3F7Ex_uxBjxEub8FgeDoYYUSIbAUVyehCb_JSiCVL369T",
+];
