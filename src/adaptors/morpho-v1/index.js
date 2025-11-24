@@ -165,8 +165,17 @@ const apy = async () => {
       // net = including rewards, apy = baseApy
       const rewardsApy = Math.max(vault.state.netApy - vault.state.apy, 0);
       const isNegligibleApy = isNegligible(rewardsApy, vault.state.netApy);
-      const rewardTokens = isNegligibleApy ? [] : [...additionalRewardTokens];
-      const apyReward = rewardTokens.length === 0 ? 0 : rewardsApy * 100;
+      let rewardTokens = isNegligibleApy ? [] : [...additionalRewardTokens];
+      let apyReward = rewardTokens.length === 0 ? 0 : rewardsApy * 100;
+
+      // override and add OP rewards to this pool
+      if (
+        vault.address.toLowerCase() ===
+        '0xc30ce6a5758786e0f640cc5f881dd96e9a1c5c59'
+      ) {
+        rewardTokens = ['0x4200000000000000000000000000000000000042'];
+        apyReward = rewardsApy * 100;
+      }
 
       return {
         pool: `morpho-blue-${vault.address}-${chain}`,
