@@ -49,3 +49,4 @@ jobs:
           HYPERLIQUID_RPC: ${{ secrets.HYPERLIQUID_RPC }}
           PLASMA_RPC: ${{ secrets.PLASMA_RPC }}
           STARKNET_RPC: ${{ secrets.STARKNET_RPC }}
+          MONAD_RPC: ${{ secrets.MONAD_RPC }}

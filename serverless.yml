@@ -84,6 +84,7 @@ functions:
       HYPERLIQUID_RPC: ${file(./env.js):HYPERLIQUID_RPC}
       PLASMA_RPC: ${file(./env.js):PLASMA_RPC}
       STARKNET_RPC: ${file(./env.js):STARKNET_RPC}
+      MONAD_RPC: ${file(./env.js):MONAD_RPC}
 
   # --- data enrichment
   triggerEnrichment:

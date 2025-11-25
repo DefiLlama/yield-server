@@ -31,4 +31,5 @@ module.exports = {
   HYPERLIQUID_RPC: process.env.HYPERLIQUID_RPC,
   PLASMA_RPC: process.env.PLASMA_RPC,
   STARKNET_RPC: process.env.STARKNET_RPC,
+  MONAD_RPC: process.env.MONAD_RPC,
 };
