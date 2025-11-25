@@ -538,6 +538,59 @@ const HubPools = {
       },
     ],
   },
+  monad: {
+    name: 'Monad',
+    pools: [
+      {
+        // MON
+        id: 61,
+        underlyingSymbol: 'MON',
+        poolAddress: '0x10a4481F79aAC209aC6c2959B785F2e303912Dc5',
+        tokenAddress: '0x0000000000000000000000000000000000000000',
+        spokeAddress: '0x531490B7674ef239C9FEC39d2Cf3Cc10645d14d4',
+      },
+      {
+        // wBTC_mon
+        id: 62,
+        underlyingSymbol: 'wBTC',
+        poolAddress: '0xdc887aCFe154BF0048Ae15Cda3693Ab2C237431A',
+        tokenAddress: '0x0555E30da8f98308EdB960aa94C0Db47230d2B9c',
+        spokeAddress: '0xF4c542518320F09943C35Db6773b2f9FeB2F847e',
+      },
+      {
+        // wETH_mon
+        id: 63,
+        underlyingSymbol: 'wETH',
+        poolAddress: '0xD7Ff49751DAF42Bf7AFC4fF5C958d4bea48358D3',
+        tokenAddress: '0xEE8c0E9f1BFFb4Eb878d8f15f368A02a35481242',
+        spokeAddress: '0xe3B0e4Db870aA58A24f87d895c62D3dc5CD05883',
+      },
+      {
+        // sMON
+        id: 64,
+        underlyingSymbol: 'sMON',
+        poolAddress: '0x5562d84f9891288fc72aaB1d857797c7275Fcedb',
+        tokenAddress: '0xA3227C5969757783154C60bF0bC1944180ed81B9',
+        spokeAddress: '0xb39c03297E87032fF69f4D42A6698e4c4A934449',
+      },
+      {
+        // aUSD_mon
+        id: 66,
+        underlyingSymbol: 'aUSD',
+        poolAddress: '0x4fb4c3A33cBe855C5d87078c1BbBe5f371417faC',
+        tokenAddress: '0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a',
+        spokeAddress: '0xC30107a8e782E98Fe890f0375afa4185aeEa3356',
+      },
+      {
+        // USDT0_mon
+        id: 67,
+        underlyingSymbol: 'USD₮0',
+        poolAddress: '0xd9D50D4F73f61A306b47e5BdC825E98cd11139dc',
+        tokenAddress: '0xe7cd86e13AC4309349F30B3435a9d337750fC82D',
+        spokeAddress: '0xB1e2939b501B73F4cFEf6a9FB0aa89a75F1774EE',
+      },
+    ],
+  },
 };
 
 const RewardsTokenV2 = {
@@ -576,6 +629,12 @@ const RewardsTokenV2 = {
     chain: 'sei',
     tokenAddress: '0x0000000000000000000000000000000000000000',
     spokeAddress: '0x531490B7674ef239C9FEC39d2Cf3Cc10645d14d4',
+  },
+  // FOLKS (Monad)
+  7: {
+    chain: 'monad',
+    tokenAddress: '0xFF7F8F301F7A706E3CfD3D2275f5dc0b9EE8009B',
+    spokeAddress: '0x7218Bd1050D41A9ECfc517abdd294FB8116aEe81',
   },
 };
 
