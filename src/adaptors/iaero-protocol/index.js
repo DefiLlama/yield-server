@@ -46,7 +46,7 @@ const main = async () => {
   return [{
     pool: VAULT_ADDRESS,
     chain: 'Base',
-    project: 'iaero',
+    project: 'iaero-protocol',
     symbol: 'iAERO',
     tvlUsd,
     apyBase: apy,
