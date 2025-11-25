@@ -15,7 +15,7 @@ const poolsFunction = async () => {
     // Calculate 7-day APY, fallback to 0 if empty
     const apy7dSrc = v?.apy?.rolling7d;
     let apyBase = 0; // Default to 0 if empty
-    
+
     if (apy7dSrc !== undefined && apy7dSrc !== null && apy7dSrc !== '') {
       const apy7day = Number(apy7dSrc) * 100;
       if (Number.isFinite(apy7day)) {
@@ -36,9 +36,9 @@ const poolsFunction = async () => {
       symbol: utils.formatSymbol(v.symbol || 'NEST'),
       tvlUsd: Number(v.tvl || 0),
       apyBase: apyBase,
-      url: `https://app.nest.credit/vault/${v.slug}`,
+      url: `https://app.nest.credit/vaults/${v.slug}`,
     };
-    
+
     // Set underlying tokens if available
     if (underlyingTokens.length) {
       pool.underlyingTokens = [...new Set(underlyingTokens)];
