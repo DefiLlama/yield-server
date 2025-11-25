@@ -9,6 +9,7 @@ const graphUrls = {
   base: 'https://subgraph.satsuma-prod.com/9b84d9926bf3/nabla-finance--3958960/nabla-mainnetAlpha-base/api',
   berachain:
     'https://subgraph.satsuma-prod.com/9b84d9926bf3/nabla-finance--3958960/nabla-mainnetAlpha-berachain-public/api',
+  hyperliquid: 'https://api.goldsky.com/api/public/project_cm7aautkjfpbg01v47kya5470/subgraphs/nabla-mainnetAlpha-hyperliquid/v0.0.3/gn',
 };
 
 const query = gql`
