@@ -95,7 +95,7 @@ interface GetMarketsLiquidityResponse {
 }
 */
 
-const ENDPOINT = 'https://api.size.credit';
+const ENDPOINT = 'https://api.rheo.xyz';
 
 async function getMarkets() /*: Promise<Market[]>*/ {
   const getMarketsResponse /*: GetMarketsResponse*/ = await fetch(
