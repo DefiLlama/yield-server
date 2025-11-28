@@ -188,6 +188,6 @@ const apy = async () => {
 
 module.exports = {
   apy,
-  url: 'https://shmonad.com',
+  url: 'https://shmonad.xyz',
 };
 
