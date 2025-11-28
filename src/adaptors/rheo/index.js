@@ -61,14 +61,14 @@ async function apy() /*: Promise<Pool[]>*/ {
         apyBase = getReserveData.liquidityRate / 10 ** 25;
       }
       return {
-        pool: market.id,
+        pool: `rheo-${market.id}`,
         chain: uppercaseFirst(market.chain),
-        project: 'size-credit',
+        project: 'rheo',
         symbol: market.base_symbol,
         tvlUsd: marketsLiquidity[market.id].buy_side_liquidity_usd,
         apyBase,
         underlyingTokens: [market.debt_token.address],
-        url: `https://app.size.credit/borrow?action=market&type=lend&market_id=${market.id}`,
+        url: `https://app.rheo.xyz/borrow?action=market&type=lend&market_id=${market.id}`,
         apyBaseBorrow: await borrowingAPR(
           market,
           TENOR_DAYS * DAYS_TO_SECONDS,

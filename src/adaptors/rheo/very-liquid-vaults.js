@@ -176,10 +176,10 @@ async function apy() /*: Promise<Pool[]>*/ {
       );
 
       return vaults.map((vault, i) => ({
-        pool: `vlv-${vault}`,
+        pool: `rheo-vlv-${vault}`,
         chain: uppercaseFirst(chain),
         apyBase: apyBasePerVault[i],
-        project: 'size-credit',
+        project: 'rheo',
         symbol: symbols[i],
         tvlUsd: (totalAssets[i] * prices[i]) / 10 ** decimals[i],
         underlyingTokens: [assets[i]],
