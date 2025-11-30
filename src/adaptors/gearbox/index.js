@@ -436,6 +436,11 @@ var CHAIN_CONFIGS = {
         underlying: '0xe7cd86e13AC4309349F30B3435a9d337750fC82D', // USDT0
         name: 'USDT0 Pool',
       },
+      '0xc4173359087ce643235420b7bc610d9b0cf2b82d': {
+        symbol: 'edgeAUSD',
+        underlying: '0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a', // AUSD
+        name: 'AUSD Pool',
+      },
     },
   },
 };
@@ -553,6 +558,7 @@ const MERKL_CONFIGS = {
       '0x6b343f7b797f1488aa48c49d540690f2b2c89751', // USDC Pool
       '0x34752948b0dc28969485df2066ffe86d5dc36689', // MON Pool
       '0x164a35f31e4e0f6c45d500962a6978d2cbd5a16b', // USDT0 Pool
+      '0xc4173359087ce643235420b7bc610d9b0cf2b82d', // AUSD Pool
     ],
   },
 };
