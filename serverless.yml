@@ -85,6 +85,8 @@ functions:
       PLASMA_RPC: ${file(./env.js):PLASMA_RPC}
       STARKNET_RPC: ${file(./env.js):STARKNET_RPC}
       MONAD_RPC: ${file(./env.js):MONAD_RPC}
+      LLAMA_INDEXER_V2_ENDPOINT: ${env:LLAMA_INDEXER_V2_ENDPOINT}
+      LLAMA_INDEXER_V2_API_KEY: ${env:LLAMA_INDEXER_V2_API_KEY}
 
   # --- data enrichment
   triggerEnrichment:
