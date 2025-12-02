@@ -179,9 +179,10 @@ const apy = async () => {
       pool: SHMONAD_CONTRACT.toLowerCase(),
       chain: 'monad',
       project: 'shmonad',
-      symbol: symbol.output || 'shMON',
+      symbol: 'shMON',
       tvlUsd: tvlUsd,
       apyBase: apyBase,
+      underlyingTokens: ['0x0000000000000000000000000000000000000000'], // MON
     },
   ];
 };
