@@ -12,6 +12,17 @@ const CHAINS = {
   polygon: 137
 };
 
+/**
+ * IMPORTANT: This adapter handles the morpho-v1 related protocol which includes:
+ * - Morpho Market V1 (formerly Morpho Blue markets) → borrow pools
+ * - Morpho Vault V1 (formerly MetaMorpho vaults) → earn pools
+ * - Morpho Vault V2 allocating into either Morpho Vault V1 or Morpho Market V1 → earn pools
+ *
+ * Morpho Vault V2 allocates through adapters to Vault V1 and Market V1 ONLY for now.
+ *
+ * For more details on field definitions, see: https://api.morpho.org/graphql
+ */
+
 const gqlQueries = {
   marketsData: gql`
     query GetYieldsData($chainId: Int!, $skip: Int!) {
@@ -20,7 +31,7 @@ const gqlQueries = {
         skip: $skip
         orderBy: SupplyAssetsUsd
         orderDirection: Desc
-        where: { chainId_in: [$chainId] }
+        where: { chainId_in: [$chainId], whitelisted: true }
       ) {
         items {
           uniqueKey
@@ -66,7 +77,7 @@ const gqlQueries = {
         skip: $skip
         orderBy: TotalAssetsUsd
         orderDirection: Desc
-        where: { chainId_in: [$chainId] }
+        where: { chainId_in: [$chainId], whitelisted: true }
       ) {
         items {
           chain {
@@ -104,17 +115,137 @@ const gqlQueries = {
       }
     }
   `,
+  vaultV2s: gql`
+    query GetVaultV2Data($chainId: Int!, $skip: Int!) {
+      vaultV2s(
+        first: 100
+        skip: $skip
+        where: { chainId_in: [$chainId], whitelisted: true }
+      ) {
+        items {
+          address
+          symbol
+          name
+          asset {
+            address
+          }
+          chain {
+            id
+          }
+          totalAssetsUsd
+          avgApy
+          avgNetApy
+          performanceFee
+          managementFee
+          maxRate
+          rewards {
+            asset {
+              address
+            }
+            supplyApr
+          }
+          adapters {
+            items {
+              type
+            }
+          }
+        }
+      }
+    }
+  `,
 };
 
-const isNegligible = (valueA, valueB, threshold = 0.01) => {
-  return Math.abs(valueA - valueB) / (valueA + valueB) < threshold;
+const isNegligible = (part, total, threshold = 0.01) => {
+  // "part is negligible relative to total" <=> |part| / |total| < threshold
+  const denom = Math.abs(total);
+  if (denom === 0) {
+    // If total is 0, treat any non-zero part as non-negligible.
+    return Math.abs(part) === 0;
+  }
+  return Math.abs(part) / denom < threshold;
 };
+
+// Allowed adapter types for Vault V2
+// Vault V2 only allocates to Vault V1 (MetaMorpho) and Market V1
+const ALLOWED_ADAPTER_TYPES = ['MetaMorpho', 'MorphoMarketV1'];
+
+const buildVaultV2Pools = (earnV2, chain) =>
+  earnV2
+    // Filter vaults to only include those with allowed adapter types
+    .filter((vault) => {
+      // Check if vault has adapters
+      if (!vault.adapters?.items || vault.adapters.items.length === 0) {
+        return false;
+      }
+      // Check if all adapters are of allowed types
+      return vault.adapters.items.every((adapter) =>
+        ALLOWED_ADAPTER_TYPES.includes(adapter.type)
+      );
+    })
+    .map((vault) => {
+      // (a) Aggregate reward APRs from all positive supplyApr entries.
+      //     This is the "rewards" side as exposed by the API.
+      const totalRewardApr =
+        vault.rewards?.reduce(
+          (sum, reward) => sum + (reward.supplyApr > 0 ? reward.supplyApr : 0),
+          0
+        ) || 0;
+
+      // (b) Decide whether to surface rewards separately.
+      //     We call them negligible if they are < 1% of the total net APY.
+      const rewardsAreNegligible = isNegligible(totalRewardApr, vault.avgNetApy);
+
+      const rewardTokens = rewardsAreNegligible
+        ? []
+        : (vault.rewards || [])
+            .filter((reward) => reward.supplyApr > 0)
+            .map((reward) => reward.asset.address.toLowerCase());
+
+      // (c) Split avgNetApy (after fees, with rewards) into base + rewards.
+      //
+      //     Definitions:
+      //       - avgNetApy: realized average net APY of the vault
+      //                    (after fees, including rewards).
+      //       - totalRewardApr: sum of all reward APRs from rewards.supplyApr.
+      //
+      //     We want:
+      //       totalAPY (what user earns) = apyBase + apyReward
+      //                                 ≈ avgNetApy
+      //
+      //     So we define (in decimal form):
+      //       rewardComponent = rewardsAreNegligible ? 0 : totalRewardApr
+      //       baseComponent   = avgNetApy - rewardComponent
+      //
+      //     And convert both to percentages for DefiLlama:
+      const rewardComponent = rewardsAreNegligible ? 0 : totalRewardApr;
+
+      const apyReward = rewardComponent * 100;
+      const apyBase = (vault.avgNetApy - rewardComponent) * 100;
+
+      return {
+        pool: `morpho-vault-v2-${vault.address}-${chain}`,
+        chain,
+        project: 'morpho-v1',
+        symbol: vault.symbol,
+        // Base APY: net yield from the strategy + underlying asset, after fees,
+        //           excluding explicit reward APRs.
+        apyBase,
+        tvlUsd: vault.totalAssetsUsd || 0,
+        underlyingTokens: [vault.asset.address],
+        url: `https://app.morpho.org/${chain}/vault/${vault.address}`,
+
+        // Reward APY: sum of reward APRs from rewards.supplyApr,
+        //             hidden when negligible vs avgNetApy.
+        apyReward,
+        rewardTokens,
+      };
+    });
 
 const apy = async () => {
   let pools = [];
 
   for (const [chain, chainId] of Object.entries(CHAINS)) {
-    // Fetch vaults data with pagination
+    // Fetch Vault V1 (MetaMorpho) data with pagination
     let allVaults = [];
     let skip = 0;
     while (true) {
@@ -126,6 +257,21 @@ const apy = async () => {
       if (!vaults.items.length) break;
 
       allVaults = [...allVaults, ...vaults.items];
+      skip += 100;
+    }
+
+    // Fetch Vault V2 data with pagination
+    let allVaultV2s = [];
+    skip = 0;
+    while (true) {
+      const { vaultV2s } = await request(GRAPH_URL, gqlQueries.vaultV2s, {
+        chainId,
+        skip,
+      });
+
+      if (!vaultV2s.items.length) break;
+
+      allVaultV2s = [...allVaultV2s, ...vaultV2s.items];
       skip += 100;
     }
 
@@ -144,10 +290,12 @@ const apy = async () => {
       skip += 100;
     }
 
-    const earn = allVaults;
+    const earnV1 = allVaults;
+    const earnV2 = allVaultV2s;
     const borrow = allMarkets;
 
-    const earnPools = earn.map((vault) => {
+    // Transform Vault V1 (MetaMorpho) pools
+    const earnV1Pools = earnV1.map((vault) => {
       // fetch reward token addresses from allocation data
       let additionalRewardTokens = new Set();
       vault.state.allocation.forEach((allocatedMarket) => {
@@ -178,7 +326,7 @@ const apy = async () => {
       }
 
       return {
-        pool: `morpho-blue-${vault.address}-${chain}`,
+        pool: `morpho-vault-v1-${vault.address}-${chain}`,
         chain,
         project: 'morpho-v1',
         symbol: vault.symbol,
@@ -190,6 +338,14 @@ const apy = async () => {
         rewardTokens,
       };
     });
+
+    // Transform Vault V2 pools
+    // Note: avgNetApy is the realized average net APY (after fees, with rewards)
+    // rewards.supplyApr contains the reward APRs from the API
+    // as per the GraphQL schema definition, see: https://api.morpho.org/graphql
+    // The API already applies maxRate capping when calculating these from share price evolution
+    // We filter to only include vaults with MetaMorpho or MorphoMarketV1 adapters
+    const earnV2Pools = buildVaultV2Pools(earnV2, chain);
 
     const borrowPools = borrow.map((market) => {
       if (!market.collateralAsset?.symbol) return null;
@@ -204,7 +360,7 @@ const apy = async () => {
         ) * 100;
 
       return {
-        pool: `morpho-blue-${market.uniqueKey}-${chain}`,
+        pool: `morpho-market-v1-${market.uniqueKey}-${chain}`,
         chain,
         project: 'morpho-v1',
         symbol: market.collateralAsset?.symbol,
@@ -212,8 +368,8 @@ const apy = async () => {
         tvlUsd: market.state.collateralAssetsUsd || 0,
         underlyingTokens: [market.collateralAsset.address],
         apyBaseBorrow: market.state.borrowApy * 100,
-        totalSupplyUsd: market.state.collateralAssetsUsd,
-        totalBorrowUsd: market.state.borrowAssetsUsd,
+        totalSupplyUsd: market.state.collateralAssetsUsd ?? 0,
+        totalBorrowUsd: market.state.borrowAssetsUsd ?? 0,
         debtCeilingUsd:
           market.state.supplyAssetsUsd - market.state.borrowAssetsUsd,
         ltv: market.lltv / 1e18,
@@ -224,14 +380,14 @@ const apy = async () => {
       };
     });
 
-    pools = [...pools, ...earnPools, ...borrowPools];
+    pools = [...pools, ...earnV1Pools, ...earnV2Pools, ...borrowPools];
   }
 
   const uniquePools = Array.from(
     pools
       .reduce((map, pool) => {
         if (!pool) return map;
-        const key = `morpho-blue-${pool.pool}-${pool.chain}`;
+        const key = pool.pool; // pool.pool already contains the full unique ID
         if (!map.has(key) || pool.tvlUsd > map.get(key).tvlUsd) {
           map.set(key, pool);
         }
