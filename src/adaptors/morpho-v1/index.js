@@ -9,7 +9,8 @@ const CHAINS = {
   katana: 747474,
   arbitrum: 42161,
   unichain: 130,
-  polygon: 137
+  polygon: 137,
+  monad: 143,
 };
 
 /**
