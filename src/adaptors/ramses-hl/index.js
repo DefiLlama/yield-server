@@ -2,10 +2,10 @@ const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 
-const PHAR = '0x13A466998Ce03Db73aBc2d4DF3bBD845Ed1f28E7';
-const PROJECT = 'pharaoh-v3';
-const CHAIN = 'avalanche';
-const SUBGRAPH = 'https://avalanchev2.kingdomsubgraph.com/subgraphs/name/pharaoh-v3-pruned/';
+const RAM = '0x555570a286F15EbDFE42B66eDE2f724Aa1AB5555';
+const PROJECT = 'ramses-hl';
+const CHAIN = 'hyperliquid';
+const SUBGRAPH = 'https://hyperevm.kingdomsubgraph.com/subgraphs/name/ramses-v3-pruned';
 
 const poolsQuery = gql`
   query getPools($first: Int!, $skip: Int!) {
@@ -63,18 +63,18 @@ async function apy() {
   try {
     const pools = await fetchAllPools();
 
-    let pharaohPools = [];
+    let ramsesPools = [];
     try {
-      const pharaohApiData = await axios.get('https://api.phar.fi/mixed-pairs?includeTokens=False');
-      if (pharaohApiData.data && Array.isArray(pharaohApiData.data.pairs)) {
-        pharaohPools = pharaohApiData.data.pairs;
+      const ramsesApiData = await axios.get('https://api2.ramses.xyz/all-pools');
+      if (ramsesApiData.data && Array.isArray(ramsesApiData.data.pools)) {
+        ramsesPools = ramsesApiData.data.pools;
       }
     } catch (error) {
-      console.error('Failed to fetch Pharaoh API data:', error.message);
+      console.error('Failed to fetch Ramses API data:', error.message);
     }
 
     const aprMap = {};
-    for (const pool of pharaohPools) {
+    for (const pool of ramsesPools) {
       if (pool.id) {
         aprMap[pool.id.toLowerCase()] = {
           lpApr: Number(pool.lpApr) || 0
@@ -98,7 +98,7 @@ async function apy() {
       let apyReward = 0;
       const tickSpacing = parseInt(pool.tickSpacing);
 
-      const apiPool = pharaohPools.find(p => p.id.toLowerCase() === poolAddress);
+      const apiPool = ramsesPools.find(p => p.id.toLowerCase() === poolAddress);
       if (apiPool && apiPool.recommendedRangesNew) {
         if (tickSpacing === 1 || tickSpacing === 5) {
           const wideRange = apiPool.recommendedRangesNew.find(range => range.name === 'Wide');
@@ -121,12 +121,12 @@ async function apy() {
         apyBase,
         apyBase7d: 0,
         apyReward,
-        rewardTokens: apyReward > 0 ? [PHAR] : [],
+        rewardTokens: apyReward > 0 ? [RAM] : [],
         underlyingTokens: [
           pool.token0.id.toLowerCase(),
           pool.token1.id.toLowerCase()
         ],
-        url: `https://www.phar.gg/liquidity/${poolAddress}`,
+        url: `https://www.ramses.xyz/liquidity/${poolAddress}`,
         volumeUsd1d: pool.poolDayData?.[0]?.volumeUSD
           ? Number(pool.poolDayData[0].volumeUSD)
           : 0,
@@ -139,7 +139,7 @@ async function apy() {
     return results.filter((p) => utils.keepFinite(p));
     
   } catch (error) {
-    console.error('Error fetching Pharaoh CL data:', error);
+    console.error('Error fetching Ramses HL data:', error);
     return [];
   }
 }
