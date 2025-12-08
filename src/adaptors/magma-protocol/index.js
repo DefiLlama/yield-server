@@ -59,7 +59,7 @@ const apy = async () => {
   const coreVault = coreVaultAddress.output;
   const gVault = gVaultAddress.output;
 
-  // Fetch current totalAssets, totalSupply, and symbol for gVault (main liquid staking token)
+  // Fetch current totalAssets, totalSupply, and symbol for Magma protocol
   const [totalAssetsNow, totalSupplyNow, symbol] = await Promise.all([
     sdk.api.abi.call({
       target: MAGMA_ADDRESS,
