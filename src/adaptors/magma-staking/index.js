@@ -205,7 +205,7 @@ const apy = async () => {
     {
       pool: MAGMA_ADDRESS.toLowerCase(),
       chain: 'monad',
-      project: 'magma-protocol',
+      project: 'magma-staking',
       symbol: symbol.output || 'gMON',
       tvlUsd: tvlUsd,
       apyBase: apyBase,
@@ -216,6 +216,6 @@ const apy = async () => {
 
 module.exports = {
   apy,
-  url: 'https://magmaprotocol.com',
+  url: 'https://www.magmastaking.xyz/',
 };
 
