@@ -3,6 +3,11 @@ const axios = require('axios');
 const rFLR = '0x26d460c3Cf931Fb2014FA436a49e3Af08619810e'; // Reward FLR
 
 const calculateApy = (_apr) => {
+  // Handle extremely high APR values that could cause calculation issues
+  if (_apr > 10000) { // If APR > 10000%, cap it to prevent extreme values
+    return 10000;
+  }
+  
   const APR = _apr / 100;
   const n = 365;
 
@@ -10,7 +15,8 @@ const calculateApy = (_apr) => {
   const APY = (1 + APR / n) ** n - 1;
   const APYPercentage = APY * 100;
 
-  return APYPercentage;
+  // Cap APY to reasonable maximum (10000%)
+  return Math.min(APYPercentage, 10000);
 };
 
 const apy = async () => {
@@ -20,15 +26,20 @@ const apy = async () => {
     )
   ).data[0].data;
 
-  const chain = 'Flare';
+  const chain = 'flare';
 
   const i = pools.map((lp) => {
+    // Skip pools without APR data
     if (!lp.apr) return;
+    
+    // Skip pools with zero or negative TVL
+    if (!lp.tvlUSD || lp.tvlUSD <= 0) return;
 
     const tvlUsd = lp.tvlUSD;
-    const feeUsd = lp.feesUSDDay;
+    const feeUsd = lp.feesUSDDay || 0;
 
-    const baseApy = (feeUsd / tvlUsd) * 365 * 100;
+    // Calculate base APY, handle division by zero
+    const baseApy = tvlUsd > 0 && feeUsd > 0 ? (feeUsd / tvlUsd) * 365 * 100 : 0;
 
     let pool = {
       pool: `${lp.id}-${chain}`.toLowerCase(),
