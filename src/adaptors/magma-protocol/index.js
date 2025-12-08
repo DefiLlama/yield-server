@@ -203,7 +203,7 @@ const apy = async () => {
 
   return [
     {
-      pool: gVault.toLowerCase(),
+      pool: MAGMA_ADDRESS.toLowerCase(),
       chain: 'monad',
       project: 'magma-protocol',
       symbol: symbol.output || 'gMON',
