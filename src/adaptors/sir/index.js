@@ -163,6 +163,10 @@ async function fetchVaultsForChain(chainCfg) {
           symbol
           decimals
         }
+        debtToken {
+          symbol
+        }
+        leverageTier
         lockedLiquidity
         teaSupply
         reserveLPers
@@ -390,19 +394,21 @@ async function apy() {
 
     const vaultIdDecimal = parseInt(vault.id, 16);
     const poolId = `${sirAddress}-${vaultIdDecimal}-${chainKey}`;
+    const symbol = `${utils.formatSymbol(vault.collateralToken.symbol || "UNKNOWN")}-${utils.formatSymbol(vault.debtToken.symbol || "UNKNOWN")}`;
+    const poolMeta = `Leverage ratio: ${1+2**(Number(vault.leverageTier))}`;
     const url = `${chainCfg.urlPrefix}${vault.id}`;
 
     pools.push({
       pool: poolId,
       chain: chainName, // "Ethereum" or "Hyperliquid L1"
       project: "sir",
-      symbol: utils.formatSymbol(vault.collateralToken.symbol || "UNKNOWN"),
+      symbol,
       tvlUsd,
       apyBase: feesApy || 0,
       apyReward: sirRewardsApy || 0,
       rewardTokens: [sirAddress],
       underlyingTokens: [collateralAddress],
-      poolMeta: undefined,
+      poolMeta,
       url,
     });
   }
