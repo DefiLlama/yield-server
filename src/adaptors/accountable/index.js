@@ -12,6 +12,7 @@ const abis = {
 };
 
 const basisPointsToPercent = (value) => Number(value) / 1e4;
+const formatAmountWithDecimlas = (value, decimals) => value / 10 ** decimlas;
 
 const fetchVaultsByLoanIds = async(loanIds) => {
     const results = await Promise.allSettled(
@@ -107,14 +108,14 @@ const apy = async() => {
 
         return {
             pool: `${item.loan_address}-${chainName}`.toLowerCase(),
-            chain: utils.formatChain(chainName),
+            chain: chainName,
             project: 'accountable',
             symbol: utils.formatSymbol(item.asset_symbol),
-            tvlUsd: stats.tvl / 10 ** 6,
+            tvlUsd: formatAmountWithDecimlas(stats.tvl, 6),
             apyBase: basisPointsToPercent(item.net_apy),
             url: `https://yield.accountable.capital/vaults/${item.loan_address}`,
-            totalSupplyUsd: stats.totalSupplied / 10 ** 6,
-            totalBorrowUsd: stats.totalBorrowed / 10 ** 6,
+            totalSupplyUsd: formatAmountWithDecimlas(stats.totalSupplied, 6),
+            totalBorrowUsd: formatAmountWithDecimlas(stats.totalBorrowe, 6),
         };
     });
 };
