@@ -111,14 +111,14 @@ const apy = async() => {
             chain: utils.formatChain(chainName),
             project: 'accountable',
             symbol: utils.formatSymbol(item.asset_symbol),
-            tvlUsd: stats.tvl,
+            tvlUsd: stats.tvl / 10 ** 6,
             apyBase: basisPointsToPercent(item.apy) -
                 performanceFeeToPercent(item.performance_fee),
             apyReward: item.all_points_apy_boost.total_apy_boost_percent +
                 item.rewards_apy_boost.total_apy_boost_percent,
             url: `https://yield.accountable.capital/vaults/${item.loan_address}`,
-            totalSupplyUsd: stats.totalSupplied,
-            totalBorrowUsd: stats.totalBorrowed,
+            totalSupplyUsd: stats.totalSupplied / 10 ** 6,
+            totalBorrowUsd: stats.totalBorrowed / 10 ** 6,
         };
     });
 };
