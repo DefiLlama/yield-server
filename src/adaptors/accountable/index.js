@@ -115,7 +115,7 @@ const apy = async() => {
             apyBase: basisPointsToPercent(item.net_apy),
             url: `https://yield.accountable.capital/vaults/${item.loan_address}`,
             totalSupplyUsd: formatAmountWithDecimlas(stats.totalSupplied, 6),
-            totalBorrowUsd: formatAmountWithDecimlas(stats.totalBorrowe, 6),
+            totalBorrowUsd: formatAmountWithDecimlas(stats.totalBorrowed, 6),
         };
     });
 };
