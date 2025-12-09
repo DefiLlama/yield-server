@@ -12,7 +12,7 @@ const abis = {
 };
 
 const basisPointsToPercent = (value) => Number(value) / 1e4;
-const formatAmountWithDecimlas = (value, decimals) => value / 10 ** decimlas;
+const formatAmountWithDecimlas = (value, decimals) => value / 10 ** decimals;
 
 const fetchVaultsByLoanIds = async(loanIds) => {
     const results = await Promise.allSettled(
