@@ -1,7 +1,9 @@
 const sdk = require('@defillama/sdk');
+const axios = require('axios');
 const utils = require('../utils');
 
 const API_URL = 'https://yield.accountable.capital/api/loan';
+const MERKL_API_URL = 'https://api.merkl.xyz/v4/opportunities?explorerAddress=';
 const chainIdToName = { 143: 'monad' };
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -11,7 +13,7 @@ const abis = {
 };
 
 const basisPointsToPercent = (value) => Number(value) / 1e4;
-const formatAmountWithDecimlas = (value, decimals) => value / 10 ** decimals;
+const formatAmount = (value, decimals = 18) => (value == null ? null : Number(value) / 10 ** decimals);
 
 const fetchVaultsByLoanIds = async(loanIds) => {
     const results = await Promise.allSettled(
@@ -80,13 +82,41 @@ const getVaultStats = async(vaults, chain = 'monad') => {
 
     const totalAssets = totalAssetsRes.output.map((o) => o.output);
     const liquidity = liquidityRes.output.map((o) => o.output);
-    console.log(totalAssets, liquidity);
     return vaults.reduce((acc, address, i) => {
         acc[address] = {
             totalSupplied: supplies[i],
-            totalBorrowed: totalAssets[i] - liquidity[i],
+            totalBorrowed: Number(totalAssets[i]) - Number(liquidity[i] || 0),
             tvl: liquidity[i],
         };
+        return acc;
+    }, {});
+};
+
+const fetchMerklRewards = async(vaultAddress) => {
+    try {
+        const { data } = await axios.get(`${MERKL_API_URL}${vaultAddress}`);
+        const opp =
+            Array.isArray(data) &&
+            (data.find((item) => item?.explorerAddress?.toLowerCase() === vaultAddress.toLowerCase()) || data[0]);
+        if (!opp) return [];
+        return (
+            opp.rewardsRecord?.breakdowns
+                ?.map((b) => b?.token?.address?.toLowerCase())
+                .filter(Boolean) || []
+        );
+    } catch (e) {
+        return [];
+    }
+};
+
+const fetchBreakdowns = async(loanIds) => {
+    const results = await Promise.allSettled(
+        loanIds.map((id) => utils.getData(`${API_URL}/${id}/apy/breakdown`))
+    );
+
+    return results.reduce((acc, res, idx) => {
+        if (res.status !== 'fulfilled') return acc;
+        acc[loanIds[idx]] = res.value || {};
         return acc;
     }, {});
 };
@@ -99,24 +129,43 @@ const apy = async() => {
     const loanVaultMap = await fetchVaultsByLoanIds(loanIds);
     const vaultAddresses = Object.values(loanVaultMap);
     const vaultStats = await getVaultStats(vaultAddresses);
+    const breakdowns = await fetchBreakdowns(loanIds);
 
-    return activeLoans.map((item) => {
-        const chainName = chainIdToName[item.chain_id] || 'unknown';
-        const vaultAddress = loanVaultMap[item.id];
-        const stats = vaultAddress ? vaultStats[vaultAddress] || {} : {};
+    return Promise.all(
+        activeLoans.map(async(item) => {
+            const chainName = chainIdToName[item.chain_id] || 'unknown';
+            const vaultAddress = loanVaultMap[item.id];
+            const stats = vaultAddress ? vaultStats[vaultAddress] || {} : {};
+            const pointBoosts = item?.all_points_apy_boost?.boosts_by_points || [];
+            const pointRewardApy = pointBoosts.reduce((sum, b) => sum + Number(b?.apy_boost_percent || 0), 0);
+            const pointRewardTokens = pointBoosts.map((b) => b?.point_name).filter(Boolean);
 
-        return {
-            pool: `${item.loan_address}-${chainName}`.toLowerCase(),
-            chain: chainName,
-            project: 'accountable',
-            symbol: utils.formatSymbol(item.asset_symbol),
-            tvlUsd: formatAmountWithDecimlas(stats.tvl, 6),
-            apyBase: basisPointsToPercent(item.net_apy),
-            url: `https://yield.accountable.capital/vaults/${item.loan_address}`,
-            totalSupplyUsd: formatAmountWithDecimlas(stats.totalSupplied, 6),
-            totalBorrowUsd: formatAmountWithDecimlas(stats.totalBorrowed, 6),
-        };
-    });
+            const breakdown = breakdowns[item.id] || {};
+            const merklApy = breakdown?.merkle_apy ?? 0;
+            const nativeApy = breakdown?.native_apy ?? basisPointsToPercent(item.apy);
+            const perfFee = breakdown?.performance_fee ?? 0;
+
+            const totalApyReward = (merklApy ?? 0) + pointRewardApy || null;
+            const merklTokens = vaultAddress ? await fetchMerklRewards(vaultAddress) : [];
+            const combinedRewardTokens = Array.from(
+                new Set([...(merklTokens || []), ...pointRewardTokens])
+            );
+
+            return {
+                pool: `${item.loan_address}-${chainName}`.toLowerCase(),
+                chain: utils.formatChain(chainName),
+                project: 'accountable',
+                symbol: utils.formatSymbol(item.asset_symbol),
+                tvlUsd: formatAmount(stats.tvl, 6),
+                apyBase: nativeApy + perfFee,
+                apyReward: totalApyReward,
+                rewardTokens: combinedRewardTokens,
+                url: `https://yield.accountable.capital/vaults/${item.loan_address}`,
+                totalSupplyUsd: formatAmount(stats.totalSupplied, 6),
+                totalBorrowUsd: formatAmount(stats.totalBorrowed, 6),
+            };
+        })
+    );
 };
 
 module.exports = {
