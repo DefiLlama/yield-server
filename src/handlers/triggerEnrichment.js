@@ -12,6 +12,7 @@ const {
 const { getStat } = require('../queries/stat');
 const { welfordUpdate } = require('../utils/welford');
 const poolsResponseColumns = require('../utils/enrichedColumns');
+const { getExcludedAdaptors } = require('../utils/exclude');
 
 module.exports.handler = async (event, context) => {
   await main();
@@ -27,6 +28,9 @@ const main = async () => {
     '1e00ac2b-0c3c-4b1f-95be-9378f98d2b40'
   );
   data = [...data, ...aaveGHO];
+
+  const excludedProjects = await getExcludedAdaptors();
+  data = data.filter((p) => !excludedProjects.has(p.project));
 
   // remove aave v2 frozen assets from dataEnriched (we keep ingesting into db, but don't
   // want to display frozen pools on the UI)

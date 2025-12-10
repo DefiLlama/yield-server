@@ -1,3 +1,5 @@
+const axios = require('axios');
+
 // adaptors which we don't want to be triggered +
 // which we don't want to be included in the enriched dataset
 // in case we have old values in db
@@ -648,8 +650,33 @@ const boundaries = {
   age: 7,
 };
 
+const getProtocolExclusionsFromApi = async () => {
+  try {
+    const response = await axios.get('https://api.llama.fi/protocols', {
+      timeout: 10_000,
+    });
+    return new Set(
+      (Array.isArray(response.data) ? response.data : [])
+        .filter((p) => p.rugged || p.deprecated || p.deadFrom)
+        .map((p) => p.slug)
+    );
+  } catch (err) {
+    console.log(
+      'Failed to fetch protocol exclusions; falling back to hardcoded list',
+      err?.message || err
+    );
+    return new Set();
+  }
+};
+
+const getExcludedAdaptors = async () => {
+  const flagged = await getProtocolExclusionsFromApi();
+  return new Set([...excludeAdaptors, ...flagged]);
+};
+
 module.exports = {
   excludeAdaptors,
   excludePools,
   boundaries,
+  getExcludedAdaptors,
 };
