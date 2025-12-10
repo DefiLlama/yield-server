@@ -165,6 +165,7 @@ const excludeAdaptors = [
   'zeroliquid',
   'corepound',
   'midas-rwa',
+  'stream-finance',
 ];
 
 const excludePools = [
