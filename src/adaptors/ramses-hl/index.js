@@ -3,7 +3,7 @@ const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 
 const RAM = '0x13A466998Ce03Db73aBc2d4DF3bBD845Ed1f28E7';
-const PROJECT = 'ramses-hl-cl';
+const PROJECT = 'ramses-hl';
 const CHAIN = 'hyperliquid';
 const SUBGRAPH = 'https://hyperevm.kingdomsubgraph.com/subgraphs/name/ramses-v3-pruned/';
 
