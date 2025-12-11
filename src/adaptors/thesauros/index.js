@@ -45,6 +45,11 @@ const VAULTS = {
     providers: {
       aaveV3: '0xbeEdb89DC47cab2678eBB796cfc8131062F16E39',
       compoundV3: '0xaBD932E0Fff6417a4Af16431d8D86a4e62d62fA3',
+      dolomite: '0x3D036B97482CC6c42753dA51917B3302D5d0E9AE',
+      steakhouseHighYieldMorpho: '0x00651b3E70873AfC852d9068Da4d359C473aA6c3',
+      yearnDegenMorpho: '0x7b77caFe29d62c984e569793AD1C1DC9eD542413',
+      gauntletCoreMorpho: '0xfFD8B1A9B97787c169154a485925512C79CA53E7',
+      hyperithmMorpho: '0x54E5FF7FF115E2B01332D81f7efFB02adEF3c23D',
     },
   },
 };
