@@ -13,11 +13,38 @@ const VAULTS = {
         asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
         assetSymbol: 'USDC',
         name: 'Thesauros USDC Vault',
+        decimals: 6,
       },
     ],
     providers: {
       aaveV3: '0x034a62f9617E8A1770f7c7EbA04e2DAb2Fda7f12',
       compoundV3: '0xFFAc48125fa4Bd8BC03CDCA725459563aAe77406',
+    },
+  },
+  arbitrum: {
+    chainId: 42161,
+    chainName: 'arbitrum',
+    vaults: [
+      {
+        address: '0x57C10bd3fdB2849384dDe954f63d37DfAD9d7d70',
+        symbol: 'tUSDC',
+        asset: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', // USDC on Arbitrum
+        assetSymbol: 'USDC',
+        name: 'Thesauros USDC Vault',
+        decimals: 6,
+      },
+      {
+        address: '0xcd72118C0707D315fa13350a63596dCd9B294A30',
+        symbol: 'tUSDT',
+        asset: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9', // USDT on Arbitrum
+        assetSymbol: 'USDT',
+        name: 'Thesauros USDT Vault',
+        decimals: 6,
+      },
+    ],
+    providers: {
+      aaveV3: '0xbeEdb89DC47cab2678eBB796cfc8131062F16E39',
+      compoundV3: '0xaBD932E0Fff6417a4Af16431d8D86a4e62d62fA3',
     },
   },
 };
@@ -196,12 +223,15 @@ async function apy() {
     for (const vault of vaults) {
       try {
         // Get TVL using ERC4626 info
-        // USDC has 6 decimals, so assetUnit should be 1000000
+        // Use decimals from vault config (default to 6 for USDC/USDT)
+        const decimals = vault.decimals || 6;
+        const assetUnit = '1' + '0'.repeat(decimals);
+        
         const erc4626Info = await getERC4626Info(
           vault.address.toLowerCase(),
           chainName,
           undefined,
-          { assetUnit: '1000000' }
+          { assetUnit }
         );
 
         if (!erc4626Info || !erc4626Info.tvl) {
@@ -218,7 +248,7 @@ async function apy() {
           prices.pricesByAddress?.[vault.asset.toLowerCase()] || 1;
 
         // Calculate TVL in USD
-        const tvlUsd = (erc4626Info.tvl / 1e6) * assetPrice; // USDC has 6 decimals
+        const tvlUsd = (erc4626Info.tvl / 10 ** decimals) * assetPrice;
 
         // Get active provider APY
         const activeProviderAddress = (
