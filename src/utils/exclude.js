@@ -168,6 +168,8 @@ const excludeAdaptors = [
   'corepound',
   'midas-rwa',
   'stream-finance',
+  'impermax-v3',
+  'gmx-v1-perps',
 ];
 
 const excludePools = [
