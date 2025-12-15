@@ -9,10 +9,11 @@ const { sub } = require('date-fns');
 
 const { default: BigNumber } = require('bignumber.js');
 
+const MARKETS_PAGE_SIZE = 100;
+
 const SUBGRAPH_URL = {
-  arbitrum:
-    'https://subgraph.satsuma-prod.com/3b2ced13c8d9/gmx/synthetics-arbitrum-stats/api',
-  avax: 'https://subgraph.satsuma-prod.com/3b2ced13c8d9/gmx/synthetics-avalanche-stats/api',
+  arbitrum: 'https://gmx.squids.live/gmx-synthetics-arbitrum:prod/api/graphql',
+  avax: 'https://gmx.squids.live/gmx-synthetics-avalanche:prod/api/graphql',
 };
 
 const CONTRACTS = {
@@ -52,45 +53,43 @@ const MAX_PNL_FACTOR_FOR_DEPOSITS_KEY = hashString(
 );
 
 const marketsQuery = gql`
-  query M {
-    marketInfos {
+  query M($limit: Int!, $offset: Int!) {
+    marketInfos(limit: $limit, offset: $offset) {
       id
-      marketToken
-      indexToken
-      longToken
-      shortToken
+      marketTokenAddress
+      indexTokenAddress
+      longTokenAddress
+      shortTokenAddress
     }
   }
 `;
 
 const marketFeesQuery = (marketAddress) => {
   return `
-                _${marketAddress}_lte_start_of_period_: collectedMarketFeesInfos(
-                    orderBy:timestampGroup
-                    orderDirection:desc
-                    where: {
-                      marketAddress: "${marketAddress.toLowerCase()}",
-                      period: "1h",
-                      timestampGroup_lte: ${Math.floor(
-                        sub(new Date(), { days: 7 }).valueOf() / 1000
-                      )}
-                    },
-                    first: 1
-                ) {
-                    cumulativeFeeUsdPerPoolValue
-                }
-                _${marketAddress}_recent: collectedMarketFeesInfos(
-                  orderBy: timestampGroup
-                  orderDirection: desc
-                  where: {
-                    marketAddress: "${marketAddress.toLowerCase()}",
-                    period: "1h"
-                  },
-                  first: 1
-              ) {
-                  cumulativeFeeUsdPerPoolValue
-              }
-            `;
+    _${marketAddress}_lte_start_of_period_: collectedFeesInfos(
+      orderBy: timestampGroup_DESC
+      where: {
+        address_containsInsensitive: "${marketAddress.toLowerCase()}"
+        period_eq: "1h"
+        timestampGroup_lte: ${Math.floor(
+          sub(new Date(), { days: 7 }).valueOf() / 1000
+        )}
+      }
+      limit: 1
+    ) {
+      cumulativeFeeUsdPerPoolValue
+    }
+    _${marketAddress}_recent: collectedFeesInfos(
+      orderBy: timestampGroup_DESC
+      where: {
+        address_containsInsensitive: "${marketAddress.toLowerCase()}"
+        period_eq: "1h"
+      }
+      limit: 1
+    ) {
+      cumulativeFeeUsdPerPoolValue
+    }
+  `;
 };
 
 function bigNumberify(n) {
@@ -107,19 +106,40 @@ function expandDecimals(n, decimals) {
 }
 
 const getMarkets = async (chain) => {
-  const { marketInfos } = await request(SUBGRAPH_URL[chain], marketsQuery);
+  const marketInfos = [];
+  let offset = 0;
+  while (true) {
+    const { marketInfos: batch } = await request(
+      SUBGRAPH_URL[chain],
+      marketsQuery,
+      { limit: MARKETS_PAGE_SIZE, offset }
+    );
+    if (!batch?.length) break;
+    marketInfos.push(...batch);
+    if (batch.length < MARKETS_PAGE_SIZE) break;
+    offset += MARKETS_PAGE_SIZE;
+  }
 
-  const queryBody = marketInfos.reduce(
-    (acc, market) => acc + marketFeesQuery(market.id),
-    ''
-  );
+  if (!marketInfos.length) return [];
 
-  const res = await request(
-    SUBGRAPH_URL[chain],
-    gql`query M {
+  const queryBody = marketInfos.reduce((acc, market) => {
+    const marketAddress = (
+      market.marketTokenAddress ||
+      market.id ||
+      ''
+    ).toLowerCase();
+    if (!marketAddress) return acc;
+    return acc + marketFeesQuery(marketAddress);
+  }, '');
+
+  const res = queryBody
+    ? await request(
+        SUBGRAPH_URL[chain],
+        gql`query M {
       ${queryBody}
     }`
-  );
+      )
+    : {};
 
   const tickers = (
     await fetch(TICKERS_URL[chain]).then((r) => r.json())
@@ -137,16 +157,32 @@ const getMarkets = async (chain) => {
 
   const marketResults = {};
 
-  const marketCall = await Promise.all(
+  await Promise.all(
     marketInfos.map(async (market) => {
+      const {
+        marketTokenAddress,
+        longTokenAddress,
+        shortTokenAddress,
+        indexTokenAddress,
+      } = market;
+
+      if (!marketTokenAddress || !longTokenAddress || !shortTokenAddress)
+        return null;
+
       const marketProps = {
-        marketToken: market.marketToken,
-        longToken: market.longToken,
-        shortToken: market.shortToken,
-        indexToken: market.indexToken,
+        marketToken: marketTokenAddress,
+        longToken: longTokenAddress,
+        shortToken: shortTokenAddress,
+        indexToken: indexTokenAddress,
       };
 
-      if (!tickers[market.longToken?.toLowerCase()]) return null;
+      const indexTicker =
+        tickers[indexTokenAddress?.toLowerCase()] || tickers[WETH[chain]];
+      const longTicker = tickers[longTokenAddress?.toLowerCase()];
+      const shortTicker = tickers[shortTokenAddress?.toLowerCase()];
+
+      if (!indexTicker || !longTicker || !shortTicker) return null;
+
       const min = (
         await sdk.api.abi.call({
           target: CONTRACTS[chain].syntheticsReader, // synthetix,
@@ -155,9 +191,9 @@ const getMarkets = async (chain) => {
           params: [
             CONTRACTS[chain].dataStore, //datastore
             marketProps,
-            tickers[market.indexToken?.toLowerCase()] || tickers[WETH[chain]],
-            tickers[market.longToken?.toLowerCase()],
-            tickers[market.shortToken?.toLowerCase()],
+            indexTicker,
+            longTicker,
+            shortTicker,
             MAX_PNL_FACTOR_FOR_DEPOSITS_KEY,
             false,
           ],
@@ -171,9 +207,9 @@ const getMarkets = async (chain) => {
           params: [
             CONTRACTS[chain].dataStore, //datastore
             marketProps,
-            tickers[market.indexToken?.toLowerCase()] || tickers[WETH[chain]],
-            tickers[market.longToken?.toLowerCase()],
-            tickers[market.shortToken?.toLowerCase()],
+            indexTicker,
+            longTicker,
+            shortTicker,
             MAX_PNL_FACTOR_FOR_DEPOSITS_KEY,
             true,
           ],
@@ -181,13 +217,18 @@ const getMarkets = async (chain) => {
       ).output;
 
       const supply = await sdk.api.erc20.totalSupply({
-        target: market.marketToken,
+        target: marketTokenAddress,
         chain: chain,
       });
 
-      const tvl = ((supply.output / 1e18) * min[0]) / 1e30;
+      const tvl = BigNumber(supply.output || 0)
+        .div(1e18)
+        .times(BigNumber(min[0] || 0))
+        .div(1e30)
+        .toNumber();
+      if (!Number.isFinite(tvl)) return null;
 
-      marketResults[market.marketToken.toLowerCase()] = {
+      marketResults[marketTokenAddress.toLowerCase()] = {
         totalSupply: supply.output,
         minPrice: min[0],
         maxPrice: max[0],
@@ -218,19 +259,25 @@ const getMarkets = async (chain) => {
     );
   }
 
-  const marketTokensAPRData = marketInfos.map((market, i) => {
-    const marketAddress = market.id;
-    const marketToken = market.marketToken.toLowerCase();
-    const marketData = marketResults[marketToken];
-    const lteStartOfPeriodFees = res[`_${marketAddress}_lte_start_of_period_`];
-    const recentFees = res[`_${marketAddress}_recent`];
+  const marketTokensAPRData = marketInfos.map((market) => {
+    const marketToken = market.marketTokenAddress;
+    const marketAddress = marketToken?.toLowerCase();
+    if (!marketAddress) return;
+
+    const marketData = marketResults[marketAddress];
+    if (!marketData) return;
+
+    const lteStartOfPeriodFees =
+      res[`_${marketAddress}_lte_start_of_period_`] || [];
+    const recentFees = res[`_${marketAddress}_recent`] || [];
 
     const poolValue1 =
-      bigNumberify(lteStartOfPeriodFees[0]?.cumulativeFeeUsdPerPoolValue) ??
-      BigNumber.from(0);
-    const poolValue2 = bigNumberify(
-      recentFees[0]?.cumulativeFeeUsdPerPoolValue
-    );
+      bigNumberify(lteStartOfPeriodFees[0]?.cumulativeFeeUsdPerPoolValue) ||
+      BigNumber(0);
+    const poolValue2 =
+      bigNumberify(recentFees[0]?.cumulativeFeeUsdPerPoolValue) || BigNumber(0);
+
+    if (poolValue1.isNaN() || poolValue2.isNaN()) return;
 
     if (poolValue2) {
       const incomePercentageForPeriod = poolValue2.minus(poolValue1);
@@ -239,16 +286,19 @@ const getMarkets = async (chain) => {
       const apr = incomePercentageForPeriod
         .times(yearMultiplier)
         .div(expandDecimals(1, 26));
+      const apyBase = apr.div(100).toNumber();
+      if (!Number.isFinite(apyBase)) return;
 
       const longSymbol =
-        tickers[market.longToken.toLowerCase()]?.data?.tokenSymbol;
+        tickers[market.longTokenAddress.toLowerCase()]?.data?.tokenSymbol;
       const shortSymbol =
-        tickers[market.shortToken.toLowerCase()]?.data?.tokenSymbol;
+        tickers[market.shortTokenAddress.toLowerCase()]?.data?.tokenSymbol;
 
-      const tvlUsd = parseFloat(marketData?.tvl);
+      const tvlUsd = Number(marketData?.tvl);
+      if (!Number.isFinite(tvlUsd)) return;
 
       let apyReward;
-      if (rewards) {
+      if (rewards && tvlUsd > 0) {
         const rewardPerYear =
           (rewards[marketAddress.toLowerCase()] / 1e18) *
           52 *
@@ -263,16 +313,15 @@ const getMarkets = async (chain) => {
         project: 'gmx-v2-perps',
         symbol: `${longSymbol}-${shortSymbol}`,
         tvlUsd,
-        apyBase: apr.toString() / 100,
+        apyBase,
         apyReward: apyReward ?? null,
-        underlyingTokens: [market.longToken, market.shortToken],
+        underlyingTokens: [market.longTokenAddress, market.shortTokenAddress],
         rewardTokens: apyReward > 0 ? [ARB] : [],
       };
     } else {
       return;
     }
   });
-
   return marketTokensAPRData.filter(Boolean).filter((i) => utils.keepFinite(i));
 };
 
