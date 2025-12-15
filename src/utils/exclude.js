@@ -172,6 +172,7 @@ const excludeAdaptors = [
   'gmx-v1-perps',
   'orange-finance',
   'struct-finance',
+  'gloop',
 ];
 
 const excludePools = [
