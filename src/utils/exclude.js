@@ -170,6 +170,8 @@ const excludeAdaptors = [
   'stream-finance',
   'impermax-v3',
   'gmx-v1-perps',
+  'orange-finance',
+  'struct-finance',
 ];
 
 const excludePools = [
