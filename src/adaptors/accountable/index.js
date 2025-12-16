@@ -1,9 +1,7 @@
 const sdk = require('@defillama/sdk');
-const axios = require('axios');
 const utils = require('../utils');
 
 const API_URL = 'https://yield.accountable.capital/api/loan';
-const MERKL_API_URL = 'https://api.merkl.xyz/v4/opportunities?explorerAddress=';
 const chainIdToName = { 143: 'monad' };
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -92,23 +90,6 @@ const getVaultStats = async(vaults, chain = 'monad') => {
     }, {});
 };
 
-const fetchMerklRewards = async(vaultAddress) => {
-    try {
-        const { data } = await axios.get(`${MERKL_API_URL}${vaultAddress}`);
-        const opp =
-            Array.isArray(data) &&
-            (data.find((item) => item?.explorerAddress?.toLowerCase() === vaultAddress.toLowerCase()) || data[0]);
-        if (!opp) return [];
-        return (
-            opp.rewardsRecord?.breakdowns
-                ?.map((b) => b?.token?.address?.toLowerCase())
-                .filter(Boolean) || []
-        );
-    } catch (e) {
-        return [];
-    }
-};
-
 const fetchBreakdowns = async(loanIds) => {
     const results = await Promise.allSettled(
         loanIds.map((id) => utils.getData(`${API_URL}/${id}/apy/breakdown`))
@@ -137,18 +118,43 @@ const apy = async() => {
             const vaultAddress = loanVaultMap[item.id];
             const stats = vaultAddress ? vaultStats[vaultAddress] || {} : {};
             const pointBoosts = item?.all_points_apy_boost?.boosts_by_points || [];
-            const pointRewardApy = pointBoosts.reduce((sum, b) => sum + Number(b?.apy_boost_percent || 0), 0);
-            const pointRewardTokens = pointBoosts.map((b) => b?.point_name).filter(Boolean);
 
             const breakdown = breakdowns[item.id] || {};
-            const merklApy = breakdown?.merkle_apy ?? 0;
-            const nativeApy = breakdown?.native_apy ?? basisPointsToPercent(item.apy);
-            const perfFee = breakdown?.performance_fee ?? 0;
+            const interestRate = Number(breakdown?.interest_rate);
+            const perfFeePctRaw = Number(breakdown?.performance_fee_percentage);
+            const perfFeePct =
+                !Number.isNaN(perfFeePctRaw) && perfFeePctRaw > 1 ? perfFeePctRaw / 100 : perfFeePctRaw;
+            const perfFeePoints = Number(breakdown?.performance_fee_points);
+            const netInterest = breakdown?.net_interest_rate;
+            const baseApy =
+                netInterest != null
+                    ? Number(netInterest)
+                    : !Number.isNaN(interestRate) && !Number.isNaN(perfFeePct)
+                        ? interestRate * (1 - perfFeePct)
+                        : !Number.isNaN(interestRate) && !Number.isNaN(perfFeePoints)
+                            ? interestRate - perfFeePoints
+                            : basisPointsToPercent(item.apy);
 
-            const totalApyReward = (merklApy ?? 0) + pointRewardApy || null;
-            const merklTokens = vaultAddress ? await fetchMerklRewards(vaultAddress) : [];
+            const merklApy = Number(breakdown?.merkl_apy_boost?.total_apr ?? breakdown?.merkle_apy ?? 0);
+            const pointBoostsFromBreakdown = breakdown?.points_apy_boost?.boosts_by_points || pointBoosts;
+            const pointRewardApyFromBreakdown =
+                breakdown?.points_apy_boost?.total_apy_boost_percent ??
+                pointBoostsFromBreakdown.reduce((sum, b) => sum + Number(b?.apy_boost_percent || 0), 0);
+            const pointRewardTokens = pointBoostsFromBreakdown.map((b) => b?.point_name).filter(Boolean);
+
+            const merklTokens =
+                breakdown?.merkl_apy_boost?.tokens?.map((t) => t?.address?.toLowerCase()).filter(Boolean) || [];
+
+            const rewardsBoost = Number(breakdown?.rewards_apy_boost?.total_apy_boost_percent ?? 0);
+            const rewardBoostTokens =
+                breakdown?.rewards_apy_boost?.boosts_by_token
+                    ?.map((b) => b?.token?.address || b?.address || b?.token_address)
+                    .filter(Boolean)
+                    .map((addr) => addr.toLowerCase()) || [];
+
+            const totalApyReward = merklApy + pointRewardApyFromBreakdown + rewardsBoost || null;
             const combinedRewardTokens = Array.from(
-                new Set([...(merklTokens || []), ...pointRewardTokens])
+                new Set([...(merklTokens || []), ...rewardBoostTokens, ...pointRewardTokens])
             );
 
             return {
@@ -157,7 +163,7 @@ const apy = async() => {
                 project: 'accountable',
                 symbol: utils.formatSymbol(item.asset_symbol),
                 tvlUsd: formatAmount(stats.tvl, 6),
-                apyBase: nativeApy + perfFee,
+                apyBase: baseApy,
                 apyReward: totalApyReward,
                 rewardTokens: combinedRewardTokens,
                 url: `https://yield.accountable.capital/vaults/${item.loan_address}`,
