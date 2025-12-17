@@ -229,7 +229,8 @@ async function getUsUSDSAPY(chain) {
 async function getRewardData(pool, reward) {
   const { data } = await axios.get(`${CONFIG.URLS.REWARD_APR_RATE}`);
   const poolKey = API_ALIASES[pool] ?? pool;
-  const apr = data[poolKey][reward];
+  const rewardKey = API_ALIASES[reward] ?? reward;
+  const apr = data[poolKey]?.[rewardKey];
 
   if (!apr) {
     throw new Error(`Reward "${reward}" not found for pool "${pool}"`);
