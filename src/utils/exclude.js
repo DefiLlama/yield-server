@@ -173,6 +173,7 @@ const excludeAdaptors = [
   'orange-finance',
   'struct-finance',
   'gloop',
+  'ribbon',
 ];
 
 const excludePools = [
