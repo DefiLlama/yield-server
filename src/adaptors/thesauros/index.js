@@ -9,10 +9,10 @@ const VAULTS = {
     vaults: [
       {
         address: '0x6C7013b3596623d146781c90b4Ee182331Af6148',
-        symbol: 'tUSDC',
+        symbol: 'USDC',
         asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
         assetSymbol: 'USDC',
-        name: 'Thesauros USDC Vault',
+        name: 'Thesauros - Base',
         decimals: 6,
       },
     ],
@@ -27,18 +27,18 @@ const VAULTS = {
     vaults: [
       {
         address: '0x57C10bd3fdB2849384dDe954f63d37DfAD9d7d70',
-        symbol: 'tUSDC',
+        symbol: 'USDC',
         asset: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', // USDC on Arbitrum
         assetSymbol: 'USDC',
-        name: 'Thesauros USDC Vault',
+        name: 'Thesauros - Arbitrum',
         decimals: 6,
       },
       {
         address: '0xcd72118C0707D315fa13350a63596dCd9B294A30',
-        symbol: 'tUSDT',
+        symbol: 'USDT',
         asset: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9', // USDT on Arbitrum
         assetSymbol: 'USDT',
-        name: 'Thesauros USDT Vault',
+        name: 'Thesauros - Arbitrum USDT',
         decimals: 6,
       },
     ],
@@ -178,44 +178,6 @@ async function getProviderApy(providerAddress, vaultAddress, chain) {
 }
 
 /**
- * Get active provider identifier
- * @param {string} vaultAddress - Vault contract address
- * @param {string} chain - Chain name
- * @returns {Promise<string>} Provider identifier
- */
-async function getActiveProviderIdentifier(vaultAddress, chain) {
-  try {
-    const activeProviderAddress = (
-      await sdk.api.abi.call({
-        target: vaultAddress,
-        abi: vaultAbi.find((m) => m.name === 'activeProvider'),
-        chain,
-      })
-    ).output;
-
-    // Try to get identifier from provider
-    try {
-      const identifier = (
-        await sdk.api.abi.call({
-          target: activeProviderAddress,
-          abi: providerAbi.find((m) => m.name === 'getIdentifier'),
-          chain,
-        })
-      ).output;
-      return identifier || 'unknown';
-    } catch {
-      return 'unknown';
-    }
-  } catch (error) {
-    console.error(
-      `Error getting active provider for vault ${vaultAddress}:`,
-      error.message
-    );
-    return 'unknown';
-  }
-}
-
-/**
  * Main APY function
  * @returns {Promise<Array>} Array of pool objects
  */
@@ -270,12 +232,6 @@ async function apy() {
           chainName
         );
 
-        // Get provider identifier for pool metadata
-        const providerIdentifier = await getActiveProviderIdentifier(
-          vault.address,
-          chainName
-        );
-
         const pool = {
           pool: `${vault.address}-${chainName}`.toLowerCase(),
           chain: formatChain(chainName),
@@ -284,7 +240,7 @@ async function apy() {
           tvlUsd: tvlUsd,
           apyBase: apyBase,
           underlyingTokens: [vault.asset],
-          poolMeta: `Active Provider: ${providerIdentifier}`,
+          poolMeta: 'Instant withdraw | Points Incentive',
           url: `https://app.thesauros.io/vault/${vault.address}`,
         };
 
