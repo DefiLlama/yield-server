@@ -36,7 +36,6 @@ const ADDRESSES = {
 // Epoch timing
 const WEEK_SECONDS = 7 * 24 * 60 * 60;
 const YEAR_IN_SECONDS = 31_536_000;
-const INCENTIVE_OFFSET = 12 * 60 * 60; // Incentives start 12 hours after activePeriod
 
 // ============================================================================
 // EPOCH CONTEXT
@@ -46,7 +45,8 @@ interface EpochContext {
   currentBlock: number;
   timestamp: number | null;
   epochStartTime: number; // from getIncentiveStartTime()
-  epochStartBlock: number; // from getEpochStartBlock()
+  epochEndTime: number; // from getIncentiveStartTime() + WEEK_SECONDS
+  epochStartBlock: number;
 }
 
 // ============================================================================
@@ -55,56 +55,11 @@ interface EpochContext {
 
 /**
  * Get incentive epoch start time for a given timestamp/block
- * This is activePeriod + 12 hours (incentives are start at 12:00 UTC)
  */
-const getIncentiveStartTime = async (timestamp = null, block = null) => {
-  try {
-    const result = await sdk.api.abi.call({
-      target: ADDRESSES.BASE_V2_MINTER,
-      abi: 'function activePeriod() external view returns (uint256)',
-      chain: CHAIN,
-      block,
-    });
-    return parseInt(result.output) + INCENTIVE_OFFSET;
-  } catch (e) {
-    // Fallback: compute manually using provided timestamp or current time
-    const referenceTime = timestamp || Math.floor(Date.now() / 1000);
-    return (
-      Math.floor(referenceTime / WEEK_SECONDS) * WEEK_SECONDS + INCENTIVE_OFFSET
-    );
-  }
-};
+const getIncentiveStartTime = async (timestamp = null) => {
+  const referenceTime = timestamp || Math.floor(Date.now() / 1000);
 
-/**
- * Get the block number when the current epoch started by querying the most recent Mint event
- */
-const getEpochStartBlock = async (currentBlock) => {
-  try {
-    const mintTopic = ethers.utils.id('Mint(uint256,uint256,uint256,uint256)');
-
-    // Look back ~2 weeks and find the most recent Mint event
-    const fromBlock = currentBlock - 5000000;
-
-    const logs = await sdk.api.util.getLogs({
-      target: ADDRESSES.BASE_V2_MINTER,
-      topic: '',
-      toBlock: currentBlock,
-      fromBlock: fromBlock > 0 ? fromBlock : 1,
-      keys: [],
-      chain: CHAIN,
-      topics: [mintTopic],
-    });
-
-    if (logs.output && logs.output.length > 0) {
-      // Return the block number of the most recent Mint event
-      return logs.output[logs.output.length - 1].blockNumber;
-    }
-
-    // Fallback: use ~1 week lookback
-    return currentBlock - 2400000;
-  } catch (e) {
-    return currentBlock - 2400000;
-  }
+  return Math.trunc((referenceTime - 43200) / 604800) * 604800 + 43200;
 };
 
 /**
@@ -114,11 +69,21 @@ const getEpochContext = async (
   timestamp: number | null,
   currentBlock: number
 ): Promise<EpochContext> => {
-  const [epochStartTime, epochStartBlock] = await Promise.all([
-    getIncentiveStartTime(timestamp, currentBlock),
-    getEpochStartBlock(currentBlock),
-  ]);
-  return { currentBlock, timestamp, epochStartTime, epochStartBlock };
+  const epochStartTime = await getIncentiveStartTime(timestamp);
+  const [epochStartBlock] = await utils.getBlocksByTime(
+    [epochStartTime],
+    CHAIN
+  );
+
+  const epochEndTime = epochStartTime + WEEK_SECONDS;
+
+  return {
+    currentBlock,
+    timestamp,
+    epochStartTime,
+    epochEndTime,
+    epochStartBlock,
+  };
 };
 
 /**
@@ -506,43 +471,28 @@ const getGaugeAllocation = async (gaugeAddress, block = null) => {
  * Get incentive data from QueueRewards events on FlywheelGaugeRewards emitted at epoch start
  */
 const getIncentiveFromEvents = async (
-  gaugeAddress: string,
+  incentiveId: string,
   epochContext: EpochContext
 ) => {
   try {
-    // QueueRewards event topic
-    const queueRewardsTopic = ethers.utils.id('QueueRewards(address,uint256)');
-
-    // Filter by gauge address
-    const gaugeAddressPadded = ethers.utils
-      .hexZeroPad(gaugeAddress, 32)
-      .toLowerCase();
-
-    const logs = await sdk.api.util.getLogs({
-      target: ADDRESSES.FLYWHEEL_GAUGE_REWARDS,
-      topic: '',
-      toBlock: epochContext.currentBlock,
-      fromBlock: epochContext.epochStartBlock,
-      keys: [],
+    const result = await sdk.api.abi.call({
+      target: ADDRESSES.UNISWAP_V3_STAKER,
+      abi: 'function incentives(bytes32 incentiveId) external view returns (uint256 totalRewardUnclaimed, uint160 totalSecondsClaimedX128, uint96 numberOfStakes)',
+      params: [incentiveId],
       chain: CHAIN,
-      topics: [queueRewardsTopic, gaugeAddressPadded],
+      block: epochContext.epochStartBlock,
     });
 
-    if (!logs.output || logs.output.length === 0) {
-      return null;
-    }
-
-    // Get most recent QueueRewards event for this gauge
-    const latestLog = logs.output[logs.output.length - 1];
-
-    // rewardAmount is in topics[2] (indexed parameter)
-    const rewardBigInt = BigInt(latestLog.topics[2]);
-    const reward = parseFloat(
-      ethers.utils.formatUnits(rewardBigInt.toString(), 18)
+    const totalRewardUnclaimed = BigInt(
+      result.output.totalRewardUnclaimed || 0
     );
 
     // Use epoch timing from context
     const endTime = epochContext.epochStartTime + WEEK_SECONDS;
+
+    const reward = parseFloat(
+      ethers.utils.formatUnits(totalRewardUnclaimed.toString(), 18)
+    );
 
     return { startTime: epochContext.epochStartTime, endTime, reward };
   } catch (e) {
@@ -811,7 +761,8 @@ const getPools = async (timestamp = null) => {
 
     // Fetch all prices
     const tokens = Array.from(tokenSet);
-    const prices = (await utils.getPrices(tokens, CHAIN, timestamp)).pricesByAddress;
+    const prices = (await utils.getPrices(tokens, CHAIN, timestamp))
+      .pricesByAddress;
 
     // Extract HERMES price
     const hermesPrice = prices[ADDRESSES.HERMES.toLowerCase()] || 0;
@@ -838,7 +789,7 @@ const getPools = async (timestamp = null) => {
 
         // Get incentive data from QueueRewards events
         const incentiveData = await getIncentiveFromEvents(
-          gaugeAddress,
+          incentiveId,
           epochContext
         );
 
@@ -879,8 +830,8 @@ const getPools = async (timestamp = null) => {
             incentiveData.reward,
             hermesPrice,
             activeLiquidityUSD,
-            incentiveData.startTime,
-            incentiveData.endTime,
+            epochContext.epochStartTime,
+            epochContext.epochEndTime,
             timestamp
           );
         }
