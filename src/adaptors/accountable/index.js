@@ -119,7 +119,8 @@ const apy = async() => {
             const stats = vaultAddress ? vaultStats[vaultAddress] || {} : {};
             const pointBoosts = item?.all_points_apy_boost?.boosts_by_points || [];
 
-            const breakdown = breakdowns[item.id] || {};
+            const breakdown = breakdowns[item.id]?.main || {};
+
             const interestRate = Number(breakdown?.interest_rate);
             const perfFeePctRaw = Number(breakdown?.performance_fee_percentage);
             const perfFeePct =
