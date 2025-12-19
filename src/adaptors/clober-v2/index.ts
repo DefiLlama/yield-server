@@ -29,12 +29,8 @@ interface Pool {
   merkleApy: string;
 }
 
-interface Pools {
-  pools: Array<Pool>;
-}
-
 const apy = async () => {
-  const { pools: data }: Pools = await utils.getData(API_URL);
+  const data: Array<Pool> = await utils.getData(API_URL);
 
   const pools = data.map((pool) => {
     return {
