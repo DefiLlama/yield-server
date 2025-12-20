@@ -638,7 +638,7 @@ const main = async () => {
             symbol: utils.formatSymbol(vaultInfo.assetSymbol),
             tvlUsd: Number(Number(vaultInfo.totalSupplyValueUSD).toFixed(2)),
             apyBase: new BigNumber(vaultInfo.apyBase).toNumber(),
-            url: `https://app.silo.finance/vaults/${chain}/${vaultAddress}?action=deposit`,
+            url: `https://app.silo.finance/vaults/${chain === 'avax' ? 'avalanche': chain}/${vaultAddress}?action=deposit`,
             underlyingTokens: [vaultInfo.assetAddress],
             totalSupplyUsd: Number(Number(vaultInfo.totalSupplyValueUSD).toFixed(2)),
             poolMeta: `${vaultInfo.vaultId}`,

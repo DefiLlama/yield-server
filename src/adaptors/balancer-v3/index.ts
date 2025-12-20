@@ -55,7 +55,12 @@ const getV3Pools = async (backendChain, chainString) => {
         .map((token) => token.address)
         .filter(Boolean);
 
-      const chainUrl = chainString === 'xdai' ? 'gnosis' : chainString;
+      const chainUrl =
+        chainString === 'xdai'
+          ? 'gnosis'
+          : chainString === 'avax'
+          ? 'avalanche'
+          : chainString;
 
       return {
         pool: pool.address,
