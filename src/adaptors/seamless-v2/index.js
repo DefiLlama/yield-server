@@ -61,7 +61,16 @@ function calculateApy(endValue, startValue, timeWindow, compoundingPeriods) {
   return ((1 + apr / compoundingPeriods) ** compoundingPeriods - 1) * 100;
 }
 
-const getLeverageTokenTvlsUsd = async (chain, leverageTokens, debtAssets) => {
+const getLeverageTokenTvlsUsd = async (chain, leverageTokens) => {
+  const debtAssets = (
+    await sdk.api.abi.multiCall({
+      chain,
+      abi: leverageManagerAbi.find(({ name }) => name === 'getLeverageTokenDebtAsset'),
+      calls: leverageTokens.map((address) => ({ target: LEVERAGE_MANAGER_ADDRESS[chain], params: [address] })),
+      permitFailure: true,
+    })
+  ).output.map(({ output, success }) => success ? output : null);
+
   const collateralInDebtAsset = (
     await sdk.api.abi.multiCall({
       chain,
@@ -83,14 +92,16 @@ const getLeverageTokenTvlsUsd = async (chain, leverageTokens, debtAssets) => {
       calls: debtAssets.map((address) => ({ target: address })),
       permitFailure: true,
     })
-  ).output.map(({ output }) => output);
+  ).output.map(({ output, success }) => success ? output : null);
 
-  return debtAssets.map((debtAsset, i) =>
-    collateralInDebtAsset[i] / 10 ** debtDecimals[i] * pricesByAddress[debtAsset.toLowerCase()]
-  );
+  return debtAssets.map((debtAsset, i) => {
+    return (collateralInDebtAsset[i] && debtDecimals[i] && pricesByAddress[debtAsset.toLowerCase()])
+      ? collateralInDebtAsset[i] / 10 ** debtDecimals[i] * pricesByAddress[debtAsset.toLowerCase()]
+      : 0;
+  });
 }
 
-const getLpPricesInDebtAsset = async (chain, blockNumber, leverageTokens, debtAssets) => {
+const getLpPricesInDebtAsset = async (chain, blockNumber, leverageTokens) => {
   const equityInDebtAsset = (
     await sdk.api.abi.multiCall({
       chain,
@@ -112,8 +123,9 @@ const getLpPricesInDebtAsset = async (chain, blockNumber, leverageTokens, debtAs
   ).output.map(({ output }) => output);
 
   return equityInDebtAsset.map((equity, i) =>
-    equityInDebtAsset ? BigInt(equity) * BigInt(10 ** LEVERAGE_TOKEN_DECIMALS) /
-    BigInt(totalSupply[i]) : 0
+    equity && totalSupply[i]
+      ? BigInt(equity) * BigInt(10 ** LEVERAGE_TOKEN_DECIMALS) / BigInt(totalSupply[i])
+      : 0
   );
 };
 
@@ -137,16 +149,7 @@ const leverageTokenApys = async (chain) => {
       calls: allLeverageTokens.map((address) => ({ target: LEVERAGE_MANAGER_ADDRESS[chain], params: [address] })),
       permitFailure: true,
     })
-  ).output.map(({ output }) => output);
-
-  const debtAssets = (
-    await sdk.api.abi.multiCall({
-      chain,
-      abi: leverageManagerAbi.find(({ name }) => name === 'getLeverageTokenDebtAsset'),
-      calls: allLeverageTokens.map((address) => ({ target: LEVERAGE_MANAGER_ADDRESS[chain], params: [address] })),
-      permitFailure: true,
-    })
-  ).output.map(({ output }) => output);
+  ).output.map(({ output, success }) => success ? output : null);
 
   const symbols = (
     await sdk.api.abi.multiCall({
@@ -155,33 +158,29 @@ const leverageTokenApys = async (chain) => {
       calls: allLeverageTokens.map((address) => ({ target: address })),
       permitFailure: true,
     })
-  ).output.map(({ output }) => output);
+  ).output.map(({ output, success }) => success ? output : null);
 
   const latestBlockPrices = await getLpPricesInDebtAsset(
     chain,
     latestBlock.number,
-    allLeverageTokens,
-    debtAssets,
+    allLeverageTokens
   );
 
   const prevBlock1DayPrices = await getLpPricesInDebtAsset(
     chain,
     prevBlock1Day.number,
-    allLeverageTokens,
-    debtAssets,
+    allLeverageTokens
   );
 
   const prevBlock7DayPrices = await getLpPricesInDebtAsset(
     chain,
     prevBlock7Day.number,
-    allLeverageTokens,
-    debtAssets,
+    allLeverageTokens
   );
 
   const leverageTokenTvlsUsd = await getLeverageTokenTvlsUsd(
     chain,
-    allLeverageTokens,
-    debtAssets
+    allLeverageTokens
   );
 
   const pools = allLeverageTokens.map((address, i) => {
@@ -213,7 +212,7 @@ const leverageTokenApys = async (chain) => {
     return pool;
   });
 
-  return pools;
+  return pools.filter((p) => p.symbol && p.underlyingTokens);
 };
 
 const apy = async () => {
