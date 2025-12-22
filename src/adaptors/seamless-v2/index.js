@@ -6,6 +6,7 @@ const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 const leverageManagerAbi = require('./leverage-manager-abi.json');
 const leverageTokenAbi = require('./leverage-token-abi.json');
+const erc20Abi = require('./erc20-abi.json');
 
 const SECONDS_PER_YEAR = 31536000;
 const SECONDS_PER_DAY = 86400;
@@ -88,7 +89,7 @@ const getLeverageTokenTvlsUsd = async (chain, leverageTokens) => {
   const debtDecimals = (
     await sdk.api.abi.multiCall({
       chain,
-      abi: leverageTokenAbi.find(({ name }) => name === 'decimals'),
+      abi: erc20Abi.find(({ name }) => name === 'decimals'),
       calls: debtAssets.map((address) => ({ target: address })),
       permitFailure: true,
     })
@@ -117,13 +118,12 @@ const getLpPricesInDebtAsset = async (chain, blockNumber, leverageTokens) => {
       chain,
       abi: leverageManagerAbi.find(({ name }) => name === 'getFeeAdjustedTotalSupply'),
       calls: leverageTokens.map((address) => ({ target: LEVERAGE_MANAGER_ADDRESS[chain], params: [address] })),
-      block: blockNumber,
-      permitFailure: true
+      block: blockNumber
     })
   ).output.map(({ output }) => output);
 
   return equityInDebtAsset.map((equity, i) =>
-    equity && totalSupply[i]
+    equity
       ? BigInt(equity) * BigInt(10 ** LEVERAGE_TOKEN_DECIMALS) / BigInt(totalSupply[i])
       : 0
   );
@@ -155,10 +155,9 @@ const leverageTokenApys = async (chain) => {
     await sdk.api.abi.multiCall({
       chain,
       abi: leverageTokenAbi.find(({ name }) => name === 'symbol'),
-      calls: allLeverageTokens.map((address) => ({ target: address })),
-      permitFailure: true,
+      calls: allLeverageTokens.map((address) => ({ target: address }))
     })
-  ).output.map(({ output, success }) => success ? output : null);
+  ).output.map(({ output }) => output);
 
   const latestBlockPrices = await getLpPricesInDebtAsset(
     chain,
@@ -212,7 +211,7 @@ const leverageTokenApys = async (chain) => {
     return pool;
   });
 
-  return pools.filter((p) => p.symbol && p.underlyingTokens);
+  return pools.filter((p) => p.underlyingTokens.length > 0);
 };
 
 const apy = async () => {
