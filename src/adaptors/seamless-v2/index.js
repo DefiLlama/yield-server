@@ -1,9 +1,8 @@
 const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
-const superagent = require('superagent');
-const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
+const lendingAdapterAbi = require('./lending-adapter-abi.json');
 const leverageManagerAbi = require('./leverage-manager-abi.json');
 const leverageTokenAbi = require('./leverage-token-abi.json');
 const erc20Abi = require('./erc20-abi.json');
@@ -40,7 +39,13 @@ const getAllLeverageTokens = async (chain, toBlock) => {
     })
   );
 
-  return leverageTokenCreatedEvents.output.filter((ev) => !ev.removed).map((ev) => iface.parseLog(ev).args).map((ev) => ev.token);
+  return leverageTokenCreatedEvents.output.filter((ev) => !ev.removed).map((ev) => iface.parseLog(ev).args).map((ev) => {
+    return {
+      address: ev.token,
+      collateralAsset: ev.collateralAsset,
+      lendingAdapter: ev.config[0]
+    }
+  });
 };
 
 function formatUnitsToNumber(value, decimals) {
@@ -63,41 +68,34 @@ function calculateApy(endValue, startValue, timeWindow, compoundingPeriods) {
 }
 
 const getLeverageTokenTvlsUsd = async (chain, leverageTokens) => {
-  const debtAssets = (
+  const totalCollaterals = (
     await sdk.api.abi.multiCall({
       chain,
-      abi: leverageManagerAbi.find(({ name }) => name === 'getLeverageTokenDebtAsset'),
-      calls: leverageTokens.map((address) => ({ target: LEVERAGE_MANAGER_ADDRESS[chain], params: [address] })),
+      abi: lendingAdapterAbi.find(({ name }) => name === 'getCollateral'),
+      calls: leverageTokens.map(({ lendingAdapter }) => ({ target: lendingAdapter })),
       permitFailure: true,
     })
   ).output.map(({ output, success }) => success ? output : null);
 
-  const collateralInDebtAsset = (
-    await sdk.api.abi.multiCall({
-      chain,
-      abi: leverageManagerAbi.find(({ name }) => name === 'getLeverageTokenState'),
-      calls: leverageTokens.map((address) => ({ target: LEVERAGE_MANAGER_ADDRESS[chain], params: [address] })),
-      permitFailure: true
-    })
-  ).output.map(({ output, success }) => success ? output.collateralInDebtAsset : null);
-
   const { pricesByAddress } = await utils.getPrices(
-    debtAssets,
+    leverageTokens.map(({ collateralAsset }) => collateralAsset),
     chain
   );
 
-  const debtDecimals = (
+  const collateralDecimals = (
     await sdk.api.abi.multiCall({
       chain,
       abi: erc20Abi.find(({ name }) => name === 'decimals'),
-      calls: debtAssets.map((address) => ({ target: address })),
+      calls: leverageTokens.map(({ collateralAsset }) => ({ target: collateralAsset })),
       permitFailure: true,
     })
   ).output.map(({ output, success }) => success ? output : null);
 
-  return debtAssets.map((debtAsset, i) => {
-    return (collateralInDebtAsset[i] !== null && debtDecimals[i] !== null && pricesByAddress[debtAsset.toLowerCase()] !== null)
-      ? collateralInDebtAsset[i] / 10 ** debtDecimals[i] * pricesByAddress[debtAsset.toLowerCase()]
+  return totalCollaterals.map((totalCollateral, i) => {
+    const collateralAsset = leverageTokens[i].collateralAsset;
+
+    return (totalCollateral !== null && collateralDecimals[i] !== null && pricesByAddress[collateralAsset.toLowerCase()] !== null)
+      ? totalCollateral / 10 ** collateralDecimals[i] * pricesByAddress[collateralAsset.toLowerCase()]
       : null;
   });
 }
@@ -107,7 +105,7 @@ const getLpPricesInDebtAsset = async (chain, blockNumber, leverageTokens) => {
     await sdk.api.abi.multiCall({
       chain,
       abi: leverageManagerAbi.find(({ name }) => name === 'getLeverageTokenState'),
-      calls: leverageTokens.map((address) => ({ target: LEVERAGE_MANAGER_ADDRESS[chain], params: [address] })),
+      calls: leverageTokens.map(({ address }) => ({ target: LEVERAGE_MANAGER_ADDRESS[chain], params: [address] })),
       block: blockNumber,
       permitFailure: true
     })
@@ -117,7 +115,7 @@ const getLpPricesInDebtAsset = async (chain, blockNumber, leverageTokens) => {
     await sdk.api.abi.multiCall({
       chain,
       abi: leverageManagerAbi.find(({ name }) => name === 'getFeeAdjustedTotalSupply'),
-      calls: leverageTokens.map((address) => ({ target: LEVERAGE_MANAGER_ADDRESS[chain], params: [address] })),
+      calls: leverageTokens.map(({ address }) => ({ target: LEVERAGE_MANAGER_ADDRESS[chain], params: [address] })),
       block: blockNumber
     })
   ).output.map(({ output }) => output);
@@ -142,20 +140,11 @@ const leverageTokenApys = async (chain) => {
 
   const allLeverageTokens = await getAllLeverageTokens(chain, latestBlock.number);
 
-  const collateralAssets = (
-    await sdk.api.abi.multiCall({
-      chain,
-      abi: leverageManagerAbi.find(({ name }) => name === 'getLeverageTokenCollateralAsset'),
-      calls: allLeverageTokens.map((address) => ({ target: LEVERAGE_MANAGER_ADDRESS[chain], params: [address] })),
-      permitFailure: true,
-    })
-  ).output.map(({ output, success }) => success ? output : null);
-
   const symbols = (
     await sdk.api.abi.multiCall({
       chain,
       abi: leverageTokenAbi.find(({ name }) => name === 'symbol'),
-      calls: allLeverageTokens.map((address) => ({ target: address }))
+      calls: allLeverageTokens.map(({ address }) => ({ target: address }))
     })
   ).output.map(({ output }) => output);
 
@@ -182,7 +171,7 @@ const leverageTokenApys = async (chain) => {
     allLeverageTokens
   );
 
-  const pools = allLeverageTokens.map((address, i) => {
+  const pools = allLeverageTokens.map(({ address, collateralAsset }, i) => {
     const apyBase = calculateApy(
       latestBlockPrices[i],
       prevBlock1DayPrices[i],
@@ -205,17 +194,16 @@ const leverageTokenApys = async (chain) => {
       tvlUsd: leverageTokenTvlsUsd[i],
       apyBase,
       apyBase7d,
-      underlyingTokens: [collateralAssets[i]],
+      underlyingTokens: [collateralAsset],
     };
 
     return pool;
   });
 
-  return pools.filter((p) => p.underlyingTokens.length > 0);
+  return pools;
 };
 
 const apy = async () => {
-  const response = [];
   const results = await Promise.all(
     chains.map((chain) => leverageTokenApys(chain))
   );
