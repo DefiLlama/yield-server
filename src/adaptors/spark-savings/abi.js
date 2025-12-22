@@ -1,4 +1,4 @@
-export const sparkSavingsAbi = {
+const sparkSavingsAbi = {
   totalAssets: {
     inputs: [],
     name: 'totalAssets',
@@ -20,4 +20,6 @@ export const sparkSavingsAbi = {
     stateMutability: 'view',
     type: 'function',
   },
-} as const;
+};
+
+module.exports = { sparkSavingsAbi };

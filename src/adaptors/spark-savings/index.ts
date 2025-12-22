@@ -1,9 +1,9 @@
 const axios = require('axios')
 const sdk = require('@defillama/sdk')
+const BigNumber = require('bignumber.js')
+const {sparkSavingsAbi} = require('./abi.js')
 
-import { Pool } from '../../types/Pool'
-import { sparkSavingsAbi } from './abi'
-import { BigNumber } from 'bignumber.js'
+import type { Pool } from '../../types/Pool'
 
 const sparkBaseUrl = 'https://app.spark.fi/savings'
 
@@ -136,11 +136,10 @@ function rateToApy(rate: string): number {
 }
 
 // high precision pow function for correct calculations
-function pow(a: BigNumber, b: number): BigNumber {
+function pow(a: any, b: number): any {
   return BigNumber.clone({ POW_PRECISION: 60 }).prototype.pow.apply(a, [b])
 }
 
 module.exports = {
-  timetravel: false,
   apy: getPools,
 }
