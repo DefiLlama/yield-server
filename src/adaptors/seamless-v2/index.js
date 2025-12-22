@@ -19,6 +19,11 @@ const LEVERAGE_MANAGER_ADDRESS = {
   base: '0x38Ba21C6Bf31dF1b1798FCEd07B4e9b07C5ec3a8'
 };
 
+const LEVERAGE_MANAGER_DEPLOYMENT_BLOCK = {
+  ethereum: 23471226,
+  base: 31051780
+};
+
 const API_URLS = {
   ethereum: sdk.graph.modifyEndpoint(
     '2vzaVmMnkzbcfgtP2nqKbVWoqAUumvj24RzHPE1NxPkg'
@@ -36,8 +41,22 @@ const leverageTokensQuery = gql`
   }
 `
 
-const getAllLeverageTokens = async (chain) => {
-    return (await request(API_URLS[chain], leverageTokensQuery)).leverageTokens.map((token) => token.id);
+const getAllLeverageTokens = async (chain, toBlock) => {
+  const iface = new ethers.utils.Interface([
+    'event LeverageTokenCreated(address indexed token, address collateralAsset, address debtAsset, (address lendingAdapter, address rebalanceAdapter, uint256 mintTokenFee, uint256 redeemTokenFee) config)',
+  ]);
+  const leverageTokenCreatedEvents = (
+    await sdk.api2.util.getLogs({
+      chain,
+      target: LEVERAGE_MANAGER_ADDRESS[chain],
+      topics: ["0xc3f4681fb2a57a13e121c6f24fe319c8572bb001497f2b74712695625ee9028e"],
+      fromBlock: LEVERAGE_MANAGER_DEPLOYMENT_BLOCK[chain],
+      keys: [],
+      toBlock,
+    })
+  );
+
+  return leverageTokenCreatedEvents.output.filter((ev) => !ev.removed).map((ev) => iface.parseLog(ev).args).map((ev) => ev.token);
 };
 
 const getPrices = async (chain, addresses) => {
@@ -153,7 +172,7 @@ const leverageTokenApys = async (chain) => {
     { chain }
   );
 
-  const allLeverageTokens = await getAllLeverageTokens(chain);
+  const allLeverageTokens = await getAllLeverageTokens(chain, latestBlock.number);
 
   const collateralAssets = (
     await sdk.api.abi.multiCall({
