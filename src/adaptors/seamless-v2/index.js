@@ -11,7 +11,6 @@ const SECONDS_PER_YEAR = 31536000;
 const SECONDS_PER_DAY = 86400;
 const LEVERAGE_TOKEN_DECIMALS = 18;
 const USD_DECIMALS = 8;
-const ONE_USD = BigInt(10 ** USD_DECIMALS);
 const COMPOUNDING_PERIODS = 1;
 const chains = ['ethereum', 'base'];
 
