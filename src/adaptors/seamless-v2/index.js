@@ -42,36 +42,6 @@ const getAllLeverageTokens = async (chain, toBlock) => {
   return leverageTokenCreatedEvents.output.filter((ev) => !ev.removed).map((ev) => iface.parseLog(ev).args).map((ev) => ev.token);
 };
 
-const getPrices = async (chain, addresses) => {
-  const addressesWithChain = addresses.map((address) => `${chain}:${address}`);
-  const priceUrl = `https://coins.llama.fi/prices/current/${addressesWithChain
-        .join(',')
-        .toLowerCase()}`;
-  const prices = (
-    await superagent.get(
-      priceUrl
-    )
-  ).body.coins;
-
-  const pricesBySymbol = Object.entries(prices).reduce(
-    (acc, [name, price]) => ({
-      ...acc,
-      [price.symbol.toLowerCase()]: price.price,
-    }),
-    {}
-  );
-
-  const pricesByAddress = Object.entries(prices).reduce(
-    (acc, [name, price]) => ({
-      ...acc,
-      [name.split(':')[1]]: price.price,
-    }),
-    {}
-  );
-
-  return { pricesByAddress, pricesBySymbol };
-};
-
 function formatUnitsToNumber(value, decimals) {
   return Number(ethers.utils.formatUnits(value, decimals));
 }
@@ -101,7 +71,10 @@ const getLeverageTokenTvlsUsd = async (chain, leverageTokens, debtAssets) => {
     })
   ).output.map(({ output, success }) => success ? output.collateralInDebtAsset : 0);
 
-  const debtPrices = await getPrices(chain, debtAssets);
+  const { pricesByAddress } = await utils.getPrices(
+    debtAssets,
+    chain
+  );
 
   const debtDecimals = (
     await sdk.api.abi.multiCall({
@@ -113,7 +86,7 @@ const getLeverageTokenTvlsUsd = async (chain, leverageTokens, debtAssets) => {
   ).output.map(({ output }) => output);
 
   return debtAssets.map((debtAsset, i) =>
-    collateralInDebtAsset[i] / 10 ** debtDecimals[i] * debtPrices.pricesByAddress[debtAsset.toLowerCase()]
+    collateralInDebtAsset[i] / 10 ** debtDecimals[i] * pricesByAddress[debtAsset.toLowerCase()]
   );
 }
 
