@@ -92,14 +92,14 @@ function calculateApy(endValue, startValue, timeWindow, compoundingPeriods) {
 }
 
 const getLeverageTokenTvlsUsd = async (chain, leverageTokens, debtAssets) => {
-  const equityInDebtAsset = (
+  const collateralInDebtAsset = (
     await sdk.api.abi.multiCall({
       chain,
       abi: leverageManagerAbi.find(({ name }) => name === 'getLeverageTokenState'),
       calls: leverageTokens.map((address) => ({ target: LEVERAGE_MANAGER_ADDRESS[chain], params: [address] })),
       permitFailure: true
     })
-  ).output.map(({ output, success }) => success ? output.equity : 0);
+  ).output.map(({ output, success }) => success ? output.collateralInDebtAsset : 0);
 
   const debtPrices = await getPrices(chain, debtAssets);
 
@@ -113,7 +113,7 @@ const getLeverageTokenTvlsUsd = async (chain, leverageTokens, debtAssets) => {
   ).output.map(({ output }) => output);
 
   return debtAssets.map((debtAsset, i) =>
-    equityInDebtAsset[i] / 10 ** debtDecimals[i] * debtPrices.pricesByAddress[debtAsset.toLowerCase()]
+    collateralInDebtAsset[i] / 10 ** debtDecimals[i] * debtPrices.pricesByAddress[debtAsset.toLowerCase()]
   );
 }
 
