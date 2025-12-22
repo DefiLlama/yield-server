@@ -96,7 +96,7 @@ const getLeverageTokenTvlsUsd = async (chain, leverageTokens) => {
   ).output.map(({ output, success }) => success ? output : null);
 
   return debtAssets.map((debtAsset, i) => {
-    return (collateralInDebtAsset[i] && debtDecimals[i] && pricesByAddress[debtAsset.toLowerCase()])
+    return (collateralInDebtAsset[i] !== null && debtDecimals[i] !== null && pricesByAddress[debtAsset.toLowerCase()] !== null)
       ? collateralInDebtAsset[i] / 10 ** debtDecimals[i] * pricesByAddress[debtAsset.toLowerCase()]
       : null;
   });
@@ -123,7 +123,7 @@ const getLpPricesInDebtAsset = async (chain, blockNumber, leverageTokens) => {
   ).output.map(({ output }) => output);
 
   return equityInDebtAsset.map((equity, i) =>
-    equity && totalSupply[i]
+    equity !== null && totalSupply[i]
       ? BigInt(equity) * BigInt(10 ** LEVERAGE_TOKEN_DECIMALS) / BigInt(totalSupply[i])
       : null
   );
