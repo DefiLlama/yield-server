@@ -24,23 +24,6 @@ const LEVERAGE_MANAGER_DEPLOYMENT_BLOCK = {
   base: 31051780
 };
 
-const API_URLS = {
-  ethereum: sdk.graph.modifyEndpoint(
-    '2vzaVmMnkzbcfgtP2nqKbVWoqAUumvj24RzHPE1NxPkg'
-  ),
-  base: sdk.graph.modifyEndpoint(
-    'Eg5yYyLeogmpkh4kYJBirmxjaxWuKuGegBHWVCrvPB9g'
-  ),
-};
-
-const leverageTokensQuery = gql`
-  {
-    leverageTokens {
-      id
-    }
-  }
-`
-
 const getAllLeverageTokens = async (chain, toBlock) => {
   const iface = new ethers.utils.Interface([
     'event LeverageTokenCreated(address indexed token, address collateralAsset, address debtAsset, (address lendingAdapter, address rebalanceAdapter, uint256 mintTokenFee, uint256 redeemTokenFee) config)',
