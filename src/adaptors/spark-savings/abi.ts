@@ -20,9 +20,4 @@ export const sparkSavingsAbi = {
     stateMutability: 'view',
     type: 'function',
   },
-
-} as const
-
-module.exports = {
-  sparkSavingsAbi,
-};
+} as const;
