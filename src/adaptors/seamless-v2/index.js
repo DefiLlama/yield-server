@@ -72,7 +72,7 @@ const getPrices = async (chain, addresses) => {
 };
 
 function formatUnitsToNumber(value, decimals) {
-  return Number(ethers.utils.formatUnits(value, decimals));"addresses"
+  return Number(ethers.utils.formatUnits(value, decimals));
 }
 
 function calculateApy(endValue, startValue, timeWindow, compoundingPeriods) {
@@ -116,19 +116,7 @@ const getLeverageTokenTvlsUsd = async (chain, leverageTokens, debtAssets) => {
   );
 }
 
-function getDebtPricesBigInt(debtPrices, debtAssets) {
-  return debtAssets.map((address) => {
-    const price = debtPrices.pricesByAddress[address.toLowerCase()];
-    if (!price) {
-      throw new Error(`Price not found for debt asset: ${address}`);
-    }
-    // Format to exactly 8 decimal places (truncates if more, pads if less)
-    const priceStr = price.toFixed(USD_DECIMALS);
-    return ethers.utils.parseUnits(priceStr, USD_DECIMALS).toBigInt();
-  });
-}
-
-const getLpPrices = async (chain, blockNumber, leverageTokens, debtAssets) => {
+const getLpPricesInDebtAsset = async (chain, blockNumber, leverageTokens, debtAssets) => {
   const equityInDebtAsset = (
     await sdk.api.abi.multiCall({
       chain,
@@ -149,26 +137,9 @@ const getLpPrices = async (chain, blockNumber, leverageTokens, debtAssets) => {
     })
   ).output.map(({ output }) => output);
 
-  const debtPrices = await getPrices(chain, debtAssets);
-  const debtPricesBigInt = getDebtPricesBigInt(debtPrices, debtAssets);
-
-  const debtDecimals = (
-    await sdk.api.abi.multiCall({
-      chain,
-      abi: leverageTokenAbi.find(({ name }) => name === 'decimals'),
-      calls: debtAssets.map((address) => ({ target: address })),
-      permitFailure: true,
-    })
-  ).output.map(({ output }) => output);
-
-  const equityUSD = debtAssets.map((debtAsset, i) =>
-    BigInt(equityInDebtAsset[i]) * debtPricesBigInt[i]
-  );
-
-  return equityUSD.map(
-    (tokenEquityUSD, i) =>
-      tokenEquityUSD ? BigInt(tokenEquityUSD) * BigInt(10 ** LEVERAGE_TOKEN_DECIMALS) /
-      (BigInt(totalSupply[i]) * BigInt(10 ** debtDecimals[i])) : 0
+  return equityInDebtAsset.map((equity, i) =>
+    equityInDebtAsset ? BigInt(equity) * BigInt(10 ** LEVERAGE_TOKEN_DECIMALS) /
+    BigInt(totalSupply[i]) : 0
   );
 };
 
@@ -212,21 +183,21 @@ const leverageTokenApys = async (chain) => {
     })
   ).output.map(({ output }) => output);
 
-  const latestBlockPrices = await getLpPrices(
+  const latestBlockPrices = await getLpPricesInDebtAsset(
     chain,
     latestBlock.number,
     allLeverageTokens,
     debtAssets,
   );
 
-  const prevBlock1DayPrices = await getLpPrices(
+  const prevBlock1DayPrices = await getLpPricesInDebtAsset(
     chain,
     prevBlock1Day.number,
     allLeverageTokens,
     debtAssets,
   );
 
-  const prevBlock7DayPrices = await getLpPrices(
+  const prevBlock7DayPrices = await getLpPricesInDebtAsset(
     chain,
     prevBlock7Day.number,
     allLeverageTokens,
