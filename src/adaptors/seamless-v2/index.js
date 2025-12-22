@@ -13,15 +13,19 @@ const LEVERAGE_TOKEN_DECIMALS = 18;
 const USD_DECIMALS = 8;
 const ONE_USD = BigInt(10 ** USD_DECIMALS);
 const COMPOUNDING_PERIODS = 1;
-const chain = 'ethereum';
+const chains = ['ethereum', 'base'];
 
 const LEVERAGE_MANAGER_ADDRESS = {
   ethereum: '0x5C37EB148D4a261ACD101e2B997A0F163Fb3E351',
+  base: '0x38Ba21C6Bf31dF1b1798FCEd07B4e9b07C5ec3a8'
 };
 
 const API_URLS = {
   ethereum: sdk.graph.modifyEndpoint(
     '2vzaVmMnkzbcfgtP2nqKbVWoqAUumvj24RzHPE1NxPkg'
+  ),
+  base: sdk.graph.modifyEndpoint(
+    'Eg5yYyLeogmpkh4kYJBirmxjaxWuKuGegBHWVCrvPB9g'
   ),
 };
 
@@ -33,18 +37,13 @@ const leverageTokensQuery = gql`
   }
 `
 
-const getAllLeverageTokens = async () => {
-    let leverageTokens = (await Promise.allSettled(
-      Object.entries(API_URLS).map(async ([chain, url]) => [
-        chain,
-        (await request(url, leverageTokensQuery)).leverageTokens,
-      ])
-    )).filter((i) => i.status === 'fulfilled').map((i) => i.value[1]).flat();
-    return leverageTokens.map((token) => token.id);
+const getAllLeverageTokens = async (chain) => {
+    return (await request(API_URLS[chain], leverageTokensQuery)).leverageTokens.map((token) => token.id);
 };
 
-const getPrices = async (addresses) => {
-  const priceUrl = `https://coins.llama.fi/prices/current/${addresses
+const getPrices = async (chain, addresses) => {
+  const addressesWithChain = addresses.map((address) => `${chain}:${address}`);
+  const priceUrl = `https://coins.llama.fi/prices/current/${addressesWithChain
         .join(',')
         .toLowerCase()}`;
   const prices = (
@@ -73,7 +72,7 @@ const getPrices = async (addresses) => {
 };
 
 function formatUnitsToNumber(value, decimals) {
-  return Number(ethers.utils.formatUnits(value, decimals));
+  return Number(ethers.utils.formatUnits(value, decimals));"addresses"
 }
 
 function calculateApy(endValue, startValue, timeWindow, compoundingPeriods) {
@@ -91,16 +90,17 @@ function calculateApy(endValue, startValue, timeWindow, compoundingPeriods) {
   return ((1 + apr / compoundingPeriods) ** compoundingPeriods - 1) * 100;
 }
 
-const getLeverageTokenTvlsUsd = async (leverageTokens, debtAssets) => {
+const getLeverageTokenTvlsUsd = async (chain, leverageTokens, debtAssets) => {
   const equityInDebtAsset = (
     await sdk.api.abi.multiCall({
       chain,
       abi: leverageManagerAbi.find(({ name }) => name === 'getLeverageTokenState'),
-      calls: leverageTokens.map((address) => ({ target: LEVERAGE_MANAGER_ADDRESS[chain], params: [address] }))
+      calls: leverageTokens.map((address) => ({ target: LEVERAGE_MANAGER_ADDRESS[chain], params: [address] })),
+      permitFailure: true
     })
-  ).output.map(({ output }) => output.equity);
+  ).output.map(({ output, success }) => success ? output.equity : 0);
 
-  const debtPrices = await getPrices(debtAssets.map((address) => `ethereum:${address.toLowerCase()}`));
+  const debtPrices = await getPrices(chain, debtAssets);
 
   const debtDecimals = (
     await sdk.api.abi.multiCall({
@@ -128,7 +128,7 @@ function getDebtPricesBigInt(debtPrices, debtAssets) {
   });
 }
 
-const getLpPrices = async (blockNumber, leverageTokens, debtAssets) => {
+const getLpPrices = async (chain, blockNumber, leverageTokens, debtAssets) => {
   const equityInDebtAsset = (
     await sdk.api.abi.multiCall({
       chain,
@@ -149,9 +149,7 @@ const getLpPrices = async (blockNumber, leverageTokens, debtAssets) => {
     })
   ).output.map(({ output }) => output);
 
-  const debtPrices = await getPrices(debtAssets.map((address) => `ethereum:${address.toLowerCase()}`));
-
-  // Convert debtPrices to BigInt with 8 decimals of precision using ethers
+  const debtPrices = await getPrices(chain, debtAssets);
   const debtPricesBigInt = getDebtPricesBigInt(debtPrices, debtAssets);
 
   const debtDecimals = (
@@ -174,7 +172,7 @@ const getLpPrices = async (blockNumber, leverageTokens, debtAssets) => {
   );
 };
 
-const leverageTokenApys = async () => {
+const leverageTokenApys = async (chain) => {
   const latestBlock = await sdk.api.util.getLatestBlock(chain);
   const prevBlock1Day = await sdk.api.util.lookupBlock(
     latestBlock.timestamp - SECONDS_PER_DAY,
@@ -185,7 +183,7 @@ const leverageTokenApys = async () => {
     { chain }
   );
 
-  const allLeverageTokens = await getAllLeverageTokens();
+  const allLeverageTokens = await getAllLeverageTokens(chain);
 
   const collateralAssets = (
     await sdk.api.abi.multiCall({
@@ -215,24 +213,28 @@ const leverageTokenApys = async () => {
   ).output.map(({ output }) => output);
 
   const latestBlockPrices = await getLpPrices(
+    chain,
     latestBlock.number,
     allLeverageTokens,
     debtAssets,
   );
 
   const prevBlock1DayPrices = await getLpPrices(
+    chain,
     prevBlock1Day.number,
     allLeverageTokens,
     debtAssets,
   );
 
   const prevBlock7DayPrices = await getLpPrices(
+    chain,
     prevBlock7Day.number,
     allLeverageTokens,
     debtAssets,
   );
 
   const leverageTokenTvlsUsd = await getLeverageTokenTvlsUsd(
+    chain,
     allLeverageTokens,
     debtAssets
   );
@@ -270,9 +272,13 @@ const leverageTokenApys = async () => {
 };
 
 const apy = async () => {
-  const apys = await Promise.all([leverageTokenApys()]);
+  const response = [];
+  for (const chain of chains) {
+    const apys = await Promise.all([leverageTokenApys(chain)]);
+    response.push(...apys.flat().filter((p) => utils.keepFinite(p)));
+  }
 
-  return apys.flat().filter((p) => utils.keepFinite(p));
+  return response;
 };
 
 module.exports = {
