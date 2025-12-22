@@ -79,7 +79,7 @@ const getLeverageTokenTvlsUsd = async (chain, leverageTokens) => {
       calls: leverageTokens.map((address) => ({ target: LEVERAGE_MANAGER_ADDRESS[chain], params: [address] })),
       permitFailure: true
     })
-  ).output.map(({ output, success }) => success ? output.collateralInDebtAsset : 0);
+  ).output.map(({ output, success }) => success ? output.collateralInDebtAsset : null);
 
   const { pricesByAddress } = await utils.getPrices(
     debtAssets,
@@ -98,7 +98,7 @@ const getLeverageTokenTvlsUsd = async (chain, leverageTokens) => {
   return debtAssets.map((debtAsset, i) => {
     return (collateralInDebtAsset[i] && debtDecimals[i] && pricesByAddress[debtAsset.toLowerCase()])
       ? collateralInDebtAsset[i] / 10 ** debtDecimals[i] * pricesByAddress[debtAsset.toLowerCase()]
-      : 0;
+      : null;
   });
 }
 
@@ -111,7 +111,7 @@ const getLpPricesInDebtAsset = async (chain, blockNumber, leverageTokens) => {
       block: blockNumber,
       permitFailure: true
     })
-  ).output.map(({ output, success }) => success ? output.equity : 0);
+  ).output.map(({ output, success }) => success ? output.equity : null);
 
   const totalSupply = (
     await sdk.api.abi.multiCall({
@@ -123,9 +123,9 @@ const getLpPricesInDebtAsset = async (chain, blockNumber, leverageTokens) => {
   ).output.map(({ output }) => output);
 
   return equityInDebtAsset.map((equity, i) =>
-    equity
+    equity && totalSupply[i]
       ? BigInt(equity) * BigInt(10 ** LEVERAGE_TOKEN_DECIMALS) / BigInt(totalSupply[i])
-      : 0
+      : null
   );
 };
 
@@ -216,12 +216,10 @@ const leverageTokenApys = async (chain) => {
 
 const apy = async () => {
   const response = [];
-  for (const chain of chains) {
-    const apys = await Promise.all([leverageTokenApys(chain)]);
-    response.push(...apys.flat().filter((p) => utils.keepFinite(p)));
-  }
-
-  return response;
+  const results = await Promise.all(
+    chains.map((chain) => leverageTokenApys(chain))
+  );
+  return results.flat().filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
