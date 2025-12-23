@@ -3,12 +3,18 @@ const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const poolAbi = require('./poolAbi');
-const { dustRewardsControllerAbi } = require('./abi');
+const {
+  dustRewardsControllerAbi,
+  dustLockAbi,
+  revenueRewardAbi,
+} = require('./abi');
 
 const NEVERLAND_CHAIN = 'monad';
 
 const protocolDataProvider = '0xfd0b6b6F736376F7B99ee989c749007c7757fDba';
 const rewardsController = '0x57ea245cCbFAb074baBb9d01d1F0c60525E52cec';
+const dustLock = '0xBB4738D05AD1b3Da57a4881baE62Ce9bb1eEeD6C';
+const revenueReward = '0xff20ac10eb808B1e31F5CfCa58D80eDE2Ba71c43';
 
 const getApy = async () => {
   const chain = NEVERLAND_CHAIN;
@@ -299,8 +305,119 @@ const getApy = async () => {
     .filter((p) => utils.keepFinite(p));
 };
 
+const getVeDustPool = async (chain, prices, rewardTokensList) => {
+  try {
+    const [dustSupply, dustToken] = await Promise.all([
+      sdk.api.abi.call({
+        target: dustLock,
+        abi: dustLockAbi.find((m) => m.name === 'supply'),
+        chain,
+      }),
+      sdk.api.abi.call({
+        target: dustLock,
+        abi: dustLockAbi.find((m) => m.name === 'token'),
+        chain,
+      }),
+    ]);
+
+    const dustPrice = prices[`${chain}:${dustToken.output}`]?.price;
+    if (!dustPrice || !dustSupply.output || dustSupply.output === '0')
+      return null;
+
+    const tvlUsd = (Number(dustSupply.output) / 1e18) * dustPrice;
+
+    if (!rewardTokensList || rewardTokensList.length === 0) return null;
+
+    const WEEK = 7 * 24 * 60 * 60;
+    const currentTime = Math.floor(Date.now() / 1000);
+    const currentEpoch = Math.floor(currentTime / WEEK) * WEEK;
+    const nextEpoch = currentEpoch + WEEK;
+
+    const nextEpochRewardsCalls = rewardTokensList.map((token) => ({
+      target: revenueReward,
+      params: [token, nextEpoch],
+    }));
+
+    const [nextEpochRewardsData, rewardDecimalsData] = await Promise.all([
+      sdk.api.abi.multiCall({
+        chain,
+        calls: nextEpochRewardsCalls,
+        abi: revenueRewardAbi.find((m) => m.name === 'tokenRewardsPerEpoch'),
+      }),
+      sdk.api.abi.multiCall({
+        chain,
+        calls: rewardTokensList.map((token) => ({ target: token })),
+        abi: {
+          inputs: [],
+          name: 'decimals',
+          outputs: [{ internalType: 'uint8', name: '', type: 'uint8' }],
+          stateMutability: 'view',
+          type: 'function',
+        },
+      }),
+    ]);
+
+    const totalApyReward = rewardTokensList.reduce((acc, token, i) => {
+      const rewardPrice = prices[`${chain}:${token}`]?.price;
+      const weeklyRewardsRaw = nextEpochRewardsData.output[i]?.output;
+      const decimals = rewardDecimalsData.output[i]?.output;
+
+      if (rewardPrice && weeklyRewardsRaw && decimals) {
+        const weeklyRewards =
+          Number(weeklyRewardsRaw) / Math.pow(10, Number(decimals));
+        const annualRewardsUsd = weeklyRewards * rewardPrice * 52;
+        return acc + (annualRewardsUsd / tvlUsd) * 100;
+      }
+      return acc;
+    }, 0);
+
+    return {
+      pool: `${dustLock}-${chain}`.toLowerCase(),
+      chain: utils.formatChain(chain),
+      project: 'neverland',
+      symbol: 'veDUST',
+      tvlUsd,
+      apyReward: totalApyReward > 0 ? totalApyReward : null,
+      rewardTokens: rewardTokensList,
+      underlyingTokens: [dustToken.output],
+      url: 'https://app.neverland.money',
+    };
+  } catch (error) {
+    console.error('Error fetching veDUST pool:', error.message);
+    return null;
+  }
+};
+
 const apy = async () => {
-  return getApy();
+  const chain = NEVERLAND_CHAIN;
+  const [lendingPools, rewardTokensList] = await Promise.all([
+    getApy(),
+    sdk.api.abi.call({
+      target: revenueReward,
+      abi: revenueRewardAbi.find((m) => m.name === 'getRewardTokens'),
+      chain,
+    }),
+  ]);
+
+  const priceKeys = [
+    ...lendingPools.flatMap((p) => p.underlyingTokens),
+    ...lendingPools.flatMap((p) => p.rewardTokens || []),
+    ...(rewardTokensList.output || []),
+  ]
+    .map((t) => `${chain}:${t}`)
+    .join(',');
+
+  const prices = (
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).data.coins;
+
+  const veDustPool = await getVeDustPool(
+    chain,
+    prices,
+    rewardTokensList.output
+  );
+
+  return veDustPool ? [...lendingPools, veDustPool] : lendingPools;
 };
 
 module.exports = {
