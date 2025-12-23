@@ -16,6 +16,30 @@ const rewardsController = '0x57ea245cCbFAb074baBb9d01d1F0c60525E52cec';
 const dustLock = '0xBB4738D05AD1b3Da57a4881baE62Ce9bb1eEeD6C';
 const revenueReward = '0xff20ac10eb808B1e31F5CfCa58D80eDE2Ba71c43';
 
+const calculateRewardApy = (
+  rewardsData,
+  rewardDecimals,
+  prices,
+  chain,
+  baseUsd
+) => {
+  let totalApy = 0;
+  for (const rewardData of rewardsData) {
+    const emissionPerSecond = Number(rewardData.emissionPerSecond);
+    const rewardTokenAddress = rewardData.rewardToken;
+    const rewardPrice = prices[`${chain}:${rewardTokenAddress}`]?.price;
+    const rewardDecimal = rewardDecimals[rewardTokenAddress];
+
+    if (emissionPerSecond > 0 && rewardPrice && rewardDecimal && baseUsd > 0) {
+      const emissionPerYear =
+        (emissionPerSecond / 10 ** rewardDecimal) * 365.25 * 24 * 60 * 60;
+      const emissionValueUsd = emissionPerYear * rewardPrice;
+      totalApy += (emissionValueUsd / baseUsd) * 100;
+    }
+  }
+  return totalApy;
+};
+
 const getApy = async () => {
   const chain = NEVERLAND_CHAIN;
 
@@ -231,55 +255,28 @@ const getApy = async () => {
       const apyBaseBorrow = Number(p.variableBorrowRate) / 1e25;
 
       const rewardsAddresses = rewardsByAsset[i] || [];
-      const rewardsAddressesBorrow = rewardsByDebtAsset[i] || [];
 
-      let apyReward = 0;
       const assetRewardsData = rewardsData.filter(
         (r) => r.assetIndex === i && !r.isDebt
       );
+      const apyReward = calculateRewardApy(
+        assetRewardsData,
+        rewardDecimals,
+        prices,
+        chain,
+        totalSupplyUsd
+      );
 
-      for (const rewardData of assetRewardsData) {
-        const emissionPerSecond = Number(rewardData.emissionPerSecond);
-        const rewardTokenAddress = rewardData.rewardToken;
-        const rewardPrice = prices[`${chain}:${rewardTokenAddress}`]?.price;
-        const rewardDecimal = rewardDecimals[rewardTokenAddress];
-
-        if (
-          emissionPerSecond > 0 &&
-          rewardPrice &&
-          rewardDecimal &&
-          totalSupplyUsd > 0
-        ) {
-          const emissionPerYear =
-            (emissionPerSecond / 10 ** rewardDecimal) * 365.25 * 24 * 60 * 60;
-          const emissionValueUsd = emissionPerYear * rewardPrice;
-          apyReward += (emissionValueUsd / totalSupplyUsd) * 100;
-        }
-      }
-
-      let apyRewardBorrow = 0;
       const debtRewardsData = rewardsData.filter(
         (r) => r.assetIndex === i && r.isDebt
       );
-
-      for (const rewardData of debtRewardsData) {
-        const emissionPerSecond = Number(rewardData.emissionPerSecond);
-        const rewardTokenAddress = rewardData.rewardToken;
-        const rewardPrice = prices[`${chain}:${rewardTokenAddress}`]?.price;
-        const rewardDecimal = rewardDecimals[rewardTokenAddress];
-
-        if (
-          emissionPerSecond > 0 &&
-          rewardPrice &&
-          rewardDecimal &&
-          totalBorrowUsd > 0
-        ) {
-          const emissionPerYear =
-            (emissionPerSecond / 10 ** rewardDecimal) * 365.25 * 24 * 60 * 60;
-          const emissionValueUsd = emissionPerYear * rewardPrice;
-          apyRewardBorrow += (emissionValueUsd / totalBorrowUsd) * 100;
-        }
-      }
+      const apyRewardBorrow = calculateRewardApy(
+        debtRewardsData,
+        rewardDecimals,
+        prices,
+        chain,
+        totalBorrowUsd
+      );
 
       const url = `https://app.neverland.money/markets?asset=${pool.symbol}`;
 
@@ -346,14 +343,8 @@ const getVeDustPool = async (chain, prices, rewardTokensList) => {
       }),
       sdk.api.abi.multiCall({
         chain,
+        abi: 'erc20:decimals',
         calls: rewardTokensList.map((token) => ({ target: token })),
-        abi: {
-          inputs: [],
-          name: 'decimals',
-          outputs: [{ internalType: 'uint8', name: '', type: 'uint8' }],
-          stateMutability: 'view',
-          type: 'function',
-        },
       }),
     ]);
 
