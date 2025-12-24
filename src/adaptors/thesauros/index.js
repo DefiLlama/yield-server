@@ -17,8 +17,12 @@ const VAULTS = {
       },
     ],
     providers: {
-      aaveV3: '0x034a62f9617E8A1770f7c7EbA04e2DAb2Fda7f12',
-      compoundV3: '0xFFAc48125fa4Bd8BC03CDCA725459563aAe77406',
+    "aaveV3Provider": "0x034a62f9617E8A1770f7c7EbA04e2DAb2Fda7f12",
+    "compoundV3Provider": "0xFFAc48125fa4Bd8BC03CDCA725459563aAe77406",
+    "re7MorphoProvider": "0x642E31bE2fF6d3EBa38dC16760f3a146092d89e3",
+    "steakhouseHighYieldMorphoProvider": "0x0EF8ceD75e5877c69ac8619145219b67D76193a1",
+    "steakhousePrimeMorphoProvider": "0x4516F8324bfAcC71e5099FabFC51E97e4905c062",
+    "gauntletCoreMorphoProvider": "0x34c164e7021e38921aE20a723234d2b1B52289E9"
     },
   },
   arbitrum: {
