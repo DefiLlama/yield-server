@@ -304,7 +304,7 @@ const getApy = async () => {
 
 const getVeDustPool = async (chain, prices, rewardTokensList) => {
   try {
-    const [dustSupply, dustToken] = await Promise.all([
+    const [dustSupply, dustToken, veDustSupply] = await Promise.all([
       sdk.api.abi.call({
         target: dustLock,
         abi: dustLockAbi.find((m) => m.name === 'supply'),
@@ -315,6 +315,11 @@ const getVeDustPool = async (chain, prices, rewardTokensList) => {
         abi: dustLockAbi.find((m) => m.name === 'token'),
         chain,
       }),
+      sdk.api.abi.call({
+        target: dustLock,
+        abi: dustLockAbi.find((m) => m.name === 'totalSupply'),
+        chain,
+      }),
     ]);
 
     const dustPrice = prices[`${chain}:${dustToken.output}`]?.price;
@@ -322,6 +327,7 @@ const getVeDustPool = async (chain, prices, rewardTokensList) => {
       return null;
 
     const tvlUsd = (Number(dustSupply.output) / 1e18) * dustPrice;
+    const veDustPowerUsd = (Number(veDustSupply.output) / 1e18) * dustPrice;
 
     if (!rewardTokensList || rewardTokensList.length === 0) return null;
 
@@ -357,7 +363,7 @@ const getVeDustPool = async (chain, prices, rewardTokensList) => {
         const weeklyRewards =
           Number(weeklyRewardsRaw) / Math.pow(10, Number(decimals));
         const annualRewardsUsd = weeklyRewards * rewardPrice * 52;
-        return acc + (annualRewardsUsd / tvlUsd) * 100;
+        return acc + (annualRewardsUsd / veDustPowerUsd) * 100;
       }
       return acc;
     }, 0);
@@ -368,7 +374,7 @@ const getVeDustPool = async (chain, prices, rewardTokensList) => {
       project: 'neverland',
       symbol: 'veDUST',
       tvlUsd,
-      apyReward: totalApyReward,
+      apyBase: totalApyReward,
       rewardTokens: rewardTokensList,
       underlyingTokens: [dustToken.output],
       url: 'https://app.neverland.money',
