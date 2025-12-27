@@ -374,7 +374,7 @@ const getVeDustPool = async (chain, prices, rewardTokensList) => {
       project: 'neverland',
       symbol: 'veDUST',
       tvlUsd,
-      apyBase: totalApyReward,
+      apyReward: totalApyReward,
       rewardTokens: rewardTokensList,
       underlyingTokens: [dustToken.output],
       url: 'https://app.neverland.money',
