@@ -2,7 +2,7 @@ const utils = require('../utils');
 const axios = require('axios');
 
 const api = (chainId) =>
-  `https://app.spectra.finance/api/v1/${chains[chainId].slug}/pools?source=defillama`;
+  `https://api.spectra.finance/v1/${chains[chainId].slug}/pools?source=defillama`;
 const chains = {
   1: {
     name: 'ethereum',
@@ -63,7 +63,19 @@ const chains = {
     slug: 'katana',
     urlSlug: "katana",
     SPECTRA: "0xb77f1a8cb126d8567f226f990f84e2f698cc30f8"
-  }
+  },
+  14: {
+    name: 'flare',
+    slug: 'flare',
+    urlSlug: "flare",
+    SPECTRA: "0x5390d7c6b8139ae9d255ed9e7ae6274e18032abe"
+  },
+  143: {
+    name: 'monad',
+    slug: 'monad',
+    urlSlug: "monad",
+    SPECTRA: "0x1c77c5b76f02ed1538d5af95a3b1f88e55178d2f"
+  },
 };
 
 const poolId = (address, chainId) =>
