@@ -34,7 +34,13 @@ const getV3Pools = async (backendChain, chainString) => {
       { chain: backendChain }
     );
 
-    return poolGetPools.map((pool) => {
+    return poolGetPools
+      .filter(
+        (pool) =>
+          pool.address.toLowerCase() !==
+          '0xfd3b274a5f0316ef3499de0a207b37ff9d7eefec'
+      )
+      .map((pool) => {
       const aprItems = pool.dynamicData.aprItems || [];
 
       const baseApr = aprItems
@@ -67,7 +73,7 @@ const getV3Pools = async (backendChain, chainString) => {
         apyReward: stakingApr * 100,
         rewardTokens: rewardTokens,
         underlyingTokens: underlyingTokens,
-        url: `https://coinhain.fi/pools/${chainUrl}/v3/${pool.address}`,
+        url: `https://app.coinhain.fi/pools/${chainUrl}/v3/${pool.address}`,
       };
     });
   } catch (error) {
