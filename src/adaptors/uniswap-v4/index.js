@@ -102,7 +102,7 @@ const topLvl = async (chainString, url, query, timestamp) => {
       const chain = chainString === 'avax' ? 'avalanche' : chainString;
 
       return {
-        pool: p.id,
+        pool: `${p.id}-${chainString}-uniswap-v4`,
         chain: utils.formatChain(chainString),
         project: 'uniswap-v4',
         poolMeta: poolMeta,
