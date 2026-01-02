@@ -9,6 +9,7 @@ const CHAINS = {
   linea: 59144,
   plasma: 9745,
   avalanche: 43114,
+  monad: 143,
 };
 
 const gqlQueries = {
