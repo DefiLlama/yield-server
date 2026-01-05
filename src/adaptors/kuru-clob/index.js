@@ -53,6 +53,7 @@ const apy = async () => {
         symbol,
         tvlUsd,
         apyBase,
+        poolMeta: `${vault.vaultfeebps / 10000}% (${vault.vaultaddress})`,
         underlyingTokens: [vault.basetoken.address, vault.quotetoken.address],
         url: `https://kuru.io/liquidity/${vault.vaultaddress}`,
       };
