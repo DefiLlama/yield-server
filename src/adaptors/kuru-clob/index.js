@@ -27,26 +27,37 @@ const apy = async () => {
     offset += limit;
   }
 
-  pools = allVaults.map((vault) => {
-    const tvl = vault.tvl24h || 0;
-    const fees24h = parseFloat(vault.fees24h) || 0;
-    const apyBase = vault.apr24h === 0 && tvl > 0 ? (fees24h * 365 * 100) / tvl : vault.apr24h
-    const symbol = `${vault.basetoken.ticker}-${vault.quotetoken.ticker}`;
+  pools = await Promise.all(
+    allVaults.map(async (vault) => {
+      
+      const quoteTokenPriceKey = `monad:${vault.quotetoken.address}`;
+      const quoteTokenPriceResponse = await axios.get(
+        `https://coins.llama.fi/prices/current/${quoteTokenPriceKey}`
+      );
+      const quoteTokenPrice = quoteTokenPriceResponse.data.coins[quoteTokenPriceKey]?.price;
 
-    return {
-      pool: `${vault.vaultaddress}-monad`.toLowerCase(),
-      chain: 'monad',
-      project: 'kuru-clob',
-      symbol,
-      tvlUsd: tvl,
-      apyBase,
-      underlyingTokens: [
-        vault.basetoken.address,
-        vault.quotetoken.address,
-      ],
-      url: `https://kuru.io/liquidity/${vault.vaultaddress}`,
-    };
-  });
+      const tvl = vault.tvl24h || 0;
+      const tvlUsd = tvl * quoteTokenPrice;
+
+      const fees24h = parseFloat(vault.fees24h) || 0;
+      const apyBase =
+        vault.apr24h === 0 && tvl > 0
+          ? (fees24h * 365 * 100) / tvl
+          : vault.apr24h;
+      const symbol = `${vault.basetoken.ticker}-${vault.quotetoken.ticker}`;
+
+      return {
+        pool: `${vault.vaultaddress}-monad`.toLowerCase(),
+        chain: 'monad',
+        project: 'kuru-clob',
+        symbol,
+        tvlUsd,
+        apyBase,
+        underlyingTokens: [vault.basetoken.address, vault.quotetoken.address],
+        url: `https://kuru.io/liquidity/${vault.vaultaddress}`,
+      };
+    })
+  );
 
   return pools;
 };
@@ -55,4 +66,3 @@ module.exports = {
   timetravel: false,
   apy,
 };
-
