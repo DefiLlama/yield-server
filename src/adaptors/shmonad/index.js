@@ -19,24 +19,24 @@ const SHMONAD_ABI = {
 };
 
 // APY window in days
-const APY_WINDOW_DAYS = 6;
+const APY_WINDOW_DAYS = 2;
 
 const apy = async () => {
   // Get current timestamp
   const now = Math.floor(Date.now() / 1000);
-  const timestamp6daysAgo = now - SECONDS_PER_DAY * APY_WINDOW_DAYS;
+  const timestamp2daysAgo = now - SECONDS_PER_DAY * APY_WINDOW_DAYS;
 
-  // Fetch block numbers for current and 6 days ago
-  const [blockNow, block6daysAgo] = await Promise.all([
+  // Fetch block numbers for current and 2 days ago
+  const [blockNow, block2daysAgo] = await Promise.all([
     axios
       .get(`https://coins.llama.fi/block/monad/${now}`)
       .then((r) => r.data.height),
     axios
-      .get(`https://coins.llama.fi/block/monad/${timestamp6daysAgo}`)
+      .get(`https://coins.llama.fi/block/monad/${timestamp2daysAgo}`)
       .then((r) => r.data.height),
   ]);
 
-  if (!blockNow || !block6daysAgo) {
+  if (!blockNow || !block2daysAgo) {
     throw new Error('RPC issue: Failed to fetch block numbers');
   }
 
@@ -61,27 +61,27 @@ const apy = async () => {
     }),
   ]);
 
-  // Fetch 6 days ago totalAssets and totalSupply
-  const [totalAssets6daysAgo, totalSupply6daysAgo] = await Promise.all([
+  // Fetch 2 days ago totalAssets and totalSupply
+  const [totalAssets2daysAgo, totalSupply2daysAgo] = await Promise.all([
     sdk.api.abi.call({
       target: SHMONAD_CONTRACT,
       abi: SHMONAD_ABI.totalAssets,
       chain: 'monad',
-      block: block6daysAgo,
+      block: block2daysAgo,
     }),
     sdk.api.abi.call({
       target: SHMONAD_CONTRACT,
       abi: SHMONAD_ABI.totalSupply,
       chain: 'monad',
-      block: block6daysAgo,
+      block: block2daysAgo,
     }),
   ]);
 
   if (
     !totalAssetsNow.output ||
     !totalSupplyNow.output ||
-    !totalAssets6daysAgo.output ||
-    !totalSupply6daysAgo.output
+    !totalAssets2daysAgo.output ||
+    !totalSupply2daysAgo.output
   ) {
     throw new Error('RPC issue: Failed to fetch contract data');
   }
@@ -90,18 +90,18 @@ const apy = async () => {
   const shareValueNow =
     (BigInt(totalAssetsNow.output) * BigInt(1e18)) /
     BigInt(totalSupplyNow.output);
-  const shareValue6daysAgo =
-    (BigInt(totalAssets6daysAgo.output) * BigInt(1e18)) /
-    BigInt(totalSupply6daysAgo.output);
+  const shareValue2daysAgo =
+    (BigInt(totalAssets2daysAgo.output) * BigInt(1e18)) /
+    BigInt(totalSupply2daysAgo.output);
 
-  if (shareValue6daysAgo === 0n) {
+  if (shareValue2daysAgo === 0n) {
     throw new Error('RPC issue: Previous share value is zero');
   }
 
-  // Calculate proportion: shareValueNow / shareValue6daysAgo
+  // Calculate proportion: shareValueNow / shareValue2daysAgo
   // Multiply by 1e18 to maintain precision
   const proportion =
-    Number((shareValueNow * BigInt(1e18)) / shareValue6daysAgo) / 1e18;
+    Number((shareValueNow * BigInt(1e18)) / shareValue2daysAgo) / 1e18;
 
   if (proportion <= 0) {
     throw new Error('RPC issue: Invalid proportion calculated');
@@ -109,7 +109,7 @@ const apy = async () => {
 
   // Calculate APY using the formula:
   // APY = (proportion ^ (365 / APY_WINDOW_DAYS) - 1) * 100
-  // This annualizes the 6-day return
+  // This annualizes the 2-day return
   const periodsPerYear = DAYS_PER_YEAR / APY_WINDOW_DAYS;
   const apyBase = (Math.pow(proportion, periodsPerYear) - 1) * 100;
 
