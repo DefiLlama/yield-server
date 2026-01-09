@@ -41,7 +41,7 @@ const main = async () => {
       let data;
       try {
         data = await utils.getData(
-          `https://api.merkl.xyz/v4/opportunities?chainId=${chainId}&status=LIVE,PAST&items=100&page=${pageI}`
+          `https://api.merkl.xyz/v4/opportunities?chainId=${chainId}&status=LIVE&items=100&page=${pageI}`
         );
       } catch (err) {
         console.log('failed to fetch Merkl data on chain ' + chain);
@@ -89,7 +89,7 @@ const main = async () => {
           pool: `${poolAddress}-merkl`,
           chain: chain,
           project: project,
-          poolMeta: pool.status === 'PAST' ? 'past' : undefined,
+          poolMeta: pool.action ?? null,
           symbol: symbol,
           tvlUsd: tvlUsd ?? 0,
           apyReward: apyReward ?? 0,
@@ -102,12 +102,6 @@ const main = async () => {
   }
   return utils.removeDuplicates(poolsData.filter((p) => utils.keepFinite(p)));
 };
-
-/*
-main().then((data) => {
-  console.log(data);
-});
-*/
 
 module.exports = {
   timetravel: false,
