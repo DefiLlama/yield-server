@@ -1,8 +1,6 @@
 const BN = require('bignumber.js');
 const { request, gql } = require('graphql-request');
 
-const { formatChain } = require('../utils');
-
 const DHEDGE_API_URL = 'https://api-v2.dhedge.org/graphql';
 
 const MSTABLE_POOL_ADDRESSES = ['0xfec2adfa296fe189f53089fd5ccd8c28dd559cf2'];
@@ -67,7 +65,6 @@ const poolsFunction = async () => {
     return allFundsByAddresses.map(
       ({
         address,
-        blockchainCode,
         symbol,
         totalValue,
         performanceMetrics,
@@ -76,7 +73,7 @@ const poolsFunction = async () => {
         apy,
       }) => ({
         pool: address,
-        chain: formatChain(blockchainCode.toLowerCase()),
+        chain: 'ethereum',
         project: 'mstable-v2',
         symbol,
         tvlUsd: formatValue(totalValue),
