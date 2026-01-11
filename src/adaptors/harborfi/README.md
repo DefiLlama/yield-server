@@ -35,7 +35,10 @@ TVL is calculated from haTokens deposited in stability pools:
 1. **Get Pool TVL**: Calls `totalAssets()` or `totalAssetSupply()` on each pool to get haToken amounts
 2. **Get Token Price**: 
    - Fetches `peggedTokenPrice()` from minter contract (returns price in underlying asset, e.g., 1 haBTC = 1 BTC worth)
-   - Fetches underlying asset price (BTC/ETH) from `coins.llama.fi`
+   - Fetches underlying asset price (BTC/ETH) from **Chainlink price feeds** (same oracles used by the protocol)
+     - ETH/USD: `0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419`
+     - BTC/USD: `0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c`
+   - Chainlink prices are in 8 decimals for USD pairs
    - Calculates USD price: `peggedTokenPriceUSD = peggedTokenPriceInUnderlying * underlyingAssetPriceUSD`
 3. **Calculate Market TVL**: `(haTokens in Collateral Pool + haTokens in Sail Pool) × haToken Price USD`
 4. **Group by Token**: Sums TVL across all markets for the same pegged token (e.g., haBTC has multiple markets)
@@ -79,6 +82,19 @@ const MARKETS = [
 ### ERC20 Token Contracts
 
 - `decimals()`: Returns `uint8` - Token decimals
+
+### Chainlink Price Feeds
+
+The adapter uses Chainlink price feeds for underlying asset prices (consistent with the protocol's oracle usage):
+
+- **ETH/USD**: `0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419`
+- **BTC/USD**: `0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c`
+
+**Required Methods:**
+- `latestAnswer()`: Returns `int256` - Latest price in 8 decimals for USD pairs
+  - Example: ETH at $3000 returns `300000000000` (3000 * 1e8)
+
+**Note:** Reward token prices still use `coins.llama.fi` API as they may not have Chainlink feeds available.
 
 ## Testing
 
