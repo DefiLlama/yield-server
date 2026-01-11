@@ -2,7 +2,7 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
-const { MARKETS } = require('./config');
+const { MARKETS, TOKEN_CHAINLINK_FEED_MAP } = require('./config');
 
 /**
  * HarborFi Adapter
@@ -136,7 +136,7 @@ async function calculateAPRFromRewards(poolAddress, poolTVLUsd, chain) {
 
         if (!rewardDataResult?.output) continue;
 
-        const rewardRate = BigInt(rewardDataResult.output[2] || 0); // rate is at index 2
+        const rewardRateBigInt = BigInt(rewardDataResult.output[2] || 0); // rate is at index 2
         const finishAt = Number(rewardDataResult.output[1] || 0); // finishAt is at index 1
         const currentTime = Math.floor(Date.now() / 1000);
 
@@ -145,7 +145,10 @@ async function calculateAPRFromRewards(poolAddress, poolTVLUsd, chain) {
           continue; // Reward period has ended
         }
 
-        if (rewardRate === 0n) continue;
+        if (rewardRateBigInt === 0n) continue;
+
+        // Convert BigInt to BigNumber immediately to preserve precision
+        const rewardRate = new BigNumber(rewardRateBigInt.toString());
 
         // Fetch reward token decimals
         let rewardTokenDecimals = 18; // Default to 18 decimals
@@ -179,15 +182,15 @@ async function calculateAPRFromRewards(poolAddress, poolTVLUsd, chain) {
 
         if (rewardTokenPrice === 0) continue;
 
-        // Calculate annual rewards in USD
+        // Calculate annual rewards in USD using BigNumber for precision
         // rewardRate is in token units per second (with token decimals)
         // Divide by 10**decimals first to get tokens per second, then multiply by SECONDS_PER_YEAR
-        const rewardTokensPerSecond = Number(rewardRate) / (10 ** rewardTokenDecimals);
-        const rewardTokensPerYear = rewardTokensPerSecond * SECONDS_PER_YEAR;
-        const rewardValuePerYearUSD = rewardTokensPerYear * rewardTokenPrice;
+        const rewardTokensPerSecond = rewardRate.dividedBy(10 ** rewardTokenDecimals);
+        const rewardTokensPerYear = rewardTokensPerSecond.multipliedBy(SECONDS_PER_YEAR);
+        const rewardValuePerYearUSD = rewardTokensPerYear.multipliedBy(rewardTokenPrice);
 
-        // Calculate APR for this reward token
-        const tokenAPR = (rewardValuePerYearUSD / poolTVLUsd) * 100;
+        // Calculate APR for this reward token (convert to Number only at the end)
+        const tokenAPR = rewardValuePerYearUSD.dividedBy(poolTVLUsd).multipliedBy(100).toNumber();
         totalAPR += tokenAPR;
       } catch (error) {
         // Skip this reward token if there's an error
@@ -236,9 +239,11 @@ async function fetchPoolsFromChain() {
       
       // Get underlying asset price from Chainlink
       // Determine which Chainlink feed to use based on token symbol
-      const chainlinkFeedAddress = peggedTokenSymbol === 'haBTC' 
-        ? CHAINLINK_FEEDS.BTC_USD
-        : CHAINLINK_FEEDS.ETH_USD;
+      const chainlinkFeedKey = TOKEN_CHAINLINK_FEED_MAP[peggedTokenSymbol];
+      if (!chainlinkFeedKey || !CHAINLINK_FEEDS[chainlinkFeedKey]) {
+        throw new Error(`Unsupported pegged token symbol: ${peggedTokenSymbol}. Supported symbols: ${Object.keys(TOKEN_CHAINLINK_FEED_MAP).join(', ')}`);
+      }
+      const chainlinkFeedAddress = CHAINLINK_FEEDS[chainlinkFeedKey];
       
       // Get pegged token price in underlying asset from minter
       for (const market of tokenMarkets) {

@@ -12,8 +12,8 @@
  * 
  * Deployment Information:
  * - Harbor Finance contracts are deployed via factory pattern using CREATE3
- * - Factory Contract: 0xd696e56b3a054734d4c6dcbd32e11a278b0ec458
- *   See: https://etherscan.io/address/0xd696e56b3a054734d4c6dcbd32e11a278b0ec458
+ * - Factory Contract: 0xD696E56b3A054734d4C6DCBD32E11a278b0EC458
+ *   See: https://etherscan.io/address/0xD696E56b3A054734d4C6DCBD32E11a278b0EC458
  * - Contracts are deterministically deployed through the BaoFactory using CREATE3,
  *   ensuring address consistency based on the factory address and deployment salt.
  * 
@@ -54,6 +54,14 @@ const MARKETS = [
   },
 ];
 
+// Mapping of pegged token symbols to their Chainlink price feed keys
+// Used to determine which Chainlink feed to use for price lookups
+const TOKEN_CHAINLINK_FEED_MAP = {
+  'haBTC': 'BTC_USD',
+  'haETH': 'ETH_USD',
+};
+
 module.exports = {
   MARKETS,
+  TOKEN_CHAINLINK_FEED_MAP,
 };

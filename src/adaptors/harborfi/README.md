@@ -21,13 +21,13 @@ The adapter calculates APR from **reward streaming data**:
    - `rate`: Reward rate per second (in token units with token's decimal precision)
    - `finishAt`: Timestamp when rewards end (to check if still active)
 3. **Fetch Token Decimals**: Calls `decimals()` on each reward token to get its decimal precision
-4. **Calculate Token APR**: For each reward token:
+4. **Calculate Token APR**: For each reward token (using BigNumber for precision to avoid loss):
    - Annual rewards = `rate / 10**decimals * SECONDS_PER_YEAR`
    - Annual rewards USD = `annual rewards * reward token price`
    - Token APR = `(annual rewards USD / pool TVL) * 100`
-4. **Sum APRs**: Total pool APR = sum of all individual reward token APRs
-5. **Market APR**: For each market, uses the **lowest APR** between collateral and sail pools
-6. **Final APR**: For tokens with multiple markets (e.g., haBTC), uses the **lowest APR** across all markets
+5. **Sum APRs**: Total pool APR = sum of all individual reward token APRs
+6. **Market APR**: For each market, uses the **lowest APR** between collateral and sail pools
+7. **Final APR**: For tokens with multiple markets (e.g., haBTC), uses the **lowest APR** across all markets
 
 ## TVL Calculation
 
@@ -50,7 +50,12 @@ TVL is calculated from haTokens deposited in stability pools:
 
 ## Configuration
 
-The adapter is configured with market contracts in the `config.js` file. To add new markets, update the `MARKETS` array in `src/adaptors/harborfi/config.js`:
+The adapter is configured with market contracts in the `config.js` file. The configuration includes:
+
+1. **MARKETS array**: Market contract addresses for each pegged token
+2. **TOKEN_CHAINLINK_FEED_MAP**: Mapping of token symbols to their Chainlink price feed keys
+
+To add new markets, update both configurations in `src/adaptors/harborfi/config.js`:
 
 ```javascript
 const MARKETS = [
@@ -63,7 +68,15 @@ const MARKETS = [
   },
   // ... more markets
 ];
+
+const TOKEN_CHAINLINK_FEED_MAP = {
+  'haBTC': 'BTC_USD',
+  'haETH': 'ETH_USD',
+  // Add new token symbols and their Chainlink feed keys here
+};
 ```
+
+**Important**: When adding a new token symbol, you must also add it to `TOKEN_CHAINLINK_FEED_MAP` with the appropriate Chainlink feed key (`BTC_USD` or `ETH_USD`). The adapter validates token symbols and will throw an error if an unsupported symbol is encountered.
 
 ### Address Verification
 
@@ -74,7 +87,7 @@ const MARKETS = [
 - Addresses should be verified contracts on Ethereum mainnet
 
 **Contract Deployment**: Harbor Finance contracts are deployed via a factory pattern using CREATE3:
-- **Factory Contract**: [`0xd696e56b3a054734d4c6dcbd32e11a278b0ec458`](https://etherscan.io/address/0xd696e56b3a054734d4c6dcbd32e11a278b0ec458)
+- **Factory Contract**: [`0xD696E56b3A054734d4C6DCBD32E11a278b0EC458`](https://etherscan.io/address/0xD696E56b3A054734d4C6DCBD32E11a278b0EC458)
 - Contracts are deterministically deployed through the BaoFactory using CREATE3 (Solady implementation)
 - Addresses are predictable based on the factory address and deployment salt (salt values are specific to each deployment)
 - The factory uses UUPS upgradeable pattern with a hardcoded owner address
