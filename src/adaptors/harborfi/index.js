@@ -106,6 +106,23 @@ const MINTER_ABI = [
   },
 ];
 
+// Chainlink Price Feed ABI
+const CHAINLINK_ABI = [
+  {
+    name: 'latestAnswer',
+    type: 'function',
+    inputs: [],
+    outputs: [{ type: 'int256' }], // Price in 8 decimals for USD pairs
+    stateMutability: 'view',
+  },
+];
+
+// Chainlink price feed addresses on Ethereum mainnet
+const CHAINLINK_FEEDS = {
+  ETH_USD: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419',
+  BTC_USD: '0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c',
+};
+
 const SECONDS_PER_YEAR = 365 * 24 * 60 * 60; // 31,536,000
 
 /**
@@ -224,10 +241,11 @@ async function fetchPoolsFromChain() {
       let underlyingAssetPriceUSD = 0;
       let decimals = 18;
       
-      // Determine underlying asset based on token symbol
-      const underlyingAssetAddress = peggedTokenSymbol === 'haBTC' 
-        ? '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599' // WBTC
-        : '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'; // WETH
+      // Get underlying asset price from Chainlink
+      // Determine which Chainlink feed to use based on token symbol
+      const chainlinkFeedAddress = peggedTokenSymbol === 'haBTC' 
+        ? CHAINLINK_FEEDS.BTC_USD
+        : CHAINLINK_FEEDS.ETH_USD;
       
       // Get pegged token price in underlying asset from minter
       for (const market of tokenMarkets) {
@@ -255,20 +273,22 @@ async function fetchPoolsFromChain() {
         console.log(`  Using default peg ratio: 1.0 ${peggedTokenSymbol === 'haBTC' ? 'BTC' : 'ETH'}`);
       }
       
-      // Get underlying asset (BTC/ETH) price in USD from coins API
+      // Get underlying asset (BTC/ETH) price in USD from Chainlink
       try {
-        const priceResponse = await axios.get(
-          `https://coins.llama.fi/prices/current/${CHAIN}:${underlyingAssetAddress}`
-        );
-        const priceKey = Object.keys(priceResponse.data.coins || {}).find(
-          key => key.toLowerCase() === `${CHAIN}:${underlyingAssetAddress.toLowerCase()}`
-        );
-        underlyingAssetPriceUSD = priceResponse.data.coins[priceKey]?.price || 0;
-        if (underlyingAssetPriceUSD > 0) {
-          console.log(`  ${peggedTokenSymbol === 'haBTC' ? 'BTC' : 'ETH'} price in USD: $${underlyingAssetPriceUSD.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+        const chainlinkPriceResult = await sdk.api.abi.call({
+          target: chainlinkFeedAddress,
+          abi: CHAINLINK_ABI.find((m) => m.name === 'latestAnswer'),
+          chain: CHAIN,
+        });
+        if (chainlinkPriceResult?.output) {
+          // Chainlink prices are in 8 decimals for USD pairs
+          underlyingAssetPriceUSD = Number(chainlinkPriceResult.output) / 1e8;
+          if (underlyingAssetPriceUSD > 0) {
+            console.log(`  ${peggedTokenSymbol === 'haBTC' ? 'BTC' : 'ETH'} price in USD: $${underlyingAssetPriceUSD.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+          }
         }
       } catch (error) {
-        console.log(`  Failed to get ${peggedTokenSymbol === 'haBTC' ? 'BTC' : 'ETH'} price from coins API`);
+        console.log(`  Failed to get ${peggedTokenSymbol === 'haBTC' ? 'BTC' : 'ETH'} price from Chainlink:`, error.message);
       }
       
       // Calculate final USD price per token
