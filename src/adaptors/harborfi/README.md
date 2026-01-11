@@ -1,146 +1,111 @@
-# HarborFi Adapter Setup Guide
+# HarborFi Adapter
 
-This adapter is designed to fetch yield data from Harbor Finance protocol. The adapter supports three data source options:
+This adapter fetches yield data from Harbor Finance protocol using on-chain contract calls.
 
-1. **Subgraph** (Recommended if available)
-2. **API Endpoint**
-3. **On-chain Contract Calls**
+## How Harbor Finance Works
 
-## How Harbor Finance APR Works
+Harbor Finance is a synthetic asset protocol that offers:
+- **haTOKENS** (Harbor Anchored Tokens): Pegged synthetic assets that earn amplified yield (e.g., haETH, haBTC)
+- **Stability Pools**: Two types of pools that maintain system solvency and earn yield
+  - **Collateral Pool**: Base yield pool
+  - **Sail Pool**: Leveraged yield pool
 
-Harbor Finance uses a dual-pool system for each market:
+Each market has both a Collateral Pool and a Sail Pool.
 
-1. **Collateral Pool** (`stabilityPoolCollateral`): Base yield pool
-2. **Sail Pool** (`stabilityPoolLeveraged`): Leveraged yield pool
+## APR Calculation
 
-Each pool has an APR with two components:
-- `collateral`: Base APR from collateral yield (stored as `apyCollateral`)
-- `steam`: Additional APR component (stored as `apySteam`)
-- **Total Pool APR** = `collateral + steam`
+The adapter calculates APR from **reward streaming data**:
 
-The adapter combines both pools' APRs to calculate the final displayed APR:
-- **Final APR** = Average of (Collateral Pool APR, Sail Pool APR)
-- This matches how the frontend calculates and displays APRs
+1. **Get Active Reward Tokens**: For each pool (collateral and sail), calls `activeRewardTokens()` to get the list of reward token addresses
+2. **Get Reward Rates**: For each reward token, calls `rewardData(token)` to get:
+   - `rate`: Reward rate per second (in wei, 18 decimals)
+   - `finishAt`: Timestamp when rewards end (to check if still active)
+3. **Calculate Token APR**: For each reward token:
+   - Annual rewards = `rate * SECONDS_PER_YEAR / 1e18`
+   - Annual rewards USD = `annual rewards * reward token price`
+   - Token APR = `(annual rewards USD / pool TVL) * 100`
+4. **Sum APRs**: Total pool APR = sum of all individual reward token APRs
+5. **Market APR**: For each market, uses the **lowest APR** between collateral and sail pools
+6. **Final APR**: For tokens with multiple markets (e.g., haBTC), uses the **lowest APR** across all markets
 
-## Required Configuration
+## TVL Calculation
 
-To complete the adapter setup, you need to provide the following information:
+TVL is calculated from haTokens deposited in stability pools:
 
-### 1. Blockchain Networks
+1. **Get Pool TVL**: Calls `totalAssets()` or `totalAssetSupply()` on each pool to get haToken amounts
+2. **Get Token Price**: 
+   - Fetches `peggedTokenPrice()` from minter contract (returns price in underlying asset, e.g., 1 haBTC = 1 BTC worth)
+   - Fetches underlying asset price (BTC/ETH) from `coins.llama.fi`
+   - Calculates USD price: `peggedTokenPriceUSD = peggedTokenPriceInUnderlying * underlyingAssetPriceUSD`
+3. **Calculate Market TVL**: `(haTokens in Collateral Pool + haTokens in Sail Pool) × haToken Price USD`
+4. **Group by Token**: Sums TVL across all markets for the same pegged token (e.g., haBTC has multiple markets)
 
-Update the `CHAINS` object in `index.js` with the chains where HarborFi is deployed:
+## Pool Filtering
 
-```javascript
-const CHAINS = {
-  ethereum: 'ethereum',
-  arbitrum: 'arbitrum',
-  // Add more chains as needed
-};
-```
+- Pools with TVL < $10,000 USD are filtered out (DefiLlama minimum threshold)
 
-### 2. Data Source (Choose ONE of the following)
+## Configuration
 
-#### Option A: Subgraph (Recommended)
-
-If Harbor Finance has a subgraph, provide the URL:
-
-```javascript
-const SUBGRAPH_URL = 'https://api.thegraph.com/subgraphs/name/harborfi/harborfi';
-```
-
-**Required Subgraph Schema:**
-
-Preferred structure - `markets` query should return:
-- Each market with: `id`, `minterAddress`, `peggedToken` (with `id`, `symbol`, `decimals`), `chain`
-- `collateralPool`: `id`, `address`, `totalValueLockedUSD`, `apyCollateral`, `apySteam`
-- `sailPool`: `id`, `address`, `totalValueLockedUSD`, `apyCollateral`, `apySteam`
-
-Fallback structure - `stabilityPools` query should return:
-- `id`, `address`, `marketId`, `poolType` ('collateral' or 'sail'), `token` (with `id`, `symbol`, `decimals`), `totalValueLockedUSD`, `apyCollateral`, `apySteam`, `chain`
-
-#### Option B: API Endpoint
-
-If Harbor Finance provides a REST API:
+The adapter is configured with market contracts in the `MARKETS` array:
 
 ```javascript
-const API_BASE_URL = 'https://api.harborfinance.io/v1';
+const MARKETS = [
+  {
+    peggedTokenSymbol: 'haETH',
+    peggedTokenAddress: '0x7A53EBc85453DD006824084c4f4bE758FcF8a5B5',
+    collateralPoolAddress: '0x1F985CF7C10A81DE1940da581208D2855D263D72',
+    sailPoolAddress: '0x438B29EC7a1770dDbA37D792F1A6e76231Ef8E06',
+    minterAddress: '0xd6E2F8e57b4aFB51C6fA4cbC012e1cE6aEad989F',
+  },
+  // ... more markets
+];
 ```
 
-**Required API Endpoints:**
+## Required Contract Methods
 
-Preferred:
-- `GET /markets?chain={chain}` - Returns array of markets, each with `collateralPool` and `sailPool` objects
+### Stability Pool Contracts
 
-Fallback:
-- `GET /stability-pools?chain={chain}` - Returns array of pools with `marketId` and `poolType` to group by market
+- `totalAssets()` or `totalAssetSupply()`: Returns `uint256` - Total haTokens deposited
+- `activeRewardTokens()`: Returns `address[]` - Array of active reward token addresses
+- `rewardData(address token)`: Returns `(uint256 lastUpdate, uint256 finishAt, uint256 rate, uint256 queued)`
+  - `rate`: Reward tokens per second (in wei, 18 decimals)
+  - `finishAt`: Timestamp when reward period ends
 
-Each market/pool object should include:
-- `peggedToken` or `token`: `address`, `symbol`, `decimals`
-- `collateralPool`: `tvlUsd`, `apyCollateral`, `apySteam` (or `apyBase`, `apyReward`)
-- `sailPool`: `tvlUsd`, `apyCollateral`, `apySteam` (or `apyBase`, `apyReward`)
+### Minter Contracts
 
-#### Option C: On-chain Contract Calls
+- `peggedTokenPrice()`: Returns `uint256` - Price of 1 pegged token in underlying asset units (18 decimals)
+  - Example: 1 haBTC = 1 BTC worth, returns `1e18`
 
-If you need to query contracts directly:
+### ERC20 Token Contracts
 
-```javascript
-const CONTRACTS = {
-  ethereum: [
-    {
-      minterAddress: '0x...', // Minter contract address
-      collateralPoolAddress: '0x...', // Collateral stability pool address
-      sailPoolAddress: '0x...', // Sail stability pool address (optional if not deployed)
-      peggedTokenAddress: '0x...', // haTOKEN address (e.g., haETH, haBTC)
-      peggedTokenSymbol: 'haETH', // Symbol for display
-    },
-    // Add more markets as needed
-  ],
-  // Add more chains as needed
-};
-```
-
-**Required Contract Methods:**
-
-For each stability pool (both collateral and sail):
-- `totalAssets()` or `totalAssetSupply()`: Returns `uint256` - Total TVL
-- `APR()`: Returns `[uint256, uint256]` - Array of [collateralAPR, steamAPR] in 1e16 units
-  - Formula: `APR = (result[0] / 1e16) * 100 + (result[1] / 1e16) * 100`
-
-The adapter will automatically:
-1. Query both pools for each market
-2. Calculate combined TVL (collateral + sail)
-3. Average the APRs from both pools
+- `decimals()`: Returns `uint8` - Token decimals
 
 ## Testing
 
-After configuration, test the adapter:
+Test the adapter:
 
 ```bash
 cd src/adaptors
 npm run test --adapter=harborfi
 ```
 
-## Data Requirements
+## Output Format
 
-Each pool should return (one pool per market, combining both collateral and sail pools):
+Each pool entry contains:
 - `pool`: Unique identifier (format: `${peggedTokenAddress}-${chain}`)
-- `chain`: Chain name (use `utils.formatChain()`)
+- `chain`: Chain name (formatted using `utils.formatChain()`)
 - `project`: 'harborfi'
 - `symbol`: Pegged token symbol (e.g., 'haETH', 'haBTC')
-- `tvlUsd`: Combined TVL in USD (collateral pool + sail pool)
-- `apyBase`: Combined/averaged APY from both pools (collateral + sail averages)
+- `tvlUsd`: Total TVL in USD (summed across all markets for the token)
+- `apyBase`: APR percentage (lowest across all markets and pools)
 - `underlyingTokens`: Array containing the pegged token address
-- `poolMeta`: 'Combined Collateral & Sail Pools'
+- `poolMeta`: Description (e.g., 'Combined from 2 market(s)')
 
 ## Protocol Information
 
 - **Documentation**: https://docs.harborfinance.io/
 - **Protocol Type**: Synthetic asset protocol with stability pools
+- **Chain**: Ethereum mainnet
 - **Key Products**:
-  - haTOKENS (Harbor Anchored Tokens): Pegged synthetic assets
-  - hsTOKENS (Harbor Sail Tokens): Leverage tokens
-  - Stability Pools: Collateral and Sail pools that earn yield
-
-## Need Help?
-
-If you need to modify the adapter structure or add additional features, refer to other adapters in the `src/adaptors/` directory for examples.
+  - haTOKENS: Pegged synthetic assets (haETH, haBTC)
+  - Stability Pools: Collateral and Sail pools that earn yield from reward streaming
