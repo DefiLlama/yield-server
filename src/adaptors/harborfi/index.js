@@ -431,7 +431,8 @@ async function fetchPoolsFromChain() {
           tvlUsd: totalTVL,
           apyBase: validAPRs.length > 0 ? finalAPR : 0,
           underlyingTokens: [peggedTokenAddress],
-          poolMeta: `Combined from ${tokenMarkets.length} market(s)`,
+          poolMeta: `${peggedTokenSymbol} Stability Pool`,
+          url: 'https://app.harborfinance.io/anchor',
         });
         console.log(`  ✅ Added pool for ${peggedTokenSymbol}`);
       } else if (totalTVL > 0 && totalTVL < 10000) {
@@ -455,5 +456,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy,
-  url: 'https://app.harborfinance.io',
+  url: 'https://app.harborfinance.io/anchor',
 };
