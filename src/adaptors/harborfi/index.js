@@ -1,6 +1,8 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
+const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
+const { MARKETS } = require('./config');
 
 /**
  * HarborFi Adapter
@@ -21,33 +23,8 @@ const utils = require('../utils');
 
 const CHAIN = 'ethereum';
 
-// On-chain contract addresses
-// Markets are grouped by pegged token (haETH, haBTC)
-const MARKETS = [
-  // haETH markets
-  {
-    peggedTokenSymbol: 'haETH',
-    peggedTokenAddress: '0x7A53EBc85453DD006824084c4f4bE758FcF8a5B5',
-    collateralPoolAddress: '0x1F985CF7C10A81DE1940da581208D2855D263D72', // ETH/fxUSD Anchor Pool
-    sailPoolAddress: '0x438B29EC7a1770dDbA37D792F1A6e76231Ef8E06', // ETH/fxUSD Sail Pool
-    minterAddress: '0xd6E2F8e57b4aFB51C6fA4cbC012e1cE6aEad989F',
-  },
-  // haBTC markets
-  {
-    peggedTokenSymbol: 'haBTC',
-    peggedTokenAddress: '0x25bA4A826E1A1346dcA2Ab530831dbFF9C08bEA7',
-    collateralPoolAddress: '0x86561cdB34ebe8B9abAbb0DD7bEA299fA8532a49', // BTC/fxUSD Anchor Pool
-    sailPoolAddress: '0x9e56F1E1E80EBf165A1dAa99F9787B41cD5bFE40', // BTC/fxUSD Sail Pool
-    minterAddress: '0x33e32ff4d0677862fa31582CC654a25b9b1e4888',
-  },
-  {
-    peggedTokenSymbol: 'haBTC',
-    peggedTokenAddress: '0x25bA4A826E1A1346dcA2Ab530831dbFF9C08bEA7',
-    collateralPoolAddress: '0x667Ceb303193996697A5938cD6e17255EeAcef51', // BTC/stETH Anchor Pool
-    sailPoolAddress: '0xCB4F3e21DE158bf858Aa03E63e4cEc7342177013', // BTC/stETH Sail Pool
-    minterAddress: '0xF42516EB885E737780EB864dd07cEc8628000919',
-  },
-];
+// Market configurations are imported from config.js
+// See config.js for address verification details and deployment information
 
 // Contract ABIs
 const STABILITY_POOL_ABI = [
@@ -127,7 +104,7 @@ const SECONDS_PER_YEAR = 365 * 24 * 60 * 60; // 31,536,000
 
 /**
  * Calculate APR from reward streaming data
- * APR = (rewardRate * SECONDS_PER_YEAR / 1e18) * tokenPrice / TVL * 100
+ * APR = (rewardRate / 10**decimals * SECONDS_PER_YEAR) * tokenPrice / TVL * 100
  */
 async function calculateAPRFromRewards(poolAddress, poolTVLUsd, chain) {
   try {
@@ -170,11 +147,26 @@ async function calculateAPRFromRewards(poolAddress, poolTVLUsd, chain) {
 
         if (rewardRate === 0n) continue;
 
+        // Fetch reward token decimals
+        let rewardTokenDecimals = 18; // Default to 18 decimals
+        try {
+          const decimalsResult = await sdk.api.abi.call({
+            target: rewardTokenAddress,
+            abi: ERC20_ABI.find((m) => m.name === 'decimals'),
+            chain: chain,
+          });
+          rewardTokenDecimals = Number(decimalsResult?.output || 18);
+        } catch (error) {
+          // If decimals call fails, use default 18
+          console.warn(`Failed to fetch decimals for reward token ${rewardTokenAddress}, using default 18`);
+        }
+
         // Get reward token price from coins API
         let rewardTokenPrice = 0;
         try {
           const priceResponse = await axios.get(
-            `https://coins.llama.fi/prices/current/${chain}:${rewardTokenAddress}`
+            `https://coins.llama.fi/prices/current/${chain}:${rewardTokenAddress}`,
+            { timeout: 10000 } // 10 second timeout
           );
           const priceKey = Object.keys(priceResponse.data.coins || {}).find(
             key => key.toLowerCase() === `${chain}:${rewardTokenAddress.toLowerCase()}`
@@ -188,9 +180,10 @@ async function calculateAPRFromRewards(poolAddress, poolTVLUsd, chain) {
         if (rewardTokenPrice === 0) continue;
 
         // Calculate annual rewards in USD
-        // rewardRate is in wei per second (18 decimals)
-        const rewardRatePerYear = Number(rewardRate) * SECONDS_PER_YEAR;
-        const rewardTokensPerYear = rewardRatePerYear / 1e18;
+        // rewardRate is in token units per second (with token decimals)
+        // Divide by 10**decimals first to get tokens per second, then multiply by SECONDS_PER_YEAR
+        const rewardTokensPerSecond = Number(rewardRate) / (10 ** rewardTokenDecimals);
+        const rewardTokensPerYear = rewardTokensPerSecond * SECONDS_PER_YEAR;
         const rewardValuePerYearUSD = rewardTokensPerYear * rewardTokenPrice;
 
         // Calculate APR for this reward token
@@ -345,11 +338,17 @@ async function fetchPoolsFromChain() {
             ) : Promise.resolve({ output: null }),
           ]);
           
-          // Calculate TVL values
+          // Calculate TVL values using BigNumber for precision
           const collateralTVLRaw = BigInt(collateralTVLResult?.output || 0);
           const sailTVLRaw = BigInt(sailTVLResult?.output || 0);
-          const collateralTVLTokens = Number(collateralTVLRaw) / (10 ** decimals);
-          const sailTVLTokens = Number(sailTVLRaw) / (10 ** decimals);
+          
+          // Convert BigInt to BigNumber and perform division
+          const collateralTVLTokensBN = new BigNumber(collateralTVLRaw.toString()).dividedBy(10 ** decimals);
+          const sailTVLTokensBN = new BigNumber(sailTVLRaw.toString()).dividedBy(10 ** decimals);
+          
+          // Convert to Number after BigNumber operations
+          const collateralTVLTokens = collateralTVLTokensBN.toNumber();
+          const sailTVLTokens = sailTVLTokensBN.toNumber();
           const collateralTVLUsd = collateralTVLTokens * peggedTokenPriceUSD;
           const sailTVLUsd = sailTVLTokens * peggedTokenPriceUSD;
           
@@ -365,27 +364,24 @@ async function fetchPoolsFromChain() {
             sailAPR = await calculateAPRFromRewards(sailPoolAddress, sailTVLUsd, CHAIN);
           }
           
+          // Calculate market TVL from haTokens deposited in stability pools
+          // Use BigNumber.plus for summing BigInt values
+          const totalTVLRawBN = new BigNumber(collateralTVLRaw.toString()).plus(sailTVLRaw.toString());
+          const marketTVLTokensBN = totalTVLRawBN.dividedBy(10 ** decimals);
+          const marketTVLTokens = marketTVLTokensBN.toNumber();
+          const marketTVLUsd = marketTVLTokens * peggedTokenPriceUSD;
+          totalTVL += marketTVLUsd;
+          
           // Calculate market APR: take the lowest between collateral and sail APR
+          // Include 0% APR when TVL > 0 (0% is a valid APR when there's TVL but no rewards)
           const marketAPRs = [];
-          if (collateralAPR > 0 && collateralTVLUsd > 0) {
-            marketAPRs.push(collateralAPR);
-          }
-          if (sailAPR > 0 && sailTVLUsd > 0) {
-            marketAPRs.push(sailAPR);
-          }
+          if (collateralTVLUsd > 0) marketAPRs.push(collateralAPR); // include 0
+          if (sailPoolAddress && sailTVLUsd > 0) marketAPRs.push(sailAPR); // include 0
           
           const marketAPR = marketAPRs.length > 0 ? Math.min(...marketAPRs) : 0;
           
-          // Collect APR for minimum calculation across all markets
-          if (marketAPR > 0) {
-            allAPRs.push(marketAPR);
-          }
-          
-          // Calculate market TVL from haTokens deposited in stability pools
-          const totalTVLRaw = collateralTVLRaw + sailTVLRaw;
-          const marketTVLTokens = Number(totalTVLRaw) / (10 ** decimals);
-          const marketTVLUsd = marketTVLTokens * peggedTokenPriceUSD;
-          totalTVL += marketTVLUsd;
+          // Collect APR for minimum calculation across all markets (include 0 if TVL exists)
+          if (marketTVLUsd > 0) allAPRs.push(marketAPR);
           
           console.log(`  Market TVL: ${marketTVLTokens.toFixed(6)} haTokens = $${marketTVLUsd.toFixed(2)} USD`);
           console.log(`    - Collateral Pool: ${collateralTVLTokens.toFixed(6)} haTokens ($${collateralTVLUsd.toFixed(2)})${collateralAPR > 0 ? ` - APR: ${collateralAPR.toFixed(2)}%` : ''}`);
@@ -394,24 +390,21 @@ async function fetchPoolsFromChain() {
           if (marketAPR > 0) {
             const usedAPR = marketAPRs.length === 2 && collateralAPR < sailAPR ? 'collateral (lowest)' : 
                            marketAPRs.length === 2 && sailAPR < collateralAPR ? 'sail (lowest)' :
-                           marketAPRs.length === 1 ? (collateralAPR > 0 ? 'collateral' : 'sail') : 'none';
+                           marketAPRs.length === 1 ? (collateralAPR >= 0 ? 'collateral' : 'sail') : 'none';
             console.log(`  Market APR: ${marketAPR.toFixed(2)}% (using ${usedAPR} APR)`);
           } else {
             console.log(`  Market APR: 0.00% (no active rewards)`);
           }
       
-          // Track if we have any TVL data but no APR
-          if (marketTVLUsd > 0 && marketAPR === 0) {
-            allAPRs.push(-1); // Marker that we have TVL data but no APR
-          }
+          // no marker needed; 0% is a real value when TVL exists
           
         } catch (error) {
           console.error(`  Error fetching pools for ${peggedTokenSymbol} market:`, error.message || error);
         }
       }
       
-      // Filter out the TVL marker (-1) and calculate final APR
-      const validAPRs = allAPRs.filter(apr => apr >= 0);
+      // Filter to valid finite APR values (0% is valid when TVL exists)
+      const validAPRs = allAPRs.filter((apr) => Number.isFinite(apr));
       
       // Use the lowest APR from all markets for this token
       const finalAPR = validAPRs.length > 0 ? Math.min(...validAPRs) : 0;
