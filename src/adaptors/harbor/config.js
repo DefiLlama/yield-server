@@ -90,7 +90,7 @@ const TOKEN_CHAINLINK_FEED_MAP = {
   'haETH': 'ETH_USD',
   'haGOLD': 'XAU_USD',
   'haEUR': 'EUR_USD',
-  'haSILVER': 'XAG_USD',
+  'haSILVER': 'XAG_USD', // Reserved for future haSILVER market
 };
 
 module.exports = {

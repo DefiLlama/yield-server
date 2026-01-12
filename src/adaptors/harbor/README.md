@@ -1,4 +1,4 @@
-# HarborFi Adapter
+# Harbor Adapter
 
 This adapter fetches yield data from Harbor Finance protocol using on-chain contract calls.
 
@@ -55,7 +55,7 @@ The adapter is configured with market contracts in the `config.js` file. The con
 1. **MARKETS array**: Market contract addresses for each pegged token
 2. **TOKEN_CHAINLINK_FEED_MAP**: Mapping of token symbols to their Chainlink price feed keys
 
-To add new markets, update both configurations in `src/adaptors/harborfi/config.js`:
+To add new markets, update both configurations in `src/adaptors/harbor/config.js`:
 
 ```javascript
 const MARKETS = [
@@ -132,7 +132,7 @@ Test the adapter:
 
 ```bash
 cd src/adaptors
-npm run test --adapter=harborfi
+npm run test --adapter=harbor
 ```
 
 ## Output Format
@@ -140,13 +140,13 @@ npm run test --adapter=harborfi
 Each pool entry contains:
 - `pool`: Unique identifier (format: `${peggedTokenAddress}-${chain}`)
 - `chain`: Chain name (formatted using `utils.formatChain()`)
-- `project`: 'harborfi'
+- `project`: 'harbor'
 - `symbol`: Pegged token symbol (e.g., 'haETH', 'haBTC')
 - `tvlUsd`: Total TVL in USD (summed across all markets for the token)
 - `apyBase`: APR percentage (lowest across all markets and pools)
 - `underlyingTokens`: Array containing the pegged token address
 - `poolMeta`: Description (e.g., 'haBTC Stability Pool')
-- `url`: Link to the protocol's app page (e.g., 'https://app.harborfinance.io/anchor')
+- `url`: Link to the protocol's app page (e.g., `https://app.harborfinance.io/anchor`)
 
 ## Protocol Information
 

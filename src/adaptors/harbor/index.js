@@ -5,7 +5,7 @@ const utils = require('../utils');
 const { MARKETS, CHAINLINK_FEEDS, TOKEN_CHAINLINK_FEED_MAP } = require('./config');
 
 /**
- * HarborFi Adapter
+ * Harbor Adapter
  * 
  * Harbor Finance is a synthetic asset protocol that offers:
  * - haTOKENS (Harbor Anchored Tokens): Pegged synthetic assets that earn amplified yield
