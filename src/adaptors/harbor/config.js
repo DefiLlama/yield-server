@@ -92,7 +92,7 @@ const TOKEN_CHAINLINK_FEED_MAP = {
   'haGOLD': 'XAU_USD',
   'haEUR': 'EUR_USD',
   'haSILVER': 'XAG_USD', // Reserved for future haSILVER market
-  'haMCAP': 'MCAP', // Reserved for future haMCAP market
+  'haMCAP': 'TOT_MCAP_USD', // Reserved for future haMCAP market
 };
 
 // Mapping for displaying underlying asset names in logs
