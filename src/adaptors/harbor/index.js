@@ -2,7 +2,7 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
-const { MARKETS, TOKEN_CHAINLINK_FEED_MAP } = require('./config');
+const { MARKETS, CHAINLINK_FEEDS, TOKEN_CHAINLINK_FEED_MAP } = require('./config');
 
 /**
  * HarborFi Adapter
@@ -93,12 +93,6 @@ const CHAINLINK_ABI = [
     stateMutability: 'view',
   },
 ];
-
-// Chainlink price feed addresses on Ethereum mainnet
-const CHAINLINK_FEEDS = {
-  ETH_USD: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419',
-  BTC_USD: '0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c',
-};
 
 const SECONDS_PER_YEAR = 365 * 24 * 60 * 60; // 31,536,000
 
@@ -424,7 +418,7 @@ async function fetchPoolsFromChain() {
         pools.push({
           pool: `${peggedTokenAddress}-${CHAIN}`.toLowerCase(),
           chain: utils.formatChain(CHAIN),
-          project: 'harborfi',
+          project: 'harbor',
           symbol: peggedTokenSymbol,
           tvlUsd: totalTVL,
           apyBase: validAPRs.length > 0 ? finalAPR : 0,
