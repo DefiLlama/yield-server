@@ -76,11 +76,12 @@ const MARKETS = [
 
 // Chainlink price feed addresses on Ethereum mainnet
 const CHAINLINK_FEEDS = {
-  ETH_USD: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419',
-  BTC_USD: '0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c',
+  ETH_USD: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', // ETH/USD
+  BTC_USD: '0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c', // BTC/USD
   XAU_USD: '0x214eD9Da11D2fbe465a6fc601a91E62EbEc1a0D6', // Gold/USD
   EUR_USD: '0xb49f677943BC038e9857d61E7d053CaA2C1734C1', // EUR/USD
   XAG_USD: '0x379589227b15F1a12195D3f2d90bBc9F31f95235', // Silver/USD
+  TOT_MCAP_USD: '0xEC8761a0A73c34329CA5B1D3Dc7eD07F30e836e2', // Total Crypto Market Cap/USD
 };
 
 // Mapping of pegged token symbols to their Chainlink price feed keys
@@ -91,10 +92,22 @@ const TOKEN_CHAINLINK_FEED_MAP = {
   'haGOLD': 'XAU_USD',
   'haEUR': 'EUR_USD',
   'haSILVER': 'XAG_USD', // Reserved for future haSILVER market
+  'haMCAP': 'MCAP', // Reserved for future haMCAP market
+};
+
+// Mapping for displaying underlying asset names in logs
+const UNDERLYING_ASSET_DISPLAY = {
+  'haBTC': 'BTC',
+  'haETH': 'ETH',
+  'haGOLD': 'XAU',
+  'haEUR': 'EUR',
+  'haSILVER': 'XAG', // Reserved for future haSILVER market
+  'haMCAP': 'MCAP', // Reserved for future haMCAP market
 };
 
 module.exports = {
   MARKETS,
   CHAINLINK_FEEDS,
   TOKEN_CHAINLINK_FEED_MAP,
+  UNDERLYING_ASSET_DISPLAY,
 };

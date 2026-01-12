@@ -2,7 +2,7 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
-const { MARKETS, CHAINLINK_FEEDS, TOKEN_CHAINLINK_FEED_MAP } = require('./config');
+const { MARKETS, CHAINLINK_FEEDS, TOKEN_CHAINLINK_FEED_MAP, UNDERLYING_ASSET_DISPLAY } = require('./config');
 
 /**
  * Harbor Adapter
@@ -250,7 +250,7 @@ async function fetchPoolsFromChain() {
             });
             if (minterPriceResult?.output) {
               peggedTokenPriceInUnderlying = Number(minterPriceResult.output) / 1e18;
-              console.log(`  peggedTokenPrice from minter: ${peggedTokenPriceInUnderlying.toFixed(6)} ${peggedTokenSymbol === 'haBTC' ? 'BTC' : 'ETH'}`);
+              console.log(`  peggedTokenPrice from minter: ${peggedTokenPriceInUnderlying.toFixed(6)} ${UNDERLYING_ASSET_DISPLAY[peggedTokenSymbol] || 'UNDERLYING'}`);
               break;
             }
           } catch (error) {
@@ -262,7 +262,7 @@ async function fetchPoolsFromChain() {
       // If minter call failed, assume 1:1 peg
       if (peggedTokenPriceInUnderlying === 0) {
         peggedTokenPriceInUnderlying = 1;
-        console.log(`  Using default peg ratio: 1.0 ${peggedTokenSymbol === 'haBTC' ? 'BTC' : 'ETH'}`);
+        console.log(`  Using default peg ratio: 1.0 ${UNDERLYING_ASSET_DISPLAY[peggedTokenSymbol] || 'UNDERLYING'}`);
       }
       
       // Get underlying asset (BTC/ETH) price in USD from Chainlink
@@ -276,11 +276,11 @@ async function fetchPoolsFromChain() {
           // Chainlink prices are in 8 decimals for USD pairs
           underlyingAssetPriceUSD = Number(chainlinkPriceResult.output) / 1e8;
           if (underlyingAssetPriceUSD > 0) {
-            console.log(`  ${peggedTokenSymbol === 'haBTC' ? 'BTC' : 'ETH'} price in USD: $${underlyingAssetPriceUSD.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+            console.log(`  ${UNDERLYING_ASSET_DISPLAY[peggedTokenSymbol] || 'UNDERLYING'} price in USD: $${underlyingAssetPriceUSD.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
           }
         }
       } catch (error) {
-        console.log(`  Failed to get ${peggedTokenSymbol === 'haBTC' ? 'BTC' : 'ETH'} price from Chainlink:`, error.message);
+        console.log(`  Failed to get ${UNDERLYING_ASSET_DISPLAY[peggedTokenSymbol] || 'UNDERLYING'} price from Chainlink:`, error.message);
       }
       
       // Calculate final USD price per token
