@@ -7,7 +7,7 @@ const apy = async () => {
   const response = await axios.get(apyDataUrl);
   const pools = response.data;
   pools.forEach((pool) => {
-    pool.project='monday-trade';
+    pool.project='monday-trade-spot';
   })
   return pools
     .filter((i) => i.tvlUsd >= 1e4)
