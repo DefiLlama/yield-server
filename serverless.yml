@@ -87,6 +87,7 @@ functions:
       MONAD_RPC: ${file(./env.js):MONAD_RPC}
       LLAMA_INDEXER_V2_ENDPOINT: ${env:LLAMA_INDEXER_V2_ENDPOINT}
       LLAMA_INDEXER_V2_API_KEY: ${env:LLAMA_INDEXER_V2_API_KEY}
+      PROJECT_0_API_KEY: ${env:PROJECT_0_API_KEY}
 
   # --- data enrichment
   triggerEnrichment:
