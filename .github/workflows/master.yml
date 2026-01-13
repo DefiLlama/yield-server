@@ -52,3 +52,4 @@ jobs:
           MONAD_RPC: ${{ secrets.MONAD_RPC }}
           LLAMA_INDEXER_V2_ENDPOINT: ${{ secrets.LLAMA_INDEXER_V2_ENDPOINT }}
           LLAMA_INDEXER_V2_API_KEY: ${{ secrets.LLAMA_INDEXER_V2_API_KEY }}
+          PROJECT_0_API_KEY: ${{ secrets.PROJECT_0_API_KEY }}
