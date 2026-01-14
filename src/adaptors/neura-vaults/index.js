@@ -19,6 +19,12 @@ const poolsFunction = async () => {
 
         const vaultData = response.data;
 
+        // Validate required nested objects
+        if (!vaultData.currentData || !vaultData.apy) {
+            console.error('Incomplete vault data structure from API');
+            return [];
+        }
+
         // Extract TVL from currentData.totalAssets (USDT0 has 6 decimals)
         const tvlUsd = Number(vaultData.currentData.totalAssets) / 1e6;
 
@@ -39,6 +45,7 @@ const poolsFunction = async () => {
             apy: primaryAPY,
             apyBase: primaryAPY, // All APY comes from lending protocols
             apyReward: 0, // No additional reward tokens
+            apyMean30d: apy30d, // 30-day average APY for historical context
             underlyingTokens: [USDT0_ADDRESS],
             poolMeta: 'AI-Powered Yield Optimization',
             url: 'https://neuravaults.xyz/',
