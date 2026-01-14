@@ -1,50 +1,36 @@
 const sdk = require('@defillama/sdk');
+const { ethers } = require('ethers');
 
 const VAULT = '0xd53B68fB4eb907c3c1E348CD7d7bEDE34f763805';
 const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
-const VAULT_DEPLOY_BLOCK = 21763550;
+const VAULT_DEPLOY_BLOCK = 24181000;
+
+const ABI = [
+  'function sharePrice() view returns (uint256)',
+  'function totalAssets() view returns (uint256)',
+];
 
 const apy = async () => {
-  const latestBlock = await sdk.api.util.getLatestBlock('ethereum');
+  const provider = new ethers.providers.JsonRpcProvider('https://eth.llamarpc.com');
+  const vault = new ethers.Contract(VAULT, ABI, provider);
+
+  const latestBlock = await provider.getBlockNumber();
   const blocksPerDay = 7200;
 
-  const currentSharePrice = (
-    await sdk.api.abi.call({
-      target: VAULT,
-      abi: 'function sharePrice() view returns (uint256)',
-      chain: 'ethereum',
-    })
-  ).output / 1e6;
+  const currentSharePrice = (await vault.sharePrice()) / 1e6;
+  const totalAssets = (await vault.totalAssets()) / 1e6;
 
-  const totalAssets = (
-    await sdk.api.abi.call({
-      target: VAULT,
-      abi: 'function totalAssets() view returns (uint256)',
-      chain: 'ethereum',
-    })
-  ).output / 1e6;
-
-  // Calculate APY using available history (7-day preferred, 1-day fallback)
   let apyBase = 0;
-  let historicalBlock = latestBlock.number - blocksPerDay * 7;
+  let historicalBlock = latestBlock - blocksPerDay * 7;
   let daysForCalc = 7;
 
-  // Fall back to 1-day if vault is less than 7 days old
   if (historicalBlock < VAULT_DEPLOY_BLOCK) {
-    historicalBlock = latestBlock.number - blocksPerDay;
+    historicalBlock = latestBlock - blocksPerDay;
     daysForCalc = 1;
   }
 
   if (historicalBlock >= VAULT_DEPLOY_BLOCK) {
-    const historicalSharePrice = (
-      await sdk.api.abi.call({
-        target: VAULT,
-        abi: 'function sharePrice() view returns (uint256)',
-        chain: 'ethereum',
-        block: historicalBlock,
-      })
-    ).output / 1e6;
-
+    const historicalSharePrice = (await vault.sharePrice({ blockTag: historicalBlock })) / 1e6;
     const priceChange = (currentSharePrice - historicalSharePrice) / historicalSharePrice;
     apyBase = (priceChange / daysForCalc) * 365 * 100;
   }
