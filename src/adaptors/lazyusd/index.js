@@ -2,7 +2,7 @@ const sdk = require('@defillama/sdk');
 
 const VAULT = '0xd53B68fB4eb907c3c1E348CD7d7bEDE34f763805';
 const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
-const VAULT_DEPLOY_BLOCK = 24181000;
+const VAULT_DEPLOY_BLOCK = 24184528;
 
 const apy = async () => {
   try {
