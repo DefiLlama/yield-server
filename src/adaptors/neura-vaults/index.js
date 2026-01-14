@@ -29,11 +29,8 @@ const poolsFunction = async () => {
         const tvlUsd = Number(vaultData.currentData.totalAssets) / 1e6;
 
         // APY values are already in percentage format from the REST API
-        const apy = vaultData.apy.apy || 0;
-        const apy7d = vaultData.apy.apy7d || 0;
-
-        // Use 7-day APY as the primary APY (more stable than 1-day)
-        const primaryAPY = apy7d > 0 ? apy7d : apy;
+        const apy1d = vaultData.apy.apy || 0;  // Current/1-day APY
+        const apy7d = vaultData.apy.apy7d || 0; // 7-day average APY
 
         const pool = {
             pool: `${VAULT_ADDRESS}-${CHAIN}`.toLowerCase(),
@@ -41,8 +38,8 @@ const poolsFunction = async () => {
             project: 'neura-vaults',
             symbol: utils.formatSymbol('USDT0'),
             tvlUsd: tvlUsd,
-            apy: primaryAPY,
-            apyBase: primaryAPY, // All APY comes from lending protocols
+            apyBase: apy1d, // 1-day APY as requested
+            apyBase7d: apy7d, // 7-day average APY for additional context
             apyReward: 0, // No additional reward tokens
             underlyingTokens: [USDT0_ADDRESS],
             poolMeta: 'AI-Powered Yield Optimization',
