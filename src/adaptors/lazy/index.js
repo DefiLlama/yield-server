@@ -77,7 +77,7 @@ const apy = async () => {
     const result = {
       pool: `${VAULT}-ethereum`.toLowerCase(),
       chain: 'Ethereum',
-      project: 'lazyusd',
+      project: 'lazy',
       symbol: 'USDC',
       tvlUsd: totalAssets,
       apyBase,
