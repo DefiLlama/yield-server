@@ -5,8 +5,20 @@ const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
 const VAULT_DEPLOY_BLOCK = 24184528;
 const BLOCKS_PER_DAY = 7200;
 
+// Calculate APY from share price change over N days
+const calcApy = (currentPrice, historicalPrice, days) => {
+  if (!historicalPrice || historicalPrice <= 0) return 0;
+  const priceChange = (currentPrice - historicalPrice) / historicalPrice;
+  const apy = (priceChange / days) * 365 * 100;
+  // Cap at 100% APY to filter outliers, floor at 0
+  if (apy > 100 || apy < 0) return 0;
+  return apy;
+};
+
 const apy = async () => {
   try {
+    const latestBlock = (await sdk.api.util.getLatestBlock('ethereum')).number;
+
     const [sharePriceRes, totalAssetsRes] = await Promise.all([
       sdk.api.abi.call({
         target: VAULT,
@@ -23,32 +35,46 @@ const apy = async () => {
     const currentSharePrice = sharePriceRes.output / 1e6;
     const totalAssets = totalAssetsRes.output / 1e6;
 
-    // 7-day rolling APY calculation
     let apyBase = 0;
-    const latestBlock = (await sdk.api.util.getLatestBlock('ethereum')).number;
-    const historicalBlock = latestBlock - BLOCKS_PER_DAY * 7;
+    let apyBase7d = 0;
 
-    // Only calculate APY if vault has been live for 7+ days
-    if (historicalBlock >= VAULT_DEPLOY_BLOCK) {
-      const historicalRes = await sdk.api.abi.call({
-        target: VAULT,
-        abi: 'uint256:sharePrice',
-        chain: 'ethereum',
-        block: historicalBlock,
-      });
-      const historicalSharePrice = historicalRes.output / 1e6;
+    const block1d = latestBlock - BLOCKS_PER_DAY;
+    const block7d = latestBlock - BLOCKS_PER_DAY * 7;
 
-      if (historicalSharePrice > 0) {
-        const priceChange = (currentSharePrice - historicalSharePrice) / historicalSharePrice;
-        apyBase = (priceChange / 7) * 365 * 100;
+    // Fetch historical share prices in parallel
+    const historicalCalls = [];
 
-        // Cap at 100% APY to filter outliers from data issues
-        if (apyBase > 100) apyBase = 0;
-        if (apyBase < 0) apyBase = 0;
-      }
+    if (block1d >= VAULT_DEPLOY_BLOCK) {
+      historicalCalls.push(
+        sdk.api.abi.call({
+          target: VAULT,
+          abi: 'uint256:sharePrice',
+          chain: 'ethereum',
+          block: block1d,
+        }).then(res => ({ days: 1, price: res.output / 1e6 }))
+      );
     }
 
-    return [{
+    if (block7d >= VAULT_DEPLOY_BLOCK) {
+      historicalCalls.push(
+        sdk.api.abi.call({
+          target: VAULT,
+          abi: 'uint256:sharePrice',
+          chain: 'ethereum',
+          block: block7d,
+        }).then(res => ({ days: 7, price: res.output / 1e6 }))
+      );
+    }
+
+    const historicalPrices = await Promise.all(historicalCalls);
+
+    for (const { days, price } of historicalPrices) {
+      const apy = calcApy(currentSharePrice, price, days);
+      if (days === 1) apyBase = apy;
+      if (days === 7) apyBase7d = apy;
+    }
+
+    const result = {
       pool: `${VAULT}-ethereum`.toLowerCase(),
       chain: 'Ethereum',
       project: 'lazyusd',
@@ -57,7 +83,14 @@ const apy = async () => {
       apyBase,
       underlyingTokens: [USDC],
       url: 'https://getlazy.xyz',
-    }];
+    };
+
+    // Only include apyBase7d if we have 7+ days of data
+    if (apyBase7d > 0) {
+      result.apyBase7d = apyBase7d;
+    }
+
+    return [result];
   } catch (error) {
     console.error('LazyUSD adapter error:', error.message);
     return [];
