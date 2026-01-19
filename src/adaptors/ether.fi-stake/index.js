@@ -120,7 +120,7 @@ const apy = async () => {
       })
     ).output / 1e8;
 
-  const eBTCTvlUsd = eBTCTotalSupply * btcPrice;
+  const eBTCTvlUsd = eBTCTotalSupply * (btcPrice || 0);
 
   return [
     {
