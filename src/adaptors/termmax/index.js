@@ -146,6 +146,7 @@ async function getVaultV1Addresses(chain, blockNumber) {
         fromBlock: factory.fromBlock,
         toBlock: blockNumber,
         chain,
+        onlyIndexer: true,
       });
       for (const log of logs) {
         addresses.push(log.args.vault);
@@ -271,6 +272,7 @@ async function getVaultV1PlusAddresses(chain, blockNumber) {
         fromBlock: factory.fromBlock,
         toBlock: blockNumber,
         chain,
+        onlyIndexer: true,
       });
       for (const log of logs) {
         addresses.push(log.args.vault);
@@ -403,6 +405,7 @@ async function getVaultV2Addresses(chain, blockNumber) {
         fromBlock: factory.fromBlock,
         toBlock: blockNumber,
         chain,
+        onlyIndexer: true,
       });
       for (const log of logs) {
         addresses.push(log.args.vault);
