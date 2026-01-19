@@ -10,6 +10,10 @@ BigNumber.config({ EXPONENTIAL_AT: [-1e9, 1e9] });
 const XAI = '0xd7c9f0e536dc865ae858b0c0453fe76d13c3beac'
 const blacklistedSilos = ["0x6543ee07cf5dd7ad17aeecf22ba75860ef3bbaaa",];
 
+const EVENTS = {
+  NewSilo: 'event NewSilo(address indexed implementation, address indexed token0, address indexed token1, address silo0, address silo1, address siloConfig)',
+};
+
 const badDebtSilos = {
   sonic: [
     "0xCCdDbBbd1E36a6EDA3a84CdCee2040A86225Ba71", // wmetaUSD - Sonic
@@ -364,19 +368,15 @@ async function getSilosV2(chainApi, deploymentData) {
   let siloAddressesToSiloConfigAddress = {};
   if(configV2[chain]) {
     let latestBlock = await sdk.api.util.getLatestBlock(chain);
-    const iface = new ethers.utils.Interface([
-      'event NewSilo(address indexed implementation, address indexed token0, address indexed token1, address silo0, address silo1, address siloConfig)',
-    ]);
     const { SILO_FACTORY, START_BLOCK } = deploymentData;
-    let logChunk = await sdk.api2.util.getLogs({
+    let logChunk = await sdk.getEventLogs({
       target: SILO_FACTORY,
-      topics: ['0x3d6b896c73b628ec6ba0bdfe3cdee1356ea2af31af2a97bbd6b532ca6fa00acb'],
-      keys: [],
+      eventAbi: EVENTS.NewSilo,
       fromBlock: START_BLOCK,
       toBlock: latestBlock.block,
       chain: chain,
     });
-    logs = [...logs, ...logChunk.output.map((event) =>  iface.parseLog(event))];
+    logs = [...logs, ...logChunk];
 
     siloAddresses = logs.flatMap((log) => {
 

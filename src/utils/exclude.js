@@ -174,6 +174,8 @@ const excludeAdaptors = [
   'struct-finance',
   'gloop',
   'ribbon',
+  'garden',
+  'tlx-finance',
 ];
 
 const excludePools = [
