@@ -134,12 +134,19 @@ const apy = async () => {
   }}
   `;
 
-  const { transfers } = await request(DAO_API_URL, daoQuery);
-
-  const unstakedZFReward =
-    transfers.reduce((volume, transf) => {
-      return volume + Number(transf.value) / 1e18;
-    }, 0) / 90;
+  let unstakedZFReward = 0;
+  try {
+    const { transfers } = await request(DAO_API_URL, daoQuery);
+    unstakedZFReward =
+      transfers.reduce((volume, transf) => {
+        return volume + Number(transf.value) / 1e18;
+      }, 0) / 90;
+  } catch (e) {
+    // DAO subgraph may be unavailable, default to 0
+    console.log(
+      'DAO subgraph unavailable, skipping unstaked ZF reward calculation'
+    );
+  }
 
   const pairVolumes = await Promise.all(
     lpChunks.map((lpsChunk) =>
