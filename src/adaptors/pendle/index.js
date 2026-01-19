@@ -21,7 +21,7 @@ const chains = {
     chainSlug: 'bnbchain',
     PENDLE: '0xb3ed0a426155b79b898849803e3b36552f7ed507',
     ROUTERS: ['0x888888888889758F76e7103c6CbF23ABbF58F946'],
-    disabledVolume: true,
+    // disabledVolume: true,
   },
   10: {
     chainName: 'optimism',
