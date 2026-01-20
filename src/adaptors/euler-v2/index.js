@@ -152,42 +152,49 @@ const getApys = async () => {
           `https://coins.llama.fi/prices/current/${priceKeys}`
         );
 
-        const pools = vaultInfosFilterted.map((i) => {
-          const price = prices.coins[`${chain}:${i.asset}`]?.price;
+        const pools = vaultInfosFilterted
+          .map((i) => {
+            const price = prices.coins[`${chain}:${i.asset}`]?.price;
 
-          const totalSupplied = i.totalAssets;
-          const totalBorrowed = i.totalBorrowed;
+            // Skip pools with missing price data
+            if (price === undefined || price === null) {
+              return null;
+            }
 
-          const totalSuppliedUSD =
-            ethers.utils.formatUnits(totalSupplied, i.assetDecimals) * price;
-          const totalBorrowedUSD =
-            ethers.utils.formatUnits(totalBorrowed, i.assetDecimals) * price;
+            const totalSupplied = i.totalAssets;
+            const totalBorrowed = i.totalBorrowed;
 
-          return {
-            pool: i.vault,
-            chain,
-            project: 'euler-v2',
-            symbol: i.assetSymbol,
-            poolMeta: i.vaultName,
-            tvlUsd: totalSuppliedUSD - totalBorrowedUSD,
-            totalSupplyUsd: totalSuppliedUSD,
-            totalBorrowUsd: totalBorrowedUSD,
-            apyBase: Number(
-              ethers.utils.formatUnits(
-                i.irmInfo.interestRateInfo[0].supplyAPY,
-                25
-              )
-            ),
-            apyBaseBorrow: Number(
-              ethers.utils.formatUnits(
-                i.irmInfo.interestRateInfo[0].borrowAPY,
-                25
-              )
-            ),
-            underlyingTokens: [i.asset],
-            url: `https://app.euler.finance/vault/${i.vault}?network=${chainNameMapping[chain]}`,
-          };
-        });
+            const totalSuppliedUSD =
+              ethers.utils.formatUnits(totalSupplied, i.assetDecimals) * price;
+            const totalBorrowedUSD =
+              ethers.utils.formatUnits(totalBorrowed, i.assetDecimals) * price;
+
+            return {
+              pool: i.vault,
+              chain,
+              project: 'euler-v2',
+              symbol: i.assetSymbol,
+              poolMeta: i.vaultName,
+              tvlUsd: totalSuppliedUSD - totalBorrowedUSD,
+              totalSupplyUsd: totalSuppliedUSD,
+              totalBorrowUsd: totalBorrowedUSD,
+              apyBase: Number(
+                ethers.utils.formatUnits(
+                  i.irmInfo.interestRateInfo[0].supplyAPY,
+                  25
+                )
+              ),
+              apyBaseBorrow: Number(
+                ethers.utils.formatUnits(
+                  i.irmInfo.interestRateInfo[0].borrowAPY,
+                  25
+                )
+              ),
+              underlyingTokens: [i.asset],
+              url: `https://app.euler.finance/vault/${i.vault}?network=${chainNameMapping[chain]}`,
+            };
+          })
+          .filter((pool) => pool !== null);
         return pools;
       } catch (err) {
         console.error(`Error processing chain ${chain}:`, err);
