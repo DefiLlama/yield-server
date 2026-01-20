@@ -5,7 +5,11 @@ const ethers = require('ethers');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const lensAbi = require('./lens.abi.json');
-const factoryAbi = require('./factory.abi.json');
+
+const EVENTS = {
+  ProxyCreated:
+    'event ProxyCreated(address indexed proxy, bool upgradeable, address implementation, bytes trailingData)',
+};
 
 const chains = {
   ethereum: {
@@ -97,14 +101,12 @@ const getLogsWithTimeout = (params, chain) => {
     );
   });
 
-  return Promise.race([sdk.api.util.getLogs(params), timeoutPromise]).finally(
+  return Promise.race([sdk.getEventLogs(params), timeoutPromise]).finally(
     () => clearTimeout(timer)
   );
 };
 
 const getApys = async () => {
-  const factoryIFace = new ethers.utils.Interface(factoryAbi);
-
   const chainResults = await Promise.all(
     Object.entries(chains).map(async ([chain, config]) => {
       try {
@@ -118,22 +120,12 @@ const getApys = async () => {
             toBlock: toBlock,
             target: config.factory,
             chain: chain,
-            topic: '',
-            keys: [],
-            topics: [factoryIFace.getEventTopic('ProxyCreated')],
-            entireLog: true,
+            eventAbi: EVENTS.ProxyCreated,
           },
           chain
         );
 
-        const vaultAddresses = poolDeployEvents.output.map((event) => {
-          const decoded = factoryIFace.decodeEventLog(
-            'ProxyCreated',
-            event.data,
-            event.topics
-          );
-          return decoded['proxy'];
-        });
+        const vaultAddresses = poolDeployEvents.map((event) => event.args.proxy);
 
         const vaultInfos = (
           await sdk.api.abi.multiCall({

@@ -125,15 +125,14 @@ const getTurnRoundBlockNumber = async (blockNumber) => {
     })
   ).output;
   return (
-    await sdk.api.util.getLogs({
-      keys: [],
+    await sdk.getEventLogs({
       chain: 'core',
       target: '0x0000000000000000000000000000000000001005',
-      topic: 'turnedRound(uint256)',
+      eventAbi: 'event turnedRound(uint256)',
       fromBlock: blockNumber.block - 86400,
       toBlock: blockNumber.block,
     })
-  ).output.filter(
+  ).filter(
     (el) => parseInt(el.data) === parseInt(roundTag.toString())
   )[0].blockNumber;
 };
@@ -141,15 +140,14 @@ const getTurnRoundBlockNumber = async (blockNumber) => {
 const getCORERewardForBTCHolderPerDay = async (blockNumber) => {
   //get all order
   let allOrder = (
-    await sdk.api.util.getLogs({
-      keys: [],
+    await sdk.getEventLogs({
       chain: 'core',
       target: MARKETPLACE_CONTRACT,
-      topic: 'CreateRewardReceiver(address,address,uint256,uint256)',
+      eventAbi: 'event CreateRewardReceiver(address indexed owner, address indexed order, uint256, uint256)',
       fromBlock: 19942300,
       toBlock: blockNumber.block,
     })
-  ).output.map((el) => {
+  ).map((el) => {
     return {
       order: el.topics[2].replace('000000000000000000000000', ''),
       owner: el.topics[1].replace('000000000000000000000000', ''),

@@ -1,49 +1,13 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
-const { ethers } = require('ethers');
 
 const xUSD = '0xe80772Eaf6e2E18B651F160Bc9158b2A5caFCA65';
+const xUSD_EXCHANGE = '0x73cb180bf0521828d8849bc8CF2B920918e23032';
 
-const eventAbi = [
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'profit',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'newLiquidityIndex',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'excessProfit',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'insurancePremium',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'insuranceLoss',
-        type: 'uint256',
-      },
-    ],
-    name: 'PayoutEvent',
-    type: 'event',
-  },
-];
+const EVENTS = {
+  PayoutEvent: 'event PayoutEvent(uint256 profit, uint256 newLiquidityIndex, uint256 excessProfit, uint256 insurancePremium, uint256 insuranceLoss)',
+};
 
 const apy = async () => {
   const totalSupply =
@@ -64,27 +28,21 @@ const apy = async () => {
 
   const currentBlock = await sdk.api.util.getLatestBlock('arbitrum');
   const toBlock = currentBlock.number;
-  const topic =
-    '0x8dd3783ac3ed2cabfce0fa4347c2cab93b8273171a7e30b28a83147b099c4038';
   const logs = (
-    await sdk.api.util.getLogs({
-      target: '0x73cb180bf0521828d8849bc8CF2B920918e23032',
-      topic: '',
-      toBlock,
+    await sdk.getEventLogs({
+      target: xUSD_EXCHANGE,
+      eventAbi: EVENTS.PayoutEvent,
       fromBlock: 63102109,
-      keys: [],
-      topics: [topic],
+      toBlock,
       chain: 'arbitrum',
     })
-  ).output.sort((a, b) => b.blockNumber - a.blockNumber);
+  ).sort((a, b) => b.blockNumber - a.blockNumber);
 
   const elapsedTime =
     (await sdk.api.util.getTimestamp(logs[0].blockNumber, 'arbitrum')) -
     (await sdk.api.util.getTimestamp(logs[1].blockNumber, 'arbitrum'));
 
-  const iface = new ethers.utils.Interface(eventAbi);
-  const decoded = iface.parseLog(logs[0]);
-  const rewardsReceived = parseInt(decoded.args.profit / 1e6);
+  const rewardsReceived = Number(logs[0].args.profit) / 1e6;
   // daily compounding
   const apyBase = calcApy(rewardsReceived, tvlUsd, elapsedTime);
   return [

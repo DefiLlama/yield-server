@@ -9,6 +9,11 @@ const utils = require('../utils');
 const CHAIN = 'arbitrum';
 const PROJECT = 'hermes-v2';
 
+const EVENTS = {
+  AddGauge: 'event AddGauge(address indexed gauge)',
+  TokenStaked: 'event TokenStaked(uint256 indexed tokenId, bytes32 indexed incentiveId, bool isRestake)',
+};
+
 // Contract Addresses on Arbitrum
 const ADDRESSES = {
   // HERMES
@@ -145,24 +150,20 @@ const getAmountsFromLiquidity = (
  * Get all gauge addresses from AddGauge events
  */
 const getAllGauges = async (currentBlock) => {
-  const addGaugeTopic = ethers.utils.id('AddGauge(address)');
-
-  const logs = await sdk.api.util.getLogs({
+  const logs = await sdk.getEventLogs({
     target: ADDRESSES.GAUGE_WEIGHT,
-    topic: '',
-    toBlock: currentBlock,
+    eventAbi: EVENTS.AddGauge,
     fromBlock: 1,
-    keys: [],
+    toBlock: currentBlock,
     chain: CHAIN,
-    topics: [addGaugeTopic],
   });
 
-  if (!logs.output || logs.output.length === 0) {
+  if (!logs || logs.length === 0) {
     return [];
   }
 
-  // Extract gauge addresses from event topics
-  return logs.output.map((log) => '0x' + log.topics[1].slice(-40));
+  // Extract gauge addresses from event args
+  return logs.map((log) => log.args.gauge);
 };
 
 /**
@@ -267,26 +268,24 @@ const getStakedTokenIds = async (
 ) => {
   try {
     // Query TokenStaked events for this specific incentive
-    const tokenStakedTopic = ethers.utils.id(
-      'TokenStaked(uint256,bytes32,bool)'
-    );
-    const stakedLogs = await sdk.api.util.getLogs({
+    const stakedLogs = await sdk.getEventLogs({
       target: ADDRESSES.UNISWAP_V3_STAKER,
-      topic: '',
-      toBlock: epochContext.currentBlock,
+      eventAbi: EVENTS.TokenStaked,
       fromBlock:
         epochContext.epochStartBlock > 0 ? epochContext.epochStartBlock : 1,
-      keys: [],
+      toBlock: epochContext.currentBlock,
       chain: CHAIN,
-      topics: [tokenStakedTopic, null, incentiveId],
     });
 
-    if (!stakedLogs.output || stakedLogs.output.length === 0) {
+    if (!stakedLogs || stakedLogs.length === 0) {
       return [];
     }
 
-    // Extract and deduplicate staked tokenIds
-    const tokenIds = stakedLogs.output.map((log) => BigInt(log.topics[1]));
+    // Filter by incentiveId and extract tokenIds
+    const filteredLogs = stakedLogs.filter(
+      (log) => log.args.incentiveId.toLowerCase() === incentiveId.toLowerCase()
+    );
+    const tokenIds = filteredLogs.map((log) => BigInt(log.args.tokenId));
     return [...new Set(tokenIds.map((id) => id.toString()))].map((id: string) =>
       BigInt(id)
     );

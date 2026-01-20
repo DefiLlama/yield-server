@@ -1,10 +1,14 @@
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const { ethers } = require('ethers');
-const { length } = require('../agave/abiIncentivesController');
 
 const BOLD_TOKEN = '0x6440f144b7e50d6a8439336510312d2f54beb01d';
 const DAY_IN_SECONDS = 24 * 60 * 60;
+
+const EVENTS = {
+  StabilityPoolBoldBalanceUpdated: 'event StabilityPoolBoldBalanceUpdated(uint256 _newBalance)',
+  Liquidation: 'event Liquidation(uint256 _debtOffsetBySP, uint256 _debtRedistributed, uint256 _boldGasCompensation, uint256 _collGasCompensation, uint256 _collSentToSP, uint256 _collRedistributed, uint256 _collSurplus, uint256 _L_coll, uint256 _L_boldDebt, uint256 _price)',
+};
 
 const WETH_BRANCH = {
  activePool: '0xeb5a8c825582965f1d84606e078620a84ab16afe',
@@ -41,25 +45,6 @@ const branches = [WETH_BRANCH, WSTETH_BRANCH, RETH_BRANCH];
 const SP_YIELD_SPLIT = 0.75; 
 
 const toNumber = (value) => Number(ethers.utils.formatUnits(value, 18));
-
-const STABILITY_POOL_BALANCE_TOPIC = ethers.utils.id(
-  'StabilityPoolBoldBalanceUpdated(uint256)'
-);
-const LIQUIDATION_TOPIC = ethers.utils.id(
-  'Liquidation(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)'
-);
-const LIQUIDATION_EVENT_TYPES = [
-  'uint256',
-  'uint256',
-  'uint256',
-  'uint256',
-  'uint256',
-  'uint256',
-  'uint256',
-  'uint256',
-  'uint256',
-  'uint256',
-];
 
 const getBlockWindow = async () => {
   const latestBlock = await sdk.api.util.getLatestBlock('ethereum');
@@ -214,22 +199,19 @@ const ABIS = {
   };
   
   const getStabilityPoolBalanceUpdates = async (stabilityPoolAddr, startBlock, endBlock) => {
-    const logs = (
-      await sdk.api.util.getLogs({
-        target: stabilityPoolAddr,
-        fromBlock: startBlock,
-        toBlock: endBlock,
-        topics: [STABILITY_POOL_BALANCE_TOPIC],
-        keys: [],
-        chain: 'ethereum',
-      })
-    ).output;
+    const logs = await sdk.getEventLogs({
+      target: stabilityPoolAddr,
+      eventAbi: EVENTS.StabilityPoolBoldBalanceUpdated,
+      fromBlock: startBlock,
+      toBlock: endBlock,
+      chain: 'ethereum',
+    });
   
     return logs
       .map((log) => ({
         blockNumber: Number(log.blockNumber),
         logIndex: Number(log.logIndex),
-        balance: toNumber(log.data),
+        balance: toNumber(log.args._newBalance),
         transactionHash: log.transactionHash,
       }))
       .sort(
@@ -239,28 +221,23 @@ const ABIS = {
   };
   
   const getLiquidationEvents = async (troveManagerAddr, startBlock, endBlock) => {
-    const logs = (
-      await sdk.api.util.getLogs({
-        target: troveManagerAddr,
-        fromBlock: startBlock,
-        toBlock: endBlock,
-        topics: [LIQUIDATION_TOPIC],
-        keys: [],
-        chain: 'ethereum',
-      })
-    ).output;
+    const logs = await sdk.getEventLogs({
+      target: troveManagerAddr,
+      eventAbi: EVENTS.Liquidation,
+      fromBlock: startBlock,
+      toBlock: endBlock,
+      chain: 'ethereum',
+    });
   
     return logs
       .map((log) => {
-        const decoded = ethers.utils.defaultAbiCoder.decode(LIQUIDATION_EVENT_TYPES, log.data);
-  
         return {
           blockNumber: Number(log.blockNumber),
           logIndex: Number(log.logIndex),
           transactionHash: log.transactionHash,
-          debtOffsetBySP: toNumber(decoded[0]),
-          collSentToSP: toNumber(decoded[4]),
-          price: toNumber(decoded[9]),
+          debtOffsetBySP: toNumber(log.args._debtOffsetBySP),
+          collSentToSP: toNumber(log.args._collSentToSP),
+          price: toNumber(log.args._price),
         };
       })
       .sort(

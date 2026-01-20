@@ -1,8 +1,11 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
-const ethers = require('ethers');
 const utils = require('../utils');
 const VeryLiquidVaultABI = require('./VeryLiquidVault.json');
+
+const EVENTS = {
+  VaultStatus: 'event VaultStatus(uint256 totalShares, uint256 totalAssets)',
+};
 
 const DEPLOYMENT_BLOCKS = {
   base: 35109672,
@@ -32,25 +35,20 @@ function uppercaseFirst(str /*: string*/) /*: string*/ {
 async function getLastVaultStatusLog(vault, chain) /*: Promise<VaultStatus>*/ {
   const currentBlock = await sdk.api.util.getLatestBlock(chain);
   const toBlock = currentBlock.number;
-  const vaultInterface = new ethers.utils.Interface(VeryLiquidVaultABI.abi);
-  const topic = vaultInterface.getEventTopic('VaultStatus');
-  const logs = await sdk.api.util.getLogs({
+  const logs = await sdk.getEventLogs({
     target: vault,
-    topic: '',
-    toBlock,
+    eventAbi: EVENTS.VaultStatus,
     fromBlock: DEPLOYMENT_BLOCKS[chain],
-    keys: [],
-    topics: [topic],
+    toBlock,
     chain,
   });
-  const sortedLogs = logs.output.sort((a, b) => b.blockNumber - a.blockNumber);
+  const sortedLogs = logs.sort((a, b) => b.blockNumber - a.blockNumber);
   const lastLog = sortedLogs[0];
-  const decodedLog = vaultInterface.parseLog(lastLog);
   const timestamp = await sdk.api.util.getTimestamp(lastLog.blockNumber, chain);
   const vaultStatus = {
     timestamp: timestamp,
-    totalShares: Number(decodedLog.args.totalShares.toString()),
-    totalAssets: Number(decodedLog.args.totalAssets.toString()),
+    totalShares: Number(lastLog.args.totalShares.toString()),
+    totalAssets: Number(lastLog.args.totalAssets.toString()),
   };
   return vaultStatus;
 }
