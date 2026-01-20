@@ -90,14 +90,6 @@ async function apy() {
   try {
     const pools = await fetchAllPools();
 
-    const tokenAddresses = new Set();
-    pools.forEach((pool) => {
-      tokenAddresses.add(`${CHAIN}:${pool.token0.id.toLowerCase()}`);
-      tokenAddresses.add(`${CHAIN}:${pool.token1.id.toLowerCase()}`);
-    });
-
-    const prices = await utils.getPrices(Array.from(tokenAddresses));
-
     const formattedPools = pools
       .map((pool) => {
         const tvlUSD = Number(pool.totalValueLockedUSD) || 0;
