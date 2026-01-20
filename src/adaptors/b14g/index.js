@@ -124,17 +124,20 @@ const getTurnRoundBlockNumber = async (blockNumber) => {
       abi: 'uint256:roundTag',
     })
   ).output;
-  return (
-    await sdk.getEventLogs({
-      chain: 'core',
-      target: '0x0000000000000000000000000000000000001005',
+  const logs = await sdk.getEventLogs({
+    chain: 'core',
+    target: '0x0000000000000000000000000000000000001005',
       eventAbi: 'event turnedRound(uint256)',
-      fromBlock: blockNumber.block - 86400,
-      toBlock: blockNumber.block,
-    })
-  ).filter(
-    (el) => parseInt(el.args[0]) === parseInt(roundTag.toString())
-  )[0].blockNumber;
+    fromBlock: blockNumber.block - 86400,
+    toBlock: blockNumber.block,
+  });
+  const matched = logs.find(
+    (el) => el.args[0].toString() === roundTag.toString()
+  );
+  if (!matched) {
+    throw new Error(`turnedRound not found for roundTag ${roundTag}`);
+  }
+  return matched.blockNumber;
 };
 
 const getCORERewardForBTCHolderPerDay = async (blockNumber) => {
