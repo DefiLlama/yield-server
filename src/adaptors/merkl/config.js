@@ -12,4 +12,5 @@ exports.networks = {
   56: 'bsc',
   42220: 'celo',
   143: 'monad',
+  999: 'hyperevm',
 };
