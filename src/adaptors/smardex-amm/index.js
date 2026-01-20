@@ -506,6 +506,10 @@ const getsUSDeApy = async (sUSDNPrice) => {
     })
   ).sort((a, b) => b.blockNumber - a.blockNumber);
 
+  if (!logs || logs.length === 0) {
+    return 0;
+  }
+
   // rewards are now being streamed every 8hours, which we scale up to a year
   const rewardsReceived = Number(logs[0].args.amount) / 1e18;
   const aprBase = ((rewardsReceived * 3 * 365) / tvlUsd) * 100;

@@ -37,11 +37,14 @@ const apy = async () => {
     })
   ).sort((a, b) => b.blockNumber - a.blockNumber);
 
-  // rewards are now being streamed every week, which we scale up to a year
-  const rewardsReceived = Number(logs[0].args.amount) / 1e18;
-  const aprBase = ((rewardsReceived * 365 / 7) / tvlUsd) * 100;
-  // weekly compoounding
-  const apyBase = utils.aprToApy(aprBase, 52);
+  let apyBase = 0;
+  if (logs && logs.length > 0) {
+    // rewards are now being streamed every week, which we scale up to a year
+    const rewardsReceived = Number(logs[0].args.amount) / 1e18;
+    const aprBase = ((rewardsReceived * 365 / 7) / tvlUsd) * 100;
+    // weekly compoounding
+    apyBase = utils.aprToApy(aprBase, 52);
+  }
   return [
     {
       pool: sUSDz,
