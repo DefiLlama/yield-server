@@ -32,7 +32,7 @@ function uppercaseFirst(str /*: string*/) /*: string*/ {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-async function getLastVaultStatusLog(vault, chain) /*: Promise<VaultStatus>*/ {
+async function getLastVaultStatusLog(vault, chain) /*: Promise<VaultStatus | null>*/ {
   const currentBlock = await sdk.api.util.getLatestBlock(chain);
   const toBlock = currentBlock.number;
   const logs = await sdk.getEventLogs({
@@ -42,6 +42,11 @@ async function getLastVaultStatusLog(vault, chain) /*: Promise<VaultStatus>*/ {
     toBlock,
     chain,
   });
+  
+  if (!logs || logs.length === 0) {
+    return null;
+  }
+  
   const sortedLogs = logs.sort((a, b) => b.blockNumber - a.blockNumber);
   const lastLog = sortedLogs[0];
   const timestamp = await sdk.api.util.getTimestamp(lastLog.blockNumber, chain);
@@ -164,6 +169,9 @@ async function apy() /*: Promise<Pool[]>*/ {
 
       const apyBasePerVault = lastVaultStatusLogPerVault.map(
         (lastVaultStatusLog, i) => {
+          if (!lastVaultStatusLog) {
+            return 0; // No historical data available, return 0 APY
+          }
           const currentStatus = {
             timestamp: Math.floor(new Date().getTime() / 1000),
             totalShares: Number(totalSupply[i]),

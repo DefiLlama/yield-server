@@ -133,7 +133,7 @@ const getTurnRoundBlockNumber = async (blockNumber) => {
       toBlock: blockNumber.block,
     })
   ).filter(
-    (el) => parseInt(el.data) === parseInt(roundTag.toString())
+    (el) => parseInt(el.args[0]) === parseInt(roundTag.toString())
   )[0].blockNumber;
 };
 
@@ -149,8 +149,8 @@ const getCORERewardForBTCHolderPerDay = async (blockNumber) => {
     })
   ).map((el) => {
     return {
-      order: el.topics[2].replace('000000000000000000000000', ''),
-      owner: el.topics[1].replace('000000000000000000000000', ''),
+      order: el.args.order,
+      owner: el.args.owner,
     };
   });
 
