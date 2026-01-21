@@ -176,6 +176,7 @@ const excludeAdaptors = [
   'ribbon',
   'garden',
   'tlx-finance',
+  'unidex-perp',
 ];
 
 const excludePools = [
