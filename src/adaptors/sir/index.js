@@ -3,9 +3,9 @@ const utils = require("../utils");
 const { ethers } = require("ethers");
 
 const ETHEREUM_SUBGRAPH_URL =
-  "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-ethereum-subgraph-1/2.0.3/gn";
+  "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-ethereum-subgraph-1/prod/gn";
 const HYPER_SUBGRAPH_URL =
-  "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-hyperevm-subgraph-1/2.0.3/gn";
+  "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-hyperevm-subgraph-1/prod/gn";
 
 const ETHEREUM_SIR =
   "0x4Da4fb565Dcd5D5C5dB495205c109bA983A8ABa2".toLowerCase();
