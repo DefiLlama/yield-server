@@ -5,10 +5,8 @@ const poolsFunction = async () => {
     'https://flamingo-us-1.b-cdn.net/flamingo/analytics/flamingo/defillama-yields'
   );
 
-  // API now returns an array directly instead of { pools: [...] }
   const pools = Array.isArray(poolsData) ? poolsData : poolsData.pools;
 
-  // Deduplicate pools by pool address and add required fields
   return pools.reduce((acc, p) => {
     if (!acc.some((pool) => pool.pool === p.pool)) {
       acc.push({
