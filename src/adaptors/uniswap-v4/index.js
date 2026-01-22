@@ -27,12 +27,13 @@ const chains = {
   ),
 };
 
+const DYNAMIC_FEE_FLAG = 0x800000;
+
 const query = gql`
   {
-    pools(first: 1000, orderBy: totalValueLockedUSD, orderDirection: desc block: {number: <PLACEHOLDER>}) {
+    pools(first: 1000, orderBy: totalValueLockedUSD, orderDirection: desc, block: {number: <PLACEHOLDER>}) {
       id
       feeTier
-      liquidity
       totalValueLockedUSD
       totalValueLockedToken0
       totalValueLockedToken1
@@ -50,6 +51,8 @@ const query = gql`
     }
   }
 `;
+
+const isDynamicFeePool = (feeTier) => Number(feeTier) === DYNAMIC_FEE_FLAG;
 
 const topLvl = async (chainString, url, query, timestamp) => {
   try {
@@ -77,15 +80,18 @@ const topLvl = async (chainString, url, query, timestamp) => {
 
     dataNow = dataNow.map((pool) => {
       const poolPrior = dataPrior.find((p) => p.id === pool.id);
-      const volumeUSD = Number(pool.volumeUSD || 0);
-      const volumeUSDPrior = Number(poolPrior?.volumeUSD || 0);
-      const volumeUSD1d = volumeUSD - volumeUSDPrior;
+      const isDynamic = isDynamicFeePool(pool.feeTier);
 
-      const feeTier = Number(pool.feeTier || 0);
-      const feeUSD1d = (volumeUSD1d * feeTier) / 1e6;
+      const volumeUSD1d =
+        Number(pool.volumeUSD || 0) - Number(poolPrior?.volumeUSD || 0);
+
+      // dynamic fee pools use hooks, can't calculate fees from feeTier
+      const feeUSD1d = isDynamic
+        ? 0
+        : (volumeUSD1d * Number(pool.feeTier) || 0) / 1e6;
 
       const apy =
-        pool.totalValueLockedUSD > 0
+        pool.totalValueLockedUSD > 0 && feeUSD1d > 0
           ? (feeUSD1d * 365 * 100) / pool.totalValueLockedUSD
           : 0;
 
@@ -97,7 +103,16 @@ const topLvl = async (chainString, url, query, timestamp) => {
     });
 
     return dataNow.map((p) => {
-      const poolMeta = `${Number(p.feeTier) / 1e4}%`;
+      const isDynamic = isDynamicFeePool(p.feeTier);
+
+      let poolMeta;
+      if (isDynamic) {
+        poolMeta = 'Dynamic fee (hook)';
+      } else {
+        const feePercent = (Number(p.feeTier) / 1e4).toFixed(2);
+        poolMeta = `${feePercent}%`;
+      }
+
       const underlyingTokens = [p.token0.id, p.token1.id];
       const chain = chainString === 'avax' ? 'avalanche' : chainString;
 
@@ -105,7 +120,7 @@ const topLvl = async (chainString, url, query, timestamp) => {
         pool: `${p.id}-${chainString}-uniswap-v4`,
         chain: utils.formatChain(chainString),
         project: 'uniswap-v4',
-        poolMeta: poolMeta,
+        poolMeta,
         symbol: `${p.token0.symbol}-${p.token1.symbol}`,
         tvlUsd: p.totalValueLockedUSD,
         apyBase: p.apyBase,
