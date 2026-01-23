@@ -3,94 +3,128 @@ const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
 const config = require('./config');
 
-const erc20ABI = {
-  decimals: 'function decimals() external pure returns (uint8)',
-  balanceOf:
-    'function balanceOf(address owner) external view returns (uint256 balance)',
-};
+const OCTO_POOL_APR_URL = 'https://api.symbiosis.finance/crosschain/v1/octo-pool-apr';
 
-const urlApy = 'https://api-v2.symbiosis.finance/farming/v1/apr';
-
-const formatApy = (value) => {
-  return new BigNumber(value).multipliedBy(100).toNumber();
-};
-
+// This API returns APR by sToken address on Symbiosis chain
 const loadApyData = async () => {
-  const apy = await utils.getData(urlApy);
-
+  const response = await utils.getData(OCTO_POOL_APR_URL);
+  
   const apyData = {};
-  apy.forEach((i) => {
-    const pool = i['pools'][0];
-    apyData[pool['chainId']] = {
-      apr: formatApy(pool['apr']),
-      boostedApr: formatApy(pool['boostedApr']),
-    };
-  });
+  for (const item of response.aprData || []) {
+    const sToken = item.token.toLowerCase();
+    apyData[sToken] = item.apr; 
+  }
   return apyData;
 };
 
+// Load TVL data by querying token balances in portal contracts
 const loadTvlData = async () => {
-  const balanceCalls = config.chains.map((i) => {
-    return {
-      target: i.sStable,
-      params: config.pool.address,
-    };
-  });
-  const balanceOutput = await sdk.api.abi.multiCall({
-    chain: 'boba_bnb',
-    abi: erc20ABI.balanceOf,
-    calls: balanceCalls,
-  });
+  const tvlData = {};
+  
+  // Get all pools (EVM and Tron, excluding TON)
+  const pools = Object.entries(config.sTokenPools)
+    .filter(([_, pool]) => !pool.isTon)
+    .map(([sToken, pool]) => ({ sToken, ...pool }));
+  
+  // Query all chains in parallel
+  await Promise.all(
+    pools.map(async (pool) => {
+      try {
+        const balanceResult = await sdk.api.abi.call({
+          target: pool.token,
+          params: pool.portal,
+          chain: pool.isTron ? 'tron' : pool.chain,
+          abi: 'erc20:balanceOf',
+        });
+        
+        const balance = new BigNumber(balanceResult.output);
+        const tvlUsd = balance.div(new BigNumber(10).pow(pool.decimals)).toNumber();
+        
+        tvlData[pool.sToken] = tvlUsd;
+      } catch (err) {
+        console.log(`Failed to fetch TVL for ${pool.chain} ${pool.symbol}: ${err.message}`);
+        tvlData[pool.sToken] = 0;
+      }
+    })
+  );
+  
+  return tvlData;
+};
 
-  const decimalsCalls = config.chains.map((i) => {
-    return {
-      target: i.sStable,
-      params: [],
-    };
-  });
-  const decimalsOutput = await sdk.api.abi.multiCall({
-    chain: 'boba_bnb',
-    abi: erc20ABI.decimals,
-    calls: decimalsCalls,
-  });
-
-  const tvl = {};
-  config.chains.map((chainInfo, i) => {
-    const decimals = parseInt(decimalsOutput.output[i].output);
-    const balance = parseInt(balanceOutput.output[i].output);
-    const delimiter = new BigNumber(10).pow(decimals);
-    const usd = new BigNumber(balance).div(delimiter);
-    tvl[chainInfo.stable] = usd.toNumber();
-  });
-
-  return tvl;
+// Map chain names to DefiLlama format
+const formatChainName = (chain) => {
+  const chainMap = {
+    ethereum: 'Ethereum',
+    bsc: 'Binance',
+    polygon: 'Polygon',
+    avax: 'Avalanche',
+    boba: 'Boba',
+    telos: 'Telos',
+    era: 'zkSync Era',
+    arbitrum: 'Arbitrum',
+    optimism: 'Optimism',
+    arbitrum_nova: 'Arbitrum Nova',
+    polygon_zkevm: 'Polygon zkEVM',
+    linea: 'Linea',
+    mantle: 'Mantle',
+    base: 'Base',
+    scroll: 'Scroll',
+    manta: 'Manta',
+    ftn: 'Bahamut',
+    cronos: 'Cronos',
+    rsk: 'RSK',
+    xdai: 'Gnosis',
+    tron: 'Tron',
+    ton: 'TON',
+    sei: 'Sei',
+    cronos_zkevm: 'Cronos zkEVM',
+    hyperliquid: 'Hyperliquid',
+    gravity: 'Gravity',
+    kava: 'Kava',
+    zeta: 'ZetaChain',
+    plasma: 'Plasma',
+    morph: 'Morph',
+    katana: 'Katana',
+  };
+  return chainMap[chain] || utils.formatChain(chain);
 };
 
 const main = async () => {
-  const apyData = await loadApyData();
-  const tvl = await loadTvlData();
+  const [apyData, tvlData] = await Promise.all([
+    loadApyData(),
+    loadTvlData(),
+  ]);
 
-  let data = [];
-  config.chains.forEach((chainInfo) => {
-    const { id, name: chain, stable, symbol } = chainInfo;
+  const pools = [];
+  
+  for (const [sToken, poolConfig] of Object.entries(config.sTokenPools)) {
+    const { chain, symbol, token } = poolConfig;
 
-    data.push({
-      pool: `symbiosis-finance-${stable}-${chain}`.toLowerCase(),
-      chain: utils.formatChain(chain),
+    const tvlUsd = tvlData[sToken] || 0;
+    const apr = apyData[sToken] || 0;
+
+    // Skip pools with no TVL and no APR
+    if (tvlUsd === 0 && apr === 0) continue;
+
+    pools.push({
+      pool: `symbiosis-${chain}-${symbol}`.toLowerCase().replace(/\./g, '-'),
+      chain: formatChainName(chain),
       project: 'symbiosis',
       symbol,
-      tvlUsd: tvl[stable],
-      apyReward: apyData[id].apr,
-      rewardTokens: ['0xd38bb40815d2b0c2d2c866e0c72c5728ffc76dd9'],
-      underlyingTokens: [stable],
+      tvlUsd,
+      apyBase: apr,
+      underlyingTokens: [token],
     });
-  });
-
-  return data;
+  }
+  
+  // Sort by TVL descending
+  pools.sort((a, b) => b.tvlUsd - a.tvlUsd);
+  
+  return pools;
 };
 
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app-v2.symbiosis.finance/liquidity-v2/pools',
+  url: 'https://app.symbiosis.finance/liquidity-v2/pools',
 };
