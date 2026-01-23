@@ -1,8 +1,11 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
-const ethers = require('ethers');
 const utils = require('../utils');
 const VeryLiquidVaultABI = require('./VeryLiquidVault.json');
+
+const EVENTS = {
+  VaultStatus: 'event VaultStatus(uint256 totalShares, uint256 totalAssets)',
+};
 
 const DEPLOYMENT_BLOCKS = {
   base: 35109672,
@@ -29,28 +32,28 @@ function uppercaseFirst(str /*: string*/) /*: string*/ {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-async function getLastVaultStatusLog(vault, chain) /*: Promise<VaultStatus>*/ {
+async function getLastVaultStatusLog(vault, chain) /*: Promise<VaultStatus | null>*/ {
   const currentBlock = await sdk.api.util.getLatestBlock(chain);
   const toBlock = currentBlock.number;
-  const vaultInterface = new ethers.utils.Interface(VeryLiquidVaultABI.abi);
-  const topic = vaultInterface.getEventTopic('VaultStatus');
-  const logs = await sdk.api.util.getLogs({
+  const logs = await sdk.getEventLogs({
     target: vault,
-    topic: '',
-    toBlock,
+    eventAbi: EVENTS.VaultStatus,
     fromBlock: DEPLOYMENT_BLOCKS[chain],
-    keys: [],
-    topics: [topic],
+    toBlock,
     chain,
   });
-  const sortedLogs = logs.output.sort((a, b) => b.blockNumber - a.blockNumber);
+  
+  if (!logs || logs.length === 0) {
+    return null;
+  }
+  
+  const sortedLogs = logs.sort((a, b) => b.blockNumber - a.blockNumber);
   const lastLog = sortedLogs[0];
-  const decodedLog = vaultInterface.parseLog(lastLog);
   const timestamp = await sdk.api.util.getTimestamp(lastLog.blockNumber, chain);
   const vaultStatus = {
     timestamp: timestamp,
-    totalShares: Number(decodedLog.args.totalShares.toString()),
-    totalAssets: Number(decodedLog.args.totalAssets.toString()),
+    totalShares: Number(lastLog.args.totalShares.toString()),
+    totalAssets: Number(lastLog.args.totalAssets.toString()),
   };
   return vaultStatus;
 }
@@ -166,6 +169,9 @@ async function apy() /*: Promise<Pool[]>*/ {
 
       const apyBasePerVault = lastVaultStatusLogPerVault.map(
         (lastVaultStatusLog, i) => {
+          if (!lastVaultStatusLog) {
+            return 0; // No historical data available, return 0 APY
+          }
           const currentStatus = {
             timestamp: Math.floor(new Date().getTime() / 1000),
             totalShares: Number(totalSupply[i]),

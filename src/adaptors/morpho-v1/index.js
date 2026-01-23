@@ -250,10 +250,22 @@ const apy = async () => {
     let allVaults = [];
     let skip = 0;
     while (true) {
-      const { vaults } = await request(GRAPH_URL, gqlQueries.metaMorphoVaults, {
-        chainId,
-        skip,
-      });
+      let vaults;
+      try {
+        const response = await request(GRAPH_URL, gqlQueries.metaMorphoVaults, {
+          chainId,
+          skip,
+        });
+        vaults = response.vaults;
+      } catch (error) {
+        // GraphQL may return partial data with errors (e.g., vaults with null state)
+        // Extract data from the error response if available
+        if (error.response?.data?.vaults) {
+          vaults = error.response.data.vaults;
+        } else {
+          throw error;
+        }
+      }
 
       if (!vaults.items.length) break;
 
@@ -291,7 +303,8 @@ const apy = async () => {
       skip += 100;
     }
 
-    const earnV1 = allVaults;
+    // Filter out vaults with null state
+    const earnV1 = allVaults.filter((vault) => vault.state !== null);
     const earnV2 = allVaultV2s;
     const borrow = allMarkets;
 

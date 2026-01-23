@@ -14,6 +14,10 @@ const LEVERAGE_TOKEN_DECIMALS = 18;
 const COMPOUNDING_PERIODS = 1;
 const chains = ['ethereum', 'base'];
 
+const EVENTS = {
+  LeverageTokenCreated: 'event LeverageTokenCreated(address indexed token, address collateralAsset, address debtAsset, (address lendingAdapter, address rebalanceAdapter, uint256 mintTokenFee, uint256 redeemTokenFee) config)',
+};
+
 const LEVERAGE_MANAGER_ADDRESS = {
   ethereum: '0x5C37EB148D4a261ACD101e2B997A0F163Fb3E351',
   base: '0x38Ba21C6Bf31dF1b1798FCEd07B4e9b07C5ec3a8'
@@ -25,26 +29,20 @@ const LEVERAGE_MANAGER_DEPLOYMENT_BLOCK = {
 };
 
 const getLeverageTokens = async (chain, toBlock) => {
-  const iface = new ethers.utils.Interface([
-    'event LeverageTokenCreated(address indexed token, address collateralAsset, address debtAsset, (address lendingAdapter, address rebalanceAdapter, uint256 mintTokenFee, uint256 redeemTokenFee) config)',
-  ]);
-  const leverageTokenCreatedEvents = (
-    await sdk.api2.util.getLogs({
-      chain,
-      target: LEVERAGE_MANAGER_ADDRESS[chain],
-      topics: ["0xc3f4681fb2a57a13e121c6f24fe319c8572bb001497f2b74712695625ee9028e"],
-      fromBlock: LEVERAGE_MANAGER_DEPLOYMENT_BLOCK[chain],
-      keys: [],
-      toBlock,
-    })
-  );
+  const leverageTokenCreatedEvents = await sdk.getEventLogs({
+    chain,
+    target: LEVERAGE_MANAGER_ADDRESS[chain],
+    eventAbi: EVENTS.LeverageTokenCreated,
+    fromBlock: LEVERAGE_MANAGER_DEPLOYMENT_BLOCK[chain],
+    toBlock,
+  });
 
-  const leverageTokens = leverageTokenCreatedEvents.output.map((ev) => iface.parseLog(ev).args).map((ev) => {
+  const leverageTokens = leverageTokenCreatedEvents.map((ev) => {
     return {
-      address: ev.token,
-      collateralAsset: ev.collateralAsset,
-      debtAsset: ev.debtAsset,
-      lendingAdapter: ev.config[0]
+      address: ev.args.token,
+      collateralAsset: ev.args.collateralAsset,
+      debtAsset: ev.args.debtAsset,
+      lendingAdapter: ev.args.config[0]
     }
   });
 

@@ -59,8 +59,8 @@ const getApy = async (address, chain) => {
     `https://api.indexcoop.com/v2/data/${address}?chainId=${chain}&metrics=apy`
   );
   const json = JSON.parse(res.text);
-  const { APY, Rate, StreamingFee } = json.metrics[0];
-  return APY + Rate + StreamingFee;
+  const { APY } = json.metrics[0];
+  return APY;
 };
 
 const getPrice = async (index) => {

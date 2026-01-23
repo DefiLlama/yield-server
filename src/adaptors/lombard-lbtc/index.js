@@ -19,7 +19,7 @@ const apy = async () => {
       project: 'lombard-lbtc',
       chain: 'bitcoin',
       symbol: 'lBTC',
-      tvl:
+      tvlUsd:
         (Number(tvl.balance) / 1e8) * price.coins[`ethereum:${token}`]?.price,
       apy: apy.lbtc_estimated_apy * 100,
     },

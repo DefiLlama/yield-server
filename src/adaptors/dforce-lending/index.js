@@ -122,7 +122,7 @@ const getStakingApy = async () => {
               stakingData.push({
                 pool: `${stakingPool.address}-${network}`,
                 chain: utils.formatChain(network),
-                project: 'dforce',
+                project: 'dforce-lending',
                 symbol: stakingPool.symbol,
                 tvlUsd: Number(apy.totalStaking) / 1e18,
                 // 1e16 = apy / 1e18 * 100%
@@ -176,7 +176,7 @@ const getVaultApy = async () => {
           return {
             pool: `${vaultPool.address}-${network}`,
             chain: utils.formatChain(network),
-            project: 'dforce',
+            project: 'dforce-lending',
             symbol: vaultPool.symbol,
             tvlUsd: Number(rawTvlUsd) / 1e18,
             // 1e16 = apy / 1e18 * 100%
@@ -235,7 +235,7 @@ const getLendingApy = async () => {
         return supplyMarkets.map((market) => ({
           pool: `${market.address}-${network}`,
           chain: utils.formatChain(network),
-          project: 'dforce',
+          project: 'dforce-lending',
           symbol: market.underlying_symbol,
           tvlUsd:
             (Number(market.supplyValue) - Number(market.borrowValue)) / 1e18,

@@ -18,22 +18,25 @@ const SHMONAD_ABI = {
   symbol: 'erc20:symbol',
 };
 
+// APY window in days
+const APY_WINDOW_DAYS = 2;
+
 const apy = async () => {
   // Get current timestamp
   const now = Math.floor(Date.now() / 1000);
-  const timestamp1dayAgo = now - SECONDS_PER_DAY;
+  const timestamp2daysAgo = now - SECONDS_PER_DAY * APY_WINDOW_DAYS;
 
-  // Fetch block numbers for current and 1 day ago
-  const [blockNow, block1dayAgo] = await Promise.all([
+  // Fetch block numbers for current and 2 days ago
+  const [blockNow, block2daysAgo] = await Promise.all([
     axios
       .get(`https://coins.llama.fi/block/monad/${now}`)
       .then((r) => r.data.height),
     axios
-      .get(`https://coins.llama.fi/block/monad/${timestamp1dayAgo}`)
+      .get(`https://coins.llama.fi/block/monad/${timestamp2daysAgo}`)
       .then((r) => r.data.height),
   ]);
 
-  if (!blockNow || !block1dayAgo) {
+  if (!blockNow || !block2daysAgo) {
     throw new Error('RPC issue: Failed to fetch block numbers');
   }
 
@@ -58,27 +61,27 @@ const apy = async () => {
     }),
   ]);
 
-  // Fetch 1 day ago totalAssets and totalSupply
-  const [totalAssets1dayAgo, totalSupply1dayAgo] = await Promise.all([
+  // Fetch 2 days ago totalAssets and totalSupply
+  const [totalAssets2daysAgo, totalSupply2daysAgo] = await Promise.all([
     sdk.api.abi.call({
       target: SHMONAD_CONTRACT,
       abi: SHMONAD_ABI.totalAssets,
       chain: 'monad',
-      block: block1dayAgo,
+      block: block2daysAgo,
     }),
     sdk.api.abi.call({
       target: SHMONAD_CONTRACT,
       abi: SHMONAD_ABI.totalSupply,
       chain: 'monad',
-      block: block1dayAgo,
+      block: block2daysAgo,
     }),
   ]);
 
   if (
     !totalAssetsNow.output ||
     !totalSupplyNow.output ||
-    !totalAssets1dayAgo.output ||
-    !totalSupply1dayAgo.output
+    !totalAssets2daysAgo.output ||
+    !totalSupply2daysAgo.output
   ) {
     throw new Error('RPC issue: Failed to fetch contract data');
   }
@@ -87,27 +90,28 @@ const apy = async () => {
   const shareValueNow =
     (BigInt(totalAssetsNow.output) * BigInt(1e18)) /
     BigInt(totalSupplyNow.output);
-  const shareValue1dayAgo =
-    (BigInt(totalAssets1dayAgo.output) * BigInt(1e18)) /
-    BigInt(totalSupply1dayAgo.output);
+  const shareValue2daysAgo =
+    (BigInt(totalAssets2daysAgo.output) * BigInt(1e18)) /
+    BigInt(totalSupply2daysAgo.output);
 
-  if (shareValue1dayAgo === 0n) {
+  if (shareValue2daysAgo === 0n) {
     throw new Error('RPC issue: Previous share value is zero');
   }
 
-  // Calculate proportion: shareValueNow / shareValue1dayAgo
+  // Calculate proportion: shareValueNow / shareValue2daysAgo
   // Multiply by 1e18 to maintain precision
   const proportion =
-    Number((shareValueNow * BigInt(1e18)) / shareValue1dayAgo) / 1e18;
+    Number((shareValueNow * BigInt(1e18)) / shareValue2daysAgo) / 1e18;
 
   if (proportion <= 0) {
     throw new Error('RPC issue: Invalid proportion calculated');
   }
 
   // Calculate APY using the formula:
-  // APY = ((1 + ((proportion - 1) / 365)) ** 365 - 1) * 100
-  // This is equivalent to: APY = (proportion ** 365 - 1) * 100
-  const apyBase = (Math.pow(proportion, DAYS_PER_YEAR) - 1) * 100;
+  // APY = (proportion ^ (365 / APY_WINDOW_DAYS) - 1) * 100
+  // This annualizes the 2-day return
+  const periodsPerYear = DAYS_PER_YEAR / APY_WINDOW_DAYS;
+  const apyBase = (Math.pow(proportion, periodsPerYear) - 1) * 100;
 
   // Calculate TVL using the same methodology as the TVL adaptor
   // TVL = staked + reserved + allocated - distributed + currentAssets
