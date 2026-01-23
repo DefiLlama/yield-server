@@ -65,7 +65,8 @@ const main = async () => {
       try {
         const poolAddress = pool.identifier;
 
-        let symbol = pool.tokens.map((x) => x.symbol).join('-');
+        const tokenSymbols = pool.tokens.map((x) => x.symbol);
+        let symbol = tokenSymbols[tokenSymbols.length - 1] || '';
 
         if (!symbol.length) {
           symbol = (
@@ -85,16 +86,26 @@ const main = async () => {
           pool.rewardsRecord?.breakdowns.map((x) => x.token.address) || [];
         const apyReward = pool.apr;
 
+        const action = pool.action || null;
+        const firstToken = tokenSymbols[0] || null;
+        const vaultName = (tokenSymbols.length > 1 && firstToken !== symbol) ? firstToken : null;
+        const poolMetaParts = [action, vaultName].filter(Boolean);
+        const poolMeta = poolMetaParts.length > 0 ? poolMetaParts.join(' - ') : null;
+
+        const poolType = pool.type || 'UNKNOWN';
+        const poolUrl = `https://app.merkl.xyz/opportunities/${chain}/${poolType}/${poolAddress}`;
+
         const poolData = {
           pool: `${poolAddress}-merkl`,
           chain: chain,
           project: project,
-          poolMeta: pool.action ?? null,
+          poolMeta: poolMeta,
           symbol: symbol,
           tvlUsd: tvlUsd ?? 0,
           apyReward: apyReward ?? 0,
           rewardTokens: [...new Set(rewardTokens)],
           underlyingTokens: underlyingTokens,
+          url: poolUrl,
         };
         poolsData.push(poolData);
       } catch {}
