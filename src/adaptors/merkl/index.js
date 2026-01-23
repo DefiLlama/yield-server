@@ -86,9 +86,10 @@ const main = async () => {
           pool.rewardsRecord?.breakdowns.map((x) => x.token.address) || [];
         const apyReward = pool.apr;
 
-        const protocolName = pool.protocol?.name || null;
         const action = pool.action || null;
-        const poolMetaParts = [action, protocolName].filter(Boolean);
+        const firstToken = tokenSymbols[0] || null;
+        const vaultName = (tokenSymbols.length > 1 && firstToken !== symbol) ? firstToken : null;
+        const poolMetaParts = [action, vaultName].filter(Boolean);
         const poolMeta = poolMetaParts.length > 0 ? poolMetaParts.join(' - ') : null;
 
         const poolType = pool.type || 'UNKNOWN';
