@@ -2,7 +2,56 @@
 // sToken address -> { chain, symbol, token (underlying), portal, decimals }
 // The sToken name format is "Synthetic <Symbol> From <Chain>"
 
+// Chain configuration: display name and optional price API chain override
+// Only chains needing special handling are listed; others use defaults
+const CHAIN_CONFIG = {
+  ethereum: { display: 'Ethereum' },
+  bsc: { display: 'Binance' },
+  polygon: { display: 'Polygon' },
+  avax: { display: 'Avalanche' },
+  boba: { display: 'Boba' },
+  telos: { display: 'Telos' },
+  era: { display: 'zkSync Era' },
+  arbitrum: { display: 'Arbitrum' },
+  optimism: { display: 'Optimism' },
+  arbitrum_nova: { display: 'Arbitrum Nova' },
+  polygon_zkevm: { display: 'Polygon zkEVM' },
+  linea: { display: 'Linea' },
+  mantle: { display: 'Mantle' },
+  base: { display: 'Base' },
+  scroll: { display: 'Scroll' },
+  manta: { display: 'Manta' },
+  ftn: { display: 'Bahamut' },
+  cronos: { display: 'Cronos' },
+  rsk: { display: 'RSK' },
+  xdai: { display: 'Gnosis' },
+  tron: { display: 'Tron' },
+  ton: { display: 'TON' },
+  sei: { display: 'Sei' },
+  cronos_zkevm: { display: 'Cronos zkEVM' },
+  hyperliquid: { display: 'Hyperliquid' },
+  gravity: { display: 'Gravity' },
+  kava: { display: 'Kava' },
+  zeta: { display: 'ZetaChain' },
+  plasma: { display: 'Plasma' },
+  morph: { display: 'Morph' },
+  katana: { display: 'Katana' },
+  metis: { display: 'Metis' },
+  mode: { display: 'Mode' },
+  blast: { display: 'Blast' },
+  taiko: { display: 'Taiko' },
+  fraxtal: { display: 'Fraxtal' },
+  sonic: { display: 'Sonic' },
+  abstract: { display: 'Abstract' },
+  berachain: { display: 'Berachain' },
+  unichain: { display: 'Unichain' },
+  soneium: { display: 'Soneium' },
+  zklink: { display: 'zkLink' },
+  // opbnb: { display: 'opBNB', priceApi: 'op_bnb' },
+};
+
 module.exports = {
+  CHAIN_CONFIG,
   // sToken to pool mapping - maps sToken address to underlying pool info
   // Key: sToken address (lowercase), Value: pool configuration
   sTokenPools: {
@@ -252,22 +301,6 @@ module.exports = {
 
     // === ETH POOLS ===
 
-    // BSC WETH
-    '0x3c4454b723c0144f9e30ef7cc2f419cc88051d45': {
-      chain: 'bsc',
-      symbol: 'WETH',
-      token: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8',
-      portal: '0x5Aa5f7f84eD0E5db0a4a85C3947eA16B53352FD4',
-      decimals: 18,
-    },
-    // Manta WETH
-    '0x4c9edbc90e9006ac909ae7090c51c69dde1b7c3b': {
-      chain: 'manta',
-      symbol: 'WETH',
-      token: '0x0Dc808adcE2099A9F62AA87D9670745AbA741746',
-      portal: '0x5Aa5f7f84eD0E5db0a4a85C3947eA16B53352FD4',
-      decimals: 18,
-    },
     // Ethereum WETH
     '0x7477490b64b64d9d014d4003afb053cbf62689e1': {
       chain: 'ethereum',
@@ -276,11 +309,35 @@ module.exports = {
       portal: '0xb8f275fBf7A959F4BCE59999A2EF122A099e81A8',
       decimals: 18,
     },
-    // Mantle WETH
-    '0x0c16952c588f859e797c7c9497304db0f5239c51': {
-      chain: 'mantle',
+    // BSC ETH
+    '0x3c4454b723c0144f9e30ef7cc2f419cc88051d45': {
+      chain: 'bsc',
       symbol: 'WETH',
-      token: '0xdEAddEaDdeadDEadDEADDEAddEADDEAddead1111',
+      token: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8',
+      portal: '0x5Aa5f7f84eD0E5db0a4a85C3947eA16B53352FD4',
+      decimals: 18,
+    },
+    // Polygon WETH
+    '0xb1691b61e8369b79e4d9fd6dec55ac31e34009ba': {
+      chain: 'polygon',
+      symbol: 'WETH',
+      token: '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619',
+      portal: '0xb8f275fBf7A959F4BCE59999A2EF122A099e81A8',
+      decimals: 18,
+    },
+    // Arbitrum One WETH
+    '0xb8d63ff43b72c481c8ccd77d5c03092b63c81b34': {
+      chain: 'arbitrum',
+      symbol: 'WETH',
+      token: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+      portal: '0x01A3c8E513B758EBB011F7AFaf6C37616c9C24d9',
+      decimals: 18,
+    },
+    // Arbitrum Nova WETH
+    '0x06a0c3d0cf4b12412f48e1746bd440842a14375a': {
+      chain: 'arbitrum_nova',
+      symbol: 'WETH',
+      token: '0x722E8BdD2ce80A4422E880164f2079488e115365',
       portal: '0x292fC50e4eB66C3f6514b9E402dBc25961824D62',
       decimals: 18,
     },
@@ -292,20 +349,164 @@ module.exports = {
       portal: '0xEE981B2459331AD268cc63CE6167b446AF4161f8',
       decimals: 18,
     },
-    // Arbitrum Nova WETH
-    '0xb1691b61e8369b79e4d9fd6dec55ac31e34009ba': {
-      chain: 'arbitrum_nova',
+    // Manta WETH
+    '0x4c9edbc90e9006ac909ae7090c51c69dde1b7c3b': {
+      chain: 'manta',
       symbol: 'WETH',
-      token: '0x722E8BdD2ce80A4422E880164f2079488e115365',
+      token: '0x0Dc808adcE2099A9F62AA87D9670745AbA741746',
+      portal: '0x5Aa5f7f84eD0E5db0a4a85C3947eA16B53352FD4',
+      decimals: 18,
+    },
+    // Mantle WETH
+    '0x0c16952c588f859e797c7c9497304db0f5239c51': {
+      chain: 'mantle',
+      symbol: 'WETH',
+      token: '0xdEAddEaDdeadDEadDEADDEAddEADDEAddead1111',
       portal: '0x292fC50e4eB66C3f6514b9E402dBc25961824D62',
       decimals: 18,
     },
-    // Arbitrum One WETH
-    '0xb8d63ff43b72c481c8ccd77d5c03092b63c81b34': {
-      chain: 'arbitrum',
+    // Optimism WETH
+    '0x7a74c122831e1221b32162569f95ff1d01e099de': {
+      chain: 'optimism',
       symbol: 'WETH',
-      token: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
-      portal: '0x01A3c8E513B758EBB011F7AFaf6C37616c9C24d9',
+      token: '0x4200000000000000000000000000000000000006',
+      portal: '0x292fC50e4eB66C3f6514b9E402dBc25961824D62',
+      decimals: 18,
+    },
+    // zkSync Era WETH
+    '0xce5cafcf82fdb326e03378750c272efabafb1d7f': {
+      chain: 'era',
+      symbol: 'WETH',
+      token: '0x5AEa5775959fBC2557Cc8789bC1bf90A239D9a91',
+      portal: '0x4f5456d4d0764473DfCA1ffBB8524C151c4F19b9',
+      decimals: 18,
+    },
+    // Linea WETH
+    '0x840531da82e31b4ff535bc8f3a16f6f0c48b3861': {
+      chain: 'linea',
+      symbol: 'WETH',
+      token: '0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f',
+      portal: '0x292fC50e4eB66C3f6514b9E402dBc25961824D62',
+      decimals: 18,
+    },
+    // Scroll WETH
+    '0x7792fc1975f324fd3a4cc4ca8186087d73ffb9fc': {
+      chain: 'scroll',
+      symbol: 'WETH',
+      token: '0x5300000000000000000000000000000000000004',
+      portal: '0x5Aa5f7f84eD0E5db0a4a85C3947eA16B53352FD4',
+      decimals: 18,
+    },
+    // Polygon zkEVM WETH
+    '0xd687ff0122669ce5a0be89143a9b926ba9a72df3': {
+      chain: 'polygon_zkevm',
+      symbol: 'WETH',
+      token: '0x4F9A0e7FD2Bf6067db6994CF12E4495Df938E6e9',
+      portal: '0x292fC50e4eB66C3f6514b9E402dBc25961824D62',
+      decimals: 18,
+    },
+    // Gnosis WETH
+    '0x97b1c455d59373059f8fa92dea00e7399ff3f5cc': {
+      chain: 'xdai',
+      symbol: 'WETH',
+      token: '0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1',
+      portal: '0x292fC50e4eB66C3f6514b9E402dBc25961824D62',
+      decimals: 18,
+    },
+    // Metis WETH
+    '0x7520d0d46d2027745e3837103e9eb2bb372a869d': {
+      chain: 'metis',
+      symbol: 'WETH',
+      token: '0x420000000000000000000000000000000000000A',
+      portal: '0xd8db4fb1fEf63045A443202d506Bcf30ef404160',
+      decimals: 18,
+    },
+    // Mode WETH
+    '0xe7671ec0e57322d254159e0595c2f6b179038203': {
+      chain: 'mode',
+      symbol: 'WETH',
+      token: '0x4200000000000000000000000000000000000006',
+      portal: '0x292fC50e4eB66C3f6514b9E402dBc25961824D62',
+      decimals: 18,
+    },
+    // Blast WETH
+    '0x5de7bb0e90e4d3860762b1e90758b839b056130f': {
+      chain: 'blast',
+      symbol: 'WETH',
+      token: '0x4300000000000000000000000000000000000004',
+      portal: '0x5Aa5f7f84eD0E5db0a4a85C3947eA16B53352FD4',
+      decimals: 18,
+    },
+    // Taiko WETH
+    '0xf834ad6385c3cfacee18593bbde4e65a0f29ea32': {
+      chain: 'taiko',
+      symbol: 'WETH',
+      token: '0xA51894664A773981C6C112C43ce576f315d5b1B6',
+      portal: '0x5Aa5f7f84eD0E5db0a4a85C3947eA16B53352FD4',
+      decimals: 18,
+    },
+    // Fraxtal WETH
+    '0xbe535cc7270864e30851578ca0a24aa15795d35c': {
+      chain: 'fraxtal',
+      symbol: 'WETH',
+      token: '0xA8a59D73388D0c4344a7b0Ba287ddb654227c38a',
+      portal: '0x292fC50e4eB66C3f6514b9E402dBc25961824D62',
+      decimals: 18,
+    },
+    // Sonic WETH
+    '0x9f2f60bade978bbea32e4e2f282c86c0c2874ff5': {
+      chain: 'sonic',
+      symbol: 'WETH',
+      token: '0x50c42dEAcD8Fc9773493ED674b675bE577f2634b',
+      portal: '0xE75C7E85FE6ADd07077467064aD15847E6ba9877',
+      decimals: 18,
+    },
+    // Abstract WETH
+    '0xe1ff01476d1693881c85a23c65f9522579eb8398': {
+      chain: 'abstract',
+      symbol: 'WETH',
+      token: '0x3439153EB7AF838Ad19d56E1571FBD09333C2809',
+      portal: '0x8Dc71561414CDcA6DcA7C1dED1ABd04AF474D189',
+      decimals: 18,
+    },
+    // Berachain WETH
+    '0x3c210c8b287cfdbc71c1ccf06ee84c7926276835': {
+      chain: 'berachain',
+      symbol: 'WETH',
+      token: '0x2F6F07CDcf3588944Bf4C42aC74ff24bF56e7590',
+      portal: '0x292fC50e4eB66C3f6514b9E402dBc25961824D62',
+      decimals: 18,
+    },
+    // Unichain WETH
+    '0x73bbd1031ac1265eb1b2db33372d58444b6f63e3': {
+      chain: 'unichain',
+      symbol: 'WETH',
+      token: '0x4200000000000000000000000000000000000006',
+      portal: '0x292fC50e4eB66C3f6514b9E402dBc25961824D62',
+      decimals: 18,
+    },
+    // Soneium WETH
+    '0x3bbde4396811f8643a3c1e98fb4cffc74ae01fb0': {
+      chain: 'soneium',
+      symbol: 'WETH',
+      token: '0x4200000000000000000000000000000000000006',
+      portal: '0x292fC50e4eB66C3f6514b9E402dBc25961824D62',
+      decimals: 18,
+    },
+    // Katana WETH
+    '0x3d20098e8ed873e04f19731d96aaaffa2ac2e760': {
+      chain: 'katana',
+      symbol: 'WETH',
+      token: '0xEE7D8BCFb72bC1880D0Cf19822eB0A2e6577aB62',
+      portal: '0x292fC50e4eB66C3f6514b9E402dBc25961824D62',
+      decimals: 18,
+    },
+    // zkLink WETH
+    '0x8bbeaa343ee881a85758595648aa67a41e661c6d': {
+      chain: 'zklink',
+      symbol: 'WETH',
+      token: '0x8280a4e7D5B3B658ec4580d3Bc30f5e50454F169',
+      portal: '0x8Dc71561414CDcA6DcA7C1dED1ABd04AF474D189',
       decimals: 18,
     },
 

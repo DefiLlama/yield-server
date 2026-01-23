@@ -1,32 +1,60 @@
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
-const config = require('./config');
+const { sTokenPools, CHAIN_CONFIG } = require('./config');
 
 const OCTO_POOL_APR_URL = 'https://api.symbiosis.finance/crosschain/v1/octo-pool-apr';
+
+// Get chain name for DefiLlama price API
+const getPriceApiChain = (chain, isTron) => {
+  if (isTron) return 'tron';
+  return CHAIN_CONFIG[chain]?.priceApi || chain;
+};
+
+// Format chain name for DefiLlama display
+const formatChainName = (chain) => {
+  return CHAIN_CONFIG[chain]?.display || utils.formatChain(chain);
+};
 
 // This API returns APR by sToken address on Symbiosis chain
 const loadApyData = async () => {
   const response = await utils.getData(OCTO_POOL_APR_URL);
-  
+
   const apyData = {};
   for (const item of response.aprData || []) {
     const sToken = item.token.toLowerCase();
-    apyData[sToken] = item.apr; 
+    apyData[sToken] = item.apr;
   }
   return apyData;
 };
 
-// Load TVL data by querying token balances in portal contracts
+// Load TVL data by querying token balances and fetching USD prices
 const loadTvlData = async () => {
   const tvlData = {};
-  
+
   // Get all pools (EVM and Tron, excluding TON)
-  const pools = Object.entries(config.sTokenPools)
+  const pools = Object.entries(sTokenPools)
     .filter(([_, pool]) => !pool.isTon)
     .map(([sToken, pool]) => ({ sToken, ...pool }));
-  
-  // Query all chains in parallel
+
+  // Build price keys for batch price lookup (chain:address format)
+  const priceKeys = pools.map((pool) => {
+    const priceChain = getPriceApiChain(pool.chain, pool.isTron);
+    return `${priceChain}:${pool.token}`;
+  });
+
+  // Fetch all prices in a single batch request
+  let prices = {};
+  try {
+    const priceResponse = await utils.getData(
+      `https://coins.llama.fi/prices/current/${priceKeys.join(',').toLowerCase()}`
+    );
+    prices = priceResponse.coins || {};
+  } catch (err) {
+    console.log(`Failed to fetch prices: ${err.message}`);
+  }
+
+  // Query all token balances in parallel
   await Promise.all(
     pools.map(async (pool) => {
       try {
@@ -36,57 +64,28 @@ const loadTvlData = async () => {
           chain: pool.isTron ? 'tron' : pool.chain,
           abi: 'erc20:balanceOf',
         });
-        
+
         const balance = new BigNumber(balanceResult.output);
-        const tvlUsd = balance.div(new BigNumber(10).pow(pool.decimals)).toNumber();
-        
-        tvlData[pool.sToken] = tvlUsd;
+        const tokenAmount = balance.div(new BigNumber(10).pow(pool.decimals));
+
+        // Get USD price for this token
+        const priceChain = getPriceApiChain(pool.chain, pool.isTron);
+        const priceKey = `${priceChain}:${pool.token}`.toLowerCase();
+        const tokenPrice = prices[priceKey]?.price || 0;
+
+        if (tokenPrice === 0) {
+          console.log(`No price found for ${pool.chain} ${pool.symbol} (${priceKey})`);
+        }
+
+        tvlData[pool.sToken] = tokenAmount.times(tokenPrice).toNumber();
       } catch (err) {
         console.log(`Failed to fetch TVL for ${pool.chain} ${pool.symbol}: ${err.message}`);
         tvlData[pool.sToken] = 0;
       }
     })
   );
-  
-  return tvlData;
-};
 
-// Map chain names to DefiLlama format
-const formatChainName = (chain) => {
-  const chainMap = {
-    ethereum: 'Ethereum',
-    bsc: 'Binance',
-    polygon: 'Polygon',
-    avax: 'Avalanche',
-    boba: 'Boba',
-    telos: 'Telos',
-    era: 'zkSync Era',
-    arbitrum: 'Arbitrum',
-    optimism: 'Optimism',
-    arbitrum_nova: 'Arbitrum Nova',
-    polygon_zkevm: 'Polygon zkEVM',
-    linea: 'Linea',
-    mantle: 'Mantle',
-    base: 'Base',
-    scroll: 'Scroll',
-    manta: 'Manta',
-    ftn: 'Bahamut',
-    cronos: 'Cronos',
-    rsk: 'RSK',
-    xdai: 'Gnosis',
-    tron: 'Tron',
-    ton: 'TON',
-    sei: 'Sei',
-    cronos_zkevm: 'Cronos zkEVM',
-    hyperliquid: 'Hyperliquid',
-    gravity: 'Gravity',
-    kava: 'Kava',
-    zeta: 'ZetaChain',
-    plasma: 'Plasma',
-    morph: 'Morph',
-    katana: 'Katana',
-  };
-  return chainMap[chain] || utils.formatChain(chain);
+  return tvlData;
 };
 
 const main = async () => {
@@ -97,7 +96,7 @@ const main = async () => {
 
   const pools = [];
   
-  for (const [sToken, poolConfig] of Object.entries(config.sTokenPools)) {
+  for (const [sToken, poolConfig] of Object.entries(sTokenPools)) {
     const { chain, symbol, token } = poolConfig;
 
     const tvlUsd = tvlData[sToken] || 0;
