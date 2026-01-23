@@ -5,12 +5,12 @@ This adapter fetches yield data from Harbor Finance protocol using on-chain cont
 ## How Harbor Finance Works
 
 Harbor Finance is a synthetic asset protocol that offers:
-- **haTOKENS** (Harbor Anchored Tokens): Pegged synthetic assets that earn amplified yield (e.g., haETH, haBTC)
+- **haTOKENS** (Harbor Anchored Tokens): Pegged synthetic assets that earn amplified yield (e.g., haETH, haBTC, haEUR, haGOLD, haMCAP, haSILVER)
 - **Stability Pools**: Two types of pools that maintain system solvency and earn yield
   - **Collateral Pool**: Base yield pool
   - **Sail Pool**: Leveraged yield pool
 
-Each market has both a Collateral Pool and a Sail Pool.
+Each market has both a Collateral Pool and a Sail Pool. Markets are available for both fxUSD and stETH pairs.
 
 ## APR Calculation
 
@@ -36,9 +36,13 @@ TVL is calculated from haTokens deposited in stability pools:
 1. **Get Pool TVL**: Calls `totalAssets()` or `totalAssetSupply()` on each pool to get haToken amounts
 2. **Get Token Price**: 
    - Fetches `peggedTokenPrice()` from minter contract (returns price in underlying asset, e.g., 1 haBTC = 1 BTC worth)
-   - Fetches underlying asset price (BTC/ETH) from **Chainlink price feeds** (same oracles used by the protocol)
+   - Fetches underlying asset price from **Chainlink price feeds** (same oracles used by the protocol)
      - ETH/USD: `0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419`
      - BTC/USD: `0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c`
+     - XAU/USD (Gold): `0x214eD9Da11D2fbe465a6fc601a91E62EbEc1a0D6`
+     - EUR/USD: `0xb49f677943BC038e9857d61E7d053CaA2C1734C1`
+     - XAG/USD (Silver): `0x379589227b15F1a12195D3f2d90bBc9F31f95235`
+     - TOT_MCAP/USD (Total Crypto Market Cap): `0xEC8761a0A73c34329CA5B1D3Dc7eD07F30e836e2`
    - Chainlink prices are in 8 decimals for USD pairs
    - Calculates USD price: `peggedTokenPriceUSD = peggedTokenPriceInUnderlying * underlyingAssetPriceUSD`
 3. **Calculate Market TVL**: `(haTokens in Collateral Pool + haTokens in Sail Pool) × haToken Price USD`
@@ -66,17 +70,27 @@ const MARKETS = [
     sailPoolAddress: '0x438B29EC7a1770dDbA37D792F1A6e76231Ef8E06',
     minterAddress: '0xd6E2F8e57b4aFB51C6fA4cbC012e1cE6aEad989F',
   },
-  // ... more markets
+  {
+    peggedTokenSymbol: 'haBTC',
+    peggedTokenAddress: '0x25bA4A826E1A1346dcA2Ab530831dbFF9C08bEA7',
+    collateralPoolAddress: '0x667Ceb303193996697A5938cD6e17255EeAcef51', // BTC/stETH market
+    sailPoolAddress: '0xCB4F3e21DE158bf858Aa03E63e4cEc7342177013',
+    minterAddress: '0xF42516EB885E737780EB864dd07cEc8628000919',
+  },
+  // ... more markets (fxUSD and stETH pairs for each token)
 ];
 
 const TOKEN_CHAINLINK_FEED_MAP = {
   'haBTC': 'BTC_USD',
   'haETH': 'ETH_USD',
-  // Add new token symbols and their Chainlink feed keys here
+  'haGOLD': 'XAU_USD',
+  'haEUR': 'EUR_USD',
+  'haSILVER': 'XAG_USD',
+  'haMCAP': 'TOT_MCAP_USD',
 };
 ```
 
-**Important**: When adding a new token symbol, you must also add it to `TOKEN_CHAINLINK_FEED_MAP` with the appropriate Chainlink feed key (`BTC_USD` or `ETH_USD`). The adapter validates token symbols and will throw an error if an unsupported symbol is encountered.
+**Important**: When adding a new token symbol, you must also add it to `TOKEN_CHAINLINK_FEED_MAP` with the appropriate Chainlink feed key. The adapter validates token symbols and will throw an error if an unsupported symbol is encountered.
 
 ### Address Verification
 
@@ -119,6 +133,10 @@ The adapter uses Chainlink price feeds for underlying asset prices (consistent w
 
 - **ETH/USD**: `0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419`
 - **BTC/USD**: `0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c`
+- **XAU/USD** (Gold): `0x214eD9Da11D2fbe465a6fc601a91E62EbEc1a0D6`
+- **EUR/USD**: `0xb49f677943BC038e9857d61E7d053CaA2C1734C1`
+- **XAG/USD** (Silver): `0x379589227b15F1a12195D3f2d90bBc9F31f95235`
+- **TOT_MCAP/USD** (Total Crypto Market Cap): `0xEC8761a0A73c34329CA5B1D3Dc7eD07F30e836e2`
 
 **Required Methods:**
 - `latestAnswer()`: Returns `int256` - Latest price in 8 decimals for USD pairs
@@ -154,5 +172,6 @@ Each pool entry contains:
 - **Protocol Type**: Synthetic asset protocol with stability pools
 - **Chain**: Ethereum mainnet
 - **Key Products**:
-  - haTOKENS: Pegged synthetic assets (haETH, haBTC)
+  - haTOKENS: Pegged synthetic assets (haETH, haBTC, haEUR, haGOLD, haMCAP, haSILVER)
   - Stability Pools: Collateral and Sail pools that earn yield from reward streaming
+  - Markets: Available for both fxUSD and stETH pairs
