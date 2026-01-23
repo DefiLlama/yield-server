@@ -74,18 +74,22 @@ const apy = async () => {
       if (days === 7) apyBase7d = apy;
     }
 
+    // Use 7-day APY as primary metric (more stable than daily)
+    // Fall back to daily APY if 7-day isn't available yet
+    const primaryApy = apyBase7d > 0 ? apyBase7d : apyBase;
+
     const result = {
       pool: `${VAULT}-ethereum`.toLowerCase(),
       chain: 'Ethereum',
       project: 'lazy',
       symbol: 'USDC',
       tvlUsd: totalAssets,
-      apyBase,
+      apyBase: primaryApy,
       underlyingTokens: [USDC],
       url: 'https://getlazy.xyz',
     };
 
-    // Only include apyBase7d if we have 7+ days of data
+    // Include 7-day APY for additional context
     if (apyBase7d > 0) {
       result.apyBase7d = apyBase7d;
     }
