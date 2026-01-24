@@ -1,4 +1,3 @@
-const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
 const utils = require('../utils');
 
@@ -14,5 +13,5 @@ const apy = async (timestamp) => {
 module.exports = {
     timetravel: true,
     apy,
-    url: 'http://pokvault.xyz/',
+    url: 'https://pokvault.xyz/',
 };
