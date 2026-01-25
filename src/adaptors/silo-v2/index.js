@@ -2,10 +2,32 @@ const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const BigNumber = require('bignumber.js');
 const ethers = require('ethers');
+const { chunk } = require('lodash');
 
 const utils = require('../utils');
 
 BigNumber.config({ EXPONENTIAL_AT: [-1e9, 1e9] });
+
+// Helper to fetch prices in chunks to avoid URL length limits
+const getPricesChunked = async (addresses, chain, chunkSize = 50) => {
+  const uniqueAddresses = [...new Set(addresses)];
+  const chunks = chunk(uniqueAddresses, chunkSize);
+
+  let pricesByAddress = {};
+  let pricesBySymbol = {};
+
+  for (const addressChunk of chunks) {
+    try {
+      const prices = await utils.getPrices(addressChunk, chain);
+      pricesByAddress = { ...pricesByAddress, ...prices.pricesByAddress };
+      pricesBySymbol = { ...pricesBySymbol, ...prices.pricesBySymbol };
+    } catch (e) {
+      console.error(`Error fetching prices for chunk on ${chain}:`, e.message);
+    }
+  }
+
+  return { pricesByAddress, pricesBySymbol };
+};
 
 const XAI = '0xd7c9f0e536dc865ae858b0c0453fe76d13c3beac'
 const blacklistedSilos = ["0x6543ee07cf5dd7ad17aeecf22ba75860ef3bbaaa",];
@@ -243,7 +265,7 @@ async function getSiloData(api, deploymentData) {
     }
   }
 
-  let assetPrices = await utils.getPrices(siloData.map(entry => entry[0]), api.chain);
+  let assetPrices = await getPricesChunked(siloData.map(entry => entry[0]), api.chain);
 
   let assetDataBySilo = {};
   for(
@@ -445,7 +467,7 @@ async function getVaultData(api, deploymentData, chain) {
 
   }
 
-  let assetPrices = await utils.getPrices(assetsForPriceData, api.chain);
+  let assetPrices = await getPricesChunked(assetsForPriceData, api.chain);
 
   if(deploymentData?.SUBGRAPH_URL) {
     const VAULT_POSITION_BATCH_SIZE = 10;
