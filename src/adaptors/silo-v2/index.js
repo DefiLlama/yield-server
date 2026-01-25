@@ -626,7 +626,7 @@ const main = async () => {
             tvlUsd: new BigNumber(siloInfo.assetBalanceValueUSD).toNumber(),
             apyBase: new BigNumber(siloInfo.assetDepositAprFormatted).toNumber(),
             apyBaseBorrow: new BigNumber(siloInfo.assetBorrowAprFormatted).toNumber(),
-            url: `https://v2.silo.finance/markets/${chain}/${siloInfo.marketId}`,
+            url: `https://app.silo.finance/markets/${chain === 'avax' ? 'avalanche': chain}/${siloInfo.marketId}`,
             underlyingTokens: [siloInfo.assetAddress],
             ltv: Number(siloInfo.assetMaxLtvFormatted),
             totalBorrowUsd: Number(Number(siloInfo.totalBorrowValueUSD).toFixed(2)),
