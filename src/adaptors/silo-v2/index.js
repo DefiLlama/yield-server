@@ -515,18 +515,18 @@ async function getVaultData(api, deploymentData, chain) {
         if(!vaultIdToPositionMetadata[vaultAccountId]) {
           vaultIdToPositionMetadata[vaultAccountId] = {
             totalUnderlyingAssets: underlyingAssetAmount,
-            totalUnderlyingAssetsUSD: ethers.utils.formatUnits(new BigNumber(underlyingAssetAmount).multipliedBy(assetPrices.pricesByAddress[vaultPosition?.sToken?.asset?.id.toLowerCase()]).toFixed(0), vaultPosition?.sToken?.decimals),
+            totalUnderlyingAssetsUSD: ethers.utils.formatUnits(new BigNumber(underlyingAssetAmount).multipliedBy(assetPrices.pricesByAddress[vaultPosition?.sToken?.asset?.id.toLowerCase()] ?? 0).toFixed(0), vaultPosition?.sToken?.decimals),
             positions: [{
               rates: vaultPosition?.market?.rates,
               underlyingAssetSymbol: vaultPosition?.sToken?.symbol,
               underlyingAssetAmount,
-              underlyingAssetAmountUSD: ethers.utils.formatUnits(new BigNumber(underlyingAssetAmount).multipliedBy(assetPrices.pricesByAddress[vaultPosition?.sToken?.asset?.id.toLowerCase()]).toFixed(0), vaultPosition?.sToken?.decimals),
+              underlyingAssetAmountUSD: ethers.utils.formatUnits(new BigNumber(underlyingAssetAmount).multipliedBy(assetPrices.pricesByAddress[vaultPosition?.sToken?.asset?.id.toLowerCase()] ?? 0).toFixed(0), vaultPosition?.sToken?.decimals),
               underlyingAssetDecimals: vaultPosition?.sToken?.decimals,
             }]
           }
         } else {
           vaultIdToPositionMetadata[vaultAccountId].totalUnderlyingAssets = new BigNumber(vaultIdToPositionMetadata[vaultAccountId].totalUnderlyingAssets).plus(underlyingAssetAmount).toString();
-          vaultIdToPositionMetadata[vaultAccountId].totalUnderlyingAssetsUSD = new BigNumber(vaultIdToPositionMetadata[vaultAccountId].totalUnderlyingAssetsUSD).plus(new BigNumber(ethers.utils.formatUnits(new BigNumber(underlyingAssetAmount).multipliedBy(assetPrices.pricesByAddress[vaultPosition?.sToken?.asset?.id.toLowerCase()]).toFixed(0), vaultPosition?.sToken?.decimals))).toFixed(0),
+          vaultIdToPositionMetadata[vaultAccountId].totalUnderlyingAssetsUSD = new BigNumber(vaultIdToPositionMetadata[vaultAccountId].totalUnderlyingAssetsUSD).plus(new BigNumber(ethers.utils.formatUnits(new BigNumber(underlyingAssetAmount).multipliedBy(assetPrices.pricesByAddress[vaultPosition?.sToken?.asset?.id.toLowerCase()] ?? 0).toFixed(0), vaultPosition?.sToken?.decimals))).toFixed(0),
           vaultIdToPositionMetadata[vaultAccountId].positions.push({
             rates: vaultPosition?.market?.rates,
             underlyingAssetSymbol: vaultPosition?.sToken?.symbol,
@@ -578,14 +578,14 @@ async function getVaultData(api, deploymentData, chain) {
     let assetDepositedBalanceValueUSD = new BigNumber(
         assetDepositedBalanceFormatted
       )
-      .multipliedBy(assetPrices.pricesByAddress[asset.id.toLowerCase()])
+      .multipliedBy(assetPrices.pricesByAddress[asset.id.toLowerCase()] ?? 0)
       .toString();
 
     assetDataByVault[vaultAddress] = {
       assetAddress: asset.id,
       assetSymbol: asset.symbol,
       assetDecimals: asset.decimals,
-      assetPrice: assetPrices.pricesByAddress[asset.id.toLowerCase()],
+      assetPrice: assetPrices.pricesByAddress[asset.id.toLowerCase()] ?? 0,
       vaultId: name,
       apyBase,
       totalSupplyRaw: assetDepositedBalance.toString(),
