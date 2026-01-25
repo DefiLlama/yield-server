@@ -2,23 +2,22 @@ const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const BigNumber = require('bignumber.js');
 const ethers = require('ethers');
-const { chunk } = require('lodash');
 
 const utils = require('../utils');
 
 BigNumber.config({ EXPONENTIAL_AT: [-1e9, 1e9] });
 
 // Helper to fetch prices in chunks to avoid URL length limits
-const getPricesChunked = async (addresses, chain, chunkSize = 50) => {
+const PRICE_CHUNK_SIZE = 50;
+const getPricesChunked = async (addresses, chain) => {
   const uniqueAddresses = [...new Set(addresses)];
-  const chunks = chunk(uniqueAddresses, chunkSize);
-
   let pricesByAddress = {};
   let pricesBySymbol = {};
 
-  for (const addressChunk of chunks) {
+  for (let i = 0; i < uniqueAddresses.length; i += PRICE_CHUNK_SIZE) {
+    const chunk = uniqueAddresses.slice(i, i + PRICE_CHUNK_SIZE);
     try {
-      const prices = await utils.getPrices(addressChunk, chain);
+      const prices = await utils.getPrices(chunk, chain);
       pricesByAddress = { ...pricesByAddress, ...prices.pricesByAddress };
       pricesBySymbol = { ...pricesBySymbol, ...prices.pricesBySymbol };
     } catch (e) {
