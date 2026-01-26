@@ -177,6 +177,7 @@ const excludeAdaptors = [
   'garden',
   'tlx-finance',
   'unidex-perp',
+  'davos-protocol', // deprecated
 ];
 
 const excludePools = [
