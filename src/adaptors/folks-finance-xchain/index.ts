@@ -24,15 +24,20 @@ async function initPools() {
   // Get TVL for each spoke token in each chain
   const chainsPoolsTvl = await Promise.all(
     Object.keys(HubPools).map(async (chain) => {
-      const chainApi = new sdk.ChainApi({
-        chain: chain,
-        timestamp: Math.floor(Date.now() / 1000),
-      });
-      const tokensAndOwners = HubPools[chain].pools.map((pool) => [
-        pool.tokenAddress,
-        pool.spokeAddress ?? pool.poolAddress,
-      ]);
-      return await chainApi.sumTokens({ tokensAndOwners });
+      try {
+        const chainApi = new sdk.ChainApi({
+          chain: chain,
+          timestamp: Math.floor(Date.now() / 1000),
+        });
+        const tokensAndOwners = HubPools[chain].pools.map((pool) => [
+          pool.tokenAddress,
+          pool.spokeAddress ?? pool.poolAddress,
+        ]);
+        return await chainApi.sumTokens({ tokensAndOwners });
+      } catch (error) {
+        console.error(`Failed to fetch TVL for ${chain}:`, error.message);
+        return {}; // Return empty object for failed chains
+      }
     })
   );
 
@@ -202,10 +207,12 @@ const updateWithRewardsV2Data = async (poolsInfo) => {
   const rewardsTokenPriceIds = poolRewardsInfo
     .filter(Boolean)
     .map((poolRewardInfo) =>
-      poolRewardInfo.remainingRewards.map(
-        ([rewardTokenId]) =>
-          `${RewardsTokenV2[rewardTokenId].chain}:${RewardsTokenV2[rewardTokenId].tokenAddress}`
-      )
+      poolRewardInfo.remainingRewards
+        .filter(([rewardTokenId]) => RewardsTokenV2[rewardTokenId]) // Skip unknown reward tokens
+        .map(
+          ([rewardTokenId]) =>
+            `${RewardsTokenV2[rewardTokenId].chain}:${RewardsTokenV2[rewardTokenId].tokenAddress}`
+        )
     )
     .flat();
 
@@ -216,6 +223,9 @@ const updateWithRewardsV2Data = async (poolsInfo) => {
     const { remainingRewards, remainingTime } = poolRewardsInfo[i];
     remainingRewards.forEach(([rewardTokenId, remainingRewardsAmount]) => {
       const rewardTokenInfo = RewardsTokenV2[rewardTokenId];
+      // Skip unknown reward tokens
+      if (!rewardTokenInfo) return;
+
       const rewardTokenPrice =
         tokenPrices[
           `${
