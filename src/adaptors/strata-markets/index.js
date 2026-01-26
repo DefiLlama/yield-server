@@ -71,10 +71,10 @@ async function loadPool(tranche, symbol) {
 
   const apy = utils.aprToApy(symbol.startsWith('sr') ? aprs.srt : aprs.jrt);
   return {
-    pool: vault,
+    pool: vault.toLowerCase(),
     symbol: symbol,
     chain: 'ethereum',
-    project: 'strata-tranches',
+    project: 'strata-markets',
     tvlUsd: totalSupply * price,
     apyBase: apy,
   };
