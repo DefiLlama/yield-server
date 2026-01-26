@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const BigNumber = require('bignumber.js');
 const { getTotalSupply } = require('../utils');
 
 // USDO is a rebasing stablecoin, cUSDO is wrapped non-rebasing version
@@ -35,6 +36,7 @@ const getBlock = async (chain, timestamp) => {
 };
 
 // Get cUSDO exchange rate (assets per share) at a specific block
+// Returns a BigNumber to preserve precision for APY calculations
 const getExchangeRate = async (chain, address, block) => {
   const [totalAssets, totalSupply] = await Promise.all([
     sdk.api.abi.call({
@@ -51,8 +53,8 @@ const getExchangeRate = async (chain, address, block) => {
     }),
   ]);
 
-  if (totalSupply.output === '0') return 1;
-  return Number(totalAssets.output) / Number(totalSupply.output);
+  if (totalSupply.output === '0') return new BigNumber(1);
+  return new BigNumber(totalAssets.output).dividedBy(totalSupply.output);
 };
 
 const apy = async () => {
@@ -77,10 +79,19 @@ const apy = async () => {
     getExchangeRate('ethereum', ethConfig.cusdo, block7daysAgo),
   ]);
 
-  const apyBase =
-    ((rateNow - rate1dayAgo) / rate1dayAgo) * (365 / 1) * 100;
-  const apyBase7d =
-    ((rateNow - rate7daysAgo) / rate7daysAgo) * (365 / 7) * 100;
+  // Calculate APY using BigNumber for precision, convert to Number only at the end
+  const apyBase = rateNow
+    .minus(rate1dayAgo)
+    .dividedBy(rate1dayAgo)
+    .times(365)
+    .times(100)
+    .toNumber();
+  const apyBase7d = rateNow
+    .minus(rate7daysAgo)
+    .dividedBy(rate7daysAgo)
+    .times(365 / 7)
+    .times(100)
+    .toNumber();
   // Fetch USDO supplies for TVL (USDO is the main token, cUSDO is wrapped)
   // Solana only has cUSDO, so we track that there
   const [ethSupply, baseSupply, bscSupply, solSupply] = await Promise.all([
@@ -99,10 +110,11 @@ const apy = async () => {
     getTotalSupply(config.solana.cusdo).catch(() => 0),
   ]);
 
+  // Use BigNumber for supply conversion to avoid precision loss on large values
   const supplies = {
-    ethereum: Number(ethSupply.output) / 1e18,
-    base: Number(baseSupply.output) / 1e18,
-    bsc: Number(bscSupply.output) / 1e18,
+    ethereum: new BigNumber(ethSupply.output).dividedBy(1e18).toNumber(),
+    base: new BigNumber(baseSupply.output).dividedBy(1e18).toNumber(),
+    bsc: new BigNumber(bscSupply.output).dividedBy(1e18).toNumber(),
     solana: typeof solSupply === 'number' ? solSupply : 0,
   };
 
@@ -119,7 +131,7 @@ const apy = async () => {
 
     // USDO is pegged to $1, so TVL = supply
     // For Solana (cUSDO only), multiply by exchange rate
-    const tvlUsd = chain === 'solana' ? supply * rateNow : supply;
+    const tvlUsd = chain === 'solana' ? rateNow.times(supply).toNumber() : supply;
 
     // Only add pool if TVL > $1000
     if (tvlUsd > 1000) {
