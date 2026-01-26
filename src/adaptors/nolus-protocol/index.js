@@ -92,7 +92,7 @@ const getApy = async () => {
   // Fetch all pool data in a single request
   const poolsData = await utils.getData(`${etlAddress}/api/pools`);
   const poolsMap = {};
-  for (const pool of poolsData.protocols) {
+  for (const pool of poolsData?.protocols || []) {
     poolsMap[pool.protocol] = pool;
   }
 
