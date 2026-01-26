@@ -110,14 +110,27 @@ const getApy = async () => {
       oracleCurrenciesData.data,
       (n) => n.ticker == lppTickerData.data
     );
+
+    if (
+      !currencyData ||
+      !oraclePriceData?.data?.amount?.amount ||
+      !oraclePriceData?.data?.amount_quote?.amount
+    ) {
+      continue;
+    }
+
     let lppBalanceData = await queryContract(c.lpp, { lpp_balance: [] });
 
     // Get pool data from poolsMap
     const poolData = poolsMap[c.protocolName];
-    const earnApr = poolData ? parseFloat(poolData.earn_apr) : 0;
-    const borrowApr = poolData ? parseFloat(poolData.borrow_apr) : 0;
-    const totalSupplyUsd = poolData ? parseFloat(poolData.supplied) : 0;
-    const totalBorrowUsd = poolData ? parseFloat(poolData.borrowed) : 0;
+    const earnApr = Number(poolData?.earn_apr);
+    const borrowApr = Number(poolData?.borrow_apr);
+    const totalSupplyUsd = Number(poolData?.supplied);
+    const totalBorrowUsd = Number(poolData?.borrowed);
+    const safeEarnApr = Number.isFinite(earnApr) ? earnApr : 0;
+    const safeBorrowApr = Number.isFinite(borrowApr) ? borrowApr : 0;
+    const safeTotalSupplyUsd = Number.isFinite(totalSupplyUsd) ? totalSupplyUsd : 0;
+    const safeTotalBorrowUsd = Number.isFinite(totalBorrowUsd) ? totalBorrowUsd : 0;
 
     // Calculate asset price with BigNumber
     const amount = new BigNumber(oraclePriceData.data.amount.amount);
@@ -144,11 +157,11 @@ const getApy = async () => {
       project: 'nolus-protocol',
       symbol: c.symbol,
       tvlUsd: tvlUsd.toNumber(),
-      apyBase: earnApr,
-      apyBaseBorrow: borrowApr,
+      apyBase: safeEarnApr,
+      apyBaseBorrow: safeBorrowApr,
       apyRewardBorrow: 0, // No borrowing incentives
-      totalSupplyUsd: totalSupplyUsd,
-      totalBorrowUsd: totalBorrowUsd,
+      totalSupplyUsd: safeTotalSupplyUsd,
+      totalBorrowUsd: safeTotalBorrowUsd,
       // apyReward: null, TODO: add NLS rewards
       underlyingTokens: [currencyData.bank_symbol, currencyData.dex_symbol], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
       // rewardTokens: ['0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'], TODO: add NLS rewards
