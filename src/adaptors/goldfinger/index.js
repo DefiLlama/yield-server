@@ -1,4 +1,5 @@
 const sdk = require('@defillama/sdk');
+const BigNumber = require('bignumber.js');
 const utils = require('../utils');
 
 const PROJECT_NAME = 'goldfinger';
@@ -8,6 +9,7 @@ const ART_TOKEN = '0xb8a1eD561C914F22BD69b0bb4558ad5A89FeAAE1';
 
 const ABI = {
   totalSupply: 'function totalSupply() view returns (uint256)',
+  decimals: 'function decimals() view returns (uint8)',
 };
 
 const SECONDS_PER_DAY = 86400;
@@ -88,19 +90,29 @@ const main = async () => {
     LOOKBACK_DAYS
   );
 
-  // Get total supply for TVL calculation
-  const totalSupply = (
-    await sdk.api.abi.call({
+  // Get total supply and decimals for TVL calculation
+  const [totalSupplyResult, decimalsResult] = await Promise.all([
+    sdk.api.abi.call({
       target: ART_TOKEN,
       abi: ABI.totalSupply,
       chain: CHAIN,
-    })
-  ).output;
+    }),
+    sdk.api.abi.call({
+      target: ART_TOKEN,
+      abi: ABI.decimals,
+      chain: CHAIN,
+    }),
+  ]);
 
-  // Calculate TVL (totalSupply is in 6 decimals for ART token)
-  const decimals = currentPriceData.decimals || 6;
-  const tvlUsd =
-    (Number(totalSupply) / Math.pow(10, decimals)) * currentPriceData.price;
+  const totalSupply = new BigNumber(totalSupplyResult.output);
+  const tokenDecimals = Number(decimalsResult.output);
+  const price = new BigNumber(currentPriceData.price);
+
+  // Calculate TVL using BigNumber arithmetic to avoid overflow
+  const tvlUsd = totalSupply
+    .dividedBy(new BigNumber(10).pow(tokenDecimals))
+    .multipliedBy(price)
+    .toNumber();
 
   // Calculate APY from price appreciation
   const apy = computeAPY(
