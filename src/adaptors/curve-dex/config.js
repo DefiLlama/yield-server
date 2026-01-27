@@ -18,7 +18,7 @@ exports.BLOCKCHAINIDS = [
   // 'celo',
 ];
 // https://github.com/curvefi/curve-api/blob/main/endpoints.md#getpools
-REGISTRY_TYPES = [
+const REGISTRY_TYPES = [
   'main',
   'crypto',
   'factory',
@@ -31,6 +31,7 @@ REGISTRY_TYPES = [
 ];
 exports.BLOCKCHAINID_TO_REGISTRIES = {};
 exports.BLOCKCHAINIDS.forEach((blockchainId) => {
+  let blockchainRegistries;
   switch (blockchainId) {
     case 'ethereum':
     case 'arbitrum':
