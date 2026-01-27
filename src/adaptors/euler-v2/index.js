@@ -72,6 +72,11 @@ const chains = {
     vaultLens: '0x70d9bc0aBd4EF6Ceb7C88875b9cf4013db3D780A',
     fromBlock: 555116,
   },
+  monad: {
+    factory: '0xba4Dd672062dE8FeeDb665DD4410658864483f1E',
+    vaultLens: '0x15d1Cc54fB3f7C0498fc991a23d8Dc00DF3c32A0',
+    fromBlock: 30858651,
+  },
 };
 
 // Chain name mapping for URL construction
@@ -88,6 +93,7 @@ const chainNameMapping = {
   arbitrum: 'arbitrumone',
   linea: 'lineamainnet',
   tac: 'tac',
+  monad: 'monad',
 };
 
 const CHAIN_TIMEOUT_MS = 120_000;
