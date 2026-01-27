@@ -1,3 +1,4 @@
+exports.API_CORE_BASE_URL = 'https://api-core.curve.finance/v1'
 exports.CRV_API_BASE_URL = 'https://api.curve.finance/api';
 exports.CRV_API_BASE_URL_V1 = 'https://api.curve.finance/v1';
 exports.BLOCKCHAINIDS = [
@@ -13,6 +14,7 @@ exports.BLOCKCHAINIDS = [
   'base',
   'fraxtal',
   'sonic',
+  'monad',
   // 'celo',
 ];
 // https://github.com/curvefi/curve-api/blob/main/endpoints.md#getpools
@@ -40,6 +42,9 @@ exports.BLOCKCHAINIDS.forEach((blockchainId) => {
       break;
     case 'xdai':
       blockchainRegistries = REGISTRY_TYPES.slice(0, 3);
+      break;
+    case 'monad':
+      blockchainRegistries = REGISTRY_TYPES.slice(-3);
       break;
     default:
       blockchainRegistries = REGISTRY_TYPES.slice(0, -1);
