@@ -112,27 +112,6 @@ const getPoolsForChain = async (chain) => {
     })
   ).output.map((o) => o.output);
 
-  // Get quote token balances in pools (available liquidity)
-  const quoteBalances = (
-    await sdk.api.abi.multiCall({
-      calls: pools.map((pool, i) => ({
-        target: quoteTokens[i],
-        params: [pool],
-      })),
-      abi: 'erc20:balanceOf',
-      chain,
-    })
-  ).output.map((o) => o.output);
-
-  // Get token decimals
-  const quoteDecimals = (
-    await sdk.api.abi.multiCall({
-      calls: quoteTokens.map((token) => ({ target: token })),
-      abi: 'erc20:decimals',
-      chain,
-    })
-  ).output.map((o) => o.output);
-
   // Get token symbols (with permitFailure for non-standard tokens like MKR)
   const quoteSymbolsResult = await sdk.api.abi.multiCall({
     calls: quoteTokens.map((token) => ({ target: token })),
@@ -181,10 +160,8 @@ const getPoolsForChain = async (chain) => {
     const collateralToken = collateralTokens[i];
     const quoteSymbol = quoteSymbols[i];
     const collateralSymbol = collateralSymbols[i];
-    const decimals = quoteDecimals[i];
     const interestRate = interestRates[i];
     const debtInfo = debtInfos[i];
-    const quoteBalance = quoteBalances[i];
 
     if (!quoteToken || !collateralToken || !quoteSymbol || !collateralSymbol) {
       continue;
@@ -193,19 +170,20 @@ const getPoolsForChain = async (chain) => {
     const quotePrice = prices[`${chain}:${quoteToken}`]?.price;
     if (!quotePrice) continue;
 
-    // TVL is available liquidity (quote token balance in pool)
-    const availableLiquidity = quoteBalance / 10 ** decimals;
-    const tvlUsd = availableLiquidity * quotePrice;
+    const poolLoansInfo = poolLoansInfos[i];
 
-    // Skip pools with very low TVL
-    if (tvlUsd < 1000) continue;
-
-    // Total borrowed (debt)
+    // Total borrowed (debt) - in WAD format (18 decimals)
     const totalDebt = debtInfo ? debtInfo.debt_ / 10 ** 18 : 0;
     const totalBorrowUsd = totalDebt * quotePrice;
 
-    // Total supply = available + borrowed
-    const totalSupplyUsd = tvlUsd + totalBorrowUsd;
+    // Total supply from Ajna's internal accounting - poolSize_ is in WAD format
+    const poolSize = poolLoansInfo ? poolLoansInfo.poolSize_ / 10 ** 18 : 0;
+    const totalSupplyUsd = poolSize * quotePrice;
+
+    const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+
+    // Skip pools with very low TVL
+    if (tvlUsd < 1000) continue;
 
     // Interest rate is in WAD (18 decimals), annualized
     // ~90% goes to lenders (10% to reserves)
