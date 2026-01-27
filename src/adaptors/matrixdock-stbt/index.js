@@ -14,13 +14,6 @@ const tokens = {
       name: 'Short-term Treasury Bill Token',
     },
   ],
-  bsc: [
-    {
-      address: '0x0c0d1cbdfd83ee009dcb33abee7c5f3b7e3b3a68',
-      symbol: 'STBT',
-      name: 'Short-term Treasury Bill Token',
-    },
-  ],
 };
 
 const totalSharesAbi = {
