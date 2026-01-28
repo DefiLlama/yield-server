@@ -22,7 +22,7 @@ const poolsFunction = async () => {
   const pools = vaults.map((vault) => {
     const decimals = vault.underlyingDecimals || 6;
     const totalAssets = Number(vault.currentData?.totalAssets || 0) / 10 ** decimals;
-    const price = prices[vault.underlying.toLowerCase()] || 1;
+    const price = prices[vault.underlying.toLowerCase()] || 0;
     const tvlUsd = totalAssets * price;
 
     // APY from API (already in percentage format)
