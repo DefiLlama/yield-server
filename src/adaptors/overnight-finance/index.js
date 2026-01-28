@@ -7,6 +7,14 @@ const PAYOUT_EVENT =
 
 const CHAIN_TIMEOUT_MS = 60_000;
 
+const BASE_URL = 'https://app.overnight.fi/market';
+
+// Map symbol to URL path (lowercase, without '+')
+const getPoolUrl = (symbol) => {
+  const slug = symbol.toLowerCase().replace('+', '');
+  return `${BASE_URL}/${slug}`;
+};
+
 const pools = [
   {
     chain: 'arbitrum',
@@ -251,6 +259,7 @@ const apy = async () => {
               apyBase: 0,
               apyBase7d: 0,
               underlyingTokens: [token],
+              url: getPoolUrl(symbol),
             };
           }
 
@@ -313,6 +322,7 @@ const apy = async () => {
           apyBase,
           apyBase7d,
           underlyingTokens: [token],
+          url: getPoolUrl(symbol),
         };
       } catch (e) {
         console.error(`Error processing pool: ${e.message}`);
@@ -327,5 +337,4 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy,
-  url: 'https://app.overnight.fi/',
 };
