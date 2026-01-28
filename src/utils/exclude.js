@@ -178,6 +178,8 @@ const excludeAdaptors = [
   'tlx-finance',
   'unidex-perp',
   'davos-protocol', // deprecated
+  'kokonut-swap', // seems to be dead
+  'saddle-finance',
 ];
 
 const excludePools = [
