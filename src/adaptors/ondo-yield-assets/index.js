@@ -309,7 +309,7 @@ const getPoolsForChain = async (chain, sharedData) => {
       poolData.push({
         pool: `${token.address}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
-        project: 'ondo-finance',
+        project: 'ondo-yield-assets',
         symbol: utils.formatSymbol(token.symbol),
         tvlUsd,
         apyBase: Number(apyBase.toFixed(2)),
@@ -442,7 +442,7 @@ const getXrplPools = async (sharedData) => {
         poolData.push({
           pool: `${xrplConfig.ousg.issuer}-xrpl`,
           chain: 'Ripple',
-          project: 'ondo-finance',
+          project: 'ondo-yield-assets',
           symbol: utils.formatSymbol(xrplConfig.ousg.symbol),
           tvlUsd,
           apyBase: Number(apyBase.toFixed(2)),
@@ -475,7 +475,7 @@ const getSuiPools = async (sharedData) => {
         poolData.push({
           pool: `${suiConfig.usdy.coinType}-sui`,
           chain: 'Sui',
-          project: 'ondo-finance',
+          project: 'ondo-yield-assets',
           symbol: utils.formatSymbol(suiConfig.usdy.symbol),
           tvlUsd,
           apyBase: Number(apyBase.toFixed(2)),
@@ -509,7 +509,7 @@ const getStellarPools = async (sharedData) => {
         poolData.push({
           pool: `${stellarConfig.usdy.issuer}-stellar`,
           chain: 'Stellar',
-          project: 'ondo-finance',
+          project: 'ondo-yield-assets',
           symbol: utils.formatSymbol(stellarConfig.usdy.symbol),
           tvlUsd,
           apyBase: Number(apyBase.toFixed(2)),
@@ -542,7 +542,7 @@ const getOsmosisPools = async (sharedData) => {
         poolData.push({
           pool: `${osmosisConfig.usdy.ibcDenom}-osmosis`,
           chain: 'Osmosis',
-          project: 'ondo-finance',
+          project: 'ondo-yield-assets',
           symbol: utils.formatSymbol(osmosisConfig.usdy.symbol),
           tvlUsd,
           apyBase: Number(apyBase.toFixed(2)),
@@ -575,7 +575,7 @@ const getNoblePools = async (sharedData) => {
         poolData.push({
           pool: `${nobleConfig.usdy.denom}-noble`,
           chain: 'Noble',
-          project: 'ondo-finance',
+          project: 'ondo-yield-assets',
           symbol: utils.formatSymbol(nobleConfig.usdy.symbol),
           tvlUsd,
           apyBase: Number(apyBase.toFixed(2)),
@@ -609,7 +609,7 @@ const getSolanaPools = async (sharedData) => {
         poolData.push({
           pool: `${solanaConfig.usdy.address}-solana`,
           chain: 'Solana',
-          project: 'ondo-finance',
+          project: 'ondo-yield-assets',
           symbol: utils.formatSymbol(solanaConfig.usdy.symbol),
           tvlUsd,
           apyBase: Number(apyBase.toFixed(2)),
@@ -636,7 +636,7 @@ const getSolanaPools = async (sharedData) => {
         poolData.push({
           pool: `${solanaConfig.ousg.address}-solana`,
           chain: 'Solana',
-          project: 'ondo-finance',
+          project: 'ondo-yield-assets',
           symbol: utils.formatSymbol(solanaConfig.ousg.symbol),
           tvlUsd,
           apyBase: Number(apyBase.toFixed(2)),
