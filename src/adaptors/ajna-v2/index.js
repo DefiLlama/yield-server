@@ -4,8 +4,9 @@ const utils = require('../utils');
 const { factoryAbi, poolAbi, poolInfoUtilsAbi } = require('./abi');
 
 // Known token symbols for tokens with non-standard symbol() implementations
+// Keys must be lowercase for consistent lookups
 const knownSymbols = {
-  '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2': 'MKR', // MKR returns bytes32
+  '0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2': 'MKR', // MKR returns bytes32
 };
 
 const config = {
@@ -115,7 +116,7 @@ const getPoolsForChain = async (chain) => {
     for (let i = 0; i < quoteTokens.length; i++) {
       if (quoteTokens[i]) {
         const result = quoteSymbolsResult.output[validIdx];
-        quoteSymbolsMap[i] = result?.output || knownSymbols[quoteTokens[i]] || null;
+        quoteSymbolsMap[i] = result?.output || knownSymbols[quoteTokens[i].toLowerCase()] || null;
         validIdx++;
       } else {
         quoteSymbolsMap[i] = null;
@@ -135,7 +136,7 @@ const getPoolsForChain = async (chain) => {
     for (let i = 0; i < collateralTokens.length; i++) {
       if (collateralTokens[i]) {
         const result = collateralSymbolsResult.output[validIdx];
-        collateralSymbolsMap[i] = result?.output || knownSymbols[collateralTokens[i]] || null;
+        collateralSymbolsMap[i] = result?.output || knownSymbols[collateralTokens[i].toLowerCase()] || null;
         validIdx++;
       } else {
         collateralSymbolsMap[i] = null;
