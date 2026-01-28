@@ -86,7 +86,6 @@ const getPoolsForChain = async (chain) => {
 
   for (const token of chainTokens) {
     try {
-      // Get current total supply and decimals
       const [supplyResult, decimalsResult] = await Promise.all([
         sdk.api.abi.call({
           target: token.address,
@@ -105,14 +104,14 @@ const getPoolsForChain = async (chain) => {
 
       if (supply === BigInt(0)) continue;
 
-      // Get current price
       const priceKey = `${chain}:${token.address}`;
       const priceResponse = await axios.get(
         `https://coins.llama.fi/prices/current/${priceKey}`
       );
       const currentPrice = priceResponse.data.coins[priceKey]?.price || 1;
 
-      const supplyNum = Number(supply) / 10 ** decimals;
+      const scale = BigInt(10) ** BigInt(decimals);
+      const supplyNum = Number(supply / scale);
       const tvlUsd = supplyNum * currentPrice;
 
       if (tvlUsd < 10000) continue;
