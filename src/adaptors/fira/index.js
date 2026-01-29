@@ -65,6 +65,9 @@ async function getROI(chainConfig) {
   const USD0price = await getTokenPrice(chainConfig.CHAIN, chainConfig.USD0);
   const ROI = (USD0price / bUSD0price - 1) * 100;
   const secondsToMaturity = await getSecondsToMaturity(chainConfig);
+  if (!Number.isFinite(secondsToMaturity) || secondsToMaturity <= 0) {
+    return { ROI: 0, APR: 0, bUSD0price, USD0price };
+  }
   const APR = (ROI * CONFIG.SECONDS_PER_YEAR) / secondsToMaturity;
   return { ROI, APR, bUSD0price, USD0price };
 }
@@ -72,7 +75,9 @@ async function getROI(chainConfig) {
 async function getAllAPYs(chainConfig) {
   const LTV = CONFIG.LTV;
   const { APR, ROI, bUSD0price, USD0price } = await getROI(chainConfig);
-  const maxLeverage = 1 / (1 - LTV / bUSD0price);
+
+  const denom = 1 - LTV / bUSD0price;
+  const maxLeverage = denom > 0 && Number.isFinite(denom) ? 1 / denom : 1;
   const leverageAPR = APR * maxLeverage;
   return { maxLeverage, leverageAPR, APR, ROI, bUSD0price, USD0price };
 }
