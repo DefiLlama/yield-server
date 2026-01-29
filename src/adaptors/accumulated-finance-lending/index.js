@@ -27,7 +27,7 @@ const main = async () => {
       return {
         pool: pool.address,
         chain,
-        project: 'accumulated-finance',
+        project: 'accumulated-finance-lending',
         symbol: pool.assetTokenDetails.symbol,
         tvlUsd: tvlUsd,
         apyBase: pool.lendingRate / 100,
