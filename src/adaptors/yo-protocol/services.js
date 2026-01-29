@@ -1,5 +1,7 @@
 const superagent = require('superagent');
 
+const YOGOLD_ADDRESS = '0x586675a3a46b008d8408933cf42d8ff6c9cc61a1';
+
 exports.getVaultReward = async (url) => {
   const response = (await superagent.get(url)).body;
 
@@ -14,7 +16,11 @@ exports.getVaultReward = async (url) => {
   response
     .filter(
       (opportunity) =>
-        opportunity.status === 'LIVE' && typeof opportunity.apr === 'number'
+        opportunity.status === 'LIVE' &&
+        typeof opportunity.apr === 'number' &&
+        opportunity.type !== 'INVALID' &&
+        (opportunity.chainId !== 1 ||
+          opportunity.identifier.toLowerCase() === YOGOLD_ADDRESS)
     )
     .forEach((opportunity) => {
       vaultRewardMap.set(opportunity.identifier.toLowerCase(), opportunity);

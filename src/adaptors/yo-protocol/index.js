@@ -5,7 +5,7 @@ const { getVaultReward } = require('./services');
 const PROJECT_NAME = 'yo-protocol';
 const API_URL = 'https://api.yo.xyz/api/v1/vault/stats';
 const MERKL_API_URL =
-  'https://api.merkl.xyz/v4/opportunities/?creatorAddress=0x8C9200d94Cf7A1B201068c4deDa6239F15FED480&status=LIVE&chainName=Base';
+  'https://api.merkl.xyz/v4/opportunities/?creatorAddress=0x8C9200d94Cf7A1B201068c4deDa6239F15FED480&status=LIVE';
 const symboToNameMap = {
   yoETH: 'Yield Optimizer ETH',
   yoBTC: 'Yield Optimizer BTC',
@@ -71,7 +71,7 @@ const apy = async () => {
       url: `https://app.yo.xyz/vault/base/${vault.contracts.vaultAddress}`,
       ...(vaultReward && {
         apyReward: Number(vaultReward.apr),
-        rewardTokens: [vault.asset.address],
+        rewardTokens: ['0x1925450f5e5fb974b0aae1f3408cf5286fbd1a72'],
       }),
     };
 
