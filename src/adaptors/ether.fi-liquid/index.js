@@ -21,6 +21,8 @@ const liquidHYPEOracle = '0x1CeaB703956e24b18a0AF6b272E0bF3F499aCa0F';
 const weETH = '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee';
 const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
 const WBTC = '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599';
+const HYPE = '0x0000000000000000000000000000000000000000';
+const beHYPE = '0xd8FC8F0b03eBA61F64D08B0bef69d80916E5DdA9';
 
 const SECONDS_PER_DAY = 86400;
 
@@ -217,7 +219,7 @@ const apy = async () => {
     `ethereum:${liquidETH}`,
     `ethereum:${liquidUSD}`,
     `ethereum:${WBTC}`,
-    'hyperliquid:0x0000000000000000000000000000000000000000',
+    `hyperliquid:${HYPE}`,
   ];
   const pricesRes = await axios.get(
     `https://coins.llama.fi/prices/current/${priceKeys.join(',')}`
@@ -379,7 +381,7 @@ const apy = async () => {
       tvlUsd: liquidHYPETvl,
       apyBase: liquidHYPEApr1d > 0 ? liquidHYPEApr1d : liquidHYPEApr7d,
       apyBase7d: liquidHYPEApr7d > 0 ? liquidHYPEApr7d : undefined,
-      underlyingTokens: [],
+      underlyingTokens: [HYPE, beHYPE],
       url: 'https://app.ether.fi/liquid/hype',
     },
   ];
