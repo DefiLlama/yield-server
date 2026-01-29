@@ -65,10 +65,15 @@ const calculateApr = (currentRate, pastRate, days) => {
 };
 
 const getBlock = async (timestamp, chain = 'ethereum') => {
-  const response = await axios.get(
-    `https://coins.llama.fi/block/${chain}/${timestamp}`
-  );
-  return response.data.height;
+  try {
+    const response = await axios.get(
+      `https://coins.llama.fi/block/${chain}/${timestamp}`
+    );
+    return response.data.height;
+  } catch (e) {
+    console.error(`Error fetching block for ${chain} at ${timestamp}:`, e.message);
+    return null;
+  }
 };
 
 const getAccountant = async (vaultAddress, chain) => {
@@ -203,10 +208,10 @@ const apy = async () => {
         apyBase = apiApy?.apyBase || 0;
         apyBase7d = apiApy?.apyBase7d || 0;
       } else {
-        // Calculate APY from on-chain rate changes
+        // Calculate APY from on-chain rate changes (skip if blocks unavailable)
         const [rate1d, rate7d] = await Promise.all([
-          getRate(accountant, vault.chain, block1d),
-          getRate(accountant, vault.chain, block7d),
+          block1d ? getRate(accountant, vault.chain, block1d) : null,
+          block7d ? getRate(accountant, vault.chain, block7d) : null,
         ]);
         const apr1d = calculateApr(currentRate, rate1d, 1);
         const apr7d = calculateApr(currentRate, rate7d, 7);
