@@ -325,7 +325,7 @@ const topTvl = async (
       return {
         pool: p.id,
         chain: utils.formatChain(chainString),
-        project: 'maia-v3',
+        project: 'maia-cl',
         poolMeta: `${poolMeta}, stablePool=${p.stablecoin}`,
         symbol: p.symbol,
         tvlUsd: p.totalValueLockedUSD,
