@@ -43,7 +43,6 @@ const main = async () => {
         underlyingTokens: [pool.collateralToken],
       };
     })
-    // .filter(pool => pool && pool.tvlUsd >= 10000)
     .filter((p) => p && utils.keepFinite(p));
 };
 
