@@ -78,8 +78,6 @@ const apy = async () => {
     result.push(pool);
   }
 
-  console.log('result', result);
-
   return result;
 };
 
