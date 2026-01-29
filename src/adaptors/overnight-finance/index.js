@@ -139,13 +139,18 @@ const apy = async () => {
   const supplyResultsArray = await Promise.all(
     chains.map(async (chain) => {
       const chainPools = poolsByChain[chain];
-      const { output } = await sdk.api.abi.multiCall({
-        chain,
-        abi: 'erc20:totalSupply',
-        calls: chainPools.map((p) => ({ target: p.token })),
-        permitFailure: true,
-      });
-      return { chain, results: output.map((o) => (o.success ? o.output : '0')) };
+      try {
+        const { output } = await sdk.api.abi.multiCall({
+          chain,
+          abi: 'erc20:totalSupply',
+          calls: chainPools.map((p) => ({ target: p.token })),
+          permitFailure: true,
+        });
+        return { chain, results: output.map((o) => (o.success ? o.output : '0')) };
+      } catch (e) {
+        console.error(`Error fetching supplies for ${chain}: ${e.message}`);
+        return { chain, results: chainPools.map(() => '0') };
+      }
     })
   );
 
