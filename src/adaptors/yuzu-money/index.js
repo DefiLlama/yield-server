@@ -23,9 +23,9 @@ const yuzuConfig = {
       address: '0xc8a8df9b210243c55d31c73090f06787ad0a1bf6',
       unit: UNIT,
     },
-    yzPP: { 
+    yzPP: {
       address: '0xEbFC8C2Fe73C431Ef2A371AeA9132110aaB50DCa',
-      unit: UNIT
+      unit: UNIT,
     },
   },
   ethereum: {
@@ -37,9 +37,9 @@ const yuzuConfig = {
       address: '0x6DFF69eb720986E98Bb3E8b26cb9E02Ec1a35D12',
       unit: UNIT,
     },
-    yzPP: { 
-      address: '0xB2429bA2cfa6387C9A336Da127d34480C069F851', 
-      unit: UNIT
+    yzPP: {
+      address: '0xB2429bA2cfa6387C9A336Da127d34480C069F851',
+      unit: UNIT,
     },
   },
   monad: {
@@ -51,9 +51,9 @@ const yuzuConfig = {
       address: '0x484be0540aD49f351eaa04eeB35dF0f937D4E73f',
       unit: UNIT,
     },
-    yzPP: { 
-      address: '0xb37476cB1F6111cC682b107B747b8652f90B0984', 
-      unit: UNIT
+    yzPP: {
+      address: '0xb37476cB1F6111cC682b107B747b8652f90B0984',
+      unit: UNIT,
     },
   },
 };
@@ -75,9 +75,14 @@ const TOKEN_META = {
 const getUsdPrice = async (chain, token) => {
   const priceKey = `${chain}:${token.address}`;
   const { data } = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKey}`
+    `https://coins.llama.fi/prices/current/${priceKey}`,
   );
-  return data.coins[priceKey]?.price;
+  const price = data.coins[priceKey]?.price;
+  if (price === undefined) {
+    throw new Error(`Price not found for ${priceKey}`);
+  }
+
+  return price;
 };
 
 const getTotalSupply = async (chain, token) => {
@@ -93,7 +98,7 @@ const getRedemptionPrice = async (
   chain,
   blockNumber,
   token,
-  underlyingAssetUnit
+  underlyingAssetUnit,
 ) => {
   const { output } = await sdk.api.abi.call({
     target: token.address,
@@ -118,9 +123,13 @@ const calculateTvlByToken = async (tokenKey) => {
 
   // Price always fetched from Plasma
   const tokenPrice = await getUsdPrice('plasma', yuzuConfig.plasma[tokenKey]);
+  const effectivePlasmaSupply = Math.max(
+    0,
+    plasmaSupply - monadSupply - ethereumSupply,
+  );
 
   return {
-    plasma: (plasmaSupply - monadSupply - ethereumSupply) * tokenPrice,
+    plasma: effectivePlasmaSupply * tokenPrice,
     ethereum: ethereumSupply * tokenPrice,
     monad: monadSupply * tokenPrice,
   };
