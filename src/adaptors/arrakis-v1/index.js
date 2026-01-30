@@ -8,18 +8,12 @@ const { arrakisABI } = require('./abi');
 const FACTORIES = {
   ethereum: '0xea1aff9dbffd1580f6b81a3ad3589e66652db7d9',
   polygon: '0x37265A834e95D11c36527451c7844eF346dC342a',
-  // optimism: Factory address not found for V1
-};
-
-const CHAIN_IDS = {
-  ethereum: 1,
-  polygon: 137,
+  optimism: '0x2845c6929d621e32B7596520C8a1E5a37e616F09',
 };
 
 const getApy = async () => {
   const allPools = [];
 
-  // Fetch APY data from Arrakis official API
   let apyByVault = {};
   try {
     const arrakisResponse = await axios.get(
@@ -28,7 +22,6 @@ const getApy = async () => {
 
     if (arrakisResponse.data.success && arrakisResponse.data.vaults) {
       arrakisResponse.data.vaults.forEach((vault) => {
-        // averageApr is already in percentage form (e.g., 22.96 = 22.96%)
         const apyBase = vault.averageApr || 0;
         apyByVault[vault.id.toLowerCase()] = apyBase;
       });
@@ -37,10 +30,8 @@ const getApy = async () => {
     console.error('Error fetching Arrakis APY data:', error.message);
   }
 
-  // Focus on Ethereum first as it has most TVL
   for (const [chain, factoryAddress] of Object.entries(FACTORIES)) {
     try {
-      // Get all deployers
       const deployersResult = await sdk.api.abi.call({
         target: factoryAddress,
         abi: arrakisABI.getDeployers,
@@ -112,7 +103,6 @@ const getApy = async () => {
         }),
       ]);
 
-      // Create token metadata map
       const tokenMetadata = {};
       uniqueTokens.forEach((token, i) => {
         tokenMetadata[token.toLowerCase()] = {
@@ -121,7 +111,6 @@ const getApy = async () => {
         };
       });
 
-      // Get prices for all tokens
       const priceKeys = uniqueTokens.map((t) => `${chain}:${t}`);
       const prices = (
         await axios.get(
@@ -129,7 +118,6 @@ const getApy = async () => {
         )
       ).data.coins;
 
-      // Build pool data
       for (let i = 0; i < vaultAddresses.length; i++) {
         const vault = vaultAddresses[i];
         const token0 = token0Results.output[i]?.output;
@@ -153,10 +141,8 @@ const getApy = async () => {
 
         const tvlUsd = amount0 * price0 + amount1 * price1;
 
-        // Skip pools with very low TVL (likely inactive)
         if (tvlUsd < 1000) continue;
 
-        // Look up APY from Arrakis API by vault address
         const apyBase = apyByVault[vault.toLowerCase()] || 0;
 
         allPools.push({
@@ -166,7 +152,6 @@ const getApy = async () => {
           symbol: `${token0Meta.symbol}-${token1Meta.symbol}`,
           tvlUsd: tvlUsd,
           apyBase: apyBase,
-          url: `https://beta.arrakis.finance/vaults/${CHAIN_IDS[chain]}/${vault}`,
           underlyingTokens: [token0, token1],
         });
       }
@@ -180,5 +165,6 @@ const getApy = async () => {
 
 module.exports = {
   timetravel: false,
+  url: 'https://palm.arrakis.finance/vaults',
   apy: getApy,
 };
