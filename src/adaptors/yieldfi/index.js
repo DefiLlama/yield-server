@@ -65,18 +65,13 @@ const YBTC_CONTRACTS = {
 const VYBTC_CONTRACTS = {
   ethereum: "0x1e2a5622178f93EFd4349E2eB3DbDF2761749e1B",
 };
+
+const YPRISM_CONTRACTS = {
+  ethereum: '0xdd5eff0756db08bad0ff16b66f88f506e7318894',
+  bsc: '0xdd5eff0756db08bad0ff16b66f88f506e7318894',
+};
 // Supported chains
 const SUPPORTED_CHAINS = Object.keys(YUSD_CONTRACTS);
-
-// API endpoints
-const API_ENDPOINTS = {
-  yUSD: 'https://ctrl.yield.fi/t/apy/yusd/apyHistory',
-  vyUSD: 'https://ctrl.yield.fi/t/apy/vyusd/apyHistory',
-  yETH: 'https://ctrl.yield.fi/t/apy/yeth/apyHistory',
-  vyETH: 'https://ctrl.yield.fi/t/apy/vyeth/apyHistory',
-  yBTC: 'https://ctrl.yield.fi/t/apy/ybtc/apyHistory',
-  vyBTC: 'https://ctrl.yield.fi/t/apy/vybtc/apyHistory',
-};
 
 // ABIs
 const ABIS = {
@@ -90,29 +85,19 @@ const ABIS = {
  */
 const fetchLatestAPY = async (tokenSymbol) => {
   try {
-    const endpoint = API_ENDPOINTS[tokenSymbol];
-    if (!endpoint) {
-      console.error(`No API endpoint found for ${tokenSymbol}`);
-      return 0;
-    }
-
+    const endpoint = `https://gw.yield.fi/vault/api/public/vaults/${tokenSymbol?.toLowerCase()}`;
+    
     const response = await fetch(endpoint);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
 
     const data = await response.json();
-    const apyHistory = data.apy_history;
-
-    if (!apyHistory || !Array.isArray(apyHistory) || apyHistory.length === 0) {
+    const _apy = data.data.vault.metrics.apy;
+    if (!_apy) {
       console.error(`No APY history data found for ${tokenSymbol}`);
       return 0;
     }
 
     // Get the latest APY (first entry in the array is the most recent)
-    const latestAPY = apyHistory[0].apy;
-
-    console.log(`${tokenSymbol} latest APY: ${latestAPY.toFixed(2)}%`);
+    const latestAPY = _apy * 100;
     return parseFloat(latestAPY.toFixed(2));
   } catch (error) {
     console.error(`Error fetching APY for ${tokenSymbol}:`, error);
@@ -213,7 +198,20 @@ const poolsFunction = async () => {
         processToken(YETH_CONTRACTS[chain], 'yETH', chain),
         processToken(VYETH_CONTRACTS[chain], 'vyETH', chain),
         processToken(YBTC_CONTRACTS[chain], 'yBTC', chain),
-        processToken(VYBTC_CONTRACTS[chain], 'vyBTC', chain)
+        processToken(VYBTC_CONTRACTS[chain], 'vyBTC', chain),
+        processToken(YPRISM_CONTRACTS[chain], 'yPrism', chain)
+      );
+    }
+    if (chain === 'arbitrum' || chain === 'base') {
+      tokenPromises.push(
+        processToken(YETH_CONTRACTS[chain], 'yETH', chain),
+        processToken(VYETH_CONTRACTS[chain], 'vyETH', chain)
+      );
+    }
+
+    if (chain === 'bsc') {
+      tokenPromises.push(
+        processToken(YPRISM_CONTRACTS[chain], 'yPrism', chain)
       );
     }
 
@@ -234,5 +232,5 @@ const poolsFunction = async () => {
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
-  url: 'https://yield.fi/mint',
+  url: 'https://yield.fi/vaults/yprism',
 };
