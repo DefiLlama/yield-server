@@ -86,17 +86,17 @@ const ABIS = {
 const fetchLatestAPY = async (tokenSymbol) => {
   try {
     const endpoint = `https://gw.yield.fi/vault/api/public/vaults/${tokenSymbol?.toLowerCase()}`;
-    
+
     const response = await fetch(endpoint);
 
     const data = await response.json();
-    const _apy = data.data.vault.metrics.apy;
+    const _apy = data?.data?.vault?.metrics?.apy;
     if (!_apy) {
       console.error(`No APY history data found for ${tokenSymbol}`);
       return 0;
     }
 
-    // Get the latest APY (first entry in the array is the most recent)
+    // Convert APY from decimal to percentage
     const latestAPY = _apy * 100;
     return parseFloat(latestAPY.toFixed(2));
   } catch (error) {
@@ -189,7 +189,7 @@ const poolsFunction = async () => {
   const chainPromises = SUPPORTED_CHAINS.map(async (chain) => {
     const tokenPromises = [
       processToken(YUSD_CONTRACTS[chain], 'yUSD', chain),
-      processToken(VYUSD_CONTRACTS[chain], 'vyUSD', chain)
+      processToken(VYUSD_CONTRACTS[chain], 'vyUSD', chain),
     ];
 
     // Only process yETH, vyETH, yBTC, vyBTC on Ethereum
@@ -207,6 +207,12 @@ const poolsFunction = async () => {
         processToken(YETH_CONTRACTS[chain], 'yETH', chain),
         processToken(VYETH_CONTRACTS[chain], 'vyETH', chain)
       );
+    }
+
+    // Process yETH for saga chain (vyETH not available on saga)
+    if (chain === 'saga') {
+      tokenPromises.push(processToken(YETH_CONTRACTS[chain], 'yETH', chain));
+      // Note: vyETH is not supported on saga chain - VYETH_CONTRACTS has no saga entry
     }
 
     if (chain === 'bsc') {
