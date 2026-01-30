@@ -129,7 +129,7 @@ const getApy = async () => {
     let price = amountQuote.div(amount);
 
     // Get LPN decimals from currencies API and calculate adjustment
-    const lpnDecimals = currencyDecimals[c.symbol] || STABLE_QUOTE_DECIMALS;
+    const lpnDecimals = currencyDecimals[c.symbol] ?? STABLE_QUOTE_DECIMALS;
     const decimalsAdjustment = getDecimalAdjustment(lpnDecimals);
     price = price.times(decimalsAdjustment);
 
