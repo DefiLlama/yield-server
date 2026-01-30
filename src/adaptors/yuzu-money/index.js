@@ -149,6 +149,14 @@ const calculateApy = async (chain, token, underlyingAssetUnit) => {
     getRedemptionPrice(chain, currentBlock.block, token, underlyingAssetUnit),
   ]);
 
+  if (
+    !Number.isFinite(startPrice) ||
+    !Number.isFinite(currentPrice) ||
+    startPrice <= 0
+  ) {
+    return 0;
+  }
+
   const appreciationRatio = currentPrice / startPrice;
   return (
     (Math.pow(appreciationRatio, YEAR_IN_DAYS / APY_REFERENCE_PERIOD_IN_DAYS) -
