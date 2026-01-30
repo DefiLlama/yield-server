@@ -1,135 +1,181 @@
 const axios = require('axios');
-
-const { gql, request } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const { arrakisABI } = require('./abi');
 
-const CHAINS = {
-  ethereum: sdk.graph.modifyEndpoint(
-    '2jrpKNFuyHgD6rKf5UUMHkmn1LmkCZG4RsGW4DtqU2i'
-  ),
-  polygon: sdk.graph.modifyEndpoint(
-    '3mgJQXKpkggZUKbt8v5pDy9jvkvKV7EEYGi4rogNmLbZ'
-  ),
-  optimism: sdk.graph.modifyEndpoint(
-    'H7KF8RUHTk5PrtQCZ5iFCqB5Xrp66gq1aJhXbJXkW9xB'
-  ),
+// Arrakis V1 Factory contracts
+const FACTORIES = {
+  ethereum: '0xea1aff9dbffd1580f6b81a3ad3589e66652db7d9',
+  polygon: '0x37265A834e95D11c36527451c7844eF346dC342a',
+  // optimism: Factory address not found for V1
 };
 
 const CHAIN_IDS = {
   ethereum: 1,
-  optimism: 10,
   polygon: 137,
 };
 
-const vaultsQuery = gql`
-  {
-    vaults {
-      id
-      apr {
-        averageApr
+const getApy = async () => {
+  const allPools = [];
+
+  // Fetch APY data from Arrakis official API
+  let apyByVault = {};
+  try {
+    const arrakisResponse = await axios.get(
+      'https://indexer.api.arrakis.finance/api/vault/all?version=V1&sortDirection=desc&sort=tvl'
+    );
+
+    if (arrakisResponse.data.success && arrakisResponse.data.vaults) {
+      arrakisResponse.data.vaults.forEach((vault) => {
+        // averageApr is already in percentage form (e.g., 22.96 = 22.96%)
+        const apyBase = vault.averageApr || 0;
+        apyByVault[vault.id.toLowerCase()] = apyBase;
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching Arrakis APY data:', error.message);
+  }
+
+  // Focus on Ethereum first as it has most TVL
+  for (const [chain, factoryAddress] of Object.entries(FACTORIES)) {
+    try {
+      // Get all deployers
+      const deployersResult = await sdk.api.abi.call({
+        target: factoryAddress,
+        abi: arrakisABI.getDeployers,
+        chain: chain,
+      });
+
+      if (!deployersResult.output || deployersResult.output.length === 0) {
+        continue;
       }
-      snapshots(orderBy: startTimestamp, orderDirection: desc, first: 1) {
-        apr
+
+      const deployers = deployersResult.output;
+
+      // Get all vaults for each deployer
+      const vaultAddresses = [];
+      for (const deployer of deployers) {
+        const vaultsResult = await sdk.api.abi.call({
+          target: factoryAddress,
+          abi: arrakisABI.getPools,
+          params: [deployer],
+          chain: chain,
+        });
+
+        if (vaultsResult.output && vaultsResult.output.length > 0) {
+          vaultAddresses.push(...vaultsResult.output);
+        }
       }
-      token0 {
-        symbol
-        address
-        decimals
+
+      if (vaultAddresses.length === 0) {
+        continue;
       }
-      token1 {
-        symbol
-        address
-        decimals
+
+      // Get token0, token1, and underlying balances for all vaults
+      const [token0Results, token1Results, balancesResults] = await Promise.all([
+        sdk.api.abi.multiCall({
+          abi: arrakisABI.token0,
+          calls: vaultAddresses.map((vault) => ({ target: vault })),
+          chain: chain,
+        }),
+        sdk.api.abi.multiCall({
+          abi: arrakisABI.token1,
+          calls: vaultAddresses.map((vault) => ({ target: vault })),
+          chain: chain,
+        }),
+        sdk.api.abi.multiCall({
+          abi: arrakisABI.getUnderlyingBalances,
+          calls: vaultAddresses.map((vault) => ({ target: vault })),
+          chain: chain,
+        }),
+      ]);
+
+      // Get token metadata (symbol, decimals)
+      const uniqueTokens = [
+        ...new Set([
+          ...token0Results.output.map((r) => r.output),
+          ...token1Results.output.map((r) => r.output),
+        ]),
+      ];
+
+      const [symbolResults, decimalsResults] = await Promise.all([
+        sdk.api.abi.multiCall({
+          abi: 'erc20:symbol',
+          calls: uniqueTokens.map((token) => ({ target: token })),
+          chain: chain,
+        }),
+        sdk.api.abi.multiCall({
+          abi: 'erc20:decimals',
+          calls: uniqueTokens.map((token) => ({ target: token })),
+          chain: chain,
+        }),
+      ]);
+
+      // Create token metadata map
+      const tokenMetadata = {};
+      uniqueTokens.forEach((token, i) => {
+        tokenMetadata[token.toLowerCase()] = {
+          symbol: symbolResults.output[i]?.output || 'UNKNOWN',
+          decimals: decimalsResults.output[i]?.output || 18,
+        };
+      });
+
+      // Get prices for all tokens
+      const priceKeys = uniqueTokens.map((t) => `${chain}:${t}`);
+      const prices = (
+        await axios.get(
+          `https://coins.llama.fi/prices/current/${priceKeys.join(',')}`
+        )
+      ).data.coins;
+
+      // Build pool data
+      for (let i = 0; i < vaultAddresses.length; i++) {
+        const vault = vaultAddresses[i];
+        const token0 = token0Results.output[i]?.output;
+        const token1 = token1Results.output[i]?.output;
+        const balances = balancesResults.output[i]?.output;
+
+        if (!token0 || !token1 || !balances) continue;
+
+        const token0Meta = tokenMetadata[token0.toLowerCase()];
+        const token1Meta = tokenMetadata[token1.toLowerCase()];
+
+        // balances is an array: [amount0Current, amount1Current]
+        const amount0 = Number(balances[0]) / 10 ** token0Meta.decimals;
+        const amount1 = Number(balances[1]) / 10 ** token1Meta.decimals;
+
+        // Prices are keyed by the exact case returned from the API
+        const price0Key = `${chain}:${token0}`;
+        const price1Key = `${chain}:${token1}`;
+        const price0 = prices[price0Key]?.price || 0;
+        const price1 = prices[price1Key]?.price || 0;
+
+        const tvlUsd = amount0 * price0 + amount1 * price1;
+
+        // Skip pools with very low TVL (likely inactive)
+        if (tvlUsd < 1000) continue;
+
+        // Look up APY from Arrakis API by vault address
+        const apyBase = apyByVault[vault.toLowerCase()] || 0;
+
+        allPools.push({
+          pool: vault,
+          chain: utils.formatChain(chain),
+          project: 'arrakis-v1',
+          symbol: `${token0Meta.symbol}-${token1Meta.symbol}`,
+          tvlUsd: tvlUsd,
+          apyBase: apyBase,
+          url: `https://beta.arrakis.finance/vaults/${CHAIN_IDS[chain]}/${vault}`,
+          underlyingTokens: [token0, token1],
+        });
       }
-      uniswapPool
+    } catch (error) {
+      console.error(`Error fetching ${chain} vaults:`, error.message);
     }
   }
-`;
 
-const pairsToObj = (pairs) =>
-  pairs.reduce((acc, [el1, el2]) => ({ ...acc, [el1]: el2 }), {});
-
-const getApy = async () => {
-  const vaultData = pairsToObj(
-    await Promise.all(
-      Object.keys(CHAINS).map(async (chain) => [
-        chain,
-        await request(CHAINS[chain], vaultsQuery),
-      ])
-    )
-  );
-
-  const underlyingBalances = pairsToObj(
-    await Promise.all(
-      Object.keys(CHAINS).map(async (chain) =>
-        (
-          await sdk.api.abi.multiCall({
-            abi: arrakisABI.getUnderlyingBalances,
-            calls: vaultData[chain].vaults.map((v) => ({
-              target: v.id,
-            })),
-            chain: chain,
-          })
-        ).output.map(({ output, input }) => [input.target, output])
-      )
-    ).then((val) => val.flat())
-  );
-  const tokens = Object.entries(vaultData).reduce(
-    (acc, [chain, { vaults }]) => ({
-      ...acc,
-      [chain]: [
-        ...new Set(
-          vaults
-            .map((vault) => [vault.token0.address, vault.token1.address])
-            .flat()
-        ),
-      ],
-    }),
-    {}
-  );
-
-  const keys = [];
-  for (const key of Object.keys(tokens)) {
-    keys.push(tokens[key].map((t) => `${key}:${t}`));
-  }
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${keys
-        .flat()
-        .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
-
-  const pools = Object.keys(CHAINS).map((chain) => {
-    const { vaults: chainVaults } = vaultData[chain];
-    const chainAprs = chainVaults.map((vault) => {
-      const { amount0Current, amount1Current } = underlyingBalances[vault.id];
-      const token0Supply = Number(amount0Current) / 10 ** vault.token0.decimals;
-      const token1Supply = Number(amount1Current) / 10 ** vault.token1.decimals;
-      const tvl =
-        token0Supply * prices[`${chain}:${vault.token0.address}`]?.price +
-        token1Supply * prices[`${chain}:${vault.token1.address}`]?.price;
-
-      return {
-        pool: vault.id,
-        chain: utils.formatChain(chain),
-        project: 'arrakis-v1',
-        symbol: `${vault.token0.symbol}-${vault.token1.symbol}`,
-        tvlUsd: tvl || 0,
-        apyBase: vault.snapshots[0]
-          ? Number(vault.snapshots[0].apr)
-          : Number(vault.apr.averageApr),
-        url: `https://beta.arrakis.finance/vaults/${CHAIN_IDS[chain]}/${vault.id}`,
-        underlyingTokens: [vault.token0.address, vault.token1.address],
-      };
-    });
-    return chainAprs;
-  });
-  return pools.flat();
+  return allPools;
 };
 
 module.exports = {
