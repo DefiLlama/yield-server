@@ -27,17 +27,19 @@ const queryContract = async function (contract, data) {
  */
 const fetchActiveProtocols = async () => {
   const protocolsData = await utils.getData(
-    `${etlAddress}/api/protocols/active`,
+    `${etlAddress}/api/protocols/active`
   );
   const protocols = protocolsData?.protocols || [];
 
-  return protocols.map((p) => ({
-    lpp: p.contracts.lpp,
-    oracle: p.contracts.oracle,
-    symbol: p.lpn_symbol,
-    protocolName: p.name,
-    meta: '',
-  }));
+  return protocols
+    .filter((p) => p.contracts?.lpp && p.contracts?.oracle)
+    .map((p) => ({
+      lpp: p.contracts.lpp,
+      oracle: p.contracts.oracle,
+      symbol: p.lpn_symbol,
+      protocolName: p.name,
+      meta: '',
+    }));
 };
 
 /**
@@ -93,7 +95,7 @@ const getApy = async () => {
     });
     let currencyData = _.find(
       oracleCurrenciesData.data,
-      (n) => n.ticker == lppTickerData.data,
+      (n) => n.ticker == lppTickerData.data
     );
 
     if (
