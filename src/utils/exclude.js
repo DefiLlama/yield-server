@@ -180,6 +180,7 @@ const excludeAdaptors = [
   'davos-protocol', // deprecated
   'kokonut-swap', // seems to be dead
   'saddle-finance',
+  'notional-v3',
 ];
 
 const excludePools = [
