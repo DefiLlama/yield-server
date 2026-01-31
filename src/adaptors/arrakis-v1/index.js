@@ -85,8 +85,8 @@ const getApy = async () => {
       // Get token metadata (symbol, decimals)
       const uniqueTokens = [
         ...new Set([
-          ...token0Results.output.map((r) => r.output),
-          ...token1Results.output.map((r) => r.output),
+          ...token0Results.output.map((r) => r.output).filter((t) => t != null),
+          ...token1Results.output.map((r) => r.output).filter((t) => t != null),
         ]),
       ];
 
@@ -111,7 +111,7 @@ const getApy = async () => {
         };
       });
 
-      const priceKeys = uniqueTokens.map((t) => `${chain}:${t}`);
+      const priceKeys = uniqueTokens.map((t) => `${chain}:${t.toLowerCase()}`);
       const prices = (
         await axios.get(
           `https://coins.llama.fi/prices/current/${priceKeys.join(',')}`
@@ -133,9 +133,9 @@ const getApy = async () => {
         const amount0 = Number(balances[0]) / 10 ** token0Meta.decimals;
         const amount1 = Number(balances[1]) / 10 ** token1Meta.decimals;
 
-        // Prices are keyed by the exact case returned from the API
-        const price0Key = `${chain}:${token0}`;
-        const price1Key = `${chain}:${token1}`;
+        // Prices are keyed by lowercase token addresses
+        const price0Key = `${chain}:${token0.toLowerCase()}`;
+        const price1Key = `${chain}:${token1.toLowerCase()}`;
         const price0 = prices[price0Key]?.price || 0;
         const price1 = prices[price1Key]?.price || 0;
 
