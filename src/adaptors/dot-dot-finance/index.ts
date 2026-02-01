@@ -1,3 +1,11 @@
+/**
+ * DEPRECATED: This adapter is no longer functional.
+ * The DotDot Finance API (api.dotdot.finance) is unavailable.
+ * Website and API return HTTP 402 "Payment Required / DEPLOYMENT_DISABLED".
+ * Protocol TVL is minimal (~$36K) with near-zero trading activity.
+ * Excluded from yield server in src/utils/exclude.js
+ * Date: 2026-02-01
+ */
 const utils = require('../utils');
 
 const API_URL: string = 'https://api.dotdot.finance/api/lpDetails';
