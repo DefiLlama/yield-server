@@ -11,7 +11,6 @@ const FACTORY = '0xC1e98D0A2a58fB8aBd10ccc30a58efff4080Aa21';
 const SECONDS_PER_DAY = 86400;
 const DAYS_PER_YEAR = 365;
 const APY_PERIOD_DAYS = 7;
-const MIN_TVL_USD = 1000;
 
 // Fee tiers (in hundredths of a bip: 100=0.01%, 300=0.03%, 500=0.05%, 3000=0.3%, 10000=1%)
 const FEE_TIERS = [100, 300, 500, 3000, 10000];
@@ -191,7 +190,7 @@ const getFeeGrowth = async (poolAddress, block) => {
   };
 };
 
-// Calculate APY from fee growth over period
+// Calculate APY from fee growth over period using BigNumber for precision
 const calculateApy = async (pool, blockNow, blockAgo, prices, tvlUsd) => {
   try {
     const [dataNow, dataAgo] = await Promise.all([
@@ -201,24 +200,42 @@ const calculateApy = async (pool, blockNow, blockAgo, prices, tvlUsd) => {
 
     if (dataNow.liquidity === 0n) return 0;
 
+    // Calculate fees in BigInt first (Q128 fixed-point math)
     const Q128 = 2n ** 128n;
-    const fees0 =
+    const fees0BigInt =
       ((dataNow.feeGrowth0 - dataAgo.feeGrowth0) * dataNow.liquidity) / Q128;
-    const fees1 =
+    const fees1BigInt =
       ((dataNow.feeGrowth1 - dataAgo.feeGrowth1) * dataNow.liquidity) / Q128;
 
-    const price0 = prices.pricesByAddress[pool.token0] || 0;
-    const price1 = prices.pricesByAddress[pool.token1] || 0;
+    // Convert to BigNumber for precise decimal arithmetic
+    const fees0 = BigNumber(fees0BigInt.toString());
+    const fees1 = BigNumber(fees1BigInt.toString());
 
-    const feesUsd =
-      (Number(fees0) / 10 ** pool.decimals0) * price0 +
-      (Number(fees1) / 10 ** pool.decimals1) * price1;
+    const price0 = BigNumber(prices.pricesByAddress[pool.token0] || 0);
+    const price1 = BigNumber(prices.pricesByAddress[pool.token1] || 0);
 
-    if (tvlUsd <= 0) return 0;
+    const fees0Usd = fees0
+      .div(BigNumber(10).pow(pool.decimals0))
+      .times(price0);
+    const fees1Usd = fees1
+      .div(BigNumber(10).pow(pool.decimals1))
+      .times(price1);
 
-    return ((feesUsd / APY_PERIOD_DAYS) * DAYS_PER_YEAR * 100) / tvlUsd;
+    const feesUsd = fees0Usd.plus(fees1Usd);
+
+    const tvl = BigNumber(tvlUsd);
+    if (tvl.lte(0)) return 0;
+
+    // APY = (feesUsd / periodDays) * 365 * 100 / tvl
+    const apyBase = feesUsd
+      .div(APY_PERIOD_DAYS)
+      .times(DAYS_PER_YEAR)
+      .times(100)
+      .div(tvl);
+
+    return apyBase.toNumber();
   } catch (e) {
-    console.error(`APY calc error for ${pool.address}:`, e.message);
+    console.error(`APY calc error for ${pool.address}:`, String(e.message || e));
     return 0;
   }
 };
@@ -245,7 +262,6 @@ const apy = async () => {
       if (!price0 || !price1) continue;
 
       const tvl = await getPoolTvl(pool, prices);
-      if (tvl.lt(MIN_TVL_USD)) continue;
 
       const tvlUsd = tvl.toNumber();
       const apyBase = await calculateApy(
