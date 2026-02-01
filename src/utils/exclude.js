@@ -181,6 +181,7 @@ const excludeAdaptors = [
   'kokonut-swap', // seems to be dead
   'saddle-finance',
   'notional-v3',
+  'dot-dot-finance',
 ];
 
 const excludePools = [
