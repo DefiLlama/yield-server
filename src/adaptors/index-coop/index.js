@@ -1,9 +1,14 @@
+const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 const { ethers } = require('ethers');
 const superagent = require('superagent');
 
-const { getProvider } = require('@defillama/sdk/build/general');
 const utils = require('../utils');
+
+const chainId = {
+  Ethereum: 1,
+  Base: 8453,
+};
 
 const dsEthIndex = {
   address: '0x341c05c0E9b33C0E38d64de76516b2Ce970bB3BE',
@@ -17,11 +22,23 @@ const icEthIndex = {
   symbol: 'icETH',
 };
 
+const hyEthData = {
+  address: '0xc4506022Fb8090774E8A628d5084EED61D9B99Ee',
+  chain: 'Ethereum',
+  symbol: 'hyETH',
+};
+
+const wstETH15xData = {
+  address: '0xc8DF827157AdAf693FCb0c6f305610C28De739FD',
+  chain: 'Base',
+  symbol: 'wstETH15x',
+};
+
 const SetTokenABI = ['function totalSupply() external view returns (uint256)'];
 
 const buildPool = async (index) => {
   try {
-    const apy = await getApy(index.symbol);
+    const apy = await getApy(index.address, chainId[index.chain]);
     const tvlUsd = await getTvlUsd(index);
     const chain = utils.formatChain(index.chain);
     return {
@@ -37,14 +54,13 @@ const buildPool = async (index) => {
   }
 };
 
-const getApy = async (indexSymbol) => {
-  const indexPath = indexSymbol.toLowerCase();
+const getApy = async (address, chain) => {
   const res = await superagent.get(
-    `https://api.indexcoop.com/${indexPath}/apy`
+    `https://api.indexcoop.com/v2/data/${address}?chainId=${chain}&metrics=apy`
   );
   const json = JSON.parse(res.text);
-  const apy = BigNumber(json.apy);
-  return apy.div(1e18).toNumber();
+  const { APY } = json.metrics[0];
+  return APY;
 };
 
 const getPrice = async (index) => {
@@ -56,30 +72,26 @@ const getPrice = async (index) => {
   return ethPriceUSD;
 };
 
-const getSupply = async (address) => {
-  const provider = getProvider();
-  const contract = new ethers.Contract(address, SetTokenABI, provider);
-  return await contract.totalSupply();
-};
-
 const getTvlUsd = async (index) => {
   const priceUsd = await getPrice(index);
-  const supply = await getSupply(index.address);
-  const supplyNumber = new BigNumber(supply.toString());
+  const supply = await sdk.api2.erc20.totalSupply({
+    target: index.address,
+    chain: index.chain.toLowerCase(),
+  });
+  const supplyNumber = new BigNumber(supply.output.toString());
   const tvlUsd = supplyNumber.div(1e18).toNumber() * priceUsd;
   return tvlUsd;
 };
 
 const main = async () => {
-  // const dsEth = await buildPool(dsEthIndex);
-  // const icEth = await buildPool(icEthIndex);
-  // return [dsEth, icEth].filter((i) => Boolean(i));
+  const hyETH = await buildPool(hyEthData);
   const icETH = await buildPool(icEthIndex);
-  return [icETH];
+  const wstETH15x = await buildPool(wstETH15xData);
+  return [hyETH, icETH, wstETH15x];
 };
 
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.indexcoop.com/products',
+  url: 'https://app.indexcoop.com',
 };

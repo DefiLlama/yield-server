@@ -7,7 +7,7 @@ const abiSugar = require('./abiSugar.json');
 const abiSugarHelper = require('./abiSugarHelper.json');
 
 const VELO = '0x9560e827aF36c94D2Ac33a39bCE1Fe78631088Db';
-const sugar = '0x39F850019b85c59BCa2fa0E437fBA8cEfc84528D';
+const sugar = '0x766133beae539ed33a7e27dfa3a840deaad88947';
 const sugarHelper = '0x5Bd7E2221C2d59c99e6A9Cd18D80A5F4257D0f32';
 const nullAddress = '0x0000000000000000000000000000000000000000';
 
@@ -87,7 +87,7 @@ const getApy = async () => {
   }
 
   let allStakedData = [];
-  for (pool of allPoolsData) {
+  for (const pool of allPoolsData) {
     // don't waste RPC calls if gauge has no staked liquidity
     if (Number(pool.gauge_liquidity) == 0) {
       allStakedData.push({'amount0': 0, 'amount1': 0});
@@ -98,37 +98,41 @@ const getApy = async () => {
     const lowTick = Number(pool.tick) - (wideTickAmount * Number(pool.type));
     const highTick = Number(pool.tick) + ((wideTickAmount - 1) * Number(pool.type));
 
-    const ratioA = (
-      await sdk.api.abi.call({
-        target: sugarHelper,
-        params: [lowTick],
-        abi: abiSugarHelper.find((m) => m.name === 'getSqrtRatioAtTick'),
-        chain: 'optimism',
-      })
-    ).output;
-
-    const ratioB = (
-      await sdk.api.abi.call({
-        target: sugarHelper,
-        params: [highTick],
-        abi: abiSugarHelper.find((m) => m.name === 'getSqrtRatioAtTick'),
-        chain: 'optimism',
-      })
-    ).output;
-
-    // fetch staked liquidity around wide set of ticks
-    const stakedAmounts = (
-      await sdk.api.abi.call({
-        target: sugarHelper,
-        params: [pool.sqrt_ratio, ratioA, ratioB, pool.gauge_liquidity],
-        abi: abiSugarHelper.find((m) => m.name === 'getAmountsForLiquidity'),
-        chain: 'optimism',
-      })
-    ).output;
-
-    allStakedData.push(stakedAmounts);
+    try {
+      const ratioA = (
+        await sdk.api.abi.call({
+          target: sugarHelper,
+          params: [lowTick],
+          abi: abiSugarHelper.find((m) => m.name === 'getSqrtRatioAtTick'),
+          chain: 'optimism',
+        })
+      ).output;
+  
+      const ratioB = (
+        await sdk.api.abi.call({
+          target: sugarHelper,
+          params: [highTick],
+          abi: abiSugarHelper.find((m) => m.name === 'getSqrtRatioAtTick'),
+          chain: 'optimism',
+        })
+      ).output;
+  
+      // fetch staked liquidity around wide set of ticks
+      const stakedAmounts = (
+        await sdk.api.abi.call({
+          target: sugarHelper,
+          params: [pool.sqrt_ratio, ratioA, ratioB, pool.gauge_liquidity],
+          abi: abiSugarHelper.find((m) => m.name === 'getAmountsForLiquidity'),
+          chain: 'optimism',
+        })
+      ).output;
+  
+      allStakedData.push(stakedAmounts);
+    } catch(e) {
+      allStakedData.push({'amount0': 0, 'amount1': 0});
+    }
   }
-
+  
   const pools = allPoolsData.map((p, i) => {
     const token0Data = allTokenData.find(({token_address}) => token_address == p.token0);
     const token1Data = allTokenData.find(({token_address}) => token_address == p.token1);
@@ -136,17 +140,15 @@ const getApy = async () => {
     const p0 = prices[`optimism:${p.token0}`]?.price;
     const p1 = prices[`optimism:${p.token1}`]?.price;
 
-    const tvlUsd = ((p.reserve0 / (10**token0Data.decimals)) * p0) + ((p.reserve1 / (10**token1Data.decimals)) * p1);
-    
+    const tvlUsd = ((p.reserve0 / (10**Number(token0Data.decimals))) * p0) + ((p.reserve1 / (10**Number(token1Data.decimals))) * p1);
+
     // use wider staked TVL across many ticks
     const stakedTvlUsd = ((allStakedData[i]['amount0'] / (10**token0Data.decimals)) * p0) + ((allStakedData[i]['amount1'] / (10**token1Data.decimals)) * p1);
 
     const s = token0Data.symbol + '-' + token1Data.symbol;
 
-    const apyReward =
-      (((p.emissions / 1e18) * 86400 * 365 * prices[`optimism:${VELO}`]?.price) /
-        stakedTvlUsd) *
-      100;
+    const veloPrice = prices[`optimism:${VELO}`]?.price
+    const apyReward = (((p.emissions / 1e18) * 86400 * 365 * veloPrice) / stakedTvlUsd) * 100;
 
     const url = 'https://velodrome.finance/deposit?token0=' + p.token0 + '&token1=' + p.token1 + '&type=' + p.type.toString() + '&factory=' + p.factory;
     const poolMeta = 'CL' + p.type.toString() + ' - ' + (p.pool_fee / 10000).toString() + '%';

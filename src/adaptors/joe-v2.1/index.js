@@ -3,8 +3,8 @@ const utils = require('../utils');
 
 const apy = async () => {
   const pools = await Promise.all(
-    ['avalanche', 'arbitrum', 'binance'].map(async (chain) => {
-      const apiUrl = `https://api.traderjoexyz.dev/v1/pools/${chain}?filterBy=1d&orderBy=volume&pageNum=1&pageSize=100&status=main`;
+    ['avalanche', 'arbitrum', 'ethereum'].map(async (chain) => {
+      const apiUrl = `https://api.lfj.dev/v1/pools/${chain}?filterBy=1d&orderBy=volume&pageNum=1&pageSize=100&status=main`;
 
       const pools = (
         await axios.get(apiUrl, {
@@ -34,5 +34,5 @@ const apy = async () => {
 
 module.exports = {
   apy,
-  url: 'https://traderjoexyz.com/avalanche/pool',
+  url: 'https://lfj.gg/avalanche/pool',
 };

@@ -22,6 +22,7 @@ const apy = async () => {
         (i) => ({ target: factory, params: i })
       ),
       abi: factoryAbi.find((i) => i.name === 'troveManagers'),
+      permitFailure: true,
     })
   ).output.map((i) => i.output);
 
@@ -29,6 +30,7 @@ const apy = async () => {
     await sdk.api.abi.multiCall({
       calls: troveManagers.map((i) => ({ target: i })),
       abi: troveManagerAbi.find((i) => i.name === 'collateralToken'),
+      permitFailure: true,
     })
   ).output.map((i) => i.output);
 
@@ -39,6 +41,7 @@ const apy = async () => {
         params: troveManagers[i],
       })),
       abi: 'erc20:balanceOf',
+      permitFailure: true,
     })
   ).output.map((i) => i.output);
 
@@ -46,6 +49,7 @@ const apy = async () => {
     await sdk.api.abi.multiCall({
       calls: troveManagers.map((i) => ({ target: i })),
       abi: troveManagerAbi.find((i) => i.name === 'MCR'),
+      permitFailure: true,
     })
   ).output.map((i) => i.output);
 
@@ -53,6 +57,7 @@ const apy = async () => {
     await sdk.api.abi.multiCall({
       calls: troveManagers.map((i) => ({ target: i })),
       abi: troveManagerAbi.find((i) => i.name === 'getEntireSystemDebt'),
+      permitFailure: true,
     })
   ).output.map((i) => i.output);
 
@@ -60,6 +65,7 @@ const apy = async () => {
     await sdk.api.abi.multiCall({
       calls: troveManagers.map((i) => ({ target: i })),
       abi: troveManagerAbi.find((i) => i.name === 'maxSystemDebt'),
+      permitFailure: true,
     })
   ).output.map((i) => i.output);
 
@@ -67,6 +73,7 @@ const apy = async () => {
     await sdk.api.abi.multiCall({
       calls: troveManagers.map((i) => ({ target: i })),
       abi: troveManagerAbi.find((i) => i.name === 'rewardRate'),
+      permitFailure: true,
     })
   ).output.map((i) => i.output);
 
@@ -74,6 +81,7 @@ const apy = async () => {
     await sdk.api.abi.multiCall({
       calls: troveManagers.map((i) => ({ target: i })),
       abi: troveManagerAbi.find((i) => i.name === 'interestRate'),
+      permitFailure: true,
     })
   ).output.map((i) => i.output);
 

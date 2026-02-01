@@ -1,13 +1,24 @@
-const axios = require('axios');
 const utils = require('../utils');
+const axios = require('axios');
 
-const API_URL = 'https://perps-api-mainnet.polynomial.finance/vaults/all?chainId=8008';
+const API_URL =
+  'https://perps-api-mainnet.polynomial.finance/vaults/all?chainId=8008';
 // LIUIDITY UI
 const LIQUIDITY_URL = 'https://polynomial.fi/en/mainnet/earn/liquidity';
 
 const getApy = async () => {
   // APR is retrieved using our api, tvl pairs etc trough subgraph
-  const data = (await axios.get(API_URL)).data;
+
+  const { data } = await axios.get(
+    'https://perps-api-mainnet.polynomial.finance/vaults/all?chainId=8008',
+    {
+      maxBodyLength: Infinity,
+      headers: {
+        'User-Agent': 'defillama (aws-lambda)',
+        Accept: 'application/json',
+      },
+    }
+  );
 
   const poolInfo = await Promise.all(
     data.map(async (pool) => {
@@ -17,15 +28,14 @@ const getApy = async () => {
         project: 'polynomial-liquidity',
         symbol: pool.collateralType === 'fxUSDC' ? 'USDC' : pool.collateralType,
         tvlUsd: pool.tvl,
-        apyBase: pool.apr,
+        apyBase: pool.apr + pool.baseApr,
         apyReward: pool.opRewardsApr,
         rewardTokens: ['0x4200000000000000000000000000000000000042'],
-        url: LIQUIDITY_URL
+        url: LIQUIDITY_URL,
       };
     })
   );
   return poolInfo;
-
 };
 
 async function main() {
@@ -37,4 +47,3 @@ module.exports = {
   timetravel: false,
   apy: main,
 };
-

@@ -7,7 +7,7 @@ frameworkVersion: '3'
 
 provider:
   name: aws
-  runtime: nodejs16.x
+  runtime: nodejs22.x
   stage: dev
   region: eu-central-1
   tracing:
@@ -79,6 +79,15 @@ functions:
       SMARDEX_SUBGRAPH_API_KEY: ${file(./env.js):SMARDEX_SUBGRAPH_API_KEY}
       VENDOR_FINANCE: ${file(./env.js):VENDOR_FINANCE}
       TRADERJOE: ${file(./env.js):TRADERJOE}
+      OSMOSIS_API_KEY: ${file(./env.js):OSMOSIS_API_KEY}
+      DUNE_API_KEY: ${file(./env.js):DUNE_API_KEY}
+      HYPERLIQUID_RPC: ${file(./env.js):HYPERLIQUID_RPC}
+      PLASMA_RPC: ${file(./env.js):PLASMA_RPC}
+      STARKNET_RPC: ${file(./env.js):STARKNET_RPC}
+      MONAD_RPC: ${file(./env.js):MONAD_RPC}
+      LLAMA_INDEXER_V2_ENDPOINT: ${env:LLAMA_INDEXER_V2_ENDPOINT}
+      LLAMA_INDEXER_V2_API_KEY: ${env:LLAMA_INDEXER_V2_API_KEY}
+      PROJECT_0_API_KEY: ${env:PROJECT_0_API_KEY}
 
   # --- data enrichment
   triggerEnrichment:

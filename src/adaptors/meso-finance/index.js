@@ -76,7 +76,7 @@ async function main() {
         const aptosPriceRes = await utils.getData(
           `${COINS_LLAMA_PRICE_URL}aptos:${coinAddr}`
         );
-        coinPrice = aptosPriceRes['coins'][`aptos:${coinAddr}`]['price'];
+        coinPrice = aptosPriceRes['coins'][`aptos:${coinAddr}`]?.price;
       }
 
       const res = {

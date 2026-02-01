@@ -6,6 +6,8 @@ const utils = require('../utils');
 const { EstimatedFees } = require('./estimateFee.ts');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
 const { boundaries } = require('../../utils/exclude');
+const getOnchainPools = require('./onchain');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const chains = {
   ethereum: sdk.graph.modifyEndpoint(
@@ -27,7 +29,9 @@ const chains = {
     'GVH9h9KZ9CqheUEL93qMbq7QwgoBu32QXQDPR6bev4Eo'
   ),
   bsc: sdk.graph.modifyEndpoint('GcKPSgHoY42xNYVAkSPDhXSzi6aJDRQSKqBSXezL47gV'),
-  base: 'https://api.studio.thegraph.com/query/48211/uniswap-v3-base/version/latest',
+  base: sdk.graph.modifyEndpoint(
+    'HMuAwufqZ1YCRmzL2SfHTVkzZovC9VL2UAKhjvRqKiR1'
+  ),
 };
 
 const query = gql`
@@ -300,7 +304,7 @@ const topLvl = async (
       const chain = chainString === 'ethereum' ? 'mainnet' : chainString;
 
       const feeTier = Number(poolMeta.replace('%', '')) * 10000;
-      const url = `https://app.uniswap.org/#/add/${token0}/${token1}/${feeTier}?chain=${chain}`;
+      const url = `https://app.uniswap.org/positions/create/v3?currencyA=${token0}&currencyB=${token1}&chain=${chain}&fee={"feeAmount":${feeTier}}`;
 
       let symbol = p.symbol;
       if (
@@ -348,16 +352,24 @@ const main = async (timestamp = null) => {
       await topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins)
     );
   }
-  return data
-    .flat()
-    .filter(
-      (p) =>
-        utils.keepFinite(p) &&
-        ![
-          '0x0c6d9d0f82ed2e0b86c4d3e9a9febf95415d1b76',
-          '0xc809d13e9ea08f296d3b32d4c69d46ff90f73fd8',
-        ].includes(p.pool)
-    );
+
+  const bobPools = await getOnchainPools();
+  data.push(bobPools);
+
+  const pools = await addMerklRewardApy(
+    data
+      .flat()
+      .filter(
+        (p) =>
+          utils.keepFinite(p) &&
+          ![
+            '0x0c6d9d0f82ed2e0b86c4d3e9a9febf95415d1b76',
+            '0xc809d13e9ea08f296d3b32d4c69d46ff90f73fd8',
+          ].includes(p.pool)
+      ),
+    'uniswap'
+  );
+  return pools;
 };
 
 module.exports = {

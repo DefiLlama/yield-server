@@ -133,7 +133,7 @@ const apy = async () => {
   const rewardPerYear =
     (rewardsPerSecond / 1e18) *
     secondsPerYear *
-    prices[`${chain}:${rewardToken}`].price;
+    prices[`${chain}:${rewardToken}`]?.price;
 
   return reservesList
     .map((t, i) => {
