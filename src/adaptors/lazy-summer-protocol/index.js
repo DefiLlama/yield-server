@@ -1,19 +1,11 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const superagent = require('superagent');
+const { getMerklRewardsForChain } = require('../merkl/merkl-by-identifier');
 
 const PROJECT_NAME = 'lazy-summer-protocol';
 
 const SUMR_TOKEN = '0x194f360D130F2393a5E9F3117A6a1B78aBEa1624';
-
-// Chain ID mapping for Merkl API
-const CHAIN_IDS = {
-  ethereum: 1,
-  base: 8453,
-  arbitrum: 42161,
-  sonic: 146,
-  hyperliquid: 999,
-};
 
 // Factory contracts that return active FleetCommander vaults
 const FACTORIES = {
@@ -66,54 +58,6 @@ const calcApy = (currentPrice, historicalPrice, days) => {
   // Cap at reasonable APY values, floor at 0 (negative APY means loss)
   if (apy > 500 || apy < 0) return 0;
   return apy;
-};
-
-// Fetch Merkl rewards for a specific vault
-const getMerklRewards = async (vaultAddress, chainId) => {
-  try {
-    const response = await superagent.get(
-      `https://api.merkl.xyz/v4/opportunities?chainId=${chainId}&identifier=${vaultAddress}`
-    );
-    const data = response.body;
-    if (!data || data.length === 0) return null;
-
-    const opportunity = data[0];
-    if (!opportunity.apr || opportunity.apr <= 0) return null;
-
-    const rewardTokens = opportunity.rewardsRecord?.breakdowns
-      ?.map((b) => b.token?.address)
-      .filter(Boolean) || [SUMR_TOKEN];
-
-    return {
-      apyReward: opportunity.apr, // Merkl returns APR as percentage
-      rewardTokens: [...new Set(rewardTokens)],
-    };
-  } catch (e) {
-    // Silently fail - Merkl rewards are optional
-    return null;
-  }
-};
-
-// Fetch all Merkl rewards for a chain in batch
-const getMerklRewardsForChain = async (vaultAddresses, chain) => {
-  const chainId = CHAIN_IDS[chain];
-  if (!chainId) return {};
-
-  const rewards = {};
-  // Fetch in parallel with rate limiting
-  const batchSize = 5;
-  for (let i = 0; i < vaultAddresses.length; i += batchSize) {
-    const batch = vaultAddresses.slice(i, i + batchSize);
-    const results = await Promise.all(
-      batch.map((addr) => getMerklRewards(addr, chainId))
-    );
-    batch.forEach((addr, idx) => {
-      if (results[idx]) {
-        rewards[addr.toLowerCase()] = results[idx];
-      }
-    });
-  }
-  return rewards;
 };
 
 const getVaultsForChain = async (chain) => {
@@ -242,7 +186,9 @@ const main = async () => {
         await Promise.all([
           getHistoricalSharePrices(vaultAddresses, chain, 1),
           getHistoricalSharePrices(vaultAddresses, chain, 7),
-          getMerklRewardsForChain(vaultAddresses, chain),
+          getMerklRewardsForChain(vaultAddresses, chain, {
+            defaultRewardToken: SUMR_TOKEN,
+          }),
         ]);
 
       for (const vault of vaults) {
