@@ -18,8 +18,11 @@ async function getBlockAtTs(chain, ts) {
 }
 
 async function getBlockTimestamp(chain, block) {
-  const blockRes = await sdk.api.util.getBlock(block, chain); // returns { timestamp, ... }
-  return Number(blockRes.timestamp);
+  const res = await sdk.api.rpc.getBlock({
+    block,
+    chain,
+  });
+  return Number(res.timestamp);
 }
 
 async function getLpPriceAtBlock(contractAddress, block) {
