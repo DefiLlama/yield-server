@@ -223,6 +223,12 @@ const main = async () => {
         // Remove risk tier suffix if present
         baseSymbol = baseSymbol.replace(/-LR$|-HR$/, '');
 
+        // Format poolMeta: remove LazyVault prefix, replace underscores, add space before Risk
+        const poolMeta = vault.name
+          .replace(/^LazyVault_/, '')
+          .replace(/_/g, ' ')
+          .replace(/([a-z])Risk/gi, '$1 Risk');
+
         const poolData = {
           pool: `${vault.address}-${chain}`.toLowerCase(),
           chain: utils.formatChain(chain),
@@ -232,7 +238,7 @@ const main = async () => {
           apyBase,
           apyBase7d,
           underlyingTokens: [vault.asset],
-          poolMeta: vault.name,
+          poolMeta,
           url: `https://summer.fi/earn/${chain === 'ethereum' ? 'mainnet' : chain}/position/${vault.address}`,
         };
 
