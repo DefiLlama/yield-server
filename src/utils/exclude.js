@@ -182,6 +182,11 @@ const excludeAdaptors = [
   'saddle-finance',
   'notional-v3',
   'dot-dot-finance',
+  'retro',
+  'hyperdrive',
+  'mm-finance-polygon',
+  'maia-cl',
+  'molecular'
 ];
 
 const excludePools = [
