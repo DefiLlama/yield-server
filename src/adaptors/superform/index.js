@@ -69,7 +69,11 @@ const main = async () => {
 
   // Get unique asset addresses for decimals lookup (lowercase for consistency)
   const assetAddresses = [
-    ...new Set(assetRes.output.map((r) => r.output.toLowerCase())),
+    ...new Set(
+      assetRes.output
+        .filter((r) => r && r.output)
+        .map((r) => r.output.toLowerCase())
+    ),
   ];
 
   const decimalsRes = await sdk.api.abi.multiCall({
@@ -101,7 +105,11 @@ const main = async () => {
   for (let i = 0; i < ethSupervaults.length; i++) {
     const vault = ethSupervaults[i];
     const totalAssets = totalAssetsRes.output[i].output;
-    const assetAddress = assetRes.output[i].output.toLowerCase();
+    const rawAsset = assetRes.output[i]?.output;
+
+    if (!rawAsset) continue;
+
+    const assetAddress = rawAsset.toLowerCase();
     const decimals = decimalsMap[assetAddress] || 18;
     const priceKey = `ethereum:${assetAddress}`;
     const price = prices[priceKey]?.price;
