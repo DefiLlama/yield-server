@@ -106,7 +106,7 @@ const apy = async () => {
     CONFIG.ETHEREUM.USD0PP,
     CONFIG.UZRLendingMarket
   );
-  const tvlUsd = lendingMarketBalance * bUSD0price;
+
   const marketData = await getMarketData(CONFIG.ETHEREUM);
   // sdk returns both array + named props for tuple outputs; normalize to named props
   const totalSupplyAssets =
@@ -116,30 +116,17 @@ const apy = async () => {
   const totalSupplyUsd = totalSupplyAssets * USD0price;
   const totalBorrowUsd = totalBorrowAssets * USD0price;
   const borrowFactor = totalBorrowUsd / totalSupplyUsd;
+
+  const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+
   return [
     {
-      pool: `UZR`,
+      pool: `0xa428723eE8ffD87088C36121d72100B43F11fb6A`,
       chain: 'Ethereum',
       project: 'fira',
       symbol: utils.formatSymbol(CONFIG.UZR_SYMBOL),
       tvlUsd,
       apyBase: APR,
-      apyBaseBorrow: 0,
-      totalSupplyUsd,
-      totalBorrowUsd,
-      underlyingTokens: [CONFIG.ETHEREUM.USD0PP],
-      rewardTokens: [],
-      ltv: CONFIG.LTV,
-      poolMeta: `Max leverage ~${maxLeverage.toFixed(2)}x`,
-      url: `https://app.fira.money`,
-    },
-    {
-      pool: `UZR Leveraged`,
-      chain: 'Ethereum',
-      project: 'fira',
-      symbol: utils.formatSymbol(CONFIG.UZR_SYMBOL),
-      tvlUsd,
-      apyBase: leverageAPR,
       apyBaseBorrow: 0,
       totalSupplyUsd,
       totalBorrowUsd,
