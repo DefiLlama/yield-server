@@ -25,6 +25,33 @@ async function getRateAngle(token) {
   return price;
 }
 
+function cleanSymbol(symbol) {
+  if (!symbol) return '';
+
+  // Patterns to strip from the beginning of symbols
+  // Aave tokens: aEth, aArb, aBsc, aOpt, aPol, aAva, aGno, etc.
+  // Variable debt: variableDebtEth, variableDebtArb, etc.
+  // Stable debt: stableDebtEth, stableDebtArb, etc.
+  // Horizon market: variableDebtHorRwa, aHorRwa
+  // Other prefixes: steak, gt, vbgt
+  const prefixPatterns = [
+    /^variableDebt[A-Z][a-z]*(?:Rwa)?/i,  // variableDebtEth, variableDebtHorRwa, etc.
+    /^stableDebt[A-Z][a-z]*(?:Rwa)?/i,    // stableDebtEth, stableDebtHorRwa, etc.
+    /^a[A-Z][a-z]+(?:Rwa)?(?=[A-Z])/,     // aEth, aArb, aBsc, aHorRwa (followed by uppercase = token name)
+//    /^steak(?=[A-Z])/i,                    // steakUSDC -> USDC
+//    /^gt(?=[A-Z])/i,                       // gtWETH -> WETH
+//    /^vbgt(?=[A-Z])/i,                     // vbgtWETH -> WETH
+  ];
+
+  for (const pattern of prefixPatterns) {
+    if (pattern.test(symbol)) {
+      return symbol.replace(pattern, '');
+    }
+  }
+
+  return symbol;
+}
+
 // function getting all the data from the Angle API
 const main = async () => {
   var poolsData = [];
@@ -66,7 +93,7 @@ const main = async () => {
         const poolAddress = pool.identifier;
 
         const tokenSymbols = pool.tokens.map((x) => x.symbol);
-        let symbol = tokenSymbols[tokenSymbols.length - 1] || '';
+        let symbol = cleanSymbol(tokenSymbols[tokenSymbols.length - 1]) || '';
 
         if (!symbol.length) {
           symbol = (
