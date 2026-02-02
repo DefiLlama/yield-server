@@ -104,17 +104,17 @@ const main = async () => {
 
   for (let i = 0; i < ethSupervaults.length; i++) {
     const vault = ethSupervaults[i];
-    const totalAssets = totalAssetsRes.output[i].output;
+    const totalAssets = totalAssetsRes.output[i]?.output;
     const rawAsset = assetRes.output[i]?.output;
 
-    if (!rawAsset) continue;
+    if (!totalAssets || !rawAsset) continue;
 
     const assetAddress = rawAsset.toLowerCase();
     const decimals = decimalsMap[assetAddress] || 18;
     const priceKey = `ethereum:${assetAddress}`;
     const price = prices[priceKey]?.price;
 
-    if (!totalAssets || !price) continue;
+    if (!price) continue;
 
     const tvlUsd = (Number(totalAssets) / 10 ** decimals) * price;
     if (tvlUsd <= 0) continue;
