@@ -38,9 +38,9 @@ function cleanSymbol(symbol) {
     /^variableDebt[A-Z][a-z]*(?:Rwa)?/i,  // variableDebtEth, variableDebtHorRwa, etc.
     /^stableDebt[A-Z][a-z]*(?:Rwa)?/i,    // stableDebtEth, stableDebtHorRwa, etc.
     /^a[A-Z][a-z]+(?:Rwa)?(?=[A-Z])/,     // aEth, aArb, aBsc, aHorRwa (followed by uppercase = token name)
-    /^steak(?=[A-Z])/i,                    // steakUSDC -> USDC
-    /^gt(?=[A-Z])/i,                       // gtWETH -> WETH
-    /^vbgt(?=[A-Z])/i,                     // vbgtWETH -> WETH
+//    /^steak(?=[A-Z])/i,                    // steakUSDC -> USDC
+//    /^gt(?=[A-Z])/i,                       // gtWETH -> WETH
+//    /^vbgt(?=[A-Z])/i,                     // vbgtWETH -> WETH
   ];
 
   for (const pattern of prefixPatterns) {
