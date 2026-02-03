@@ -15,15 +15,13 @@ const apy = async () => {
 
     const timestampNow = Math.floor(Date.now() / 1000);
     const timestampYesterday = timestampNow - 86400;
+    const timestamp7dAgo = timestampNow - 86400 * 7;
 
-    const blockNow = (
-        await axios.get(`https://coins.llama.fi/block/ethereum/${timestampNow}`)
-    ).data.height;
-    const blockYesterday = (
-        await axios.get(
-            `https://coins.llama.fi/block/ethereum/${timestampYesterday}`
-        )
-    ).data.height;
+    const [blockNow, blockYesterday, block7dAgo] = await Promise.all([
+        axios.get(`https://coins.llama.fi/block/ethereum/${timestampNow}`),
+        axios.get(`https://coins.llama.fi/block/ethereum/${timestampYesterday}`),
+        axios.get(`https://coins.llama.fi/block/ethereum/${timestamp7dAgo}`),
+    ]).then(responses => responses.map(r => r.data.height));
 
     const exchangeRateAbi = {
         inputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }],
@@ -32,21 +30,29 @@ const apy = async () => {
         stateMutability: 'view',
         type: 'function',
     };
-    const exchangeRateYesterday = await sdk.api.abi.call({
-        target: teth,
-        chain: 'ethereum',
-        abi: exchangeRateAbi,
-        params: ['1000000000000000000'],
-        block: blockYesterday,
-    });
-
-    const exchangeRateToday = await sdk.api.abi.call({
-        target: teth,
-        chain: 'ethereum',
-        abi: exchangeRateAbi,
-        params: ['1000000000000000000'],
-        block: blockNow,
-    });
+    const [exchangeRateYesterday, exchangeRateToday, exchangeRate7dAgo] = await Promise.all([
+        sdk.api.abi.call({
+            target: teth,
+            chain: 'ethereum',
+            abi: exchangeRateAbi,
+            params: ['1000000000000000000'],
+            block: blockYesterday,
+        }),
+        sdk.api.abi.call({
+            target: teth,
+            chain: 'ethereum',
+            abi: exchangeRateAbi,
+            params: ['1000000000000000000'],
+            block: blockNow,
+        }),
+        sdk.api.abi.call({
+            target: teth,
+            chain: 'ethereum',
+            abi: exchangeRateAbi,
+            params: ['1000000000000000000'],
+            block: block7dAgo,
+        }),
+    ]);
     const totalPooledBWsteth = await sdk.api.abi.call({
         target: teth,
         chain: 'ethereum',
@@ -57,12 +63,21 @@ const apy = async () => {
         ((exchangeRateToday.output / 1e18 - exchangeRateYesterday.output / 1e18) /
             (exchangeRateYesterday.output / 1e18)) * 365 * 100;
 
-    // tETH is denominated in wstETH, so the total yield includes wstETH staking APY
-    const lidoStethApr = (
-        await axios.get('https://eth-api.lido.fi/v1/protocol/steth/apr/last')
-    ).data.data.apr;
+    const tethApr7d =
+        ((exchangeRateToday.output / 1e18 - exchangeRate7dAgo.output / 1e18) /
+            (exchangeRate7dAgo.output / 1e18)) * (365 / 7) * 100;
 
-    const apr = tethApr + lidoStethApr;
+    // tETH is denominated in wstETH, so the total yield includes wstETH staking APY
+    const [lidoAprLast, lidoAprSma] = await Promise.all([
+        axios.get('https://eth-api.lido.fi/v1/protocol/steth/apr/last'),
+        axios.get('https://eth-api.lido.fi/v1/protocol/steth/apr/sma'),
+    ]).then(responses => [
+        responses[0].data.data.apr,
+        responses[1].data.data.smaApr,
+    ]);
+
+    const apr = tethApr + lidoAprLast;
+    const apr7d = tethApr7d + lidoAprSma;
 
     return [
         {
@@ -72,6 +87,7 @@ const apy = async () => {
             symbol,
             underlyingTokens: [wsteth],
             apyBase: apr,
+            apyBase7d: apr7d,
             tvlUsd: totalPooledBWsteth.output / 1e18 * wstEthPrice,
         },
     ];
