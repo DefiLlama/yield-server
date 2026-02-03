@@ -53,9 +53,16 @@ const apy = async () => {
         abi: 'uint256:totalAssets',
     });
 
-    const apr =
+    const tethApr =
         ((exchangeRateToday.output / 1e18 - exchangeRateYesterday.output / 1e18) /
             (exchangeRateYesterday.output / 1e18)) * 365 * 100;
+
+    // tETH is denominated in wstETH, so the total yield includes wstETH staking APY
+    const lidoStethApr = (
+        await axios.get('https://eth-api.lido.fi/v1/protocol/steth/apr/last')
+    ).data.data.apr;
+
+    const apr = tethApr + lidoStethApr;
 
     return [
         {
