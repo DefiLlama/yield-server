@@ -90,12 +90,13 @@ const apy = async () => {
     // Convert netApy24h from 1e18 to percentage
     const apyValue = (Number(vault.netApy24h) / 1e18) * 100;
 
-    // Calculate tvlUsd
+    // Calculate tvlUsd using BigInt for precision
     let tvlUsd;
     if (isMultiChain && totalSupply !== null) {
-      const totalShares = Number(totalSupply);
-      const exchangeRate = Number(vault.exchangeRate);
-      tvlUsd = (totalShares * exchangeRate) / 1e18 / Math.pow(10, vault.assetDecimals);
+      const totalSharesBN = BigInt(totalSupply);
+      const exchangeRateBN = BigInt(vault.exchangeRate);
+      const scale = 10n ** (18n + BigInt(vault.assetDecimals));
+      tvlUsd = Number((totalSharesBN * exchangeRateBN) / scale);
     } else {
       tvlUsd = Number(vault.totalValue) / 1e18;
     }
