@@ -22,23 +22,15 @@ const apy = async () => {
   const response = await utils.getData(VAULTS_API);
   const vaults = response.data;
 
-  const pools = [];
-
+  // First pass: collect all pool info and prepare RPC call inputs
+  const poolInfos = [];
   for (const vault of vaults) {
-    // Convert netApy24h from 1e18 to percentage (e.g., 30480776637436565 -> 3.0480776637436565%)
-    const apyValue = (Number(vault.netApy24h) / 1e18) * 100;
-
-    // Convert totalValue from 1e18 to USD (e.g., 1860856671194000000000000 -> 1860856.671194)
-    const tvlUsd = Number(vault.totalValue) / 1e18;
-
-    // Get all chain IDs from chainIds string (e.g., "1,10,8453,42161")
     const chainIds = vault.chainIds.split(',').map(Number);
     const isMultiChain = chainIds.length > 1;
 
-    // Create a pool for each chain
     for (const chainId of chainIds) {
       const chainName = CHAIN_ID_TO_NAME[chainId];
-      if (!chainName) continue; // Skip unknown chain IDs
+      if (!chainName) continue;
 
       // Determine pool address: use multi-chain address if chainIds > 1
       let poolAddress = vault.address;
@@ -46,26 +38,79 @@ const apy = async () => {
         poolAddress = MULTI_CHAIN_VAULT_ADDRESSES[vault.symbol];
       }
 
-      // Get underlying asset address by calling asset() function
-      const assetResult = await sdk.api.abi.call({
-        target: poolAddress,
-        abi: "function asset() public view returns (address)",
-        chain: chainName,
-      });
-      let underlyingToken = assetResult.output;
-
-      pools.push({
-        pool: `${poolAddress.toLowerCase()}-${chainName}`,
-        chain: utils.formatChain(chainName),
-        project: 'maxshot',
-        symbol: utils.formatSymbol(vault.symbol),
-        tvlUsd,
-        apy: apyValue,
-        underlyingTokens: [underlyingToken],
-        url: `https://app.maxshot.ai/#/earn/${vault.address}`,
+      poolInfos.push({
+        vault,
+        chainId,
+        chainName,
+        poolAddress,
+        isMultiChain,
       });
     }
   }
+
+  // Parallel RPC calls for asset() and totalSupply() (for multi-chain vaults)
+  const rpcPromises = poolInfos.map(async (info) => {
+    const { chainName, poolAddress, isMultiChain } = info;
+
+    // Always fetch asset()
+    const assetPromise = sdk.api.abi.call({
+      target: poolAddress,
+      abi: 'function asset() public view returns (address)',
+      chain: chainName,
+    });
+
+    // For multi-chain vaults, also fetch totalSupply()
+    let totalSupplyPromise = null;
+    if (isMultiChain) {
+      totalSupplyPromise = sdk.api.abi.call({
+        target: poolAddress,
+        abi: 'function totalSupply() public view returns (uint256)',
+        chain: chainName,
+      });
+    }
+
+    const [assetResult, totalSupplyResult] = await Promise.all([
+      assetPromise,
+      totalSupplyPromise,
+    ]);
+
+    return {
+      underlyingToken: assetResult.output,
+      totalSupply: totalSupplyResult ? totalSupplyResult.output : null,
+    };
+  });
+
+  const rpcResults = await Promise.all(rpcPromises);
+
+  // Build final pools array
+  const pools = poolInfos.map((info, index) => {
+    const { vault, chainName, poolAddress, isMultiChain } = info;
+    const { underlyingToken, totalSupply } = rpcResults[index];
+
+    // Convert netApy24h from 1e18 to percentage
+    const apyValue = (Number(vault.netApy24h) / 1e18) * 100;
+
+    // Calculate tvlUsd
+    let tvlUsd;
+    if (isMultiChain && totalSupply !== null) {
+      const totalShares = Number(totalSupply);
+      const exchangeRate = Number(vault.exchangeRate);
+      tvlUsd = (totalShares * exchangeRate) / 1e18 / Math.pow(10, vault.assetDecimals);
+    } else {
+      tvlUsd = Number(vault.totalValue) / 1e18;
+    }
+
+    return {
+      pool: `${poolAddress.toLowerCase()}-${chainName}`,
+      chain: utils.formatChain(chainName),
+      project: 'maxshot',
+      symbol: utils.formatSymbol(vault.symbol),
+      tvlUsd,
+      apy: apyValue,
+      underlyingTokens: [underlyingToken],
+      url: `https://app.maxshot.ai/#/earn/${vault.address}`,
+    };
+  });
 
   return pools;
 };
