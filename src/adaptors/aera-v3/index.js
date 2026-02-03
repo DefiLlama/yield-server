@@ -257,22 +257,27 @@ const getCurrentPrices = async (vaults, chain) => {
 
   if (priceCalls.length === 0) return {};
 
-  const priceResults = await sdk.api.abi.multiCall({
-    abi: PRICE_CALC_ABI.convertUnitsToToken,
-    calls: priceCalls,
-    chain,
-    permitFailure: true,
-  });
+  try {
+    const priceResults = await sdk.api.abi.multiCall({
+      abi: PRICE_CALC_ABI.convertUnitsToToken,
+      calls: priceCalls,
+      chain,
+      permitFailure: true,
+    });
 
-  const prices = {};
-  priceCallMap.forEach((addr, i) => {
-    const price = priceResults.output[i]?.output;
-    if (price) {
-      prices[addr] = Number(price);
-    }
-  });
+    const prices = {};
+    priceCallMap.forEach((addr, i) => {
+      const price = priceResults.output[i]?.output;
+      if (price) {
+        prices[addr] = Number(price);
+      }
+    });
 
-  return prices;
+    return prices;
+  } catch (e) {
+    console.error(`Error fetching current prices for ${chain}:`, e.message);
+    return {};
+  }
 };
 
 const main = async () => {
