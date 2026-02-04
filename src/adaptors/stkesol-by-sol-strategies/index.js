@@ -41,10 +41,21 @@ const calculateApy = async (currentExchangeRate) => {
     if (!solPrice || days < 7) return null;
   }
 
+  // Guard against division by zero
+  if (!stkePrice || !solPrice) {
+    return null;
+  }
+
   const historicalRatio = stkePrice / solPrice;
   const ratioChange = currentExchangeRate / historicalRatio;
 
-  return (Math.pow(ratioChange, 365 / days) - 1) * 100;
+  const apy = (Math.pow(ratioChange, 365 / days) - 1) * 100;
+
+  if (!Number.isFinite(apy)) {
+    return null;
+  }
+
+  return apy;
 };
 
 const apy = async () => {
