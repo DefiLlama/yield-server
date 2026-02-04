@@ -565,19 +565,20 @@ const getSolanaAccountInfo = async (address, rpcUrl = 'https://api.mainnet-beta.
   return Buffer.from(data.result.value.data[0], 'base64');
 };
 
-// SPL Stake Pool data decoder
-// Layout reference: https://github.com/solana-labs/solana-program-library/blob/master/stake-pool/js/src/layouts.ts
+// SPL Stake Pool data decoder using official library
+const { StakePoolLayout } = require('@solana/spl-stake-pool');
+
 exports.getStakePoolInfo = async (stakePoolAddress, rpcUrl) => {
-  const buffer = await getSolanaAccountInfo(stakePoolAddress, rpcUrl);
+  const stakePoolAccountData = await getSolanaAccountInfo(stakePoolAddress, rpcUrl);
 
-  // SPL Stake Pool layout offsets (after header fields):
-  // totalLamports: offset 258 (u64)
-  // poolTokenSupply: offset 266 (u64)
-  const totalLamports = buffer.readBigUInt64LE(258);
-  const poolTokenSupply = buffer.readBigUInt64LE(266);
+  // Decode using official SPL stake pool layout
+  const stakePool = StakePoolLayout.decode(stakePoolAccountData);
 
-  // Exchange rate = SOL per pool token
-  const exchangeRate = Number(totalLamports) / Number(poolTokenSupply);
+  const totalLamports = stakePool.totalLamports;
+  const poolTokenSupply = stakePool.poolTokenSupply;
+
+  // Exchange rate = SOL per pool token (guard against division by zero)
+  const exchangeRate = poolTokenSupply === 0n ? 0 : Number(totalLamports) / Number(poolTokenSupply);
 
   return {
     totalLamports: Number(totalLamports),
