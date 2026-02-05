@@ -93,6 +93,51 @@ const stakingPools = {
   },
 };
 
+// Common token addresses - Ethereum Mainnet
+const tokens = {
+  ethereum: {
+    USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+    USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+    DAI: '0x6B175474E89094C44Da98b954EeadC7c9CaA3c2c',
+    WETH: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+    WBTC: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
+    stETH: '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84',
+    wstETH: '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0',
+    cbETH: '0xBe9895146f7AF43049ca1c1AE358B0541Ea49704',
+    rETH: '0xae78736Cd615f374D3085123A210448E74Fc6393',
+    LINK: '0x514910771AF9Ca656af840dff83E8264EcF986CA',
+    '1INCH': '0x111111111117dC0aa78b770fA6A738034120C302',
+    UNI: '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984',
+    SNX: '0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F',
+    ENS: '0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72',
+    FRAX: '0x853d955aCEf822Db058eb8505911ED77F175b99e',
+    CRV: '0xD533a949740bb3306d119CC777fa900bA034cd52',
+    AAVE: '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9',
+    COMP: '0xc00e94Cb662C3520282E6f5717214004A7f26888',
+    MKR: '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2',
+    LDO: '0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32',
+    SWETH: '0xf951E335afb289353dc249e82926178EaC7DEd78',
+    GHO: '0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f',
+    LUSD: '0x5f98805A4E8be255a32880FDeC7F6728C6568bA0',
+    eETH: '0x35fA164735182de50811E8e2E824cFb9B6118ac2',
+    weETH: '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee',
+    rsETH: '0xA1290d69c65A6Fe4DF752f95823fae25cB99e5A7',
+    ezETH: '0xbf5495Efe5DB9ce00f80364C8B423567e58d2110',
+    ETHx: '0xA35b1B31Ce002FBF2058D22F30f95D405200A15b',
+    MATIC: '0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0',
+  },
+  arbitrum: {
+    WETH: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+    wstETH: '0x5979D7b546E38E414F7E9822514be443A4800529',
+    rETH: '0xEC70Dcb4A1EFa46b8F2D97C310C9c4790ba5ffA8',
+  },
+  optimism: {
+    WETH: '0x4200000000000000000000000000000000000006',
+    wstETH: '0x1F32b1c2345538c0c6f582fCB022739c4A194Ebb',
+    rETH: '0x9Bcef72be871e61ED4fBbc7630889beE758eb81D',
+  },
+};
+
 // List of v0815 Cellars
 const v0815Pools = [
   {
@@ -105,7 +150,7 @@ const v0815Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.USDC],
     url: 'https://app.sommelier.finance/strategies/AAVE/manage',
   },
 ];
@@ -122,7 +167,7 @@ const v0816Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.WETH, tokens.ethereum.WBTC],
     url: 'https://app.sommelier.finance/strategies/ETH-BTC-Trend',
   },
   {
@@ -135,7 +180,7 @@ const v0816Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.WETH, tokens.ethereum.WBTC],
     url: 'https://app.sommelier.finance/strategies/ETH-BTC-Momentum',
   },
   {
@@ -148,7 +193,7 @@ const v0816Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.WETH],
     url: 'https://app.sommelier.finance/strategies/Steady-ETH',
   },
   {
@@ -161,7 +206,7 @@ const v0816Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.WBTC],
     url: 'https://app.sommelier.finance/strategies/Steady-BTC',
   },
   {
@@ -174,7 +219,7 @@ const v0816Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.UNI],
     url: 'https://app.sommelier.finance/strategies/Steady-UNI',
   },
   {
@@ -187,7 +232,7 @@ const v0816Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.MATIC],
     url: 'https://app.sommelier.finance/strategies/Steady-MATIC',
   },
 ];
@@ -203,7 +248,7 @@ const v2Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.USDC, tokens.ethereum.CRV, tokens.ethereum.AAVE, tokens.ethereum.COMP, tokens.ethereum.MKR, tokens.ethereum.LDO],
     url: 'https://app.sommelier.finance/strategies/DeFi-Stars',
   },
   {
@@ -216,7 +261,7 @@ const v2Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.USDC, tokens.ethereum.USDT, tokens.ethereum.DAI],
     url: 'https://app.sommelier.finance/strategies/Real-Yield-USD',
   },
   {
@@ -229,7 +274,7 @@ const v2Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.WETH, tokens.ethereum.stETH, tokens.ethereum.cbETH, tokens.ethereum.rETH],
     url: 'https://app.sommelier.finance/strategies/Real-Yield-ETH',
   },
   {
@@ -240,7 +285,7 @@ const v2Pools = [
     poolMeta: 'RealYieldLINK',
     tvlUsd: 0,
     apyBase: 0,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.LINK, tokens.ethereum.WETH],
     url: 'https://app.sommelier.finance/strategies/Real-Yield-LINK',
   },
   {
@@ -251,7 +296,7 @@ const v2Pools = [
     poolMeta: 'RealYield1INCH',
     tvlUsd: 0,
     apyBase: 0,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum['1INCH'], tokens.ethereum.WETH],
     url: 'https://app.sommelier.finance/strategies/Real-Yield-1Inch',
   },
   {
@@ -262,7 +307,7 @@ const v2Pools = [
     poolMeta: 'RealYield1UNI',
     tvlUsd: 0,
     apyBase: 0,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.UNI, tokens.ethereum.WETH],
     url: 'https://app.sommelier.finance/strategies/Real-Yield-UNI',
   },
   {
@@ -273,7 +318,7 @@ const v2Pools = [
     poolMeta: 'RealYieldSNX',
     tvlUsd: 0,
     apyBase: 0,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.SNX, tokens.ethereum.WETH],
     url: 'https://app.sommelier.finance/strategies/Real-Yield-SNX',
   },
   {
@@ -284,7 +329,7 @@ const v2Pools = [
     poolMeta: 'RealYieldENS',
     tvlUsd: 0,
     apyBase: 0,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.ENS, tokens.ethereum.WETH],
     url: 'https://app.sommelier.finance/strategies/Real-Yield-ENS',
   },
   {
@@ -297,7 +342,7 @@ const v2Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.FRAX],
     url: 'https://app.sommelier.finance/strategies/Fraximal',
   },
   {
@@ -310,7 +355,7 @@ const v2Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.WBTC],
     url: 'https://app.sommelier.finance/strategies/Real-Yield-BTC',
   },
 ];
@@ -326,7 +371,7 @@ const v2p5Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.WETH, tokens.ethereum.SWETH],
     url: 'https://app.sommelier.finance/strategies/Turbo-SWETH',
   },
   {
@@ -339,7 +384,7 @@ const v2p5Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.GHO, tokens.ethereum.USDC, tokens.ethereum.USDT, tokens.ethereum.DAI, tokens.ethereum.LUSD],
     url: 'https://app.sommelier.finance/strategies/Turbo-GHO',
   },
   {
@@ -352,7 +397,7 @@ const v2p5Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.WETH, tokens.ethereum.stETH, tokens.ethereum.wstETH],
     url: 'https://app.sommelier.finance/strategies/Turbo-STETH',
   },
   {
@@ -365,7 +410,7 @@ const v2p5Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.USDC],
     url: 'https://app.sommelier.finance/strategies/ETH-Trend-Growth',
   },
   // {
@@ -391,7 +436,7 @@ const v2p5Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.WETH, tokens.ethereum.eETH],
     url: 'https://app.sommelier.finance/strategies/Turbo-eETH',
   },
   {
@@ -404,7 +449,7 @@ const v2p5Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.stETH, tokens.ethereum.wstETH, tokens.ethereum.WETH],
     url: 'https://app.sommelier.finance/strategies/Turbo-STETH-(steth-deposit)',
   },
 ];
@@ -472,7 +517,7 @@ const v2p6Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.WETH, tokens.ethereum.eETH, tokens.ethereum.weETH],
     url: 'https://app.sommelier.finance/strategies/Turbo-eETHV2/manage',
   },
   {
@@ -485,7 +530,7 @@ const v2p6Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: arbitrumRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.arbitrum.WETH, tokens.arbitrum.wstETH, tokens.arbitrum.rETH],
     url: 'https://app.sommelier.finance/strategies/real-yield-eth-arb',
   },
   {
@@ -511,7 +556,7 @@ const v2p6Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.WETH, tokens.ethereum.rsETH],
     url: 'https://app.sommelier.finance/strategies/Turbo-rsETH/manage',
   },
   {
@@ -524,7 +569,7 @@ const v2p6Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: ethRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.ethereum.WETH, tokens.ethereum.ezETH],
     url: 'https://app.sommelier.finance/strategies/Turbo-ezETH/manage',
   },
   {
@@ -537,7 +582,7 @@ const v2p6Pools = [
     apyBase: 0,
     apyReward: 0,
     rewardTokens: optimismRewardTokens,
-    underlyingTokens: [],
+    underlyingTokens: [tokens.optimism.WETH, tokens.optimism.wstETH, tokens.optimism.rETH],
     url: 'https://app.sommelier.finance/strategies/real-yield-eth-opt/manage',
   },
 ];
