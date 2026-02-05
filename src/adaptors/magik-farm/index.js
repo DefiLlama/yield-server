@@ -167,6 +167,7 @@ const apy = async (dataLpPrices, dataTokenPrices, dataApy, networkMapping) => {
             symbol: utils.formatSymbol(poolToken),
             tvlUsd: (balance / Math.pow(10, tokenDecimals)) * price,
             apy: !isNaN(poolApy?.totalApy) ? poolApy.totalApy * 100 : null,
+            underlyingTokens: pool.tokenAddress ? [pool.tokenAddress] : undefined,
           };
           data.push(poolData);
         }

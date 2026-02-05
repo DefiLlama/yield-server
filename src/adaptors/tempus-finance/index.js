@@ -95,6 +95,7 @@ async function apy() {
       apyReward: apy.toNumber() * 100,
       rewardTokens: [RAFT],
       tvlUsd: totalStakedUsd,
+      underlyingTokens: [TEMP],
     },
   ];
 }

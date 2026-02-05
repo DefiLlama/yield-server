@@ -4,6 +4,8 @@ const axios = require('axios');
 
 // Curve
 const POOL_CONTRACT_LVUSD_3CRV = '0xe9123cbc5d1ea65301d417193c40a72ac8d53501';
+const LVUSD = '0x94a18d9fe00bab617fad8b49b11e9f1f64db6b36';
+const THREE_CRV = '0x6c3f90f043a72fa612cbac8115ee7e52bdd51e1e';
 const POOL_INDEX_LVUSD = 0;
 const POOL_INDEX_3CRV = 1;
 // Coingecko
@@ -76,6 +78,7 @@ const main = async () => {
     symbol: utils.formatSymbol('LvUSD'),
     tvlUsd: tvl,
     apy: await getApy(tvl),
+    underlyingTokens: [LVUSD, THREE_CRV],
   };
 
   return [pool];
