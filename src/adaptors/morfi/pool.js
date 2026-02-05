@@ -96,7 +96,8 @@ const getAmounts = (liquidity, tickLower, tickUpper, currentTick) => {
         symbol: `${pool.token0.symbol}-${pool.token1.symbol}`,
         tvlUsd: pool.totalValueLockedUSD,
         url: `https://app.morfi.io/pool/${pool.id}`,
-        apyBase: apr
+        apyBase: apr,
+        underlyingTokens: [pool.token0.id, pool.token1.id],
       }
     }),
   );

@@ -22,12 +22,14 @@ const poolsFunction = async () => {
     symbol: utils.formatSymbol('KSD'), //Users deposit KSD and claims the realized APY upon withdrawal
     tvlUsd: Number(dksdData.dKsdTotalSupply),
     apy: Number(dksdData.apy),
+    underlyingTokens: [KSD],
   };
 
   return [earnPool]; // Kokoa Finance Earn pool(the only pool) accrues APY yields via collateral management yields
 };
 const KSD_COIN_ID = 'kokoa-stable-dollar';
 const KOKOA = '0xb15183d0d4d5e86ba702ce9bb7b633376e7db29f';
+const KSD = '0x4fa62f1f404188ce860c8f0041d6ac3765a72e67'; // KSD stablecoin on Klaytn
 const cdpDataFunction = async () => {
   const URL = 'https://prod.kokoa-api.com/vaults/borrow';
   const data = (await utils.getData(URL)).vaults;

@@ -213,6 +213,7 @@ const main = async () => {
         debtCeilingUsd: totalBorrowUsd.plus(debtCeilingUsd).toNumber(),
         mintedCoin: 'MAI',
         ltv: (1 / ltv[index]) * 100,
+        underlyingTokens: [e.token.address],
       };
     });
     result.push(_result);

@@ -75,6 +75,7 @@ const apy = async () => {
             apyBase: apr30d,
             apyBase7d: apr7d,
             tvlUsd: tvlEth * exchangeRateToday,
+            underlyingTokens: [USCC['ethereum']],
         },
         {
             pool: `${USCC['plume_mainnet']}`,
@@ -84,6 +85,7 @@ const apy = async () => {
             apyBase: apr30d,
             apyBase7d: apr7d,
             tvlUsd: tvlPlume * exchangeRateToday,
+            underlyingTokens: [USCC['plume_mainnet']],
         },
         {
             pool: `${USCC['solana']}`,
@@ -93,6 +95,7 @@ const apy = async () => {
             apyBase: apr30d,
             apyBase7d: apr7d,
             tvlUsd: tvlSol * exchangeRateToday,
+            underlyingTokens: [USCC['solana']],
         },
     ];
 };

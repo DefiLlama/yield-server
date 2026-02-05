@@ -449,6 +449,7 @@ const getXrplPools = async (sharedData) => {
           apyBase7d: Number(apyBase7d.toFixed(2)),
           poolMeta: xrplConfig.ousg.name,
           url: 'https://app.ondo.finance/assets/ousg',
+          underlyingTokens: [xrplConfig.ousg.issuer],
         });
       }
     }
@@ -516,6 +517,7 @@ const getStellarPools = async (sharedData) => {
           apyBase7d: Number(apyBase7d.toFixed(2)),
           poolMeta: stellarConfig.usdy.name,
           url: 'https://app.ondo.finance/assets/usdy',
+          underlyingTokens: [stellarConfig.usdy.issuer],
         });
       }
     }
@@ -549,6 +551,7 @@ const getOsmosisPools = async (sharedData) => {
           apyBase7d: Number(apyBase7d.toFixed(2)),
           poolMeta: osmosisConfig.usdy.name,
           url: 'https://app.ondo.finance/assets/usdy',
+          underlyingTokens: [osmosisConfig.usdy.ibcDenom],
         });
       }
     }
@@ -582,6 +585,7 @@ const getNoblePools = async (sharedData) => {
           apyBase7d: Number(apyBase7d.toFixed(2)),
           poolMeta: nobleConfig.usdy.name,
           url: 'https://app.ondo.finance/assets/usdy',
+          underlyingTokens: [nobleConfig.usdy.denom],
         });
       }
     }

@@ -115,6 +115,7 @@ async function getApyData() {
       symbol: coinInfo.symbol,
       apy,
       tvlUsd,
+      underlyingTokens: [vaultInfo.coinType],
     })
   }
 

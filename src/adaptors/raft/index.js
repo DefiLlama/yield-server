@@ -7,6 +7,12 @@ const RR = {
   ethereum: '0xd2c0c4A6296D416C5Eb6Ae41d17aC4Db4bDD5296',
   base: '0xA5b3FEe253f9DE67201dC8572Bd2CbB4a81c1bEc',
 };
+
+// R stablecoin addresses
+const R_TOKEN = {
+  ethereum: '0x183015a9ba6ff60230fdeadc3f43b3d788b13e21',
+  base: '0xafb2820316e7bc5ef78d295ab9b8bb2257534576',
+};
 const HOUR = 60 * 60;
 const DAY = 24 * HOUR;
 const SECONDS_PER_YEAR = 365 * DAY;
@@ -36,6 +42,7 @@ async function chainApy(chain) {
     poolMeta: 'R Savings Rate',
     apy,
     tvlUsd,
+    underlyingTokens: [R_TOKEN[chain]],
   };
 }
 

@@ -182,6 +182,7 @@ const getApy = async () => {
       totalBorrowUsd: totalSupplyUsd,
       ltv: 1 / Number(liquidationRatio.toNumber()),
       mintedCoin: 'DUSD',
+      underlyingTokens: [WMATIC],
     },
     {
       pool: sDAVOS,
@@ -195,6 +196,7 @@ const getApy = async () => {
         .toNumber(),
       tvlUsd:
         (Number(dMATICTotalSupply) / 1e18) * davosPrice,
+      underlyingTokens: [DAVOS],
     },
   ];
 };

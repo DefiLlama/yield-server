@@ -2,6 +2,9 @@ const { symbol } = require('../impermax-v2/abi');
 const { REWARD_TOKEN } = require('../line-token-rewards/config');
 const utils = require('../utils')
 
+// WBNB on BSC
+const WBNB = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c';
+
 const SY_pool = async() => {
 
     console.log("running")
@@ -16,6 +19,7 @@ const SY_pool = async() => {
         tvlUsd: TVL,
         apy: APY,
         poolMeta: "Automated Farm",
+        underlyingTokens: [WBNB],
     }
 
     return [SY_pool_metrics]

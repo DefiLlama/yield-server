@@ -99,6 +99,7 @@ const cdpData = async () => {
         mintedCoin: 'agEUR',
         debtCeilingUsd:
           (Number(_vault.debtCeiling) / 10 ** 18) * mintedCoinPrice,
+        underlyingTokens: [_vault.collateral],
       };
     });
 

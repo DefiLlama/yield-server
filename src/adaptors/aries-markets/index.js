@@ -51,6 +51,7 @@ async function calculateRewardApy(coin, reserveStatsMap, aptPrice) {
         symbol: utils.formatSymbol(coinSymbol),
         tvlUsd: netTvl,
         apyBase: interestApy,
+        underlyingTokens: [coinAddr],
     }
 
     if (remainingReward > 0) {
