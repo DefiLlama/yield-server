@@ -142,6 +142,7 @@ async function getApyByChain(chain, dataTvl) {
             apyBase: Number(apyBase?.value || 0) * 100,
             apyReward: Number(apyReward?.value || 0) * 100,
             rewardTokens: [maprewardTokens[chain][apyReward?.title]],
+            underlyingTokens: [pair.token0.address, pair.token1.address],
           };
           return _pool;
         }

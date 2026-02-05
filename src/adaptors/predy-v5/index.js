@@ -127,7 +127,7 @@ function getLendingSummary(scaledAssetStatus, irmParams, price, decimals) {
 
 const lendingApys = async () => {
   const controller = '0x06a61E55d4d4659b1A23C0F20AEdfc013C489829';
-  const usdcAddress = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8';
+  const usdcAddress = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'; // USDC.e on Arbitrum
 
   const priceKeys = pairs
     .map((t) => `arbitrum:${t.tokenAddress}`)
@@ -173,6 +173,7 @@ const lendingApys = async () => {
           totalBorrowUsd: stableSummary.borrow,
           apyBase: stableSummary.apy,
           url: `https://v5app.predy.finance/arbitrum/trade/usdce/lending/${pair.pairId}`,
+          underlyingTokens: [usdcAddress],
         },
         {
           pool: `${underlyingSupplyToken}-arbitrum`,
@@ -185,6 +186,7 @@ const lendingApys = async () => {
           totalBorrowUsd: underlyingSummary.borrow,
           apyBase: underlyingSummary.apy,
           url: `https://v5app.predy.finance/arbitrum/trade/usdce/lending/${pair.pairId}`,
+          underlyingTokens: [pair.tokenAddress],
         },
       ];
     })
@@ -206,6 +208,7 @@ function getApr(latest, start) {
 
 const strategyApys = async () => {
   const strategyAddress = '0x247d8E00a2714665a5231f4AB165839d943C1838';
+  const usdcAddress = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'; // USDC.e on Arbitrum
 
   return await Promise.all(
     strategies.map(async (strategy) => {
@@ -238,6 +241,7 @@ const strategyApys = async () => {
         apyBase: apy,
         tvlUsd,
         url: `https://v5app.predy.finance/arbitrum/trade/usdce/strategy/${strategy.id}`,
+        underlyingTokens: [usdcAddress],
       };
     })
   );

@@ -7,6 +7,9 @@ const variableDebtTokenAddress = '0x0B24190702018C93E09A55F958D6485Ae31b62A1';
 const sdkChain = 'filecoin';
 const url = 'https://app.stfil.io/#/stake';
 
+// Native FIL represented as zero address
+const FIL = '0x0000000000000000000000000000000000000000';
+
 const getApy = async () => {
   const priceKey = `coingecko:filecoin`;
   const price = (
@@ -59,6 +62,7 @@ const getApy = async () => {
       tvlUsd,
       apyBase,
       url,
+      underlyingTokens: [FIL],
       // borrow fields
       totalSupplyUsd,
       totalBorrowUsd,

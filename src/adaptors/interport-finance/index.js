@@ -152,6 +152,7 @@ const getData = async ({ chainId, address }) => {
     symbol: symbol.output.replace('i', ''),
     apyBase: Number(apr),
     tvlUsd: Number(tvl),
+    underlyingTokens: [address],
   };
 };
 

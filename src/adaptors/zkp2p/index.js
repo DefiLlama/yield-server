@@ -1,5 +1,8 @@
 const axios = require('axios');
 
+// USDC on Base chain
+const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+
 const getApy = async () => {
   // time-based scheduling: only run once a day at hour 0 (midnight)
   const currentHour = new Date().getHours();
@@ -46,6 +49,7 @@ const getApy = async () => {
       apy: Number(latestData.protocol_apr_pct),
       url: 'https://zkp2p.xyz',
       poolMeta: 'APR is a TVL-weighted median across payment rail pools (e.g., Venmo, Zelle). Details: https://docs.zkp2p.xyz/user-guides/for-sellers/calculating-apr',
+      underlyingTokens: [USDC_BASE],
     };
 
     console.log('ZKP2P: Fetched fresh data from Dune');

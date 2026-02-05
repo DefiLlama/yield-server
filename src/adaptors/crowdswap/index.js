@@ -97,6 +97,7 @@ const main = async () => {
             poolList[i]['project'] = 'crowdswap';
             poolList[i]['pool'] = item[i].farmAddress;
             poolList[i]['rewardTokens'] = [item[i].rewardToken.address];
+            poolList[i]['underlyingTokens'] = [item[i].pairAddress];
           }
     }
     return poolList;
