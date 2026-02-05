@@ -52,7 +52,7 @@ const poolsFunction = async () => {
       '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
       '0x22F4730e21e40Dc751c08826d93010A64185e53f',
     ],
-    underlyingTokens: ['0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1'], // DAI
+    underlyingTokens: ['0xda10009cbd5d07dd0cecc66161fc93d7c9000da1'], // DAI
   };
 
   const nUSDCPool = {
@@ -68,7 +68,7 @@ const poolsFunction = async () => {
       '0x22F4730e21e40Dc751c08826d93010A64185e53f',
       '0x3CAaE25Ee616f2C8E13C74dA0813402eae3F496b',
     ],
-    underlyingTokens: ['0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'], // USDC.e
+    underlyingTokens: ['0xff970a61a04b1ca14834a43f5de4533ebddb5cc8'], // USDC.e
   };
 
   return [GlpPool, nUSDCPool];
