@@ -104,6 +104,7 @@ async function callGetReservesData() {
       chain: utils.formatChain('xdai'),
       project: 'realt-tokens',
       symbol: wxdai.symbol,
+      underlyingTokens: [wxdai.underlyingAsset],
       tvlUsd: totalVariableDebt
         .plus(totalStableDebt)
         .plus(BigNumber(wxdai.availableLiquidity))

@@ -110,6 +110,7 @@ const EXCEPTIONS = {
           chain: utils.formatChain(chainString),
           tvlUsd: totalSupply * susdnPrice,
           apyBase,
+          underlyingTokens: [SUSDE_TOKEN_ADDRESS], // sUSDN is backed by sUSDe
         };
       },
     },

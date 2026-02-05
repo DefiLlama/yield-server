@@ -100,7 +100,7 @@ async function main() {
                 if (market === '0x95B847BD54d151231f1c82Bf2EECbe5c211bD9bC')
                   return null;
 
-                const [APYS, tvl, ltv] = await Promise.all([
+                const [APYS, tvlData, ltv] = await Promise.all([
                   getAPY(market, chain),
                   getErc20Balances(market, chainData.oracle, provider, chain),
                   (
@@ -112,13 +112,14 @@ async function main() {
                     })
                   ).output,
                 ]);
+                const { tvlUsd, totalSupplyUsd, totalBorrowsUsd, underlyingAddress, isNative } = tvlData;
 
                 const [rewardTokens, supplyAPY, borrowAPY] = await getRewardAPY(
                   chain,
                   chainData.rewardManager,
                   market,
-                  tvl.totalSupplyUsd,
-                  tvl.totalBorrowsUsd,
+                  totalSupplyUsd,
+                  totalBorrowsUsd,
                   provider
                 );
 
@@ -132,14 +133,15 @@ async function main() {
                   chain: chain,
                   apyBase: APYS.supplyAPY,
                   apyReward: supplyAPY,
-                  tvlUsd: tvl.tvlUsd,
+                  tvlUsd,
                   apyBaseBorrow: APYS.borrowAPY,
                   apyRewardBorrow: borrowAPY,
                   rewardTokens:
                     supplyAPY > 0 || borrowAPY > 0 ? rewardTokens : [],
-                  totalSupplyUsd: tvl.totalSupplyUsd,
-                  totalBorrowUsd: tvl.totalBorrowsUsd,
+                  totalSupplyUsd,
+                  totalBorrowUsd: totalBorrowsUsd,
                   ltv: parseInt(ltv.collateralFactorMantissa) / 1e18,
+                  underlyingTokens: isNative ? [chainData.wnative] : [underlyingAddress],
                 };
               },
               {
@@ -400,7 +402,9 @@ async function getErc20Balances(strategy, oracleAddress, provider, chain) {
     oDecimals,
     underlyingDecimals,
     oracleUnderlyingPrice,
-    apiPrice
+    apiPrice,
+    _address,
+    native
   );
 }
 
@@ -419,7 +423,9 @@ function convertTvlUSD(
   oDecimals,
   underlyingDecimals,
   oracleUnderlyingPrice,
-  apiPrice
+  apiPrice,
+  underlyingAddress,
+  isNative
 ) {
   let totalSupplyUsd = 0;
   let totalBorrowsUsd = 0;
@@ -444,7 +450,7 @@ function convertTvlUSD(
   }
   const tvlUsd = totalSupplyUsd - totalBorrowsUsd;
 
-  return { totalSupplyUsd, totalBorrowsUsd, tvlUsd };
+  return { totalSupplyUsd, totalBorrowsUsd, tvlUsd, underlyingAddress, isNative };
 }
 
 module.exports = {

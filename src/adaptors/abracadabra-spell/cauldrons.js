@@ -616,6 +616,7 @@ const marketInfoToPool = (chain, marketInfo, collateral, pricesObj) => {
     ltv,
     debtCeilingUsd,
     mintedCoin: 'MIM',
+    underlyingTokens: [collateral.address],
   };
 
   if (collateral.apyBase !== undefined) {

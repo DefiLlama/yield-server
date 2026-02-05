@@ -81,6 +81,7 @@ const apy = async () => {
         (parseFloat(totalSupplies[0] * exchangeRates[0]) / 10 ** 24) *
         prices[0],
       totalBorrowUsd: (parseFloat(totalBorrows[0]) / 10 ** 6) * prices[0],
+      underlyingTokens: [underlying_addresses[0]],
     },
     {
       pool: CR_USDC.toLowerCase(),
@@ -93,6 +94,7 @@ const apy = async () => {
         (parseFloat(totalSupplies[1] * exchangeRates[1]) / 10 ** 24) *
         prices[1],
       totalBorrowUsd: (parseFloat(totalBorrows[1]) / 10 ** 6) * prices[1],
+      underlyingTokens: [underlying_addresses[1]],
     },
   ];
 };

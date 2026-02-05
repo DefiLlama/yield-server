@@ -279,7 +279,8 @@ async function calculateRewardApy(poolAddress, aptPrice, cellPrice) {
         tvlUsd: total,
         apyBase: 0,
         apyReward: apyReward,
-        rewardTokens: [CELL_fungible_asset_address]
+        rewardTokens: [CELL_fungible_asset_address],
+        underlyingTokens: [reserve0Address, reserve1Address],
     }
     const rs = [lpPool]
     return rs;

@@ -1,7 +1,9 @@
 const utils = require('../utils');
 
 const stakingPool = "0xE86D3dBd8233F1BFA22679cB57FaB3428E9654f7";
-const sdkChain = 'filecoin'
+const sdkChain = 'filecoin';
+// Wrapped FIL on Filecoin
+const WFIL = '0x60E1773636CF5E4A227d9AC24F20fEca034ee25A';
 
 async function getTotalLockedFIL() {
   const result = await utils.getData('https://ww8.sftproject.io/api/c/api/v1/public/dashboard/info');
@@ -37,7 +39,8 @@ const getApy = async () => {
     chain: sdkChain,
     tvlUsd,
     apy,
-    poolMeta: '6 month lock'
+    poolMeta: '6 month lock',
+    underlyingTokens: [WFIL],
   }]
 }
  

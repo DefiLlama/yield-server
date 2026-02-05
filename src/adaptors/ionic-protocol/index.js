@@ -460,6 +460,7 @@ const apy = async (chain) => {
         apyReward: apyReward !== null && apyReward !== undefined ? apyReward : 0, // Ensure apyBase has a valid value,
         apyBase: apyBase !== null && apyBase !== undefined ? apyBase : 0, // Ensure apyBase has a valid value
         rewardTokens: rewardTokens,
+        underlyingTokens: [underlying[i]],
       };
     });
     return pools;

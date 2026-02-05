@@ -135,6 +135,7 @@ const apy = async () => {
             symbol: 'USDC',
             tvlUsd: wethTVL,
             apy: baseApys.output[1].output / 100,
+            underlyingTokens: [usdcWethVault.stableAddress],
         },
         {
             pool: `${usdcCbBtcVault.poolAddress}-base`,
@@ -143,6 +144,7 @@ const apy = async () => {
             symbol: 'USDC',
             tvlUsd: cbBtcTVL,
             apy: baseApys.output[0].output / 100,
+            underlyingTokens: [usdcCbBtcVault.stableAddress],
         },
         {
             pool: `${usdtWbtcVault.poolAddress}-arbitrum`,
@@ -151,6 +153,7 @@ const apy = async () => {
             symbol: 'USDT',
             tvlUsd: wbtcTVL,
             apy: arbitrumApys.output[0].output / 100,
+            underlyingTokens: [usdtWbtcVault.stableAddress],
         }
     ]
     return pools

@@ -5,6 +5,12 @@ const BN = require('bignumber.js');
 
 const apyhelper = '0xCf059594aE3FF11Bee9d3F3b3506d7Db73da48ff';
 
+// Token addresses
+const PINA = '0x02814F435dD04e254Be7ae69F61FCa19881a780D';
+const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+const MEME = '0xb131f4A55907B10d1F0A50d8ab8FA09EC342cd74';
+const WETH = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+
 const poolInfo = async (chain) => {
   const getAPR = await sdk.api.abi.multiCall({
     calls: [
@@ -59,6 +65,7 @@ const poolsFunction = async () => {
     apy: Number(BN(pool[0].output[1]).div(1e6).toString()),
     rewardTokens: ['0x02814F435dD04e254Be7ae69F61FCa19881a780D'],
     poolMeta: '5day lockup',
+    underlyingTokens: [PINA],
   };
 
   const pina_usdc = {
@@ -70,6 +77,7 @@ const poolsFunction = async () => {
     apy: Number(BN(usdcapr[0].output).div(1e6).toString()),
     rewardTokens: ['0x02814F435dD04e254Be7ae69F61FCa19881a780D'],
     poolMeta: '3day lockup',
+    underlyingTokens: [PINA, USDC],
   };
 
   const pina_meme = {
@@ -81,6 +89,7 @@ const poolsFunction = async () => {
     apy: Number(BN(pool[0].output[4]).div(1e6).toString()),
     rewardTokens: ['0x02814F435dD04e254Be7ae69F61FCa19881a780D'],
     poolMeta: '3day lockup',
+    underlyingTokens: [PINA, MEME],
   };
 
   const meme_eth = {
@@ -92,6 +101,7 @@ const poolsFunction = async () => {
     apy: Number(BN(pool[0].output[7]).div(1e6).toString()),
     rewardTokens: ['0x02814F435dD04e254Be7ae69F61FCa19881a780D'],
     poolMeta: '3day lockup',
+    underlyingTokens: [MEME, WETH],
   };
   return [forge, pina_usdc, pina_meme, meme_eth];
 };

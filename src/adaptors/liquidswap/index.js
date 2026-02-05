@@ -159,6 +159,7 @@ async function aptosPools() {
       symbol: `${coinX.symbol}-${coinY.symbol}`,
       tvlUsd: farmPoolInfo.tvl,
       apy: farmPoolInfo.apr,
+      underlyingTokens: [coinX.type, coinY.type],
     });
   }
 
@@ -175,6 +176,7 @@ async function movementPools() {
   const volumeUsd1d = parseFloat(pool.volume24);
   const fee24h = volumeUsd1d * parseFloat(pool.normalizedFee);
 
+  const underlyingTokens = [pool.coinX?.type, pool.coinY?.type].filter(Boolean);
   return {
     pool: poolId,
     chain: utils.formatChain('movement'),
@@ -183,6 +185,7 @@ async function movementPools() {
     tvlUsd: Number(pool.tvl),
     apyBase: volumeUsd1d > 0 ? fee24h * 365 * 100 / volumeUsd1d : 0,
     volumeUsd1d: volumeUsd1d,
+    ...(underlyingTokens.length > 0 && { underlyingTokens }),
   }
  })
 }

@@ -211,6 +211,7 @@ const apy = async () => {
       tvlUsd,
       apyReward,
       rewardTokens: apyReward > 0 ? [velo] : [],
+      underlyingTokens: [meta.t0, meta.t1],
       poolMeta,
       url,
     };
