@@ -63,7 +63,7 @@ const apy = async () => {
           totalBorrowUsd: formatByDecimals(p?.borrowedAmount, tokenDecimals),
           apyBase: formatApy(p?.rates?.find((r) => (r?.side || "") === "LENDER")?.rate),
           apyBaseBorrow: formatApy(p?.rates?.find((r) => (r?.side || "") === "BORROWER")?.rate),
-          underlyingTokens: tokenAddr ? [tokenAddr] : [],
+          underlyingTokens: tokenAddr ? [tokenAddr] : undefined,
           url: `${POOL_URL_BASE}${p?.address ?? ""}/overview`,
         };
       });

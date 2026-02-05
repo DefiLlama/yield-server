@@ -171,7 +171,7 @@ const apy = async() => {
                 url: `https://yield.accountable.capital/vaults/${item.loan_address}`,
                 totalSupplyUsd: formatAmount(stats.totalSupplied, 6),
                 totalBorrowUsd: formatAmount(stats.totalBorrowed, 6),
-                underlyingTokens: stats.underlying ? [stats.underlying] : [],
+                underlyingTokens: stats.underlying ? [stats.underlying] : undefined,
             };
         })
     );
