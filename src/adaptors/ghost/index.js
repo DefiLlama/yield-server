@@ -45,6 +45,7 @@ const getApy = async () => {
           apyRewardBorrow: 0,
           totalSupplyUsd,
           totalBorrowUsd,
+          underlyingTokens: contract.config.denom ? [contract.config.denom] : undefined,
         };
       } else {
         const totalSupplyUsd =
@@ -63,6 +64,7 @@ const getApy = async () => {
           apyRewardBorrow: 0,
           totalSupplyUsd,
           totalBorrowUsd,
+          underlyingTokens: contract.config.denom ? [contract.config.denom] : undefined,
         };
       }
     })
