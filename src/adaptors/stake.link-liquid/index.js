@@ -82,12 +82,14 @@ const pools = [
     address: '0xb8b295df2cd735b15BE5Eb419517Aa626fc43cD5',
     priceId: 'chainlink',
     chain: 'Ethereum',
+    underlying: '0x514910771AF9Ca656af840dff83E8264EcF986CA', // LINK
   },
   {
     symbol: 'stPOL',
     address: '0x2ff4390dB61F282Ef4E6D4612c776b809a541753',
     priceId: 'polygon-ecosystem-token',
     chain: 'Ethereum',
+    underlying: '0x455e53CBB86018Ac2B8092FdCd39d8444aFFC3F6', // POL
   },
 ];
 
@@ -101,7 +103,7 @@ const fetchPrice = async (tokenId) => {
 
 const fetchPool = async (pool) => {
   try {
-    const { symbol, address, priceId, chain } = pool;
+    const { symbol, address, priceId, chain, underlying } = pool;
     const price = await fetchPrice(priceId);
 
     // Use appropriate query and field names based on the token
@@ -137,6 +139,7 @@ const fetchPool = async (pool) => {
       symbol,
       tvlUsd: tvl,
       apyBase: apy,
+      underlyingTokens: [underlying],
     };
   } catch (error) {
     console.error(

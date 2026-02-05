@@ -29,6 +29,7 @@ const poolsFunction = async () => {
         symbol: utils.formatSymbol(stcUSD.id),
         tvlUsd: tvlUsdNum,
         apy: stcUSDInfos.apyBase,
+        underlyingTokens: [cUSD.address],
     };
 
     return [stcUSDPool];

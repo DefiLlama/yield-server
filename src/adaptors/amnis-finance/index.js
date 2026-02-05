@@ -35,6 +35,7 @@ async function main() {
           tvlUsd: tvlUsd,
           apy: apy,
           apyBase: apy,
+          underlyingTokens: ['0x1::aptos_coin::AptosCoin'],
         },
       ];
 }

@@ -165,6 +165,7 @@ const apy = async () => {
         chain: 'ethereum',
         tvlUsd: scrvusd.tvl / 1e18,
         apyBase: scrvusd.apyBase,
+        underlyingTokens: [crvUsd],
       },
     ])
     .filter(

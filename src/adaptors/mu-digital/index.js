@@ -209,6 +209,7 @@ const getMuBondPool = async (chain, muBond, priceFeed, url) => {
       tvlUsd,
       apyBase,
       url,
+      underlyingTokens: [AZND_ADDRESS],
     };
   } catch (error) {
     console.error(`Error fetching muBOND data for ${muBond}:`, error);
@@ -220,6 +221,7 @@ const getMuBondPool = async (chain, muBond, priceFeed, url) => {
       tvlUsd: 0,
       apyBase: 0,
       url,
+      underlyingTokens: [AZND_ADDRESS],
     };
   }
 };

@@ -99,6 +99,7 @@ const rlpPool = async () => {
       project: 'resolv',
       tvlUsd: tvl,
       apyBase: aprBase * 100,
+      underlyingTokens: [USR],
     };
   } catch (error) {
     console.error('Error fetching RLP pool data:', error);
@@ -145,6 +146,7 @@ const stUsrPool = async () => {
       project: 'resolv',
       tvlUsd: tvl,
       apyBase: aprBase * 100,
+      underlyingTokens: [USR],
     };
   } catch (error) {
     console.error('Error fetching stUSR pool data:', error);
