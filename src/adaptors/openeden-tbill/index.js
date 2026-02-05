@@ -167,6 +167,7 @@ const apy = async () => {
       tvlUsd: supplyXrpl * priceNowNum,
       apyBase,
       apyBase7d,
+      underlyingTokens: [`${config.xrpl.currency}.${config.xrpl.issuer}`],
       url: 'https://app.openeden.com/tbill?chain=xrpl',
     });
   }

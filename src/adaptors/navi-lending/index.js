@@ -22,6 +22,7 @@ const poolsFunction = async () => {
       totalSupplyUsd: supplyUsd,
       totalBorrowUsd: borrowUsd,
       apyBaseBorrow: parseFloat(pool.base_borrow_rate),
+      underlyingTokens: pool.coin_type ? [pool.coin_type] : undefined,
     });
   });
 
