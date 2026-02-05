@@ -74,6 +74,7 @@ const getApy = async () => {
     apyBase, // APY from pool fees/supplying in %
     apyBase7d,
     url,
+    underlyingTokens: ['0x0000000000000000000000000000000000000000'],
   };
 
   return [ethereumAPY];

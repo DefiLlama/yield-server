@@ -95,6 +95,7 @@ const poolsFunction = async () => {
     apyBase: annualizedUsdcReturns,
     apyBaseInception: annualizedUsdcReturnsInception,
     poolMeta: 'Crab USDC',
+    underlyingTokens: [usdc],
   };
 
   // affected by euler hack
