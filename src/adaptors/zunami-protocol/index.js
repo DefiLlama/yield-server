@@ -10,6 +10,18 @@ const zunUSDApsStakingAddr = "0x280d48e85f712e067a16d6b25e7ffe261c0810bd";
 
 const zunStakingAddr = "0x45af4F12B46682B3958B297bAcebde2cE2E795c3";
 
+// Underlying token addresses (Ethereum mainnet)
+const tokens = {
+  DAI: '0x6B175474E89094C44Da98b954EeadC7c9CaA3c2c',
+  USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+  USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+  crvUSD: '0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E',
+  WETH: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+  sfrxETH: '0xac3E018457B222d93114458476f3E3416Abbe38F',
+  stETH: '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84',
+  ZUN: '0x6b5204B0Be36771253Cc38e88012E02B752f0f36',
+};
+
 const collectPools = async () => {
   const data = await utils.getData('https://api.zunami.io/api/pool/aggregated-info');
   const info = data['info'];
@@ -32,6 +44,7 @@ const collectPools = async () => {
       symbol: 'DAI-USDC-USDT-crvUSD',
       tvlUsd: zunUSD['tvlUsd'],
       apy: zunUSD['apr'],
+      underlyingTokens: [tokens.DAI, tokens.USDC, tokens.USDT, tokens.crvUSD],
     },
     {
       pool: zunUSDApsAddr,
@@ -40,6 +53,7 @@ const collectPools = async () => {
       symbol: 'zunUSD',
       tvlUsd: zunUSDAps['tvlUsd'],
       apy: zunUSDAps['apy'],
+      underlyingTokens: [zunUSDAddr],
     },
     {
       pool: zunUSDApsStakingAddr,
@@ -48,6 +62,7 @@ const collectPools = async () => {
       symbol: 'apsZunUSD',
       tvlUsd: zunUSDApsStaking['tvlUsd'],
       apy: zunUSDApsStaking['apr'],
+      underlyingTokens: [zunUSDApsAddr],
     },
     {
       pool: zunETHAddr,
@@ -56,6 +71,7 @@ const collectPools = async () => {
       symbol: 'ETH-wETH-sfrxETH-stETH',
       tvlUsd: zunETH['tvlUsd'],
       apy: zunETH['apr'],
+      underlyingTokens: [tokens.WETH, tokens.sfrxETH, tokens.stETH],
     },
     {
       pool: zunETHApsAddr,
@@ -64,6 +80,7 @@ const collectPools = async () => {
       symbol: 'zunETH',
       tvlUsd: zunETHAps['tvlUsd'],
       apy: zunETHAps['apy'],
+      underlyingTokens: [zunETHAddr],
     },
     {
       pool: zunETHApsStakingAddr,
@@ -72,6 +89,7 @@ const collectPools = async () => {
       symbol: 'apsZunETH',
       tvlUsd: zunETHApsStaking['tvlUsd'],
       apy: zunETHApsStaking['apr'],
+      underlyingTokens: [zunETHApsAddr],
     },
     {
       pool: zunStakingAddr,
@@ -80,6 +98,7 @@ const collectPools = async () => {
       symbol: 'ZUN',
       tvlUsd: zunStaking['tvlUsd'],
       apy: zunStaking['apr'],
+      underlyingTokens: [tokens.ZUN],
     },
   ];
 };
