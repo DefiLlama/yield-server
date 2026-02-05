@@ -79,6 +79,7 @@ async function apy() {
       url: `https://app.dexter.zone/pools/${p.poolContractAddress}`,
       apyReward: 0,
       rewardTokens: [],
+      underlyingTokens: [p.poolAssets[0].identifier, p.poolAssets[1].identifier],
     };
 
     if (p.poolId === 1) {

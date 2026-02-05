@@ -30,6 +30,8 @@ const buildPool = (entry, runePrice) => {
     symbol: utils.formatSymbol(symbol),
     tvlUsd: balanceAsset + balanceRune,
     apy: Number(entry.poolAPY) * 100,
+    // THORChain asset notation: CHAIN.ASSET-ID (e.g., ETH.USDC-0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)
+    underlyingTokens: [entry.asset],
   };
 
   return newObj;
