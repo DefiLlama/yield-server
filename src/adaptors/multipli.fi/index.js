@@ -51,11 +51,18 @@ async function apy() {
   // Compute rwaUSDi APY from asset manager monthly yields
   // Each manager has an array of monthly net yields; we average the latest
   // month across all managers and annualize
-  const managers = Object.values(rwaData.historical_am_yield_apy);
-  const latestYields = managers.map((m) => m.net_yield[m.net_yield.length - 1]);
-  const avgMonthly =
-    latestYields.reduce((sum, y) => sum + y, 0) / latestYields.length;
-  const rwaUsdApy = avgMonthly * 12;
+  let rwaUsdApy = 0;
+  if (rwaData.historical_am_yield_apy) {
+    const managers = Object.values(rwaData.historical_am_yield_apy);
+    const latestYields = managers
+      .filter((m) => m.net_yield && m.net_yield.length > 0)
+      .map((m) => m.net_yield[m.net_yield.length - 1]);
+    if (latestYields.length > 0) {
+      const avgMonthly =
+        latestYields.reduce((sum, y) => sum + y, 0) / latestYields.length;
+      rwaUsdApy = avgMonthly * 12;
+    }
+  }
 
   const apyMap = {};
   for (const item of apyData) {
@@ -85,8 +92,27 @@ async function apy() {
   // rwaUSDi on Ethereum
   const rwaEthKey = `ethereum:${RWAUSDI.ethereum.toLowerCase()}`;
   const rwaEthRaw = tvlData.ethereum?.[rwaEthKey];
-  if (rwaEthRaw) {
-    const rwaEthTvl = Number(rwaEthRaw) / 10 ** RWAUSDI_DECIMALS;
+  if (!rwaEthRaw) {
+    console.log(
+      `multipli.fi: rwaUSDi key "${rwaEthKey}" not found in tvlData.ethereum, ` +
+        `available keys: ${Object.keys(tvlData.ethereum || {}).join(', ')}`
+    );
+  } else {
+    const tokenAmount = Number(rwaEthRaw) / 10 ** RWAUSDI_DECIMALS;
+    // Fetch price from DefiLlama; rwaUSDi is ~$1 pegged but use real price
+    let rwaEthTvl = tokenAmount; // fallback: treat as $1 per token
+    try {
+      const priceKey = `ethereum:${RWAUSDI.ethereum}`;
+      const priceRes = await axios.get(
+        `https://coins.llama.fi/prices/current/${priceKey}`
+      );
+      const price = priceRes.data.coins[priceKey]?.price;
+      if (price) {
+        rwaEthTvl = tokenAmount * price;
+      }
+    } catch (e) {
+      // price fetch failed, use token amount as USD fallback (~$1 peg)
+    }
     pools.push({
       pool: RWAUSDI.ethereum,
       chain: utils.formatChain('ethereum'),
