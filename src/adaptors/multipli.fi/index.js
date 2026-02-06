@@ -99,7 +99,7 @@ async function apy() {
     });
   }
 
-  // rwaUSDi on Base **INSTITUTIONAL NOT AVAILABLE TO PUBLIC FROM WHAT I CAN SEE**
+  // rwaUSDi on Base **INSTITUTIONAL NOT AVAILABLE TO RETAIL FROM WHAT I CAN SEE**
   // const rwaBaseKey = `base:${RWAUSDI.base}`;
   // const rwaBaseRaw = tvlData.base?.[rwaBaseKey];
   // if (rwaBaseRaw) {
