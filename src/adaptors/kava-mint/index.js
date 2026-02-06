@@ -38,6 +38,7 @@ const main = async () => {
   const parameters = parametersCall.params.collateral_params.map((e) => {
     return {
       ...convertSymbol(e.denom),
+      denom: e.denom,
       stability_fee: e.stability_fee,
       type: e.type,
       liquidation_ratio: e.liquidation_ratio,
@@ -93,6 +94,7 @@ const main = async () => {
         totalBorrowUsd: totalBorrowUsd,
         ltv: ltv,
         debtCeilingUsd: debtCeilingUsd,
+        underlyingTokens: [pool.denom].filter(Boolean),
         mintedCoin: 'USDX',
       };
     });

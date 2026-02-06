@@ -54,6 +54,7 @@ async function main() {
         totalBorrowUsd: totalBorrowUsd,
         ltv: ltv,
         debtCeilingUsd: debtCeilingUsd,
+        underlyingTokens: [col.gem].filter(Boolean),
         mintedCoin: 'pUSD',
       };
     })
