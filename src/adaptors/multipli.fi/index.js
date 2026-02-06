@@ -74,9 +74,8 @@ async function apy() {
   // xToken pools on Ethereum
   for (const [currency, token] of Object.entries(XTOKENS)) {
     const volumeData = statsData.volume_staked[token.statsKey];
-    const tvlUsd = volumeData
-      ? parseFloat(volumeData.total_volume_staked_usd)
-      : 0;
+    const parsed = parseFloat(volumeData?.total_volume_staked_usd);
+    const tvlUsd = isFinite(parsed) ? parsed : 0;
 
     pools.push({
       pool: token.address,
@@ -86,6 +85,7 @@ async function apy() {
       tvlUsd,
       apy: apyMap[currency] || 0,
       underlyingTokens: [token.underlying],
+      url: 'https://app.multipli.fi/',
     });
   }
 
@@ -102,16 +102,22 @@ async function apy() {
     // Fetch price from DefiLlama; rwaUSDi is ~$1 pegged but use real price
     let rwaEthTvl = tokenAmount; // fallback: treat as $1 per token
     try {
-      const priceKey = `ethereum:${RWAUSDI.ethereum}`;
+      const priceKey = `ethereum:${RWAUSDI.ethereum.toLowerCase()}`;
       const priceRes = await axios.get(
         `https://coins.llama.fi/prices/current/${priceKey}`
       );
       const price = priceRes.data.coins[priceKey]?.price;
       if (price) {
         rwaEthTvl = tokenAmount * price;
+      } else {
+        console.warn(
+          `multipli.fi: no price found for ${priceKey}, falling back to $1 peg`
+        );
       }
     } catch (e) {
-      // price fetch failed, use token amount as USD fallback (~$1 peg)
+      console.warn(
+        `multipli.fi: price fetch failed for rwaUSDi, falling back to $1 peg`
+      );
     }
     pools.push({
       pool: RWAUSDI.ethereum,
