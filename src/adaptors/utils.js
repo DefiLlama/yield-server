@@ -534,3 +534,50 @@ exports.getTotalSupply = async (tokenMintAddress) => {
 
   return supplyInTokens;
 };
+
+// Solana RPC helper for getAccountInfo
+const getSolanaAccountInfo = async (address, rpcUrl = 'https://api.mainnet-beta.solana.com') => {
+  const response = await axios.post(rpcUrl, {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'getAccountInfo',
+    params: [address, { encoding: 'base64' }],
+  }, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  const data = response.data;
+  if (data.error) {
+    throw new Error(`Error fetching account info: ${data.error.message}`);
+  }
+
+  if (!data.result?.value?.data?.[0]) {
+    throw new Error(`Account not found: ${address}`);
+  }
+
+  return Buffer.from(data.result.value.data[0], 'base64');
+};
+
+// SPL Stake Pool data decoder using official library
+const { StakePoolLayout } = require('@solana/spl-stake-pool');
+
+exports.getStakePoolInfo = async (stakePoolAddress, rpcUrl) => {
+  const stakePoolAccountData = await getSolanaAccountInfo(stakePoolAddress, rpcUrl);
+
+  // Decode using official SPL stake pool layout
+  const stakePool = StakePoolLayout.decode(stakePoolAccountData);
+
+  const totalLamports = stakePool.totalLamports;
+  const poolTokenSupply = stakePool.poolTokenSupply;
+
+  // Exchange rate = SOL per pool token (guard against division by zero)
+  const exchangeRate = poolTokenSupply === 0n ? 0 : Number(totalLamports) / Number(poolTokenSupply);
+
+  return {
+    totalLamports: Number(totalLamports),
+    poolTokenSupply: Number(poolTokenSupply),
+    exchangeRate,
+    // TVL in SOL (lamports to SOL)
+    tvlSol: Number(totalLamports) / 1e9,
+  };
+};
