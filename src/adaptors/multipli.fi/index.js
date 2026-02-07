@@ -133,7 +133,7 @@ async function apy() {
   }
 
   // rwaUSDi on Base
-  const rwaBaseKey = `base:${RWAUSDI.base}`;
+  const rwaBaseKey = `base:${RWAUSDI.base.toLowerCase()}`;
   const rwaBaseRaw = tvlData.base?.[rwaBaseKey];
   if (rwaBaseRaw) {
     const rwaBaseTvl = Number(rwaBaseRaw) / 10 ** RWAUSDI_DECIMALS;
