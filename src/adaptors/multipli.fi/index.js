@@ -91,7 +91,10 @@ async function apy() {
 
   // rwaUSDi on Ethereum
   const rwaEthKey = `ethereum:${RWAUSDI.ethereum.toLowerCase()}`;
-  const rwaEthRaw = tvlData.ethereum?.[rwaEthKey];
+  const rwaEthRaw = tvlData.ethereum?.[rwaEthKey]
+    ?? Object.entries(tvlData.ethereum || {}).find(
+      ([k]) => k.toLowerCase() === rwaEthKey
+    )?.[1];
   if (!rwaEthRaw) {
     console.log(
       `multipli.fi: rwaUSDi key "${rwaEthKey}" not found in tvlData.ethereum, ` +
@@ -134,7 +137,10 @@ async function apy() {
 
   // rwaUSDi on Base
   const rwaBaseKey = `base:${RWAUSDI.base.toLowerCase()}`;
-  const rwaBaseRaw = tvlData.base?.[rwaBaseKey];
+  const rwaBaseRaw = tvlData.base?.[rwaBaseKey]
+    ?? Object.entries(tvlData.base || {}).find(
+      ([k]) => k.toLowerCase() === rwaBaseKey
+    )?.[1];
   if (rwaBaseRaw) {
     const rwaBaseTvl = Number(rwaBaseRaw) / 10 ** RWAUSDI_DECIMALS;
     pools.push({
