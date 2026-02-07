@@ -91,7 +91,10 @@ async function apy() {
 
   // rwaUSDi on Ethereum
   const rwaEthKey = `ethereum:${RWAUSDI.ethereum.toLowerCase()}`;
-  const rwaEthRaw = tvlData.ethereum?.[rwaEthKey];
+  const rwaEthRaw = tvlData.ethereum?.[rwaEthKey]
+    ?? Object.entries(tvlData.ethereum || {}).find(
+      ([k]) => k.toLowerCase() === rwaEthKey
+    )?.[1];
   if (!rwaEthRaw) {
     console.log(
       `multipli.fi: rwaUSDi key "${rwaEthKey}" not found in tvlData.ethereum, ` +
@@ -127,26 +130,31 @@ async function apy() {
       tvlUsd: rwaEthTvl,
       apy: rwaUsdApy,
       underlyingTokens: RWAUSD_UNDERLYING,
-      url: 'https://app.multipli.fi/rwaUSD'
+      url: 'https://app.multipli.fi/rwaUSD',
+      poolMeta: 'Institutional only',
     });
   }
 
-  // rwaUSDi on Base **INSTITUTIONAL NOT AVAILABLE TO RETAIL FROM WHAT I CAN SEE**
-  // const rwaBaseKey = `base:${RWAUSDI.base}`;
-  // const rwaBaseRaw = tvlData.base?.[rwaBaseKey];
-  // if (rwaBaseRaw) {
-  //   const rwaBaseTvl = Number(rwaBaseRaw) / 10 ** RWAUSDI_DECIMALS;
-  //   pools.push({
-  //     pool: RWAUSDI.base,
-  //     chain: utils.formatChain('base'),
-  //     project: 'multipli.fi',
-  //     symbol: 'rwaUSDi',
-  //     tvlUsd: rwaBaseTvl,
-  //     apy: rwaUsdApy,
-  //     underlyingTokens: RWAUSD_UNDERLYING,
-  //     url: 'https://app.multipli.fi/rwaUSD'
-  //   });
-  // }
+  // rwaUSDi on Base
+  const rwaBaseKey = `base:${RWAUSDI.base.toLowerCase()}`;
+  const rwaBaseRaw = tvlData.base?.[rwaBaseKey]
+    ?? Object.entries(tvlData.base || {}).find(
+      ([k]) => k.toLowerCase() === rwaBaseKey
+    )?.[1];
+  if (rwaBaseRaw) {
+    const rwaBaseTvl = Number(rwaBaseRaw) / 10 ** RWAUSDI_DECIMALS;
+    pools.push({
+      pool: RWAUSDI.base,
+      chain: utils.formatChain('base'),
+      project: 'multipli.fi',
+      symbol: 'rwaUSDi',
+      tvlUsd: rwaBaseTvl,
+      apy: rwaUsdApy,
+      underlyingTokens: RWAUSD_UNDERLYING,
+      url: 'https://app.multipli.fi/rwaUSD',
+      poolMeta: 'Institutional only',
+    });
+  }
 
   return pools;
 }
