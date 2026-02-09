@@ -2,10 +2,19 @@ const { conn } = require('../db');
 
 const INTERNAL_KEY = process.env.YIELDS_INTERNAL_API_KEY;
 
+// In-memory cache — data only changes hourly (materialized view refresh),
+// 5-minute TTL avoids unnecessary DB queries while staying fresh.
+const CACHE_TTL = 5 * 60 * 1000;
+let cache = { data: null, ts: 0 };
+
 const getVolatility = async (req, res) => {
   const apiKey = req.headers['x-internal-key'];
   if (!INTERNAL_KEY || !apiKey || apiKey !== INTERNAL_KEY) {
     return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  if (cache.data && Date.now() - cache.ts < CACHE_TTL) {
+    return res.status(200).json(cache.data);
   }
 
   const query = `
@@ -27,6 +36,8 @@ const getVolatility = async (req, res) => {
       p.cv_30d,
     ];
   }
+
+  cache = { data: result, ts: Date.now() };
   res.status(200).json(result);
 };
 
