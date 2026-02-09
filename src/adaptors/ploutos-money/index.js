@@ -14,6 +14,7 @@ const protocolDataProviders = {
   katana:  '0x4DC446e349bDA9516033E11D63f1851d6B5Fd492',
   plasma:  '0x9C48A6D3e859ab124A8873D73b2678354D0B4c0A',
   hemi:    '0x0F65a7fBCb69074cF8BE8De1E01Ef573da34bD59',
+  ethereum:'0x1A875c28610F0155D377bBD725cc59d055e2D192',
 }
 
 const CHAIN_NAME = {
@@ -23,6 +24,7 @@ const CHAIN_NAME = {
   katana: 'Katana',
   plasma: 'Plasma',
   hemi: 'Hemi',
+  ethereum: 'Ethereum',
 }
 
 // chain IDs
@@ -33,6 +35,7 @@ const CHAIN_ID = {
   katana: 747474,
   plasma: 9745,
   hemi: 43111,
+  ethereum: 1,
 }
 
 function toMarketUrlParam(market) {
