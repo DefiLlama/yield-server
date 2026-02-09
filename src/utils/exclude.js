@@ -190,7 +190,9 @@ const excludeAdaptors = [
   'jones-dao', //disabled deposits
   'zkp2p',
   'dyson',
-  'opyn-squeeth'
+  'opyn-squeeth',
+  'alpaca-leveraged-yield-farming',
+  'alpaca-finance-2.0'
 ];
 
 const excludePools = [
