@@ -7,7 +7,6 @@ const {
   getLatestYieldForPool,
   getYieldOffset,
   getYieldAvg30d,
-  getVolatility30d,
   getYieldLendBorrow,
 } = require('../queries/yield');
 const { getStat } = require('../queries/stat');
@@ -88,17 +87,11 @@ const main = async () => {
     }
   }
 
-  // add 30d avg apy and volatility metrics
-  const [avgApy30d, volatilityData] = await Promise.all([
-    getYieldAvg30d(),
-    getVolatility30d(),
-  ]);
+  // add 30d avg apy
+  const avgApy30d = await getYieldAvg30d();
   dataEnriched = dataEnriched.map((p) => ({
     ...p,
     apyMean30d: avgApy30d[p.configID] ?? null,
-    apyMedian30d: volatilityData[p.configID]?.apyMedian30d ?? null,
-    apyStd30d: volatilityData[p.configID]?.apyStd30d ?? null,
-    apyCv30d: volatilityData[p.configID]?.apyCv30d ?? null,
   }));
 
   // add info about stablecoin, exposure etc.

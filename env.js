@@ -32,4 +32,5 @@ module.exports = {
   PLASMA_RPC: process.env.PLASMA_RPC,
   STARKNET_RPC: process.env.STARKNET_RPC,
   MONAD_RPC: process.env.MONAD_RPC,
+  YIELDS_INTERNAL_API_KEY: process.env.YIELDS_INTERNAL_API_KEY,
 };
