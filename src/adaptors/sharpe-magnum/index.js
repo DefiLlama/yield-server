@@ -87,6 +87,7 @@ const getApy = async () => {
   const apyVal = await apy(vaultAddress)
   const tvlUSD = await getTVLInUSD(vaultAddress);
 
+  const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
   const Eth = {
     pool: '0xfc85db895e070017ab9c84cb65b911d56b729ee9-ethereum',
     chain: utils.formatChain('Ethereum'),
@@ -94,6 +95,7 @@ const getApy = async () => {
     symbol: utils.formatSymbol('ETH'),
     tvlUsd : tvlUSD,
     apy: apyVal,
+    underlyingTokens: [WETH],
   };
 
   return [Eth]; 

@@ -9,12 +9,10 @@ const chain = 'arbitrum';
 const rpcEndpoint = 'https://endpoints.omniatech.io/v1/arbitrum/one/public';
 
 const factory = '0xC3179AC01b7D68aeD4f27a19510ffe2bfb78Ab3e';
-const topic0_market_create =
-  '0xe8066e93c2c1e100c0c76002a546075b7c6b53025db53708875180c81afda250';
-const event_market_create =
-  'event MarketCreated (uint256 indexed marketId, address premium, address collateral, address underlyingAsset, address token, string name, uint256 strike, address controller)';
 
-const contract_interface = new ethers.utils.Interface([event_market_create]);
+const EVENTS = {
+  MarketCreated: 'event MarketCreated(uint256 indexed marketId, address premium, address collateral, address underlyingAsset, address token, string name, uint256 strike, address controller)',
+};
 
 const ONE_YEAR_HOURS = 365 * 24;
 const ONE_EPOCH_HOURS = 166;
@@ -34,24 +32,16 @@ const getApy = async () => {
   const provider = new ethers.providers.JsonRpcProvider(rpcEndpoint);
   const toBlock = (await sdk.api.util.getLatestBlock(chain)).number;
 
-  const logs_market_create = (
-    await sdk.api.util.getLogs({
-      target: factory,
-      topic: '',
-      fromBlock: 96059531,
-      toBlock: toBlock,
-      topics: [topic0_market_create],
-      keys: [],
-      chain,
-    })
-  ).output;
+  const logs_market_create = await sdk.getEventLogs({
+    target: factory,
+    eventAbi: EVENTS.MarketCreated,
+    fromBlock: 96059531,
+    toBlock: toBlock,
+    chain,
+  });
 
-  const market_create = logs_market_create.map(
-    (e) => contract_interface.parseLog(e).args
-  );
-
-  const premiumVaults = market_create.map((e) => e.premium);
-  const collateralVaults = market_create.map((e) => e.collateral);
+  const premiumVaults = logs_market_create.map((e) => e.args.premium);
+  const collateralVaults = logs_market_create.map((e) => e.args.collateral);
   const vaults = [...premiumVaults, ...collateralVaults];
 
   const nameRes = await sdk.api.abi.multiCall({

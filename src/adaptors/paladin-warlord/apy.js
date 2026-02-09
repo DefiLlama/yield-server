@@ -210,6 +210,7 @@ const apy = async () => {
     symbol: 'WAR',
     apyBase: totalApr * 100,
     tvlUsd: totalTvl,
+    underlyingTokens: [AURA_ADDRESS, CVX_ADDRESS],
   }];
 }
 

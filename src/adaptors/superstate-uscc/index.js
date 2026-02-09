@@ -21,21 +21,33 @@ const apy = async () => {
     tvlPlume = tvlPlume.output / 1e6;
 
     const timestampNow = Math.floor(Date.now() / 1000);
-    const timestampYesterday = timestampNow - 86400;
+    const timestamp7daysAgo = timestampNow - 86400 * 7;
+    const timestamp30daysAgo = timestampNow - 86400 * 30;
 
     const blockNow = (
         await axios.get(`https://coins.llama.fi/block/ethereum/${timestampNow}`)
     ).data.height;
 
-    const blockYesterday = (
-        await axios.get(`https://coins.llama.fi/block/ethereum/${timestampYesterday}`)
+    const block7daysAgo = (
+        await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp7daysAgo}`)
     ).data.height;
 
-    let exchangeRateYesterday = await sdk.api.abi.call({
+    const block30daysAgo = (
+        await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp30daysAgo}`)
+    ).data.height;
+
+    let exchangeRate7daysAgo = await sdk.api.abi.call({
         target: USCC_ORACLE,
         chain: 'ethereum',
         abi: 'uint256:latestAnswer',
-        block: blockYesterday,
+        block: block7daysAgo,
+    });
+
+    let exchangeRate30daysAgo = await sdk.api.abi.call({
+        target: USCC_ORACLE,
+        chain: 'ethereum',
+        abi: 'uint256:latestAnswer',
+        block: block30daysAgo,
     });
 
     let exchangeRateToday = await sdk.api.abi.call({
@@ -46,10 +58,13 @@ const apy = async () => {
     });
 
     exchangeRateToday = exchangeRateToday.output / 1e6;
-    exchangeRateYesterday = exchangeRateYesterday.output / 1e6;
+    exchangeRate7daysAgo = exchangeRate7daysAgo.output / 1e6;
+    exchangeRate30daysAgo = exchangeRate30daysAgo.output / 1e6;
 
-    const apr = ((exchangeRateToday - exchangeRateYesterday) / exchangeRateYesterday) *
-        365 * 100;
+    const apr7d = ((exchangeRateToday - exchangeRate7daysAgo) / exchangeRate7daysAgo) *
+        (365 / 7) * 100;
+    const apr30d = ((exchangeRateToday - exchangeRate30daysAgo) / exchangeRate30daysAgo) *
+        (365 / 30) * 100;
 
     return [
         {
@@ -57,24 +72,30 @@ const apy = async () => {
             chain: 'ethereum',
             project,
             symbol,
-            apyBase: apr,
+            apyBase: apr30d,
+            apyBase7d: apr7d,
             tvlUsd: tvlEth * exchangeRateToday,
+            underlyingTokens: [USCC['ethereum']],
         },
         {
             pool: `${USCC['plume_mainnet']}`,
             chain: 'plume_mainnet',
             project,
             symbol,
-            apyBase: apr,
+            apyBase: apr30d,
+            apyBase7d: apr7d,
             tvlUsd: tvlPlume * exchangeRateToday,
+            underlyingTokens: [USCC['plume_mainnet']],
         },
         {
             pool: `${USCC['solana']}`,
             chain: 'solana',
             project,
             symbol,
-            apyBase: apr,
+            apyBase: apr30d,
+            apyBase7d: apr7d,
             tvlUsd: tvlSol * exchangeRateToday,
+            underlyingTokens: [USCC['solana']],
         },
     ];
 };

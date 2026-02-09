@@ -10,7 +10,7 @@ const CHAIN_CONFIG = {
       BAL: '0xba100000625a3754423978a60c9317c58a424e3d',
     },
     subgraph:
-      'https://subgraph.satsuma-prod.com/65b10f149401/1xhub-ltd/aura-finance-mainnet/api',
+      'https://api.subgraph.ormilabs.com/api/public/396b336b-4ed7-469f-a8f4-468e1e26e9a8/subgraphs/aura-finance-mainnet/v0.0.1/',
   },
   arbitrum: {
     llamaChainName: 'Arbitrum',
@@ -23,7 +23,7 @@ const CHAIN_CONFIG = {
       BAL: '0x040d1edc9569d4bab2d15287dc5a4f10f56a56b8',
     },
     subgraph:
-      'https://subgraph.satsuma-prod.com/65b10f149401/1xhub-ltd/aura-finance-arbitrum/api',
+      'https://api.subgraph.ormilabs.com/api/public/396b336b-4ed7-469f-a8f4-468e1e26e9a8/subgraphs/aura-finance-arbitrum/v0.0.1/',
   },
   base: {
     llamaChainName: 'Base',
@@ -36,7 +36,7 @@ const CHAIN_CONFIG = {
       BAL: '0x4158734d47fc9692176b5085e0f52ee0da5d47f1',
     },
     subgraph:
-      'https://subgraph.satsuma-prod.com/65b10f149401/1xhub-ltd/aura-finance-base/api',
+      'https://api.subgraph.ormilabs.com/api/public/396b336b-4ed7-469f-a8f4-468e1e26e9a8/subgraphs/aura-finance-base/v0.0.1/',
   },
   avalanche: {
     llamaChainName: 'Avalanche',
@@ -50,7 +50,7 @@ const CHAIN_CONFIG = {
       BAL: '0xe15bcb9e0ea69e6ab9fa080c4c4a5632896298c3',
     },
     subgraph:
-      'https://subgraph.satsuma-prod.com/65b10f149401/1xhub-ltd/aura-finance-avalanche/api',
+      'https://api.subgraph.ormilabs.com/api/public/396b336b-4ed7-469f-a8f4-468e1e26e9a8/subgraphs/aura-finance-avalanche/v0.0.1/',
   },
   gnosis: {
     llamaChainName: 'xDai',
@@ -64,7 +64,7 @@ const CHAIN_CONFIG = {
       BAL: '0x7ef541e2a22058048904fe5744f9c7e4c57af717',
     },
     subgraph:
-      'https://subgraph.satsuma-prod.com/65b10f149401/1xhub-ltd/aura-finance-gnosis/api',
+      'https://subgraph.satsuma-prod.com/cae76ab408ca/1xhub-ltd/aura-finance-gnosis/api',
   },
   optimism: {
     llamaChainName: 'Optimism',
@@ -77,7 +77,7 @@ const CHAIN_CONFIG = {
       BAL: '0xfe8b128ba8c78aabc59d4c64cee7ff28e9379921',
     },
     subgraph:
-      'https://subgraph.satsuma-prod.com/65b10f149401/1xhub-ltd/aura-finance-optimism/api',
+      'https://api.subgraph.ormilabs.com/api/public/396b336b-4ed7-469f-a8f4-468e1e26e9a8/subgraphs/aura-finance-optimism/v0.0.1/',
   },
   polygon: {
     llamaChainName: 'Polygon',
@@ -90,7 +90,7 @@ const CHAIN_CONFIG = {
       BAL: '0x9a71012b13ca4d3d0cdc72a177df3ef03b0e76a3',
     },
     subgraph:
-      'https://subgraph.satsuma-prod.com/65b10f149401/1xhub-ltd/aura-finance-polygon/api',
+      'https://api.subgraph.ormilabs.com/api/public/396b336b-4ed7-469f-a8f4-468e1e26e9a8/subgraphs/aura-finance-polygon/v0.0.1/',
   },
 };
 

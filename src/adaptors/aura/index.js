@@ -47,7 +47,7 @@ async function poolsFunction() {
         const poolIndex = pool.poolIndex;
         const poolBalancerData = balancerData[poolIndex] || {
           apyBase: 0,
-          underlyingTokens: [],
+          underlyingTokens: undefined,
         };
 
         // Calculate reward APR and collect reward tokens from Aura subgraph only

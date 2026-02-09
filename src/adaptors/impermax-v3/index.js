@@ -36,7 +36,7 @@ const lendingVaultsConfig = {
     'https://api.studio.thegraph.com/query/46041/lending-vault-arbitrum/v0.0.4',
   ],
   base: [
-    'https://api.goldsky.com/api/public/project_cm2d5q4l4w31601vz4swb3vmi/subgraphs/lending-vault-base-v2/1.0.0/gn',
+    'https://base-lendingvaults-production.up.railway.app',
   ],
   scroll: [
     'https://api.studio.thegraph.com/query/46041/lending-vault-scroll/v0.0.3',

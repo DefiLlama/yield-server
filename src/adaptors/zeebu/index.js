@@ -2,6 +2,9 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
 
+// Event topic for AddedRewardDistribution
+const ADDED_REWARD_DISTRIBUTION_TOPIC = '0xf00943d3f835d7ca6986bc0202fbb734d3be564db0bad44bafccb5d41149302e';
+
 // Reward tokens per chain (1st = stablecoin, 2nd = ZBU)
 const REWARD_TOKENS = { 
     ethereum: ['0xdAC17F958D2ee523a2206206994597C13D831ec7', '0xe77f6aCD24185e149e329C1C0F479201b9Ec2f4B'], 
@@ -44,9 +47,6 @@ const DECIMALS = {
   bsc: [18, 18],     // BSC-USD (18), ZBU (18)
 };
 
-// Event topic for AddedRewardDistribution
-const ADDED_REWARD_DISTRIBUTION_TOPIC = '0xf00943d3f835d7ca6986bc0202fbb734d3be564db0bad44bafccb5d41149302e';
-
 const apy = async () => {
   console.log("Starting APY calculation...");
   const results = [];
@@ -82,17 +82,14 @@ const apy = async () => {
     const toBlock = currentBlock.number;
     // Fetch logs from RewardDistributor contract
     const logs = (
-      await sdk.api.util.getLogs({
+      await sdk.getEventLogs({
         target: REWARD_DISTRIBUTORS[chain],
-        topic: '',
-        toBlock,
-        fromBlock: FROM_BLOCKS[chain],
-        keys: [],
         topics: [ADDED_REWARD_DISTRIBUTION_TOPIC],
+        fromBlock: FROM_BLOCKS[chain],
+        toBlock,
         chain,
       })
-    ).output.sort((a, b) => b.blockNumber - a.blockNumber);
-    // console.log(`Fetched Logs for ${chain}: `, logs);
+    ).sort((a, b) => b.blockNumber - a.blockNumber);
 
     if (logs.length === 0) {
       console.log(`No reward distribution events found for ${chain}.`);
@@ -107,7 +104,7 @@ const apy = async () => {
       const amountHex = dataHex.slice(0, 66); // First 32 bytes -> Amount
       const timestampHex = dataHex.slice(66, 130); // Second 32 bytes -> Reward Timestamp
 
-      const tokenAddress = `0x${log.topics[2].slice(-40)}`; // Extract token address
+      const tokenAddress = `0x${log.topics[2].slice(-40)}`; // Extract token address from indexed param
       console.log("Token Address: ", tokenAddress);
       const decimals = REWARD_TOKENS[chain][0].toLowerCase() === tokenAddress.toLowerCase() 
       ? DECIMALS[chain][0] // First token (Stablecoin)

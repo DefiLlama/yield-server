@@ -4,6 +4,10 @@ const utils = require('../utils');
 const ethers = require('ethers');
 const abi = require('./abi');
 
+const API_ALIASES = {
+  'USD0++': 'bUSD0',
+};
+
 const CONFIG = {
   ETHEREUM: {
     USD0PP: '0x35D8949372D46B7a3D5A56006AE77B215fc69bC0',
@@ -224,7 +228,9 @@ async function getUsUSDSAPY(chain) {
 
 async function getRewardData(pool, reward) {
   const { data } = await axios.get(`${CONFIG.URLS.REWARD_APR_RATE}`);
-  const apr = data[pool][reward];
+  const poolKey = API_ALIASES[pool] ?? pool;
+  const rewardKey = API_ALIASES[reward] ?? reward;
+  const apr = data[poolKey]?.[rewardKey];
 
   if (!apr) {
     throw new Error(`Reward "${reward}" not found for pool "${pool}"`);

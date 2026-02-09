@@ -38,8 +38,11 @@ const getFilecoinPool = async () => {
     tvlUsd: tvlFIL * filPrice,
     apy: Number(apyData.apy),
     poolMeta: 'GLIF',
+    underlyingTokens: ['0x0000000000000000000000000000000000000000'], // native FIL
   };
 };
+
+const ICNT_BASE = '0xB1eC0c1c16f5d19Ce5d4cE6B5Cc2D0dDEC0A44E7';
 
 const getICNTPool = async () => {
   const icntPool = {
@@ -50,6 +53,7 @@ const getICNTPool = async () => {
     tvlUsd: 0,
     apy: 0,
     poolMeta: 'GLIF',
+    underlyingTokens: [ICNT_BASE],
   };
 
   try {

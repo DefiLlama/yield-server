@@ -5,6 +5,9 @@ const utils = require('../utils');
 const uniquePools = new Set();
 const project = 'ghost';
 
+// Kujira REST API base URL
+const KUJIRA_REST_URL = 'https://kujira-api.polkachu.com';
+
 const getApy = async () => {
   const res = await fetch(
     'https://raw.githubusercontent.com/Team-Kujira/kujira.js/master/src/resources/contracts.json'
@@ -14,7 +17,7 @@ const getApy = async () => {
   return await Promise.all(
     vaultContracts.map(async (contract) => {
       const { data } = await utils.getData(
-        `https://rest.cosmos.directory/kujira/cosmwasm/wasm/v1/contract/${contract.address}/smart/eyJzdGF0dXMiOnt9fQ==`
+        `${KUJIRA_REST_URL}/cosmwasm/wasm/v1/contract/${contract.address}/smart/eyJzdGF0dXMiOnt9fQ==`
       );
       const { deposited, borrowed, rate } = data;
       const borrowApy = parseFloat(rate) * 100;
@@ -24,7 +27,7 @@ const getApy = async () => {
 
       if ('live' in contract.config.oracle) {
         const { exchange_rate } = await utils.getData(
-          `https://rest.cosmos.directory/kujira/oracle/denoms/${contract.config.oracle.live}/exchange_rate`
+          `${KUJIRA_REST_URL}/oracle/denoms/${contract.config.oracle.live}/exchange_rate`
         );
         const totalSupplyUsd =
           (Number(deposited) * exchange_rate) / 10 ** contract.config.decimals;
@@ -42,6 +45,7 @@ const getApy = async () => {
           apyRewardBorrow: 0,
           totalSupplyUsd,
           totalBorrowUsd,
+          underlyingTokens: contract.config.denom ? [contract.config.denom] : undefined,
         };
       } else {
         const totalSupplyUsd =
@@ -60,6 +64,7 @@ const getApy = async () => {
           apyRewardBorrow: 0,
           totalSupplyUsd,
           totalBorrowUsd,
+          underlyingTokens: contract.config.denom ? [contract.config.denom] : undefined,
         };
       }
     })

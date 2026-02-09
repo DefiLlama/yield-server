@@ -1,7 +1,6 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
-const { Interface } = require('ethers/lib/utils');
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -10,13 +9,15 @@ const EVENTS = {
     CreateVault:
       'event CreateVault(address indexed vault, address indexed creator, (address admin,address curator,uint256 timelock,address asset,uint256 maxCapacity,string name,string symbol,uint64 performanceFeeRate) indexed initialParams)',
   },
+  V1Plus: {
+    VaultCreated:
+      'event VaultCreated(address indexed vault, address indexed creator, tuple(address admin,address curator,address guardian,uint256 timelock,address asset,uint256 maxCapacity,string name,string symbol,uint64 performanceFeeRate,uint64 minApy,uint64 minIdleFundRate) initialParams)',
+  },
   V2: {
     VaultCreated:
       'event VaultCreated(address indexed vault, address indexed creator, (address admin,address curator,address guardian,uint256 timelock,address asset,address pool,uint256 maxCapacity,string name,string symbol,uint64 performanceFeeRate,uint64 minApy) initialParams)',
   },
 };
-const v1iface = new Interface([EVENTS.V1.CreateVault]);
-const v2iface = new Interface([EVENTS.V2.VaultCreated]);
 
 const VAULTS = {
   ethereum: {
@@ -33,14 +34,20 @@ const VAULTS = {
         fromBlock: 22283092,
       },
     ],
+    vaultFactoryV1Plus: [
+      {
+        address: '0x3a9ECfFDBDc595907f65640F810d3dDDDDe2FA61',
+        fromBlock: 23138659,
+      },
+    ],
     vaultFactoryV2: [
       {
         address: '0xF2BDa87CA467eB90A1b68f824cB136baA68a8177',
-        fromBlock: 23445703,
+        fromBlock: 23430000,
       },
       {
         address: '0x5b8B26a6734B5eABDBe6C5A19580Ab2D0424f027',
-        fromBlock: 23488637,
+        fromBlock: 23430000,
       },
     ],
   },
@@ -59,6 +66,10 @@ const VAULTS = {
         address: '0xa7c93162962D050098f4BB44E88661517484C5EB',
         fromBlock: 385228046,
       },
+      {
+        address: '0x18b8A9433dBefcd15370F10a75e28149bcc2e301',
+        fromBlock: 385228046,
+      },
     ],
   },
   bsc: {
@@ -68,13 +79,17 @@ const VAULTS = {
     vaultFactory: [
       {
         address: '0x48bCd27e208dC973C3F56812F762077A90E88Cea',
-        fromBlock: 50519690,
+        fromBlock: 50519589,
       },
     ],
     vaultFactoryV2: [
       {
         address: '0x1401049368eD6AD8194f8bb7E41732c4620F170b',
-        fromBlock: 63192842,
+        fromBlock: 63100000,
+      },
+      {
+        address: '0xdffE6De6de1dB8e1B5Ce77D3222eba401C2573b5',
+        fromBlock: 63100000,
       },
     ],
   },
@@ -125,21 +140,16 @@ async function getVaultV1Addresses(chain, blockNumber) {
   const tasks = [];
   for (const factory of vaultFactory) {
     const task = async () => {
-      const { output } = await sdk.api2.util.getLogs({
+      const logs = await sdk.getEventLogs({
         target: factory.address,
-        topic: '',
+        eventAbi: EVENTS.V1.CreateVault,
         fromBlock: factory.fromBlock,
         toBlock: blockNumber,
-        keys: [],
-        topics: [v1iface.getEventTopic('CreateVault')],
         chain,
+        onlyIndexer: true,
       });
-      const events = output
-        .filter((e) => !e.removed)
-        .map((e) => v1iface.parseLog(e));
-      for (const { args } of events) {
-        const [vault] = args;
-        addresses.push(vault);
+      for (const log of logs) {
+        addresses.push(log.args.vault);
       }
     };
     tasks.push(task());
@@ -247,6 +257,140 @@ async function getVaultsV1({ alias, chain, chainId, number, opportunities }) {
   return vaults;
 }
 
+async function getVaultV1PlusAddresses(chain, blockNumber) {
+  const { vaultFactoryV1Plus } = VAULTS[chain];
+  if (!vaultFactoryV1Plus) return [];
+
+  const addresses = [];
+
+  const tasks = [];
+  for (const factory of vaultFactoryV1Plus) {
+    const task = async () => {
+      const logs = await sdk.getEventLogs({
+        target: factory.address,
+        eventAbi: EVENTS.V1Plus.VaultCreated,
+        fromBlock: factory.fromBlock,
+        toBlock: blockNumber,
+        chain,
+        onlyIndexer: true,
+      });
+      for (const log of logs) {
+        addresses.push(log.args.vault);
+      }
+    };
+    tasks.push(task());
+  }
+  await Promise.all(tasks);
+
+  return addresses;
+}
+
+async function getVaultsV1Plus({
+  alias,
+  chain,
+  chainId,
+  number,
+  opportunities,
+}) {
+  const vaults = [];
+
+  const addresses = await getVaultV1PlusAddresses(chain, number).then(
+    (addresses) => addresses.filter((a) => !VAULT_BLACKLIST[chain].includes(a))
+  );
+  if (addresses.length === 0) return vaults;
+
+  const calls = addresses.map((target) => ({ target }));
+  const [apys, assets, decimalses, names, totalAssetses] = await Promise.all([
+    sdk.api.abi.multiCall({
+      chain,
+      calls,
+      abi: 'uint256:apy',
+    }),
+    sdk.api.abi.multiCall({
+      chain,
+      calls,
+      abi: 'address:asset',
+    }),
+    sdk.api.abi.multiCall({
+      chain,
+      calls,
+      abi: 'uint8:decimals',
+    }),
+    sdk.api.abi.multiCall({
+      chain,
+      calls,
+      abi: 'string:name',
+    }),
+    sdk.api.abi.multiCall({
+      chain,
+      calls,
+      abi: 'uint256:totalAssets',
+    }),
+  ]);
+
+  const [assetNames, priceMap] = await Promise.all([
+    sdk.api.abi.multiCall({
+      chain,
+      calls: assets.output.map((a) => ({ target: a.output })),
+      abi: 'string:symbol',
+    }),
+    getPrices(
+      chain,
+      assets.output.map((a) => a.output)
+    ),
+  ]);
+
+  for (let i = 0; i < addresses.length; i++) {
+    const address = addresses[i];
+    const assetAddress = assets.output[i].output;
+
+    const readableApy = new BigNumber(apys.output[i].output)
+      .div(new BigNumber(10).pow(6)) // actual decimals for APY is 8
+      .toNumber();
+    const tvlUsd = new BigNumber(totalAssetses.output[i].output)
+      .div(new BigNumber(10).pow(decimalses.output[i].output))
+      .times(priceMap.get(assetAddress) || 0)
+      .toNumber();
+
+    const url = new URL(
+      `https://app.termmax.ts.finance/earn/${alias}/${address.toLowerCase()}`
+    );
+    url.searchParams.set('chain', alias);
+
+    const vault = {
+      pool: `${address}-${chain.toLowerCase()}`,
+      chain,
+      project: 'termmax',
+      symbol: assetNames.output[i].output,
+      tvlUsd,
+      apyBase: readableApy,
+      url: String(url),
+      underlyingTokens: [assetAddress],
+      poolMeta: names.output[i].output,
+    };
+
+    const opportunity = opportunities.find(
+      (o) =>
+        o.chainId === chainId &&
+        o.identifier.toLowerCase() === address.toLowerCase()
+    );
+    if (opportunity) {
+      vault.apyReward = opportunity.apr;
+
+      const breakdowns =
+        (opportunity.rewardsRecord && opportunity.rewardsRecord.breakdowns) ||
+        [];
+      vault.rewardTokens = breakdowns
+        .map((b) => b.token.address)
+        .filter((a) => a);
+    }
+
+    vaults.push(vault);
+  }
+
+  return vaults;
+}
+
 async function getVaultV2Addresses(chain, blockNumber) {
   const { vaultFactoryV2 } = VAULTS[chain];
 
@@ -255,21 +399,16 @@ async function getVaultV2Addresses(chain, blockNumber) {
   const tasks = [];
   for (const factory of vaultFactoryV2) {
     const task = async () => {
-      const { output } = await sdk.api2.util.getLogs({
+      const logs = await sdk.getEventLogs({
         target: factory.address,
-        topic: '',
+        eventAbi: EVENTS.V2.VaultCreated,
         fromBlock: factory.fromBlock,
         toBlock: blockNumber,
-        keys: [],
-        topics: [v2iface.getEventTopic('VaultCreated')],
         chain,
+        onlyIndexer: true,
       });
-      const events = output
-        .filter((e) => !e.removed)
-        .map((e) => v2iface.parseLog(e));
-      for (const { args } of events) {
-        const [vault] = args;
-        addresses.push(vault);
+      for (const log of logs) {
+        addresses.push(log.args.vault);
       }
     };
     tasks.push(task());
@@ -538,6 +677,19 @@ async function getVaultsOnChain(chain, chainId, alias) {
       for (const vault of vaultsV1) vaultsOnChain.push(vault);
     };
     tasks.push(taskV1());
+  }
+  {
+    const taskV1Plus = async () => {
+      const vaultsV1Plus = await getVaultsV1Plus({
+        alias,
+        chain,
+        chainId,
+        number,
+        opportunities,
+      });
+      for (const vault of vaultsV1Plus) vaultsOnChain.push(vault);
+    };
+    tasks.push(taskV1Plus());
   }
   {
     const taskV2 = async () => {

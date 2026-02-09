@@ -128,6 +128,7 @@ const computeYield = async (
     chain: utils.formatChain(chainConfig.chain),
     tvlUsd: totalSupply,
     apyBase,
+    underlyingTokens: [chainConfig.WUSDN_TOKEN_ADDRESS],
   };
 }
 

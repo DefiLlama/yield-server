@@ -89,7 +89,7 @@ const topLvl = async (
     const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
     const token1 = underlyingTokens === undefined ? '' : underlyingTokens[1];
     const chain = chainString === 'ethereum' ? 'mainnet' : chainString;
-    const url = `https://app.uniswap.org/#/add/v2/${token0}/${token1}?chain=${chain}`;
+    const url = `https://app.uniswap.org/positions/create/v2?currencyA=${token0}&currencyB=${token1}&chain=${chain}`;
 
     return {
       pool: p.id,

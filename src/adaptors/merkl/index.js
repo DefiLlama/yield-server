@@ -25,6 +25,33 @@ async function getRateAngle(token) {
   return price;
 }
 
+function cleanSymbol(symbol) {
+  if (!symbol) return '';
+
+  // Patterns to strip from the beginning of symbols
+  // Aave tokens: aEth, aArb, aBsc, aOpt, aPol, aAva, aGno, etc.
+  // Variable debt: variableDebtEth, variableDebtArb, etc.
+  // Stable debt: stableDebtEth, stableDebtArb, etc.
+  // Horizon market: variableDebtHorRwa, aHorRwa
+  // Other prefixes: steak, gt, vbgt
+  const prefixPatterns = [
+    /^variableDebt[A-Z][a-z]*(?:Rwa)?/i,  // variableDebtEth, variableDebtHorRwa, etc.
+    /^stableDebt[A-Z][a-z]*(?:Rwa)?/i,    // stableDebtEth, stableDebtHorRwa, etc.
+    /^a[A-Z][a-z]+(?:Rwa)?(?=[A-Z])/,     // aEth, aArb, aBsc, aHorRwa (followed by uppercase = token name)
+//    /^steak(?=[A-Z])/i,                    // steakUSDC -> USDC
+//    /^gt(?=[A-Z])/i,                       // gtWETH -> WETH
+//    /^vbgt(?=[A-Z])/i,                     // vbgtWETH -> WETH
+  ];
+
+  for (const pattern of prefixPatterns) {
+    if (pattern.test(symbol)) {
+      return symbol.replace(pattern, '');
+    }
+  }
+
+  return symbol;
+}
+
 // function getting all the data from the Angle API
 const main = async () => {
   var poolsData = [];
@@ -41,7 +68,7 @@ const main = async () => {
       let data;
       try {
         data = await utils.getData(
-          `https://api.merkl.xyz/v4/opportunities?chainId=${chainId}&status=LIVE,PAST&items=100&page=${pageI}`
+          `https://api.merkl.xyz/v4/opportunities?chainId=${chainId}&status=LIVE&items=100&page=${pageI}`
         );
       } catch (err) {
         console.log('failed to fetch Merkl data on chain ' + chain);
@@ -65,7 +92,8 @@ const main = async () => {
       try {
         const poolAddress = pool.identifier;
 
-        let symbol = pool.tokens.map((x) => x.symbol).join('-');
+        const tokenSymbols = pool.tokens.map((x) => x.symbol);
+        let symbol = cleanSymbol(tokenSymbols[tokenSymbols.length - 1]) || '';
 
         if (!symbol.length) {
           symbol = (
@@ -85,16 +113,26 @@ const main = async () => {
           pool.rewardsRecord?.breakdowns.map((x) => x.token.address) || [];
         const apyReward = pool.apr;
 
+        const action = pool.action || null;
+        const firstToken = tokenSymbols[0] || null;
+        const vaultName = (tokenSymbols.length > 1 && firstToken !== symbol) ? firstToken : null;
+        const poolMetaParts = [action, vaultName].filter(Boolean);
+        const poolMeta = poolMetaParts.length > 0 ? poolMetaParts.join(' - ') : null;
+
+        const poolType = pool.type || 'UNKNOWN';
+        const poolUrl = `https://app.merkl.xyz/opportunities/${chain}/${poolType}/${poolAddress}`;
+
         const poolData = {
           pool: `${poolAddress}-merkl`,
           chain: chain,
           project: project,
-          poolMeta: pool.status === 'PAST' ? 'past' : undefined,
+          poolMeta: poolMeta,
           symbol: symbol,
           tvlUsd: tvlUsd ?? 0,
           apyReward: apyReward ?? 0,
           rewardTokens: [...new Set(rewardTokens)],
           underlyingTokens: underlyingTokens,
+          url: poolUrl,
         };
         poolsData.push(poolData);
       } catch {}
@@ -102,12 +140,6 @@ const main = async () => {
   }
   return utils.removeDuplicates(poolsData.filter((p) => utils.keepFinite(p)));
 };
-
-/*
-main().then((data) => {
-  console.log(data);
-});
-*/
 
 module.exports = {
   timetravel: false,

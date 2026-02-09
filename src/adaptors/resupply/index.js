@@ -1,6 +1,8 @@
 const utils = require('../utils')
 const { getERC4626Info } = require('../utils');
 
+const reUSD = '0x57aB1E0003F623289CD798B1824Be09a793e4Bec';
+
 const SUPPORTED_PROTOCOLS = {
   ethereum: ['curvelend', 'fraxlend']
 };
@@ -69,6 +71,7 @@ const main = async () => {
         apyBase: sreusd.apyBase,
         poolMeta: 'Savings reUSD',
         url: 'https://resupply.fi/supply',
+        underlyingTokens: [reUSD],
       },
     ])
     .filter(pool => utils.keepFinite(pool));

@@ -39,11 +39,19 @@ const apy = async (timestamp) => {
         '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E'
     );
 
-    return [fortyAcresBasevault, fortyAcresOpvault, fortyAcresAvaxVault];
+    const fortyAcresAvaxBlackholeVault = await getVault(
+        timestamp,
+        '0xC0485C4bafB594Ae1457820fb6e5B67e8A04BCFD',
+        'avax',
+        '40avax-blackhole-USDC-Vault',
+        '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E'
+    );
+
+    return [fortyAcresBasevault, fortyAcresOpvault, fortyAcresAvaxVault, fortyAcresAvaxBlackholeVault];
 };
 
 module.exports = {
-  timetravel: true,
-  apy,
-  url: 'https://www.40acres.finance/',
+    timetravel: true,
+    apy,
+    url: 'https://www.40acres.finance/',
 };

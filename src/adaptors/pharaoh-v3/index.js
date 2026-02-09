@@ -65,9 +65,9 @@ async function apy() {
 
     let pharaohPools = [];
     try {
-      const pharaohApiData = await axios.get('https://api.phar.fi/mixed-pairs?includeTokens=False');
-      if (pharaohApiData.data && Array.isArray(pharaohApiData.data.pairs)) {
-        pharaohPools = pharaohApiData.data.pairs;
+      const pharaohApiData = await axios.get('https://pharaoh-new-api-production.up.railway.app/all-pools');
+      if (pharaohApiData.data && Array.isArray(pharaohApiData.data.pools)) {
+        pharaohPools = pharaohApiData.data.pools;
       }
     } catch (error) {
       console.error('Failed to fetch Pharaoh API data:', error.message);
@@ -99,12 +99,12 @@ async function apy() {
       const tickSpacing = parseInt(pool.tickSpacing);
 
       const apiPool = pharaohPools.find(p => p.id.toLowerCase() === poolAddress);
-      if (apiPool && apiPool.recommendedRangesNew) {
+      if (apiPool && apiPool.recommendedRanges) {
         if (tickSpacing === 1 || tickSpacing === 5) {
-          const wideRange = apiPool.recommendedRangesNew.find(range => range.name === 'Wide');
+          const wideRange = apiPool.recommendedRanges.find(range => range.name === 'Wide');
           apyReward = wideRange ? wideRange.lpApr : apiData.lpApr || 0;
         } else {
-          const narrowRange = apiPool.recommendedRangesNew.find(range => range.name === 'Narrow');
+          const narrowRange = apiPool.recommendedRanges.find(range => range.name === 'Narrow');
           apyReward = narrowRange ? narrowRange.lpApr : apiData.lpApr || 0;
         }
       } else {

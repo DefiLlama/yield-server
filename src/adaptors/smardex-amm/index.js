@@ -22,6 +22,10 @@ const ENDPOINT_BASE = 'https://subgraph.smardex.io/defillama';
 const SUSDN_TOKEN_ADDRESS = '0xf67e2dc041b8a3c39d066037d29f500757b1e886';
 const SUSDE_TOKEN_ADDRESS = '0x9D39A5DE30e57443BfF2A8307A4256c8797A3497';
 
+const EVENTS = {
+  RewardsReceived: 'event RewardsReceived(uint256 amount)',
+};
+
 const CONFIG = {
   ethereum: {
     ENDPOINT: `${ENDPOINT_BASE}/ethereum`,
@@ -106,6 +110,7 @@ const EXCEPTIONS = {
           chain: utils.formatChain(chainString),
           tvlUsd: totalSupply * susdnPrice,
           apyBase,
+          underlyingTokens: [SUSDE_TOKEN_ADDRESS], // sUSDN is backed by sUSDe
         };
       },
     },
@@ -492,24 +497,24 @@ const getsUSDeApy = async (sUSDNPrice) => {
 
   const currentBlock = await sdk.api.util.getLatestBlock('ethereum');
   const toBlock = currentBlock.number;
-  const topic =
-    '0xbb28dd7cd6be6f61828ea9158a04c5182c716a946a6d2f31f4864edb87471aa6';
   const logs = (
-    await sdk.api.util.getLogs({
-      target: '0x9D39A5DE30e57443BfF2A8307A4256c8797A3497',
-      topic: '',
-      toBlock,
+    await sdk.getEventLogs({
+      target: SUSDE_TOKEN_ADDRESS,
+      eventAbi: EVENTS.RewardsReceived,
       fromBlock: 19026137,
-      keys: [],
-      topics: [topic],
+      toBlock,
       chain: 'ethereum',
     })
-  ).output.sort((a, b) => b.blockNumber - a.blockNumber);
+  ).sort((a, b) => b.blockNumber - a.blockNumber);
 
-  // rewards are now beeing streamed every 8hours, which we scale up to a year
-  const rewardsReceived = parseInt(logs[0].data / 1e18);
+  if (!logs || logs.length === 0) {
+    return 0;
+  }
+
+  // rewards are now being streamed every 8hours, which we scale up to a year
+  const rewardsReceived = Number(logs[0].args.amount) / 1e18;
   const aprBase = ((rewardsReceived * 3 * 365) / tvlUsd) * 100;
-  // weekly compoounding
+  // weekly compounding
   const apyBase = utils.aprToApy(aprBase, 52);
   return apyBase;
 };

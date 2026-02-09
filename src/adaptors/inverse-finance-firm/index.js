@@ -155,6 +155,7 @@ const main = async () => {
         params: [m],
       })),
       abi: abi.getMarketPrice,
+      permitFailure: true,
     })
   ).output;
 

@@ -8,6 +8,7 @@ const apy = async () => {
 
   return data.map((pool) => {
     const apyReward = pool.day.rewardApr.reduce((v, acc) => v + acc, 0);
+    const underlyingTokens = [pool.mintA?.address, pool.mintB?.address].filter(Boolean);
     return {
       pool: pool.id,
       chain: 'Solana',
@@ -28,6 +29,7 @@ const apy = async () => {
         pool.type.toLowerCase() === 'concentrated'
           ? `https://raydium.io/clmm/create-position/?pool_id=${pool.id}`
           : `https://raydium.io/liquidity/increase/?mode=add&pool_id=${pool.id}`,
+      ...(underlyingTokens.length > 0 && { underlyingTokens }),
     };
   });
 };

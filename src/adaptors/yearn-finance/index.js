@@ -37,7 +37,9 @@ const getApy = async () => {
           apyReward,
           rewardTokens:
             apyReward > 0 ? ['0x4200000000000000000000000000000000000042'] : [],
-          url: `https://yearn.fi/vaults/${chains[chain[0]]}/${p.address}`,
+          url: `https://yearn.fi/${
+              p.version.substring(0, 1) == '3' ? 'v3' : 'vaults'
+            }/${chains[chain[0]]}/${p.address}`,
           underlyingTokens:
             underlying.length === 0 ? [p.token.address] : underlying,
         };

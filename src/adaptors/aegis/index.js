@@ -10,6 +10,10 @@ async function getTvl(token, chain) {
   return tvl.output / 1e18;
 }
 
+// USDT addresses for underlying
+const USDT_ETH = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+const USDT_BSC = '0x55d398326f99059fF775485246999027B3197955';
+
 const apy = async () => {
   const aegisFetch = await superagent
     .get('https://api.aegis.im/api/project-stats')
@@ -29,6 +33,7 @@ const apy = async () => {
       symbol: 'YUSD',
       tvlUsd: aegisEthTvl,
       apy: aegisData.efficient_apr,
+      underlyingTokens: [USDT_ETH],
     },
     {
       pool: '0xAB3dBcD9B096C3fF76275038bf58eAC10D22C61f-binance'.toLowerCase(),
@@ -37,6 +42,7 @@ const apy = async () => {
       symbol: 'YUSD',
       tvlUsd: aegisBscTvl,
       apy: aegisData.efficient_apr,
+      underlyingTokens: [USDT_BSC],
     },
   ];
 

@@ -1,139 +1,149 @@
-const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
-const lockerABI = require('./aura-locker-abi.json');
+// Chain ID to DefiLlama chain name mapping
+const chainIdToName = {
+  42161: 'Arbitrum',
+  8453: 'Base',
+  81457: 'Blast',
+  33139: 'ApeChain',
+  999: 'Hyperliquid',
+  3637: 'Botanix',
+  80094: 'Berachain',
+};
 
+// Reward tokens by chain
+const rewardTokens = {
+  42161: ['0x912CE59144191C1204E64559FE8253a0e49E6548'], // ARB
+  8453: [],
+  81457: [],
+  33139: ['0x48b62137EdfA95a428D35C09E44256a739F6B557'], // APE
+  999: [],
+  3637: [],
+  80094: [],
+};
+
+// Token addresses
 const aura = '0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF';
-const auraLocker = '0x3Fa73f1E5d8A792C80F426fc8F84FBF7Ce9bBCAC';
-const auraStrategy = '0x7629fc134e5a7feBEf6340438D96881C8D121f2c';
-const glp = '0x1aDDD80E6039594eE970E5872D247bf0414C8903';
-const glpTracker = '0x13C6Bed5Aa16823Aba5bBA691CAeC63788b19D9d';
-const glpStrategy = '0x64ECc55a4F5D61ead9B966bcB59D777593afBd6f';
-const bridgedUsdc = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8';
 const usdc = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831';
-const arbToken = '0x912CE59144191C1204E64559FE8253a0e49E6548';
-const jusdcUnderlyingVault = '0xB0BDE111812EAC913b392D80D51966eC977bE3A2';
+const glp = '0x5402B5F40310bDED796c7D0F3FF6683f5C0cFfdf';
 
-const SECONDS_PER_YEAR = 31556952;
-// 0.97% see https://docs.jonesdao.io/jones-dao/features/incentives
-const JUSDC_RETENTION = 0.97 / 100;
-const JGLP_RETENTION = 3 / 100;
+// Vault addresses
+const jauraLsdVault = '0x7629fc134e5a7feBEf6340438D96881C8D121f2c';
+const jusdcVault = '0xB0BDE111812EAC913b392D80D51966eC977bE3A2';
+const jglpVault = '0x7241bC8035b65865156DDb5EdEf3eB32874a3AF6';
+
+// tRPC input param (null address for public data)
+const trpcInput = encodeURIComponent(
+  JSON.stringify({
+    json: { address: null },
+    meta: { values: { address: ['undefined'] } },
+  })
+);
 
 async function pools() {
-  const [
-    prices,
-    auraLeftoverStrategy,
-    auraLocked,
-    jauraApyRes,
-    jusdcApy,
-    jglpApy,
-    jusdcCollateralBalance,
-    jglpCollateralBalance,
-    smartLpStrategiesRes,
-  ] = await Promise.all([
-    utils.getPrices([
-      `ethereum:${aura}`,
-      `arbitrum:${glp}`,
-      `arbitrum:${usdc}`,
-    ]),
-    sdk.api.erc20
-      .balanceOf({
-        target: aura,
-        owner: auraStrategy,
-      })
-      .then((result) => result.output),
-    sdk.api.abi
-      .call({
-        abi: lockerABI.at(0),
-        target: auraLocker,
-        params: auraStrategy,
-      })
-      .then((result) => result.output[0]),
-    utils.getData('https://api.jonesdao.io/api/v1/jones/apy-wjaura'),
+  const [jauraRes, jusdcRes, jglpRes, smartLpRes] = await Promise.all([
     utils
-      .getData('https://api.jonesdao.io/api/v1/jones/apy-jusdc')
-      .then((res) => res.jusdcApy),
+      .getData(
+        `https://app.jonesdao.io/api/trpc/compounderVaults.jaura.vault?input=${trpcInput}`
+      )
+      .catch(() => null),
     utils
-      .getData('https://api.jonesdao.io/api/v1/jones/apy-jglp')
-      .then((res) => res.jglpApy),
-    sdk.api.abi.call({
-      abi: 'uint256:totalAssets',
-      target: jusdcUnderlyingVault,
-      chain: 'arbitrum',
-    }),
-    sdk.api.abi.call({
-      abi: 'erc20:balanceOf',
-      target: glp,
-      params: [glpStrategy],
-      chain: 'arbitrum',
-    }),
+      .getData(
+        `https://app.jonesdao.io/api/trpc/leveragedVaults.jusdc.vault?input=${trpcInput}`
+      )
+      .catch(() => null),
     utils
-      .getData('https://app.jonesdao.io/api/smart-lp/pools')
-      .then((res) => res.strategies),
+      .getData(
+        `https://app.jonesdao.io/api/trpc/leveragedVaults.jglp.vault?input=${trpcInput}`
+      )
+      .catch(() => null),
+    utils.getData('https://app.jonesdao.io/api/smart-lp/pools').catch(() => ({
+      strategies: [],
+    })),
   ]);
 
-  const {
-    aura: auraPrice,
-    fsglp: glpPrice,
-    usdc: usdcPrice,
-  } = prices.pricesBySymbol;
+  const pools = [];
 
-  const jglpTvl = (Number(jglpCollateralBalance.output) / 1e18) * glpPrice;
-  const jusdcTvl = (Number(jusdcCollateralBalance.output) / 1e6) * usdcPrice;
+  // jAURA vault (Ethereum - AURA staking)
+  if (jauraRes?.result?.data?.json?.auraVault) {
+    const auraVault = jauraRes.result.data.json.auraVault;
 
-  const jAuraTvl =
-    (Number(auraLocked) / 1e18 + Number(auraLeftoverStrategy) / 1e18) *
-    auraPrice;
+    // LSD Vault (main jAURA vault)
+    if (auraVault.lsdVault && auraVault.lsdVault.tvl > 0) {
+      pools.push({
+        pool: `${jauraLsdVault}-ethereum`.toLowerCase(),
+        chain: 'Ethereum',
+        project: 'jones-dao',
+        symbol: 'jAURA',
+        underlyingTokens: [aura],
+        tvlUsd: auraVault.lsdVault.tvl,
+        apyBase: auraVault.lsdVault.apys?.total || 0,
+        poolMeta: '2 week lock',
+      });
+    }
+  }
 
-  const jAuraPool = {
-    pool: `${auraStrategy}-arbitrum`.toLowerCase(),
-    chain: 'Ethereum',
-    project: 'jones-dao',
-    symbol: 'jAURA',
-    underlyingTokens: [aura],
-    tvlUsd: jAuraTvl,
-    apyBase: jauraApyRes.jauraApy * (1 - JGLP_RETENTION),
-    apyBaseInception: jauraApyRes.jauraApyInception,
-  };
+  // jUSDC vault (Arbitrum)
+  if (jusdcRes?.result?.data?.json?.jUsdcVault) {
+    const vault = jusdcRes.result.data.json.jUsdcVault;
+    if (vault.tvl > 0) {
+      pools.push({
+        pool: `${jusdcVault}-arbitrum`.toLowerCase(),
+        chain: 'Arbitrum',
+        project: 'jones-dao',
+        symbol: 'jUSDC',
+        underlyingTokens: [usdc],
+        tvlUsd: vault.tvl,
+        apyBase: vault.apy?.apy || 0,
+        poolMeta: '1 day lock',
+      });
+    }
+  }
 
-  const jUsdcPool = {
-    pool: `${jusdcUnderlyingVault}-arbitrum-jones-dao`.toLowerCase(), // TODO update
-    chain: 'Arbitrum',
-    project: 'jones-dao',
-    symbol: 'jUSDC',
-    underlyingTokens: [usdc],
-    tvlUsd: jusdcTvl,
-    apyBase: jusdcApy.week * (1 - JUSDC_RETENTION),
-    apyBaseInception: jusdcApy.full,
-    poolMeta: '1day lock',
-  };
+  // jGLP vault (Arbitrum) - only include if TVL > 0
+  if (jglpRes?.result?.data?.json?.leveragedVaults) {
+    const vaults = jglpRes.result.data.json.leveragedVaults;
+    for (const vault of vaults) {
+      if (vault.tvl > 0) {
+        pools.push({
+          pool: `${jglpVault}-arbitrum`.toLowerCase(),
+          chain: 'Arbitrum',
+          project: 'jones-dao',
+          symbol: 'jGLP',
+          underlyingTokens: [glp],
+          tvlUsd: vault.tvl,
+          apyBase: vault.apy?.apy || 0,
+        });
+      }
+    }
+  }
 
-  const jGlpPool = {
-    pool: `${glpTracker}-arbitrum`.toLowerCase(),
-    chain: 'Arbitrum',
-    project: 'jones-dao',
-    symbol: 'jGLP',
-    underlyingTokens: [glp],
-    tvlUsd: jglpTvl,
-    apyBase: jglpApy.week * (1 - JGLP_RETENTION),
-    apyBaseInception: jglpApy.full,
-  };
+  // Smart LP pools
+  const strategies = smartLpRes.strategies || [];
+  const smartLpPools = strategies
+    .filter((strat) => chainIdToName[strat.chainId] && strat.tvl > 0)
+    .map((strat) => {
+      const chainName = chainIdToName[strat.chainId];
+      const chainRewardTokens = rewardTokens[strat.chainId] || [];
 
-  const smartLpStrategies = smartLpStrategiesRes.map((strat) => ({
-    pool: `${strat.vaultAddress}-arbitrum`.toLowerCase(),
-    chain: 'Arbitrum',
-    project: 'jones-dao',
-    symbol: strat.poolName,
-    underlyingTokens: [strat.token0.address, strat.token1.address],
-    tvlUsd: strat.tvl,
-    apyBase: strat.apy,
-    apyReward:
-      (strat.stipApr ?? 0) + (strat.merklApr ?? 0) + (strat.camelotApr ?? 0),
-    rewardTokens: [arbToken],
-    poolMeta: `${strat.strategyName.toUpperCase()} strategy on ${strat.dex.toUpperCase()}`,
-  }));
+      const totalRewardApr =
+        (strat.stipApr ?? 0) + (strat.merklApr ?? 0) + (strat.camelotApr ?? 0);
 
-  return [jUsdcPool, jGlpPool, jAuraPool, ...smartLpStrategies];
+      return {
+        pool: `${strat.vaultAddress}-${chainName.toLowerCase()}`.toLowerCase(),
+        chain: chainName,
+        project: 'jones-dao',
+        symbol: strat.poolName,
+        underlyingTokens: [strat.token0.address, strat.token1.address],
+        tvlUsd: strat.tvl,
+        apyBase: strat.apy || 0,
+        apyReward: totalRewardApr > 0 ? totalRewardApr : null,
+        rewardTokens: totalRewardApr > 0 ? chainRewardTokens : [],
+        poolMeta: `${strat.strategyName.toUpperCase()} strategy on ${strat.dex.toUpperCase()}`,
+      };
+    });
+
+  return [...pools, ...smartLpPools];
 }
 
 module.exports = {
@@ -141,6 +151,3 @@ module.exports = {
   url: 'https://app.jonesdao.io/vaults',
   apy: pools,
 };
-
-// cd src/adaptors
-// npm run test --adapter=jones-dao

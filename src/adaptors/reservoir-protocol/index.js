@@ -9,6 +9,7 @@ const TOKEN = '0x738d1115B90efa71AE468F1287fc864775e23a31';
 const TARGET = '0x5475611Dffb8ef4d697Ae39df9395513b6E947d7';
 
 const WSRUSD = '0xd3fD63209FA2D55B07A0f6db36C2f43900be3094';
+const RUSD = '0x09D4214C03D01F49544C0448DBE3A27f768F2b34';
 
 const SAVING_MODULE = {
   abis: {
@@ -149,6 +150,7 @@ const main = async () => {
       chain: 'Ethereum',
       tvlUsd: (totalSupply / 10 ** 18) * price / 10 ** 8,
       apy: ((1 + rate / 10 ** 12) ** 365 - 1) * 100,
+      underlyingTokens: [RUSD],
     },
     {
       pool: WSRUSD,
@@ -157,6 +159,7 @@ const main = async () => {
       chain: 'Ethereum',
       tvlUsd: (totalSupplyW / 10 ** 18) * priceW / 10 ** 18,
       apy: ((1 + rateW / 10 ** 27) ** 31557600 - 1) * 100,
+      underlyingTokens: [RUSD],
     }
   ];
 };

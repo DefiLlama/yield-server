@@ -25,10 +25,11 @@ const protocolDataProviders = {
   sonic: '0x306c124fFba5f2Bc0BcAf40D249cf19D492440b9',
   celo: '0x33b7d355613110b4E842f5f7057Ccd36fb4cee28',
   plasma: '0xf2D6E38B407e31E7E7e4a16E6769728b76c7419F',
+  horizon: '0x53519c32f73fE1797d10210c4950fFeBa3b21504', // RWA market on ethereum
 };
 
 const getApy = async (market) => {
-  const chain = ['lido', 'etherfi'].includes(market) ? 'ethereum' : market;
+  const chain = ['lido', 'etherfi', 'horizon'].includes(market) ? 'ethereum' : market;
 
   const protocolDataProvider = protocolDataProviders[market];
   const reserveTokens = (
@@ -129,6 +130,7 @@ const getApy = async (market) => {
 
       const currentSupply = underlyingBalances[i];
       let tvlUsd = (currentSupply / 10 ** underlyingDecimals[i]) * price;
+      let totalBorrowUsd;
 
       if (pool.symbol === 'GHO') {
         tvlUsd = 0;
@@ -169,7 +171,7 @@ const getApy = async (market) => {
         url,
         borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
         mintedCoin: pool.symbol === 'GHO' ? 'GHO' : null,
-        poolMeta: ['lido', 'etherfi'].includes(market)
+        poolMeta: ['lido', 'etherfi', 'horizon'].includes(market)
           ? `${market}-market`
           : null,
       };
@@ -231,6 +233,7 @@ const stkGho = async () => {
     tvlUsd: stkghoSupply * ghoPrice,
     apy: stkghoApy,
     url: 'https://app.aave.com/staking',
+    underlyingTokens: [GHO],
   };
 
   return pool;

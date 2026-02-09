@@ -304,7 +304,7 @@ const topLvl = async (
       const chain = chainString === 'ethereum' ? 'mainnet' : chainString;
 
       const feeTier = Number(poolMeta.replace('%', '')) * 10000;
-      const url = `https://app.uniswap.org/#/add/${token0}/${token1}/${feeTier}?chain=${chain}`;
+      const url = `https://app.uniswap.org/positions/create/v3?currencyA=${token0}&currencyB=${token1}&chain=${chain}&fee={"feeAmount":${feeTier}}`;
 
       let symbol = p.symbol;
       if (

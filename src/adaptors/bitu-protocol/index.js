@@ -37,6 +37,7 @@ const apy = async () => {
       symbol: 'sBITU',
       tvlUsd: totalAssets,
       apyBase: (Math.pow(1 + +dyr, 365) - 1) * 100,
+      underlyingTokens: [BITU],
     },
   ];
 };

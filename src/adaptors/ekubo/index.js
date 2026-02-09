@@ -1,6 +1,6 @@
 const utils = require('../utils');
 
-const API_URL = 'https://mainnet-api.ekubo.org';
+const API_URL = 'https://starknet-mainnet-api.ekubo.org';
 
 function getPrice({
   t,

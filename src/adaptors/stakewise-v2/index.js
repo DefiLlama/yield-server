@@ -1,5 +1,4 @@
 const sdk = require('@defillama/sdk');
-const ethers = require('ethers');
 const BigNumber = require('bignumber.js');
 const axios = require('axios');
 const utils = require('../utils');
@@ -12,12 +11,12 @@ const wad = 1e18;
 const osTokenAddress = '0xf1C9acDc66974dFB6dEcB12aA385b9cD01190E38';
 const osTokenCtrlAddress = '0x2A261e60FB14586B474C208b1B7AC6D0f5000306';
 const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
-const topic =
-  '0x575b153fd68e97b63239f63ca929196a4e398b8157c14ddb6bfc54dad71071cb';
 const chain = 'ethereum';
-const osTokenCtrlInterface = new ethers.utils.Interface([
-  'event AvgRewardPerSecondUpdated(uint256 avgRewardPerSecond)',
-]);
+
+const EVENTS = {
+  AvgRewardPerSecondUpdated:
+    'event AvgRewardPerSecondUpdated(uint256 avgRewardPerSecond)',
+};
 
 const getApy = async () => {
   const currentBlock = await sdk.api.util.getLatestBlock(chain);
@@ -25,24 +24,19 @@ const getApy = async () => {
   const timestampWeekAgo = currentBlock.timestamp - secondsInWeek;
   const [fromBlock] = await utils.getBlocksByTime([timestampWeekAgo], chain);
 
-  const logs = (
-    await sdk.api.util.getLogs({
-      target: osTokenCtrlAddress,
-      topic: '',
-      toBlock: toBlock,
-      fromBlock: fromBlock,
-      keys: [],
-      topics: [topic],
-      chain,
-    })
-  ).output;
+  const logs = await sdk.getEventLogs({
+    target: osTokenCtrlAddress,
+    eventAbi: EVENTS.AvgRewardPerSecondUpdated,
+    fromBlock,
+    toBlock,
+    chain,
+  });
 
   // get last 14 events (1-week average)
   const lastWeekLogs = logs.slice(-14);
   const osEthRewardPerSecondSum = lastWeekLogs
     .map((log) => {
-      const value = osTokenCtrlInterface.parseLog(log);
-      return new BigNumber(value.args.avgRewardPerSecond._hex);
+      return new BigNumber(log.args.avgRewardPerSecond.toString());
     })
     .reduce((a, b) => a.plus(b), new BigNumber('0'));
 

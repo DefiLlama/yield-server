@@ -82,6 +82,12 @@ functions:
       OSMOSIS_API_KEY: ${file(./env.js):OSMOSIS_API_KEY}
       DUNE_API_KEY: ${file(./env.js):DUNE_API_KEY}
       HYPERLIQUID_RPC: ${file(./env.js):HYPERLIQUID_RPC}
+      PLASMA_RPC: ${file(./env.js):PLASMA_RPC}
+      STARKNET_RPC: ${file(./env.js):STARKNET_RPC}
+      MONAD_RPC: ${file(./env.js):MONAD_RPC}
+      LLAMA_INDEXER_V2_ENDPOINT: ${env:LLAMA_INDEXER_V2_ENDPOINT}
+      LLAMA_INDEXER_V2_API_KEY: ${env:LLAMA_INDEXER_V2_API_KEY}
+      PROJECT_0_API_KEY: ${env:PROJECT_0_API_KEY}
 
   # --- data enrichment
   triggerEnrichment:
@@ -167,6 +173,15 @@ functions:
       - schedule: cron(40 * * * ? *)
     environment:
       STALE_PROJECTS_WEBHOOK: ${file(./env.js):STALE_PROJECTS_WEBHOOK}
+
+  triggerVolatility:
+    handler: src/handlers/triggerVolatility.handler
+    description: Lambda which computes pool volatility metrics
+    timeout: 60
+    memorySize: 1024
+    events:
+      # every hour at :00
+      - schedule: cron(0 * * * ? *)
 
 resources:
   Resources:

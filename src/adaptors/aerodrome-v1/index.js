@@ -14,7 +14,9 @@ const AERO = '0x940181a94A35A4569E4529A3CDfB74e38FD98631';
 
 const PROJECT = 'aerodrome-v1';
 const CHAIN = 'base';
-const SUBGRAPH = sdk.graph.modifyEndpoint('7uEwiKmfbRQqV8Ec9nvdKrMFVFQv5qaM271gdBvHtywj');
+const SUBGRAPH = sdk.graph.modifyEndpoint(
+  '7uEwiKmfbRQqV8Ec9nvdKrMFVFQv5qaM271gdBvHtywj'
+);
 
 const query = gql`
   {
@@ -79,9 +81,16 @@ async function getPoolVolumes(timestamp = null) {
   // calculate apy
   dataNow = dataNow.map((el) => utils.apy(el, dataPrior, dataPrior7d, 'v3'));
 
-  const pools = {}
-  for (const p of dataNow.filter(p => p.volumeUSD1d >= 0 && (!isNaN(p.apy1d) || !isNaN(p.apy7d)))) {
-    const url = 'https://aerodrome.finance/deposit?token0=' + p.token0.id + '&token1=' + p.token1.id + '&factory=0x420DD381b31aEf6683db6B902084cB0FFECe40Da';
+  const pools = {};
+  for (const p of dataNow.filter(
+    (p) => p.volumeUSD1d >= 0 && (!isNaN(p.apy1d) || !isNaN(p.apy7d))
+  )) {
+    const url =
+      'https://aerodrome.finance/deposit?token0=' +
+      p.token0.id +
+      '&token1=' +
+      p.token1.id +
+      '&factory=0x420DD381b31aEf6683db6B902084cB0FFECe40Da';
     const underlyingTokens = [p.token0.id, p.token1.id];
 
     const poolAddress = utils.formatAddress(p.id);
@@ -97,7 +106,7 @@ async function getPoolVolumes(timestamp = null) {
       url,
       volumeUsd1d: p.volumeUSD1d,
       volumeUsd7d: p.volumeUSD7d,
-    }
+    };
   }
 
   return pools;
@@ -154,9 +163,22 @@ const getGaugeApy = async () => {
     })
   ).output.map((o) => o.output);
 
+  // remove pools without valid gauges
+  const validIndices = [];
+  const validGauges = [];
+  const validPools = [];
+
+  gauges.forEach((gauge, index) => {
+    if (gauge && gauge !== '0x0000000000000000000000000000000000000000') {
+      validIndices.push(index);
+      validGauges.push(gauge);
+      validPools.push(allPools[index]);
+    }
+  });
+
   const rewardRate = (
     await sdk.api.abi.multiCall({
-      calls: gauges.map((i) => ({
+      calls: validGauges.map((i) => ({
         target: i,
       })),
       abi: abiGauge.find((m) => m.name === 'rewardRate'),
@@ -167,7 +189,7 @@ const getGaugeApy = async () => {
 
   const poolSupply = (
     await sdk.api.abi.multiCall({
-      calls: allPools.map((i) => ({ target: i })),
+      calls: validPools.map((i) => ({ target: i })),
       chain: CHAIN,
       abi: 'erc20:totalSupply',
       permitFailure: true,
@@ -176,7 +198,7 @@ const getGaugeApy = async () => {
 
   const totalSupply = (
     await sdk.api.abi.multiCall({
-      calls: gauges.map((i) => ({
+      calls: validGauges.map((i) => ({
         target: i,
       })),
       abi: abiGauge.find((m) => m.name === 'totalSupply'),
@@ -215,8 +237,9 @@ const getGaugeApy = async () => {
     prices = { ...prices, ...p };
   }
 
-  const pools = allPools.map((p, i) => {
-    const poolMeta = metaData[i];
+  const pools = validPools.map((p, i) => {
+    const originalIndex = validIndices[i];
+    const poolMeta = metaData[originalIndex];
     const r0 = poolMeta.r0 / poolMeta.dec0;
     const r1 = poolMeta.r1 / poolMeta.dec1;
 
@@ -225,7 +248,7 @@ const getGaugeApy = async () => {
 
     const tvlUsd = r0 * p0 + r1 * p1;
 
-    const s = symbols[i];
+    const s = symbols[originalIndex];
 
     const pairPrice = (tvlUsd * 1e18) / totalSupply[i];
 
@@ -236,8 +259,12 @@ const getGaugeApy = async () => {
     }
 
     const apyReward =
-      (((rewardRate[i] / 1e18) * 86400 * 365 * prices[`${CHAIN}:${AERO}`]?.price) /
-        tvlUsd) * stakedSupplyRatio *
+      (((rewardRate[i] / 1e18) *
+        86400 *
+        365 *
+        prices[`${CHAIN}:${AERO}`]?.price) /
+        tvlUsd) *
+      stakedSupplyRatio *
       100;
 
     return {
@@ -263,7 +290,13 @@ const getGaugeApy = async () => {
 
 async function main(timestamp = null) {
   const poolsApy = await getGaugeApy();
-  const poolsVolumes = await getPoolVolumes(timestamp);
+
+  let poolsVolumes = {};
+  try {
+    poolsVolumes = await getPoolVolumes(timestamp);
+  } catch (e) {
+    console.log('Failed to fetch volume data from subgraph:', e.message);
+  }
 
   // left-join volumes onto APY output to avoid filtering out pools
   return Object.values(poolsApy).map((pool) => {

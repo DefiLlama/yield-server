@@ -65,6 +65,7 @@ async function apy() {
         poolMeta: p.protocol,
         tvlUsd: Number(ethers.utils.formatUnits(equityValue)),
         apy: utils.aprToApy(Number(p.data.apr.totalApr * 100)),
+        underlyingTokens: p.tokens?.map((t) => t.address).filter(Boolean),
       };
     })
   );
@@ -134,6 +135,7 @@ async function apy() {
           Number(ethers.utils.formatUnits(totalValue, Number(assetDecimals))) *
           Number(ethers.utils.formatUnits(assetPrice)),
         apy: utils.aprToApy(Number(ethers.utils.formatUnits(lendingAPR)) * 100),
+        underlyingTokens: p.baseToken?.address ? [p.baseToken.address] : undefined,
       };
     })
   );

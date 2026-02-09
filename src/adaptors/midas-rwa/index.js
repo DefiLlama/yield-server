@@ -33,6 +33,7 @@ const poolsFunction = async () => {
           tvlUsd,
           apyBase: apy,
           url: tokenConfig.url,
+          underlyingTokens: [tokenConfig.address],
         };
 
         results.push(result);
