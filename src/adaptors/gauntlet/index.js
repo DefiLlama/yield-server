@@ -165,6 +165,7 @@ const main = async () => {
         apyBase7d,
         poolMeta: data.name || undefined,
         url: 'https://app.gauntlet.xyz/vaults/gtusda',
+        underlyingTokens: [USDC[chain]],
       });
     }
   }

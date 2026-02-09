@@ -84,6 +84,7 @@ const getV1PoolData = async ({ abi, contract, chain, name, token }) => {
     tvlUsd,
     apyReward,
     rewardTokens: [ZK],
+    underlyingTokens: [token],
   };
 };
 

@@ -12,7 +12,7 @@ const API_URL = 'https://api.multiversx.com';
 // re-added by querying queryRewardsBatchState for speed and rewardsToken data.
 
 const MARKETS = [
-  { symbol: 'EGLD', address: 'erd1qqqqqqqqqqqqqpgq35qkf34a8svu4r2zmfzuztmeltqclapv78ss5jleq3', decimals: 18, tokenId: null },
+  { symbol: 'EGLD', address: 'erd1qqqqqqqqqqqqqpgq35qkf34a8svu4r2zmfzuztmeltqclapv78ss5jleq3', decimals: 18, tokenId: 'EGLD' },
   { symbol: 'SEGLD', address: 'erd1qqqqqqqqqqqqqpgqxmn4jlazsjp6gnec95423egatwcdfcjm78ss5q550k', decimals: 18, tokenId: 'SEGLD-3ad2d0' },
   { symbol: 'WBTC', address: 'erd1qqqqqqqqqqqqqpgqg47t8v5nwzvdxgf6g5jkxleuplu8y4f678ssfcg5gy', decimals: 8, tokenId: 'WBTC-5349b3' },
   { symbol: 'WETH', address: 'erd1qqqqqqqqqqqqqpgq8h8upp38fe9p4ny9ecvsett0usu2ep7978ssypgmrs', decimals: 18, tokenId: 'WETH-b4ca29' },
@@ -55,6 +55,7 @@ async function getMarketData(market) {
     cash,
     supplyRatePerSecond,
     decimals: market.decimals,
+    tokenId: market.tokenId,
   };
 }
 
@@ -116,6 +117,7 @@ const apy = async () => {
         symbol: market.symbol,
         tvlUsd,
         apyBase,
+        underlyingTokens: [market.tokenId],
       };
     });
 }

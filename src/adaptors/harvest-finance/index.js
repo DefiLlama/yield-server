@@ -126,6 +126,7 @@ async function apy() {
         apyBase,
         apyReward: aggregateRewardApys(v, poolsResponse[chain]),
         rewardTokens,
+        underlyingTokens: v.tokenAddress ? [v.tokenAddress] : undefined,
         poolMeta: v.platform ? `${v.platform[0]}` : null,
         url: `https://app.harvest.finance/${url_config[chain]}/${v.vaultAddress}`,
       };

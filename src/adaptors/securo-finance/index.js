@@ -1,6 +1,13 @@
 const sdk = require('@defillama/sdk');
 const abiLci = require('./abiLci.json');
 
+const USDT = {
+  bsc: '0x55d398326f99059ff775485246999027b3197955',
+  aurora: '0x4988a896b1227218e4a686fde5eabdcabd91571f',
+  polygon: '0xc2132d05d31c914a87c6611c10748aeb04b58e8f',
+  avax: '0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7',
+};
+
 const config = {
   bsc: {
     vaults: {
@@ -62,6 +69,7 @@ const getApy = async () => {
       symbol: `USDT`,
       tvlUsd: Number(tvls[0]),
       apy: Number(apys[0]),
+      underlyingTokens: [USDT.bsc],
     },
     {
       pool: config.aurora.vaults.BNIAurora,
@@ -70,6 +78,7 @@ const getApy = async () => {
       symbol: `USDT`,
       tvlUsd: Number(tvls[1]),
       apy: Number(apys[1]),
+      underlyingTokens: [USDT.aurora],
     },
     {
       pool: config.polygon.vaults.BNIPolygon,
@@ -78,6 +87,7 @@ const getApy = async () => {
       symbol: `USDT`,
       tvlUsd: Number(tvls[2]),
       apy: Number(apys[2]),
+      underlyingTokens: [USDT.polygon],
     },
     {
       pool: config.avax.vaults.MWIAvalanche,
@@ -86,6 +96,7 @@ const getApy = async () => {
       symbol: `USDT`,
       tvlUsd: Number(tvls[3][0]),
       apy: Number(apys[3][0]),
+      underlyingTokens: [USDT.avax],
     },
     {
       pool: config.avax.vaults.BNIAvalanche,
@@ -94,6 +105,7 @@ const getApy = async () => {
       symbol: `USDT`,
       tvlUsd: Number(tvls[3][1]),
       apy: Number(apys[3][1]),
+      underlyingTokens: [USDT.avax],
     },
   ];
 };

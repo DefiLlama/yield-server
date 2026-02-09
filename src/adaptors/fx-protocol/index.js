@@ -32,23 +32,102 @@ const getRebalancePoolData = async () => {
   return newObj;
 };
 
+// ABI for getting underlying tokens from LP contracts
+const lpTokenAbi = [
+  {
+    name: 'token0',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'address' }],
+  },
+  {
+    name: 'token1',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'address' }],
+  },
+  {
+    name: 'coins',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ type: 'uint256' }],
+    outputs: [{ type: 'address' }],
+  },
+];
+
+const getUnderlyingTokens = async (lpAddress) => {
+  try {
+    // Try Uniswap-style token0/token1 first
+    const [token0Result, token1Result] = await Promise.all([
+      sdk.api.abi.call({
+        target: lpAddress,
+        abi: lpTokenAbi.find((m) => m.name === 'token0'),
+        chain: 'ethereum',
+      }).catch(() => null),
+      sdk.api.abi.call({
+        target: lpAddress,
+        abi: lpTokenAbi.find((m) => m.name === 'token1'),
+        chain: 'ethereum',
+      }).catch(() => null),
+    ]);
+
+    if (token0Result?.output && token1Result?.output) {
+      return [token0Result.output, token1Result.output];
+    }
+
+    // Try Curve-style coins(0)/coins(1)
+    const [coin0Result, coin1Result] = await Promise.all([
+      sdk.api.abi.call({
+        target: lpAddress,
+        abi: lpTokenAbi.find((m) => m.name === 'coins'),
+        params: [0],
+        chain: 'ethereum',
+      }).catch(() => null),
+      sdk.api.abi.call({
+        target: lpAddress,
+        abi: lpTokenAbi.find((m) => m.name === 'coins'),
+        params: [1],
+        chain: 'ethereum',
+      }).catch(() => null),
+    ]);
+
+    if (coin0Result?.output && coin1Result?.output) {
+      return [coin0Result.output, coin1Result.output];
+    }
+
+    return null;
+  } catch (e) {
+    return null;
+  }
+};
+
 const getGaugePoolData = async () => {
   let RebalancePoolData = await utils.getData(
     `${ALADDIN_API_BASE_URL}api1/fx_gauge_tvl_apy`
   );
-  const newObj = RebalancePoolData.data.map((data) => {
-    const { gauge, name, tvl, apy } = data;
-    return {
-      pool: `${gauge}-f(x)`,
-      chain: utils.formatChain('ethereum'),
-      project: 'fx-protocol',
-      symbol: utils.formatSymbol(name),
-      tvlUsd: parseInt(tvl, 10),
-      apy: parseFloat(apy),
-    };
-  });
 
-  return newObj;
+  const poolsWithTokens = await Promise.all(
+    RebalancePoolData.data.map(async (data) => {
+      const { gauge, lpAddress, name, tvl, apy } = data;
+
+      // Try to get underlying tokens from LP contract
+      const underlyingTokens = lpAddress ? await getUnderlyingTokens(lpAddress) : null;
+
+      return {
+        pool: `${gauge}-f(x)`,
+        chain: utils.formatChain('ethereum'),
+        project: 'fx-protocol',
+        symbol: utils.formatSymbol(name),
+        tvlUsd: parseInt(tvl, 10),
+        apy: parseFloat(apy),
+        ...(underlyingTokens && { underlyingTokens }),
+      };
+    })
+  );
+
+  return poolsWithTokens;
 };
 
 const main = async () => {

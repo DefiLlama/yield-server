@@ -89,6 +89,7 @@ const poolsFunction = async () => {
             symbol: tokenNames[nameIndex],
             tvlUsd: locked * price,
             apy: apy,
+            underlyingTokens: [tokenAddress],
           };
           pools.push(pool);
         })
@@ -97,6 +98,8 @@ const poolsFunction = async () => {
   );
 
   let xbasketTVL = await getxbasketTVL();
+  // xBASKET contains all four ethereum xTokens
+  const ethereumTokens = Object.values(tokens.ethereum);
   let pool = {
     pool: '0x6fC27F5CC0aAFeC8e2b8bC4E6393aC89e45232d3',
     chain: utils.formatChain('ethereum'),
@@ -104,6 +107,7 @@ const poolsFunction = async () => {
     symbol: 'xBASKET',
     tvlUsd: xbasketTVL,
     apy: sumEthereumAPY / 4,
+    underlyingTokens: ethereumTokens,
   };
   pools.push(pool);
 

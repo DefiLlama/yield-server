@@ -81,6 +81,7 @@ async function getPoolMvx(
     symbol: utils.formatSymbol('MVX'),
     tvlUsd: tvlMvx,
     apy: apyFee + apyInflation,
+    underlyingTokens: pChain === 'polygon' ? [polygonMvxAddress] : undefined,
   };
 }
 

@@ -4,6 +4,7 @@ const sTlosAbi = require('./sTlos.json');
 const axios = require('axios');
 
 const sTLOS = '0xb4b01216a5bc8f1c8a33cd990a1239030e60c905';
+const WTLOS = '0xD102cE6A4dB07D247fcc28F366A623Df0938CA9E'; // Wrapped TLOS
 
 async function poolsFunction(timestamp, block, chainBlocks) {
   const pooledTLOS =
@@ -31,6 +32,7 @@ async function poolsFunction(timestamp, block, chainBlocks) {
       symbol: utils.formatSymbol('sTLOS'),
       tvlUsd: pooledTLOS * telosPrice,
       apyBase: apyPercentage,
+      underlyingTokens: [WTLOS],
     },
   ];
 }

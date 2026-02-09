@@ -98,6 +98,7 @@ async function apy() {
                   // apyRewardBorrow: borrowRate,
                   totalSupplyUsd,
                   totalBorrowUsd,
+                  underlyingTokens: [address[token]],
                 };
               })
             ),

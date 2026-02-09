@@ -70,7 +70,7 @@ const getApy = async () => {
       chain: 'Solana',
       project: 'project-0',
       symbol: utils.formatSymbol(symbol),
-      underlyingTokens: mint ? [mint] : [],
+      underlyingTokens: mint ? [mint] : undefined,
       tvlUsd: tvlUsd,
       url: mint ? `https://app.0.xyz/markets/${mint}` : 'https://app.0.xyz/',
       apyBase: apyBase,

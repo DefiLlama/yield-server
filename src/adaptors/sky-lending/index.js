@@ -208,6 +208,8 @@ const MCD_SPOT = {
   },
 };
 
+const DAI = '0x6B175474E89094C44Da98b954EedcdeCB5166eF5';
+
 MCD_POT = {
   address: '0x197e90f9fad81970ba7976f33cbd77088e5d7cf7',
   abis: {
@@ -265,6 +267,7 @@ async function dsr() {
     poolMeta: 'DSR',
     apy,
     tvlUsd: tvlUsd.toNumber(),
+    underlyingTokens: [DAI],
   };
 }
 
@@ -400,6 +403,7 @@ const main = async () => {
         debtCeilingUsd: debtCeilingUsd.toNumber(),
         mintedCoin: 'DAI',
         ltv: 1 / Number(liquidationRatio.toNumber()),
+        underlyingTokens: [gems[index]],
       };
     })
     .concat([await dsrPool])

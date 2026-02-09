@@ -70,6 +70,7 @@ const main = async () => {
         project: 'deficurrent',
         symbol: utils.formatSymbol(vault.id.split('-').slice(1).join('-')),
         tvlUsd: dicVaultAndTvl[vault.id],
+        underlyingTokens: vault.tokenAddress ? [vault.tokenAddress] : undefined,
       };
     })
 

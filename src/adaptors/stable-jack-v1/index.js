@@ -96,6 +96,7 @@ async function main() {
       tvlUsd: rPoolTVL,
       apyBase: rPoolAPR,
       rewardTokens: [sAVAX],
+      underlyingTokens: ['0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be'], // sAVAX
     },
   ];
 }

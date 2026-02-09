@@ -36,6 +36,7 @@ async function apy() {
       apyBase: await apyBase(),
       project: 'pepeteam-swaves',
       chain: utils.formatChain('waves'),
+      underlyingTokens: ['WAVES'],
     },
   ];
 }

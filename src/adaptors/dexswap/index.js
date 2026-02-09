@@ -7,6 +7,7 @@ const utils = require('../utils');
 const TOKENS = {
   GDEX: '0x92a212d9f5eef0b262ac7d84aea64a0d0758b94f',
   USDEX: '0x4117ec0a779448872d3820f37ba2060ae0b7c34b',
+  USDC: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', // USDC native on Arbitrum
 };
 const SECONDS_IN_YEAR = 24 * 60 * 60 * 365;
 const pairsDexswap = [
@@ -139,8 +140,13 @@ async function getGdexFarmsApy() {
         tvlUsd,
         apy,
         url: 'https://www.dexfinance.com/',
+        underlyingTokens: [TOKENS.USDEX, TOKENS.USDC],
       });
     } else {
+      // Determine underlying tokens based on the farm type
+      const underlyingTokens = origin.stakingToken === TOKENS.GDEX
+        ? [TOKENS.GDEX]
+        : [TOKENS.USDEX, TOKENS.GDEX]; // LP pair
       res.push({
         pool: origin.origin,
         chain: utils.formatChain('arbitrum'),
@@ -149,6 +155,7 @@ async function getGdexFarmsApy() {
         tvlUsd,
         apy,
         url: 'https://www.dexfinance.com/',
+        underlyingTokens,
       });
     }
   }

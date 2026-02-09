@@ -83,6 +83,16 @@ async function getPools(): Promise<Pool[]> {
       }),
     )
 
+    const assets = toOutput<string>(
+      await sdk.api.abi.multiCall({
+        abi: sparkSavingsAbi.asset,
+        chain,
+        calls: vaults.map((config) => ({
+          target: config.address,
+        })),
+      }),
+    )
+
     const prices = await fetchPrices(chain, vaults)
 
     pools.push(
@@ -98,6 +108,7 @@ async function getPools(): Promise<Pool[]> {
             .div(10 ** vaultConfig.decimals)
             .times(prices[`${chain}:${vaultConfig.address.toLowerCase()}`].price)
             .toNumber(),
+          underlyingTokens: [assets[i]],
         }),
       ),
     )

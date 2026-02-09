@@ -41,6 +41,7 @@ const getApy = async () => {
     apyBase: Number(vToken.vGLMR.apyBase),
     apyReward: Number(vToken.vGLMR.apyReward),
     rewardTokens: ['GLMR'],
+    underlyingTokens: ['0xacc15dc74880c9944775448304b263d191c6077f'], // WGLMR
   };
 
   const vASTR = {
@@ -52,6 +53,7 @@ const getApy = async () => {
     apyBase: Number(vToken.vASTR.apyBase),
     apyReward: Number(vToken.vASTR.apyReward),
     rewardTokens: ['ASTR'],
+    underlyingTokens: ['0xaeaaf0e2c81af264101b9129c00f4440ccf0f720'], // WASTR
   };
 
   const vMOVR = {
@@ -63,6 +65,7 @@ const getApy = async () => {
     apyBase: Number(vToken.vMOVR.apyBase),
     apyReward: Number(vToken.vMOVR.apyReward),
     rewardTokens: ['MOVR'],
+    underlyingTokens: ['0x98878b06940ae243284ca214f92bb71a2b032b8a'], // WMOVR
   };
 
   const vBNC = {
@@ -96,6 +99,7 @@ const getApy = async () => {
     apyBase: Number(vToken.vMANTA.apyBase),
     apyReward: Number(vToken.vMANTA.apyReward),
     rewardTokens: ['MANTA'],
+    underlyingTokens: ['0x0dc808adce2099a9f62aa87d9670745aba741746'], // WMANTA
   };
 
   const vETH = {

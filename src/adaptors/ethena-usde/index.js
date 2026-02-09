@@ -3,6 +3,7 @@ const axios = require('axios');
 const utils = require('../utils');
 
 const sUSDe = '0x9D39A5DE30e57443BfF2A8307A4256c8797A3497';
+const USDe = '0x4c9EDD5852cd905f086C759E8383e09bff1E68B3';
 
 const EVENTS = {
   RewardsReceived: 'event RewardsReceived(uint256 amount)',
@@ -51,6 +52,7 @@ const apy = async () => {
       tvlUsd,
       apyBase,
       poolMeta: '7 days unstaking',
+      underlyingTokens: [USDe],
     },
   ];
 };

@@ -34,6 +34,7 @@ const pools = [
     symbol: 'SDL', // Stake.link token
     address: '0xa95c5ebb86e0de73b4fb8c47a45b792cfea28c23', // SDL token contract address
     priceId: 'stake-link', // CoinGecko ID for SDL token
+    underlying: '0xa95c5ebb86e0de73b4fb8c47a45b792cfea28c23', // SDL itself is the underlying
   },
 ];
 
@@ -47,7 +48,7 @@ const fetchPrice = async (tokenId) => {
 
 const fetchPool = async (pool) => {
   try {
-    const { symbol, address, priceId } = pool;
+    const { symbol, address, priceId, underlying } = pool;
 
     const price = await fetchPrice(priceId);
 
@@ -85,6 +86,7 @@ const fetchPool = async (pool) => {
       symbol,
       tvlUsd: tvl,
       apyBase: apy,
+      underlyingTokens: [underlying],
     };
   } catch (error) {
     console.error(

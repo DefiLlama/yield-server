@@ -22,6 +22,7 @@ const getPools = async () => {
     symbol: 'tDOT',
     tvlUsd: tdotStats.total * dotUsd,
     apyBase: Number(tdotApr['sa://0']) * 100,
+    underlyingTokens: ['DOT'],
   };
 
   return [tdot];

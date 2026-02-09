@@ -13,6 +13,7 @@ const getApy = async () => {
     tvlUsd: Number(pool.totalLiquidity.usd) || 0,
     apyBase: pool.apr.commission * 100,
     apyReward: pool.apr.reward * 100,
+    underlyingTokens: [pool.tokenA?.id, pool.tokenB?.id].filter(Boolean),
     rewardTokens: ['DFI'],
   }));
 

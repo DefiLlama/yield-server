@@ -236,6 +236,7 @@ const getApy = async () => {
             mintedCoin: 'lisUSD',
             ltv: collateralRate,
             apyBaseBorrow: aprRates || 0,
+            underlyingTokens: [collateral.originAddress || collateral.address],
           };
         } catch (error) {
           console.error(`Error processing ${collateral.symbol}:`, error);

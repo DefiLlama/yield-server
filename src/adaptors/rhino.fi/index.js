@@ -117,7 +117,8 @@ const getApy = async () => {
         tvlUsd,
         apyBase,
         symbol: token,
-        url: `${APP_URL}/invest/${token}?utm_source=defillama&utm_medium=listing&utm_campaign=external`
+        url: `${APP_URL}/invest/${token}?utm_source=defillama&utm_medium=listing&utm_campaign=external`,
+        underlyingTokens: [address],
       })
     })
 }

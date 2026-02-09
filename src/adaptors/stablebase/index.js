@@ -12,15 +12,23 @@ const sBASE_WETH_LP = '0xd072a63c2d54b49229a4557b3aeb1cbe04eb6b2e';
 const RPC_URL = 'https://mainnet.base.org';
 const web3 = new Web3(RPC_URL);
 
+const USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+const DAI = '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb';
+const axlUSD = '0xEB466342C4d449BC9f53A865D5Cb90586f405215';
+const USDbC = '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA';
+
 const poolStaticData = {
   '0x5626f9217e774eabebb86821f5fbe6e8ed0770dc': {
     tokens: 'USDC-DAI-axlUSD',
+    underlyingTokens: [USDC, DAI, axlUSD],
   },
   [sBASE_WETH_LP]: {
     tokens: 'sBASE-WETH',
+    underlyingTokens: [sBASE, WETH],
   },
   '0x890cff90ee1c24b0a2264e5d3618bfdec05b077c': {
     tokens: 'USDC-USDbC',
+    underlyingTokens: [USDC, USDbC],
   },
 };
 
@@ -100,6 +108,7 @@ const main = async () => {
       tvlUsd: tvl,
       apyReward: apy,
       rewardTokens: [sBASE],
+      underlyingTokens: poolStaticData[pool[0].toLowerCase()].underlyingTokens,
     };
   });
 
