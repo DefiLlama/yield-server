@@ -186,7 +186,11 @@ const excludeAdaptors = [
   'hyperdrive',
   'mm-finance-polygon',
   'maia-cl',
-  'molecular'
+  'molecular',
+  'jones-dao', //disabled deposits
+  'zkp2p',
+  'dyson',
+  'opyn-squeeth'
 ];
 
 const excludePools = [
