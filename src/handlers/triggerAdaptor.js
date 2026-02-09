@@ -375,6 +375,12 @@ const main = async (body) => {
       apyBaseInception: p.apyBaseInception
         ? +p.apyBaseInception.toFixed(precision)
         : null,
+      underlyingTokens: p.underlyingTokens?.filter(Boolean)?.length
+        ? p.underlyingTokens.filter(Boolean)
+        : null,
+      rewardTokens: p.rewardTokens?.filter(Boolean)?.length
+        ? p.rewardTokens.filter(Boolean)
+        : null,
     };
   });
 
