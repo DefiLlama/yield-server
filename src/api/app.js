@@ -43,9 +43,12 @@ async function redisCache (req, res, next) {
     next()
   }
 }
+
+app.use('/', [volatility]);
+
 app.use(redisCache)
 
-app.use('/', [yieldRoutes, config, median, perp, enriched, lsd, risk, volatility]);
+app.use('/', [yieldRoutes, config, median, perp, enriched, lsd, risk]);
 
 function errorHandler (err, req, res, next) {
   console.log(err)
