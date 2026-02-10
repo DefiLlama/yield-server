@@ -1,4 +1,5 @@
 const { conn } = require('../db');
+const { customHeader } = require('../../utils/headers');
 
 // In-memory cache — data only changes hourly (materialized view refresh),
 // 1-hour TTL avoids unnecessary DB queries while staying fresh.
@@ -6,11 +7,8 @@ const CACHE_TTL = 60 * 60 * 1000;
 let cache = { data: null, ts: 0 };
 
 const getVolatility = async (req, res) => {
-  // Prevent CDN (CloudFront/Cloudflare) from caching responses.
-  res.setHeader('Cache-Control', 'private, no-store');
-
   if (cache.data && Date.now() - cache.ts < CACHE_TTL) {
-    return res.status(200).json(cache.data);
+    return res.set(customHeader(3600)).status(200).json(cache.data);
   }
 
   try {
@@ -36,7 +34,7 @@ const getVolatility = async (req, res) => {
     }
 
     cache = { data: result, ts: Date.now() };
-    res.status(200).json(result);
+    res.set(customHeader(3600)).status(200).json(result);
   } catch (err) {
     console.error('Volatility query error:', err);
     return res.status(500).json({ error: 'Internal server error' });
