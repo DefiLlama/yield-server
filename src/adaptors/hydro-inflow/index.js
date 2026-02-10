@@ -3,7 +3,7 @@ const BigNumber = require('bignumber.js');
 const superagent = require('superagent');
 
 const chainId = 'neutron';
-const restEndpoint = 'https://rest-lb.neutron.org/';
+const restEndpoint = 'https://rest-lb.neutron.org';
 const BLOCKS_PER_DAY = 86400; // Approximately 1 second per block on Neutron
 const APY_PERIOD_DAYS = 4; // APY calculation period
 
@@ -46,9 +46,18 @@ const vaults = [
 async function apy() {
   const apyData = [];
 
-  // Get current block height and block height from 4 days ago
+  // Get current and previous block heights
   const currentHeight = await getCurrentHeight();
   const previousHeight = currentHeight - (APY_PERIOD_DAYS * BLOCKS_PER_DAY);
+
+  // Get block data with timestamps for both blocks
+  const currentBlock = await getBlockData(currentHeight);
+  const previousBlock = await getBlockData(previousHeight);
+
+  // Calculate days between blocks
+  const currentTime = new Date(currentBlock.time).getTime();
+  const previousTime = new Date(previousBlock.time).getTime();
+  const daysSinceBlock = (currentTime - previousTime) / (1000 * 60 * 60 * 24);
 
   for (const vault of vaults) {
     // Query pool info at current height
@@ -67,14 +76,18 @@ async function apy() {
     );
 
     // Calculate price per share (total_pool_value / total_shares_issued) at both heights
-    const pricePerShareNew = new BigNumber(poolInfoCurrent.total_pool_value)
-      .dividedBy(poolInfoCurrent.total_shares_issued);
-    const pricePerShareOld = new BigNumber(poolInfoPrevious.total_pool_value)
-      .dividedBy(poolInfoPrevious.total_shares_issued);
+    // Use value 1 if total_shares_issued is 0 to avoid divide by zero
+    const pricePerShareNew = poolInfoCurrent.total_shares_issued === '0' || poolInfoCurrent.total_shares_issued === 0
+      ? new BigNumber(1)
+      : new BigNumber(poolInfoCurrent.total_pool_value).dividedBy(poolInfoCurrent.total_shares_issued);
+    
+    const pricePerShareOld = poolInfoPrevious.total_shares_issued === '0' || poolInfoPrevious.total_shares_issued === 0
+      ? new BigNumber(1)
+      : new BigNumber(poolInfoPrevious.total_pool_value).dividedBy(poolInfoPrevious.total_shares_issued);
 
-    // apy = (priceNow / priceOld) ** (365 / 4) * 100 - 100
-    const dailyReturn = pricePerShareNew.dividedBy(pricePerShareOld);
-    const apyBase = dailyReturn.pow(Math.floor(365 / APY_PERIOD_DAYS)).times(100).minus(100).toNumber();
+    // apy = (new_ratio/old_ratio)^(365/days_since_block) * 100 - 100
+    const ratio = pricePerShareNew.dividedBy(pricePerShareOld);
+    const apyBase = ratio.pow(Math.floor(365 / daysSinceBlock)).times(100).minus(100).toNumber();
 
     // Calculate TVL
     const totalLockedTokens = new BigNumber(poolInfoCurrent.total_pool_value).shiftedBy(-vault.origin_asset.decimals);
@@ -119,6 +132,16 @@ async function getCurrentHeight() {
     `${restEndpoint}/cosmos/base/tendermint/v1beta1/blocks/latest`
   );
   return parseInt(result.block.header.height);
+}
+
+async function getBlockData(height) {
+  const result = await utils.getData(
+    `${restEndpoint}/cosmos/base/tendermint/v1beta1/blocks/${height}`
+  );
+  return {
+    height: parseInt(result.block.header.height),
+    time: result.block.header.time
+  };
 }
 
 module.exports = {
