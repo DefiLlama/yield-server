@@ -34,7 +34,6 @@ provider:
     DATABASE_URL: ${file(./env.js):DATABASE_URL}
     ZEROX_API: ${file(./env.js):ZEROX_API}
     GRAPH_API_KEY: ${file(./env.js):GRAPH_API_KEY}
-    YIELDS_INTERNAL_API_KEY: ${file(./env.js):YIELDS_INTERNAL_API_KEY}
 
 functions:
   # ---------- TRIGGER HANDLERS

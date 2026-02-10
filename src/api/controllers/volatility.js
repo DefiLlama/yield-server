@@ -1,17 +1,13 @@
 const { conn } = require('../db');
 
-const INTERNAL_KEY = process.env.YIELDS_INTERNAL_API_KEY;
-
 // In-memory cache — data only changes hourly (materialized view refresh),
 // 1-hour TTL avoids unnecessary DB queries while staying fresh.
 const CACHE_TTL = 60 * 60 * 1000;
 let cache = { data: null, ts: 0 };
 
 const getVolatility = async (req, res) => {
-  const apiKey = req.headers['x-internal-key'];
-  if (!INTERNAL_KEY || !apiKey || apiKey !== INTERNAL_KEY) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  // Prevent CDN (CloudFront/Cloudflare) from caching responses.
+  res.setHeader('Cache-Control', 'private, no-store');
 
   if (cache.data && Date.now() - cache.ts < CACHE_TTL) {
     return res.status(200).json(cache.data);
@@ -21,6 +17,7 @@ const getVolatility = async (req, res) => {
     const query = `
       SELECT "configID", apy_avg_30d, apy_median_30d, apy_std_30d, cv_30d
       FROM volatility
+      WHERE cv_30d IS NOT NULL
     `;
     const response = await conn.query(query);
 
