@@ -192,7 +192,18 @@ const excludeAdaptors = [
   'dyson',
   'opyn-squeeth',
   'alpaca-leveraged-yield-farming',
-  'alpaca-finance-2.0'
+  'alpaca-finance-2.0',
+  'coinhain',
+  'stratum-exchange',
+  'tokan-exchange',
+  'sense',
+  'reservoir',
+  'persistence-dex',
+  'pearl-v2',
+  'nitron',
+  'nimbora-yield',
+  'mare-finance-v1',
+  'hashstack',
 ];
 
 const excludePools = [
