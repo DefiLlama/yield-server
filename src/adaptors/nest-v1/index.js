@@ -7,16 +7,25 @@ const BACKEND_POOLS_URL =
 
 /**
  * Map backend DefiLlamaPoolDto into DefiLlama Pool interface.
+ * Performs basic validation on required fields to avoid corrupted records.
  */
 function mapBackendPoolToDefiLlama(pool) {
   if (!pool) return null;
 
+  // Validate required fields
+  if (!pool.pool || typeof pool.pool !== 'string') return null;
+  if (!pool.chain || typeof pool.chain !== 'string') return null;
+  if (!pool.symbol || typeof pool.symbol !== 'string') return null;
+
+  const tvlUsd = Number(pool.tvlUsd);
+  if (!Number.isFinite(tvlUsd) || tvlUsd <= 0) return null;
+
   return {
-    pool: String(pool.pool).toLowerCase(),
+    pool: pool.pool.toLowerCase(),
     chain: utils.formatChain(pool.chain),
-    project: String('nest-v1'),
+    project: 'nest-v1',
     symbol: utils.formatSymbol(pool.symbol),
-    tvlUsd: Number(pool.tvlUsd),
+    tvlUsd,
     apyBase:
       pool.apyBase === undefined || pool.apyBase === null
         ? null
@@ -29,7 +38,7 @@ function mapBackendPoolToDefiLlama(pool) {
       Array.isArray(pool.underlyingTokens) && pool.underlyingTokens.length > 0
         ? pool.underlyingTokens
         : null,
-    poolMeta: pool.poolMeta || null
+    poolMeta: pool.poolMeta || null,
   };
 }
 
@@ -48,7 +57,7 @@ const apy = async () => {
 
   const pools = backendPools
     .map(mapBackendPoolToDefiLlama)
-    .filter((p) => p !== null && Number.isFinite(p.tvlUsd) && p.tvlUsd > 0);
+    .filter((p) => p !== null);
 
   return pools;
 };
@@ -56,6 +65,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy,
-  // Generic UI URL for your protocol
   url: 'https://app.usenest.xyz/liquidity',
 };
