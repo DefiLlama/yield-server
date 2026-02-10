@@ -3,8 +3,8 @@ const { conn } = require('../db');
 const INTERNAL_KEY = process.env.YIELDS_INTERNAL_API_KEY;
 
 // In-memory cache — data only changes hourly (materialized view refresh),
-// 5-minute TTL avoids unnecessary DB queries while staying fresh.
-const CACHE_TTL = 5 * 60 * 1000;
+// 1-hour TTL avoids unnecessary DB queries while staying fresh.
+const CACHE_TTL = 60 * 60 * 1000;
 let cache = { data: null, ts: 0 };
 
 const getVolatility = async (req, res) => {
