@@ -318,38 +318,6 @@ const getYieldAvg30d = async () => {
   return responseObject;
 };
 
-// get 30day volatility metrics from materialized view
-const getVolatility30d = async () => {
-  const conn = await connect();
-
-  const query = `
-    SELECT
-        "configID",
-        apy_median_30d as "apyMedian30d",
-        apy_std_30d as "apyStd30d",
-        cv_30d as "apyCv30d"
-    FROM volatility
-  `;
-
-  const response = await conn.query(query);
-
-  if (!response) {
-    return new AppError("Couldn't get volatility data", 404);
-  }
-
-  // reformat to object keyed by configID
-  const responseObject = {};
-  for (const p of response) {
-    responseObject[p.configID] = {
-      apyMedian30d: p.apyMedian30d,
-      apyStd30d: p.apyStd30d,
-      apyCv30d: p.apyCv30d,
-    };
-  }
-
-  return responseObject;
-};
-
 // multi row insert query generator
 const buildInsertYieldQuery = (payload) => {
   // note: even though apyBase and apyReward are optional fields
@@ -388,5 +356,4 @@ module.exports = {
   getYieldLendBorrow,
   buildInsertYieldQuery,
   getYieldAvg30d,
-  getVolatility30d,
 };
