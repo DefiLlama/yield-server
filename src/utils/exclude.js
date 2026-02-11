@@ -204,6 +204,11 @@ const excludeAdaptors = [
   'nimbora-yield',
   'mare-finance-v1',
   'hashstack',
+  'sommelier', // legacy cellars deprecated, active vault tracked under veda
+  'badger-dao', // sunsetted vaults
+  'flat-money-v1', // sunsetted vaults
+  'kinetix-amm-v3',
+  'marginfi-lending',
 ];
 
 const excludePools = [
