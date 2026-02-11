@@ -208,7 +208,8 @@ const excludeAdaptors = [
   'badger-dao', // sunsetted vaults
   'flat-money-v1', // sunsetted vaults
   'kinetix-amm-v3',
-  'marginfi-lending',
+  'marginfi-lending', // pools tracked under project-0
+  'seamless-v1' // no adapter
 ];
 
 const excludePools = [
