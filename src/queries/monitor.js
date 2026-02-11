@@ -6,6 +6,8 @@ const { pgp, connect } = require('../utils/dbConnection');
 const getStaleProjects = async () => {
   const conn = await connect();
 
+  const excludedAdaptors = await exclude.getExcludedAdaptors();
+
   const query = `
 WITH base AS (
     SELECT
@@ -34,7 +36,7 @@ ORDER BY
   const response = await conn.query(query, {
     age: exclude.boundaries.age,
     excludePools: exclude.excludePools,
-    excludeProjects: exclude.excludeAdaptors,
+    excludeProjects: [...excludedAdaptors],
     // time (here hours) of min staleness
     // (i don't want to log right away but only after n-consecutive failures)
     minStaleHours: 6,
