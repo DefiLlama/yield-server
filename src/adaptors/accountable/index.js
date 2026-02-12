@@ -15,6 +15,7 @@ const getChainIdToNameMap = async () => {
         });
         return chainIdMap;
     } catch (error) {
+        console.error('Failed to fetch chain ID map:', error.message);
         return {};
     }
 };
@@ -132,18 +133,24 @@ const apy = async() => {
     for (const item of activeLoans) {
         const vault = loanVaultMap[item.id];
         if (!vault) continue;
-        const chainName = (chainIdToName[item.chain_id] || 'unknown').toLowerCase();
+        const rawChainName = chainIdToName[item.chain_id];
+        if (!rawChainName) continue;
+        const chainName = rawChainName.toLowerCase();
         if (!vaultsByChain[chainName]) vaultsByChain[chainName] = [];
         if (!vaultsByChain[chainName].includes(vault)) vaultsByChain[chainName].push(vault);
     }
 
-    const statsEntries = await Promise.all(
+    const statsResults = await Promise.allSettled(
         Object.entries(vaultsByChain).map(async ([chain, vaults]) => {
             const stats = await getVaultStats(vaults, chain);
             return [chain, stats];
         })
     );
-    const vaultStatsByChain = Object.fromEntries(statsEntries);
+    const vaultStatsByChain = Object.fromEntries(
+        statsResults
+            .filter((r) => r.status === 'fulfilled')
+            .map((r) => r.value)
+    );
 
     const vaultStats = {};
     for (const chainStats of Object.values(vaultStatsByChain)) {
@@ -152,7 +159,7 @@ const apy = async() => {
 
     return Promise.all(
         activeLoans.map(async(item) => {
-            const chainName = chainIdToName[item.chain_id] || 'unknown';
+            const chainName = chainIdToName[item.chain_id];
             const vaultAddress = loanVaultMap[item.id];
             const stats = vaultAddress ? vaultStats[vaultAddress] || {} : {};
             const pointBoosts = item?.all_points_apy_boost?.boosts_by_points || [];
