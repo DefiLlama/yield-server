@@ -2,8 +2,22 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const API_URL = 'https://yield.accountable.capital/api/loan';
-const chainIdToName = { 143: 'monad' };
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+const getChainIdToNameMap = async () => {
+    try {
+        const data = await utils.getData('https://api.llama.fi/chains');
+        const chainIdMap = {};
+        data.forEach((chain) => {
+            if (chain.chainId) {
+                chainIdMap[parseInt(chain.chainId)] = chain.name;
+            }
+        });
+        return chainIdMap;
+    } catch (error) {
+        return {};
+    }
+};
 
 const abis = {
     asset: 'function asset() view returns (address)',
@@ -104,14 +118,37 @@ const fetchBreakdowns = async(loanIds) => {
 };
 
 const apy = async() => {
-    const { items } = await utils.getData(API_URL);
+    const [{ items }, chainIdToName] = await Promise.all([
+        utils.getData(API_URL),
+        getChainIdToNameMap(),
+    ]);
     const activeLoans = items.filter((item) => item.loan_state === 3);
     const loanIds = activeLoans.map((item) => item.id);
 
     const loanVaultMap = await fetchVaultsByLoanIds(loanIds);
-    const vaultAddresses = Object.values(loanVaultMap);
-    const vaultStats = await getVaultStats(vaultAddresses);
     const breakdowns = await fetchBreakdowns(loanIds);
+
+    const vaultsByChain = {};
+    for (const item of activeLoans) {
+        const vault = loanVaultMap[item.id];
+        if (!vault) continue;
+        const chainName = (chainIdToName[item.chain_id] || 'unknown').toLowerCase();
+        if (!vaultsByChain[chainName]) vaultsByChain[chainName] = [];
+        if (!vaultsByChain[chainName].includes(vault)) vaultsByChain[chainName].push(vault);
+    }
+
+    const statsEntries = await Promise.all(
+        Object.entries(vaultsByChain).map(async ([chain, vaults]) => {
+            const stats = await getVaultStats(vaults, chain);
+            return [chain, stats];
+        })
+    );
+    const vaultStatsByChain = Object.fromEntries(statsEntries);
+
+    const vaultStats = {};
+    for (const chainStats of Object.values(vaultStatsByChain)) {
+        Object.assign(vaultStats, chainStats);
+    }
 
     return Promise.all(
         activeLoans.map(async(item) => {
