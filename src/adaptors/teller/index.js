@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
+const axios = require('axios');
 const utils = require('../utils');
 
 // Supported chains and their subgraph endpoints (Ormi Labs)
@@ -14,6 +15,15 @@ const pools_v2_endpoints = {
   base: "https://api.subgraph.migration.ormilabs.com/subgraphs/id/Qmb86xPeygvQFMmNN9j8aiCXqqFrcsKHu6nTrqfQwPeoqb",
   arbitrum: "https://api.subgraph.migration.ormilabs.com/subgraphs/id/QmSexfnJV8EZTuVmoXaXJTKpJ7Q6ymPmPV7ShppTWZFe12",
   polygon: "https://api.subgraph.migration.ormilabs.com/subgraphs/id/QmSdT2h3HGXjZ6j2YtTWRJFVm8EJYumzcnfRAgCoFxczmR",
+};
+
+// Non-pool (direct P2P) loan subgraphs via The Graph Protocol
+const GRAPH_API_KEY = 'c2d64965ccdfcfed572cdb30b0369ab0';
+const nonpool_endpoints = {
+  ethereum: `https://gateway.thegraph.com/api/${GRAPH_API_KEY}/subgraphs/id/4JruhWH1ZdwvUuMg2xCmtnZQYYHvmEq6cmTcZkpM6pW`,
+  base: `https://gateway.thegraph.com/api/${GRAPH_API_KEY}/subgraphs/id/8jSq7mzq9HEiJEcAZfvrTT4wYk59oMxm82xUpcVBzryF`,
+  arbitrum: `https://gateway.thegraph.com/api/${GRAPH_API_KEY}/subgraphs/id/F2Cgx4q4ATiopuZ13nr1EMKmZXwfAdevF3EujqfayK7a`,
+  polygon: `https://gateway.thegraph.com/api/${GRAPH_API_KEY}/subgraphs/id/BBp2ZJTG8j4sx9gLoFYN6iLCpWQsNpoiYjXNwRcE3DQr`,
 };
 
 
@@ -277,6 +287,171 @@ const calculateActiveBorrowerYield = (poolBorrowedPercent, interestRateLowerBoun
   return poolYieldRaw / 100;
 };
 
+// GraphQL query to fetch active non-pool bids (no commitment = direct P2P loan)
+const nonPoolQueryString = `
+  query ($lastId: String!) {
+    bids(
+      first: 1000,
+      where: { status: "Accepted", commitment: null, id_gt: $lastId }
+      orderBy: id
+      orderDirection: asc
+    ) {
+      id
+      principal
+      lendingTokenAddress
+      apr
+      totalRepaidPrincipal
+      lendingToken { symbol decimals }
+      collateral { collateralAddress amount type }
+    }
+  }
+`;
+
+const fetchNonPoolBids = async (chainString, endpoint) => {
+  let allBids = [];
+  let lastId = '';
+  // Paginate through all active non-pool bids
+  while (true) {
+    const response = await axios.post(endpoint, {
+      query: nonPoolQueryString,
+      variables: { lastId },
+    });
+    const bids = response.data?.data?.bids || [];
+    if (bids.length === 0) break;
+    allBids = allBids.concat(bids);
+    lastId = bids[bids.length - 1].id;
+    if (bids.length < 1000) break;
+  }
+  console.log(`Found ${allBids.length} active non-pool bids for ${chainString}`);
+  return allBids;
+};
+
+const topLvlNonPool = async (chainString, endpoint) => {
+  const bids = await fetchNonPoolBids(chainString, endpoint);
+  if (bids.length === 0) return [];
+
+  // Group bids by lending token
+  const byToken = {};
+  for (const bid of bids) {
+    const addr = bid.lendingTokenAddress.toLowerCase();
+    if (!byToken[addr]) {
+      byToken[addr] = {
+        lendingTokenAddress: addr,
+        symbol: bid.lendingToken?.symbol || 'UNKNOWN',
+        decimals: Number(bid.lendingToken?.decimals || 18),
+        totalOutstanding: 0,
+        aprWeightedSum: 0,
+        bidCount: 0,
+        collateralByToken: {},
+      };
+    }
+    const outstanding = Number(bid.principal) - Number(bid.totalRepaidPrincipal);
+    if (outstanding <= 0) continue;
+    const apr = Number(bid.apr);
+    byToken[addr].totalOutstanding += outstanding;
+    byToken[addr].aprWeightedSum += apr * outstanding;
+    byToken[addr].bidCount += 1;
+
+    // Track collateral deposits
+    for (const c of (bid.collateral || [])) {
+      const cAddr = c.collateralAddress.toLowerCase();
+      if (!byToken[addr].collateralByToken[cAddr]) {
+        byToken[addr].collateralByToken[cAddr] = 0;
+      }
+      byToken[addr].collateralByToken[cAddr] += Number(c.amount);
+    }
+  }
+
+  const results = [];
+  for (const [addr, info] of Object.entries(byToken)) {
+    if (info.symbol === 'UNKNOWN' || info.totalOutstanding <= 0) continue;
+
+    const divisor = 10 ** info.decimals;
+    const outstandingTokens = info.totalOutstanding / divisor;
+
+    // Get price for lending token
+    let pricesByAddress = {};
+    try {
+      const prices = await utils.getPrices([addr], chainString);
+      pricesByAddress = prices.pricesByAddress || {};
+    } catch (e) {
+      console.warn(`Failed to get price for non-pool token ${addr} on ${chainString}`);
+      continue;
+    }
+
+    const tokenPrice = parseFloat(pricesByAddress[addr] || 0);
+    if (tokenPrice === 0) continue;
+
+    const totalBorrowUsd = outstandingTokens * tokenPrice;
+    if (totalBorrowUsd < 100) continue;
+
+    // Weighted average APR across active bids (apr is in basis points * 100, i.e. 1000 = 10%)
+    const avgApr = info.totalOutstanding > 0
+      ? info.aprWeightedSum / info.totalOutstanding
+      : 0;
+    const borrowApy = avgApr / 100;
+    // For non-pool loans, lender yield equals the borrower rate (fully utilized, no idle capital)
+    const lenderApy = borrowApy;
+
+    // Get collateral value
+    let totalCollateralUsd = 0;
+    const collateralAddresses = Object.keys(info.collateralByToken);
+    if (collateralAddresses.length > 0) {
+      try {
+        const collPrices = await utils.getPrices(collateralAddresses, chainString);
+        const collPricesByAddr = collPrices.pricesByAddress || {};
+        const collTokenInfo = await fetchTokenInfo(collateralAddresses, chainString);
+        for (const [cAddr, cAmount] of Object.entries(info.collateralByToken)) {
+          const cDecimals = collTokenInfo[cAddr]?.decimals || 18;
+          const cPrice = parseFloat(collPricesByAddr[cAddr] || 0);
+          totalCollateralUsd += (cAmount / (10 ** cDecimals)) * cPrice;
+        }
+      } catch (e) {
+        console.warn(`Failed to get collateral prices for non-pool ${info.symbol} on ${chainString}`);
+      }
+    }
+
+    const poolId = `teller-nonpool-${chainString}-${addr}`;
+    const appUrl = `https://app.teller.org/${chainString}/lend`;
+
+    // Lending entry: for non-pool loans all capital is borrowed (tvl = borrow amount)
+    results.push({
+      pool: poolId + '-lending',
+      chain: utils.formatChain(chainString),
+      project: 'teller',
+      symbol: info.symbol,
+      poolMeta: 'Non-Pool Loans',
+      tvlUsd: Number(totalBorrowUsd.toFixed(4)),
+      apyBase: lenderApy,
+      totalSupplyUsd: Number(totalBorrowUsd.toFixed(4)),
+      totalBorrowUsd: Number(totalBorrowUsd.toFixed(4)),
+      underlyingTokens: [addr],
+      url: appUrl,
+    });
+
+    // Collateral entry (only if we have meaningful collateral value)
+    if (totalCollateralUsd >= 100) {
+      results.push({
+        pool: poolId + '-collateral',
+        chain: utils.formatChain(chainString),
+        project: 'teller',
+        symbol: info.symbol,
+        poolMeta: 'Non-Pool Collateral',
+        tvlUsd: Number(totalCollateralUsd.toFixed(4)),
+        totalSupplyUsd: Number(totalCollateralUsd.toFixed(4)),
+        totalBorrowUsd: Number(totalBorrowUsd.toFixed(4)),
+        apyBaseBorrow: borrowApy,
+        apyBase: 0,
+        underlyingTokens: [addr],
+        url: appUrl,
+      });
+    }
+  }
+
+  console.log(`Generated ${results.length} non-pool entries for ${chainString}`);
+  return results;
+};
+
 const main = async (timestamp = null) => {
   let data = [];
 
@@ -309,7 +484,22 @@ const main = async (timestamp = null) => {
     }
   }
 
-   console.log(`build filteredData ...`);
+  // Fetch non-pool (direct P2P) loans from The Graph Protocol
+  for (const [chain, endpoint] of Object.entries(nonpool_endpoints)) {
+    if (!endpoint) {
+      console.log(`Skipping non-pool data for ${chain} - no URL configured`);
+      continue;
+    }
+    try {
+      console.log(`Fetching non-pool data for ${chain}...`);
+      const chainData = await topLvlNonPool(chain, endpoint);
+      data.push(...chainData);
+    } catch (err) {
+      console.log(`Non-pool ${chain}:`, err.message || err);
+    }
+  }
+
+  console.log(`build filteredData ...`);
 
   const filteredData = data.filter((p) => utils.keepFinite(p));
   return filteredData;
