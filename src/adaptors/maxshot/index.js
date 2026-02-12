@@ -101,6 +101,9 @@ const apy = async () => {
       tvlUsd = Number(vault.totalValue) / 1e18;
     }
 
+    // Calculate fee percentage from feeRate
+    const feePercentage = (Number(vault.feeRate) / 1e18) * 100;
+
     return {
       pool: `${poolAddress.toLowerCase()}-${chainName}`,
       chain: utils.formatChain(chainName),
@@ -110,6 +113,7 @@ const apy = async () => {
       apyBase: apyValue,
       underlyingTokens: [underlyingToken],
       url: `https://app.maxshot.ai/#/earn/${vault.address}`,
+      poolMeta: `Fee: ${feePercentage}%`,
     };
   });
 
