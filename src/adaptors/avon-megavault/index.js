@@ -23,12 +23,15 @@ const apy = async (timestamp = Math.floor(Date.now() / 1e3)) => {
   const call = (abi, block, params) =>
     sdk.api.abi.call({ target: VAULT, abi, chain: CHAIN, block, params });
 
-  const [totalAssets, priceNow, priceYesterday, priceWeekAgo] =
+  const [totalAssets, priceNow, priceYesterday, priceWeekAgo, tokenPrice] =
     await Promise.all([
       call('uint256:totalAssets', blockNow),
       call(CONVERT_ABI, blockNow, [UNIT]),
       call(CONVERT_ABI, blockYesterday, [UNIT]),
       call(CONVERT_ABI, blockWeekAgo, [UNIT]),
+      axios
+        .get(`https://coins.llama.fi/prices/current/${CHAIN}:${USDm}`)
+        .then((r) => r.data.coins[`${CHAIN}:${USDm}`].price),
     ]);
 
   const apyBase =
@@ -42,7 +45,7 @@ const apy = async (timestamp = Math.floor(Date.now() / 1e3)) => {
       chain: utils.formatChain(CHAIN),
       project: 'avon-megavault',
       symbol: 'USDm',
-      tvlUsd: totalAssets.output / 1e18,
+      tvlUsd: (totalAssets.output / 1e18) * tokenPrice,
       apyBase,
       apyBase7d,
       underlyingTokens: [USDm],
