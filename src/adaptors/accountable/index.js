@@ -87,7 +87,7 @@ const getVaultStats = async(vaults, chain = 'monad') => {
             abi: 'erc20:balanceOf',
             calls: vaults.map((vault, i) => ({
                 target: underlyings[i],
-                params: vault,
+                params: [vault],
             })),
             permitFailure: true,
         }),
@@ -158,7 +158,7 @@ const apy = async() => {
     }
 
     return Promise.all(
-        activeLoans.map(async(item) => {
+        activeLoans.filter((item) => chainIdToName[item.chain_id]).map(async(item) => {
             const chainName = chainIdToName[item.chain_id];
             const vaultAddress = loanVaultMap[item.id];
             const stats = vaultAddress ? vaultStats[vaultAddress] || {} : {};
