@@ -29,6 +29,13 @@ const chainMapping = {
         nativeToken: ethers.constants.AddressZero,
         decimals: 18,
         symbol: 'ETH',
+    },
+    hyperliquid: {
+        chain: 'hyperliquid',
+        chainId: '999',
+        nativeToken: ethers.constants.AddressZero,
+        decimals: 18,
+        symbol: 'HYPE',
     }
 }
 
@@ -36,55 +43,24 @@ const projectName = 'upshift';
 
 const getApy = async () => {
     const poolInfos = [];
+    const getPoolsAbi = abi.find(abi => abi.name === 'getPools');
 
-    const ethPools = await sdk.api.abi.call({
-        target: APYRegistry,
-        params: [chainMapping.ethereum.chainId],
-        abi: abi.find(abi => abi.name === 'getPools'),
-        chain: 'base'
-    });
+    for (const [chainKey, config] of Object.entries(chainMapping)) {
+        const pools = await sdk.api.abi.call({
+            target: APYRegistry,
+            params: [config.chainId],
+            abi: getPoolsAbi,
+            chain: 'base'
+        });
 
+        const chainPoolsInfo = await Promise.all(
+            pools.output.map(async (pool) => {
+                return await getPoolInfo(pool, chainKey);
+            }),
+        );
 
-    const avaxPools = await sdk.api.abi.call({
-        target: APYRegistry,
-        params: [chainMapping.avax.chainId],
-        abi: abi.find(abi => abi.name === 'getPools'),
-        chain: 'base'
-    });
-
-
-    const basePools = await sdk.api.abi.call({
-        target: APYRegistry,
-        params: [chainMapping.base.chainId],
-        abi: abi.find(abi => abi.name === 'getPools'),
-        chain: 'base'
-    });
-
-   
-
-    const ethereumPoolsInfo = await Promise.all(
-        ethPools.output.map(async (pool) => {
-            return await getPoolInfo(pool, 'ethereum');
-        }),
-    );
-
-    poolInfos.push(...ethereumPoolsInfo);
-
-    const avaxPoolsInfo = await Promise.all(
-        avaxPools.output.map(async (pool) => {
-            return await getPoolInfo(pool, 'avax');
-        }),
-    );
-
-    poolInfos.push(...avaxPoolsInfo);
-
-    const basePoolsInfo = await Promise.all(
-        basePools.output.map(async (pool) => {
-            return await getPoolInfo(pool, 'base');
-        }),
-    );
-
-    poolInfos.push(...basePoolsInfo);
+        poolInfos.push(...chainPoolsInfo);
+    }
 
     return poolInfos;
 }
