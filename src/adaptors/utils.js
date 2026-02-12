@@ -29,6 +29,7 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
   if (chain && chain.toLowerCase() === 'real') return 're.al';
   if (chain && chain.toLowerCase() === 'plume_mainnet') return 'Plume Mainnet';
+  if (chain && chain.toLowerCase() === 'megaeth') return 'MegaETH';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
