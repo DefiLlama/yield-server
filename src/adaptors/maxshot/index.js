@@ -107,7 +107,7 @@ const apy = async () => {
       project: 'maxshot',
       symbol: utils.formatSymbol(vault.symbol),
       tvlUsd,
-      apy: apyValue,
+      apyBase: apyValue,
       underlyingTokens: [underlyingToken],
       url: `https://app.maxshot.ai/#/earn/${vault.address}`,
     };
