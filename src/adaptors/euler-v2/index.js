@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { utils: ethersUtils } = require('ethers');
 
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
@@ -172,8 +173,10 @@ const getApys = async () => {
             const totalSupplyUsd = (cash + borrows) * price;
             const totalBorrowUsd = borrows * price;
 
+            const vaultAddr = ethersUtils.getAddress(v.id);
+            const assetAddr = ethersUtils.getAddress(v.asset);
             return {
-              pool: v.id,
+              pool: vaultAddr,
               chain,
               project: 'euler-v2',
               symbol: assetSymbol,
@@ -183,8 +186,8 @@ const getApys = async () => {
               totalBorrowUsd,
               apyBase: Number(v.state.supplyApy) / APY_DIVISOR,
               apyBaseBorrow: Number(v.state.borrowApy) / APY_DIVISOR,
-              underlyingTokens: [v.asset],
-              url: `https://app.euler.finance/vault/${v.id}?network=${config.urlChain}`,
+              underlyingTokens: [assetAddr],
+              url: `https://app.euler.finance/vault/${vaultAddr}?network=${config.urlChain}`,
             };
           })
           .filter(Boolean);
@@ -222,16 +225,18 @@ const getApys = async () => {
               apyBase = weightedApy * (1 - feePct);
             }
 
+            const earnAddr = ethersUtils.getAddress(v.id);
+            const earnAssetAddr = ethersUtils.getAddress(v.asset);
             return {
-              pool: `euler-earn-${v.id}-${chain}`,
+              pool: `euler-earn-${earnAddr}-${chain}`,
               chain,
               project: 'euler-v2',
               symbol,
               poolMeta: v.name,
               tvlUsd,
               apyBase,
-              underlyingTokens: [v.asset],
-              url: `https://app.euler.finance/vault/${v.id}?network=${config.urlChain}`,
+              underlyingTokens: [earnAssetAddr],
+              url: `https://app.euler.finance/vault/${earnAddr}?network=${config.urlChain}`,
             };
           })
           .filter((p) => p && p.tvlUsd > 100);
