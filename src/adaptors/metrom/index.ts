@@ -134,7 +134,8 @@ module.exports = {
           !chain ||
           chainId !== campaign.target.chainId ||
           !campaign.apr ||
-          !campaign.usdTvl
+          !campaign.usdTvl ||
+          !campaign.rewards?.assets?.length
         )
           continue;
 
@@ -188,7 +189,7 @@ function processCampaign(campaign: Campaign): ProcessedCampaign | null {
     case 'liquity-v2-stability-pool': {
       return {
         symbol: formatSymbol(campaign.target.collateral.symbol),
-        underlyingTokens: [campaign.target.collateral.symbol],
+        underlyingTokens: [campaign.target.collateral.address],
       };
     }
     case 'gmx-v1-liquidity': {
@@ -201,7 +202,7 @@ function processCampaign(campaign: Campaign): ProcessedCampaign | null {
     case 'aave-v3-net-supply': {
       return {
         symbol: formatSymbol(campaign.target.collateral.symbol),
-        underlyingTokens: [campaign.target.collateral.symbol],
+        underlyingTokens: [campaign.target.collateral.address],
       };
     }
     default: {
