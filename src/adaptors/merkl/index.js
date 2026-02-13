@@ -52,6 +52,44 @@ function cleanSymbol(symbol) {
   return symbol;
 }
 
+function getUnderlyingTokens(pool) {
+  const tokens = pool.tokens || [];
+  if (tokens.length <= 1) return tokens.map((t) => t.address);
+
+  const breakdowns = pool.tvlRecord?.breakdowns || [];
+  if (breakdowns.length > 0) {
+    const breakdownIds = new Set(breakdowns.map((b) => String(b.identifier)));
+
+    // Match by token ID first
+    let matched = tokens.filter((t) => breakdownIds.has(String(t.id)));
+
+    // Fallback: match by address (CLAMM pools use addresses as identifiers)
+    if (matched.length === 0) {
+      const breakdownAddrs = new Set(
+        breakdowns.map((b) => String(b.identifier).toLowerCase())
+      );
+      matched = tokens.filter((t) =>
+        breakdownAddrs.has(t.address.toLowerCase())
+      );
+    }
+
+    if (matched.length > 0) {
+      // If all matched tokens are unverified (receipt/debt) but verified exist, prefer verified
+      const allUnverified = matched.every((t) => !t.verified);
+      const verified = tokens.filter((t) => t.verified);
+      if (allUnverified && verified.length > 0)
+        return verified.map((t) => t.address);
+      return matched.map((t) => t.address);
+    }
+  }
+
+  // Fallback: verified tokens, then all
+  const verified = tokens.filter((t) => t.verified);
+  return verified.length > 0
+    ? verified.map((t) => t.address)
+    : tokens.map((t) => t.address);
+}
+
 // function getting all the data from the Angle API
 const main = async () => {
   var poolsData = [];
@@ -105,7 +143,7 @@ const main = async () => {
           ).output;
         }
 
-        const underlyingTokens = pool.tokens.map((x) => x.address);
+        const underlyingTokens = getUnderlyingTokens(pool);
 
         const tvlUsd = pool.tvl;
 
