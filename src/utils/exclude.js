@@ -210,7 +210,9 @@ const excludeAdaptors = [
   'kinetix-amm-v3',
   'marginfi-lending', // pools tracked under project-0
   'seamless-v1', // no adapter
-  'joe-dex'
+  'joe-dex',
+  'wink',
+  'maha.xyz',
 ];
 
 const excludePools = [
