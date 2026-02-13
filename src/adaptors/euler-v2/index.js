@@ -1,4 +1,268 @@
 const axios = require('axios');
+
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
+
+// ---------------------------------------------------------------------------
+// Subgraph-based architecture (replaces event log scanning + lens multicalls)
+// - Eliminates scanning millions of blocks per chain on every run
+// - Eliminates oversized getVaultInfoFull multicalls that caused bob/sonic failures
+// - Server-side filtering: only fetches vaults with active supply APY
+// - Asset symbol parsed from vault symbol (e{SYMBOL}-{N}), decimals from subgraph
+// ---------------------------------------------------------------------------
+
+const SUBGRAPH_BASE =
+  'https://api.goldsky.com/api/public/project_cm4iagnemt1wp01xn4gh1agft/subgraphs';
+
+const chains = {
+  ethereum: {
+    subgraph: `${SUBGRAPH_BASE}/euler-v2-mainnet/latest/gn`,
+    urlChain: 'ethereum',
+  },
+  bob: {
+    subgraph: `${SUBGRAPH_BASE}/euler-v2-bob/latest/gn`,
+    urlChain: 'bob',
+  },
+  sonic: {
+    subgraph: `${SUBGRAPH_BASE}/euler-v2-sonic/latest/gn`,
+    urlChain: 'sonic',
+  },
+  avax: {
+    subgraph: `${SUBGRAPH_BASE}/euler-v2-avalanche/latest/gn`,
+    urlChain: 'avalanche',
+  },
+  berachain: {
+    subgraph: `${SUBGRAPH_BASE}/euler-v2-berachain/latest/gn`,
+    urlChain: 'berachain',
+  },
+  bsc: {
+    subgraph: `${SUBGRAPH_BASE}/euler-v2-bsc/latest/gn`,
+    urlChain: 'bnbsmartchain',
+  },
+  base: {
+    subgraph: `${SUBGRAPH_BASE}/euler-v2-base/latest/gn`,
+    urlChain: 'base',
+  },
+  swellchain: {
+    subgraph: `${SUBGRAPH_BASE}/euler-v2-swell/latest/gn`,
+    urlChain: 'swellchain',
+  },
+  unichain: {
+    subgraph: `${SUBGRAPH_BASE}/euler-v2-unichain/latest/gn`,
+    urlChain: 'unichain',
+  },
+  arbitrum: {
+    subgraph: `${SUBGRAPH_BASE}/euler-v2-arbitrum/latest/gn`,
+    urlChain: 'arbitrumone',
+  },
+  linea: {
+    subgraph: `${SUBGRAPH_BASE}/euler-v2-linea/latest/gn`,
+    urlChain: 'lineamainnet',
+  },
+  // TAC subgraph lacks the vault state entity (no supplyApy/borrowApy) -- excluded until updated
+  monad: {
+    subgraph: `${SUBGRAPH_BASE}/euler-v2-monad/latest/gn`,
+    urlChain: 'monad',
+  },
+  plasma: {
+    subgraph: `${SUBGRAPH_BASE}/euler-v2-plasma/latest/gn`,
+    urlChain: 'plasma',
+  },
+};
+
+// Subgraph APY values are 27-decimal fixed-point; dividing by 1e25 gives percentage
+const APY_DIVISOR = 1e25;
+
+// EVK vault symbol format is "e{ASSET_SYMBOL}-{N}" (e.g. "eUSDC-80", "ewstETH-2")
+const parseAssetSymbol = (vaultSymbol) =>
+  vaultSymbol.replace(/^e/, '').replace(/-\d+$/, '');
+
+const EVK_QUERY = `{
+  eulerVaults(first: 1000) {
+    id
+    name
+    symbol
+    asset
+    decimals
+    state {
+      cash
+      totalBorrows
+      supplyApy
+      borrowApy
+    }
+  }
+}`;
+
+const EARN_QUERY = `{
+  eulerEarnVaults(first: 1000, where: { totalAssets_gt: "0" }) {
+    id
+    name
+    asset
+    totalAssets
+    performanceFee
+    strategies {
+      strategy
+      allocatedAssets
+    }
+  }
+}`;
+
+const querySubgraph = async (url, query) => {
+  const { data } = await axios.post(url, { query }, { timeout: 30_000 });
+  if (data.errors) throw new Error(data.errors[0].message);
+  return data.data;
+};
+
+const getApys = async () => {
+  const chainResults = await Promise.all(
+    Object.entries(chains).map(async ([chain, config]) => {
+      try {
+        // Fetch EVK and Earn vaults from subgraph in parallel
+        const [evkData, earnData] = await Promise.all([
+          querySubgraph(config.subgraph, EVK_QUERY),
+          querySubgraph(config.subgraph, EARN_QUERY).catch(() => ({
+            eulerEarnVaults: [],
+          })),
+        ]);
+
+        const evkVaults = evkData.eulerVaults || [];
+        const earnVaults = earnData.eulerEarnVaults || [];
+
+        // Build maps from ALL EVK vaults (active or not) for Earn vault lookups
+        const evkApyMap = {};
+        const assetInfoMap = {};
+        for (const v of evkVaults) {
+          if (v.state && Number(v.state.supplyApy) > 0) {
+            evkApyMap[v.id] = Number(v.state.supplyApy) / APY_DIVISOR;
+          }
+          if (!assetInfoMap[v.asset]) {
+            assetInfoMap[v.asset] = {
+              symbol: parseAssetSymbol(v.symbol),
+              decimals: Number(v.decimals),
+            };
+          }
+        }
+
+        // Filter to active vaults for pool output
+        const activeEvkVaults = evkVaults.filter(
+          (v) => v.state && Number(v.state.supplyApy) > 0
+        );
+
+        // Collect unique asset addresses and fetch prices
+        const assets = new Set([
+          ...activeEvkVaults.map((v) => v.asset),
+          ...earnVaults.map((v) => v.asset),
+        ]);
+        const priceKeys = [...assets].map((a) => `${chain}:${a}`).join(',');
+        if (!priceKeys) return [];
+
+        const { data: prices } = await axios.get(
+          `https://coins.llama.fi/prices/current/${priceKeys}`
+        );
+
+        // --- Build EVK pools ---
+        const evkPools = activeEvkVaults
+          .map((v) => {
+            const price = prices.coins[`${chain}:${v.asset}`]?.price;
+            if (price === undefined || price === null) return null;
+
+            const assetSymbol = parseAssetSymbol(v.symbol);
+            const assetDecimals = Number(v.decimals);
+            const cash = Number(v.state.cash) / 10 ** assetDecimals;
+            const borrows = Number(v.state.totalBorrows) / 10 ** assetDecimals;
+            const totalSupplyUsd = (cash + borrows) * price;
+            const totalBorrowUsd = borrows * price;
+
+            return {
+              pool: v.id,
+              chain,
+              project: 'euler-v2',
+              symbol: assetSymbol,
+              poolMeta: v.name,
+              tvlUsd: totalSupplyUsd - totalBorrowUsd,
+              totalSupplyUsd,
+              totalBorrowUsd,
+              apyBase: Number(v.state.supplyApy) / APY_DIVISOR,
+              apyBaseBorrow: Number(v.state.borrowApy) / APY_DIVISOR,
+              underlyingTokens: [v.asset],
+              url: `https://app.euler.finance/vault/${v.id}?network=${config.urlChain}`,
+            };
+          })
+          .filter(Boolean);
+
+        // --- Build Euler Earn pools ---
+        const earnPools = earnVaults
+          .map((v) => {
+            const priceData = prices.coins[`${chain}:${v.asset}`];
+            if (!priceData?.price) return null;
+
+            const assetInfo = assetInfoMap[v.asset];
+            const symbol = assetInfo?.symbol || priceData.symbol;
+            const decimals = assetInfo?.decimals ?? priceData.decimals;
+            const tvlUsd =
+              (Number(v.totalAssets) / 10 ** decimals) * priceData.price;
+
+            // Calculate APY from weighted average of underlying EVK strategy APYs
+            let apyBase = null;
+            const totalAllocated = v.strategies.reduce(
+              (sum, s) => sum + Number(s.allocatedAssets || 0),
+              0
+            );
+
+            if (totalAllocated > 0 && v.strategies.length > 0) {
+              let weightedApy = 0;
+              for (const s of v.strategies) {
+                const allocated = Number(s.allocatedAssets || 0);
+                if (allocated === 0) continue;
+                const strategyApy =
+                  evkApyMap[s.strategy.toLowerCase()] || 0;
+                weightedApy += strategyApy * (allocated / totalAllocated);
+              }
+              // Apply performance fee
+              const feePct = Number(v.performanceFee || 0) / 1e18;
+              apyBase = weightedApy * (1 - feePct);
+            }
+
+            return {
+              pool: `euler-earn-${v.id}-${chain}`,
+              chain,
+              project: 'euler-v2',
+              symbol,
+              poolMeta: v.name,
+              tvlUsd,
+              apyBase,
+              underlyingTokens: [v.asset],
+              url: `https://app.euler.finance/vault/${v.id}?network=${config.urlChain}`,
+            };
+          })
+          .filter((p) => p && p.tvlUsd > 100);
+
+        return [...evkPools, ...earnPools];
+      } catch (err) {
+        console.error(`Error processing chain ${chain}:`, err.message || err);
+        return [];
+      }
+    })
+  );
+
+  return await addMerklRewardApy(chainResults.flat(), 'euler');
+};
+
+module.exports = {
+  timetravel: false,
+  apy: getApys,
+};
+
+// ===========================================================================
+// PREVIOUS IMPLEMENTATION (event logs + lens contracts)
+// Preserved for reference. Can be restored if subgraph becomes unavailable.
+// Issues with this approach:
+//   - Scanned millions of blocks per chain on every run (fromBlock -> latest)
+//   - getVaultInfoFull multicalls returned ~40 fields per vault (most unused)
+//   - Oversized multicalls caused failures on bob, sonic
+//   - Rate limiting on tac, timeouts on swellchain
+// ===========================================================================
+/*
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
 
@@ -115,7 +379,6 @@ const chains = {
   },
 };
 
-// Chain name mapping for URL construction
 const chainNameMapping = {
   ethereum: 'ethereum',
   bob: 'bob',
@@ -156,7 +419,6 @@ const getApys = async () => {
         const currentBlock = await sdk.api.util.getLatestBlock(chain);
         const toBlock = currentBlock.number;
 
-        // Fetch EVK vaults and Euler Earn vaults in parallel
         const [poolDeployEvents, earnDeployEvents] = await Promise.all([
           getLogsWithTimeout(
             {
@@ -185,7 +447,6 @@ const getApys = async () => {
           (event) => event.args.eulerEarn
         );
 
-        // Fetch EVK vault info and Euler Earn vault info in parallel
         const [vaultInfosRaw, earnInfosRaw] = await Promise.all([
           sdk.api.abi
             .multiCall({
@@ -214,12 +475,10 @@ const getApys = async () => {
             : Promise.resolve([]),
         ]);
 
-        // --- Process EVK vaults ---
         const vaultInfosFiltered = vaultInfosRaw.filter(
           (i) => i?.irmInfo?.interestRateInfo[0]?.supplyAPY > 0
         );
 
-        // Build a map of EVK vault address -> supplyAPY for Euler Earn APY calculation
         const evkApyMap = {};
         for (const i of vaultInfosFiltered) {
           if (i?.vault && i?.irmInfo?.interestRateInfo[0]?.supplyAPY) {
@@ -236,7 +495,6 @@ const getApys = async () => {
           .map((i) => `${chain}:${i.asset}`)
           .join(',');
 
-        // --- Process Euler Earn vaults ---
         const earnInfosFiltered = earnInfosRaw.filter(
           (i) => i && i.totalAssets && i.totalAssets !== '0'
         );
@@ -255,7 +513,6 @@ const getApys = async () => {
           `https://coins.llama.fi/prices/current/${allPriceKeys}`
         );
 
-        // Build EVK pools
         const evkPools = vaultInfosFiltered
           .map((i) => {
             const price = prices.coins[`${chain}:${i.asset}`]?.price;
@@ -296,7 +553,6 @@ const getApys = async () => {
           })
           .filter(Boolean);
 
-        // Build Euler Earn pools
         const earnPools = earnInfosFiltered
           .map((i) => {
             const price = prices.coins[`${chain}:${i.asset}`]?.price;
@@ -305,7 +561,6 @@ const getApys = async () => {
             const tvlUsd =
               ethers.utils.formatUnits(i.totalAssets, i.assetDecimals) * price;
 
-            // Calculate APY from weighted average of underlying EVK strategy APYs
             let apyBase = null;
             const totalAllocated = i.strategies?.reduce(
               (sum, s) => sum + Number(s.allocatedAssets || 0),
@@ -321,7 +576,6 @@ const getApys = async () => {
                   evkApyMap[strategy.strategy.toLowerCase()] || 0;
                 weightedApy += strategyApy * (allocated / totalAllocated);
               }
-              // Apply performance fee
               const feePct = Number(i.performanceFee || 0) / 1e18;
               apyBase = weightedApy * (1 - feePct);
             }
@@ -355,3 +609,4 @@ module.exports = {
   timetravel: false,
   apy: getApys,
 };
+*/
