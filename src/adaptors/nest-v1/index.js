@@ -26,10 +26,10 @@ function mapBackendPoolToDefiLlama(pool) {
     project: 'nest-v1',
     symbol: utils.formatSymbol(pool.symbol),
     tvlUsd,
-    apyBase:
-      pool.apyBase === undefined || pool.apyBase === null
-        ? null
-        : Number(pool.apyBase),
+    apyBase: 0,
+    apyReward: pool.apyReward === undefined || pool.apyReward === null
+      ? null
+      : Number(pool.apyReward),
     rewardTokens:
       Array.isArray(pool.rewardTokens) && pool.rewardTokens.length > 0
         ? pool.rewardTokens
