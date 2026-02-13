@@ -208,9 +208,9 @@ const MCD_SPOT = {
   },
 };
 
-const DAI = '0x6B175474E89094C44Da98b954EedcdeCB5166eF5';
+const DAI = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
 
-MCD_POT = {
+const MCD_POT = {
   address: '0x197e90f9fad81970ba7976f33cbd77088e5d7cf7',
   abis: {
     Pie: {
@@ -260,7 +260,7 @@ async function dsr() {
     (BigNumber(dsr).div(RAY).toNumber() ** (60 * 60 * 24 * 365) - 1) * 100;
 
   return {
-    pool: MCD_POT.address,
+    pool: '0x83F20F44975D03b1b09e64809B757c47f942BEeA',
     project: 'sky-lending',
     symbol: 'DAI',
     chain: 'ethereum',
