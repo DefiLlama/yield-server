@@ -52,43 +52,49 @@ const apy = async () => {
   const rpcPromises = poolInfos.map(async (info) => {
     const { chainName, poolAddress, isMultiChain } = info;
 
-    // Always fetch asset()
-    const assetPromise = sdk.api.abi.call({
-      target: poolAddress,
-      abi: 'function asset() public view returns (address)',
-      chain: chainName,
-    });
-
-    // For multi-chain vaults, also fetch totalSupply()
-    let totalSupplyPromise = null;
-    if (isMultiChain) {
-      totalSupplyPromise = sdk.api.abi.call({
+    try{
+      // Always fetch asset()
+      const assetPromise = sdk.api.abi.call({
         target: poolAddress,
-        abi: 'function totalSupply() public view returns (uint256)',
+        abi: 'function asset() public view returns (address)',
         chain: chainName,
       });
+  
+      // For multi-chain vaults, also fetch totalSupply()
+      let totalSupplyPromise = null;
+      if (isMultiChain) {
+        totalSupplyPromise = sdk.api.abi.call({
+          target: poolAddress,
+          abi: 'function totalSupply() public view returns (uint256)',
+          chain: chainName,
+        });
+      }
+  
+      const [assetResult, totalSupplyResult] = await Promise.all([
+        assetPromise,
+        totalSupplyPromise,
+      ]);
+  
+      return {
+        underlyingToken: assetResult.output,
+        totalSupply: totalSupplyResult ? totalSupplyResult.output : null,
+      };
+    } catch (e) {
+      console.error(`Failed RPC for ${poolAddress} on ${chainName}: ${e.message}`);
+      return null;
     }
-
-    const [assetResult, totalSupplyResult] = await Promise.all([
-      assetPromise,
-      totalSupplyPromise,
-    ]);
-
-    return {
-      underlyingToken: assetResult.output,
-      totalSupply: totalSupplyResult ? totalSupplyResult.output : null,
-    };
   });
 
   const rpcResults = await Promise.all(rpcPromises);
 
   // Build final pools array
   const pools = poolInfos.map((info, index) => {
+    if (!rpcResults[index]) return null;
     const { vault, chainName, poolAddress, isMultiChain } = info;
     const { underlyingToken, totalSupply } = rpcResults[index];
 
     // Convert netApy24h from 1e18 to percentage
-    const apyValue = (Number(vault.netApy24h) / 1e18) * 100;
+    const apyValue = (Number(vault.netApy24h || 0) / 1e18) * 100;
 
     // Calculate tvlUsd using BigInt for precision
     let tvlUsd;
@@ -115,7 +121,7 @@ const apy = async () => {
       url: `https://app.maxshot.ai/#/earn/${vault.address}`,
       poolMeta: `Fee: ${feePercentage}%`,
     };
-  });
+  }).filter(Boolean); // Remove null entries due to failed RPCs
 
   return pools;
 };
