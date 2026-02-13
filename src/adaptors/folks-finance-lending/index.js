@@ -39,7 +39,7 @@ const buildDataSource = async (poolArr, depositsStakingInfo, loanType) => {
       apyBase,
       apyBaseBorrow,
       ltv,
-      underlyingTokens: [String(pool.assetId)],
+      underlyingTokens: [String(pool.assetId == 0 ? 1 : pool.assetId)],
     };
 
     if (pool.hasReward) {
