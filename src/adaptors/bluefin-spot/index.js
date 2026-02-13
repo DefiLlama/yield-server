@@ -31,7 +31,6 @@ const apy = async () => {
         url: `https://trade.bluefin.io/deposit/${p.pool}`,
       };
     })
-    .filter((i) => i.tvlUsd >= 1e4) // show pools with at least $10,000 TVL
     .sort((a, b) => b.tvlUsd - a.tvlUsd);
 };
 
