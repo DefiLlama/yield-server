@@ -119,7 +119,7 @@ const apy = async () => {
       apyBase: apyValue,
       underlyingTokens: [underlyingToken],
       url: `https://app.maxshot.ai/#/earn/${vault.address}`,
-      poolMeta: `Fee: ${feePercentage}%`,
+      ...(feePercentage > 0 && { poolMeta: `Fee: ${feePercentage}%` }),
     };
   }).filter(Boolean); // Remove null entries due to failed RPCs
 
