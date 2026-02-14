@@ -1,4 +1,4 @@
-const axios = require('axios');
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const RPC_URL = 'https://fullnode.mainnet.sui.io';
@@ -46,27 +46,31 @@ const VAULTS = [
 
 const WINDOW_DAYS = 7;
 
-async function fetchObjects(ids) {
-  const response = await axios.post(RPC_URL, {
+async function suiRpc(method, params) {
+  const { result } = await sdk.util.postJson(RPC_URL, {
     jsonrpc: '2.0',
     id: 1,
-    method: 'sui_multiGetObjects',
-    params: [ids, { showContent: true }],
+    method,
+    params,
   });
-  return response.data.result;
+  return result;
+}
+
+async function fetchObjects(ids) {
+  return suiRpc('sui_multiGetObjects', [ids, { showContent: true }]);
 }
 
 async function getTokenPrices(coinTypes) {
   const keys = coinTypes.map((c) => `sui:${c}`).join(',');
-  const { data } = await axios.get(
+  const data = await sdk.util.fetchJson(
     `https://coins.llama.fi/prices/current/${keys}`
   );
   return coinTypes.map((c) => data.coins[`sui:${c}`]);
 }
 
-// Vault exchange rate = underlying_per_atoken
-// Grows from pool interest + compounded incentives
-function vaultExchangeRate(vaultFields, poolFields) {
+// Computes the vault's underlying token balance and exchange rate in one pass
+// ER = underlying_per_atoken, starts at 1.0, grows from pool interest + compounded incentives
+function vaultMetrics(vaultFields, poolFields) {
   const shares = BigInt(
     vaultFields.abyss_vault_state.fields.margin_pool_shares
   );
@@ -76,72 +80,87 @@ function vaultExchangeRate(vaultFields, poolFields) {
   const poolTotal = BigInt(poolFields.state.fields.total_supply);
   const poolShares = BigInt(poolFields.state.fields.supply_shares);
 
-  if (atokenSupply === 0n || poolShares === 0n) return 1;
+  if (poolShares === 0n) return { underlying: 0n, er: 1 };
+
+  const underlying = (shares * poolTotal) / poolShares;
+
+  if (atokenSupply === 0n) return { underlying, er: 1 };
 
   const PREC = 10n ** 18n;
-  const underlying = (shares * poolTotal) / poolShares;
-  return Number((underlying * PREC) / atokenSupply) / Number(PREC);
+  const er = Number((underlying * PREC) / atokenSupply) / Number(PREC);
+  return { underlying, er };
 }
 
 // Get historical exchange rates from VaultSupply/VaultWithdraw events
 // These events record asset_amount and atoken_amount at transaction time,
 // giving us the exchange rate at that point
+async function paginateEvents(eventType, targetTs, vaultSet) {
+  const found = {};
+  let cursor = null;
+
+  // Query descending (recent first), stop when past target window
+  while (true) {
+    const result = await suiRpc('suix_queryEvents', [
+      { MoveEventType: eventType },
+      cursor,
+      50,
+      true,
+    ]);
+    if (!result?.data?.length) break;
+
+    for (const evt of result.data) {
+      const d = evt.parsedJson;
+      const ts = parseInt(evt.timestampMs);
+      const vid = d.vault_id;
+
+      if (!vaultSet.has(vid) || Number(d.atoken_amount) === 0) continue;
+
+      // We want the most recent event at or before the target timestamp
+      if (ts <= targetTs && (!found[vid] || ts > found[vid].ts)) {
+        found[vid] = {
+          er: Number(d.asset_amount) / Number(d.atoken_amount),
+          ts,
+        };
+      }
+    }
+
+    const oldestTs = parseInt(result.data[result.data.length - 1].timestampMs);
+
+    // Stop if all vaults found and we're past the window
+    if (oldestTs < targetTs && vaultSet.size === Object.keys(found).length)
+      break;
+    // Safety: stop if we've gone 2x past the window
+    if (oldestTs < targetTs - WINDOW_DAYS * 86_400_000) break;
+
+    if (!result.hasNextPage) break;
+    cursor = result.nextCursor;
+  }
+
+  return found;
+}
+
 async function getHistoricalERs(vaultIds) {
   const targetTs = Date.now() - WINDOW_DAYS * 86_400_000;
   const vaultSet = new Set(vaultIds);
-  const found = {}; // vaultId -> { er, ts }
 
-  const eventTypes = [
-    `${VAULT_PACKAGE}::abyss_vault::VaultSupply`,
-    `${VAULT_PACKAGE}::abyss_vault::VaultWithdraw`,
-  ];
+  const [supplyERs, withdrawERs] = await Promise.all([
+    paginateEvents(
+      `${VAULT_PACKAGE}::abyss_vault::VaultSupply`,
+      targetTs,
+      vaultSet
+    ),
+    paginateEvents(
+      `${VAULT_PACKAGE}::abyss_vault::VaultWithdraw`,
+      targetTs,
+      vaultSet
+    ),
+  ]);
 
-  for (const eventType of eventTypes) {
-    let cursor = null;
-
-    // Query descending (recent first), stop when past target window
-    while (true) {
-      const response = await axios.post(RPC_URL, {
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'suix_queryEvents',
-        params: [{ MoveEventType: eventType }, cursor, 50, true],
-      });
-
-      const result = response.data.result;
-      if (!result?.data?.length) break;
-
-      for (const evt of result.data) {
-        const d = evt.parsedJson;
-        const ts = parseInt(evt.timestampMs);
-        const vid = d.vault_id;
-
-        if (!vaultSet.has(vid)) continue;
-        if (Number(d.atoken_amount) === 0) continue;
-
-        // We want the most recent event at or before the target timestamp
-        if (ts <= targetTs) {
-          if (!found[vid] || ts > found[vid].ts) {
-            found[vid] = {
-              er: Number(d.asset_amount) / Number(d.atoken_amount),
-              ts,
-            };
-          }
-        }
-      }
-
-      // Check if we've gone past the target window for all vaults
-      const oldestInPage = result.data[result.data.length - 1];
-      const oldestTs = parseInt(oldestInPage.timestampMs);
-
-      // If all vaults have a historical ER and we've gone past the window, stop
-      if (oldestTs < targetTs && vaultIds.every((id) => found[id])) break;
-
-      // Also stop if we've gone way past (2x window) to prevent infinite loops
-      if (oldestTs < targetTs - WINDOW_DAYS * 86_400_000) break;
-
-      if (!result.hasNextPage) break;
-      cursor = result.nextCursor;
+  // Merge: keep the more recent ER per vault
+  const found = { ...supplyERs };
+  for (const [vid, data] of Object.entries(withdrawERs)) {
+    if (!found[vid] || data.ts > found[vid].ts) {
+      found[vid] = data;
     }
   }
 
@@ -165,47 +184,42 @@ const main = async () => {
   const pools = [];
 
   for (let i = 0; i < VAULTS.length; i++) {
-    const vault = VAULTS[i];
-    const vaultData = vaultObjects[i]?.data?.content?.fields;
-    const poolData = poolObjects[i]?.data?.content?.fields;
-    const coinInfo = coinInfos[i];
+    try {
+      const vault = VAULTS[i];
+      const vaultData = vaultObjects[i]?.data?.content?.fields;
+      const poolData = poolObjects[i]?.data?.content?.fields;
+      const coinInfo = coinInfos[i];
 
-    if (!vaultData || !poolData || !coinInfo) continue;
+      if (!vaultData || !poolData || !coinInfo) continue;
 
-    // TVL
-    const marginPoolShares = BigInt(
-      vaultData.abyss_vault_state.fields.margin_pool_shares
-    );
-    const totalSupply = BigInt(poolData.state.fields.total_supply);
-    const supplyShares = BigInt(poolData.state.fields.supply_shares);
-    if (supplyShares === 0n) continue;
+      const { underlying, er } = vaultMetrics(vaultData, poolData);
+      if (underlying === 0n) continue;
 
-    const underlying = (marginPoolShares * totalSupply) / supplyShares;
-    const tvlUsd =
-      (Number(underlying) / 10 ** coinInfo.decimals) * coinInfo.price;
+      const tvlUsd =
+        (Number(underlying) / 10 ** coinInfo.decimals) * coinInfo.price;
 
-    // APY from exchange rate growth over trailing window
-    const currentER = vaultExchangeRate(vaultData, poolData);
-    const hist = historicalERs[vault.vaultId];
-
-    let apyBase = 0;
-    if (hist && currentER > hist.er) {
-      const days = (now - hist.ts) / 86_400_000;
-      if (days >= 1) {
-        const growth = currentER / hist.er;
-        apyBase = (Math.pow(growth, 365 / days) - 1) * 100;
+      // APY from exchange rate growth over trailing window
+      const hist = historicalERs[vault.vaultId];
+      let apyBase = 0;
+      if (hist && er > hist.er) {
+        const days = (now - hist.ts) / 86_400_000;
+        if (days >= 1) {
+          apyBase = (Math.pow(er / hist.er, 365 / days) - 1) * 100;
+        }
       }
-    }
 
-    pools.push({
-      pool: `${vault.vaultId}-sui`.toLowerCase(),
-      chain: utils.formatChain('sui'),
-      project: 'abyss',
-      symbol: utils.formatSymbol(vault.symbol),
-      tvlUsd,
-      apyBase,
-      underlyingTokens: [vault.assetType],
-    });
+      pools.push({
+        pool: `${vault.vaultId}-sui`.toLowerCase(),
+        chain: utils.formatChain('sui'),
+        project: 'abyss',
+        symbol: utils.formatSymbol(vault.symbol),
+        tvlUsd,
+        apyBase,
+        underlyingTokens: [vault.assetType],
+      });
+    } catch (e) {
+      console.error(`abyss: failed to process vault ${VAULTS[i].symbol}`, e);
+    }
   }
 
   return pools.filter((p) => utils.keepFinite(p));
