@@ -52,6 +52,48 @@ function cleanSymbol(symbol) {
   return symbol;
 }
 
+function getUnderlyingTokens(pool) {
+  const tokens = pool.tokens || [];
+  if (tokens.length <= 1) return tokens.map((t) => t.address);
+
+  const breakdowns = pool.tvlRecord?.breakdowns || [];
+  if (breakdowns.length > 0) {
+    const breakdownIds = new Set(breakdowns.map((b) => String(b.identifier)));
+
+    // Match by token ID first
+    let matched = tokens.filter((t) => breakdownIds.has(String(t.id)));
+
+    // Fallback: match by address (CLAMM pools use addresses as identifiers)
+    if (matched.length === 0) {
+      const breakdownAddrs = new Set(
+        breakdowns.map((b) => String(b.identifier).toLowerCase())
+      );
+      matched = tokens.filter((t) =>
+        breakdownAddrs.has(t.address.toLowerCase())
+      );
+    }
+
+    if (matched.length > 0) {
+      // If all matched tokens are unverified (receipt/debt) but verified exist, prefer verified
+      const allUnverified = matched.every((t) => !t.verified);
+      const verified = tokens.filter((t) => t.verified);
+      if (allUnverified && verified.length > 0)
+        return verified.map((t) => t.address);
+      return matched.map((t) => t.address);
+    }
+
+    // Breakdowns existed but didn't match any tokens
+    // (e.g. gauge pools where breakdown tracks LP token, not components)
+    return tokens.map((t) => t.address);
+  }
+
+  // No breakdowns at all - use verified filter as last resort
+  const verified = tokens.filter((t) => t.verified);
+  return verified.length > 0
+    ? verified.map((t) => t.address)
+    : tokens.map((t) => t.address);
+}
+
 // function getting all the data from the Angle API
 const main = async () => {
   var poolsData = [];
@@ -105,7 +147,29 @@ const main = async () => {
           ).output;
         }
 
-        const underlyingTokens = pool.tokens.map((x) => x.address);
+        let underlyingTokens = getUnderlyingTokens(pool);
+
+        // For Aave-type borrow pools, token list may only contain aTokens/debtTokens
+        // Resolve to actual underlying asset via on-chain UNDERLYING_ASSET_ADDRESS()
+        if (pool.type === 'AAVE_NET_BORROWING' && underlyingTokens.length > 0) {
+          try {
+            const resolved = await Promise.all(
+              underlyingTokens.map(async (addr) => {
+                try {
+                  const result = await sdk.api.abi.call({
+                    target: addr,
+                    chain,
+                    abi: 'address:UNDERLYING_ASSET_ADDRESS',
+                  });
+                  return result.output;
+                } catch {
+                  return addr;
+                }
+              })
+            );
+            underlyingTokens = [...new Set(resolved)];
+          } catch {}
+        }
 
         const tvlUsd = pool.tvl;
 
@@ -120,7 +184,8 @@ const main = async () => {
         const poolMeta = poolMetaParts.length > 0 ? poolMetaParts.join(' - ') : null;
 
         const poolType = pool.type || 'UNKNOWN';
-        const poolUrl = `https://app.merkl.xyz/opportunities/${chain}/${poolType}/${poolAddress}`;
+        const merklChain = chain === 'avax' ? 'avalanche' : chain;
+        const poolUrl = `https://app.merkl.xyz/opportunities/${merklChain}/${poolType}/${poolAddress}`;
 
         const poolData = {
           pool: `${poolAddress}-merkl`,
