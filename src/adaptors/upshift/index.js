@@ -75,10 +75,16 @@ const calcApyBase7dBatch = async (standardPools, customPoolAddrs, vaultData, cha
             ]);
 
             for (let i = 0; i < standardPools.length; i++) {
-                const curr = Number(currentRes.output[i]?.output);
-                const old = Number(olderRes.output[i]?.output);
-                if (old > 0 && curr > 0) {
-                    result[standardPools[i]] = ((curr - old) / old) * (365 / LOOKBACK_DAYS) * 100;
+                const currRaw = currentRes.output[i]?.output;
+                const oldRaw = olderRes.output[i]?.output;
+                if (!currRaw || !oldRaw) continue;
+                const curr = BigInt(currRaw);
+                const old = BigInt(oldRaw);
+                if (old > 0n && curr > 0n) {
+                    // Scale numerator by 1e18 to preserve precision in integer division
+                    const SCALE = 10n ** 18n;
+                    const ratio = ((curr - old) * SCALE) / old;
+                    result[standardPools[i]] = Number(ratio) / 1e18 * (365 / LOOKBACK_DAYS) * 100;
                 }
             }
         }
@@ -92,12 +98,27 @@ const calcApyBase7dBatch = async (standardPools, customPoolAddrs, vaultData, cha
                     sdk.api.abi.call({ target: addr, abi: cv.sharePriceAbi, chain: chainKey }),
                     sdk.api.abi.call({ target: addr, abi: cv.sharePriceAbi, chain: chainKey, block: olderBlock }),
                 ]);
-                const currVal = Number(curr.output);
-                const oldVal = Number(old.output);
-                if (oldVal > 0 && currVal > 0) {
-                    result[addr] = ((currVal - oldVal) / oldVal) * (365 / LOOKBACK_DAYS) * 100;
+                const currRaw = curr.output;
+                const oldRaw = old.output;
+                if (!currRaw || !oldRaw) {
+                    console.log(`Custom vault ${addr}: missing share price output (curr=${currRaw}, old=${oldRaw})`);
+                    continue;
                 }
-            } catch {}
+                const currVal = BigInt(currRaw);
+                const oldVal = BigInt(oldRaw);
+                if (oldVal > 0n && currVal > 0n) {
+                    const SCALE = 10n ** 18n;
+                    const ratio = ((currVal - oldVal) * SCALE) / oldVal;
+                    const apy = Number(ratio) / 1e18 * (365 / LOOKBACK_DAYS) * 100;
+                    if (isFinite(apy)) {
+                        result[addr] = apy;
+                    } else {
+                        console.log(`Custom vault ${addr}: non-finite APY (curr=${currRaw}, old=${oldRaw})`);
+                    }
+                }
+            } catch (e) {
+                console.log(`Custom vault ${addr} share price error: ${e.message}`);
+            }
         }
     } catch {}
     return result;
@@ -168,15 +189,24 @@ const getApy = async () => {
             }
 
             // Batch fetch underlying decimals for standard vaults
-            const underlyingAddrs = standardPools.map(p => vaultData[p].underlying);
-            if (underlyingAddrs.length > 0) {
+            // Native-token sentinels revert on erc20:decimals, so handle them separately
+            const NATIVE_DECIMALS = 18;
+            const erc20Pools = [];
+            for (const p of standardPools) {
+                if (vaultData[p].underlying.toLowerCase() === nativeToken.toLowerCase()) {
+                    vaultData[p].underlyingDecimals = NATIVE_DECIMALS;
+                } else {
+                    erc20Pools.push(p);
+                }
+            }
+            if (erc20Pools.length > 0) {
                 const uDecimalsRes = await sdk.api.abi.multiCall({
-                    calls: underlyingAddrs.map(a => ({ target: a })),
+                    calls: erc20Pools.map(p => ({ target: vaultData[p].underlying })),
                     abi: 'erc20:decimals',
                     chain: chainKey,
                 });
-                for (let i = 0; i < standardPools.length; i++) {
-                    vaultData[standardPools[i]].underlyingDecimals = uDecimalsRes.output[i].output;
+                for (let i = 0; i < erc20Pools.length; i++) {
+                    vaultData[erc20Pools[i]].underlyingDecimals = uDecimalsRes.output[i].output;
                 }
             }
 
@@ -190,6 +220,7 @@ const getApy = async () => {
                     calls: allPools.map(p => ({ target: APYRegistry, params: [p] })),
                     abi: getPoolInfoAbi,
                     chain: 'base',
+                    permitFailure: true,
                 }),
                 getMerklRewardsForChain(merklIdentifiers, chainKey),
                 calcApyBase7dBatch(standardPools, customPoolAddrs, vaultData, chainKey),
@@ -200,15 +231,16 @@ const getApy = async () => {
                 const addr = allPools[i];
                 const data = vaultData[addr];
                 const custom = customVaults[addr];
-                const registryInfo = apyRegistryRes.output[i].output;
+                const registryEntry = apyRegistryRes.output[i];
+                const registryInfo = registryEntry?.output ?? null;
 
                 const underlyingPrice = prices.pricesByAddress[data.underlying.toLowerCase()];
                 if (!underlyingPrice) continue;
 
                 const tvlUsd = Number(ethers.utils.formatUnits(data.totalAssets, data.underlyingDecimals)) * underlyingPrice;
 
-                let apyBase = registryInfo.apyBase / 100;
-                const apyReward = registryInfo.apyReward / 100;
+                let apyBase = registryInfo ? registryInfo.apyBase / 100 : 0;
+                const apyReward = registryInfo ? registryInfo.apyReward / 100 : 0;
                 // Fallback: use 7d share price APY when registry has no data
                 if (apyBase === 0 && apyReward === 0 && apyBase7dMap[addr]) {
                     apyBase = apyBase7dMap[addr];
@@ -225,7 +257,7 @@ const getApy = async () => {
                     url: getPoolUrl(addr, chainKey),
                 };
 
-                if (apyReward > 0) {
+                if (apyReward > 0 && registryInfo) {
                     const rewardToken = registryInfo.rewardToken === nativeToken
                         ? ethers.constants.AddressZero
                         : registryInfo.rewardToken;
