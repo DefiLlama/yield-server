@@ -213,6 +213,9 @@ const excludeAdaptors = [
   'joe-dex',
   'wink',
   'maha.xyz',
+  'fractal-protocol',
+  'covo-v1',
+  'predy-v5',
 ];
 
 const excludePools = [
