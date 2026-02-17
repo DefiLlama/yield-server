@@ -40,7 +40,7 @@ exports.formatChain = (chain) => {
 };
 
 const getFormatter = (symbol) => {
-  if (symbol.includes('USD+')) return /[_:\/]/g;
+  if (symbol.includes('USD+') || symbol.includes('ETH+')) return /[_:\/]/g;
   return /[_+:\/]/g;
 };
 
