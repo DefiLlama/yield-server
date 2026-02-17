@@ -40,6 +40,7 @@ function mapBackendPoolToDefiLlama(pool) {
       Array.isArray(pool.underlyingTokens) && pool.underlyingTokens.length > 0
         ? pool.underlyingTokens
         : null,
+    // poolMeta contains fee info
     poolMeta: pool.poolMeta || null,
   };
 }
