@@ -90,7 +90,7 @@ const apy = async () => {
       token: ETHEREUM_OETH_TOKEN,
       symbol: 'OETH',
       project: 'origin-ether',
-      underlyingToken: ETHEREUM_WETH_TOKEN,
+      underlyingToken: ETHEREUM_OETH_TOKEN,
     }),
     fetchPoolData({
       chain: 'base',
@@ -99,7 +99,7 @@ const apy = async () => {
       token: BASE_SUPER_OETH_TOKEN,
       symbol: 'superOETHb',
       project: 'origin-ether',
-      underlyingToken: BASE_WETH_TOKEN,
+      underlyingToken: BASE_SUPER_OETH_TOKEN,
     }),
     fetchPoolData({
       chain: 'plume_mainnet',
@@ -108,7 +108,7 @@ const apy = async () => {
       token: PLUME_SUPER_OETH_TOKEN,
       symbol: 'superOETHp',
       project: 'origin-ether',
-      underlyingToken: PLUME_WETH_TOKEN,
+      underlyingToken: PLUME_SUPER_OETH_TOKEN,
     }),
   ]);
   return pools.filter((i) => i.status === 'fulfilled').map((i) => i.value);

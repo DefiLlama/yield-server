@@ -8,6 +8,7 @@ const url = 'https://www.nodedao.com/';
 
 const ethStakingPool = '0x8103151E2377e78C04a3d2564e20542680ed3096';
 const ethSdkChain = 'ethereum';
+const nETH = '0xc6572019548dfeba782ba5a2093c836626c7789a'
 
 const getApy = async () => {
   const now = Math.floor(Date.now() / 1000);
@@ -74,7 +75,7 @@ const getApy = async () => {
     apyBase, // APY from pool fees/supplying in %
     apyBase7d,
     url,
-    underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+    underlyingTokens: [nETH],
   };
 
   return [ethereumAPY];

@@ -47,7 +47,7 @@ const apy = async () => {
       tvlUsd,
       apyBase,
       apyBase7d: apyBase,
-      underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+      underlyingTokens: [mevETH],
     },
   ];
 };

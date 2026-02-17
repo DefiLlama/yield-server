@@ -113,7 +113,7 @@ const chainApy = async (chain) => {
       symbol: symbol.output,
       tvlUsd: tvlUsd,
       apyBase: apyBase,
-      underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+      underlyingTokens: [vaults[chain]],
     },
   ];
 };

@@ -38,7 +38,7 @@ const getFilecoinPool = async () => {
     tvlUsd: tvlFIL * filPrice,
     apy: Number(apyData.apy),
     poolMeta: 'GLIF',
-    underlyingTokens: ['0x0000000000000000000000000000000000000000'], // native FIL
+    underlyingTokens: ['0xe764Acf02D8B7c21d2B6A8f0a96C78541e0DC3fd'], // iFIL
   };
 };
 

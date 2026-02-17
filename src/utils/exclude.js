@@ -216,6 +216,12 @@ const excludeAdaptors = [
   'fractal-protocol',
   'covo-v1',
   'predy-v5',
+  'stfil',
+  'tranchess-ether',
+  'stakehouse',
+  'mev-protocol',
+  'genesislrt-(native-restaking)',
+  'hord'
 ];
 
 const excludePools = [

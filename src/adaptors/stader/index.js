@@ -102,7 +102,7 @@ const getApy = async () => {
       tvlUsd: tvl * ethPrice,
       apyBase: apyBase7d,
       apyBase7d,
-      underlyingTokens: [weth],
+      underlyingTokens: [token],
     },
     {
       pool: stakeManagerContract,
@@ -112,7 +112,7 @@ const getApy = async () => {
       tvlUsd: tvlPolygon * maticxPrice,
       apyBase: apyBase7dPolygon,
       apyBase7d: apyBase7dPolygon,
-      underlyingTokens: ['0x0000000000000000000000000000000000001010'],
+      underlyingTokens: [stakeManagerContract],
     },
   ];
 };
