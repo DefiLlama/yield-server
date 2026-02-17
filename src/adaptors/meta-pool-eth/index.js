@@ -45,8 +45,8 @@ const apy = async () => {
   const ethPrice = priceRes.data.coins['coingecko:ethereum'].price;
 
   const calcApy = (rates) => {
-    const apyBase = ((rates[0].output - rates[1].output) / 1e18) * 365 * 100;
-    const apyBase7d = ((rates[0].output - rates[2].output) / 1e18 / 7) * 365 * 100;
+    const apyBase = ((rates[0].output - rates[1].output) / rates[1].output) * 365 * 100;
+    const apyBase7d = ((rates[0].output - rates[2].output) / rates[2].output / 7) * 365 * 100;
     return { apyBase, apyBase7d };
   };
 
