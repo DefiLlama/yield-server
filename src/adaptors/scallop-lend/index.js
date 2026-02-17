@@ -3,11 +3,20 @@ const utils = require('../utils')
 
 const baseUrl = 'https://sdk.api.scallop.io/api';
 const marketEndpoint = `${baseUrl}/market/migrate`;
-const spoolsEndpoint = `${baseUrl}/spools/migrate`;
+const spoolsEndpoint = `${baseUrl}/spools`;
 const borrowIncentiveEndpoint = `${baseUrl}/borrowIncentivePools`;
 
 const main = async () => {
-  let [market, spools, borrowIncentive] = await Promise.all([axios.get(marketEndpoint), axios.get(spoolsEndpoint), axios.get(borrowIncentiveEndpoint)]);
+  let [market, spools] = await Promise.all([
+    axios.get(marketEndpoint),
+    axios.get(spoolsEndpoint),
+  ]);
+  let borrowIncentive;
+  try {
+    borrowIncentive = await axios.get(borrowIncentiveEndpoint);
+  } catch (e) {
+    borrowIncentive = { data: [] };
+  }
 
   const supplyRewards = {};
   const rewardTokenPool = {};
