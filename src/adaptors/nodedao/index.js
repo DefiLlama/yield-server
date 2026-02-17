@@ -2,9 +2,10 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
 
-// nETH - liquid staking (new NethPool contract)
+// nETH - liquid staking (new NethPool contract, migrated from old ethStakingPool)
 const nethPool = '0xf3C79408164abFB6fD5dDfE33B084E4ad2C07c18';
 const nETH = '0xc6572019548dfeba782ba5a2093c836626c7789a';
+const oldEthStakingPool = '0x8103151E2377e78C04a3d2564e20542680ed3096';
 
 // rnETH - restaking via EigenLayer
 const restakingPool = '0x0d6F764452CA43eB8bd22788C9Db43E4b5A725Bc';
@@ -92,7 +93,7 @@ const getApy = async () => {
 
   return [
     {
-      pool: `${nETH}-ethereum`,
+      pool: `${oldEthStakingPool}-ethereum`, // preserve history
       chain: utils.formatChain('ethereum'),
       project: 'nodedao',
       symbol: 'nETH',
