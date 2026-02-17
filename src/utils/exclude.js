@@ -216,6 +216,9 @@ const excludeAdaptors = [
   'fractal-protocol',
   'covo-v1',
   'predy-v5',
+  'stfil',
+  'tranchess-ether',
+  'stakehouse'
 ];
 
 const excludePools = [
