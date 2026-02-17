@@ -186,7 +186,7 @@ const apy = async () => {
       symbol: 'shMON',
       tvlUsd: tvlUsd,
       apyBase: apyBase,
-      underlyingTokens: ['0x0000000000000000000000000000000000000000'], // MON
+      underlyingTokens: [SHMONAD_CONTRACT],
     },
   ];
 };

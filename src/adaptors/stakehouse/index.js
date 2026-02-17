@@ -35,7 +35,7 @@ const getTvlPerLSD = async (response, ticker) => {
   return { savETHPool, tvl };
 };
 
-const topLvl = async (chainString, url, underlying) => {
+const topLvl = async (chainString, url) => {
   const aprData = (await axios.get(url)).data;
   const tickers = Object.keys(aprData).map((index) => aprData[index].Ticker);
 
@@ -115,7 +115,7 @@ const topLvl = async (chainString, url, underlying) => {
         symbol: utils.formatSymbol(Object.values(aprData)[i].Ticker),
         tvlUsd: tvlUsd,
         apyBase: Number(Object.values(aprData)[i].APR),
-        underlyingTokens: [underlying],
+        underlyingTokens: [result.savETHPool],
       });
 
       totalTvl += tvlUsd;
@@ -134,7 +134,7 @@ const topLvl = async (chainString, url, underlying) => {
     symbol: 'dETH',
     tvlUsd: totalTvl,
     apyBase: totalApy / noOfActiveLSDs,
-    underlyingTokens: [underlying],
+    underlyingTokens: ['0x3d1E5Cf16077F349e999d6b21A4f646e83Cd90c5'],
   });
 
   return apyList;
@@ -143,8 +143,7 @@ const topLvl = async (chainString, url, underlying) => {
 const main = async () => {
   const data = await topLvl(
     'ethereum',
-    'https://etl.joinstakehouse.com/lsdWisePerformance',
-    '0x0000000000000000000000000000000000000000'
+    'https://etl.joinstakehouse.com/lsdWisePerformance'
   );
 
   return data.flat();

@@ -63,7 +63,7 @@ const getApy = async () => {
       symbol: 'osETH',
       tvlUsd: tvl * ethPrice,
       apy: Number(apyBN) / 100,
-      underlyingTokens: [weth],
+      underlyingTokens: [osTokenAddress],
     },
   ];
 };

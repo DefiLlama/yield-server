@@ -85,7 +85,7 @@ const getApy = async () => {
       symbol: 'rETH',
       tvlUsd: ETH_TVL * ethPrice,
       apyBase: Number(apyData.yearlyAPR),
-      underlyingTokens: [weth],
+      underlyingTokens: [token],
     },
   ];
 };

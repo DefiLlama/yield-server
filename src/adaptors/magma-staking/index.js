@@ -209,7 +209,7 @@ const apy = async () => {
       symbol: symbol.output || 'gMON',
       tvlUsd: tvlUsd,
       apyBase: apyBase,
-      underlyingTokens: ['0x0000000000000000000000000000000000000000'], // MON
+      underlyingTokens: [MAGMA_ADDRESS],
     },
   ];
 };

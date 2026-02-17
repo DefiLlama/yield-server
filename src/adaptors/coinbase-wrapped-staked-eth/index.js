@@ -48,7 +48,7 @@ const getApy = async () => {
       symbol: 'cbeth',
       tvlUsd: tvl * ethPrice,
       apyBase: apr,
-      underlyingTokens: [weth],
+      underlyingTokens: [token],
     },
   ];
 };

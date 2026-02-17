@@ -21,7 +21,7 @@ const liquidHYPEOracle = '0x1CeaB703956e24b18a0AF6b272E0bF3F499aCa0F';
 const weETH = '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee';
 const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
 const WBTC = '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599';
-const HYPE = '0x0000000000000000000000000000000000000000';
+const HYPE = '0x5555555555555555555555555555555555555555';
 const beHYPE = '0xd8FC8F0b03eBA61F64D08B0bef69d80916E5DdA9';
 
 const SECONDS_PER_DAY = 86400;
@@ -231,9 +231,7 @@ const apy = async () => {
     pricesRes.data.coins[`ethereum:${liquidUSD}`]?.price || 1;
   const wbtcPrice = pricesRes.data.coins[`ethereum:${WBTC}`]?.price || 0;
   const hypePrice =
-    pricesRes.data.coins[
-      'hyperliquid:0x0000000000000000000000000000000000000000'
-    ]?.price || 0;
+    pricesRes.data.coins[`hyperliquid:${HYPE}`]?.price || 0;
 
   // Calculate liquidETH APY
   const liquidETHRateCurrent = Number(liquidETHRates[0].output);
@@ -348,7 +346,7 @@ const apy = async () => {
       tvlUsd: liquidETHTvl,
       apyBase: liquidETHApr1d > 0 ? liquidETHApr1d : liquidETHApr7d,
       apyBase7d: liquidETHApr7d,
-      underlyingTokens: [weETH],
+      underlyingTokens: [liquidETH],
       url: 'https://app.ether.fi/liquid/eth',
     },
     {
@@ -359,7 +357,7 @@ const apy = async () => {
       tvlUsd: liquidUSDTvl,
       apyBase: liquidUSDApr1d > 0 ? liquidUSDApr1d : liquidUSDApr7d,
       apyBase7d: liquidUSDApr7d,
-      underlyingTokens: [USDC],
+      underlyingTokens: [liquidUSD],
       url: 'https://app.ether.fi/liquid/usd',
     },
     {
@@ -370,7 +368,7 @@ const apy = async () => {
       tvlUsd: liquidBTCTvl,
       apyBase: liquidBTCApr1d > 0 ? liquidBTCApr1d : liquidBTCApr7d,
       apyBase7d: liquidBTCApr7d,
-      underlyingTokens: [WBTC],
+      underlyingTokens: [liquidBTC],
       url: 'https://app.ether.fi/liquid/btc',
     },
     {
@@ -381,7 +379,7 @@ const apy = async () => {
       tvlUsd: liquidHYPETvl,
       apyBase: liquidHYPEApr1d > 0 ? liquidHYPEApr1d : liquidHYPEApr7d,
       apyBase7d: liquidHYPEApr7d > 0 ? liquidHYPEApr7d : undefined,
-      underlyingTokens: [HYPE, beHYPE],
+      underlyingTokens: [liquidHYPE],
       url: 'https://app.ether.fi/liquid/hype',
     },
   ];
