@@ -10,6 +10,9 @@ const utils = require('../utils');
 
 const MOVEMENT_RPC = 'https://mainnet.movementnetwork.xyz/v1';
 
+// Sanity cap on APY percentages to catch misclassification.
+const MAX_APY = 1000;
+
 const CHAINS = {
   move: {
     pool: '0xf257d40859456809be19dfee7f4c55c4d033680096aeeb4228b7a15749ab68ea',
@@ -257,6 +260,16 @@ const apy = async (chain) => {
       })
     ).output.map((o) => o.output);
 
+    // Read baseRatePerYear from each rate model to determine V1 vs V2 scaling.
+    // V1: baseRatePerYear < 1e18 (1e18 = 100%), V2: baseRatePerYear >= 1e18 (1e18 = 1%)
+    const baseRatePerYear = (
+      await sdk.api.abi.multiCall({
+        chain,
+        abi: 'function baseRatePerYear() view returns (uint256)',
+        calls: rateModel.map((m) => ({ target: m })),
+      })
+    ).output.map((o) => o.output);
+
     const distributions = (
       await sdk.api.abi.multiCall({
         chain,
@@ -333,15 +346,30 @@ const apy = async (chain) => {
       const tvlUsd = totalSupplyUsd - totalBorrowUsd;
 
       // LayerBank has V1 and V2 rate models coexisting across markets:
-      // - V1: baseRatePerYear uses 1e18 = 100%, per-second rates need * 100
-      // - V2: baseRatePerYear uses 1e18 = 1%, per-second rates are already 100x larger
-      // Detect V2 by checking if the borrow rate exceeds 200% in V1 interpretation
+      // - V1: baseRatePerYear < 1e18 (1e18 = 100%), per-second rates need * 100
+      // - V2: baseRatePerYear >= 1e18 (1e18 = 1%), per-second rates are already 100x larger
+      const isV2RateModel = BigInt(baseRatePerYear[i]) >= BigInt(1e18);
       const annualBorrowRaw = (borrowRate[i] / 1e18) * 86400 * 365;
       const annualSupplyRaw = (supplyRate[i] / 1e18) * 86400 * 365;
-      const isV2RateModel = annualBorrowRaw > 2;
 
-      const apyBase = isV2RateModel ? annualSupplyRaw : annualSupplyRaw * 100;
-      const apyBaseBorrow = isV2RateModel ? annualBorrowRaw : annualBorrowRaw * 100;
+      let apyBase = isV2RateModel ? annualSupplyRaw : annualSupplyRaw * 100;
+      let apyBaseBorrow = isV2RateModel ? annualBorrowRaw : annualBorrowRaw * 100;
+
+      // Sanity cap to prevent grossly inflated APY from misclassification
+      if (apyBase > MAX_APY) {
+        console.log(
+          `Warning: Capping apyBase for market ${p} (${symbol[i] ?? 'ETH'}) on ${chain}: ` +
+          `${apyBase.toFixed(2)}% -> ${MAX_APY}%`
+        );
+        apyBase = MAX_APY;
+      }
+      if (apyBaseBorrow > MAX_APY) {
+        console.log(
+          `Warning: Capping apyBaseBorrow for market ${p} (${symbol[i] ?? 'ETH'}) on ${chain}: ` +
+          `${apyBaseBorrow.toFixed(2)}% -> ${MAX_APY}%`
+        );
+        apyBaseBorrow = MAX_APY;
+      }
       const underlyingTokens = [underlying[i]];
       const ltv = marketInfoOf[i].collateralFactor / 1e18;
 
