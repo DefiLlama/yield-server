@@ -218,7 +218,8 @@ const excludeAdaptors = [
   'predy-v5',
   'stfil',
   'tranchess-ether',
-  'stakehouse'
+  'stakehouse',
+  'mev-protocol'
 ];
 
 const excludePools = [
