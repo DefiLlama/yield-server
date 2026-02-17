@@ -79,9 +79,11 @@ const getApy = async () => {
     ]);
 
   const ethPriceKey = 'coingecko:ethereum';
-  const ethPrice = (
+  const ethPriceRes = (
     await axios.get(`https://coins.llama.fi/prices/current/${ethPriceKey}`)
-  ).data.coins[ethPriceKey]?.price;
+  ).data;
+  const ethPrice = ethPriceRes?.coins?.[ethPriceKey]?.price;
+  if (!ethPrice) throw new Error('nodedao: failed to fetch ETH price');
 
   const [nEthData, rnEthData] = await Promise.all([
     getPoolData(nethPool, block1dayAgo, block7dayAgo),
@@ -97,7 +99,6 @@ const getApy = async () => {
       tvlUsd: nEthData.totalEth * ethPrice,
       apyBase: nEthData.apyBase,
       apyBase7d: nEthData.apyBase7d,
-      url,
       underlyingTokens: [nETH],
       url: `https://app.nodedao.com/`,
     },
@@ -109,7 +110,6 @@ const getApy = async () => {
       tvlUsd: rnEthData.totalEth * ethPrice,
       apyBase: rnEthData.apyBase,
       apyBase7d: rnEthData.apyBase7d,
-      url,
       underlyingTokens: [rnETH],
       url: `https://app.nodedao.com/re_stake`,
     },
