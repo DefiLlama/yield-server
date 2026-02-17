@@ -3,7 +3,7 @@ const utils = require("../utils");
 const { ethers } = require("ethers");
 
 const ETHEREUM_SUBGRAPH_URL =
-  "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-hyperevm-yield-1/yield/gn";
+  "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-ethereum-yield-1/yield/gn";
 const HYPER_SUBGRAPH_URL =
   "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-hyperevm-yield-1/yield/gn";
 const MEGAETH_SUBGRAPH_URL = 
@@ -271,25 +271,39 @@ function computeTvlUsd(vault, collateralPriceUsd) {
  * Build one price map across all active chains.
  */
 async function fetchPrices(allVaults) {
-  const coins = new Set();
-  const activeChainCfgs = new Map();
+  const coinsByPriceKey = new Map();
 
   for (const { chainCfg, vault } of allVaults) {
-    activeChainCfgs.set(chainCfg.key, chainCfg);
-    const token = vault.collateralToken.id.toLowerCase();
-    coins.add(`${chainCfg.priceKey}:${token}`);
+    const pk = chainCfg.priceKey;
+    const addr = vault.collateralToken.id.toLowerCase();
+    if (!coinsByPriceKey.has(pk)) coinsByPriceKey.set(pk, new Set());
+    coinsByPriceKey.get(pk).add(`${pk}:${addr}`);
   }
 
-  for (const chainCfg of activeChainCfgs.values()) {
-    coins.add(`${chainCfg.priceKey}:${chainCfg.nativeWrapped.toLowerCase()}`);
+  // Include native wrapped for each active chain
+  for (const { chainCfg } of allVaults) {
+    const pk = chainCfg.priceKey;
+    const addr = chainCfg.nativeWrapped.toLowerCase();
+    if (!coinsByPriceKey.has(pk)) coinsByPriceKey.set(pk, new Set());
+    coinsByPriceKey.get(pk).add(`${pk}:${addr}`);
   }
 
-  const coinList = Array.from(coins);
-  if (coinList.length === 0) return {};
+  const pricesByChainAddress = {};
 
-  const prices = await utils.getPrices(coinList);
-  return prices;
+  for (const [pk, coinSet] of coinsByPriceKey.entries()) {
+    const res = await utils.getPrices(Array.from(coinSet));
+
+    // res.pricesByAddress is flat, so re-key it back to pk scoped keys
+    for (const coin of coinSet) {
+      const [, address] = coin.split(":");
+      const p = res.pricesByAddress[address] || 0;
+      pricesByChainAddress[`${pk}:${address}`] = p;
+    }
+  }
+
+  return { pricesByChainAddress };
 }
+
 
 // Main adaptor function
 async function apy() {
