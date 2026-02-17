@@ -24,7 +24,7 @@ const getApy = async () => {
       symbol: 'reth',
       tvlUsd: tvl * ethPrice,
       apyBase: apyData.data.stakeApr,
-      underlyingTokens: [weth],
+      underlyingTokens: [token],
     },
   ];
 };

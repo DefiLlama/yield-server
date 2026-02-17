@@ -219,7 +219,9 @@ const excludeAdaptors = [
   'stfil',
   'tranchess-ether',
   'stakehouse',
-  'mev-protocol'
+  'mev-protocol',
+  'genesislrt-(native-restaking)',
+  'hord'
 ];
 
 const excludePools = [
