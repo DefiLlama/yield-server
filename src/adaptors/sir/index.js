@@ -6,7 +6,7 @@ const ETHEREUM_SUBGRAPH_URL =
   "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-ethereum-yield-1/yield/gn";
 const HYPER_SUBGRAPH_URL =
   "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-hyperevm-yield-1/yield/gn";
-const MEGAETH_SUBGRAPH_URL = 
+const MEGAETH_SUBGRAPH_URL =
   "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-megaeth-yield-1/yield/gn";
 
 const ETHEREUM_SIR =
@@ -99,7 +99,11 @@ async function fetchSirPriceFromDex(chainCfg) {
   try {
     const provider = new ethers.providers.JsonRpcProvider(chainCfg.rpcUrl);
 
-    const factory = new ethers.Contract(chainCfg.dexFactory, FACTORY_ABI, provider);
+    const factory = new ethers.Contract(
+      chainCfg.dexFactory,
+      FACTORY_ABI,
+      provider
+    );
 
     const poolAddress = await factory.getPool(
       chainCfg.sirAddress,
@@ -125,13 +129,16 @@ async function fetchSirPriceFromDex(chainCfg) {
     const Q96Num = Number(Q96.toString());
     const rawPrice = Math.pow(sqrtPriceX96Num / Q96Num, 2);
 
-    const sirIsToken0 = token0.toLowerCase() === chainCfg.sirAddress.toLowerCase();
+    const sirIsToken0 =
+      token0.toLowerCase() === chainCfg.sirAddress.toLowerCase();
 
     let nativePerSir;
     if (sirIsToken0) {
-      nativePerSir = rawPrice * Math.pow(10, SIR_DECIMALS - chainCfg.nativeDecimals);
+      nativePerSir =
+        rawPrice * Math.pow(10, SIR_DECIMALS - chainCfg.nativeDecimals);
     } else {
-      nativePerSir = (1 / rawPrice) * Math.pow(10, SIR_DECIMALS - chainCfg.nativeDecimals);
+      nativePerSir =
+        (1 / rawPrice) * Math.pow(10, SIR_DECIMALS - chainCfg.nativeDecimals);
     }
 
     return nativePerSir;
@@ -268,7 +275,8 @@ function computeTvlUsd(vault, collateralPriceUsd) {
 }
 
 /**
- * Build one price map across all active chains.
+ * Build a chain-aware price map.
+ * Returns: { pricesByChainAddress: { "<priceKey>:<address>": priceUsd } }
  */
 async function fetchPrices(allVaults) {
   const coinsByPriceKey = new Map();
@@ -292,18 +300,18 @@ async function fetchPrices(allVaults) {
 
   for (const [pk, coinSet] of coinsByPriceKey.entries()) {
     const res = await utils.getPrices(Array.from(coinSet));
+    const pricesByAddress = (res && res.pricesByAddress) || {};
 
-    // res.pricesByAddress is flat, so re-key it back to pk scoped keys
     for (const coin of coinSet) {
-      const [, address] = coin.split(":");
-      const p = res.pricesByAddress[address] || 0;
+      const parts = coin.split(":");
+      const address = parts.slice(1).join(":").toLowerCase();
+      const p = pricesByAddress[address] || 0;
       pricesByChainAddress[`${pk}:${address}`] = p;
     }
   }
 
   return { pricesByChainAddress };
 }
-
 
 // Main adaptor function
 async function apy() {
@@ -333,6 +341,8 @@ async function apy() {
     sirPriceInNative[cfg.key] = sirDexPrices[idx];
   });
 
+  const priceMap = prices.pricesByChainAddress || {};
+
   const pools = [];
 
   for (const { chainCfg, vault } of allVaults) {
@@ -341,10 +351,13 @@ async function apy() {
     const sirAddress = chainCfg.sirAddress;
 
     const collateralAddress = vault.collateralToken.id.toLowerCase();
-    const collateralPriceUsd = prices.pricesByAddress[collateralAddress] || 0;
 
+    const collateralPriceUsd =
+      priceMap[`${chainCfg.priceKey}:${collateralAddress}`] || 0;
+
+    const nativeWrappedAddr = chainCfg.nativeWrapped.toLowerCase();
     const nativePriceUsd =
-      prices.pricesByAddress[chainCfg.nativeWrapped.toLowerCase()] || 0;
+      priceMap[`${chainCfg.priceKey}:${nativeWrappedAddr}`] || 0;
 
     const sirInNative = sirPriceInNative[chainKey] || 0;
     const sirPriceUsd = sirInNative * nativePriceUsd;
@@ -358,18 +371,22 @@ async function apy() {
     const sirPriceInCollateral =
       collateralPriceUsd > 0 && sirPriceUsd > 0 ? sirPriceUsd / collateralPriceUsd : 0;
 
-    const sirRewardsApy = computeSirRewardsApy(vault, sirPriceInCollateral, sirAddress);
+    const sirRewardsApy = computeSirRewardsApy(
+      vault,
+      sirPriceInCollateral,
+      sirAddress
+    );
 
     const vaultIdDecimal = BigInt(vault.id).toString();
     const poolId = `${sirAddress}-${vaultIdDecimal}-${chainKey}`;
 
-    const symbol = `${utils.formatSymbol(vault.collateralToken.symbol || "UNKNOWN")}-${utils.formatSymbol(
-      vault.debtToken.symbol || "UNKNOWN"
-    )}`;
+    const symbol = `${utils.formatSymbol(
+      vault.collateralToken.symbol || "UNKNOWN"
+    )}-${utils.formatSymbol(vault.debtToken.symbol || "UNKNOWN")}`;
 
     const poolMeta = `Leverage ratio: ${1 + 2 ** Number(vault.leverageTier)}`;
 
-    const url = `https://app.sir.trading/liquidity?chainid=${chainCfg.chainId}&vault=${vaultIdDecimal}`;
+    const url = `https://app.sir.trading/leverage?chainid=${chainCfg.chainId}&vault=${vaultIdDecimal}`;
 
     pools.push({
       pool: poolId,
