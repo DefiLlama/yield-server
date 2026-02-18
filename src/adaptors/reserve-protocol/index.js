@@ -1,26 +1,19 @@
 const utils = require('../utils');
 
 const { request, gql } = require('graphql-request');
-const sdk = require('@defillama/sdk');
-
-const { facadeAbi } = require('./abi');
-
 const chains = [
   {
     chainName: 'base',
-    facade: '0xeb2071e9b542555e90e6e4e1f83fa17423583991',
     graph:
       'https://api.goldsky.com/api/public/project_cmgzim3e100095np2gjnbh6ry/subgraphs/dtf-yield-base/4.2.0-v2/gn',
   },
   {
     chainName: 'ethereum',
-    facade: '0x2C7ca56342177343A2954C250702Fd464f4d0613',
     graph:
       'https://api.goldsky.com/api/public/project_cmgzim3e100095np2gjnbh6ry/subgraphs/dtf-yield-mainnet/4.2.0-v2/gn',
   },
   {
     chainName: 'arbitrum',
-    facade: '0x387A0C36681A22F728ab54426356F4CAa6bB48a9',
     graph:
       'https://api.goldsky.com/api/public/project_cmgzim3e100095np2gjnbh6ry/subgraphs/reserve-arbitrum/prod/gn',
   },
@@ -64,7 +57,7 @@ const buildSnapshotQuery = (rtokens, dayNow) => {
   return gql`{ ${fragments.join('\n')} }`;
 };
 
-const apyChain = async ({ chainName, facade, graph }) => {
+const apyChain = async ({ chainName, graph }) => {
   const { rtokens } = await request(graph, rtokenQuery);
 
   const filtered = rtokens.filter((r) => r && rtokenTvl(r) > 10_000);
@@ -76,13 +69,6 @@ const apyChain = async ({ chainName, facade, graph }) => {
   const dayNow = Math.floor(now / 86400);
   const snapshotQuery = buildSnapshotQuery(filtered, dayNow);
   const snapshots = await request(graph, snapshotQuery);
-
-  // Get underlying tokens from Facade
-  const { output: basketTokensResult } = await sdk.api.abi.multiCall({
-    chain: chainName,
-    abi: facadeAbi.find(({ name }) => name === 'basketTokens'),
-    calls: filtered.map((r) => ({ target: facade, params: [r.id] })),
-  });
 
   return filtered.map((rtoken, i) => {
     // Pick best available snapshot for each period (try exact day, then day-1 fallback)
@@ -105,9 +91,7 @@ const apyChain = async ({ chainName, facade, graph }) => {
         ? ((rateNow / rate7d) ** (365 / 7) - 1) * 100
         : 0;
 
-    const underlyingTokens = basketTokensResult[i]?.output
-      ? [...new Set(basketTokensResult[i].output.map((t) => t.toLowerCase()))]
-      : [];
+    const underlyingTokens = [rtoken.id.toLowerCase()];
 
     return {
       pool: rtoken.id,
