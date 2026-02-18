@@ -574,11 +574,11 @@ exports.getStakePoolInfo = async (stakePoolAddress, rpcUrl = 'https://api.mainne
   // Decode using official SPL stake pool layout
   const stakePool = StakePoolLayout.decode(stakePoolAccountData);
 
-  const totalLamports = stakePool.totalLamports;
-  const poolTokenSupply = stakePool.poolTokenSupply;
-  const lastEpochTotalLamports = stakePool.lastEpochTotalLamports;
-  const lastEpochPoolTokenSupply = stakePool.lastEpochPoolTokenSupply;
-  const lastUpdateEpoch = stakePool.lastUpdateEpoch;
+  const totalLamports = BigInt(stakePool.totalLamports.toString());
+  const poolTokenSupply = BigInt(stakePool.poolTokenSupply.toString());
+  const lastEpochTotalLamports = BigInt(stakePool.lastEpochTotalLamports.toString());
+  const lastEpochPoolTokenSupply = BigInt(stakePool.lastEpochPoolTokenSupply.toString());
+  const lastUpdateEpoch = BigInt(stakePool.lastUpdateEpoch.toString());
 
   // Exchange rate = SOL per pool token (guard against division by zero)
   const exchangeRate = poolTokenSupply === 0n ? 0 : Number(totalLamports) / Number(poolTokenSupply);
