@@ -98,6 +98,7 @@ const getApy = async () => {
       // }
       return results;
       } catch(e) {
+        console.error(`kiloex [${chain}]: ${e.message}`);
         return [];
       }
     })
