@@ -53,6 +53,7 @@ const buildInsertConfigQuery = (payload) => {
     { name: 'poolMeta', def: null },
     { name: 'underlyingTokens', def: null },
     { name: 'rewardTokens', def: null },
+    { name: 'tokenAddress', def: null },
     'url',
     { name: 'ltv', def: null },
     { name: 'borrowable', def: null },
