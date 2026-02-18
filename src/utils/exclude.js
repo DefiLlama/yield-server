@@ -186,7 +186,42 @@ const excludeAdaptors = [
   'hyperdrive',
   'mm-finance-polygon',
   'maia-cl',
-  'molecular'
+  'molecular',
+  'jones-dao', //disabled deposits
+  'zkp2p',
+  'dyson',
+  'opyn-squeeth',
+  'alpaca-leveraged-yield-farming',
+  'alpaca-finance-2.0',
+  'coinhain',
+  'stratum-exchange',
+  'tokan-exchange',
+  'sense',
+  'reservoir',
+  'persistence-dex',
+  'pearl-v2',
+  'nitron',
+  'nimbora-yield',
+  'mare-finance-v1',
+  'hashstack',
+  'sommelier', // legacy cellars deprecated, active vault tracked under veda
+  'badger-dao', // sunsetted vaults
+  'flat-money-v1', // sunsetted vaults
+  'kinetix-amm-v3',
+  'marginfi-lending', // pools tracked under project-0
+  'seamless-v1', // no adapter
+  'joe-dex',
+  'wink',
+  'maha.xyz',
+  'fractal-protocol',
+  'covo-v1',
+  'predy-v5',
+  'stfil',
+  'tranchess-ether',
+  'stakehouse',
+  'mev-protocol',
+  'genesislrt-(native-restaking)',
+  'hord'
 ];
 
 const excludePools = [
@@ -1804,6 +1839,18 @@ const excludePools = [
   '0xc10a06863f858f67C2Cd46F1675eE029D3F7acd8-merkl',
   '0xE40a5aa22CBCcc8165aedd86f6d03fC5F551c3C6-merkl',
   '0x72e0f2216ba2a74fe24c692ae2e53370ea0b048a',
+  // uniswap-v4 pools with inflated TVL and 0 apyBase
+  '0xc9bc84eec2c7c73a4326b91ae6ec2cfaa145dc6202503db76e458bdd83176c1c-bsc-uniswap-v4',
+  '0x2125b5fde857d226baf88013dd2de50c7d2a2f6a0a05aa7c0dbd2125718d49fc-bsc-uniswap-v4',
+  '0x5da4b36729cb17a2c670826b3a1232433b76b8a866cbcdc9ba100d0d61066ecc-bsc-uniswap-v4',
+  '0x093b08b9b1c6317aa27c3c55407ab69c7e8362b0e17212da458e1a0435d33247-polygon-uniswap-v4',
+  '0xe38addeebce70f38df53afd324797dc076f08ed66b3934a0eb2bfad92e77175e-polygon-uniswap-v4',
+  '0x5bd53afe6aab457355ec1be7ea788d260b0b403aadfa15152354fd1a08deaa11-ethereum-uniswap-v4',
+  '0x6926bd0db2842019cc2ed36c45d58e2d6904ae038ad77a02159db56c7eb29656-ethereum-uniswap-v4',
+  '0x37be6b1ae4b86575a5742c68b2559a647f5f51351cb6d935e0b14f58b58a8570-avax-uniswap-v4',
+  '0x8df5131e0382854f126028fa32e4671edf54af4cfa21a0a978e801171943ad90-polygon-uniswap-v4',
+  '0xe6b8b2f7320759927c826e663ba1a77eaf8156bad1422234d5282c17c5e8f637-base-uniswap-v4',
+  '0x3b1dba2583fd36aab4865b5cdb4453da2b615657a4389a461a2901c24dcc3340-polygon-uniswap-v4',
 ];
 
 const boundaries = {

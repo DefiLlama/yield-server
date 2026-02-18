@@ -24,7 +24,7 @@ const getApy = async () => {
       symbol: 'sfrxeth',
       tvlUsd: tvl * ethPrice,
       apyBase: apyData.sfrxethApr,
-      underlyingTokens: [weth],
+      underlyingTokens: [token],
     },
   ];
 };

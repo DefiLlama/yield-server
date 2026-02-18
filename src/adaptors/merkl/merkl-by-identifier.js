@@ -10,6 +10,7 @@ const CHAIN_IDS = {
   optimism: 10,
   polygon: 137,
   avalanche: 43114,
+  avax: 43114,
   bsc: 56,
   gnosis: 100,
   fantom: 250,
@@ -22,6 +23,7 @@ const CHAIN_IDS = {
   fraxtal: 252,
   manta: 169,
   sei: 1329,
+  monad: 143,
 };
 
 /**

@@ -208,9 +208,9 @@ const MCD_SPOT = {
   },
 };
 
-const DAI = '0x6B175474E89094C44Da98b954EedcdeCB5166eF5';
+const DAI = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
 
-MCD_POT = {
+const MCD_POT = {
   address: '0x197e90f9fad81970ba7976f33cbd77088e5d7cf7',
   abis: {
     Pie: {
@@ -260,7 +260,7 @@ async function dsr() {
     (BigNumber(dsr).div(RAY).toNumber() ** (60 * 60 * 24 * 365) - 1) * 100;
 
   return {
-    pool: MCD_POT.address,
+    pool: '0x83F20F44975D03b1b09e64809B757c47f942BEeA',
     project: 'sky-lending',
     symbol: 'DAI',
     chain: 'ethereum',
@@ -413,50 +413,72 @@ const main = async () => {
 };
 
 const susdsAPY = async () => {
-  const USDS = '0xdC035D45d973E3EC169d2276DDab16f1e407384F';
-  const sUSDS = '0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD';
+  const ETH_SUSDS = '0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD';
+  const ssrAbi = abiSUSDS.find((m) => m.name === 'ssr');
+  const secPerYear = 60 * 60 * 24 * 365;
 
-  const totalSupply =
-    (
-      await sdk.api.abi.call({
-        target: sUSDS,
-        abi: 'erc20:totalSupply',
-      })
-    ).output / 1e18;
-
-  const key = `ethereum:${sUSDS}`;
-  const price = (
-    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).data.coins[key].price;
-
-  // sky savings rate
+  // SSR is global (set by Sky governance on Ethereum), use for all chains
   const RAY = 1e27;
   const ssr =
     (
       await sdk.api.abi.call({
-        target: sUSDS,
-        abi: abiSUSDS.find((m) => m.name === 'ssr'),
+        target: ETH_SUSDS,
+        abi: ssrAbi,
+        chain: 'ethereum',
       })
     ).output / RAY;
 
-  const secPerYear = 60 * 60 * 24 * 365;
-
-  // https://github.com/makerdao/sdai/blob/susds/src/SUsds.sol
   const nChi = Math.pow(ssr, secPerYear) * RAY;
-
   const apy = (nChi / RAY - 1) * 100;
 
-  return [
+  const configs = [
     {
-      pool: sUSDS,
-      symbol: 'SUSDS',
-      project: 'sky-lending',
       chain: 'ethereum',
-      tvlUsd: totalSupply * price,
-      apy,
-      underlyingTokens: [USDS],
+      sUSDS: ETH_SUSDS,
+      USDS: '0xdC035D45d973E3EC169d2276DDab16f1e407384F',
+    },
+    {
+      chain: 'arbitrum',
+      sUSDS: '0xddb46999f8891663a8f2828d25298f70416d7610',
+      USDS: '0x6491c05a82219b8d1479057361ff1654749b876b',
     },
   ];
+
+  const priceKeys = configs
+    .map(({ chain, sUSDS }) => `${chain}:${sUSDS}`)
+    .join(',');
+  const prices = (
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).data.coins;
+
+  const pools = await Promise.all(
+    configs.map(async ({ chain, sUSDS, USDS }) => {
+      const totalSupply =
+        (
+          await sdk.api.abi.call({
+            target: sUSDS,
+            abi: 'erc20:totalSupply',
+            chain,
+          })
+        ).output / 1e18;
+
+      const key = `${chain}:${sUSDS}`;
+      const price = prices[key]?.price;
+      if (!price) return null;
+
+      return {
+        pool: sUSDS,
+        symbol: 'SUSDS',
+        project: 'sky-lending',
+        chain,
+        tvlUsd: totalSupply * price,
+        apy,
+        underlyingTokens: [USDS],
+      };
+    })
+  );
+
+  return pools.filter(Boolean);
 };
 
 const apy = async () => {

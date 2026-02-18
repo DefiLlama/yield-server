@@ -120,7 +120,7 @@ const getApy = async () => {
       symbol: 'uniETH',
       tvlUsd: Number(ethers.utils.formatEther(tvlUsd)),
       apyBase: 100 * Number(ethers.utils.formatEther(apyAsBigNumber30)),
-      underlyingTokens: [weth],
+      underlyingTokens: [UNIETH_CONTRACT_ADDRESS],
     }
   ];
 };

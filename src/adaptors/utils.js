@@ -29,11 +29,18 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
   if (chain && chain.toLowerCase() === 'real') return 're.al';
   if (chain && chain.toLowerCase() === 'plume_mainnet') return 'Plume Mainnet';
+  if (chain && chain.toLowerCase() === 'megaeth') return 'MegaETH';
+  if (
+    chain &&
+    (chain.toLowerCase() === 'hyperevm' ||
+      chain.toLowerCase() === 'hyperliquid')
+  )
+    return 'Hyperliquid L1';
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
 const getFormatter = (symbol) => {
-  if (symbol.includes('USD+')) return /[_:\/]/g;
+  if (symbol.includes('USD+') || symbol.includes('ETH+')) return /[_:\/]/g;
   return /[_+:\/]/g;
 };
 
