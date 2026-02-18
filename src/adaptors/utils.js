@@ -541,3 +541,134 @@ exports.getTotalSupply = async (tokenMintAddress) => {
 
   return supplyInTokens;
 };
+
+// Solana RPC helper for getAccountInfo
+const getSolanaAccountInfo = async (address, rpcUrl = 'https://api.mainnet-beta.solana.com') => {
+  const response = await axios.post(rpcUrl, {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'getAccountInfo',
+    params: [address, { encoding: 'base64' }],
+  }, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  const data = response.data;
+  if (data.error) {
+    throw new Error(`Error fetching account info: ${data.error.message}`);
+  }
+
+  if (!data.result?.value?.data?.[0]) {
+    throw new Error(`Account not found: ${address}`);
+  }
+
+  return Buffer.from(data.result.value.data[0], 'base64');
+};
+
+// SPL Stake Pool data decoder using official library
+const { StakePoolLayout } = require('@solana/spl-stake-pool');
+
+exports.getStakePoolInfo = async (stakePoolAddress, rpcUrl = 'https://api.mainnet-beta.solana.com') => {
+  const stakePoolAccountData = await getSolanaAccountInfo(stakePoolAddress, rpcUrl);
+
+  // Decode using official SPL stake pool layout
+  const stakePool = StakePoolLayout.decode(stakePoolAccountData);
+
+  const totalLamports = BigInt(stakePool.totalLamports.toString());
+  const poolTokenSupply = BigInt(stakePool.poolTokenSupply.toString());
+  const lastEpochTotalLamports = BigInt(stakePool.lastEpochTotalLamports.toString());
+  const lastEpochPoolTokenSupply = BigInt(stakePool.lastEpochPoolTokenSupply.toString());
+  const lastUpdateEpoch = BigInt(stakePool.lastUpdateEpoch.toString());
+
+  // Exchange rate = SOL per pool token (guard against division by zero)
+  const exchangeRate = poolTokenSupply === 0n ? 0 : Number(totalLamports) / Number(poolTokenSupply);
+
+  // Epoch fee as a fraction (numerator/denominator)
+  const epochFee = stakePool.epochFee && Number(stakePool.epochFee.denominator) > 0
+    ? { numerator: Number(stakePool.epochFee.numerator), denominator: Number(stakePool.epochFee.denominator) }
+    : null;
+
+  // Fetch current epoch info for epochs-per-year calculation
+  const epochResponse = await axios.post(rpcUrl, {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'getEpochInfo',
+    params: [{ commitment: 'confirmed' }],
+  }, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+  const currentEpoch = epochResponse.data.result?.epoch || 0;
+
+  // Solana genesis: March 16, 2020 (UTC)
+  const SOLANA_GENESIS_MS = Date.UTC(2020, 2, 16);
+  const yearsSinceGenesis = (Date.now() - SOLANA_GENESIS_MS) / (365.25 * 24 * 60 * 60 * 1000);
+  const epochsPerYear = yearsSinceGenesis > 0 ? currentEpoch / yearsSinceGenesis : 0;
+
+  return {
+    totalLamports: Number(totalLamports),
+    poolTokenSupply: Number(poolTokenSupply),
+    exchangeRate,
+    tvlSol: Number(totalLamports) / 1e9,
+    lastEpochTotalLamports: Number(lastEpochTotalLamports),
+    lastEpochPoolTokenSupply: Number(lastEpochPoolTokenSupply),
+    lastUpdateEpoch: Number(lastUpdateEpoch),
+    epochFee,
+    epochsPerYear,
+  };
+};
+
+// On-chain single-epoch APY for SPL Stake Pool LSTs
+// Uses previous-epoch snapshots stored in the stake pool account
+exports.calcSolanaLstApy = (stakePoolInfo) => {
+  const {
+    totalLamports, poolTokenSupply,
+    lastEpochTotalLamports, lastEpochPoolTokenSupply,
+    epochsPerYear,
+  } = stakePoolInfo;
+
+  // Guard: pool never updated or no previous epoch data
+  if (!lastEpochTotalLamports || !lastEpochPoolTokenSupply || !epochsPerYear) {
+    return null;
+  }
+
+  const prevRate = lastEpochTotalLamports / lastEpochPoolTokenSupply;
+  const currRate = totalLamports / poolTokenSupply;
+
+  // Guard: no growth or invalid rates
+  if (!prevRate || !currRate || currRate <= prevRate) {
+    return null;
+  }
+
+  const epochGrowth = currRate / prevRate;
+  const apy = (Math.pow(epochGrowth, epochsPerYear) - 1) * 100;
+
+  return Number.isFinite(apy) && apy > 0 ? apy : null;
+};
+
+// 7-day smoothed APY from DefiLlama price ratio for Solana LSTs
+exports.calcSolanaLstApyFromPriceRatio = async (currentExchangeRate, lstMint, days = 7) => {
+  const SOL = 'So11111111111111111111111111111111111111112';
+  const lstKey = `solana:${lstMint}`;
+  const solKey = `solana:${SOL}`;
+
+  const timestamp = Math.floor(Date.now() / 1000) - days * 24 * 60 * 60;
+
+  try {
+    const historicalRes = await axios.get(
+      `https://coins.llama.fi/prices/historical/${timestamp}/${lstKey},${solKey}`
+    );
+
+    const lstPrice = historicalRes.data.coins[lstKey]?.price;
+    const solPrice = historicalRes.data.coins[solKey]?.price;
+
+    if (!lstPrice || !solPrice) return null;
+
+    const historicalRatio = lstPrice / solPrice;
+    const ratioChange = currentExchangeRate / historicalRatio;
+    const apy = (Math.pow(ratioChange, 365 / days) - 1) * 100;
+
+    return Number.isFinite(apy) && apy > 0 ? apy : null;
+  } catch {
+    return null;
+  }
+};
