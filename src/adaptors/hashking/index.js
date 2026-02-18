@@ -3,6 +3,7 @@ const axios = require('axios');
 const utils = require('../utils');
 
 const filHubPool = '0xfeB16A48dbBB0E637F68215b19B4DF5b12449676';
+const WFIL = '0x60E1773636CF5E4A227d9AC24F20fEca034ee25A';
 const sdkChain = 'filecoin';
 const url = 'https://www.nodedao.com/';
 const liquidStakingABI = require('./liquidStaking');
@@ -74,7 +75,8 @@ const getApy = async () => {
     tvlUsd: filTvl, // number representing current USD TVL in pool
     apyBase: parseFloat(getFilAPY / 100), // APY from pool fees/supplying in %
     url,
-    underlyingTokens: [filHubPool],
+    underlyingTokens: [WFIL],
+    tokenAddress: filHubPool,
   };
 
   return [filecoinAPY];

@@ -32,6 +32,7 @@ const fetchPoolData = async ({
   symbol,
   project,
   underlyingToken,
+  tokenAddress,
   chainId,
 }) => {
   const query = gql`
@@ -78,6 +79,7 @@ const fetchPoolData = async ({
     tvlUsd,
     apy,
     underlyingTokens: [underlyingToken],
+    tokenAddress,
   };
 };
 
@@ -90,7 +92,8 @@ const apy = async () => {
       token: ETHEREUM_OETH_TOKEN,
       symbol: 'OETH',
       project: 'origin-ether',
-      underlyingToken: ETHEREUM_OETH_TOKEN,
+      underlyingToken: ETHEREUM_WETH_TOKEN,
+      tokenAddress: ETHEREUM_OETH_TOKEN,
     }),
     fetchPoolData({
       chain: 'base',
@@ -99,7 +102,8 @@ const apy = async () => {
       token: BASE_SUPER_OETH_TOKEN,
       symbol: 'superOETHb',
       project: 'origin-ether',
-      underlyingToken: BASE_SUPER_OETH_TOKEN,
+      underlyingToken: BASE_WETH_TOKEN,
+      tokenAddress: BASE_SUPER_OETH_TOKEN,
     }),
     fetchPoolData({
       chain: 'plume_mainnet',
@@ -108,7 +112,8 @@ const apy = async () => {
       token: PLUME_SUPER_OETH_TOKEN,
       symbol: 'superOETHp',
       project: 'origin-ether',
-      underlyingToken: PLUME_SUPER_OETH_TOKEN,
+      underlyingToken: PLUME_WETH_TOKEN,
+      tokenAddress: PLUME_SUPER_OETH_TOKEN,
     }),
   ]);
   return pools.filter((i) => i.status === 'fulfilled').map((i) => i.value);

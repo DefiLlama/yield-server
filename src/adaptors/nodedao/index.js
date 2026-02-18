@@ -100,7 +100,8 @@ const getApy = async () => {
       tvlUsd: nEthData.totalEth * ethPrice,
       apyBase: nEthData.apyBase,
       apyBase7d: nEthData.apyBase7d,
-      underlyingTokens: [nETH],
+      underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+      tokenAddress: nETH,
       url: `https://app.nodedao.com/`,
     },
     {
@@ -111,7 +112,8 @@ const getApy = async () => {
       tvlUsd: rnEthData.totalEth * ethPrice,
       apyBase: rnEthData.apyBase,
       apyBase7d: rnEthData.apyBase7d,
-      underlyingTokens: [rnETH],
+      underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+      tokenAddress: rnETH,
       url: `https://app.nodedao.com/re_stake`,
     },
   ];

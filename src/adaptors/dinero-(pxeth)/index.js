@@ -22,7 +22,8 @@ const getApy = async () => {
       symbol: 'apxeth',
       tvlUsd: tvl * ethPrice,
       apyBase: Number(apyData.apxEth),
-      underlyingTokens: [token], //autocompounding Pirex Ether 
+      underlyingTokens: [weth],
+      tokenAddress: token, //autocompounding Pirex Ether
     },
   ];
 };

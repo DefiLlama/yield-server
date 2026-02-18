@@ -72,7 +72,8 @@ const apy = async () => {
       tvlUsd: tvl * ethPrice,
       apyBase: apyBase7d,
       apyBase7d,
-      underlyingTokens: [token],
+      underlyingTokens: [weth],
+      tokenAddress: token,
     },
   ];
 };

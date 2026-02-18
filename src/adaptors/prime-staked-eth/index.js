@@ -5,6 +5,7 @@ const utils = require('../utils.js');
 
 const PRIME_ETH = '0x6ef3D766Dfe02Dc4bF04aAe9122EB9A0Ded25615';
 const LRT_ORACLE = '0xA755c18CD2376ee238daA5Ce88AcF17Ea74C1c32';
+const WETH = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
 
 const apy = async () => {
   const totalSupply = await sdk.api.abi.call({
@@ -34,7 +35,8 @@ const apy = async () => {
     symbol: 'primeETH',
     apy: data.apy,
     tvlUsd,
-    underlyingTokens: [PRIME_ETH],
+    underlyingTokens: [WETH, '0x0000000000000000000000000000000000000000', '0x856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc3'],
+    tokenAddress: PRIME_ETH,
   };
 
   return [primeStaked];

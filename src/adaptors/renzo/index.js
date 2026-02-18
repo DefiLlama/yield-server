@@ -91,7 +91,8 @@ const apy = async () => {
       symbol: 'ezETH',
       apyBase: apy30d * 100,
       tvlUsd: tvlUsd,
-      underlyingTokens: [EZETH_CONTRACT_ADDRESS],
+      underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+      tokenAddress: EZETH_CONTRACT_ADDRESS,
     },
   ];
 };

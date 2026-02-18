@@ -32,7 +32,8 @@ async function poolsFunction(timestamp, block, chainBlocks) {
       symbol: utils.formatSymbol('sTLOS'),
       tvlUsd: pooledTLOS * telosPrice,
       apyBase: apyPercentage,
-      underlyingTokens: [sTLOS],
+      underlyingTokens: [WTLOS],
+      tokenAddress: sTLOS,
     },
   ];
 }

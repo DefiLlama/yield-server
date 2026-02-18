@@ -3,6 +3,8 @@ const { ethers } = require('ethers');
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 
+const WFIL = '0x60E1773636CF5E4A227d9AC24F20fEca034ee25A';
+
 const fetchApy = async () => {
   const [filPool, icntPool] = await Promise.all([
     getFilecoinPool(),
@@ -38,7 +40,8 @@ const getFilecoinPool = async () => {
     tvlUsd: tvlFIL * filPrice,
     apy: Number(apyData.apy),
     poolMeta: 'GLIF',
-    underlyingTokens: ['0xe764Acf02D8B7c21d2B6A8f0a96C78541e0DC3fd'], // iFIL
+    underlyingTokens: [WFIL],
+    tokenAddress: '0xe764Acf02D8B7c21d2B6A8f0a96C78541e0DC3fd', // iFIL
   };
 };
 

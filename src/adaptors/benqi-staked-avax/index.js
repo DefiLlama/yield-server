@@ -65,7 +65,8 @@ const main = async () => {
         symbol: 'sAVAX',
         tvlUsd,
         apyBase: apy * 100,
-        underlyingTokens: [SAVAX_ADDRESS],
+        underlyingTokens: [AVAX_ADDRESS],
+        tokenAddress: SAVAX_ADDRESS,
         poolMeta: 'Unstaking Cooldown: 15days',
       },
     ];

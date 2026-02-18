@@ -2,6 +2,7 @@ const axios = require('axios');
 const { getTotalSupply } = require('../utils');
 
 const RKSOL_MINT = 'EPCz5LK372vmvCkZH3HgSuGNKACJJwwxsofW6fypCPZL';
+const SOL = 'So11111111111111111111111111111111111111112';
 const priceKey = `solana:${RKSOL_MINT}`;
 
 const apy = async () => {
@@ -29,7 +30,8 @@ const apy = async () => {
       symbol: 'rkSOL',
       tvlUsd: totalSupply * currentPrice,
       apyBase,
-      underlyingTokens: [RKSOL_MINT],
+      underlyingTokens: [SOL],
+      tokenAddress: RKSOL_MINT,
       poolMeta: '2.5% epoch fee',
     },
   ];

@@ -2,6 +2,7 @@ const axios = require('axios');
 const { getTotalSupply } = require('../utils');
 
 const LST_MINT = 'LnTRntk2kTfWEY6cVB8K9649pgJbt6dJLS1Ns1GZCWg';
+const SOL = 'So11111111111111111111111111111111111111112';
 const priceKey = `solana:${LST_MINT}`;
 
 const apy = async () => {
@@ -29,7 +30,8 @@ const apy = async () => {
       symbol: 'lanternSOL',
       tvlUsd: totalSupply * currentPrice,
       apyBase,
-      underlyingTokens: [LST_MINT],
+      underlyingTokens: [SOL],
+      tokenAddress: LST_MINT,
       poolMeta: '5% epoch fee',
     },
   ];

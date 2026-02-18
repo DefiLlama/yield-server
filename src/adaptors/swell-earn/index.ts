@@ -69,7 +69,8 @@ const apy = async () => {
       tvlUsd: tvlUsd,
       apyBase: apr1d,
       apyBase7d: apr7d,
-      underlyingTokens: [earnETH],
+      underlyingTokens: [WETH],
+      tokenAddress: earnETH,
     },
   ];
 };
