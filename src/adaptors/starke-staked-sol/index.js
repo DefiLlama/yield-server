@@ -16,7 +16,10 @@ const apy = async () => {
   const currentPrice = priceRes.data.coins[priceKey]?.price;
   if (!currentPrice) throw new Error('Unable to fetch rkSOL price');
 
-  const apyBase = apyRes.data.apys[RKSOL_MINT] * 100;
+  const apyRaw = apyRes?.data?.apys?.[RKSOL_MINT];
+  if (!Number.isFinite(apyRaw))
+    throw new Error(`Unable to fetch APY for ${RKSOL_MINT}`);
+  const apyBase = apyRaw * 100;
 
   return [
     {
