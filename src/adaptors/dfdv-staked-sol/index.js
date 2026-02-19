@@ -33,6 +33,7 @@ const apy = async () => {
       underlyingTokens: [SOL],
       token: DFDVSOL_MINT,
       poolMeta: '0% rewards fee',
+      url: 'https://app.sanctum.so/stake/dfdvSOL'
     },
   ];
 };
