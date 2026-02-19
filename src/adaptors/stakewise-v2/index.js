@@ -10,7 +10,6 @@ const wad = 1e18;
 
 const osTokenAddress = '0xf1C9acDc66974dFB6dEcB12aA385b9cD01190E38';
 const osTokenCtrlAddress = '0x2A261e60FB14586B474C208b1B7AC6D0f5000306';
-const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const chain = 'ethereum';
 
 const EVENTS = {
@@ -50,7 +49,7 @@ const getApy = async () => {
     (await sdk.api.erc20.totalSupply({ target: osTokenAddress })).output / 1e18;
 
   // fetch ETH price
-  const priceKey = `${chain}:${weth}`;
+  const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
   const ethPrice = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).data.coins[priceKey]?.price;
@@ -63,7 +62,8 @@ const getApy = async () => {
       symbol: 'osETH',
       tvlUsd: tvl * ethPrice,
       apy: Number(apyBN) / 100,
-      underlyingTokens: [osTokenAddress],
+      underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+      token: osTokenAddress,
     },
   ];
 };

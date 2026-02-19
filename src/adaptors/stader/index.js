@@ -7,7 +7,7 @@ const abiPolygon = require('./abiPolygon');
 const token = '0xa35b1b31ce002fbf2058d22f30f95d405200a15b';
 const stakingContract = '0xcf5EA1b38380f6aF39068375516Daf40Ed70D299';
 const nodeOperatorRegistry = '0x4f4bfa0861f62309934a5551e0b2541ee82fdcf1';
-const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+const WMATIC = '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270';
 
 const getApy = async () => {
   let tvl = (await sdk.api.erc20.totalSupply({ target: token })).output / 1e18;
@@ -49,7 +49,7 @@ const getApy = async () => {
     365 *
     100;
 
-  const priceKey = `ethereum:${weth}`;
+  const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
   const ethPrice = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).data.coins[priceKey]?.price;
@@ -102,7 +102,8 @@ const getApy = async () => {
       tvlUsd: tvl * ethPrice,
       apyBase: apyBase7d,
       apyBase7d,
-      underlyingTokens: [token],
+      underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+      token: token,
     },
     {
       pool: stakeManagerContract,
@@ -112,7 +113,8 @@ const getApy = async () => {
       tvlUsd: tvlPolygon * maticxPrice,
       apyBase: apyBase7dPolygon,
       apyBase7d: apyBase7dPolygon,
-      underlyingTokens: [stakeManagerContract],
+      underlyingTokens: [WMATIC],
+      token: stakeManagerContract,
     },
   ];
 };

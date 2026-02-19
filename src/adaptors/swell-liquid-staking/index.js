@@ -43,7 +43,8 @@ const apy = async () => {
       tvlUsd,
       apyBase: apyBase7d,
       apyBase7d,
-      underlyingTokens: [swETH],
+      underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+      token: swETH,
     },
   ];
 };

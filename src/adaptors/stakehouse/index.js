@@ -115,7 +115,8 @@ const topLvl = async (chainString, url) => {
         symbol: utils.formatSymbol(Object.values(aprData)[i].Ticker),
         tvlUsd: tvlUsd,
         apyBase: Number(Object.values(aprData)[i].APR),
-        underlyingTokens: [result.savETHPool],
+        underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+        token: result.savETHPool,
       });
 
       totalTvl += tvlUsd;
@@ -134,7 +135,8 @@ const topLvl = async (chainString, url) => {
     symbol: 'dETH',
     tvlUsd: totalTvl,
     apyBase: totalApy / noOfActiveLSDs,
-    underlyingTokens: ['0x3d1E5Cf16077F349e999d6b21A4f646e83Cd90c5'],
+    underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+    token: '0x3d1E5Cf16077F349e999d6b21A4f646e83Cd90c5',
   });
 
   return apyList;

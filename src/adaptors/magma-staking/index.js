@@ -7,6 +7,7 @@ const DAYS_PER_YEAR = 365;
 
 // Contract addresses
 const MAGMA_ADDRESS = '0x8498312A6B3CbD158bf0c93AbdCF29E6e4F55081';
+const WMON = '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A';
 const STAKING_PRECOMPILE = '0x0000000000000000000000000000000000001000';
 
 // ABI for contract functions
@@ -209,7 +210,8 @@ const apy = async () => {
       symbol: symbol.output || 'gMON',
       tvlUsd: tvlUsd,
       apyBase: apyBase,
-      underlyingTokens: [MAGMA_ADDRESS],
+      underlyingTokens: [WMON],
+      token: MAGMA_ADDRESS,
     },
   ];
 };

@@ -5,7 +5,6 @@ const rethAbi = require('./rethAbi.js');
 
 const rocketMinipoolManager = '0x6293B8abC1F36aFB22406Be5f96D893072A8cF3a';
 const rocketVault = '0x3bDC69C4E5e13E52A65f5583c23EFB9636b469d6';
-const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const token = '0xae78736cd615f374d3085123a210448e74fc6393'; //reth
 
 // mostly copy pasta from tvl adapter
@@ -72,7 +71,7 @@ const getApy = async () => {
 
   const apyData = (await axios.get('https://api.rocketpool.net/api/apr')).data;
 
-  const priceKey = `ethereum:${weth}`;
+  const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
   const ethPrice = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).data.coins[priceKey]?.price;
@@ -85,7 +84,8 @@ const getApy = async () => {
       symbol: 'rETH',
       tvlUsd: ETH_TVL * ethPrice,
       apyBase: Number(apyData.yearlyAPR),
-      underlyingTokens: [token],
+      underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+      token: token,
     },
   ];
 };

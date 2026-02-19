@@ -3,6 +3,7 @@ const { getTotalSupply } = require('../utils');
 const utils = require('../utils');
 
 const DSOL_ADDRESS = 'Dso1bDeDjCQxTrWHqUUi63oBvV7Mdm6WaobLbQ7gnPQ'
+const SOL = 'So11111111111111111111111111111111111111112';
 const priceKey = `solana:${DSOL_ADDRESS}`;
 
 const apy = async () => {
@@ -26,7 +27,8 @@ const apy = async () => {
       symbol: 'dSOL',
       tvlUsd: totalSupply * currentPrice,
       apyBase: apy * 100,
-      underlyingTokens: [DSOL_ADDRESS],
+      underlyingTokens: [SOL],
+      token: DSOL_ADDRESS,
     },
   ];
 };

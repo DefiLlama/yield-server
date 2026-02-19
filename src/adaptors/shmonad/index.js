@@ -7,6 +7,7 @@ const DAYS_PER_YEAR = 365;
 
 // Contract address
 const SHMONAD_CONTRACT = '0x1B68626dCa36c7fE922fD2d55E4f631d962dE19c';
+const WMON = '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A';
 
 // ABI for contract functions
 const SHMONAD_ABI = {
@@ -186,7 +187,8 @@ const apy = async () => {
       symbol: 'shMON',
       tvlUsd: tvlUsd,
       apyBase: apyBase,
-      underlyingTokens: [SHMONAD_CONTRACT],
+      underlyingTokens: [WMON],
+      token: SHMONAD_CONTRACT,
     },
   ];
 };

@@ -3,6 +3,7 @@ const axios = require('axios');
 
 const SECONDS_PER_DAY = 86400;
 const DAYS_PER_YEAR = 365;
+const WMON = '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A';
 
 const vaults = {
   monad: '0xA3227C5969757783154C60bF0bC1944180ed81B9',
@@ -113,7 +114,8 @@ const chainApy = async (chain) => {
       symbol: symbol.output,
       tvlUsd: tvlUsd,
       apyBase: apyBase,
-      underlyingTokens: [vaults[chain]],
+      underlyingTokens: [WMON],
+      token: vaults[chain],
     },
   ];
 };

@@ -5,7 +5,6 @@ const Accountant = require('./Accountant.json');
 
 const earnETH = '0x9Ed15383940CC380fAEF0a75edacE507cC775f22';
 const accountant = '0x411c78BC8c36c3c66784514f28c56209e1DF2755';
-const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 
 const apy = async () => {
   // TVL calculation
@@ -17,7 +16,7 @@ const apy = async () => {
       })
     ).output / 1e18;
 
-  const priceKey = `ethereum:${WETH}`;
+  const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
   const ethPrice = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).data.coins[priceKey].price;
@@ -69,7 +68,8 @@ const apy = async () => {
       tvlUsd: tvlUsd,
       apyBase: apr1d,
       apyBase7d: apr7d,
-      underlyingTokens: [earnETH],
+      underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+      token: earnETH,
     },
   ];
 };

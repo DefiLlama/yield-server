@@ -2,6 +2,7 @@ const axios = require('axios');
 const { getTotalSupply } = require('../utils');
 
 const BNSOL_ADDRESS = 'BNso1VUJnh4zcfpZa6986Ea66P6TCp59hvtNJ8b1X85';
+const SOL = 'So11111111111111111111111111111111111111112';
 const priceKey = `solana:${BNSOL_ADDRESS}`;
 
 const apy = async () => {
@@ -25,7 +26,8 @@ const apy = async () => {
       symbol: 'BNSOL',
       tvlUsd: totalSupply * currentPrice,
       apyBase: apy * 100,
-      underlyingTokens: [BNSOL_ADDRESS],
+      underlyingTokens: [SOL],
+      token: BNSOL_ADDRESS,
     },
   ];
 };
