@@ -4,7 +4,6 @@ const sdk = require('@defillama/sdk');
 const abi = require('./abi.json');
 
 const token = '0x8c1bed5b9a0928467c9b1341da1d7bd5e10b6549';
-const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 
 const apy = async () => {
   const now = Math.floor(Date.now() / 1000);
@@ -50,7 +49,7 @@ const apy = async () => {
   const apyBase1d = (exchangeRateNow - exchangeRate1d) * 365 * 100;
   const apyBase7d = ((exchangeRateNow - exchangeRate7d) / 7) * 365 * 100;
 
-  const priceKey = `ethereum:${weth}`;
+  const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
   const ethPrice = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).data.coins[priceKey]?.price;
@@ -72,7 +71,7 @@ const apy = async () => {
       tvlUsd: tvl * ethPrice,
       apyBase: apyBase7d,
       apyBase7d,
-      underlyingTokens: [weth],
+      underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       tokenAddress: token,
     },
   ];

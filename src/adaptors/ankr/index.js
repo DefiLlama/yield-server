@@ -9,7 +9,7 @@ const serviceToUrl = {
 };
 
 const underlying = {
-  eth: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',       // WETH
+  eth: '0x0000000000000000000000000000000000000000',       // ETH
   ftm: '0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83',       // WFTM
   avax: '0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7',       // WAVAX
   polygon: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',    // WMATIC

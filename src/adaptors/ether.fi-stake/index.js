@@ -3,7 +3,6 @@ const axios = require('axios');
 
 const weETH = '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee';
 const eETH = '0x35fA164735182de50811E8e2E824cFb9B6118ac2'
-const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const eigen = '0xec53bf9167f50cdeb3ae105f56099aaab9061f83';
 const lrt2 = '0x8F08B70456eb22f6109F57b8fafE862ED28E6040';
 
@@ -132,7 +131,7 @@ const apy = async () => {
       apyBase: apr1d,
       apyBase7d: apr7d,
       apyReward: restakingApy,
-      underlyingTokens: [weth],
+      underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       tokenAddress: weETH,
       rewardTokens: [lrt2],
       url: 'https://ether.fi/app/weeth',

@@ -2,7 +2,6 @@ const axios = require('axios');
 const ethers = require('ethers');
 const { differenceInDays, isBefore, parseISO, startOfDay, subDays } = require('date-fns');
 
-const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const UNIETH_CONTRACT_ADDRESS = '0xF1376bceF0f78459C0Ed0ba5ddce976F1ddF51F4';
 
 /**
@@ -120,7 +119,7 @@ const getApy = async () => {
       symbol: 'uniETH',
       tvlUsd: Number(ethers.utils.formatEther(tvlUsd)),
       apyBase: 100 * Number(ethers.utils.formatEther(apyAsBigNumber30)),
-      underlyingTokens: [weth],
+      underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       tokenAddress: UNIETH_CONTRACT_ADDRESS,
     }
   ];
