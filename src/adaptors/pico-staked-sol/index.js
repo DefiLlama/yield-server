@@ -33,6 +33,7 @@ const apy = async () => {
       underlyingTokens: [SOL],
       token: PICOSOL_MINT,
       poolMeta: '2.5% rewards fee',
+      url: 'https://app.sanctum.so/stake/picoSOL',
     },
   ];
 };
@@ -40,5 +41,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy,
-  url: 'https://picosol.io',
+  url: 'https://pico-sol.com/',
 };
