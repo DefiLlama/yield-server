@@ -468,6 +468,158 @@ const getGaugeAllocation = async (gaugeAddress, block = null) => {
 };
 
 /**
+ * Get raw gauge weight (number of votes)
+ */
+const getGaugeWeightRaw = async (gaugeAddress, block = null) => {
+  try {
+    const result = await sdk.api.abi.call({
+      target: ADDRESSES.GAUGE_WEIGHT,
+      abi: 'function getGaugeWeight(address) external view returns (uint256)',
+      params: [gaugeAddress],
+      chain: CHAIN,
+      block,
+    });
+
+    return BigInt(result.output);
+  } catch (e) {
+    return 0n;
+  }
+};
+
+/**
+ * Get MultiRewardsDepot address from gauge contract
+ */
+const getGaugeMultiRewardsDepot = async (gaugeAddress, block = null) => {
+  try {
+    const result = await sdk.api.abi.call({
+      target: gaugeAddress,
+      abi: 'function multiRewardsDepot() external view returns (address)',
+      chain: CHAIN,
+      block,
+    });
+
+    return result.output;
+  } catch (e) {
+    return null;
+  }
+};
+
+/**
+ * Get bribe tokens from AssetAdded events on MultiRewardsDepot
+ */
+const getBribeTokens = async (depotAddress, currentBlock) => {
+  try {
+    const assetAddedTopic = ethers.utils.id('AssetAdded(address,address)');
+
+    const logs = await sdk.api.util.getLogs({
+      target: depotAddress,
+      topic: '',
+      toBlock: currentBlock,
+      fromBlock: 1,
+      keys: [],
+      chain: CHAIN,
+      topics: [assetAddedTopic],
+    });
+
+    if (!logs.output || logs.output.length === 0) {
+      return [];
+    }
+
+    // Extract asset (bribe token) addresses from events
+    return logs.output.map((log) => '0x' + log.topics[2].slice(-40));
+  } catch (e) {
+    return [];
+  }
+};
+
+/**
+ * Get bribe token balances in depot
+ */
+const getBribeBalances = async (
+  depotAddress: string,
+  bribeTokens: string[],
+  block = null
+): Promise<Map<string, { balance: bigint; decimals: number }>> => {
+  const balances = new Map();
+
+  for (const token of bribeTokens) {
+    try {
+      const [balanceResult, decimalsResult] = await Promise.all([
+        sdk.api.abi.call({
+          target: token,
+          abi: 'function balanceOf(address user) external view returns (uint256)',
+          params: [depotAddress],
+          chain: CHAIN,
+          block,
+        }),
+        sdk.api.abi.call({
+          target: token,
+          abi: 'function decimals() external view returns (uint8)',
+          chain: CHAIN,
+          block,
+        }),
+      ]);
+
+      balances.set(token.toLowerCase(), {
+        balance: BigInt(balanceResult.output),
+        decimals: parseInt(decimalsResult.output),
+      });
+    } catch (e) {
+      // Skip tokens that fail
+      continue;
+    }
+  }
+
+  return balances;
+};
+
+/**
+ * Calculate total bribe value in USD
+ */
+const calculateBribeValueUsd = (
+  bribeBalances: Map<string, { balance: bigint; decimals: number }>,
+  prices: Record<string, number>
+): number => {
+  let totalValue = 0;
+
+  for (const [token, { balance, decimals }] of bribeBalances) {
+    const price = prices[token] || 0;
+    if (price > 0 && balance > 0n) {
+      const amount = Number(balance) / 10 ** decimals;
+      totalValue += amount * price;
+    }
+  }
+
+  return totalValue;
+};
+
+/**
+ * Calculate vote APR from bribes
+ */
+const calculateVoteApr = (
+  bribeValueUsd: number,
+  gaugeWeightRaw: bigint,
+  bhermesPrice: number
+): number => {
+  if (bribeValueUsd <= 0 || gaugeWeightRaw === 0n || bhermesPrice <= 0) {
+    return 0;
+  }
+
+  // TVL = bHermes votes value in USD
+  const tvlUsd = (Number(gaugeWeightRaw) / 1e18) * bhermesPrice;
+
+  if (tvlUsd <= 0) return 0;
+
+  // Annualize bribes (bribes are per epoch/week)
+  const annualizedBribes = (bribeValueUsd / WEEK_SECONDS) * YEAR_IN_SECONDS;
+
+  // APR = (annualized rewards / TVL) * 100
+  const apr = (annualizedBribes / tvlUsd) * 100;
+
+  return apr;
+};
+
+/**
  * Get incentive data from QueueRewards events on FlywheelGaugeRewards emitted at epoch start
  */
 const getIncentiveFromEvents = async (
@@ -546,14 +698,18 @@ const positionEfficiency = (feeTier, minWidth) => {
  * @dev extracted from https://github.com/Maia-DAO/sdks/blob/main/sdks/hermes-v2-sdk/src/utils/tvl.ts
  */
 const convertBasedOnEfficiency = (amount, feeTier, minWidth) => {
-  const wideTicks = 6 * minWidth;
+  const wideTicks = 6 * feeTierToTickSpacing(feeTier);
+  const isMinWidthAlreadyWide = minWidth >= wideTicks;
 
   const efficiencyAt0 = positionEfficiency(feeTier, 0);
-  const efficiencyAtWide = positionEfficiency(feeTier, wideTicks);
+  const efficiencyAtWide = positionEfficiency(
+    feeTier,
+    isMinWidthAlreadyWide ? minWidth : wideTicks
+  );
 
   return (amount * efficiencyAt0) / efficiencyAtWide;
 };
- 
+
 /**
  * Get minimumWidth from gauge contract
  */
@@ -738,8 +894,9 @@ const getPools = async (timestamp = null) => {
     }
 
     // Collect all unique tokens for price fetching
-    const tokenSet = new Set();
-    tokenSet.add(ADDRESSES.HERMES); // Need HERMES price for APY calculation
+    const tokenSet = new Set<string>();
+    tokenSet.add(ADDRESSES.HERMES.toLowerCase()); // Need HERMES price for APY calculation
+    tokenSet.add(ADDRESSES.bHERMES.toLowerCase()); // Need bHERMES price for vote APR calculation
     const gaugeData = [];
 
     // Get gauge and pool info, collect tokens
@@ -750,14 +907,30 @@ const getPools = async (timestamp = null) => {
       const poolInfo = await getPoolInfo(gaugeInfo.strategy, currentBlock);
       if (!poolInfo) continue;
 
-      tokenSet.add(poolInfo.token0);
-      tokenSet.add(poolInfo.token1);
+      tokenSet.add(poolInfo.token0.toLowerCase());
+      tokenSet.add(poolInfo.token1.toLowerCase());
+
+      // Get MultiRewardsDepot and bribe tokens for vote APR
+      const depotAddress = await getGaugeMultiRewardsDepot(
+        gaugeAddress,
+        currentBlock
+      );
+      let bribeTokens: string[] = [];
+      if (depotAddress) {
+        bribeTokens = await getBribeTokens(depotAddress, currentBlock);
+        // Add bribe tokens to price fetch set
+        for (const token of bribeTokens) {
+          tokenSet.add(token.toLowerCase());
+        }
+      }
 
       gaugeData.push({
         gaugeAddress,
         gaugeInfo,
         poolInfo,
         poolAddress: gaugeInfo.strategy,
+        depotAddress,
+        bribeTokens,
       });
     }
 
@@ -766,11 +939,18 @@ const getPools = async (timestamp = null) => {
     const prices = (await utils.getPrices(tokens, CHAIN, timestamp))
       .pricesByAddress;
 
-    // Extract HERMES price
+    // Extract HERMES and bHERMES prices
     const hermesPrice = prices[ADDRESSES.HERMES.toLowerCase()] || 0;
+    const bhermesPrice = prices[ADDRESSES.bHERMES.toLowerCase()] || 0;
 
     const pools = [];
-    for (const { gaugeAddress, poolInfo, poolAddress } of gaugeData) {
+    for (const {
+      gaugeAddress,
+      poolInfo,
+      poolAddress,
+      depotAddress,
+      bribeTokens,
+    } of gaugeData) {
       try {
         // Get token metadata
         const [token0Meta, token1Meta] = await Promise.all([
@@ -857,6 +1037,52 @@ const getPools = async (timestamp = null) => {
           )}% gauge weight`,
           url: `https://app.maiadao.io/earn/${gaugeAddress}`,
         });
+
+        // Create vote pool entry for bHermes voting rewards (bribes)
+        if (depotAddress && bribeTokens.length > 0 && bhermesPrice > 0) {
+          // Get bribe token balances
+          const bribeBalances = await getBribeBalances(
+            depotAddress,
+            bribeTokens,
+            currentBlock
+          );
+
+          // Calculate total bribe value in USD
+          const bribeValueUsd = calculateBribeValueUsd(bribeBalances, prices);
+
+          // Get raw gauge weight for TVL calculation
+          const gaugeWeightRaw = await getGaugeWeightRaw(
+            gaugeAddress,
+            currentBlock
+          );
+
+          // Calculate vote APR
+          const voteApr = calculateVoteApr(
+            bribeValueUsd,
+            gaugeWeightRaw,
+            bhermesPrice
+          );
+
+          // TVL for vote pool is bHermes votes value
+          const voteTvlUsd = (Number(gaugeWeightRaw) / 1e18) * bhermesPrice;
+
+          // Only add vote pool if there's meaningful data
+          if (voteTvlUsd > 0) {
+            pools.push({
+              pool: `${gaugeAddress}-vote-${CHAIN}`.toLowerCase(),
+              chain: utils.formatChain(CHAIN),
+              project: PROJECT,
+              symbol: `vote-${poolSymbol}`,
+              tvlUsd: voteTvlUsd,
+              apyBase: 0,
+              apyReward: voteApr > 0 ? voteApr : null,
+              rewardTokens: bribeTokens,
+              underlyingTokens: [ADDRESSES.bHERMES],
+              poolMeta: `${allocation.toFixed(2)}% gauge weight`,
+              url: `https://app.maiadao.io/vote`,
+            });
+          }
+        }
       } catch (e) {
         console.error(`Error processing gauge ${gaugeAddress}:`, e.message);
         continue;
