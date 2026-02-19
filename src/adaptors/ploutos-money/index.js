@@ -188,7 +188,12 @@ async function getApy(market) {
       lastErr = e
     }
   }
-  if (!reserves) throw lastErr
+  if (!reserves) {
+    if (lastErr) throw lastErr
+    throw new Error(
+      `[ploutos] getAllReservesTokens returned null/empty output for market="${market}", chain="${chain}", provider="${provider}"`
+    )
+  }
 
   // coins.llama.fi price prefixes may differ from sdk chain slugs.
   // Prefer `avalanche` for AVAX market with fallback to legacy `avax`.
