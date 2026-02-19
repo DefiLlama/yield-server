@@ -541,14 +541,18 @@ const positionEfficiency = (feeTier, minWidth) => {
  * @dev extracted from https://github.com/Maia-DAO/sdks/blob/main/sdks/hermes-v2-sdk/src/utils/tvl.ts
  */
 const convertBasedOnEfficiency = (amount, feeTier, minWidth) => {
-  const wideTicks = 6 * minWidth;
+  const wideTicks = 6 * feeTierToTickSpacing(feeTier);
+  const isMinWidthAlreadyWide = minWidth >= wideTicks;
 
   const efficiencyAt0 = positionEfficiency(feeTier, 0);
-  const efficiencyAtWide = positionEfficiency(feeTier, wideTicks);
+  const efficiencyAtWide = positionEfficiency(
+    feeTier,
+    isMinWidthAlreadyWide ? minWidth : wideTicks
+  );
 
   return (amount * efficiencyAt0) / efficiencyAtWide;
 };
- 
+
 /**
  * Get minimumWidth from gauge contract
  */
