@@ -54,7 +54,7 @@ function toMarketUrlParam(market) {
 }
 
 function sdkChainCandidates(market) {
-  if (market === 'hyperliquid') return ['hyperevm', 'hyperliquid']
+  if (market === 'hyperliquid') return ['hyperliquid', 'hyperevm']
   return [market]
 }
 
