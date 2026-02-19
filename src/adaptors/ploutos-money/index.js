@@ -53,6 +53,11 @@ function toMarketUrlParam(market) {
   return market
 }
 
+function sdkChainCandidates(market) {
+  if (market === 'hyperliquid') return ['hyperevm', 'hyperliquid']
+  return [market]
+}
+
 // ---------- math ----------
 const RAY = 1e27
 const aprRayToDecimal = (ray) => Number(ray) / RAY
@@ -161,17 +166,32 @@ async function buildMerklIndex() {
 
 // ---------- core adapter ----------
 async function getApy(market) {
-  const chain = market
+  let chain = market
   const chainOut = CHAIN_NAME[market] ?? market
   const provider = protocolDataProviders[market]
   const chainId = CHAIN_ID[market] || 0
   if (!provider) return []
 
-  const reserves = (await sdk.api.abi.call({
-    target: provider,
-    abi: poolAbi.find(m => m.name === 'getAllReservesTokens'),
-    chain,
-  })).output
+  let reserves
+  let lastErr
+  for (const candidate of sdkChainCandidates(market)) {
+    try {
+      reserves = (await sdk.api.abi.call({
+        target: provider,
+        abi: poolAbi.find(m => m.name === 'getAllReservesTokens'),
+        chain: candidate,
+      })).output
+      chain = candidate
+      lastErr = null
+      break
+    } catch (e) {
+      lastErr = e
+    }
+  }
+  if (!reserves) throw lastErr
+
+  // coins.llama.fi uses `hyperliquid` as price key prefix for chainId 999
+  const priceChain = market === 'hyperliquid' ? 'hyperliquid' : chain
 
   const aTokens = (await sdk.api.abi.call({
     target: provider,
@@ -218,7 +238,7 @@ async function getApy(market) {
     calls: reserves.map(p => ({ target: p.tokenAddress })),
   })).output.map(o => o.output)
 
-  const priceKeys = reserves.map(t => `${chain}:${t.tokenAddress}`).join(',')
+  const priceKeys = reserves.map(t => `${priceChain}:${t.tokenAddress}`).join(',')
   const prices = (await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)).data?.coins || {}
 
   // Merkl map
@@ -233,7 +253,7 @@ async function getApy(market) {
     const symUp = String(r.symbol || '').toUpperCase()
     if (symUp === 'GHO' || symUp === 'SGHO' || symUp === 'STKGHO') continue
 
-    const price = prices[`${chain}:${r.tokenAddress}`]?.price
+    const price = prices[`${priceChain}:${r.tokenAddress}`]?.price
     if (!price) continue
 
     const supplyAToken = Number(aSupplies[i]) / 10 ** Number(aDecs[i])
