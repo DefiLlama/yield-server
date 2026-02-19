@@ -47,7 +47,7 @@ const CHAIN_ID = {
 function toMarketUrlParam(market) {
   if (market === 'ethereum') return 'mainnet'
   if (market === 'avax') return 'avalanche'
-  if (market === 'hyperliquid' || market === 'hyperevm') return 'hyper'
+  if (market === 'hyperliquid') return 'hyper'
   if (market === 'xdai') return 'gnosis'
   if (market === 'bsc') return 'bnb'
   return market
