@@ -83,7 +83,6 @@ const getLatestYieldForPool = async (configID) => {
       c."poolMeta",
       c."underlyingTokens",
       c."rewardTokens",
-      c."token",
       y."tvlUsd",
       y.apy,
       y."apyBase",
@@ -256,7 +255,6 @@ const getYieldLendBorrow = async () => {
       c."mintedCoin",
       c."rewardTokens",
       c."underlyingTokens",
-      c."token",
       c."borrowFactor"
   FROM   wanted_cfg AS c
   CROSS  JOIN LATERAL (
