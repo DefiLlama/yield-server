@@ -381,7 +381,7 @@ const main = async (body) => {
       rewardTokens: p.rewardTokens?.filter(Boolean)?.length
         ? p.rewardTokens.filter(Boolean)
         : null,
-      tokenAddress: p.tokenAddress || null,
+      token: p.token || null,
     };
   });
 

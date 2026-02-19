@@ -48,7 +48,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'volumeUsd1d',
       'volumeUsd7d',
       'apyBaseInception',
-      'tokenAddress',
+      'token',
     ];
     const fields = [...Object.keys(baseFields), ...optionalFields, 'tvlUsd'];
     apy.forEach((pool) => {
@@ -115,11 +115,11 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
     });
   });
 
-  describe('Check tokenAddress data type', () => {
+  describe('Check token data type', () => {
     apy.forEach((pool) => {
-      if (pool.tokenAddress) {
-        test(`tokenAddress field of pool with id ${pool.pool} should be a string`, () => {
-          expect(typeof pool.tokenAddress).toBe('string');
+      if (pool.token) {
+        test(`token field of pool with id ${pool.pool} should be a string`, () => {
+          expect(typeof pool.token).toBe('string');
         });
       }
     });

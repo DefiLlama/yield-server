@@ -31,7 +31,6 @@ const getYieldFiltered = async () => {
       c."poolMeta",
       c."underlyingTokens",
       c."rewardTokens",
-      c."tokenAddress",
       y."tvlUsd",
       y.apy,
       y."apyBase",
@@ -84,7 +83,7 @@ const getLatestYieldForPool = async (configID) => {
       c."poolMeta",
       c."underlyingTokens",
       c."rewardTokens",
-      c."tokenAddress",
+      c."token",
       y."tvlUsd",
       y.apy,
       y."apyBase",
@@ -257,7 +256,7 @@ const getYieldLendBorrow = async () => {
       c."mintedCoin",
       c."rewardTokens",
       c."underlyingTokens",
-      c."tokenAddress",
+      c."token",
       c."borrowFactor"
   FROM   wanted_cfg AS c
   CROSS  JOIN LATERAL (

@@ -21,7 +21,6 @@ const poolsResponseColumns = [
   'count',
   'outlier',
   'underlyingTokens',
-  'tokenAddress',
   'il7d',
   'apyBase7d',
   'apyMean30d',
