@@ -190,8 +190,14 @@ async function getApy(market) {
   }
   if (!reserves) throw lastErr
 
-  // coins.llama.fi uses `hyperliquid` as price key prefix for chainId 999
-  const priceChain = market === 'hyperliquid' ? 'hyperliquid' : chain
+  // coins.llama.fi price prefixes may differ from sdk chain slugs.
+  // Prefer `avalanche` for AVAX market with fallback to legacy `avax`.
+  const priceChain = market === 'avax'
+    ? 'avalanche'
+    : market === 'hyperliquid'
+      ? 'hyperliquid'
+      : chain
+  const fallbackPriceChain = market === 'avax' ? 'avax' : null
 
   const aTokens = (await sdk.api.abi.call({
     target: provider,
@@ -238,7 +244,11 @@ async function getApy(market) {
     calls: reserves.map(p => ({ target: p.tokenAddress })),
   })).output.map(o => o.output)
 
-  const priceKeys = reserves.map(t => `${priceChain}:${t.tokenAddress}`).join(',')
+  const priceKeys = reserves
+    .flatMap((t) => fallbackPriceChain
+      ? [`${priceChain}:${t.tokenAddress}`, `${fallbackPriceChain}:${t.tokenAddress}`]
+      : [`${priceChain}:${t.tokenAddress}`])
+    .join(',')
   const prices = (await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)).data?.coins || {}
 
   // Merkl map
@@ -254,6 +264,7 @@ async function getApy(market) {
     if (symUp === 'GHO' || symUp === 'SGHO' || symUp === 'STKGHO') continue
 
     const price = prices[`${priceChain}:${r.tokenAddress}`]?.price
+      || (fallbackPriceChain ? prices[`${fallbackPriceChain}:${r.tokenAddress}`]?.price : undefined)
     if (!price) continue
 
     const supplyAToken = Number(aSupplies[i]) / 10 ** Number(aDecs[i])
