@@ -120,7 +120,7 @@ const getApy = async () => {
       tvlUsd: Number(ethers.utils.formatEther(tvlUsd)),
       apyBase: 100 * Number(ethers.utils.formatEther(apyAsBigNumber30)),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      tokenAddress: UNIETH_CONTRACT_ADDRESS,
+      token: UNIETH_CONTRACT_ADDRESS,
     }
   ];
 };

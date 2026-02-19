@@ -33,7 +33,7 @@ async function poolsFunction(timestamp, block, chainBlocks) {
       tvlUsd: pooledTLOS * telosPrice,
       apyBase: apyPercentage,
       underlyingTokens: [WTLOS],
-      tokenAddress: sTLOS,
+      token: sTLOS,
     },
   ];
 }

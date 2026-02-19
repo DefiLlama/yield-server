@@ -25,7 +25,7 @@ const apy = async () => {
       tvlUsd: tvlUsd,
       apyBase: apyValue * 100,
       underlyingTokens: [SOL],
-      tokenAddress: JUPSOL_ADDRESS,
+      token: JUPSOL_ADDRESS,
     },
   ];
 };

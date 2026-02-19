@@ -79,7 +79,7 @@ const fetchPoolData = async ({
     tvlUsd,
     apy,
     underlyingTokens: [underlyingToken],
-    tokenAddress,
+    token: tokenAddress,
   };
 };
 

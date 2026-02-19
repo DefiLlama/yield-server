@@ -34,7 +34,7 @@ const apy = async () => {
     apy: data.apy,
     tvlUsd,
     underlyingTokens: ['0x0000000000000000000000000000000000000000', '0x856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc3'],
-    tokenAddress: PRIME_ETH,
+    token: PRIME_ETH,
   };
 
   return [primeStaked];

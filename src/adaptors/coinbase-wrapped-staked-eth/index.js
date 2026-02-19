@@ -48,7 +48,7 @@ const getApy = async () => {
       tvlUsd: tvl * ethPrice,
       apyBase: apr,
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      tokenAddress: token,
+      token: token,
     },
   ];
 };

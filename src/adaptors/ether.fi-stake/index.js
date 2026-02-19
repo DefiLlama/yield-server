@@ -132,7 +132,7 @@ const apy = async () => {
       apyBase7d: apr7d,
       apyReward: restakingApy,
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      tokenAddress: weETH,
+      token: weETH,
       rewardTokens: [lrt2],
       url: 'https://ether.fi/app/weeth',
     },
@@ -145,7 +145,7 @@ const apy = async () => {
       apyBase: eBTCApyBase,
       apyBase7d: eBTCApyBase7d,
       underlyingTokens: [LBTC, WBTC],
-      tokenAddress: eBTC,
+      token: eBTC,
       url: 'https://ether.fi/app/ebtc',
     },
   ];

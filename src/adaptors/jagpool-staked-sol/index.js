@@ -31,7 +31,7 @@ const apy = async () => {
       tvlUsd: stakePool.tvlSol * solPrice,
       apyBase,
       underlyingTokens: [SOL],
-      tokenAddress: JAGSOL_MINT,
+      token: JAGSOL_MINT,
       poolMeta: feePct,
     },
   ];

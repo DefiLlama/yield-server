@@ -347,7 +347,7 @@ const apy = async () => {
       apyBase: liquidETHApr1d > 0 ? liquidETHApr1d : liquidETHApr7d,
       apyBase7d: liquidETHApr7d,
       underlyingTokens: [weETH],
-      tokenAddress: liquidETH,
+      token: liquidETH,
       url: 'https://app.ether.fi/liquid/eth',
     },
     {
@@ -359,7 +359,7 @@ const apy = async () => {
       apyBase: liquidUSDApr1d > 0 ? liquidUSDApr1d : liquidUSDApr7d,
       apyBase7d: liquidUSDApr7d,
       underlyingTokens: [USDC],
-      tokenAddress: liquidUSD,
+      token: liquidUSD,
       url: 'https://app.ether.fi/liquid/usd',
     },
     {
@@ -371,7 +371,7 @@ const apy = async () => {
       apyBase: liquidBTCApr1d > 0 ? liquidBTCApr1d : liquidBTCApr7d,
       apyBase7d: liquidBTCApr7d,
       underlyingTokens: [WBTC],
-      tokenAddress: liquidBTC,
+      token: liquidBTC,
       url: 'https://app.ether.fi/liquid/btc',
     },
     {
@@ -383,7 +383,7 @@ const apy = async () => {
       apyBase: liquidHYPEApr1d > 0 ? liquidHYPEApr1d : liquidHYPEApr7d,
       apyBase7d: liquidHYPEApr7d > 0 ? liquidHYPEApr7d : undefined,
       underlyingTokens: [HYPE, beHYPE],
-      tokenAddress: liquidHYPE,
+      token: liquidHYPE,
       url: 'https://app.ether.fi/liquid/hype',
     },
   ];

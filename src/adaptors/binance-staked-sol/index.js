@@ -27,7 +27,7 @@ const apy = async () => {
       tvlUsd: totalSupply * currentPrice,
       apyBase: apy * 100,
       underlyingTokens: [SOL],
-      tokenAddress: BNSOL_ADDRESS,
+      token: BNSOL_ADDRESS,
     },
   ];
 };

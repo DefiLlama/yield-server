@@ -44,7 +44,7 @@ const apy = async () => {
       apyBase: apyBase7d,
       apyBase7d,
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      tokenAddress: swETH,
+      token: swETH,
     },
   ];
 };

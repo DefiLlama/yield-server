@@ -115,7 +115,7 @@ const chainApy = async (chain) => {
       tvlUsd: tvlUsd,
       apyBase: apyBase,
       underlyingTokens: [WMON],
-      tokenAddress: vaults[chain],
+      token: vaults[chain],
     },
   ];
 };

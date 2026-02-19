@@ -22,7 +22,7 @@ const getApy = async () => {
       tvlUsd: tvl * ethPrice,
       apyBase: Number(apyData.eth2.eth_interest.replace('%', '')),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      tokenAddress: token,
+      token: token,
     },
   ];
 };

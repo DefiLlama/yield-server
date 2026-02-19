@@ -69,7 +69,7 @@ const apy = async () => {
       apyBase: apr1d,
       apyBase7d: apr7d,
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      tokenAddress: earnETH,
+      token: earnETH,
     },
   ];
 };

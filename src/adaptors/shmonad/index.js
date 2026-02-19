@@ -188,7 +188,7 @@ const apy = async () => {
       tvlUsd: tvlUsd,
       apyBase: apyBase,
       underlyingTokens: [WMON],
-      tokenAddress: SHMONAD_CONTRACT,
+      token: SHMONAD_CONTRACT,
     },
   ];
 };
