@@ -33,6 +33,7 @@ const apy = async () => {
       underlyingTokens: [SOL],
       token: BONKSOL_MINT,
       poolMeta: '5% rewards fee',
+      url: 'https://app.sanctum.so/stake/bonkSOL',
     },
   ];
 };
@@ -40,5 +41,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy,
-  url: 'https://stake.bonkcoin.com',
+  url: 'https://bonkcoin.com/',
 };
