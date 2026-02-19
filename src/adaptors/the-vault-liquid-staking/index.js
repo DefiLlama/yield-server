@@ -14,6 +14,9 @@ const apy = async () => {
     ),
   ]);
 
+  if (!Number.isFinite(totalSupply))
+    throw new Error(`Unable to fetch total supply for ${VSOL_MINT}`);
+
   const currentPrice = priceRes.data.coins[priceKey]?.price;
   if (!currentPrice) throw new Error('Unable to fetch vSOL price');
 
