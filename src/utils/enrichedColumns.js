@@ -27,6 +27,9 @@ const poolsResponseColumns = [
   'volumeUsd1d',
   'volumeUsd7d',
   'apyBaseInception',
+  'holderCount',
+  'avgPositionUsd',
+  'top10Pct',
 ];
 
 module.exports = poolsResponseColumns;

@@ -10,6 +10,7 @@ const {
   getYieldLendBorrow,
 } = require('../queries/yield');
 const { getStat } = require('../queries/stat');
+const { getLatestHolders } = require('../queries/holder');
 const { welfordUpdate } = require('../utils/welford');
 const poolsResponseColumns = require('../utils/enrichedColumns');
 const { getExcludedAdaptors } = require('../utils/exclude');
@@ -93,6 +94,30 @@ const main = async () => {
     ...p,
     apyMean30d: avgApy30d[p.configID] ?? null,
   }));
+
+  // add holder data
+  console.log('\nadding holder data');
+  try {
+    const holderData = await getLatestHolders();
+    dataEnriched = dataEnriched.map((p) => ({
+      ...p,
+      holderCount: holderData[p.configID]?.holderCount ?? null,
+      avgPositionUsd: holderData[p.configID]?.avgPositionUsd
+        ? +holderData[p.configID].avgPositionUsd.toFixed(0)
+        : null,
+      top10Pct: holderData[p.configID]?.top10Pct
+        ? +holderData[p.configID].top10Pct.toFixed(2)
+        : null,
+    }));
+  } catch (err) {
+    console.log('holder data fetch failed, continuing without it', err.message);
+    dataEnriched = dataEnriched.map((p) => ({
+      ...p,
+      holderCount: null,
+      avgPositionUsd: null,
+      top10Pct: null,
+    }));
+  }
 
   // add info about stablecoin, exposure etc.
   console.log('\nadding additional pool info fields');
