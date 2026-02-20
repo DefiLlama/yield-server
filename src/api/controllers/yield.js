@@ -174,6 +174,7 @@ const getHolderHistory = async (req, res) => {
         timestamp,
         "holderCount",
         "avgPositionUsd",
+        "medianPositionUsd",
         "top10Pct"
     FROM
         holder
