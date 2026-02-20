@@ -148,7 +148,8 @@ const main = async () => {
           const balanceMap = await scanTransfers(chain, tokenAddress, 0, toBlock);
 
           if (Object.keys(balanceMap).length === 0) {
-            console.log(`Skipping new pool ${tokenAddress}: 0 holders`);
+            console.log(`New pool ${tokenAddress}: 0 holders — marking processed`);
+            await upsertHolderState(pool.configID, toBlock, {});
             continue;
           }
 
