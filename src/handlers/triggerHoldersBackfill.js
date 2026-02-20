@@ -57,10 +57,14 @@ const main = async () => {
   // sendMessageBatch supports max 10 per call
   for (let i = 0; i < messages.length; i += 10) {
     const batch = messages.slice(i, i + 10);
-    await sqs
+    const result = await sqs
       .sendMessageBatch({ QueueUrl: queueUrl, Entries: batch })
       .promise();
-    queued += batch.length;
+    if (result.Failed?.length > 0) {
+      console.error(`SQS: ${result.Failed.length}/${batch.length} messages failed`,
+        result.Failed.map(f => f.Id));
+    }
+    queued += result.Successful?.length || 0;
   }
 
   console.log(`Queued ${queued} tokens, skipped ${skipped}`);

@@ -57,10 +57,10 @@ async function scanTransfers(chain, tokenAddress, fromBlock, toBlock, existingMa
     eventAbi: TRANSFER_ABI,
     fromBlock,
     toBlock,
-    onlyArgs: true,
   };
 
   let processedCount = 0;
+  let lastSeenBlock = fromBlock;
   const CHECKPOINT_INTERVAL = 500_000;
 
   await sdk.indexer.getLogs({
@@ -70,12 +70,14 @@ async function scanTransfers(chain, tokenAddress, fromBlock, toBlock, existingMa
     collect: false,
     processor: (logs) => {
       for (const log of logs) {
-        applyTransfer(balances, log.from, log.to, log.value);
+        const args = log.args || log;
+        applyTransfer(balances, args.from, args.to, args.value);
         processedCount++;
+        if (log.blockNumber != null) lastSeenBlock = log.blockNumber;
       }
       // Intermediate checkpoint callback for long-running scans
       if (onCheckpoint && processedCount % CHECKPOINT_INTERVAL < logs.length) {
-        onCheckpoint(balances, processedCount);
+        onCheckpoint(balances, processedCount, lastSeenBlock);
       }
     },
   });

@@ -30,12 +30,15 @@ const main = async () => {
   const pools = await getAllHolderStates();
   console.log(`${pools.length} pools with existing holder state`);
 
-  // 2. Get current block per chain (dedupe chain lookups)
+  // 2. Pre-parse pool fields (avoids double-parsing later)
+  const parsedPools = pools.map((p) => ({ ...p, ...parsePoolField(p.pool) }));
+
+  // Get current block per chain (dedupe chain lookups)
   const chainBlocks = {};
-  const chains = [...new Set(pools.map((p) => parsePoolField(p.pool).chain))];
+  const chains = [...new Set(parsedPools.map((p) => p.chain).filter(Boolean))];
   await Promise.all(
     chains.map(async (chain) => {
-      if (!chain || !SUPPORTED_CHAINS.has(chain)) return;
+      if (!SUPPORTED_CHAINS.has(chain)) return;
       try {
         chainBlocks[chain] = await getLatestBlock(chain);
       } catch (e) {
@@ -51,11 +54,11 @@ const main = async () => {
   let failed = 0;
 
   // Process pools in batches of CONCURRENCY
-  for (let i = 0; i < pools.length; i += CONCURRENCY) {
-    const batch = pools.slice(i, i + CONCURRENCY);
+  for (let i = 0; i < parsedPools.length; i += CONCURRENCY) {
+    const batch = parsedPools.slice(i, i + CONCURRENCY);
     const results = await Promise.allSettled(
       batch.map(async (pool) => {
-        const { tokenAddress, chain } = parsePoolField(pool.pool);
+        const { tokenAddress, chain } = pool;
         if (!chain || !chainBlocks[chain] || !SUPPORTED_CHAINS.has(chain)) {
           return 'skipped';
         }
@@ -117,8 +120,8 @@ const main = async () => {
       }
     }
 
-    if (updated % 100 < CONCURRENCY && updated > 0) {
-      console.log(`Progress: ${updated + skipped + failed}/${pools.length} processed (${updated} updated)`);
+    if (updated > 0 && updated % 100 === 0) {
+      console.log(`Progress: ${updated + skipped + failed}/${parsedPools.length} processed (${updated} updated)`);
     }
   }
 
@@ -186,13 +189,19 @@ const main = async () => {
       }
 
       // sendMessageBatch supports max 10 per call
+      let sqsQueued = 0;
       for (let i = 0; i < messages.length; i += 10) {
         const batch = messages.slice(i, i + 10);
-        await sqs
+        const result = await sqs
           .sendMessageBatch({ QueueUrl: queueUrl, Entries: batch })
           .promise();
+        if (result.Failed?.length > 0) {
+          console.error(`SQS: ${result.Failed.length}/${batch.length} messages failed`,
+            result.Failed.map(f => f.Id));
+        }
+        sqsQueued += result.Successful?.length || 0;
       }
-      console.log(`Queued ${messages.length} new pools to SQS`);
+      console.log(`Queued ${sqsQueued}/${messages.length} new pools to SQS`);
     }
   }
 };

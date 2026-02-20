@@ -248,7 +248,8 @@ resources:
       Properties:
         QueueName: ${self:service}-${self:custom.stage}-HolderQueue
         VisibilityTimeout: 960
-        MessageRetentionPeriod: 32400
+        # 72 hours — backfills across ~15k pools can take days to drain
+        MessageRetentionPeriod: 259200
         RedrivePolicy:
           deadLetterTargetArn:
             Fn::GetAtt:
