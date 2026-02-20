@@ -1,5 +1,7 @@
 const utils = require('../utils');
 
+const chains = ['ethereum', 'arbitrum', 'optimism', 'fraxtal', 'sonic'];
+
 const getLendingPoolData = async () => {
   try {
     const response = await utils.getData('https://api.curve.finance/v1/getLendingVaults/all');
@@ -8,13 +10,15 @@ const getLendingPoolData = async () => {
         pool: vault.address + '-' + vault.blockchainId,
         chain: utils.formatChain(vault.blockchainId),
         project: 'curve-llamalend',
-        symbol: vault.assets.borrowed.symbol + '-' + vault.assets.collateral.symbol,
+        symbol: utils.formatSymbol(vault.assets.borrowed.symbol),
+        poolMeta: vault.assets.collateral.symbol + ' collateral',
         tvlUsd: vault.usdTotal,
-        underlyingTokens: [vault.assets.collateral.address],
+        underlyingTokens: [vault.assets.borrowed.address],
         url: vault.lendingVaultUrls.deposit,
         apyBase: vault.rates.lendApyPcent,
         apyBaseBorrow: vault.rates.borrowApyPcent,
-        totalSupplyUsd: vault.totalSupplied.usdTotal
+        totalSupplyUsd: vault.totalSupplied.usdTotal,
+        totalBorrowUsd: vault.borrowed.usdTotal
       }))
     } else {
       console.error('Failed to fetch lending pool data');
@@ -24,6 +28,27 @@ const getLendingPoolData = async () => {
     console.error('Error fetching lending pool data:', error);
     return [];
   }
+};
+
+const getLtvData = async () => {
+  const ltvByVault = {};
+  await Promise.all(
+    chains.map(async (chain) => {
+      try {
+        const data = await utils.getData(
+          `https://prices.curve.finance/v1/lending/markets/${chain}?page=1&per_page=100`
+        );
+        if (data?.data) {
+          for (const market of data.data) {
+            ltvByVault[market.vault.toLowerCase()] = market.max_ltv / 100;
+          }
+        }
+      } catch (e) {
+        console.error(`Failed to fetch LTV data for ${chain}:`, e);
+      }
+    })
+  );
+  return ltvByVault;
 };
 
 const getGaugesData = async () => {
@@ -51,17 +76,21 @@ const getGaugesData = async () => {
 };
 
 const fullLendingPoolDataWithGauges = async () => {
-  const [lendingPools, gaugesByAddress] = await Promise.all([
+  const [lendingPools, gaugesByAddress, ltvByVault] = await Promise.all([
     getLendingPoolData(),
-    getGaugesData()
+    getGaugesData(),
+    getLtvData()
   ]);
 
   return lendingPools.map(pool => {
-    const gaugeInfo = gaugesByAddress[pool.pool.split('-')[0].toLowerCase()] || {};
+    const vaultAddress = pool.pool.split('-')[0].toLowerCase();
+    const gaugeInfo = gaugesByAddress[vaultAddress] || {};
+    const ltv = ltvByVault[vaultAddress];
     return {
       ...pool,
       apyReward: gaugeInfo.crvApy,
-      rewardTokens: gaugeInfo.rewardTokens
+      rewardTokens: gaugeInfo.rewardTokens,
+      ...(ltv !== undefined && { ltv })
     };
   });
 };
