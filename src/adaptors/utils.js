@@ -30,6 +30,7 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'real') return 're.al';
   if (chain && chain.toLowerCase() === 'plume_mainnet') return 'Plume Mainnet';
   if (chain && chain.toLowerCase() === 'megaeth') return 'MegaETH';
+  if (chain && chain.toLowerCase() === 'ripple') return 'XRPL';
   if (
     chain &&
     (chain.toLowerCase() === 'hyperevm' ||
