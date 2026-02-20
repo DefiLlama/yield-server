@@ -3,7 +3,7 @@ const { pgp, connect } = require('../utils/dbConnection');
 const holderTable = 'holder';
 const stateTable = 'holder_state';
 
-// Insert a daily holder snapshot
+// Insert a daily holder snapshot (with duplicate prevention)
 const insertHolder = async (payload) => {
   const conn = await connect();
 
@@ -14,9 +14,12 @@ const insertHolder = async (payload) => {
     { name: 'avgPositionUsd', def: null },
     { name: 'top10Pct', def: null },
     { name: 'top10Holders', def: null },
+    { name: 'medianPositionUsd', def: null },
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: holderTable });
-  const query = pgp.helpers.insert(payload, cs);
+  const query =
+    pgp.helpers.insert(payload, cs) +
+    ' ON CONFLICT ("configID", timestamp) DO NOTHING';
   await conn.query(query);
 };
 
@@ -53,27 +56,26 @@ const getHolderState = async (configID) => {
   return rows.length > 0 ? rows[0] : null;
 };
 
-// Get all holder states joined with config + latest TVL (for daily incremental)
+// Get all holder states joined with config + latest TVL (for daily incremental).
+// Does NOT fetch balanceMap — caller must lazy-load per pool via getHolderState().
 const getAllHolderStates = async (tvlLB = 10000) => {
   const conn = await connect();
 
   const query = `
+    WITH latest_tvl AS (
+      SELECT DISTINCT ON ("configID") "configID", "tvlUsd"
+      FROM yield
+      ORDER BY "configID", timestamp DESC
+    )
     SELECT
       c.config_id AS "configID",
       c.pool,
       hs."lastBlock",
-      hs."balanceMap",
-      y."tvlUsd"
+      lt."tvlUsd"
     FROM config c
     JOIN holder_state hs ON hs."configID" = c.config_id
-    CROSS JOIN LATERAL (
-      SELECT "tvlUsd"
-      FROM yield
-      WHERE "configID" = c.config_id
-      ORDER BY timestamp DESC
-      LIMIT 1
-    ) y
-    WHERE y."tvlUsd" >= $<tvlLB>
+    JOIN latest_tvl lt ON lt."configID" = c.config_id
+    WHERE lt."tvlUsd" >= $<tvlLB>
   `;
   return conn.query(query, { tvlLB });
 };
@@ -84,7 +86,7 @@ const getLatestHolders = async () => {
 
   const query = `
     SELECT DISTINCT ON ("configID")
-      "configID", "holderCount", "avgPositionUsd", "top10Pct"
+      "configID", "holderCount", "avgPositionUsd", "top10Pct", "medianPositionUsd"
     FROM holder
     ORDER BY "configID", timestamp DESC
   `;
@@ -103,7 +105,7 @@ const getHolderHistory = async (configID) => {
   const conn = await connect();
 
   const query = `
-    SELECT timestamp, "holderCount", "avgPositionUsd", "top10Pct"
+    SELECT timestamp, "holderCount", "avgPositionUsd", "top10Pct", "medianPositionUsd"
     FROM holder
     WHERE "configID" = $<configID>
     ORDER BY timestamp ASC
@@ -116,23 +118,46 @@ const getPoolsWithoutHolderState = async (tvlLB = 10000) => {
   const conn = await connect();
 
   const query = `
+    WITH latest_tvl AS (
+      SELECT DISTINCT ON ("configID") "configID", "tvlUsd"
+      FROM yield
+      ORDER BY "configID", timestamp DESC
+    )
     SELECT
       c.config_id AS "configID",
       c.pool,
-      y."tvlUsd"
+      lt."tvlUsd"
     FROM config c
-    CROSS JOIN LATERAL (
-      SELECT "tvlUsd"
-      FROM yield
-      WHERE "configID" = c.config_id
-      ORDER BY timestamp DESC
-      LIMIT 1
-    ) y
+    JOIN latest_tvl lt ON lt."configID" = c.config_id
     LEFT JOIN holder_state hs ON hs."configID" = c.config_id
-    WHERE y."tvlUsd" >= $<tvlLB>
+    WHERE lt."tvlUsd" >= $<tvlLB>
       AND hs."configID" IS NULL
   `;
   return conn.query(query, { tvlLB });
+};
+
+// Get holderCount from N days ago per pool (for holderChange7d/30d)
+const getHolderOffset = async (days) => {
+  const conn = await connect();
+  const daysMs = days * 60 * 60 * 24 * 1000;
+  const tOffset = Date.now() - daysMs;
+  const h = 12; // 12h window (holder snapshots are daily, not hourly)
+  const tWindow = 60 * 60 * h * 1000;
+  const tsLB = new Date(tOffset - tWindow);
+  const tsUB = new Date(tOffset + tWindow);
+
+  const query = `
+    SELECT DISTINCT ON ("configID") "configID", "holderCount"
+    FROM holder
+    WHERE timestamp >= $<tsLB> AND timestamp <= $<tsUB>
+    ORDER BY "configID", timestamp DESC
+  `;
+  const rows = await conn.query(query, { tsLB, tsUB });
+  const result = {};
+  for (const row of rows) {
+    result[row.configID] = row.holderCount;
+  }
+  return result;
 };
 
 module.exports = {
@@ -142,5 +167,6 @@ module.exports = {
   getAllHolderStates,
   getLatestHolders,
   getHolderHistory,
+  getHolderOffset,
   getPoolsWithoutHolderState,
 };

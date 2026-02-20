@@ -196,13 +196,14 @@ functions:
     description: Processes holder data for individual pool tokens
     timeout: 900
     memorySize: 2048
+    reservedConcurrency: 10
     events:
       - sqs:
           arn:
             Fn::GetAtt:
               - HolderQueue
               - Arn
-          batchSize: 4
+          batchSize: 1
           functionResponseType: ReportBatchItemFailures
     environment:
       LLAMA_INDEXER_V2_ENDPOINT: ${env:LLAMA_INDEXER_V2_ENDPOINT}
@@ -216,6 +217,7 @@ functions:
     events:
       - schedule: cron(0 6 * * ? *)
     environment:
+      HOLDER_QUEUE_URL: { Ref: HolderQueue }
       LLAMA_INDEXER_V2_ENDPOINT: ${env:LLAMA_INDEXER_V2_ENDPOINT}
       LLAMA_INDEXER_V2_API_KEY: ${env:LLAMA_INDEXER_V2_API_KEY}
 

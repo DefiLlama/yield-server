@@ -1,16 +1,11 @@
 const SQS = require('aws-sdk/clients/sqs');
 
 const { getPoolsWithoutHolderState } = require('../queries/holder');
-const { parsePoolField } = require('../utils/holderScanner');
-
-// Chains supported by the DefiLlama SDK indexer
-const SUPPORTED_CHAINS = new Set([
-  'ethereum', 'optimism', 'bsc', 'polygon', 'arbitrum', 'base',
-  'avalanche', 'fantom', 'gnosis', 'linea', 'blast', 'scroll',
-  'sonic', 'hyperliquid', 'monad', 'megaeth', 'berachain', 'unichain',
-  'celo', 'moonbeam', 'moonriver', 'aurora', 'harmony',
-  'polygon_zkevm',
-]);
+const {
+  parsePoolField,
+  isValidEvmAddress,
+  SUPPORTED_CHAINS,
+} = require('../utils/holderScanner');
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -30,6 +25,9 @@ const main = async () => {
   let queued = 0;
   let skipped = 0;
 
+  // Build messages for batch sending
+  const messages = [];
+
   for (const pool of pools) {
     const { tokenAddress, chain } = parsePoolField(pool.pool);
 
@@ -39,25 +37,30 @@ const main = async () => {
       continue;
     }
 
-    // Skip non-ERC20 pool identifiers (e.g., Solana base58 addresses)
-    if (!tokenAddress.startsWith('0x')) {
+    // Skip non-ERC20 pool identifiers (e.g., Solana base58 addresses, LP-style multi-addr)
+    if (!isValidEvmAddress(tokenAddress)) {
       skipped++;
       continue;
     }
 
-    await sqs
-      .sendMessage({
-        QueueUrl: queueUrl,
-        MessageBody: JSON.stringify({
-          configID: pool.configID,
-          chain,
-          tokenAddress,
-          tvlUsd: pool.tvlUsd,
-        }),
-      })
-      .promise();
+    messages.push({
+      Id: pool.configID.replace(/-/g, ''),
+      MessageBody: JSON.stringify({
+        configID: pool.configID,
+        chain,
+        tokenAddress,
+        tvlUsd: pool.tvlUsd,
+      }),
+    });
+  }
 
-    queued++;
+  // sendMessageBatch supports max 10 per call
+  for (let i = 0; i < messages.length; i += 10) {
+    const batch = messages.slice(i, i + 10);
+    await sqs
+      .sendMessageBatch({ QueueUrl: queueUrl, Entries: batch })
+      .promise();
+    queued += batch.length;
   }
 
   console.log(`Queued ${queued} tokens, skipped ${skipped}`);
