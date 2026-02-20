@@ -6,5 +6,6 @@ router.route('/chart/:pool').get(yieldControllers.getYieldHistory);
 router.route('/chartHourly/:pool').get(yieldControllers.getYieldHistoryHourly);
 router.route('/chartLendBorrow/:pool').get(yieldControllers.getYieldLendBorrowHistory);
 router.route('/volume/:pool').get(yieldControllers.getVolumeHistory);
+router.route('/holderHistory/:pool').get(yieldControllers.getHolderHistory);
 
 module.exports = router;
