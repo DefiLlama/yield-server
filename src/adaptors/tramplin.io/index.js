@@ -55,7 +55,7 @@ const apy = async () => {
     {
       pool: VOTE_ACCOUNT,
       chain: 'Solana',
-      project: 'tramplin',
+      project: 'tramplin.io',
       symbol: 'SOL',
       tvlUsd: stakedSol * solPrice,
       apyBase,
