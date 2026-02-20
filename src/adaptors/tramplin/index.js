@@ -60,7 +60,7 @@ const apy = async () => {
       tvlUsd: stakedSol * solPrice,
       apyBase,
       underlyingTokens: [SOL],
-      poolMeta: 'Prize pool staking - 70% of rewards distributed via lottery',
+      poolMeta: '70% of rewards via lottery',
     },
   ];
 };
