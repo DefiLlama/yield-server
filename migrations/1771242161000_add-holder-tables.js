@@ -19,11 +19,9 @@ exports.up = (pgm) => {
     avgPositionUsd: 'numeric',
     top10Pct: 'numeric',
     top10Holders: 'jsonb',
+    medianPositionUsd: 'numeric',
   });
-  pgm.createIndex('holder', [
-    'configID',
-    { name: 'timestamp', sort: 'DESC' },
-  ]);
+  pgm.createIndex('holder', ['configID', 'timestamp'], { unique: true });
 
   // Holder processing state — tracks last-processed block + balance map per pool
   pgm.createTable('holder_state', {
