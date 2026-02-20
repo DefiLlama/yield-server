@@ -84,10 +84,11 @@ async function processToken({ configID, chain, tokenAddress, tvlUsd }) {
     }
   );
 
-  // Skip pools with 0 holders (likely non-ERC20 / incompatible pool type)
+  // Mark pools with 0 holders as processed so they aren't re-queued
   const holderCount = Object.keys(balanceMap).length;
   if (holderCount === 0) {
-    console.log(`Skipping ${tokenAddress}: 0 holders detected (likely non-ERC20 pool)`);
+    console.log(`${tokenAddress}: 0 holders detected (likely non-ERC20 pool) — marking processed`);
+    await upsertHolderState(configID, toBlock, {});
     return;
   }
 
