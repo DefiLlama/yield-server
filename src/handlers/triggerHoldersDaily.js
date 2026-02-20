@@ -101,7 +101,7 @@ const main = async () => {
           holderCount: metrics.holderCount,
           avgPositionUsd: metrics.avgPositionUsd,
           top10Pct: metrics.top10Pct,
-          top10Holders: JSON.stringify(metrics.top10Holders),
+          top10Holders: metrics.top10Holders,
           medianPositionUsd: metrics.medianPositionUsd,
         });
 
@@ -160,7 +160,7 @@ const main = async () => {
             holderCount: metrics.holderCount,
             avgPositionUsd: metrics.avgPositionUsd,
             top10Pct: metrics.top10Pct,
-            top10Holders: JSON.stringify(metrics.top10Holders),
+            top10Holders: metrics.top10Holders,
             medianPositionUsd: metrics.medianPositionUsd,
           });
           await upsertHolderState(pool.configID, toBlock, balanceMap);
