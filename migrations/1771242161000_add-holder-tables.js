@@ -22,6 +22,7 @@ exports.up = (pgm) => {
     medianPositionUsd: 'numeric',
   });
   pgm.createIndex('holder', ['configID', 'timestamp'], { unique: true });
+  pgm.createIndex('holder', ['timestamp', 'configID'], { name: 'idx_holder_timestamp_configid' });
 
   // Holder processing state — tracks last-processed block + balance map per pool
   pgm.createTable('holder_state', {

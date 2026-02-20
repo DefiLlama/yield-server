@@ -141,7 +141,7 @@ const getHolderOffset = async (days) => {
   const conn = await connect();
   const daysMs = days * 60 * 60 * 24 * 1000;
   const tOffset = Date.now() - daysMs;
-  const h = 12; // 12h window (holder snapshots are daily, not hourly)
+  const h = 6; // 6h window (holder snapshots are daily, ~06:00 UTC)
   const tWindow = 60 * 60 * h * 1000;
   const tsLB = new Date(tOffset - tWindow);
   const tsUB = new Date(tOffset + tWindow);

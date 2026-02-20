@@ -2,6 +2,7 @@ const validator = require('validator');
 
 const AppError = require('../../utils/appError');
 const { conn } = require('../db');
+const { getHolderHistory: getHolderHistoryQuery } = require('../../queries/holder');
 
 const getYieldHistory = async (req, res) => {
   const configID = req.params.pool;
@@ -169,26 +170,7 @@ const getHolderHistory = async (req, res) => {
   if (!validator.isUUID(configID))
     return res.status(400).json('invalid configID!');
 
-  const query = `
-    SELECT
-        timestamp,
-        "holderCount",
-        "avgPositionUsd",
-        "medianPositionUsd",
-        "top10Pct"
-    FROM
-        holder
-    WHERE
-        "configID" = $<configIDValue>
-    ORDER BY
-        timestamp ASC
-  `;
-
-  const response = await conn.query(query, { configIDValue: configID });
-
-  if (!response) {
-    return new AppError(`Couldn't get data`, 404);
-  }
+  const response = await getHolderHistoryQuery(configID);
 
   res.status(200).json({
     status: 'success',
