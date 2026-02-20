@@ -26,7 +26,7 @@ const CHAIN_TYPE_AND_NAMES: ByChainTypeAndId<string> = {
     42_161: 'Arbitrum',
     9_745: 'Plasma',
     5_464: 'Saga',
-    56: 'BSC',
+    56: 'Bsc',
     747_474: 'Katana',
   },
   aptos: {
@@ -258,7 +258,10 @@ async function processCampaign(
         opportunity?.incentives || campaign.target.incentives || [];
 
       return {
-        symbol: (opportunity?.name || campaign.target.name).replace(/^Katana\s+/i, ''),
+        symbol: (opportunity?.name || campaign.target.name).replace(
+          /^Katana\s+/i,
+          ''
+        ),
         underlyingTokens: getTurtleUnderlyingTokens(opportunity),
         url: opportunity?.url,
         ...getTurtleApyFields(incentives, campaign.apr),
