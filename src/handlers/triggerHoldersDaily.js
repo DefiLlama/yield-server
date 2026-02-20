@@ -1,15 +1,22 @@
+const SQS = require('aws-sdk/clients/sqs');
+
 const {
   scanTransfers,
   deriveMetrics,
   getLatestBlock,
   parsePoolField,
+  isValidEvmAddress,
+  SUPPORTED_CHAINS,
 } = require('../utils/holderScanner');
 const {
   getAllHolderStates,
   getPoolsWithoutHolderState,
+  getHolderState,
   insertHolder,
   upsertHolderState,
 } = require('../queries/holder');
+
+const CONCURRENCY = 5;
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -19,7 +26,7 @@ module.exports.handler = async (event, context) => {
 const main = async () => {
   console.log('START DAILY HOLDER UPDATE');
 
-  // 1. Get all pools that already have holder state
+  // 1. Get all pools that already have holder state (without balanceMaps)
   const pools = await getAllHolderStates();
   console.log(`${pools.length} pools with existing holder state`);
 
@@ -28,7 +35,7 @@ const main = async () => {
   const chains = [...new Set(pools.map((p) => parsePoolField(p.pool).chain))];
   await Promise.all(
     chains.map(async (chain) => {
-      if (!chain) return;
+      if (!chain || !SUPPORTED_CHAINS.has(chain)) return;
       try {
         chainBlocks[chain] = await getLatestBlock(chain);
       } catch (e) {
@@ -37,58 +44,81 @@ const main = async () => {
     })
   );
 
-  // 3. Incremental update for each pool
+  // 3. Incremental update with concurrency batching
   const now = new Date().toISOString();
   let updated = 0;
   let skipped = 0;
   let failed = 0;
 
-  for (const pool of pools) {
-    try {
-      const { tokenAddress, chain } = parsePoolField(pool.pool);
-      if (!chain || !chainBlocks[chain]) {
-        skipped++;
-        continue;
+  // Process pools in batches of CONCURRENCY
+  for (let i = 0; i < pools.length; i += CONCURRENCY) {
+    const batch = pools.slice(i, i + CONCURRENCY);
+    const results = await Promise.allSettled(
+      batch.map(async (pool) => {
+        const { tokenAddress, chain } = parsePoolField(pool.pool);
+        if (!chain || !chainBlocks[chain] || !SUPPORTED_CHAINS.has(chain)) {
+          return 'skipped';
+        }
+        if (!isValidEvmAddress(tokenAddress)) {
+          return 'skipped';
+        }
+
+        const fromBlock = Number(pool.lastBlock) + 1;
+        const toBlock = chainBlocks[chain];
+
+        if (fromBlock >= toBlock) {
+          return 'skipped';
+        }
+
+        // Lazy-load this pool's balanceMap individually to avoid OOM
+        const state = await getHolderState(pool.configID);
+        const existingMap = state?.balanceMap || {};
+
+        // Scan only new blocks
+        const updatedMap = await scanTransfers(
+          chain,
+          tokenAddress,
+          fromBlock,
+          toBlock,
+          existingMap
+        );
+
+        // Skip pools with 0 holders (likely non-ERC20 / incompatible pool type)
+        if (Object.keys(updatedMap).length === 0) {
+          console.log(`Skipping ${tokenAddress}: 0 holders (likely non-ERC20 pool)`);
+          return 'skipped';
+        }
+
+        const metrics = deriveMetrics(updatedMap, pool.tvlUsd);
+
+        // Store snapshot + updated state
+        await insertHolder({
+          configID: pool.configID,
+          timestamp: now,
+          holderCount: metrics.holderCount,
+          avgPositionUsd: metrics.avgPositionUsd,
+          top10Pct: metrics.top10Pct,
+          top10Holders: JSON.stringify(metrics.top10Holders),
+          medianPositionUsd: metrics.medianPositionUsd,
+        });
+
+        await upsertHolderState(pool.configID, toBlock, updatedMap);
+        return 'updated';
+      })
+    );
+
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        if (result.value === 'updated') updated++;
+        else skipped++;
+      } else {
+        console.log(`Failed: ${result.reason?.message}`);
+        failed++;
       }
+    }
 
-      const fromBlock = Number(pool.lastBlock) + 1;
-      const toBlock = chainBlocks[chain];
-
-      if (fromBlock >= toBlock) {
-        skipped++;
-        continue;
-      }
-
-      // Scan only new blocks
-      const updatedMap = await scanTransfers(
-        chain,
-        tokenAddress,
-        fromBlock,
-        toBlock,
-        pool.balanceMap
-      );
-
-      const metrics = deriveMetrics(updatedMap, pool.tvlUsd);
-
-      // Store snapshot + updated state
-      await insertHolder({
-        configID: pool.configID,
-        timestamp: now,
-        holderCount: metrics.holderCount,
-        avgPositionUsd: metrics.avgPositionUsd,
-        top10Pct: metrics.top10Pct,
-        top10Holders: JSON.stringify(metrics.top10Holders),
-      });
-
-      await upsertHolderState(pool.configID, toBlock, updatedMap);
-      updated++;
-
-      if (updated % 100 === 0) {
-        console.log(`Progress: ${updated}/${pools.length} updated`);
-      }
-    } catch (e) {
-      console.log(`Failed ${pool.configID}: ${e.message}`);
-      failed++;
+    if (updated % 100 < CONCURRENCY && updated > 0) {
+      console.log(`Progress: ${updated + skipped + failed}/${pools.length} processed (${updated} updated)`);
     }
   }
 
@@ -96,22 +126,30 @@ const main = async () => {
     `Daily update complete: ${updated} updated, ${skipped} skipped, ${failed} failed`
   );
 
-  // 4. Process NEW pools that appeared since last backfill
+  // 4. Process NEW pools — always queue to SQS
   const newPools = await getPoolsWithoutHolderState();
   if (newPools.length > 0) {
-    console.log(`${newPools.length} new pools found — queueing for backfill`);
-    // New pools get full-scanned inline if count is small, or logged for manual backfill
-    if (newPools.length <= 50) {
-      for (const pool of newPools) {
+    console.log(`${newPools.length} new pools found`);
+
+    const queueUrl = process.env.HOLDER_QUEUE_URL;
+    if (!queueUrl) {
+      console.log('HOLDER_QUEUE_URL not set — processing new pools inline (max 5)');
+      // Fallback: process a small number inline
+      for (const pool of newPools.slice(0, 5)) {
         try {
           const { tokenAddress, chain } = parsePoolField(pool.pool);
-          if (!chain || !chainBlocks[chain] || !tokenAddress.startsWith('0x'))
-            continue;
+          if (!chain || !chainBlocks[chain] || !SUPPORTED_CHAINS.has(chain)) continue;
+          if (!isValidEvmAddress(tokenAddress)) continue;
 
           const toBlock = chainBlocks[chain];
           const balanceMap = await scanTransfers(chain, tokenAddress, 0, toBlock);
-          const metrics = deriveMetrics(balanceMap, pool.tvlUsd);
 
+          if (Object.keys(balanceMap).length === 0) {
+            console.log(`Skipping new pool ${tokenAddress}: 0 holders`);
+            continue;
+          }
+
+          const metrics = deriveMetrics(balanceMap, pool.tvlUsd);
           await insertHolder({
             configID: pool.configID,
             timestamp: now,
@@ -119,6 +157,7 @@ const main = async () => {
             avgPositionUsd: metrics.avgPositionUsd,
             top10Pct: metrics.top10Pct,
             top10Holders: JSON.stringify(metrics.top10Holders),
+            medianPositionUsd: metrics.medianPositionUsd,
           });
           await upsertHolderState(pool.configID, toBlock, balanceMap);
         } catch (e) {
@@ -126,9 +165,34 @@ const main = async () => {
         }
       }
     } else {
-      console.log(
-        `Too many new pools (${newPools.length}), run triggerHoldersBackfill manually`
-      );
+      // Queue all new pools to SQS via sendMessageBatch
+      const sqs = new SQS();
+      const messages = [];
+
+      for (const pool of newPools) {
+        const { tokenAddress, chain } = parsePoolField(pool.pool);
+        if (!chain || !SUPPORTED_CHAINS.has(chain)) continue;
+        if (!isValidEvmAddress(tokenAddress)) continue;
+
+        messages.push({
+          Id: pool.configID.replace(/-/g, ''),
+          MessageBody: JSON.stringify({
+            configID: pool.configID,
+            chain,
+            tokenAddress,
+            tvlUsd: pool.tvlUsd,
+          }),
+        });
+      }
+
+      // sendMessageBatch supports max 10 per call
+      for (let i = 0; i < messages.length; i += 10) {
+        const batch = messages.slice(i, i + 10);
+        await sqs
+          .sendMessageBatch({ QueueUrl: queueUrl, Entries: batch })
+          .promise();
+      }
+      console.log(`Queued ${messages.length} new pools to SQS`);
     }
   }
 };
