@@ -2,6 +2,7 @@ const validator = require('validator');
 
 const AppError = require('../../utils/appError');
 const { conn } = require('../db');
+const { getHolderHistory: getHolderHistoryQuery } = require('../../queries/holder');
 
 const getYieldHistory = async (req, res) => {
   const configID = req.params.pool;
@@ -164,9 +165,23 @@ const getVolumeHistory = async (req, res) => {
   });
 };
 
+const getHolderHistory = async (req, res) => {
+  const configID = req.params.pool;
+  if (!validator.isUUID(configID))
+    return res.status(400).json('invalid configID!');
+
+  const response = await getHolderHistoryQuery(configID);
+
+  res.status(200).json({
+    status: 'success',
+    data: response,
+  });
+};
+
 module.exports = {
   getYieldHistory,
   getYieldHistoryHourly,
   getYieldLendBorrowHistory,
   getVolumeHistory,
+  getHolderHistory,
 };
