@@ -153,6 +153,13 @@ const HubPools = {
         tokenAddress: '0x14A84F1a61cCd7D1BE596A6cc11FE33A36Bc1646',
         spokeAddress: '0x0aeE2B84bd3E280CFcc9325917bFA0Bb20F3cdC6',
       },
+      {
+        // wstLINK
+        id: 60,
+        underlyingSymbol: 'wstLINK',
+        poolAddress: '0x42Bb92684e72707030F59C48FBe5A222A0d8b387',
+        tokenAddress: '0x601486C8Fdc3aD22745b01c920037d6c036A38B9',
+      },
     ],
   },
   ethereum: {
@@ -163,6 +170,7 @@ const HubPools = {
       // excluding SHIB because bridged
       // excluding YBTCB because bridged
       // excluding tETH because bridged
+      // excluding wstLINK because bridged
       {
         // ETH_eth
         id: 4,
@@ -347,6 +355,7 @@ const HubPools = {
       // excluding USDC because bridged
       // excluding SolvBTC because bridged
       // excluding SHIB because bridged
+      // excluding wstLINK because bridged
       {
         // ETH_arb
         id: 13,
@@ -417,6 +426,7 @@ const HubPools = {
     name: 'Polygon',
     pools: [
       // excluding USDC cause bridged
+      // excluding wstLINK because bridged
       {
         // POL
         id: 19,
@@ -528,6 +538,75 @@ const HubPools = {
       },
     ],
   },
+  monad: {
+    name: 'Monad',
+    pools: [
+      {
+        // MON
+        id: 61,
+        underlyingSymbol: 'MON',
+        poolAddress: '0x10a4481F79aAC209aC6c2959B785F2e303912Dc5',
+        tokenAddress: '0x0000000000000000000000000000000000000000',
+        spokeAddress: '0x531490B7674ef239C9FEC39d2Cf3Cc10645d14d4',
+      },
+      {
+        // wBTC_mon
+        id: 62,
+        underlyingSymbol: 'wBTC',
+        poolAddress: '0xdc887aCFe154BF0048Ae15Cda3693Ab2C237431A',
+        tokenAddress: '0x0555E30da8f98308EdB960aa94C0Db47230d2B9c',
+        spokeAddress: '0xF4c542518320F09943C35Db6773b2f9FeB2F847e',
+      },
+      {
+        // wETH_mon
+        id: 63,
+        underlyingSymbol: 'wETH',
+        poolAddress: '0xD7Ff49751DAF42Bf7AFC4fF5C958d4bea48358D3',
+        tokenAddress: '0xEE8c0E9f1BFFb4Eb878d8f15f368A02a35481242',
+        spokeAddress: '0xe3B0e4Db870aA58A24f87d895c62D3dc5CD05883',
+      },
+      {
+        // sMON
+        id: 64,
+        underlyingSymbol: 'sMON',
+        poolAddress: '0x5562d84f9891288fc72aaB1d857797c7275Fcedb',
+        tokenAddress: '0xA3227C5969757783154C60bF0bC1944180ed81B9',
+        spokeAddress: '0xb39c03297E87032fF69f4D42A6698e4c4A934449',
+      },
+      {
+        // aUSD_mon
+        id: 66,
+        underlyingSymbol: 'aUSD',
+        poolAddress: '0x4fb4c3A33cBe855C5d87078c1BbBe5f371417faC',
+        tokenAddress: '0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a',
+        spokeAddress: '0xC30107a8e782E98Fe890f0375afa4185aeEa3356',
+      },
+      {
+        // USDT0_mon
+        id: 67,
+        underlyingSymbol: 'USD₮0',
+        poolAddress: '0xd9D50D4F73f61A306b47e5BdC825E98cd11139dc',
+        tokenAddress: '0xe7cd86e13AC4309349F30B3435a9d337750fC82D',
+        spokeAddress: '0xB1e2939b501B73F4cFEf6a9FB0aa89a75F1774EE',
+      },
+      {
+        // gMON
+        id: 68,
+        underlyingSymbol: 'gMON',
+        poolAddress: '0x0b4e69C4890a88acA90E7e71dB76619C3AaCD79D',
+        tokenAddress: '0x8498312A6B3CbD158bf0c93AbdCF29E6e4F55081',
+        spokeAddress: '0x9105CEEbaf43EF6B80dF1b66BEfFd5F98A036c36',
+      },
+      {
+        // shMON
+        id: 69,
+        underlyingSymbol: 'shMON',
+        poolAddress: '0x398715A6011391B2B7fD1fF66BB26c126E5d4aAC',
+        tokenAddress: '0x1B68626dCa36c7fE922fD2d55E4f631d962dE19c',
+        spokeAddress: '0x1A40208E9506E08a6f62DbCCf8de7387743179E9',
+      },
+    ],
+  },
 };
 
 const RewardsTokenV2 = {
@@ -566,6 +645,12 @@ const RewardsTokenV2 = {
     chain: 'sei',
     tokenAddress: '0x0000000000000000000000000000000000000000',
     spokeAddress: '0x531490B7674ef239C9FEC39d2Cf3Cc10645d14d4',
+  },
+  // FOLKS (Monad)
+  7: {
+    chain: 'monad',
+    tokenAddress: '0xFF7F8F301F7A706E3CfD3D2275f5dc0b9EE8009B',
+    spokeAddress: '0x7218Bd1050D41A9ECfc517abdd294FB8116aEe81',
   },
 };
 

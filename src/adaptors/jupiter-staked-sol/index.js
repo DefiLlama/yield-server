@@ -2,6 +2,7 @@ const axios = require('axios');
 const { getTotalSupply } = require('../utils');
 
 const JUPSOL_ADDRESS = 'jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v';
+const SOL = 'So11111111111111111111111111111111111111112';
 const priceKey = `solana:${JUPSOL_ADDRESS}`;
 
 const apy = async () => {
@@ -23,7 +24,8 @@ const apy = async () => {
       symbol: 'JUPSOL',
       tvlUsd: tvlUsd,
       apyBase: apyValue * 100,
-      underlyingTokens: [JUPSOL_ADDRESS],
+      underlyingTokens: [SOL],
+      token: JUPSOL_ADDRESS,
     },
   ];
 };

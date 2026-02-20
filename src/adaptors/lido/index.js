@@ -14,6 +14,7 @@ const topLvl = async () => {
     tvlUsd: tvlData.marketCap,
     apyBase: Number(apyData.data.apr),
     underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+    token: '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
   };
 };
 

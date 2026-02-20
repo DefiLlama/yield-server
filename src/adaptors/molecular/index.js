@@ -48,7 +48,7 @@ async function apy() {
       let apy = pool.apy / 10 ** 16;
       return {
         chain,
-        pool: pool.farmAddress,
+        pool: `${pool.farmAddress}-${pool.asset}`,
         symbol: pool.assetSymbol,
         underlyingTokens: [pool.asset],
         tvlUsd: tvlPrice,

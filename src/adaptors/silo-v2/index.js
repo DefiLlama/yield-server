@@ -7,8 +7,99 @@ const utils = require('../utils');
 
 BigNumber.config({ EXPONENTIAL_AT: [-1e9, 1e9] });
 
+// Helper to fetch prices in chunks to avoid URL length limits
+const PRICE_CHUNK_SIZE = 50;
+const getPricesChunked = async (addresses, chain) => {
+  const uniqueAddresses = [...new Set(addresses)];
+  let pricesByAddress = {};
+  let pricesBySymbol = {};
+
+  for (let i = 0; i < uniqueAddresses.length; i += PRICE_CHUNK_SIZE) {
+    const chunk = uniqueAddresses.slice(i, i + PRICE_CHUNK_SIZE);
+    try {
+      const prices = await utils.getPrices(chunk, chain);
+      pricesByAddress = { ...pricesByAddress, ...prices.pricesByAddress };
+      pricesBySymbol = { ...pricesBySymbol, ...prices.pricesBySymbol };
+    } catch (e) {
+      console.error(`Error fetching prices for chunk on ${chain}:`, e.message);
+    }
+  }
+
+  return { pricesByAddress, pricesBySymbol };
+};
+
 const XAI = '0xd7c9f0e536dc865ae858b0c0453fe76d13c3beac'
 const blacklistedSilos = ["0x6543ee07cf5dd7ad17aeecf22ba75860ef3bbaaa",];
+
+const EVENTS = {
+  NewSilo: 'event NewSilo(address indexed implementation, address indexed token0, address indexed token1, address silo0, address silo1, address siloConfig)',
+};
+
+const badDebtSilos = {
+  sonic: [
+    "0xCCdDbBbd1E36a6EDA3a84CdCee2040A86225Ba71", // wmetaUSD - Sonic
+    "0xEd9777944A2Fb32504a410D23f246463B3f40908", // USDC (wmetaUSD) - Sonic
+    "0x6e8C150224D6e9B646889b96EFF6f7FD742e2C22", // wmetaUSD - Sonic
+    "0x0aB02DD08c1555d1a20C76a6EA30e3E36f3e06d4", // scUSD (wmetaUSD) - Sonic
+    "0x75c550776c191A8F6aE22EdC742aD2788723B66E", // wmetaUSD - Sonic
+    "0xc6ee9A58D5270e53fD1361946899b6D0553142B4", // scUSD (wmetaUSD) - Sonic
+    "0x501Ee3D6cB84004c7970cA24f3daC07D61A25e4D", // wmetaUSD - Sonic
+    "0x1A089424F52502139888fa4c0ED2FA088e9E1d51", // USDC (wmetaUSD) - Sonic
+    "0x1c1791911483E98875D162355feC47f37613f0FB", // wmetaS - Sonic
+    "0x8c98b43BF61F2B07c4D26f85732217948Fca2a90", // wS (wmetaS) - Sonic
+    "0xA1627a0E1d0ebcA9326D2219B84Df0c600bed4b1", // USDC - Sonic (Stream-impacted)
+    "0xb1412442aa998950f2f652667d5Eba35fE66E43f", // scUSD - Sonic (Stream-impacted)
+    "0x27968d36b937DcB26F33902fA489E5b228b104BE", // dUSD - Sonic (Stream-impacted)
+    "0x76DF755A9f40463F14d0a2b7Cba3Ccf05404eEdf", // dUSD - Sonic (Stream-impacted)
+    "0xAF1BDaE843d90c546DE5001f7b107B46e1a26Aa9", // dUSD - Sonic (Stream-impacted)
+    "0x5954ce6671d97D24B782920ddCdBB4b1E63aB2De", // USDC - Sonic (Stream-impacted)
+    "0x4935FaDB17df859667Cc4F7bfE6a8cB24f86F8d0", // USDC - Sonic (Stream-impacted)
+    "0x219656F33c58488D09d518BaDF50AA8CdCAcA2Aa", // ETH - Sonic (Stream-impacted)
+  ].map(entry => entry.toLowerCase()),
+  ethereum: [
+    "0x1dE3bA67Da79A81Bc0c3922689c98550e4bd9bc2", // USDC - ethereum (Stream-impacted)
+  ].map(entry => entry.toLowerCase()),
+  arbitrum: [
+    "0xACb7432a4BB15402CE2afe0A7C9D5b738604F6F9", // USDC - Arbitrum (Stream-impacted)
+    "0x2433D6AC11193b4695D9ca73530de93c538aD18a", // USDC - Arbitrum (Stream-impacted)
+  ].map(entry => entry.toLowerCase()),
+  avax: [
+    "0x672b77f0538b53Dc117C9dDfEb7377A678d321a6", // USDC - Avalanche (Stream-impacted)
+    "0xE0fc62e685E2b3183b4B88b1fE674cFEc55a63F7", // USDT - Avalanche (Stream-impacted)
+    "0x9C4D4800b489d217724155399CD64D07Eae603f3", // AUSD - Avalanche (Stream-impacted)
+    "0x7437ac81457Fa98fFB2d0C8f9943ecfE4813e2f1", // BTC.b - Avalanche (Stream-impacted)
+  ].map(entry => entry.toLowerCase()),
+};
+
+const badDebtVaults = {
+  sonic: [
+    "0xcca902f2d3d265151f123d8ce8FdAc38ba9745ed", // USDC - Sonic (Stream-impacted)
+    "0x2bc6F1406D736Cc09631676c992Abbf2CeD789e7", // USDC - Sonic (Stream-impacted)
+    "0xF75AE954D30217B4EE70DbFB33f04162aa3Cf260", // USDC - Sonic (Stream-impacted)
+    "0xb47cB414aaB743C977DfD1FDB758f971907e810e", // USDC - Sonic (Stream-impacted)
+    "0xF6F87073cF8929C206A77b0694619DC776F89885", // USDC - Sonic (Stream-impacted)
+    "0x391b3F70E254d582588B27e97E48D1CFcdf0BE7e", // scUSD - Sonic (Stream-impacted)
+    "0x9A1BF5365edBB99C2c61CA6D9ffAd0B705ACfc6F", // dUSD - Sonic (Stream-impacted)
+    "0xb6A23cB29e512Df41876B28D7A848BD831f9c5Ba", // scUSD - Sonic (Stream-impacted)
+    "0xf6bC16B79c469b94Cdd25F3e2334DD4FEE47A581", // USDC - Sonic (Stream-impacted)
+    "0xCc7bDB3FF050D65918b96e4BDf1060a1aA0bB409", // ETH - Sonic (Stream-impacted)
+  ].map(entry => entry.toLowerCase()),
+  ethereum: [
+    "0x8399C8Fc273bD165C346Af74A02e65f10e4FD78F", // USDC - ethereum (Stream-impacted)
+  ].map(entry => entry.toLowerCase()),
+  arbitrum: [
+    "0x7C1C43Df1B08A7de4e25E7a8f5867efDCc812B95", // USDC - Arbitrum (Stream-impacted)
+    "0x2BA39e5388aC6C702Cb29AEA78d52aa66832f1ee", // USDC - Arbitrum (Stream-impacted)
+    "0xac69CFe6BB269CeBF8ab4764d7E678C3658b99f2", // USDC - Arbitrum (Stream-impacted)
+  ].map(entry => entry.toLowerCase()),
+  avalanche: [
+    "0x4dc1ce9b9f9EF00c144BfAD305f16c62293dC0E8", // USDC - Avalanche (Stream-impacted)
+    "0x1f8E769B5B6010B2C2BBCd68629EA1a0a0Eda7E3", // BTC.b - Avalanche (Stream-impacted)
+    "0x6c09bfdc1df45D6c4Ff78Dc9F1C13aF29eB335d4", // USDC - Avalanche (Stream-impacted)
+    "0x3d7B0c3997E48fA3FC96cd057d1fb4E5F891835B", // AUSD - Avalanche (Stream-impacted)
+    "0x36E2AA296E798Ca6262DC5Fad5F5660e638d5402", // USDC - Avalanche (Stream-impacted)
+  ].map(entry => entry.toLowerCase()),
+};
 
 const getAssetAbiV2 = "address:asset";
 const getSiloConfigMarketId = "uint256:SILO_ID";
@@ -173,7 +264,7 @@ async function getSiloData(api, deploymentData) {
     }
   }
 
-  let assetPrices = await utils.getPrices(siloData.map(entry => entry[0]), api.chain);
+  let assetPrices = await getPricesChunked(siloData.map(entry => entry[0]), api.chain);
 
   let assetDataBySilo = {};
   for(
@@ -298,19 +389,15 @@ async function getSilosV2(chainApi, deploymentData) {
   let siloAddressesToSiloConfigAddress = {};
   if(configV2[chain]) {
     let latestBlock = await sdk.api.util.getLatestBlock(chain);
-    const iface = new ethers.utils.Interface([
-      'event NewSilo(address indexed implementation, address indexed token0, address indexed token1, address silo0, address silo1, address siloConfig)',
-    ]);
     const { SILO_FACTORY, START_BLOCK } = deploymentData;
-    let logChunk = await sdk.api2.util.getLogs({
+    let logChunk = await sdk.getEventLogs({
       target: SILO_FACTORY,
-      topics: ['0x3d6b896c73b628ec6ba0bdfe3cdee1356ea2af31af2a97bbd6b532ca6fa00acb'],
-      keys: [],
+      eventAbi: EVENTS.NewSilo,
       fromBlock: START_BLOCK,
       toBlock: latestBlock.block,
       chain: chain,
     });
-    logs = [...logs, ...logChunk.output.map((event) =>  iface.parseLog(event))];
+    logs = [...logs, ...logChunk];
 
     siloAddresses = logs.flatMap((log) => {
 
@@ -322,7 +409,7 @@ async function getSilosV2(chainApi, deploymentData) {
       siloAddressesToSiloConfigAddress[silo1] = siloConfig;
 
       return [silo0, silo1].filter(
-        (address) => blacklistedSilos.indexOf(address.toLowerCase()) === -1
+        (address) => ((blacklistedSilos.indexOf(address.toLowerCase()) === -1) && (badDebtSilos[chain]?.indexOf(address.toLowerCase()) === -1))
       );
     });
 
@@ -331,13 +418,14 @@ async function getSilosV2(chainApi, deploymentData) {
   return { siloAddresses, siloAddressesToSiloConfigAddress };
 }
 
-async function getVaultData(api, deploymentData) {
+async function getVaultData(api, deploymentData, chain) {
 
   // Handle V2 Vaults
   let rawVaultData = {};
   let assetDataByVault = {};
   let assetsForPriceData = [];
   let subgraphVaults;
+  let filteredSubgraphVaults = [];
   if(deploymentData?.SUBGRAPH_URL) {
     const vaultQuery = gql`
       {
@@ -359,33 +447,33 @@ async function getVaultData(api, deploymentData) {
     `;
     subgraphVaults = await request(deploymentData?.SUBGRAPH_URL, vaultQuery);
 
-    for(let vault of subgraphVaults?.vaults) {
-      // Only collect data for vaults with a positive supply
-      if(vault?.totalSupply && new BigNumber(vault.totalSupply).isGreaterThan(0)) {
-        rawVaultData[vault.id] = {
-          id: vault.id,
-          name: vault.name,
-          totalSupply: vault.totalSupply,
-          assetRatio: vault.assetRatio,
-          asset: vault.asset,
-          performanceFee: vault.performanceFee ? ethers.utils.formatUnits(vault.performanceFee, 16) : 0,
-        }
-        if(vault?.asset?.id && assetsForPriceData?.indexOf(vault?.asset?.id) === -1) {
-          assetsForPriceData.push(vault?.asset?.id);
-        }
+    // Only collect data for vaults with a positive supply & which aren't in the badDebtVaults list
+    filteredSubgraphVaults = subgraphVaults?.vaults.filter((vault) => (vault?.totalSupply && new BigNumber(vault.totalSupply).isGreaterThan(0) && (badDebtVaults[chain]?.indexOf(vault.id.toLowerCase()) === -1)));
+
+    for(let vault of filteredSubgraphVaults) {
+      rawVaultData[vault.id] = {
+        id: vault.id,
+        name: vault.name,
+        totalSupply: vault.totalSupply,
+        assetRatio: vault.assetRatio,
+        asset: vault.asset,
+        performanceFee: vault.performanceFee ? ethers.utils.formatUnits(vault.performanceFee, 16) : 0,
+      }
+      if(vault?.asset?.id && assetsForPriceData?.indexOf(vault?.asset?.id) === -1) {
+        assetsForPriceData.push(vault?.asset?.id);
       }
     }
 
   }
 
-  let assetPrices = await utils.getPrices(assetsForPriceData, api.chain);
+  let assetPrices = await getPricesChunked(assetsForPriceData, api.chain);
 
   if(deploymentData?.SUBGRAPH_URL) {
     const VAULT_POSITION_BATCH_SIZE = 10;
     let vaultBatches = [];
     let vaultIdToPositionMetadata = {};
-    for (let i = 0; i < subgraphVaults?.vaults?.length; i += VAULT_POSITION_BATCH_SIZE) {
-      const batch = subgraphVaults?.vaults.slice(i, i + VAULT_POSITION_BATCH_SIZE);
+    for (let i = 0; i < filteredSubgraphVaults?.length; i += VAULT_POSITION_BATCH_SIZE) {
+      const batch = filteredSubgraphVaults.slice(i, i + VAULT_POSITION_BATCH_SIZE);
       vaultBatches.push(batch);
     }
 
@@ -427,18 +515,18 @@ async function getVaultData(api, deploymentData) {
         if(!vaultIdToPositionMetadata[vaultAccountId]) {
           vaultIdToPositionMetadata[vaultAccountId] = {
             totalUnderlyingAssets: underlyingAssetAmount,
-            totalUnderlyingAssetsUSD: ethers.utils.formatUnits(new BigNumber(underlyingAssetAmount).multipliedBy(assetPrices.pricesByAddress[vaultPosition?.sToken?.asset?.id.toLowerCase()]).toFixed(0), vaultPosition?.sToken?.decimals),
+            totalUnderlyingAssetsUSD: ethers.utils.formatUnits(new BigNumber(underlyingAssetAmount).multipliedBy(assetPrices.pricesByAddress[vaultPosition?.sToken?.asset?.id.toLowerCase()] ?? 0).toFixed(0), vaultPosition?.sToken?.decimals),
             positions: [{
               rates: vaultPosition?.market?.rates,
               underlyingAssetSymbol: vaultPosition?.sToken?.symbol,
               underlyingAssetAmount,
-              underlyingAssetAmountUSD: ethers.utils.formatUnits(new BigNumber(underlyingAssetAmount).multipliedBy(assetPrices.pricesByAddress[vaultPosition?.sToken?.asset?.id.toLowerCase()]).toFixed(0), vaultPosition?.sToken?.decimals),
+              underlyingAssetAmountUSD: ethers.utils.formatUnits(new BigNumber(underlyingAssetAmount).multipliedBy(assetPrices.pricesByAddress[vaultPosition?.sToken?.asset?.id.toLowerCase()] ?? 0).toFixed(0), vaultPosition?.sToken?.decimals),
               underlyingAssetDecimals: vaultPosition?.sToken?.decimals,
             }]
           }
         } else {
           vaultIdToPositionMetadata[vaultAccountId].totalUnderlyingAssets = new BigNumber(vaultIdToPositionMetadata[vaultAccountId].totalUnderlyingAssets).plus(underlyingAssetAmount).toString();
-          vaultIdToPositionMetadata[vaultAccountId].totalUnderlyingAssetsUSD = new BigNumber(vaultIdToPositionMetadata[vaultAccountId].totalUnderlyingAssetsUSD).plus(new BigNumber(ethers.utils.formatUnits(new BigNumber(underlyingAssetAmount).multipliedBy(assetPrices.pricesByAddress[vaultPosition?.sToken?.asset?.id.toLowerCase()]).toFixed(0), vaultPosition?.sToken?.decimals))).toFixed(0),
+          vaultIdToPositionMetadata[vaultAccountId].totalUnderlyingAssetsUSD = new BigNumber(vaultIdToPositionMetadata[vaultAccountId].totalUnderlyingAssetsUSD).plus(new BigNumber(ethers.utils.formatUnits(new BigNumber(underlyingAssetAmount).multipliedBy(assetPrices.pricesByAddress[vaultPosition?.sToken?.asset?.id.toLowerCase()] ?? 0).toFixed(0), vaultPosition?.sToken?.decimals))).toFixed(0),
           vaultIdToPositionMetadata[vaultAccountId].positions.push({
             rates: vaultPosition?.market?.rates,
             underlyingAssetSymbol: vaultPosition?.sToken?.symbol,
@@ -490,14 +578,14 @@ async function getVaultData(api, deploymentData) {
     let assetDepositedBalanceValueUSD = new BigNumber(
         assetDepositedBalanceFormatted
       )
-      .multipliedBy(assetPrices.pricesByAddress[asset.id.toLowerCase()])
+      .multipliedBy(assetPrices.pricesByAddress[asset.id.toLowerCase()] ?? 0)
       .toString();
 
     assetDataByVault[vaultAddress] = {
       assetAddress: asset.id,
       assetSymbol: asset.symbol,
       assetDecimals: asset.decimals,
-      assetPrice: assetPrices.pricesByAddress[asset.id.toLowerCase()],
+      assetPrice: assetPrices.pricesByAddress[asset.id.toLowerCase()] ?? 0,
       vaultId: name,
       apyBase,
       totalSupplyRaw: assetDepositedBalance.toString(),
@@ -538,7 +626,7 @@ const main = async () => {
             tvlUsd: new BigNumber(siloInfo.assetBalanceValueUSD).toNumber(),
             apyBase: new BigNumber(siloInfo.assetDepositAprFormatted).toNumber(),
             apyBaseBorrow: new BigNumber(siloInfo.assetBorrowAprFormatted).toNumber(),
-            url: `https://v2.silo.finance/markets/${chain}/${siloInfo.marketId}`,
+            url: `https://app.silo.finance/markets/${chain === 'avax' ? 'avalanche': chain}/${siloInfo.marketId}`,
             underlyingTokens: [siloInfo.assetAddress],
             ltv: Number(siloInfo.assetMaxLtvFormatted),
             totalBorrowUsd: Number(Number(siloInfo.totalBorrowValueUSD).toFixed(2)),
@@ -555,7 +643,7 @@ const main = async () => {
         }
       }
 
-      let vaultData = await getVaultData(api, deploymentData);
+      let vaultData = await getVaultData(api, deploymentData, chain);
 
       for(let [vaultAddress, vaultInfo] of Object.entries(vaultData)) {
         let vaultPoolId = `${vaultInfo.vaultId}-${vaultAddress}-${chain}`;
@@ -571,7 +659,7 @@ const main = async () => {
             symbol: utils.formatSymbol(vaultInfo.assetSymbol),
             tvlUsd: Number(Number(vaultInfo.totalSupplyValueUSD).toFixed(2)),
             apyBase: new BigNumber(vaultInfo.apyBase).toNumber(),
-            url: `https://app.silo.finance/vaults/${chain}/${vaultAddress}?action=deposit`,
+            url: `https://app.silo.finance/vaults/${chain === 'avax' ? 'avalanche': chain}/${vaultAddress}?action=deposit`,
             underlyingTokens: [vaultInfo.assetAddress],
             totalSupplyUsd: Number(Number(vaultInfo.totalSupplyValueUSD).toFixed(2)),
             poolMeta: `${vaultInfo.vaultId}`,

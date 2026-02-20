@@ -4,9 +4,9 @@ const utils = require('../utils');
 const RewardsWrapper = require('./abis/RewardsWrapper.json');
 const msUSD = require('./abis/msUSD.json');
 
-const CHAIN_NAME = 'sonic';
-const USDC = '0x29219dd400f2Bf60E5a23d13Be72B486D4038894';
-const VAULT = '0xc7990369DA608C2F4903715E3bD22f2970536C29';
+const CHAIN_NAME = 'ethereum';
+const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+const VAULT = '0x890A5122Aa1dA30fEC4286DE7904Ff808F0bd74A';
 
 const poolsFunction = async () => {
   const totalSupply = await sdk.api.abi
@@ -26,11 +26,11 @@ const poolsFunction = async () => {
     })
     .then((result) => result.output);
 
-  const apy = (Math.pow(1 + (apr/1e18) / 365, 365) - 1) * 100;
+  const apy = (Math.pow(1 + apr / 1e18 / 365, 365) - 1) * 100;
 
   const msUSDPool = {
     pool: msUSD.address,
-    chain: utils.formatChain('sonic'),
+    chain: utils.formatChain('ethereum'),
     project: 'mainstreet',
     symbol: utils.formatSymbol('msUSD'),
     tvlUsd: Number(totalSupply) / 1e18,
@@ -41,7 +41,7 @@ const poolsFunction = async () => {
     url: 'https://mainstreet.finance',
   };
 
-  return [msUSDPool]
+  return [msUSDPool];
 };
 
 module.exports = {

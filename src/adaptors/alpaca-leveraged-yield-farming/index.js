@@ -45,7 +45,7 @@ async function apy(chain) {
         symbol: utils.formatSymbol(p.symbol.split(' ')[0]),
         tvlUsd: Number(p.tvl),
         apy: Number(p.apy),
-        underlyingTokens: chain === 'ftm' ? [underlying] : [],
+        underlyingTokens: chain === 'ftm' ? [underlying] : undefined,
       };
     })
   );

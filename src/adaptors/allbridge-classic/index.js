@@ -24,6 +24,7 @@ const getApy = async () => {
           symbol: t.symbol,
           apyBase: Number(t.apr),
           tvlUsd: Number(t.poolInfo.totalLpAmount) / 1e3,
+          underlyingTokens: t.tokenAddress ? [t.tokenAddress] : undefined,
         };
       });
     })

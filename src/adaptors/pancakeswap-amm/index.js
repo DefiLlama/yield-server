@@ -19,7 +19,7 @@ const BLOCKS_PER_YEAR = (60 / BSC_BLOCK_TIME) * 60 * 24 * 365;
 
 const web3 = new Web3(RPC_URL);
 
-const CHAINS = ['bsc', 'base', 'ethereum', 'linea', 'zksync', 'arbitrum', 'opbnb']
+const CHAINS = ['bsc', 'base', 'ethereum', 'linea', 'zksync', 'arbitrum', 'opbnb', 'monad']
 const EXPLORER_API = 'https://explorer.pancakeswap.com/api/cached';
 
 async function getPoolsApy(chain) {

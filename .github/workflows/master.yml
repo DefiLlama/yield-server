@@ -18,6 +18,10 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: npm ci
       - run: node scripts/createAdapterList.js
+      - name: Run database migrations
+        run: npm run migrate -- up
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
       - name: Deploy infrastructure stack
         run: npm run deploy
         env:
@@ -47,3 +51,9 @@ jobs:
           OSMOSIS_API_KEY: ${{ secrets.OSMOSIS_API_KEY}}
           DUNE_API_KEY: ${{ secrets.DUNE_API_KEY}}
           HYPERLIQUID_RPC: ${{ secrets.HYPERLIQUID_RPC }}
+          PLASMA_RPC: ${{ secrets.PLASMA_RPC }}
+          STARKNET_RPC: ${{ secrets.STARKNET_RPC }}
+          MONAD_RPC: ${{ secrets.MONAD_RPC }}
+          LLAMA_INDEXER_V2_ENDPOINT: ${{ secrets.LLAMA_INDEXER_V2_ENDPOINT }}
+          LLAMA_INDEXER_V2_API_KEY: ${{ secrets.LLAMA_INDEXER_V2_API_KEY }}
+          PROJECT_0_API_KEY: ${{ secrets.PROJECT_0_API_KEY }}

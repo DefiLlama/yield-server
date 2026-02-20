@@ -1,3 +1,4 @@
+exports.API_CORE_BASE_URL = 'https://api-core.curve.finance/v1'
 exports.CRV_API_BASE_URL = 'https://api.curve.finance/api';
 exports.CRV_API_BASE_URL_V1 = 'https://api.curve.finance/v1';
 exports.BLOCKCHAINIDS = [
@@ -13,10 +14,11 @@ exports.BLOCKCHAINIDS = [
   'base',
   'fraxtal',
   'sonic',
+  'monad',
   // 'celo',
 ];
 // https://github.com/curvefi/curve-api/blob/main/endpoints.md#getpools
-REGISTRY_TYPES = [
+const REGISTRY_TYPES = [
   'main',
   'crypto',
   'factory',
@@ -29,6 +31,7 @@ REGISTRY_TYPES = [
 ];
 exports.BLOCKCHAINID_TO_REGISTRIES = {};
 exports.BLOCKCHAINIDS.forEach((blockchainId) => {
+  let blockchainRegistries;
   switch (blockchainId) {
     case 'ethereum':
     case 'arbitrum':
@@ -40,6 +43,9 @@ exports.BLOCKCHAINIDS.forEach((blockchainId) => {
       break;
     case 'xdai':
       blockchainRegistries = REGISTRY_TYPES.slice(0, 3);
+      break;
+    case 'monad':
+      blockchainRegistries = REGISTRY_TYPES.slice(-3);
       break;
     default:
       blockchainRegistries = REGISTRY_TYPES.slice(0, -1);

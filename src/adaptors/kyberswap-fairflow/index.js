@@ -29,11 +29,15 @@ const topLvl = async (timestamp) => {
         // Fetch all pools from the exchange for this chain
         const poolsResponse = await axios.get(`${BASE_URL}${chain}/api/v1/pools?exchange=kem_univ4_fairflow%`);
         const pools = poolsResponse.data.data;
-
-        if (!pools || pools.length === 0) {
-          continue;
-        }
-
+        if (chain === 'bsc') {
+            // Call pool with exchange = kem_pancake_infinity_cl_fairflow_eg_lm and append to pools
+            const pancakePoolsResponse = await axios.get(`${BASE_URL}${chain}/api/v1/pools?exchange=kem_pancake_infinity_cl_fairflow_eg_lm`);
+            const pancakePools = pancakePoolsResponse.data.data;
+            if (pancakePools.length > 0) {
+              pools.push(...pancakePools);
+            }
+        }  
+        
         // Fetch pool state data for each pool
         const poolAddresses = pools.map(pool => pool.poolAddress);
         
@@ -81,7 +85,7 @@ const topLvl = async (timestamp) => {
             underlyingTokens = [token1.address];
           } else {
             symbol = 'UNKNOWN';
-            underlyingTokens = [];
+            underlyingTokens = undefined;
           }
 
           // Get reward tokens if they exist

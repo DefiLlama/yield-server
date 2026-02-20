@@ -3,11 +3,20 @@ const utils = require('../utils')
 
 const baseUrl = 'https://sdk.api.scallop.io/api';
 const marketEndpoint = `${baseUrl}/market/migrate`;
-const spoolsEndpoint = `${baseUrl}/spools/migrate`;
+const spoolsEndpoint = `${baseUrl}/spools`;
 const borrowIncentiveEndpoint = `${baseUrl}/borrowIncentivePools`;
 
 const main = async () => {
-  let [market, spools, borrowIncentive] = await Promise.all([axios.get(marketEndpoint), axios.get(spoolsEndpoint), axios.get(borrowIncentiveEndpoint)]);
+  let [market, spools] = await Promise.all([
+    axios.get(marketEndpoint),
+    axios.get(spoolsEndpoint),
+  ]);
+  let borrowIncentive;
+  try {
+    borrowIncentive = await axios.get(borrowIncentiveEndpoint);
+  } catch (e) {
+    borrowIncentive = { data: [] };
+  }
 
   const supplyRewards = {};
   const rewardTokenPool = {};
@@ -61,6 +70,7 @@ const main = async () => {
       apyBaseBorrow: parseFloat(pool.borrowApy * 100),
       apyRewardBorrow: borrowRewards[pool.coinType] ? parseFloat(borrowRewards[pool.coinType].reduce((prev, curr) => prev + curr.rewardApr, 0) * 100) : null,
       ltv: Number(parseFloat(collateralFactor ? collateralFactor.collateralFactor : 0).toFixed(2)),
+      underlyingTokens: [pool.coinType],
     });
   });
 

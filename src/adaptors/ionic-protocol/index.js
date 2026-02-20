@@ -460,6 +460,7 @@ const apy = async (chain) => {
         apyReward: apyReward !== null && apyReward !== undefined ? apyReward : 0, // Ensure apyBase has a valid value,
         apyBase: apyBase !== null && apyBase !== undefined ? apyBase : 0, // Ensure apyBase has a valid value
         rewardTokens: rewardTokens,
+        underlyingTokens: [underlying[i]],
       };
     });
     return pools;
@@ -474,7 +475,7 @@ const main = async () => {
     const poolArrays = await Promise.all(
       Object.keys(CHAINS).map((chain) => apy(chain))
     );
-    const pools = poolArrays.flat().filter((i) => utils.keepFinite(i));
+    const pools = poolArrays.flat().filter((i) => i !== null && utils.keepFinite(i));
     return pools;
   } catch (error) {
     console.error('Error in main APY function:', error);

@@ -43,6 +43,7 @@ async function sDAIPool() {
     symbol: 'sDAI',
     apy: await getApy(),
     tvlUsd: await getTVL(),
+    underlyingTokens: [chains.xdai.wxDAI],
   };
   return [sDAIPoolData];
 }

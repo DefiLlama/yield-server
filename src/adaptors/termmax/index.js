@@ -1,7 +1,6 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
-const { Interface } = require('ethers/lib/utils');
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -19,9 +18,6 @@ const EVENTS = {
       'event VaultCreated(address indexed vault, address indexed creator, (address admin,address curator,address guardian,uint256 timelock,address asset,address pool,uint256 maxCapacity,string name,string symbol,uint64 performanceFeeRate,uint64 minApy) initialParams)',
   },
 };
-const v1iface = new Interface([EVENTS.V1.CreateVault]);
-const v1plusiface = new Interface([EVENTS.V1Plus.VaultCreated]);
-const v2iface = new Interface([EVENTS.V2.VaultCreated]);
 
 const VAULTS = {
   ethereum: {
@@ -144,21 +140,16 @@ async function getVaultV1Addresses(chain, blockNumber) {
   const tasks = [];
   for (const factory of vaultFactory) {
     const task = async () => {
-      const { output } = await sdk.api2.util.getLogs({
+      const logs = await sdk.getEventLogs({
         target: factory.address,
-        topic: '',
+        eventAbi: EVENTS.V1.CreateVault,
         fromBlock: factory.fromBlock,
         toBlock: blockNumber,
-        keys: [],
-        topics: [v1iface.getEventTopic('CreateVault')],
         chain,
+        onlyIndexer: true,
       });
-      const events = output
-        .filter((e) => !e.removed)
-        .map((e) => v1iface.parseLog(e));
-      for (const { args } of events) {
-        const [vault] = args;
-        addresses.push(vault);
+      for (const log of logs) {
+        addresses.push(log.args.vault);
       }
     };
     tasks.push(task());
@@ -275,21 +266,16 @@ async function getVaultV1PlusAddresses(chain, blockNumber) {
   const tasks = [];
   for (const factory of vaultFactoryV1Plus) {
     const task = async () => {
-      const { output } = await sdk.api2.util.getLogs({
+      const logs = await sdk.getEventLogs({
         target: factory.address,
-        topic: '',
+        eventAbi: EVENTS.V1Plus.VaultCreated,
         fromBlock: factory.fromBlock,
         toBlock: blockNumber,
-        keys: [],
-        topics: [v1plusiface.getEventTopic('VaultCreated')],
         chain,
+        onlyIndexer: true,
       });
-      const events = output
-        .filter((e) => !e.removed)
-        .map((e) => v1plusiface.parseLog(e));
-      for (const { args } of events) {
-        const [vault] = args;
-        addresses.push(vault);
+      for (const log of logs) {
+        addresses.push(log.args.vault);
       }
     };
     tasks.push(task());
@@ -413,21 +399,16 @@ async function getVaultV2Addresses(chain, blockNumber) {
   const tasks = [];
   for (const factory of vaultFactoryV2) {
     const task = async () => {
-      const { output } = await sdk.api2.util.getLogs({
+      const logs = await sdk.getEventLogs({
         target: factory.address,
-        topic: '',
+        eventAbi: EVENTS.V2.VaultCreated,
         fromBlock: factory.fromBlock,
         toBlock: blockNumber,
-        keys: [],
-        topics: [v2iface.getEventTopic('VaultCreated')],
         chain,
+        onlyIndexer: true,
       });
-      const events = output
-        .filter((e) => !e.removed)
-        .map((e) => v2iface.parseLog(e));
-      for (const { args } of events) {
-        const [vault] = args;
-        addresses.push(vault);
+      for (const log of logs) {
+        addresses.push(log.args.vault);
       }
     };
     tasks.push(task());

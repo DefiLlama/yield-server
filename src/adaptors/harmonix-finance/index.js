@@ -122,7 +122,7 @@ const getApy = async () => {
         apyReward: 0, // hardcoded for now
         rewardTokens: [], // hardcoded for now
         url: `https://app.harmonix.fi/vaults/${v.slug}`, // URL to the vault
-        underlyingTokens: assets[chainId][v.underlying_asset.toLowerCase()] ? [assets[chainId][v.underlying_asset.toLowerCase()]] : [], // underlying asset
+        underlyingTokens: assets[chainId]?.[v.underlying_asset?.toLowerCase()] ? [assets[chainId][v.underlying_asset.toLowerCase()]] : undefined,
       };
     }));
   }));

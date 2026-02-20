@@ -4,6 +4,7 @@ const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
 
 const {
+  API_CORE_BASE_URL,
   CRV_API_BASE_URL,
   CRV_API_BASE_URL_V1,
   BLOCKCHAINIDS,
@@ -41,6 +42,15 @@ const getPools = async (blockchainId) => {
     } catch (error) {
       continue;
     }
+
+    if (blockchainId === "monad" && (!response?.success || !response?.data?.poolData?.length)) {
+      try {
+        response = await utils.getData(API_CORE_BASE_URL + uri);
+      } catch {
+        continue;
+      }
+    }
+
     if (response?.success && response?.data?.poolData?.length) {
       const poolsByAddressForRegistry = Object.fromEntries(
         response.data.poolData.map((pool) => [pool.address, pool])

@@ -24,6 +24,7 @@ const main = async () => {
       poolMeta: `${entry.lockupDuration} day(s)`,
       tvlUsd: entry.tvl,
       apy: entry.apr,
+      underlyingTokens: entry.token ? [entry.token] : undefined,
     });
   }
 

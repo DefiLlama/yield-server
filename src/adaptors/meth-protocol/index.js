@@ -5,7 +5,6 @@ const stakingAbi = require('./stakingAbi.json');
 
 const mETH = '0xd5F7838F5C461fefF7FE49ea5ebaF7728bB0ADfa';
 const stakingContract = '0xe3cBd06D7dadB3F4e6557bAb7EdD924CD1489E8f';
-const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const amount = 1000000000000000000n;
 
 const apy = async () => {
@@ -59,7 +58,7 @@ const apy = async () => {
     365 *
     100;
 
-  const priceKey = `ethereum:${weth}`;
+  const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
   const ethPrice = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).data.coins[priceKey]?.price;
@@ -73,7 +72,8 @@ const apy = async () => {
       tvlUsd: tvl * ethPrice,
       apyBase,
       apyBase7d,
-      underlyingTokens: [weth],
+      underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+      token: mETH,
     },
   ];
 };

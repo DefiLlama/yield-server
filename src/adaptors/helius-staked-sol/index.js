@@ -2,6 +2,7 @@ const axios = require('axios');
 const { getTotalSupply } = require('../utils');
 
 const HSOL_ADDRESS = 'he1iusmfkpAdwvxLNGV8Y1iSbj4rUy6yMhEA3fotn9A';
+const SOL = 'So11111111111111111111111111111111111111112';
 const priceKey = `solana:${HSOL_ADDRESS}`;
 
 const apy = async () => {
@@ -25,7 +26,8 @@ const apy = async () => {
       symbol: 'HSOL',
       tvlUsd: totalSupply * currentPrice,
       apyBase: apy * 100,
-      underlyingTokens: [HSOL_ADDRESS],
+      underlyingTokens: [SOL],
+      token: HSOL_ADDRESS,
     },
   ];
 };

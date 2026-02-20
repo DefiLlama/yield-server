@@ -21,6 +21,7 @@ const chains = {
     chainSlug: 'bnbchain',
     PENDLE: '0xb3ed0a426155b79b898849803e3b36552f7ed507',
     ROUTERS: ['0x888888888889758F76e7103c6CbF23ABbF58F946'],
+    // disabledVolume: true,
   },
   10: {
     chainName: 'optimism',
@@ -44,6 +45,19 @@ const chains = {
     chainName: 'mantle',
     chainSlug: 'mantle',
     PENDLE: '0xd27b18915e7acc8fd6ac75db6766a80f8d2f5729',
+    ROUTERS: ['0x888888888889758F76e7103c6CbF23ABbF58F946'],
+  },
+  999: {
+    chainName: 'hyperliquid',
+    chainSlug: 'hyperliquid',
+    PENDLE: '0xD6Eb81136884713E843936843E286FD2a85A205A',
+    ROUTERS: ['0x888888888889758F76e7103c6CbF23ABbF58F946'],
+    disabledVolume: true,
+  },
+  80094: {
+    chainName: 'berachain',
+    chainSlug: 'berachain',
+    PENDLE: '0xFf9c599D51C407A45D631c6e89cB047Efb88AeF6',
     ROUTERS: ['0x888888888889758F76e7103c6CbF23ABbF58F946'],
   },
 };
@@ -147,7 +161,7 @@ async function fetchPoolsVolumes(chain, pools, routers) {
     if (!markets[market]) return null;
 
     let netTokenAmount = Number(event.args.netTokenAmount);
-    if (event.name === 'AddLiquiditySingleToken' || eventname === 'RemoveLiquiditySingleToken') {
+    if (event.name === 'AddLiquiditySingleToken' || event.name === 'RemoveLiquiditySingleToken') {
       netTokenAmount = netTokenAmount / 2;
     }
 
@@ -189,8 +203,8 @@ async function fetchPoolsVolumes(chain, pools, routers) {
 
   for (const event of events) {
     if (!tokens[event.token]) {
-      console.log(event);
-      process.exit(0);
+      console.warn(`Token not found for event.token: ${event.token}`);
+      continue;
     }
     if (!markets[event.market]) {
       console.warn(`Market not found for event.market: ${event.market}`);
@@ -216,7 +230,7 @@ async function fetchPoolsVolumes(chain, pools, routers) {
 
 async function poolApys(chainId, pools) {
   // support swap volumes on pool
-  const poolWithVolumes = await fetchPoolsVolumes(chains[chainId].chainName, pools, chains[chainId].ROUTERS)
+  const poolWithVolumes = chains[chainId].disabledVolume ? pools : await fetchPoolsVolumes(chains[chainId].chainName, pools, chains[chainId].ROUTERS)
 
   return poolWithVolumes.map((p) => ({
     pool: p.address,

@@ -1,7 +1,7 @@
 const sdk = require('@defillama/sdk');
 const fetch = require('node-fetch');
 const utils = require('../utils');
-const ABI = require('./abi');
+const ABI = require('./abi.json');
 const { default: BigNumber } = require('bignumber.js');
 
 const stakingContracts = [
@@ -62,37 +62,42 @@ module.exports = {
     );
 
     for (const pool of poolsData) {
+      const stakingTokenPrice =
+        pricesByAddress[pool.stakingToken.tokenAddress.toLowerCase()] || 0;
       const tvlUsd = fromWei(
         pool.totalSupply,
         pool.stakingToken.decimals
-      ).multipliedBy(
-        pricesByAddress[pool.stakingToken.tokenAddress.toLowerCase()]
+      ).multipliedBy(stakingTokenPrice);
+
+      const tvlUsdNum = Number(tvlUsd.toFixed(2));
+
+      // Calculate annual rewards in USD
+      const annualRewardsUsd = pool.rewardTokens.reduce(
+        (rewardsInUSD, reward) => {
+          const rewardPrice =
+            pricesByAddress[reward.token.tokenAddress.toLowerCase()] || 0;
+          return rewardsInUSD.plus(
+            fromWei(reward.rewardData.rewardRate, reward.token.decimals)
+              .multipliedBy(rewardPrice)
+              .multipliedBy(60 * 60 * 24 * 365)
+          );
+        },
+        toBN(0)
       );
+
+      // Calculate APY, avoiding division by zero
+      const apyReward =
+        tvlUsdNum > 0
+          ? Number(annualRewardsUsd.div(tvlUsd).multipliedBy(100).toFixed(2))
+          : 0;
+
       pools.push({
         pool: `${pool.target.toLowerCase()}-${pool.chain}`,
         chain: pool.chainName,
         project: 'unidex-perp',
         symbol: pool.stakingToken.symbol,
-        tvlUsd: Number(tvlUsd.toFixed(2)),
-        apyReward: Number(
-          pool.rewardTokens
-            .reduce(
-              (rewardsInUSD, reward) =>
-                rewardsInUSD.plus(
-                  fromWei(
-                    reward.rewardData.rewardRate,
-                    reward.token.decimals
-                  ).multipliedBy(
-                    pricesByAddress[reward.token.tokenAddress.toLowerCase()]
-                  )
-                ),
-              toBN(0)
-            )
-            .multipliedBy(60 * 60 * 24 * 365)
-            .div(tvlUsd)
-            .multipliedBy(100)
-            .toFixed(2)
-        ),
+        tvlUsd: tvlUsdNum,
+        apyReward,
         rewardTokens: pool.rewardTokens.map((rewardToken) =>
           rewardToken.token.tokenAddress.toLowerCase()
         ),

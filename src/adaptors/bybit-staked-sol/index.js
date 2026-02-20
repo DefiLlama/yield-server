@@ -3,6 +3,7 @@ const { getTotalSupply } = require('../utils');
 const utils = require('../utils');
 
 const BBSOL_ADDRESS = 'Bybit2vBJGhPF52GBdNaQfUJ6ZpThSgHBobjWZpLPb4B';
+const SOL = 'So11111111111111111111111111111111111111112';
 const priceKey = `solana:${BBSOL_ADDRESS}`;
 
 const apy = async () => {
@@ -14,7 +15,7 @@ const apy = async () => {
   const currentPrice = priceResponse.data.coins[priceKey].price;
 
   const bybitResponseBBSOL = await axios.get(
-    'https://api2.bybit.com/spot/api/web3/staking/v2/pool/apys?poolId=77&span=1'
+    'https://api2.bybit.com/spot/api/web3/staking/v3/pool/apys?poolId=77&span=1'
   );
   const apys = bybitResponseBBSOL.data.result.apys;
   const bbSolApy = Number(apys[apys.length - 1].apy);
@@ -27,7 +28,8 @@ const apy = async () => {
       symbol: 'BBSOL',
       tvlUsd: totalSupply * currentPrice,
       apy: bbSolApy,
-      underlyingTokens: [BBSOL_ADDRESS],
+      underlyingTokens: [SOL],
+      token: BBSOL_ADDRESS,
     },
   ];
 };

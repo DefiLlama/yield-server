@@ -76,10 +76,10 @@ module.exports = async function () {
       ),
     ];
 
-    global.uniquePoolIdentifiersDB = new Set(
+    global.uniquePoolIdentifiersDB = new Map(
       (await axios.get('https://yields.llama.fi/distinctID')).data
         .filter((p) => p.project !== global.apy[0].project)
-        .map((p) => p.pool)
+        .map((p) => [p.pool, p.project])
     );
   }
 };

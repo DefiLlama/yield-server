@@ -131,6 +131,7 @@ const getApy = async (chain) => {
         symbol: tokenSymbol,
         tvlUsd: (totalValue / scalingFactor / 10 ** decimals) * price,
         apy,
+        underlyingTokens: [token],
       };
     })
   );

@@ -20,7 +20,8 @@ const main = async (timestamp = null) => {
         url: poolData.url,  // Add URL
         apyBase: poolData.apyBase || 0,
         apyReward: farmingData?.apyReward || 0,
-        ...(farmingData?.rewardTokens?.length > 0 && { rewardTokens: farmingData.rewardTokens })
+        ...(farmingData?.rewardTokens?.length > 0 && { rewardTokens: farmingData.rewardTokens }),
+        underlyingTokens: poolData.underlyingTokens,
       };
     });
   

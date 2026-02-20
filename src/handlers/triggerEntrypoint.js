@@ -1,6 +1,6 @@
 const SQS = require('aws-sdk/clients/sqs');
 
-const { excludeAdaptors } = require('../utils/exclude');
+const { getExcludedAdaptors } = require('../utils/exclude');
 const adaptorList = require('../adaptors/list');
 
 module.exports.handler = async () => {
@@ -15,9 +15,8 @@ const main = async () => {
 
   try {
     const sqs = new SQS();
-    const adaptors = adaptorList.filter(
-      (a) => !excludeAdaptors.includes(a)
-    );
+    const excludedAdaptors = await getExcludedAdaptors();
+    const adaptors = adaptorList.filter((a) => !excludedAdaptors.has(a));
 
     for (const adaptor of adaptors) {
       await sqs

@@ -12,6 +12,7 @@ const {
 const { getStat } = require('../queries/stat');
 const { welfordUpdate } = require('../utils/welford');
 const poolsResponseColumns = require('../utils/enrichedColumns');
+const { getExcludedAdaptors } = require('../utils/exclude');
 
 module.exports.handler = async (event, context) => {
   await main();
@@ -27,6 +28,9 @@ const main = async () => {
     '1e00ac2b-0c3c-4b1f-95be-9378f98d2b40'
   );
   data = [...data, ...aaveGHO];
+
+  const excludedProjects = await getExcludedAdaptors();
+  data = data.filter((p) => !excludedProjects.has(p.project));
 
   // remove aave v2 frozen assets from dataEnriched (we keep ingesting into db, but don't
   // want to display frozen pools on the UI)
@@ -413,15 +417,27 @@ const checkStablecoin = (el, stablecoins) => {
   ) {
     stable = false;
   } else if (tokens.length === 1) {
-    stable = stablecoins.some((x) =>
-      tokens[0].replace(/\s*\(.*?\)\s*/g, '').includes(x)
-    );
+    const tokenClean = tokens[0].replace(/\s*\(.*?\)\s*/g, '');
+    stable = stablecoins.some((x) => {
+      if (!x || x.trim().length === 0) return false;
+      if (x.length === 1) {
+        return tokenClean === x;
+      }
+      return tokenClean.includes(x);
+    });
   } else if (tokens.length > 1) {
     let x = 0;
     for (const t of tokens) {
-      x += stablecoins.some((x) => t.includes(x));
+      const tokenClean = t.replace(/\s*\(.*?\)\s*/g, '');
+      x += stablecoins.some((sc) => {
+        if (!sc || sc.trim().length === 0) return false;
+        if (sc.length === 1) {
+          return tokenClean === sc;
+        }
+        return tokenClean.includes(sc);
+      });
     }
-    stable = x === tokens.length ? true : false;
+    stable = x === tokens.length;
   }
 
   return stable;

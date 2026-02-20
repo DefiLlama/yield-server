@@ -8,11 +8,6 @@ const chains = {
     staking: '0x8C74B2256fFb6705F14aDA8E86FBd654e0e2BECa',
     vaults: [
       {
-        symbol: 'DAI',
-        pool: '0x91993f2101cc758D0dEB7279d41e880F7dEFe827',
-        underlying: '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063',
-      },
-      {
         symbol: 'WETH',
         pool: '0x1544E1fF1a6f6Bdbfb901622C12bb352a43464Fb',
         underlying: '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619',
@@ -28,11 +23,6 @@ const chains = {
     gns: '0x18c11FD286C5EC11c3b683Caa813B77f5163A122',
     staking: '0x7edDE7e5900633F698EaB0Dbc97DE640fC5dC015',
     vaults: [
-      {
-        symbol: 'DAI',
-        pool: '0xd85E038593d7A098614721EaE955EC2022B9B91B',
-        underlying: '0xda10009cbd5d07dd0cecc66161fc93d7c9000da1',
-      },
       {
         symbol: 'WETH',
         pool: '0x5977A9682D7AF81D347CFc338c61692163a2784C',

@@ -73,6 +73,7 @@ async function main() {
         .dividedBy(DECIMALS)
         .toNumber(),
       apy: apy.toNumber(),
+      underlyingTokens: ['0x1::aptos_coin::AptosCoin'],
     },
   ];
 }

@@ -1,11 +1,14 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
-const ethers = require('ethers');
 const { BigNumber } = require('ethers');
 
 const abi = require('./abi.json');
 
 const rswETH = '0xFAe103DC9cf190eD75350761e95403b7b8aFa6c0';
+
+const EVENTS = {
+  Reprice: 'event Reprice(uint256 newEthReserves, uint256 newRswETHToETHRate, uint256 nodeOperatorRewards, uint256 swellTreasuryRewards, uint256 totalETHDeposited)',
+};
 
 const apy = async () => {
   const totalSupply =
@@ -18,7 +21,7 @@ const apy = async () => {
 
   const repriceEvents = await get7dRepriceEvents()
   // sort by blockNumber descending
-  repriceEvents.sort((a,b) => (b.blockNumber - a.blockNumber));
+  repriceEvents.sort((a,b) => Number(b.blockNumber) - Number(a.blockNumber));
 
   const eventNow = repriceEvents[0];
   const eventPrev = repriceEvents[1];
@@ -57,6 +60,7 @@ const apy = async () => {
       apyBase: apr1d,
       apyBase7d: apr7d,
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+      token: rswETH,
     },
   ];
 };
@@ -78,38 +82,27 @@ async function get7dRepriceEvents() {
     await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp14dayAgo}`)
   ).data.height;
 
-  const iface = new ethers.utils.Interface([
-    'event Reprice (uint256 newEthReserves, uint256 newRswETHToETHRate, uint256 nodeOperatorRewards, uint256 swellTreasuryRewards, uint256 totalETHDeposited)',
-  ]);
+  const repriceEvents = await sdk.getEventLogs({
+    target: rswETH,
+    eventAbi: EVENTS.Reprice,
+    fromBlock: block14dayAgo,
+    toBlock: blockNow.number,
+    chain: "ethereum",
+  });
 
-  const repriceEvents = (
-    await sdk.api2.util.getLogs({
-      target: rswETH,
-      topic: '',
-      fromBlock: block14dayAgo,
-      toBlock: blockNow.number,
-      keys: [],
-      topics: [iface.getEventTopic('Reprice')],
-      chain: "ethereum",
-      entireLog: true,
-    })
-  ).output
-    .filter((ev) => !ev.removed)
-    .map((ev) => {
-        ev.decoded = iface.parseLog(ev).args
-        return ev
-      }
-    );
-
-  return repriceEvents;
+  // Map args to decoded for backwards compatibility with calcRate and interpolate functions
+  return repriceEvents.map((ev) => {
+    ev.decoded = ev.args;
+    return ev;
+  });
 }
 
 async function calcRate(
   eventNow,
   eventPrev
 ) {
-  const rateDelta = (eventNow.decoded[1]/eventPrev.decoded[1]) - 1;
-  const blockDelta = (eventNow.blockNumber - eventPrev.blockNumber);
+  const rateDelta = (Number(eventNow.decoded[1])/Number(eventPrev.decoded[1])) - 1;
+  const blockDelta = Number(eventNow.blockNumber) - Number(eventPrev.blockNumber);
   const timeDeltaSeconds = blockDelta*12; // assuming 12 seconds per block
   const apr1d = (rateDelta*365*100)/(timeDeltaSeconds/86400);
 

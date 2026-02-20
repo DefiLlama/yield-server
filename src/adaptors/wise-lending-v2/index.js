@@ -146,6 +146,7 @@ const getTokenData = async (chain, token, addresses, contract) => {
       // apyRewardBorrow: borrowRate,
       totalSupplyUsd,
       totalBorrowUsd,
+      underlyingTokens: [underlyingAddress],
     };
   } catch (e) {
     console.log('error', chain, token, address[token], wiseSecurity, wiseLending, e);

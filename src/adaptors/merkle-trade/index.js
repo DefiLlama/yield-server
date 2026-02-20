@@ -5,7 +5,7 @@ const MERKLE_RESOURCE_ACCOUNT =
 
 async function main() {
   const result = await utils.getData(
-    `https://api.prod.merkle.trade/v1/mklp/stats?p=30d`
+    `https://api.prod.merkle.trade/v2/mklp/stats?p=30d`
   );
   const tvl = result.usdcBalance;
   const apr30d = result.apr;
@@ -17,6 +17,7 @@ async function main() {
       symbol: utils.formatSymbol('zusdc'),
       tvlUsd: tvl,
       apyBase: apr30d,
+      underlyingTokens: ['0xf22bede237a07e121b56d91a491eb7bcdfd1f5907926a9e58338f964a01b17fa::asset::USDC'],
     },
   ];
 }

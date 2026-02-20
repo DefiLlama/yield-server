@@ -42,6 +42,7 @@ const VYUSD_CONTRACTS = {
   tac: "0xF4F447E6AFa04c9D11Ef0e2fC0d7f19C24Ee55de",
   linea: "0x168BC4DB5dcbecA279983324d3082c47e47569E7",
   plasma: "0xF4F447E6AFa04c9D11Ef0e2fC0d7f19C24Ee55de",
+  saga: "0x704a58f888f18506C9Fc199e53AE220B5fdCaEd8",
 };
 
 const YETH_CONTRACTS = {
@@ -64,18 +65,49 @@ const YBTC_CONTRACTS = {
 const VYBTC_CONTRACTS = {
   ethereum: "0x1e2a5622178f93EFd4349E2eB3DbDF2761749e1B",
 };
+
+const YPRISM_CONTRACTS = {
+  ethereum: '0xdd5eff0756db08bad0ff16b66f88f506e7318894',
+  bsc: '0xdd5eff0756db08bad0ff16b66f88f506e7318894',
+};
+// Underlying token addresses per chain (USDC for yUSD/vyUSD, WETH for yETH/vyETH, WBTC for yBTC/vyBTC)
+const UNDERLYING_TOKENS = {
+  ethereum: {
+    USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+    WETH: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+    WBTC: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
+  },
+  optimism: {
+    USDC: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
+    WETH: '0x4200000000000000000000000000000000000006',
+  },
+  arbitrum: {
+    USDC: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    WETH: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+  },
+  base: {
+    USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    WETH: '0x4200000000000000000000000000000000000006',
+  },
+  sonic: {
+    USDC: '0x29219dd400f2Bf60E5a23d13Be72B486D4038894',
+  },
+  plume_mainnet: {
+    USDC: '0xB0EA0eF6D3B0E01747a7145d83022afC4a7e30Fd',
+  },
+  bsc: {
+    USDC: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
+  },
+  avax: {
+    USDC: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+  },
+  linea: {
+    USDC: '0x176211869cA2b568f2A7D4EE941E073a821EE1ff',
+  },
+};
+
 // Supported chains
 const SUPPORTED_CHAINS = Object.keys(YUSD_CONTRACTS);
-
-// API endpoints
-const API_ENDPOINTS = {
-  yUSD: 'https://ctrl.yield.fi/t/apy/yusd/apyHistory',
-  vyUSD: 'https://ctrl.yield.fi/t/apy/vyusd/apyHistory',
-  yETH: 'https://ctrl.yield.fi/t/apy/yeth/apyHistory',
-  vyETH: 'https://ctrl.yield.fi/t/apy/vyeth/apyHistory',
-  yBTC: 'https://ctrl.yield.fi/t/apy/ybtc/apyHistory',
-  vyBTC: 'https://ctrl.yield.fi/t/apy/vybtc/apyHistory',
-};
 
 // ABIs
 const ABIS = {
@@ -89,29 +121,19 @@ const ABIS = {
  */
 const fetchLatestAPY = async (tokenSymbol) => {
   try {
-    const endpoint = API_ENDPOINTS[tokenSymbol];
-    if (!endpoint) {
-      console.error(`No API endpoint found for ${tokenSymbol}`);
-      return 0;
-    }
+    const endpoint = `https://gw.yield.fi/vault/api/public/vaults/${tokenSymbol?.toLowerCase()}`;
 
     const response = await fetch(endpoint);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
 
     const data = await response.json();
-    const apyHistory = data.apy_history;
-
-    if (!apyHistory || !Array.isArray(apyHistory) || apyHistory.length === 0) {
+    const _apy = data?.data?.vault?.metrics?.apy;
+    if (!_apy) {
       console.error(`No APY history data found for ${tokenSymbol}`);
       return 0;
     }
 
-    // Get the latest APY (first entry in the array is the most recent)
-    const latestAPY = apyHistory[0].apy;
-
-    console.log(`${tokenSymbol} latest APY: ${latestAPY.toFixed(2)}%`);
+    // Convert APY from decimal to percentage
+    const latestAPY = _apy * 100;
     return parseFloat(latestAPY.toFixed(2));
   } catch (error) {
     console.error(`Error fetching APY for ${tokenSymbol}:`, error);
@@ -149,6 +171,24 @@ const getTVL = async (tokenAddress, chain, decimals = DECIMALS.yUSD) => {
 };
 
 /**
+ * Get underlying token for a symbol on a chain
+ */
+const getUnderlying = (symbol, chain) => {
+  const chainTokens = UNDERLYING_TOKENS[chain];
+  if (!chainTokens) return null;
+
+  const lowerSymbol = symbol.toLowerCase();
+  if (lowerSymbol.includes('usd') || lowerSymbol.includes('prism')) {
+    return chainTokens.USDC;
+  } else if (lowerSymbol.includes('eth')) {
+    return chainTokens.WETH;
+  } else if (lowerSymbol.includes('btc')) {
+    return chainTokens.WBTC;
+  }
+  return null;
+};
+
+/**
  * Create pool object for a token
  * @param {string} tokenAddress - Token contract address
  * @param {string} symbol - Token symbol
@@ -157,14 +197,18 @@ const getTVL = async (tokenAddress, chain, decimals = DECIMALS.yUSD) => {
  * @param {number} apy - Annual Percentage Yield
  * @returns {Object} Pool object
  */
-const createPool = (tokenAddress, symbol, chain, tvl, apy) => ({
-  pool: `${tokenAddress}-${chain}`,
-  chain: chain,
-  project: 'yieldfi',
-  symbol: utils.formatSymbol(symbol),
-  tvlUsd: tvl,
-  apyBase: apy,
-});
+const createPool = (tokenAddress, symbol, chain, tvl, apy) => {
+  const underlying = getUnderlying(symbol, chain);
+  return {
+    pool: `${tokenAddress}-${chain}`,
+    chain: chain,
+    project: 'yieldfi',
+    symbol: utils.formatSymbol(symbol),
+    tvlUsd: tvl,
+    apyBase: apy,
+    ...(underlying && { underlyingTokens: [underlying] }),
+  };
+};
 
 /**
  * Process token data for a specific chain
@@ -203,7 +247,7 @@ const poolsFunction = async () => {
   const chainPromises = SUPPORTED_CHAINS.map(async (chain) => {
     const tokenPromises = [
       processToken(YUSD_CONTRACTS[chain], 'yUSD', chain),
-      processToken(VYUSD_CONTRACTS[chain], 'vyUSD', chain)
+      processToken(VYUSD_CONTRACTS[chain], 'vyUSD', chain),
     ];
 
     // Only process yETH, vyETH, yBTC, vyBTC on Ethereum
@@ -212,7 +256,26 @@ const poolsFunction = async () => {
         processToken(YETH_CONTRACTS[chain], 'yETH', chain),
         processToken(VYETH_CONTRACTS[chain], 'vyETH', chain),
         processToken(YBTC_CONTRACTS[chain], 'yBTC', chain),
-        processToken(VYBTC_CONTRACTS[chain], 'vyBTC', chain)
+        processToken(VYBTC_CONTRACTS[chain], 'vyBTC', chain),
+        processToken(YPRISM_CONTRACTS[chain], 'yPrism', chain)
+      );
+    }
+    if (chain === 'arbitrum' || chain === 'base') {
+      tokenPromises.push(
+        processToken(YETH_CONTRACTS[chain], 'yETH', chain),
+        processToken(VYETH_CONTRACTS[chain], 'vyETH', chain)
+      );
+    }
+
+    // Process yETH for saga chain (vyETH not available on saga)
+    if (chain === 'saga') {
+      tokenPromises.push(processToken(YETH_CONTRACTS[chain], 'yETH', chain));
+      // Note: vyETH is not supported on saga chain - VYETH_CONTRACTS has no saga entry
+    }
+
+    if (chain === 'bsc') {
+      tokenPromises.push(
+        processToken(YPRISM_CONTRACTS[chain], 'yPrism', chain)
       );
     }
 
@@ -233,5 +296,5 @@ const poolsFunction = async () => {
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
-  url: 'https://yield.fi/mint',
+  url: 'https://yield.fi/vaults/yprism',
 };

@@ -13,6 +13,7 @@ const apy = async () => {
       tvlUsd: d.tvlUsd,
       apyBase: d.apyBase,
       apyReward: d.apyReward,
+      underlyingTokens: d.underlyingTokens,
       rewardTokens: d.rewardTokens,
       poolMeta: d.poolMeta
     };

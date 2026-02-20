@@ -201,6 +201,7 @@ const apy = async () => {
       ltv,
       borrowFactor,
       url,
+      underlyingTokens: [m.token],
     };
   });
   return pools;

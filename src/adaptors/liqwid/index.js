@@ -1,5 +1,6 @@
 const { request, gql } = require('graphql-request');
-const fetch = require('node-fetch');
+const LQ_TOKEN_ID =
+  'da8c30857834c6ae7203935b89278c532b3995245295456f993e1d244c51';
 
 const apy = async () => {
   const endpoint = 'https://v2.api.liqwid.finance/graphql';
@@ -8,7 +9,7 @@ const apy = async () => {
     query {
       liqwid {
         data {
-          markets (input: { perPage: 100 }) {
+          markets(input: { perPage: 100 }) {
             page
             results {
               id
@@ -20,6 +21,7 @@ const apy = async () => {
               borrow
               utilization
               asset {
+                id
                 price
               }
               registry {
@@ -53,8 +55,10 @@ const apy = async () => {
           ? market.lqSupplyAPY
           : market.lqSupplyAPY * 100,
       apyBase: market.supplyAPY * 100,
-      rewardTokens: [market.id, 'LQ'],
-      underlyingTokens: [market.id],
+      rewardTokens: market.asset.id
+        ? [market.asset.id, LQ_TOKEN_ID]
+        : [LQ_TOKEN_ID],
+      underlyingTokens: market.asset.id ? [market.asset.id] : [],
       apyBaseBorrow:
         market.borrowAPY * 100 > 100
           ? market.borrowAPY

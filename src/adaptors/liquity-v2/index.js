@@ -1,13 +1,21 @@
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
+const { ethers } = require('ethers');
 
 const BOLD_TOKEN = '0x6440f144b7e50d6a8439336510312d2f54beb01d';
+const DAY_IN_SECONDS = 24 * 60 * 60;
+
+const EVENTS = {
+  StabilityPoolBoldBalanceUpdated: 'event StabilityPoolBoldBalanceUpdated(uint256 _newBalance)',
+  Liquidation: 'event Liquidation(uint256 _debtOffsetBySP, uint256 _debtRedistributed, uint256 _boldGasCompensation, uint256 _collGasCompensation, uint256 _collSentToSP, uint256 _collRedistributed, uint256 _collSurplus, uint256 _L_coll, uint256 _L_boldDebt, uint256 _price)',
+};
 
 const WETH_BRANCH = {
  activePool: '0xeb5a8c825582965f1d84606e078620a84ab16afe',
  defaultPool:  '0xd4558240d50c2e219a21c9d25afd513bb6e5b1a0',
  stabilityPool: '0x5721cbbd64fc7ae3ef44a0a3f9a790a9264cf9bf',
  borrowerOperations: '0x0b995602b5a797823f92027e8b40c0f2d97aff1c',
+ troveManager: '0x7bcb64b2c9206a5b699ed43363f6f98d4776cf5a',
  collToken: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'.toLowerCase(),
  symbol: 'ETH'
 }
@@ -17,6 +25,7 @@ const WSTETH_BRANCH = {
   defaultPool:  '0xd796e1648526400386cc4d12fa05e5f11e6a22a1',
   stabilityPool: '0x9502b7c397e9aa22fe9db7ef7daf21cd2aebe56b',
   borrowerOperations: '0x94c1610a7373919bd9cfb09ded19894601f4a1be',
+  troveManager: '0xa2895d6a3bf110561dfe4b71ca539d84e1928b22',
   collToken: '0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0'.toLowerCase(),
   symbol: 'WSTETH'
 }
@@ -26,6 +35,7 @@ const RETH_BRANCH = {
   defaultPool:  '0x5cc5cefd034fdc4728d487a72ca58a410cddcd6b',
   stabilityPool: '0xd442e41019b7f5c4dd78f50dc03726c446148695',
   borrowerOperations: '0xa351d5b9cda9eb518727c3ceff02208915fda60d',
+  troveManager: '0xb2b2abeb5c357a234363ff5d180912d319e3e19e',
   collToken: '0xae78736cd615f374d3085123a210448e74fc6393'.toLowerCase(),
   symbol: 'RETH'
 }
@@ -33,6 +43,19 @@ const RETH_BRANCH = {
 const branches = [WETH_BRANCH, WSTETH_BRANCH, RETH_BRANCH];
 
 const SP_YIELD_SPLIT = 0.75; 
+
+const toNumber = (value) => Number(ethers.utils.formatUnits(value, 18));
+
+const getBlockWindow = async () => {
+  const latestBlock = await sdk.api.util.getLatestBlock('ethereum');
+  const startTimestamp = latestBlock.timestamp - DAY_IN_SECONDS;
+  const startBlock = await sdk.api.util.lookupBlock(startTimestamp, { chain: 'ethereum' });
+
+  return {
+    endBlock: latestBlock.number,
+    startBlock: startBlock.number,
+  };
+};
 
 const ABIS = {
     getTotalBoldDeposits: {
@@ -164,13 +187,142 @@ const ABIS = {
     }
   };
 
+  const getStabilityPoolDepositsAtBlock = async (stabilityPoolAddr, blockNumber) => {
+    const res = await sdk.api.abi.call({
+        target: stabilityPoolAddr,
+        abi: ABIS.getTotalBoldDeposits,
+        block: blockNumber,
+        chain: 'ethereum',
+      });
+ 
+    return toNumber(res.output);
+  };
+  
+  const getStabilityPoolBalanceUpdates = async (stabilityPoolAddr, startBlock, endBlock) => {
+    const logs = await sdk.getEventLogs({
+      target: stabilityPoolAddr,
+      eventAbi: EVENTS.StabilityPoolBoldBalanceUpdated,
+      fromBlock: startBlock,
+      toBlock: endBlock,
+      chain: 'ethereum',
+    });
+  
+    return logs
+      .map((log) => ({
+        blockNumber: Number(log.blockNumber),
+        logIndex: Number(log.logIndex),
+        balance: toNumber(log.args._newBalance),
+        transactionHash: log.transactionHash,
+      }))
+      .sort(
+        (a, b) =>
+          a.blockNumber - b.blockNumber || a.logIndex - b.logIndex
+      );
+  };
+  
+  const getLiquidationEvents = async (troveManagerAddr, startBlock, endBlock) => {
+    const logs = await sdk.getEventLogs({
+      target: troveManagerAddr,
+      eventAbi: EVENTS.Liquidation,
+      fromBlock: startBlock,
+      toBlock: endBlock,
+      chain: 'ethereum',
+    });
+  
+    return logs
+      .map((log) => {
+        return {
+          blockNumber: Number(log.blockNumber),
+          logIndex: Number(log.logIndex),
+          transactionHash: log.transactionHash,
+          debtOffsetBySP: toNumber(log.args._debtOffsetBySP),
+          collSentToSP: toNumber(log.args._collSentToSP),
+          price: toNumber(log.args._price),
+        };
+      })
+      .sort(
+        (a, b) =>
+          a.blockNumber - b.blockNumber || a.logIndex - b.logIndex
+      );
+  };
+
+  const isBeforeLog = (a, b) =>
+    a.blockNumber < b.blockNumber ||
+    (a.blockNumber === b.blockNumber && a.logIndex < b.logIndex);
+
+  const calculateLiquidationApyForBranch = async (
+    branch,
+    blockWindow,
+    boldPrice
+  ) => {
+    // Skip until TroveManager addresses are populated.
+    if (!branch.troveManager || branch.troveManager === '0x0000000000000000000000000000000000000000') {
+      return 0;
+    }
+
+    // Fetch all liquidations for the branch in the past 24h.
+    const liquidations = await getLiquidationEvents(
+      branch.troveManager,
+      blockWindow.startBlock,
+      blockWindow.endBlock
+    );
+
+    if (!liquidations.length) return 0;
+
+    // Seed the stability pool balance at the start block and gather later balance updates.
+    const [startBalance, balanceUpdates] = await Promise.all([
+      getStabilityPoolDepositsAtBlock(branch.stabilityPool, blockWindow.startBlock),
+      getStabilityPoolBalanceUpdates(branch.stabilityPool, blockWindow.startBlock, blockWindow.endBlock),
+    ]);
+
+    let currentBalance = startBalance;
+    let balanceIdx = 0;
+    let dailyReturn = 0;
+
+    const advanceBalance = (target) => {
+      while (
+        balanceIdx < balanceUpdates.length &&
+        isBeforeLog(balanceUpdates[balanceIdx], target)
+      ) {
+        currentBalance = balanceUpdates[balanceIdx].balance;
+        balanceIdx++;
+      }
+    };
+
+    for (const liquidation of liquidations) {
+      advanceBalance(liquidation);
+
+      // Only process liquidations if there was SP liquidity at that instant
+      if (currentBalance === 0) continue;
+
+      // Net liquidation gain is collateral sent minus BOLD burned, expressed in USD
+      const collateralValueUsd = liquidation.collSentToSP * liquidation.price;
+      const rewardUsd =
+        collateralValueUsd - liquidation.debtOffsetBySP * boldPrice;
+
+      if (rewardUsd <= 0) continue;
+
+      // Denominator is the SP deposits present just before the liquidation
+      const depositsUsd = currentBalance * boldPrice;
+      if (depositsUsd <= 0) continue;
+
+      dailyReturn += rewardUsd / depositsUsd;
+    }
+    
+    // Convert daily return to percentage yearly return
+    return dailyReturn * 100 * 365;
+  };
+
   const getSPSupplyAndApy = async (spAddr, avgBranchInterestRate, branchBoldSupply) => {
-      const spSupply = (await sdk.api.abi.call({
+      let spSupply = (await sdk.api.abi.call({
         target: spAddr,
         abi: ABIS.getTotalBoldDeposits,
         chain: 'ethereum',
       })).output / 1e18;
  
+  
+    if (spSupply === 0) return [0, 0]
+
     // Yield is the branch interest rate amplifyed by ratio of branch supply to the BOLD in the SP
     const spApy = avgBranchInterestRate * SP_YIELD_SPLIT * branchBoldSupply / spSupply;
 
@@ -226,7 +378,6 @@ const ABIS = {
 
     return 1 / (res.output / 1e18);
   }
-  
   const getNewApproxAvgInterestRateFromTroveChange = async(activePoolAddr) => {
     const res = await sdk.api.abi.call({
         target: activePoolAddr,
@@ -266,6 +417,8 @@ const ABIS = {
     RETH_BRANCH.price = prices[RETH_BRANCH.collToken];
     
     const pools = [];
+    const blockWindow = await getBlockWindow();
+    const boldPrice = prices[BOLD_TOKEN] ?? 1;
 
     for (const branch of branches) {
       const collPools = [branch.activePool, branch.defaultPool];
@@ -281,6 +434,12 @@ const ABIS = {
 
       const [spSupply, spApy] = await getSPSupplyAndApy(branch.stabilityPool, borrowApy, totalDebt);
       const spSupplyUsd = spSupply * prices[BOLD_TOKEN];
+      const liquidationApy = await calculateLiquidationApyForBranch(
+        branch,
+        blockWindow,
+        boldPrice
+      );
+      const totalSpApy = spApy + liquidationApy;
 
       const spPool = 
         {
@@ -288,7 +447,7 @@ const ABIS = {
           project: 'liquity-v2',
           symbol: 'BOLD',
           chain: 'ethereum',
-          apy: spApy,
+          apy: totalSpApy,
           tvlUsd: spSupplyUsd,
           underlyingTokens: [BOLD_TOKEN],
           rewardTokens: [BOLD_TOKEN, branch.collToken],

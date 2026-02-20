@@ -32,6 +32,7 @@ const apy = async () => {
       apyBase7d: apyBase,
       volumeUsd1d: pool.volume_24h,
       volumeUsd7d: pool.volume_7d,
+      underlyingTokens: [pool.base_address, pool.quote_address].filter(Boolean),
       url: `https://app.osmosis.zone/pool/${pool.pool_id}`,
       poolMeta: `#${pool.pool_id}`,
     };
