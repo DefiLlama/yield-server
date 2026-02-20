@@ -71,14 +71,11 @@ async function processToken({ configID, chain, tokenAddress, tvlUsd }) {
     toBlock,
     existingMap,
     // Checkpoint callback: persist intermediate state every 500k events
-    async (intermediateMap, processedCount) => {
+    async (intermediateMap, processedCount, currentBlock) => {
       if (processedCount - lastCheckpointCount >= 500_000) {
-        console.log(`Checkpoint at ${processedCount} events processed — saving intermediate state`);
-        // Use a rough midpoint block estimate for checkpoint
-        const progress = processedCount / (processedCount + 100_000); // conservative estimate
-        const checkpointBlock = fromBlock + Math.floor((toBlock - fromBlock) * progress);
+        console.log(`Checkpoint at ${processedCount} events, block ${currentBlock} — saving intermediate state`);
         try {
-          await upsertHolderState(configID, checkpointBlock, intermediateMap);
+          await upsertHolderState(configID, currentBlock, intermediateMap);
           lastCheckpointCount = processedCount;
         } catch (e) {
           console.log(`Checkpoint save failed: ${e.message}`);
