@@ -22,7 +22,7 @@ const CHAIN_TYPE_AND_NAMES: ByChainTypeAndId<string> = {
     42_161: 'Arbitrum',
     9_745: 'Plasma',
     5_464: 'Saga',
-    56: 'Bsc',
+    56: 'BSC',
   },
   aptos: {
     1: 'Aptos',
