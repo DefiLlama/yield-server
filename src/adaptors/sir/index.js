@@ -3,11 +3,11 @@ const utils = require("../utils");
 const { ethers } = require("ethers");
 
 const ETHEREUM_SUBGRAPH_URL =
-  "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-ethereum-yield-1/yield/gn";
+  "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-ethereum-subgraph-1/v2/gn";
 const HYPER_SUBGRAPH_URL =
-  "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-hyperevm-yield-1/yield/gn";
+  "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-hyperevm-subgraph-1/v2/gn
 const MEGAETH_SUBGRAPH_URL =
-  "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-megaeth-yield-1/yield/gn";
+  "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-megaeth-subgraph-1/v2/gn";
 
 const ETHEREUM_SIR =
   "0x4Da4fb565Dcd5D5C5dB495205c109bA983A8ABa2".toLowerCase();
