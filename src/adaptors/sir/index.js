@@ -5,7 +5,7 @@ const { ethers } = require("ethers");
 const ETHEREUM_SUBGRAPH_URL =
   "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-ethereum-subgraph-1/v2/gn";
 const HYPER_SUBGRAPH_URL =
-  "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-hyperevm-subgraph-1/v2/gn
+  "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-hyperevm-subgraph-1/v2/gn";
 const MEGAETH_SUBGRAPH_URL =
   "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-megaeth-subgraph-1/v2/gn";
 
