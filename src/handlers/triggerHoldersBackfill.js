@@ -4,7 +4,7 @@ const { getPoolsWithoutHolderState } = require('../queries/holder');
 const {
   parsePoolField,
   isValidEvmAddress,
-  SUPPORTED_CHAINS,
+  resolveIndexerChain,
 } = require('../utils/holderScanner');
 
 module.exports.handler = async (event, context) => {
@@ -32,7 +32,7 @@ const main = async () => {
     const { tokenAddress, chain } = parsePoolField(pool.pool);
 
     // Skip unsupported chains
-    if (!chain || !SUPPORTED_CHAINS.has(chain)) {
+    if (!chain || !resolveIndexerChain(chain)) {
       skipped++;
       continue;
     }
