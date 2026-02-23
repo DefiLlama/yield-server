@@ -10,7 +10,7 @@ const {
   getYieldLendBorrow,
 } = require('../queries/yield');
 const { getStat } = require('../queries/stat');
-const { getLatestHolders, getHolderOffset } = require('../queries/holder');
+
 const { welfordUpdate } = require('../utils/welford');
 const poolsResponseColumns = require('../utils/enrichedColumns');
 const { getExcludedAdaptors } = require('../utils/exclude');
@@ -94,46 +94,6 @@ const main = async () => {
     ...p,
     apyMean30d: avgApy30d[p.configID] ?? null,
   }));
-
-  // add holder data
-  console.log('\nadding holder data');
-  try {
-    const holderData = await getLatestHolders();
-    const [holderOffset7d, holderOffset30d] = await Promise.all([
-      getHolderOffset(7),
-      getHolderOffset(30),
-    ]);
-    dataEnriched = dataEnriched.map((p) => {
-      const h = holderData[p.configID];
-      const prev7d = holderOffset7d[p.configID];
-      const prev30d = holderOffset30d[p.configID];
-      return {
-        ...p,
-        holderCount: h?.holderCount ?? null,
-        avgPositionUsd: h?.avgPositionUsd != null
-          ? +h.avgPositionUsd.toFixed(0) : null,
-        medianPositionUsd: h?.medianPositionUsd != null
-          ? +h.medianPositionUsd.toFixed(0) : null,
-        top10Pct: h?.top10Pct != null
-          ? +h.top10Pct.toFixed(2) : null,
-        holderChange7d: (h?.holderCount != null && prev7d != null)
-          ? h.holderCount - prev7d : null,
-        holderChange30d: (h?.holderCount != null && prev30d != null)
-          ? h.holderCount - prev30d : null,
-      };
-    });
-  } catch (err) {
-    console.log('holder data fetch failed, continuing without it', err.message);
-    dataEnriched = dataEnriched.map((p) => ({
-      ...p,
-      holderCount: null,
-      avgPositionUsd: null,
-      medianPositionUsd: null,
-      top10Pct: null,
-      holderChange7d: null,
-      holderChange30d: null,
-    }));
-  }
 
   // add info about stablecoin, exposure etc.
   console.log('\nadding additional pool info fields');
