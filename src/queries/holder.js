@@ -1,9 +1,11 @@
 const { pgp, connect } = require('../utils/dbConnection');
 
-const holderTable = 'holder';
+const holderTable = 'holder_daily';
 const stateTable = 'holder_state';
 
-// Insert a daily holder snapshot (with duplicate prevention)
+// Upsert a daily holder snapshot (one row per configID/day).
+// Callers must pass a midnight-UTC timestamp so the unique index
+// naturally deduplicates same-day re-runs.
 const insertHolder = async (payload) => {
   const conn = await connect();
 
@@ -19,7 +21,12 @@ const insertHolder = async (payload) => {
   const cs = new pgp.helpers.ColumnSet(columns, { table: holderTable });
   const query =
     pgp.helpers.insert(payload, cs) +
-    ' ON CONFLICT ("configID", timestamp) DO NOTHING';
+    ` ON CONFLICT ("configID", timestamp) DO UPDATE SET
+      "holderCount" = EXCLUDED."holderCount",
+      "avgPositionUsd" = EXCLUDED."avgPositionUsd",
+      "top10Pct" = EXCLUDED."top10Pct",
+      "top10Holders" = EXCLUDED."top10Holders",
+      "medianPositionUsd" = EXCLUDED."medianPositionUsd"`;
   await conn.query(query);
 };
 
@@ -88,7 +95,7 @@ const getLatestHolders = async () => {
   const query = `
     SELECT DISTINCT ON ("configID")
       "configID", "holderCount", "avgPositionUsd", "top10Pct", "medianPositionUsd"
-    FROM holder
+    FROM holder_daily
     ORDER BY "configID", timestamp DESC
   `;
   const rows = await conn.query(query);
@@ -107,7 +114,7 @@ const getHolderHistory = async (configID) => {
 
   const query = `
     SELECT timestamp, "holderCount", "avgPositionUsd", "top10Pct", "medianPositionUsd"
-    FROM holder
+    FROM holder_daily
     WHERE "configID" = $<configID>
     ORDER BY timestamp ASC
   `;
@@ -138,23 +145,23 @@ const getPoolsWithoutHolderState = async (tvlLB = 10000) => {
   return conn.query(query, { tvlLB });
 };
 
-// Get holderCount from N days ago per pool (for holderChange7d/30d)
+// Get holderCount from N days ago per pool (for holderChange7d/30d).
+// Timestamps are at midnight UTC, so we target the exact day.
+// Falls back to the closest row within ±1 day if the exact day is missing.
 const getHolderOffset = async (days) => {
   const conn = await connect();
-  const daysMs = days * 60 * 60 * 24 * 1000;
-  const tOffset = Date.now() - daysMs;
-  const h = 6; // 6h window (holder snapshots are daily, ~06:00 UTC)
-  const tWindow = 60 * 60 * h * 1000;
-  const tsLB = new Date(tOffset - tWindow);
-  const tsUB = new Date(tOffset + tWindow);
+  const target = new Date();
+  target.setUTCHours(0, 0, 0, 0);
+  target.setUTCDate(target.getUTCDate() - days);
 
   const query = `
     SELECT DISTINCT ON ("configID") "configID", "holderCount"
-    FROM holder
-    WHERE timestamp >= $<tsLB> AND timestamp <= $<tsUB>
-    ORDER BY "configID", timestamp DESC
+    FROM holder_daily
+    WHERE timestamp BETWEEN $<target> - INTERVAL '1 day'
+                        AND $<target> + INTERVAL '1 day'
+    ORDER BY "configID", ABS(EXTRACT(EPOCH FROM (timestamp - $<target>)))
   `;
-  const rows = await conn.query(query, { tsLB, tsUB });
+  const rows = await conn.query(query, { target });
   const result = {};
   for (const row of rows) {
     result[row.configID] = row.holderCount;
