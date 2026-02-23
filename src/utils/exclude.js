@@ -221,7 +221,9 @@ const excludeAdaptors = [
   'stakehouse',
   'mev-protocol',
   'genesislrt-(native-restaking)',
-  'hord'
+  'hord',
+  'holdstation-defutures',
+  'merkle-trade',
 ];
 
 const excludePools = [
