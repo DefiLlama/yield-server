@@ -65,6 +65,7 @@ const getAllHolderStates = async (tvlLB = 10000) => {
     WITH latest_tvl AS (
       SELECT DISTINCT ON ("configID") "configID", "tvlUsd"
       FROM yield
+      WHERE timestamp >= NOW() - INTERVAL '7 days'
       ORDER BY "configID", timestamp DESC
     )
     SELECT
@@ -121,6 +122,7 @@ const getPoolsWithoutHolderState = async (tvlLB = 10000) => {
     WITH latest_tvl AS (
       SELECT DISTINCT ON ("configID") "configID", "tvlUsd"
       FROM yield
+      WHERE timestamp >= NOW() - INTERVAL '7 days'
       ORDER BY "configID", timestamp DESC
     )
     SELECT
