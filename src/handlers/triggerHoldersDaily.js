@@ -6,7 +6,7 @@ const {
   getLatestBlock,
   parsePoolField,
   isValidEvmAddress,
-  SUPPORTED_CHAINS,
+  resolveIndexerChain,
 } = require('../utils/holderScanner');
 const {
   getAllHolderStates,
@@ -39,7 +39,7 @@ const main = async () => {
   const chains = [...new Set(parsedPools.map((p) => p.chain).filter(Boolean))];
   await Promise.all(
     chains.map(async (chain) => {
-      if (!SUPPORTED_CHAINS.has(chain)) return;
+      if (!resolveIndexerChain(chain)) return;
       try {
         chainBlocks[chain] = await getLatestBlock(chain);
       } catch (e) {
@@ -63,7 +63,7 @@ const main = async () => {
     const results = await Promise.allSettled(
       batch.map(async (pool) => {
         const { tokenAddress, chain } = pool;
-        if (!chain || !chainBlocks[chain] || !SUPPORTED_CHAINS.has(chain)) {
+        if (!chain || !chainBlocks[chain] || !resolveIndexerChain(chain)) {
           return 'skipped';
         }
         if (!isValidEvmAddress(tokenAddress)) {
@@ -148,7 +148,7 @@ const main = async () => {
       for (const pool of newPools.slice(0, 5)) {
         try {
           const { tokenAddress, chain } = parsePoolField(pool.pool);
-          if (!chain || !chainBlocks[chain] || !SUPPORTED_CHAINS.has(chain)) continue;
+          if (!chain || !chainBlocks[chain] || !resolveIndexerChain(chain)) continue;
           if (!isValidEvmAddress(tokenAddress)) continue;
 
           const toBlock = chainBlocks[chain];
@@ -182,7 +182,7 @@ const main = async () => {
 
       for (const pool of newPools) {
         const { tokenAddress, chain } = parsePoolField(pool.pool);
-        if (!chain || !SUPPORTED_CHAINS.has(chain)) continue;
+        if (!chain || !resolveIndexerChain(chain)) continue;
         if (!isValidEvmAddress(tokenAddress)) continue;
 
         messages.push({
