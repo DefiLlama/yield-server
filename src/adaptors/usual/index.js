@@ -12,8 +12,13 @@ const CONFIG = {
   ETHEREUM: {
     USD0PP: '0x35D8949372D46B7a3D5A56006AE77B215fc69bC0',
     USD0: '0x73A15FeD60Bf67631dC6cd7Bc5B6e8da8190aCF5',
+    SUSD0: '0xd861bE82dEe3223CFBEd160791f6550b0704D406',
+    SEUR0: '0x35f43C6604B0DE814ABAa2D94C878BD1F5165478',
     ETH0: '0x734eec7930bc84eC5732022B9EB949A81fB89AbE',
+    EUR0: '0x3c89Cd1884E7beF73ca3ef08d2eF6EC338fD8E49',
+    EUROC: '0x1abaea1f7c830bd89acc67ec4af516284b1bc33c',
     STETH: '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84',
+    USD0a: '0x2e7fC02bE94BC7f0cD69DcAB572F64bcC173cd81',
     CHAIN: 'Ethereum',
   },
   ARBITRUM: {
@@ -29,9 +34,13 @@ const CONFIG = {
   USUALX_LOCKUP: '0x85B6F9BDdb10c6B320d07416a250F984f0F0E9ED',
   USUALX_LOCKUP_SYMBOL: 'lUSUALx (12 months)',
   USD0_SYMBOL: 'USD0',
+  USD0A_SYMBOL: 'USD0a',
+  SUSD0_SYMBOL: 'sUSD0',
+  SEUR0_SYMBOL: 'sEUR0',
+  EUR0_SYMBOL: 'EUR0',
   USUAL_SYMBOL: 'USUAL',
   USUALX_SYMBOL: 'USUALx',
-  USD0PP_SYMBOL: 'USD0++',
+  USD0PP_SYMBOL: 'bUSD0',
   ETH0_SYMBOL: 'ETH0',
   URLS: {
     REWARD_APR_RATE: 'https://app.usual.money/api/tokens/yields',
@@ -99,15 +108,33 @@ function createPoolData(
   };
 }
 
-async function getChainData(chainConfig) {
+async function getChainData(chainConfig, token, tokenPrice) {
   const supply = await getTokenSupply(chainConfig.CHAIN, chainConfig.USD0PP);
   const price = await getTokenPrice(chainConfig.CHAIN, chainConfig.USD0PP);
+  return { supply, price };
+}
+
+async function getChainDataSUSD0(chainConfig) {
+  const supply = await getTokenSupply(chainConfig.CHAIN, chainConfig.SUSD0);
+  const price = await getTokenPrice(chainConfig.CHAIN, chainConfig.USD0);
+  return { supply, price };
+}
+
+async function getChainDataSEUR0(chainConfig) {
+  const supply = await getTokenSupply(chainConfig.CHAIN, chainConfig.SEUR0);
+  const price = await getTokenPrice(chainConfig.CHAIN, chainConfig.EUROC);
   return { supply, price };
 }
 
 async function getETH0ChainData(chainConfig) {
   const supply = await getTokenSupply(chainConfig.CHAIN, chainConfig.ETH0);
   const price = await getTokenPrice(chainConfig.CHAIN, chainConfig.STETH);
+  return { supply, price };
+}
+
+async function getChainDataUSD0a(chainConfig) {
+  const supply = await getTokenSupply(chainConfig.CHAIN, chainConfig.USD0a);
+  const price = await getTokenPrice(chainConfig.CHAIN, chainConfig.USD0);
   return { supply, price };
 }
 
@@ -251,12 +278,37 @@ const apy = async () => {
   const ethData = await getChainData(CONFIG.ETHEREUM);
   const arbData = await getChainData(CONFIG.ARBITRUM);
 
+  // ETH0 APY
   const rewardEth0 = await getRewardData(
     CONFIG.ETH0_SYMBOL,
     CONFIG.USUAL_SYMBOL
   );
   const apyRewardEth0 = utils.aprToApy(rewardEth0.apr, CONFIG.WEEKS_PER_YEAR);
   const eth0Data = await getETH0ChainData(CONFIG.ETHEREUM);
+
+  // sUSD0 APY
+  const rewardSUsd0 = await getRewardData(
+    CONFIG.SUSD0_SYMBOL,
+    CONFIG.USD0_SYMBOL
+  );
+  const apyRewardSUsd0 = utils.aprToApy(rewardSUsd0.apr, CONFIG.WEEKS_PER_YEAR);
+  const susd0Data = await getChainDataSUSD0(CONFIG.ETHEREUM);
+
+  // sEUR0 APY
+  const rewardSEUR0 = await getRewardData(
+    CONFIG.SEUR0_SYMBOL,
+    CONFIG.EUR0_SYMBOL
+  );
+  const apyRewardSEUR0 = utils.aprToApy(rewardSEUR0.apr, CONFIG.WEEKS_PER_YEAR);
+  const seur0Data = await getChainDataSEUR0(CONFIG.ETHEREUM);
+
+  // USD0a APY
+  const rewardUSD0a = await getRewardData(
+    CONFIG.USD0A_SYMBOL,
+    CONFIG.USD0A_SYMBOL
+  );
+  const apyRewardUSD0a = utils.aprToApy(rewardUSD0a.apr, CONFIG.WEEKS_PER_YEAR);
+  const usd0aData = await getChainDataUSD0a(CONFIG.ETHEREUM);
 
   const usualbalance = await getTokenBalance(
     'Ethereum',
@@ -274,6 +326,33 @@ const apy = async () => {
   const { baseUsUSDSApy, usUSDSRewardApy, usUSDSppMarketCap } =
     await getUsUSDSAPY('Ethereum');
   return [
+    createPoolData(
+      CONFIG.ETHEREUM.CHAIN,
+      CONFIG.ETHEREUM.USD0a,
+      CONFIG.USD0A_SYMBOL,
+      usd0aData.supply * usd0aData.price,
+      apyRewardUSD0a,
+      CONFIG.ETHEREUM.USD0,
+      CONFIG.ETHEREUM.USD0
+    ),
+    createPoolData(
+      CONFIG.ETHEREUM.CHAIN,
+      CONFIG.ETHEREUM.SEUR0,
+      CONFIG.SEUR0_SYMBOL,
+      seur0Data.supply * seur0Data.price,
+      apyRewardSEUR0,
+      CONFIG.ETHEREUM.EUR0,
+      CONFIG.ETHEREUM.EUR0
+    ),
+    createPoolData(
+      CONFIG.ETHEREUM.CHAIN,
+      CONFIG.ETHEREUM.SUSD0,
+      CONFIG.SUSD0_SYMBOL,
+      susd0Data.supply * susd0Data.price,
+      apyRewardSUsd0,
+      CONFIG.ETHEREUM.USD0,
+      CONFIG.ETHEREUM.USD0
+    ),
     createPoolData(
       CONFIG.ETHEREUM.CHAIN,
       CONFIG.ETHEREUM.ETH0,
