@@ -89,7 +89,7 @@ async function apy() {
       const totalBorrowUsd = totalSupplyUsd - tvlUsd;
 
       return {
-        pool: `${pool.tokenAddress}-realt`.toLowerCase(),
+        pool: `${pool.tokenAddress}-realt`,
         chain: utils.formatChain(CHAIN),
         project: 'realt-tokens',
         symbol: pool.symbol,
