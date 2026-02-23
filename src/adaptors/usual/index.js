@@ -4,10 +4,6 @@ const utils = require('../utils');
 const ethers = require('ethers');
 const abi = require('./abi');
 
-const API_ALIASES = {
-  'USD0++': 'bUSD0',
-};
-
 const CONFIG = {
   ETHEREUM: {
     USD0PP: '0x35D8949372D46B7a3D5A56006AE77B215fc69bC0',
@@ -108,7 +104,7 @@ function createPoolData(
   };
 }
 
-async function getChainData(chainConfig, token, tokenPrice) {
+async function getChainDataBUSD0(chainConfig) {
   const supply = await getTokenSupply(chainConfig.CHAIN, chainConfig.USD0PP);
   const price = await getTokenPrice(chainConfig.CHAIN, chainConfig.USD0PP);
   return { supply, price };
@@ -255,9 +251,7 @@ async function getUsUSDSAPY(chain) {
 
 async function getRewardData(pool, reward) {
   const { data } = await axios.get(`${CONFIG.URLS.REWARD_APR_RATE}`);
-  const poolKey = API_ALIASES[pool] ?? pool;
-  const rewardKey = API_ALIASES[reward] ?? reward;
-  const apr = data[poolKey]?.[rewardKey];
+  const apr = data[pool]?.[reward];
 
   if (!apr) {
     throw new Error(`Reward "${reward}" not found for pool "${pool}"`);
@@ -275,8 +269,8 @@ const apy = async () => {
   );
 
   const apyReward = utils.aprToApy(rewardUsd0pp.apr, CONFIG.WEEKS_PER_YEAR);
-  const ethData = await getChainData(CONFIG.ETHEREUM);
-  const arbData = await getChainData(CONFIG.ARBITRUM);
+  const ethData = await getChainDataBUSD0(CONFIG.ETHEREUM);
+  const arbData = await getChainDataBUSD0(CONFIG.ARBITRUM);
 
   // ETH0 APY
   const rewardEth0 = await getRewardData(
