@@ -200,7 +200,7 @@ async function getSourceData() {
 
   sourcePromise = (async () => {
     const { HttpAgent, Actor } = await import('@dfinity/agent')
-    const agent = new HttpAgent({ host: ICP_HOST })
+    const agent = await HttpAgent.create({ host: ICP_HOST })
     const actor = Actor.createActor(idlFactory, { agent, canisterId: LENDING_CANISTER_ID })
     const [pools, prices] = await Promise.all([
       withTimeout(actor.list_pools(), 'list_pools'),
@@ -294,7 +294,7 @@ const apy = async () => {
       symbol: asset,
       tvlUsd,
       apyBase,
-      apyReward: 0,
+      apyReward: null,
       apyBaseBorrow,
       underlyingTokens: [underlyingToken],
       totalSupplyUsd,
