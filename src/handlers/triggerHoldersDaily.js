@@ -26,6 +26,7 @@ module.exports.handler = async (event, context) => {
 const main = async () => {
   console.log('START DAILY HOLDER UPDATE');
 
+  try {
   // 1. Get all pools that already have holder state (without balanceMaps)
   const pools = await getAllHolderStates();
   console.log(`${pools.length} pools with existing holder state`);
@@ -48,7 +49,10 @@ const main = async () => {
   );
 
   // 3. Incremental update with concurrency batching
-  const now = new Date().toISOString();
+  // Truncate to midnight UTC so the holder table has exactly 1 row per configID/day
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const dayTimestamp = today.toISOString();
   let updated = 0;
   let skipped = 0;
   let failed = 0;
@@ -97,7 +101,7 @@ const main = async () => {
         // Store snapshot + updated state
         await insertHolder({
           configID: pool.configID,
-          timestamp: now,
+          timestamp: dayTimestamp,
           holderCount: metrics.holderCount,
           avgPositionUsd: metrics.avgPositionUsd,
           top10Pct: metrics.top10Pct,
@@ -110,18 +114,21 @@ const main = async () => {
       })
     );
 
-    for (const result of results) {
+    for (let j = 0; j < results.length; j++) {
+      const result = results[j];
       if (result.status === 'fulfilled') {
         if (result.value === 'updated') updated++;
         else skipped++;
       } else {
-        console.log(`Failed: ${result.reason?.message}`);
+        const p = batch[j];
+        console.log(`Failed ${p.tokenAddress} on ${p.chain} (${p.configID}): ${result.reason?.message}`);
         failed++;
       }
     }
 
-    if (updated > 0 && updated % 100 === 0) {
-      console.log(`Progress: ${updated + skipped + failed}/${parsedPools.length} processed (${updated} updated)`);
+    const total = updated + skipped + failed;
+    if (total % (CONCURRENCY * 20) === 0 || i + CONCURRENCY >= parsedPools.length) {
+      console.log(`Progress: ${total}/${parsedPools.length} (${updated} updated, ${skipped} skipped, ${failed} failed)`);
     }
   }
 
@@ -156,7 +163,7 @@ const main = async () => {
           const metrics = deriveMetrics(balanceMap, pool.tvlUsd);
           await insertHolder({
             configID: pool.configID,
-            timestamp: now,
+            timestamp: dayTimestamp,
             holderCount: metrics.holderCount,
             avgPositionUsd: metrics.avgPositionUsd,
             top10Pct: metrics.top10Pct,
@@ -204,5 +211,10 @@ const main = async () => {
       }
       console.log(`Queued ${sqsQueued}/${messages.length} new pools to SQS`);
     }
+  }
+
+  } catch (err) {
+    console.error('DAILY HOLDER UPDATE FAILED:', err.message, err.stack);
+    throw err;
   }
 };
