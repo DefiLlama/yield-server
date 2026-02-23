@@ -3,14 +3,18 @@ const utils = require("../utils");
 const { ethers } = require("ethers");
 
 const ETHEREUM_SUBGRAPH_URL =
-  "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-ethereum-subgraph-1/prod/gn";
+  "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-ethereum-subgraph-1/v2/gn";
 const HYPER_SUBGRAPH_URL =
-  "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-hyperevm-subgraph-1/prod/gn";
+  "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-hyperevm-subgraph-1/v2/gn";
+const MEGAETH_SUBGRAPH_URL =
+  "https://api.goldsky.com/api/public/project_cmfgjrwjojbpm01x2dfgte8tr/subgraphs/sir-megaeth-subgraph-1/v2/gn";
 
 const ETHEREUM_SIR =
   "0x4Da4fb565Dcd5D5C5dB495205c109bA983A8ABa2".toLowerCase();
 const HYPER_SIR =
   "0xA06D0c5a8ADb7134903CA13D1FC0641731E2B766".toLowerCase();
+const MEGAETH_SIR =
+  "0x9367A0c482703d8d9bda995B03f8E71056a72500".toLowerCase();
 
 // SIR token decimals
 const SIR_DECIMALS = 12;
@@ -21,65 +25,75 @@ const SECONDS_IN_DAY = 24 * 60 * 60;
 const LOOKBACK_SECONDS = DAYS_LOOKBACK * SECONDS_IN_DAY;
 const SECONDS_IN_YEAR = 365 * SECONDS_IN_DAY;
 
-// Uniswap V3 / HyperSwap V3 pool ABI (minimal for slot0)
+// Uniswap V3 / V3-like pool ABI (minimal for slot0)
 const POOL_ABI = [
   "function slot0() external view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)",
   "function token0() external view returns (address)",
   "function token1() external view returns (address)",
 ];
 
-// Uniswap V3 Factory ABI for getPool
+// Uniswap V3 style Factory ABI for getPool
 const FACTORY_ABI = [
   "function getPool(address tokenA, address tokenB, uint24 fee) external view returns (address pool)",
 ];
 
-// Two chains, two subgraphs
+// Chains and subgraphs
 const CHAIN_CONFIGS = [
   {
     key: "ethereum",
-    priceKey: "ethereum", // DefiLlama price chain slug
+    priceKey: "ethereum",
     chain: "Ethereum",
+    chainId: 1,
     subgraphUrl: ETHEREUM_SUBGRAPH_URL,
     sirAddress: ETHEREUM_SIR,
-    urlPrefix: "https://app.sir.trading/liquidity?vault=",
     // DEX config for SIR price
     rpcUrl: "https://eth.llamarpc.com",
-    dexFactory: "0x1F98431c8aD98523631AE4a59f267346ea31F984", // Uniswap V3 Factory
-    nativeWrapped: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", // WETH
+    dexFactory: "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+    nativeWrapped: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
     nativeDecimals: 18,
-    dexFeeTier: 10000, // 1% fee tier
+    dexFeeTier: 10000,
   },
   {
     key: "hyperliquid-l1",
-    priceKey: "Hyperliquid", // DefiLlama price chain slug
+    priceKey: "Hyperliquid",
     chain: "Hyperliquid L1",
+    chainId: 999,
     subgraphUrl: HYPER_SUBGRAPH_URL,
     sirAddress: HYPER_SIR,
-    urlPrefix: "https://hype.sir.trading/liquidity?vault=",
     // DEX config for SIR price
     rpcUrl: "https://rpc.hyperliquid.xyz/evm",
-    dexFactory: "0xB1c0fa0B789320044A6F623cFe5eBda9562602E3", // HyperSwap V3 Factory
-    nativeWrapped: "0x5555555555555555555555555555555555555555", // WHYPE
+    dexFactory: "0xB1c0fa0B789320044A6F623cFe5eBda9562602E3",
+    nativeWrapped: "0x5555555555555555555555555555555555555555",
     nativeDecimals: 18,
-    dexFeeTier: 10000, // 1% fee tier
+    dexFeeTier: 10000,
+  },
+  {
+    key: "megaeth",
+    priceKey: "megaeth",
+    chain: "MegaETH",
+    chainId: 4326,
+    subgraphUrl: MEGAETH_SUBGRAPH_URL,
+    sirAddress: MEGAETH_SIR,
+    // DEX config for SIR price
+    rpcUrl: "https://mainnet.megaeth.com/rpc",
+    dexFactory: "0x68b34591f662508076927803c567Cc8006988a09",
+    nativeWrapped: "0x4200000000000000000000000000000000000006",
+    nativeDecimals: 18,
+    dexFeeTier: 10000,
   },
 ];
 
 // Helpers
 async function querySubgraph(subgraphUrl, query, variables = {}) {
-  const res = await axios.post(subgraphUrl, {
-    query,
-    variables,
-  });
-  if (res.data.errors) {
-    throw new Error(JSON.stringify(res.data.errors));
-  }
+  if (!subgraphUrl) throw new Error("Missing subgraphUrl for this chain");
+  const res = await axios.post(subgraphUrl, { query, variables });
+  if (res.data.errors) throw new Error(JSON.stringify(res.data.errors));
   return res.data.data;
 }
 
 /**
- * Fetch SIR price in native token (ETH/HYPE) from DEX (Uniswap V3 / HyperSwap V3)
- * Returns SIR price in native token units
+ * Fetch SIR price in native token from V3-style DEX pool.
+ * Returns SIR price in native token units.
  */
 async function fetchSirPriceFromDex(chainCfg) {
   try {
@@ -91,7 +105,6 @@ async function fetchSirPriceFromDex(chainCfg) {
       provider
     );
 
-    // Get pool address for SIR/Native pair
     const poolAddress = await factory.getPool(
       chainCfg.sirAddress,
       chainCfg.nativeWrapped,
@@ -102,21 +115,16 @@ async function fetchSirPriceFromDex(chainCfg) {
       !poolAddress ||
       poolAddress === "0x0000000000000000000000000000000000000000"
     ) {
-      console.log(`No DEX pool found for SIR on ${chainCfg.chain}`);
       return 0;
     }
 
     const pool = new ethers.Contract(poolAddress, POOL_ABI, provider);
 
-    // Get token order and slot0
     const [token0, slot0] = await Promise.all([pool.token0(), pool.slot0()]);
 
     const sqrtPriceX96 = slot0.sqrtPriceX96;
     const Q96 = ethers.BigNumber.from(2).pow(96);
 
-    // Calculate price from sqrtPriceX96
-    // price = (sqrtPriceX96 / 2^96)^2
-    // This gives token1/token0 ratio in raw terms
     const sqrtPriceX96Num = Number(sqrtPriceX96.toString());
     const Q96Num = Number(Q96.toString());
     const rawPrice = Math.pow(sqrtPriceX96Num / Q96Num, 2);
@@ -124,34 +132,23 @@ async function fetchSirPriceFromDex(chainCfg) {
     const sirIsToken0 =
       token0.toLowerCase() === chainCfg.sirAddress.toLowerCase();
 
-    // Adjust for decimals: price * 10^(token0Decimals - token1Decimals)
     let nativePerSir;
     if (sirIsToken0) {
-      // rawPrice = native/SIR in raw terms
-      // Adjust: native per SIR = rawPrice * 10^(SIR_DECIMALS - nativeDecimals)
-      nativePerSir = rawPrice * Math.pow(10, SIR_DECIMALS - chainCfg.nativeDecimals);
+      nativePerSir =
+        rawPrice * Math.pow(10, SIR_DECIMALS - chainCfg.nativeDecimals);
     } else {
-      // rawPrice = SIR/native in raw terms
-      // We need native/SIR, so invert: 1/rawPrice
-      // Adjust: native per SIR = (1/rawPrice) * 10^(SIR_DECIMALS - nativeDecimals)
-      nativePerSir = (1 / rawPrice) * Math.pow(10, SIR_DECIMALS - chainCfg.nativeDecimals);
+      nativePerSir =
+        (1 / rawPrice) * Math.pow(10, SIR_DECIMALS - chainCfg.nativeDecimals);
     }
 
     return nativePerSir;
   } catch (error) {
-    console.log(`Error fetching SIR price from DEX on ${chainCfg.chain}:`, error.message);
     return 0;
   }
 }
 
 /**
  * Fetch all active vaults for a given chain.
- *   Vault.exists
- *   Vault.collateralToken { id, symbol, decimals }
- *   Vault.lockedLiquidity
- *   Vault.teaSupply
- *   Vault.reserveLPers
- *   Vault.rate
  */
 async function fetchVaultsForChain(chainCfg) {
   const query = `
@@ -180,7 +177,7 @@ async function fetchVaultsForChain(chainCfg) {
 }
 
 /**
- * Fetch fee events for a vault in the last 1 day for a given chain.
+ * Fetch fee events for a vault in the last lookback window.
  */
 async function fetchFeesForVault(chainCfg, vaultId, timestampThreshold) {
   const query = `
@@ -197,47 +194,33 @@ async function fetchFeesForVault(chainCfg, vaultId, timestampThreshold) {
     }
   `;
 
-  const { fees } = await querySubgraph(
-    chainCfg.subgraphUrl,
-    query,
-    {
-      vaultId,
-      timestampThreshold: String(timestampThreshold),
-    }
-  );
+  const { fees } = await querySubgraph(chainCfg.subgraphUrl, query, {
+    vaultId,
+    timestampThreshold: String(timestampThreshold),
+  });
 
   return fees || [];
 }
 
 /**
- * Fees APY: compound lpApy over last 1 day and annualize.
+ * Fees APY: compound lpApy over lookback window and annualize.
  */
 function computeFeesApy(fees) {
-  if (!fees || fees.length === 0) {
-    return 0;
-  }
+  if (!fees || fees.length === 0) return 0;
 
   const compoundReturn = fees.reduce((prod, fee) => {
     const lpApy = Number(fee.lpApy) || 0;
     return prod * (1 + lpApy);
   }, 1);
 
-  if (compoundReturn <= 0) {
-    return 0;
-  }
+  if (compoundReturn <= 0) return 0;
 
-  const annualized =
-    Math.pow(compoundReturn, 365 / DAYS_LOOKBACK) - 1;
-
+  const annualized = Math.pow(compoundReturn, 365 / DAYS_LOOKBACK) - 1;
   return annualized * 100;
 }
 
 /**
  * Compute SIR rewards APY from vault fields.
- * - rate is scaled by 1e12 and per second
- * - reserveLPers and collateralToken.decimals give LP collateral
- * - POL is excluded via externalLpRatio
- * The SIR address is chain specific and passed in.
  */
 function computeSirRewardsApy(vault, sirPriceInCollateral, sirAddress) {
   const ratePerSecond = Number(vault.rate || 0) / 1e12;
@@ -255,28 +238,22 @@ function computeSirRewardsApy(vault, sirPriceInCollateral, sirAddress) {
 
   let externalLpRatio = 0;
   if (teaSupply > 0) {
-    externalLpRatio = Math.max(
-      0,
-      (teaSupply - lockedLiquidity) / teaSupply
-    );
+    externalLpRatio = Math.max(0, (teaSupply - lockedLiquidity) / teaSupply);
   }
 
   const vaultCollateral = totalLpCollateral * externalLpRatio;
   if (vaultCollateral <= 0) return 0;
 
-  let annualRewardsValue;
-  const collateralIsSir =
-    vault.collateralToken.id.toLowerCase() === sirAddress;
+  const collateralIsSir = vault.collateralToken.id.toLowerCase() === sirAddress;
 
+  let annualRewardsValue;
   if (collateralIsSir) {
     annualRewardsValue = annualSirRewards;
   } else {
     annualRewardsValue = annualSirRewards * sirPriceInCollateral;
   }
 
-  if (!Number.isFinite(annualRewardsValue) || annualRewardsValue <= 0) {
-    return 0;
-  }
+  if (!Number.isFinite(annualRewardsValue) || annualRewardsValue <= 0) return 0;
 
   return (annualRewardsValue / vaultCollateral) * 100;
 }
@@ -298,57 +275,73 @@ function computeTvlUsd(vault, collateralPriceUsd) {
 }
 
 /**
- * Build one price map across both chains.
+ * Build a chain-aware price map.
+ * Returns: { pricesByChainAddress: { "<priceKey>:<address>": priceUsd } }
  */
 async function fetchPrices(allVaults) {
-  const coins = new Set();
+  const coinsByPriceKey = new Map();
 
-  // collateral tokens
   for (const { chainCfg, vault } of allVaults) {
-    const token = vault.collateralToken.id;
-    coins.add(`${chainCfg.priceKey}:${token.toLowerCase()}`);
+    const pk = chainCfg.priceKey;
+    const addr = vault.collateralToken.id.toLowerCase();
+    if (!coinsByPriceKey.has(pk)) coinsByPriceKey.set(pk, new Set());
+    coinsByPriceKey.get(pk).add(`${pk}:${addr}`);
   }
 
-  // Native wrapped tokens for SIR price conversion
-  for (const chainCfg of CHAIN_CONFIGS) {
-    coins.add(`${chainCfg.priceKey}:${chainCfg.nativeWrapped.toLowerCase()}`);
+  // Include native wrapped for each active chain
+  for (const { chainCfg } of allVaults) {
+    const pk = chainCfg.priceKey;
+    const addr = chainCfg.nativeWrapped.toLowerCase();
+    if (!coinsByPriceKey.has(pk)) coinsByPriceKey.set(pk, new Set());
+    coinsByPriceKey.get(pk).add(`${pk}:${addr}`);
   }
 
-  const coinList = Array.from(coins);
-  if (coinList.length === 0) return {};
+  const pricesByChainAddress = {};
 
-  const prices = await utils.getPrices(coinList);
-  return prices;
+  for (const [pk, coinSet] of coinsByPriceKey.entries()) {
+    const res = await utils.getPrices(Array.from(coinSet));
+    const pricesByAddress = (res && res.pricesByAddress) || {};
+
+    for (const coin of coinSet) {
+      const parts = coin.split(":");
+      const address = parts.slice(1).join(":").toLowerCase();
+      const p = pricesByAddress[address] || 0;
+      pricesByChainAddress[`${pk}:${address}`] = p;
+    }
+  }
+
+  return { pricesByChainAddress };
 }
 
 // Main adaptor function
-
 async function apy() {
   const now = Math.floor(Date.now() / 1000);
   const timestampThreshold = now - LOOKBACK_SECONDS;
 
-  // Collect vaults from both chains with their chain config attached
   const allVaults = [];
+  const activeChainCfgs = [];
+
   for (const chainCfg of CHAIN_CONFIGS) {
+    if (!chainCfg.subgraphUrl) continue;
+    activeChainCfgs.push(chainCfg);
+
     const vaults = await fetchVaultsForChain(chainCfg);
-    for (const vault of vaults) {
-      allVaults.push({ chainCfg, vault });
-    }
+    for (const vault of vaults) allVaults.push({ chainCfg, vault });
   }
 
   if (!allVaults.length) return [];
 
-  // Fetch prices and SIR DEX prices in parallel
   const [prices, ...sirDexPrices] = await Promise.all([
     fetchPrices(allVaults),
-    ...CHAIN_CONFIGS.map((cfg) => fetchSirPriceFromDex(cfg)),
+    ...activeChainCfgs.map((cfg) => fetchSirPriceFromDex(cfg)),
   ]);
 
-  // Build SIR price map per chain (in native token)
   const sirPriceInNative = {};
-  CHAIN_CONFIGS.forEach((cfg, idx) => {
+  activeChainCfgs.forEach((cfg, idx) => {
     sirPriceInNative[cfg.key] = sirDexPrices[idx];
   });
+
+  const priceMap = prices.pricesByChainAddress || {};
 
   const pools = [];
 
@@ -359,32 +352,24 @@ async function apy() {
 
     const collateralAddress = vault.collateralToken.id.toLowerCase();
 
-    const collateralPriceUsd = prices.pricesByAddress[collateralAddress] || 0;
+    const collateralPriceUsd =
+      priceMap[`${chainCfg.priceKey}:${collateralAddress}`] || 0;
 
-    // Get native token price in USD
+    const nativeWrappedAddr = chainCfg.nativeWrapped.toLowerCase();
     const nativePriceUsd =
-      prices.pricesByAddress[chainCfg.nativeWrapped.toLowerCase()] || 0;
+      priceMap[`${chainCfg.priceKey}:${nativeWrappedAddr}`] || 0;
 
-    // Calculate SIR price in USD from DEX price
     const sirInNative = sirPriceInNative[chainKey] || 0;
     const sirPriceUsd = sirInNative * nativePriceUsd;
 
     const tvlUsd = computeTvlUsd(vault, collateralPriceUsd);
-    if (!Number.isFinite(tvlUsd) || tvlUsd <= 0) {
-      continue;
-    }
+    if (!Number.isFinite(tvlUsd) || tvlUsd <= 0) continue;
 
-    const fees = await fetchFeesForVault(
-      chainCfg,
-      vault.id,
-      timestampThreshold
-    );
+    const fees = await fetchFeesForVault(chainCfg, vault.id, timestampThreshold);
     const feesApy = computeFeesApy(fees);
 
     const sirPriceInCollateral =
-      collateralPriceUsd > 0 && sirPriceUsd > 0
-        ? sirPriceUsd / collateralPriceUsd
-        : 0;
+      collateralPriceUsd > 0 && sirPriceUsd > 0 ? sirPriceUsd / collateralPriceUsd : 0;
 
     const sirRewardsApy = computeSirRewardsApy(
       vault,
@@ -392,15 +377,20 @@ async function apy() {
       sirAddress
     );
 
-    const vaultIdDecimal = parseInt(vault.id, 16);
+    const vaultIdDecimal = BigInt(vault.id).toString();
     const poolId = `${sirAddress}-${vaultIdDecimal}-${chainKey}`;
-    const symbol = `${utils.formatSymbol(vault.collateralToken.symbol || "UNKNOWN")}-${utils.formatSymbol(vault.debtToken.symbol || "UNKNOWN")}`;
-    const poolMeta = `Leverage ratio: ${1+2**(Number(vault.leverageTier))}`;
-    const url = `${chainCfg.urlPrefix}${vault.id}`;
+
+    const symbol = `${utils.formatSymbol(
+      vault.collateralToken.symbol || "UNKNOWN"
+    )}-${utils.formatSymbol(vault.debtToken.symbol || "UNKNOWN")}`;
+
+    const poolMeta = `Leverage ratio: ${1 + 2 ** Number(vault.leverageTier)}`;
+
+    const url = `https://app.sir.trading/leverage?chainid=${chainCfg.chainId}&vault=${vaultIdDecimal}`;
 
     pools.push({
       pool: poolId,
-      chain: chainName, // "Ethereum" or "Hyperliquid L1"
+      chain: chainName,
       project: "sir",
       symbol,
       tvlUsd,
