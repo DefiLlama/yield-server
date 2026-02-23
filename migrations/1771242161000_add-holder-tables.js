@@ -2,7 +2,7 @@ const { PgLiteral } = require('node-pg-migrate');
 
 exports.up = (pgm) => {
   // Holder snapshots — daily time series of holder metrics per pool
-  pgm.createTable('holder', {
+  pgm.createTable('holder_daily', {
     holder_id: {
       type: 'uuid',
       default: new PgLiteral('uuid_generate_v4()'),
@@ -21,8 +21,8 @@ exports.up = (pgm) => {
     top10Holders: 'jsonb',
     medianPositionUsd: 'numeric',
   });
-  pgm.createIndex('holder', ['configID', { name: 'timestamp', sort: 'DESC' }], { unique: true });
-  pgm.createIndex('holder', ['timestamp', 'configID'], { name: 'idx_holder_timestamp_configid' });
+  pgm.createIndex('holder_daily', ['configID', { name: 'timestamp', sort: 'DESC' }], { unique: true });
+  pgm.createIndex('holder_daily', ['timestamp', 'configID'], { name: 'idx_holder_daily_timestamp_configid' });
 
   // Holder processing state — tracks last-processed block + balance map per pool
   pgm.createTable('holder_state', {
@@ -44,5 +44,5 @@ exports.up = (pgm) => {
 
 exports.down = (pgm) => {
   pgm.dropTable('holder_state');
-  pgm.dropTable('holder');
+  pgm.dropTable('holder_daily');
 };

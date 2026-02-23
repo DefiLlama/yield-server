@@ -55,7 +55,12 @@ async function processToken({ configID, chain, tokenAddress, tvlUsd }) {
     console.log(`Resuming from block ${fromBlock} (${Object.keys(existingMap).length} existing holders)`);
   }
 
-  const toBlock = await getLatestBlock(chain);
+  let toBlock;
+  try {
+    toBlock = await getLatestBlock(chain);
+  } catch (err) {
+    throw new Error(`getLatestBlock failed for ${chain}: ${err.message}`);
+  }
 
   if (fromBlock >= toBlock) {
     console.log(`${tokenAddress}: already up to date at block ${toBlock}`);
@@ -97,10 +102,12 @@ async function processToken({ configID, chain, tokenAddress, tvlUsd }) {
   const metrics = deriveMetrics(balanceMap, tvlUsd);
 
   // Store snapshot + state
-  const now = new Date().toISOString();
+  // Truncate to midnight UTC so the holder table has exactly 1 row per configID/day
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
   await insertHolder({
     configID,
-    timestamp: now,
+    timestamp: today.toISOString(),
     holderCount: metrics.holderCount,
     avgPositionUsd: metrics.avgPositionUsd,
     top10Pct: metrics.top10Pct,

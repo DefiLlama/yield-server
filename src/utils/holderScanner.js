@@ -77,7 +77,9 @@ async function scanTransfers(chain, tokenAddress, fromBlock, toBlock, existingMa
       }
       // Intermediate checkpoint callback for long-running scans
       if (onCheckpoint && processedCount % CHECKPOINT_INTERVAL < logs.length) {
-        onCheckpoint(balances, processedCount, lastSeenBlock);
+        // Shallow-copy: values are strings (immutable) so this is a full snapshot
+        const snapshot = { ...balances };
+        onCheckpoint(snapshot, processedCount, lastSeenBlock);
       }
     },
   });
