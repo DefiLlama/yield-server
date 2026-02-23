@@ -6,14 +6,22 @@ const TRANSFER_ABI =
   'event Transfer(address indexed from, address indexed to, uint256 value)';
 const ZERO_ADDR = '0x' + '0'.repeat(40);
 
-// Chains supported by the DefiLlama SDK indexer
-const SUPPORTED_CHAINS = new Set([
-  'ethereum', 'optimism', 'bsc', 'polygon', 'arbitrum', 'base',
-  'avalanche', 'fantom', 'gnosis', 'linea', 'blast', 'scroll',
-  'sonic', 'hyperliquid', 'monad', 'megaeth', 'berachain', 'unichain',
-  'celo', 'moonbeam', 'moonriver', 'aurora', 'harmony',
-  'polygon_zkevm',
-]);
+// Use SDK's canonical indexer chain set + chain name resolver.
+// supportedChainSet2 contains indexer v2 names (e.g. 'avax', 'xdai').
+// getChainKeyFromLabel resolves yield-server names (e.g. 'avalanche' → 'avax').
+const { supportedChainSet2: INDEXER_CHAINS } = require('@defillama/sdk/build/util/indexer');
+const { getChainKeyFromLabel } = sdk.chainUtils;
+
+// Yield-server pool names that the SDK doesn't map correctly to indexer names.
+const CHAIN_ALIASES = {
+  hyperevm: 'hyperliquid',
+};
+
+// Resolve a yield-server chain name to an indexer chain name, or null if unsupported.
+function resolveIndexerChain(chain) {
+  const key = getChainKeyFromLabel(CHAIN_ALIASES[chain] || chain);
+  return INDEXER_CHAINS.has(key) ? key : null;
+}
 
 // Update a balance map in-place with a single transfer
 function applyTransfer(balances, from, to, value) {
@@ -50,8 +58,11 @@ async function scanTransfers(chain, tokenAddress, fromBlock, toBlock, existingMa
     balances[k] = v;
   }
 
+  const indexerChain = resolveIndexerChain(chain);
+  if (!indexerChain) throw new Error(`Chain "${chain}" not supported by indexer`);
+
   const baseOpts = {
-    chain,
+    chain: indexerChain,
     target: tokenAddress,
     topic: TRANSFER_TOPIC,
     eventAbi: TRANSFER_ABI,
@@ -187,7 +198,8 @@ module.exports = {
   parsePoolField,
   applyTransfer,
   isValidEvmAddress,
-  SUPPORTED_CHAINS,
+  resolveIndexerChain,
+  INDEXER_CHAINS,
   TRANSFER_TOPIC,
   TRANSFER_ABI,
   ZERO_ADDR,
