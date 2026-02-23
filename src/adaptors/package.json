@@ -8,6 +8,7 @@
   "license": "ISC",
   "dependencies": {
     "@blend-capital/blend-sdk": "3.0.1",
+    "@dfinity/agent": "^2.3.0",
     "@defillama/sdk": "^5.0.206",
     "@stacks/network": "^6.13.0",
     "@stacks/transactions": "^6.15.0",
