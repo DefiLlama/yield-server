@@ -186,26 +186,39 @@ async function getSiloData(api, deploymentData) {
     const assetsV2 = await api.multiCall({
       abi: getAssetAbiV2,
       calls: siloArrayV2.map(i => ({ target: i })),
+      permitFailure: true,
     });
+    // Filter out silos where the asset call failed (non-V2 silos)
+    const validIndices = [];
+    for (let i = 0; i < assetsV2.length; i++) {
+      if (assetsV2[i]) validIndices.push(i);
+    }
+    const validSilos = validIndices.map(i => siloArrayV2[i]);
+    const validAssets = validIndices.map(i => assetsV2[i]);
+
     const assetBalancesV2 = await api.multiCall({
       abi: getAssetBalanceAbi,
-      calls: assetsV2.map((asset, i) => ({ target: asset, params: [siloArrayV2[i]] })),
+      calls: validAssets.map((asset, i) => ({ target: asset, params: [validSilos[i]] })),
     });
     const assetBorrowAPR = await api.multiCall({
       abi: getSiloAssetBorrowAprAbi,
-      calls: siloArrayV2.map((siloAddress, i) => ({ target: deploymentData.SILO_LENS, params: [siloAddress] })),
+      calls: validSilos.map((siloAddress, i) => ({ target: deploymentData.SILO_LENS, params: [siloAddress] })),
+      permitFailure: true,
     });
     const assetDepositAPR = await api.multiCall({
       abi: getSiloAssetDepositAprAbi,
-      calls: siloArrayV2.map((siloAddress, i) => ({ target: deploymentData.SILO_LENS, params: [siloAddress] })),
+      calls: validSilos.map((siloAddress, i) => ({ target: deploymentData.SILO_LENS, params: [siloAddress] })),
+      permitFailure: true,
     });
     const assetMaxLTV = await api.multiCall({
       abi: getSiloAssetMaxLtvAbi,
-      calls: siloArrayV2.map((siloAddress, i) => ({ target: deploymentData.SILO_LENS, params: [siloAddress] })),
+      calls: validSilos.map((siloAddress, i) => ({ target: deploymentData.SILO_LENS, params: [siloAddress] })),
+      permitFailure: true,
     });
     const siloStorage = await api.multiCall({
       abi: getSiloStorageAbi,
-      calls: siloArrayV2.map((siloAddress, i) => ({ target: siloAddress, params: [] })),
+      calls: validSilos.map((siloAddress, i) => ({ target: siloAddress, params: [] })),
+      permitFailure: true,
     });
     let siloAddressToIncentiveResults = {};
     if(deploymentData.SILO_ADDRESS_TO_INCENTIVE_PROGRAM) {
@@ -224,19 +237,25 @@ async function getSiloData(api, deploymentData) {
         };
       }
     }
-    siloData = assetsV2.map((asset, i) => [
-      asset,
-      siloArrayV2[i],
-      assetBalancesV2[i],
-      assetBorrowAPR[i],
-      assetDepositAPR[i],
-      assetMaxLTV[i],
-      siloStorage[i].protectedAssets,
-      siloStorage[i].collateralAssets,
-      siloStorage[i].debtAssets,
-      siloAddressToIncentiveResults?.[siloArrayV2?.[i]] ? siloAddressToIncentiveResults[siloArrayV2[i]] : false,
-    ]);
-    let uniqueAssetAddresses = [...new Set(assetsV2)];
+    for (let i = 0; i < validSilos.length; i++) {
+      // Skip silos where any critical lens call failed
+      if (!assetBorrowAPR[i] && assetBorrowAPR[i] !== 0n && assetBorrowAPR[i] !== '0') continue;
+      if (!assetDepositAPR[i] && assetDepositAPR[i] !== 0n && assetDepositAPR[i] !== '0') continue;
+      if (!siloStorage[i]) continue;
+      siloData.push([
+        validAssets[i],
+        validSilos[i],
+        assetBalancesV2[i],
+        assetBorrowAPR[i],
+        assetDepositAPR[i],
+        assetMaxLTV[i] || '0',
+        siloStorage[i].protectedAssets,
+        siloStorage[i].collateralAssets,
+        siloStorage[i].debtAssets,
+        siloAddressToIncentiveResults?.[validSilos?.[i]] ? siloAddressToIncentiveResults[validSilos[i]] : false,
+      ]);
+    }
+    let uniqueAssetAddresses = [...new Set(validAssets.filter(Boolean))];
     const assetSymbols = await api.multiCall({
       abi: getAssetSymbolAbi,
       calls: uniqueAssetAddresses.map((asset, i) => ({ target: asset })),
@@ -382,6 +401,51 @@ async function getSiloData(api, deploymentData) {
   return assetDataBySilo;
 }
 
+async function getSilosViaEnumeration(chainApi, deploymentData) {
+  const chain = chainApi.chain;
+  const { SILO_FACTORY } = deploymentData;
+  let siloAddresses = [];
+  let siloAddressesToSiloConfigAddress = {};
+
+  const nextId = await chainApi.call({
+    target: SILO_FACTORY,
+    abi: 'function getNextSiloId() view returns (uint256)',
+  });
+  const maxId = Number(nextId);
+  if (maxId <= 1) return { siloAddresses, siloAddressesToSiloConfigAddress };
+
+  const ids = Array.from({ length: maxId - 1 }, (_, i) => i + 1);
+  const configAddresses = await chainApi.multiCall({
+    target: SILO_FACTORY,
+    abi: 'function idToSiloConfig(uint256) view returns (address)',
+    calls: ids.map(id => ({ params: [id] })),
+  });
+
+  const validConfigs = configAddresses.filter(a => a !== '0x0000000000000000000000000000000000000000');
+  if (validConfigs.length === 0) return { siloAddresses, siloAddressesToSiloConfigAddress };
+
+  const siloResults = await chainApi.multiCall({
+    abi: 'function getSilos() view returns (address, address)',
+    calls: validConfigs.map(c => ({ target: c })),
+  });
+
+  for (let i = 0; i < validConfigs.length; i++) {
+    const siloConfig = validConfigs[i];
+    const silo0 = siloResults[i][0];
+    const silo1 = siloResults[i][1];
+
+    siloAddressesToSiloConfigAddress[silo0] = siloConfig;
+    siloAddressesToSiloConfigAddress[silo1] = siloConfig;
+
+    const pair = [silo0, silo1].filter(
+      (address) => ((blacklistedSilos.indexOf(address.toLowerCase()) === -1) && (badDebtSilos[chain]?.indexOf(address.toLowerCase()) === -1))
+    );
+    siloAddresses.push(...pair);
+  }
+
+  return { siloAddresses, siloAddressesToSiloConfigAddress };
+}
+
 async function getSilosV2(chainApi, deploymentData) {
   const chain = chainApi.chain;
   let logs = [];
@@ -413,6 +477,10 @@ async function getSilosV2(chainApi, deploymentData) {
       );
     });
 
+    // Fallback: if event scanning returned no results, enumerate via factory
+    if (siloAddresses.length === 0) {
+      return getSilosViaEnumeration(chainApi, deploymentData);
+    }
   }
 
   return { siloAddresses, siloAddressesToSiloConfigAddress };
@@ -606,69 +674,73 @@ const main = async () => {
 
   for(let [chain, config] of Object.entries(configV2)) {
 
-    const api = new sdk.ChainApi({ chain });
+    try {
+      const api = new sdk.ChainApi({ chain });
 
-    const vaultPoolIds = [];
-    const marketPoolIds = [];
+      const vaultPoolIds = [];
+      const marketPoolIds = [];
 
-    for(let deploymentData of config.deployments) {
+      for(let deploymentData of config.deployments) {
 
-      let siloData = await getSiloData(api, deploymentData);
+        let siloData = await getSiloData(api, deploymentData);
 
-      for(let [siloAddress, siloInfo] of Object.entries(siloData)) {
-        let marketPoolId = `${siloInfo.marketId}-${siloAddress}-${chain}`;
-        if(marketPoolIds.indexOf(marketPoolId) === -1) {
-          let marketData = {
-            pool: marketPoolId,
-            chain: config.chainName,
-            project: 'silo-v2',
-            symbol: utils.formatSymbol(siloInfo.assetSymbol),
-            tvlUsd: new BigNumber(siloInfo.assetBalanceValueUSD).toNumber(),
-            apyBase: new BigNumber(siloInfo.assetDepositAprFormatted).toNumber(),
-            apyBaseBorrow: new BigNumber(siloInfo.assetBorrowAprFormatted).toNumber(),
-            url: `https://app.silo.finance/markets/${chain === 'avax' ? 'avalanche': chain}/${siloInfo.marketId}`,
-            underlyingTokens: [siloInfo.assetAddress],
-            ltv: Number(siloInfo.assetMaxLtvFormatted),
-            totalBorrowUsd: Number(Number(siloInfo.totalBorrowValueUSD).toFixed(2)),
-            totalSupplyUsd: Number(Number(siloInfo.totalSupplyValueUSD).toFixed(2)),
-            poolMeta: `${siloInfo.marketId}`,
-            ...(siloInfo.boostedAprFormatted && {
-              apyReward: new BigNumber(siloInfo.boostedAprFormatted).toNumber(),
-              rewardTokens: siloInfo.rewardTokens,
-            })
-          };
+        for(let [siloAddress, siloInfo] of Object.entries(siloData)) {
+          let marketPoolId = `${siloInfo.marketId}-${siloAddress}-${chain}`;
+          if(marketPoolIds.indexOf(marketPoolId) === -1) {
+            let marketData = {
+              pool: marketPoolId,
+              chain: config.chainName,
+              project: 'silo-v2',
+              symbol: utils.formatSymbol(siloInfo.assetSymbol),
+              tvlUsd: new BigNumber(siloInfo.assetBalanceValueUSD).toNumber(),
+              apyBase: new BigNumber(siloInfo.assetDepositAprFormatted).toNumber(),
+              apyBaseBorrow: new BigNumber(siloInfo.assetBorrowAprFormatted).toNumber(),
+              url: `https://app.silo.finance/markets/${chain === 'avax' ? 'avalanche': chain}/${siloInfo.marketId}`,
+              underlyingTokens: [siloInfo.assetAddress],
+              ltv: Number(siloInfo.assetMaxLtvFormatted),
+              totalBorrowUsd: Number(Number(siloInfo.totalBorrowValueUSD).toFixed(2)),
+              totalSupplyUsd: Number(Number(siloInfo.totalSupplyValueUSD).toFixed(2)),
+              poolMeta: `${siloInfo.marketId}`,
+              ...(siloInfo.boostedAprFormatted && {
+                apyReward: new BigNumber(siloInfo.boostedAprFormatted).toNumber(),
+                rewardTokens: siloInfo.rewardTokens,
+              })
+            };
 
-          marketPoolIds.push(marketPoolId);
-          markets.push(marketData);
+            marketPoolIds.push(marketPoolId);
+            markets.push(marketData);
+          }
         }
-      }
 
-      let vaultData = await getVaultData(api, deploymentData, chain);
+        let vaultData = await getVaultData(api, deploymentData, chain);
 
-      for(let [vaultAddress, vaultInfo] of Object.entries(vaultData)) {
-        let vaultPoolId = `${vaultInfo.vaultId}-${vaultAddress}-${chain}`;
-        if(
-          (new BigNumber(vaultInfo.apyBase).toNumber() > 0) && 
-          (Number(Number(vaultInfo.totalSupplyValueUSD).toFixed(2)) > 0) && 
-          (vaultPoolIds.indexOf(vaultPoolId) === -1)
-        ) {
-          let marketData = {
-            pool: vaultPoolId,
-            chain: config.chainName,
-            project: 'silo-v2',
-            symbol: utils.formatSymbol(vaultInfo.assetSymbol),
-            tvlUsd: Number(Number(vaultInfo.totalSupplyValueUSD).toFixed(2)),
-            apyBase: new BigNumber(vaultInfo.apyBase).toNumber(),
-            url: `https://app.silo.finance/vaults/${chain === 'avax' ? 'avalanche': chain}/${vaultAddress}?action=deposit`,
-            underlyingTokens: [vaultInfo.assetAddress],
-            totalSupplyUsd: Number(Number(vaultInfo.totalSupplyValueUSD).toFixed(2)),
-            poolMeta: `${vaultInfo.vaultId}`,
-          };
-          vaultPoolIds.push(vaultPoolId)
-          markets.push(marketData);
+        for(let [vaultAddress, vaultInfo] of Object.entries(vaultData)) {
+          let vaultPoolId = `${vaultInfo.vaultId}-${vaultAddress}-${chain}`;
+          if(
+            (new BigNumber(vaultInfo.apyBase).toNumber() > 0) &&
+            (Number(Number(vaultInfo.totalSupplyValueUSD).toFixed(2)) > 0) &&
+            (vaultPoolIds.indexOf(vaultPoolId) === -1)
+          ) {
+            let marketData = {
+              pool: vaultPoolId,
+              chain: config.chainName,
+              project: 'silo-v2',
+              symbol: utils.formatSymbol(vaultInfo.assetSymbol),
+              tvlUsd: Number(Number(vaultInfo.totalSupplyValueUSD).toFixed(2)),
+              apyBase: new BigNumber(vaultInfo.apyBase).toNumber(),
+              url: `https://app.silo.finance/vaults/${chain === 'avax' ? 'avalanche': chain}/${vaultAddress}?action=deposit`,
+              underlyingTokens: [vaultInfo.assetAddress],
+              totalSupplyUsd: Number(Number(vaultInfo.totalSupplyValueUSD).toFixed(2)),
+              poolMeta: `${vaultInfo.vaultId}`,
+            };
+            vaultPoolIds.push(vaultPoolId)
+            markets.push(marketData);
+          }
         }
-      }
 
+      }
+    } catch(e) {
+      console.error(`Error processing chain ${chain}:`, e.message);
     }
 
   }
