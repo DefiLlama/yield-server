@@ -24,7 +24,8 @@ exports.up = (pgm) => {
   pgm.createIndex('holder_daily', ['configID', { name: 'timestamp', sort: 'DESC' }], { unique: true });
   pgm.createIndex('holder_daily', ['timestamp', 'configID'], { name: 'idx_holder_daily_timestamp_configid' });
 
-  // Holder processing state — tracks last-processed block + balance map per pool
+  // Holder processing state — tracks last-processed block per pool
+  // balanceMap stored in S3 at holder-balance-maps/{configID}.json
   pgm.createTable('holder_state', {
     configID: {
       type: 'uuid',
@@ -33,7 +34,6 @@ exports.up = (pgm) => {
       onDelete: 'cascade',
     },
     lastBlock: { type: 'bigint', notNull: true },
-    balanceMap: { type: 'jsonb', notNull: true },
     updated_at: {
       type: 'timestamptz',
       notNull: true,
