@@ -13,13 +13,11 @@ const getEarnPools = (lendingTokens) =>
 
     // totalRate = supplyRate (interest from borrowers) + rewardsRate (protocol-native yield).
     const apyBase = utils.aprToApy(Number(token.totalRate) / 100);
-    const stakingApy = token.asset.stakingApr ? bpsToApy(token.asset.stakingApr) : 0;
-    const supplyRewards = (token.rewards || []).filter((r) => r.side === 'supply');
-    const apyReward = supplyRewards.reduce(
-      (sum, r) => sum + utils.aprToApy(Number(r.apr) / 100),
-      0
-    );
-    const rewardTokens = supplyRewards.map((r) => r.rewardToken.address);
+    const stakingApy = token.asset.stakingApr
+      ? bpsToApy(token.asset.stakingApr)
+      : 0;
+    const apyReward = token.rewardsRate ? bpsToApy(token.rewardsRate) : 0;
+
 
     return {
       pool: `${token.address}-solana`.toLowerCase(),
@@ -29,7 +27,7 @@ const getEarnPools = (lendingTokens) =>
       tvlUsd,
       apyBase: apyBase + stakingApy,
       apyReward: apyReward > 0 ? apyReward : null,
-      rewardTokens: rewardTokens.length > 0 ? rewardTokens : undefined,
+      rewardTokens: token.rewardsRate ? [token.assetAddress] : undefined,
       underlyingTokens: [token.assetAddress],
       poolMeta: 'Earn',
       url: 'https://jup.ag/lend',
@@ -38,17 +36,15 @@ const getEarnPools = (lendingTokens) =>
 
 const calcVaultSupplyApy = (vault) => {
   const marketApy = utils.aprToApy(
-    (Number(vault.supplyRateLiquidity) + Number(vault.supplyRateMagnifier)) / 100
+    (Number(vault.supplyRateLiquidity) + Number(vault.supplyRateMagnifier)) /
+      100
   );
-  const stakingApy = vault.supplyToken.stakingApr ? bpsToApy(vault.supplyToken.stakingApr) : 0;
+  const stakingApy = vault.supplyToken.stakingApr
+    ? bpsToApy(vault.supplyToken.stakingApr)
+    : 0;
 
   return marketApy + stakingApy;
 };
-
-const calcVaultBorrowApy = (vault) =>
-  utils.aprToApy(
-    (Number(vault.borrowRateLiquidity) + Number(vault.borrowRateMagnifier)) / 100
-  );
 
 const calcVaultRewardApy = (vault, side) =>
   (vault.rewards || [])
@@ -82,8 +78,6 @@ const getVaultPools = (vaults) => {
 
     const apyBase = calcVaultSupplyApy(vault);
     const apyReward = calcVaultRewardApy(vault, 'supply');
-    const apyBaseBorrow = calcVaultBorrowApy(vault);
-    const apyRewardBorrow = calcVaultRewardApy(vault, 'borrow');
 
     const supplyRewardTokens = (vault.rewards || [])
       .filter((r) => r.side === 'supply')
@@ -97,12 +91,9 @@ const getVaultPools = (vaults) => {
       tvlUsd: totalSupplyUsd - totalBorrowUsd,
       apyBase,
       apyReward: apyReward > 0 ? apyReward : null,
-      rewardTokens: supplyRewardTokens.length > 0 ? supplyRewardTokens : undefined,
+      rewardTokens:
+        supplyRewardTokens.length > 0 ? supplyRewardTokens : undefined,
       underlyingTokens: [supplyToken.address],
-      apyBaseBorrow,
-      apyRewardBorrow: apyRewardBorrow > 0 ? apyRewardBorrow : null,
-      totalSupplyUsd,
-      totalBorrowUsd,
       ltv: Number(vault.collateralFactor) / 1e3,
       poolMeta: `${supplyToken.symbol}/${borrowToken.symbol}`,
       url: 'https://jup.ag/lend',
@@ -115,6 +106,12 @@ const getApy = async () => {
     axios.get(`${BASE_URL}/lending/tokens`).then((r) => r.data),
     axios.get(`${BASE_URL}/borrowing/vaults`).then((r) => r.data),
   ]);
+
+  if (!Array.isArray(lendingTokens) || !Array.isArray(vaults)) {
+    throw new Error(
+      `Unexpected API response shape: lendingTokens=${typeof lendingTokens}, vaults=${typeof vaults}`
+    );
+  }
 
   const earnPools = getEarnPools(lendingTokens);
   const vaultPools = getVaultPools(vaults);
