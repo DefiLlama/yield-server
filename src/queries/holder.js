@@ -105,7 +105,8 @@ const getAllHolderStates = async (tvlLB = 10000) => {
   return conn.query(query, { tvlLB });
 };
 
-// Get latest holder snapshot per pool (for enrichment pipeline)
+// Get latest holder snapshot per pool (for enrichment pipeline).
+// Bounds scan to last 30 days — data is inserted daily so this is safe.
 const getLatestHolders = async () => {
   const conn = await connect();
 
@@ -113,6 +114,7 @@ const getLatestHolders = async () => {
     SELECT DISTINCT ON ("configID")
       "configID", "holderCount", "avgPositionUsd", "top10Pct", "medianPositionUsd"
     FROM holder_daily
+    WHERE timestamp >= NOW() - INTERVAL '30 days'
     ORDER BY "configID", timestamp DESC
   `;
   const rows = await conn.query(query);
@@ -163,8 +165,7 @@ const getPoolsWithoutHolderState = async (tvlLB = 10000) => {
 };
 
 // Get holderCount from N days ago per pool (for holderChange7d/30d).
-// Timestamps are at midnight UTC, so we target the exact day.
-// Falls back to the closest row within ±1 day if the exact day is missing.
+// Timestamps are always midnight UTC, so an exact match is sufficient.
 const getHolderOffset = async (days) => {
   const conn = await connect();
   const target = new Date();
@@ -172,11 +173,9 @@ const getHolderOffset = async (days) => {
   target.setUTCDate(target.getUTCDate() - days);
 
   const query = `
-    SELECT DISTINCT ON ("configID") "configID", "holderCount"
+    SELECT "configID", "holderCount"
     FROM holder_daily
-    WHERE timestamp BETWEEN $<target> - INTERVAL '1 day'
-                        AND $<target> + INTERVAL '1 day'
-    ORDER BY "configID", ABS(EXTRACT(EPOCH FROM (timestamp - $<target>)))
+    WHERE timestamp = $<target>
   `;
   const rows = await conn.query(query, { target });
   const result = {};
