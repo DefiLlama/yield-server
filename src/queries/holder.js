@@ -1,7 +1,11 @@
 const { pgp, connect } = require('../utils/dbConnection');
+const { writeToS3, readFromS3 } = require('../utils/s3');
 
 const holderTable = 'holder_daily';
 const stateTable = 'holder_state';
+function balanceMapKey(configID) {
+  return `holder-balance-maps/${configID}.json`;
+}
 
 // Upsert a daily holder snapshot (one row per configID/day).
 // Callers must pass a midnight-UTC timestamp so the unique index
@@ -30,37 +34,50 @@ const insertHolder = async (payload) => {
   await conn.query(query);
 };
 
-// Upsert holder processing state (last block + balance map)
+// Upsert holder processing state (last block + balance map).
+// balanceMap is written to S3 first; Postgres only stores lastBlock.
+// Write order: S3 first so that if S3 fails, lastBlock doesn't advance
+// and the retry rescans the same block range.
 const upsertHolderState = async (configID, lastBlock, balanceMap) => {
-  const conn = await connect();
+  await writeToS3(process.env.BUCKET_DATA, balanceMapKey(configID), balanceMap);
 
+  const conn = await connect();
   const query = `
-    INSERT INTO $<table:name> ("configID", "lastBlock", "balanceMap", updated_at)
-    VALUES ($<configID>, $<lastBlock>, $<balanceMap:json>, NOW())
+    INSERT INTO $<table:name> ("configID", "lastBlock", updated_at)
+    VALUES ($<configID>, $<lastBlock>, NOW())
     ON CONFLICT ("configID") DO UPDATE SET
       "lastBlock" = $<lastBlock>,
-      "balanceMap" = $<balanceMap:json>,
       updated_at = NOW()
   `;
-  await conn.query(query, {
-    table: stateTable,
-    configID,
-    lastBlock,
-    balanceMap,
-  });
+  await conn.query(query, { table: stateTable, configID, lastBlock });
 };
 
-// Get holder state for a single pool
+// Get holder state for a single pool.
+// Fetches lastBlock from Postgres, then loads balanceMap from S3.
+// NoSuchKey → empty map (new pool); other S3 errors re-throw for retry.
 const getHolderState = async (configID) => {
   const conn = await connect();
 
   const query = `
-    SELECT "configID", "lastBlock", "balanceMap"
+    SELECT "configID", "lastBlock"
     FROM $<table:name>
     WHERE "configID" = $<configID>
   `;
   const rows = await conn.query(query, { table: stateTable, configID });
-  return rows.length > 0 ? rows[0] : null;
+  if (rows.length === 0) return null;
+
+  let balanceMap = {};
+  try {
+    balanceMap = await readFromS3(process.env.BUCKET_DATA, balanceMapKey(configID));
+  } catch (err) {
+    if (err.code === 'NoSuchKey') {
+      console.log(`No S3 balance map for ${configID} — treating as empty`);
+    } else {
+      throw new Error(`S3 read failed for ${configID}: ${err.message}`, { cause: err });
+    }
+  }
+
+  return { ...rows[0], balanceMap };
 };
 
 // Get all holder states joined with config + latest TVL (for daily incremental).
