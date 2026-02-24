@@ -14,7 +14,7 @@ const CONFIG = {
     EUR0: '0x3c89Cd1884E7beF73ca3ef08d2eF6EC338fD8E49',
     EUROC: '0x1abaea1f7c830bd89acc67ec4af516284b1bc33c',
     STETH: '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84',
-    USD0a: '0x2e7fC02bE94BC7f0cD69DcAB572F64bcC173cd81',
+    USD0A: '0x2e7fC02bE94BC7f0cD69DcAB572F64bcC173cd81',
     CHAIN: 'Ethereum',
   },
   ARBITRUM: {
@@ -118,6 +118,7 @@ async function getChainDataSUSD0(chainConfig) {
 
 async function getChainDataSEUR0(chainConfig) {
   const supply = await getTokenSupply(chainConfig.CHAIN, chainConfig.SEUR0);
+  // fetches the price of EUROC (Circle's euro stablecoin) as EUR0 price is not available
   const price = await getTokenPrice(chainConfig.CHAIN, chainConfig.EUROC);
   return { supply, price };
 }
@@ -129,7 +130,7 @@ async function getETH0ChainData(chainConfig) {
 }
 
 async function getChainDataUSD0a(chainConfig) {
-  const supply = await getTokenSupply(chainConfig.CHAIN, chainConfig.USD0a);
+  const supply = await getTokenSupply(chainConfig.CHAIN, chainConfig.USD0A);
   const price = await getTokenPrice(chainConfig.CHAIN, chainConfig.USD0);
   return { supply, price };
 }
@@ -320,33 +321,45 @@ const apy = async () => {
   const { baseUsUSDSApy, usUSDSRewardApy, usUSDSppMarketCap } =
     await getUsUSDSAPY('Ethereum');
   return [
-    createPoolData(
-      CONFIG.ETHEREUM.CHAIN,
-      CONFIG.ETHEREUM.USD0a,
-      CONFIG.USD0A_SYMBOL,
-      usd0aData.supply * usd0aData.price,
-      apyRewardUSD0a,
-      CONFIG.ETHEREUM.USD0,
-      CONFIG.ETHEREUM.USD0
-    ),
-    createPoolData(
-      CONFIG.ETHEREUM.CHAIN,
-      CONFIG.ETHEREUM.SEUR0,
-      CONFIG.SEUR0_SYMBOL,
-      seur0Data.supply * seur0Data.price,
-      apyRewardSEUR0,
-      CONFIG.ETHEREUM.EUR0,
-      CONFIG.ETHEREUM.EUR0
-    ),
-    createPoolData(
-      CONFIG.ETHEREUM.CHAIN,
-      CONFIG.ETHEREUM.SUSD0,
-      CONFIG.SUSD0_SYMBOL,
-      susd0Data.supply * susd0Data.price,
-      apyRewardSUsd0,
-      CONFIG.ETHEREUM.USD0,
-      CONFIG.ETHEREUM.USD0
-    ),
+    {
+      pool: CONFIG.ETHEREUM.USD0A,
+      chain: 'Ethereum',
+      project: 'usual',
+      symbol: CONFIG.USD0A_SYMBOL,
+      tvlUsd: usd0aData.supply * usd0aData.price,
+      apyBase: apyRewardUSD0a, // weekly compounding for USD0a APY
+      apyReward: 0, // No additional reward for USD0a
+      rewardTokens: [CONFIG.ETHEREUM.USD0],
+      poolMeta: 'USD0 Alpha',
+      underlyingTokens: [CONFIG.ETHEREUM.USD0],
+      url: 'https://app.usual.money/swap?action=stake&from=USD0&to=USD0a',
+    },
+    {
+      pool: CONFIG.ETHEREUM.SEUR0,
+      chain: 'Ethereum',
+      project: 'usual',
+      symbol: CONFIG.SEUR0_SYMBOL,
+      tvlUsd: seur0Data.supply * seur0Data.price,
+      apyBase: apyRewardSEUR0, // weekly compounding for sEUR0 APY
+      apyReward: 0, // No additional reward for sEUR0
+      rewardTokens: [CONFIG.ETHEREUM.EUR0],
+      poolMeta: 'EUR0 Savings',
+      underlyingTokens: [CONFIG.ETHEREUM.EUR0],
+      url: 'https://app.usual.money/swap?action=stake&from=EUR0&to=sEUR0',
+    },
+    {
+      pool: CONFIG.ETHEREUM.SUSD0,
+      chain: 'Ethereum',
+      project: 'usual',
+      symbol: CONFIG.SUSD0_SYMBOL,
+      tvlUsd: susd0Data.supply * susd0Data.price,
+      apyBase: apyRewardSUsd0, // weekly compounding for sUSD0 APY
+      apyReward: 0, // No additional reward for sUSD0
+      rewardTokens: [CONFIG.ETHEREUM.USD0],
+      poolMeta: 'USD0 Savings',
+      underlyingTokens: [CONFIG.ETHEREUM.USD0],
+      url: 'https://app.usual.money/swap?action=stake&from=USD0&to=sUSD0',
+    },
     createPoolData(
       CONFIG.ETHEREUM.CHAIN,
       CONFIG.ETHEREUM.ETH0,
