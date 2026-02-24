@@ -2,7 +2,7 @@ const sdk = require('@defillama/sdk');
 const abi = require('./abi.json');
 const BigNumber = require('bignumber.js');
 const ethers = require('ethers');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const facades = {
   polygon: '0x0708542D895C2559001Fa9e4Bc49C3343735e6e2',
@@ -73,8 +73,8 @@ const getChainPools = async (chain, facade) => {
   // -----====== Get Prices ======----- //
   const priceKeysQ = priceKeys.join(',');
   const prices = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${priceKeysQ}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKeysQ}`)
+  ).data.coins;
 
   const apys = aprs.map((apr, index) => {
     const aprBN = ethersBNToBN(apr.output, 4);

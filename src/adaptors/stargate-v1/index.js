@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 const utils = require('../utils');
 const abi = require('./abis.json');
 
@@ -157,8 +157,8 @@ const pools = async (poolIndex, chain) => {
 const getPrices = async (chain, addresses) => {
   const uri = `${addresses.map((address) => `${chain}:${address}`)}`;
   const prices = (
-    await superagent.get('https://coins.llama.fi/prices/current/' + uri)
-  ).body.coins;
+    await axios.get('https://coins.llama.fi/prices/current/' + uri)
+  ).data.coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -226,12 +226,12 @@ const calcApy = async (
       const blocks = (
         await Promise.all(
           [dateNow, date7daysPrior].map((d) =>
-            superagent.get(`https://coins.llama.fi/block/${chain}/${d}`)
+            axios.get(`https://coins.llama.fi/block/${chain}/${d}`)
           )
         )
       )
         .flat()
-        .map((i) => i.body?.height);
+        .map((i) => i.data?.height);
 
       const nbBlocksInOffset = blocks[0] - blocks[1];
       const secondsPerOffset = 86400 * offset;

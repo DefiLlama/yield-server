@@ -1,21 +1,20 @@
 // GT3 Finance specific utilities
 const utils = require('../utils');
 
-// Use superagent as fetch fallback if fetch is not available
+// Use axios as fetch fallback if fetch is not available
 let fetch;
 try {
   fetch = globalThis.fetch;
 } catch (e) {
-  const superagent = require('superagent');
+  const axios = require('axios');
   fetch = async (url, options) => {
-    const response = await superagent
-      .post(url)
-      .set(options.headers)
-      .send(JSON.parse(options.body));
+    const response = await axios.post(url, JSON.parse(options.body), {
+      headers: options.headers,
+    });
     return {
       ok: response.status < 400,
       status: response.status,
-      json: async () => response.body
+      json: async () => response.data
     };
   };
 }

@@ -1,6 +1,6 @@
 const WebSocket = require('ws');
 const { request, gql } = require('graphql-request');
-const superagent = require('superagent');
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
 
@@ -96,8 +96,8 @@ const main = async () => {
     .map((m) => `ethereum:${m}`)
     .join(',');
   const prices = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
+  ).data.coins;
 
   const eulPrice = prices[`ethereum:${EULER}`].price;
   const nbSecYear = 60 * 60 * 24 * 365;
@@ -216,10 +216,10 @@ const main = async () => {
 
       const priceKey = `ethereum:${ePool.id}`;
       const underlyingPrice = (
-        await superagent.get(
+        await axios.get(
           `https://coins.llama.fi/prices/current/${priceKey}`
         )
-      ).body.coins[priceKey].price;
+      ).data.coins[priceKey].price;
 
       // contracts return eToken balances, which need to be converted to underlying balance
       // at current exchange rate

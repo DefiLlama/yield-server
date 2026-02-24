@@ -1,6 +1,6 @@
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const ABIS = {
   getEntireSystemColl: {
@@ -59,7 +59,7 @@ const troveManagerTVL = async () => {
     })
   ).output;
 
-  const troveType = (await superagent.get(URL)).body;
+  const troveType = (await axios.get(URL)).data;
 
   const lusdTotalSupply = (
     await sdk.api.abi.call({
@@ -71,8 +71,8 @@ const troveManagerTVL = async () => {
 
   const key = `ethereum:${LUSD_ADDRESS}`.toLowerCase();
   const prices = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
+  ).data.coins;
 
   const totalSupplyUsd = (Number(lusdTotalSupply) / 1e18) * prices[key].price;
 

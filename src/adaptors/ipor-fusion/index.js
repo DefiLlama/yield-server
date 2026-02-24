@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 
 const IPOR_GITHUB_ADDRESSES_URL = "https://raw.githubusercontent.com/IPOR-Labs/ipor-abi/refs/heads/main/mainnet/addresses.json";
 const FUSION_API_URL = 'https://api.ipor.io/fusion/vaults';
@@ -30,8 +30,8 @@ const CHAIN_CONFIG = {
 };
 
 async function getChainData(chain) {
-    const allVaultsRes = await superagent.get(FUSION_API_URL);
-    const chainVaults = allVaultsRes.body.vaults.filter(
+    const allVaultsRes = await axios.get(FUSION_API_URL);
+    const chainVaults = allVaultsRes.data.vaults.filter(
         vault => vault.chainId === CHAIN_CONFIG[chain].chainId
     );
 
@@ -39,8 +39,10 @@ async function getChainData(chain) {
 }
 
 async function getPublicVaults() {
-    const response = await superagent.get(IPOR_GITHUB_ADDRESSES_URL);
-    const publicVaults = JSON.parse(response.text);
+    const response = await axios.get(IPOR_GITHUB_ADDRESSES_URL);
+    const publicVaults = typeof response.data === 'string'
+        ? JSON.parse(response.data)
+        : response.data;
     const chainVaults = new Map();
 
     Object.entries(publicVaults).forEach(([chainName, { vaults }]) => {

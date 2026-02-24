@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 const { abi } = require('./abi');
 const { ethers } = require('ethers');
 const utils = require('../utils');
@@ -41,8 +41,8 @@ const formatPool = async (bucket, config) => {
     .join(',');
 
   const prices = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).data.coins;
 
   const assetPrice = prices[`${chain.toLowerCase()}:${asset?.tokenAddress}`];
   const totalSupplyUsd =

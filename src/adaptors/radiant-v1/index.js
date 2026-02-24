@@ -1,4 +1,3 @@
-const superagent = require('superagent');
 
 const utils = require('../utils');
 const pools = require('./pools.json');

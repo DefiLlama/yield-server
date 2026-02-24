@@ -5,7 +5,7 @@ const wiseLendingABI = require('./abi/wiseLendingABI.json');
 const wiseSecurityABI = require('./abi/wiseSecurityABI.json');
 const erc20ABI = require('./abi/erc20ABI.json');
 const { getProvider } = require('@defillama/sdk/build/general');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const WISE_LENDING_CONTRACT = '0x37e49bf3749513A02FA535F0CbC383796E8107E4';
 const WISE_SECURITY_CONTRACT = '0x829c3AE2e82760eCEaD0F384918a650F8a31Ba18';
@@ -38,10 +38,10 @@ async function apy() {
                 const tokenAddress = `${chain}:${address[token]}`;
 
                 const usdPrice = (
-                  await superagent.get(
+                  await axios.get(
                     `https://coins.llama.fi/prices/current/${tokenAddress}`
                   )
-                ).body.coins[tokenAddress];
+                ).data.coins[tokenAddress];
 
                 const wiseSecurityContract = await new web3.eth.Contract(
                   wiseSecurityABI,

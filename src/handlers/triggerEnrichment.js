@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const ss = require('simple-statistics');
 
 const utils = require('../utils/s3');
@@ -97,10 +97,10 @@ const main = async () => {
   // add info about stablecoin, exposure etc.
   console.log('\nadding additional pool info fields');
   const stablecoins = (
-    await superagent.get(
+    await axios.get(
       'https://stablecoins.llama.fi/stablecoins?includePrices=true'
     )
-  ).body.peggedAssets
+  ).data.peggedAssets
     // removing any stable which a price 30% from 1usd
     .filter((s) => s.price >= 0.7)
     .map((s) => s.symbol.toLowerCase())
@@ -116,8 +116,8 @@ const main = async () => {
 
   // get catgory data (we hardcode IL to true for options protocols)
   const config = (
-    await superagent.get('https://api.llama.fi/config/yields?a=1')
-  ).body.protocols;
+    await axios.get('https://api.llama.fi/config/yields?a=1')
+  ).data.protocols;
   dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins, config));
 
   // add ML and overview plot fields
@@ -202,12 +202,8 @@ const main = async () => {
   }));
 
   const y_pred = (
-    await superagent
-      .post(
-        'https://yet9i1xlhf.execute-api.eu-central-1.amazonaws.com/predictions'
-      )
-      // filter to required features only
-      .send(
+    await axios.post(
+        'https://yet9i1xlhf.execute-api.eu-central-1.amazonaws.com/predictions',
         dataEnriched.map((el) => ({
           apy: el.apy,
           tvlUsd: el.tvlUsd,
@@ -217,7 +213,7 @@ const main = async () => {
           project_factorized: el.project_factorized,
         }))
       )
-  ).body.predictions;
+  ).data.predictions;
   // add predictions to dataEnriched
   if (dataEnriched.length !== y_pred.length) {
     throw new Error(

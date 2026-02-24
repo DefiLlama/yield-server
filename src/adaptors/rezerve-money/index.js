@@ -2,7 +2,7 @@ const { ethers } = require('ethers');
 const sdk = require('@defillama/sdk');
 
 const BigNumber = require('bignumber.js');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const abi = {
   balanceOf: 'erc20:balanceOf',
@@ -49,7 +49,7 @@ async function getPricesDaysBefore(addresses, days) {
 }
 
 async function fetchPrices(url) {
-  const prices = (await superagent.get(url)).body.coins;
+  const prices = (await axios.get(url)).data.coins;
   const pricesByAddresses = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
       ...acc,
@@ -74,10 +74,10 @@ function getTimestampDaysBefore(days) {
 }
 
 async function getBlockNumber(timestamp) {
-  const response = await superagent.get(
+  const response = await axios.get(
     `https://coins.llama.fi/block/sonic/${timestamp}`
   );
-  return response.body.height;
+  return response.data.height;
 }
 
 async function calcErc4626PoolApy(vault, prices) {

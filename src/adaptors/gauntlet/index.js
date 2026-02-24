@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 const utils = require('../utils');
 
 const VAULT_ABI = {
@@ -33,10 +33,10 @@ const ONE_UNIT = '1000000000000000000';
 
 const getBlockByTimestamp = async (timestamp, chain) => {
   try {
-    const { body } = await superagent.get(
+    const { data } = await axios.get(
       `https://coins.llama.fi/block/${chain}/${timestamp}`
     );
-    return body.height;
+    return data.height;
   } catch {
     console.error(`Error getting block for timestamp ${timestamp} on chain ${chain}`);
     return null;

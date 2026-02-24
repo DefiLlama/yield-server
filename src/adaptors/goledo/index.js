@@ -1,7 +1,6 @@
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
-const superagent = require('superagent');
 const masterChefABI = require('./abis/masterchef.json');
 const lpABI = require('./abis/lp.json');
 

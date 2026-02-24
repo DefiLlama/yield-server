@@ -1,5 +1,4 @@
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');

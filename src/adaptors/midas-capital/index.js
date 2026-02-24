@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const { ethers } = require('ethers');
 
@@ -76,10 +76,10 @@ const ratePerBlockToAPY = (ratePerBlock, blocksPerMin) => {
 const getPluginRewards = async (pluginAddress, chain) => {
   if (pluginAddress) {
     const res = (
-      await superagent.get(
+      await axios.get(
         `${PROJECT_URL}/api/public/rewards?chainId=${CHAIN_NUMBER[chain]}&pluginAddress=${pluginAddress}`
       )
-    ).body;
+    ).data;
 
     return res;
   } else {
@@ -184,10 +184,10 @@ const main = async () => {
     }
 
     const price = (
-      await superagent.get(
+      await axios.get(
         `https://coins.llama.fi/prices/current/${CG_KEY[chain]}`
       )
-    ).body.coins[CG_KEY[chain]].price;
+    ).data.coins[CG_KEY[chain]].price;
 
     for (const market of allMarkets) {
       if (market.mintGuardianPaused && market.borrowGuardianPaused) continue;
@@ -223,10 +223,10 @@ const main = async () => {
       );
 
       const pluginAddress = (
-        await superagent.get(
+        await axios.get(
           `${PROJECT_URL}/api/public/plugins?chainId=${CHAIN_NUMBER[chain]}&marketAddress=${market.cToken}`
         )
-      ).body;
+      ).data;
 
       const pluginRewards = await getPluginRewards(pluginAddress, chain);
       const allRewards =

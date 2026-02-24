@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const { Web3 } = require('web3');
-const superagent = require('superagent');
+const axios = require('axios');
 const { masterChefABI, lpABI } = require('./abis');
 const utils = require('../utils');
 
@@ -39,10 +39,10 @@ const getPrice = async () => {
 
   // WETH Price
   const ethPriceRes = (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/base:${WETH.toLowerCase()}`
     )
-  ).body.coins;
+  ).data.coins;
   const ethPrice = ethPriceRes[`base:${WETH}`]?.price;
 
   // sBASE Price

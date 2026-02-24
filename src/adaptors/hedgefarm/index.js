@@ -1,6 +1,6 @@
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const ALPHA1_V1_CONTRACT = '0xdE4133f0CFA1a61Ba94EC64b6fEde4acC1fE929E';
 const ALPHA1_V2_CONTRACT = '0x60908A71FbC9027838277f9f98e458BeF2A201da';
@@ -68,8 +68,8 @@ const poolsFunction = async () => {
 
   const btcbKey = 'avax:0x152b9d0fdc40c096757f570a51e494bd4b943e50';
   const btcbTokenPrice = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${btcbKey}`)
-  ).body.coins[btcbKey].price;
+    await axios.get(`https://coins.llama.fi/prices/current/${btcbKey}`)
+  ).data.coins[btcbKey].price;
 
   const balanceAlpha1 = await tvlAlpha1();
   const balanceAlpha2 = await tvlAlpha2();

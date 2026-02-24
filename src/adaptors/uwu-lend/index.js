@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const abiLendingPool = require('./abiLendingPool.json');
 const abiProtocolDataProvider = require('./abiProtocolDataProvider.json');
@@ -126,8 +126,8 @@ const apy = async () => {
     .map((t) => `${chain}:${t}`)
     .concat(['coingecko:wrapped-memory']);
   const prices = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${pricesArray}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${pricesArray}`)
+  ).data.coins;
 
   const secondsPerYear = 60 * 60 * 24 * 365;
   const rewardPerYear =

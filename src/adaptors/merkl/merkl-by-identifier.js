@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 
 // Chain ID mapping for Merkl API
 const CHAIN_IDS = {
@@ -44,10 +44,10 @@ const getMerklRewardsByIdentifier = async (
   if (!chainId) return null;
 
   try {
-    const response = await superagent.get(
+    const response = await axios.get(
       `https://api.merkl.xyz/v4/opportunities?chainId=${chainId}&identifier=${identifier}`
     );
-    const data = response.body;
+    const data = response.data;
     if (!data || data.length === 0) return null;
 
     const opportunity = data[0];

@@ -1,6 +1,6 @@
 const utils = require('../utils');
 
-const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const { format } = require('date-fns');
 const { default: BigNumber } = require('bignumber.js');
@@ -78,13 +78,13 @@ const toISODate = (timestamp) =>
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/${addresses
         .map((address) => `ethereum:${address}`)
         .join(',')
         .toLowerCase()}`
     )
-  ).body.coins;
+  ).data.coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -178,7 +178,7 @@ const calculateSpaceData = async (pool, targetPrices) => {
 const main = async () => {
   let { pools } = await request(graphEndpoint, query);
 
-  const yields = (await superagent.get('https://yields.llama.fi/pools')).body
+  const yields = (await axios.get('https://yields.llama.fi/pools')).data
     .data;
 
   pools = pools.map((pool) => {

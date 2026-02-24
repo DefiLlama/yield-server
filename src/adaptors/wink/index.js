@@ -3,7 +3,7 @@ const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
 const { getProvider } = require('@defillama/sdk/build/general');
 const { default: BigNumber } = require('bignumber.js');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const WINK_TOKEN_ADDRESS = '0x8c3441E7B9aA8A30a542DDE048dd067DE2802E9B'
 
@@ -34,12 +34,12 @@ async function getPrices(chain, addresses) {
             (address) => `${chain}:${address}`
     );
     return (
-        await superagent.get(
+        await axios.get(
             `https://coins.llama.fi/prices/current/${priceKeys
                 .join(',')
                 .toLowerCase()}`
         )
-    ).body.coins;
+    ).data.coins;
 }
 
 const getRebaserTopic = async () => {

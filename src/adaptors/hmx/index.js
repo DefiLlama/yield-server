@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const BigNumber = require('bignumber.js');
 
@@ -13,12 +13,12 @@ const blastUrl = 'https://blast-gapi.hmx.org/v1/apr-pools';
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/${addresses
         .join(',')
         .toLowerCase()}`
     )
-  ).body.coins;
+  ).data.coins;
 
   const pricesBySymbol = Object.entries(prices).reduce(
     (acc, [name, price]) => ({

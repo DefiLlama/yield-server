@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const BigNumber = require('bignumber.js').default;
 
@@ -56,10 +56,10 @@ async function apy() {
     'https://api.dex.persistence.one/v1/graphql',
     query
   );
-  const res = await superagent.get(
+  const res = await axios.get(
     'https://api.persistence.one/pstake/stkatom/apr'
   );
-  const pstakeApr = Number(res.text) * 100;
+  const pstakeApr = Number(res.data) * 100;
   let stakingApr = 0;
 
   const pools = {};

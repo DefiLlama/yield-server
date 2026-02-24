@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
@@ -16,10 +16,10 @@ const abi = {
 };
 
 const getAvaxPrice = async () => {
-  const pricesResponse = await superagent.get(
+  const pricesResponse = await axios.get(
     `https://coins.llama.fi/prices/current/avax:${AVAX_ADDRESS.toLowerCase()}`
   );
-  return pricesResponse.body.coins[`avax:${AVAX_ADDRESS.toLowerCase()}`].price;
+  return pricesResponse.data.coins[`avax:${AVAX_ADDRESS.toLowerCase()}`].price;
 };
 
 const fetchTotalPooledAvax = async () => {
@@ -32,10 +32,10 @@ const fetchTotalPooledAvax = async () => {
 };
 
 const fetchStakingApr = async () => {
-  const aprResponse = await superagent.get(
+  const aprResponse = await axios.get(
     'https://api.benqi.fi/liquidstaking/apr'
   );
-  return Number(aprResponse.body.apr);
+  return Number(aprResponse.data.apr);
 };
 
 const convertAprToApy = (apr) => {

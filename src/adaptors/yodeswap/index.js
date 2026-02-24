@@ -1,7 +1,7 @@
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
-const superagent = require('superagent');
+const axios = require('axios');
 const masterChefABI = require('./abis/masterchef.json');
 const lpABI = require('./abis/lp.json');
 const { chunk } = require('lodash');
@@ -80,14 +80,14 @@ const getPairInfo = async (pairs) => {
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/${addresses
         .map((address) => `bsc:${mapTokenDogeChaintoBSC[address]}`)
 
         .join(',')
         .toLowerCase()}`
     )
-  ).body.coins;
+  ).data.coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -210,8 +210,8 @@ const getApy = async () => {
   const tokensPrices = await getPrices([...tokens0, ...tokens1]);
   const yodeId = 'coingecko:yodeswap';
   const yodePrice = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${yodeId}`)
-  ).body.coins[yodeId].price;
+    await axios.get(`https://coins.llama.fi/prices/current/${yodeId}`)
+  ).data.coins[yodeId].price;
   tokensPrices[YODE_TOKEN.toLowerCase()] = yodePrice;
   const pairsInfo = await getPairInfo(lpTokens);
   const lpChunks = chunk(lpTokens, 10);
